@@ -8,7 +8,7 @@ import { FieldValueInput } from "../../panels/datatable/grid/FieldValueInput";
 afterEach(cleanup);
 
 describe("DateValueInput", () => {
-  it("merges native edits into the original zone/precision and switches ISO mode without committing blur", () => {
+  it("merges native edits into the original zone/precision and is the only editor (no ISO text mode)", () => {
     const change = vi.fn();
     const blur = vi.fn();
     function Host() {
@@ -37,17 +37,9 @@ describe("DateValueInput", () => {
     expect(view.getByText("UTC+09:00")).toBeTruthy();
     fireEvent.change(input, { target: { value: "2026-10-29T10:31:15.5" } });
     expect(change).toHaveBeenLastCalledWith("2026-10-29T10:31:15.500+09:00");
-    const toggle = view.getByRole("button", { name: "Edit ISO date and time" });
-    fireEvent.blur(input, { relatedTarget: toggle });
-    expect(blur).not.toHaveBeenCalled();
-    fireEvent.click(toggle);
-    expect(input.type).toBe("text");
-    expect(input.value).toBe("2026-10-29T10:31:15.500+09:00");
-    fireEvent.change(input, {
-      target: { value: "2026-10-29T12:31:15.123456789Z" },
-    });
+    // No ISO text mode (사용자 2026-11-12): the browser's picker is the only editor.
+    expect(view.queryByRole("button")).toBeNull();
     fireEvent.blur(input, { relatedTarget: null });
-    expect(change).toHaveBeenLastCalledWith("2026-10-29T12:31:15.123456789Z");
     expect(blur).toHaveBeenCalledTimes(1);
   });
 

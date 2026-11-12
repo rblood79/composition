@@ -39,6 +39,9 @@ const PARAM_KIND: Partial<
 > = {
   number: "number",
   string: "text",
+  // (ADR-309 Decision 7 — a date · time prop's Do asks for a date input, as its Design field.)
+  date: "date",
+  time: "date",
   icon: "icon",
   boolean: "boolean",
   enum: "choice",

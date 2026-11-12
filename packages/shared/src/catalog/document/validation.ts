@@ -39,6 +39,7 @@ import { catalogCalendarDurationFits } from "./valueType";
 import { isDateValueText } from "../../state/dateValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogNumberRangeFits } from "./numberRangeValue";
+import { catalogDateRangeFits } from "./dateRangeValue";
 import type { ComputedSchemaField } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
 
@@ -296,6 +297,8 @@ const valueTypes = new Set<ValueType>([
   "selectionCount",
   "selectionKeys",
   "selectionValue",
+  "dateRange",
+  "calendarValue",
   "autoFocus",
   "numberRange",
   "labeledValue",
@@ -736,7 +739,9 @@ function authoredValue(
     if (
       !catalogCalendarDurationFits(value) &&
       !catalogNumberFormatFits(value) &&
-      !catalogNumberRangeFits(value)
+      !catalogNumberRangeFits(value) &&
+      // ADR-309 — a date range's `{start, end}` ISO texts.
+      !catalogDateRangeFits(value)
     )
       invalid("INVALID_OBJECT_VALUE", at);
     return;
@@ -2345,7 +2350,11 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
               action.value.forEach((value, index) =>
                 scalar(value, `${at}.value[${index}]`),
               );
-            else if (!catalogNumberRangeFits(action.value))
+            else if (
+              !catalogNumberRangeFits(action.value) &&
+              // (ADR-309 — a date range Do's `{start, end}`.)
+              !catalogDateRangeFits(action.value)
+            )
               scalar(action.value, `${at}.value`);
           }
         } else invalid("UNKNOWN_ACTION_OPCODE", `${at}.opcode`);

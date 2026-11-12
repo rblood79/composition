@@ -5,15 +5,11 @@ import {
   type InputHTMLAttributes,
   type Ref,
 } from "react";
-import { Calendar } from "lucide-react";
-import { useOptionalI18n } from "@/i18n";
 import {
   dateValueFromNativeInput,
   nativeDateInputOf,
 } from "../../../../../../packages/shared/src/state/dateValueEditing";
 import { isDateValueText } from "../../../../../../packages/shared/src/state/dateValue";
-import { ToggleButton } from "react-aria-components/ToggleButton";
-import { ActionTooltipTrigger } from "../ui/ActionTooltip";
 import { Input } from "react-aria-components/Input";
 import "./DateValueInput.css";
 
@@ -27,29 +23,37 @@ interface DateValueInputProps extends Omit<
   inputRef?: Ref<HTMLInputElement>;
   /** A grid edit opens the picker under the activation that started the edit. */
   autoOpen?: boolean;
+  /**
+   * ADR-309 — the picker an empty value opens (a date field at a time granularity · a TimeField):
+   * an empty text has no shape of its own (default `date`).
+   */
+  emptyType?: "date" | "datetime-local" | "time";
 }
 
-/** One date editor for variables, the data grid and row/default forms. Only full ISO drafts leave it. */
+/**
+ * One date editor for variables, the data grid, row/default forms and the Design panel: the browser's
+ * date picker. A native edit keeps the value's zone and precision (`dateValueFromNativeInput`); the
+ * ISO text mode was removed (사용자 2026-11-12 — 「불필요한 기능」).
+ */
 export function DateValueInput({
   value,
   onValueChange,
   onBlur,
   inputRef,
   autoOpen,
+  emptyType,
   ...props
 }: DateValueInputProps) {
   const input = useRef<HTMLInputElement>(null);
-  const [iso, setIso] = useState(false);
   // Native segment editing can temporarily produce an empty value. Keep the edit envelope
   // through that draft so the input does not turn into a date-only field or lose its zone.
   const [context, setContext] = useState(value);
   if (value !== "" && value !== context) setContext(value);
   const source = value || context;
-  const native = nativeDateInputOf(source);
-  const i18n = useOptionalI18n();
-  const label = iso
-    ? (i18n?.t("datatable.dateEditPicker") ?? "Use date picker")
-    : (i18n?.t("datatable.dateEditIso") ?? "Edit ISO date and time");
+  const native =
+    source === "" && emptyType
+      ? { type: emptyType, value: "", step: undefined, zone: undefined }
+      : nativeDateInputOf(source);
   useLayoutEffect(() => {
     if (!autoOpen) return;
     input.current?.focus();
@@ -80,9 +84,9 @@ export function DateValueInput({
           if (typeof inputRef === "function") inputRef(element);
           else if (inputRef) inputRef.current = element;
         }}
-        type={iso ? "text" : native.type}
-        step={iso ? undefined : native.step}
-        value={iso || value === "" ? value : native.value}
+        type={native.type}
+        step={native.step}
+        value={value === "" ? value : native.value}
         aria-invalid={
           props["aria-invalid"] ||
           (value !== "" && !isDateValueText(value)) ||
@@ -90,33 +94,14 @@ export function DateValueInput({
         }
         title={native.zone ?? props.title}
         onChange={(event) =>
-          onValueChange(
-            iso
-              ? event.target.value
-              : dateValueFromNativeInput(source, event.target.value),
-          )
+          onValueChange(dateValueFromNativeInput(source, event.target.value))
         }
       />
-      {!iso && native.zone && (
+      {native.zone && (
         <span className="date-value-input__zone" title={native.zone}>
           {native.zone}
         </span>
       )}
-      {/* 누르는 동안 focus 는 입력에 둔다 (preventFocusOnPress — 칸의 onBlur 가 편집을 끝내지 않게) */}
-      <ActionTooltipTrigger tooltip={label}>
-        <ToggleButton
-          className="date-value-input__mode"
-          aria-label={label}
-          isSelected={iso}
-          preventFocusOnPress
-          onChange={(next) => {
-            setIso(next);
-            input.current?.focus();
-          }}
-        >
-          {iso ? <Calendar size={12} aria-hidden="true" /> : "ISO"}
-        </ToggleButton>
-      </ActionTooltipTrigger>
     </span>
   );
 }

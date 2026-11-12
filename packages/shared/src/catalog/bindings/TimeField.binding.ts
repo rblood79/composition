@@ -32,6 +32,19 @@ export const timeFieldBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-309 Decision 1 — the value the TimeField starts from (ISO text — `dateValueRead.ts`).
+      value: {
+        kind: "time",
+        label: "Value",
+        section: "value",
+      },
+      // (Code · AI may write the default form — one concept, one field: the panel shows `value`.)
+      defaultValue: {
+        kind: "time",
+        label: "Default Value",
+        section: "value",
+        editorHidden: true,
+      },
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",
@@ -104,8 +117,8 @@ export const timeFieldBinding: PrimitiveBinding = {
       },
       // 형제 대칭 (§1-3 2026-08-21): DateField minValue/maxValue 동형 — "HH:mm(:ss)"
       //   문자열, `delegatedDom.tsx` `timefield` 가 Time 으로 파싱 (`timeValue`).
-      minValue: { kind: "string", label: "Min Value", section: "content" },
-      maxValue: { kind: "string", label: "Max Value", section: "content" },
+      minValue: { kind: "time", label: "Min Value", section: "content" },
+      maxValue: { kind: "time", label: "Max Value", section: "content" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
@@ -149,7 +162,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         editorHidden: true,
       },
       placeholderValue: {
-        kind: "string",
+        kind: "time",
         label: "Placeholder value",
         section: "content",
       },

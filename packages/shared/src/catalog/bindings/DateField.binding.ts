@@ -34,6 +34,19 @@ export const dateFieldBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-309 Decision 1 — the value the DateField starts from (ISO text — `dateValueRead.ts`).
+      value: {
+        kind: "date",
+        label: "Value",
+        section: "value",
+      },
+      // (Code · AI may write the default form — one concept, one field: the panel shows `value`.)
+      defaultValue: {
+        kind: "date",
+        label: "Default Value",
+        section: "value",
+        editorHidden: true,
+      },
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",
@@ -111,8 +124,8 @@ export const dateFieldBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "content",
       },
-      minValue: { kind: "string", label: "Min Value", section: "content" },
-      maxValue: { kind: "string", label: "Max Value", section: "content" },
+      minValue: { kind: "date", label: "Min Value", section: "content" },
+      maxValue: { kind: "date", label: "Max Value", section: "content" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.datefield 가 소비 —
       //   RAC DateField 공식 prop. placeholderValue 는 ISO 문자열로 렌더러가 파싱.
       hourCycle: {
@@ -154,7 +167,7 @@ export const dateFieldBinding: PrimitiveBinding = {
         editorHidden: true,
       },
       placeholderValue: {
-        kind: "string",
+        kind: "date",
         label: "Placeholder value",
         section: "content",
       },

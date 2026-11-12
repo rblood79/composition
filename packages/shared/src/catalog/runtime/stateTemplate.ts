@@ -113,6 +113,9 @@ function variableType(
     return "number";
   if (type === "selectionKeys" || type === "autoFocus") return type;
   if (type === "object" || type === "array" || type === "date") return type;
+  // (ADR-309: a Calendar's value is a date variable's ISO text; a range is an object of two.)
+  if (type === "calendarValue") return "date";
+  if (type === "dateRange") return "object";
   return type === "string[]" || type === "items"
     ? "array"
     : type === "slot"

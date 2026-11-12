@@ -72,7 +72,11 @@ import {
   CATALOG_INHERITED_TEXT_KEYS,
   CATALOG_TEXT_STYLE_CONTAINERS,
 } from "./compositionRoot";
-import { catalogDateInputPaintProps, catalogRuleNodeData } from "./ruleShapes";
+import {
+  catalogCalendarGridPaintProps,
+  catalogDateInputPaintProps,
+  catalogRuleNodeData,
+} from "./ruleShapes";
 import { catalogPartParent, catalogTreeItemContent } from "./presence";
 import {
   catalogFieldBox,
@@ -1018,7 +1022,9 @@ function ruleShapeInput(
   const segments =
     node.bindingId === "dateinput"
       ? catalogDateInputPaintProps(root, node)
-      : undefined;
+      : node.bindingId === "calendargrid"
+        ? catalogCalendarGridPaintProps(root, node)
+        : undefined;
   // (A TreeItem whose row is its `TreeItemContent` — ADR-256 Phase 5h — leaves its chevron to the
   // content's `Button[slot=chevron]`, or to none.)
   const childPrimitive =

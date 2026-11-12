@@ -144,6 +144,12 @@ export type InspectorFieldKind =
   | "selection-keys"
   // ADR-308 — S2 Picker `value`: a key (single) or keys (multiple).
   | "selection-value"
+  // ADR-309 — a date family's ISO date · time text (`date` · `time`), a range's `{start, end}`
+  // (`date-range`), a Calendar's date or — `selectionMode: multiple` — dates (`date-list`).
+  | "date"
+  | "time"
+  | "date-range"
+  | "date-list"
   | "auto-focus"
   | "number-range"
   | "icon"

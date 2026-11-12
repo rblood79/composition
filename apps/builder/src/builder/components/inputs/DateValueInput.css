@@ -21,25 +21,6 @@
   color: var(--fg-muted);
 }
 
-.date-value-input__mode {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 var(--text-xl);
-  align-self: stretch;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--fg-muted);
-  font-size: var(--text-2xs);
-  cursor: pointer;
-}
-
-.date-value-input__mode:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
-}
-
 /* State rows have a narrow value column: retain input space and expose the zone by its title. */
 @container (max-width: 160px) {
   .date-value-input__zone {

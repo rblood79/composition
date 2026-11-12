@@ -88,6 +88,10 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "selection-count": "selectionCount",
   "selection-keys": "selectionKeys",
   "selection-value": "selectionValue",
+  date: "string",
+  time: "string",
+  "date-range": "dateRange",
+  "date-list": "calendarValue",
   "auto-focus": "autoFocus",
   "number-range": "numberRange",
 };

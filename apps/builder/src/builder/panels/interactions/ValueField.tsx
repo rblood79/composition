@@ -5,7 +5,7 @@
  * A picked source shows as a chip; the stored value is a whole-value reference (`valueRef.ts`),
  * so a row stays an object. A source whose shape does not fit the slot's type says so.
  */
-import { memo, useMemo, useState } from "react";
+import { lazy, memo, Suspense, useMemo, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { ListBoxItem } from "react-aria-components/ListBox";
 import { Braces, X } from "lucide-react";
@@ -15,6 +15,17 @@ import { PropertyFieldset } from "../../components/property/PropertyFieldset";
 import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { NumberRangeField } from "../properties/generic/NumberRangeField";
+// (ADR-309 — the date inputs load with their first use: not on a first screen, G3 c.)
+const DateValueField = lazy(() =>
+  import("../properties/generic/DateValueFields").then((module) => ({
+    default: module.DateValueField,
+  })),
+);
+const DateRangeField = lazy(() =>
+  import("../properties/generic/DateValueFields").then((module) => ({
+    default: module.DateRangeField,
+  })),
+);
 import { PropertySelect } from "../../components/property/PropertySelect";
 import {
   SearchablePicker,
@@ -42,7 +53,16 @@ const GROUP_LABEL = {
 interface ValueFieldProps {
   label: string;
   /** The literal's input kind (ADR-287 — `icon`: an icon name from the icon picker). */
-  kind: "text" | "number" | "number-range" | "boolean" | "icon";
+  kind:
+    | "text"
+    | "number"
+    | "number-range"
+    | "boolean"
+    | "icon"
+    // ADR-309 Decision 7 — a date · time (`emptyType` — the picker an empty value opens) · a range.
+    | "date"
+    | "date-range";
+  emptyType?: "date" | "datetime-local" | "time";
   /** ADR-287 — a `choice` slot's values (the catalog's): the literal is one of them. */
   choices?: readonly { value: string; label: string }[];
   value: unknown;
@@ -146,6 +166,7 @@ export const ValueField = memo(function ValueField({
   onChange,
   sources,
   expectedType,
+  emptyType = "date",
 }: ValueFieldProps) {
   const { t } = useI18n();
   const text = useOptionText();
@@ -186,11 +207,13 @@ export const ValueField = memo(function ValueField({
             onChange(
               kind === "number-range"
                 ? { start: 0, end: 100 }
-                : kind === "number"
-                  ? 0
-                  : kind === "boolean"
-                    ? false
-                    : "",
+                : kind === "date-range"
+                  ? undefined
+                  : kind === "number"
+                    ? 0
+                    : kind === "boolean"
+                      ? false
+                      : "",
             )
           }
         >
@@ -215,6 +238,35 @@ export const ValueField = memo(function ValueField({
     return (
       <div>
         <NumberRangeField label={label} value={value} onChange={onChange} />
+        {picker}
+      </div>
+    );
+  // ADR-309 Decision 7 (사용자 결정 4) — the Design panel's date input (`DateValueFields`).
+  if (kind === "date")
+    return (
+      <div className="interactions-value-date">
+        <Suspense fallback={null}>
+          <DateValueField
+            label={label}
+            value={value}
+            emptyType={emptyType}
+            onChange={(next) => onChange(next ?? "")}
+          />
+        </Suspense>
+        {picker}
+      </div>
+    );
+  if (kind === "date-range")
+    return (
+      <div className="interactions-value-date">
+        <Suspense fallback={null}>
+          <DateRangeField
+            label={label}
+            value={value}
+            emptyType={emptyType}
+            onChange={onChange}
+          />
+        </Suspense>
         {picker}
       </div>
     );

@@ -473,6 +473,10 @@ type PositionBaseline = {
   text?: CodeViewAnchor;
 };
 
+/** ADR-309 — an `@internationalized/date` parser call of an ISO text (the generator's date literal). */
+const DATE_CALL =
+  /parse(?:Date|DateTime|Time|ZonedDateTime)\(\s*('(?:[^'\\]|\\.)*')\s*\)|parseAbsolute\(\s*('(?:[^'\\]|\\.)*')\s*,\s*'UTC'\s*\)/g;
+
 class Planner {
   readonly steps: CatalogCommand[] = [];
   /** Where the last planned step's code starts (a refusal names that line). */
@@ -2741,7 +2745,9 @@ class Planner {
     const value = attribute.value;
     if (!value) return true;
     if (value.kind === "string") return value.code.replace(/\\(.)/g, "$1");
-    const text = value.code.trim();
+    // ADR-309 Decision 6 — a date prop's RAC values (`parseDate('…')` · `parseAbsolute('…', 'UTC')`)
+    // are their ISO texts: a date, a range's `{start, end}`, a Calendar's list read as the rest do.
+    const text = value.code.trim().replace(DATE_CALL, "$1$2");
     if (attribute.name === "slot" && text === "null") return false;
     // ADR-296 — a token prop (`token('<name>')`): the token the code names.
     const token = /^token\(('(?:[^'\\]|\\.)*')\)$/.exec(text);

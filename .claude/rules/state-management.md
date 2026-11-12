@@ -108,6 +108,7 @@ paths:
 ## 5. 상태 변수 (ADR-214)
 
 - **날짜 편집은 ISO 원본을 보존한다 (2026-11-02)**: 선택기용 날짜·시각은 저장 값이 아니라 투영이다. 변수 격자·State·데이터 격자·RowForm은 shared `dateValueFromNativeInput`으로 원본의 시간대·초·소수초와 편집 부분을 합쳐 기존 명령에 넘긴다. 무편집은 원문을 유지하며 DST의 없는 시각·offset 없는 중복 시각은 검증에서 거절한다. **Why**: `nativeDateInputOf`의 분 단위 `slice`와 host `Date` 변환 때문에 `10:30:15.500Z`를 편집하면 초·시간대가 사라졌다 (원복 RED 2건, 명령·Undo·IndexedDB 회귀).
+- **날짜 · 시각 값은 문서가 저장하고 읽는 함수는 하나다 (ADR-309, 2026-11-12)**: 날짜 계열 6종 (DateField · TimeField · DatePicker · DateRangePicker · Calendar · RangeCalendar) 의 `value` 는 ISO 글자 (범위 `{start, end}` · Calendar 다중 선택은 날짜 목록) 이고, DOM · Canvas (입력 글자 · 달력 모델) · dispatcher 시작 상태가 `catalog/runtime/dateValueRead.ts` 하나를 읽는다 — 시작 값 = `value`, 없으면 `defaultValue` (실행 중 값은 키 유무 — 지운 `null` 은 시작 값으로 돌아가지 않는다), 날짜만 있는 값 + 시각 단위 = 자정, Calendar 는 선택 모드에 맞춰 읽고 RAC 의 변경을 ISO 목록으로 쓴다 (빈 목록은 RAC 에 `null`). Canvas DateInput 은 owner 의 값을 파생 값 `_dateValue` 로 받아 owner 편집 때 다시 그려진다. **Why**: 날짜만 있는 값을 시각 단위 DateField 에 주면 RAC 가 렌더 중 예외를 던져 Preview 가 비었고, Calendar 다중 선택의 목록은 RAC 예외 · 쉼표로 이은 글자 저장이 됐다 (리뷰 round 1 반례, 원복 RED).
 - **날짜 runtime 파서도 값 모양을 따른다 (2026-11-02)**: RAC DateValue prop은 `parseDateValue`의 date/dateTime/zoned 분기를 쓰고, time-only는 날짜 컴포넌트에 넘기지 않는다. **Why**: 날짜 전용 `parseDate`로 `2026-11-06T00:00:00`을 읽으면 정상적인 달력 선택이 파싱 오류와 빈 입력으로 돌아왔다 (원복 RED, DateField·DatePicker·DateRangePicker DOM 회귀, 한국어·Second Preview 실측).
 
 - **모델**: `VariableDef` (`packages/shared/src/state/`). 소유자별 저장 —

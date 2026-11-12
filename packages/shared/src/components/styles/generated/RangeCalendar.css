@@ -129,6 +129,11 @@
   background: transparent;
 }
 
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-disabled]) {
+  color: var(--fg-disabled);
+  cursor: not-allowed;
+}
+
 .react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-focus-visible]) {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;

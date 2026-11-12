@@ -1778,6 +1778,8 @@ function calendarGridModel(value: unknown):
       weekdays: string[];
       rows: string[][];
       today?: [number, number];
+      selected?: [number, number, string][];
+      disabled?: [number, number][];
     }
   | undefined {
   if (typeof value !== "string" || !value) return undefined;
@@ -1793,6 +1795,8 @@ function calendarGridModel(value: unknown):
       weekdays: string[];
       rows: string[][];
       today?: [number, number];
+      selected?: [number, number, string][];
+      disabled?: [number, number][];
     };
   } catch {
     return undefined;
@@ -1847,12 +1851,76 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
     });
     const [todayRow, todayCol] =
       props.defaultToday === true && model.today ? model.today : [-1, -1];
+    // ADR-309 Decision 4 — the selected cells (the calendar model — RAC's `data-selected` ·
+    // `-selection-start` · `-end`), in the calendar rule's paint (`_selectedFill` … — the Builder
+    // reads the rule's day-cell state tree). A range's band runs along each week row (`td::before` —
+    // every run ends at a range end, a week edge or a month edge, so each is a pill), under the
+    // ends' circles.
+    const selection = new Map<string, string>();
+    for (const [row, col, how] of model.selected ?? [])
+      selection.set(`${row}:${col}`, how);
+    const selectedFill = props._selectedFill as ColorValue | undefined;
+    const selectedText = props._selectedText as ColorValue | undefined;
+    const bandFill = props._bandFill as ColorValue | undefined;
+    const bandBorder = props._bandBorder as ColorValue | undefined;
+    // ADR-309 — a day RAC disables (outside Min · Max) in the rule's disabled text color.
+    const disabled = new Set(
+      (model.disabled ?? []).map(([row, col]) => `${row}:${col}`),
+    );
+    const disabledText = props._disabledText as ColorValue | undefined;
+    model.rows.forEach((cells, row) => {
+      let runStart = -1;
+      const inBand = (col: number) => {
+        const how = selection.get(`${row}:${col}`);
+        return how === "start" || how === "end" || how === "middle";
+      };
+      for (let col = 0; col <= cells.length; col++) {
+        const banded = col < cells.length && !!cells[col] && inBand(col);
+        if (banded && runStart < 0) runStart = col;
+        if (!banded && runStart >= 0) {
+          const top = gridStartY + row * cellBox + CELL_PAD;
+          const id = `range-band-${row}-${runStart}`;
+          shapes.push({
+            id,
+            type: "roundRect" as const,
+            x: runStart * cellBox + CELL_PAD,
+            y: top,
+            width: (col - runStart) * cellBox - CELL_PAD * 2,
+            height: cellSize,
+            radius: cellSize / 2,
+            fill: bandFill ?? ("{color.accent-subtle}" as TokenRef),
+          });
+          shapes.push({
+            type: "border" as const,
+            target: id,
+            borderWidth: 1,
+            color: bandBorder ?? ("{color.focus-ring}" as TokenRef),
+            radius: cellSize / 2,
+          });
+          runStart = -1;
+        }
+      }
+    });
     model.rows.forEach((cells, row) => {
       cells.forEach((day, col) => {
         if (!day) return;
         const cellLeft = col * cellBox + CELL_PAD;
         const cy = gridStartY + row * cellBox + CELL_PAD + cellSize / 2;
         const isToday = row === todayRow && col === todayCol;
+        const how = selection.get(`${row}:${col}`);
+        const filled =
+          how === "selected" ||
+          how === "start" ||
+          how === "end" ||
+          how === "startEnd";
+        if (filled)
+          shapes.push({
+            type: "circle" as const,
+            x: cellLeft + cellSize / 2,
+            y: cy,
+            radius: cellSize / 2,
+            fill: selectedFill ?? ("{color.accent}" as TokenRef),
+          });
         shapes.push({
           type: "text" as const,
           x: cellLeft,
@@ -1861,7 +1929,11 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
           fontSize,
           fontFamily: ff,
           fontWeight: isToday ? 700 : 400,
-          fill: textColor,
+          fill: filled
+            ? (selectedText ?? ("{color.on-accent}" as TokenRef))
+            : disabled.has(`${row}:${col}`)
+              ? (disabledText ?? ("{color.disabled-content}" as TokenRef))
+              : textColor,
           align: "center" as const,
           baseline: "middle" as const,
           maxWidth: cellSize,
@@ -1873,7 +1945,10 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
             x: cellLeft + cellSize / 2,
             y: cy + cellSize / 2 - 4,
             radius: 3,
-            fill: "{color.accent}" as TokenRef,
+            fill: filled
+              ? ((props._selectedTodayDot as ColorValue | undefined) ??
+                ("{color.on-accent}" as TokenRef))
+              : ("{color.accent}" as TokenRef),
           });
       });
     });
@@ -2118,14 +2193,24 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   //   자기 위치에 그린다 — 편집 세그먼트는 owner `[data-placeholder]` 색, literal 은 field 색.
   //   run 이 없으면 (측정기 없는 소비자) 근사 placeholder 문자열 하나로 그린다.
   const runs = Array.isArray(p._segmentRuns)
-    ? (p._segmentRuns as Array<{ text: string; x: number; editable: boolean }>)
+    ? (p._segmentRuns as Array<{
+        text: string;
+        x: number;
+        editable: boolean;
+        placeholder?: boolean;
+      }>)
     : undefined;
   const placeholderFill =
     (p._segmentPlaceholderFill as ColorValue | undefined) ?? textColor;
   const placeholderItalic = p._segmentPlaceholderItalic === true;
   const segmentTexts = (x: number): Shape[] =>
-    (runs?.length ? runs : [{ text: displayText, x, editable: false }]).map(
-      (run) => ({
+    (runs?.length
+      ? runs
+      : [{ text: displayText, x, editable: false, placeholder: undefined }]
+    ).map((run) => {
+      // (ADR-309: a segment showing the value is the field's text — not the placeholder paint.)
+      const empty = run.editable && run.placeholder !== false;
+      return {
         type: "text" as const,
         x: run.x,
         y: 0,
@@ -2133,16 +2218,14 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
         fontSize,
         fontFamily: ff,
         fontWeight: 400,
-        fill: run.editable ? placeholderFill : textColor,
-        ...(run.editable && placeholderItalic
-          ? { fontStyle: "italic" as const }
-          : {}),
+        fill: empty ? placeholderFill : textColor,
+        ...(empty && placeholderItalic ? { fontStyle: "italic" as const } : {}),
         align: "left" as const,
         baseline: "middle" as const,
         verticalAlign: textVerticalAlign,
         whiteSpace: "nowrap" as const,
-      }),
-    );
+      };
+    });
 
   // ADR-253: DateInput 은 어느 부모 안에서든 자기 노드 값으로 상자를 그린다 (DateInput 원본의 instance).
   //   DatePicker 의 DateInput 은 상자이고, DateRangePicker 의 start · end 는 template 이 상자를 지운 자리다

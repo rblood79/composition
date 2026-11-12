@@ -1093,6 +1093,10 @@ const catalog: TranslationKeys = {
     racColorInvalid:
       "Use #rrggbb · rgb(r, g, b) · hsl(h, s%, l%) · hsb(h, s%, b%)",
     durationUnit: "Unit",
+    // ADR-309 — the date family's Value · Min · Max · Placeholder fields.
+    dateAdd: "Add date",
+    dateRemove: "Remove date",
+    dateUnreadable: "Not a date — kept as written",
     numberFormatInvalid: "Not a value this format takes",
     calendarPickerNotice:
       "State, bounds, page behavior and first day are edited on the {picker}",
@@ -2105,8 +2109,6 @@ const catalog: TranslationKeys = {
     undo: "Undo",
   },
   datatable: {
-    dateEditIso: "Edit ISO date and time",
-    dateEditPicker: "Use date picker",
     tabs: "DataTable tabs",
     tableTabs: "Table tabs",
     apiTabs: "API tabs",

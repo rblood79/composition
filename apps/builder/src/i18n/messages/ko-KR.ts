@@ -1092,6 +1092,10 @@ const catalog: TranslationKeys = {
     racColorInvalid:
       "#rrggbb · rgb(r, g, b) · hsl(h, s%, l%) · hsb(h, s%, b%) 형식만 받습니다",
     durationUnit: "단위",
+    // ADR-309 — the date family's Value · Min · Max · Placeholder fields.
+    dateAdd: "날짜 추가",
+    dateRemove: "날짜 삭제",
+    dateUnreadable: "날짜로 읽을 수 없는 값 — 적힌 그대로 둡니다",
     numberFormatInvalid: "이 서식이 받지 않는 값입니다",
     calendarPickerNotice:
       "상태 · 범위 · 페이지 동작 · 첫 요일은 {picker} 에서 편집합니다",
@@ -2100,8 +2104,6 @@ const catalog: TranslationKeys = {
     undo: "실행 취소",
   },
   datatable: {
-    dateEditIso: "ISO 날짜·시간 편집",
-    dateEditPicker: "날짜 선택기 사용",
     tabs: "DataTable 탭",
     tableTabs: "테이블 탭",
     apiTabs: "API 탭",

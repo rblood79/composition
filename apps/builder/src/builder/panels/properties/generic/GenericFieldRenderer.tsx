@@ -24,7 +24,14 @@ import { AutoFocusField } from "./AutoFocusField";
  * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
-import { memo, useCallback, useMemo, type ReactNode } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/rendering";
@@ -800,6 +807,12 @@ const CalendarDurationField = memo(function CalendarDurationField({
   );
 });
 
+/**
+ * ADR-309 — the date family's fields (`DateKindField` — `DateValueInput`) load with their first
+ * use: the date input is not on the panel's first screen (Builder initial bundle, G3 c).
+ */
+const DateKindField = lazy(() => import("./DateKindField"));
+
 /** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
 /** A prop value that reads a variable (ADR-284 Phase 6 — `{ kind: "var" }` · `{ kind: "when" }`). */
 const isVariableFollow = (value: unknown): boolean =>
@@ -1066,6 +1079,22 @@ const GenericField = memo(function GenericField({
     case "number-range":
       return (
         <NumberRangeField label={field.label} value={value} onChange={update} />
+      );
+
+    // ADR-309 Decision 5 — the date family's value · bounds · placeholder (`DateValueInput`).
+    case "date":
+    case "time":
+    case "date-range":
+    case "date-list":
+      return (
+        <Suspense fallback={null}>
+          <DateKindField
+            field={field}
+            value={value}
+            elementId={elementId}
+            onChange={update}
+          />
+        </Suspense>
       );
 
     // ADR-256 Phase 9 — a count + Days · Weeks · Months, one object write.

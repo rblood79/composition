@@ -27,6 +27,19 @@ export const rangeCalendarBinding: PrimitiveBinding = {
   skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
+      // ADR-309 Decision 1 — the value the RangeCalendar starts from (ISO text — `dateValueRead.ts`).
+      value: {
+        kind: "date-range",
+        label: "Value",
+        section: "value",
+      },
+      // (Code · AI may write the default form — one concept, one field: the panel shows `value`.)
+      defaultValue: {
+        kind: "date-range",
+        label: "Default Value",
+        section: "value",
+        editorHidden: true,
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       // design-data 감사 §1-3 (2026-08-21): Calendar 만 노출 중이던 3종 대칭 회복.
@@ -46,8 +59,8 @@ export const rangeCalendarBinding: PrimitiveBinding = {
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `rangecalendar` 가 소비 —
       //   RAC RangeCalendar 공식 prop. min/maxValue 는 ISO 문자열로 렌더러가 파싱.
-      minValue: { kind: "string", label: "Min Value", section: "content" },
-      maxValue: { kind: "string", label: "Max Value", section: "content" },
+      minValue: { kind: "date", label: "Min Value", section: "content" },
+      maxValue: { kind: "date", label: "Max Value", section: "content" },
       errorMessage: {
         kind: "string",
         label: "Error Message",

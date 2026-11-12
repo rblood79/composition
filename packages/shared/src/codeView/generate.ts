@@ -25,6 +25,7 @@ import { descendantPatchOf } from "../catalog/document/types";
 import { catalogActionsDeep } from "../catalog/document/interactionActions";
 import { getPrimitiveBinding } from "../catalog/bindings";
 import { parseDateValue, type DateValueKind } from "../state/dateValue";
+import { CATALOG_DATE_VALUE_TYPES } from "../catalog/runtime/delegatedDom.runtime";
 import { definitionTypeName } from "../catalog/commands/context";
 import {
   getReusableEntries,
@@ -254,6 +255,15 @@ function isSelectionVariable(
     ),
   );
 }
+
+/** ADR-309 — the date family's props written as RAC date values in the code. */
+const CODE_DATE_PROPS: ReadonlySet<string> = new Set([
+  "value",
+  "defaultValue",
+  "minValue",
+  "maxValue",
+  "placeholderValue",
+]);
 
 /** A date variable's start in code — the `@internationalized/date` parser of its text's shape. */
 const DATE_PARSE_FN: Record<DateValueKind, string> = {
@@ -1156,27 +1166,47 @@ class Generator {
         ? "null"
         : literal(entry.defaultValue);
     }
-    if (entry.valueType === "date") {
-      // (RAC's date values — `parseDate('2026-10-29')` · `parseTime('10:00')` …; none = `null`.)
-      const parsed =
-        typeof entry.defaultValue === "string"
-          ? parseDateValue(entry.defaultValue)
-          : undefined;
-      if (!parsed) return "null";
-      // (An instant written with `Z` · an offset is read in UTC — `parseZonedDateTime` takes only
-      //   the bracketed zone form, review 2026-10-29.)
-      if (
-        parsed.kind === "zoned" &&
-        !String(entry.defaultValue).includes("[")
-      ) {
-        this.import("@internationalized/date", "parseAbsolute");
-        return `parseAbsolute(${literal(entry.defaultValue)}, 'UTC')`;
-      }
-      const fn = DATE_PARSE_FN[parsed.kind];
-      this.import("@internationalized/date", fn);
-      return `${fn}(${literal(entry.defaultValue)})`;
-    }
+    if (entry.valueType === "date")
+      return this.dateExpression(entry.defaultValue) ?? "null";
     return literal(entry.defaultValue);
+  }
+
+  /**
+   * RAC's date value for an ISO text — `parseDate('2026-10-29')` · `parseTime('10:00')` … (a date
+   * variable's start, ADR-309 a date prop's literal); none for a text that reads as no date.
+   */
+  private dateExpression(value: unknown): string | undefined {
+    const parsed = typeof value === "string" ? parseDateValue(value) : undefined;
+    if (!parsed) return undefined;
+    // (An instant written with `Z` · an offset is read in UTC — `parseZonedDateTime` takes only
+    //   the bracketed zone form, review 2026-10-29.)
+    if (parsed.kind === "zoned" && !String(value).includes("[")) {
+      this.import("@internationalized/date", "parseAbsolute");
+      return `parseAbsolute(${literal(value)}, 'UTC')`;
+    }
+    const fn = DATE_PARSE_FN[parsed.kind];
+    this.import("@internationalized/date", fn);
+    return `${fn}(${literal(value)})`;
+  }
+
+  /**
+   * ADR-309 Decision 6 — a date family prop as RAC takes it: a date (`value={parseDate('…')}`), a
+   * range (`{{start: parseDate('…'), end: parseDate('…')}}`), a Calendar's dates (`{[parseDate('…')]}`).
+   * A text that reads as no date stays the text it is (`propCode`).
+   */
+  private datePropCode(value: unknown): string | undefined {
+    if (Array.isArray(value)) {
+      const dates = value.map((date) => this.dateExpression(date));
+      return dates.every(Boolean) ? `{[${dates.join(", ")}]}` : undefined;
+    }
+    if (value && typeof value === "object" && !("kind" in value)) {
+      const { start, end } = value as { start?: unknown; end?: unknown };
+      const from = this.dateExpression(start);
+      const to = this.dateExpression(end);
+      return from && to ? `{{start: ${from}, end: ${to}}}` : undefined;
+    }
+    const date = this.dateExpression(value);
+    return date ? `{${date}}` : undefined;
   }
 
   /* ── collections ── */
@@ -3179,7 +3209,11 @@ class Generator {
         );
         continue;
       }
-      const code = this.propCode(value, row, prop);
+      const code =
+        (CODE_DATE_PROPS.has(prop) &&
+        CATALOG_DATE_VALUE_TYPES.has(this.doc.typeOf(node))
+          ? this.datePropCode(value)
+          : undefined) ?? this.propCode(value, row, prop);
       if (code !== undefined)
         attribute(property ? componentPropertyCodeName(property) : prop, code);
     }

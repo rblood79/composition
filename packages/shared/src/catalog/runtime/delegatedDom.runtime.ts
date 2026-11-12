@@ -195,7 +195,15 @@ import { Tree, TreeItem } from "../../components/Tree";
 
 import { FileTriggerIntake } from "../../upload/intakeAdapters";
 
-import { safeParseDateString } from "../../utils/core/dateUtils";
+import {
+  catalogCalendarFirstDate,
+  catalogCalendarOverride,
+  catalogCalendarValue,
+  catalogDateRange,
+  catalogDateStartValue,
+  catalogDateValue,
+  catalogTimeValue,
+} from "./dateValueRead";
 
 import { allowsMultipleExpanded } from "../../utils/accordionExpansion";
 
@@ -1531,33 +1539,22 @@ const firstDayOfWeek = (value: unknown) =>
 
 /**
  * A placeholder date the document wrote as text (`2030-03-15`), at the field's granularity: RAC
- * throws on a date-only value at a time granularity (`Invalid granularity minute for value …` —
- * the Preview went blank), so a time field's placeholder is that day at midnight.
+ * throws on a date-only value at a time granularity, so a time field's placeholder is that day at
+ * midnight (ADR-309 — `catalogDateValue`, the same fit as the value's).
  */
-const placeholderDate = (value: unknown, granularity: unknown) => {
-  const date =
-    typeof value === "string" ? safeParseDateString(value) : undefined;
-  if (!date) return undefined;
-  return ["hour", "minute", "second"].includes(String(granularity))
-    ? toCalendarDateTime(date)
-    : date;
-};
+const placeholderDate = (value: unknown, granularity: unknown) =>
+  catalogDateValue(value, granularity);
 
-/** A date prop the document wrote as text (`2026-10-08`), parsed for RAC. */
-const dateValue = (value: unknown) =>
-  typeof value === "string" ? safeParseDateString(value) : value;
+/** A date prop the document wrote as text (`2026-10-08`), parsed for RAC (ADR-309 — one reader). */
+const dateValue = (value: unknown, granularity?: unknown) =>
+  catalogDateValue(value, granularity);
 
 /** ADR-280 — a RAC date · time value as the record's runtime `value` (its ISO text). */
 const dateToOverride = (next: unknown) => (next == null ? null : String(next));
 
 /** A date range as RAC takes it (`{ start, end }` of dates), else none (`null`). */
-function dateRangeValue(value: unknown): unknown {
-  if (!value || typeof value !== "object") return null;
-  const { start, end } = value as { start?: unknown; end?: unknown };
-  const from = dateValue(start);
-  const to = dateValue(end);
-  return from && to ? { start: from, end: to } : null;
-}
+const dateRangeValue = (value: unknown, granularity?: unknown) =>
+  catalogDateRange(value, granularity);
 
 const dateRangeToOverride = (next: unknown) => {
   if (!next || typeof next !== "object") return null;
@@ -1585,19 +1582,12 @@ const datePickerProps = (props: CatalogConsumerNode["props"]) => ({
   validationBehavior: props.validationBehavior || undefined,
 });
 
-/** A time prop the document wrote as text (`HH:MM(:SS)`), parsed for RAC. */
-function timeValue(value: unknown): unknown {
-  if (typeof value !== "string") return value || undefined;
-  const [hour, minute, second] = value
-    .split(":")
-    .map((part) => parseInt(part, 10));
-  return hour !== undefined &&
-    minute !== undefined &&
-    !isNaN(hour) &&
-    !isNaN(minute)
-    ? new Time(hour, minute, second && !isNaN(second) ? second : 0)
-    : undefined;
-}
+/**
+ * A time prop the document wrote as text, parsed for RAC (ADR-309 — one reader): a time
+ * (`10:30`), or the time of a date and time (RAC's `TimeValue` takes it as it is — the old
+ * `HH:MM` split read `2026-11-12T10:30` as hour 2026).
+ */
+const timeValue = (value: unknown): unknown => catalogTimeValue(value);
 
 /**
  * Marker for components that render no DOM of their own or drop DOM props (FileTrigger renders
@@ -2586,7 +2576,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     "DatePicker",
     (props) => ({
       ...datePickerProps(props),
-      defaultValue: dateValue(props.value) ?? null,
+      // (ADR-309 Decision 1 — the start value: `value`, else `defaultValue`, at the granularity.)
+      defaultValue:
+        dateValue(catalogDateStartValue(props), props.granularity) ?? null,
       hourCycle: num(props.hourCycle),
       "aria-label": str(props.label).trim() ? undefined : "Date Picker",
     }),
@@ -2600,7 +2592,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     "DateRangePicker",
     (props) => ({
       ...datePickerProps(props),
-      defaultValue: dateRangeValue(props.value),
+      defaultValue: dateRangeValue(
+        catalogDateStartValue(props),
+        props.granularity,
+      ),
       hourCycle: num(props.hourCycle),
       allowsNonContiguousRanges: bool(props.allowsNonContiguousRanges),
       startName: opt(props.startName),
@@ -2625,7 +2620,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     AriaDateField,
     "DateField",
     (props) => ({
-      defaultValue: dateValue(props.value) ?? null,
+      defaultValue:
+        dateValue(catalogDateStartValue(props), props.granularity) ?? null,
       hideTimeZone: props.hideTimeZone !== false,
       shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
       minValue: dateValue(props.minValue),
@@ -2650,7 +2646,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     AriaTimeField,
     "TimeField",
     (props) => ({
-      defaultValue: timeValue(props.value) ?? null,
+      defaultValue: timeValue(catalogDateStartValue(props)) ?? null,
       hourCycle: num(props.hourCycle) ?? 24,
       placeholderValue: timeValue(props.placeholderValue),
       minValue: timeValue(props.minValue),
@@ -3911,13 +3907,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...(catalogCalendarPicker(input.root, input.node)
           ? {}
           : {
+              // (ADR-309 Decision 1 — the start value in the selection mode: a date, or the dates
+              //  of `multiple`, read and written as lists; RAC focuses the first.)
               ...controlled(
                 input,
                 VALUE,
-                dateValue(props.value ?? props.defaultValue) ?? null,
-                dateToOverride,
+                catalogCalendarValue(
+                  catalogDateStartValue(props),
+                  props.selectionMode,
+                ),
+                (next) => catalogCalendarOverride(next, props.selectionMode),
               ),
-              ...focusedDateProps(input, props.value ?? props.defaultValue),
+              ...focusedDateProps(
+                input,
+                catalogCalendarFirstDate(catalogDateStartValue(props)),
+              ),
             }),
       });
     },
@@ -3936,16 +3940,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ...controlled(
                 input,
                 VALUE,
-                dateRangeValue(input.node.props.value),
+                dateRangeValue(catalogDateStartValue(input.node.props)),
                 dateRangeToOverride,
               ),
               ...focusedDateProps(
                 input,
-                (
-                  dateRangeValue(input.node.props.value) as {
-                    start?: unknown;
-                  } | null
-                )?.start,
+                dateRangeValue(catalogDateStartValue(input.node.props))?.start,
               ),
             }),
       }),
@@ -4149,6 +4149,18 @@ export function catalogStateSourceValue(
             ? list
             : (list[0] ?? null);
       }
+      // ADR-309 Decision 1 — a date component starts from `value`, else `defaultValue` (the render
+      // reads the same — `catalogDateStartValue`); a Calendar's in its selection mode.
+      if (type === "Calendar")
+        return catalogCalendarOverride(
+          catalogCalendarValue(
+            catalogDateStartValue(props),
+            props.selectionMode,
+          ),
+          props.selectionMode,
+        );
+      if (CATALOG_DATE_VALUE_TYPES.has(type))
+        return catalogDateStartValue(props) ?? null;
       if (type === "Slider") return catalogSliderRange(node).value;
       if (type === "RangeSlider") {
         const { min, max } = catalogSliderRange(node);
@@ -4165,6 +4177,16 @@ export function catalogStateSourceValue(
       return props[prop];
   }
 }
+
+/** ADR-309 — the date family whose `value` · `defaultValue` the document stores (`dateValueRead.ts`). */
+export const CATALOG_DATE_VALUE_TYPES: ReadonlySet<string> = new Set([
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
+  "Calendar",
+  "RangeCalendar",
+]);
 
 export const CATALOG_DELEGATED_DOM: Readonly<
   Record<string, DelegatedDomBinding>

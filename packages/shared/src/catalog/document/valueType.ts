@@ -12,6 +12,10 @@ import {
   catalogSelectionValueFits,
 } from "./selectionKeysValue";
 import { catalogAutoFocusFits } from "./autoFocusValue";
+import {
+  catalogCalendarValueFits,
+  catalogDateRangeFits,
+} from "./dateRangeValue";
 import { isRichText } from "./textRuns";
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
@@ -32,6 +36,8 @@ export function scalarFitsType(
   if (type === "selectionCount") return catalogSelectionCountFits(value);
   if (type === "selectionKeys") return catalogSelectionKeysFits(value);
   if (type === "selectionValue") return catalogSelectionValueFits(value);
+  if (type === "dateRange") return false;
+  if (type === "calendarValue") return typeof value === "string";
   if (type === "autoFocus") return catalogAutoFocusFits(value);
   if (type === "labeledValue") return catalogLabeledValueFits(value);
   if (type === "labeledFormat") return catalogLabeledFormatFits(value);
@@ -62,6 +68,8 @@ export function catalogPropValueFits(value: unknown, type: string): boolean {
   if (type === "numberRange") return catalogNumberRangeFits(value);
   if (type === "selectionKeys") return catalogSelectionKeysFits(value);
   if (type === "selectionValue") return catalogSelectionValueFits(value);
+  if (type === "dateRange") return catalogDateRangeFits(value);
+  if (type === "calendarValue") return catalogCalendarValueFits(value);
   if (type === "autoFocus") return catalogAutoFocusFits(value);
   if (type === "slot") return scalarFitsType(value, type);
   if (type === "string[]")

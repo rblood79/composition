@@ -49,7 +49,10 @@ export interface CapabilityParam {
     | "number"
     | "number-range"
     | "choice"
-    | "icon";
+    | "icon"
+    // ADR-309 Decision 7 (사용자 결정 4) — an ISO date · time (the panel's date input) · a range.
+    | "date"
+    | "date-range";
   /** 입력 레이블의 카탈로그 키 (`labelKey` 와 같은 이유로 문구가 아니다) */
   labelKey: string;
   /**

@@ -1,5 +1,13 @@
 /** Lossless ISO authoring adapter. Kept separate from runtime date parsing. */
-import { parseZonedDateTime } from "@internationalized/date";
+import {
+  parseDate,
+  parseDateTime,
+  parseTime,
+  parseZonedDateTime,
+  type CalendarDate,
+  type CalendarDateTime,
+  type Time,
+} from "@internationalized/date";
 import { isDateValueText, parseDateValue } from "./dateValue";
 
 const TIME_ONLY = /^\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
@@ -139,4 +147,22 @@ export function dateValueFromNativeInput(
   } catch {
     return candidate;
   }
+}
+
+/**
+ * A picker projection as the RAC date picker's value (the wall clock it edits): a date, a date and
+ * time, or a time; null when empty or not a date. Edits go back through dateValueFromNativeInput.
+ */
+export function pickerValueOf(
+  native: NativeDateInput,
+): CalendarDate | CalendarDateTime | Time | null {
+  if (native.value === "") return null;
+  try {
+    if (native.type === "date") return parseDate(native.value);
+    if (native.type === "datetime-local") return parseDateTime(native.value);
+    if (native.type === "time") return parseTime(native.value);
+  } catch {
+    /* not a date */
+  }
+  return null;
 }

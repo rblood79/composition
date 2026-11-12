@@ -2,7 +2,19 @@
 
 ## Status
 
-Proposed — 2026-11-12
+Implemented — 2026-11-12 (Accepted 같은 날 — `/execute-adr 309` · 리뷰 round 2 pending 0 — `docs/adr/reviews/309.md`)
+
+> **Phase 3 닫힘 (2026-11-12)**: Code 보기 — 6종의 날짜 속성을 `parseDate('…')` 계열 · 범위 `{{start, end}}` · Calendar 목록으로 쓰고 다시 읽는다 (`generate.ts` `datePropCode` · `codeViewEdit.ts` `DATE_CALL`). 규칙 날짜 인자 — `CapabilityParam` `date` · `date-range`, Interactions Value 칸이 Design 패널의 날짜 입력 (사용자 결정 4). 번들 첫 측정 Builder +4,678 B (상한 초과 — `DateValueInput` 이 첫 번들로 들어옴) → 날짜 칸을 lazy 경계 뒤로 → Builder +3,907 · Preview +325 B. G3 — (a) Code 왕복 9 (원복 RED 2/2) (b) 규칙 인자 2 (c) 번들 Δ 상한 안 (d) type-check · shared 2,468 · rendering 1,280 · builder 8,790 통과 (부하 시간 초과 2 파일은 단독 통과) (e) live. 상세: breakdown §6.
+
+> **Phase 2 닫힘 (2026-11-12)**: Canvas 가 값을 그린다 — DateInput 은 owner 의 시작 값 (파생 `_dateValue`) 을 RAC `getFormatOptions` 대로 (2자리 · 12/24 시 · 시간대 · 달력 체계), 달력은 선택 원 · 범위 띠 (rule 의 CalendarCell 선택 상태 · `td::before` 띠 색) 와 보이는 달 (혼자 선 달력 F7 · picker F15). 패널 — Value 칸 (`date` · `time` · `date-range` · `date-list`, `DateValueInput`) 과 Min · Max · Placeholder 날짜 칸, 읽을 수 없는 글자 보존. G2 — (a) 입력 19 · 달력 9 · picker 2 사례 Canvas = 설치 RAC (b) 편집 · Undo · Redo = 새 bind 7 (c) 칸 7 (d) live 6종 (Canvas = Publish · 새로고침 · 콘솔 0). 원복 RED 21 · 13 · 2 · 10. live 중 수리 2 (범위 칸 폭 · 목록 행 폭) · 스위트 수리 2 (유도 Do 16 · 달력 모델 기준). 상세: breakdown §6.
+
+> **사용자 결정 4 (2026-11-12, Phase 3 착수 전 AskUserQuestion)**: 규칙 (Do) 의 날짜 인자 — 6종의 값 · Min · Max · Placeholder 정하기 — 를 날짜 입력으로 바꾼다 (권고안).
+
+> **사용자 결정 1 · 2 · 3 · 5 (2026-11-12, Phase 2 착수 전 AskUserQuestion)**: 1 = 패널 날짜 입력은 `DateValueInput` 재사용 · 2 = 시간대 포함 값을 패널에서 받는다 · 3 = 상대 날짜 (「오늘」) 는 이번 범위 밖 · 5 = Calendar 다중 선택의 Value 칸은 날짜 목록 (추가 · 삭제). 넷 다 권고안.
+
+> **Phase 1 닫힘 (2026-11-12)**: 6종이 `value` · `defaultValue` 를 받는다 (값 형 `string` · 새 `dateRange` · `calendarValue`, 칸 종류 `date` · `time` · `date-range` · `date-list` — 패널 칸은 Phase 2 까지 숨김). 읽는 함수 하나 `runtime/dateValueRead.ts` 를 DOM · Canvas 달력 · dispatcher 시작 상태가 읽는다 — 시작 값 = `value`, 없으면 `defaultValue` (실행 중 값은 키 유무), Calendar 는 선택 모드별 양방향 변환 (ISO 목록 ↔ 날짜 목록, 빈 목록 = RAC `null`), 날짜만 있는 값 + 시각 단위 = 자정. 결함 3 수리: 날짜만 있는 값 + 시각 단위의 렌더 예외 (6 조합, R3) · TimeField 의 날짜+시각 값 23:30 (`HH:MM` 자르기) · 다중 모드 빈 목록의 RAC 예외. G1 — (a) 6종 수용 (b) 대조표 「유지」 입력 동일 (c) granularity 6 조합 오류 0 (d) shared 2,462 (+ 기존 Toast 1) · builder 8,729 통과 (부하 시간 초과 3 파일은 단독 통과) (e) Calendar 다중 렌더 · 저장 · 빈 목록 · 모드 전환 (f) `defaultValue` 시작 값 · 지운 값. 원복 RED 16/16. 상세: breakdown §6.
+
+> **Phase 0 닫힘 (2026-11-12)**: G0 — 설치 타입 표 = breakdown §2 (TimeField 는 날짜+시각 값도 받음). 읽는 함수 대조표 — DOM 날짜는 이미 `parseDateValue` 위의 함수 (F9 의 넷 → 실제 셋), 「변경」 4 (TimeField 날짜+시각 · Canvas 달력의 공백 · 꼬리 글자 · offset 의 날). RAC granularity 예외 재현 6/40. Code 보기는 필드 값을 `value=` 로 쓴다. 번들 기준선 Builder 1,524,395 · Preview 151,352 B. 상세: breakdown §6.
 
 - 사용자 요청: `/create-adr` (2026-11-12, 「커밋후 /create-adr」 — ADR-308 커밋 `4b6c75cde` 뒤).
 - 방향을 정한 사용자 원문 (같은 날 대화 순서대로):
@@ -134,12 +146,14 @@ B 의 잔존 위험은 「Canvas 가 RAC 출력과 다르게 그린다」 는 �
 ### 사용자 결정 5건 (구현이 닿을 때 묻는다)
 
 1. **패널 날짜 입력** (Phase 2): (a) 이미 있는 `DateValueInput` (브라우저 날짜 입력 + ISO 직접 입력 전환) / (b) 빌더 자체 RAC DatePicker 로 새로 만든다. 권고 (a) — 변수 표 · 데이터 격자와 같은 입력.
+   > 2026-11-12 사용자 후속: (b) 로 바꿨다 — 「RAC DatePicker (달력 팝업이 있는 날짜 칸) 를 따로 만들어 쓴다. select · combobox 처럼 패널용으로」. `components/property/PanelDatePicker.tsx` (`PanelDatePicker` · `PanelDateRangePicker` — segment 칸 + 달력 팝오버, 시각은 TimeField) 를 Design 패널 · Interactions 규칙의 날짜 칸이 쓴다. 저장 글자의 시간대 · 소수 초는 `dateValueFromNativeInput` 으로 그대로 두고, 키보드로 친 날짜는 칸을 떠날 때 (또는 Enter) 쓴다 — 연도를 한 자리씩 칠 때 0002 같은 중간 값이 문서에 들어가지 않게. 변수 표 · 데이터 격자의 셀 편집기는 `DateValueInput` (브라우저 날짜 입력) 그대로.
 2. **시간대 포함 값** (Phase 2): (a) 패널에서 입력을 받는다 (`DateValueInput` 의 ISO 입력으로) / (b) 날짜 · 날짜+시각만. 권고 (a).
+   > 2026-11-12 사용자 후속: 「ISO 는 불필요한 기능 · 날짜 선택기를 쓰면 된다」 — `DateValueInput` 의 ISO 글자 전환을 없앴다 (모든 날짜 칸). 시간대 · 초가 붙은 값은 Code 보기 · 데이터로 들어오고, 패널에서 고쳐도 그 시간대 · 정밀도를 그대로 둔다 (`dateValueFromNativeInput`). 패널에서 새 시간대를 고르는 길은 없다.
 3. **「오늘」 같은 상대 값** (Phase 2): (a) 이번 범위 밖 — 고정 날짜만, 상대 날짜는 변수로 / (b) 「오늘」 선택지를 넣는다 (저장 표기 · Canvas 의 오늘 처리 필요). 권고 (a).
 4. **규칙 인자 입력** (Phase 3): (a) 6종 `setValue` 인자를 날짜 입력으로 바꾼다 / (b) 글자 칸 그대로. 권고 (a).
 5. **Calendar 다중 선택의 칸** (Phase 2): (a) 날짜 목록 (추가 · 삭제) / (b) 단일 선택만 칸을 내고 다중은 변수로. 권고 (a).
 
-> 구현 상세: [309-date-value-authoring-breakdown.md](design/309-date-value-authoring-breakdown.md)
+> 구현 상세: [309-date-value-authoring-breakdown.md](../design/309-date-value-authoring-breakdown.md)
 
 ## Risks
 
@@ -169,6 +183,22 @@ B 의 잔존 위험은 「Canvas 가 RAC 출력과 다르게 그린다」 는 �
 
 HIGH 위험 R1 → G2 (a), R2 → G2 (b), R3 → G1 (c), R8 → G1 (e). 집행은 로컬 테스트 스위트 + `pnpm type-check` (Stop hook) + live 이다.
 
+### Live Exercise
+
+2026-11-12 · Chrome MCP · dev 서버 5173 · 새 프로젝트 「adr309 live」 (데스크톱 · 모바일 폭).
+
+| 시나리오                                                                                                                                                                                                                                                                                                                               | 결과                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6종 (DateField · TimeField · DatePicker · DateRangePicker · Calendar · RangeCalendar) 을 놓고 Design 패널 Value 칸 (ISO 입력) 으로 값을 넣음 — DateField 2026-11-05 · TimeField 21:07 · DatePicker 2027-03-09 + Placeholder 2030-03-15 · DateRangePicker 11-05 ~ 11-09 · Calendar multiple 11-10 · 11-18 · RangeCalendar 11-24 ~ 12-03 | PASS — Canvas 입력 글자 (값 글자색) · Calendar 선택 원 2 · RangeCalendar 시작 원 + 주 끝 · 달 끝에서 끊긴 띠                                    |
+| 같은 문서의 Publish DOM                                                                                                                                                                                                                                                                                                                | PASS — segment 6 · 범위 `24<,25…30` · 선택 `10,18` = Canvas. DatePicker 를 열면 March 2027 · 9 선택 (Placeholder 2030 아님 — F15)               |
+| 새로고침 (IndexedDB 왕복)                                                                                                                                                                                                                                                                                                              | PASS — 6종 값 · 선택 · 띠 그대로, 콘솔 오류 0                                                                                                   |
+| Code 보기 `Home.tsx`                                                                                                                                                                                                                                                                                                                   | PASS — `import {parseDate, parseTime} from '@internationalized/date'` · 6종 `value={…}` · `placeholderValue={parseDate('2030-03-15')}`          |
+| Interactions — DatePicker onChange → DateField 「Set value」                                                                                                                                                                                                                                                                           | PASS — Value 칸이 날짜 입력 (+ 값 고르기), 2026-12-25 → Publish 에서 DatePicker 를 2027-03-15 로 고르면 DateField 12/25/2026, 콘솔 오류 0       |
+| (후속, 사용자 보고) Calendar multiple 에 Min 2026-11-05 · Max 2026-11-22                                                                                                                                                                                                                                                               | PASS — Canvas 1 ~ 4 · 23 ~ 30 흐림, Publish DOM `data-disabled` 같은 12일 · 글자색 rgb(198, 198, 198) (`{color.disabled-content}`), 콘솔 오류 0 |
+| (후속, 사용자 결정) 패널 날짜 칸 = `PanelDatePicker` — DateRangePicker 의 Min 을 달력 팝업에서 11-03, Value 를 범위 달력에서 11-13 ~ 11-20, TimeField Value 를 키보드 `0945a` + Enter                                                                                                                                                  | PASS — 패널 칸 11/3/2026 · 두 줄 범위 칸, Canvas DateRangePicker 11/13/2026 – 11/20/2026 · TimeField 09:45, 콘솔 오류 0                         |
+
+live 중 수리 2 (범위 칸 입력 폭 76px → 세로 쌓기 · 날짜 목록 행 폭 0 → 칸 폭). run ledger `20261112-132205-adr-309…` live-exercise pass 2건.
+
 ## Consequences
 
 ### Positive
@@ -177,7 +207,7 @@ HIGH 위험 R1 → G2 (a), R2 → G2 (b), R3 → G1 (c), R8 → G1 (e). 집행�
 - Canvas 가 값 · 선택 칸 · 보이는 달을 Preview 와 같게 그린다. 변수에 묶인 값 (「검색 추가」 의 DatePicker) 도 Canvas 에 기본값이 보인다.
 - Min · Max · Placeholder value 를 날짜 입력으로 고른다 (형식을 외워 적지 않는다).
 - 날짜 글자를 읽는 함수가 넷에서 하나가 된다.
-- Code 보기에 레퍼런스 코드 모양 (`defaultValue={parseDate('2026-11-12')}`) 이 나온다.
+- Code 보기에 레퍼런스 코드 모양 (`value={parseDate('2026-11-12')}` — 필드 값은 저장한 이름 그대로, Phase 0 실측) 이 나온다.
 
 ### Negative
 

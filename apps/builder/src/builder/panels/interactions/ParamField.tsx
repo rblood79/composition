@@ -9,11 +9,22 @@
  * `param` 이 없는 capability (clearSelection / hide / open …) 는 아무것도 렌더하지
  * 않는다 — "설정할 게 없다" 가 정상 상태다.
  */
-import { memo } from "react";
+import { lazy, memo, Suspense } from "react";
 import type { CapabilityParam } from "@composition/shared";
 
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { NumberRangeField } from "../properties/generic/NumberRangeField";
+// (ADR-309 — the date inputs load with their first use, G3 c.)
+const DateValueField = lazy(() =>
+  import("../properties/generic/DateValueFields").then((module) => ({
+    default: module.DateValueField,
+  })),
+);
+const DateRangeField = lazy(() =>
+  import("../properties/generic/DateValueFields").then((module) => ({
+    default: module.DateRangeField,
+  })),
+);
 import { useI18n } from "@/i18n";
 
 interface ParamFieldProps {
@@ -36,6 +47,29 @@ export const ParamField = memo(function ParamField({
         value={value}
         onChange={onChange}
       />
+    );
+  // (ADR-309 Decision 7 — a date · a range, the Design panel's date input.)
+  if (param.kind === "date")
+    return (
+      <Suspense fallback={null}>
+        <DateValueField
+          label={t(param.labelKey)}
+          value={value}
+          emptyType="date"
+          onChange={(next) => onChange(next ?? "")}
+        />
+      </Suspense>
+    );
+  if (param.kind === "date-range")
+    return (
+      <Suspense fallback={null}>
+        <DateRangeField
+          label={t(param.labelKey)}
+          value={value}
+          emptyType="date"
+          onChange={onChange}
+        />
+      </Suspense>
     );
 
   return (

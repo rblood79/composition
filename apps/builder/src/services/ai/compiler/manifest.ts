@@ -15,6 +15,10 @@ import {
 import { isRacColorString } from "../../../../../../packages/shared/src/catalog/document/colorValue";
 import { catalogNumberFormatFits } from "../../../../../../packages/shared/src/catalog/document/numberFormatValue";
 import { catalogNumberRangeFits } from "../../../../../../packages/shared/src/catalog/document/numberRangeValue";
+import {
+  catalogCalendarValueFits,
+  catalogDateRangeFits,
+} from "../../../../../../packages/shared/src/catalog/document/dateRangeValue";
 
 export interface ManifestField {
   name: string;
@@ -122,6 +126,16 @@ function validateFields(
       return `invalid-auto-focus:${name}`;
     if (field.kind === "number-range" && !catalogNumberRangeFits(value))
       return `invalid-number-range:${name}`;
+    // ADR-309 — the date family's ISO date · time text, range and Calendar value.
+    if (
+      (field.kind === "date" || field.kind === "time") &&
+      typeof value !== "string"
+    )
+      return `invalid-date:${name}`;
+    if (field.kind === "date-range" && !catalogDateRangeFits(value))
+      return `invalid-date-range:${name}`;
+    if (field.kind === "date-list" && !catalogCalendarValueFits(value))
+      return `invalid-date-list:${name}`;
     // 구조화 binding/items는 기존 데이터 dispatcher/에디터 계약을 써야 한다.
     if (
       ![
@@ -134,6 +148,10 @@ function validateFields(
         "selection-count",
         "selection-keys",
         "selection-value",
+        "date",
+        "time",
+        "date-range",
+        "date-list",
         "auto-focus",
         "css",
         "boolean",

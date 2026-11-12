@@ -24,6 +24,19 @@ export const datePickerBinding: PrimitiveBinding = {
   skiaPrimitive: "datefield_trigger",
   props: {
     accepts: {
+      // ADR-309 Decision 1 — the value the DatePicker starts from (ISO text — `dateValueRead.ts`).
+      value: {
+        kind: "date",
+        label: "Value",
+        section: "value",
+      },
+      // (Code · AI may write the default form — one concept, one field: the panel shows `value`.)
+      defaultValue: {
+        kind: "date",
+        label: "Default Value",
+        section: "value",
+        editorHidden: true,
+      },
       ...OVERLAY_OPEN_PROPS,
       label: { kind: "string", label: "Label", section: "content" },
       description: {
@@ -111,12 +124,12 @@ export const datePickerBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "content",
       },
-      minValue: { kind: "string", label: "Min Value", section: "content" },
-      maxValue: { kind: "string", label: "Max Value", section: "content" },
+      minValue: { kind: "date", label: "Min Value", section: "content" },
+      maxValue: { kind: "date", label: "Max Value", section: "content" },
       // S2 · RAC `placeholderValue`: the date the empty picker's calendar opens on (ISO text, as
       //   DateField's — 2026-10-09).
       placeholderValue: {
-        kind: "string",
+        kind: "date",
         label: "Placeholder value",
         section: "content",
       },

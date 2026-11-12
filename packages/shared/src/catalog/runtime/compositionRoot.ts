@@ -191,7 +191,9 @@ import {
   racDateSegmentParts,
   racFieldHourCycle,
   type DateSegmentPart,
+  type DateSegmentValue,
 } from "../document/dateSegments";
+import { catalogDateValue, catalogTimeValue } from "./dateValueRead";
 import {
   catalogDateSegmentPaddingX,
   catalogDateSegmentPlaceholderPaint,
@@ -1255,6 +1257,8 @@ export interface CatalogDateSegmentRun {
   /** Text start (an editable segment's span is inset by its inline padding). */
   readonly x: number;
   readonly editable: boolean;
+  /** ADR-309 — an editable segment showing the value (`false`): the field's text paint. */
+  readonly placeholder?: boolean;
 }
 
 /** The font a DateInput's segments inherit (its own size and weight, the nearest line height). */
@@ -1301,8 +1305,14 @@ function segmentRuns(
       // Each RAC segment is its own flex item: CSS drops the collapsible spaces at its start and
       // end (ko-KR `". "` is 3.6px in the DOM, not the 7.1px of `". "` — no-break spaces stay).
       const text = part.text.replace(/^[ \t\n\r\f]+|[ \t\n\r\f]+$/g, "");
-      runs.push({ text, x: x + pad, editable: part.editable });
-      x += widthOf(text, part.editable) + 2 * pad;
+      const placeholder = part.editable && part.placeholder !== false;
+      runs.push({
+        text,
+        x: x + pad,
+        editable: part.editable,
+        ...(part.editable && !placeholder ? { placeholder: false } : {}),
+      });
+      x += widthOf(text, placeholder) + 2 * pad;
     }
   };
   row();
@@ -4931,7 +4941,27 @@ export class CatalogCompositionRoot {
     const prop = (key: string) => record.props[key] ?? owner?.props[key];
     const granularity = prop("granularity");
     const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
+    // ADR-309 Decision 4 — the owner's value (`presence.ts` `_dateValue` — re-derived when the owner
+    // changes), read as the DOM reads it: a TimeField's time, else a date at the granularity.
+    const derived = record.derivedProps ?? {};
+    const valueText = derived._dateValue;
+    const value =
+      typeof valueText === "string"
+        ? ownerType === "TimeField"
+          ? (catalogTimeValue(valueText) as DateSegmentValue | undefined)
+          : (catalogDateValue(
+              valueText,
+              typeof granularity === "string" ? granularity : undefined,
+            ) as DateSegmentValue | undefined)
+        : undefined;
     const parts = racDateSegmentParts({
+      ...(value
+        ? {
+            value,
+            shouldForceLeadingZeros: derived._forceLeadingZeros !== false,
+            hideTimeZone: derived._hideTimeZone !== false,
+          }
+        : {}),
       // The field's locale and calendar system (`-u-ca-`), else the environment's locale.
       locale: ((own, system) => (system ? `${own}-u-ca-${system}` : own))(
         typeof prop("locale") === "string" && prop("locale")

@@ -62,7 +62,14 @@ const valueConcept = <
         labelKey: "capabilities.setValue",
         value: "!param",
         param: {
-          kind: valueType === "number" ? "number" : "text",
+          kind:
+            valueType === "number"
+              ? "number"
+              : valueType === "date"
+                ? "date"
+                : valueType === "dateRange"
+                  ? "date-range"
+                  : "text",
           labelKey: "capabilities.paramValue",
         },
       },

@@ -76,6 +76,21 @@ function mountReference(props: Record<string, unknown>, locale: string) {
       }
       return undefined;
     })(),
+    // (ADR-309 — RAC's selected cells, `[row, column, "selected"]`, when any.)
+    ...(() => {
+      const selected: [number, number, string][] = [];
+      [...block.querySelectorAll("tbody tr")].forEach((tr, r) =>
+        [...tr.children].forEach((td, c) => {
+          const cell = td.querySelector(".react-aria-CalendarCell");
+          if (
+            cell?.hasAttribute("data-selected") &&
+            !cell.hasAttribute("data-outside-month")
+          )
+            selected.push([r, c, "selected"]);
+        }),
+      );
+      return selected.length ? { selected } : {};
+    })(),
   }));
   act(() => root.unmount());
   host.remove();

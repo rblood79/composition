@@ -894,14 +894,18 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                 <ValueField
                   label={t(capabilityDef.param.labelKey)}
                   kind={
-                    capabilityDef.param.kind === "number-range"
-                      ? "number-range"
+                    capabilityDef.param.kind === "number-range" ||
+                    capabilityDef.param.kind === "date" ||
+                    capabilityDef.param.kind === "date-range"
+                      ? capabilityDef.param.kind
                       : capabilityDef.param.kind === "number"
                         ? "number"
                         : capabilityDef.param.kind === "icon"
                           ? "icon"
                           : "text"
                   }
+                  // (ADR-309 — a TimeField's Do asks for a time.)
+                  emptyType={targetType === "TimeField" ? "time" : "date"}
                   choices={
                     capabilityDef.param.kind === "choice"
                       ? capabilityChoices(targetType, capabilityDef)

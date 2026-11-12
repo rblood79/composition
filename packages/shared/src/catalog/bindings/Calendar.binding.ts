@@ -32,6 +32,19 @@ export const calendarBinding: PrimitiveBinding = {
   skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
+      // ADR-309 Decision 1 — the value the Calendar starts from (ISO text — `dateValueRead.ts`).
+      value: {
+        kind: "date-list",
+        label: "Value",
+        section: "value",
+      },
+      // (Code · AI may write the default form — one concept, one field: the panel shows `value`.)
+      defaultValue: {
+        kind: "date-list",
+        label: "Default Value",
+        section: "value",
+        editorHidden: true,
+      },
       // RAC · S2 1.8.0 Calendar `selectionMode` (`useCalendarState` — `'single' | 'multiple'`,
       //   default single): multiple toggles each pressed date in. A picker selects one date
       //   (`CATALOG_PICKER_CALENDAR_PROPS`).
@@ -62,8 +75,8 @@ export const calendarBinding: PrimitiveBinding = {
           { value: "single", label: "Single" },
         ],
       },
-      minValue: { kind: "string", label: "Min Value", section: "content" },
-      maxValue: { kind: "string", label: "Max Value", section: "content" },
+      minValue: { kind: "date", label: "Min Value", section: "content" },
+      maxValue: { kind: "date", label: "Max Value", section: "content" },
       errorMessage: {
         kind: "string",
         label: "Error Message",

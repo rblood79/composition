@@ -1,0 +1,19 @@
+/* ADR-309 — the date family's range · list fields (Design panel, Value · Min · Max · Placeholder). */
+.date-list-field .react-aria-Group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-xs);
+}
+
+.date-list-field__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+.date-list-field__row .property-date-picker {
+  flex: 1 1 auto;
+  min-width: 0;
+}

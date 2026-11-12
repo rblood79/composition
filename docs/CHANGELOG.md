@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [날짜 · 시각 값을 문서가 저장한다 — ADR-309 Implemented (Phase 0 ~ 3)] - 2026-11-12
+
+### Added
+
+- DateField · TimeField · DatePicker · DateRangePicker · Calendar · RangeCalendar 가 `value` · `defaultValue` 를 저장한다 (ISO 글자 — 범위는 `{start, end}`, Calendar 다중 선택은 날짜 목록).
+- Design 패널 Value 구획에 날짜 칸 — 날짜 · 날짜+시각 (Granularity 를 따름) · 시각 · 범위 (시작 · 끝) · Calendar 다중 선택의 날짜 목록 (추가 · 삭제). 빌더 패널용 RAC DatePicker (`PanelDatePicker` — 월 · 일 · 연 칸 + 달력 팝업, 범위는 한 칸에 시작 · 끝과 범위 달력, 시각은 TimeField) — select · combobox 처럼 패널 모양을 따른다 (사용자 2026-11-12). 시간대 · 초가 있는 기존 값은 고쳐도 그대로 남고, 키보드로 친 날짜는 칸을 떠날 때 (또는 Enter) 저장된다. 변수 표 · 데이터 격자 · 행 폼의 날짜 칸은 ISO 글자 전환 버튼이 없어졌다 (사용자 2026-11-12 「불필요한 기능」). Min · Max · Placeholder value 도 같은 날짜 입력이 됐다 — 날짜로 읽을 수 없는 기존 글자는 지우지 않고 표시한다.
+- Canvas 가 날짜 값을 그린다 — 입력 칸의 날짜 글자 (Preview 와 같은 형식), 달력의 선택 원과 범위 띠, 선택한 날짜가 있는 달. DatePicker · DateRangePicker 의 달력은 값이 있으면 Placeholder 보다 값의 달을 연다.
+- Code 보기가 날짜 값을 레퍼런스 표기로 쓰고 다시 읽는다 — `value={parseDate('2026-11-12')}` · `parseDateTime` · `parseTime` · `parseAbsolute('…', 'UTC')`, 범위 `{{start: …, end: …}}`, Calendar 다중 선택 `{[…]}` (`@internationalized/date` import 포함).
+- Interactions 규칙의 날짜 인자 (날짜 계열의 값 · Min · Max · Placeholder 정하기) 가 Design 패널과 같은 날짜 입력이 됐다 — TimeField 는 시각, 범위는 시작 · 끝, 값 고르기는 그대로.
+
+### Changed
+
+- 날짜 글자를 읽는 함수 하나 (`catalog/runtime/dateValueRead.ts`) — Preview DOM · Canvas 달력 · 규칙 시작 값이 같이 읽는다. 시작 값은 `value`, 없으면 `defaultValue` (실행 중 지운 값은 시작 값으로 돌아가지 않는다).
+- Canvas 달력의 Min · Max 날짜 읽기가 Preview 와 같아졌다 — 앞뒤 공백을 읽고, 날짜 뒤 덧붙은 글자는 읽지 않으며, offset 이 붙은 시각은 Preview 가 보여 주는 날 (UTC) 로 읽는다.
+
+### Fixed
+
+- 날짜만 있는 값을 시 · 분 · 초 단위의 DateField · DatePicker 에 주면 Preview 가 비던 결함 — 그날 자정으로 넘긴다.
+- TimeField 가 날짜+시각 값 (`2026-11-12T10:30`) 을 23:30 으로 보이던 결함 — 그 시각 (10:30) 을 보인다.
+- Calendar 다중 선택의 날짜 목록이 Preview 를 멈추고 (RAC 예외), 선택 뒤 쉼표로 이은 글자 하나로 저장되던 결함 — 날짜 목록으로 읽고 쓴다.
+- Calendar · RangeCalendar (와 DatePicker · DateRangePicker 의 달력) 에 Min · Max 를 넣어도 Canvas 가 범위 밖 날짜를 흐리게 그리지 않던 결함 — RAC 가 막는 날짜 (`data-disabled`) 를 Canvas 달력도 S2 `disabled` 글자색으로 그린다. **Why**: 흐림 색이 수동 `CalendarCommon.css` 에만 있어 Canvas 가 읽을 곳이 없었다 — catalog rule 날짜 칸 상태 (`color.isDisabled`) 로 옮겨 두 consumer 가 같이 읽는다.
+
 ## [선택 · 펼침은 그룹이 저장한다 — ADR-308 Implemented (Phase 0 ~ 3)] - 2026-11-12
 
 목록 · 탭 · 라디오 · 토글 그룹 · Accordion 의 「무엇이 선택 · 펼쳐졌나」 를 항목이 아니라 그룹이 갖는다 (레퍼런스 S2 · RAC 와 같은 자리 — 그룹의 `selectedKey(s)` · `value` · `expandedKeys`, 항목은 `id`).

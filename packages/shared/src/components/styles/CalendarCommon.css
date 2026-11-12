@@ -211,12 +211,7 @@
     /* (press 축소는 catalog — Calendar · RangeCalendar rule 의 S2 press, 2026-11-04) */
   }
 
-  /* Disabled state */
-  .react-aria-Calendar .react-aria-CalendarCell[data-disabled],
-  .react-aria-RangeCalendar .react-aria-CalendarCell[data-disabled] {
-    color: color-mix(in srgb, var(--fg) 38%, transparent);
-    cursor: not-allowed;
-  }
+  /* (Disabled — a day outside Min · Max: the catalog rule's `color.isDisabled`, ADR-309.) */
 
   /* Unavailable state */
   .react-aria-Calendar .react-aria-CalendarCell[data-unavailable],
@@ -244,14 +239,6 @@
   /* M3 tokens automatically handle dark mode via [data-theme="dark"]
    * No additional CSS needed - tokens adapt automatically
    */
-
-  /* ========== Browser Fallbacks ========== */
-  /* For browsers that don't support color-mix() (Safari < 16.2) */
-  @supports not (color: color-mix(in srgb, red 50%, blue)) {
-    .react-aria-CalendarCell[data-disabled] {
-      opacity: 0.38;
-    }
-  }
 
   /* ========== Forced Colors Mode (High Contrast) ========== */
   @media (forced-colors: active) {

@@ -1,5 +1,11 @@
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import {
+  catalogCalendarFirstDate,
+  catalogDateRange,
+  catalogDateStartValue,
+  catalogDateValue,
+} from "./dateValueRead";
+import {
   catalogGroupExpansion,
   catalogGroupSelection,
   catalogItemKey,
@@ -1754,6 +1760,17 @@ function calendarModelInput(
 ): CatalogCalendarModelInput {
   const picker = calendarPicker(calendar, get, typeOf);
   const own = (picker ?? calendar).props;
+  const range = typeOf(calendar) === "RangeCalendar";
+  // ADR-309 Decision 4 — the value it shows (a picker's calendar: the picker's — RAC's calendar
+  // context). The month it opens on: a standalone calendar's own focused date, then the value, then
+  // today (F7); a picker's: its value, then its placeholder, then today — RAC gives the calendar
+  // the placeholder only while the picker has no value (`useDatePicker` — F15).
+  const value = catalogDateStartValue(own);
+  const hasValue = range
+    ? !!catalogDateRange(value)
+    : picker
+      ? !!catalogDateValue(value)
+      : !!catalogCalendarFirstDate(value);
   return {
     visibleDuration: calendar.props.visibleDuration,
     weeksInMonth: calendar.props.weeksInMonth,
@@ -1762,8 +1779,16 @@ function calendarModelInput(
     firstDayOfWeek: own.firstDayOfWeek,
     minValue: own.minValue,
     maxValue: own.maxValue,
-    // (An empty picker's calendar opens on its placeholder — RAC's picker `focusedValue`.)
-    ...(picker ? { defaultFocusedValue: picker.props.placeholderValue } : {}),
+    value,
+    range,
+    ...(picker
+      ? hasValue
+        ? {}
+        : { defaultFocusedValue: picker.props.placeholderValue }
+      : {
+          selectionMode: calendar.props.selectionMode,
+          defaultFocusedValue: calendar.props.defaultFocusedValue,
+        }),
   };
 }
 /** The picker a calendar opens from: `DatePicker > Popover > Calendar` (ADR-256 Phase 6e). */
@@ -2026,6 +2051,21 @@ function fieldSubpartProps(
   if (typeof granularity === "string") out._granularity = granularity;
   const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
   if (hourCycle !== undefined) out._hourCycle = hourCycle;
+  // ADR-309 Decision 4 — the value its segments show: the owner's start value (a range picker's
+  // start · end DateInput its end of the range — RAC shows a range only when both ends read).
+  const start = catalogDateStartValue(owner.props);
+  const shown =
+    ownerType === "DateRangePicker"
+      ? catalogDateRange(start)
+        ? (start as Record<string, unknown>)[
+            node.props.slot === "end" ? "end" : "start"
+          ]
+        : undefined
+      : start;
+  if (typeof shown === "string" && shown) out._dateValue = shown;
+  if (owner.props.shouldForceLeadingZeros === false)
+    out._forceLeadingZeros = false;
+  if (owner.props.hideTimeZone === false) out._hideTimeZone = false;
   const ownLocale = prop("locale");
   const resolvedLocale =
     typeof ownLocale === "string" && ownLocale ? ownLocale : locale;
@@ -3333,7 +3373,7 @@ function derivedDependents(
     visit(owner);
     return values;
   }
-  // A picker's first day and bounds are its calendar's (`calendarPicker`).
+  // A picker's first day, bounds and value (ADR-309) are its calendar's (`calendarPicker`).
   if (PICKER_TYPES.has(type))
     return childrenOf(owner, get)
       .filter((popover) => typeOf(popover) === "Popover")

@@ -218,12 +218,14 @@ describe("family ② fields — toRacProps 변환 계약", () => {
 });
 
 describe("TimeField 형제 대칭 — minValue/maxValue + granularity (§1-3, 2026-08-21)", () => {
-  it("minValue/maxValue accepts 선언 (DateField 동형 — string kind, state 섹션)", () => {
+  it("minValue/maxValue accepts 선언 (DateField 동형 — 시각 칸, state 섹션)", () => {
     for (const key of ["minValue", "maxValue"] as const) {
       const tf = timeFieldBinding.props.accepts[key];
       const df = dateFieldBinding.props.accepts[key];
       expect(tf, `TimeField accepts.${key}`).toBeDefined();
-      expect(tf?.kind).toBe("string");
+      // (ADR-309 Decision 5: the field is a time input — the value type stays `string`.)
+      expect(tf?.kind).toBe("time");
+      expect(df?.kind).toBe("date");
       expect(tf?.section).toBe(df?.section);
     }
   });

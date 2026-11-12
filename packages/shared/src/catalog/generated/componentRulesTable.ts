@@ -357,7 +357,13 @@ const CALENDAR_CELL_STATE = {
       isHovered: "color-mix(in srgb, var(--accent) 85%, black)",
     },
   },
-  color: { isSelected: "var(--fg-on-accent)" },
+  // S2 `Calendar.tsx` cell `color.isDisabled: 'disabled'` — a day outside Min · Max (ADR-309; was the
+  // manual `CalendarCommon.css` `[data-disabled]` color-mix).
+  color: {
+    isSelected: "var(--fg-on-accent)",
+    isDisabled: "var(--fg-disabled)",
+  },
+  cursor: { isDisabled: "not-allowed" },
   outline: { isFocusVisible: "2px solid var(--accent)" },
   outlineOffset: { isFocusVisible: "2px" },
   ...CALENDAR_CELL_PRESS,
@@ -370,7 +376,8 @@ const RANGE_CALENDAR_CELL_STATE = {
       isInvalid: "transparent",
     },
   },
-  color: { isSelected: "var(--fg)" },
+  color: { isSelected: "var(--fg)", isDisabled: "var(--fg-disabled)" },
+  cursor: { isDisabled: "not-allowed" },
   outline: { isFocusVisible: "2px solid var(--focus-ring)" },
   outlineOffset: {
     isFocusVisible: {

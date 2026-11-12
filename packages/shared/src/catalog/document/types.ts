@@ -328,6 +328,10 @@ export type ValueType =
   | "selectionKeys"
   // ADR-308 — S2 Picker `value`: a key, or a list of keys (`catalogSelectionValueFits`).
   | "selectionValue"
+  // ADR-309 — a DateRangePicker's · RangeCalendar's `{start, end}` ISO texts (`catalogDateRangeFits`)
+  // and a Calendar's ISO date or ISO dates (`catalogCalendarValueFits`).
+  | "dateRange"
+  | "calendarValue"
   | "autoFocus"
   | "numberRange"
   // S2 · RAC `formatOptions` — `catalogNumberFormatFits` (사용자 결정 2026-10-12).
@@ -1497,7 +1501,12 @@ export type InteractionAction =
       opcode: "capability";
       target: CatalogCapabilityTarget;
       capabilityId: string;
-      value?: Scalar | readonly Scalar[] | NumberRangeValue;
+      value?:
+        | Scalar
+        | readonly Scalar[]
+        | NumberRangeValue
+        // (ADR-309 — a date range's `{start, end}` ISO texts.)
+        | import("./dateRangeValue").CatalogDateRange;
     };
 export interface AssetEntry {
   kind: "asset";

@@ -30,13 +30,19 @@ import {
   isSameMonth,
   maxDate,
   minDate,
-  parseDate,
   startOfMonth,
   startOfWeek,
   toCalendar,
   today as todayIn,
+  toCalendarDate,
+  type DateValue,
 } from "@internationalized/date";
 import { catalogCalendarDurationFits } from "../document/valueType";
+import {
+  catalogCalendarDayOf,
+  catalogCalendarValue,
+  catalogDateRange,
+} from "./dateValueRead";
 
 type DayName = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
 const DAY_NAMES: readonly DayName[] = [
@@ -76,7 +82,21 @@ export interface CatalogCalendarModelInput {
   readonly defaultFocusedValue?: unknown;
   readonly minValue?: unknown;
   readonly maxValue?: unknown;
+  /**
+   * ADR-309 Decision 4 — the calendar's start value (a picker's calendar: the picker's): its
+   * selected cells and, after `defaultFocusedValue`, the month it opens on (RAC
+   * `useCalendarState` — a list's first date, a range's start).
+   */
+  readonly value?: unknown;
+  /** A Calendar's `selectionMode` (`multiple` — a list of dates). */
+  readonly selectionMode?: unknown;
+  /** A RangeCalendar's (`{start, end}` — its ends and the days between). */
+  readonly range?: boolean;
 }
+
+/** ADR-309 — a selected cell as RAC marks it (`data-selected` · `-selection-start` · `-end`). */
+export type CatalogCalendarCellSelection =
+  "selected" | "start" | "end" | "startEnd" | "middle";
 
 /** One grid: weekday names and week rows (a cell is its day number, or `""` for an empty one). */
 export interface CatalogCalendarGridModel {
@@ -84,6 +104,14 @@ export interface CatalogCalendarGridModel {
   readonly rows: readonly (readonly string[])[];
   /** `[row, column]` of today's cell, when shown. */
   readonly today?: readonly [number, number];
+  /** ADR-309 — the selected cells shown: `[row, column, how]`. */
+  readonly selected?: readonly (readonly [
+    number,
+    number,
+    CatalogCalendarCellSelection,
+  ])[];
+  /** ADR-309 — the cells RAC disables (outside Min · Max — `data-disabled`): `[row, column]`. */
+  readonly disabled?: readonly (readonly [number, number])[];
 }
 
 interface CalendarContext {
@@ -97,6 +125,11 @@ interface CalendarContext {
   /** RAC's focused date (the month · year pickers' value). */
   focused: CalendarDate;
   timeZone: string;
+  /** ADR-309 — the selected days (single · multiple) or the range's ends, in the calendar. */
+  selected: readonly CalendarDate[];
+  range?: { start: CalendarDate; end: CalendarDate };
+  min?: CalendarDate;
+  max?: CalendarDate;
 }
 
 /** The locale RAC formats in: the calendar's own (+ its calendar system), else the environment's. */
@@ -113,16 +146,15 @@ export function catalogCalendarLocale(
   return system ? `${base}-u-ca-${system}` : base;
 }
 
-/** An authored ISO date (`YYYY-MM-DD…`) as RAC's `CalendarDate`, else undefined. */
+/**
+ * An authored ISO date as RAC's `CalendarDate`, else undefined — ADR-309 Decision 3: the DOM's
+ * reader (`parseDateValue` — surrounding spaces read, trailing junk not, an instant's day in UTC as
+ * the DOM shows it), the date's day.
+ */
 export function catalogParseCalendarDay(
   value: unknown,
 ): CalendarDate | undefined {
-  if (typeof value !== "string" || !value) return undefined;
-  try {
-    return parseDate(value.slice(0, 10));
-  } catch {
-    return undefined;
-  }
+  return catalogCalendarDayOf(value);
 }
 
 function constrain(
@@ -239,9 +271,29 @@ function context(
   const max = catalogParseCalendarDay(input.maxValue);
   const inCalendar = (date: CalendarDate | undefined) =>
     date ? (toCalendar(date, calendar) as CalendarDate) : undefined;
+  // ADR-309 — the value's days: a range's ends, else the date (or a multiple's dates).
+  const rangeValue = input.range ? catalogDateRange(input.value) : null;
+  const range = rangeValue
+    ? {
+        start: inCalendar(toCalendarDate(rangeValue.start))!,
+        end: inCalendar(toCalendarDate(rangeValue.end))!,
+      }
+    : undefined;
+  const values = input.range
+    ? []
+    : ((): CalendarDate[] => {
+        const read = catalogCalendarValue(
+          input.value ?? input.defaultValue,
+          input.selectionMode,
+        );
+        return (Array.isArray(read) ? read : read ? [read] : []).map((date) =>
+          inCalendar(toCalendarDate(date as DateValue))!,
+        );
+      })();
+  const first = range?.start ?? values[0];
   const focused = constrain(
     inCalendar(catalogParseCalendarDay(input.defaultFocusedValue)) ??
-      inCalendar(catalogParseCalendarDay(input.defaultValue)) ??
+      first ??
       today,
     inCalendar(min),
     inCalendar(max),
@@ -273,7 +325,45 @@ function context(
     today,
     focused,
     timeZone,
+    selected: values,
+    ...(range ? { range } : {}),
+    ...(min ? { min: inCalendar(min) } : {}),
+    ...(max ? { max: inCalendar(max) } : {}),
   };
+}
+
+/**
+ * ADR-309 — how RAC marks a shown cell's day (`useCalendarCell`): selected when the value holds it
+ * and the cell is not disabled (outside Min · Max); a range's start · end · days between.
+ */
+function cellDisabled(ctx: CalendarContext, date: CalendarDate): boolean {
+  return !!(
+    (ctx.min && date.compare(ctx.min) < 0) ||
+    (ctx.max && date.compare(ctx.max) > 0)
+  );
+}
+
+function cellSelection(
+  ctx: CalendarContext,
+  date: CalendarDate,
+): CatalogCalendarCellSelection | undefined {
+  if (cellDisabled(ctx, date)) return undefined;
+  if (ctx.range) {
+    const { start, end } = ctx.range;
+    if (date.compare(start) < 0 || date.compare(end) > 0) return undefined;
+    const isStart = isSameDay(date, start);
+    const isEnd = isSameDay(date, end);
+    return isStart && isEnd
+      ? "startEnd"
+      : isStart
+        ? "start"
+        : isEnd
+          ? "end"
+          : "middle";
+  }
+  return ctx.selected.some((day) => isSameDay(day, date))
+    ? "selected"
+    : undefined;
 }
 
 /**
@@ -380,6 +470,8 @@ export function catalogCalendarGrid(
     !(duration.days || duration.weeks) && !isSameMonth(start, date);
   const rows: string[][] = [];
   let todayCell: [number, number] | undefined;
+  const selected: [number, number, CatalogCalendarCellSelection][] = [];
+  const disabled: [number, number][] = [];
   for (let week = 0; week < weeks; week++) {
     let date: CalendarDate | null = start.add({ weeks: week });
     const days = isDayView ? duration.days! : 7;
@@ -400,11 +492,20 @@ export function catalogCalendarGrid(
       cells.map((cell, column) => {
         if (!cell || outsideMonth(cell)) return "";
         if (isSameDay(cell, ctx.today)) todayCell = [week, column];
+        const how = cellSelection(ctx, cell);
+        if (how) selected.push([week, column, how]);
+        if (cellDisabled(ctx, cell)) disabled.push([week, column]);
         return String(cell.day);
       }),
     );
   }
-  return { weekdays, rows, today: todayCell };
+  return {
+    weekdays,
+    rows,
+    today: todayCell,
+    ...(selected.length ? { selected } : {}),
+    ...(disabled.length ? { disabled } : {}),
+  };
 }
 
 const MONTH_PICKER_FORMATS = [
