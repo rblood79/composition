@@ -32,7 +32,7 @@ export const menuTriggerBinding: PrimitiveBinding = {
       direction: {
         kind: "enum",
         label: "Direction",
-        section: "appearance",
+        section: "overlay",
         default: "bottom",
         options: [
           { value: "bottom", label: "Bottom" },
@@ -46,7 +46,7 @@ export const menuTriggerBinding: PrimitiveBinding = {
       align: {
         kind: "enum",
         label: "Align",
-        section: "appearance",
+        section: "overlay",
         default: "start",
         options: [
           { value: "start", label: "Start" },

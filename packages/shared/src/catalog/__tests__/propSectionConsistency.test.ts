@@ -8,18 +8,26 @@ import type { PropContract } from "../types";
  * error message가 behavior에 있고 다른컴퍼넌트는 error message가 content에 있다」): the Design panel
  * section of a prop is decided by what the prop means, the same for every component —
  *
- * - content: what it shows — its texts (label · description · error message · placeholder …), the
- *   value's range and form (min · max · step · format · color space · channel), name, data, link.
+ * - content: what it shows — its texts (label · description · placeholder …), its glyph, data, link.
  * - value: what it holds now — the reference's own state (S2 · RAC controlled / default pairs): its
  *   value, selection (Selected · Indeterminate · Selected tab · Selected key(s)), open, expanded
  *   (사용자 결정 2026-11-12 「재배치」 — 2026-10-13 판정의 「value · selection = content」 ·
- *   「open / expanded = Behavior」 를 대체). One concept, one field: the default twin of a pair the
- *   builder treats alike (`defaultOpen` · SegmentedControl `selectedKey` · SelectBoxGroup
- *   `selectedKeys`) is accepted, not offered (사용자 결정 2026-11-12 「중복 제거」).
+ *   「open / expanded = Behavior」 를 대체) — and the value's range and form (min · max · step ·
+ *   granularity · placeholder value · color space · channel: 사용자 결정 2026-11-12 「섹션 병합」 —
+ *   a date's range sits with a number's, one key one section). One concept, one field: the default
+ *   twin of a pair the builder treats alike (`defaultOpen` · SegmentedControl `selectedKey` ·
+ *   SelectBoxGroup `selectedKeys`) is accepted, not offered (사용자 결정 2026-11-12 「중복 제거」).
  * - appearance: how it looks and is laid out.
- * - state (Behavior): how it reacts and what limits it — disabled · read only · required · invalid ·
- *   auto focus · selection mode · validation · triggers · submission.
- * - locale: locale and calendar settings. interaction: a Chart's animation and tooltip.
+ * - state: how it reacts — disabled · read only · auto focus · selection mode · input type · link
+ *   target. validation: what limits it — required · invalid · error message · pattern · length.
+ *   forms: what it submits — name · a toggle's submit value. overlay: where and when its popover
+ *   opens — direction · align · width · placement · close on select. accessibility: a meaning the
+ *   visible label cannot give (a Column's row header).
+ * - locale: locale, calendar and number format settings. interaction: a Chart's animation and tooltip.
+ *
+ * The panel shows fewer sections than there are meanings (사용자 결정 2026-11-12 「Property 탭 섹션
+ * 병합」 — `GenericFieldRenderer` `SECTION_MEMBERS`): Content = content + appearance, Behavior = state ·
+ * validation · forms · overlay · interaction · accessibility. The meaning stays per prop here.
  *
  * So one prop key sits in one section on every component. The keys below name two different props.
  */
@@ -32,9 +40,12 @@ const SAME_NAME_DIFFERENT_PROP: Readonly<Record<string, string>> = {
   // A collection's `dataBinding` is the rows its items repeat (Collection — 2026-10-23 「Collection
   // 섹션 분리」); a container's · Form's · Skeleton's · Chart's is the data its content reads (Content).
   dataBinding: "collection items vs content data",
-  // A Checkbox · Radio · Switch `value` is what the form submits for it (Content); a field's · a
-  // group's · a slider's is what it holds (Value).
+  // A Checkbox · Switch `value` is what the form submits for it (forms), a Radio's is its key in the
+  // group (Content); a field's · a group's · a slider's is what it holds (Value).
   value: "toggle submit value vs held value",
+  // A picker's · menu's `align` is where its popover sits against the trigger (overlay); a
+  // ButtonGroup's · Column's · Cell's is how its content is aligned (Appearance).
+  align: "popover alignment vs content alignment",
 };
 
 function contracts(): Array<[string, string, PropContract]> {
@@ -70,23 +81,72 @@ describe("Design panel sections — one section per prop", () => {
     expect(split).toEqual([]);
   });
 
-  it("texts are Content", () => {
-    const content = [
-      "label",
-      "description",
-      "errorMessage",
-      "placeholder",
-      "minValue",
-      "maxValue",
-    ];
-    const misplaced = contracts()
+  const misplacedOf = (keys: readonly string[], section: string) =>
+    contracts()
       .filter(
         ([, key, contract]) =>
-          content.includes(key) &&
-          (contract.section ?? "content") !== "content",
+          keys.includes(key) && (contract.section ?? "content") !== section,
       )
       .map(([type, key, contract]) => `${type}.${key}: ${contract.section}`);
-    expect(misplaced).toEqual([]);
+
+  it("texts are Content", () => {
+    expect(
+      misplacedOf(["label", "description", "placeholder"], "content"),
+    ).toEqual([]);
+  });
+
+  // 사용자 결정 2026-11-12 「Property 탭 섹션 병합」 — the meanings Behavior holds.
+  it("limits are validation, submission is forms, popover placement is overlay", () => {
+    expect(
+      misplacedOf(
+        [
+          "errorMessage",
+          "isRequired",
+          "isInvalid",
+          "pattern",
+          "minLength",
+          "maxLength",
+          "validationBehavior",
+        ],
+        "validation",
+      ),
+    ).toEqual([]);
+    expect(
+      misplacedOf(["name", "startName", "endName", "xName", "yName"], "forms"),
+    ).toEqual([]);
+    expect(
+      misplacedOf(
+        [
+          "direction",
+          "menuWidth",
+          "placement",
+          "offset",
+          "crossOffset",
+          "shouldFlip",
+          "containerPadding",
+          "shouldCloseOnSelect",
+          "menuTrigger",
+        ],
+        "overlay",
+      ),
+    ).toEqual([]);
+  });
+
+  it("a value's range and form are Value (a date's with a number's)", () => {
+    expect(
+      misplacedOf(
+        [
+          "minValue",
+          "maxValue",
+          "step",
+          "granularity",
+          "placeholderValue",
+          "colorSpace",
+          "channel",
+        ],
+        "value",
+      ),
+    ).toEqual([]);
   });
 
   it("values, selections, open and expanded are Value", () => {
@@ -145,7 +205,9 @@ describe("ADR-308 — the selection is the group's", () => {
     const entry = componentCatalog.find(
       (item) => item.kind === "primitive" && item.type === type,
     );
-    return entry?.kind === "primitive" ? (entry.binding.props.accepts ?? {}) : {};
+    return entry?.kind === "primitive"
+      ? (entry.binding.props.accepts ?? {})
+      : {};
   };
   it("isSelected stays on the standalone states only", () => {
     const owners = [
@@ -154,8 +216,8 @@ describe("ADR-308 — the selection is the group's", () => {
           ? [entry.type]
           : [],
       ),
-      ...Object.entries(RULE_TYPE_PROP_CONTRACTS).flatMap(([type, contracts]) =>
-        contracts.isSelected ? [type] : [],
+      ...Object.entries(RULE_TYPE_PROP_CONTRACTS).flatMap(
+        ([type, contracts]) => (contracts.isSelected ? [type] : []),
       ),
     ].sort();
     expect(owners).toEqual(["Card", "Checkbox", "Switch", "ToggleButton"]);

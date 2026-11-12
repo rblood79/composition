@@ -69,18 +69,18 @@ export const checkboxBinding: PrimitiveBinding = {
         section: "value",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Checkbox 공식 prop —
       //   isReadOnly/isRequired/name/value/autoFocus 는 CATALOG_DELEGATED_DOM.checkbox 가 소비.
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
-      name: { kind: "string", label: "Name", section: "content" },
-      value: { kind: "string", label: "Submit value", section: "content" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
+      name: { kind: "string", label: "Name", section: "forms" },
+      value: { kind: "string", label: "Submit value", section: "forms" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",

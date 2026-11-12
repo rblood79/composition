@@ -85,15 +85,15 @@ export const textAreaBinding: PrimitiveBinding = {
         visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC TextField 공식 prop —
       //   generic toRacProps 경로로 RAC TextField 에 직접 전달 (TextField parity).
-      name: { kind: "string", label: "Name", section: "content" },
-      maxLength: { kind: "number", label: "Max Length", section: "state" },
-      minLength: { kind: "number", label: "Min Length", section: "state" },
+      name: { kind: "string", label: "Name", section: "forms" },
+      maxLength: { kind: "number", label: "Max Length", section: "validation" },
+      minLength: { kind: "number", label: "Min Length", section: "validation" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       // design-data 감사 §1-3 (2026-08-22) — TextField 와의 형제 비대칭 해소.
       //   아래 7개는 편집 표면만 없었다:
@@ -104,7 +104,7 @@ export const textAreaBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       // RSP 표준 required 표시 방식 (icon "*" / label "(required)").
       //   캔버스 경로도 준비돼 있다 — `NECESSITY_INDICATOR_TAGS` 에 textarea 가 이미 있어

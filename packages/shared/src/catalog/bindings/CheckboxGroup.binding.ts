@@ -95,10 +95,10 @@ export const checkboxGroupBinding: PrimitiveBinding = {
         visibleWhen: { key: "labelPosition", equals: "side" },
       },
       // form binding props
-      name: { kind: "string", label: "Name", section: "content" },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      name: { kind: "string", label: "Name", section: "forms" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly 는 CATALOG_DELEGATED_DOM.checkboxgroup
       //   이 RAC CheckboxGroup 에 넘긴다. necessityIndicator 는 Label 노드의 필수 표시, errorMessage 는
       //   FieldError 노드가 그린다 (presence.ts).
@@ -117,7 +117,7 @@ export const checkboxGroupBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
     },
     toRacProps: "default",

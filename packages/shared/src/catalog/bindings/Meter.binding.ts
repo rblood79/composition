@@ -33,14 +33,14 @@ export const meterBinding: PrimitiveBinding = {
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
         default: 0,
         label: "Min",
-        section: "content",
+        section: "value",
       },
       maxValue: {
         kind: "number",
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
         default: 100,
         label: "Max",
-        section: "content",
+        section: "value",
       },
       label: { kind: "string", label: "Label", section: "content" },
       formatOptions: FORMAT_OPTIONS_PROP,

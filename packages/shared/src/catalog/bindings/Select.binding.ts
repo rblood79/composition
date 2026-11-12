@@ -99,8 +99,8 @@ export const selectBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Select / RSP Picker 공식 prop —
       //   `delegatedDom.tsx` `select` (`fieldBase`) 가 RAC Select 로 전달.
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // S2 1.8.0 Picker · ComboBox — where the menu opens: `direction` + `align` are its Popover's
       //   placement (`domBinding.tsx` `catalogS2OverlayPlacement`; a placement chosen on the Popover
@@ -108,7 +108,7 @@ export const selectBinding: PrimitiveBinding = {
       direction: {
         kind: "enum",
         label: "Direction",
-        section: "appearance",
+        section: "overlay",
         default: "bottom",
         options: [
           { value: "bottom", label: "Bottom" },
@@ -118,19 +118,19 @@ export const selectBinding: PrimitiveBinding = {
       align: {
         kind: "enum",
         label: "Align",
-        section: "appearance",
+        section: "overlay",
         default: "start",
         options: [
           { value: "start", label: "Start" },
           { value: "end", label: "End" },
         ],
       },
-      menuWidth: { kind: "number", label: "Menu width", section: "appearance" },
-      name: { kind: "string", label: "Name", section: "content" },
+      menuWidth: { kind: "number", label: "Menu width", section: "overlay" },
+      name: { kind: "string", label: "Name", section: "forms" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       necessityIndicator: {

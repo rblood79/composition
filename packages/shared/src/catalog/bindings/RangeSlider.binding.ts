@@ -22,8 +22,8 @@ export const rangeSliderBinding: PrimitiveBinding = {
         section: "value",
         default: { start: 25, end: 75 },
       },
-      startName: { kind: "string", label: "Start name", section: "content" },
-      endName: { kind: "string", label: "End name", section: "content" },
+      startName: { kind: "string", label: "Start name", section: "forms" },
+      endName: { kind: "string", label: "End name", section: "forms" },
       // (2026-11-11 사용자 결정 「숨김」: developer HTML · ARIA attributes — accepted, not offered in the panel.)
       form: {
         kind: "string",

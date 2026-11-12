@@ -74,10 +74,14 @@ describe("Properties 필드 규칙 — 매핑표 dispatch · 칩 묶음 · 섹�
   });
 
   // (Collection — a collection's data binding — follows Content: 2026-10-23 「Collection 섹션 분리」.)
-  it("섹션 순서 content → value → collection → appearance → layout → state → interaction → locale, 필드는 kind 묶음", async () => {
+  it("섹션 순서 content → value → collection → series → layout → state → locale (appearance · interaction 은 병합), 필드는 kind 묶음", async () => {
     const s = await source();
     expect(s).toContain(
-      '"content",\n  "value",\n  "collection",\n  "appearance",\n  "layout",\n  "state",\n  "interaction",\n  "locale",',
+      '"content",\n  "value",\n  "collection",\n  "series",\n  "layout",\n  "state",\n  "locale",\n];',
+    );
+    expect(s).toContain('content: ["content", "appearance"],');
+    expect(s).toContain(
+      'state: [\n    "state",\n    "validation",\n    "forms",\n    "overlay",\n    "interaction",\n    "accessibility",\n  ],',
     );
     expect(s).toContain("packFieldRows(sortFields(list))");
     expect(s).toContain("isSingleChoice(field)");

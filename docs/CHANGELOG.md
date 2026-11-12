@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Property 탭 섹션 병합 — 1 · 2단계 (Content · Behavior · 속성 재분류)] - 2026-11-12
+
+### Changed
+
+- Design 패널 Property 탭의 Appearance 섹션이 Content 로 합쳐졌다 — 글자 (Label · Description · Placeholder · Icon) 다음에 Variant · Size 와 나머지 모양 옵션이 한 섹션에 선다. Label 과 Label position · Label align · Necessity indicator 를 한 곳에서 고친다. Chart 의 Interaction 섹션은 Behavior 로 합쳐졌다. 섹션 순서: Content → Value → Collection → Series → Behavior → Locale (사용자 결정 2026-11-12 — 컴포넌트마다 속성이 달라 분류마다 섹션을 세우면 접기 헤더만 늘었다). 패널이 속성의 분류를 화면 섹션에 모은다 (`GenericFieldRenderer` `SECTION_MEMBERS`).
+- 속성 164 개의 자리가 뜻에 맞게 바뀌었다 (모든 컴포넌트에서 같은 속성은 같은 자리):
+  - Content → Behavior: Error message · Name (범위의 Start · End name 포함) · Input type · 링크의 Target · Rel · Checkbox · Switch 의 제출 값.
+  - Appearance → Behavior: Select · ComboBox · MenuTrigger 의 메뉴 Align · Direction · Menu width, Popover 의 Placement · Offset · Flip.
+  - Content → Value: Min value · Max value · Step (날짜 계열 포함) · Granularity · Placeholder value · 색 조작기의 Color space · Channel. SideNav 의 Selected route · Collapsed 도 Value.
+  - Content → Locale: 숫자 Format (NumberField · Slider · Meter · ProgressBar · LabeledValue).
+  - Behavior → Content: Badge 의 Dot · Pulsing (모양 옵션).
+- Behavior 안의 줄은 동작 → 검증 (Error message · Pattern · 길이) → 폼 (Name) → 오버레이 (메뉴 배치) → 접근성 순서로 선다. Disabled · Read only · Required · Invalid 칩은 그대로 한 묶음.
+
 ## [날짜 · 시각 값을 문서가 저장한다 — ADR-309 Implemented (Phase 0 ~ 3)] - 2026-11-12
 
 ### Added

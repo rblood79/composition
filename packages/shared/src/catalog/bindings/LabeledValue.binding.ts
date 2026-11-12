@@ -20,7 +20,7 @@ export const labeledValueBinding: PrimitiveBinding = {
       formatOptions: {
         kind: "labeled-format",
         label: "Format options",
-        section: "content",
+        section: "locale",
       },
       size: {
         kind: "size",

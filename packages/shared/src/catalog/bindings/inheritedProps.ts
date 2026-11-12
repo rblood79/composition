@@ -15,7 +15,7 @@ export const CATALOG_INHERITED_PROP_CONTRACTS: Readonly<
 > = {
   isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
   isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-  isRequired: { kind: "boolean", label: "Required", section: "state" },
+  isRequired: { kind: "boolean", label: "Required", section: "validation" },
   locale: DATE_LOCALE_PROP,
 };
 

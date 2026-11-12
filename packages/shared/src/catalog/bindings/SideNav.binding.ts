@@ -26,7 +26,7 @@ export const sideNavPanelBinding: PrimitiveBinding = {
     accepts: {
       // S2 `SideNavPanelProps` (`isCollapsed` · `defaultCollapsed` · `onCollapsedChange`) — the
       //   Canvas draws `isCollapsed ?? defaultCollapsed`; the Preview runs it (ADR-300 Decision 6).
-      isCollapsed: { kind: "boolean", label: "Collapsed", section: "state" },
+      isCollapsed: { kind: "boolean", label: "Collapsed", section: "value" },
       defaultCollapsed: {
         kind: "boolean",
         label: "Default collapsed",
@@ -54,7 +54,7 @@ export const sideNavBinding: PrimitiveBinding = {
       selectedRoute: {
         kind: "string",
         label: "Selected route",
-        section: "state",
+        section: "value",
       },
       "aria-label": {
         kind: "string",

@@ -77,23 +77,23 @@ export const colorFieldBinding: PrimitiveBinding = {
         visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.colorfield 가 소비 —
       //   RAC ColorField 공식 prop (channel/colorSpace 는 hex 외 채널 편집 모드).
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
-      name: { kind: "string", label: "Name", section: "content" },
+      name: { kind: "string", label: "Name", section: "forms" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       channel: {
         kind: "enum",
         label: "Channel",
-        section: "content",
+        section: "value",
         options: [
           { value: "hue", label: "Hue" },
           { value: "saturation", label: "Saturation" },
@@ -108,7 +108,7 @@ export const colorFieldBinding: PrimitiveBinding = {
       colorSpace: {
         kind: "enum",
         label: "Color Space",
-        section: "content",
+        section: "value",
         options: [
           { value: "rgb", label: "RGB" },
           { value: "hsl", label: "HSL" },
@@ -118,7 +118,7 @@ export const colorFieldBinding: PrimitiveBinding = {
       validationBehavior: {
         kind: "enum",
         label: "Validation",
-        section: "state",
+        section: "validation",
         options: [
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },

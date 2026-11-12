@@ -87,7 +87,7 @@ export const textFieldBinding: PrimitiveBinding = {
       type: {
         kind: "enum",
         label: "Input Type",
-        section: "content",
+        section: "state",
         default: "text",
         options: [
           { value: "text", label: "Text" },
@@ -100,11 +100,11 @@ export const textFieldBinding: PrimitiveBinding = {
       },
       // form binding props
       value: { kind: "string", label: "Value", section: "value" },
-      name: { kind: "string", label: "Name", section: "content" },
+      name: { kind: "string", label: "Name", section: "forms" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       // ADR-915 P1.5-b: 텍스트 HTML 입력 힌트 attr (RAC TextField 공식 prop, `<input>` 전달).
       //   controlled-value(value/defaultValue)와 직교 — 순수 입력 힌트라 회귀 위험 0.
@@ -166,15 +166,15 @@ export const textFieldBinding: PrimitiveBinding = {
           { value: "false", label: "Off" },
         ],
       },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 길이/패턴 검증 + 포커스 —
       //   RAC TextField 공식 prop. `delegatedDom.tsx` `textfield` 가 RAC TextField 로 전달.
-      maxLength: { kind: "number", label: "Max Length", section: "state" },
-      minLength: { kind: "number", label: "Min Length", section: "state" },
-      pattern: { kind: "string", label: "Pattern", section: "state" },
+      maxLength: { kind: "number", label: "Max Length", section: "validation" },
+      minLength: { kind: "number", label: "Min Length", section: "validation" },
+      pattern: { kind: "string", label: "Pattern", section: "validation" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       // RSP 표준 required 표시 방식 — Label 노드가 그린다 (icon "*" / label "(required)")
       necessityIndicator: {

@@ -106,7 +106,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
         default: "minute",
         label: "Granularity",
-        section: "content",
+        section: "value",
         // "day" 제거 (§1-3 2026-08-21): 시각 필드에 근거 없는 옵션 — RAC TimeField
         //   granularity 는 hour/minute/second 뿐이고 `delegatedDom.tsx` `timefield` 도 그 3종만 수용.
         options: [
@@ -117,16 +117,16 @@ export const timeFieldBinding: PrimitiveBinding = {
       },
       // 형제 대칭 (§1-3 2026-08-21): DateField minValue/maxValue 동형 — "HH:mm(:ss)"
       //   문자열, `delegatedDom.tsx` `timefield` 가 Time 으로 파싱 (`timeValue`).
-      minValue: { kind: "time", label: "Min Value", section: "content" },
-      maxValue: { kind: "time", label: "Max Value", section: "content" },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      minValue: { kind: "time", label: "Min Value", section: "value" },
+      maxValue: { kind: "time", label: "Max Value", section: "value" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): `delegatedDom.tsx` `timefield` 가 전달 —
       //   RAC TimeField 공식 prop. placeholderValue 는 "HH:mm" 문자열로 렌더러가 파싱.
@@ -137,7 +137,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         section: "locale",
         default: true,
       },
-      name: { kind: "string", label: "Name", section: "content" },
+      name: { kind: "string", label: "Name", section: "forms" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       necessityIndicator: {
         kind: "enum",
@@ -153,7 +153,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       validationBehavior: {
         kind: "enum",
         label: "Validation",
-        section: "state",
+        section: "validation",
         options: [
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },
@@ -164,7 +164,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       placeholderValue: {
         kind: "time",
         label: "Placeholder value",
-        section: "content",
+        section: "value",
       },
       // react-aria.adobe.com "International calendars": unset = the browser's locale.
       locale: DATE_LOCALE_PROP,

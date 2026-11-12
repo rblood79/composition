@@ -40,7 +40,7 @@ export const colorSliderBinding: PrimitiveBinding = {
       channel: {
         kind: "enum",
         label: "Channel",
-        section: "content",
+        section: "value",
         default: "hue",
         options: [
           { value: "hue", label: "Hue" },
@@ -56,7 +56,7 @@ export const colorSliderBinding: PrimitiveBinding = {
       colorSpace: {
         kind: "enum",
         label: "Color Space",
-        section: "content",
+        section: "value",
         options: [
           { value: "rgb", label: "RGB" },
           { value: "hsl", label: "HSL" },

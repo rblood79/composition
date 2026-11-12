@@ -59,17 +59,18 @@ const order = (fields: ResolvedField[]) => {
       elementId="field-1"
     />,
     {
-      wrapper: ({ children }: { children: ReactNode }) => (
-        <I18nProvider>
-          {fixture.wrapper({
-            children: (
-              <FieldValueSourceContext.Provider value={SOURCE}>
-                {children}
-              </FieldValueSourceContext.Provider>
-            ),
-          })}
-        </I18nProvider>
-      ) as ReactElement,
+      wrapper: ({ children }: { children: ReactNode }) =>
+        (
+          <I18nProvider>
+            {fixture.wrapper({
+              children: (
+                <FieldValueSourceContext.Provider value={SOURCE}>
+                  {children}
+                </FieldValueSourceContext.Provider>
+              ),
+            })}
+          </I18nProvider>
+        ) as ReactElement,
     },
   );
   const out = [...view.container.querySelectorAll("fieldset")].flatMap((fs) => {
@@ -130,6 +131,138 @@ describe("Design panel — one field order", () => {
       "[isRequired]",
       "[isInvalid]",
       "[autoFocus]",
+    ]);
+  });
+});
+
+/**
+ * 2026-11-12 (사용자 결정 「Property 탭 섹션 병합」): the contract's `section` is a field's meaning;
+ * the panel shows fewer sections — Content holds the texts and the look (Appearance), Behavior the
+ * state and the interaction fields. Order: Content → Value → Collection → Series → Behavior → Locale.
+ */
+const sectionsOf = (
+  fields: ResolvedField[],
+  sectionExtras?: Record<string, ReactNode>,
+) => {
+  const view = render(
+    <GenericFieldRenderer
+      fields={fields}
+      onSemanticUpdate={vi.fn()}
+      onStyleUpdate={vi.fn()}
+      elementId="field-1"
+      sectionExtras={sectionExtras}
+    />,
+    {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        (
+          <I18nProvider>
+            {fixture.wrapper({
+              children: (
+                <FieldValueSourceContext.Provider value={SOURCE}>
+                  {children}
+                </FieldValueSourceContext.Provider>
+              ),
+            })}
+          </I18nProvider>
+        ) as ReactElement,
+    },
+  );
+  const out = [...view.container.querySelectorAll(".section")].map(
+    (section) => ({
+      title: section.querySelector(".section-title")?.textContent?.trim(),
+      legends: [...section.querySelectorAll("legend")].map(
+        (legend) => legend.textContent?.trim() ?? "",
+      ),
+      extras: [...section.querySelectorAll("[data-extra]")].map(
+        (node) => node.textContent ?? "",
+      ),
+    }),
+  );
+  view.unmount();
+  return out;
+};
+
+describe("Design panel — merged sections", () => {
+  it("Content holds the texts, then the look (no Appearance section)", () => {
+    const sections = sectionsOf([
+      field("staticColor", "string", "appearance"),
+      field("label", "string"),
+      field("description", "string"),
+    ]);
+    expect(sections.map((section) => section.title)).toEqual(["Content"]);
+    expect(sections[0]!.legends).toEqual([
+      "label",
+      "description",
+      "staticColor",
+    ]);
+  });
+
+  it("Behavior holds the state and the interaction fields", () => {
+    const sections = sectionsOf([
+      field("showTooltip", "string", "interaction"),
+      field("selectionMode", "string", "state"),
+    ]);
+    expect(sections.map((section) => section.title)).toEqual(["Behavior"]);
+    expect(sections[0]!.legends).toEqual(["selectionMode", "showTooltip"]);
+  });
+
+  it("the sections stand in one order whatever the contract's order", () => {
+    const sections = sectionsOf([
+      field("locale", "string", "locale"),
+      field("pattern", "string", "state"),
+      field("seriesName", "string", "series"),
+      field("source", "string", "collection"),
+      field("defaultValue", "string", "value"),
+      field("staticColor", "string", "appearance"),
+      field("label", "string"),
+    ]);
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Value",
+      "Collection",
+      "Series",
+      "Behavior",
+      "Locale",
+    ]);
+  });
+
+  it("a merged section's rows stand group by group (Behavior: state → validation → forms → overlay → accessibility)", () => {
+    const sections = sectionsOf([
+      field("isRowHeader", "string", "accessibility"),
+      field("menuWidth", "string", "overlay"),
+      field("name", "string", "forms"),
+      field("errorMessage", "string", "validation"),
+      field("selectionMode", "string", "state"),
+      field("staticColor", "string", "appearance"),
+      field("src", "string"),
+    ]);
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Behavior",
+    ]);
+    // (One key order would put `staticColor` — a table key — before `src`.)
+    expect(sections[0]!.legends).toEqual(["src", "staticColor"]);
+    expect(sections[1]!.legends).toEqual([
+      "selectionMode",
+      "errorMessage",
+      "name",
+      "menuWidth",
+      "isRowHeader",
+    ]);
+  });
+
+  it("a merged section's extras follow its fields, in the contract's order", () => {
+    const sections = sectionsOf(
+      [field("label", "string"), field("pattern", "string", "state")],
+      {
+        appearance: <p data-extra>look</p>,
+        interaction: <p data-extra>interaction</p>,
+        state: <p data-extra>state</p>,
+      },
+    );
+    expect(sections.map((section) => [section.title, section.extras])).toEqual([
+      ["Content", ["look"]],
+      ["Behavior", ["state", "interaction"]],
     ]);
   });
 });

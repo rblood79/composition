@@ -122,9 +122,9 @@ export const tagGroupBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       // S2 1.8.0 TagGroup `isEmphasized` (2026-10-10): a selected Tag is neutral, accent when
       //   emphasized (S2 `TagGroupContext`). DOM `data-emphasized` (`TagGroup.css`); Canvas the Tag
       //   rule's `selectedEmphasized` (the Tag's `_emphasized` — `presence.ts`).

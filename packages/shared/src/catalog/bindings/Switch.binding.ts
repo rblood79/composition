@@ -43,7 +43,7 @@ export const switchBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       // S2 1.8.0 `isEmphasized` (2026-10-10 — 조사 §4.2 B): 켜진 track 이 accent 가 된다. rule 의
       //   emphasized 변형이 그 모양이고, 내부 `variant` 는 resolver 가 파생하는 운반 값
@@ -73,10 +73,10 @@ export const switchBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       // S2 1.8.0 Switch `isRequired` · `isInvalid` (RAC `SwitchField`, 2026-10-09): invalid shows the
       //   FieldError (S2 leaves the track as it is), required is the input's (RAC form validation).
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
-      name: { kind: "string", label: "Name", section: "content" },
-      value: { kind: "string", label: "Submit value", section: "content" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      name: { kind: "string", label: "Name", section: "forms" },
+      value: { kind: "string", label: "Submit value", section: "forms" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
     },
     toRacProps: "default",

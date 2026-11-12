@@ -144,7 +144,7 @@ export const linkBinding: PrimitiveBinding = {
       target: {
         kind: "enum",
         label: "Target",
-        section: "content",
+        section: "state",
         options: [
           { value: "_self", label: "Same Window" },
           { value: "_blank", label: "New Window" },
@@ -152,7 +152,7 @@ export const linkBinding: PrimitiveBinding = {
           { value: "_top", label: "Top Frame" },
         ],
       },
-      rel: { kind: "string", label: "Rel", section: "content" },
+      rel: { kind: "string", label: "Rel", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — generic toRacProps 경로.
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

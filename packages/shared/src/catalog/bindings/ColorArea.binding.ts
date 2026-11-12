@@ -40,7 +40,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       colorSpace: {
         kind: "enum",
         label: "Color Space",
-        section: "content",
+        section: "value",
         options: [
           { value: "rgb", label: "RGB" },
           { value: "hsl", label: "HSL" },
@@ -50,7 +50,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       xChannel: {
         kind: "enum",
         label: "X channel",
-        section: "content",
+        section: "value",
         options: [
           { value: "hue", label: "Hue" },
           { value: "saturation", label: "Saturation" },
@@ -64,7 +64,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       yChannel: {
         kind: "enum",
         label: "Y channel",
-        section: "content",
+        section: "value",
         options: [
           { value: "hue", label: "Hue" },
           { value: "saturation", label: "Saturation" },
@@ -75,8 +75,8 @@ export const colorAreaBinding: PrimitiveBinding = {
           { value: "blue", label: "Blue" },
         ],
       },
-      xName: { kind: "string", label: "X name", section: "content" },
-      yName: { kind: "string", label: "Y name", section: "content" },
+      xName: { kind: "string", label: "X name", section: "forms" },
+      yName: { kind: "string", label: "Y name", section: "forms" },
     },
     toRacProps: "default",
   },

@@ -97,7 +97,7 @@ export const datePickerBinding: PrimitiveBinding = {
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
         default: "day",
         label: "Granularity",
-        section: "content",
+        section: "value",
         options: [
           { value: "day", label: "Day" },
           { value: "hour", label: "Hour" },
@@ -122,24 +122,24 @@ export const datePickerBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
-      minValue: { kind: "date", label: "Min Value", section: "content" },
-      maxValue: { kind: "date", label: "Max Value", section: "content" },
+      minValue: { kind: "date", label: "Min Value", section: "value" },
+      maxValue: { kind: "date", label: "Max Value", section: "value" },
       // S2 · RAC `placeholderValue`: the date the empty picker's calendar opens on (ISO text, as
       //   DateField's — 2026-10-09).
       placeholderValue: {
         kind: "date",
         label: "Placeholder value",
-        section: "content",
+        section: "value",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `datePickerProps` 가 소비 —
       //   RAC/RSP DatePicker 공식 prop. hideTimeZone/shouldForceLeadingZeros/
       //   shouldCloseOnSelect 는 렌더러 기본값이 true (`!== false`) 라 default: true 명시.
       //   (hourCycle 은 custom timeFormat("12h"/"24h") 채널이 이미 담당 — 중복 미추가.)
-      name: { kind: "string", label: "Name", section: "content" },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      name: { kind: "string", label: "Name", section: "forms" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       necessityIndicator: {
@@ -184,13 +184,13 @@ export const datePickerBinding: PrimitiveBinding = {
       shouldCloseOnSelect: {
         kind: "boolean",
         label: "Close On Select",
-        section: "state",
+        section: "overlay",
         default: true,
       },
       validationBehavior: {
         kind: "enum",
         label: "Validation",
-        section: "state",
+        section: "validation",
         options: [
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },

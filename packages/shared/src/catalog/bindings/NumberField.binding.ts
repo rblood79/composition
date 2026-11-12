@@ -90,22 +90,22 @@ export const numberFieldBinding: PrimitiveBinding = {
         section: "appearance",
       },
       // RAC NumberField props
-      minValue: { kind: "number", label: "Min Value", section: "content" },
-      maxValue: { kind: "number", label: "Max Value", section: "content" },
-      step: { kind: "number", label: "Step", section: "content", min: 0 },
+      minValue: { kind: "number", label: "Min Value", section: "value" },
+      maxValue: { kind: "number", label: "Max Value", section: "value" },
+      step: { kind: "number", label: "Step", section: "value", min: 0 },
       formatOptions: FORMAT_OPTIONS_PROP,
       // form binding props — empty = no value (S2: an empty input, the placeholder shows; RAC NaN)
       value: { kind: "string", label: "Value", section: "value" },
-      name: { kind: "string", label: "Name", section: "content" },
+      name: { kind: "string", label: "Name", section: "forms" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC NumberField 공식 prop —
       //   delegatedDom `numberfield` (`nodeTreeField` · `fieldBase`) 가 RAC NumberField 로 전달.
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

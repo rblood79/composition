@@ -62,7 +62,7 @@ export const calendarBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `calendarProps` 가 소비 —
       //   RAC Calendar 공식 prop. min/maxValue 는 ISO 문자열로 렌더러가 파싱,
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       pageBehavior: {
         kind: "enum",
@@ -75,12 +75,12 @@ export const calendarBinding: PrimitiveBinding = {
           { value: "single", label: "Single" },
         ],
       },
-      minValue: { kind: "date", label: "Min Value", section: "content" },
-      maxValue: { kind: "date", label: "Max Value", section: "content" },
+      minValue: { kind: "date", label: "Min Value", section: "value" },
+      maxValue: { kind: "date", label: "Max Value", section: "value" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       visibleDuration: VISIBLE_DURATION_PROP,
       weeksInMonth: WEEKS_IN_MONTH_PROP,

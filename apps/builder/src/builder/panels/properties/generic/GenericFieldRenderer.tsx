@@ -25,6 +25,7 @@ import { AutoFocusField } from "./AutoFocusField";
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
 import {
+  Fragment,
   lazy,
   memo,
   Suspense,
@@ -321,19 +322,45 @@ function computeFieldSpan(field: ResolvedField): "wide" | "half" {
 }
 
 /**
+ * 화면 섹션 — 계약의 `section` 은 필드의 뜻 (분류) 이고, 패널은 함께 편집하는 것을 한 섹션에 모은다
+ * (사용자 결정 2026-11-12 「Property 탭 섹션 병합」): Content = 글자 + 모양 (Appearance), Behavior = 동작
+ * (`state`) · 검증 · 폼 · 오버레이 · Interaction · 접근성. 행은 아래 표의 분류 순서로 묶음마다 서고 (묶음 안은
+ * 한 key 순서 `KEY_ORDER`), 주입 컨트롤 (`sectionExtras`) 도 같은 분류 순서로 섹션 끝에 선다. Validation ·
+ * Forms · Overlay 는 섹션이 아니라 분류다 — 필드 하나짜리 접기 헤더를 만들지 않는다.
+ */
+const SECTION_MEMBERS: Readonly<Record<string, readonly string[]>> = {
+  content: ["content", "appearance"],
+  state: [
+    "state",
+    "validation",
+    "forms",
+    "overlay",
+    "interaction",
+    "accessibility",
+  ],
+};
+const DISPLAY_SECTION: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(SECTION_MEMBERS).flatMap(([display, members]) =>
+    members.map((member) => [member, display]),
+  ),
+);
+function displaySection(section: string): string {
+  return DISPLAY_SECTION[section] ?? section;
+}
+
+/**
  * 섹션 순서 — 계약의 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는
- * State 가 Appearance 앞) 한 순서로 세운다: 정체 (Content · Value · Collection) → 모양 (Appearance · Layout) →
- * 동작 (State · Interaction) → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로. Value 는 컴포넌트가 지금 담고 있는
+ * State 가 Appearance 앞) 한 순서로 세운다: Content (글자 · 모양) → Value → Collection → Series (차트) →
+ * Layout → Behavior → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로. Value 는 컴포넌트가 지금 담고 있는
  * 것 (값 · 선택 · 열림 · 펼침 — 사용자 결정 2026-11-12 「재배치」) 이라 Content 바로 뒤.
  */
 const SECTION_ORDER: readonly string[] = [
   "content",
   "value",
   "collection",
-  "appearance",
+  "series",
   "layout",
   "state",
-  "interaction",
   "locale",
 ];
 function sectionRank(section: string): number {
@@ -1369,6 +1396,34 @@ function splitChipFields(fields: readonly ResolvedField[]): {
   return { rows, chipGroups, dependents };
 }
 
+/** `sectionExtras` (분류 key) → 화면 섹션별 주입 컨트롤. 한 섹션에 여럿이면 분류 순서로 잇는다. */
+function mergeSectionExtras(
+  sectionExtras: Partial<Record<string, ReactNode>> | undefined,
+): Array<[string, ReactNode]> {
+  const bySection = new Map<string, Array<[string, ReactNode]>>();
+  for (const [section, extras] of Object.entries(sectionExtras ?? {})) {
+    if (extras == null) continue;
+    const display = displaySection(section);
+    bySection.set(display, [
+      ...(bySection.get(display) ?? []),
+      [section, extras],
+    ]);
+  }
+  return Array.from(bySection.entries()).map(([display, entries]) => {
+    if (entries.length === 1) return [display, entries[0]![1]];
+    const members = SECTION_MEMBERS[display] ?? [];
+    const ordered = [...entries].sort(
+      ([a], [b]) => members.indexOf(a) - members.indexOf(b),
+    );
+    return [
+      display,
+      ordered.map(([section, extras]) => (
+        <Fragment key={section}>{extras}</Fragment>
+      )),
+    ];
+  });
+}
+
 interface SectionLayout {
   section: string;
   rows: ResolvedField[][];
@@ -1406,7 +1461,7 @@ function layoutSections(
   //   `editorHidden`) 도 catalog 가 정한 자리에 선다. 빈 그룹은 extras 가 없으면 렌더하지 않는다.
   const groups = new Map<string, ResolvedField[]>();
   for (const field of fields) {
-    const section = field.section || "content";
+    const section = displaySection(field.section || "content");
     const bucket = groups.get(section) ?? [];
     if (!groups.has(section)) groups.set(section, bucket);
     if (
@@ -1434,9 +1489,19 @@ function layoutSections(
     )
     .map(([section, sectionFields]) => {
       const { rows, chipGroups, dependents } = splitChipFields(sectionFields);
+      // 병합 섹션의 행은 분류 묶음 순서 (Behavior: 동작 → 검증 → 폼 → 오버레이 → Interaction → 접근성) 로,
+      //   묶음 안은 한 key 순서. 반폭 짝은 묶음을 넘지 않는다. 칩은 섹션당 한 묶음 그대로.
+      const members = SECTION_MEMBERS[section];
+      const rowsOf = members
+        ? members.flatMap((member) =>
+            pack(
+              rows.filter((field) => (field.section || "content") === member),
+            ),
+          )
+        : pack(rows);
       return {
         section,
-        rows: pack(rows),
+        rows: rowsOf,
         chipGroups,
         dependents: pack(dependents),
       };
@@ -1468,9 +1533,8 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   // A glyph's drawn px — its Size row's action cell (`glyphSizeAction.tsx`).
   const glyphSize = useGlyphSize();
 
-  const extraSections = Object.entries(sectionExtras ?? {}).filter(
-    (entry): entry is [string, ReactNode] => entry[1] != null,
-  );
+  // 주입 컨트롤은 화면 섹션 단위로 모은다 — 병합된 분류 (appearance → Content) 는 표의 분류 순서로.
+  const extraSections = mergeSectionExtras(sectionExtras);
   const extraSectionsKey = extraSections.map(([section]) => section).join("|");
   const sections = useMemo(
     () =>

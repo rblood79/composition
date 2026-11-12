@@ -107,7 +107,7 @@ export const dateFieldBinding: PrimitiveBinding = {
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
         default: "day",
         label: "Granularity",
-        section: "content",
+        section: "value",
         options: [
           { value: "day", label: "Day" },
           { value: "hour", label: "Hour" },
@@ -115,17 +115,17 @@ export const dateFieldBinding: PrimitiveBinding = {
           { value: "second", label: "Second" },
         ],
       },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
-      minValue: { kind: "date", label: "Min Value", section: "content" },
-      maxValue: { kind: "date", label: "Max Value", section: "content" },
+      minValue: { kind: "date", label: "Min Value", section: "value" },
+      maxValue: { kind: "date", label: "Max Value", section: "value" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.datefield 가 소비 —
       //   RAC DateField 공식 prop. placeholderValue 는 ISO 문자열로 렌더러가 파싱.
       hourCycle: {
@@ -142,7 +142,7 @@ export const dateFieldBinding: PrimitiveBinding = {
           oneOf: ["hour", "minute", "second"],
         },
       },
-      name: { kind: "string", label: "Name", section: "content" },
+      name: { kind: "string", label: "Name", section: "forms" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       necessityIndicator: {
         kind: "enum",
@@ -158,7 +158,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       validationBehavior: {
         kind: "enum",
         label: "Validation",
-        section: "state",
+        section: "validation",
         options: [
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },
@@ -169,7 +169,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       placeholderValue: {
         kind: "date",
         label: "Placeholder value",
-        section: "content",
+        section: "value",
       },
       // react-aria.adobe.com "International calendars": unset = the browser's locale.
       locale: DATE_LOCALE_PROP,

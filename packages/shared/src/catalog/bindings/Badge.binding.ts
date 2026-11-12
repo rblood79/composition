@@ -66,8 +66,8 @@ export const badgeBinding: PrimitiveBinding = {
           { value: "truncate", label: "Truncate" },
         ],
       },
-      isDot: { kind: "boolean", label: "Dot Badge", section: "state" },
-      isPulsing: { kind: "boolean", label: "Pulsing", section: "state" },
+      isDot: { kind: "boolean", label: "Dot Badge", section: "appearance" },
+      isPulsing: { kind: "boolean", label: "Pulsing", section: "appearance" },
     },
     toRacProps: "default",
     // Badge.tsx 가 {...props} 뒤에 자기 data-variant/data-size/data-fill-style 를 재작성 →

@@ -41,7 +41,7 @@ export const modalBinding: PrimitiveBinding = {
       isDismissable: {
         kind: "boolean",
         label: "Dismissable",
-        section: "state",
+        section: "overlay",
       },
       trapFocus: {
         kind: "boolean",

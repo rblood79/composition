@@ -11,5 +11,5 @@ import type { PropContract } from "../types";
 export const FORMAT_OPTIONS_PROP: PropContract = {
   kind: "number-format",
   label: "Format",
-  section: "content",
+  section: "locale",
 };

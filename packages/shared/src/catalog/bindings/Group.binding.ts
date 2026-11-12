@@ -32,7 +32,7 @@ export const groupBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
     },
     toRacProps: "default",

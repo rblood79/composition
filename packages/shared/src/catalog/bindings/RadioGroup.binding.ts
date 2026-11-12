@@ -94,10 +94,10 @@ export const radioGroupBinding: PrimitiveBinding = {
       //   options 는 정적 배열로 표현 불가(자식 트리 의존) → resolveEditContract.deriveOptions
       //   의 RadioGroup 전용 분기가 node.children 에서 동적 파생. 2026-06-30 전수조사.
       value: { kind: "enum", label: "Value", section: "value" },
-      name: { kind: "string", label: "Name", section: "content" },
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      name: { kind: "string", label: "Name", section: "forms" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly 는 delegatedDom `radiogroup` 이
       //   RAC RadioGroup 에 넘기고, necessityIndicator 는 Label 노드에 덧붙는다
       //   (`catalogFieldNecessityIndicator`). errorMessage 는 FieldError 노드의 `{errorMessage}` 바인딩.
@@ -116,7 +116,7 @@ export const radioGroupBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
     },
     toRacProps: "default",

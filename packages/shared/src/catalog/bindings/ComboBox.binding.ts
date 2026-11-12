@@ -89,9 +89,9 @@ export const comboBoxBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.combobox 가 소비 —
       //   RAC/RSP ComboBox 공식 prop. menuTrigger 는 popover 열림 시점 제어.
-      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
-      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // S2 1.8.0 Picker · ComboBox — where the menu opens: `direction` + `align` are its Popover's
       //   placement (`domBinding.tsx` `catalogS2OverlayPlacement`; a placement chosen on the Popover
@@ -99,7 +99,7 @@ export const comboBoxBinding: PrimitiveBinding = {
       direction: {
         kind: "enum",
         label: "Direction",
-        section: "appearance",
+        section: "overlay",
         default: "bottom",
         options: [
           { value: "bottom", label: "Bottom" },
@@ -109,14 +109,14 @@ export const comboBoxBinding: PrimitiveBinding = {
       align: {
         kind: "enum",
         label: "Align",
-        section: "appearance",
+        section: "overlay",
         default: "start",
         options: [
           { value: "start", label: "Start" },
           { value: "end", label: "End" },
         ],
       },
-      menuWidth: { kind: "number", label: "Menu width", section: "appearance" },
+      menuWidth: { kind: "number", label: "Menu width", section: "overlay" },
       allowsCustomValue: {
         kind: "boolean",
         label: "Allow Custom Value",
@@ -125,7 +125,7 @@ export const comboBoxBinding: PrimitiveBinding = {
       menuTrigger: {
         kind: "enum",
         label: "Menu Trigger",
-        section: "state",
+        section: "overlay",
         default: "input",
         options: [
           { value: "input", label: "Input" },
@@ -133,11 +133,11 @@ export const comboBoxBinding: PrimitiveBinding = {
           { value: "manual", label: "Manual" },
         ],
       },
-      name: { kind: "string", label: "Name", section: "content" },
+      name: { kind: "string", label: "Name", section: "forms" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "content",
+        section: "validation",
       },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       necessityIndicator: {
@@ -154,7 +154,7 @@ export const comboBoxBinding: PrimitiveBinding = {
       validationBehavior: {
         kind: "enum",
         label: "Validation",
-        section: "state",
+        section: "validation",
         options: [
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },
