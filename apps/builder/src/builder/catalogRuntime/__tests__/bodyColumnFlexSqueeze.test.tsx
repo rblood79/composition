@@ -23,12 +23,14 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * its content, unless its overflow is not visible (then 0). Card (no overflow clip) and
  * ProgressCircle (it does not shrink — the DOM's `flex-shrink: 0`, declared by its rule) keep
  * their height on the Canvas as in Publish (user 2026-11-13 — 「Card 도 overflow 삭제」 ·
- * 「ProgressCircle 높이 0」).
+ * 「ProgressCircle 높이 0」 · 「listbox 도 overflow 삭제」).
  */
 const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
-async function squeeze(type: "card" | "progresscircle") {
+async function squeeze(
+  type: "card" | "progresscircle" | "listbox",
+) {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -110,4 +112,11 @@ describe("a fixed-Height column flex body does not squeeze its items to nothing"
     expect(natural).toBe(32);
     expect(squeezed).toBe(32);
   });
+
+  it("ListBox keeps its content height (no scroll box of its own outside a picker)", async () => {
+    const { natural, squeezed } = await squeeze("listbox");
+    expect(natural).toBeGreaterThan(0);
+    expect(squeezed).toBe(natural);
+  });
+
 });

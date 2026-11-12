@@ -139,12 +139,12 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
     }
   });
 
-  it("clips a rule-backed node by its definition's overflow (ListBox)", async () => {
+  it("a ListBox is not a scroll box of its own (user 2026-11-13 — its rule has no overflow; the author sets one)", async () => {
     const { workspace, record } = await open("visible");
     const overflow = workspace.root.canvasInputs.get(record("list"))?.visual
       .overflow;
-    expect(overflow).toBe("auto");
-    expect(getSkiaNode(record("list"))?.clipChildren).toBe(true);
+    expect(overflow).toBeUndefined();
+    expect(getSkiaNode(record("list"))?.clipChildren).toBeFalsy();
   });
 
   it("gives a scroll/auto box the scrollbar of its overflowing content, and redraws it on a range edit", async () => {
@@ -454,6 +454,8 @@ describe("ADR-269 Phase 1 — 스크롤은 명령을 쓰지 않고 sync 로 발�
               220,
               200,
               [0, 1, 2].map((k) => id(`sticky-section-${k}`)),
+              // (The list scrolls when its author sets an overflow — its rule has none, 2026-11-13.)
+              { overflow: { kind: "set", value: "auto" } },
             ),
           },
           ...[0, 1, 2].map((k): NodeEntry => ({

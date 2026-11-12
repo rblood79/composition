@@ -38,7 +38,6 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         gap: "0px",
         padding: 4,
         width: "100%",
-        overflow: "auto",
         outline: "none",
         // ADR-171 Phase 3-b (2026-07-29): catalog top-level 에 borderWidth 복원.
         //   생성 CSS `border: 1px solid` 를 캔버스가 못 받아 h Δ2 였다 (실측 DOM 52 /
@@ -58,7 +57,6 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         gap: "0px",
         padding: 4,
         width: "100%",
-        overflow: "auto",
         outline: "none",
         borderWidth: 0.5, // `{border.width.hairline}` → 활성 테마 px
       });
@@ -75,7 +73,6 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        overflow: "auto",
         outline: "none",
         borderWidth: 0.5, // `{border.width.hairline}` → 활성 테마 px
       });
@@ -402,8 +399,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         padding: 4,
         width: "100%",
         // maxHeight 는 2026-07-29 제거 — Tree/Menu 는 그대로라 이 케이스가 "listbox 만
-        //   바뀌었고 재배선은 무오염" 을 계속 증명한다.
-        overflow: "auto",
+        //   바뀌었고 재배선은 무오염" 을 계속 증명한다. overflow 도 2026-11-13 제거.
         outline: "none",
         borderWidth: 0.5, // `{border.width.hairline}` — 위 listbox describe 참조
       });
@@ -625,7 +621,8 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
 
   it("raw 부재 시 root overflow — 3 위치(top-level/structure/structure.composition) 포괄", () => {
     // top-level containerStyles.overflow
-    expect(resolveEffectiveOverflow("listbox", {})).toBe("auto");
+    // (ListBox 의 `auto` 는 2026-11-13 사용자 결정으로 뺐다 — picker 팝오버 안 목록만 스크롤.)
+    expect(resolveEffectiveOverflow("listbox", {})).toBeUndefined();
     expect(resolveEffectiveOverflow("tree", {})).toBe("auto");
     // structure.containerStyles 의 Card root clip 은 2026-11-13 사용자 결정으로 뺐다 (세로 flex 눌림).
     expect(resolveEffectiveOverflow("card", {})).toBeUndefined();
@@ -646,7 +643,7 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
   });
 
   it("ref instance resolved type(PascalCase componentName)도 lowercasing 으로 해석", () => {
-    expect(resolveEffectiveOverflow("ListBox", {})).toBe("auto");
+    expect(resolveEffectiveOverflow("Tree", {})).toBe("auto");
   });
 });
 

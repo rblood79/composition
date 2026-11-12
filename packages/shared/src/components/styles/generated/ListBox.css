@@ -20,7 +20,6 @@
   padding: var(--spacing-xs);
   gap: 0px;
   width: 100%;
-  overflow: auto;
   outline: none;
   display: flex;
   flex-direction: column;
@@ -68,6 +67,7 @@
 
 .react-aria-ListBox.react-aria-ListBox:where(:is(.react-aria-Popover *)) {
   display: block;
+  overflow: auto;
   border: none;
   padding: var(--spacing-sm);
   background: transparent;

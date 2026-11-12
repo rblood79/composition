@@ -73,7 +73,13 @@ async function openWith(definitionId: string, popover = false) {
   workspace.root.execute(
     insertNodes({
       parent: { kind: "node", id: parent },
-      entries: [entry(LIST, definitionId)],
+      // (A list scrolls when its author sets an overflow — the ListBox rule has none, 2026-11-13.)
+      entries: [
+        {
+          ...entry(LIST, definitionId),
+          visual: { overflow: { kind: "set", value: "auto" } },
+        } as NodeEntry,
+      ],
       rootIds: [LIST],
       newId: workspace.newId,
     }),

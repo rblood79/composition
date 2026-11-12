@@ -155,8 +155,9 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
         Record<string, unknown> | undefined;
       expect(container, `${type} containerStyles`).toBeDefined();
       expect(container?.maxHeight, `${type} 고정 maxHeight`).toBeUndefined();
-      // overflow 는 남아야 한다 — 높이를 저작했을 때 스크롤이 살아나는 채널.
-      expect(container?.overflow).toBe("auto");
+      // overflow: Tree 는 `auto` (높이를 저작했을 때 스크롤), ListBox 는 2026-11-13 사용자 결정으로
+      //   뺐다 — 높이가 정해진 세로 flex 부모에서 0 까지 눌렸다. 스크롤은 저작한 overflow 로.
+      expect(container?.overflow).toBe(type === "ListBox" ? undefined : "auto");
     }
   });
 

@@ -8248,7 +8248,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       gap: "0px",
       padding: "{spacing.xs}",
       width: "100%",
-      overflow: "auto",
+      // overflow 는 두지 않는다 (사용자 결정 2026-11-13) — 아래 structure 주석.
       outline: "none",
       borderWidth: "{border.width.hairline}",
     },
@@ -8302,7 +8302,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         width: "100%",
         // maxHeight 제거 — 위 top-level 주석 참조 (2026-07-29). 두 층을 같이 지워야
         //   생성 CSS(`.react-aria-ListBox { max-height }`)와 캔버스가 함께 풀린다.
-        overflow: "auto",
+        // overflow 도 두지 않는다 (사용자 결정 2026-11-13): `auto` 면 flex item 의 자동 최소 크기가 0 이라,
+        //   높이가 정해진 세로 flex 부모 (Height 100% page body) 가 넘칠 때 목록을 눌렀다 (Chrome 과 Canvas
+        //   엔진 같은 규칙). 스크롤은 picker 팝오버 안 목록만 — 아래 `overflow.inPopover` (S2 Picker ·
+        //   ComboBox `listbox` 의 `overflow: auto`).
         outline: "none",
       },
       stateStyles: {
@@ -8311,6 +8314,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-297 Phase 3c — a picker's list in its Popover (the RAC reference `.dropdown-listbox` — was
         //   `rootSelectors["&:is(.react-aria-Popover *)"]`): no box of its own; an empty one keeps a row.
         display: { inPopover: "block" },
+        overflow: { inPopover: "auto" },
         border: { inPopover: "none" },
         // S2 Picker · ComboBox: Popover `padding="none"` + 목록 `padding: 8` — 두 picker 의 한 값.
         padding: { inPopover: "var(--spacing-sm)" },
