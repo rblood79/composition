@@ -365,12 +365,14 @@ function AddForm({
         <PropertySelect
           label={t("dataView.control")}
           value={kind}
+          // The page's placed controls first — wiring one already there is the likelier wish
+          //   (사용자 결정 2026-11-12); the new kinds follow. The default stays the field's kind.
           options={[
+            ...existing,
             ...KINDS.map((value) => ({
               value: value as string,
               label: kindLabel(t, value),
             })),
-            ...existing,
           ]}
           translateOptions={false}
           onChange={(value) => setChosen(value as AddKind)}

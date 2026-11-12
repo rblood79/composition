@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Chart 의 데이터가 목록과 같은 Collection 섹션에 선다 (사용자 결정 2026-11-12 — 「Data」 섹션 없음): Data source → Series source (모드) · 값 필드 · 시간축 → Category · Value · Series (축 필드) → Sample Rows, 연동하면 그 아래 Search · filter. Content 에는 차트 종류 · 기준선 · 모양만 남는다. Chart 의 데이터 칸 이름도 목록과 같은 「Data source」, Collection 머리글의 「표 만들기」 도 같이 선다.
+- 「Add search」 의 Control 목록에서 그 페이지에 놓인 컨트롤 (「Existing · TextField」) 이 새 컨트롤 종류보다 먼저 선다 — 놓아 둔 컨트롤을 잇는 경우가 더 흔하다 (사용자 결정 2026-11-12). 기본 선택은 그대로 필드 종류. 위치: `CatalogFilterSection.tsx` `AddForm`.
 - Collection 은 Data source 행이 늘 첫 행이다. 위치: `Chart.binding.ts` (데이터 키 `section: "collection"`) · `useChartPropertyExtras.tsx` (`sectionLeads`) · `GenericFieldRenderer` `sectionLeads` (섹션 앞머리 — Data source 바로 뒤).
 
 ## [Property 탭 섹션 병합 — 3 · 4단계 (고정 섹션을 병합 섹션 안으로 · 필터 진입점은 목록 한쪽)] - 2026-11-12

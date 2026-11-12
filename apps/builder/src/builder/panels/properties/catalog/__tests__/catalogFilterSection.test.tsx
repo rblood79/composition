@@ -192,6 +192,11 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     await act(async () => {
       fireEvent.click(within(groupByLegend("Control")).getByRole("button"));
     });
+    // A placed control comes first — wiring the one on the page is the likelier wish (사용자 결정
+    // 2026-11-12), the new kinds follow.
+    expect(screen.getAllByRole("option")[0]?.textContent).toBe(
+      "Existing · RadioGroup",
+    );
     await act(async () => {
       fireEvent.click(
         screen.getByRole("option", { name: "Existing · RadioGroup" }),
