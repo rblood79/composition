@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Accordion 이 내용을 자르지 않는다 — 높이가 정해진 세로 flex 에서 0 까지 눌리지 않음] - 2026-11-13
+
+### Fixed
+
+- Accordion 의 catalog rule 에서 `overflow: hidden` 을 뺐다 (생성 `Accordion.css` 도). 세로 flex page body 에 Height 100% 를 주고 내용이 화면보다 길면 Accordion 이 0 까지 눌리던 것이 내용 높이에서 멈춘다 (사용자 결정 2026-11-13 「catalog 에서 Accordion 의 overflow 자체를 제거」).
+  - **Why**: flex item 은 `overflow` 가 `visible` 이 아니면 자동 최소 크기가 0 이다 — Chrome 과 Canvas 엔진이 같은 규칙이라 두 쪽 다 눌렸다 (Publish 실측 Accordion 0). S2 Accordion 은 `display: flex` · `flex-direction: column` 뿐이고 내용을 자르지 않는다. Accordion 은 바탕 · 테두리가 없어 모서리를 깎을 것도 없다.
+  - Live (aaa · mobile 390×844 · body 세로 flex · Height Parent): Canvas 프레임 390×844 에서 Section 1 · 2 · Content 2 가 다 보이고 스크롤, Publish body 844 · Accordion 101 (전 0) · overflow visible. 콘솔 오류 0.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Accordion `composition.containerStyles`). 테스트: `accordion.test.tsx` (원복 RED — 101 → 35) · `resolveContainerStylesFallback.test.ts` · `CSSGenerator.disclosure.test.ts`.
+
 ## [page 프레임 = body 그대로 — Canvas H 제거, Height 가 프레임을 정한다] - 2026-11-13
 
 ### Removed
@@ -22,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - page 프레임 높이 = body 의 Height: 지정하지 않음 · `auto` · `fit-content` 면 내용만큼 (최소 Min H, 없으면 breakpoint 화면 높이 — 화면 끝에 점선), `100%` · `vh` 면 breakpoint 화면 기준 높이, px 면 그 값 — 넘치는 내용은 프레임 안에서 스크롤한다. Min H 의 `%` 도 화면 기준으로 읽는다.
-  - 세로 flex body 에 Height 100% 를 주면 높이가 정해진 flex 상자가 되어 줄어들 수 있는 자식 (overflow 가 있는 Accordion · ListBox …) 이 눌린다 — Chrome 과 같은 결과다 (Publish 실측: Accordion 0). Height 를 지정하지 않으면 눌리지 않는다.
+  - 세로 flex body 에 Height 100% 를 주면 높이가 정해진 flex 상자가 되어 줄어들 수 있는 자식 (overflow 가 있는 Accordion · ListBox …) 이 눌린다 — Chrome 과 같은 결과다 (Publish 실측: Accordion 0). Height 를 지정하지 않으면 눌리지 않는다. Accordion 은 같은 날 위 항목에서 overflow 를 빼 눌리지 않는다.
 - page 아래 · 오른쪽 아래 손잡이: Height 를 지정한 body 는 Height 를, 아니면 Min H 를 px 로 쓴다 (바뀐 축만).
 - Publish: `#root` · `.publish-app` · `.publish-layout` 가 `height: 100%` 로 화면 높이 체인을 잇는다 — 전에는 `min-height` 뿐이라 body 의 `100%` 가 화면 높이로 풀리지 않았다. 화면보다 긴 page 는 `.publish-content` 가 스크롤한다.
   - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`catalogPageBodyHeightAuthored` · `catalogPageFrameHeight` · `catalogPageContentMinHeight` · `pageBodySplit` · `pageFrameStyle`) · `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`pageBodySizing`) · `apps/publish/src/styles/index.css`. 테스트: `pageBodyResize.test.tsx` 8 · `phase4PageFrames.test.tsx` · `adr275FixedAuthored.test.ts` (원복 RED 8).

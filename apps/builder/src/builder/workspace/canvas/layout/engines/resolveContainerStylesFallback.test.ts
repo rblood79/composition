@@ -629,8 +629,9 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
     expect(resolveEffectiveOverflow("tree", {})).toBe("auto");
     // structure.containerStyles.overflow (Card root clip)
     expect(resolveEffectiveOverflow("card", {})).toBe("hidden");
-    // structure.composition.containerStyles.overflow (Accordion)
-    expect(resolveEffectiveOverflow("accordion", {})).toBe("hidden");
+    // structure.composition.containerStyles 에는 overflow 를 둔 rule 이 없다 — Accordion 의
+    //   `hidden` 은 2026-11-13 사용자 결정으로 뺐다 (세로 flex 에서 0 까지 눌림, S2 도 자르지 않음).
+    expect(resolveEffectiveOverflow("accordion", {})).toBeUndefined();
   });
 
   it("sub-part(.bar staticSelectors)의 overflow 는 root clip 이 아니므로 제외 — ProgressBar/Meter undefined", () => {

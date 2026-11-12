@@ -15,7 +15,6 @@
     width: 100%;
     font-size: var(--catalog-token-text-base);
     border-radius: var(--catalog-token-radius-md);
-    overflow: hidden;
 
   /* Default size */
   font-size: var(--catalog-token-text-sm);

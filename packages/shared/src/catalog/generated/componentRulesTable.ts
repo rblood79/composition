@@ -2082,7 +2082,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   페이지 높이에서 내용만큼 자란다 — Chrome 의 body 와 같다. 2026-10-21 의 `height: 100%`
         //   (Compare 모드 definite 높이) 는 세로 flex body 가 넘치는 자식 (overflow 가 visible 이 아닌
         //   Accordion · ListBox …) 을 0 까지 눌러 2026-11-13 사용자 결정으로 뺐다. Canvas 도 같은
-        //   모델 — 프레임 = 화면 상자, 내용 = 자라는 상자 (`compositionRoot` `pageBodyViewportStyle`).
+        //   모델 — 프레임 = body 그대로, Height 가 없으면 내용만큼 (`compositionRoot` `pageBodySplit`).
       },
       composition: {
         rootSelectors: {},
@@ -6062,7 +6062,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           width: "100%",
           "font-size": "var(--text-base)",
           "border-radius": "var(--radius-md)",
-          overflow: "hidden",
+          // overflow 는 두지 않는다 (사용자 결정 2026-11-13): `hidden` 이면 flex item 의 자동 최소
+          //   크기가 0 이라, 높이가 정해진 세로 flex 부모 (Height 100% page body) 가 넘칠 때 Accordion 을
+          //   0 까지 눌렀다 (Chrome 과 Canvas 엔진 같은 규칙). S2 Accordion 도 내용을 자르지 않는다.
         },
         delegation: [],
       },

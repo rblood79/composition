@@ -11,7 +11,10 @@ import {
 } from "react-aria-components";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
@@ -350,5 +353,43 @@ describe("ADR-256 Phase 8d — Accordion takes free content", () => {
     expect(
       sections().map((section) => section.hasAttribute("data-expanded")),
     ).toEqual([false, true]);
+  });
+  it("a column flex body of a fixed Height does not squeeze it to 0 (no overflow clip — the content height is its floor, as in Chrome)", async () => {
+    const { workspace, root, placed } = await place("accordion");
+    const height = () => root.getGeometry([placed().id]).get(placed().id)!.height;
+    const natural = height();
+    expect(natural).toBeGreaterThan(0);
+    const breakpoint = workspace.session.getSnapshot().breakpoint;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: "project:node:tall",
+            definitionId: "lib:definition:type-frame",
+            children: [],
+            props: {},
+            visual: {},
+            sizing: { height: { kind: "set", value: 3000 } },
+            descendantOverrides: [],
+          } as never,
+        ],
+        rootIds: ["project:node:tall" as NodeId],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: BODY }],
+        breakpoint,
+        layout: {
+          display: { kind: "set", value: "flex" },
+          flexDirection: { kind: "set", value: "column" },
+        },
+        visual: { height: { kind: "set", value: "100%" } },
+      }),
+    );
+    expect(height()).toBe(natural);
   });
 });

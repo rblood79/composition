@@ -145,10 +145,10 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
     expect(rule.structure?.composition?.layout).toBe("flex-column");
   });
 
-  it("Accordion CSS: flex column + overflow hidden 컨테이너", () => {
+  it("Accordion CSS: flex column 컨테이너, 내용을 자르지 않는다 (S2 · 세로 flex 에서 0 까지 눌리지 않게)", () => {
     const { spec } = virtualSpecFor("Accordion");
     const css = generateCSS(spec);
     expect(css).toMatch(/flex-direction:\s*column/);
-    expect(css).toMatch(/overflow:\s*hidden/);
+    expect(css).not.toMatch(/overflow:/);
   });
 });
