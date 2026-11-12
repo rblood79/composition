@@ -61,7 +61,7 @@ describe("Properties 필드 규칙 — 매핑표 dispatch · 칩 묶음 · 섹�
     );
     expect(s).toContain("splitChipFields(sectionFields)");
     expect(s).toContain("{renderRows(sourceRows)}");
-    expect(s).toContain("{renderRows(restRows)}");
+    expect(s).toContain("{renderRows(rows)}");
     expect(s).toContain("<ChipGroupField");
     expect(s).toContain("{renderRows(dependents)}");
     expect(s).toContain("useFieldValuesSnapshot(");

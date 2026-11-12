@@ -1445,6 +1445,9 @@ function isDataSourceField(field: ResolvedField): boolean {
 
 interface SectionLayout {
   section: string;
+  /** The section's Data source row(s) — they stand first; `sectionLeads` follow them. */
+  sourceRows: ResolvedField[][];
+  /** The rest of the section's rows. */
   rows: ResolvedField[][];
   chipGroups: Array<{ group: ChipGroup; fields: ResolvedField[] }>;
   dependents: ResolvedField[][];
@@ -1487,7 +1490,7 @@ function layoutSections(
       field.editorHidden ||
       !evaluateVisibility(field.visibleWhen, conditionValues) ||
       // binding(items 등) 은 Inspector no-op — 행을 만들면 빈 8px 간격만 남는다
-      (field.kind === "binding" && field.key !== "dataBinding") ||
+      (field.kind === "binding" && !isDataSourceField(field)) ||
       isSingleChoice(field)
     )
       continue;
@@ -1519,13 +1522,14 @@ function layoutSections(
           )
         : pack(rows);
       // 데이터 원천 (Data source) 이 섹션 첫 행 — 매핑 · 필터가 그 원천을 읽는다.
-      const rowsOf = [
-        ...packed.filter((row) => row.some(isDataSourceField)),
-        ...packed.filter((row) => !row.some(isDataSourceField)),
-      ];
+      const sourceRows: ResolvedField[][] = [];
+      const restRows: ResolvedField[][] = [];
+      for (const row of packed)
+        (row.some(isDataSourceField) ? sourceRows : restRows).push(row);
       return {
         section,
-        rows: rowsOf,
+        sourceRows,
+        rows: restRows,
         chipGroups,
         dependents: pack(dependents),
       };
@@ -1560,7 +1564,13 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
 
   // 주입 컨트롤은 화면 섹션 단위로 모은다 — 병합된 분류 (appearance → Content) 는 표의 분류 순서로.
   const extraSections = mergeSectionExtras(sectionExtras);
-  const extraSectionsKey = extraSections.map(([section]) => section).join("|");
+  // 앞머리 컨트롤도 꼬리와 같이 분류 key → 화면 섹션으로 모으고, 그것만으로 섹션을 연다.
+  const leadSections = mergeSectionExtras(sectionLeads);
+  const extraSectionsKey = [
+    ...new Set(
+      [...extraSections, ...leadSections].map(([section]) => section),
+    ),
+  ].join("|");
   const sections = useMemo(
     () =>
       layoutSections(
@@ -1603,11 +1613,13 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   }
 
   const extrasBySection = new Map(extraSections);
+  const leadsBySection = new Map(leadSections);
   // 주입 컨트롤은 content 그룹 선두. content 그룹이 없으면 Content 섹션을 앞에 만든다.
   const contentLayout = sections.find((s) => s.section === "content");
   const hasContentGroup =
     contentLayout != null &&
-    (contentLayout.rows.length > 0 ||
+    (contentLayout.sourceRows.length > 0 ||
+      contentLayout.rows.length > 0 ||
       contentLayout.chipGroups.length > 0 ||
       contentLayout.dependents.length > 0 ||
       extrasBySection.has("content"));
@@ -1682,31 +1694,20 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
       {contentExtras != null && !hasContentGroup && (
         <PropertySection title="Content">{contentExtras}</PropertySection>
       )}
-      {sections.map(({ section, rows, chipGroups, dependents }) => {
+      {sections.map(({ section, sourceRows, rows, chipGroups, dependents }) => {
         const tail = extrasBySection.get(section);
-        const lead = sectionLeads?.[section] ?? null;
+        const lead = leadsBySection.get(section) ?? null;
         const head =
           section === "content" && hasContentGroup ? contentExtras : null;
-        if (
-          rows.length === 0 &&
-          chipGroups.length === 0 &&
-          dependents.length === 0 &&
-          tail == null &&
-          lead == null &&
-          head == null
-        )
-          return null;
+        // 계약 행 · 앞머리 · 머리가 없으면 꼬리 (주입 컨트롤) 만 든 섹션이다.
         const extrasOnly =
+          sourceRows.length === 0 &&
           rows.length === 0 &&
           chipGroups.length === 0 &&
           dependents.length === 0 &&
           lead == null &&
           head == null;
-        const sourceRows = rows.filter((row) => row.some(isDataSourceField));
-        const restRows =
-          sourceRows.length > 0
-            ? rows.filter((row) => !sourceRows.includes(row))
-            : rows;
+        if (extrasOnly && tail == null) return null;
         return (
           <PropertySection
             key={section}
@@ -1722,7 +1723,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
             {head}
             {renderRows(sourceRows)}
             {lead}
-            {renderRows(restRows)}
+            {renderRows(rows)}
             {/* boolean 은 섹션당 칩 묶음 (Options → Show → Fill) — 전폭 217, 행 래퍼 없음.
                 칩이 게이트인 종속 필드 (Value Label · Legend Position) 는 묶음 바로 아래 */}
             {chipGroups.map(({ group, fields: chipFields }) => (
