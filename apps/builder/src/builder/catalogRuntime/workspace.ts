@@ -365,6 +365,7 @@ export class CatalogWorkspace {
     this.themeState = state;
     this.themeKey = state.key;
     if (process.env.NODE_ENV === "development") docCounters.rootReplaced += 1;
+    this.outsideChanges += 1;
     return () => {
       const errors: unknown[] = [];
       for (const listener of [...this.rootListeners])
@@ -400,6 +401,7 @@ export class CatalogWorkspace {
     this.currentRoot = this.createRoot(breakpoint);
     this.session.setBreakpoint(breakpoint);
     this.session.reconcile();
+    this.outsideChanges += 1;
     for (const listener of [...this.rootListeners]) listener();
     this.fillMarked.current = this.fillMarked.all = false;
     this.fillScheduler?.restart();
@@ -670,7 +672,7 @@ export class CatalogWorkspace {
       const errors = this.currentRoot.resampleRows();
       // (Nothing built again: the Canvas has nothing to follow.)
       if (!errors) return;
-      for (const listener of [...this.rowListeners]) listener();
+      this.tellRows();
       if (errors.length)
         reportError(new AggregateError(errors, "CATALOG_ROWS_DELIVERY"));
     }, 0);
@@ -685,7 +687,7 @@ export class CatalogWorkspace {
         ? new Set(dataCollectionIds.map((id) => catalogCollectionId(id)))
         : undefined,
     );
-    for (const listener of [...this.rowListeners]) listener();
+    this.tellRows();
     if (errors.length)
       throw new AggregateError(errors, "CATALOG_ROWS_DELIVERY");
   }
@@ -698,7 +700,7 @@ export class CatalogWorkspace {
     const errors = this.currentRoot.refreshState(
       names ? new Set(names) : undefined,
     );
-    for (const listener of [...this.rowListeners]) listener();
+    this.tellRows();
     if (errors.length)
       throw new AggregateError(errors, "CATALOG_STATE_DELIVERY");
   }
@@ -726,7 +728,7 @@ export class CatalogWorkspace {
   private filled(report?: CatalogFillReport): void {
     if (!this.fillScheduler) return;
     if (report?.records)
-      for (const listener of [...this.rowListeners]) listener();
+      this.tellRows();
     if (report?.errors.length) this.reportFill(report.errors);
     const pending = this.fillPending;
     if (pending !== this.fillWasPending) {
@@ -814,6 +816,23 @@ export class CatalogWorkspace {
     if (!holder) return false;
     this.fillNode(holder);
     return this.currentRoot.domInputs.has(identity);
+  }
+  /**
+   * Changes a reader of rows sees outside a document step — data rows · state · a fill · a sample
+   * (`tellRows`) and a new root. With `graph.revision` it names what the Layers tree read
+   * (`layerInputsVersion`).
+   */
+  private outsideChanges = 0;
+  private tellRows(): void {
+    this.outsideChanges += 1;
+    for (const listener of [...this.rowListeners]) listener();
+  }
+  /**
+   * What the Layers tree reads changes with this (the document revision · a change outside a step):
+   * a tree read at mount connects without reading again when nothing moved in between.
+   */
+  get layerInputsVersion(): string {
+    return `${this.runtime.graph.revision}:${this.outsideChanges}`;
   }
   subscribeRows(listener: () => void): () => void {
     this.rowListeners.add(listener);

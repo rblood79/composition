@@ -143,6 +143,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
           // empty are not drawn, so they have no row.
           collectionRowHidden: (position, parentType) =>
             workspace.collectionRowHidden(position, parentType),
+          inputsVersion: () => workspace.layerInputsVersion,
         },
         ownerId,
       ),

@@ -51,6 +51,10 @@ import {
 } from "./paletteInsert";
 
 const ORIGIN_PREFIX = "lib:definition:origin-";
+/** A reusable origin's type by its definition id (read per selection and per edited key). */
+const ORIGIN_NAME_BY_ID: ReadonlyMap<string, string> = new Map(
+  REUSABLE_ORIGIN_DEFINITIONS.map((definition) => [definition.id, definition.name]),
+);
 
 /** The definition an edit target shows (a node's own, or its template position's). */
 export function catalogTargetDefinitionId(
@@ -82,10 +86,7 @@ export function catalogSemanticContracts(
       ? (entry.binding.props.accepts ?? {})
       : (RULE_TYPE_PROP_CONTRACTS[type] ?? {}));
   // Trigger-root origins edit the actual controller's Slot on their public instance.
-  const originType =
-    REUSABLE_ORIGIN_DEFINITIONS.find(
-      (definition) => definition.id === definitionId,
-    )?.name ?? type;
+  const originType = ORIGIN_NAME_BY_ID.get(definitionId) ?? type;
   return catalogHasSlotContract(originType) && !accepts.slot
     ? { ...accepts, slot: RAC_SLOT_PROP }
     : accepts;

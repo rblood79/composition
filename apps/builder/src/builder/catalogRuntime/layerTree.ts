@@ -116,6 +116,11 @@ export interface CatalogLayerTreeHost {
    * state (EmptyState) while it has items, its item positions while its loaded data is empty.
    */
   collectionRowHidden?(position: CatalogPosition, parentType: string): boolean;
+  /**
+   * Changes whenever anything the rows read changes (the workspace's `layerInputsVersion`): a tree
+   * read at mount connects without reading again when it is the same. Absent = always read again.
+   */
+  inputsVersion?(): string;
 }
 
 const typeNameOf = (graph: CatalogReader, position: CatalogPosition) => {
@@ -252,6 +257,9 @@ export class CatalogLayerTreeStore {
   private disconnectHost: (() => void) | undefined;
   private rowsChanged = false;
   private disposed = false;
+  /** The host's `inputsVersion` at the last read, and the row lists that read wanted. */
+  private readVersion: string | undefined;
+  private wanted: ReadonlySet<string> = new Set();
 
   /** Reads the rows once; `connect` follows the document (a component connects in its effect). */
   constructor(
@@ -336,7 +344,12 @@ export class CatalogLayerTreeStore {
       for (const unsubscribe of this.rowSubscriptions.values()) unsubscribe();
       this.rowSubscriptions.clear();
     };
-    this.rebuild();
+    // (Read at mount — the render — and nothing moved since: only the row lists are subscribed.
+    // Reading again doubled each page switch's rows, 2026-11-12 ratchet 조사.)
+    const version = host.inputsVersion?.();
+    if (version !== undefined && version === this.readVersion)
+      this.syncSubscriptions(this.wanted);
+    else this.rebuild();
     return this.disconnectHost;
   }
 
@@ -370,6 +383,7 @@ export class CatalogLayerTreeStore {
     const counting = process.env.NODE_ENV === "development";
     if (counting) docCounters.layersRebuilds += 1;
     this.rowsChanged = false;
+    this.readVersion = this.host.inputsVersion?.();
     const { readModel, graph } = this.host;
     const previous = this.nodes;
     const nodes = new Map<string, CatalogLayerNode>();
@@ -544,7 +558,8 @@ export class CatalogLayerTreeStore {
     this.visibleNodes = visibleNodes;
     this.valueGated = valueGated;
     this.collectionGated = collectionGated;
-    // (Unconnected, the rows are only read — `connect` reads them again and subscribes.)
+    this.wanted = wanted;
+    // (Unconnected, the rows are only read — `connect` subscribes the lists this read wanted.)
     if (this.disconnectHost) this.syncSubscriptions(wanted);
     const changed =
       top.length !== this.snapshot.length ||

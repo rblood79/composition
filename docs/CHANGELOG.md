@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [성능 회귀 2 건 수리 — 선택 시 원본 찾기 · page 전환 시 Layers 두 번 읽기] - 2026-11-12
+
+### Fixed
+
+- 요소를 고를 때마다 편집 계약이 원본 165 개를 처음부터 훑던 것 — 원본 이름을 id 로 바로 찾는다 (`792815efc` 부터). ratchet select 부류 함수 호출 −14,850 (조사 실측 158,816 → 143,777). 위치: `editContract.ts` `ORIGIN_NAME_BY_ID`. 테스트: `editContractOriginLookup.test.ts`.
+- page 를 바꿀 때 Layers 가 같은 행을 두 번 읽던 것 — 렌더에서 읽은 뒤 연결할 때 그 사이 문서 · 데이터 행 · root 가 바뀌지 않았으면 다시 읽지 않고 구독만 붙인다 (`33d58176b` 부터). live (프로젝트 「23」, page 3 → 4 → 5): Layers 다시 만들기 6 → 4 회 · 만든 행 52 → 27. 위치: `layerTree.ts` `connect` · `workspace.ts` `layerInputsVersion`. 테스트: `layerTreeConnectRead.test.ts`.
+  - **Why**: ratchet 증가 4 건 조사 (ADR-307 후속 1 의 별도 조사) — 나머지 2 건 (선택 시 Locale 선택칸의 DOM 변경 · drag 명령 버퍼 조각) 은 기능 · 구조 변경의 비용이라 수용.
+
 ## [Preview · Publish 는 보이는 page 만 만든다 (ADR-307 후속 2)] - 2026-11-12
 
 ### Changed
