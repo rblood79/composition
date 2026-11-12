@@ -933,6 +933,8 @@ export function CatalogCanvas({
     let sceneStale = false;
     /** ADR-307: the fill ended — the patched command buffer is joined after the next sync. */
     let compactAfterSync = false;
+    // A drag's end left the command buffer in two more pieces (`compactFragmented`).
+    let dragEnded = false;
     // ADR-270 Phase 0 (dev): the loads one frame takes (`imageLoadedPerFrameMax`).
     let imagesLoadedInFrame = 0;
     /** Publish the page header frames; true = a frame moved or resized. */
@@ -968,9 +970,17 @@ export function CatalogCanvas({
         }
       }
       if (!sceneStale) {
-        // (A drag that changed nothing leaves its pieces with no sync to follow.)
-        if (!workspace.fillPending && !gestures.active && !dragRecords)
+        // (A drag that changed nothing leaves its pieces with no sync to follow — asked once
+        // after it ends, not on every quiet frame.)
+        if (
+          dragEnded &&
+          !workspace.fillPending &&
+          !gestures.active &&
+          !dragRecords
+        ) {
+          dragEnded = false;
           scene.compactFragmented();
+        }
         return;
       }
       sceneStale = false;
@@ -989,7 +999,10 @@ export function CatalogCanvas({
             scene.compact();
           }
           // (Drags leave the buffer in pieces too — joined past the limit.)
-          else scene.compactFragmented();
+          else {
+            dragEnded = false;
+            scene.compactFragmented();
+          }
         }
         // A page grid edit (gap, columns, direction) moves page frames without a record delta,
         // and a rename changes no drawn record: the headers follow, a moved frame is placed
@@ -1621,6 +1634,7 @@ export function CatalogCanvas({
     const endDrag = () => {
       if (!dragRecords) return;
       dragRecords = undefined;
+      dragEnded = true;
       dragReflow.clear();
       setDragSiblingOffsets(null);
       setDragVisualOffset(null, 0, 0, true);

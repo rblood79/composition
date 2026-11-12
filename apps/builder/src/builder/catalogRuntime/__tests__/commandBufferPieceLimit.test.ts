@@ -15,7 +15,11 @@ import {
   createCommandReader,
   type RenderCommandStream,
 } from "../../workspace/canvas/skia/renderCommands";
-import { CANVAS_BUFFER_PIECE_LIMIT, CatalogCanvasScene } from "../canvasScene";
+import {
+  CANVAS_BUFFER_PIECE_LIMIT,
+  CatalogCanvasScene,
+  canvasBufferPieceLimit,
+} from "../canvasScene";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -29,7 +33,8 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * VS Code's "normalization step"); the Canvas asks on every frame outside a gesture and a fill.
  */
 const BODY = "project:node:home-body" as NodeId;
-const NAMES = Array.from({ length: 30 }, (_, index) => `t${index}`);
+const namesOf = (count: number) =>
+  Array.from({ length: count }, (_, index) => `t${index}`);
 const text = (name: string): NodeEntry =>
   ({
     kind: "node",
@@ -42,7 +47,7 @@ const text = (name: string): NodeEntry =>
     descendantOverrides: [],
   }) as NodeEntry;
 
-async function open() {
+async function open(names = namesOf(30)) {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -62,8 +67,8 @@ async function open() {
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: BODY },
-      entries: NAMES.map(text),
-      rootIds: NAMES.map((name) => `project:node:${name}` as NodeId),
+      entries: names.map(text),
+      rootIds: names.map((name) => `project:node:${name}` as NodeId),
       newId: <K extends EntryKind>(kind: K) =>
         `project:${kind}:d${++next}` as EntryId<K>,
     }),
@@ -72,14 +77,14 @@ async function open() {
   scene.sync();
   const drag = (index: number) => {
     const record = workspace.root.recordsOfSource(
-      `project:node:${NAMES[index]}`,
+      `project:node:${names[index]}`,
     )[0]!;
     setDragVisualOffset(new Set([record]), 12, 16, true);
     scene.refreshPresentation({ holdImages: true });
     setDragVisualOffset(null, 0, 0, true);
     scene.refreshPresentation();
   };
-  return { workspace, scene, drag };
+  return { workspace, scene, drag, count: names.length };
 }
 
 const pieces = (scene: CatalogCanvasScene) =>
@@ -96,12 +101,16 @@ function drawn(stream: RenderCommandStream) {
 
 describe("command buffer — pieces past the limit are joined", () => {
   it("drags leave pieces; past the limit a join keeps the stream and makes it one piece", async () => {
-    const { workspace, scene, drag } = await open();
+    const { workspace, scene, drag, count } = await open();
     try {
+      // (A small document: the floor is the limit.)
+      expect(canvasBufferPieceLimit(scene.stream)).toBe(
+        CANVAS_BUFFER_PIECE_LIMIT,
+      );
       expect(scene.compactFragmented()).toBe(false);
       let peak = 0;
       for (let turn = 0; turn < 20; turn += 1) {
-        drag((turn * 7) % NAMES.length);
+        drag((turn * 7) % count);
         peak = Math.max(peak, pieces(scene));
         // (The Canvas asks every frame, outside a gesture and a fill.)
         const before = drawn(scene.stream);
@@ -118,6 +127,32 @@ describe("command buffer — pieces past the limit are joined", () => {
       const joined = drawn(scene.stream);
       scene.rebuild();
       expect(joined).toEqual(drawn(scene.stream));
+    } finally {
+      scene.dispose();
+      workspace.dispose();
+    }
+  });
+
+  it("a join re-reads every span — a large document joins only past a limit that grows with its spans", async () => {
+    // ADR-246 ratchet (2026-11-13): with 16 for every document, the 22 image loads of a
+    // 30,000-span document joined every eight splices — each join re-reads every span
+    // (`spanCursorSteps` 59,915 → 650,099). Spans / 64 keeps a join's cost per splice constant.
+    const { workspace, scene, drag, count } = await open(namesOf(1000));
+    try {
+      const spans =
+        scene.stream.selfSpans.size +
+        scene.stream.subtreeSpans.size +
+        scene.stream.childrenSpans.size;
+      const limit = canvasBufferPieceLimit(scene.stream);
+      expect(limit).toBe(Math.ceil(spans / 64));
+      // (Ten drags = 21 pieces.)
+      expect(limit).toBeGreaterThan(21);
+      for (let turn = 0; turn < 10; turn += 1) {
+        drag((turn * 37) % count);
+        expect(scene.compactFragmented()).toBe(false);
+      }
+      expect(pieces(scene)).toBeGreaterThan(CANVAS_BUFFER_PIECE_LIMIT);
+      expect(pieces(scene)).toBeLessThanOrEqual(limit);
     } finally {
       scene.dispose();
       workspace.dispose();

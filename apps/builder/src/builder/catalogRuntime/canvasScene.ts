@@ -7,6 +7,7 @@ import {
   executeDamageRenderCommands,
   executeRenderCommands,
   executeViewportRenderCommands,
+  type RenderCommandStream,
 } from "../workspace/canvas/skia/renderCommands";
 import {
   beginContentScope,
@@ -64,13 +65,33 @@ const sameIds = (left: readonly string[], right: readonly string[]) =>
   left.every((id, index) => id === right[index]);
 
 /**
- * The pieces a patched command buffer may stay in before the scene joins it (`compactFragmented`).
- * Every index read is a search over the pieces and a span cursor walks them; a join copies the
- * commands once. A drag's splice adds two pieces per dragged subtree (measured 2026-11-12); a drop
- * that moves binds the scene again (one piece), so the pieces that stay are those of drags that
- * changed nothing — 16 = one join per eight of them.
+ * The fewest pieces a patched command buffer may stay in before the scene joins it
+ * (`compactFragmented`). Every index read is a search over the pieces and a span cursor walks
+ * them. A drag's splice adds two pieces per dragged subtree (measured 2026-11-12); a drop that
+ * moves binds the scene again (one piece), so the pieces that stay are those of drags that changed
+ * nothing — in a small document, 16 = one join per eight of them.
  */
 export const CANVAS_BUFFER_PIECE_LIMIT = 16;
+
+/** Span entries one more piece of headroom pays for — see `canvasBufferPieceLimit`. */
+const SPANS_PER_PIECE = 64;
+
+/**
+ * How many pieces this stream may stay in. A join copies the commands and reads every span again
+ * (two cursor searches each), so a fixed limit made a large document pay that every eight splices:
+ * the 22 image loads of a 30,000-span document took `spanCursorSteps` 59,915 → 650,099 (ADR-246
+ * ratchet, 2026-11-13). Spans / 64 keeps a join's cost per splice constant (about 64 cursor reads).
+ */
+export function canvasBufferPieceLimit(stream: RenderCommandStream): number {
+  const spans =
+    stream.selfSpans.size +
+    stream.subtreeSpans.size +
+    stream.childrenSpans.size;
+  return Math.max(
+    CANVAS_BUFFER_PIECE_LIMIT,
+    Math.ceil(spans / SPANS_PER_PIECE),
+  );
+}
 
 /**
  * ADR-248 Phase 4e-2: the Builder Canvas scene of one open project — every page root bound through
@@ -227,13 +248,14 @@ export class CatalogCanvasScene {
   }
 
   /**
-   * Join the command buffer when it is in more than `CANVAS_BUFFER_PIECE_LIMIT` pieces (a drag's
+   * Join the command buffer when it is in more pieces than `canvasBufferPieceLimit` (a drag's
    * splice adds two and nothing else joins them until a bind). False = within the limit.
    */
   compactFragmented(): boolean {
+    const stream = this.binding.stream;
     return (
-      commandBufferSegmentCount(this.binding.stream.commands) >
-        CANVAS_BUFFER_PIECE_LIMIT && this.compact()
+      commandBufferSegmentCount(stream.commands) >
+        canvasBufferPieceLimit(stream) && compactCommandStream(stream)
     );
   }
 

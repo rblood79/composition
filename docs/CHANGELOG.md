@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 달라지는 동작: 닫힌 선택칸에 focus 를 두고 글자 · ← / → 로 값을 바꾸던 것이 없어진다 (열어서 고른다 — ↓ · Enter · 클릭은 그대로).
   - 외부 사례: Radix Select 는 폼 안일 때만 숨은 select 를 만들고, Ark UI 는 항목이 많으면 `HiddenSelect` 를 쓰지 말라고 안내한다.
   - 숨은 `<select>` 를 직접 조작하던 테스트 5 건은 열어서 항목을 누르는 방식으로 바꿨다.
-- Canvas 명령 버퍼가 16 조각을 넘으면 합친다 — drag 의 splice 가 끌린 subtree 마다 2 조각을 남기는데 합치는 동작이 문서 열기 끝 한 번뿐이었다 (측정: 아무것도 바꾸지 않고 끝난 drag 20 회 뒤 32 조각. 옮기는 drop 은 장면을 다시 묶어 1 조각으로 돌아간다). gesture · 채움 밖의 프레임에서 확인한다. 위치: `canvasScene.ts` `CANVAS_BUFFER_PIECE_LIMIT` · `compactFragmented`, `CatalogCanvas.tsx`. 테스트: `commandBufferPieceLimit.test.ts`.
+- Canvas 명령 버퍼가 상한 (16 조각, 큰 문서는 span 수 ÷ 64) 을 넘으면 합친다 — drag 의 splice 가 끌린 subtree 마다 2 조각을 남기는데 합치는 동작이 문서 열기 끝 한 번뿐이었다 (측정: 아무것도 바꾸지 않고 끝난 drag 20 회 뒤 32 조각. 옮기는 drop 은 장면을 다시 묶어 1 조각으로 돌아간다). drag 가 끝난 뒤와 sync 뒤 (gesture · 채움 밖) 에 한 번 확인한다 — 조용한 프레임마다 확인하자 drag 부류의 stream 읽기가 +12 였다. 상한이 문서 크기를 따르는 이유: 합치기는 span 을 전부 다시 읽는데, 상한을 16 으로 고정하자 span 3 만 개 이미지 문서가 이미지 22 장을 받는 동안 8 splice 마다 합쳐 `spanCursorSteps` 가 59,915 → 650,099 로 늘었다 (ratchet 재측정). ÷ 64 면 splice 하나가 치르는 합치기 비용이 문서 크기와 무관하다. 위치: `canvasScene.ts` `canvasBufferPieceLimit` · `compactFragmented`, `CatalogCanvas.tsx`. 테스트: `commandBufferPieceLimit.test.ts`.
   - 외부 사례: VS Code 텍스트 버퍼 (piece tree) 가 편집이 쌓일 때의 정리 단계를 검토 과제로 적었고, qem 은 조각 수 상한에서 강제로 합친다.
 
 ### Infrastructure
