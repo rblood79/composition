@@ -245,6 +245,8 @@ export interface PanelDatePickerProps {
   onOpenChange?: (open: boolean) => void;
   /** 시각 칸의 12 · 24 시간제 — 고치는 컴포넌트의 Hour cycle (없으면 locale) */
   hourCycle?: 12 | 24;
+  /** 한 자리 숫자 앞에 0 (`09`) — 고치는 컴포넌트의 Force leading zeros */
+  shouldForceLeadingZeros?: boolean;
   /** 저장된 ISO 글자 (빈 글자 = 값 없음) */
   value: string;
   onValueChange: (text: string) => void;
@@ -260,6 +262,7 @@ export function PanelDatePicker({
   deferTyping = true,
   onOpenChange,
   hourCycle,
+  shouldForceLeadingZeros,
   value,
   onValueChange,
   emptyType = "date",
@@ -290,6 +293,7 @@ export function PanelDatePicker({
         value={shown.rac as TimeValue | null}
         granularity={kind.granularity === "second" ? "second" : "minute"}
         hourCycle={hourCycle}
+        shouldForceLeadingZeros={shouldForceLeadingZeros}
         isInvalid={invalid}
         onChange={(next) =>
           draft.change(commitText(source, next, kind.granularity))
@@ -309,6 +313,7 @@ export function PanelDatePicker({
       value={shown.rac as DateValue | null}
       granularity={kind.granularity}
       hourCycle={hourCycle}
+      shouldForceLeadingZeros={shouldForceLeadingZeros}
       isInvalid={invalid}
       onOpenChange={onOpenChange}
       onChange={(next) =>
@@ -343,6 +348,8 @@ export interface PanelDateRangePickerProps {
   emptyType?: PanelDateEmptyType;
   /** 시각 칸의 12 · 24 시간제 — 고치는 컴포넌트의 Hour cycle (없으면 locale) */
   hourCycle?: 12 | 24;
+  /** 한 자리 숫자 앞에 0 (`09`) — 고치는 컴포넌트의 Force leading zeros */
+  shouldForceLeadingZeros?: boolean;
 }
 
 /** A range's start · end in one field, with a range calendar popover (RAC `DateRangePicker`). */
@@ -352,6 +359,7 @@ export function PanelDateRangePicker({
   onValueChange,
   emptyType = "date",
   hourCycle,
+  shouldForceLeadingZeros,
 }: PanelDateRangePickerProps) {
   const draft = useTypingDraft<PanelDateRange | null>(
     value,
@@ -395,6 +403,7 @@ export function PanelDateRangePicker({
       value={both}
       granularity={kind.granularity === "day" ? "day" : kind.granularity}
       hourCycle={hourCycle}
+      shouldForceLeadingZeros={shouldForceLeadingZeros}
       onChange={(next) =>
         draft.change(
           next

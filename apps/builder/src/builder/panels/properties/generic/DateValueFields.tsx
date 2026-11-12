@@ -58,12 +58,14 @@ function DateDraftInput({
   value,
   emptyType,
   hourCycle,
+  forceLeadingZeros,
   label,
   onCommit,
 }: {
   value: string;
   emptyType: EmptyType;
   hourCycle?: 12 | 24;
+  forceLeadingZeros?: boolean;
   label: string;
   onCommit: (value: string) => void;
 }) {
@@ -78,6 +80,7 @@ function DateDraftInput({
       value={draft}
       emptyType={emptyType}
       hourCycle={hourCycle}
+      shouldForceLeadingZeros={forceLeadingZeros}
       aria-label={label}
       onValueChange={(next) => {
         setDraft(next);
@@ -105,6 +108,7 @@ export function DateValueField({
   emptyType,
   hourCycle,
   ownerType,
+  forceLeadingZeros,
   onChange,
 }: {
   label: string;
@@ -113,6 +117,8 @@ export function DateValueField({
   /** The edited component's `hourCycle` prop as stored, and its type (`fieldHourCycle`). */
   hourCycle?: unknown;
   ownerType?: string;
+  /** The edited component's `shouldForceLeadingZeros` as stored (unset = on, as the DOM reads it). */
+  forceLeadingZeros?: unknown;
   onChange: (value: unknown) => void;
 }) {
   const text = typeof value === "string" ? value : "";
@@ -125,6 +131,7 @@ export function DateValueField({
         value={text}
         emptyType={emptyType}
         hourCycle={fieldHourCycle(ownerType, hourCycle)}
+        forceLeadingZeros={forceLeadingZeros !== false}
         label={label}
         onCommit={(next) => onChange(next === "" ? undefined : next)}
       />
@@ -139,6 +146,7 @@ export function DateRangeField({
   emptyType,
   hourCycle,
   ownerType,
+  forceLeadingZeros,
   onChange,
 }: {
   label: string;
@@ -146,6 +154,8 @@ export function DateRangeField({
   emptyType: EmptyType;
   hourCycle?: unknown;
   ownerType?: string;
+  /** The edited component's `shouldForceLeadingZeros` as stored (unset = on, as the DOM reads it). */
+  forceLeadingZeros?: unknown;
   onChange: (value: unknown) => void;
 }) {
   const range = catalogDateRangeFits(value) ? value : { start: "", end: "" };
@@ -163,6 +173,7 @@ export function DateRangeField({
         value={range}
         emptyType={emptyType}
         hourCycle={fieldHourCycle(ownerType, hourCycle)}
+        shouldForceLeadingZeros={forceLeadingZeros !== false}
         onValueChange={(next) => {
           if (!next) return onChange(undefined);
           if (next.start === "" && next.end === "") return onChange(undefined);

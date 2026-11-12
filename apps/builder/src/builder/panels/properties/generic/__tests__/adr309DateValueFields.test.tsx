@@ -140,10 +140,11 @@ describe("ADR-309 G2 (c) — the date fields", () => {
     minute.unmount();
   });
 
-  it("the time segments follow the component's Hour cycle (사용자 2026-11-12)", () => {
+  it("the time segments follow the component's Hour cycle and Force leading zeros (사용자 2026-11-12)", () => {
     const types = (
       hourCycle: 12 | 24 | undefined,
       emptyType: "time" | "datetime-local",
+      forceLeadingZeros?: boolean,
     ) => {
       const view = wrap(
         <DateValueField
@@ -152,6 +153,7 @@ describe("ADR-309 G2 (c) — the date fields", () => {
           emptyType={emptyType}
           hourCycle={hourCycle}
           ownerType={emptyType === "time" ? "TimeField" : undefined}
+          forceLeadingZeros={forceLeadingZeros}
           onChange={() => {}}
         />,
       );
@@ -172,7 +174,13 @@ describe("ADR-309 G2 (c) — the date fields", () => {
     // A TimeField with no Hour cycle shows 24 hours.
     expect(types(undefined, "time")).toEqual(["hour:21", "minute:07"]);
     expect(types(24, "time")).toEqual(["hour:21", "minute:07"]);
-    expect(types(12, "time")).toEqual(["hour:9", "minute:07", "dayPeriod:PM"]);
+    // Force leading zeros unset = on (as the Canvas · DOM read it); off drops the zero.
+    expect(types(12, "time")).toEqual(["hour:09", "minute:07", "dayPeriod:PM"]);
+    expect(types(12, "time", false)).toEqual([
+      "hour:9",
+      "minute:07",
+      "dayPeriod:PM",
+    ]);
     expect(types(24, "datetime-local")).toEqual([
       "month:11",
       "day:12",

@@ -249,9 +249,9 @@ function CatalogRules({
     [graph, identity, owner, revision, workspace],
   );
 
-  // ADR-309 — a date argument shows its target's Hour cycle: the `hourCycle` of the record the rule
-  // reaches from here (the date field reads it with the target's type — `fieldHourCycle`).
-  const targetHourCycle = useCallback(
+  // ADR-309 — a date argument shows its target's format: the props (`hourCycle` ·
+  // `shouldForceLeadingZeros`) of the record the rule reaches from here.
+  const targetDateFormat = useCallback(
     (ref: CatalogCapabilityTarget) => {
       if ("unset" in ref) return undefined;
       const resolved = resolveCapabilityTarget(
@@ -261,7 +261,7 @@ function CatalogRules({
         catalogOriginRootOf(graph, owner.ownerId),
       );
       if (!("recordId" in resolved)) return undefined;
-      return workspace.root.domInputs.get(resolved.recordId)?.props.hourCycle;
+      return workspace.root.domInputs.get(resolved.recordId)?.props;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
     [graph, identity, owner, revision, workspace],
@@ -404,7 +404,7 @@ function CatalogRules({
                   choices={view.choices}
                   describeTarget={describeTarget}
                   targetNotice={targetNotice}
-                  targetHourCycle={targetHourCycle}
+                  targetDateFormat={targetDateFormat}
                   onTargetHover={onTargetHover}
                   canvasHoverKey={canvasHoverKey}
                   aiming={targetPick?.ruleId === rule.id}

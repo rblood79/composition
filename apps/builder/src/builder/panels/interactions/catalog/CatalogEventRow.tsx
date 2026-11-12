@@ -145,8 +145,13 @@ interface CatalogEventRowProps {
   describeTarget: (
     ref: CatalogCapabilityTarget,
   ) => CatalogTargetOption | undefined;
-  /** ADR-309 — the target's `hourCycle` prop (a date argument's time segments, as the Canvas shows). */
-  targetHourCycle?: (ref: CatalogCapabilityTarget) => unknown;
+  /**
+   * ADR-309 — the target's date format props (`hourCycle` · `shouldForceLeadingZeros`): a date
+   * argument's segments show as the Canvas does.
+   */
+  targetDateFormat?: (
+    ref: CatalogCapabilityTarget,
+  ) => Readonly<Record<string, unknown>> | undefined;
   /** ADR-283 Decision 2 — whether the target names a record from the selected place. */
   targetNotice: (
     ref: CatalogCapabilityTarget,
@@ -185,7 +190,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   choices,
   describeTarget,
   targetNotice,
-  targetHourCycle,
+  targetDateFormat,
   onTargetHover,
   canvasHoverKey,
   onAim,
@@ -213,6 +218,10 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   const target =
     action.opcode === "capability" ? describeTarget(action.target) : undefined;
   const targetType = target?.type ?? "";
+  const dateFormat =
+    action.opcode === "capability"
+      ? targetDateFormat?.(action.target)
+      : undefined;
   const notice =
     action.opcode === "capability" ? targetNotice(action.target) : undefined;
   // ADR-283 Decision 4 — a new target that does not take the capability: the line says what
@@ -639,7 +648,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                         choices={choices}
                         describeTarget={describeTarget}
                         targetNotice={targetNotice}
-                        targetHourCycle={targetHourCycle}
+                        targetDateFormat={targetDateFormat}
                         onTargetHover={onTargetHover}
                         canvasHoverKey={canvasHoverKey}
                         exposure={exposure}
@@ -910,11 +919,8 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   }
                   // (ADR-309 — a TimeField's Do asks for a time.)
                   emptyType={targetType === "TimeField" ? "time" : "date"}
-                  hourCycle={
-                    action.opcode === "capability"
-                      ? targetHourCycle?.(action.target)
-                      : undefined
-                  }
+                  hourCycle={dateFormat?.hourCycle}
+                  forceLeadingZeros={dateFormat?.shouldForceLeadingZeros}
                   hourCycleOwner={targetType}
                   choices={
                     capabilityDef.param.kind === "choice"

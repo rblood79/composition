@@ -66,6 +66,8 @@ interface ValueFieldProps {
   /** ADR-309 — the target's `hourCycle` prop and type (its time segments show as the Canvas does). */
   hourCycle?: unknown;
   hourCycleOwner?: string;
+  /** ADR-309 — the target's `shouldForceLeadingZeros` prop (unset = on). */
+  forceLeadingZeros?: unknown;
   /** ADR-287 — a `choice` slot's values (the catalog's): the literal is one of them. */
   choices?: readonly { value: string; label: string }[];
   value: unknown;
@@ -172,6 +174,7 @@ export const ValueField = memo(function ValueField({
   emptyType = "date",
   hourCycle,
   hourCycleOwner,
+  forceLeadingZeros,
 }: ValueFieldProps) {
   const { t } = useI18n();
   const text = useOptionText();
@@ -257,6 +260,7 @@ export const ValueField = memo(function ValueField({
             emptyType={emptyType}
             hourCycle={hourCycle}
             ownerType={hourCycleOwner}
+            forceLeadingZeros={forceLeadingZeros}
             onChange={(next) => onChange(next ?? "")}
           />
         </Suspense>
@@ -273,6 +277,7 @@ export const ValueField = memo(function ValueField({
             emptyType={emptyType}
             hourCycle={hourCycle}
             ownerType={hourCycleOwner}
+            forceLeadingZeros={forceLeadingZeros}
             onChange={onChange}
           />
         </Suspense>
