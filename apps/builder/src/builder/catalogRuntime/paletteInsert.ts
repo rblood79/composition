@@ -89,7 +89,7 @@ export function catalogCreationProps(
 
 /**
  * The typed fields (`visual` · `layout` · `sizing`) of a palette item's initial `style` — the old
- * element model's creation size (Chart's `style: { width: 320 }`). Only set writes: a new node
+ * element model's creation size (a palette item's `style: { width: … }`). Only set writes: a new node
  * has nothing to remove.
  */
 export function catalogCreationStyle(

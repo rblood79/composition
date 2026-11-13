@@ -1370,8 +1370,7 @@ export function catalogComponentsPageEntries(
     // The palette's creation variants of the origin (a Chart's chart types — user 2026-10-06):
     // an instance of each, with the props the palette creates it with, two to a line — two `1fr`
     // columns, each instance its column's width (user 2026-10-25: fixed 248px columns widened
-    // the mobile page's one column to 512). No floor either: a Chart's rule min-width 320 (its
-    // 16:9 box, 2026-11-13) would widen the column the same way.
+    // the mobile page's one column to 512) — the ◆ sample's page size (`SAMPLE_VISUAL`).
     if (origin.kinds && origin.kinds.length > 1) {
       lines.push(
         ...line(
@@ -1387,7 +1386,9 @@ export function catalogComponentsPageEntries(
                   origin.name,
                   kind.initialProps,
                 ),
-                visual: { width: set("100%"), minWidth: set(0) },
+                ...sampleFields(
+                  SAMPLE_VISUAL[origin.name] ?? { width: "100%" },
+                ),
               }),
             ),
             captions: [],
