@@ -94,15 +94,16 @@ async function open(type: string, props: Record<string, unknown>) {
   return { workspace, part, html };
 }
 
+// (S2: every field's control is its `FieldGroup` box — SearchField 2026-11-13, the text · date fields
+//  2026-11-14.)
 const CONTROL: Record<string, string> = {
-  textfield: "Input",
-  textarea: "Input",
+  textfield: "Group",
+  textarea: "Group",
   numberfield: "Group",
-  // (The reference's SearchField has no control Group — G5 example 5.)
-  searchfield: "Input",
-  colorfield: "Input",
-  datefield: "DateInput",
-  timefield: "DateInput",
+  searchfield: "Group",
+  colorfield: "Group",
+  datefield: "Group",
+  timefield: "Group",
 };
 
 /** The control the DOM draws: RAC's elements, not the wrapper's `div`. */

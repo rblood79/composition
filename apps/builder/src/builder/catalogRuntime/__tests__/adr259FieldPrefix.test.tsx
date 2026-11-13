@@ -288,16 +288,10 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       setPrefix(kind);
       const label = recordOf("Label")[0]!;
       const input = recordOf("Input")[0]!;
-      const group =
-        kind === "none" ? undefined : root.canvasInputs.get(input.parentId!);
-      const boxes = root.getGeometry([
-        label.id,
-        input.id,
-        ...(group ? [group.id] : []),
-      ]);
-      const inputY =
-        // (no group: the Input's border + top padding — ADR-295 Phase 3, the S2 centring padding 6 + 1)
-        boxes.get(input.id)!.y + (group ? boxes.get(group.id)!.y : 7);
+      // (The Input sits in the box Group with or without a prefix — S2 `FieldGroup`, 2026-11-14.)
+      const group = root.canvasInputs.get(input.parentId!)!;
+      const boxes = root.getGeometry([label.id, input.id, group.id]);
+      const inputY = boxes.get(input.id)!.y + boxes.get(group.id)!.y;
       expect(boxes.get(label.id)!.y).toBe(inputY);
       const { host, done } = await render();
       const variants = COMPONENT_RULES_TABLE.TextField.structure!.composition!
@@ -320,7 +314,9 @@ describe("ADR-259 Phase 2 — field prefix", () => {
     });
 
   for (const type of ["TextField", "TextArea"]) {
-    it(`${type}: the inspector follows edits and undo of the materialized label`, async () => {
+    // (2026-11-14: the Input sits in the S2 `FieldGroup` box already — a prefix makes only the box's
+    //  children owned copies, as a NumberField's; the Label keeps following the field's `label`.)
+    it(`${type}: after a prefix the Label still follows the field's label (edit · undo)`, async () => {
       const { workspace, setPrefix, recordOf } = await open(
         type,
         `${type}-inspector`,
@@ -350,19 +346,22 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         ),
       );
       expect(host.textContent).toBe("Price");
+      const labelText = () => recordOf("Label")[0]!.props.children;
       await act(async () => {
         workspace.execute(
           setFields({
-            targets: [workspace.itemOfRecord(recordOf("Label")[0]!.id)!.target],
-            props: { children: { kind: "set", value: "Direct part edit" } },
+            targets: [target],
+            props: { label: { kind: "set", value: "Renamed" } },
           }),
         );
       });
-      expect(host.textContent).toBe("Direct part edit");
+      expect(host.textContent).toBe("Renamed");
+      expect(labelText()).toBe("Renamed");
       await act(async () => {
         workspace.undo();
       });
       expect(host.textContent).toBe("Price");
+      expect(labelText()).toBe("Price");
       await act(async () => reactRoot.unmount());
       host.remove();
     });
@@ -575,19 +574,13 @@ describe("ADR-259 Phase 2 — field prefix", () => {
             ":scope > button",
           ))
             expect({
-              borderWidth: stepper.style.borderWidth,
-              corners: [
-                stepper.style.borderTopLeftRadius,
-                stepper.style.borderTopRightRadius,
-                stepper.style.borderBottomRightRadius,
-                stepper.style.borderBottomLeftRadius,
-              ],
+              corner: stepper.style.borderRadius,
               height: stepper.style.height,
             }).toEqual({
-              borderWidth: "0px",
-              corners: ["0px", "0px", "0px", "0px"],
-              // (the box's 32 less its borders — ADR-295 Phase 3, the S2 control height)
-              height: "28px",
+              // (S2 NumberField: a stepper is the field-button square inside the box with or without
+              //  a prefix — not the box's inner height; its border is the sheet's `[data-field-button]`.)
+              corner: "4px",
+              height: "var(--catalog-token-size-field-button-M)",
             });
         if (oracle.focusFromPrefixMouse !== undefined) {
           (document.activeElement as HTMLElement | null)?.blur?.();
@@ -622,7 +615,7 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       });
 
   for (const type of FIELDS)
-    it(`${type}: removing the prefix takes out what adding put in (a wrapped Input is unwrapped)`, async () => {
+    it(`${type}: removing the prefix takes out what adding put in (the box Group stays)`, async () => {
       const { state, setPrefix, root, recordOf } = await open(
         type,
         `${type}-remove`,
@@ -650,9 +643,8 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       expect(recordOf("Group").length).toBe(groupsBefore);
       const input = recordOf("Input")[0];
       const parentType = root.typeOf(root.canvasInputs.get(input.parentId!)!);
-      expect(parentType).toBe(
-        type === "NumberField" || type === "ComboBox" ? "Group" : type,
-      );
+      // (Every prefix field's Input sits in its S2 `FieldGroup` box — with or without a prefix, 2026-11-14.)
+      expect(parentType).toBe("Group");
       // (The parts are owned copies now — they draw and lay out as the template's did.)
       expect(look()).toEqual(lookBefore);
     });
@@ -672,23 +664,18 @@ describe("ADR-259 Phase 2 — field prefix", () => {
           extra,
         );
         const inputBefore = recordOf("Input")[0];
-        const before = paintOf(root, inputBefore.id);
-        const beforeBox = root
-          .getGeometry([inputBefore.id])
-          .get(inputBefore.id)!;
+        // (S2: the control Group is the box before the prefix too — `CATALOG_BOXED_FIELDS`, every
+        //  prefix field since 2026-11-14.)
+        const boxBefore = root.canvasInputs.get(inputBefore.parentId!)!;
+        const before = paintOf(root, boxBefore.id);
+        const beforeBox = root.getGeometry([boxBefore.id]).get(boxBefore.id)!;
         setPrefix("text");
         const prefix = recordOf("Text").find((r) => r.props.slot === "prefix")!;
         const group = root.canvasInputs.get(prefix.parentId!)!;
         const input = recordOf("Input")[0];
         expect(input.parentId).toBe(group.id);
         // The Group draws the Input rule's box at the field's state; the Input lays its own down.
-        // (A NumberField's Input drew only the start of its box — its steppers the end; the box
-        // rounds every corner.)
-        expect(paintOf(root, group.id)).toEqual(
-          type === "NumberField"
-            ? { ...before, radius: state === "quiet" ? "0" : "8" }
-            : before,
-        );
+        expect(paintOf(root, group.id)).toEqual(before);
         expect(paintOf(root, input.id)).toMatchObject({
           fill: null,
           stroke: null,
@@ -710,8 +697,7 @@ describe("ADR-259 Phase 2 — field prefix", () => {
               JSON.stringify(r.visual),
             );
         expect(groupBox.height).toBeCloseTo(beforeBox.height, 1);
-        if (type !== "NumberField" && type !== "ComboBox")
-          expect(groupBox.width).toBeCloseTo(beforeBox.width, 1);
+        expect(groupBox.width).toBeCloseTo(beforeBox.width, 1);
         // The prefix sits inside the box's padding, before the Input.
         const prefixBox = root.getGeometry([prefix.id]).get(prefix.id)!;
         const inputBox = root.getGeometry([input.id]).get(input.id)!;
@@ -720,29 +706,33 @@ describe("ADR-259 Phase 2 — field prefix", () => {
           prefixBox.x + prefixBox.width,
         );
         if (type === "NumberField")
-          // Its steppers lay their border down, the box's inner height, at its end.
+          // Its steppers: S2 field-button squares (md 20) inside the box, no border, the increment
+          // the S2 end margin (md 4) in from the box's inner edge.
           for (const [index, stepper] of recordOf("Button").entries()) {
             expect(stepper.parentId).toBe(group.id);
             expect(paintOf(root, stepper.id)).toMatchObject({
               stroke: null,
-              radius: "0",
+              radius: "4",
             });
             const stepperBox = root.getGeometry([stepper.id]).get(stepper.id)!;
-            expect(stepperBox.height).toBe(groupBox.height - 4);
+            expect([stepperBox.width, stepperBox.height]).toEqual([20, 20]);
             if (index === 1)
-              expect(stepperBox.x + stepperBox.width).toBe(groupBox.width - 2);
+              expect(stepperBox.x + stepperBox.width).toBe(
+                groupBox.width - 2 - 4,
+              );
           }
         if (type === "ComboBox") {
-          // Its button keeps its place over the Input's end room, inside the box.
+          // Its button follows the Input inside the box (S2 — no margin): the box's end padding
+          // (md 32 × 3/16 − 2 = 4) inside its 2px border.
           const button = recordOf("Button")[0];
           const buttonBox = root.getGeometry([button.id]).get(button.id)!;
           expect(button.parentId).toBe(group.id);
-          expect(buttonBox.x + buttonBox.width).toBeLessThan(
-            groupBox.width - 2,
-          );
+          expect(buttonBox.x).toBe(inputBox.x + inputBox.width + 4);
+          expect(buttonBox.x + buttonBox.width).toBe(groupBox.width - 2 - 4);
         } else if (type !== "NumberField")
-          // The Input fills the row to the box's border (a ColorField's keeps no maximum there).
-          expect(inputBox.x + inputBox.width).toBe(groupBox.width - 2);
+          // The Input fills the row to the box's end padding — S2 `edge-to-text` (md 12), the Input none
+          // (2026-11-14) — inside its 2px border (a ColorField's keeps no maximum there).
+          expect(inputBox.x + inputBox.width).toBe(groupBox.width - 2 - 12);
       });
     }
 
@@ -819,7 +809,7 @@ describe("ADR-259 Phase 2 — field prefix", () => {
     });
   });
 
-  it("a field without a prefix keeps its Input box (no FieldBox style)", async () => {
+  it("a field without a prefix: its control Group is the box (S2 `FieldGroup`), the Input lays its own down", async () => {
     for (const type of FIELDS) {
       const { root, recordOf } = await open(type, `${type}-none-style`);
       const input = recordOf("Input")[0];
@@ -829,10 +819,52 @@ describe("ADR-259 Phase 2 — field prefix", () => {
           root.getGeometry([group.id]).get(group.id),
           `${type} Group`,
         ).toBeDefined();
-      expect(
-        paintOf(root, input.id).stroke,
-        `${type} Input stroke`,
-      ).not.toBeNull();
+      // (S2: the control Group is the box without a prefix too — the Input lays its own down,
+      //  every prefix field since 2026-11-14.)
+      const box = root.canvasInputs.get(input.parentId!)!;
+      expect(root.typeOf(box), `${type} box`).toBe("Group");
+      expect(paintOf(root, box.id).stroke, `${type} box stroke`).not.toBeNull();
+      expect(paintOf(root, input.id).stroke, `${type} Input stroke`).toBeNull();
     }
   });
+
+  // 2026-11-13 (사용자 「field 앞 글자 (prefix) 의 margin-inline-end 도 padding · gap 으로」): the room after
+  //   the prefix is the Input's start padding (S2 `text-to-visual`, md 6) — no margin on the prefix.
+  for (const type of ["TextField", "NumberField", "ComboBox"] as const)
+    it(`${type}: the prefix room is the Input's start padding, not the prefix's margin`, async () => {
+      const { setPrefix, root, recordOf, render } = await open(
+        type,
+        `${type}-prefix-room`,
+      );
+      setPrefix("text");
+      const prefix = recordOf("Text").find((r) => r.props.slot === "prefix")!;
+      const input = recordOf("Input")[0];
+      const layout = (id: string) =>
+        root.getLayoutInput(id) as Record<string, unknown>;
+      expect(Number.parseFloat(String(layout(prefix.id).marginRight ?? "0"))).toBe(0);
+      // (A box gap (md 4 — NumberField's stepper gap · ComboBox's) is part of the room: the padding is
+      //  the rest.)
+      const start = type === "TextField" ? 6 : 2;
+      expect(layout(input.id)).toMatchObject({ paddingLeft: `${start}px` });
+      const prefixBox = root.getGeometry([prefix.id]).get(prefix.id)!;
+      expect(
+        root.getGeometry([input.id]).get(input.id)!.x +
+          start -
+          (prefixBox.x + prefixBox.width),
+      ).toBe(6);
+      const { host, done } = await render();
+      const element = (id: string) =>
+        host.querySelector(`[data-catalog-id="${id}"]`) as HTMLElement;
+      expect(element(prefix.id).style.marginRight || "0px").toBe("0px");
+      expect(element(input.id).style.paddingLeft).toBe(`${start}px`);
+      const sheet = readFileSync(
+        join(
+          here,
+          `../../../../../../packages/shared/src/components/styles/generated/${type}.css`,
+        ),
+        "utf8",
+      );
+      expect(sheet).not.toMatch(/margin-inline-end/);
+      await done();
+    });
 });

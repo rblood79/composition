@@ -333,10 +333,8 @@ export const CatalogDomNode = memo(function CatalogDomNode({
             partParent?.bindingId === "group" &&
             catalogPartField(root, node) !== partParent
           ? catalogPartField(root, node)?.id
-          : // (A Select's trigger Button · a SearchField's clear Button is the field's direct child.)
-            node?.bindingId === "button" &&
-              (partParent?.bindingId === "select" ||
-                partParent?.bindingId === "searchfield")
+          : // (A Select's trigger Button is the field's direct child.)
+            node?.bindingId === "button" && partParent?.bindingId === "select"
             ? partParent!.id
             : undefined;
   const watchedParent = useCatalogDomInput(root, watchedParentId);

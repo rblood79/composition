@@ -89,15 +89,41 @@ const SELECT_TRIGGER_OWNERS = [
  */
 export const FIELD_CONTROL_GROUP_HOSTS: ReadonlySet<string> = new Set([
   "ComboBox",
-  // ADR-259 Phase 2: a TextField · TextArea · ColorField has a control Group only while it holds a
-  //   prefix (the prefix command wraps its Input — S2 `FieldGroup`): a Group child is that one.
+  // (TextField · TextArea · ColorField · DateField · TimeField: S2's `FieldGroup` around the Input ·
+  //  DateInput — always, 2026-11-14; before, a TextField's only while it held a prefix, ADR-259 Phase 2.)
   "TextField",
   "TextArea",
   "ColorField",
-  // (Not SearchField: the reference's parts are its own children — ADR-256 G5 example 5.)
+  "DateField",
+  "TimeField",
+  // (SearchField: S2's `FieldGroup` around its glyph · Input · clear button — 2026-11-13; it was the
+  //  RAC reference's flat parts before, ADR-256 G5 example 5.)
+  "SearchField",
   "NumberField",
   "DatePicker",
   "DateRangePicker",
+]);
+/**
+ * Fields whose control Group is the field's box with or without a prefix: S2 draws the `FieldGroup`
+ * around the input and its buttons — NumberField's steppers, ComboBox's · DatePicker's field button,
+ * SearchField's glyph and clear button (`NumberField.tsx` · `ComboBox.tsx` · `DatePicker.tsx` ·
+ * `SearchField.tsx` — inside the box, no margins;
+ * 2026-11-13 사용자 「ComboBox 는 NumberField 처럼 · DatePicker 는 DateRangePicker 처럼」), and the plain
+ * text · date fields around their one input (`TextField.tsx` · `ColorField.tsx` · `DateField.tsx` ·
+ * `TimeField.tsx` — 2026-11-14 사용자 「TextField · TextArea · ColorField · DateField · TimeField 도 S2
+ * 구조 패턴으로」). The box Group's own style is editable (`ownsSubpartDirect`).
+ */
+export const CATALOG_BOXED_FIELDS: ReadonlySet<string> = new Set([
+  "NumberField",
+  "ComboBox",
+  "DatePicker",
+  "DateRangePicker",
+  "SearchField",
+  "TextField",
+  "TextArea",
+  "ColorField",
+  "DateField",
+  "TimeField",
 ]);
 /** A field's control Group (`FIELD_CONTROL_GROUP_HOSTS`) by type names. */
 export function isFieldControlGroup(

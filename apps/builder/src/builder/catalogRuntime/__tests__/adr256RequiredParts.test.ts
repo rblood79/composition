@@ -96,12 +96,26 @@ describe("ADR-256 Decision 5 — required parts", () => {
             definitionTypeName(graph, templates.get(child)!.definitionId) ===
             type,
         )!;
+      // (A part in the field's box Group — S2 `FieldGroup`, 2026-11-14: the path goes through it.)
+      const pathOf = (type: string): LibraryTemplateId[] => {
+        const direct = partOf(type);
+        if (direct) return [origin.templateRootId, direct];
+        const group = partOf("Group")!;
+        const inGroup = templates
+          .get(group)!
+          .children.find(
+            (child) =>
+              definitionTypeName(graph, templates.get(child)!.definitionId) ===
+              type,
+          )!;
+        return [origin.templateRootId, group, inGroup];
+      };
       const target = (type: string) => ({
         kind: "descendant" as const,
         ownerId: id,
         address: {
           instances: [id],
-          templatePath: [origin.templateRootId, partOf(type)],
+          templatePath: pathOf(type),
         },
       });
       return { id, target };

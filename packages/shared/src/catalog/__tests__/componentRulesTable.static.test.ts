@@ -194,13 +194,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       reason: "달력 칸 폭 (`iconSize + 4`) — 아이콘 상자가 아니다",
     }),
   ),
-  {
-    component: "ColorField",
-    key: "iconSize",
-    values: { XS: 18, S: 20, M: 26, L: 32, XL: 36 },
-    reason:
-      "field 안 swatch 상자 — 아이콘이 아니다 (S2 ColorField 에 swatch 없음 · composition 확장)",
-  },
   ...[
     ["ColorArea", { S: 14, M: 18, L: 22 }],
     ["ColorWheel", { S: 14, M: 18, L: 22 }],

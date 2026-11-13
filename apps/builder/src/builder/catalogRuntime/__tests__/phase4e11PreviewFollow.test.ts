@@ -175,15 +175,20 @@ describe("field trigger buttons — no generic Button min-width", () => {
     "%s button delegation resets min-width",
     (owner) => {
       const css = readFileSync(`${GENERATED}/${owner}.css`, "utf8");
-      // (`0`: a button that is a Button instance — ADR-253, the ComboBox's FieldButton.)
-      expect(blockOf(css, `.react-aria-${owner} .react-aria-Button`)).toMatch(
+      // (`0`: a button that is a Button instance — ADR-253, the ComboBox's FieldButton. A SearchField's
+      //  clear button is its control Group's — S2 `FieldGroup`, 2026-11-13.)
+      const button =
+        owner === "SearchField"
+          ? ".react-aria-Group > .react-aria-Button"
+          : ".react-aria-Button";
+      expect(blockOf(css, `.react-aria-${owner} ${button}`)).toMatch(
         /min-width: (unset|0);/,
       );
     },
   );
 
   it.each(["ComboBox", "DatePicker", "DateRangePicker"])(
-    "%s Canvas trigger icon is the 18 icon box at md",
+    "%s Canvas trigger icon is the 16 glyph at md (사용자 2026-11-13)",
     async (owner) => {
       const workspace = await openOwner(owner, { size: "M" });
       const root = workspace.root;
@@ -211,7 +216,7 @@ describe("field trigger buttons — no generic Button min-width", () => {
         expect(root.getLayoutInput(icon.id)).not.toMatchObject({
           minWidth: "68px",
         });
-        expect(root.getGeometry([icon.id]).get(icon.id)!.width).toBe(18);
+        expect(root.getGeometry([icon.id]).get(icon.id)!.width).toBe(16);
       }
       workspace.dispose();
     },
@@ -383,9 +388,9 @@ describe("NumberField group — per-size height", () => {
     expect(
       blockOf(css, ".react-aria-NumberField .react-aria-Button"),
     ).toContain("width: var(--nf-btn-size);");
-    // (ADR-295 Phase 3: the S2 control height token — the same one the Input's min-height reads.)
+    // (S2 NumberField: a stepper is the S2 field-button square inside the box, not the control height.)
     expect(css).toContain(
-      "--nf-btn-size: var(--catalog-token-size-height-XL);",
+      "--nf-btn-size: var(--catalog-token-size-field-button-XL);",
     );
   });
 

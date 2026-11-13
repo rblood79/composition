@@ -282,8 +282,10 @@ function selectorHasToken(selector: string, token: string): boolean {
 
 function ownsSubpartDirect(childType: string, parentType: string): boolean {
   if (OWNER_DRAWN_PART_OWNERS[childType] === parentType) return true;
-  // A field's control Group (ADR-256 Phase 6b): the field's rule draws and places it.
-  if (isFieldControlGroup(childType, parentType)) return true;
+  // (A field's control Group — ADR-256 Phase 6b — is not parent-owned: the field's rule gives its
+  //  default place and box, and what the author writes on the Group wins on both consumers — the
+  //  DOM inlines it (`nodeTreeControlGroup`), the Canvas lays it over the rule's (2026-11-13, 사용자
+  //  「ComboBox · DatePicker 의 Group Layout 탭 사용 안 됨」 — NumberField's first, `CATALOG_BOXED_FIELDS`).)
   const tokens = DELEGATED_SUBPART_CHILD_TOKENS[childType];
   if (!tokens) return false;
   const has = (p: string) =>

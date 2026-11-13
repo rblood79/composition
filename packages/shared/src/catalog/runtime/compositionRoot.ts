@@ -66,11 +66,11 @@ import {
 } from "../document/s2PropAlignment";
 import { isFieldControlGroup } from "../../domain/componentTraits";
 import {
-  CATALOG_FIELD_BOX_INPUT_STYLE,
+  catalogFieldBoxInputStyle,
   catalogFieldBox,
+  catalogFieldBoxInputEnd,
+  catalogFieldBoxInputStart,
   catalogFieldBoxOfInput,
-  catalogFieldBoxStepper,
-  catalogFieldBoxStepperStyle,
   catalogFieldBoxStyle,
 } from "./fieldPrefix";
 import {
@@ -2649,6 +2649,17 @@ export class CatalogCompositionRoot {
     const record = this.records.get(id);
     return record ? this.styleFor(record) : undefined;
   }
+  /**
+   * A record's whole layout style as drawn (`recordStyle` — a page body's before its viewport ·
+   * content split): what the Styles panel and the Canvas spacing handles read
+   * (`catalogDrawnBoxModel`).
+   */
+  getDrawnLayoutStyle(id: string): Record<string, unknown> | undefined {
+    const record = this.records.get(id);
+    return record
+      ? this.recordStyle(record, (key) => this.records.get(key), true)
+      : undefined;
+  }
   /** Settled engine input for incremental consumers, including derived layout and rewrap. */
   getAppliedLayoutInput(id: string): string | undefined {
     return this.layout.getAppliedStyle(id);
@@ -4747,49 +4758,101 @@ export class CatalogCompositionRoot {
       const style = catalogFieldBoxStyle(
         box.field.props.size,
         this.typeOf(box.field),
+        box.buttoned,
       );
+      // The box is the Group's default: what the author wrote on the Group wins (the DOM inlines the
+      // authored style after the box's — a NumberField's Group is edited directly, `CATALOG_BOXED_FIELDS`).
+      const visual = this.authoredVisualOf(record);
+      const layout = record.authoredLayout ?? {};
+      const wrote = (...keys: string[]) =>
+        keys.some(
+          (key) =>
+            visual[key] !== undefined ||
+            (layout as Record<string, unknown>)[key] !== undefined ||
+            (record.sizing as Record<string, unknown>)[key] != null,
+        );
+      const sideBorder = (side: string) =>
+        wrote("borderWidth", `border${side}Width`)
+          ? {}
+          : { [`border${side}`]: edge(style.borderWidth) };
       return {
-        display: style.display,
-        flexDirection: style.flexDirection,
-        alignItems: style.alignItems,
-        width: style.width,
-        ...(style.height !== undefined ? { height: edge(style.height) } : {}),
-        paddingTop: edge(style.paddingTop),
-        paddingRight: edge(style.paddingRight),
-        paddingBottom: edge(style.paddingBottom),
-        paddingLeft: edge(style.paddingLeft),
-        borderTop: edge(style.borderWidth),
-        borderRight: edge(style.borderWidth),
-        borderBottom: edge(style.borderWidth),
-        borderLeft: edge(style.borderWidth),
-      };
-    }
-    const stepperOf = catalogFieldBoxStepper(record, get, this.typeOf);
-    if (stepperOf) {
-      const style = catalogFieldBoxStepperStyle(stepperOf.props.size);
-      return {
-        height: edge(style.height),
-        borderTop: "0px",
-        borderRight: "0px",
-        borderBottom: "0px",
-        borderLeft: "0px",
+        ...(wrote("display") ? {} : { display: style.display }),
+        ...(wrote("flexDirection")
+          ? {}
+          : { flexDirection: style.flexDirection }),
+        ...(wrote("alignItems") ? {} : { alignItems: style.alignItems }),
+        ...(wrote("width") ? {} : { width: style.width }),
+        ...(style.height !== undefined && !wrote("height")
+          ? { height: edge(style.height) }
+          : {}),
+        ...(wrote("padding", "paddingY", "paddingTop")
+          ? {}
+          : { paddingTop: edge(style.paddingTop) }),
+        ...(wrote("padding", "paddingX", "paddingRight")
+          ? {}
+          : { paddingRight: edge(style.paddingRight) }),
+        ...(wrote("padding", "paddingY", "paddingBottom")
+          ? {}
+          : { paddingBottom: edge(style.paddingBottom) }),
+        ...(wrote("padding", "paddingX", "paddingLeft")
+          ? {}
+          : { paddingLeft: edge(style.paddingLeft) }),
+        ...sideBorder("Top"),
+        ...sideBorder("Right"),
+        ...sideBorder("Bottom"),
+        ...sideBorder("Left"),
+        // (S2 NumberField: the stepper gap is the Group's own gap — `catalogFieldBoxStyle`.)
+        ...(style.gap !== undefined && !wrote("gap", "rowGap", "columnGap")
+          ? { rowGap: edge(style.gap), columnGap: edge(style.gap) }
+          : {}),
       };
     }
     if (!catalogFieldBoxOfInput(record, get, this.typeOf)) return {};
-    const input = CATALOG_FIELD_BOX_INPUT_STYLE;
+    // The Input laid into the box: these are its defaults — what the author wrote on the Input wins
+    // (the DOM inlines its authored style after them).
+    const input = catalogFieldBoxInputStyle(record, get, this.typeOf);
+    const end = catalogFieldBoxInputEnd(record, get, this.typeOf);
+    const start = catalogFieldBoxInputStart(record, get, this.typeOf);
+    const visual = this.authoredVisualOf(record);
+    const layout = (record.authoredLayout ?? {}) as Record<string, unknown>;
+    const wrote = (...keys: string[]) =>
+      keys.some(
+        (key) =>
+          visual[key] !== undefined ||
+          layout[key] !== undefined ||
+          (record.sizing as Record<string, unknown>)[key] != null,
+      );
+    const unless = (keys: string[], values: Record<string, unknown>) =>
+      wrote(...keys) ? {} : values;
     return {
-      paddingTop: "0px",
-      paddingBottom: "0px",
-      paddingLeft: "0px",
-      borderTop: "0px",
-      borderRight: "0px",
-      borderBottom: "0px",
-      borderLeft: "0px",
-      width: input.width,
-      flexGrow: input.flexGrow,
-      flexShrink: input.flexShrink,
-      flexBasis: `${input.flexBasis}px`,
-      minWidth: `${input.minWidth}px`,
+      ...unless(["padding", "paddingY", "paddingTop"], { paddingTop: "0px" }),
+      ...unless(["padding", "paddingY", "paddingBottom"], {
+        paddingBottom: "0px",
+      }),
+      ...unless(["padding", "paddingX", "paddingLeft"], {
+        // (after a SearchField's glyph: S2 `text-to-visual`)
+        paddingLeft: `${start ?? 0}px`,
+      }),
+      ...(end !== undefined
+        ? unless(["padding", "paddingX", "paddingRight"], {
+            paddingRight: edge(end),
+          })
+        : {}),
+      ...unless(["borderWidth", "borderTopWidth"], { borderTop: "0px" }),
+      ...unless(["borderWidth", "borderRightWidth"], { borderRight: "0px" }),
+      ...unless(["borderWidth", "borderBottomWidth"], { borderBottom: "0px" }),
+      ...unless(["borderWidth", "borderLeftWidth"], { borderLeft: "0px" }),
+      ...unless(["width"], {
+        width: input.width,
+        flexGrow: input.flexGrow,
+        flexShrink: input.flexShrink,
+        flexBasis:
+          typeof input.flexBasis === "number"
+            ? `${input.flexBasis}px`
+            : input.flexBasis,
+      }),
+      ...unless(["minWidth"], { minWidth: `${input.minWidth}px` }),
+      ...unless(["minHeight"], { minHeight: `${input.minHeight}px` }),
     };
   }
   /** Anonymous text and group span boxes composed by the existing DOM bindings. */
@@ -4885,6 +4948,62 @@ export class CatalogCompositionRoot {
     }
     return out;
   }
+  /**
+   * A placement default without the keys the record's author wrote: the DOM inlines the authored
+   * style over the sheet's place, so the Canvas lets it win the same way (2026-11-13 — the Styles
+   * panel and the handles read the drawn value, and a write to it must reach the drawing).
+   */
+  /** `withoutAuthored` of a placement that may be absent (undefined stays undefined). */
+  private authoredOver<T extends Record<string, unknown>>(
+    record: CatalogConsumerNode,
+    style: T | undefined,
+  ): Partial<T> | undefined {
+    return style && this.withoutAuthored(record, style);
+  }
+  private withoutAuthored<T extends Record<string, unknown>>(
+    record: CatalogConsumerNode,
+    style: T,
+  ): Partial<T> {
+    // (What the document wrote — not `catalogAuthoredVisual`, which reads a part rule's value on the
+    //  record as written: the Tree rule's chevron box.)
+    const layout = (record.authoredLayout ?? {}) as Record<string, unknown>;
+    const entry = this.runtime.graph.getEntry(record.sourceId);
+    const layers =
+      entry?.kind === "node"
+        ? (["tablet", "mobile"] as const)
+            .filter(
+              (name) =>
+                this.breakpoint === name ||
+                (this.breakpoint === "mobile" && name === "tablet"),
+            )
+            .map((name) => entry.responsive?.[name])
+        : [];
+    const wrote = (key: string) =>
+      catalogHasExplicitVisual(this, record, key as never) ||
+      layout[key] !== undefined ||
+      (entry?.kind === "node" &&
+        (entry.sizing as Record<string, unknown> | undefined)?.[key] !==
+          undefined) ||
+      layers.some(
+        (layer) =>
+          (layer?.visual as Record<string, unknown> | undefined)?.[key] !==
+            undefined ||
+          (layer?.sizing as Record<string, unknown> | undefined)?.[key] !==
+            undefined,
+      );
+    const SIDES: Record<string, readonly string[]> = {
+      paddingTop: ["padding", "paddingY"],
+      paddingBottom: ["padding", "paddingY"],
+      paddingLeft: ["padding", "paddingX"],
+      paddingRight: ["padding", "paddingX"],
+      rowGap: ["gap"],
+      columnGap: ["gap"],
+    };
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(style))
+      if (!wrote(key) && !(SIDES[key] ?? []).some(wrote)) out[key] = value;
+    return out as Partial<T>;
+  }
   private styleFor(
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined = (id) =>
@@ -4904,13 +5023,19 @@ export class CatalogCompositionRoot {
   private recordStyle(
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
+    /**
+     * Without the room the Canvas adds to a record's own value for a part it draws there (a link-out
+     * glyph · a sort indicator · a crumb separator · a sampled list's rows not built) — the record's
+     * box as the author edits it (`getDrawnLayoutStyle`): the panel showed own + that room and a
+     * write of it doubled it (2026-11-13 전수 감사).
+     */
+    withoutAddedRoom = false,
   ): Record<string, unknown> {
     // (A tag past its group's `maxRows` rows leaves the flow — `settleTagRows`.)
     if (this.tagRows.get(record.parentId)?.hidden.includes(record.id))
       return { display: "none" };
     // (A crumb in its Breadcrumbs' folder menu leaves the flow — `settleBreadcrumbs`.)
-    if (this.crumbCollapses.get(record.parentId)?.hidden.includes(record.id))
-      return { display: "none" };
+    if (this.breadcrumbCollapsed(record.id)) return { display: "none" };
     const frame = this.pageFrameStyle(record);
     const style = styleOf(
       record,
@@ -4932,21 +5057,40 @@ export class CatalogCompositionRoot {
       ? undefined
       : (catalogSliderThumbLayout(record, get, this.typeOf) ??
         catalogSliderFillLayout(record, get, this.typeOf) ??
-        catalogProgressFillLayout(record, get, this.typeOf) ??
+        // (An indeterminate fill's whole track is the sheet's `.fill` box — an authored width wins.)
+        this.authoredOver(
+          record,
+          catalogProgressFillLayout(record, get, this.typeOf),
+        ) ??
         // ADR-258 Phase 2: a Color control's thumb (RAC's place) · a ColorWheel's ring square.
         catalogColorPartLayout(record, get, this.typeOf));
+    // (A Tree chevron's sheet box is its default — what the author wrote wins, as the DOM's inline
+    //  `treeChevronSheetBox`.)
+    const treeChevron = record.hidden
+      ? undefined
+      : catalogTreeChevronLayout(record, get, this.typeOf);
     const chevron = record.hidden
       ? undefined
-      : (catalogTreeChevronLayout(record, get, this.typeOf) ??
+      : ((treeChevron && this.withoutAuthored(record, treeChevron)) ??
         catalogTreeItemLayout(record, get, this.typeOf) ??
-        // (ADR-300: a SideNav row's level indent · a collapsed panel's width.)
-        catalogSideNavPartLayout(record, get, this.typeOf));
+        // (ADR-300: a SideNav row's level indent · a collapsed panel's width. A row part's place is
+        //  the `SideNavItem` sheet's — the DOM inlines what the author wrote over it.)
+        (this.typeOf(record) === "SideNavPanel" ||
+        this.typeOf(record) === "SideNavSection"
+          ? catalogSideNavPartLayout(record, get, this.typeOf)
+          : this.authoredOver(
+              record,
+              catalogSideNavPartLayout(record, get, this.typeOf),
+            )));
     const separator = record.hidden
       ? undefined
       : this.crumbSeparator(record, get);
-    const slotInset = record.hidden
-      ? undefined
-      : catalogItemSlotInset(record, get, this.typeOf);
+    // (`ListBox.css`'s icon inset is a sheet value — an authored start padding wins, inline.)
+    const slotInset =
+      record.hidden ||
+      Object.keys(this.withoutAuthored(record, { paddingLeft: 0 })).length === 0
+        ? undefined
+        : catalogItemSlotInset(record, get, this.typeOf);
     // (A sortable Column's sort indicator follows its name — hidden at rest, its box kept: G5
     // example 11, `catalogColumnSortNameGroup`.)
     const sortIndicator =
@@ -4975,7 +5119,8 @@ export class CatalogCompositionRoot {
       ),
       ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
       ...(record.hidden ? {} : this.fieldBoxLayout(record, get)),
-      ...(!record.hidden &&
+      ...(!withoutAddedRoom &&
+      !record.hidden &&
       catalogItemLinkOut(this.typeOf(record), record.props) &&
       catalogLinkOutCardEndInset(this.typeOf(record)) === undefined
         ? {
@@ -4986,7 +5131,7 @@ export class CatalogCompositionRoot {
             )}px`,
           }
         : {}),
-      ...(sortIndicator
+      ...(sortIndicator && !withoutAddedRoom
         ? {
             marginRight: `${
               Number.parseFloat(String(style.marginRight ?? "0")) +
@@ -4994,14 +5139,14 @@ export class CatalogCompositionRoot {
             }px`,
           }
         : {}),
-      ...(separator !== undefined
+      ...(separator !== undefined && !withoutAddedRoom
         ? {
             paddingRight: `${
               Number.parseFloat(String(style.paddingRight ?? "0")) + separator
             }px`,
           }
         : {}),
-      ...(sortIndicatorAtEnd
+      ...(sortIndicatorAtEnd && !withoutAddedRoom
         ? {
             paddingRight: `${
               Number.parseFloat(String(style.paddingRight ?? "0")) +
@@ -5010,7 +5155,7 @@ export class CatalogCompositionRoot {
           }
         : {}),
       // (A sampled list keeps the height of its rows not built — `settleRowRemainders`.)
-      ...(remainder
+      ...(remainder && !withoutAddedRoom
         ? {
             paddingBottom: `${
               Number.parseFloat(String(style.paddingBottom ?? "0")) +
@@ -5101,10 +5246,20 @@ export class CatalogCompositionRoot {
       this.textMeasure,
       segmentFont(record, segmentText),
     );
+    // (The padding the engine laid the record out with, as its border — a DateInput laid into a field
+    //  box keeps none of its own, `fieldBoxLayout`.)
+    const applied = this.layout.getAppliedStyle(record.id);
+    const appliedLeft = applied
+      ? Number.parseFloat(
+          String((JSON.parse(applied) as Record<string, unknown>).paddingLeft),
+        )
+      : Number.NaN;
     const box = catalogBoxModel(record);
     const num = (value: CatalogLength | undefined) =>
       typeof value === "number" ? value : 0;
-    const left = num(box.padding?.left) + this.usedBorder(record.id).left;
+    const left =
+      (Number.isFinite(appliedLeft) ? appliedLeft : num(box.padding?.left)) +
+      this.usedBorder(record.id).left;
     return {
       runs: runs.map((run) => ({ ...run, x: run.x + left })),
       placeholder: segmentText.ownerType
@@ -5760,7 +5915,8 @@ export class CatalogCompositionRoot {
       const was = before.get(list.id);
       const now = this.crumbCollapses.get(list.id);
       if (
-        JSON.stringify(was?.menu ?? null) === JSON.stringify(now?.menu ?? null) &&
+        JSON.stringify(was?.menu ?? null) ===
+          JSON.stringify(now?.menu ?? null) &&
         sameList(was?.hidden ?? [], now?.hidden ?? [])
       )
         continue;
@@ -8126,15 +8282,15 @@ export class CatalogCompositionRoot {
             } as CatalogConsumerNode);
           }
         // (ADR-259 Phase 2: a prefix put in or taken out of a field's control Group makes its
-        // Input · steppers box parts or plain parts again — their layout input changes with it.)
+        // Input a box part or a plain part again — its layout input changes with it; a NumberField
+        // stepper shown or hidden changes the Input's end padding.)
         const boxPart = (
           record: CatalogConsumerNode,
           get: (key: string) => CatalogConsumerNode | undefined,
         ) =>
-          !!(
-            catalogFieldBoxOfInput(record, get, this.typeOf) ||
-            catalogFieldBoxStepper(record, get, this.typeOf)
-          );
+          catalogFieldBoxOfInput(record, get, this.typeOf)
+            ? `box:${catalogFieldBoxInputEnd(record, get, this.typeOf) ?? "own"}:${catalogFieldBoxInputStart(record, get, this.typeOf) ?? 0}`
+            : "plain";
         const updates = [...next]
           .filter(([id, record]) => {
             const old = this.records.get(id);

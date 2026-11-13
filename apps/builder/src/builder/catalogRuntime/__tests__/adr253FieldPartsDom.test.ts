@@ -161,12 +161,40 @@ const INPUT_TYPES = ["textfield", "textarea", "colorfield"] as const;
  */
 const numberFieldEmptyMarkup = (markup: string) => {
   const withoutZero = markup.replace(" value=0>", " value=>");
-  return /data-disabled=true[^>]*slot=increment/.test(withoutZero)
+  const stepped = /data-disabled=true[^>]*slot=increment/.test(withoutZero)
     ? withoutZero
     : withoutZero.replace(
         "class=react-aria-Button data-disabled=true data-rac= data-react-aria-pressable=true disabled= id slot=decrement",
         "class=react-aria-Button data-rac= data-react-aria-pressable=true id slot=decrement",
       );
+  return fieldBoxGroupMarkup(stepped, "NumberField");
+};
+/**
+ * S2 NumberField · ComboBox · DatePicker · DateRangePicker: the control Group is the field's box (S2
+ * `FieldGroup`) — the Input rule's sheet draws it (`FieldBox`) at the field's size and quiet state
+ * (`CATALOG_BOXED_FIELDS`, 2026-11-13 · DateRangePicker 2026-11-14).
+ */
+const fieldBoxGroupMarkup = (markup: string, field: string) => {
+  const size = new RegExp(`class=react-aria-${field}[^>]*? data-size=(\\w+)`).exec(
+    markup,
+  )?.[1];
+  const quiet = new RegExp(`class=react-aria-${field}[^>]*? data-quiet=true`).test(
+    markup,
+  );
+  // (The class value is its space-separated tokens — the attributes after it carry `=`.)
+  return markup
+    .replace(
+      /(<div [^>]*?class=react-aria-Group(?: [^\s=>]+(?=[\s>]))*)/,
+      "$1 react-aria-FieldBox",
+    )
+    .replace(
+      /(<div [^>]*?class=react-aria-Group[^>]*? data-rac=)( data-react-aria-pressable=true)?/,
+      `$1$2 data-size=${size ?? "M"} data-variant=default`,
+    )
+    .replace(
+      /(<div [^>]*?class=react-aria-Group[^>]*?)( data-rac=)/,
+      quiet ? "$1 data-quiet=true$2" : "$1$2",
+    );
 };
 /**
  * ADR-256 Phase 3 — a Checkbox · Radio is RAC `CheckboxField` · `RadioField` around a
@@ -364,27 +392,48 @@ function searchFieldGroupMarkup(markup: string): string {
     /(<button [^>]*data-react-aria-pressable=true)/,
     "$1 data-search-field-part=true",
   );
-  const open = "<div class=searchfield-container>";
-  const start = markup.indexOf(open);
-  if (start < 0) return markup;
-  let depth = 1;
-  let at = start + open.length;
-  while (depth > 0 && at < markup.length) {
-    const close = markup.indexOf("</>", at);
-    const next = markup.slice(at).search(/<[a-z]/);
-    if (next >= 0 && at + next < close) {
-      depth++;
-      at += next + 2;
-    } else {
-      depth--;
-      at = close + 3;
+  // (2026-11-13) S2 SearchField: the glyph · Input · clear button sit in its `FieldGroup` — the
+  // control Group node, the Input rule's box (`FieldBox`) at the field's size, taking the field's
+  // disabled · invalid · read-only and quiet itself (RAC's SearchField gives no `GroupContext`).
+  const root = /<div class=react-aria-SearchField([^>]*)>/.exec(markup)?.[1] ?? "";
+  const flag = (name: string) =>
+    new RegExp(` data-${name}=true`).test(root) ? ` data-${name}=true` : "";
+  const size = / data-size=(\w+)/.exec(root)?.[1] ?? "M";
+  const group = `<div class=react-aria-Group react-aria-FieldBox${flag("disabled")}${flag("invalid")}${flag("quiet")} data-rac=${flag("readonly")} data-size=${size} data-variant=default role=presentation>`;
+  return markup.replace("<div class=searchfield-container>", group);
+}
+/**
+ * S2 TextField · TextArea · ColorField · DateField · TimeField (2026-11-14): the Input · DateInput sits in
+ * the field's `FieldGroup` — the control Group node, the Input rule's box (`FieldBox`) at the field's
+ * size, taking the field's disabled · invalid · read-only and quiet itself. (A date field's RAC
+ * `GroupContext` stays its DateInput's — the box takes none of its props.) The box wraps the control
+ * element — and a DateInput's hidden form input after it (RAC's DateInput renders both).
+ */
+function plainFieldBoxMarkup(markup: string, field: string): string {
+  const root = new RegExp(`<div class=react-aria-${field}([^>]*)>`).exec(markup)?.[1] ?? "";
+  const flag = (name: string) =>
+    new RegExp(` data-${name}=true`).test(root) ? ` data-${name}=true` : "";
+  const size = / data-size=(\w+)/.exec(root)?.[1] ?? "M";
+  const group = `<div class=react-aria-Group react-aria-FieldBox${flag("disabled")}${flag("invalid")}${flag("quiet")} data-rac=${flag("readonly")} data-size=${size} data-variant=default role=presentation>`;
+  const start = /<(input|textarea)[^>]*class=react-aria-(Input|TextArea)[\s>]|<div[^>]*class=react-aria-DateInput[\s>]/.exec(
+    markup,
+  )?.index;
+  if (start === undefined) return markup;
+  // The element's end: its tags balanced (`<x …>` opens, `</>` closes).
+  const close = (from: number) => {
+    let depth = 0;
+    const tag = /<\/>|<[a-z][^>]*>/g;
+    tag.lastIndex = from;
+    for (let m = tag.exec(markup); m; m = tag.exec(markup)) {
+      depth += m[0] === "</>" ? -1 : 1;
+      if (depth === 0) return m.index + m[0].length;
     }
-  }
-  return (
-    markup.slice(0, start) +
-    markup.slice(start + open.length, at - 3) +
-    markup.slice(at)
-  );
+    return markup.length;
+  };
+  let end = close(start);
+  const hidden = /^<input class=[^>]* hidden=[^>]*><\/>/.exec(markup.slice(end));
+  if (hidden) end += hidden[0].length;
+  return `${markup.slice(0, start)}${group}${markup.slice(start, end)}</>${markup.slice(end)}`;
 }
 /**
  * ADR-256 Phase 6d: a ComboBox draws its node tree in RAC's ComboBox — its control box is its RAC
@@ -821,20 +870,37 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                                 type === "meter" ? "Meter" : "Progress",
                               )
                             : type === "combobox"
-                              ? comboBoxGroupMarkup(fixed, name === "quiet")
+                              ? fieldBoxGroupMarkup(
+                                  comboBoxGroupMarkup(fixed, name === "quiet"),
+                                  "ComboBox",
+                                )
                               : type === "datepicker"
-                                ? datePickerNodeTreeMarkup(
-                                    fixed,
+                                ? fieldBoxGroupMarkup(
+                                    datePickerNodeTreeMarkup(
+                                      fixed,
+                                      "DatePicker",
+                                      name,
+                                    ),
                                     "DatePicker",
-                                    name,
                                   )
                                 : type === "daterangepicker"
-                                  ? datePickerNodeTreeMarkup(
-                                      fixed,
+                                  ? fieldBoxGroupMarkup(
+                                      datePickerNodeTreeMarkup(
+                                        fixed,
+                                        "DateRangePicker",
+                                        name,
+                                      ),
                                       "DateRangePicker",
-                                      name,
                                     )
-                                  : fixed;
+                                  : type === "textfield" || type === "textarea"
+                                    ? plainFieldBoxMarkup(fixed, "TextField")
+                                    : type === "colorfield"
+                                      ? plainFieldBoxMarkup(fixed, "ColorField")
+                                      : type === "datefield"
+                                        ? plainFieldBoxMarkup(fixed, "DateField")
+                                        : type === "timefield"
+                                          ? plainFieldBoxMarkup(fixed, "TimeField")
+                                          : fixed;
           const owned =
             type === "checkboxgroup" ||
             type === "radiogroup" ||
@@ -1101,9 +1167,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
     it.skipIf(write)(`${type} — its control is its Input node`, async () => {
       const rendered = (await render(type, {}))!;
       const { workspace, field } = rendered;
-      const input = () =>
+      // (S2 `FieldGroup`, 2026-11-14: the Input sits in the field's box Group.)
+      const group = () =>
         workspace.root.canvasInputs
           .get(field.id)!
+          .children.map((id) => workspace.root.canvasInputs.get(id)!)
+          .find((child) => workspace.root.typeOf(child) === "Group")!;
+      const input = () =>
+        group()
           .children.map((id) => workspace.root.canvasInputs.get(id)!)
           .find((child) => child.ruleId === "Input")!;
       const element = (html: string) => {
@@ -1119,13 +1190,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "lib:template:component-input",
       ]);
       // The element: the control RAC wires to the field (id ← the Label's `for`), sized by the
-      // rule's sheet — no resolved box inline.
+      // rule's sheet — in the box it lays its own down inline (transparent, no border · padding),
+      // no resolved font inline.
       const control = element(html());
       expect(control.tagName).toBe(type === "textarea" ? "TEXTAREA" : "INPUT");
       expect(control.getAttribute("data-size")).toBe("M");
-      expect(control.getAttribute("style") ?? "").not.toMatch(
-        /padding|border|background|font-size/,
+      expect(control.getAttribute("style") ?? "").not.toMatch(/font-size/);
+      expect(control.getAttribute("style") ?? "").toMatch(
+        /background:\s*transparent/,
       );
+      expect(control.parentElement!.className).toContain("react-aria-FieldBox");
       // The Input rule sizes it at the field's size (no field rule declares an Input shape).
       expect(input().props.size).toBe("M");
       expect(input().visual).toMatchObject({
@@ -1252,42 +1326,48 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ["lib:template:component-button"],
       ]);
       const [input, decrement, increment] = parts();
-      // Canvas: the Input fills the Group; a stepper is as wide as the control is high and
-      // overlaps its neighbour's border by 1px; its glyph (an Icon node) is centered in it.
+      // Canvas (S2 NumberField): the Group is the box (32, border 2), the Input fills its row; a
+      // stepper is the S2 field-button square (md 20) centred in the row; its glyph (an Icon node)
+      // is centered in it.
       const group = rect(wrapper().id);
       expect(group.height).toBe(32);
-      expect(rect(input.id)).toMatchObject({ height: 32 });
       for (const stepper of [decrement, increment]) {
-        expect(rect(stepper.id)).toMatchObject({ width: 32, height: 32 });
+        // (centred in the 28px row inside the 2px border: 2 + (28 − 20) / 2)
+        expect(rect(stepper.id)).toMatchObject({ width: 20, height: 20, y: 6 });
         expect(stepper.props).toMatchObject({
           variant: "secondary",
           size: "M",
         });
-        // (ADR-276: the Button origin's own `{icon}` position comes first, unfilled — hidden.)
-        const glyph = stepper.children
+        // (ADR-276: the glyph is the Button origin's own `{icon}` position, filled by the stepper's
+        //  `icon` prop — one Icon, not a second Icon child added beside the unfilled one.)
+        const icons = stepper.children
           .map((id) => records.get(id)!)
-          .find((child) => typeOf(child.id) === "Icon" && !child.hidden)!;
-        expect(glyph.visual.iconSize).toBe(18);
-        // (A record's box is from its parent's.)
+          .filter((child) => typeOf(child.id) === "Icon");
+        expect(icons).toHaveLength(1);
+        expect(icons[0]!.props.iconName).toBe(
+          stepper === decrement ? "minus" : "plus",
+        );
+        const glyph = icons[0]!;
+        expect(glyph.hidden).toBeFalsy();
+        // (The field buttons' glyph size — md 16, 사용자 2026-11-13.)
+        expect(glyph.visual.iconSize).toBe(16);
+        // (A record's box is from its parent's — centred in the 20 square.)
         const icon = rect(glyph.id);
-        expect(icon).toMatchObject({ x: 7, width: 18 });
-        expect(icon.y * 2 + icon.height).toBe(32);
+        expect(icon).toMatchObject({ x: 2, width: 16 });
+        expect(icon.y * 2 + icon.height).toBe(20);
       }
+      // S2: `text-to-control` (md 10) after the value — the Input's end padding 6 + the Group's gap 4
+      // — the stepper gap (md 4), the end padding (md 4) inside the box's 2px border.
       expect(rect(decrement.id).x).toBe(
-        rect(input.id).x + rect(input.id).width - 1,
+        rect(input.id).x + rect(input.id).width + 4,
       );
-      expect(rect(increment.id).x + 32).toBe(group.width);
-      // The square corners on the touching sides are written on the template positions.
-      expect(input.visual).toMatchObject({
-        radius: 8,
-        radiusTopRight: 0,
-        radiusBottomRight: 0,
-      });
-      expect(decrement.visual.radius).toBe(0);
-      expect(increment.visual).toMatchObject({
-        radiusTopLeft: 0,
-        radiusBottomLeft: 0,
-      });
+      expect(rect(increment.id).x).toBe(
+        rect(decrement.id).x + rect(decrement.id).width + 4,
+      );
+      expect(rect(increment.id).x + 20).toBe(group.width - 2 - 4);
+      // The steppers' S2 `controlBorderRadius('sm')` corner is written on the template positions.
+      expect(decrement.visual.radius).toBe(4);
+      expect(increment.visual.radius).toBe(4);
       // DOM: the Group's children are those nodes' elements, in order.
       const groupElement = host().querySelector(".react-aria-Group")!;
       expect(
@@ -1385,11 +1465,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "XL",
         "XL",
       ]);
-      // (ADR-295 Phase 3: XL is the S2 control height 48.)
-      expect(rect(parts()[1]!.id)).toMatchObject({ width: 48, height: 48 });
-      // (ADR-295 Phase 3b: the S2 icon step XL 22.)
-      expect(records.get(parts()[1]!.children[0]!)!.visual.iconSize).toBe(22);
-      expect(rect(parts()[0]!.id).height).toBe(48);
+      // (S2 NumberField XL: the field-button square 32 in the 48 box; the stepper glyph 20 — 사용자 2026-11-13.)
+      expect(rect(parts()[1]!.id)).toMatchObject({ width: 32, height: 32 });
+      expect(
+        parts()[1]!
+          .children.map((id) => records.get(id)!)
+          .find((child) => typeOf(child.id) === "Icon" && !child.hidden)!.visual
+          .iconSize,
+      ).toBe(20);
+      expect(rect(wrapper().id).height).toBe(48);
       // The origins are where their style comes from: the Button origin's reaches the steppers,
       // the Input origin's the value — on the Canvas and in the DOM.
       workspace.execute(
@@ -1436,9 +1520,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         catalogSubpartOwnerType(graph, dom, parts()[1]!.id, "style"),
       ).toBeNull();
-      expect(catalogSubpartOwnerType(graph, dom, wrapper().id, "style")).toBe(
-        "NumberField",
-      );
+      // (S2 NumberField: the Group is the field's box — `CATALOG_BOXED_FIELDS` — its own style is
+      //  edited directly, not from the field.)
+      expect(
+        catalogSubpartOwnerType(graph, dom, wrapper().id, "style"),
+      ).toBeNull();
+      expect(
+        catalogSubpartOwnerType(graph, dom, wrapper().id, "all"),
+      ).toBeNull();
     },
   );
 
@@ -1487,28 +1576,25 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ["lib:template:component-fieldbutton", "lib:template:component-button"],
       ]);
       const [input, button] = parts();
-      // Canvas: the Input is the whole control; the button is a square 6px inside its outer end (S2 field
-      //   button M 20 — ADR-295 Phase 3c-2; the end inset S2 height × 3/16 = 6 from the outer edge (S2
-      //   ComboBox paddingEnd height × 3/16 − border 2 measured inside the 2px border), the text room inset +
-      //   square + text-to-control 10 — 3c-3b).
+      // Canvas (S2 ComboBox, 2026-11-13 — no margins): the Group is the box (32, border 2,
+      //   `edge-to-text` 12, end padding height × 3/16 − border = 4, gap 4 — 사용자); the Input fills the
+      //   row with its box laid down and no end padding (사용자); the button is the S2 field button
+      //   square (md 20) after the gap, centred in the row.
       const group = rect(wrapper().id);
-      expect(rect(input.id)).toMatchObject({
-        x: 0,
-        width: group.width,
-        height: 32,
-      });
-      expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 34 });
-      // (The end padding keeps the text clear of the button; its start stays the Input's own.)
-      expect(inputTextBand(workspace, input.id)).toEqual({
-        x: 12,
-        paddingRight: 34,
+      expect(group.height).toBe(32);
+      expect(rect(input.id)).toMatchObject({ x: 14, width: group.width - 44 });
+      expect(workspace.root.getLayoutInput(input.id)).toMatchObject({
+        paddingLeft: "0px",
+        paddingRight: "0px",
       });
       expect(rect(button.id)).toMatchObject({
-        x: group.width - 26,
+        x: rect(input.id).x + rect(input.id).width + 4,
         y: 6,
         width: 20,
         height: 20,
       });
+      // (the end padding 4 inside the 2px border)
+      expect(group.width - (rect(button.id).x + 20)).toBe(6);
       expect(button.visual).toMatchObject({
         fill: "var(--accent-subtle)",
         borderWidth: 0,
@@ -1516,7 +1602,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       });
       const glyph = records.get(button.children[0]!)!;
       expect(glyph.props.iconName).toBe("chevron-down");
-      expect(rect(glyph.id)).toMatchObject({ x: 1, y: 1, width: 18 });
+      // (M 16, centred in the 20 square — 사용자 2026-11-13.)
+      expect(rect(glyph.id)).toMatchObject({ x: 2, y: 2, width: 16 });
       // The field's `placeholder` and `iconName` reach the parts (template bindings).
       expect(input.props.placeholder).toBe("Type or select...");
       workspace.execute(
@@ -1552,16 +1639,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // (20388ea2e, 2026-11-02: the Button sheet's rest border is S2's — 0 for a fill Button, 2 only
       //  for `outline` — so the FieldButton has no border to remove: nothing is written out.)
       expect(style).not.toMatch(/border-width/);
-      // (ADR-295 Phase 3c-3b: its overlap margin and the input's room are the S2 formula over the device
-      //   variables — the touch set reaches them, as it reaches the generated sheet.)
-      expect(style).toContain(
-        "margin-left:calc(var(--catalog-token-size-field-button-M) * -1 / 1 + var(--catalog-token-size-height-M) * -3 / 16)",
-      );
+      // (S2 ComboBox, 2026-11-13: no margin — the button follows the Input in the box; its
+      //  `text-to-control` room is the Input's end padding.)
+      expect(style).not.toMatch(/margin-(left|inline-start):\s*(?!0)/);
       expect(
         inputElement.closest("[data-catalog-id]")!.getAttribute("style") ?? "",
-      ).toContain(
-        "padding-right:calc(var(--catalog-token-size-height-M) * 3 / 16 + var(--catalog-token-size-field-button-M) * 1 / 1 + var(--catalog-token-text-sm) * 10 / 14 - 2px)",
-      );
+      ).toMatch(/padding-right:\s*0(px)?(;|$)/);
       // The field's size reaches the parts.
       workspace.execute(
         setFields({
@@ -1576,11 +1659,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         height: 32,
         y: 8,
       });
-      // (3c-3b: S2 end inset 48 × 3/16 − 2 = 7 + the square 32 + text-to-control 18 × 10/14.)
-      expect(parts()[0]!.visual.paddingRight).toBeCloseTo(
-        7 + 32 + (18 * 10) / 14,
-        10,
-      );
+      // (S2: the box's end padding 48 × 3/16 − 2 = 7 after the square; the Input's end padding
+      //  `text-to-control` 18 × 10/14 before it.)
+      const xlGroup = rect(wrapper().id);
+      expect(xlGroup.width - (rect(parts()[1]!.id).x + 32)).toBe(2 + 7);
+      expect(
+        Number.parseFloat(
+          String(workspace.root.getLayoutInput(parts()[0]!.id)?.paddingRight),
+        ),
+      ).toBe(0);
       // The FieldButton origin is where the button's shape comes from; it is itself an instance
       // of the Button origin, whose style reaches it under the FieldButton's own.
       workspace.execute(
@@ -1684,7 +1771,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           .map((part) => typeOf(part.id)),
       ).toEqual(["SelectValue", "Icon"]);
       // Canvas: the trigger fills the field; the value fills the trigger up to the glyph, 4px
-      // before it; the glyph sits 4px inside the end (사용자 2026-10-13 「M 8 → 4」). The start is S2
+      // before it; the glyph sits 8px inside the end (사용자 2026-10-13 「M 8 → 4」 · 2026-11-13 「→ 7」 · 「→ 8」). The start is S2
       // Picker's `edge-to-text` (32 × 3/8 = 12 — ADR-295 Phase 3c-3), not the Button's `pill` (16).
       const width = rect(field.id).width;
       expect(rect(trigger().id)).toMatchObject({ x: 0, width });
@@ -1693,7 +1780,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         minWidth: 0,
         paddingX: 16,
         paddingLeft: 12,
-        paddingRight: 4,
+        paddingRight: 8,
         gap: 4,
         // (20388ea2e, 2026-11-02: S2 field buttons have no border — S2 Picker `borderStyle: none`;
         //  the Button rule's `fieldButton` branch is 0, so the edges below are the padding only.)
@@ -1705,14 +1792,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       const shownParts = () => parts().filter((part) => !part.hidden);
       const [value, glyph] = shownParts();
+      // (M 16 — 사용자 2026-11-13.)
       expect(rect(glyph.id)).toMatchObject({
-        x: width - 4 - 18,
-        width: 18,
-        height: 18,
+        x: width - 8 - 16,
+        width: 16,
+        height: 16,
       });
       expect(rect(value.id)).toMatchObject({
         x: 12,
-        width: width - 12 - 4 - 18 - 4,
+        width: width - 12 - 8 - 16 - 4,
       });
       expect(value.visual.fontSize).toBe(14);
       // (The value keeps its own weight: it does not take the trigger Button's 500.)
@@ -1759,7 +1847,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(valueElement.getAttribute("style")).toMatch(/font-weight:\s*400/);
       const style = button().getAttribute("style")!;
       expect(style).toMatch(/(^|;)width:\s*100%/);
-      expect(style).toMatch(/padding-right:\s*4px/);
+      expect(style).toMatch(/padding-right:\s*8px/);
       expect(style).toMatch(/column-gap:\s*4px/);
       // (A Button's rest paint is its sheet's: hover, pressed and focus are the Button rule's.)
       expect(style).not.toMatch(/background-color|border-color|opacity/);
@@ -1839,8 +1927,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingRight: 16,
       });
       expect(shownParts()[0]!.visual.fontSize).toBe(18);
-      // (ADR-295 Phase 3b: the S2 icon step XL 22.)
-      expect(shownParts()[1]!.visual.iconSize).toBe(22);
+      // (XL 20 — 사용자 2026-11-13.)
+      expect(shownParts()[1]!.visual.iconSize).toBe(20);
       // The Button origin is where the trigger's shape comes from.
       workspace.execute(
         setLibraryDefault({
@@ -1937,27 +2025,28 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // DateField · TimeField: the DateInput node is the control.
       for (const type of ["datefield", "timefield"]) {
         const scene = await open(type);
+        // (S2 `FieldGroup`, 2026-11-14: the DateInput sits in the field's box Group.)
+        const box = () => scene.wrapper();
         const input = () =>
           scene
-            .children(scene.field.id)
+            .children(box().id)
             .find((child) => scene.typeOf(child.id) === "DateInput")!;
         expect(input().collapsedSourceIds).toEqual([
           "lib:template:component-dateinput",
         ]);
-        expect(scene.rect(input().id)).toMatchObject({
+        expect(scene.rect(box().id)).toMatchObject({
           x: 0,
           width: scene.rect(scene.field.id).width,
         });
-        // (2026-11-09: S2 `FieldGroup` — the TextField box's 2px border, 1px less padding.)
-        expect(input().visual).toMatchObject({
-          paddingX: 12,
-          paddingY: 5,
-          borderWidth: 2,
-          radius: 8,
-          minWidth: 150,
+        // The box fills the field (its per-size minimum — the field's placement); the DateInput fills
+        // the box inside its `edge-to-text` 12 and 2px border.
+        expect(box().visual).toMatchObject({ minWidth: 150 });
+        expect(scene.rect(input().id)).toMatchObject({
+          x: 2 + 12,
+          width: scene.rect(box().id).width - 2 * (2 + 12),
         });
-        // DOM: the RAC DateInput is the node's element, sized by its `data-size`; its box is the
-        // DateInput rule's sheet (nothing inline, no `inset` utility class).
+        // DOM: the RAC DateInput is the node's element, sized by its `data-size`; in the box it lays
+        // its own down inline (transparent, no border · padding), no `inset` utility class.
         const element = scene
           .host()
           .querySelector(".react-aria-DateInput:not(template *)")!;
@@ -1965,8 +2054,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         expect(element.getAttribute("data-size")).toBe("M");
         expect(element.getAttribute("role")).toBe("group");
         expect(element.className).toBe("react-aria-DateInput");
-        expect(element.getAttribute("style")).not.toMatch(
-          /background|border|padding/,
+        expect(element.getAttribute("style")).toMatch(
+          /background:\s*transparent/,
+        );
+        expect(element.parentElement!.className).toContain(
+          "react-aria-FieldBox",
         );
         expect(
           element.querySelectorAll(".react-aria-DateSegment").length,
@@ -1974,8 +2066,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         // The field's size reaches it.
         setField(scene.workspace, { size: "XL" });
         expect(input().props.size).toBe("XL");
-        // (ADR-295 Phase 3c-3: S2 `edge-to-text` — the XL field height 48 × 3/8)
-        expect(input().visual).toMatchObject({ paddingX: 18, minWidth: 220 });
+        // (ADR-295 Phase 3c-3: S2 `edge-to-text` — the XL field height 48 × 3/8 — now the box's start.)
+        expect(box().visual).toMatchObject({ minWidth: 220 });
+        expect(
+          (scene.workspace.root.getLayoutInput(box().id) as Record<string, unknown>)
+            .paddingLeft,
+        ).toBe("18px");
         // The DateInput origin is where its shape comes from.
         scene.workspace.execute(
           setLibraryDefault({
@@ -2005,10 +2101,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ).toBeNull();
       }
 
-      // DatePicker: the Group places; the DateInput instance is the box, the FieldButton
-      // instance a square 4px inside its end.
+      // DatePicker (S2, 2026-11-13 — the range picker's box with one DateInput): the Group is the
+      // box; the DateInput instance lays its box down and fills the row; the FieldButton instance is
+      // a square after the box's gap (md 4), the box's end padding (md 4) inside its 2px border.
       const picker = await open("datepicker");
-      expectPaintsNothing(picker.wrapper().visual);
       const pickerParts = () => picker.children(picker.wrapper().id);
       expect(pickerParts().map((part) => picker.typeOf(part.id))).toEqual([
         "DateInput",
@@ -2019,22 +2115,26 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ["lib:template:component-fieldbutton", "lib:template:component-button"],
       ]);
       const group = picker.rect(picker.wrapper().id);
-      expect(picker.rect(pickerParts()[0]!.id)).toMatchObject({
-        x: 0,
-        width: group.width,
+      expect(group.height).toBe(32);
+      const dateInput = picker.rect(pickerParts()[0]!.id);
+      expect(dateInput).toMatchObject({ x: 14 });
+      // (No end padding — the box's gap 4 is the room before the button, 사용자 2026-11-13. The DateInput
+      //  lays its box down as an Input does — the layout, not values its template wrote.)
+      expect(
+        picker.workspace.root.getLayoutInput(pickerParts()[0]!.id),
+      ).toMatchObject({
+        paddingLeft: "0px",
+        paddingRight: "0px",
+        borderLeft: "0px",
+        borderRight: "0px",
       });
-      // (ADR-295 Phase 3c-3b: S2 DatePicker end inset M 4 inside the border · text-to-control 10.)
-      // (2026-11-09: the S2 `FieldGroup` 2px border — the button keeps the 4px end inset inside it.)
-      expect(pickerParts()[0]!.visual).toMatchObject({
-        paddingX: 12,
-        paddingRight: 34,
-        borderWidth: 2,
-      });
+      expect(pickerParts()[0]!.visual).not.toHaveProperty("fill");
       expect(picker.rect(pickerParts()[1]!.id)).toMatchObject({
-        x: group.width - 26,
+        x: dateInput.x + dateInput.width + 4,
         width: 20,
         height: 20,
       });
+      expect(group.width - (picker.rect(pickerParts()[1]!.id).x + 20)).toBe(6);
       const pickerGlyph = () =>
         picker.records.get(pickerParts()[1]!.children[0]!)!;
       expect(pickerGlyph().props.iconName).toBe("calendar");
@@ -2055,14 +2155,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
 
       // DateRangePicker: the Group is the box; the pair carries none.
       const range = await open("daterangepicker");
-      expect(range.wrapper().visual).toMatchObject({
-        borderWidth: 2, // (2026-11-09 — S2 `FieldGroup`)
-        // (ADR-295 Phase 3c-3b: S2 DateRangePicker `edge-to-text` 32 × 3/8 · end 4.)
-        paddingLeft: 12,
-        paddingRight: 4,
-        paddingTop: 3,
+      const rangeInput = (id: string) =>
+        range.workspace.root.getLayoutInput(id) as Record<string, unknown>;
+      // (2026-11-14: the Group is the field box — S2 `FieldGroup`, `catalogFieldBoxStyle`: border 2,
+      //  `edge-to-text` 32 × 3/8 · S2 DateRangePicker end 4, the date gap 4.)
+      expect(rangeInput(range.wrapper().id)).toMatchObject({
+        borderTop: "2px",
+        paddingLeft: "12px",
+        paddingRight: "4px",
+        columnGap: "4px",
       });
-      expect(range.wrapper().visual.fill).not.toBe("transparent");
       const rangeParts = () => range.children(range.wrapper().id);
       expect(rangeParts().map((part) => range.typeOf(part.id))).toEqual([
         "DateInput",
@@ -2072,23 +2174,26 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ]);
       const [start, separator, end, button] = rangeParts();
       expect([start.props.slot, end.props.slot]).toEqual(["start", "end"]);
-      for (const part of [start, end])
-        expect(part.visual).toMatchObject({
-          fill: "transparent",
-          borderWidth: 0,
-          paddingX: 0,
-          paddingY: 0,
+      // The pair lays its box down (`CATALOG_FIELD_BOX_INPUT_STYLE`) — no template copy of it.
+      for (const part of [start, end]) {
+        expect(part.visual.fill).toBeUndefined();
+        expect(rangeInput(part.id)).toMatchObject({
+          paddingLeft: "0px",
+          paddingRight: "0px",
+          borderLeft: "0px",
           width: "auto",
         });
+      }
       expect(separator.props.children).toBe("–");
       expect(separator.visual).toMatchObject({
         color: "var(--fg-muted)",
         paddingX: 4,
         fontSize: 14,
       });
-      // The end input takes the free space up to the button, 4px inside the Group's end (S2 `paddingEnd: 4`).
-      expect(end.layout).toMatchObject({ flexGrow: "1" });
-      expect(start.layout.flexGrow).toBeUndefined();
+      // The end input takes the free space up to the button, 4px inside the Group's end (S2 `paddingEnd: 4`);
+      // the start one keeps its content width.
+      expect(rangeInput(end.id)).toMatchObject({ flexGrow: 1 });
+      expect(rangeInput(start.id)).toMatchObject({ flexGrow: 0 });
       const rangeBox = range.rect(range.wrapper().id);
       expect(rangeBox.height).toBe(32);
       expect(range.rect(button.id)).toMatchObject({
@@ -2135,7 +2240,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
    * end. The clear button shows while the field has a value (RAC's `data-empty`).
    */
   it.skipIf(write)(
-    "searchfield — the field holds the glyph, an Input instance and a Button instance (the reference's grid, no control Group — G5 example 5)",
+    "searchfield — its control Group (S2 `FieldGroup`) holds the glyph, an Input instance and a Button instance",
     async () => {
       const { workspace, field } = (await render("searchfield", {}))!;
       const records = workspace.root.canvasInputs;
@@ -2143,19 +2248,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         workspace.runtime.graph.getDefinition(
           records.get(id)!.definitionId as LibraryDefinitionId,
         )!.name;
-      const parts = () =>
+      const groupOf = () =>
         records
           .get(field.id)!
           .children.map((id) => records.get(id)!)
-          .filter((child) =>
-            ["Icon", "Input", "Button"].includes(typeOf(child.id)),
-          );
-      expect(
-        records
-          .get(field.id)!
-          .children.map((id) => typeOf(id))
-          .includes("Group"),
-      ).toBe(false);
+          .find((child) => typeOf(child.id) === "Group")!;
+      const parts = () =>
+        groupOf().children.map((id) => records.get(id)!);
       const host = () => {
         const element = document.createElement("div");
         element.innerHTML = renderToStaticMarkup(
@@ -2172,6 +2271,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         };
       const layoutRecord = (id: string) =>
         workspace.root.layoutInputs.get(id) as { hidden?: boolean };
+      const layoutInput = (id: string) =>
+        workspace.root.getLayoutInput(id) as Record<string, unknown>;
       expect(parts().map((part) => typeOf(part.id))).toEqual([
         "Icon",
         "Input",
@@ -2183,34 +2284,29 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ["lib:template:component-button"],
       ]);
       const [glyph, input, clear] = parts();
-      // Canvas: the Input is the whole control, rounded, with room at both ends; the glyph sits
-      // 8px inside its start, over it (its empty first column).
-      const group = rect(input.id);
-      expect(rect(input.id)).toMatchObject({
-        x: 0,
-        width: rect(field.id).width,
-        height: 32,
-      });
-      // (ADR-295 Phase 3c-3b: S2 SearchField — the glyph at `pill - 2/14em` inside the border, `1lh` 18 square,
-      //   the text after it + text-to-visual 6 = 38 padding; 빈 값에서는 clear가 없어 입력 끝 여백도 0이다.)
-      expect(input.visual).toMatchObject({
-        radius: 9999,
-        paddingLeft: 38,
-        paddingRight: 0,
-      });
-      // (Its text starts after that padding, clear of the glyph — as the DOM `padding-left` does.)
-      expect(inputTextBand(workspace, input.id)).toEqual({
-        x: 38,
-        paddingRight: 0,
+      // Canvas (S2, 2026-11-13 — no margins): the Group is the pill box (32 high, border 2, start
+      // and end padding the fields' `edge-to-text` 12 — 사용자, gap 8 — 사용자); the glyph
+      // (`1lh` 18), the Input (no padding of its own), the clear button.
+      const group = rect(groupOf().id);
+      expect(group).toMatchObject({ x: 0, height: 32 });
+      expect(groupOf().visual).toMatchObject({ radius: 9999 });
+      expect(layoutInput(groupOf().id)).toMatchObject({
+        paddingLeft: "12px",
+        paddingRight: "12px",
       });
       expect(rect(glyph.id)).toMatchObject({
-        x: 16,
-        y: group.y + 7,
+        x: 14,
+        y: 7,
         width: 18,
         height: 18,
       });
-      expect(glyph.visual).toMatchObject({ iconSize: 18, zIndex: 1 });
-      // An empty field shows no clear button (RAC `data-empty`); with a value its 32×28 hit area sits 2px inside the Input border.
+      expect(glyph.visual).toMatchObject({ iconSize: 18 });
+      expect(rect(input.id).x).toBe(14 + 18 + 8);
+      expect(layoutInput(input.id)).toMatchObject({
+        paddingLeft: "0px",
+        paddingRight: "0px",
+      });
+      // An empty field shows no clear button (RAC `data-empty`).
       expect(layoutRecord(clear.id).hidden).toBe(true);
       expect(input.derivedProps).toMatchObject({ _inputHasValue: false });
       workspace.execute(
@@ -2219,9 +2315,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           props: { value: set("abc"), placeholder: set("Find") },
         }),
       );
-      expect(parts()[1]!.visual.paddingRight).toBe(32);
-      // The Canvas draws the value in the Input's text (the DOM input shows it over the
-      // placeholder); emptied, the placeholder is back.
+      // The Canvas draws the value in the Input's text; emptied, the placeholder is back.
       expect(parts()[1]!.derivedProps).toMatchObject({
         placeholder: "abc",
         _inputHasValue: true,
@@ -2232,7 +2326,6 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           props: { value: set("") },
         }),
       );
-      expect(parts()[1]!.visual.paddingRight).toBe(0);
       expect(parts()[1]!.derivedProps).toMatchObject({ _inputHasValue: false });
       workspace.execute(
         setFields({
@@ -2240,16 +2333,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           props: { value: set("abc") },
         }),
       );
-      expect(parts()[1]!.derivedProps).toMatchObject({
-        placeholder: "abc",
-        _inputHasValue: true,
-      });
       const shown = parts()[2]!;
       expect(layoutRecord(shown.id).hidden).not.toBe(true);
-      // (3c-3b: its centre at the S2 clear button's — height / 2 = 16 inside the border.)
+      // (S2 `ClearButton`: the control height wide, the box's inner height tall, before the box's end
+      //  padding 12 — 사용자 2026-11-13 「searchfield-group 에 padding-right 12」.)
       expect(rect(shown.id)).toMatchObject({
-        x: group.width - 34,
-        y: group.y + 2,
+        x: group.width - 34 - 12,
+        y: 2,
         width: 32,
         height: 28,
       });
@@ -2257,29 +2347,31 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         radius: 9999,
         borderWidth: 0,
       });
+      // (the cross: S2 `ClearButton` glyph — through the Group, `CATALOG_PART_RULE_PASS_HOSTS`)
       expect(
         shown.children
           .map((id) => records.get(id)!)
           .find((child) => !child.hidden)!.visual.fontSize,
       ).toBe(8);
       expect(parts()[1]!.props.placeholder).toBe("Find");
-      // DOM: the field's own children after its Label are those nodes' elements (no container —
-      // the reference); the Input is the searchbox RAC wires (its `type` is RAC's), the Button the
-      // clear button RAC labels.
+      // DOM: the field's Group after its Label holds those nodes' elements; the Input is the
+      // searchbox RAC wires (its `type` is RAC's), the Button the clear button RAC labels.
       const container = host().querySelector(".react-aria-SearchField")!;
-      expect(container.querySelector(".searchfield-container")).toBeNull();
+      const groupElement = container.querySelector(".react-aria-Group")!;
+      expect(groupElement.className).toContain("react-aria-FieldBox");
+      expect(groupElement.getAttribute("style")).toMatch(
+        /border-radius:\s*9999px/,
+      );
       expect(
-        [...container.children]
-          .slice(1)
-          .map((child) => child.getAttribute("data-catalog-id")),
+        [...groupElement.children].map((child) =>
+          child.getAttribute("data-catalog-id"),
+        ),
       ).toEqual(parts().map((part) => part.id));
       const inputElement = container.querySelector("input")!;
       expect(inputElement.getAttribute("type")).toBe("search");
       expect(inputElement.getAttribute("placeholder")).toBe("Find");
       expect(inputElement.getAttribute("value")).toBe("abc");
-      expect(inputElement.getAttribute("style")).toMatch(
-        /border-radius:\s*9999px/,
-      );
+      expect(inputElement.style.paddingLeft).toBe("0px");
       const clearElement = container.querySelector("button")!;
       expect(clearElement.getAttribute("aria-label")).toBeTruthy();
       expect(clearElement.getAttribute("style")).not.toMatch(
@@ -2295,18 +2387,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         /^#[0-9a-f]{6}$/i,
       );
       expect(cssVarColor("var(--fg-muted)", "dark")).toMatch(/^#[0-9a-f]{6}$/i);
-      expect(
-        container.querySelector(".react-aria-Icon")!.getAttribute("style"),
-      ).toMatch(/z-index:\s*1/);
-      // (ADR-295 Phase 3c-3b: the glyph's square is S2 `1lh` over the device variables; its start — S2 `pill` —
-      //   is the sheet's `margin-inline-start` formula: no px goes inline over it.)
+      // (The glyph's square is S2 `1lh` over the device variables; no margin holds its place.)
       const glyphStyle = container
         .querySelector(".react-aria-Icon")!
         .getAttribute("style")!;
       expect(glyphStyle).toContain(
         "width:calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height))",
       );
-      expect(glyphStyle).not.toMatch(/margin/);
+      expect(glyphStyle).not.toMatch(/margin-(left|inline)[^;]*:\s*[^0]/);
       // The field's size reaches the parts.
       workspace.execute(
         setFields({
@@ -2315,14 +2403,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }),
       );
       expect(parts()[1]!.props.size).toBe("XL");
-      // (3c-3b: pill 24 + the glyph 22 + (text-to-visual - search margin) 18 × 4/14; the end the height 48.)
-      expect(parts()[1]!.visual.paddingLeft).toBeCloseTo(
-        24 + 22 + (18 * 4) / 14,
-        10,
+      // (XL: the box's start padding the Input rule's XL `edge-to-text`; the glyph 22; the Input's start
+      //  padding 0; the clear button 48 × 44.)
+      expect(rect(parts()[0]!.id).x).toBeCloseTo(
+        2 + Number.parseFloat(String(layoutInput(groupOf().id).paddingLeft)),
+        1,
       );
-      expect(parts()[1]!.visual.paddingRight).toBe(48);
-      expect(rect(parts()[0]!.id).x).toBeCloseTo(26 - (18 * 2) / 14, 4);
       expect(rect(parts()[0]!.id).width).toBe(22);
+      expect(
+        Number.parseFloat(String(layoutInput(parts()[1]!.id).paddingLeft)),
+      ).toBe(0);
       expect(rect(parts()[2]!.id)).toMatchObject({ width: 48, height: 44 });
       // The Input origin and the Button origin reach them (the Button's own shape stays).
       workspace.execute(
@@ -2413,12 +2503,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
     "textfield — its Input keeps its line box without a placeholder",
     async () => {
       const { workspace, field } = (await render("textfield", {}))!;
+      // (S2 `FieldGroup`, 2026-11-14: the box Group is 32 high — the Input's line box inside it.)
       const height = () => {
-        const input = workspace.root.canvasInputs
+        const group = workspace.root.canvasInputs
           .get(field.id)!
           .children.map((id) => workspace.root.canvasInputs.get(id)!)
-          .find((child) => child.ruleId === "Input")!;
-        return workspace.root.getGeometry([input.id]).get(input.id)!.height;
+          .find((child) => workspace.root.typeOf(child) === "Group")!;
+        return workspace.root.getGeometry([group.id]).get(group.id)!.height;
       };
       expect(height()).toBe(32);
       workspace.execute(
@@ -2434,17 +2525,26 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
   /** A TextArea's Input node is its `<textarea rows>`: the field's `rows`, on both sides. */
   it.skipIf(write)("textarea — its rows size its Input node", async () => {
     const { workspace, field } = (await render("textarea", {}))!;
-    const input = () =>
+    // (S2 `FieldGroup`, 2026-11-14: the Input sits in the field's box Group.)
+    const group = () =>
       workspace.root.canvasInputs
         .get(field.id)!
         .children.map((id) => workspace.root.canvasInputs.get(id)!)
+        .find((child) => workspace.root.typeOf(child) === "Group")!;
+    const input = () =>
+      group()
+        .children.map((id) => workspace.root.canvasInputs.get(id)!)
         .find((child) => child.ruleId === "Input")!;
+    const rect = (id: string) => workspace.root.getGeometry([id]).get(id)!;
     const rows = () =>
       /<textarea[^>]*rows="(\d+)"/.exec(
         renderToStaticMarkup(renderCatalogDom(workspace.root, field.id)),
       )?.[1];
-    // 3 rows × 18 + padding 12 + border 2 (ADR-295 Phase 3 — S2 line 18 · centring padding 6).
-    expect(input().visual.height).toBe(68);
+    // The textarea is the rows box (3 rows × 18 — ADR-295 Phase 3, S2 line 18); the box Group holds
+    // the centring padding and border around it (S2 `FieldGroup`, 2026-11-14).
+    expect(input().visual.height).toBe(54);
+    // (The box is the field's former Input height — 68.)
+    expect([rect(group().id).height, rect(input().id).height]).toEqual([68, 54]);
     expect(rows()).toBe("3");
     workspace.execute(
       setFields({
@@ -2452,7 +2552,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         props: { rows: set(5) },
       }),
     );
-    expect(input().visual.height).toBe(104);
+    expect(input().visual.height).toBe(90);
+    expect([rect(group().id).height, rect(input().id).height]).toEqual([104, 90]);
     expect(rows()).toBe("5");
   });
 
@@ -2515,9 +2616,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           host.innerHTML = renderToStaticMarkup(
             renderCatalogDom(workspace.root, field.id),
           );
+          // (S2 NumberField: the box is its control Group — `.react-aria-FieldBox` — and the Input in
+          //  it lays its box down.)
           return [
             ...host.querySelectorAll(
-              "input[data-catalog-id], textarea[data-catalog-id], .react-aria-DateInput[data-catalog-id]",
+              ":is(input, textarea, .react-aria-DateInput)[data-catalog-id]:not(.react-aria-FieldBox *), .react-aria-FieldBox[data-catalog-id]",
             ),
           ];
         };
@@ -2545,11 +2648,26 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             const part = workspace.root.canvasInputs.get(
               box.getAttribute("data-catalog-id")!,
             )!;
+            // (A field box Group draws the Input rule — `fieldBoxShapeInput`.)
+            const ruleType = box.classList.contains("react-aria-FieldBox")
+              ? "Input"
+              : part.ruleId!;
             return catalogRuleShapes({
-              node: { ...part, props: { ...part.props, ...part.derivedProps } },
+              node: {
+                ...part,
+                props: {
+                  ...part.props,
+                  ...part.derivedProps,
+                  ...(ruleType === "Input" && part.ruleId !== "Input"
+                    ? { size: "M", variant: "default" }
+                    : {}),
+                },
+              },
               rect: { width: 200, height: 32 },
-              rule: workspace.runtime.graph.library.rules.get(part.ruleId!)!,
-              type: part.ruleId!,
+              rule: workspace.runtime.graph.library.rules.get(
+                ruleType as never,
+              )!,
+              type: ruleType,
               authoredVisual: catalogAuthoredVisual(workspace.root, part),
               state,
             });

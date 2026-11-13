@@ -354,15 +354,6 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb.width).toBe("100%");
     });
 
-    // ADR-256 G5 (예제 5): SearchField 는 레퍼런스 grid (Group 없음 — glyph 빈 열 · Input · 지우기 버튼).
-    it("searchfield → grid (0px · 1fr · auto) + size md 행 간격 7 · 열 간격 0", () => {
-      const fb = resolveContainerStylesFallback("searchfield", {});
-      expect(fb.display).toBe("grid");
-      expect(fb.gridTemplateColumns).toBe("0px minmax(0, 1fr) auto");
-      expect(fb.gap).toBe(7);
-      expect(fb.columnGap).toBe(0);
-    });
-
     it.each([
       ["numberfield", 7],
       ["datefield", 7],
@@ -371,6 +362,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       ["daterangepicker", 7],
       ["combobox", 7],
       ["select", 7],
+      // (2026-11-13: S2 SearchField — `Label + FieldGroup + HelpText`, the field's column.)
+      ["searchfield", 7],
     ] as const)("%s → flex-column base + size md gap %s", (tag, gap) => {
       const fb = resolveContainerStylesFallback(tag, {});
       expect(fb.display).toBe("flex");

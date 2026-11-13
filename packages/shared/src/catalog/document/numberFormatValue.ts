@@ -5,7 +5,10 @@ import type { NumberFormatValue } from "./types";
  * it — the value type `numberFormat` (사용자 결정 2026-10-12 「S2 · RAC 가 객체면 객체 값 타입」).
  * S2 and RAC take `Intl.NumberFormatOptions`; the document keeps the keys all four consumers handle
  * the same way — RAC's NumberField parses its own text back (`NumberParser`: decimal · percent ·
- * currency · unit), so notation · significant digits · rounding are not authored.
+ * currency · unit, and it takes significant digits · rounding · trailing zeros — it resets them for
+ * its symbols), so every `Intl.NumberFormatOptions` key but `notation` · `compactDisplay` is
+ * authored (a compact · scientific text does not parse back — 2026-11-13, 사용자 「S2 의 Format
+ * options 항목들 누락」).
  *
  * Unset = RAC's own default (Meter · ProgressBar `{style: 'percent'}`, NumberField · Slider the
  * locale's decimal). An empty object is not a value — it would be RAC's decimal, not the unset
@@ -32,7 +35,30 @@ export const CATALOG_SIGN_DISPLAYS = [
   "never",
   "always",
   "exceptZero",
+  "negative",
 ] as const;
+export const CATALOG_ROUNDING_MODES = [
+  "halfExpand",
+  "ceil",
+  "floor",
+  "expand",
+  "trunc",
+  "halfCeil",
+  "halfFloor",
+  "halfTrunc",
+  "halfEven",
+] as const;
+export const CATALOG_ROUNDING_PRIORITIES = [
+  "auto",
+  "morePrecision",
+  "lessPrecision",
+] as const;
+/** Intl's sanctioned rounding increments (ECMA-402 `SetNumberFormatDigitOptions`). */
+export const CATALOG_ROUNDING_INCREMENTS = [
+  1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000,
+] as const;
+export const CATALOG_TRAILING_ZERO_DISPLAYS = ["auto", "stripIfInteger"] as const;
+export const CATALOG_GROUPINGS = ["auto", "always", "min2"] as const;
 
 type KeyCheck = (value: unknown) => boolean;
 
@@ -60,7 +86,16 @@ const KEY_CHECKS: Readonly<Record<keyof CatalogNumberFormat, KeyCheck>> = {
   minimumIntegerDigits: wholeIn(1, 21),
   minimumFractionDigits: wholeIn(0, 100),
   maximumFractionDigits: wholeIn(0, 100),
-  useGrouping: (value) => typeof value === "boolean",
+  minimumSignificantDigits: wholeIn(1, 21),
+  maximumSignificantDigits: wholeIn(1, 21),
+  roundingMode: oneOf(CATALOG_ROUNDING_MODES),
+  roundingPriority: oneOf(CATALOG_ROUNDING_PRIORITIES),
+  roundingIncrement: (value) =>
+    typeof value === "number" &&
+    (CATALOG_ROUNDING_INCREMENTS as readonly number[]).includes(value),
+  trailingZeroDisplay: oneOf(CATALOG_TRAILING_ZERO_DISPLAYS),
+  useGrouping: (value) =>
+    typeof value === "boolean" || oneOf(CATALOG_GROUPINGS)(value),
   signDisplay: oneOf(CATALOG_SIGN_DISPLAYS),
 };
 
@@ -95,6 +130,10 @@ export function catalogNumberFormatFits(
   const min = record.minimumFractionDigits;
   const max = record.maximumFractionDigits;
   if (typeof min === "number" && typeof max === "number" && min > max)
+    return false;
+  const minSig = record.minimumSignificantDigits;
+  const maxSig = record.maximumSignificantDigits;
+  if (typeof minSig === "number" && typeof maxSig === "number" && minSig > maxSig)
     return false;
   try {
     new Intl.NumberFormat("en-US", record as Intl.NumberFormatOptions);

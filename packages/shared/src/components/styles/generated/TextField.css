@@ -142,17 +142,9 @@
   }
 
 
-  .react-aria-TextField[data-size="XS"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 4px;
-  }
-
   .react-aria-TextField[data-size="XS"] .react-aria-Text[slot="prefix"] {
     font-size: var(--catalog-token-text-2xs);
     line-height: var(--catalog-token-text-2xs--line-height);
-  }
-
-  .react-aria-TextField[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 5px;
   }
 
   .react-aria-TextField[data-size="S"] .react-aria-Text[slot="prefix"] {
@@ -160,26 +152,14 @@
     line-height: var(--catalog-token-text-xs--line-height);
   }
 
-  .react-aria-TextField[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 6px;
-  }
-
   .react-aria-TextField[data-size="M"] .react-aria-Text[slot="prefix"] {
     font-size: var(--catalog-token-text-sm);
     line-height: var(--catalog-token-text-sm--line-height);
   }
 
-  .react-aria-TextField[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 7px;
-  }
-
   .react-aria-TextField[data-size="L"] .react-aria-Text[slot="prefix"] {
     font-size: var(--catalog-token-text-base);
     line-height: var(--catalog-token-text-base--line-height);
-  }
-
-  .react-aria-TextField[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 8px;
   }
 
   .react-aria-TextField[data-size="XL"] .react-aria-Text[slot="prefix"] {

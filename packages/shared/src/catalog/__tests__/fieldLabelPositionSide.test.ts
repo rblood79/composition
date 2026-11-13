@@ -50,16 +50,8 @@ describe("field family labelPosition='side' — S2 grid", () => {
             structure?: { composition?: { containerVariants?: unknown } };
           }
         | undefined;
-      // (SearchField: the reference's grid — the glyph's empty column, the Input, the clear button
-      // after the label column; G5 example 5.)
-      const expected =
-        type === "SearchField"
-          ? {
-              display: "grid",
-              "grid-template-columns": "auto 0px minmax(0, 1fr) auto",
-              "align-items": "center",
-            }
-          : CANONICAL;
+      // (SearchField too — S2 `field()`, its parts in its control Group since 2026-11-13.)
+      const expected = CANONICAL;
       const composed = sideOf(rule?.structure?.composition?.containerVariants);
       expect(composed, `${type} structure side styles`).toEqual(expected);
       expect(sideOf(rule?.containerVariants), `${type} mirror`).toEqual(

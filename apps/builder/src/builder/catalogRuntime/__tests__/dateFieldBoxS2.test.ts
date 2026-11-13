@@ -141,11 +141,14 @@ async function fieldBox(type: string, part: string) {
 }
 
 describe("date field box = the TextField's S2 FieldGroup", () => {
-  it("Canvas: a DateField's DateInput and a DateRangePicker's Group paint the Input's box", async () => {
-    const input = await fieldBox("TextField", "Input");
+  it("Canvas: a date field's · date picker's Group paints the Input's box", async () => {
+    // (2026-11-14: a TextField's · DateField's box is its control Group — S2 `FieldGroup`.)
+    const input = await fieldBox("TextField", "Group");
     expect(input?.strokeWidth).toBe(2);
-    expect(await fieldBox("DateField", "DateInput")).toEqual(input);
-    expect(await fieldBox("DatePicker", "DateInput")).toEqual(input);
+    expect(await fieldBox("DateField", "Group")).toEqual(input);
+    expect(await fieldBox("TimeField", "Group")).toEqual(input);
+    // (2026-11-13: a DatePicker's Group is the box — `CATALOG_BOXED_FIELDS`, as the range picker's.)
+    expect(await fieldBox("DatePicker", "Group")).toEqual(input);
     expect(await fieldBox("DateRangePicker", "Group")).toEqual(input);
   });
 
@@ -160,7 +163,8 @@ describe("date field box = the TextField's S2 FieldGroup", () => {
         ),
         "utf8",
       );
-    for (const name of ["DateInput", "DateRangePicker"]) {
+    // (A DatePicker · DateRangePicker box is the Input sheet's `FieldBox` — 2026-11-13 · 11-14.)
+    for (const name of ["DateInput", "Input"]) {
       const css = sheet(name);
       expect(css, name).toMatch(
         /var\(--border-width-thick\) solid var\(--neutral-outline\)/,
@@ -196,12 +200,14 @@ describe("date field box = the TextField's S2 FieldGroup", () => {
       workspace.dispose();
       return out;
     };
-    const textField = await disabled("TextField", "Input");
+    // (2026-11-14: every field's box is its control Group — S2 `FieldGroup`.)
+    const textField = await disabled("TextField", "Group");
     expect(textField.dim).toBeUndefined();
+    expect(textField.stroke).toBeDefined();
     for (const [type, part] of [
-      ["DateField", "DateInput"],
-      ["TimeField", "DateInput"],
-      ["DatePicker", "DateInput"],
+      ["DateField", "Group"],
+      ["TimeField", "Group"],
+      ["DatePicker", "Group"],
       ["DateRangePicker", "Group"],
     ] as const)
       expect(await disabled(type, part), type).toEqual(textField);
@@ -232,8 +238,9 @@ describe("date field box = the TextField's S2 FieldGroup", () => {
         ),
       );
     }
-    expect(sheet("DateRangePicker")).toMatch(
-      /\.react-aria-Group:where\(\[data-disabled\]\) \{\s*border-color: var\(--fg-disabled\)/,
+    // (The range box is the Input sheet's `FieldBox` — its disabled border, 2026-11-14.)
+    expect(sheet("Input")).toMatch(
+      /\.react-aria-FieldBox\):where\(\[data-variant="default"\]\[data-disabled\]\) \{\s*border-color: var\(--fg-disabled\)/,
     );
   });
 
@@ -264,15 +271,21 @@ describe("date field box = the TextField's S2 FieldGroup", () => {
     expect(sheet("DateInput")).toMatch(
       /:where\(\[data-focus-visible\]\) \{\s*outline: var\(--focus-ring-width\) solid var\(--focus-ring\)/,
     );
-    // The range box rings (and darkens) when the keyboard is in a date input — not when its calendar
-    //   Button has focus (S2 `shouldTurnOffFocusRing`: the Button rings itself).
-    const range = sheet("DateRangePicker");
-    expect(range).toMatch(
-      /\.react-aria-Group:where\(\[data-focus-visible\]:not\(:has\(\.react-aria-Button\[data-focused\]\)\)\) \{\s*outline: var\(--focus-ring-width\) solid var\(--focus-ring\);\s*outline-offset: var\(--focus-ring-offset\)/,
-    );
-    expect(range).toMatch(
-      /\.react-aria-Group:where\(\[data-focus-within\]:not\(:has\(\.react-aria-Button\[data-focused\]\)\)\) \{\s*border-color: var\(--neutral-content-hover\)/,
-    );
-    expect(range).not.toMatch(/\.react-aria-Group:where\(\[data-focus-within\]\)/);
+    // (2026-11-13 · 11-14) A DatePicker's · DateRangePicker's box is the Input sheet's `FieldBox`; its own
+    //   sheet turns the box's focus look off while the calendar Button has focus (S2
+    //   `shouldTurnOffFocusRing`: the Button rings itself).
+    for (const name of ["DatePicker", "DateRangePicker"]) {
+      const own = sheet(name);
+      expect(own, name).toMatch(
+        new RegExp(
+          `\\.react-aria-${name} \\.react-aria-Group:where\\(\\[data-focus-visible\\]:has\\(\\.react-aria-Button\\[data-focused\\]\\)\\) \\{\\s*outline: none`,
+        ),
+      );
+      expect(own, name).toMatch(
+        new RegExp(
+          `\\.react-aria-${name} \\.react-aria-Group:where\\(\\[data-focus-within\\]:has\\(\\.react-aria-Button\\[data-focused\\]\\)\\) \\{\\s*border-color: var\\(--neutral-outline\\)`,
+        ),
+      );
+    }
   });
 });

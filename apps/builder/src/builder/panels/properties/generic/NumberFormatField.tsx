@@ -2,13 +2,16 @@ import { memo } from "react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
-import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { semanticLabelKeys, translateKey, useI18n } from "@/i18n";
 import type { ResolvedField } from "@composition/shared";
 import {
   CATALOG_CURRENCY_DISPLAYS,
   CATALOG_CURRENCY_SIGNS,
+  CATALOG_ROUNDING_INCREMENTS,
+  CATALOG_ROUNDING_MODES,
+  CATALOG_ROUNDING_PRIORITIES,
   CATALOG_SIGN_DISPLAYS,
+  CATALOG_TRAILING_ZERO_DISPLAYS,
   CATALOG_UNIT_DISPLAYS,
   catalogNumberFormatFits,
   type CatalogNumberFormat,
@@ -43,6 +46,20 @@ const LABELS: Readonly<Record<string, string>> = {
   never: "Never",
   always: "Always",
   exceptZero: "Except Zero",
+  negative: "Negative",
+  min2: "Min 2",
+  ceil: "Ceil",
+  floor: "Floor",
+  expand: "Away From Zero",
+  trunc: "Toward Zero",
+  halfCeil: "Half Ceil",
+  halfFloor: "Half Floor",
+  halfExpand: "Half Expand",
+  halfTrunc: "Half Trunc",
+  halfEven: "Half Even",
+  morePrecision: "More Precision",
+  lessPrecision: "Less Precision",
+  stripIfInteger: "Strip If Integer",
 };
 const optionsOf = (values: readonly string[]) =>
   values.map((value) => ({ value, label: LABELS[value] ?? value }));
@@ -75,7 +92,11 @@ export const NumberFormatField = memo(function NumberFormatField({
   const [invalid, setInvalid] = useSelectionState<string | null>(null);
   const write = (next: Format) => {
     if (Object.keys(next).length === 0) return onChange(undefined);
-    if (catalogNumberFormatFits(next)) onChange(next);
+    // (A digit · rounding · sign · grouping key written at Default names the style it formats in —
+    //  decimal — so the Format field shows it: Default is not decimal everywhere (a Meter ·
+    //  ProgressBar's is percent).)
+    const named = next.style === undefined ? { style: "decimal", ...next } : next;
+    if (catalogNumberFormatFits(named)) onChange(named);
   };
   const withKey = (key: string, next: unknown) => {
     const out: Format = { ...(format as Format) };
@@ -189,61 +210,161 @@ export const NumberFormatField = memo(function NumberFormatField({
           />
         </div>
       )}
-      {(style !== "" || Object.keys(format).length > 0) && (
-        <>
-          <div className="fieldset-row">
-            <PropertyNumberInput
-              label="Min Fraction Digits"
-              value={format.minimumFractionDigits}
-              allowEmpty
-              min={0}
-              max={20}
-              step={1}
-              onChange={(next) => write(withKey("minimumFractionDigits", next))}
-            />
-            <PropertyNumberInput
-              label="Max Fraction Digits"
-              value={format.maximumFractionDigits}
-              allowEmpty
-              min={0}
-              max={20}
-              step={1}
-              onChange={(next) => write(withKey("maximumFractionDigits", next))}
-            />
-          </div>
-          <div className="fieldset-row">
-            <PropertyNumberInput
-              label="Min Integer Digits"
-              value={format.minimumIntegerDigits}
-              allowEmpty
-              min={1}
-              max={21}
-              step={1}
-              onChange={(next) => write(withKey("minimumIntegerDigits", next))}
-            />
-            <PropertySelect
-              label="Sign Display"
-              value={format.signDisplay ?? "auto"}
-              options={optionsOf(CATALOG_SIGN_DISPLAYS)}
-              optionValueMode="literal"
-              onChange={(next) =>
-                write(
-                  withKey("signDisplay", next === "auto" ? undefined : next),
-                )
-              }
-            />
-          </div>
-          <div className="fieldset-row" data-wide="true">
-            <PropertySwitch
-              label="Grouping"
-              isSelected={format.useGrouping !== false}
-              onChange={(next) =>
-                write(withKey("useGrouping", next ? undefined : false))
-              }
-            />
-          </div>
-        </>
-      )}
+      {/* (Every other `Intl.NumberFormatOptions` key RAC's NumberParser reads back — shown at every
+          style, Default too: digits, rounding, sign, grouping. Not `notation`: a compact ·
+          scientific text does not parse back.) */}
+      <div className="fieldset-row">
+        <PropertyNumberInput
+          label="Min Fraction Digits"
+          value={format.minimumFractionDigits}
+          allowEmpty
+          min={0}
+          max={20}
+          step={1}
+          onChange={(next) => write(withKey("minimumFractionDigits", next))}
+        />
+        <PropertyNumberInput
+          label="Max Fraction Digits"
+          value={format.maximumFractionDigits}
+          allowEmpty
+          min={0}
+          max={20}
+          step={1}
+          onChange={(next) => write(withKey("maximumFractionDigits", next))}
+        />
+      </div>
+      <div className="fieldset-row">
+        <PropertyNumberInput
+          label="Min Significant Digits"
+          value={format.minimumSignificantDigits}
+          allowEmpty
+          min={1}
+          max={21}
+          step={1}
+          onChange={(next) =>
+            write(withKey("minimumSignificantDigits", next))
+          }
+        />
+        <PropertyNumberInput
+          label="Max Significant Digits"
+          value={format.maximumSignificantDigits}
+          allowEmpty
+          min={1}
+          max={21}
+          step={1}
+          onChange={(next) =>
+            write(withKey("maximumSignificantDigits", next))
+          }
+        />
+      </div>
+      <div className="fieldset-row">
+        <PropertyNumberInput
+          label="Min Integer Digits"
+          value={format.minimumIntegerDigits}
+          allowEmpty
+          min={1}
+          max={21}
+          step={1}
+          onChange={(next) => write(withKey("minimumIntegerDigits", next))}
+        />
+        <PropertySelect
+          label="Sign Display"
+          value={format.signDisplay ?? "auto"}
+          options={optionsOf(CATALOG_SIGN_DISPLAYS)}
+          optionValueMode="literal"
+          onChange={(next) =>
+            write(withKey("signDisplay", next === "auto" ? undefined : next))
+          }
+        />
+      </div>
+      <div className="fieldset-row">
+        <PropertySelect
+          label="Rounding Mode"
+          value={format.roundingMode ?? "halfExpand"}
+          options={optionsOf(CATALOG_ROUNDING_MODES)}
+          optionValueMode="literal"
+          onChange={(next) =>
+            write(
+              withKey("roundingMode", next === "halfExpand" ? undefined : next),
+            )
+          }
+        />
+        <PropertySelect
+          label="Rounding Priority"
+          value={format.roundingPriority ?? "auto"}
+          options={optionsOf(CATALOG_ROUNDING_PRIORITIES)}
+          optionValueMode="literal"
+          onChange={(next) =>
+            write(
+              withKey("roundingPriority", next === "auto" ? undefined : next),
+            )
+          }
+        />
+      </div>
+      <div className="fieldset-row">
+        <PropertySelect
+          label="Rounding Increment"
+          value={String(format.roundingIncrement ?? 1)}
+          options={CATALOG_ROUNDING_INCREMENTS.map((step) => ({
+            value: String(step),
+            label: String(step),
+          }))}
+          optionValueMode="literal"
+          onChange={(next) => {
+            const step = Number(next);
+            if (step === 1) return write(withKey("roundingIncrement", undefined));
+            // (Intl: an increment rounds whole fraction digits — min = max, no significant digits
+            //  and priority `auto` — so the step fixes them, as RAC's NumberParser does.)
+            const digits =
+              format.maximumFractionDigits ?? format.minimumFractionDigits ?? 0;
+            const out: Format = { ...(format as Format), roundingIncrement: step };
+            out.minimumFractionDigits = digits;
+            out.maximumFractionDigits = digits;
+            delete out.minimumSignificantDigits;
+            delete out.maximumSignificantDigits;
+            delete out.roundingPriority;
+            write(out);
+          }}
+        />
+        <PropertySelect
+          label="Trailing Zeros"
+          value={format.trailingZeroDisplay ?? "auto"}
+          options={optionsOf(CATALOG_TRAILING_ZERO_DISPLAYS)}
+          optionValueMode="literal"
+          onChange={(next) =>
+            write(
+              withKey("trailingZeroDisplay", next === "auto" ? undefined : next),
+            )
+          }
+        />
+      </div>
+      <div className="fieldset-row" data-wide="true">
+        <PropertySelect
+          label="Grouping"
+          value={
+            format.useGrouping === false
+              ? "off"
+              : format.useGrouping === true
+                ? "always"
+                : (format.useGrouping ?? "auto")
+          }
+          options={[
+            { value: "auto", label: "Auto" },
+            { value: "always", label: "Always" },
+            { value: "min2", label: "Min 2" },
+            { value: "off", label: "Off" },
+          ]}
+          optionValueMode="literal"
+          onChange={(next) =>
+            write(
+              withKey(
+                "useGrouping",
+                next === "auto" ? undefined : next === "off" ? false : next,
+              ),
+            )
+          }
+        />
+      </div>
     </div>
   );
 });

@@ -1027,7 +1027,7 @@ const TEXT_INPUT_FIELDS = new Set([
 ]);
 
 /**
- * SearchField's clear button (the Button instance among its own children — ADR-256 G5 example 5):
+ * SearchField's clear button (the Button instance in its control Group — S2 `FieldGroup`, 2026-11-13):
  * RAC marks the field `data-empty` while its value (`value`, the renderer's `defaultValue`) is
  * empty. S2 also omits the button while read-only. The field's generated stylesheet consumes
  * RAC's `data-empty` / `data-readonly` for live DOM state; Canvas uses the same authored states.
@@ -1039,7 +1039,8 @@ function catalogSearchFieldOfClear(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button") return;
-  const field = catalogPartParent(node, get, typeOf);
+  // (In S2's `FieldGroup` — the field's control Group, 2026-11-13.)
+  const field = triggerOwner(node, get, typeOf);
   return field && typeOf(field) === "SearchField" ? field : undefined;
 }
 
@@ -1153,9 +1154,13 @@ export function catalogPresenceDependents(
         ["Description", "FieldError"].includes(typeOf(child)),
       ),
       ...(typeOf(scope) === "SearchField"
-        ? partChildrenOf(scope, get, typeOf).filter((button) =>
-            catalogSearchFieldOfClear(button, get, typeOf),
-          )
+        ? partChildrenOf(scope, get, typeOf)
+            .flatMap((child) =>
+              typeOf(child) === "Group"
+                ? partChildrenOf(child, get, typeOf)
+                : [child],
+            )
+            .filter((button) => catalogSearchFieldOfClear(button, get, typeOf))
         : []),
     ];
   const items: CatalogConsumerNode[] = [];
@@ -2017,10 +2022,12 @@ function fieldSubpartProps(
 ): Record<string, string | number | boolean> | undefined {
   const type = typeOf(node);
   if (type === "Button" || type === "Icon") {
-    const parent = catalogPartParent(node, get, typeOf);
+    // (A SearchField's parts sit in its control Group — S2 `FieldGroup`, 2026-11-13: `triggerOwner`
+    //  crosses it.)
+    const parent = triggerOwner(node, get, typeOf);
     const field =
       type === "Icon" && parent && typeOf(parent) === "Button"
-        ? catalogPartParent(parent, get, typeOf)
+        ? triggerOwner(parent, get, typeOf)
         : undefined;
     if (field && typeOf(field) === "SearchField")
       return { _iconVariant: String(field.props.size ?? "M") };
@@ -2552,8 +2559,7 @@ function fieldBoxOfQuietField(
   if (!catalogPartParent(node, get, typeOf)) return;
   // (ADR-259 Phase 2: in a prefix box the Group is the box — it shows the quiet state.)
   if (catalogFieldBoxOfInput(node, get, typeOf)) return;
-  // (A field's control Group only places its box — a DateRangePicker's Group, the one that paints,
-  // takes no `isQuiet`.)
+  // (A field's control Group only places its box — a DateRangePicker takes no `isQuiet` (S2).)
   const owner = triggerOwner(node, get, typeOf);
   return owner?.props.isQuiet === true ? owner : undefined;
 }
@@ -3271,13 +3277,14 @@ function fieldSubparts(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // (A SearchField's clear Button — in its Group — passes its glyph the field's size.)
+  const inner = (child: CatalogConsumerNode): CatalogConsumerNode[] =>
+    typeOf(child) === "Group" ||
+    (typeOf(owner) === "SearchField" && typeOf(child) === "Button")
+      ? [child, ...partChildrenOf(child, get, typeOf).flatMap(inner)]
+      : [child];
   return partChildrenOf(owner, get, typeOf)
-    .flatMap((child) =>
-      typeOf(child) === "Group" ||
-      (typeOf(owner) === "SearchField" && typeOf(child) === "Button")
-        ? [child, ...partChildrenOf(child, get, typeOf)]
-        : [child],
-    )
+    .flatMap(inner)
     .filter(
       (child) =>
         fieldSubpartProps(child, get, typeOf) !== undefined ||

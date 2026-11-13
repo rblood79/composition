@@ -22,7 +22,6 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: var(--catalog-token-number-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-number-field-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-NumberField {
@@ -37,35 +36,30 @@
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-xs);
   gap: var(--catalog-token-number-field-gap-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-number-field-icon-size-XS, var(--catalog-token-size-icon-XS));
 }
 
 .react-aria-NumberField[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   gap: var(--catalog-token-number-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-number-field-icon-size-S, var(--catalog-token-size-icon-S));
 }
 
 .react-aria-NumberField[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: var(--catalog-token-number-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-number-field-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-NumberField[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   gap: var(--catalog-token-number-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-number-field-icon-size-L, var(--catalog-token-size-icon-L));
 }
 
 .react-aria-NumberField[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: var(--catalog-token-number-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-number-field-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
 .react-aria-NumberField.react-aria-NumberField {
@@ -79,34 +73,24 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-NumberField .react-aria-Group {
-  display: flex;
-  width: 100%;
-}
-
-.react-aria-NumberField .react-aria-Input {
-  flex: 1 1 0%;
-  min-width: 0;
-}
-
 .react-aria-NumberField[data-size="XS"] {
-  --nf-btn-size: var(--catalog-token-size-height-XS);
+  --nf-btn-size: var(--catalog-token-size-field-button-XS);
 }
 
 .react-aria-NumberField[data-size="S"] {
-  --nf-btn-size: var(--catalog-token-size-height-S);
+  --nf-btn-size: var(--catalog-token-size-field-button-S);
 }
 
 .react-aria-NumberField[data-size="M"] {
-  --nf-btn-size: var(--catalog-token-size-height-M);
+  --nf-btn-size: var(--catalog-token-size-field-button-M);
 }
 
 .react-aria-NumberField[data-size="L"] {
-  --nf-btn-size: var(--catalog-token-size-height-L);
+  --nf-btn-size: var(--catalog-token-size-field-button-L);
 }
 
 .react-aria-NumberField[data-size="XL"] {
-  --nf-btn-size: var(--catalog-token-size-height-XL);
+  --nf-btn-size: var(--catalog-token-size-field-button-XL);
 }
 
 .react-aria-NumberField .react-aria-Button {
@@ -115,7 +99,6 @@
   height: var(--nf-btn-size);
   min-height: 0;
   min-width: 0;
-  margin-inline-start: -1px;
 }
 
 .react-aria-NumberField[data-label-position="side"] {
@@ -167,17 +150,9 @@
   }
 
 
-  .react-aria-NumberField[data-size="XS"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 4px;
-  }
-
   .react-aria-NumberField[data-size="XS"] .react-aria-Text[slot="prefix"] {
     font-size: var(--catalog-token-text-2xs);
     line-height: var(--catalog-token-text-2xs--line-height);
-  }
-
-  .react-aria-NumberField[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 5px;
   }
 
   .react-aria-NumberField[data-size="S"] .react-aria-Text[slot="prefix"] {
@@ -185,26 +160,14 @@
     line-height: var(--catalog-token-text-xs--line-height);
   }
 
-  .react-aria-NumberField[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 6px;
-  }
-
   .react-aria-NumberField[data-size="M"] .react-aria-Text[slot="prefix"] {
     font-size: var(--catalog-token-text-sm);
     line-height: var(--catalog-token-text-sm--line-height);
   }
 
-  .react-aria-NumberField[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 7px;
-  }
-
   .react-aria-NumberField[data-size="L"] .react-aria-Text[slot="prefix"] {
     font-size: var(--catalog-token-text-base);
     line-height: var(--catalog-token-text-base--line-height);
-  }
-
-  .react-aria-NumberField[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
-    margin-inline-end: 8px;
   }
 
   .react-aria-NumberField[data-size="XL"] .react-aria-Text[slot="prefix"] {

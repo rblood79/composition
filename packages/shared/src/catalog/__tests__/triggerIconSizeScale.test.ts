@@ -17,8 +17,8 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  *
  * **불변식**:
  *  1. dp-btn / drp-btn / select-chevron 의 size 별 값이 **동일**하다.
- *  2. 그 값이 Select · ComboBox 의 `sizes[*].iconSize` 와 일치한다 (옛 `SelectIcon` type 은
- *     2026-10-09 삭제 — 어떤 원본도 쓰지 않았다).
+ *  2. (2026-11-13 삭제: field rule 의 `sizes[*].iconSize` — 버튼 안 glyph 에 닿지 않는 죽은 값이었다.
+ *     glyph 크기는 field rule 의 `.react-aria-Button .react-aria-Icon svg` delegation 이 정한다.)
  *  3. 어느 것도 `var(--text-*)` (typography 토큰) 을 크기로 쓰지 않는다.
  */
 
@@ -96,37 +96,4 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
     }
     expect(violations).toEqual([]);
   });
-
-  /**
-   * 2026-07-14 후속: 최초 수정은 md/lg/xl 만 맞췄고 xs/sm 은 어긋난 채 남겼다
-   * (DOM 14/16 vs catalog iconSize 10/14). catalog `iconSize` 는 **Skia 전용**이다 —
-   * `--icon-size` CSS 변수는 Disclosure 만 소비하므로 Select/Date 계열의 `iconSize`
-   * 변경은 DOM 에 영향이 없다(폭발 반경 확인 완료). 따라서 catalog 를 DOM 아이콘
-   * 스케일(14/16)로 수렴시켜 **5개 size 전부** 한 숫자를 공유하게 한다.
-   *
-   * 대상: `Select` / `ComboBox` — 같은 트리거 계열 (동일 스케일 유지).
-   */
-  // ADR-295 Phase 3b: the S2 icon steps (`iconStyle` 14 · 16 · 18 · 20 · 22 — `{size.icon.<S>}`).
-  const ICON_SCALE_NUM: Record<string, string> = {
-    XS: "{size.icon.XS}",
-    S: "{size.icon.S}",
-    M: "{size.icon.M}",
-    L: "{size.icon.L}",
-    XL: "{size.icon.XL}",
-  };
-
-  it.each(["Select", "ComboBox"])(
-    "%s.sizes[*].iconSize 가 아이콘 스케일과 5개 size 전부 일치 (DOM↔Skia 대칭)",
-    (type) => {
-      const sizes = (COMPONENT_RULES_TABLE[type]?.sizes ?? {}) as Record<
-        string,
-        { iconSize?: number | string }
-      >;
-      const actual: Record<string, number | string | undefined> = {};
-      for (const size of Object.keys(ICON_SCALE_NUM)) {
-        actual[size] = sizes[size]?.iconSize;
-      }
-      expect(actual).toEqual(ICON_SCALE_NUM);
-    },
-  );
 });

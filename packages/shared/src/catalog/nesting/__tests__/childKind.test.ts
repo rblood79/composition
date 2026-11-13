@@ -117,7 +117,9 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
     expect(canNest("Select", "Text")).toBe(false);
     expect(canNest("ComboBox", "TextField")).toBe(false);
     expect(canNest("TextField", "TextField")).toBe(false);
-    expect(canNest("SearchField", "Icon")).toBe(true);
+    // (2026-11-13: S2 SearchField — its glyph sits in its control Group.)
+    expect(canNest("SearchField", "Group")).toBe(true);
+    expect(canNest("Group", "Icon", ["Group", "SearchField"])).toBe(true);
     expect(canNest("TextField", "Group")).toBe(true);
     expect(canNest("TextField", "FieldLabel")).toBe(true);
     expect(canNest("Group", "Icon", ["Group", "TextField"])).toBe(true);

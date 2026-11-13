@@ -37,6 +37,7 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { catalogFieldBoxStyle } from "../../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import { evaluateConditionTree } from "../../../../../../packages/shared/src/catalog/rule/conditionTree";
 import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import {
@@ -258,13 +259,33 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
     ["Button", "ButtonIcon", "1lh"],
     ["ToggleButton", "ToggleButtonIcon", "1lh"],
     ["SearchField", "SearchField", "1lh"],
-    ["DatePicker", "DatePicker", "1em"],
   ] as const)("%s 아이콘 = S2 %s 의 svg (두 벌 — %s)", (type, family, form) => {
+    // (A SearchField's search glyph is its rule's `sf-icon` delegation — the field's own `iconSize`
+    //  reached no glyph and was dropped, 2026-11-13. The DatePicker calendar is the user's
+    //  12 · 14 · 16 · 18 · 20, not S2's `1em` — `drawnBoxModel.test.ts`.)
+    const glyphRef = (size: string) =>
+      type === "SearchField"
+        ? (
+            (
+              rules.SearchField as unknown as {
+                structure: {
+                  composition: {
+                    delegation: Array<{
+                      prefix?: string;
+                      variables?: Record<string, Record<string, string>>;
+                    }>;
+                  };
+                };
+              }
+            ).structure.composition.delegation.find((entry) => entry.prefix === "sf-icon")!
+              .variables![size]!["--sf-icon-size"]!
+          ).replace(/^\{length\.(typography\.[\w-]+)\*1\/1\}$/, "{$1}")
+        : rules[type]!.sizes[size]!.iconSize;
     for (const [size, devices] of Object.entries(icons[family]!)) {
       const font = /^\{typography\.(text-[\w-]+)\}$/.exec(
         rules[type]!.sizes[size]!.fontSize as string,
       )![1]!;
-      expect(rules[type]!.sizes[size]!.iconSize, `${type} ${size}`).toBe(
+      expect(glyphRef(size), `${type} ${size}`).toBe(
         form === "1lh"
           ? `{typography.${font}--line-height}`
           : `{typography.${font}}`,
@@ -278,7 +299,7 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         ).toBe(devices[device][0]!.w);
       }
       expect(
-        resolveToken(rules[type]!.sizes[size]!.iconSize as TokenRef),
+        resolveToken(glyphRef(size) as TokenRef),
         `${type} ${size} installed`,
       ).toBe(devices.desktop[0]!.w);
     }
@@ -543,110 +564,68 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
     for (const size of SIZES)
       for (const device of ["desktop", "touch"] as const) {
         const at = `${size} ${device}`;
-        const toControl = (font(size, device) * 10) / 14;
-        // ComboBox: the button's start margin = −(square + the end inset + border); the input's room = the
-        //   end inset + square + text-to-control.
-        const combo = delegation("ComboBox", "combo-btn")[size]!;
-        const comboInset =
-          -px(combo["--combo-btn-offset"]!, device) -
-          square(size, device) -
-          BORDER;
-        near(
-          comboInset,
-          (height(size, device) * 3) / 16 - 2,
-          `ComboBox inset ${at}`,
-        );
-        const probe = table.ComboBox![size]?.[device]?.paddingInlineEnd;
-        if (probe !== undefined)
-          near(comboInset, probe, `ComboBox probe ${at}`);
-        near(
-          px(
-            delegation("ComboBox", "combo-input")[size]![
-              "--combo-input-pad-end"
-            ]!,
-            device,
-          ),
-          comboInset + square(size, device) + toControl,
-          `ComboBox room ${at}`,
-        );
-        // DatePicker: the fixed end table.
-        const dp = delegation("DatePicker", "dp-btn")[size]!;
-        // (2026-11-09: a DatePicker's box is the DateInput — the S2 `FieldGroup` 2px border.)
-        const DATE_INPUT_BORDER = 2;
-        const dpInset =
-          -px(dp["--dp-btn-offset"]!, device) -
-          square(size, device) -
-          DATE_INPUT_BORDER;
-        near(dpInset, DATE_PICKER_END[size], `DatePicker inset ${at}`);
-        near(
-          px(
-            delegation("DatePicker", "dp-input")[size]!["--dp-input-pad-end"]!,
-            device,
-          ),
-          dpInset + square(size, device) + toControl,
-          `DatePicker room ${at}`,
-        );
-        // DateRangePicker: the group's start `edge-to-text` · end 4, the button's start margin + the group gap
-        //   = text-to-control.
-        const drp = delegation("DateRangePicker", "drp-group")[size]!;
-        near(
-          px(drp["--drp-group-pad-start"]!, device),
-          (height(size, device) * 3) / 8,
-          `DateRangePicker start ${at}`,
-        );
-        near(
-          px(drp["--drp-group-pad-end"]!, device),
-          4,
-          `DateRangePicker end ${at}`,
-        );
-        near(
-          px(
-            delegation("DateRangePicker", "drp-btn")[size]!["--drp-btn-start"]!,
-            device,
-          ) +
-            spacing[
-              /^var\(--spacing-([\w]+)\)$/.exec(
-                drp["--drp-group-gap"]!,
-              )![1]! as keyof typeof spacing
-            ],
-          toControl,
-          `DateRangePicker button gap ${at}`,
-        );
-        // SearchField: the glyph at `pill` (inner — its margin is from the outer edge), the text after the glyph
-        //   (`1lh`) + text-to-visual, the clear button's square place (the field height) at the end.
-        // (`3ca03f661`: S2 1.8.2 `SearchField.tsx` — FieldGroup `paddingStart: 'pill'` inside its 2px border, the
-        //   icon `marginStart: '--iconMargin'` = `fontRelative(-2)`: the glyph at border 2 + pill − 2/14 em.)
+        // ComboBox · DatePicker (S2 box, 2026-11-13 — no margins): the box Group's end padding is S2's
+        //   `FieldGroup` `paddingEnd` (ComboBox height × 3/16 − border · DatePicker the fixed table); the
+        //   value's end padding + the box's gap = `text-to-control` before the button. (The box's values
+        //   are px — `catalogFieldBoxStyle` reads the installed desktop maps, as for NumberField.)
+        if (device === "desktop") {
+          const combo = catalogFieldBoxStyle(size, "ComboBox", true);
+          near(
+            combo.paddingRight,
+            (height(size, device) * 3) / 16 - 2,
+            `ComboBox inset ${at}`,
+          );
+          const probe = table.ComboBox![size]?.[device]?.paddingInlineEnd;
+          if (probe !== undefined)
+            near(combo.paddingRight, probe, `ComboBox probe ${at}`);
+          // (사용자 2026-11-13 「combobox-group 에 gap 4px」 — every size.)
+          expect(combo.gap, `ComboBox gap ${at}`).toBe(4);
+          const dp = catalogFieldBoxStyle(size, "DatePicker", true);
+          near(dp.paddingRight, DATE_PICKER_END[size], `DatePicker inset ${at}`);
+          // (The room before the button is the box's gap alone — the DateInput has no end padding,
+          //  사용자 2026-11-13: not S2's `text-to-control`.)
+          expect(dp.gap, `DatePicker gap ${at}`).toBeGreaterThan(0);
+        }
+        // DateRangePicker (S2 box, 2026-11-14 — as a DatePicker's): the box's start `edge-to-text`, S2's
+        //   end 4; the room before the button is the box's gap alone (the inputs have no end padding).
+        if (device === "desktop") {
+          const drp = catalogFieldBoxStyle(size, "DateRangePicker", true);
+          near(
+            drp.paddingLeft,
+            (height(size, device) * 3) / 8,
+            `DateRangePicker start ${at}`,
+          );
+          near(drp.paddingRight, 4, `DateRangePicker end ${at}`);
+          expect(drp.gap, `DateRangePicker gap ${at}`).toBeGreaterThan(0);
+        }
+        // SearchField (S2 box, 2026-11-13 — no margins): the glyph `1lh`, the Input's start padding
+        //   `text-to-visual` (`catalogFieldBoxInputStart`), no end padding — the clear button is the
+        //   control height wide.
         const icon = delegation("SearchField", "sf-icon")[size]!;
         const fontPx = font(size, device);
-        const FIELD_GROUP_BORDER = 2;
-        const glyphPill =
-          px(icon["--sf-icon-inset"]!, device) -
-          FIELD_GROUP_BORDER +
-          (fontPx * 2) / 14;
-        near(glyphPill, height(size, device) / 2, `SearchField glyph ${at}`);
-        const sfProbe = table.SearchField![size]?.[device]?.paddingInline;
-        if (sfProbe !== undefined)
-          near(glyphPill, sfProbe, `SearchField probe ${at}`);
-        const input = delegation("SearchField", "sf-input")[size]!;
         near(
           px(icon["--sf-icon-size"]!, device),
           s2LineHeight(fontPx),
           `SearchField glyph size ${at}`,
         );
+        const button = delegation("SearchField", "sf-btn")[size]!;
         near(
-          px(input["--sf-input-pad"]!, device),
-          // (the glyph's `fontRelative(-2)` start margin moves the text with it — `3ca03f661`)
-          height(size, device) / 2 -
-            (fontPx * 2) / 14 +
-            s2LineHeight(fontPx) +
-            fontPx * (device === "touch" ? 8 / 17 : 6 / 14),
-          `SearchField text start ${at}`,
-        );
-        near(
-          px(input["--sf-input-pad-end"]!, device),
+          px(button["--sf-btn-size"]!, device),
           height(size, device),
-          `SearchField text end ${at}`,
+          `SearchField clear button ${at}`,
         );
+        if (device === "desktop") {
+          // (The box's start is the fields' `edge-to-text` — 사용자 2026-11-13 「searchfield-group 에
+          //  padding-left 12px」, not S2's `pill` − 2/14 em: an intended difference.)
+          const box = catalogFieldBoxStyle(size, "SearchField", true);
+          near(
+            box.paddingLeft,
+            catalogFieldBoxStyle(size, "TextField").paddingLeft,
+            `SearchField start ${at}`,
+          );
+          // (The end is the start too — 사용자 2026-11-13 「searchfield-group 에 padding-right 12」.)
+          near(box.paddingRight, box.paddingLeft, `SearchField end ${at}`);
+        }
       }
   });
 

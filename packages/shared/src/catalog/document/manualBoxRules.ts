@@ -17,7 +17,6 @@ import {
  * default size. Size facts keyed on the real attribute are declared in `parts` with `size`.
  */
 import {
-  cssVarToTokenRef,
   resolveToken,
   scaledLengthRef,
   type TokenRef,
@@ -43,17 +42,6 @@ export interface ManualBoxRule {
   parts?: CompiledPartRule[];
 }
 
-/**
- * ADR-256 Phase 6b — the range picker's Group box paint, the `DateRangePicker` rule's own bridge
- * values (`.react-aria-Group` `background` · `border` color). (2026-11-09: S2 `FieldGroup` — the
- * Input's fill and border. The Canvas reads these; the DOM leaves them to the sheet, whose state
- * borders an inline color would beat — `domBinding.runtime.ts` `sheetPaintedBox`.)
- */
-export const DATE_RANGE_GROUP_PAINT = {
-  fill: "var(--bg)",
-  borderColor: "var(--neutral-outline)",
-  disabledBorderColor: "var(--fg-disabled)",
-} as const;
 
 /** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
 const TAB_INDICATOR = 3;
@@ -62,14 +50,6 @@ const TAG_REMOVE_PADDING_RIGHT = 4;
 
 const sizesOf = (type: string) =>
   (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type]?.sizes ?? {};
-/** The DateRangePicker rule's `.react-aria-Group` delegation variables, by size. */
-const DATE_RANGE_GROUP_VARIABLES = () =>
-  (
-    (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).DateRangePicker
-      ?.structure?.composition?.delegation as
-      Array<{ prefix?: string; variables?: unknown }> | undefined
-  )?.find((entry) => entry.prefix === "drp-group")?.variables as
-    Record<string, Record<string, unknown> | undefined> | undefined;
 
 /**
  * ADR-256 Phase 9 — a calendar header's nav Button side · heading font (`CalendarCommon.css`). The
@@ -646,46 +626,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   ProgressBarValue: () => ({ omit: ["lineHeight"] }),
   MeterValue: () => ({ omit: ["lineHeight"] }),
   SelectValue: () => ({ omit: ["height"] }),
-  // ADR-256 Phase 6b — a range picker's control Group paints the box (`DateRangePicker` rule
-  // delegation `.react-aria-Group`: `background: var(--bg)` · `border: … var(--neutral-outline)` ·
-  // `border-radius: var(--drp-group-radius)` = the size's radius, read from the same
-  // delegation's `variables`). The part rule compiler carries only its box geometry (padding ·
-  // border width); the paint is stated here with the same values (`adr256FieldControlGroup` checks
-  // the bridges still say so).
-  DateRangePicker: () => ({
-    parts: [
-      ...Object.keys(sizesOf("DateRangePicker")).map(
-        (name): CompiledPartRule => {
-          const value = String(
-            DATE_RANGE_GROUP_VARIABLES()?.[name]?.["--drp-group-radius"],
-          );
-          // (A size's radius token, or a px value — 2026-10-30 field box S 7 · M 8 · L 9 · XL 10.)
-          const literal = /^(\d+(?:\.\d+)?)px$/.exec(value)?.[1];
-          const radius =
-            literal !== undefined
-              ? Number(literal)
-              : px(cssVarToTokenRef(value));
-          return {
-            childType: "Group",
-            size: name,
-            layout: {},
-            visual: {
-              fill: DATE_RANGE_GROUP_PAINT.fill,
-              borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
-              ...(radius !== undefined ? { radius } : {}),
-            },
-          };
-        },
-      ),
-      // (2026-11-09) A disabled range picker: the sheet's `[data-disabled]` border (S2 `FieldGroup`).
-      {
-        childType: "Group",
-        ownerProps: { isDisabled: true },
-        layout: {},
-        visual: { borderColor: DATE_RANGE_GROUP_PAINT.disabledBorderColor },
-      },
-    ],
-  }),
   // The crumb's own sheet is not loaded (below): its text inherits the Breadcrumbs size font.
   // S2 structure (2026-11-13): `Breadcrumbs.css` gives the crumb row its content ↔ separator gap (S2
   // `text-to-visual` — catalog `Breadcrumb.sizes[size].gap`) and the separator Icon S2's Chevron M box

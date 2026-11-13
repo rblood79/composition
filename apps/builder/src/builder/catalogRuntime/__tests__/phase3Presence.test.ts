@@ -919,19 +919,15 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       picker.scene.fresh(),
     );
 
-    // DateRangePicker: the Group draws the box; RAC's start/end pair are two DateInput instances
-    // whose template positions carry no box, around the separator Text.
+    // DateRangePicker: the Group draws the box (S2 `FieldGroup` — 2026-11-14); RAC's start/end pair are
+    // two DateInput instances that lay their box down in it (`CATALOG_FIELD_BOX_INPUT_STYLE` — the
+    // Canvas paints them bare), around the separator Text.
     const range = await pickerScene(
       "lib:definition:origin-component-daterangepicker",
     );
     const pair = range.scene.byType("DateInput");
     expect(pair.map((node) => node.props.slot)).toEqual(["start", "end"]);
-    for (const node of pair)
-      expect(node.visual).toMatchObject({
-        fill: "transparent",
-        borderWidth: 0,
-        paddingX: 0,
-      });
+    for (const node of pair) expect(node.visual.fill).toBeUndefined();
     expect(texts(range.shapes)[0]).not.toContain("–");
     expect(
       range.scene.byType("Text").some((node) => node.props.children === "–"),
@@ -1041,13 +1037,14 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       color: "var(--fg-muted)",
       opacity: 0.6,
     });
-    // (The DatePicker's DateInput is the box: its border 2 (S2 `FieldGroup`) + padding 12 come first.)
+    // (2026-11-13: the DatePicker's Group is the box (S2 `FieldGroup`) — its DateInput is bare, as the
+    //  range picker's: no border, no padding.)
     expect(picker.texts.map(({ text, x }) => [text, x])).toEqual([
-      ["mm", 14 + 2],
-      ["/", 14 + 24],
-      ["dd", 14 + 36],
-      ["/", 14 + 58],
-      ["yyyy", 14 + 70],
+      ["mm", 2],
+      ["/", 24],
+      ["dd", 36],
+      ["/", 58],
+      ["yyyy", 70],
     ]);
     expect(picker.texts.map(({ fill }) => fill === "#11223399")).toEqual([
       true,
@@ -1142,10 +1139,12 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     // (ADR-253: one DateSegment definition — the DateInput rule's — for every date field: no
     // italic, the field font.)
     expect(paint.placeholder.fontStyle).toBeUndefined();
-    // border 2 (S2 `FieldGroup`), then `mm` 20 + 2×2 padding, then `/` (the box's start: S2 `edge-to-text` 40 × 3/8 = 15 — ADR-295 Phase 3c-3).
+    // `mm` 20 + 2×2 padding, then `/` — from the DateInput's own edge: it lays its box down in the
+    // field's S2 `FieldGroup` (2026-11-14), whose border 2 and `edge-to-text` 15 (40 × 3/8 — ADR-295
+    // Phase 3c-3) are before it.
     expect(paint.runs.slice(0, 2).map(({ text, x }) => [text, x])).toEqual([
-      ["mm", 15 + 2 + 2],
-      ["/", 15 + 2 + 24],
+      ["mm", 2],
+      ["/", 24],
     ]);
     const shapes = catalogRuleShapes({
       node: input.derivedProps

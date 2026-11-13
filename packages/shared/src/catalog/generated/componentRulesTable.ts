@@ -75,19 +75,20 @@ const FIELD_PREFIX_STATIC = {
   },
   [PREFIX_TEXT]: { width: "auto" },
 } as const;
-const prefixSize = (text: string, gap: number) => ({
-  [PREFIX]: { "margin-inline-end": `${gap}px` },
+// (The prefix → input room is the Input's start padding — `fieldPrefix.ts` `catalogFieldBoxInputStart`,
+//  2026-11-13 사용자 「prefix 의 margin-inline-end 도 padding · gap 으로」 — not the prefix's margin.)
+const prefixSize = (text: string) => ({
   [PREFIX_TEXT]: {
     "font-size": `var(--${text})`,
     "line-height": `var(--${text}--line-height)`,
   },
 });
 const FIELD_PREFIX_SIZES = {
-  XS: prefixSize("text-2xs", 4),
-  S: prefixSize("text-xs", 5),
-  M: prefixSize("text-sm", 6),
-  L: prefixSize("text-base", 7),
-  XL: prefixSize("text-lg", 8),
+  XS: prefixSize("text-2xs"),
+  S: prefixSize("text-xs"),
+  M: prefixSize("text-sm"),
+  L: prefixSize("text-base"),
+  XL: prefixSize("text-lg"),
 } as const;
 
 // S2 Button shape (2026-10-28 — 사용자 「Button 모서리를 S2 처럼 완전히 둥글게」): S2 `Button` is
@@ -102,6 +103,8 @@ const FIELD_PREFIX_SIZES = {
 // DatePicker buttons are `borderStyle: 'none'`. The Canvas read the Button rule's 1px while the DOM
 // dropped it by accident — `domBinding` wrapped every field button and its `stepper !== node`
 // identity test zeroed the inline border; now both read this block.)
+
+
 const FIELD_BUTTON_CORNERS = {
   XS: "var(--radius-sm)",
   S: "7px",
@@ -3557,35 +3560,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         height: 0,
         gap: centerPadding("XS"),
-        iconSize: 18,
       },
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
         height: 0,
         gap: centerPadding("S"),
-        iconSize: 20,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
         height: 0,
         gap: centerPadding("M"),
-        iconSize: 26,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
         height: 0,
         gap: centerPadding("L"),
-        iconSize: 32,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
         height: 0,
         gap: centerPadding("XL"),
-        iconSize: 36,
       },
     },
     // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
@@ -4107,14 +4105,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // ADR-912 단계5 step4 (2026-06-17): ComboBoxSpec.spec 삭제 대비 — generate-css virtual emit 이
     //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(Select 동형). paddingY 는
-    //   미보충(padding 은 composition.delegation .combobox-container --combo-container-padding 가 담당).
+    //   미보충 (2026-11-13 — padding · 배치는 상자 Group 의 기본값 `fieldPrefix.ts` `catalogFieldBoxStyle`).
     sizes: {
       XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 0,
-        iconSize: "{size.icon.XS}",
         gap: centerPadding("XS"),
       },
       S: {
@@ -4122,7 +4119,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
         height: 0,
-        iconSize: "{size.icon.S}",
         gap: centerPadding("S"),
       },
       M: {
@@ -4130,7 +4126,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
         height: 0,
-        iconSize: "{size.icon.M}",
         gap: centerPadding("M"),
       },
       L: {
@@ -4138,7 +4133,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
         height: 0,
-        iconSize: "{size.icon.L}",
         gap: centerPadding("L"),
       },
       XL: {
@@ -4146,7 +4140,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
         height: 0,
-        iconSize: "{size.icon.XL}",
         gap: centerPadding("XL"),
       },
     },
@@ -4277,83 +4270,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             ],
           },
         ],
-        // ADR-253: the container only places its parts. The value is an instance of the Input origin (it
-        //   draws the box, with room for the button on its end side) and the button is an instance of
-        //   the FieldButton origin, laid over that room.
+        // S2 ComboBox (2026-11-13, 사용자 「ComboBox 는 NumberField 처럼 S2 구조로 — margin 없이」): the
+        //   control Group is the field's box (S2 `FieldGroup` — `CATALOG_BOXED_FIELDS`, the Input rule's box
+        //   on `.react-aria-FieldBox`, end padding `height × 3/16 − border` — `fieldPrefix.ts` `boxEnd`),
+        //   the value an instance of the Input origin with its box laid down filling the row, and the
+        //   button a FieldButton instance inside the box: the S2 `inputButton` square
+        //   (`{size.field-button.<S>}` — S 16 · M 20 · L 24 · XL 32). The room before it is the box's gap 4
+        //   — the Input has no end padding (사용자 2026-11-13), not a margin.
         delegation: [
           {
-            childSelector: ".combobox-container",
-            bridges: {
-              display: "flex",
-              "align-items": "center",
-              width: "100%",
-            },
-          },
-          {
-            // The button's room: the Input's own inline padding + the button's width.
-            childSelector: ".react-aria-Input",
-            prefix: "combo-input",
-            variables: {
-              XS: {
-                "--combo-input-pad-end":
-                  "{length.size.height.XS*3/16+size.field-button.XS*1/1+typography.text-2xs*10/14-2}",
-              },
-              S: {
-                "--combo-input-pad-end":
-                  "{length.size.height.S*3/16+size.field-button.S*1/1+typography.text-xs*10/14-2}",
-              },
-              M: {
-                "--combo-input-pad-end":
-                  "{length.size.height.M*3/16+size.field-button.M*1/1+typography.text-sm*10/14-2}",
-              },
-              L: {
-                "--combo-input-pad-end":
-                  "{length.size.height.L*3/16+size.field-button.L*1/1+typography.text-base*10/14-2}",
-              },
-              XL: {
-                "--combo-input-pad-end":
-                  "{length.size.height.XL*3/16+size.field-button.XL*1/1+typography.text-lg*10/14-2}",
-              },
-            },
-            bridges: {
-              "min-width": "0",
-              "padding-right": "var(--combo-input-pad-end)",
-            },
-          },
-          {
-            // A square inside the control (2px in at xs · sm, 4px from md), over the Input's end. The square
-            //   is S2's field button (`{size.field-button.<S>}` — ComboBox · DatePicker `inputButton` S 16 ·
-            //   M 20 · L 24 · XL 32, the touch set × 1.25 — ADR-295 Phase 3c-2); the offset and the Input's
-            //   end room follow it (the builder pins the pre-295 squares, where they give the pre-295 lengths).
             childSelector: ".react-aria-Button",
             prefix: "combo-btn",
-            // (2026-11-09: S2 ComboBox `paddingEnd: height × 3/16 − border 2` — the button ends height × 3/16
-            //   from the box's outer edge. The old `+1` matched the Input's 1px border before 3ca03f661.)
             variables: {
               XS: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-XS)",
-                "--combo-btn-offset":
-                  "{length.size.field-button.XS*-1/1+size.height.XS*-3/16}",
               },
               S: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-S)",
-                "--combo-btn-offset":
-                  "{length.size.field-button.S*-1/1+size.height.S*-3/16}",
               },
               M: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-M)",
-                "--combo-btn-offset":
-                  "{length.size.field-button.M*-1/1+size.height.M*-3/16}",
               },
               L: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-L)",
-                "--combo-btn-offset":
-                  "{length.size.field-button.L*-1/1+size.height.L*-3/16}",
               },
               XL: {
                 "--combo-btn-size": "var(--catalog-token-size-field-button-XL)",
-                "--combo-btn-offset":
-                  "{length.size.field-button.XL*-1/1+size.height.XL*-3/16}",
               },
             },
             bridges: {
@@ -4364,7 +4306,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
               "min-height": "0",
               "min-width": "0",
-              "margin-inline-start": "var(--combo-btn-offset)",
+            },
+          },
+          {
+            // The field button's glyph (chevron · calendar): XS 12 · S 14 · M 16 · L 18 · XL 20 (× `--s2-scale`) —
+            //   사용자 2026-11-13 지정, not the Button's `1lh` icon step (14 ~ 22).
+            childSelector: ".react-aria-Button .react-aria-Icon svg",
+            prefix: "combo-glyph",
+            variables: {
+              XS: { "--combo-glyph-size": scaledLengthRef(12) },
+              S: { "--combo-glyph-size": scaledLengthRef(14) },
+              M: { "--combo-glyph-size": scaledLengthRef(16) },
+              L: { "--combo-glyph-size": scaledLengthRef(18) },
+              XL: { "--combo-glyph-size": scaledLengthRef(20) },
+            },
+            bridges: {
+              width: "var(--combo-glyph-size)",
+              height: "var(--combo-glyph-size)",
             },
           },
         ],
@@ -4506,10 +4464,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          // ADR-253: 입력 상자는 DateInput 원본의 instance 다 — 상자 · 크기 단계 · 상태 · 조각은 DateInput
-          //   rule 의 것이고, field 는 배치만 한다 (폭 · 크기별 최소 폭).
+          // S2 (2026-11-14 사용자 「DateField · TimeField 도 S2 구조 패턴으로」): the control Group is the
+          //   field's box (S2 `FieldGroup` — `CATALOG_BOXED_FIELDS`, the Input rule's box on
+          //   `.react-aria-FieldBox`, `edge-to-text` both sides), the DateInput in it lays its box down
+          //   (`CATALOG_FIELD_BOX_INPUT_STYLE`). The field places the box: its width and per-size minimum.
           {
-            childSelector: ".react-aria-DateInput",
+            childSelector: ".react-aria-Group",
             prefix: "df-input",
             variables: {
               XS: {
@@ -4722,36 +4682,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   + Calendar)라 height 는 자식 합산 auto(md=54) 여야 한다 — CSS preview 동일(.react-aria-DatePicker
     //   height 미지정 → 54). 기존 height(30) 는 입력 box height 인 척하던 잘못된 결합으로, 입력 box height 는
     //   입력 box (field 의 control Group, 옛 SelectTrigger — ADR-256 Phase 6b) 안 부품의 높이로 정해진다. Select/ComboBox/NumberField/SearchField 가 TRACK_HEIGHT_TYPES 로 패널 height 축 제외된 것과 동형.
-    // iconSize = 그 크기의 글자 크기 (ADR-295 Phase 3c — S2 DatePicker 달력 아이콘은 글자 상자 `1em`: 12 · 14 · 16 · 18).
     sizes: {
       XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
-        iconSize: "{typography.text-2xs}",
         gap: centerPadding("XS"),
       },
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
-        iconSize: "{typography.text-xs}",
         gap: centerPadding("S"),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
-        iconSize: "{typography.text-sm}",
         gap: centerPadding("M"),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
-        iconSize: "{typography.text-base}",
         gap: centerPadding("L"),
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
-        iconSize: "{typography.text-lg}",
         gap: centerPadding("XL"),
       },
     },
@@ -4878,72 +4832,49 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
         delegation: [
-          // ADR-253: Group 은 배치만 한다. 상자는 DateInput 원본의 instance 가 그리고 (Group 을 채운다 — 끝 쪽
-          //   padding 이 버튼 자리), 버튼은 FieldButton 원본의 instance 가 그 끝에 겹친다 (ComboBox 와 같은 배치).
+          // S2 DatePicker (2026-11-13, 사용자 「DatePicker 는 DateRangePicker 에서 구분 글자 · 둘째 DateInput 만
+          //   뺀 것」): the control Group is the field's box (S2 `FieldGroup` — `CATALOG_BOXED_FIELDS`, the
+          //   Input rule's box on `.react-aria-FieldBox`, its end padding · gap `fieldPrefix.ts` `boxEnd`),
+          //   the DateInput an instance with its box laid down (`CATALOG_FIELD_BOX_INPUT_STYLE` — both
+          //   consumers, as an Input's) filling the row, the button a
+          //   FieldButton instance inside the box — no margins: the box's gap is the room before it (the
+          //   input has no end padding — 사용자 2026-11-13).
           {
             childSelector: ".react-aria-Group",
-            bridges: {
-              display: "flex",
-              "align-items": "center",
-              width: "100%",
-            },
-          },
-          {
-            childSelector: ".react-aria-DateInput",
-            prefix: "dp-input",
-            variables: {
-              XS: {
-                "--dp-input-pad-end":
-                  "{length.size.field-button.XS*1/1+typography.text-2xs*10/14+2}",
+            // (S2 `FieldGroup` `shouldTurnOffFocusRing`: while the calendar Button has focus the box is
+            //   neither focus-within (dark border) nor focus-visible (ring) — the Button rings itself. The
+            //   Input sheet's `FieldBox` state blocks draw the rest; these restore its rest look.)
+            states: {
+              "[data-focus-within]:has(.react-aria-Button[data-focused])": {
+                "border-color": "var(--neutral-outline)",
               },
-              S: {
-                "--dp-input-pad-end":
-                  "{length.size.field-button.S*1/1+typography.text-xs*10/14+2}",
+              "[data-focus-within][data-invalid]:has(.react-aria-Button[data-focused])":
+                {
+                  "border-color": "var(--selection-negative)",
+                },
+              "[data-focus-visible]:has(.react-aria-Button[data-focused])": {
+                outline: "none",
               },
-              M: {
-                "--dp-input-pad-end":
-                  "{length.size.field-button.M*1/1+typography.text-sm*10/14+4}",
-              },
-              L: {
-                "--dp-input-pad-end":
-                  "{length.size.field-button.L*1/1+typography.text-base*10/14+6}",
-              },
-              XL: {
-                "--dp-input-pad-end":
-                  "{length.size.field-button.XL*1/1+typography.text-lg*10/14+6}",
-              },
-            },
-            // (폭은 DateInput 자기 것 — 100%. `flex: 1` 을 주면 버튼의 음수 margin 만큼 Group 밖으로 넘친다.)
-            bridges: {
-              "min-width": "0",
-              "padding-right": "var(--dp-input-pad-end)",
             },
           },
           {
             childSelector: ".react-aria-Button",
             prefix: "dp-btn",
-            // (offset = −(button + end inset + the DateInput's border) — 2026-11-09 the border is the S2
-            //   `FieldGroup` 2px, so one more than before: the S2 end inset stays inside the border.)
             variables: {
               XS: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-XS)",
-                "--dp-btn-offset": "{length.size.field-button.XS*-1/1-4}",
               },
               S: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-S)",
-                "--dp-btn-offset": "{length.size.field-button.S*-1/1-4}",
               },
               M: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-M)",
-                "--dp-btn-offset": "{length.size.field-button.M*-1/1-6}",
               },
               L: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-L)",
-                "--dp-btn-offset": "{length.size.field-button.L*-1/1-8}",
               },
               XL: {
                 "--dp-btn-size": "var(--catalog-token-size-field-button-XL)",
-                "--dp-btn-offset": "{length.size.field-button.XL*-1/1-8}",
               },
             },
             bridges: {
@@ -4954,7 +4885,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
               "min-height": "0",
               "min-width": "0",
-              "margin-inline-start": "var(--dp-btn-offset)",
+            },
+          },
+          {
+            // The field button's glyph (chevron · calendar): XS 12 · S 14 · M 16 · L 18 · XL 20 (× `--s2-scale`) —
+            //   사용자 2026-11-13 지정, not the Button's `1lh` icon step (14 ~ 22).
+            childSelector: ".react-aria-Button .react-aria-Icon svg",
+            prefix: "dp-glyph",
+            variables: {
+              XS: { "--dp-glyph-size": scaledLengthRef(12) },
+              S: { "--dp-glyph-size": scaledLengthRef(14) },
+              M: { "--dp-glyph-size": scaledLengthRef(16) },
+              L: { "--dp-glyph-size": scaledLengthRef(18) },
+              XL: { "--dp-glyph-size": scaledLengthRef(20) },
+            },
+            bridges: {
+              width: "var(--dp-glyph-size)",
+              height: "var(--dp-glyph-size)",
             },
           },
         ],
@@ -4970,36 +4917,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES 공유) 의 gap 이관 (DatePicker 동일).
     // height 키 제거 (2026-06-23): DatePicker 동형 — 컨테이너 height 는 자식 합산 auto, 입력 box height 는
     //   control Group 안 부품의 높이. 상세는 DatePicker entry 주석 참조.
-    // iconSize = 그 크기의 글자 크기 (ADR-295 Phase 3c — S2 DateRangePicker 달력 아이콘 `1em`, DatePicker 와 같다).
     sizes: {
       XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
-        iconSize: "{typography.text-2xs}",
         gap: centerPadding("XS"),
       },
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
-        iconSize: "{typography.text-xs}",
         gap: centerPadding("S"),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
-        iconSize: "{typography.text-sm}",
         gap: centerPadding("M"),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
-        iconSize: "{typography.text-base}",
         gap: centerPadding("L"),
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
-        iconSize: "{typography.text-lg}",
         gap: centerPadding("XL"),
       },
     },
@@ -5134,156 +5075,46 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
         delegation: [
+          // S2 DateRangePicker (2026-11-14, 사용자 「DateRangePicker 를 DatePicker 와 같은 방식으로」): the
+          //   control Group is the field's box (S2 `FieldGroup` — `CATALOG_BOXED_FIELDS`, the Input rule's box
+          //   on `.react-aria-FieldBox`, its end padding · gap `fieldPrefix.ts` `boxEnd`), the two DateInputs
+          //   instances with their box laid down (`CATALOG_FIELD_BOX_INPUT_STYLE` — the start one keeps its
+          //   content width, the end one fills the row), the button a FieldButton instance inside the box —
+          //   no margins: the room between the parts is the box's gap (the inputs have no end padding).
           {
             childSelector: ".react-aria-Group",
-            prefix: "drp-group",
-            variables: {
-              XS: {
-                "--drp-group-radius": "var(--radius-xs)",
-                "--drp-group-min-height":
-                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XS))",
-                "--drp-group-pad-y": "1px",
-                "--drp-group-pad-start": "{length.size.height.XS*3/8}",
-                "--drp-group-pad-end": "4px",
-                "--drp-group-font-size": "var(--text-2xs)",
-                "--drp-group-line-height": "var(--text-2xs--line-height)",
-                "--drp-group-gap": "var(--spacing-2xs)",
-              },
-              S: {
-                "--drp-group-radius": "7px",
-                "--drp-group-min-height":
-                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-S))",
-                "--drp-group-pad-y": "1px",
-                "--drp-group-pad-start": "{length.size.height.S*3/8}",
-                "--drp-group-pad-end": "4px",
-                "--drp-group-font-size": "var(--text-xs)",
-                "--drp-group-line-height": "var(--text-xs--line-height)",
-                "--drp-group-gap": "var(--spacing-xs)",
-              },
-              M: {
-                "--drp-group-radius": "8px",
-                "--drp-group-min-height":
-                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-M))",
-                "--drp-group-pad-y": "3px",
-                "--drp-group-pad-start": "{length.size.height.M*3/8}",
-                "--drp-group-pad-end": "4px",
-                "--drp-group-font-size": "var(--text-sm)",
-                "--drp-group-line-height": "var(--text-sm--line-height)",
-                "--drp-group-gap": "var(--spacing-xs)",
-              },
-              L: {
-                "--drp-group-radius": "9px",
-                "--drp-group-min-height":
-                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-L))",
-                "--drp-group-pad-y": "3px",
-                "--drp-group-pad-start": "{length.size.height.L*3/8}",
-                "--drp-group-pad-end": "4px",
-                "--drp-group-font-size": "var(--text-base)",
-                "--drp-group-line-height": "var(--text-base--line-height)",
-                "--drp-group-gap": "var(--spacing-xs)",
-              },
-              XL: {
-                "--drp-group-radius": "10px",
-                "--drp-group-min-height":
-                  "var(--catalog-token-drp-group-min-height, var(--catalog-token-size-height-XL))",
-                "--drp-group-pad-y": "3px",
-                "--drp-group-pad-start": "{length.size.height.XL*3/8}",
-                "--drp-group-pad-end": "4px",
-                "--drp-group-font-size": "var(--text-lg)",
-                "--drp-group-line-height": "var(--text-lg--line-height)",
-                "--drp-group-gap": "var(--spacing-sm)",
-              },
-            },
-            bridges: {
-              display: "flex",
-              "align-items": "center",
-              width: "100%",
-              gap: "var(--drp-group-gap)",
-              // ADR-295 Phase 3c-3b: S2 DateRangePicker — `paddingStart: 'edge-to-text'` (height × 3/8) ·
-              //   `paddingEnd: 4` (the vertical inset stays — the range box's own).
-              "padding-top": "var(--drp-group-pad-y)",
-              "padding-bottom": "var(--drp-group-pad-y)",
-              "padding-left": "var(--drp-group-pad-start)",
-              "padding-right": "var(--drp-group-pad-end)",
-              // ADR-295 Phase 3: the range box is the field's control — the S2 control height (the builder
-              //   root turns it off for its own widgets: `--catalog-token-drp-group-min-height: auto`).
-              "min-height": "var(--drp-group-min-height)",
-              // (2026-11-09: S2 DateRangePicker draws this box with the TextField's `FieldGroup` — the
-              //   Input rule's border · fill · states. Was: a 1px `--border` box on `--bg-inset`.)
-              border: "var(--border-width-thick) solid var(--neutral-outline)",
-              // (모서리는 Input · DateInput 과 같은 크기 단계 — 같은 줄의 입력 상자와 모양이 같다.)
-              "border-radius": "var(--drp-group-radius)",
-              background: "var(--bg)",
-              color: "var(--fg)",
-              "white-space": "nowrap",
-              "forced-color-adjust": "none",
-              "font-size": "var(--drp-group-font-size)",
-              "line-height": "var(--drp-group-line-height)",
-              transition:
-                "border-color 200ms ease, background-color 200ms ease",
-            },
+            // (S2 `FieldGroup` `shouldTurnOffFocusRing`: while the calendar Button has focus the box is
+            //   neither focus-within (dark border) nor focus-visible (ring) — the Button rings itself. The
+            //   Input sheet's `FieldBox` state blocks draw the rest; these restore its rest look.)
             states: {
-              "[data-hovered]": {
-                "border-color": "var(--neutral-outline-hover)",
+              "[data-focus-within]:has(.react-aria-Button[data-focused])": {
+                "border-color": "var(--neutral-outline)",
               },
-              "[data-invalid]": {
-                "border-color": "var(--selection-negative)",
-              },
-              // (S2 `FieldGroup` `shouldTurnOffFocusRing`: while the calendar Button has focus the box is
-              //   neither focus-within (dark border) nor focus-visible (ring) — the Button rings itself.)
-              "[data-focus-within]:not(:has(.react-aria-Button[data-focused]))":
+              "[data-focus-within][data-invalid]:has(.react-aria-Button[data-focused])":
                 {
-                  "border-color": "var(--neutral-content-hover)",
+                  "border-color": "var(--selection-negative)",
                 },
-              "[data-focus-within][data-invalid]:not(:has(.react-aria-Button[data-focused]))":
-                {
-                  "border-color": "var(--selection-negative-hover)",
-                },
-              // (S2 `FieldGroup` `focusRing()`: the keyboard ring is the box's.)
-              "[data-focus-visible]:not(:has(.react-aria-Button[data-focused]))":
-                {
-                  outline: "var(--focus-ring-width) solid var(--focus-ring)",
-                  "outline-offset": "var(--focus-ring-offset)",
-                },
-              // (S2 `FieldGroup` disabled: the border in the disabled color — no dim, no fill change.)
-              "[data-disabled]": {
-                "border-color": "var(--fg-disabled)",
-                cursor: "default",
-              },
-            },
-          },
-          // ADR-253: 상자는 Group 이 그린다. 그 안의 start · end 는 DateInput 원본의 instance 이고 template 이
-          //   상자를 지운 자리다 — field 는 배치만 한다 (폭 · end 가 남는 폭을 차지). focus 표시는 Group 의
-          //   것이라 안쪽 DateInput 의 outline 은 끈다.
-          {
-            childSelector: ".react-aria-DateInput",
-            bridges: {
-              width: "auto",
-              "min-width": "0",
-              // (ADR-295 Phase 3: the Group is the control box — a DateInput inside it is not the S2
-              //   control height on its own.)
-              "min-height": "0",
-            },
-            states: {
-              "[data-focus-within]": {
+              "[data-focus-visible]:has(.react-aria-Button[data-focused])": {
                 outline: "none",
               },
             },
           },
-          {
-            childSelector: '.react-aria-DateInput[slot="end"]',
-            bridges: {
-              flex: "1",
-            },
-          },
-          // start 와 end 사이의 구분자 (Text 노드 — 색은 template 자리가 적는다).
+          // start 와 end 사이의 구분자 (Text 노드 — 색은 template 자리가 적는다). 글자 크기는 field 크기의 것.
           {
             childSelector: ".react-aria-Group > .react-aria-Text",
+            prefix: "drp-dash",
+            variables: {
+              XS: { "--drp-dash-font-size": "var(--text-2xs)" },
+              S: { "--drp-dash-font-size": "var(--text-xs)" },
+              M: { "--drp-dash-font-size": "var(--text-sm)" },
+              L: { "--drp-dash-font-size": "var(--text-base)" },
+              XL: { "--drp-dash-font-size": "var(--text-lg)" },
+            },
             bridges: {
               flex: "0 0 auto",
               width: "auto",
               padding: "0 4px",
-              "font-size": "var(--drp-group-font-size)",
+              "font-size": "var(--drp-dash-font-size)",
             },
           },
           // 버튼은 FieldButton 원본의 instance — Group 의 끝에 놓인다 (크기별 정사각형).
@@ -5293,23 +5124,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: {
               XS: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-XS)",
-                "--drp-btn-start": "{length.typography.text-2xs*10/14-2}",
               },
               S: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-S)",
-                "--drp-btn-start": "{length.typography.text-xs*10/14-4}",
               },
               M: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-M)",
-                "--drp-btn-start": "{length.typography.text-sm*10/14-4}",
               },
               L: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-L)",
-                "--drp-btn-start": "{length.typography.text-base*10/14-4}",
               },
               XL: {
                 "--drp-btn-size": "var(--catalog-token-size-field-button-XL)",
-                "--drp-btn-start": "{length.typography.text-lg*10/14-8}",
               },
             },
             bridges: {
@@ -5320,8 +5146,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
               "min-height": "0",
               "min-width": "0",
-              // ADR-295 Phase 3c-3b: S2 `marginStart: 'text-to-control'` (10/14 em) less the group's gap.
-              "margin-inline-start": "var(--drp-btn-start)",
+              // (Its S2 `marginStart` room is the end input's end padding — above.)
+            },
+          },
+          {
+            // The field button's glyph (chevron · calendar): XS 12 · S 14 · M 16 · L 18 · XL 20 (× `--s2-scale`) —
+            //   사용자 2026-11-13 지정, not the Button's `1lh` icon step (14 ~ 22).
+            childSelector: ".react-aria-Button .react-aria-Icon svg",
+            prefix: "drp-glyph",
+            variables: {
+              XS: { "--drp-glyph-size": scaledLengthRef(12) },
+              S: { "--drp-glyph-size": scaledLengthRef(14) },
+              M: { "--drp-glyph-size": scaledLengthRef(16) },
+              L: { "--drp-glyph-size": scaledLengthRef(18) },
+              XL: { "--drp-glyph-size": scaledLengthRef(20) },
+            },
+            bridges: {
+              width: "var(--drp-glyph-size)",
+              height: "var(--drp-glyph-size)",
             },
           },
         ],
@@ -10025,7 +9867,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xs}",
         height: 0,
         gap: centerPadding("XS"),
-        iconSize: "{size.icon.XS}",
       },
       S: {
         paddingX: 8,
@@ -10033,7 +9874,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 7,
         height: 0,
         gap: centerPadding("S"),
-        iconSize: "{size.icon.S}",
       },
       M: {
         paddingX: 12,
@@ -10041,7 +9881,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 8,
         height: 0,
         gap: centerPadding("M"),
-        iconSize: "{size.icon.M}",
       },
       L: {
         paddingX: 16,
@@ -10049,7 +9888,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 9,
         height: 0,
         gap: centerPadding("L"),
-        iconSize: "{size.icon.L}",
       },
       XL: {
         paddingX: 24,
@@ -10057,7 +9895,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: 10,
         height: 0,
         gap: centerPadding("XL"),
-        iconSize: "{size.icon.XL}",
       },
     },
     // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
@@ -10160,36 +9997,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        // ADR-253: the Group only places its parts. The value is an instance of the Input origin (it
-        //   draws the box) and the steppers are instances of the Button origin (secondary); what
-        //   differs here in shape (square corners on the touching sides, no stepper padding) is
-        //   written on the template positions.
+        // ADR-253: the Group only places its parts. S2 NumberField (`NumberField.tsx`): the control
+        //   Group is the field's box (S2 `FieldGroup` — it draws the Input rule's box with or without
+        //   a prefix, `CATALOG_BOXED_FIELDS`), the value is an instance of the Input origin with its box
+        //   laid down, and the steppers are instances of the Button origin (secondary — S2 gray-100)
+        //   inside the box: S2 `inputButton` squares (`{size.field-button.<S>}` S 16 · M 20 · L 24 ·
+        //   XL 32). The spacing is the parts' own layout, not margins (2026-11-13): the Group's gap is
+        //   S2's stepper gap (S 8 · M 4 · L 8 · XL 8) and its end padding the stepper end margin
+        //   (S 2 · M 4 · L 6 · XL 6); the Input has no end padding (사용자 2026-11-13 — the gap is the room,
+        //   `fieldPrefix.ts` `catalogFieldBoxStyle` · `catalogFieldBoxInputEnd`). Corners: the
+        //   template positions.
         delegation: [
           {
-            childSelector: ".react-aria-Group",
-            bridges: {
-              display: "flex",
-              width: "100%",
-            },
-          },
-          {
-            childSelector: ".react-aria-Input",
-            bridges: {
-              flex: "1 1 0%",
-              "min-width": "0",
-            },
-          },
-          {
-            // A stepper is a square of the control's height (the Input / Button box at each size —
-            //   ADR-295 Phase 3: the S2 control height token, the same one the Input's min-height reads).
+            // A stepper: the S2 field-button square, centred in the box's row (the box's height).
             childSelector: ".react-aria-Button",
             prefix: "nf-btn",
             variables: {
-              XS: { "--nf-btn-size": "var(--catalog-token-size-height-XS)" },
-              S: { "--nf-btn-size": "var(--catalog-token-size-height-S)" },
-              M: { "--nf-btn-size": "var(--catalog-token-size-height-M)" },
-              L: { "--nf-btn-size": "var(--catalog-token-size-height-L)" },
-              XL: { "--nf-btn-size": "var(--catalog-token-size-height-XL)" },
+              XS: { "--nf-btn-size": "var(--catalog-token-size-field-button-XS)" },
+              S: { "--nf-btn-size": "var(--catalog-token-size-field-button-S)" },
+              M: { "--nf-btn-size": "var(--catalog-token-size-field-button-M)" },
+              L: { "--nf-btn-size": "var(--catalog-token-size-field-button-L)" },
+              XL: { "--nf-btn-size": "var(--catalog-token-size-field-button-XL)" },
             },
             bridges: {
               flex: "0 0 auto",
@@ -10199,7 +10027,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
               "min-height": "0",
               "min-width": "0",
-              "margin-inline-start": "-1px",
             },
           },
         ],
@@ -11423,56 +11250,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (SearchField.spec.sizes 미러). paddingY 는 composition.layout=flex-column root 가
       //   ownsContainerBox → padding 미emit 이라 보강 불요(gap 만).
-      // iconSize = 그 크기 글자의 행간 (S2 control 안 아이콘 `size: '1lh'` — 터치 15 · 17 · 19 · 22 글자의 행간).
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
         gap: centerPadding("S"),
-        columnGap: 0,
-        iconSize: "{typography.text-xs--line-height}",
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
         gap: centerPadding("M"),
-        columnGap: 0,
-        iconSize: "{typography.text-sm--line-height}",
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
         gap: centerPadding("L"),
-        columnGap: 0,
-        iconSize: "{typography.text-base--line-height}",
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,
         gap: centerPadding("XL"),
-        columnGap: 0,
-        iconSize: "{typography.text-lg--line-height}",
       },
     },
-    // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
-    //   TimeField/NumberField 동형). 기존 grid 는 CSS 전용이고 Skia getSideLabelParentStyle 은 flex-row
-    //   라 비대칭 + factory inline flexDirection:column 이 grid selector 를 specificity 로 이겨 무력화.
-    //   flex-row 통일로 generated CSS = Skia 대칭 복원. Skia sideMode 트리거 styles 만.
-    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    // ADR-256 G5 (example 5): the reference's SearchField grid — no control Group. Columns `0px 1fr
-    //   auto`: the search glyph overflows its empty column over the Input's start, the clear button
-    //   sits over the Input's end. Rows are auto-placed (column numbers, not the reference's named
-    //   areas), so an absent Label · description takes no row and no gap.
+    // 2026-11-13 (사용자 「SearchField 는 NumberField 처럼 S2 구조로 — margin 제외」): S2 SearchField is
+    //   `Label + FieldGroup(SearchIcon + Input + ClearButton) + HelpText` — the field's column (side: S2
+    //   `field()` grid `auto 1fr`), as NumberField. Was the RAC reference's flat grid (ADR-256 G5 example 5:
+    //   the glyph over the Input's start, the clear button over its end by margins).
     containerVariants: {
       "label-position": {
         side: {
           styles: {
             display: "grid",
-            "grid-template-columns": "auto 0px minmax(0, 1fr) auto",
-            "align-items": "center",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -11481,65 +11294,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       containerStyles: {
-        display: "grid",
-        gridTemplateColumns: "0px minmax(0, 1fr) auto",
-        alignItems: "center",
+        display: "flex",
       },
       stateStyles: {
         color: TOGGLE_GROUP_LABEL,
         cursor: { isDisabled: "default" },
       },
       composition: {
-        layout: "grid",
+        layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
           // 2026-06-24: width fit-content → 100% (field 패밀리 정본, TextField 와 동형 정정).
-          //   factory inline(width:100%, FormComponents) ↔ CSS Preview(fit-content) 시각 비대칭 +
-          //   Style Panel false dirty 해소. CSS 재생성 시 .react-aria-SearchField width:100%.
           width: "100%",
-        },
-        // The parts' columns (top label): the Label · description · error across, the glyph · the
-        // Input · the clear button in one row.
-        staticSelectors: {
-          // (The Label · error keep their own width, as in the field's column — not stretched.)
-          "> .react-aria-Label": {
-            "grid-column": "1 / 4",
-            "justify-self": "flex-start",
-          },
-          "> .react-aria-Icon": { "grid-column": "1" },
-          "> .react-aria-Input": { "grid-column": "2" },
-          "> .react-aria-Button": { "grid-column": "3" },
-          '> [slot="description"]': { "grid-column": "1 / 4" },
-          "> .react-aria-FieldError": {
-            "grid-column": "1 / 4",
-            "justify-self": "flex-start",
-          },
         },
         containerVariants: {
           "label-position": {
             side: {
               styles: {
                 display: "grid",
-                "grid-template-columns": "auto 0px minmax(0, 1fr) auto",
-                "align-items": "center",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
-              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
-              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
-              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
-              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
-              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
-              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
-              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
-              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+              // side 라벨 열: S2 `field()` grid — 라벨 1열 (글자 폭), 상자 · 도움말 · 오류 문구 2열 (NumberField 와 같다).
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    // (Both lines — the top layout's `1 / 4` must not reach the side one.)
-                    "grid-column": "1 / 2",
-                    // (No column gap — the glyph's column starts at the Input; the label keeps its gap.)
-                    "margin-inline-end": "var(--sf-field-gap)",
+                    "grid-column": "1",
                     width: "var(--form-label-width)",
                     "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
@@ -11547,27 +11328,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector: "> .react-aria-Icon",
-                  styles: { "grid-column": "2 / 3" },
-                },
-                {
-                  selector: "> .react-aria-Input",
-                  styles: { "grid-column": "3 / 4", "min-width": "0" },
-                },
-                {
-                  selector: "> .react-aria-Button",
-                  styles: { "grid-column": "4 / 5" },
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    "grid-column": "2",
+                    "min-width": "0",
+                  },
                 },
                 {
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "grid-column": "2 / 5",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "grid-column": "2 / 5",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -11580,18 +11357,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
+          // S2 omits the clear button while the field is empty or read-only (RAC's `data-empty` ·
+          //   `data-readonly` — the Canvas reads the same authored states, `presence.ts`).
           empty: {
             true: {
               nested: [
                 {
-                  selector: ".react-aria-Input",
-                  styles: { "padding-inline-end": "0" },
-                },
-                {
-                  selector: ".react-aria-Button",
-                  styles: {
-                    display: "none",
-                  },
+                  selector: ".react-aria-Group > .react-aria-Button",
+                  styles: { display: "none" },
                 },
               ],
             },
@@ -11600,116 +11373,65 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             true: {
               nested: [
                 {
-                  selector: ".react-aria-Input",
-                  styles: { "padding-inline-end": "0" },
-                },
-                {
-                  selector: ".react-aria-Button",
+                  selector: ".react-aria-Group > .react-aria-Button",
                   styles: { display: "none" },
                 },
               ],
             },
           },
         },
-        // ADR-253: the container only places its parts. The value is an instance of the Input origin (it
-        //   draws the box — rounded here, with room for the glyph at its start and the clear button at
-        //   its end); the search glyph is an Icon laid over the start, the clear button an instance of
-        //   the Button origin laid over the end.
+        // The control Group is the field's box (S2 `FieldGroup` — `CATALOG_BOXED_FIELDS`: the Input rule's box
+        //   on `.react-aria-FieldBox`, pill corners from the template, its start padding the fields'
+        //   `edge-to-text` and no end padding — `fieldPrefix.ts` `boxEnd`). In it, in order: the
+        //   search glyph (an Icon — S2 `1lh`), the Input (no padding of its own at either end) and the clear
+        //   button (an instance of the Button origin — S2 `ClearButton`: the control height wide, the box's
+        //   inner height tall), the box's gap 8 between them (사용자 2026-11-13). No margins.
         delegation: [
           {
-            // The side label's gap (no column gap — sizes `columnGap: 0`): `--sf-field-gap`.
-            childSelector: "> .react-aria-Label",
-            prefix: "sf-field",
-            variables: "auto",
-            autoKeys: ["gap"],
+            // The browser's own clear button of `<input type="search">` — S2 hides it (`SearchField.tsx`
+            //   `&::-webkit-search-cancel-button { display: none }`): the field's clear button is the Button
+            //   (사용자 2026-11-13 「입력 시 기본 x 와 중복되어 x 가 두 개」).
+            childSelector: ".react-aria-Input::-webkit-search-cancel-button",
+            bridges: {
+              display: "none",
+            },
           },
           {
-            // The search glyph: in the empty first column, over the Input's start.
-            childSelector: "> .react-aria-Icon",
+            // The search glyph: S2 `size: '1lh'` — the field text's line height.
+            childSelector: ".react-aria-Group > .react-aria-Icon",
             prefix: "sf-icon",
             variables: {
               XS: {
                 "--sf-icon-size":
                   "{length.typography.text-2xs--line-height*1/1}",
-                "--sf-icon-inset":
-                  "{length.size.height.XS*1/2+typography.text-2xs*-2/14+2}",
               },
               S: {
                 "--sf-icon-size":
                   "{length.typography.text-xs--line-height*1/1}",
-                "--sf-icon-inset":
-                  "{length.size.height.S*1/2+typography.text-xs*-2/14+2}",
               },
               M: {
                 "--sf-icon-size":
                   "{length.typography.text-sm--line-height*1/1}",
-                "--sf-icon-inset":
-                  "{length.size.height.M*1/2+typography.text-sm*-2/14+2}",
               },
               L: {
                 "--sf-icon-size":
                   "{length.typography.text-base--line-height*1/1}",
-                "--sf-icon-inset":
-                  "{length.size.height.L*1/2+typography.text-base*-2/14+2}",
               },
               XL: {
                 "--sf-icon-size":
                   "{length.typography.text-lg--line-height*1/1}",
-                "--sf-icon-inset":
-                  "{length.size.height.XL*1/2+typography.text-lg*-2/14+2}",
               },
             },
             bridges: {
+              flex: "0 0 auto",
               height: "auto",
-              "margin-inline-start": "var(--sf-icon-inset)",
             },
           },
           {
-            childSelector: "> .react-aria-Icon svg",
+            childSelector: ".react-aria-Group > .react-aria-Icon svg",
             bridges: {
               width: "var(--sf-icon-size)",
               height: "var(--sf-icon-size)",
-            },
-          },
-          {
-            // Room at both ends: the glyph and the clear button, each with its inset and a gap.
-            // (The text-to-visual gap less the glyph's `fontRelative(-2)` start margin — 2/14 em on both
-            //  device sets: touch 8/17 − 2/14 = 39/119, not 6/17. 2026-11-09.)
-            childSelector: ".react-aria-Input",
-            prefix: "sf-input",
-            variables: {
-              XS: {
-                "--sf-input-pad":
-                  "{length.size.height.XS*1/2+typography.text-2xs--line-height*1/1+typography.text-2xs*4/14~39/119}",
-                "--sf-input-pad-end": "{length.size.height.XS*1/1}",
-              },
-              S: {
-                "--sf-input-pad":
-                  "{length.size.height.S*1/2+typography.text-xs--line-height*1/1+typography.text-xs*4/14~39/119}",
-                "--sf-input-pad-end": "{length.size.height.S*1/1}",
-              },
-              M: {
-                "--sf-input-pad":
-                  "{length.size.height.M*1/2+typography.text-sm--line-height*1/1+typography.text-sm*4/14~39/119}",
-                "--sf-input-pad-end": "{length.size.height.M*1/1}",
-              },
-              L: {
-                "--sf-input-pad":
-                  "{length.size.height.L*1/2+typography.text-base--line-height*1/1+typography.text-base*4/14~39/119}",
-                "--sf-input-pad-end": "{length.size.height.L*1/1}",
-              },
-              XL: {
-                "--sf-input-pad":
-                  "{length.size.height.XL*1/2+typography.text-lg--line-height*1/1+typography.text-lg*4/14~39/119}",
-                "--sf-input-pad-end": "{length.size.height.XL*1/1}",
-              },
-            },
-            bridges: {
-              "min-width": "0",
-              // ADR-295 Phase 3c-3b: S2 SearchField — `paddingStart: 'pill'` (height / 2) + the glyph (`1lh`) +
-              //   `text-to-visual`; the end is the clear button's place (S2 `ClearButton` — the control height).
-              "padding-left": "var(--sf-input-pad)",
-              "padding-right": "var(--sf-input-pad-end)",
             },
           },
           {
@@ -11729,44 +11451,39 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            // S2 ClearButton: control-width hit area, inside the Input border.
-            childSelector: ".react-aria-Button",
+            // S2 ClearButton: the control height wide (`controlSize()`), the box's inner height tall.
+            childSelector: ".react-aria-Group > .react-aria-Button",
             prefix: "sf-btn",
             variables: {
               XS: {
                 "--sf-btn-size": "{length.size.height.XS*1/1}",
                 "--sf-btn-height": "{length.size.height.XS*1/1-4}",
-                "--sf-btn-offset": "{length.size.height.XS*-1/1-2}",
               },
               S: {
                 "--sf-btn-size": "{length.size.height.S*1/1}",
                 "--sf-btn-height": "{length.size.height.S*1/1-4}",
-                "--sf-btn-offset": "{length.size.height.S*-1/1-2}",
               },
               M: {
                 "--sf-btn-size": "{length.size.height.M*1/1}",
                 "--sf-btn-height": "{length.size.height.M*1/1-4}",
-                "--sf-btn-offset": "{length.size.height.M*-1/1-2}",
               },
               L: {
                 "--sf-btn-size": "{length.size.height.L*1/1}",
                 "--sf-btn-height": "{length.size.height.L*1/1-4}",
-                "--sf-btn-offset": "{length.size.height.L*-1/1-2}",
               },
               XL: {
                 "--sf-btn-size": "{length.size.height.XL*1/1}",
                 "--sf-btn-height": "{length.size.height.XL*1/1-4}",
-                "--sf-btn-offset": "{length.size.height.XL*-1/1-2}",
               },
             },
             bridges: {
+              flex: "0 0 auto",
               width: "var(--sf-btn-size)",
               height: "var(--sf-btn-height)",
               // ADR-295 Phase 3: a field button (S2 — not a Button) does not take the Button's S2
               //   min-height (`{size.height.<S>}`) — its square is this size (placement, as `height`).
               "min-height": "0",
               "min-width": "0",
-              "margin-inline-start": "var(--sf-btn-offset)",
             },
           },
         ],
@@ -11845,7 +11562,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 0,
-        iconSize: "{size.icon.XS}",
         gap: centerPadding("XS"),
       },
       S: {
@@ -11853,7 +11569,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
         height: 0,
-        iconSize: "{size.icon.S}",
         gap: centerPadding("S"),
       },
       M: {
@@ -11861,7 +11576,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
         height: 0,
-        iconSize: "{size.icon.M}",
         gap: centerPadding("M"),
       },
       L: {
@@ -11869,7 +11583,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
         height: 0,
-        iconSize: "{size.icon.L}",
         gap: centerPadding("L"),
       },
       XL: {
@@ -11877,7 +11590,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
         height: 0,
-        iconSize: "{size.icon.XL}",
         gap: centerPadding("XL"),
       },
     },
@@ -12011,10 +11723,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   "calc(var(--catalog-token-size-height-S) * 3 / 8)",
                 "--select-btn-pad-end": "2px",
               },
+              // (사용자 2026-11-13 「select-group 에 padding-right 7px」 — M 4 → 7, 「select - button 에
+              //  padding-right:8px」 — 7 → 8.)
               M: {
                 "--select-btn-pad-start":
                   "calc(var(--catalog-token-size-height-M) * 3 / 8)",
-                "--select-btn-pad-end": "4px",
+                "--select-btn-pad-end": "8px",
               },
               L: {
                 "--select-btn-pad-start":
@@ -12036,6 +11750,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               // 값 ↔ chevron 간격 4 (사용자 결정 2026-09-29). 없으면 Button rule 의 크기별 gap
               //   (md 8) 을 받는다.
               gap: "var(--spacing-xs)",
+            },
+          },
+          {
+            // The field button's glyph (chevron · calendar): XS 12 · S 14 · M 16 · L 18 · XL 20 (× `--s2-scale`) —
+            //   사용자 2026-11-13 지정, not the Button's `1lh` icon step (14 ~ 22).
+            childSelector: ".react-aria-Button .react-aria-Icon svg",
+            prefix: "select-glyph",
+            variables: {
+              XS: { "--select-glyph-size": scaledLengthRef(12) },
+              S: { "--select-glyph-size": scaledLengthRef(14) },
+              M: { "--select-glyph-size": scaledLengthRef(16) },
+              L: { "--select-glyph-size": scaledLengthRef(18) },
+              XL: { "--select-glyph-size": scaledLengthRef(20) },
+            },
+            bridges: {
+              width: "var(--select-glyph-size)",
+              height: "var(--select-glyph-size)",
             },
           },
           // The value (RAC `SelectValue` — the field's own sub-part) fills the trigger and clips.
@@ -15199,10 +14930,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          // ADR-253: 입력 상자는 DateInput 원본의 instance 다 — 상자 · 크기 단계 · 상태 · 조각은 DateInput
-          //   rule 의 것이고, field 는 배치만 한다 (폭 · 크기별 최소 폭).
+          // S2 (2026-11-14 사용자 「DateField · TimeField 도 S2 구조 패턴으로」): the control Group is the
+          //   field's box (S2 `FieldGroup` — `CATALOG_BOXED_FIELDS`, the Input rule's box on
+          //   `.react-aria-FieldBox`, `edge-to-text` both sides), the DateInput in it lays its box down
+          //   (`CATALOG_FIELD_BOX_INPUT_STYLE`). The field places the box: its width and per-size minimum.
           {
-            childSelector: ".react-aria-DateInput",
+            childSelector: ".react-aria-Group",
             prefix: "time-field-input",
             variables: {
               XS: {

@@ -67,8 +67,11 @@ describe("ADR-248 Phase 4e delegated sub-part owner (catalog records)", () => {
     // ADR-253: the Label is an instance of the Label origin the DOM draws from its node — its
     // text is the field's `label` prop, its style is its own.
     expect(catalogSubpartOwnerType(graph, records, label, "style")).toBeNull();
+    // (The Input sits in the field's box Group — S2 `FieldGroup`, 2026-11-14.)
     const input = all.find(
-      (id) => typeOf(id) === "Input" && records.get(id)!.parentId === field,
+      (id) =>
+        typeOf(id) === "Input" &&
+        records.get(records.get(id)!.parentId!)?.parentId === field,
     )!;
     // The Input as well (an instance of the Input origin): its placeholder · type are the
     // field's props, its style is its own.

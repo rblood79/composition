@@ -224,6 +224,17 @@ function textDefinition(
   };
 }
 
+/** NumberField stepper glyph per field size, desktop px — the field buttons' glyph size (the picker
+ *  chevron · calendar, 사용자 2026-11-13 「NumberField 의 − / + 도 동일한 사이즈로」 — was S2 `Dash` · `Add`
+ *  8 · 8 · 10 · 12 · 12). */
+const STEPPER_GLYPH_PX: Readonly<Record<string, number>> = {
+  XS: 12,
+  S: 14,
+  M: 16,
+  L: 18,
+  XL: 20,
+};
+
 /** Source-derived Button definition shared by the reusable template and both product consumers. */
 function buttonDefinition(
   theme: "light" | "dark",
@@ -305,6 +316,24 @@ function buttonDefinition(
       ]),
     ),
   );
+  // A Button in RAC NumberField's `decrement` · `increment` slot is S2's `StepButton`: its glyph is
+  // the field buttons' glyph size (XS 12 · S 14 · M 16 · L 18 · XL 20, × `--s2-scale` — 사용자 2026-11-13),
+  // not the Button's icon step.
+  if (type === "Button")
+    for (const slot of ["decrement", "increment"])
+      for (const [size, glyph] of Object.entries(STEPPER_GLYPH_PX))
+        childPartRules.push({
+          child: { definitionId: catalogTypeDefinitionId("Icon") },
+          when: { size, slot },
+          visual: {
+            iconSize: sourceToken(
+              `{length.size.unit*${glyph}/1}`,
+              "iconSize",
+              theme,
+              tokens,
+            ),
+          },
+        });
   // `utilities.css` `.button-base > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label)
   // { color: inherit }`: the Button's direct Icon / Text / Label children take its text color in
   // every variant, fill style and state (their own rule color is the dark `--fg`).

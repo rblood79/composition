@@ -15,6 +15,12 @@ import {
   catalogIsGlyphRecord,
 } from "../../../catalogRuntime/glyphSize";
 import { catalogIsOutOfFlow } from "../../../../../../../packages/shared/src/catalog/runtime/positioning";
+import { resolveStylePanelCatalogPaint } from "../utils/specPresetResolver";
+import {
+  catalogDrawnBoxDelta,
+  catalogDrawnFieldBoxVisual,
+  catalogFieldBoxRole,
+} from "../../../catalogRuntime/drawnBoxModel";
 import {
   catalogHasDisplayedLayout,
   catalogParticipatesInFlow,
@@ -310,8 +316,13 @@ function effectiveOf(workspace: CatalogWorkspace, id: string | null) {
   if (!record) return undefined;
   // (What the sheet's `[data-*]` block draws for an owner-derived prop — a field's own Button at its
   //  size's corner — is the drawn value, as on the Canvas: `catalogDerivedRestVisual`.)
-  const rest = catalogDerivedRestVisual(workspace.root, record);
-  return catalogEffectiveStyle(
+  // (A field box's corner · minimum height are the ones it draws — the Group the Input rule's, the
+  //  Input in it none: `catalogDrawnFieldBoxVisual`.)
+  const rest = {
+    ...catalogDerivedRestVisual(workspace.root, record),
+    ...catalogDrawnFieldBoxVisual(workspace.root, record),
+  };
+  const style = catalogEffectiveStyle(
     Object.keys(rest).length
       ? ({
           ...record,
@@ -319,6 +330,68 @@ function effectiveOf(workspace: CatalogWorkspace, id: string | null) {
         } as typeof record)
       : record,
   );
+  // Where the Canvas layout lays more over the record than its box model holds (a field's box
+  //  Group · the Input in it, a rule's gap longhand, a part rule's border, a component's placement),
+  //  the panel shows the drawn padding · gap · border · height — the model the Canvas spacing
+  //  handles read too (`catalogDrawnBoxDelta`).
+  const drawn = catalogDrawnBoxDelta(workspace.root, record);
+  if (drawn?.padding) {
+    const px = (value: unknown) =>
+      typeof value === "number" ? `${value}px` : String(value);
+    style.paddingTop = px(drawn.padding.top);
+    style.paddingRight = px(drawn.padding.right);
+    style.paddingBottom = px(drawn.padding.bottom);
+    style.paddingLeft = px(drawn.padding.left);
+    if (drawn.borderWidth !== undefined)
+      style.borderWidth = px(drawn.borderWidth);
+    // (The flow it draws in: a field's box Group lays its row out from `catalogFieldBoxStyle`, not a
+    //  template layout — 사용자 2026-11-13 「DatePicker 의 group 는 flex 도 되어 있지 않다」.)
+    if (drawn.display !== undefined) style.display = drawn.display;
+    if (drawn.flexDirection !== undefined)
+      style.flexDirection = drawn.flexDirection;
+    if (drawn.alignItems !== undefined) style.alignItems = drawn.alignItems;
+    if (drawn.height !== undefined) style.height = px(drawn.height);
+    // (A flex box draws one gap — its main axis. A grid's row · column gaps stay the record's
+    //  longhands; a gap the record already holds stays as the view reads it.)
+    if (
+      drawn.gap !== undefined &&
+      String(drawn.display ?? "").includes("flex") &&
+      drawn.gap !== catalogBoxModel(record).gap
+    ) {
+      style.gap = px(drawn.gap);
+      style.columnGap = px(drawn.gap);
+      style.rowGap = px(drawn.gap);
+    }
+  }
+  return style;
+}
+
+/**
+ * The paint a field box draws where it is not the record's own rule's (`catalogFieldBoxRole`): the
+ * box Group the Input rule's resting background · border at the field's size and state, the Input
+ * laid into it none. The color fields read it after the authored value, before the record's rule.
+ */
+function drawnPaintOf(
+  workspace: CatalogWorkspace,
+  id: string | null,
+): ElementStyleContext["drawnPaint"] {
+  const record = id ? workspace.root.domInputs.get(id) : undefined;
+  const role = record && catalogFieldBoxRole(workspace.root, record);
+  if (!role) return undefined;
+  if (role === "laid")
+    return { backgroundColor: "transparent", borderColor: "transparent" };
+  const paint = resolveStylePanelCatalogPaint(
+    "Input",
+    role.size,
+    role.props,
+    {},
+  );
+  return {
+    ...(paint?.backgroundColor
+      ? { backgroundColor: paint.backgroundColor }
+      : {}),
+    ...(paint?.borderColor ? { borderColor: paint.borderColor } : {}),
+  };
 }
 
 /** The drawn font size of a record (a px line height is a ratio to it). */
@@ -722,6 +795,11 @@ export function createCatalogStylesHost(
         // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
         [id, version],
       );
+      const drawnPaint = useMemo(
+        () => drawnPaintOf(workspace, id),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
+        [id, version],
+      );
       return useMemo(() => {
         const props = Object.fromEntries(
           contract.fields.map((field) => [field.key, field.currentValue]),
@@ -754,6 +832,7 @@ export function createCatalogStylesHost(
                 }
               : undefined,
           effective,
+          ...(drawnPaint ? { drawnPaint } : {}),
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
           sizing: Object.keys(fill).length ? fill : undefined,

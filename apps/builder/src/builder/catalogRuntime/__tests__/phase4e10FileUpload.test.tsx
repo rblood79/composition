@@ -220,9 +220,13 @@ describe("DateRangePicker — the end input's catalog grow", () => {
     const geometry = root.getGeometry([wrapper.id, ...siblings]);
     const box = geometry.get(input.id)!;
     const next = geometry.get(siblings[siblings.indexOf(input.id) + 1]!)!;
-    // The end input fills up to the trigger button (the DOM's start · – · grown end); the button sits S2's
-    //   `text-to-control` after it (XS 11 × 10/14 — the group gap + the button's start margin, ADR-295 3c-3b).
-    expect(next.x - (box.x + box.width)).toBeCloseTo((11 * 10) / 14, 1);
+    // The end input fills up to the trigger button (the DOM's start · – · grown end); the room before the
+    //   button is the box's gap (XS 2xs = 2) — the input has no end padding, the button no margin
+    //   (2026-11-14 — as a DatePicker's, 사용자 「margin 은 완료된 패턴을 참고」).
+    expect(
+      (root.getLayoutInput(input.id) as Record<string, unknown>).paddingRight,
+    ).toBe("0px");
+    expect(next.x - (box.x + box.width)).toBeCloseTo(2, 1);
     const outer = geometry.get(wrapper.id)!;
     expect(next.x + next.width).toBeGreaterThan(outer.x + outer.width - 10);
     workspace.dispose();

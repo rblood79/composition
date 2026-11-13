@@ -474,7 +474,8 @@ describe("ADR-259 Phase 3 — contextual help", () => {
       );
       const box = (record: { id: string }) =>
         root.getGeometry([record.id]).get(record.id)!;
-      const input = () => recordsOf("Input")[0]!;
+      // (The control is the field's box Group — S2 `FieldGroup`, 2026-11-14.)
+      const input = () => recordsOf("Group")[0]!;
       const labelBefore = box(recordsOf("Label")[0]!);
       const inputBefore = box(input());
       setHelp("help");

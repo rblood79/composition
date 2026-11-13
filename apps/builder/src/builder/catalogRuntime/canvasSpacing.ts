@@ -36,11 +36,15 @@ export function catalogSpacingBands(
   records: ReadonlyMap<string, CatalogConsumerNode>,
   bounds: (id: string) => BoundingBox | undefined,
   preview: CatalogSpacingPreview = {},
+  /** The record's drawn box model (`catalogDrawnBoxModel` — a field's box Group's defaults). */
+  boxOf: (record: CatalogConsumerNode) => ReturnType<
+    typeof catalogBoxModel
+  > = catalogBoxModel,
 ): readonly SpacingBand[] {
   if (!catalogHasDisplayedLayout(record, records)) return [];
   const ownerBounds = bounds(record.id);
   if (!ownerBounds) return [];
-  const box = catalogBoxModel(record);
+  const box = boxOf(record);
   const border = pxOf(box.borderWidth) ?? 0;
   const sides = {
     top: pxOf(box.padding?.top),

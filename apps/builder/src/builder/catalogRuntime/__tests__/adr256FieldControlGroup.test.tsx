@@ -15,10 +15,11 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
-import { DATE_RANGE_GROUP_PAINT } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { bindCatalogCanvas } from "../canvasBinding";
 import { renderCatalogDom } from "../domBinding";
+import { catalogSpacingBands } from "../canvasSpacing";
+import { catalogDrawnBoxModel } from "../drawnBoxModel";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -88,16 +89,48 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
     const stepper = group.children.find(
       (id) => root.domInputs.get(id)!.bindingId === "button",
     )!;
+    // (Longhand by longhand: jsdom folds a parsed `margin-*` set with a `calc()` into a shorthand it
+    //  cannot expand, but keeps the ones React sets one by one — the same values, two spellings.)
+    const sides = ["top", "right", "bottom", "left"];
+    const topLevelParts = (value: string) => {
+      const parts: string[] = [];
+      let depth = 0;
+      let part = "";
+      for (const char of value.trim()) {
+        if (char === "(") depth++;
+        if (char === ")") depth--;
+        if (char === " " && depth === 0) {
+          if (part) parts.push(part);
+          part = "";
+        } else part += char;
+      }
+      if (part) parts.push(part);
+      return parts;
+    };
     const styleIn = (container: ParentNode) =>
-      container
-        .querySelector<HTMLElement>(
+      (
+        container.querySelector<HTMLElement>(
           `[data-catalog-id="${CSS.escape(stepper)}"]`,
-        )
-        ?.style.cssText.split(";")
+        )?.style.cssText ?? ""
+      )
+        .split(/;(?![^(]*\))/)
         .map((declaration) => declaration.trim())
         .filter(Boolean)
+        .flatMap((declaration) => {
+          const at = declaration.indexOf(":");
+          const name = declaration.slice(0, at).trim();
+          const value = declaration.slice(at + 1).trim();
+          if (name !== "margin" && name !== "padding")
+            return [`${name}: ${value}`];
+          const [top, right = top, bottom = top, left = right] =
+            topLevelParts(value);
+          return [top, right, bottom, left].map(
+            (part, index) =>
+              `${name}-${sides[index]}: ${part === "0" ? "0px" : part}`,
+          );
+        })
         .sort()
-        .join("; ") ?? "";
+        .join("; ");
     const fresh = () => {
       const element = document.createElement("div");
       element.innerHTML = renderToStaticMarkup(renderCatalogDom(root, field));
@@ -127,24 +160,22 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
     ).toBe("true");
   });
 
-  it("a DateRangePicker's Group paints the box on the Canvas: the range picker binds, fill · border · the size's radius", async () => {
+  // (2026-11-14, 사용자 「DateRangePicker 를 DatePicker 와 같은 방식으로」) The range Group is the field's
+  //   box (S2 `FieldGroup` — `CATALOG_BOXED_FIELDS`): the Input rule's box on both consumers.
+  it("a DateRangePicker's Group draws the Input rule's box on the Canvas", async () => {
     const workspace = await open("daterangepicker");
     const root = workspace.root;
     const field = root.recordsOfSource(FIELD)[0]!;
     const group = [...root.canvasInputs.values()].find(
       (record) => record.parentId === field && root.typeOf(record) === "Group",
     )!;
-    expect(group.visual).toMatchObject({
-      fill: DATE_RANGE_GROUP_PAINT.fill,
-      borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
-      // (2026-11-09: S2 `FieldGroup` — the TextField box's 2px border.)
-      borderWidth: 2,
-      radius: 8,
-    });
+    // (No copy of the box paint on the record — the Input rule draws it, `fieldBoxShapeInput`.)
+    expect(group.visual.fill).toBeUndefined();
+    expect(group.visual.borderColor).toBeUndefined();
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     cleanups.push(() => canvas.dispose());
     const box = getSkiaNode(group.id)?.box;
-    // The light theme's inset surface and border (a value the Canvas cannot read paints black).
+    // The light theme's field surface and border (a value the Canvas cannot read paints black).
     const [r, g, b, alpha] = box!.fillColor;
     expect(alpha).toBeGreaterThan(0);
     expect(Math.min(r!, g!, b!)).toBeGreaterThan(0.9);
@@ -152,28 +183,23 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
     expect(Math.max(...box!.strokeColor!.slice(0, 3))).toBeGreaterThan(0.5);
   });
 
-  // (2026-11-09) The DOM range box takes its fill and border color from the picker's sheet — inline
-  //   they beat the sheet's `[data-focus-within]` · `[data-hovered]` · `[data-invalid]` borders (the
-  //   focused range box kept its rest border). A written fill still goes inline.
-  it("the DOM range Group leaves its fill and border color to the sheet (its state borders win)", async () => {
+  it("the DOM range Group is the field box (the Input sheet paints it and its states)", async () => {
     const workspace = await open("daterangepicker");
     const root = workspace.root;
     const field = root.recordsOfSource(FIELD)[0]!;
     const group = [...root.domInputs.values()].find(
       (record) => record.parentId === field && root.typeOf(record) === "Group",
     )!;
-    const groupStyle = () => {
+    const groupElement = () => {
       const element = document.createElement("div");
       element.innerHTML = renderToStaticMarkup(renderCatalogDom(root, field));
-      return (
-        element.querySelector<HTMLElement>(
-          `[data-catalog-id="${CSS.escape(group.id)}"]`,
-        )?.style ?? null
-      );
+      return element.querySelector<HTMLElement>(
+        `[data-catalog-id="${CSS.escape(group.id)}"]`,
+      )!;
     };
-    expect(groupStyle()).not.toBeNull();
-    expect(groupStyle()!.borderColor).toBe("");
-    expect(groupStyle()!.backgroundColor).toBe("");
+    expect(groupElement().classList.contains("react-aria-FieldBox")).toBe(true);
+    expect(groupElement().style.borderColor).toBe("");
+    expect(groupElement().style.backgroundColor).toBe("");
     const target = workspace.positionOfRecord(group.id)!.target;
     act(() => {
       workspace.execute(
@@ -183,28 +209,240 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
         }),
       );
     });
-    expect(groupStyle()!.backgroundColor).toBe("rgb(255, 0, 0)");
+    expect(groupElement().style.backgroundColor).toBe("rgb(255, 0, 0)");
   });
 
-  it("the paint the Canvas states is the range picker rule's Group bridges (one source of the tokens)", () => {
-    const delegation = (
-      COMPONENT_RULES_TABLE.DateRangePicker as unknown as {
-        structure: {
-          composition: {
-            delegation: Array<{
-              childSelector: string;
-              bridges?: Record<string, string>;
-            }>;
-          };
-        };
-      }
-    ).structure.composition.delegation.find(
-      (entry) => entry.childSelector === ".react-aria-Group",
+  it("the range row: start input at its content width, the dash, the end input filling, the button — the box's gap between, no margins", async () => {
+    const workspace = await open("daterangepicker");
+    const root = workspace.root;
+    const field = root.recordsOfSource(FIELD)[0]!;
+    const group = [...root.canvasInputs.values()].find(
+      (record) => record.parentId === field && root.typeOf(record) === "Group",
     )!;
-    expect(delegation.bridges).toMatchObject({
-      background: DATE_RANGE_GROUP_PAINT.fill,
-      border: `var(--border-width-thick) solid ${DATE_RANGE_GROUP_PAINT.borderColor}`,
-      "border-radius": "var(--drp-group-radius)",
+    const [start, dash, end, button] = group.children.map(
+      (id) => root.canvasInputs.get(id)!,
+    );
+    expect([start, dash, end, button].map((part) => root.typeOf(part!))).toEqual([
+      "DateInput",
+      "Text",
+      "DateInput",
+      "Button",
+    ]);
+    const rect = (id: string) => root.getGeometry([id]).get(id)!;
+    const input = (id: string) =>
+      root.getLayoutInput(id) as Record<string, unknown>;
+    // M: start padding = the Input's `edge-to-text` 12, end padding S2 4, gap 4.
+    expect(input(group.id)).toMatchObject({
+      paddingLeft: "12px",
+      paddingRight: "4px",
+      columnGap: "4px",
     });
+    for (const part of [start!, end!])
+      expect(input(part.id)).toMatchObject({
+        paddingLeft: "0px",
+        paddingRight: "0px",
+        borderLeft: "0px",
+      });
+    expect(input(start!.id)).toMatchObject({ flexGrow: 0, flexBasis: "auto" });
+    expect(input(end!.id)).toMatchObject({ flexGrow: 1 });
+    for (const part of [start!, dash!, end!, button!])
+      expect(
+        ["marginLeft", "marginRight"].map((key) => input(part.id)[key] ?? "0px"),
+      ).toEqual(["0px", "0px"]);
+    const g = rect(group.id);
+    expect(rect(start!.id).x).toBe(2 + 12);
+    expect(rect(dash!.id).x).toBe(rect(start!.id).x + rect(start!.id).width + 4);
+    expect(rect(end!.id).x).toBe(rect(dash!.id).x + rect(dash!.id).width + 4);
+    expect(rect(button!.id).x).toBe(rect(end!.id).x + rect(end!.id).width + 4);
+    expect(rect(button!.id).x + rect(button!.id).width).toBe(g.width - 2 - 4);
+  });
+});
+
+describe("S2 NumberField — its control Group is the box, edited directly", () => {
+  it("a padding written on the Group reaches the Canvas layout and the DOM box", async () => {
+    const workspace = await open("numberfield");
+    const root = () => workspace.root;
+    const field = root().recordsOfSource(FIELD)[0]!;
+    const groupOf = () =>
+      [...root().domInputs.values()].find(
+        (record) =>
+          record.parentId === field && root().typeOf(record) === "Group",
+      )!;
+    act(() => {
+      workspace.execute(
+        setFields({
+          targets: [
+            {
+              kind: "descendant",
+              ownerId: FIELD,
+              address: {
+                instances: [FIELD],
+                templatePath: [
+                  "lib:template:component-numberfield",
+                  "lib:template:component-numberfield__2",
+                ],
+              },
+            } as never,
+          ],
+          visual: {
+            paddingLeft: { kind: "set", value: 30 },
+            paddingRight: { kind: "set", value: 30 },
+          },
+        }),
+      );
+    });
+    const layout = root().getLayoutInput(groupOf().id) as Record<
+      string,
+      unknown
+    >;
+    expect([layout.paddingLeft, layout.paddingRight]).toEqual(["30px", "30px"]);
+    const host = document.createElement("div");
+    host.innerHTML = renderToStaticMarkup(renderCatalogDom(root(), field));
+    const box = host.querySelector<HTMLElement>(".react-aria-FieldBox")!;
+    expect([box.style.paddingLeft, box.style.paddingRight]).toEqual([
+      "30px",
+      "30px",
+    ]);
+  });
+
+  it("S2's stepper spacing is the parts' own layout — the Group's gap · end padding, the Input's end padding — and an authored value wins on both sides", async () => {
+    const workspace = await open("numberfield");
+    const root = () => workspace.root;
+    const field = root().recordsOfSource(FIELD)[0]!;
+    const child = (type: string) =>
+      [...root().domInputs.values()].find(
+        (record) =>
+          root().typeOf(record) === type &&
+          (type === "Group"
+            ? record.parentId === field
+            : root().typeOf(root().domInputs.get(record.parentId)!) ===
+              "Group"),
+      )!;
+    const layoutOf = (type: string) =>
+      root().getLayoutInput(child(type).id) as Record<string, unknown>;
+    // (Read the inline declaration itself: jsdom folds a unitless `padding-*: 0` set into a shorthand
+    //  that misreads the side written after it.)
+    const inline = (element: HTMLElement, property: string) =>
+      new RegExp(`(?:^|;)\\s*${property}:\\s*([^;]+)`)
+        .exec(element.getAttribute("style") ?? "")?.[1]
+        ?.trim();
+    const dom = () => {
+      const host = document.createElement("div");
+      host.innerHTML = renderToStaticMarkup(renderCatalogDom(root(), field));
+      return {
+        box: host.querySelector<HTMLElement>(".react-aria-FieldBox")!,
+        input: host.querySelector<HTMLElement>("input")!,
+        buttons: [...host.querySelectorAll<HTMLElement>("button")],
+      };
+    };
+    // Defaults (md): S2 stepper gap 4, end margin 4, the Input no end padding (사용자 2026-11-13 — the
+    // gap is the room) — no margins.
+    expect([
+      layoutOf("Group").columnGap,
+      layoutOf("Group").paddingRight,
+      layoutOf("Input").paddingRight,
+    ]).toEqual(["4px", "4px", "0px"]);
+    let view = dom();
+    expect([
+      inline(view.box, "column-gap"),
+      inline(view.box, "padding-right"),
+      inline(view.input, "padding-right"),
+    ]).toEqual(["4px", "4px", "0"]);
+    for (const button of view.buttons)
+      expect(button.style.marginLeft || "0px").toBe("0px");
+    // Authored on the Group (gap 12 · end 10) and the Input (end 2): both consumers take them.
+    const target = (path: string[]) =>
+      ({
+        kind: "descendant",
+        ownerId: FIELD,
+        address: { instances: [FIELD], templatePath: path },
+      }) as never;
+    act(() => {
+      workspace.execute(
+        setFields({
+          targets: [
+            target([
+              "lib:template:component-numberfield",
+              "lib:template:component-numberfield__2",
+            ]),
+          ],
+          visual: {
+            gap: { kind: "set", value: 12 },
+            paddingRight: { kind: "set", value: 10 },
+          },
+        }),
+      );
+      workspace.execute(
+        setFields({
+          targets: [
+            target([
+              "lib:template:component-numberfield",
+              "lib:template:component-numberfield__2",
+              "lib:template:component-numberfield__2_1",
+            ]),
+          ],
+          visual: { paddingRight: { kind: "set", value: 2 } },
+        }),
+      );
+    });
+    expect([
+      layoutOf("Group").columnGap,
+      layoutOf("Group").paddingRight,
+      layoutOf("Input").paddingRight,
+    ]).toEqual(["12px", "10px", "2px"]);
+    view = dom();
+    expect([
+      inline(view.box, "column-gap"),
+      inline(view.box, "padding-right"),
+      inline(view.input, "padding-right"),
+    ]).toEqual(["12px", "10px", "2px"]);
+  });
+
+  it("the drawn box model — Styles values, spacing handles — is the box the layout draws, not the record's empty one", async () => {
+    const workspace = await open("numberfield");
+    const root = workspace.root;
+    const field = root.recordsOfSource(FIELD)[0]!;
+    const group = [...root.domInputs.values()].find(
+      (record) => record.parentId === field && root.typeOf(record) === "Group",
+    )!;
+    const input = [...root.domInputs.values()].find(
+      (record) =>
+        record.parentId === group.id && root.typeOf(record) === "Input",
+    )!;
+    // (md: start 12 · end 4 · gap 4 · border 2 — what the record alone gives as 0; the Input's end 0.)
+    const box = catalogDrawnBoxModel(root, group);
+    expect([box.padding, box.gap, box.borderWidth, box.display]).toEqual([
+      { top: 0, right: 4, bottom: 0, left: 12 },
+      4,
+      2,
+      "flex",
+    ]);
+    expect(catalogDrawnBoxModel(root, input).padding).toEqual({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    });
+    // The spacing handles of the Group read the same values.
+    const bounds = (id: string) => {
+      const g = root.getGeometry([id]).get(id);
+      return g ? { x: g.x, y: g.y, width: g.width, height: g.height } : undefined;
+    };
+    const bands = catalogSpacingBands(
+      group,
+      root.domInputs,
+      bounds,
+      {},
+      (record) => catalogDrawnBoxModel(root, record),
+    );
+    const valueOf = (kind: string, side?: string) =>
+      bands.find(
+        (band) => band.kind === kind && (side === undefined || band.side === side),
+      )?.value;
+    expect([
+      valueOf("padding", "left"),
+      valueOf("padding", "right"),
+      valueOf("gap"),
+    ]).toEqual([12, 4, 4]);
   });
 });

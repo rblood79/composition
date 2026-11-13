@@ -32,8 +32,11 @@ describe("catalogPartsHostTypes — 원본 루트 (slot 아님 · 부품 있음)
   });
 
   it("TextField 의 부품 = 원본 루트 자식 + 필수 부품 + 감싸개", () => {
+    // (The Input sits in the field's S2 `FieldGroup` box — the Group is the root's part, the Input the
+    //  required part after the root's children, 2026-11-14.)
     expect(catalogPartsHostTypes().TextField).toEqual([
-      "Label", "Input", "Description", "FieldError", ...PART_WRAPPER_TYPES,
+      "Label", "Group", "Description", "FieldError", "Input",
+      ...PART_WRAPPER_TYPES.filter((type) => type !== "Group"),
     ]);
     // 필수 부품의 대안 (MenuTrigger 의 Button · ActionButton) 과 그룹 항목 (RadioGroup 의 Radio) 도 선다.
     expect(canNest("MenuTrigger", "Button")).toBe(true);

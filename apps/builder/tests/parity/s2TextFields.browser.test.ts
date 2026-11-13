@@ -94,8 +94,15 @@ async function fixture(type: string, size: string) {
     }),
   );
   const root = workspace.root;
+  // The box: the field's control Group — S2 `FieldGroup` (`CATALOG_BOXED_FIELDS` — NumberField ·
+  //   ComboBox · SearchField 2026-11-13, TextField · TextArea · ColorField 2026-11-14), the Input lays
+  //   its own down in it.
   const field = () =>
-    [...root.domInputs.values()].find((n) => root.typeOf(n) === "Input")!;
+    [...root.domInputs.values()].find(
+      (n) =>
+        root.typeOf(n) === "Group" &&
+        root.typeOf(root.domInputs.get(n.parentId!)!) === owner,
+    )!;
   const group = () =>
     [...root.domInputs.values()].find((n) => root.typeOf(n) === owner)!;
   const write = (id: string, props: Record<string, string | boolean>) =>
@@ -201,10 +208,11 @@ it.each(cases)(
           h.write(h.group().id, { isInvalid: invalid, isDisabled: disabled });
         });
         await h.render();
-        const dom = h.host.querySelector<HTMLInputElement>(
+        const control = h.host.querySelector<HTMLInputElement>(
           "input:not([type=hidden]),textarea",
         )!;
-        expect(dom.disabled).toBe(disabled);
+        expect(control.disabled).toBe(disabled);
+        const dom = control.closest<HTMLElement>(".react-aria-FieldBox")!;
         expect(getComputedStyle(h.host.firstElementChild!).opacity).toBe("1");
         expect(
           getComputedStyle(h.host.querySelector(".react-aria-Label")!).color,
@@ -326,7 +334,10 @@ it.each(["TextField", "TextArea", "SearchField"])(
       });
       expect(document.activeElement).toBe(input());
       expect(input().hasAttribute("data-focus-visible")).toBe(true);
-      expect(getComputedStyle(input()).outlineWidth).toBe("2px");
+      // (The keyboard ring is the box's — S2 `FieldGroup` `focusRing()`.)
+      const box = input().closest<HTMLElement>(".react-aria-FieldBox")!;
+      expect(box.hasAttribute("data-focus-visible")).toBe(true);
+      expect(getComputedStyle(box).outlineWidth).toBe("2px");
       sentinel.remove();
     } finally {
       await h.dispose();
@@ -367,9 +378,9 @@ it.each(types)(
           h.write(h.group().id, { isInvalid: true, isDisabled: true });
         });
         await h.render();
-        const dom = h.host.querySelector<HTMLInputElement>(
-          "input:not([type=hidden]),textarea",
-        )!;
+        const dom = h.host
+          .querySelector<HTMLInputElement>("input:not([type=hidden]),textarea")!
+          .closest<HTMLElement>(".react-aria-FieldBox")!;
         expect(getComputedStyle(dom).borderTopColor).toBe(
           custom ? "rgb(0, 136, 102)" : "rgb(198, 198, 198)",
         );
@@ -418,18 +429,22 @@ it.each([
       h.write(h.group().id, { value });
       await h.render();
       expect(input().value.toLowerCase()).toBe(value.toLowerCase());
-      expect(h.field().derivedProps?.value).toBe(value);
+      const inputRecord = () =>
+        [...h.root.domInputs.values()].find(
+          (n) => h.root.typeOf(n) === "Input",
+        )!;
+      expect(inputRecord().derivedProps?.value).toBe(value);
       await act(async () => {
         await userEvent.fill(input(), replacement);
         await userEvent.tab();
       });
       expect(input().value.toLowerCase()).toBe(replacement.toLowerCase());
       // Preview interactions stay in RAC runtime state, without authoring the child Input.
-      expect(h.field().props.value).toBeUndefined();
+      expect(inputRecord().props.value).toBeUndefined();
       h.write(h.group().id, { value: "" });
       await h.render();
       expect(input().value).toBe("");
-      expect(h.field().derivedProps?.value).toBe("");
+      expect(inputRecord().derivedProps?.value).toBe("");
     } finally {
       await h.dispose();
     }

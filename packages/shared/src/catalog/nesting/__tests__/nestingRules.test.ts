@@ -317,7 +317,9 @@ describe("nestingRules — 층 2 (d) field 는 자기 부품만 (2026-11-09)", (
     expect(canNest("NumberField", "Group")).toBe(true);
     expect(canNest("Select", "Popover")).toBe(true);
     expect(canNest("Select", "Button")).toBe(true);
-    expect(canNest("SearchField", "Icon")).toBe(true);
+    // (2026-11-13: S2 SearchField — its glyph sits in its control Group.)
+    expect(canNest("SearchField", "Group")).toBe(true);
+    expect(canNest("Group", "Icon", ["Group", "SearchField"])).toBe(true);
     expect(canNest("Slider", "SliderTrack")).toBe(true);
     // 부품 아래 (Group · Popover) 는 그 부품의 종류 — Group 은 자유 내용이라 앞 글자 Icon 이 선다.
     expect(canNest("Group", "Icon", ["Group", "TextField"])).toBe(true);

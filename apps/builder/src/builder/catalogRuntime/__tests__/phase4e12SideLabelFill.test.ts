@@ -95,7 +95,8 @@ describe("ADR-248 4e-12 labelPosition side", () => {
   it("a side TextField puts its label column (its text's width) beside the input (one row)", async () => {
     const { owner, child, box } = await openOwner("TextField", side);
     const label = box(child("Label").id);
-    const input = box(child("Input").id);
+    // (The control is the field's box Group — S2 `FieldGroup`, 2026-11-14.)
+    const input = box(child("Group").id);
     // `[data-label-position="side"]` is a grid `auto minmax(0, 1fr)` (S2 `field()`, 2026-10-10):
     // the label column is its text's width (no Form gives `--form-label-width`), in the middle of
     // the input's row.
@@ -129,7 +130,7 @@ describe("ADR-248 4e-12 labelPosition side", () => {
 
   it("a top TextField keeps the label above the input", async () => {
     const { child, box } = await openOwner("TextField");
-    expect(box(child("Input").id).y).toBeGreaterThan(box(child("Label").id).y);
+    expect(box(child("Group").id).y).toBeGreaterThan(box(child("Label").id).y);
   });
 
   it("a side ProgressBar orders label · track · value in one row (CSS `order`)", async () => {

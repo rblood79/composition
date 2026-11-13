@@ -7,6 +7,7 @@ import {
   catalogHasDisplayedLayout,
   catalogParticipatesInFlow,
 } from "../../../../../packages/shared/src/catalog/runtime/layoutParticipation";
+import { catalogElementlessType } from "../../../../../packages/shared/src/catalog/runtime/elementless";
 import {
   containerTypeSet,
   getRatioDependentAxis,
@@ -184,6 +185,11 @@ export interface CatalogGestureHost {
   ): CatalogCommand | undefined;
   /** Laid-out page frames (page drags snap to the other pages). */
   pageFrames?(): ReadonlyMap<string, BoundingBox>;
+  /**
+   * A record's box model as drawn (`catalogDrawnBoxModel` — a field's box Group's padding · gap the
+   * record does not hold). Absent = the record's own (`catalogBoxModel`).
+   */
+  boxModel?(record: CatalogConsumerNode): ReturnType<typeof catalogBoxModel>;
   /** Manual guides in scene coordinates, without those of `excludePages` (they move along). */
   guideLines?(excludePages?: ReadonlySet<string>): SnapGuideLines;
   /**
@@ -627,11 +633,29 @@ export class CatalogCanvasGestures {
     return true;
   }
 
-  /** The single selected structural container (its spacing handles show); not a page body. */
+  /** A record's drawn box model (the host's, else the record's own). */
+  private boxOf(record: CatalogConsumerNode) {
+    return this.host.boxModel?.(record) ?? catalogBoxModel(record);
+  }
+  /**
+   * The single selected box whose spacing handles show: a structural container, or any element that
+   * lays children out in its box (a Button's glyph · label, a field trigger's value · chevron —
+   * 2026-11-13, 사용자 「select 의 button 은 Layout 탭 값은 반영되지만 overlay 가 없다」; ADR-222's
+   * first scope was the structural containers). Not a page body.
+   */
   spacingOwner(): CatalogConsumerNode | undefined {
     const item = this.singleElement();
     const record = item && this.host.records.get(item.identity);
-    return record && this.structural(record) ? record : undefined;
+    if (!record) return undefined;
+    // (No element of its own — MenuTrigger · TreeItemContent …: a write reaches no box.)
+    if (catalogElementlessType(this.typeOf(record.id))) return undefined;
+    if (this.structural(record)) return record;
+    return record.children.some((id) => {
+      const child = this.host.records.get(id);
+      return !!child && catalogParticipatesInFlow(child);
+    })
+      ? record
+      : undefined;
   }
   spacingBands(preview?: CatalogSpacingPreview): readonly SpacingBand[] {
     const owner = this.spacingOwner();
@@ -641,6 +665,7 @@ export class CatalogCanvasGestures {
           this.host.records,
           (id) => this.host.bounds(id),
           preview,
+          (record) => this.boxOf(record),
         )
       : [];
   }
@@ -1581,9 +1606,26 @@ export class CatalogCanvasGestures {
         ? panelTokenUse(gesture.step.value)
         : undefined;
       const value = token ?? gesture.value;
+      // (A one-line flex's Gap field writes its main-axis longhand, which beats `visual.gap` in the
+      //  layout — a handle's `visual.gap` drops the longhand the author wrote in the same step, as the
+      //  panel's token Gap does (style-ssot §2). 2026-11-13 전수 감사.)
+      const authoredLayout = (this.host.records.get(gesture.item.identity)
+        ?.authoredLayout ?? {}) as Record<string, unknown>;
+      const longhands = gesture.band.side
+        ? []
+        : (["rowGap", "columnGap"] as const).filter(
+            (key) => authoredLayout[key] !== undefined,
+          );
       return setFields({
         targets: [gesture.item.target],
         breakpoint,
+        ...(longhands.length
+          ? {
+              layout: Object.fromEntries(
+                longhands.map((key) => [key, { kind: "remove" as const }]),
+              ),
+            }
+          : {}),
         visual: gesture.band.side
           ? Object.fromEntries(
               gesture.sides.map((side) => [
@@ -1750,7 +1792,7 @@ export class CatalogCanvasGestures {
     const container = drop && records.get(drop.container);
     const frame = drop && this.host.bounds(drop.container);
     if (!drop || !container || !frame) return undefined;
-    const border = catalogBoxModel(container).borderWidth;
+    const border = this.boxOf(container).borderWidth;
     const inset = typeof border === "number" ? border : 0;
     const commands: CatalogCommand[] = [];
     const trailing = container.children.slice(-gesture.records.length);
@@ -1954,7 +1996,7 @@ export class CatalogCanvasGestures {
     const container = this.host.records.get(containerId);
     const box = this.host.bounds(containerId);
     if (!container || !box) return undefined;
-    const border = catalogBoxModel(container).borderWidth;
+    const border = this.boxOf(container).borderWidth;
     const inset = typeof border === "number" ? border : 0;
     return {
       x: box.x + inset,
@@ -2608,7 +2650,7 @@ export class CatalogCanvasGestures {
     const frame = this.host.bounds(container.id);
     if (!frame) return undefined;
     const entries = this.flowEntries(container, new Set());
-    const gap = lengthPx(catalogBoxModel(container).gap) ?? 0;
+    const gap = lengthPx(this.boxOf(container).gap) ?? 0;
     return gridLayout({
       content: this.contentBox(container, frame),
       columns: container.layout.gridTemplateColumns as string | undefined,
@@ -2965,7 +3007,7 @@ export class CatalogCanvasGestures {
     container: CatalogConsumerNode,
     frame: BoundingBox,
   ): BoundingBox {
-    const model = catalogBoxModel(container);
+    const model = this.boxOf(container);
     const n = (value: unknown) => (typeof value === "number" ? value : 0);
     const border = n(model.borderWidth);
     const top = border + n(model.padding?.top);
@@ -2994,7 +3036,7 @@ export class CatalogCanvasGestures {
         kind === "column"
           ? container.layout.rowGap
           : container.layout.columnGap,
-      ) ?? lengthPx(catalogBoxModel(container).gap);
+      ) ?? lengthPx(this.boxOf(container).gap);
     if (authored !== undefined) return Math.max(0, authored);
     if (boxes.length < 2) return 0;
     const [a, b] = boxes as [BoundingBox, BoundingBox];

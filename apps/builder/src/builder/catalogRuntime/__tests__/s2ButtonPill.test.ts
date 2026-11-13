@@ -131,7 +131,8 @@ async function open(
  * Each field's own buttons' Canvas radius before the change (measured 2026-10-28 on this test's
  * `open`, the arrays are per button — a NumberField stepper's own corners stay its template's;
  * Select · NumberField at S · M · L · XL re-measured 2026-10-30 after the field box corner 7 · 8 · 9 ·
- * 10). The change must leave every one as it was: each is its Button's own size corner (a ComboBox ·
+ * 10; NumberField steppers 4 · 4 since 2026-11-13 — S2 `inputButton` squares inside the box, the
+ * template's corner like the ComboBox button). The change must leave every one as it was: each is its Button's own size corner (a ComboBox ·
  * date picker button is size S at every field size).
  */
 const FIELD_BUTTON_RADII_BEFORE: ReadonlyArray<[string, string, unknown[]]> = [
@@ -140,11 +141,11 @@ const FIELD_BUTTON_RADII_BEFORE: ReadonlyArray<[string, string, unknown[]]> = [
   ["Select", "M", [8]],
   ["Select", "L", [9]],
   ["Select", "XL", [10]],
-  ["NumberField", "XS", [0, [0, 4, 4, 0]]],
-  ["NumberField", "S", [0, [0, 7, 7, 0]]],
-  ["NumberField", "M", [0, [0, 8, 8, 0]]],
-  ["NumberField", "L", [0, [0, 9, 9, 0]]],
-  ["NumberField", "XL", [0, [0, 10, 10, 0]]],
+  ["NumberField", "XS", [4, 4]],
+  ["NumberField", "S", [4, 4]],
+  ["NumberField", "M", [4, 4]],
+  ["NumberField", "L", [4, 4]],
+  ["NumberField", "XL", [4, 4]],
   ["ComboBox", "XS", [4]],
   ["ComboBox", "S", [4]],
   ["ComboBox", "M", [4]],

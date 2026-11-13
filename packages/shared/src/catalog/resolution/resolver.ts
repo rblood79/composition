@@ -596,6 +596,9 @@ export const CATALOG_PART_RULE_PASS_HOSTS: Readonly<
   Record<string, ReadonlySet<string>>
 > = {
   Heading: new Set(["Disclosure"]),
+  // (2026-11-13: a field's control Group passes its rules to its button's glyph —
+  //  `.react-aria-Button .react-aria-Icon svg`: the clear cross · picker chevron · calendar.)
+  Group: new Set(["SearchField", "ComboBox", "DatePicker", "DateRangePicker"]),
   CalendarMonthPicker: new Set(["CalendarHeader"]),
   CalendarYearPicker: new Set(["CalendarHeader"]),
 };

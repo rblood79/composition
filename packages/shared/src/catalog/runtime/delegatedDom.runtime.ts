@@ -1072,11 +1072,15 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
 export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "numberfield",
   "combobox",
-  // ADR-259 Phase 2: while a prefix wraps their Input in a Group (none without one).
+  // (S2 `FieldGroup` around the Input · DateInput — 2026-11-14; ADR-259 Phase 2 wrapped them only for a
+  //  prefix before.)
   "textfield",
   "textarea",
   "colorfield",
-  // (Not searchfield: its parts are its own children — ADR-256 G5 example 5.)
+  "datefield",
+  "timefield",
+  // (searchfield: S2's `FieldGroup` — 2026-11-13; ADR-256 G5 example 5's flat parts before.)
+  "searchfield",
   "datepicker",
   "daterangepicker",
 ]);
@@ -3114,13 +3118,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   // ADR-251 · ADR-256 Phase 3: a group's items wrapper is the reference's `div.checkbox-items` /
   // `div.radio-items` (outside RAC's structure, no role) — its children in order, with its node's
-  // marker. Its box is the group rule's (`orientation` block); it takes no authored style (as the
-  // Canvas paints none).
+  // marker. Its box is the group rule's (`orientation` block); what the author writes on it (the
+  // Styles panel edits it — padding · gap) goes inline over that, as the Canvas lays it (2026-11-13
+  // 전수 감사: the DOM dropped it while the Canvas drew it).
   checkboxitems: {
     render: (input) =>
       createElement(
         "div",
-        { ...marker(input), className: "checkbox-items" },
+        { ...marker(input), className: "checkbox-items", style: input.style },
         ...renderAll(input),
       ),
   },
@@ -3128,7 +3133,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) =>
       createElement(
         "div",
-        { ...marker(input), className: "radio-items" },
+        { ...marker(input), className: "radio-items", style: input.style },
         ...renderAll(input),
       ),
   },

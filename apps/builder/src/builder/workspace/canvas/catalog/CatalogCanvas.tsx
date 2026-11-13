@@ -1,3 +1,4 @@
+import { catalogDrawnBoxModel } from "../../../catalogRuntime/drawnBoxModel";
 import { catalogDropRestoredWrites } from "../../../catalogRuntime/restoredWrites";
 import { CANVAS_VIEWPORT } from "../../../../../../../packages/shared/src/catalog/runtime/canvasBreakpoints";
 import {
@@ -860,6 +861,7 @@ export function CatalogCanvas({
           : undefined;
       },
       pageFrames: () => workspace.root.pageFrameRects(),
+      boxModel: (record) => catalogDrawnBoxModel(workspace.root, record),
       viewport: () => workspace.root.viewport,
       guideLines: (exclude) =>
         catalogGuideSnapLines(

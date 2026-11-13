@@ -488,13 +488,14 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
         .filter(inPicker)
         .map((t) => sides(t.visual)),
     ).toEqual([
-      [y, 4, y, 8],
-      [y, 4, y, 8],
+      // (the end: the Select rule's M end padding — 사용자 2026-11-13 「select padding-right 7px」 → 8)
+      [y, 8, y, 8],
+      [y, 8, y, 8],
     ]);
     expect(
       triggers()
         .filter((t) => !inPicker(t))
         .map((t) => sides(t.visual)),
-    ).toEqual([[y, 4, y, 12]]);
+    ).toEqual([[y, 8, y, 12]]);
   });
 });

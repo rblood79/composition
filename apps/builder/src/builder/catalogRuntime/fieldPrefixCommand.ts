@@ -27,7 +27,6 @@ import {
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import {
   CATALOG_PREFIX_FIELDS,
-  CATALOG_PREFIX_WRAP_FIELDS,
 } from "../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import {
   catalogCreationProps,
@@ -36,9 +35,9 @@ import {
 
 /**
  * ADR-259 Phase 2 — a field's prefix (S2 `prefix`) as one Design choice: none, a Text, or an Icon in
- * the field's control Group, before its Input. NumberField · ComboBox put it in their Group;
- * TextField · TextArea · ColorField have none, so adding wraps their Input in a Group (S2
- * `FieldGroup`) and removing unwraps it again. One command = one step (one undo).
+ * the field's control Group (S2 `FieldGroup`), before its Input. Every prefix field has that Group
+ * (2026-11-14 — no migration of documents saved before, 사용자). Removing the prefix keeps the Group.
+ * One command = one step (one undo).
  *
  * An instance's template children become owned copies at the first structural edit there
  * (`ensureChildList`): a wrapped field's Label · Input · Description no longer follow its `label` ·
@@ -47,7 +46,6 @@ import {
  */
 export type CatalogFieldPrefixKind = "none" | "text" | "icon";
 
-const GROUP_DEFINITION = "lib:definition:type-Group" as DefinitionId;
 const PREFIX_DEFAULTS = {
   text: { type: "Text", props: { children: "$" } },
   icon: { type: "Icon", props: { iconName: "search" } },
@@ -143,10 +141,9 @@ export const catalogFieldPrefixCommand =
     const label = input.kind === "none" ? "Remove prefix" : "Prefix";
     if (state.kind === input.kind) return { label, ops: [] };
     const draft = new CommandDraft(reader);
-    const fieldType = typeOf(reader, input.field.definitionId);
-    const wraps = CATALOG_PREFIX_WRAP_FIELDS.has(fieldType);
 
-    // Take the current prefix out (a wrapping field's Group goes with it).
+    // Take the current prefix out. (The Group stays: it is the field's S2 `FieldGroup` box with or
+    //  without a prefix — 2026-11-14.)
     if (state.prefix) {
       if (state.prefix.target.kind !== "node")
         return fail("PREFIX_NOT_OWNED", state.prefix.identity);
@@ -154,30 +151,12 @@ export const catalogFieldPrefixCommand =
       const at = locate(draft, prefixId).parent;
       const list = childList(draft, at) ?? [];
       const rest = list.filter((id) => id !== prefixId);
-      if (
-        input.kind === "none" &&
-        wraps &&
-        state.group?.target.kind === "node"
-      ) {
-        const groupId = state.group.target.id;
-        const fieldList = locate(draft, groupId).parent;
-        const outer = childList(draft, fieldList) ?? [];
-        const index = outer.indexOf(groupId);
-        setChildList(draft, fieldList, [
-          ...outer.slice(0, index),
-          ...rest,
-          ...outer.slice(index + 1),
-        ]);
-        draft.write({ ...draft.node(groupId), children: [] });
-        removeWithReferrers(draft, [prefixId, groupId]);
-        return { label, ops: draft.ops() };
-      }
       setChildList(draft, at, rest);
       removeWithReferrers(draft, [prefixId]);
       if (input.kind === "none") return { label, ops: draft.ops() };
     }
 
-    // Put the new prefix first in the field's Group (wrapping the Input in one when it has none).
+    // Put the new prefix first in the field's Group.
     const spec = PREFIX_DEFAULTS[input.kind as "text" | "icon"];
     const library = reader.library;
     const definitionId = catalogPaletteDefinitionId(library, spec.type);
@@ -204,30 +183,5 @@ export const catalogFieldPrefixCommand =
       setChildList(draft, at, [prefix.id, ...list]);
       return { label, ops: draft.ops() };
     }
-    if (!wraps || !state.input)
-      return fail("PREFIX_GROUP_MISSING", input.field.identity);
-    const at = parentOfChild(draft, state.input.target);
-    assertNestable(draft, at, [GROUP_DEFINITION]);
-    const list = ensureChildList(draft, at, input.newId);
-    const inputId = list.find(
-      (id) => typeOf(reader, draft.node(id).definitionId) === "Input",
-    );
-    if (!inputId) return fail("PREFIX_INPUT_MISSING", input.field.identity);
-    const group: NodeEntry = {
-      kind: "node",
-      id: input.newId("node") as NodeId,
-      definitionId: GROUP_DEFINITION,
-      children: [prefix.id, inputId],
-      props: {},
-      visual: {},
-      sizing: {},
-      descendantOverrides: [],
-    };
-    draft.create(group);
-    setChildList(
-      draft,
-      at,
-      list.map((id) => (id === inputId ? group.id : id)),
-    );
-    return { label, ops: draft.ops() };
+    return fail("PREFIX_GROUP_MISSING", input.field.identity);
   };

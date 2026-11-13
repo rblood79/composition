@@ -4111,7 +4111,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-TextField",
     "children": [
       "lib:template:component-textfield__1",
-      "lib:template:component-textfield__2",
+      "lib:template:component-textfield__group",
       "lib:template:component-textfield__description",
       "lib:template:component-textfield__3"
     ],
@@ -4149,6 +4149,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-textfield__group",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-textfield__2"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-textfield__2",
     "definitionId": "lib:definition:origin-component-input",
     "children": [],
@@ -4182,7 +4191,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-TextArea",
     "children": [
       "lib:template:component-textarea__1",
-      "lib:template:component-textarea__2",
+      "lib:template:component-textarea__group",
       "lib:template:component-textarea__description",
       "lib:template:component-textarea__3"
     ],
@@ -4215,6 +4224,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textarea__group",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-textarea__2"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4294,11 +4312,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-numberfield__2_3"
     ],
     "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-numberfield__2_1",
@@ -4307,61 +4321,39 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "placeholder": "{placeholder}"
     },
-    "visual": {
-      "radiusTopRight": 0,
-      "radiusBottomRight": 0
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-numberfield__2_2",
     "definitionId": "lib:definition:origin-component-button",
-    "children": [
-      "lib:template:component-numberfield__2_2_1"
-    ],
+    "children": [],
     "props": {
       "slot": "decrement",
       "variant": "secondary",
-      "label": ""
+      "label": "",
+      "icon": "minus"
     },
     "visual": {
       "paddingX": 0,
-      "radius": 0
+      "paddingY": 0,
+      "radius": 4
     }
-  },
-  {
-    "id": "lib:template:component-numberfield__2_2_1",
-    "definitionId": "lib:definition:type-Icon",
-    "children": [],
-    "props": {
-      "iconName": "minus"
-    },
-    "visual": {}
   },
   {
     "id": "lib:template:component-numberfield__2_3",
     "definitionId": "lib:definition:origin-component-button",
-    "children": [
-      "lib:template:component-numberfield__2_3_1"
-    ],
+    "children": [],
     "props": {
       "slot": "increment",
       "variant": "secondary",
-      "label": ""
+      "label": "",
+      "icon": "plus"
     },
     "visual": {
       "paddingX": 0,
-      "radiusTopLeft": 0,
-      "radiusBottomLeft": 0
+      "paddingY": 0,
+      "radius": 4
     }
-  },
-  {
-    "id": "lib:template:component-numberfield__2_3_1",
-    "definitionId": "lib:definition:type-Icon",
-    "children": [],
-    "props": {
-      "iconName": "plus"
-    },
-    "visual": {}
   },
   {
     "id": "lib:template:component-numberfield__description",
@@ -4418,9 +4410,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SearchField",
     "children": [
       "lib:template:component-searchfield__1",
-      "lib:template:component-searchfield__2_1",
-      "lib:template:component-searchfield__2_2",
-      "lib:template:component-searchfield__2_3",
+      "lib:template:component-searchfield__2",
       "lib:template:component-searchfield__description",
       "lib:template:component-searchfield__error"
     ],
@@ -4453,15 +4443,26 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-searchfield__2",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-searchfield__2_1",
+      "lib:template:component-searchfield__2_2",
+      "lib:template:component-searchfield__2_3"
+    ],
+    "props": {},
+    "visual": {
+      "radius": 9999
+    }
+  },
+  {
     "id": "lib:template:component-searchfield__2_1",
     "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
       "iconName": "s2-search"
     },
-    "visual": {
-      "zIndex": 1
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-searchfield__2_2",
@@ -4470,19 +4471,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "placeholder": "{placeholder}"
     },
-    "visual": {
-      "radius": 9999
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-searchfield__2_3",
     "definitionId": "lib:definition:origin-component-button",
-    "children": [
-      "lib:template:component-searchfield__2_3_1"
-    ],
+    "children": [],
     "props": {
       "variant": "primary",
-      "label": ""
+      "label": "",
+      "icon": "s2-cross"
     },
     "visual": {
       "borderWidth": 0,
@@ -4490,17 +4488,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "paddingX": 0,
       "paddingY": 0,
       "minWidth": 0
-    }
-  },
-  {
-    "id": "lib:template:component-searchfield__2_3_1",
-    "definitionId": "lib:definition:type-Icon",
-    "children": [],
-    "props": {
-      "iconName": "s2-cross"
-    },
-    "visual": {
-      "color": "inherit"
     }
   },
   {
@@ -4527,7 +4514,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-ColorField",
     "children": [
       "lib:template:component-colorfield__1",
-      "lib:template:component-colorfield__2",
+      "lib:template:component-colorfield__group",
       "lib:template:component-colorfield__description",
       "lib:template:component-colorfield__error"
     ],
@@ -4553,6 +4540,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorfield__group",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-colorfield__2"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -5319,11 +5315,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-combobox__2_2"
     ],
     "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-combobox__2_1",
@@ -6524,11 +6516,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-datepicker__2_2"
     ],
     "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-datepicker__2_1",
@@ -6629,11 +6617,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-daterangepicker__2_2"
     ],
     "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-daterangepicker__2_1",
@@ -6642,12 +6626,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "start"
     },
-    "visual": {
-      "fill": "transparent",
-      "borderWidth": 0,
-      "paddingX": 0,
-      "paddingY": 0
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-daterangepicker__2_sep",
@@ -6667,12 +6646,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "end"
     },
-    "visual": {
-      "fill": "transparent",
-      "borderWidth": 0,
-      "paddingX": 0,
-      "paddingY": 0
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-daterangepicker__2_2",
@@ -6723,7 +6697,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-DateField",
     "children": [
       "lib:template:component-datefield__1",
-      "lib:template:component-datefield__2",
+      "lib:template:component-datefield__group",
       "lib:template:component-datefield__description",
       "lib:template:component-datefield__3"
     ],
@@ -6753,6 +6727,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datefield__group",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-datefield__2"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -6786,7 +6769,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-TimeField",
     "children": [
       "lib:template:component-timefield__1",
-      "lib:template:component-timefield__2",
+      "lib:template:component-timefield__group",
       "lib:template:component-timefield__description",
       "lib:template:component-timefield__3"
     ],
@@ -6817,6 +6800,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "{size}"
     },
     "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-timefield__group",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-timefield__2"
+    ],
+    "props": {},
     "visual": {}
   },
   {

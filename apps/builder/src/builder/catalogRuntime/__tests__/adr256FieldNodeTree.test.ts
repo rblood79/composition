@@ -183,13 +183,14 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     const actual = renderToStaticMarkup(
       renderCatalogDom(workspace.root, field().id),
     );
-    // react-aria.adobe.com TextField (G0 example 5): Label · Input · Description · FieldError.
+    // react-aria.adobe.com TextField (G0 example 5): Label · Input · Description · FieldError — the
+    // Input in S2's `FieldGroup` (a RAC `Group role="presentation"`, `TextField.tsx` — 2026-11-14).
     const reference = renderToStaticMarkup(
       createElement(
         TextField,
         null,
         composedLabel("Name"),
-        createElement(Input),
+        createElement(Group, { role: "presentation" }, createElement(Input)),
         createElement(Text, { slot: "description" }, "Your full name"),
         createElement(FieldError),
       ),

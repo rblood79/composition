@@ -99,10 +99,11 @@ import {
 import {
   CATALOG_FIELD_BOX_CLASS,
   CATALOG_PREFIX_UNNAMED_FIELDS,
-  CATALOG_FIELD_BOX_INPUT_STYLE,
+  catalogFieldBoxInputStyle,
   catalogFieldBox,
+  catalogFieldBoxInputEnd,
+  catalogFieldBoxInputStart,
   catalogFieldBoxOfInput,
-  catalogFieldBoxStepperNode,
   catalogFieldBoxStyle,
   catalogIsFieldPrefix,
 } from "./fieldPrefix";
@@ -809,19 +810,18 @@ const glyph =
     fallbackSize: number,
     className?: string,
   ): DomBinding =>
-  (node, style) =>
-    createElement(Icon, {
+  (node, style) => {
+    // (Its glyph name: a sheet turns the chevron only — the Disclosure trigger's, Phase 8 판독 M3.)
+    // (A crumb separator's glyph is its Breadcrumbs' `separatorIcon` — `presence.ts`.)
+    const name = String(
+      node.derivedProps?._ownerIconName ?? node.props.iconName ?? fallbackName,
+    );
+    return createElement(Icon, {
       key: node.id,
       "data-catalog-id": node.id,
       ...(className ? { className } : {}),
-      // (Its glyph name: a sheet turns the chevron only — the Disclosure trigger's, Phase 8 판독 M3.)
-      // (A crumb separator's glyph is its Breadcrumbs' `separatorIcon` — `presence.ts`.)
-      "data-icon": String(
-        node.derivedProps?._ownerIconName ?? node.props.iconName ?? fallbackName,
-      ),
-      iconName: String(
-        node.derivedProps?._ownerIconName ?? node.props.iconName ?? fallbackName,
-      ),
+      "data-icon": name,
+      iconName: name,
       elementType:
         node.derivedProps?._fieldLabelRole === "necessity-icon"
           ? "span"
@@ -877,6 +877,7 @@ const glyph =
           fallbackSize,
       },
     });
+  };
 
 /**
  * A TreeItem chevron button's inline box: `Tree.css` states the desktop S2 40 + level indent (a manual
@@ -1667,8 +1668,7 @@ function progressPart(
 /**
  * The element of a node-tree field's control Group, by the field's binding (ADR-256 Phase 2c ·
  * 6b · 6d): RAC's `Group` — a ComboBox's also carries its container class (the field rule's
- * selector for the box · the parts' row). (A SearchField has none — its parts are its own children,
- * G5 example 5.) Like any Group it passes the author's `role`
+ * selector for the box · the parts' row). Like any Group it passes the author's `role`
  * and its render props as the state frame of the `showWhen` nodes inside (Decision 7); its states
  * go only when the author set them — `false` would override the field's own (RAC's `GroupContext`).
  */
@@ -1680,19 +1680,34 @@ const NODE_TREE_CONTROL_CLASSES: Readonly<Record<string, string | undefined>> =
     datepicker: undefined,
     daterangepicker: undefined,
     combobox: "react-aria-Group combobox-container",
-    // ADR-259 Phase 2: the Group a prefix wraps a TextField's · TextArea's · ColorField's Input in.
+    // (S2 `FieldGroup` around a TextField's · TextArea's · ColorField's Input and a DateField's ·
+    //  TimeField's DateInput — 2026-11-14.)
     textfield: undefined,
     textarea: undefined,
     colorfield: undefined,
+    datefield: undefined,
+    timefield: undefined,
+    // (2026-11-13: S2 SearchField's `FieldGroup` around its glyph · Input · clear button.)
+    searchfield: undefined,
   };
 /**
- * Fields with no RAC `GroupContext` (RAC's TextField gives none): their prefix Group is S2's
- * `FieldGroup role="presentation"` and takes the field's invalid · disabled itself.
+ * Fields whose control Group is S2's `FieldGroup role="presentation"` taking the field's invalid ·
+ * disabled itself: RAC's TextField · SearchField give no `GroupContext`, and a DateField's · TimeField's
+ * is its DateInput's (`DATE_BOX_GROUP_BINDINGS` — S2 `DateField.tsx` passes `role="presentation"` ·
+ * `isDisabled` · `isInvalid` to the `FieldGroup`).
  */
+/** Date fields whose RAC `GroupContext` belongs to their DateInput, not to the box Group around it. */
+const DATE_BOX_GROUP_BINDINGS: ReadonlySet<string> = new Set([
+  "datefield",
+  "timefield",
+]);
 const PREFIX_GROUP_BINDINGS: ReadonlySet<string> = new Set([
   "textfield",
   "textarea",
   "colorfield",
+  "searchfield",
+  "datefield",
+  "timefield",
 ]);
 
 /** The DOM id of a prefix (its author id, else one from the node) — the input names it (S2). */
@@ -1741,7 +1756,8 @@ function nodeTreeControlGroup(
   // The input's name: its label, then the prefix (S2 `FieldGroup` extends `InputContext` — not a
   // TextArea's, S2 G0 oracle).
   const prefixId =
-    box && !CATALOG_PREFIX_UNNAMED_FIELDS.has(catalogTypeName(root, field))
+    box?.prefix &&
+    !CATALOG_PREFIX_UNNAMED_FIELDS.has(catalogTypeName(root, field))
       ? catalogFieldPrefixDomId(box.prefix)
       : undefined;
   const content = prefixId
@@ -1761,7 +1777,11 @@ function nodeTreeControlGroup(
           ),
       })
     : undefined;
-  return createElement(RAC.Group, {
+  // A DateField's · TimeField's `GroupContext` (the field props · ref RAC gives its DateInput) passes
+  //   this box to the DateInput inside: the box takes only its own presentation role and the field's
+  //   states — one element carries the field's id, role and key handling.
+  const passesGroupContext = DATE_BOX_GROUP_BINDINGS.has(field.bindingId ?? "");
+  const group = (fieldGroupContext?: unknown) => createElement(RAC.Group, {
     key: node.id,
     "data-catalog-id": node.id,
     ...(className || box
@@ -1798,6 +1818,7 @@ function nodeTreeControlGroup(
             const style = catalogFieldBoxStyle(
               field.props.size,
               catalogTypeName(root, field),
+              box.buttoned,
             );
             return {
               display: style.display,
@@ -1809,7 +1830,12 @@ function nodeTreeControlGroup(
               paddingRight: style.paddingRight,
               paddingBottom: style.paddingBottom,
               paddingLeft: style.paddingLeft,
-              ...authoredStyle(root, node),
+              // (S2 NumberField: the stepper gap is the Group's own — authored rowGap · columnGap win.)
+              ...(style.gap !== undefined
+                ? { rowGap: style.gap, columnGap: style.gap }
+                : {}),
+              // (A quiet box's corners · fill are the quiet state's — a SearchField's pill stays out.)
+              ...quietStyle(node, authoredStyle(root, node)),
             };
           })(),
           ...(disabled
@@ -1827,10 +1853,29 @@ function nodeTreeControlGroup(
               }),
         }
       : { style: authoredStyle(root, node) }),
-    children: catalogStateChildren(node.id, () =>
-      content ? [content] : children,
-    ),
+    children: catalogStateChildren(node.id, () => {
+      const parts = content ? [content] : children;
+      return passesGroupContext
+        ? [
+            createElement(
+              RAC.GroupContext.Provider,
+              { key: "field-group", value: fieldGroupContext as never },
+              ...parts,
+            ),
+          ]
+        : parts;
+    }),
   } as unknown as Parameters<typeof RAC.Group>[0]);
+  if (!passesGroupContext) return group();
+  return createElement(RAC.GroupContext.Consumer as ElementType, {
+    key: node.id,
+    children: (fieldGroupContext: unknown) =>
+      createElement(
+        RAC.GroupContext.Provider,
+        { value: null },
+        group(fieldGroupContext),
+      ),
+  });
 }
 
 /** A toggle's text in its RAC button (ADR-256 Phase 3): a `span` with the Label rule's look. */
@@ -1967,6 +2012,42 @@ function fieldInputBinding(
  * (`data-size`); `style` carries only what the document wrote. `slot` is RAC's named slot of a
  * range picker's pair (`start` · `end`).
  */
+/**
+ * ADR-259 Phase 2 — an Input (DateInput) in a field box (S2 `FieldGroup`): the Group draws the box, the
+ * Input lays its own down (`CATALOG_FIELD_BOX_INPUT_STYLE` — the Canvas layout · paint read the same).
+ * These are its defaults there: what the author wrote on it comes after and wins. Empty elsewhere.
+ */
+function laidFieldBoxInput(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  end: number | undefined,
+  start: number | undefined,
+): CSSProperties {
+  if (
+    !catalogFieldBoxOfInput(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )
+  )
+    return {};
+  return {
+    ...catalogFieldBoxInputStyle(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    ),
+    // (before a NumberField's steppers: `text-to-control` less the box's gap — S2)
+    ...(end !== undefined ? { paddingRight: end } : {}),
+    // (after a SearchField's glyph: S2 `text-to-visual`)
+    ...(start !== undefined ? { paddingLeft: start } : {}),
+    background: "transparent",
+    borderRadius: 0,
+    boxShadow: "none",
+    outline: "none",
+  };
+}
+
 function fieldDateInputBinding(
   node: CatalogConsumerNode,
   style: CSSProperties,
@@ -3402,15 +3483,6 @@ function authoredStyle(
   const carriesText = CATALOG_TEXT_STYLE_CONTAINERS.has(
     catalogTypeName(root, node),
   );
-  // (2026-11-09) A DateRangePicker's range Group: the picker's sheet (`DateRangePicker` delegation
-  //   `.react-aria-Group`) paints the box and its hover · focus · invalid borders. The part rule's fill ·
-  //   border color are the Canvas copy (`manualBoxRules` `DATE_RANGE_GROUP_PAINT`) — inline they beat
-  //   those state borders (the focused range box kept its rest border). A written value still goes.
-  const parent = node.parentId ? root.domInputs.get(node.parentId) : undefined;
-  const sheetPaintedBox =
-    catalogTypeName(root, node) === "Group" &&
-    !!parent &&
-    catalogTypeName(root, parent) === "DateRangePicker";
   const localeLineHeight = Number(node.visual.lineHeight);
   if (
     rule?.localeTypography &&
@@ -3422,12 +3494,6 @@ function authoredStyle(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
     if (key === "aspectRatio") continue; // written below from the resolved ratio
-    if (
-      sheetPaintedBox &&
-      (key === "fill" || key === "borderColor") &&
-      !catalogHasExplicitVisual(root, node, key)
-    )
-      continue;
     // (ADR-299 — a range-formatted text's own decoration is on its run spans; an authored `none`
     //  stays on the element — it turns off a rule's line (a Link's) that no span could remove.)
     if (
@@ -3873,7 +3939,14 @@ export function renderNode(
         node,
         style: styleOverride
           ? { ...authoredStyle(root, node), ...styleOverride }
-          : authoredStyle(root, node),
+          : ITEMS_WRAPPER_BINDINGS.has(node.bindingId ?? "") && partParent
+            ? // (A group's items wrapper: the group's sheet gives its orientation box — only what
+              //  the document wrote goes inline, 2026-11-13 전수 감사.)
+              authoredStyle(
+                root,
+                withoutOwnerPartValues(root, node, partParent),
+              )
+            : authoredStyle(root, node),
         renderChild: (childId) =>
           createElement(CatalogDomNode, {
             key: childId,
@@ -3945,36 +4018,24 @@ export function renderNode(
     node.ruleId === "Input"
   ) {
     const inputStyle = { ...authoredStyle(root, node), ...styleOverride };
-    // RAC의 입력값은 문서를 다시 resolve하지 않고도 변한다. 상태별 기본 여백은
-    // 같은 catalog에서 생성한 CSS가 담당하고, 명시적 스타일만 inline으로 유지한다.
-    if (field.bindingId === "searchfield") {
-      if (
-        styleOverride?.paddingRight !== undefined ||
-        catalogHasExplicitVisual(root, node, "paddingRight")
-      )
-        inputStyle.paddingRight ??= node.visual
-          .paddingRight as CSSProperties["paddingRight"];
-      else delete inputStyle.paddingRight;
-    }
+    const inputEnd = catalogFieldBoxInputEnd(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    );
+    const inputStart = catalogFieldBoxInputStart(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    );
     return fieldInputBinding(
       node,
       {
-        ...inputStyle,
         // ADR-259 Phase 2: in a prefix box the Group draws the box — the Input lays its own down
-        // (`CATALOG_FIELD_BOX_INPUT_STYLE`, the Rust input reads the same).
-        ...(catalogFieldBoxOfInput(
-          node,
-          (id) => root.domInputs.get(id),
-          (entry) => catalogTypeName(root, entry),
-        )
-          ? {
-              ...CATALOG_FIELD_BOX_INPUT_STYLE,
-              background: "transparent",
-              borderRadius: 0,
-              boxShadow: "none",
-              outline: "none",
-            }
-          : {}),
+        // (`CATALOG_FIELD_BOX_INPUT_STYLE`, the Rust input reads the same). These are the Input's
+        // defaults there: what the author wrote on the Input (`inputStyle`) comes after and wins.
+        ...laidFieldBoxInput(root, node, inputEnd, inputStart),
+        ...inputStyle,
       },
       field,
     );
@@ -3987,9 +4048,21 @@ export function renderNode(
   )
     return fieldDateInputBinding(
       node,
-      styleOverride
-        ? { ...authoredStyle(root, node), ...styleOverride }
-        : authoredStyle(root, node),
+      {
+        // (A DatePicker's DateInput lays its box down in the Group — the same set as an Input's.)
+        ...laidFieldBoxInput(
+          root,
+          node,
+          catalogFieldBoxInputEnd(
+            node,
+            (id) => root.domInputs.get(id),
+            (entry) => catalogTypeName(root, entry),
+          ),
+          undefined,
+        ),
+        ...authoredStyle(root, node),
+        ...styleOverride,
+      },
       children,
     );
   // A field's FieldError node is a RAC FieldError inside the field's context (ADR-253): RAC shows
@@ -4030,16 +4103,6 @@ export function renderNode(
       },
     };
   }
-  // (ADR-259 Phase 2: a NumberField's stepper in its prefix box lays its border down — inline, over
-  // the Button sheet's border.)
-  const fieldBox =
-    node.bindingId === "button"
-      ? catalogFieldBoxStepperNode(
-          node,
-          (id) => root.domInputs.get(id),
-          (entry) => catalogTypeName(root, entry),
-        )
-      : node;
   // A field's own Button (derived `fieldButton`) draws its size's corner and no border (S2 — ADR-295
   // 후속), not the rule's pill and 1px: the same rest values the Canvas paints (`catalogDerivedRestVisual`). The record's pill went inline
   // and beat the sheet's `[data-field-button]` block — Select trigger · NumberField stepper ·
@@ -4050,13 +4113,13 @@ export function renderNode(
       : undefined;
   const stepper: CatalogConsumerNode = rest
     ? {
-        ...fieldBox,
+        ...node,
         visual: {
-          ...fieldBox.visual,
+          ...node.visual,
           ...rest,
         } as CatalogConsumerNode["visual"],
       }
-    : fieldBox;
+    : node;
   const bound = binding
     ? {
         ...catalogDomStyle(
@@ -4068,10 +4131,6 @@ export function renderNode(
             ? catalogAuthoredVisual(root, node)
             : undefined,
         ),
-        // (Only a stepper in a prefix box lays its border down here — `fieldBox` is a new record
-        // then. An identity test on `stepper` caught every field button once the rest values above
-        // wrapped it, zeroing their border by accident — ADR-295 후속.)
-        ...(fieldBox !== node ? { borderWidth: 0 } : {}),
       }
     : undefined;
   if (bound && !catalogIsAuthoredPlaced(node))
@@ -4231,8 +4290,8 @@ export function renderNode(
       catalogAuthoredVisual(root, declared, true).borderWidth !== undefined
     )
       bound.borderWidth = 0;
-    // A SearchField's sheet hides its clear button (its own child — G5 example 5) while the input
-    // is empty or read-only (RAC's run state): that Button's display stays the sheet's.
+    // A SearchField's sheet hides its clear button (in its control Group) while the input is empty
+    // or read-only (RAC's run state): that Button's display stays the sheet's.
     if (partField?.bindingId === "searchfield") delete bound.display;
     if (
       node.derivedProps?._pickerTrigger === true ||
@@ -4384,7 +4443,7 @@ export function renderNode(
   // selectors reach it: its gap, its shrink.)
   const element =
     prefixParent &&
-    catalogFieldBox(prefixParent, domGet, domType)?.prefix.id === node.id
+    catalogFieldBox(prefixParent, domGet, domType)?.prefix?.id === node.id
       ? cloneElement(named as ReactElement<{ id?: string; slot?: string }>, {
           slot: "prefix",
           ...(node.htmlId ? {} : { id: catalogFieldPrefixDomId(node) }),
@@ -4431,6 +4490,12 @@ export function renderNode(
  * — inline, the trigger's transparent rest fill would cover the sheet's hover background). A value
  * the document wrote over a part rule's stays.
  */
+/** A group's items wrapper (ADR-251 — `div.checkbox-items` · `div.radio-items`). */
+const ITEMS_WRAPPER_BINDINGS: ReadonlySet<string> = new Set([
+  "checkboxitems",
+  "radioitems",
+]);
+
 function withoutOwnerPartValues(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,

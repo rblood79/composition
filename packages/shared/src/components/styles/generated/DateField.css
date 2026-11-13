@@ -78,7 +78,7 @@
   --df-input-min-width: 220px;
 }
 
-.react-aria-DateField .react-aria-DateInput {
+.react-aria-DateField .react-aria-Group {
   width: 100%;
   min-width: var(--df-input-min-width);
 }

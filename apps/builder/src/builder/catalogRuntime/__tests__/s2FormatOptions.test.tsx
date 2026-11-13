@@ -132,6 +132,16 @@ const FORMATS: ReadonlyArray<Record<string, unknown> | undefined> = [
   { style: "percent", minimumFractionDigits: 1 },
   { style: "decimal", maximumFractionDigits: 0, useGrouping: false },
   { signDisplay: "always", minimumIntegerDigits: 3 },
+  // (2026-11-13 — the keys added for the S2 option set: same text as RAC on both consumers.)
+  { style: "decimal", maximumSignificantDigits: 2, roundingMode: "floor" },
+  {
+    style: "decimal",
+    roundingIncrement: 5,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    trailingZeroDisplay: "stripIfInteger",
+  },
+  { style: "decimal", useGrouping: "always", signDisplay: "negative" },
 ];
 
 describe("S2 formatOptions — the numberFormat value type", () => {
@@ -150,6 +160,15 @@ describe("S2 formatOptions — the numberFormat value type", () => {
       { useGrouping: false },
       { signDisplay: "exceptZero" },
       { minimumIntegerDigits: 21 },
+      // (2026-11-13 — every Intl key RAC's NumberParser reads back: grouping strings, the
+      //  `negative` sign, significant digits, rounding, trailing zeros.)
+      { useGrouping: "always" },
+      { useGrouping: "min2" },
+      { signDisplay: "negative" },
+      { minimumSignificantDigits: 2, maximumSignificantDigits: 4 },
+      { roundingMode: "halfEven", roundingPriority: "morePrecision" },
+      { roundingIncrement: 5, minimumFractionDigits: 2, maximumFractionDigits: 2 },
+      { trailingZeroDisplay: "stripIfInteger" },
     ])
       expect(catalogNumberFormatFits(value), JSON.stringify(value)).toBe(true);
     for (const value of [
@@ -166,7 +185,12 @@ describe("S2 formatOptions — the numberFormat value type", () => {
       { minimumIntegerDigits: 0 },
       { notation: "compact" },
       { style: "scientific" },
-      { useGrouping: "always" },
+      { useGrouping: "sometimes" },
+      { minimumSignificantDigits: 5, maximumSignificantDigits: 2 },
+      { roundingIncrement: 3, minimumFractionDigits: 2, maximumFractionDigits: 2 },
+      // (an increment needs equal fraction digits — Intl refuses it, so the check does)
+      { roundingIncrement: 5 },
+      { roundingMode: "bankers" },
       { kind: "token", tokenId: "lib:token:x" },
       [{ style: "percent" }],
       "percent",

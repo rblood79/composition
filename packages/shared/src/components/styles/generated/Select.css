@@ -19,42 +19,36 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: var(--catalog-token-select-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-select-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-Select[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-xs);
   gap: var(--catalog-token-select-gap-XS, calc(var(--catalog-token-size-height-XS) * 1 / 2 + calc(var(--catalog-token-text-2xs) * var(--catalog-token-text-2xs--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-select-icon-size-XS, var(--catalog-token-size-icon-XS));
 }
 
 .react-aria-Select[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
   gap: var(--catalog-token-select-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-select-icon-size-S, var(--catalog-token-size-icon-S));
 }
 
 .react-aria-Select[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
   gap: var(--catalog-token-select-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-select-icon-size-M, var(--catalog-token-size-icon-M));
 }
 
 .react-aria-Select[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
   gap: var(--catalog-token-select-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-select-icon-size-L, var(--catalog-token-size-icon-L));
 }
 
 .react-aria-Select[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
   gap: var(--catalog-token-select-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
-  --icon-size: var(--catalog-token-select-icon-size-XL, var(--catalog-token-size-icon-XL));
 }
 
 .react-aria-Select.react-aria-Select:where([data-disabled]) {
@@ -75,7 +69,7 @@
 
 .react-aria-Select[data-size="M"] {
   --select-btn-pad-start: calc(var(--catalog-token-size-height-M) * 3 / 8);
-  --select-btn-pad-end: 4px;
+  --select-btn-pad-end: 8px;
 }
 
 .react-aria-Select[data-size="L"] {
@@ -95,6 +89,31 @@
   padding-left: var(--select-btn-pad-start);
   padding-right: var(--select-btn-pad-end);
   gap: var(--spacing-xs);
+}
+
+.react-aria-Select[data-size="XS"] {
+  --select-glyph-size: calc(var(--catalog-token-size-unit) * 12 / 1);
+}
+
+.react-aria-Select[data-size="S"] {
+  --select-glyph-size: calc(var(--catalog-token-size-unit) * 14 / 1);
+}
+
+.react-aria-Select[data-size="M"] {
+  --select-glyph-size: calc(var(--catalog-token-size-unit) * 16 / 1);
+}
+
+.react-aria-Select[data-size="L"] {
+  --select-glyph-size: calc(var(--catalog-token-size-unit) * 18 / 1);
+}
+
+.react-aria-Select[data-size="XL"] {
+  --select-glyph-size: calc(var(--catalog-token-size-unit) * 20 / 1);
+}
+
+.react-aria-Select .react-aria-Button .react-aria-Icon svg {
+  width: var(--select-glyph-size);
+  height: var(--select-glyph-size);
 }
 
 .react-aria-Select[data-size="XS"] {

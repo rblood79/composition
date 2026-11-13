@@ -245,11 +245,21 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
           /\.react-aria-(DateInput|Button)(?![\w-])/.test(selector) ||
           (type === "DatePicker" && /\.react-aria-Group/.test(selector));
         if (!placed) continue;
+        // (A DateInput in the range picker's box Group turns its own focus outline off: the box rings
+        //  itself. A DatePicker's DateInput lays its box down inline — `CATALOG_FIELD_BOX_INPUT_STYLE`.)
         const pairFocusOff =
           type === "DateRangePicker" &&
           selector === ".react-aria-DateInput" &&
           JSON.stringify(entry.states) === PAIR_FOCUS_OFF;
-        if (entry.states !== undefined && !pairFocusOff)
+        // (A DatePicker's box Group — S2 `shouldTurnOffFocusRing`: its focus look off while the calendar
+        //  Button has focus — the Input sheet's `FieldBox` draws the box itself.)
+        const boxFocusOff =
+          type === "DatePicker" &&
+          selector === ".react-aria-Group" &&
+          Object.keys((entry.states ?? {}) as object).every((state) =>
+            state.endsWith(":has(.react-aria-Button[data-focused])"),
+          );
+        if (entry.states !== undefined && !pairFocusOff && !boxFocusOff)
           found.push(`${type} ${selector} { states }`);
         for (const key of Object.keys(entry.bridges ?? {}))
           if (!DATE_PLACEMENT.has(key))

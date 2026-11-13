@@ -85,7 +85,8 @@ import {
 import { catalogPartParent, catalogTreeItemContent } from "./presence";
 import {
   catalogFieldBox,
-  catalogFieldBoxStepperNode,
+  catalogFieldBoxInputEnd,
+  catalogFieldBoxInputStart,
   catalogFieldBoxOfInput,
 } from "../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
@@ -1101,15 +1102,25 @@ function fieldBoxShapeInput(
   }
   const input = ruleShapeInput(root, node, rect);
   if (!catalogFieldBoxOfInput(node, get, root.typeOf)) return input;
-  const laid = {
-    paddingLeft: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-    fill: "transparent",
-    borderColor: "transparent",
-    radius: 0,
-    borderWidth: 0,
-  };
+  // The Input laid into the box — its defaults there; what the author wrote on the Input wins (the
+  // layout input and the DOM keep it too).
+  const end = catalogFieldBoxInputEnd(node, get, root.typeOf);
+  const start = catalogFieldBoxInputStart(node, get, root.typeOf);
+  const authored = input.authoredVisual ?? {};
+  const laid = Object.fromEntries(
+    Object.entries({
+      // (after a SearchField's glyph: S2 `text-to-visual`)
+      paddingLeft: start ?? 0,
+      paddingTop: 0,
+      paddingBottom: 0,
+      // (before a NumberField's steppers: `text-to-control` less the box's gap — S2)
+      ...(end !== undefined ? { paddingRight: end } : {}),
+      fill: "transparent",
+      borderColor: "transparent",
+      radius: 0,
+      borderWidth: 0,
+    }).filter(([key]) => authored[key] === undefined),
+  );
   return {
     ...input,
     node: { ...input.node, visual: { ...input.node.visual, ...laid } },
@@ -1340,16 +1351,9 @@ function paintedNodeData(
         visual: { ...input.visual, ...rest },
       } as CatalogConsumerNode)
     : input;
-  // (ADR-259 Phase 2: a NumberField's stepper in its prefix box lays its border down.)
   const node = withoutCoveredGradient(
     root,
-    catalogVisualWithBackground(
-      catalogFieldBoxStepperNode(
-        restored,
-        (id) => root.canvasInputs.get(id),
-        root.typeOf,
-      ),
-    ),
+    catalogVisualWithBackground(restored),
   );
   return withOverflowClip(
     node,
@@ -1796,13 +1800,10 @@ function breadcrumbMenuData(
   rect: Rect,
 ): SkiaNodeData {
   const { button, glyph } = CATALOG_BREADCRUMB_MENU;
-  const glyphOf = (
-    name: string,
-    frame: Rect,
-    color: string,
-  ): SkiaNodeData => {
+  const glyphOf = (name: string, frame: Rect, color: string): SkiaNodeData => {
     const data = getIconData(name, "lucide", "M");
-    if (!data) throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${menu.id}:${name}`);
+    if (!data)
+      throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${menu.id}:${name}`);
     return {
       type: "icon_path",
       ...frame,
@@ -2878,11 +2879,7 @@ function bindInColorMode(
           if (sceneNodes.has(showAll.id))
             synthetic.set(showAll.listId, [showAll.id]);
         for (const menu of root.breadcrumbMenuInputs.values())
-          if (sceneNodes.has(menu.id))
-            synthetic.set(menu.listId, [
-              ...(synthetic.get(menu.listId) ?? []),
-              menu.id,
-            ]);
+          if (sceneNodes.has(menu.id)) synthetic.set(menu.listId, [menu.id]);
       }
       const syntheticIds = new Set([...synthetic.values()].flat());
       for (const region of regions) {

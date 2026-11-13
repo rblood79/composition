@@ -103,12 +103,16 @@ export function useColorStyleValues(
 
     const backgroundRaw = firstDefined(
       effectiveStyle?.backgroundColor,
-      paint?.backgroundColor ?? appearancePreset.backgroundColor,
+      context.drawnPaint?.backgroundColor ??
+        paint?.backgroundColor ??
+        appearancePreset.backgroundColor,
       "#FFFFFF",
     );
     const borderRaw = firstDefined(
       effectiveStyle?.borderColor,
-      paint?.borderColor ?? appearancePreset.borderColor,
+      context.drawnPaint?.borderColor ??
+        paint?.borderColor ??
+        appearancePreset.borderColor,
       "#000000",
     );
     const colorRaw = firstDefined(

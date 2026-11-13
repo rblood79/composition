@@ -237,8 +237,23 @@ export interface NumberFormatValue {
   readonly minimumIntegerDigits?: number;
   readonly minimumFractionDigits?: number;
   readonly maximumFractionDigits?: number;
-  readonly useGrouping?: boolean;
-  readonly signDisplay?: "auto" | "never" | "always" | "exceptZero";
+  readonly minimumSignificantDigits?: number;
+  readonly maximumSignificantDigits?: number;
+  readonly roundingMode?:
+    | "ceil"
+    | "floor"
+    | "expand"
+    | "trunc"
+    | "halfCeil"
+    | "halfFloor"
+    | "halfExpand"
+    | "halfTrunc"
+    | "halfEven";
+  readonly roundingPriority?: "auto" | "morePrecision" | "lessPrecision";
+  readonly roundingIncrement?: number;
+  readonly trailingZeroDisplay?: "auto" | "stripIfInteger";
+  readonly useGrouping?: boolean | "always" | "auto" | "min2";
+  readonly signDisplay?: "auto" | "never" | "always" | "exceptZero" | "negative";
 }
 /**
  * ADR-284 Phase 6 — a boolean prop that reads a value condition (ios-list's

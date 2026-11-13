@@ -737,12 +737,13 @@ describe("ADR-248 4e library origin view", () => {
         ),
       ),
     )[0]!;
+    // (The control is the field's box Group — S2 `FieldGroup`, 2026-11-14 — it fills the field.)
     const fieldInput = workspace.root.canvasInputs
       .get(colorField)!
       .children.find(
         (id) =>
           workspace.root.canvasInputs.get(id)?.definitionId ===
-          "lib:definition:type-Input",
+          "lib:definition:type-Group",
       )!;
     const widthOf = (record: string) =>
       workspace.root.getGeometry([record]).get(record)!.width;
@@ -1094,7 +1095,8 @@ describe("ADR-248 4e library origin view", () => {
       expect([rect.width, rect.height]).toEqual([diameter, diameter]);
     }
     // A field's button is a FieldButton instance (ComboBox · DatePicker · DateRangePicker), a
-    // Select's trigger a Button instance (ADR-253): the glyph is the Button's scale.
+    // Select's trigger a Button instance (ADR-253): the glyph is the field rule's — XS 12 · S 14 ·
+    // M 16 · L 18 · XL 20 (사용자 2026-11-13), not the Button's icon step.
     // (The field's own button — not the nav glyphs of a picker's calendar in its closed Popover,
     // ADR-256 Phase 9.)
     const inPopover = (record: string): boolean => {
@@ -1117,13 +1119,14 @@ describe("ADR-248 4e library origin view", () => {
       "datepicker",
       "daterangepicker",
     ]) {
-      expect(buttonGlyphs(origin, "XS")).toEqual([14]);
-      // (ADR-295 Phase 3b: the S2 icon step XL 22.)
-      expect(buttonGlyphs(origin, "XL")).toEqual([22]);
+      expect(buttonGlyphs(origin, "XS")).toEqual([12]);
+      expect(buttonGlyphs(origin, "XL")).toEqual([20]);
     }
-    // A NumberField's steppers are Button instances (ADR-253): their glyphs are the Button's scale.
-    expect(buttonGlyphs("numberfield", "XS")).toEqual([14, 14]);
-    expect(buttonGlyphs("numberfield", "XL")).toEqual([22, 22]);
+    // A NumberField's steppers are Button instances (ADR-253) in RAC's `decrement` · `increment`
+    // slots: their glyphs are the field buttons' size (XS 12 · XL 20 — 사용자 2026-11-13), not the
+    // Button's scale.
+    expect(buttonGlyphs("numberfield", "XS")).toEqual([12, 12]);
+    expect(buttonGlyphs("numberfield", "XL")).toEqual([20, 20]);
     // A group's size reaches its members. (A calendar has no size — 2026-10-13.)
     const sizesUnder = (origin: string, size: string, binding: string) =>
       under(recordOf(sized(origin, size)), binding).map(

@@ -75,11 +75,16 @@ const SUBPART_TOKENS: Readonly<
   ComboBox: { Group: [".combobox-container"] },
   // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
   NumberField: { Group: [".react-aria-Group"] },
-  // ADR-256 G5 (example 5): the field holds the search glyph (an Icon — its own child: the rule's
-  // `> .react-aria-Icon`, not the clear button's glyph), an Input instance and a Button instance —
-  // no control Group (the reference's grid).
+  // 2026-11-13 (S2): the control Group (the box) holds the search glyph (an Icon — the Group's own
+  // child: `.react-aria-Group > .react-aria-Icon`, not the clear button's glyph), an Input instance and
+  // a Button instance (was ADR-256 G5 example 5's flat parts).
   SearchField: {
-    Icon: [".react-aria-Icon", ".react-aria-Icon svg"],
+    Group: [".react-aria-Group"],
+    Icon: [
+      ".react-aria-Group > .react-aria-Icon",
+      ".react-aria-Group > .react-aria-Icon svg",
+    ],
+    Button: [".react-aria-Group > .react-aria-Button"],
   },
   // ADR-253: the Group holds a DateInput instance and a FieldButton instance (their own tokens).
   DatePicker: { Group: [".react-aria-Group"] },
@@ -155,10 +160,12 @@ const SUBPART_CHILD_PROPS: Readonly<
  */
 const GLYPH_TOKENS: Readonly<Record<string, { box: boolean }>> = {
   ".react-aria-Icon svg": { box: true },
+  ".react-aria-Group > .react-aria-Icon svg": { box: true },
   ".react-aria-Button .react-aria-Icon svg": { box: true },
 };
 // A declared descendant can address a different instance of the same child type.
-// SearchField's direct Icon is the search glyph; its Button's Icon is the clear glyph.
+// SearchField's Group Icon is the search glyph; its Button's Icon is the clear glyph (reached
+// through the Group — `CATALOG_PART_RULE_PASS_HOSTS`).
 const WRAPPED_PART_TOKENS: Readonly<
   Record<string, Readonly<Record<string, { childType: string; via: string }>>>
 > = {
@@ -167,7 +174,19 @@ const WRAPPED_PART_TOKENS: Readonly<
       childType: "Icon",
       via: "Button",
     },
-  },
+  },  // The field button's glyph (chevron · calendar — 2026-11-13): ComboBox · DatePicker ·
+  // DateRangePicker reach it through their control Group (`CATALOG_PART_RULE_PASS_HOSTS`).
+  ...Object.fromEntries(
+    ["ComboBox", "Select", "DatePicker", "DateRangePicker"].map((type) => [
+      type,
+      {
+        ".react-aria-Button .react-aria-Icon svg": {
+          childType: "Icon",
+          via: "Button",
+        },
+      },
+    ]),
+  ),
 };
 /**
  * Typed children that stand for several owner-composed DOM parts (their box is the parts' union).
@@ -2474,7 +2493,8 @@ export function compileRulePartRules(
           glyph &&
           (typeof compiledBlock.visual.width === "number" ||
             (typeof compiledBlock.visual.width === "string" &&
-              /^\{typography\./.test(compiledBlock.visual.width)))
+              // (A length ref — `{length.size.unit*n/1}` · the clear cross's height share.)
+              /^\{(typography|length)\./.test(compiledBlock.visual.width)))
         ) {
           const { width, height, ...rest } = compiledBlock.visual;
           compiledBlock.visual = {
