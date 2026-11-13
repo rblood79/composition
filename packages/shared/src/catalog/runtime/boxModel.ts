@@ -380,8 +380,8 @@ export interface CatalogTextMetrics extends CatalogTextTypography {
  * Text metrics of a text-painting node. A text node without its own fontSize inside a Slot uses
  * the Slot's fontSize/lineHeight (the Slot owns the placeholder/content text metric); otherwise
  * 16px is the default. Canvas and DOM both call this, so neither relies on CSS inheritance: a
- * current crumb's label Text (`presence` derives `_isLast`) takes the RAC Link's current weight
- * (catalog `Breadcrumb.currentTextWeight`) and accent color, as the Preview's `.react-aria-Text`
+ * current crumb's label Text (`presence` derives `_isLast`) takes the current crumb's weight
+ * (catalog `Breadcrumb.currentTextWeight`) and `neutral` color, as the Preview's `.react-aria-Text`
  * inherits them; a Tab/Tag label takes its item's color the same way (`derivedProps.color`).
  */
 export function catalogTextMetrics(
@@ -417,11 +417,14 @@ export function catalogTextMetrics(
             ),
           }
         : {}),
-    // The current Link's `[data-current] { color: var(--breadcrumb-accent) }` (= `--accent`); a
+    // The current crumb's `.breadcrumb-current { color: var(--fg) }` (S2 `currentStyles` `neutral`); a
     // Tab/Tag label's item color (`color: inherit` — the root derives it from the item's paint).
+    // A disabled crumb's link label: S2 `linkStyles` `isDisabled: 'disabled'` (`{color.disabled-content}`).
     color:
       node.derivedProps?._isLast === true
-        ? "var(--accent)"
-        : (node.derivedProps?.color ?? node.visual.color ?? "#000000"),
+        ? "var(--fg)"
+        : node.derivedProps?._crumbDisabled === true
+          ? "var(--fg-disabled)"
+          : (node.derivedProps?.color ?? node.visual.color ?? "#000000"),
   };
 }

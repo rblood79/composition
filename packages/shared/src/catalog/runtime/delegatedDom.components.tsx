@@ -3,12 +3,23 @@ import {
   createElement,
   Fragment,
   useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
   type ElementType,
   type ReactElement,
 } from "react";
 
 import { I18nProvider } from "react-aria-components";
+import { Breadcrumb as AriaBreadcrumb } from "react-aria-components/Breadcrumbs";
+import { Button as AriaButton } from "react-aria-components/Button";
+import {
+  Menu as AriaMenu,
+  MenuItem as AriaMenuItem,
+  MenuTrigger as AriaMenuTrigger,
+} from "react-aria-components/Menu";
+import { Popover as AriaPopover } from "react-aria-components/Popover";
 import type { Key } from "react-aria-components/Collection";
 
 import {
@@ -29,7 +40,16 @@ import {
   useTagRowsState,
 } from "../../components/TagGroup";
 
+import { Breadcrumbs } from "../../components/Breadcrumbs";
+import { Icon } from "../../components/Icon";
+import {
+  CATALOG_BREADCRUMB_MENU,
+  catalogBreadcrumbsCollapse,
+  catalogBreadcrumbsVisibleCount,
+} from "./breadcrumbsCollapse";
 import { CatalogCalendarPickerContext } from "./calendarPickerContext";
+import { catalogDeviceScaledCss } from "./deviceTypography";
+import { useCatalogDeviceUnit } from "./deviceUnit.runtime";
 
 import {
   catalogControlledProps,
@@ -415,5 +435,243 @@ export function TagListRun({
       ? showButton(`Show all (${tags.length})`, false)
       : null,
     hasMaxRows && !isCollapsed ? showButton("Show less", true) : null,
+  );
+}
+
+/** A crumb's label text and link (its folder menu item — S2 `BreadcrumbMenu` `MenuItem`). */
+function breadcrumbMenuItem(
+  input: DelegatedDomInput,
+  crumb: DelegatedDomInput["node"],
+): { text: string; href: string | undefined } {
+  const content = childrenOf(input.root, crumb).filter(
+    (child) => child.props.slot !== "separator",
+  );
+  const text = content
+    .map((child) => child.derivedProps?.children ?? child.props.children)
+    .filter((value): value is string => typeof value === "string" && !!value)
+    .join(" ");
+  const href = [crumb, ...content]
+    .map((node) => node.props.href)
+    .find((value): value is string => typeof value === "string" && !!value);
+  return { text, href };
+}
+
+/**
+ * S2 Breadcrumbs (`Breadcrumbs.tsx` — `CollapsingCollection`): RAC Breadcrumbs of the crumb nodes that
+ * collapses the crumbs that do not fit (or past four) into a folder menu after the first crumb. The
+ * judgement is `breadcrumbsCollapse.ts`, the Canvas's too (`settleBreadcrumbs`): every crumb is
+ * rendered and measured (before paint), then the list renders collapsed; a resize measures again.
+ */
+export function BreadcrumbsRun({
+  input,
+  ...authored
+}: { input: DelegatedDomInput } & AuthoredDomAttributes): ReactElement {
+  const props = input.node.props;
+  const crumbs = childrenOf(input.root, input.node).filter(
+    (child) => catalogTypeName(input.root, child) === "Breadcrumb",
+  );
+  const unit = useCatalogDeviceUnit();
+  const listRef = useRef<HTMLOListElement | null>(null);
+  // (What the crumbs show: a crumb added, removed or relabelled is measured again.)
+  const signature = [
+    str(props.size || "M"),
+    ...crumbs.map(
+      (crumb) => `${crumb.id}\u0001${breadcrumbMenuItem(input, crumb).text}`,
+    ),
+  ].join("\u0000");
+  const [epoch, setEpoch] = useState(0);
+  const key = `${signature}\u0002${epoch}`;
+  const [measured, setMeasured] = useState<{ key: string; visible: number }>();
+  const measuring = measured?.key !== key;
+  const settledWidth = useRef<number | undefined>(undefined);
+  const attempts = useRef(0);
+  const settledKey = useRef<string | undefined>(undefined);
+  const [, setRetry] = useState(0);
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    if (!measuring) {
+      // (The list's width right after it renders the judgement — a later resize measures again.)
+      if (settledKey.current !== key) {
+        settledKey.current = key;
+        settledWidth.current = list.getBoundingClientRect().width;
+      }
+      return;
+    }
+    // (The crumbs only — a folder crumb still shown from the collapse before is not one.)
+    const items = [...list.children].filter(
+      (element) =>
+        element.classList.contains("react-aria-Breadcrumb") &&
+        !element.classList.contains("breadcrumb-menu"),
+    );
+    // (RAC renders its collection's items after it builds the collection — a commit later: measure
+    //   once they are all there, rendering again (a few times at most) until then.)
+    if (items.length !== crumbs.length) {
+      if (attempts.current < 3) {
+        attempts.current++;
+        setRetry((value) => value + 1);
+      }
+      return;
+    }
+    attempts.current = 0;
+    const style = getComputedStyle(list);
+    setMeasured({
+      key,
+      visible: catalogBreadcrumbsVisibleCount(
+        items.map((item) => item.getBoundingClientRect().width),
+        list.getBoundingClientRect().width,
+        Number.parseFloat(style.columnGap || style.gap) || 0,
+        CATALOG_BREADCRUMB_MENU.button * unit,
+      ),
+    });
+  });
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      const width = list.getBoundingClientRect().width;
+      if (
+        settledWidth.current !== undefined &&
+        Math.abs(width - settledWidth.current) < 0.5
+      )
+        return;
+      setEpoch((value) => value + 1);
+    });
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, []);
+  const collapse = measuring
+    ? undefined
+    : catalogBreadcrumbsCollapse(crumbs, measured!.visible);
+  const isDisabled = bool(props.isDisabled);
+  const menu = () => {
+    // (The separator after the folder: the first crumb's separator Icon — S2's Chevron.)
+    const separator = childrenOf(input.root, crumbs[0]!).find(
+      (child) =>
+        catalogTypeName(input.root, child) === "Icon" &&
+        child.props.slot === "separator",
+    );
+    const separatorSize =
+      typeof separator?.visual.iconSize === "number"
+        ? separator.visual.iconSize
+        : 10;
+    const separatorSide = catalogDeviceScaledCss(separatorSize);
+    // (S2 ActionButton M's icon: `1lh` of its font.)
+    const glyph =
+      "calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height))";
+    return createElement(
+      AriaBreadcrumb as ElementType,
+      {
+        key: "__breadcrumb-menu",
+        id: "__breadcrumb-menu",
+        className: "react-aria-Breadcrumb breadcrumb-menu",
+        style: {
+          gap: 0,
+          marginInlineStart: catalogDeviceScaledCss(
+            CATALOG_BREADCRUMB_MENU.marginStart,
+          ),
+        },
+      },
+      createElement(
+        AriaMenuTrigger,
+        null,
+        createElement(
+          AriaButton as ElementType,
+          {
+            className: "react-aria-ActionButton breadcrumb-menu-button",
+            "data-variant": "default",
+            "data-size": "M",
+            "data-quiet": true,
+            "aria-label": "More items",
+            isDisabled,
+            style: {
+              boxSizing: "border-box",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              width: catalogDeviceScaledCss(CATALOG_BREADCRUMB_MENU.button),
+              height: catalogDeviceScaledCss(CATALOG_BREADCRUMB_MENU.button),
+            },
+          },
+          createElement(Icon, {
+            iconName: "s2-folder-breadcrumb",
+            style: { fontSize: glyph, width: glyph, height: glyph },
+          }),
+        ),
+        createElement(
+          AriaPopover as ElementType,
+          // (S2 `BreadcrumbMenu`'s Menu is the default M — the generated Menu sheet's popover box.)
+          {
+            className: "react-aria-Popover",
+            placement: "bottom start",
+            "data-size": "M",
+          },
+          createElement(
+            AriaMenu as ElementType,
+            {
+              className: "react-aria-Menu",
+              "aria-label": "More items",
+              "data-size": "M",
+            },
+            ...(collapse?.hidden ?? []).map((crumb) => {
+              const { text, href } = breadcrumbMenuItem(input, crumb);
+              return createElement(
+                AriaMenuItem as ElementType,
+                {
+                  key: crumb.id,
+                  id: crumb.id,
+                  href,
+                  textValue: text,
+                  className: "react-aria-MenuItem",
+                  "data-size": "M",
+                },
+                text,
+              );
+            }),
+          ),
+        ),
+      ),
+      createElement(Icon, {
+        iconName: String(
+          separator?.derivedProps?.iconName ??
+            separator?.props.iconName ??
+            "s2-chevron",
+        ),
+        style: {
+          fontSize: separatorSide,
+          width: separatorSide,
+          height: separatorSide,
+          color: String(separator?.visual.color ?? "var(--fg)"),
+        },
+      }),
+    );
+  };
+  const rendered = collapse
+    ? [
+        ...renderAll(input, [crumbs[0]!]),
+        menu(),
+        ...renderAll(
+          input,
+          crumbs.slice(1).filter((crumb) => !collapse.hidden.includes(crumb)),
+        ),
+      ]
+    : renderAll(input, crumbs);
+  return createElement(
+    Breadcrumbs as ElementType,
+    {
+      ...marker(input),
+      ref: listRef,
+      style: input.style,
+      "data-size": str(props.size || "M"),
+      "data-variant": str(props.variant || "default"),
+      "aria-label":
+        typeof props["aria-label"] === "string" ? props["aria-label"] : undefined,
+      size: props.size,
+      isDisabled,
+      // (What the runtime adds on the element — a rule's `onAction` — reaches RAC.)
+      ...authored,
+    },
+    ...rendered,
   );
 }

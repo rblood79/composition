@@ -612,7 +612,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     );
     expect(displays.length).toBeGreaterThan(0);
   });
-  it("paints a crumb label in the crumb's text color, the current one in accent (Preview Link color)", async () => {
+  it("paints a crumb label in the crumb's text color, the current one neutral (S2 current crumb)", async () => {
     const id = (name: string) => `project:node:${name}` as NodeId;
     const entry = (
       name: string,
@@ -653,10 +653,10 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       )!;
     const color = (name: string) =>
       catalogTextMetrics(input(name), input(name.replace(/-label$/, ""))).color;
-    // `.react-aria-Link .react-aria-Text { color: inherit }`: the Link's color — catalog
-    // `Breadcrumb.colors.text` (neutral-subdued), the current crumb's `[data-current]` accent.
+    // `.breadcrumb-link .react-aria-Text { color: inherit }`: the link's color — catalog
+    // `Breadcrumb` paint (S2 `neutral-subdued`), the current crumb's S2 `currentStyles` `neutral`.
     expect(color("home-label")).toBe(LIGHT_NEUTRAL_SUBDUED);
-    expect(color("page-label")).toBe("var(--accent)");
+    expect(color("page-label")).toBe("var(--fg)");
   });
 
   it("derives the calendar heading from the Calendar, and lays the header row out of its nodes (ADR-256 Phase 9)", async () => {

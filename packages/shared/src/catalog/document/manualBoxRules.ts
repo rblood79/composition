@@ -687,11 +687,12 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     ],
   }),
   // The crumb's own sheet is not loaded (below): its text inherits the Breadcrumbs size font.
-  // `Breadcrumbs.css` `[data-size]` also sets `--breadcrumb-gap` (the crumb row's and the list's gap —
-  // catalog `Breadcrumb.sizes[size].gap`) and `--breadcrumb-icon-size` (the separator Icon after the
-  // Link, `.react-aria-Breadcrumb > .react-aria-Icon svg`). A crumb's label Text sits in the RAC
-  // `Link` and inherits its font (`.react-aria-Link .react-aria-Text { inherit }`): the size font at
-  // the Link sheet's line-height ratio, regular weight (the current crumb's weight is the root's).
+  // S2 structure (2026-11-13): `Breadcrumbs.css` gives the crumb row its content ↔ separator gap (S2
+  // `text-to-visual` — catalog `Breadcrumb.sizes[size].gap`) and the separator Icon S2's Chevron M box
+  // (`Breadcrumb.sizes[size].iconSize` — 10, the desktop set: a part rule's `iconSize` is a number). A crumb's
+  // label Text sits in its `.breadcrumb-link` (RAC Link) or `.breadcrumb-current` and inherits its font
+  // (`.react-aria-Text { inherit }`): the size font at the Link sheet's line-height ratio, regular
+  // weight (the current crumb's weight and color are `catalogTextMetrics`').
   Breadcrumbs: () => ({
     parts: Object.entries(sizesOf("Breadcrumbs")).flatMap(
       ([name, values]): CompiledPartRule[] => {
@@ -699,7 +700,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         if (!crumbFont) return [];
         const crumb = sizesOf("Breadcrumb")[name];
         const gap = typeof crumb?.gap === "number" ? crumb.gap : 0;
-        const iconSize = px(crumb?.iconSize) ?? 16;
+        const iconSize = px(crumb?.iconSize) ?? 10;
         const crumbText = paintAt(
           (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Breadcrumb
             ?.variants.default?.paint.color,
@@ -722,14 +723,15 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
                 ? { lineHeight: linkLineHeightRatio()! }
                 : {}),
               fontWeight: 400,
-              // The Link's color (`.react-aria-Link { color: var(--fg-muted) }`) = catalog
-              // `Breadcrumb.colors.text`; the current crumb's accent is `catalogTextMetrics`'.
+              // The link's color (`.breadcrumb-link { color: var(--fg-muted) }`) = catalog
+              // `Breadcrumb` paint color (S2 `neutral-subdued`); the current crumb's `neutral` bold is
+              // `catalogTextMetrics`'.
               ...(crumbText ? { color: crumbText } : {}),
             },
           },
-          // ADR-256 Phase 5a: the crumb's label is the reference's RAC `Link` node — the same font
-          // and color (`.react-aria-Breadcrumbs .react-aria-Link`; its resting underline is off —
-          // the derived `_noUnderline`, Canvas only: the Preview's hover underline stays the sheet's).
+          // An authored Link label (a crumb whose content holds a Link node draws it as its link) —
+          // the same font and color (`.react-aria-Breadcrumb > .react-aria-Link`; its resting
+          // underline is off — the derived `_noUnderline`, Canvas only: the hover underline is the sheet's).
           {
             childType: "Link",
             via: "Breadcrumb",
@@ -750,7 +752,13 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
             childProps: { slot: "separator" },
             size: name,
             layout: {},
-            visual: { width: iconSize, height: iconSize, iconSize },
+            // (S2 Chevron M = `10 × --s2-scale`: a length ref — the Canvas reads 10, the DOM the device
+            //   formula — `catalogDeviceGlyphSize`.)
+            visual: {
+              width: scaledLengthRef(iconSize),
+              height: scaledLengthRef(iconSize),
+              iconSize: scaledLengthRef(iconSize),
+            },
           },
         ];
       },
@@ -758,19 +766,18 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   }),
   // `generated/Breadcrumb.css` is not loaded (`UNLOADED_GENERATED_CSS` B): the crumb box is the
   // manual `Breadcrumbs.css` `.react-aria-Breadcrumb { display: inline-flex; align-items: center }`
-  // (no size height/padding), sized by its Link's line box. The crumb's text is always a RAC
-  // `Link` (`renderBreadcrumbs`, and the orphan host alike): its line box is the Link sheet's
-  // default-size `line-height` ratio (unitless `--text-sm--line-height`) at the crumb font.
-  // `Breadcrumbs.css` base `--breadcrumb-gap` / `--breadcrumb-icon-size` (the default size's values —
-  // a crumb outside Breadcrumbs is hosted without `data-size`); inside Breadcrumbs the owner's
-  // per-size parts (above, applied after these) take over.
+  // (no size height/padding), sized by its content's line box. The crumb's text is in its
+  // `.breadcrumb-link` / `.breadcrumb-current` (the orphan host alike): its line box is the Link
+  // sheet's default-size `line-height` ratio (unitless `--text-sm--line-height`) at the crumb font.
+  // The default size's gap · separator box (a crumb outside Breadcrumbs is hosted without
+  // `data-size`); inside Breadcrumbs the owner's per-size parts (above, applied after these) take over.
   Breadcrumb: () => {
     const ratio = linkLineHeightRatio();
     const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
       .Breadcrumb;
     const base = rule?.defaultSize ? rule.sizes[rule.defaultSize] : undefined;
     const gap = typeof base?.gap === "number" ? base.gap : 0;
-    const iconSize = px(base?.iconSize) ?? 16;
+    const iconSize = px(base?.iconSize) ?? 10;
     return {
       replace: true,
       layout: { display: "inline-flex", alignItems: "center" },
@@ -780,24 +787,32 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           childType: "Icon",
           childProps: { slot: "separator" },
           layout: {},
-          visual: { width: iconSize, height: iconSize, iconSize },
+          // (S2 Chevron M = `10 × --s2-scale`: a length ref — the Canvas reads 10, the DOM the device
+            //   formula — `catalogDeviceGlyphSize`.)
+            visual: {
+              width: scaledLengthRef(iconSize),
+              height: scaledLengthRef(iconSize),
+              iconSize: scaledLengthRef(iconSize),
+            },
         },
-        // ADR-256 Phase 5a: the label Link takes the crumb's font (a Text label inherited it) and
-        // color — inside Breadcrumbs the owner's per-size parts take over.
-        {
-          childType: "Link",
-          layout: {},
-          visual: {
-            ...(px(base?.fontSize)
-              ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
-              : {}),
-            ...(ratio ? { lineHeight: ratio } : {}),
-            fontWeight: 400,
-            ...(paintAt(rule?.variants.default?.paint.color)
-              ? { color: paintAt(rule?.variants.default?.paint.color) }
-              : {}),
-          } as CompiledPartRule["visual"],
-        },
+        // The label Text (and an authored Link label) takes the crumb's font and color — inside
+        // Breadcrumbs the owner's per-size parts take over.
+        ...(["Text", "Link"] as const).map(
+          (childType): CompiledPartRule => ({
+            childType,
+            layout: {},
+            visual: {
+              ...(px(base?.fontSize)
+                ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
+                : {}),
+              ...(ratio ? { lineHeight: ratio } : {}),
+              fontWeight: 400,
+              ...(paintAt(rule?.variants.default?.paint.color)
+                ? { color: paintAt(rule?.variants.default?.paint.color) }
+                : {}),
+            } as CompiledPartRule["visual"],
+          }),
+        ),
       ],
     };
   },

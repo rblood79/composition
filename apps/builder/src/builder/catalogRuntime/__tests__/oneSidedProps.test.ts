@@ -105,13 +105,15 @@ describe("a prop reaches the Canvas and the Preview alike", () => {
     expect(form!.visual.gap).toBe(20);
   });
 
-  it("Breadcrumbs size: its crumbs take it (the separator glyph), not edited on a crumb", async () => {
+  it("Breadcrumbs size: its crumbs take it (the label ↔ separator gap), not edited on a crumb", async () => {
     const { canvas, root } = await open("breadcrumbs", { size: "L" });
     const crumbs = canvas("Breadcrumb");
     expect(crumbs.length).toBeGreaterThan(1);
     for (const crumb of crumbs) {
       expect(crumb.props.size).toBe("L");
-      expect(crumb.visual.iconSize).toBe(18);
+      // S2: `text-to-visual` of the L font (16 × 6/14); the chevron is S2's M (10) at every size.
+      expect(crumb.visual.gap).toBeCloseTo((16 * 6) / 14, 3);
+      expect(crumb.visual.iconSize).toBe(10);
       expect(catalogOwnerDecidedProps(root, crumb)?.owner).toBe("Breadcrumbs");
     }
   });

@@ -1,125 +1,109 @@
 @layer components {
+  /*
+   * S2 `Breadcrumbs.tsx` (2026-11-13 S2 구조): 조각 = RAC `Breadcrumb` (li) 안에 내용 (label Text) 을 감싼
+   * `.breadcrumb-link` (RAC Link — 현재가 아닐 때) 또는 `.breadcrumb-current` (div — 현재 조각), 그 뒤 구분자
+   * Icon (편집 가능한 노드 — S2 의 Chevron 자리). 조각 사이 gap · 글자 · 높이는 생성 Breadcrumbs.css 가 catalog
+   * `Breadcrumbs.sizes` 로 적는다. 생성 Breadcrumb.css 는 로드되지 않아 조각 값은 여기 적는다 (catalog
+   * `Breadcrumb.sizes` · `variants.default` 와 같은 값 — Canvas 는 catalog 를 읽는다).
+   */
   .react-aria-Breadcrumbs {
-    /* Local color variable */
-    --breadcrumb-accent: var(--accent);
-
-    /* catalog Breadcrumb.sizes[size] — 구분자 Icon 크기 (iconSize) · label ↔ 구분자 ↔ 다음 조각 간격 (gap).
-     * 생성 Breadcrumb.css 가 로드되지 않아 여기 적는다 (사용자 결정 2026-09-29: 14/16/18 · 0/2/4). */
-    --breadcrumb-icon-size: 16px;
-    --breadcrumb-gap: 2px;
-
     display: flex;
     align-items: center;
-    gap: var(--breadcrumb-gap);
     list-style: none;
     margin: 0;
     padding: 0;
-    font-size: var(--text-lg);
     color: var(--fg);
 
+    /* S2 `breadcrumbStyles`: 조각 = 가로 flex. gap = 내용 ↔ 구분자 = S2 `chevronStyles` `marginStart:
+     * 'text-to-visual'` (catalog `Breadcrumb.sizes[*].gap` — 6/14 em, 터치 8/17 em). */
     .react-aria-Breadcrumb {
       display: inline-flex;
       align-items: center;
-      gap: var(--breadcrumb-gap);
+      gap: calc(
+        1em *
+          (
+            6 / 14 + (8 / 17 - 6 / 14) *
+              var(--catalog-token-size-device-touch, 0)
+          )
+      );
     }
 
-    /* 조각 뒤 구분자 = 편집 가능한 Icon 자식 (현재 조각은 RAC isCurrent 로 그리지 않는다) — catalog
-     * Breadcrumb.variants.default.trailingIcon.color. SVG width/height 속성은 CSS 가 덮는다. */
+    /* 구분자 Icon = S2 `<ChevronIcon size="M" />` 자리 — 크기와 관계없이 10 (× `--s2-scale`, catalog
+     * `Breadcrumb.sizes[*].iconSize`), 색 S2 `neutral` (`trailingIcon.color`). SVG width/height 속성은 CSS 가
+     * 덮는다. */
     .react-aria-Breadcrumb > .react-aria-Icon {
       display: inline-flex;
-      /* 상자 = Icon 크기 (생성 Icon.css 의 size 높이 24 가 아니다 — 글리프가 조각 가운데에 온다) */
-      width: var(--breadcrumb-icon-size);
-      height: var(--breadcrumb-icon-size);
-      color: var(--fg-muted);
+      width: calc(var(--catalog-token-size-unit, 1px) * 10);
+      height: calc(var(--catalog-token-size-unit, 1px) * 10);
+      color: var(--fg);
 
       svg {
-        width: var(--breadcrumb-icon-size);
-        height: var(--breadcrumb-icon-size);
+        width: 100%;
+        height: 100%;
       }
     }
 
-    /* label Text 는 Link 의 글자 (크기 · 굵기 · 줄 높이 · 색) 를 따른다 — `.react-aria-Text` 가 자기 값을 선언해
-     * 상속이 끊기므로 되살린다 (Tab · Tag label 선례). Canvas 는 `itemLabelInheritance.ts` 가 같은 값을 주입. */
-    .react-aria-Link .react-aria-Text {
+    /* S2 `linkStyles` · `currentStyles`: 글자는 조각의 크기 글자 (controlFont), 줄 높이는 Link sheet 의 기본
+     * 크기 비율 (Canvas `manualBoxRules` 와 같은 값). 링크 = `neutral-subdued` · hover · focus 때 밑줄,
+     * 현재 = `neutral` 700. */
+    /* (작성자 Link 노드가 든 조각은 그 Link 가 조각의 링크다 — 같은 값.) */
+    .breadcrumb-link,
+    .react-aria-Breadcrumb > .react-aria-Link,
+    .breadcrumb-current {
+      font-size: inherit;
+      line-height: var(--catalog-token-text-sm--line-height);
+      font-family: inherit;
+    }
+
+    .breadcrumb-link,
+    .react-aria-Breadcrumb > .react-aria-Link {
+      position: relative;
+      color: var(--fg-muted);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      outline: none;
+      cursor: pointer;
+      transition: color 150ms;
+
+      /* (focus 의 밑줄 · outline 은 catalog `Breadcrumbs.partStateStyles` — 생성 Breadcrumbs.css) */
+      &[data-hovered] {
+        text-decoration: underline;
+      }
+
+      /* S2 `linkStyles` `isDisabled`: color `disabled` (catalog `Breadcrumb` paint `isDisabled` — the label
+       * Text's inline color is the same, `catalogTextMetrics`), no underline, default cursor. */
+      &[data-disabled] {
+        cursor: default;
+        color: var(--fg-disabled);
+        text-decoration: none;
+      }
+    }
+
+    .breadcrumb-current {
+      color: var(--fg);
+      /* catalog Breadcrumb.variants.default.currentTextWeight (S2 `fontWeight: 'bold'`) */
+      font-weight: 700;
+    }
+
+    /* label Text 는 링크 · 현재 상자의 글자 (크기 · 굵기 · 줄 높이 · 색) 를 따른다 — `.react-aria-Text` 가 자기 값을
+     * 선언해 상속이 끊기므로 되살린다. Canvas 는 `manualBoxRules` · `catalogTextMetrics` 가 같은 값을 준다. */
+    :is(
+        .breadcrumb-link,
+        .breadcrumb-current,
+        .react-aria-Breadcrumb > .react-aria-Link
+      )
+      .react-aria-Text {
       font-size: inherit;
       font-weight: inherit;
       line-height: inherit;
       color: inherit;
     }
 
-    .react-aria-Link {
-      color: var(--fg-muted);
-      font-size: inherit;
-      outline: none;
-      position: relative;
-      text-decoration: none;
-      cursor: pointer;
-      transition: color 150ms;
-
-      &[data-hovered] {
-        text-decoration: underline;
-        color: var(--fg);
-      }
-
-      &[data-current] {
-        color: var(--breadcrumb-accent);
-        /* catalog Breadcrumb.variants.default.currentTextWeight (생성 Breadcrumb.css 는 로드되지 않는다) */
-        font-weight: 700;
-      }
-
-      /* (ADR-297 Phase 3g: a catalog crumb's is the Breadcrumbs rule's tree) */
-
-      &[data-disabled] {
-        cursor: default;
-
-        &:not([data-current]) {
-          color: color-mix(in srgb, var(--fg) 38%, transparent);
-          opacity: 0.38;
-        }
-      }
-    }
-
-    /*
-     * 마지막 Breadcrumb: RSP/레퍼런스 — 현재 페이지 항목은 자식 Link의 Disabled와 무관하게
-     * 전역 Link[data-disabled] opacity·pointer-events 비활성 스타일을 적용하지 않음.
-     */
-    .react-aria-Breadcrumb:last-child .react-aria-Link[data-disabled] {
-      opacity: 1;
-      pointer-events: auto;
-      cursor: default;
-    }
-
-    /* Breadcrumbs isDisabled: nav 루트 opacity 금지(자손 상속으로 마지막까지 흐려짐) — 앞쪽 링크만 비활성 톤 */
-    &[data-disabled] .react-aria-Breadcrumb:not(:last-child) .react-aria-Link {
-      opacity: 0.38;
+    /* Breadcrumbs isDisabled: RAC 가 조각 Link 마다 data-disabled 를 준다 (위 규칙 — S2 `disabled` 색).
+     * 현재 조각은 S2 `currentStyles` 그대로 neutral. */
+    &[data-disabled]
+      :is(.breadcrumb-link, .react-aria-Breadcrumb > .react-aria-Link) {
       pointer-events: none;
-      cursor: default;
-      color: color-mix(in srgb, var(--fg) 38%, transparent);
-    }
-
-    /* ===== Size Variants (RSP API: S | M | L) =====
-     * gap 을 크기 블록에서 다시 적는다 — 생성 Breadcrumbs.css 기본 블록의 `gap: 2px` 가 같은 specificity 로
-     * 뒤에 와 base `var(--breadcrumb-gap)` 를 이기고, 생성기는 S 의 0 을 내보내지 않는다. */
-
-    &[data-size="S"] {
-      font-size: var(--text-sm);
-      --breadcrumb-icon-size: 14px;
-      --breadcrumb-gap: 0px;
-      gap: var(--breadcrumb-gap);
-    }
-
-    &[data-size="M"] {
-      font-size: var(--text-base);
-      --breadcrumb-icon-size: 16px;
-      --breadcrumb-gap: 2px;
-      gap: var(--breadcrumb-gap);
-    }
-
-    &[data-size="L"] {
-      font-size: var(--text-lg);
-      --breadcrumb-icon-size: 18px;
-      --breadcrumb-gap: 4px;
-      gap: var(--breadcrumb-gap);
     }
   }
 

@@ -2104,49 +2104,52 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isHovered: "{color.container}",
             isPressed: "{color.container}",
           },
+          // S2 `linkStyles` color `neutral-subdued` — a hovered link underlines, its color stays; a
+          //   disabled link is `disabled` (no opacity — the current crumb stays `neutral`).
           color: {
             default: "{color.neutral-subdued}",
-            isHovered: "{color.neutral}",
+            isDisabled: "{color.disabled-content}",
           },
         },
 
-        // 현재 페이지 조각 (RAC data-current = 마지막 조각) 굵기 700 (사용자 결정 2026-09-29).
-        //   Canvas 는 이 값을 읽고, DOM 은 생성 Breadcrumb.css 가 로드되지 않아 손 `Breadcrumbs.css`
-        //   `.react-aria-Link[data-current]` 가 같은 값을 적는다.
+        // 현재 페이지 조각 (RAC data-current = 마지막 조각) = S2 `currentStyles` `fontWeight: 'bold'` (700) ·
+        //   color `neutral`. Canvas 는 이 값을 읽고, DOM 은 생성 Breadcrumb.css 가 로드되지 않아 손
+        //   `Breadcrumbs.css` `.breadcrumb-current` 가 같은 값을 적는다.
         currentTextWeight: 700,
 
-        // 조각 뒤 구분자 = 편집 가능한 Icon 자식 (`slot="separator"`, 사용자 결정 2026-09-29 — 종전
-        //   `::after` "›" 대체). 이름은 seed · 데이터 행의 기본값, 색은 구분자 글리프 색.
+        // 조각 뒤 구분자 = 편집 가능한 Icon 자식 (`slot="separator"`, 사용자 결정 2026-09-29). 기본은 S2 가
+        //   그리는 `<ChevronIcon size="M" />` (ui-icons Chevron M — `s2-chevron`), 색은 S2 `chevronStyles`
+        //   `neutral` (2026-11-13 S2 구조 — 전에는 lucide `chevron-right` · `neutral-subdued`).
         trailingIcon: {
-          name: "chevron-right",
-          color: "{color.neutral-subdued}",
+          name: "s2-chevron",
+          color: "{color.neutral}",
         },
       },
     },
-    // iconSize = 구분자 Icon 크기 (글자 크기 따름 14/16/18). gap = label ↔ 구분자 간격이자 조각 사이 간격
-    //   (Breadcrumbs.sizes.gap 과 같은 값) — 종전 "›" 좌우 padding 4/8/12 과 보이는 간격이 같다 (사용자 결정
-    //   2026-09-29).
+    // S2 `Breadcrumbs.tsx` (2026-11-13): iconSize = 구분자 Icon 크기 — S2 는 크기와 관계없이 Chevron M (10,
+    //   × `--s2-scale`). gap = label ↔ 구분자 = S2 `chevronStyles` `marginStart: 'text-to-visual'` (6/14 em ·
+    //   터치 8/17 em). 조각 사이 간격은 Breadcrumbs.sizes.gap (S2 wrapper gap).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 24,
-        iconSize: 14,
-        gap: 0,
+        iconSize: scaled(10),
+        gap: TEXT_TO_VISUAL,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 32,
-        iconSize: 16,
-        gap: 2,
+        iconSize: scaled(10),
+        gap: TEXT_TO_VISUAL,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 40,
-        iconSize: 18,
-        gap: 4,
+        iconSize: scaled(10),
+        gap: TEXT_TO_VISUAL,
       },
     },
     structure: {
@@ -2158,32 +2161,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        opacity: { isDisabled: 0.38 },
         pointerEvents: { isDisabled: "none" },
       },
     },
   },
   Breadcrumbs: {
-    // ADR-297 Phase 3g — a crumb's keyboard focus box (옛 수동 `Breadcrumbs.css`).
+    // S2 `linkStyles` `focusRing()` — a crumb link's keyboard focus box is the outline (2 · offset 2,
+    //   `focus-ring` color) around its `sm` corner, and it underlines (`textDecoration.isFocusVisible`)
+    //   (2026-11-13 S2 구조 — 전에는 accent `::after` 테두리).
     partStateStyles: {
-      "& .react-aria-Link%::after": {
-        content: { isFocusVisible: '""' },
-        position: { isFocusVisible: "absolute" },
-        inset: { isFocusVisible: "-2px -4px" },
-        borderRadius: { isFocusVisible: "var(--radius-xs)" },
-        border: { isFocusVisible: "2px solid var(--breadcrumb-accent)" },
+      "& .breadcrumb-link%": {
+        outline: { isFocusVisible: "var(--focus-ring-width) solid var(--focus-ring)" },
+        outlineOffset: { isFocusVisible: "2px" },
+        textDecoration: { isFocusVisible: "underline" },
       },
     },
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
       default: {
+        // (No fill — S2 Breadcrumbs draws none; the composition owns the box, ADR-297 gate.)
         paint: {
-          backgroundColor: {
-            default: "{color.container}",
-            isHovered: "{color.container}",
-            isPressed: "{color.container}",
-          },
           color: {
             default: "{color.neutral-subdued}",
             isHovered: "{color.neutral}",
@@ -2191,7 +2189,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    // gap = 조각 사이 간격 (Breadcrumb.sizes.gap 과 같은 값 — 구분자 Icon 양옆 간격).
+    // gap = 조각 사이 간격 = S2 wrapper `gap: size(6)` (M) · `size(9)` (L) (× `--s2-scale`). S 는 S2 에 없어
+    //   같은 비율 (M × 2/3) 의 4.
     // 글자 = S2 Breadcrumb 링크 `font: controlFont()` (S ui-sm 12 · M ui 14 · L ui-lg 16 — ADR-295 후속).
     // 높이 = S2 Breadcrumbs 항목 `height: controlSize()` (M 32 · L 40 — S 는 control S 24, ADR-295 Phase 3c-3c):
     //   최소 높이 control 토큰 (터치 × 1.25 도 S2 와 같다), 항목은 루트의 `align-items: center` 로 가운데.
@@ -2201,21 +2200,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
         height: 0,
         minHeight: "{size.height.S}",
-        gap: 0,
+        gap: scaled(4),
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         minHeight: "{size.height.M}",
-        gap: 2,
+        gap: scaled(6),
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
         minHeight: "{size.height.L}",
-        gap: 4,
+        gap: scaled(9),
       },
     },
     structure: {
@@ -2226,6 +2225,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "row",
         flexWrap: "nowrap",
         alignItems: "center",
+      },
+      // S2 wrapper `marginStart` (M `size(6)` · L `size(9)` — the gap's; S 4 like the gap). A size's
+      //   root rule (`catalogContainerVariantRootRules`) — the Canvas start margin, the DOM's device length.
+      composition: {
+        delegation: [],
+        containerVariants: {
+          size: {
+            S: { styles: { "margin-inline-start": scaledLengthRef(4) } },
+            M: { styles: { "margin-inline-start": scaledLengthRef(6) } },
+            L: { styles: { "margin-inline-start": scaledLengthRef(9) } },
+          },
+        },
       },
       stateStyles: {
         ...FOCUS_RING_STATE,

@@ -882,6 +882,8 @@ function withRuleParts(
                         "height",
                         "minWidth",
                         "minHeight",
+                        // (A ui-icon's side — S2 Breadcrumbs' Chevron M `10 × --s2-scale`.)
+                        "iconSize",
                       ] as const
                     )
                       .filter(

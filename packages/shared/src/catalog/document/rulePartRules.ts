@@ -1718,6 +1718,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   ColorSlider: { orientation: "orientation" },
   // (S2 AvatarGroup: the avatar overlap is a quarter of the group size.)
   AvatarGroup: { size: "size" },
+  // (S2 Breadcrumbs: its start margin per size — the wrapper's `marginStart`.)
+  Breadcrumbs: { size: "size" },
   // S2 Disclosure (2026-10-10): its trigger's height per density, its rounded quiet trigger.
   Disclosure: { density: "density", quiet: "isQuiet" },
   // ADR-295 Phase 3c-3c ②c: S2 Tab height per density (32 · 48).

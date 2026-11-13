@@ -126,7 +126,7 @@ describe("ADR-303 — 재분류 자리 · DOM 변수", () => {
     expect([...catalogContainerReaders()].sort()).toEqual(
       [
         "Breadcrumb",
-        "Breadcrumbs",
+        // (Breadcrumbs: no fill since S2 — 2026-11-13, the composition owns its box.)
         "DropZone",
         "ListBox",
         "Menu",

@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Breadcrumbs 를 S2 구조 · 스타일로 — 구분자 Icon 편집은 유지] - 2026-11-13
+
+### Changed
+
+- **Breadcrumbs 조각이 RAC 예제 구조 (`Breadcrumb > Link{label} + Icon`) 에서 S2 `Breadcrumb` 구조로 바뀌었다**: 노드는 `Breadcrumb{href} > Text{label} + Icon[slot=separator]` — `href` 는 S2 처럼 조각의 prop, 내용은 Text 노드. DOM 은 S2 그대로 현재가 아닌 조각이면 내용을 RAC `Link` (`.breadcrumb-link`, 조각의 href) 로 감싸고 구분자를 잇고, 현재 조각은 링크 없이 `div.breadcrumb-current` 다 (전에는 현재 조각도 `span role=link aria-disabled`). 구분자는 여전히 편집 가능한 Icon 노드다 — 아이콘 · 크기를 바꾸면 Canvas · Preview 가 같이 바뀐다.
+  - S2 값: 구분자 기본 = S2 `ChevronIcon size="M"` (`s2-chevron`, 크기와 관계없이 10 · `neutral`), 내용 ↔ 구분자 = `text-to-visual` (6/14 em — M 6), 조각 사이 = S2 `size(6)` · `size(9)` (M 6 · L 9 · S 4), 링크 = `neutral-subdued` 이고 hover · focus 때 밑줄만 (색 유지), 현재 조각 = `neutral` 700 (전에는 accent), focus = 링크 outline (`--focus-ring` 2 · offset 2, 전에는 accent `::after` 테두리).
+  - 위치: `reusableOriginLibrary.ts` (`component-breadcrumb-item-default` · `__label` · `__separator`) · `delegatedDom.runtime.ts` `breadcrumb` · `components/Breadcrumb.tsx` · `Breadcrumbs.css` · `componentRulesTable.ts` `Breadcrumb` · `Breadcrumbs` · `manualBoxRules.ts` · `boxModel.ts` `catalogTextMetrics` · `spectrumIcons.ts` `s2-chevron`. 작성자가 조각 안에 Link 노드를 둔 경우 그 Link 가 조각의 링크다 (링크 안 링크 없음).
+  - S2 와 다르게 둔 것 (아래 「S2 차이 마무리」 에서 넘침 접기 · `marginStart` · 터치 크기 · 비활성 색을 S2 대로 바꿨다): 폴더 칸 뒤 구분자는 S2 Chevron (L 12) 대신 첫 조각의 구분자 Icon 을 따른다 — 구분자 편집을 유지하기 위해.
+  - Live (새 프로젝트 breadcrumbs-s2-verify, Mobile 390, Compare): Preview `a.breadcrumb-link` ×2 + `div.breadcrumb-current` (700 · #292929), 링크 #505050, gap 6, chevron 10 × 10. Canvas 상자 = DOM 상자 (조각 x 0 · 59.24 · 140.23, 폭 53.24 · 74.99 · 33.72, chevron x 43.24 · 124.23). 첫 구분자를 Icon 칸에서 `slash` 로 바꾸면 Canvas · DOM 둘 다 `slash` · 나머지 `s2-chevron`. hover = 밑줄만. console error 0.
+  - 테스트: `adr256BreadcrumbsNodeTree` 가 S2 구조 (현재 = div · 링크 없음) 를 대조 (원복 상태에서 RED 3) · `oneSidedProps` · `phase3Presence` · `componentRulesTable.static` 기대값을 S2 값으로 갱신.
+- **S2 차이 마무리 — 넘침 접기 · 앞 여백 · 터치 크기 · 비활성 색, 그리고 현재 조각 굵기 버그**:
+  - 넘침 접기 (S2 `CollapsingCollection`): 조각이 목록 폭에 들어가지 않거나 4 개를 넘으면 첫 조각 · 폴더 메뉴 · 끝 조각 1 ~ 2 개만 보인다. 판정은 공용 함수 하나 (`catalog/runtime/breadcrumbsCollapse.ts` — S2 `useCollectionRender` 그대로) 를 Canvas (`compositionRoot.ts` `settleBreadcrumbs` — 배치 뒤 펼쳐 재고 접기, TagGroup `maxRows` 와 같은 방식) 와 DOM (`delegatedDom.components.tsx` `BreadcrumbsRun` — 모두 그려 paint 전에 재고 접기, 폭이 바뀌면 다시 잼) 이 같이 읽는다. 폴더 칸 = RAC `Breadcrumb` 항목 안 `MenuTrigger` · quiet ActionButton (생성 ActionButton 시트, 32 정사각 · S2 폴더 아이콘 `s2-folder-breadcrumb`) + 첫 조각의 구분자, 칸 전체를 목록 간격만큼 당김 (S2 `size(-6)`). 메뉴 = 접힌 조각들의 `MenuItem` (조각 href 링크).
+  - 앞 여백: S2 wrapper `marginStart` (M 6 · L 9 · S 4) — `Breadcrumbs` `containerVariants.size` 로 생성 CSS 와 Canvas 가 같이 읽고 DOM 은 기기 길이 (터치 7.5 · 11.25).
+  - 터치 크기: 구분자 chevron 이 S2 `10 × --s2-scale` (터치 12.5) — part rule `iconSize` 가 길이 토큰을 받는다 (`codeCatalogLibrary.ts`). Canvas 는 늘 desktop 10.
+  - 비활성: opacity 0.38 대신 S2 `disabled` 색 (`{color.disabled-content}`) — 링크 조각의 글자만, 현재 조각은 `neutral` 그대로 (`presence.ts` `_crumbDisabled` → `catalogTextMetrics`, Canvas · DOM 공용).
+  - 버그: 편집 한 번 뒤 현재 조각 글자가 굵게 · neutral 이 아니라 보통 · `neutral-subdued` 로 돌아갔다 — 조각 label 판정이 record 객체 동일성 (`includes(node)`) 이라 증분 재해석의 새 객체를 놓쳤다 (id 비교로).
+  - Live (breadcrumbs-s2-verify, Mobile, Compare): 폭 150 → Canvas · DOM 모두 Home · 폴더 · Page (DOM x 6 · 59.24 · 107.24, 폴더 칸 42 × 32), wipe 가 폴더 아이콘을 가로질러도 이어짐, 폴더 클릭 → 메뉴 (폭 99, Category `/category`), 폭 300 → 새로고침 없이 다시 펼침. Disabled → 링크 #c6c6c6 · 현재 #292929 700 (Canvas 같음). 터치 보기 → 앞 여백 7.5 · 간격 7.5 · chevron 12.5. console error 0.
+  - 테스트: `adr256BreadcrumbsNodeTree` 에 현재 조각 (편집 뒤 — 원복 RED) · 비활성 · 앞 여백 · chevron 기기 길이 · 접기 (맞음 · Canvas 5 조각 · 좁은 폭 · DOM) 8 개 추가.
+
 ## [빌더 Toast 의 bottom 자리가 화면 아래다 — 액션바와 관계없이 설정 자리에 고정] - 2026-11-13
 
 ### Changed

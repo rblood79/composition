@@ -285,6 +285,11 @@ import {
   type SlotChromeContext,
   type SlotChromeInput,
 } from "./slotChrome";
+import {
+  CATALOG_BREADCRUMB_MENU,
+  catalogBreadcrumbsCollapse,
+  catalogBreadcrumbsVisibleCount,
+} from "./breadcrumbsCollapse";
 
 /**
  * Values a Canvas gesture or a Styles drag shows on one record before it commits
@@ -2180,6 +2185,27 @@ export interface CatalogTagShowAll {
   readonly radius: number;
   readonly style: Readonly<Record<string, string | number>>;
 }
+/**
+ * The folder menu crumb of a collapsed Breadcrumbs on the Canvas (S2 `BreadcrumbMenu` — the DOM's
+ * `.breadcrumb-menu`, `breadcrumbsCollapse.ts`): a layout leaf after the first crumb — the quiet
+ * folder button, then the first crumb's separator glyph — pulled back by the list gap.
+ */
+export interface CatalogBreadcrumbMenu {
+  readonly id: string;
+  readonly listId: string;
+  /** The separator glyph after the button: the first crumb's separator Icon (S2 Chevron). */
+  readonly separator: {
+    readonly iconName: string;
+    readonly color: string;
+    readonly size: number;
+  };
+  readonly style: Readonly<Record<string, string | number>>;
+}
+/** A Breadcrumbs' S2 collapse: the crumbs in the folder menu and the menu box (`settleBreadcrumbs`). */
+interface BreadcrumbsCollapse {
+  readonly hidden: readonly string[];
+  readonly menu: CatalogBreadcrumbMenu;
+}
 /** A TagList's `maxRows` collapse: the tags past the rows and the Show all box (`settleTagRows`). */
 interface TagRowsCollapse {
   readonly hidden: readonly string[];
@@ -2271,6 +2297,10 @@ export class CatalogCompositionRoot {
   private readonly tagRows = new Map<string, TagRowsCollapse>();
   /** The TagList records (`settleTagRows` reads these, not every record — `trackTagList`). */
   private readonly tagLists = new Map<string, true>();
+  /** Collapsed Breadcrumbs (`settleBreadcrumbs`). */
+  private readonly crumbCollapses = new Map<string, BreadcrumbsCollapse>();
+  /** The Breadcrumbs records (`settleBreadcrumbs` reads these — `trackTagList`). */
+  private readonly breadcrumbLists = new Map<string, true>();
   /** Records showing a row sample (`rowCount` — `settleRowRemainders` reads these). */
   private readonly rowOwners = new Map<string, true>();
   /** The area of each sampled owner's rows not built (`settleRowRemainders`). */
@@ -2418,6 +2448,23 @@ export class CatalogCompositionRoot {
   get tagShowAllInputs(): ReadonlyMap<string, CatalogTagShowAll> {
     return new Map(
       [...this.tagRows].map(([listId, collapse]) => [listId, collapse.showAll]),
+    );
+  }
+  /** The folder menu of every collapsed Breadcrumbs (by Breadcrumbs id — `settleBreadcrumbs`). */
+  get breadcrumbMenuInputs(): ReadonlyMap<string, CatalogBreadcrumbMenu> {
+    return new Map(
+      [...this.crumbCollapses].map(([listId, collapse]) => [
+        listId,
+        collapse.menu,
+      ]),
+    );
+  }
+  /** Whether a crumb is in its Breadcrumbs' folder menu (the Canvas does not draw it). */
+  breadcrumbCollapsed(id: string): boolean {
+    const record = this.records.get(id);
+    return (
+      !!record &&
+      !!this.crumbCollapses.get(record.parentId)?.hidden.includes(id)
     );
   }
   /** Whether a Tag is past its TagGroup's `maxRows` rows (the Canvas does not draw it). */
@@ -4859,6 +4906,9 @@ export class CatalogCompositionRoot {
     // (A tag past its group's `maxRows` rows leaves the flow — `settleTagRows`.)
     if (this.tagRows.get(record.parentId)?.hidden.includes(record.id))
       return { display: "none" };
+    // (A crumb in its Breadcrumbs' folder menu leaves the flow — `settleBreadcrumbs`.)
+    if (this.crumbCollapses.get(record.parentId)?.hidden.includes(record.id))
+      return { display: "none" };
     const frame = this.pageFrameStyle(record);
     const style = styleOf(
       record,
@@ -5222,6 +5272,64 @@ export class CatalogCompositionRoot {
     const showAll = this.tagRows.get(record.id)?.showAll;
     return showAll ? [...children, showAll.id] : children;
   }
+  /** A Breadcrumbs' engine children: its folder menu box (when collapsed) after the first crumb. */
+  private breadcrumbsEngineChildren(record: CatalogConsumerNode): string[] {
+    const children = layoutChildrenOf(
+      record.children,
+      this.composedParts.get(record.id) ?? [],
+      this.slotChrome.get(record.id)?.id,
+      this.childOrder(record),
+    );
+    const collapse = this.crumbCollapses.get(record.id);
+    if (!collapse) return children;
+    const first = children.findIndex(
+      (id) => !collapse.hidden.includes(id) && !!this.records.get(id),
+    );
+    return [
+      ...children.slice(0, first + 1),
+      collapse.menu.id,
+      ...children.slice(first + 1),
+    ];
+  }
+  /** The folder menu box of a Breadcrumbs whose first crumb is `first` (`CATALOG_BREADCRUMB_MENU`). */
+  private breadcrumbMenu(
+    list: CatalogConsumerNode,
+    first: CatalogConsumerNode,
+  ): CatalogBreadcrumbMenu {
+    const separator = first.children
+      .map((id) => this.records.get(id))
+      .find(
+        (child) =>
+          !!child &&
+          this.typeOf(child) === "Icon" &&
+          child.props.slot === "separator",
+      );
+    const iconSize =
+      typeof separator?.visual.iconSize === "number"
+        ? separator.visual.iconSize
+        : 10;
+    const { button, marginStart } = CATALOG_BREADCRUMB_MENU;
+    return {
+      id: `${list.id}::breadcrumb-menu`,
+      listId: list.id,
+      separator: {
+        iconName: String(
+          separator?.derivedProps?.iconName ??
+            separator?.props.iconName ??
+            "s2-chevron",
+        ),
+        color: String(separator?.visual.color ?? "var(--fg)"),
+        size: iconSize,
+      },
+      style: {
+        display: "block",
+        width: `${button + iconSize}px`,
+        height: `${button}px`,
+        marginLeft: `${marginStart}px`,
+        flexShrink: 0,
+      },
+    };
+  }
   /** The Show all box of a list of `total` tags, sized as its first tag (`TagGroup.css`). */
   private tagShowAll(
     list: CatalogConsumerNode,
@@ -5292,6 +5400,12 @@ export class CatalogCompositionRoot {
       old.definitionId === next.definitionId
     )
       return;
+    const isCrumbs = !!next && this.typeOf(next) === "Breadcrumbs";
+    if (isCrumbs !== this.breadcrumbLists.has(id)) {
+      this.keep(this.breadcrumbLists, id);
+      if (isCrumbs) this.breadcrumbLists.set(id, true);
+      else this.breadcrumbLists.delete(id);
+    }
     const isList = !!next && this.typeOf(next) === "TagList";
     if (isList === this.tagLists.has(id)) return;
     this.keep(this.tagLists, id);
@@ -5542,6 +5656,95 @@ export class CatalogCompositionRoot {
       const now = this.tagRows.get(list.id);
       if (
         was?.showAll.text === now?.showAll.text &&
+        sameList(was?.hidden ?? [], now?.hidden ?? [])
+      )
+        continue;
+      changed.push(
+        list.id,
+        ...new Set([...(was?.hidden ?? []), ...(now?.hidden ?? [])]),
+      );
+    }
+    return changed;
+  }
+  /**
+   * S2 Breadcrumbs collapse on the Canvas (the DOM's `BreadcrumbsRun`, `breadcrumbsCollapse.ts`): with
+   * every crumb laid out, the crumbs that do not fit (or past four) go to a folder menu box after the
+   * first crumb. Runs after each layout: a collapsed list is opened first, measured, then collapsed
+   * again. Returns the records whose collapse changed (the lists and their crumbs).
+   */
+  private settleBreadcrumbs(): string[] {
+    const get = (key: string) => this.records.get(key);
+    const lists: CatalogConsumerNode[] = [];
+    for (const id of this.breadcrumbLists.keys()) {
+      const record = get(id);
+      if (record && (!record.hidden || this.crumbCollapses.has(id)))
+        lists.push(record);
+    }
+    if (!lists.length) return [];
+    const before = new Map(
+      lists.map((list) => [list.id, this.crumbCollapses.get(list.id)]),
+    );
+    let opened = false;
+    for (const list of lists) {
+      const collapse = this.crumbCollapses.get(list.id);
+      if (!collapse) continue;
+      this.keep(this.crumbCollapses, list.id);
+      this.crumbCollapses.delete(list.id);
+      this.layout.updateChildren(list.id, this.breadcrumbsEngineChildren(list));
+      this.layout.removeNode(collapse.menu.id);
+      for (const id of collapse.hidden) {
+        const crumb = get(id);
+        if (crumb) this.layout.updateNodeStyle(id, this.styleFor(crumb));
+      }
+      opened = true;
+    }
+    if (opened)
+      this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    let collapsed = false;
+    for (const list of lists) {
+      if (list.hidden) continue;
+      const crumbs = list.children
+        .map(get)
+        .filter(
+          (crumb): crumb is CatalogConsumerNode =>
+            !!crumb && !crumb.hidden && this.typeOf(crumb) === "Breadcrumb",
+        );
+      if (crumbs.length < 3) continue;
+      const rects = this.layout.getLayoutsForIds([
+        list.id,
+        ...crumbs.map((crumb) => crumb.id),
+      ]);
+      const listRect = rects.get(list.id);
+      if (!listRect || crumbs.some((crumb) => !rects.get(crumb.id))) continue;
+      const style = this.styleFor(list);
+      const visible = catalogBreadcrumbsVisibleCount(
+        crumbs.map((crumb) => rects.get(crumb.id)!.width),
+        listRect.width,
+        Number.parseFloat(String(style.columnGap ?? style.gap ?? 0)) || 0,
+        CATALOG_BREADCRUMB_MENU.button,
+      );
+      const hidden = catalogBreadcrumbsCollapse(crumbs, visible)?.hidden;
+      if (!hidden) continue;
+      const collapse: BreadcrumbsCollapse = {
+        hidden: hidden.map((crumb) => crumb.id),
+        menu: this.breadcrumbMenu(list, crumbs[0]!),
+      };
+      this.keep(this.crumbCollapses, list.id);
+      this.crumbCollapses.set(list.id, collapse);
+      for (const id of collapse.hidden)
+        this.layout.updateNodeStyle(id, { display: "none" });
+      this.layout.addNode(collapse.menu.id, { ...collapse.menu.style });
+      this.layout.updateChildren(list.id, this.breadcrumbsEngineChildren(list));
+      collapsed = true;
+    }
+    if (collapsed)
+      this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    const changed: string[] = [];
+    for (const list of lists) {
+      const was = before.get(list.id);
+      const now = this.crumbCollapses.get(list.id);
+      if (
+        JSON.stringify(was?.menu ?? null) === JSON.stringify(now?.menu ?? null) &&
         sameList(was?.hidden ?? [], now?.hidden ?? [])
       )
         continue;
@@ -6038,8 +6241,9 @@ export class CatalogCompositionRoot {
   }
   /** Build the whole layout tree from the current records (post-order, roots in page order). */
   private buildLayout(): void {
-    // (A whole build lays every tag out: the collapse is counted again after it.)
+    // (A whole build lays every tag · crumb out: the collapse is counted again after it.)
     this.tagRows.clear();
+    this.crumbCollapses.clear();
     const batch: PersistentBatchNode[] = [];
     const childIds = new Map<string, string[]>();
     const indexes = new Map<string, number>();
@@ -6100,6 +6304,7 @@ export class CatalogCompositionRoot {
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.records.keys());
     this.settleTagRows();
+    this.settleBreadcrumbs();
     this.settleOverlays();
     this.settleRowRemainders();
   }
@@ -6340,6 +6545,7 @@ export class CatalogCompositionRoot {
     // resized sample row moves its list's area of the rows not built.)
     for (const changed of [
       ...this.settleTagRows(),
+      ...this.settleBreadcrumbs(),
       ...this.settleRowRemainders(),
     ])
       if (changed !== id)
@@ -8046,6 +8252,7 @@ export class CatalogCompositionRoot {
     this.rewrap(this.rewrapScope(updated, parentRects));
     for (const id of [
       ...this.settleTagRows(),
+      ...this.settleBreadcrumbs(),
       ...this.settleOverlays(),
       ...this.settleRowRemainders(),
     ]) {

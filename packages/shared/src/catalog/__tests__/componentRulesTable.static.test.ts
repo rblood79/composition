@@ -169,12 +169,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "S2 TableView `table` style `borderRadius: '[6px]'` — 임의 px (scale 무관), 저장소 radius 토큰 단에 6 이 없다 (ADR-295 후속 C1)",
   },
   {
-    component: "Breadcrumb",
-    key: "iconSize",
-    values: { S: 14, M: 16, L: 18 },
-    reason: UI_ICON_REASON,
-  },
-  {
     component: "Tree",
     key: "iconSize",
     values: { S: 14, M: 16, L: 20 },

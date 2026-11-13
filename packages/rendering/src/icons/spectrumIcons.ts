@@ -1,6 +1,6 @@
 /**
  * Copyright 2024 Adobe. Licensed under Apache-2.0.
- * S2 1.8.2 Search, Cross and Asterisk SVG geometry, from @react-spectrum/s2.
+ * S2 1.8.2 Search, Cross, Asterisk and Chevron SVG geometry, from @react-spectrum/s2.
  * Original source: https://github.com/adobe/react-spectrum
  * 원래 viewBox를 보존하며 DOM과 Canvas가 같은 경로를 소비한다.
  */
@@ -69,10 +69,32 @@ const ASTERISK: Record<string, LucideIconData> = {
   },
 };
 
+// Breadcrumbs.tsx draws `<ChevronIcon size="M" />` after every crumb's link (ui-icons Chevron M =
+// `S2_ChevronSize100`, right-pointing); the crumb's separator Icon defaults to it.
+const CHEVRON: LucideIconData = {
+  viewBoxSize: 10,
+  filled: true,
+  paths: [
+    "M7.965 5.178C7.978 5.118 8 5.061 8 5s-.021-.118-.034-.178c-.01-.05-.01-.102-.03-.15-.023-.058-.068-.107-.104-.16-.03-.042-.047-.09-.084-.127l-.004-.003-.003-.004L3.615.303a.875.875 0 1 0-1.23 1.244L5.88 5 2.385 8.453a.875.875 0 1 0 1.23 1.244L7.74 5.622l.003-.004.004-.003c.037-.038.055-.085.084-.127.036-.053.08-.102.104-.16.02-.048.02-.1.03-.15",
+  ],
+};
+
+// Breadcrumbs.tsx `BreadcrumbMenu`: the collapsed crumbs' menu button (`S2_Icon_FolderBreadcrumb_20_N`).
+const FOLDER_BREADCRUMB: LucideIconData = {
+  viewBoxSize: 20,
+  filled: true,
+  paths: [
+    "M16.75 5h-5.964c-.218 0-.424-.094-.566-.259L8.516 2.777C8.089 2.283 7.47 2 6.816 2H3.25C2.01 2 1 3.01 1 4.25v10.5C1 15.99 2.01 17 3.25 17h13.5c1.24 0 2.25-1.01 2.25-2.25v-7.5C19 6.01 17.99 5 16.75 5M3.25 3.5h3.565c.218 0 .424.094.567.259L8.459 5H2.5v-.75c0-.413.337-.75.75-.75M17.5 14.75c0 .413-.337.75-.75.75H3.25c-.413 0-.75-.337-.75-.75V6.5h14.25c.413 0 .75.337.75.75z",
+    "M10 13.65c-.192 0-.384-.073-.53-.22l-3-3c-.293-.292-.293-.767 0-1.06s.767-.293 1.06 0L10 11.84l2.47-2.47c.293-.293.767-.293 1.06 0s.293.768 0 1.06l-3 3c-.146.147-.338.22-.53.22",
+  ],
+};
+
 export const SPECTRUM_ICON_NAMES = [
   "s2-search",
   "s2-cross",
   "s2-asterisk",
+  "s2-chevron",
+  "s2-folder-breadcrumb",
 ] as const;
 
 export function spectrumIconData(
@@ -82,4 +104,6 @@ export function spectrumIconData(
   if (name === "s2-asterisk") return ASTERISK[size] ?? ASTERISK.M;
   if (name === "s2-search") return SEARCH;
   if (name === "s2-cross") return CROSS[size] ?? CROSS.M;
+  if (name === "s2-chevron") return CHEVRON;
+  if (name === "s2-folder-breadcrumb") return FOLDER_BREADCRUMB;
 }

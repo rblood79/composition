@@ -61,12 +61,17 @@ import type {
   LayoutResult,
 } from "../../../../../packages/shared/src/catalog/runtime/engineTypes";
 import { inlineTextContent } from "../../../../../packages/shared/src/catalog/runtime/inlineText";
+import { CATALOG_BREADCRUMB_MENU } from "../../../../../packages/shared/src/catalog/runtime/breadcrumbsCollapse";
 import {
   alignTextRuns,
   sliceTextRuns,
 } from "../workspace/canvas/utils/textRunAlign";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
-import type { CatalogConsumerNode, CatalogTagShowAll } from "./compositionRoot";
+import type {
+  CatalogBreadcrumbMenu,
+  CatalogConsumerNode,
+  CatalogTagShowAll,
+} from "./compositionRoot";
 import { catalogTextRunStyles } from "../../../../../packages/shared/src/catalog/runtime/textRunStyles";
 import {
   CATALOG_INHERITED_TEXT_KEYS,
@@ -1616,7 +1621,8 @@ function catalogCanvasHidden(
       cursor.hidden ||
       cursor.derivedProps?._pendingHidden === true ||
       cursor.derivedProps?._selectionMarkHidden === true ||
-      root.tagRowCollapsed(cursor.id)
+      root.tagRowCollapsed(cursor.id) ||
+      root.breadcrumbCollapsed(cursor.id)
     ) {
       hidden = true;
       break;
@@ -1775,6 +1781,67 @@ function tagShowAllData(showAll: CatalogTagShowAll, rect: Rect): SkiaNodeData {
       maxWidth: rect.width - 2 * inset(showAll.paddingX),
       whiteSpace: "nowrap",
     },
+  };
+}
+
+/**
+ * A collapsed Breadcrumbs' folder menu crumb (`CatalogCompositionRoot.settleBreadcrumbs` — S2
+ * `BreadcrumbMenu`, the DOM's `.breadcrumb-menu`): the quiet ActionButton (no fill at rest) with the
+ * folder glyph centered in its square (`neutral`), then the first crumb's separator glyph.
+ */
+function breadcrumbMenuData(
+  menu: CatalogBreadcrumbMenu,
+  rect: Rect,
+): SkiaNodeData {
+  const { button, glyph } = CATALOG_BREADCRUMB_MENU;
+  const glyphOf = (
+    name: string,
+    frame: Rect,
+    color: string,
+  ): SkiaNodeData => {
+    const data = getIconData(name, "lucide", "M");
+    if (!data) throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${menu.id}:${name}`);
+    return {
+      type: "icon_path",
+      ...frame,
+      visible: true,
+      iconPath: {
+        paths: data.paths,
+        circles: data.circles,
+        viewBoxSize: data.viewBoxSize,
+        filled: data.filled,
+        cx: frame.width / 2,
+        cy: frame.height / 2,
+        size: frame.width,
+        strokeColor: rgba(color),
+        strokeWidth: 2,
+      },
+    };
+  };
+  const side = menu.separator.size;
+  return {
+    type: "box",
+    elementId: menu.id,
+    ...rect,
+    visible: true,
+    box: { fillColor: rgba(undefined), borderRadius: 0 },
+    children: [
+      glyphOf(
+        "s2-folder-breadcrumb",
+        {
+          x: (button - glyph) / 2,
+          y: (rect.height - glyph) / 2,
+          width: glyph,
+          height: glyph,
+        },
+        "var(--fg)",
+      ),
+      glyphOf(
+        menu.separator.iconName,
+        { x: button, y: (rect.height - side) / 2, width: side, height: side },
+        menu.separator.color,
+      ),
+    ],
   };
 }
 
@@ -2302,14 +2369,34 @@ function bindInColorMode(
       registeredIds.add(showAll.id);
       childrenMap.set(showAll.id, []);
     }
+    const breadcrumbMenus = root.breadcrumbMenuInputs;
+    for (const menu of breadcrumbMenus.values()) {
+      if (!boundInputs.has(menu.listId)) continue;
+      const rect = root.getGeometry([menu.id]).get(menu.id);
+      if (!rect) throw new Error(`BREADCRUMB_MENU_LAYOUT_REQUIRED:${menu.id}`);
+      sceneNodes.set(menu.id, {
+        id: menu.id,
+        type: "box",
+        props: {},
+        parentId: menu.listId,
+        pageId: pageShell?.id ?? null,
+        layoutId: menu.id,
+      } as CanvasSceneNode);
+      layoutMap.set(menu.id, { ...rect, elementId: menu.id });
+      registerSkiaNode(menu.id, breadcrumbMenuData(menu, rect));
+      registeredIds.add(menu.id);
+      childrenMap.set(menu.id, []);
+    }
     for (const node of boundInputs.values()) {
       const chrome = root.slotChromeInputs.get(node.id);
       const showAll = tagShowAll.get(node.id);
+      const menu = breadcrumbMenus.get(node.id);
       const childIds = [
         ...(chrome && context.slotMode !== "page"
           ? [...node.children, chrome.id]
           : node.children),
         ...(showAll ? [showAll.id] : []),
+        ...(menu ? [menu.id] : []),
       ];
       const children = childIds.map((id) => sceneNodes.get(id));
       if (children.some((child) => !child))
@@ -2400,7 +2487,7 @@ function bindInColorMode(
      * boxes (text and rect) and collapsed tags. A change rebinds — the box is no record.
      */
     const tagRowsState = () =>
-      JSON.stringify(
+      JSON.stringify([
         [...root.tagShowAllInputs.values()]
           .filter((showAll) => belongsToScene(showAll.listId))
           .map((showAll) => [
@@ -2411,7 +2498,17 @@ function bindInColorMode(
               .get(showAll.listId)
               ?.children.filter((id) => root.tagRowCollapsed(id)),
           ]),
-      );
+        // (The S2 Breadcrumbs collapse — `settleBreadcrumbs`: its menu box and folded crumbs.)
+        [...root.breadcrumbMenuInputs.values()]
+          .filter((menu) => belongsToScene(menu.listId))
+          .map((menu) => [
+            menu,
+            root.getGeometry([menu.id]).get(menu.id),
+            root.canvasInputs
+              .get(menu.listId)
+              ?.children.filter((id) => root.breadcrumbCollapsed(id)),
+          ]),
+      ]);
     const boundTagRows = tagRowsState();
     /**
      * ADR-264 Phase 0 (dev): split the recorded commands by why they were written again — record

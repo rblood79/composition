@@ -2936,14 +2936,28 @@ function ownDerivedPropsBase(
   if (
     crumb &&
     typeOf(crumb) === "Breadcrumb" &&
-    catalogBreadcrumbLabels(crumb, get, typeOf).includes(node)
-  )
+    // (By id: an edit's incremental rebuild hands a new record object — `includes(node)` missed it
+    //   and the current crumb lost its weight after any edit.)
+    catalogBreadcrumbLabels(crumb, get, typeOf).some(
+      (label) => label.id === node.id,
+    )
+  ) {
+    const owner = get(crumb.parentId);
     return {
       _isLast: !catalogBreadcrumbSeparator(crumb, get, typeOf),
+      // S2 `linkStyles` color `isDisabled: 'disabled'` — RAC Breadcrumbs' `isDisabled` reaches every
+      // crumb (`catalogTextMetrics` paints the link label; the current crumb stays `neutral`).
+      ...(crumb.props.isDisabled === true ||
+      (owner &&
+        typeOf(owner) === "Breadcrumbs" &&
+        owner.props.isDisabled === true)
+        ? { _crumbDisabled: true }
+        : {}),
       // A crumb's Link rests without the Link rule's underline (`Breadcrumbs.css`
       // `.react-aria-Link { text-decoration: none }`; hover is the Preview's).
       ...(typeOf(node) === "Link" ? { _noUnderline: true } : {}),
     };
+  }
   // ADR-256 Phase 9 — a calendar's parts show the month of their month block (the block's copy
   // index — RAC's `offset`), from the calendar's own props (`calendarModel.ts`): the heading RAC's
   // `CalendarHeading` text, the grid its weekday row and week rows in the calendar's locale and
@@ -3361,6 +3375,8 @@ function derivedDependents(
       crumb,
       ...catalogBreadcrumbLabels(crumb, get, typeOf),
     ]);
+  // (A crumb's own `isDisabled` is its labels' disabled paint.)
+  if (type === "Breadcrumb") return catalogBreadcrumbLabels(owner, get, typeOf);
   // ADR-256 Phase 9: a calendar's headings and grids show its months (in its month blocks).
   if (CALENDAR_TYPES.has(type)) return calendarModelParts(owner, get, typeOf);
   // A calendar month · year picker's `format` is its Select's value text (the SelectValue).
@@ -3699,13 +3715,13 @@ export function catalogItemSlotInset(
     : undefined;
 }
 
-/** A crumb's label Text children (inside its RAC Link — they take the current crumb's weight). */
+/** A crumb's label children (inside its RAC Link · current `div` — they take the current crumb's weight). */
 export function catalogBreadcrumbLabels(
   crumb: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
-  // (A crumb's label: the reference's `Link` — ADR-256 Phase 5a — or an authored Text.)
+  // (A crumb's label: its Text — S2 structure, 2026-11-13 — or an authored Link.)
   return childrenOf(crumb, get).filter(
     (child) =>
       (typeOf(child) === "Link" || typeOf(child) === "Text") &&

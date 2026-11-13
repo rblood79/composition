@@ -3185,18 +3185,19 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-breadcrumb-item-default__label",
       "lib:template:component-breadcrumb-item-default__separator"
     ],
-    "props": {},
+    "props": {
+      "href": "{href}"
+    },
     "visual": {
       "width": "fit-content"
     }
   },
   {
     "id": "lib:template:component-breadcrumb-item-default__label",
-    "definitionId": "lib:definition:type-Link",
+    "definitionId": "lib:definition:text",
     "children": [],
     "props": {
-      "children": "Breadcrumb",
-      "href": "{href}"
+      "children": "Breadcrumb"
     },
     "visual": {}
   },
@@ -3206,7 +3207,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "slot": "separator",
-      "iconName": "chevron-right"
+      "iconName": "s2-chevron"
     },
     "showWhen": {
       "all": [

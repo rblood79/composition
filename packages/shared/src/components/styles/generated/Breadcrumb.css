@@ -26,8 +26,8 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  gap: 2px;
-  --icon-size: 16px;
+  gap: var(--catalog-token-breadcrumb-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: calc(var(--catalog-token-size-unit) * 10 / 1);
 }
 
 .react-aria-Breadcrumb:where([data-variant="default"]) {
@@ -37,11 +37,14 @@
 
 .react-aria-Breadcrumb:where([data-variant="default"][data-hovered]) {
   background: var(--container-bg, var(--bg));
-  color: var(--fg);
 }
 
 .react-aria-Breadcrumb:where([data-variant="default"][data-pressed]) {
   background: var(--container-bg, var(--bg));
+}
+
+.react-aria-Breadcrumb:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Breadcrumb[data-size="S"] {
@@ -49,7 +52,8 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
-  --icon-size: 14px;
+  gap: var(--catalog-token-breadcrumb-gap-S, calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: calc(var(--catalog-token-size-unit) * 10 / 1);
 }
 
 .react-aria-Breadcrumb[data-size="M"] {
@@ -57,8 +61,8 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
-  gap: 2px;
-  --icon-size: 16px;
+  gap: var(--catalog-token-breadcrumb-gap-M, calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: calc(var(--catalog-token-size-unit) * 10 / 1);
 }
 
 .react-aria-Breadcrumb[data-size="L"] {
@@ -66,8 +70,8 @@
   padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  gap: 4px;
-  --icon-size: 18px;
+  gap: var(--catalog-token-breadcrumb-gap-L, calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch))));
+  --icon-size: calc(var(--catalog-token-size-unit) * 10 / 1);
 }
 
 .react-aria-Breadcrumb.react-aria-Breadcrumb:where([data-focus-visible]) {
@@ -76,7 +80,6 @@
 }
 
 .react-aria-Breadcrumb.react-aria-Breadcrumb:where([data-disabled]) {
-  opacity: 0.38;
   pointer-events: none;
 }
 

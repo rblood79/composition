@@ -78,6 +78,7 @@ import {
   Breadcrumb as AriaBreadcrumb,
   Breadcrumbs as AriaBreadcrumbs,
 } from "react-aria-components/Breadcrumbs";
+import { Link as AriaLink } from "react-aria-components/Link";
 
 import { Button as AriaButton } from "react-aria-components/Button";
 import { useLocale } from "react-aria-components/I18nProvider";
@@ -160,7 +161,6 @@ import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
 
 import { TreeItem as AriaTreeItem } from "react-aria-components/Tree";
 
-import { Breadcrumbs } from "../../components/Breadcrumbs";
 import { ProgressCircle } from "../../components/ProgressCircle";
 
 import { Card } from "../../components/Card";
@@ -281,6 +281,7 @@ import {
   SelfToggleButton,
   TagGroupRun,
   TagListRun,
+  BreadcrumbsRun,
   ToggleIndicatorPart,
 } from "./delegatedDom.components";
 import { catalogValueTemplateOf } from "./valueBindings";
@@ -2081,39 +2082,29 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   breadcrumbs: {
     ownsChild: (child, _parent, root) =>
       catalogTypeName(root, child) !== "Breadcrumb",
-    render: (input) => {
-      const props = input.node.props;
-      return createElement(
-        Breadcrumbs as ElementType,
-        {
-          ...marker(input),
-          style: input.style,
-          "data-size": str(props.size || "M"),
-          "data-variant": str(props.variant || "default"),
-          "aria-label":
-            typeof props["aria-label"] === "string"
-              ? props["aria-label"]
-              : undefined,
-          size: props.size,
-          isDisabled: bool(props.isDisabled),
-        },
-        ...renderAll(
-          input,
-          children(input).filter(
-            (child) => catalogTypeName(input.root, child) === "Breadcrumb",
-          ),
-        ),
-      );
-    },
+    // S2 `CollapsingCollection` — the crumbs that do not fit go to a folder menu (`BreadcrumbsRun`).
+    render: (input) => createElement(BreadcrumbsRun, { input }),
   },
-  // ADR-256 Phase 5a: a Breadcrumb is RAC `Breadcrumb` — its children in order (the reference's
-  // `Link` and a separator Icon there while not current, `showWhen`); its render props
-  // (`isCurrent` · `isDisabled`) are the state frame of the nodes inside. Outside a Breadcrumbs (a
-  // Components page sample) RAC needs its collection: a host with no box, and a hidden next crumb
-  // that keeps a non-current sample a link.
+  // A Breadcrumb is S2's (`Breadcrumbs.tsx` `Breadcrumb`, 2026-11-13 — before, ADR-256 Phase 5a's RAC
+  // reference `Breadcrumb > Link + ChevronRight` node tree): RAC `Breadcrumb` around its content (the
+  // label Text) in a RAC `Link` with the crumb's `href` while not current, in a `div` when current
+  // (S2 `currentStyles` — no link), then the separator Icon (the node where S2 draws its chevron —
+  // composition keeps it editable; `showWhen` !isCurrent). Its render props (`isCurrent` ·
+  // `isDisabled`) are the state frame of the nodes inside. A crumb whose content holds an authored
+  // Link draws its children as they are (that Link takes RAC's `LinkContext` — no link in a link).
+  // Outside a Breadcrumbs (a Components page sample) RAC needs its collection: a host with no box,
+  // and a hidden next crumb that keeps a non-current sample a link.
   breadcrumb: {
     render: (input) => {
       const props = input.node.props;
+      const list = children(input);
+      const separators = list.filter((child) => child.props.slot === "separator");
+      const content = list.filter((child) => child.props.slot !== "separator");
+      const authoredLink = content.some(
+        (child) => catalogTypeName(input.root, child) === "Link",
+      );
+      const href =
+        typeof props.href === "string" && props.href ? props.href : undefined;
       const element = createElement(AriaBreadcrumb as ElementType, {
         ...marker(input),
         id: resolveStaticItemKey(
@@ -2122,7 +2113,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ),
         style: input.style,
         className: "react-aria-Breadcrumb",
-        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+        children: authoredLink
+          ? catalogStateChildren(input.node.id, () => renderAll(input))
+          : (values: Readonly<Record<string, unknown>>) =>
+              catalogStateChildren(input.node.id, () => [
+                values.isCurrent
+                  ? createElement(
+                      "div",
+                      { key: "current", className: "breadcrumb-current" },
+                      ...renderAll(input, content),
+                    )
+                  : createElement(
+                      AriaLink as ElementType,
+                      { key: "link", className: "breadcrumb-link", href },
+                      ...renderAll(input, content),
+                    ),
+                ...renderAll(input, separators),
+              ])(values),
       });
       const parent = input.root.domInputs.get(input.node.parentId);
       if (parent && catalogTypeName(input.root, parent) === "Breadcrumbs")
