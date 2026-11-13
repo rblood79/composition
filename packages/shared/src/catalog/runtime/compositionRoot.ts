@@ -175,6 +175,8 @@ import {
   catalogAspectRatio,
   catalogFillDependents,
   catalogFillLayout,
+  catalogFixedMainShrink,
+  hasLength,
 } from "./fillLayout";
 import type {
   BreakpointName,
@@ -2186,6 +2188,9 @@ interface TagRowsCollapse {
 
 export class CatalogCompositionRoot {
   private readonly stepConsumer: CatalogRootOptions["consumeStep"];
+  /** A record's author-written visual (not its library default) — `catalogFixedMainShrink`. */
+  private readonly authoredVisualOf = (node: CatalogConsumerNode) =>
+    catalogAuthoredVisual(this, node);
   private readonly layout: PersistentLayoutTree;
   /** Active breakpoint (desktop-first cascade); a switch builds a new root (cold path). */
   readonly breakpoint: BreakpointName;
@@ -4228,7 +4233,7 @@ export class CatalogCompositionRoot {
     }
     for (const [id, record] of output) {
       const fillLayout =
-        catalogFillLayout(record, get, this.typeOf) ??
+        catalogFillLayout(record, get, this.typeOf, this.authoredVisualOf) ??
         catalogSelectionIndicatorLayout(record);
       if (fillLayout) output.set(id, { ...record, fillLayout });
     }
@@ -7454,9 +7459,17 @@ export class CatalogCompositionRoot {
         // A fill child projects against this box (and its grandchildren against their parent).
         ...(update.record.children.length > 0 &&
         boxInputsChanged(this.records.get(update.id), update.record)
-          ? catalogFillDependents(update.record, get)
+          ? catalogFillDependents(update.record, get, this.authoredVisualOf)
           : []),
-        ...(update.record.fillSizing || update.record.fillLayout
+        ...(update.record.fillSizing ||
+        update.record.fillLayout ||
+        (hasLength(update.record) &&
+          get(update.record.parentId) &&
+          catalogFixedMainShrink(
+            update.record,
+            get(update.record.parentId)!,
+            this.authoredVisualOf,
+          ))
           ? [update.record]
           : []),
         ...(update.record.derivedProps || this.derivedOf(update.record, get)
@@ -7484,7 +7497,7 @@ export class CatalogCompositionRoot {
           this.environmentLocale,
         );
         const fillLayout =
-          catalogFillLayout(current, get, this.typeOf) ??
+          catalogFillLayout(current, get, this.typeOf, this.authoredVisualOf) ??
           catalogSelectionIndicatorLayout({ ...current, derivedProps });
         const {
           derivedProps: _previous,

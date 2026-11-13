@@ -84,8 +84,8 @@ describe("column flex: an item's automatic minimum keeps it from shrinking", () 
     const icon = rect("project:node:icon");
     expect(icon.height).toBe(icon.width);
     expect(icon.height).toBeGreaterThan(0);
-    // (An empty box's content size is 0, so min(specified, content) = 0: it takes the shrink —
-    // Chrome: an empty `height: 400px` item in a 300 column 400 → 224.)
-    expect(rect("project:node:tall").height).toBeLessThan(400);
+    // (An authored Height is the size on the column's main axis — it does not shrink
+    // (`catalogFixedMainShrink`); the Icon alone takes the overflow and keeps its glyph.)
+    expect(rect("project:node:tall").height).toBe(400);
   });
 });

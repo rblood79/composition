@@ -23,13 +23,16 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * its content, unless its overflow is not visible (then 0). Card (no overflow clip) and
  * ProgressCircle (it does not shrink — the DOM's `flex-shrink: 0`, declared by its rule) keep
  * their height on the Canvas as in Publish (user 2026-11-13 — 「Card 도 overflow 삭제」 ·
- * 「ProgressCircle 높이 0」 · 「listbox 도 overflow 삭제」).
+ * 「ProgressCircle 높이 0」 · 「listbox 도 overflow 삭제」). An authored Height is the size on the
+ * column's main axis (`catalogFixedMainShrink` — 「table height 400 을 넣어도 적용이 되지 않는다」).
  */
 const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
 async function squeeze(
-  type: "card" | "progresscircle" | "listbox" | "tree",
+  type: "card" | "progresscircle" | "listbox" | "tree" | "table",
+  placedSizing: Record<string, unknown> = {},
+  heightAfter?: number,
 ) {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -60,7 +63,9 @@ async function squeeze(
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: BODY },
-      entries: [node(PLACED, `lib:definition:origin-component-${type}`)],
+      entries: [
+        node(PLACED, `lib:definition:origin-component-${type}`, placedSizing),
+      ],
       rootIds: [PLACED],
       newId: workspace.newId,
     }),
@@ -97,6 +102,14 @@ async function squeeze(
       visual: { height: { kind: "set", value: "100%" } },
     }),
   );
+  if (heightAfter !== undefined)
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: PLACED }],
+        breakpoint,
+        sizing: { height: { kind: "set", value: heightAfter } },
+      }),
+    );
   return { natural, squeezed: height() };
 }
 
@@ -111,6 +124,19 @@ describe("a fixed-Height column flex body does not squeeze its items to nothing"
     const { natural, squeezed } = await squeeze("progresscircle");
     expect(natural).toBe(32);
     expect(squeezed).toBe(32);
+  });
+
+  it("an authored Height holds (a Fixed size does not shrink — Table Height 400)", async () => {
+    const { natural, squeezed } = await squeeze("table", {
+      height: { kind: "set", value: 400 },
+    });
+    expect(natural).toBe(400);
+    expect(squeezed).toBe(400);
+  });
+
+  it("a Height written inside the flex body holds too", async () => {
+    const { squeezed } = await squeeze("table", {}, 400);
+    expect(squeezed).toBe(400);
   });
 
   it.each(["listbox", "tree"] as const)("%s keeps its content height (no scroll box of its own outside a picker)", async (type) => {

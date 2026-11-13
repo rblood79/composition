@@ -370,7 +370,10 @@ describe("page body = viewport frame + growing content", () => {
       [page("home")],
       [
         flexBody({ sizing: { height: set(600) } }),
-        ...["a", "b", "c"].map((id) => tall(id)),
+        // (An authored Height does not shrink unless the author lets it — `catalogFixedMainShrink`.)
+        ...["a", "b", "c"].map((id) =>
+          tall(id, { layout: { flexShrink: set("1") } }),
+        ),
       ],
       {},
     );

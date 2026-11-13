@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [직접 넣은 Height · Width 가 flex 주축에서 줄어들지 않는다] - 2026-11-13
+
+### Fixed
+
+- **Height 400 을 넣은 Table 이 세로 flex body 에서 128 로 줄던 것** (사용자 보고 「table height 400 을 넣어도 적용이 되지 않는다」): flex 주축에 직접 넣은 크기 (px · % · vh — Size Fixed · Parent · Viewport) 는 `flex-shrink: 0` 으로 그 크기를 지킨다. Table 만이 아니라 크기를 넣은 모든 요소가 같다.
+  - Why: 이 계약은 2026-09 에 옛 store 경로 (`sizeModeResolver.resolveFixed`) 가 Fixed 를 고를 때 함께 쓰던 값이었는데, catalog 전환 뒤 Height 칸 (`catalogSizingCommand`) 은 크기만 써서 빠졌다.
+  - 위치: 쓸 때 저장하지 않고 해석에서 정한다 (`fillLayout.ts` `catalogFixedMainShrink` → record `fillLayout` — Canvas `styleOf` · DOM inline 이 같이 읽음). 그래서 부모를 나중에 flex 로 바꾸거나 방향을 바꿔도 따라온다. rule 의 기본 길이 (Table `width: 100%`) 는 직접 넣은 값이 아니라 그대로 줄어든다 — 가로 flex 에 나란히 둔 Table 은 지금처럼 나눠 갖는다. 직접 넣은 Shrink 값이 이긴다.
+  - Live (aaa · mobile 390×844 · body 세로 flex · Height Parent, Table 을 넣어 Height 400 → 확인 뒤 삭제 · body Height fit 복원): Canvas 선택 상자 390×400, Publish (390×844 iframe) `table` 400 · inline `flex-shrink: 0` · body 844 에 내용 1909. 콘솔 오류 0.
+  - 테스트: `bodyColumnFlexSqueeze.test.tsx` (Height 넣은 뒤 flex · flex 안에서 Height — 원복 시 128 로 RED). Chrome 그대로 줄어드는 것을 단언하던 `columnFlexShrinkFloor` · `phase4PageFrames` 는 새 계약으로 갱신 (후자는 Shrink 1 을 직접 넣어 definite column 을 계속 확인).
+
 ## [Tree 도 세로 flex 에서 눌리지 않는다 — 기본 overflow 제거] - 2026-11-13
 
 ### Fixed
