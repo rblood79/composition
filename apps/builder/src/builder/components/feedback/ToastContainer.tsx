@@ -13,16 +13,11 @@
  *
  * 자리는 빌더 설정 (Settings 「Toast placement」 — `uiStore.toastPlacement`, 기본 `bottom` — S2 기본) 이다.
  * 앱 (Preview · Publish) 토스트 자리인 Site 「Toast placement」 와는 다른 값이다 — 빌더 알림은 작업하는
- * 사람의 환경, 앱 토스트는 프로젝트 문서 (사용자 2026-11-12).
+ * 사람의 환경, 앱 토스트는 프로젝트 문서 (사용자 2026-11-12). contextual action bar 위치와 관계없이 그 자리에
+ * 고정한다 (사용자 2026-11-13 「바 위치와 관계없이 설정에서 정한 Toast 위치에 고정」).
  */
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/i18n";
 import {
@@ -30,22 +25,12 @@ import {
   BUILDER_TOAST_SKIN,
   BUILDER_TOAST_VARIANT,
 } from "./Toast";
-import { useActionBarClearance } from "./useActionBarClearance";
 import { useToastStore } from "../../stores/toast";
 import { useUiStore } from "../../../stores/uiStore";
 
 type RegionModule =
   typeof import("../../../../../../packages/shared/src/components/ToastRegion.lazy");
 type RegionQueue = ReturnType<RegionModule["createToastQueue"]>;
-
-/** region 요소 — RAC 가 `document.body` 로 portal 하므로 DOM 에서 찾는다 (action bar 여유 계산). */
-const regionRef = {
-  get current(): HTMLElement | null {
-    return document.querySelector<HTMLElement>(
-      `.${BUILDER_TOAST_PREFIX}-region`,
-    );
-  },
-};
 
 export function ToastContainer() {
   const { t } = useI18n();
@@ -140,24 +125,13 @@ export function ToastContainer() {
     }
   }, [toasts, region, t]);
 
-  // action bar 가 토스트 자리로 들어왔을 때만 그만큼 더 올린다 (평소 0).
-  const clearance = useActionBarClearance(regionRef, hasToasts && !!region);
-  const skin = useMemo(
-    () =>
-      clearance > 0
-        ? {
-            ...BUILDER_TOAST_SKIN,
-            regionStyle: {
-              "--toast-action-bar-clearance": `${clearance}px`,
-            } as CSSProperties,
-          }
-        : BUILDER_TOAST_SKIN,
-    [clearance],
-  );
-
   if (!region) return null;
   const Region = region.module.ToastRegion;
   return (
-    <Region queue={region.queue.queue} placement={placement} skin={skin} />
+    <Region
+      queue={region.queue.queue}
+      placement={placement}
+      skin={BUILDER_TOAST_SKIN}
+    />
   );
 }

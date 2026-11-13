@@ -11,7 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [빌더 Toast 의 bottom 자리가 화면 아래다 — 액션바와 겹칠 때만 그 위로] - 2026-11-13
+## [빌더 Toast 의 bottom 자리가 화면 아래다 — 액션바와 관계없이 설정 자리에 고정] - 2026-11-13
+
+### Changed
+
+- **빌더 Toast 는 contextual action bar 위치와 관계없이 Settings 「Toast placement」 자리에 고정된다** (사용자 결정 「바 위치와 관계없이 설정에서 정한 Toast 위치에 고정」): 아래 자리는 늘 화면 아래 16 (S2). 바와 겹칠 때 바 위로 올리던 계산 (`useActionBarClearance`) 을 Toast 가 더 쓰지 않는다 — 바가 화면 아래 가운데에 있어도 `bottom` 은 973 (바 937 ~ 973 과 겹침), `bottom end` 973. 위치: `ToastContainer.tsx` · `Toast.css`. 아래 Fixed 의 「겹칠 때만 올린다」 는 이 결정으로 대체됐다.
 
 ### Fixed
 

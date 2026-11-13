@@ -9,7 +9,7 @@
  * 의 `--toast-*` (S2 테마의 semantic 값 — Preview `semantic-palette.css` 와 같은 수), 크기는 S2 데스크톱 값.
  *
  * 자리는 빌더 설정 Settings 「Toast placement」 (기본 `bottom` — S2 기본, 앱 토스트 자리 Site 와 따로). 위 간격만
- * 빌더 것이다 (헤더 줄 아래). 아래는 S2 와 같은 16 이고, contextual action bar 와 겹칠 때만 그 위로 올린다.
+ * 빌더 것이다 (헤더 줄 아래). 아래는 S2 와 같은 16 — contextual action bar 위치와 관계없이 고정.
  */
 
 @layer builder-system {
@@ -38,13 +38,12 @@
     );
   }
 
-  /* 아래 자리 — S2 `toastRegion` 의 `bottom: 16`. contextual action bar 와 실제로 겹칠 때만
-     `--toast-action-bar-clearance` 만큼 그 위로 올린다 (`useActionBarClearance` — 바가 토스트 아래
-     가로 범위 안에 보일 때). **Why (2026-11-13)**: 바 한 줄 높이 (60) 를 늘 비워 두어, 바가 없거나
-     화면 밖일 때도 `bottom` 이 바 자리 위에 떴다 (사용자 보고 「bottom 이 액션바 위를 bottom 으로
-     인식한다」 — 같은 값을 받은 `bottom end` 는 그 아래에 바가 없어 정상으로 보였다). */
+  /* 아래 자리 — S2 `toastRegion` 의 `bottom: 16`. contextual action bar 위치와 관계없이 고정한다
+     (사용자 2026-11-13 「바 위치와 관계없이 설정에서 정한 Toast 위치에 고정」). **Why**: 바 한 줄
+     높이 (60) 를 늘 비워 두어 바가 없을 때도 `bottom` 이 바 자리 위에 떴고 (「bottom 이 액션바 위를
+     bottom 으로 인식한다」), 바와 겹칠 때 올리던 계산도 자리를 바꿨다 — 자리는 설정이 정한다. */
   .builder-toast-region[data-placement="bottom"] {
-    bottom: calc(var(--spacing-lg) + var(--toast-action-bar-clearance, 0px));
+    bottom: var(--spacing-lg);
     flex-direction: column-reverse;
   }
 
