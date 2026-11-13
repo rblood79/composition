@@ -311,13 +311,15 @@ describe("Ratio lock: the following axis is Fit content", () => {
     };
   }
 
-  it("a Chart (rule height 240) at Width 640 · Ratio 1 / 1 is 640 × 640; unlock keeps 640", async () => {
+  // (A rule-fixed height: ColorArea 192 × 192. Chart was the case first reported — its rule is a
+  // 16:9 box since 2026-11-13, so its height no longer comes from the rule.)
+  it("a ColorArea (rule height 192) at Width 640 · Ratio 1 / 1 is 640 × 640; unlock keeps 640", async () => {
     const { node, box, host, record } = await place({
       ...frame(BOX),
-      definitionId: "lib:definition:origin-component-chart",
+      definitionId: "lib:definition:origin-component-colorarea",
     });
     host.applySizing(record, { axis: "width", mode: "css", value: "640px" });
-    expect(box().height).toBe(240);
+    expect(box().height).toBe(192);
     expect(host.applyRatio(record, "1 / 1")).toBe(null);
     expect(node().visual.height).toEqual({ kind: "set", value: "fit-content" });
     expect(box()).toMatchObject({ width: 640, height: 640 });

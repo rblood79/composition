@@ -13973,28 +13973,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
-        height: 160,
         paddingX: 8,
         paddingY: 8,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 240,
         paddingX: 12,
         paddingY: 12,
       },
       L: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 320,
         paddingX: 16,
         paddingY: 16,
       },
     },
+    // 2026-11-13 사용자 결정 — 단계별 높이 (160/240/320) 대신 16:9 비율 상자. 높이 px 는 flex 의
+    //   기본 shrink 를 받아 세로 flex body (Height 100%, 넘침) 에서 테두리 · 여백만 남기고 눌렸다
+    //   (안쪽 차트가 height 100% 라 자동 최소 높이가 0 에 가깝다). 비율 상자는 자동 최소 높이가
+    //   비율 높이라 눌리지 않는다 — overflow 를 숨기면 이 최소 높이가 0 이 되므로 두지 않는다.
     containerStyles: {
       display: "block",
       width: "100%",
+      minWidth: "320px",
+      aspectRatio: "16 / 9",
       borderWidth: "{border.width.thin}",
     },
     chart: {
@@ -14064,6 +14067,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "block",
         width: "100%",
+        minWidth: "320px",
+        aspectRatio: "16 / 9",
       },
       stateStyles: {
         ...FOCUS_RING_STATE,

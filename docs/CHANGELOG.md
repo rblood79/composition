@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart 기본 상자 = 16:9 비율 — 세로 flex body 에서 눌리지 않는다] - 2026-11-13
+
+### Changed
+
+- **Chart 의 기본 크기가 높이 240 (단계별 160 · 240 · 320) 에서 width 100% · min-width 320 · aspect-ratio 16 / 9 로** (사용자 결정 「width 100%, min-width 320, aspect-ratio 16/9 로 바꾸고 단계별 높이를 빼는 것이 더 맞다」): 여러 개를 Height 100% 의 세로 flex body 에 넣어도 높이가 눌리지 않는다.
+  - Why: 높이 px 는 flex 의 기본 shrink 를 받는다. 안쪽 차트가 `height: 100%` 라 자동 최소 높이가 테두리 · 여백뿐이어서 body 가 넘치면 26 까지 눌렸다. 비율 상자는 높이가 auto 일 때 자동 최소 높이가 비율 높이라 그 아래로 줄지 않는다 (Chrome 390 × 219 · 엔진 같은 값). overflow 를 숨기면 이 최소 높이가 0 이 되므로 Chart 에는 두지 않는다.
+  - 팔레트 · 원본의 `width: 320` 도 지워 rule 의 width 100% 를 따른다. 직접 넣은 Height 는 그대로 이긴다 (두 축이 정해지면 비율은 쓰이지 않는다 · 직접 넣은 크기는 줄지 않는다).
+  - 생성 CSS 의 `containerStyles` 가 `min-width` · `aspect-ratio` 를 내고 Canvas rule 상자도 같은 두 값을 읽는다 (`CSSGenerator.emitContainerStyles` · `CATALOG_CANVAS_BOX_KEYS` · `typedCanvasBox`). 그래서 지금까지 두 화면이 모두 버리던 S2 값 2 개도 같이 적용된다 — SideNav `min-width: 160px` (S2 `sideNavWrapper`) · SideNavItemLink `min-width: 0` (S2 `treeRowLink`).
+  - Size S · M · L 은 여백 · 글자만 바꾼다 (공개 size 자체는 ADR-306 Phase 1 이 지운다 — 같은 날 ADR 본문도 이 기본값으로 고쳤다).
+  - Library 페이지의 Chart 견본 · 종류 칸은 `minWidth: 0` 을 받아 칸 폭 (198) 을 따른다 — 규칙의 320 바닥이 모바일 한 칸을 넓히지 않게 (2026-10-25 「Chart 320px 이 칸을 넓힌다」 와 같은 이유).
+  - 위치: `componentRulesTable.ts` `Chart` · `reusableOriginLibrary.ts` · `chart/authoring.ts` · `CSSGenerator.ts` · `resolveCatalogRuleCanvasBox.ts` · `ruleDefinition.ts` · `componentsPage.ts`.
+  - Live (aaa · Mobile 390 × 844 · body 세로 flex, Bar chart 3 개 → body Height 100% → 확인 뒤 삭제 · Height 원래대로): Canvas body 844 에서 Chart 3 개 모두 390 × 219.375, Publish (390 × 844 iframe — Publish 앱의 page-nav 220 을 숨겨 같은 폭으로) body 844 · 내용 2152 에서 3 개 모두 390 × 219.375 · inline `aspect-ratio: 16 / 9`. 콘솔 오류 0.
+  - 테스트: `bodyColumnFlexSqueeze.test.tsx` (Chart 16:9 높이 유지 — rule 원복 · Canvas 상자 키 원복 각각 RED). Ratio 잠금 테스트의 「rule 높이 고정」 사례는 ColorArea (192) 로 옮겼다.
+
 ## [Ratio 가 규칙 기본 크기가 있는 컴포넌트에서도 작동한다 — 따라가는 축을 Fit content 로] - 2026-11-13
 
 ### Fixed

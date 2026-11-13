@@ -23,14 +23,15 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * its content, unless its overflow is not visible (then 0). Card (no overflow clip) and
  * ProgressCircle (it does not shrink — the DOM's `flex-shrink: 0`, declared by its rule) keep
  * their height on the Canvas as in Publish (user 2026-11-13 — 「Card 도 overflow 삭제」 ·
- * 「ProgressCircle 높이 0」 · 「listbox 도 overflow 삭제」). An authored Height is the size on the
+ * 「ProgressCircle 높이 0」 · 「listbox 도 overflow 삭제」). Chart is a 16:9 ratio box (no height step) —
+ * its automatic minimum is the ratio height (「width 100%, min-width 320, aspect-ratio 16/9」). An authored Height is the size on the
  * column's main axis (`catalogFixedMainShrink` — 「table height 400 을 넣어도 적용이 되지 않는다」).
  */
 const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
 async function squeeze(
-  type: "card" | "progresscircle" | "listbox" | "tree" | "table",
+  type: "card" | "progresscircle" | "listbox" | "tree" | "table" | "chart",
   placedSizing: Record<string, unknown> = {},
   heightAfter?: number,
 ) {
@@ -71,12 +72,13 @@ async function squeeze(
     }),
   );
   const root = workspace.root;
-  const height = () => {
+  const box = () => {
     const record = [...root.canvasInputs.values()].find(
       (candidate) => candidate.sourceId === PLACED,
     )!;
-    return root.getGeometry([record.id]).get(record.id)!.height;
+    return root.getGeometry([record.id]).get(record.id)!;
   };
+  const height = () => box().height;
   const natural = height();
   const breakpoint = workspace.session.getSnapshot().breakpoint;
   workspace.execute(
@@ -110,7 +112,7 @@ async function squeeze(
         sizing: { height: { kind: "set", value: heightAfter } },
       }),
     );
-  return { natural, squeezed: height() };
+  return { natural, squeezed: height(), width: box().width };
 }
 
 describe("a fixed-Height column flex body does not squeeze its items to nothing", () => {
@@ -137,6 +139,12 @@ describe("a fixed-Height column flex body does not squeeze its items to nothing"
   it("a Height written inside the flex body holds too", async () => {
     const { squeezed } = await squeeze("table", {}, 400);
     expect(squeezed).toBe(400);
+  });
+
+  it("Chart keeps its 16:9 height (a ratio box's automatic minimum is the ratio height)", async () => {
+    const { natural, squeezed, width } = await squeeze("chart");
+    expect(natural).toBeCloseTo((width * 9) / 16, 0);
+    expect(squeezed).toBe(natural);
   });
 
   it.each(["listbox", "tree"] as const)("%s keeps its content height (no scroll box of its own outside a picker)", async (type) => {

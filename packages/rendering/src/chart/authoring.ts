@@ -228,7 +228,6 @@ const scatterSample: readonly ChartRow[] = [
 export function createChartInitialProps(chartType?: ChartType): ChartProps & {
   size: string;
   data: ChartRow[];
-  style: { width: number };
 } {
   const fresh = chartType !== undefined;
   const single = chartType === "pie" || chartType === "radial";
@@ -250,7 +249,6 @@ export function createChartInitialProps(chartType?: ChartType): ChartProps & {
         }
       : {}),
     size: "M",
-    style: { width: 320 },
     data: (scatter ? scatterSample : legacySample)
       .filter((row) => !single || row.series === "A")
       .map((row) => ({ ...row })),

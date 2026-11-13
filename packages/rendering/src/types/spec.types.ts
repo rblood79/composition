@@ -124,6 +124,10 @@ export interface ContainerStylesSchema {
   height?: string;
   /** 폭 상한 (Dialog 본문 `100%` — 좁은 Modal 안에서 고정 폭이 넘치지 않게) */
   maxWidth?: string;
+  /** 폭 하한 (Chart `320px` — 비율 상자의 바닥 폭) */
+  minWidth?: string;
+  /** 비율 상자 (Chart `16 / 9`) — 높이 auto 일 때 자동 최소 높이가 비율 높이라 flex 에서 눌리지 않는다 */
+  aspectRatio?: string;
   /** body 페이지 프레임 높이 fallback (`min-height: 100%`) — 저작 height/minHeight inline 이 덮는다 */
   minHeight?: string;
   maxHeight?: string;

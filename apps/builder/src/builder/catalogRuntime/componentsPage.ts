@@ -195,19 +195,22 @@ const NO_VARIANTS_LINE: ReadonlySet<string> = new Set([
 /**
  * The ◆ sample's own size on the page — the origin and its instances keep the rule's (user
  * 2026-10-25: a Chart's 320px widened the mobile page's one column · 「colorSlider - width: 100%,
- * maxWidth: auto」 · 「dropZone - width: 100%, height: auto」).
+ * maxWidth: auto」 · 「dropZone - width: 100%, height: auto」). Chart's rule floor (min-width 320, its
+ * 16:9 box — 2026-11-13) would widen the card the same way: the sample drops it.
  */
 const SAMPLE_VISUAL: Readonly<
-  Record<string, Readonly<Record<string, string>>>
+  Record<string, Readonly<Record<string, string | number>>>
 > = {
-  Chart: { width: "100%" },
+  Chart: { width: "100%", minWidth: 0 },
   ColorSlider: { width: "100%", maxWidth: "none" },
   DropZone: { width: "100%", height: "auto" },
 };
 /** A page size as node fields: a max size other than px is a `layout` field, the rest `visual`. */
-const sampleFields = (values: Readonly<Record<string, string>> = {}) => {
-  const visual: Record<string, ReturnType<typeof set<string>>> = {};
-  const layout: Record<string, ReturnType<typeof set<string>>> = {};
+const sampleFields = (
+  values: Readonly<Record<string, string | number>> = {},
+) => {
+  const visual: Record<string, ReturnType<typeof set<string | number>>> = {};
+  const layout: Record<string, ReturnType<typeof set<string | number>>> = {};
   for (const [key, value] of Object.entries(values))
     (key === "maxWidth" || key === "maxHeight" ? layout : visual)[key] =
       set(value);
@@ -216,7 +219,7 @@ const sampleFields = (values: Readonly<Record<string, string>> = {}) => {
     ...(Object.keys(layout).length > 0 ? { layout } : {}),
   };
 };
-const sampleLayout = (values?: Readonly<Record<string, string>>) => {
+const sampleLayout = (values?: Readonly<Record<string, string | number>>) => {
   const { layout } = sampleFields(values);
   return layout ? { layout } : {};
 };
@@ -1367,7 +1370,8 @@ export function catalogComponentsPageEntries(
     // The palette's creation variants of the origin (a Chart's chart types — user 2026-10-06):
     // an instance of each, with the props the palette creates it with, two to a line — two `1fr`
     // columns, each instance its column's width (user 2026-10-25: fixed 248px columns widened
-    // the mobile page's one column to 512).
+    // the mobile page's one column to 512). No floor either: a Chart's rule min-width 320 (its
+    // 16:9 box, 2026-11-13) would widen the column the same way.
     if (origin.kinds && origin.kinds.length > 1) {
       lines.push(
         ...line(
@@ -1383,7 +1387,7 @@ export function catalogComponentsPageEntries(
                   origin.name,
                   kind.initialProps,
                 ),
-                ...catalogCreationStyle({ style: { width: "100%" } }),
+                visual: { width: set("100%"), minWidth: set(0) },
               }),
             ),
             captions: [],

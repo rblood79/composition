@@ -161,17 +161,20 @@ describe("ADR-248 Phase 4e-4 Components palette", () => {
     expect(refused).toEqual([]);
   });
 
-  it("a Chart palette item's old style width becomes the node's sizing", async () => {
+  it("a Chart palette item writes no width — the rule's 16:9 box (width 100%) sizes it", async () => {
     const { workspace, add } = await open();
     const item = getPaletteItems().find((entry) => entry.type === "chart-bar")!;
     const id = add("Chart", item.initialProps);
     const entry = workspace.runtime.graph.getEntry(id) as {
       props: Record<string, unknown>;
       sizing: Record<string, unknown>;
+      visual: Record<string, unknown>;
     };
     expect(entry.props).not.toHaveProperty("style");
     expect(entry.props.chartType).toEqual({ kind: "set", value: "bar" });
-    expect(entry.sizing.width).toEqual({ kind: "set", value: 320 });
+    // (2026-11-13: the old creation width 320 is gone — 「width 100%, min-width 320, aspect-ratio 16/9」.)
+    expect(entry.sizing.width).toBeUndefined();
+    expect(entry.visual.width).toBeUndefined();
   });
 });
 

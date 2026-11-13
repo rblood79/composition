@@ -62,6 +62,10 @@ export const CATALOG_CANVAS_BOX_KEYS = [
   "paddingLeft",
   // Manual Table.css `min-height: 40px` layout channel.
   "minHeight",
+  // A ratio box (Chart — 16:9 with a 320 floor): its automatic minimum height is the ratio height,
+  // so a fixed-height column flex does not squeeze it (2026-11-13).
+  "minWidth",
+  "aspectRatio",
 ] as const;
 
 /**

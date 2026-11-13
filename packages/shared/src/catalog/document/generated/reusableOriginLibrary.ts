@@ -6177,9 +6177,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "animationDuration": 600,
       "animationEasing": "ease-out"
     },
-    "visual": {
-      "width": 320
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-calendar",

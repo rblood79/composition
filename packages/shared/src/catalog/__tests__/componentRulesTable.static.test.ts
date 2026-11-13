@@ -407,12 +407,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     { S: 16, M: 20, L: 24 },
     "S2 Skeleton 은 감싸는 모양이라 size 가 없다 — composition 단독 자리 높이",
   ),
-  sizes(
-    "Chart",
-    "height",
-    { S: 160, M: 240, L: 320 },
-    "S2 대응 없음 — composition 차트 (장면 계산 입력 px)",
-  ),
 ];
 
 /**
