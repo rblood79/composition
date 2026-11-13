@@ -329,8 +329,10 @@ export function catalogStyleWrites(
   if (MIN_KEYS.has(key)) {
     const field = key as "minWidth" | "minHeight";
     // px = the node's fixed minimum; other CSS lengths (`50%`, `10vw`) = its visual length, as
-    // Width/Height take them (the old Min W/H accepted every unit).
-    if (empty || cssText(raw) === "auto" || cssText(raw) === "0")
+    // Width/Height take them (the old Min W/H accepted every unit). 0 is a minimum of 0, not a
+    // clear: a flex item's `min-width: 0` is not its automatic (content) minimum, and it lifts a
+    // rule floor (Chart min-width 320 — 2026-11-13; it used to clear back to that floor).
+    if (empty || cssText(raw) === "auto")
       return { visual: { [field]: REMOVE }, sizing: { [field]: REMOVE } };
     const px = cssPx(raw);
     if (px !== undefined)

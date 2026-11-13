@@ -20,8 +20,14 @@
   box-sizing: border-box;
 }
 
-* {
-  margin: 0;
+/* The lowest layer: it still clears the browser's own margins, and a catalog margin
+   (@layer components — SideNav rows `margin-top: 6px`, SideNavHeader `margin-bottom: 8px`) wins.
+   **Why (2026-11-13)**: outside a layer it beat every layered rule, so the rows of a SideNav sat
+   flush in Publish while the Canvas spaced them. */
+@layer preview-system {
+  * {
+    margin: 0;
+  }
 }
 
 body {

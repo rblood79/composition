@@ -19,6 +19,7 @@
   overflow: auto;
   display: flex;
   flex-direction: column;
+  --indent: 16px;
 
   /* Default variant */
   background: transparent;

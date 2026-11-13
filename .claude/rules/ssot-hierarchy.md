@@ -48,6 +48,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 ### D3 (시각 스타일)
 
 - **Why (2026-11-05)**: Publish의 layer 밖 `:focus-visible` 기본값이 catalog의 `data-focus-visible` 분기를 덮어 마우스 Menu hover에도 2px outline을 그렸다. 앱 기본 focus 규칙은 컴포넌트 상태 규칙보다 낮은 우선순위에 둔다.
+- **Why (2026-11-13)**: 같은 기제가 margin 에서도 났다 — Publish 의 layer 밖 `* { margin: 0 }` 이 catalog margin (SideNav 행 `margin-top: 6px` · SideNavHeader `margin-bottom: 8px`) 을 지워 Publish 만 행이 붙었다 (`@layer preview-system` 으로 옮김). 그리고 CSS 생성기는 `emitContainerStyles` 에 줄이 없는 rule 값 (SideNav `min-width` · SideNavHeader `margin-bottom` · Token `white-space` …) 을 버렸고, size 블록의 `padding: 0px 0px` 가 rule 이 선언한 padding 한쪽 (SideNavHeader · Toast) 을 덮었다 — Canvas 는 둘 다 읽었다. 앱 reset 은 가장 낮은 layer 에, rule 값은 두 consumer 가 모두 쓴다 (`CSSGenerator.containerStyles.test.ts` 가 모든 rule 의 키를 검사).
 
 > 일반 컴포넌트의 SSOT 는 catalog(`COMPONENT_RULES_TABLE`, `packages/shared/src/catalog/`) + theme/tokens root collection(ADR-110)이다. Frame/Group/Slot에도 같은 원칙을 적용한다.
 

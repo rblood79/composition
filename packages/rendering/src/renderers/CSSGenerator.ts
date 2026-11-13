@@ -369,8 +369,7 @@ export function generateCSS<Props>(
     spec.containerStyles?.height != null;
   // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
   const skipPaddingOuter =
-    ownsContainerBox ||
-    (hasContainerStylesOuter && spec.containerStyles?.padding != null);
+    ownsContainerBox || containerDeclaresPadding(spec.containerStyles);
   const skipBorderRadiusOuter =
     hasContainerStylesOuter && spec.containerStyles?.borderRadius != null;
   const skipGapOuter =
@@ -645,8 +644,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
       spec.containerStyles?.height != null;
     // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
     const skipPadding =
-      ownsContainerBox ||
-      (hasContainerStyles && spec.containerStyles?.padding != null);
+      ownsContainerBox || containerDeclaresPadding(spec.containerStyles);
     const skipBorderRadius =
       hasContainerStyles && spec.containerStyles?.borderRadius != null;
     const skipGap = hasContainerStyles && spec.containerStyles?.gap != null;
@@ -747,8 +745,72 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
   // An inline-level root's place on its line (Button `middle`) — the engine reads the same value.
   if (c.verticalAlign) lines.push(`  vertical-align: ${c.verticalAlign};`);
 
+  // Every other declared key, as written (a `{token}` as its variable, a custom property as is):
+  // a rule value has no consumer that may drop it. **Why (2026-11-13)**: this list used to end
+  // here, and a key without a line above vanished from the DOM only — SideNav `min-width: 160px`,
+  // Toast padding, ActionButton `border-style: none` …
+  for (const [key, value] of Object.entries(c)) {
+    if (CONTAINER_STYLE_LINE_KEYS.has(key) || value == null || value === "")
+      continue;
+    const text = String(value);
+    lines.push(
+      `  ${key.startsWith("--") ? key : key.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`)}: ${text.startsWith("{") ? tokenToCSSVar(text as TokenRef) : text};`,
+    );
+  }
+
   return lines;
 }
+
+/**
+ * The container box declares its padding — the shorthand or a side (SideNavHeader `paddingLeft` ·
+ * Toast's four sides): the size axis then writes none, as the Canvas rule box keeps a declared
+ * side over the size's (`resolveCatalogRuleCanvasBox`). **Why (2026-11-13)**: only the shorthand
+ * counted, so the size block's `padding: 0px 0px` overrode a declared side in the DOM alone.
+ */
+function containerDeclaresPadding(c: ContainerStylesSchema | undefined): boolean {
+  return (
+    c != null &&
+    (["padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"] as const).some(
+      (key) => (c as Record<string, unknown>)[key] != null,
+    )
+  );
+}
+
+/**
+ * Keys `emitContainerStyles` writes a line of its own for — or folds into another (`borderWidth`
+ * into the `border` shorthand; without one the size axis owns the width).
+ */
+const CONTAINER_STYLE_LINE_KEYS: ReadonlySet<string> = new Set([
+  "background",
+  "text",
+  "border",
+  "borderWidth",
+  "borderRadius",
+  "padding",
+  "gap",
+  "boxShadow",
+  "width",
+  "height",
+  "maxWidth",
+  "minWidth",
+  "aspectRatio",
+  "minHeight",
+  "maxHeight",
+  "overflow",
+  "outline",
+  "display",
+  "flexDirection",
+  "flexShrink",
+  "flexWrap",
+  "alignItems",
+  "alignSelf",
+  "justifyContent",
+  "gridTemplateAreas",
+  "gridTemplateColumns",
+  "gridTemplateRows",
+  "position",
+  "verticalAlign",
+]);
 
 // ─── Size Styles (Level 1 확장) ─────────────────────────────────────────────
 

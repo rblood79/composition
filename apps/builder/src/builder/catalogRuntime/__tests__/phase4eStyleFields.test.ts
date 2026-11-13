@@ -93,6 +93,11 @@ describe("ADR-248 Phase 4e-4d style fields", () => {
       visual: { minWidth: REMOVE },
       sizing: { minWidth: set(24) },
     });
+    // 0 is a minimum of 0 (a flex item's `min-width: 0` ≠ auto; it lifts a rule floor), not a clear.
+    expect(catalogStyleWrites("minWidth", "0")).toEqual({
+      visual: { minWidth: REMOVE },
+      sizing: { minWidth: set(0) },
+    });
     expect(() => catalogStyleWrites("minWidth", "wide")).toThrow(
       CatalogStyleValueError,
     );

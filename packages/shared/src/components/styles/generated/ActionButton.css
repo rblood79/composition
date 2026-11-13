@@ -26,6 +26,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
+  border-style: none;
 
   /* Default variant */
   background: var(--neutral-surface);

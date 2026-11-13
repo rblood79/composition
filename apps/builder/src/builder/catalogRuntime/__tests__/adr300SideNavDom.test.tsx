@@ -330,6 +330,16 @@ describe("ADR-300 Decision 7 — the SideNav DOM is a lazy chunk", () => {
 });
 
 describe("ADR-300 Phase 2 판독 수리", () => {
+  it("the header's S2 `marginBottom: 8` is the Canvas's too (the generated CSS writes it — header → first row 8 + 6)", async () => {
+    // (2026-11-13: the generated CSS used to drop the rule's margin and the size block's `padding: 0`
+    //  overrode its start padding; the Canvas rule box read neither margin.)
+    const library = await buildCodeCatalogLibrary();
+    const header = [...library.definitions.values()].find(
+      (definition) => definition.id === "lib:definition:type-SideNavHeader",
+    )!;
+    expect(header.layout).toMatchObject({ marginBottom: "8px" });
+  });
+
   it("RAC's flat rows: the Canvas column gap stays off in the DOM (SideNav · Section · Item)", () => {
     // (RAC draws every row as a sibling and the gridcell as `display: contents` — the column gap the
     //  Canvas's nested items take would add 6px between a row's icon · label · chevron.)

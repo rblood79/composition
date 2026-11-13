@@ -25,6 +25,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
+  white-space: nowrap;
 
   /* Default variant */
   background: transparent;

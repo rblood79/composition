@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [rule 값이 Publish 에서 사라지지 않는다 — 생성 CSS 의 누락 키 · size padding 덮어쓰기 · Publish margin reset] - 2026-11-13
+
+### Fixed
+
+- **SideNav 의 머리글 · 행 간격이 Publish 에서만 붙던 것**: Canvas 는 머리글 → 첫 행 14 · 행 사이 6 (S2) 인데 Publish 는 0 이었다. 이제 둘 다 14 · 6.
+  - Why 1: Publish 의 전역 reset `* { margin: 0 }` 이 cascade layer 밖이라 catalog 의 margin (`@layer components`) 을 전부 이겼다. 가장 낮은 layer (`preview-system`) 로 옮겼다 — 브라우저 기본 margin 은 그대로 지운다. 위치: `apps/publish/src/styles/index.css`.
+  - Why 2: CSS 생성기 (`emitContainerStyles`) 가 줄이 없는 rule 값을 말없이 버렸다 — SideNavHeader `margin-bottom: 8px` 등. 이제 모든 선언 키를 쓴다 (kebab-case · 토큰은 변수 · `--` 사용자 속성 그대로). Canvas rule 상자도 margin 네 방향을 읽는다 (`CATALOG_CANVAS_BOX_KEYS` · `typedCanvasBox`).
+- **rule 이 선언한 padding 한쪽을 size 블록이 덮던 것**: size 에 padding 이 없으면 생성 CSS 가 `padding: 0px 0px` 를 써 SideNavHeader 시작 12 · Toast 네 방향 padding 이 Publish 에서만 0 이었다. 이제 padding 한쪽이라도 선언하면 size padding 을 쓰지 않는다 (Canvas 와 같은 규칙).
+- 같이 생성 CSS 에 들어간 값 (같은 블록 아래 선언이 덮어 화면 변화 없음: ActionButton · ToggleButton · SelectBox `border-style`, SideNav `--indent`): TokenInput `white-space: pre-wrap` · `overflow-wrap: anywhere`, Token · SegmentedControlItem `white-space: nowrap`.
+  - 게이트: `CSSGenerator.containerStyles.test.ts` 가 모든 rule 의 `structure.containerStyles` 키가 CSS 에 쓰이는지 검사한다 (borderWidth 는 border · size 축이 쓴다). 원복 RED: 일반 출력 제거 3 실패 · padding 판정 원복 1 실패 · Canvas margin 키 원복 1 실패 (`adr300SideNavDom.test.tsx`).
+  - Live (aaa · Mobile 390, SideNav > Section > Header + Item 2 → 확인 뒤 삭제): Canvas 행 y 30 · 68, Publish 30 · 68 (머리글 margin-bottom 8 · 행 margin-top 6). body 자식 15 개의 위치가 Canvas = Publish (±2). 콘솔 오류 0. Toast · Token · TokenInput 은 live 로 보지 않았다.
+- **Min W 에 0 을 넣으면 값이 지워지던 것**: 지우기가 아니라 최소 0 으로 저장한다. Chart (rule min-width 320) 에 Width 200 · Min W 0 → 200 × 112.5 (전에는 rule 의 320 으로 돌아갔다).
+  - Why: Styles 키 표 (`catalogStyleWrites`) 가 Min `0` 을 「값 없음」 으로 다뤘다. rule 에 바닥이 없을 때는 같아 보였지만, flex 안에서 `min-width: 0` 은 auto (내용 크기) 와 다르고 rule 바닥 (Chart 320 · SideNav 160) 을 낮추는 유일한 방법이다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/styleFields.ts`.
+  - Live (aaa · Mobile, Chart → Width 200px → Min W 0): Canvas 320 × 180 → 200 × 112.5, Publish 200 × 112.5 (inline `min-width: 0px`). 확인 뒤 삭제.
+  - 테스트: `phase4eStyleFields.test.ts` · `phase4eSizing.test.tsx` (원복 RED 2).
+
 ## [Chart 기본 상자 = 16:9 비율 — 세로 flex body 에서 눌리지 않는다] - 2026-11-13
 
 ### Changed

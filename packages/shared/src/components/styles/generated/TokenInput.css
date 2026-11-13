@@ -16,6 +16,8 @@
   width: 100%;
   min-height: 36px;
   display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 
   /* Default variant */
   background: var(--bg-overlay);

@@ -330,6 +330,18 @@ describe("Ratio lock: the following axis is Fit content", () => {
     expect(box()).toMatchObject({ width: 640, height: 640 });
   });
 
+  it("Min W 0 is a minimum of 0 — it lifts a rule floor (Chart min-width 320), not clears the field", async () => {
+    const { node, box, host, record } = await place({
+      ...frame(BOX),
+      definitionId: "lib:definition:origin-component-chart",
+    });
+    host.applySizing(record, { axis: "width", mode: "css", value: "200px" });
+    expect(box().width).toBe(320);
+    host.updateStyles({ minWidth: "0" });
+    expect(node().sizing.minWidth).toEqual({ kind: "set", value: 0 });
+    expect(box()).toMatchObject({ width: 200, height: 112.5 });
+  });
+
   it("only the height fixed: the width follows (Fit content) and the height holds", async () => {
     const { node, box, host, record } = await place(
       frame(BOX, { sizing: { height: { kind: "set", value: 100 } } }),

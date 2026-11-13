@@ -22,6 +22,11 @@
   flex-direction: row;
   align-items: center;
   position: relative;
+  box-sizing: border-box;
+  padding-top: 12px;
+  padding-right: var(--catalog-token-size-toast-padding-end);
+  padding-bottom: 12px;
+  padding-left: var(--catalog-token-size-toast-padding-start-icon);
 
   /* Default variant */
   background: var(--informative-background);
@@ -30,7 +35,6 @@
 
   /* Default size */
   height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-none);

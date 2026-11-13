@@ -4,6 +4,7 @@ import type {
   ComponentSpec,
 } from "../../types/spec.types";
 import type { TokenRef } from "../../types/token.types";
+import { COMPONENT_RULES_TABLE } from "../../../../shared/src/catalog/generated/componentRulesTable";
 import { emitContainerStyles, generateCSS } from "../CSSGenerator";
 
 /** The variants' compiled paint blocks (production: `generate-css.ts` `variantPaintCssFor` — ADR-297). */
@@ -174,6 +175,16 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
     expect(css).not.toMatch(/padding:\s*\d+px\s+\d+px/);
   });
 
+  it("a declared padding side also takes precedence — the size block writes no padding (SideNavHeader · Toast)", () => {
+    const spec: ComponentSpec<{ variant?: string }> = {
+      ...baseSpec,
+      containerStyles: { paddingLeft: "12px" } as ContainerStylesSchema,
+    };
+    const css = generateCSS(spec);
+    expect(css).toContain("padding-left: 12px;");
+    expect(css).not.toMatch(/padding:\s*\d+px\s+\d+px/);
+  });
+
   it("containerStyles.borderRadius takes precedence over sizes.borderRadius", () => {
     const spec: ComponentSpec<{ variant?: string }> = {
       ...baseSpec,
@@ -194,5 +205,41 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
     expect(css).toMatch(/padding:\s*\d+px\s+\d+px/);
     // defaultSize.borderRadius → border-radius: 6 (tokenToCSSVar(6) = "6", no px suffix)
     expect(css).toMatch(/border-radius:\s*6/);
+  });
+});
+
+/**
+ * A rule's container value reaches the DOM (2026-11-13): a key without a line of its own is written
+ * as declared, so no consumer drops a rule value silently (SideNav `min-width: 160px` was dropped
+ * from the DOM alone).
+ */
+describe("emitContainerStyles — every declared key", () => {
+  it("writes a key without a line of its own as declared (kebab-case · token var · custom property)", () => {
+    const lines = emitContainerStyles({
+      whiteSpace: "nowrap",
+      marginBottom: "8px",
+      paddingRight: "{size.toast.padding-end}",
+      "--indent": "16px",
+    } as unknown as ContainerStylesSchema);
+    expect(lines).toEqual([
+      "  white-space: nowrap;",
+      "  margin-bottom: 8px;",
+      "  padding-right: var(--catalog-token-size-toast-padding-end);",
+      "  --indent: 16px;",
+    ]);
+  });
+
+  it("every rule's structure.containerStyles key is written (borderWidth folds into border · the size axis)", () => {
+    const dropped: string[] = [];
+    for (const [name, rule] of Object.entries(
+      COMPONENT_RULES_TABLE as Record<string, { structure?: { containerStyles?: Record<string, unknown> } }>,
+    ))
+      for (const [key, value] of Object.entries(rule.structure?.containerStyles ?? {}))
+        if (
+          key !== "borderWidth" &&
+          emitContainerStyles({ [key]: value } as ContainerStylesSchema).length === 0
+        )
+          dropped.push(`${name}.${key}`);
+    expect(dropped).toEqual([]);
   });
 });

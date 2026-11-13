@@ -25,6 +25,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  border-style: none;
 
   /* Default variant */
   background: var(--neutral-surface);

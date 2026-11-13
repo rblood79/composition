@@ -66,6 +66,11 @@ export const CATALOG_CANVAS_BOX_KEYS = [
   // so a fixed-height column flex does not squeeze it (2026-11-13).
   "minWidth",
   "aspectRatio",
+  // A rule margin (SideNavHeader S2 `marginBottom: 8`) — the generated CSS writes it too.
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
 ] as const;
 
 /**
