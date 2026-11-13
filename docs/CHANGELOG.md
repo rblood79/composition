@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Ratio 가 규칙 기본 크기가 있는 컴포넌트에서도 작동한다 — 따라가는 축을 Fit content 로] - 2026-11-13
+
+### Fixed
+
+- **Chart 에 Width 640 · Ratio 1:1 을 줘도 640 × 240 이던 것** (사용자 보고 「높이가 640 이 되지 않는다」): Ratio 를 켜면 따라가는 축을 Fit content 로 써 둔다 — 640 × 640.
+  - Why: CSS `aspect-ratio` 는 폭 · 높이가 둘 다 정해지면 쓰이지 않는다. Ratio 칸 (`catalogRatioCommand`) 은 직접 넣은 Height 만 지워, 규칙이 크기를 주는 컴포넌트 (등록 타입 중 팔레트에 놓이는 79 개 가운데 Chart · ColorArea · ProgressCircle · Nav · ColorSwatch · ColorSlider · SideNavPanel 7 개) 는 두 축이 정해진 채로 남아 Ratio 가 조용히 무시됐다.
+  - 따라가는 축은 CSS 규칙대로 고른다 — 직접 정한 축이 기준, Height 만 정했으면 Width 가 따라가고 그 밖은 Height 가 따라간다. `fit-content` 를 쓰는 이유: Chrome 에서 `height: fit-content` 도 비율을 따르고 (640), 세로 flex 안의 따라가는 Width 는 `auto` 면 늘이기에 지지만 (1000) `fit-content` 는 비율대로 (400) 선다.
+  - 따라가는 축 판정 (`getRatioDependentAxis` — 패널 표시 · 리사이즈 잠금 · fill 투영) 이 `fit-content` · `min-content` · `max-content` 를 정해지지 않은 축으로 센다 (`isFixedRatioAxis`). Ratio 를 끄면 따라가던 축의 Fit content 를 지우고 잰 px 로 고정한다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/sizing.ts` · `packages/shared/src/utils/fillSizing.ts`. 두 렌더러의 계산 (엔진 · 브라우저) 은 그대로다.
+  - Live (aaa · Desktop, Bar chart 를 넣어 Width 640 → Ratio 1:1 Square → 확인 뒤 삭제): Canvas 640 × 640 (Height 칸 흐린 640), Publish `height: fit-content; aspect-ratio: 1 / 1` · 640 × 640. 콘솔 오류 0.
+  - 테스트: `phase4eSizing.test.tsx` (Chart 640 × 640 · 끄면 640 고정 · Height 만 정한 상자는 Width 가 따라감 — 잠금 원복 · 판정 원복 각각 RED).
+
 ## [직접 넣은 Height · Width 가 flex 주축에서 줄어들지 않는다] - 2026-11-13
 
 ### Fixed

@@ -1,5 +1,6 @@
 import {
   getRatioDependentAxis,
+  isFixedRatioAxis,
   type BreakpointName,
   type FillAxes,
 } from "@composition/shared";
@@ -139,10 +140,32 @@ export function catalogSizingCommand(input: {
 
 /**
  * ADR-248 Phase 4e-4d-3: the Ratio control. A ratio applies to every screen size (base
- * `visual.aspectRatio`); `null` locks the measured ratio. Locking drops each layer's height
- * (fixed, visual and fill) so height follows width; unlocking fixes the dependent axis at its
- * measured px on the base and needs the Desktop geometry (other breakpoints measure other boxes).
+ * `visual.aspectRatio`); `null` locks the measured ratio. Locking makes one axis follow the other
+ * as CSS does — the axis the author fixed holds, the other follows (height, unless only the height
+ * is fixed): the following axis drops each layer's value (fixed, visual and fill) and is written
+ * `fit-content` on the base, so a rule's default size on it (Chart height 240) no longer fixes
+ * both axes and leaves the ratio unused. Unlocking fixes the following axis at its measured px on
+ * the base and needs the Desktop geometry (other breakpoints measure other boxes).
+ * **Why (2026-11-13)**: locking only dropped the authored height — a Chart (rule height 240) at
+ * Width 640 · Ratio 1 / 1 stayed 640 × 240 on both renderers (사용자 「높이가 640 이 되지 않는다」).
  */
+/**
+ * The axis a ratio lock makes follow (CSS: a fixed axis holds, an `auto` one follows the ratio —
+ * both free, the width leads): the height, unless the author fixed only the height (a fill counts
+ * as fixed). Reads the base (Desktop) layer — the ratio lives there.
+ */
+function ratioFollowingAxis(own: OwnFields): CatalogSizeAxis {
+  const view = catalogStyleView({
+    visual: catalogAuthoredValues(own.visual),
+    layout: catalogAuthoredValues(own.layout),
+    sizing: catalogAuthoredValues(own.sizing),
+  });
+  const fill = catalogFillAt(own, "desktop");
+  const fixed = (axis: CatalogSizeAxis) =>
+    !!fill?.[axis] || isFixedRatioAxis(view[axis]);
+  return fixed("height") && !fixed("width") ? "width" : "height";
+}
+
 export function catalogRatioCommand(input: {
   /** The commands plan in order on each other's staged records (a layer's fill write is a put). */
   graph: CatalogGraph;
@@ -168,36 +191,41 @@ export function catalogRatioCommand(input: {
           return "geometry-missing";
         ratio = `${Math.round(box.width * 100) / 100} / ${Math.round(box.height * 100) / 100}`;
       }
+      const follows = ratioFollowingAxis(own);
       const drop = {
-        visual: { height: { kind: "remove" as const } },
-        sizing: { height: { kind: "remove" as const } },
+        visual: { [follows]: { kind: "remove" as const } },
+        sizing: { [follows]: { kind: "remove" as const } },
       };
       commands.push(
-        setFillSizing({ targets: [target], axis: "height", value: undefined }),
+        setFillSizing({ targets: [target], axis: follows, value: undefined }),
         setFields({
           targets: [target],
           visual: {
-            ...drop.visual,
             ...catalogStyleWritesOf({ aspectRatio: ratio }).visual,
+            [follows]: { kind: "set", value: "fit-content" },
           },
           sizing: drop.sizing,
           label: "Ratio",
-        }),
+        } as Parameters<typeof setFields>[0]),
       );
       for (const layer of ["tablet", "mobile"] as const) {
         const layered = own.responsive?.[layer];
-        if (layered?.fillSizing?.height !== undefined)
+        if (layered?.fillSizing?.[follows] !== undefined)
           commands.push(
             setFillSizing({
               targets: [target],
               breakpoint: layer,
-              axis: "height",
+              axis: follows,
               value: undefined,
             }),
           );
-        if (layered?.visual?.height || layered?.sizing?.height)
+        if (layered?.visual?.[follows] || layered?.sizing?.[follows])
           commands.push(
-            setFields({ targets: [target], breakpoint: layer, ...drop }),
+            setFields({
+              targets: [target],
+              breakpoint: layer,
+              ...drop,
+            } as Parameters<typeof setFields>[0]),
           );
       }
       continue;
@@ -223,8 +251,10 @@ export function catalogRatioCommand(input: {
       commands.push(
         setFields({
           ...writes,
+          // (The following axis's `fit-content` goes — the measured px is its size now.)
+          visual: { aspectRatio: { kind: "remove" }, [dependent]: { kind: "remove" } },
           sizing: { [dependent]: { kind: "set", value: Math.round(px) } },
-        }),
+        } as Parameters<typeof setFields>[0]),
       );
     } else commands.push(setFields(writes));
   }

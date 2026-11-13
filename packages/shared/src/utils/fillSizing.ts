@@ -166,18 +166,32 @@ export function getFillBehavior(
   return null;
 }
 
+/**
+ * Sizes a preferred aspect ratio computes rather than obeys: `auto` and the intrinsic keywords
+ * (Chrome: `width: 640px` · `height: fit-content` · `aspect-ratio: 1/1` is 640 tall — and in a
+ * column flex a `fit-content` width follows the ratio where `auto` stretches).
+ */
+const RATIO_FOLLOWING_SIZES = new Set([
+  "",
+  "auto",
+  "fit-content",
+  "min-content",
+  "max-content",
+]);
+
+/** A size that holds under a ratio (a length, a percentage — not `auto` or an intrinsic keyword). */
+export function isFixedRatioAxis(value: unknown): boolean {
+  return value != null && !RATIO_FOLLOWING_SIZES.has(String(value).trim());
+}
+
 export function getRatioDependentAxis(
   style: Record<string, unknown>,
   fill?: FillAxes,
 ): SizeAxis | null {
   const ratio = String(style.aspectRatio ?? "").trim();
   if (!ratio || ratio === "auto") return null;
-  const widthIndependent =
-    !!fill?.width ||
-    (style.width != null && style.width !== "" && style.width !== "auto");
-  const heightIndependent =
-    !!fill?.height ||
-    (style.height != null && style.height !== "" && style.height !== "auto");
+  const widthIndependent = !!fill?.width || isFixedRatioAxis(style.width);
+  const heightIndependent = !!fill?.height || isFixedRatioAxis(style.height);
   if (widthIndependent && !heightIndependent) return "height";
   if (heightIndependent && !widthIndependent) return "width";
   return null;

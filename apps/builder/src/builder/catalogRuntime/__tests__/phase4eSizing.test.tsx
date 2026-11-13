@@ -269,3 +269,72 @@ describe("ADR-248 Phase 4e-4d-3 Size", () => {
     expect(result.current.width).toBe(400);
   });
 });
+
+/**
+ * A ratio lock makes one axis follow as CSS does and writes it `fit-content`: a rule's default
+ * size on that axis (Chart height 240) would otherwise fix both axes and leave the ratio unused
+ * (사용자 2026-11-13 「width 640 · ratio 1:1 을 해도 높이가 640 이 되지 않는다」).
+ */
+describe("Ratio lock: the following axis is Fit content", () => {
+  async function place(entry: NodeEntry) {
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:ratio" as EntryId<"project">,
+          name: "Ratio",
+        }),
+        await buildCodeCatalogLibrary(),
+      ),
+      new CatalogStorage(indexedDB, `ratio-follow-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1000, height: 800 },
+        autosaveSchedule: () => {},
+      },
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [entry],
+        rootIds: [entry.id],
+        newId: workspace.newId,
+      }),
+    );
+    const record = workspace.root.recordsOfSource(entry.id)[0];
+    workspace.selectRecords([record]);
+    return {
+      workspace,
+      record,
+      node: () => workspace.runtime.graph.getEntry(entry.id) as NodeEntry,
+      box: () => workspace.root.getGeometry([record]).get(record)!,
+      host: createCatalogStylesHost(workspace),
+    };
+  }
+
+  it("a Chart (rule height 240) at Width 640 · Ratio 1 / 1 is 640 × 640; unlock keeps 640", async () => {
+    const { node, box, host, record } = await place({
+      ...frame(BOX),
+      definitionId: "lib:definition:origin-component-chart",
+    });
+    host.applySizing(record, { axis: "width", mode: "css", value: "640px" });
+    expect(box().height).toBe(240);
+    expect(host.applyRatio(record, "1 / 1")).toBe(null);
+    expect(node().visual.height).toEqual({ kind: "set", value: "fit-content" });
+    expect(box()).toMatchObject({ width: 640, height: 640 });
+
+    expect(host.applyRatio(record, "")).toBe(null);
+    expect(node().visual.height).toBe(undefined);
+    expect(node().sizing.height).toEqual({ kind: "set", value: 640 });
+    expect(box()).toMatchObject({ width: 640, height: 640 });
+  });
+
+  it("only the height fixed: the width follows (Fit content) and the height holds", async () => {
+    const { node, box, host, record } = await place(
+      frame(BOX, { sizing: { height: { kind: "set", value: 100 } } }),
+    );
+    expect(host.applyRatio(record, "2 / 1")).toBe(null);
+    expect(node().visual.width).toEqual({ kind: "set", value: "fit-content" });
+    expect(node().sizing.height).toEqual({ kind: "set", value: 100 });
+    expect(box()).toMatchObject({ width: 200, height: 100 });
+  });
+});
