@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 Toast 의 bottom 자리가 화면 아래다 — 액션바와 겹칠 때만 그 위로] - 2026-11-13
+
+### Fixed
+
+- **Settings 「Toast placement」 bottom 이 액션바 자리 위에 뜨던 것** (사용자 보고 「bottom 으로 했을 경우 액션바의 위를 bottom 으로 인식한다 · bottom end 는 정상」): 아래 자리는 S2 와 같은 화면 아래 16 이고, contextual action bar 와 가로로 겹칠 때만 바 윗선 + 8 로 올린다.
+  - Why 1: 아래 자리 CSS 가 바 한 줄 높이 (60) 를 늘 비워 두었다 — 바가 없거나 화면 밖이어도 bottom · bottom end 모두 60 위. bottom end 는 그 아래에 바가 없어 정상으로 보였다.
+  - Why 2: 겹칠 때 올리는 계산 (`useActionBarClearance`) 이 토스트가 생길 때 한 번만 쟀는데, 그때 region 은 아직 DOM 에 없어 0 이었다 (고정 60 이 가리던 결함). region 이 붙거나 크기가 바뀌면 다시 잰다.
+  - 위치: `apps/builder/src/builder/components/feedback/Toast.css` · `useActionBarClearance.ts`.
+  - Live (aaa, Fit to screen · Button 선택으로 바가 화면 아래 가운데 937 ~ 973): bottom → 바 위 (아래 끝 929), bottom end → 화면 아래 16 (973), 바가 화면 밖일 때 bottom → 973. 확인 뒤 placement bottom 으로 되돌림.
+  - 테스트: `actionBarClearance.test.ts` (region 이 나중에 붙어도 44 올림 — 원복 RED).
+
 ## [rule 값이 Publish 에서 사라지지 않는다 — 생성 CSS 의 누락 키 · size padding 덮어쓰기 · Publish margin reset] - 2026-11-13
 
 ### Fixed

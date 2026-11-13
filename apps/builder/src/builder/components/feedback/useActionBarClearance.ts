@@ -88,11 +88,27 @@ export function useActionBarClearance(
     update();
     window.addEventListener("resize", update);
 
+    // 토스트 region 은 RAC 가 첫 토스트를 그릴 때 body 에 붙인다 — 위의 첫 측정 때는 아직 없을 수
+    // 있다. 붙거나 바뀌면 다시 재고, 크기 (문구 길이 · 쌓인 수) 가 바뀌어도 다시 잰다. **Why
+    // (2026-11-13)**: 첫 측정이 region 없이 0 을 내고 끝나, 아래 자리 offset 을 S2 의 16 으로 내리자
+    // 화면 아래 가운데의 바를 덮었다.
+    let observedRegion: Element | null = null;
+    const regionObserver =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(update);
     // 바의 위치는 인라인 style 로 바뀐다 (드래그 · page anchor 갱신 둘 다). 바는 선택에 따라
     // 생겼다 사라지고 다시 생긴다 — 지금 있는 바에 style 관찰을 다시 붙인다.
     let observed: Element | null = null;
     const styleObserver = new MutationObserver(update);
     const attach = (): void => {
+      const region = containerRef.current;
+      if (region !== observedRegion) {
+        regionObserver?.disconnect();
+        observedRegion = region;
+        if (region) regionObserver?.observe(region);
+        update();
+      }
       const bar = document.querySelector(ACTION_BAR_SELECTOR);
       if (bar === observed) return;
       styleObserver.disconnect();
@@ -113,6 +129,7 @@ export function useActionBarClearance(
       window.removeEventListener("resize", update);
       styleObserver.disconnect();
       treeObserver.disconnect();
+      regionObserver?.disconnect();
     };
   }, [active, containerRef]);
 

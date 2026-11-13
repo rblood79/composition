@@ -5,7 +5,12 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { measureClearance } from "../useActionBarClearance";
+import { act, renderHook } from "@testing-library/react";
+
+import {
+  measureClearance,
+  useActionBarClearance,
+} from "../useActionBarClearance";
 
 const VIEWPORT_H = 1000;
 
@@ -80,5 +85,40 @@ describe("measureClearance", () => {
   it("바가 토스트보다 아래면 올리지 않는다", () => {
     const barBelow = stub({ left: 1382, right: 1545, top: 960 });
     expect(withBar(barBelow, () => measureClearance(toast, 0))).toBe(0);
+  });
+});
+
+describe("useActionBarClearance", () => {
+  /**
+   * Why (2026-11-13): 토스트가 생길 때 한 번 쟀는데 그때 region 은 아직 DOM 에 없어 0 이었고, 다시
+   * 재지 않았다 — 고정 60 offset 이 바의 기본 자리를 비워 가리던 결함 (offset 을 S2 의 16 으로 내리자
+   * 화면 아래 가운데의 바를 덮었다). region 이 나타나면 다시 잰다.
+   */
+  it("region 이 나중에 나타나도 다시 재서 바 위로 올린다", async () => {
+    vi.stubGlobal("innerHeight", VIEWPORT_H);
+    const bar = stub({ left: 700, right: 1000, top: 948 });
+    bar.className = "contextual-action-bar";
+    document.body.appendChild(bar);
+    let region: HTMLElement | null = null;
+    const ref = {
+      get current() {
+        return region;
+      },
+    };
+    const { result } = renderHook(() => useActionBarClearance(ref, true));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(result.current).toBe(0);
+    // 토스트: 가운데, bottom 984 (= S2 offset 16)
+    region = stub({ left: 750, right: 950, top: 948 });
+    await act(async () => {
+      document.body.appendChild(region!);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    // 바 윗선 948 + 간격 8 → 아래에서 60, 기본 16 → 44 올린다
+    expect(result.current).toBe(44);
+    bar.remove();
+    region.remove();
   });
 });
