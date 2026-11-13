@@ -2933,6 +2933,23 @@ function ownDerivedPropsBase(
       return { orientation: "vertical" };
   }
   const crumb = get(node.parentId);
+  // A crumb's separator Icon follows its Breadcrumbs' `separatorIcon` (user decision 2026-11-13)
+  //   while it is still the rule's default glyph — a separator the author changed keeps its own.
+  if (
+    crumb &&
+    typeOf(crumb) === "Breadcrumb" &&
+    typeOf(node) === "Icon" &&
+    node.props.slot === "separator"
+  ) {
+    const list = get(crumb.parentId);
+    const listIcon =
+      list && typeOf(list) === "Breadcrumbs" ? list.props.separatorIcon : undefined;
+    return typeof listIcon === "string" &&
+      listIcon &&
+      node.props.iconName === CATALOG_BREADCRUMB_DEFAULT_SEPARATOR
+      ? { _ownerIconName: listIcon }
+      : undefined;
+  }
   if (
     crumb &&
     typeOf(crumb) === "Breadcrumb" &&
@@ -3374,6 +3391,11 @@ function derivedDependents(
     return catalogBreadcrumbItems(owner, get, typeOf).flatMap((crumb) => [
       crumb,
       ...catalogBreadcrumbLabels(crumb, get, typeOf),
+      // (Its `separatorIcon` is its crumbs' separator glyph.)
+      ...childrenOf(crumb, get).filter(
+        (child) =>
+          typeOf(child) === "Icon" && child.props.slot === "separator",
+      ),
     ]);
   // (A crumb's own `isDisabled` is its labels' disabled paint.)
   if (type === "Breadcrumb") return catalogBreadcrumbLabels(owner, get, typeOf);
@@ -3716,6 +3738,9 @@ export function catalogItemSlotInset(
 }
 
 /** A crumb's label children (inside its RAC Link · current `div` — they take the current crumb's weight). */
+/** The separator glyph a crumb's Icon has by default (catalog `Breadcrumb` `trailingIcon` — S2 Chevron). */
+export const CATALOG_BREADCRUMB_DEFAULT_SEPARATOR = "s2-chevron";
+
 export function catalogBreadcrumbLabels(
   crumb: CatalogConsumerNode,
   get: CatalogRecordLookup,

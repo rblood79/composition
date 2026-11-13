@@ -487,6 +487,8 @@ const glyph: Binding = (node, rect) => {
   // A glyph the owner names (`catalogDerivedProps` — a Disclosure's open chevron) over its own value.
   const name = String(
     node.derivedProps?.iconName ??
+      // (A crumb separator's glyph is its Breadcrumbs' `separatorIcon` — `presence.ts`.)
+      node.derivedProps?._ownerIconName ??
       node.props.iconName ??
       (node.bindingId === "illustration" ? "image" : "circle"),
   );
@@ -1827,7 +1829,7 @@ function breadcrumbMenuData(
     box: { fillColor: rgba(undefined), borderRadius: 0 },
     children: [
       glyphOf(
-        "s2-folder-breadcrumb",
+        menu.icon,
         {
           x: (button - glyph) / 2,
           y: (rect.height - glyph) / 2,
@@ -2867,6 +2869,22 @@ function bindInColorMode(
         return true;
       });
       const reconciled = new Set<string>();
+      // The boxes a collapse lays among a record's children (a TagList's Show all, a Breadcrumbs'
+      // folder menu — no records): a structural region keeps them in its child lists and scene, as
+      // the bind put them (a collapse change rebinds above — `tagRowsState`).
+      const synthetic = new Map<string, string[]>();
+      if (regions.length) {
+        for (const showAll of root.tagShowAllInputs.values())
+          if (sceneNodes.has(showAll.id))
+            synthetic.set(showAll.listId, [showAll.id]);
+        for (const menu of root.breadcrumbMenuInputs.values())
+          if (sceneNodes.has(menu.id))
+            synthetic.set(menu.listId, [
+              ...(synthetic.get(menu.listId) ?? []),
+              menu.id,
+            ]);
+      }
+      const syntheticIds = new Set([...synthetic.values()].flat());
       for (const region of regions) {
         const previous = new Set<string>();
         const collectPrevious = (id: string) => {
@@ -2922,10 +2940,12 @@ function bindInColorMode(
         for (const id of next)
           childrenMap.set(
             id,
-            input(id)!.children.map((child) => sceneNodes.get(child)!),
+            [...input(id)!.children, ...(synthetic.get(id) ?? [])].map(
+              (child) => sceneNodes.get(child)!,
+            ),
           );
         for (const id of previous) {
-          if (next.has(id)) continue;
+          if (next.has(id) || syntheticIds.has(id)) continue;
           unsubscribe.get(id)?.();
           unsubscribe.delete(id);
           unregisterSkiaNode(id);

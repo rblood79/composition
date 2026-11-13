@@ -595,7 +595,11 @@ export function BreadcrumbsRun({
             },
           },
           createElement(Icon, {
-            iconName: "s2-folder-breadcrumb",
+            // (The Breadcrumbs' `menuIcon` — S2's FolderBreadcrumb by default.)
+            iconName:
+              typeof props.menuIcon === "string" && props.menuIcon
+                ? props.menuIcon
+                : "s2-folder-breadcrumb",
             style: { fontSize: glyph, width: glyph, height: glyph },
           }),
         ),
@@ -635,6 +639,7 @@ export function BreadcrumbsRun({
       createElement(Icon, {
         iconName: String(
           separator?.derivedProps?.iconName ??
+            separator?.derivedProps?._ownerIconName ??
             separator?.props.iconName ??
             "s2-chevron",
         ),

@@ -3221,6 +3221,8 @@ const semanticLabels: Record<string, string> = {
   "properties.closeOnSelect": "Close on select",
   "properties.leadingZeros": "Leading zeros",
   "properties.calendarIcon": "Calendar icon",
+  "properties.separatorIcon": "Separator icon",
+  "properties.menuIcon": "Menu icon",
   "properties.heightMode": "Height mode",
   "properties.fixed": "Fixed",
   "properties.viewport": "Viewport",

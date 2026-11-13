@@ -3214,6 +3214,8 @@ const semanticLabels: Record<string, string> = {
   "properties.closeOnSelect": "선택 시 닫기",
   "properties.leadingZeros": "앞자리 0",
   "properties.calendarIcon": "캘린더 아이콘",
+  "properties.separatorIcon": "구분자 아이콘",
+  "properties.menuIcon": "메뉴 아이콘",
   "properties.heightMode": "높이 모드",
   "properties.fixed": "고정",
   "properties.viewport": "뷰포트",

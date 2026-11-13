@@ -2193,6 +2193,8 @@ export interface CatalogTagShowAll {
 export interface CatalogBreadcrumbMenu {
   readonly id: string;
   readonly listId: string;
+  /** The folder button's glyph (the Breadcrumbs' `menuIcon` — S2 FolderBreadcrumb). */
+  readonly icon: string;
   /** The separator glyph after the button: the first crumb's separator Icon (S2 Chevron). */
   readonly separator: {
     readonly iconName: string;
@@ -5312,9 +5314,14 @@ export class CatalogCompositionRoot {
     return {
       id: `${list.id}::breadcrumb-menu`,
       listId: list.id,
+      icon:
+        typeof list.props.menuIcon === "string" && list.props.menuIcon
+          ? list.props.menuIcon
+          : "s2-folder-breadcrumb",
       separator: {
         iconName: String(
           separator?.derivedProps?.iconName ??
+            separator?.derivedProps?._ownerIconName ??
             separator?.props.iconName ??
             "s2-chevron",
         ),
@@ -5404,7 +5411,16 @@ export class CatalogCompositionRoot {
     if (isCrumbs !== this.breadcrumbLists.has(id)) {
       this.keep(this.breadcrumbLists, id);
       if (isCrumbs) this.breadcrumbLists.set(id, true);
-      else this.breadcrumbLists.delete(id);
+      else {
+        this.breadcrumbLists.delete(id);
+        // (A Breadcrumbs gone takes its folder box with it — `settleBreadcrumbs` reads the list only.)
+        const collapse = this.crumbCollapses.get(id);
+        if (collapse) {
+          this.keep(this.crumbCollapses, id);
+          this.crumbCollapses.delete(id);
+          this.layout.removeNode(collapse.menu.id);
+        }
+      }
     }
     const isList = !!next && this.typeOf(next) === "TagList";
     if (isList === this.tagLists.has(id)) return;

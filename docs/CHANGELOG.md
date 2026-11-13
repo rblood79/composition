@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 버그: 편집 한 번 뒤 현재 조각 글자가 굵게 · neutral 이 아니라 보통 · `neutral-subdued` 로 돌아갔다 — 조각 label 판정이 record 객체 동일성 (`includes(node)`) 이라 증분 재해석의 새 객체를 놓쳤다 (id 비교로).
   - Live (breadcrumbs-s2-verify, Mobile, Compare): 폭 150 → Canvas · DOM 모두 Home · 폴더 · Page (DOM x 6 · 59.24 · 107.24, 폴더 칸 42 × 32), wipe 가 폴더 아이콘을 가로질러도 이어짐, 폴더 클릭 → 메뉴 (폭 99, Category `/category`), 폭 300 → 새로고침 없이 다시 펼침. Disabled → 링크 #c6c6c6 · 현재 #292929 700 (Canvas 같음). 터치 보기 → 앞 여백 7.5 · 간격 7.5 · chevron 12.5. console error 0.
   - 테스트: `adr256BreadcrumbsNodeTree` 에 현재 조각 (편집 뒤 — 원복 RED) · 비활성 · 앞 여백 · chevron 기기 길이 · 접기 (맞음 · Canvas 5 조각 · 좁은 폭 · DOM) 8 개 추가.
+- **Breadcrumbs 에서 구분자 · 폴더 아이콘을 바꾼다 (사용자 결정)**: Breadcrumbs 에 `Separator icon` · `Menu icon` 칸 (S2 · v3 에 없는 composition 확장 — `d2Provenance.ts`).
+  - Separator icon (`separatorIcon`, 기본 `s2-chevron`): 모든 조각의 구분자 Icon 이 따른다. 조각에서 직접 바꾼 구분자 (기본 chevron 이 아닌 값) 는 그 조각만 자기 값을 유지한다. 두 consumer 가 같은 파생값 (`presence.ts` `_ownerIconName`) 을 읽는다 — Tree chevron 회전에 쓰는 Canvas 전용 파생 `iconName` 과 섞지 않기 위해 키를 따로 뒀다.
+  - Menu icon (`menuIcon`, 기본 S2 FolderBreadcrumb): 넘침 접기의 폴더 버튼 아이콘 — Canvas `settleBreadcrumbs` · DOM `BreadcrumbsRun` 이 같이 읽는다.
+  - Live (breadcrumbs-s2-verify, Compare): Separator icon = `chevrons-right` → 직접 slash 로 바꿔 둔 첫 조각은 slash, 나머지는 » (Canvas · DOM 같음). Menu icon = `ellipsis` + 폭 150 → 둘 다 Home / ••• / Page. console error 0.
+  - 테스트: Breadcrumbs 값이 모든 조각에 · 직접 바꾼 조각은 유지 · menuIcon (Canvas) 3 개.
+- **버그: 다른 요소를 편집하면 Canvas 의 폴더 상자가 사라졌다 (사용자 보고)** — 화면 크기를 바꾸면 (전체 다시 묶기) 다시 나타났다. 원인: 같은 영역에 요소를 넣거나 지우면 Canvas 가 그 영역의 자식 목록을 record 자식으로만 다시 만들고, 이전 자식 중 record 가 아닌 것을 등록 해제했다 — 접기가 둔 합성 상자 (Breadcrumbs 폴더 · TagGroup Show all) 가 그렇게 지워졌다. 이제 구조 재조정이 합성 상자를 자식 목록에 남기고 지우지 않는다 (`canvasBinding.ts`). Breadcrumbs 를 지우면 그 접기 기록도 지운다 (`compositionRoot.ts` — 낡은 폴더 상자 방지). Live: 접힌 Breadcrumbs 옆에 Text 추가 · 삭제 → 폴더 유지. 테스트 2 (둘 다 원복 RED).
 
 ## [빌더 Toast 의 bottom 자리가 화면 아래다 — 액션바와 관계없이 설정 자리에 고정] - 2026-11-13
 

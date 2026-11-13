@@ -71,6 +71,9 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   // ADR-256 Phase 9: RAC `visibleDuration` (days · weeks · months) is a superset of S2
   //   `visibleMonths` (months only) — kept for the reference's Display options; `weeksInMonth` is
   //   RAC's (S2 omits it).
+  // (2026-11-13 사용자 결정: the list's separator glyph — every crumb's separator Icon follows it.)
+  // (and its collapse menu button's glyph — S2's FolderBreadcrumb.)
+  Breadcrumbs: { separatorIcon: "composition", menuIcon: "composition" },
   Calendar: { visibleDuration: "rac", weeksInMonth: "rac" },
   RangeCalendar: { visibleDuration: "rac", weeksInMonth: "rac" },
   ColorField: { isQuiet: "v3" },

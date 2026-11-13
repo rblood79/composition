@@ -29,6 +29,23 @@ export const breadcrumbsBinding: PrimitiveBinding = {
         default: "M",
       },
       // separator (문자) 는 2026-09-29 제거 — 구분자는 조각의 편집 가능한 Icon 자식 (사용자 결정).
+      // separatorIcon (2026-11-13 사용자 결정): 목록의 구분자 아이콘 — 모든 조각의 구분자 Icon 이 따르고,
+      //   조각에서 직접 바꾼 구분자는 그 조각만 이긴다 (`presence.ts` `_ownerIconName`). S2 · v3 에 없는
+      //   composition 확장 (`d2Provenance.ts`).
+      separatorIcon: {
+        kind: "icon",
+        label: "Separator Icon",
+        section: "content",
+        default: "s2-chevron",
+      },
+      // menuIcon (2026-11-13 사용자 결정): 넘침 접기의 폴더 메뉴 버튼 아이콘 (S2 `BreadcrumbMenu` 의
+      //   FolderBreadcrumb) — Canvas `settleBreadcrumbs` · DOM `BreadcrumbsRun` 이 같이 읽는다.
+      menuIcon: {
+        kind: "icon",
+        label: "Menu Icon",
+        section: "content",
+        default: "s2-folder-breadcrumb",
+      },
       // showRoot/isMultiline 은 2026-09-10 제거 — RSP v3 개념이나 DOM·Skia 어느 쪽도 읽지 않는
       //   미구현 surface 였다. 채택하려면 collapse/multiline 렌더를 두 leg 에 같이 구현한 뒤 되살린다.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

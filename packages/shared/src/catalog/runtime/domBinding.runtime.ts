@@ -815,8 +815,13 @@ const glyph =
       "data-catalog-id": node.id,
       ...(className ? { className } : {}),
       // (Its glyph name: a sheet turns the chevron only — the Disclosure trigger's, Phase 8 판독 M3.)
-      "data-icon": String(node.props.iconName ?? fallbackName),
-      iconName: String(node.props.iconName ?? fallbackName),
+      // (A crumb separator's glyph is its Breadcrumbs' `separatorIcon` — `presence.ts`.)
+      "data-icon": String(
+        node.derivedProps?._ownerIconName ?? node.props.iconName ?? fallbackName,
+      ),
+      iconName: String(
+        node.derivedProps?._ownerIconName ?? node.props.iconName ?? fallbackName,
+      ),
       elementType:
         node.derivedProps?._fieldLabelRole === "necessity-icon"
           ? "span"

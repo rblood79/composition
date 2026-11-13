@@ -11,6 +11,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   insertNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -21,6 +22,8 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogTextMetrics } from "../../../../../../packages/shared/src/catalog/runtime/boxModel";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import { bindCatalogCanvas } from "../canvasBinding";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -419,6 +422,58 @@ describe("Breadcrumbs collapse (S2 folder menu)", () => {
     expect(menu.separator.iconName).toBe("s2-chevron");
   });
 
+  it("the folder box stays drawn when an edit elsewhere restructures its region (user report 2026-11-13)", async () => {
+    const opened = await withCrumbs(["d", "e"]);
+    const list = opened.records("Breadcrumbs")[0]!;
+    const menu = opened.root.breadcrumbMenuInputs.get(list.id)!;
+    const canvas = bindCatalogCanvas(
+      opened.root,
+      opened.root.pageRootRecords(),
+    );
+    expect(getSkiaNode(menu.id)).toBeDefined();
+    // (A node added beside the Breadcrumbs: the body's children change — a structural region.)
+    opened.workspace.root.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node("other", "lib:definition:type-frame", []),
+        ],
+        rootIds: [id("other")],
+        newId: opened.workspace.newId,
+      }),
+    );
+    expect(canvas.update().status).not.toBe("rebind-required");
+    expect(getSkiaNode(menu.id)).toBeDefined();
+    canvas.dispose();
+  });
+
+  it("a deleted Breadcrumbs leaves no folder box behind", async () => {
+    const opened = await withCrumbs(["d", "e"]);
+    const list = opened.records("Breadcrumbs")[0]!;
+    expect(opened.root.breadcrumbMenuInputs.has(list.id)).toBe(true);
+    opened.workspace.root.execute(
+      removeTargets({
+        targets: [opened.workspace.positionOfRecord(list.id)!.target],
+      }),
+    );
+    expect([...opened.root.breadcrumbMenuInputs.keys()]).toEqual([]);
+  });
+
+  it("the Breadcrumbs' menuIcon is the folder button's glyph (Canvas)", async () => {
+    const opened = await withCrumbs(["d", "e"]);
+    const list = opened.records("Breadcrumbs")[0]!;
+    expect(opened.root.breadcrumbMenuInputs.get(list.id)!.icon).toBe(
+      "s2-folder-breadcrumb",
+    );
+    opened.workspace.root.execute(
+      setFields({
+        targets: [opened.workspace.positionOfRecord(list.id)!.target],
+        props: { menuIcon: set("minus") },
+      }),
+    );
+    expect(opened.root.breadcrumbMenuInputs.get(list.id)!.icon).toBe("minus");
+  });
+
   it("a narrow list: only the first and the last crumb stay, and the folder opens it again when it widens", async () => {
     const opened = await open([palette()], "crumbs");
     const list = opened.records("Breadcrumbs")[0]!;
@@ -473,5 +528,50 @@ describe("Breadcrumbs collapse (S2 folder menu)", () => {
     expect(shown).toEqual([crumbs[0]!.id, null, crumbs[3]!.id, crumbs[4]!.id]);
     expect(items[3]!.getAttribute("data-current")).toBe("true");
     await act(async () => reactRoot.unmount());
+  });
+});
+
+/**
+ * The separator at the Breadcrumbs (user decision 2026-11-13): its `separatorIcon` is every crumb's
+ * separator glyph — a crumb whose separator Icon the author changed keeps its own.
+ */
+describe("Breadcrumbs separatorIcon — the list's separator, a crumb's own change wins", () => {
+  const separators = (opened: Awaited<ReturnType<typeof open>>) =>
+    opened.records("Icon").filter((r) => r.props.slot === "separator");
+  const drawn = (opened: Awaited<ReturnType<typeof open>>) =>
+    separators(opened).map(
+      (r) => r.derivedProps?._ownerIconName ?? r.props.iconName,
+    );
+  const domIcons = (opened: Awaited<ReturnType<typeof open>>) =>
+    [...opened.html().matchAll(/data-icon="([^"]*)" slot="separator"/g)].map(
+      (m) => m[1],
+    );
+  const setOn = (
+    opened: Awaited<ReturnType<typeof open>>,
+    recordId: string,
+    props: Record<string, string>,
+  ) =>
+    opened.workspace.root.execute(
+      setFields({
+        targets: [opened.workspace.positionOfRecord(recordId)!.target],
+        props: Object.fromEntries(
+          Object.entries(props).map(([key, value]) => [key, set(value)]),
+        ),
+      }),
+    );
+
+  it("a Breadcrumbs separatorIcon reaches every crumb's separator (Canvas and DOM)", async () => {
+    const opened = await open([palette()], "crumbs");
+    setOn(opened, opened.records("Breadcrumbs")[0]!.id, { separatorIcon: "slash" });
+    expect(drawn(opened)).toEqual(["slash", "slash", "slash"]);
+    expect(domIcons(opened)).toEqual(["slash", "slash"]);
+  });
+
+  it("a crumb whose separator the author changed keeps its own", async () => {
+    const opened = await open([palette()], "crumbs");
+    setOn(opened, separators(opened)[1]!.id, { iconName: "minus" });
+    setOn(opened, opened.records("Breadcrumbs")[0]!.id, { separatorIcon: "slash" });
+    expect(drawn(opened)).toEqual(["slash", "minus", "slash"]);
+    expect(domIcons(opened)).toEqual(["slash", "minus"]);
   });
 });
