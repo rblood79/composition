@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Navigator Layers 아이콘 분리 — 펼침 · 종류 · 이름] - 2026-11-14
+
+### Changed
+
+- **Layers 행을 펼침/접힘 버튼 → 노드·컴포넌트 아이콘 → 이름 순서로 표시**: 자식이 있는 행도 종류 아이콘을 항상 표시하고, 말단 행은 펼침 칸을 비워 정렬한다. 아이콘은 Components 팔레트와 같은 catalog 메타를 사용하며 Origin/Instance 표시는 아이콘 칸에 겹쳐 표시한다.
+  - 위치: `apps/builder/src/builder/panels/navigator/catalog/CatalogLayerItem.tsx`, `apps/builder/src/builder/panels/navigator/NavigatorPanel.css`.
+- **Figma 레이어 구분을 참고해 컴포넌트와 내부 노드 아이콘을 분리**: 컴포넌트는 Components 팔레트의 실제 아이콘을 재사용한다. 내부 일반 노드는 프레임(#)·그룹(모서리)·텍스트(T)·입력·벡터·이미지·선·도형의 단순한 전용 glyph를 사용하고, 중첩 컴포넌트 인스턴스는 컴포넌트 아이콘을 유지한다.
+  - **Why**: 타입 이름만으로 팔레트 아이콘을 조회하면 내부 Text/Button 등의 조각도 독립 컴포넌트처럼 보였다. 트리 생성 중 컴포넌트 조상 여부를 전달하여 template뿐 아니라 소유된 slot 내용도 구분한다.
+  - Chart는 7종 팔레트의 실제 `chartType` 아이콘을 공유하고 종류 변경 시 해당 prop 구독으로 갱신한다.
+  - 위치: `catalogRuntime/layerTree.ts`, `panels/navigator/catalog/CatalogLayerIcon.tsx` 및 인접 테스트.
+
 ## [Breadcrumbs 를 S2 구조 · 스타일로 — 구분자 Icon 편집은 유지] - 2026-11-13
 
 ### Changed

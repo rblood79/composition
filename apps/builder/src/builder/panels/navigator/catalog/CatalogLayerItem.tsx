@@ -1,12 +1,13 @@
 import { memo } from "react";
 import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
-import { Box, ChevronRight, GripVertical, Settings2 } from "lucide-react";
+import { ChevronRight, GripVertical, Settings2 } from "lucide-react";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
 import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { ICON_EDIT_PROPS } from "../tree/helpers";
 import { IndentGuides } from "../tree/LayerTree/IndentGuides";
+import { CatalogLayerIcon } from "./CatalogLayerIcon";
 
 const DeleteIcon = ACTION_ICONS.delete;
 
@@ -63,8 +64,8 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
       onContextMenu={(event) => onContextMenu?.(node, event)}
     >
       <IndentGuides depth={depth} activeGuides={activeGuides} />
-      <div className="elementItemIcon">
-        {hasChildren ? (
+      <div className="elementItemIcon layer-disclosure">
+        {hasChildren && (
           <Button
             slot="chevron"
             className="layer-expand-button"
@@ -75,18 +76,13 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
               strokeWidth={ICON_EDIT_PROPS.stroke}
               size={ICON_EDIT_PROPS.size}
               data-chevron="true"
+              aria-hidden="true"
             />
           </Button>
-        ) : (
-          <Box
-            color={ICON_EDIT_PROPS.color}
-            strokeWidth={ICON_EDIT_PROPS.stroke}
-            size={ICON_EDIT_PROPS.size}
-            style={{ padding: "2px" }}
-          />
         )}
       </div>
-      <div className="elementItemLabel">
+      <div className="elementItemIcon layer-node-icon">
+        <CatalogLayerIcon node={node} />
         {node.role && (
           <span
             className={`editing-semantics-dot editing-semantics-dot--${node.role}`}
@@ -94,6 +90,8 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
             title={node.role === "origin" ? "Origin" : "Instance"}
           />
         )}
+      </div>
+      <div className="elementItemLabel">
         <span className="elementItemLabelText">{name}</span>
         {node.slot && (
           <span

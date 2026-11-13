@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
 import { act, render } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -8,7 +9,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "../../../i18n";
 import { CatalogLayersSection } from "../../panels/navigator/catalog/CatalogLayersSection";
 import { newCatalogProjectDocument } from "../project";
@@ -16,6 +20,8 @@ import { CatalogWorkspaceProvider } from "../react";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { catalogPaletteDefinitionId } from "../paletteInsert";
+import { getPaletteItems } from "../../panels/components/paletteItems";
 
 /**
  * 2026-10-24 (사용자 「canvas 의 객체를 선택하면 navigator layer 트리가 깜빡이거나 떨리거나 이전대상과
@@ -121,6 +127,54 @@ async function open() {
 }
 
 describe("Layers — rows a selection opened stay open", () => {
+  it("Chart rows follow all seven palette icons when chartType changes", async () => {
+    const { workspace, select, row } = await open();
+    const chartId = "project:node:chart-icons" as NodeId;
+    act(() => {
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [
+            {
+              ...frame(chartId, []),
+              definitionId: catalogPaletteDefinitionId(
+                workspace.runtime.graph.library,
+                "Chart",
+              ),
+            },
+          ],
+          rootIds: [chartId],
+          newId: workspace.newId,
+        }),
+      );
+    });
+    select(chartId);
+    const variants = getPaletteItems().filter(
+      (item) => item.componentType === "Chart",
+    );
+    expect(variants).toHaveLength(7);
+    for (const item of variants) {
+      const chartType = item.initialProps?.chartType;
+      if (typeof chartType !== "string") throw new Error("Missing chartType");
+      act(() => {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: chartId }],
+            props: {
+              chartType: { kind: "set", value: chartType },
+            },
+          }),
+        );
+      });
+      const Icon = item.icon;
+      const expected = document.createElement("div");
+      expected.innerHTML = renderToStaticMarkup(<Icon />);
+      expect(
+        row(chartId)?.querySelector('[data-layer-icon="component"]')?.innerHTML,
+      ).toBe(expected.firstElementChild?.innerHTML);
+    }
+  });
+
   it("selecting elsewhere keeps the last selection's ancestors open", async () => {
     const { select, row } = await open();
     select("project:node:a-text");

@@ -22,6 +22,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { catalogPaletteDefinitionId } from "../paletteInsert";
 
 /**
  * ADR-248 Phase 4e-4 Layers: the tree of a page comes from the read model's rows (a collapsed row
@@ -99,6 +100,55 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-4 Layers tree", () => {
+  it("marks template parts and owned slot content inside a component", async () => {
+    const { workspace, tree, record } = await open();
+    try {
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [
+            node(
+              "card",
+              catalogPaletteDefinitionId(
+                workspace.runtime.graph.library,
+                "Card",
+              ),
+            ),
+          ],
+          rootIds: [id("card")],
+          newId: workspace.newId,
+        }),
+      );
+      const expanded = new Set([record("home-body")]);
+      const flatten = (rows: readonly CatalogLayerNode[]): CatalogLayerNode[] =>
+        rows.flatMap((row) => [row, ...flatten(row.children ?? [])]);
+      for (let depth = 0; depth < 8; depth++) {
+        tree.setExpanded(new Set(expanded));
+        flatten(tree.getSnapshot()).forEach((row) => expanded.add(row.id));
+      }
+      const rows = flatten(tree.getSnapshot());
+      const card = rows.find((row) => row.position.sourceId === id("card"))!;
+      expect(card.role).toBe("instance");
+      expect(card.insideComponent).toBeUndefined();
+      const parts = rows.filter((row) => row.insideComponent);
+      expect(parts.some((row) => row.position.target.kind !== "node")).toBe(
+        true,
+      );
+      expect(
+        parts.some(
+          (row) =>
+            row.typeName === "Text" && row.position.target.kind === "node",
+        ),
+      ).toBe(true);
+      expect(
+        rows.find((row) => row.position.sourceId === id("a"))?.insideComponent,
+      ).toBeUndefined();
+    } finally {
+      tree.dispose();
+      workspace.dispose();
+    }
+  });
+
   it("rows come from the read model; a collapsed row reads only whether it has children", async () => {
     const { tree, record, names } = await open();
     const [body] = tree.getSnapshot();

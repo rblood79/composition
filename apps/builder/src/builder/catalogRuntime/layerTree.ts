@@ -49,6 +49,8 @@ export interface CatalogLayerNode {
    * or a library origin), `origin` = the component being edited (the definition view's root).
    */
   readonly role?: "origin" | "instance";
+  /** An ancestor is a component; owned slot content is an internal node too. */
+  readonly insideComponent?: true;
   /**
    * A bound collection's data row (4e-6-36): the drawn row's record, at its row template position
    * (selecting it selects that row). Not a document position of its own — neither draggable,
@@ -208,6 +210,7 @@ const roleOf = (
 };
 const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.role === b.role &&
+  a.insideComponent === b.insideComponent &&
   a.projection === b.projection &&
   a.selects === b.selects &&
   a.slot === b.slot &&
@@ -411,6 +414,7 @@ export class CatalogLayerTreeStore {
       parentId: string | null,
       depth: number,
       parentType?: string,
+      insideComponent = false,
     ): CatalogLayerNode => {
       if (counting) docCounters.layersRowsBuilt += 1;
       wanted.add(position.identity);
@@ -426,6 +430,7 @@ export class CatalogLayerTreeStore {
       const typeName = typeNameOf(graph, position);
       const slot = slotOf(graph, position);
       const role = roleOf(graph, position, parentId, this.definitionOwner());
+      const childrenInsideComponent = insideComponent || !!role;
       const collectionRowHidden = this.host.collectionRowHidden;
       const drawn =
         collectionRowHidden && CATALOG_EMPTY_STATE_COLLECTIONS.has(typeName)
@@ -441,9 +446,21 @@ export class CatalogLayerTreeStore {
           : rows;
       const children = (): CatalogLayerNode[] =>
         bound
-          ? projectRows(position, drawn, bound, depth + 1)
+          ? projectRows(
+              position,
+              drawn,
+              bound,
+              depth + 1,
+              childrenInsideComponent,
+            )
           : drawn.map((row) =>
-              build(row, position.identity, depth + 1, typeName),
+              build(
+                row,
+                position.identity,
+                depth + 1,
+                typeName,
+                childrenInsideComponent,
+              ),
             );
       const count = bound ? bound.rows.length : drawn.length;
       const expanded = count > 0 && this.expanded.has(position.identity);
@@ -461,6 +478,7 @@ export class CatalogLayerTreeStore {
         position,
         body: parentId === null && isBodyType(typeName),
         ...(role ? { role } : {}),
+        ...(insideComponent ? { insideComponent: true as const } : {}),
         ...(slot ? { slot } : {}),
         ...((isProjectComponentsView(this.ownerId) &&
           position.target.kind === "node" &&
@@ -491,6 +509,7 @@ export class CatalogLayerTreeStore {
       rows: readonly CatalogPosition[],
       bound: CatalogBoundLayerRows,
       depth: number,
+      insideComponent: boolean,
     ): CatalogLayerNode[] => {
       const rowType = bound.rows[0]!.typeName;
       const isItem = (row: CatalogPosition) =>
@@ -514,6 +533,7 @@ export class CatalogLayerTreeStore {
             position: template ?? parent,
             body: false,
             projection: true,
+            ...(insideComponent ? { insideComponent: true as const } : {}),
             ...(item.selects ? { selects: item.selects } : {}),
           }),
         ),
@@ -529,6 +549,7 @@ export class CatalogLayerTreeStore {
                 position: template ?? parent,
                 body: false,
                 projection: true,
+                ...(insideComponent ? { insideComponent: true as const } : {}),
                 selects: parent.identity,
               }),
             ]
@@ -538,7 +559,13 @@ export class CatalogLayerTreeStore {
       for (const row of rows) {
         if (!isItem(row))
           out.push(
-            build(row, parent.identity, depth, typeNameOf(graph, parent)),
+            build(
+              row,
+              parent.identity,
+              depth,
+              typeNameOf(graph, parent),
+              insideComponent,
+            ),
           );
         else if (row === template) out.push(...projected());
       }
