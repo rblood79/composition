@@ -1,6 +1,6 @@
 # ADR-306 구현 설계: Chart 36종 · Recharts 유지 · 공개 size 제거
 
-> 본문: [ADR-306](../306-chart-36-types-recharts-size-removal.md). Proposed 2026-11-10 (같은 날 재작성). 아래의 새 모듈 · 함수 · prop 이름은 제안이고 아직 구현되지 않았다. 코드 인용은 `c464b4fb7` 기준.
+> 본문: [ADR-306](../306-chart-36-types-recharts-size-removal.md). Proposed 2026-11-10 (같은 날 재작성). 아래의 새 모듈 · 함수 · prop 이름은 제안이고 아직 구현되지 않았다. 코드 인용은 `c464b4fb7` 기준이고 2026-11-15 `f01653b77` 에서 라인 · 사실을 다시 대조했다.
 
 ## 1. 전제
 
@@ -61,7 +61,7 @@
 
 - `shape` 은 종류 안의 모양 선택 한 prop 이다 (값 집합은 종류마다 다르고 `accepts` 의 options 가 chartType 으로 갈린다). 종류마다 `gaugeVariant` · `boxVariant` 를 따로 만들지 않는다. rule 의 `variant` (상자 모양) 와 다른 축이라 그 이름을 쓰지 않는다.
 - matrix family = 행 하나가 칸 · 캔들 · 선 하나인 종류. network = 행이 노드 · 연결 관계를 만드는 종류.
-- 새 prop 은 전부 `d2Provenance.ts` 에 `composition` 출처로 적는다 (Chart 는 이미 등재 — `d2Provenance.ts:42`).
+- 새 prop 은 전부 `d2Provenance.ts` 에 `composition` 출처로 적는다 (Chart 는 이미 등재 — `d2Provenance.ts:39`).
 
 ## 3. ztd 옵션 분류
 
@@ -82,6 +82,7 @@ Phase 0 이 registry 의 채널 · 옵션 key 전부를 아래 셋 중 하나로
 - `ChartDescriptor` (`authoring.ts:33`) 는 지금 「chartType 당 1」 이다. `paletteId` 를 제공 id 로 바꿔 36 행으로 만들고 `family` · `roles` 를 더한다. donut · radialBar · bubble 은 chartType 이 같고 `defaults` 만 다른 행이다. `getChartDescriptor(chartType)` 는 그 type 의 첫 행을 돌려주는 현재 뜻을 유지한다.
 - `roles`: `{ prop, kind: "field" | "fields", required, accepts: "number" | "string" | "date" | "any" }[]`. 이것 하나에서 (a) 패널의 필드 지정 UI (b) family 의 입력 검증 (c) §4.5 의 전달 목록이 나온다.
 - descriptor 에는 sample 행 · 계산 코드를 넣지 않는다 (첫 화면 번들).
+- 패널 자리 (2026-11-12 「Property 탭 섹션 병합」 뒤): 필드 역할 prop (`goalField` · `rowField` · `pathFields` …) 은 기존 데이터 매핑과 같은 `section: "collection"`, 종류의 모양 · 옵션 (`shape` · `bands` · `cells` …) 은 Content 에 둔다. 숫자 옵션의 범위 (`min` · `max` · `step` · `unit`) 는 binding 에 적는다 (`a6f8f38fd` — 슬라이더 범위는 catalog 값).
 
 ### 4.2 family 계약
 
@@ -121,19 +122,19 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 ```
 
 - `computeChartScene` 의 맨 앞: `chartFamilyOf(type)` 이 있으면 `getChartFamily` → 있으면 `buildScene`, 없으면 `pending: true` 인 빈 scene (안내 글자 없음 · 상자만). 기존 7종의 경로는 한 줄도 바뀌지 않는다.
-- **Canvas**: `chart_scene` (`skiaPrimitives.ts:2708`) 은 로드를 시작하지 않는다. `_chartRows` 를 주입하는 scene-node 층 (`catalogRuntime/ruleShapes.ts` · `resolution/resolver.ts`) 이 family type 을 보면 `loadChartFamily` 를 부른다. composition root 가 `subscribeChartFamilies` 로 완료를 받아 그 family 의 Chart 노드를 무효화한다. Chart 계산 결과를 잡는 memo 의 키에 `chartFamilyEpoch()` 를 넣는다 (메모리 `feedback-memo-key-needs-async-readiness` · `feedback-canvas-binding-new-invalidation-needs-seed` — 새 무효화는 seeds 에도).
+- **Canvas**: `chart_scene` (`skiaPrimitives.ts:2798`) 은 로드를 시작하지 않는다. Chart 의 rule 채널을 싣는 Builder scene-node 층 (`catalogRuntime/ruleShapes.ts:565` — `_chartRule`) 이 family type 을 보면 `loadChartFamily` 를 부른다. 행은 resolver 가 `props.data` 로 싣는다 (`resolution/resolver.ts:2496` — bound Chart 의 records). resolver 는 Preview · Publish 도 지나는 공용 순수 함수라 로드를 걸지 않고, `_chartRows` 는 `chart_scene` 이 읽기만 하고 쓰는 곳이 없다 (2026-11-15 재대조 — 승인 시점에도 같았다). composition root 가 `subscribeChartFamilies` 로 완료를 받아 그 family 의 Chart 노드를 무효화한다. Chart 계산 결과를 잡는 memo 의 키에 `chartFamilyEpoch()` 를 넣는다 (메모리 `feedback-memo-key-needs-async-readiness` · `feedback-canvas-binding-new-invalidation-needs-seed` — 새 무효화는 seeds 에도).
 - **DOM**: `Chart.components.tsx` 가 `useSyncExternalStore(subscribeChartFamilies, chartFamilyEpoch)` 로 준비를 읽고 effect 에서 `loadChartFamily` 를 건다. 준비 전에는 기존 `RechartsRuntime` lazy fallback 과 같은 상자를 낸다. 실패는 기존 `role="alert"` + 다시 시도.
 - chunk: family 5 개가 각각 dynamic import 대상이다. Canvas 와 DOM 이 같은 chunk 를 받는다 (Builder 는 Preview iframe 과 번들이 달라 각자 1회).
 
 ### 4.4 생성 경로
 
-- 지금은 `componentCatalog.ts:499` 가 `createChartInitialProps(type)` 결과 (sample 행 포함) 를 정적으로 싣는다. 새 27 type 의 sample 을 여기 두면 첫 화면 번들에 들어간다.
+- 지금은 `componentCatalog.ts:501` 이 `createChartInitialProps(type)` 결과 (sample 행 포함) 를 정적으로 싣는다. 새 27 type 의 sample 을 여기 두면 첫 화면 번들에 들어간다.
 - 새 type 의 `creationVariants` 는 `data` 없는 initialProps 를 두고, 팔레트 삽입이 **명령을 실행하기 전에** `loadChartFamily` 를 기다린 뒤 `family.sample(type)` 을 채워 한 번의 명령으로 넣는다. 명령 · store action 은 동기 그대로다 (메모리 `feedback-store-action-async-dialog-breaks-sync-callers`). AI · 붙여넣기 등 다른 생성 경로는 `data` 가 없으면 빈 상태 scene 을 보인다.
 - 종류 전환 (Properties 의 type 변경): 행은 그대로 두고, 새 type 의 필수 role 중 기존 지정으로 채워지지 않는 것은 비워 둔다 → 패널이 지정을 요구하고 scene 은 설정 오류 상태. 첫 숫자 열로 자동 대체하지 않는다.
 
 ### 4.5 prop 전달 — 목록 하나
 
-지금 같은 prop 목록이 세 곳에 손으로 적혀 있다: `Chart.binding.ts` `propPassthrough` · `Chart.components.tsx` 의 destructure · `skiaPrimitives.ts:2676` `CHART_PRESENTATION_KEYS` + 개별 대입. 새 prop 40여 개를 세 곳에 손으로 더하지 않는다.
+지금 같은 prop 목록이 세 곳에 손으로 적혀 있다: `Chart.binding.ts` `propPassthrough` · `Chart.components.tsx` 의 destructure · `skiaPrimitives.ts:2743` `CHART_PRESENTATION_KEYS` + 개별 대입. 새 prop 40여 개를 세 곳에 손으로 더하지 않는다.
 
 - `rendering/chart` 에 `CHART_FAMILY_PROP_KEYS` (descriptor `roles` + 옵션 key 에서 만든 배열) 를 두고 세 곳이 그것을 읽는다. 기존 prop 의 개별 대입은 건드리지 않는다.
 - 정적 테스트: `accepts` 의 Chart key 집합 = 기존 목록 ∪ `CHART_FAMILY_PROP_KEYS`.
@@ -157,7 +158,7 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 
 ### 5.2 hover 대상
 
-- scene 에 `targets?: { id; x; y; r?; rect?; rows: number[] }[]` 를 더한다. `id` 는 family 가 정하는 뜻 단위 (점 · 칸 · 노드 · 링크), `rows` 는 원본 행 인덱스다. Canvas 는 읽지 않는다 (기존 `tooltip` 과 같은 규약 — `types.ts:503`).
+- scene 에 `targets?: { id; x; y; r?; rect?; rows: number[] }[]` 를 더한다. `id` 는 family 가 정하는 뜻 단위 (점 · 칸 · 노드 · 링크), `rows` 는 원본 행 인덱스다. Canvas 는 읽지 않는다 (기존 `tooltip` 과 같은 규약 — `types.ts:508`).
 - DOM host 는 scatter 의 가장 가까운 점 탐색 (`RechartsChart.tsx:1325`) 을 `targets` 로 일반화한다. 키보드 이동은 `targets` 배열 순서를 따른다. scatter 가 지금 키보드를 지원하는지는 Phase 0 에서 확인하고, 없으면 host 일반화 때 같이 얻는다.
 
 ### 5.3 DOM host
@@ -170,23 +171,23 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 
 지우는 곳 (본문 F5):
 
-| 파일                                                                      | 내용                                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/shared/src/catalog/bindings/Chart.binding.ts`                   | `accepts.size` (589) · `propPassthrough` 의 `"size"` (644) · 머리말 주석                                                                                                                                                                                                                      |
-| `packages/shared/src/components/Chart.components.tsx`                     | `size = "M"` · `sizeKey` · `data-size`                                                                                                                                                                                                                                                        |
-| `packages/rendering/src/renderers/skiaPrimitives.ts`                      | `props.size` → `sizeKey` (2718)                                                                                                                                                                                                                                                               |
-| `packages/rendering/src/chart/computeChartScene.ts`                       | `resolveChartMetrics(channel, sizeKey, style)` → `(channel, style)` · `ChartRuleChannel.metrics` 를 한 벌로                                                                                                                                                                                   |
-| `packages/rendering/src/chart/authoring.ts`                               | `createChartInitialProps` 의 `size: "M"` · 생성 style `width: 320` (253 — rule 의 width 100% 를 따른다, 본문 F9)                                                                                                                                                                              |
-| `apps/builder/.../ChartBudgetControls.tsx` · `useChartPropertyExtras.tsx` | `sizeKey` · 의존 목록의 `"size"`                                                                                                                                                                                                                                                              |
-| `componentRulesTable.ts` `Chart`                                          | `sizes.S` · `sizes.L` 삭제 (M 은 rule 타입이 요구하는 기본 한 벌로 남는다) · `sizes.M.height` 삭제 · 상자 `minWidth: 320` · `aspectRatio: "16 / 9"` 추가 (본문 F9 — rule 이 비율을 싣는 경로를 생성 CSS 와 Canvas box model 에 같이 연다) · `chart.metrics` → `{ padding: 12, fontSize: 11 }` |
-| `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` | typed Chart 원본의 `"size": "M"` (6135) — 파일 머리말이 적은 생성 경로 (`phase3ReusableOriginTemplates.test.ts`) 로 고친다                                                                                                                                                                    |
-| `packages/shared/src/components/Chart.runtime.ts`                         | 공개 타입 `size?: "S" \| "M" \| "L"` (85)                                                                                                                                                                                                                                                     |
-| `packages/shared/src/catalog/document/types.ts`                           | `LIBRARY_CONTRACT_VERSION` 65 + 주석                                                                                                                                                                                                                                                          |
-| 생성 CSS                                                                  | `pnpm build:specs` 로 재생성 — Chart S/L 선택자 0                                                                                                                                                                                                                                             |
+| 파일                                                                      | 내용                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared/src/catalog/bindings/Chart.binding.ts`                   | `accepts.size` (616) · `propPassthrough` 의 `"size"` (671) · 머리말 주석                                                                                                                                                                           |
+| `packages/shared/src/components/Chart.components.tsx`                     | `size = "M"` · `sizeKey` · `data-size`                                                                                                                                                                                                             |
+| `packages/rendering/src/renderers/skiaPrimitives.ts`                      | `props.size` → `sizeKey` (2785)                                                                                                                                                                                                                    |
+| `packages/rendering/src/chart/computeChartScene.ts`                       | `resolveChartMetrics(channel, sizeKey, style)` → `(channel, style)` · `ChartRuleChannel.metrics` 를 한 벌로                                                                                                                                        |
+| `packages/rendering/src/chart/authoring.ts`                               | `createChartInitialProps` 의 `size: "M"` (251) 과 반환 타입의 `size` (229). 생성 style `width: 320` 은 2026-11-13 에 지웠다 (`69d125406`)                                                                                                          |
+| `apps/builder/.../ChartBudgetControls.tsx` · `useChartPropertyExtras.tsx` | `sizeKey` · 의존 목록의 `"size"`                                                                                                                                                                                                                   |
+| `componentRulesTable.ts` `Chart`                                          | `sizes.S` · `sizes.L` 삭제 (M 은 rule 타입이 요구하는 기본 한 벌로 남는다) · `chart.metrics` → `{ padding: 12, fontSize: 11 }`. 단계별 높이 삭제 · 상자 `minWidth: 320` · `aspectRatio: "16 / 9"` 는 2026-11-13 에 적용했다 (`69d125406`, 본문 F9) |
+| `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` | typed Chart 원본의 `"size": "M"` (6177) — 파일 머리말이 적은 생성 경로 (`phase3ReusableOriginTemplates.test.ts`) 로 고친다                                                                                                                         |
+| `packages/shared/src/components/Chart.runtime.ts`                         | 공개 타입 `size?: "S" \| "M" \| "L"` (85)                                                                                                                                                                                                          |
+| `packages/shared/src/catalog/document/types.ts`                           | `LIBRARY_CONTRACT_VERSION` 을 착수 시점의 다음 번호로 + 주석                                                                                                                                                                                       |
+| 생성 CSS                                                                  | `pnpm build:specs` 로 재생성 — Chart S/L 선택자 0                                                                                                                                                                                                  |
 
 - 다른 컴포넌트의 `size` · 내부 `ChartSize {width,height}` 는 대상이 아니다. 검색 치환하지 않는다.
-- `accepts` 에 없는 prop 은 무시되지 않는다 — 원본은 `library.ts:351`, 문서는 `graph.ts:1811` 이 `PROP_NOT_ACCEPTED` 로 거부한다. 그래서 위 표의 원본 수정이 빠지면 라이브러리 구성 자체가 실패한다. Phase 1 은 한 커밋이다.
-- contract: 원본이 바뀌므로 `LIBRARY_CONTRACT_VERSION` 64 → 65 (`types.ts` + 머리말 주석 한 줄 — 64 는 ADR-308). 64 문서는 Chart 유무와 무관하게 전부 `UNSUPPORTED_LIBRARY_CONTRACT` 로 거부된다 (`graph.ts:580`) — 변환 · 원본 보존 · 사본 저장 절차는 없다. Phase 2 이후의 새 prop 은 `accepts` 가산이라 기존 65 문서가 그대로 유효하다 — 원본 template 이 다시 바뀔 때만 올린다.
+- `accepts` 에 없는 prop 은 무시되지 않는다 — 원본은 `library.ts:356`, 문서는 `graph.ts:1855` 가 `PROP_NOT_ACCEPTED` 로 거부한다. 그래서 위 표의 원본 수정이 빠지면 라이브러리 구성 자체가 실패한다. Phase 1 은 한 커밋이다.
+- contract: 원본이 바뀌므로 `LIBRARY_CONTRACT_VERSION` 을 착수 시점의 다음 번호로 올린다 (`types.ts:166` + 머리말 주석 한 줄 — 2026-11-15 현재 66 이라 67. ADR-310 도 올리므로 main 에 먼저 들어가는 쪽이 앞 번호, 나중 쪽은 rebase 때 그 다음 번호). 그 전 번호의 문서는 Chart 유무와 무관하게 전부 `UNSUPPORTED_LIBRARY_CONTRACT` 로 거부된다 (`graph.ts:597`) — 변환 · 원본 보존 · 사본 저장 절차는 없다. Phase 2 이후의 새 prop 은 `accepts` 가산이라 Phase 1 번호의 문서가 그대로 유효하다 — 원본 template 이 다시 바뀔 때만 올린다.
 - 기존 실패 테스트 2건 (`size="L"` → `data-size`) 은 size 없는 계약으로 고치고 그 뒤의 assertion 은 남긴다.
 
 ## 7. 검증
@@ -226,7 +227,7 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 | Phase | 내용                                                                                                                                                                                                                                                                                                         | 끝 조건      |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
 | 0     | §3 분류 fixture · 번들 기준선 · 선행 실패 3건 (size 2 · bar path 문자열 1) 재현과 원인 · scatter 키보드 현황 · `visibleWhen` 이 chartType 목록 조건을 표현하는지 · root script `test:chart-contract` 를 만들어 `codex:preflight` 사슬에 연결                                                                 | G0           |
-| 1     | §6 size 제거 (원본 · contract 64 포함, 한 커밋) · 실패 2건 수리 · CHANGELOG (Breaking)                                                                                                                                                                                                                       | G1           |
+| 1     | §6 size 제거 (원본 · contract 올림 포함, 한 커밋) · 실패 2건 수리 · CHANGELOG (Breaking)                                                                                                                                                                                                                     | G1           |
 | 2     | §4 기반 (type 27 · descriptor 36 · registry · 로드 · 생성 경로 · 전달 목록) + §5 (paint 역할 · targets · DOM host) + **kpi family 3종** 으로 끝까지 (gauge · bullet · dumbbell) · 패널의 역할 기반 필드 지정 · 번들 실측 뒤 상한 두 곳 (`adr201-bundle-gate.mjs:29` · `deploy.yml:93`) 을 같은 커밋에서 갱신 | G2 · G3 · G4 |
 | 3     | category family 12                                                                                                                                                                                                                                                                                           | G3 · G4      |
 | 4     | distribution 4 + matrix 4                                                                                                                                                                                                                                                                                    | G3 · G4      |
@@ -234,7 +235,7 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 | 6     | (사용자 결정 1 — 포함 확정) `highlight` · 주석 5종 · 범위 선택 · 동기화 — 범위 선택은 runtime 상태이고 저장하지 않는다. 동기화는 같은 페이지의 같은 `syncId` 끼리 domain 값을 나눈다                                                                                                                         | G5 재실행    |
 
 - Phase 2 가 kpi 를 같이 끝내는 이유: 기반만 만들고 닫으면 로드 · 전달 · host 가 실제 종류로 검증되지 않는다. kpi 는 가장 작고 (3종 · 통계 없음) 격자를 쓰지 않는 첫 family 다.
-- 영향 파일: `packages/rendering/src/chart/` (types · authoring · computeChartScene · `families/*` 신규) · `packages/rendering/src/renderers/skiaPrimitives.ts` · `packages/shared/src/catalog/bindings/Chart.binding.ts` · `componentCatalog.ts` · `generated/componentRulesTable.ts` · `d2Provenance.ts` · `packages/shared/src/components/Chart.components.tsx` · `chart/RechartsChart.tsx` · `apps/builder/src/builder/catalogRuntime/ruleShapes.ts` · `panels/properties/` 의 Chart 5 파일 · 팔레트 삽입 경로.
+- 영향 파일: `packages/rendering/src/chart/` (types · authoring · computeChartScene · `families/*` 신규) · `packages/rendering/src/renderers/skiaPrimitives.ts` · `packages/shared/src/catalog/bindings/Chart.binding.ts` · `componentCatalog.ts` · `generated/componentRulesTable.ts` · `d2Provenance.ts` · `packages/shared/src/components/Chart.components.tsx` · `chart/RechartsChart.tsx` · `apps/builder/src/builder/catalogRuntime/ruleShapes.ts` · `panels/properties/` 의 Chart 파일 (2026-11-15 현재 14 — `Chart*Controls` · `useChartPropertyExtras` · `chartFieldOptions` · `chartPresentationPatch`) · 팔레트 삽입 경로.
 
 ## 9. 첫 판에서 바뀐 것
 
