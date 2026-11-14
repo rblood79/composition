@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="RadioGroup-title RadioGroup-desc">
+  <title id="RadioGroup-title">RadioGroup</title>
+  <desc id="RadioGroup-desc">투명 배경의 편집 가능한 무채색 RadioGroup 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="RadioGroup-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="RadioGroup-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="RadioGroup-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="RadioGroup-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="RadioGroup-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="RadioGroup-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="RadioGroup-illustration">
+    <rect x="45" y="65" width="210" height="170" rx="18" fill="url(#RadioGroup-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#RadioGroup-shadow)" />
+    <circle cx="76" cy="98" r="10" fill="#f0f0f0" stroke="#505050" stroke-width="2" />
+    <circle cx="76" cy="98" r="4.5" fill="#505050" />
+    <rect x="103" y="94" width="117" height="8" rx="4.0" fill="#505050" />
+    <circle cx="76" cy="147" r="10" fill="#f0f0f0" stroke="#505050" stroke-width="2" />
+    <rect x="103" y="143" width="100" height="8" rx="4.0" fill="#858585" />
+    <circle cx="76" cy="196" r="10" fill="#f0f0f0" stroke="#b9b9b9" stroke-width="2" />
+    <rect x="103" y="192" width="83" height="8" rx="4.0" fill="#b9b9b9" />
+  </g>
+</svg>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="FileTrigger-title FileTrigger-desc">
+  <title id="FileTrigger-title">FileTrigger</title>
+  <desc id="FileTrigger-desc">투명 배경의 편집 가능한 무채색 FileTrigger 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="FileTrigger-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="FileTrigger-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="FileTrigger-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="FileTrigger-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="FileTrigger-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="FileTrigger-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="FileTrigger-illustration">
+    <rect x="49" y="108" width="202" height="84" rx="20" fill="url(#FileTrigger-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#FileTrigger-shadow)" />
+    <g transform="translate(85 146) scale(0.55)">
+      <path d="M-22 12V23Q-22 28 -17 28H17Q22 28 22 23V12M0 14V-23M-12 -11L0 -23L12 -11" fill="none" stroke="#505050" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="116" y="145" width="106" height="10" rx="5.0" fill="#505050" />
+  </g>
+</svg>

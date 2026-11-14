@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="Section-title Section-desc">
+  <title id="Section-title">Section</title>
+  <desc id="Section-desc">투명 배경의 편집 가능한 무채색 Section 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="Section-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="Section-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="Section-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="Section-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="Section-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="Section-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="Section-illustration">
+    <rect x="36" y="57" width="228" height="186" rx="18" fill="url(#Section-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#Section-shadow)" />
+    <rect x="55" y="77" width="88" height="10" rx="5.0" fill="#505050" />
+    <path d="M55 104H245" fill="none" stroke="#b9b9b9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="55" y="121" width="83" height="99" rx="10" fill="#dedede" />
+    <rect x="151" y="121" width="94" height="42" rx="8" fill="#b9b9b9" />
+    <rect x="151" y="178" width="86" height="7" rx="3.5" fill="#858585" />
+    <rect x="151" y="196" width="63" height="7" rx="3.5" fill="#b9b9b9" />
+  </g>
+</svg>

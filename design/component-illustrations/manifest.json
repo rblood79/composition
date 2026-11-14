@@ -1,0 +1,645 @@
+{
+  "size": [300, 300],
+  "background": "transparent",
+  "paletteSource": "apps/builder/src/builder/panels/components/paletteItems.ts",
+  "excluded": [
+    {
+      "id": "Toast",
+      "reason": "libraryOnly: true; Components 패널에서 제외"
+    }
+  ],
+  "count": 90,
+  "items": [
+    {
+      "id": "Text",
+      "componentType": "Text",
+      "category": "content",
+      "label": "Text",
+      "file": "svg/Text.svg"
+    },
+    {
+      "id": "Icon",
+      "componentType": "Icon",
+      "category": "content",
+      "label": "Icon",
+      "file": "svg/Icon.svg"
+    },
+    {
+      "id": "Keyboard",
+      "componentType": "Keyboard",
+      "category": "content",
+      "label": "Keyboard",
+      "file": "svg/Keyboard.svg"
+    },
+    {
+      "id": "Separator",
+      "componentType": "Separator",
+      "category": "content",
+      "label": "Separator",
+      "file": "svg/Separator.svg"
+    },
+    {
+      "id": "Badge",
+      "componentType": "Badge",
+      "category": "content",
+      "label": "Badge",
+      "file": "svg/Badge.svg"
+    },
+    {
+      "id": "ProgressBar",
+      "componentType": "ProgressBar",
+      "category": "content",
+      "label": "ProgressBar",
+      "file": "svg/ProgressBar.svg"
+    },
+    {
+      "id": "Meter",
+      "componentType": "Meter",
+      "category": "content",
+      "label": "Meter",
+      "file": "svg/Meter.svg"
+    },
+    {
+      "id": "Skeleton",
+      "componentType": "Skeleton",
+      "category": "content",
+      "label": "Skeleton",
+      "file": "svg/Skeleton.svg"
+    },
+    {
+      "id": "Avatar",
+      "componentType": "Avatar",
+      "category": "content",
+      "label": "Avatar",
+      "file": "svg/Avatar.svg"
+    },
+    {
+      "id": "AvatarGroup",
+      "componentType": "AvatarGroup",
+      "category": "content",
+      "label": "AvatarGroup",
+      "file": "svg/AvatarGroup.svg"
+    },
+    {
+      "id": "LabeledValue",
+      "componentType": "LabeledValue",
+      "category": "content",
+      "label": "LabeledValue",
+      "file": "svg/LabeledValue.svg"
+    },
+    {
+      "id": "StatusLight",
+      "componentType": "StatusLight",
+      "category": "content",
+      "label": "StatusLight",
+      "file": "svg/StatusLight.svg"
+    },
+    {
+      "id": "ActionBar",
+      "componentType": "ActionBar",
+      "category": "buttons",
+      "label": "ActionBar",
+      "file": "svg/ActionBar.svg"
+    },
+    {
+      "id": "SelectBoxGroup",
+      "componentType": "SelectBoxGroup",
+      "category": "collections",
+      "label": "SelectBoxGroup",
+      "file": "svg/SelectBoxGroup.svg"
+    },
+    {
+      "id": "InlineAlert",
+      "componentType": "InlineAlert",
+      "category": "content",
+      "label": "InlineAlert",
+      "file": "svg/InlineAlert.svg"
+    },
+    {
+      "id": "ProgressCircle",
+      "componentType": "ProgressCircle",
+      "category": "content",
+      "label": "ProgressCircle",
+      "file": "svg/ProgressCircle.svg"
+    },
+    {
+      "id": "Image",
+      "componentType": "Image",
+      "category": "content",
+      "label": "Image",
+      "file": "svg/Image.svg"
+    },
+    {
+      "id": "IllustratedMessage",
+      "componentType": "IllustratedMessage",
+      "category": "content",
+      "label": "IllustratedMessage",
+      "file": "svg/IllustratedMessage.svg"
+    },
+    {
+      "id": "Card",
+      "componentType": "Card",
+      "category": "layout",
+      "label": "Card",
+      "file": "svg/Card.svg"
+    },
+    {
+      "id": "frame",
+      "componentType": "frame",
+      "category": "layout",
+      "label": "frame",
+      "file": "svg/frame.svg"
+    },
+    {
+      "id": "Section",
+      "componentType": "Section",
+      "category": "layout",
+      "label": "Section",
+      "file": "svg/Section.svg"
+    },
+    {
+      "id": "Tabs",
+      "componentType": "Tabs",
+      "category": "layout",
+      "label": "Tabs",
+      "file": "svg/Tabs.svg"
+    },
+    {
+      "id": "Breadcrumbs",
+      "componentType": "Breadcrumbs",
+      "category": "layout",
+      "label": "Breadcrumbs",
+      "file": "svg/Breadcrumbs.svg"
+    },
+    {
+      "id": "Link",
+      "componentType": "Link",
+      "category": "layout",
+      "label": "Link",
+      "file": "svg/Link.svg"
+    },
+    {
+      "id": "Nav",
+      "componentType": "Nav",
+      "category": "layout",
+      "label": "Nav",
+      "file": "svg/Nav.svg"
+    },
+    {
+      "id": "SideNavPanel",
+      "componentType": "SideNavPanel",
+      "category": "layout",
+      "label": "SideNavPanel",
+      "file": "svg/SideNavPanel.svg"
+    },
+    {
+      "id": "SideNav",
+      "componentType": "SideNav",
+      "category": "layout",
+      "label": "SideNav",
+      "file": "svg/SideNav.svg"
+    },
+    {
+      "id": "Pagination",
+      "componentType": "Pagination",
+      "category": "layout",
+      "label": "Pagination",
+      "file": "svg/Pagination.svg"
+    },
+    {
+      "id": "Menu",
+      "componentType": "Menu",
+      "category": "layout",
+      "label": "Menu",
+      "file": "svg/Menu.svg"
+    },
+    {
+      "id": "Accordion",
+      "componentType": "Accordion",
+      "category": "layout",
+      "label": "Accordion",
+      "file": "svg/Accordion.svg"
+    },
+    {
+      "id": "Disclosure",
+      "componentType": "Disclosure",
+      "category": "layout",
+      "label": "Disclosure",
+      "file": "svg/Disclosure.svg"
+    },
+    {
+      "id": "CardView",
+      "componentType": "CardView",
+      "category": "layout",
+      "label": "CardView",
+      "file": "svg/CardView.svg"
+    },
+    {
+      "id": "Slot",
+      "componentType": "Slot",
+      "category": "layout",
+      "label": "Slot",
+      "layoutOnly": true,
+      "file": "svg/Slot.svg"
+    },
+    {
+      "id": "Button",
+      "componentType": "Button",
+      "category": "buttons",
+      "label": "Button",
+      "file": "svg/Button.svg"
+    },
+    {
+      "id": "LinkButton",
+      "componentType": "LinkButton",
+      "category": "buttons",
+      "label": "LinkButton",
+      "file": "svg/LinkButton.svg"
+    },
+    {
+      "id": "ActionButton",
+      "componentType": "ActionButton",
+      "category": "buttons",
+      "label": "ActionButton",
+      "file": "svg/ActionButton.svg"
+    },
+    {
+      "id": "ActionButtonGroup",
+      "componentType": "ActionButtonGroup",
+      "category": "buttons",
+      "label": "ActionButtonGroup",
+      "file": "svg/ActionButtonGroup.svg"
+    },
+    {
+      "id": "ToggleButton",
+      "componentType": "ToggleButton",
+      "category": "buttons",
+      "label": "ToggleButton",
+      "file": "svg/ToggleButton.svg"
+    },
+    {
+      "id": "ToggleButtonGroup",
+      "componentType": "ToggleButtonGroup",
+      "category": "buttons",
+      "label": "ToggleButtonGroup",
+      "file": "svg/ToggleButtonGroup.svg"
+    },
+    {
+      "id": "Toolbar",
+      "componentType": "Toolbar",
+      "category": "buttons",
+      "label": "Toolbar",
+      "file": "svg/Toolbar.svg"
+    },
+    {
+      "id": "ButtonGroup",
+      "componentType": "ButtonGroup",
+      "category": "buttons",
+      "label": "ButtonGroup",
+      "file": "svg/ButtonGroup.svg"
+    },
+    {
+      "id": "TextField",
+      "componentType": "TextField",
+      "category": "forms",
+      "label": "TextField",
+      "file": "svg/TextField.svg"
+    },
+    {
+      "id": "TextArea",
+      "componentType": "TextArea",
+      "category": "forms",
+      "label": "TextArea",
+      "file": "svg/TextArea.svg"
+    },
+    {
+      "id": "TokenField",
+      "componentType": "TokenField",
+      "category": "forms",
+      "label": "TokenField",
+      "file": "svg/TokenField.svg"
+    },
+    {
+      "id": "NumberField",
+      "componentType": "NumberField",
+      "category": "forms",
+      "label": "NumberField",
+      "file": "svg/NumberField.svg"
+    },
+    {
+      "id": "SearchField",
+      "componentType": "SearchField",
+      "category": "forms",
+      "label": "SearchField",
+      "file": "svg/SearchField.svg"
+    },
+    {
+      "id": "Autocomplete",
+      "componentType": "Autocomplete",
+      "category": "forms",
+      "label": "Autocomplete",
+      "file": "svg/Autocomplete.svg"
+    },
+    {
+      "id": "ColorField",
+      "componentType": "ColorField",
+      "category": "forms",
+      "label": "ColorField",
+      "file": "svg/ColorField.svg"
+    },
+    {
+      "id": "ColorArea",
+      "componentType": "ColorArea",
+      "category": "forms",
+      "label": "ColorArea",
+      "file": "svg/ColorArea.svg"
+    },
+    {
+      "id": "ColorSlider",
+      "componentType": "ColorSlider",
+      "category": "forms",
+      "label": "ColorSlider",
+      "file": "svg/ColorSlider.svg"
+    },
+    {
+      "id": "ColorWheel",
+      "componentType": "ColorWheel",
+      "category": "forms",
+      "label": "ColorWheel",
+      "file": "svg/ColorWheel.svg"
+    },
+    {
+      "id": "ColorSwatch",
+      "componentType": "ColorSwatch",
+      "category": "forms",
+      "label": "ColorSwatch",
+      "file": "svg/ColorSwatch.svg"
+    },
+    {
+      "id": "ColorSwatchPicker",
+      "componentType": "ColorSwatchPicker",
+      "category": "forms",
+      "label": "ColorSwatchPicker",
+      "file": "svg/ColorSwatchPicker.svg"
+    },
+    {
+      "id": "Checkbox",
+      "componentType": "Checkbox",
+      "category": "forms",
+      "label": "Checkbox",
+      "file": "svg/Checkbox.svg"
+    },
+    {
+      "id": "CheckboxGroup",
+      "componentType": "CheckboxGroup",
+      "category": "forms",
+      "label": "CheckboxGroup",
+      "file": "svg/CheckboxGroup.svg"
+    },
+    {
+      "id": "RadioGroup",
+      "componentType": "RadioGroup",
+      "category": "forms",
+      "label": "RadioGroup",
+      "file": "svg/RadioGroup.svg"
+    },
+    {
+      "id": "Select",
+      "componentType": "Select",
+      "category": "forms",
+      "label": "Select",
+      "file": "svg/Select.svg"
+    },
+    {
+      "id": "ComboBox",
+      "componentType": "ComboBox",
+      "category": "forms",
+      "label": "ComboBox",
+      "file": "svg/ComboBox.svg"
+    },
+    {
+      "id": "Switch",
+      "componentType": "Switch",
+      "category": "forms",
+      "label": "Switch",
+      "file": "svg/Switch.svg"
+    },
+    {
+      "id": "Slider",
+      "componentType": "Slider",
+      "category": "forms",
+      "label": "Slider",
+      "file": "svg/Slider.svg"
+    },
+    {
+      "id": "RangeSlider",
+      "componentType": "RangeSlider",
+      "category": "forms",
+      "label": "RangeSlider",
+      "file": "svg/RangeSlider.svg"
+    },
+    {
+      "id": "SegmentedControl",
+      "componentType": "SegmentedControl",
+      "category": "buttons",
+      "label": "SegmentedControl",
+      "file": "svg/SegmentedControl.svg"
+    },
+    {
+      "id": "DropZone",
+      "componentType": "DropZone",
+      "category": "forms",
+      "label": "DropZone",
+      "file": "svg/DropZone.svg"
+    },
+    {
+      "id": "FileTrigger",
+      "componentType": "FileTrigger",
+      "category": "forms",
+      "label": "FileTrigger",
+      "file": "svg/FileTrigger.svg"
+    },
+    {
+      "id": "FileUpload",
+      "componentType": "FileUpload",
+      "category": "forms",
+      "label": "FileUpload",
+      "file": "svg/FileUpload.svg"
+    },
+    {
+      "id": "Form",
+      "componentType": "Form",
+      "category": "forms",
+      "label": "Form",
+      "file": "svg/Form.svg"
+    },
+    {
+      "id": "Table",
+      "componentType": "Table",
+      "category": "collections",
+      "label": "Table",
+      "file": "svg/Table.svg"
+    },
+    {
+      "id": "ListBox",
+      "componentType": "ListBox",
+      "category": "collections",
+      "label": "ListBox",
+      "file": "svg/ListBox.svg"
+    },
+    {
+      "id": "GridList",
+      "componentType": "GridList",
+      "category": "collections",
+      "label": "GridList",
+      "file": "svg/GridList.svg"
+    },
+    {
+      "id": "Tree",
+      "componentType": "Tree",
+      "category": "collections",
+      "label": "Tree",
+      "file": "svg/Tree.svg"
+    },
+    {
+      "id": "TagGroup",
+      "componentType": "TagGroup",
+      "category": "collections",
+      "label": "TagGroup",
+      "file": "svg/TagGroup.svg"
+    },
+    {
+      "id": "chart-area",
+      "componentType": "Chart",
+      "category": "charts",
+      "label": "Area Chart",
+      "file": "svg/chart-area.svg"
+    },
+    {
+      "id": "chart-bar",
+      "componentType": "Chart",
+      "category": "charts",
+      "label": "Bar Chart",
+      "file": "svg/chart-bar.svg"
+    },
+    {
+      "id": "chart-line",
+      "componentType": "Chart",
+      "category": "charts",
+      "label": "Line Chart",
+      "file": "svg/chart-line.svg"
+    },
+    {
+      "id": "chart-pie",
+      "componentType": "Chart",
+      "category": "charts",
+      "label": "Pie Chart",
+      "file": "svg/chart-pie.svg"
+    },
+    {
+      "id": "chart-radar",
+      "componentType": "Chart",
+      "category": "charts",
+      "label": "Radar Chart",
+      "file": "svg/chart-radar.svg"
+    },
+    {
+      "id": "chart-radial",
+      "componentType": "Chart",
+      "category": "charts",
+      "label": "Radial Chart",
+      "file": "svg/chart-radial.svg"
+    },
+    {
+      "id": "chart-scatter",
+      "componentType": "Chart",
+      "category": "charts",
+      "label": "Scatter Chart",
+      "file": "svg/chart-scatter.svg"
+    },
+    {
+      "id": "Calendar",
+      "componentType": "Calendar",
+      "category": "dateTime",
+      "label": "Calendar",
+      "file": "svg/Calendar.svg"
+    },
+    {
+      "id": "DatePicker",
+      "componentType": "DatePicker",
+      "category": "dateTime",
+      "label": "DatePicker",
+      "file": "svg/DatePicker.svg"
+    },
+    {
+      "id": "DateRangePicker",
+      "componentType": "DateRangePicker",
+      "category": "dateTime",
+      "label": "DateRangePicker",
+      "file": "svg/DateRangePicker.svg"
+    },
+    {
+      "id": "DateField",
+      "componentType": "DateField",
+      "category": "dateTime",
+      "label": "DateField",
+      "file": "svg/DateField.svg"
+    },
+    {
+      "id": "TimeField",
+      "componentType": "TimeField",
+      "category": "dateTime",
+      "label": "TimeField",
+      "file": "svg/TimeField.svg"
+    },
+    {
+      "id": "RangeCalendar",
+      "componentType": "RangeCalendar",
+      "category": "dateTime",
+      "label": "RangeCalendar",
+      "file": "svg/RangeCalendar.svg"
+    },
+    {
+      "id": "Dialog",
+      "componentType": "Dialog",
+      "category": "overlays",
+      "label": "Dialog",
+      "file": "svg/Dialog.svg"
+    },
+    {
+      "id": "Sheet",
+      "componentType": "Sheet",
+      "category": "overlays",
+      "label": "Sheet",
+      "file": "svg/Sheet.svg"
+    },
+    {
+      "id": "Popover",
+      "componentType": "Popover",
+      "category": "overlays",
+      "label": "Popover",
+      "file": "svg/Popover.svg"
+    },
+    {
+      "id": "PreviewTrigger",
+      "componentType": "PreviewTrigger",
+      "category": "overlays",
+      "label": "PreviewTrigger",
+      "file": "svg/PreviewTrigger.svg"
+    },
+    {
+      "id": "ContextualHelp",
+      "componentType": "ContextualHelp",
+      "category": "overlays",
+      "label": "ContextualHelp",
+      "file": "svg/ContextualHelp.svg"
+    },
+    {
+      "id": "Tooltip",
+      "componentType": "Tooltip",
+      "category": "overlays",
+      "label": "Tooltip",
+      "file": "svg/Tooltip.svg"
+    }
+  ]
+}

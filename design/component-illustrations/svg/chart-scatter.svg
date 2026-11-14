@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="chart-scatter-title chart-scatter-desc">
+  <title id="chart-scatter-title">chart-scatter</title>
+  <desc id="chart-scatter-desc">투명 배경의 편집 가능한 무채색 chart-scatter 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="chart-scatter-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="chart-scatter-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="chart-scatter-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="chart-scatter-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="chart-scatter-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="chart-scatter-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="chart-scatter-illustration">
+    <rect x="32" y="48" width="236" height="204" rx="18" fill="url(#chart-scatter-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#chart-scatter-shadow)" />
+    <rect x="53" y="67" width="64" height="7" rx="3.5" fill="#505050" />
+    <circle cx="232" cy="71" r="3" fill="#b9b9b9" />
+    <path d="M56 107H245" fill="none" stroke="#dedede" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M56 143H245" fill="none" stroke="#dedede" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M56 179H245" fill="none" stroke="#dedede" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M56 215H245" fill="none" stroke="#dedede" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M56 98V215H245" fill="none" stroke="#b9b9b9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="70" cy="190" r="5" fill="#858585" />
+    <circle cx="86" cy="173" r="7" fill="#505050" />
+    <circle cx="107" cy="184" r="4" fill="#858585" />
+    <circle cx="111" cy="149" r="6" fill="#505050" />
+    <circle cx="138" cy="162" r="7" fill="#505050" />
+    <circle cx="153" cy="128" r="5" fill="#858585" />
+    <circle cx="173" cy="146" r="4" fill="#858585" />
+    <circle cx="189" cy="108" r="7" fill="#505050" />
+    <circle cx="214" cy="126" r="5" fill="#858585" />
+    <circle cx="235" cy="103" r="6" fill="#505050" />
+  </g>
+</svg>

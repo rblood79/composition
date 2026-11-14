@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="ColorSwatchPicker-title ColorSwatchPicker-desc">
+  <title id="ColorSwatchPicker-title">ColorSwatchPicker</title>
+  <desc id="ColorSwatchPicker-desc">투명 배경의 편집 가능한 무채색 ColorSwatchPicker 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="ColorSwatchPicker-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="ColorSwatchPicker-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="ColorSwatchPicker-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="ColorSwatchPicker-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="ColorSwatchPicker-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="ColorSwatchPicker-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="ColorSwatchPicker-illustration">
+    <rect x="41" y="80" width="218" height="140" rx="18" fill="url(#ColorSwatchPicker-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#ColorSwatchPicker-shadow)" />
+    <rect x="58" y="98" width="39" height="44" rx="9" fill="#e1e1e1" stroke="#b9b9b9" stroke-width="1.5" />
+    <rect x="106" y="98" width="39" height="44" rx="9" fill="#bcbcbc" stroke="#b9b9b9" stroke-width="1.5" />
+    <rect x="154" y="98" width="39" height="44" rx="9" fill="#8a8a8a" stroke="#b9b9b9" stroke-width="1.5" />
+    <rect x="202" y="98" width="39" height="44" rx="9" fill="#505050" stroke="#b9b9b9" stroke-width="1.5" />
+    <rect x="58" y="155" width="39" height="44" rx="9" fill="#e1e1e1" stroke="#b9b9b9" stroke-width="1.5" />
+    <rect x="106" y="155" width="39" height="44" rx="9" fill="#bcbcbc" stroke="#b9b9b9" stroke-width="1.5" />
+    <rect x="154" y="155" width="39" height="44" rx="9" fill="#8a8a8a" stroke="#b9b9b9" stroke-width="1.5" />
+    <rect x="151" y="152" width="45" height="50" rx="11" fill="none" stroke="#505050" stroke-width="2" />
+    <g transform="translate(174 177) scale(0.8)">
+      <path d="M-7 0L-2 5L8 -6" fill="none" stroke="#eeeeee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="202" y="155" width="39" height="44" rx="9" fill="#505050" stroke="#b9b9b9" stroke-width="1.5" />
+  </g>
+</svg>

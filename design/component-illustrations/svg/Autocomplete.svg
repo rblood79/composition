@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="Autocomplete-title Autocomplete-desc">
+  <title id="Autocomplete-title">Autocomplete</title>
+  <desc id="Autocomplete-desc">투명 배경의 편집 가능한 무채색 Autocomplete 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="Autocomplete-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="Autocomplete-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="Autocomplete-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="Autocomplete-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="Autocomplete-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="Autocomplete-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="Autocomplete-illustration">
+    <rect x="48" y="48" width="72" height="7" rx="3.5" fill="#767676" />
+    <rect x="36" y="68" width="228" height="47" rx="12" fill="url(#Autocomplete-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#Autocomplete-shadow)" />
+    <rect x="36" y="126" width="228" height="128" rx="12" fill="url(#Autocomplete-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#Autocomplete-shadow)" />
+    <g transform="translate(57 89) scale(1)">
+      <circle cx="0" cy="0" r="6" fill="none" stroke="#505050" stroke-width="2.5" />
+      <path d="M5 5L10 10" fill="none" stroke="#505050" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="79" y="88" width="113" height="7" rx="3.5" fill="#858585" />
+    <g transform="translate(243 91) scale(1)">
+      <path d="M-4 -4L4 4M-4 4L4 -4" fill="none" stroke="#858585" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="58" y="148" width="105" height="7" rx="3.5" fill="#858585" />
+    <rect x="46" y="171" width="208" height="30" rx="7" fill="#dedede" />
+    <rect x="58" y="182" width="90" height="7" rx="3.5" fill="#505050" />
+    <g transform="translate(237 185) scale(0.7)">
+      <path d="M-7 0L-2 5L8 -6" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="58" y="216" width="75" height="7" rx="3.5" fill="#858585" />
+  </g>
+</svg>

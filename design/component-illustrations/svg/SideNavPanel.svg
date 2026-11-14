@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="SideNavPanel-title SideNavPanel-desc">
+  <title id="SideNavPanel-title">SideNavPanel</title>
+  <desc id="SideNavPanel-desc">투명 배경의 편집 가능한 무채색 SideNavPanel 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="SideNavPanel-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="SideNavPanel-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="SideNavPanel-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="SideNavPanel-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="SideNavPanel-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="SideNavPanel-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="SideNavPanel-illustration">
+    <rect x="35" y="40" width="230" height="220" rx="18" fill="url(#SideNavPanel-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#SideNavPanel-shadow)" />
+    <rect x="51" y="62" width="88" height="9" rx="4.5" fill="#505050" />
+    <path d="M193 87L193 242" fill="none" stroke="#dedede" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="207" y="111" width="40" height="6" rx="3.0" fill="#b9b9b9" />
+    <rect x="207" y="127" width="30" height="6" rx="3.0" fill="#dedede" />
+    <rect x="207" y="155" width="40" height="6" rx="3.0" fill="#b9b9b9" />
+    <rect x="48" y="94" width="130" height="30" rx="8" fill="#dedede" />
+    <rect x="59" y="104" width="10" height="10" rx="3" fill="#505050" />
+    <rect x="81" y="106" width="75" height="6" rx="3.0" fill="#505050" />
+    <rect x="59" y="140" width="10" height="10" rx="3" fill="#858585" />
+    <rect x="81" y="142" width="67" height="6" rx="3.0" fill="#858585" />
+    <rect x="59" y="176" width="10" height="10" rx="3" fill="#858585" />
+    <rect x="81" y="178" width="59" height="6" rx="3.0" fill="#858585" />
+    <rect x="59" y="212" width="10" height="10" rx="3" fill="#858585" />
+    <rect x="81" y="214" width="51" height="6" rx="3.0" fill="#858585" />
+  </g>
+</svg>

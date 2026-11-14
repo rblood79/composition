@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="Avatar-title Avatar-desc">
+  <title id="Avatar-title">Avatar</title>
+  <desc id="Avatar-desc">투명 배경의 편집 가능한 무채색 Avatar 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="Avatar-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="Avatar-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="Avatar-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="Avatar-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="Avatar-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="Avatar-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="Avatar-illustration">
+    <g filter="url(#Avatar-shadow)">
+      <circle cx="150" cy="150" r="76" fill="url(#Avatar-surface)" stroke="#a1a1a1" stroke-width="1.5" />
+      <circle cx="150" cy="133.28" r="18.24" fill="#858585" />
+      <path d="M112.75999999999999 186.48Q115.03999999999999 154.56 150 154.56Q184.96 154.56 187.24 186.48Z" fill="#858585" stroke="none" stroke-width="0" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+  </g>
+</svg>

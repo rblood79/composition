@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components 패널 90종 SVG 일러스트] - 2026-11-14
+
+### Added
+
+- **투명 배경의 300×300 무채색 컴포넌트 일러스트 90종**:
+  - Chart 7종과 Layout 전용 Slot을 포함한 현재 Components 팔레트 대응 에셋, 흰색·검은색 배경 미리보기, 등록 목록 manifest와 재생성·검증 스크립트를 추가했다.
+  - DateField·TimeField 구분자 중심 정렬, DatePicker 입력폼·달력 너비 일치, DateRangePicker의 두 배 너비·2개월 연속 선택을 표현했다.
+  - 위치: `design/component-illustrations/`. 독립 디자인 에셋이며 Builder 런타임 연결은 포함하지 않는다.
+
 ## [S2 대응 없는 컴포넌트를 가까운 S2 패턴 값으로 — Toolbar · Pagination · Nav] - 2026-11-14
 
 ### Added

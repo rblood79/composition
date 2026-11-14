@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="SelectBoxGroup-title SelectBoxGroup-desc">
+  <title id="SelectBoxGroup-title">SelectBoxGroup</title>
+  <desc id="SelectBoxGroup-desc">투명 배경의 편집 가능한 무채색 SelectBoxGroup 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="SelectBoxGroup-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="SelectBoxGroup-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="SelectBoxGroup-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="SelectBoxGroup-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="SelectBoxGroup-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="SelectBoxGroup-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="SelectBoxGroup-illustration">
+    <rect x="31" y="82" width="114" height="136" rx="15" fill="url(#SelectBoxGroup-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#SelectBoxGroup-shadow)" />
+    <rect x="32" y="83" width="112" height="134" rx="14" fill="none" stroke="#505050" stroke-width="2" />
+    <rect x="45" y="98" width="20" height="20" rx="5" fill="#505050" stroke="#505050" stroke-width="1.5" />
+    <g transform="translate(55 108) scale(0.7)">
+      <path d="M-7 0L-2 5L8 -6" fill="none" stroke="#eeeeee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="45" y="144" width="72" height="8" rx="4.0" fill="#505050" />
+    <rect x="45" y="165" width="81" height="5" rx="2.5" fill="#858585" />
+    <rect x="45" y="181" width="53" height="5" rx="2.5" fill="#b9b9b9" />
+    <rect x="155" y="82" width="114" height="136" rx="15" fill="url(#SelectBoxGroup-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#SelectBoxGroup-shadow)" />
+    <rect x="156" y="83" width="112" height="134" rx="14" fill="none" stroke="#b9b9b9" stroke-width="2" />
+    <rect x="169" y="98" width="20" height="20" rx="5" fill="#f0f0f0" stroke="#505050" stroke-width="1.5" />
+    <rect x="169" y="144" width="72" height="8" rx="4.0" fill="#505050" />
+    <rect x="169" y="165" width="81" height="5" rx="2.5" fill="#858585" />
+    <rect x="169" y="181" width="53" height="5" rx="2.5" fill="#b9b9b9" />
+  </g>
+</svg>

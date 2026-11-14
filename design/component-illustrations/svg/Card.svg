@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="Card-title Card-desc">
+  <title id="Card-title">Card</title>
+  <desc id="Card-desc">투명 배경의 편집 가능한 무채색 Card 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="Card-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="Card-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="Card-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="Card-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="Card-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="Card-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="Card-illustration">
+    <rect x="58" y="37" width="184" height="226" rx="18" fill="url(#Card-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#Card-shadow)" />
+    <rect x="71" y="50" width="158" height="108" rx="10" fill="url(#Card-wash)" stroke="#b9b9b9" stroke-width="1" />
+    <circle cx="186.34" cy="79.16" r="11.88" fill="#eeeeee" />
+    <path d="M86.8 139.64L129.46 93.2L159.48000000000002 119.12L180.01999999999998 102.92L214.78 139.64Z" fill="#858585" stroke="none" stroke-width="0" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="77" y="179" width="107" height="10" rx="5.0" fill="#505050" />
+    <rect x="77" y="201" width="145" height="6" rx="3.0" fill="#858585" />
+    <rect x="77" y="217" width="102" height="6" rx="3.0" fill="#b9b9b9" />
+    <rect x="77" y="239" width="58" height="6" rx="3.0" fill="#505050" />
+  </g>
+</svg>

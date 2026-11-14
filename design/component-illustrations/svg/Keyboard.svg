@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="Keyboard-title Keyboard-desc">
+  <title id="Keyboard-title">Keyboard</title>
+  <desc id="Keyboard-desc">투명 배경의 편집 가능한 무채색 Keyboard 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="Keyboard-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="Keyboard-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="Keyboard-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="Keyboard-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="Keyboard-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="Keyboard-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="Keyboard-illustration">
+    <rect x="35" y="100" width="230" height="100" rx="20" fill="url(#Keyboard-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#Keyboard-shadow)" />
+    <rect x="51" y="116" width="51" height="64" rx="10" fill="#eeeeee" stroke="#b9b9b9" stroke-width="1.5" />
+    <path d="M56 172H97" fill="none" stroke="#dedede" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="112" y="116" width="51" height="64" rx="10" fill="#eeeeee" stroke="#b9b9b9" stroke-width="1.5" />
+    <path d="M117 172H158" fill="none" stroke="#dedede" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="173" y="116" width="76" height="64" rx="10" fill="#eeeeee" stroke="#b9b9b9" stroke-width="1.5" />
+    <path d="M178 172H244" fill="none" stroke="#dedede" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M68 135C61 123 82 123 75 135V153C82 165 61 165 68 153H86C98 160 98 140 86 147H68C57 140 57 160 68 153M86 147V135C93 123 73 123 80 135H68" fill="none" stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M137 132V157M127 142L137 132L147 142" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M226 133V147H194M202 139L194 147L202 155" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>

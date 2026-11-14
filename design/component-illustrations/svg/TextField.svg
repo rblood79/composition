@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="TextField-title TextField-desc">
+  <title id="TextField-title">TextField</title>
+  <desc id="TextField-desc">투명 배경의 편집 가능한 무채색 TextField 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="TextField-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="TextField-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="TextField-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="TextField-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="TextField-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="TextField-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="TextField-illustration">
+    <rect x="52" y="94" width="69" height="8" rx="4.0" fill="#767676" />
+    <rect x="38" y="120" width="224" height="58" rx="12" fill="url(#TextField-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#TextField-shadow)" />
+    <rect x="56" y="145" width="107" height="9" rx="4.5" fill="#858585" />
+    <path d="M170 139L170 159" fill="none" stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="53" y="197" width="131" height="6" rx="3.0" fill="#b9b9b9" />
+  </g>
+</svg>

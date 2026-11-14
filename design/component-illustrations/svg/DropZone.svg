@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="DropZone-title DropZone-desc">
+  <title id="DropZone-title">DropZone</title>
+  <desc id="DropZone-desc">투명 배경의 편집 가능한 무채색 DropZone 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="DropZone-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="DropZone-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="DropZone-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="DropZone-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="DropZone-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="DropZone-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="DropZone-illustration">
+    <rect x="37" y="54" width="226" height="192" rx="18" fill="url(#DropZone-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#DropZone-shadow)" />
+    <rect x="52" y="69" width="196" height="162" rx="13" fill="none" stroke="#858585" stroke-width="2" stroke-dasharray="7 7" />
+    <g transform="translate(150 123) scale(0.9)">
+      <path d="M-22 12V23Q-22 28 -17 28H17Q22 28 22 23V12M0 14V-23M-12 -11L0 -23L12 -11" fill="none" stroke="#505050" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="90" y="175" width="120" height="8" rx="4.0" fill="#505050" />
+    <rect x="109" y="196" width="82" height="6" rx="3.0" fill="#b9b9b9" />
+  </g>
+</svg>

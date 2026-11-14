@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none" role="img" aria-labelledby="SearchField-title SearchField-desc">
+  <title id="SearchField-title">SearchField</title>
+  <desc id="SearchField-desc">투명 배경의 편집 가능한 무채색 SearchField 컴포넌트 일러스트</desc>
+  <defs>
+    <linearGradient id="SearchField-surface" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#f4f4f4" />
+      <stop offset="1" stop-color="#dedede" />
+    </linearGradient>
+    <linearGradient id="SearchField-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#777777" />
+      <stop offset="1" stop-color="#4c4c4c" />
+    </linearGradient>
+    <linearGradient id="SearchField-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e1e1e1" />
+      <stop offset="1" stop-color="#b5b5b5" />
+    </linearGradient>
+    <linearGradient id="SearchField-area" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eeeeee" />
+      <stop offset="1" stop-color="#555555" />
+    </linearGradient>
+    <linearGradient id="SearchField-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#303030" stop-opacity="0" />
+      <stop offset="1" stop-color="#303030" stop-opacity=".8" />
+    </linearGradient>
+    <filter id="SearchField-shadow" x="0" y="0" width="300" height="300" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity=".16" />
+    </filter>
+  </defs>
+  <g id="SearchField-illustration">
+    <rect x="52" y="94" width="69" height="8" rx="4.0" fill="#767676" />
+    <rect x="38" y="120" width="224" height="58" rx="12" fill="url(#SearchField-surface)" stroke="#a1a1a1" stroke-width="1.5" filter="url(#SearchField-shadow)" />
+    <g transform="translate(64 147) scale(1.2)">
+      <circle cx="0" cy="0" r="6" fill="none" stroke="#505050" stroke-width="2.5" />
+      <path d="M5 5L10 10" fill="none" stroke="#505050" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <rect x="91" y="145" width="115" height="8" rx="4.0" fill="#858585" />
+    <g transform="translate(239 149) scale(1)">
+      <path d="M-4 -4L4 4M-4 4L4 -4" fill="none" stroke="#858585" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+  </g>
+</svg>
