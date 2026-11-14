@@ -23,8 +23,8 @@
   align-items: center;
 
   /* Default size */
-  font-size: var(--catalog-token-text-base);
-  border-radius: var(--catalog-token-radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
   gap: 8px;
 }
 
@@ -32,34 +32,36 @@
   color: var(--fg);
 }
 
+.react-aria-Toolbar[data-size="XS"] {
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: 0;
+  gap: 4px;
+}
+
 .react-aria-Toolbar[data-size="S"] {
-  font-size: var(--catalog-token-text-sm);
-  border-radius: var(--catalog-token-radius-md);
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 0;
   gap: 4px;
 }
 
 .react-aria-Toolbar[data-size="M"] {
-  font-size: var(--catalog-token-text-base);
-  border-radius: var(--catalog-token-radius-md);
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
   gap: 8px;
 }
 
 .react-aria-Toolbar[data-size="L"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: 0;
+  gap: 8px;
+}
+
+.react-aria-Toolbar[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
-  border-radius: var(--catalog-token-radius-lg);
-  gap: 10px;
+  border-radius: 0;
+  gap: 8px;
 }
 
-.react-aria-Toolbar.react-aria-Toolbar:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Toolbar.react-aria-Toolbar:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
 
 /* ── Tier 2: Composite Delegation ── */
 
@@ -72,6 +74,10 @@
   align-items: start;
 }
 
+.react-aria-Toolbar[data-density="compact"] {
+  gap: 2px;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-Toolbar {
@@ -82,10 +88,6 @@
 
   .react-aria-Toolbar .react-aria-Group {
     display: contents;
-  }
-
-  .react-aria-Toolbar .react-aria-ToggleButton {
-    width: 32px;
   }
 
 

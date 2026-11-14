@@ -139,13 +139,12 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
   it("base style: a placed instance and the instances inside other origins draw the origin's override", async () => {
     const { workspace, write } = await open({
       button: { of: BUTTON },
-      toolbar: { of: origin("toolbar") },
       group: { of: origin("buttongroup") },
-      pagination: { of: origin("pagination") },
     });
     write("visual", "paddingTop", 77);
     write("visual", "backgroundColor", "#ff0000");
-    for (const name of ["button", "toolbar", "group", "pagination"]) {
+    // (A Toolbar · Pagination hold ActionButtons since 2026-11-14 — S2's action group — not Button instances.)
+    for (const name of ["button", "group"]) {
       const found = buttons(workspace, resolve(workspace, name));
       expect(found.length, name).toBeGreaterThan(0);
       for (const record of found)
@@ -168,9 +167,9 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
   it("a later edit of the origin (its override already exists) redraws the instances inside other origins", async () => {
     const { workspace, write } = await open({
       button: { of: BUTTON },
-      toolbar: { of: origin("toolbar") },
+      group: { of: origin("buttongroup") },
     });
-    /** The Button records the Canvas and the DOM draw (placed and inside the Toolbar). */
+    /** The Button records the Canvas and the DOM draw (placed and inside the ButtonGroup). */
     const drawnRecords = () =>
       [workspace.root.canvasInputs, workspace.root.domInputs].flatMap(
         (inputs) =>
@@ -179,12 +178,13 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
             .map((record) => record.visual.paddingTop),
       );
     write("visual", "paddingTop", 77);
-    expect(drawnRecords()).toEqual(Array(8).fill(77));
+    // (1 placed + the ButtonGroup's 2, on both consumers.)
+    expect(drawnRecords()).toEqual(Array(6).fill(77));
     // The second write patches the existing override: a value-only step.
     write("visual", "paddingTop", 88);
-    expect(drawnRecords()).toEqual(Array(8).fill(88));
+    expect(drawnRecords()).toEqual(Array(6).fill(88));
     workspace.undo();
-    expect(drawnRecords()).toEqual(Array(8).fill(77));
+    expect(drawnRecords()).toEqual(Array(6).fill(77));
   });
 
   it("an instance's own value stays over the origin's override", async () => {
@@ -239,7 +239,7 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
   it("state style: the drawn root takes the origin's state override in that state", async () => {
     const { workspace, write } = await open({
       button: { of: BUTTON },
-      toolbar: { of: origin("toolbar") },
+      group: { of: origin("buttongroup") },
       hovered: { of: origin("button--hover") },
       authored: {
         of: BUTTON,
@@ -257,7 +257,7 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
         .backgroundColor,
     ).toBe("#123456");
     // Instances inside another origin's template, hovered.
-    const nested = buttons(workspace, resolve(workspace, "toolbar", "hover"));
+    const nested = buttons(workspace, resolve(workspace, "group", "hover"));
     expect(nested.length).toBeGreaterThan(0);
     for (const record of nested)
       expect(record.visual.backgroundColor, String(record.sourceId)).toBe(

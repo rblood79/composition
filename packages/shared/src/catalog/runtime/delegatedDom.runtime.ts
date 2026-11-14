@@ -187,6 +187,7 @@ import { TabList, TabPanel, Tabs } from "../../components/Tabs";
 import { type TagRowsState } from "../../components/TagGroup";
 
 import { ActionButtonGroup } from "../../components/ActionButtonGroup";
+import { CatalogNavRouteContext } from "./navRoute.components";
 import { ToggleButton } from "../../components/ToggleButton";
 
 import { ToggleButtonGroup } from "../../components/ToggleButtonGroup";
@@ -3349,6 +3350,29 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // (2026-11-14: a Toolbar is the same S2 action group under its own class — its ActionButtons read the
+  //  group context, as in an ActionButtonGroup.)
+  toolbar: {
+    render: (input) =>
+      createElement(
+        ActionButtonGroup,
+        {
+          ...marker(input),
+          rootClassName: "react-aria-Toolbar",
+          size: input.node.props.size,
+          orientation: input.node.props.orientation,
+          density: input.node.props.density,
+          isQuiet: input.node.props.isQuiet,
+          isJustified: input.node.props.isJustified,
+          staticColor:
+            input.node.derivedProps?.staticColor ??
+            input.node.props.staticColor,
+          isDisabled: input.node.props.isDisabled,
+          style: input.style,
+        } as Parameters<typeof ActionButtonGroup>[0],
+        ...renderAll(input),
+      ),
+  },
   actionbuttongroup: {
     render: (input) =>
       createElement(
@@ -3594,9 +3618,22 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           // The `<nav>` name is the `aria-label` it accepts (no `label` — HTML · RSP have none);
           // the Attributes axis (metadata `ariaLabel`) still overrides it (`domBinding.tsx` `withHtmlId`).
           "aria-label": str(input.node.props["aria-label"] || "Navigation"),
-          style: { display: "flex", alignItems: "center", ...input.style },
+          // (The row layout is the Nav rule's `containerStyles` — the generated sheet, as the Canvas reads it.)
+          style: input.style,
         },
-        ...renderAll(input),
+        // (2026-11-14: the Nav's route for its Links — `null` = the shown route, as a SideNav. Inside the
+        //  element: the root stays the `<nav>` the id · name attributes are written on.)
+        createElement(
+          CatalogNavRouteContext.Provider,
+          {
+            value:
+              typeof input.node.props.selectedRoute === "string" &&
+              input.node.props.selectedRoute
+                ? input.node.props.selectedRoute
+                : null,
+          },
+          ...renderAll(input),
+        ),
       ),
   },
   toast: {

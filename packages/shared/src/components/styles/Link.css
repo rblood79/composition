@@ -60,8 +60,10 @@
     /* S2 1.8.0 isStandalone (2026-10-10): 문단 밖 단독 링크 = medium weight. 값의 정본은
        catalog Link rule 의 top-level containerVariants.standalone (Canvas 가 같은 값을 읽는다 —
        rulePaint.ts). [data-size] 를 겹쳐 생성 size 블록(font-weight 400, 동일 특이도·뒤 순서)을
-       이긴다. 밑줄은 우리 Link 가 rest 에서 이미 없어 바뀌지 않는다. */
-    &[data-size][data-standalone="true"] {
+       이긴다. 밑줄은 우리 Link 가 rest 에서 이미 없어 바뀌지 않는다.
+       현재 항목 (`[data-current]` — Nav 의 현재 Link, 2026-11-14) 은 뺀다: 굵기는 Link rule 의 isCurrent
+       상태 값 (생성 Link.css) 이 정한다. */
+    &[data-size][data-standalone="true"]:not([data-current]) {
       font-weight: 500;
     }
 

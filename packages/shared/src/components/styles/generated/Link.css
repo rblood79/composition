@@ -183,6 +183,10 @@
   text-decoration-thickness: 1.5px;
 }
 
+.react-aria-Link.react-aria-Link:where(:is([data-current], [data-current-ancestor]:not([data-expanded]))) {
+  font-weight: 700;
+}
+
 /* ── Tier 2: Composite Delegation ── */
 
 

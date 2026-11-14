@@ -185,6 +185,7 @@ import {
   catalogTypeName,
 } from "./delegatedDom";
 
+import { CatalogNavLink } from "./navRoute.components";
 import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
@@ -3049,7 +3050,8 @@ function ruleDom(
     catalogTableSelectionColumn(node, domGet, domType);
   const element = createElement(
     lower === "link"
-      ? LinkPrimitive
+      ? // (In a Nav it is current at the Nav's route — `navRoute.components.tsx`.)
+        CatalogNavLink
       : selectionColumn
         ? CatalogTableSelectionColumn
         : Component,

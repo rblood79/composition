@@ -137,10 +137,10 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
   });
 
   it("size 는 seg — 2~3 반폭 · 4~5 전폭, 옵션은 5단까지", () => {
-    expect(editorOf("Toolbar", "size")).toMatchObject({
+    expect(editorOf("Nav", "size")).toMatchObject({
       type: "seg",
       span: "half",
-    }); // S M L
+    }); // S M L (Toolbar 는 2026-11-14 부터 S2 action group 5 단)
     expect(editorOf("Button", "size")).toMatchObject({
       type: "seg",
       span: "wide",

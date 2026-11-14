@@ -105,13 +105,13 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     { M: 8 },
     `${CONTROL_RADIUS_REASON} — ActionButton M 크기를 펼친 값 (5745593c4)`,
   ),
-  ...["ActionButtonGroup", "ToggleButtonGroup"].map(
+  ...["ActionButtonGroup", "ToggleButtonGroup", "Toolbar", "Pagination"].map(
     (component): IntentionalLiteral => ({
       component,
       key: "borderRadius",
       values: { XS: 0, S: 0, M: 0, L: 0, XL: 0 },
       reason:
-        "S2 ActionButtonGroup · ToggleButtonGroup 은 상자 모양이 없다 — 연결 모서리는 자식 rule 의 compact rootSelectors (`ACTION_GROUP_SIZES`, 3ca03f661)",
+        "S2 ActionButtonGroup · ToggleButtonGroup 은 상자 모양이 없다 — 연결 모서리는 자식 rule 의 compact rootSelectors (`ACTION_GROUP_SIZES`, 3ca03f661). Toolbar · Pagination 도 같은 묶음 값 (2026-11-14)",
     }),
   ),
   sizes(
@@ -281,12 +281,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "S2 Calendar 머리 = 이전 · 다음 quiet ActionButton M 32 (`Calendar.tsx`) · 읽는 곳 없음 (manual replace)",
   ),
   sizes(
-    "Toolbar",
-    "gap",
-    { L: 10 },
-    "S2 Toolbar 는 RAC 를 감싸기만 하고 스타일이 없다 (`Toolbar.tsx`) — composition 묶음 간격",
-  ),
-  sizes(
     "Breadcrumb",
     "height",
     { S: 24, M: 32, L: 40 },
@@ -375,12 +369,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "paddingX",
     { S: 6, L: 10 },
     "S2 대응 없음 — composition 키 글자 상자",
-  ),
-  sizes(
-    "Nav",
-    "height",
-    { S: 48, M: 56, L: 64 },
-    "S2 대응 없음 — composition 탐색 막대",
   ),
   sizes(
     "Separator",

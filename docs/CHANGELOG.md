@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 대응 없는 컴포넌트를 가까운 S2 패턴 값으로 — Toolbar · Pagination · Nav] - 2026-11-14
+
+### Added
+
+- Toolbar 에 S2 `ActionButtonGroup` 의 묶음 축 `density` · `isQuiet` · `isJustified` · `staticColor` · `isDisabled` 를 추가했다 (RAC Toolbar 에 없는 composition 확장). 값은 안의 ActionButton 에 Canvas · Preview 모두 내려가고, compact 는 간격 2px 에 버튼 모서리가 이어진다.
+- Nav 에 `selectedRoute` 를 추가했다 (S2 SideNav 의 prop). 그 경로를 `href` 로 가진 Link 가 현재 항목이다 — Preview 는 RAC `aria-current="page"`, 두 화면 모두 굵기 700. 비우면 SideNav 처럼 지금 보이는 페이지의 경로를 쓴다.
+
+### Changed
+
+- Toolbar 의 기본 자식이 Button 3개에서 ActionButton 3개로 바뀌었고, 구분선의 1×20 작성 크기를 지워 S2 Divider 처럼 줄 높이만큼 선다. 구조 계약 버전을 66 으로 올렸다 (이전 계약의 문서는 기존 정책대로 로드를 거부한다).
+- Pagination 의 기본 구조가 Button 5개에서 `이전 (quiet ActionButton) + page 번호 ToggleButtonGroup + 다음 (quiet ActionButton)` 으로 바뀌었다. 현재 page 는 그 그룹의 선택이고 (단일 선택 · 빈 선택 없음), 선택된 page 만 S2 선택 칠로 채워진다. Pagination 의 크기는 다섯 버튼에 내려가 모서리가 크기를 따른다 (S 7 · M 8 · L 9 · XL 10).
+- PreviewTrigger 본체에 적혀 있던 폭 240px 을 지웠다. 이제 다른 Popover 처럼 크기별 S2 폭 (S 336 · M 416 · L 576) 을 쓴다.
+- Toolbar · Pagination 의 묶음 값을 S2 `ActionButtonGroup` 과 같게 했다. 크기는 XS ~ XL 5단, 간격은 XS · S 4px · M ~ XL 8px 이고 묶음 자신의 padding · 모서리 · focus ring · disabled 칠을 지웠다. 묶음의 크기는 안의 ActionButton 에 내려간다. Toolbar 는 안의 ToggleButton 폭을 32px 로 고정하지 않는다.
+- Pagination 은 옛 렌더러의 `.pagination-*` 규칙과 `--btn-*` 변수를 지웠다. 그 변수는 Preview 에서만 안의 버튼 글자 크기를 덮고 있었다. 상자가 버튼 줄만큼이라 `space-between` 도 없다.
+- Nav 는 칠하지 않는 컨테이너다. 바탕 · 고정 높이 (48 / 56 / 64) · padding · 상태 칠을 지웠고, 가로 줄 배치는 DOM inline 이 아니라 rule 이 갖는다. 높이 · 여백 · 바탕은 Layout · Style 탭에서 준다.
+- Nav 의 기본 Link 는 S2 standalone · quiet · secondary 다 (밑줄 없는 중간 굵기의 무채색 링크). Nav 의 크기는 안의 Link 에 내려간다.
+
+### Fixed
+
+- FileUpload 의 업로드 진행 막대에 S2 가 지운 `variant` 를 넘기지 않는다.
+
 ## [Tabs를 S2 구조·스타일·프로퍼티로 정렬] - 2026-11-14
 
 ### Changed

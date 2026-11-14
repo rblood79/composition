@@ -300,16 +300,22 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
     },
   );
 
-  // Pagination's page buttons (2026-10-30 — 사용자 「pagination 의 button S:7, M:8, L:9, XL:10」):
-  // the Button's own size corner (its template buttons are size S), DOM `data-field-button`.
-  it.each(["S", "M", "L"])(
-    "the Pagination at %s: its buttons are 7 (size S) · data-field-button",
-    async (size) => {
-      const { html, radii } = await open("Pagination", size);
-      expect(radii).toEqual([7, 7, 7, 7, 7]);
-      expect(html.match(/data-field-button="S"/g)).toHaveLength(5);
-      for (const tag of html.match(/<button[^>]*data-field-button[^>]*>/g)!)
-        expect(tag).toMatch(/border-radius:7px/);
+  // Pagination's page buttons (2026-10-30 — 사용자 「pagination 의 button S:7, M:8, L:9, XL:10」). Since
+  // 2026-11-14 they are S2 action controls — quiet ActionButtons around a ToggleButtonGroup of pages — whose
+  // own rule gives that corner at the Pagination's size (it reaches them): no Button, no `data-field-button`.
+  it.each([
+    ["S", 7],
+    ["M", 8],
+    ["L", 9],
+    ["XL", 10],
+  ] as const)(
+    "the Pagination at %s: its page · step buttons are %i",
+    async (size, radius) => {
+      const pages = await open("Pagination", size, "togglebutton");
+      expect(pages.radii).toEqual([radius, radius, radius]);
+      expect(pages.html).not.toMatch(/data-field-button/);
+      const steps = await open("Pagination", size, "actionbutton");
+      expect(steps.radii).toEqual([radius, radius]);
     },
   );
 

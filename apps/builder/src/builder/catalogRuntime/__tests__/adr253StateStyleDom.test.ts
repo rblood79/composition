@@ -135,7 +135,7 @@ describe("ADR-253 G1 — a state value the document wrote reaches the Preview", 
   it("the record carries each state's values: the origin's override, under an instance's own", async () => {
     const { workspace, write, buttons, placedButton } = await open({
       button: { of: BUTTON },
-      toolbar: { of: origin("toolbar") },
+      group: { of: origin("buttongroup") },
       authored: {
         of: BUTTON,
         stateRules: { hover: { backgroundColor: set("#abcdef") } },
@@ -157,10 +157,11 @@ describe("ADR-253 G1 — a state value the document wrote reaches the Preview", 
       });
       // The rest value stays the record's own.
       expect(record.visual.backgroundColor).not.toBe("#123456");
-      // Instances inside another origin (the Toolbar's buttons — its own nodes since 2026-10-14).
+      // Instances inside another origin (the ButtonGroup's buttons — a Toolbar holds ActionButtons since
+      //   2026-11-14).
       const toolbar = records.get(
         [...records.values()].find(
-          (record) => record.sourceId === node("toolbar"),
+          (record) => record.sourceId === node("group"),
         )!.id,
       )!;
       const nested = buttons(records).filter((item) => {

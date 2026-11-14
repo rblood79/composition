@@ -41,7 +41,9 @@ describe("composition 이 상자를 가진 rule 의 variant 칠 트리", () => {
 
   it("대상 rule 이 있다", () => {
     expect(owners.map(([type]) => type)).toEqual(
-      expect.arrayContaining(["CheckboxGroup", "Toolbar", "Pagination"]),
+      // (Pagination left on 2026-11-14 — its composition no longer holds a box of its own; its paint is the
+      //  variant tree, transparent like every action group.)
+      expect.arrayContaining(["CheckboxGroup", "Toolbar"]),
     );
   });
 

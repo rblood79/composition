@@ -96,7 +96,10 @@ export function catalogOwnerDecidedProps(
   };
 
   const groupType = CATALOG_SIZE_CONTEXT_OF[type];
-  const group = groupType ? ancestor(groupType) : undefined;
+  // (An ActionButton in a Toolbar — the same S2 action group context, 2026-11-14.)
+  const group =
+    (groupType ? ancestor(groupType) : undefined) ??
+    (type === "ActionButton" ? ancestor("Toolbar") : undefined);
   if (group)
     add(group, [
       ...(typeof group.props.size === "string" ? ["size"] : []),

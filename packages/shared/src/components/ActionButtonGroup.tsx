@@ -9,6 +9,8 @@ export interface ActionButtonGroupProps extends ToolbarProps {
   isJustified?: boolean;
   staticColor?: StaticColor;
   isDisabled?: boolean;
+  /** The root's class — a catalog Toolbar is this group under its own class (`react-aria-Toolbar`). */
+  rootClassName?: string;
 }
 
 export const ActionButtonGroupContext =
@@ -27,6 +29,7 @@ export const ActionButtonGroup = forwardRef<
     staticColor,
     isDisabled,
     orientation = "horizontal",
+    rootClassName = "react-aria-ActionButtonGroup",
     className,
     children,
     ...props
@@ -55,7 +58,7 @@ export const ActionButtonGroup = forwardRef<
         data-quiet={isQuiet || undefined}
         data-justified={isJustified || undefined}
         data-static-color={staticColor ?? "auto"}
-        className={`react-aria-ActionButtonGroup${className ? ` ${className}` : ""}`}
+        className={`${rootClassName}${className ? ` ${className}` : ""}`}
       >
         {children}
       </Toolbar>

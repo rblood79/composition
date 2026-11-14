@@ -130,7 +130,7 @@ describe("ADR-303 — 재분류 자리 · DOM 변수", () => {
         "DropZone",
         "ListBox",
         "Menu",
-        "Nav",
+        // (Nav: no fill since 2026-11-14 — S2 has no painted navigation bar; an unpainted container.)
       ].sort(),
     );
     // (칠하지 않는 base 자리는 남긴다 — Link 배경 none · Separator 는 선 색 · Group 투명, 실측)

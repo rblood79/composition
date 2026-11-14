@@ -40,6 +40,13 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
 > = {
   ToggleButtonGroup: ["ToggleButton"],
   ActionButtonGroup: ["ActionButton"],
+  // 2026-11-14 (사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」): a Toolbar · Pagination is S2's action group
+  //   (`ActionButtonGroup.tsx:117-120` — its context sizes the buttons inside).
+  Toolbar: ["ActionButton"],
+  // (A Nav's size is its Links' — the row has no box of its own, 2026-11-14.)
+  Nav: ["Link"],
+  // (A Pagination's page numbers are a ToggleButtonGroup — the size goes on to its ToggleButtons.)
+  Pagination: ["ActionButton", "ToggleButtonGroup", "ToggleButton"],
   // ADR-251: group → items wrapper (internal `size`, never edited) → item.
   RadioGroup: ["RadioItems", ...FIELD_PARTS],
   RadioItems: ["Radio"],

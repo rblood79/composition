@@ -229,6 +229,14 @@ export function catalogRulePaint(
     rule,
     node.props,
   );
+  // (2026-11-14) A Nav's current Link (`navRoute.ts` — the Link rule's `isCurrent` weight) over the rule's
+  //   variant weight (standalone 500), as the sheet's `[data-current]` beats `[data-standalone]`; an authored
+  //   weight still wins (the layers below).
+  if (
+    node.derivedProps?._navCurrent === true &&
+    typeof node.derivedProps.fontWeight === "number"
+  )
+    style.fontWeight = node.derivedProps.fontWeight;
   // Popover 항목 모서리도 CSS와 같은 size 상태 트리에서 읽는다.
   if (
     node.derivedProps?._inPopover === true ||

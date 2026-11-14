@@ -158,9 +158,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 64 — ADR-308: 선택 · 펼침은 그룹이 저장한다 (그룹 `selectedKey(s)` · `value` · `expandedKeys`,
  *      항목 `id`) — 컬렉션 · 그룹 항목의 `isSelected` 계약 삭제 (사용자 결정 1).
  * 65 — S2 Tabs: 직접 자식 TabPanel, TabPanels 래퍼 제거, items 기반 본문 Text 템플릿.
+ * 66 — S2 대응 없는 컴포넌트를 가까운 S2 패턴으로: Toolbar 원본의 자식 = ActionButton (Button 아님) ·
+ *      Separator 의 작성 크기 삭제, Pagination = ActionButton + ToggleButtonGroup, Nav 의 Link = standalone,
+ *      PreviewTrigger 본체 폭 삭제.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 65 as const;
+export const LIBRARY_CONTRACT_VERSION = 66 as const;
 
 export type EntryKind =
   | "project"

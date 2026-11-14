@@ -12,66 +12,52 @@
     box-sizing: border-box;
     font-family: var(--font-sans);
 
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  align-items: center;
+
   /* Default variant */
-  background: var(--container-bg, var(--bg));
+  background: transparent;
   color: var(--fg);
   border: none;
 
   /* Default size */
-  height: 56px;
-  padding: 12px 16px;
+  height: auto;
+  padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
-  border-radius: var(--catalog-token-radius-md);
+  border-radius: var(--catalog-token-radius-none);
   gap: 12px;
 }
 
 .react-aria-Nav:where([data-variant="default"]) {
-  background: var(--container-bg, var(--bg));
+  background: transparent;
   color: var(--fg);
 }
 
-.react-aria-Nav:where([data-variant="default"][data-hovered]) {
-  background: var(--container-bg, var(--bg));
-}
-
-.react-aria-Nav:where([data-variant="default"][data-pressed]) {
-  background: var(--container-bg, var(--bg));
-}
-
 .react-aria-Nav[data-size="S"] {
-  height: 48px;
-  padding: 8px 12px;
+  height: auto;
+  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
-  border-radius: var(--catalog-token-radius-md);
+  border-radius: var(--catalog-token-radius-none);
   gap: 8px;
 }
 
 .react-aria-Nav[data-size="M"] {
-  height: 56px;
-  padding: 12px 16px;
+  height: auto;
+  padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
-  border-radius: var(--catalog-token-radius-md);
+  border-radius: var(--catalog-token-radius-none);
   gap: 12px;
 }
 
 .react-aria-Nav[data-size="L"] {
-  height: 64px;
-  padding: 16px 20px;
+  height: auto;
+  padding: 0px 0px;
   font-size: var(--catalog-token-text-lg);
-  border-radius: var(--catalog-token-radius-lg);
+  border-radius: var(--catalog-token-radius-none);
   gap: 16px;
 }
 
-.react-aria-Nav.react-aria-Nav:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Nav.react-aria-Nav:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
 
 @media (forced-colors: active) {
   .react-aria-Nav {

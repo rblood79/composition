@@ -101,7 +101,6 @@ export function FileUploadActive({
               valueLabel={`${formatFileSize(item.size)} · ${pct}%`}
               showValueLabel
               isIndeterminate={item.status === "creating"}
-              variant="default"
               size="M"
               style={{ width: "100%" }}
             />

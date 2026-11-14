@@ -218,7 +218,7 @@ function documentFor(fixture: Fixture, rich: boolean): CatalogDocument {
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 65,
+    libraryContractVersion: 66,
     revision: 0,
     projectId,
     rootId: projectId,

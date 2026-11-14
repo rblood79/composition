@@ -5,19 +5,19 @@
  * buildCatalogShapes 의 `_hasChildren` 분기로 shell 만 그리고 자식은 canonical children 트리.
  *
  * D1: RAC `Toolbar` 가 `<div role="toolbar" aria-orientation>`. orientation RAC props.
- * D2: size/orientation 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12)).
- * D3: 시각(container 배경)은 theme/tokens data-* rules.
+ * D2 (2026-11-14, 사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」 · 「Toolbar 묶음 prop 5개」): S2 `Toolbar.tsx` 는
+ *   스타일 없는 RAC 래퍼이고 스타일 · context 를 얹은 것이 `ActionButtonGroup.tsx` 다 — Toolbar 는 그 표면
+ *   (size · orientation · density · isQuiet · isJustified · staticColor · isDisabled) 을 그대로 받는다
+ *   (RAC Toolbar 에 없는 5 축은 `d2Provenance.ts` 의 composition 확장). variant 없음.
+ * D3: 묶음 값은 rule (`ACTION_GROUP_SIZES`), 버튼 모양은 ActionButton rule.
  */
 
 import type { PrimitiveBinding } from "../types";
+import { actionButtonBinding } from "./ActionButton.binding";
 
 export const toolbarBinding: PrimitiveBinding = {
-  source: {
-    kind: "rac",
-    package: "react-aria-components",
-    importPath: "react-aria-components",
-    component: "Toolbar",
-  },
+  // (The DOM is the shared action group — RAC `Toolbar` + the group context its ActionButtons read.)
+  source: { kind: "internal", renderer: "toolbar" },
   rac: {
     primitive: "Toolbar",
     parts: ["toolbar"],
@@ -43,6 +43,24 @@ export const toolbarBinding: PrimitiveBinding = {
           { value: "horizontal", label: "Horizontal" },
           { value: "vertical", label: "Vertical" },
         ],
+      },
+      isQuiet: actionButtonBinding.props.accepts.isQuiet,
+      staticColor: actionButtonBinding.props.accepts.staticColor,
+      isDisabled: actionButtonBinding.props.accepts.isDisabled,
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        default: "regular",
+        options: [
+          { value: "regular", label: "Regular" },
+          { value: "compact", label: "Compact" },
+        ],
+      },
+      isJustified: {
+        kind: "boolean",
+        label: "Justified",
+        section: "appearance",
       },
     },
     toRacProps: "default",

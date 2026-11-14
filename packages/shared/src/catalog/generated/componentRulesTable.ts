@@ -8049,6 +8049,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           isQuiet: { default: "none", isHovered: "underline" },
         },
         textDecorationThickness: { isHovered: "1.5px" },
+        // (2026-11-14) A Nav's current Link (RAC `data-current` — its `aria-current`): bold, S2 SideNav's
+        //   current row weight. The Canvas reads the same value (`navRoute.ts` `catalogNavCurrentWeight`).
+        fontWeight: { isCurrent: "700" },
       },
     },
   },
@@ -9806,10 +9809,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {
       default: {
         paint: {
+          // 2026-11-14 (사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」): S2 에 칠하는 탐색 막대가 없다 — 묶음
+          //   컨테이너는 상자를 칠하지 않는다 (Toolbar · Pagination 과 같다). 바탕 · 높이 · 여백은 작성 값.
           backgroundColor: {
-            default: "{color.container}",
-            isHovered: "{color.container}",
-            isPressed: "{color.container}",
+            default: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
@@ -9819,37 +9822,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       S: {
-        paddingX: 12,
-        paddingY: 8,
         gap: 8,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 48,
+        borderRadius: "{radius.none}",
+        height: 0,
       },
       M: {
-        paddingX: 16,
-        paddingY: 12,
         gap: 12,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 56,
+        borderRadius: "{radius.none}",
+        height: 0,
       },
       L: {
-        paddingX: 20,
-        paddingY: 16,
         gap: 16,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.lg}",
-        height: 64,
+        borderRadius: "{radius.none}",
+        height: 0,
       },
     },
     structure: {
       archetype: "container",
       element: "nav",
-      containerStyles: undefined,
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+      // (The row layout is the rule's — both consumers read it; the DOM renderer no longer sets it inline.)
+      containerStyles: {
+        display: "flex",
+        alignItems: "center",
       },
     },
   },
@@ -10052,23 +10049,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    sizes: {
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.sm}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.md}",
-        height: 0,
-      },
-    },
+    // 2026-11-14 (사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」): S2 · RAC 에 Pagination 이 없다 — 가장 가까운
+    //   조립은 버튼 묶음 `ActionButtonGroup.tsx:64-89` (간격 XS · S 4, M ~ XL 8, 상자 칠 · 상태 칠 없음).
+    //   묶음의 size 는 안의 버튼 것 (`CATALOG_SIZE_PROPAGATION.Pagination`).
+    sizes: ACTION_GROUP_SIZES,
     structure: {
       archetype: "default",
       element: "nav",
@@ -10076,41 +10060,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   archetype "default" base 가 emit 하던 inline-flex / center 는 실효가 아니었다 (값 불변).
       containerStyles: {
         display: "flex",
-        justifyContent: "space-between",
-        gap: "var(--spacing-sm)",
         // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 align-items:center 를 geometry
         //   채널로 이관 — row 의도와 일치하고 Skia 도 같은 값을 읽는다.
         alignItems: "center",
       },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
-      },
       composition: {
-        containerStyles: {
-          "--btn-radius": "var(--radius-md)",
-          "--btn-font-size": "var(--text-base)",
-          "--btn-transition": "background-color 200ms, opacity 200ms",
-        },
-        staticSelectors: {
-          ".pagination-controls": {
-            display: "flex",
-            "align-items": "center",
-            gap: "6px",
-          },
-          ".pagination-info": {
-            "font-size": "var(--text-base)",
-            color: "var(--fg-muted)",
-            "text-align": "center",
-          },
-          ".pagination-ellipsis": {
-            color: "var(--fg-muted)",
-          },
-          // (ADR-297 후속 ④: the page buttons are Button instances — their paint is the Button rule's tree per
-          //  instance variant (the current page `accent`, the rest `secondary` outline — the template), on both
-          //  consumers. The `[data-current]` blocks of the pre-node-tree renderer painted every button
-          //  `--bg-overlay` in the DOM only — no node carries `data-current`.)
-        },
+        // (ADR-297 후속 ④: the page buttons are Button instances — their paint is the Button rule's tree per
+        //  instance variant, on both consumers. The pre-node-tree renderer's `.pagination-*` blocks and the
+        //  `--btn-*` variables the manual Button sheet read are gone — 2026-11-14: no node carries those
+        //  classes, and the variables overrode the buttons' own size font in the DOM only.)
         delegation: [],
       },
     },
@@ -15441,32 +15399,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    sizes: {
-      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS [data-size]
-      //   `gap: Npx` 재생성용 (Toolbar.spec.sizes 미러). base gap:8px 는 composition.containerStyles
-      //   별도 경로. padding 미emit(ownsContainerBox).
-      S: {
-        paddingX: 8,
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 0,
-        gap: 4,
-      },
-      M: {
-        paddingX: 12,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 0,
-        gap: 8,
-      },
-      L: {
-        paddingX: 16,
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.lg}",
-        height: 0,
-        gap: 10,
-      },
-    },
+    // 2026-11-14 (사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」): S2 `Toolbar.tsx` 는 스타일 없는 RAC 래퍼이고
+    //   스타일을 얹은 것이 `ActionButtonGroup.tsx:64-89` 다 — 간격만 (XS · S 4, M ~ XL 8), 상자 padding ·
+    //   모서리 · 상태 칠 없음. 묶음의 size 는 안의 버튼 것 (`CATALOG_SIZE_PROPAGATION.Toolbar`).
+    sizes: ACTION_GROUP_SIZES,
     structure: {
       archetype: "default",
       element: "div",
@@ -15475,10 +15411,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
         width: "fit-content",
         height: "fit-content",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
       },
       composition: {
         containerStyles: {
@@ -15501,13 +15433,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
+          // S2 `ActionButtonGroup.tsx:73-86` — compact: gap 2 (the buttons' joined corners are the
+          //   ActionButton rule's `[data-density="compact"]` selectors).
+          density: { compact: { styles: { gap: "2px" } } },
         },
         staticSelectors: {
           ".react-aria-Group": {
             display: "contents",
-          },
-          ".react-aria-ToggleButton": {
-            width: "32px",
           },
         },
         delegation: [],

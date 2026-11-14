@@ -105,7 +105,8 @@ describe("ADR-223 archetype 미지정 base = 중립 상자", () => {
   it("Pagination root 는 align-items:center 를 geometry containerStyles 로 유지한다", () => {
     const root = rootBlock(cssFor("Pagination"), "Pagination");
     expect(root).toMatch(/align-items:\s*center/);
-    expect(root).toMatch(/justify-content:\s*space-between/);
+    // (2026-11-14: no `justify-content: space-between` — the box hugs its buttons, the gap is the size block's.)
+    expect(root).not.toMatch(/justify-content/);
     for (const re of BUTTON_VOCABULARY) expect(root).not.toMatch(re);
   });
 

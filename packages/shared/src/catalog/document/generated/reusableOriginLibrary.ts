@@ -2658,21 +2658,19 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-toolbar__button-1",
-    "definitionId": "lib:definition:origin-component-button",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
-      "label": "Action 1",
-      "size": "S"
+      "label": "Action 1"
     },
     "visual": {}
   },
   {
     "id": "lib:template:component-toolbar__button-2",
-    "definitionId": "lib:definition:origin-component-button",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
-      "label": "Action 2",
-      "size": "S"
+      "label": "Action 2"
     },
     "visual": {}
   },
@@ -2683,18 +2681,14 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "orientation": "vertical"
     },
-    "visual": {
-      "width": "1px",
-      "height": "20px"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-toolbar__button-3",
-    "definitionId": "lib:definition:origin-component-button",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
-      "label": "Action 3",
-      "size": "S"
+      "label": "Action 3"
     },
     "visual": {}
   },
@@ -3376,7 +3370,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Home",
-      "href": "/"
+      "href": "/",
+      "variant": "secondary",
+      "isStandalone": true,
+      "isQuiet": true
     },
     "visual": {}
   },
@@ -3386,7 +3383,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "About",
-      "href": "/about"
+      "href": "/about",
+      "variant": "secondary",
+      "isStandalone": true,
+      "isQuiet": true
     },
     "visual": {}
   },
@@ -3396,7 +3396,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Contact",
-      "href": "/contact"
+      "href": "/contact",
+      "variant": "secondary",
+      "isStandalone": true,
+      "isQuiet": true
     },
     "visual": {}
   },
@@ -3405,11 +3408,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Pagination",
     "slot": { "name": "Buttons", "required": false },
     "children": [
-      "lib:template:component-pagination__1",
-      "lib:template:component-pagination__2",
-      "lib:template:component-pagination__3",
-      "lib:template:component-pagination__4",
-      "lib:template:component-pagination__5"
+      "lib:template:component-pagination__previous",
+      "lib:template:component-pagination__pages",
+      "lib:template:component-pagination__next"
     ],
     "props": {},
     "visual": {},
@@ -3419,61 +3420,75 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     }
   },
   {
-    "id": "lib:template:component-pagination__1",
-    "definitionId": "lib:definition:origin-component-button",
+    "id": "lib:template:component-pagination__previous",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
       "label": "←",
-      "variant": "secondary",
-      "fillStyle": "outline",
-      "size": "S"
+      "isQuiet": true
     },
     "visual": {}
   },
   {
-    "id": "lib:template:component-pagination__2",
-    "definitionId": "lib:definition:origin-component-button",
+    "id": "lib:template:component-pagination__pages",
+    "definitionId": "lib:definition:type-ToggleButtonGroup",
+    "slot": {
+      "name": "Pages",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-pagination__page-1",
+      "lib:template:component-pagination__page-2",
+      "lib:template:component-pagination__page-3"
+    ],
+    "props": {
+      "orientation": "horizontal",
+      "selectionMode": "single",
+      "disallowEmptySelection": true,
+      "isQuiet": true,
+      "defaultSelectedKeys": [
+        "1"
+      ]
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-pagination__page-1",
+    "definitionId": "lib:definition:origin-component-togglebutton",
     "children": [],
     "props": {
-      "label": "1",
-      "variant": "accent",
-      "size": "S"
+      "id": "1",
+      "label": "1"
     },
     "visual": {}
   },
   {
-    "id": "lib:template:component-pagination__3",
-    "definitionId": "lib:definition:origin-component-button",
+    "id": "lib:template:component-pagination__page-2",
+    "definitionId": "lib:definition:origin-component-togglebutton",
     "children": [],
     "props": {
-      "label": "2",
-      "variant": "secondary",
-      "fillStyle": "outline",
-      "size": "S"
+      "id": "2",
+      "label": "2"
     },
     "visual": {}
   },
   {
-    "id": "lib:template:component-pagination__4",
-    "definitionId": "lib:definition:origin-component-button",
+    "id": "lib:template:component-pagination__page-3",
+    "definitionId": "lib:definition:origin-component-togglebutton",
     "children": [],
     "props": {
-      "label": "3",
-      "variant": "secondary",
-      "fillStyle": "outline",
-      "size": "S"
+      "id": "3",
+      "label": "3"
     },
     "visual": {}
   },
   {
-    "id": "lib:template:component-pagination__5",
-    "definitionId": "lib:definition:origin-component-button",
+    "id": "lib:template:component-pagination__next",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
       "label": "→",
-      "variant": "secondary",
-      "fillStyle": "outline",
-      "size": "S"
+      "isQuiet": true
     },
     "visual": {}
   },
@@ -9192,9 +9207,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "shouldFlip": "{shouldFlip}",
       "containerPadding": "{containerPadding}"
     },
-    "visual": {
-      "width": "240px"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-previewtrigger__content-region",

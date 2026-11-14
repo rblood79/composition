@@ -1729,6 +1729,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   IllustratedMessage: { orientation: "orientation" },
   SearchField: { empty: "isEmpty", readonly: "isReadOnly" },
   ActionButtonGroup: { orientation: "orientation", density: "density" },
+  // (A Toolbar is the same S2 action group — 2026-11-14.)
+  Toolbar: { orientation: "orientation", density: "density" },
   ToggleButtonGroup: { orientation: "orientation", density: "density" },
   SegmentedControl: { orientation: "orientation" },
   // (S2 SelectBoxGroup: its grid columns per orientation — RAC ListBox's `data-orientation`.)

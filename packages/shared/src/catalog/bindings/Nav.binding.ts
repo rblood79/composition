@@ -31,6 +31,13 @@ export const navBinding: PrimitiveBinding = {
         section: "content",
         editorHidden: true,
       },
+      // (2026-11-14, 사용자 「Nav 현재 경로 표시」) S2 SideNav 의 `selectedRoute` — 그 경로를 `href` 로 가진 Link 가
+      //   현재 항목 (RAC `aria-current="page"`). 비우면 지금 보이는 페이지의 경로 (SideNav 와 같다).
+      selectedRoute: {
+        kind: "string",
+        label: "Selected route",
+        section: "value",
+      },
       // kind:"size" 는 options 미보유(types.ts:139-142) — theme rule 동적 제공.
       size: {
         kind: "size",

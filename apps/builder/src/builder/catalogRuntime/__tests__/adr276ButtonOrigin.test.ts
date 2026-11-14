@@ -125,14 +125,10 @@ describe("ADR-276 Button origin template", () => {
     // The value each position showed before ADR-276 (its own `children` then) — the oracle is
     // the library before the change, copied here (breakdown §2b).
     const expected: Record<string, string> = {
-      "lib:template:component-toolbar__button-1": "Action 1",
-      "lib:template:component-toolbar__button-2": "Action 2",
-      "lib:template:component-toolbar__button-3": "Action 3",
-      "lib:template:component-pagination__1": "←",
-      "lib:template:component-pagination__2": "1",
-      "lib:template:component-pagination__3": "2",
-      "lib:template:component-pagination__4": "3",
-      "lib:template:component-pagination__5": "→",
+      // (2026-11-14: a Pagination's pages are ToggleButtons; its step buttons are ActionButtons.)
+      "lib:template:component-pagination__page-1": "1",
+      "lib:template:component-pagination__page-2": "2",
+      "lib:template:component-pagination__page-3": "3",
       "lib:template:component-buttongroup__1": "Cancel",
       "lib:template:component-buttongroup__2": "Save",
       // (A Card's Footer Button — user 2026-10-25 「card(origin) - footer - slot 에 button 추가」.)
@@ -163,8 +159,10 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 31 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
-    expect(nested).toHaveLength(38);
+    // 23 Button + 10 ToggleButton positions; the 9 state variants carry no text of their own.
+    // (2026-11-14: the Toolbar's three and a Pagination's step buttons are ActionButtons — S2's action
+    //  group; a Pagination's three pages are ToggleButtons.)
+    expect(nested).toHaveLength(33);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)
@@ -235,10 +233,11 @@ describe("ADR-276 Button origin template", () => {
     const select = add("Select");
     for (const record of parts(select, LABEL))
       expect(catalogAbsentByValue(record)).toBe(true);
-    const pagination = add("Pagination");
-    expect(
-      parts(pagination, LABEL).map((record) => record.props.children),
-    ).toEqual(["←", "1", "2", "3", "→"]);
+    // (A worded host of Buttons — a Pagination holds ActionButtons · ToggleButtons since 2026-11-14.)
+    const group = add("ButtonGroup");
+    expect(parts(group, LABEL).map((record) => record.props.children)).toEqual(
+      ["Cancel", "Save"],
+    );
     const tooltip = add("Tooltip");
     expect(parts(tooltip, LABEL).map((r) => r.props.children)).toEqual([
       "Hover me",

@@ -69,6 +69,7 @@ import {
   catalogAncestorInherited,
   catalogInheritedFlag,
 } from "./inheritedProps";
+import { catalogNavLinkDerived, catalogNavLinks } from "./navRoute";
 import {
   catalogSideNavDependents,
   catalogSideNavDerived,
@@ -2306,7 +2307,10 @@ export function catalogDerivedProps(
   };
   // (ADR-300: a SideNav part's collapse · current · level — `catalogSideNavDerived`.)
   const sideNav = catalogSideNavDerived(node, get, typeOf, shownRoute);
-  const withSideNav = sideNav ? { ...buttoned, ...sideNav } : buttoned;
+  // (2026-11-14: a Nav's current Link — `catalogNavLinkDerived`.)
+  const navLink = catalogNavLinkDerived(node, get, typeOf, shownRoute);
+  const withSideNav =
+    sideNav || navLink ? { ...buttoned, ...sideNav, ...navLink } : buttoned;
   // (ADR-303: a rule that reads `{color.container}` paints its nearest container's layer — the DOM's
   //  inherited `--container-bg`, `containerLayer.ts`.)
   const withContainer = catalogDerivesContainerLayer(node)
@@ -2491,6 +2495,12 @@ function catalogListItemEdges(
   };
 }
 
+/** S2 action group types — an ActionButtonGroup, and a Toolbar (the same group context, 2026-11-14). */
+const ACTION_GROUP_TYPES: ReadonlySet<string> = new Set([
+  "ActionButtonGroup",
+  "Toolbar",
+]);
+
 /** ActionButton의 가장 가까운 그룹. 중간 Frame을 지나도 context는 유지된다. */
 export function catalogActionButtonGroupOf(
   node: CatalogConsumerNode,
@@ -2498,7 +2508,7 @@ export function catalogActionButtonGroupOf(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId))
-    if (typeOf(parent) === "ActionButtonGroup") return parent;
+    if (ACTION_GROUP_TYPES.has(typeOf(parent))) return parent;
   return undefined;
 }
 
@@ -2508,7 +2518,7 @@ function actionGroupButtons(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   return childrenOf(group, get).flatMap((child) =>
-    typeOf(child) === "ActionButtonGroup"
+    ACTION_GROUP_TYPES.has(typeOf(child))
       ? []
       : [
           ...(typeOf(child) === "ActionButton" ? [child] : []),
@@ -3365,8 +3375,10 @@ function derivedDependents(
       ).values(),
     ];
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
+  // (A Nav's `selectedRoute` moves the current mark among its Links.)
+  if (type === "Nav") return catalogNavLinks(owner, get, typeOf);
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
-  if (type === "ActionButtonGroup")
+  if (ACTION_GROUP_TYPES.has(type))
     return actionGroupButtons(owner, get, typeOf).flatMap((button) => [
       button,
       ...childrenOf(button, get),

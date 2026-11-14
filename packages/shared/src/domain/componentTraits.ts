@@ -171,7 +171,8 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
   ActionBar: ["ActionButton"],
   Accordion: ["Disclosure"],
   ButtonGroup: ["Button"],
-  Pagination: ["Button"],
+  // (2026-11-14: S2 action group — its step buttons are ActionButtons; the pages are its ToggleButtonGroup's.)
+  Pagination: ["ActionButton"],
   AvatarGroup: ["Avatar"],
   Nav: ["Link"],
   // ADR-256 Phase 5b: the reference's items (each holds its ColorSwatch).

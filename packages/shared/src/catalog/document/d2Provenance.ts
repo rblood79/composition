@@ -127,6 +127,15 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     placeholder: "composition",
   },
   TokenInput: { placeholder: "composition" },
+  // (2026-11-14, 사용자 「Toolbar 묶음 prop 5개」: S2 `Toolbar.tsx` is an unstyled RAC wrapper — the styled
+  // toolbar is S2 ActionButtonGroup, whose group axes the catalog Toolbar takes as its extension.)
+  Toolbar: {
+    density: "composition",
+    isQuiet: "composition",
+    isJustified: "composition",
+    staticColor: "composition",
+    isDisabled: "composition",
+  },
   Tooltip: { variant: "v3", isOpen: "rac", defaultOpen: "rac" },
   // (S2 fixes a tooltip's offset at arrow + 4 — composition keeps RAC's prop on the trigger.)
   TooltipTrigger: { offset: "rac" },

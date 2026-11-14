@@ -27,7 +27,8 @@ export function catalogPaintConditions(
     //   record's `isDisabled` (own · inherited — `presence.ts`) is the DOM's `data-disabled`.
     isDisabled: props.isDisabled === true,
     // ADR-300: an S2 SideNav row's current mark · its panel's collapse (`catalogSideNavDerived`).
-    isCurrent: props._sideNavCurrent === true,
+    // (2026-11-14: and a Nav's current Link — `navRoute.ts`.)
+    isCurrent: props._sideNavCurrent === true || props._navCurrent === true,
     isCollapsed: props._sideNavCollapsed === true,
     ...(typeof props.size === "string" ? { size: props.size } : {}),
     ...(typeof props.fillStyle === "string"

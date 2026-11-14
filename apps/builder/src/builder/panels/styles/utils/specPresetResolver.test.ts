@@ -315,7 +315,8 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       //   다른 layout 키 공급 spec 이 생기면 E2E 으로 재검증(line 250-252 동일 철학).
       const preset = resolveLayoutSpecPreset("Pagination", undefined);
       expect(preset.display).toBe("flex");
-      expect(preset.justifyContent).toBe("space-between");
+      // (2026-11-14: S2 action group 값 — 상자가 버튼 줄만큼이라 space-between 이 없다.)
+      expect(preset.justifyContent).toBeUndefined();
       // flexDirection 은 catalog 에 없다 — 실효 DOM 도 row(초기값)라 선언이 불필요하다.
       expect(preset.flexDirection).toBeUndefined();
     });
