@@ -21,3 +21,14 @@ export const LOADING_STATE_PROP: PropContract = {
     { value: "error", label: "Error" },
   ],
 };
+
+/**
+ * ADR-310 Phase 5 ① — an item's or section's own data (`<Collection items={other}>`): binding it
+ * repeats the item over those rows beside the list's static items and other runs (the item is
+ * marked `repeat` — `catalogBindingCommand`). A section's rows' child rows fill its items (②).
+ */
+export const ITEM_DATA_BINDING_PROP: PropContract = {
+  kind: "binding",
+  label: "Data source",
+  section: "collection",
+};

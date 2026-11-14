@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-310 Phase 5 — 한 목록에 데이터 둘 · 묶음 section · Radio 등 그룹 연결] - 2026-11-15
+
+### Added
+
+- **항목에 데이터를 직접 연결**: ListBox · GridList · TagGroup · Breadcrumbs · CardView · SelectBoxGroup 의 항목과 ListBoxSection · GridListSection · MenuSection 의 Design 패널에 데이터 소스 칸이 생겼다. 항목을 연결하면 그 항목이 그 데이터의 행마다 반복된다 — 목록 자체는 연결하지 않아도 되고, 한 목록에 고정 항목과 서로 다른 데이터의 구간 둘 이상을 문서 순서대로 둘 수 있다 (`[Inbox, People 의 행들, Teams 의 행들]`). Layers 의 각 템플릿 행에 그 구간의 「× 행 수」, 두 구간의 key 가 겹치면 경고가 붙는다.
+- **묶음 section**: section 을 하위 행이 있는 데이터에 연결하고 「하위 항목 필드」 를 고르면 section 이 묶음마다 반복되고 안의 항목이 그 묶음의 하위 행마다 반복된다.
+- **그룹 연결**: RadioGroup · CheckboxGroup · ToggleButtonGroup · SegmentedControl 도 데이터에 연결하면 항목 하나가 행마다 반복된다 (Radio · Checkbox 의 값 = 행 key, 글자 = 행 label).
+
+### Changed
+
+- **구간마다 더 불러오기**: 원격 데이터 구간은 각자 끝에 더 불러오기 표시를 두고 자기 데이터의 다음 쪽을 부른다 (전에는 목록 끝 하나가 목록에 연결된 데이터만 불렀다). 로딩 표시 · 불러온 선택도 구간의 데이터를 따른다.
+- 데이터 연결 배지는 구간마다 한 번 (첫 행) 붙는다.
+
 ## [ADR-310 Phase 4 — 데이터를 연결한 Table 의 행 템플릿] - 2026-11-15
 
 ### Changed

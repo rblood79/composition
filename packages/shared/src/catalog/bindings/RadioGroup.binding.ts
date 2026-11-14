@@ -9,6 +9,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
 
 export const radioGroupBinding: PrimitiveBinding = {
   source: {
@@ -27,6 +28,9 @@ export const radioGroupBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-310 Phase 5: the group's options from data — its item marked `repeat` per row (S2
+      //   `items`-less groups: the Code view writes `rows.map(item => <Radio …>)`).
+      dataBinding: ITEM_DATA_BINDING_PROP,
       // ADR-308 Phase 1: the uncontrolled twin of `value` (S2 · RAC) — accepted; the panel offers it in Phase 2.
       defaultValue: {
         editorHidden: true,

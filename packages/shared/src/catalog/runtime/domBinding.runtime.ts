@@ -344,6 +344,8 @@ export interface CatalogDomRuntime {
   showMore?(collectionId: string, ownerId: string, moreLoaded: boolean): void;
   /** ADR-310 「더 보기」 — loaded rows past the list's display window (`CatalogPreviewSession.moreLoaded`). */
   moreLoaded?(collectionId: string, ownerId: string): boolean;
+  /** ADR-310 Decision 11 — a collection's load (a run's own load-more spinner). */
+  loadingOf?(collectionId: string): string | undefined;
   /** Whether a collection pages (its endpoint gives a cursor) — only those end in a load-more item. */
   pages?(collectionId: string): boolean;
   /**
@@ -4077,6 +4079,8 @@ export function renderNode(
                 context.runtime!.pages?.(collectionId) ?? false,
               moreLoaded: (collectionId: string, ownerId: string) =>
                 context.runtime!.moreLoaded?.(collectionId, ownerId) ?? false,
+              loadingOf: (collectionId: string) =>
+                context.runtime!.loadingOf?.(collectionId),
             }
           : {}),
         ...(context.runtime?.serverFilterOf && context.runtime.setFilterText

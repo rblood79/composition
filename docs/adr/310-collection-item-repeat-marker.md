@@ -14,6 +14,8 @@ Accepted — 2026-11-15 (사용자 `/execute-adr 310` + 설계 리뷰 닫힘 —
 
 > **Phase 4 닫힘 (2026-11-15)**: G4 — 연결한 Table 은 TableBody 의 Row 하나가 템플릿 (`repeat`) 이고 열마다 Cell 이 `{열 key}` 를 읽는다 · 합성 행 (`projectTableRows`) 삭제 · 저장 노드 수가 0 · 100 · 1,000 행에서 같음 · 템플릿 Cell 의 Badge 가 모든 행에 · 열 추가는 템플릿 Cell 에 그 열 key · 고정 Row (합계 행) 허용 (`TABLE_ROWS_FROM_DATA` 삭제) · 정렬 · 높이 자르기는 반복 앞. live 에서 찾은 열 key ↔ 라벨 결합 수리 (연결이 Column key 를 고정). DOM 수리 2 (반복 행의 저작 id · Row id 변경 remount). contract 67 그대로. 원복 RED 11. 성능 — 직전 커밋 대조 (jsdom 교대 3 쌍 · ratchet 12 seed) 차이 없음. 번들 누적 Builder +2,220 · Preview +0 B. live — 새 프로젝트에서 패널 연결 → Layers `Row × 3` → Badge · 고정 Total · 열 추가 → 라벨 편집 → Publish DOM 행 5 · 4 → 해제 → 새로고침 (Chrome MCP, 콘솔 오류 0).
 
+> **Phase 5 닫힘 (2026-11-15)**: G5 — 반복 항목 · section 의 행을 ① 자기 binding → ② 바깥 행의 하위 행 → ③ owner 의 행 순으로 읽는 함수 하나 (Decision 2) · 항목 · section · 그룹 4 종에 연결 칸 · 한 목록에 고정 항목과 서로 다른 데이터의 구간 둘 (Canvas · DOM · Layers 같은 순서, key 한 번씩, 구간 사이 key 겹침은 경고) · section 둘이 서로 다른 데이터 · 원격 source 둘 (각 2 쪽) 을 한 목록에 두면 구간마다 sentinel 이 자기 source 를 부르고 두 마지막 행이 DOM 에 (Decision 11) · 묶음 section (하위 행 필드 — R8 에 따라 ADR-284 묶기 결과는 범위 밖) · RadioGroup 등 그룹 연결이 Canvas = Preview. 미룬 것: section 안 구간 sentinel 위치 · 서버 검색 글자 구간별 · 끌기 type (Phase 6) · MenuItem 등 ① 연결 칸. 원복 RED 9 · 회귀 새 실패 0 · ratchet 새 초과 0 · 번들 누적 Builder +3,399 · Preview +0 B. live — 새 프로젝트에서 항목 둘을 People · Teams 에 각각 연결 → Canvas · Layers (× 3 · × 2) · Publish option 6 · RadioGroup 을 Teams 에 → Radio 2 (value t1 · t2) · 해제 · 새로고침 (Chrome MCP, 콘솔 오류 0). 상세: breakdown §11.
+
 Proposed — 2026-11-15
 
 - 사용자 요청: `/create-adr` (2026-11-15, 「권장안으로 /create-adr」).

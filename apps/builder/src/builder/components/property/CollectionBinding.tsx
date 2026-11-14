@@ -45,6 +45,7 @@ import { PropertyFieldset } from "./PropertyFieldset";
 import { PropertyInput } from "./PropertyInput";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import { PanelSelect, PanelSelectItem } from "./PanelSelect";
+import { CATALOG_SECTION_TYPES } from "../../../../../../packages/shared/src/catalog/document/collectionItems";
 
 // ============================================
 // Types
@@ -91,6 +92,8 @@ const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
   "parentId",
   "children",
 ];
+/** ADR-310 ② — a section's binding names its groups' child rows (its items repeat over them). */
+const SECTION_FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "children"];
 /** "자동" 옵션 키 — 선택 시 fieldMap 에서 그 역할을 지운다 (기존 휴리스틱). */
 const FIELD_MAP_AUTO_KEY = "__auto__";
 const FIELD_MAP_ROLE_LABEL: Record<
@@ -222,10 +225,17 @@ export const CollectionBinding = memo(function CollectionBinding({
       ? workspace.root.domInputs.get(elementId)?.ruleId
       : undefined;
   const isTree = ruleId === "Tree";
+  // ADR-310 ②: a section bound to grouped rows fills its items with each group's child rows (the
+  // binding's children field — the same role a Tree names).
+  const isSection = !!ruleId && CATALOG_SECTION_TYPES.has(ruleId);
   // `useListData.getItem(key)` — Form 이 한 항목을 읽어 필드를 채운다. 컬렉션 컴포넌트에 두면 목록이
   // 그 한 항목만 보여 입력을 두지 않는다 (2026-10-24 사용자 「Item key 를 Form 에만」).
   const readsOneItem = ruleId === "Form";
-  const fieldMapRoles = isTree ? TREE_FIELD_MAP_ROLES : FIELD_MAP_ROLES;
+  const fieldMapRoles = isTree
+    ? TREE_FIELD_MAP_ROLES
+    : isSection
+      ? SECTION_FIELD_MAP_ROLES
+      : FIELD_MAP_ROLES;
   const [rowTemplateMode, setRowTemplateMode] = useState<"template" | "keep">(
     "template",
   );

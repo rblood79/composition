@@ -1584,6 +1584,16 @@ export class CatalogPreviewSession {
     if (errors.length) console.error("[CatalogPreview] show more:", ...errors);
     this.changed();
   }
+  /**
+   * ADR-310 Decision 11 — a collection's load (`useAsyncList.loadingState`): a run over its data
+   * shows its own load-more spinner while it loads more.
+   */
+  loadingStateOf(collectionId: string): string {
+    return (
+      this.loadingStates.get(collectionId.replace(/^data:collection:/, "")) ??
+      "idle"
+    );
+  }
   /** ADR-310 「더 보기」 — whether a bound list holds loaded rows past its display window. */
   moreLoaded(collectionId: string, ownerId: string): boolean {
     return this.windowsCut.has(displayWindowKey(collectionId, ownerId));

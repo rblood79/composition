@@ -1,4 +1,8 @@
-import { CATALOG_ROW_ITEM_TYPES } from "../document/collectionItems";
+import {
+  CATALOG_REPEAT_TYPES,
+  CATALOG_ROW_ITEM_TYPES,
+  CATALOG_SECTION_TYPES,
+} from "../document/collectionItems";
 import { catalogAvatarCssSize } from "../document/avatarSizeValue";
 import { bindTemplateValue } from "../document/templateBindingValue";
 import { catalogLabeledValueFits } from "../document/labeledValue";
@@ -528,6 +532,29 @@ function rowLabelField(
   return rowLabel;
 }
 /**
+ * ADR-310 Phase 5 — a group's items (Radio · Checkbox · ToggleButton · SegmentedControlItem): the
+ * prop that keys the item in its group (RAC's group `value` for a Radio · Checkbox) and the prop its
+ * text is (`children` · `label` — the row's `label` when the template's own text was sample text).
+ */
+const GROUP_ROW_ITEM: Readonly<Record<string, { key: string; text: string }>> =
+  {
+    Radio: { key: "value", text: "children" },
+    Checkbox: { key: "value", text: "children" },
+    ToggleButton: { key: "id", text: "label" },
+    SegmentedControlItem: { key: "id", text: "label" },
+  };
+/** The row is the item: its key prop takes the row's key (a group item shows the row's label). */
+function keyRowItem(
+  type: string,
+  props: Record<string, unknown>,
+  row: CatalogBoundRow,
+): void {
+  const group = GROUP_ROW_ITEM[type];
+  props[type === "TabPanel" ? "itemId" : (group?.key ?? "id")] = row.key;
+  if (group && props[group.text] === undefined)
+    props[group.text] = String(row.values.label ?? row.key);
+}
+/**
  * A row template item's content defaults (its origin's literal `label` · `description` …) are sample
  * content too: the row's `{label}` binding reads the row, not the origin's "Option" (ADR-310 Phase 1
  * — a bound SelectBoxGroup drew "Option" per row).
@@ -569,9 +596,11 @@ function withRowKey(
   node: ResolvedCatalogNode,
   key: string,
 ): ResolvedCatalogNode {
+  // (A row inside a row — a repeated section's item rows (ADR-310 ②), a bound list inside a data
+  //  row — keeps its own key under the outer one: two section rows' first items stay two records.)
   return {
     ...node,
-    rowKey: key,
+    rowKey: node.rowKey === undefined ? key : `${key}/${node.rowKey}`,
     children: node.children.map((child) => withRowKey(child, key)),
   };
 }
@@ -910,6 +939,61 @@ export function resolveCatalogNode(
     const entry = graph.getEntry(id as NodeId);
     return entry?.kind === "node" && entry.repeat === true;
   };
+  /**
+   * ADR-310 Phase 5 (Decision 2) — the rows a repeated item or section shows, the first that
+   * answers: ① its own binding (`<Collection items={other}>` — a list's second data, sampled on the
+   * Canvas like a bound list's), ② the outer row's child rows (a repeated section's items —
+   * `<Collection items={item.children}>`, the binding's `fieldMap.children`), ③ the owner's rows.
+   * `undefined` = not repeated here (a static item, or rows not loaded — the template shows).
+   */
+  const repeatRows = (
+    id: string,
+    instancePath: readonly (NodeId | TemplateId)[],
+    ownerRows: readonly CatalogBoundRow[] | undefined,
+    outerRow: CatalogBoundRow | undefined,
+  ): readonly CatalogBoundRow[] | undefined => {
+    if (!repeats(id)) return undefined;
+    const entry = graph.getEntry(id as NodeId) as NodeEntry;
+    if (entry.binding && entry.binding.key === undefined) {
+      const own = rows?.(entry.binding, "items", entry.id, instancePath);
+      return own ? sampledRows(own, `${instancePath.join("/")}::${id}`) : own;
+    }
+    return outerRow?.children ?? ownerRows;
+  };
+  /**
+   * ADR-310 Decision 11 — an unbound list's load is its runs' (items repeated over data of their
+   * own, ①): idle when every run is, else the first loading run's state; none without runs.
+   */
+  const runsLoadingState = (
+    node: NodeEntry,
+    instancePath: readonly (NodeId | TemplateId)[],
+  ): CatalogBoundRows["loadingState"] | undefined => {
+    let state: CatalogBoundRows["loadingState"] | undefined;
+    for (const id of [
+      ...node.children,
+      ...node.descendantOverrides.flatMap((override) =>
+        override.kind === "fillSlot" ? override.childIds : [],
+      ),
+    ]) {
+      const entry = graph.getEntry(id);
+      if (
+        entry?.kind !== "node" ||
+        !entry.repeat ||
+        !entry.binding ||
+        entry.binding.key !== undefined
+      )
+        continue;
+      const run = rows?.(entry.binding, "items", entry.id, [
+        ...instancePath,
+        entry.id,
+      ])?.loadingState;
+      if (run && run !== "idle") return run;
+      state ??= run ?? "idle";
+    }
+    return state;
+  };
+  const isSection = (node: NodeEntry): boolean =>
+    CATALOG_SECTION_TYPES.has(ruleDefinitionOf(node.definitionId).name);
   const templateTypeName = (templateId: TemplateId): string => {
     const template = templateId.startsWith("lib:")
       ? library.templates.get(templateId as `lib:template:${string}`)
@@ -1807,6 +1891,10 @@ export function resolveCatalogNode(
     // (a container), a collection repeats it alone. Inside a data row the key may name the row's
     // fields (ADR-284 — `{teamId}`: the Teams row a Users row points at · `{id}`: an Orders count
     // grouped by user, the reverse count); its own item wins over the row it sits in.
+    // (ADR-310 ①: an item repeated over its own binding shows one of those rows — the binding is
+    //  the repetition's, not a list it holds.)
+    const nodeBinding =
+      node.repeat && ownedRowing?.rowStart ? undefined : node.binding;
     const rowKey =
       node.binding?.key !== undefined && ownedRowing?.row
         ? bindRowValue(node.binding.key, ownedRowing.row)
@@ -1873,8 +1961,7 @@ export function resolveCatalogNode(
       // As on a row template position: only content props read the row (ADR-162 allowlist).
       for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
         if (key in props) props[key] = bindRowValue(props[key], ownedRow);
-      if (ownedRowing?.rowStart)
-        props[ownedType === "TabPanel" ? "itemId" : "id"] = ownedRow.key;
+      if (ownedRowing?.rowStart) keyRowItem(ownedType, props, ownedRow);
       const labelField = rowLabelField(ownedRowing?.rowLabel, props, ownedType);
       if (labelField)
         props.children = String(ownedRow.values[labelField] ?? "");
@@ -1883,13 +1970,11 @@ export function resolveCatalogNode(
     }
     // `useAsyncList`'s `loadingState` beside its items (`<TableView loadingState={list.loadingState}>`
     // · `<Skeleton isLoading={list.isLoading}>`): a bound Table · Skeleton reads its collection's load.
-    const loadingType =
-      node.binding && rows
-        ? ruleDefinitionOf(node.definitionId).name
-        : undefined;
+    const loadingType = rows ? ownedType : undefined;
     if (loadingType && LOADING_STATE_TYPES.has(loadingType)) {
-      const state = (keyedRows ?? rows!(node.binding!, "items", node.id))
-        ?.loadingState;
+      const state = nodeBinding
+        ? (keyedRows ?? rows!(nodeBinding, "items", node.id))?.loadingState
+        : runsLoadingState(node, instancePath);
       if (state && loadingType === "Skeleton")
         props.isLoading = state === "loading";
       else if (state) props.loadingState = state;
@@ -1956,12 +2041,12 @@ export function resolveCatalogNode(
       !!definition.templateRootId &&
       templateTypeName(definition.templateRootId) === "Chart";
     const records =
-      node.binding && rows && charted
-        ? rows(node.binding, "records", node.id, instancePath)
+      nodeBinding && rows && charted
+        ? rows(nodeBinding, "records", node.id, instancePath)
         : undefined;
     const rowSet =
-      node.binding && rows && !charted
-        ? (keyedRows ?? rows(node.binding, "items", node.id, instancePath))
+      nodeBinding && rows && !charted
+        ? (keyedRows ?? rows(nodeBinding, "items", node.id, instancePath))
         : undefined;
     if (
       definition.mode === "composite" &&
@@ -1972,58 +2057,58 @@ export function resolveCatalogNode(
       const templateRootId = definition.templateRootId;
       const project = (shownRows: readonly CatalogBoundRow[] | undefined) =>
         projectTemplate(
-            node,
-            templateRootId,
-            instancePath,
-            [templateRootId],
-            { ...self, collapsed: true },
-            templateBindings(
-              node.definitionId,
-              props,
-              !!ownedRow && ownedRowing?.rowStart,
-            ),
-            instanceRoot(
-              withoutPropertyKeys(node.definitionId, [
-                ...Object.keys(node.props),
-                ...(ownedRowing?.rowStart ? ["id"] : []),
-                // (The collection's load reaches the template root — the Table record.)
-                ...(props.loadingState !== undefined ? ["loadingState"] : []),
-              ]),
-              props,
-              [
-                ...Object.keys(node.visual),
-                ...layers.flatMap((layer) => Object.keys(layer.visual ?? {})),
-              ],
-              visual,
-              sizing,
-              // The instance's authored layout and fills reach its template root (the record the
-              // author edits): its own layout over the root's rules, its fills over the root's.
-              ownLayout,
-              instancePaint(node, layers),
+          node,
+          templateRootId,
+          instancePath,
+          [templateRootId],
+          { ...self, collapsed: true },
+          templateBindings(
+            node.definitionId,
+            props,
+            !!ownedRow && ownedRowing?.rowStart,
+          ),
+          instanceRoot(
+            withoutPropertyKeys(node.definitionId, [
+              ...Object.keys(node.props),
+              ...(ownedRowing?.rowStart ? ["id"] : []),
+              // (The collection's load reaches the template root — the Table record.)
+              ...(props.loadingState !== undefined ? ["loadingState"] : []),
+            ]),
+            props,
+            [
+              ...Object.keys(node.visual),
+              ...layers.flatMap((layer) => Object.keys(layer.visual ?? {})),
+            ],
+            visual,
+            sizing,
+            // The instance's authored layout and fills reach its template root (the record the
+            // author edits): its own layout over the root's rules, its fills over the root's.
+            ownLayout,
+            instancePaint(node, layers),
+            {
+              origin: node.definitionId,
+              stateRules: node.stateRules ? [node.stateRules] : [],
+            },
+          ),
+          undefined,
+          shownRows
+            ? // (A keyed item is also the row its template's own positions read.)
               {
-                origin: node.definitionId,
-                stateRules: node.stateRules ? [node.stateRules] : [],
-              },
-            ),
-            undefined,
-            shownRows
-              ? // (A keyed item is also the row its template's own positions read.)
-                {
-                  rowSet: shownRows,
-                  ...(keyedRows?.[0] ? { row: keyedRows[0] } : {}),
-                }
-              : records
-                ? { records }
-                : ownedRow
-                  ? {
-                      row: ownedRow,
-                      ...(ownedRowLabel ? { rowLabel: ownedRowLabel } : {}),
-                      ...(sampleOwner ? { sampleOwner } : {}),
-                    }
-                  : ownedRowing?.rowSet
-                    ? { rowSet: ownedRowing.rowSet }
-                    : undefined,
-          );
+                rowSet: shownRows,
+                ...(keyedRows?.[0] ? { row: keyedRows[0] } : {}),
+              }
+            : records
+              ? { records }
+              : ownedRow
+                ? {
+                    row: ownedRow,
+                    ...(ownedRowLabel ? { rowLabel: ownedRowLabel } : {}),
+                    ...(sampleOwner ? { sampleOwner } : {}),
+                  }
+                : ownedRowing?.rowSet
+                  ? { rowSet: ownedRowing.rowSet }
+                  : undefined,
+        );
       // ADR-310 Phase 4: a bound Table repeats its Row template — over the rows sorted and cut
       // first (`boundTableRows`), then its body counts them (`finishBoundTable`).
       const table =
@@ -2065,9 +2150,13 @@ export function resolveCatalogNode(
       const child = graph.getEntry(childId);
       if (child?.kind !== "node")
         throw new CatalogValidationError("DANGLING_CHILD", childId);
-      // ADR-310: the item marked `repeat` is the rows' template; the other items are static.
-      if (childRows && ownedItems.includes(childId) && repeats(childId)) {
-        childRows.forEach((data, index) => {
+      // ADR-310: an item (or section) marked `repeat` is a run of rows — its own data (①), the
+      // outer row's child rows (②) or the owner's (③); the other items are static.
+      const segment = child.repeat
+        ? repeatRows(childId, childPath, childRows, ownedRow)
+        : undefined;
+      if (segment) {
+        segment.forEach((data, index) => {
           const projected = resolveOwned(child, childPath, undefined, self, {
             row: data,
             rowStart: true,
@@ -2093,10 +2182,13 @@ export function resolveCatalogNode(
           childPath,
           undefined,
           self,
-          ownedRow || passRows
+          ownedRow || passRows || (childRows && isSection(child))
             ? {
                 ...(ownedRow ? { row: ownedRow } : {}),
-                ...(passRows ? { rowSet: passRows } : {}),
+                // (A static section's items read the owner's rows too — ③ inside a section.)
+                ...(passRows || (childRows && isSection(child))
+                  ? { rowSet: passRows ?? childRows! }
+                  : {}),
                 ...(ownedRowLabel ? { rowLabel: ownedRowLabel } : {}),
                 ...(sampleOwner ? { sampleOwner } : {}),
               }
@@ -2205,7 +2297,8 @@ export function resolveCatalogNode(
     const bodyId = (
       template && "children" in template ? template.children : []
     ).find(
-      (childId: string) => templateTypeName(childId as TemplateId) === "TableBody",
+      (childId: string) =>
+        templateTypeName(childId as TemplateId) === "TableBody",
     );
     const instancePath = tableId.slice(0, tableId.lastIndexOf("::"));
     const shown = fixed
@@ -2310,8 +2403,13 @@ export function resolveCatalogNode(
     // at this instance path, so its view reads the instance's input variables (ADR-294 R6). The
     // instance's own binding (`rowing` on its template root) wins. A composite position's rows go
     // to the root it collapses into (as an owned instance's do); another node's to its children.
+    // (ADR-310 ①: a position repeated over its own binding shows one of those rows.)
     const ownBinding =
-      "kind" in template && rows && !rowing?.rowSet && !rowing?.records
+      "kind" in template &&
+      rows &&
+      !rowing?.rowSet &&
+      !rowing?.records &&
+      !(rowing?.rowStart && template.repeat)
         ? template.binding
         : undefined;
     const charted = !!ownBinding && templateTypeName(templateId) === "Chart";
@@ -2498,8 +2596,7 @@ export function resolveCatalogNode(
         if (key in props) props[key] = bindRowValue(props[key], row);
       // The row is the item: its collection key is the row's.
       if (rowing?.rowStart)
-        props[templateTypeName(templateId) === "TabPanel" ? "itemId" : "id"] =
-          row.key;
+        keyRowItem(templateTypeName(templateId), props, row);
       const labelField = rowLabelField(
         rowing?.rowLabel,
         props,
@@ -2712,7 +2809,8 @@ export function resolveCatalogNode(
         const childPath = [...path, childId];
         // ADR-310: a position marked `repeat` (a project template node) is the rows' template; the
         // others — and a library template's positions, which carry no mark — are static.
-        if (rowSet && itemPositions.includes(childId) && repeats(childId)) {
+        const segment = repeatRows(childId, instancePath, rowSet, row);
+        if (segment) {
           const projectRow = (data: CatalogBoundRow) =>
             projectTemplate(
               owner,
@@ -2725,7 +2823,7 @@ export function resolveCatalogNode(
               patches,
               { row: data, rowStart: true },
             );
-          rowSet.forEach((data, index) => {
+          segment.forEach((data, index) => {
             const projected = projectRow(data);
             if (projected)
               push(out, {
@@ -2942,7 +3040,13 @@ export function resolveCatalogNode(
         if (selection && !selection.include(childId, innerPlace.instancePath))
           continue;
         const childPath = [...innerPlace.templatePath, childId];
-        if (rowSet && rowItems.includes(childId) && repeats(childId)) {
+        const segment = repeatRows(
+          childId,
+          innerPlace.instancePath,
+          rowSet,
+          row,
+        );
+        if (segment) {
           const projectRow = (data: CatalogBoundRow) =>
             projectTemplate(
               owner,
@@ -2955,7 +3059,7 @@ export function resolveCatalogNode(
               undefined,
               { row: data, rowStart: true, sampleOwner: childId as NodeId },
             );
-          rowSet.forEach((data, index) => {
+          segment.forEach((data, index) => {
             const projected = projectRow(data);
             if (projected)
               push(children, {
@@ -3012,13 +3116,16 @@ export function resolveCatalogNode(
         const child = graph.getEntry(childId);
         if (child?.kind !== "node")
           throw new CatalogValidationError("DANGLING_CHILD", childId);
-        if (rowSet && rowItems.includes(childId) && repeats(childId)) {
+        const segment = child.repeat
+          ? repeatRows(childId, childPath, rowSet, row)
+          : undefined;
+        if (segment) {
           const projectRow = (data: CatalogBoundRow) =>
             resolveOwned(child, childPath, undefined, self, {
               row: data,
               rowStart: true,
             });
-          rowSet.forEach((data, index) => {
+          segment.forEach((data, index) => {
             const projected = projectRow(data);
             if (projected)
               push(children, {
@@ -3051,13 +3158,18 @@ export function resolveCatalogNode(
             self,
             row ||
               (rowSet &&
-                (!rowItems.length || templateTypeName(templateId) === "Tabs"))
+                (!rowItems.length ||
+                  templateTypeName(templateId) === "Tabs" ||
+                  isSection(child)))
               ? {
                   ...(row ? { row } : {}),
                   // (ADR-310: a Card's owned title · description Text read the row's fields.)
                   ...(row && rowLabel ? { rowLabel } : {}),
+                  // (A static section's items read the owner's rows too — ③ inside a section.)
                   ...(rowSet &&
-                  (!rowItems.length || templateTypeName(templateId) === "Tabs")
+                  (!rowItems.length ||
+                    templateTypeName(templateId) === "Tabs" ||
+                    isSection(child))
                     ? { rowSet }
                     : {}),
                   ...(rowing?.sampleOwner

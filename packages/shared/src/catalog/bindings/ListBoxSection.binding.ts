@@ -1,4 +1,5 @@
 import type { PrimitiveBinding } from "../types";
+import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
 
 /**
  * ADR-238 Phase 2 — ListBoxSection: ListBox collection 의 묶음 층 (RAC `ListBoxSection` — 자식 = Header + 항목).
@@ -23,7 +24,10 @@ export const listBoxSectionBinding: PrimitiveBinding = {
     dataAttributes: [],
   },
   props: {
-    accepts: {},
+    accepts: {
+      // ADR-310 ①: the section's own data (grouped rows — its items fill each group's child rows).
+      dataBinding: ITEM_DATA_BINDING_PROP,
+    },
     toRacProps: "default",
   },
 };

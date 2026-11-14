@@ -45,7 +45,7 @@ import {
   variableVisibleFrom,
 } from "./componentEvents";
 import { catalogChildKind } from "../nesting/nestingRules";
-import { CATALOG_ROW_ITEM_TYPES } from "./collectionItems";
+import { CATALOG_REPEAT_TYPES } from "./collectionItems";
 import {
   catalogBaseLibrary,
   forkedCatalogLibrary,
@@ -1572,7 +1572,8 @@ export class CatalogGraph {
         !entry.binding.collectionId.startsWith("data:collection:")
       )
         throw new CatalogValidationError("INVALID_COLLECTION_REF", entry.id);
-      // ADR-310: only a repeating collection's item repeats, and never one fixed to a row (`key`).
+      // ADR-310: only a repeating collection's item or section repeats, and never one fixed to a row
+      // (`key`).
       if (entry.repeat) {
         let type = "";
         try {
@@ -1580,7 +1581,7 @@ export class CatalogGraph {
         } catch {
           type = "";
         }
-        if (!CATALOG_ROW_ITEM_TYPES.has(type))
+        if (!CATALOG_REPEAT_TYPES.has(type))
           throw new CatalogValidationError("REPEAT_NOT_ITEM", entry.id);
         if (entry.binding?.key !== undefined)
           throw new CatalogValidationError("REPEAT_WITH_KEY", entry.id);

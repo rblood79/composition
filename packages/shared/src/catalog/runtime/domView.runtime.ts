@@ -101,6 +101,7 @@ export function catalogPreviewRuntime(
     pages: (collectionId) => session.pages(collectionId),
     moreLoaded: (collectionId, ownerId) =>
       session.moreLoaded(collectionId, ownerId),
+    loadingOf: (collectionId) => session.loadingStateOf(collectionId),
     append: (collectionId, value, parentKey) =>
       session.append(collectionId, value, parentKey),
     update: (collectionId, key, value, fieldId) =>

@@ -539,6 +539,10 @@ export function CatalogCanvas({
       sceneVersion: () => cellsVersion,
       data: () => useDataStore.getState(),
       bindingsOf: (ref) => workspace.runtime.graph.bindingsOf(ref),
+      repeatsOwnRows: (id) => {
+        const entry = workspace.runtime.graph.getEntry(id);
+        return entry?.kind === "node" && entry.repeat === true;
+      },
       // (A context is a document node's records, or one template position's record identity.)
       recordsOf: (id) => {
         const records = workspace.root.recordsOfSource(id);
@@ -695,7 +699,9 @@ export function CatalogCanvas({
         const parent = records.get(record.parentId);
         return (parent?.children ?? []).filter((id) => {
           const row = records.get(id);
-          return row?.rowIndex !== undefined && row.sourceId === record.sourceId;
+          return (
+            row?.rowIndex !== undefined && row.sourceId === record.sourceId
+          );
         });
       },
       hoverLeaves: (identity) => {

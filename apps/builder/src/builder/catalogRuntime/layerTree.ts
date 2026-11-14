@@ -219,7 +219,8 @@ const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.keptOrigin === b.keptOrigin &&
   a.emptyState === b.emptyState &&
   a.repeat?.count === b.repeat?.count &&
-  String(a.repeat?.keyConflicts ?? "") === String(b.repeat?.keyConflicts ?? "") &&
+  String(a.repeat?.keyConflicts ?? "") ===
+    String(b.repeat?.keyConflicts ?? "") &&
   !a.repeat === !b.repeat &&
   a.parentId === b.parentId &&
   a.depth === b.depth &&
@@ -564,7 +565,30 @@ export class CatalogLayerTreeStore {
       insideComponent: boolean,
     ): CatalogLayerNode[] => {
       const parentType = typeNameOf(graph, parent);
-      const count = bound.rows.length + (bound.more ?? 0);
+      const total = bound.rows.length + (bound.more ?? 0);
+      // (ADR-310 ①: a list of several runs — each template counts its own drawn rows; the rows
+      //  past the sample are the owner's run's.)
+      const ownRun = (row: CatalogPosition) => {
+        const entry =
+          row.target.kind === "node"
+            ? graph.getEntry(row.target.id)
+            : undefined;
+        return (
+          entry?.kind === "node" &&
+          entry.repeat === true &&
+          !!entry.binding &&
+          entry.binding.key === undefined
+        );
+      };
+      const runs = rows.some(ownRun);
+      const countOf = (row: CatalogPosition) =>
+        !runs
+          ? total
+          : bound.rows.filter(
+              (drawn) =>
+                drawn.id === row.identity ||
+                drawn.id.startsWith(`${row.identity}#row:`),
+            ).length + (ownRun(row) ? 0 : (bound.more ?? 0));
       repeatGated.push({
         parent,
         conflicts: String(bound.keyConflicts ?? ""),
@@ -576,7 +600,7 @@ export class CatalogLayerTreeStore {
           depth,
           parentType,
           insideComponent,
-          count,
+          countOf(row),
           bound.keyConflicts,
         ),
       );

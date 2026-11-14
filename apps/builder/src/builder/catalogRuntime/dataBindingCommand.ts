@@ -4,11 +4,16 @@ import {
   insertCollectionItem,
   insertTableRow,
   markRowTemplates,
+  setOwnRows,
   setWholeField,
   tableBodyPosition,
   type CatalogRowTemplateMode,
 } from "../../../../../packages/shared/src/catalog/commands";
-import { COLLECTION_TYPE_TABLE } from "../../../../../packages/shared/src/catalog/document/collectionItems";
+import {
+  CATALOG_REPEAT_TYPES,
+  CATALOG_SECTION_TYPES,
+  COLLECTION_TYPE_TABLE,
+} from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import {
   stageOver,
   type CatalogCommand,
@@ -129,9 +134,7 @@ function rowTemplateInsert(
   )?.item;
   const item = templateOf(path[path.length - 1]!)
     ?.children.map(templateOf)
-    .find(
-      (template) => template && typeOf(template.definitionId) === itemType,
-    );
+    .find((template) => template && typeOf(template.definitionId) === itemType);
   if (!item) return undefined;
   const key = crypto.randomUUID();
   const id = newId("node") as NodeId;
@@ -195,6 +198,28 @@ export const catalogBindingCommand = (
     };
     for (const target of targets) {
       if (target.kind !== "node") continue;
+      // ADR-310 ①: an item or section bound to data of its own is a run of its own rows (a
+      // section's first item the template of each row's child rows — ②).
+      const entry = stage.getEntry(target.id);
+      let type = "";
+      try {
+        type =
+          entry?.kind === "node"
+            ? definitionTypeName(stage, entry.definitionId)
+            : "";
+      } catch {
+        type = "";
+      }
+      if (CATALOG_REPEAT_TYPES.has(type)) {
+        run(setOwnRows(target.id, !!binding && binding.key === undefined));
+        if (CATALOG_SECTION_TYPES.has(type))
+          run(
+            binding
+              ? markRowTemplates({ ownerId: target.id, mode, newId })
+              : clearRowTemplates(target.id),
+          );
+        continue;
+      }
       if (!binding) {
         run(clearRowTemplates(target.id));
         continue;

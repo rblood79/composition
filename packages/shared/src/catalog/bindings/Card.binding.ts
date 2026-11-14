@@ -1,6 +1,7 @@
 import { ITEM_KEY_PROP_CONTRACT } from "../document/itemLinks";
 import { linkBinding } from "./Link.binding";
 import type { PrimitiveBinding } from "../types";
+import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
 
 /**
  * Card — 카드 컨테이너. S2 `Card` 구조 (`react-spectrum.adobe.com/Card`) — `Card > CardPreview +
@@ -45,6 +46,8 @@ export const cardBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-310 ①: the item's own data — it repeats over those rows (a run of its own).
+      dataBinding: ITEM_DATA_BINDING_PROP,
       // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
       id: ITEM_KEY_PROP_CONTRACT,
       // appearance — S2 variant 모델(구 cardType/isQuiet 흡수).

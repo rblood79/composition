@@ -2934,8 +2934,24 @@ export class CatalogCompositionRoot {
     result?: CatalogTransactionResult,
   ): ConsumePlan {
     const candidates = new Set<string>();
-    for (const source of sources)
-      for (const id of this.sourceInstances.get(source) ?? []) {
+    for (const source of sources) {
+      // (ADR-310 ①: an item repeated over data of its own is laid out by the list it sits in —
+      //  its rows are that list's children, so the list is the region; an empty run has no record
+      //  of its own.)
+      const graph = this.runtime.graph;
+      let regionSource = source;
+      const entry = graph.getEntry(source as NodeId);
+      if (entry?.kind === "node" && entry.repeat === true)
+        for (
+          let owner = graph.ownerOf(source as NodeId);
+          owner;
+          owner = graph.ownerOf(owner)
+        )
+          if (this.sourceInstances.get(owner)?.size) {
+            regionSource = owner;
+            break;
+          }
+      for (const id of this.sourceInstances.get(regionSource) ?? []) {
         let region = this.records.get(id);
         // Repeated rows are materialized by their collection owner. Keep that resolver context
         // when a nested binding lives inside a row (the row key is not an authored position).
@@ -2943,6 +2959,7 @@ export class CatalogCompositionRoot {
           region = this.records.get(region.parentId);
         if (region) candidates.add(region.id);
       }
+    }
     let resolverVisits = 0;
     let visits = 0;
     const grouped = new Map<NodeId, string[]>();
@@ -4342,7 +4359,9 @@ export class CatalogCompositionRoot {
     // (A Tree row box's written padding · gap — on the record, so an undo of the item's write
     //  compares against what the row had: `treeRowWrites`.)
     const treeRow = this.treeRowWrites(record, get);
-    return treeRow ? { ...derived, _treeRow: JSON.stringify(treeRow) } : derived;
+    return treeRow
+      ? { ...derived, _treeRow: JSON.stringify(treeRow) }
+      : derived;
   }
   private ownDerivedOf(
     record: CatalogConsumerNode,
@@ -5088,8 +5107,7 @@ export class CatalogCompositionRoot {
       if (box.minHeight !== undefined) out.minHeight = css(box.minHeight);
     }
     const layout = (item.layout ?? {}) as Record<string, unknown>;
-    if (wrote("gap", "rowGap"))
-      out.rowGap = css(layout.rowGap ?? box.gap ?? 0);
+    if (wrote("gap", "rowGap")) out.rowGap = css(layout.rowGap ?? box.gap ?? 0);
     if (wrote("gap", "columnGap"))
       out.columnGap = css(layout.columnGap ?? box.gap ?? 0);
     return Object.keys(out).length ? out : undefined;

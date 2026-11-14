@@ -1,4 +1,5 @@
 import type { PrimitiveBinding } from "../types";
+import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
 
 /**
  * Breadcrumb — Breadcrumbs 의 단일 경로 조각 (origin template: S2 구조 — `href` 는 조각 prop, label Text + 구분자 Icon 자식).
@@ -25,6 +26,8 @@ export const breadcrumbBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-310 ①: the item's own data — it repeats over those rows (a run of its own).
+      dataBinding: ITEM_DATA_BINDING_PROP,
       children: { kind: "string", label: "Label", section: "content" },
       href: { kind: "string", label: "Href", section: "content" },
       size: {

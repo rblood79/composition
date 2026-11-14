@@ -1,4 +1,8 @@
-import { CATALOG_ROW_ITEM_TYPES } from "../document/collectionItems";
+import {
+  CATALOG_REPEAT_TYPES,
+  CATALOG_ROW_ITEM_TYPES,
+  GROUP_REPEAT_ITEMS,
+} from "../document/collectionItems";
 import type { CatalogReader, NodeEntry, NodeId } from "../document/types";
 import {
   childPositions,
@@ -52,11 +56,14 @@ export function catalogRowItemGroups(
   ownerId: NodeId,
 ): CatalogPosition[][] {
   const groups: CatalogPosition[][] = [];
+  const start = nodePosition(reader, ownerId);
+  // (A RadioGroup's · CheckboxGroup's … items are its row items — ADR-310 Phase 5.)
+  const ownerType = typeOf(reader, start);
+  const isItem = (type: string) =>
+    CATALOG_ROW_ITEM_TYPES.has(type) || GROUP_REPEAT_ITEMS[type] === ownerType;
   const walk = (position: CatalogPosition) => {
     const rows = childPositions(reader, position);
-    const items = rows.filter((row) =>
-      CATALOG_ROW_ITEM_TYPES.has(typeOf(reader, row)),
-    );
+    const items = rows.filter((row) => isItem(typeOf(reader, row)));
     if (items.length) groups.push(items);
     if (items.length && typeOf(reader, position) !== "Tabs") return;
     for (const row of rows) {
@@ -65,8 +72,27 @@ export function catalogRowItemGroups(
       walk(row);
     }
   };
-  walk(nodePosition(reader, ownerId));
+  walk(start);
   return groups;
+}
+
+/**
+ * ADR-310 ① — an item repeated over its own binding (`<Collection items={other}>`): a run of its
+ * own, not the owner's template nor one of its static items.
+ */
+function ownSegment(reader: CatalogReader, position: CatalogPosition): boolean {
+  const node = nodeOf(reader, position);
+  return !!node?.repeat && !!node.binding && node.binding.key === undefined;
+}
+
+/** The owner's item levels without the items repeated over their own data (①). */
+function ownerItemGroups(
+  reader: CatalogReader,
+  ownerId: NodeId,
+): CatalogPosition[][] {
+  return catalogRowItemGroups(reader, ownerId)
+    .map((group) => group.filter((position) => !ownSegment(reader, position)))
+    .filter((group) => group.length > 0);
 }
 
 /** Whether a bound owner already has its rows' template (an item marked `repeat`). */
@@ -74,7 +100,7 @@ export function catalogHasRowTemplate(
   reader: CatalogReader,
   ownerId: NodeId,
 ): boolean {
-  return catalogRowItemGroups(reader, ownerId).some((group) =>
+  return ownerItemGroups(reader, ownerId).some((group) =>
     group.some((position) => nodeOf(reader, position)?.repeat),
   );
 }
@@ -84,7 +110,7 @@ export function catalogStaticItemCount(
   reader: CatalogReader,
   ownerId: NodeId,
 ): number {
-  const groups = catalogRowItemGroups(reader, ownerId);
+  const groups = ownerItemGroups(reader, ownerId);
   // (A Tabs counts its Tabs — a panel goes with its Tab.)
   const items = groups.find((group) =>
     group.some((position) => typeOf(reader, position) !== "TabPanel"),
@@ -143,7 +169,7 @@ export const markRowTemplates =
       ops.push(...plan.ops);
       return plan;
     };
-    const groups = catalogRowItemGroups(reader, input.ownerId).map((group) =>
+    const groups = ownerItemGroups(reader, input.ownerId).map((group) =>
       group.filter((position) => position.target.kind === "node"),
     );
     const tabs = groups.find((group) =>
@@ -195,12 +221,25 @@ export const markRowTemplates =
     return { label, ops };
   };
 
+/**
+ * ADR-310 ① — an item or section bound to data of its own repeats over it (a run of its own beside
+ * the list's static items and other runs): binding marks it `repeat`, unbinding takes the mark off
+ * (it stays one static item).
+ */
+export const setOwnRows =
+  (id: NodeId, repeat: boolean): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    writeRepeat(draft, id, repeat);
+    return { label: repeat ? "Bind data" : "Unbind data", ops: draft.ops() };
+  };
+
 /** ADR-310 — unbinding: the owner's row template stays as a static item (its `repeat` goes). */
 export const clearRowTemplates =
   (ownerId: NodeId): CatalogCommand =>
   (reader) => {
     const draft = new CommandDraft(reader);
-    for (const group of catalogRowItemGroups(reader, ownerId))
+    for (const group of ownerItemGroups(reader, ownerId))
       for (const position of group)
         if (nodeOf(reader, position)?.repeat)
           writeRepeat(draft, (position.target as { id: NodeId }).id, false);
@@ -223,7 +262,8 @@ export const setRowTemplate =
     } catch {
       type = "";
     }
-    if (!CATALOG_ROW_ITEM_TYPES.has(type)) return fail("REPEAT_NOT_ITEM", input.itemId);
+    if (!CATALOG_REPEAT_TYPES.has(type))
+      return fail("REPEAT_NOT_ITEM", input.itemId);
     // The bound owner the item's rows come from: the nearest bound ancestor whose levels hold it.
     for (
       let id: string | undefined = reader.ownerOf(input.itemId);
@@ -258,7 +298,7 @@ export const setRowTemplate =
         : undefined;
       for (const level of [group, ...(panelLevel ? [panelLevel] : [])])
         for (const position of level)
-          if (position.target.kind === "node")
+          if (position.target.kind === "node" && !ownSegment(reader, position))
             writeRepeat(
               draft,
               position.target.id,
@@ -295,7 +335,8 @@ export const renameTableColumnField =
         const cell = cellId ? reader.getEntry(cellId) : undefined;
         if (cell?.kind !== "node") continue;
         const text = cell.props.children;
-        if (text?.kind !== "set" || text.value !== `{${input.before}}`) continue;
+        if (text?.kind !== "set" || text.value !== `{${input.before}}`)
+          continue;
         draft.write({
           ...cell,
           props: {

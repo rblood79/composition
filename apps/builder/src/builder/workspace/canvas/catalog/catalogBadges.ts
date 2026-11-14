@@ -30,6 +30,11 @@ export interface CatalogBadgeInputs {
   bindingsOf: (collectionRef: string) => ReadonlySet<string>;
   /** The drawn records of a node. */
   recordsOf: (sourceId: string) => readonly string[];
+  /**
+   * ADR-310 ①: a node repeated over its own binding — its run's first row carries the badge (one per
+   * run, as a bound list's one), not every data row.
+   */
+  repeatsOwnRows?: (sourceId: string) => boolean;
 }
 
 /**
@@ -104,8 +109,10 @@ export function createCatalogBadges(inputs: CatalogBadgeInputs) {
       for (const table of data.collections.values()) {
         const nodes = inputs.bindingsOf(catalogCollectionId(table.id));
         if (!nodes.size) continue;
-        for (const node of nodes)
+        for (const node of nodes) {
+          const run = inputs.repeatsOwnRows?.(node) ?? false;
           for (const record of inputs.recordsOf(node)) {
+            if (run && record.includes("#row:")) continue;
             const box = bounds.get(record);
             const shown = visible.get(record);
             const clipped = box && shown ? intersectBoxes(box, shown) : null;
@@ -117,6 +124,7 @@ export function createCatalogBadges(inputs: CatalogBadgeInputs) {
                 recordId: record,
               });
           }
+        }
       }
       if (version !== undefined)
         targetsCache = { version, data, bounds, visible, targets: out };

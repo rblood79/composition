@@ -3,6 +3,7 @@ import {
   ITEM_LINK_PROP_CONTRACTS,
   ITEM_KEY_PROP_CONTRACT,
 } from "../document/itemLinks";
+import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
 
 /**
  * ListBoxItem — ListBox 행 항목 (selection bg + icon + label + description + check).
@@ -35,6 +36,8 @@ export const listBoxItemBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-310 ①: the item's own data — it repeats over those rows (a run of its own).
+      dataBinding: ITEM_DATA_BINDING_PROP,
       // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
       id: ITEM_KEY_PROP_CONTRACT,
       // 2026-10-14 (사용자 「불필요하게 등록된 프러퍼티 제거」): the item's text is its Text node's

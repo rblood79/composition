@@ -215,6 +215,7 @@ import { catalogCalendarDurationFits } from "../document/valueType";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 
 import {
+  CATALOG_SECTION_TYPES,
   isCollectionItemOf,
   isCollectionWrapperOf,
 } from "../document/collectionItems";
@@ -329,6 +330,8 @@ export interface DelegatedDomInput {
    * session's — it owns the window): its end shows the sentinel, which grows the window.
    */
   readonly moreLoaded?: (collectionId: string, ownerId: string) => boolean;
+  /** ADR-310 Decision 11 — a collection's load (a run's own load-more spinner). */
+  readonly loadingOf?: (collectionId: string) => string | undefined;
   /** The collection the record's text filters on the server · that text's load (`setFilterText`). */
   readonly serverFilterOf?: (recordId: string) => string | undefined;
   readonly setFilterText?: (collectionId: string, filterText: string) => void;
@@ -491,6 +494,94 @@ export function catalogLoadMoreItem(
         : null,
     ),
   ];
+}
+
+/**
+ * ADR-310 Decision 11 — a run over an item's own data (①) loads its own next rows: its load-more
+ * item (`__load-more:<item>`) asks its collection, grows its window (keyed by the item) and spins
+ * while that collection loads more — beside the owner's (`catalogLoadMoreItem`).
+ */
+function runLoadMoreItem(
+  input: DelegatedDomInput,
+  last: CatalogConsumerNode,
+  Item: ElementType,
+): ReactElement | undefined {
+  const loadMore = input.loadMore;
+  if (!loadMore || last.rowIndex === undefined) return undefined;
+  const source = input.root.runtime.graph.getEntry(last.sourceId as never);
+  if (
+    source?.kind !== "node" ||
+    !source.repeat ||
+    !source.binding ||
+    source.binding.key !== undefined
+  )
+    return undefined;
+  const collectionId = source.binding.collectionId.replace(
+    /^data:collection:/,
+    "",
+  );
+  const moreLoaded = input.moreLoaded?.(collectionId, source.id) ?? false;
+  if (!moreLoaded && !(input.pages?.(collectionId) ?? false)) return undefined;
+  const isLoading = input.loadingOf?.(collectionId) === "loadingMore";
+  return createElement(
+    Item,
+    {
+      key: `__load-more:${source.id}`,
+      onLoadMore: () => loadMore(collectionId, source.id, moreLoaded),
+      isLoading,
+    },
+    isLoading
+      ? createElement(ProgressCircle, {
+          isIndeterminate: true,
+          size: "S",
+          "aria-label": "Loading more…",
+        })
+      : null,
+  );
+}
+
+/**
+ * ADR-310 Decision 11 — a list's children with each run over data of its own (①) ending in its own
+ * load-more item, right after its rows (RAC takes several). A run inside a section ends the list
+ * (the section is RAC's own render); the owner's rows end in `catalogLoadMoreItem` as before.
+ */
+export function catalogRenderRuns(
+  input: DelegatedDomInput,
+  list: readonly CatalogConsumerNode[],
+  Item: ElementType,
+): ReactElement[] {
+  const out: ReactElement[] = [];
+  const tail: ReactElement[] = [];
+  const runEnds = (
+    records: readonly CatalogConsumerNode[],
+    each: (record: CatalogConsumerNode, end: boolean) => void,
+  ) =>
+    records.forEach((record, index) =>
+      each(
+        record,
+        record.rowIndex !== undefined &&
+          records[index + 1]?.sourceId !== record.sourceId,
+      ),
+    );
+  runEnds(list, (record, end) => {
+    out.push(input.renderChild(record.id));
+    const sentinel = end && runLoadMoreItem(input, record, Item);
+    if (sentinel) out.push(sentinel);
+    if (
+      record.rowIndex === undefined &&
+      CATALOG_SECTION_TYPES.has(catalogTypeName(input.root, record))
+    )
+      runEnds(
+        record.children
+          .map((id) => input.root.domInputs.get(id))
+          .filter((child): child is CatalogConsumerNode => !!child),
+        (child, childEnd) => {
+          const inner = childEnd && runLoadMoreItem(input, child, Item);
+          if (inner) tail.push(inner);
+        },
+      );
+  });
+  return [...out, ...tail];
 }
 
 export interface DelegatedDomBinding {
@@ -2066,13 +2157,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ),
               ...catalogEmptyState(input),
             },
-        ...renderAll(
+        ...catalogRenderRuns(
           input,
           children(input).filter((child) =>
             ["ListBoxItem", "ListBoxSection"].includes(
               catalogTypeName(input.root, child),
             ),
           ),
+          ListBoxLoadMoreItem,
         ),
         ...catalogLoadMoreItem(
           input.root,
@@ -2113,13 +2205,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
           ...catalogEmptyState(input),
         },
-        ...renderAll(
+        ...catalogRenderRuns(
           input,
           children(input).filter((child) =>
             ["GridListItem", "GridListSection"].includes(
               catalogTypeName(input.root, child),
             ),
           ),
+          GridListLoadMoreItem,
         ),
         ...catalogLoadMoreItem(
           input.root,
@@ -2261,11 +2354,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               }
             : {}),
         },
-        ...renderAll(
+        ...catalogRenderRuns(
           input,
           children(input).filter((child) =>
             MENU_CHILD_TYPES.has(catalogTypeName(input.root, child)),
           ),
+          MenuLoadMoreItem,
         ),
         ...catalogLoadMoreItem(
           input.root,
@@ -3637,7 +3731,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ...input.style,
           },
         },
-        ...renderAll(input, cards),
+        ...catalogRenderRuns(input, cards, GridListLoadMoreItem),
         // (ADR-310 「더 보기」: S2 CardView `onLoadMore` — RAC's GridList end sentinel.)
         ...catalogLoadMoreItem(
           input.root,

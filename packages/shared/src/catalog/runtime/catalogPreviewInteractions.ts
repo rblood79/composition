@@ -21,7 +21,10 @@ import type {
   EntryId,
   InteractionEntry,
 } from "../document/types";
-import type { CatalogCompositionRoot } from "./compositionRoot";
+import type {
+  CatalogCompositionRoot,
+  CatalogConsumerNode,
+} from "./compositionRoot";
 import {
   catalogOriginRootOf,
   resolveCapabilityTarget,
@@ -453,6 +456,8 @@ export interface CatalogPreviewInteractionsOptions {
   pages?: (collectionId: string) => boolean;
   /** ADR-310 「더 보기」 (`CatalogPreviewSession.moreLoaded`). */
   moreLoaded?: (collectionId: string, ownerId: string) => boolean;
+  /** ADR-310 Decision 11 — a collection's load (`CatalogPreviewSession.loadingStateOf`). */
+  loadingOf?: (collectionId: string) => string;
 }
 
 /**
@@ -998,6 +1003,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   moreLoaded(collectionId: string, ownerId: string): boolean {
     return this.options.moreLoaded?.(collectionId, ownerId) ?? false;
   }
+  loadingOf(collectionId: string): string | undefined {
+    return this.options.loadingOf?.(collectionId);
+  }
   showMore(collectionId: string, ownerId: string, moreLoaded: boolean): void {
     const show = this.options.showMore;
     if (!show) {
@@ -1037,10 +1045,39 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     const root = this.options.root();
     const graph = this.options.graph();
     if (!root || !graph) return;
+    // (ADR-310 Decision 11: a run over an item's own data selects in the list it sits in — the
+    //  nearest collection above its rows.)
+    const targets = new Map<string, CatalogConsumerNode>();
     for (const record of [...root.domInputs.values()]) {
       const source = graph.getEntry(record.sourceId as never);
       const binding = source?.kind === "node" ? source.binding : undefined;
       if (binding?.collectionId !== `data:collection:${collectionId}`) continue;
+      let target: CatalogConsumerNode | undefined = record;
+      if (source?.kind === "node" && source.repeat)
+        for (
+          target = root.domInputs.get(record.parentId);
+          target;
+          target = root.domInputs.get(target.parentId)
+        ) {
+          const type = catalogTypeName(root, target);
+          // (A picker's list selects in its picker — `Select · ComboBox > Popover > ListBox`.)
+          const inPicker =
+            type === "ListBox" &&
+            catalogTypeName(
+              root,
+              root.domInputs.get(target.parentId) ?? target,
+            ) === "Popover";
+          if (
+            !inPicker &&
+            (LOADED_MULTIPLE_SELECTION_TYPES.has(type) ||
+              LOADED_SINGLE_SELECTION_TYPES.has(type) ||
+              type === "Select")
+          )
+            break;
+        }
+      if (target) targets.set(target.id, target);
+    }
+    for (const record of targets.values()) {
       const type = catalogTypeName(root, record);
       // (A Select's selection is RAC's `value` — a key, or keys with `selectionMode: "multiple"`.)
       if (type === "Select") {

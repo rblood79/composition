@@ -154,6 +154,18 @@ export const COLLECTION_ITEM_OWNERS: Readonly<
 );
 
 /**
+ * ADR-310 Phase 5 (§4.5) — the RAC groups whose items a binding repeats (not RAC collections: the
+ * group's value selects, `GROUP_ITEM_OWNERS`), item → group. A group item is a row item only under
+ * its own group (`catalogRowItemGroups`) — a Checkbox in a Card or a Table's header is not.
+ */
+export const GROUP_REPEAT_ITEMS: Readonly<Record<string, string>> = {
+  Radio: "RadioGroup",
+  Checkbox: "CheckboxGroup",
+  ToggleButton: "ToggleButtonGroup",
+  SegmentedControlItem: "SegmentedControl",
+};
+
+/**
  * Item types a bound collection repeats per data row, with their paired types (a Tab's TabPanel):
  * the row template positions (ADR-310 — the table's `repeat` rows).
  */
@@ -163,6 +175,24 @@ export const CATALOG_ROW_ITEM_TYPES: ReadonlySet<string> = new Set(
     ...(row.pair ? [row.pair] : []),
   ]),
 );
+
+/** Section types of the repeating collections (ListBoxSection · GridListSection · MenuSection). */
+export const CATALOG_SECTION_TYPES: ReadonlySet<string> = new Set(
+  COLLECTION_TYPE_TABLE.filter((row) => row.repeat && row.section).map(
+    (row) => row.section!,
+  ),
+);
+
+/**
+ * What `repeat` may mark (ADR-310 §4.1): an item (with its pair) or a section — a section repeats
+ * over grouped rows, its items over each row's child rows (Decision 2 ②, Phase 5). A section is
+ * never a row template by default: binding a list marks an item (`markRowTemplates`).
+ */
+export const CATALOG_REPEAT_TYPES: ReadonlySet<string> = new Set([
+  ...CATALOG_ROW_ITEM_TYPES,
+  ...CATALOG_SECTION_TYPES,
+  ...Object.keys(GROUP_REPEAT_ITEMS),
+]);
 
 /** A collection's (or its list part's · picker's) item component in the Code view's `items` code. */
 export const CODE_VIEW_ITEM_TYPES: Readonly<Record<string, string>> =

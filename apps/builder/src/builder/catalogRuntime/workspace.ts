@@ -954,7 +954,17 @@ export class CatalogWorkspace {
             )
             .map((child) => String(child!.props.id)),
         );
-        const found = rowKeys.filter((key) => statics.has(key));
+        // (ADR-310 §4.6: two runs over data that shares keys — every key in the list once.)
+        const seen = new Set<string>();
+        const found = [
+          ...new Set(
+            rowKeys.filter((key) => {
+              const twice = statics.has(key) || seen.has(key);
+              seen.add(key);
+              return twice;
+            }),
+          ),
+        ];
         return found.length ? found : undefined;
       }
       for (const child of record.children) {

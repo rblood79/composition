@@ -30,6 +30,7 @@ export {
   clearRowTemplates,
   markRowTemplates,
   renameTableColumnField,
+  setOwnRows,
   setRowTemplate,
   type CatalogRowTemplateMode,
 } from "./rowTemplate";
