@@ -335,7 +335,8 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
       children: [],
       props: { children: set("of 4 files") },
       visual: {},
-      sizing: {},
+      // (No text measure here — a Text is `fit-content` by its rule, so it gets a width.)
+      sizing: { width: set(80) },
       descendantOverrides: [],
     } as NodeEntry;
     workspace.execute(

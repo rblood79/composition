@@ -482,6 +482,8 @@ it("옵션의 저작 Layout 변경과 undo가 실제 배치에 반영된다", as
         layout: {
           display: { kind: "set", value: "flex" },
           flexDirection: { kind: "set", value: "row" },
+          // (The item rule centres its row; the label Text is `fit-content`, so the row starts here.)
+          justifyContent: { kind: "set", value: "flex-start" },
         },
         visual: { paddingLeft: { kind: "set", value: 40 } },
       }),

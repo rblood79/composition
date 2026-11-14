@@ -47,11 +47,13 @@ const node = (
   sizing: {},
   descendantOverrides: [],
 });
-// No text measure in this environment: each text gets a fixed 40 px height.
+// No text measure in this environment: each text gets a fixed 40 px height and its parent's width
+//   (a Text is `fit-content` by its rule — 0 wide here without a measure).
 const text = (name: string): NodeEntry => ({
   ...node(name, "lib:definition:text", [], {
     children: { kind: "set", value: name.toUpperCase() },
   }),
+  visual: { width: { kind: "set", value: "100%" } },
   sizing: { height: { kind: "set", value: 40 } },
 });
 const allocator = () => {
