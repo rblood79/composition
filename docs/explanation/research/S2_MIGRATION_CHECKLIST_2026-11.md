@@ -150,7 +150,8 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 - [x] Illustration strokeWidth 기본 1 — `9ef5e0669`
 - [x] Canvas 말줄임 1/64px 허용 (float32 한 단위 차이로 「Acti…」 로 잘리던 문제) — `9ef5e0669`
 - [x] SearchField Group padding-right 0 — `59496c6cf`
-- [ ] staticColor `auto` 를 S2 방식으로 — 진행 중 (§8)
+- [x] staticColor `auto` 를 S2 방식으로 — `87d355074` (§8)
+- [ ] toggle 3종 (Checkbox · Radio · Switch) 배치 S2 정렬 — ① 도움말 라벨 열 시작 (Radio · 그룹 안 Checkbox) ② 버튼 ↔ 도움말 거리 (field 높이 − 줄 높이 / 1 · 1 · 2 · 2) ③ indicator 첫 줄 — 구현 · 테스트 7 · RED 5 · live (verify-static-auto-1115, 폭 220 frame): Canvas = Preview — 단독 Checkbox 도움말 버튼 아래 14 · Switch 14 · Radio / 그룹 안 Checkbox 도움말 x +26 · 1 아래 · indicator 위 1, console 오류 0 · 미커밋. 이어서 ⓐ Switch `paddingY` 4 → 0 · ⓑ 긴 라벨 줄바꿈 (template `whiteSpace: normal` · Canvas 한 줄 판정 · 엔진 세로 flex 자식 fit-content 수정 · indicator `flex-shrink: 0`) — live: 폭 220 frame 에서 Canvas = Preview 22 값 (Checkbox 라벨 178 × 36 두 줄 · indicator 첫 줄), console 오류 0
 
 검증 잔여:
 
@@ -160,13 +161,12 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 
 ## 7. 결정 대기
 
-1. toggle 3종 (Checkbox · Radio · Switch) 의 배치 차이 — 도움말 들여쓰기 (S2 는 글자 열에서 시작) · 버튼과 도움말 간격 · 여러 줄 라벨에서 indicator 정렬 (S2 baseline).
-2. S2 에 없는 확장 유지 여부 — Avatar initials · Link 외부 아이콘.
-3. 세로 flex 에서 눌림 — Tree (overflow auto) · Table (min-height 40 + overflow auto) · Chart (고유 최소 높이 없음) · SideNav / SideNavPanel (S2 minHeight 0).
-4. 프로퍼티 후보 (§2 · §3 · 부록 A) 가운데 무엇을 Property 탭에 낼지.
-5. 일반 Button 에도 S2 form · focus prop 10개 (`name` · `value` · `form*` · `excludeFromTabOrder` · `preventFocusOnPress`) 를 넣을지.
+1. S2 에 없는 확장 유지 여부 — Avatar initials · Link 외부 아이콘.
+2. 세로 flex 에서 눌림 — Tree (overflow auto) · Table (min-height 40 + overflow auto) · Chart (고유 최소 높이 없음) · SideNav / SideNavPanel (S2 minHeight 0).
+3. 프로퍼티 후보 (§2 · §3 · 부록 A) 가운데 무엇을 Property 탭에 낼지.
+4. 일반 Button 에도 S2 form · focus prop 10개 (`name` · `value` · `form*` · `excludeFromTabOrder` · `preventFocusOnPress`) 를 넣을지.
 
-결정됨: ActionButton 의 Type · Auto focus 는 패널에서 숨김 (사용자 11-14 「숨겨」).
+결정됨: ActionButton 의 Type · Auto focus 는 패널에서 숨김 (사용자 11-14 「숨겨」). toggle 3종 배치 차이는 S2 대로 맞춤 (사용자 11-15 「진행해」 — §6).
 
 ## 8. staticColor `auto` — S2 방식 (사용자 11-14 진행 지시)
 

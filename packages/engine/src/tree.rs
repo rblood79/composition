@@ -3597,11 +3597,40 @@ impl LayoutTree {
                     n.definite_h = definite;
                 }
             }
-            let cs = if wraps {
+            let mut cs = if wraps {
                 self.solve_node(c, sw, sh)
             } else {
                 self.solve_child_intrinsic_aware(c, sw, sh)
             };
+            // 2026-11-15 (S2 toggle label wrap) — a column item that does not stretch has an auto
+            //   cross size of **fit-content** (CSS-FLEXBOX §9.4 step 7 → css-sizing fit-content:
+            //   min(max-content, max(min-content, available))). It is solved above with an indefinite
+            //   cross available (its `%` cross has no basis — kept), which is its max-content; when that
+            //   overflows the column's available width it is solved again as `fit-content` against it,
+            //   so its children lay out at the clamped width (a toggle's row: its label wraps — Chrome
+            //   204 / text 178, the engine 298 before).
+            if !is_row && !wraps && sw == INDEFINITE_AVAIL && child_avail_w >= 0.0 {
+                let overflow = self.get(c).map(|n| {
+                    let ctx_w = self.ctx_for(child_avail_w.max(0.0));
+                    let margin = |v: Option<&str>| {
+                        if v == Some("auto") { 0.0 } else { resolve_signed(v, &ctx_w) }
+                    };
+                    let margins = margin(n.style.margin_left.as_deref())
+                        + margin(n.style.margin_right.as_deref());
+                    cs.0 + self.child_auto_inline_pad_border(c, child_avail_w)
+                        > child_avail_w - margins + 0.01
+                });
+                if overflow == Some(true) {
+                    let saved = self.get(c).map(|n| n.style.width.clone());
+                    if let Some(n) = self.get_mut(c) {
+                        n.style.width = Some("fit-content".to_string());
+                    }
+                    cs = self.solve_child_intrinsic_aware(c, child_avail_w, sh);
+                    if let (Some(saved), Some(n)) = (saved, self.get_mut(c)) {
+                        n.style.width = saved;
+                    }
+                }
+            }
             if definite.is_some() {
                 if let Some(n) = self.get_mut(c) {
                     n.definite_h = None; // 측정 경로가 solve_node 를 안 탔으면 여기서 비운다
@@ -9231,6 +9260,30 @@ mod tests {
     }
 
     // ── ADR-206 Phase 1: 늘어난 크기는 definite 다 (Chrome 실측 2026-09-07) ──
+
+    /// 2026-11-15 (S2 toggle label wrap) — a column flex item with `align-self: flex-start` is
+    /// fit-content in the cross axis (CSS: min(max-content, max(min-content, available))): a row
+    /// (indicator 16 + gap 10 + text 66..272) in a 204-wide column is 204, its text 178 (Chrome the same).
+    #[test]
+    fn column_flex_start_item_cross_size_is_fit_content_and_lays_children_at_it() {
+        for (root_display, item_display) in [("flex", "inline-flex"), ("inline-flex", "inline-flex"), ("flex", "flex")] {
+            let (t, h) = solve(
+                &format!(
+                    r#"[
+                {{"style":{{"display":"block","width":"auto","contentMinWidth":66.0,"contentMaxWidth":272.0,"contentHeight":18.0}},"children":[]}},
+                {{"style":{{"width":"16px","height":"16px","flexShrink":0}},"children":[]}},
+                {{"style":{{"display":"{item_display}","alignItems":"flex-start","columnGap":"10px","rowGap":"10px"}},"children":[1,0]}},
+                {{"style":{{"display":"{root_display}","flexDirection":"column","alignItems":"flex-start"}},"children":[2]}},
+                {{"style":{{"display":"flex","flexDirection":"column","width":"204px"}},"children":[3]}}
+            ]"#
+                ),
+                4, 204.0, -1.0,
+            );
+            assert_eq!(t.get_layout(h[3]).width, 204.0, "{root_display}/{item_display} — the field");
+            assert_eq!(t.get_layout(h[2]).width, 204.0, "{root_display}/{item_display} — the row (fit-content)");
+            assert_eq!(t.get_layout(h[0]).width, 178.0, "{root_display}/{item_display} — the text shrinks");
+        }
+    }
 
     fn solve(json: &str, root: usize, w: f32, h: f32) -> (LayoutTree, Vec<usize>) {
         let mut tree = LayoutTree::new();

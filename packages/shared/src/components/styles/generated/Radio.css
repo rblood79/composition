@@ -203,6 +203,52 @@
   --radio-button-gap: var(--catalog-token-radio-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
+.react-aria-Radio[data-size="S"] {
+  --radio-mark-top: calc(calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-S) * -1 / 2);
+}
+
+.react-aria-Radio[data-size="M"] {
+  --radio-mark-top: calc(calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-M) * -1 / 2);
+}
+
+.react-aria-Radio[data-size="L"] {
+  --radio-mark-top: calc(calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-L) * -1 / 2);
+}
+
+.react-aria-Radio[data-size="XL"] {
+  --radio-mark-top: calc(calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-XL) * -1 / 2);
+}
+
+.react-aria-Radio .react-aria-RadioButton .indicator {
+  margin-top: var(--radio-mark-top);
+  flex-shrink: 0;
+}
+
+.react-aria-Radio[data-size="S"] {
+  --radio-help-top: calc(var(--catalog-token-text-xs) * -10 / 14 + 1px);
+  --radio-help-start: calc(var(--catalog-token-size-height-sm-S) * 1 / 1 + var(--catalog-token-text-xs) * 10 / 14);
+}
+
+.react-aria-Radio[data-size="M"] {
+  --radio-help-top: calc(var(--catalog-token-text-sm) * -10 / 14 + 1px);
+  --radio-help-start: calc(var(--catalog-token-size-height-sm-M) * 1 / 1 + var(--catalog-token-text-sm) * 10 / 14);
+}
+
+.react-aria-Radio[data-size="L"] {
+  --radio-help-top: calc(var(--catalog-token-text-base) * -10 / 14 + 2px);
+  --radio-help-start: calc(var(--catalog-token-size-height-sm-L) * 1 / 1 + var(--catalog-token-text-base) * 10 / 14);
+}
+
+.react-aria-Radio[data-size="XL"] {
+  --radio-help-top: calc(var(--catalog-token-text-lg) * -10 / 14 + 2px);
+  --radio-help-start: calc(var(--catalog-token-size-height-sm-XL) * 1 / 1 + var(--catalog-token-text-lg) * 10 / 14);
+}
+
+.react-aria-Radio > [slot="description"] {
+  margin-top: var(--radio-help-top);
+  margin-left: var(--radio-help-start);
+}
+
 
 @media (forced-colors: active) {
   .react-aria-Radio {
@@ -218,7 +264,7 @@
 
   .react-aria-Radio .react-aria-RadioButton {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--radio-button-gap);
   }
 

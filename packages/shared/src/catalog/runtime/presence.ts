@@ -2233,7 +2233,22 @@ export function catalogDerivedProps(
       : result;
   // (S2 Meter · ProgressBar `staticColor`: the label and the value text in the static color.)
   const staticText = catalogProgressStaticText(node, get, typeOf);
-  const colored = staticText ? { ...placed, staticColor: staticText } : placed;
+  const staticPlaced = staticText
+    ? { ...placed, staticColor: staticText }
+    : placed;
+  // (2026-11-15: S2 `isInCheckboxGroup` — a grouped Checkbox's help text in its label's column at the
+  //  group row gap, `toggleLayout.ts` `catalogToggleItemHelpLayout`; its size the item's.)
+  const helpItem =
+    typeOf(node) === "Description" ? get(node.parentId) : undefined;
+  const colored =
+    helpItem &&
+    typeOf(helpItem) === "Checkbox" &&
+    catalogToggleGroupOf(helpItem, get, typeOf)
+      ? {
+          ...staticPlaced,
+          _toggleItemHelp: String(helpItem.props.size ?? "M"),
+        }
+      : staticPlaced;
   // (ADR-257: a Table's header row · Row is a grid on its Table's shared column tracks — the
   //  selection column at S2's `{size.table.selection-column}`: the Canvas's px, the DOM's
   //  device variable `_tableDeviceTracks`, ADR-295 후속.)
@@ -3430,6 +3445,11 @@ function derivedDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // (A Checkbox's help text follows its group and size — `_toggleItemHelp`, 2026-11-15.)
+  if (typeOf(owner) === "Checkbox")
+    return childrenOf(owner, get).filter(
+      (child) => typeOf(child) === "Description",
+    );
   if (typeOf(owner) === "RadioGroup" || typeOf(owner) === "CheckboxGroup")
     return catalogToggleGroupItems(
       owner,

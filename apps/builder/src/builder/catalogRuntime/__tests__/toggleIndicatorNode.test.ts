@@ -91,11 +91,11 @@ const EXPECTED: Record<
     XL: { box: [20, 20], height: 22, labelX: 20 + (18 * 10) / 14, labelY: 0, indicatorY: 1 },
   },
   Switch: {
-    // (paddingY 4 above and below the row)
-    S: { box: [12 * 26 / 14, 14], height: 24, labelX: 12 * 26 / 14 + (12 * 10) / 14, labelY: 4, indicatorY: 5 },
-    M: { box: [26, 16], height: 26, labelX: 26 + 10, labelY: 4, indicatorY: 5 },
-    L: { box: [16 * 26 / 14, 18], height: 28, labelX: 16 * 26 / 14 + (16 * 10) / 14, labelY: 4, indicatorY: 5 },
-    XL: { box: [18 * 26 / 14, 20], height: 30, labelX: 18 * 26 / 14 + (18 * 10) / 14, labelY: 4, indicatorY: 5 },
+    // (2026-11-15: no block padding — S2 `Switch.tsx` field has none; was `paddingY: 4`)
+    S: { box: [12 * 26 / 14, 14], height: 16, labelX: 12 * 26 / 14 + (12 * 10) / 14, labelY: 0, indicatorY: 1 },
+    M: { box: [26, 16], height: 18, labelX: 26 + 10, labelY: 0, indicatorY: 1 },
+    L: { box: [16 * 26 / 14, 18], height: 20, labelX: 16 * 26 / 14 + (16 * 10) / 14, labelY: 0, indicatorY: 1 },
+    XL: { box: [18 * 26 / 14, 20], height: 22, labelX: 18 * 26 / 14 + (18 * 10) / 14, labelY: 0, indicatorY: 1 },
   },
 };
 

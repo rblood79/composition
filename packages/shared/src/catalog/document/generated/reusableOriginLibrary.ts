@@ -5574,7 +5574,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{children}"
     },
-    "visual": {}
+    "visual": {
+      "whiteSpace": "normal"
+    }
   },
   {
     "id": "lib:template:component-switch__description",
@@ -7517,7 +7519,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{children}"
     },
-    "visual": {}
+    "visual": {
+      "whiteSpace": "normal"
+    }
   },
   {
     "id": "lib:template:component-radio__description",

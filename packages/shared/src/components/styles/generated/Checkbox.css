@@ -338,6 +338,47 @@
   --cb-button-gap: var(--catalog-token-checkbox-gap-XL, calc(var(--catalog-token-text-lg) * 10 / 14));
 }
 
+.react-aria-Checkbox[data-size="S"] {
+  --cb-mark-top: calc(calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-S) * -1 / 2);
+}
+
+.react-aria-Checkbox[data-size="M"] {
+  --cb-mark-top: calc(calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-M) * -1 / 2);
+}
+
+.react-aria-Checkbox[data-size="L"] {
+  --cb-mark-top: calc(calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-L) * -1 / 2);
+}
+
+.react-aria-Checkbox[data-size="XL"] {
+  --cb-mark-top: calc(calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-XL) * -1 / 2);
+}
+
+.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
+  margin-top: var(--cb-mark-top);
+  flex-shrink: 0;
+}
+
+.react-aria-Checkbox[data-size="S"] {
+  --cb-help-top: calc(var(--catalog-token-size-height-S) * 1 / 1 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 1 + var(--catalog-token-text-xs) * -10 / 14);
+}
+
+.react-aria-Checkbox[data-size="M"] {
+  --cb-help-top: calc(var(--catalog-token-size-height-M) * 1 / 1 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 1 + var(--catalog-token-text-sm) * -10 / 14);
+}
+
+.react-aria-Checkbox[data-size="L"] {
+  --cb-help-top: calc(var(--catalog-token-size-height-L) * 1 / 1 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 1 + var(--catalog-token-text-base) * -10 / 14);
+}
+
+.react-aria-Checkbox[data-size="XL"] {
+  --cb-help-top: calc(var(--catalog-token-size-height-XL) * 1 / 1 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 1 + var(--catalog-token-text-lg) * -10 / 14);
+}
+
+.react-aria-Checkbox > [slot="description"] {
+  margin-top: var(--cb-help-top);
+}
+
 
 @media (forced-colors: active) {
   .react-aria-Checkbox {
@@ -353,7 +394,7 @@
 
   .react-aria-Checkbox .react-aria-CheckboxButton {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--cb-button-gap);
   }
 

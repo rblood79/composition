@@ -48,10 +48,11 @@ const typographyOf = (record: string) =>
 
 describe("Layout 탭 — 부모 part rule 이 배치하는 부품", () => {
   // (ADR-295 Phase 3c-3: the gap is S2 `text-to-control` — M font 14 × 10 / 14 = 10.)
-  it("CheckboxButton 은 Checkbox rule 의 `.react-aria-CheckboxButton` 블록 (inline-flex · center · gap 10) 을 보인다", () => {
+  // (2026-11-15: S2 `CenterBaseline` — 행은 위 정렬, indicator 가 첫 줄 위치를 갖는다 · `toggleS2Layout.test.tsx`)
+  it("CheckboxButton 은 Checkbox rule 의 `.react-aria-CheckboxButton` 블록 (inline-flex · flex-start · gap 10) 을 보인다", () => {
     const values = layoutOf(fixture.descendantRecord("cb", "CheckboxButton"));
     expect(values?.display).toBe("inline-flex");
-    expect(values?.alignItems).toBe("center");
+    expect(values?.alignItems).toBe("flex-start");
     expect(values?.gap).toBe("10px");
   });
 

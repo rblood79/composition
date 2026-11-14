@@ -420,7 +420,8 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
       children: "{children}",
     },
     presentWhen: "nonEmptyText",
-    visual: {},
+    // (2026-11-15: S2 — a toggle's label wraps in its `1fr` column; a Label binding is one line otherwise.)
+    visual: { whiteSpace: "normal" },
   },
   {
     id: "lib:template:component-checkbox__description",

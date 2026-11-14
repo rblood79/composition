@@ -1,4 +1,5 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
+import { catalogToggleItemHelpLayout } from "../rule/toggleLayout";
 import { catalogEffectiveStaticColor } from "./staticBackdrop";
 import { SliderThumb as CatalogSliderThumb } from "../../components/RangeSlider";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
@@ -4192,6 +4193,13 @@ export function renderNode(
   if (bound) catalogDeviceControlCss(bound, node.visual);
   // ADR-295 Phase 3c-3b: a part rule's length margin (a field button's overlap) — its device formula.
   if (bound) catalogDeviceLayoutCss(bound, node.layout);
+  // (2026-11-15: a grouped Checkbox's help text — S2 `isInCheckboxGroup`, over its own field margins;
+  //  the Canvas's same margins, `toggleLayout.ts`.)
+  if (bound)
+    Object.assign(
+      bound,
+      catalogLayoutCss(catalogToggleItemHelpLayout(node.derivedProps)),
+    );
   if (bound && node.derivedProps?._fieldLabelRole)
     // Label skips stylesheet generation. Its typed part defaults (including inline/flex
     // baseline participation) must reach DOM as well as authored edits, just as Canvas reads them.

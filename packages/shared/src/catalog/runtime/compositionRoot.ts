@@ -1,4 +1,5 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
+import { catalogToggleItemHelpLayout } from "../rule/toggleLayout";
 import {
   catalogStaticAuto,
   catalogStaticAutoDependents,
@@ -881,18 +882,17 @@ const noWrapTextBindings: ReadonlySet<string> = new Set([
   "column",
 ]);
 /**
- * Whether a text leaf stays on one line by its binding (`noWrapTextBindings`). ADR-257 Phase 3: a
- * Table cell's line follows its S2 `overflowMode` — the rule's `white-space` (`normal` = wrap).
+ * Whether a text leaf stays on one line by its binding (`noWrapTextBindings`) — unless its record says
+ * `white-space: normal`, as the DOM writes `metrics.whiteSpace` over the binding's `nowrap`. ADR-257
+ * Phase 3: a Table cell's line follows its S2 `overflowMode` (the rule's `white-space`); 2026-11-15: a
+ * toggle's label wraps in its column (S2 — the toggle templates' `whiteSpace: normal`).
  */
 export function catalogBindingKeepsOneLine(node: {
   readonly bindingId?: string;
   readonly visual: Readonly<Record<string, unknown>>;
 }): boolean {
   if (!noWrapTextBindings.has(node.bindingId ?? "")) return false;
-  return !(
-    (node.bindingId === "cell" || node.bindingId === "column") &&
-    node.visual.whiteSpace === "normal"
-  );
+  return node.visual.whiteSpace !== "normal";
 }
 /**
  * Text bindings that paint one line (`white-space: nowrap`: the button label, `Label.css`, the
@@ -1871,6 +1871,9 @@ function styleOf(
       ? {}
       : catalogActionBadgeNodeLayout(node.derivedProps)),
     ...itemLayout(node),
+    // (2026-11-15: a grouped Checkbox's help text — S2 `isInCheckboxGroup`, over the item's own field
+    //  margins (its part rule); the DOM's same inline margins, `toggleLayout.ts`.)
+    ...catalogToggleItemHelpLayout(node.derivedProps),
     // (ADR-295 Phase 3c-3c ②c: the thick bar keeps the S2 track row — its margins refine the row margins
     // `itemLayout` carries, `catalogSliderThickTrackMargins`.)
     ...(node.derivedProps?.trackStyle === "thick"

@@ -35,6 +35,7 @@ import {
   PICKER_INVALID_WIDTH,
 } from "../document/pickerTrigger";
 import { SHEET_HANDLE_SELECTORS } from "../document/sheetChrome";
+import { toggleFieldLayout } from "../rule/toggleLayout";
 import {
   catalogActionBadgeSizeSelectors,
   catalogBadgeStaticVariants,
@@ -3226,9 +3227,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       composition: {
         staticSelectors: {
+          // (S2 `alignItems: baseline` + `CenterBaseline` — the indicator on the first line: rows from the
+          //  top, the indicator's top margin in `toggleFieldLayout`, 2026-11-15.)
           ".react-aria-CheckboxButton": {
             display: "inline-flex",
-            "align-items": "center",
+            "align-items": "flex-start",
             gap: "var(--cb-button-gap)",
           },
         },
@@ -3241,6 +3244,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: "auto",
             autoKeys: ["gap"],
           },
+          // (S2 field grid — help text start · distance, indicator on the first line: `toggleLayout.ts`.)
+          ...toggleFieldLayout("cb", ".react-aria-CheckboxButton", ".checkbox", "field"),
         ],
       },
     },
@@ -10920,9 +10925,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       composition: {
         staticSelectors: {
+          // (S2 `alignItems: baseline` + `CenterBaseline` — the indicator on the first line: rows from the
+          //  top, the indicator's top margin in `toggleFieldLayout`, 2026-11-15.)
           ".react-aria-RadioButton": {
             display: "inline-flex",
-            "align-items": "center",
+            "align-items": "flex-start",
             gap: "var(--radio-button-gap)",
           },
         },
@@ -10935,6 +10942,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: "auto",
             autoKeys: ["gap"],
           },
+          // (S2 field grid — help text start · distance, indicator on the first line: `toggleLayout.ts`.)
+          ...toggleFieldLayout("radio", ".react-aria-RadioButton", ".indicator", "item"),
         ],
       },
     },
@@ -12789,8 +12798,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch.spec 삭제 대비 gap/paddingX/
       //   paddingY 보강. generate-css virtual 이 size 별 `gap`/`padding: 0px 0px` 를 emit (Switch.css
       //   정합). indicator(trackWidth/thumbSize)는 generated CSS 미emit(수동/React) → rule 불요.
-      // ADR-171 Phase 1 (2026-07-29): paddingY 0 → 4. 수동 `Switch.css` 의
-      //   `padding: var(--spacing) 0` 실효값 이관 — size 무관 상수 (값 불변).
+      // ADR-171 Phase 1 (2026-07-29): paddingY 0 → 4 (수동 `Switch.css` 의 `padding: var(--spacing) 0` 이관).
+      //   2026-11-15 (사용자 「S2 에 맞춰」): 0 — S2 `Switch.tsx` field 에는 세로 여백이 없다.
       // indicator 채널 배선 (2026-08-21, design-data 감사 §1-3): Skia `switch_toggle` 은
       //   size.indicator.{trackWidth,trackHeight,thumbSize,thumbOffset} 를 읽으나 catalog
       //   부재로 전 size 36/20/16/2(md) 고정이었다.
@@ -12801,7 +12810,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 4,
+        paddingY: 0,
         gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.S}",
@@ -12815,7 +12824,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 4,
+        paddingY: 0,
         gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.M}",
@@ -12829,7 +12838,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 4,
+        paddingY: 0,
         gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.L}",
@@ -12843,7 +12852,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         paddingX: 0,
-        paddingY: 4,
+        paddingY: 0,
         gap: TEXT_TO_CONTROL,
         indicator: {
           trackHeight: "{size.height-sm.XL}",
@@ -12873,9 +12882,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       composition: {
         staticSelectors: {
+          // (S2 `alignItems: baseline` + `CenterBaseline` — the indicator on the first line: rows from the
+          //  top, the indicator's top margin in `toggleFieldLayout`, 2026-11-15.)
           ".react-aria-SwitchButton": {
             display: "inline-flex",
-            "align-items": "center",
+            "align-items": "flex-start",
             gap: "var(--sw-button-gap)",
           },
         },
@@ -12888,6 +12899,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             variables: "auto",
             autoKeys: ["gap"],
           },
+          // (S2 field grid — help text start · distance, indicator on the first line: `toggleLayout.ts`.)
+          ...toggleFieldLayout("sw", ".react-aria-SwitchButton", ".indicator", "field"),
         ],
       },
     },
