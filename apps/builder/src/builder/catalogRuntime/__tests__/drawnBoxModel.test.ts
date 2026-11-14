@@ -5,12 +5,13 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import { loadCatalogSideNav } from "../../../../../../packages/shared/src/catalog/runtime/sideNav.lazy";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   EntryId,
@@ -151,7 +152,9 @@ describe("catalogDrawnBoxModel — the box the layout draws", () => {
         }),
       );
     });
-    const body = workspace.root.domInputs.get(workspace.root.recordsOfSource(BODY)[0]!)!;
+    const body = workspace.root.domInputs.get(
+      workspace.root.recordsOfSource(BODY)[0]!,
+    )!;
     const drawn = catalogDrawnBoxModel(workspace.root, body);
     const own = catalogBoxModel(body);
     expect([drawn.padding?.top, drawn.padding?.left]).toEqual([24, 24]);
@@ -170,7 +173,9 @@ describe("catalogDrawnBoxModel — the box the layout draws", () => {
 
   it("is undefined where nothing differs from the record's own", async () => {
     const workspace = await open("checkbox");
-    const checkbox = workspace.root.domInputs.get(workspace.root.recordsOfSource(NODE)[0]!)!;
+    const checkbox = workspace.root.domInputs.get(
+      workspace.root.recordsOfSource(NODE)[0]!,
+    )!;
     expect(catalogDrawnBoxDelta(workspace.root, checkbox)).toBeUndefined();
   });
 });
@@ -316,14 +321,15 @@ describe("an editable part's write reaches both consumers", () => {
     ).toBe("30px");
     const host = document.createElement("div");
     host.innerHTML = renderToStaticMarkup(
-      renderCatalogDom(workspace.root, workspace.root.recordsOfSource(NODE)[0]!),
+      renderCatalogDom(
+        workspace.root,
+        workspace.root.recordsOfSource(NODE)[0]!,
+      ),
     );
     const element = host.querySelector(
       `[data-catalog-id="${part.id}"]`,
     ) as HTMLElement;
-    expect(element.getAttribute("style") ?? "").toMatch(
-      /padding-left:\s*30px/,
-    );
+    expect(element.getAttribute("style") ?? "").toMatch(/padding-left:\s*30px/);
     // (Only the write — the group sheet's orientation box stays the sheet's.)
     expect(element.getAttribute("style") ?? "").not.toMatch(/flex-direction/);
   });
@@ -443,8 +449,9 @@ describe("DateRangePicker — no margin on the button", () => {
       renderCatalogDom(workspace.root, root.recordsOfSource(NODE)[0]!),
     );
     const style = (id: string) =>
-      (host.querySelector(`[data-catalog-id="${id}"]`) as HTMLElement)
-        ?.getAttribute("style") ?? "";
+      (
+        host.querySelector(`[data-catalog-id="${id}"]`) as HTMLElement
+      )?.getAttribute("style") ?? "";
     // (Inline margins are the reset's zeros — none holds the room, no `margin-inline-start`.)
     expect(style(button.id)).not.toMatch(/margin-inline|margin-left:\s*[^0]/);
     // (The DOM lays the same end padding: 0.)
@@ -462,7 +469,10 @@ describe("ComboBox · DatePicker — S2 box, no margin on the button", () => {
   const dom = (workspace: CatalogWorkspace) => {
     const host = document.createElement("div");
     host.innerHTML = renderToStaticMarkup(
-      renderCatalogDom(workspace.root, workspace.root.recordsOfSource(NODE)[0]!),
+      renderCatalogDom(
+        workspace.root,
+        workspace.root.recordsOfSource(NODE)[0]!,
+      ),
     );
     return (id: string) =>
       host.querySelector(`[data-catalog-id="${id}"]`) as HTMLElement | null;
@@ -471,8 +481,9 @@ describe("ComboBox · DatePicker — S2 box, no margin on the button", () => {
     [...workspace.root.domInputs.values()].find(
       (record) =>
         workspace.root.typeOf(record) === "Button" &&
-        workspace.root.typeOf(workspace.root.domInputs.get(record.parentId)!) ===
-          "Group",
+        workspace.root.typeOf(
+          workspace.root.domInputs.get(record.parentId)!,
+        ) === "Group",
     )!;
 
   for (const [origin, valueType, end] of [
@@ -495,12 +506,12 @@ describe("ComboBox · DatePicker — S2 box, no margin on the button", () => {
         paddingLeft: "0px",
         paddingRight: end,
       });
-      expect(Number.parseFloat(String(input(button.id).marginLeft ?? "0"))).toBe(
-        0,
-      );
-      expect(rect(group.id).width - (rect(button.id).x + rect(button.id).width)).toBe(
-        2 + 4,
-      );
+      expect(
+        Number.parseFloat(String(input(button.id).marginLeft ?? "0")),
+      ).toBe(0);
+      expect(
+        rect(group.id).width - (rect(button.id).x + rect(button.id).width),
+      ).toBe(2 + 4);
       // DOM: the Input rule's sheet draws the Group (`FieldBox`), no inline margin holds the room.
       const element = dom(workspace);
       expect(element(group.id)?.className).toContain("react-aria-FieldBox");
@@ -599,9 +610,9 @@ describe("SearchField — S2 box, no margins", () => {
     //  the clear button ends the box, then the border.)
     expect(rect(clear.id).x + 32).toBe(rect(group.id).width - 2);
     for (const part of [glyph, value, clear])
-      expect(
-        Number.parseFloat(String(input(part.id).marginLeft ?? "0")),
-      ).toBe(0);
+      expect(Number.parseFloat(String(input(part.id).marginLeft ?? "0"))).toBe(
+        0,
+      );
     const host = document.createElement("div");
     host.innerHTML = renderToStaticMarkup(
       renderCatalogDom(workspace.root, root.recordsOfSource(NODE)[0]!),
@@ -613,7 +624,9 @@ describe("SearchField — S2 box, no margins", () => {
       expect(element(part.id)?.getAttribute("style") ?? "").not.toMatch(
         /margin-inline|margin-left:\s*[^0]/,
       );
-    expect(element(clear.id)?.querySelectorAll(".react-aria-Icon").length).toBe(1);
+    expect(element(clear.id)?.querySelectorAll(".react-aria-Icon").length).toBe(
+      1,
+    );
   });
 });
 
@@ -732,5 +745,186 @@ describe("a field box's corner — the one it draws (사용자 2026-11-13 「com
       );
     });
     expect(panelRadius(workspace, recordOf(workspace, "Group"))).toBe("3px");
+  });
+});
+
+/**
+ * 2026-11-14 감사 후속 (사용자 「2 · 4 · 5 먼저」): what the author writes on a part the Canvas · DOM
+ * place themselves reaches both — a PreviewTrigger's trigger Button (RAC's long-press `style` through
+ * `FocusableContext` replaced the Button's), a Slider's thumb (the Canvas took one side for both, the
+ * DOM dropped the border), a SideNav's later section (the Canvas laid the nav's gap under the margin).
+ */
+describe("audit follow-ups — the authored value reaches both consumers", () => {
+  const domOf = (workspace: CatalogWorkspace, id: string) => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToStaticMarkup(
+      renderCatalogDom(
+        workspace.root,
+        workspace.root.recordsOfSource(NODE)[0]!,
+      ),
+    );
+    return host.querySelector(
+      `[data-catalog-id="${CSS.escape(id)}"]`,
+    ) as HTMLElement;
+  };
+  const write = (
+    workspace: CatalogWorkspace,
+    id: string,
+    fields: Parameters<typeof setFields>[0],
+  ) => {
+    workspace.selectRecords([id]);
+    const target = workspace.session.getSnapshot().selection[0]!.target;
+    act(() => {
+      workspace.execute(setFields({ ...fields, targets: [target] }));
+    });
+  };
+
+  it("a PreviewTrigger's Button keeps its authored style in the DOM (and RAC's long-press guard)", async () => {
+    const workspace = await open("previewtrigger");
+    const button = recordOf(workspace, "Button");
+    write(workspace, button.id, {
+      targets: [],
+      visual: { paddingLeft: { kind: "set", value: 30 } },
+    });
+    expect(
+      (workspace.root.getLayoutInput(button.id) as Record<string, unknown>)
+        .paddingLeft,
+    ).toBe("30px");
+    const element = domOf(workspace, button.id);
+    expect(element.getAttribute("style") ?? "").toMatch(/padding-left:\s*30px/);
+    // (RAC's `usePreviewTrigger` style — no callout · drag on a long press — moves to the sheet.)
+    expect(element.hasAttribute("data-preview-trigger")).toBe(true);
+  });
+
+  it("a Slider thumb takes an authored width on the Canvas and an authored border in the DOM", async () => {
+    const workspace = await open("slider");
+    const thumb = recordOf(workspace, "SliderThumb");
+    write(workspace, thumb.id, {
+      targets: [],
+      visual: {
+        width: { kind: "set", value: 30 },
+        // (The panel writes a border's color with its width — `catalogBorderCompanionWrites`.)
+        borderWidth: { kind: "set", value: 4 },
+        borderColor: { kind: "set", value: "#ff0000" },
+      },
+    });
+    const input = workspace.root.getLayoutInput(thumb.id) as Record<
+      string,
+      unknown
+    >;
+    expect(input.width).toBe("30px");
+    expect(input.height).toBe("20px");
+    const inline = domOf(workspace, thumb.id).getAttribute("style") ?? "";
+    expect(inline).toMatch(/width:\s*30px/);
+    expect(inline).toMatch(/border-width:\s*4px/);
+  });
+
+  it("a thumb with no authored side stays the rule's circle (20 × 20, the sheet's ring)", async () => {
+    const workspace = await open("slider");
+    const thumb = recordOf(workspace, "SliderThumb");
+    const input = workspace.root.getLayoutInput(thumb.id) as Record<
+      string,
+      unknown
+    >;
+    expect([input.width, input.height]).toEqual(["20px", "20px"]);
+    expect(domOf(workspace, thumb.id).getAttribute("style") ?? "").not.toMatch(
+      /border-width/,
+    );
+  });
+});
+
+/**
+ * 2026-11-14 감사 후속: a SideNav's later section sits S2 `marginTop: 24` below the one before. The
+ * DOM turns the nav's 6px column gap off (RAC's flat rows); the Canvas keeps it and lays the margin
+ * less the gap — an authored margin is the distance too, on both.
+ */
+describe("a SideNav section's top margin — the same distance on both consumers", () => {
+  // (The SideNav renderer is a lazy chunk — loaded before the static render.)
+  beforeAll(() => loadCatalogSideNav());
+  const NAV = "project:node:nav" as NodeId;
+  const FIRST = "project:node:nav-a" as NodeId;
+  const SECOND = "project:node:nav-b" as NodeId;
+  async function nav(secondMargin?: string) {
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:drawn-nav" as EntryId<"project">,
+          name: "Drawn nav",
+        }),
+        await buildCodeCatalogLibrary(),
+      ),
+      new CatalogStorage(indexedDB, `drawn-nav-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1200, height: 800 },
+        autosaveSchedule: () => {},
+      },
+    );
+    const node = (id: NodeId, type: string, children: NodeId[] = []) =>
+      ({
+        kind: "node",
+        id,
+        definitionId: type.startsWith("origin-")
+          ? `lib:definition:${type}`
+          : `lib:definition:type-${type}`,
+        children,
+        props: {},
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      }) as NodeEntry;
+    // (RAC draws a section with items only — one SideNavItem each.)
+    const second = node(SECOND, "SideNavSection", [
+      `${SECOND}-item` as NodeId,
+    ]);
+    if (secondMargin)
+      (second as { layout?: Record<string, unknown> }).layout = {
+        marginTop: { kind: "set", value: secondMargin },
+      };
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node(NAV, "SideNav", [FIRST, SECOND]),
+          node(FIRST, "SideNavSection", [`${FIRST}-item` as NodeId]),
+          node(`${FIRST}-item` as NodeId, "origin-component-sidenavitem"),
+          second,
+          node(`${SECOND}-item` as NodeId, "origin-component-sidenavitem"),
+        ],
+        rootIds: [NAV],
+        newId: workspace.newId,
+      }),
+    );
+    cleanups.push(() => act(() => workspace.dispose()));
+    const root = workspace.root;
+    const record = root.recordsOfSource(SECOND)[0]!;
+    const host = document.createElement("div");
+    host.innerHTML = renderToStaticMarkup(
+      renderCatalogDom(root, root.recordsOfSource(NAV)[0]!),
+    );
+    const element = host.querySelector(
+      `[data-catalog-id="${CSS.escape(record)}"]`,
+    ) as HTMLElement;
+    return {
+      canvas: (root.getLayoutInput(record) as Record<string, unknown>)
+        .marginTop,
+      gap: (root.getLayoutInput(root.recordsOfSource(NAV)[0]!) as Record<
+        string,
+        unknown
+      >).rowGap,
+      inline: element.getAttribute("style") ?? "",
+    };
+  }
+
+  it("the sheet's 24: the Canvas margin + the nav gap = 24, no inline margin", async () => {
+    const { canvas, gap, inline } = await nav();
+    expect(parseFloat(String(canvas)) + parseFloat(String(gap ?? 0))).toBe(24);
+    expect(inline).not.toMatch(/margin-top/);
+  });
+
+  it("an authored 10: the Canvas margin + the nav gap = 10, the DOM's inline 10", async () => {
+    const { canvas, gap, inline } = await nav("10px");
+    expect(parseFloat(String(canvas)) + parseFloat(String(gap ?? 0))).toBe(10);
+    expect(inline).toMatch(/margin-top:\s*10px/);
   });
 });

@@ -347,10 +347,19 @@ export function catalogSideNavPartLayout(
     };
   }
   // S2 `SideNavSection` `marginTop: 24` from the second on (the SideNav rule's `:not(:first-child)`
-  //  margin) — on the Canvas over the nav's column gap, which the DOM turns off.
+  //  margin) — on the Canvas over the nav's column gap, which the DOM turns off. An authored px
+  //  margin is the distance too (the DOM inlines it — 2026-11-14 감사: the Canvas kept 24); any
+  //  other length goes as written.
   if (type === "SideNavSection") {
     const parent = get(node.parentId);
     if (!parent || parent.children[0] === node.id) return undefined;
+    const written = (node.authoredLayout as Record<string, unknown> | undefined)
+      ?.marginTop;
+    if (
+      written !== undefined &&
+      !/^-?\d*\.?\d+px$/.test(String(written).trim())
+    )
+      return undefined;
     const nav = RULES.SideNav as
       | {
           structure?: {
@@ -362,6 +371,7 @@ export function catalogSideNavPartLayout(
         }
       | undefined;
     const margin =
+      written ??
       nav?.structure?.composition?.staticSelectors?.[
         ".react-aria-SideNavSection:not(:first-child)"
       ]?.["margin-top"];

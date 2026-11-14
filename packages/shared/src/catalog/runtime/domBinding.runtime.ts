@@ -190,6 +190,7 @@ import {
 } from "./delegatedDom";
 
 import { CatalogNavLink } from "./navRoute.components";
+import { CatalogPreviewTriggerTarget } from "./previewTriggerTarget.components";
 import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
@@ -3939,13 +3940,20 @@ export function renderNode(
       const indicator = catalogToggleIndicatorElement(root, child);
       return indicator ? [indicator] : [];
     }
+    const element = createElement(CatalogDomNode, {
+      key: childId,
+      root,
+      id: childId,
+      context,
+    });
+    // (A PreviewTrigger's trigger keeps its authored style — RAC's guard goes to the sheet.)
     return [
-      createElement(CatalogDomNode, {
-        key: childId,
-        root,
-        id: childId,
-        context,
-      }),
+      node.bindingId === "previewtrigger"
+        ? createElement(CatalogPreviewTriggerTarget, {
+            key: childId,
+            children: element,
+          })
+        : element,
     ];
   });
   // A bound Table's end loads its next page (`TableLoadMoreItem` — `onLoadMore`, S2 TableView).
@@ -4135,9 +4143,12 @@ export function renderNode(
           : bindingOf(node);
   // A Slider's thumb (ADR-256 Phase 7c): RAC's thumb of its place among the track's thumbs; its
   // ring is the slider sheet's (`.react-aria-SliderThumb` border — its color is the sheet's), not
-  // inline.
+  // inline — unless the author wrote one (2026-11-14 감사: the written width was dropped).
   if (node.bindingId === "sliderthumb" && parentInput) {
-    const { borderWidth: _ring, ...visual } = node.visual;
+    const { borderWidth: _ring, ...sheetRing } = node.visual;
+    const visual = catalogHasExplicitVisual(root, node, "borderWidth")
+      ? node.visual
+      : sheetRing;
     // (The copy keeps the token refs — the thumb's `scaled` sides go inline as the device formula.)
     copyResolvedTokenRefs(visual, node.visual, Object.keys(visual));
     node = {

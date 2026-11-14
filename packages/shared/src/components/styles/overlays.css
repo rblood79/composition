@@ -86,4 +86,12 @@
       animation: modal-fade 200ms;
     }
   }
+
+  /* RAC PreviewTrigger 의 long press 방지 (usePreviewTrigger 가 trigger 에 inline 으로 주던 값).
+     inline 으로 두면 RAC 가 trigger 의 작성 style 전체를 덮어 이 sheet 로 옮겼다
+     (catalog/runtime/previewTriggerTarget.components.tsx — 2026-11-14). */
+  [data-preview-trigger] {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+  }
 }

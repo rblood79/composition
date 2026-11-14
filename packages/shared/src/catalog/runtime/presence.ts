@@ -1421,7 +1421,8 @@ export function catalogSliderThumbLayout(
   const size = number(node.visual.height ?? node.visual.width, 18);
   // S2 `thumbStyle: precise` — a narrow bar (width 6, size + 2 tall — S2 Slider.tsx thumb).
   const precise = slider.props.thumbStyle === "precise";
-  const width = precise ? catalogScaledPx(6) : size;
+  // (The rule gives one side — the circle; a written width is the DOM's inline width too.)
+  const width = precise ? catalogScaledPx(6) : number(node.visual.width, size);
   const height = precise ? size + catalogScaledPx(2) : size;
   const trackHeight =
     slider.props.trackStyle === "thick"
@@ -2472,7 +2473,9 @@ function catalogProgressStaticText(
   if (!PROGRESS_TRACKS[ownerType]) return undefined;
   if (type !== "Label" && PROGRESS_VALUES[ownerType] !== type) return undefined;
   // (an `auto` owner's parts resolve `auto` themselves against the same backdrop — `staticBackdrop.ts`)
-  return owner.props.staticColor === "auto" ? "auto" : catalogStaticScheme(owner);
+  return owner.props.staticColor === "auto"
+    ? "auto"
+    : catalogStaticScheme(owner);
 }
 
 /**

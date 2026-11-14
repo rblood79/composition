@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [작성값이 한쪽에만 보이던 부품 3종 — PreviewTrigger Button · Slider thumb · SideNav section] - 2026-11-14
+
+### Fixed
+
+- **PreviewTrigger 안 Button**: Preview · Publish 에서 Button 에 작성한 style 이 전부 사라졌다 (Canvas 는 그렸다). RAC `PreviewTrigger` 가 long press 방지 값을 trigger 에 inline style 로 주고, RAC Button 이 그 값으로 작성 style 을 통째로 덮었다. 이제 그 방지 값은 시트 (`[data-preview-trigger]`) 가 주고 작성 style 은 남는다.
+- **Slider thumb**: Canvas 가 작성한 폭을 무시하고 높이로 정사각을 그렸고, Preview 는 작성한 테두리 두께를 지웠다. 이제 두 화면 모두 작성한 폭 · 테두리를 쓴다 (작성하지 않으면 지금처럼 규칙의 원 · 시트의 테두리).
+- **SideNav 의 둘째 section 부터**: 작성한 위 여백을 Canvas 가 무시하고 S2 기본 24 를 그렸다. 이제 px 로 작성한 여백은 Canvas 에서도 같은 거리다.
+
 ## [컴포넌트 일러스트 경로 정리] - 2026-11-14
 
 ### Changed
