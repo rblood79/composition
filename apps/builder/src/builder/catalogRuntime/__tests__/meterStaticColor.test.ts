@@ -138,12 +138,14 @@ async function open(type: keyof typeof PARTS, props: Record<string, unknown>) {
 
 for (const type of ["Meter", "ProgressBar"] as const)
   describe(`S2 ${type} staticColor`, () => {
-    it("the Design panel offers Static Color (auto · white · black)", async () => {
+    // (2026-11-14: none = the theme paint, `auto` = S2 `autoStaticColor` — `staticColorAuto.test.tsx`.)
+    it("the Design panel offers Static Color (none · auto · white · black)", async () => {
       const { definitionId } = await open(type, {});
       const contract = catalogSemanticContracts(definitionId, type)
         .staticColor as { kind: string; options?: Array<{ value: string }> };
       expect(contract).toMatchObject({ kind: "enum" });
       expect(contract.options?.map((option) => option.value)).toEqual([
+        "",
         "auto",
         "white",
         "black",

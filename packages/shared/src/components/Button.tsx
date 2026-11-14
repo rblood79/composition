@@ -83,7 +83,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       fillStyle = "fill",
       size = "M",
-      staticColor = "auto",
+      staticColor,
       className,
       style,
       ...restProps

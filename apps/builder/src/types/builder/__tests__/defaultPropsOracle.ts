@@ -28,7 +28,6 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       size: "M",
       fillStyle: "fill", // catalog bindingOnly — factory 누락분 보강(옵션 B)
       type: "button", // catalog bindingOnly — factory 누락분 보강(옵션 B)
-      staticColor: "auto", // catalog bindingOnly — RSP S2 staticColor 채택(2026-08-20)
       // builder-local overlay
       children: "Button",
       name: "",
@@ -53,7 +52,6 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
     props: {
       variant: "primary",
       size: "M",
-      staticColor: "auto", // catalog bindingOnly 보강
       children: "Link",
       href: "#",
       isDisabled: false,
@@ -66,7 +64,6 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       children: "Toggle",
       isEmphasized: false,
       isQuiet: false,
-      staticColor: "auto", // catalog bindingOnly — RSP S2 staticColor 채택(2026-08-21)
       isSelected: false,
       isDisabled: false,
     },

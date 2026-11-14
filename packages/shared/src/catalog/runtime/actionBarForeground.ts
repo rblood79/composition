@@ -2,19 +2,14 @@ import { parseColor } from "react-aria-components/ColorPicker";
 import { ACTION_BAR_RULE } from "../rule/selectionComposites";
 import { evaluatePaint } from "../rule/rulePaintTree";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { catalogAutoStaticTone } from "./staticBackdrop";
 
 export function actionBarPaint(foreground: string, background: string) {
-  const rgb = parseColor(background)?.toFormat("rgb");
-  if (!rgb || !parseColor(foreground))
+  if (!parseColor(background) || !parseColor(foreground))
     throw new Error("ACTION_BAR_RESOLVED_COLOR_REQUIRED");
-  const linear = (channel: "red" | "green" | "blue") => {
-    const value = rgb.getChannelValue(channel) / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  };
-  const luminance =
-    0.2126 * linear("red") + 0.7152 * linear("green") + 0.0722 * linear("blue");
-  const staticColor: "white" | "black" =
-    1.05 / (luminance + 0.05) > (luminance + 0.05) / 0.05 ? "white" : "black";
+  // (S2 `ActionBar` hands its buttons `staticColor="auto"` when emphasized — the `autoStaticColor`
+  //  lightness rule on its `neutral` background, `staticBackdrop.ts`, 2026-11-14.)
+  const staticColor = catalogAutoStaticTone(background);
   return { foreground, background, staticColor };
 }
 

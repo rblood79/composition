@@ -1,4 +1,5 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
+import { catalogEffectiveStaticColor } from "./staticBackdrop";
 import { SliderThumb as CatalogSliderThumb } from "../../components/RangeSlider";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import { LinkButton } from "../../components/LinkButton";
@@ -1143,8 +1144,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             "data-catalog-id": node.id,
             "data-icon-only": node.derivedProps?._actionIconOnly || undefined,
             size: node.props.size,
-            staticColor:
-              node.derivedProps?.staticColor ?? node.props.staticColor,
+            staticColor: catalogEffectiveStaticColor(node),
             isQuiet: node.props.isQuiet,
             type: node.props.type,
             isPending: node.props.isPending,
@@ -1195,11 +1195,11 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             variant: node.props.variant,
             size: node.props.size,
             fillStyle: node.props.fillStyle,
-            staticColor: node.props.staticColor,
+            staticColor: catalogEffectiveStaticColor(node),
             "data-size": node.props.size,
             "data-variant": node.props.variant,
             "data-fill-style": node.props.fillStyle,
-            "data-static-color": node.props.staticColor,
+            "data-static-color": catalogEffectiveStaticColor(node),
             href: node.props.href as string | undefined,
             target: node.props.target as string | undefined,
             rel: node.props.rel as string | undefined,
@@ -2142,7 +2142,7 @@ function buttonElement(
       variant: node.props.variant,
       size: node.props.size,
       fillStyle: node.props.fillStyle,
-      staticColor: node.props.staticColor,
+      staticColor: catalogEffectiveStaticColor(node),
       type: node.props.type,
       // Only what the document says (ADR-253 Decision 5): RAC puts an explicit prop over its
       // parent's context, so a default `false` would undo a field's disabled stepper.
@@ -2612,19 +2612,22 @@ function ruleDom(
       ? { paddingRight: cssLength(catalogBoxModel(node).padding?.right ?? 0) }
       : {}),
   };
+  // (The resolved static scheme — an `auto`'s backdrop scheme, a group's — over the prop; an empty
+  //  one is none, 2026-11-14.)
+  const staticColor = catalogEffectiveStaticColor(node);
   const bindingProps =
-    type === "ActionButton" && node.derivedProps?.staticColor
-      ? { ...node.props, staticColor: node.derivedProps.staticColor }
+    staticColor !== node.props.staticColor
+      ? { ...node.props, staticColor }
       : node.props;
   const racProps = binding ? toRacProps({ props: bindingProps }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
   // Separator has no authorable variant, but its size/staticColor paint branches belong to
   // the default catalog variant. Match that sheet without adding a public variant prop.
   if (type === "Separator") rest["data-variant"] = "default";
-  // (2026-11-14: an ActionButton's count badge — its button's static color, S2 `NotificationBadgeContext`;
-  //  the Canvas paint reads the same derived value.)
-  if (type === "Badge" && typeof node.derivedProps?.staticColor === "string")
-    rest["data-static-color"] = node.derivedProps.staticColor;
+  // (A scheme a record takes without accepting the prop — an ActionButton's count badge, S2
+  //  `NotificationBadgeContext`; the Canvas paint reads the same derived value, 2026-11-14.)
+  if (staticColor && rest["data-static-color"] === undefined)
+    rest["data-static-color"] = staticColor;
   if (node.domSlot) rest.slot = catalogDomSlot(node);
   const lower = type.toLowerCase();
   // ADR-280 Decision 3 · 4 (Phase 0 probe P1) — an overlay's open state is its trigger's: a

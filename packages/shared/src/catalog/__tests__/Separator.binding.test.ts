@@ -19,7 +19,6 @@ describe("Separator binding → toRacProps", () => {
       // orientation 은 RAC props (RAC 가 aria-orientation 자동 매핑, D1)
       orientation: "vertical",
       "data-size": "L",
-      "data-static-color": "auto",
     });
   });
 
@@ -31,7 +30,6 @@ describe("Separator binding → toRacProps", () => {
     expect(result).toEqual({
       orientation: "horizontal",
       "data-size": "M",
-      "data-static-color": "auto",
     });
   });
 

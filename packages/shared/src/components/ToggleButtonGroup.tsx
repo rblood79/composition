@@ -120,7 +120,7 @@ export function ToggleButtonGroup({
       data-quiet={isQuiet || undefined}
       data-size={size ?? "M"}
       data-density={density}
-      data-static-color={staticColor ?? "auto"}
+      data-static-color={staticColor}
       data-justified={isJustified || undefined}
       className={toggleButtonGroupClassName}
       isDisabled={isDisabled || props.isDisabled}

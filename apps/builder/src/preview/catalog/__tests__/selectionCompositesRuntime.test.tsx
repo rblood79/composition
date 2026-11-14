@@ -220,7 +220,8 @@ it("ActionBar emphasis re-evaluates button static color and direct count without
   h.declare(id, { isEmphasized: false });
   expect(
     buttons().every(
-      (button) => button.getAttribute("data-static-color") === "auto",
+      // (no staticColor of their own — the theme paint, 2026-11-14)
+      (button) => button.getAttribute("data-static-color") === null,
     ),
   ).toBe(true);
   h.declare(id, { isEmphasized: true });

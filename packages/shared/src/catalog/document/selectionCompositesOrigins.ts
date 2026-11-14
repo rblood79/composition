@@ -92,7 +92,6 @@ export const SELECTION_COMPOSITE_DEFINITIONS: readonly LibraryDefinition[] = [
       label: "Action",
       avatar: "",
       size: "M",
-      staticColor: "auto",
       type: "button",
       isQuiet: false,
       isPending: false,
@@ -325,7 +324,6 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     props: {
       size: "M",
-      staticColor: "auto",
       type: "button",
       isQuiet: false,
       isPending: false,

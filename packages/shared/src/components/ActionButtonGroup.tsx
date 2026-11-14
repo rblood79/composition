@@ -57,7 +57,7 @@ export const ActionButtonGroup = forwardRef<
         data-density={density}
         data-quiet={isQuiet || undefined}
         data-justified={isJustified || undefined}
-        data-static-color={staticColor ?? "auto"}
+        data-static-color={staticColor}
         className={`${rootClassName}${className ? ` ${className}` : ""}`}
       >
         {children}

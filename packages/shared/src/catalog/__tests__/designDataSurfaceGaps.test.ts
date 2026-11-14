@@ -60,13 +60,15 @@ describe("design-data 감사 §1-2 — staticColor 축 전개", () => {
    * 이 전제가 깨지면(예: fill 이 transparent 로 바뀌면) CSS 만 static 이 되어
    * 비대칭이 나므로, 표면과 전제를 함께 고정한다.
    */
-  it("ToggleButton: staticColor D2 표면이 Button/Link 와 같은 3값으로 열려 있다", () => {
+  // (2026-11-14: none (`""`, 기본 — 테마 칠) + S2 3값 — `auto` 는 바탕 밝기로 흑 / 백)
+  it("ToggleButton: staticColor D2 표면이 Button/Link 와 같은 3값 + none 으로 열려 있다", () => {
     const accepts = getPrimitiveBinding("ToggleButton")?.props?.accepts;
     const staticColor = accepts?.staticColor;
 
     expect(staticColor, "ToggleButton accepts.staticColor").toBeDefined();
-    expect(staticColor?.default).toBe("auto");
+    expect(staticColor?.default).toBeUndefined();
     expect((staticColor?.options ?? []).map((o) => o.value).sort()).toEqual([
+      "",
       "auto",
       "black",
       "white",

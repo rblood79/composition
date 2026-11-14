@@ -46,7 +46,7 @@ export function ToggleButton({
   isEmphasized = false,
   isQuiet = false,
   size = "M",
-  staticColor = "auto",
+  staticColor,
   children,
   ...props
 }: ToggleButtonExtendedProps) {

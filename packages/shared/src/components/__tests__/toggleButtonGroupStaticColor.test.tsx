@@ -66,7 +66,8 @@ describe("ToggleButtonGroup staticColor — 자식 상속 (§1-2 축③)", () =>
     expect(childStaticColors(html)).toEqual(["black", "black"]);
   });
 
-  it("그룹 미지정(auto) → 자식은 기존 동작 유지", () => {
+  // (2026-11-14: 미지정 = 값 없음 — `data-static-color` 를 내지 않는다. `auto` 는 S2 `autoStaticColor`)
+  it("그룹 미지정 → 자식은 기존 동작 유지", () => {
     const html = renderToStaticMarkup(
       <ToggleButtonGroup>
         <ToggleButton id="a" staticColor="white">
@@ -75,8 +76,9 @@ describe("ToggleButtonGroup staticColor — 자식 상속 (§1-2 축③)", () =>
         <ToggleButton id="b">B</ToggleButton>
       </ToggleButtonGroup>,
     );
-    expect(groupStaticColor(html)).toBe("auto");
-    expect(childStaticColors(html)).toEqual(["white", "auto"]);
+    // (attribute absent — the helper reads "")
+    expect(groupStaticColor(html)).toBe("");
+    expect(childStaticColors(html)).toEqual(["white", ""]);
   });
 
   it("standalone ToggleButton 은 그룹 context 없이도 자기 값 emit", () => {

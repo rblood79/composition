@@ -1,4 +1,5 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
+import { catalogEffectiveStaticColor } from "./staticBackdrop";
 import { catalogSelectBoxText } from "./selectBoxText";
 import { selectBoxDisabledKeys } from "./selectBoxSelection";
 import { ActionBar } from "../../components/ActionBar";
@@ -2819,7 +2820,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   progressbar: {
     render: (input) => {
       const props = input.node.props;
-      const staticColor = props.staticColor;
+      const staticColor = catalogEffectiveStaticColor(input.node);
       return withI18n(
         createElement(AriaProgressBar as ElementType, {
           ...marker(input),
@@ -2855,7 +2856,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   meter: {
     render: (input) => {
       const props = input.node.props;
-      const staticColor = props.staticColor;
+      const staticColor = catalogEffectiveStaticColor(input.node);
       return withI18n(
         createElement(AriaMeter as ElementType, {
           ...marker(input),
@@ -3216,7 +3217,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 autoFocus: bool(props.autoFocus),
                 isEmphasized: bool(props.isEmphasized),
                 isQuiet: bool(props.isQuiet),
-                staticColor: props.staticColor || "auto",
+                staticColor: catalogEffectiveStaticColor(input.node),
                 size: props.size || "M",
               },
               typeof props.children === "string" ? props.children : null,
@@ -3240,7 +3241,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             autoFocus: bool(props.autoFocus),
             isEmphasized: bool(props.isEmphasized),
             isQuiet: bool(props.isQuiet),
-            staticColor: props.staticColor || "auto",
+            staticColor: catalogEffectiveStaticColor(input.node),
             size: props.size || "M",
           },
           typeof props.children === "string" ? props.children : null,
@@ -3342,7 +3343,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           isQuiet: props.isQuiet,
           // S2 isJustified (2026-10-10): the sheet's `[data-justified]` grows each button.
           isJustified: bool(props.isJustified),
-          staticColor: props.staticColor || "auto",
+          staticColor: catalogEffectiveStaticColor(input.node),
           size: props.size || "M",
           density: props.density || "regular",
           ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
@@ -3366,9 +3367,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           density: input.node.props.density,
           isQuiet: input.node.props.isQuiet,
           isJustified: input.node.props.isJustified,
-          staticColor:
-            input.node.derivedProps?.staticColor ??
-            input.node.props.staticColor,
+          staticColor: catalogEffectiveStaticColor(input.node),
           isDisabled: input.node.props.isDisabled,
           style: input.style,
         } as Parameters<typeof ActionButtonGroup>[0],
@@ -3387,9 +3386,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           density: input.node.props.density,
           isQuiet: input.node.props.isQuiet,
           isJustified: input.node.props.isJustified,
-          staticColor:
-            input.node.derivedProps?.staticColor ??
-            input.node.props.staticColor,
+          staticColor: catalogEffectiveStaticColor(input.node),
           isDisabled: input.node.props.isDisabled,
           style: input.style,
         } as Parameters<typeof ActionButtonGroup>[0],

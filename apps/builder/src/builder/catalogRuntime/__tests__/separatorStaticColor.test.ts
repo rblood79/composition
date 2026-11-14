@@ -81,11 +81,19 @@ async function open(props: Record<string, string>) {
 }
 
 describe("S2 Separator staticColor", () => {
-  it("the Design panel offers Static Color (auto · white · black)", async () => {
+  // (2026-11-14: none = the theme paint, `auto` = S2 `autoStaticColor` — `staticColorAuto.test.tsx`.)
+  it("the Design panel offers Static Color (none · auto · white · black)", async () => {
     const { definitionId } = await open({});
-    expect(
-      catalogSemanticContracts(definitionId, "Separator").staticColor,
-    ).toMatchObject({ kind: "enum", default: "auto" });
+    const contract = catalogSemanticContracts(definitionId, "Separator")
+      .staticColor as { kind: string; default?: unknown; options?: Array<{ value: string }> };
+    expect(contract).toMatchObject({ kind: "enum" });
+    expect(contract.default).toBeUndefined();
+    expect(contract.options?.map((option) => option.value)).toEqual([
+      "",
+      "auto",
+      "white",
+      "black",
+    ]);
   });
 
   it.each([

@@ -1,4 +1,9 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
+import {
+  catalogStaticAuto,
+  catalogStaticAutoDependents,
+  catalogStaticBackdropTone,
+} from "./staticBackdrop";
 import { catalogInlineSizeContainment } from "./inlineSizeContainment";
 import { catalogPartConditionProps } from "../document/derivedVariantProps";
 import { catalogActionBarForeground } from "./actionBarForeground";
@@ -4311,6 +4316,18 @@ export class CatalogCompositionRoot {
    * color (`catalogItemLabels` — DOM `color: inherit`): the item's rule paint for its variant,
    * state and selection (`catalogRuleTextColor`), unless the label authors its own color.
    */
+  /** A theme color token's value in this root's color mode (`{color.base}` …), else undefined. */
+  private themeColor(ref: string): unknown {
+    const token = [...this.runtime.graph.library.tokens.values()].find(
+      (token) => token.ref === ref,
+    );
+    return token
+      ? catalogTokenValue(
+          this.runtime.graph.getToken(token.id) ?? token,
+          this.colorMode,
+        )
+      : undefined;
+  }
   private derivedOf(
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
@@ -4368,7 +4385,17 @@ export class CatalogCompositionRoot {
     const actionBarForeground = actionBarForegroundOf(record);
     const baseDerived = actionBarForeground?.staticColor
       ? { ...controlDerived, staticColor: actionBarForeground.staticColor }
-      : controlDerived;
+      : catalogStaticAuto(record, controlDerived)
+        ? // (2026-11-14: S2 `staticColor="auto"` — the black or white scheme of its backdrop,
+          //  `staticBackdrop.ts`; the Canvas paint and the DOM read the resolved one.)
+          {
+            ...controlDerived,
+            staticColor: catalogStaticBackdropTone(record, get, (ref) =>
+              this.themeColor(ref),
+            ),
+            _staticAuto: true,
+          }
+        : controlDerived;
     const labelPart = catalogFieldLabelPart(record, get, this.typeOf);
     if (labelPart) {
       const values: Record<string, string | number | boolean> = {
@@ -4631,7 +4658,15 @@ export class CatalogCompositionRoot {
     const itemActionBar = actionBarForegroundOf(item);
     const itemDerived = itemActionBar?.staticColor
       ? { ...ownItemDerived, staticColor: itemActionBar.staticColor }
-      : ownItemDerived;
+      : catalogStaticAuto(item, ownItemDerived)
+        ? // (its `auto` scheme, resolved against its backdrop — `staticBackdrop.ts`)
+          {
+            ...ownItemDerived,
+            staticColor: catalogStaticBackdropTone(item, get, (ref) =>
+              this.themeColor(ref),
+            ),
+          }
+        : ownItemDerived;
     const color = catalogRuleTextColor({
       node: itemDerived
         ? {
@@ -7791,6 +7826,12 @@ export class CatalogCompositionRoot {
           ? [get(update.record.parentId)!]
           : []),
         ...catalogDerivedPropsDependents(update.record, get, this.typeOf),
+        // (2026-11-14) S2 `staticColor="auto"` — the auto records under a changed backdrop.
+        ...catalogStaticAutoDependents(
+          update.record,
+          this.records.get(update.id),
+          get,
+        ),
         // ADR-303 — the readers under a node whose container layer changed (`_containerLayer`).
         ...catalogContainerDependents(
           update.record,

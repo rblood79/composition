@@ -85,8 +85,8 @@ export const meterBinding: PrimitiveBinding = {
         kind: "enum",
         label: "Static Color",
         section: "appearance",
-        default: "auto",
         options: [
+          { value: "", label: "None" },
           { value: "auto", label: "Auto" },
           { value: "white", label: "White" },
           { value: "black", label: "Black" },

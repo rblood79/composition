@@ -536,7 +536,6 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "variant": "primary",
       "size": "M",
       "fillStyle": "fill",
-      "staticColor": "auto",
       "type": "button",
       "isDisabled": false,
       "isPending": false
@@ -601,7 +600,6 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "defaults": {
       "label": "Toggle",
       "size": "M",
-      "staticColor": "auto",
       "isEmphasized": false,
       "isQuiet": false,
       "isDisabled": false
@@ -1968,7 +1966,6 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "variant": "primary",
     "size": "M",
     "fillStyle": "fill",
-    "staticColor": "auto",
     "isDisabled": false,
     "href": "#"
   },
@@ -2036,7 +2033,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "density": "regular",
       "isQuiet": false,
       "isJustified": false,
-      "staticColor": "auto",
       "aria-label": "Actions"
     },
     "visual": {},
@@ -3303,7 +3299,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "variant": "primary",
       "size": "M",
-      "staticColor": "auto",
       "children": "Link",
       "href": "#",
       "isDisabled": false
@@ -3702,7 +3697,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "variant": "primary",
       "size": "M",
       "fillStyle": "fill",
-      "staticColor": "auto",
       "type": "button",
       "isDisabled": false,
       "isPending": false
@@ -3773,7 +3767,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "size": "M",
-      "staticColor": "auto",
       "isEmphasized": false,
       "isQuiet": false,
       "isSelected": false,
@@ -9962,7 +9955,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "variant": "primary",
     "size": "M",
     "fillStyle": "fill",
-    "staticColor": "auto",
     "isDisabled": false,
     "href": "#"
   },

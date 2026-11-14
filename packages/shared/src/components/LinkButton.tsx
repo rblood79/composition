@@ -16,7 +16,7 @@ export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
       variant = "primary",
       size = "M",
       fillStyle = "fill",
-      staticColor = "auto",
+      staticColor,
       className,
       ...props
     },

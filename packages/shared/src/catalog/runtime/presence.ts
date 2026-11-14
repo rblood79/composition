@@ -1,4 +1,5 @@
 import type { CatalogActionBadgeContent } from "../rule/actionBadge";
+import { catalogStaticScheme } from "./staticBackdrop";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import {
   catalogCalendarFirstDate,
@@ -355,8 +356,11 @@ export function catalogToggleButtonGlyphOwner(
   if (typeOf(parent) === "Button") {
     // (A Select's trigger value · glyph are the picker parts' — `_pickerIcon` · `_pickerValue`.)
     const field = catalogFieldButtonOwner(parent, get, typeOf);
+    // (2026-11-14: an `auto` Button's scheme is resolved after its parts are — they take its paint,
+    //  S2 content `currentColor`; the DOM `color: inherit` under its `data-static-color`.)
     return catalogButtonGroupOf(parent, get, typeOf) ||
-      (field && typeOf(field) !== "Select")
+      (field && typeOf(field) !== "Select") ||
+      parent.props.staticColor === "auto"
       ? parent
       : undefined;
   }
@@ -2442,7 +2446,7 @@ function catalogProgressStaticText(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
-): "white" | "black" | undefined {
+): "white" | "black" | "auto" | undefined {
   const type = node.ruleId ?? typeOf(node);
   if (type !== "Label" && !PROGRESS_VALUE_TYPES.has(type)) return undefined;
   const owner = get(node.parentId);
@@ -2450,8 +2454,8 @@ function catalogProgressStaticText(
   const ownerType = typeOf(owner);
   if (!PROGRESS_TRACKS[ownerType]) return undefined;
   if (type !== "Label" && PROGRESS_VALUES[ownerType] !== type) return undefined;
-  const color = owner.props.staticColor;
-  return color === "white" || color === "black" ? color : undefined;
+  // (an `auto` owner's parts resolve `auto` themselves against the same backdrop — `staticBackdrop.ts`)
+  return owner.props.staticColor === "auto" ? "auto" : catalogStaticScheme(owner);
 }
 
 /**
@@ -2975,7 +2979,9 @@ function ownDerivedPropsBase(
       return {
         _actionBadge: content,
         _actionBadgeSize: String(button.props.size ?? "M"),
-        ...(staticColor === "white" || staticColor === "black"
+        ...(staticColor === "white" ||
+        staticColor === "black" ||
+        staticColor === "auto"
           ? { staticColor }
           : {}),
       };
@@ -3009,7 +3015,7 @@ function ownDerivedPropsBase(
       "orientation",
     ])
       if (
-        typeof group.props[key] === "string" ||
+        (typeof group.props[key] === "string" && group.props[key] !== "") ||
         typeof group.props[key] === "boolean"
       )
         derived[key] = group.props[key] as string | boolean;

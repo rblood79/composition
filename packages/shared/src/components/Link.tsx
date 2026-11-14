@@ -64,7 +64,7 @@ export function Link(props: LinkProps) {
     variant = "primary",
     size = "M",
     isQuiet = false,
-    staticColor = "auto",
+    staticColor,
     isExternal,
     showExternalIcon = true,
     isLoading,

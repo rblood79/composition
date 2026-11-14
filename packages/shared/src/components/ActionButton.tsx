@@ -32,7 +32,7 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
     const group = useContext(ActionButtonGroupContext);
     // S2: 공통 시각 값은 그룹이 우선, disabled는 자식의 명시값이 우선한다.
     const size = group?.size ?? ownSize ?? "M";
-    const staticColor = group?.staticColor ?? ownColor ?? "auto";
+    const staticColor = group?.staticColor ?? ownColor;
     const isQuiet = group?.isQuiet ?? ownQuiet;
     const isProgressVisible = usePendingState(props.isPending === true);
     const indicator = catalogButtonPendingIndicator(size);

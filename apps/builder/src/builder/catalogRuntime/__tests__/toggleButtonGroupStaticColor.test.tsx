@@ -101,7 +101,8 @@ describe("ToggleButtonGroup staticColor — Canvas", () => {
       ).toEqual([color, color]);
       const fromGroup = paint();
       expect(fromGroup).not.toEqual(before);
-      edit(of("ToggleButtonGroup")[0]!.id, { staticColor: "auto" });
+      // (none — the theme paint again; `auto` is S2 `autoStaticColor`, 2026-11-14)
+      edit(of("ToggleButtonGroup")[0]!.id, { staticColor: "" });
       expect(paint()).toEqual(before);
     },
   );
@@ -116,13 +117,16 @@ describe("ToggleButtonGroup staticColor — Canvas", () => {
     ).toEqual(["white", "white"]);
   });
 
-  it("back to auto: group auto overrides child static color", async () => {
+  // (2026-11-14: the group's `auto` is S2 `autoStaticColor` — the page base, black in the light theme.)
+  it("back to auto: the group's auto resolves for every child over its own value", async () => {
     const { of, edit } = await open();
     const group = of("ToggleButtonGroup")[0]!.id;
+    const [first] = of("ToggleButton");
+    edit(first!.id, { staticColor: "white" });
     edit(group, { staticColor: "white" });
     edit(group, { staticColor: "auto" });
     expect(
       of("ToggleButton").map((button) => button.derivedProps?.staticColor),
-    ).toEqual(["auto", "auto"]);
+    ).toEqual(["black", "black"]);
   });
 });

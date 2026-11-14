@@ -26,7 +26,7 @@
 
 축별 상태:
 
-- **스타일 값**: 값 대조 대기 0. `d3S2Alignment` 73 통과. rule 리터럴 분류 게이트는 1건 실패 — `TabPanel.structure.containerStyles.minHeight = 0` 미분류 (Tabs 진행 세션의 미커밋 변경).
+- **스타일 값**: 값 대조 대기 0. `d3S2Alignment` 73 통과. rule 리터럴 분류 게이트는 1건 실패 — `TabPanel.structure.containerStyles.minHeight = 0` 미분류 (Tabs 커밋 `7f76a6ee8` 에 들어감).
 - **프로퍼티 이름 · 값**: `d2S2Alignment` 5 통과. S2 에 없는 키는 전부 `d2Provenance.ts` 에 출처가 있다. S2 가 선언하는데 루트 binding 에 없는 키는 부록 A.
 - **구조**: 대조한 61종 가운데 30종 일치.
 
@@ -139,16 +139,18 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 | [ ]  | Avatar · Link                                 | 구조 판정 없음. initials · 외부 아이콘은 S2 에 없는 확장으로만 기록 (§7 결정 대기 2) |
 | [ ]  | Image                                         | catalog 미등록 (팔레트 전용 항목) — S2 Image 와 prop 대조 불가                       |
 
-## 6. 진행 중 · 미커밋 (2026-11-14 기준)
+## 6. 진행 중 · 커밋 (2026-11-14 기준)
 
-- [ ] Tabs — 다른 세션이 구현 중 (`tabsS2.browser.test.ts` 미추적, `TabPanel minHeight` 리터럴 분류 필요)
-- [ ] Separator — S2 Divider 정렬 완료 · 미커밋 · Builder live 미확인
-- [ ] ActionButton Avatar · Badge (`Badge.value`) — 구현 완료 · 미커밋 · 회귀 · live 확인 중
-- [ ] ActionButton form · focus prop 10개 (`editorHidden`) — 미커밋
-- [ ] Text 기본 width · height fit-content — 미커밋
-- [ ] Pagination width · height fit-content — 미커밋
-- [ ] Illustration strokeWidth 기본 1 — 미커밋
-- [ ] SearchField Group padding-right 0 — 미커밋
+- [x] Tabs — `7f76a6ee8` 커밋. rule 리터럴 분류 게이트의 `TabPanel.structure.containerStyles.minHeight = 0` 미분류 1건은 남아 있다
+- [x] Separator — S2 Divider 정렬 `7f76a6ee8` 커밋
+- [x] ActionButton Avatar · Badge (`Badge.value`) — `9ef5e0669`. S2 와 같게: Avatar 가 Icon 자리를 대신함 · 비활성 버튼은 Badge 숨김 · staticColor 버튼의 Badge 는 그 색 바탕 + 대비 글자. live (verify-ab-1114): Canvas · Preview 위치 · 크기 같음, console 오류 0
+- [x] ActionButton form · focus prop 10개 (`editorHidden`) + Type · Auto focus 패널 숨김 — `9ef5e0669`
+- [x] Text 기본 width · height fit-content — `9ef5e0669`
+- [x] Pagination width · height fit-content — `9ef5e0669`
+- [x] Illustration strokeWidth 기본 1 — `9ef5e0669`
+- [x] Canvas 말줄임 1/64px 허용 (float32 한 단위 차이로 「Acti…」 로 잘리던 문제) — `9ef5e0669`
+- [x] SearchField Group padding-right 0 — `59496c6cf`
+- [ ] staticColor `auto` 를 S2 방식으로 — 진행 중 (§8)
 
 검증 잔여:
 
@@ -161,8 +163,25 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 1. toggle 3종 (Checkbox · Radio · Switch) 의 배치 차이 — 도움말 들여쓰기 (S2 는 글자 열에서 시작) · 버튼과 도움말 간격 · 여러 줄 라벨에서 indicator 정렬 (S2 baseline).
 2. S2 에 없는 확장 유지 여부 — Avatar initials · Link 외부 아이콘.
 3. 세로 flex 에서 눌림 — Tree (overflow auto) · Table (min-height 40 + overflow auto) · Chart (고유 최소 높이 없음) · SideNav / SideNavPanel (S2 minHeight 0).
-4. ActionButton 의 Type · Auto focus 를 패널에서 숨길지.
-5. 프로퍼티 후보 (§2 · §3 · 부록 A) 가운데 무엇을 Property 탭에 낼지.
+4. 프로퍼티 후보 (§2 · §3 · 부록 A) 가운데 무엇을 Property 탭에 낼지.
+5. 일반 Button 에도 S2 form · focus prop 10개 (`name` · `value` · `form*` · `excludeFromTabOrder` · `preventFocusOnPress`) 를 넣을지.
+
+결정됨: ActionButton 의 Type · Auto focus 는 패널에서 숨김 (사용자 11-14 「숨겨」).
+
+## 8. staticColor `auto` — S2 방식 (사용자 11-14 진행 지시)
+
+S2 1.8.2 `style/tokens.ts` `autoStaticColor`: 놓인 바탕 (`--s2-container-bg`, Card · Modal · ActionBar · CoachMark 가 자기 배경으로 설정) 의 LCH 밝기를 49.44 와 비교해 밝으면 검정 · 어두우면 흰색 계열로 칠한다 (`lch(from bg calc((49.44 - l) * infinity) 0 0 / α)`). S2 기본값은 값 없음 (테마 색).
+
+지금 우리: 기본값 `auto` = 테마 색 (S2 의 「값 없음」). `white` · `black` 만 고정 흑백.
+
+- [x] 값의 뜻 분리 — 기본값 「없음」 (패널 None = `""`), `auto` = 바탕 밝기로 흑 / 백. 원본 template 의 `staticColor: "auto"` 10 곳 삭제 · shared 컴포넌트의 `"auto"` 기본값 삭제
+- [x] 판정 한 곳 — `packages/shared/src/catalog/runtime/staticBackdrop.ts` (`catalogAutoStaticTone` · `catalogStaticBackdropTone`) 을 composition root 파생 단계가 불러 `derivedProps.staticColor` 에 싣는다 (CSS 상대 색 대신 — Skia 가 `lch(from …)` 를 못 읽고, ADR-297 「두 번째 파생식 금지」)
+- [x] 바탕 = 가장 가까운 조상의 흑 / 백 static 스킴 → 불투명 단색 칠 (사용자 결정 「칠한 단색 바탕도 포함」) → 층 컨테이너 → 페이지 `{color.base}`. `auto` 조상은 건너뛴다 (S2 `staticColor()` 는 흑 / 백만 `--s2-container-bg` 를 쓴다)
+- [x] Canvas — 파생 스킴을 조건 칠이 읽고 (`catalogDerivedConditionalVisual`), `auto` Button 이 글자 · 아이콘의 glyph owner (`catalogToggleButtonGlyphOwner`)
+- [x] DOM — `catalogEffectiveStaticColor` 하나를 domBinding · delegatedDom 이 읽어 `data-static-color` 를 낸다
+- [x] 바탕 편집 → 아래 auto 노드 · 부품 재파생 (`catalogStaticAutoDependents`)
+- [x] emphasized ActionBar 의 흑 / 백도 같은 LCH 규칙 (그전 WCAG 대비)
+- [x] live (2026-11-15, 새 프로젝트 verify-static-auto-1115) — #111111 바탕: auto Button · ProgressCircle = 흰 스킴 (DOM `data-static-color=white` · 바탕 rgba(255,255,255,.85) · 글자 검정), None Button = 테마 (#292929 · 흰 글자), Canvas 같음. 바탕을 #f5f5f5 로 바꾸자 auto 둘 다 검정 스킴 (Canvas · Preview). 패널 Static color 칸 None · Auto · ○ · ● — Auto / None 클릭이 반영. console 오류 0
 
 ## 부록 A. 루트 binding 에 없는 S2 prop (기계 대조)
 

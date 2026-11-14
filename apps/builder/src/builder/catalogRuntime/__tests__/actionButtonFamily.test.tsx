@@ -411,7 +411,9 @@ it.each(["ActionButton", "ToggleButton"])(
       for (const [staticColor, expected] of [
         ["black", [0, 0, 0, 1]],
         ["white", [1, 1, 1, 1]],
-        ["auto", [75 / 255, 117 / 255, 1, 1]],
+        // (none — the theme focus ring; `auto` on the light page base = black, S2 `autoStaticColor`)
+        ["auto", [0, 0, 0, 1]],
+        ["", [75 / 255, 117 / 255, 1, 1]],
       ] as const) {
         h.write(h.of(type)[0]!.id, { staticColor });
         const node = h.of(type)[0]!;
