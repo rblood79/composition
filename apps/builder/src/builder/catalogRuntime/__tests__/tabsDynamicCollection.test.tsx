@@ -3,39 +3,41 @@ import "fake-indexeddb/auto";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import {
-  editItems,
+  duplicateNodes,
   insertNodes,
+  removeTargets,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
-  ItemValue,
   NodeEntry,
+  NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogConsumerNode } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
 import type { CatalogBoundRow } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { catalogItemInsertChoices } from "../itemInsert";
 import { catalogCreationProps } from "../paletteInsert";
-import { CatalogLayerTreeStore } from "../layerTree";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
-it("one item list drives tabs and panels through add, edit, reorder, removal and reload", async () => {
+/**
+ * ADR-310 G2 — Tabs items are nodes (A2): a Tab and its TabPanel, paired by key. 「+」 adds both in
+ * one step, a delete · duplicate of a Tab takes its panel along, and the saved document holds no
+ * `items` list (contract 65's array is gone).
+ */
+it("ADR-310 G2: Tab + TabPanel nodes — add, undo, delete, duplicate keep every panel paired", async () => {
   const library = await buildCodeCatalogLibrary();
   const graph = new CatalogGraph(
     newCatalogProjectDocument({
-      projectId: "project:project:dynamic-tabs",
-      name: "Dynamic tabs",
+      projectId: "project:project:node-tabs",
+      name: "Node tabs",
     }),
     library,
   );
-  const storage = new CatalogStorage(
-    indexedDB,
-    `dynamic-tabs-${Math.random()}`,
-  );
+  const storage = new CatalogStorage(indexedDB, `node-tabs-${Math.random()}`);
   await storage.create(graph.exportDocument(), library);
   const workspace = new CatalogWorkspace(graph, storage, {
     engine: await nodeLayoutEngine(),
@@ -43,11 +45,9 @@ it("one item list drives tabs and panels through add, edit, reorder, removal and
     autosaveSchedule: () => {},
   });
   const id = "project:node:tabs" as const;
-  const items: ItemValue[] = [
-    { id: "a", title: "Alpha", content: "Alpha body" },
-    { id: "b", title: "Beta", content: "Beta body" },
-    { id: "c", title: "Gamma", content: "Gamma body" },
-  ];
+  const definitionId = "lib:definition:origin-component-tabs" as const;
+  const creation = catalogCreationProps(library, definitionId, "Tabs");
+  expect(creation).not.toHaveProperty("items");
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: "project:node:home-body" },
@@ -55,12 +55,9 @@ it("one item list drives tabs and panels through add, edit, reorder, removal and
         {
           kind: "node",
           id,
-          definitionId: "lib:definition:origin-component-tabs",
+          definitionId,
           children: [],
-          props: {
-            items: { kind: "set", value: items },
-            defaultSelectedKey: { kind: "set", value: "b" },
-          },
+          props: creation,
           visual: {},
           sizing: {},
           descendantOverrides: [],
@@ -71,22 +68,6 @@ it("one item list drives tabs and panels through add, edit, reorder, removal and
     }),
   );
   const root = workspace.root;
-  const layers = new CatalogLayerTreeStore(
-    {
-      graph,
-      readModel: workspace.readModel,
-      subscribeSteps: (listener) => workspace.runtime.subscribeSteps(listener),
-      boundRows: (position) => workspace.boundRowsOf(position),
-      subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
-    },
-    workspace.session.getSnapshot().pageId!,
-  );
-  layers.connect();
-  layers.setExpanded(new Set(root.canvasInputs.keys()));
-  const panelLayers = () =>
-    layers
-      .node(root.recordsOfSource(id)[0]!)!
-      .children!.filter((child) => child.typeName === "TabPanel");
   const nodes = (type: string) => {
     const records = root.canvasInputs;
     const visit = (key: string): CatalogConsumerNode[] => {
@@ -97,60 +78,74 @@ it("one item list drives tabs and panels through add, edit, reorder, removal and
       (node) => root.typeOf(node) === type,
     );
   };
-  const keys = () => nodes("Tab").map((node) => node.props.id);
-  const html = () =>
-    renderToStaticMarkup(renderCatalogDom(root, root.recordsOfSource(id)[0]!));
-  const edit = (change: Parameters<typeof editItems>[0]["edit"]) =>
-    workspace.execute(
-      editItems({ target: { kind: "node", id }, key: "items", edit: change }),
-    );
+  const keys = () => nodes("Tab").map((node) => String(node.props.id));
+  const panels = () =>
+    nodes("TabPanel").map((node) => String(node.props.itemId));
+  /** Every TabPanel has its Tab, every Tab its TabPanel (the same keys, once each). */
+  const paired = () => {
+    expect([...panels()].sort()).toEqual([...keys()].sort());
+    expect(new Set(keys()).size).toBe(keys().length);
+  };
+  /** The document position of the Tab with a key (the Tab record's own node). */
+  const tabNode = (key: string) =>
+    workspace.positionOfRecord(
+      nodes("Tab").find((node) => String(node.props.id) === key)!.id,
+    )!.target;
   try {
-    expect(keys()).toEqual(["a", "b", "c"]);
-    expect(root.rowRemainders().size).toBe(0);
-    expect(
-      workspace.boundRowsOf(
-        workspace.positionOfRecord(root.recordsOfSource(id)[0]!)!,
-      )?.more,
-    ).toBeUndefined();
-    expect(nodes("TabPanel").map((node) => node.props.itemId)).toEqual([
-      "a",
-      "b",
-      "c",
-    ]);
-    expect(html()).toContain("Beta body");
-    expect(html()).not.toContain("Alpha body");
-    const betaId = nodes("Tab").find((node) => node.props.id === "b")!.id;
-    edit({ kind: "move", id: "b", index: 0 });
-    expect(keys()).toEqual(["b", "a", "c"]);
-    expect(nodes("Tab")[0]!.id).toBe(betaId);
-    edit({
-      kind: "update",
-      id: "b",
-      patch: { title: "Beta edited", content: "Body edited" },
-    });
-    expect(html()).toContain("Beta edited");
-    expect(html()).toContain("Body edited");
-    expect(panelLayers().map((node) => node.name)).toEqual([
-      "Body edited",
-      "Alpha body",
-      "Gamma body",
-    ]);
-    edit({
-      kind: "add",
-      item: { id: "d", title: "Delta", content: "Delta body" },
-    });
-    expect(keys()).toEqual(["b", "a", "c", "d"]);
-    expect(panelLayers()).toHaveLength(4);
-    edit({ kind: "remove", id: "b" });
-    expect(keys()).toEqual(["a", "c", "d"]);
-    expect(nodes("TabPanel")).toHaveLength(3);
-    expect(html()).toContain("Alpha body");
+    expect(keys()).toEqual(["tab-1", "tab-2"]);
+    paired();
+    // The placed Tabs holds its tab list and panels as its own nodes (the origin's root slot).
+    for (const record of [
+      ...nodes("Tab"),
+      ...nodes("TabPanel"),
+      ...nodes("TabList"),
+    ])
+      expect(workspace.positionOfRecord(record.id)!.target.kind).toBe("node");
+    const steps = () => workspace.history.getSnapshot().labels.length;
+    // 「+」 on the TabList: a Tab and its TabPanel in one step.
+    const add = catalogItemInsertChoices(
+      { graph, readModel: workspace.readModel, newId: workspace.newId },
+      workspace.positionOfRecord(nodes("TabList")[0]!.id)!,
+    ).find((choice) => choice.type === "Tab")!;
+    const before = steps();
+    workspace.execute(add.build());
+    expect(steps()).toBe(before + 1);
+    expect(keys()).toHaveLength(3);
+    paired();
+    // One Undo removes both.
     workspace.undo();
-    expect(keys()).toEqual(["b", "a", "c", "d"]);
+    expect(keys()).toEqual(["tab-1", "tab-2"]);
+    expect(panels()).toHaveLength(2);
     workspace.redo();
+    expect(keys()).toHaveLength(3);
+    paired();
+    // Duplicating a Tab copies its panel with the copy's new key.
+    workspace.execute(
+      duplicateNodes({
+        ids: [(tabNode("tab-1") as { id: NodeId }).id],
+        newId: workspace.newId,
+      }),
+    );
+    expect(keys()).toHaveLength(4);
+    paired();
+    workspace.undo();
+    expect(keys()).toHaveLength(3);
+    paired();
+    workspace.redo();
+    // Deleting a Tab takes its panel.
+    workspace.execute(removeTargets({ targets: [tabNode("tab-2")] }));
+    expect(keys()).not.toContain("tab-2");
+    expect(panels()).not.toContain("tab-2");
+    paired();
+    workspace.undo();
+    expect(keys()).toContain("tab-2");
+    paired();
+    workspace.redo();
+    // The saved document holds no Tabs `items`, and a reload shows the same pairs.
     await workspace.runtime.save();
     const saved = await storage.load(graph.projectId, library);
     expect(saved).toEqual(graph.exportDocument());
+    expect(JSON.stringify(saved)).not.toContain('"items"');
     const reloaded = new CatalogWorkspace(
       new CatalogGraph(saved!, library),
       storage,
@@ -161,67 +156,28 @@ it("one item list drives tabs and panels through add, edit, reorder, removal and
       },
     );
     try {
+      const of = (type: string) =>
+        [...reloaded.root.canvasInputs.values()].filter(
+          (node) => reloaded.root.typeOf(node) === type,
+        );
       expect(
-        renderToStaticMarkup(
-          renderCatalogDom(
-            reloaded.root,
-            reloaded.root.recordsOfSource(id)[0]!,
-          ),
-        ),
-      ).toContain("Alpha body");
+        of("Tab")
+          .map((node) => String(node.props.id))
+          .sort(),
+      ).toEqual([...keys()].sort());
       expect(
-        [...reloaded.root.canvasInputs.values()]
-          .filter((node) => reloaded.root.typeOf(node) === "Tab")
-          .map((node) => node.props.id),
-      ).toEqual(["a", "c", "d"]);
+        of("TabPanel")
+          .map((node) => String(node.props.itemId))
+          .sort(),
+      ).toEqual([...keys()].sort());
     } finally {
       reloaded.dispose();
     }
-    for (const key of ["a", "c", "d"]) edit({ kind: "remove", id: key });
-    expect(nodes("Tab")).toHaveLength(0);
-    expect(nodes("TabPanel")).toHaveLength(0);
-    expect(panelLayers()).toHaveLength(0);
-    expect(html()).not.toContain('role="tabpanel"');
+    // The Tabs edit contract offers no items list.
     expect(
-      workspace.boundRowsOf(
-        workspace.positionOfRecord(root.recordsOfSource(id)[0]!)!,
-      ),
-    ).toMatchObject({ rows: [], itemType: "TabPanel" });
-    expect(
-      workspace.boundRowsOf(
-        workspace.positionOfRecord(nodes("TabList")[0]!.id)!,
-      ),
-    ).toMatchObject({ rows: [], itemType: "Tab" });
-    edit({
-      kind: "add",
-      item: { id: "e", title: "Restored", content: "Restored body" },
-    });
-    expect(keys()).toEqual(["e"]);
-    expect(html()).toContain("Restored body");
-    for (const record of [
-      root.recordsOfSource(id)[0]!,
-      nodes("TabList")[0]!.id,
-    ]) {
-      const choices = catalogItemInsertChoices(
-        { graph, readModel: workspace.readModel, newId: workspace.newId },
-        workspace.positionOfRecord(record)!,
-      );
-      workspace.execute(choices[0]!.build());
-    }
-    expect(keys()).toHaveLength(3);
-    expect(new Set(keys()).size).toBe(3);
-    expect(nodes("TabPanel")).toHaveLength(3);
-    const creation = catalogCreationProps(
-      library,
-      "lib:definition:origin-component-tabs",
-      "Tabs",
-    );
-    expect(creation.items).toMatchObject({
-      kind: "set",
-      value: [{ id: "tab-1" }, { id: "tab-2" }, { id: "tab-3" }],
-    });
+      library.definitions.get("lib:definition:type-Tabs")!.accepts,
+    ).not.toHaveProperty("items");
   } finally {
-    layers.dispose();
     workspace.dispose();
   }
 });
@@ -260,12 +216,7 @@ it("external collection rows drive both destinations and refresh to empty", asyn
             id,
             definitionId: "lib:definition:origin-component-tabs",
             children: [],
-            props: {
-              items: {
-                kind: "set",
-                value: [{ id: "local", title: "Local", content: "Local body" }],
-              },
-            },
+            props: {},
             binding: { collectionId: "data:collection:tabs", fieldMap: {} },
             visual: {},
             sizing: {},
@@ -284,7 +235,6 @@ it("external collection rows drive both destinations and refresh to empty", asyn
         ),
       );
     expect(html()).toContain("External body");
-    expect(html()).not.toContain("Local");
     rows = [{ key: "z", values: { label: "Fresh", content: "Fresh body" } }];
     workspace.refreshRows();
     expect(html()).toContain("Fresh body");

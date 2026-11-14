@@ -264,7 +264,8 @@ export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(
 export const MENU_PROPS_SCHEMA = overlayOriginSchema(
   "MenuTrigger",
   "Menu",
-  ["size", "selectionMode"],
+  // (ADR-310 Phase 1: the Menu's data binding — stored on the instance, its rows reach the Menu.)
+  ["size", "selectionMode", "dataBinding"],
   { size: ["S", "M", "L", "XL"] },
 );
 

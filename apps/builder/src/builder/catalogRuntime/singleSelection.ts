@@ -20,6 +20,7 @@ import {
   catalogItemKey,
   catalogSelectionGroupOf,
 } from "../../../../../packages/shared/src/catalog/runtime/groupSelection";
+import { fail } from "../../../../../packages/shared/src/catalog/commands/context";
 import { catalogAccordionOf } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import type { CatalogWorkspace } from "./workspace";
 
@@ -221,6 +222,8 @@ export function catalogPickerSelectionCommands(
 /**
  * ADR-308 Decision 7 — an item's key edit (its Item ID) moves the keys that name it in the same
  * step: its group's selection (both twins) and expansion, and a Tab's paired TabPanel `itemId`.
+ * ADR-310 Phase 1 — a key another item of the same group already has is refused (`ITEM_KEY_TAKEN`):
+ * RAC keys a collection's items by it (two items under one key select · render as one).
  */
 export function catalogItemKeyRenameCommands(
   workspace: CatalogWorkspace,
@@ -233,6 +236,17 @@ export function catalogItemKeyRenameCommands(
   const before = catalogItemKey(item, typeOf(root));
   const after = typeof nextKey === "string" && nextKey ? nextKey : item.id;
   if (before === after) return [];
+  const group = catalogSelectionGroupOf(item, lookup(root), typeOf(root));
+  if (
+    group &&
+    catalogGroupItems(group, lookup(root), typeOf(root)).some(
+      (other) =>
+        other.id !== item.id &&
+        other.rowIndex === undefined &&
+        catalogItemKey(other, typeOf(root)) === after,
+    )
+  )
+    return [() => fail("ITEM_KEY_TAKEN", after)];
   const rename = (raw: unknown): unknown =>
     Array.isArray(raw)
       ? raw.map((key) => (String(key) === before ? after : key))
@@ -264,7 +278,6 @@ export function catalogItemKeyRenameCommands(
       }),
     );
   };
-  const group = catalogSelectionGroupOf(item, lookup(root), typeOf(root));
   if (group)
     write(group, [
       ...(catalogGroupSelectionProps(root.typeOf(group)) ?? []),

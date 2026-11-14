@@ -11,6 +11,8 @@ import {
   addCollection,
   updateCollection,
 } from "../../../../../../packages/shared/src/catalog/commands/data";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import { applyCatalogTransaction } from "../../../../../../packages/shared/src/catalog/transactions/transaction";
 import type {
   CatalogDocument,
   CollectionEntry,
@@ -76,16 +78,34 @@ async function fixture(filler: number, runtimeRows = false) {
     (_, i) => `project:node:peer-${i}` as NodeId,
   );
   for (const id of ids) entries[id] = node(id, "lib:definition:type-frame");
-  entries[LIST] = {
-    ...node(LIST, catalogPaletteDefinitionId(library, "ListBox")),
-    binding: {
-      collectionId: COLLECTION,
-      fieldMap: { label: "data:field:label" },
-    },
-  };
-  entries[BODY] = { ...body, children: [...ids, LIST] };
+  entries[BODY] = { ...body, children: ids };
   entries[COLLECTION] = { ...collection(), useMockData: !runtimeRows };
   entries[doc.projectId] = { ...project, collectionIds: [COLLECTION] };
+  // The bound list is placed as the Builder places it (its items its own nodes, its first one the
+  // rows' template — ADR-310), not written into the document with its origin's item positions.
+  const placing = new CatalogGraph({ ...doc, entries }, library);
+  let next = 0;
+  const plan = insertNodes({
+    parent: { kind: "node", id: BODY },
+    entries: [
+      {
+        ...node(LIST, catalogPaletteDefinitionId(library, "ListBox")),
+        binding: {
+          collectionId: COLLECTION,
+          fieldMap: { label: "data:field:label" },
+        },
+      },
+    ],
+    rootIds: [LIST],
+    newId: (kind) => `project:${kind}:fixture-${next++}` as never,
+  })(placing);
+  applyCatalogTransaction(placing, {
+    projectId: placing.projectId,
+    expectedRevision: placing.revision,
+    history: { kind: "skip", reason: "fixture" },
+    ops: plan.ops,
+  });
+  Object.assign(entries, placing.exportDocument().entries);
   const runtime = new Map<string, Record<string, unknown>[]>([["c1", rows()]]);
   const create = async (document: CatalogDocument) => {
     const graph = new CatalogGraph(document, library);
@@ -176,7 +196,9 @@ describe("data refresh owner scope", () => {
         [],
       ]) {
         workspace.execute(updateCollection({ entry: collection(next) }));
-        expect(workspace.root.metrics.resolverVisits).toBeLessThan(100);
+        // (The list's own records only — ~15 per row over 62: never the 1,000 siblings. Its items
+        //  are its own nodes since ADR-310, resolved per row on the owned path.)
+        expect(workspace.root.metrics.resolverVisits).toBeLessThan(150);
         const copy = await fresh(workspace);
         expect(records(workspace)).toEqual(records(copy.workspace));
         const geometry = (w: CatalogWorkspace) =>

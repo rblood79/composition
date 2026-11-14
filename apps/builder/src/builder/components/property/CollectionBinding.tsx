@@ -21,14 +21,20 @@ import { useI18n } from "@/i18n";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
 import { DatabasePlus, ListTree, X } from "lucide-react";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState } from "react";
+import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
 import { SelectValue } from "react-aria-components/Select";
 import type { DataField } from "../../../types/builder/data.types";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
 import { useQuickConnectHost } from "../../panels/datatable/usage/quickConnectHost";
 import { useCollections } from "../../stores/data";
-import { useOptionalCatalogWorkspace } from "../../catalogRuntime/react.runtime";
+import {
+  useCatalogStepReading,
+  useOptionalCatalogWorkspace,
+} from "../../catalogRuntime/react.runtime";
+import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
+import { catalogStaticItemCount } from "../../../../../../packages/shared/src/catalog/commands";
 import {
   ActionIconButton,
   ActionTooltipTrigger,
@@ -155,6 +161,52 @@ function FieldMapSelect({
   );
 }
 
+/**
+ * ADR-310 Decision 2 (user 2026-11-15) — an unbound list holding two or more items asks, in its
+ * data field, what its items become when data is chosen: its first item as the rows' template
+ * (the rest removed — default) or all kept as fixed items with the data after them.
+ */
+function RowTemplateModeChoice({
+  workspace,
+  elementId,
+  mode,
+  onMode,
+}: {
+  workspace: CatalogWorkspace;
+  elementId: string;
+  mode: "template" | "keep";
+  onMode: (mode: "template" | "keep") => void;
+}) {
+  const { t } = useI18n();
+  const count = useCatalogStepReading(workspace, () => {
+    const target = workspace.positionOfRecord(elementId)?.target;
+    if (target?.kind !== "node") return 0;
+    try {
+      return catalogStaticItemCount(workspace.runtime.graph, target.id);
+    } catch {
+      return 0;
+    }
+  });
+  if (count < 2) return null;
+  const legend = t("propertiesPanel.rowTemplateItems", { count });
+  return (
+    <RadioGroup
+      className="binding-row-template-mode"
+      aria-label={legend}
+      value={mode}
+      onChange={(value) => onMode(value === "keep" ? "keep" : "template")}
+    >
+      <span className="binding-row-template-legend">{legend}</span>
+      <Radio value="template" className="binding-row-template-option">
+        {t("propertiesPanel.rowTemplateFirst")}
+      </Radio>
+      <Radio value="keep" className="binding-row-template-option">
+        {t("propertiesPanel.rowTemplateKeep")}
+      </Radio>
+    </RadioGroup>
+  );
+}
+
 export const CollectionBinding = memo(function CollectionBinding({
   label,
   value,
@@ -174,6 +226,9 @@ export const CollectionBinding = memo(function CollectionBinding({
   // 그 한 항목만 보여 입력을 두지 않는다 (2026-10-24 사용자 「Item key 를 Form 에만」).
   const readsOneItem = ruleId === "Form";
   const fieldMapRoles = isTree ? TREE_FIELD_MAP_ROLES : FIELD_MAP_ROLES;
+  const [rowTemplateMode, setRowTemplateMode] = useState<"template" | "keep">(
+    "template",
+  );
   // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
 
@@ -204,6 +259,8 @@ export const CollectionBinding = memo(function CollectionBinding({
         source: "dataTable",
         collectionId: target.id,
         name: target.name,
+        // (ADR-310: the first binding's choice for the items the list holds.)
+        ...(value?.collectionId ? {} : { rowTemplateMode }),
         // fieldMap 은 같은 collection 안에서만 의미 — collection 이 바뀌면 비운다.
         fieldMap:
           value?.collectionId === target.id ? value?.fieldMap : undefined,
@@ -224,6 +281,7 @@ export const CollectionBinding = memo(function CollectionBinding({
       value?.refreshMode,
       value?.refreshInterval,
       onChange,
+      rowTemplateMode,
     ],
   );
 
@@ -320,6 +378,15 @@ export const CollectionBinding = memo(function CollectionBinding({
             </div>
           )}
         </div>
+
+        {!selectedCollectionId && workspace && elementId && (
+          <RowTemplateModeChoice
+            workspace={workspace}
+            elementId={elementId}
+            mode={rowTemplateMode}
+            onMode={setRowTemplateMode}
+          />
+        )}
 
         {fieldOptions.length > 0 &&
           fieldMapRoles.map((role) => (

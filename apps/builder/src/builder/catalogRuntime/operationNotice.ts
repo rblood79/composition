@@ -28,6 +28,8 @@ const REASON_KEY: Record<string, string> = {
   // ADR-288: a variable's new name is taken where it is visible, or would capture a `{{ name }}`.
   VARIABLE_NAME_CONFLICT: "operation.variableNameConflict",
   VARIABLE_NAME_SHADOWS: "operation.variableNameShadows",
+  // ADR-310 Phase 1: an item's key (`id` · a group Radio's `value`) is one per collection.
+  ITEM_KEY_TAKEN: "operation.itemKeyTaken",
 };
 
 /**

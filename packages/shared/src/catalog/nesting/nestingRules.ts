@@ -119,7 +119,11 @@ export const RAC_SUBPART_OWNER_TYPES: Readonly<
  * 부품을 묶는 `frame` (ADR-256 Phase 2 리뷰 — RAC context 는 래퍼를 건너 부품에 닿는다, `requiredParts.ts`).
  * `Slot` 은 넣지 않는다 — Slot 자리의 넣기 목록은 자유 내용이라 「부품만」 이 한 단계로 우회된다.
  */
-export const PART_WRAPPER_TYPES: readonly string[] = ["FieldLabel", "frame", "Group"];
+export const PART_WRAPPER_TYPES: readonly string[] = [
+  "FieldLabel",
+  "frame",
+  "Group",
+];
 
 /** 팔레트 type 이 아닌 code-catalog 정의 id 의 type 이름 (template 자식이 쓰는 둘). */
 const CODE_CATALOG_DEFINITION_NAMES: Readonly<Record<string, string>> = {
@@ -166,7 +170,7 @@ function derivePartsHosts(): Readonly<Record<string, readonly string[]>> {
     const node = templates.get(id);
     return Boolean(
       node &&
-        (node.slot || node.children.some((child) => opensSlot(String(child)))),
+      (node.slot || node.children.some((child) => opensSlot(String(child)))),
     );
   };
   const hosts = new Map<string, Set<string>>();
@@ -177,12 +181,26 @@ function derivePartsHosts(): Readonly<Record<string, readonly string[]>> {
     // A root that is itself an instance of another origin (a variant — Button/Hover) adds nothing.
     if (
       !root ||
-      root.slot ||
       !root.children.length ||
       !String(root.definitionId).startsWith("lib:definition:type-")
     )
       continue;
     const host = typeOf(String(root.definitionId))!;
+    // A root slot opens the root to free content (Toolbar · Form · ToggleButtonGroup) — unless the root
+    // holds a part RAC requires: then the slot only makes the placed copy own its parts (ADR-310 Phase 2 —
+    // Tabs owns its TabList · Tab · TabPanel nodes, and still takes only its parts).
+    if (
+      root.slot &&
+      !root.children.some((childId) => {
+        const type = typeOf(
+          String(templates.get(String(childId))!.definitionId),
+        );
+        return (RAC_REQUIRED_PARTS[host] ?? []).some((alternatives) =>
+          alternatives.includes(type!),
+        );
+      })
+    )
+      continue;
     if (
       (items.has(host) && !opensSlot(String(root.id))) ||
       RAC_COLLECTION_CHILD_TYPES[host] ||

@@ -147,6 +147,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
           // empty are not drawn, so they have no row.
           collectionRowHidden: (position, parentType) =>
             workspace.collectionRowHidden(position, parentType),
+          // (ADR-310: a rows' template with no drawn record — its data is empty — counts 0 rows.)
+          recordDrawn: (position) => workspace.root.domInputs.has(position.identity),
           inputsVersion: () => workspace.layerInputsVersion,
         },
         ownerId,

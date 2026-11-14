@@ -93,10 +93,14 @@ export function catalogPreviewRuntime(
       ),
     reloadCollection: (collectionId) => session.reload(collectionId),
     loadMore: (collectionId) => session.loadMore(collectionId),
+    showMore: (collectionId, ownerId, moreLoaded) =>
+      session.showMore(collectionId, ownerId, moreLoaded),
     setFilterText: (collectionId, filterText) =>
       session.setFilterText(collectionId, filterText),
     serverFilterOf: (recordId) => session.serverFilterOf(recordId),
     pages: (collectionId) => session.pages(collectionId),
+    moreLoaded: (collectionId, ownerId) =>
+      session.moreLoaded(collectionId, ownerId),
     append: (collectionId, value, parentKey) =>
       session.append(collectionId, value, parentKey),
     update: (collectionId, key, value, fieldId) =>

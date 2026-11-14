@@ -4,6 +4,12 @@ export const selectBoxGroupBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "selectboxgroup" },
   props: {
     accepts: {
+      // ADR-310 Phase 1: the S2 `items` collection (rows repeat the item template).
+      dataBinding: {
+        kind: "binding",
+        label: "Data source",
+        section: "collection",
+      },
       slot: {
         kind: "string",
         label: "Slot",

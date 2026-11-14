@@ -112,14 +112,15 @@ describe("EmptyState in Layers — synced on the step", () => {
         })!,
       ),
     );
-    // (No re-expand or selection — the step alone updates the tree.)
-    expect(tags()).toEqual(["EmptyState"]);
+    // (No re-expand or selection — the step alone updates the tree. Its data is empty: the
+    //  EmptyState shows, and its rows' template keeps its row — ADR-310 Decision 3.)
+    expect(tags()).toEqual(["Tag", "EmptyState"]);
     // Rows arrive: no selection needed for the tree to follow.
     rows = [
       { key: "a", values: { id: "a", label: "a", name: "a" } },
       { key: "b", values: { id: "b", label: "b", name: "b" } },
     ];
     workspace.refreshRows(["users"]);
-    expect(tags()).toEqual(["a", "b"]);
+    expect(tags()).toEqual(["Tag"]);
   });
 });

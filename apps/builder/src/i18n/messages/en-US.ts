@@ -269,6 +269,7 @@ const catalog: TranslationKeys = {
     group: "Group selection",
     ungroup: "Ungroup",
     moveToSlot: "Move to slot",
+    useAsRowTemplate: "Use as row template",
     align: "Align",
     delete: "Delete",
     zoomToFit: "Zoom to fit",
@@ -426,6 +427,8 @@ const catalog: TranslationKeys = {
       "A variable of that name is already visible here — choose another name",
     variableNameShadows:
       "Something already reads that name and would start reading this variable — choose another name",
+    itemKeyTaken:
+      "Another item in this list already uses that ID — choose another value",
   },
   history: {
     title: "History",
@@ -1161,6 +1164,9 @@ const catalog: TranslationKeys = {
     fieldMapChildren: "Children field (tree)",
     fieldMapParentId: "Parent ID field (tree)",
     fieldMapAuto: "Auto",
+    rowTemplateItems: "{count} existing items",
+    rowTemplateFirst: "First item as the template — remove the rest",
+    rowTemplateKeep: "Keep all as fixed items — data after them",
     legacyBinding:
       "Legacy {source} binding — choosing a collection switches it to dataTable.",
     fieldTemplatePlaceholder: "Text or {field}",
@@ -3497,6 +3503,8 @@ const formattedMessages: Record<
   "history.entryThemeActivate": (args) =>
     `Switch theme: ${String(args?.name ?? "")}`,
   "history.entryThemeEdit": (args) => `Edit theme: ${String(args?.name ?? "")}`,
+  "propertiesPanel.rowTemplateItems": (args) =>
+    `${String(args?.count ?? 0)} existing items`,
   "propertiesPanel.bindingUsedBy": (args) =>
     `Used by ${String(args?.count ?? 0)}`,
   "propertiesPanel.idUnique": (args) =>

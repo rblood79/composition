@@ -163,29 +163,36 @@ const drawnRows = (workspace: CatalogWorkspace) =>
   ).length;
 
 describe("ADR-248 4e Layers row sample", () => {
-  it("a list growing with its rows lists the rows built and one '+N more' row selecting the list", async () => {
+  // ADR-310 Decision 3: a bound list's rows are its template's one row, counting every data row
+  // (the sampled ones the Canvas builds and the rest — its hatch still marks those).
+  it("a list growing with its rows lists its template once, counting every row", async () => {
     const workspace = await open("ListBox", rowsOf(100));
     const nodes = layers(workspace)();
-    const built = drawnRows(workspace);
-    expect(built).toBeLessThan(100);
-    expect(childrenOf(nodes, "ListBox")).toEqual(
-      sampleView(built, 100 - built),
-    );
-    const more = nodes.find((node) => node.name === `+${100 - built} more`)!;
-    const [list] = workspace.root.recordsOfSource(LIST);
-    expect(more.selects).toBe(list);
+    expect(drawnRows(workspace)).toBeLessThan(100);
+    expect(childrenOf(nodes, "ListBox")).toEqual([["ListBoxItem", false]]);
+    expect(nodes.find((node) => node.typeName === "ListBoxItem")!.repeat).toEqual({
+      count: 100,
+    });
     workspace.dispose();
   });
 
-  it("a list of 10 rows has no '+N more' row", async () => {
+  it("a list of 10 rows: its template row counts 10", async () => {
     const workspace = await open("GridList", rowsOf(10));
-    expect(childrenOf(layers(workspace)(), "GridList")).toEqual(sampleView(10));
+    const nodes = layers(workspace)();
+    expect(childrenOf(nodes, "GridList")).toEqual([["GridListItem", false]]);
+    expect(nodes.find((node) => node.typeName === "GridListItem")!.repeat).toEqual({
+      count: 10,
+    });
     workspace.dispose();
   });
 
-  it("a TagGroup lists its data tags under the TagList", async () => {
+  it("a TagGroup lists its Tag template under the TagList", async () => {
     const workspace = await open("TagGroup", rowsOf(3));
-    expect(childrenOf(layers(workspace)(), "TagList")).toEqual(sampleView(3));
+    const nodes = layers(workspace)();
+    expect(childrenOf(nodes, "TagList")).toEqual([["Tag", false]]);
+    expect(nodes.find((node) => node.typeName === "Tag")!.repeat).toEqual({
+      count: 3,
+    });
     workspace.dispose();
   });
 

@@ -66,8 +66,8 @@ const EXPANDED: Record<string, string> = {
     "SheetTrigger(Button SheetOverlay(SheetBackdrop Sheet(SheetContent(Heading div(Description) Button))))",
   // Menu.md — `<MenuTrigger><Button/><Menu>…` (ADR-256 — the Popover is a node of the tree).
   Menu: "MenuTrigger(ActionButton Popover(Menu(MenuItem MenuItem MenuItem IllustratedMessage)))",
-  // Tabs.md — `<Tabs><TabList><Tab/>…</TabList><TabPanels><TabPanel/>…`.
-  Tabs: "Tabs(TabList(Tab Tab) TabPanels(TabPanel TabPanel))",
+  // S2 Tabs.md — `<Tabs><TabList><Tab/>…</TabList><TabPanel/>…` (contract 65 — no TabPanels).
+  Tabs: "Tabs(TabList(Tab Tab) TabPanel(Text) TabPanel(Text))",
   // Table.md — `<Table><TableHeader><Column/>…</TableHeader><TableBody><Row><Cell/>…`.
   Table:
     "Table(TableHeader(Column Column Column) TableBody(Row(Cell Cell Cell)))",
@@ -91,7 +91,9 @@ describe("ADR-301 G1 — the expanded instances are the reference's use code", (
       (anchor) => (anchor.target as { key: string }).key,
     );
     expect(new Set(keys).size).toBe(keys.length);
-    expect(positions.length).toBeGreaterThan(0);
+    // (A placed Tabs holds every part as its own node — ADR-310 Phase 2: no template position.)
+    if (type === "Tabs") expect(positions).toEqual([]);
+    else expect(positions.length).toBeGreaterThan(0);
   });
 
   it("a Card in a CardView is S2's use code (`<Card><CardPreview>…<Content>…<Footer>`)", async () => {

@@ -8,7 +8,10 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
-import { createPage } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  createPage,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import { openAdr280Preview } from "./support/adr280Harness";
 
@@ -101,7 +104,6 @@ async function detailPreview(key: string) {
       entries: [
         node(id("detail-body"), "lib:definition:type-body", {}, [
           id("detail-frame"),
-          id("detail-list"),
         ]),
         node(
           id("detail-frame"),
@@ -119,6 +121,15 @@ async function detailPreview(key: string) {
           catalogPaletteDefinitionId(library, "TextField"),
           { label: "Email", name: "email", value: "{email}" },
         ),
+      ],
+    }),
+  );
+  // (The list is placed as the Builder places it — its items its own nodes, its first one the
+  //  rows' template: ADR-310.)
+  h.workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: id("detail-body") },
+      entries: [
         node(
           id("detail-list"),
           catalogPaletteDefinitionId(library, "ListBox"),
@@ -127,6 +138,8 @@ async function detailPreview(key: string) {
           { binding },
         ),
       ],
+      rootIds: [id("detail-list")],
+      newId: h.workspace.newId,
     }),
   );
   h.flush();

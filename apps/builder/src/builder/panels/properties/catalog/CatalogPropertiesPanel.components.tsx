@@ -410,10 +410,15 @@ const CatalogFields = memo(function CatalogFields({
           )
         : undefined;
       // ADR-308 Decision 7 — an item's key edit moves the keys that name it (its group's selection ·
-      // expansion, a Tab's TabPanel) in the same step.
+      // expansion, a Tab's TabPanel) in the same step. (ADR-310 Phase 1: a group Radio's ·
+      // Checkbox's key is its `value`.)
+      const keyProp =
+        contract.type === "Radio" || contract.type === "Checkbox"
+          ? "value"
+          : "id";
       const keep =
-        targets.length === 1 && "id" in patch
-          ? catalogItemKeyRenameCommands(workspace, elementId, patch.id)
+        targets.length === 1 && keyProp in patch
+          ? catalogItemKeyRenameCommands(workspace, elementId, patch[keyProp])
           : [];
       // A glyph's Size step is drawn only without an authored font size or box (`glyphSize.ts`).
       const glyphStep =

@@ -548,10 +548,13 @@ describe("ADR-248 4e item insert ('+')", () => {
   it("a TabList adds a Tab with its TabPanel", async () => {
     const workspace = await open("Tabs");
     const tabs = childTypes(workspace, "TabList").length;
-    const panels = childTypes(workspace, "TabPanels").length;
+    // (S2 Tabs: the panels sit directly in Tabs — contract 65; node-canonical, ADR-310 Phase 2.)
+    const panelCount = () =>
+      childTypes(workspace, "Tabs").filter((type) => type === "TabPanel").length;
+    const panels = panelCount();
     add(workspace, "TabList", "Tab");
     expect(childTypes(workspace, "TabList")).toHaveLength(tabs + 1);
-    expect(childTypes(workspace, "TabPanels")).toHaveLength(panels + 1);
+    expect(panelCount()).toBe(panels + 1);
     const list = recordOf(workspace, "TabList").children;
     const tab = workspace.root.domInputs.get(list[list.length - 1]!)!;
     const texts = [

@@ -8,6 +8,7 @@ import type {
   TemplateId,
   WriteValue,
 } from "../document/types";
+import { COLLECTION_TYPE_TABLE } from "../document/collectionItems";
 import { descendantPatchOf } from "../document/types";
 import { readPropSource } from "../resolution/fieldSource";
 import {
@@ -60,35 +61,18 @@ interface CollectionFamily {
   /** Tabs: each Tab pairs with a TabPanel by key. */
   panels?: boolean;
 }
-export const COLLECTION_FAMILIES: readonly CollectionFamily[] = [
-  { owner: "Tabs", list: "TabList", item: "Tab", panels: true },
-  { owner: "TagGroup", list: "TagList", item: "Tag" },
-  { owner: "SelectBoxGroup", list: null, item: "SelectBox" },
-  {
-    owner: "ListBox",
-    list: null,
-    item: "ListBoxItem",
-    section: "ListBoxSection",
-  },
-  {
-    owner: "GridList",
-    list: null,
-    item: "GridListItem",
-    section: "GridListSection",
-  },
-  {
-    owner: "Menu",
-    list: null,
-    item: "MenuItem",
-    section: "MenuSection",
-    // (No `recursive`: a MenuItem in a MenuItem is not a submenu — the reference's submenu is a
-    // `SubmenuTrigger`, ADR-256 후속 6.)
-  },
-  { owner: "Breadcrumbs", list: null, item: "Breadcrumb" },
-  // (A Select · ComboBox holds its items in its ListBox — an instance of the ListBox origin,
-  // ADR-253 Phase 4: the ListBox family above places them.)
-  { owner: "Tree", list: null, item: "TreeItem", recursive: true },
-];
+// (ADR-310 Decision 7: the "+" families are the collection type table's `insert` rows. A Select ·
+// ComboBox holds its items in its ListBox — an instance of the ListBox origin, ADR-253 Phase 4: the
+// ListBox family places them.)
+export const COLLECTION_FAMILIES: readonly CollectionFamily[] =
+  COLLECTION_TYPE_TABLE.filter((row) => row.insert).map((row) => ({
+    owner: row.owner,
+    list: row.list ?? null,
+    item: row.item,
+    ...(row.section ? { section: row.section } : {}),
+    ...(row.recursive ? { recursive: true } : {}),
+    ...(row.pair ? { panels: true } : {}),
+  }));
 
 import {
   GROUP_ITEM_TYPES,
@@ -307,6 +291,37 @@ function collectionKeys(draft: CommandDraft, host: NodeParent): Set<string> {
 }
 
 /**
+ * ADR-310 Decision 4 — a Tab's paired TabPanels: the TabPanels (directly in its Tabs, or in an
+ * authored TabPanels host) whose `itemId` is the Tab's key. A delete · duplicate of the Tab takes
+ * them along in the same command, so no TabPanel is left without its Tab.
+ */
+export function catalogPairedTabPanels(
+  draft: CommandDraft,
+  tab: NodeParent,
+): NodeParent[] {
+  if (tab.kind === "page" || positionType(draft, tab) !== "Tab") return [];
+  const key = keyOf(readProp(draft.reader, tab, "id"));
+  if (key === undefined) return [];
+  let tabs = parentOf(draft, tab);
+  while (tabs && tabs.kind !== "page" && positionType(draft, tabs) !== "Tabs")
+    tabs = parentOf(draft, tabs);
+  if (!tabs || tabs.kind === "page") return [];
+  const hosts = [
+    tabs,
+    ...childPositions(draft, tabs).filter(
+      (child) => positionType(draft, child) === "TabPanels",
+    ),
+  ];
+  return hosts
+    .flatMap((host) => childPositions(draft, host))
+    .filter(
+      (child) =>
+        positionType(draft, child) === "TabPanel" &&
+        keyOf(readProp(draft.reader, child, "itemId")) === key,
+    );
+}
+
+/**
  * 2026-11-08 (사용자 Preview 「Duplicate key "two" found in collection」): copies (duplicate · paste)
  * placed under `parent` keep their items' keys (`id`) only where the collection they join has none
  * of them — a key it already has takes a new one, since RAC throws on a repeated key for the whole
@@ -502,7 +517,14 @@ export const insertCollectionItem =
       if (panelHost) {
         if (!input.panel) fail("TAB_PANEL_REQUIRED", positionId(input.host));
         else
-          place(draft, panelHost, [input.panel], input.panel.id, input.newId);
+          place(
+            draft,
+            // (A placed Tabs holds its tab list and panels in its root slot — ADR-310 Phase 2.)
+            collectionRootSlot(draft, panelHost) ?? panelHost,
+            [input.panel],
+            input.panel.id,
+            input.newId,
+          );
       }
     }
     const extra: CatalogOperation[] = [];

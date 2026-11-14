@@ -437,6 +437,12 @@ export interface CatalogPreviewInteractionsOptions {
   reloadCollection?: (collectionId: string) => Promise<unknown>;
   /** `useAsyncList.loadMore()` · `setFilterText(text)` (the session's) — reported like `reload`. */
   loadMore?: (collectionId: string) => Promise<unknown>;
+  /** ADR-310 「더 보기」 — a bound list's end grows its window (`CatalogPreviewSession.showMore`). */
+  showMore?: (
+    collectionId: string,
+    ownerId: string,
+    moreLoaded: boolean,
+  ) => Promise<unknown>;
   setFilterText?: (
     collectionId: string,
     filterText: string,
@@ -445,6 +451,8 @@ export interface CatalogPreviewInteractionsOptions {
   serverFilterOf?: (recordId: string) => string | undefined;
   /** Whether a collection pages (`CatalogPreviewSession.pages`). */
   pages?: (collectionId: string) => boolean;
+  /** ADR-310 「더 보기」 (`CatalogPreviewSession.moreLoaded`). */
+  moreLoaded?: (collectionId: string, ownerId: string) => boolean;
 }
 
 /**
@@ -646,8 +654,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             single: !many,
             // (A key list prop — `selectedKeys`, a CheckboxGroup's · multiple Select's `value` —
             //  holds a list even while it selects one.)
-            shape:
-              many || controlledProp === "selectedKeys" ? "keys" : "key",
+            shape: many || controlledProp === "selectedKeys" ? "keys" : "key",
             itemKeys: catalogGroupItems(group, get, typeOf).map((item) =>
               catalogItemKey(item, typeOf),
             ),
@@ -984,6 +991,24 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(
         `[interactions] collection ${collectionId} 검색 실패 — ${message}`,
+      );
+      this.options.showToast(message, FAILURE_TOAST);
+    });
+  }
+  moreLoaded(collectionId: string, ownerId: string): boolean {
+    return this.options.moreLoaded?.(collectionId, ownerId) ?? false;
+  }
+  showMore(collectionId: string, ownerId: string, moreLoaded: boolean): void {
+    const show = this.options.showMore;
+    if (!show) {
+      if (!moreLoaded && this.options.pages?.(collectionId))
+        this.loadMore(collectionId);
+      return;
+    }
+    show(collectionId, ownerId, moreLoaded).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[interactions] collection ${collectionId} 더 불러오기 실패 — ${message}`,
       );
       this.options.showToast(message, FAILURE_TOAST);
     });

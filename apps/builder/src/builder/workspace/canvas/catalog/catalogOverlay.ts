@@ -81,6 +81,11 @@ export interface CatalogOverlayInputs {
    * page body (an empty area, §8.6) or a leaf.
    */
   hoverLeaves?: (identity: string) => readonly string[];
+  /**
+   * ADR-310 Decision 3 — a selected record that is a bound list's rows' template: the data-row
+   * records it draws (itself included), outlined dashed while it is selected.
+   */
+  repeatRows?: (identity: string) => readonly string[];
   /** The drawn records of a node (the editing context's frame). */
   recordsOf: (sourceId: string) => readonly string[];
   zoom: () => number;
@@ -482,6 +487,20 @@ export function catalogOverlayNode(
             });
         }
       }
+      // ADR-310 Decision 3: a selected rows' template — every data row it draws, dashed, where
+      // they show (content chrome: the visible part, cut under later pages).
+      if (inputs.repeatRows && !inputs.gesture?.())
+        for (const item of state.selection) {
+          const rows = inputs.repeatRows(item.identity);
+          if (rows.length < 2) continue;
+          withOccluders(ck, canvas, occludersOf(item.identity), () => {
+            for (const row of rows) {
+              const box = (hit ?? bounds).get(row);
+              if (box)
+                renderHoverHighlight(ck, canvas, box, zoom, true, roleOf(row));
+            }
+          });
+        }
       const moving = new Set(inputs.gesture?.()?.moving ?? []);
       const dashed = inputs.dashedSelection?.();
       for (const item of state.selection) {

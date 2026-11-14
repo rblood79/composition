@@ -1,5 +1,4 @@
-import { editItems } from "../../../../../packages/shared/src/catalog/commands/items";
-import { nodePosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
+import { COLLECTION_ITEM_PARTS } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import {
   COLLECTION_FAMILIES,
   GROUP_ITEM_TYPES,
@@ -170,19 +169,8 @@ function itemTypesOf(
  * (the list's own "+" too). A picker's ListBox is an instance of the ListBox origin, hidden on the
  * Canvas while the picker is closed — inside its Popover.
  */
-const PICKER_LIST: Readonly<Record<string, readonly string[]>> = {
-  Select: ["ListBox"],
-  ComboBox: ["ListBox"],
-  // ADR-256 후속 4: a MenuTrigger's items are its Popover's Menu's.
-  MenuTrigger: ["Menu"],
-  // (2026-10-09 사용자 「Tabs 의 경우 컴퍼넌트 상단 프러퍼티에 "+" 가 없고 tablist 에 slot "+" 가 있다」:
-  // a Tabs adds its Tabs — with their TabPanels — in its TabList, a TagGroup its Tags in its
-  // TagList, as a CheckboxGroup adds in its items wrapper; 「Table 도 같은 방식으로」: a Table its
-  // columns in its TableHeader and its rows in its TableBody.)
-  Tabs: ["TabList"],
-  TagGroup: ["TagList"],
-  Table: ["TableHeader", "TableBody"],
-};
+// (ADR-310 Decision 7: the collection type table's list parts and pickers.)
+const PICKER_LIST = COLLECTION_ITEM_PARTS;
 
 /**
  * A list item's row fields: a library item origin whose template shows `{label}` · `{description}` ·
@@ -249,42 +237,6 @@ export function catalogItemInsertChoices(
 ): CatalogItemInsertChoice[] {
   const { graph, readModel, newId } = host;
   const type = typeOf(graph, position.definitionId);
-  if (type === "TabList") {
-    const ownerId = wrapperGroupHost(graph, position);
-    const owner = ownerId && graph.getEntry(ownerId);
-    if (
-      owner &&
-      owner.kind === "node" &&
-      typeOf(graph, owner.definitionId) === "Tabs" &&
-      Array.isArray(
-        readModel.propSource({ kind: "node", id: owner.id }, "items").value,
-      )
-    )
-      return catalogItemInsertChoices(host, nodePosition(graph, owner.id));
-  }
-  const items =
-    type === "Tabs"
-      ? readModel.propSource(position.target, "items").value
-      : undefined;
-  if (Array.isArray(items))
-    return [
-      {
-        type: "Tab",
-        build: () =>
-          editItems({
-            target: position.target,
-            key: "items",
-            edit: {
-              kind: "add",
-              item: {
-                id: crypto.randomUUID(),
-                title: `Tab ${items.length + 1}`,
-                content: `Tab body ${items.length + 1}`,
-              },
-            },
-          }),
-      },
-    ];
   if (PICKER_LIST[type]) {
     // (A Select's · ComboBox's list is in its Popover — ADR-256 Phase 6c · 6d, the reference's
     // `Popover > ListBox`; a MenuTrigger's Menu the same — 후속 4.)

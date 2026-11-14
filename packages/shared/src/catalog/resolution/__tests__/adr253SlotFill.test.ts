@@ -218,7 +218,10 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
       ).toBe(6);
     });
 
-    it(`${type}: a bound field repeats its row template inside the ListBox`, () => {
+    // ADR-310: a library position is never a row template — a bound field whose ListBox items are
+    // still its origin's positions (not placed — a placed one owns them, and binding marks one)
+    // shows them as static items, no row.
+    it(`${type}: a bound field's origin item positions stay static (no row template)`, () => {
       const graph = new CatalogGraph(
         documentOf(
           [
@@ -247,16 +250,10 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
       expect(list.children.map((child) => child.sourceId)).toEqual([
         T("listbox"),
       ]);
-      // The first item position is the row template; the sample items give way to the rows.
       expect(list.children[0]!.children.map((child) => child.sourceId)).toEqual(
-        [ITEMS[0], ITEMS[0], ITEMS[0]],
+        [...ITEMS],
       );
-      // (Each row fills the template's `{label}`: the item's own text and its label part.)
-      expect([...new Set(texts(list).filter(Boolean))]).toEqual([
-        "Row one",
-        "Row two",
-        "Row three",
-      ]);
+      expect(texts(list)).not.toContain("Row one");
     });
 
     it(`${type}: a removed item is switched off in the list, and a detached field keeps its list`, () => {
@@ -337,7 +334,7 @@ describe("ADR-253 Phase 4 — library validation of a slot fill", () => {
     extra: LibraryTemplateNode[] = [],
   ) =>
     buildCatalogLibrary({
-      contractVersion: 66,
+      contractVersion: 67,
       revision: "adr253-slot-fill",
       bindingIds: ["box", "text"],
       actionOpCodes: [],

@@ -1889,6 +1889,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "stateRules",
           "descendantOverrides",
           "binding",
+          "repeat",
           "slot",
           "regions",
           "placeholder",
@@ -1908,6 +1909,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         "entry",
       );
       presentWhen(item.presentWhen, "entry.presentWhen");
+      if (item.repeat !== undefined && item.repeat !== true)
+        invalid("REPEAT_TRUE", "entry.repeat");
       if (
         item.originOf !== undefined &&
         !/^(lib|project):definition:[A-Za-z0-9][A-Za-z0-9_-]*$/.test(

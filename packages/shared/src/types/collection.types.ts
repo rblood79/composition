@@ -332,6 +332,13 @@ export interface PropertyDataBinding {
    */
   collectionId?: string;
   /** 소스 이름 — v1 잔존 참조 · 표시용. `collectionId` 부재 시에만 resolve 에 쓴다. */
+  /**
+   * ADR-310 Decision 2 — the panel's choice for a list that already holds items when it is first
+   * bound: `template` (default) keeps its first item as the rows' template and removes the rest,
+   * `keep` keeps them all static and repeats a copy after them. A command input only — the
+   * document's binding never stores it (`catalogBindingRef`).
+   */
+  rowTemplateMode?: "template" | "keep";
   name: string;
   /**
    * v2 (ADR-152): 역할별 컬럼 매핑 — 값은 `fieldId` (v2.1, `resolveField` 가 key

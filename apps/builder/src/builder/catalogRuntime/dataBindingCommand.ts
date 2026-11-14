@@ -1,7 +1,11 @@
 import {
+  clearRowTemplates,
   insertCollectionItem,
+  markRowTemplates,
   setWholeField,
+  type CatalogRowTemplateMode,
 } from "../../../../../packages/shared/src/catalog/commands";
+import { COLLECTION_TYPE_TABLE } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import {
   stageOver,
   type CatalogCommand,
@@ -27,10 +31,10 @@ import {
  */
 
 /**
- * A bound collection with no item of its own draws its origin's first item per row — a library
- * position no selection reaches (2026-10-23 user report: after binding, no row could be selected
- * on the Canvas or in Layers). Binding it adds that item as its own node (its row template), as
- * the item 「+」 does; a collection that holds an item keeps it.
+ * A collection with no item of its own has no row template (ADR-310 — the origin's items never are
+ * one; 2026-10-23 user report: a library position no selection reaches). Binding it adds the
+ * origin's item as its own node, marked `repeat`, as the item 「+」 adds one; a collection that
+ * holds items marks one of them instead (`markRowTemplates`).
  */
 function rowTemplateInsert(
   reader: CatalogReader,
@@ -73,16 +77,22 @@ function rowTemplateInsert(
       override.kind === "fillSlot" &&
       override.address.templatePath.join("/") === path.join("/"),
   ) as { childIds: readonly NodeId[] } | undefined;
-  // (No own contents: the template's items show — they are the rows' template.)
+  // (No own contents: the origin's items show, static — ADR-310: they are never a row template.)
   if (!fill) return undefined;
   const holdsItem = fill.childIds.some((id) => {
     const child = reader.getEntry(id);
     return child?.kind === "node" && items.includes(typeOf(child.definitionId));
   });
   if (holdsItem) return undefined;
+  // (The collection type table's item for this collection — ADR-310 Decision 7.)
+  const itemType = COLLECTION_TYPE_TABLE.find(
+    (row) => (row.list ?? row.owner) === collectionType,
+  )?.item;
   const item = templateOf(path[path.length - 1]!)
     ?.children.map(templateOf)
-    .find((template) => template && typeOf(template.definitionId) === items[0]);
+    .find(
+      (template) => template && typeOf(template.definitionId) === itemType,
+    );
   if (!item) return undefined;
   const key = crypto.randomUUID();
   const id = newId("node") as NodeId;
@@ -92,6 +102,8 @@ function rowTemplateInsert(
     definitionId: item.definitionId as NodeEntry["definitionId"],
     children: [],
     props: { id: { kind: "set", value: key } },
+    // (ADR-310: it is the rows' template.)
+    repeat: true,
     visual: {},
     sizing: {},
     descendantOverrides: [],
@@ -113,13 +125,17 @@ function rowTemplateInsert(
 }
 
 /**
- * Set (or with `undefined` clear) the targets' binding — one step. With `newId`, a collection that
- * holds no item of its own gets its row template item in the same step (`rowTemplateInsert`).
+ * Set (or with `undefined` clear) the targets' binding — one step. Binding gives a collection its
+ * rows' template (ADR-310): with `newId`, one that holds no item of its own gets its row template
+ * item (`rowTemplateInsert`); one that holds items marks one by `mode` (Decision 2 — `template`
+ * keeps the first and removes the rest, `keep` keeps them all static and repeats a copy after
+ * them). Unbinding leaves the template as a static item.
  */
 export const catalogBindingCommand = (
   targets: readonly EditTarget[],
   binding: DataBindingRef | undefined,
   newId?: NewId,
+  mode: CatalogRowTemplateMode = "template",
 ): CatalogCommand => {
   const bind = setWholeField({
     targets,
@@ -127,19 +143,25 @@ export const catalogBindingCommand = (
     value: binding,
     label: binding ? "Bind data" : "Unbind data",
   });
-  if (!binding || !newId) return bind;
   return (reader) => {
     const stage = stageOver(reader);
     const first = bind(stage);
     stage.apply(first.ops);
     const ops: CatalogCommandPlan["ops"][number][] = [...first.ops];
-    for (const target of targets) {
-      if (target.kind !== "node") continue;
-      const insert = rowTemplateInsert(stage, target.id, newId);
-      if (!insert) continue;
-      const plan = insert(stage);
+    const run = (command: CatalogCommand | undefined) => {
+      if (!command) return;
+      const plan = command(stage);
       stage.apply(plan.ops);
       ops.push(...plan.ops);
+    };
+    for (const target of targets) {
+      if (target.kind !== "node") continue;
+      if (!binding) {
+        run(clearRowTemplates(target.id));
+        continue;
+      }
+      if (newId) run(rowTemplateInsert(stage, target.id, newId));
+      run(markRowTemplates({ ownerId: target.id, mode, newId }));
     }
     return { ...first, ops };
   };

@@ -2,6 +2,16 @@
 
 ## Status
 
+Accepted — 2026-11-15 (사용자 `/execute-adr 310` + 설계 리뷰 닫힘 — [reviews/310](reviews/310.md) round 3 pending 0 · HIGH 전부 fixed). In Progress.
+
+> **Phase 0 닫힘 (2026-11-15)**: G0 — bound Menu · CardView · SelectBoxGroup 반복 없음 재현 (Canvas = DOM, template 항목 그대로) · 세 family 에 연결 계약 자체가 없음 · section 이 있는 목록은 연결 뒤 section 만 남음 · ADR-284 묶기는 section 없는 평평한 행 · 번들 기준선 Builder 1,540,940 · Preview 152,371 B · ratchet 은 `600:scroll-boxes` 하니스 실패로 측정 불가 (이 ADR 이전) · §10 해소 (Publish 는 같은 runtime · library Table 의 Row 추가는 `TABLE_ROWS_FROM_DATA` 를 지나지 않음 · `GridLayout` 은 닫힌 산식). 사용자 결정 5 확정 — 번들 Δ 는 ADR-201 기본 (ADR 전체 Builder +4,096 · Preview +3,584 B). 새로 찾은 것: SideNav (S2 `items`) 가 다섯 목록 어디에도 없음 — 범위 밖 보고. 상세: breakdown §11.
+>
+> **Phase 1 닫힘 (2026-11-15)**: G1 — type 표 하나 (`COLLECTION_TYPE_TABLE`, 다섯 목록은 계산) + 표 밖 type 실패 게이트 (원복 RED 2) · bound Menu · CardView · SelectBoxGroup 이 Canvas (표본) · Preview (행 수) 에서 반복 (원복 RED 5) + 연결 계약 · 정적 key 중복 거절 `ITEM_KEY_TAKEN` · `value` 개명 시 그룹 값 갱신 · **「더 보기」 — mock 250 행 (ListBox · GridList · CardView · 높이 고정 ListBox) 과 원격 101 행이 Preview DOM 의 마지막 행까지** (원복 RED 3) · 1,000 행 Publish 스크롤 frame p50 8.3 · p95 9.0 · p99 9.3 ms (120Hz, DOM 15.7k 노드). 번들 Δ Builder +487 · Preview −1 B. 범위 조정: Table 은 높이 고정이면 Preview 도 높이만큼만 그리는 합성 경로라 Phase 4 로, SelectBoxGroup · TagGroup · Breadcrumbs 는 RAC 에 끝 sentinel 이 없어 창 100 (Phase 7 페이지 방식 대상). live — 새 프로젝트에서 CardView · Menu 를 Design 패널로 연결 → Canvas 반복 · 「+242 more」 · Publish 250/1,000 행 끝까지 (Chrome MCP, 콘솔 오류 0).
+>
+> **Phase 2 닫힘 (2026-11-15)**: G2 — Tabs 항목은 노드 (Tab + 짝 TabPanel, key = Tab `id` ↔ TabPanel `itemId`) · `items` 배열 경로 삭제 (binding · 팔레트 · 「+」 · resolver · Layers) · 원본 slot 을 Tabs 루트로 (놓은 Tabs 가 TabList · Tab · TabPanel 을 모두 자기 노드로 — 중첩 판정은 부품 host 그대로) · Tab 삭제 · 복제가 같은 명령에서 짝 TabPanel 을 지우거나 새 key 로 복제 · contract 67 (306 은 68 로). 원복 RED 4 · parity `tabsS2` 33/33 · 전체 스위트 새 실패 0 (HEAD 실패 Tabs 테스트 5 통과). Phase 1 회귀 2 수리 (picker 목록 끝 「더 보기」 무한 루프 · SelectBoxGroup 테스트 fixture). 번들 누적 Builder +393 · Preview 0 B. live — 새 프로젝트에서 「+」 · 복제 · 삭제 · Undo 단계마다 짝 없는 TabPanel 0 · 저장 문서 `items` 0 (Chrome MCP, 콘솔 오류 0).
+>
+> **Phase 3 닫힘 (2026-11-15)**: G3 — 항목 노드의 반복 표시 `repeat` (contract 67 안) · resolver 의 「첫 항목 = 템플릿」 다섯 자리를 표시 판정 하나로 (소스 패턴 0, 원본 template 자리는 반복하지 않음) · 연결 · 해제 · 「템플릿 바꾸기」 명령 · 사용자 결정 2 (연결 칸 선택지 — 첫 항목만 템플릿 / 모두 고정 항목) · 3 (Layers 반복 아이콘 + × 행 수 · Canvas 점선 외곽) 확정 · 섞인 목록 key 충돌 경고. `[고정 A, 반복 B (3 행), 고정 C]` 가 Canvas · DOM · Layers 에서 5 개 같은 순서 · 해제 뒤 B 는 고정 항목 하나 (단위 + live). 원복 RED 6. 번들 누적 Builder +2,121 · Preview −2 B. live — 새 프로젝트에서 연결 칸 「Keep all as fixed items」 → Layers 우클릭 「Use as row template」 → Publish option 5 (Inbox · Kim · Lee · Park · Archive) → key 충돌 경고 → 해제 (Chrome MCP, 콘솔 오류 0). 끌어 옮기기 경계 규칙 (결정 4) 은 Phase 6 (`onMove`) 와 함께.
+
 Proposed — 2026-11-15
 
 - 사용자 요청: `/create-adr` (2026-11-15, 「권장안으로 /create-adr」).
@@ -156,13 +166,13 @@ F4 의 결과: bound Menu · CardView · SelectBoxGroup 은 Canvas · Preview �
 
 > 구현 상세: [310-collection-item-repeat-marker-breakdown.md](design/310-collection-item-repeat-marker-breakdown.md)
 
-### 사용자 결정 7건 — 3 건 확정 (1 · 4 · 6), 4 건은 execute-adr 가 해당 Phase 에서 묻는다
+### 사용자 결정 7건 — 6 건 확정 (1 ~ 6), 1 건 (7) 은 execute-adr 가 Phase 8 에서 묻는다
 
 1. **계약 번호** — **확정 (2026-11-15)**: 번호를 올리고 그 전 문서는 열지 않는다 (ADR-308 과 같은 방식). 번호는 착수 시점의 다음 번호이고 Phase 2 에서 한 번 올린다 (breakdown §7). 영향: 그 전 계약의 프로젝트 전부.
-2. **연결 UI 의 선택지** (Phase 3) — 「템플릿만 남기기 / 고정 항목으로 유지」 의 자리와 문구.
-3. **반복 표시 모양** (Phase 3) — Layers 행과 Canvas 에서 반복 항목을 어떻게 표시할지.
+2. **연결 UI 의 선택지** — **확정 (2026-11-15, Phase 3 착수)**: Design 패널 Collection 절의 연결 칸 안. 고정 항목이 2 개 이상인 목록에 데이터를 고르면 칸 아래에 「기존 항목 N개 — (•) 첫 항목만 템플릿으로 — 나머지 지움 / ( ) 모두 고정 항목으로 두고 데이터는 뒤에」 가 나온다 (기본 = 첫 항목만 템플릿). 연결 한 번 = Undo 한 단계. 기각: 연결 확인 대화상자 · 선택 없이 연결 뒤 바꾸기.
+3. **반복 표시 모양** — **확정 (2026-11-15, Phase 3 착수)**: Layers 의 템플릿 행 앞에 반복 아이콘 · 뒤에 「× 행 수」, 고정 항목은 평소처럼. Canvas 는 템플릿을 고르면 반복된 행 전체에 얇은 점선 외곽. 기각: Layers 묶음 행 · 아이콘만.
 4. **섞인 목록의 끌어 옮기기** — **확정 (2026-11-15)**: 데이터 행을 고정 항목 경계에 놓으면 반복 구간의 처음 · 끝으로 간다 (거절하지 않는다).
-5. **번들 Δ 상한** (Phase 0) — Code 보기 생성기와 연결 UI 가 늘어난다. G0 측정 뒤 상한을 정한다.
+5. **번들 Δ 상한** — **확정 (2026-11-15, Phase 0)**: ADR-201 기본 Δ — ADR 전체 Builder +4,096 · Preview +3,584 B (G0 기준선 Builder 1,540,940 · Preview 152,371 대비). 넘으면 그 Phase 에서 lazy 분리로 줄이고, 못 줄이면 다시 묻는다.
 6. **Pagination 과 목록의 연결 모양** — **확정 (2026-11-15)**: Pagination 노드가 목록을 가리키는 참조 하나를 갖고, 번호 Button 은 템플릿 하나가 페이지 수만큼 반복된다 (규칙 대상과 같은 장소 참조, 새 저장 필드 하나). 기각: interaction 규칙으로 잇기 · 목록의 부품으로 두기.
 7. **가상 스크롤의 grid 배치** (Phase 8) — GridList grid · CardView 를 `GridLayout` 으로 지원 / 한 줄 목록과 Table 만. Phase 0 이 Canvas 가 `GridLayout` 의 칸 크기 계산을 같은 결과로 낼 수 있는지 판정한 뒤 정한다.
 

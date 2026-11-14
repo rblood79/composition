@@ -9,7 +9,6 @@ import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import {
   insertNodes,
-  editItems,
   setFields,
 } from "../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../packages/shared/src/catalog/document/graph";
@@ -18,6 +17,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../packages/shared/src/catalog/document/types";
+import type { CatalogBoundRow } from "../../../../packages/shared/src/catalog/resolution/resolver";
 import { applyCatalogPreviewTheme } from "../../../../packages/shared/src/catalog/runtime/domView.runtime";
 import { catalogThemeState } from "../../../../packages/shared/src/catalog/runtime/theme";
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
@@ -91,7 +91,9 @@ const cases = (["light", "dark"] as const).flatMap((colorMode) =>
   ),
 );
 
-it("dynamic items keep S2 selection and panel content in sync after edits", async () => {
+// ADR-310 Phase 2: a Tabs' items are nodes; rows that change come from its data source (the
+// Tab and TabPanel repeat per row — S2's `<TabList items>` + `<Collection items>`).
+it("bound rows keep S2 selection and panel content in sync after edits", async () => {
   const graph = new CatalogGraph(
     newCatalogProjectDocument({
       projectId: "project:project:dynamic-tabs",
@@ -99,6 +101,16 @@ it("dynamic items keep S2 selection and panel content in sync after edits", asyn
     }),
     library,
   );
+  let items = [
+    { id: "a", title: "Alpha", content: "Alpha body" },
+    { id: "b", title: "Beta", content: "Beta body" },
+    { id: "c", title: "Gamma", content: "Gamma body" },
+  ];
+  const rows = (): CatalogBoundRow[] =>
+    items.map((item) => ({
+      key: item.id,
+      values: { label: item.title, content: item.content },
+    }));
   const workspace = new CatalogWorkspace(
     graph,
     new CatalogStorage(indexedDB, `tabs-dynamic-${Math.random()}`),
@@ -107,14 +119,10 @@ it("dynamic items keep S2 selection and panel content in sync after edits", asyn
       viewport: { width: 800, height: 600 },
       autosaveSchedule: () => {},
       textMeasure: catalogTextMeasure,
+      root: { rows },
     },
   );
   const id = "project:node:tabs" as NodeId;
-  let items = [
-    { id: "a", title: "Alpha", content: "Alpha body" },
-    { id: "b", title: "Beta", content: "Beta body" },
-    { id: "c", title: "Gamma", content: "Gamma body" },
-  ];
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: "project:node:home-body" },
@@ -124,7 +132,8 @@ it("dynamic items keep S2 selection and panel content in sync after edits", asyn
           id,
           definitionId: catalogPaletteDefinitionId(library, "Tabs"),
           children: [],
-          props: { items: { kind: "set", value: items } },
+          props: {},
+          binding: { collectionId: "data:collection:tabs", fieldMap: {} },
           visual: { width: { kind: "set", value: 500 } },
           sizing: {},
           descendantOverrides: [],
@@ -203,13 +212,22 @@ it("dynamic items keep S2 selection and panel content in sync after edits", asyn
       ),
     ).toHaveLength(items.length);
   };
-  const edit = async (change: Parameters<typeof editItems>[0]["edit"]) => {
+  type Item = (typeof items)[number];
+  type Change =
+    | { kind: "move"; id: string; index: number }
+    | { kind: "update"; id: string; patch: Partial<Item> }
+    | { kind: "add"; item: Item }
+    | { kind: "remove"; id: string };
+  const edit = async (change: Change) => {
     await act(async () => {
-      workspace.execute(
-        editItems({ target: { kind: "node", id }, key: "items", edit: change }),
-      );
-      const entry = graph.getEntry(id) as NodeEntry;
-      items = (entry.props.items as { kind: "set"; value: typeof items }).value;
+      const next = [...items];
+      const at = "id" in change ? next.findIndex((item) => item.id === change.id) : -1;
+      if (change.kind === "move") next.splice(change.index, 0, ...next.splice(at, 1));
+      else if (change.kind === "update") next[at] = { ...next[at]!, ...change.patch };
+      else if (change.kind === "add") next.push(change.item);
+      else next.splice(at, 1);
+      items = next;
+      workspace.refreshRows();
       draw();
     });
     check();

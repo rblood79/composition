@@ -22,21 +22,6 @@ export const tabsBinding: PrimitiveBinding = {
         label: "Selected tab",
         section: "value",
       },
-      items: {
-        kind: "items-manager",
-        label: "Tabs",
-        section: "content",
-        itemsManager: {
-          itemsKey: "items",
-          itemTypeName: "Tab",
-          defaultItem: { title: "New tab", content: "Tab body" },
-          labelKey: "title",
-          itemSchema: [
-            { key: "title", type: "string", label: "Title" },
-            { key: "content", type: "string", label: "Content" },
-          ],
-        },
-      },
       dataBinding: {
         kind: "binding",
         label: "Data source",

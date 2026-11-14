@@ -1,5 +1,6 @@
+import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
-import { LayoutPanelTop, Maximize, Percent } from "lucide-react";
+import { LayoutPanelTop, Maximize, Percent, Repeat } from "lucide-react";
 import {
   componentOriginOf,
   copyNodes,
@@ -10,6 +11,7 @@ import {
   removeTargets,
   reorderReadsIndex,
   type CatalogClipboard,
+  setRowTemplate,
   ungroupNodes,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
@@ -511,6 +513,34 @@ export function catalogCanvasMenuItems(
         )
       : []),
   ];
+  // ADR-310 §4.4 「템플릿 바꾸기」: an item of a bound list becomes its rows' template (shown only
+  // where the command plans — the item sits in a bound list and is not its template already).
+  if (ids.length === 1) {
+    const entry = host.graph.getEntry(ids[0]!);
+    let type = "";
+    try {
+      type =
+        entry?.kind === "node"
+          ? definitionTypeName(host.graph, entry.definitionId)
+          : "";
+    } catch {
+      type = "";
+    }
+    if (
+      entry?.kind === "node" &&
+      !entry.repeat &&
+      CATALOG_ROW_ITEM_TYPES.has(type)
+    )
+      structure.push(
+        ...action(
+          "use-as-row-template",
+          "contextMenu.useAsRowTemplate",
+          setRowTemplate({ itemId: ids[0]! as NodeId }),
+          undefined,
+          Repeat,
+        ),
+      );
+  }
   // "Move to slot ▸": a page with a layout — the slots the selection is not in (the old Target Slot).
   const slots =
     surface === "action-bar"

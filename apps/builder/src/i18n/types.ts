@@ -104,6 +104,7 @@ export interface TranslationKeys {
     group: string;
     ungroup: string;
     moveToSlot: string;
+    useAsRowTemplate: string;
     align: string;
     delete: string;
     zoomToFit: string;
@@ -255,6 +256,7 @@ export interface TranslationKeys {
     ungroupInstance: string;
     variableNameConflict: string;
     variableNameShadows: string;
+    itemKeyTaken: string;
   };
   history: {
     title: string;
@@ -860,6 +862,9 @@ export interface TranslationKeys {
     fieldMapChildren: string;
     fieldMapParentId: string;
     fieldMapAuto: string;
+    rowTemplateItems: string;
+    rowTemplateFirst: string;
+    rowTemplateKeep: string;
     fieldTemplatePlaceholder: string;
     insertField: string;
     collectionField: string;

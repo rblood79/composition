@@ -265,6 +265,7 @@ const catalog: TranslationKeys = {
     group: "그룹 만들기",
     ungroup: "그룹 해제",
     moveToSlot: "슬롯으로 이동",
+    useAsRowTemplate: "행 템플릿으로 사용",
     align: "정렬",
     delete: "삭제",
     zoomToFit: "화면에 맞추기",
@@ -423,6 +424,8 @@ const catalog: TranslationKeys = {
       "이미 같은 이름의 변수가 보이는 범위에 있습니다 — 다른 이름을 쓰세요",
     variableNameShadows:
       "그 이름을 이미 읽는 자리가 있어 다른 변수의 값을 가로채게 됩니다 — 다른 이름을 쓰세요",
+    itemKeyTaken:
+      "같은 목록의 다른 항목이 이미 그 ID 를 씁니다 — 다른 값을 쓰세요",
   },
   history: {
     title: "작업 내역",
@@ -1160,6 +1163,9 @@ const catalog: TranslationKeys = {
     fieldMapChildren: "하위 항목 필드 (트리)",
     fieldMapParentId: "부모 ID 필드 (트리)",
     fieldMapAuto: "자동",
+    rowTemplateItems: "기존 항목 {count}개",
+    rowTemplateFirst: "첫 항목만 템플릿으로 — 나머지 지움",
+    rowTemplateKeep: "모두 고정 항목으로 두고 데이터는 뒤에",
     legacyBinding:
       "legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.",
     fieldTemplatePlaceholder: "텍스트 또는 {field}",
@@ -3489,6 +3495,8 @@ const formattedMessages: Record<
   "history.entryThemeActivate": (args) =>
     `테마 전환: ${String(args?.name ?? "")}`,
   "history.entryThemeEdit": (args) => `테마 편집: ${String(args?.name ?? "")}`,
+  "propertiesPanel.rowTemplateItems": (args) =>
+    `기존 항목 ${String(args?.count ?? 0)}개`,
   "propertiesPanel.bindingUsedBy": (args) =>
     `사용처 ${String(args?.count ?? 0)}`,
   "propertiesPanel.idUnique": (args) =>

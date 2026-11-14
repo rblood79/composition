@@ -1,4 +1,4 @@
-import { catalogTabsItemRows } from "../document/tabsItems";
+import { CATALOG_ROW_ITEM_TYPES } from "../document/collectionItems";
 import { catalogAvatarCssSize } from "../document/avatarSizeValue";
 import { bindTemplateValue } from "../document/templateBindingValue";
 import { catalogLabeledValueFits } from "../document/labeledValue";
@@ -375,6 +375,10 @@ const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
 const SAMPLED_ROW_OWNERS: ReadonlySet<string> = new Set([
   "ListBox",
   "GridList",
+  // (ADR-310 Phase 1: the families that started repeating their item — a sample, not the window.)
+  "CardView",
+  "Menu",
+  "SelectBoxGroup",
 ]);
 /** A box that grows with its content: no bounded height (the old sample policy's `viewportHeight == null`). */
 function growsWithRows(
@@ -454,19 +458,8 @@ export function catalogRowSampleCount(
   const shown = Math.max(0, pageHeight - pitch.start);
   return Math.max(1, pitch.perLine) * (Math.ceil(shown / pitch.pitch) + 1);
 }
-/**
- * Item types a bound collection repeats per data row (its first item position is the row
- * template; the positions may sit under a list part — TagGroup's TagList).
- */
-export const CATALOG_ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
-  "ListBoxItem",
-  "GridListItem",
-  "Tag",
-  "Breadcrumb",
-  "TreeItem",
-  "Tab",
-  "TabPanel",
-]);
+// (ADR-310 Decision 7: the row item types are the collection type table's — `collectionItems.ts`.)
+export { CATALOG_ROW_ITEM_TYPES };
 /**
  * Source of a bound Table's projected rows and cells (`…:row`, `…:cell-<column>`): they show data,
  * not a document position, so no command targets them (picking reaches the TableBody).
@@ -491,6 +484,53 @@ function withoutSampleContent(writes: PropWrites): PropWrites {
     if (!literal) kept[key] = write;
   }
   return kept as PropWrites;
+}
+/**
+ * Where a row's text goes in an item's children (ADR-310 Phase 1): `label` · `content` = every
+ * literal text child takes that field (a Breadcrumb's label · a TabPanel's content); `slots` = a
+ * Card's `Text[slot=title]` takes the label and `Text[slot=description]` the description — S2
+ * CardView's `<Text slot="title">{item.title}</Text>`.
+ */
+type CatalogRowLabel = "label" | "content" | "slots";
+const CARD_ROW_SLOTS: Readonly<Record<string, string>> = {
+  title: "label",
+  description: "description",
+};
+/** The row field a literal text child takes (`undefined` = it keeps its own text). */
+function rowLabelField(
+  rowLabel: CatalogRowLabel | undefined,
+  props: Record<string, unknown>,
+  type: string,
+): string | undefined {
+  if (!rowLabel) return undefined;
+  if (props.slot === "separator") return undefined;
+  // (A Card's own title · description Text lost its sample text to the row — `withoutSampleContent`.)
+  if (rowLabel === "slots")
+    return typeof props.slot === "string" &&
+      (props.children === undefined ||
+        (typeof props.children === "string" && !props.children.includes("{")))
+      ? CARD_ROW_SLOTS[props.slot]
+      : undefined;
+  // (A TabPanel's body Text reads the row's content where it is empty — and an owned body Text's
+  //  sample text is already gone: `withoutSampleContent`, ADR-310 Phase 2.)
+  if (rowLabel === "content")
+    return type === "Text" &&
+      (props.children === undefined || props.children === "")
+      ? rowLabel
+      : undefined;
+  if (typeof props.children !== "string" || props.children.includes("{"))
+    return undefined;
+  return rowLabel;
+}
+/**
+ * A row template item's content defaults (its origin's literal `label` · `description` …) are sample
+ * content too: the row's `{label}` binding reads the row, not the origin's "Option" (ADR-310 Phase 1
+ * — a bound SelectBoxGroup drew "Option" per row).
+ */
+function dropLiteralContent(props: Record<string, unknown>): void {
+  for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
+    if (typeof props[key] === "string" && !(props[key] as string).includes("{"))
+      delete props[key];
 }
 /** A row value: `{field}` templates read the row (a `{{ state }}` template is not a row field). */
 function bindRowValue(value: PropValue, row: CatalogBoundRow): PropValue {
@@ -848,6 +888,15 @@ export function resolveCatalogNode(
   const isInstanceRecord = (node: ResolvedCatalogNode) => {
     const definition = lookupDefinition(node.definitionId);
     return definition.mode === "composite" && !!definition.templateRootId;
+  };
+  /**
+   * ADR-310 — the collection item a bound list repeats per data row: a project node marked `repeat`
+   * (an owned item, or a project template's position). A library template position never is.
+   */
+  const repeats = (id: string): boolean => {
+    if (id.startsWith("lib:")) return false;
+    const entry = graph.getEntry(id as NodeId);
+    return entry?.kind === "node" && entry.repeat === true;
   };
   const templateTypeName = (templateId: TemplateId): string => {
     const template = templateId.startsWith("lib:")
@@ -1381,16 +1430,22 @@ export function resolveCatalogNode(
   const templateBindings = (
     definitionId: DefinitionId,
     props: Props,
+    /** A row template item: its content defaults are sample content (`dropLiteralContent`). */
+    rowStart?: boolean,
   ): Props | undefined => {
     const definition = lookupDefinition(definitionId);
     if (definition.mode !== "composite") return undefined;
     const bindings: Props = {};
     for (const key of Object.keys(definition.accepts)) {
+      const fallback =
+        definition.defaults[key] === undefined ||
+        (rowStart &&
+          (ROW_TEMPLATE_BINDABLE_PROP_KEYS as readonly string[]).includes(key))
+          ? undefined
+          : definition.defaults[key];
       const value =
         props[key] ??
-        (definition.defaults[key] === undefined
-          ? undefined
-          : tokenValue(definition.defaults[key]));
+        (fallback === undefined ? undefined : tokenValue(fallback));
       if (value !== undefined) bindings[key] = value;
     }
     return bindings;
@@ -1731,7 +1786,7 @@ export function resolveCatalogNode(
     ownedRowing?: {
       row?: CatalogBoundRow;
       rowStart?: boolean;
-      rowLabel?: "label" | "content";
+      rowLabel?: CatalogRowLabel;
       rowSet?: readonly CatalogBoundRow[];
       sampleOwner?: NodeId;
     },
@@ -1766,7 +1821,9 @@ export function resolveCatalogNode(
         ? ("content" as const)
         : ownedType === "Breadcrumb"
           ? ("label" as const)
-          : ownedRowing?.rowLabel
+          : ownedType === "Card"
+            ? ("slots" as const)
+            : ownedRowing?.rowLabel
       : undefined;
     selection?.onVisit?.(node.id);
     if (node.enabled === false) return undefined;
@@ -1783,6 +1840,7 @@ export function resolveCatalogNode(
       Object.assign(visual, inherited.visual);
       copyResolvedTokenRefs(visual, inherited.visual);
     }
+    if (ownedRow && ownedRowing?.rowStart) dropLiteralContent(props);
     applyWrites(
       props,
       ownedRow && sampleOwner ? withoutSampleContent(node.props) : node.props,
@@ -1799,14 +1857,9 @@ export function resolveCatalogNode(
         if (key in props) props[key] = bindRowValue(props[key], ownedRow);
       if (ownedRowing?.rowStart)
         props[ownedType === "TabPanel" ? "itemId" : "id"] = ownedRow.key;
-      if (
-        ownedRowing?.rowLabel &&
-        (ownedRowing.rowLabel !== "content" || props.children === "") &&
-        props.slot !== "separator" &&
-        typeof props.children === "string" &&
-        !props.children.includes("{")
-      )
-        props.children = String(ownedRow.values[ownedRowing.rowLabel] ?? "");
+      const labelField = rowLabelField(ownedRowing?.rowLabel, props, ownedType);
+      if (labelField)
+        props.children = String(ownedRow.values[labelField] ?? "");
     }
     // `useAsyncList`'s `loadingState` beside its items (`<TableView loadingState={list.loadingState}>`
     // · `<Skeleton isLoading={list.isLoading}>`): a bound Table · Skeleton reads its collection's load.
@@ -1889,9 +1942,7 @@ export function resolveCatalogNode(
     const rowSet =
       node.binding && rows && !charted
         ? (keyedRows ?? rows(node.binding, "items", node.id, instancePath))
-        : ownedType === "Tabs"
-          ? catalogTabsItemRows(props.items)
-          : undefined;
+        : undefined;
     if (
       definition.mode === "composite" &&
       definition.templateRootId &&
@@ -1907,7 +1958,11 @@ export function resolveCatalogNode(
             instancePath,
             [definition.templateRootId],
             { ...self, collapsed: true },
-            templateBindings(node.definitionId, props),
+            templateBindings(
+              node.definitionId,
+              props,
+              !!ownedRow && ownedRowing?.rowStart,
+            ),
             instanceRoot(
               withoutPropertyKeys(node.definitionId, [
                 ...Object.keys(node.props),
@@ -1979,8 +2034,8 @@ export function resolveCatalogNode(
       const child = graph.getEntry(childId);
       if (child?.kind !== "node")
         throw new CatalogValidationError("DANGLING_CHILD", childId);
-      if (childRows && ownedItems.includes(childId)) {
-        if (childId !== ownedItems[0]) continue;
+      // ADR-310: the item marked `repeat` is the rows' template; the other items are static.
+      if (childRows && ownedItems.includes(childId) && repeats(childId)) {
         childRows.forEach((data, index) => {
           const projected = resolveOwned(child, childPath, undefined, self, {
             row: data,
@@ -2266,7 +2321,7 @@ export function resolveCatalogNode(
       rowSet?: readonly CatalogBoundRow[];
       row?: CatalogBoundRow;
       rowStart?: boolean;
-      rowLabel?: "label" | "content";
+      rowLabel?: CatalogRowLabel;
       records?: readonly CatalogBoundRow[];
       /**
        * The owned row template (a bound collection's first own item, 2026-10-14) whose positions
@@ -2417,6 +2472,7 @@ export function resolveCatalogNode(
       applyWrites(props, override.defaults);
       applyWrites(visual, override.visual);
     }
+    if (row && rowing?.rowStart) dropLiteralContent(props);
     // (An inner owner's row template item — its literal content is sample content, as an owned
     // one's is.)
     if ("kind" in template)
@@ -2475,14 +2531,12 @@ export function resolveCatalogNode(
       if (rowing?.rowStart)
         props[templateTypeName(templateId) === "TabPanel" ? "itemId" : "id"] =
           row.key;
-      if (
-        rowing?.rowLabel &&
-        (rowing.rowLabel !== "content" || props.children === "") &&
-        props.slot !== "separator" &&
-        typeof props.children === "string" &&
-        !props.children.includes("{")
-      )
-        props.children = String(row.values[rowing.rowLabel] ?? "");
+      const labelField = rowLabelField(
+        rowing?.rowLabel,
+        props,
+        templateTypeName(templateId),
+      );
+      if (labelField) props.children = String(row.values[labelField] ?? "");
     }
     // (The owned node's `loadingState` beside its items — a bound Table · Skeleton in the template.)
     const ownLoading = ownRows?.loadingState;
@@ -2639,11 +2693,7 @@ export function resolveCatalogNode(
           ...(root.stateRules ?? []),
         ]
       : [];
-    const availableRows =
-      rowing?.rowSet ??
-      (templateTypeName(templateId) === "Tabs"
-        ? catalogTabsItemRows(props.items)
-        : undefined);
+    const availableRows = rowing?.rowSet;
     const rowSet =
       availableRows &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
@@ -2666,7 +2716,9 @@ export function resolveCatalogNode(
         ? ("content" as const)
         : templateTypeName(templateId) === "Breadcrumb"
           ? ("label" as const)
-          : rowing?.rowLabel
+          : templateTypeName(templateId) === "Card"
+            ? ("slots" as const)
+            : rowing?.rowLabel
       : undefined;
     const childRowing =
       row || passRows
@@ -2689,9 +2741,9 @@ export function resolveCatalogNode(
       for (const childId of ids) {
         if (selection && !selection.include(childId, instancePath)) continue;
         const childPath = [...path, childId];
-        if (rowSet && itemPositions.includes(childId)) {
-          // The first item position is the row template; the rest are sample items.
-          if (childId !== itemPositions[0]) continue;
+        // ADR-310: a position marked `repeat` (a project template node) is the rows' template; the
+        // others — and a library template's positions, which carry no mark — are static.
+        if (rowSet && itemPositions.includes(childId) && repeats(childId)) {
           const projectRow = (data: CatalogBoundRow) =>
             projectTemplate(
               owner,
@@ -2805,7 +2857,11 @@ export function resolveCatalogNode(
             nestedPath,
             [definition.templateRootId],
             { ...self, collapsed: true },
-            templateBindings(template.definitionId, props),
+            templateBindings(
+              template.definitionId,
+              props,
+              !!row && rowing?.rowStart,
+            ),
             withDisplayState(
               displayState,
               instanceRoot(
@@ -2855,6 +2911,7 @@ export function resolveCatalogNode(
               (row
                 ? {
                     row,
+                    ...(rowLabel ? { rowLabel } : {}),
                     ...(rowing?.sampleOwner
                       ? { sampleOwner: rowing.sampleOwner }
                       : {}),
@@ -2904,20 +2961,19 @@ export function resolveCatalogNode(
     if (change?.kind === "fillSlot" && innerPlace) {
       // An inner owner's slot contents: template positions of the instance (ADR-260 Decision 11).
       // A bound collection's own items (a bound ListBox inside a component) repeat per row as the
-      // owned ones below do: the first item is the row template, the others are sample items.
+      // owned ones below do: the item marked `repeat` is the row template, the others are static.
       children.length = 0;
       const rowItems = rowSet
         ? change.childIds.filter((childId) =>
             CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
           )
         : [];
-      ownedRowItems = rowItems.length;
+      ownedRowItems = rowItems.filter(repeats).length;
       for (const childId of change.childIds) {
         if (selection && !selection.include(childId, innerPlace.instancePath))
           continue;
         const childPath = [...innerPlace.templatePath, childId];
-        if (rowSet && rowItems.includes(childId)) {
-          if (childId !== rowItems[0]) continue;
+        if (rowSet && rowItems.includes(childId) && repeats(childId)) {
           const projectRow = (data: CatalogBoundRow) =>
             projectTemplate(
               owner,
@@ -2967,8 +3023,8 @@ export function resolveCatalogNode(
     } else if (change?.kind === "fillSlot") {
       children.length = 0;
       // A bound collection whose items are its own nodes (placed since 2026-10-14, or added by its
-      // "+"): as for template positions, the first item is the row template, repeated per row; the
-      // other items are sample items.
+      // "+"): the item marked `repeat` is the row template, repeated per row; the other items are
+      // static (ADR-310).
       const rowItems = rowSet
         ? change.childIds.filter((childId) => {
             const child = graph.getEntry(childId);
@@ -2980,15 +3036,14 @@ export function resolveCatalogNode(
             );
           })
         : [];
-      ownedRowItems = rowItems.length;
+      ownedRowItems = rowItems.filter(repeats).length;
       for (const childId of change.childIds) {
         const childPath = [...instancePath, childId];
         if (selection && !selection.include(childId, childPath)) continue;
         const child = graph.getEntry(childId);
         if (child?.kind !== "node")
           throw new CatalogValidationError("DANGLING_CHILD", childId);
-        if (rowSet && rowItems.includes(childId)) {
-          if (childId !== rowItems[0]) continue;
+        if (rowSet && rowItems.includes(childId) && repeats(childId)) {
           const projectRow = (data: CatalogBoundRow) =>
             resolveOwned(child, childPath, undefined, self, {
               row: data,
@@ -3030,6 +3085,8 @@ export function resolveCatalogNode(
                 (!rowItems.length || templateTypeName(templateId) === "Tabs"))
               ? {
                   ...(row ? { row } : {}),
+                  // (ADR-310: a Card's owned title · description Text read the row's fields.)
+                  ...(row && rowLabel ? { rowLabel } : {}),
                   ...(rowSet &&
                   (!rowItems.length || templateTypeName(templateId) === "Tabs")
                     ? { rowSet }
@@ -3043,14 +3100,8 @@ export function resolveCatalogNode(
           self,
         );
       }
-      // A bound collection whose own items were all removed (an empty slot) still has a row
-      // template: the origin's first item, as when its items are template positions (2026-10-22
-      // user 「child 가 없을 때 data collection 선택 시 row 가 생성되지 않는다」). Adding an item makes
-      // that one the row template. (Its EmptyState may stay — no item is what counts, 2026-10-23.)
-      if (rowSet && !ownedRowItems && itemPositions.length)
-        children.push(
-          ...projectChildren([itemPositions[0]!], childParent, self),
-        );
+      // (ADR-310: a bound collection with no item of its own has no row template — binding it adds
+      //  one, marked `repeat` (`catalogBindingCommand`); the origin's items are not read as one.)
     }
     for (const rule of stateVisual(template.definitionId, nodeState))
       applyWrites(visual, rule);
@@ -3096,7 +3147,7 @@ export function resolveCatalogNode(
         ? { rowCount: 0, rowsShown: 0 }
         : {}),
       ...(rowSet &&
-      (itemPositions.length > 0 || ownedRowItems > 0) &&
+      (itemPositions.some(repeats) || ownedRowItems > 0) &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
       growsWithRows(visual, sizing)
         ? { rowCount: rowCountOf(rowSet), rowsShown: rowsShownOf(rowSet) }

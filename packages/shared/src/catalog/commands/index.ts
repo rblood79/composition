@@ -24,6 +24,15 @@ export {
 } from "./structure";
 export { setShowWhen } from "./showWhen";
 export {
+  catalogHasRowTemplate,
+  catalogRowItemGroups,
+  catalogStaticItemCount,
+  clearRowTemplates,
+  markRowTemplates,
+  setRowTemplate,
+  type CatalogRowTemplateMode,
+} from "./rowTemplate";
+export {
   planSwapInstance,
   swapInstance,
   type SwapInstanceReport,

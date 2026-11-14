@@ -465,6 +465,12 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
     "catalogBindingCommand · view commands",
     0,
   ),
+  repeat: at(
+    "src/pages/<Page>.tsx",
+    "<Collection items={rows}>{item => <Item …>}</Collection> among the static items (ADR-310)",
+    "catalogBindingCommand",
+    0,
+  ),
   slot: at(
     "src/components/<Name>.tsx",
     "composition={{slot: {name, required}}} on the template node",

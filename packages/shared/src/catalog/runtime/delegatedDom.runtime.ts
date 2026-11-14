@@ -317,9 +317,18 @@ export interface DelegatedDomInput {
    * `useAsyncList.loadMore()` of a running Preview (the session's): a bound collection's end
    * (`*LoadMoreItem` — `onLoadMore`) loads its next page. Absent = a static render.
    */
-  readonly loadMore?: (collectionId: string) => void;
+  readonly loadMore?: (
+    collectionId: string,
+    ownerId: string,
+    moreLoaded: boolean,
+  ) => void;
   /** Whether a collection pages (its endpoint gives a cursor). */
   readonly pages?: (collectionId: string) => boolean;
+  /**
+   * ADR-310 「더 보기」 — whether a bound list holds loaded rows past its display window (the
+   * session's — it owns the window): its end shows the sentinel, which grows the window.
+   */
+  readonly moreLoaded?: (collectionId: string, ownerId: string) => boolean;
   /** The collection the record's text filters on the server · that text's load (`setFilterText`). */
   readonly serverFilterOf?: (recordId: string) => string | undefined;
   readonly setFilterText?: (collectionId: string, filterText: string) => void;
@@ -370,7 +379,7 @@ function serverFiltered(
   };
 }
 
-/** The record whose binding a collection shows: its own, or its picker's (through the Popover). */
+/** The record whose binding a collection shows: its own, or its picker's · MenuTrigger's (through the Popover). */
 function boundOwnerOf(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -381,7 +390,10 @@ function boundOwnerOf(
   if (!popover || catalogTypeName(root, popover) !== "Popover")
     return undefined;
   const picker = root.domInputs.get(popover.parentId);
-  return picker && LISTBOX_PICKER_TYPES.has(catalogTypeName(root, picker))
+  // (ADR-310 Phase 1: a palette Menu's binding is its MenuTrigger's — the rows reach the Menu.)
+  const pickerType = picker && catalogTypeName(root, picker);
+  return picker &&
+    (LISTBOX_PICKER_TYPES.has(pickerType!) || pickerType === "MenuTrigger")
     ? picker
     : undefined;
 }
@@ -436,13 +448,17 @@ const isEmptyStateChild = (
  * The reference's load-more item at a bound collection's end (S2 passes `onLoadMore` and draws it
  * itself): RAC's `*LoadMoreItem` sentinel loads the next page when it is seen —
  * `useAsyncList.loadMore()`, nothing without a cursor — its spinner while `loadingMore`.
+ * ADR-310 Decision 10 「더 보기」: rows loaded past the display window (`rowCount` > `rowsShown` —
+ * a 250-row mock list, the 101st row a page brought) end the list in the sentinel too; it grows the
+ * window first.
  */
 export function catalogLoadMoreItem(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
-  loadMore: ((collectionId: string) => void) | undefined,
+  loadMore: DelegatedDomInput["loadMore"],
   Item: ElementType,
   pages: (collectionId: string) => boolean,
+  moreLoadedOf?: (collectionId: string, ownerId: string) => boolean,
 ): ReactElement[] {
   if (!loadMore) return [];
   // (A picker's list shows the picker's collection — `Select · ComboBox > Popover > ListBox`, S2
@@ -453,14 +469,17 @@ export function catalogLoadMoreItem(
   const binding = source?.kind === "node" ? source.binding : undefined;
   if (!binding) return [];
   const collectionId = binding.collectionId.replace(/^data:collection:/, "");
-  if (!pages(collectionId)) return [];
+  const moreLoaded =
+    moreLoadedOf?.(collectionId, owner.sourceId) ??
+    (owner.rowCount ?? 0) > (owner.rowsShown ?? 0);
+  if (!moreLoaded && !pages(collectionId)) return [];
   const isLoading = owner.props.loadingState === "loadingMore";
   return [
     createElement(
       Item,
       {
         key: "__load-more",
-        onLoadMore: () => loadMore(collectionId),
+        onLoadMore: () => loadMore(collectionId, owner.sourceId, moreLoaded),
         isLoading,
       },
       isLoading
@@ -2061,6 +2080,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           input.loadMore,
           ListBoxLoadMoreItem,
           (id) => input.pages?.(id) ?? false,
+          (id, ownerId) => input.moreLoaded?.(id, ownerId) ?? false,
         ),
       );
     },
@@ -2107,6 +2127,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           input.loadMore,
           GridListLoadMoreItem,
           (id) => input.pages?.(id) ?? false,
+          (id, ownerId) => input.moreLoaded?.(id, ownerId) ?? false,
         ),
       );
     },
@@ -2252,6 +2273,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           input.loadMore,
           MenuLoadMoreItem,
           (id) => input.pages?.(id) ?? false,
+          (id, ownerId) => input.moreLoaded?.(id, ownerId) ?? false,
         ),
       );
     },
@@ -2328,6 +2350,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           input.loadMore,
           TreeLoadMoreItem,
           (id) => input.pages?.(id) ?? false,
+          (id, ownerId) => input.moreLoaded?.(id, ownerId) ?? false,
         ),
       );
     },
@@ -3615,6 +3638,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           },
         },
         ...renderAll(input, cards),
+        // (ADR-310 「더 보기」: S2 CardView `onLoadMore` — RAC's GridList end sentinel.)
+        ...catalogLoadMoreItem(
+          input.root,
+          input.node,
+          input.loadMore,
+          GridListLoadMoreItem,
+          (id) => input.pages?.(id) ?? false,
+          (id, ownerId) => input.moreLoaded?.(id, ownerId) ?? false,
+        ),
       );
     },
   },

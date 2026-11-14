@@ -1,3 +1,4 @@
+import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import { docCounters } from "./docCounters";
 import { catalogAutoHtmlIds } from "./attributes";
 import { catalogGridAutoRows } from "./gridAutoRows";
@@ -859,7 +860,7 @@ export class CatalogWorkspace {
   /**
    * Whether the Canvas leaves a collection's row undrawn (Layers lists what it draws, 2026-10-23):
    * its EmptyState (RAC `renderEmptyState`) while it has items, and its item positions while its
-   * loaded data is empty (no row is projected from them).
+   * loaded data is empty (no row is projected from them) — not its rows' template (ADR-310).
    */
   collectionRowHidden(position: CatalogPosition, parentType: string): boolean {
     if (!CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType)) return false;
@@ -877,6 +878,12 @@ export class CatalogWorkspace {
           root.domInputs.get(position.identity)
         )?.hidden === true
       );
+    // (ADR-310: the rows' template keeps its row with no data row drawn — the author edits it.)
+    const node =
+      position.target.kind === "node"
+        ? this.runtime.graph.getEntry(position.target.id)
+        : undefined;
+    if (node?.kind === "node" && node.repeat) return false;
     return (
       (RAC_COLLECTION_CHILD_TYPES[parentType] ?? []).includes(type) &&
       !root.domInputs.has(position.identity)
@@ -927,7 +934,43 @@ export class CatalogWorkspace {
     }
     // (The rows past the sample are not built — ADR-157.)
     const more = root.rowRemainders().get(owner.id)?.hiddenRows ?? 0;
-    return more > 0 ? { rows, more } : { rows };
+    // ADR-310 §4.6: a data row whose key a static item beside it has (the rows sit in the owner's
+    // item level — a TagGroup's TagList, a picker's ListBox). Read off the drawn records, so a
+    // static item's key edit shows at once; no row is dropped or re-keyed.
+    const conflicts = (id: string): readonly string[] | undefined => {
+      const record = records.get(id);
+      if (!record) return undefined;
+      const children = record.children.map((child) => records.get(child)!);
+      const rowKeys = children
+        .filter((child) => child?.rowIndex !== undefined)
+        .map((child) => String(child!.props.id ?? ""));
+      if (rowKeys.length) {
+        const statics = new Set(
+          children
+            .filter(
+              (child) =>
+                child &&
+                child.rowIndex === undefined &&
+                CATALOG_ROW_ITEM_TYPES.has(root.typeOf(child)) &&
+                child.props.id !== undefined,
+            )
+            .map((child) => String(child!.props.id)),
+        );
+        const found = rowKeys.filter((key) => statics.has(key));
+        return found.length ? found : undefined;
+      }
+      for (const child of record.children) {
+        const found = conflicts(child);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const keyConflicts = conflicts(owner.id);
+    return {
+      rows,
+      ...(more > 0 ? { more } : {}),
+      ...(keyConflicts ? { keyConflicts } : {}),
+    };
   }
 
   private readonly revealListeners = new Set<

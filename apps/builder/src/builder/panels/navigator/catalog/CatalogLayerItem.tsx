@@ -1,7 +1,13 @@
 import { memo } from "react";
 import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
-import { ChevronRight, GripVertical, Settings2 } from "lucide-react";
+import {
+  ChevronRight,
+  GripVertical,
+  Repeat,
+  Settings2,
+  TriangleAlert,
+} from "lucide-react";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
 import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -100,7 +106,34 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
         )}
       </div>
       <div className="elementItemLabel">
+        {/* ADR-310 Decision 3: the rows' template of a bound list — repeated per data row. */}
+        {node.repeat && (
+          <Repeat
+            className="layer-repeat-icon"
+            size={12}
+            strokeWidth={ICON_EDIT_PROPS.stroke}
+            aria-label="Repeats per data row"
+          />
+        )}
         <span className="elementItemLabelText">{name}</span>
+        {node.repeat?.count !== undefined && (
+          <span className="layer-repeat-count" translate="no">
+            × {node.repeat.count}
+          </span>
+        )}
+        {node.repeat?.keyConflicts && (
+          <TriangleAlert
+            className="layer-repeat-conflict"
+            size={12}
+            strokeWidth={ICON_EDIT_PROPS.stroke}
+            role="img"
+            aria-label={`Rows share a fixed item's key: ${node.repeat.keyConflicts.join(", ")}`}
+          >
+            <title>
+              {`Rows share a fixed item's key: ${node.repeat.keyConflicts.join(", ")}`}
+            </title>
+          </TriangleAlert>
+        )}
         {node.slot && (
           <span
             className="layer-slot-role"

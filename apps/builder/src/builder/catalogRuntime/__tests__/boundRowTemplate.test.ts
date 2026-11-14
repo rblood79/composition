@@ -130,9 +130,13 @@ describe("binding a collection without items of its own", () => {
     },
   );
 
-  it("a collection that holds items keeps them as they are", async () => {
-    const { workspace, fill } = await open("ListBox");
+  // ADR-310 Decision 2 (user 2026-11-15): binding a list that holds items asks what they become.
+  it("「첫 항목만 템플릿으로」 (default): the first item is the rows' template, the other items go", async () => {
+    const { workspace, fill, isEmptyState, rowRecords } = await open("ListBox");
     const before = fill();
+    const items = before.filter((id) => !isEmptyState(id));
+    const kept = before.filter((id) => id === items[0] || isEmptyState(id));
+    expect(items.length).toBeGreaterThan(1);
     workspace.execute(
       catalogBindingCommand(
         [{ kind: "node", id: LIST }],
@@ -140,6 +144,46 @@ describe("binding a collection without items of its own", () => {
         workspace.newId,
       ),
     );
+    const graph = workspace.runtime.graph;
+    expect(fill()).toEqual(kept);
+    expect((graph.getEntry(items[0]!) as NodeEntry).repeat).toBe(true);
+    expect(rowRecords()).toHaveLength(2);
+    // One Undo brings the items back; unbinding leaves the template as a static item.
+    workspace.undo();
+    expect(fill()).toEqual(before);
+    workspace.redo();
+    workspace.execute(
+      catalogBindingCommand([{ kind: "node", id: LIST }], undefined),
+    );
+    expect((graph.getEntry(items[0]!) as NodeEntry).repeat).toBeUndefined();
+    expect(fill()).toEqual(kept);
+    expect(rowRecords()).toHaveLength(0);
+  });
+
+  it("「모두 고정 항목으로」: every item stays static and a copy after them repeats", async () => {
+    const { workspace, fill, isEmptyState, rowRecords } = await open("ListBox");
+    const before = fill();
+    const items = before.filter((id) => !isEmptyState(id));
+    workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: LIST }],
+        BINDING,
+        workspace.newId,
+        "keep",
+      ),
+    );
+    const graph = workspace.runtime.graph;
+    const after = fill();
+    const kept = after.filter((id) => !isEmptyState(id));
+    expect(kept.slice(0, items.length)).toEqual(items);
+    expect(kept).toHaveLength(items.length + 1);
+    const copy = kept.at(-1)!;
+    expect((graph.getEntry(copy) as NodeEntry).repeat).toBe(true);
+    for (const id of items)
+      expect((graph.getEntry(id) as NodeEntry).repeat).toBeUndefined();
+    // The static items and the two data rows, in that order.
+    expect(rowRecords()).toHaveLength(2);
+    workspace.undo();
     expect(fill()).toEqual(before);
   });
 });

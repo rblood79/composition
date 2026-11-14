@@ -33,6 +33,12 @@ export const cardViewBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // ADR-310 Phase 1: the S2 `items` collection (rows repeat the item template).
+      dataBinding: {
+        kind: "binding",
+        label: "Data source",
+        section: "collection",
+      },
       // ADR-308 Phase 1: the group's selection (S2 · RAC) — accepted; the panel offers it in Phase 2.
       selectedKeys: {
         editorHidden: true,

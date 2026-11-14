@@ -3,11 +3,13 @@ import {
   rowTemplateBindableKeysFor,
   type RowTemplateBindablePropKey,
 } from "@composition/shared";
-import { setFields } from "../../../../../packages/shared/src/catalog/commands";
+import {
+  catalogRowItemGroups,
+  setFields,
+} from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import {
   definitionTypeName,
-  templateDefinitionId,
   type EditTarget,
 } from "../../../../../packages/shared/src/catalog/commands/context";
 import type {
@@ -23,26 +25,15 @@ import {
 import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 
 /**
- * ADR-248 Phase 4e-4e: the row template of a bound collection (the first item position of its
- * template root — the shared resolver repeats it per data row, 4e-4e-3a). Editing it (or inside
- * it) reaches every data row; the card fields section lists its content props a row fills. The
- * item types are the resolver's (2026-10-24 — a list of its own left Tag · TreeItem · Breadcrumb
- * without a row template here).
+ * ADR-248 Phase 4e-4e: the row template of a bound collection — the item the shared resolver
+ * repeats per data row. Editing it (or inside it) reaches every data row; the card fields section
+ * lists its content props a row fills. The item types are the resolver's.
  */
 const ROW_ITEM_TYPES = CATALOG_ROW_ITEM_TYPES;
 
-function templateType(reader: CatalogReader, templateId: TemplateId): string {
-  try {
-    return definitionTypeName(reader, templateDefinitionId(reader, templateId));
-  } catch {
-    return "";
-  }
-}
-
 /**
- * A bound instance's row template: its first own item (a placed collection holds its items as its
- * own nodes since 2026-10-14 — the resolver repeats that one per row), else its template root's
- * first item position.
+ * A bound instance's row template: its item marked `repeat` (ADR-310 — an owned item, or a
+ * project template's position; a library position never is), wherever the rows reach it.
  */
 export function catalogRowTemplateId(
   reader: CatalogReader,
@@ -50,47 +41,13 @@ export function catalogRowTemplateId(
 ): TemplateId | NodeId | undefined {
   const owner = reader.getEntry(ownerId);
   if (owner?.kind !== "node" || !owner.binding) return undefined;
-  for (const override of owner.descendantOverrides) {
-    if (override.kind !== "fillSlot") continue;
-    const item = override.childIds.find((id) => {
-      const entry = reader.getEntry(id);
-      if (entry?.kind !== "node") return false;
-      try {
-        return ROW_ITEM_TYPES.has(definitionTypeName(reader, entry.definitionId));
-      } catch {
-        return false;
-      }
-    });
-    if (item) return item;
-  }
-  const definition = owner.definitionId.startsWith("lib:")
-    ? reader.library.definitions.get(
-        owner.definitionId as `lib:definition:${string}`,
-      )
-    : reader.getEntry(owner.definitionId);
-  const rootId = (definition as { templateRootId?: TemplateId } | undefined)
-    ?.templateRootId;
-  if (!rootId) return undefined;
-  const childrenOf = (id: TemplateId): readonly TemplateId[] =>
-    (
-      (id.startsWith("lib:")
-        ? reader.library.templates.get(id as `lib:template:${string}`)
-        : reader.getEntry(id)) as
-        { children?: readonly TemplateId[] } | undefined
-    )?.children ?? [];
-  const itemOf = (ids: readonly TemplateId[]) =>
-    ids.find((childId) => ROW_ITEM_TYPES.has(templateType(reader, childId)));
-  // The rows reach the items of a part that holds them, at any depth (a Select's `Popover >
-  // ListBox` — ADR-256 Phase 6c: the resolver passes the rows on to the children of a position
-  // with no item position, level by level).
-  for (
-    let level = childrenOf(rootId);
-    level.length;
-    level = level.flatMap((child) => childrenOf(child))
-  ) {
-    const item = itemOf(level);
-    if (item) return item;
-  }
+  for (const group of catalogRowItemGroups(reader, ownerId))
+    for (const position of group) {
+      const entry = position.sourceId.startsWith("lib:")
+        ? undefined
+        : reader.getEntry(position.sourceId);
+      if (entry?.kind === "node" && entry.repeat) return position.sourceId;
+    }
   return undefined;
 }
 

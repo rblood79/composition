@@ -105,6 +105,8 @@ function layers(workspace: CatalogWorkspace) {
       subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
       collectionRowHidden: (position, parentType) =>
         workspace.collectionRowHidden(position, parentType),
+      // (ADR-310: a rows' template with no drawn record — its data is empty — counts 0 rows.)
+      recordDrawn: (position) => workspace.root.domInputs.has(position.identity),
     },
     page,
   );
@@ -127,55 +129,59 @@ function layers(workspace: CatalogWorkspace) {
   return { store, listRow };
 }
 const view = (node: CatalogLayerNode) =>
-  (node.children ?? []).map((child) => [child.name, child.projection ?? false]);
+  (node.children ?? []).map((child) => [
+    child.name,
+    child.repeat ? (child.repeat.count ?? "?") : null,
+  ]);
 
-describe("ADR-248 Phase 4e-6-36 Layers bound rows", () => {
-  it("lists a bound ListBox's data rows as its rows, each the row's record", async () => {
+/**
+ * ADR-310 Decision 3 (user 2026-11-15): a bound list's Layers rows are its document positions —
+ * its static items and its rows' template (the item marked `repeat`), whose row shows the drawn
+ * row count; the data rows themselves are not rows of their own (they replaced the template's
+ * position until ADR-310).
+ */
+describe("ADR-310 Layers bound rows — the rows' template row", () => {
+  it("lists a bound ListBox's template once, with its row count; a data row's record selects the template's position", async () => {
     const { workspace } = await open("ListBox");
     const { listRow } = layers(workspace);
     // (No EmptyState row: the Canvas does not draw it while there are rows, 2026-10-23.)
-    expect(view(listRow())).toEqual([
-      ["Alpha", true],
-      ["Beta", true],
-    ]);
-    // A row is the drawn row's record: selecting it selects that row on the Canvas.
-    const [first, second] = listRow().children!;
-    workspace.selectRecords([second!.id]);
+    expect(view(listRow())).toEqual([["ListBoxItem", 2]]);
+    const [template] = listRow().children!;
+    expect(template!.projection).toBeUndefined();
+    // The Canvas's second row is the template's record for that row: it selects its position.
+    const rowsOf = workspace.root.domInputs;
+    const second = [...rowsOf.values()].find((record) => record.rowIndex === 1)!;
+    workspace.selectRecords([second.id]);
     expect(workspace.session.getSnapshot().selection[0]).toMatchObject({
-      identity: second!.id,
-      target: first!.position.target,
+      identity: second.id,
+      target: template!.position.target,
     });
-    workspace.selectRecords([second!.id, first!.id, second!.id]);
-    expect(workspace.session.getSnapshot().selection).toEqual([
-      { identity: second!.id, target: first!.position.target },
-      { identity: first!.id, target: first!.position.target },
-    ]);
   });
 
-  it("follows a data change; unbound or unknown rows list the item positions", async () => {
+  it("follows a data change; with its data emptied or unknown the template row stays", async () => {
     const { workspace, setRows } = await open("GridList");
     const { listRow } = layers(workspace);
-    // (No EmptyState row: the Canvas does not draw it while there are rows, 2026-10-23.)
-    expect(view(listRow())).toEqual([
-      ["Alpha", true],
-      ["Beta", true],
-    ]);
+    expect(view(listRow())).toEqual([["GridListItem", 2]]);
     setRows([row("c", "Gamma")]);
     workspace.refreshRows(["c1"]);
-    expect(view(listRow())).toEqual([["Gamma", true]]);
-    // Its data emptied: the Canvas draws the EmptyState alone — no item positions either.
+    expect(view(listRow())).toEqual([["GridListItem", 1]]);
+    // Its data emptied: the Canvas draws the EmptyState; the template keeps its row to be edited.
     setRows([]);
     workspace.refreshRows(["c1"]);
-    expect(view(listRow())).toEqual([["EmptyState", false]]);
+    expect(view(listRow())).toEqual([
+      ["GridListItem", 0],
+      ["EmptyState", null],
+    ]);
     setRows(undefined);
     workspace.refreshRows(["c1"]);
-    expect(view(listRow()).every(([, projection]) => !projection)).toBe(true);
-    expect(view(listRow()).length).toBeGreaterThan(1);
+    expect(view(listRow())).toEqual([["GridListItem", "?"]]);
 
     const plain = await open("ListBox", false);
-    expect(
-      view(layers(plain.workspace).listRow()).map(([name]) => name),
-    ).toEqual(["ListBoxItem", "ListBoxItem", "ListBoxItem"]);
+    expect(view(layers(plain.workspace).listRow())).toEqual([
+      ["ListBoxItem", null],
+      ["ListBoxItem", null],
+      ["ListBoxItem", null],
+    ]);
     // Its items deleted, the Canvas draws its EmptyState: now it has a row.
     const plainTree = layers(plain.workspace);
     const items = plainTree.listRow().children!.map((row) => row.position);

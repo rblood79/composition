@@ -270,22 +270,24 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
       }
     });
 
-    it(`${type}: a bound picker's row template is the first item of its ListBox`, async () => {
+    it(`${type}: a bound picker's row template is its ListBox's item marked repeat`, async () => {
       const picker = await open(type, {
         binding: { collectionId: "data:collection:rows", fieldMap: {} },
       });
       const { workspace } = picker;
       const graph = workspace.runtime.graph;
-      // (No rows loaded: the items stay.) The first item and what is inside it edit every row;
-      // the sample items do not.
-      const [first, second] = picker.dom().items;
+      // (No rows loaded: the template stays.) Placed bound, the picker kept its ListBox's first
+      // item as the rows' template — marked `repeat` — and the other items went (ADR-310
+      // Decision 2). That item and what is inside it edit every row.
+      const items = picker.dom().items;
+      expect(items).toHaveLength(1);
+      const [first] = items;
       expect(catalogRowTemplateId(graph, FIELD)).toBe(first!.sourceId);
       const targetOf = (record: CatalogConsumerNode) =>
         workspace.itemOfRecord(record.id)!.target;
       expect(catalogRowTemplateOwner(graph, targetOf(first!))).toBe(FIELD);
       const label = workspace.root.domInputs.get(first!.children[0]!)!;
       expect(catalogRowTemplateOwner(graph, targetOf(label))).toBe(FIELD);
-      expect(catalogRowTemplateOwner(graph, targetOf(second!))).toBeUndefined();
       expect(
         catalogRowTemplateOwner(graph, targetOf(picker.dom().list)),
       ).toBeUndefined();

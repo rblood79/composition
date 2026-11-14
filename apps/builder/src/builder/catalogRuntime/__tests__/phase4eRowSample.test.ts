@@ -20,6 +20,7 @@ import {
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogPageLayoutCommand } from "../pageLayoutSettings";
+import { catalogBindingCommand } from "../dataBindingCommand";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import {
@@ -309,7 +310,9 @@ describe("ADR-248 4e row sample", () => {
   // 2026-10-22 user 「listbox 에 child 가 없을 때 data collection 선택 시 row 가 생성되지 않는다 · slot 에서
   // item 추가 시 생성됨」: a bound ListBox whose own items were all removed still repeats a row
   // template — the origin's item, as a ListBox whose items are template positions does.
-  it("a bound ListBox with no item of its own left repeats its origin's item per row", async () => {
+  // ADR-310: the origin's items are never a row template — a bound list whose items are all
+  // removed draws no row until it gets a template of its own (binding it again adds one).
+  it("a bound ListBox with no item of its own left draws no row; binding it again adds its template", async () => {
     const workspace = await open("ListBox", rowsOf(3));
     const graph = workspace.runtime.graph;
     const fill = (graph.getEntry(LIST) as NodeEntry).descendantOverrides.find(
@@ -334,6 +337,14 @@ describe("ADR-248 4e row sample", () => {
         ) as { childIds: readonly NodeId[] }
       ).childIds.filter((id) => !isEmptyState(id)),
     ).toEqual([]);
+    expect(rowRecords(workspace, "ListBoxItem")).toEqual([]);
+    workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: LIST }],
+        BINDING,
+        workspace.newId,
+      ),
+    );
     expect(
       rowRecords(workspace, "ListBoxItem").map((row) => row.rowIndex),
     ).toEqual([0, 1, 2]);

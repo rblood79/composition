@@ -19,6 +19,7 @@
  * Markup is the document's node tree (types as RAC components, scalar props); styles are not code.
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
+import { CODE_VIEW_ITEM_TYPES } from "../catalog/document/collectionItems";
 import { isRichText } from "../catalog/document/textRuns";
 import type { RichText } from "../catalog/document/types";
 import { descendantPatchOf } from "../catalog/document/types";
@@ -3502,21 +3503,8 @@ class Generator {
 
   /** A list's item component (undefined = not a collection — a keyed binding's container). */
   private itemType(type: string): string | undefined {
-    return (
-      {
-        ListBox: "ListBoxItem",
-        GridList: "GridListItem",
-        Tree: "TreeItem",
-        Menu: "MenuItem",
-        TagGroup: "Tag",
-        TagList: "Tag",
-        Select: "ListBoxItem",
-        ComboBox: "ListBoxItem",
-        Table: "Row",
-        TableBody: "Row",
-        CardView: "Card",
-      } as Record<string, string>
-    )[type];
+    // (ADR-310 Decision 7: the collection type table's `codeItems` rows.)
+    return CODE_VIEW_ITEM_TYPES[type];
   }
 
   /** The rows a bound node shows: its view's, else the collection's (a key picks one). */

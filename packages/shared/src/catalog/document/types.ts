@@ -161,9 +161,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 66 — S2 대응 없는 컴포넌트를 가까운 S2 패턴으로: Toolbar 원본의 자식 = ActionButton (Button 아님) ·
  *      Separator 의 작성 크기 삭제, Pagination = ActionButton + ToggleButtonGroup, Nav 의 Link = standalone,
  *      PreviewTrigger 본체 폭 삭제.
+ * 67 — ADR-310 Phase 2: Tabs 의 항목은 노드가 정본 (Tab + 짝 TabPanel) — Tabs `items` prop 삭제,
+ *      원본의 slot 을 Tabs 루트로 (놓은 Tabs 가 TabList · Tab · TabPanel 을 자기 노드로 가진다).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 66 as const;
+export const LIBRARY_CONTRACT_VERSION = 67 as const;
 
 export type EntryKind =
   | "project"
@@ -1255,6 +1257,13 @@ export interface NodeEntry {
   stateRules?: StateRules;
   descendantOverrides: readonly DescendantOverride[];
   binding?: DataBindingRef;
+  /**
+   * ADR-310 — this collection item repeats once per data row (the reference's `<Collection>` part):
+   * the rows are its own `binding`'s, else the nearest bound owner's. Items without it are static and
+   * stay where they stand, before · after the repeated ones. Only item types of a repeating
+   * collection (`CATALOG_ROW_ITEM_TYPES`) carry it.
+   */
+  repeat?: true;
   /**
    * A slot an instance fills. ADR-261 Decision 3 — `suggested`: components offered first when an
    * instance fills it (pen.dev 「suggested slot components」 — a hint, not a restriction).

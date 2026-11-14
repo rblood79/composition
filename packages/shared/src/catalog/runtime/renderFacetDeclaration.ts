@@ -82,7 +82,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     key: "tabs",
     kind: "delegating-internal",
     reason:
-      "renderTabs 가 childrenByParent 로 TabPanels→TabPanel itemId 페어링 + items 로 RAC Tab/TabPanel 합성. generic 자식 재귀로는 빈 TabList 만 렌더.",
+      "renderTabs 가 Tab · TabPanel 노드를 key (Tab id ↔ TabPanel itemId) 로 짝지어 RAC Tab/TabPanel 로 그린다 (ADR-310 — 노드가 정본). generic 자식 재귀로는 짝이 맞지 않는다.",
   },
   {
     key: "fileupload",

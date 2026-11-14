@@ -185,6 +185,24 @@
   color: var(--fg-muted);
 }
 
+/* ADR-310 Decision 3 — a bound list's rows' template: repeat glyph before, row count after. */
+.layer-repeat-icon {
+  flex: 0 0 auto;
+  color: var(--fg-muted);
+}
+
+.layer-repeat-conflict {
+  flex: 0 0 auto;
+  color: var(--negative);
+}
+
+.layer-repeat-count {
+  flex: 0 0 auto;
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+
 .elementItemActions {
   display: flex;
   flex-direction: row;
@@ -233,7 +251,9 @@
 /* 선택 행의 글자 · 아이콘 = --bg-overlay (사용자 지정 2026-10-24 — --accent 바탕 위).
    아이콘 규칙은 아래 페이지 트리 아이콘 규칙 뒤에 둔다 (같은 specificity). */
 .elementItem.active .elementItemLabel,
-.elementItem.active .layer-slot-role {
+.elementItem.active .layer-slot-role,
+.elementItem.active .layer-repeat-icon,
+.elementItem.active .layer-repeat-count {
   color: var(--bg-overlay);
 }
 

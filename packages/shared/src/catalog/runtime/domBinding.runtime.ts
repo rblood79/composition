@@ -337,6 +337,13 @@ export interface CatalogDomRuntime {
   setRuntimeProps?(id: string, patch: Readonly<Record<string, unknown>>): void;
   /** `useAsyncList.loadMore()` — a bound collection's end loads the next page (the session's). */
   loadMore?(collectionId: string): void;
+  /**
+   * ADR-310 Decision 10 「더 보기」 — a bound list's end shows more: its display window grows over
+   * the rows already loaded (`moreLoaded`), else the next page loads, then the window grows.
+   */
+  showMore?(collectionId: string, ownerId: string, moreLoaded: boolean): void;
+  /** ADR-310 「더 보기」 — loaded rows past the list's display window (`CatalogPreviewSession.moreLoaded`). */
+  moreLoaded?(collectionId: string, ownerId: string): boolean;
   /** Whether a collection pages (its endpoint gives a cursor) — only those end in a load-more item. */
   pages?(collectionId: string): boolean;
   /**
@@ -3964,11 +3971,18 @@ export function renderNode(
         ...catalogLoadMoreItem(
           root,
           table,
-          context.runtime?.loadMore
-            ? (collectionId) => context.runtime!.loadMore!(collectionId)
+          context.runtime?.loadMore || context.runtime?.showMore
+            ? (collectionId, ownerId, moreLoaded) =>
+                context.runtime!.showMore
+                  ? context.runtime!.showMore(collectionId, ownerId, moreLoaded)
+                  : !moreLoaded
+                    ? context.runtime!.loadMore?.(collectionId)
+                    : undefined
             : undefined,
           TableLoadMoreItem,
           (collectionId) => context.runtime?.pages?.(collectionId) ?? false,
+          (collectionId, ownerId) =>
+            context.runtime?.moreLoaded?.(collectionId, ownerId) ?? false,
         ),
       );
   }
@@ -4046,14 +4060,22 @@ export function renderNode(
               ) => context.runtime!.setRuntimeProps!(recordId, patch),
             }
           : {}),
-        ...(context.runtime?.loadMore
+        ...(context.runtime?.loadMore || context.runtime?.showMore
           ? {
-              loadMore: (collectionId: string) =>
-                context.runtime!.pages?.(collectionId)
-                  ? context.runtime!.loadMore!(collectionId)
-                  : undefined,
+              loadMore: (
+                collectionId: string,
+                ownerId: string,
+                moreLoaded: boolean,
+              ) =>
+                context.runtime!.showMore
+                  ? context.runtime!.showMore(collectionId, ownerId, moreLoaded)
+                  : !moreLoaded && context.runtime!.pages?.(collectionId)
+                    ? context.runtime!.loadMore?.(collectionId)
+                    : undefined,
               pages: (collectionId: string) =>
                 context.runtime!.pages?.(collectionId) ?? false,
+              moreLoaded: (collectionId: string, ownerId: string) =>
+                context.runtime!.moreLoaded?.(collectionId, ownerId) ?? false,
             }
           : {}),
         ...(context.runtime?.serverFilterOf && context.runtime.setFilterText

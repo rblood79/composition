@@ -7885,6 +7885,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tabs",
     "definitionId": "lib:definition:type-Tabs",
+    "slot": {
+      "name": "Tabs",
+      "required": false
+    },
     "children": [
       "lib:template:component-tabs__1",
       "lib:template:component-tabs__2_1",
@@ -7900,10 +7904,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tabs__1",
     "definitionId": "lib:definition:type-TabList",
-    "slot": {
-      "name": "Tabs",
-      "required": false
-    },
     "children": [
       "lib:template:component-tabs__1__tab-1",
       "lib:template:component-tabs__1__tab-2"
@@ -7971,10 +7971,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tabs__2_2",
     "definitionId": "lib:definition:type-TabPanel",
-    "children": [],
+    "children": ["lib:template:component-tabs__2_2__content"],
     "props": {
       "itemId": "tab-2"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tabs__2_2__content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": { "children": "" },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {

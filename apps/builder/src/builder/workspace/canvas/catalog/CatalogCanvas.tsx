@@ -682,6 +682,22 @@ export function CatalogCanvas({
             ) ?? null)
           : null;
       },
+      repeatRows: (identity) => {
+        const records = workspace.root.canvasInputs;
+        const record = records.get(identity);
+        if (record?.rowIndex === undefined) return [];
+        const target = workspace.positionOfRecord(identity)?.target;
+        const node =
+          target?.kind === "node"
+            ? workspace.runtime.graph.getEntry(target.id)
+            : undefined;
+        if (node?.kind !== "node" || !node.repeat) return [];
+        const parent = records.get(record.parentId);
+        return (parent?.children ?? []).filter((id) => {
+          const row = records.get(id);
+          return row?.rowIndex !== undefined && row.sourceId === record.sourceId;
+        });
+      },
       hoverLeaves: (identity) => {
         if (scene.selectionTarget(identity) !== identity) return [];
         // A page body is an empty area (canvas-interaction §8.6): no guides.

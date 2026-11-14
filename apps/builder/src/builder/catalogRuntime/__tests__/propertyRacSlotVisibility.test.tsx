@@ -8,6 +8,8 @@ import {
 import { I18nProvider } from "../../../i18n";
 import { openAdr296 } from "../../../preview/catalog/__tests__/support/adr296Harness";
 import { getPaletteItems } from "../../panels/components/paletteItems";
+import { createCatalogQuickConnectHost } from "../../panels/datatable/usage/catalogQuickConnectHost";
+import { QuickConnectHostContext } from "../../panels/datatable/usage/quickConnectHost";
 import { CatalogPropertiesBody } from "../../panels/properties/catalog/CatalogPropertiesPanel.components";
 import { catalogEditContract, catalogSemanticContracts } from "../editContract";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
@@ -49,18 +51,30 @@ it.each(["Text", "Button", "SegmentedControl", "SelectBoxGroup", "Sheet"])(
       ui = render(
         <I18nProvider initialLocale="en-US">
           <CatalogWorkspaceProvider workspace={h.workspace}>
-            <CatalogPropertiesBody
-              selection={{
-                first: item,
-                targets: [target],
-                contract,
-                title: type,
-                subpartOwner: undefined,
-                graph: h.graph(),
-                workspace: h.workspace,
-                root: h.workspace.root,
-              }}
-            />
+            {/* the builder always provides it — a bindable owner (SelectBoxGroup, ADR-310) shows the data source field */}
+            <QuickConnectHostContext.Provider
+              value={createCatalogQuickConnectHost(
+                h.workspace,
+                {
+                  apply: async () => ({ applied: [], inverse: [] }),
+                  collection: () => undefined,
+                },
+                (name) => name,
+              )}
+            >
+              <CatalogPropertiesBody
+                selection={{
+                  first: item,
+                  targets: [target],
+                  contract,
+                  title: type,
+                  subpartOwner: undefined,
+                  graph: h.graph(),
+                  workspace: h.workspace,
+                  root: h.workspace.root,
+                }}
+              />
+            </QuickConnectHostContext.Provider>
           </CatalogWorkspaceProvider>
         </I18nProvider>,
       );

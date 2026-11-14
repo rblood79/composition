@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-310 Phase 3 — 목록에 고정 항목과 데이터 행을 섞는다 (반복 표시)] - 2026-11-15
+
+### Added
+
+- **반복 표시**: 데이터를 연결한 목록 (ListBox · GridList · Menu · TagGroup · Tree · CardView · SelectBoxGroup · Breadcrumbs · Select · ComboBox) 은 표시된 항목 하나를 데이터 행마다 반복하고, 나머지 항목은 고정 항목으로 그 자리에 둔다 — 「전체」 같은 고정 항목을 데이터 앞 · 뒤에 둘 수 있다. Layers 의 템플릿 행에 반복 아이콘과 「× 행 수」가 붙고, Canvas 에서 템플릿을 고르면 반복된 행 전체에 점선 외곽이 보인다 (사용자 결정 3).
+- **연결 칸의 선택지**: 고정 항목이 2 개 이상인 목록에 데이터를 고르면 「첫 항목만 템플릿으로 — 나머지 지움」 (기본) 과 「모두 고정 항목으로 두고 데이터는 뒤에」 중 고른다 (사용자 결정 2). 연결 한 번 = Undo 한 단계.
+- **「Use as row template」**: Canvas · Layers 우클릭으로 다른 항목을 행 템플릿으로 바꾼다 (Tab 은 짝 TabPanel 도).
+- **key 충돌 경고**: 데이터 행의 key 가 고정 항목의 Item ID 와 겹치면 Layers 템플릿 행에 경고가 뜬다 (행은 그대로 보인다).
+
+### Changed
+
+- 연결 해제는 템플릿을 고정 항목 하나로 남긴다. 항목을 모두 지운 목록은 원본의 첫 항목으로 행을 그리지 않는다 — 다시 연결하면 자기 템플릿 항목이 생긴다. 저장 형식은 contract 67 안에서 `repeat` 칸이 늘었다 (Phase 2 와 같은 번호).
+
+## [ADR-310 Phase 2 — Tabs 항목은 노드 (Tab + 짝 TabPanel) · contract 67] - 2026-11-15
+
+### Changed
+
+- **Breaking — contract 66 → 67**: Tabs 의 항목 목록 (`items` 배열 · Properties 의 Tabs 목록 편집기) 을 지웠다. 이제 Tab 과 TabPanel 노드가 정본이고 (사용자 결정 A2), 놓은 Tabs 는 TabList · Tab · TabPanel 을 모두 자기 노드로 갖는다 — Layers 에서 고르고 안에 내용을 넣을 수 있다. 그 전 번호로 저장한 프로젝트는 열리지 않는다 (저장소 정책 — 변환 없음).
+
+### Fixed
+
+- **Tab 삭제 · 복제 뒤 남는 TabPanel**: Tab 을 지우거나 복제해도 짝 TabPanel 은 그대로라, 지운 Tab 의 본문이 남거나 복제한 Tab 에 본문이 없었다. 이제 Tab 삭제는 짝 TabPanel 도 지우고, 복제는 짝 TabPanel 을 새 key 로 복제한다 — 한 번의 Undo 로 둘 다 되돌아간다. 「+」 도 Tab 과 TabPanel 을 함께 넣는다.
+- **데이터를 연결한 Tabs 의 본문**: 행의 content 가 TabPanel 본문에 들어간다 (TabPanel 이 노드가 된 뒤에도).
+- **Select · ComboBox 목록 끝에서 멈춤 (Phase 1 회귀)**: 다음 페이지 응답이 늦으면 목록 끝이 다시 그려질 때마다 더 불러오기를 호출해 Preview 가 멈출 수 있었다. 새 행이 들어왔을 때만 목록 창을 늘린다.
+
+## [ADR-310 Phase 0 · 1 — 연결한 Menu · CardView · SelectBoxGroup 반복 · 「더 보기」 · 항목 type 표 하나] - 2026-11-15
+
+### Fixed
+
+- **데이터를 연결한 Menu · CardView · SelectBoxGroup**: 연결해도 원본 항목 (Menu 3 · Card 3 · SelectBox 2) 이 그대로 보이고 데이터 행이 반복되지 않았다. 이제 행마다 항목이 반복된다 — Card 는 제목 · 설명 글자에 행의 label · description 이 들어가고 (S2 CardView 예제의 `<Text slot="title">`), SelectBox 는 원본 기본 글자 「Option」 대신 행의 label 을 쓴다. Canvas 는 ListBox 처럼 page 에 보이는 행만 표본으로 그리고 나머지는 「+N more」.
+- **연결 칸이 없던 컴포넌트**: CardView · SelectBoxGroup · 팔레트 Menu 의 Design 패널에 Collection › Data source 칸이 없어 연결할 길이 없었다. 이제 칸이 있다 (Menu 는 놓은 instance 에 저장되고 행이 Popover 안 Menu 로 간다).
+- **100 행을 넘는 목록**: Preview · Publish 가 연결된 목록의 처음 100 행만 그려, mock 250 행 목록은 끝이 없었고 원격 목록이 다음 페이지로 받은 101 번째 행도 보이지 않았다. 이제 목록 끝이 보이면 다음 100 행을 더 보여 주고 (「더 보기」), 다 보였으면 다음 페이지를 받은 뒤 보여 준다. ListBox · GridList · Tree · Menu · CardView 가 해당한다 — 다시 읽기 · 검색 · 정렬은 처음 100 행으로 돌아간다. (높이를 고정한 연결 Table 은 높이만큼만 그리는 별도 경로 — ADR-310 Phase 4.)
+- **항목 ID 가 겹치는 편집**: 같은 목록 · 그룹의 다른 항목이 이미 쓰는 ID 로 고치면 RAC 가 두 항목을 하나로 다뤄 선택이 틀렸다. 이제 그 편집은 거절되고 이유를 알린다. 그룹 안 Radio · Checkbox 의 `value` 를 고치면 그룹의 값도 같이 바뀐다 (전에는 선택이 풀렸다).
+
+### Changed
+
+- **항목 type 목록 하나** (`collectionItems.ts` `COLLECTION_TYPE_TABLE`): 다섯 곳에 손으로 적혀 서로 달랐던 목록 (항목 추가 · 선택 소유 · 행 반복 · Code 보기 · 부품) 을 표 하나에서 계산한다. 정적 게이트가 catalog 의 모든 collection 이 표에 있거나 사유 있는 제외인지 본다 (SideNav 는 연결 계약이 없어 제외로 보고).
+
 ## [번들 상한 만료 연장 — 2026-12-25] - 2026-11-15
 
 ### Changed

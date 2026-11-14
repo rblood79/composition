@@ -431,3 +431,58 @@ describe("ADR-308 G2 (b) — a group edit's incremental records = a fresh bind",
     },
   );
 });
+
+describe("ADR-310 Phase 1 — an item key is one per group", () => {
+  /** The Design panel's key edit: the item's own write plus the group's moved keys, one step. */
+  const renameKey = (
+    scene: Awaited<ReturnType<typeof open>>,
+    record: CatalogConsumerNode,
+    prop: "id" | "value",
+    next: string,
+  ) =>
+    scene.workspace.execute((reader) => {
+      const own = setFields({
+        targets: [scene.workspace.positionOfRecord(record.id)!.target],
+        props: { [prop]: { kind: "set", value: next } },
+      })(reader);
+      const rest = catalogItemKeyRenameCommands(
+        scene.workspace,
+        record.id,
+        next,
+      ).map((command) => command(reader));
+      return {
+        label: "Rename",
+        ops: [...own.ops, ...rest.flatMap((plan) => plan.ops)],
+      };
+    });
+
+  it("a Radio's value edit moves its RadioGroup's value", async () => {
+    const scene = await open("RadioGroup");
+    const first = scene.items("Radio")[0]!;
+    scene.write("value", String(first.props.value));
+    renameKey(scene, first, "value", "renamed");
+    expect(scene.group().props.value).toBe("renamed");
+    expect(scene.canvasSelected("Radio")).toEqual(["renamed"]);
+  });
+
+  it("a key another item of the group has is refused (the document unchanged)", async () => {
+    const scene = await open("ListBox");
+    const [first, second] = scene.items("ListBoxItem");
+    const taken = String(second!.props.id);
+    let code: unknown;
+    try {
+      renameKey(scene, first!, "id", taken);
+    } catch (error) {
+      code = (error as { code?: unknown }).code;
+    }
+    expect(code).toBe("ITEM_KEY_TAKEN");
+    expect(scene.items("ListBoxItem").map((item) => item.props.id)).toEqual([
+      String(first!.props.id),
+      taken,
+      ...scene
+        .items("ListBoxItem")
+        .slice(2)
+        .map((item) => item.props.id),
+    ]);
+  });
+});

@@ -33,7 +33,8 @@ import type {
   TokenEntry,
   LayoutWrites,
 } from "../document/types";
-import type { CatalogCommand } from "./compose";
+import { stageOver, type CatalogCommand } from "./compose";
+import { markRowTemplates } from "./rowTemplate";
 import { removeUnreadDerivedViews } from "./views";
 import { parseRuleValueRef } from "../../interactions/valueRef";
 import { CatalogStage } from "../transactions/transaction";
@@ -68,6 +69,7 @@ import {
 } from "./properties";
 import {
   catalogCopiesWithFreshKeys,
+  catalogPairedTabPanels,
   dropTableColumnTemplateCells,
   tableAlignedIn,
   tableColumnCells,
@@ -239,11 +241,26 @@ export const insertNodes =
     // (Only entries that carry a condition can be unlinked by being placed.)
     if (input.entries.some((entry) => entry.showWhen))
       assertStateOwnersLinked(draft, input.rootIds);
-    return {
+    const plan = {
       label: input.label ?? "Insert",
       ops: draft.ops(),
       selectAfter: input.rootIds,
     };
+    // ADR-310: a list placed already bound (a filter's result list, a paste, the AI) gets its rows'
+    // template as binding it would — its first item (`markRowTemplates`, a no-op when it has one).
+    const bound = input.entries.filter((entry) => entry.binding);
+    if (!bound.length) return plan;
+    const stage = stageOver(reader);
+    stage.apply(plan.ops);
+    const ops = [...plan.ops];
+    for (const entry of bound) {
+      const marked = markRowTemplates({ ownerId: entry.id, newId: input.newId })(
+        stage,
+      );
+      stage.apply(marked.ops);
+      ops.push(...marked.ops);
+    }
+    return { ...plan, ops };
   };
 
 /**
@@ -1237,10 +1254,30 @@ export interface RemoveInput {
   newId?: NewId;
   label?: string;
 }
+/** One key per edit target (a node's id, a template position's owner and address). */
+const targetKey = (target: EditTarget): string =>
+  target.kind === "node"
+    ? target.id
+    : `${target.ownerId}\u0001${JSON.stringify(target.address)}`;
+
 export const removeTargets =
-  (input: RemoveInput): CatalogCommand =>
+  (given: RemoveInput): CatalogCommand =>
   (reader) => {
     const draft = new CommandDraft(reader);
+    // ADR-310 Decision 4: a deleted Tab takes its paired TabPanels along (one step, one Undo).
+    const listed = new Set(given.targets.map(targetKey));
+    const paired = given.targets
+      .flatMap((target) => catalogPairedTabPanels(draft, target))
+      .filter((panel): panel is EditTarget => panel.kind !== "page")
+      .filter((panel) => {
+        const key = targetKey(panel);
+        if (listed.has(key)) return false;
+        listed.add(key);
+        return true;
+      });
+    const input = paired.length
+      ? { ...given, targets: [...given.targets, ...paired] }
+      : given;
     for (const target of input.targets) {
       const collection = emptyStateCollectionOf(draft, target);
       if (
@@ -1522,12 +1559,14 @@ export const duplicateNodes =
       roots.push(keyed.entries.find((entry) => entry.id === keyed.rootId)!);
     }
     placeCopies(roots, input.placement);
-    for (const { clone, parent, index } of clones) {
+    const sources = topLevel(reader, input.ids);
+    clones.forEach(({ clone, parent, index }, at) => {
       for (const entry of clone.entries) draft.create(entry);
       addRelated(draft, clone.relatedEntries);
       placeAt(draft, parent, index + 1, [clone.rootId], input.newId);
       copies.push(clone.rootId);
-    }
+      duplicatePairedPanels(draft, sources[at]!, clone.rootId, sources, input.newId);
+    });
     // (A duplicate needs no check: it sits beside its original — the same ancestors — and an owner
     // inside the copy is the copy's.)
     return {
@@ -1536,6 +1575,49 @@ export const duplicateNodes =
       selectAfter: copies,
     };
   };
+
+/**
+ * ADR-310 Decision 4: a duplicated Tab's copy takes a new key, so its paired TabPanels are copied
+ * beside the originals with that key (`itemId`) — no copy without its panel, no panel showing two
+ * Tabs. A panel duplicated in the same selection is left to its own copy.
+ */
+function duplicatePairedPanels(
+  draft: CommandDraft,
+  sourceId: NodeId,
+  copyId: NodeId,
+  sources: readonly NodeId[],
+  newId: NewId,
+): void {
+  const written = draft.node(copyId).props.id;
+  if (written?.kind !== "set") return;
+  for (const panel of catalogPairedTabPanels(draft, { kind: "node", id: sourceId })) {
+    if (panel.kind !== "node" || sources.includes(panel.id)) continue;
+    const { parent, index } = locate(draft, panel.id);
+    const clone = cloneNodeSubgraph(
+      {
+        getEntry: (entryId) => draft.read(entryId),
+        referrersOf: (entryId) => draft.reader.referrersOf(entryId),
+      },
+      panel.id,
+      () => newId("node"),
+      relatedId(newId),
+    );
+    for (const entry of clone.entries)
+      draft.create(
+        entry.id === clone.rootId
+          ? {
+              ...entry,
+              props: {
+                ...entry.props,
+                itemId: { kind: "set", value: written.value },
+              },
+            }
+          : entry,
+      );
+    addRelated(draft, clone.relatedEntries);
+    placeAt(draft, parent, index + 1, [clone.rootId], newId);
+  }
+}
 
 /** A copied selection: its records as they were (pasted later with new IDs). */
 export interface CatalogClipboard {

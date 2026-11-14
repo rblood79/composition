@@ -166,10 +166,12 @@ describe("ADR-248 Phase 4e-4e bound rows", () => {
       "Starred",
       "Archive",
     ]);
+    // (Placed bound, the list kept its first item as the rows' template — ADR-310 Decision 2: with
+    //  rows unknown that template shows, once.)
     const unknown = await open("ListBox");
     unknown.setRows(undefined);
     unknown.workspace.refreshRows(["c1"]);
-    expect(items(unknown.workspace)).toHaveLength(3);
+    expect(items(unknown.workspace)).toHaveLength(1);
   });
 
   it("a data change re-resolves the bound root without a document step; row listeners follow", async () => {

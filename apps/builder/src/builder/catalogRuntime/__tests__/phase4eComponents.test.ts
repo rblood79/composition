@@ -358,9 +358,10 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       }
     },
   );
+  // (A placed Tabs' TabList is its own node since ADR-310 Phase 2 — the origin's slot is the Tabs
+  //  root — so it has no slot position to hold items and style together.)
   it.each([
     ["card", "Content"],
-    ["tabs", "TabList"],
     ["menu", "Menu"],
   ])(
     "a placed %s's %s holds its own items and its own style together (one override per address)",

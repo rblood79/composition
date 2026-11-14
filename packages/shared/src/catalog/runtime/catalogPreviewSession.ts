@@ -27,6 +27,7 @@ import {
 import { CatalogRuntime } from "./controller";
 import type { CatalogThemeState } from "./theme";
 import { catalogBoundRows } from "./dataBinding";
+import { COLLECTION_ROW_PROJECTION_WINDOW_LIMIT } from "../../collections/resolveCollectionItems";
 import {
   catalogBindingQuery,
   catalogCountOnlyView,
@@ -473,6 +474,14 @@ export class CatalogPreviewSession {
    * Builder's API items until the Builder sends other ones (`receive`).
    */
   private readonly reloadedItems = new Map<string, Record<string, unknown>[]>();
+  /**
+   * ADR-310 Decision 10 「더 보기」 — each bound list's display window (the rows its DOM lays out),
+   * by collection id + the bound node: it starts at the projection window and grows by one window
+   * when the list's end is seen (`showMore`). A reload · filter · sort starts it over.
+   */
+  private readonly displayWindows = new Map<string, number>();
+  /** The lists whose last delivered rows stopped at their window with more rows loaded (by window key). */
+  private readonly windowsCut = new Set<string>();
   /** The Builder's API items last received, by collection id (a change drops a reload's). */
   private readonly receivedItems = new Map<string, string>();
   /** The project's API endpoints (each query endpoint names the collection it fills). */
@@ -622,7 +631,8 @@ export class CatalogPreviewSession {
       const rows = new Map<string, Record<string, unknown>[]>();
       for (const item of data.collections) {
         const id = item.id;
-        if (typeof id !== "string" || !Array.isArray(item.runtimeData)) continue;
+        if (typeof id !== "string" || !Array.isArray(item.runtimeData))
+          continue;
         rows.set(id, item.runtimeData as Record<string, unknown>[]);
       }
       this.runtimeRows = rows;
@@ -1428,7 +1438,10 @@ export class CatalogPreviewSession {
     while (this.loadArguments.get(collectionId)?.cursor !== undefined) {
       const shown = this.collectionItems(collectionId).length;
       const total = this.loadTotals.get(collectionId);
-      if ((total !== undefined && total > VIEW_LOCAL_LOAD_CAP) || shown >= VIEW_LOCAL_LOAD_CAP) {
+      if (
+        (total !== undefined && total > VIEW_LOCAL_LOAD_CAP) ||
+        shown >= VIEW_LOCAL_LOAD_CAP
+      ) {
         this.refuseView(collectionId, total ?? shown);
         return;
       }
@@ -1437,7 +1450,8 @@ export class CatalogPreviewSession {
   }
   /** The rows a refused view would show: none (the bound components show their empty state). */
   private refuseView(collectionId: string, count: number): void {
-    const { cursor: _dropped, ...rest } = this.loadArguments.get(collectionId) ?? {};
+    const { cursor: _dropped, ...rest } =
+      this.loadArguments.get(collectionId) ?? {};
     this.loadArguments.set(collectionId, rest);
     this.viewRefusals.set(collectionId, count);
     console.warn(
@@ -1470,6 +1484,10 @@ export class CatalogPreviewSession {
     const page = await this.loadPage(collectionId, state);
     if (!page) return;
     this.viewRefusals.delete(collectionId);
+    // (A first page again — its lists show from the top, one window.)
+    const prefix = displayWindowKey(collectionId, "");
+    for (const key of [...this.displayWindows.keys()])
+      if (key.startsWith(prefix)) this.displayWindows.delete(key);
     this.showLoaded(collectionId, page.items);
     if (page.selectedKeys !== undefined)
       this.selectLoaded(collectionId, page.selectedKeys, false);
@@ -1529,6 +1547,46 @@ export class CatalogPreviewSession {
     this.showLoaded(collectionId, [...shown, ...page.items]);
     if (page.selectedKeys !== undefined)
       this.selectLoaded(collectionId, page.selectedKeys, true);
+  }
+  /**
+   * ADR-310 Decision 10 「더 보기」 — a bound list's end was seen: rows already loaded past its
+   * window (`moreLoaded`) show; else the next page loads first (a collection that pages — none
+   * otherwise). Then the list's window grows by one window.
+   */
+  async showMore(
+    collectionId: string,
+    ownerId: string,
+    moreLoaded: boolean,
+  ): Promise<void> {
+    if (!moreLoaded) {
+      // (No next page — the last one came, or none pages: nothing to show; the window stays.)
+      const id = collectionId.replace(/^data:collection:/, "");
+      if (!this.pages(id) || this.loadArguments.get(id)?.cursor === undefined)
+        return;
+      // (A page in flight, or one that brought nothing: the window stays — growing it re-draws
+      //  the sentinel, which would ask again at once.)
+      const before = this.collectionItems(id).length;
+      await this.loadMore(id);
+      if (this.collectionItems(id).length === before) return;
+    }
+    const key = displayWindowKey(collectionId, ownerId);
+    this.displayWindows.set(
+      key,
+      (this.displayWindows.get(key) ?? COLLECTION_ROW_PROJECTION_WINDOW_LIMIT) +
+        COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+    );
+    const errors =
+      this.currentRoot?.refreshRows(
+        new Set([
+          `data:collection:${collectionId.replace(/^data:collection:/, "")}`,
+        ]),
+      ) ?? [];
+    if (errors.length) console.error("[CatalogPreview] show more:", ...errors);
+    this.changed();
+  }
+  /** ADR-310 「더 보기」 — whether a bound list holds loaded rows past its display window. */
+  moreLoaded(collectionId: string, ownerId: string): boolean {
+    return this.windowsCut.has(displayWindowKey(collectionId, ownerId));
   }
   /** `useAsyncList.setFilterText(text)` — loads again with the text (S2 `filtering`). */
   async setFilterText(collectionId: string, filterText: string): Promise<void> {
@@ -1644,6 +1702,7 @@ export class CatalogPreviewSession {
   private boundRows(
     authored: Parameters<typeof catalogBoundRows>[0],
     kind: Parameters<typeof catalogBoundRows>[2],
+    ownerId?: string,
   ) {
     // ADR-284 Decision 6: rows the server answered for this binding's view are its result — the
     // view does not run on them again; the total is the server's for that query.
@@ -1685,8 +1744,20 @@ export class CatalogPreviewSession {
           },
         };
     }
-    const rows = catalogBoundRows(binding, this.itemSources(), kind);
+    const window =
+      ownerId === undefined
+        ? undefined
+        : this.displayWindows.get(
+            displayWindowKey(binding.collectionId, ownerId),
+          );
+    const rows = catalogBoundRows(binding, this.itemSources(), kind, window);
     if (!rows) return rows;
+    if (ownerId !== undefined) {
+      const key = displayWindowKey(binding.collectionId, ownerId);
+      if (rows.total !== undefined && rows.total > rows.length)
+        this.windowsCut.add(key);
+      else this.windowsCut.delete(key);
+    }
     const collectionId = binding.collectionId.replace(/^data:collection:/, "");
     return Object.assign(rows, {
       loadingState: this.loadingStates.get(collectionId) ?? "idle",
@@ -2006,7 +2077,12 @@ export class CatalogPreviewSession {
     return changed;
   }
   private shapeRoot:
-    | { definitionId: string; revision: number; theme?: string; root: CatalogCompositionRoot }
+    | {
+        definitionId: string;
+        revision: number;
+        theme?: string;
+        root: CatalogCompositionRoot;
+      }
     | undefined;
   /**
    * The app's toast shape drawn (user 2026-11-01 — RAC `MyToastRegion`): a root in the shape
@@ -2069,7 +2145,8 @@ export class CatalogPreviewSession {
         ...(this.openingPage()
           ? { stagedLoad: { firstPage: this.openingPage() } }
           : {}),
-        rows: (binding, kind) => this.boundRows(binding, kind),
+        rows: (binding, kind, ownerId) =>
+          this.boundRows(binding, kind, ownerId),
         tableSort: (tableId) =>
           this.serverSortedTables.has(tableId)
             ? undefined
@@ -2091,4 +2168,9 @@ export class CatalogPreviewSession {
     this.version += 1;
     for (const listener of [...this.listeners]) listener();
   }
+}
+
+/** A display window's key: the collection (without its prefix) and the bound node. */
+function displayWindowKey(collectionId: string, ownerId: string): string {
+  return `${collectionId.replace(/^data:collection:/, "")}\u0001${ownerId}`;
 }
