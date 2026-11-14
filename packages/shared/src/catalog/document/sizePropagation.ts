@@ -78,8 +78,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   own; the DOM read the Tabs' value, now one resolved value for both consumers (2026-10-14).
   Tabs: ["TabList"],
   // S2 Breadcrumbs `size` is its crumbs' (S2 Breadcrumb has none): the separator glyph's size
-  //   (`Breadcrumb.sizes[size].iconSize`) — the DOM's `--breadcrumb-icon-size` comes from the
-  //   Breadcrumbs (2026-10-14 — the Canvas drew the crumb's own value, the DOM ignored it).
+  //   (`Breadcrumb.sizes[size].iconSize`) — the DOM's separator size comes from the Breadcrumbs
+  //   (2026-10-14 — the Canvas drew the crumb's own value, the DOM ignored it).
   Breadcrumbs: ["Breadcrumb"],
   // ADR-295 Phase 3c-3c ③: S2 Menu `size` is its items' (S2 MenuItem has none — the Menu context): the
   //   item's control height · font, and its label · description text (the MenuItem rule's `sizeSelectors`).

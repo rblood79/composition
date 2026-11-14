@@ -6,6 +6,9 @@
  * menu of the crumbs between (S2 `BreadcrumbMenu`) and its last one or two crumbs.
  */
 
+import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
+import { catalogBreadcrumbSeparatorIcon } from "../resolvers/resolveCatalogRuleCanvasBox";
+
 /** S2 `MAX_VISIBLE_ITEMS` · `MIN_VISIBLE_ITEMS`. */
 const MAX_VISIBLE_ITEMS = 4;
 const MIN_VISIBLE_ITEMS = 1;
@@ -20,7 +23,55 @@ export const CATALOG_BREADCRUMB_MENU = {
   button: 32,
   glyph: 18,
   marginStart: -6,
+  /** The folder glyph when the Breadcrumbs names no `menuIcon` (S2 `FolderBreadcrumb`). */
+  icon: "s2-folder-breadcrumb",
 } as const;
+
+/** The glyph fields a node carries (a record on the Canvas, a DOM input node in the Preview). */
+interface BreadcrumbGlyphNode {
+  readonly props: Readonly<Record<string, unknown>>;
+  readonly visual: Readonly<Record<string, unknown>>;
+  readonly derivedProps?: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * What the folder menu crumb draws — one reading for both consumers: the Breadcrumbs' `menuIcon`
+ * glyph, then the first crumb's separator Icon (`separator` — its glyph, color and size; the
+ * Breadcrumb rule's `trailingIcon` · `iconSize` when the crumb has none).
+ */
+export function catalogBreadcrumbMenuGlyphs(
+  list: BreadcrumbGlyphNode,
+  separator: BreadcrumbGlyphNode | undefined,
+): {
+  readonly icon: string;
+  readonly separator: { iconName: string; color: string; size: number };
+} {
+  const rule = catalogBreadcrumbSeparatorIcon(
+    typeof list.props.size === "string" ? list.props.size : undefined,
+  );
+  const menuIcon = list.props.menuIcon;
+  return {
+    icon:
+      typeof menuIcon === "string" && menuIcon
+        ? menuIcon
+        : CATALOG_BREADCRUMB_MENU.icon,
+    separator: {
+      iconName: String(
+        separator?.derivedProps?.iconName ??
+          separator?.derivedProps?._ownerIconName ??
+          separator?.props.iconName ??
+          rule.name,
+      ),
+      color: String(
+        separator?.visual.color ?? tokenToCSSVar(rule.color as TokenRef),
+      ),
+      size:
+        typeof separator?.visual.iconSize === "number"
+          ? separator.visual.iconSize
+          : rule.iconSize,
+    },
+  };
+}
 
 /**
  * How many crumbs S2 keeps at the end (`visibleItems`): every crumb when they fit in the list

@@ -17,7 +17,10 @@ import type {
 import { getDefaultProps } from "../../types/builder/unified.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
-import { catalogStyleWrites, type CatalogStyleFieldWrites } from "./styleFields";
+import {
+  catalogStyleWrites,
+  type CatalogStyleFieldWrites,
+} from "./styleFields";
 
 /** What a palette insert reads from the open project (`CatalogWorkspace`). */
 export interface CatalogPaletteHost {
@@ -103,7 +106,11 @@ export function catalogCreationStyle(
   initialProps?: Readonly<Record<string, unknown>>,
 ): Required<Pick<NodeEntry, "visual" | "sizing">> & Pick<NodeEntry, "layout"> {
   const style = initialProps?.style;
-  const fields: CatalogStyleFieldWrites = { visual: {}, layout: {}, sizing: {} };
+  const fields: CatalogStyleFieldWrites = {
+    visual: {},
+    layout: {},
+    sizing: {},
+  };
   if (style && typeof style === "object" && !Array.isArray(style))
     for (const [key, raw] of Object.entries(style)) {
       if (typeof raw !== "string" && typeof raw !== "number") continue;
@@ -251,7 +258,11 @@ export function catalogInsertPlacement(
       command(host.graph);
       return refusal === undefined
         ? { command, candidate }
-        : { command, candidate, relocated: { refusal, target: candidate.target } };
+        : {
+            command,
+            candidate,
+            relocated: { refusal, target: candidate.target },
+          };
     } catch (error) {
       refusal ??= error;
     }

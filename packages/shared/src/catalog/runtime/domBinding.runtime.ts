@@ -1797,91 +1797,93 @@ function nodeTreeControlGroup(
   //   this box to the DateInput inside: the box takes only its own presentation role and the field's
   //   states — one element carries the field's id, role and key handling.
   const passesGroupContext = DATE_BOX_GROUP_BINDINGS.has(field.bindingId ?? "");
-  const group = (fieldGroupContext?: unknown) => createElement(RAC.Group, {
-    key: node.id,
-    "data-catalog-id": node.id,
-    ...(className || box
-      ? {
-          className: [
-            className ?? "react-aria-Group",
-            box && CATALOG_FIELD_BOX_CLASS,
-          ]
-            .filter(Boolean)
-            .join(" "),
-        }
-      : {}),
-    ...(role === "region" || role === "presentation"
-      ? { role }
-      : ownGroup
-        ? { role: "presentation" }
+  const group = (fieldGroupContext?: unknown) =>
+    createElement(RAC.Group, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      ...(className || box
+        ? {
+            className: [
+              className ?? "react-aria-Group",
+              box && CATALOG_FIELD_BOX_CLASS,
+            ]
+              .filter(Boolean)
+              .join(" "),
+          }
         : {}),
-    ...Object.fromEntries(
-      (["isDisabled", "isInvalid", "isReadOnly"] as const)
-        .filter(
-          (key) =>
-            node.props[key] === true || (ownGroup && field.props[key] === true),
-        )
-        .map((key) => [key, true]),
-    ),
-    // ADR-259 Phase 2: the prefix box (S2 `FieldGroup`) — the Input rule's sheet draws it
-    // (`FieldBox`) at the field's size and quiet state; a press on it focuses the input.
-    ...(box
-      ? {
-          "data-size": String(field.props.size ?? "M"),
-          "data-variant": "default",
-          ...(field.props.isQuiet === true ? { "data-quiet": "true" } : {}),
-          style: (() => {
-            const style = catalogFieldBoxStyle(
-              field.props.size,
-              catalogTypeName(root, field),
-              box.buttoned,
-            );
-            return {
-              display: style.display,
-              flexDirection: style.flexDirection,
-              alignItems: style.alignItems,
-              width: style.width,
-              ...(style.height !== undefined ? { height: style.height } : {}),
-              paddingTop: style.paddingTop,
-              paddingRight: style.paddingRight,
-              paddingBottom: style.paddingBottom,
-              paddingLeft: style.paddingLeft,
-              // (S2 NumberField: the stepper gap is the Group's own — authored rowGap · columnGap win.)
-              ...(style.gap !== undefined
-                ? { rowGap: style.gap, columnGap: style.gap }
-                : {}),
-              // (A quiet box's corners · fill are the quiet state's — a SearchField's pill stays out.)
-              ...quietStyle(node, authoredStyle(root, node)),
-            };
-          })(),
-          ...(disabled
-            ? {}
-            : {
-                onPointerDown: (event: {
-                  pointerType: string;
-                  target: EventTarget | null;
-                  currentTarget: EventTarget;
-                  preventDefault: () => void;
-                }) => {
-                  if (event.pointerType === "mouse") forwardFocus(event);
-                },
-                onTouchEnd: forwardFocus,
-              }),
-        }
-      : { style: authoredStyle(root, node) }),
-    children: catalogStateChildren(node.id, () => {
-      const parts = content ? [content] : children;
-      return passesGroupContext
-        ? [
-            createElement(
-              RAC.GroupContext.Provider,
-              { key: "field-group", value: fieldGroupContext as never },
-              ...parts,
-            ),
-          ]
-        : parts;
-    }),
-  } as unknown as Parameters<typeof RAC.Group>[0]);
+      ...(role === "region" || role === "presentation"
+        ? { role }
+        : ownGroup
+          ? { role: "presentation" }
+          : {}),
+      ...Object.fromEntries(
+        (["isDisabled", "isInvalid", "isReadOnly"] as const)
+          .filter(
+            (key) =>
+              node.props[key] === true ||
+              (ownGroup && field.props[key] === true),
+          )
+          .map((key) => [key, true]),
+      ),
+      // ADR-259 Phase 2: the prefix box (S2 `FieldGroup`) — the Input rule's sheet draws it
+      // (`FieldBox`) at the field's size and quiet state; a press on it focuses the input.
+      ...(box
+        ? {
+            "data-size": String(field.props.size ?? "M"),
+            "data-variant": "default",
+            ...(field.props.isQuiet === true ? { "data-quiet": "true" } : {}),
+            style: (() => {
+              const style = catalogFieldBoxStyle(
+                field.props.size,
+                catalogTypeName(root, field),
+                box.buttoned,
+              );
+              return {
+                display: style.display,
+                flexDirection: style.flexDirection,
+                alignItems: style.alignItems,
+                width: style.width,
+                ...(style.height !== undefined ? { height: style.height } : {}),
+                paddingTop: style.paddingTop,
+                paddingRight: style.paddingRight,
+                paddingBottom: style.paddingBottom,
+                paddingLeft: style.paddingLeft,
+                // (S2 NumberField: the stepper gap is the Group's own — authored rowGap · columnGap win.)
+                ...(style.gap !== undefined
+                  ? { rowGap: style.gap, columnGap: style.gap }
+                  : {}),
+                // (A quiet box's corners · fill are the quiet state's — a SearchField's pill stays out.)
+                ...quietStyle(node, authoredStyle(root, node)),
+              };
+            })(),
+            ...(disabled
+              ? {}
+              : {
+                  onPointerDown: (event: {
+                    pointerType: string;
+                    target: EventTarget | null;
+                    currentTarget: EventTarget;
+                    preventDefault: () => void;
+                  }) => {
+                    if (event.pointerType === "mouse") forwardFocus(event);
+                  },
+                  onTouchEnd: forwardFocus,
+                }),
+          }
+        : { style: authoredStyle(root, node) }),
+      children: catalogStateChildren(node.id, () => {
+        const parts = content ? [content] : children;
+        return passesGroupContext
+          ? [
+              createElement(
+                RAC.GroupContext.Provider,
+                { key: "field-group", value: fieldGroupContext as never },
+                ...parts,
+              ),
+            ]
+          : parts;
+      }),
+    } as unknown as Parameters<typeof RAC.Group>[0]);
   if (!passesGroupContext) return group();
   return createElement(RAC.GroupContext.Consumer as ElementType, {
     key: node.id,
@@ -2619,12 +2621,12 @@ function ruleDom(
   // Separator has no authorable variant, but its size/staticColor paint branches belong to
   // the default catalog variant. Match that sheet without adding a public variant prop.
   if (type === "Separator") rest["data-variant"] = "default";
-  if (node.domSlot) rest.slot = catalogDomSlot(node);
-  const lower = type.toLowerCase();
   // (2026-11-14: an ActionButton's count badge — its button's static color, S2 `NotificationBadgeContext`;
   //  the Canvas paint reads the same derived value.)
   if (type === "Badge" && typeof node.derivedProps?.staticColor === "string")
     rest["data-static-color"] = node.derivedProps.staticColor;
+  if (node.domSlot) rest.slot = catalogDomSlot(node);
+  const lower = type.toLowerCase();
   // ADR-280 Decision 3 · 4 (Phase 0 probe P1) — an overlay's open state is its trigger's: a
   // running Preview controls the trigger's `isOpen` from the record's runtime value (a rule's
   // `open` · `close`, the user's press · dismiss). A body owns it only standing without a trigger
@@ -3569,8 +3571,6 @@ function authoredStyle(
     if (typeof value === "number") style[key] = value;
   }
   // Template/instance-authored layout (origin style) inline over the class CSS.
-  Object.assign(
-    style,
   // (2026-11-14: an ActionButton's count badge — its place, the Canvas engine's same input
   //   (`catalogActionBadgeNodeLayout`); an authored place wins.)
   if (!catalogIsAuthoredPlaced(node))
@@ -3578,6 +3578,8 @@ function authoredStyle(
       style,
       catalogLayoutCss(catalogActionBadgeNodeLayout(node.derivedProps)),
     );
+  Object.assign(
+    style,
     catalogLayoutCss(noSheet ? node.layout : catalogAuthoredLayout(root, node)),
   );
   catalogDeviceLayoutCss(style, node.layout);
@@ -3847,14 +3849,14 @@ export function renderNode(
   // ADR-256 Decision 7: an optional text part with nothing to say is not there.
   if (
     catalogAbsentByValue(node) ||
-    catalogFieldLabelPartsHidden(
-      node,
     // (2026-11-14: an ActionButton's unfilled Avatar · count Badge.)
     catalogActionButtonPartAbsent(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,
     ) ||
+    catalogFieldLabelPartsHidden(
+      node,
       (id) => root.domInputs.get(id),
       root.typeOf,
     )

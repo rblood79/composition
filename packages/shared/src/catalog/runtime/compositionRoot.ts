@@ -168,6 +168,7 @@ import {
   catalogCalendarGridSize,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
 import {
+  parseGapValue,
   resolveTextSourceText,
   snapBorderWidthAt,
 } from "@composition/rendering";
@@ -288,6 +289,7 @@ import {
 } from "./slotChrome";
 import {
   CATALOG_BREADCRUMB_MENU,
+  catalogBreadcrumbMenuGlyphs,
   catalogBreadcrumbsCollapse,
   catalogBreadcrumbsVisibleCount,
 } from "./breadcrumbsCollapse";
@@ -1859,12 +1861,12 @@ function styleOf(
     // (A standalone list's section header — the ListBox rule's sticky block, ADR-267; authored
     // insets win.)
     ...stickyInsets(node),
-    ...itemLayout(node),
-    // (ADR-295 Phase 3c-3c ②c: the thick bar keeps the S2 track row — its margins refine the row margins
     // (2026-11-14: an ActionButton's count badge — over its icon's corner, the DOM's same inline place.)
     ...(catalogIsAuthoredPlaced(node)
       ? {}
       : catalogActionBadgeNodeLayout(node.derivedProps)),
+    ...itemLayout(node),
+    // (ADR-295 Phase 3c-3c ②c: the thick bar keeps the S2 track row — its margins refine the row margins
     // `itemLayout` carries, `catalogSliderThickTrackMargins`.)
     ...(node.derivedProps?.trackStyle === "thick"
       ? catalogSliderThickTrackMargins(node)
@@ -5466,31 +5468,15 @@ export class CatalogCompositionRoot {
           this.typeOf(child) === "Icon" &&
           child.props.slot === "separator",
       );
-    const iconSize =
-      typeof separator?.visual.iconSize === "number"
-        ? separator.visual.iconSize
-        : 10;
+    const glyphs = catalogBreadcrumbMenuGlyphs(list, separator);
     const { button, marginStart } = CATALOG_BREADCRUMB_MENU;
     return {
       id: `${list.id}::breadcrumb-menu`,
       listId: list.id,
-      icon:
-        typeof list.props.menuIcon === "string" && list.props.menuIcon
-          ? list.props.menuIcon
-          : "s2-folder-breadcrumb",
-      separator: {
-        iconName: String(
-          separator?.derivedProps?.iconName ??
-            separator?.derivedProps?._ownerIconName ??
-            separator?.props.iconName ??
-            "s2-chevron",
-        ),
-        color: String(separator?.visual.color ?? "var(--fg)"),
-        size: iconSize,
-      },
+      ...glyphs,
       style: {
         display: "block",
-        width: `${button + iconSize}px`,
+        width: `${button + glyphs.separator.size}px`,
         height: `${button}px`,
         marginLeft: `${marginStart}px`,
         flexShrink: 0,
@@ -5896,7 +5882,7 @@ export class CatalogCompositionRoot {
       const visible = catalogBreadcrumbsVisibleCount(
         crumbs.map((crumb) => rects.get(crumb.id)!.width),
         listRect.width,
-        Number.parseFloat(String(style.columnGap ?? style.gap ?? 0)) || 0,
+        parseGapValue(style).column,
         CATALOG_BREADCRUMB_MENU.button,
       );
       const hidden = catalogBreadcrumbsCollapse(crumbs, visible)?.hidden;

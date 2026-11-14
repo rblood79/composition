@@ -44,9 +44,11 @@ import { Breadcrumbs } from "../../components/Breadcrumbs";
 import { Icon } from "../../components/Icon";
 import {
   CATALOG_BREADCRUMB_MENU,
+  catalogBreadcrumbMenuGlyphs,
   catalogBreadcrumbsCollapse,
   catalogBreadcrumbsVisibleCount,
 } from "./breadcrumbsCollapse";
+import { parseGapValue } from "@composition/rendering";
 import { CatalogCalendarPickerContext } from "./calendarPickerContext";
 import { catalogDeviceScaledCss } from "./deviceTypography";
 import { useCatalogDeviceUnit } from "./deviceUnit.runtime";
@@ -483,19 +485,15 @@ export function BreadcrumbsRun({
   const key = `${signature}\u0002${epoch}`;
   const [measured, setMeasured] = useState<{ key: string; visible: number }>();
   const measuring = measured?.key !== key;
-  const settledWidth = useRef<number | undefined>(undefined);
+  // (The list's width right after it renders a judgement — a later resize measures again.)
+  const settled = useRef<{ key: string; width: number } | undefined>(undefined);
   const attempts = useRef(0);
-  const settledKey = useRef<string | undefined>(undefined);
-  const [, setRetry] = useState(0);
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
     if (!measuring) {
-      // (The list's width right after it renders the judgement — a later resize measures again.)
-      if (settledKey.current !== key) {
-        settledKey.current = key;
-        settledWidth.current = list.getBoundingClientRect().width;
-      }
+      if (settled.current?.key !== key)
+        settled.current = { key, width: list.getBoundingClientRect().width };
       return;
     }
     // (The crumbs only — a folder crumb still shown from the collapse before is not one.)
@@ -509,7 +507,7 @@ export function BreadcrumbsRun({
     if (items.length !== crumbs.length) {
       if (attempts.current < 3) {
         attempts.current++;
-        setRetry((value) => value + 1);
+        setEpoch((value) => value + 1);
       }
       return;
     }
@@ -520,7 +518,7 @@ export function BreadcrumbsRun({
       visible: catalogBreadcrumbsVisibleCount(
         items.map((item) => item.getBoundingClientRect().width),
         list.getBoundingClientRect().width,
-        Number.parseFloat(style.columnGap || style.gap) || 0,
+        parseGapValue(style).column,
         CATALOG_BREADCRUMB_MENU.button * unit,
       ),
     });
@@ -530,10 +528,7 @@ export function BreadcrumbsRun({
     if (!list || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => {
       const width = list.getBoundingClientRect().width;
-      if (
-        settledWidth.current !== undefined &&
-        Math.abs(width - settledWidth.current) < 0.5
-      )
+      if (settled.current && Math.abs(width - settled.current.width) < 0.5)
         return;
       setEpoch((value) => value + 1);
     });
@@ -551,11 +546,8 @@ export function BreadcrumbsRun({
         catalogTypeName(input.root, child) === "Icon" &&
         child.props.slot === "separator",
     );
-    const separatorSize =
-      typeof separator?.visual.iconSize === "number"
-        ? separator.visual.iconSize
-        : 10;
-    const separatorSide = catalogDeviceScaledCss(separatorSize);
+    const glyphs = catalogBreadcrumbMenuGlyphs(input.node, separator);
+    const separatorSide = catalogDeviceScaledCss(glyphs.separator.size);
     // (S2 ActionButton M's icon: `1lh` of its font.)
     const glyph =
       "calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height))";
@@ -578,7 +570,7 @@ export function BreadcrumbsRun({
         createElement(
           AriaButton as ElementType,
           {
-            className: "react-aria-ActionButton breadcrumb-menu-button",
+            className: "react-aria-ActionButton",
             "data-variant": "default",
             "data-size": "M",
             "data-quiet": true,
@@ -596,10 +588,7 @@ export function BreadcrumbsRun({
           },
           createElement(Icon, {
             // (The Breadcrumbs' `menuIcon` — S2's FolderBreadcrumb by default.)
-            iconName:
-              typeof props.menuIcon === "string" && props.menuIcon
-                ? props.menuIcon
-                : "s2-folder-breadcrumb",
+            iconName: glyphs.icon,
             style: { fontSize: glyph, width: glyph, height: glyph },
           }),
         ),
@@ -637,17 +626,12 @@ export function BreadcrumbsRun({
         ),
       ),
       createElement(Icon, {
-        iconName: String(
-          separator?.derivedProps?.iconName ??
-            separator?.derivedProps?._ownerIconName ??
-            separator?.props.iconName ??
-            "s2-chevron",
-        ),
+        iconName: glyphs.separator.iconName,
         style: {
           fontSize: separatorSide,
           width: separatorSide,
           height: separatorSide,
-          color: String(separator?.visual.color ?? "var(--fg)"),
+          color: glyphs.separator.color,
         },
       }),
     );
@@ -671,7 +655,9 @@ export function BreadcrumbsRun({
       "data-size": str(props.size || "M"),
       "data-variant": str(props.variant || "default"),
       "aria-label":
-        typeof props["aria-label"] === "string" ? props["aria-label"] : undefined,
+        typeof props["aria-label"] === "string"
+          ? props["aria-label"]
+          : undefined,
       size: props.size,
       isDisabled,
       // (What the runtime adds on the element — a rule's `onAction` — reaches RAC.)

@@ -257,7 +257,8 @@ export interface NumberFormatValue {
   readonly roundingIncrement?: number;
   readonly trailingZeroDisplay?: "auto" | "stripIfInteger";
   readonly useGrouping?: boolean | "always" | "auto" | "min2";
-  readonly signDisplay?: "auto" | "never" | "always" | "exceptZero" | "negative";
+  readonly signDisplay?:
+    "auto" | "never" | "always" | "exceptZero" | "negative";
 }
 /**
  * ADR-284 Phase 6 — a boolean prop that reads a value condition (ios-list's

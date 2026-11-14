@@ -727,8 +727,7 @@ export class CatalogWorkspace {
    */
   private filled(report?: CatalogFillReport): void {
     if (!this.fillScheduler) return;
-    if (report?.records)
-      this.tellRows();
+    if (report?.records) this.tellRows();
     if (report?.errors.length) this.reportFill(report.errors);
     const pending = this.fillPending;
     if (pending !== this.fillWasPending) {

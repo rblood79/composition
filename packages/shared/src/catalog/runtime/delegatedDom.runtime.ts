@@ -2112,7 +2112,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => {
       const props = input.node.props;
       const list = children(input);
-      const separators = list.filter((child) => child.props.slot === "separator");
+      const separators = list.filter(
+        (child) => child.props.slot === "separator",
+      );
       const content = list.filter((child) => child.props.slot !== "separator");
       const authoredLink = content.some(
         (child) => catalogTypeName(input.root, child) === "Link",
