@@ -601,7 +601,7 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("TimeField", "fields", FAMILY_2_CUTOVER, {
     category: "dateTime",
     label: "time field",
-    icon: "ChevronDown",
+    icon: "Clock2",
   }),
   primitiveEntry("ColorField", "fields", FAMILY_2_CUTOVER, {
     category: "forms",

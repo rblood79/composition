@@ -7,7 +7,7 @@ import {
 /**
  * Tab — TabList 안의 개별 탭 (RAC `Tab`).
  *
- * **노드 트리**: Tab origin template 은 `Tab > Text({label}) + SelectionIndicator` 다
+ * **노드 트리**: Tab origin template 은 `Tab > SelectionIndicator + Text({label})` 다
  *   (`reusableOriginLibrary.ts`). 라벨은 Text 자식 노드, 선택 막대는 SelectionIndicator 노드
  *   (ADR-256 Phase 5e).
  *
@@ -21,7 +21,7 @@ import {
  *   `outsideCollection`).
  *
  * D1: RAC `<Tab>` — ARIA(role=tab, aria-selected) 는 RAC 권위.
- * D2: size · isDisabled 편집 surface.
+ * D2: id · isDisabled · link 편집, density/orientation/labelBehavior는 Tabs에서 상속.
  * D3: 시각(라벨 색/크기)은 theme rule(COMPONENT_RULES_TABLE.Tab), 선택 막대는 SelectionIndicator
  *     노드.
  */
@@ -32,9 +32,30 @@ export const tabBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      orientation: {
+        kind: "enum",
+        label: "Orientation",
+        section: "appearance",
+        editorHidden: true,
+        options: [
+          { value: "horizontal", label: "Horizontal" },
+          { value: "vertical", label: "Vertical" },
+        ],
+      },
+      labelBehavior: {
+        kind: "enum",
+        label: "Label behavior",
+        section: "appearance",
+        editorHidden: true,
+        options: [
+          { value: "show", label: "Show" },
+          { value: "hide", label: "Hide" },
+        ],
+      },
       // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.
       id: ITEM_KEY_PROP_CONTRACT,
       size: {
+        editorHidden: true,
         kind: "size",
         label: "Size",
         section: "appearance",

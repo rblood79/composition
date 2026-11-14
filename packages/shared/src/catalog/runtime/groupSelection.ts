@@ -272,7 +272,14 @@ export function catalogGroupSelection(
         items.some((item) => catalogItemKey(item, typeOf) === key)
       )
         return [key];
-      const first = items.find((item) => item.props.isDisabled !== true);
+      const disabledKeys = new Set(
+        Array.isArray(props.disabledKeys) ? props.disabledKeys.map(String) : [],
+      );
+      const first = items.find(
+        (item) =>
+          item.props.isDisabled !== true &&
+          !disabledKeys.has(catalogItemKey(item, typeOf)),
+      );
       return first ? [catalogItemKey(first, typeOf)] : [];
     }
     case "picker": {

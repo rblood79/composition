@@ -164,35 +164,19 @@ const dot: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   ];
 };
 
-/**
- * `divider` — 선색으로 채운 얇은 rect(1px 박스의 테두리가 아니라 선 자체). orientation 으로
- * 두께/길이 축 전환. 선색은 style.borderColor → variant.border. (Separator)
- */
-const divider: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
-  const isVertical = (props.orientation as string | undefined) === "vertical";
-  // ADR-923 착수 8 (2026-09-04): SizeSpec.height 가 optional — Separator 계열은 항상 height 를
-  //   선언하므로 부재는 실무상 없지만 타입상 1 로 떨어뜨린다 (선 두께 최소값).
-  const thickness = size.height ?? 1;
-  // S2 1.8.0 Divider `staticColor` (2026-10-09): white · black at S2 `transparent-white-200`
-  //   (0.14), size L `-800` (0.85) — `Separator.css` `[data-static-color]` 와 같은 값. 작성한 선색이
-  //   이긴다.
-  const staticLine =
-    style?.borderColor == null
-      ? props.staticColor === "white"
-        ? "#ffffff"
-        : props.staticColor === "black"
-          ? "#000000"
-          : undefined
-      : undefined;
+/** S2 Divider: the catalog paint is the line fill; orientation swaps thickness and length. */
+const divider: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
+  const isVertical = props.orientation === "vertical";
+  const thickness = size.height ?? 2;
   return [
     {
-      type: "rect",
+      type: "roundRect",
       x: 0,
       y: 0,
       width: isVertical ? thickness : ("auto" as unknown as number),
       height: isVertical ? ("auto" as unknown as number) : thickness,
-      fill: staticLine ?? paint.borderColor,
-      ...(staticLine ? { fillAlpha: props.size === "L" ? 0.85 : 0.14 } : {}),
+      radius: thickness / 2,
+      fill: paint.backgroundColor,
     },
   ];
 };

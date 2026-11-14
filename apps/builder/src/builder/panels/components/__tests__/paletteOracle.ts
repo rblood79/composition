@@ -522,7 +522,7 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     type: "TimeField",
     category: "dateTime",
     label: "time field",
-    icon: "ChevronDown",
+    icon: "Clock2",
   },
   {
     type: "RangeCalendar",

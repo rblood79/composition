@@ -1,0 +1,42 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SelectionIndicator — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: default
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SelectionIndicator {
+  /* Base styles — archetype: default */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Default variant */
+  background: var(--fg);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  border-radius: var(--catalog-token-radius-full);
+}
+
+.react-aria-SelectionIndicator:where([data-variant="default"]) {
+  background: var(--fg);
+}
+
+.react-aria-SelectionIndicator:where([data-variant="default"][data-disabled]) {
+  background: var(--bg-disabled);
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-SelectionIndicator {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

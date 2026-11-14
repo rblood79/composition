@@ -11,10 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tabs를 S2 구조·스타일·프로퍼티로 정렬] - 2026-11-14
+
+### Changed
+
+- 기본 노드 구조를 `Tabs > TabList + TabPanel…`로 바꾸고 `TabPanels` 래퍼를 제거했다. 탭 추가 시 패널도 Tabs 바로 아래에 생성하며 선택·Undo/Redo·저장 복원에서 같은 구조를 유지한다. 구조 계약 버전은 65이며 이전 계약의 문서는 기존 정책대로 로드를 거부한다.
+- 새 Tabs는 `{id, title, content}` 항목 목록 하나로 Tab과 TabPanel을 함께 반복한다. Properties에서 제목·본문·추가·삭제를 편집하고, Tabs/TabList의 `+`도 같은 목록에 항목을 추가한다. 안정적인 id로 정렬 후 선택을 유지하며, 빈 목록·재추가·Undo/Redo·저장 복원과 Data Collection 행 갱신을 지원한다. Preview는 `TabList items`와 `Collection`을 사용한다.
+- S2에 없는 Size 필드를 숨기고 density, orientation, labelBehavior, keyboardActivation, disabledKeys를 연결했다. 라벨 숨김에서도 접근 가능한 이름을 유지한다.
+- 14px/400 글꼴, compact/regular 높이 32/48px, 탭 간격 24/32px, 세로 목록 여백, 패널 여백 4px 및 패딩 0을 적용했다. 선택 표시는 neutral 색상 2px이며 비활성 색상까지 Preview와 Canvas가 같은 catalog 규칙을 읽는다.
+
+### Fixed
+
+- 세로 Tabs에서 드러난 엔진 회귀를 수정했다. auto 폭 flex 항목의 재배치에서 여백을 두 번 차감하지 않으며, min-height로 확정한 높이를 absolute 자식의 백분율 크기에도 전달한다.
+- 동적 항목 편집 직후 Layers의 제목·본문·개수가 갱신되지 않던 구독 누락과, 비선택 TabPanel을 샘플링에서 빠진 행으로 오인하여 Canvas에 `+N more`를 그리던 문제를 수정했다.
+
+## [Separator를 S2 Divider 구조·스타일로 정렬] - 2026-11-14
+
+### Changed
+
+- Separator는 S2와 같은 자식 없는 RAC Separator 한 개로 렌더하며, 여백 0 · 둥근 끝 · S/M/L 두께 1/2/4px · 가로/세로 길이축 stretch를 적용한다. S/M은 gray-200, L은 gray-800이며 흰색/검정 staticColor는 각각 0.14/0.85 불투명도를 사용한다. Toolbar의 별도 두께·색상·여백 덮어쓰기도 제거했다.
+- 공용 catalog paint의 size 조건을 Canvas에도 전달하고, Separator DOM이 기본 variant 스타일을 읽도록 연결했다. 크기·staticColor 색상 분기는 catalog 규칙 하나에서 생성 CSS와 Canvas가 함께 읽는다.
+- 설치된 S2 Divider와 Preview DOM·Canvas의 36개 조합(밝음/어두움 × 가로/세로 × S/M/L × 기본/흰색/검정)을 브라우저에서 대조한다.
+
+## [Navigator Layers 아이콘 더블클릭으로 대상 확대] - 2026-11-14
+
+### Added
+
+- Layers 트리의 노드 아이콘을 더블클릭하면 해당 대상 하나를 선택하고 Canvas의 기존 `Zoom to selection` 명령으로 화면에 맞춰 중앙에 표시한다. 내부 노드는 기존 Layers 선택 경로를 통해 편집 컨텍스트에 진입하며, 이름과 펼침 버튼의 더블클릭은 확대를 실행하지 않는다.
+
 ## [Navigator Layers 아이콘 분리 — 펼침 · 종류 · 이름] - 2026-11-14
 
 ### Changed
 
+- Origin/Instance 상태 표시를 노드 아이콘 오른쪽 아래에서 오른쪽 위로 이동했다.
+- **Input은 `keyboard`, TimeField는 `clock-2` 아이콘으로 변경**: TimeField의 catalog 팔레트 메타를 변경해 Components 패널과 Layers가 동일한 아이콘을 사용한다.
+- **Description·FieldError 내부 노드 아이콘을 `rectangle-ellipsis`로 변경**해 일반 Text의 T 아이콘과 구분한다. 위치: `panels/navigator/catalog/CatalogLayerIcon.tsx`.
 - **Layers 행을 펼침/접힘 버튼 → 노드·컴포넌트 아이콘 → 이름 순서로 표시**: 자식이 있는 행도 종류 아이콘을 항상 표시하고, 말단 행은 펼침 칸을 비워 정렬한다. 아이콘은 Components 팔레트와 같은 catalog 메타를 사용하며 Origin/Instance 표시는 아이콘 칸에 겹쳐 표시한다.
   - 위치: `apps/builder/src/builder/panels/navigator/catalog/CatalogLayerItem.tsx`, `apps/builder/src/builder/panels/navigator/NavigatorPanel.css`.
 - **Figma 레이어 구분을 참고해 컴포넌트와 내부 노드 아이콘을 분리**: 컴포넌트는 Components 팔레트의 실제 아이콘을 재사용한다. 내부 일반 노드는 프레임(#)·그룹(모서리)·텍스트(T)·입력·벡터·이미지·선·도형의 단순한 전용 glyph를 사용하고, 중첩 컴포넌트 인스턴스는 컴포넌트 아이콘을 유지한다.

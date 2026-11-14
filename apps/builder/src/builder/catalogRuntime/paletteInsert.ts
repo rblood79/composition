@@ -1,3 +1,4 @@
+import { DEFAULT_TABS_ITEMS } from "../../../../../packages/shared/src/catalog/document/tabsItems";
 import { getReusableOriginId } from "../../../../../packages/shared/src/catalog/componentCatalog";
 import { insertNodes } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
@@ -69,7 +70,10 @@ export function catalogCreationProps(
   const accepts = definition?.accepts ?? {};
   const defaults = definition?.defaults ?? {};
   const props: Record<string, PropWrites[string]> = {};
-  const given = { ...(getDefaultProps(type) as Record<string, unknown>) };
+  const given: Record<string, unknown> = {
+    ...(getDefaultProps(type) as Record<string, unknown>),
+    ...(type === "Tabs" ? { items: DEFAULT_TABS_ITEMS } : {}),
+  };
   for (const [key, value] of Object.entries(initialProps ?? {}))
     given[key] = value;
   for (const [key, value] of Object.entries(given)) {
@@ -77,7 +81,10 @@ export function catalogCreationProps(
     // (`catalogCreationStyle`), never as a prop (the document rejects an object prop value).
     if (value === undefined || key === "style") continue;
     const initial = initialProps !== undefined && key in initialProps;
-    if (key !== "chartType" && !(key in accepts) && !initial) continue;
+    // Tabs 원본은 루트 primitive의 items 계약을 상속한다.
+    const tabsItems = type === "Tabs" && key === "items";
+    if (key !== "chartType" && !(key in accepts) && !initial && !tabsItems)
+      continue;
     if (
       key === "chartType" ||
       JSON.stringify(defaults[key]) !== JSON.stringify(value)

@@ -7570,7 +7570,10 @@ export class CatalogCompositionRoot {
       // (`CATALOG_DENSITY_PROPAGATION_OWNER` — the resolver's `applyOwnerDensity`): they resolve
       // again with it.
       if (
-        before.props.density !== record.props.density &&
+        (before.props.density !== record.props.density ||
+          (this.typeOf(record) === "Tabs" &&
+            (before.props.orientation !== record.props.orientation ||
+              before.props.labelBehavior !== record.props.labelBehavior))) &&
         Object.values(CATALOG_DENSITY_PROPAGATION_OWNER).includes(
           this.typeOf(record),
         )
@@ -7937,9 +7940,17 @@ export class CatalogCompositionRoot {
       }
     // ADR-256 Phase 9: a calendar's shown months decide how many month blocks it repeats (the
     // resolver's copies — a structure change of its subtree).
-    for (const op of result.forward)
-      if (op.kind === "patchNodeProp" && op.key === "visibleDuration")
+    for (const op of result.forward) {
+      if (op.kind !== "patchNodeProp") continue;
+      if (op.key === "visibleDuration") return true;
+      // Tabs 항목의 수정은 Tab과 TabPanel 두 컬렉션을 함께 다시 투영한다.
+      const entry = op.key === "items" ? graph.getEntry(op.id) : undefined;
+      if (
+        entry?.kind === "node" &&
+        definitionTypeName(graph, entry.definitionId) === "Tabs"
+      )
         return true;
+    }
     return false;
   }
 

@@ -1289,6 +1289,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     createElement(RAC.SelectionIndicator, {
       key: node.id,
       "data-catalog-id": node.id,
+      "data-variant": "default",
+      "data-disabled": node.derivedProps?.isDisabled === true || undefined,
       style,
     } as Parameters<typeof RAC.SelectionIndicator>[0]),
   // ADR-256 Phase 5g: RAC `SubmenuTrigger` — no element of its own; it reads its item (the first
@@ -2600,6 +2602,9 @@ function ruleDom(
       : node.props;
   const racProps = binding ? toRacProps({ props: bindingProps }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
+  // Separator has no authorable variant, but its size/staticColor paint branches belong to
+  // the default catalog variant. Match that sheet without adding a public variant prop.
+  if (type === "Separator") rest["data-variant"] = "default";
   if (node.domSlot) rest.slot = catalogDomSlot(node);
   const lower = type.toLowerCase();
   // ADR-280 Decision 3 · 4 (Phase 0 probe P1) — an overlay's open state is its trigger's: a
@@ -3131,6 +3136,11 @@ function ruleDom(
               node.id,
             ),
           }
+        : {}),
+      ...(lower === "tab" &&
+      node.props.labelBehavior === "hide" &&
+      !node.ariaLabel
+        ? { "aria-label": itemTextChildren(root, node) }
         : {}),
       // A ListBoxItem's text is its label part's (RAC reads `textValue` for a picker's input
       // value and filter, type-ahead and the hidden native select — its children are elements).

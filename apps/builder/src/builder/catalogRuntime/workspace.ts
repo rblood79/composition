@@ -920,7 +920,12 @@ export class CatalogWorkspace {
         ...(this.positionOfRecord(id) ? {} : { selects: owner.id }),
       });
     }
-    if (!rows.length) return undefined;
+    if (!rows.length) {
+      const type = root.typeOf(owner);
+      if (owner.rowCount === 0 && (type === "Tabs" || type === "TabList"))
+        return { rows: [], itemType: type === "Tabs" ? "TabPanel" : "Tab" };
+      return undefined;
+    }
     // (The rows past the sample are not built — ADR-157.)
     const more = root.rowRemainders().get(owner.id)?.hiddenRows ?? 0;
     return more > 0 ? { rows, more } : { rows };

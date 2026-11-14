@@ -157,9 +157,10 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 63 — SegmentedControlItem의 press 콘텐츠 Frame과 선택 키·focus native union 계약.
  * 64 — ADR-308: 선택 · 펼침은 그룹이 저장한다 (그룹 `selectedKey(s)` · `value` · `expandedKeys`,
  *      항목 `id`) — 컬렉션 · 그룹 항목의 `isSelected` 계약 삭제 (사용자 결정 1).
+ * 65 — S2 Tabs: 직접 자식 TabPanel, TabPanels 래퍼 제거, items 기반 본문 Text 템플릿.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 64 as const;
+export const LIBRARY_CONTRACT_VERSION = 65 as const;
 
 export type EntryKind =
   | "project"

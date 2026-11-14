@@ -44,7 +44,7 @@ export interface ManualBoxRule {
 
 
 /** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
-const TAB_INDICATOR = 3;
+const TAB_INDICATOR = 2;
 /** `TagGroup.css` `.react-aria-Tag[data-allows-removing] { padding-right: var(--spacing-xs) }`. */
 const TAG_REMOVE_PADDING_RIGHT = 4;
 
@@ -71,13 +71,6 @@ const calendarMonthWidth = (): number | undefined => {
 
 /** RAC reference header gap (Calendar.md 「Month and year pickers」 `gap: 4`) — `CalendarCommon.css`. */
 const CALENDAR_HEADER_GAP = 4;
-
-/** `Separator.css` size margins (`--spacing-xs/sm/lg`) on the axis across the line. */
-const SEPARATOR_MARGIN: Readonly<Record<string, number>> = {
-  S: 4,
-  M: 8,
-  L: 16,
-};
 
 /** `renderButtonGroup` inline style (`LayoutRenderers.tsx`): gap by size, justify by align. */
 const BUTTON_GROUP_GAP: Readonly<Record<string, number>> = {
@@ -242,16 +235,28 @@ const GRID_LIST_TRACKS = "repeat(2, minmax(0, 1fr))";
 const TREE_ROW_HEIGHT = scaledLengthRef(40);
 
 const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
+  // S2 Divider: one borderless rounded leaf, zero margin, stretches along its length.
+  // The manual sheet switches the size's fixed-pixel thickness to width when vertical.
   Separator: () => ({
-    conditional: Object.entries(SEPARATOR_MARGIN).flatMap(
-      ([size, margin]): NonNullable<ManualBoxRule["conditional"]> => [
+    layout: {
+      alignSelf: "stretch",
+      flexGrow: "0",
+      flexShrink: "0",
+      marginTop: "0px",
+      marginRight: "0px",
+      marginBottom: "0px",
+      marginLeft: "0px",
+    },
+    visual: { width: "auto" },
+    conditional: Object.entries(sizesOf("Separator")).flatMap(
+      ([size, values]): NonNullable<ManualBoxRule["conditional"]> => [
         {
           when: { size, orientation: "horizontal" },
-          layout: { marginTop: `${margin}px`, marginBottom: `${margin}px` },
+          visual: { width: "auto", height: px(values.height) ?? 2 },
         },
         {
           when: { size, orientation: "vertical" },
-          layout: { marginLeft: `${margin}px`, marginRight: `${margin}px` },
+          visual: { width: px(values.height) ?? 2, height: "auto" },
         },
       ],
     ),
@@ -930,24 +935,64 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
-  // ADR-256 Phase 5e: the Tab's SelectionIndicator node is `TabsIndicator.css` `.react-aria-Tab
-  // .react-aria-SelectionIndicator` — an accent 3px bar along the bottom, out of the Tab's flow. It
-  // anchors the bottom-right corner, so a vertical TabList's bar (the right edge, Tab height —
-  // `catalogSelectionIndicatorLayout`) only swaps its size.
-  Tab: () => ({
+  // S2 Tabs: horizontal gaps depend on density and label behavior; vertical lists have no gap.
+  TabPanel: () => ({ layout: { flexGrow: "1" } }),
+  TabList: (): ManualBoxRule => ({
+    conditional: [
+      {
+        when: { labelBehavior: "hide", density: "regular" },
+        visual: { gap: 24 },
+      },
+      {
+        when: { labelBehavior: "hide", density: "compact" },
+        visual: { gap: 16 },
+      },
+      {
+        when: { orientation: "vertical" },
+        layout: {
+          flexDirection: "column",
+          marginLeft: "12px",
+          marginRight: "20px",
+        },
+        visual: { gap: 0 },
+      },
+    ],
+  }),
+  Tab: (): ManualBoxRule => ({
+    layout: { position: "relative" },
+    conditional: [
+      {
+        when: { orientation: "vertical", density: "compact" },
+        visual: { height: "auto", minHeight: 32 },
+      },
+      {
+        when: { orientation: "vertical", density: "regular" },
+        visual: { height: "auto", minHeight: 48 },
+      },
+      {
+        when: { labelBehavior: "hide" },
+        visual: { paddingLeft: 6, paddingRight: 6 },
+      },
+    ],
     parts: [
       ...itemLabelFontParts("Tab"),
+      {
+        childType: "Text",
+        ownerProps: { labelBehavior: "hide" },
+        layout: { display: "none" },
+        visual: {},
+      },
       {
         childType: "SelectionIndicator",
         layout: {
           position: "absolute",
-          insetRight: "0px",
+          insetLeft: "0px",
           insetBottom: "0px",
         },
         visual: {
           width: "100%",
           height: TAB_INDICATOR,
-          fill: "var(--accent)",
+          radius: 9999,
         },
       },
     ],

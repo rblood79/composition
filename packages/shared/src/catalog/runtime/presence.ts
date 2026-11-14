@@ -461,7 +461,7 @@ export function catalogTabsSelection(
     ? childrenOf(panelsNode, get).filter(
         (child) => typeOf(child) === "TabPanel",
       )
-    : [];
+    : direct.filter((child) => typeOf(child) === "TabPanel");
   // A keyed panel pairs with its Tab; the panels without a key pair in order with the Tabs no keyed
   // panel names (G5 example 8 — "+" keys only the pair it adds, the template's pairs stay by order).
   const keyed = tabs.map((tab) => {
@@ -978,8 +978,9 @@ export function catalogHiddenAtRest(
     if (disclosure && typeOf(disclosure) === "Disclosure")
       return !catalogDisclosureExpanded(disclosure, get, typeOf);
   }
-  if (type === "TabPanel" && parentType === "TabPanels") {
-    const tabs = catalogPartParent(parent, get, typeOf);
+  if (type === "TabPanel") {
+    const tabs =
+      parentType === "Tabs" ? parent : catalogPartParent(parent, get, typeOf);
     if (!tabs || typeOf(tabs) !== "Tabs") return false;
     const { pairs, selectedKey } = catalogTabsSelection(tabs, get, typeOf);
     return !pairs.some(
@@ -2917,9 +2918,17 @@ function ownDerivedPropsBase(
   // crumb's label Text inherits the current Link's weight.
   if (typeOf(node) === "Breadcrumb")
     return { _isLast: !catalogBreadcrumbSeparator(node, get, typeOf) };
-  // RAC Tabs: a vertical TabList's Tab draws its indicator on the trailing edge.
-  if (catalogTabsOfTab(node, get, typeOf)?.props.orientation === "vertical")
-    return { orientation: "vertical" };
+  const tabsOwner = catalogTabsOfTab(node, get, typeOf);
+  if (tabsOwner)
+    return {
+      orientation:
+        tabsOwner.props.orientation === "vertical" ? "vertical" : "horizontal",
+      isDisabled:
+        node.props.isDisabled === true ||
+        tabsOwner.props.isDisabled === true ||
+        (Array.isArray(tabsOwner.props.disabledKeys) &&
+          tabsOwner.props.disabledKeys.includes(catalogItemKey(node, typeOf))),
+    };
   // (its SelectionIndicator node — ADR-256 Phase 5e: `catalogSelectionIndicatorLayout`)
   if (node.bindingId === "segmentedcontrolitem") {
     const group = catalogSegmentOwner(node, get);
@@ -2932,11 +2941,17 @@ function ownDerivedPropsBase(
   }
   if (typeOf(node) === "SelectionIndicator") {
     const tab = catalogPartParent(node, get, typeOf);
-    if (
-      tab &&
-      catalogTabsOfTab(tab, get, typeOf)?.props.orientation === "vertical"
-    )
-      return { orientation: "vertical" };
+    const tabs = tab && catalogTabsOfTab(tab, get, typeOf);
+    if (tab && tabs)
+      return {
+        orientation:
+          tabs.props.orientation === "vertical" ? "vertical" : "horizontal",
+        isDisabled:
+          tab.props.isDisabled === true ||
+          tabs.props.isDisabled === true ||
+          (Array.isArray(tabs.props.disabledKeys) &&
+            tabs.props.disabledKeys.includes(catalogItemKey(tab, typeOf))),
+      };
   }
   const crumb = get(node.parentId);
   // A crumb's separator Icon follows its Breadcrumbs' `separatorIcon` (user decision 2026-11-13)
@@ -3473,15 +3488,21 @@ export function catalogSelectionIndicators(
 }
 
 /**
- * ADR-256 Phase 5e — a vertical TabList's indicator bar (`TabsIndicator.css` vertical: 3px wide,
- * the Tab's height) over the Tab part rule's horizontal bar; both anchor the Tab's bottom-right.
+ * ADR-256 Phase 5e — a vertical TabList's indicator bar (`TabsIndicator.css` vertical: 2px wide,
+ * the Tab's height) at its leading edge, 12px before the tab content.
  */
 export function catalogSelectionIndicatorLayout(
   node: CatalogConsumerNode,
 ): Record<string, string> | undefined {
   return node.bindingId === "selectionindicator" &&
     node.derivedProps?.orientation === "vertical"
-    ? { width: "3px", height: "100%" }
+    ? {
+        width: "2px",
+        height: "100%",
+        insetLeft: "-12px",
+        insetRight: "auto",
+        insetTop: "0px",
+      }
     : undefined;
 }
 

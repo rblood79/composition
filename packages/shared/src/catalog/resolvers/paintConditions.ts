@@ -29,6 +29,7 @@ export function catalogPaintConditions(
     // ADR-300: an S2 SideNav row's current mark · its panel's collapse (`catalogSideNavDerived`).
     isCurrent: props._sideNavCurrent === true,
     isCollapsed: props._sideNavCollapsed === true,
+    ...(typeof props.size === "string" ? { size: props.size } : {}),
     ...(typeof props.fillStyle === "string"
       ? { fillStyle: props.fillStyle }
       : {}),

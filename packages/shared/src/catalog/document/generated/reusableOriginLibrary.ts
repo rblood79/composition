@@ -7802,17 +7802,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tab-item-default",
     "definitionId": "lib:definition:type-Tab",
     "children": [
-      "lib:template:component-tab-item-default__label",
-      "lib:template:component-tab-item-default__indicator"
+      "lib:template:component-tab-item-default__indicator",
+      "lib:template:component-tab-item-default__label"
     ],
     "props": {},
-    "visual": {
-      "width": "fit-content"
-    },
+    "visual": {},
     "layout": {
       "display": "flex",
       "alignItems": "center",
-      "justifyContent": "center"
+      "justifyContent": "flex-start"
     },
     "displayState": "selected"
   },
@@ -7877,7 +7875,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Tabs",
     "children": [
       "lib:template:component-tabs__1",
-      "lib:template:component-tabs__2"
+      "lib:template:component-tabs__2_1",
+      "lib:template:component-tabs__2_2"
     ],
     "props": {
       "orientation": "horizontal"
@@ -7941,26 +7940,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ]
   },
   {
-    "id": "lib:template:component-tabs__2",
-    "definitionId": "lib:definition:type-TabPanels",
-    "slot": {
-      "name": "Panels",
-      "required": false
-    },
-    "children": [
-      "lib:template:component-tabs__2_1",
-      "lib:template:component-tabs__2_2"
-    ],
-    "props": {},
-    "visual": {}
-  },
-  {
     "id": "lib:template:component-tabs__2_1",
     "definitionId": "lib:definition:type-TabPanel",
-    "children": [],
+    "children": ["lib:template:component-tabs__2_1__content"],
     "props": {
       "itemId": "tab-1"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tabs__2_1__content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": { "children": "" },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {

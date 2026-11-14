@@ -11864,81 +11864,66 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  Separator: {
+  SelectionIndicator: {
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.base}",
-            isHovered: "{color.base}",
-            isPressed: "{color.base}",
-            staticColor: {
-              black: {
-                default: "{color.base}",
-                isHovered: "{color.base}",
-                isPressed: "{color.base}",
-              },
-              white: {
-                default: "{color.base}",
-                isHovered: "{color.base}",
-                isPressed: "{color.base}",
-              },
-            },
+            default: "{color.neutral}",
+            isDisabled: "{color.disabled}",
           },
-          color: {
-            default: "{color.border}",
+        },
+      },
+    },
+    sizes: { M: { height: 0, borderRadius: "{radius.full}" } },
+    structure: { archetype: "default", element: "div" },
+  },
+  Separator: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: {
+      default: {
+        // S2 Divider: gray-200 at S/M, gray-800 at L; static colors use the same
+        // transparent overlay steps. Both DOM and Canvas consume this paint tree.
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-surface-hover}",
+            size: { L: "{color.neutral-content}" },
             staticColor: {
-              black: {
-                default: "#000000",
-                isHovered: "#000000",
-                isPressed: "#000000",
-              },
               white: {
-                default: "#ffffff",
-                isHovered: "#ffffff",
-                isPressed: "#ffffff",
+                default: "rgba(255, 255, 255, 0.14)",
+                size: { L: "rgba(255, 255, 255, 0.85)" },
               },
-            },
-          },
-          borderColor: {
-            default: "{color.border}",
-            staticColor: {
               black: {
-                default: "#000000",
-              },
-              white: {
-                default: "#ffffff",
+                default: "rgba(0, 0, 0, 0.14)",
+                size: { L: "rgba(0, 0, 0, 0.85)" },
               },
             },
           },
         },
-        alpha: 0,
       },
     },
     sizes: {
-      // paddingY 4/8/16 → 0 (2026-07-14): 간격은 margin(수동 Separator.css + Skia
-      //   implicitStyles sep_margin) 소관 — padding 으로 emit 되면 border-box 하한이
-      //   높이(1px)를 이겨 DOM 이 18px box 로 렌더 (Skia 390x1 과 발산 근본).
       S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 1, // Spectrum divider S=1px
+        height: 1,
+        borderRadius: "{radius.full}",
+        borderWidth: 0,
         paddingX: 0,
         paddingY: 0,
       },
       M: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 2, // Spectrum divider M=2px (두께 축, 2026-08-21)
+        height: 2,
+        borderRadius: "{radius.full}",
+        borderWidth: 0,
         paddingX: 0,
         paddingY: 0,
       },
       L: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 4, // Spectrum divider L=4px
+        height: 4,
+        borderRadius: "{radius.full}",
+        borderWidth: 0,
         paddingX: 0,
         paddingY: 0,
       },
@@ -11947,11 +11932,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "simple",
       element: "hr",
       containerStyles: {
-        display: "inline-flex",
-        alignItems: "center",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
+        display: "block",
+        alignSelf: "stretch",
+        flexGrow: 0,
+        flexShrink: 0,
+        margin: 0,
+        borderStyle: "none",
       },
     },
   },
@@ -12957,10 +12943,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   ADR-297 후속 ⑤).
           color: {
             default: "{color.neutral-subdued}",
-            isHovered: "{color.neutral}",
+            isHovered: "{color.neutral-content-hover}",
             isSelected: {
               default: "{color.neutral}",
             },
+            isDisabled: "{color.disabled-content}",
           },
           borderColor: {
             isSelected: {
@@ -12977,27 +12964,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       S: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.sm}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        fontWeight: 500,
+        fontWeight: 400,
+        gap: TEXT_TO_VISUAL,
+        lineHeight: "{typography.text-sm--line-height}",
       },
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.sm}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        fontWeight: 500,
+        fontWeight: 400,
+        gap: TEXT_TO_VISUAL,
+        lineHeight: "{typography.text-sm--line-height}",
       },
       L: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.sm}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
-        fontWeight: 500,
+        fontWeight: 400,
+        gap: TEXT_TO_VISUAL,
+        lineHeight: "{typography.text-sm--line-height}",
       },
     },
     structure: {
@@ -13011,13 +13004,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
         display: "inline-flex",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start",
+        flexShrink: 0,
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
         // (ADR-297 Phase 3b: the interactive pointer — was `rootSelectors["&"]`, after the state blocks)
-        cursor: { default: "pointer", isDisabled: "not-allowed" },
+        cursor: { default: "default" },
         // ADR-259 Phase 1 (R4) · ADR-297 Phase 3c: a link Tab is RAC's `<a>` — no browser link underline
         textDecoration: { isLink: "none" },
       },
@@ -13030,6 +13023,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           density: {
             compact: { styles: { height: "32px" } },
             regular: { styles: { height: "48px" } },
+          },
+          orientation: {
+            vertical: {
+              styles: { height: "auto" },
+              nested: [
+                {
+                  selector: '&[data-density="compact"]',
+                  styles: { "min-height": "32px" },
+                },
+              ],
+            },
+          },
+          "label-behavior": {
+            hide: {
+              styles: { "padding-inline": "6px" },
+              nested: [
+                { selector: "> .react-aria-Text", styles: { display: "none" } },
+              ],
+            },
           },
         },
         rootSelectors: {
@@ -13063,7 +13075,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       S: {
-        fontSize: "{typography.text-xs}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -13073,7 +13085,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       L: {
-        fontSize: "{typography.text-base}",
+        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -13084,13 +13096,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
         flexDirection: "row",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+        alignItems: "stretch",
+        flexShrink: 0,
       },
       composition: {
-        layout: "flex-row",
+        containerVariants: {
+          "label-behavior": {
+            hide: {
+              styles: { gap: "24px" },
+              nested: [
+                {
+                  selector: '&[data-density="compact"]',
+                  styles: { gap: "16px" },
+                },
+              ],
+            },
+          },
+          orientation: {
+            vertical: {
+              styles: {
+                "flex-direction": "column",
+                gap: "0px",
+                "margin-inline-start": "12px",
+                "margin-inline-end": "20px",
+              },
+            },
+          },
+        },
         delegation: [],
       },
     },
@@ -13107,58 +13139,52 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isPressed: "{color.transparent}",
           },
           color: {
-            default: "{color.neutral}",
+            default: "{color.neutral-content}",
           },
         },
       },
     },
-    // 2026-07-02 전수조사 fix: top-level containerStyles 추가 — TabPanel 은 spec 삭제(ADR-912
-    //   cutover) + structure.composition 부재(archetype "collection") 라, layout 이
-    //   structure.containerStyles 에만 있으면 resolveContainerStylesFallback("tabpanel") 이
-    //   경로 A(top-level rule.containerStyles)·경로 B(structure.composition) 둘 다 미도달 → {}
-    //   반환 → getElementDisplay 가 block 라우팅 → 패널 안 사용자 자식이 Skia 에서 block(flex
-    //   gap/align/flexGrow 유실), DOM 은 generated CSS flex-column → Skia↔CSS 비대칭.
-    //   ListBox/Menu/Tree 선례처럼 top-level containerStyles 로 승격해 경로 A 가 Skia 에 공급.
-    //   structure.containerStyles(아래)는 dirty baseline(resolveCatalogContainerBase)용 유지 —
-    //   display/flexDirection 동일값이라 baseline drift 0. padding 은 implicitStyles tabs/tabpanels
-    //   분기가 size 별 주입하므로 top-level 미포함(surface-minimization).
+    // S2 TabPanel: block content, zero padding, 4px separation from the tab row.
     containerStyles: {
-      display: "flex",
-      flexDirection: "column",
+      display: "block",
+      flexGrow: "1",
+      minHeight: "0px",
+      marginTop: "4px",
     },
     sizes: {
       S: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 8,
-        paddingY: 8,
+        paddingX: 0,
+        paddingY: 0,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 12,
-        paddingY: 12,
+        paddingX: 0,
+        paddingY: 0,
       },
       L: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 16,
-        paddingY: 16,
+        paddingX: 0,
+        paddingY: 0,
       },
     },
     structure: {
-      archetype: "collection",
+      archetype: "default",
       element: "div",
       containerStyles: {
-        display: "flex",
-        flexDirection: "column",
+        display: "block",
+        flexGrow: 1,
+        minHeight: 0,
+        marginTop: "4px",
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
       },
     },
   },
@@ -13842,19 +13868,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // 글자 = S2 Tabs 루트 `font: 'ui'` (크기 무관 — ADR-295 후속).
     sizes: {
       S: {
-        paddingX: 8,
+        paddingX: 0,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       M: {
-        paddingX: 12,
+        paddingX: 0,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       L: {
-        paddingX: 16,
+        paddingX: 0,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -13864,34 +13890,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "div",
       containerStyles: {
+        position: "relative",
+        flexShrink: 0,
         display: "flex",
+        alignItems: "stretch",
         flexDirection: "column",
       },
-      stateStyles: {
-        focusRing: { isFocusVisible: "{focus.ring.inset}" },
-        ...DISABLED_STATE,
-      },
       composition: {
-        layout: "flex-column",
-        delegation: [
-          {
-            childSelector: ".react-aria-Tab",
-            variables: {
-              S: {
-                "--tab-padding": "var(--spacing-2xs) var(--spacing-sm)",
-                "--tab-font-size": "var(--text-xs)",
-              },
-              M: {
-                "--tab-padding": "var(--spacing-xs) var(--spacing-md)",
-                "--tab-font-size": "var(--text-sm)",
-              },
-              L: {
-                "--tab-padding": "var(--spacing-sm) var(--spacing-lg)",
-                "--tab-font-size": "var(--text-base)",
-              },
-            },
-          },
-        ],
+        containerVariants: {
+          orientation: { vertical: { styles: { "flex-direction": "row" } } },
+        },
+        delegation: [],
       },
     },
   },
@@ -15499,22 +15508,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           ".react-aria-ToggleButton": {
             width: "32px",
-          },
-          ".react-aria-Separator": {
-            "align-self": "stretch",
-            // (The Separator rule's line color — `{color.border}`, the Canvas line's; ADR-297 후속 ⑤,
-            //  `--bg-muted` before: a lighter line in the Preview only.)
-            "background-color": "var(--border)",
-          },
-          '.react-aria-Separator[aria-orientation="vertical"]': {
-            width: "1px",
-            margin: "0px 10px",
-          },
-          '.react-aria-Separator:not([aria-orientation="vertical"])': {
-            border: "none",
-            height: "1px",
-            width: "100%",
-            margin: "10px 0",
           },
         },
         delegation: [],

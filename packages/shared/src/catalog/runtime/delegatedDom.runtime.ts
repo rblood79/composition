@@ -92,7 +92,7 @@ import {
 
 import { CheckboxGroup as AriaCheckboxGroup } from "react-aria-components/CheckboxGroup";
 
-import type { Key } from "react-aria-components/Collection";
+import { Collection, type Key } from "react-aria-components/Collection";
 
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
 
@@ -1754,12 +1754,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key: stateKey(input, `${input.node.id}:${str(selectedKey)}`),
           style: input.style,
           ...controlled(input, SELECTED_KEY, selectedKey),
+          labelBehavior: props.labelBehavior || "show",
+          keyboardActivation: props.keyboardActivation || "automatic",
+          disabledKeys: Array.isArray(props.disabledKeys)
+            ? props.disabledKeys
+            : undefined,
+          "aria-label": input.node.ariaLabel || "Tabs",
           density: props.density || "regular",
           orientation: props.orientation || "horizontal",
           size: props.size || "M",
           isDisabled: bool(props.isDisabled),
         },
-        ...renderAll(input),
+        createElement(Collection<CatalogConsumerNode>, {
+          items: children(input),
+          children: (child) => input.renderChild(child.id) as ReactElement,
+        }),
       );
     },
   },
@@ -1768,23 +1777,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // (Its size · density are the Tabs' — the resolver carries them, `CATALOG_SIZE_PROPAGATION`
       // · `CATALOG_DENSITY_PROPAGATION_OWNER`, the value the Canvas draws.)
       const props = input.node.props;
-      return createElement(
-        TabList as ElementType,
-        {
-          ...marker(input),
-          style: input.style,
-          // (The list's accessible name — RAC requires one; the author's `aria-label`.)
-          ...(input.node.ariaLabel
-            ? { "aria-label": input.node.ariaLabel }
-            : {}),
-          density: props.density || "regular",
-          size: props.size || "M",
-          // (The selected Tab's bar is its SelectionIndicator node — the sheet's `::before` bar stays
-          // off. The old `showIndicator` prop is gone, 2026-10-09.)
-          showIndicator: true,
-        },
-        ...renderAll(input),
-      );
+      return createElement(TabList as ElementType, {
+        ...marker(input),
+        style: input.style,
+        // (The list's accessible name — RAC requires one; the author's `aria-label`.)
+        "aria-label":
+          input.node.ariaLabel ||
+          tabsAncestor(input.root, input.node)?.ariaLabel ||
+          "Tabs",
+        labelBehavior: props.labelBehavior || "show",
+        density: props.density || "regular",
+        size: props.size || "M",
+        // (The selected Tab's bar is its SelectionIndicator node — the sheet's `::before` bar stays
+        // off. The old `showIndicator` prop is gone, 2026-10-09.)
+        showIndicator: true,
+        items: children(input),
+        children: (child: CatalogConsumerNode) => input.renderChild(child.id),
+      });
     },
   },
   tabpanels: {

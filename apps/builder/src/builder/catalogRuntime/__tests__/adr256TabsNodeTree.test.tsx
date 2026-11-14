@@ -9,7 +9,6 @@ import {
   Tab,
   TabList,
   TabPanel,
-  TabPanels,
   Tabs,
 } from "react-aria-components/Tabs";
 import { describe, expect, it } from "vitest";
@@ -27,6 +26,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { catalogItemInsertChoices } from "../itemInsert";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -35,15 +35,16 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
  * ADR-256 Phase 5e (G2) — Tabs is the reference's (react-aria.adobe.com Tabs, G0 example 8): each
- * `Tab > (children + SelectionIndicator)` — the selected Tab's bar is a SelectionIndicator node of
+ * `Tab > (SelectionIndicator + children)` — the selected Tab's bar is a SelectionIndicator node of
  * the Tab origin (RAC shows it on the selected Tab and slides it), no longer a Tab primitive.
  */
 const BODY = "project:node:home-body" as NodeId;
 const TABS = "project:node:tabs" as NodeId;
 const set = <T,>(value: T) => ({ kind: "set" as const, value });
 
-async function open(props: Record<string, string> = {}) {
+async function open(props: Record<string, string | boolean | string[]> = {}) {
   const library = await buildCodeCatalogLibrary();
+  const storage = new CatalogStorage(indexedDB, `adr256-tabs-${Math.random()}`);
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -52,14 +53,15 @@ async function open(props: Record<string, string> = {}) {
       }),
       library,
     ),
-    new CatalogStorage(indexedDB, `adr256-tabs-${Math.random()}`),
+    storage,
     {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
     },
   );
-  workspace.root.execute(
+  await storage.create(workspace.runtime.graph.exportDocument(), library);
+  workspace.execute(
     insertNodes({
       parent: { kind: "node", id: BODY },
       entries: [
@@ -92,7 +94,7 @@ async function open(props: Record<string, string> = {}) {
     );
   const of = (type: string) =>
     [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === type);
-  const edit = (values: Record<string, string>) =>
+  const edit = (values: Record<string, string | boolean | string[]>) =>
     workspace.root.execute(
       setFields({
         targets: [workspace.positionOfRecord(tabs().id)!.target],
@@ -101,7 +103,7 @@ async function open(props: Record<string, string> = {}) {
         ),
       }),
     );
-  return { workspace, root, html, of, edit };
+  return { workspace, root, html, of, edit, storage, library };
 }
 
 /** Decision 11 structure of the TabList: tag · role · aria (links as positions) · text. */
@@ -134,7 +136,7 @@ function tabListStructure(html: string): string {
 }
 
 describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator node", () => {
-  it("the TabList is the reference's: Tab > (text + SelectionIndicator on the selected one)", async () => {
+  it("the TabList is the reference's: Tab > (SelectionIndicator on the selected one + text)", async () => {
     const { html } = await open();
     const reference = renderToStaticMarkup(
       createElement(
@@ -142,16 +144,14 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
         null,
         createElement(
           TabList,
-          // (The example's list name is authored text — the origin's list has none; the author
-          // names it with the node's `aria-label`, below.)
-          null,
+          { "aria-label": "Tabs" },
           ...["Tab 1", "Tab 2"].map((text) =>
             createElement(
               Tab,
               { key: text, id: text },
               // (Our label is a Text node — a span around the reference's text.)
-              createElement("span", null, text),
               createElement(SelectionIndicator),
+              createElement("span", null, text),
             ),
           ),
         ),
@@ -171,7 +171,9 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
     ).getAnimations ??= () => [];
     const host = document.body.appendChild(document.createElement("div"));
     const reactRoot = createRoot(host);
-    const id = [...root.domInputs.values()].find((r) => r.sourceId === TABS)!.id;
+    const id = [...root.domInputs.values()].find(
+      (r) => r.sourceId === TABS,
+    )!.id;
     await act(async () => reactRoot.render(renderCatalogDom(root, id)));
     const tab = of("Tab")[0]!;
     workspace.root.execute(
@@ -200,7 +202,7 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
     expect(shown()).toEqual([false, true]);
   });
 
-  it("the bar is the sheet's: 3px along the Tab's bottom (the right edge in a vertical list)", async () => {
+  it("the bar is the sheet's: 2px along the Tab's bottom (12px before the vertical list)", async () => {
     const { root, of, edit } = await open();
     const bar = () => {
       const indicator = of("SelectionIndicator").find(
@@ -213,16 +215,16 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
     const horizontal = bar();
     expect(horizontal.bar).toMatchObject({
       x: 0,
-      y: horizontal.tab.height - 3,
+      y: horizontal.tab.height - 2,
       width: horizontal.tab.width,
-      height: 3,
+      height: 2,
     });
     edit({ orientation: "vertical" });
     const vertical = bar();
     expect(vertical.bar).toMatchObject({
-      x: vertical.tab.width - 3,
+      x: -12,
       y: 0,
-      width: 3,
+      width: 2,
       height: vertical.tab.height,
     });
   });
@@ -276,7 +278,11 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
       }),
     );
     workspace.root.execute(
-      setNodeAttribute({ id: tabList, field: "ariaLabel", value: "Dynamic tabs" }),
+      setNodeAttribute({
+        id: tabList,
+        field: "ariaLabel",
+        value: "Dynamic tabs",
+      }),
     );
     const reference = renderToStaticMarkup(
       createElement(
@@ -292,8 +298,8 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
               createElement(
                 Tab,
                 { key: text, id: text },
-                createElement("span", null, text),
                 createElement(SelectionIndicator),
+                createElement("span", null, text),
               ),
             ),
           ),
@@ -305,12 +311,8 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
             createElement(Button),
           ),
         ),
-        createElement(
-          TabPanels,
-          null,
-          createElement(TabPanel, { id: "Tab 1" }),
-          createElement(TabPanel, { id: "Tab 2" }),
-        ),
+        createElement(TabPanel, { id: "Tab 1" }),
+        createElement(TabPanel, { id: "Tab 2" }),
       ),
     );
     expect(tabsStructure(html())).toBe(tabsStructure(reference));
@@ -369,3 +371,104 @@ function tabsStructure(html: string): string {
   };
   return walk(tabs);
 }
+
+it("S2 direct panels survive adding a tab, undo/redo, and IndexedDB reload", async () => {
+  const { workspace, root, of, html, storage, library } = await open();
+  try {
+    const parent = of("Tabs")[0]!;
+    const position = workspace.positionOfRecord(parent.id)!;
+    const choice = catalogItemInsertChoices(
+      {
+        graph: workspace.runtime.graph,
+        readModel: workspace.readModel,
+        newId: workspace.newId,
+      },
+      position,
+    ).find((item) => item.type === "Tab")!;
+    expect(choice).toBeDefined();
+    workspace.execute(choice.build());
+    expect(of("Tab")).toHaveLength(3);
+    expect(of("TabPanel")).toHaveLength(3);
+    expect(of("TabPanels")).toHaveLength(0);
+    expect(
+      of("TabPanel").every(
+        (panel) =>
+          root.typeOf(root.canvasInputs.get(panel.parentId)!) === "Tabs",
+      ),
+    ).toBe(true);
+    expect(html()).not.toContain("react-aria-TabPanels");
+    workspace.undo();
+    expect(of("Tab")).toHaveLength(2);
+    expect(of("TabPanel")).toHaveLength(2);
+    workspace.redo();
+    expect(of("Tab")).toHaveLength(3);
+    await workspace.runtime.save();
+    const graph = workspace.runtime.graph;
+    const loaded = await storage.load(graph.projectId, library);
+    expect(loaded).toEqual(graph.exportDocument());
+    const restored = new CatalogWorkspace(
+      new CatalogGraph(loaded, library),
+      storage,
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1200, height: 800 },
+        autosaveSchedule: () => {},
+      },
+    );
+    try {
+      const panels = [...restored.root.canvasInputs.values()].filter(
+        (node) => restored.root.typeOf(node) === "TabPanel",
+      );
+      expect(panels).toHaveLength(3);
+      expect(panels.filter((node) => !node.hidden)).toHaveLength(1);
+      expect(
+        panels.every(
+          (panel) =>
+            restored.root.typeOf(
+              restored.root.canvasInputs.get(panel.parentId)!,
+            ) === "Tabs",
+        ),
+      ).toBe(true);
+    } finally {
+      restored.dispose();
+    }
+  } finally {
+    workspace.dispose();
+  }
+});
+
+it("disabledKeys changes the initial selection and disabled paint state", async () => {
+  const { workspace, root, of, edit, html } = await open({
+    disabledKeys: ["tab-1"],
+  });
+  try {
+    expect(of("Tab")[0]!.derivedProps?.isDisabled).toBe(true);
+    expect(of("SelectionIndicator").map((node) => !node.hidden)).toEqual([
+      false,
+      true,
+    ]);
+    expect(html()).toContain('aria-disabled="true"');
+    edit({
+      orientation: "vertical",
+      density: "compact",
+      labelBehavior: "hide",
+    });
+    expect(
+      of("Tab").every(
+        (node) =>
+          node.props.orientation === "vertical" &&
+          node.props.labelBehavior === "hide",
+      ),
+    ).toBe(true);
+    expect(
+      of("Text")
+        .filter(
+          (node) =>
+            root.typeOf(root.canvasInputs.get(node.parentId)!) === "Tab",
+        )
+        .every((node) => node.layout.display === "none"),
+    ).toBe(true);
+  } finally {
+    workspace.dispose();
+  }
+});

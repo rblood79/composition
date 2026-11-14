@@ -2,7 +2,7 @@
  * ADR-142 family ④(collections) — Tabs primitive 의 `PrimitiveBinding`.
  *
  * DOM 은 `delegatedDom.tsx` `tabs` 가 shared `components/Tabs` 의 Tabs 를 그리고 그 안의 노드 트리
- * (TabList > Tab… · TabPanels > TabPanel) 를 순서대로 그린다. Canvas 시각은 catalog rule
+ * (TabList > Tab… + TabPanel…) 를 순서대로 그린다. Canvas 시각은 catalog rule
  * (`COMPONENT_RULES_TABLE.Tabs`).
  */
 
@@ -22,12 +22,28 @@ export const tabsBinding: PrimitiveBinding = {
         label: "Selected tab",
         section: "value",
       },
+      items: {
+        kind: "items-manager",
+        label: "Tabs",
+        section: "content",
+        itemsManager: {
+          itemsKey: "items",
+          itemTypeName: "Tab",
+          defaultItem: { title: "New tab", content: "Tab body" },
+          labelKey: "title",
+          itemSchema: [
+            { key: "title", type: "string", label: "Title" },
+            { key: "content", type: "string", label: "Content" },
+          ],
+        },
+      },
       dataBinding: {
         kind: "binding",
         label: "Data source",
         section: "collection",
       },
       size: {
+        editorHidden: true,
         kind: "size",
         label: "Size",
         section: "appearance",
@@ -53,6 +69,31 @@ export const tabsBinding: PrimitiveBinding = {
           { value: "compact", label: "Compact" },
           { value: "regular", label: "Regular" },
         ],
+      },
+      labelBehavior: {
+        kind: "enum",
+        label: "Label behavior",
+        section: "appearance",
+        default: "show",
+        options: [
+          { value: "show", label: "Show" },
+          { value: "hide", label: "Hide" },
+        ],
+      },
+      keyboardActivation: {
+        kind: "enum",
+        label: "Keyboard activation",
+        section: "state",
+        default: "automatic",
+        options: [
+          { value: "automatic", label: "Automatic" },
+          { value: "manual", label: "Manual" },
+        ],
+      },
+      disabledKeys: {
+        kind: "string-array",
+        label: "Disabled keys",
+        section: "state",
       },
       // S2 Tabs `defaultSelectedKey` as the Design panel's Selected Tab (사용자 2026-10-13 「tabs컴퍼넌트의
       //   프러퍼티에 Selected Tab을 선택할수있게」): its choices are the Tabs' Tabs and it shows the

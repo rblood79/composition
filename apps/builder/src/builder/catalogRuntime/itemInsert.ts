@@ -1,3 +1,5 @@
+import { editItems } from "../../../../../packages/shared/src/catalog/commands/items";
+import { nodePosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import {
   COLLECTION_FAMILIES,
   GROUP_ITEM_TYPES,
@@ -247,6 +249,42 @@ export function catalogItemInsertChoices(
 ): CatalogItemInsertChoice[] {
   const { graph, readModel, newId } = host;
   const type = typeOf(graph, position.definitionId);
+  if (type === "TabList") {
+    const ownerId = wrapperGroupHost(graph, position);
+    const owner = ownerId && graph.getEntry(ownerId);
+    if (
+      owner &&
+      owner.kind === "node" &&
+      typeOf(graph, owner.definitionId) === "Tabs" &&
+      Array.isArray(
+        readModel.propSource({ kind: "node", id: owner.id }, "items").value,
+      )
+    )
+      return catalogItemInsertChoices(host, nodePosition(graph, owner.id));
+  }
+  const items =
+    type === "Tabs"
+      ? readModel.propSource(position.target, "items").value
+      : undefined;
+  if (Array.isArray(items))
+    return [
+      {
+        type: "Tab",
+        build: () =>
+          editItems({
+            target: position.target,
+            key: "items",
+            edit: {
+              kind: "add",
+              item: {
+                id: crypto.randomUUID(),
+                title: `Tab ${items.length + 1}`,
+                content: `Tab body ${items.length + 1}`,
+              },
+            },
+          }),
+      },
+    ];
   if (PICKER_LIST[type]) {
     // (A Select's · ComboBox's list is in its Popover — ADR-256 Phase 6c · 6d, the reference's
     // `Popover > ListBox`; a MenuTrigger's Menu the same — 후속 4.)

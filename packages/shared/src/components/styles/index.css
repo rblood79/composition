@@ -236,6 +236,7 @@
 /* Navigation & Layout */
 @import "./generated/Slot.css";
 @import "./generated/Tabs.css";
+@import "./generated/SelectionIndicator.css";
 @import "./generated/TabList.css";
 @import "./generated/Tab.css";
 @import "./generated/TabPanels.css";

@@ -25,6 +25,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   selectionRegion,
   onDelete,
   onContextMenu,
+  onZoomToNode,
 }: {
   node: CatalogLayerNode;
   isSelected: boolean;
@@ -39,6 +40,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   onDelete: (node: CatalogLayerNode) => void;
   /** Right click: the Canvas element menu over this row (the old Layers row's `layer-item`). */
   onContextMenu?: (node: CatalogLayerNode, event: React.MouseEvent) => void;
+  onZoomToNode: (node: CatalogLayerNode) => void;
 }) {
   const { depth, hasChildren, name, body } = node;
   // A data row (a bound collection's projection) is neither draggable nor deletable; nor is a
@@ -81,7 +83,13 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
           </Button>
         )}
       </div>
-      <div className="elementItemIcon layer-node-icon">
+      <div
+        className="elementItemIcon layer-node-icon"
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          onZoomToNode(node);
+        }}
+      >
         <CatalogLayerIcon node={node} />
         {node.role && (
           <span

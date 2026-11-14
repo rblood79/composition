@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -21,6 +21,7 @@ import { CatalogWorkspaceProvider } from "../react";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { registerCommand } from "../../stores/commandRegistry";
 
 /**
  * ADR-248 4e Navigator tabs (user proposal 2026-10-01): Pages / Components / Layouts — each tab
@@ -78,6 +79,64 @@ async function open() {
 }
 
 describe("ADR-248 4e Navigator tabs", () => {
+  it("double-clicking a layer icon selects only its target before zooming; labels and chevrons do not zoom", async () => {
+    const { workspace } = await open();
+    const selected = () =>
+      workspace.session.getSnapshot().selection.map((item) => item.identity);
+    const zoom = vi.fn(() => selected());
+    const canRun = vi.fn(() => selected().length === 1);
+    const unregister = registerCommand({
+      id: "zoomToSelection",
+      handler: zoom,
+      canRun,
+      scope: "canvas-focused",
+      priority: 0,
+      allowInInput: false,
+      disabled: false,
+    });
+    const view = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogNavigatorPanel />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    try {
+      const layers = screen.getByRole("treegrid", { name: "Layers" });
+      const bodyRow = within(layers).getByText("Body").closest(".elementItem")!;
+      fireEvent.doubleClick(bodyRow.querySelector(".layer-node-icon")!);
+      const bodyId = workspace.itemsOfNode(BODY, 1)[0]!.identity;
+      expect(zoom.mock.results[0].value).toEqual([bodyId]);
+      expect(zoom).toHaveBeenLastCalledWith({ scope: "canvas-focused" });
+
+      const childRow = [...layers.querySelectorAll(".elementItem")].find(
+        (row) => row !== bodyRow,
+      )!;
+      expect(childRow).toBeTruthy();
+      const childId = workspace.itemsOfNode(
+        "project:node:title" as NodeId,
+        1,
+      )[0]!.identity;
+      act(() => workspace.selectRecords([bodyId, childId]));
+      fireEvent.doubleClick(childRow.querySelector(".layer-node-icon")!);
+      expect(selected()).toEqual([childId]);
+      expect(zoom.mock.results[1].value).toEqual([childId]);
+
+      fireEvent.doubleClick(childRow.querySelector(".elementItemLabelText")!);
+      fireEvent.doubleClick(bodyRow.querySelector(".layer-expand-button")!);
+      expect(zoom).toHaveBeenCalledTimes(2);
+
+      canRun.mockReturnValue(false);
+      fireEvent.doubleClick(bodyRow.querySelector(".layer-node-icon")!);
+      expect(selected()).toEqual([bodyId]);
+      expect(zoom).toHaveBeenCalledTimes(2);
+    } finally {
+      view.unmount();
+      unregister();
+      workspace.dispose();
+    }
+  });
+
   it("lists each kind on its own and maps a definition to its tab", async () => {
     const { graph, layout, component } = await open();
     expect(

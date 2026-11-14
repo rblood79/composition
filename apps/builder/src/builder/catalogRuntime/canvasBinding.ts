@@ -676,8 +676,6 @@ const bindings: Readonly<Record<string, Binding>> = {
   // a box for its indicator and text (the row is the Checkbox rule's).
   checkboxbutton: containerWithAuthoredPaint,
   colorswatchpickeritem: containerWithAuthoredPaint,
-  // ADR-256 Phase 5e: the Tab's bar (its fill is the Tab part rule's).
-  selectionindicator: containerWithAuthoredPaint,
   // 열린 overlay 화살표는 withSticky에서 부모의 최종 placement로 그린다.
   overlayarrow: containerWithAuthoredPaint,
   // ADR-256 Phase 8c: a Disclosure's panel (its box = the content div — the Disclosure's part rule).

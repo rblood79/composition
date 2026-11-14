@@ -40,7 +40,7 @@ describe("Layers component and structural icons", () => {
     ["Content", "group"],
     ["Label", "text"],
     ["Text", "text"],
-    ["Input", "input"],
+    ["Input", "keyboard"],
     ["Icon", "vector"],
     ["Image", "image"],
     ["Separator", "line"],
@@ -51,6 +51,6 @@ describe("Layers component and structural icons", () => {
     );
     expect(markup).toContain(`data-layer-icon="${glyph}"`);
     expect(markup).toContain('aria-hidden="true"');
-    expect(markup).not.toContain("lucide");
+    expect(markup.includes("lucide")).toBe(glyph === "keyboard");
   });
 });

@@ -1,116 +1,32 @@
-/**
- * Material Design 3 Separator Styles
- *
- * Variant 없음 (2026-10-12 — S2 Divider · RAC · v3 어디에도 없는 축이라 삭제). 선색은 기본 하나 +
- * S2 staticColor.
- * Sizes: sm, md, lg
- *
- * DOM 계약 (2026-07-14 정렬): 렌더러는 `data-size` 속성을 emit 하고,
- * RAC 는 **수평(기본) 방향에 aria-orientation 을 emit 하지 않는다** (수직일 때만
- * aria-orientation='vertical'). 구 `.horizontal/.vertical/.sm/.md/.lg` 클래스 계약은
- * 레거시 병기 — 클래스만 매치하던 시절 기본 HR 이 어느 규칙에도 안 걸려 2x18 로
- * 렌더되던 결함(Skia 390x1 과 발산)의 근본.
- *
- * Reference: https://m3.material.io/components/divider
- */
-
+/** S2 Divider geometry. Paint and S/M/L thickness/radius come from catalog CSS. */
 @layer components {
   .react-aria-Separator {
-    border: none;
-    background-color: var(--bg-muted);
-    flex-shrink: 0;
-  }
-
-  /* Horizontal orientation (default — aria-orientation 미emit)
-     padding/border/배경 명시 재선언: generated Separator.css 가 import 순서에 따라
-     base border(1px solid)를 이겨 1px 라인이 outline box 로 렌더되던 결함 차단
-     (라인 = background 1px + margin 간격이 정본, Skia 390x1 대칭). */
-  .react-aria-Separator.horizontal,
-  .react-aria-Separator[aria-orientation="horizontal"],
-  .react-aria-Separator:not(.vertical):not([aria-orientation="vertical"]) {
-    width: 100%;
-    height: 1px;
+    align-self: stretch;
+    flex: 0 0 auto;
+    margin: 0;
     padding: 0;
     border: none;
-    background-color: var(--bg-muted);
+    width: auto;
   }
 
-  /* Vertical orientation */
-  .react-aria-Separator.vertical,
+  /* RAC only emits aria-orientation for vertical separators. */
   .react-aria-Separator[aria-orientation="vertical"] {
-    height: 100%;
-    width: 1px;
-    padding: 0;
-    border: none;
-    background-color: var(--bg-muted);
+    width: 2px;
+    height: auto;
   }
 
-  /* Size variants - Horizontal */
-  .react-aria-Separator.horizontal.sm,
-  .react-aria-Separator[aria-orientation="horizontal"].sm,
-  .react-aria-Separator[data-size="S"]:not(.vertical):not(
-      [aria-orientation="vertical"]
-    ) {
-    height: 1px;
-    margin: var(--spacing-xs) 0;
-  }
-
-  /* 두께 축 = catalog Separator.sizes[*].height 미러 (Spectrum divider S1/M2/L4, 2026-08-21)
-     — Skia 는 같은 catalog 값을 divider primitive 두께로 읽는다 (D3 symmetric). */
-  .react-aria-Separator.horizontal.md,
-  .react-aria-Separator[aria-orientation="horizontal"].md,
-  .react-aria-Separator[data-size="M"]:not(.vertical):not(
-      [aria-orientation="vertical"]
-    ) {
-    height: 2px;
-    margin: var(--spacing-sm) 0;
-  }
-
-  .react-aria-Separator.horizontal.lg,
-  .react-aria-Separator[aria-orientation="horizontal"].lg,
-  .react-aria-Separator[data-size="L"]:not(.vertical):not(
-      [aria-orientation="vertical"]
-    ) {
-    height: 4px;
-    margin: var(--spacing-lg) 0;
-  }
-
-  /* Size variants - Vertical */
-  .react-aria-Separator.vertical.sm,
-  .react-aria-Separator[aria-orientation="vertical"].sm,
   .react-aria-Separator[aria-orientation="vertical"][data-size="S"] {
     width: 1px;
-    margin: 0 var(--spacing-xs);
   }
 
-  .react-aria-Separator.vertical.md,
-  .react-aria-Separator[aria-orientation="vertical"].md,
-  .react-aria-Separator[aria-orientation="vertical"][data-size="M"] {
-    width: 2px;
-    margin: 0 var(--spacing-sm);
-  }
-
-  .react-aria-Separator.vertical.lg,
-  .react-aria-Separator[aria-orientation="vertical"].lg,
   .react-aria-Separator[aria-orientation="vertical"][data-size="L"] {
     width: 4px;
-    margin: 0 var(--spacing-lg);
   }
 
-  /* S2 1.8.0 Divider staticColor (2026-10-09) — over a color background: white · black at the S2
-     transparent-*-200 opacity (0.14), size L -800 (0.85). The Canvas divider primitive draws the
-     same values. (The class is repeated to outrank the horizontal base rule's
-     `:not(.vertical):not([aria-orientation="vertical"])` line color.) */
-  .react-aria-Separator.react-aria-Separator[data-static-color="white"] {
-    background-color: rgb(255 255 255 / 0.14);
-  }
-  .react-aria-Separator.react-aria-Separator[data-static-color="black"] {
-    background-color: rgb(0 0 0 / 0.14);
-  }
-  .react-aria-Separator.react-aria-Separator[data-static-color="white"][data-size="L"] {
-    background-color: rgb(255 255 255 / 0.85);
-  }
-  .react-aria-Separator.react-aria-Separator[data-static-color="black"][data-size="L"] {
-    background-color: rgb(0 0 0 / 0.85);
+  @media (forced-colors: active) {
+    .react-aria-Separator {
+      background: ButtonBorder;
+      forced-color-adjust: none;
+    }
   }
 }

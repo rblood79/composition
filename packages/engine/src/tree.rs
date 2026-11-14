@@ -3946,12 +3946,15 @@ impl LayoutTree {
                 //   커널이 content 슬롯 (content-box) 을 소비하므로, px 로 덮은 재-solve 가 돌려주는
                 //   border-box 는 아래에서 pad/border 를 빼서 싣는다 (2026-09-18 박스 계약 — 종전엔
                 //   그대로 실어 padding 이 두 번 더해졌다: Tooltip 80 / Chrome 60).
-                let overridden = main_raw
-                    .map(|v| {
-                        let t = v.trim();
-                        !t.is_empty() && !t.eq_ignore_ascii_case("auto")
-                    })
-                    .unwrap_or(false);
+                // Row의 used main은 이미 border-box 폭이다. auto로 다시 풀면 자기 margin을
+                // available에서 재차 빼므로, 이 배치 동안 확정 폭으로 전달한다.
+                let overridden = is_row
+                    || main_raw
+                        .map(|v| {
+                            let t = v.trim();
+                            !t.is_empty() && !t.eq_ignore_ascii_case("auto")
+                        })
+                        .unwrap_or(false);
                 // 키워드뿐 아니라 미해소 %도 intake에서는 content-box였다.
                 let intrinsic_main = overridden && resolve_dimension_opt(main_raw, &main_ctx).is_none();
                 let saved_main = if is_row {
@@ -4151,6 +4154,9 @@ impl LayoutTree {
         // **`height:%` 자식은 여기서 살아나지 않는다** — 해소 불가 백분율은 Chrome 도 0 이고
         // (실측), 그건 `%` 해석 컨텍스트(`cross_ctx`) 소관이라 건드리지 않는다. 여기서 바뀌는
         // 것은 **cross 를 명시하지 않은** 자식의 stretch 대상 크기뿐이다.
+        // 최종 상자도 이 cross 크기를 유지한다. 중앙 정렬된 자식의 끝점만 쓰면
+        // min-height 32 / 내용 18의 상자를 25로 보고해 absolute 100%도 짧아진다.
+        let mut clamped_auto_cross = None;
         if !cross_definite && !children.is_empty() {
             let ctx_cross_size = self.ctx_for(if is_row { avail_h } else { avail_w });
             let (min_raw, max_raw) = if is_row {
@@ -4182,6 +4188,7 @@ impl LayoutTree {
                 let used = used.max(0.0);
                 if (used - content_cross).abs() > 0.5 {
                     avail_cross = used;
+                    clamped_auto_cross = Some(used);
                     cross_definite = true;
                     out = self.flex_layout_with_definite_floor(
                         children,
@@ -4228,7 +4235,15 @@ impl LayoutTree {
                         prev_avail: used_cross,
                     });
                 }
+                // Cross 재배치도 같은 used border-box 폭을 보존한다.
+                let saved_width = self.get(c).and_then(|n| n.style.width.clone());
+                if let Some(n) = self.get_mut(c) {
+                    n.style.width = Some(format!("{used_w}px"));
+                }
                 self.solve_node_definite(c, used_w, child_containing_h, Some(used_cross));
+                if let Some(n) = self.get_mut(c) {
+                    n.style.width = saved_width;
+                }
             }
         }
 
@@ -4343,14 +4358,18 @@ impl LayoutTree {
             // 80×2 wrap 의 min-content 는 160 이 아니라 80 — adr923_p3_inline_shrink_to_fit).
             max_item_outer
         } else {
-            auto_main_w.unwrap_or(max_right)
+            auto_main_w
+                .or(if is_row { None } else { clamped_auto_cross })
+                .unwrap_or(max_right)
         };
         let container_h = if explicit_h > 0.0 {
             explicit_h
         } else if zero_h_definite {
             0.0
         } else {
-            auto_main_h.unwrap_or(max_bottom)
+            auto_main_h
+                .or(if is_row { clamped_auto_cross } else { None })
+                .unwrap_or(max_bottom)
         };
 
         // 5) **shrink-to-fit 확정 뒤 재-solve** (block 과 동일 규칙 — `shrink_to_fit_settled`).
@@ -10412,6 +10431,40 @@ mod tests {
             "fit-content 자식 width={} (expect content 60, not stretch 300)",
             child.width
         );
+    }
+
+    /// min-height로 늘어난 flex cross box는 absolute 자식의 containing block이기도 하다.
+    #[test]
+    fn flex_cross_minimum_sizes_absolute_percentage_child() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"36px","height":"18px"},"children":[]},
+            {"style":{"position":"absolute","width":"2px","height":"100%","insetTop":"0px","insetLeft":"-12px"},"children":[]},
+            {"style":{"display":"flex","width":"36px","minHeight":"32px","alignItems":"center"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 500.0, -1.0);
+        assert_eq!(tree.get_layout(handles[0]).y, 7.0);
+        assert_eq!(tree.get_layout(handles[1]).height, 32.0);
+        assert_eq!(tree.get_layout(handles[2]).height, 32.0);
+    }
+
+    /// Tabs의 세로 목록처럼 auto 폭 flex item에 margin이 있어도, 자손은 used border-box 폭을 쓴다.
+    #[test]
+    fn flex_auto_item_reflow_does_not_subtract_inline_margins_twice() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"36px","height":"18px"},"children":[]},
+            {"style":{"display":"flex","minHeight":"32px","alignItems":"center","flexShrink":0},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","marginLeft":"12px","marginRight":"20px","flexShrink":0},"children":[1]},
+            {"style":{"flexGrow":1,"marginTop":"4px"},"children":[]},
+            {"style":{"display":"flex","width":"500px"},"children":[2,3]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[4], 500.0, -1.0);
+        assert_eq!(tree.get_layout(handles[2]).width, 36.0);
+        assert_eq!(tree.get_layout(handles[1]).width, 36.0);
+        assert_eq!(tree.get_layout(handles[1]).height, 32.0);
     }
 
     // ── ADR-165: intrinsic 측정 스칼라 (content_min/max_width) 소비 ──

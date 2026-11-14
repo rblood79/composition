@@ -108,7 +108,7 @@
 .layer-node-icon .editing-semantics-dot {
   position: absolute;
   inset-inline-end: 0;
-  bottom: 0;
+  top: 0;
 }
 
 .layer-expand-button {

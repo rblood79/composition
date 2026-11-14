@@ -453,7 +453,7 @@ export const insertCollectionItem =
     key: string;
     /** The chosen shape was the selected one: add the key to the owner's selection. */
     selectItem?: boolean;
-    /** Tabs: the paired TabPanel record (placed in the sibling TabPanels). */
+    /** Tabs: the paired TabPanel record (placed directly in Tabs, or an authored TabPanels host). */
     panel?: NodeEntry;
     newId: NewId;
     label?: string;
@@ -498,9 +498,11 @@ export const insertCollectionItem =
             (child) => positionType(draft, child) === "TabPanels",
           )
         : undefined;
-      if (panels) {
+      const panelHost = panels ?? owner;
+      if (panelHost) {
         if (!input.panel) fail("TAB_PANEL_REQUIRED", positionId(input.host));
-        else place(draft, panels, [input.panel], input.panel.id, input.newId);
+        else
+          place(draft, panelHost, [input.panel], input.panel.id, input.newId);
       }
     }
     const extra: CatalogOperation[] = [];

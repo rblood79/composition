@@ -9,7 +9,7 @@
  * D2: size/orientation/staticColor 가 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12) — S2 Divider 도 없음).
  * D3: 시각(선 색/두께)은 theme/tokens data-* rules — size 는 data-* 라우팅(toRacProps).
  *     선은 box+text 가 아닌 비-DOM-trivial primitive → Skia 는 `skiaPrimitive: "divider"`
- *     draw module(renderers/skiaPrimitives.ts)이 선색으로 채운 얇은 rect 로 그린다.
+ *     draw module(renderers/skiaPrimitives.ts)이 선색으로 채운 둥근 얇은 rect 로 그린다.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -66,6 +66,6 @@ export const separatorBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
-  // Separator 는 선(line) primitive — box+text 가 아니라 선색으로 채운 얇은 rect.
+  // Separator 는 선(line) primitive — box+text 가 아니라 선색으로 채운 둥근 얇은 rect.
   skiaPrimitive: "divider",
 };

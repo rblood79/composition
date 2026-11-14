@@ -81,6 +81,7 @@ export interface CatalogLayerNode {
 
 /** The data rows one row holds (4e-6-36): the drawn rows and the count the sample leaves out. */
 export interface CatalogBoundLayerRows {
+  readonly itemType?: string;
   readonly rows: readonly {
     id: string;
     name: string;
@@ -314,10 +315,17 @@ export class CatalogLayerTreeStore {
           (host.collectionRowHidden?.(position, parentType) ?? false) !==
           hidden,
       );
+      // items 편집은 문서 자식 주소를 바꾸지 않지만 Tabs의 투영 행을 바꾼다.
+      const tabsChanged = [...result.changedIds].some((id) =>
+        (this.visibleNodes.get(id) ?? []).some(
+          (identity) => this.nodes.get(identity)?.typeName === "Tabs",
+        ),
+      );
       if (
         renamed ||
         gated ||
         collectionFlipped ||
+        tabsChanged ||
         this.rowsChanged ||
         isProjectComponentsView(this.ownerId)
       )
@@ -462,7 +470,14 @@ export class CatalogLayerTreeStore {
                 childrenInsideComponent,
               ),
             );
-      const count = bound ? bound.rows.length : drawn.length;
+      const count = bound
+        ? bound.rows.length +
+          drawn.filter(
+            (row) =>
+              typeNameOf(graph, row) !==
+              (bound.rows[0]?.typeName ?? bound.itemType),
+          ).length
+        : drawn.length;
       const expanded = count > 0 && this.expanded.has(position.identity);
       const next: CatalogLayerNode = {
         id: position.identity,
@@ -511,7 +526,7 @@ export class CatalogLayerTreeStore {
       depth: number,
       insideComponent: boolean,
     ): CatalogLayerNode[] => {
-      const rowType = bound.rows[0]!.typeName;
+      const rowType = bound.rows[0]?.typeName ?? bound.itemType!;
       const isItem = (row: CatalogPosition) =>
         typeNameOf(graph, row) === rowType;
       const template = rows.find(isItem);

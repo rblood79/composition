@@ -1,4 +1,4 @@
-import { Component } from "lucide-react";
+import { Component, Keyboard, RectangleEllipsis } from "lucide-react";
 import { getPanelMeta, getReusableEntry } from "@composition/shared";
 import { getChartDescriptor } from "@composition/rendering";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
@@ -106,6 +106,14 @@ function ChartLayerIcon({ node }: { node: CatalogLayerNode }) {
 }
 
 export function CatalogLayerIcon({ node }: { node: CatalogLayerNode }) {
+  if (node.typeName === "Input") {
+    return <Keyboard {...iconProps} data-layer-icon="keyboard" />;
+  }
+  if (node.typeName === "Description" || node.typeName === "FieldError") {
+    return (
+      <RectangleEllipsis {...iconProps} data-layer-icon="rectangle-ellipsis" />
+    );
+  }
   const Icon = layerComponentIcon(node);
   if (Icon && node.typeName === "Chart") return <ChartLayerIcon node={node} />;
   if (Icon) return <Icon {...iconProps} data-layer-icon="component" />;

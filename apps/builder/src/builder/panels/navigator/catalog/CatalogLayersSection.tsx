@@ -45,6 +45,7 @@ import type {
   ContextMenuRequest,
 } from "../../../components/overlay/contextMenu/types";
 import { useToastStore } from "../../../stores/toast";
+import { resolveCommand } from "../../../stores/commandRegistry";
 
 // Stable item accessors (ADR-265): a new function each render made `TreeBase` re-index every row.
 const layerKey = (node: CatalogLayerNode) => node.id;
@@ -67,11 +68,13 @@ function CatalogLayerRow({
   state,
   onDelete,
   onContextMenu,
+  onZoomToNode,
 }: {
   node: CatalogLayerNode;
   state: TreeItemState;
   onDelete: (node: CatalogLayerNode) => void;
   onContextMenu: (node: CatalogLayerNode, event: React.MouseEvent) => void;
+  onZoomToNode: (node: CatalogLayerNode) => void;
 }) {
   const selection = useContext(LayerRowSelection);
   const tree = selection?.tree;
@@ -103,6 +106,7 @@ function CatalogLayerRow({
       }
       onDelete={onDelete}
       onContextMenu={onContextMenu}
+      onZoomToNode={onZoomToNode}
     />
   );
 }
@@ -240,6 +244,18 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       else workspace.session.exitContext();
     },
     [tree, workspace],
+  );
+
+  const handleZoomToNode = useCallback(
+    (node: CatalogLayerNode) => {
+      // Reuse Layers selection so template parts enter their editing context and projection
+      // rows resolve their actual target before the Canvas reads the selection's bounds.
+      handleSelectionChange(new Set([node.id]));
+      const command = resolveCommand("zoomToSelection");
+      if (command && !command.disabled && (command.canRun?.() ?? true))
+        command.handler({ scope: "canvas-focused" });
+    },
+    [handleSelectionChange],
   );
 
   // The old Layers row's right click (`layer-item`): the Canvas element menu over the selection
@@ -387,9 +403,10 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         state={state}
         onDelete={handleDelete}
         onContextMenu={handleContextMenu}
+        onZoomToNode={handleZoomToNode}
       />
     ),
-    [handleContextMenu, handleDelete],
+    [handleContextMenu, handleDelete, handleZoomToNode],
   );
 
   return (
@@ -412,7 +429,10 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       }
     >
       <LayerRowSelection.Provider value={rowSelection}>
-        <Virtualizer layout={ListLayout} layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}>
+        <Virtualizer
+          layout={ListLayout}
+          layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}
+        >
           <TreeBase<CatalogLayerNode>
             aria-label="Layers"
             items={items as CatalogLayerNode[]}

@@ -29,6 +29,9 @@ export interface SeparatorProps extends AriaSeparatorProps {
    * @default 'M'
    */
   size?: ComponentSizeSubset;
+
+  /** S2 Divider color over a colored background. */
+  staticColor?: "auto" | "white" | "black";
 }
 
 /**
@@ -41,6 +44,7 @@ export function Separator(props: SeparatorProps) {
     orientation = "horizontal",
     variant = "default",
     size = "M",
+    staticColor,
     className,
     ...restProps
   } = props;
@@ -54,6 +58,7 @@ export function Separator(props: SeparatorProps) {
       }
       data-variant={variant}
       data-size={size}
+      data-static-color={staticColor}
     />
   );
 }

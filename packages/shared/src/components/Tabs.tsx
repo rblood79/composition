@@ -1,3 +1,5 @@
+import { Collection } from "react-aria-components/Collection";
+export { Collection } from "react-aria-components/Collection";
 import {
   Tabs as RACTabs,
   TabsProps,
@@ -33,8 +35,9 @@ export interface TabsExtendedProps extends TabsProps {
    * @default 'regular'
    */
   density?: "compact" | "regular";
+  labelBehavior?: "show" | "hide";
   /**
-   * Size variant
+   * @deprecated S2 Tabs는 size 없이 density로 높이와 간격을 제어합니다.
    * @default 'M'
    */
   size?: ComponentSize;
@@ -66,8 +69,9 @@ export interface TabListExtendedProps<
    * @default 'regular'
    */
   density?: "compact" | "regular";
+  labelBehavior?: "show" | "hide";
   /**
-   * Size variant (inherited from Tabs)
+   * @deprecated S2 Tabs에는 size 축이 없습니다.
    * @default 'M'
    */
   size?: ComponentSize;
@@ -83,8 +87,8 @@ export interface TabListExtendedProps<
  *
  * S2 Features:
  * - density: compact | regular (간격 제어)
- * - 3 sizes: sm, md, lg
- * - accent 기반 단일 indicator 스타일
+ * - labelBehavior: show | hide
+ * - neutral 색상의 2px 선택 표시
  *
  * Features:
  * - Tabbed navigation interface
@@ -94,8 +98,8 @@ export interface TabListExtendedProps<
  * - DataBinding support for dynamic tabs
  *
  * @example
- * <Tabs density="regular" size="M">
- *   <TabList density="regular" size="M">
+ * <Tabs density="regular">
+ *   <TabList density="regular">
  *     <Tab>Tab 1</Tab>
  *     <Tab>Tab 2</Tab>
  *   </TabList>
@@ -105,6 +109,7 @@ export interface TabListExtendedProps<
  */
 export function Tabs({
   density = "regular",
+  labelBehavior = "show",
   size = "M",
   dataBinding,
   columnMapping,
@@ -142,6 +147,7 @@ export function Tabs({
             : "react-aria-Tabs"
         }
         data-density={density}
+        data-label-behavior={labelBehavior}
         data-size={size}
         role="tablist"
         aria-busy="true"
@@ -187,6 +193,7 @@ export function Tabs({
           {...props}
           className={tabsClassName}
           data-density={density}
+          data-label-behavior={labelBehavior}
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
@@ -205,6 +212,7 @@ export function Tabs({
           {...props}
           className={tabsClassName}
           data-density={density}
+          data-label-behavior={labelBehavior}
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
@@ -221,6 +229,7 @@ export function Tabs({
           {...props}
           className={tabsClassName}
           data-density={density}
+          data-label-behavior={labelBehavior}
           data-size={size}
         >
           {children}
@@ -237,6 +246,7 @@ export function Tabs({
           {...props}
           className={tabsClassName}
           data-density={density}
+          data-label-behavior={labelBehavior}
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
@@ -255,6 +265,7 @@ export function Tabs({
           {...props}
           className={tabsClassName}
           data-density={density}
+          data-label-behavior={labelBehavior}
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
@@ -266,38 +277,28 @@ export function Tabs({
     }
 
     if (boundData.length > 0) {
-      const panelBody = (row: (typeof boundData)[number], index: number) => {
+      const panelBody = (row: (typeof boundData)[number]) => {
         const item = (row.item ?? {}) as Record<string, unknown>;
-        return String(
-          item.content ||
-            item.description ||
-            item.body ||
-            `Content ${index + 1}`,
-        );
+        return String(item.content ?? item.description ?? item.body ?? "");
       };
       return (
         <RACTabs
           {...props}
           className={tabsClassName}
           data-density={density}
+          data-label-behavior={labelBehavior}
           data-size={size}
         >
-          <RACTabList className="react-aria-TabList">
-            {boundData.map((row) => (
-              <RACTab key={row.itemKey} id={row.itemKey} className="react-aria-Tab">
-                {row.label}
-              </RACTab>
-            ))}
-          </RACTabList>
-          {boundData.map((row, index) => (
-            <RACTabPanel
-              key={row.itemKey}
-              id={row.itemKey}
-              className="react-aria-TabPanel"
-            >
-              {panelBody(row, index)}
-            </RACTabPanel>
-          ))}
+          <TabList
+            items={boundData}
+            density={density}
+            labelBehavior={labelBehavior}
+          >
+            {(row) => <Tab id={row.itemKey}>{row.label}</Tab>}
+          </TabList>
+          <Collection items={boundData}>
+            {(row) => <TabPanel id={row.itemKey}>{panelBody(row)}</TabPanel>}
+          </Collection>
         </RACTabs>
       );
     }
@@ -309,6 +310,7 @@ export function Tabs({
       {...props}
       className={tabsClassName}
       data-density={density}
+      data-label-behavior={labelBehavior}
       data-size={size}
     >
       {children}
@@ -324,6 +326,7 @@ export function Tabs({
  */
 export function TabList<T extends object>({
   density = "regular",
+  labelBehavior = "show",
   size = "M",
   showIndicator = false,
   children,
@@ -337,6 +340,7 @@ export function TabList<T extends object>({
       {...props}
       className={tabListClassName}
       data-density={density}
+      data-label-behavior={labelBehavior}
       data-size={size}
       {...(showIndicator ? { "data-show-indicator": "true" } : {})}
     >

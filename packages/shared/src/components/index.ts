@@ -74,7 +74,7 @@ export { Menu, MenuTrigger, SubmenuTrigger } from "react-aria-components/Menu";
 export { TagGroup, Tag } from "./TagGroup";
 export { Tree, TreeItem } from "./Tree";
 export { default as Table } from "./Table";
-export { Tabs, Tab, TabList, TabPanel } from "./Tabs";
+export { Tabs, Tab, TabList, TabPanel, Collection } from "./Tabs";
 
 // Navigation Components
 export { Link } from "./Link";

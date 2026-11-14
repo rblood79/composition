@@ -1,3 +1,4 @@
+import { catalogTabsItemRows } from "../document/tabsItems";
 import { catalogAvatarCssSize } from "../document/avatarSizeValue";
 import { bindTemplateValue } from "../document/templateBindingValue";
 import { catalogLabeledValueFits } from "../document/labeledValue";
@@ -463,6 +464,8 @@ export const CATALOG_ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
   "Tag",
   "Breadcrumb",
   "TreeItem",
+  "Tab",
+  "TabPanel",
 ]);
 /**
  * Source of a bound Table's projected rows and cells (`…:row`, `…:cell-<column>`): they show data,
@@ -1488,6 +1491,10 @@ export function resolveCatalogNode(
       owner = structuralParent(owner.parent);
     const density = owner?.props.density;
     if (typeof density === "string") props.density = density;
+    if (ownerType === "Tabs" && owner) {
+      props.orientation = owner.props.orientation ?? "horizontal";
+      props.labelBehavior = owner.props.labelBehavior ?? "show";
+    }
   };
   /**
    * ADR-257 Phase 3 — S2 `overflowMode`: the nearest Table's value reaches its
@@ -1719,7 +1726,7 @@ export function resolveCatalogNode(
     ownedRowing?: {
       row?: CatalogBoundRow;
       rowStart?: boolean;
-      rowLabel?: boolean;
+      rowLabel?: "label" | "content";
       rowSet?: readonly CatalogBoundRow[];
       sampleOwner?: NodeId;
     },
@@ -1748,8 +1755,14 @@ export function resolveCatalogNode(
       ? node.id
       : ownedRowing?.sampleOwner;
     // (A Breadcrumb row's label text is the row's label — as on a template position.)
-    const ownedRowLabel =
-      !!ownedRow && ruleDefinitionOf(node.definitionId).name === "Breadcrumb";
+    const ownedType = ruleDefinitionOf(node.definitionId).name;
+    const ownedRowLabel = ownedRow
+      ? ownedType === "TabPanel"
+        ? ("content" as const)
+        : ownedType === "Breadcrumb"
+          ? ("label" as const)
+          : ownedRowing?.rowLabel
+      : undefined;
     selection?.onVisit?.(node.id);
     if (node.enabled === false) return undefined;
     if (!catalogNodeVisibleAt(node, breakpoint)) return undefined;
@@ -1779,14 +1792,16 @@ export function resolveCatalogNode(
       // As on a row template position: only content props read the row (ADR-162 allowlist).
       for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
         if (key in props) props[key] = bindRowValue(props[key], ownedRow);
-      if (ownedRowing?.rowStart) props.id = ownedRow.key;
+      if (ownedRowing?.rowStart)
+        props[ownedType === "TabPanel" ? "itemId" : "id"] = ownedRow.key;
       if (
         ownedRowing?.rowLabel &&
+        (ownedRowing.rowLabel !== "content" || props.children === "") &&
         props.slot !== "separator" &&
         typeof props.children === "string" &&
         !props.children.includes("{")
       )
-        props.children = String(ownedRow.values.label ?? "");
+        props.children = String(ownedRow.values[ownedRowing.rowLabel] ?? "");
     }
     // `useAsyncList`'s `loadingState` beside its items (`<TableView loadingState={list.loadingState}>`
     // · `<Skeleton isLoading={list.isLoading}>`): a bound Table · Skeleton reads its collection's load.
@@ -1869,7 +1884,9 @@ export function resolveCatalogNode(
     const rowSet =
       node.binding && rows && !charted
         ? (keyedRows ?? rows(node.binding, "items", node.id, instancePath))
-        : undefined;
+        : ownedType === "Tabs"
+          ? catalogTabsItemRows(props.items)
+          : undefined;
     if (
       definition.mode === "composite" &&
       definition.templateRootId &&
@@ -1918,7 +1935,7 @@ export function resolveCatalogNode(
                 : ownedRow
                   ? {
                       row: ownedRow,
-                      ...(ownedRowLabel ? { rowLabel: true } : {}),
+                      ...(ownedRowLabel ? { rowLabel: ownedRowLabel } : {}),
                       ...(sampleOwner ? { sampleOwner } : {}),
                     }
                   : ownedRowing?.rowSet
@@ -1931,13 +1948,52 @@ export function resolveCatalogNode(
         ),
       );
     }
-    for (const childId of selection?.ownedChildren?.(node.id, instancePath) ??
-      node.children) {
+    const ownedChildren =
+      selection?.ownedChildren?.(node.id, instancePath) ?? node.children;
+    const childRows =
+      (["Tabs", "TabList"].includes(ownedType) ? rowSet : undefined) ??
+      ownedRowing?.rowSet;
+    const ownedItems = childRows
+      ? ownedChildren.filter((childId) => {
+          const child = graph.getEntry(childId);
+          return (
+            child?.kind === "node" &&
+            CATALOG_ROW_ITEM_TYPES.has(
+              ruleDefinitionOf(child.definitionId).name,
+            )
+          );
+        })
+      : [];
+    const passRows =
+      childRows && (ownedItems.length === 0 || ownedType === "Tabs")
+        ? childRows
+        : undefined;
+    for (const childId of ownedChildren) {
       const childPath = [...instancePath, childId];
       if (selection && !selection.include(childId, childPath)) continue;
       const child = graph.getEntry(childId);
       if (child?.kind !== "node")
         throw new CatalogValidationError("DANGLING_CHILD", childId);
+      if (childRows && ownedItems.includes(childId)) {
+        if (childId !== ownedItems[0]) continue;
+        childRows.forEach((data, index) => {
+          const projected = resolveOwned(child, childPath, undefined, self, {
+            row: data,
+            rowStart: true,
+          });
+          if (projected)
+            push(children, {
+              ...(index === 0 &&
+              !["Tab", "TabPanel"].includes(
+                ruleDefinitionOf(child.definitionId).name,
+              )
+                ? projected
+                : withRowKey(projected, data.key)),
+              rowIndex: index,
+            });
+        });
+        continue;
+      }
       pushOwnedChild(
         children,
         child,
@@ -1946,10 +2002,11 @@ export function resolveCatalogNode(
           childPath,
           undefined,
           self,
-          ownedRow
+          ownedRow || passRows
             ? {
-                row: ownedRow,
-                ...(ownedRowLabel ? { rowLabel: true } : {}),
+                ...(ownedRow ? { row: ownedRow } : {}),
+                ...(passRows ? { rowSet: passRows } : {}),
+                ...(ownedRowLabel ? { rowLabel: ownedRowLabel } : {}),
                 ...(sampleOwner ? { sampleOwner } : {}),
               }
             : undefined,
@@ -1972,6 +2029,9 @@ export function resolveCatalogNode(
       definitionId: node.definitionId,
       props,
       visual,
+      ...(childRows?.length === 0 && ["Tabs", "TabList"].includes(ownedType)
+        ? { rowCount: 0, rowsShown: 0 }
+        : {}),
       ...(ownStates ? { stateVisual: ownStates } : {}),
       layout,
       sizing,
@@ -2201,7 +2261,7 @@ export function resolveCatalogNode(
       rowSet?: readonly CatalogBoundRow[];
       row?: CatalogBoundRow;
       rowStart?: boolean;
-      rowLabel?: boolean;
+      rowLabel?: "label" | "content";
       records?: readonly CatalogBoundRow[];
       /**
        * The owned row template (a bound collection's first own item, 2026-10-14) whose positions
@@ -2407,14 +2467,17 @@ export function resolveCatalogNode(
       for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
         if (key in props) props[key] = bindRowValue(props[key], row);
       // The row is the item: its collection key is the row's.
-      if (rowing?.rowStart) props.id = row.key;
+      if (rowing?.rowStart)
+        props[templateTypeName(templateId) === "TabPanel" ? "itemId" : "id"] =
+          row.key;
       if (
         rowing?.rowLabel &&
+        (rowing.rowLabel !== "content" || props.children === "") &&
         props.slot !== "separator" &&
         typeof props.children === "string" &&
         !props.children.includes("{")
       )
-        props.children = String(row.values.label ?? "");
+        props.children = String(row.values[rowing.rowLabel] ?? "");
     }
     // (The owned node's `loadingState` beside its items — a bound Table · Skeleton in the template.)
     const ownLoading = ownRows?.loadingState;
@@ -2571,20 +2634,35 @@ export function resolveCatalogNode(
           ...(root.stateRules ?? []),
         ]
       : [];
+    const availableRows =
+      rowing?.rowSet ??
+      (templateTypeName(templateId) === "Tabs"
+        ? catalogTabsItemRows(props.items)
+        : undefined);
     const rowSet =
-      rowing?.rowSet &&
+      availableRows &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
       growsWithRows(visual, sizing)
-        ? sampledRows(rowing.rowSet, `${instancePath.join("/")}::${templateId}`)
-        : rowing?.rowSet;
+        ? sampledRows(availableRows, `${instancePath.join("/")}::${templateId}`)
+        : availableRows;
     const itemPositions = rowSet
       ? template.children.filter((childId) =>
           CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
         )
       : [];
     // The rows reach the item positions below a part without them (TagGroup > TagList > Tag).
-    const passRows = rowSet && itemPositions.length === 0 ? rowSet : undefined;
-    const rowLabel = !!row && templateTypeName(templateId) === "Breadcrumb";
+    const passRows =
+      rowSet &&
+      (itemPositions.length === 0 || templateTypeName(templateId) === "Tabs")
+        ? rowSet
+        : undefined;
+    const rowLabel = row
+      ? templateTypeName(templateId) === "TabPanel"
+        ? ("content" as const)
+        : templateTypeName(templateId) === "Breadcrumb"
+          ? ("label" as const)
+          : rowing?.rowLabel
+      : undefined;
     const childRowing =
       row || passRows
         ? {
@@ -2626,7 +2704,10 @@ export function resolveCatalogNode(
             if (projected)
               push(out, {
                 ...nestTreeRows(
-                  index === 0 ? projected : withRowKey(projected, data.key),
+                  index === 0 &&
+                    !["Tab", "TabPanel"].includes(templateTypeName(childId))
+                    ? projected
+                    : withRowKey(projected, data.key),
                   data,
                   projectRow,
                   isTreeItemRecord,
@@ -2849,7 +2930,10 @@ export function resolveCatalogNode(
             if (projected)
               push(children, {
                 ...nestTreeRows(
-                  index === 0 ? projected : withRowKey(projected, data.key),
+                  index === 0 &&
+                    !["Tab", "TabPanel"].includes(templateTypeName(childId))
+                    ? projected
+                    : withRowKey(projected, data.key),
                   data,
                   projectRow,
                   isTreeItemRecord,
@@ -2868,6 +2952,10 @@ export function resolveCatalogNode(
             innerPlace.instancePath,
             childPath,
             self,
+            undefined,
+            undefined,
+            undefined,
+            childRowing,
           ),
         );
       }
@@ -2906,7 +2994,12 @@ export function resolveCatalogNode(
             if (projected)
               push(children, {
                 ...nestTreeRows(
-                  index === 0 ? projected : withRowKey(projected, data.key),
+                  index === 0 &&
+                    !["Tab", "TabPanel"].includes(
+                      ruleDefinitionOf(child.definitionId).name,
+                    )
+                    ? projected
+                    : withRowKey(projected, data.key),
                   data,
                   projectRow,
                   isTreeItemRecord,
@@ -2927,10 +3020,15 @@ export function resolveCatalogNode(
             childPath,
             undefined,
             self,
-            row || (rowSet && !rowItems.length)
+            row ||
+              (rowSet &&
+                (!rowItems.length || templateTypeName(templateId) === "Tabs"))
               ? {
                   ...(row ? { row } : {}),
-                  ...(rowSet && !rowItems.length ? { rowSet } : {}),
+                  ...(rowSet &&
+                  (!rowItems.length || templateTypeName(templateId) === "Tabs")
+                    ? { rowSet }
+                    : {}),
                   ...(rowing?.sampleOwner
                     ? { sampleOwner: rowing.sampleOwner }
                     : {}),
@@ -2988,6 +3086,10 @@ export function resolveCatalogNode(
       ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
       ...(template.showWhen ? { showWhen: template.showWhen } : {}),
       ...(displayState ? { displayState } : {}),
+      ...(rowSet?.length === 0 &&
+      ["Tabs", "TabList"].includes(templateTypeName(templateId))
+        ? { rowCount: 0, rowsShown: 0 }
+        : {}),
       ...(rowSet &&
       (itemPositions.length > 0 || ownedRowItems > 0) &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
