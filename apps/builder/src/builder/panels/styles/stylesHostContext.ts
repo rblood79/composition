@@ -174,6 +174,11 @@ export interface StylesHost {
    */
   subpartStyleOwnerOf(id: string | null | undefined): string | null;
   /**
+   * Whether the element has no box of its own (RAC renders only its children — MenuTrigger · a
+   * FileTrigger with children …): its layout · style · text reach no consumer.
+   */
+  elementlessOf(id: string | null | undefined): boolean;
+  /**
    * A page body's position on the page canvas, which the Position row edits: `usePosition` is a
    * hook (null = not a page body).
    */

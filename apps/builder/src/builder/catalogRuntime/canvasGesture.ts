@@ -648,7 +648,13 @@ export class CatalogCanvasGestures {
     const record = item && this.host.records.get(item.identity);
     if (!record) return undefined;
     // (No element of its own — MenuTrigger · TreeItemContent …: a write reaches no box.)
-    if (catalogElementlessType(this.typeOf(record.id))) return undefined;
+    if (
+      catalogElementlessType(
+        this.typeOf(record.id),
+        record.children.length > 0,
+      )
+    )
+      return undefined;
     if (this.structural(record)) return record;
     return record.children.some((id) => {
       const child = this.host.records.get(id);

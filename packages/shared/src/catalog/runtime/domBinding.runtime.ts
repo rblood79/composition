@@ -4023,6 +4023,21 @@ export function renderNode(
           const record = root.domInputs.get(recordId);
           return record ? authoredStyle(root, record) : {};
         },
+        writtenStyleOf: (recordId: string) => {
+          const record = root.domInputs.get(recordId);
+          if (!record) return {};
+          const written = <T extends object>(values: T | undefined) =>
+            Object.fromEntries(
+              Object.entries(values ?? {}).filter(([key]) =>
+                root.wroteStyleKey(record, key),
+              ),
+            ) as T;
+          return authoredStyle(root, {
+            ...record,
+            visual: written(record.visual),
+            layout: written(record.layout),
+          });
+        },
         ...(context.runtime?.setRuntimeProps
           ? {
               setRuntimeProps: (

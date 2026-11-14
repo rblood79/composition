@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [작성값이 사라지던 부품 — Tree 행 · 자식 있는 FileTrigger · OverlayArrow · SheetBackdrop · ColorThumb] - 2026-11-14
+
+### Fixed
+
+- **Tree 안 TreeItem**: 행에 작성한 padding · gap 이 Canvas 와 Preview 모두에서 사라졌다. Preview 의 행 (`div[role=row]`) 은 작성값을 받지 않았고, Canvas 는 TreeItem 을 「행 + 하위 항목」 묶음으로 그리며 padding 을 0 으로 덮었다. 이제 작성값은 Preview 의 행과 Canvas 의 행 상자 (TreeItemContent) 에 같이 들어가고, Styles 패널도 행의 값을 보인다. 작성하지 않은 시트 값 (padding · 폭 · display) 은 행 inline 에 싣지 않는다.
+- **자식이 있는 FileTrigger**: RAC FileTrigger 는 자기 요소 없이 자식만 그리는데, Canvas 는 FileTrigger 의 버튼 상자를 자식 둘레에 그렸다. 이제 자식이 있으면 Canvas 도 상자 없이 자식을 부모 흐름에 놓고, 패널 · 간격 손잡이는 「요소 없음」 안내를 낸다 (자식이 없으면 지금처럼 버튼).
+- **OverlayArrow · SheetBackdrop**: 페이지에서 열린 overlay 의 화살표에 작성한 크기, Sheet 배경막에 작성한 위치를 Canvas 가 덮었다 (Preview 는 RAC 기본 style 뒤에 작성값을 둬서 작성값이 이겼다). 이제 Canvas 도 작성값이 이기고, 배경막은 RAC 처럼 네 변 inset 0 으로 늘어나 작성한 inset 만큼 줄어든다. 화살표 위치는 두 화면 모두 RAC 가 정한다.
+  - **Why**: Canvas 의 overlay 부품 배치가 작성값 위에 덮어쓰였다. Popover 위치 · SheetOverlay 크기 · SheetContent 크기는 Preview 에서도 RAC 가 이겨 (Popover 는 렌더 뒤 요소에 위치를 직접 쓴다, Sheet 본체는 overlay 크기와 무관하게 화면 기준) 지금처럼 두었다.
+- **ColorThumb**: 작성한 margin 을 Canvas 가 중앙 정렬 margin 으로 덮었다. 이제 Preview 처럼 중앙 정렬 위에 작성 margin 을 더한다.
+- **instance 안 부품에 쓴 px 크기**: 놓은 원본의 부품 자리에 쓴 폭 · 높이를 「작성값」 판정이 읽지 않아, 작성값이 이겨야 할 Canvas 배치 (진행 막대 채움 · Tree chevron · SideNav 행 부품 · 위 overlay 부품) 에서 무시됐다.
+
 ## [작성값이 한쪽에만 보이던 부품 3종 — PreviewTrigger Button · Slider thumb · SideNav section] - 2026-11-14
 
 ### Fixed

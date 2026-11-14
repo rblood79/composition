@@ -339,6 +339,11 @@ export interface DelegatedDomInput {
    * sections — the DOM pass never sees them).
    */
   readonly styleOf?: (recordId: string) => CSSProperties;
+  /**
+   * Only what the document wrote on a record this binding draws itself, inline (a Tree's RAC rows —
+   * the record also carries rule values the sheet draws: `wroteStyleKey`).
+   */
+  readonly writtenStyleOf?: (recordId: string) => CSSProperties;
 }
 
 /**
@@ -832,6 +837,23 @@ function treeRowDeviceStyle(
   return minHeight ? { style: { minHeight } } : {};
 }
 
+/**
+ * A Tree's row (RAC TreeItem — the `div[role=row]`): its S2 row minimum, then what the author wrote
+ * on the item inline (2026-11-14 감사 — the written padding reached neither consumer; the Canvas
+ * gives it to the item's `TreeItemContent`, the row box it draws).
+ */
+function treeRowStyle(
+  input: DelegatedDomInput,
+  item: CatalogConsumerNode,
+): { style: CSSProperties } | Record<string, never> {
+  if (item.id === input.node.id) return { style: input.style };
+  const style = {
+    ...treeRowDeviceStyle(item).style,
+    ...input.writtenStyleOf?.(item.id),
+  };
+  return Object.keys(style).length ? { style } : {};
+}
+
 /** Every SideNavItem · SideNavSection record a SideNav draws (nested ones included). */
 function sideNavPartIds(
   root: CatalogCompositionRoot,
@@ -940,9 +962,7 @@ function treeItemElements(
         {
           key: id === item.id ? item.id : `${item.id}#${id}`,
           "data-catalog-id": item.id,
-          ...(item.id === input.node.id
-            ? { style: input.style }
-            : treeRowDeviceStyle(item)),
+          ...treeRowStyle(input, item),
           id,
           textValue: text
             ? resolveTextSourceText(
@@ -972,11 +992,8 @@ function treeItemElements(
     return createElement(TreeItem as ElementType, {
       key: id === item.id ? item.id : `${item.id}#${id}`,
       "data-catalog-id": item.id,
-      // A standalone item is the node itself: its authored inline style (the Tree's items take none —
-      //   but their S2 row minimum's device formula, `treeRowDeviceStyle`).
-      ...(item.id === input.node.id
-        ? { style: input.style }
-        : treeRowDeviceStyle(item)),
+      // (A standalone item is the node itself: its authored inline style.)
+      ...treeRowStyle(input, item),
       id,
       title,
       textValue: label

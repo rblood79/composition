@@ -111,6 +111,7 @@ import {
   catalogStyleWritesOf,
 } from "../../../catalogRuntime/styleFields";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
+import { catalogElementlessType } from "../../../../../../../packages/shared/src/catalog/runtime/elementless";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { SelectedElement } from "../../../inspector/types";
 import { runBuiltCatalogCommand } from "../../../catalogRuntime/commandRunner";
@@ -1521,6 +1522,16 @@ export function createCatalogStylesHost(
               }
             : null,
         [id, context],
+      );
+    },
+    elementlessOf: (id) => {
+      const record = id ? workspace.root.domInputs.get(id) : undefined;
+      return (
+        !!record &&
+        catalogElementlessType(
+          workspace.root.typeOf(record),
+          record.children.length > 0,
+        )
       );
     },
     subpartStyleOwnerOf: (id) =>

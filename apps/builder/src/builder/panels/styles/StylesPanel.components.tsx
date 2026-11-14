@@ -60,7 +60,6 @@ import { useStylesSelection } from "./StylesPanel.runtime";
 
 import { CatalogClassNameSection } from "./catalog/CatalogClassNameSection";
 
-import { catalogElementlessType } from "../../../../../../packages/shared/src/catalog/runtime/elementless";
 
 // 절 순서 Layout → Size → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막. Padding 은 Layout 절
 // 안 (Figma), margin 편집 UI 는 없다 — Spacing 절 제거 (ADR-275 사용자 결정 10, 2026-10-20).
@@ -121,6 +120,7 @@ export const StylesTabBody = memo(function StylesTabBody({
     selectedElement,
     selectedSubpartOwnerType,
     delegatedSubpart,
+    elementless,
   } = useStylesSelection();
 
   if (!hasSelectedElement) {
@@ -150,7 +150,7 @@ export const StylesTabBody = memo(function StylesTabBody({
   if (
     view !== "screen" &&
     selectedElement &&
-    catalogElementlessType(selectedElement.type)
+    elementless
   ) {
     return (
       <EmptyState

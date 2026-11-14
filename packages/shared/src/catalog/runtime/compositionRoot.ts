@@ -134,6 +134,7 @@ import {
   catalogAuthoredVisual,
   catalogHasAuthoredColor,
   catalogHasAuthoredVisual,
+  catalogHasExplicitTemplateSizing,
   catalogHasExplicitVisual,
 } from "./libraryVisual";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
@@ -242,6 +243,7 @@ import {
   catalogItemRemoveGlyphItem,
   catalogToggleButtonGlyphOwner,
   catalogTreeChevronGlyphItem,
+  catalogTreeItemContent,
   catalogSelectionIndicatorLayout,
   catalogPresenceScope,
   catalogBreadcrumbItems,
@@ -263,6 +265,7 @@ import {
   catalogTreeItemLayout,
   catalogTreeChevrons,
 } from "./presence";
+import { catalogElementlessWithChildren } from "./elementless";
 import {
   catalogSideNavChevronGlyphItem,
   catalogSideNavCurrentWeight,
@@ -4335,6 +4338,16 @@ export class CatalogCompositionRoot {
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
   ): Readonly<Record<string, string | number | boolean>> | undefined {
+    const derived = this.ownDerivedOf(record, get);
+    // (A Tree row box's written padding · gap — on the record, so an undo of the item's write
+    //  compares against what the row had: `treeRowWrites`.)
+    const treeRow = this.treeRowWrites(record, get);
+    return treeRow ? { ...derived, _treeRow: JSON.stringify(treeRow) } : derived;
+  }
+  private ownDerivedOf(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+  ): Readonly<Record<string, string | number | boolean>> | undefined {
     const shownRoute = (node: CatalogConsumerNode) =>
       this.pageRouteOf(node, get);
     const controlDerived = this.withTableDrag(
@@ -5005,12 +5018,12 @@ export class CatalogCompositionRoot {
   ): Partial<T> | undefined {
     return style && this.withoutAuthored(record, style);
   }
-  private withoutAuthored<T extends Record<string, unknown>>(
-    record: CatalogConsumerNode,
-    style: T,
-  ): Partial<T> {
-    // (What the document wrote — not `catalogAuthoredVisual`, which reads a part rule's value on the
-    //  record as written: the Tree rule's chevron box.)
+  /**
+   * Whether the document wrote `key` on the record — its node · template position, a definition
+   * override, its layout, sizing or a breakpoint layer in force. Not `catalogAuthoredVisual`, which
+   * reads a part rule's value on the record as written (the Tree rule's chevron box).
+   */
+  wroteStyleKey(record: CatalogConsumerNode, key: string): boolean {
     const layout = (record.authoredLayout ?? {}) as Record<string, unknown>;
     const entry = this.runtime.graph.getEntry(record.sourceId);
     const layers =
@@ -5023,8 +5036,9 @@ export class CatalogCompositionRoot {
             )
             .map((name) => entry.responsive?.[name])
         : [];
-    const wrote = (key: string) =>
+    return (
       catalogHasExplicitVisual(this, record, key as never) ||
+      catalogHasExplicitTemplateSizing(this, record, key) ||
       layout[key] !== undefined ||
       (entry?.kind === "node" &&
         (entry.sizing as Record<string, unknown> | undefined)?.[key] !==
@@ -5035,7 +5049,93 @@ export class CatalogCompositionRoot {
             undefined ||
           (layer?.sizing as Record<string, unknown> | undefined)?.[key] !==
             undefined,
-      );
+      )
+    );
+  }
+  /**
+   * A Tree row's box: the DOM's row is the TreeItem's own `div[role=row]` (its child items are the
+   * next rows), the Canvas's is the item's `TreeItemContent` (the item a column of row + child
+   * items). A padding · gap side the author wrote on the item goes to that row box, as the DOM
+   * inlines it on the row (2026-11-14 감사 — it reached neither consumer).
+   */
+  private treeRowWrites(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+  ): Record<string, string> | undefined {
+    if (this.typeOf(record) !== "TreeItemContent") return undefined;
+    const item = get(record.parentId);
+    if (!item || this.typeOf(item) !== "TreeItem") return undefined;
+    const wrote = (...keys: string[]) =>
+      keys.some((key) => this.wroteStyleKey(item, key));
+    const box = catalogBoxModel(item);
+    const css = (value: unknown) =>
+      typeof value === "number" ? `${value}px` : String(value);
+    const out: Record<string, string> = {};
+    const sides = [
+      ["Top", "paddingY", "top"],
+      ["Right", "paddingX", "right"],
+      ["Bottom", "paddingY", "bottom"],
+      ["Left", "paddingX", "left"],
+    ] as const;
+    for (const [side, axis, at] of sides)
+      if (box.padding && wrote(`padding${side}`, axis, "padding"))
+        out[`padding${side}`] = css(box.padding[at]);
+    // (A written top · bottom: the row is the DOM's — the other side the item's sheet value and the
+    //  row's minimum, not the content template's centring padding.)
+    if (box.padding && (out.paddingTop || out.paddingBottom)) {
+      out.paddingTop ??= css(box.padding.top);
+      out.paddingBottom ??= css(box.padding.bottom);
+      if (box.minHeight !== undefined) out.minHeight = css(box.minHeight);
+    }
+    const layout = (item.layout ?? {}) as Record<string, unknown>;
+    if (wrote("gap", "rowGap"))
+      out.rowGap = css(layout.rowGap ?? box.gap ?? 0);
+    if (wrote("gap", "columnGap"))
+      out.columnGap = css(layout.columnGap ?? box.gap ?? 0);
+    return Object.keys(out).length ? out : undefined;
+  }
+  /**
+   * A ColorThumb's centring margin (RAC's `translate(-50%, -50%)`) plus a margin the author wrote:
+   * the DOM keeps RAC's placement and applies the written margin on top of it (2026-11-14 감사 —
+   * the Canvas replaced the centring with -size/2 and dropped the written one).
+   */
+  private withAuthoredThumbMargin(
+    record: CatalogConsumerNode,
+    place: Record<string, string> | undefined,
+  ): Record<string, string> | undefined {
+    if (!place || this.typeOf(record) !== "ColorThumb") return place;
+    const out = { ...place };
+    for (const key of ["marginLeft", "marginTop"] as const) {
+      const written = this.wroteStyleKey(record, key)
+        ? /^-?\d*\.?\d+px$/.exec(String(record.layout?.[key] ?? "").trim())
+        : null;
+      if (written && out[key] !== undefined)
+        out[key] =
+          `${Number.parseFloat(out[key]!) + Number.parseFloat(written[0])}px`;
+    }
+    return out;
+  }
+  /**
+   * An OverlayArrow's box: RAC places it from the trigger (`arrowProps` — the author's inset does
+   * not move it), its size is the author's when written — the DOM inlines it over the default
+   * (2026-11-14 감사).
+   */
+  private overlayArrowStyle(
+    record: CatalogConsumerNode,
+  ): Record<string, unknown> | undefined {
+    const arrow = catalogOverlayArrowLayout(
+      record,
+      this.overlayPlacements.get(record.parentId),
+    );
+    if (!arrow) return undefined;
+    const { width, height, ...place } = arrow;
+    return { ...place, ...this.withoutAuthored(record, { width, height }) };
+  }
+  private withoutAuthored<T extends Record<string, unknown>>(
+    record: CatalogConsumerNode,
+    style: T,
+  ): Partial<T> {
+    const wrote = (key: string) => this.wroteStyleKey(record, key);
     const SIDES: Record<string, readonly string[]> = {
       paddingTop: ["padding", "paddingY"],
       paddingBottom: ["padding", "paddingY"],
@@ -5081,6 +5181,13 @@ export class CatalogCompositionRoot {
       return { display: "none" };
     // (A crumb in its Breadcrumbs' folder menu leaves the flow — `settleBreadcrumbs`.)
     if (this.breadcrumbCollapsed(record.id)) return { display: "none" };
+    // (A node RAC gives no element only with children — a FileTrigger around its Button: its
+    //  children stand in its parent's flow, as the DOM draws them — `catalogElementlessType`.)
+    if (
+      record.children.length > 0 &&
+      catalogElementlessWithChildren(this.typeOf(record))
+    )
+      return { display: "contents" };
     const frame = this.pageFrameStyle(record);
     const style = styleOf(
       record,
@@ -5108,7 +5215,10 @@ export class CatalogCompositionRoot {
           catalogProgressFillLayout(record, get, this.typeOf),
         ) ??
         // ADR-258 Phase 2: a Color control's thumb (RAC's place) · a ColorWheel's ring square.
-        catalogColorPartLayout(record, get, this.typeOf));
+        this.withAuthoredThumbMargin(
+          record,
+          catalogColorPartLayout(record, get, this.typeOf),
+        ));
     // (A Tree chevron's sheet box is its default — what the author wrote wins, as the DOM's inline
     //  `treeChevronSheetBox`.)
     const treeChevron = record.hidden
@@ -5151,17 +5261,34 @@ export class CatalogCompositionRoot {
       ...frame,
       ...thumb,
       ...chevron,
-      ...catalogSheetPartLayout(
-        record,
-        get,
-        this.typeOf,
-        this.environmentLocale ?? "en-US",
-      ),
+      ...(typeof record.derivedProps?._treeRow === "string" && !record.hidden
+        ? (JSON.parse(record.derivedProps._treeRow) as Record<string, string>)
+        : undefined),
+      // (A SheetBackdrop's · Sheet's place is RAC's default style — the DOM inlines what the author
+      //  wrote after it, so a written key wins here too (2026-11-14 감사). A SheetContent's 100% is
+      //  RAC's over the author's in the DOM too, and a SheetOverlay stays the viewport: the DOM's
+      //  Sheet is placed by the viewport whatever the overlay's written size.)
+      ...(this.typeOf(record) === "SheetContent" ||
+      this.typeOf(record) === "SheetOverlay"
+        ? catalogSheetPartLayout(
+            record,
+            get,
+            this.typeOf,
+            this.environmentLocale ?? "en-US",
+          )
+        : this.authoredOver(
+            record,
+            catalogSheetPartLayout(
+              record,
+              get,
+              this.typeOf,
+              this.environmentLocale ?? "en-US",
+            ),
+          )),
+      // (A Popover's place is RAC's in the DOM too — `useOverlayPosition` writes it on the element
+      //  after the render, over the author's inset.)
       ...catalogOverlayLayout(record, this.overlayPlacements.get(record.id)),
-      ...catalogOverlayArrowLayout(
-        record,
-        this.overlayPlacements.get(record.parentId),
-      ),
+      ...this.overlayArrowStyle(record),
       ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
       ...(record.hidden ? {} : this.fieldBoxLayout(record, get)),
       ...(!withoutAddedRoom &&
@@ -7822,6 +7949,10 @@ export class CatalogCompositionRoot {
         ...catalogSliderThumbs(update.record, get, this.typeOf),
         // A TreeItem's chevron button is indented by the item's level.
         ...catalogTreeChevrons(update.record, get, this.typeOf),
+        // A TreeItem's row box (its TreeItemContent) takes the item's written padding · gap.
+        ...[catalogTreeItemContent(update.record, get, this.typeOf)].filter(
+          (content): content is CatalogConsumerNode => !!content,
+        ),
         ...catalogLabelSuffixDependents(update.record, get, this.typeOf),
         ...catalogBreadcrumbItems(update.record, get, this.typeOf),
         // An icon slot child's presence decides its ListBox item's inset.

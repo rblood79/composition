@@ -22,6 +22,7 @@ import { catalogBoxModel } from "../boxModel";
 import { CatalogCanvasGestures } from "../canvasGesture";
 import { pickTopmostRecord } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { renderCatalogDom } from "../domBinding";
 import { catalogSubpartOwnerType } from "../subpart";
 import {
@@ -926,5 +927,236 @@ describe("a SideNav section's top margin — the same distance on both consumers
     const { canvas, gap, inline } = await nav("10px");
     expect(parseFloat(String(canvas)) + parseFloat(String(gap ?? 0))).toBe(10);
     expect(inline).toMatch(/margin-top:\s*10px/);
+  });
+});
+
+describe("a FileTrigger with children has no box — RAC renders only them", () => {
+  const withButton = async () => {
+    const workspace = await open("filetrigger");
+    workspace.selectRecords([recordOf(workspace, "FileTrigger").id]);
+    const target = workspace.session.getSnapshot().selection[0]!.target;
+    act(() => {
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: (target as { id: NodeId }).id },
+          entries: [
+            {
+              kind: "node",
+              id: "project:node:drawn-kid" as NodeId,
+              definitionId: "lib:definition:origin-component-button",
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: ["project:node:drawn-kid" as NodeId],
+          newId: workspace.newId,
+        }),
+      );
+    });
+    return workspace;
+  };
+
+  it("with a Button in it: the Canvas lays the Button in the parent's flow (`display: contents`) and paints no box", async () => {
+    const workspace = await withButton();
+    const trigger = recordOf(workspace, "FileTrigger");
+    expect(trigger.children.length).toBe(1);
+    expect(
+      JSON.parse(workspace.root.getAppliedLayoutInput(trigger.id) ?? "{}"),
+    ).toEqual({ display: "contents" });
+    // (The DOM: RAC FileTrigger — no element, the marker is `display: contents` around the Button.)
+    const host = document.createElement("div");
+    host.innerHTML = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, workspace.root.recordsOfSource(NODE)[0]!),
+    );
+    const marker = host.querySelector(
+      `[data-catalog-id="${CSS.escape(trigger.id)}"]`,
+    ) as HTMLElement;
+    expect(marker.getAttribute("style")).toBe("display:contents");
+    expect(marker.querySelector(".react-aria-FileTrigger")).toBeNull();
+    // (No spacing handles — a write reaches no box.)
+    workspace.selectRecords([trigger.id]);
+    expect(gesturesOf(workspace).spacingOwner()).toBeUndefined();
+    // (The Canvas paints no rule box — a container, as the DOM draws nothing of its own.)
+    const scene = new CatalogCanvasScene(workspace.root);
+    scene.sync();
+    expect(getSkiaNode(trigger.id)?.type).toBe("container");
+    scene.dispose();
+  });
+
+  it("alone (no children) it keeps the rule's button box", async () => {
+    const workspace = await open("filetrigger");
+    const trigger = recordOf(workspace, "FileTrigger");
+    expect(trigger.children.length).toBe(0);
+    expect(
+      (workspace.root.getLayoutInput(trigger.id) as Record<string, unknown>)
+        .display,
+    ).not.toBe("contents");
+  });
+});
+
+describe("a Tree item's written padding reaches its row on both consumers", () => {
+  // (The DOM row is the item's `div[role=row]`; the Canvas row is its `TreeItemContent`.)
+  const openRow = async () => {
+    const workspace = await open("tree");
+    const { root } = workspace;
+    const item = [...root.domInputs.values()].find(
+      (record) =>
+        !record.hidden &&
+        root.typeOf(record) === "TreeItem" &&
+        root.typeOf(root.domInputs.get(record.parentId)!) === "Tree",
+    )!;
+    const content = root.domInputs.get(
+      item.children.find(
+        (id) => root.typeOf(root.domInputs.get(id)!) === "TreeItemContent",
+      )!,
+    )!;
+    return { workspace, item, content };
+  };
+  const rowStyles = (workspace: CatalogWorkspace) => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, workspace.root.recordsOfSource(NODE)[0]!),
+    );
+    return [...host.querySelectorAll("[role=row]")].map(
+      (row) => row.getAttribute("style") ?? "",
+    );
+  };
+  const write = (
+    workspace: CatalogWorkspace,
+    id: string,
+    visual: Parameters<typeof setFields>[0]["visual"],
+  ) => {
+    workspace.selectRecords([id]);
+    const target = workspace.session.getSnapshot().selection[0]!.target;
+    act(() => {
+      workspace.execute(setFields({ targets: [target], visual }));
+    });
+  };
+  // (What the engine laid out — the incremental step's input, not a fresh `getLayoutInput`.)
+  const input = (workspace: CatalogWorkspace, id: string) =>
+    JSON.parse(workspace.root.getAppliedLayoutInput(id) ?? "{}") as Record<
+      string,
+      unknown
+    >;
+
+  it("a written left padding: the Canvas row box and the DOM row take 30 — the sheet's values stay off the row inline", async () => {
+    const { workspace, item, content } = await openRow();
+    // (Unwritten: no row inline beyond its S2 minimum — the sheet draws it.)
+    expect(rowStyles(workspace)[0]).not.toMatch(/padding/);
+    write(workspace, item.id, { paddingLeft: { kind: "set", value: 30 } });
+    expect(input(workspace, content.id).paddingLeft).toBe("30px");
+    expect(input(workspace, content.id).paddingRight).toBe("8px");
+    const [first, second] = rowStyles(workspace);
+    expect(first).toMatch(/padding-left:\s*30px/);
+    expect(first).not.toMatch(/padding-top|width|display/);
+    expect(second).not.toMatch(/padding/);
+    // (The panel reads the row's drawn padding.)
+    expect(
+      catalogDrawnBoxModel(workspace.root, workspace.root.domInputs.get(item.id)!)
+        .padding?.left,
+    ).toBe(30);
+    act(() => workspace.undo());
+    expect(input(workspace, content.id).paddingLeft).toBe("8px");
+  });
+
+  it("a written top padding: the row is the DOM's — the sheet's bottom and the row minimum", async () => {
+    const { workspace, item, content } = await openRow();
+    write(workspace, item.id, { paddingTop: { kind: "set", value: 20 } });
+    expect(input(workspace, content.id)).toMatchObject({
+      paddingTop: "20px",
+      paddingBottom: "4px",
+      minHeight: "40px",
+    });
+    expect(rowStyles(workspace)[0]).toMatch(/padding-top:\s*20px/);
+  });
+});
+
+describe("an overlay part's written value — the Canvas follows what the DOM shows", () => {
+  const typed = (workspace: CatalogWorkspace, type: string) =>
+    [...workspace.root.domInputs.values()].find(
+      (record) => workspace.root.typeOf(record) === type,
+    )!;
+  const write = (
+    workspace: CatalogWorkspace,
+    id: string,
+    fields: Omit<Parameters<typeof setFields>[0], "targets">,
+  ) => {
+    workspace.selectRecords([id]);
+    const target = workspace.session.getSnapshot().selection[0]!.target;
+    act(() => {
+      workspace.execute(setFields({ targets: [target], ...fields }));
+    });
+  };
+  // (What the engine laid out — the incremental step's input, not a fresh `getLayoutInput`.)
+  const input = (workspace: CatalogWorkspace, id: string) =>
+    JSON.parse(workspace.root.getAppliedLayoutInput(id) ?? "{}") as Record<
+      string,
+      unknown
+    >;
+  const opened = async (origin: string, trigger: string) => {
+    const workspace = await open(origin);
+    write(workspace, typed(workspace, trigger).id, {
+      props: { defaultOpen: { kind: "set", value: true } },
+    });
+    return workspace;
+  };
+
+  it("a Popover open on the page keeps RAC's place over a written inset (RAC writes it on the element); its arrow takes a written width", async () => {
+    const workspace = await opened("popover", "DialogTrigger");
+    const popover = typed(workspace, "Popover");
+    const arrow = typed(workspace, "OverlayArrow");
+    const placed = input(workspace, popover.id);
+    write(workspace, popover.id, {
+      layout: { insetLeft: { kind: "set", value: "10px" } },
+    });
+    expect(input(workspace, popover.id).insetLeft).toBe(placed.insetLeft);
+    const arrowPlace = input(workspace, arrow.id);
+    write(workspace, arrow.id, {
+      sizing: { width: { kind: "set", value: 20 } },
+      layout: { insetLeft: { kind: "set", value: "3px" } },
+    });
+    expect(input(workspace, arrow.id)).toMatchObject({
+      width: "20px",
+      height: "12px",
+      insetLeft: arrowPlace.insetLeft,
+    });
+  });
+
+  it("a Sheet open on the page: its backdrop takes a written inset (RAC's `inset: 0`), its overlay stays the viewport", async () => {
+    const workspace = await opened("sheet", "SheetTrigger");
+    const overlay = typed(workspace, "SheetOverlay");
+    const backdrop = typed(workspace, "SheetBackdrop");
+    write(workspace, backdrop.id, {
+      layout: { insetLeft: { kind: "set", value: "7px" } },
+    });
+    expect(input(workspace, backdrop.id)).toMatchObject({
+      position: "absolute",
+      insetLeft: "7px",
+      insetRight: "0px",
+    });
+    expect(input(workspace, backdrop.id).width).toBeUndefined();
+    write(workspace, overlay.id, {
+      sizing: { width: { kind: "set", value: 500 } },
+    });
+    expect(input(workspace, overlay.id)).toMatchObject({
+      position: "fixed",
+      width: "100vw",
+    });
+  });
+
+  it("a ColorThumb: a written margin moves it from RAC's centring (the DOM keeps the transform)", async () => {
+    const workspace = await open("colorarea");
+    const thumb = typed(workspace, "ColorThumb");
+    expect(input(workspace, thumb.id).marginLeft).toBe("-8px");
+    write(workspace, thumb.id, {
+      layout: { marginLeft: { kind: "set", value: "5px" } },
+    });
+    expect(input(workspace, thumb.id)).toMatchObject({
+      marginLeft: "-3px",
+      marginTop: "-8px",
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   catalogAuthoredVisual,
   catalogLibraryVisual,
 } from "../../../../../packages/shared/src/catalog/runtime/libraryVisual";
+import { catalogTreeItemContent } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import { catalogBoxModel, type CatalogBoxModel } from "./boxModel";
 import type {
   CatalogCompositionRoot,
@@ -47,7 +48,14 @@ export function catalogDrawnBoxDelta(
   root: CatalogCompositionRoot,
   record: CatalogConsumerNode,
 ): CatalogBoxModel | undefined {
-  const input = root.getDrawnLayoutStyle(record.id);
+  // (A Tree item in a Tree draws its row as its `TreeItemContent` — the box its padding · gap reach,
+  //  the DOM's `div[role=row]`; the item itself is a column of row + child items.)
+  const row = catalogTreeItemContent(
+    record,
+    (id) => root.domInputs.get(id),
+    (entry) => root.typeOf(entry),
+  );
+  const input = root.getDrawnLayoutStyle(row?.id ?? record.id);
   if (!input) return undefined;
   const model = catalogBoxModel(record);
   const own = model.padding;

@@ -70,13 +70,15 @@ export function catalogSheetPartLayout(
       : parent;
   if (overlay?.derivedProps?._sheetViewport !== true) return undefined;
   if (type === "SheetContent") return { width: "100%", height: "100%" };
+  // (RAC's backdrop: `position: absolute; inset: 0` — stretched by its four insets, so a written
+  //  inset narrows it as in the DOM.)
   if (type === "SheetBackdrop")
     return {
       position: "absolute",
       insetLeft: "0px",
       insetTop: "0px",
-      width: "100%",
-      height: "100%",
+      insetRight: "0px",
+      insetBottom: "0px",
     };
   return { flexShrink: 0 };
 }

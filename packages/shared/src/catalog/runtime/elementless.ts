@@ -22,11 +22,25 @@ const DOM_ELEMENTLESS_TYPES: ReadonlySet<string> = new Set([
   "CalendarYearPicker",
 ]);
 
+/**
+ * RAC `FileTrigger` has no element either — a hidden input and a `PressResponder` around its
+ * children. With no children the DOM binding draws its own `.react-aria-FileTrigger` Button (the
+ * rule's box); with children (a FileUpload's trigger Button) only the children are drawn, so the
+ * node has no box (2026-11-14 감사 — the Canvas drew the rule's button box around them).
+ */
+export function catalogElementlessWithChildren(
+  type: string | null | undefined,
+): boolean {
+  return type === "FileTrigger";
+}
+
 export function catalogElementlessType(
   type: string | null | undefined,
+  hasChildren = false,
 ): boolean {
   if (!type) return false;
   if (DOM_ELEMENTLESS_TYPES.has(type)) return true;
+  if (hasChildren && catalogElementlessWithChildren(type)) return true;
   const rule = (
     COMPONENT_RULES_TABLE as Readonly<
       Record<

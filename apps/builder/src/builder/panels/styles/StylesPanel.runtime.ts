@@ -47,6 +47,7 @@ export function useStylesSelection() {
     selectedElement,
     selectedSubpartOwnerType,
     delegatedSubpart,
+    elementless: host.elementlessOf(selectedElement?.id),
   };
 }
 

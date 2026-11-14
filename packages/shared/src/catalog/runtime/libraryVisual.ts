@@ -232,6 +232,18 @@ export function catalogHasAuthoredProp(
  * nearest owning instance on the record's path holds at that position (`descendantOverrides`,
  * outermost owner first — ADR-260 Decision 11). None for an owned node or an unpatched position.
  */
+/**
+ * Whether the instance wrote `key` in a template position's sizing (a px width · height on a part
+ * of a placed original — its `descendantOverrides` patch).
+ */
+export function catalogHasExplicitTemplateSizing(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  key: string,
+): boolean {
+  return templatePositionWrites(root, node)?.sizing?.[key]?.kind === "set";
+}
+
 function templatePositionWrites(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -239,6 +251,7 @@ function templatePositionWrites(
   | {
       visual?: Record<string, { kind: string }>;
       props?: Record<string, { kind: string }>;
+      sizing?: Record<string, { kind: string }>;
     }
   | undefined {
   if (!node.sourceId.startsWith("lib:template:")) return undefined;
@@ -261,6 +274,7 @@ function templatePositionWrites(
       return found as {
         visual?: Record<string, { kind: string }>;
         props?: Record<string, { kind: string }>;
+        sizing?: Record<string, { kind: string }>;
       };
   }
   return undefined;
