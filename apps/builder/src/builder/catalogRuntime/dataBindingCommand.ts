@@ -1,8 +1,11 @@
 import {
+  catalogRowItemGroups,
   clearRowTemplates,
   insertCollectionItem,
+  insertTableRow,
   markRowTemplates,
   setWholeField,
+  tableBodyPosition,
   type CatalogRowTemplateMode,
 } from "../../../../../packages/shared/src/catalog/commands";
 import { COLLECTION_TYPE_TABLE } from "../../../../../packages/shared/src/catalog/document/collectionItems";
@@ -20,6 +23,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { catalogPaletteDefinitionId } from "./paletteInsert";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
   RAC_COLLECTION_CHILD_TYPES,
@@ -50,6 +54,41 @@ function rowTemplateInsert(
       return "";
     }
   };
+  // ADR-310 Phase 4: a Table with no Row of its own gets a plain Row — a cell per column — which
+  // `markRowTemplates` then marks (its cells read their columns' fields).
+  if (typeOf(node.definitionId) === "Table") {
+    const body = tableBodyPosition(reader, nodeId);
+    const holdsRow = catalogRowItemGroups(reader, nodeId).some((group) =>
+      group.some((position) => position.target.kind === "node"),
+    );
+    if (!body || holdsRow) return undefined;
+    const entry = (definitionId: string, children: NodeId[] = []) =>
+      ({
+        kind: "node",
+        id: newId("node") as NodeId,
+        definitionId: definitionId as NodeEntry["definitionId"],
+        children,
+        props: {},
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      }) satisfies NodeEntry;
+    return insertTableRow({
+      body,
+      buildRow: (columnCount) => {
+        const cells = Array.from({ length: columnCount }, () =>
+          entry(catalogPaletteDefinitionId(reader.library, "Cell")),
+        );
+        const row = entry(
+          catalogPaletteDefinitionId(reader.library, "Row"),
+          cells.map((cell) => cell.id),
+        );
+        return { entries: [row, ...cells], rootId: row.id };
+      },
+      newId,
+      label: "Bind data",
+    });
+  }
   const rootId = (
     reader.library.definitions.get(node.definitionId as never) as
       { templateRootId?: string } | undefined

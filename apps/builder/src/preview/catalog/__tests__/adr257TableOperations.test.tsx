@@ -30,6 +30,8 @@ import {
   catalogNewInteraction,
 } from "../../../builder/catalogRuntime/interactions";
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
+import { catalogColumnKeyRenameCommands } from "../../../builder/catalogRuntime/rowTemplate";
+import { composeCommands } from "../../../../../../packages/shared/src/catalog/commands";
 import {
   catalogPreviewRuntime,
   CatalogPreviewView,
@@ -275,14 +277,20 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
         .find((choice) => choice.type === "Column")!
         .build(),
     );
-    workspace.execute(
-      setFields({
-        targets: [workspace.positionOfRecord(ofType("Column")[0]!.id)!.target],
-        props: {
-          key: { kind: "set", value: "score" },
-          allowsSorting: { kind: "set", value: true },
-        },
-      }),
+    // (ADR-310 Phase 4: the key edit takes the Row template's cell along — the Properties write's
+    // companion, `catalogColumnKeyRenameCommands`.)
+    const column = ofType("Column")[0]!;
+    workspace.execute(() =>
+      composeCommands(workspace.runtime.graph, "Column key", [
+        setFields({
+          targets: [workspace.positionOfRecord(column.id)!.target],
+          props: {
+            key: { kind: "set", value: "score" },
+            allowsSorting: { kind: "set", value: true },
+          },
+        }),
+        ...catalogColumnKeyRenameCommands(workspace, column.id, "score"),
+      ]),
     );
     flush();
     const shown = () => firstCells(view.container);

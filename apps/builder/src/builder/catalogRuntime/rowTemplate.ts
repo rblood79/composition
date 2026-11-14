@@ -5,8 +5,11 @@ import {
 } from "@composition/shared";
 import {
   catalogRowItemGroups,
+  renameTableColumnField,
   setFields,
 } from "../../../../../packages/shared/src/catalog/commands";
+import { resolveTableColumnKey } from "../../../../../packages/shared/src/collections/resolveCollectionItems";
+import type { CatalogWorkspace } from "./workspace";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import {
   definitionTypeName,
@@ -295,4 +298,36 @@ export function catalogCardFieldCommand(
     },
     label: "Edit item field",
   });
+}
+
+/**
+ * ADR-310 Phase 4 — a Column's `key` edit in a bound Table: its Row template's cell reading the
+ * column's old key reads the new one, in the same step (`renameTableColumnField`).
+ */
+export function catalogColumnKeyRenameCommands(
+  workspace: CatalogWorkspace,
+  recordId: string,
+  nextKey: unknown,
+): CatalogCommand[] {
+  const root = workspace.root;
+  const column = root.canvasInputs.get(recordId);
+  if (!column || root.typeOf(column) !== "Column") return [];
+  const header = root.canvasInputs.get(column.parentId);
+  const table = header && root.canvasInputs.get(header.parentId);
+  const target = table && workspace.positionOfRecord(table.id)?.target;
+  if (!header || target?.kind !== "node") return [];
+  const index = header.children
+    .map((id) => root.canvasInputs.get(id))
+    .filter((record) => record && root.typeOf(record) === "Column")
+    .indexOf(column);
+  if (index < 0) return [];
+  const props = column.props as Record<string, unknown>;
+  return [
+    renameTableColumnField({
+      tableId: target.id,
+      columnIndex: index,
+      before: resolveTableColumnKey(props, index),
+      after: resolveTableColumnKey({ ...props, key: nextKey }, index),
+    }),
+  ];
 }

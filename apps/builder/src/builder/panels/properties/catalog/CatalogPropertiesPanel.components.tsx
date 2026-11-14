@@ -46,6 +46,8 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 
+import { catalogColumnKeyRenameCommands } from "../../../catalogRuntime/rowTemplate";
+
 import { targetKey } from "../../../catalogRuntime/session";
 
 import { EmptyState } from "../../../components/feedback/EmptyState";
@@ -416,10 +418,15 @@ const CatalogFields = memo(function CatalogFields({
         contract.type === "Radio" || contract.type === "Checkbox"
           ? "value"
           : "id";
-      const keep =
-        targets.length === 1 && keyProp in patch
+      const keep = [
+        ...(targets.length === 1 && keyProp in patch
           ? catalogItemKeyRenameCommands(workspace, elementId, patch[keyProp])
-          : [];
+          : []),
+        // (ADR-310 Phase 4: a bound Table's Row template cell follows its Column's key.)
+        ...(targets.length === 1 && contract.type === "Column" && "key" in patch
+          ? catalogColumnKeyRenameCommands(workspace, elementId, patch.key)
+          : []),
+      ];
       // A glyph's Size step is drawn only without an authored font size or box (`glyphSize.ts`).
       const glyphStep =
         "size" in written && CATALOG_GLYPH_TYPES.has(contract.type ?? "")

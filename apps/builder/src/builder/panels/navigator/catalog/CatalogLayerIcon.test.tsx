@@ -30,9 +30,6 @@ describe("Layers component and structural icons", () => {
       ),
     ).toBe(card.icon);
     expect(layerComponentIcon(row("Frame", { body: true }))).toBeUndefined();
-    expect(
-      layerComponentIcon(row("Text", { projection: true })),
-    ).toBeUndefined();
   });
 
   it.each([

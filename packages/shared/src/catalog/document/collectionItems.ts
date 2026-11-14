@@ -9,8 +9,8 @@
  * - `pair`: the item's paired node (a Tab's TabPanel, by key). `recursive`: items hold items.
  * - `insert`: the Design "+" adds its items (`COLLECTION_FAMILIES`) — CardView's Cards and a Table's
  *   rows have their own commands.
- * - `repeat`: a bound one repeats its item per data row in the resolver — a bound Table's rows are
- *   still the synthesized ones (ADR-310 Phase 4 changes that).
+ * - `repeat`: a bound one repeats its item marked `repeat` per data row in the resolver (a Table
+ *   its Row template — ADR-310 Phase 4).
  * - `selects`: its items' selection is the collection's (`COLLECTION_ITEM_OWNERS`).
  * - `codeItems`: the Code view writes `items` + its item component (ADR-310 Phase 6 widens it).
  * - `parts`: the parts the owner's "+" adds into (default `[list]`).
@@ -121,7 +121,7 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
     list: "TableBody",
     item: "Row",
     insert: false,
-    repeat: false,
+    repeat: true,
     selects: true,
     codeItems: true,
     parts: ["TableHeader", "TableBody"],

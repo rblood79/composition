@@ -1,0 +1,392 @@
+// @vitest-environment jsdom
+import "fake-indexeddb/auto";
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  insertNodes,
+  insertTableColumns,
+  insertTableRow,
+  removeTargets,
+  setFields,
+  tableBodyPosition,
+  tableHeaderPosition,
+} from "../../../../../../packages/shared/src/catalog/commands";
+import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
+import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import type {
+  CatalogLibrary,
+  DataBindingRef,
+  EntryId,
+  NodeEntry,
+  NodeId,
+} from "../../../../../../packages/shared/src/catalog/document/types";
+import type { CatalogBoundRow } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
+import { catalogBindingCommand } from "../dataBindingCommand";
+import { renderCatalogDom } from "../domBinding";
+import { catalogPaletteDefinitionId } from "../paletteInsert";
+import { newCatalogProjectDocument } from "../project";
+import { CatalogStorage } from "../storage";
+import { CatalogWorkspace } from "../workspace";
+import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+
+/**
+ * ADR-310 G4 — a bound Table repeats its Row template: binding a 3-column Table leaves one Row
+ * (marked `repeat`) with three Cells reading `{name}` · `{type}` · `{status}`; the stored nodes do
+ * not grow with the rows (0 · 100 · 1,000); a Badge in a template cell shows in every row; a new
+ * column adds a template cell reading its field; a static Row stands beside the template.
+ */
+const BODY = "project:node:home-body" as NodeId;
+const TABLE = "project:node:table" as NodeId;
+const BINDING = {
+  collectionId: "data:collection:c1",
+  fieldMap: {},
+} as DataBindingRef;
+const rowsOf = (count: number): CatalogBoundRow[] =>
+  Array.from({ length: count }, (_, index) => ({
+    key: `r${index}`,
+    values: { name: `N${index}`, type: `T${index}`, status: `S${index}` },
+  }));
+
+let library: CatalogLibrary;
+beforeAll(async () => {
+  library = await buildCodeCatalogLibrary();
+});
+
+async function boundTable(count: number) {
+  const rows = rowsOf(count);
+  const workspace = new CatalogWorkspace(
+    new CatalogGraph(
+      newCatalogProjectDocument({
+        projectId: "project:project:table" as EntryId<"project">,
+        name: "Table",
+      }),
+      library,
+    ),
+    new CatalogStorage(indexedDB, `adr310-table-${Math.random()}`),
+    {
+      engine: await nodeLayoutEngine(),
+      viewport: { width: 1200, height: 800 },
+      autosaveSchedule: () => {},
+      root: {
+        rows: (binding) =>
+          binding.collectionId === BINDING.collectionId ? rows : undefined,
+      },
+    },
+  );
+  workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: BODY },
+      entries: [
+        {
+          kind: "node",
+          id: TABLE,
+          definitionId: catalogPaletteDefinitionId(library, "Table"),
+          children: [],
+          props: {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        } as NodeEntry,
+      ],
+      rootIds: [TABLE],
+      newId: workspace.newId,
+    }),
+  );
+  return workspace;
+}
+
+const bind = (workspace: CatalogWorkspace) =>
+  workspace.execute(
+    catalogBindingCommand(
+      [{ kind: "node", id: TABLE }],
+      BINDING,
+      workspace.newId,
+    ),
+  );
+
+/** The Table's own rows (its TableBody fill) and each one's cells. */
+function ownRows(workspace: CatalogWorkspace) {
+  const graph = workspace.runtime.graph;
+  const fill = (graph.getEntry(TABLE) as NodeEntry).descendantOverrides.find(
+    (override) =>
+      override.kind === "fillSlot" &&
+      override.address.templatePath.at(-1) ===
+        "lib:template:component-table__2",
+  ) as { childIds: readonly NodeId[] } | undefined;
+  return (fill?.childIds ?? []).map((id) => {
+    const row = graph.getEntry(id) as NodeEntry;
+    return {
+      id,
+      type: definitionTypeName(graph, row.definitionId),
+      repeat: row.repeat,
+      cells: row.children.map((cellId) => {
+        const cell = graph.getEntry(cellId) as NodeEntry;
+        const text = cell.props.children;
+        return text?.kind === "set" ? text.value : undefined;
+      }),
+    };
+  });
+}
+
+/** The drawn rows under the Table's TableBody: each one's source and its cells' text. */
+function drawnRows(workspace: CatalogWorkspace) {
+  const root = workspace.root;
+  const [table] = root.recordsOfSource(TABLE);
+  const record = (id: string) => root.canvasInputs.get(id)!;
+  const body = record(table!).children.find(
+    (id) => root.typeOf(record(id)) === "TableBody",
+  )!;
+  const text = (id: string): string =>
+    [
+      typeof record(id).props.children === "string"
+        ? (record(id).props.children as string)
+        : "",
+      ...record(id).children.map(text),
+    ].join("");
+  return record(body).children.map((id) => ({
+    source: record(id).sourceId,
+    row: record(id).rowIndex,
+    cells: record(id).children.map(text),
+    types: record(id).children.map((cell) =>
+      record(cell).children.map((child) => root.typeOf(record(child))),
+    ),
+  }));
+}
+
+describe("ADR-310 G4 — a bound Table's Row template", () => {
+  it("binding a 3-column Table leaves Row 1 · Cell 3 reading the columns' fields; the stored nodes are the same at 0 · 100 · 1,000 rows", async () => {
+    const counts: number[] = [];
+    for (const count of [0, 100, 1000]) {
+      const workspace = await boundTable(count);
+      try {
+        bind(workspace);
+        expect(ownRows(workspace)).toEqual([
+          {
+            id: expect.any(String),
+            type: "Row",
+            repeat: true,
+            cells: ["{name}", "{type}", "{status}"],
+          },
+        ]);
+        counts.push(workspace.runtime.graph.size);
+        const drawn = drawnRows(workspace);
+        // (A fixed-height Table — the binding default, 400 — draws the rows its height holds.)
+        expect(drawn.length).toBe(count === 0 ? 0 : 14);
+        if (count)
+          expect(drawn.slice(0, 2)).toEqual([
+            expect.objectContaining({ row: 0, cells: ["N0", "T0", "S0"] }),
+            expect.objectContaining({ row: 1, cells: ["N1", "T1", "S1"] }),
+          ]);
+      } finally {
+        workspace.dispose();
+      }
+    }
+    expect(new Set(counts).size).toBe(1);
+  });
+
+  it("a Badge in a template cell shows in every row; a new column adds a template cell reading its field", async () => {
+    const workspace = await boundTable(5);
+    try {
+      bind(workspace);
+      const [template] = ownRows(workspace);
+      const graph = workspace.runtime.graph;
+      const statusCell = (graph.getEntry(template!.id) as NodeEntry)
+        .children[2]!;
+      const badge = workspace.newId("node") as NodeId;
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: statusCell },
+          entries: [
+            {
+              kind: "node",
+              id: badge,
+              definitionId: catalogPaletteDefinitionId(library, "Badge"),
+              children: [],
+              props: { children: { kind: "set", value: "{status}" } },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: [badge],
+          newId: workspace.newId,
+        }),
+      );
+      const drawn = drawnRows(workspace);
+      expect(drawn).toHaveLength(5);
+      for (const [index, row] of drawn.entries()) {
+        expect(row.types[2]).toContain("Badge");
+        expect(row.cells[2]).toContain(`S${index}`);
+      }
+
+      const node = (type: string) => {
+        const id = workspace.newId("node") as NodeId;
+        return {
+          entries: [
+            {
+              kind: "node",
+              id,
+              definitionId: catalogPaletteDefinitionId(library, type),
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootId: id,
+        };
+      };
+      workspace.execute(
+        insertTableColumns({
+          header: tableHeaderPosition(graph, TABLE)!,
+          columns: [{ key: "owner", label: "Owner" }],
+          buildColumn: () => node("Column"),
+          buildCell: () => node("Cell"),
+          newId: workspace.newId,
+        }),
+      );
+      expect(ownRows(workspace)[0]!.cells).toEqual([
+        "{name}",
+        "{type}",
+        "{status}",
+        "{owner}",
+      ]);
+      expect(drawnRows(workspace)[0]!.cells).toHaveLength(4);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it("a static Row stands beside the template (no TABLE_ROWS_FROM_DATA); the DOM draws both; unbinding leaves the template static", async () => {
+    const workspace = await boundTable(3);
+    try {
+      bind(workspace);
+      const graph = workspace.runtime.graph;
+      const row = (columnCount: number) => {
+        const cells = Array.from({ length: columnCount }, () => ({
+          kind: "node" as const,
+          id: workspace.newId("node") as NodeId,
+          definitionId: catalogPaletteDefinitionId(library, "Cell"),
+          children: [],
+          props: { children: { kind: "set" as const, value: "Total" } },
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        }));
+        const id = workspace.newId("node") as NodeId;
+        return {
+          entries: [
+            {
+              kind: "node",
+              id,
+              definitionId: catalogPaletteDefinitionId(library, "Row"),
+              children: cells.map((cell) => cell.id),
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+            ...(cells as NodeEntry[]),
+          ],
+          rootId: id,
+        };
+      };
+      workspace.execute(
+        insertTableRow({
+          body: tableBodyPosition(graph, TABLE)!,
+          buildRow: row,
+          newId: workspace.newId,
+        }),
+      );
+      const drawn = drawnRows(workspace);
+      expect(drawn.map((item) => item.row)).toEqual([0, 1, 2, undefined]);
+      expect(drawn[3]!.cells).toEqual(["Total", "Total", "Total"]);
+
+      const root = workspace.root;
+      const html = renderToStaticMarkup(
+        renderCatalogDom(root, root.recordsOfSource(TABLE)[0]!),
+      );
+      // (The header row, three data rows, the static row.)
+      expect(html.match(/role="row"/g)).toHaveLength(5);
+      expect(html.indexOf("N2")).toBeLessThan(html.indexOf("Total"));
+
+      workspace.execute(
+        catalogBindingCommand([{ kind: "node", id: TABLE }], undefined),
+      );
+      expect(ownRows(workspace).map((item) => item.repeat)).toEqual([
+        undefined,
+        undefined,
+      ]);
+      expect(drawnRows(workspace).map((item) => item.row)).toEqual([
+        undefined,
+        undefined,
+      ]);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it("binding pins each label-keyed Column's key — a later label edit keeps the column's field (cells · sort key)", async () => {
+    const workspace = await boundTable(3);
+    try {
+      bind(workspace);
+      const graph = workspace.runtime.graph;
+      const header = (
+        graph.getEntry(TABLE) as NodeEntry
+      ).descendantOverrides.find(
+        (override) =>
+          override.kind === "fillSlot" &&
+          override.address.templatePath.at(-1) ===
+            "lib:template:component-table__1",
+      ) as { childIds: readonly NodeId[] };
+      const keys = () =>
+        header.childIds.map((id) => {
+          const key = (graph.getEntry(id) as NodeEntry).props.key;
+          return key?.kind === "set" ? key.value : undefined;
+        });
+      expect(keys()).toEqual(["name", "type", "status"]);
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: header.childIds[1]! }],
+          props: { children: { kind: "set", value: "Role" } },
+        }),
+      );
+      expect(keys()).toEqual(["name", "type", "status"]);
+      expect(drawnRows(workspace).map((row) => row.cells[1])).toEqual([
+        "T0",
+        "T1",
+        "T2",
+      ]);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it("a Table holding no row gets a plain Row template — a cell per column, each reading its field", async () => {
+    const workspace = await boundTable(2);
+    try {
+      const [starter] = ownRows(workspace);
+      workspace.execute(
+        removeTargets({ targets: [{ kind: "node", id: starter!.id }] }),
+      );
+      expect(ownRows(workspace)).toEqual([]);
+      bind(workspace);
+      expect(ownRows(workspace)).toEqual([
+        {
+          id: expect.any(String),
+          type: "Row",
+          repeat: true,
+          cells: ["{name}", "{type}", "{status}"],
+        },
+      ]);
+      expect(drawnRows(workspace).map((row) => row.cells)).toEqual([
+        ["N0", "T0", "S0"],
+        ["N1", "T1", "S1"],
+      ]);
+    } finally {
+      workspace.dispose();
+    }
+  });
+});

@@ -915,6 +915,15 @@ export function tableHeaderPosition(
 ): NodeParent | undefined {
   return headerPositionIn(new CommandDraft(reader), tableId);
 }
+/** The TableBody position a Table shows (as `tableHeaderPosition`). Undefined without one. */
+export function tableBodyPosition(
+  reader: CatalogReader,
+  tableId: NodeId,
+): NodeParent | undefined {
+  const draft = new CommandDraft(reader);
+  const header = headerPositionIn(draft, tableId);
+  return header ? tableBodyOf(draft, header) : undefined;
+}
 function headerPositionIn(
   draft: CommandDraft,
   tableId: NodeId,
@@ -948,6 +957,70 @@ function headerPositionIn(
     level = level.flatMap((position) => childPositions(draft, position));
   }
   return undefined;
+}
+
+/** ADR-310 Phase 4 — a new column's cell in a bound Table's Row template reads its field. */
+function templateCell(
+  draft: CommandDraft,
+  rowId: NodeId,
+  cell: { entries: NodeEntry[]; rootId: NodeId },
+  key: string,
+): { entries: NodeEntry[]; rootId: NodeId } {
+  if (!draft.node(rowId).repeat) return cell;
+  return {
+    ...cell,
+    entries: cell.entries.map((entry) =>
+      entry.id === cell.rootId && !entry.children.length
+        ? {
+            ...entry,
+            props: {
+              ...entry.props,
+              children: { kind: "set" as const, value: `{${key}}` },
+            },
+          }
+        : entry,
+    ),
+  };
+}
+/**
+ * ADR-310 Phase 4 — a bound Table's Row template shows each column's field: its own cells with no
+ * content of their own (no child node, text without a `{field}`) read `{<column key>}`, by place.
+ * A cell holding nodes (a Badge) keeps them — they repeat as they are.
+ */
+export function fillTableTemplateCells(
+  draft: CommandDraft,
+  tableId: NodeId,
+  rowId: NodeId,
+): void {
+  const header = headerPositionIn(draft, tableId);
+  if (!header) return;
+  const columns = partChildren(draft, header);
+  const keys = columns.map((column, index) =>
+    columnKey(draft.reader, column, index),
+  );
+  // A Column read under its label (no `key`) keeps that key: the template cell now names the
+  // field, so a later label edit must not move the column's key (its sort) off the cell's field.
+  columns.forEach((column, index) => {
+    if (column.kind !== "node") return;
+    const node = draft.node(column.id);
+    if (node.props.key?.kind === "set") return;
+    draft.write({
+      ...node,
+      props: { ...node.props, key: { kind: "set", value: keys[index]! } },
+    });
+  });
+  partChildren(draft, { kind: "node", id: rowId }).forEach((cell, index) => {
+    const key = keys[index];
+    if (cell.kind !== "node" || key === undefined) return;
+    const node = draft.node(cell.id);
+    if (node.children.length) return;
+    const text = readProp(draft.reader, cell, "children");
+    if (typeof text === "string" && /\{[^{}]+\}/.test(text)) return;
+    draft.write({
+      ...node,
+      props: { ...node.props, children: { kind: "set", value: `{${key}}` } },
+    });
+  });
 }
 
 /** A composite instance's template root position — its template children show before its own. */
@@ -1462,7 +1535,9 @@ export const insertTableColumns =
             draft,
             ownCells.flatMap((id) => subtree(draft, id)),
           );
-          const cells = specs.map(() => input.buildCell(rowId));
+          const cells = specs.map((spec) =>
+            templateCell(draft, rowId, input.buildCell(rowId), spec.key),
+          );
           for (const cell of cells)
             for (const entry of cell.entries) draft.create(entry);
           draft.write({
@@ -1479,7 +1554,9 @@ export const insertTableColumns =
         );
         if (rows.length && aligned)
           for (const rowId of rows) {
-            const cells = specs.map(() => input.buildCell(rowId));
+            const cells = specs.map((spec) =>
+              templateCell(draft, rowId, input.buildCell(rowId), spec.key),
+            );
             for (const cell of cells)
               for (const entry of cell.entries) draft.create(entry);
             const row = draft.node(rowId);
@@ -1513,9 +1590,7 @@ export const insertTableRow =
     const owner = parentOf(draft, input.body);
     if (!owner || !TABLE_OWNERS.has(positionType(draft, owner)))
       fail("NOT_A_TABLE_VIEW", positionId(input.body));
-    // A bound table's rows are its data's (the projected rows hide its own) — it takes none.
-    if (owner!.kind === "node" && draft.node(owner!.id).binding)
-      fail("TABLE_ROWS_FROM_DATA", positionId(input.body));
+    // (ADR-310 Phase 4: a bound Table takes rows too — static ones beside its Row template.)
     const header = childPositions(draft, owner!).find(
       (child) => positionType(draft, child) === "TableHeader",
     );

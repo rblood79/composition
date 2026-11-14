@@ -85,6 +85,8 @@ describe("ADR-310 — the collection type table", () => {
         "GridListItem",
         "ListBoxItem",
         "MenuItem",
+        // (ADR-310 Phase 4: a bound Table repeats its Row template.)
+        "Row",
         "SelectBox",
         "Tab",
         "TabPanel",

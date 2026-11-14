@@ -20,6 +20,8 @@ import type { CatalogConsumerNode } from "../compositionRoot";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
+import { catalogColumnKeyRenameCommands } from "../rowTemplate";
+import { composeCommands } from "../../../../../../packages/shared/src/catalog/commands";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -202,8 +204,8 @@ describe("ADR-248 4e bound Table rows", () => {
     expect(bodyRows(workspace)).toEqual([["Zed", "zed@x.io", ""]]);
     setRows(undefined);
     workspace.refreshRows(["users"]);
-    // (ADR-277: the template's starter Row — its cells rebuilt empty by the replace — shows.)
-    expect(bodyRows(workspace)).toEqual([["", "", ""]]);
+    // (ADR-310 Phase 4: the Row template shows as it is — its cells read their columns' keys.)
+    expect(bodyRows(workspace)).toEqual([["{name}", "{email}", "{tags}"]]);
     workspace.dispose();
   });
 
@@ -216,11 +218,16 @@ describe("ADR-248 4e bound Table rows", () => {
         record.id.startsWith(table.split("::")[0]) &&
         typeOf(workspace, record) === "Column",
     )!;
-    workspace.execute(
-      setFields({
-        targets: [{ kind: "node", id: column.sourceId as NodeId }],
-        props: { key: { kind: "set", value: "email" } },
-      }),
+    // (ADR-310 Phase 4: the Properties write takes the Row template's cell along —
+    // `catalogColumnKeyRenameCommands`.)
+    workspace.execute(() =>
+      composeCommands(workspace.runtime.graph, "Column key", [
+        setFields({
+          targets: [{ kind: "node", id: column.sourceId as NodeId }],
+          props: { key: { kind: "set", value: "email" } },
+        }),
+        ...catalogColumnKeyRenameCommands(workspace, column.id, "email"),
+      ]),
     );
     expect(bodyRows(workspace)[0]![0]).toBe("ann@x.io");
     workspace.dispose();

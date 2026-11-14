@@ -147,7 +147,6 @@ describe("ADR-310 Layers bound rows — the rows' template row", () => {
     // (No EmptyState row: the Canvas does not draw it while there are rows, 2026-10-23.)
     expect(view(listRow())).toEqual([["ListBoxItem", 2]]);
     const [template] = listRow().children!;
-    expect(template!.projection).toBeUndefined();
     // The Canvas's second row is the template's record for that row: it selects its position.
     const rowsOf = workspace.root.domInputs;
     const second = [...rowsOf.values()].find((record) => record.rowIndex === 1)!;

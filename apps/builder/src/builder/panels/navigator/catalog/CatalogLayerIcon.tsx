@@ -12,7 +12,7 @@ const paletteIcons = new Map(
 );
 
 export function layerComponentIcon(node: CatalogLayerNode) {
-  if (node.body || node.projection) return undefined;
+  if (node.body) return undefined;
   // Nested component instances retain their component identity. Plain parts, including
   // materialized slot content, never borrow the palette's component illustrations.
   if (!node.role && node.insideComponent) return undefined;

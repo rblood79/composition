@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-310 Phase 4 — 데이터를 연결한 Table 의 행 템플릿] - 2026-11-15
+
+### Changed
+
+- **연결한 Table 의 행 = Row 템플릿 하나**: 데이터를 연결한 Table 은 TableBody 의 Row 하나를 행 템플릿으로 데이터 행마다 반복한다 — 다른 목록과 같은 반복 표시. 연결하면 열마다 Cell 이 그 열의 필드 (`{name}` 처럼) 를 읽고, Layers 에는 템플릿 행 하나에 「× 행 수」 가 붙는다. 전에는 행 · 칸이 문서에 없는 합성 행이라 칸의 모양을 노드로 편집할 수 없었다.
+- **칸 꾸미기**: 템플릿 Cell 에 Badge · Button 같은 노드를 넣으면 모든 행에 보인다 (Badge 의 글자 `{status}` 는 행마다 그 값).
+- **열 추가**: 연결한 Table 에 열을 더하면 템플릿 Cell 이 그 열의 필드를 읽는다. 연결하면 각 열의 key 가 지금 값으로 고정돼, 머리글 라벨을 바꿔도 그 열이 읽는 필드와 정렬은 그대로다.
+
+### Added
+
+- **고정 행**: 연결한 Table 도 템플릿 옆에 합계 행 같은 고정 Row 를 받는다 (전에는 거절됐다). 고정 행은 데이터 행 앞 · 뒤 제자리에 그려진다.
+
 ## [ADR-310 Phase 3 — 목록에 고정 항목과 데이터 행을 섞는다 (반복 표시)] - 2026-11-15
 
 ### Added

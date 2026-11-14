@@ -185,13 +185,15 @@ describe("ADR-277 — the palette Table's origin (the starter)", () => {
     expect(aligned()).toBe(true);
   });
 
-  it("a bound Table's resolved TableBody holds the projected rows only (no static Row)", async () => {
+  // ADR-310 Phase 4: binding makes the starter Row the rows' template (its cells read the columns'
+  // keys); unbinding leaves that Row, static, showing them.
+  it("a bound Table's resolved TableBody holds its Row template's rows; unbound, the template stays", async () => {
     const { workspace, table, resolved } = await open();
     workspace.execute(
       catalogBindingCommand([{ kind: "node", id: table }], BINDING),
     );
-    // (The starter's keys read nothing from `{title, price}` — the projected cells are empty;
-    // the first connect below replaces the columns.)
+    // (The starter's keys read nothing from `{title, price}` — the cells are empty; the first
+    // connect below replaces the columns.)
     expect(resolved().rows).toEqual([
       { type: "Row", cells: ["", "", ""] },
       { type: "Row", cells: ["", "", ""] },
@@ -200,7 +202,7 @@ describe("ADR-277 — the palette Table's origin (the starter)", () => {
       catalogBindingCommand([{ kind: "node", id: table }], undefined),
     );
     expect(resolved().rows).toEqual([
-      { type: "Row", cells: ["Item 1", "File", "Active"] },
+      { type: "Row", cells: ["{name}", "{type}", "{status}"] },
     ]);
   });
 });
@@ -286,9 +288,12 @@ describe("ADR-277 Decision 2 — the first Quick Connect replaces the starter co
     workspace.execute(
       catalogBindingCommand([{ kind: "node", id: table }], undefined),
     );
-    // The starter Row is back with two (empty) cells under the two schema columns.
+    // The starter Row — the rows' template — stays with a cell per schema column (ADR-310 Phase 4:
+    // each reads its column's key).
     expect(resolved().columns).toEqual(["title", "price"]);
-    expect(resolved().rows).toEqual([{ type: "Row", cells: ["", ""] }]);
+    expect(resolved().rows).toEqual([
+      { type: "Row", cells: ["{title}", "{price}"] },
+    ]);
     expect(aligned()).toBe(true);
   });
 });

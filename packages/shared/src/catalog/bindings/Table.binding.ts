@@ -5,9 +5,9 @@
  * 이 노드 트리 (`TableHeader > Column…` + `TableBody > Row > Cell…`) 를 그린다 (ADR-256 Phase 5i).
  *
  * **Skia generic 전환 (skiaLegacy 제거, ADR-912 단계 4 C1 2026-06-03)**: DOM/Inspector·Skia 모두
- * catalog generic. 바인딩된 Table 의 데이터 행은 resolver `projectTableRows` 가 TableBody 아래
- * `Row` · `Cell` 로 만든다 — Canvas 와 Preview 가 같은 해석 결과를 그린다 (Preview 의 행 =
- * `catalogBoundRows`).
+ * catalog generic. 바인딩된 Table 은 TableBody 의 Row 템플릿 (`repeat` 표시 — ADR-310 Phase 4)
+ * 을 데이터 행마다 반복한다 (resolver `boundTableRows` 가 정렬 · 고정 높이 자르기) — Canvas 와
+ * Preview 가 같은 해석 결과를 그린다 (Preview 의 행 = `catalogBoundRows`).
  */
 
 import type { PrimitiveBinding } from "../types";

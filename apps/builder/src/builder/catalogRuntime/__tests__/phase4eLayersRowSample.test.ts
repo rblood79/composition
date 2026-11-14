@@ -144,15 +144,11 @@ function layers(workspace: CatalogWorkspace) {
     nodes.flatMap((node) => [node, ...all(node.children ?? [])]);
   return () => all(store.getSnapshot());
 }
-/** The rows under the first row of a type: [name, projection]. */
+/** The rows under the first row of a type: [name, repeats]. */
 const childrenOf = (nodes: CatalogLayerNode[], typeName: string) =>
   (nodes.find((node) => node.typeName === typeName)?.children ?? []).map(
-    (child) => [child.name, child.projection ?? false] as const,
+    (child) => [child.name, !!child.repeat] as const,
   );
-const sampleView = (count: number, more?: number) => [
-  ...Array.from({ length: count }, (_, index) => [`Row ${index}`, true]),
-  ...(more ? [[`+${more} more`, true]] : []),
-];
 
 /** The data rows the sampled list built (records with a row index under a sampled owner). */
 const drawnRows = (workspace: CatalogWorkspace) =>
@@ -169,7 +165,7 @@ describe("ADR-248 4e Layers row sample", () => {
     const workspace = await open("ListBox", rowsOf(100));
     const nodes = layers(workspace)();
     expect(drawnRows(workspace)).toBeLessThan(100);
-    expect(childrenOf(nodes, "ListBox")).toEqual([["ListBoxItem", false]]);
+    expect(childrenOf(nodes, "ListBox")).toEqual([["ListBoxItem", true]]);
     expect(nodes.find((node) => node.typeName === "ListBoxItem")!.repeat).toEqual({
       count: 100,
     });
@@ -179,7 +175,7 @@ describe("ADR-248 4e Layers row sample", () => {
   it("a list of 10 rows: its template row counts 10", async () => {
     const workspace = await open("GridList", rowsOf(10));
     const nodes = layers(workspace)();
-    expect(childrenOf(nodes, "GridList")).toEqual([["GridListItem", false]]);
+    expect(childrenOf(nodes, "GridList")).toEqual([["GridListItem", true]]);
     expect(nodes.find((node) => node.typeName === "GridListItem")!.repeat).toEqual({
       count: 10,
     });
@@ -189,24 +185,22 @@ describe("ADR-248 4e Layers row sample", () => {
   it("a TagGroup lists its Tag template under the TagList", async () => {
     const workspace = await open("TagGroup", rowsOf(3));
     const nodes = layers(workspace)();
-    expect(childrenOf(nodes, "TagList")).toEqual([["Tag", false]]);
+    expect(childrenOf(nodes, "TagList")).toEqual([["Tag", true]]);
     expect(nodes.find((node) => node.typeName === "Tag")!.repeat).toEqual({
       count: 3,
     });
     workspace.dispose();
   });
 
-  it("an auto Table lists its data rows (named by the first cell) under the body, sampled", async () => {
+  // ADR-310 Phase 4: a bound Table's rows are its Row template's — one Layers row, as a list's.
+  it("an auto Table lists its Row template once under the body, counting every row", async () => {
     const workspace = await open("Table", rowsOf(100));
     const nodes = layers(workspace)();
-    const built = drawnRows(workspace);
-    expect(built).toBeLessThan(100);
-    expect(childrenOf(nodes, "TableBody")).toEqual(
-      sampleView(built, 100 - built),
-    );
-    // A data row has no document position (the Table draws it from the data): it selects the body.
-    const body = nodes.find((node) => node.typeName === "TableBody")!;
-    expect(body.children!.every((row) => row.selects === body.id)).toBe(true);
+    expect(drawnRows(workspace)).toBeLessThan(100);
+    expect(childrenOf(nodes, "TableBody")).toEqual([["Row", true]]);
+    expect(nodes.find((node) => node.typeName === "Row")!.repeat).toEqual({
+      count: 100,
+    });
     workspace.dispose();
   });
 });

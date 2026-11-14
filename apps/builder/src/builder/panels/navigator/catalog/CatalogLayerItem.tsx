@@ -49,8 +49,8 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   onZoomToNode: (node: CatalogLayerNode) => void;
 }) {
   const { depth, hasChildren, name, body } = node;
-  // A data row (a bound collection's projection) is neither draggable nor deletable; nor is a
-  // node of the Components page (derived: its frames, samples and state variants).
+  // A node of the Components page (derived: its frames, samples and state variants) is neither
+  // draggable nor deletable.
   const derived =
     node.position.target.kind === "node" &&
     node.position.target.id.startsWith(ORIGIN_VIEW_NODE);
@@ -61,7 +61,6 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
     body ||
     derived ||
     onDerivedPage ||
-    node.projection === true ||
     node.position.target.kind !== "node";
   return (
     <div
@@ -172,7 +171,6 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
         {/* A part the owner draws (toggle indicator, TreeItem chevron) is the owner's own RAC element — not removable (`removeTargets`). */}
         {!body &&
           !derived &&
-          !node.projection &&
           !node.keptOrigin &&
           !node.emptyState &&
           !OWNER_DRAWN_PART_OWNERS[node.typeName] && (

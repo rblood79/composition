@@ -5,7 +5,7 @@ import {
   nodePosition,
   type CatalogPosition,
 } from "../resolution/positions";
-import { catalogPairedTabPanels } from "./collections";
+import { catalogPairedTabPanels, fillTableTemplateCells } from "./collections";
 import { stageOver, type CatalogCommand } from "./compose";
 import {
   CommandDraft,
@@ -106,12 +106,24 @@ const writeRepeat = (
   draft.write(next);
 };
 
+/** Mark an item `repeat` — a Table's Row also shows its columns' fields (`fillTableTemplateCells`). */
+const markTemplate = (
+  draft: CommandDraft,
+  ownerId: NodeId,
+  id: NodeId,
+): void => {
+  writeRepeat(draft, id, true);
+  if (definitionTypeName(draft.reader, draft.node(id).definitionId) === "Row")
+    fillTableTemplateCells(draft, ownerId, id);
+};
+
 /**
  * ADR-310 Decision 2 — give a bound owner its rows' template (no-op when it has one): `template`
  * marks each level's first item `repeat` and removes the other items (a removed Tab takes its
  * TabPanel — `removeTargets`); `keep` copies each level's last item (a Tab with its TabPanel —
  * `duplicateNodes`) after it and marks the copy. Template positions an instance does not own are
- * not marked (the library's items are never a row template).
+ * not marked (the library's items are never a row template). A Table's Row template reads its
+ * columns' fields (ADR-310 Phase 4).
  */
 export const markRowTemplates =
   (input: {
@@ -163,7 +175,7 @@ export const markRowTemplates =
         const copy = plan.selectAfter?.[0];
         if (!copy) continue;
         const draft = new CommandDraft(stage);
-        writeRepeat(draft, copy, true);
+        markTemplate(draft, input.ownerId, copy);
         run(() => ({ label, ops: draft.ops() }));
         if (tabs) markPanels(copy);
       }
@@ -174,7 +186,7 @@ export const markRowTemplates =
       const [first, ...rest] = group;
       if (!first) continue;
       const draft = new CommandDraft(stage);
-      writeRepeat(draft, (first.target as { id: NodeId }).id, true);
+      markTemplate(draft, input.ownerId, (first.target as { id: NodeId }).id);
       run(() => ({ label, ops: draft.ops() }));
       if (tabs) markPanels((first.target as { id: NodeId }).id);
       drop.push(...rest.map((position) => position.target));
@@ -256,4 +268,41 @@ export const setRowTemplate =
       return { label, ops: draft.ops(), selectAfter: [input.itemId] };
     }
     return fail("NOT_IN_BOUND_LIST", input.itemId);
+  };
+
+/**
+ * ADR-310 Phase 4 — a bound Table's column read under a new key (its `key` edit): the Row
+ * template's cell in that column that reads exactly `{before}` reads `{after}` — the cells follow
+ * the column as the old synthesized cells did. A cell the author wrote otherwise is left alone.
+ */
+export const renameTableColumnField =
+  (input: {
+    tableId: NodeId;
+    /** The column's place among the header's Columns (a row's cells pair with them by place). */
+    columnIndex: number;
+    before: string;
+    after: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const label = "Rename column";
+    const draft = new CommandDraft(reader);
+    if (input.before === input.after) return { label, ops: [] };
+    for (const group of catalogRowItemGroups(reader, input.tableId))
+      for (const position of group) {
+        const row = nodeOf(reader, position);
+        if (!row?.repeat || typeOf(reader, position) !== "Row") continue;
+        const cellId = row.children[input.columnIndex];
+        const cell = cellId ? reader.getEntry(cellId) : undefined;
+        if (cell?.kind !== "node") continue;
+        const text = cell.props.children;
+        if (text?.kind !== "set" || text.value !== `{${input.before}}`) continue;
+        draft.write({
+          ...cell,
+          props: {
+            ...cell.props,
+            children: { kind: "set", value: `{${input.after}}` },
+          },
+        });
+      }
+    return { label, ops: draft.ops() };
   };

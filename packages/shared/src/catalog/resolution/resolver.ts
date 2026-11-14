@@ -237,6 +237,18 @@ const RESOLVED_TOKEN_REFS = new WeakMap<object, Record<string, string>>();
  * record's `lineHeight` is a ratio (the rule's px ÷ its font size), so `finishLineHeight` turns these into
  * that ratio once every write is in.
  */
+/** ADR-310 Phase 4 — the rows a bound Table's Row template repeats over (`boundTableRows`). */
+interface BoundTableRows {
+  /** The delivered rows. */
+  readonly rowSet: readonly CatalogBoundRow[];
+  /** `rowSet` in the Preview's header sort. */
+  readonly ordered: readonly CatalogBoundRow[];
+  /** The rows drawn: the ones a fixed height holds, else the Builder's sample. */
+  readonly shown: readonly CatalogBoundRow[];
+  readonly fixed: boolean;
+  /** ADR-284 Decision 5: its view sorts by a variable (that sort, when the rows carry it). */
+  readonly sortedByView?: { readonly sort: unknown };
+}
 interface LineWrites {
   fontRef?: string;
   linePx?: number;
@@ -460,13 +472,6 @@ export function catalogRowSampleCount(
 }
 // (ADR-310 Decision 7: the row item types are the collection type table's — `collectionItems.ts`.)
 export { CATALOG_ROW_ITEM_TYPES };
-/**
- * Source of a bound Table's projected rows and cells (`…:row`, `…:cell-<column>`): they show data,
- * not a document position, so no command targets them (picking reaches the TableBody).
- */
-export const CATALOG_TABLE_ROW_SOURCE = "lib:template:catalog-table-data";
-const TABLE_ROW_DEFINITION = "lib:definition:type-Row" as DefinitionId;
-const TABLE_CELL_DEFINITION = "lib:definition:type-Cell" as DefinitionId;
 /** The shortest row a Table density gives (compact: line 24 + padding 4 × 2). */
 const TABLE_MIN_ROW_HEIGHT = 32;
 /**
@@ -551,6 +556,13 @@ function bindRowValue(value: PropValue, row: CatalogBoundRow): PropValue {
   return compiled
     ? interpolateFieldTemplate(compiled, row.values as Record<string, unknown>)
     : value;
+}
+/** A data value as a Table cell's text (the list kinds joined, the rest counted). */
+function tableCellText(value: unknown): string {
+  const display = classifyTableCellDisplay(value);
+  return display.kind === "text"
+    ? display.text
+    : `${display.items.join(", ")}${display.overflow ? ` +${display.overflow}` : ""}`;
 }
 /** Stamp a row's key on a projected row subtree. */
 function withRowKey(
@@ -1852,6 +1864,12 @@ export function resolveCatalogNode(
       withoutUnboundSlot(props, ownedForkBindings);
     }
     if (ownedRow) {
+      // ADR-310 Phase 4: a Cell that shows one field (`{status}`) shows it as a Table's data cell
+      // does (`classifyTableCellDisplay` — a list joined, the rest counted).
+      const cellField =
+        ownedType === "Cell" && typeof props.children === "string"
+          ? /^\{([^{}|]+)\}$/.exec(props.children)?.[1]?.trim()
+          : undefined;
       // As on a row template position: only content props read the row (ADR-162 allowlist).
       for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
         if (key in props) props[key] = bindRowValue(props[key], ownedRow);
@@ -1860,6 +1878,8 @@ export function resolveCatalogNode(
       const labelField = rowLabelField(ownedRowing?.rowLabel, props, ownedType);
       if (labelField)
         props.children = String(ownedRow.values[labelField] ?? "");
+      if (cellField !== undefined && cellField in ownedRow.values)
+        props.children = tableCellText(ownedRow.values[cellField]);
     }
     // `useAsyncList`'s `loadingState` beside its items (`<TableView loadingState={list.loadingState}>`
     // · `<Skeleton isLoading={list.isLoading}>`): a bound Table · Skeleton reads its collection's load.
@@ -1949,14 +1969,13 @@ export function resolveCatalogNode(
       (!selection || selection.include(definition.templateRootId, instancePath))
     ) {
       scopeProperties(instancePath, node.definitionId, props);
-      push(
-        children,
-        projectTableRows(
-          projectTemplate(
+      const templateRootId = definition.templateRootId;
+      const project = (shownRows: readonly CatalogBoundRow[] | undefined) =>
+        projectTemplate(
             node,
-            definition.templateRootId,
+            templateRootId,
             instancePath,
-            [definition.templateRootId],
+            [templateRootId],
             { ...self, collapsed: true },
             templateBindings(
               node.definitionId,
@@ -1987,9 +2006,12 @@ export function resolveCatalogNode(
               },
             ),
             undefined,
-            rowSet
+            shownRows
               ? // (A keyed item is also the row its template's own positions read.)
-                { rowSet, ...(keyedRows?.[0] ? { row: keyedRows[0] } : {}) }
+                {
+                  rowSet: shownRows,
+                  ...(keyedRows?.[0] ? { row: keyedRows[0] } : {}),
+                }
               : records
                 ? { records }
                 : ownedRow
@@ -2001,12 +2023,21 @@ export function resolveCatalogNode(
                   : ownedRowing?.rowSet
                     ? { rowSet: ownedRowing.rowSet }
                     : undefined,
-          ),
-          rowSet,
-          `${instancePath.join("/")}::${node.id}`,
-          viewSortsByVariable(node.binding, lookupEntry),
-        ),
-      );
+          );
+      // ADR-310 Phase 4: a bound Table repeats its Row template — over the rows sorted and cut
+      // first (`boundTableRows`), then its body counts them (`finishBoundTable`).
+      const table =
+        rowSet && templateTypeName(templateRootId) === "Table"
+          ? boundTableRows(
+              rowSet,
+              props,
+              templateRootId,
+              `${instancePath.join("/")}::${node.id}`,
+              viewSortsByVariable(node.binding, lookupEntry),
+              () => project(undefined),
+            )
+          : undefined;
+      push(children, finishBoundTable(project(table?.shown ?? rowSet), table));
     }
     const ownedChildren =
       selection?.ownedChildren?.(node.id, instancePath) ?? node.children;
@@ -2107,173 +2138,109 @@ export function resolveCatalogNode(
     };
   };
   /**
-   * A bound Table's data rows (ADR-248 4e — the old Canvas's `appendTableRowProjection`): the DOM
-   * Table draws its rows from the data itself (`renderTable` reads only the header's Column
-   * children), so its TableBody here shows one `Row` per data row with one `Cell` per header
-   * column (`resolveTableColumnKey`, text through the DOM's `classifyTableCellDisplay`) in place of
-   * its own children. A fixed-height Table (`heightMode` "fixed", the binding default) shows the
-   * rows its height can hold; the other modes grow with every row. Unknown rows (`undefined`) keep
-   * the template; the projected nodes have no document position (`CATALOG_TABLE_ROW_SOURCE`).
+   * ADR-310 Phase 4 — the rows a bound Table's Row template repeats over: sorted by the Preview's
+   * header sort (ADR-257 Phase 4 — by the field value, over every delivered row; a Table whose view
+   * sorts by a variable keeps the view's order — ADR-284 Decision 5), then cut — a fixed-height
+   * Table (`heightMode` "fixed", the binding default) takes the rows its height can hold, the
+   * other modes grow with every row (the Builder samples them, its TableBody's measured pitch).
    */
-  const projectTableRows = (
-    projected: ResolvedCatalogNode | undefined,
-    rowSet: readonly CatalogBoundRow[] | undefined,
+  const boundTableRows = (
+    rowSet: readonly CatalogBoundRow[],
+    /** The instance's resolved props (over its template root's). */
+    instanceProps: Props,
+    rootId: TemplateId,
     /** The bound node's record identity (the instance — its template root collapses into it). */
     tableId: string,
     /** ADR-284: the node's view sorts by a variable (the Table's own runtime sort steps aside). */
-    sortedByVariable = false,
-  ): ResolvedCatalogNode | undefined => {
-    if (!projected || !rowSet) return projected;
+    sortedByVariable: boolean,
+    /** The Table without rows (its header's Columns name the sorted field). */
+    bare: () => ResolvedCatalogNode | undefined,
+  ): BoundTableRows => {
     const typeOf = (resolved: ResolvedCatalogNode) =>
       lookupDefinition(resolved.definitionId).name;
-    if (typeOf(projected) !== "Table") return projected;
-    const header = projected.children.find(
-      (child) => typeOf(child) === "TableHeader",
-    );
-    const body = projected.children.find(
-      (child) => typeOf(child) === "TableBody",
-    );
-    if (!body) return projected;
-    const columnNodes = (header?.children ?? []).filter(
-      (child) => typeOf(child) === "Column",
-    );
-    // (ADR-257: the columns' widths are the rows' shared grid tracks — `tableTracks.ts`, derived
-    // on the header row and every projected Row; a cell is its column's grid area.)
-    const columns = columnNodes.map((column, index) => ({
-      key: resolveTableColumnKey(column.props, index),
-      // (Its RAC key — `catalogTableColumnKey` of its record.)
-      id: catalogTableColumnKey({
-        id: `${column.instancePath.join("/")}::${column.sourceId}`,
-        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-      }),
-    }));
-    // ADR-257 Phase 4: the Preview's sort orders every data row by the column's field value
-    // before the rows its height shows are taken (사용자 결정 4 — the Canvas has no sort).
-    // ADR-284 Decision 5: a Table whose view sorts by a variable is that variable's — its rows
-    // come sorted by the view, and its arrow is the variable's (사용자 결정 2).
     const variableSort = (rowSet as { view?: CatalogViewResultMeta }).view
       ?.sort;
     const sortedByView = variableSort !== undefined || sortedByVariable;
     const sort = sortedByView ? undefined : tableSort?.(tableId);
-    const sortKey =
-      sort && columns.find((column) => column.id === sort.column)?.key;
-    const ordered =
-      sort && sortKey !== undefined
-        ? catalogTableSorted(
-            rowSet,
-            sort.direction,
-            (row) => row.values[sortKey],
-          )
-        : rowSet;
+    let ordered = rowSet;
+    if (sort) {
+      const header = bare()?.children.find(
+        (child) => typeOf(child) === "TableHeader",
+      );
+      const columns = (header?.children ?? []).filter(
+        (child) => typeOf(child) === "Column",
+      );
+      // (A Column's RAC key — `catalogTableColumnKey` of its record; its field `resolveTableColumnKey`.)
+      const index = columns.findIndex(
+        (column) =>
+          catalogTableColumnKey({
+            id: `${column.instancePath.join("/")}::${column.sourceId}`,
+            ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+          }) === sort.column,
+      );
+      if (index >= 0) {
+        const key = resolveTableColumnKey(columns[index]!.props, index);
+        ordered = catalogTableSorted(
+          rowSet,
+          sort.direction,
+          (row) => row.values[key],
+        );
+      }
+    }
+    const template = rootId.startsWith("lib:")
+      ? library.templates.get(rootId as `lib:template:${string}`)
+      : graph.getEntry(rootId);
+    const rootProps: Props = {};
+    if (template && "kind" in template) {
+      if (template.kind === "node") applyWrites(rootProps, template.props);
+    } else if (template) applyValues(rootProps, template.props);
+    const prop = (key: string) => instanceProps[key] ?? rootProps[key];
     const heightMode =
-      projected.props.heightMode ??
-      tableBinding.props.accepts.heightMode?.default;
+      prop("heightMode") ?? tableBinding.props.accepts.heightMode?.default;
     const height =
-      typeof projected.props.height === "number"
-        ? projected.props.height
+      typeof prop("height") === "number"
+        ? (prop("height") as number)
         : (tableBinding.props.accepts.height?.default as number | undefined);
     const fixed = heightMode === "fixed" && typeof height === "number";
+    const bodyId = (
+      template && "children" in template ? template.children : []
+    ).find(
+      (childId: string) => templateTypeName(childId as TemplateId) === "TableBody",
+    );
+    const instancePath = tableId.slice(0, tableId.lastIndexOf("::"));
     const shown = fixed
       ? ordered.slice(0, Math.ceil(height / TABLE_MIN_ROW_HEIGHT) + 1)
-      : sampledRows(
-          ordered,
-          `${body.instancePath.join("/")}::${body.sourceId}`,
-        );
-    const tableContext: ParentContext = {
-      definitionId: projected.definitionId,
-      props: projected.props as Props,
+      : sampledRows(ordered, `${instancePath}::${bodyId}`);
+    return {
+      rowSet,
+      ordered,
+      shown,
+      fixed,
+      ...(sortedByView ? { sortedByView: { sort: variableSort } } : {}),
     };
-    const bodyContext: ParentContext = {
-      definitionId: body.definitionId,
-      props: body.props as Props,
-      parent: tableContext,
-    };
-    const synthesize = (
-      definitionId: DefinitionId,
-      own: Props,
-      sourceId: TemplateId,
-      parent: ParentContext,
-      rowKey: string,
-      children: ResolvedCatalogNode[],
-    ): ResolvedCatalogNode => {
-      const { props, visual, layout } = base(definitionId);
-      Object.assign(props, own);
-      applyOwnerSize(definitionId, props, parent);
-      applyOwnerDensity(definitionId, props, parent);
-      applyOwnerOverflowMode(definitionId, props, parent);
-      applyOwnerHideLinkOut(definitionId, props, parent);
-      applyContextualHelpGlyph(definitionId, props, parent);
-      applyOwnerEmphasis(definitionId, props, parent);
-      applyGroupTurnsOn(definitionId, props, parent);
-      applyOwnerVariant(definitionId, props, parent, new Set(Object.keys(own)));
-      applyBooleanVariant(definitionId, props);
-      applyPropVisualRules(definitionId, props, visual);
-      applyTypedRules(definitionId, props, visual, layout, parent);
-      return {
-        sourceId,
-        instancePath: body.instancePath,
-        definitionId,
-        props,
-        visual,
-        layout,
-        sizing: {},
-        slot: undefined,
-        name: undefined,
-        regions: undefined,
-        placeholder: undefined,
-        rowKey,
-        children,
-      };
-    };
-    const rowsOut = shown.map((row, rowIndex) => {
-      const rowProps: Props = { id: row.key };
-      const rowContext: ParentContext = {
-        definitionId: TABLE_ROW_DEFINITION,
-        props: rowProps,
-        parent: bodyContext,
-      };
-      const cells = columns.map(({ key }, index) => {
-        const display = classifyTableCellDisplay(row.values[key]);
-        const text =
-          display.kind === "text"
-            ? display.text
-            : `${display.items.join(", ")}${display.overflow ? ` +${display.overflow}` : ""}`;
-        const cell = synthesize(
-          TABLE_CELL_DEFINITION,
-          { children: text },
-          `${CATALOG_TABLE_ROW_SOURCE}:cell-${index}` as TemplateId,
-          rowContext,
-          row.key,
-          [],
-        );
-        // The text is one line with an ellipsis (the Cell rule's Canvas paint, as Table.css);
-        // the box clips it.
-        return {
-          ...cell,
-          visual: extendedVisual(cell.visual, { overflow: "hidden" }),
-        };
-      });
-      return {
-        ...synthesize(
-          TABLE_ROW_DEFINITION,
-          rowProps,
-          `${CATALOG_TABLE_ROW_SOURCE}:row` as TemplateId,
-          bodyContext,
-          row.key,
-          cells,
-        ),
-        rowIndex,
-      };
-    });
+  };
+  /** A bound Table after its Row template repeated (`boundTableRows`): the clip and the counts. */
+  const finishBoundTable = (
+    projected: ResolvedCatalogNode | undefined,
+    table: BoundTableRows | undefined,
+  ): ResolvedCatalogNode | undefined => {
+    if (!projected || !table) return projected;
+    const typeOf = (resolved: ResolvedCatalogNode) =>
+      lookupDefinition(resolved.definitionId).name;
+    if (typeOf(projected) !== "Table") return projected;
+    const body = projected.children.find(
+      (child) => typeOf(child) === "TableBody",
+    );
+    if (!body) return projected;
     return {
       ...projected,
       // ADR-284 Decision 5: a Table sorted by its view's variable shows the variable's sort and
       // leaves its header press to the rule that writes it (no runtime sort of its own).
-      ...(sortedByView
+      ...(table.sortedByView
         ? {
             props: {
               ...projected.props,
-              sortDescriptor: variableSort,
+              sortDescriptor: table.sortedByView.sort,
               _sortByVariable: true,
             } as typeof projected.props,
           }
@@ -2284,13 +2251,15 @@ export function resolveCatalogNode(
         child === body
           ? {
               ...body,
-              // The rows past a fixed height are cut (the DOM's virtualizer scrolls them).
+              // The rows past a fixed height are cut.
               visual: extendedVisual(body.visual, { overflow: "hidden" }),
               // The other modes grow with every row (the Builder samples them).
-              ...(fixed
+              ...(table.fixed
                 ? {}
-                : { rowCount: rowCountOf(rowSet), rowsShown: ordered.length }),
-              children: rowsOut,
+                : {
+                    rowCount: rowCountOf(table.rowSet),
+                    rowsShown: table.ordered.length,
+                  }),
             }
           : child,
       ),

@@ -224,14 +224,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
   const selectedKeys = useMemo(() => new Set<Key>(selectedIds), [selectedIds]);
   const handleSelectionChange = useCallback(
     (keys: Set<Key>) => {
-      // The "+N more" row selects the row holding the rows not drawn (as the Canvas hatch).
-      const ids = [
-        ...new Set(
-          [...keys].map(
-            (key) => tree.node(String(key))?.selects ?? String(key),
-          ),
-        ),
-      ];
+      const ids = [...keys].map((key) => String(key));
       if (!ids.length) {
         workspace.session.clearSelection();
         return;
@@ -277,7 +270,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       )
         return;
       event.preventDefault();
-      const id = node.selects ?? node.id;
+      const id = node.id;
       const selected = workspace.session
         .getSnapshot()
         .selection.map((item) => item.identity);
@@ -325,9 +318,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       target: string,
       position: "before" | "after" | "on",
     ) =>
-      tree &&
-      // A data row is a projection of the row template, not a place to drop into.
-      !tree.node(target)?.projection
+      tree
         ? catalogLayerDropCommand(
             tree,
             workspace.runtime.graph,
@@ -449,9 +440,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
             onExpandedChange={handleExpandedChange}
             dnd={{
               canDrag: (node) =>
-                !node.body &&
-                !node.projection &&
-                node.position.target.kind === "node",
+                !node.body && node.position.target.kind === "node",
               isValidDrop,
               onMove: handleMove,
               dragType: "application/x-layer-tree-item",

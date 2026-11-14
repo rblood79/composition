@@ -3041,9 +3041,10 @@ function ruleDom(
       : undefined;
   // A collection item's RAC id is its key (`resolveStaticItemKey`); RAC refuses an item whose id
   // changes in place ("Cannot change the id of an item" — an open Preview while the author sets a
-  // Tab's id, G5 example 8): the key remounts the item instead.
+  // Tab's id, G5 example 8): the key remounts the item instead. (A Table's Row too — ADR-310 Phase 4:
+  // its first data row is its template's element, whose id turns into the row's key when the rows come.)
   const itemKey =
-    STATIC_ITEM_TYPES.has(type) || lower === "menuitem"
+    STATIC_ITEM_TYPES.has(type) || lower === "menuitem" || lower === "row"
       ? resolveStaticItemKey(node.props as Record<string, unknown>, node.id)
       : undefined;
   // ADR-258 Decision 7 — RAC's Color state keeps its first `defaultValue`: a document edit of the
@@ -3829,7 +3830,7 @@ function tableColumnWidthKey(
 /**
  * ADR-257 Phase 4 — an authored TableBody's Rows in its Table's Preview sort (the text of their
  * cell in the sorted column). Data rows come sorted by value from the resolver (the rows a fixed
- * height shows are the sorted data's first — `projectTableRows`).
+ * height shows are the sorted data's first — `boundTableRows`).
  */
 function tableBodyOrder(
   root: CatalogCompositionRoot,
@@ -4765,8 +4766,12 @@ function withHtmlId(
           (id) => root.domInputs.get(id),
           (record) => catalogTypeName(root, record),
         ));
+  // (ADR-310: a data row's copy of its template — the rows after the first — takes no author id: an
+  // HTML id names one element, and a Table cell's id is its RAC key, which a collection keeps unique.)
+  const rowCopy = node.id.includes(CATALOG_ROW_SEPARATOR);
   if (
     node.htmlId &&
+    !rowCopy &&
     !selectTrigger &&
     !sliderLabel &&
     !cardViewItem &&

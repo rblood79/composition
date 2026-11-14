@@ -4,7 +4,7 @@
  * The sort is the Preview's runtime state (사용자 결정 4 — never the document; the Canvas keeps
  * the document's order): RAC's `onSortChange` gives `{ column, direction }`, `column` being the
  * Column's RAC key (`catalogTableColumnKey`). A bound Table's rows are sorted by
- * their field values before the rows its height shows are taken (`resolver.ts` `projectTableRows`);
+ * their field values before the rows its height shows are taken (`resolver.ts` `boundTableRows`);
  * an authored Table's Rows by the text of their cell in that column (`catalogTableSortedRows`).
  */
 

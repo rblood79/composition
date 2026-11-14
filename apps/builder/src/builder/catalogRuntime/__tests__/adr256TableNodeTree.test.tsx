@@ -318,30 +318,40 @@ describe("ADR-256 Phase 5i-1 — Table draws its node tree", () => {
     expect(root.getGeometry([table.id]).get(table.id)!.height).toBe(242);
   });
 
-  it("a bound Table's body takes no row (its rows are the data's — the projected rows)", async () => {
+  // ADR-310 Phase 4: a bound Table's rows are its Row template's; other Rows are static (a total).
+  it("a bound Table's body takes a static row too (beside its Row template)", async () => {
     const { workspace, record } = await open({}, {
       binding: {
         collectionId: "data:collection:files",
         fieldMap: {},
       },
     } as Partial<NodeEntry>);
-    let code: unknown;
-    try {
-      workspace.execute(
-        insertTableRow({
-          body: workspace.positionOfRecord(record("project:node:body").id)!
-            .target,
-          buildRow: () => {
-            const row = node(workspace.newId("node"), "Row");
-            return { entries: [row], rootId: row.id as NodeId };
-          },
-          newId: workspace.newId,
-        }),
-      );
-    } catch (error) {
-      code = (error as { code?: unknown }).code;
-    }
-    expect(code).toBe("TABLE_ROWS_FROM_DATA");
+    const rows = () =>
+      workspace.readModel.childRows(
+        workspace.positionOfRecord(record("project:node:body").id)!,
+      ).length;
+    const body = workspace.positionOfRecord(record("project:node:body").id)!
+      .target;
+    const before = rows();
+    workspace.execute(
+      insertTableRow({
+        body,
+        buildRow: (columnCount) => {
+          const cells = Array.from({ length: columnCount }, () =>
+            node(workspace.newId("node"), "Cell", { children: "Total" }),
+          );
+          const row = node(
+            workspace.newId("node"),
+            "Row",
+            {},
+            cells.map((cell) => cell.id),
+          );
+          return { entries: [row, ...cells], rootId: row.id as NodeId };
+        },
+        newId: workspace.newId,
+      }),
+    );
+    expect(rows()).toBe(before + 1);
   });
 });
 

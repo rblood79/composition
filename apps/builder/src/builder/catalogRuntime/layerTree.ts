@@ -52,17 +52,6 @@ export interface CatalogLayerNode {
   /** An ancestor is a component; owned slot content is an internal node too. */
   readonly insideComponent?: true;
   /**
-   * A bound collection's data row (4e-6-36): the drawn row's record, at its row template position
-   * (selecting it selects that row). Not a document position of its own — neither draggable,
-   * deletable nor a drop target.
-   */
-  readonly projection?: true;
-  /**
-   * The record selecting this row selects instead: the "+N more" row of the rows a sampled list
-   * does not draw selects the row that holds them (as the Canvas hatch selects the list).
-   */
-  readonly selects?: string;
-  /**
    * The slot role a layout slot declares (`header`, `content` …): its row shows it, in the layout
    * and on a page that uses the layout (the slot positions under the page body).
    */
@@ -95,8 +84,6 @@ export interface CatalogBoundLayerRows {
     id: string;
     name: string;
     typeName: string;
-    /** A row with no document position (a Table's data row) selects the row holding it. */
-    selects?: string;
   }[];
   readonly more?: number;
   /** ADR-310 §4.6 — data-row keys a static item of the list already has (a diagnostic). */
@@ -110,7 +97,7 @@ export interface CatalogLayerTreeHost {
   subscribeSteps(listener: CatalogStepListener): () => void;
   /**
    * The drawn data rows a row holds; `undefined` = none (unbound or rows unknown: the item
-   * positions are listed). Absent = no projection.
+   * positions are listed). Absent = no bound rows.
    */
   boundRows?(position: CatalogPosition): CatalogBoundLayerRows | undefined;
   /** Data rows changed outside the document (the bound rows are read again). */
@@ -228,8 +215,6 @@ const roleOf = (
 const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.role === b.role &&
   a.insideComponent === b.insideComponent &&
-  a.projection === b.projection &&
-  a.selects === b.selects &&
   a.slot === b.slot &&
   a.keptOrigin === b.keptOrigin &&
   a.emptyState === b.emptyState &&
@@ -512,9 +497,7 @@ export class CatalogLayerTreeStore {
                 childrenInsideComponent,
               ),
             );
-      const count = bound
-        ? drawn.length + bound.rows.filter((row) => row.selects).length
-        : drawn.length;
+      const count = drawn.length;
       const entry =
         position.target.kind === "node"
           ? graph.getEntry(position.target.id)
@@ -571,9 +554,8 @@ export class CatalogLayerTreeStore {
       return node;
     };
     // ADR-310 Decision 3: a bound collection's rows are its document positions — its static items
-    // and its rows' template (the item marked `repeat`, whose row shows the drawn row count). Rows
-    // with no document position (a Table's synthesized rows) follow them, selecting their holder,
-    // and the rows the sample does not draw are one "+N more" row.
+    // and its rows' template (the item marked `repeat`, whose row shows the drawn row count; a
+    // Table's Row template too — Phase 4). The data rows have no rows of their own.
     const projectRows = (
       parent: CatalogPosition,
       rows: readonly CatalogPosition[],
@@ -581,24 +563,13 @@ export class CatalogLayerTreeStore {
       depth: number,
       insideComponent: boolean,
     ): CatalogLayerNode[] => {
-      const keep = (next: CatalogLayerNode) => {
-        const old = previous.get(next.id);
-        const node = old && sameNode(old, next) ? old : next;
-        nodes.set(node.id, node);
-        return node;
-      };
       const parentType = typeNameOf(graph, parent);
       const count = bound.rows.length + (bound.more ?? 0);
       repeatGated.push({
         parent,
         conflicts: String(bound.keyConflicts ?? ""),
       });
-      const synthesized = bound.rows.filter((item) => item.selects);
-      // (A Table's synthesized rows stand in for its Row template — the Canvas draws them, not it.)
-      const rowType = synthesized[0]?.typeName;
-      const out = rows
-        .filter((row) => !rowType || typeNameOf(graph, row) !== rowType)
-        .map((row) =>
+      return rows.map((row) =>
         build(
           row,
           parent.identity,
@@ -609,42 +580,6 @@ export class CatalogLayerTreeStore {
           bound.keyConflicts,
         ),
       );
-      if (!rowType) return out;
-      return [
-        ...out,
-        ...synthesized.map((item) =>
-          keep({
-            id: item.id,
-            parentId: parent.identity,
-            depth,
-            hasChildren: false,
-            name: item.name,
-            typeName: item.typeName,
-            position: parent,
-            body: false,
-            projection: true,
-            ...(insideComponent ? { insideComponent: true as const } : {}),
-            selects: item.selects!,
-          }),
-        ),
-        ...(bound.more
-          ? [
-              keep({
-                id: `${parent.identity}::more`,
-                parentId: parent.identity,
-                depth,
-                hasChildren: false,
-                name: `+${bound.more} more`,
-                typeName: rowType,
-                position: parent,
-                body: false,
-                projection: true,
-                ...(insideComponent ? { insideComponent: true as const } : {}),
-                selects: parent.identity,
-              }),
-            ]
-          : []),
-      ];
     };
     let rows: readonly CatalogPosition[] = [];
     try {

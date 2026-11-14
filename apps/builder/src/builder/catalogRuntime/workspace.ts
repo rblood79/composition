@@ -922,8 +922,6 @@ export class CatalogWorkspace {
         id,
         name: textOf(id) ?? typeName,
         typeName,
-        // A synthesized row (a Table's data row) has no Layers position: it selects its holder.
-        ...(this.positionOfRecord(id) ? {} : { selects: owner.id }),
       });
     }
     if (!rows.length) {

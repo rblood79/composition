@@ -29,6 +29,7 @@ export {
   catalogStaticItemCount,
   clearRowTemplates,
   markRowTemplates,
+  renameTableColumnField,
   setRowTemplate,
   type CatalogRowTemplateMode,
 } from "./rowTemplate";
@@ -148,6 +149,7 @@ export {
   insertTableRow,
   setTableCellSpan,
   tableHeaderColumns,
+  tableBodyPosition,
   tableHeaderPosition,
   type TableColumnSpec,
 } from "./collections";

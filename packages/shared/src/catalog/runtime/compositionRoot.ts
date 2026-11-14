@@ -8076,10 +8076,10 @@ export class CatalogCompositionRoot {
    * transaction IDs/revision and the runtime's pre/post influence closure. May throw.
    */
   /**
-   * A value edit a bound Table's projected rows read (`projectTableRows`): the Table's own props
-   * (height mode · height decide how many rows show) or a node it owns (a header Column's key
-   * decides each cell). Those take the structure path — the row records come and go. So does a
-   * bound node's own height (a bound list samples its rows only while it grows with them).
+   * A value edit a bound Table's repeated rows read (`boundTableRows`): the Table's own props
+   * (height mode · height decide how many rows show) or a node it owns (its Row template and
+   * columns). Those take the structure path — the row records come and go. So does a bound node's
+   * own height (a bound list samples its rows only while it grows with them).
    */
   private touchesTableRows(result: CatalogTransactionResult): boolean {
     const graph = this.runtime.graph;
@@ -8428,8 +8428,15 @@ export class CatalogCompositionRoot {
       const candidates = new Set<string>();
       if (nodeStructure)
         for (const sourceId of result.impact.affectedParents)
-          for (const id of this.sourceInstances.get(sourceId) ?? [])
-            if (this.recordRoots.get(id) === rootId) candidates.add(id);
+          for (const id of this.sourceInstances.get(sourceId) ?? []) {
+            if (this.recordRoots.get(id) !== rootId) continue;
+            // A parent inside a repeated row (a node added to a Table's Row template cell — ADR-310)
+            // is resolved by its collection owner: the row key is not an authored position.
+            let region = this.records.get(id);
+            while (region?.id.includes(CATALOG_ROW_SEPARATOR))
+              region = this.records.get(region.parentId);
+            if (region) candidates.add(region.id);
+          }
       const regions = this.outermostRegions(candidates);
       if (regions.length) {
         const { before, next, lookup } = this.resolveRegions(

@@ -12,6 +12,8 @@ Accepted — 2026-11-15 (사용자 `/execute-adr 310` + 설계 리뷰 닫힘 —
 >
 > **Phase 3 닫힘 (2026-11-15)**: G3 — 항목 노드의 반복 표시 `repeat` (contract 67 안) · resolver 의 「첫 항목 = 템플릿」 다섯 자리를 표시 판정 하나로 (소스 패턴 0, 원본 template 자리는 반복하지 않음) · 연결 · 해제 · 「템플릿 바꾸기」 명령 · 사용자 결정 2 (연결 칸 선택지 — 첫 항목만 템플릿 / 모두 고정 항목) · 3 (Layers 반복 아이콘 + × 행 수 · Canvas 점선 외곽) 확정 · 섞인 목록 key 충돌 경고. `[고정 A, 반복 B (3 행), 고정 C]` 가 Canvas · DOM · Layers 에서 5 개 같은 순서 · 해제 뒤 B 는 고정 항목 하나 (단위 + live). 원복 RED 6. 번들 누적 Builder +2,121 · Preview −2 B. live — 새 프로젝트에서 연결 칸 「Keep all as fixed items」 → Layers 우클릭 「Use as row template」 → Publish option 5 (Inbox · Kim · Lee · Park · Archive) → key 충돌 경고 → 해제 (Chrome MCP, 콘솔 오류 0). 끌어 옮기기 경계 규칙 (결정 4) 은 Phase 6 (`onMove`) 와 함께.
 
+> **Phase 4 닫힘 (2026-11-15)**: G4 — 연결한 Table 은 TableBody 의 Row 하나가 템플릿 (`repeat`) 이고 열마다 Cell 이 `{열 key}` 를 읽는다 · 합성 행 (`projectTableRows`) 삭제 · 저장 노드 수가 0 · 100 · 1,000 행에서 같음 · 템플릿 Cell 의 Badge 가 모든 행에 · 열 추가는 템플릿 Cell 에 그 열 key · 고정 Row (합계 행) 허용 (`TABLE_ROWS_FROM_DATA` 삭제) · 정렬 · 높이 자르기는 반복 앞. live 에서 찾은 열 key ↔ 라벨 결합 수리 (연결이 Column key 를 고정). DOM 수리 2 (반복 행의 저작 id · Row id 변경 remount). contract 67 그대로. 원복 RED 11. 성능 — 직전 커밋 대조 (jsdom 교대 3 쌍 · ratchet 12 seed) 차이 없음. 번들 누적 Builder +2,220 · Preview +0 B. live — 새 프로젝트에서 패널 연결 → Layers `Row × 3` → Badge · 고정 Total · 열 추가 → 라벨 편집 → Publish DOM 행 5 · 4 → 해제 → 새로고침 (Chrome MCP, 콘솔 오류 0).
+
 Proposed — 2026-11-15
 
 - 사용자 요청: `/create-adr` (2026-11-15, 「권장안으로 /create-adr」).
