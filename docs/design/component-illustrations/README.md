@@ -10,6 +10,7 @@ Chart의 7가지 팔레트 항목과 Layout 모드 전용 Slot을 포함합니�
 - [날짜·시간 확대 · 검은 배경](./date-time-dark.svg)
 - [파일·등록 항목 대응표](./manifest.json)
 - [개별 SVG 폴더](./svg/)
+- [전체 ZIP 다운로드](./component-illustrations.zip)
 
 ## 파일 규격
 
@@ -46,13 +47,17 @@ RangeCalendar 단독 일러스트는 같은 달력 모듈을 1.75배 균등 확�
 저장소 루트에서 Python 표준 라이브러리로 실행합니다.
 
 ```sh
-python3 design/component-illustrations/generate.py
-python3 design/component-illustrations/validate.py
+python3 docs/design/component-illustrations/generate.py
+python3 docs/design/component-illustrations/validate.py
 ```
 
 등록 목록은 `paletteItems.ts`의 `PALETTE_ORDER`, Chart 변형은
 `packages/rendering/src/chart/authoring.ts`에서 읽습니다. 새 항목에 그림이 없으면
 생성을 중단하므로 임의의 기본 아이콘으로 누락을 숨기지 않습니다.
+
+생성 명령은 같은 폴더의 `component-illustrations.zip`도 갱신합니다. ZIP에는
+SVG·미리보기·문서·생성 및 검증 소스 98개를 담으며, 검증 명령은 압축 파일의 목록과
+내용이 현재 원본과 일치하는지도 확인합니다.
 
 이번 결과는 독립 에셋 제작물입니다. Builder의 Components 패널 썸네일 연결이나
 Catalog·Canvas·Preview 런타임 변경은 포함하지 않습니다.

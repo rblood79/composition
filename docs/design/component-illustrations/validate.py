@@ -6,6 +6,7 @@ import json
 import re
 import sys
 import xml.etree.ElementTree as ET
+import zipfile
 
 sys.dont_write_bytecode = True
 from generate import inventory
@@ -60,4 +61,14 @@ for name in ('DatePicker', 'DateRangePicker'):
     assert (a.get('x'), a.get('width')) == (b.get('x'), b.get('width'))
 assert float(element('DateRangePicker', 'input-form').get('width')) == 2 * float(element('DatePicker', 'input-form').get('width'))
 
+with zipfile.ZipFile(HERE / 'component-illustrations.zip') as archive:
+    assert archive.testzip() is None, 'ZIP 손상'
+    files = [HERE / item['file'] for item in manifest['items']]
+    files += [HERE / name for name in ('README.md', 'generate.py', 'validate.py', 'manifest.json',
+              'contact-sheet-light.svg', 'contact-sheet-dark.svg', 'date-time-light.svg', 'date-time-dark.svg')]
+    assert set(archive.namelist()) == {file.relative_to(HERE.parent).as_posix() for file in files}, 'ZIP 파일 목록 불일치'
+    for file in files:
+        assert archive.read(file.relative_to(HERE.parent).as_posix()) == file.read_bytes(), ('ZIP 내용 불일치', file)
+
 print(f'PASS: {len(actual)}종 등록 일치, 300×300, 기본 벡터 요소, 무채색, 외부 리소스 없음, 고유 ID, 균등 배율, 날짜 너비 정렬')
+print(f'PASS: ZIP {len(files)}개 파일과 현재 원본 일치')

@@ -85,7 +85,9 @@ docs/pencil-extracted/
 docs/pencil-copy/
 docs/migrations/evidence/
 docs/adr/evidence/
-docs/design/
+docs/design/*
+# 사용자 요청으로 버전 관리하는 SVG 배포 패키지만 포함한다.
+!docs/design/component-illustrations/
 
 # License token files (local deployment only)
 apps/builder/token

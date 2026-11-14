@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컴포넌트 일러스트 경로 정리] - 2026-11-14
+
+### Changed
+
+- **디자인 산출물을 `docs/design/component-illustrations/`로 이동**:
+  - 루트 `design/` 생성 금지 규칙에 맞춰 SVG 90종·미리보기·소스·ZIP을 한 주제 폴더에 모았다. 그림 내용은 유지했다.
+  - 생성 스크립트의 저장소 기준 경로와 안내 문서를 수정하고 문서 인덱스에 연결했다. 생성 시 ZIP도 갱신하며 검증 시 원본과 압축 파일의 목록·내용 일치를 확인한다.
+  - `docs/design/`의 다른 로컬 시안은 Git 제외를 유지하고 이 SVG 패키지만 추적하도록 예외를 추가했다.
+
 ## [Components 패널 90종 SVG 일러스트] - 2026-11-14
 
 ### Added

@@ -7,9 +7,10 @@ import json
 import math
 import re
 import xml.etree.ElementTree as ET
+import zipfile
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 PALETTE = ROOT / "apps/builder/src/builder/panels/components/paletteItems.ts"
 CATALOG = ROOT / "packages/shared/src/catalog/componentCatalog.ts"
 CHARTS = ROOT / "packages/rendering/src/chart/authoring.ts"
@@ -462,6 +463,12 @@ def main():
     for bg,suffix in (('#ffffff','light'),('#000000','dark')):
         sheet(items,bg,f'contact-sheet-{suffix}.svg')
         sheet([i for i in items if i['category']=='dateTime'],bg,f'date-time-{suffix}.svg',3,300)
+    files = [HERE/item['file'] for item in items]
+    files += [HERE/name for name in ('README.md', 'generate.py', 'validate.py', 'manifest.json',
+              'contact-sheet-light.svg', 'contact-sheet-dark.svg', 'date-time-light.svg', 'date-time-dark.svg')]
+    with zipfile.ZipFile(HERE/'component-illustrations.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+        for file in sorted(files):
+            archive.write(file, file.relative_to(HERE.parent))
     print(f'{len(items)} editable SVG illustrations generated at {HERE}')
 
 

@@ -160,6 +160,7 @@ Properties Panel · ToggleButtonGroup
 - [nodes-panel-states/](design/nodes-panel-states/) — Navigator 트리 항목 상호작용 상태 (2026-08-21)
 - [builder-tab-pattern-unification/](design/builder-tab-pattern-unification/) — 빌더 탭 패턴 통일 (2026-08-30)
 - [builder-ui-webstudio/](design/builder-ui-webstudio/) — Styles 패널 5탭 before/after (2026-09-08)
+- [component-illustrations/](design/component-illustrations/) — Components 패널 90종 SVG 일러스트·미리보기·ZIP
 
 ---
 
