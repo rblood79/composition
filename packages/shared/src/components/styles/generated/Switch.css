@@ -250,7 +250,7 @@
   --sw-mark-top: calc(calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-XL) * -1 / 2);
 }
 
-.react-aria-Switch .react-aria-SwitchButton .indicator {
+.react-aria-Switch .indicator {
   margin-top: var(--sw-mark-top);
   flex-shrink: 0;
 }

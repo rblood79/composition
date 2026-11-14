@@ -16,7 +16,6 @@ import { resolveToken, type TokenRef } from "@composition/rendering";
  * - ③ the indicator on the first line: the button rows from the top, the indicator `(1lh − box) / 2` down
  *   (S2 `CenterBaseline` — the same place as centring for one line, the first line's for several).
  */
-type ToggleSize = "S" | "M" | "L" | "XL";
 /** A rule `composition.delegation` entry (`DelegationSpec` — `@composition/rendering` spec types). */
 interface ToggleDelegation {
   childSelector: string;
@@ -24,9 +23,13 @@ interface ToggleDelegation {
   variables: Record<string, Record<string, string>>;
   bridges: Record<string, string>;
 }
-const SIZES: readonly ToggleSize[] = ["S", "M", "L", "XL"];
+/** The toggle sizes (the Checkbox · Radio · Switch rules). */
+export const TOGGLE_SIZES = ["S", "M", "L", "XL"] as const;
+export type ToggleSize = (typeof TOGGLE_SIZES)[number];
+const isToggleSize = (size: unknown): size is ToggleSize =>
+  (TOGGLE_SIZES as readonly unknown[]).includes(size);
 /** S2 `controlFont()` per size (repository text steps). */
-const FONT: Record<ToggleSize, string> = {
+export const TOGGLE_FONT: Record<ToggleSize, string> = {
   S: "text-xs",
   M: "text-sm",
   L: "text-base",
@@ -35,22 +38,15 @@ const FONT: Record<ToggleSize, string> = {
 /** S2's group row gap (`space(1)` · `space(1)` · 2 · 2). */
 const GROUP_ROW_GAP: Record<ToggleSize, number> = { S: 1, M: 1, L: 2, XL: 2 };
 
-const line = (size: ToggleSize) => `typography.${FONT[size]}--line-height`;
-const font = (size: ToggleSize) => `typography.${FONT[size]}`;
+const line = (size: ToggleSize) => `typography.${TOGGLE_FONT[size]}--line-height`;
+const font = (size: ToggleSize) => `typography.${TOGGLE_FONT[size]}`;
 const box = (size: ToggleSize) => `size.height-sm.${size}`;
-const perSize = (name: string, value: (size: ToggleSize) => string) =>
-  Object.fromEntries(SIZES.map((size) => [size, { [name]: value(size) }]));
+const perSize = (vars: (size: ToggleSize) => Record<string, string>) =>
+  Object.fromEntries(TOGGLE_SIZES.map((size) => [size, vars(size)]));
 
 /** ③ — the indicator's top margin on a button that rows from the top: `(1lh − box) / 2`. */
 const indicatorTop = (size: ToggleSize) =>
   `{length.${line(size)}*1/2+${box(size)}*-1/2}`;
-
-/** ③ — the indicator's top margin ref at a toggle size (the Canvas indicator part rule). */
-export function toggleIndicatorTopRef(size: string): string | undefined {
-  return (SIZES as readonly string[]).includes(size)
-    ? indicatorTop(size as ToggleSize)
-    : undefined;
-}
 /** ② — the help text's top margin: S2's row gap less the root's `text-to-control` gap. */
 const helpTop = (size: ToggleSize, help: "field" | "item") =>
   help === "field"
@@ -67,17 +63,20 @@ const helpStart = (size: ToggleSize) =>
  */
 export function toggleFieldLayout(
   prefix: string,
-  button: string,
   indicator: string,
   help: "field" | "item",
 ): ToggleDelegation[] {
+  const top = `--${prefix}-help-top`;
+  const start = `--${prefix}-help-start`;
+  const item = help === "item";
   return [
     {
-      childSelector: `${button} ${indicator}`,
+      childSelector: indicator,
       prefix: `${prefix}-mark`,
-      variables: perSize(`--${prefix}-mark-top`, indicatorTop),
-      // (The indicator keeps its size beside a long label — S2's `max-content` column; the Canvas
-      //  indicator part rule's `flexShrink: 0`.)
+      variables: perSize((size) => ({
+        [`--${prefix}-mark-top`]: indicatorTop(size),
+      })),
+      // (The indicator keeps its size beside a long label — S2's `max-content` column.)
       bridges: {
         "margin-top": `var(--${prefix}-mark-top)`,
         "flex-shrink": "0",
@@ -86,22 +85,13 @@ export function toggleFieldLayout(
     {
       childSelector: '> [slot="description"]',
       prefix: `${prefix}-help`,
-      variables: Object.fromEntries(
-        SIZES.map((size) => [
-          size,
-          {
-            [`--${prefix}-help-top`]: helpTop(size, help),
-            ...(help === "item"
-              ? { [`--${prefix}-help-start`]: helpStart(size) }
-              : {}),
-          },
-        ]),
-      ),
+      variables: perSize((size) => ({
+        [top]: helpTop(size, help),
+        ...(item ? { [start]: helpStart(size) } : {}),
+      })),
       bridges: {
-        "margin-top": `var(--${prefix}-help-top)`,
-        ...(help === "item"
-          ? { "margin-left": `var(--${prefix}-help-start)` }
-          : {}),
+        "margin-top": `var(${top})`,
+        ...(item ? { "margin-left": `var(${start})` } : {}),
       },
     },
   ];
@@ -109,24 +99,30 @@ export function toggleFieldLayout(
 
 /**
  * ①② for a Checkbox in a CheckboxGroup (its help text's derived `_toggleItemHelp` = the item's size,
- * `presence.ts`): the margins both consumers place it with — the Canvas `styleOf`, the DOM inline style.
- * The part-rule compiler does not reach a grouped item's help text through the group, so this is the
- * one channel (as an ActionButton's badge place, `actionBadge.ts`).
+ * `presence.ts`): the length refs both consumers place it with — the Canvas `styleOf` (resolved), the DOM
+ * inline style (the refs' device formulas). The part-rule compiler does not reach a grouped item's help
+ * text through the group, so this is the one channel (as an ActionButton's badge place, `actionBadge.ts`).
  */
+export function catalogToggleItemHelpRefs(
+  derived: Readonly<Record<string, unknown>> | undefined,
+): { marginTop: string; marginLeft: string } | undefined {
+  const size = derived?._toggleItemHelp;
+  return isToggleSize(size)
+    ? { marginTop: helpTop(size, "item"), marginLeft: helpStart(size) }
+    : undefined;
+}
+
+/** The grouped Checkbox help text's margins in px (the Canvas — `catalogToggleItemHelpRefs`). */
 export function catalogToggleItemHelpLayout(
   derived: Readonly<Record<string, unknown>> | undefined,
 ): Record<string, string> {
-  const size = derived?._toggleItemHelp;
-  if (typeof size !== "string" || !(SIZES as readonly string[]).includes(size))
-    return {};
+  const refs = catalogToggleItemHelpRefs(derived);
+  if (!refs) return {};
   const px = (ref: string) => {
     const value = resolveToken(ref as TokenRef, "light");
     if (typeof value !== "number")
       throw new Error(`CATALOG_TOGGLE_LENGTH:${ref}`);
     return `${Math.round(value * 100) / 100}px`;
   };
-  return {
-    marginTop: px(helpTop(size as ToggleSize, "item")),
-    marginLeft: px(helpStart(size as ToggleSize)),
-  };
+  return { marginTop: px(refs.marginTop), marginLeft: px(refs.marginLeft) };
 }

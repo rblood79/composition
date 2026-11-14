@@ -219,7 +219,7 @@
   --radio-mark-top: calc(calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-XL) * -1 / 2);
 }
 
-.react-aria-Radio .react-aria-RadioButton .indicator {
+.react-aria-Radio .indicator {
   margin-top: var(--radio-mark-top);
   flex-shrink: 0;
 }

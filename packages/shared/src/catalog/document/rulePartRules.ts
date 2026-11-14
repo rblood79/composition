@@ -12,7 +12,6 @@ import { catalogSizeRuleValue } from "./avatarSizeValue";
  * unmapped attributes, `unset`, unresolved `var()`.
  */
 import { CATALOG_FIELD_LABEL_PART_ALIASES } from "./contextualHelp";
-import { toggleIndicatorTopRef } from "../rule/toggleLayout";
 import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../domain/componentTraits";
 import {
   ARCHETYPE_BASE_STYLES,
@@ -1237,12 +1236,6 @@ function toggleIndicatorPartRules(parentType: string): CompiledPartRule[] {
   if (rule?.structure?.archetype !== "toggle-indicator") return [];
   return sizeNames(rule).flatMap((size) => {
     const box = catalogToggleIndicatorBox(parentType, size);
-    // (2026-11-15: S2 `CenterBaseline` — the indicator on the label's first line, `toggleLayout.ts`; the
-    //  sheet's `--*-mark-top`.)
-    const topRef = TOGGLE_BUTTONS[parentType]
-      ? toggleIndicatorTopRef(size)
-      : undefined;
-    const top = topRef ? resolveToken(topRef as TokenRef) : undefined;
     return box === undefined
       ? []
       : [
@@ -1253,13 +1246,7 @@ function toggleIndicatorPartRules(parentType: string): CompiledPartRule[] {
               ? { via: TOGGLE_BUTTONS[parentType] }
               : {}),
             size,
-            layout: {
-              flexShrink: "0",
-              ...(typeof top === "number" ? { marginTop: `${top}px` } : {}),
-            },
-            ...(typeof top === "number" && topRef
-              ? { layoutRefs: { marginTop: topRef } }
-              : {}),
+            layout: { flexShrink: "0" },
             visual: { width: box.width, height: box.height },
           },
         ];

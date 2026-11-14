@@ -2233,22 +2233,24 @@ export function catalogDerivedProps(
       : result;
   // (S2 Meter · ProgressBar `staticColor`: the label and the value text in the static color.)
   const staticText = catalogProgressStaticText(node, get, typeOf);
-  const staticPlaced = staticText
-    ? { ...placed, staticColor: staticText }
-    : placed;
   // (2026-11-15: S2 `isInCheckboxGroup` — a grouped Checkbox's help text in its label's column at the
-  //  group row gap, `toggleLayout.ts` `catalogToggleItemHelpLayout`; its size the item's.)
+  //  group row gap, `toggleLayout.ts` `catalogToggleItemHelpRefs`; its size the item's.)
   const helpItem =
     typeOf(node) === "Description" ? get(node.parentId) : undefined;
-  const colored =
+  const groupedHelp =
     helpItem &&
     typeOf(helpItem) === "Checkbox" &&
-    catalogToggleGroupOf(helpItem, get, typeOf)
+    catalogToggleGroupOf(helpItem, get, typeOf);
+  const colored =
+    staticText || groupedHelp
       ? {
-          ...staticPlaced,
-          _toggleItemHelp: String(helpItem.props.size ?? "M"),
+          ...placed,
+          ...(staticText ? { staticColor: staticText } : {}),
+          ...(groupedHelp
+            ? { _toggleItemHelp: String(helpItem.props.size ?? "M") }
+            : {}),
         }
-      : staticPlaced;
+      : placed;
   // (ADR-257: a Table's header row · Row is a grid on its Table's shared column tracks — the
   //  selection column at S2's `{size.table.selection-column}`: the Canvas's px, the DOM's
   //  device variable `_tableDeviceTracks`, ADR-295 후속.)

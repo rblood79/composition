@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { resolveToken } from "@composition/rendering";
+import { resolveToken, ruleLengthCss } from "@composition/rendering";
 import {
   insertNodes,
   setFields,
@@ -24,6 +24,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { catalogToggleItemHelpRefs } from "../../../../../../packages/shared/src/catalog/rule/toggleLayout";
 import { catalogBindingKeepsOneLine } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
@@ -84,7 +85,7 @@ async function open(origin: string, size: Size = "M") {
       (record) => root.typeOf(record) === type,
     );
   /** The first item of `type` given its own help text (a group item has none by default). */
-  const describe = (type: string) => {
+  const withHelp = (type: string) => {
     const [item] = of(type);
     workspace.execute(
       setFields({
@@ -124,7 +125,7 @@ async function open(origin: string, size: Size = "M") {
     );
     return host.querySelector(`[data-catalog-id="${id}"]`) as HTMLElement;
   };
-  return { workspace, of, describe, boxes, domOf };
+  return { workspace, of, withHelp, boxes, domOf };
 }
 
 describe("toggle S2 field layout", () => {
@@ -159,12 +160,12 @@ describe("toggle S2 field layout", () => {
   ] as const)(
     "a Radio's help text (%s): in its label's column, the group row gap %s below — Canvas and DOM",
     async (size, gap) => {
-      const { workspace, describe, boxes } = await open(
+      const { workspace, withHelp, boxes } = await open(
         "radiogroup",
         size,
       );
       try {
-        const { button, help } = boxes(describe("Radio"));
+        const { button, help } = boxes(withHelp("Radio"));
         expect(help.x - button.x).toBeCloseTo(
           boxOf(size) + textToControl(size),
           1,
@@ -182,24 +183,23 @@ describe("toggle S2 field layout", () => {
   ] as const)(
     "a grouped Checkbox's help text (%s): in its label's column, %s below — Canvas and the DOM inline",
     async (size, gap) => {
-      const { workspace, describe, boxes, domOf } = await open(
+      const { workspace, withHelp, boxes, domOf } = await open(
         "checkboxgroup",
         size,
       );
       try {
-        const { button, help, helpId } = boxes(describe("Checkbox"));
+        const { button, help, helpId } = boxes(withHelp("Checkbox"));
         const start = boxOf(size) + textToControl(size);
         expect(help.x - button.x).toBeCloseTo(start, 1);
         expect(help.y - (button.y + button.height)).toBeCloseTo(gap, 1);
-        const element = domOf(helpId);
-        expect(Number.parseFloat(element.style.marginLeft)).toBeCloseTo(
-          start,
-          1,
-        );
-        expect(Number.parseFloat(element.style.marginTop)).toBeCloseTo(
-          gap - textToControl(size),
-          1,
-        );
+        // (the DOM writes the same refs as their device formulas — the touch set scales them)
+        const refs = catalogToggleItemHelpRefs({ _toggleItemHelp: size })!;
+        expect(px(refs.marginLeft)).toBeCloseTo(start, 1);
+        expect(px(refs.marginTop)).toBeCloseTo(gap - textToControl(size), 1);
+        // (jsdom's style object drops a `calc()` over `var()` — the attribute keeps it)
+        const inline = domOf(helpId).getAttribute("style") ?? "";
+        expect(inline).toContain(`margin-left:${ruleLengthCss(refs.marginLeft)}`);
+        expect(inline).toContain(`margin-top:${ruleLengthCss(refs.marginTop)}`);
       } finally {
         workspace.dispose();
       }
@@ -247,7 +247,6 @@ describe("toggle S2 field layout", () => {
       expect(css).toMatch(
         new RegExp(`\\.react-aria-${button} \\{[^}]*align-items: flex-start`),
       );
-      expect(css).toContain(`margin-top: var(--${prefix}-mark-top)`);
       // (the indicator keeps its size beside a long label — the Canvas part rule's `flexShrink: 0`)
       expect(css).toMatch(
         new RegExp(`margin-top: var\\(--${prefix}-mark-top\\);\\s*flex-shrink: 0`),

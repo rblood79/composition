@@ -1,5 +1,5 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
-import { catalogToggleItemHelpLayout } from "../rule/toggleLayout";
+import { catalogToggleItemHelpRefs } from "../rule/toggleLayout";
 import { catalogEffectiveStaticColor } from "./staticBackdrop";
 import { SliderThumb as CatalogSliderThumb } from "../../components/RangeSlider";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
@@ -96,6 +96,7 @@ import { isBodyType } from "../../domain/predicates";
 import { containerTypeSet } from "../../domain/componentTraits";
 import {
   getIconData,
+  ruleLengthCss,
   tokenToCSSVar,
   type TokenRef,
 } from "@composition/rendering";
@@ -4194,12 +4195,15 @@ export function renderNode(
   // ADR-295 Phase 3c-3b: a part rule's length margin (a field button's overlap) — its device formula.
   if (bound) catalogDeviceLayoutCss(bound, node.layout);
   // (2026-11-15: a grouped Checkbox's help text — S2 `isInCheckboxGroup`, over its own field margins;
-  //  the Canvas's same margins, `toggleLayout.ts`.)
-  if (bound)
-    Object.assign(
-      bound,
-      catalogLayoutCss(catalogToggleItemHelpLayout(node.derivedProps)),
-    );
+  //  the Canvas's same margins as the refs' device formulas, `toggleLayout.ts`.)
+  const toggleHelp =
+    bound && node.derivedProps?._toggleItemHelp
+      ? catalogToggleItemHelpRefs(node.derivedProps)
+      : undefined;
+  if (bound && toggleHelp) {
+    bound.marginTop = ruleLengthCss(toggleHelp.marginTop);
+    bound.marginLeft = ruleLengthCss(toggleHelp.marginLeft);
+  }
   if (bound && node.derivedProps?._fieldLabelRole)
     // Label skips stylesheet generation. Its typed part defaults (including inline/flex
     // baseline participation) must reach DOM as well as authored edits, just as Canvas reads them.

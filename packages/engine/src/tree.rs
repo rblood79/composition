@@ -2030,6 +2030,23 @@ impl LayoutTree {
     ///
     /// grid 자식은 `measure_intrinsic_width` 가 `None` 이라 자동으로 기존 재귀
     /// 경로로 떨어진다 (§컨테이너 intrinsic 이연).
+    /// A column flex item's fit-content width (`(fit, own inline pad/border)`) when its max-content
+    /// overflows the column's available width — an auto-width item with an intrinsic width only
+    /// (`None` = it fits, or its width is not auto: solved as before).
+    fn column_item_overflow_fit(&mut self, c: usize, avail_w: f32) -> Option<(f32, f32)> {
+        let n = self.get(c)?;
+        let w_auto = matches!(n.style.width.as_deref(), None | Some("auto"));
+        if !w_auto || (n.children.is_empty() && n.style.content_max_width.is_none()) {
+            return None;
+        }
+        let (min_w, max_w) = self.measure_intrinsic_width(c)?;
+        let n = self.get(c)?;
+        let ctx = self.ctx_for(avail_w);
+        let pbh = axis_pad_border(&n.style, &ctx, true);
+        let avail_content = auto_content_avail_w(&n.style, &ctx, avail_w, pbh);
+        (max_w > avail_content + 0.01).then(|| (max_w.min(min_w.max(avail_content)), pbh))
+    }
+
     fn solve_child_intrinsic_aware(&mut self, c: usize, sw: f32, sh: f32) -> (f32, f32) {
         if let Some(mode) = intrinsic_mode(sw) {
             let is_container = self.get(c).map(|n| !n.children.is_empty()).unwrap_or(false);
@@ -3597,40 +3614,27 @@ impl LayoutTree {
                     n.definite_h = definite;
                 }
             }
-            let mut cs = if wraps {
+            // 2026-11-15 (S2 toggle label wrap) — a column item that does not stretch has an auto
+            //   cross size of **fit-content** (CSS-FLEXBOX §9.4 step 7 → css-sizing fit-content:
+            //   min(max-content, max(min-content, available))). It is solved with an indefinite cross
+            //   available (its `%` cross has no basis — kept), which is its max-content; when that
+            //   overflows the column's available width it is solved once at the clamped width instead
+            //   (as `solve_block_child`'s shrink-to-fit), so its children lay out there (a toggle's row:
+            //   its label wraps — Chrome 204 / text 178, the engine 298 before).
+            let fit = if !is_row && !wraps && sw == INDEFINITE_AVAIL && child_avail_w >= 0.0 {
+                self.column_item_overflow_fit(c, child_avail_w)
+            } else {
+                None
+            };
+            let cs = if let Some((fit, pbh)) = fit {
+                self.mark_subtree_dirty(c);
+                let (_, h) = self.solve_node(c, fit + pbh, sh);
+                (fit, h)
+            } else if wraps {
                 self.solve_node(c, sw, sh)
             } else {
                 self.solve_child_intrinsic_aware(c, sw, sh)
             };
-            // 2026-11-15 (S2 toggle label wrap) — a column item that does not stretch has an auto
-            //   cross size of **fit-content** (CSS-FLEXBOX §9.4 step 7 → css-sizing fit-content:
-            //   min(max-content, max(min-content, available))). It is solved above with an indefinite
-            //   cross available (its `%` cross has no basis — kept), which is its max-content; when that
-            //   overflows the column's available width it is solved again as `fit-content` against it,
-            //   so its children lay out at the clamped width (a toggle's row: its label wraps — Chrome
-            //   204 / text 178, the engine 298 before).
-            if !is_row && !wraps && sw == INDEFINITE_AVAIL && child_avail_w >= 0.0 {
-                let overflow = self.get(c).map(|n| {
-                    let ctx_w = self.ctx_for(child_avail_w.max(0.0));
-                    let margin = |v: Option<&str>| {
-                        if v == Some("auto") { 0.0 } else { resolve_signed(v, &ctx_w) }
-                    };
-                    let margins = margin(n.style.margin_left.as_deref())
-                        + margin(n.style.margin_right.as_deref());
-                    cs.0 + self.child_auto_inline_pad_border(c, child_avail_w)
-                        > child_avail_w - margins + 0.01
-                });
-                if overflow == Some(true) {
-                    let saved = self.get(c).map(|n| n.style.width.clone());
-                    if let Some(n) = self.get_mut(c) {
-                        n.style.width = Some("fit-content".to_string());
-                    }
-                    cs = self.solve_child_intrinsic_aware(c, child_avail_w, sh);
-                    if let (Some(saved), Some(n)) = (saved, self.get_mut(c)) {
-                        n.style.width = saved;
-                    }
-                }
-            }
             if definite.is_some() {
                 if let Some(n) = self.get_mut(c) {
                     n.definite_h = None; // 측정 경로가 solve_node 를 안 탔으면 여기서 비운다

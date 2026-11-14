@@ -35,7 +35,12 @@ import {
   PICKER_INVALID_WIDTH,
 } from "../document/pickerTrigger";
 import { SHEET_HANDLE_SELECTORS } from "../document/sheetChrome";
-import { toggleFieldLayout } from "../rule/toggleLayout";
+import {
+  TOGGLE_FONT,
+  TOGGLE_SIZES,
+  toggleFieldLayout,
+  type ToggleSize,
+} from "../rule/toggleLayout";
 import {
   catalogActionBadgeSizeSelectors,
   catalogBadgeStaticVariants,
@@ -144,18 +149,10 @@ const FIELD_BUTTON_CORNER_STATE = {
 //   풀어 읽고, DOM 은 아래 선택자 (생성 시트) 가 같은 값을 읽는다 — 수동 `Checkbox.css` · `Radio.css` ·
 //   `Switch.css` 의 size 블록은 빌더 chrome (생성 toggle 시트를 싣지 않는다) 의 것으로 남는다. 선택자는
 //   RAC 버튼 (`*Button`) 을 넣어 수동 시트의 그룹 위임 (`[data-radio-size]` …) 보다 specificity 가 같거나 높다.
-const TOGGLE_SIZES = ["S", "M", "L", "XL"] as const;
-type ToggleSize = (typeof TOGGLE_SIZES)[number];
 const toggleBox = (size: ToggleSize) =>
   `var(--catalog-token-size-height-sm-${size})`;
 const CHECKBOX_RADIUS: Record<ToggleSize, number> = { S: 4, M: 4, L: 5, XL: 5 };
 const RADIO_DOT = 4;
-const SWITCH_FONT: Record<ToggleSize, string> = {
-  S: "text-xs",
-  M: "text-sm",
-  L: "text-base",
-  XL: "text-lg",
-};
 const SWITCH_TRACK_EM = 26 / 14;
 const SWITCH_THUMB_INSET = 4;
 const SWITCH_THUMB_INSET_SELECTED = 3;
@@ -197,7 +194,7 @@ const RADIO_INDICATOR_SELECTORS = togglePerSize(
   }),
 );
 const switchTrackWidth = (size: ToggleSize) =>
-  `calc(var(--catalog-token-${SWITCH_FONT[size]}) * 26 / 14)`;
+  `calc(var(--catalog-token-${TOGGLE_FONT[size]}) * 26 / 14)`;
 const SWITCH_INDICATOR_SELECTORS = togglePerSize(
   (size): Record<string, Record<string, string>> => ({
     [`&[data-size="${size}"] .react-aria-SwitchButton .indicator`]: {
@@ -3245,7 +3242,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             autoKeys: ["gap"],
           },
           // (S2 field grid — help text start · distance, indicator on the first line: `toggleLayout.ts`.)
-          ...toggleFieldLayout("cb", ".react-aria-CheckboxButton", ".checkbox", "field"),
+          ...toggleFieldLayout("cb", ".checkbox", "field"),
         ],
       },
     },
@@ -10943,7 +10940,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             autoKeys: ["gap"],
           },
           // (S2 field grid — help text start · distance, indicator on the first line: `toggleLayout.ts`.)
-          ...toggleFieldLayout("radio", ".react-aria-RadioButton", ".indicator", "item"),
+          ...toggleFieldLayout("radio", ".indicator", "item"),
         ],
       },
     },
@@ -12900,7 +12897,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             autoKeys: ["gap"],
           },
           // (S2 field grid — help text start · distance, indicator on the first line: `toggleLayout.ts`.)
-          ...toggleFieldLayout("sw", ".react-aria-SwitchButton", ".indicator", "field"),
+          ...toggleFieldLayout("sw", ".indicator", "field"),
         ],
       },
     },

@@ -354,7 +354,7 @@
   --cb-mark-top: calc(calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * 1 / 2 + var(--catalog-token-size-height-sm-XL) * -1 / 2);
 }
 
-.react-aria-Checkbox .react-aria-CheckboxButton .checkbox {
+.react-aria-Checkbox .checkbox {
   margin-top: var(--cb-mark-top);
   flex-shrink: 0;
 }

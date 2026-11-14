@@ -873,7 +873,7 @@ type PageFrameRect = {
   readonly height: number;
 };
 
-/** Bindings whose label never wraps (button): min-content = max-content. */
+/** Bindings whose label stays on one line (min-content = max-content) unless the record says `white-space: normal` — `catalogBindingKeepsOneLine`. */
 const noWrapTextBindings: ReadonlySet<string> = new Set([
   "button",
   "label",
