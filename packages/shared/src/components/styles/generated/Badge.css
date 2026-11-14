@@ -52,6 +52,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="accent"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="accent"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="informative"]) {
   background: var(--informative-background);
   color: var(--color-white);
@@ -67,6 +77,16 @@
 .react-aria-Badge:where([data-variant="informative"][data-fill-style="subtle"]) {
   background: var(--informative-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="informative"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="informative"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="neutral"]) {
@@ -86,6 +106,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="neutral"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="neutral"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="positive"]) {
   background: var(--positive-background);
   color: var(--color-white);
@@ -101,6 +131,16 @@
 .react-aria-Badge:where([data-variant="positive"][data-fill-style="subtle"]) {
   background: var(--positive-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="positive"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="positive"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="notice"]) {
@@ -120,6 +160,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="notice"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="notice"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="negative"]) {
   background: var(--negative-background);
   color: var(--fg-on-negative);
@@ -135,6 +185,16 @@
 .react-aria-Badge:where([data-variant="negative"][data-fill-style="subtle"]) {
   background: var(--negative-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="negative"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="negative"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="gray"]) {
@@ -154,6 +214,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="gray"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="gray"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="red"]) {
   background: var(--hue-red);
   color: var(--color-white);
@@ -169,6 +239,16 @@
 .react-aria-Badge:where([data-variant="red"][data-fill-style="subtle"]) {
   background: var(--hue-red-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="red"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="red"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="orange"]) {
@@ -188,6 +268,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="orange"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="orange"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="yellow"]) {
   background: var(--hue-yellow);
   color: var(--color-black);
@@ -203,6 +293,16 @@
 .react-aria-Badge:where([data-variant="yellow"][data-fill-style="subtle"]) {
   background: var(--hue-yellow-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="yellow"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="yellow"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="green"]) {
@@ -222,6 +322,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="green"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="green"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="blue"]) {
   background: var(--hue-blue);
   color: var(--color-white);
@@ -237,6 +347,16 @@
 .react-aria-Badge:where([data-variant="blue"][data-fill-style="subtle"]) {
   background: var(--hue-blue-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="blue"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="blue"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="purple"]) {
@@ -256,6 +376,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="purple"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="purple"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="indigo"]) {
   background: var(--hue-indigo);
   color: var(--color-white);
@@ -271,6 +401,16 @@
 .react-aria-Badge:where([data-variant="indigo"][data-fill-style="subtle"]) {
   background: var(--hue-indigo-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="indigo"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="indigo"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="cyan"]) {
@@ -290,6 +430,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="cyan"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="cyan"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="pink"]) {
   background: var(--hue-pink);
   color: var(--color-white);
@@ -305,6 +455,16 @@
 .react-aria-Badge:where([data-variant="pink"][data-fill-style="subtle"]) {
   background: var(--hue-pink-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="pink"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="pink"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="turquoise"]) {
@@ -324,6 +484,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="turquoise"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="turquoise"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="fuchsia"]) {
   background: var(--hue-fuchsia);
   color: var(--color-white);
@@ -339,6 +509,16 @@
 .react-aria-Badge:where([data-variant="fuchsia"][data-fill-style="subtle"]) {
   background: var(--hue-fuchsia-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="fuchsia"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="fuchsia"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="magenta"]) {
@@ -358,6 +538,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="magenta"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="magenta"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="chartreuse"]) {
   background: var(--hue-chartreuse);
   color: var(--color-black);
@@ -373,6 +563,16 @@
 .react-aria-Badge:where([data-variant="chartreuse"][data-fill-style="subtle"]) {
   background: var(--hue-chartreuse-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="chartreuse"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="chartreuse"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="celery"]) {
@@ -392,6 +592,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="celery"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="celery"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="seafoam"]) {
   background: var(--hue-seafoam);
   color: var(--color-white);
@@ -407,6 +617,16 @@
 .react-aria-Badge:where([data-variant="seafoam"][data-fill-style="subtle"]) {
   background: var(--hue-seafoam-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="seafoam"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="seafoam"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge:where([data-variant="brown"]) {
@@ -426,6 +646,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="brown"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="brown"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="cinnamon"]) {
   background: var(--hue-cinnamon);
   color: var(--color-white);
@@ -443,6 +673,16 @@
   color: var(--gray-1000);
 }
 
+.react-aria-Badge:where([data-variant="cinnamon"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="cinnamon"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
 .react-aria-Badge:where([data-variant="silver"]) {
   background: var(--hue-silver);
   color: var(--color-white);
@@ -458,6 +698,16 @@
 .react-aria-Badge:where([data-variant="silver"][data-fill-style="subtle"]) {
   background: var(--hue-silver-subtle);
   color: var(--gray-1000);
+}
+
+.react-aria-Badge:where([data-variant="silver"][data-static-color="white"]) {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.react-aria-Badge:where([data-variant="silver"][data-static-color="black"]) {
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .react-aria-Badge[data-size="XS"] {

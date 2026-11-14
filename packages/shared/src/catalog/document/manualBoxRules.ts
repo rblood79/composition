@@ -27,6 +27,8 @@ import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CompiledPartRule } from "./rulePartRules";
 import type { Scalar } from "./types";
 
+import { catalogActionBadgeCornerParts } from "../rule/actionBadge";
+
 export interface ManualBoxRule {
   replace?: boolean;
   omit?: readonly string[];
@@ -1001,6 +1003,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // `> .react-aria-Avatar[slot=avatar]` (16px, no shrink); the label gap is the Tag's flex gap
   // (catalog leading gap 4). The Preview marks the slots in a TagGroup and in a standalone Tag's
   // TagGroup host (4e-11).
+  // (2026-11-14) An ActionButton's count badge: a pill (`rule/actionBadge.ts` — the sheet's
+  //   `border-radius`, paint the part-rule compiler leaves).
+  ActionButton: () => ({ parts: catalogActionBadgeCornerParts() }),
   Tag: () => ({
     parts: [
       ...itemLabelFontParts("Tag"),

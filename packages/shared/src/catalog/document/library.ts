@@ -1,3 +1,4 @@
+import { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { catalogPropValueFits, scalarFitsType } from "./valueType";
 import {
@@ -548,7 +549,11 @@ export function buildCatalogLibrary(
       if (rule.child.via && !definitions.get(rule.child.via))
         throw new CatalogValidationError("DANGLING_DEFINITION", at);
       for (const [prop, value] of Object.entries(rule.child.props ?? {}))
-        if (!scalarFitsType(value, child.accepts[prop]))
+        if (
+          // (A derived condition prop — a notification Badge's digits — has no accept.)
+          !CATALOG_DERIVED_VARIANT_PROPS.has(prop) &&
+          !scalarFitsType(value, child.accepts[prop])
+        )
           throw new CatalogValidationError("CONDITION_PROP_NOT_ACCEPTED", at);
       const via = rule.child.via ? definitions.get(rule.child.via) : undefined;
       for (const [prop, value] of Object.entries(rule.child.viaProps ?? {}))

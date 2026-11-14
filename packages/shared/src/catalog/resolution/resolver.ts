@@ -1285,6 +1285,11 @@ export function resolveCatalogNode(
         ? [{ owner: form, via: owner.definitionId }]
         : []),
     ];
+    // (A child's unsaved condition props — a notification Badge's digits — as an owner's.)
+    const childConditions = catalogPartConditionProps(
+      ruleDefinitionOf(definitionId).name,
+      props,
+    );
     for (const { owner: ruleOwner, via } of owners) {
       // (An instance's own children are its root's: a Button instance's own Icon takes the Button
       // rule's icon size, as the template's Icon does — ADR-259 Phase 2, a NumberField's stepper
@@ -1311,7 +1316,7 @@ export function resolveCatalogNode(
           rule.child.definitionId === definitionId &&
           (rule.child.via === via ||
             (viaType !== undefined && rule.child.via === viaType)) &&
-          matches(rule.child.props, props) &&
+          matches(rule.child.props, childConditions) &&
           (!via || matches(rule.child.viaProps, owner.props)) &&
           matches(
             rule.when,

@@ -132,6 +132,30 @@ export function textFromValue(value: unknown): string {
   return "";
 }
 
+/**
+ * (2026-11-14, 사용자 「ActionButton 에 Avatar · Badge — Badge 에 value」) S2 `NotificationBadge` 의
+ * `value` 를 Badge 가 받는다 (composition — S2 는 별도 컴포넌트, `isDot` 과 같은 Badge 축). 양의 정수만
+ * 숫자로 그리고 99 를 넘으면 `99+` (S2 `NotificationBadge.tsx` — `Math.min(value, 99)` +
+ * `notificationbadge.plus`). Canvas paint · 측정 (`resolveTextSourceText`) 과 DOM (`Badge.tsx`) 이
+ * 이 한 함수를 읽는다.
+ */
+export function catalogNotificationBadgeText(value: unknown): string | undefined {
+  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0)
+    return undefined;
+  return value > 99 ? "99+" : String(value);
+}
+
+/**
+ * S2 NotificationBadge 의 모양 — 한 자리는 정사각형 (`isSingleDigit` · `aspectRatio: square`), 두 자리
+ * 이상 (`99+` 포함 — S2 는 99 로 자릿수를 센다) 은 좌우 `edge-to-text`. 값이 없으면 undefined.
+ */
+export function catalogNotificationBadgeDigits(
+  value: unknown,
+): "single" | "double" | undefined {
+  const text = catalogNotificationBadgeText(value);
+  return text === undefined ? undefined : text.length === 1 ? "single" : "double";
+}
+
 /** 타입 순서에서 내용이 있는 첫 키. 없으면 undefined. */
 export function resolveTextSourceKey(
   type: string | undefined,
@@ -150,6 +174,11 @@ export function resolveTextSourceText(
   props: Record<string, unknown> | undefined,
 ): string {
   if (!props) return "";
+  // (A Badge's notification `value` is its text — `catalogNotificationBadgeText`.)
+  if ((type ?? "").toLowerCase() === "badge") {
+    const notification = catalogNotificationBadgeText(props.value);
+    if (notification !== undefined) return notification;
+  }
   for (const key of textSourceOrder(type)) {
     const text = textFromValue(props[key]);
     if (text !== "") return text;

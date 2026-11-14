@@ -60,6 +60,20 @@ export const ACTIONBUTTON_PROPS_SCHEMA: PropsSchema = {
     label: "Icon",
     section: "content",
   },
+  // (2026-11-14, 사용자 「ActionButton 에 Avatar · Badge」) S2 `<ActionButton><Avatar/><Text/>
+  //   <NotificationBadge value/></ActionButton>` — the Avatar's image and the count Badge's value.
+  avatar: {
+    kind: "string",
+    label: "Avatar",
+    section: "content",
+  },
+  badge: {
+    kind: "number",
+    label: "Badge",
+    section: "content",
+    min: 1,
+    step: 1,
+  },
   ...buttonRootAccepts("ActionButton"),
 };
 

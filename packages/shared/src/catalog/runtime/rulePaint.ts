@@ -346,6 +346,10 @@ export function catalogRulePaint(
     derived?._fieldDisabled === true
   )
     props.isDisabled = true;
+  // (2026-11-14: an ActionButton's count badge takes the button's static color — S2
+  //  `NotificationBadgeContext`; the DOM's `data-static-color`.)
+  if (type === "Badge" && typeof derived?.staticColor === "string")
+    props.staticColor = derived.staticColor;
   if (derived?._inActionGroup === true)
     props._groupPosition = {
       orientation: derived.orientation,

@@ -78,6 +78,9 @@ export const SELECTION_COMPOSITE_DEFINITIONS: readonly LibraryDefinition[] = [
       slot: "slot",
       label: "string",
       icon: "string",
+      // (2026-11-14) S2 Avatar · NotificationBadge children — the image URL and the count.
+      avatar: "string",
+      badge: "number",
       size: "string",
       staticColor: "string",
       type: "string",
@@ -87,6 +90,7 @@ export const SELECTION_COMPOSITE_DEFINITIONS: readonly LibraryDefinition[] = [
     },
     defaults: {
       label: "Action",
+      avatar: "",
       size: "M",
       staticColor: "auto",
       type: "button",
@@ -313,8 +317,11 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
     id: "lib:template:component-actionbutton",
     definitionId: "lib:definition:type-ActionButton",
     children: [
+      // (2026-11-14) S2 order: `<Icon /> or <Avatar />`, `<Text />`, `<NotificationBadge />`.
+      "lib:template:component-actionbutton__avatar",
       "lib:template:component-actionbutton__icon",
       "lib:template:component-actionbutton__label",
+      "lib:template:component-actionbutton__badge",
     ],
     props: {
       size: "M",
@@ -322,6 +329,28 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
       type: "button",
       isQuiet: false,
       isPending: false,
+    },
+    visual: {},
+  },
+  {
+    // (S2 `AvatarContext` in the button: one line tall — `size: '1lh'`; there with an image.)
+    id: "lib:template:component-actionbutton__avatar",
+    definitionId: "lib:definition:type-Avatar",
+    children: [],
+    props: {
+      slot: "avatar",
+      src: "{avatar}",
+      size: "1lh",
+    },
+    visual: {},
+  },
+  {
+    // (S2 NotificationBadge — the count; there with a value, `catalogNotificationBadgeText`.)
+    id: "lib:template:component-actionbutton__badge",
+    definitionId: "lib:definition:type-Badge",
+    children: [],
+    props: {
+      value: "{badge}",
     },
     visual: {},
   },

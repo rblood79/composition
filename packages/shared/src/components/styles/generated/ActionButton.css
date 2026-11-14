@@ -403,6 +403,87 @@
   }
 
 
+  .react-aria-ActionButton[data-size="XS"] .react-aria-Badge {
+    height: 12px;
+    min-height: 12px;
+    min-width: 12px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 6px;
+    font-size: var(--catalog-token-text-2xs);
+    line-height: 12px;
+    font-weight: 400;
+  }
+
+  .react-aria-ActionButton[data-size="XS"] .react-aria-Badge[data-notification="double"] {
+    padding: 0px 4.5px;
+  }
+
+  .react-aria-ActionButton[data-size="S"] .react-aria-Badge {
+    height: 12px;
+    min-height: 12px;
+    min-width: 12px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 6px;
+    font-size: var(--catalog-token-text-2xs);
+    line-height: 12px;
+    font-weight: 400;
+  }
+
+  .react-aria-ActionButton[data-size="S"] .react-aria-Badge[data-notification="double"] {
+    padding: 0px 4.5px;
+  }
+
+  .react-aria-ActionButton[data-size="M"] .react-aria-Badge {
+    height: 14px;
+    min-height: 14px;
+    min-width: 14px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 7px;
+    font-size: var(--catalog-token-text-2xs);
+    line-height: 14px;
+    font-weight: 400;
+  }
+
+  .react-aria-ActionButton[data-size="M"] .react-aria-Badge[data-notification="double"] {
+    padding: 0px 5.25px;
+  }
+
+  .react-aria-ActionButton[data-size="L"] .react-aria-Badge {
+    height: 16px;
+    min-height: 16px;
+    min-width: 16px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 8px;
+    font-size: var(--catalog-token-text-xs);
+    line-height: 16px;
+    font-weight: 400;
+  }
+
+  .react-aria-ActionButton[data-size="L"] .react-aria-Badge[data-notification="double"] {
+    padding: 0px 6px;
+  }
+
+  .react-aria-ActionButton[data-size="XL"] .react-aria-Badge {
+    height: 18px;
+    min-height: 18px;
+    min-width: 18px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 9px;
+    font-size: var(--catalog-token-text-sm);
+    line-height: 18px;
+    font-weight: 400;
+  }
+
+  .react-aria-ActionButton[data-size="XL"] .react-aria-Badge[data-notification="double"] {
+    padding: 0px 6.75px;
+  }
+
+
   .react-aria-ActionButton[data-in-group] {
     flex-shrink: 0;
   }

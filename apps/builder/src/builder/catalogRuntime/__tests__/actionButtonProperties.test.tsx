@@ -27,6 +27,9 @@ describe("ActionButton origin Property contract", () => {
       expect(content.map((f) => [f.key, f.kind])).toEqual([
         ["label", "string"],
         ["icon", "icon"],
+        // (2026-11-14, 사용자 「ActionButton 에 Avatar · Badge」 — S2 Avatar · NotificationBadge.)
+        ["avatar", "string"],
+        ["badge", "number"],
       ]);
       const initialLabel = grouped ? "Copy" : "Action";
       const initialIcon = grouped ? "copy" : undefined;

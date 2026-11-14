@@ -67,6 +67,9 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   Badge: {
     isDot: "composition",
     isPulsing: "composition",
+    // (2026-11-14, 사용자 「Badge 에 value」: S2 NotificationBadge `value` — the count, as `isDot` its
+    //   indicator.)
+    value: "composition",
   },
   // ADR-256 Phase 9: RAC `visibleDuration` (days · weeks · months) is a superset of S2
   //   `visibleMonths` (months only) — kept for the reference's Display options; `weeksInMonth` is

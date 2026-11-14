@@ -24,6 +24,7 @@ import {
 } from "./ruleDefinition";
 export { PROP_KIND_VALUE_TYPE } from "./ruleDefinition";
 import { compileRulePartRules } from "./rulePartRules";
+import { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
 import {
   evaluatePaintImage,
   paintAt,
@@ -818,7 +819,10 @@ function withRuleParts(
       const accepts = byId.get(child)!.accepts;
       if (
         Object.entries(part.childProps ?? {}).some(
-          ([prop, value]) => !scalarFitsType(value, accepts[prop]),
+          ([prop, value]) =>
+            // (A derived condition prop — a notification Badge's digits — has no accept.)
+            !CATALOG_DERIVED_VARIANT_PROPS.has(prop) &&
+            !scalarFitsType(value, accepts[prop]),
         )
       )
         return [];

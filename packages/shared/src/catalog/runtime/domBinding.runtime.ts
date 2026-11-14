@@ -1,3 +1,4 @@
+import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
 import { SliderThumb as CatalogSliderThumb } from "../../components/RangeSlider";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import { LinkButton } from "../../components/LinkButton";
@@ -226,6 +227,7 @@ import {
   CATALOG_SLIDER_THICK_TRACK,
   catalogSliderThickTrackMargins,
   catalogAbsentByValue,
+  catalogActionButtonPartAbsent,
   catalogAccordionOf,
   catalogCalendarNavButton,
   catalogCalendarNavButtonGlyph,
@@ -1148,6 +1150,17 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             isPending: node.props.isPending,
             autoFocus: node.props.autoFocus,
             isDisabled: buttonDisabled(node) || node.props.isDisabled,
+            // (2026-11-14) S2 form · focus props (binding — editorHidden).
+            name: node.props.name,
+            value: node.props.value,
+            form: node.props.form,
+            formAction: node.props.formAction,
+            formMethod: node.props.formMethod,
+            formEncType: node.props.formEncType,
+            formTarget: node.props.formTarget,
+            formNoValidate: node.props.formNoValidate,
+            excludeFromTabOrder: node.props.excludeFromTabOrder,
+            preventFocusOnPress: node.props.preventFocusOnPress,
             ...racSlotProps(resolution),
             style,
           } as Parameters<typeof ActionButton>[0],
@@ -2608,6 +2621,10 @@ function ruleDom(
   if (type === "Separator") rest["data-variant"] = "default";
   if (node.domSlot) rest.slot = catalogDomSlot(node);
   const lower = type.toLowerCase();
+  // (2026-11-14: an ActionButton's count badge — its button's static color, S2 `NotificationBadgeContext`;
+  //  the Canvas paint reads the same derived value.)
+  if (type === "Badge" && typeof node.derivedProps?.staticColor === "string")
+    rest["data-static-color"] = node.derivedProps.staticColor;
   // ADR-280 Decision 3 · 4 (Phase 0 probe P1) — an overlay's open state is its trigger's: a
   // running Preview controls the trigger's `isOpen` from the record's runtime value (a rule's
   // `open` · `close`, the user's press · dismiss). A body owns it only standing without a trigger
@@ -3554,6 +3571,13 @@ function authoredStyle(
   // Template/instance-authored layout (origin style) inline over the class CSS.
   Object.assign(
     style,
+  // (2026-11-14: an ActionButton's count badge — its place, the Canvas engine's same input
+  //   (`catalogActionBadgeNodeLayout`); an authored place wins.)
+  if (!catalogIsAuthoredPlaced(node))
+    Object.assign(
+      style,
+      catalogLayoutCss(catalogActionBadgeNodeLayout(node.derivedProps)),
+    );
     catalogLayoutCss(noSheet ? node.layout : catalogAuthoredLayout(root, node)),
   );
   catalogDeviceLayoutCss(style, node.layout);
@@ -3825,6 +3849,12 @@ export function renderNode(
     catalogAbsentByValue(node) ||
     catalogFieldLabelPartsHidden(
       node,
+    // (2026-11-14: an ActionButton's unfilled Avatar · count Badge.)
+    catalogActionButtonPartAbsent(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
+    ) ||
       (id) => root.domInputs.get(id),
       root.typeOf,
     )

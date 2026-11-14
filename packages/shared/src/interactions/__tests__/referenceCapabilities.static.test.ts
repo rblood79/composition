@@ -211,7 +211,9 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     //   Do: Link · LinkButton download · hrefLang · ping · referrerPolicy, Form action · method · encType ·
     //   target, the text fields' autoComplete, Autocomplete's two focus switches, RangeSlider form,
     //   SelectBoxGroup escapeKeyBehavior.)
-    expect(deferred.size).toBe(425);
+    // (2026-11-14 사용자 「Type · Auto focus 숨겨」: +1 — ActionButton type hidden from the panel (S2 docs
+    //   example controls hold neither); autoFocus is not a reference row.)
+    expect(deferred.size).toBe(426);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

@@ -262,6 +262,8 @@ const SHARED_TOKENS: Readonly<Record<string, string>> = {
 /** DOM attribute → typed prop of the matched child. */
 const ATTRIBUTE_PROPS: Readonly<Record<string, string>> = {
   "aria-orientation": "orientation",
+  // (2026-11-14) a notification Badge's digits (`catalogPartConditionProps` — `Badge.tsx` writes it).
+  "data-notification": "notification",
   // RAC's named slot of one of an owner's same-type parts (a range picker's `start` · `end`).
   slot: "slot",
 };

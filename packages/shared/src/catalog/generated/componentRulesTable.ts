@@ -36,6 +36,10 @@ import {
 } from "../document/pickerTrigger";
 import { SHEET_HANDLE_SELECTORS } from "../document/sheetChrome";
 import {
+  catalogActionBadgeSizeSelectors,
+  catalogBadgeStaticVariants,
+} from "../rule/actionBadge";
+import {
   CATALOG_PRESS_TRANSITION,
   CATALOG_PRESS_WILL_CHANGE,
   catalogPressTransform,
@@ -1351,7 +1355,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    variants: {
+    // (2026-11-14, 사용자 「S2 와 같게」) S2 NotificationBadge in a static-color ActionButton: the static
+    //   color's surface (`transparent-overlay-1000`) and the contrast text (`auto`) — every variant, the
+    //   derived `staticColor` (`presence.ts`, its button's; DOM `data-static-color`).
+    variants: catalogBadgeStaticVariants({
       accent: {
         paint: {
           backgroundColor: {
@@ -1952,7 +1959,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
       },
-    },
+    }),
     // ADR-295 Phase 3c-3b: S2 Badge = `control({shape: 'default', wrap: true, icon: true})` — min-height
     //   the control height, padding-inline `edge-to-text` (height × 3/8), the control corner (7 · 8 · 9 · 10 —
     //   not a pill), `text-to-visual` gap, paddingY the S2 centring of the line ((height − line − border×2) / 2).
@@ -10060,6 +10067,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   archetype "default" base 가 emit 하던 inline-flex / center 는 실효가 아니었다 (값 불변).
       containerStyles: {
         display: "flex",
+        // (2026-11-14, 사용자 「Pagination width · height fit-content」) 버튼 줄만큼의 상자 — 그전에는 flex
+        //   block 이라 부모 폭을 채웠다.
+        width: "fit-content",
+        height: "fit-content",
         // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 align-items:center 를 geometry
         //   채널로 이관 — row 의도와 일치하고 Skia 도 같은 값을 읽는다.
         alignItems: "center",
@@ -14252,11 +14263,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Text: {
     defaultVariant: "default",
     defaultSize: "M",
-    // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
-    //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
-    //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
+    // (2026-11-14, 사용자 「Text 기본값은 width · height fit-content」) 글자 상자는 글자 크기다 — 그전에는
+    //   `width: 100%` (ADR-151 B22). layout fallback 채널 (top-level) 과 `structure.containerStyles`
+    //   (생성 CSS) 가 같은 값을 든다.
     containerStyles: {
-      width: "100%",
+      width: "fit-content",
+      height: "fit-content",
     },
     variants: {
       default: {
@@ -14326,7 +14338,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "p",
       containerStyles: {
         display: "block",
-        width: "100%",
+        width: "fit-content",
+        height: "fit-content",
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
@@ -15150,7 +15163,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         transform: { isPressed: catalogPressTransform() },
         cursor: { isDisabled: "default" },
       },
-      composition: ACTION_GROUP_BUTTON_COMPOSITION,
+      // (2026-11-14, 사용자 「ActionButton 에 Avatar · Badge」) S2 NotificationBadge in the button — its
+      //   box · font · double-digit padding per button size (`rule/actionBadge.ts`; the place is the badge's
+      //   own inline layout, `catalogActionBadgeLayout`).
+      composition: {
+        ...ACTION_GROUP_BUTTON_COMPOSITION,
+        sizeSelectors: catalogActionBadgeSizeSelectors(),
+      },
     },
   },
   ActionButtonGroup: {

@@ -2,6 +2,10 @@ import { useCatalogSlotProps } from "./catalogSlotContexts";
 import React from "react";
 import type { BadgeVariant, ComponentSize } from "../types";
 import { Skeleton } from "./Skeleton";
+import {
+  catalogNotificationBadgeDigits,
+  catalogNotificationBadgeText,
+} from "@composition/rendering";
 
 export interface BadgeProps extends Omit<
   React.HTMLAttributes<HTMLSpanElement>,
@@ -33,6 +37,10 @@ export interface BadgeProps extends Omit<
    * @default false
    */
   isPulsing?: boolean;
+  /**
+   * S2 NotificationBadge `value` — a positive whole count shown as the text (over 99 → `99+`)
+   */
+  value?: number;
   /**
    * Fill style of the badge
    * @default 'bold'
@@ -77,6 +85,7 @@ export function Badge(ownProps: BadgeProps): React.ReactElement {
     size = "S",
     isDot = false,
     isPulsing = false,
+    value,
     fillStyle,
     isLoading = false,
     overflowMode = "wrap",
@@ -110,9 +119,14 @@ export function Badge(ownProps: BadgeProps): React.ReactElement {
       data-pulsing={isPulsing || undefined}
       data-fill-style={fillStyle || undefined}
       data-overflow-mode={isDot ? undefined : overflowMode}
+      data-notification={catalogNotificationBadgeDigits(value)}
     >
       {/* S2 wraps the text in its `Text` — the box that clips it with the ellipsis. */}
-      {!isDot && <span className="badge-text">{children}</span>}
+      {!isDot && (
+        <span className="badge-text">
+          {catalogNotificationBadgeText(value) ?? children}
+        </span>
+      )}
     </span>
   );
 }

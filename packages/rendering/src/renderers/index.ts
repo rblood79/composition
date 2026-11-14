@@ -72,6 +72,8 @@ export { buildCatalogShapes, resolveLeadingSlot } from "./buildCatalogShapes";
 // ADR-923 r15m1 — 노드 텍스트 원천 계약 (Preview · Skia · 레이아웃 공용 단일 지점)
 export {
   resolveTextSourceKey,
+  catalogNotificationBadgeText,
+  catalogNotificationBadgeDigits,
   resolveTextSourceText,
   textFromValue,
   textSourceOrder,

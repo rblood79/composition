@@ -1,6 +1,13 @@
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
 
+/**
+ * Blink's layout unit (1/64 px): a line wider than its box by less than that fits — the engine's f32
+ * rect loses an ulp in `x + width − x` past the origin (2026-11-14: an ActionButton label at x 36 is
+ * 39.97999572 wide for its 39.97999954 text and painted 「Acti…」, at x 12 it fitted).
+ */
+const LAYOUT_UNIT = 1 / 64;
+
 /** A fitting line keeps its full glyphs, even when SkParagraph rounds its layout width down. */
 export function textNeedsEllipsis(node: Pick<SkiaNodeData, "text">): boolean {
   const text = node.text;
@@ -10,7 +17,8 @@ export function textNeedsEllipsis(node: Pick<SkiaNodeData, "text">): boolean {
     text.whiteSpace === "nowrap" &&
     !!text.clipText &&
     (text.intrinsicWidth === undefined ||
-      Math.fround(text.intrinsicWidth) > Math.fround(text.maxWidth))
+      Math.fround(text.intrinsicWidth) - Math.fround(text.maxWidth) >=
+        LAYOUT_UNIT)
   );
 }
 

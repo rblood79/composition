@@ -44,6 +44,21 @@ describe("Skia retained text paragraph identity", () => {
     delete node.text!.intrinsicWidth;
     expect(textNeedsEllipsis(node)).toBe(true);
   });
+  it("상자 폭이 f32 한 단위 모자라도 (원점 밖 rect 의 x + width − x) 줄이지 않는다 — Blink 1/64px", () => {
+    // (2026-11-14 live: ActionButton 의 아이콘 뒤 label — x 36 에서 폭 39.97999572, 글자 39.97999954.)
+    const node = makeTextNode();
+    node.text = {
+      ...node.text!,
+      whiteSpace: "nowrap",
+      textOverflow: "ellipsis",
+      clipText: true,
+      intrinsicWidth: 39.97999954223633,
+      maxWidth: 39.97999572753906,
+    };
+    expect(textNeedsEllipsis(node)).toBe(false);
+    node.text!.maxWidth = 39.97999954223633 - 1 / 64;
+    expect(textNeedsEllipsis(node)).toBe(true);
+  });
   it("동일한 서체에서도 locale 변경은 기존 조판을 재사용하지 않는다", () => {
     const node = makeTextNode();
     node.text!.locale = "en-US";

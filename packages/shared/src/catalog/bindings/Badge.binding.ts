@@ -68,6 +68,16 @@ export const badgeBinding: PrimitiveBinding = {
       },
       isDot: { kind: "boolean", label: "Dot Badge", section: "appearance" },
       isPulsing: { kind: "boolean", label: "Pulsing", section: "appearance" },
+      // (2026-11-14, 사용자 「ActionButton 에 Badge — Badge 에 value」) S2 NotificationBadge `value`: a
+      //   positive whole count drawn as the badge's text (over 99 → `99+`), one digit a square, more
+      //   a pill (`catalogNotificationBadgeText` · `…Digits` — Canvas and DOM read the same).
+      value: {
+        kind: "number",
+        label: "Value",
+        section: "value",
+        min: 1,
+        step: 1,
+      },
     },
     toRacProps: "default",
     // Badge.tsx 가 {...props} 뒤에 자기 data-variant/data-size/data-fill-style 를 재작성 →

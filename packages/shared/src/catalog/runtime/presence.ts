@@ -1,3 +1,4 @@
+import type { CatalogActionBadgeContent } from "../rule/actionBadge";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import {
   catalogCalendarFirstDate,
@@ -36,6 +37,7 @@ import {
   catalogColorControlParts,
 } from "./colorControlParts";
 import {
+  catalogNotificationBadgeText,
   getIconData,
   resolveToken,
   resolveTextSourceText,
@@ -903,6 +905,7 @@ export function catalogHiddenAtRest(
   )
     return true;
   // 닫힌 overlay의 화살표만 숨긴다. 열린 portal에서는 부모 배치가 좌표를 제공한다.
+  if (catalogActionButtonPartAbsent(node, get, typeOf)) return true;
   if (node.bindingId === "overlayarrow") {
     const parent = get(node.parentId);
     return !parent || !catalogOverlayOpen(parent, get, typeOf);
@@ -1085,6 +1088,13 @@ export function catalogPresenceScope(
     );
   if (typeOf(node) === "Accordion") return node;
   // A Table's selection column follows its `selectionStyle` (ADR-257 Phase 3).
+  // (2026-11-14) An ActionButton's icon · avatar · count badge follow its values and each other
+  //   (`catalogActionButtonPartAbsent`).
+  if (typeOf(node) === "ActionButton") return node;
+  if (["Icon", "Avatar", "Badge"].includes(typeOf(node))) {
+    const button = get(node.parentId);
+    if (button && typeOf(button) === "ActionButton") return button;
+  }
   if (typeOf(node) === "Table") return node;
   // A ProgressBar's · Meter's value text follows its `showValueLabel` (ADR-256 Phase 7a).
   if (PROGRESS_VALUES[typeOf(node)]) return node;
@@ -1122,6 +1132,10 @@ export function catalogPresenceDependents(
   if (typeOf(scope) === "Table")
     return catalogTableSelectionParts(scope, get, typeOf);
   const valueType = PROGRESS_VALUES[typeOf(scope)];
+  if (typeOf(scope) === "ActionButton")
+    return childrenOf(scope, get).filter((child) =>
+      ["Icon", "Avatar", "Badge"].includes(typeOf(child)),
+    );
   if (valueType)
     return partChildrenOf(scope, get, typeOf).filter(
       (child) => typeOf(child) === valueType,
@@ -2496,6 +2510,67 @@ function catalogListItemEdges(
 }
 
 /** S2 action group types — an ActionButtonGroup, and a Toolbar (the same group context, 2026-11-14). */
+/**
+ * (2026-11-14) An ActionButton's Avatar is there with an image, its count Badge with a count (S2 renders
+ * the child the author wrote; the origin's unfilled `{avatar}` · `{badge}` write none). The Canvas
+ * (`catalogHiddenAtRest`) and the DOM (`renderNode`) read this one predicate.
+ */
+export function catalogActionButtonPartAbsent(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (
+    node.bindingId !== "avatar" &&
+    node.bindingId !== "badge" &&
+    node.bindingId !== "icon"
+  )
+    return false;
+  const button = get(node.parentId);
+  if (!button || typeOf(button) !== "ActionButton") return false;
+  // (S2 API `<Icon /> or <Avatar />` — the docs example drops the icon once an avatar is on.)
+  if (node.bindingId === "icon")
+    return childrenOf(button, get).some(
+      (child) => child.bindingId === "avatar" && catalogAvatarHasImage(child),
+    );
+  // (S2 NotificationBadge `display: none` while its button is disabled — `NotificationBadgeContext`
+  //  `isDisabled`: its own flag, its group's or an inherited one.)
+  if (node.bindingId === "badge")
+    return (
+      catalogNotificationBadgeText(node.props.value) === undefined ||
+      button.props.isDisabled === true ||
+      button.derivedProps?.isDisabled === true
+    );
+  return !catalogAvatarHasImage(node);
+}
+
+/** An Avatar with an image — not the origin's unfilled `{avatar}`. */
+function catalogAvatarHasImage(node: CatalogConsumerNode): boolean {
+  const src = String(node.props.src ?? "");
+  return src !== "" && !/^\{\w+\}$/.test(src);
+}
+
+/**
+ * (2026-11-14) What an ActionButton shows beside its count badge — S2 `iconOnly` · `textOnly` selectors
+ * (`[slot=icon]` · `[slot=avatar]` · `[data-rsp-slot=text]`).
+ */
+export function catalogActionBadgeContent(
+  button: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogActionBadgeContent {
+  const visible = childrenOf(button, get).filter(
+    (child) => !child.hidden && typeOf(child) !== "Badge",
+  );
+  const glyph = visible.some((child) =>
+    ["Icon", "Avatar"].includes(typeOf(child)),
+  );
+  const words =
+    !!button.props.children ||
+    visible.some((child) => !["Icon", "Avatar"].includes(typeOf(child)));
+  return glyph ? (words ? "default" : "glyphOnly") : "textOnly";
+}
+
 const ACTION_GROUP_TYPES: ReadonlySet<string> = new Set([
   "ActionButtonGroup",
   "Toolbar",
@@ -2888,10 +2963,31 @@ function ownDerivedPropsBase(
         : undefined;
   }
   if (typeOf(node) === "ActionButton" || typeOf(node) === "ToggleButton") {
-    const visible = childrenOf(node, get).filter((child) => !child.hidden);
+  // (2026-11-14) An ActionButton's count badge (S2 NotificationBadge): its place follows what the button
+  //   shows beside it — an icon · avatar with words, one alone, words alone (`catalogActionBadgeLayout`).
+  if (typeOf(node) === "Badge") {
+    const button = get(node.parentId);
+    if (button && typeOf(button) === "ActionButton") {
+      const content = catalogActionBadgeContent(button, get, typeOf);
+      // (S2 `NotificationBadgeContext` `staticColor`: the button's — its group's over its own.)
+      const staticColor =
+        button.derivedProps?.staticColor ?? button.props.staticColor;
+      return {
+        _actionBadge: content,
+        _actionBadgeSize: String(button.props.size ?? "M"),
+        ...(staticColor === "white" || staticColor === "black"
+          ? { staticColor }
+          : {}),
+      };
+    }
+  }
+    // (S2 `iconOnly`: an icon or an avatar and no words — the count badge is drawn over it, 2026-11-14.)
+    const visible = childrenOf(node, get).filter(
+      (child) => !child.hidden && typeOf(child) !== "Badge",
+    );
     const iconOnly =
       visible.length > 0 &&
-      visible.every((child) => typeOf(child) === "Icon") &&
+      visible.every((child) => ["Icon", "Avatar"].includes(typeOf(child))) &&
       !node.props.children;
     const derived: Record<string, string | boolean> = {
       _actionIconOnly: typeOf(node) === "ActionButton" && iconOnly,

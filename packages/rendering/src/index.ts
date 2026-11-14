@@ -256,6 +256,8 @@ export {
   buildCatalogShapes,
   resolveLeadingSlot,
   resolveTextSourceKey,
+  catalogNotificationBadgeText,
+  catalogNotificationBadgeDigits,
   resolveTextSourceText,
   textFromValue,
   textSourceOrder,

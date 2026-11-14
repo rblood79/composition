@@ -79,7 +79,6 @@ describe("resolveSpecPreset", () => {
     "TextField",
     "TextArea",
     "ColorField",
-    "Pagination",
     "FileTrigger",
   ])(
     "%s 는 height 축을 preset 에서 제외 (컨테이너 height=auto, 입력/track 행 고정값 오표시 방지)",
@@ -95,6 +94,17 @@ describe("resolveSpecPreset", () => {
       expect("height" in preset).toBe(false);
     },
   );
+
+  // (2026-11-14, 사용자 「Pagination width · height fit-content」) Pagination 의 높이는 rule
+  //   `containerStyles` 의 `fit-content` (버튼 줄 높이) — 패널은 그 값을 보이고, 크기 표의 고정 행
+  //   높이 (`sizes[size].height`) 는 여전히 내지 않는다.
+  it("Pagination 의 height preset 은 rule 의 fit-content (크기 표 고정값 아님)", () => {
+    const preset = resolveSpecPreset("Pagination", "M");
+    expect(preset.height).toBe("fit-content");
+    expect(preset.width).toBe("fit-content");
+    expect(preset.minHeight).toBeUndefined();
+    expect(preset.maxHeight).toBeUndefined();
+  });
 
   // Label 은 sizes.height 가 0 이라 행 높이가 새지 않고, height 는 catalog containerStyles 의
   //   `fit-content` 선언 그대로 (사용자 결정 2026-09-29 — 손 CSS 에만 있던 값을 catalog 로).

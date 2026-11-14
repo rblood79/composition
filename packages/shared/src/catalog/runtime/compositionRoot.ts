@@ -1,3 +1,4 @@
+import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
 import { catalogInlineSizeContainment } from "./inlineSizeContainment";
 import { catalogPartConditionProps } from "../document/derivedVariantProps";
 import { catalogActionBarForeground } from "./actionBarForeground";
@@ -1860,6 +1861,10 @@ function styleOf(
     ...stickyInsets(node),
     ...itemLayout(node),
     // (ADR-295 Phase 3c-3c ②c: the thick bar keeps the S2 track row — its margins refine the row margins
+    // (2026-11-14: an ActionButton's count badge — over its icon's corner, the DOM's same inline place.)
+    ...(catalogIsAuthoredPlaced(node)
+      ? {}
+      : catalogActionBadgeNodeLayout(node.derivedProps)),
     // `itemLayout` carries, `catalogSliderThickTrackMargins`.)
     ...(node.derivedProps?.trackStyle === "thick"
       ? catalogSliderThickTrackMargins(node)
