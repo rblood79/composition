@@ -15,9 +15,8 @@
  *      ADR-201 후속) 가 builder·preview initial closure 밖
  *   ② 등록 8지점 + renderer shell 의 initial Δ 가 201 허용치 안 (Builder ≤ +4,096 · Preview ≤ +3,584 —
  *      2026-09-17 실측 +3,875 / +3,507 을 올림한 값, 등록 구조상 Δ 0 은 불가)
- *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,390,000 / Preview ≤ 320,000 B gzip —
- *      2026-10-18 재승인 (실측 1,369,697 / 300,677 + 약 20 KB), 09-26 ADR-235 값 1,421,000 / 623,000 대체,
- *      만료 2026-11-25). `APPROVED` 는 사용자 재승인
+ *   ③ 절대 상한 = ADR-201 initial 상한 재승인 절의 현재 값 (아래 상수 — 값마다 승인 출처를 적었다),
+ *      만료 2026-12-25 (2026-11-15 사용자 연장 승인 — 값 무변경). `APPROVED` 는 사용자 재승인
  *      기록 (2026-09-25 true) — 실행자가 임의로 켜지 않는다.
  *   ④ 202 lazy 조건 (AIPanel · runCommand) 보존 · before/after 각각 같은 revision
  *   sameLockfile 은 검사하지 않는다 — 201 은 workspace package 를 추가하므로 lockfile 이 달라지는 것이
@@ -28,7 +27,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 export const APPROVED = true; // 2026-11-03 사용자 재승인 (ADR-300 Phase 3 「상한 재 승인 필요시 승인한다」 → Builder 1,414,000 · ADR-299 결정 5 의 1,410,000 대체) — ADR-201 §initial 번들 상한 재승인 절
 export const BUILDER_CEILING = 1_414_000;
 export const PREVIEW_CEILING = 327_000; // 2026-11-08 사용자 재승인 (ADR-303 결정 6 b 「+2 KB 재승인」 — 302 로 Preview 여유 소진)
-export const CEILING_EXPIRES = "2026-11-25";
+export const CEILING_EXPIRES = "2026-12-25"; // 2026-11-15 사용자 연장 승인 「번들 상한 만료 연장 승인한다」 (ADR-306 재대조 m3) — 11-25 대체, 값 무변경
 export const BUILDER_DELTA_LIMIT = 4_096;
 export const PREVIEW_DELTA_LIMIT = 3_584;
 const UPLOAD_ENGINE_KEY = /packages\/upload-engine\/dist\//;

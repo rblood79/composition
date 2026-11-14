@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [번들 상한 만료 연장 — 2026-12-25] - 2026-11-15
+
+### Changed
+
+- **ADR-201 initial 번들 상한 만료 2026-11-25 → 2026-12-25** (사용자 연장 승인). 상한 값은 그대로다 (Builder ≤ 1,414,000 · Preview ≤ 327,000 B gzip). ADR-306 설계 재대조에서 Chart 36종 Phase 2 (상한 갱신 시점) 가 11-25 뒤로 예상됐고, 판정기 (`adr201-bundle-gate.mjs`) 는 만료 뒤 값과 무관하게 실패한다. ADR-306 본문 · breakdown 의 낡은 코드 사실 (contract 번호 · Canvas 로드 지점 · 인용 라인) 도 같은 날 고쳤다 (`6a2a03546`).
+
 ## [작성값이 사라지던 부품 — Tree 행 · 자식 있는 FileTrigger · OverlayArrow · SheetBackdrop · ColorThumb] - 2026-11-14
 
 ### Fixed
