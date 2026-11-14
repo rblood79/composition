@@ -236,12 +236,12 @@ function boxEnd(
     return { end: STEPPER_END_PX[key]!, gap: dateBoxGap(size) };
   if (fieldType === "DateRangePicker")
     return { end: DATE_RANGE_BOX_END_PX, gap: dateBoxGap(size) };
-  // SearchField: the box's start and end padding are the other fields' start (`edge-to-text` — md 12,
-  //   사용자 2026-11-13 「searchfield-group 에 padding-left 12px」 · 「padding-right 12」; S2's `pill`
-  //   less the glyph's `fontRelative(-2)` was md 14, and S2's `paddingEnd: 0` let the clear button end it).
+  // SearchField: the box's start padding is the other fields' start (`edge-to-text` — md 12, 사용자
+  //   2026-11-13 「searchfield-group 에 padding-left 12px」; S2's `pill` less the glyph's
+  //   `fontRelative(-2)` was md 14), its end none — S2 `paddingEnd: 0`, the clear button ends the box
+  //   (사용자 2026-11-14 「searchfield-group 에 padding-right:0」).
   // (사용자 2026-11-13 「searchfield-group 에 gap 8px」 — the glyph · Input · clear button room.)
-  if (fieldType === "SearchField")
-    return { end: inputBox(size).paddingX, gap: SEARCH_BOX_GAP_PX };
+  if (fieldType === "SearchField") return { end: 0, gap: SEARCH_BOX_GAP_PX };
   // A plain text · date field: S2 `FieldGroup` `control()` — `edge-to-text` both sides, the input in it
   //   none (2026-11-14 사용자 「TextField · TextArea · ColorField · DateField · TimeField 도 S2 구조」).
   if (PLAIN_BOXED_FIELDS.has(fieldType ?? ""))

@@ -623,8 +623,8 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
             catalogFieldBoxStyle(size, "TextField").paddingLeft,
             `SearchField start ${at}`,
           );
-          // (The end is the start too — 사용자 2026-11-13 「searchfield-group 에 padding-right 12」.)
-          near(box.paddingRight, box.paddingLeft, `SearchField end ${at}`);
+          // (The end is S2's `paddingEnd: 0` — 사용자 2026-11-14 「searchfield-group 에 padding-right:0」.)
+          near(box.paddingRight, 0, `SearchField end ${at}`);
         }
       }
   });

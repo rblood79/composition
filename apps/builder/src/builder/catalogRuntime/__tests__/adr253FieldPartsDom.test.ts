@@ -2292,7 +2292,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(groupOf().visual).toMatchObject({ radius: 9999 });
       expect(layoutInput(groupOf().id)).toMatchObject({
         paddingLeft: "12px",
-        paddingRight: "12px",
+        paddingRight: "0px", // (S2 `paddingEnd: 0` — 사용자 2026-11-14 「padding-right:0」)
       });
       expect(rect(glyph.id)).toMatchObject({
         x: 14,
@@ -2335,10 +2335,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       const shown = parts()[2]!;
       expect(layoutRecord(shown.id).hidden).not.toBe(true);
-      // (S2 `ClearButton`: the control height wide, the box's inner height tall, before the box's end
-      //  padding 12 — 사용자 2026-11-13 「searchfield-group 에 padding-right 12」.)
+      // (S2 `ClearButton`: the control height wide, the box's inner height tall, ending the box — no
+      //  end padding, S2 `paddingEnd: 0` (사용자 2026-11-14 「searchfield-group 에 padding-right:0」).)
       expect(rect(shown.id)).toMatchObject({
-        x: group.width - 34 - 12,
+        x: group.width - 34,
         y: 2,
         width: 32,
         height: 28,

@@ -579,7 +579,7 @@ describe("SearchField — S2 box, no margins", () => {
     expect(rect(group.id).height).toBe(32);
     expect(input(group.id)).toMatchObject({
       paddingLeft: "12px",
-      paddingRight: "12px",
+      paddingRight: "0px", // (S2 `paddingEnd: 0` — 사용자 2026-11-14 「padding-right:0」)
     });
     expect(rect(glyph.id)).toMatchObject({ x: 14, width: 18 });
     expect(input(value.id)).toMatchObject({
@@ -595,8 +595,9 @@ describe("SearchField — S2 box, no margins", () => {
       .filter((child) => root.typeOf(child) === "Icon");
     expect(icons.map((icon) => icon.props.iconName)).toEqual(["s2-cross"]);
     expect(rect(clear.id)).toMatchObject({ width: 32, height: 28 });
-    // (The box's end padding 12 — 사용자 2026-11-13 「searchfield-group 에 padding-right 12」 — then the border.)
-    expect(rect(clear.id).x + 32).toBe(rect(group.id).width - 2 - 12);
+    // (No end padding — 사용자 2026-11-14 「searchfield-group 에 padding-right:0」, S2 `paddingEnd: 0`:
+    //  the clear button ends the box, then the border.)
+    expect(rect(clear.id).x + 32).toBe(rect(group.id).width - 2);
     for (const part of [glyph, value, clear])
       expect(
         Number.parseFloat(String(input(part.id).marginLeft ?? "0")),
