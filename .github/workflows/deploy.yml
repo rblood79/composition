@@ -91,7 +91,7 @@ jobs:
       - name: Initial bundle ceiling (ADR-201)
         env:
           BUILDER_CEILING: "1414000"
-          PREVIEW_CEILING: "325000"
+          PREVIEW_CEILING: "327000" # 2026-11-08 사용자 재승인 (ADR-303 결정 6 b) — adr201-bundle-gate.mjs 와 같은 값
         run: |
           node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry index.html --label builder --out /tmp/bundle-builder.json
           node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry preview.html --label preview --out /tmp/bundle-preview.json
