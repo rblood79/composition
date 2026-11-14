@@ -2217,7 +2217,7 @@
     "sourceChanges": false,
     "browser": {
       "environment": "headed Chrome 156, Vite dev, 1600x1000, synthetic 620-record document, 12 measured samples per case",
-      "widthSyncMedianClosedMs": 1.0,
+      "widthSyncMedianClosedMs": 1,
       "widthSyncMedianOpenMs": 1.1,
       "fillSyncMedianClosedMs": 0.5,
       "fillSyncMedianOpenMs": 0.5,
@@ -4760,14 +4760,53 @@
     ]
   },
   "next": [
-    "[x] ADR-305 Phase 0 ~ 5",
-    "[x] ADR-305 Phase 6 — G5 사용자 confirm (2026-11-10) → Implemented (원본 15 삭제 완료 · 커밋 389a80b49)",
-    "[x] 패널 감사 2 — PanelSelect 한 벌 (PropertySelect · 바인딩 2 · 변수 유형 · CompactSelect) + 게이트 (a) Popover 단위 · (c) — live 6 PASS, 커밋 9612a9371",
-    "[x] 패널 감사 3 — SearchablePicker (Target · Value · Swap) + 게이트 (d) — live 3 PASS, 커밋 9612a9371 (Icon 격자는 대상 밖)",
-    "[x] 패널 감사 1 — radiogroup 2 · 업로드 · 액션 바 tooltip · AI select/checkbox → RAC, {{ 는 combobox ARIA 보강, Gradient 유지 — 커밋 9612a9371. ShortcutTooltip.tsx/.css 삭제 승인 대기",
-    "[x] 패널 감사 4 — native button 32 · input/textarea ~45 · file 3 · checkbox 1 → RAC, 게이트 nativeControls (허용 6) — live PASS, 커밋 2b66cc455"
+    "[-] 1번 Button CenterBaseline — 불필요: 우리 Icon 의 div[slot=icon] = S2 CenterBaseline div (사용자 11-14 S2 DOM 지적). 노드 추가 · align flex-start 전부 되돌림. 대조표의 「CenterBaseline 래퍼 없음」 행 (Button 계열 · Checkbox · Radio · Switch · Toast) 은 차이 아님",
+    "[ ] Dialog — 본문 frame → S2 Content · 액션 = ButtonGroup > Button · 닫기 Button 자리 (S2 Dialog.tsx:201-254)",
+    "[ ] DatePicker · DateRangePicker — Popover > Dialog > Calendar (S2 CalendarPopover) · Popover 를 HelpText 앞으로",
+    "[ ] Tooltip — OverlayArrow 뒤 frame + Description 두 겹 → 글자가 Tooltip 직계 (S2 Tooltip.tsx:215-226)",
+    "[ ] InlineAlert — Content > Description → Content 안 글자 직접",
+    "[ ] IllustratedMessage — Description → Content",
+    "[ ] Toast — body div · ToastContent(Icon + Text[slot=title]) 래퍼",
+    "[ ] ContextualHelp — 트리거 Button → ActionButton · Popover 안 padding 래퍼 · Footer 간격 (S2 marginTop 16 vs 우리 gap 8)",
+    "[ ] LabeledValue — 라벨 Text → FieldLabel > Label",
+    "[ ] ProgressCircle — 루트 div[role=progressbar] → RAC ProgressBar",
+    "[ ] StatusLight — 점 span → svg circle",
+    "[x] Checkbox · Radio · Switch 재대조 (11-14) — DOM 패턴 일치: RAC *Field(div) > *Button(label) > [hidden input + indicator div + 글자] + Description[slot=description] (+ FieldError, Radio 없음). 구조 변경 없음. Switch handle ::before 는 요소가 아닌 그리기 방식 차이 (노드 · prop 없음) — 변경 대상 아님",
+    "[ ] toggle 3종 배치 차이 (구조 아님 · 사용자 판단 대기) — ① 도움말 들여쓰기: S2 Radio · 그룹 안 Checkbox 는 도움말이 글자 열 (grid 2열) 에서 시작, 우리는 indicator 아래 ② 버튼 ↔ 도움말 간격: S2 단독 Checkbox · Switch = field 높이 − 1lh, Radio · 그룹 안 = 1 (L · XL 2) — 우리는 text-to-control (M ≈ 10) ③ 여러 줄 라벨에서 indicator 첫 줄 정렬 (S2 baseline) — 우리는 가운데",
+    "[ ] Slider · RangeSlider — labelContainer · fieldInput 래퍼 · upperTrack > Fill · side 일 때 Output 을 track 뒤로",
+    "[ ] ColorWheel (inner ring div) · ColorArea · ColorSlider (thumb inner div · Loupe)",
+    "[ ] ColorSwatchPicker — 선택 ring ::after → div",
+    "[ ] Calendar · RangeCalendar — 월마다 [header + grid] → 헤더 줄 하나 + grid 줄 하나",
+    "[ ] DropZone — 내용 (아이콘 · 글자) 을 노드로 (S2 children = IllustratedMessage)",
+    "[ ] Menu — Keyboard 를 description 뒤로 · Section Header > Heading + Text · Section 뒤 Divider · 빈 상태 글자 · selection 부품 marginRight 4 → item gap",
+    "[ ] GridList — item 에 selection Checkbox · Icon · chevron/link-out 부품 · S2 에 없는 GridListSection",
+    "[ ] Table — selection Checkbox 열 · 셀 (S2 는 selectionMode 로 자동)",
+    "[ ] Tabs — TabPanels 래퍼 삭제 · Tab 안 Indicator → Icon → Text 순서",
+    "[ ] TagGroup — Tag 내용 div · TagList 감싸는 div · show all ActionGroup",
+    "[ ] CardView — Card 안 SelectionIndicator · CardCheckbox",
+    "[ ] Disclosure — Heading 을 감싸는 DisclosureHeader",
+    "[ ] SideNav (Icon 을 SideNavItemLink 안으로) · SideNavPanel (content · footer div · 접기 = ActionButton)",
+    "[ ] Meter · ProgressBar — FieldLabel 래퍼 · value 표시 조건 (확인 필요)",
+    "[ ] field 공통 — FieldLabel div 늘 · invalid 아이콘 (FieldErrorIcon) · 필수 표시 구조",
+    "[x] 일치 — ButtonGroup · ToggleButtonGroup · ActionButtonGroup · Badge · AvatarGroup · Heading · CheckboxGroup · RadioGroup · ColorSwatch · Form · Popover · Select · NumberField · ComboBox · SearchField · TextField · TextArea · ColorField · DateField · TimeField · Breadcrumbs · Tree · Card · Accordion",
+    "[-] S2 없음 — Toolbar · Modal · Sheet · PreviewTrigger · FileUpload · FileTrigger · ListBox · Nav · Pagination · Autocomplete · Chart · TokenField",
+    "[-] composition 확장 (S2 없음, 유지 여부 결정) — Avatar initials · Link 외부 아이콘",
+    "[ ] 미커밋: SearchField Group padding-right 0 (fieldPrefix.ts · 테스트 4 · 문서 2)",
+    "[ ] 미커밋: Text 기본값 width · height fit-content (사용자 11-14) — componentRulesTable Text containerStyles 2곳 · 생성 Text.css · 테스트 4 (resolveContainerStylesFallback · phase4eCanvasGesture fixture · adr256ProgressNodeTree · selectPicker) · CHANGELOG. live 확인 안 함 (단위 + parity 만)",
+    "[ ] 미커밋: Illustration strokeWidth 기본 1 (사용자 11-14) — Illustration.binding.ts accepts.strokeWidth · 새 테스트 illustrationStrokeWidth.test.tsx · CHANGELOG. live 확인 안 함. 주의: componentRulesTable.ts 는 다른 세션 (Separator S2 Divider) 도 고치는 중 — 커밋 때 Text hunk 만 걸러 stage, shared borderWidthLiteral 실패 2건은 그 세션 것",
+    "[ ] 미커밋: Pagination width · height fit-content (사용자 11-14) — componentRulesTable Pagination containerStyles · 생성 Pagination.css · 새 테스트 paginationFitContent.test.ts · CHANGELOG. live 확인 안 함. 생성 Separator.css · Toolbar.css 변경은 다른 세션 rule 수정의 재생성분 — stage 금지",
+    "[ ] (무관 기존 실패) shared designDataSurfaceGaps Toast 수동 CSS — b77ecb88d 이후",
+    "[ ] (선택) 아래 손잡이 끌기 live 확인 — 단위 테스트만",
+    "[ ] 사용자 결정 대기: Tree (overflow auto) · Table (min-height 40 + overflow auto) · Chart (고유 최소 높이 없음) · SideNavPanel/SideNav (S2 minHeight 0) 눌림",
+    "[ ] Chart (S2 없음) 세로 flex 눌림 — 사용자 결정 대기 (그대로 / 최소 높이)",
+    "[ ] (미확인) Chart Canvas 기본 폭 320 vs 생성 CSS width 100%",
+    "[ ] ADR-306 Phase 1 잔여: 공개 size 삭제 · contract 65",
+    "[ ] (기존 실패 — 이번 변경 전부터) parity s2FieldText SearchField · ComboBox 32건 · s2InlineLabel icon 필수 표시 52건 · themeColorParity 100 · isSelected 검증 (s2SelectionStates · selectValueSize) · adr248CatalogRealDom combobox",
+    "[x] ActionButton · ActionButtonGroup S2 대조 — ActionButton 에 form · focus 10 prop 추가 (editorHidden, 미커밋) · Group 누락 없음",
+    "[x] 2026-11-14 테스트 — unit 전체 (builder · shared · rendering) + live (새 프로젝트 verify-1114: Pagination 폭 373/부모 1800 · Text 글자 폭 · Illustration stroke 1 · ActionButton 패널 숨김 PASS, console 오류 0). specPresetResolver Pagination 기대값 fit-content 로 수정. 남은 실패 = 다른 세션 (actionIcons ← CatalogLayerIcon · borderWidthLiteral ← Separator) + Toast 기존",
+    "[x] ActionButton Avatar · Badge (사용자 결정: NotificationBadge 신설 대신 Badge 에 `value` prop — `<ActionButton><Avatar src/><Text/><Badge value={12}/></ActionButton>`). S2: Avatar size 1lh · gridArea icon · avatar만이면 paddingX 0 / NotificationBadge absolute (icon 오른쪽 위, text만이면 버튼 끝) · value>99 → 99+ · 높이 S12 M1lh L16 XL18. 미정: Type · Auto focus 패널 숨김 (사용자 답 없음) — 완료 (미커밋): 테스트 4 + RED 3, live (verify-ab-1114: Canvas = Preview 버튼 88 · Avatar 12/7/18 · Badge 24.5/0 21.78×14) PASS, console 0. 부수: Canvas 말줄임 f32 허용 오차 (textParagraphKey) 수정. S2 동일화 (사용자 11-14): Avatar 있으면 Icon 숨김 · disabled Badge 숨김 · staticColor Badge 색 — 테스트 7 + RED 4 + live PASS"
   ],
-  "updatedAt": "2026-11-10T02:00:00+09:00",
+  "updatedAt": "2026-11-14T22:40:00+09:00",
   "textFieldNumberFieldInsertionCheck": {
     "task": "TextField 선택 후 NumberField 추가 시 slot 없는 내부 삽입 조사",
     "phase": "cross_component_contract_check_complete",
@@ -5083,5 +5122,405 @@
     "commit": "13e5851fa",
     "remote": "origin/main SHA 확인",
     "pushValidation": "CSS boundary 52 PASS"
+  },
+  "panelFieldIcons": {
+    "task": "패널 입력 앞 표시 Figma 방식 통일 (사용자 결정 2026-11-10)",
+    "phase": "committed_pushed",
+    "rules": [
+      "숫자 칸 = 칸 안 앞 표시 항상 (축 글자 X·Y·W·H, 그 밖 아이콘)",
+      "셀렉트 앞 아이콘 없음 (값 아이콘만)",
+      "스위치·체크박스 아이콘 없음, 스위치 26x16 (S2 M)",
+      "labelMode icon 칸 · Gradient 유지"
+    ],
+    "design": "https://claude.ai/artifact/WMDnDEXKQizSTuz4fvZvhc (Final.dc.html)",
+    "commit": "e474e5e84"
+  },
+  "panelDockFlatten": {
+    "task": ".panel-workspace 직속 grid — .panel-dock · -chrome · -stage 래퍼 제거, 측정 기준을 표면 하나로",
+    "phase": "verified",
+    "status": "complete_committed",
+    "scope": "PanelWorkspace.tsx/.css · panelWorkspaceVisibility · canvasViewportInset · error-loading.css · cold-entry-shell · 관련 테스트",
+    "validation": {
+      "tests": "layout · workspace/components · stores 53 파일 440 PASS",
+      "typecheck": "PASS",
+      "live": "builder aaa — .panel-workspace 직속 4자식 (header · rail 2 · surface) · cols 44/1218/44 · 좌우 패널 frame 표면 가장자리 · reload 부팅 숨김 해제 · console error 0"
+    },
+    "findings": [
+      "레일 섬 그림자 잘림 = .panel-toggle-rail overflow:hidden (레일 폭 = 섬 폭 40) — overflow 제거 + 정적 가드, live 좌우 그림자 확인"
+    ],
+    "commit": "b06cf8f67"
+  },
+  "propertyAudit": {
+    "phase": "pushed f5f35bb45",
+    "decisions": "1 가 · 2 가 · 3 권장 · 4 A 삭제 B 숨김 C 숨김 D 보류",
+    "liveProject": "prop-audit-live (확인용 — 삭제는 사용자 판단)",
+    "changelog": "docs/CHANGELOG.md 「속성 감사」 엔트리 추가 (다른 세션의 1 줄 변경과 같은 파일)"
+  },
+  "panelWorkspaceMainFlatten": {
+    "task": ".panel-workspace-main 래퍼 제거 + 읽는 곳 없는 data-layout-version · data-page-layout-* 속성 제거",
+    "phase": "verified",
+    "status": "complete_committed",
+    "findings": [
+      "main 래퍼 · data-layout-version (host/main) · data-page-layout-* 제거",
+      "canvas.css `.app main { grid-area: main }` 레거시가 래퍼 제거 뒤 캔버스를 새 행으로 밀어냄 (live main 0×0) → 제거 + 가드",
+      "죽은 사슬 제거 완료 (사용자 승인 — frameAreaSelector 테스트 파일 삭제)"
+    ],
+    "validation": {
+      "tests": "layout · workspace · styles · stores 210 파일 1670 PASS",
+      "typecheck": "PASS",
+      "live": "host 직속 main.workspace · .panel-workspace 같은 칸 · canvas 1128×988 · 중앙 hit = CANVAS · console 0"
+    },
+    "commit": "5a038102b"
+  },
+  "builderShellSemantic": {
+    "task": "빌더 껍데기 구조화 — .panel-workspace-host 제거 (.app 이 한 칸 grid) · header / nav (토글 레일) / aside (패널 표면) / main 태그 · 옛 .app 3×3 grid · aside.sidebar 류 레거시 제거",
+    "phase": "verified",
+    "status": "complete_committed",
+    "validation": {
+      "tests": "layout · workspace · styles · stores · i18n 218 파일 1691 PASS",
+      "typecheck": "PASS",
+      "live": "#root > div.app > main.workspace + div.panel-workspace > header · nav×2 · aside — landmark 5 · canvas 전체 · 중앙 hit CANVAS · 레일 토글로 Navigator frame 이 aside 안에 열림 · console 0"
+    },
+    "findings": [
+      "PanelToggleGroup.test 의 nav 금지 (2026-08-26 PanelNav → toolbar 전환) 는 목록 구조 금지가 본 뜻 — nav landmark 허용 · ul/li 금지 유지"
+    ],
+    "commit": "5a038102b"
+  },
+  "simplifyShell": {
+    "task": "/simplify — 5a038102b · b06cf8f67 정리",
+    "phase": "verified",
+    "status": "complete_committed",
+    "fixed": [
+      "Overlay 의 ResizeObserver · state 제거 → Content 의 surfaceRect prop",
+      "PanelDockOrigin x·y (늘 0) 제거 — 뺄셈 10곳",
+      "header grid-area 를 .panel-workspace > .header 로 · .app 상자 정의 한 파일로",
+      ".app main 제거 → flex 배치만 .workspace 로",
+      "부팅 숨김 = .panel-workspace 하나",
+      "no-op CSS (inset · width · top/bottom · border · min 0)",
+      "inset 왼쪽 선택자 범위 · 테스트 옛 이름"
+    ],
+    "skipped": [
+      ".app > * 이름 붙이기 (일반 규칙 유지)",
+      "fallback/overlay 마크업 공통 컴포넌트 (2곳뿐)",
+      "runtime updateSurface 합치기 · registry 캐시 (diff 밖)",
+      "panelWorkspaceVisibility 재측정 → activeSurfaceRect (원래 패턴, diff 밖)",
+      "activePanelsBySide bottom (diff 밖)",
+      "stageObserver 테스트 파일 이름 (파일 rename — describe 만 고침)"
+    ],
+    "validation": {
+      "tests": "1691 PASS",
+      "typecheck": "PASS",
+      "live": "header area=header (4,4) · rail · surface (48,48) · main flex column center z0 · canvas 전체 · 좌 frame (48,48) · 우 frame 오른쪽 = 표면 오른쪽 · console 0"
+    },
+    "commit": "92347542f"
+  },
+  "canvasPerfScaling202611": {
+    "task": "Canvas 최적화 분석 · 설계 (문서 크기 비례 비용)",
+    "phase": "stage2_done",
+    "status": "committed_pushed_47eba31bd",
+    "head": "850e98a60",
+    "scope": "2단계 B6 · B3 · C1 — 동작 변경 0",
+    "findings": [
+      "그리기 (pan · zoom · hover · marquee) 는 66 장 · 4x 에서도 예산 안",
+      "문서 비례 자리 B1 ~ B7 + 선택 상수 C1 — docs/explanation/research/CANVAS_PERF_SCALING_2026-11.md §4",
+      "66 장 cold 로드 2.66 s (4x 10.3 s), loadInitial 동기 58 %"
+    ],
+    "unverified": "실사용 문서 · 페이지당 밀도 큰 문서 · headed · 메모리 미측정; H1 (줄 상자 측정 캐시) 미확정",
+    "evidenceDirectory": ".agent/runs/2026-11-11-canvas-perf-scaling"
+  },
+  "desigmaAdoptionAnalysis": {
+    "task": "Desigma에서 Composition에 도입 가능한 요소 조사",
+    "phase": "analysis_complete",
+    "status": "static_analysis_complete_runtime_unverified",
+    "scope": "Desigma 16 crate 구조와 주요 구현·문서 및 Composition 현재 코드 비교; 제품 코드 변경 없음",
+    "compositionHead": "584d948e5e7398653c678775ddeb59b5b677356c",
+    "desigmaHead": "37a8559b00d8848ce2ae3abc055d84e33652841c",
+    "findings": [
+      "우선 후보: import fidelity ledger 및 손실 보고, 선택 범위 일괄 편집, Library 버전 검토, 외부 MCP, 시각 회귀 보고",
+      "기존 command registry, CatalogGraph, agent command host, snapshots, image cache와 memory budget 재사용",
+      "Rust renderer 교체 및 Desigma 문서 직접 mutation 방식 도입 비권장",
+      "PDF raster, fig 미확인 필드, MCP file/editor 실행 경로 차이 확인"
+    ],
+    "validation": "소스·문서 정적 대조; Desigma 실행·테스트·성능 측정 및 Builder live 비교 미실행"
+  },
+  "reviewAdr307": {
+    "task": "ADR-307 설계 리뷰",
+    "phase": "repair_review_recorded",
+    "status": "design_review_high_0_pending_0",
+    "head": "53dd1ff77",
+    "scope": "본문·breakdown·현재 코드·측정 근거 대조; 제품 코드 및 ADR 상태 변경 없음",
+    "findings": [
+      "h1 fixed (설계): 비동기 region task와 동기 요청의 지연 Gate 분리",
+      "m1 fixed (설계): apply 원복과 delivery 유지·Canvas 재동기화 분리",
+      "LOW deferred: breakdown 57행의 root 생략 문구를 본문 R2의 region 처리 계약과 정렬"
+    ],
+    "validation": {
+      "method": "수정 문서·Gate·breakdown 정적 대조 및 관련 코드 경계 확인",
+      "reviewSchema": "PASS",
+      "guard": "PASS",
+      "format": "PASS (리뷰 기록만)",
+      "unverified": "새 G0~G6, 실제 단위/동기 응답 비용·Builder live·Canvas 복구; 제품 변경 없어 기존 프로브 반복 안 함"
+    },
+    "reviewLog": "docs/adr/reviews/307.md",
+    "evidenceDirectory": ".agent/runs/2026-11-11-review-adr307",
+    "reviewRound": 2
+  },
+  "adr307FollowUps": {
+    "task": "ADR-307 후속 — 채움 끝 신호 단일화 · splice 경로 버퍼 합치기",
+    "phase": "rowWindowDone",
+    "status": "done",
+    "approved": "사용자 2026-11-11 「별도 작업으로 시작해」",
+    "note": "A 44c5161f4 · b 2836633ed push. a (drag 퇴거→놓은 뒤 warmup 재기록) 는 캐시 정책 결정 사안으로 보류 — 연구 문서 기록. | 2026-11-11 행 창 구현 · live PASS (미커밋: resolver · compositionRoot · rowSample · Builder 소비자 · 테스트 · 문서) · 문서 읽기 graph 한 번 (미커밋). 남은 후속 5: ratchet · 문서 읽기 page 당 비용 · Preview/Publish page 범위 · id 읽기 정적 검사 · 99f065ef2 브라우저 확인"
+  },
+  "adr307ReadCost": {
+    "task": "ADR-307 후속 문서 읽기 비용 분해 및 검증 계산 재사용",
+    "phase": "verified",
+    "status": "committed_pushed",
+    "scope": "측정 → 검증 내부 공통 계산 → E 실험 여부 판단 → D 필요성 판단",
+    "evidenceDirectory": ".agent/runs/2026-11-11-adr307-read-cost",
+    "findings": [
+      "전체 view 검증 호출 안에서 definition 계약 계산 재사용; Text 3→1 원복 RED",
+      "66장 4x view 132.4→129.5ms; 전체 열기 유의 개선 미입증",
+      "E 객체 저장 격리 비교: 읽기107.3→140.0ms/쓰기250.6→359.3ms로 현행 유지",
+      "C 검증 유지/D 기존66장4x3초목표 충족으로 별도 설계 보류"
+    ],
+    "validation": {
+      "tests": "저장·컴포넌트24 + origin·변수16 PASS (중복 포함), 원복RED1",
+      "typecheck": "PASS baseline0",
+      "live": "Chrome production 66page 4x 수정·저장·undo·저장·reload 복원/frozen/errors0",
+      "preflight": "전체는 로컬 공용 task-state 포맷에서 중단; 소유 파일 포맷·guard·TS·registration·CSS boundary·agent catalog 개별 통과"
+    },
+    "report": "docs/explanation/research/CATALOG_DOCUMENT_READ_COST_2026-11.md",
+    "commit": "02ec9c598d7f78d40ba440517bedf840cadabc29"
+  },
+  "reviewAdr309": {
+    "task": "ADR-309 설계 리뷰",
+    "phase": "repair_review_recorded",
+    "status": "design_review_high_0_medium_0_pending_0",
+    "head": "4b6c75cde",
+    "scope": "본문·breakdown·설치 RAC 및 현재 날짜 소비 경로 대조; 제품 및 ADR 상태 변경 없음",
+    "reviewLog": "docs/adr/reviews/309.md",
+    "reviewRound": 2,
+    "findings": [
+      "h1 설계 fixed: Calendar 모드별 양방향 변환·첫 날짜 focus·지우기·비파괴 모드 전환 및 G1(e)",
+      "m2 설계 fixed: picker 값 → Placeholder → 오늘 및 서로 다른 달 G2(a)",
+      "m3 설계 fixed: 6종 키 기반 시작 값·실행 중 null 우선 및 G1(f)"
+    ],
+    "validation": {
+      "method": "3건 수리 조항·breakdown·G1(e/f)·G2(a)·원래 코드 경계 대조; 제품 무변경으로 기존 프로브 재실행 안 함",
+      "reviewSchema": "PASS",
+      "guard": "PASS",
+      "format": "PASS (리뷰 기록 범위)",
+      "unverified": "제품 구현·새 G0~G3·RED/GREEN·Builder live·저장/로드·Code 왕복·번들 Δ"
+    },
+    "evidenceDirectory": ".agent/runs/2026-11-12-review-adr309"
+  },
+  "phase": "ActionButton Avatar · Badge 완료 (미커밋) — live PASS",
+  "designPropertySectionClassificationAudit": {
+    "task": "Design Property 탭 페이지·컴포넌트 섹션 분류 분석",
+    "phase": "analysis_complete",
+    "scope": "S2·RAC 공식 문서와 설치본, catalog binding, Chrome Builder 표시 대조",
+    "findings": [
+      "174개 등록 타입의 primitive binding에서 editorHidden을 제외한 accepts 867개 집계",
+      "Home 및 일반 페이지 Body, Slider, Tabs, Link, TextField, Select, ComboBox의 Property 탭 확인",
+      "제출 이름과 링크 목적지가 Content에, 검증 제약이 Behavior에, 팝오버 배치가 Appearance에 위치",
+      "Collection·Navigation·Locale을 포함하고 Value·State·Interactions, Appearance·Style·Layout, Validation·Forms를 편집 목적과 실제 소유자 기준으로 분류"
+    ],
+    "validation": "브라우저 표본과 정적 인벤토리 대조, codex:guard PASS. 제품 코드 수정 없이 분석.",
+    "representativeExamples": "팔레트 8개 분류에서 ProgressBar, Tabs, Button, TextField, Table, Bar Chart, DatePicker, Popover를 선정. 실제 binding과 공식 참조를 대조하여 화면에 표시할 섹션 및 필드를 표로 제안."
+  },
+  "propertySectionMerge": {
+    "task": "Design 패널 Property 탭 섹션 병합",
+    "decisions": "사용자 2026-11-12: 합친 섹션 제목 「Content」 · 컨트롤 쪽 필터 진입점 삭제 (Collection 의 Search · filter 로) · Locale · Series 독립 유지 · Data 섹션 없음 (차트도 Collection)",
+    "order": "Component → Content (글자 + 모양) → Value → Collection (Data source → 매핑 → Search · filter) → Series (차트) → Behavior (동작 · 검증 · 폼 · 오버레이 · 접근성) → Locale → State",
+    "phase1": "렌더러 병합 완료 (미커밋) — GenericFieldRenderer SECTION_MEMBERS · SECTION_ORDER",
+    "inventory": "보이는 선언 707 (Chart 제외) 중 이동 약 115 — scratchpad fields.tsv 는 세션 임시",
+    "phase2": "binding 재분류 완료 (미커밋). 계획 표와 다른 점: 날짜 min/max 는 검증이 아니라 Value (2026-10-13 「한 key 한 섹션」 게이트) · rel 은 숨기지 않고 Behavior"
+  },
+  "numberFieldS2": {
+    "next": [
+      "[x] fieldPrefix CATALOG_BOXED_FIELDS · stepper 덮어쓰기 제거",
+      "[x] rule delegation S2 값 · template radius 4 · 글리프 8/10/12",
+      "[x] type-check · unit (catalogRuntime · panels/styles · preview 5184 PASS)",
+      "[x] live Canvas M · XL · hideStepper / Publish M · XL+hideStepper 실측",
+      "[x] CHANGELOG · catalog-subparts.md",
+      "[x] 증감 버튼 Icon 2개 → icon prop 1개 (사용자 보고)",
+      "[x] Group Layout 탭 편집 — 부모 소유 해제 · Canvas 작성값 우선 · 패널 실효값 (Publish 미반영은 Mobile 층 쓰기였음)",
+      "[x] Format options S2 키 추가 (notation 제외) — live 미확인: 사용자가 같은 탭 사용 중",
+      "[x] S2 간격 → Group gap · 끝 padding · Input 끝 padding (버튼 margin 삭제), 작성값 우선 — live 미확인",
+      "[x] Canvas 간격 손잡이 · 드래그 · 패널 = catalogDrawnBoxModel (상자 기본값) — live 미확인",
+      "[x] 전체 수정 1단계 — catalogDrawnBoxDelta 를 모든 record 에 (getDrawnLayoutStyle: page body 는 split 전 style · grid gap 은 record longhand) — builder 6155 PASS",
+      "[x] 전체 수정 2단계 — Tree chevron · ListBoxItem 아이콘 들여쓰기가 문서 작성값을 따름 (withoutAuthored, catalogHasExplicitVisual 기준) — 원복 RED 확인",
+      "[ ] (남김) SideNavItemContent 작성 padding 은 DOM 요소가 없어 닿지 않음 · TreeItem padding 0 은 구조",
+      "[ ] live 확인 — Disclosure border · CheckboxGroup gap · Tree chevron padding 편집 (브라우저 사용 가능할 때)",
+      "[x] field control Group (ComboBox · DatePicker · DateRangePicker · prefix) 자기 style 편집 — ownsSubpartDirect, 원복 RED",
+      "[x] Canvas 간격 overlay = 구조 컨테이너 + 흐름 자식 있는 상자 (Button · Select trigger) — spacingOwner, 원복 RED",
+      "[ ] live 확인 — ComboBox · DatePicker Group Layout 탭 편집 · Select trigger overlay",
+      "[x] 전수 감사 (하니스 164 origin · 867 행 + 코드 감사 3) — RadioItems/CheckboxItems DOM · 요소 없는 RAC 부품 판정 · Gap 손잡이 longhand · 덧붙인 자리 제외 · SideNav 행 부품 · ProgressBar fill (원복 RED)",
+      "[ ] (결정 필요) Tree 안 TreeItem 상자 구조 비대칭 · FileTrigger contents · SliderThumb sizing/border · Popover/Sheet/OverlayArrow/ColorThumb 작성 inset·크기 · SideNavSection marginTop",
+      "[ ] 임시 하니스 zzEditReachAudit.tmp.test.tsx 삭제 (사용자 승인 후)",
+      "[x] DateRangePicker 버튼 margin-inline-start → end DateInput padding-right (--drp-end-pad), 원복 RED",
+      "[ ] (확인 필요) 같은 margin 어법: ComboBox --combo-btn-offset · DatePicker --dp-btn-offset · SearchField --sf-btn-offset/--sf-icon-inset/--sf-field-gap",
+      "[ ] 커밋 (사용자 요청 시)"
+    ]
+  },
+  "navigatorLayerIconColumns": {
+    "task": "Figma 분석 기반 컴포넌트 팔레트 아이콘 통일 및 내부 노드 의미 아이콘 분리",
+    "phase": "pushed",
+    "status": "complete_pushed",
+    "scope": "Layers 조상 component context · 전용 의미 glyph · 팔레트 동일 아이콘 · Chart variant 구독 · 회귀 및 CHANGELOG",
+    "validation": {
+      "tests": "인접 6파일 최종 38개 PASS (Chart 7종 prop 전환 포함)",
+      "scopedGates": "동시 dirty 보존: 범위 format check, codex:guard, diff --check PASS",
+      "live": "Chrome 검증 프로젝트: Card 팔레트/Layers 같은 아이콘, 내부 Content/Preview 모서리 glyph 및 Text T, Body #, 펼침/접힘, Pie chart 팔레트/Layers 같은 아이콘과 선택색 PASS",
+      "unverified": "모든 component 종류의 브라우저 전수 검증 및 콘솔 오류 수집 미실행",
+      "typecheck": "codex:typecheck PASS (6 packages, baseline 0)",
+      "pushGate": "ADR-305 CSS boundary 52/52 PASS"
+    },
+    "projectId": "10ea58fe-3c88-4c20-8416-ad8b7acd7345",
+    "reference": "Figma Wireframes Kit Components 페이지 Theme-Header/Frame 42/Rectangle 6/Description 실제 트리 관찰",
+    "evidenceDirectory": ".agent/runs/2026-11-14-navigator-layer-icons",
+    "commit": "9cb061973",
+    "push": "origin/main 성공"
+  },
+  "navigatorDescriptionFieldErrorIcons": {
+    "task": "Description/FieldError 아이콘 rectangle-ellipsis 변경",
+    "phase": "verified",
+    "status": "committed_pushed",
+    "validation": {
+      "typecheck": "PASS 6 packages",
+      "tests": "CatalogLayerIcon 12/12 PASS",
+      "scopedGates": "format check, guard, diff --check PASS",
+      "live": "Chrome 검증 프로젝트 Page 3 TextField: Description 및 FieldError rectangle-ellipsis 표시 확인; description 입력, errorMessage 입력, Invalid 활성화"
+    },
+    "commit": "7f76a6ee893f6076d795dccd365212b013491f5b",
+    "push": "origin/main",
+    "commitVerification": ".agent/runs/2026-11-14-scoped-push/artifacts/verification.md"
+  },
+  "navigatorInputTimeFieldIcons": {
+    "task": "Input keyboard 및 TimeField clock-2 아이콘 변경, Components 패널 동기화",
+    "phase": "verification_complete",
+    "status": "committed_pushed",
+    "verification": {
+      "typecheck": "PASS: 6 tasks",
+      "tests": "PASS: 2 files, 17 tests",
+      "format": "PASS: scoped files",
+      "guard": "PASS",
+      "browser": "UNVERIFIED: Chrome repeatedly rejected actions because the user changed the app. Created isolated Page 4; icon inspection could not be completed."
+    },
+    "commit": "7f76a6ee893f6076d795dccd365212b013491f5b",
+    "push": "origin/main",
+    "commitVerification": ".agent/runs/2026-11-14-scoped-push/artifacts/verification.md"
+  },
+  "navigatorIconZoomToSelection": {
+    "task": "Layers 노드 아이콘 더블클릭으로 대상 선택 및 Canvas zoom to selection",
+    "phase": "verification_complete",
+    "status": "committed_pushed",
+    "verification": {
+      "tests": "PASS: phase4eNavigatorTabs + catalogViewport, 7 tests",
+      "typecheck": "PASS: 6 tasks, no new violations",
+      "format": "PASS: scoped files",
+      "guard": "PASS",
+      "live": "PASS: Chrome native CUA, Page 3 Badge icon double-click selected Badge and centered its Canvas bounds; zoom 100% to 500%. Console not inspected."
+    },
+    "commit": "7f76a6ee893f6076d795dccd365212b013491f5b",
+    "push": "origin/main",
+    "commitVerification": ".agent/runs/2026-11-14-scoped-push/artifacts/verification.md"
+  },
+  "navigatorRoleDotPosition": {
+    "task": "Origin/Instance 표시를 아이콘 오른쪽 위로 이동",
+    "phase": "verification_complete",
+    "status": "committed_pushed",
+    "live": "PASS: native Chrome screenshot, Library Layers DialogTrigger/ContextualHelp Origin and Button Instance dots at icon top-right.",
+    "commit": "7f76a6ee893f6076d795dccd365212b013491f5b",
+    "push": "origin/main",
+    "commitVerification": ".agent/runs/2026-11-14-scoped-push/artifacts/verification.md"
+  },
+  "separatorS2Divider": {
+    "task": "Separator 구조 및 스타일을 S2 Divider와 일치",
+    "phase": "verification_complete",
+    "status": "committed_pushed",
+    "verification": {
+      "browser": "PASS: 36 real Chromium cases compare installed S2 Divider to production Preview DOM and Canvas geometry/paint; no pixelmatch claim",
+      "unit": "PASS: 42 tests across 6 files",
+      "typecheck": "PASS: 6 tasks",
+      "format": "Scoped check PASS except existing out-of-scope formatting in manualBoxRules.ts (blank line and Breadcrumb block), left untouched",
+      "guard": "PASS",
+      "diffcheck": "PASS",
+      "builderLive": "BLOCKED: native Chrome CUA timed out twice; no live Builder screenshot obtained"
+    },
+    "commit": "7f76a6ee893f6076d795dccd365212b013491f5b",
+    "push": "origin/main",
+    "commitVerification": ".agent/runs/2026-11-14-scoped-push/artifacts/verification.md"
+  },
+  "tabsS2Alignment": {
+    "task": "Tabs S2 구조·스타일·프로퍼티 정렬",
+    "phase": "verification_complete",
+    "status": "committed_pushed",
+    "scope": "Tabs/TabList/Tab/TabPanel, 선택 표시 및 catalog consumer",
+    "verification": {
+      "browser": "PASS: S2/Preview/Canvas 32 cases; keyboard automatic/manual and disabledKeys; engine 61 and SegmentedControl 9 cases",
+      "unit": "PASS: Builder 44 + Shared 49; registration 7; CSS boundary 52",
+      "engine": "PASS: Rust 518, Wasm build",
+      "builderLive": "BLOCKED: CUA noWindowsAvailable; actual Builder Tabs flow not exercised",
+      "format": "Tabs hunks checked; unrelated existing formatting warnings preserved",
+      "artifact": ".agent/runs/2026-11-14-tabs-s2/artifacts/verification.md",
+      "typecheck": "PASS: 6 tasks, no new violations",
+      "gates": "PASS: guard, registration, CSS boundary, git diff --check"
+    },
+    "commit": "7f76a6ee893f6076d795dccd365212b013491f5b",
+    "push": "origin/main",
+    "commitVerification": ".agent/runs/2026-11-14-scoped-push/artifacts/verification.md"
+  },
+  "s2PatternForNoCounterpart": {
+    "task": "S2 대응 없는 15종을 가장 가까운 S2 패턴에 맞춤 (사용자 11-14)",
+    "phase": "Toolbar · Nav · Pagination · PreviewTrigger 커밋 · push 6635cd9b4 (계약 66) — 나머지 남음",
+    "scope": "Toolbar · Sheet · PreviewTrigger · FileUpload · FileTrigger · ListBox · Nav · Pagination · Autocomplete · Chart · TokenField · Icon · frame · Section · Slot",
+    "checklist": "docs/explanation/research/S2_MIGRATION_CHECKLIST_2026-11.md §4",
+    "next": [
+      "[x] 1단계 값 · 전파 (Toolbar · Pagination · Nav · FileUpload variant)",
+      "[x] Toolbar 2단계: 자식 ActionButton · Separator 크기 삭제 · 묶음 5 prop + 전달 · d2Provenance · 테스트 toolbarActionGroup 3 · live PASS (verify-toolbar-1114)",
+      "[x] Nav 2단계: Link standalone · quiet · secondary · size 전달 · selectedRoute (navRoute.ts · navRoute.components.tsx · presence 파생 · rulePaint 굵기 · Link rule isCurrent 700 · 수동 Link.css standalone 에서 current 제외) · 테스트 navCurrentRoute 4 · live PASS",
+      "[x] Pagination 2단계: template = ActionButton(←, quiet) + ToggleButtonGroup(single · disallowEmpty · quiet · defaultSelectedKeys [1]) > ToggleButton ×3 + ActionButton(→, quiet) · 크기 전파 · GROUP_ITEM_TYPES ActionButton · 테스트 paginationActionGroup 3 + 옛 구조 전제 테스트 3 수정 · live PASS. 남김: 이전 · 다음 아이콘화 (ActionButton 원본 aria-label 필요)",
+      "[x] PreviewTrigger: template 본체 폭 240 삭제 (Popover rule S2 폭) — 게이트 s2PatternNoCounterpart · 관련 94 PASS · live 미확인",
+      "[ ] TokenField: S2 TextArea 패턴 — 상자 값 · 상태 트리 · size 4단 · labelPosition · labelAlign · isRequired · isInvalid · errorMessage · control Group · Form 상속 등록",
+      "[ ] FileTrigger > Button 구조 · rule display: contents",
+      "[ ] FileUpload 목록 행 · 오류 표시 규칙 / Chart 툴팁 값을 rule 로",
+      "[ ] Sheet: 안쪽 여백 32 · 닫기 버튼 Footer — Dialog 구조 잔여와 같이 (선례 Dialog 여백 40) · backdrop fade 250/130 · 폭",
+      "[ ] Autocomplete: SearchField 보이는 label 비우기 (origin 이 aria-label 을 받는지 먼저 확인 — ActionButton 원본은 안 받았다) · 목록 위 간격 8",
+      "[ ] ListBox 세부 (사용자 결정): picker 안 description 크기별 글자 · neutral-subdued · 간격 1 · check 크기 · section Divider — Canvas 는 manualBoxRules listBoxItemParts 가 고정값이라 같이 수정",
+      "[ ] 커밋 (사용자 요청 시) — 다른 세션과 같은 파일이 많다: componentRulesTable.ts · reusableOriginLibrary.ts · sizePropagation.ts · presence.ts · delegatedDom.runtime.ts · d2Provenance.ts · types.ts 주석은 내 hunk 만"
+    ],
+    "note": "top-level phase · next 는 다른 세션 (ActionButton Avatar · Badge) 것 — 건드리지 않음",
+    "updatedAt": "2026-11-15T02:00:00+09:00",
+    "decisions": [
+      "단독 ListBox: 세부 값만 S2 로 (상자 · 선택 채움 유지) — 사용자 11-14",
+      "prop 추가 4건 전부: Pagination 현재 page · Nav 현재 경로 · TokenField 검증 prop · Toolbar 묶음 5 prop — 사용자 11-14",
+      "Icon 은 대상 아님 (아이콘 자체가 다름) — 사용자 11-14, 변경 원복",
+      "계약 버전은 Tabs 세션의 미커밋 65 에 같이 실음 (66 으로 올리면 그 세션이 고친 fixture 45 파일을 다시 건드림) — 65 가 먼저 커밋되면 66 으로"
+    ],
+    "coordination": "Tabs 세션이 7f76a6ee8 에서 계약 65 를 먼저 커밋 → 이쪽은 66 (fixture 34 파일 포함) 으로 6635cd9b4 에 커밋. 다음 template 변경은 67."
+  },
+  "tabsDynamicCollection": {
+    "task": "단일 항목 목록으로 Tab과 TabPanel을 동적으로 생성·동기화",
+    "phase": "verification_complete",
+    "status": "committed_pushed",
+    "live": "Native Chrome CUA: palette insertion, title/body edits, add/remove/re-add, Layers synchronization, storage reload, Canvas and Preview content observed. Separate scratch project 83a9572c-30dd-40fa-91af-ea566c45d782. Console not inspected.",
+    "fixes": [
+      "Layers projection subscription for items edits",
+      "Empty Tabs keeps TabList layer",
+      "Non-selected TabPanels are not sampled overflow rows"
+    ],
+    "verification": {
+      "unit": "PASS: 36 tests / 6 files",
+      "browser": "PASS: 33 real Chromium cases, zero unhandled errors",
+      "typecheck": "PASS: 6 tasks + final shared check",
+      "gates": "PASS: scoped format, registration 7, guard, diff check",
+      "live": "PASS: native Chrome palette insertion, title/body edits, add/remove/re-add, Layers update, reload, Preview and Canvas content; console not inspected",
+      "artifact": ".agent/runs/2026-11-14-tabs-dynamic/artifacts/verification.md"
+    },
+    "commit": "7f76a6ee893f6076d795dccd365212b013491f5b",
+    "push": "origin/main",
+    "commitVerification": ".agent/runs/2026-11-14-scoped-push/artifacts/verification.md"
   }
 }
