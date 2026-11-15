@@ -31,10 +31,6 @@ export interface CatalogVirtualInput {
   readonly columnTracks?: readonly string[];
   /** A Table Row's own border + padding above · below its cells (the Canvas's row box). */
   readonly rowEdge?: { readonly top: number; readonly bottom: number };
-  /** A Table Row's DOM tracks where one follows the device (`_tableDeviceTracks`). */
-  readonly deviceTracks?: string;
-  /** A Table draws the drag column first (`_allowsDragging`). */
-  readonly dragColumn?: boolean;
 }
 
 export type CatalogVirtualLayout =
@@ -69,9 +65,6 @@ export type CatalogVirtualLayout =
         readonly columnTracks?: readonly string[];
         /** The Row's border + padding: a row is its cells plus these (the cells start below top). */
         readonly rowEdge: { readonly top: number; readonly bottom: number };
-        /** The columns that follow the device (`catalogDeviceColumnTracks`). */
-        readonly deviceTracks?: string;
-        readonly dragColumn?: boolean;
       };
     };
 
@@ -123,8 +116,6 @@ export function catalogVirtualLayout(
           ? { columnTracks: input.columnTracks }
           : {}),
         rowEdge: input.rowEdge ?? { top: 0, bottom: 0 },
-        ...(input.deviceTracks ? { deviceTracks: input.deviceTracks } : {}),
-        ...(input.dragColumn ? { dragColumn: true } : {}),
       },
     };
   }

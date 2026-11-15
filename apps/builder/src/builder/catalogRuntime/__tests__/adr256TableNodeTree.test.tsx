@@ -30,6 +30,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { catalogGroupItems } from "../../../../../../packages/shared/src/catalog/runtime/groupSelection";
+import { catalogTableRowTracks } from "../../../../../../packages/shared/src/catalog/runtime/tableTracks";
+import { catalogVirtualGridOptions } from "../../../../../../packages/shared/src/catalog/runtime/virtualGrid";
+import { catalogVirtualListLayout } from "../../../../../../packages/shared/src/catalog/runtime/virtualListLayout";
 import { renderCatalogDom } from "../domBinding";
 import { catalogItemInsertChoices } from "../itemInsert";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
@@ -330,8 +334,9 @@ describe("ADR-256 Phase 5i-1 — Table draws its node tree", () => {
       workspace.readModel.childRows(
         workspace.positionOfRecord(record("project:node:body").id)!,
       ).length;
-    const body = workspace.positionOfRecord(record("project:node:body").id)!
-      .target;
+    const body = workspace.positionOfRecord(
+      record("project:node:body").id,
+    )!.target;
     const before = rows();
     workspace.execute(
       insertTableRow({
@@ -416,6 +421,34 @@ describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[select
   it("the reference structure: select-all in the column, the row's checkbox in its cell — the Name column still names the rows", async () => {
     const { draw } = await openSelection();
     expect(structure(draw())).toBe(structure(selectionReference()));
+  });
+
+  it("a virtual Table's Layout lays the columns on the Canvas's tracks — the selection column at the device's px (touch 52)", async () => {
+    // (ADR-310 Phase 8 후속: the Canvas's tracks hold the desktop 40; the DOM's grid follows the
+    //  device — the `Layout` takes the same track function at the device's selection px.)
+    const { root, record } = await openSelection();
+    const columnsAt = (selection: number) => {
+      const layout = catalogVirtualListLayout(
+        root,
+        record(OWNER),
+        {
+          typeOf: (node) => root.typeOf(node),
+          itemsOf: catalogGroupItems,
+          gridOptions: catalogVirtualGridOptions,
+          deviceColumns: () => ({ selection, drag: 16 }),
+          rowTracks: catalogTableRowTracks,
+        },
+        { selection, drag: 16 },
+      );
+      return "kind" in layout && layout.kind === "table"
+        ? layout.options.columnTracks
+        : undefined;
+    };
+    const canvas = root.getDrawnLayoutStyle(record("project:node:r0").id)!
+      .gridTemplateColumns as string[];
+    expect(canvas[0]).toBe("40px");
+    expect(columnsAt(40)).toEqual(canvas);
+    expect(columnsAt(52)).toEqual(["52px", ...canvas.slice(1)]);
   });
 
   it("a selection Checkbox sits at the top of its cell's line on both sides — the header stays S2's 32", async () => {

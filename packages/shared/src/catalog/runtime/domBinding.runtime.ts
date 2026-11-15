@@ -226,6 +226,7 @@ import {
   useCatalogDeviceTokenPx,
   useCatalogDeviceUnit,
 } from "./deviceUnit.runtime";
+import type { CatalogTableDeviceColumns } from "./virtualListLayout";
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
@@ -522,12 +523,27 @@ const VISUALLY_HIDDEN: CSSProperties = {
 };
 
 /**
+ * ADR-295 후속 — a Table's columns that follow the device as px numbers (S2 `useScale()`: the
+ * selection column 40 · 52 — `{size.table.selection-column}`, not the unit × 40 — and the drag
+ * column 16 · 20): RAC's Column widths and a virtual Table's `TableLayout` take numbers.
+ */
+export function useCatalogTableDeviceColumns(): CatalogTableDeviceColumns {
+  return {
+    selection: useCatalogDeviceTokenPx(
+      CATALOG_SELECTION_COLUMN_VAR,
+      CATALOG_SELECTION_COLUMN_WIDTH,
+    ),
+    drag: CATALOG_DRAG_COLUMN_WIDTH * useCatalogDeviceUnit(),
+  };
+}
+
+/**
  * ADR-295 후속 C1 — the drag column's RAC Column. Its width is a px number (RAC `ColumnSize` — the
  * resizable Table's column widths are RAC's arithmetic, `CatalogTableResizeTracks`), so it takes the
  * device unit in JS as S2 does (`useScale()` — `width={scale === 'medium' ? 16 : 20}`).
  */
 function CatalogTableDragColumn(): ReactElement {
-  const width = CATALOG_DRAG_COLUMN_WIDTH * useCatalogDeviceUnit();
+  const width = useCatalogTableDeviceColumns().drag;
   return createElement(
     RAC.Column as ElementType,
     { "data-drag-column": "", width, minWidth: width },
@@ -545,10 +561,7 @@ function CatalogTableDragColumn(): ReactElement {
 function CatalogTableSelectionColumn(
   props: Record<string, unknown>,
 ): ReactElement {
-  const width = useCatalogDeviceTokenPx(
-    CATALOG_SELECTION_COLUMN_VAR,
-    CATALOG_SELECTION_COLUMN_WIDTH,
-  );
+  const width = useCatalogTableDeviceColumns().selection;
   return createElement(RAC.Column as ElementType, {
     ...props,
     width,

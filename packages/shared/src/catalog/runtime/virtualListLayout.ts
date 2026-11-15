@@ -10,7 +10,7 @@ import {
 } from "./virtualLayout";
 import { catalogVirtualFlow } from "./virtualFlow";
 import type { catalogVirtualGridOptions } from "./virtualGrid";
-import type { CatalogTableDeviceColumns } from "./tableTrackWidths";
+import type { catalogTableRowTracks } from "./tableTracks";
 
 /**
  * ADR-310 Phase 8 — a list's virtual layout read from its drawn records (the Canvas's geometry and
@@ -18,7 +18,8 @@ import type { CatalogTableDeviceColumns } from "./tableTrackWidths";
  * 「가상 스크롤」 choice read it (no RAC import — the panel's chunk stays small).
  */
 const px = (value: unknown): number => {
-  const number = typeof value === "number" ? value : Number.parseFloat(String(value ?? 0));
+  const number =
+    typeof value === "number" ? value : Number.parseFloat(String(value ?? 0));
   return Number.isFinite(number) ? number : 0;
 };
 
@@ -34,12 +35,24 @@ export interface CatalogVirtualListReaders {
   readonly gridOptions: typeof catalogVirtualGridOptions;
   /** A hook: the device's selection · drag column px (a Table's columns that follow the device). */
   readonly deviceColumns: () => CatalogTableDeviceColumns;
+  /** A Table row's column tracks at a selection column width (`catalogTableRowTracks` — the Canvas's). */
+  readonly rowTracks: typeof catalogTableRowTracks;
+}
+
+/** The device's px of a Table's columns that follow it (S2 `useScale()`). */
+export interface CatalogTableDeviceColumns {
+  /** `{size.table.selection-column}` at this device (S2 40 · touch 52). */
+  readonly selection: number;
+  /** The drag column at this device (S2 16 · touch 20). */
+  readonly drag: number;
 }
 
 export function catalogVirtualListLayout(
   root: CatalogCompositionRoot,
   record: CatalogConsumerNode,
   readers: CatalogVirtualListReaders,
+  /** A Table's (`readers.deviceColumns`); without it the `TableLayout` keeps RAC's widths. */
+  device?: CatalogTableDeviceColumns,
 ): CatalogVirtualLayout | { readonly refused: CatalogVirtualRefusal } {
   const typeOf = readers.typeOf;
   const catalogGroupItems = readers.itemsOf;
@@ -70,7 +83,10 @@ export function catalogVirtualListLayout(
   //  is the author's flex row. A horizontal `ListLayout` measures an item's width in a box of the
   //  estimate, so the items must have one px width there — the Canvas's flex gives a fixed main
   //  size `flex-shrink: 0`.)
-  const flow = type === "Table" ? { orientation: "vertical" as const } : catalogVirtualFlow(style);
+  const flow =
+    type === "Table"
+      ? { orientation: "vertical" as const }
+      : catalogVirtualFlow(style);
   if ("refused" in flow) return flow;
   let fixedWidths: number[] | undefined;
   if (flow.orientation === "horizontal") {
@@ -97,7 +113,9 @@ export function catalogVirtualListLayout(
       bottom: px(style.paddingBottom ?? style.padding),
       left: px(style.paddingLeft ?? style.padding),
     },
-    ...(type === "Table" ? tableTrackInput(root, items[0]) : {}),
+    ...(type === "Table" && device
+      ? tableTrackInput(root, items[0], get, typeOf, readers.rowTracks, device)
+      : {}),
     // (A horizontal list's items are their px width — the `ListLayout`'s `rowSize`.)
     rows: fixedWidths
       ? fixedWidths.map((width) => ({ width, height: 0 }))
@@ -110,28 +128,33 @@ export function catalogVirtualListLayout(
 }
 
 /**
- * A Table's column tracks and its Row's edge, read from a body Row's engine input (the Canvas's —
- * the same in the Preview's root): the tracks the grid lays the cells on (`_tableTracks`, with the
- * drag column's), the DOM's device tracks and the border · padding the row adds around them.
+ * A Table's column tracks and its Row's edge: the tracks the grid lays the cells on, at this
+ * device — the Canvas's track function (`catalogTableRowTracks`, as `_tableTracks`) with the
+ * device's selection column px, after the drag column's (`_allowsDragging`) — and the border ·
+ * padding the row adds around them (the Row's engine input).
  */
 function tableTrackInput(
   root: CatalogCompositionRoot,
   row: CatalogConsumerNode | undefined,
-): Pick<
-  CatalogVirtualInput,
-  "columnTracks" | "rowEdge" | "deviceTracks" | "dragColumn"
-> {
+  get: (id: string) => CatalogConsumerNode | undefined,
+  typeOf: (node: CatalogConsumerNode) => string,
+  rowTracks: typeof catalogTableRowTracks,
+  device: CatalogTableDeviceColumns,
+): Pick<CatalogVirtualInput, "columnTracks" | "rowEdge"> {
   if (!row) return {};
   const style = root.getDrawnLayoutStyle(row.id) ?? {};
-  const tracks = style.gridTemplateColumns;
-  const device = row.derivedProps?._tableDeviceTracks;
+  const tracks = rowTracks(row, get, typeOf, device.selection)?.list;
   const side = (border: unknown, padding: unknown) =>
     px(border ?? style.border) + px(padding ?? style.padding);
   return {
-    ...(Array.isArray(tracks) ? { columnTracks: tracks.map(String) } : {}),
-    // (The DOM's tracks follow the device — the selection · drag columns, `catalogDeviceColumnTracks`.)
-    ...(typeof device === "string" ? { deviceTracks: device } : {}),
-    ...(row.derivedProps?._allowsDragging === true ? { dragColumn: true } : {}),
+    ...(tracks
+      ? {
+          columnTracks:
+            row.derivedProps?._allowsDragging === true
+              ? [`${device.drag}px`, ...tracks]
+              : tracks,
+        }
+      : {}),
     rowEdge: {
       top: side(style.borderTop, style.paddingTop),
       bottom: side(style.borderBottom, style.paddingBottom),
@@ -158,4 +181,3 @@ function collectHeadings(
   visit(record);
   return out;
 }
-

@@ -235,15 +235,16 @@ export function catalogTableSelectionColumn<T extends TrackRecord>(
 /**
  * The track list a Table's header row · Row lays out on (`display: grid` — Canvas `styleOf`, DOM
  * `catalogDomStyle` · the Table parts): `tracks` in px (the Canvas's — the selection column at
- * `selectionWidth`, desktop 40) and `deviceTracks` when a track follows the device (the DOM's — the
- * selection column's CSS variable). Undefined for any other record or a Table without Columns.
+ * `selectionWidth`, desktop 40 — and `list`, the same per column) and `deviceTracks` when a track
+ * follows the device (the DOM's — the selection column's CSS variable). Undefined for any other
+ * record or a Table without Columns.
  */
 export function catalogTableRowTracks<T extends TrackRecord>(
   node: T,
   get: TrackLookup<T>,
   typeOf: TrackTypeOf<T>,
   selectionWidth?: number,
-): { tracks: string; deviceTracks?: string } | undefined {
+): { tracks: string; list: string[]; deviceTracks?: string } | undefined {
   const table = catalogTrackTableOf(node, get, typeOf);
   if (!table) return undefined;
   // (A highlight-selection Table has no selection column — Phase 3.)
@@ -262,8 +263,10 @@ export function catalogTableRowTracks<T extends TrackRecord>(
       : {}),
   }));
   const deviceTracks = catalogTableColumnDeviceTracks(inputs);
+  const list = inputs.map((input) => catalogColumnTrack(input).track);
   return {
-    tracks: catalogTableColumnTracks(inputs),
+    tracks: list.join(" "),
+    list,
     ...(deviceTracks ? { deviceTracks } : {}),
   };
 }

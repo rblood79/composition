@@ -11,12 +11,10 @@ import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
 } from "./compositionRoot";
-import {
-  catalogDeviceColumnTracks,
-  catalogTableTrackWidths,
-} from "./tableTrackWidths";
+import { catalogTableTrackWidths } from "./tableTrackWidths";
 import {
   catalogVirtualListLayout,
+  type CatalogTableDeviceColumns,
   type CatalogVirtualListReaders,
 } from "./virtualListLayout";
 type GridInput = {
@@ -108,7 +106,7 @@ type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
 
 /**
  * RAC's `TableLayout` placing a Table as the Canvas does: the columns are the Canvas's grid tracks
- * (the selection · drag columns at this device — `catalogDeviceColumnTracks`) at the scroll width
+ * (the selection · drag columns at this device — `catalogVirtualListLayout`) at the scroll width
  * (`catalogTableTrackWidths` — RAC's `TableColumnLayout` rounds to whole px
  * and reads a selection · drag Column as `1fr`), and a row is its cells plus the Row's own border ·
  * padding (`rowEdge` — RAC sizes a row by its measured cells, so a Row's bottom divider fell
@@ -189,22 +187,35 @@ class CatalogTableLayout extends TableLayout<unknown> {
  * `Layout` and its options come from the values the Canvas lays the list out with
  * (`catalogVirtualListLayout`); a list a `Layout` cannot place the same way draws as it is.
  */
-export default function CatalogVirtualizer({
-  root,
-  record,
-  readers,
-  element: drawn,
-}: {
+export default function CatalogVirtualizer(
+  props: VirtualizerProps,
+): ReactElement {
+  return props.readers.typeOf(props.record) === "Table"
+    ? createElement(CatalogVirtualTable, props)
+    : virtualized(props);
+}
+
+type VirtualizerProps = {
   root: CatalogCompositionRoot;
   record: CatalogConsumerNode;
   readers: CatalogVirtualListReaders;
   element: ReactElement;
-}): ReactElement {
+};
+
+/**
+ * A Table's selection · drag columns follow the device as the DOM's grid does (S2 40 · 52, 16 · 20;
+ * the Canvas's tracks hold the desktop px) — only a Table reads the device (a hook).
+ */
+function CatalogVirtualTable(props: VirtualizerProps): ReactElement {
+  return virtualized(props, props.readers.deviceColumns());
+}
+
+function virtualized(
+  { root, record, readers, element: drawn }: VirtualizerProps,
+  device?: CatalogTableDeviceColumns,
+): ReactElement {
   let element = drawn;
-  // (A Table's selection · drag columns follow the device as the DOM's grid does — S2 40 · 52,
-  //  16 · 20; the Canvas's tracks hold the desktop px.)
-  const device = readers.deviceColumns();
-  const layout = catalogVirtualListLayout(root, record, readers);
+  const layout = catalogVirtualListLayout(root, record, readers, device);
   if ("refused" in layout) return element;
   // (The list is the scroll box the `Virtualizer` fills — its rows are placed by the `Layout`, so
   //  the list's own flex · grid flow no longer applies: RAC's reference gives it `display: block`.)
@@ -229,29 +240,8 @@ export default function CatalogVirtualizer({
       },
       children: element,
     } as never);
-  if (layout.kind === "table") {
-    const { deviceTracks, dragColumn, columnTracks, ...options } =
-      layout.options;
-    return createElement(Virtualizer, {
-      layout: CatalogTableLayout,
-      layoutOptions: {
-        ...options,
-        ...(columnTracks
-          ? {
-              columnTracks: catalogDeviceColumnTracks(
-                columnTracks,
-                deviceTracks,
-                dragColumn === true,
-                device,
-              ),
-            }
-          : {}),
-      },
-      children: element,
-    } as never);
-  }
   return createElement(Virtualizer, {
-    layout: CatalogListLayout,
+    layout: layout.kind === "table" ? CatalogTableLayout : CatalogListLayout,
     layoutOptions: layout.options,
     children: element,
   } as never);

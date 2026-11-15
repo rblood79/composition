@@ -158,22 +158,15 @@ describe("ADR-310 Phase 8 — a virtual list's options from the Canvas's values"
         columnGap: 0,
         padding: padding(0),
         rows: [],
-        columnTracks: ["16px", "40px", "minmax(75px, 1fr)"],
+        columnTracks: ["40px", "minmax(75px, 1fr)"],
         rowEdge: { top: 0, bottom: 1 },
-        deviceTracks:
-          "16px var(--catalog-token-size-table-selection-column) minmax(75px, 1fr)",
-        dragColumn: true,
       }),
     ).toEqual({
       kind: "table",
       options: {
         estimatedRowHeight: 40,
-        columnTracks: ["16px", "40px", "minmax(75px, 1fr)"],
+        columnTracks: ["40px", "minmax(75px, 1fr)"],
         rowEdge: { top: 0, bottom: 1 },
-        // (The DOM's selection · drag columns follow the device — the chunk resolves them.)
-        deviceTracks:
-          "16px var(--catalog-token-size-table-selection-column) minmax(75px, 1fr)",
-        dragColumn: true,
       },
     });
   });

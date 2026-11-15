@@ -6230,7 +6230,7 @@ export class CatalogCompositionRoot {
     // (The resolver names the list by its own resolved node — a collapsed instance's innermost —
     // before a row key is stamped on it: the lists one row template repeats share their pitch.)
     const resolved = owner.collapsedIds?.at(-1) ?? owner.id;
-    this.rowPitches.set(resolved.split(CATALOG_ROW_SEPARATOR)[0]!, pitch);
+    this.rowPitches.set(catalogRowTemplateIdentity(resolved), pitch);
     const pageRoot = this.pageRootRecordOf(owner.id);
     const pageHeight = pageRoot
       ? catalogSamplePageHeight(
@@ -7477,8 +7477,7 @@ export class CatalogCompositionRoot {
     let cursor: CatalogConsumerNode | undefined = before;
     // A bound row's record is its row template position repeated (`…::item#row:<key>`); the
     // resolver asks `include` for the position (`…::item`) and repeats it per row itself.
-    const position = (recordId: string) =>
-      recordId.split(CATALOG_ROW_SEPARATOR)[0]!;
+    const position = catalogRowTemplateIdentity;
     while (cursor) {
       allowed.add(position(cursor.id));
       // A collapsed record is reached through its composite layers' template roots.
