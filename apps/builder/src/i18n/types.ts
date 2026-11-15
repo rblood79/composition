@@ -871,6 +871,13 @@ export interface TranslationKeys {
     rowDisplayPageSize: string;
     rowDisplayPagination: string;
     rowDisplayPaginationNone: string;
+    rowDisplayVirtual: string;
+    rowDisplayVirtualBlocked: {
+      height: string;
+      padding: string;
+      cellSize: string;
+      noRows: string;
+    };
     fieldTemplatePlaceholder: string;
     insertField: string;
     collectionField: string;

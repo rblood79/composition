@@ -174,7 +174,7 @@ F4 의 결과: bound Menu · CardView · SelectBoxGroup 은 Canvas · Preview �
 
 > 구현 상세: [310-collection-item-repeat-marker-breakdown.md](design/310-collection-item-repeat-marker-breakdown.md)
 
-### 사용자 결정 7건 — 6 건 확정 (1 ~ 6), 1 건 (7) 은 execute-adr 가 Phase 8 에서 묻는다
+### 사용자 결정 7건 — 모두 확정 (7 은 Phase 8 착수 때)
 
 1. **계약 번호** — **확정 (2026-11-15)**: 번호를 올리고 그 전 문서는 열지 않는다 (ADR-308 과 같은 방식). 번호는 착수 시점의 다음 번호이고 Phase 2 에서 한 번 올린다 (breakdown §7). 영향: 그 전 계약의 프로젝트 전부.
 2. **연결 UI 의 선택지** — **확정 (2026-11-15, Phase 3 착수)**: Design 패널 Collection 절의 연결 칸 안. 고정 항목이 2 개 이상인 목록에 데이터를 고르면 칸 아래에 「기존 항목 N개 — (•) 첫 항목만 템플릿으로 — 나머지 지움 / ( ) 모두 고정 항목으로 두고 데이터는 뒤에」 가 나온다 (기본 = 첫 항목만 템플릿). 연결 한 번 = Undo 한 단계. 기각: 연결 확인 대화상자 · 선택 없이 연결 뒤 바꾸기.
@@ -182,7 +182,7 @@ F4 의 결과: bound Menu · CardView · SelectBoxGroup 은 Canvas · Preview �
 4. **섞인 목록의 끌어 옮기기** — **확정 (2026-11-15)**: 데이터 행을 고정 항목 경계에 놓으면 반복 구간의 처음 · 끝으로 간다 (거절하지 않는다).
 5. **번들 Δ 상한** — **확정 (2026-11-15, Phase 0)**: ADR-201 기본 Δ — ADR 전체 Builder +4,096 · Preview +3,584 B (G0 기준선 Builder 1,540,940 · Preview 152,371 대비). 넘으면 그 Phase 에서 lazy 분리로 줄이고, 못 줄이면 다시 묻는다.
 6. **Pagination 과 목록의 연결 모양** — **확정 (2026-11-15)**: Pagination 노드가 목록을 가리키는 참조 하나를 갖고, 번호 Button 은 템플릿 하나가 페이지 수만큼 반복된다 (규칙 대상과 같은 장소 참조, 새 저장 필드 하나). 기각: interaction 규칙으로 잇기 · 목록의 부품으로 두기.
-7. **가상 스크롤의 grid 배치** (Phase 8) — GridList grid · CardView 를 `GridLayout` 으로 지원 / 한 줄 목록과 Table 만. Phase 0 이 Canvas 가 `GridLayout` 의 칸 크기 계산을 같은 결과로 낼 수 있는지 판정한 뒤 정한다.
+7. **가상 스크롤의 grid 배치** — **확정 (2026-11-15, Phase 8 착수)**: GridList grid · CardView 도 RAC `GridLayout` 으로 지원한다 (한 줄 목록 · Table 에 더해). Canvas 는 같은 닫힌 산식으로 칸을 놓고 G8 의 1px 대조를 grid 에도 적용한다 — 통과하지 못한 배치만 선택지에서 뺀다. 기각: 한 줄 목록 · Table 만.
 
 ## Risks
 

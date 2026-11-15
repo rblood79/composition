@@ -406,8 +406,11 @@ const SAMPLED_ROW_OWNERS: ReadonlySet<string> = new Set([
   "Menu",
   "SelectBoxGroup",
 ]);
-/** A box that grows with its content: no bounded height (the old sample policy's `viewportHeight == null`). */
-function growsWithRows(
+/**
+ * A box that grows with its content: no bounded height (the old sample policy's `viewportHeight ==
+ * null`). ADR-310 Phase 8 — such a list has no scroll box: it cannot virtual-scroll.
+ */
+export function catalogGrowsWithRows(
   visual: Readonly<Record<string, Scalar>>,
   sizing: Readonly<Record<string, number | null>>,
 ): boolean {
@@ -2806,7 +2809,7 @@ export function resolveCatalogNode(
     const rowSet =
       availableRows &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
-      growsWithRows(visual, sizing)
+      catalogGrowsWithRows(visual, sizing)
         ? sampledRows(availableRows, `${instancePath.join("/")}::${templateId}`)
         : availableRows;
     const itemPositions = rowSet
@@ -3273,7 +3276,7 @@ export function resolveCatalogNode(
       ...(rowSet &&
       (itemPositions.some(repeats) || ownedRowItems > 0) &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
-      growsWithRows(visual, sizing)
+      catalogGrowsWithRows(visual, sizing)
         ? { rowCount: rowCountOf(rowSet), rowsShown: rowsShownOf(rowSet) }
         : {}),
       children,

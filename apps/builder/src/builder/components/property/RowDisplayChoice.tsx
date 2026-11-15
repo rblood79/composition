@@ -5,6 +5,7 @@ import {
   setRowDisplay,
 } from "../../../../../../packages/shared/src/catalog/commands/rowDisplay";
 import type { NodeEntry } from "../../../../../../packages/shared/src/catalog/document/types";
+import { catalogGrowsWithRows } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
 import { useCatalogStepReading } from "../../catalogRuntime/react.runtime";
 import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
@@ -40,8 +41,26 @@ export default function RowDisplayChoice({
         ...(entry.pagesOf ? { pagesOf: entry.pagesOf } : {}),
       });
     }
+    // ADR-310 Phase 8 — a list can virtual-scroll when it has a scroll box (a bounded height —
+    // a Table's fixed height mode) and a `Layout` places its rows as the Canvas does.
+    const record = workspace.root.domInputs.get(elementId);
+    let virtualBlocked: string | undefined;
+    if (record) {
+      const bounded =
+        record.ruleId === "Table"
+          ? record.props.heightMode === "fixed"
+          : !catalogGrowsWithRows(
+              record.visual as never,
+              record.sizing as never,
+            );
+      // (The `Layout` checks — four equal paddings · one card size — run in the Preview's chunk: a
+      //  list it cannot place the same way draws as it is there. Kept out of this panel's import —
+      //  it moved shared modules into the Builder's initial chunk, +1,160 B.)
+      virtualBlocked = !bounded ? "height" : undefined;
+    }
     return {
       listId: target.id,
+      ...(virtualBlocked ? { virtualBlocked } : {}),
       mode: node.rowDisplay?.mode ?? "more",
       size: node.rowDisplay?.size ?? 20,
       paginations: [...paginations].map(([id, value]) => ({ id, ...value })),
@@ -55,13 +74,20 @@ export default function RowDisplayChoice({
       <div className="binding-row">
         <PanelSelect
           aria-label={t("propertiesPanel.rowDisplay")}
-          selectedKey={state.mode === "pages" ? "pages" : "more"}
+          selectedKey={state.mode}
+          disabledKeys={
+            state.virtualBlocked && state.mode !== "virtual" ? ["virtual"] : []
+          }
           onSelectionChange={(key) =>
             runCatalogCommand(
               workspace,
               setRowDisplay(
                 listId,
-                key === "pages" ? { mode: "pages", size: state.size } : undefined,
+                key === "pages"
+                  ? { mode: "pages", size: state.size }
+                  : key === "virtual"
+                    ? { mode: "virtual" }
+                    : undefined,
               ),
             )
           }
@@ -74,6 +100,17 @@ export default function RowDisplayChoice({
           <PanelSelectItem
             id="pages"
             label={t("propertiesPanel.rowDisplayPages")}
+          />
+          <PanelSelectItem
+            id="virtual"
+            label={t("propertiesPanel.rowDisplayVirtual")}
+            {...(state.virtualBlocked
+              ? {
+                  detail: t(
+                    `propertiesPanel.rowDisplayVirtualBlocked.${state.virtualBlocked}` as never,
+                  ),
+                }
+              : {})}
           />
         </PanelSelect>
       </div>

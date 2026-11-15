@@ -1174,6 +1174,13 @@ const catalog: TranslationKeys = {
     rowDisplayPageSize: "Rows per page",
     rowDisplayPagination: "Pagination",
     rowDisplayPaginationNone: "None",
+    rowDisplayVirtual: "Virtual scroll",
+    rowDisplayVirtualBlocked: {
+      height: "Give the list a fixed height first",
+      padding: "Use the same padding on all four sides",
+      cellSize: "Give every card the same size",
+      noRows: "Connect data with rows first",
+    },
     legacyBinding:
       "Legacy {source} binding — choosing a collection switches it to dataTable.",
     fieldTemplatePlaceholder: "Text or {field}",

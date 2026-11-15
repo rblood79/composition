@@ -1173,6 +1173,13 @@ const catalog: TranslationKeys = {
     rowDisplayPageSize: "쪽당 행 수",
     rowDisplayPagination: "페이지 이동",
     rowDisplayPaginationNone: "없음",
+    rowDisplayVirtual: "가상 스크롤",
+    rowDisplayVirtualBlocked: {
+      height: "목록에 높이를 먼저 정하세요",
+      padding: "네 변의 안쪽 여백을 같게 두세요",
+      cellSize: "카드 크기를 모두 같게 두세요",
+      noRows: "행이 있는 데이터를 먼저 연결하세요",
+    },
     legacyBinding:
       "legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.",
     fieldTemplatePlaceholder: "텍스트 또는 {field}",

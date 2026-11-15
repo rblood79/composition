@@ -1780,12 +1780,16 @@ export class CatalogPreviewSession {
       ownerId === undefined ? undefined : this.rowDisplayOf(ownerId);
     if (ownerId !== undefined && display?.mode === "pages")
       return this.pageRows(binding, kind, ownerId, display);
+    // (A virtual-scrolled list shows every loaded row — the `Virtualizer` puts the visible ones in
+    //  the DOM; its end loads the next page as 「더 보기」 does.)
     const window =
       ownerId === undefined
         ? undefined
-        : this.displayWindows.get(
-            displayWindowKey(binding.collectionId, ownerId),
-          );
+        : display?.mode === "virtual"
+          ? Number.MAX_SAFE_INTEGER
+          : this.displayWindows.get(
+              displayWindowKey(binding.collectionId, ownerId),
+            );
     const rows = catalogBoundRows(binding, this.itemSources(), kind, window);
     if (!rows) return rows;
     if (ownerId !== undefined) {

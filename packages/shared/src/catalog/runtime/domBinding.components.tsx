@@ -36,6 +36,39 @@ const CatalogDragAndDrop = lazy(
   () => import("./catalogDragAndDrop.components"),
 );
 
+/** ADR-310 Phase 8 — RAC's `Virtualizer` loads with the first list that virtual-scrolls. */
+const CatalogVirtualizer = lazy(
+  () => import("./catalogVirtualizer.components"),
+);
+
+/**
+ * ADR-310 Phase 8 (Decision 10) — a list whose row display is `virtual` draws inside RAC's
+ * `Virtualizer` (only its visible rows in the DOM); until the chunk loads it draws as it is.
+ */
+function withVirtualizer(
+  root: CatalogCompositionRoot,
+  record: CatalogConsumerNode,
+  element: ReactElement | null,
+): ReactElement | null {
+  if (!element) return element;
+  const source = root.runtime.graph.getEntry(record.sourceId as never);
+  if (source?.kind !== "node" || source.rowDisplay?.mode !== "virtual")
+    return element;
+  return createElement(
+    Suspense,
+    { fallback: element },
+    createElement(CatalogVirtualizer, {
+      root,
+      record,
+      readers: {
+        typeOf: (node: CatalogConsumerNode) => catalogTypeName(root, node),
+        itemsOf: catalogGroupItems,
+      },
+      element,
+    }),
+  );
+}
+
 /**
  * A collection whose rules handle a drag and drop (`onInsert` …) gets `dragAndDropHooks` — the
  * drags carry the bound collection's type (else the node's) and a list accepts its own collection
@@ -433,7 +466,10 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           props: inheritedProps,
         } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
-    withDragAndDrop(
+    withVirtualizer(
+      root,
+      record,
+      withDragAndDrop(
       root,
       record,
       withRuntime(
@@ -452,6 +488,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
         runtime?.handlersOf(id),
       ),
       runtime?.handlersOf(id),
+      ),
     );
   const drawWithSlot = (record: CatalogConsumerNode): ReactElement | null => {
     const consumer = catalogRacSlotConsumer(catalogTypeName(root, record));

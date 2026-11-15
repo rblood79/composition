@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-310 Phase 8 (진행 중) — 세로 목록의 가상 스크롤] - 2026-11-15
+
+### Added
+
+- **행 표시 「가상 스크롤」**: 높이를 정한 연결 목록은 Design 패널 「행 표시」 에서 가상 스크롤을 고를 수 있다 — Preview · Publish 가 보이는 행만 DOM 에 두고 (250 행 목록에서 13 ~ 14 개) 스크롤 · 키보드 이동 · 선택은 그대로다. 높이가 정해지지 않은 목록은 고를 수 없고 이유가 보인다. 지금은 세로 목록 — Table · 가로 목록 · 카드 grid 는 다음 단계.
+
 ## [ADR-310 Phase 7 — 연결한 목록의 「페이지」 표시 · Pagination 연결] - 2026-11-15
 
 ### Added
