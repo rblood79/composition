@@ -92,6 +92,12 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-commit-vocabulary.sh",
             "if": "Bash(git *)",
             "onFailure": "block"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-git-add-all.sh",
+            "if": "Bash(git *)",
+            "onFailure": "block"
           }
         ]
       },
@@ -116,6 +122,10 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-format.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/track-session-edits.sh"
           }
         ]
       },

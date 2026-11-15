@@ -382,6 +382,39 @@ if printf '%s' "$OUT" | jq -e '.hookSpecificOutput.updatedInput.actions as $a | 
 case_start "browser_batch 에 screenshot 없음 → 빈 출력"
 run_hook chrome-screenshot-save.sh '{"tool_name":"mcp__claude-in-chrome__browser_batch","tool_input":{"actions":[{"name":"navigate","input":{"url":"http://localhost:5174","tabId":7}}]}}'; assert_allow
 
+# ---------- track-session-edits.sh · protect-git-add-all.sh ----------
+printf '\n== protect-git-add-all.sh ==\n'
+GA="$TMP/gitadd"
+mkdir -p "$GA" && git -C "$GA" init -q && git -C "$GA" config user.email t@t && git -C "$GA" config user.name t
+printf 'a\n' > "$GA/mine.txt"; printf 'b\n' > "$GA/other.txt"
+git -C "$GA" add -A && git -C "$GA" commit -qm init
+printf 'a2\n' > "$GA/mine.txt"
+ga_json() { jq -nc --arg c "$1" '{hook_event_name:"PreToolUse",tool_name:"Bash",session_id:"s1",tool_input:{command:$c}}'; }
+case_start "Write 기록 → 세션 파일에 상대 경로"
+run_hook track-session-edits.sh "$(jq -nc --arg f "$GA/mine.txt" '{tool_name:"Write",session_id:"s1",tool_input:{file_path:$f}}')" CLAUDE_PROJECT_DIR="$GA"
+if [ "$(cat "$GA/.agent/session-edits/s1.txt" 2>/dev/null)" = "mine.txt" ]; then pass; else fail "기록 없음"; fi
+printf '.agent/\n' > "$GA/.git/info/exclude"
+case_start "git add -A · 변경이 전부 이 세션 것 → 통과"
+run_hook protect-git-add-all.sh "$(ga_json 'git add -A && git commit -m x')" CLAUDE_PROJECT_DIR="$GA"; assert_allow
+printf 'b2\n' > "$GA/other.txt"
+case_start "git add -A · 다른 세션의 추적 파일 변경 → ask + 그 파일 이름"
+run_hook protect-git-add-all.sh "$(ga_json 'git add -A')" CLAUDE_PROJECT_DIR="$GA"; assert_decision ask
+case_start "ask 사유에 다른 세션 파일만 (자기 파일 제외)"
+if printf '%s' "$OUT" | grep -qF 'other.txt' && ! printf '%s' "$OUT" | grep -qF 'mine.txt'; then pass; else fail "$(printf '%s' "$OUT" | head -c 200)"; fi
+case_start "git commit -am → ask"
+run_hook protect-git-add-all.sh "$(ga_json 'git commit -am "x"')" CLAUDE_PROJECT_DIR="$GA"; assert_decision ask
+case_start "git add <path> · git commit -- <path> → 통과"
+run_hook protect-git-add-all.sh "$(ga_json 'git add mine.txt && git commit -m x -- mine.txt')" CLAUDE_PROJECT_DIR="$GA"; assert_allow
+case_start "git commit --amend → 통과 (-a 아님)"
+run_hook protect-git-add-all.sh "$(ga_json 'git commit --amend --no-edit')" CLAUDE_PROJECT_DIR="$GA"; assert_allow
+git -C "$GA" checkout -q other.txt; printf 'n\n' > "$GA/new.txt"
+case_start "git add -u · 다른 변경이 untracked 뿐 → 통과"
+run_hook protect-git-add-all.sh "$(ga_json 'git add -u')" CLAUDE_PROJECT_DIR="$GA"; assert_allow
+case_start "git add . · untracked 다른 파일 → ask"
+run_hook protect-git-add-all.sh "$(ga_json 'git add .')" CLAUDE_PROJECT_DIR="$GA"; assert_decision ask
+case_start "session_id 없음 → 모든 변경을 묻는다"
+run_hook protect-git-add-all.sh '{"tool_name":"Bash","tool_input":{"command":"git add -u"}}' CLAUDE_PROJECT_DIR="$GA"; assert_decision ask
+
 # ---------- auto-format.sh (PostToolUse) ----------
 printf '\n== auto-format.sh ==\n'
 case_start "포맷 대상 아닌 확장자 → 통과 (prettier 미호출)"

@@ -70,6 +70,7 @@ packages/shared/src/**/*.d.ts.map
 .worktrees/
 .agent/runs/
 .agent/archives/
+.agent/session-edits/
 .agent/task-state.json
 .claude/settings.local.json
 .claude/.spec-rebuild-pending
