@@ -159,7 +159,9 @@ describe("ADR-248 Phase 4e-4 Components palette", () => {
       }
     }
     expect(refused).toEqual([]);
-  });
+    // 팔레트 항목 수에 비례한다 (항목당 ≈ 47 ms — ADR-306 Phase 5 의 Chart 6 항목 뒤 단독 3.4 초, 전체
+    //   실행 부하에서 기본 5 초를 넘었다). 상한을 명시한다.
+  }, 15_000);
 
   it("a Chart palette item writes no width — the rule's 16:9 box (width 100%) sizes it", async () => {
     const { workspace, add } = await open();

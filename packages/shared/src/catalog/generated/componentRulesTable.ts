@@ -13798,6 +13798,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         "step-2": "{color.chart-accent-3}",
         "step-3": "{color.chart-accent-2}",
         "step-4": "{color.chart-accent-1}",
+        // ADR-306 Phase 5 — 칸 안 글자 (treemap · sunburst). accent-1 · neutral-subdued 위 대비 짝.
+        "on-fill": "{color.on-neutral}",
       },
       // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
       //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.

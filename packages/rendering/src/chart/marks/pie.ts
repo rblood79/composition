@@ -27,6 +27,8 @@ export interface PieMarkInput {
   innerRadius: number;
   /** 구멍 안 합계 표시 (도넛일 때만) */
   showTotal: boolean;
+  /** ADR-306 Phase 5 — 합계를 끈 도넛의 가운데 글자 (`centerLabel`). 합계를 켜면 합계 아래 설명이 된다. */
+  centerCaption?: string;
   /** 합계 아래 설명 — metric 필드명 */
   totalCaption: string;
   /** 합계 문자열 (ADR-210 raw 형식). 미지정이면 기존 `formatTick`. */
@@ -63,6 +65,28 @@ const RING_GAP = 2;
  * 설명 줄은 구멍이 두 줄을 받을 만큼일 때만 붙는다. radial 이 같은 함수를 쓰므로
  * 두 극좌표 계열의 중앙 텍스트 자리가 갈리지 않는다 (shadcn `chart-radial-text`).
  */
+/** ADR-306 Phase 5 — 합계 없이 가운데 글자 한 줄 (구멍이 글자보다 작으면 그리지 않는다). */
+export function centerCaptionLabel(
+  cx: number,
+  cy: number,
+  hole: number,
+  caption: string,
+  fontSize: number,
+): TextMark[] {
+  if (!caption || hole < fontSize) return [];
+  return [
+    {
+      kind: "text",
+      x: r2(cx),
+      y: r2(cy),
+      text: caption,
+      anchor: "middle",
+      baseline: "middle",
+      role: "value",
+    },
+  ];
+}
+
 export function centerTotalLabels(
   cx: number,
   cy: number,
@@ -339,6 +363,10 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
         fontSize,
         totalText,
       ),
+    );
+  } else if (input.centerCaption) {
+    labels.push(
+      ...centerCaptionLabel(cx, cy, innermost, input.centerCaption, fontSize),
     );
   }
 

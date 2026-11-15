@@ -498,7 +498,9 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     category: "charts",
     creationVariants: CHART_DESCRIPTORS.map((descriptor) => ({
       ...descriptor,
-      initialProps: { ...createChartInitialProps(descriptor.chartType) },
+      initialProps: {
+        ...createChartInitialProps(descriptor.chartType, descriptor.paletteId),
+      },
     })),
     label: "chart",
     icon: "BarChart3",

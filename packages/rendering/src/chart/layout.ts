@@ -13,6 +13,7 @@ import { formatChartNumber } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
 import { timeAxisTwoTier } from "./timeAxis";
 import { referenceValues, seriesLabel, valueExtent } from "./series";
+import { fittedSizeRange } from "./marks/sizeRange";
 import type { SeriesGrid, StackMode } from "./series";
 import type {
   ChartLabelFormatter,
@@ -181,8 +182,12 @@ export function resolveChartLayout(
     grid.series.length > 1 && props.stackType !== "dodged"
       ? props.stackType
       : "none";
-  const extent = valueExtent(grid, stackMode, referenceValues(presentation));
-  const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
+  const ticks = chartValueTicks(
+    props,
+    grid,
+    stackMode,
+    referenceValues(presentation),
+  );
   const horizontal = props.orientation === "horizontal";
   // expand 축만 정규화 단위다 — opt-in 형식이면 항상 퍼센트, auto 면 기존 문자열.
   const tickText = (tick: number): string =>
@@ -238,6 +243,22 @@ export function resolveChartLayout(
     }
   }
 
+  // ADR-306 Phase 5 — 크기 점 (scatter `sizeField`) 은 가장 큰 반지름만큼 그림을 안으로 — 축 끝의 점이
+  //   상자 밖으로 나가지 않는다 (ztd 의 바깥 여백과 같은 뜻, 두 consumer 가 같은 plot 을 읽는다).
+  const bubblePad = bubblePlotPad(props, plot.w, plot.h);
+  if (bubblePad > 0)
+    plot = {
+      x: r2(plot.x + bubblePad),
+      y: r2(plot.y + bubblePad),
+      w: r2(plot.w - bubblePad * 2),
+      h: r2(plot.h - bubblePad * 2),
+    };
+
+  // ADR-306 Phase 5 — 선 끝 시리즈 이름 (line · area 세로, breakdown §2.1 `endLabels`) 자리 — 그림 오른쪽.
+  //   폭은 가장 긴 시리즈 이름 (그림 폭의 28 % 까지 — ztd 와 같은 상한).
+  const endLabelWidth = endLabelsWidth(props, grid, plot.w, fontSize);
+  if (endLabelWidth > 0) plot = { ...plot, w: r2(plot.w - endLabelWidth) };
+
   return {
     normalizedSize,
     outer,
@@ -257,4 +278,110 @@ export function resolveChartLayout(
         ? null
         : { x: plot.x, y: trackY, w: plot.w, h: r2(trackH) },
   };
+}
+
+/** ADR-306 Phase 5 — 값 범위 옵션을 읽는 종류 (breakdown §2.1 — descriptor 옵션 표와 같다). */
+const RANGE_MIN_TYPES: ReadonlySet<string> = new Set(["line", "area"]);
+const RANGE_MAX_TYPES: ReadonlySet<string> = new Set([
+  "line",
+  "area",
+  "radar",
+  "radial",
+]);
+/** `includeZero` 가 비면 0 을 넣고 `false` 일 때만 빼는 종류 (패널 기준값 = true — binding `defaultWhen`). */
+export const CHART_ZERO_BY_DEFAULT_TYPES = ["line", "area", "scatter"] as const;
+const ZERO_TYPES: ReadonlySet<string> = new Set(CHART_ZERO_BY_DEFAULT_TYPES);
+
+/**
+ * 값 축 눈금 — 시리즈 경로의 domain 한 곳 (layout · model · 극좌표 scene 이 같이 부른다 — 두 consumer
+ * 가 같은 축을 읽는다). ADR-306 Phase 5:
+ * - `includeZero: false` (line · area · scatter) — 0 을 넣지 않는다 (누적은 무시). 비면 지금처럼 0 포함.
+ * - `valueMin` (line · area) · `valueMax` (line · area · radar · radial) — 축 끝을 그 값으로. 데이터를
+ *   자르지 않는다: 값이 그 밖이면 데이터 쪽 끝을 쓴다 (마크가 plot 밖으로 나가지 않게 — Recharts 의
+ *   `allowDataOverflow` 잘라내기와 Canvas 가 갈리지 않는다). 끝 눈금은 그 값, 안쪽 눈금은 nice 그대로.
+ */
+export function chartValueTicks(
+  props: Pick<
+    ChartProps,
+    "chartType" | "includeZero" | "valueMin" | "valueMax"
+  >,
+  grid: SeriesGrid,
+  stackMode: StackMode,
+  include: readonly number[] = [],
+  count = CHART_TICK_COUNT,
+): ReturnType<typeof niceTicks> {
+  const extent = valueExtent(
+    grid,
+    stackMode,
+    include,
+    !(ZERO_TYPES.has(props.chartType) && props.includeZero === false),
+  );
+  const fixed = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v);
+  // 고정 끝은 0 을 넣기 전 데이터 범위와 비교한다 — 값이 모두 양수일 때 하한 5 가 0 포함에 밀려
+  // 버려지지 않게 (판독 2026-11-16). 고정 끝이 0 포함보다 앞선다.
+  const data =
+    fixed(props.valueMin) || fixed(props.valueMax)
+      ? valueExtent(grid, stackMode, include, false)
+      : extent;
+  const lo =
+    RANGE_MIN_TYPES.has(props.chartType) &&
+    fixed(props.valueMin) &&
+    props.valueMin <= data.min
+      ? props.valueMin
+      : null;
+  const hi =
+    RANGE_MAX_TYPES.has(props.chartType) &&
+    fixed(props.valueMax) &&
+    props.valueMax >= data.max
+      ? props.valueMax
+      : null;
+  if ((lo === null && hi === null) || (lo ?? extent.min) >= (hi ?? extent.max))
+    return niceTicks(extent.min, extent.max, count);
+  const min = lo ?? extent.min;
+  const max = hi ?? extent.max;
+  const nice = niceTicks(min, max, count);
+  const d0 = lo ?? nice.domain[0];
+  const d1 = hi ?? nice.domain[1];
+  // 고정 끝과 반 칸보다 가까운 안쪽 눈금은 뺀다 (글자 겹침 — 37 과 40).
+  const step =
+    nice.ticks.length > 1 ? nice.ticks[1] - nice.ticks[0] : max - min;
+  const inner = nice.ticks.filter(
+    (t) => t > d0 + step / 2 - 1e-9 && t < d1 - step / 2 + 1e-9,
+  );
+  return { domain: [r2(d0), r2(d1)], ticks: [r2(d0), ...inner, r2(d1)] };
+}
+
+/** ADR-306 Phase 5 — 끝 이름표가 차지하는 폭 (없으면 0 — 그림이 그 폭을 못 받을 만큼 좁아도 0). */
+export function endLabelsWidth(
+  props: Pick<ChartProps, "chartType" | "endLabels" | "orientation">,
+  grid: SeriesGrid,
+  plotW: number,
+  fontSize: number,
+): number {
+  if (
+    props.endLabels !== true ||
+    (props.chartType !== "line" && props.chartType !== "area") ||
+    props.orientation === "horizontal" ||
+    grid.series.length === 0
+  )
+    return 0;
+  let widest = 0;
+  for (const series of grid.series)
+    widest = Math.max(
+      widest,
+      approxTextWidth(seriesLabel(series, "series"), fontSize),
+    );
+  const w = Math.min(plotW * 0.28, widest + 10);
+  return plotW - w > fontSize * 4 ? w : 0;
+}
+
+/** ADR-306 Phase 5 — 크기 점의 가장 큰 반지름 (scatter + `sizeField` 일 때만, 아니면 0). */
+export function bubblePlotPad(
+  props: Pick<ChartProps, "chartType" | "sizeField" | "sizeRange">,
+  plotW: number,
+  plotH: number,
+): number {
+  if (props.chartType !== "scatter" || !props.sizeField) return 0;
+  return fittedSizeRange(props.sizeRange, plotW, plotH)[1];
 }

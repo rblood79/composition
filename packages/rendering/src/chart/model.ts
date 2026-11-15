@@ -25,7 +25,11 @@ import type {
   ChartBudgetGeometry,
   DisplayBudget,
 } from "./budget";
-import { CHART_TICK_COUNT, resolveChartLayout } from "./layout";
+import {
+  CHART_TICK_COUNT,
+  chartValueTicks,
+  resolveChartLayout,
+} from "./layout";
 import type { ChartLayout } from "./layout";
 import { niceTicks, r2 } from "./scales";
 import type { TickResult } from "./scales";
@@ -36,7 +40,7 @@ import {
   resolveChartPresentation,
 } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
-import { buildSeriesGrid, referenceValues, valueExtent } from "./series";
+import { buildSeriesGrid, referenceValues, sortCategories } from "./series";
 import type { SeriesGrid } from "./series";
 import { resolveTimeAxisModel } from "./timeAxis";
 import type { ChartTimeAxisModel } from "./timeAxis";
@@ -187,12 +191,20 @@ export function resolveChartModel(
   const { metrics } = view;
   const presentation = resolveChartPresentation(props, metrics.seriesCount);
   const capped = capRows(rows, metrics.rowCap);
-  const input = buildSeriesGrid(
+  const built = buildSeriesGrid(
     capped.rows,
     props,
     metrics.seriesCount,
     presentation,
   );
+  // ADR-306 Phase 5 — bar · pie 의 `sort` (범주 축이 시간 · 숫자면 그 순서가 뜻이라 정렬하지 않는다).
+  const input =
+    (props.chartType === "bar" || props.chartType === "pie") &&
+    (props.sort === "ascending" || props.sort === "descending") &&
+    presentation.dimension.scale !== "time" &&
+    presentation.dimension.scale !== "linear"
+      ? sortCategories(built, props.sort, props.chartType === "pie")
+      : built;
   const settings = presentation.budget;
   // ADR-216 — 시간 스케일은 정의상 기간 축 (인접 index = 인접 시각) 이라 `ordinal` 로 고정한다
   //   (`resolveAxisKind` 의 ISO 판정은 category 스케일의 예산 힌트 — breakdown §1 (3)).
@@ -319,15 +331,15 @@ export function resolveChartModel(
       : { ...baseLayout, formatValue, labelText, legendEntries, legendBox };
   // domain 은 transformed 전체 — 창은 input 과 같아 `layout.ticks` 와 값이 같고, 집계/others/
   //   극값은 여기서 갈린다 (여백 폭은 input 눈금 기준 그대로 — 두 leg 같은 값).
-  const extent = valueExtent(
-    transformed,
-    baseLayout.stackMode,
-    referenceValues(presentation),
-  );
   const ticks =
     transformed === input
       ? baseLayout.ticks
-      : niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
+      : chartValueTicks(
+          props,
+          transformed,
+          baseLayout.stackMode,
+          referenceValues(presentation),
+        );
   // ADR-216 — 시간 축: transformed 의 epoch 범위 (집계는 `t1` 까지) → domain · 눈금 · 라벨. 축 픽셀은
   //   최종 plot (트랙 예약 뒤) — 두 leg 가 같은 plot 을 보므로 같은 눈금 수에 이른다.
   const time =

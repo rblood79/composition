@@ -18,6 +18,9 @@ export const CHART_PAINT_FALLBACK_TOKENS: Readonly<
   "step-2": "{color.chart-accent-3}",
   "step-3": "{color.chart-accent-2}",
   "step-4": "{color.chart-accent-1}",
+  // 칸 안 글자 (ADR-306 Phase 5) — accent-1 · neutral-subdued 칠 위의 대비 색. light 는 두 칠이 진해 흰
+  //   글자, dark 는 두 칠이 밝아 #111 — `on-neutral` 이 두 모드에서 그 짝이다 (`on-accent` 는 dark 에서 흰색).
+  "on-fill": "{color.on-neutral}",
 };
 
 export function chartPaintToken(

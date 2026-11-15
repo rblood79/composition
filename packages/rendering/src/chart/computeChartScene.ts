@@ -18,7 +18,11 @@ import {
   polarGeometry,
 } from "./budget";
 import type { ChartBudgetMetrics } from "./budget";
-import { CHART_TICK_COUNT, resolveChartLayout } from "./layout";
+import {
+  CHART_TICK_COUNT,
+  chartValueTicks,
+  resolveChartLayout,
+} from "./layout";
 import type { ChartLayout } from "./layout";
 import { resolveChartModel } from "./model";
 import {
@@ -32,6 +36,7 @@ import { buildBarMarks } from "./marks/bar";
 import { buildWindowTrackMarks } from "./marks/windowTrack";
 import { buildDotMarks, dotRadius } from "./marks/dots";
 import { buildReferenceLineMarks } from "./marks/referenceLine";
+import { buildSeriesExtraMarks } from "./marks/seriesExtras";
 import {
   buildLineMarks,
   pointValueLabel,
@@ -41,14 +46,8 @@ import { buildPieMarks } from "./marks/pie";
 import { buildRadarMarks } from "./marks/radar";
 import { buildRadialMarks } from "./marks/radial";
 import type { RadialRing } from "./marks/radial";
-import {
-  approxTextWidth,
-  bandScale,
-  linearScale,
-  niceTicks,
-  r2,
-} from "./scales";
-import { seriesLabel, valueExtent } from "./series";
+import { approxTextWidth, bandScale, linearScale, r2 } from "./scales";
+import { seriesLabel } from "./series";
 import type { SeriesGrid } from "./series";
 import { positionBand, timeScaleFor } from "./timeAxis";
 import type { ChartTimeAxisModel } from "./timeAxis";
@@ -186,8 +185,7 @@ function computePolarScene(
     props.stackType !== "dodged"
       ? props.stackType
       : "none";
-  const extent = valueExtent(grid, stackMode);
-  const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
+  const ticks = chartValueTicks(props, grid, stackMode);
   const angle = angleScale(grid.categories.length);
   const value = radiusScale(ticks.domain, [center.inner, center.outer]);
 
@@ -397,7 +395,9 @@ export function computeChartScene(
       labelText,
       innerRadius: props.innerRadius,
       showTotal: props.showTotal,
-      totalCaption: props.metric,
+      // ADR-306 Phase 5 — donut 가운데 설명 (비면 값 필드 이름 — 지금까지와 같다).
+      totalCaption: props.centerLabel || props.metric,
+      centerCaption: props.centerLabel,
       totalText: formatValue,
       // 파이의 링 분할은 값 축이 없어 여기서 따로 판정한다 (bar/area 의 stackMode
       //   는 축 계산 뒤에 나온다 — 파이 분기는 그보다 앞이다).
@@ -542,6 +542,7 @@ export function computeChartScene(
       curve: props.curve,
       showValueLabels: props.showValueLabels,
       labelText,
+      connectNulls: props.connectNulls === true,
     });
     marks = [...area.marks];
     labels = area.labels;
@@ -559,6 +560,7 @@ export function computeChartScene(
       showValueLabels: props.showValueLabels,
       labelText,
       fontSize,
+      connectNulls: props.connectNulls === true,
     });
     marks = [...line.marks];
     labels = line.labels;
@@ -575,6 +577,23 @@ export function computeChartScene(
   } else {
     return assertNever(cartesianType);
   }
+
+  // ADR-306 Phase 5 — 보강 마크 (범위 띠 · 끝 이름표 · 산점도 크기 · 이름 · 추세선 · 사분면). DOM 도 같은
+  //   builder 를 부른다 (`RechartsChart`). 크기 점이 있으면 산점도 기본 점을 대신한다.
+  const extras = buildSeriesExtraMarks({
+    props,
+    grid,
+    band,
+    value,
+    plot,
+    stackMode,
+    fontSize,
+    dotRadius: dotRadius(metrics.strokeWidth),
+    referenceY: presentation.referenceLines[0]?.value,
+  });
+  if (extras.dots) marks = [...extras.dots];
+  if (extras.back.length > 0 || extras.front.length > 0)
+    marks = [...extras.back, ...marks, ...extras.front];
 
   // 값 레이블은 마크 뒤에 — 겹치는 자리에서 글자가 위에 온다.
   if (labels.length > 0) marks = [...marks, ...labels];

@@ -28,6 +28,7 @@ export {
   chartPendingScene,
 } from "./sceneStates";
 export { chartFrame } from "./frame";
+export { CHART_ZERO_BY_DEFAULT_TYPES } from "./layout";
 export type { ChartFrame } from "./frame";
 export {
   CHART_REFERENCE_DASH,
@@ -104,6 +105,12 @@ export { buildAreaMarks } from "./marks/area";
 export type { AreaMarks } from "./marks/area";
 export { buildDotMarks, circlePath, dotRadius } from "./marks/dots";
 export {
+  buildSeriesExtraMarks,
+  linearFit,
+  SIZE_RANGE_DEFAULT,
+} from "./marks/seriesExtras";
+export type { SeriesExtraInput, SeriesExtraMarks } from "./marks/seriesExtras";
+export {
   buildWindowTrackMarks,
   CHART_WINDOW_THUMB,
   CHART_WINDOW_TRACK_BAR,
@@ -128,6 +135,7 @@ export {
   arcPath,
   arcSlicePath,
   buildPieMarks,
+  centerCaptionLabel,
   centerTotalLabels,
 } from "./marks/pie";
 export { buildRadarMarks } from "./marks/radar";

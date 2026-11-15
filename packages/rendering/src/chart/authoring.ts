@@ -59,7 +59,16 @@ export interface ChartDescriptor {
   icon: string;
   searchLabels: readonly string[];
   defaults: VisualPatch;
+  /** ADR-306 Phase 5 — 새로 만들 때만 싣는 값 (프리셋 판정에 쓰지 않는다 — 기존 저장본의 표시 유지). */
+  initial?: VisualPatch;
   presets: readonly ChartPreset[];
+}
+
+function withInitial(
+  row: ChartDescriptor,
+  initial: VisualPatch,
+): ChartDescriptor {
+  return { ...row, initial };
 }
 
 function descriptor(
@@ -73,9 +82,10 @@ function descriptor(
   roles: readonly ChartRole[] = [],
   options: readonly (keyof ChartProps & string)[] = [],
   columns = chartFamilyOf(chartType) === null,
+  paletteId = `chart-${chartType}`,
 ): ChartDescriptor {
   return {
-    paletteId: `chart-${chartType}`,
+    paletteId,
     chartType,
     family: chartFamilyOf(chartType),
     roles,
@@ -109,6 +119,44 @@ const VALUE_ROLE: ChartRole = {
   accepts: "number",
 };
 
+// ── ADR-306 Phase 5 — 기존 9 항목 보강 (breakdown §2.1). 시리즈 7 종의 새 역할 · 옵션.
+const LINE_ROLES: readonly ChartRole[] = [
+  { prop: "lowerFields", kind: "fields", required: false, accepts: "number" },
+  { prop: "upperFields", kind: "fields", required: false, accepts: "number" },
+];
+const LINE_OPTIONS: readonly (keyof ChartProps & string)[] = [
+  "valueMin",
+  "valueMax",
+  "includeZero",
+  "connectNulls",
+  "endLabels",
+];
+const PIE_OPTIONS: readonly (keyof ChartProps & string)[] = [
+  "sort",
+  "centerLabel",
+];
+const SCATTER_ROLES: readonly ChartRole[] = [
+  { prop: "sizeField", kind: "field", required: false, accepts: "number" },
+  { prop: "labelField", kind: "field", required: false, accepts: "string" },
+];
+const SCATTER_OPTIONS: readonly (keyof ChartProps & string)[] = [
+  "sizeRange",
+  "includeZero",
+  "fit",
+  "quadrants",
+];
+const PATH_ROLE: ChartRole = {
+  prop: "pathFields",
+  kind: "fields",
+  required: true,
+  accepts: "string",
+};
+const FLOW_ROLES: readonly ChartRole[] = [
+  { prop: "sourceField", kind: "field", required: true, accepts: "string" },
+  { prop: "targetField", kind: "field", required: true, accepts: "string" },
+  { prop: "metric", kind: "field", required: true, accepts: "number" },
+];
+
 const cartesian = {
   orientation: "vertical",
   stackType: "dodged",
@@ -128,6 +176,9 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["stacked", "Stacked", { stackType: "stacked" }],
       ["expand", "Stacked 100%", { stackType: "expand" }],
     ],
+    "Default",
+    LINE_ROLES,
+    LINE_OPTIONS,
   ),
   descriptor(
     "bar",
@@ -140,6 +191,9 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["stacked", "Stacked", { stackType: "stacked" }],
       ["expand", "Stacked 100%", { stackType: "expand" }],
     ],
+    "Default",
+    [],
+    ["sort"],
   ),
   descriptor(
     "line",
@@ -152,6 +206,9 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["step", "Step", { curve: "step" }],
       ["dots", "Dots", { showDots: true }],
     ],
+    "Default",
+    LINE_ROLES,
+    LINE_OPTIONS,
   ),
   descriptor(
     "pie",
@@ -169,6 +226,30 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["donut", "Donut", { innerRadius: 60 }],
       ["donut-total", "Donut Total", { innerRadius: 60, showTotal: true }],
     ],
+    "Default",
+    [],
+    PIE_OPTIONS,
+  ),
+  // ADR-306 Phase 5 — 제공 항목 donut (§2.1 #05): pie 의 프리셋 행 (같은 chartType · 다른 기본값).
+  descriptor(
+    "pie",
+    "Donut Chart",
+    "Donut",
+    ["도넛", "도넛 차트", "합계 가운데", "ドーナツ"],
+    {
+      innerRadius: 60,
+      stackType: "dodged",
+      showTotal: true,
+      centerLabel: "Total",
+      showAxis: false,
+      showGrid: false,
+    },
+    [],
+    "Default",
+    [],
+    PIE_OPTIONS,
+    true,
+    "chart-donut",
   ),
   descriptor(
     "radar",
@@ -191,26 +272,36 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["lines", "Lines Only", { fillArea: false }],
     ],
     "Polygon",
+    [],
+    ["valueMax"],
   ),
-  descriptor(
-    "radial",
-    "Radial Chart",
-    "Gauge",
-    ["라디얼", "반원", "게이지", "放射状"],
-    {
-      startAngle: 0,
-      endAngle: 360,
-      innerRadius: 20,
-      stackType: "dodged",
-      showTotal: false,
-      showAxis: false,
-      showGrid: false,
-    },
-    [
-      ["stacked", "Stacked", { stackType: "stacked" }],
-      ["half", "Half", { endAngle: 180 }],
-      ["total", "Total", { showTotal: true }],
-    ],
+  // ADR-306 Phase 5 — 제공 항목 radialBar (§2.1 #07) 는 이 행이다: 새로 만드는 차트는 상한 100 (진행률 —
+  //   `initial`), 기존 저장본은 `valueMax` 가 없어 자동 domain 그대로이고 프리셋 표시도 그대로다.
+  withInitial(
+    descriptor(
+      "radial",
+      "Radial Chart",
+      "Gauge",
+      ["라디얼", "반원", "게이지", "放射状"],
+      {
+        startAngle: 0,
+        endAngle: 360,
+        innerRadius: 20,
+        stackType: "dodged",
+        showTotal: false,
+        showAxis: false,
+        showGrid: false,
+      },
+      [
+        ["stacked", "Stacked", { stackType: "stacked" }],
+        ["half", "Half", { endAngle: 180 }],
+        ["total", "Total", { showTotal: true }],
+      ],
+      "Default",
+      [],
+      ["valueMax"],
+    ),
+    { valueMax: 100 },
   ),
   // ADR-217 — 산점도: 행 = 점, x 숫자 (미설정 = linear) 또는 시간. 프리셋 없음.
   descriptor(
@@ -220,6 +311,23 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     ["산점도", "분포", "점", "散布"],
     { ...cartesian, showDots: true },
     [],
+    "Default",
+    SCATTER_ROLES,
+    SCATTER_OPTIONS,
+  ),
+  // ADR-306 Phase 5 — 제공 항목 bubble (§2.1 #09): scatter 의 프리셋 행 — 점 크기 필드 지정.
+  descriptor(
+    "scatter",
+    "Bubble Chart",
+    "Bubbles",
+    ["버블", "거품", "세 값 비교", "バブル"],
+    { ...cartesian, showDots: true },
+    [],
+    "Default",
+    SCATTER_ROLES,
+    SCATTER_OPTIONS,
+    true,
+    "chart-bubble",
   ),
   // ── ADR-306 kpi family (Phase 2). 계산 · sample 은 family chunk (`families/kpi.ts`). ──
   descriptor(
@@ -667,13 +775,81 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     [],
     true,
   ),
+  // ── ADR-306 network family (Phase 5). 계산 · sample 은 family chunk (`families/network/`). ──
+  descriptor(
+    "treemap",
+    "Treemap",
+    "LayoutDashboard",
+    ["트리맵", "면적 비율", "계층", "ツリーマップ"],
+    {
+      sort: "descending",
+      labelKey: "category",
+      showValueLabels: true,
+      showLegend: false,
+    },
+    [
+      ["share", "Share Only", { labelKey: "value" }],
+      ["unsorted", "Data Order", { sort: "none" }],
+    ],
+    "Default",
+    [PATH_ROLE, VALUE_ROLE],
+    ["labelKey", "sort"],
+  ),
+  descriptor(
+    "sunburst",
+    "Sunburst",
+    "CircleDotDashed",
+    ["선버스트", "원형 계층", "고리", "サンバースト"],
+    { sort: "none", innerRadius: 30, showValueLabels: true, showLegend: false },
+    [
+      ["pie", "No Hole", { innerRadius: 0 }],
+      ["sorted", "Largest First", { sort: "descending" }],
+    ],
+    "Default",
+    [PATH_ROLE, VALUE_ROLE],
+    ["innerRadius", "sort"],
+  ),
+  descriptor(
+    "sankey",
+    "Sankey Diagram",
+    "GitFork",
+    ["생키", "흐름", "유입 경로", "サンキー"],
+    {
+      nodeWidth: 10,
+      nodePadding: 14,
+      showValueLabels: true,
+      showLegend: false,
+    },
+    [["thin", "Thin Nodes", { nodeWidth: 4 }]],
+    "Default",
+    FLOW_ROLES,
+    ["nodeWidth", "nodePadding"],
+  ),
+  descriptor(
+    "chord",
+    "Chord Diagram",
+    "Orbit",
+    ["코드 다이어그램", "주고받음", "관계", "コード"],
+    { padAngle: 3, showValueLabels: true, showLegend: false },
+    [["tight", "No Gaps", { padAngle: 0 }]],
+    "Default",
+    FLOW_ROLES,
+    ["padAngle"],
+  ),
 ];
+
+/**
+ * ADR-306 Phase 5 — 종류마다 첫 행 (프리셋 행 donut · bubble 을 뺀 것). 종류 선택지 ·
+ * 종류 수를 세는 곳이 읽는다 — 팔레트 · 생성은 `CHART_DESCRIPTORS` (제공 항목 36).
+ */
+export const CHART_TYPE_DESCRIPTORS: readonly ChartDescriptor[] =
+  CHART_DESCRIPTORS.filter((d) => d.paletteId === `chart-${d.chartType}`);
 
 /** 이 종류가 이 prop 을 읽는가 (역할 · 옵션). 시리즈 7 종은 descriptor 에 적지 않는다. */
 export function chartTypesReading(
   prop: keyof ChartProps & string,
 ): ChartType[] {
-  return CHART_DESCRIPTORS.filter(
+  return CHART_TYPE_DESCRIPTORS.filter(
     (d) =>
       d.roles.some((role) => role.prop === prop) || d.options.includes(prop),
   ).map((d) => d.chartType);
@@ -770,16 +946,39 @@ const scatterSample: readonly ChartRow[] = [
   { x: 3.5, y: 18, series: "B" },
 ];
 
-/** Chart 직접 생성은 기존 bar 기본값, palette 생성은 종류별 기본값을 원자적으로 준다. */
-export function createChartInitialProps(chartType?: ChartType): ChartProps & {
+/** ADR-306 Phase 5 — bubble 표본 (산점도 표본 + 점 크기). */
+const bubbleSample: readonly ChartRow[] = [
+  { x: 1, y: 12, size: 40, series: "A" },
+  { x: 2, y: 20, size: 120, series: "A" },
+  { x: 3, y: 8, size: 15, series: "A" },
+  { x: 4, y: 25, size: 90, series: "A" },
+  { x: 1.5, y: 6, size: 60, series: "B" },
+  { x: 2.5, y: 14, size: 30, series: "B" },
+  { x: 3.5, y: 18, size: 150, series: "B" },
+];
+
+/**
+ * Chart 직접 생성은 기존 bar 기본값, palette 생성은 종류별 기본값을 원자적으로 준다. `paletteId` 는
+ * 제공 항목 (ADR-306 Phase 5 — donut · radialBar · bubble 은 같은 chartType 의 다른 기본값 행).
+ */
+export function createChartInitialProps(
+  chartType?: ChartType,
+  paletteId?: string,
+): ChartProps & {
   data: ChartRow[];
 } {
+  const row =
+    paletteId !== undefined
+      ? (CHART_DESCRIPTORS.find((d) => d.paletteId === paletteId) ??
+        getChartDescriptor(chartType))
+      : getChartDescriptor(chartType);
   // ADR-306 — family 종류의 sample 행 · 역할 이름은 family chunk 에 있다 (첫 화면 번들 밖). 생성 경로가
   //   명령 실행 전에 `loadChartFamily` → `sample` · `sampleProps` 로 채운다 (breakdown §4.4).
   if (isFamilyChartType(chartType))
     return {
       ...CHART_DEFAULT_PROPS,
-      ...getChartDescriptor(chartType).defaults,
+      ...row.defaults,
+      ...row.initial,
       chartType,
       showTooltip: true,
       isAnimationActive: true,
@@ -791,14 +990,17 @@ export function createChartInitialProps(chartType?: ChartType): ChartProps & {
   const fresh = chartType !== undefined;
   const single = chartType === "pie" || chartType === "radial";
   const scatter = chartType === "scatter";
+  const bubble = row.paletteId === "chart-bubble";
   return {
     ...CHART_DEFAULT_PROPS,
     color: "series",
     showLegend: true,
     ...(scatter ? { dimension: "x", metric: "y" } : {}),
+    ...(bubble ? { sizeField: "size" } : {}),
     ...(fresh
       ? {
-          ...getChartDescriptor(chartType).defaults,
+          ...row.defaults,
+          ...row.initial,
           chartType,
           showTooltip: true,
           isAnimationActive: true,
@@ -807,7 +1009,7 @@ export function createChartInitialProps(chartType?: ChartType): ChartProps & {
           animationEasing: "ease-out" as const,
         }
       : {}),
-    data: (scatter ? scatterSample : legacySample)
+    data: (bubble ? bubbleSample : scatter ? scatterSample : legacySample)
       .filter((row) => !single || row.series === "A")
       .map((row) => ({ ...row })),
   };

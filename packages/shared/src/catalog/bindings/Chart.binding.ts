@@ -1,5 +1,6 @@
 import {
   CHART_FAMILY_PROP_KEYS,
+  CHART_ZERO_BY_DEFAULT_TYPES,
   SERIES_CHART_TYPES,
   chartTypesReading,
 } from "@composition/rendering";
@@ -99,6 +100,11 @@ export const chartBinding: PrimitiveBinding = {
           { value: "calendar", label: "Calendar Heatmap" },
           { value: "candlestick", label: "Candlestick" },
           { value: "parallel", label: "Parallel Coordinates" },
+          // ADR-306 network family (Phase 5).
+          { value: "treemap", label: "Treemap" },
+          { value: "sunburst", label: "Sunburst" },
+          { value: "sankey", label: "Sankey" },
+          { value: "chord", label: "Chord" },
         ],
       },
       dimension: {
@@ -237,11 +243,13 @@ export const chartBinding: PrimitiveBinding = {
         default: true,
         visibleWhen: readingIs("independent"),
       },
+      // 기본값을 두지 않는다 — 정의 기본값은 모든 종류의 해석 props 에 들어간다 (ADR-306 Phase 5 부터
+      //   bar · pie 도 읽는다: 기본값 descending 이면 기존 막대 · 원이 전부 정렬된다). 종류마다 비었을 때의
+      //   순서는 코드가 정한다 (`sortOf(props, fallback)` — dumbbell · lollipop · treemap 큰 순서 …).
       sort: {
         kind: "enum",
         label: "Sort",
         section: "appearance",
-        default: "descending",
         options: [
           { value: "none", label: "Data Order" },
           { value: "descending", label: "Descending" },
@@ -249,11 +257,18 @@ export const chartBinding: PrimitiveBinding = {
         ],
         visibleWhen: readingIs("sort"),
       },
+      // 해석 기본값 없음 — line · area · scatter 는 비면 0 포함 (Phase 5 전의 축), dumbbell · box 는 비면 0
+      //   미포함. 패널 기준값은 그 뜻을 따른다 (`defaultWhen`) — 칩이 그림과 같게 보이고 끄면 `false` 를 쓴다.
       includeZero: {
         kind: "boolean",
         label: "Include Zero",
         section: "appearance",
-        default: false,
+        defaultWhen: [
+          {
+            when: { key: "chartType", oneOf: [...CHART_ZERO_BY_DEFAULT_TYPES] },
+            value: true,
+          },
+        ],
         visibleWhen: readingIs("includeZero"),
       },
       // ── ADR-306 Phase 3 — category family 의 역할 · 옵션 ──
@@ -610,6 +625,107 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         visibleWhen: readingIs("movingAverages"),
       },
+      // ── ADR-306 Phase 5 — network family 의 역할 · 옵션 ──
+      pathFields: {
+        kind: "string-array",
+        label: "Path",
+        section: "collection",
+        visibleWhen: readingIs("pathFields"),
+      },
+      sourceField: {
+        kind: "string",
+        label: "Source",
+        section: "collection",
+        visibleWhen: readingIs("sourceField"),
+      },
+      targetField: {
+        kind: "string",
+        label: "Target",
+        section: "collection",
+        visibleWhen: readingIs("targetField"),
+      },
+      nodeWidth: {
+        kind: "number",
+        label: "Node Width",
+        section: "appearance",
+        min: 2,
+        max: 40,
+        step: 1,
+        unit: "px",
+        visibleWhen: readingIs("nodeWidth"),
+      },
+      nodePadding: {
+        kind: "number",
+        label: "Node Gap",
+        section: "appearance",
+        min: 0,
+        max: 60,
+        step: 1,
+        unit: "px",
+        visibleWhen: readingIs("nodePadding"),
+      },
+      padAngle: {
+        kind: "number",
+        label: "Group Gap (deg)",
+        section: "appearance",
+        min: 0,
+        max: 20,
+        step: 0.5,
+        visibleWhen: readingIs("padAngle"),
+      },
+      // ── ADR-306 Phase 5 — 기존 종류 보강 (breakdown §2.1) ──
+      lowerFields: {
+        kind: "string-array",
+        label: "Band Lower",
+        section: "collection",
+        visibleWhen: readingIs("lowerFields"),
+      },
+      upperFields: {
+        kind: "string-array",
+        label: "Band Upper",
+        section: "collection",
+        visibleWhen: readingIs("upperFields"),
+      },
+      endLabels: {
+        kind: "boolean",
+        label: "End Labels",
+        section: "appearance",
+        visibleWhen: readingIs("endLabels"),
+      },
+      connectNulls: {
+        kind: "boolean",
+        label: "Connect Gaps",
+        section: "appearance",
+        visibleWhen: readingIs("connectNulls"),
+      },
+      sizeField: {
+        kind: "string",
+        label: "Size",
+        section: "collection",
+        visibleWhen: readingIs("sizeField"),
+      },
+      sizeRange: {
+        kind: "string-array",
+        label: "Size Range (px)",
+        section: "appearance",
+        visibleWhen: readingIs("sizeRange"),
+      },
+      fit: {
+        kind: "enum",
+        label: "Trend Line",
+        section: "appearance",
+        options: [
+          { value: "none", label: "None" },
+          { value: "linear", label: "Linear" },
+        ],
+        visibleWhen: readingIs("fit"),
+      },
+      quadrants: {
+        kind: "string-array",
+        label: "Quadrant Names",
+        section: "appearance",
+        visibleWhen: readingIs("quadrants"),
+      },
       /**
        * ── ADR-210 — 다중 수치 컬럼·시리즈 표시·숫자 형식 ──
        *
@@ -917,11 +1033,14 @@ export const chartBinding: PrimitiveBinding = {
           { value: "value", label: "Value" },
           { value: "category", label: "Category Name" },
         ],
-        // ADR-306 — family 종류는 값 라벨 내용을 고르지 않는다 (값만 적는다).
+        // ADR-306 — family 종류는 값 라벨 내용을 고르지 않는다 (값만 적는다) — treemap 만 이름 · 비율을 고른다.
         visibleWhen: {
           all: [
             { key: "showValueLabels", truthy: true },
-            { key: "chartType", oneOf: SERIES_TYPES },
+            {
+              key: "chartType",
+              oneOf: [...SERIES_TYPES, ...reading("labelKey")],
+            },
           ],
         },
       },
@@ -968,7 +1087,11 @@ export const chartBinding: PrimitiveBinding = {
         unit: "%",
         // computeChartScene.ts:152,358. radar 도 읽는다 — center.inner 가 결측 꼭짓점을
         //   접는 반지름이자 격자 안쪽 경계다.
-        visibleWhen: { key: "chartType", oneOf: ["pie", "radial", "radar"] },
+        //   ADR-306 — sunburst 는 가운데 구멍.
+        visibleWhen: {
+          key: "chartType",
+          oneOf: ["pie", "radial", "radar", ...reading("innerRadius")],
+        },
       },
       gridType: {
         kind: "enum",

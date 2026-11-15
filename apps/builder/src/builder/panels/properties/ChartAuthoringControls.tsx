@@ -1,7 +1,7 @@
 import "./ChartAuthoringControls.css";
 import { memo } from "react";
 import {
-  CHART_DESCRIPTORS,
+  CHART_TYPE_DESCRIPTORS,
   getChartDescriptor,
   getChartPresetId,
   chartTypeAcceptsColumns,
@@ -64,7 +64,8 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
         <PropertySelect
           label={t("chart.changeTarget")}
           value={descriptor.chartType}
-          options={CHART_DESCRIPTORS.map((item) => ({
+          // ADR-306 Phase 5 — 종류마다 한 항목 (donut · bubble 은 pie · scatter 의 기본값 행 — 팔레트 몫).
+          options={CHART_TYPE_DESCRIPTORS.map((item) => ({
             value: item.chartType,
             label: item.label,
           }))}

@@ -28,6 +28,12 @@ export interface SeriesData {
   seriesIndex: number;
   /** 범주 인덱스 → 값. 없는 조합은 키 자체가 없다. */
   values: Map<number, number>;
+  /**
+   * ADR-306 Phase 5 — 범주 인덱스 → 보조 값 (breakdown §2.1). line · area 범위 띠의 아래 · 위 경계
+   * (`lowerFields` · `upperFields`), scatter 점 크기 (`sizeField`) · 이름 (`labelField`). 창 · 솎기 ·
+   * 정렬이 `values` 와 같이 옮긴다 (`remapExtras`) — 집계 bucket 은 버린다 (띠 · 크기의 집계 뜻이 없다).
+   */
+  extras?: SeriesExtras;
 }
 
 export interface SeriesGrid {
@@ -69,6 +75,33 @@ function toLabel(value: unknown): string {
   return "";
 }
 
+export interface SeriesExtras {
+  lower?: Map<number, number>;
+  upper?: Map<number, number>;
+  size?: Map<number, number>;
+  label?: Map<number, string>;
+}
+
+/** 보조 값을 새 범주 인덱스로 옮긴다 (`map` 이 undefined 면 버린다). */
+export function remapExtras(
+  extras: SeriesExtras | undefined,
+  map: (ci: number) => number | undefined,
+): SeriesExtras | undefined {
+  if (!extras) return undefined;
+  const out: SeriesExtras = {};
+  for (const key of ["lower", "upper", "size", "label"] as const) {
+    const src = extras[key] as Map<number, number | string> | undefined;
+    if (!src) continue;
+    const dst = new Map<number, number | string>();
+    for (const [ci, v] of src) {
+      const next = map(ci);
+      if (next !== undefined) dst.set(next, v);
+    }
+    (out as Record<string, unknown>)[key] = dst;
+  }
+  return out;
+}
+
 export type SeriesGridProps = Pick<
   ChartProps,
   "dimension" | "metric" | "color"
@@ -85,6 +118,10 @@ export type SeriesGridProps = Pick<
       | "dimensionFormat"
       | "dimensionLabelFormat"
       | "valueLocale"
+      | "lowerFields"
+      | "upperFields"
+      | "sizeField"
+      | "labelField"
     >
   >;
 
@@ -166,6 +203,44 @@ export function buildSeriesGrid(
     series.values.set(ci, (series.values.get(ci) ?? 0) + value);
     hasValues = true;
   };
+  // ADR-306 Phase 5 — 보조 값 (breakdown §2.1). 띠 경계는 line · area 만 (columns 는 값 필드와 같은
+  //   순서, group 은 첫 필드 하나를 모든 시리즈에), 크기 · 이름은 scatter 만 (행 = 점 — 합산 없음).
+  const lineLike = props.chartType === "line" || props.chartType === "area";
+  const lowerRefs = lineLike ? (props.lowerFields ?? []) : [];
+  const upperRefs = lineLike ? (props.upperFields ?? []) : [];
+  const banded = lowerRefs.length > 0 && upperRefs.length > 0;
+  const sizeRef = pointPerRow ? props.sizeField : undefined;
+  const labelRef = pointPerRow ? props.labelField : undefined;
+  const fieldOf = (refs: readonly string[], series: SeriesData) =>
+    columns ? refs[presentation.valueFields.indexOf(series.key)] : refs[0];
+  const addExtra = (
+    series: SeriesData,
+    key: "lower" | "upper" | "size",
+    ci: number,
+    raw: unknown,
+  ): void => {
+    const value = toFiniteNumber(raw);
+    if (value === null) return;
+    const extras = (series.extras ??= {});
+    const map = (extras[key] ??= new Map());
+    map.set(ci, (map.get(ci) ?? 0) + value);
+  };
+  const extrasOf = (series: SeriesData, ci: number, row: ChartRow): void => {
+    if (banded) {
+      const lo = fieldOf(lowerRefs, series);
+      const hi = fieldOf(upperRefs, series);
+      if (lo && hi) {
+        addExtra(series, "lower", ci, readField(row, lo));
+        addExtra(series, "upper", ci, readField(row, hi));
+      }
+    }
+    if (sizeRef) addExtra(series, "size", ci, readField(row, sizeRef));
+    if (labelRef) {
+      const text = toLabel(readField(row, labelRef));
+      if (text) ((series.extras ??= {}).label ??= new Map()).set(ci, text);
+    }
+  };
+  const withExtras = banded || !!sizeRef || !!labelRef;
 
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
@@ -197,6 +272,7 @@ export function buildSeriesGrid(
     if (columns) {
       for (const series of orderedSeries) {
         accumulate(series, ci, readField(row, series.key));
+        if (withExtras) extrasOf(series, ci, row);
       }
       continue;
     }
@@ -206,6 +282,7 @@ export function buildSeriesGrid(
       seriesByKey.get(seriesKey) ??
       addSeries(seriesKey, seriesIdentity("group", seriesKey));
     accumulate(series, ci, readField(row, props.metric));
+    if (withExtras) extrasOf(series, ci, row);
   }
 
   if (!parseDimension) {
@@ -258,7 +335,8 @@ function sortByPosition(
     series: series.map((sd) => {
       const values = new Map<number, number>();
       for (const [ci, v] of sd.values) values.set(remap.get(ci)!, v);
-      return { ...sd, values };
+      const extras = remapExtras(sd.extras, (ci) => remap.get(ci));
+      return { ...sd, values, ...(extras ? { extras } : {}) };
     }),
   };
 }
@@ -338,9 +416,15 @@ export function valueExtent(
   mode: StackMode,
   /** ADR-217 — domain 에 포함할 추가 값 (기준선). scene 이 domain 을 정한다 (HC3). */
   include: readonly number[] = [],
+  /**
+   * ADR-306 Phase 5 — false 면 0 을 넣지 않는다 (line · area · scatter 의 `includeZero: false` — 누적은
+   * 늘 0 에서 쌓으므로 무시). 기본 true = 지금까지의 축.
+   */
+  fromZero = true,
 ): ValueExtent {
-  let min = 0;
-  let max = 0;
+  const zero = fromZero || mode !== "none";
+  let min = zero ? 0 : Number.POSITIVE_INFINITY;
+  let max = zero ? 0 : Number.NEGATIVE_INFINITY;
   for (const v of include) {
     if (v > max) max = v;
     if (v < min) min = v;
@@ -359,8 +443,17 @@ export function valueExtent(
       if (v > max) max = v;
       if (v < min) min = v;
     }
+    // ADR-306 Phase 5 — 범위 띠 경계도 축 안에 (띠가 plot 밖으로 나가지 않게).
+    for (const band of [series.extras?.lower, series.extras?.upper])
+      if (band)
+        for (const v of band.values()) {
+          if (v > max) max = v;
+          if (v < min) min = v;
+        }
   }
-  return { min, max };
+  return Number.isFinite(min) && Number.isFinite(max)
+    ? { min, max }
+    : { min: 0, max: 0 };
 }
 
 /** ADR-217 — 기준선 값 목록 (domain 확장 입력). 미설정이면 빈 배열 (현행 extent 와 같다). */
@@ -419,4 +512,37 @@ export function stackRangesBySeries(
     }
   }
   return bySeries;
+}
+
+/**
+ * ADR-306 Phase 5 — 범주를 값 합으로 정렬 (bar · pie 의 `sort`, breakdown §2.1). 합은 시리즈 값의 합
+ * (pie 는 크기 — 절대값). 같은 합은 원래 순서. 시리즈 값 · 보조 값의 인덱스도 같이 옮긴다.
+ */
+export function sortCategories(
+  grid: SeriesGrid,
+  sort: "ascending" | "descending",
+  magnitude: boolean,
+): SeriesGrid {
+  const n = grid.categories.length;
+  const totals = new Array<number>(n).fill(0);
+  for (const series of grid.series)
+    for (const [ci, v] of series.values)
+      totals[ci] += magnitude ? Math.abs(v) : v;
+  const order = [...Array(n).keys()].sort((a, b) =>
+    sort === "descending"
+      ? totals[b] - totals[a] || a - b
+      : totals[a] - totals[b] || a - b,
+  );
+  if (order.every((ci, i) => ci === i)) return grid;
+  const at = new Map(order.map((ci, i) => [ci, i]));
+  return {
+    ...grid,
+    categories: order.map((ci) => grid.categories[ci]),
+    series: grid.series.map((sd) => {
+      const values = new Map<number, number>();
+      for (const [ci, v] of sd.values) values.set(at.get(ci)!, v);
+      const extras = remapExtras(sd.extras, (ci) => at.get(ci));
+      return { ...sd, values, ...(extras ? { extras } : {}) };
+    }),
+  };
 }

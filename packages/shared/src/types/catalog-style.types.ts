@@ -444,7 +444,9 @@ export interface ComponentRuleChart {
       | "step-1"
       | "step-2"
       | "step-3"
-      | "step-4",
+      | "step-4"
+      // ADR-306 Phase 5 — 칸 안 글자 (treemap · sunburst).
+      | "on-fill",
       string
     >
   >;

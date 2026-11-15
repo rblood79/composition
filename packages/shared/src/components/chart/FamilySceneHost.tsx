@@ -29,6 +29,18 @@ function hitTarget(
   let best = -1;
   let bestDistance = Infinity;
   targets.forEach((target, i) => {
+    if (target.arc) {
+      // 고리 조각 안 (반지름 · 각도 — 12 시 = 0, 시계 방향).
+      const { cx, cy, r0, r1, a0, a1 } = target.arc;
+      const d = Math.hypot(x - cx, y - cy);
+      const tau = Math.PI * 2;
+      const a = (Math.atan2(x - cx, cy - y) + tau) % tau;
+      if (d >= r0 && d <= r1 && a >= a0 && a <= a1) {
+        best = i;
+        bestDistance = -1;
+      }
+      return;
+    }
     if (target.rect) {
       const { rect } = target;
       if (

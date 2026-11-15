@@ -41,6 +41,8 @@ export interface AreaMarkInput {
   showValueLabels: boolean;
   /** 레이블 텍스트 생성기 (값/범주명 판정은 `computeChartScene`) */
   labelText: ChartLabelFormatter;
+  /** ADR-306 Phase 5 — 값 없는 범주 너머로 잇는다 (누적은 늘 잇지 않는다 — 구간이 없다). */
+  connectNulls?: boolean;
 }
 
 export interface AreaMarks {
@@ -70,7 +72,11 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
     showValueLabels,
     labelText,
   } = input;
-  const baseline = r2(value(0));
+  // ADR-306 Phase 5 — `includeZero: false` 면 0 이 축 밖일 수 있다: 바닥은 축 안의 0 에 가장 가까운 끝.
+  const [d0, d1] = value.domain;
+  const baseline = r2(
+    value(Math.min(Math.max(0, Math.min(d0, d1)), Math.max(d0, d1))),
+  );
   const ranges =
     stackMode === "none" ? null : stackRangesBySeries(grid, stackMode);
   const marks: PathMark[] = [];
@@ -109,7 +115,7 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
       continue;
     }
 
-    const d = splitRuns(bands)
+    const d = (input.connectNulls && !ranges ? [bands] : splitRuns(bands))
       .map((run) => {
         const upper = run.map((b) => b.upper);
         const lower = run.map((b) => b.lower).reverse();

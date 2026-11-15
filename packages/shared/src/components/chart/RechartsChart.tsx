@@ -3,10 +3,12 @@ import {
   approxTextWidth,
   buildAxes,
   buildDotMarks,
+  buildSeriesExtraMarks,
   buildLegend,
   buildPolarAxes,
   buildReferenceLineMarks,
   categoryColorIndex,
+  centerCaptionLabel,
   centerTotalLabels,
   CHART_INVALID_SETTINGS_TEXT,
   clampWindowRange,
@@ -397,6 +399,19 @@ function SeriesRechartsChart({
       ticks.domain,
       horizontal ? [plot.x, plot.x + plot.w] : [plot.y + plot.h, plot.y],
     );
+    // ADR-306 Phase 5 — 보강 마크: scene 과 같은 builder · 같은 band · value (범위 띠 · 끝 이름표 · 산점도
+    //   크기 · 이름 · 추세선 · 사분면). back 은 격자 다음, front 는 line · area 는 장식 층 · 산점도는 점 위.
+    const extras = buildSeriesExtraMarks({
+      props,
+      grid,
+      band,
+      value,
+      plot,
+      stackMode,
+      fontSize,
+      dotRadius: dotRadius(metrics.strokeWidth),
+      referenceY: presentation.referenceLines[0]?.value,
+    });
     const cx = plot.x + plot.w / 2,
       cy = plot.y + plot.h / 2;
     const polarRadius =
@@ -460,6 +475,7 @@ function SeriesRechartsChart({
                 ? renderText(mark, `reference-back-${i}`)
                 : renderMark(mark, `reference-back-${i}`),
             )}
+            {extras.back.map((mark, i) => renderMark(mark, `extra-back-${i}`))}
           </g>
         )}
       />
@@ -481,6 +497,11 @@ function SeriesRechartsChart({
                 {renderText(item.text, `legend-${i}`)}
               </g>
             ))}
+            {props.chartType === "scatter"
+              ? null
+              : extras.front.map((mark, i) =>
+                  renderMark(mark, `extra-front-${i}`),
+                )}
           </g>
         )}
       />
@@ -746,18 +767,20 @@ function SeriesRechartsChart({
       //   d, 불투명). Recharts `Scatter` 는 점마다 React 요소를 만들어 P=5,000 점의 창 이동 한 스텝이
       //   ~290 ms 였다 (P6 perf 실측) — Recharts 는 축·여백·Customized 문맥만 제공하고 hover 는 아래
       //   가장 가까운 점 탐색 (`onPointerMove`) 이 담당한다.
-      const dotMarks = keys
-        .map((_, si) =>
-          buildDotMarks(
-            seriesAxialPoints(grid, si, band, value).map((point) =>
-              toScreen(props.orientation, point),
+      const dotMarks =
+        extras.dots ??
+        keys
+          .map((_, si) =>
+            buildDotMarks(
+              seriesAxialPoints(grid, si, band, value).map((point) =>
+                toScreen(props.orientation, point),
+              ),
+              grid.series[si].seriesIndex,
+              dotRadius(metrics.strokeWidth),
+              1,
             ),
-            grid.series[si].seriesIndex,
-            dotRadius(metrics.strokeWidth),
-            1,
-          ),
-        )
-        .filter((m): m is NonNullable<typeof m> => m !== null);
+          )
+          .filter((m): m is NonNullable<typeof m> => m !== null);
       const dots = (
         <Customized
           key="scatter"
@@ -769,10 +792,13 @@ function SeriesRechartsChart({
                   data-chart-scatter-series={si}
                   d={mark.d}
                   fill={seriesVar(mark.fillSeries ?? 0)}
-                  fillOpacity={1}
+                  fillOpacity={mark.fillOpacity ?? 1}
                   stroke="none"
                 />
               ))}
+              {extras.front.map((mark, k) =>
+                renderMark(mark, `extra-front-${k}`),
+              )}
               {props.showValueLabels
                 ? keys.flatMap((_, si) =>
                     seriesAxialPoints(grid, si, band, value).map((point, i) => {
@@ -936,7 +962,10 @@ function SeriesRechartsChart({
                     )
                 : false,
               activeDot: props.showTooltip,
-              connectNulls: false,
+              // ADR-306 Phase 5 — scene 과 같은 규칙 (line 은 누적이어도 잇고, 누적 area 는 잇지 않는다).
+              connectNulls:
+                props.connectNulls === true &&
+                (props.chartType !== "area" || stackMode === "none"),
               ...animation,
             };
             return props.chartType === "area" ? (
@@ -1045,10 +1074,25 @@ function SeriesRechartsChart({
                     cy,
                     count > 1 ? inner + 2 : inner,
                     total,
-                    props.metric,
+                    props.centerLabel || props.metric,
                     fontSize,
                     formatValue,
                   ).map((mark, i) => renderText(mark, `total-${i}`))}
+                </g>
+              )}
+            />
+          )}
+          {!props.showTotal && props.centerLabel && (
+            <Customized
+              component={() => (
+                <g>
+                  {centerCaptionLabel(
+                    cx,
+                    cy,
+                    count > 1 ? inner + 2 : inner,
+                    props.centerLabel!,
+                    fontSize,
+                  ).map((mark, i) => renderText(mark, `caption-${i}`))}
                 </g>
               )}
             />
@@ -1289,6 +1333,16 @@ function SeriesRechartsChart({
     props.showDots,
     props.metric,
     props.fillArea,
+    // ADR-306 Phase 5 — 보강 prop (배열은 직렬화 키 — 같은 내용의 재전송에 다시 그리지 않는다).
+    props.centerLabel,
+    props.connectNulls,
+    props.endLabels,
+    props.sizeField,
+    props.labelField,
+    props.fit,
+    JSON.stringify(props.sizeRange ?? null),
+    JSON.stringify(props.quadrants ?? null),
+    presentation.referenceLines,
     n,
     tickText,
     legendBox,

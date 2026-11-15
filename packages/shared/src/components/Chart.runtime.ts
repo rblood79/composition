@@ -143,6 +143,21 @@ export interface ChartProps {
   volumeField?: SpecChartProps["volumeField"];
   movingAverages?: SpecChartProps["movingAverages"];
   invertFields?: SpecChartProps["invertFields"];
+  // ADR-306 Phase 5 — network family · 기존 종류 보강.
+  pathFields?: SpecChartProps["pathFields"];
+  sourceField?: SpecChartProps["sourceField"];
+  targetField?: SpecChartProps["targetField"];
+  nodeWidth?: SpecChartProps["nodeWidth"];
+  nodePadding?: SpecChartProps["nodePadding"];
+  padAngle?: SpecChartProps["padAngle"];
+  lowerFields?: SpecChartProps["lowerFields"];
+  upperFields?: SpecChartProps["upperFields"];
+  endLabels?: SpecChartProps["endLabels"];
+  connectNulls?: SpecChartProps["connectNulls"];
+  sizeField?: SpecChartProps["sizeField"];
+  sizeRange?: SpecChartProps["sizeRange"];
+  fit?: SpecChartProps["fit"];
+  quadrants?: SpecChartProps["quadrants"];
   variant?: string;
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
   data?: readonly ChartRow[];

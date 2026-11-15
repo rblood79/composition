@@ -12,6 +12,7 @@
  * 최소 크기 (pie 의 작은 조각 호 0.377px 등) 는 **보장하지 않는다** — 값 비중으로 묶으면
  * 데이터 의미가 바뀐다 (`[1000, 1]` 은 조각 2개가 정답).
  */
+import { remapExtras } from "./series";
 import type { SeriesGrid, SeriesData } from "./series";
 import type {
   ChartBudgetAggregate,
@@ -418,7 +419,10 @@ export function aggregateBuckets(
       const r = statOf(vals, stat);
       if (r !== undefined) values.set(bi, r);
     });
-    return { ...sd, values };
+    // ADR-306 Phase 5 — 띠 · 크기는 집계 뜻이 없어 버린다 (bucket 하나에 경계 하나를 만들지 않는다).
+    const { extras: _dropped, ...rest } = sd;
+    void _dropped;
+    return { ...rest, values };
   });
   return {
     categories,
@@ -534,13 +538,15 @@ export function pickCategories(
   keep: readonly number[],
 ): SeriesGrid {
   const categories = keep.map((ci) => grid.categories[ci]);
+  const at = new Map(keep.map((ci, i) => [ci, i]));
   const series = grid.series.map((sd) => {
     const values = new Map<number, number>();
     keep.forEach((ci, i) => {
       const v = sd.values.get(ci);
       if (v !== undefined) values.set(i, v);
     });
-    return { ...sd, values };
+    const extras = remapExtras(sd.extras, (ci) => at.get(ci));
+    return { ...sd, values, ...(extras ? { extras } : {}) };
   });
   return {
     categories,
@@ -1020,7 +1026,10 @@ export function applyWindow(grid: SeriesGrid, window: ChartWindow): SeriesGrid {
       const v = sd.values.get(ci);
       if (v !== undefined) values.set(ci - start, v);
     }
-    return { ...sd, values };
+    const extras = remapExtras(sd.extras, (ci) =>
+      ci >= start && ci < end ? ci - start : undefined,
+    );
+    return { ...sd, values, ...(extras ? { extras } : {}) };
   });
   return {
     categories,

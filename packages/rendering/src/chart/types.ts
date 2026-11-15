@@ -254,7 +254,9 @@ export type ChartDiagnosticCode =
   | "chartFamily.unavailable"
   // ADR-306 Phase 4 — 그리는 그룹 수 상한 (histogram 2) · 그리지 않은 값 (경계 밖 · log 의 0 이하).
   | "budget.groupsTruncated"
-  | "values.excluded";
+  | "values.excluded"
+  // ADR-306 Phase 5 — 흐름의 순환 (sankey — 되돌아가는 연결은 열 계산에서 뺀다).
+  | "links.cycle";
 
 /**
  * 표시 설정 진단 (`resolveChartPresentation` 이 만든다). `error` 는 설정 오류 상태 —
@@ -493,7 +495,39 @@ export interface ChartProps {
   movingAverages?: readonly (number | string)[];
   /** 작은 값이 위인 축 (parallel — `valueFields` 중). */
   invertFields?: readonly string[];
+  // ── ADR-306 Phase 5 — network family (breakdown §2.2 #33 ~ #36) · 기존 9 항목 보강 (§2.1).
+  /** 계층 경로 필드 — 위 단계부터 (treemap · sunburst — 마지막 필드가 잎 이름). */
+  pathFields?: readonly string[];
+  /** 흐름의 출발 · 도착 필드 (sankey · chord). */
+  sourceField?: string;
+  targetField?: string;
+  /** 노드 막대 폭 px (sankey, 기본 10 · 2 ~ 40). */
+  nodeWidth?: number;
+  /** 같은 열 노드 사이 간격 px (sankey, 기본 14 · 0 ~ 60). */
+  nodePadding?: number;
+  /** 마디 사이 틈 (도) (chord, 기본 3 · 0 ~ 20 — ztd 는 라디안 0.05). */
+  padAngle?: number;
+  /** 범위 띠 아래 · 위 경계 필드 (line · area — 값 필드와 같은 순서). */
+  lowerFields?: readonly string[];
+  upperFields?: readonly string[];
+  /** 선 끝에 시리즈 이름 (line · area). */
+  endLabels?: boolean;
+  /** 결측 값 너머로 선을 잇는다 (line · area, 기본 false). */
+  connectNulls?: boolean;
+  /** 점 크기 필드 (scatter — 면적이 값에 비례). */
+  sizeField?: string;
+  /** 점 반지름 범위 px [작은, 큰] (scatter 의 sizeField, 기본 [3, 18]). */
+  sizeRange?: readonly (number | string)[];
+  /** 추세선 (scatter — linear 최소제곱). */
+  fit?: ChartFit;
+  /**
+   * 사분면 이름 — 왼쪽 위 · 오른쪽 위 · 왼쪽 아래 · 오른쪽 아래 순서 (scatter, ztd 와 같은 순서). 기준은
+   * 값 축 기준선 (`referenceLines` 의 첫 값) 과 x 평균 — ztd 의 `refLines.x` 에 해당하는 x 기준선이 없어서다.
+   */
+  quadrants?: readonly string[];
 }
+
+export type ChartFit = "none" | "linear";
 
 export type ChartRateBase = "previous" | "first";
 export type ChartStreamOffset = "wiggle" | "silhouette";
@@ -615,7 +649,9 @@ export type ChartPaintRole =
   | "step-1"
   | "step-2"
   | "step-3"
-  | "step-4";
+  | "step-4"
+  /** 칸 안 글자 — accent · neutral 칠 위에서 읽히는 대비 색 (treemap · sunburst). */
+  | "on-fill";
 export const CHART_PAINT_ROLES: readonly ChartPaintRole[] = [
   "accent",
   "neutral",
@@ -626,6 +662,7 @@ export const CHART_PAINT_ROLES: readonly ChartPaintRole[] = [
   "step-2",
   "step-3",
   "step-4",
+  "on-fill",
 ];
 
 export interface RectMark {
@@ -689,6 +726,8 @@ export interface TextMark {
    * 두는 자리에 쓴다 — DOM 은 `em`, Skia 는 metrics.fontSize 곱으로 푼다.
    */
   fontScale?: number;
+  /** ADR-306 Phase 5 — 있으면 `role` 색 대신 이 역할 색 (칸 안 글자 = `on-fill`). */
+  paint?: ChartPaintRole;
 }
 
 export interface LineMark {
@@ -833,6 +872,18 @@ export interface ChartTarget {
   /** 히트 영역 — 사각형 (행 띠) 또는 반지름 (점). 둘 다 없으면 기준점 주변 12px. */
   rect?: Rect;
   r?: number;
+  /**
+   * ADR-306 Phase 5 — 고리 조각 히트 영역 (sunburst 조각 · chord 마디). 라디안 — 12 시 = 0 · 시계 방향.
+   * 큰 조각은 가운데 점 둘레 원으로 덮이지 않는다 (live 에서 발견).
+   */
+  arc?: {
+    cx: number;
+    cy: number;
+    r0: number;
+    r1: number;
+    a0: number;
+    a1: number;
+  };
   rows: readonly number[];
   /** 툴팁 제목 + 줄 (`label: text`). */
   title: string;

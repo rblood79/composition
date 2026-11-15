@@ -31,6 +31,8 @@ export interface LineMarkInput {
   /** 레이블 텍스트 생성기 (값/범주명 판정은 `computeChartScene`) */
   labelText: ChartLabelFormatter;
   fontSize: number;
+  /** ADR-306 Phase 5 — 값 없는 범주 너머로 잇는다 (기본 끊음 — Recharts `connectNulls` 와 같다). */
+  connectNulls?: boolean;
 }
 
 export interface LineMarks {
@@ -161,7 +163,7 @@ export function buildLineMarks(input: LineMarkInput): LineMarks {
     const d =
       points.length === 1
         ? `M ${screen[0].x} ${screen[0].y} L ${screen[0].x} ${screen[0].y}`
-        : splitRuns(points)
+        : (input.connectNulls ? [points] : splitRuns(points))
             .map((run) => curveCommands(run, curve, orientation, true))
             .join(" ");
     marks.push({

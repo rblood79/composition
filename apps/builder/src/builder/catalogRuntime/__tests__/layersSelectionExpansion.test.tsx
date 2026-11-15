@@ -152,11 +152,14 @@ describe("Layers — rows a selection opened stay open", () => {
     const variants = getPaletteItems().filter(
       (item) => item.componentType === "Chart",
     );
-    // 기존 7 + ADR-306 kpi 3 + category 12 + distribution 4 + matrix 4.
-    expect(variants).toHaveLength(30);
+    // 제공 항목 36 (기존 7 + 프리셋 행 donut · bubble + ADR-306 kpi 3 + category 12 + distribution 4 +
+    //   matrix 4 + network 4). Layers 는 chartType 으로 아이콘을 고른다 — 프리셋 행 (같은 chartType) 은
+    //   그 종류의 첫 행 아이콘을 따르므로 종류마다 첫 행만 비교한다.
+    expect(variants).toHaveLength(36);
     for (const item of variants) {
       const chartType = item.initialProps?.chartType;
       if (typeof chartType !== "string") throw new Error("Missing chartType");
+      if (item.type !== `chart-${chartType}`) continue;
       act(() => {
         workspace.execute(
           setFields({

@@ -47,3 +47,19 @@ export function evaluateVisibility(
 
   return true;
 }
+
+/**
+ * 필드의 기준값 — 값이 없을 때 패널이 보여 주는 값. `defaultWhen` 의 첫 맞는 항목, 없으면 `default`
+ * (ADR-306 Phase 5 — 여러 종류가 나눠 쓰는 키의 「값 없음」 뜻이 종류마다 다를 때. Chart `includeZero`).
+ */
+export function contractDefault(
+  contract: {
+    default?: unknown;
+    defaultWhen?: ReadonlyArray<{ when: VisibilityCondition; value: unknown }>;
+  },
+  currentProps: Record<string, unknown>,
+): unknown {
+  for (const entry of contract.defaultWhen ?? [])
+    if (evaluateVisibility(entry.when, currentProps)) return entry.value;
+  return contract.default;
+}

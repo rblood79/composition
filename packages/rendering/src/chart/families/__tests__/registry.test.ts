@@ -74,14 +74,20 @@ describe("ADR-306 G2 — family registry", () => {
   });
 
   it("chunk 가 없는 family 는 설정 오류 scene (pending 이 아니다)", () => {
-    const scene = computeChartScene(
-      { ...CHART_DEFAULT_PROPS, chartType: "treemap" },
-      rows,
-      size,
-    );
-    expect(scene.pending).toBeUndefined();
-    expect(scene.empty).toBe(true);
-    expect(scene.diagnostics?.[0]?.code).toBe("chartFamily.unavailable");
+    // Phase 5 부터 family 5 개가 모두 chunk 를 가진다 — 없는 build 는 로더를 빼서 만든다.
+    const restore = __setChartFamilyLoaderForTest("network", undefined);
+    try {
+      const scene = computeChartScene(
+        { ...CHART_DEFAULT_PROPS, chartType: "treemap" },
+        rows,
+        size,
+      );
+      expect(scene.pending).toBeUndefined();
+      expect(scene.empty).toBe(true);
+      expect(scene.diagnostics?.[0]?.code).toBe("chartFamily.unavailable");
+    } finally {
+      restore();
+    }
   });
 
   it("첫 화면 번들 경계 — 진입점 · scene · 생성 경로는 family 계산 모듈을 정적으로 import 하지 않는다", () => {
@@ -99,6 +105,7 @@ describe("ADR-306 G2 — family registry", () => {
         "category",
         "distribution",
         "matrix",
+        "network",
         "stats",
         "samples",
       ]) {
@@ -115,5 +122,6 @@ describe("ADR-306 G2 — family registry", () => {
     expect(read("../registry.ts")).toMatch(/import\("\.\/category"\)/);
     expect(read("../registry.ts")).toMatch(/import\("\.\/distribution"\)/);
     expect(read("../registry.ts")).toMatch(/import\("\.\/matrix"\)/);
+    expect(read("../registry.ts")).toMatch(/import\("\.\/network"\)/);
   });
 });

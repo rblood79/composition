@@ -52,7 +52,9 @@ export function renderText(mark: TextMark, key: string): React.ReactElement {
       y={mark.y}
       textAnchor={ANCHOR_MAP[mark.anchor]}
       dominantBaseline={BASELINE_MAP[mark.baseline]}
-      fill={ROLE_FILL[mark.role]}
+      fill={
+        mark.paint !== undefined ? paintVar(mark.paint) : ROLE_FILL[mark.role]
+      }
       // fontScale 은 부모 svg 의 font-size 기준 배율 — em 이라야 Skia 의
       //   metrics.fontSize 곱과 같은 값이 된다.
       fontSize={mark.fontScale ? `${mark.fontScale}em` : "inherit"}

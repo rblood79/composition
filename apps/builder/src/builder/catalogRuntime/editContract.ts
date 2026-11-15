@@ -9,6 +9,7 @@ import {
   type EditContract,
   type PropContract,
   type ResolvedField,
+  type VisibilityCondition,
 } from "@composition/shared";
 import type { DataBindingValue } from "@composition/shared";
 import {
@@ -37,6 +38,7 @@ import { normalizeColorControlPatch } from "../../../../../packages/shared/src/c
 import { RULE_TYPE_PROP_CONTRACTS } from "../../../../../packages/shared/src/catalog/document/itemLinks";
 import { componentPropertiesOf } from "../../../../../packages/shared/src/catalog/document/componentProperties";
 import { catalogOwnedFieldContent } from "./fieldContent";
+import { contractDefault } from "../panels/properties/generic/evaluateVisibility";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
 import {
   catalogBindingRef,
@@ -53,7 +55,10 @@ import {
 const ORIGIN_PREFIX = "lib:definition:origin-";
 /** A reusable origin's type by its definition id (read per selection and per edited key). */
 const ORIGIN_NAME_BY_ID: ReadonlyMap<string, string> = new Map(
-  REUSABLE_ORIGIN_DEFINITIONS.map((definition) => [definition.id, definition.name]),
+  REUSABLE_ORIGIN_DEFINITIONS.map((definition) => [
+    definition.id,
+    definition.name,
+  ]),
 );
 
 /** The definition an edit target shows (a node's own, or its template position's). */
@@ -124,54 +129,72 @@ export function catalogEditContract(
   const rule = resolveComponentRule(type);
   const node = { type };
   const ownedContent = catalogOwnedFieldContent(graph, target, type);
-  const fields: ResolvedField[] = Object.entries(
-    catalogSemanticContracts(definitionId, type),
-  ).map(([key, contract]) => {
-    if (contract.kind === "binding") {
-      // The data binding is the node's typed `binding`, not a prop (a template position has none
-      // of its own and cannot take one).
-      const value = catalogBindingValue(catalogTargetBinding(graph, target));
+  const contracts = catalogSemanticContracts(definitionId, type);
+  // `defaultWhen` 조건이 읽는 형제 prop 값 (저장값, 없으면 그 키의 default).
+  const conditionProps = (contract: PropContract): Record<string, unknown> => {
+    const values: Record<string, unknown> = {};
+    const visit = (condition: VisibilityCondition) => {
+      if (condition.key && !(condition.key in values))
+        values[condition.key] =
+          readModel.propSource(target, condition.key).value ??
+          contracts[condition.key]?.default;
+      condition.all?.forEach(visit);
+    };
+    contract.defaultWhen?.forEach((entry) => visit(entry.when));
+    return values;
+  };
+  const fields: ResolvedField[] = Object.entries(contracts).map(
+    ([key, contract]) => {
+      if (contract.kind === "binding") {
+        // The data binding is the node's typed `binding`, not a prop (a template position has none
+        // of its own and cannot take one).
+        const value = catalogBindingValue(catalogTargetBinding(graph, target));
+        return {
+          key,
+          kind: contract.kind,
+          label: contract.label ?? key,
+          section: contract.section ?? "content",
+          origin: "semantic",
+          isOverridden: value !== undefined,
+          baseValue: undefined,
+          currentValue: value,
+          visibleWhen: contract.visibleWhen,
+          editorHidden: contract.editorHidden || target.kind !== "node",
+        };
+      }
+      const reading = readModel.propSource(target, key);
+      const baseValue =
+        reading.inherited.value ??
+        (contract.defaultWhen
+          ? contractDefault(contract, conditionProps(contract))
+          : contract.default);
+      const part = ownedContent.get(key);
+      const value = part
+        ? readPropSource(graph, part.target, part.key).value
+        : reading.value;
+      const isOverridden = part
+        ? JSON.stringify(value) !== JSON.stringify(baseValue)
+        : reading.own !== undefined;
       return {
         key,
         kind: contract.kind,
         label: contract.label ?? key,
         section: contract.section ?? "content",
         origin: "semantic",
-        isOverridden: value !== undefined,
-        baseValue: undefined,
-        currentValue: value,
+        isOverridden,
+        baseValue,
+        currentValue: isOverridden ? value : baseValue,
+        min: contract.min,
+        max: contract.max,
+        step: contract.step,
+        unit: contract.unit,
+        options: deriveOptions(contract, rule, node, key),
+        itemsManager: contract.itemsManager,
         visibleWhen: contract.visibleWhen,
-        editorHidden: contract.editorHidden || target.kind !== "node",
+        editorHidden: contract.editorHidden,
       };
-    }
-    const reading = readModel.propSource(target, key);
-    const baseValue = reading.inherited.value ?? contract.default;
-    const part = ownedContent.get(key);
-    const value = part
-      ? readPropSource(graph, part.target, part.key).value
-      : reading.value;
-    const isOverridden = part
-      ? JSON.stringify(value) !== JSON.stringify(baseValue)
-      : reading.own !== undefined;
-    return {
-      key,
-      kind: contract.kind,
-      label: contract.label ?? key,
-      section: contract.section ?? "content",
-      origin: "semantic",
-      isOverridden,
-      baseValue,
-      currentValue: isOverridden ? value : baseValue,
-      min: contract.min,
-      max: contract.max,
-      step: contract.step,
-      unit: contract.unit,
-      options: deriveOptions(contract, rule, node, key),
-      itemsManager: contract.itemsManager,
-      visibleWhen: contract.visibleWhen,
-      editorHidden: contract.editorHidden,
-    };
-  });
+    },
+  );
   const contract: EditContract = {
     type,
     fields: [

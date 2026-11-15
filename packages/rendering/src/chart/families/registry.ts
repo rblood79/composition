@@ -26,6 +26,7 @@ const LOADERS: Partial<Record<ChartFamilyId, Loader>> = {
   distribution: () =>
     import("./distribution").then((module) => module.distributionFamily),
   matrix: () => import("./matrix").then((module) => module.matrixFamily),
+  network: () => import("./network").then((module) => module.networkFamily),
 };
 
 const loaded = new Map<ChartFamilyId, ChartFamily>();

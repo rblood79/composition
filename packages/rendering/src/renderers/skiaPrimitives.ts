@@ -2943,11 +2943,13 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       fontFamily: fontFamily.sans,
       // 값 레이블·범례는 본문 전경색, tick/empty 는 축 보조색 (DOM ROLE_FILL 동형).
       fill:
-        mark.role === "reference"
-          ? referenceToken
-          : mark.role === "legend" || mark.role === "value"
-            ? textToken
-            : axisToken,
+        mark.paint !== undefined
+          ? paintToken(mark.paint)
+          : mark.role === "reference"
+            ? referenceToken
+            : mark.role === "legend" || mark.role === "value"
+              ? textToken
+              : axisToken,
       align: geometry.align,
       ...(geometry.maxWidth !== undefined
         ? { maxWidth: geometry.maxWidth }

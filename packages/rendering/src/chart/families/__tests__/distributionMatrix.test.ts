@@ -459,6 +459,19 @@ describe("ADR-306 G4 — 8 종 scene (표본 · 경계 입력)", () => {
     });
   }
 
+  it("작은 상자 (Library 칸 140 × 78 · 147 × 83) — parallel 은 축 이름을 빼고도 선을 그린다 (Phase 5 live 에서 발견)", () => {
+    for (const size of [
+      { width: 140, height: 78 },
+      { width: 147, height: 83 },
+    ]) {
+      const scene = sceneOf("parallel", {}, undefined, size);
+      expect(
+        scene.marks.filter((m) => m.kind === "path").length,
+        `${size.width}`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
   it("작은 상자 (Library 표본 칸) — candlestick 거래량 · 이동평균 이름, parallel 축 끝 값을 내지 않는다", () => {
     const small = { width: 180, height: 110 };
     const texts = (scene: ChartScene) =>

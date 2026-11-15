@@ -220,6 +220,12 @@ export interface PropContract {
   kind: InspectorFieldKind;
   label?: string;
   default?: unknown;
+  /**
+   * 패널 기준값의 조건부 갈래 — 첫 맞는 항목의 `value` 가 `default` 보다 앞선다. 여러 종류가 나눠 쓰는
+   * 키의 「값 없음」 뜻이 종류마다 다를 때 쓴다 (Chart `includeZero` — line · area · scatter 는 비면 0
+   * 포함, dumbbell · box 는 비면 0 미포함). 해석 props 에는 넣지 않는다 — 렌더 코드가 같은 뜻을 읽는다.
+   */
+  defaultWhen?: Array<{ when: VisibilityCondition; value: unknown }>;
   /** 필드 그룹 태그 — 컴포넌트당 `SectionDef[]` 대체. generic Inspector 가 이 태그로 묶는다. */
   section?: "content" | "appearance" | "state" | "locale" | (string & {});
   /**

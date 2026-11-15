@@ -65,7 +65,7 @@ const BEFORE = [
 ];
 
 describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
-  it("kpi · category · distribution · matrix 역할 · 옵션 키 목록", () => {
+  it("kpi · category · distribution · matrix · network · 보강 역할 · 옵션 키 목록", () => {
     expect([...CHART_FAMILY_PROP_KEYS].sort()).toEqual(
       [
         "goalField",
@@ -130,6 +130,21 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
         "volumeField",
         "movingAverages",
         "invertFields",
+        // Phase 5 — network family · 기존 종류 보강 (§2.1).
+        "pathFields",
+        "sourceField",
+        "targetField",
+        "nodeWidth",
+        "nodePadding",
+        "padAngle",
+        "lowerFields",
+        "upperFields",
+        "endLabels",
+        "connectNulls",
+        "sizeField",
+        "sizeRange",
+        "fit",
+        "quadrants",
       ].sort(),
     );
   });
@@ -150,7 +165,7 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
   });
 
   it("종류마다 뜻이 다른 공유 키는 binding 기본값이 없다 (정의 기본값은 모든 종류의 해석 props 에 들어간다)", () => {
-    for (const key of ["threshold", "valueMin"])
+    for (const key of ["threshold", "valueMin", "sort", "includeZero"])
       expect(chartBinding.props.accepts[key]?.default, key).toBeUndefined();
   });
 

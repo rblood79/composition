@@ -30,8 +30,23 @@ describe("ADR-209 공통 저작/데이터 계약", () => {
     });
     expect(createChartInitialProps("pie").data).toHaveLength(4);
     expect(createChartInitialProps("radar").data).toHaveLength(8);
-    // ADR-306 — 기존 7 + kpi 3 + category 12 + distribution 4 + matrix 4 (network 는 Phase 5).
-    expect(new Set(CHART_DESCRIPTORS.map((d) => d.paletteId)).size).toBe(30);
+    // ADR-306 — 제공 항목 36 (기존 7 + 프리셋 행 donut · bubble 2 + kpi 3 + category 12 + distribution 4 +
+    //   matrix 4 + network 4). radialBar 는 radial 행 자체다 (새로 만들 때만 상한 100).
+    expect(new Set(CHART_DESCRIPTORS.map((d) => d.paletteId)).size).toBe(36);
+    expect(createChartInitialProps("radial").valueMax).toBe(100);
+    expect(
+      getChartPresetId("radial", { ...getChartDescriptor("radial").defaults }),
+    ).toBe("default");
+    expect(createChartInitialProps("pie", "chart-donut")).toMatchObject({
+      chartType: "pie",
+      innerRadius: 60,
+      showTotal: true,
+      centerLabel: "Total",
+    });
+    expect(createChartInitialProps("scatter", "chart-bubble")).toMatchObject({
+      chartType: "scatter",
+      sizeField: "size",
+    });
   });
   it("프리셋은 이전 소유 키를 reset하되 데이터와 실행 옵션을 소유하지 않는다", () => {
     const line = getChartDescriptor("line");

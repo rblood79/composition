@@ -18,6 +18,7 @@ import {
   CHART_DESCRIPTORS,
   computeChartScene,
   getChartDescriptor,
+  SERIES_CHART_TYPES,
   loadChartFamily,
   type ChartProps,
   type ChartRow,
@@ -26,7 +27,7 @@ import {
 } from "@composition/rendering";
 import { getCatalogEntry } from "@composition/shared";
 
-import { evaluateVisibility } from "./evaluateVisibility";
+import { contractDefault, evaluateVisibility } from "./evaluateVisibility";
 
 const CHART_TYPES: ChartType[] = [
   "bar",
@@ -109,6 +110,14 @@ const ALTERNATIVES: Record<string, unknown[]> = {
   showGrid: [false],
   showLegend: [false],
   legendPosition: ["right"],
+  // ADR-306 Phase 5 — 기존 종류 보강 (§2.1). connectNulls · 띠 · 산점도 역할은 이 표본 (빈 칸 없음 · 띠
+  //   필드 없음) 에서 갈리지 않아 아래 전용 검사가 본다.
+  sort: ["descending", "ascending"],
+  valueMin: [-20],
+  valueMax: [100],
+  includeZero: [false],
+  endLabels: [true],
+  centerLabel: ["Center"],
 };
 
 function sceneOf(props: ChartProps): string {
@@ -208,7 +217,8 @@ const FAMILY_TYPES = CHART_DESCRIPTORS.filter(
   (d) =>
     d.family === "category" ||
     d.family === "distribution" ||
-    d.family === "matrix",
+    d.family === "matrix" ||
+    d.family === "network",
 ).map((d) => d.chartType as FamilyChartType);
 const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
   orientation: ["vertical"],
@@ -257,6 +267,12 @@ const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
   cellGap: [6],
   movingAverages: [[10]],
   invertFields: [[]],
+  // Phase 5 — network.
+  labelKey: ["value"],
+  innerRadius: [0],
+  nodeWidth: [4],
+  nodePadding: [40],
+  padAngle: [12],
 };
 
 describe("ADR-306 G2 ① — category · distribution · matrix family: 소비되는 prop 은 보이고, 보이는 조건 prop 은 읽힌다", () => {
@@ -265,7 +281,7 @@ describe("ADR-306 G2 ① — category · distribution · matrix family: 소비�
     Awaited<ReturnType<typeof loadChartFamily>>
   >();
   beforeAll(async () => {
-    for (const id of ["category", "distribution", "matrix"] as const)
+    for (const id of ["category", "distribution", "matrix", "network"] as const)
       families.set(id, await loadChartFamily(id));
   });
   const familyOf = (chartType: FamilyChartType) =>
@@ -334,6 +350,40 @@ describe("ADR-306 G2 ① — category · distribution · matrix family: 소비�
             !used.has(k),
         ),
       ).toEqual([]);
+    });
+  }
+});
+
+/**
+ * ADR-306 Phase 5 판독 (2026-11-16) — boolean 칩은 값이 없을 때 기준값 (`contractDefault`, 없으면 꺼짐)
+ * 으로 보이고, 끌 때 기준값이 없으면 값을 지운다 (`GenericFieldRenderer` 칩 묶음). 그래서 **값이 없을 때의
+ * 그림 = 기준값 (없으면 false) 일 때의 그림** 이어야 칩 표시가 그림과 맞고, 끄기가 그림을 바꾼다.
+ * 위반 사례: line · area · scatter 는 `includeZero` 가 없으면 0 을 넣는데 기준값이 없어 칩은 꺼짐으로
+ * 보였고, 꺼도 값이 지워질 뿐이라 0 을 뺄 수 없었다.
+ */
+describe("ADR-306 — boolean 칩: 값이 없을 때의 그림 = 기준값의 그림", () => {
+  for (const chartType of SERIES_CHART_TYPES) {
+    it(`${chartType} — 보이는 boolean prop 전부`, () => {
+      const contracts = acceptsContracts();
+      const base = baseProps(chartType) as unknown as Record<string, unknown>;
+      const visible = visibleFor(chartType);
+      const mismatched: string[] = [];
+      for (const [key, contract] of Object.entries(contracts)) {
+        if ((contract as { kind?: string }).kind !== "boolean") continue;
+        if (!visible.has(key)) continue;
+        // binding `default` 가 있는 키는 해석 props 에 채워져 「값 없음」 으로 그림에 닿지 않는다.
+        if (contract.default !== undefined) continue;
+        const absent = { ...base };
+        delete absent[key];
+        const shown =
+          contractDefault(contract as never, { ...absent, chartType }) ?? false;
+        if (
+          sceneOf(absent as unknown as ChartProps) !==
+          sceneOf({ ...absent, [key]: shown } as unknown as ChartProps)
+        )
+          mismatched.push(key);
+      }
+      expect(mismatched).toEqual([]);
     });
   }
 });

@@ -31,10 +31,14 @@ export const CHART_MAPPING_FIELD_KEYS: readonly string[] =
  */
 function optionalFieldKeys(chartType: unknown): ReadonlySet<string> {
   const descriptor = CHART_DESCRIPTORS.find((d) => d.chartType === chartType);
-  if (!descriptor || descriptor.family === null) return SERIES_OPTIONAL;
-  return new Set(
-    descriptor.roles.filter((role) => !role.required).map((role) => role.prop),
-  );
+  if (!descriptor) return SERIES_OPTIONAL;
+  const optional = descriptor.roles
+    .filter((role) => !role.required)
+    .map((role) => role.prop);
+  // ADR-306 Phase 5 — 시리즈 7 종도 보강 역할 (scatter 크기 · 이름) 은 선택이다.
+  return descriptor.family === null
+    ? new Set([...SERIES_OPTIONAL, ...optional])
+    : new Set(optional);
 }
 const SERIES_OPTIONAL: ReadonlySet<string> = new Set(["color"]);
 

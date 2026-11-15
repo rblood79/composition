@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-306 Phase 5 — Chart 종류 4 (network family) · 기존 종류 보강 → 36 종] - 2026-11-16
+
+### Added
+
+- **Chart 종류 4 — Treemap · Sunburst · Sankey Diagram · Chord Diagram** (ADR-306 Phase 5): Treemap 은 계층의 비율을 넓이로 (경로 필드 Path — 위 단계부터, 위 단계 머리글, 칸 안 이름 · 비율, Label content 로 비율만), Sunburst 는 깊이마다 고리 하나 (가운데 구멍 · 바깥 이름표), Sankey 는 출발 → 도착 흐름의 양 (노드 폭 · 간격, 순환 연결은 진단), Chord 는 마디 사이에 주고받은 양 (마디 틈). 가장 큰 항목과 그에 닿는 흐름을 강조하고, 칸 안 글자는 칠 위에서 읽히는 대비 색이다. 고리 조각은 조각 어디를 가리켜도 툴팁이 뜬다.
+- **팔레트 Donut Chart · Bubble Chart** — 각각 Pie · Scatter 종류의 기본값 항목 (Donut 은 가운데 합계 · 「Total」, Bubble 은 점 크기 필드). 팔레트 Charts 36 항목 (ztd-charts 36 종 전부).
+- **기존 Chart 종류 보강** (ADR-306 Phase 5): Bar · Pie 의 Sort (값 순서), Line · Area 의 Min · Max value (값이 모두 양수여도 Min value 가 축 시작) · Include Zero (Line · Area · Scatter 는 켜진 상태로 보이고, 끄면 축이 0 을 넣지 않음) · Connect Gaps (빈 값을 건너 잇기) · End Labels (선 끝 시리즈 이름) · Band Lower · Band Upper (범위 띠), Radar · Radial 의 Max value (Radial 은 새로 만들면 100 — 진행률), Scatter 의 Size (점 크기 — 면적 비례) · Size Range · Label (점 이름) · Trend Line (최소제곱 추세선) · Quadrant Names (사분면 이름), Pie 의 Center Label (도넛 가운데 글자). Canvas 와 Preview · Publish 가 같은 계산으로 그린다. 누적 Line 의 Connect Gaps 도 두 쪽이 같이 잇고, Treemap · Sunburst 에서 하위 분류가 빈 행의 값은 부모 이름의 칸으로 남는다.
+  - 위치: `packages/rendering/src/chart/families/network/` (ztd-charts 0.5.0 계층 · sankey · chord 배치 이식, MIT) · `chart/marks/seriesExtras.ts` · `marks/sizeRange.ts` · `chart/{model,layout,series,budget,authoring,types,paint}.ts` · `marks/{line,area,pie}.ts` · `shared/.../Chart.binding.ts` · `chart/{RechartsChart,FamilySceneHost,svgDecorations}.tsx` · builder 팔레트 아이콘 6 · 테스트 `network.test.ts` 46 · `adr306SeriesEnhancements.test.ts` 20 · `networkSkia.test.ts` 6 · `adr306NetworkHost.browser.test.tsx` 42 · `adr306SeriesEnhancements.browser.test.tsx` 7
+
+### Fixed
+
+- **Library 의 Parallel Coordinates 칸이 비어 있던 것** (Phase 4): 작은 칸에서 축 이름 줄이 그림 높이를 다 차지해 선을 하나도 그리지 않았다 — 높이가 모자라면 축 이름을 빼고 선을 그린다.
+- **Design 패널 Chart 의 Sort · Include Zero 기본값**: Bar · Pie · Line 이 같은 칸을 읽게 되면서 기본값 (Descending · 끔) 이 기존 차트를 정렬 · 0 제외로 바꾸지 않도록 기본값을 두지 않는다 (종류마다 비었을 때의 순서는 그 종류가 정한다).
+
+### Changed
+
+- **번들 상한 — Builder ≤ 1,429,789 B** (ADR-201 재승인, ADR-306 사용자 결정 2): Phase 5 실측 Builder +4,277 (판독 수리 +340) · Preview +3,297 (+120) B gzip (종류 목록 · binding · 팔레트 · 시리즈 종류 보강 — 시리즈 Canvas scene 은 첫 화면 경로). network 계산 · 표본은 별도 chunk (7,593 B).
+
 ## [ADR-306 Phase 4 — Chart 종류 8 (distribution · matrix family)] - 2026-11-16
 
 ### Added

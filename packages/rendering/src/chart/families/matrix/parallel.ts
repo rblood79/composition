@@ -105,8 +105,12 @@ export function parallelScene(ctx: CategoryContext) {
     );
   const gapX = nd > 1 ? (x1 - x0) / (nd - 1) : 128;
   const stagger = nd > 2 && nameW.some((w) => w > gapX - 8);
-  const top = outer.y + (stagger ? fontSize * 4 : fontSize * 2.7);
   const bottom = outer.y + outer.h - (fontSize + 6);
+  // 축 이름 줄이 그림 높이를 다 먹으면 (Library 칸 140 × 78) 이름을 빼고 선을 그린다 — 이름은 툴팁에
+  //   남는다 (ADR-306 Phase 5 live 에서 발견: 이름 줄 때문에 선이 하나도 그려지지 않았다).
+  const namedTop = outer.y + (stagger ? fontSize * 4 : fontSize * 2.7);
+  const showNames = bottom - namedTop >= fontSize * 2;
+  const top = showNames ? namedTop : outer.y + 4;
   if (bottom - top < 8 || x1 - x0 < 8) return sceneOf(ctx, { marks: [] });
   const axX = (j: number) =>
     nd > 1 ? x0 + (j * (x1 - x0)) / (nd - 1) : (x0 + x1) / 2;
@@ -188,15 +192,16 @@ export function parallelScene(ctx: CategoryContext) {
       y2: r2(bottom),
       role: "axis",
     });
-    texts.push({
-      kind: "text",
-      x: r2(xx),
-      y: r2(outer.y + (stagger && j % 2 ? fontSize * 2.2 : fontSize * 0.7)),
-      text: fitText(model.names[j], room, fontSize),
-      anchor: "middle",
-      baseline: "middle",
-      role: "legend",
-    });
+    if (showNames)
+      texts.push({
+        kind: "text",
+        x: r2(xx),
+        y: r2(outer.y + (stagger && j % 2 ? fontSize * 2.2 : fontSize * 0.7)),
+        text: fitText(model.names[j], room, fontSize),
+        anchor: "middle",
+        baseline: "middle",
+        role: "legend",
+      });
     if (endValues)
       texts.push(
         {

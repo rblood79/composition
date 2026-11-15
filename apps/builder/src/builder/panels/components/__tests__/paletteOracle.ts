@@ -477,6 +477,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "ChartPie",
   },
   {
+    type: "chart-donut",
+    category: "charts",
+    label: "Donut Chart",
+    icon: "Donut",
+  },
+  {
     type: "chart-radar",
     category: "charts",
     label: "Radar Chart",
@@ -493,6 +499,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     category: "charts",
     label: "Scatter Chart",
     icon: "ScatterChart",
+  },
+  {
+    type: "chart-bubble",
+    category: "charts",
+    label: "Bubble Chart",
+    icon: "Bubbles",
   },
   // ADR-306 Phase 2 — kpi family.
   {
@@ -633,6 +645,31 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     category: "charts",
     label: "Parallel Coordinates",
     icon: "ChartNoAxesCombined",
+  },
+  // ADR-306 Phase 5 — network family.
+  {
+    type: "chart-treemap",
+    category: "charts",
+    label: "Treemap",
+    icon: "LayoutDashboard",
+  },
+  {
+    type: "chart-sunburst",
+    category: "charts",
+    label: "Sunburst",
+    icon: "CircleDotDashed",
+  },
+  {
+    type: "chart-sankey",
+    category: "charts",
+    label: "Sankey Diagram",
+    icon: "GitFork",
+  },
+  {
+    type: "chart-chord",
+    category: "charts",
+    label: "Chord Diagram",
+    icon: "Orbit",
   },
   {
     type: "Calendar",

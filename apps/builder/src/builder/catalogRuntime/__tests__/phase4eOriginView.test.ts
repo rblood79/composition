@@ -680,10 +680,19 @@ describe("ADR-248 4e library origin view", () => {
     expect(chartTypes.map((cell) => cell.name)).toEqual(
       CHART_DESCRIPTORS.map((d) => `Chart / ${d.label}`),
     );
-    expect(chartTypes.slice(0, 7).map((cell) => cell.name)).toEqual(
-      ["Area", "Bar", "Line", "Pie", "Radar", "Radial", "Scatter"].map(
-        (name) => `Chart / ${name} Chart`,
-      ),
+    // ADR-306 Phase 5 — the series rows with the donut · bubble preset rows beside their types.
+    expect(chartTypes.slice(0, 9).map((cell) => cell.name)).toEqual(
+      [
+        "Area",
+        "Bar",
+        "Line",
+        "Pie",
+        "Donut",
+        "Radar",
+        "Radial",
+        "Scatter",
+        "Bubble",
+      ].map((name) => `Chart / ${name} Chart`),
     );
     expect(chartTypes.map((cell) => sampleOf(cell).props.chartType)).toEqual(
       CHART_DESCRIPTORS.map((d) => ({ kind: "set", value: d.chartType })),

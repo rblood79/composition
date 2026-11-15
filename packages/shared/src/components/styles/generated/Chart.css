@@ -67,6 +67,7 @@
   --chart-paint-step-2: var(--chart-accent-3);
   --chart-paint-step-3: var(--chart-accent-2);
   --chart-paint-step-4: var(--chart-accent-1);
+  --chart-paint-on-fill: var(--on-neutral);
   --chart-stroke-width: 2px;
   --chart-tooltip-bg: var(--bg-muted);
   --chart-tooltip-border: var(--border);
