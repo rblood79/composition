@@ -11,11 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-310 Phase 8 (진행 중) — 세로 목록의 가상 스크롤] - 2026-11-15
+## [ADR-310 Phase 8 (진행 중) — 세로 목록 · 카드 grid 의 가상 스크롤] - 2026-11-15
 
 ### Added
 
-- **행 표시 「가상 스크롤」**: 높이를 정한 연결 목록은 Design 패널 「행 표시」 에서 가상 스크롤을 고를 수 있다 — Preview · Publish 가 보이는 행만 DOM 에 두고 (250 행 목록에서 13 ~ 14 개) 스크롤 · 키보드 이동 · 선택은 그대로다. 높이가 정해지지 않은 목록은 고를 수 없고 이유가 보인다. 지금은 세로 목록 — Table · 가로 목록 · 카드 grid 는 다음 단계.
+- **행 표시 「가상 스크롤」**: 높이를 정한 연결 목록은 Design 패널 「행 표시」 에서 가상 스크롤을 고를 수 있다 — Preview · Publish 가 보이는 행만 DOM 에 두고 (250 행 목록에서 13 ~ 14 개) 스크롤 · 키보드 이동 · 선택은 그대로다. 높이가 정해지지 않은 목록은 고를 수 없고 이유가 보인다.
+- **카드 grid 의 가상 스크롤**: CardView · GridList (grid 배치) 도 가상 스크롤을 고를 수 있다. 칸 크기 · 간격은 S2 CardView 의 크기 표 (CardView — 크기 prop, 폭에 2열이 들어가지 않으면 한 단계 작게) 와 RAC `GridLayout` 기본값 (GridList) 을 따르고, Canvas 도 같은 열 · 간격으로 칸을 놓는다 (Publish 와 첫 행 위치 같음, 250 장 중 DOM 4 ~ 6 장). waterfall 배치는 아직 고를 수 없다. Table · 가로 목록은 다음 단계.
 
 ## [ADR-310 Phase 7 — 연결한 목록의 「페이지」 표시 · Pagination 연결] - 2026-11-15
 

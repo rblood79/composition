@@ -117,12 +117,9 @@ describe("ADR-310 Phase 8 — a virtual list's options from the Canvas's values"
 
   it("refuses what a Layout cannot place the same way", () => {
     const base = { rowGap: 0, columnGap: 0, padding: padding(0) };
-    // (No laid-out row — the Preview root: a list estimates, RAC measures; a grid needs its cell.)
+    // (No laid-out row — the Preview root: a list estimates, RAC measures.)
     expect(catalogVirtualLayout({ kind: "list", ...base, rows: [] })).toMatchObject({
       options: { estimatedRowSize: 40 },
-    });
-    expect(catalogVirtualLayout({ kind: "grid", ...base, rows: [] })).toEqual({
-      refused: "noRows",
     });
     expect(
       catalogVirtualLayout({
@@ -132,40 +129,9 @@ describe("ADR-310 Phase 8 — a virtual list's options from the Canvas's values"
         rows: [{ width: 10, height: 10 }],
       }),
     ).toEqual({ refused: "padding" });
-    expect(
-      catalogVirtualLayout({
-        kind: "grid",
-        ...base,
-        rows: [
-          { width: 100, height: 80 },
-          { width: 120, height: 80 },
-        ],
-      }),
-    ).toEqual({ refused: "cellSize" });
   });
 
-  it("a grid's cell and gaps · a Table's row and header heights", () => {
-    expect(
-      catalogVirtualLayout({
-        kind: "grid",
-        rowGap: 12,
-        columnGap: 16,
-        padding: padding(0),
-        columns: 3,
-        rows: [
-          { width: 160, height: 120 },
-          { width: 160, height: 120 },
-        ],
-      }),
-    ).toEqual({
-      kind: "grid",
-      options: {
-        minItemSize: { width: 160, height: 120 },
-        maxItemSize: { width: 160, height: 120 },
-        minSpace: { width: 16, height: 12 },
-        maxColumns: 3,
-      },
-    });
+  it("a Table's row and header heights", () => {
     expect(
       catalogVirtualLayout({
         kind: "table",

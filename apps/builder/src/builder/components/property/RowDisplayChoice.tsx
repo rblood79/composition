@@ -53,10 +53,15 @@ export default function RowDisplayChoice({
               record.visual as never,
               record.sizing as never,
             );
-      // (The `Layout` checks — four equal paddings · one card size — run in the Preview's chunk: a
+      // (The `Layout` check — four equal paddings — runs in the Preview's chunk: a
       //  list it cannot place the same way draws as it is there. Kept out of this panel's import —
       //  it moved shared modules into the Builder's initial chunk, +1,160 B.)
-      virtualBlocked = !bounded ? "height" : undefined;
+      // (A waterfall is RAC's `WaterfallLayout` — the Canvas does not place it that way yet.)
+      virtualBlocked = !bounded
+        ? "height"
+        : record.props.layout === "waterfall"
+          ? "waterfall"
+          : undefined;
     }
     return {
       listId: target.id,

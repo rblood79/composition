@@ -875,8 +875,7 @@ export interface TranslationKeys {
     rowDisplayVirtualBlocked: {
       height: string;
       padding: string;
-      cellSize: string;
-      noRows: string;
+      waterfall: string;
     };
     fieldTemplatePlaceholder: string;
     insertField: string;

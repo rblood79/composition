@@ -30,6 +30,7 @@ import {
   catalogCollectionDragState,
 } from "./collectionDragState";
 import { catalogGroupItems, catalogItemKey } from "./groupSelection";
+import { catalogVirtualGridOptions } from "./virtualGrid";
 
 /** ADR-284 Phase 5 — `useDragAndDrop` and its drop indicator load with the first list that drags. */
 const CatalogDragAndDrop = lazy(
@@ -63,6 +64,7 @@ function withVirtualizer(
       readers: {
         typeOf: (node: CatalogConsumerNode) => catalogTypeName(root, node),
         itemsOf: catalogGroupItems,
+        gridOptions: catalogVirtualGridOptions,
       },
       element,
     }),

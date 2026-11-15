@@ -15,6 +15,39 @@ import {
   catalogVirtualListLayout,
   type CatalogVirtualListReaders,
 } from "./virtualListLayout";
+type GridInput = {
+  type: string;
+  props: Readonly<Record<string, unknown>>;
+  options: CatalogVirtualListReaders["gridOptions"];
+};
+const size = (value: { width: number; height: number } | undefined) =>
+  value && new Size(value.width, value.height);
+
+/**
+ * RAC's `GridLayout` with its options picked at the scroll width (S2 CardView's t-shirt size fit —
+ * `catalogVirtualGridOptions` — given by the DOM runtime, the function the Canvas lays the grid out
+ * with: a static import would split it into a chunk of its own).
+ */
+class CatalogGridLayout extends GridLayout<unknown> {
+  override shouldInvalidateLayoutOptions(next: object, previous: object): boolean {
+    const a = next as GridInput;
+    const b = previous as GridInput;
+    return a.type !== b.type || a.props !== b.props || a.options !== b.options;
+  }
+  override update(context: Parameters<GridLayout<unknown>["update"]>[0]): void {
+    const { type, props, options: optionsAt } =
+      context.layoutOptions as unknown as GridInput;
+    const options = optionsAt(type, props, this.virtualizer?.size.width ?? 0) ?? {};
+    super.update({
+      ...context,
+      layoutOptions: {
+        minItemSize: size(options.minItemSize),
+        maxItemSize: size(options.maxItemSize),
+        minSpace: size(options.minSpace),
+      },
+    });
+  }
+}
 
 /**
  * ADR-310 Phase 8 (Decision 10 「가상 스크롤」 — the Preview · publish lazy chunk): a list whose row
@@ -44,25 +77,21 @@ export default function CatalogVirtualizer({
       ...(own && typeof own === "object" ? (own as CSSProperties) : {}),
       display: "block",
       overflow: "auto",
-      // (The `Layout` adds the list's padding — `ListLayout` `padding`: the CSS padding would put
-      //  it in twice, R12 — the reference's `padding: 0`.)
-      ...(layout.kind === "list" ? { padding: 0 } : {}),
+      // (The `Layout` adds the list's padding — `ListLayout` `padding` · `GridLayout` spacing: the
+      //  CSS padding would put it in twice, R12 — the reference's `padding: 0`.)
+      ...(layout.kind !== "table" ? { padding: 0 } : {}),
     },
   } as never);
-  if (layout.kind === "grid") {
-    const { minItemSize, maxItemSize, minSpace, maxColumns } = layout.options;
+  if (layout.kind === "grid")
     return createElement(Virtualizer, {
-      layout: GridLayout,
+      layout: CatalogGridLayout,
       layoutOptions: {
-        minItemSize: new Size(minItemSize.width, minItemSize.height),
-        maxItemSize: new Size(maxItemSize.width, maxItemSize.height),
-        minSpace: new Size(minSpace.width, minSpace.height),
-        ...(maxColumns ? { maxColumns } : {}),
-        preserveAspectRatio: true,
+        type: layout.type,
+        props: layout.props,
+        options: readers.gridOptions,
       },
       children: element,
     } as never);
-  }
   return createElement(Virtualizer, {
     layout: layout.kind === "table" ? TableLayout : ListLayout,
     layoutOptions: layout.options,

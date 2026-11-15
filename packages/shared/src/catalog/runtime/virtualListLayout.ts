@@ -8,6 +8,7 @@ import {
   type CatalogVirtualLayout,
   type CatalogVirtualRefusal,
 } from "./virtualLayout";
+import type { catalogVirtualGridOptions } from "./virtualGrid";
 
 /**
  * ADR-310 Phase 8 — a list's virtual layout read from its drawn records (the Canvas's geometry and
@@ -27,6 +28,8 @@ export interface CatalogVirtualListReaders {
     get: (id: string) => CatalogConsumerNode | undefined,
     typeOf: (node: CatalogConsumerNode) => string,
   ) => CatalogConsumerNode[];
+  /** A grid's `GridLayout` options at a width (`catalogVirtualGridOptions` — the Canvas's). */
+  readonly gridOptions: typeof catalogVirtualGridOptions;
 }
 
 export function catalogVirtualListLayout(
@@ -55,10 +58,12 @@ export function catalogVirtualListLayout(
     return rect ? { width: rect.width, height: rect.height } : undefined;
   };
   const props = record.props as Record<string, unknown>;
-  const grid =
-    type === "CardView" || (type === "GridList" && props.layout === "grid");
+  if (type === "CardView" || (type === "GridList" && props.layout !== "stack"))
+    return props.layout === "waterfall"
+      ? { refused: "waterfall" }
+      : { kind: "grid", type, props };
   const input: CatalogVirtualInput = {
-    kind: type === "Table" ? "table" : grid ? "grid" : "list",
+    kind: type === "Table" ? "table" : "list",
     orientation: props.orientation === "horizontal" ? "horizontal" : "vertical",
     rowGap: px(style.rowGap ?? gap),
     columnGap: px(style.columnGap ?? gap),

@@ -40,44 +40,68 @@ const DEFAULTS = {
   maxColumns: Infinity,
 };
 
+/**
+ * The columns alone (the Canvas's virtual grid tracks — `virtualGrid.ts`): the column count, the
+ * item width, the horizontal spacing and the side margin.
+ */
+export function catalogGridLayoutColumns(
+  width: number,
+  options: CatalogGridLayoutOptions = {},
+): { columns: number; itemWidth: number; gapX: number; gapY: number; margin: number } {
+  const minItemSize = options.minItemSize ?? DEFAULTS.minItemSize;
+  const minSpace = options.minSpace ?? DEFAULTS.minSpace;
+  const maxItemWidth = Math.min(
+    (options.maxItemSize ?? DEFAULTS.maxItemSize).width,
+    width,
+  );
+  const columns = Math.max(
+    1,
+    Math.min(
+      options.maxColumns ?? DEFAULTS.maxColumns,
+      Math.floor(width / (minItemSize.width + minSpace.width)),
+    ),
+  );
+  const itemWidth = Math.max(
+    minItemSize.width,
+    Math.min(maxItemWidth, Math.floor((width - minSpace.width * columns) / columns)),
+  );
+  const gapX = Math.min(
+    Math.max(options.maxHorizontalSpace ?? DEFAULTS.maxHorizontalSpace, minSpace.width),
+    Math.floor((width - columns * itemWidth) / (columns + 1)),
+  );
+  const margin = Math.floor((width - columns * itemWidth - gapX * (columns + 1)) / 2);
+  return { columns, itemWidth, gapX, gapY: minSpace.height, margin };
+}
+
 export function catalogGridLayoutCells(
   width: number,
   count: number,
   options: CatalogGridLayoutOptions = {},
 ): CatalogGridLayoutCells {
+  const { columns, itemWidth, gapX, gapY, margin } = catalogGridLayoutColumns(
+    width,
+    options,
+  );
   const minItemSize = options.minItemSize ?? DEFAULTS.minItemSize;
   const maxItemSize = options.maxItemSize ?? DEFAULTS.maxItemSize;
-  const minSpace = options.minSpace ?? DEFAULTS.minSpace;
-  const maxHorizontalSpace =
-    options.maxHorizontalSpace ?? DEFAULTS.maxHorizontalSpace;
-  const maxColumns = options.maxColumns ?? DEFAULTS.maxColumns;
   const maxItemWidth = Math.min(maxItemSize.width, width);
   const maxItemHeight = Number.isFinite(maxItemSize.height)
     ? maxItemSize.height
     : Math.floor((minItemSize.height / minItemSize.width) * maxItemWidth);
-  const columns = Math.max(
-    1,
-    Math.min(maxColumns, Math.floor(width / (minItemSize.width + minSpace.width))),
-  );
-  const available = width - minSpace.width * Math.max(0, columns);
-  let itemWidth = Math.floor(available / columns);
-  itemWidth = Math.max(minItemSize.width, Math.min(maxItemWidth, itemWidth));
+  // (The height in proportion to the width — RAC's estimate; measured heights replace it.)
   const t =
     (itemWidth - minItemSize.width) /
     Math.max(1, maxItemWidth - minItemSize.width);
-  let itemHeight =
-    minItemSize.height + Math.floor((maxItemHeight - minItemSize.height) * t);
-  itemHeight = Math.max(minItemSize.height, Math.min(maxItemHeight, itemHeight));
-  const gapX = Math.min(
-    Math.max(maxHorizontalSpace, minSpace.width),
-    Math.floor((width - columns * itemWidth) / (columns + 1)),
-  );
-  const margin = Math.floor(
-    (width - columns * itemWidth - gapX * (columns + 1)) / 2,
+  const itemHeight = Math.max(
+    minItemSize.height,
+    Math.min(
+      maxItemHeight,
+      minItemSize.height + Math.floor((maxItemHeight - minItemSize.height) * t),
+    ),
   );
   const rows = Math.ceil(count / columns);
   const cells: { x: number; y: number; width: number; height: number }[] = [];
-  let y = rows > 0 ? minSpace.height : 0;
+  let y = rows > 0 ? gapY : 0;
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < columns && cells.length < count; col += 1)
       cells.push({
@@ -86,16 +110,7 @@ export function catalogGridLayoutCells(
         width: itemWidth,
         height: itemHeight,
       });
-    y += itemHeight + minSpace.height;
+    y += itemHeight + gapY;
   }
-  return {
-    columns,
-    itemWidth,
-    itemHeight,
-    gapX,
-    gapY: minSpace.height,
-    margin,
-    cells,
-    height: y,
-  };
+  return { columns, itemWidth, itemHeight, gapX, gapY, margin, cells, height: y };
 }

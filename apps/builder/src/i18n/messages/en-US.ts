@@ -1178,8 +1178,7 @@ const catalog: TranslationKeys = {
     rowDisplayVirtualBlocked: {
       height: "Give the list a fixed height first",
       padding: "Use the same padding on all four sides",
-      cellSize: "Give every card the same size",
-      noRows: "Connect data with rows first",
+      waterfall: "Waterfall layout is not virtual-scrolled yet",
     },
     legacyBinding:
       "Legacy {source} binding — choosing a collection switches it to dataTable.",

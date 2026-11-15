@@ -158,6 +158,7 @@ import {
 import type { LayoutEngineAPI } from "./layoutEngine";
 import type { LayoutResult, StickyConstraints } from "./engineTypes";
 import { parseGridTemplate } from "./gridStyleAdapter";
+import { catalogVirtualGridStyle } from "./virtualGrid";
 import {
   CATALOG_DRAG_COLUMN_WIDTH,
   catalogCellSpan,
@@ -2340,6 +2341,8 @@ export class CatalogCompositionRoot {
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
   private readonly wrapBaselines = new Map<string, number>();
+  /** ADR-310 Phase 8 — a virtual grid's `GridLayout` columns at its laid-out width (`rewrap`). */
+  private readonly virtualGrids = new Map<string, Record<string, string | string[]>>();
   /** Hears every `previewRecord` (the Canvas re-lays its scene out: siblings may move). */
   private readonly previewListeners = new Set<() => void>();
   /** Records a gesture previews (`previewRecord`): the record it replaced and the one shown. */
@@ -4363,7 +4366,14 @@ export class CatalogCompositionRoot {
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
   ): Readonly<Record<string, string | number | boolean>> | undefined {
-    const derived = this.ownDerivedOf(record, get);
+    const own = this.ownDerivedOf(record, get);
+    // (ADR-310 Phase 8 — a list's row display, on the record so a change of it re-lays the list
+    //  out: a virtual grid's columns are the `GridLayout`'s — `rewrap`.)
+    const source = this.runtime.graph.getEntry(record.sourceId as never);
+    const derived =
+      source?.kind === "node" && source.rowDisplay?.mode === "virtual"
+        ? { ...own, _rowDisplay: "virtual" }
+        : own;
     // (A Tree row box's written padding · gap — on the record, so an undo of the item's write
     //  compares against what the row had: `treeRowWrites`.)
     const treeRow = this.treeRowWrites(record, get);
@@ -5361,6 +5371,8 @@ export class CatalogCompositionRoot {
             }px`,
           }
         : {}),
+      // (A virtual grid's items are placed by the `GridLayout` — its spacing replaces the list's.)
+      ...this.virtualGrids.get(record.id),
     };
   }
   /**
@@ -6285,6 +6297,32 @@ export class CatalogCompositionRoot {
     for (const id of candidates) {
       const record = this.records.get(id);
       if (!record || record.hidden) continue;
+      // ADR-310 Phase 8 (사용자 결정 7) — a virtual-scrolled grid places its items as RAC's
+      // `GridLayout` does at its width: the columns follow the laid-out width, so its items' widths
+      // (laid out again here — their texts rewrap after, later in the scope).
+      if (
+        record.derivedProps?._rowDisplay === "virtual" ||
+        this.virtualGrids.has(id)
+      ) {
+        const rect = this.layout.getLayoutsForIds([id]).get(id);
+        const border = this.usedBorder(id);
+        const next =
+          rect && record.derivedProps?._rowDisplay === "virtual"
+          ? catalogVirtualGridStyle(
+              this.typeOf(record),
+              record.props,
+              rect.width - border.left - border.right,
+            )
+          : undefined;
+        if (JSON.stringify(next) === JSON.stringify(this.virtualGrids.get(id)))
+          continue;
+        this.keep(this.virtualGrids, id);
+        if (next === undefined) this.virtualGrids.delete(id);
+        else this.virtualGrids.set(id, next);
+        this.layout.updateNodeStyle(id, this.styleFor(record));
+        this.layout.computeLayout(this.viewport.width, this.viewport.height);
+        continue;
+      }
       // A calendar's day table: its cells follow its laid-out width (its month's), so its height.
       if (record.bindingId === "calendargrid") {
         const grid = calendarGridShape(record.derivedProps?._calendarGrid);

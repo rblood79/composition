@@ -3,8 +3,9 @@
  * made from the values the Canvas lays the list out with (breakpoint · 「Layout 옵션 표」 — §4.8):
  * the template rows' resolved size along the list's direction (fixed → `rowSize`, varying →
  * `estimatedRowSize`), the list's gap and padding, a section header's size, a Table's row and
- * header heights, a grid's cell size and gaps (사용자 결정 7 — RAC `GridLayout`). A list whose box
- * a `Layout` cannot place the same way is refused with the reason the panel shows. Pure.
+ * header heights. A grid's `GridLayout` options come from its type and props at the scroll width
+ * (`virtualGrid.ts` — 사용자 결정 7). A list whose box a `Layout` cannot place the same way is
+ * refused. Pure.
  */
 export interface CatalogVirtualSize {
   readonly width: number;
@@ -12,7 +13,7 @@ export interface CatalogVirtualSize {
 }
 
 export interface CatalogVirtualInput {
-  readonly kind: "list" | "grid" | "table";
+  readonly kind: "list" | "table";
   readonly orientation?: "vertical" | "horizontal";
   readonly rowGap: number;
   readonly columnGap: number;
@@ -22,12 +23,10 @@ export interface CatalogVirtualInput {
     readonly bottom: number;
     readonly left: number;
   };
-  /** The drawn rows (a Table's body rows, a grid's cells) in order. */
+  /** The drawn rows (a Table's body rows) in order. */
   readonly rows: readonly CatalogVirtualSize[];
   /** Section headers · a Table's header row. */
   readonly headings?: readonly CatalogVirtualSize[];
-  /** A grid's column count (its track count), if the layout fixes it. */
-  readonly columns?: number;
 }
 
 export type CatalogVirtualLayout =
@@ -44,13 +43,10 @@ export type CatalogVirtualLayout =
       };
     }
   | {
+      /** The options follow the scroll width (`catalogVirtualGridOptions`). */
       readonly kind: "grid";
-      readonly options: {
-        readonly minItemSize: CatalogVirtualSize;
-        readonly maxItemSize: CatalogVirtualSize;
-        readonly minSpace: CatalogVirtualSize;
-        readonly maxColumns?: number;
-      };
+      readonly type: string;
+      readonly props: Readonly<Record<string, unknown>>;
     }
   | {
       readonly kind: "table";
@@ -63,12 +59,10 @@ export type CatalogVirtualLayout =
 
 /** Why a list cannot be virtual-scrolled (the panel says it). */
 export type CatalogVirtualRefusal =
-  /** No row is drawn — nothing gives the row size. */
-  | "noRows"
   /** A `ListLayout`'s padding is one value: the list's four sides differ. */
   | "padding"
-  /** A grid's cells differ in size: `GridLayout` gives every cell one size. */
-  | "cellSize";
+  /** A waterfall is RAC's `WaterfallLayout` — not placed by the Canvas yet. */
+  | "waterfall";
 
 /** Sizes equal within half a pixel: fixed; else the average as an estimate. */
 function sizeOf(values: readonly number[]): { fixed?: number; estimate?: number } {
@@ -89,7 +83,6 @@ export function catalogVirtualLayout(
 ): CatalogVirtualLayout | { readonly refused: CatalogVirtualRefusal } {
   // (No laid-out row — the Preview · Publish root draws without the engine: a list · Table
   //  estimates and RAC measures each row as it shows it — its CSS size, the Canvas's.)
-  if (!input.rows.length && input.kind === "grid") return { refused: "noRows" };
   if (input.kind === "table") {
     const row = input.rows.length
       ? sizeOf(input.rows.map((rect) => rect.height))
@@ -101,22 +94,6 @@ export function catalogVirtualLayout(
         ...(row.fixed !== undefined ? { rowHeight: row.fixed } : {}),
         ...(row.estimate !== undefined ? { estimatedRowHeight: row.estimate } : {}),
         ...(heading !== undefined ? { headingHeight: heading } : {}),
-      },
-    };
-  }
-  if (input.kind === "grid") {
-    const width = sizeOf(input.rows.map((rect) => rect.width));
-    const height = sizeOf(input.rows.map((rect) => rect.height));
-    if (width.fixed === undefined || height.fixed === undefined)
-      return { refused: "cellSize" };
-    const cell = { width: width.fixed, height: height.fixed };
-    return {
-      kind: "grid",
-      options: {
-        minItemSize: cell,
-        maxItemSize: cell,
-        minSpace: { width: input.columnGap, height: input.rowGap },
-        ...(input.columns ? { maxColumns: input.columns } : {}),
       },
     };
   }

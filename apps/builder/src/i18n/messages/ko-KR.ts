@@ -1177,8 +1177,7 @@ const catalog: TranslationKeys = {
     rowDisplayVirtualBlocked: {
       height: "목록에 높이를 먼저 정하세요",
       padding: "네 변의 안쪽 여백을 같게 두세요",
-      cellSize: "카드 크기를 모두 같게 두세요",
-      noRows: "행이 있는 데이터를 먼저 연결하세요",
+      waterfall: "Waterfall 배치는 아직 가상 스크롤하지 않습니다",
     },
     legacyBinding:
       "legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.",
