@@ -88,3 +88,31 @@ export function requireField(
     input.error("role.missing", `${role} field is required`, role);
   return key;
 }
+
+/**
+ * ADR-306 Phase 4 — 숫자 목록 옵션 (`percentiles` · `edges` · `whiskers` · `movingAverages`). 패널 목록 칸의
+ * 글자 (「95」 · 「p95」) 도 받는다 — 앞의 `p` 는 떼고, 숫자로 읽히지 않는 항목은 버린다.
+ */
+export function numberList(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  const out: number[] = [];
+  for (const item of value) {
+    const text =
+      typeof item === "string" ? item.trim().replace(/^p/i, "") : item;
+    const n = typeof text === "number" ? text : toFiniteNumber(text);
+    if (n !== null && Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+
+/** 양수 숫자 옵션 — 숫자가 아니거나 범위 밖이면 기본값 (NaN 옵션 가드). */
+export function numberOption(
+  value: unknown,
+  fallback: number,
+  min = -Infinity,
+  max = Infinity,
+): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, value))
+    : fallback;
+}

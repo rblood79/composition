@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-306 Phase 4 — Chart 종류 8 (distribution · matrix family)] - 2026-11-16
+
+### Added
+
+- **Chart 종류 8 — Histogram · Box Plot · Beeswarm · Ridgeline · Heatmap · Calendar Heatmap · Candlestick · Parallel Coordinates** (ADR-306 Phase 4): 팔레트 Charts 가 30 항목. Histogram 은 원시 표본 또는 구간 행 (Bin Start · Bin End · Count) 의 분포 — 그룹 둘까지 같은 경계 · 분위 선 (Percentiles, 기본 p50 · p95) · 기준값 (Threshold) 을 넘는 구간 강조 · 모양 Bar · Dots · Step · 구간 경계 · 폭 · 수 · Log · 밀도 곡선. Box Plot 은 그룹별 사분위 · 수염 (Tukey 또는 백분위) · 이상값 (Box · Violin · Both). Beeswarm 은 값마다 점 하나 · 그룹 중앙값. Ridgeline 은 그룹별 밀도 곡선 (겹침 · 대역폭 · 중앙값 순). Heatmap 은 열 × 행 칸의 합을 4 단계 색으로 (범례 이름). Calendar Heatmap 은 하루하루를 주 단위 격자로 (주 시작 일 · 월, 칸 틈). Candlestick 은 시가 · 고가 · 저가 · 종가 · 거래량 · 이동평균 (봉이 많으면 이웃 봉을 합친다). Parallel Coordinates 는 값 필드마다 축 하나 · 행마다 선 하나 (작은 값이 위인 축). 분포 통계 · 칸 합계는 데이터 전체로 내고, 그리는 점 · 선 · 그룹만 줄인다.
+  - 위치: `packages/rendering/src/chart/families/` (`stats.ts` — ztd-charts 0.5.0 통계 이식, MIT · `samples.ts` · `distribution/` · `matrix/`) · `chart/{types,authoring}.ts` · `families/{registry,fields}.ts` · `families/category/common.ts` · `packages/shared/src/catalog/bindings/Chart.binding.ts` · `components/Chart.runtime.ts` · `apps/builder/.../paletteItems.ts`
+
+### Fixed
+
+- **Design 패널 Chart 의 Threshold 칸이 0 ~ 100 % 슬라이더였던 것**: Pareto 의 누적 % 와 Histogram 의 기준값이 같은 칸이라 범위 · 기본값을 두지 않는다 (Pareto 는 비면 80 %). Gauge 의 Min Value 도 기본값을 두지 않는다 (비면 0 — Candlestick 의 가격 축이 0 부터 그려지던 것). 위치: `packages/shared/src/catalog/bindings/Chart.binding.ts`.
+
+### Changed
+
+- **번들 상한 — Builder ≤ 1,425,172 B** (ADR-201 재승인, ADR-306 사용자 결정 2): Phase 4 실측 Builder +2,228 · Preview +1,123 B gzip (종류 목록 · binding · 팔레트). distribution · matrix 계산 · 표본은 별도 chunk (9,655 · 7,097 B). Preview 상한 무변경. 위치: `apps/builder/scripts/adr201-bundle-gate.mjs` · `.github/workflows/deploy.yml` · `CLAUDE.md`.
+
 ## [ADR-306 Phase 3 — Chart 종류 12 (category family)] - 2026-11-16
 
 ### Added

@@ -36,16 +36,21 @@ export interface CategoryContext {
   input: FamilyInput;
 }
 
-/** 프레임 + 입력 + 행 상한 (`rowCap` — 넘으면 앞 행만 + `budget.rowsTruncated`). */
+/**
+ * 프레임 + 입력 + 행 상한 (`rowCap` — 넘으면 앞 행만 + `budget.rowsTruncated`). `capRows: false` 는
+ * 원본 전체를 모델에 넣는다 — 분포 통계 · 칸 합계는 잘린 표본으로 내지 않고 (breakdown §4.2) 그리는
+ * 요소 수만 종류마다 줄인다 (ADR-306 Phase 4 — distribution · matrix family 도 이 공용 조각을 쓴다).
+ */
 export function categoryContext(
   props: ChartProps,
   rows: readonly ChartRow[],
   size: ChartSize,
   metrics: ChartMetrics,
+  capRows = true,
 ): CategoryContext {
   const input = familyInput(props);
   let capped = rows;
-  if (rows.length > metrics.rowCap) {
+  if (capRows && rows.length > metrics.rowCap) {
     capped = rows.slice(0, metrics.rowCap);
     input.warning(
       "budget.rowsTruncated",

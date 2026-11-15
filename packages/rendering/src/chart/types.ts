@@ -251,7 +251,10 @@ export type ChartDiagnosticCode =
   | "valueRange.invalid"
   | "bands.invalid"
   | "rangeFields.invalid"
-  | "chartFamily.unavailable";
+  | "chartFamily.unavailable"
+  // ADR-306 Phase 4 — 그리는 그룹 수 상한 (histogram 2) · 그리지 않은 값 (경계 밖 · log 의 0 이하).
+  | "budget.groupsTruncated"
+  | "values.excluded";
 
 /**
  * 표시 설정 진단 (`resolveChartPresentation` 이 만든다). `error` 는 설정 오류 상태 —
@@ -438,6 +441,58 @@ export interface ChartProps {
   texture?: ChartTexture;
   /** 앞줄 ÷ 뒷줄 표시 (skyline, 기본 label). */
   frontRate?: ChartFrontRate;
+  // ── ADR-306 Phase 4 — distribution · matrix family (breakdown §2.2 #25 ~ #32).
+  //   `threshold` 는 histogram 에서 기준값 (그 값을 넘는 구간이 강조), `sort` 는 ridgeline 에서 중앙값 순.
+  /** 사전 집계 행의 구간 시작 필드 (histogram — `countField` 와 같이). */
+  binStartField?: string;
+  /** 사전 집계 행의 구간 끝 필드 (histogram). */
+  binEndField?: string;
+  /** 사전 집계 행의 개수 필드 (histogram — 있으면 원시 표본 대신 이 행들을 구간으로 읽는다). */
+  countField?: string;
+  /** 분위 선 (histogram, 기본 [50, 95]) — 0 ~ 100 숫자 또는 「p95」. 패널 목록 칸의 글자도 받는다. */
+  percentiles?: readonly (number | string)[];
+  /** 구간 경계 직접 지정 (histogram — 작은 것부터 둘 이상). */
+  edges?: readonly (number | string)[];
+  /** 구간 폭 (histogram — 경계는 폭의 배수, log 면 쓰지 않는다). */
+  binWidth?: number;
+  /** 대략의 구간 수 (histogram — 폭은 1 · 2 · 2.5 · 5 × 10ⁿ). */
+  bins?: number;
+  /** 로그 구간 · 로그 축 (histogram — 0 이하 값은 빼고 진단). */
+  log?: boolean;
+  /** 밀도 곡선 (histogram 원시 표본만). */
+  kde?: boolean;
+  /** 이상값 점 (box, 기본 true). */
+  outliers?: boolean;
+  /** 수염 끝 백분위 [낮은 쪽, 높은 쪽] (box — 없으면 사분위 범위 1.5 배, Tukey). */
+  whiskers?: readonly (number | string)[];
+  /** 점 · 선의 이름 필드 (beeswarm · parallel). */
+  labelField?: string;
+  /** 점 반지름 px (beeswarm — 없으면 개수에 맞춘다). */
+  dotRadius?: number;
+  /** 그룹 중앙값 표시 (beeswarm, 기본 true). */
+  showMedian?: boolean;
+  /** 곡선이 위로 겹치는 정도 (ridgeline, 기본 1.5 · 0.5 ~ 4). */
+  overlap?: number;
+  /** 밀도 추정 대역폭 (ridgeline — 없으면 Silverman). */
+  bandwidth?: number;
+  /** 행 범주 필드 (heatmap — 열은 `dimension`). */
+  rowField?: string;
+  /** 색 범례 양 끝 이름 2 (heatmap — 없으면 Low · High). */
+  legendLabels?: readonly string[];
+  /** 주 시작 요일 (calendar — 0 일요일 · 1 월요일, 기본 0). */
+  weekStart?: number;
+  /** 칸 사이 틈 px (calendar, 기본 2.5). */
+  cellGap?: number;
+  /** 시가 · 고가 · 저가 · 종가 · 거래량 필드 (candlestick — 종가 필수). */
+  openField?: string;
+  highField?: string;
+  lowField?: string;
+  closeField?: string;
+  volumeField?: string;
+  /** 종가 이동평균 기간 (candlestick — 2 이상 · 봉 수 미만 · 앞의 3 개). */
+  movingAverages?: readonly (number | string)[];
+  /** 작은 값이 위인 축 (parallel — `valueFields` 중). */
+  invertFields?: readonly string[];
 }
 
 export type ChartRateBase = "previous" | "first";
@@ -457,7 +512,14 @@ export type ChartShape =
   // sparkline
   | "line"
   | "area"
-  | "bar";
+  | "bar"
+  // histogram (bar 와 함께)
+  | "dots"
+  | "step"
+  // box
+  | "box"
+  | "violin"
+  | "both";
 export type ChartSort = "none" | "ascending" | "descending";
 
 /** ADR-217 — RSC `ReferenceLineOptions` 의 채택 부분집합 (`value` · `label` · `lineType` · `layer`). */

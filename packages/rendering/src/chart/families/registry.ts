@@ -23,6 +23,9 @@ type Loader = () => Promise<ChartFamily>;
 const LOADERS: Partial<Record<ChartFamilyId, Loader>> = {
   kpi: () => import("./kpi").then((module) => module.kpiFamily),
   category: () => import("./category").then((module) => module.categoryFamily),
+  distribution: () =>
+    import("./distribution").then((module) => module.distributionFamily),
+  matrix: () => import("./matrix").then((module) => module.matrixFamily),
 };
 
 const loaded = new Map<ChartFamilyId, ChartFamily>();

@@ -65,7 +65,7 @@ const BEFORE = [
 ];
 
 describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
-  it("kpi · category 역할 · 옵션 키 목록", () => {
+  it("kpi · category · distribution · matrix 역할 · 옵션 키 목록", () => {
     expect([...CHART_FAMILY_PROP_KEYS].sort()).toEqual(
       [
         "goalField",
@@ -102,6 +102,34 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
         "wall",
         "texture",
         "frontRate",
+        // Phase 4 — distribution · matrix family.
+        "binStartField",
+        "binEndField",
+        "countField",
+        "percentiles",
+        "edges",
+        "binWidth",
+        "bins",
+        "log",
+        "kde",
+        "outliers",
+        "whiskers",
+        "labelField",
+        "dotRadius",
+        "showMedian",
+        "overlap",
+        "bandwidth",
+        "rowField",
+        "legendLabels",
+        "weekStart",
+        "cellGap",
+        "openField",
+        "highField",
+        "lowField",
+        "closeField",
+        "volumeField",
+        "movingAverages",
+        "invertFields",
       ].sort(),
     );
   });
@@ -110,6 +138,20 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
     expect(Object.keys(chartBinding.props.accepts).sort()).toEqual(
       [...new Set([...BEFORE, ...CHART_FAMILY_PROP_KEYS])].sort(),
     );
+  });
+
+  it("chartType 선택지 = descriptor 의 종류 전부 (Phase 마다 빠지지 않게 — 판독 Phase 4)", () => {
+    const options = (chartBinding.props.accepts.chartType.options ?? []).map(
+      (o) => o.value,
+    );
+    expect([...options].sort()).toEqual(
+      [...new Set(CHART_DESCRIPTORS.map((d) => d.chartType))].sort(),
+    );
+  });
+
+  it("종류마다 뜻이 다른 공유 키는 binding 기본값이 없다 (정의 기본값은 모든 종류의 해석 props 에 들어간다)", () => {
+    for (const key of ["threshold", "valueMin"])
+      expect(chartBinding.props.accepts[key]?.default, key).toBeUndefined();
   });
 
   it("propPassthrough 가 같은 목록을 싣는다", () => {

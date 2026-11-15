@@ -94,7 +94,14 @@ describe("ADR-306 G2 — family registry", () => {
       "../registry.ts",
     ]) {
       const source = read(file);
-      for (const family of ["kpi", "category"]) {
+      for (const family of [
+        "kpi",
+        "category",
+        "distribution",
+        "matrix",
+        "stats",
+        "samples",
+      ]) {
         expect(source, file).not.toMatch(
           new RegExp(`from\\s+["'][^"']*families/${family}(/[^"']*)?["']`),
         );
@@ -106,5 +113,7 @@ describe("ADR-306 G2 — family registry", () => {
     // registry 는 dynamic import 로만 닿는다.
     expect(read("../registry.ts")).toMatch(/import\("\.\/kpi"\)/);
     expect(read("../registry.ts")).toMatch(/import\("\.\/category"\)/);
+    expect(read("../registry.ts")).toMatch(/import\("\.\/distribution"\)/);
+    expect(read("../registry.ts")).toMatch(/import\("\.\/matrix"\)/);
   });
 });

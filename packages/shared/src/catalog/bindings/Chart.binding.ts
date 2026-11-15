@@ -17,6 +17,8 @@ const readingIs = (prop: Parameters<typeof chartTypesReading>[0]) => ({
 const GAUGE = { key: "chartType", equals: "gauge" };
 const SEGMENTED = { key: "chartType", equals: "segmented" };
 const SPARKLINE = { key: "chartType", equals: "sparkline" };
+const HISTOGRAM = { key: "chartType", equals: "histogram" };
+const BOX = { key: "chartType", equals: "box" };
 
 /**
  * Chart — 데이터 시각화 leaf (ADR-194).
@@ -88,6 +90,15 @@ export const chartBinding: PrimitiveBinding = {
           { value: "bump", label: "Bump" },
           { value: "slope", label: "Slope" },
           { value: "skyline", label: "Skyline" },
+          // ADR-306 distribution · matrix family (Phase 4).
+          { value: "histogram", label: "Histogram" },
+          { value: "box", label: "Box Plot" },
+          { value: "beeswarm", label: "Beeswarm" },
+          { value: "ridgeline", label: "Ridgeline" },
+          { value: "heatmap", label: "Heatmap" },
+          { value: "calendar", label: "Calendar Heatmap" },
+          { value: "candlestick", label: "Candlestick" },
+          { value: "parallel", label: "Parallel Coordinates" },
         ],
       },
       dimension: {
@@ -162,11 +173,12 @@ export const chartBinding: PrimitiveBinding = {
         section: "collection",
         visibleWhen: readingIs("endField"),
       },
+      // 기본값을 두지 않는다 — gauge 는 비면 0 (`kpi.ts`), candlestick 은 비면 자동 범위다. 0 을 기본값으로
+      //   적으면 Library 표본 · 패널이 candlestick 가격 축을 0 부터 그린다 (ADR-306 Phase 4 live).
       valueMin: {
         kind: "number",
         label: "Min Value",
         section: "appearance",
-        default: 0,
         visibleWhen: readingIs("valueMin"),
       },
       valueMax: {
@@ -196,7 +208,19 @@ export const chartBinding: PrimitiveBinding = {
           { value: "thin", label: "Thin", visibleWhen: SEGMENTED },
           { value: "area", label: "Area", visibleWhen: SPARKLINE },
           { value: "line", label: "Line", visibleWhen: SPARKLINE },
-          { value: "bar", label: "Bar", visibleWhen: SPARKLINE },
+          {
+            value: "bar",
+            label: "Bar",
+            visibleWhen: {
+              key: "chartType",
+              oneOf: ["sparkline", "histogram"],
+            },
+          },
+          { value: "dots", label: "Dots", visibleWhen: HISTOGRAM },
+          { value: "step", label: "Step", visibleWhen: HISTOGRAM },
+          { value: "box", label: "Box", visibleWhen: BOX },
+          { value: "violin", label: "Violin", visibleWhen: BOX },
+          { value: "both", label: "Box + Violin", visibleWhen: BOX },
         ],
         visibleWhen: readingIs("shape"),
       },
@@ -295,15 +319,13 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         visibleWhen: readingIs("rateLabel"),
       },
+      // pareto 의 누적 기준 % 와 histogram 의 기준값이 같은 키다 — 값 범위가 종류마다 달라 슬라이더 범위를
+      //   두지 않고, 기본값도 두지 않는다 (정의 기본값은 모든 종류의 해석 props 에 들어가 histogram 이 늘
+      //   80 을 기준으로 칠한다 — pareto 는 비면 80, `paretoModel`).
       threshold: {
         kind: "number",
         label: "Threshold",
         section: "appearance",
-        default: 80,
-        min: 0,
-        max: 100,
-        step: 1,
-        unit: "%",
         visibleWhen: readingIs("threshold"),
       },
       rankLabels: {
@@ -405,6 +427,188 @@ export const chartBinding: PrimitiveBinding = {
           { value: "none", label: "None" },
         ],
         visibleWhen: readingIs("frontRate"),
+      },
+      // ── ADR-306 Phase 4 — distribution · matrix family 의 역할 · 옵션 ──
+      binStartField: {
+        kind: "string",
+        label: "Bin Start",
+        section: "collection",
+        visibleWhen: readingIs("binStartField"),
+      },
+      binEndField: {
+        kind: "string",
+        label: "Bin End",
+        section: "collection",
+        visibleWhen: readingIs("binEndField"),
+      },
+      countField: {
+        kind: "string",
+        label: "Count",
+        section: "collection",
+        visibleWhen: readingIs("countField"),
+      },
+      labelField: {
+        kind: "string",
+        label: "Label",
+        section: "collection",
+        visibleWhen: readingIs("labelField"),
+      },
+      rowField: {
+        kind: "string",
+        label: "Row",
+        section: "collection",
+        visibleWhen: readingIs("rowField"),
+      },
+      openField: {
+        kind: "string",
+        label: "Open",
+        section: "collection",
+        visibleWhen: readingIs("openField"),
+      },
+      highField: {
+        kind: "string",
+        label: "High",
+        section: "collection",
+        visibleWhen: readingIs("highField"),
+      },
+      lowField: {
+        kind: "string",
+        label: "Low",
+        section: "collection",
+        visibleWhen: readingIs("lowField"),
+      },
+      closeField: {
+        kind: "string",
+        label: "Close",
+        section: "collection",
+        visibleWhen: readingIs("closeField"),
+      },
+      volumeField: {
+        kind: "string",
+        label: "Volume",
+        section: "collection",
+        visibleWhen: readingIs("volumeField"),
+      },
+      invertFields: {
+        kind: "string-array",
+        label: "Inverted Axes",
+        section: "collection",
+        visibleWhen: readingIs("invertFields"),
+      },
+      percentiles: {
+        kind: "string-array",
+        label: "Percentiles",
+        section: "appearance",
+        visibleWhen: readingIs("percentiles"),
+      },
+      edges: {
+        kind: "string-array",
+        label: "Bin Edges",
+        section: "appearance",
+        visibleWhen: readingIs("edges"),
+      },
+      binWidth: {
+        kind: "number",
+        label: "Bin Width",
+        section: "appearance",
+        visibleWhen: readingIs("binWidth"),
+      },
+      // 비우면 자동 (Freedman-Diaconis · Sturges) — 슬라이더는 빈 값을 최솟값으로 보여 숫자 칸으로 둔다.
+      bins: {
+        kind: "number",
+        label: "Bins",
+        section: "appearance",
+        visibleWhen: readingIs("bins"),
+      },
+      log: {
+        kind: "boolean",
+        label: "Log Scale",
+        section: "appearance",
+        default: false,
+        visibleWhen: readingIs("log"),
+      },
+      kde: {
+        kind: "boolean",
+        label: "Density Curve",
+        section: "appearance",
+        default: false,
+        visibleWhen: readingIs("kde"),
+      },
+      outliers: {
+        kind: "boolean",
+        label: "Outliers",
+        section: "appearance",
+        default: true,
+        visibleWhen: readingIs("outliers"),
+      },
+      whiskers: {
+        kind: "string-array",
+        label: "Whisker Percentiles",
+        section: "appearance",
+        visibleWhen: readingIs("whiskers"),
+      },
+      // 비우면 점 개수에 맞춘다 — bins 와 같은 이유로 숫자 칸.
+      dotRadius: {
+        kind: "number",
+        label: "Dot Radius",
+        section: "appearance",
+        visibleWhen: readingIs("dotRadius"),
+      },
+      showMedian: {
+        kind: "boolean",
+        label: "Show Median",
+        section: "appearance",
+        default: true,
+        visibleWhen: readingIs("showMedian"),
+      },
+      overlap: {
+        kind: "number",
+        label: "Overlap",
+        section: "appearance",
+        default: 1.5,
+        min: 0.5,
+        max: 4,
+        step: 0.1,
+        visibleWhen: readingIs("overlap"),
+      },
+      bandwidth: {
+        kind: "number",
+        label: "Bandwidth",
+        section: "appearance",
+        visibleWhen: readingIs("bandwidth"),
+      },
+      legendLabels: {
+        kind: "string-array",
+        label: "Legend Labels",
+        section: "appearance",
+        visibleWhen: readingIs("legendLabels"),
+      },
+      // 0 = 일요일 · 1 = 월요일 (ztd `weekStart` 숫자 그대로 — enum options 는 글자 값만 받는다).
+      weekStart: {
+        kind: "number",
+        label: "Week Start",
+        section: "appearance",
+        default: 0,
+        min: 0,
+        max: 1,
+        step: 1,
+        visibleWhen: readingIs("weekStart"),
+      },
+      cellGap: {
+        kind: "number",
+        label: "Cell Gap",
+        section: "appearance",
+        default: 2.5,
+        min: 0,
+        max: 12,
+        step: 0.5,
+        visibleWhen: readingIs("cellGap"),
+      },
+      movingAverages: {
+        kind: "string-array",
+        label: "Moving Averages",
+        section: "appearance",
+        visibleWhen: readingIs("movingAverages"),
       },
       /**
        * ── ADR-210 — 다중 수치 컬럼·시리즈 표시·숫자 형식 ──

@@ -201,19 +201,23 @@ describe("ADR-208 G2 ① — 소비되는 prop 은 반드시 보인다", () => {
 });
 
 /**
- * ADR-306 Phase 3 — category family 12 종에도 같은 차등 오라클. family 는 표본 행 · 역할 이름으로
+ * ADR-306 Phase 3 · 4 — category 12 · distribution 4 · matrix 4 종에도 같은 차등 오라클. family 는 표본 행 · 역할 이름으로
  * (시리즈 표본은 그 종류의 역할을 채우지 못한다) 그리고, 패널이 보는 값도 같은 시작 props 다.
  */
-const CATEGORY_TYPES = CHART_DESCRIPTORS.filter(
-  (d) => d.family === "category",
+const FAMILY_TYPES = CHART_DESCRIPTORS.filter(
+  (d) =>
+    d.family === "category" ||
+    d.family === "distribution" ||
+    d.family === "matrix",
 ).map((d) => d.chartType as FamilyChartType);
 const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
   orientation: ["vertical"],
   sort: ["none", "ascending"],
-  shape: ["thin", "line", "bar"],
+  shape: ["thin", "line", "bar", "dots", "violin"],
   cells: [50],
   columns: [5],
-  valueMax: [500],
+  // gauge (0 ~ 100) 와 candlestick (가격 6 만 대) 의 범위가 달라 후보를 둘 둔다.
+  valueMax: [500, 200000],
   showTotal: [false],
   centerLabel: ["Center"],
   showRates: [false],
@@ -235,13 +239,37 @@ const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
   frontRate: ["strip", "none"],
   showValueLabels: [false],
   showLegend: [false],
+  // Phase 4 — distribution · matrix.
+  percentiles: [[50]],
+  edges: [[0, 500, 1000, 2000]],
+  binWidth: [100],
+  bins: [5],
+  log: [true],
+  kde: [true],
+  outliers: [false],
+  whiskers: [[5, 95]],
+  dotRadius: [2],
+  showMedian: [false],
+  overlap: [3],
+  bandwidth: [5],
+  legendLabels: [["Few", "Many"]],
+  weekStart: [1],
+  cellGap: [6],
+  movingAverages: [[10]],
+  invertFields: [[]],
 };
 
-describe("ADR-306 G2 ① — category family: 소비되는 prop 은 보이고, 보이는 조건 prop 은 읽힌다", () => {
-  let family: Awaited<ReturnType<typeof loadChartFamily>>;
+describe("ADR-306 G2 ① — category · distribution · matrix family: 소비되는 prop 은 보이고, 보이는 조건 prop 은 읽힌다", () => {
+  const families = new Map<
+    string,
+    Awaited<ReturnType<typeof loadChartFamily>>
+  >();
   beforeAll(async () => {
-    family = await loadChartFamily("category");
+    for (const id of ["category", "distribution", "matrix"] as const)
+      families.set(id, await loadChartFamily(id));
   });
+  const familyOf = (chartType: FamilyChartType) =>
+    families.get(getChartDescriptor(chartType).family!)!;
   const startOf = (chartType: FamilyChartType): ChartProps => {
     const props: Record<string, unknown> = { chartType };
     for (const [key, contract] of Object.entries(acceptsContracts()))
@@ -250,7 +278,7 @@ describe("ADR-306 G2 ① — category family: 소비되는 prop 은 보이고, �
     return {
       ...props,
       ...getChartDescriptor(chartType).defaults,
-      ...family.sampleProps(chartType),
+      ...familyOf(chartType).sampleProps(chartType),
       chartType,
       showGrid: true,
     } as ChartProps;
@@ -258,7 +286,7 @@ describe("ADR-306 G2 ① — category family: 소비되는 prop 은 보이고, �
   // waterfall 표본은 첫 행이 이미 `kind: total` 이라 `startTotal` 이 갈리지 않는다 — 그 축을 보도록
   //   첫 행의 kind 를 비운다 (startTotal 은 kind 가 없는 첫 행만 합계로 만든다).
   const rowsOf = (chartType: FamilyChartType) =>
-    family
+    familyOf(chartType)
       .sample(chartType)
       .map((row, i) =>
         chartType === "waterfall" && i === 0 ? { ...row, kind: null } : row,
@@ -292,7 +320,7 @@ describe("ADR-306 G2 ① — category family: 소비되는 prop 은 보이고, �
         .map(([key]) => key),
     );
   };
-  for (const chartType of CATEGORY_TYPES) {
+  for (const chartType of FAMILY_TYPES) {
     it(`${chartType}`, () => {
       const used = consumed(chartType);
       const shown = visible(chartType);
