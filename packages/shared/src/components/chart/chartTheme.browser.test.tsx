@@ -69,7 +69,7 @@ for (const theme of ["light", "dark"] as const)
         document.body.append(host);
         root = createRoot(host);
         root.render(
-          <Chart {...props} size="M" isAnimationActive={false} style={size} />,
+          <Chart {...props} isAnimationActive={false} style={size} />,
         );
         await vi.waitFor(() =>
           expect(host.querySelector(".recharts-surface")).toBeTruthy(),

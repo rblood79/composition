@@ -42,7 +42,6 @@ function mount(extra: Partial<ChartProps> & { data?: unknown } = {}) {
   root.render(
     <Chart
       {...createChartInitialProps("scatter")}
-      size="M"
       data={rows}
       dimension="x"
       metric="y"
@@ -108,10 +107,7 @@ describe("ADR-217 P5 — DOM leg 산점도", () => {
         ).toBe(2),
       { timeout: 5000 },
     );
-    const metrics = resolveChartMetrics(
-      resolveComponentRule("Chart")?.chart,
-      "md",
-    );
+    const metrics = resolveChartMetrics(resolveComponentRule("Chart")?.chart);
     const scene = computeChartScene(sceneProps(), rows, SIZE, metrics);
     const sceneD = scene.marks
       .filter(

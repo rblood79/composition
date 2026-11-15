@@ -309,7 +309,7 @@ describe("ADR-210 P3 · T10 — columns + 시리즈 설정 + 통화의 DOM/scene
       host = document.createElement("div");
       document.body.append(host);
       root = createRoot(host);
-      root.render(<Chart {...props} data={wide} size="M" style={size} />);
+      root.render(<Chart {...props} data={wide} style={size} />);
       await vi.waitFor(() =>
         expect(
           host.querySelectorAll(".recharts-bar-rectangle path").length,
@@ -370,12 +370,7 @@ describe("ADR-210 P3 · T11 — UI 언어 ≠ 값 locale · 키보드 tooltip ·
       document.body.append(host);
       root = createRoot(host);
       root.render(
-        <Chart
-          {...props}
-          data={rows}
-          size="M"
-          style={{ width: 480, height: 300 }}
-        />,
+        <Chart {...props} data={rows} style={{ width: 480, height: 300 }} />,
       );
       await vi.waitFor(() =>
         expect(
@@ -451,12 +446,7 @@ describe("ADR-210 P3 · T11 — UI 언어 ≠ 값 locale · 키보드 tooltip ·
     document.body.append(host);
     root = createRoot(host);
     root.render(
-      <Chart
-        {...props}
-        data={rows}
-        size="M"
-        style={{ width: 320, height: 240 }}
-      />,
+      <Chart {...props} data={rows} style={{ width: 320, height: 240 }} />,
     );
     await vi.waitFor(() =>
       expect(host.querySelector('[role="status"]')?.textContent).toBe(

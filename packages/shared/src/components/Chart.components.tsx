@@ -1,6 +1,6 @@
 /** ADR-209: 공통 collection rows를 소비하는 lazy Recharts runtime 컨테이너.
  * Builder의 Canvas scene은 유지하며, Preview/Publish는 같은 adapter를 사용한다.
- * CSS base class와 size/variant 토큰은 이 경계에서 유지한다.
+ * CSS base class와 variant 토큰은 이 경계에서 유지한다 (공개 size 축은 ADR-306 에서 삭제).
  */
 
 import type { ChartProps as SpecChartProps } from "@composition/rendering";
@@ -79,7 +79,6 @@ export function Chart({
   referenceLines,
   palette,
   variant = "default",
-  size = "M",
   data,
   dataBinding,
   style,
@@ -89,7 +88,6 @@ export function Chart({
 }: ChartProps): React.ReactElement {
   const ref = React.useRef<HTMLDivElement>(null);
   const rule = resolveComponentRule("Chart");
-  const sizeKey = String(size).toUpperCase();
   const box = useBoxSize(ref);
 
   const chartSize = React.useMemo(
@@ -215,22 +213,14 @@ export function Chart({
     style ?? {};
   const metrics = React.useMemo(
     () =>
-      resolveChartMetrics(rule?.chart, sizeKey, {
+      resolveChartMetrics(rule?.chart, {
         padding,
         paddingTop,
         paddingRight,
         paddingBottom,
         paddingLeft,
       }),
-    [
-      rule,
-      sizeKey,
-      padding,
-      paddingTop,
-      paddingRight,
-      paddingBottom,
-      paddingLeft,
-    ],
+    [rule, padding, paddingTop, paddingRight, paddingBottom, paddingLeft],
   );
 
   const {
@@ -263,7 +253,6 @@ export function Chart({
       }
       data-variant={variant}
       data-palette={palette && palette !== "categorical" ? palette : undefined}
-      data-size={size}
       data-chart-status={status}
       data-chart-row-count={rows.length}
       style={{ position: "relative", ...style }}

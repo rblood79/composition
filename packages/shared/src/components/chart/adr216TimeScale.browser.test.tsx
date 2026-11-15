@@ -41,7 +41,6 @@ function mount(extra: Partial<ChartProps> = {}) {
   root.render(
     <Chart
       {...createChartInitialProps("line")}
-      size="M"
       data={rows}
       dimension="date"
       metric="value"
@@ -90,10 +89,7 @@ describe("ADR-216 P3 — DOM leg 시간 스케일 parity", () => {
   it("line 꼭짓점 x = scene x (±0.5px) · 2단 라벨 문자열/좌표 = scene axes[0].ticks", async () => {
     mount();
     await wait();
-    const metrics = resolveChartMetrics(
-      resolveComponentRule("Chart")?.chart,
-      "md",
-    );
+    const metrics = resolveChartMetrics(resolveComponentRule("Chart")?.chart);
     const scene = computeChartScene(sceneProps(), rows, SIZE, metrics);
     const scenePath = scene.marks.find(
       (m): m is PathMark => m.kind === "path" && m.strokeSeries !== undefined,
@@ -128,10 +124,7 @@ describe("ADR-216 P3 — DOM leg 시간 스케일 parity", () => {
   it("dimensionLabelFormat → 1단 라벨 (scene 동일) · category 미설정은 슬롯 등간격 그대로", async () => {
     mount({ dimensionLabelFormat: "%m/%d" });
     await wait();
-    const metrics = resolveChartMetrics(
-      resolveComponentRule("Chart")?.chart,
-      "md",
-    );
+    const metrics = resolveChartMetrics(resolveComponentRule("Chart")?.chart);
     const scene = computeChartScene(
       sceneProps({ dimensionLabelFormat: "%m/%d" }),
       rows,

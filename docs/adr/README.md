@@ -1,5 +1,7 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
+> **2026-11-15 ADR-306 Accepted · In Progress — Phase 0 · 1 닫힘** (사용자 `/execute-adr 306` — 설계 판독 round 4 승인). Phase 0: ztd 0.5.0 36 항목 · 채널 · 옵션 분류 census + `codex:chart-contract` (preflight 연결) · 기준선 Builder 1,545,850 · Preview 152,370 B (Builder 는 착수 전부터 상한 1,414,000 초과 — 이 ADR 밖, 사용자 보고) · 선행 실패 3 원인 · scatter 키보드 없음. Phase 1: Chart 공개 `size` · `data-size` 삭제 + **contract 68** (67 이하 문서는 열리지 않음 — Breaking) · Chart browser 382/382 · Δ Builder −197 · Preview −18 B · live (Chrome MCP — 삽입 · 리사이즈 · Preview · Publish · 재열기). 다음: Phase 2 (기반 + kpi family). [본문](306-chart-36-types-recharts-size-removal.md) · [breakdown §10](design/306-chart-36-types-recharts-size-removal-breakdown.md#10-기록).
+
 > **이 파일은 "지금 열려 있는 것" 중심 대시보드다.** 완료 ADR 의 상세는 각 `completed/NNN-*.md`
 > 본문이 정본이고, 사용자-가시 변경의 정본은 [CHANGELOG](../CHANGELOG.md) 다.
 >
@@ -710,7 +712,7 @@
 
 #### [306](306-chart-36-types-recharts-size-removal.md) — Recharts를 유지하는 Chart 36종 확장과 공개 size 제거
 
-- **상태**: Proposed 2026-11-10 (같은 날 설계 재작성). 사용자 방향 3건 확정 (Recharts 유지 · 공개 size 제거 · ztd 36종) · 사용자 결정 2 확정. 설계 판독 round 2 종결 (HIGH 0 · pending 0 — [reviews/306](reviews/306.md)). 구현 전.
+- **상태**: Accepted · In Progress 2026-11-15 — Phase 0 · 1 닫힘 (분류 census · chart-contract 게이트 · 기준선 / 공개 size 삭제 · contract 68). 사용자 방향 3건 · 결정 2 확정, 설계 판독 round 4 종결 ([reviews/306](reviews/306.md)). 다음 Phase 2 (기반 + kpi).
 - **규모**: 새 chartType 27 (family 5) + 기존 9 항목 보강 · `ChartFamily` 계약과 등록 · Canvas/DOM 지연 로드 · Recharts scene host · paint 역할 · size 삭제 (문서 변환 없음). Phase 0–6, G0–G5. 사용자 결정 2 확정 (공통 상호작용 포함 · 번들 상한 재승인). breakdown: [design/306](design/306-chart-36-types-recharts-size-removal-breakdown.md)
 
 #### [304](304-app-frame-layout-presets.md) — Spectrum App frame 을 Navigator Layouts 로 — App frame preset 묶음 · 콘텐츠 영역 preset 의 중첩 적용 · 좁은 폭 접힘 · 랜드마크
@@ -747,7 +749,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                                                                                                             |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [306](306-chart-36-types-recharts-size-removal.md)                                             | Proposed 2026-11-10 · 방향 확정 · 설계 판독 종결 (round 2)                        | `/execute-adr 306` · Phase 1 에서 contract 65 (64 문서 전부 거부 — 64 는 ADR-308) · G0 기준선                                                                                           |
+|  1   | [306](306-chart-36-types-recharts-size-removal.md)                                             | Accepted · In Progress 2026-11-15 · Phase 0 · 1 닫힘 (contract 68)                | `/execute-adr 306` 계속 · Phase 2 (기반 · kpi family · paint 역할 · DOM host · 번들 Δ 실측)                                                                                             |
 |  2   | [304](304-app-frame-layout-presets.md)                                                         | Proposed 2026-11-08 · 리뷰 전 · 문서 스키마 · 명령 신설 0                         | 리뷰 (`/review-adr 304`) pending 0 뒤 · 사용자 결정 6 (흡수 · 사이드 폭 · 랜드마크 · 콘텐츠 집합 · 번들 · tablet 판정) · 번들 여유 G0 재측정 (Builder ≈ 1.5 KB · Preview ≈ 1.9 KB 추정) |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                          |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                  |

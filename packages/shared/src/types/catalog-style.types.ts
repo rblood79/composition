@@ -410,14 +410,14 @@ export interface ComponentRuleChart {
   /** line/area 선 두께 (px) */
   strokeWidth?: number;
   /**
-   * size 별 기하 metric — **TokenRef 가 아니라 해소된 px**.
+   * 기하 metric 한 벌 (ADR-306 — 공개 size 축 삭제) — **TokenRef 가 아니라 해소된 px**.
    *
    * `sizes[*].fontSize` 는 `{typography.text-sm}` 같은 TokenRef 라 DOM 은 CSS 가 풀고
    * Skia 는 런타임이 푼다. 그런데 기하는 축 여백과 레이블 솎아내기 판정에 **숫자 하나**
    * 를 써야 하고, 두 consumer 가 서로 다른 숫자를 쓰면 좌표가 갈린다. 그래서 기하가
    * 쓰는 값만 여기에 px 로 못 박고 두 consumer 가 그대로 읽는다.
    */
-  metrics?: Record<string, { padding: number; fontSize: number }>;
+  metrics?: { padding: number; fontSize: number };
   /**
    * hover 툴팁 표면 토큰 (Preview/Publish 전용 — Skia 는 툴팁을 그리지 않는다).
    * DOM 이 색을 직접 고르면 수동 CSS 가 SSOT 파생이 아니게 된다 (D3 위반) —

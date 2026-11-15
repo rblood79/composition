@@ -249,3 +249,27 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 | 연속 색 · pattern · 대체 데이터 표 · Worker · 새 `codex:chart` gate · pre-push 기구 · 성능 p95 수치 | 단계 토큰 · path 빗금. 나머지는 삭제                       | 요청에 없는 기능 · 근거 없는 수치 · 저장소에 없는 집행 수단                                                    |
 | 사용자 결정 1 = 구 S/L 외관 보존 방식                                                               | 사용자 결정 1 = 공통 상호작용 포함 여부 · 2 = 번들 상한    | 변환이 없으니 물을 것이 없다. 실제로 갈리는 것은 범위와 번들이다                                               |
 | Phase 0 ~ 7 · G0 ~ G6                                                                               | Phase 0 ~ 6 · G0 ~ G5                                      | 변환 Phase · 통합 전용 Phase 가 사라짐                                                                         |
+
+## 10. 기록
+
+### Phase 0 — 2026-11-15 (G0 닫힘)
+
+- **분류 census**: ztd 0.5.0 `3c4376c` 를 scratchpad 에 받아 실행하지 않고 원본 텍스트에서 key 만 옮겼다 (`chart/__tests__/ztdRegistry.pinned.ts` — 36 항목 · 공통 17 · 항목별 채널 · 옵션). 분류는 `ztdCoverage.fixture.ts` 가 따로 적는다 (`adopt` → Chart prop · `map` → 기존 prop · `exclude` 사유 · `decision` = 사용자 결정 1). `ztdCoverage.test.ts` 41 — 분류 누락 · 원본에 없는 분류 · 채널의 비채택 · family 수 (12 · 3 · 4 · 4 · 4) 를 막는다. 원복 RED: scatter `jitter` 분류 1 줄 삭제 → RED.
+- **§2 표에 없던 채택 (분류 때 정함)**: funnel `rateLabel` · heatmap `legendLabels` · 여러 종류의 `zero` → `includeZero` (dumbbell 의 이름으로 통일) · waffle `summaryLabel` → `centerLabel`. 제외로 정한 것: gauge `ticks` (상자 크기가 정함) · waffle `summaryNote` (ChartCard 류 문장) · scatter `hidden` · `jitter`. 공통 상호작용 (사용자 결정 1) 에 line · area 의 `bandFrom` · `outside` 와 sparkline `mark` 를 넣었다 (주석 · 강조와 같이 Phase 6).
+- **집행**: root `test:chart-contract` (`pnpm -F @composition/rendering exec vitest run src/chart`, 0.5 s) · `scripts/codex/chart-contract-gate.sh` · `codex:preflight` 사슬 (css-boundary 뒤).
+- **번들 기준선** (HEAD `ba5b7f5dc`, 같은 기계, `turbo build` + `adr209-bundle-closure.mjs`): Builder 1,545,850 · Preview 152,370 B gzip. Builder 는 상한 1,414,000 을 이미 넘는다 (ADR-308 CHANGELOG 의 「착수 전 HEAD 부터 1,522,678 — 원인 미조사」 와 같은 상태 · initial closure 에 `AIPanel` chunk). 사용자 결정 2 (종류 목록 · 등록 기구 몫의 상한 재승인) 는 이 초과분을 덮지 않는다 — Phase 2 의 Δ 판정은 before/after 차이로 하고 절대 상한 초과는 ADR-201 쪽 사용자 결정으로 보고한다.
+- **선행 실패 3**: chart · chart-a11y project 의 `data-size="lg"` 기대 2 (같은 테스트 · 두 project) · bar `animation=true` 재전송 동일성 1 — Recharts 3.10.1 은 진입 animation 의 마지막 프레임을 보간 float 로 남기고 같은 rows 재전송 뒤 정적 path 는 반올림 값을 낸다 (최대 ≈3e-5 px, 보이지 않음). 원인이 테스트 oracle 의 문자열 비교라 Phase 1 에서 0.01 px 반올림 비교로 고쳤다 (animation 재시작은 px 단위로 움직여 여전히 잡힌다).
+- **scatter 키보드**: 없다 — `RechartsChart.tsx` 의 scatter 는 hit 층의 `onPointerMove` 로만 tooltip 을 연다 (Recharts `accessibilityLayer` 는 container 에 있지만 scatter 에는 Recharts 그래픽 항목 · Tooltip 이 없다). §5.2 대로 Phase 2 host 의 `targets` 일반화 때 같이 얻는다.
+- **`visibleWhen`**: `VisibilityCondition.oneOf` 로 chartType 목록 조건을 이미 쓴다 (`Chart.binding.ts` 여러 곳). 그러나 `PropContract.options` 는 정적이라 `shape` 의 chartType 별 값 집합은 한 prop 으로 표현되지 않는다 — Phase 2 에서 (a) chartType 별 옵션 조건을 `PropContract` 에 더하거나 (b) 합집합 options + 검증으로 판단한다 (통상 구현 판단).
+
+### Phase 1 — 2026-11-15 (G1 닫힘)
+
+- **삭제**: §6 표 전부 + 원본 생성 경로 — 머리말이 적은 `phase3ReusableOriginTemplates.test.ts` 생성기는 이미 없어 typed 원본 `"size": "M"` 한 줄을 직접 지웠다 (머리말은 낡음). `resolveChartMetrics(channel, sizeKey, style)` → `(channel, style)`, `ChartRuleChannel.metrics` · `ComponentRuleChart.metrics` 는 `{ padding, fontSize }` 한 벌. rule `Chart.sizes` 는 M 하나 (생성 CSS 는 기본 size 블록을 루트에 내고 `[data-size]` 블록 0).
+- **contract 68**: ADR-310 Phase 2 가 67 을 먼저 썼다. 테스트의 contract 숫자 고정값 34 파일을 68 로 (310 과 같은 방식).
+- **회귀 수리 2**: `componentRulesTable.static.test.ts` 의 Chart 글자 리터럴 분류 (`chart.metrics.S/M/L` → `chart.metrics` 11) · `chartBudgetSize.test.tsx` (예산 컨트롤이 size 를 받는다 → 받지 않는다).
+- **G1 테스트**: `packages/shared/src/catalog/document/__tests__/adr306ChartSize.test.ts` 11 — contract 68 · 원본에 size 0 · 67 문서 `UNSUPPORTED_LIBRARY_CONTRACT` · 68 문서의 Chart `size` `PROP_NOT_ACCEPTED` · binding · rule · 생성 CSS · DOM 소스에 size 축 0 · 기존 7종 scene = 옛 M metrics (padding 12 · 글자 11, 손으로 적은 값) 의 scene. 원복 RED: binding 에 `size` 를 되돌리면 2 RED.
+- **검사**: type-check PASS · `codex:preflight` PASS (chart-contract 514) · rendering `src/chart` 514 · Chart browser chart + chart-a11y 382/382 · shared · rendering · builder unit 의 남은 실패는 Chart 무관 선행 (Tab · TabPanel 원본 · archetype · border 리터럴 · icon registry — 실패 본문에 Chart · size · contract 언급 0, HEAD 단독 재실행 대조는 하지 않음) · `docs:stale-symbols` 0.
+- **번들 Δ** (같은 기계, 기준선 대비): Builder −197 · Preview −18 B (G1 Δ ≤ 0).
+- **세로 flex 비율 (F9)**: 2026-11-13 `69d125406` 의 회귀 (`authoredAspectRatio.test.tsx` · `phase4Layout.test.tsx`) 가 builder unit 에서 그대로 PASS — 이 Phase 는 상자 값을 바꾸지 않았다.
+- **live**: 본문 `### Live Exercise`.
+- **Breaking**: contract 67 이하 문서는 열리지 않는다 (사용자 Builder 의 기존 프로젝트 포함 — 열지 않았다).

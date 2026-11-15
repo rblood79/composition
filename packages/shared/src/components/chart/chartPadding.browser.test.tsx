@@ -116,7 +116,7 @@ for (const kind of Object.keys(selectors) as Array<keyof typeof selectors>) {
             }),
           );
       }
-      root.render(<Chart {...props} size="M" style={{ ...size, ...style }} />);
+      root.render(<Chart {...props} style={{ ...size, ...style }} />);
       await vi.waitFor(() => {
         const paths = Array.from(
           host.querySelectorAll<SVGPathElement>(selectors[kind]),

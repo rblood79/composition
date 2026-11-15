@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-11-10 (같은 날 설계 재작성)
+Accepted · In Progress — 2026-11-15 (사용자 `/execute-adr 306` + 설계 판독 round 4 승인 — HIGH 0 · pending 0, [reviews/306](reviews/306.md)). Proposed 2026-11-10 (같은 날 설계 재작성).
+
+> **Phase 0 · 1 닫힘 (2026-11-15, HEAD `ba5b7f5dc` 위)**. Phase 0 (G0): ztd 0.5.0 36 항목 · 채널 · 옵션 분류 census (`chart/__tests__/ztdRegistry.pinned.ts` · `ztdCoverage.fixture.ts` · `ztdCoverage.test.ts` 41) · root `test:chart-contract` + `codex:chart-contract` 를 `codex:preflight` 에 연결 · 번들 기준선 (같은 기계, HEAD 빌드) Builder 1,545,850 · Preview 152,370 B gzip — **Builder 는 착수 전부터 상한 1,414,000 초과** (ADR-308 기록 1,522,678 부터, `AIPanel` chunk 가 initial closure 안 — 이 ADR 범위 밖, 사용자 보고) · 선행 실패 3 재현 (원인 — size 2: `data-size` 기대 · bar 1: Recharts animation 마지막 프레임 보간 float ↔ 정적 path 반올림 ≈3e-5 px) · scatter 키보드 없음 (pointer hover 만 — Phase 2 host 의 `targets` 로 얻는다) · `visibleWhen.oneOf` 는 chartType 목록 조건을 표현하지만 `accepts` 의 `options` 는 chartType 별로 갈리지 않는다 (Phase 2 의 `shape` 선택지 판단). Phase 1 (G1): 공개 `size` 삭제 + contract **68** (310 이 67 을 먼저 씀) — 원복 RED 2 · Chart browser 382/382 (선행 실패 3 → 0) · Δ Builder −197 · Preview −18 B · live (Chrome MCP, dev 5173 — 새 프로젝트: Area chart 삽입 390×219 → 리사이즈 320×180 · Design 패널 Size 칸 0 · Preview iframe 320×180 `data-size` 없음 padding 12 · Publish 렌더 ready · 재열기 유지 · console 오류 0). 상세: [breakdown §10](design/306-chart-36-types-recharts-size-removal-breakdown.md#10-기록).
 
 - 사용자 원문: 「Recharts는 유지하고 size는 제거하는 방향으로 ztd-charts 36종을 제공할 수 있도록 chart 확장 ADR 작성해」.
 - 확정 전제 3: Recharts 유지 · Chart 의 공개 S/M/L 제거 · ztd-charts 36종 제공. 구현 중 다시 묻지 않는다.
@@ -140,7 +142,7 @@ C 에 HIGH 가 없어 루프를 더 돌지 않는다. 「별도 ADR 로 나눌 �
 
 ### Live Exercise
 
-미실행 — 설계 단계.
+- 2026-11-15 Phase 1 (Chrome MCP, dev 5173, CPU throttle 미측정): 새 프로젝트에 Area chart 삽입 (390×219, 16:9) → 모서리 드래그 리사이즈 320×180 → Design 패널에 Size 칸 · `size` override 없음 → Preview iframe Chart 320×180 · `data-size` 없음 · padding 12 · `data-chart-status=ready` → Publish 새 탭 렌더 ready (`data-size` 없음 · aspect 16/9) → 새로고침 재열기 뒤 같은 상자 · console 오류 0. PASS. (Implemented 승격은 Phase 6 · G5 뒤.)
 
 ## Consequences
 

@@ -21,8 +21,8 @@ import type { PrimitiveBinding } from "../types";
  *   파일 1개(`packages/rendering/src/chart/marks/*`)이므로 평탄화가 확장을 막지 않는다.
  *   scatter/이중 축처럼 조합이 정말 필요해지면 reusable(조합) 경로로 승격 판정.
  *
- * **D3 = catalog rule**: `COMPONENT_RULES_TABLE.Chart` (variant default 하나 · sizes
- *   sm/md/lg · `chart` 채널의 시리즈 팔레트·축·grid·기하 metric). generate-css 가
+ * **D3 = catalog rule**: `COMPONENT_RULES_TABLE.Chart` (variant default 하나 · size 축 없음 —
+ *   ADR-306, 상자 크기는 Layout · `chart` 채널의 시리즈 팔레트·축·grid·기하 metric). generate-css 가
  *   `.react-aria-Chart { --chart-series-N; --chart-axis; --chart-grid }` 를 emit 하고
  *   Skia 는 같은 rule 을 읽는다 — scene 에는 색 인덱스만 실린다.
  *
@@ -613,12 +613,6 @@ export const chartBinding: PrimitiveBinding = {
         ),
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-      },
     },
     toRacProps: "default",
     propPassthrough: [
@@ -668,7 +662,6 @@ export const chartBinding: PrimitiveBinding = {
       "animationDuration",
       "animationEasing",
       "palette",
-      "size",
     ],
   },
   skiaPrimitive: "chart_scene",

@@ -91,14 +91,12 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "Badge",
   ].map(controlRadius),
   // (S2 1.8.2 정렬 `3ca03f661`: ActionButton · ToggleButton 은 XS 도 control 모서리 — XS 6 = round(8 × 1.125^-2).)
-  ...["ActionButton", "ToggleButton"].map(
-    (component): IntentionalLiteral => ({
-      component,
-      key: "borderRadius",
-      values: { XS: 6, ...CONTROL_RADIUS },
-      reason: `${CONTROL_RADIUS_REASON} · XS 6 = round(8 × 1.125^-2) (S2 ActionButton · ToggleButton XS)`,
-    }),
-  ),
+  ...["ActionButton", "ToggleButton"].map((component): IntentionalLiteral => ({
+    component,
+    key: "borderRadius",
+    values: { XS: 6, ...CONTROL_RADIUS },
+    reason: `${CONTROL_RADIUS_REASON} · XS 6 = round(8 × 1.125^-2) (S2 ActionButton · ToggleButton XS)`,
+  })),
   sizes(
     "SegmentedControlItem",
     "borderRadius",
@@ -227,11 +225,7 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   {
     component: "Chart",
     key: "fontSize",
-    values: {
-      "chart.metrics.S": 10,
-      "chart.metrics.M": 11,
-      "chart.metrics.L": 12,
-    },
+    values: { "chart.metrics": 11 },
     reason:
       "차트 축 글자 — S2 컴포넌트 없음 · 장면 계산 (`computeChartScene`) 입력은 px 숫자",
   },

@@ -6174,7 +6174,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "showLegend": true,
       "legendPosition": "bottom",
       "color": "series",
-      "size": "M",
       "isAnimationActive": true,
       "animationBegin": 0,
       "animationDuration": 600,

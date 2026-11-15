@@ -83,7 +83,7 @@ function skiaShapes(chartProps: ChartProps): Shape[] {
 
 /** DOM leg — 서버 렌더한 SVG 마크업에서 좌표를 뽑는다. */
 function domMarkup(chartProps: ChartProps): string {
-  const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+  const metrics = resolveChartMetrics(CHART_RULE.chart);
   const scene = computeChartScene(chartProps, ROWS, SIZE, metrics);
   return renderToStaticMarkup(<svg>{renderChartScene(scene)}</svg>);
 }
@@ -363,7 +363,7 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
       innerRadius: 60,
       showTotal: true,
     });
-    const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+    const metrics = resolveChartMetrics(CHART_RULE.chart);
     const scene = computeChartScene(chartProps, ROWS, SIZE, metrics);
     const scaled = scene.marks.filter(
       (m) => m.kind === "text" && m.fontScale !== undefined,
@@ -458,7 +458,7 @@ describe("ADR-216 — 시간 스케일 두 leg (Skia allowlist · 2단 라벨 ·
       .map((s) => s.text);
 
   it("Skia chart_scene 이 dimensionScale 을 읽는다 (allowlist) — 2단 라벨 'Jan' 이 나오고 미설정이면 ISO 문자열", () => {
-    const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+    const metrics = resolveChartMetrics(CHART_RULE.chart);
     const scene = computeChartScene(timeProps(), TIME_ROWS, SIZE, metrics);
     const skia = texts(skiaTime(timeProps()));
     expect(skia).toEqual(scene.axes.flatMap((a) => a.ticks.map((t) => t.text)));
@@ -476,7 +476,7 @@ describe("ADR-216 — 시간 스케일 두 leg (Skia allowlist · 2단 라벨 ·
       timeProps({ dimensionLabelFormat: "%m/%d" }),
       timeProps({ chartType: "area" }),
     ]) {
-      const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+      const metrics = resolveChartMetrics(CHART_RULE.chart);
       const scene = computeChartScene(p, TIME_ROWS, SIZE, metrics);
       const skiaD = skiaTime(p)
         .filter((s): s is Extract<Shape, { type: "path" }> => s.type === "path")
@@ -489,7 +489,7 @@ describe("ADR-216 — 시간 스케일 두 leg (Skia allowlist · 2단 라벨 ·
       expect(skiaD.length).toBeGreaterThan(0);
       expect(skiaD).toEqual(domD);
     }
-    const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+    const metrics = resolveChartMetrics(CHART_RULE.chart);
     const one = computeChartScene(
       timeProps({ dimensionLabelFormat: "%m/%d" }),
       TIME_ROWS,
@@ -524,7 +524,7 @@ describe("ADR-217 — 기준선 두 leg (line/dash/라벨 좌표 · 토큰 · do
   ])(
     "%s — 기준선 x1/y1/x2/y2 · dash · 라벨 x/y · 눈금 문자열이 두 leg 에서 같다",
     (_name, p) => {
-      const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+      const metrics = resolveChartMetrics(CHART_RULE.chart);
       const scene = computeChartScene(p, ROWS, SIZE, metrics);
       const refMarks = scene.marks.filter(
         (m) => m.kind === "line" && m.role === "reference",
@@ -647,7 +647,7 @@ describe("ADR-217 — 산점도 두 leg (Skia allowlist · 점 path d · 불투�
   ])(
     "%s — 점 path d 두 leg byte 동일 · Skia fillAlpha 1 · 눈금 문자열 동일",
     (_name, p, rows) => {
-      const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+      const metrics = resolveChartMetrics(CHART_RULE.chart);
       const scene = computeChartScene(p, rows, SIZE, metrics);
       const skia = skiaScatter(p, rows);
       const skiaPaths = skia.filter(

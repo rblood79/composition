@@ -114,7 +114,6 @@ const FIELD_PREFIX_SIZES = {
 // dropped it by accident — `domBinding` wrapped every field button and its `stepper !== node`
 // identity test zeroed the inline border; now both read this block.)
 
-
 const FIELD_BUTTON_CORNERS = {
   XS: "var(--radius-sm)",
   S: "7px",
@@ -2179,7 +2178,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (2026-11-13 S2 구조 — 전에는 accent `::after` 테두리).
     partStateStyles: {
       "& .breadcrumb-link%": {
-        outline: { isFocusVisible: "var(--focus-ring-width) solid var(--focus-ring)" },
+        outline: {
+          isFocusVisible: "var(--focus-ring-width) solid var(--focus-ring)",
+        },
         outlineOffset: { isFocusVisible: "2px" },
         textDecoration: { isFocusVisible: "underline" },
       },
@@ -10019,11 +10020,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "nf-btn",
             variables: {
-              XS: { "--nf-btn-size": "var(--catalog-token-size-field-button-XS)" },
-              S: { "--nf-btn-size": "var(--catalog-token-size-field-button-S)" },
-              M: { "--nf-btn-size": "var(--catalog-token-size-field-button-M)" },
-              L: { "--nf-btn-size": "var(--catalog-token-size-field-button-L)" },
-              XL: { "--nf-btn-size": "var(--catalog-token-size-field-button-XL)" },
+              XS: {
+                "--nf-btn-size": "var(--catalog-token-size-field-button-XS)",
+              },
+              S: {
+                "--nf-btn-size": "var(--catalog-token-size-field-button-S)",
+              },
+              M: {
+                "--nf-btn-size": "var(--catalog-token-size-field-button-M)",
+              },
+              L: {
+                "--nf-btn-size": "var(--catalog-token-size-field-button-L)",
+              },
+              XL: {
+                "--nf-btn-size": "var(--catalog-token-size-field-button-XL)",
+              },
             },
             bridges: {
               flex: "0 0 auto",
@@ -13716,24 +13727,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-306 — 공개 size 축 삭제. M 한 벌은 rule 타입이 요구하는 기본값이다 (data-size 를 내지 않는다).
     sizes: {
-      S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.md}",
-        paddingX: 8,
-        paddingY: 8,
-      },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         paddingX: 12,
         paddingY: 12,
-      },
-      L: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        paddingX: 16,
-        paddingY: 16,
       },
     },
     // 2026-11-13 사용자 결정 — 단계별 높이 (160/240/320) 대신 16:9 비율 상자. 높이 px 는 flex 의
@@ -13787,11 +13787,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       reference: "{color.neutral}",
       // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
       //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
-      metrics: {
-        S: { padding: 8, fontSize: 10 },
-        M: { padding: 12, fontSize: 11 },
-        L: { padding: 16, fontSize: 12 },
-      },
+      metrics: { padding: 12, fontSize: 11 },
       // ADR-211 표시 예산 — P0 실측 확정값 (docs/adr/evidence/211-p0-spike.md). light/dark 동일.
       budget: {
         minSlot: 8,

@@ -45,7 +45,6 @@ function mount(extra: Partial<ChartProps> = {}) {
   root.render(
     <Chart
       {...createChartInitialProps("bar")}
-      size="M"
       data={rows}
       dimension="category"
       metric="value"
@@ -86,10 +85,7 @@ describe("ADR-217 P3 — DOM leg 기준선", () => {
         host.querySelector("[data-chart-reference-front] line"),
       ).toBeTruthy(),
     );
-    const metrics = resolveChartMetrics(
-      resolveComponentRule("Chart")?.chart,
-      "md",
-    );
+    const metrics = resolveChartMetrics(resolveComponentRule("Chart")?.chart);
     const scene = computeChartScene(
       sceneProps({ referenceLines: REFS }),
       rows,

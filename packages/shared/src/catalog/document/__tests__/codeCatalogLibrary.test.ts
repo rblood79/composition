@@ -209,7 +209,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     const repeated = await buildCodeCatalogLibrary();
     expect(library.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(repeated.revision).toBe(library.revision);
-    expect(library.contractVersion).toBe(67);
+    expect(library.contractVersion).toBe(68);
     for (const type of CODE_CATALOG_SUPPORTED_TYPES) {
       const registration = componentCatalog.find(
         (entry) => entry.type === type && entry.kind === "primitive",
@@ -513,7 +513,11 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
           [radioId]: node(radioId, "lib:definition:origin-component-checkbox", {
             isSelected: { kind: "set", value: false },
           }),
-          [groupId]: node(groupId, "lib:definition:origin-component-radiogroup", {}),
+          [groupId]: node(
+            groupId,
+            "lib:definition:origin-component-radiogroup",
+            {},
+          ),
         },
       },
       await buildCodeCatalogLibrary(),

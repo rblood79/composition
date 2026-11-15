@@ -52,7 +52,6 @@ function mount(rows: ReturnType<typeof rowsOf>) {
   root.render(
     <Chart
       {...createChartInitialProps("bar")}
-      size="M"
       data={rows}
       dimension="category"
       metric="value"
@@ -66,10 +65,7 @@ function mount(rows: ReturnType<typeof rowsOf>) {
 describe("ADR-211 P3 — Preview 창 Slider", () => {
   it("1,000 범주 bar: thumb 2 · 시작 thumb 화살표로 창 이동 (길이 보존) · 끝 thumb End 로 넓힘 · domain 불변 · 트랙 자리 = layout", async () => {
     const rows = rowsOf(1000);
-    const metrics = resolveChartMetrics(
-      resolveComponentRule("Chart")?.chart,
-      "md",
-    );
+    const metrics = resolveChartMetrics(resolveComponentRule("Chart")?.chart);
     const expected = resolveChartData(
       rows,
       {

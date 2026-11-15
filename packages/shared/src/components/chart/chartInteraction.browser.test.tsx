@@ -14,6 +14,13 @@ afterEach(() => {
 });
 const frame = () =>
   new Promise<number>((resolve) => requestAnimationFrame(resolve));
+// 숫자는 0.01 px 로 맞춰 비교한다 — Recharts 3.10.1 은 진입 animation 의 마지막 프레임을 보간 float
+//   (`39.777499999999996`) 로 남기고, 같은 rows 재전송 뒤의 정적 path 는 반올림 값 (`39.7775`) 을 낸다
+//   (≈3e-5 px — 보이지 않는 차이, ADR-306 Phase 0). animation 재시작은 px 단위로 움직여 여전히 잡힌다.
+const round = (value: string | null) =>
+  value?.replace(/-?\d+\.\d+/g, (n) =>
+    String(Math.round(Number(n) * 100) / 100),
+  ) ?? null;
 const signature = () =>
   Array.from(
     host.querySelectorAll(
@@ -22,7 +29,7 @@ const signature = () =>
   )
     .map((node) =>
       ["d", "width", "height", "stroke-dasharray", "transform"]
-        .map((key) => node.getAttribute(key))
+        .map((key) => round(node.getAttribute(key)))
         .join(":"),
     )
     .join("|");
@@ -40,7 +47,6 @@ for (const descriptor of CHART_DESCRIPTORS)
       const render = (rows: typeof props.data) => (
         <Chart
           {...props}
-          size="M"
           data={rows}
           isAnimationActive={active}
           animationBegin={0}
@@ -88,7 +94,6 @@ it("wrapper, Area 외곽/점 토큰과 native 키보드 tooltip", async () => {
       showTooltip
       isAnimationActive={false}
       variant="default"
-      size="L"
       className="user-chart"
       style={{
         width: 480,
@@ -105,7 +110,8 @@ it("wrapper, Area 외곽/점 토큰과 native 키보드 tooltip", async () => {
   );
   const wrapper = host.querySelector(".react-aria-Chart")!;
   expect(wrapper.classList.contains("user-chart")).toBe(true);
-  expect(wrapper.getAttribute("data-size")).toBe("lg");
+  // ADR-306 — 공개 size 축 삭제: wrapper 는 data-size 를 내지 않는다.
+  expect(wrapper.hasAttribute("data-size")).toBe(false);
   expect(wrapper.getAttribute("data-variant")).toBe("default");
   const svgBox = host
       .querySelector(".recharts-surface")!
@@ -143,7 +149,6 @@ it("숨김과 0 크기에서는 렌더하지 않고 표시·resize 후 실측 �
     root.render(
       <Chart
         {...createChartInitialProps("bar")}
-        size="M"
         isAnimationActive={false}
         style={{ width, height: 240, display }}
       />,

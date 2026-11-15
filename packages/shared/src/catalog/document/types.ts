@@ -163,9 +163,10 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      PreviewTrigger 본체 폭 삭제.
  * 67 — ADR-310 Phase 2: Tabs 의 항목은 노드가 정본 (Tab + 짝 TabPanel) — Tabs `items` prop 삭제,
  *      원본의 slot 을 Tabs 루트로 (놓은 Tabs 가 TabList · Tab · TabPanel 을 자기 노드로 가진다).
+ * 68 — ADR-306 Phase 1: Chart 의 공개 `size` 삭제 (원본 · accepts · 공개 타입) — 상자 크기는 Layout.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 67 as const;
+export const LIBRARY_CONTRACT_VERSION = 68 as const;
 
 export type EntryKind =
   | "project"
@@ -1685,7 +1686,9 @@ export interface CatalogRowDisplay {
   readonly size?: number;
 }
 /** A row display's size: its own, else 100 (the 「더 보기」 window). */
-export function catalogRowDisplaySize(display: CatalogRowDisplay | undefined): number {
+export function catalogRowDisplaySize(
+  display: CatalogRowDisplay | undefined,
+): number {
   return display?.size ?? 100;
 }
 

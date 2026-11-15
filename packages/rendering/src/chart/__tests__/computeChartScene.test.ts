@@ -31,7 +31,7 @@ describe("차트 스타일 padding", () => {
         { ...CHART_DEFAULT_PROPS, showAxis: false, showLegend: false },
         [{ category: "A", value: 1 }],
         SIZE,
-        resolveChartMetrics(undefined, "md", style),
+        resolveChartMetrics(undefined, style),
       );
       expect(scene.plot).toEqual(plot);
     },

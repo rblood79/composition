@@ -701,7 +701,8 @@ export interface ChartRuleChannel {
   axis: string;
   grid: string;
   strokeWidth?: number;
-  metrics?: Readonly<Record<string, { padding: number; fontSize: number }>>;
+  /** ADR-306 — 기하 px 한 벌 (공개 size 축 삭제 — S/M/L 별 값 없음). */
+  metrics?: Readonly<{ padding: number; fontSize: number }>;
   tooltipBackground?: string;
   tooltipBorder?: string;
   tooltipText?: string;
@@ -714,7 +715,7 @@ export interface ChartRuleChannel {
 }
 
 /**
- * rule 의 chart 채널 + size 키 → 기하 metric.
+ * rule 의 chart 채널 → 기하 metric (ADR-306 — size 축 없음, 한 벌).
  *
  * **두 consumer 가 같이 부른다** (DOM `Chart.tsx` / Skia `chart_scene` primitive).
  * 각자 rule 을 해석하면 padding/fontSize 가 갈려 좌표가 어긋나는데, 그 어긋남은
@@ -722,10 +723,9 @@ export interface ChartRuleChannel {
  */
 export function resolveChartMetrics(
   channel: ChartRuleChannel | undefined,
-  sizeKey: string,
   style?: Parameters<typeof parsePadding4Way>[0],
 ): ChartMetrics {
-  const entry = channel?.metrics?.[sizeKey];
+  const entry = channel?.metrics;
   const padding = entry?.padding ?? CHART_DEFAULT_METRICS.padding;
   return {
     // 사용자 longhand > shorthand > catalog 기본값. 미지정 방향은 기본값 유지.

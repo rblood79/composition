@@ -112,7 +112,6 @@ for (const theme of ["light", "dark"] as const)
       root.render(
         <Chart
           {...props}
-          size="M"
           isAnimationActive={false}
           style={{ width: 320, height: 240 }}
         />,

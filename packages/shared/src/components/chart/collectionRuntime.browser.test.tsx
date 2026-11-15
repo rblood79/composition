@@ -110,10 +110,7 @@ describe("ADR-209 공통 collection runtime 공급", () => {
       );
       // ADR-211 — 범주 > fitEff 면 창 (breakdown §2.4 (B)): 그려지는 점은 전체가 아니라
       //   같은 크기의 spec 모델이 정한 visible 수다. 행은 전부 읽었다 (data-chart-row-count).
-      const metrics = resolveChartMetrics(
-        resolveComponentRule("Chart")?.chart,
-        "md",
-      );
+      const metrics = resolveChartMetrics(resolveComponentRule("Chart")?.chart);
       const model = resolveChartData(
         rows,
         {

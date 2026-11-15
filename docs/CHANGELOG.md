@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-306 Phase 0 · 1 — Chart 의 공개 size 삭제 (contract 68)] - 2026-11-15
+
+### Removed
+
+- **Breaking — Chart 의 공개 `size` (S/M/L) 와 `data-size` 삭제** (ADR-306 Phase 1):
+  - Design 패널의 Chart Size 칸 · binding `accepts.size` · 공개 React 타입 `size` · DOM `data-size` · 생성 CSS 의 `.react-aria-Chart[data-size]` 블록이 없다. 차트 크기는 Layout (기본 16:9 상자 — 2026-11-13) 이 정하고, 축 여백 · 글자 기하는 rule 한 벌 (padding 12 · 글자 11 = 옛 M) 이다.
+  - **문서 contract 67 → 68**: typed Chart 원본에서 `size` 를 지웠으므로 contract 67 이하 문서는 Chart 유무와 무관하게 열리지 않는다 (`UNSUPPORTED_LIBRARY_CONTRACT` — 변환 없음, 저장소 정책). 68 문서라도 Chart 에 `size` 를 실으면 `PROP_NOT_ACCEPTED`.
+  - **Why**: S/M/L 이 높이 · 여백 · 글자를 함께 묶어 Layout 의 상자 크기와 겹쳤다 — ztd-charts 36종 확장 (ADR-306) 의 전제 「공개 size 제거」.
+  - 위치: `packages/shared/src/catalog/bindings/Chart.binding.ts` · `components/Chart.components.tsx` · `Chart.runtime.ts` · `generated/componentRulesTable.ts` (`Chart`) · `document/generated/reusableOriginLibrary.ts` · `document/types.ts` · `packages/rendering/src/chart/computeChartScene.ts` (`resolveChartMetrics(channel, style)`) · `authoring.ts` · `renderers/skiaPrimitives.ts` · `apps/builder/.../ChartBudgetControls.tsx` · `useChartPropertyExtras.tsx`
+
+### Fixed
+
+- **Chart browser 테스트 선행 실패 3건** (ADR-306 Phase 0 재현 → Phase 1 수리): `data-size` 기대 2건 (chart · chart-a11y project) 은 size 없는 계약으로, bar 재전송 동일성 1건은 Recharts 3.10.1 의 animation 마지막 프레임 보간 float (`39.777499999999996`) 와 정적 path 반올림 (`39.7775`) 의 ≈3e-5 px 차이라 0.01 px 로 맞춰 비교한다 (animation 재시작은 그대로 잡힌다). 382/382.
+
+### Added
+
+- **Chart 계약 게이트 `codex:chart-contract`** (ADR-306 Phase 0): `pnpm test:chart-contract` (rendering `src/chart` unit) 를 `codex:preflight` 사슬에 넣었다. 첫 항목은 ztd-charts 0.5.0 (`3c4376c`, MIT) 의 36 항목 · 채널 · 옵션 key 전부를 채택 / 대응 / 제외 / 사용자 결정으로 나눈 분류 census (`ztdRegistry.pinned.ts` — 원본 텍스트에서 옮긴 key · `ztdCoverage.fixture.ts` — 분류, 분류 누락 · 남는 분류를 막는다).
+
 ## [ADR-310 Implemented — Phase 8 세로 · 가로 목록 · 카드 grid · Table 의 가상 스크롤] - 2026-11-15
 
 ### Added
