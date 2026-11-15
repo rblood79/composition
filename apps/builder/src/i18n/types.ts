@@ -865,6 +865,12 @@ export interface TranslationKeys {
     rowTemplateItems: string;
     rowTemplateFirst: string;
     rowTemplateKeep: string;
+    rowDisplay: string;
+    rowDisplayMore: string;
+    rowDisplayPages: string;
+    rowDisplayPageSize: string;
+    rowDisplayPagination: string;
+    rowDisplayPaginationNone: string;
     fieldTemplatePlaceholder: string;
     insertField: string;
     collectionField: string;

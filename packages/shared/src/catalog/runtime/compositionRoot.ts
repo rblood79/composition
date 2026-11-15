@@ -2396,7 +2396,8 @@ export class CatalogCompositionRoot {
     // resolved = that item; not resolvable (the Canvas — no route, no runtime values) = a sample.
     this.rows =
       rows &&
-      ((authored, kind, ownerId, instancePath) => {
+      // (ADR-310 Phase 7 — the source's pages go along: a Pagination reads its list's.)
+      Object.assign((authored: Parameters<CatalogRowSource>[0], kind?: Parameters<CatalogRowSource>[1], ownerId?: NodeId, instancePath?: readonly string[]) => {
         // ADR-284: the binding's view, its references read for this node (runtime values in the
         // Preview · Publish, defaults on the Canvas) — the row source runs it before the window.
         // (ADR-294 R6: an origin's input variable reads the instance on the node's path — each
@@ -2420,7 +2421,7 @@ export class CatalogCompositionRoot {
         if (key !== undefined) return rows({ ...binding, key }, kind, ownerId);
         const { key: _template, ...every } = binding;
         return rows(every, kind, ownerId)?.slice(0, 1);
-      });
+      }, rows.pages ? { pages: rows.pages } : {});
     this.tableSort = options.tableSort;
     this.rowSample = options.rowSample;
     this.onRowSampleStale = options.onRowSampleStale;
@@ -2866,6 +2867,13 @@ export class CatalogCompositionRoot {
           ),
         );
     return this.refreshSources(sources) ?? [];
+  }
+  /**
+   * ADR-310 Phase 7 — re-resolve the records of `ids` (document node ids) outside a step: a paged
+   * list's Pagination after a page change. The subscriber errors.
+   */
+  refreshNodes(ids: ReadonlySet<string>): unknown[] {
+    return ids.size ? (this.refreshSources(ids) ?? []) : [];
   }
   /** A document node holding a data binding. */
   private isBindingOwner(id: string): boolean {

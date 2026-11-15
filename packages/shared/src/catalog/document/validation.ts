@@ -1890,6 +1890,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "descendantOverrides",
           "binding",
           "repeat",
+          "rowDisplay",
+          "pagesOf",
           "slot",
           "regions",
           "placeholder",
@@ -1911,6 +1913,19 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       presentWhen(item.presentWhen, "entry.presentWhen");
       if (item.repeat !== undefined && item.repeat !== true)
         invalid("REPEAT_TRUE", "entry.repeat");
+      if (item.rowDisplay !== undefined) {
+        const display = object(item.rowDisplay, "entry.rowDisplay");
+        exact(display, ["mode", "size"], "entry.rowDisplay");
+        const size = display.size as number | undefined;
+        if (
+          !["more", "pages", "virtual"].includes(String(display.mode)) ||
+          (size !== undefined &&
+            !(Number.isInteger(size) && size >= 1 && size <= 1000))
+        )
+          invalid("ROW_DISPLAY", "entry.rowDisplay");
+      }
+      if (item.pagesOf !== undefined)
+        id(item.pagesOf, "project:node:", "entry.pagesOf");
       if (
         item.originOf !== undefined &&
         !/^(lib|project):definition:[A-Za-z0-9][A-Za-z0-9_-]*$/.test(

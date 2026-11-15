@@ -3,12 +3,18 @@ import { isInputVariable } from "../document/componentEvents";
 import { componentInstancePath } from "./componentBoundaries";
 import { resolveInputVariableAt } from "./inputVariable";
 import type { CatalogGraph } from "../document/graph";
-import type {
-  BreakpointName,
-  CatalogLibrary,
-  EntryId,
-  NodeEntry,
+import {
+  catalogRowDisplaySize,
+  type BreakpointName,
+  type CatalogLibrary,
+  type CatalogRowDisplay,
+  type EntryId,
+  type NodeEntry,
 } from "../document/types";
+import type {
+  CatalogBoundRow,
+  CatalogBoundRows,
+} from "../resolution/resolver";
 import { definitionTypeName } from "../commands/context";
 import {
   catalogPreviewSnapshotView,
@@ -482,6 +488,15 @@ export class CatalogPreviewSession {
   private readonly displayWindows = new Map<string, number>();
   /** The lists whose last delivered rows stopped at their window with more rows loaded (by window key). */
   private readonly windowsCut = new Set<string>();
+  /**
+   * ADR-310 Phase 7 (Decision 12) — each paged list's query unit (collection + list node, the
+   * display window's key): its page, and for a remote collection its own loaded items · total ·
+   * cursors · request — a page list's answer never changes the collection's loaded items (the
+   * 「더 보기」 lists').
+   */
+  private readonly pageUnits = new Map<string, CatalogPageUnit>();
+  /** The Paginations that page each list (they re-resolve on a page change). */
+  private readonly paginationsOf = new Map<string, Set<string>>();
   /** The Builder's API items last received, by collection id (a change drops a reload's). */
   private readonly receivedItems = new Map<string, string>();
   /** The project's API endpoints (each query endpoint names the collection it fills). */
@@ -861,11 +876,16 @@ export class CatalogPreviewSession {
   }
 
   /** The collections as the bound components read them: the Builder's items with the edits replayed. */
-  private itemSources(): readonly CollectionDataSource[] {
-    if (!this.itemEdits.size && !this.reloadedItems.size)
+  private itemSources(
+    /** ADR-310 Phase 7 — a page list's own loaded items (its query unit), in place of the collection's. */
+    loaded?: ReadonlyMap<string, Record<string, unknown>[]>,
+  ): readonly CollectionDataSource[] {
+    if (!this.itemEdits.size && !this.reloadedItems.size && !loaded?.size)
       return this.collections;
     return this.collections.map((source) => {
-      const reloaded = source.id && this.reloadedItems.get(source.id);
+      const reloaded =
+        source.id &&
+        (loaded?.get(source.id) ?? this.reloadedItems.get(source.id));
       const collection = reloaded
         ? { ...source, runtimeData: reloaded }
         : source;
@@ -1484,10 +1504,11 @@ export class CatalogPreviewSession {
     const page = await this.loadPage(collectionId, state);
     if (!page) return;
     this.viewRefusals.delete(collectionId);
-    // (A first page again — its lists show from the top, one window.)
+    // (A first page again — its lists show from the top, one window; paged lists at page 1.)
     const prefix = displayWindowKey(collectionId, "");
     for (const key of [...this.displayWindows.keys()])
       if (key.startsWith(prefix)) this.displayWindows.delete(key);
+    this.resetPages(collectionId);
     this.showLoaded(collectionId, page.items);
     if (page.selectedKeys !== undefined)
       this.selectLoaded(collectionId, page.selectedKeys, false);
@@ -1754,6 +1775,11 @@ export class CatalogPreviewSession {
           },
         };
     }
+    // ADR-310 Phase 7 — a paged list shows its page (its query unit's rows when remote).
+    const display =
+      ownerId === undefined ? undefined : this.rowDisplayOf(ownerId);
+    if (ownerId !== undefined && display?.mode === "pages")
+      return this.pageRows(binding, kind, ownerId, display);
     const window =
       ownerId === undefined
         ? undefined
@@ -1777,9 +1803,14 @@ export class CatalogPreviewSession {
    * An endpoint's `{{ }}` (route params · variables) read from the session's state, each on its
    * own: an empty value is not one (Home has no `:id` — `/users/` is another resource).
    */
-  private endpointTemplateFor(collectionId: string, cursor?: string) {
+  private endpointTemplateFor(
+    collectionId: string,
+    cursor?: string,
+    /** ADR-310 Phase 7 — a page list's own `page` · `pageSize`. */
+    extra?: Readonly<Record<string, unknown>>,
+  ) {
     // (The load's arguments as it starts — a later `setFilterText` is a later load's.)
-    const args = { ...this.loadArguments.get(collectionId), cursor };
+    const args = { ...this.loadArguments.get(collectionId), cursor, ...extra };
     return (text: string): string | undefined => {
       const graph = this.graph;
       if (!graph) return undefined;
@@ -2155,8 +2186,22 @@ export class CatalogPreviewSession {
         ...(this.openingPage()
           ? { stagedLoad: { firstPage: this.openingPage() } }
           : {}),
-        rows: (binding, kind, ownerId) =>
-          this.boundRows(binding, kind, ownerId),
+        rows: Object.assign(
+          (
+            binding: Parameters<typeof catalogBoundRows>[0],
+            kind: Parameters<typeof catalogBoundRows>[2],
+            ownerId?: string,
+          ) => this.boundRows(binding, kind, ownerId),
+          {
+            pages: (listId: string, paginationId: string) => {
+              let set = this.paginationsOf.get(listId);
+              if (!set) this.paginationsOf.set(listId, (set = new Set()));
+              set.add(paginationId);
+              const info = this.pageOf(listId);
+              return info ? { count: info.count, page: info.page } : undefined;
+            },
+          },
+        ),
         tableSort: (tableId) =>
           this.serverSortedTables.has(tableId)
             ? undefined
@@ -2166,6 +2211,208 @@ export class CatalogPreviewSession {
       },
     );
   }
+  /** ADR-310 Phase 7 — a list node's row display (its document `rowDisplay`). */
+  private rowDisplayOf(ownerId: string): CatalogRowDisplay | undefined {
+    const entry = this.graph?.getEntry(ownerId as never);
+    return entry?.kind === "node" ? entry.rowDisplay : undefined;
+  }
+  /** A paged list's query unit (created at page 1). */
+  private pageUnit(collectionId: string, ownerId: string): CatalogPageUnit {
+    const key = displayWindowKey(collectionId, ownerId);
+    let unit = this.pageUnits.get(key);
+    if (!unit) this.pageUnits.set(key, (unit = { page: 1, cursors: [] }));
+    return unit;
+  }
+  /** A collection that loads from its endpoint (not its mock rows) — its pages are requests. */
+  private remotePages(collectionId: string): boolean {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    return (
+      !!collection && !collection.useMockData && !!this.endpointFilling(collection)
+    );
+  }
+  /** A paged list's rows: its page of the collection (local), or its unit's loaded page (remote). */
+  private pageRows(
+    binding: Parameters<typeof catalogBoundRows>[0],
+    kind: Parameters<typeof catalogBoundRows>[2],
+    ownerId: string,
+    display: CatalogRowDisplay,
+  ) {
+    const id = binding.collectionId.replace(/^data:collection:/, "");
+    const size = catalogRowDisplaySize(display);
+    const unit = this.pageUnit(binding.collectionId, ownerId);
+    if (this.remotePages(id)) {
+      if (!unit.items) {
+        if (!unit.request)
+          void this.loadPageUnit(binding.collectionId, ownerId, unit.page);
+        return Object.assign([] as CatalogBoundRow[], {
+          loadingState: "loading" as const,
+        }) as CatalogBoundRows;
+      }
+      const rows = catalogBoundRows(
+        binding,
+        this.itemSources(new Map([[id, unit.items]])),
+        kind,
+        size,
+      );
+      return rows
+        ? Object.assign(rows, {
+            loadingState: unit.request ? ("loading" as const) : ("idle" as const),
+          })
+        : rows;
+    }
+    // (A sort · a filter — another query — starts the list over at page 1; its Paginations follow.)
+    const query = JSON.stringify(binding.query ?? null);
+    if (unit.query !== undefined && unit.query !== query && unit.page !== 1) {
+      unit.page = 1;
+      queueMicrotask(() => this.showPage(binding.collectionId, ownerId));
+    }
+    unit.query = query;
+    const rows = catalogBoundRows(
+      binding,
+      this.itemSources(),
+      kind,
+      unit.page * size,
+      (unit.page - 1) * size,
+    );
+    if (rows) unit.total = rows.total ?? (unit.page - 1) * size + rows.length;
+    return rows ? Object.assign(rows, { loadingState: "idle" as const }) : rows;
+  }
+  /**
+   * ADR-310 Phase 7 — a paged list's page, the page count (absent = unknown: a remote endpoint
+   * that reads no `{{ page }}` steps back and forth by its cursor) and the steps it allows.
+   * Undefined = not a paged list.
+   */
+  pageOf(listId: string):
+    | {
+        page: number;
+        count?: number;
+        canPrevious: boolean;
+        canNext: boolean;
+      }
+    | undefined {
+    const entry = this.graph?.getEntry(listId as never);
+    if (entry?.kind !== "node" || entry.rowDisplay?.mode !== "pages") return undefined;
+    const binding = entry.binding;
+    if (!binding) return undefined;
+    const size = catalogRowDisplaySize(entry.rowDisplay);
+    const id = binding.collectionId.replace(/^data:collection:/, "");
+    const unit = this.pageUnit(binding.collectionId, listId);
+    const remote = this.remotePages(id);
+    const numbered =
+      !remote ||
+      endpointReadsTemplate(this.queryEndpoint(id), "page");
+    const count =
+      numbered && unit.total !== undefined
+        ? Math.max(1, Math.ceil(unit.total / size))
+        : undefined;
+    return {
+      page: unit.page,
+      ...(count !== undefined ? { count } : {}),
+      canPrevious: unit.page > 1,
+      canNext:
+        count !== undefined
+          ? unit.page < count
+          : unit.cursors[unit.page] !== undefined,
+    };
+  }
+  /** ADR-310 Phase 7 — show a paged list's page (a number, or the one before · after). */
+  async goToPage(
+    listId: string,
+    to: number | "previous" | "next",
+  ): Promise<void> {
+    const info = this.pageOf(listId);
+    const entry = this.graph?.getEntry(listId as never);
+    const binding = entry?.kind === "node" ? entry.binding : undefined;
+    if (!info || !binding) return;
+    const page =
+      to === "previous" ? info.page - 1 : to === "next" ? info.page + 1 : to;
+    if (
+      page < 1 ||
+      page === info.page ||
+      (info.count !== undefined ? page > info.count : page > info.page + 1)
+    )
+      return;
+    const unit = this.pageUnit(binding.collectionId, listId);
+    const id = binding.collectionId.replace(/^data:collection:/, "");
+    if (this.remotePages(id))
+      await this.loadPageUnit(binding.collectionId, listId, page);
+    else {
+      unit.page = page;
+      this.showPage(binding.collectionId, listId);
+    }
+  }
+  /** One page of a remote collection for a paged list (its own request — Decision 12). */
+  private async loadPageUnit(
+    collectionId: string,
+    listId: string,
+    page: number,
+  ): Promise<void> {
+    const id = collectionId.replace(/^data:collection:/, "");
+    const unit = this.pageUnit(collectionId, listId);
+    const entry = this.graph?.getEntry(listId as never);
+    const size = catalogRowDisplaySize(
+      entry?.kind === "node" ? entry.rowDisplay : undefined,
+    );
+    unit.request?.abort();
+    const controller = new AbortController();
+    unit.request = controller;
+    const endpoint = this.queryEndpoint(id);
+    const numbered = endpointReadsTemplate(endpoint, "page");
+    const cursor = numbered ? undefined : unit.cursors[page - 1];
+    try {
+      await Promise.allSettled([...this.pendingSubmits]);
+      const answer = await loadCollectionEndpoint(
+        endpoint,
+        controller.signal,
+        this.endpointTemplateFor(id, cursor, { page, pageSize: size }),
+        cursor,
+      );
+      if (unit.request !== controller) return;
+      unit.items = (
+        Array.isArray(answer.items) ? answer.items : [answer.items]
+      ).filter(
+        (item): item is Record<string, unknown> =>
+          !!item && typeof item === "object",
+      );
+      unit.page = page;
+      if (answer.total !== undefined) unit.total = answer.total;
+      unit.cursors[page] = answer.cursor;
+    } catch (error) {
+      if (unit.request !== controller) return;
+      console.warn(`[CatalogPreview] ${id} page ${page}:`, error);
+    } finally {
+      if (unit.request === controller) unit.request = undefined;
+    }
+    this.showPage(collectionId, listId);
+  }
+  /** A page change shows: the list's rows and its Paginations' numbers resolve again. */
+  private showPage(collectionId: string, listId: string): void {
+    const errors = [
+      ...(this.currentRoot?.refreshRows(new Set([collectionId])) ?? []),
+      ...(this.currentRoot?.refreshNodes(
+        new Set(this.paginationsOf.get(listId) ?? []),
+      ) ?? []),
+    ];
+    if (errors.length) console.error("[CatalogPreview] page:", ...errors);
+    this.changed();
+  }
+  /** A reload · sort · filter starts a collection's paged lists over at page 1. */
+  private resetPages(collectionId: string): void {
+    const prefix = displayWindowKey(collectionId, "");
+    for (const [key, unit] of this.pageUnits) {
+      if (!key.startsWith(prefix)) continue;
+      const listId = key.slice(prefix.length);
+      unit.page = 1;
+      unit.cursors = [];
+      // (A reload is a remote collection's: a local list's sort · filter resets in `pageRows`.)
+      const id = collectionId.replace(/^data:collection:/, "");
+      if (this.remotePages(id))
+        void this.loadPageUnit(`data:collection:${id}`, listId, 1);
+    }
+  }
+
   /** What `{{ }}` reads in the Preview: project variables, runtime values, route params. */
   private stateSource(): CatalogStateSource {
     return {
@@ -2178,6 +2425,20 @@ export class CatalogPreviewSession {
     this.version += 1;
     for (const listener of [...this.listeners]) listener();
   }
+}
+
+/** ADR-310 Phase 7 — a paged list's query unit (Decision 12). */
+interface CatalogPageUnit {
+  page: number;
+  /** A remote page's loaded items (absent = not loaded — a local list's pages are the collection's). */
+  items?: Record<string, unknown>[];
+  /** The rows in all (the collection's, or the endpoint's `totalPath`) — the page count. */
+  total?: number;
+  /** A cursor-only endpoint's cursor of each page (`cursors[n]` loads page n + 1). */
+  cursors: (string | undefined)[];
+  request?: AbortController;
+  /** The query the page was of (a local list's sort · filter — another one starts at page 1). */
+  query?: string;
 }
 
 /** A display window's key: the collection (without its prefix) and the bound node. */

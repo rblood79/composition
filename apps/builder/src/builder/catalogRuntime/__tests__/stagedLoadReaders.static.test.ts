@@ -31,6 +31,14 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
     [1, "B", "gridRecordSet — dropped on a step, a root change and a fill"],
   ],
   [
+    "apps/builder/src/builder/components/property/RowDisplayChoice.tsx",
+    [
+      1,
+      "B",
+      "ADR-310 Phase 7 Pagination choices — the selected list's page is the filled one (a step reads again)",
+    ],
+  ],
+  [
     "apps/builder/src/builder/main/CatalogBuilderCore.tsx",
     [
       1,

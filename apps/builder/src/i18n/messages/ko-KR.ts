@@ -1167,6 +1167,12 @@ const catalog: TranslationKeys = {
     rowTemplateItems: "기존 항목 {count}개",
     rowTemplateFirst: "첫 항목만 템플릿으로 — 나머지 지움",
     rowTemplateKeep: "모두 고정 항목으로 두고 데이터는 뒤에",
+    rowDisplay: "행 표시",
+    rowDisplayMore: "끝에서 더 보기",
+    rowDisplayPages: "페이지",
+    rowDisplayPageSize: "쪽당 행 수",
+    rowDisplayPagination: "페이지 이동",
+    rowDisplayPaginationNone: "없음",
     legacyBinding:
       "legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.",
     fieldTemplatePlaceholder: "텍스트 또는 {field}",

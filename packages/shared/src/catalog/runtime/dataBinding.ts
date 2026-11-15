@@ -181,6 +181,8 @@ export function catalogBoundRows(
   sources: readonly CollectionDataSource[],
   kind: "items" | "records" = "items",
   limit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  /** ADR-310 Phase 7 — a page's first row (`[start, limit)` — the rows before it are the earlier pages'). */
+  start = 0,
 ): CatalogBoundRows | undefined {
   const dataBinding = catalogBindingValue(ref);
   const table = dataBinding && resolveBoundCollection(dataBinding, sources);
@@ -320,7 +322,7 @@ export function catalogBoundRows(
     );
   }
   if (view && ref.query?.sort) view = { ...view, sort: ref.query.sort };
-  let shown = boundRowsOf(ref, dataBinding, collections, kind, limit);
+  let shown = boundRowsOf(ref, dataBinding, collections, kind, limit, start);
   // (A key with no group in a grouped view: that group has no rows — its counts are 0, a user
   // nothing points at has 0 orders.)
   const last = ref.query?.queries.at(-1);
@@ -447,6 +449,7 @@ function boundRowsOf(
   collections: readonly CollectionDataSource[],
   kind: "items" | "records",
   limit: number,
+  start = 0,
 ): CatalogBoundRows | undefined {
   if (kind === "records")
     return readDataBindingRows(dataBinding, collections).map((item, index) => ({
@@ -517,8 +520,14 @@ function boundRowsOf(
     return [item ?? { key: ref.key, values: {} }];
   }
   // At the window limit the collection may hold more: its count is the sample's "+N more".
+  const all = () =>
+    rows.length < limit
+      ? rows.length
+      : (flatRoots?.length ??
+        readDataBindingRows(dataBinding, collections).length);
+  // (A page: its rows, with the collection's count — the Pagination's page count.)
+  if (start > 0) return Object.assign(rows.slice(start), { total: all() });
   if (rows.length < limit) return rows;
-  const total =
-    flatRoots?.length ?? readDataBindingRows(dataBinding, collections).length;
+  const total = all();
   return total > rows.length ? Object.assign(rows, { total }) : rows;
 }

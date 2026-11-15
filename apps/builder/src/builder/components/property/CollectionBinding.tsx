@@ -21,7 +21,7 @@ import { useI18n } from "@/i18n";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
 import { DatabasePlus, ListTree, X } from "lucide-react";
-import React, { memo, useCallback, useState } from "react";
+import React, { Suspense, lazy, memo, useCallback, useState } from "react";
 import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
 import { SelectValue } from "react-aria-components/Select";
 import type { DataField } from "../../../types/builder/data.types";
@@ -45,7 +45,10 @@ import { PropertyFieldset } from "./PropertyFieldset";
 import { PropertyInput } from "./PropertyInput";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import { PanelSelect, PanelSelectItem } from "./PanelSelect";
-import { CATALOG_SECTION_TYPES } from "../../../../../../packages/shared/src/catalog/document/collectionItems";
+import {
+  CATALOG_SECTION_TYPES,
+  COLLECTION_TYPE_TABLE,
+} from "../../../../../../packages/shared/src/catalog/document/collectionItems";
 
 // ============================================
 // Types
@@ -209,6 +212,9 @@ function RowTemplateModeChoice({
     </RadioGroup>
   );
 }
+
+/** ADR-310 Phase 7 — the row display choice (its own chunk: a bound list's panel only). */
+const RowDisplayChoice = lazy(() => import("./RowDisplayChoice"));
 
 export const CollectionBinding = memo(function CollectionBinding({
   label,
@@ -420,6 +426,15 @@ export const CollectionBinding = memo(function CollectionBinding({
               disabled={disabled}
             />
           ))}
+
+        {selectedCollectionId &&
+          workspace &&
+          elementId &&
+          COLLECTION_TYPE_TABLE.some((row) => row.owner === ruleId) && (
+            <Suspense fallback={null}>
+              <RowDisplayChoice workspace={workspace} elementId={elementId} />
+            </Suspense>
+          )}
 
         {/* `useListData.getItem(key)` — 한 항목: 리터럴 key 또는 {{ params.id }} · {{ 변수 }} */}
         {selectedCollectionId && readsOneItem && (

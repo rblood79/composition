@@ -181,14 +181,24 @@ export interface CatalogBoundRow {
  * composition root's row wrapper — `catalogBindingQuery`).
  */
 export type CatalogRowBinding = DataBindingRef & { query?: CatalogRowQuery };
-export type CatalogRowSource = (
+export type CatalogRowSource = ((
   binding: CatalogRowBinding,
   kind?: "items" | "records",
   /** The bound node — what a `key` template sees (its page's variables). */
   ownerId?: NodeId,
   /** ADR-294 — the bound node's instance path (a view reading an origin's input variable). */
   instancePath?: readonly string[],
-) => CatalogBoundRows | undefined;
+) => CatalogBoundRows | undefined) & {
+  /**
+   * ADR-310 Phase 7 — a paged list's pages (`rowDisplay` `pages`): the count (absent = unknown — a
+   * cursor-only endpoint steps back and forth) and the page shown. Absent = not paged here (the
+   * Builder: a Pagination draws its authored sample).
+   */
+  readonly pages?: (
+    listId: NodeId,
+    paginationId: NodeId,
+  ) => { readonly count?: number; readonly page: number } | undefined;
+};
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
 export type CatalogLoadingState =
   "loading" | "sorting" | "loadingMore" | "error" | "idle" | "filtering";
@@ -958,7 +968,31 @@ export function resolveCatalogNode(
       const own = rows?.(entry.binding, "items", entry.id, instancePath);
       return own ? sampledRows(own, `${instancePath.join("/")}::${id}`) : own;
     }
-    return outerRow?.children ?? ownerRows;
+    return outerRow?.children ?? ownerRows ?? paginationRows(id);
+  };
+  /**
+   * ADR-310 Phase 7 (사용자 결정 6) — a connected Pagination's number button repeats per page of
+   * its list: a row per page (`id` = `label` = the number). The Pagination is the nearest ancestor
+   * with `pagesOf`.
+   */
+  const paginationRows = (id: string): CatalogBoundRow[] | undefined => {
+    if (!rows?.pages) return undefined;
+    for (
+      let owner = graph.ownerOf(id as NodeId);
+      owner;
+      owner = graph.ownerOf(owner as NodeId)
+    ) {
+      const entry = graph.getEntry(owner as NodeId);
+      if (entry?.kind !== "node") return undefined;
+      if (!entry.pagesOf) continue;
+      const pages = rows.pages(entry.pagesOf, entry.id);
+      if (!pages) return undefined;
+      return Array.from({ length: pages.count ?? 0 }, (_, index) => {
+        const key = String(index + 1);
+        return { key, values: { id: key, label: key } };
+      });
+    }
+    return undefined;
   };
   /**
    * ADR-310 Decision 11 — an unbound list's load is its runs' (items repeated over data of their
@@ -1950,6 +1984,15 @@ export function resolveCatalogNode(
         if (key in props)
           props[key] = bindTemplateValue(props[key], ownedForkBindings);
       withoutUnboundSlot(props, ownedForkBindings);
+    }
+    // ADR-310 Phase 7 — a connected Pagination's number group selects the page shown.
+    const pager =
+      ownedType === "ToggleButtonGroup" &&
+      (graph.getEntry(graph.ownerOf(node.id) as NodeId) as NodeEntry | undefined);
+    const pages = pager && pager.pagesOf && rows?.pages?.(pager.pagesOf, pager.id);
+    if (pages) {
+      delete props.defaultSelectedKeys;
+      props.selectedKeys = [String(pages.page)];
     }
     if (ownedRow) {
       // ADR-310 Phase 4: a Cell that shows one field (`{status}`) shows it as a Table's data cell

@@ -15,7 +15,8 @@ const TEMPLATE = /\{\{[^}]*\}\}/;
  * `?sort={{ sortDescriptor.column }}`). Not given yet (the first page, no text) = empty: the query
  * parameter is left out.
  */
-export const ENDPOINT_LOAD_ARGUMENTS = ["cursor", "filterText", "sortDescriptor"] as const;
+// (ADR-310 Phase 7 — `page` · `pageSize`: a paged list's page, its rows a page.)
+export const ENDPOINT_LOAD_ARGUMENTS = ["cursor", "filterText", "sortDescriptor", "page", "pageSize"] as const;
 const LOAD_ARGUMENT = new RegExp(`\\{\\{\\s*(?:${ENDPOINT_LOAD_ARGUMENTS.join("|")})\\b`);
 
 /** Whether an endpoint's path · query read a template (and so a load argument or the route). */

@@ -332,6 +332,8 @@ export interface DelegatedDomInput {
   readonly moreLoaded?: (collectionId: string, ownerId: string) => boolean;
   /** ADR-310 Decision 11 — a collection's load (a run's own load-more spinner). */
   readonly loadingOf?: (collectionId: string) => string | undefined;
+  /** ADR-310 Phase 7 — a click in a Pagination (a running Preview's — it steps its list). */
+  readonly paginationClick?: (recordId: string, target: Element, nav: Element) => void;
   /** The collection the record's text filters on the server · that text's load (`setFilterText`). */
   readonly serverFilterOf?: (recordId: string) => string | undefined;
   readonly setFilterText?: (collectionId: string, filterText: string) => void;
@@ -3745,9 +3747,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
   },
   pagination: {
+    // ADR-310 Phase 7 (사용자 결정 6) — a Pagination that pages a list steps it (the Preview's
+    // `paginationClick`). Capture: RAC's press handling stops the click at the button (`usePress`).
     render: container("nav", (input) => ({
       ...chrome(input, "Pagination"),
       "aria-label": "Pagination",
+      ...(input.paginationClick
+        ? {
+            onClickCapture: (event: { target: unknown; currentTarget: unknown }) =>
+              input.paginationClick!(
+                input.node.id,
+                event.target as Element,
+                event.currentTarget as Element,
+              ),
+          }
+        : {}),
     })),
   },
   nav: {

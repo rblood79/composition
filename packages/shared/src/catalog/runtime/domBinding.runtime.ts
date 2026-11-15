@@ -346,6 +346,8 @@ export interface CatalogDomRuntime {
   moreLoaded?(collectionId: string, ownerId: string): boolean;
   /** ADR-310 Decision 11 — a collection's load (a run's own load-more spinner). */
   loadingOf?(collectionId: string): string | undefined;
+  /** ADR-310 Phase 7 — a click in a Pagination: its list steps (the session's page). */
+  paginationClick?(recordId: string, target: Element, nav: Element): void;
   /** Whether a collection pages (its endpoint gives a cursor) — only those end in a load-more item. */
   pages?(collectionId: string): boolean;
   /**
@@ -4081,6 +4083,12 @@ export function renderNode(
                 context.runtime!.moreLoaded?.(collectionId, ownerId) ?? false,
               loadingOf: (collectionId: string) =>
                 context.runtime!.loadingOf?.(collectionId),
+            }
+          : {}),
+        ...(context.runtime?.paginationClick
+          ? {
+              paginationClick: (recordId: string, target: Element, nav: Element) =>
+                context.runtime!.paginationClick!(recordId, target, nav),
             }
           : {}),
         ...(context.runtime?.serverFilterOf && context.runtime.setFilterText

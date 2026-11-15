@@ -1168,6 +1168,12 @@ const catalog: TranslationKeys = {
     rowTemplateItems: "{count} existing items",
     rowTemplateFirst: "First item as the template — remove the rest",
     rowTemplateKeep: "Keep all as fixed items — data after them",
+    rowDisplay: "Show rows",
+    rowDisplayMore: "Show more at the end",
+    rowDisplayPages: "Pages",
+    rowDisplayPageSize: "Rows per page",
+    rowDisplayPagination: "Pagination",
+    rowDisplayPaginationNone: "None",
     legacyBinding:
       "Legacy {source} binding — choosing a collection switches it to dataTable.",
     fieldTemplatePlaceholder: "Text or {field}",

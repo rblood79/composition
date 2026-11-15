@@ -1265,6 +1265,17 @@ export interface NodeEntry {
    */
   repeat?: true;
   /**
+   * ADR-310 Decision 10 — how a bound list shows its rows: 「더 보기」 (`more` — the default, a window
+   * that grows by `size`), pages (`pages` — `size` rows a page, a Pagination steps them) or a
+   * virtual scroll (`virtual`). Absent = `{ mode: "more", size: 100 }`.
+   */
+  rowDisplay?: CatalogRowDisplay;
+  /**
+   * ADR-310 사용자 결정 6 — the list a Pagination pages (its number button repeats per page, the
+   * current one selected). Dangling = not connected.
+   */
+  pagesOf?: NodeId;
+  /**
    * A slot an instance fills. ADR-261 Decision 3 — `suggested`: components offered first when an
    * instance fills it (pen.dev 「suggested slot components」 — a hint, not a restriction).
    */
@@ -1667,6 +1678,17 @@ export type NodeParent =
  * `CatalogStage` is another (the committed state with staged records layered over it), so a
  * command plans the same way alone or after earlier commands of a composed edit.
  */
+/** ADR-310 Decision 10 — a bound list's row display (`NodeEntry.rowDisplay`). */
+export interface CatalogRowDisplay {
+  readonly mode: "more" | "pages" | "virtual";
+  /** Rows a window grows by · a page holds (1 ~ 1,000); absent = 100. */
+  readonly size?: number;
+}
+/** A row display's size: its own, else 100 (the 「더 보기」 window). */
+export function catalogRowDisplaySize(display: CatalogRowDisplay | undefined): number {
+  return display?.size ?? 100;
+}
+
 export interface CatalogReader {
   readonly projectId: EntryId<"project">;
   readonly revision: number;

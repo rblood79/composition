@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-310 Phase 7 — 연결한 목록의 「페이지」 표시 · Pagination 연결] - 2026-11-15
+
+### Added
+
+- **행 표시 「페이지」**: 데이터를 연결한 목록의 Design 패널 Collection 에 「행 표시」 (끝에서 더 보기 / 페이지) 와 「쪽당 행 수」 가 생겼다. 페이지로 두면 Preview · Publish 가 그 수만큼만 보이고, 고른 Pagination 이 번호를 쪽 수만큼 그린다 (첫 번호 Button 이 템플릿 — 지금 쪽이 선택). 번호 · ← · → 를 누르면 그 쪽으로 간다. 정렬 · 검색을 바꾸면 1 쪽으로 돌아간다.
+- **원격 데이터의 쪽**: API 로 받는 데이터는 쪽 목록마다 자기 쪽을 요청한다 — endpoint 의 `{{ page }}` · `{{ pageSize }}` 인자. 같은 데이터를 읽는 다른 목록의 행은 바뀌지 않는다. endpoint 가 쪽 번호를 받지 않으면 번호 없이 ← · → (cursor) 로 오간다.
+
 ## [ADR-310 Phase 6 — Code 보기의 반복 항목 · 끌어 옮기기 onMove · 고정 항목 경계] - 2026-11-15
 
 ### Changed

@@ -471,6 +471,14 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
     "catalogBindingCommand",
     0,
   ),
+  rowDisplay: {
+    notInCode:
+      "a list's row display (ADR-310 Decision 10) is the Preview's window — a page · a virtual scroll the runtime keeps; the Design panel's Collection section",
+  },
+  pagesOf: {
+    notInCode:
+      "a Pagination's list (ADR-310 사용자 결정 6) — the Design panel's Collection section connects it",
+  },
   slot: at(
     "src/components/<Name>.tsx",
     "composition={{slot: {name, required}}} on the template node",

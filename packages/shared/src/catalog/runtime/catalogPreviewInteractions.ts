@@ -458,6 +458,20 @@ export interface CatalogPreviewInteractionsOptions {
   moreLoaded?: (collectionId: string, ownerId: string) => boolean;
   /** ADR-310 Decision 11 — a collection's load (`CatalogPreviewSession.loadingStateOf`). */
   loadingOf?: (collectionId: string) => string;
+  /** ADR-310 Phase 7 — a paged list's page (`CatalogPreviewSession.pageOf` · `goToPage`). */
+  pageOf?: (listId: string) => CatalogListPage | undefined;
+  goToPage?: (
+    listId: string,
+    to: number | "previous" | "next",
+  ) => Promise<unknown>;
+}
+
+/** ADR-310 Phase 7 — a paged list's page and the steps it allows (absent count = unknown). */
+export interface CatalogListPage {
+  readonly page: number;
+  readonly count?: number;
+  readonly canPrevious: boolean;
+  readonly canNext: boolean;
 }
 
 /**
@@ -1005,6 +1019,56 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   }
   loadingOf(collectionId: string): string | undefined {
     return this.options.loadingOf?.(collectionId);
+  }
+  pageOf(listId: string): CatalogListPage | undefined {
+    return this.options.pageOf?.(listId);
+  }
+  /**
+   * ADR-310 Phase 7 (사용자 결정 6) — a click in a Pagination that pages a list: its first child
+   * steps back, its last forward, a button of its number group (the template repeated per page)
+   * shows that page.
+   */
+  paginationClick(recordId: string, target: Element, nav: Element): void {
+    const root = this.options.root();
+    const record = root?.domInputs.get(recordId);
+    const source = record && root?.runtime.graph.getEntry(record.sourceId as never);
+    const listId = source?.kind === "node" ? source.pagesOf : undefined;
+    if (!root || !record || !listId) return;
+    const kids = record.children
+      .map((id) => root.domInputs.get(id))
+      .filter((kid): kid is NonNullable<typeof kid> => !!kid);
+    const group = kids.find(
+      (kid) => catalogTypeName(root, kid) === "ToggleButtonGroup",
+    );
+    for (
+      let element: Element | null = target;
+      element && element !== nav;
+      element = element.parentElement
+    ) {
+      const id = element.getAttribute("data-catalog-id");
+      if (!id) continue;
+      const current = this.pageOf(listId);
+      if (id === kids[0]?.id) {
+        if (current?.canPrevious) this.goToPage(listId, "previous");
+        return;
+      }
+      if (id === kids.at(-1)?.id) {
+        if (current?.canNext) this.goToPage(listId, "next");
+        return;
+      }
+      const page = Number(root.domInputs.get(id)?.props.id);
+      if (root.domInputs.get(id)?.parentId === group?.id && Number.isInteger(page)) {
+        this.goToPage(listId, page);
+        return;
+      }
+    }
+  }
+  goToPage(listId: string, to: number | "previous" | "next"): void {
+    this.options.goToPage?.(listId, to).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[interactions] page ${String(to)} 실패 — ${message}`);
+      this.options.showToast(message, FAILURE_TOAST);
+    });
   }
   showMore(collectionId: string, ownerId: string, moreLoaded: boolean): void {
     const show = this.options.showMore;
