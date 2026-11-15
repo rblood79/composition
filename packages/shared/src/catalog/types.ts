@@ -226,7 +226,15 @@ export interface PropContract {
    * enum 전용 고정 옵션. `kind:"variant"`/`"size"` 는 `options` 를 두지 않는다 —
    * 선택 가능 값을 theme 규칙의 `data-*` 값 집합에서 읽는다.
    */
-  options?: Array<{ value: string; label: string }>;
+  options?: Array<{
+    value: string;
+    label: string;
+    /**
+     * 항목의 노출 조건 — 같은 prop 의 값 집합이 다른 prop 으로 갈릴 때 (Chart `shape` 는 chartType
+     * 마다 다르다 — ADR-306). 필드의 `visibleWhen` 과 같은 판정이고, 숨긴 항목도 저장 값으로는 유효하다.
+     */
+    visibleWhen?: VisibilityCondition;
+  }>;
   /** number 전용 — min · max 가 둘 다 있으면 패널이 슬라이더로 편집한다. */
   min?: number;
   max?: number;

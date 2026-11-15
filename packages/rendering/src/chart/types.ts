@@ -395,10 +395,69 @@ export interface ChartProps {
   sort?: ChartSort;
   /** 값 축에 0 포함 (dumbbell, 기본 false). */
   includeZero?: boolean;
+  // ── ADR-306 Phase 3 — category family (breakdown §2.2 #10 ~ #21).
+  /** 칸 수 (waffle, 기본 100 · 1 ~ 400). */
+  cells?: number;
+  /** 한 줄 칸 수 (waffle, 기본 10). */
+  columns?: number;
+  /** 오른쪽 전환율 열 (funnel, 기본 true). */
+  showRates?: boolean;
+  /** 전환율 기준 (funnel, 기본 previous). */
+  rateBase?: ChartRateBase;
+  /** 전환율 열 제목 (funnel). */
+  rateLabel?: string;
+  /** 누적 기준선 % (pareto, 기본 80). */
+  threshold?: number;
+  /** 범주 대신 순위 「#1」 (pareto). */
+  rankLabels?: boolean;
+  /** 「total」 행을 가리는 필드 (waterfall — 값이 `total` 이면 합계 막대). */
+  kindField?: string;
+  /** 첫 행을 시작 합계로 (waterfall, 기본 true). */
+  startTotal?: boolean;
+  /** 끝에 누적 합계 막대 (waterfall, 기본 false). */
+  endTotal?: boolean;
+  /** 막대 사이 연결선 (waterfall, 기본 true). */
+  connectors?: boolean;
+  /** 최고 · 최저 점 (sparkline). */
+  showExtremes?: boolean;
+  /** 쌓기 기준선 (stream, 기본 wiggle — Popover `offset` 과 다른 축이라 이름을 나눈다). */
+  streamOffset?: ChartStreamOffset;
+  /** 계열 순서를 안쪽에서 바깥으로 (stream, 기본 true). */
+  reorder?: boolean;
+  /** 순위 필드 (bump — 1 이 1 등. 없으면 값으로 순위). */
+  rankField?: string;
+  /** 양쪽 제목 2 (slope — 없으면 첫 · 끝 시점). */
+  periodLabels?: readonly string[];
+  /** 앞줄에 쌓을 필드 (skyline). */
+  frontFields?: readonly string[];
+  /** 칸 폭 대비 뒷줄 깊이 (skyline, 0.1 ~ 0.32 · 기본 0.32). */
+  depth?: number;
+  /** 뒷벽 눈금 (skyline, 기본 true). */
+  wall?: boolean;
+  /** 빗금을 그릴 줄 (skyline, 기본 front). */
+  texture?: ChartTexture;
+  /** 앞줄 ÷ 뒷줄 표시 (skyline, 기본 label). */
+  frontRate?: ChartFrontRate;
 }
 
+export type ChartRateBase = "previous" | "first";
+export type ChartStreamOffset = "wiggle" | "silhouette";
+export type ChartTexture = "front" | "all" | "none";
+export type ChartFrontRate = "label" | "strip" | "none";
+
 /** ADR-306 — 종류 안의 모양 (`shape`). rule 의 `variant` (상자) 와 다른 축이다. */
-export type ChartShape = "arc" | "semi" | "ring" | "ticks";
+export type ChartShape =
+  | "arc"
+  | "semi"
+  | "ring"
+  | "ticks"
+  // segmented
+  | "tall"
+  | "thin"
+  // sparkline
+  | "line"
+  | "area"
+  | "bar";
 export type ChartSort = "none" | "ascending" | "descending";
 
 /** ADR-217 — RSC `ReferenceLineOptions` 의 채택 부분집합 (`value` · `label` · `lineType` · `layer`). */
@@ -715,5 +774,11 @@ export interface ChartTarget {
   rows: readonly number[];
   /** 툴팁 제목 + 줄 (`label: text`). */
   title: string;
-  entries: readonly { label: string; text: string; paint?: ChartPaintRole }[];
+  entries: readonly {
+    label: string;
+    text: string;
+    paint?: ChartPaintRole;
+    /** 시리즈 팔레트 색 (paint 가 없을 때). */
+    series?: number;
+  }[];
 }

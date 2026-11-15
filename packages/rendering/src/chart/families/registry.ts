@@ -17,11 +17,12 @@ import type { ChartFamily } from "./types";
 type Loader = () => Promise<ChartFamily>;
 
 /**
- * family → chunk. 아직 구현되지 않은 family 는 없다 (breakdown §8 — Phase 3 · 4 · 5 가 더한다) —
+ * family → chunk. 아직 구현되지 않은 family 는 표에 없다 (breakdown §8 — Phase 4 · 5 가 더한다) —
  * 그 종류의 scene 은 `chartFamily.unavailable` 설정 오류다.
  */
 const LOADERS: Partial<Record<ChartFamilyId, Loader>> = {
   kpi: () => import("./kpi").then((module) => module.kpiFamily),
+  category: () => import("./category").then((module) => module.categoryFamily),
 };
 
 const loaded = new Map<ChartFamilyId, ChartFamily>();

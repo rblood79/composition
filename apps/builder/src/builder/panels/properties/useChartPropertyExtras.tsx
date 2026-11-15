@@ -5,6 +5,7 @@ import {
 } from "@composition/shared";
 import {
   CHART_DEFAULT_SERIES_COUNT,
+  chartTypeAcceptsColumns,
   isFamilyChartType,
   resolveChartPalette,
   type ChartRow,
@@ -208,6 +209,7 @@ export function useChartPropertyExtras({
   );
   // ADR-306 — family 종류 (gauge · bullet · dumbbell …) 는 시리즈 격자를 지나지 않는다: 시리즈 원천 ·
   //   값 필드 · 범주 간격 · 기준선 · 시리즈 표 · 표시 예산은 읽지 않으니 내지 않는다 (숫자 형식만 공유).
+  //   값 필드 목록 (columns 모드) 을 읽는 family (stream · slope · skyline) 만 원천 모드 · 값 필드를 낸다.
   if (isFamilyChartType(chartValues.chartType))
     return {
       fields: semanticFields,
@@ -217,6 +219,20 @@ export function useChartPropertyExtras({
           <ChartAuthoringControls fields={semanticFields} onPatch={onPatch} />
         </>
       ),
+      ...(chartTypeAcceptsColumns(chartValues.chartType)
+        ? {
+            sectionLeads: {
+              collection: (
+                <ChartDataMappingControls
+                  elementId={elementId}
+                  fields={chartControlFields}
+                  columns={chartColumns}
+                  onPatch={handleChartPatch}
+                />
+              ),
+            },
+          }
+        : {}),
       sectionExtras: {
         appearance: (
           <ChartNumberFormatControls

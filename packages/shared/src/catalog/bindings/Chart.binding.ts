@@ -1,11 +1,22 @@
 import {
   CHART_FAMILY_PROP_KEYS,
   SERIES_CHART_TYPES,
+  chartTypesReading,
 } from "@composition/rendering";
 import type { PrimitiveBinding } from "../types";
 
 /** ADR-306 — 필드 역할을 읽는 종류 (조건은 `computeChartScene` · family 의 실제 소비 — R2). */
 const SERIES_TYPES: string[] = [...SERIES_CHART_TYPES];
+/** ADR-306 — descriptor 역할 · 옵션 표에서 그 prop 을 읽는 family 종류 (손으로 적은 목록을 두지 않는다). */
+const reading = (prop: Parameters<typeof chartTypesReading>[0]): string[] =>
+  chartTypesReading(prop);
+const readingIs = (prop: Parameters<typeof chartTypesReading>[0]) => ({
+  key: "chartType",
+  oneOf: reading(prop),
+});
+const GAUGE = { key: "chartType", equals: "gauge" };
+const SEGMENTED = { key: "chartType", equals: "segmented" };
+const SPARKLINE = { key: "chartType", equals: "sparkline" };
 
 /**
  * Chart — 데이터 시각화 leaf (ADR-194).
@@ -64,6 +75,19 @@ export const chartBinding: PrimitiveBinding = {
           { value: "gauge", label: "Gauge" },
           { value: "bullet", label: "Bullet" },
           { value: "dumbbell", label: "Dumbbell" },
+          // ADR-306 category family (Phase 3).
+          { value: "lollipop", label: "Lollipop" },
+          { value: "segmented", label: "Segmented Bar" },
+          { value: "waffle", label: "Waffle" },
+          { value: "funnel", label: "Funnel" },
+          { value: "pareto", label: "Pareto" },
+          { value: "waterfall", label: "Waterfall" },
+          { value: "sparkline", label: "Sparkline" },
+          { value: "marimekko", label: "Marimekko" },
+          { value: "stream", label: "Streamgraph" },
+          { value: "bump", label: "Bump" },
+          { value: "slope", label: "Slope" },
+          { value: "skyline", label: "Skyline" },
         ],
       },
       dimension: {
@@ -74,7 +98,7 @@ export const chartBinding: PrimitiveBinding = {
         // ADR-306 — gauge 는 범주가 없다 (첫 행의 값 하나).
         visibleWhen: {
           key: "chartType",
-          oneOf: [...SERIES_TYPES, "bullet", "dumbbell"],
+          oneOf: [...SERIES_TYPES, ...reading("dimension")],
         },
       },
       metric: {
@@ -88,7 +112,10 @@ export const chartBinding: PrimitiveBinding = {
         visibleWhen: {
           all: [
             { key: "dataMode", equals: "group" },
-            { key: "chartType", oneOf: [...SERIES_TYPES, "gauge", "bullet"] },
+            {
+              key: "chartType",
+              oneOf: [...SERIES_TYPES, ...reading("metric")],
+            },
           ],
         },
       },
@@ -99,7 +126,10 @@ export const chartBinding: PrimitiveBinding = {
         visibleWhen: {
           all: [
             { key: "dataMode", equals: "group" },
-            { key: "chartType", oneOf: SERIES_TYPES },
+            {
+              key: "chartType",
+              oneOf: [...SERIES_TYPES, ...reading("color")],
+            },
           ],
         },
       },
@@ -112,73 +142,76 @@ export const chartBinding: PrimitiveBinding = {
         kind: "string",
         label: "Goal",
         section: "collection",
-        visibleWhen: { key: "chartType", oneOf: ["gauge", "bullet"] },
+        visibleWhen: readingIs("goalField"),
       },
       rangeFields: {
         kind: "string-array",
         label: "Range Fields",
         section: "collection",
-        visibleWhen: { key: "chartType", equals: "bullet" },
+        visibleWhen: readingIs("rangeFields"),
       },
       startField: {
         kind: "string",
         label: "Start",
         section: "collection",
-        visibleWhen: { key: "chartType", equals: "dumbbell" },
+        visibleWhen: readingIs("startField"),
       },
       endField: {
         kind: "string",
         label: "End",
         section: "collection",
-        visibleWhen: { key: "chartType", equals: "dumbbell" },
+        visibleWhen: readingIs("endField"),
       },
       valueMin: {
         kind: "number",
         label: "Min Value",
         section: "appearance",
         default: 0,
-        visibleWhen: { key: "chartType", equals: "gauge" },
+        visibleWhen: readingIs("valueMin"),
       },
       valueMax: {
         kind: "number",
         label: "Max Value",
         section: "appearance",
-        default: 100,
-        visibleWhen: { key: "chartType", equals: "gauge" },
+        visibleWhen: readingIs("valueMax"),
       },
       centerLabel: {
         kind: "string",
         label: "Center Label",
         section: "appearance",
-        visibleWhen: { key: "chartType", equals: "gauge" },
+        visibleWhen: readingIs("centerLabel"),
       },
       shape: {
         kind: "enum",
         label: "Shape",
         section: "appearance",
-        default: "arc",
-        // 값 집합은 종류마다 다르다 (breakdown §2.2) — Phase 2 는 gauge 하나 (Phase 0: options 가
-        //   chartType 으로 갈리는 기구는 없다 — 다음 family 가 shape 를 받을 때 정한다).
+        // 값 집합은 종류마다 다르다 (breakdown §2.2) — 항목마다 `visibleWhen` 으로 그 종류의 값만 패널에
+        //   낸다 (ADR-306 Phase 3 — PropContract option 조건). 기본값은 종류의 descriptor defaults.
         options: [
-          { value: "arc", label: "Arc" },
-          { value: "semi", label: "Semicircle" },
-          { value: "ring", label: "Ring" },
-          { value: "ticks", label: "Ticks" },
+          { value: "arc", label: "Arc", visibleWhen: GAUGE },
+          { value: "semi", label: "Semicircle", visibleWhen: GAUGE },
+          { value: "ring", label: "Ring", visibleWhen: GAUGE },
+          { value: "ticks", label: "Ticks", visibleWhen: GAUGE },
+          { value: "tall", label: "Tall", visibleWhen: SEGMENTED },
+          { value: "thin", label: "Thin", visibleWhen: SEGMENTED },
+          { value: "area", label: "Area", visibleWhen: SPARKLINE },
+          { value: "line", label: "Line", visibleWhen: SPARKLINE },
+          { value: "bar", label: "Bar", visibleWhen: SPARKLINE },
         ],
-        visibleWhen: { key: "chartType", equals: "gauge" },
+        visibleWhen: readingIs("shape"),
       },
       bands: {
         kind: "string-array",
         label: "Bands",
         section: "appearance",
-        visibleWhen: { key: "chartType", equals: "gauge" },
+        visibleWhen: readingIs("bands"),
       },
       independent: {
         kind: "boolean",
         label: "Independent Scale",
         section: "appearance",
         default: true,
-        visibleWhen: { key: "chartType", equals: "bullet" },
+        visibleWhen: readingIs("independent"),
       },
       sort: {
         kind: "enum",
@@ -190,14 +223,188 @@ export const chartBinding: PrimitiveBinding = {
           { value: "descending", label: "Descending" },
           { value: "ascending", label: "Ascending" },
         ],
-        visibleWhen: { key: "chartType", equals: "dumbbell" },
+        visibleWhen: readingIs("sort"),
       },
       includeZero: {
         kind: "boolean",
         label: "Include Zero",
         section: "appearance",
         default: false,
-        visibleWhen: { key: "chartType", equals: "dumbbell" },
+        visibleWhen: readingIs("includeZero"),
+      },
+      // ── ADR-306 Phase 3 — category family 의 역할 · 옵션 ──
+      kindField: {
+        kind: "string",
+        label: "Kind",
+        section: "collection",
+        visibleWhen: readingIs("kindField"),
+      },
+      rankField: {
+        kind: "string",
+        label: "Rank",
+        section: "collection",
+        visibleWhen: readingIs("rankField"),
+      },
+      frontFields: {
+        kind: "string-array",
+        label: "Front Fields",
+        section: "collection",
+        visibleWhen: readingIs("frontFields"),
+      },
+      cells: {
+        kind: "number",
+        label: "Cells",
+        section: "appearance",
+        default: 100,
+        min: 1,
+        max: 400,
+        step: 1,
+        visibleWhen: readingIs("cells"),
+      },
+      columns: {
+        kind: "number",
+        label: "Columns",
+        section: "appearance",
+        default: 10,
+        min: 1,
+        max: 40,
+        step: 1,
+        visibleWhen: readingIs("columns"),
+      },
+      showRates: {
+        kind: "boolean",
+        label: "Show Rates",
+        section: "appearance",
+        default: true,
+        visibleWhen: readingIs("showRates"),
+      },
+      rateBase: {
+        kind: "enum",
+        label: "Rate Base",
+        section: "appearance",
+        default: "previous",
+        options: [
+          { value: "previous", label: "Previous Step" },
+          { value: "first", label: "First Step" },
+        ],
+        visibleWhen: readingIs("rateBase"),
+      },
+      rateLabel: {
+        kind: "string",
+        label: "Rate Label",
+        section: "appearance",
+        visibleWhen: readingIs("rateLabel"),
+      },
+      threshold: {
+        kind: "number",
+        label: "Threshold",
+        section: "appearance",
+        default: 80,
+        min: 0,
+        max: 100,
+        step: 1,
+        unit: "%",
+        visibleWhen: readingIs("threshold"),
+      },
+      rankLabels: {
+        kind: "boolean",
+        label: "Rank Labels",
+        section: "appearance",
+        default: false,
+        visibleWhen: readingIs("rankLabels"),
+      },
+      startTotal: {
+        kind: "boolean",
+        label: "Start Total",
+        section: "appearance",
+        default: true,
+        visibleWhen: readingIs("startTotal"),
+      },
+      endTotal: {
+        kind: "boolean",
+        label: "End Total",
+        section: "appearance",
+        default: false,
+        visibleWhen: readingIs("endTotal"),
+      },
+      connectors: {
+        kind: "boolean",
+        label: "Connectors",
+        section: "appearance",
+        default: true,
+        visibleWhen: readingIs("connectors"),
+      },
+      showExtremes: {
+        kind: "boolean",
+        label: "Show Extremes",
+        section: "appearance",
+        default: false,
+        visibleWhen: readingIs("showExtremes"),
+      },
+      streamOffset: {
+        kind: "enum",
+        label: "Offset",
+        section: "appearance",
+        default: "wiggle",
+        options: [
+          { value: "wiggle", label: "Wiggle" },
+          { value: "silhouette", label: "Silhouette" },
+        ],
+        visibleWhen: readingIs("streamOffset"),
+      },
+      reorder: {
+        kind: "boolean",
+        label: "Reorder",
+        section: "appearance",
+        default: true,
+        visibleWhen: readingIs("reorder"),
+      },
+      periodLabels: {
+        kind: "string-array",
+        label: "Period Labels",
+        section: "appearance",
+        visibleWhen: readingIs("periodLabels"),
+      },
+      depth: {
+        kind: "number",
+        label: "Depth",
+        section: "appearance",
+        default: 0.32,
+        min: 0.1,
+        max: 0.32,
+        step: 0.01,
+        visibleWhen: readingIs("depth"),
+      },
+      wall: {
+        kind: "boolean",
+        label: "Wall",
+        section: "appearance",
+        default: true,
+        visibleWhen: readingIs("wall"),
+      },
+      texture: {
+        kind: "enum",
+        label: "Texture",
+        section: "appearance",
+        default: "front",
+        options: [
+          { value: "front", label: "Front Row" },
+          { value: "all", label: "All" },
+          { value: "none", label: "None" },
+        ],
+        visibleWhen: readingIs("texture"),
+      },
+      frontRate: {
+        kind: "enum",
+        label: "Front Rate",
+        section: "appearance",
+        default: "label",
+        options: [
+          { value: "label", label: "Label" },
+          { value: "strip", label: "Strip" },
+          { value: "none", label: "None" },
+        ],
+        visibleWhen: readingIs("frontRate"),
       },
       /**
        * ── ADR-210 — 다중 수치 컬럼·시리즈 표시·숫자 형식 ──
@@ -440,7 +647,7 @@ export const chartBinding: PrimitiveBinding = {
         // 극좌표·pie 는 읽지 않는다 (computeChartScene.ts:417,487,502). ADR-217 scatter 도 읽는다.
         visibleWhen: {
           key: "chartType",
-          oneOf: ["bar", "line", "area", "scatter"],
+          oneOf: ["bar", "line", "area", "scatter", ...reading("orientation")],
         },
       },
       stackType: {
@@ -472,7 +679,10 @@ export const chartBinding: PrimitiveBinding = {
           { value: "step", label: "Step" },
         ],
         // computeChartScene.ts:505,519.
-        visibleWhen: { key: "chartType", oneOf: ["line", "area"] },
+        visibleWhen: {
+          key: "chartType",
+          oneOf: ["line", "area", ...reading("curve")],
+        },
       },
       showDots: {
         kind: "boolean",
@@ -607,7 +817,10 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         default: false,
         // computeChartScene.ts:359 + radial 확장 (P3 — centerTotalLabels 공유).
-        visibleWhen: { key: "chartType", oneOf: ["pie", "radial"] },
+        visibleWhen: {
+          key: "chartType",
+          oneOf: ["pie", "radial", ...reading("showTotal")],
+        },
       },
       /**
        * radar 격자·선 제어 (ADR-208 P2). 넷 다 radar 전용이라 조건을 단다 — 조건이

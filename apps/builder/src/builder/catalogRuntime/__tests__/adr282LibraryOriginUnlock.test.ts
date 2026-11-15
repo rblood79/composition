@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { preloadChartFamilies } from "./support/chartFamilies";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -124,6 +125,9 @@ const texts = (workspace: CatalogWorkspace, id: NodeId): string[] => {
   walk(resolveCatalogNode(workspace.runtime.graph, id));
   return out;
 };
+
+// ADR-306 — the Library page stores its Chart type cards once the families are loaded.
+beforeAll(preloadChartFamilies);
 
 describe("ADR-282 Phase 2 — the Library page's lock", () => {
   it("RED-1 · G3: locked, a ◆ refuses a child; unlocked, every ◆ is its copy root and a child reaches the instances; locked again, the edited copy stays and takes no edit", async () => {

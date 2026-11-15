@@ -1503,6 +1503,23 @@ function hasContractRows(layout: SectionLayout): boolean {
   );
 }
 
+/**
+ * 항목마다 조건이 있는 enum (Chart `shape` — chartType 마다 값 집합이 다르다, ADR-306) 은 조건에 맞는
+ * 항목만 낸다. 조건 없는 필드는 같은 객체를 돌려준다 (memo 유지).
+ */
+export function withVisibleOptions(
+  field: ResolvedField,
+  conditionValues: Record<string, unknown>,
+): ResolvedField {
+  if (!field.options?.some((option) => option.visibleWhen)) return field;
+  return {
+    ...field,
+    options: field.options.filter((option) =>
+      evaluateVisibility(option.visibleWhen, conditionValues),
+    ),
+  };
+}
+
 /** `visibleWhen` 이 읽는 키 (`a.b` 는 `a`) — 이 키의 값이 바뀌면 배치가 바뀐다. */
 function collectGateKeys(
   condition: VisibilityCondition | undefined,
@@ -1522,7 +1539,11 @@ function collectGateKeys(
  */
 function layoutSignature(fields: readonly ResolvedField[]): string {
   const gateKeys = new Set<string>();
-  for (const field of fields) collectGateKeys(field.visibleWhen, gateKeys);
+  for (const field of fields) {
+    collectGateKeys(field.visibleWhen, gateKeys);
+    for (const option of field.options ?? [])
+      collectGateKeys(option.visibleWhen, gateKeys);
+  }
   return JSON.stringify(
     fields.map((field) => [
       field.key,
@@ -1582,7 +1603,7 @@ function layoutSections(
       isSingleChoice(field)
     )
       continue;
-    bucket.push(field);
+    bucket.push(withVisibleOptions(field, conditionValues));
   }
   for (const section of extraSectionKeys) {
     if (!groups.has(section)) groups.set(section, []);

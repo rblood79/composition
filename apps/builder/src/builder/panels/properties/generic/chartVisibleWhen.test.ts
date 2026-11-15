@@ -11,14 +11,18 @@
  * (보이는데 안 달라짐) 은 실패로 치지 않는다 — 데이터·크기에 따라 우연히 같아질 수 있고,
  * 여유 있게 보여 주는 것은 결함이 아니다.
  */
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   CHART_DEFAULT_METRICS,
+  CHART_DESCRIPTORS,
   computeChartScene,
+  getChartDescriptor,
+  loadChartFamily,
   type ChartProps,
   type ChartRow,
   type ChartType,
+  type FamilyChartType,
 } from "@composition/rendering";
 import { getCatalogEntry } from "@composition/shared";
 
@@ -194,4 +198,114 @@ describe("ADR-208 G2 ① — 소비되는 prop 은 반드시 보인다", () => {
     expect(radar.has("gridType")).toBe(true);
     expect([...bar].sort()).not.toEqual([...radar].sort());
   });
+});
+
+/**
+ * ADR-306 Phase 3 — category family 12 종에도 같은 차등 오라클. family 는 표본 행 · 역할 이름으로
+ * (시리즈 표본은 그 종류의 역할을 채우지 못한다) 그리고, 패널이 보는 값도 같은 시작 props 다.
+ */
+const CATEGORY_TYPES = CHART_DESCRIPTORS.filter(
+  (d) => d.family === "category",
+).map((d) => d.chartType as FamilyChartType);
+const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
+  orientation: ["vertical"],
+  sort: ["none", "ascending"],
+  shape: ["thin", "line", "bar"],
+  cells: [50],
+  columns: [5],
+  valueMax: [500],
+  showTotal: [false],
+  centerLabel: ["Center"],
+  showRates: [false],
+  rateBase: ["first"],
+  rateLabel: ["Rate"],
+  threshold: [50],
+  rankLabels: [true],
+  startTotal: [false],
+  endTotal: [true],
+  connectors: [false],
+  showExtremes: [true],
+  streamOffset: ["silhouette"],
+  reorder: [false],
+  curve: ["linear"],
+  periodLabels: [["From", "To"]],
+  depth: [0.1],
+  wall: [false],
+  texture: ["none", "all"],
+  frontRate: ["strip", "none"],
+  showValueLabels: [false],
+  showLegend: [false],
+};
+
+describe("ADR-306 G2 ① — category family: 소비되는 prop 은 보이고, 보이는 조건 prop 은 읽힌다", () => {
+  let family: Awaited<ReturnType<typeof loadChartFamily>>;
+  beforeAll(async () => {
+    family = await loadChartFamily("category");
+  });
+  const startOf = (chartType: FamilyChartType): ChartProps => {
+    const props: Record<string, unknown> = { chartType };
+    for (const [key, contract] of Object.entries(acceptsContracts()))
+      if (key !== "chartType" && contract.default !== undefined)
+        props[key] = contract.default;
+    return {
+      ...props,
+      ...getChartDescriptor(chartType).defaults,
+      ...family.sampleProps(chartType),
+      chartType,
+      showGrid: true,
+    } as ChartProps;
+  };
+  // waterfall 표본은 첫 행이 이미 `kind: total` 이라 `startTotal` 이 갈리지 않는다 — 그 축을 보도록
+  //   첫 행의 kind 를 비운다 (startTotal 은 kind 가 없는 첫 행만 합계로 만든다).
+  const rowsOf = (chartType: FamilyChartType) =>
+    family
+      .sample(chartType)
+      .map((row, i) =>
+        chartType === "waterfall" && i === 0 ? { ...row, kind: null } : row,
+      );
+  const scene = (chartType: FamilyChartType, props: ChartProps) =>
+    JSON.stringify(
+      computeChartScene(props, rowsOf(chartType), SIZE, CHART_DEFAULT_METRICS),
+    );
+  const consumed = (chartType: FamilyChartType) => {
+    const base = startOf(chartType);
+    const baseScene = scene(chartType, base);
+    const out = new Set<string>();
+    for (const [key, candidates] of Object.entries(FAMILY_ALTERNATIVES))
+      for (const value of candidates)
+        if (
+          scene(chartType, { ...base, [key]: value } as ChartProps) !==
+          baseScene
+        ) {
+          out.add(key);
+          break;
+        }
+    return out;
+  };
+  const visible = (chartType: FamilyChartType) => {
+    const values = startOf(chartType) as unknown as Record<string, unknown>;
+    return new Set(
+      Object.entries(acceptsContracts())
+        .filter(([, contract]) =>
+          evaluateVisibility(contract.visibleWhen as never, values),
+        )
+        .map(([key]) => key),
+    );
+  };
+  for (const chartType of CATEGORY_TYPES) {
+    it(`${chartType}`, () => {
+      const used = consumed(chartType);
+      const shown = visible(chartType);
+      expect([...used].filter((k) => !shown.has(k))).toEqual([]);
+      const contracts = acceptsContracts();
+      expect(
+        [...shown].filter(
+          (k) =>
+            contracts[k]?.visibleWhen !== undefined &&
+            FAMILY_ALTERNATIVES[k] !== undefined &&
+            !used.has(k),
+        ),
+      ).toEqual([]);
+    });
+  }
 });

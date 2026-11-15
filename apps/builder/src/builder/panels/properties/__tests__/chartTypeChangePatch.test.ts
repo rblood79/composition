@@ -21,4 +21,14 @@ describe("ADR-306 — 종류 변경 patch", () => {
       chartType: "bullet",
     });
   });
+  it("값 필드 목록을 읽는 family (stream · slope · skyline) 는 columns 를 그대로 둔다", () => {
+    for (const chartType of ["stream", "slope", "skyline"])
+      expect(chartTypeChangePatch({ dataMode: "columns" }, chartType)).toEqual({
+        chartType,
+      });
+    expect(chartTypeChangePatch({ dataMode: "columns" }, "funnel")).toEqual({
+      chartType: "funnel",
+      dataMode: "group",
+    });
+  });
 });

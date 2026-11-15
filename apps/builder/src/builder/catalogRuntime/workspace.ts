@@ -1,5 +1,12 @@
 import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import { docCounters } from "./docCounters";
+import {
+  CHART_FAMILY_OF,
+  chartFamilyAvailable,
+  getChartFamily,
+  loadChartFamily,
+  type ChartFamilyId,
+} from "@composition/rendering";
 import { catalogAutoHtmlIds } from "./attributes";
 import { catalogGridAutoRows } from "./gridAutoRows";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
@@ -503,13 +510,40 @@ export class CatalogWorkspace {
    * Lay a derived components page out (its view entries, a new root), then again with the cards'
    * drawn heights so its columns are balanced.
    */
-  private openComponentsView(view: CatalogComponentsViewId): void {
+  private openComponentsView(
+    view: CatalogComponentsViewId,
+    familiesWaited = false,
+  ): void {
     const graph = this.runtime.graph;
+    // (Set before the wait below too — `afterStep` compares them, and a step while the families
+    // load would otherwise open the page again.)
     this.projectComponentsKey = isProjectComponentsView(view)
       ? JSON.stringify(catalogProjectComponents(graph))
       : undefined;
     this.libraryForksKey =
       view === COMPONENTS_VIEW ? libraryForksKey(graph) : undefined;
+    // ADR-306 — the Library stores its Chart type cards the first time it opens, their rows from
+    //   the family chunks (`completeChartCreationPropsSync`). A family not loaded yet would store an
+    //   empty card: lay the page out as view entries for now and store it once the families are in
+    //   (once — a family that failed to load stores its card empty rather than wait again).
+    if (
+      !familiesWaited &&
+      view === COMPONENTS_VIEW &&
+      !catalogComponentPageStored(graph, view) &&
+      this.pendingChartFamilies().length > 0
+    ) {
+      setCatalogComponentsView(graph, view, this.colorMode);
+      this.replaceRoot(this.currentRoot.breakpoint);
+      this.readModel.viewEntriesChanged();
+      void Promise.allSettled(
+        this.pendingChartFamilies().map((id) => loadChartFamily(id)),
+      ).then(() => {
+        if (this.disposed || this.definitionView !== view) return;
+        if (catalogComponentPageStored(this.runtime.graph, view)) return;
+        this.openComponentsView(view, true);
+      });
+      return;
+    }
     // ADR-282 Phase 3: a page the project stores is the document's (its layout is the user's);
     // the first open stores it (user 2026-10-25 — library-body is a page's body, the Local page
     // too), the Local page follows the project's components and the Library the built-in
@@ -535,6 +569,12 @@ export class CatalogWorkspace {
     // (Laid out again after a step — the Library's ◆ cells hold the copy roots or the samples:
     // Layers and the Canvas pick read the new rows.)
     this.readModel.viewEntriesChanged();
+  }
+  /** ADR-306 — chart families this build has whose chunk is not loaded yet. */
+  private pendingChartFamilies(): ChartFamilyId[] {
+    return [...new Set(Object.values(CHART_FAMILY_OF))].filter(
+      (id) => chartFamilyAvailable(id) && !getChartFamily(id),
+    );
   }
   /** A Components page node: its stored id when the project stores the page (ADR-282 Phase 3). */
   private componentPageNode(viewId: NodeId): NodeId {

@@ -1,5 +1,7 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { preloadChartFamilies } from "./support/chartFamilies";
+import { CHART_DESCRIPTORS } from "@composition/rendering";
 import { resolveToken } from "@composition/rendering";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -176,6 +178,9 @@ const pageNode = (workspace: CatalogWorkspace, viewId: string): NodeId => {
 };
 const placedLabel = (workspace: CatalogWorkspace) =>
   resolveCatalogNode(graphOf(workspace), PLACED).props.label;
+
+// ADR-306 — the Library page stores its Chart type cards once the families are loaded.
+beforeAll(preloadChartFamilies);
 
 describe("ADR-248 4e library origin view", () => {
   it("lists one built-in origin per palette component, in palette order", async () => {
@@ -670,18 +675,18 @@ describe("ADR-248 4e library origin view", () => {
     // (No Variants row — the Chart has no variant axis, 2026-10-12.)
     expect(chartRows.map((row) => row.name)).toEqual(["Types"]);
     const chartTypes = cellsOf(chartRows[0]!);
+    // Every palette chart type, in palette order (ADR-306 — the families' types join the 7 series
+    //   types as their Phase lands: kpi 3 · category 12).
     expect(chartTypes.map((cell) => cell.name)).toEqual(
+      CHART_DESCRIPTORS.map((d) => `Chart / ${d.label}`),
+    );
+    expect(chartTypes.slice(0, 7).map((cell) => cell.name)).toEqual(
       ["Area", "Bar", "Line", "Pie", "Radar", "Radial", "Scatter"].map(
         (name) => `Chart / ${name} Chart`,
       ),
     );
     expect(chartTypes.map((cell) => sampleOf(cell).props.chartType)).toEqual(
-      ["area", "bar", "line", "pie", "radar", "radial", "scatter"].map(
-        (value) => ({
-          kind: "set",
-          value,
-        }),
-      ),
+      CHART_DESCRIPTORS.map((d) => ({ kind: "set", value: d.chartType })),
     );
     expect(sampleOf(chartTypes[0]!).definitionId).toBe(
       "lib:definition:origin-component-chart",

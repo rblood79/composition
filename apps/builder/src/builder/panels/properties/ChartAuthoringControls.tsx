@@ -4,6 +4,7 @@ import {
   CHART_DESCRIPTORS,
   getChartDescriptor,
   getChartPresetId,
+  chartTypeAcceptsColumns,
   isFamilyChartType,
 } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
@@ -24,15 +25,18 @@ const COLUMNS_UNSUPPORTED_TYPES: readonly string[] = ["pie", "radial"];
  * 사용자 판정). 프리셋/종류 변경은 일반 필드와 같은 canonical batch writer 를 한 번 호출한다.
  */
 /**
- * ADR-306 — 종류 변경 patch. family 종류는 시리즈 원천 (`dataMode`) 을 읽지 않고 그 모드를 바꾸는
+ * ADR-306 — 종류 변경 patch. 값 필드 목록 (columns 모드) 을 읽지 않는 family 종류는 그 모드를 바꾸는
  * 컨트롤 (`ChartDataMappingControls`) 도 내지 않는다. Value Columns 로 둔 채 바꾸면 Value 칸
- * (`metric` — group 모드에서만 보인다) 을 고를 길이 없어지므로 group 으로 되돌린다.
+ * (`metric` — group 모드에서만 보인다) 을 고를 길이 없어지므로 group 으로 되돌린다. columns 를 읽는
+ * family (stream · slope · skyline) 는 모드를 그대로 둔다.
  */
 export function chartTypeChangePatch(
   props: Readonly<Record<string, unknown>>,
   chartType: string,
 ): Record<string, unknown> {
-  return isFamilyChartType(chartType) && props.dataMode === "columns"
+  return isFamilyChartType(chartType) &&
+    !chartTypeAcceptsColumns(chartType) &&
+    props.dataMode === "columns"
     ? { chartType, dataMode: "group" }
     : { chartType };
 }

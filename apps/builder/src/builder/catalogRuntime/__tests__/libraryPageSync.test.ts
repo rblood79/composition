@@ -7,7 +7,8 @@
  * 카드는 다시 넣지 마라」); a page stored before the list gives every missing card once.
  */
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { preloadChartFamilies } from "./support/chartFamilies";
 import { removeTargets } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -115,6 +116,9 @@ async function stored() {
     toastBack,
   };
 }
+
+// ADR-306 — the Library page stores its Chart type cards once the families are loaded.
+beforeAll(preloadChartFamilies);
 
 describe("stored Library page follows the built-in origins", () => {
   it("a new Library page records the origins it gave a card", async () => {

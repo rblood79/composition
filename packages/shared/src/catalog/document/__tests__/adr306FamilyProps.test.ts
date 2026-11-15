@@ -65,7 +65,7 @@ const BEFORE = [
 ];
 
 describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
-  it("kpi 역할 · 옵션 키 목록", () => {
+  it("kpi · category 역할 · 옵션 키 목록", () => {
     expect([...CHART_FAMILY_PROP_KEYS].sort()).toEqual(
       [
         "goalField",
@@ -80,6 +80,28 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
         "independent",
         "sort",
         "includeZero",
+        // Phase 3 — category family.
+        "kindField",
+        "rankField",
+        "frontFields",
+        "cells",
+        "columns",
+        "showRates",
+        "rateBase",
+        "rateLabel",
+        "threshold",
+        "rankLabels",
+        "startTotal",
+        "endTotal",
+        "connectors",
+        "showExtremes",
+        "streamOffset",
+        "reorder",
+        "periodLabels",
+        "depth",
+        "wall",
+        "texture",
+        "frontRate",
       ].sort(),
     );
   });

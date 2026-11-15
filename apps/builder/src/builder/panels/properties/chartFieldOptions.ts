@@ -24,13 +24,19 @@ import { fieldsFromOwner } from "./hooks/useOwnerCollectionColumns";
  */
 export const CHART_MAPPING_FIELD_KEYS: readonly string[] =
   CHART_FIELD_ROLE_KEYS;
-/** 해제 항목 (None) 을 첫 자리에 두는 선택 역할 — 비워도 그려지는 필드. */
-const OPTIONAL_FIELD_KEYS: ReadonlySet<string> = new Set([
-  "color",
-  ...CHART_DESCRIPTORS.flatMap((d) =>
-    d.roles.filter((role) => !role.required).map((role) => role.prop),
-  ),
-]);
+/**
+ * 해제 항목 (None) 을 첫 자리에 두는 선택 역할 — 비워도 그려지는 필드. 종류마다 다르다 (sparkline 의
+ * Category 는 선택이지만 bar 의 Category 는 필수) — 시리즈 7 종은 Series 하나, family 는 descriptor 의
+ * 필수가 아닌 역할.
+ */
+function optionalFieldKeys(chartType: unknown): ReadonlySet<string> {
+  const descriptor = CHART_DESCRIPTORS.find((d) => d.chartType === chartType);
+  if (!descriptor || descriptor.family === null) return SERIES_OPTIONAL;
+  return new Set(
+    descriptor.roles.filter((role) => !role.required).map((role) => role.prop),
+  );
+}
+const SERIES_OPTIONAL: ReadonlySet<string> = new Set(["color"]);
 
 export interface ChartFieldOptionLabels {
   /** 빈 값(미설정·시리즈 해제) 항목의 표시 라벨 — `chart.none`. */
@@ -74,6 +80,7 @@ export function buildChartSemanticFields(
     return ownerFields?.find((f) => f.id === id)?.key ?? value;
   };
   const columns = ownerFields?.map(storedValue) ?? null;
+  const optional = optionalFieldKeys(props.chartType);
   return fields
     .filter((field) => field.key !== "data" || !props.dataBinding)
     .map((field): PanelField => {
@@ -86,7 +93,7 @@ export function buildChartSemanticFields(
       const current = currentField ? storedValue(currentField) : rawCurrent;
       // Series 에만 해제 항목을 **항상 첫 자리**에 둔다. Category/Value 는 새 해제 명령을
       //   추가하지 않고, 현재 값이 이미 빈 값일 때의 기존 항목만 그대로 유지한다.
-      const values = OPTIONAL_FIELD_KEYS.has(field.key)
+      const values = optional.has(field.key)
         ? ["", ...(current === "" ? [] : [current]), ...columns]
         : [current, ...columns];
       return {

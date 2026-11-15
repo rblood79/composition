@@ -296,7 +296,7 @@ export const ZTD_CLASS: Record<string, ZtdEntryClass> = {
       series: A("color"),
     },
     options: {
-      offset: A("offset"),
+      offset: A("streamOffset"),
       reorder: A("reorder"),
       curve: M("curve"),
       xType: M("dimensionScale (ADR-216)"),

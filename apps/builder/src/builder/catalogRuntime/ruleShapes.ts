@@ -563,20 +563,30 @@ function imageShape(
  * ADR-306 (R1) — a Chart of a family type loads its family here, in the Builder scene-node layer:
  * `chart_scene` computes synchronously (a pending box until loaded) and the resolver is the shared
  * pure function Preview · Publish run too. The load's end seeds the bound Charts (`CatalogCanvas`
- * → `chartFamilyLoaded`). A failed load is not retried from here (each failure would draw again
- * and load again) — a palette insert in the Builder (the same realm) or the next session loads it;
- * the Preview iframe's retry is another realm's registry (open item — breakdown §10 Phase 2).
+ * → `chartFamilyLoaded`). A failed load is tried again when that Chart is drawn again, once
+ * `CHART_FAMILY_RETRY_MS` has passed since the failure (a failure seeds the Charts too, so an
+ * immediate retry would draw and load in a loop while offline) — a palette insert loads at once.
+ * The Preview iframe's Retry is another realm's registry and does not reach this one.
  */
-function ensureChartFamily(chartType: unknown): void {
+export const CHART_FAMILY_RETRY_MS = 15_000;
+const chartFamilyFailedAt = new Map<string, number>();
+
+export function ensureChartFamily(
+  chartType: unknown,
+  now: number = Date.now(),
+): void {
   const family = chartFamilyOf(chartType);
-  if (
-    !family ||
-    getChartFamily(family) ||
-    !chartFamilyAvailable(family) ||
-    chartFamilyError(family) !== undefined
-  )
+  if (!family || getChartFamily(family) || !chartFamilyAvailable(family))
     return;
-  void loadChartFamily(family).catch(() => undefined);
+  if (chartFamilyError(family) !== undefined) {
+    const failedAt = chartFamilyFailedAt.get(family) ?? now;
+    chartFamilyFailedAt.set(family, failedAt);
+    if (now - failedAt < CHART_FAMILY_RETRY_MS) return;
+  }
+  chartFamilyFailedAt.delete(family);
+  void loadChartFamily(family).catch(() => {
+    chartFamilyFailedAt.set(family, Date.now());
+  });
 }
 
 function ruleShapes(input: CatalogRuleShapeInput): Shape[] {

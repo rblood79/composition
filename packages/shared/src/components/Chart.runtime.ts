@@ -95,6 +95,27 @@ export interface ChartProps {
   independent?: boolean;
   sort?: SpecChartProps["sort"];
   includeZero?: boolean;
+  cells?: SpecChartProps["cells"];
+  columns?: SpecChartProps["columns"];
+  showRates?: SpecChartProps["showRates"];
+  rateBase?: SpecChartProps["rateBase"];
+  rateLabel?: SpecChartProps["rateLabel"];
+  threshold?: SpecChartProps["threshold"];
+  rankLabels?: SpecChartProps["rankLabels"];
+  kindField?: SpecChartProps["kindField"];
+  startTotal?: SpecChartProps["startTotal"];
+  endTotal?: SpecChartProps["endTotal"];
+  connectors?: SpecChartProps["connectors"];
+  showExtremes?: SpecChartProps["showExtremes"];
+  streamOffset?: SpecChartProps["streamOffset"];
+  reorder?: SpecChartProps["reorder"];
+  rankField?: SpecChartProps["rankField"];
+  periodLabels?: SpecChartProps["periodLabels"];
+  frontFields?: SpecChartProps["frontFields"];
+  depth?: SpecChartProps["depth"];
+  wall?: SpecChartProps["wall"];
+  texture?: SpecChartProps["texture"];
+  frontRate?: SpecChartProps["frontRate"];
   variant?: string;
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
   data?: readonly ChartRow[];

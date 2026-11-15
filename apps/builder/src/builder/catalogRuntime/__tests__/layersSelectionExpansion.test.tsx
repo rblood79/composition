@@ -152,8 +152,8 @@ describe("Layers — rows a selection opened stay open", () => {
     const variants = getPaletteItems().filter(
       (item) => item.componentType === "Chart",
     );
-    // 기존 7 + ADR-306 kpi 3.
-    expect(variants).toHaveLength(10);
+    // 기존 7 + ADR-306 kpi 3 + category 12.
+    expect(variants).toHaveLength(22);
     for (const item of variants) {
       const chartType = item.initialProps?.chartType;
       if (typeof chartType !== "string") throw new Error("Missing chartType");

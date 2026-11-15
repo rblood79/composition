@@ -5,7 +5,8 @@ import {
   typography,
   TYPOGRAPHY_STEPS,
 } from "@composition/rendering";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, afterEach, describe, expect, it, vi } from "vitest";
+import { preloadChartFamilies } from "./support/chartFamilies";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -187,6 +188,9 @@ function prepareThemeSwitch(
   );
   workspace.execute(createTheme({ theme: theme(preset) }));
 }
+
+// ADR-306 — the Library page stores its Chart type cards once the families are loaded.
+beforeAll(preloadChartFamilies);
 
 describe("ADR-248 Phase 4e-4d-4 Themes", () => {
   it("테마의 sans 토큰을 글자 크기로 변환하지 않고 Library를 생성·재개방한다", async () => {

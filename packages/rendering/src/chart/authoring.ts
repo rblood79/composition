@@ -50,6 +50,11 @@ export interface ChartDescriptor {
   roles: readonly ChartRole[];
   /** ADR-306 — 모양 · 옵션 prop (패널 Content). 전달 목록에 들어간다. */
   options: readonly (keyof ChartProps & string)[];
+  /**
+   * ADR-306 — 값 필드 목록 (columns 모드 — `valueFields` 하나하나가 시리즈) 을 읽는가. 기존 7 종은
+   * 시리즈 경로가 정하고 (true), family 는 stream · slope · skyline 만.
+   */
+  columns: boolean;
   label: string;
   icon: string;
   searchLabels: readonly string[];
@@ -67,6 +72,7 @@ function descriptor(
   defaultLabel = "Default",
   roles: readonly ChartRole[] = [],
   options: readonly (keyof ChartProps & string)[] = [],
+  columns = chartFamilyOf(chartType) === null,
 ): ChartDescriptor {
   return {
     paletteId: `chart-${chartType}`,
@@ -74,6 +80,7 @@ function descriptor(
     family: chartFamilyOf(chartType),
     roles,
     options,
+    columns,
     label,
     icon,
     searchLabels,
@@ -88,6 +95,19 @@ function descriptor(
     ],
   };
 }
+
+const CATEGORY_ROLE: ChartRole = {
+  prop: "dimension",
+  kind: "field",
+  required: true,
+  accepts: "string",
+};
+const VALUE_ROLE: ChartRole = {
+  prop: "metric",
+  kind: "field",
+  required: true,
+  accepts: "number",
+};
 
 const cartesian = {
   orientation: "vertical",
@@ -262,19 +282,263 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     ],
     ["sort", "includeZero"],
   ),
+  // ── ADR-306 category family (Phase 3). 계산 · sample 은 family chunk (`families/category/`). ──
+  descriptor(
+    "lollipop",
+    "Lollipop Chart",
+    "ChartBarBig",
+    ["롤리팝", "막대 대신 점", "순위", "ロリポップ"],
+    {
+      orientation: "horizontal",
+      sort: "descending",
+      showValueLabels: true,
+      showAxis: false,
+      showGrid: true,
+      showLegend: false,
+    },
+    [
+      ["vertical", "Vertical", { orientation: "vertical" }],
+      ["unsorted", "Data Order", { sort: "none" }],
+    ],
+    "Default",
+    [CATEGORY_ROLE, VALUE_ROLE],
+    ["orientation", "sort"],
+  ),
+  descriptor(
+    "segmented",
+    "Segmented Bar",
+    "ChartBarStacked",
+    ["비율 막대", "구성비", "100%", "セグメント"],
+    { shape: "tall", sort: "descending", showLegend: true },
+    [
+      ["thin", "Thin", { shape: "thin" }],
+      ["bar-only", "Bar Only", { showLegend: false }],
+    ],
+    "Default",
+    [CATEGORY_ROLE, VALUE_ROLE],
+    ["shape", "sort"],
+  ),
+  descriptor(
+    "waffle",
+    "Waffle Chart",
+    "Grid2x2",
+    ["와플", "100칸", "비율", "ワッフル"],
+    { cells: 100, columns: 10, showTotal: true, showLegend: false },
+    [["grid-only", "Grid Only", { showTotal: false }]],
+    "Default",
+    [CATEGORY_ROLE, VALUE_ROLE],
+    ["cells", "columns", "valueMax", "showTotal", "centerLabel"],
+  ),
+  descriptor(
+    "funnel",
+    "Funnel Chart",
+    "Funnel",
+    ["퍼널", "전환", "이탈", "ファネル"],
+    { showRates: true, rateBase: "previous", showLegend: false },
+    [["first", "vs. First Step", { rateBase: "first" }]],
+    "Default",
+    [CATEGORY_ROLE, VALUE_ROLE],
+    ["showRates", "rateBase", "rateLabel"],
+  ),
+  descriptor(
+    "pareto",
+    "Pareto Chart",
+    "ChartColumnDecreasing",
+    ["파레토", "80/20", "누적", "パレート"],
+    {
+      threshold: 80,
+      sort: "descending",
+      rankLabels: false,
+      showValueLabels: true,
+      showGrid: true,
+      showLegend: false,
+    },
+    [["ranks", "Rank Labels", { rankLabels: true }]],
+    "Default",
+    [CATEGORY_ROLE, VALUE_ROLE],
+    ["threshold", "sort", "rankLabels"],
+  ),
+  descriptor(
+    "waterfall",
+    "Waterfall Chart",
+    "ChartColumnBig",
+    ["폭포", "증감", "브리지", "ウォーターフォール"],
+    {
+      startTotal: true,
+      endTotal: false,
+      connectors: true,
+      showValueLabels: true,
+      showGrid: true,
+      showLegend: false,
+    },
+    [["end-total", "End Total", { endTotal: true }]],
+    "Default",
+    [
+      CATEGORY_ROLE,
+      VALUE_ROLE,
+      { prop: "kindField", kind: "field", required: false, accepts: "string" },
+    ],
+    ["startTotal", "endTotal", "connectors"],
+  ),
+  descriptor(
+    "sparkline",
+    "Sparkline",
+    "Activity",
+    ["스파크라인", "추세", "작은 선", "スパークライン"],
+    {
+      shape: "area",
+      showTotal: true,
+      showExtremes: false,
+      showAxis: false,
+      showGrid: false,
+      showLegend: false,
+    },
+    [
+      ["line", "Line", { shape: "line" }],
+      ["bar", "Bar", { shape: "bar" }],
+    ],
+    "Area",
+    [
+      { prop: "metric", kind: "field", required: true, accepts: "number" },
+      { prop: "dimension", kind: "field", required: false, accepts: "any" },
+    ],
+    ["shape", "showTotal", "showExtremes"],
+  ),
+  descriptor(
+    "marimekko",
+    "Marimekko Chart",
+    "Columns3",
+    ["마리메코", "모자이크", "두 비율", "マリメッコ"],
+    { showLegend: true, showGrid: true },
+    [],
+    "Default",
+    [
+      CATEGORY_ROLE,
+      { prop: "color", kind: "field", required: true, accepts: "string" },
+      VALUE_ROLE,
+    ],
+    [],
+  ),
+  descriptor(
+    "stream",
+    "Streamgraph",
+    "Waves",
+    ["스트림", "흐름", "누적 영역", "ストリーム"],
+    {
+      streamOffset: "wiggle",
+      reorder: true,
+      curve: "monotone",
+      showLegend: true,
+    },
+    [["silhouette", "Silhouette", { streamOffset: "silhouette" }]],
+    "Wiggle",
+    [
+      CATEGORY_ROLE,
+      VALUE_ROLE,
+      { prop: "color", kind: "field", required: false, accepts: "string" },
+    ],
+    ["streamOffset", "reorder", "curve"],
+    true,
+  ),
+  descriptor(
+    "bump",
+    "Bump Chart",
+    "TrendingUpDown",
+    ["범프", "순위 변화", "랭킹", "バンプ"],
+    { showValueLabels: true, showLegend: false },
+    [],
+    "Default",
+    [
+      CATEGORY_ROLE,
+      { prop: "color", kind: "field", required: true, accepts: "string" },
+      { prop: "rankField", kind: "field", required: false, accepts: "number" },
+      { prop: "metric", kind: "field", required: false, accepts: "number" },
+    ],
+    [],
+  ),
+  descriptor(
+    "slope",
+    "Slope Chart",
+    "TrendingUp",
+    ["슬로프", "두 시점", "전후", "スロープ"],
+    { showValueLabels: true, showLegend: false },
+    [],
+    "Default",
+    [
+      CATEGORY_ROLE,
+      { prop: "color", kind: "field", required: true, accepts: "string" },
+      VALUE_ROLE,
+    ],
+    ["periodLabels"],
+    true,
+  ),
+  descriptor(
+    "skyline",
+    "Skyline",
+    "Building2",
+    ["스카이라인", "입체 누적", "앞줄 뒷줄", "スカイライン"],
+    {
+      depth: 0.32,
+      wall: true,
+      texture: "front",
+      frontRate: "label",
+      showValueLabels: true,
+      showLegend: true,
+    },
+    [
+      ["strip", "Rate Strip", { frontRate: "strip" }],
+      ["flat", "No Texture", { texture: "none" }],
+    ],
+    "Default",
+    [
+      CATEGORY_ROLE,
+      VALUE_ROLE,
+      { prop: "color", kind: "field", required: false, accepts: "string" },
+      {
+        prop: "frontFields",
+        kind: "fields",
+        required: false,
+        accepts: "number",
+      },
+    ],
+    ["depth", "wall", "texture", "frontRate"],
+    true,
+  ),
 ];
+
+/** 이 종류가 이 prop 을 읽는가 (역할 · 옵션). 시리즈 7 종은 descriptor 에 적지 않는다. */
+export function chartTypesReading(
+  prop: keyof ChartProps & string,
+): ChartType[] {
+  return CHART_DESCRIPTORS.filter(
+    (d) =>
+      d.roles.some((role) => role.prop === prop) || d.options.includes(prop),
+  ).map((d) => d.chartType);
+}
+
+/** columns 모드 (값 필드 목록) 를 읽는 종류인가. */
+export function chartTypeAcceptsColumns(type: unknown): boolean {
+  return CHART_DESCRIPTORS.some((d) => d.chartType === type && d.columns);
+}
 
 /**
  * ADR-306 — family 종류의 새 prop 전부 (descriptor 의 역할 + 옵션 — 기존 prop 제외). binding
  * `propPassthrough` · DOM destructure · Skia allowlist 세 곳이 이 목록 하나를 읽는다 (R2).
  */
 const SERIES_PROP_KEYS = new Set(["dimension", "metric", "color"]);
+/** ADR-306 전부터 있던 prop — 시리즈 경로가 이미 싣는다 (family 가 읽어도 전달 목록에 다시 넣지 않는다). */
+const EXISTING_PROP_KEYS: ReadonlySet<string> = new Set([
+  ...SERIES_PROP_KEYS,
+  ...Object.keys(CHART_DEFAULT_PROPS),
+  "dataMode",
+  "valueFields",
+]);
 export const CHART_FAMILY_PROP_KEYS: readonly (keyof ChartProps & string)[] = [
   ...new Set(
     CHART_DESCRIPTORS.flatMap((d) => [
       ...d.roles.map((role) => role.prop),
       ...d.options,
-    ]).filter((key) => !SERIES_PROP_KEYS.has(key)),
+    ]).filter((key) => !EXISTING_PROP_KEYS.has(key)),
   ),
 ];
 

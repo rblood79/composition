@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-306 Phase 3 — Chart 종류 12 (category family)] - 2026-11-16
+
+### Added
+
+- **Chart 종류 12 — Lollipop · Segmented Bar · Waffle · Funnel · Pareto · Waterfall · Sparkline · Marimekko · Streamgraph · Bump · Slope · Skyline** (ADR-306 Phase 3, category family): 팔레트 Charts 가 22 항목. Lollipop 은 큰 순서 · 최댓값 강조 (가로 / 세로), Segmented Bar 는 비중 막대 + 목록 (Tall · Thin), Waffle 은 칸 100 개 (칸 수 · 줄 칸 수 · 전체 값 · 요약), Funnel 은 단계 전환율 (이전 / 첫 단계 기준 · 가장 낮은 단계 강조), Pareto 는 큰 순서 막대 + 누적선 · 기준선 (기본 80 %), Waterfall 은 증가 · 감소 · 합계 막대 (Kind 필드의 `total` 행 · 시작 / 끝 합계 · 연결선), Sparkline 은 작은 추세 (Area · Line · Bar · 마지막 값 · 최고 · 최저), Marimekko 는 열 비중 × 열 안 비중, Streamgraph 는 흐름 쌓기 (Wiggle · Silhouette · 순서 정리), Bump 는 순위 변화 (Rank 필드 또는 값으로 순위), Slope 은 두 시점 변화 (시점 2 개 또는 값 필드 2 개), Skyline 은 기간마다 입체 쌓기 + 앞줄 (Front Fields · 뒷벽 · 빗금 · 앞줄 ÷ 뒷줄). Design 패널의 Shape 칸은 종류마다 그 종류의 값만 낸다. Streamgraph · Slope · Skyline 은 값 필드 목록 (Value Columns) 도 받는다.
+  - 위치: `packages/rendering/src/chart/families/category/` (`common` · `bars` · `lines` · `blocks` · `index`) · `families/shapes.ts` (ztd-charts 0.5.0 보조 식 이식, MIT) · `chart/{types,authoring}.ts` · `packages/shared/src/catalog/bindings/Chart.binding.ts` · `catalog/types.ts` (`PropContract.options[].visibleWhen`) · `components/chart/FamilySceneHost.tsx` · `apps/builder/.../GenericFieldRenderer.tsx` · `useChartPropertyExtras.tsx` · `ChartAuthoringControls.tsx` · `chartFieldOptions.ts` · `paletteItems.ts`
+
+### Fixed
+
+- **Canvas 의 차트 로드 실패가 세션 내내 남던 것** (ADR-306 Phase 2 열린 항목): 실패 뒤 15 초가 지나 그 Chart 를 다시 그릴 때 다시 받는다. 위치: `apps/builder/src/builder/catalogRuntime/ruleShapes.ts`.
+- **새 프로젝트 Library 의 Chart Types 카드가 데이터 없이 저장되던 것** (ADR-306 Phase 2 열린 항목): Library 를 처음 열 때 차트 계산 파일을 받은 뒤 저장한다 (이미 저장된 프로젝트의 카드는 그대로). 위치: `apps/builder/src/builder/catalogRuntime/workspace.ts`.
+
+### Changed
+
+- **번들 상한 — Builder ≤ 1,422,944 B** (ADR-201 재승인, ADR-306 사용자 결정 2): Phase 3 실측 Builder +4,468 · Preview +2,589 B gzip (종류 목록 · binding · 패널). category 계산 · 표본은 별도 chunk (15,762 B). Preview 상한 무변경. 위치: `apps/builder/scripts/adr201-bundle-gate.mjs` · `.github/workflows/deploy.yml` · `CLAUDE.md`.
+
 ## [ADR-306 Phase 2 — Chart family 기반 + Gauge · Bullet · Dumbbell] - 2026-11-16
 
 ### Added

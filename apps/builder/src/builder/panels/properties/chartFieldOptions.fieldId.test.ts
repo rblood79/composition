@@ -34,7 +34,11 @@ describe("buildChartSemanticFields — #fieldId 저장 · key 표시", () => {
   it("옵션 값은 #id, 라벨은 key; 구 형식 현재 값 (key) 은 #id 로 접힌다", () => {
     const [dimension] = buildChartSemanticFields(
       [
-        field("dataBinding", { source: "dataTable", collectionId: "c1", name: "Sales" }),
+        field("dataBinding", {
+          source: "dataTable",
+          collectionId: "c1",
+          name: "Sales",
+        }),
         field("dimension", "month"),
       ],
       [table],
@@ -49,14 +53,31 @@ describe("buildChartSemanticFields — #fieldId 저장 · key 표시", () => {
 
   it("이미 #id 인 현재 값은 그대로, 정적 items 출처 (id 없음) 는 key 저장", () => {
     const [metric] = buildChartSemanticFields(
-      [
-        field("items", [{ a: 1, b: 2 }]),
-        field("metric", "a"),
-      ],
+      [field("items", [{ a: 1, b: 2 }]), field("metric", "a")],
       [],
       LABELS,
     ).filter((f) => f.key === "metric");
     expect(metric.currentValue).toBe("a");
     expect(metric.options?.map((o) => o.value)).toEqual(["a", "b"]);
+  });
+
+  it("ADR-306 — 해제 항목은 종류의 선택 역할에만 (sparkline Category · bump Value 는 선택, bar 는 아님)", () => {
+    const optionsOf = (chartType: string, key: string) =>
+      buildChartSemanticFields(
+        [
+          field("chartType", chartType),
+          field("items", [{ a: 1, b: 2 }]),
+          field(key, "a"),
+        ],
+        [],
+        LABELS,
+      )
+        .find((f) => f.key === key)!
+        .options?.map((o) => o.value);
+    expect(optionsOf("sparkline", "dimension")).toEqual(["", "a", "b"]);
+    expect(optionsOf("bump", "metric")).toEqual(["", "a", "b"]);
+    expect(optionsOf("bar", "dimension")).toEqual(["a", "b"]);
+    expect(optionsOf("bar", "color")).toEqual(["", "a", "b"]);
+    expect(optionsOf("funnel", "dimension")).toEqual(["a", "b"]);
   });
 });

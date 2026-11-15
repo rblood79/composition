@@ -19,7 +19,7 @@ import {
 } from "@composition/rendering";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Customized, ScatterChart, XAxis, YAxis } from "recharts";
-import { paintVar, renderChartScene } from "./svgDecorations";
+import { paintVar, renderChartScene, seriesVar } from "./svgDecorations";
 
 function hitTarget(
   targets: readonly ChartTarget[],
@@ -191,7 +191,7 @@ export function FamilySceneHost({
           <div>{target.title}</div>
           {target.entries.map((entry, i) => (
             <div key={i} style={{ display: "flex", gap: 6 }}>
-              {entry.paint ? (
+              {entry.paint || entry.series !== undefined ? (
                 <span
                   aria-hidden="true"
                   style={{
@@ -199,7 +199,9 @@ export function FamilySceneHost({
                     height: 8,
                     alignSelf: "center",
                     borderRadius: 2,
-                    background: paintVar(entry.paint),
+                    background: entry.paint
+                      ? paintVar(entry.paint)
+                      : seriesVar(entry.series!),
                   }}
                 />
               ) : null}
