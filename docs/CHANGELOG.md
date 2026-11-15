@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-310 Phase 8 (진행 중) — 세로 · 가로 목록 · 카드 grid · Table 의 가상 스크롤] - 2026-11-15
+## [ADR-310 Implemented — Phase 8 세로 · 가로 목록 · 카드 grid · Table 의 가상 스크롤] - 2026-11-15
 
 ### Added
 
@@ -25,6 +25,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 300 px Table 에 250 행을 연결해 가상 스크롤로 바꿔도 Publish 는 11 행에서 끝났다.
   - **Why**: 높이를 정한 Table 은 높이에 들어가는 행만 남기는데 (`boundTableRows`), 그 자르기가 가상 스크롤 Table 에도 걸렸다. 이제 Preview · Publish 는 모든 행을 두고 Builder 만 표본으로 자른다.
   - 위치: `packages/shared/src/catalog/resolution/resolver.ts`
+- **가상 스크롤 목록의 스크롤 막대 길이** (ADR-310 Phase 8):
+  - 1,000 행 (행 32 px) 목록의 전체 높이가 처음 39,800 px 로 잡혀 스크롤하면서 32,008 로 줄었다 — 막대 길이 · 위치가 실제 행과 맞지 않았다.
+  - **Why**: Preview · Publish 에는 배치 결과가 없어 행 크기를 추정 40 으로 주는데, 잰 행이 그 뒤 행의 추정에 쓰이지 않았다. 이제 마지막으로 잰 행 크기가 다음 추정값이다 (첫 행을 잰 뒤 바로 32,008).
+  - 위치: `packages/shared/src/catalog/runtime/catalogVirtualizer.components.tsx` (`CatalogListLayout`)
+
+### Performance
+
+- **가상 스크롤 목록의 스크롤 프레임** (ADR-310 Phase 8 · 사용자 결정 8):
+  - CPU 4x · 목록 여럿인 문서에서 1,000 행 가상 목록을 스크롤하면 p95 25 ms (프레임 80 % 손실) 였다 → 17.5 ms (같은 문서 · 같은 입력 조건의 순수 RAC 가상 목록 17.5 ~ 25 ms). 1x 는 9 ms 대 그대로.
+  - **Why**: ① 추정 40 과 실제 32 가 달라 새 행마다 RAC 가 목록을 다시 배치하고 행 view 를 재사용하지 못했다 (위 「스크롤 막대」 수리로 함께 해결 — commit 72 → 34). ② RAC 가 행 view 를 다른 행에 재사용할 때 우리 자식 노드의 React key 가 행마다 다른 record id (`…#row:<key>`) 라 하위 트리 전체가 다시 마운트됐다. 데이터 행 아래 자식 · 그린 요소의 key 를 템플릿 자리로 바꿨다 (마운트 280 → 15).
+  - G8 frame 기준은 사용자 결정 8 로 「더 보기 대비」 에서 「같은 문서의 순수 RAC 가상 목록 대비」 로 바뀌었다 — 더 보기는 compositor 스크롤이라 main thread 일이 0 이고, 순수 RAC 가상 목록도 같은 조건에서 그보다 늦다 (실측).
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts` (`catalogChildKey` · `catalogRowStableElement`) · `domBinding.components.tsx`
+
+### Tests
+
+- **G8 하니스** `apps/builder/scripts/adr310-g8-virtual-live.mjs` (headed Chrome, dev 또는 `--serve-dist` production): 패널에서 가상 스크롤 선택 · DOM 행 수 · Canvas ↔ DOM 행 위치 1 px (세로 · 가로 · Table · grid) · 원격 끝에서 다음 쪽 · 키보드 · frame A/B (순수 RAC 대조군 `adr310VirtualBaseline.mjs` · 더 보기 참고). `virtualRowReuse.test.ts` 3 (원복 RED 3). `perfDist.mjs` 가 `publish/` 디렉터리의 index.html 을 낸다.
 
 ## [ADR-310 Phase 7 — 연결한 목록의 「페이지」 표시 · Pagination 연결] - 2026-11-15
 

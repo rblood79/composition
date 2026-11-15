@@ -306,6 +306,14 @@ export function CatalogBuilderCore() {
             palette: await import("../catalogRuntime/paletteInsert"),
             // ADR-270 Phase 0: the `asset:` image fixture uploads through the Fill panel's writer.
             assets: await import("../../lib/assets/assetWriter"),
+            // ADR-310 G8 harness (`adr310-g8-virtual-live.mjs`): connect a list · pick its row
+            // display in a production build too (no `/src` import there).
+            binding: {
+              ...(await import("../catalogRuntime/dataBinding")),
+              ...(await import("../catalogRuntime/dataBindingCommand")),
+            },
+            rowDisplay:
+              await import("../../../../../packages/shared/src/catalog/commands/rowDisplay"),
           };
       // The cleanup may have disposed `opened` during the awaits above.
       if (cancelled) return;

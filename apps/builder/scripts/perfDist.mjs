@@ -29,12 +29,17 @@ const TYPES = {
 /** `/composition/` base 의 dist 정적 서버 (SPA fallback = index.html). */
 export async function serveHarnessDist(distDir, port) {
   if (!existsSync(join(distDir, "index.html")))
-    throw new Error(`--serve-dist: ${distDir}/index.html 없음 — pnpm perf:build-dist 먼저`);
+    throw new Error(
+      `--serve-dist: ${distDir}/index.html 없음 — pnpm perf:build-dist 먼저`,
+    );
   const server = createServer((req, res) => {
     const path = decodeURIComponent(
       new URL(req.url, "http://x").pathname,
     ).replace(/^\/composition\/?/, "");
     let file = join(distDir, path);
+    // (디렉터리 진입 — Publish `publish/` 는 자기 index.html, ADR-305 Decision 6.)
+    if (path && existsSync(file) && statSync(file).isDirectory())
+      file = join(file, "index.html");
     if (!path || !existsSync(file) || statSync(file).isDirectory())
       file = join(distDir, "index.html");
     res.writeHead(200, {
@@ -173,7 +178,10 @@ export function createFrameResolver(distDir) {
     if (!pos?.source) return label;
     const source = pos.source
       .replace(/^.*[/]src[/]/, "src/")
-      .replace(/^.*[/]node_modules[/](?:[.]pnpm[/][^/]+[/]node_modules[/])?/, "nm/");
+      .replace(
+        /^.*[/]node_modules[/](?:[.]pnpm[/][^/]+[/]node_modules[/])?/,
+        "nm/",
+      );
     return `${pos.name ?? name} ${source}:${pos.line}`;
   };
 }

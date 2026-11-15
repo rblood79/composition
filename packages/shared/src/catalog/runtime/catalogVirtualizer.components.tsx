@@ -30,15 +30,22 @@ const size = (value: { width: number; height: number } | undefined) =>
  * with: a static import would split it into a chunk of its own).
  */
 class CatalogGridLayout extends GridLayout<unknown> {
-  override shouldInvalidateLayoutOptions(next: object, previous: object): boolean {
+  override shouldInvalidateLayoutOptions(
+    next: object,
+    previous: object,
+  ): boolean {
     const a = next as GridInput;
     const b = previous as GridInput;
     return a.type !== b.type || a.props !== b.props || a.options !== b.options;
   }
   override update(context: Parameters<GridLayout<unknown>["update"]>[0]): void {
-    const { type, props, options: optionsAt } =
-      context.layoutOptions as unknown as GridInput;
-    const options = optionsAt(type, props, this.virtualizer?.size.width ?? 0) ?? {};
+    const {
+      type,
+      props,
+      options: optionsAt,
+    } = context.layoutOptions as unknown as GridInput;
+    const options =
+      optionsAt(type, props, this.virtualizer?.size.width ?? 0) ?? {};
     super.update({
       ...context,
       layoutOptions: {
@@ -47,6 +54,44 @@ class CatalogGridLayout extends GridLayout<unknown> {
         minSpace: size(options.minSpace),
       },
     });
+  }
+}
+
+type ListContext = Parameters<ListLayout<unknown>["update"]>[0];
+
+/**
+ * ADR-310 G8 ⑤ — a list whose rows the Preview estimates (no laid-out row there): the estimate
+ * becomes the last row RAC measured. RAC re-lays the list out only when a measured row differs from
+ * its rect (`ListLayout.updateItemSize`) — with the first estimate (40) every new row of a 32 px list
+ * did, so each scroll frame added a commit and RAC mounted the rows anew instead of reusing their
+ * views (live, 4x: p95 25 ms · 80 % of frames dropped; RAC's own list at a fixed size 16.6 ms). Rows
+ * are still measured (each keeps `estimatedSize`), so a row that differs moves the rest as before.
+ */
+export class CatalogListLayout extends ListLayout<unknown> {
+  private measured: number | undefined;
+  override update(context: ListContext): void {
+    const options = context.layoutOptions as
+      { rowSize?: number; estimatedRowSize?: number } | undefined;
+    super.update(
+      this.measured !== undefined && options?.rowSize == null
+        ? ({
+            ...context,
+            layoutOptions: { ...options, estimatedRowSize: this.measured },
+          } as ListContext)
+        : context,
+    );
+  }
+  override updateItemSize(
+    ...args: Parameters<ListLayout<unknown>["updateItemSize"]>
+  ): boolean {
+    const [, measured] = args;
+    const along =
+      this.orientation === "horizontal" ? measured.width : measured.height;
+    if (this.rowSize == null && along > 0) {
+      this.measured = along;
+      this.estimatedRowSize = along;
+    }
+    return super.updateItemSize(...args);
   }
 }
 
@@ -68,7 +113,10 @@ type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
  */
 class CatalogTableLayout extends TableLayout<unknown> {
   private rowEdge = { top: 0, bottom: 0 };
-  override shouldInvalidateLayoutOptions(next: object, previous: object): boolean {
+  override shouldInvalidateLayoutOptions(
+    next: object,
+    previous: object,
+  ): boolean {
     const a = next as TableInput;
     const b = previous as TableInput;
     return (
@@ -82,8 +130,11 @@ class CatalogTableLayout extends TableLayout<unknown> {
     const options = (context.layoutOptions ?? {}) as TableInput;
     this.rowEdge = options.rowEdge ?? { top: 0, bottom: 0 };
     const columns = this.virtualizer?.collection
-      ? (this.virtualizer.collection as unknown as { columns: { key: unknown }[] })
-          .columns
+      ? (
+          this.virtualizer.collection as unknown as {
+            columns: { key: unknown }[];
+          }
+        ).columns
       : [];
     const widths =
       !options.columnWidths && options.columnTracks?.length === columns.length
@@ -172,7 +223,7 @@ export default function CatalogVirtualizer({
       children: element,
     } as never);
   return createElement(Virtualizer, {
-    layout: layout.kind === "table" ? CatalogTableLayout : ListLayout,
+    layout: layout.kind === "table" ? CatalogTableLayout : CatalogListLayout,
     layoutOptions: layout.options,
     children: element,
   } as never);

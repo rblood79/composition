@@ -1021,9 +1021,10 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     createElement(CatalogPickerValueTypography, {
       key: node.id,
       style,
+      // (The render's one element takes no key — keyed by the record id, a data row's view reused
+      //  for another row remounted RAC's Text and its span, ADR-310 G8 ⑤.)
       render: (style) =>
         createElement(RacSlotScope, {
-          key: node.id,
           context: "Text",
           authored: node.props.slot,
           render: (resolution) => {
@@ -3882,6 +3883,42 @@ function tableBodyOrder(
   );
 }
 
+/**
+ * ADR-310 G8 ⑤ — a child's React key under a data row's copy (`…#row:<key>`): the child's identity
+ * without that row's suffix, so the key is the child's template position. RAC reuses an item's view
+ * for another row as the list scrolls (its reference re-renders the same item component); keyed by
+ * the row's record id, every child of the reused row unmounted and mounted again (live, 4x: our
+ * virtual list dropped 79 % of scroll frames, RAC's own list 20 %). Siblings stay unique — one row's
+ * children differ by template position, and a list's rows (different suffixes) keep their ids.
+ */
+export function catalogChildKey(
+  parent: CatalogConsumerNode,
+  childId: string,
+): string {
+  const at = parent.id.indexOf(CATALOG_ROW_SEPARATOR);
+  if (at < 0) return childId;
+  const suffix = parent.id.slice(at);
+  return childId.endsWith(suffix) ? childId.slice(0, -suffix.length) : childId;
+}
+
+/**
+ * The same for the element a data row's copy draws: a binding keys its element by the record id
+ * (`key: node.id`) — under a reused row view that key changed with the row and React remounted the
+ * element (Icon · Text · their spans). The row's suffix leaves the key.
+ */
+export function catalogRowStableElement<T extends ReactElement | null>(
+  record: CatalogConsumerNode,
+  element: T,
+): T {
+  const at = record.id.indexOf(CATALOG_ROW_SEPARATOR);
+  const key = element?.key;
+  if (at < 0 || typeof key !== "string") return element;
+  const suffix = record.id.slice(at);
+  return key.includes(suffix)
+    ? (cloneElement(element!, { key: key.replace(suffix, "") }) as T)
+    : element;
+}
+
 export function renderNode(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -3979,8 +4016,9 @@ export function renderNode(
       const indicator = catalogToggleIndicatorElement(root, child);
       return indicator ? [indicator] : [];
     }
+    const key = catalogChildKey(node, childId);
     const element = createElement(CatalogDomNode, {
-      key: childId,
+      key,
       root,
       id: childId,
       context,
@@ -3989,7 +4027,7 @@ export function renderNode(
     return [
       node.bindingId === "previewtrigger"
         ? createElement(CatalogPreviewTriggerTarget, {
-            key: childId,
+            key,
             children: element,
           })
         : element,
@@ -4052,7 +4090,7 @@ export function renderNode(
             : authoredStyle(root, node),
         renderChild: (childId) =>
           createElement(CatalogDomNode, {
-            key: childId,
+            key: catalogChildKey(node, childId),
             root,
             id: childId,
             context,
@@ -4114,8 +4152,11 @@ export function renderNode(
           : {}),
         ...(context.runtime?.paginationClick
           ? {
-              paginationClick: (recordId: string, target: Element, nav: Element) =>
-                context.runtime!.paginationClick!(recordId, target, nav),
+              paginationClick: (
+                recordId: string,
+                target: Element,
+                nav: Element,
+              ) => context.runtime!.paginationClick!(recordId, target, nav),
             }
           : {}),
         ...(context.runtime?.serverFilterOf && context.runtime.setFilterText

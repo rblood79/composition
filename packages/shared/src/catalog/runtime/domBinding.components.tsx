@@ -187,6 +187,7 @@ import {
   CalendarMonthOffset,
   CalendarWeekday,
   CatalogDomNodeProps,
+  catalogRowStableElement,
   catalogDomStateConditions,
   catalogDomStateStyles,
   catalogDomValueOwners,
@@ -468,28 +469,31 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           props: inheritedProps,
         } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
-    withVirtualizer(
-      root,
+    catalogRowStableElement(
       record,
-      withDragAndDrop(
-      root,
-      record,
-      withRuntime(
-        withCatalogStateStyles(
-          renderNode(
-            root,
-            record,
-            context,
-            parentInput,
-            partParent,
-            watchedParent,
-            styleOverride,
+      withVirtualizer(
+        root,
+        record,
+        withDragAndDrop(
+          root,
+          record,
+          withRuntime(
+            withCatalogStateStyles(
+              renderNode(
+                root,
+                record,
+                context,
+                parentInput,
+                partParent,
+                watchedParent,
+                styleOverride,
+              ),
+              catalogDomStateStyles(record),
+            ),
+            runtime?.handlersOf(id),
           ),
-          catalogDomStateStyles(record),
+          runtime?.handlersOf(id),
         ),
-        runtime?.handlersOf(id),
-      ),
-      runtime?.handlersOf(id),
       ),
     );
   const drawWithSlot = (record: CatalogConsumerNode): ReactElement | null => {
