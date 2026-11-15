@@ -43,16 +43,13 @@ const sources = collectSources(canvasDir);
 /**
  * 리스너 등록이 허용된 파일.
  * - `skia/createSurface.ts` — 소유자가 호출하는 등록 헬퍼
- * - `gpu/CanvasKitWebGLBackend.ts` — ADR-900 §Positive 가 명시한 WebGPU 전환
- *   경로용 백엔드 추상화. 현재 미배선(인스턴스화 0건)이나 의도된 보존이다.
+ *
+ * (옛 `gpu/CanvasKitWebGLBackend.ts` 는 988e5177a — ADR-248 Phase 4e-9-1 에서 삭제됐다.)
  */
-const REGISTRATION_ALLOWLIST = new Set([
-  join("skia", "createSurface.ts"),
-  join("gpu", "CanvasKitWebGLBackend.ts"),
-]);
+const REGISTRATION_ALLOWLIST = new Set([join("skia", "createSurface.ts")]);
 
 describe("WebGL 컨텍스트 손실 — 단일 소유자 계약", () => {
-  it("리스너 등록은 허용된 두 파일에서만 한다", () => {
+  it("리스너 등록은 허용된 파일에서만 한다", () => {
     const offenders = sources
       .filter((file) =>
         readFileSync(file, "utf8").includes(
