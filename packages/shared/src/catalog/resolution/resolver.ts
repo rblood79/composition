@@ -494,6 +494,8 @@ const TABLE_MIN_ROW_HEIGHT = 32;
 /**
  * An owned row template's writes without its sample content (2026-10-14): a literal content prop
  * (the ADR-162 allowlist) is what the item showed before the rows; a `{field}` one reads the row.
+ * An empty one is no sample — the author cleared the text (a Table row's selection Checkbox):
+ * dropping it brought the origin's default back (「Checkbox」 in every row, 2026-11-15).
  */
 function withoutSampleContent(writes: PropWrites): PropWrites {
   const kept: Record<string, PropWrites[string]> = {};
@@ -502,6 +504,7 @@ function withoutSampleContent(writes: PropWrites): PropWrites {
       (ROW_TEMPLATE_BINDABLE_PROP_KEYS as readonly string[]).includes(key) &&
       write.kind === "set" &&
       typeof write.value === "string" &&
+      write.value !== "" &&
       !write.value.includes("{");
     if (!literal) kept[key] = write;
   }

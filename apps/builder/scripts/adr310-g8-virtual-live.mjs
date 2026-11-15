@@ -5,7 +5,7 @@
 // (이 스크립트가 띄운 127.0.0.1 서버 — 100 행씩 3 쪽, cursor `next`) 을 두고, 목록 여섯을 넣는다:
 //   vlist   ListBox 600 × 300 · 가상 스크롤 (세로)
 //   hlist   ListBox 600 × 120 · flex row · 항목 폭 100 · 가상 스크롤 (가로)
-//   table   Table 600 × 300 · 가상 스크롤
+//   table   Table 600 × 300 · 가상 스크롤 · 첫 열 = 선택 열 (Column · Row 템플릿 Cell 의 Checkbox[slot=selection])
 //   cards   CardView 700 × 420 · 가상 스크롤 (grid — 사용자 결정 7)
 //   more    ListBox 600 × 300 · 더 보기 (대조군)
 //   remote  ListBox 600 × 300 · 가상 스크롤 · 원격 collection
@@ -15,6 +15,8 @@
 //      `getBoundingClientRect` ↔ Canvas record geometry 의 부모 사슬 합) — 세로 · 가로 · Table · grid
 //   ③ 원격 목록의 끝에 닿으면 다음 쪽을 받는다 (요청 page 2 · 3, DOM 에 Person250)
 //   ④ 키보드 End · ↑ · Space 가 RAC 그대로 (focus 행 · 스크롤 따라감 · aria-selected)
+//   ⑧ 선택 Checkbox — 머리글 + 보이는 행마다 하나 (Row 템플릿 Cell 의 반복) · 라벨 글자 없음
+//   ⑦ 터치 기기 (Preview `data-catalog-touch`) 의 Table 선택 열 = S2 52 · 머리글 = 본문 행 · 데스크톱 40
 //   ⑤ frame — 1,000 행을 위에서 끝까지 같은 속도로 스크롤할 때 rAF 간격 p50 · p95 · p99:
 //      가상 목록 vs 더 보기 목록 (1,000 행을 모두 불러온 뒤 — 더 보기의 불리한 상태), CPU 1x · 4x.
 //
@@ -377,6 +379,104 @@ try {
   );
   record("setup — 목록 여섯이 연결 · 표시 방식을 받았다", true, setup);
   await page.waitForTimeout(3000);
+
+  // (Table 의 첫 열을 선택 열로 — 첫 Column 과 Row 템플릿 첫 Cell 에 `Checkbox[slot=selection]`
+  //  (RAC 레퍼런스 · S2 TableView 의 checkbox 열: 40 · 터치 52). ② 가 Canvas 40 = DOM 을, ⑦ 이
+  //  터치 기기의 52 를 본다.)
+  const selection = await page.evaluate(() => {
+    const h = window.__COMPOSITION_CATALOG__;
+    const ws = h.workspace;
+    const root = ws.root;
+    const g = root.runtime.graph;
+    const C = h.commands;
+    const set = (value) => ({ kind: "set", value });
+    const table = [...root.canvasInputs.values()].find(
+      (r) => r.sourceId === "project:node:g8-table",
+    );
+    const first = (rec, type) => {
+      const stack = [rec];
+      while (stack.length) {
+        const r = stack.shift();
+        for (const id of r.children ?? []) {
+          const child = root.canvasInputs.get(id);
+          if (!child) continue;
+          if (root.typeOf(child) === type) return child;
+          stack.push(child);
+        }
+      }
+      return undefined;
+    };
+    const column = first(table, "Column");
+    const cell = first(first(table, "TableBody"), "Cell");
+    const owned = (rec) => rec?.sourceId?.split("#row:")[0];
+    // (선택 열은 체크박스만 — 레퍼런스의 `<Column><Checkbox slot="selection" /></Column>`: 그 열의
+    //  이름 (Column `children`) · 칸 글자 (Cell `children` = `{name}`) 는 비운다. 40px 열 (내용
+    //  16px) 에 글자가 남으면 행이 글자 높이로 는다.)
+    ws.execute(
+      C.setFields({
+        targets: [owned(column), owned(cell)]
+          .filter((id) => id && g.getEntry(id))
+          .map((id) => ({ kind: "node", id })),
+        props: { children: set("") },
+        label: "selection column text",
+      }),
+    );
+    const placed = [];
+    // (머리글 Column 에 전체선택, 행 템플릿 Cell 에 행 선택 — 레퍼런스 그대로. 행 템플릿 안 편집이
+    //  RESOLVED_INSTANCE_MISSING 으로 거부되고 비운 라벨이 「Checkbox」 로 돌아오던 결함은 2026-11-15
+    //  수리 — `adr310TableTemplate.test.tsx`.)
+    for (const parent of [owned(column), owned(cell)]) {
+      if (!parent || !g.getEntry(parent)) continue;
+      const id = ws.newId("node");
+      ws.execute(
+        C.insertNodes({
+          parent: { kind: "node", id: parent },
+          index: 0,
+          entries: [
+            {
+              kind: "node",
+              id,
+              definitionId: h.palette.catalogPaletteDefinitionId(
+                g.library,
+                "Checkbox",
+              ),
+              children: [],
+              props: { slot: set("selection") },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            },
+          ],
+          rootIds: [id],
+          newId: ws.newId,
+        }),
+      );
+      // (라벨 글자를 비운다 — 레퍼런스의 맨 `<Checkbox slot="selection" />`. 삽입 entry 의 빈
+      //  `children` 은 남지 않아 Checkbox 기본 글자가 된다 — adr256-p5i2 하니스와 같은 쓰기.)
+      ws.execute(
+        C.setFields({
+          targets: [{ kind: "node", id }],
+          props: { children: set("") },
+          label: "selection checkbox text",
+        }),
+      );
+      placed.push(parent);
+    }
+    ws.execute(
+      C.setFields({
+        targets: [{ kind: "node", id: "project:node:g8-table" }],
+        props: { selectionMode: set("multiple") },
+        label: "selection",
+      }),
+    );
+    return placed;
+  });
+  record(
+    "setup — Table 첫 열 = 선택 열 (Column · Row 템플릿 Cell 에 Checkbox[slot=selection] · 그 열 글자 비움)",
+    selection.length === 2,
+    selection,
+  );
+  await page.waitForTimeout(1500);
 
   if (!SKIP_PANEL) {
     // ⑥ 패널: 「Show rows」 에서 Virtual scroll 을 고른다 (실제 클릭) · 줄바꿈 목록은 막히고 이유를 보인다
@@ -819,6 +919,64 @@ try {
       },
     );
   }
+
+  // ⑧ 선택 Checkbox: 머리글 하나 + 보이는 행마다 하나 (Row 템플릿 Cell 의 반복), 라벨 글자 없음.
+  const boxes = await pub.evaluate(() => {
+    const table = document.querySelector('[data-catalog-id*="g8-table"]');
+    const rows = [...table.querySelectorAll("[role=row]")];
+    const box = (row) => row.querySelector(".react-aria-Checkbox");
+    return {
+      rows: rows.length,
+      withBox: rows.filter(box).length,
+      texts: [...new Set(rows.map((row) => box(row)?.textContent ?? null))],
+    };
+  });
+  record(
+    "⑧ 선택 Checkbox: 머리글 + 보이는 행마다 하나 (Row 템플릿 반복) · 라벨 글자 없음",
+    boxes.rows > 1 &&
+      boxes.withBox === boxes.rows &&
+      boxes.texts.length === 1 &&
+      boxes.texts[0] === "",
+    boxes,
+  );
+
+  // ⑦ 터치 기기: 선택 열 = S2 52 (Canvas 는 데스크톱 40) — 머리글 · 본문 행의 첫 칸이 같은 폭,
+  //    데스크톱으로 돌아오면 40. 터치 보기는 Preview 의 `data-catalog-touch` (S2 기기 media 와 같은 시트).
+  const firstCells = () =>
+    pub.evaluate(() => {
+      const table = document.querySelector('[data-catalog-id*="g8-table"]');
+      const width = (el) => Math.round(el.getBoundingClientRect().width * 100) / 100;
+      const rows = [...table.querySelectorAll("[role=row]")];
+      return {
+        header: [...rows[0].querySelectorAll("[role=columnheader]")].map(width),
+        row: [...rows[1].querySelectorAll("[role=gridcell],[role=rowheader]")].map(width),
+        token: getComputedStyle(document.documentElement).getPropertyValue(
+          "--catalog-token-size-table-selection-column",
+        ),
+      };
+    });
+  const desktopCells = await firstCells();
+  await pub.evaluate(() =>
+    document.documentElement.setAttribute("data-catalog-touch", ""),
+  );
+  await pub.waitForTimeout(600);
+  const touchCells = await firstCells();
+  await pub.evaluate(() =>
+    document.documentElement.removeAttribute("data-catalog-touch"),
+  );
+  await pub.waitForTimeout(600);
+  const backCells = await firstCells();
+  const sameRow = (c) =>
+    c.header.length === c.row.length &&
+    c.header.every((w, i) => Math.abs(w - c.row[i]) <= 1);
+  record(
+    "⑦ 터치 기기: 가상 Table 선택 열 52 (데스크톱 40) · 머리글 = 본문 행",
+    Math.abs(desktopCells.header[0] - 40) <= 0.5 &&
+      Math.abs(touchCells.header[0] - 52) <= 0.5 &&
+      Math.abs(backCells.header[0] - 40) <= 0.5 &&
+      [desktopCells, touchCells, backCells].every(sameRow),
+    { desktop: desktopCells, touch: touchCells, back: backCells },
+  );
 
   // ③ 원격: 끝에 닿으면 다음 쪽 (page 2 · 3) → Person250
   const remote = await pub.evaluate(async () => {

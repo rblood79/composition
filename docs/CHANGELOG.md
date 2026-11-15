@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1,000 행 (행 32 px) 목록의 전체 높이가 처음 39,800 px 로 잡혀 스크롤하면서 32,008 로 줄었다 — 막대 길이 · 위치가 실제 행과 맞지 않았다.
   - **Why**: Preview · Publish 에는 배치 결과가 없어 행 크기를 추정 40 으로 주는데, 잰 행이 그 뒤 행의 추정에 쓰이지 않았다. 이제 마지막으로 잰 행 크기가 다음 추정값이다 (첫 행을 잰 뒤 바로 32,008).
   - 위치: `packages/shared/src/catalog/runtime/catalogVirtualizer.components.tsx` (`CatalogListLayout`)
+- **터치 기기에서 가상 스크롤 Table 의 선택 · drag 열 폭** (ADR-310 Phase 8):
+  - 터치 기기 (S2 기기 media · Preview 터치 보기) 에서 가상 스크롤 Table 의 선택 checkbox 열이 S2 52 px 이 아니라 40 px, drag 열이 20 이 아니라 16 px 로 놓였다 (일반 Table 은 52 · 20).
+  - **Why**: 가상 스크롤 Table 의 열 폭은 Canvas 의 열 트랙 (데스크톱 px) 에서 풀었고, DOM 이 기기에 따라 바꾸는 트랙 (`{size.table.selection-column}` · drag 열 × 1.25) 을 읽지 않았다. 이제 그 기기의 값으로 트랙을 바꾼 뒤 같은 grid 풀이로 폭을 낸다 (`catalogDeviceColumnTracks`).
+  - 위치: `packages/shared/src/catalog/runtime/tableTrackWidths.ts` (`catalogDeviceColumnTracks`) · `catalogVirtualizer.components.tsx` · `domBinding.components.tsx` (`useCatalogTableDeviceColumns` — 기기 값은 DOM runtime 이 넘긴다: chunk 의 정적 import 는 모듈을 chunk 로 갈라 초기 번들 +1,357 B 였다 → +1 B) · `virtualListLayout.ts`
+- **Table 선택 checkbox 열의 머리글 높이 Canvas 35 · Preview 32** (ADR-310 Phase 8 후속 — 일반 Table 도):
+  - 전체선택 Checkbox (`Checkbox[slot=selection]`) 를 넣은 머리글 행이 Canvas 에서만 S2 32 px 보다 3 px 높았다.
+  - **Why**: 칸 안 Checkbox 를 줄 위쪽에 두는 `vertical-align: top` 이 수동 `Table.css` 에만 있어, Canvas 엔진은 inline-flex Checkbox 를 baseline 에 놓고 줄 상자에 글자 descent 만큼 더 잡았다. 이제 Column · Cell rule 의 part rule 이 Checkbox 자식에 그 값을 주고 Canvas 엔진 · DOM inline 이 같이 읽는다 (수동 CSS 규칙 삭제).
+  - 위치: `packages/shared/src/catalog/document/rulePartRules.ts` (`tableCellCheckboxPartRules`) · `packages/shared/src/components/styles/Table.css`
+- **데이터를 연결한 Table 의 Row 템플릿 안 편집이 거부되던 것** (ADR-310 Phase 4 후속):
+  - 연결한 Table 의 Row 템플릿 Cell 글자나 그 안 Checkbox 라벨을 바꾸면 `RESOLVED_INSTANCE_MISSING` 으로 편집이 거부됐다. 라벨을 비운 Checkbox 는 행마다 다시 「Checkbox」 로 보였다.
+  - **Why**: ① 반복된 행의 record id 에는 `#row:<key>` 가 붙는데, 증분 해석이 그 id 로 경로를 적어 두고 resolver 는 템플릿 자리 (접미사 없음) 로 물어 경로가 끊겼다. ② 행 템플릿의 리터럴 글자는 표본 글자로 빼는데 (`withoutSampleContent`), 빈 글자 `""` 까지 빼서 원본 기본값이 돌아왔다 — 빈 글자는 표본이 아니라 비운 값이다.
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`resolvePruned`) · `packages/shared/src/catalog/resolution/resolver.ts` (`withoutSampleContent`)
 
 ### Performance
 
@@ -40,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- **G8 하니스** `apps/builder/scripts/adr310-g8-virtual-live.mjs` (headed Chrome, dev 또는 `--serve-dist` production): 패널에서 가상 스크롤 선택 · DOM 행 수 · Canvas ↔ DOM 행 위치 1 px (세로 · 가로 · Table · grid) · 원격 끝에서 다음 쪽 · 키보드 · frame A/B (순수 RAC 대조군 `adr310VirtualBaseline.mjs` · 더 보기 참고). `virtualRowReuse.test.ts` 3 (원복 RED 3). `perfDist.mjs` 가 `publish/` 디렉터리의 index.html 을 낸다.
+- **G8 하니스** `apps/builder/scripts/adr310-g8-virtual-live.mjs` (headed Chrome, dev 또는 `--serve-dist` production): 패널에서 가상 스크롤 선택 · DOM 행 수 · Canvas ↔ DOM 행 위치 1 px (세로 · 가로 · Table · grid) · 원격 끝에서 다음 쪽 · 키보드 · frame A/B (순수 RAC 대조군 `adr310VirtualBaseline.mjs` · 더 보기 참고). `virtualRowReuse.test.ts` 3 (원복 RED 3). G8 ⑦ — 선택 열 있는 가상 Table 의 터치 52 · 데스크톱 40 · 머리글 = 본문 행 (원복 RED: 터치 토큰 52 인데 열 40), `adr310TableTrackWidths.test.ts` 터치 7 (oracle = 터치 트랙의 Rust 엔진 배치). G8 ⑧ — 행 템플릿 Cell 의 선택 Checkbox 가 보이는 행마다 라벨 없이 (하니스가 Column · Row 템플릿 Cell 둘 다에 넣는다), ② Table 머리글 Canvas 32 = DOM 32. `adr310TableTemplate.test.tsx` 「a field edit inside the bound Row template」 (원복 RED 2 — 행 접미사 키 · 빈 글자 빼기) · `adr256TableNodeTree.test.tsx` 「a selection Checkbox sits at the top」 (원복 RED — part rule 끔). `perfDist.mjs` 가 `publish/` 디렉터리의 index.html 을 낸다.
 
 ## [ADR-310 Phase 7 — 연결한 목록의 「페이지」 표시 · Pagination 연결] - 2026-11-15
 

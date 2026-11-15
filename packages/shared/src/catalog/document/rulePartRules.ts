@@ -1309,6 +1309,19 @@ function textAreaPartRules(parentType: string): CompiledPartRule[] {
 }
 
 /**
+ * A selection Checkbox in a Table's header or body cell (ADR-256 Phase 5i-2 — the reference's
+ * checkbox column) sits at the top of the cell's line, not on the text baseline: on the baseline
+ * the inline-flex box (its baseline = its bottom) took the strut's descent below it and the header
+ * grew from S2's 32 to 35. One value both consumers read — the engine's line box, the DOM inline.
+ * (2026-11-15: it was a hand-written `Table.css` rule, so the Canvas placed it on the baseline.)
+ */
+function tableCellCheckboxPartRules(parentType: string): CompiledPartRule[] {
+  return parentType === "Column" || parentType === "Cell"
+    ? [{ childType: "Checkbox", layout: { verticalAlign: "top" }, visual: {} }]
+    : [];
+}
+
+/**
  * A typed child standing for another rule's element (`SUBPART_TOKENS` `.react-aria-Button` for
  * Select's trigger or a field's icon button) also receives that rule's generated box at its
  * default size (the element carries no `data-size`): its item `gap` and `min-width`. The owner's
@@ -2363,6 +2376,7 @@ export function compileRulePartRules(
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),
+    ...tableCellCheckboxPartRules(parentType),
     ...selectBoxPartRules(parentType),
     ...(parentType === "LabeledValue"
       ? Object.entries(COMPONENT_RULES_TABLE.LabeledValue.sizes).flatMap(

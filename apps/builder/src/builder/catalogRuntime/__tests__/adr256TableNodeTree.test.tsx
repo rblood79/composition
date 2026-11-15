@@ -418,6 +418,25 @@ describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[select
     expect(structure(draw())).toBe(structure(selectionReference()));
   });
 
+  it("a selection Checkbox sits at the top of its cell's line on both sides — the header stays S2's 32", async () => {
+    // (Why — 2026-11-15: `vertical-align: top` lived in a hand-written `Table.css` rule, so the Canvas
+    //  put the inline-flex box on the baseline and its header grew to 35 while the DOM's stayed 32.)
+    const { root, record, draw } = await openSelection();
+    const column = record("project:node:select");
+    const box = record("project:node:select-box");
+    expect(box.layout.verticalAlign).toBe("top");
+    expect(root.getGeometry([column.id]).get(column.id)!.height).toBe(32);
+    const grid = draw();
+    const cellBoxes = [
+      ...grid.querySelectorAll(
+        ":is(.react-aria-Column, .react-aria-Cell) > .react-aria-Checkbox",
+      ),
+    ] as HTMLElement[];
+    expect(cellBoxes).toHaveLength(4);
+    for (const element of cellBoxes)
+      expect(element.style.verticalAlign).toBe("top");
+  });
+
   it("on the Canvas: unchecked as the rows are, selectable in a multiple-selection Table; select-all needs multiple selection and rows", async () => {
     const { workspace, root, record } = await openSelection();
     const boxes = () =>

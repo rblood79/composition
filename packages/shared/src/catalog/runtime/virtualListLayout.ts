@@ -10,6 +10,7 @@ import {
 } from "./virtualLayout";
 import { catalogVirtualFlow } from "./virtualFlow";
 import type { catalogVirtualGridOptions } from "./virtualGrid";
+import type { CatalogTableDeviceColumns } from "./tableTrackWidths";
 
 /**
  * ADR-310 Phase 8 — a list's virtual layout read from its drawn records (the Canvas's geometry and
@@ -31,6 +32,8 @@ export interface CatalogVirtualListReaders {
   ) => CatalogConsumerNode[];
   /** A grid's `GridLayout` options at a width (`catalogVirtualGridOptions` — the Canvas's). */
   readonly gridOptions: typeof catalogVirtualGridOptions;
+  /** A hook: the device's selection · drag column px (a Table's columns that follow the device). */
+  readonly deviceColumns: () => CatalogTableDeviceColumns;
 }
 
 export function catalogVirtualListLayout(
@@ -109,19 +112,26 @@ export function catalogVirtualListLayout(
 /**
  * A Table's column tracks and its Row's edge, read from a body Row's engine input (the Canvas's —
  * the same in the Preview's root): the tracks the grid lays the cells on (`_tableTracks`, with the
- * drag column's) and the border · padding the row adds around them.
+ * drag column's), the DOM's device tracks and the border · padding the row adds around them.
  */
 function tableTrackInput(
   root: CatalogCompositionRoot,
   row: CatalogConsumerNode | undefined,
-): Pick<CatalogVirtualInput, "columnTracks" | "rowEdge"> {
+): Pick<
+  CatalogVirtualInput,
+  "columnTracks" | "rowEdge" | "deviceTracks" | "dragColumn"
+> {
   if (!row) return {};
   const style = root.getDrawnLayoutStyle(row.id) ?? {};
   const tracks = style.gridTemplateColumns;
+  const device = row.derivedProps?._tableDeviceTracks;
   const side = (border: unknown, padding: unknown) =>
     px(border ?? style.border) + px(padding ?? style.padding);
   return {
     ...(Array.isArray(tracks) ? { columnTracks: tracks.map(String) } : {}),
+    // (The DOM's tracks follow the device — the selection · drag columns, `catalogDeviceColumnTracks`.)
+    ...(typeof device === "string" ? { deviceTracks: device } : {}),
+    ...(row.derivedProps?._allowsDragging === true ? { dragColumn: true } : {}),
     rowEdge: {
       top: side(style.borderTop, style.paddingTop),
       bottom: side(style.borderBottom, style.paddingBottom),

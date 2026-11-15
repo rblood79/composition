@@ -31,6 +31,15 @@ import {
 } from "./collectionDragState";
 import { catalogGroupItems, catalogItemKey } from "./groupSelection";
 import { catalogVirtualGridOptions } from "./virtualGrid";
+import {
+  useCatalogDeviceTokenPx,
+  useCatalogDeviceUnit,
+} from "./deviceUnit.runtime";
+import {
+  CATALOG_DRAG_COLUMN_WIDTH,
+  CATALOG_SELECTION_COLUMN_VAR,
+  CATALOG_SELECTION_COLUMN_WIDTH,
+} from "./tableTracks";
 
 /** ADR-284 Phase 5 — `useDragAndDrop` and its drop indicator load with the first list that drags. */
 const CatalogDragAndDrop = lazy(
@@ -41,6 +50,21 @@ const CatalogDragAndDrop = lazy(
 const CatalogVirtualizer = lazy(
   () => import("./catalogVirtualizer.components"),
 );
+
+/**
+ * ADR-310 Phase 8 — a virtual Table's columns that follow the device (S2 `useScale()`: the selection
+ * column 40 · 52, the drag column 16 · 20) as the DOM's grid sizes them. A hook the chunk calls.
+ */
+function useCatalogTableDeviceColumns() {
+  return {
+    selectionVar: CATALOG_SELECTION_COLUMN_VAR,
+    selection: useCatalogDeviceTokenPx(
+      CATALOG_SELECTION_COLUMN_VAR,
+      CATALOG_SELECTION_COLUMN_WIDTH,
+    ),
+    drag: CATALOG_DRAG_COLUMN_WIDTH * useCatalogDeviceUnit(),
+  };
+}
 
 /**
  * ADR-310 Phase 8 (Decision 10) — a list whose row display is `virtual` draws inside RAC's
@@ -65,6 +89,7 @@ function withVirtualizer(
         typeOf: (node: CatalogConsumerNode) => catalogTypeName(root, node),
         itemsOf: catalogGroupItems,
         gridOptions: catalogVirtualGridOptions,
+        deviceColumns: useCatalogTableDeviceColumns,
       },
       element,
     }),

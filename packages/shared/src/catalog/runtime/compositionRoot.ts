@@ -7487,9 +7487,10 @@ export class CatalogCompositionRoot {
       chain.push(cursor);
       const parent = this.records.get(cursor.parentId);
       if (parent) {
+        // (Keyed by position too: the resolver asks `ownedChildren` for a row's template position.)
         const hop = this.ownedHop(parent, cursor);
-        if (hop === "scan") scanAll.add(parent.id);
-        else if (hop) ownedNext.set(parent.id, hop);
+        if (hop === "scan") scanAll.add(position(parent.id));
+        else if (hop) ownedNext.set(position(parent.id), hop);
       }
       cursor = parent;
     }

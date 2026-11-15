@@ -97,3 +97,69 @@ export function catalogTableTrackWidths(
   }
   return sized.map((track) => track.base);
 }
+
+/** A track list's tracks (spaces inside parentheses stay — `minmax(75px, 1fr)`). */
+function splitTracks(list: string): string[] {
+  const tracks: string[] = [];
+  let depth = 0;
+  let track = "";
+  for (const char of list) {
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (/\s/.test(char) && !depth) {
+      if (track) tracks.push(track);
+      track = "";
+    } else track += char;
+  }
+  if (track) tracks.push(track);
+  return tracks;
+}
+
+const PX_MIN_MAX = /\b(min|max)\(\s*([\d.]+)px\s*,\s*([\d.]+)px\s*\)/;
+
+/** The device's px of the columns that follow it (`useCatalogTableDeviceColumns` — the DOM runtime's). */
+export interface CatalogTableDeviceColumns {
+  /** The selection column's CSS variable (`CATALOG_SELECTION_COLUMN_VAR`). */
+  readonly selectionVar: string;
+  /** `{size.table.selection-column}` at this device (S2 40 · touch 52). */
+  readonly selection: number;
+  /** The drag column at this device (S2 16 · touch 20). */
+  readonly drag: number;
+}
+
+/**
+ * The tracks the DOM's grid lays a Table's row on at this device — the `Layout` sizes the columns
+ * as the Preview draws them. The Canvas's tracks (`_tableTracks`) hold the desktop px; a selection
+ * column without an authored width follows S2 `{size.table.selection-column}` (40 · touch 52 — its
+ * device track `_tableDeviceTracks`, clamped by an authored px floor · max) and a dragging Table's
+ * first column the device-scaled 16 (`_allowsDragging` — the DOM's `catalogDeviceScaledCss`).
+ * (The device values come from the DOM runtime: a static import from the virtual chunk would split
+ * their modules into chunks of their own — +1.3 KB on the initial bundle, measured.)
+ */
+export function catalogDeviceColumnTracks(
+  tracks: readonly string[],
+  /** The Row's `_tableDeviceTracks`. */
+  deviceTracks: string | undefined,
+  drag: boolean,
+  device: CatalogTableDeviceColumns,
+): readonly string[] {
+  const split = deviceTracks ? splitTracks(deviceTracks) : [];
+  const out = (split.length === tracks.length ? split : [...tracks]).map(
+    (track) => {
+      let text = track.replaceAll(
+        `var(${device.selectionVar})`,
+        `${device.selection}px`,
+      );
+      for (let match; (match = PX_MIN_MAX.exec(text)); ) {
+        const pick = match[1] === "min" ? Math.min : Math.max;
+        text = text.replace(
+          match[0],
+          `${pick(Number(match[2]), Number(match[3]))}px`,
+        );
+      }
+      return text;
+    },
+  );
+  if (drag && out.length) out[0] = `${device.drag}px`;
+  return out;
+}

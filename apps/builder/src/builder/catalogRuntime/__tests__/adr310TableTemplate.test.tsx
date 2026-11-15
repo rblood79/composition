@@ -389,4 +389,62 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
       workspace.dispose();
     }
   });
+
+  it("a field edit inside the bound Row template reaches every drawn row (the cell's text · a Checkbox's label cleared)", async () => {
+    // (Why — 2026-11-15: a repeated row's record id carries `#row:<key>` but the resolver asks for
+    //  the template position, so a template cell's edit missed its owned path —
+    //  RESOLVED_INSTANCE_MISSING; and the cleared label, taken for sample text, brought back the
+    //  origin's 「Checkbox」.)
+    const workspace = await boundTable(2);
+    try {
+      bind(workspace);
+      const [template] = ownRows(workspace);
+      const graph = workspace.runtime.graph;
+      const cell = (graph.getEntry(template!.id) as NodeEntry).children[0]!;
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: cell }],
+          props: { children: { kind: "set", value: "{type}" } },
+        }),
+      );
+      expect(drawnRows(workspace).map((row) => row.cells[0])).toEqual([
+        "T0",
+        "T1",
+      ]);
+      const checkbox = workspace.newId("node") as NodeId;
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: cell },
+          index: 0,
+          entries: [
+            {
+              kind: "node",
+              id: checkbox,
+              definitionId: catalogPaletteDefinitionId(library, "Checkbox"),
+              children: [],
+              props: { slot: { kind: "set", value: "selection" } },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: [checkbox],
+          newId: workspace.newId,
+        }),
+      );
+      expect(drawnRows(workspace)[1]!.cells[0]).toBe("T1CheckboxCheckbox");
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: checkbox }],
+          props: { children: { kind: "set", value: "" } },
+        }),
+      );
+      expect(drawnRows(workspace).map((row) => row.cells[0])).toEqual([
+        "T0",
+        "T1",
+      ]);
+    } finally {
+      workspace.dispose();
+    }
+  });
 });

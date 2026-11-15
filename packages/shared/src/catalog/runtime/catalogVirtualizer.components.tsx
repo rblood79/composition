@@ -11,7 +11,10 @@ import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
 } from "./compositionRoot";
-import { catalogTableTrackWidths } from "./tableTrackWidths";
+import {
+  catalogDeviceColumnTracks,
+  catalogTableTrackWidths,
+} from "./tableTrackWidths";
 import {
   catalogVirtualListLayout,
   type CatalogVirtualListReaders,
@@ -105,7 +108,8 @@ type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
 
 /**
  * RAC's `TableLayout` placing a Table as the Canvas does: the columns are the Canvas's grid tracks
- * at the scroll width (`catalogTableTrackWidths` — RAC's `TableColumnLayout` rounds to whole px
+ * (the selection · drag columns at this device — `catalogDeviceColumnTracks`) at the scroll width
+ * (`catalogTableTrackWidths` — RAC's `TableColumnLayout` rounds to whole px
  * and reads a selection · drag Column as `1fr`), and a row is its cells plus the Row's own border ·
  * padding (`rowEdge` — RAC sizes a row by its measured cells, so a Row's bottom divider fell
  * outside its pitch: 40 a row, the Canvas's 41). A resizable Table keeps RAC's widths (its
@@ -197,6 +201,9 @@ export default function CatalogVirtualizer({
   element: ReactElement;
 }): ReactElement {
   let element = drawn;
+  // (A Table's selection · drag columns follow the device as the DOM's grid does — S2 40 · 52,
+  //  16 · 20; the Canvas's tracks hold the desktop px.)
+  const device = readers.deviceColumns();
   const layout = catalogVirtualListLayout(root, record, readers);
   if ("refused" in layout) return element;
   // (The list is the scroll box the `Virtualizer` fills — its rows are placed by the `Layout`, so
@@ -222,8 +229,29 @@ export default function CatalogVirtualizer({
       },
       children: element,
     } as never);
+  if (layout.kind === "table") {
+    const { deviceTracks, dragColumn, columnTracks, ...options } =
+      layout.options;
+    return createElement(Virtualizer, {
+      layout: CatalogTableLayout,
+      layoutOptions: {
+        ...options,
+        ...(columnTracks
+          ? {
+              columnTracks: catalogDeviceColumnTracks(
+                columnTracks,
+                deviceTracks,
+                dragColumn === true,
+                device,
+              ),
+            }
+          : {}),
+      },
+      children: element,
+    } as never);
+  }
   return createElement(Virtualizer, {
-    layout: layout.kind === "table" ? CatalogTableLayout : CatalogListLayout,
+    layout: CatalogListLayout,
     layoutOptions: layout.options,
     children: element,
   } as never);
