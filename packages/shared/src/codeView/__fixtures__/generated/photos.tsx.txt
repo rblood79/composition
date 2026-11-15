@@ -35,10 +35,14 @@ export default function Home() {
       <Tree selectionMode="single" selectedKeys={[album]} onSelectionChange={(keys) => {
         setAlbum([...keys][0] ?? '');
       }} dragAndDropHooks={treeDragAndDrop} items={albums}>
-        {item => <TreeItem id={item.id} textValue={String(item.id)}>{item.id}</TreeItem>}
+        {item => (
+          <TreeItem id={item.id} textValue={String(item.name)} />
+        )}
       </Tree>
       <GridList dragAndDropHooks={gridListDragAndDrop} items={photosView}>
-        {item => <GridListItem id={item.id} textValue={String(item.id)}>{item.id}</GridListItem>}
+        {item => (
+          <GridListItem id={item.id} textValue={String(item.album)} />
+        )}
       </GridList>
     </>
   );

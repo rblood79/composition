@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-310 Phase 6 — Code 보기의 반복 항목 · 끌어 옮기기 onMove · 고정 항목 경계] - 2026-11-15
+
+### Changed
+
+- **Code 보기 — 반복 항목 = 렌더 함수**: 데이터를 연결한 목록의 코드가 행 템플릿을 그대로 보인다 — `<ListBox items={users}>{item => <ListBoxItem id={item.id} …/>}</ListBox>`. 고정 항목과 섞인 목록 · 항목에 직접 연결한 구간 · Table 의 행 · Tabs 의 패널은 그 자리에 `<Collection items={…}>`, RadioGroup 같은 그룹은 `{rows.map(item => <Radio key value>…)}`, 하위 행을 읽는 Tree 는 `renderItem` 재귀, 규칙이 편집하는 Tree 는 `useTreeData`. 전에는 템플릿과 무관한 한 줄 (`{item.id}`) 이었다.
+- **Code 보기 적용**: `<Collection>` 블록을 옮겨 적용하면 반복 항목이 그 자리로 옮겨진다. 렌더 함수 본문은 읽기 전용 — 고치면 적용하지 않고 그 줄을 알린다. 여는 태그 줄을 바꾸거나 한 instance 의 열 여럿을 고친 코드를 붙여넣어도 노드가 지워지고 다시 만들어지지 않는다.
+- **끌어 옮기기 — 고정 항목**: 고정 항목과 데이터 행이 섞인 목록에서 고정 항목은 끌어 옮기는 대상이 아니고, 데이터 행을 고정 항목 앞 · 뒤에 놓으면 그 데이터 구간의 처음 · 끝으로 간다. 한 목록의 서로 다른 데이터 구간은 각자 자기 데이터 type 으로 끌린다.
+
+### Added
+
+- **When 「같은 목록 안에서 옮길 때 (항목 위 포함)」** (RAC `onMove`): ListBox · GridList · Tree · Table. 옮기기 Do 의 놓은 쪽이 `on` (항목 위) 이면 그 항목의 마지막 자식으로 옮긴다 (Tree 의 새 부모).
+
 ## [ADR-310 Phase 5 — 한 목록에 데이터 둘 · 묶음 section · Radio 등 그룹 연결] - 2026-11-15
 
 ### Added

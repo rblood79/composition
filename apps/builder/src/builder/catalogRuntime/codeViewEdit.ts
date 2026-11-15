@@ -238,6 +238,7 @@ export interface CatalogCodeViewPlan {
 /** The Whens a list's `useDragAndDrop` options hold (its drop · reorder rules). */
 const DRAG_TRIGGERS = new Set([
   "onReorder",
+  "onMove",
   "onInsert",
   "onRootDrop",
   "onItemDrop",
@@ -1365,7 +1366,7 @@ class Planner {
           id,
           ...(parent ? { parentId: unitOf(parent.anchor.target) } : {}),
           type:
-            /^\{?[\w$]+ && <([\w$.]+)|^<([\w$.]+)/
+            /^\{?[\w$]+ && <([\w$.]+)|^<([\w$.]+)|^\{[\w$.]+\.(map)\(/
               .exec(this.code(anchor))
               ?.slice(1)
               .find(Boolean) ?? "",
@@ -1422,6 +1423,13 @@ class Planner {
     // New elements: ids now (the plan names them before they exist).
     for (const element of identity.added) {
       if (element.type === "Slot") continue; // (an instance's slot position, not a node)
+      // (ADR-310 Phase 6 — a repeated item's `<Collection>` · `map` is a node the code shows, its
+      //  render body read only: one the code adds has no template to be — refused, not replaced
+      //  by a default template (a new list takes `items` + its render function).)
+      if (element.type === "Collection" || element.type === "map") {
+        this.reject(element.from, "notInCode");
+        continue;
+      }
       const type = element.type === "div" ? "frame" : element.type;
       const definitionId =
         this.componentDefinition(element.type) ??
@@ -4088,9 +4096,13 @@ function compareRegenerated(
           codeViewNormalized(other.text?.code ?? "")
       )
         reject(element.text?.from ?? element.from, "notInCode");
+      // (ADR-310 Phase 6 — a list the code adds gets its row template from the palette and its
+      //  label field from its rows (`fieldMapOf`): the render function written then is the
+      //  shorthand, not a template to compare; an existing list's is its template's — read only.)
       if (
+        !(fresh && element.rows && other.rows) &&
         codeViewNormalized(element.rows?.code ?? "") !==
-        codeViewNormalized(other.rows?.code ?? "")
+          codeViewNormalized(other.rows?.code ?? "")
       )
         reject(element.rows?.from ?? element.from, "notInCode");
       // (A new element written without children may gain its palette defaults' — ADR-296 Phase 5

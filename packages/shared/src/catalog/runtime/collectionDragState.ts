@@ -105,7 +105,8 @@ export function catalogCollectionDragState(
   if (!triggers.length && !(binding && writesAll.has(binding.collectionId)))
     return undefined;
   const own = binding?.collectionId ?? record.sourceId;
-  const reorders = triggers.includes("onReorder");
+  const reorders =
+    triggers.includes("onReorder") || triggers.includes("onMove");
   const written = writesByOwner.get(record.sourceId);
   const accepted = [
     ...new Set(

@@ -828,6 +828,7 @@ const catalog: TranslationKeys = {
       },
       collectionDragDrop: {
         onReorder: "On reorder in this list",
+        onMove: "On move in this list (onto an item too)",
         onInsert: "On drop between items from another list",
         onRootDrop: "On drop on the empty list",
         onItemDrop: "On drop on an item",

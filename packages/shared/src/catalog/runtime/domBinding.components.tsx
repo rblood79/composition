@@ -25,7 +25,11 @@ import type { Ref } from "react";
 import * as RAC from "react-aria-components";
 import { COLLECTION_DRAG_DROP_EVENTS } from "../../interactions/concepts/collectionDragDrop";
 import { resolveTriggers } from "../../interactions/capabilityRegistry";
-import { catalogCollectionDragState } from "./collectionDragState";
+import {
+  CATALOG_DRAG_TYPE,
+  catalogCollectionDragState,
+} from "./collectionDragState";
+import { catalogGroupItems, catalogItemKey } from "./groupSelection";
 
 /** ADR-284 Phase 5 — `useDragAndDrop` and its drop indicator load with the first list that drags. */
 const CatalogDragAndDrop = lazy(
@@ -62,6 +66,36 @@ function withDragAndDrop(
   );
   if (!state) return element;
   const { dragType, acceptedTypes, draggable } = state;
+  // ADR-310 Phase 6 — the items at drop time: a data row (its source is a repeated item — the
+  // first row draws at the template's own record) carries its run's collection type, a fixed item
+  // none (사용자 결정 4 · 구간별 끌기 type). A list with no repeated item gives no order.
+  const graph = root.runtime.graph;
+  const typeOf = (node: CatalogConsumerNode) => catalogTypeName(root, node);
+  const runOf = (item: CatalogConsumerNode) => {
+    const source = graph.getEntry(item.sourceId as never);
+    if (source?.kind !== "node" || !source.repeat) return undefined;
+    return source.binding && source.binding.key === undefined
+      ? `${CATALOG_DRAG_TYPE}${source.binding.collectionId}`
+      : dragType;
+  };
+  const listed = () =>
+    catalogGroupItems(record, (id) => root.domInputs.get(id), typeOf);
+  const items = () => {
+    const all = listed().map((item) => ({
+      key: catalogItemKey(item, typeOf),
+      ...(runOf(item) ? { type: runOf(item) } : {}),
+    }));
+    return all.some((item) => item.type) ? all : [];
+  };
+  const reorders = !!dnd.onReorder || !!dnd.onMove;
+  const own = [
+    ...new Set(
+      listed().flatMap((item) => {
+        const type = runOf(item);
+        return type && type !== dragType ? [type] : [];
+      }),
+    ),
+  ];
   return createElement(
     Suspense,
     { fallback: element },
@@ -69,8 +103,12 @@ function withDragAndDrop(
       element,
       handlers: dnd,
       dragType,
-      acceptedTypes,
+      // (A list's own runs reorder within it: their types too.)
+      acceptedTypes: reorders
+        ? [...new Set([...acceptedTypes, ...own])]
+        : acceptedTypes,
       draggable,
+      items,
     }),
   );
 }

@@ -15,7 +15,9 @@ export default function Home() {
   return (
     <>
       <ListBox items={emojisView}>
-        {item => <ListBoxItem id={item.id} textValue={String(item.id)}>{item.id}</ListBoxItem>}
+        {item => (
+          <ListBoxItem id={item.id} textValue={String(item.label)} />
+        )}
       </ListBox>
     </>
   );

@@ -826,6 +826,7 @@ const catalog: TranslationKeys = {
       },
       collectionDragDrop: {
         onReorder: "같은 목록 안에서 순서를 바꿀 때",
+        onMove: "같은 목록 안에서 옮길 때 (항목 위 포함)",
         onInsert: "다른 목록의 항목을 사이에 놓을 때",
         onRootDrop: "빈 자리에 놓을 때",
         onItemDrop: "항목 위에 놓을 때",

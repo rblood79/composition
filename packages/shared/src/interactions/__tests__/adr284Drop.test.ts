@@ -35,6 +35,7 @@ describe("ADR-284 Phase 5 — drop Do list", () => {
       expect(resolveTriggers(type)).toEqual(
         expect.arrayContaining([
           "onReorder",
+          "onMove",
           "onInsert",
           "onRootDrop",
           "onItemDrop",
@@ -75,7 +76,7 @@ describe("ADR-284 Phase 5 — drop Do list", () => {
     ]);
   });
 
-  it("the drop's side picks the method; a side that is not before · after stops the rule", () => {
+  it("the drop's side picks the method; `on` moves into the item (ADR-310 Phase 6 — `onMove`); another side stops the rule", () => {
     const { d, calls } = deps();
     const move = {
       kind: "moveAfter" as const,
@@ -94,10 +95,22 @@ describe("ADR-284 Phase 5 — drop Do list", () => {
       ["u1", "u3"],
       { before: "u2" },
     ]);
+    // ADR-310 Phase 6 — onto an item: its last child (`useTreeData.move(key, target, index)`).
     const on = executeInteractionRule(rule([move]), d, {
       event: { ...drop, target: { ...drop.target, dropPosition: "on" } },
     });
-    expect(on.ok).toBe(false);
+    expect(on.ok).toBe(true);
+    expect(calls.at(-1)).toEqual([
+      "move",
+      "users",
+      ["u1", "u3"],
+      { index: Number.MAX_SAFE_INTEGER },
+      "u2",
+    ]);
+    const other = executeInteractionRule(rule([move]), d, {
+      event: { ...drop, target: { ...drop.target, dropPosition: "inside" } },
+    });
+    expect(other.ok).toBe(false);
     // (No side: the opcode's.)
     const { dropPosition: _side, ...plain } = move;
     executeInteractionRule(rule([plain]), d, { event: drop });

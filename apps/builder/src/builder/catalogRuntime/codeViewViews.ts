@@ -52,6 +52,13 @@ import type {
   CodeViewResult,
 } from "../../../../../packages/shared/src/codeView/types";
 import { catalogBindingCommand } from "./dataBindingCommand";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import { COLLECTION_TYPE_TABLE } from "../../../../../packages/shared/src/catalog/document/collectionItems";
+
+/** The parts a collection's items sit in (a Table's body · a Tabs' · TagGroup's list). */
+const COLLECTION_LIST_PARTS: ReadonlySet<string> = new Set(
+  COLLECTION_TYPE_TABLE.flatMap((row) => (row.list ? [row.list] : [])),
+);
 
 const COLLECTION = "data:collection:";
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
@@ -196,7 +203,8 @@ class ViewPlanner {
     >();
     const visit = (elements: readonly CodeViewElement[]) => {
       for (const element of elements) {
-        const id = this.input.ids.get(element);
+        const element$ = this.input.ids.get(element);
+        const id = element$ ? this.bindingHolder(element$) : undefined;
         const items = element.attributes.find((item) => item.name === "items");
         const name =
           items?.value?.kind === "expression" ? items.value.code.trim() : "";
@@ -397,6 +405,28 @@ class ViewPlanner {
             return { label: "Delete view", ops: [] };
           return removeView({ id: owner.viewId as EntryId<"view"> })(reader);
         });
+  }
+
+  /**
+   * ADR-310 Phase 6 — whose binding an element's `items` is: a repeated item's (`<Collection>` ·
+   * a group's `map`) and a list part's (TableBody · TabList · TagList) are the nearest bound
+   * list's, unless the repeated item reads its own data (①).
+   */
+  private bindingHolder(id: string): string {
+    const node = this.reader.getEntry(id) as NodeEntry | undefined;
+    if (!node || node.kind !== "node" || node.binding) return id;
+    const type = definitionTypeName(this.reader, node.definitionId);
+    if (!node.repeat && !COLLECTION_LIST_PARTS.has(type)) return id;
+    for (
+      let cursor = this.reader.ownerOf(id);
+      cursor;
+      cursor = this.reader.ownerOf(cursor)
+    ) {
+      const owner = this.reader.getEntry(cursor);
+      if (owner?.kind !== "node") break;
+      if (owner.binding && owner.binding.key === undefined) return cursor;
+    }
+    return id;
   }
 
   /** A binding written when it changes (the node as staged then — a new one is there). */

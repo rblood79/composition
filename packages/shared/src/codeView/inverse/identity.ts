@@ -37,7 +37,13 @@ export type CodeViewAnchorOutcome =
   /** Deleted whole with nothing in its place. */
   | { readonly kind: "deleted" }
   /** Covered by a change that inserted text — the hunk is that change's index. */
-  | { readonly kind: "replaced"; readonly hunk: number };
+  | {
+      readonly kind: "replaced";
+      readonly hunk: number;
+      /** The change's inserted text in the edited code. */
+      readonly from?: number;
+      readonly to?: number;
+    };
 
 /**
  * A baseline offset in the edited code: changes before it shift it, a deleted range takes it to
@@ -77,10 +83,44 @@ export function codeViewAnchorOutcomes(
         change.fromA <= anchor.from &&
         change.toA >= anchor.to,
     );
-    if (index >= 0)
-      return changes[index]!.insert
-        ? { kind: "replaced", hunk: index }
-        : { kind: "deleted" };
+    if (index >= 0) {
+      const change = changes[index]!;
+      if (!change.insert) return { kind: "deleted" };
+      // (Where its text went: the changes before it moved it — in any order.)
+      let from = change.fromA;
+      for (const other of changes)
+        if (other !== change && other.toA <= change.fromA)
+          from += other.insert.length - (other.toA - other.fromA);
+      return {
+        kind: "replaced",
+        hunk: index,
+        from,
+        to: from + change.insert.length,
+      };
+    }
+    // (A change that starts before the span and ends inside it — the editor's line change of an
+    //  element's opening tag: the line's lead before the tag is the same, so the tag starts at
+    //  the same column of the new line. Step 0 checks the tag there; ADR-310 Phase 6 — a bound
+    //  Table whose `<Table …>` line a snippet rewrote stays the Table.)
+    const opening = changes.find(
+      (change) =>
+        change.fromA < anchor.from &&
+        anchor.from < change.toA &&
+        change.toA < anchor.to,
+    );
+    if (opening) {
+      let start = opening.fromA;
+      for (const other of changes)
+        if (other !== opening && other.toA <= opening.fromA)
+          start += other.insert.length - (other.toA - other.fromA);
+      const column = anchor.from - opening.fromA;
+      if (column <= opening.insert.length)
+        return {
+          kind: "kept",
+          from: start + column,
+          to: codeViewMapPos(changes, anchor.to, -1),
+        };
+    }
     return {
       kind: "kept",
       from: codeViewMapPos(changes, anchor.from, 1),
@@ -123,6 +163,12 @@ export interface CodeViewIdentity {
   readonly added: readonly CodeViewElement[];
   /** Spans of the edited code whose identity the code does not decide. */
   readonly ambiguous: readonly CodeViewSpan[];
+}
+
+/** The RAC key an element's opening tag writes (`key="…"` · `id="…"`), else undefined. */
+function tagKey(code: string): string | undefined {
+  const open = /^\{?[^<]*<[\w$.]+((?:\s+[\w$-]+(?:=(?:"[^"]*"|'[^']*'|\{[^{}]*\}))?)*)/.exec(code)?.[1];
+  return open ? /\s(?:key|id)="([^"]*)"/.exec(open)?.[1] : undefined;
 }
 
 /** Match the edited code's elements with the baseline's units (Decision 3). */
@@ -241,11 +287,40 @@ export function codeViewMatchElements(
       ...news.map((item) => item.type),
     ]);
     for (const type of types) {
-      const r = removals.filter(
+      let r = removals.filter(
         (unit) => unit.type === type && !used.has(unit.id),
       );
-      const n = news.filter((item) => item.type === type && !matched.has(item));
+      let n = news.filter((item) => item.type === type && !matched.has(item));
       if (!r.length || !n.length) continue;
+      // (Several of one type: an element's own RAC key — `key="…"` · `id="…"` as written on its
+      //  tag — names its unit when exactly one unit has it: three Columns keep their nodes when
+      //  their lines change, ADR-310 Phase 6.)
+      if (n.length > 1 || r.length > 1) {
+        const unitKeys = new Map<string, CodeViewIdentityUnit[]>();
+        for (const unit of r) {
+          const key = tagKey(unit.code);
+          if (key !== undefined)
+            unitKeys.set(key, [...(unitKeys.get(key) ?? []), unit]);
+        }
+        const elementKeys = new Map<string, CodeViewElement[]>();
+        for (const item of n) {
+          const key = tagKey(code.slice(item.from, item.to));
+          if (key !== undefined)
+            elementKeys.set(key, [...(elementKeys.get(key) ?? []), item]);
+        }
+        for (const [key, items] of elementKeys) {
+          const units = unitKeys.get(key);
+          if (items.length !== 1 || units?.length !== 1) continue;
+          pair(items[0]!, units[0]!);
+          modify(
+            childrenOf(units[0]!.id).filter((kid) => !used.has(kid.id)),
+            kids(items[0]!).filter((kid) => !matched.has(kid)),
+          );
+        }
+        r = r.filter((unit) => !used.has(unit.id));
+        n = n.filter((item) => !matched.has(item));
+        if (!r.length || !n.length) continue;
+      }
       if (
         n.length > 1 ||
         (r.length > 1 && new Set(r.map((u) => u.state)).size > 1)
@@ -262,7 +337,7 @@ export function codeViewMatchElements(
       pair(element!, unit!);
       modify(
         childrenOf(unit!.id).filter((kid) => !used.has(kid.id)),
-        element!.children.filter((kid) => !matched.has(kid)),
+        kids(element!).filter((kid) => !matched.has(kid)),
       );
     }
   };
@@ -279,10 +354,21 @@ export function codeViewMatchElements(
           !used.has(unit.parentId)
         ),
     );
-    // (The new elements of the hunk: unmatched, their parent matched or a root — by parent.)
+    // (The new elements of the hunk: unmatched, their parent matched or a root — by parent; in the
+    //  hunk's text when it is known — one line's change does not pair with a sibling another line
+    //  holds: an edited Column line is that Column, ADR-310 Phase 6.)
+    const span = units.find((unit) => hunkOf(unit) === hunk)?.outcome as
+      | { from?: number; to?: number }
+      | undefined;
     const byParent = new Map<string, CodeViewElement[]>();
     for (const element of elements) {
       if (matched.has(element)) continue;
+      if (
+        span?.from !== undefined &&
+        span.to !== undefined &&
+        (element.from < span.from || element.to > span.to)
+      )
+        continue;
       const parent = parentOf.get(element);
       if (parent && !matched.has(parent)) continue;
       const key = parentUnit(element) ?? "";

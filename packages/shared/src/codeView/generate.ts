@@ -19,7 +19,12 @@
  * Markup is the document's node tree (types as RAC components, scalar props); styles are not code.
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
-import { CODE_VIEW_ITEM_TYPES } from "../catalog/document/collectionItems";
+import {
+  CODE_VIEW_ITEM_TYPES,
+  COLLECTION_TYPE_TABLE,
+  GROUP_REPEAT_ITEMS,
+} from "../catalog/document/collectionItems";
+import { catalogHasRowTemplate } from "../catalog/commands/rowTemplate";
 import { isRichText } from "../catalog/document/textRuns";
 import type { RichText } from "../catalog/document/types";
 import { descendantPatchOf } from "../catalog/document/types";
@@ -78,6 +83,8 @@ import type {
 } from "../catalog/document/types";
 import { isPropVar, isPropWhen } from "../catalog/document/valueType";
 import { resolveField } from "../collections/resolveBoundCollection";
+import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../collections/rowTemplateBindableProps";
+import type { PropWrites } from "../catalog/document/types";
 import {
   DEFAULT_QUERY_SUFFIXES,
   viewQueryLimits,
@@ -151,6 +158,7 @@ const NOT_SENT: Record<SerializationWarningCode, string> = {
 const FOREIGN_DROPS = new Set(["onInsert", "onRootDrop", "onItemDrop"]);
 const DRAG_EVENTS = new Set([
   "onReorder",
+  "onMove",
   "onInsert",
   "onRootDrop",
   "onItemDrop",
@@ -343,6 +351,38 @@ class Doc {
 
 /* ─── generation ───────────────────────────────────────────────────────────────────────── */
 
+/** ADR-310 Phase 6 — a bound list's rows in the code (`users` · `users.items`). */
+interface RowFrame {
+  readonly rows: string;
+  /** The row field an item's key reads (the schema's `id`). */
+  readonly key: string;
+  /** The row field a group item's text reads (the binding's label, else the first other field). */
+  readonly label: string;
+  /** The row field of an item's child rows (`fieldMap.children` — a Tree's, a grouped section's). */
+  readonly children?: string;
+  /** Inside a render function: its item. */
+  readonly row?: string;
+  /** `useTreeData`'s items: a node's row is `item.value`, its child nodes `item.children`. */
+  readonly tree?: boolean;
+}
+/**
+ * The parts that take `items` and a render function (RAC — a Table's body, a Tabs' · TagGroup's
+ * list; S2 CardView). A SelectBoxGroup takes children only.
+ */
+export const CODE_VIEW_ITEMS_HOSTS: ReadonlySet<string> = new Set(
+  COLLECTION_TYPE_TABLE.filter((row) => row.owner !== "SelectBoxGroup").map(
+    (row) => row.list ?? row.owner,
+  ),
+);
+/** The prop that keys a repeated item: a group's Radio · Checkbox `value`, a TabPanel's `itemId`. */
+function rowKeyProp(type: string): string {
+  return type === "TabPanel"
+    ? "itemId"
+    : type === "Radio" || type === "Checkbox"
+      ? "value"
+      : "id";
+}
+
 interface VariableCode {
   entry: StateVariableEntry;
   name: string;
@@ -361,6 +401,11 @@ interface CollectionCode {
   name: string;
   /** `useListData` · `useAsyncList` (rules write it or it loads) — `items` reads `<name>.items`. */
   hook: "list" | "async" | "rows";
+  /**
+   * ADR-310 Phase 6 — a list a rule writes that a Tree shows by its child rows: `useTreeData`
+   * (`getChildren` reads this field) — its items are tree nodes (`item.value` · `item.children`).
+   */
+  tree?: string;
 }
 /** A collection whose endpoint carries its lists' one view (the session's `serverView`). */
 interface ServedView {
@@ -738,15 +783,27 @@ class Generator {
         collection?.name ?? collectionId.slice(COLLECTION.length),
         "rows",
       );
+      const hook = collection?.endpoint
+        ? "async"
+        : written.has(collectionId)
+          ? "list"
+          : "rows";
+      // (A Tree over its child rows: the reference's `useTreeData` — ADR-310 Phase 6.)
+      const tree =
+        hook === "list"
+          ? this.nodes.find(
+              (node) =>
+                node.binding?.collectionId === collectionId &&
+                node.binding.fieldMap?.children &&
+                this.doc.typeOf(node) === "Tree",
+            )?.binding?.fieldMap?.children
+          : undefined;
       this.rowSources.set(collectionId, {
         id: collectionId,
         collection,
         name: base,
-        hook: collection?.endpoint
-          ? "async"
-          : written.has(collectionId)
-            ? "list"
-            : "rows",
+        hook,
+        ...(tree ? { tree: this.doc.fieldKey(collectionId, tree) } : {}),
       });
     };
     for (const node of this.nodes)
@@ -901,6 +958,7 @@ class Generator {
       "react-aria",
       "react-aria-components",
       "react-aria-components/useListData",
+      "react-aria-components/useTreeData",
       "react-aria-components/useAsyncList",
       "react-aria-components/useDragAndDrop",
       "react-router",
@@ -1239,14 +1297,17 @@ class Generator {
       if (code.hook === "list") {
         const initial = `${code.name}Data`;
         this.dataImports.push(`import ${initial} from '${file}';`);
-        this.import("react-aria-components/useListData", "useListData");
+        const hook = code.tree ? "useTreeData" : "useListData";
+        this.import(`react-aria-components/${hook}`, hook);
         const from = out.length;
-        out.line(`let ${code.name} = useListData({`);
-        out
-          .in()
-          .line(`initialItems: ${computed(initial)},`)
-          .line(`getKey: item => item.${key}`)
-          .out();
+        out.line(`let ${code.name} = ${hook}({`);
+        out.in().line(`initialItems: ${computed(initial)},`);
+        if (code.tree)
+          out
+            .line(`getKey: item => item.${key},`)
+            .line(`getChildren: item => item.${code.tree} ?? []`);
+        else out.line(`getKey: item => item.${key}`);
+        out.out();
         out.line("});").anchor(from, derived);
         // (Its named selection reads the list's own — `removeSelectedItems` clears it.)
         for (const variable of this.variables.values())
@@ -2184,6 +2245,18 @@ class Generator {
   /* ── drag and drop ── */
 
   private dndNames = new Map<string, string>();
+  /**
+   * ADR-310 Phase 6 — the rows of the bound lists being written (nearest last): a repeated item
+   * (`repeat`) inside is its rows' render function. `row` = the render function's item inside one.
+   */
+  private rowFrames: RowFrame[] = [];
+  /** The repeated item written as its render function's body: its key prop reads the item. */
+  private rowTemplate?: {
+    nodeId: string;
+    prop: string;
+    code: string;
+    mapped?: boolean;
+  };
 
   private writeDragAndDrop(out: CodeWriter): void {
     // Lists whose rules drop, and lists whose items a drop rule writes (drag only).
@@ -2227,12 +2300,16 @@ class Generator {
         ownWritten ||
         rules.some(
           (rule) =>
-            rule.trigger === "onReorder" || rule.trigger === "onDragEnd",
+            rule.trigger === "onReorder" ||
+            rule.trigger === "onMove" ||
+            rule.trigger === "onDragEnd",
         ) ||
         !writes.size;
       // (As the Preview: the collections its drop rules write — its own too when it reorders; a
       //  list whose drop rules write nothing takes its own items.)
-      const reorders = rules.some((rule) => rule.trigger === "onReorder");
+      const reorders = rules.some(
+        (rule) => rule.trigger === "onReorder" || rule.trigger === "onMove",
+      );
       const accepted = [
         ...new Set(
           (writes.size
@@ -3143,7 +3220,7 @@ class Generator {
     /** Elements written first inside it (the page's `<title>` · `<meta>`). */
     head?: (out: CodeWriter) => void,
   ): void {
-    const node = this.doc.node(id);
+    const node = this.rowView(this.doc.node(id));
     if (!node) return;
     let type = this.doc.typeOf(node);
     if (type === "frame" || (type === "Group" && !node.props["aria-label"]))
@@ -3217,6 +3294,38 @@ class Generator {
           : undefined) ?? this.propCode(value, row, prop);
       if (code !== undefined)
         attribute(property ? componentPropertyCodeName(property) : prop, code);
+    }
+    // ADR-310 Phase 6 — a repeated item's key reads its row (`id={item.id}` · a Radio's `value`).
+    const rowTemplate = this.rowTemplate;
+    if (rowTemplate?.nodeId === node.id) {
+      const written = attributes.findIndex(
+        (item) =>
+          item.target.kind === "attribute" &&
+          item.target.name === rowTemplate.prop,
+      );
+      if (written >= 0) attributes.splice(written, 1);
+      // (A collection item's typeahead text — RAC asks for it when the item is not plain text.)
+      const frame = this.rowFrames.at(-1);
+      if (
+        !rowTemplate.mapped &&
+        frame &&
+        type !== "TabPanel" &&
+        !attributes.some(
+          (item) =>
+            item.target.kind === "attribute" &&
+            item.target.name === "textValue",
+        )
+      ) {
+        attribute("textValue", `{String(${frame.row ?? "item"}.${frame.label})}`);
+        attributes.unshift(attributes.pop()!);
+      }
+      attribute(rowTemplate.prop, `{${rowTemplate.code}}`);
+      attributes.unshift(attributes.pop()!);
+      // (An array's `map` keys its elements — React's `key`.)
+      if (rowTemplate.mapped) {
+        attribute("key", `{${rowTemplate.code}}`);
+        attributes.unshift(attributes.pop()!);
+      }
     }
     // Rules → handlers; a variable this control only writes → its controlled prop too.
     const controlled = this.controlledBy(node, type);
@@ -3364,20 +3473,45 @@ class Generator {
     if (className) attribute("className", jsx(className), "metadata");
     if (metadata?.ariaLabel && !node.props["aria-label"])
       attribute("aria-label", jsx(metadata.ariaLabel), "metadata");
-    const binding = node.binding;
+    // ADR-310 Phase 6 — a repeated item written as its render function's body: its own binding is
+    // the rows it repeats over (not a keyed container's).
+    const binding =
+      this.rowTemplate?.nodeId === node.id ? undefined : node.binding;
+    // A bound list whose items repeat (`repeat`) writes its children; the repeated item is its rows'
+    // render function (`<ListBox items={users}>{item => …}` · `<Collection items={users}>`).
+    const framed =
+      !!binding &&
+      binding.key === undefined &&
+      catalogHasRowTemplate(this.doc.input.reader as never, node.id as never);
     // ADR-296 Phase 5 — an instance's slot fills: the template root's are its children, a deeper
     // position's are a `<Slot name="<path>">` (a bound list's rows are its binding's).
     const fills =
-      binding || expanded
+      (binding && !framed) || expanded
         ? []
         : codeViewSlotFills(this.doc.input.reader as never, node);
+    // ADR-310 Phase 6 — a repeated TreeItem's own TreeItems are sample rows: the child rows repeat
+    // the same render function (`<Collection items={item.children}>{renderItem}</Collection>`).
+    const treeRows =
+      this.rowTemplate?.nodeId === node.id && type === "TreeItem"
+        ? this.rowFrames.at(-1)
+        : undefined;
     const children = [
       ...node.children,
       ...fills.filter((fill) => fill.root).flatMap((fill) => fill.childIds),
-    ];
+    ].filter(
+      (id) =>
+        !treeRows ||
+        this.doc.typeOf(this.doc.node(id) ?? node) !== "TreeItem",
+    );
     const slots = fills.filter((fill) => !fill.root);
     // (What makes the element a block — anything but its text inside.)
-    const block = !!(children.length || slots.length || head || expanded);
+    const block = !!(
+      children.length ||
+      slots.length ||
+      head ||
+      expanded ||
+      treeRows?.children
+    );
     if (slots.length) this.import(CODE_VIEW_HELPERS_MODULE, "Slot");
     const writeSlots = (writer: CodeWriter) => {
       for (const slot of slots) {
@@ -3390,7 +3524,7 @@ class Generator {
             .write(`<Slot name=${jsx(slot.key)}>`)
             .end()
             .in();
-          for (const child of slot.childIds) this.writeNode(writer, child, row);
+          for (const child of slot.childIds) this.writeChild(writer, child, row);
           writer.out().start().write("</Slot>");
         }
         writer.anchor(at, {
@@ -3423,7 +3557,25 @@ class Generator {
       const at = out.length;
       out.write(code).anchor(at, { kind: "text", nodeId: node.id });
     };
-    if (binding) {
+    if (framed)
+      this.rowFrames.push(this.rowFrame(binding!, this.boundRows(node, binding!)));
+    const shorthand = this.itemsShorthand(type, children, slots, text);
+    if (shorthand) {
+      // (The only item repeats over the list's rows: the list takes them — `items` + render.)
+      const frame = this.rowFrames.at(-1)!;
+      out.write(" ");
+      const at = out.length;
+      out.write(`items={${frame.rows}}`).anchor(at, {
+        kind: "attribute",
+        nodeId: node.id,
+        name: "items",
+        source: "items",
+      });
+      out.write(">").end().in();
+      head?.(out);
+      this.writeRender(out, shorthand, frame, node.id);
+      out.out().start().write(`</${tag}>`);
+    } else if (binding && !framed) {
       const rows = this.boundRows(node, binding);
       const item = this.itemType(type);
       if (item === undefined) {
@@ -3486,19 +3638,231 @@ class Generator {
             kind: "text",
             nodeId: node.id,
           });
-        for (const child of children) this.writeNode(out, child, row);
+        for (const child of children) this.writeChild(out, child, row);
         writeSlots(out);
+        if (treeRows?.children) {
+          this.import("react-aria-components", "Collection");
+          out.line(
+            `<Collection items={item.${treeRows.tree ? "children" : treeRows.children}}>{renderItem}</Collection>`,
+          );
+        }
         if (expanded) this.writePositions(out, node, expanded, row);
         out.out().start();
       }
       out.write(`</${tag}>`);
     }
+    if (framed) this.rowFrames.pop();
     if (off || (visible && !as)) out.write("}");
     out.anchor(
       from,
       as ? { kind: "derived", key: "page" } : { kind: "node", nodeId: node.id },
     );
     out.end();
+  }
+
+  /** ADR-310 Phase 6 — a binding's rows in the code, keyed by its schema's `id` field. */
+  private rowFrame(binding: DataBindingRef, rows: string): RowFrame {
+    const schema = this.doc.collection(binding.collectionId)?.schema;
+    const key = resolveField(schema, "id")?.key ?? "id";
+    const children = binding.fieldMap?.children
+      ? this.doc.fieldKey(binding.collectionId, binding.fieldMap.children)
+      : undefined;
+    const { children: childrenId, ...map } = binding.fieldMap ?? {};
+    const labelId =
+      map.label ??
+      map.title ??
+      map.name ??
+      map.value ??
+      Object.values(map).find(
+        (id) => this.doc.fieldKey(binding.collectionId, id) !== key,
+      );
+    const label = labelId
+      ? this.doc.fieldKey(binding.collectionId, labelId)
+      : // (A text field names the item — the first, else the first other field.)
+        ((
+          schema?.find(
+            (field) =>
+              field.key !== key &&
+              field.id !== childrenId &&
+              (field.type === "string" || field.type === "text"),
+          ) ??
+          schema?.find((field) => field.key !== key && field.id !== childrenId)
+        )?.key ?? key);
+    // (`useTreeData`'s nodes: the key is the node's, the row its `value`, the children its own.)
+    if (this.rowSources.get(binding.collectionId)?.tree)
+      return { rows, key, label, children: "children", tree: true };
+    return { rows, key, label, ...(children ? { children } : {}) };
+  }
+
+  /**
+   * A node inside a render function as the rows show it (the resolver's row template): its literal
+   * content writes are sample content (`withoutSampleContent` — `{field}` ones read the row), and a
+   * group item's text is the row's label (`keyRowItem`).
+   */
+  private rowView(node: NodeEntry | undefined): NodeEntry | undefined {
+    const frame = this.rowFrames.at(-1);
+    if (!node || !frame?.row) return node;
+    const sample = (writes: PropWrites | undefined) =>
+      writes &&
+      Object.fromEntries(
+        Object.entries(writes).filter(
+          ([key, write]) =>
+            !(
+              (ROW_TEMPLATE_BINDABLE_PROP_KEYS as readonly string[]).includes(
+                key,
+              ) &&
+              write.kind === "set" &&
+              typeof write.value === "string" &&
+              !write.value.includes("{")
+            ),
+        ),
+      );
+    const props = sample(node.props)!;
+    const group = GROUP_REPEAT_ITEMS[this.doc.typeOf(node)];
+    if (group && this.rowTemplate?.nodeId === node.id) {
+      const text =
+        this.doc.typeOf(node) === "Radio" || this.doc.typeOf(node) === "Checkbox"
+          ? "children"
+          : "label";
+      if (!props[text])
+        props[text] = { kind: "set", value: `{${frame.label}}` } as never;
+    }
+    return {
+      ...node,
+      props,
+      descendantOverrides: node.descendantOverrides.map((override) =>
+        "props" in override && override.props
+          ? { ...override, props: sample(override.props as PropWrites)! }
+          : override,
+      ) as NodeEntry["descendantOverrides"],
+    };
+  }
+
+  /**
+   * The repeated item a list part writes as `items` + its render function: the part takes `items`
+   * (`CODE_VIEW_ITEMS_HOSTS`), sits in a bound list, and its one item (besides the empty state) repeats over
+   * the list's rows — not its own (①) or an outer row's (②).
+   */
+  private itemsShorthand(
+    type: string,
+    children: readonly string[],
+    slots: readonly unknown[],
+    text: unknown,
+  ): string | undefined {
+    const frame = this.rowFrames.at(-1);
+    if (!frame || frame.row || !CODE_VIEW_ITEMS_HOSTS.has(type) || slots.length || text)
+      return undefined;
+    const items = children.filter((id) => {
+      const child = this.doc.node(id);
+      return child && this.doc.typeOf(child) !== "IllustratedMessage";
+    });
+    if (items.length !== 1) return undefined;
+    const item = this.doc.node(items[0]!);
+    if (!item?.repeat || (item.binding && item.binding.key === undefined))
+      return undefined;
+    return item.id;
+  }
+
+  /**
+   * A child: a repeated item (`repeat`) is its rows' render function — `<Collection items={…}>`
+   * (`{rows.map(item => …)}` in a RAC group, which is no collection); the rest are nodes.
+   */
+  private writeChild(
+    out: CodeWriter,
+    id: string,
+    row: string | undefined,
+  ): void {
+    const node = this.doc.node(id);
+    const frame = node?.repeat ? this.repeatFrame(node) : undefined;
+    if (!node || !frame || this.rowTemplate?.nodeId === id) {
+      this.writeNode(out, id, row);
+      return;
+    }
+    const type = this.doc.typeOf(node);
+    out.start();
+    const from = out.length;
+    if (GROUP_REPEAT_ITEMS[type]) {
+      out.write(`{${frame.rows}.map(`);
+      this.writeRender(out, id, frame, id, true);
+      out.write(")}");
+    } else {
+      this.import("react-aria-components", "Collection");
+      out.write("<Collection ");
+      const at = out.length;
+      out.write(`items={${frame.rows}}`).anchor(at, {
+        kind: "attribute",
+        nodeId: id,
+        name: "items",
+        source: "items",
+      });
+      out.write(">").end().in();
+      this.writeRender(out, id, frame, id);
+      out.out().start().write("</Collection>");
+    }
+    out.anchor(from, { kind: "node", nodeId: id });
+    out.end();
+  }
+
+  /** The rows a repeated item reads: its own (①), the outer row's child rows (②), the list's (③). */
+  private repeatFrame(node: NodeEntry): RowFrame | undefined {
+    if (node.binding && node.binding.key === undefined)
+      return this.rowFrame(node.binding, this.boundRows(node, node.binding));
+    const outer = this.rowFrames.at(-1);
+    if (outer?.row)
+      return outer.children
+        ? {
+            rows: `${outer.row}.${outer.children}`,
+            key: outer.key,
+            label: outer.label,
+          }
+        : undefined;
+    return outer;
+  }
+
+  /**
+   * A repeated item's render function — `item => (<Item id={item.id} …>…</Item>)`, its body the
+   * template tree with `{field}` read from `item` (ADR-310 §6). Written as the list's `rows` (one
+   * span: the code view keeps it as written — 「왕복되지 않는 형태는 읽기 전용」, G6).
+   */
+  private writeRender(
+    out: CodeWriter,
+    id: string,
+    frame: RowFrame,
+    ownerId: string,
+    inline = false,
+  ): void {
+    const node = this.doc.node(id)!;
+    const type = this.doc.typeOf(node);
+    // (A Tree's item renders its child rows with itself — a named function, the reference's.)
+    const tree = type === "TreeItem" && !!frame.children && !inline;
+    const body = out.fragment().in();
+    if (tree) body.in();
+    const saved = this.rowTemplate;
+    this.rowTemplate = {
+      nodeId: id,
+      prop: rowKeyProp(type),
+      code: frame.tree ? "item.key" : `item.${frame.key}`,
+      ...(inline ? { mapped: true } : {}),
+    };
+    const row = frame.tree ? "item.value" : "item";
+    this.rowFrames.push({ ...frame, row });
+    this.writeNode(body, id, row);
+    this.rowFrames.pop();
+    this.rowTemplate = saved;
+    const code = body.done().code;
+    if (!inline) out.start();
+    const at = out.length;
+    const pad = "  ".repeat(out.depth);
+    if (tree)
+      out.write(
+        `{function renderItem(item) {\n${pad}  return (\n${code}${pad}  );\n${pad}}}`,
+      );
+    else
+      out.write(
+        `${inline ? "" : "{"}item => (\n${code}${pad})${inline ? "" : "}"}`,
+      );
+    out.anchor(at, { kind: "rows", nodeId: ownerId });
+    if (!inline) out.end();
   }
 
   /** A list's item component (undefined = not a collection — a keyed binding's container). */

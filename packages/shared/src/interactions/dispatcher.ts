@@ -420,10 +420,21 @@ function dispatchListPosition(
     if (action.dropPosition !== undefined) {
       const side = resolveEventValue(action.dropPosition, context, deps);
       if (!side.ok) return side;
+      // ADR-310 Phase 6 — `onMove` onto an item (`on`): its last child (`useTreeData.move(key,
+      // target, children.length)` — the reference's tree `onMove`).
+      if (side.value === "on")
+        return done(
+          deps.move(
+            action.collectionId,
+            keys,
+            { index: Number.MAX_SAFE_INTEGER },
+            target.key,
+          ),
+        );
       if (side.value !== "before" && side.value !== "after")
         return {
           ok: false,
-          reason: `놓은 쪽이 before · after 가 아니다: ${String(side.value)}`,
+          reason: `놓은 쪽이 before · after · on 이 아니다: ${String(side.value)}`,
         };
       before = side.value === "before";
     }

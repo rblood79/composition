@@ -103,7 +103,10 @@ const STATEMENTS: readonly [RegExp, CodeViewStatementKind][] = [
     /^let \{selectedKeys: ([A-Za-z_$][\w$]*), setSelectedKeys: ([A-Za-z_$][\w$]*)\} = [A-Za-z_$][\w$]*;$/,
     "listSelection",
   ],
-  [/^let ([A-Za-z_$][\w$]*) = use(?:List|Async)(?:Data|List)\(/, "collection"],
+  [
+    /^let ([A-Za-z_$][\w$]*) = use(?:List|Async|Tree)(?:Data|List)\(/,
+    "collection",
+  ],
   [/^useEffect\(/, "effect"],
   [/^let \{[^}]*\} = useFilter\(/, "useFilter"],
   [/^let \{[^}]*\} = useProjectState\(\);$/, "projectState"],
@@ -302,9 +305,45 @@ export function parseCodeView(code: string): CodeViewParsed {
         }
         case "JSXEscape": {
           const inner = child.firstChild?.nextSibling;
-          if (inner?.name === "ArrowFunction") {
+          // (ADR-310 Phase 6 — a Tree's named render function, `function renderItem(item) {…}`.)
+          if (
+            inner?.name === "ArrowFunction" ||
+            inner?.name === "FunctionExpression"
+          ) {
             if (rows) outside(child);
             else rows = { from: child.from, to: child.to, code: text(child) };
+            continue;
+          }
+          // ADR-310 Phase 6 — a RAC group's repeated item: `{<rows>.map(item => …)}` (an element —
+          // the repeated item — whose rows are the render function).
+          const map =
+            inner?.name === "CallExpression"
+              ? /^([A-Za-z_$][\w$.]*)\.map\((item => [\s\S]*)\)$/.exec(
+                  text(inner),
+                )
+              : null;
+          if (map) {
+            const at = inner!.from + map[1]!.length + ".map(".length;
+            children.push({
+              from: child.from,
+              to: child.to,
+              type: "map",
+              attributes: [
+                {
+                  from: inner!.from,
+                  to: inner!.from + map[1]!.length,
+                  name: "items",
+                  value: {
+                    from: inner!.from,
+                    to: inner!.from + map[1]!.length,
+                    kind: "expression",
+                    code: map[1]!,
+                  },
+                },
+              ],
+              rows: { from: at, to: at + map[2]!.length, code: map[2]! },
+              children: [],
+            });
             continue;
           }
           if (inner?.name === "BinaryExpression") {

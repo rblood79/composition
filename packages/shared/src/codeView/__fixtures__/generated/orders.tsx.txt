@@ -18,7 +18,9 @@ export default function Home() {
   return (
     <>
       <ListBox items={orders}>
-        {item => <ListBoxItem id={item.id} textValue={String(item.id)}>{item.id}</ListBoxItem>}
+        {item => (
+          <ListBoxItem id={item.id} textValue={String(item.total_text)} />
+        )}
       </ListBox>
     </>
   );

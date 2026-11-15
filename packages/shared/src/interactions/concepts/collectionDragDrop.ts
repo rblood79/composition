@@ -12,6 +12,8 @@ import type { InteractionConcept } from "./types";
  */
 export const COLLECTION_DRAG_DROP_EVENTS = [
   "onReorder",
+  // ADR-310 Phase 6 — a move within the list that may drop on an item (a Tree's new parent).
+  "onMove",
   "onInsert",
   "onRootDrop",
   "onItemDrop",
@@ -26,6 +28,7 @@ export const collectionDragDrop = {
   argFields: true,
   args: {
     onReorder: ["keys", "target", "dropOperation"],
+    onMove: ["keys", "target", "dropOperation"],
     onInsert: ["keys", "items", "target", "dropOperation"],
     onRootDrop: ["keys", "items", "dropOperation"],
     onItemDrop: ["keys", "items", "target", "dropOperation", "isInternal"],

@@ -214,11 +214,15 @@ async function collectionDrop(h: Harness, event: string) {
   };
   // Where the drag starts and where it lands: in its own list (onReorder · onDragEnd's source) or
   // from the other list — between rows (onInsert), on a row (onItemDrop), on the list (onRootDrop).
-  const internal = event === "onReorder" || event === "onDragEnd";
+  // (ADR-310 Phase 6 — onMove: in its own list, onto the last row's middle — an `on` drop.)
+  const internal =
+    event === "onReorder" || event === "onDragEnd" || event === "onMove";
   const from = internal ? rows(target!)[0]! : rows(source!)[0]!;
   const [to, y] =
     event === "onReorder"
       ? [rows(target!).at(-1)!, rows(target!).length * DROP_ROW - 2]
+      : event === "onMove"
+        ? [rows(target!).at(-1)!, rows(target!).length * DROP_ROW - DROP_ROW / 2]
       : event === "onDragEnd"
         ? [source!, 2]
         : event === "onItemDrop"
@@ -343,7 +347,14 @@ const ROWS: Row[] = [
   // ── a collection's drag and drop (ADR-284 Phase 5) ──
   ...(["ListBox", "GridList", "Tree", "Table"] as const).flatMap((list) =>
     (
-      ["onReorder", "onInsert", "onRootDrop", "onItemDrop", "onDragEnd"] as const
+      [
+        "onReorder",
+        "onMove",
+        "onInsert",
+        "onRootDrop",
+        "onItemDrop",
+        "onDragEnd",
+      ] as const
     ).map(
       (event): Row => ({
         palette: list,

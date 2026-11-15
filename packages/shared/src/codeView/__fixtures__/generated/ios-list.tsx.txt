@@ -25,7 +25,9 @@ export default function Home() {
         setSelectedKeys(new Set());
       }} />
       <GridList selectionMode={selectionMode} selectedKeys={selectedKeys} onSelectionChange={setSelectedKeys} items={emails.items}>
-        {item => <GridListItem id={item.id} textValue={String(item.id)}>{item.id}</GridListItem>}
+        {item => (
+          <GridListItem id={item.id} textValue={String(item.subject)} />
+        )}
       </GridList>
     </>
   );

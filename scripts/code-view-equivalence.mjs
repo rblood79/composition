@@ -755,6 +755,11 @@ class Extractor {
   }
 
   items(tag, value) {
+    // (ADR-310 Phase 6 — `<Collection items>` is its list's run: the items are the nearest
+    //  collection's, as a `map` in a wrapper.)
+    if (tag === "Collection")
+      tag =
+        [...this.tags].reverse().find((name) => COLLECTIONS.has(name)) ?? tag;
     const id = value.kind === "view" ? value.id : `collection:${value.name}`;
     this.facts.add(`wire:${tag}.items=${value.kind}`);
     if (!this.readers.has(id)) this.readers.set(id, new Set());
@@ -779,7 +784,12 @@ class Extractor {
     }
     const states = new Set();
     const visit = (n) => {
-      if (ts.isIdentifier(n) && scope.get(n.text)?.kind === "state")
+      // (A property name — `item.album` — is not the state `album`.)
+      if (
+        ts.isIdentifier(n) &&
+        !(ts.isPropertyAccessExpression(n.parent) && n.parent.name === n) &&
+        scope.get(n.text)?.kind === "state"
+      )
         states.add(scope.get(n.text).name);
       n.forEachChild(visit);
     };

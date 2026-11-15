@@ -54,11 +54,18 @@ describe("parseCodeView — the generated golden 5", () => {
     expect(parsed.component?.name).toMatch(/^[A-Z]/);
     expect(parsed.jsx?.roots.length).toBeGreaterThan(0);
     // (Every `<` that opens an element in the returned JSX is an element of the tree — rows
-    // templates aside.)
+    // templates aside: a render function's body is its list's rows, ADR-310 Phase 6.)
     const jsx = code.slice(parsed.jsx!.from, parsed.jsx!.to);
-    const rowItems = (jsx.match(/\{item => </g) ?? []).length;
+    const inRows = (elements: readonly CodeViewElement[]): number =>
+      elements.reduce(
+        (sum, element) =>
+          sum +
+          (element.rows?.code.match(/<[A-Za-z]/g) ?? []).length +
+          inRows(element.children),
+        0,
+      );
     const opened = (jsx.match(/<[A-Za-z]/g) ?? []).length;
-    expect(count(parsed.jsx!.roots)).toBe(opened - rowItems);
+    expect(count(parsed.jsx!.roots)).toBe(opened - inRows(parsed.jsx!.roots));
   });
 });
 
