@@ -37,7 +37,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 |           Canvas/Skia cadence           | 초기 로드 | 번들 (초기, gzip)                                                                                                                      |
 | :-------------------------------------: | :-------: | :------------------------------------------------------------------------------------------------------------------------------------- |
-| native refresh target, 60Hz floor (p95) |   < 3초   | ADR-201 §initial 번들 상한 재승인 절의 현재 값 (Builder ≤ 1,414,000 / Preview ≤ 327,000 B, 만료 2026-12-25) — `adr201-bundle-gate.mjs` |
+| native refresh target, 60Hz floor (p95) |   < 3초   | ADR-201 §initial 번들 상한 재승인 절의 현재 값 (Builder ≤ 1,418,476 / Preview ≤ 327,000 B, 만료 2026-12-25) — `adr201-bundle-gate.mjs` |
 
 `60fps` 는 60Hz 환경의 호환성 최소선이며 성능 목표 상한이 아니다. 판정은 display refresh cadence 와 frame time p50/p95/p99 우선, FPS 는 파생 지표.
 
@@ -52,7 +52,8 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 - **복잡한 작업** (렌더링, drag-and-drop, 대규모 리팩토링): built-in `Plan` agent 로 접근 방식 탐색 후 선택 — 전제·관점 의문은 아래 §전제·관점 의문 처리 의 4개 결정 지점에서만 질문
 - **새 컴포넌트 · S2 기능 적용**: `/component-design` — RAC DOM · 동작은 `/react-aria`, S2 prop 표면은 `/react-spectrum` (로컬 공식 reference, 설치본이 정본) 으로 확인한 뒤 등록 경로 적용
-- **버그 수정**: `/fix` → `/cross-check` — 증상 수정 금지, root cause 확정 후 수정. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
+- **설계·수정 제안 전**: 그 영역을 다룬 기존 ADR (`docs/adr`) 결정부터 확인한다 — 무엇을 「제거 대상」 · 「정본」 이라 부르기 전에. 옛 ADR 과 새 결정이 겹치면 새 결정을 따른다. S2 정렬은 색이 아니라 S2 컴포넌트 동작까지 가져온다 (예: Toast → ToastRegion). 목업은 실제 컴포넌트 구조 (예: 필드 위 legend) 를 읽은 뒤 그린다
+- **버그 수정**: `/fix` → `/cross-check` — 증상 수정 금지, root cause 확정 후 수정. 수정을 되돌리면 실패하는 회귀 테스트를 같이 둔다. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
 - **구현**: TDD (RED-GREEN-REFACTOR) 기본 — 메인 세션이 직접 (구현·테스트를 서브에이전트에 위임하면 컨텍스트만 잃는다)
 - **렌더링 수정 후**: `/cross-check` 최종 검증
 - **ADR 생성**: 사용자가 `/create-adr` 직접 입력 — create-adr / execute-adr 는 모델 자동 호출 비활성 (사용자 전용)
@@ -62,13 +63,17 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
 - CRITICAL/HIGH 이슈: 즉시 수정 (판정 기준은 `.claude/rules/review-loop-closure.md` §2 — MEDIUM 이하는 재현 여부로 가른다)
 - **판독 루프 종결**: phase 당 판독 1 + 수리 검증 1, HIGH 0 이면 실행자가 닫힘 선언 · production 재현 없는 커버리지 지적은 LOW deferred · 동작 변경 0 커밋은 축소 절차 — 정본 `.claude/rules/review-loop-closure.md` (상시 로드)
+- **`/simplify` · 리뷰의 정리 항목** (중복 · 죽은 코드 · 단순화): 이득이 작아도 건너뛰지 않고 적용한다 — 사용자가 빼라고 할 때만 skip. 작은 이득이 쌓인다. 판독의 커버리지 지적 판정은 위 review-loop-closure 그대로
 
 ### 완료 기준 — test/type-check PASS 단독으로 ADR·task 종결 금지
 
 unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합한가" 만 확인한다 — live behavior 는 검증하지 않는다. ADR Implemented 승격 또는 task "완료" 선언 전:
 
 - 사용자-가시 동작 (registration / resolved-tree wiring / schema / 렌더) 을 **실제 builder 에서** Chrome MCP 또는 사용자 confirm 으로 1회 exercise.
+- Chrome MCP 가 연결되지 않으면 Playwright 로 exercise 한다 — live 확인 없이 「수정 완료」 로 보고하지 않는다.
 - 완료 보고에 **무엇을 실제로 exercise 했는지** 명시 (test 개수만 나열 금지).
+- 테스트 실패가 보이면 원인을 내 변경에 돌리기 전에 HEAD 에서도 실패하는지 대조한다 (다단계 ADR 은 시작 전 커밋과도 — 메모리 `feedback-head-baseline-hides-earlier-phase-regression`).
+- 재확인 범위 = 바뀐 범위 — toolbar 만 바꿨으면 화면 전체를 다시 찍지 않는다 (메모리 `feedback-verification-scope-matches-change-scope`).
 - Implemented 승격 시 ADR 본문 `### Live Exercise` 절 (대안: `docs/adr/evidence/NNN-*live*.md` 또는 run ledger `live-exercise pass`) 필수 — `adr-status-sync-check.sh` 가 없으면 block. 실행 근거는 `pnpm agent:run` ledger (`.agent/runs/`, local-only).
 - Why: ADR-144 (2026-05-22) — test 9/50 PASS + type-check 0 으로 승격 → live 에서 registration "changed nothing" → 34 commit revert. 상세: 메모리 `feedback-adr-closure-5-step`.
 
@@ -78,7 +83,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ### 마크다운 표 편집 — 다중 Edit 대신 블록 단위 Write
 
-정렬된 표·정렬 의존 텍스트는 Edit 부분 수정 대신 표 블록 전체 (필요 시 파일 전체) 를 Write 로 교체한다 — old_string 정렬 mismatch 반복 실패 방지. 수동 정렬 작업 금지: Prettier PostToolUse hook 이 되돌린다. 내용만 쓰고 정렬은 포맷터에 위임.
+정렬된 표·정렬 의존 텍스트는 Edit 부분 수정 대신 표 블록 전체 (필요 시 파일 전체) 를 Write 로 교체한다 — old_string 정렬 mismatch 반복 실패 방지. 수동 정렬 작업 금지: Prettier PostToolUse hook 이 되돌린다. 내용만 쓰고 정렬은 포맷터에 위임. 포맷터를 손으로 돌릴 때는 바꾼 파일 경로만 넘긴다 (넓은 glob 금지) — 무관한 파일이 바뀌면 그 파일은 즉시 되돌린다.
 
 ## 상태 변경 파이프라인
 

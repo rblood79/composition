@@ -107,6 +107,8 @@ export class CatalogCanvasScene {
   private readonly scrollOffsets: CatalogScrollOffsets = new Map();
   /** ADR-270 Phase 1: images finished loading since the last sync (their owners record again). */
   private readonly loadedImages = new Set<string>();
+  /** ADR-306: a Chart family loaded since the last sync — its Charts draw again. */
+  private chartFamiliesLoaded = false;
 
   constructor(
     private root: CatalogCompositionRoot,
@@ -209,6 +211,10 @@ export class CatalogCanvasScene {
     if (!sameIds(this.drawnRoots(), this.rootIds))
       return this.rebind("page-roots");
     let seeded = 0;
+    if (this.chartFamiliesLoaded) {
+      this.chartFamiliesLoaded = false;
+      this.binding.seedChartFamilyRecords();
+    }
     if (this.loadedImages.size && !options.holdImages) {
       seeded = this.binding.seedImageOwners(this.loadedImages);
       this.loadedImages.clear();
@@ -308,6 +314,14 @@ export class CatalogCanvasScene {
     this.loadedImages.add(url);
   }
 
+  /**
+   * ADR-306: a Chart family finished loading (`subscribeChartFamilies`). The bound Charts of a
+   * family type are seeded at the next `sync()` with the frame's other changes.
+   */
+  chartFamilyLoaded(): void {
+    this.chartFamiliesLoaded = true;
+  }
+
   /** Draw another root of the same runtime (a breakpoint switch). */
   replaceRoot(root: CatalogCompositionRoot): CatalogCanvasSceneSync {
     this.root = root;
@@ -332,6 +346,7 @@ export class CatalogCanvasScene {
       this.binding = this.bind();
       // A full bind reads every image from the cache: nothing is left to seed.
       this.loadedImages.clear();
+      this.chartFamiliesLoaded = false;
     } finally {
       endRebindRelease();
     }

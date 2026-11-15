@@ -56,6 +56,7 @@ import {
   isComponentPageNode,
   themeSampleId,
 } from "./originView";
+import { completeChartCreationPropsSync } from "@composition/rendering";
 import {
   catalogCreationProps,
   catalogCreationStyle,
@@ -1384,7 +1385,10 @@ export function catalogComponentsPageEntries(
                   library,
                   origin.id,
                   origin.name,
-                  kind.initialProps,
+                  // ADR-306 — a Chart family type's sample rows come from its chunk: filled when
+                  //   the family is loaded; a page laid out before that holds no rows (open item —
+                  //   breakdown §10 Phase 2).
+                  completeChartCreationPropsSync(kind.initialProps),
                 ),
                 ...sampleFields(
                   SAMPLE_VISUAL[origin.name] ?? { width: "100%" },

@@ -15,7 +15,7 @@
  * - Recharts 를 import 하지 않는다 (Builder initial 번들에 실리면 안 된다).
  */
 import { formatTick } from "./scales";
-import { CHART_TYPES } from "./types";
+import { SERIES_CHART_TYPES } from "./types";
 import type {
   ChartBudgetAggregate,
   ChartBudgetAxis,
@@ -334,7 +334,7 @@ export function resolveChartPresentation(
   //   `ok=false` 가 되어 두 leg 가 설정 오류 scene 을 그린다 (구버전은 throw 로 캔버스가 멈췄다).
   if (
     props.chartType !== undefined &&
-    !(CHART_TYPES as readonly string[]).includes(props.chartType)
+    !(SERIES_CHART_TYPES as readonly string[]).includes(props.chartType)
   ) {
     error(
       "chartType.unsupported",

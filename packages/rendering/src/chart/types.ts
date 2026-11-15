@@ -15,13 +15,46 @@
  * `radar`/`radial` 은 극좌표 계열 (ADR-207) — 직교 축 대신 `buildPolarAxes` 를 쓴다.
  */
 /** ADR-217 — `scatter` (행 = 점, x 숫자/시간). */
-export type ChartType =
+export type SeriesChartType =
   "bar" | "line" | "area" | "pie" | "radar" | "radial" | "scatter";
+/**
+ * ADR-306 — family 로 그리는 새 종류 27 (breakdown §2.2). 시리즈 격자 (`resolveChartModel`) 를
+ * 지나지 않고 family 모듈 (`families/*`, 지연 로드) 이 원본 행을 읽는다.
+ */
+export type FamilyChartType =
+  | "lollipop"
+  | "segmented"
+  | "waffle"
+  | "funnel"
+  | "pareto"
+  | "waterfall"
+  | "sparkline"
+  | "marimekko"
+  | "stream"
+  | "bump"
+  | "slope"
+  | "skyline"
+  | "gauge"
+  | "bullet"
+  | "dumbbell"
+  | "histogram"
+  | "box"
+  | "beeswarm"
+  | "ridgeline"
+  | "heatmap"
+  | "calendar"
+  | "candlestick"
+  | "parallel"
+  | "treemap"
+  | "sunburst"
+  | "sankey"
+  | "chord";
+export type ChartType = SeriesChartType | FamilyChartType;
 /**
  * ADR-217 P1 — 값 목록 (validator 가 알 수 없는 종류를 진단 `chartType.unsupported` 로 낸다).
  * 유니온에 종류를 더하면 `satisfies` 가 여기도 고치게 한다.
  */
-export const CHART_TYPES = [
+export const SERIES_CHART_TYPES = [
   "bar",
   "line",
   "area",
@@ -29,7 +62,67 @@ export const CHART_TYPES = [
   "radar",
   "radial",
   "scatter",
-] as const satisfies readonly ChartType[];
+] as const satisfies readonly SeriesChartType[];
+
+/** ADR-306 — family 5 (breakdown §2.2 · §4.2). */
+export type ChartFamilyId =
+  "category" | "kpi" | "distribution" | "matrix" | "network";
+
+/**
+ * ADR-306 — 새 종류 → family. 첫 화면 번들에 드는 것은 이 표와 등록 기구뿐이다 (사용자 결정 2 —
+ * 계산 코드 · sample 은 family chunk). `satisfies` 가 종류 누락을 막는다.
+ */
+export const CHART_FAMILY_OF = {
+  lollipop: "category",
+  segmented: "category",
+  waffle: "category",
+  funnel: "category",
+  pareto: "category",
+  waterfall: "category",
+  sparkline: "category",
+  marimekko: "category",
+  stream: "category",
+  bump: "category",
+  slope: "category",
+  skyline: "category",
+  gauge: "kpi",
+  bullet: "kpi",
+  dumbbell: "kpi",
+  histogram: "distribution",
+  box: "distribution",
+  beeswarm: "distribution",
+  ridgeline: "distribution",
+  heatmap: "matrix",
+  calendar: "matrix",
+  candlestick: "matrix",
+  parallel: "matrix",
+  treemap: "network",
+  sunburst: "network",
+  sankey: "network",
+  chord: "network",
+} as const satisfies Record<FamilyChartType, ChartFamilyId>;
+
+export const FAMILY_CHART_TYPES = Object.keys(
+  CHART_FAMILY_OF,
+) as readonly FamilyChartType[];
+
+export const CHART_TYPES: readonly ChartType[] = [
+  ...SERIES_CHART_TYPES,
+  ...FAMILY_CHART_TYPES,
+];
+
+/** ADR-306 — family 로 그리는 새 종류인가 (type guard — 기존 7 의 분기를 좁힌다). */
+export function isFamilyChartType(type: unknown): type is FamilyChartType {
+  return (
+    typeof type === "string" &&
+    Object.prototype.hasOwnProperty.call(CHART_FAMILY_OF, type)
+  );
+}
+
+/** ADR-306 — 새 종류면 그 family, 기존 7 이면 null. */
+export function chartFamilyOf(type: unknown): ChartFamilyId | null {
+  return isFamilyChartType(type) ? CHART_FAMILY_OF[type] : null;
+}
 
 /** radar 격자 모양 (shadcn `chart-radar-grid-circle` 축). */
 export type PolarGridType = "polygon" | "circle";
@@ -151,7 +244,14 @@ export type ChartDiagnosticCode =
   | "referenceLines.unsupportedChartType"
   // ADR-217 P4 — 산점도 희소 예산의 솎기 fallback (집계 대신 원본 점, HC9).
   | "budget.thinned"
-  | "dimension.parse.failed";
+  | "dimension.parse.failed"
+  // ADR-306 — family 입력 (breakdown §4.2 「검증」 단계).
+  | "role.missing"
+  | "role.notNumeric"
+  | "valueRange.invalid"
+  | "bands.invalid"
+  | "rangeFields.invalid"
+  | "chartFamily.unavailable";
 
 /**
  * 표시 설정 진단 (`resolveChartPresentation` 이 만든다). `error` 는 설정 오류 상태 —
@@ -268,7 +368,38 @@ export interface ChartProps {
   // ── ADR-217 — 값 축 기준선 (RSC `ReferenceLine`). 미설정/빈 배열 = 현행 (byte 동일).
   /** 값 축 위 가로선 (수평 차트는 세로선) — ≤ 4. domain 은 값을 포함하도록 넓어진다 (scene 이 정한다). */
   referenceLines?: readonly ChartReferenceLine[];
+
+  // ── ADR-306 — family 종류의 역할 · 옵션 (breakdown §2.2). 전부 선택적이고 기존 7 종은 읽지 않는다.
+  //   필드 역할은 `dimension` · `metric` 과 같은 field 참조 (`#<fieldId>` 또는 key) 다.
+  /** 목표값 필드 (gauge 의 목표 눈금 · bullet 의 목표 표시). */
+  goalField?: string;
+  /** 구간 경계 필드들 — 작은 것부터 (bullet). */
+  rangeFields?: readonly string[];
+  /** 이전 값 필드 (dumbbell). */
+  startField?: string;
+  /** 이후 값 필드 (dumbbell). */
+  endField?: string;
+  /** 값 축 하한 (gauge 기본 0). */
+  valueMin?: number;
+  /** 값 축 상한 (gauge 기본 100). 자동 domain 을 쓰지 않는다 — 42 / 100 은 42 % 다. */
+  valueMax?: number;
+  /** 가운데 숫자 아래 설명 (gauge · donut). */
+  centerLabel?: string;
+  /** 종류 안의 모양 (값 집합은 종류마다 — gauge: arc · semi · ring · ticks). */
+  shape?: ChartShape;
+  /** 구간 경계값 (gauge — valueMin 과 valueMax 사이만 쓴다). 패널 목록 칸의 숫자 글자도 받는다. */
+  bands?: readonly (number | string)[];
+  /** 행마다 축 범위를 따로 (bullet, 기본 true). */
+  independent?: boolean;
+  /** 정렬 (dumbbell 기본 descending — 이후 값 순). */
+  sort?: ChartSort;
+  /** 값 축에 0 포함 (dumbbell, 기본 false). */
+  includeZero?: boolean;
 }
+
+/** ADR-306 — 종류 안의 모양 (`shape`). rule 의 `variant` (상자) 와 다른 축이다. */
+export type ChartShape = "arc" | "semi" | "ring" | "ticks";
+export type ChartSort = "none" | "ascending" | "descending";
 
 /** ADR-217 — RSC `ReferenceLineOptions` 의 채택 부분집합 (`value` · `label` · `lineType` · `layer`). */
 export interface ChartReferenceLine {
@@ -350,6 +481,32 @@ export type TextRole = "tick" | "legend" | "empty" | "value" | "reference";
 /** `reference` (ADR-217) 는 기준선 — `--chart-reference` / rule `chart.reference` 토큰. */
 export type LineRole = "axis" | "grid" | "reference";
 
+/**
+ * ADR-306 — 시리즈 팔레트 밖의 뜻 있는 색 (breakdown §5.1). rule `Chart.chart` 의 같은 이름 채널을
+ * 두 consumer 가 푼다 — DOM `--chart-<role>` · Skia TokenRef. 연속 색은 보간하지 않고 단계 토큰으로.
+ */
+export type ChartPaintRole =
+  | "accent"
+  | "neutral"
+  | "positive"
+  | "negative"
+  | "step-0"
+  | "step-1"
+  | "step-2"
+  | "step-3"
+  | "step-4";
+export const CHART_PAINT_ROLES: readonly ChartPaintRole[] = [
+  "accent",
+  "neutral",
+  "positive",
+  "negative",
+  "step-0",
+  "step-1",
+  "step-2",
+  "step-3",
+  "step-4",
+];
+
 export interface RectMark {
   kind: "rect";
   x: number;
@@ -358,6 +515,10 @@ export interface RectMark {
   h: number;
   /** 팔레트 인덱스 (이미 seriesCount 로 modulo 됨) */
   seriesIndex: number;
+  /** ADR-306 — 있으면 시리즈 팔레트 대신 이 역할 색으로 채운다. */
+  fillPaint?: ChartPaintRole;
+  /** ADR-306 — 채우기 불투명도 (미지정 1). */
+  fillOpacity?: number;
 }
 
 export interface PathMark {
@@ -388,6 +549,10 @@ export interface PathMark {
    * 나타내는 면이므로 채워야 한다.
    */
   fillRole?: LineRole;
+  /** ADR-306 — 역할 색으로 채운다 (`fillSeries` 대신, 불투명도는 `fillOpacity` · 미지정 1). */
+  fillPaint?: ChartPaintRole;
+  /** ADR-306 — 역할 색으로 긋는다 (`strokeSeries` 대신, 두께는 `strokeWidth` · 미지정 metrics). */
+  strokePaint?: ChartPaintRole;
 }
 
 export interface TextMark {
@@ -414,6 +579,10 @@ export interface LineMark {
   role: LineRole;
   /** ADR-217 — 파선 패턴 (Skia `strokeDasharray` · DOM `stroke-dasharray` 같은 배열). 없으면 실선. */
   dash?: readonly number[];
+  /** ADR-306 — 있으면 `role` 토큰 대신 이 역할 색으로 긋는다. */
+  paint?: ChartPaintRole;
+  /** ADR-306 — 선 두께 (미지정 1). */
+  width?: number;
 }
 
 export type Mark = RectMark | PathMark | TextMark | LineMark;
@@ -522,4 +691,29 @@ export interface ChartScene {
    * (`fillRole`) 가 같이 실린다 — DOM leg 는 이 자리에 뷰 상태 Slider 를 얹는다.
    */
   windowTrack?: Rect;
+  /**
+   * ADR-306 — family 가 아직 로드되지 않았다 (`loadChartFamily`). 상자만 그리고 안내 글자는 없다 —
+   * 로드가 끝나면 두 consumer 가 같은 입력으로 다시 계산한다.
+   */
+  pending?: boolean;
+  /**
+   * ADR-306 — hover · 키보드 대상 (breakdown §5.2). `id` 는 family 가 정하는 뜻 단위 (점 · 칸 · 노드 ·
+   * 행), `rows` 는 원본 행 인덱스. 배열 순서 = 키보드 이동 순서. **Canvas 는 읽지 않는다** (`tooltip` 규약).
+   */
+  targets?: readonly ChartTarget[];
+}
+
+/** ADR-306 — scene 의 hover 대상 하나. */
+export interface ChartTarget {
+  id: string;
+  /** 툴팁 기준점 */
+  x: number;
+  y: number;
+  /** 히트 영역 — 사각형 (행 띠) 또는 반지름 (점). 둘 다 없으면 기준점 주변 12px. */
+  rect?: Rect;
+  r?: number;
+  rows: readonly number[];
+  /** 툴팁 제목 + 줄 (`label: text`). */
+  title: string;
+  entries: readonly { label: string; text: string; paint?: ChartPaintRole }[];
 }

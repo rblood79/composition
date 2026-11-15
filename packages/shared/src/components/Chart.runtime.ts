@@ -81,6 +81,20 @@ export interface ChartProps {
   dimensionLabelFormat?: string;
   // ── ADR-217 — 값 축 기준선 (선택적 배열, bar/line/area). 미설정 = 현행.
   referenceLines?: SpecChartProps["referenceLines"];
+  // ── ADR-306 — family 종류의 역할 · 옵션 (`CHART_FAMILY_PROP_KEYS` 와 같은 목록 — 컴포넌트는 그
+  //   목록으로 골라 `...rest` 에서 뺀다, `<div>` 속성으로 새지 않게).
+  goalField?: string;
+  rangeFields?: SpecChartProps["rangeFields"];
+  startField?: string;
+  endField?: string;
+  valueMin?: number;
+  valueMax?: number;
+  centerLabel?: string;
+  shape?: SpecChartProps["shape"];
+  bands?: SpecChartProps["bands"];
+  independent?: boolean;
+  sort?: SpecChartProps["sort"];
+  includeZero?: boolean;
   variant?: string;
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
   data?: readonly ChartRow[];

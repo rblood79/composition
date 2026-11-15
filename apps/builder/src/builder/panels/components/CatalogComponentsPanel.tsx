@@ -1,6 +1,11 @@
 import { useCallback } from "react";
+import {
+  chartCreationNeedsFamily,
+  completeChartCreationProps,
+} from "@composition/rendering";
 import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
 import {
+  notifyChartFamilyLoadFailed,
   notifyInsertRelocated,
   notifyOperationRefused,
 } from "../../catalogRuntime/operationNotice";
@@ -31,7 +36,7 @@ function CatalogComponentsContent() {
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const selected = useCatalogSession((state) => state.selection[0]?.identity);
-  const handleAddElement = useCallback(
+  const insert = useCallback(
     (
       type: string,
       _parentId?: string,
@@ -86,6 +91,25 @@ function CatalogComponentsContent() {
       }
     },
     [run, workspace],
+  );
+  // ADR-306 (R5) — a Chart of a family type waits for its family's sample rows before the insert
+  //   command runs (the command stays synchronous; the selection at that moment is the target).
+  const handleAddElement = useCallback(
+    (
+      type: string,
+      parentId?: string,
+      initialProps?: Record<string, unknown>,
+    ) => {
+      if (!chartCreationNeedsFamily(initialProps)) {
+        insert(type, parentId, initialProps);
+        return;
+      }
+      void completeChartCreationProps(initialProps!).then(
+        (props) => insert(type, parentId, props),
+        (error: unknown) => notifyChartFamilyLoadFailed(error),
+      );
+    },
+    [insert],
   );
   return (
     <ComponentList

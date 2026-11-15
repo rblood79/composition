@@ -5,6 +5,7 @@ import {
 } from "@composition/shared";
 import {
   CHART_DEFAULT_SERIES_COUNT,
+  isFamilyChartType,
   resolveChartPalette,
   type ChartRow,
 } from "@composition/rendering";
@@ -205,6 +206,27 @@ export function useChartPropertyExtras({
     chartRows,
     chartPaletteLength,
   );
+  // ADR-306 — family 종류 (gauge · bullet · dumbbell …) 는 시리즈 격자를 지나지 않는다: 시리즈 원천 ·
+  //   값 필드 · 범주 간격 · 기준선 · 시리즈 표 · 표시 예산은 읽지 않으니 내지 않는다 (숫자 형식만 공유).
+  if (isFamilyChartType(chartValues.chartType))
+    return {
+      fields: semanticFields,
+      contentExtras: (
+        <>
+          {contentExtras}
+          <ChartAuthoringControls fields={semanticFields} onPatch={onPatch} />
+        </>
+      ),
+      sectionExtras: {
+        appearance: (
+          <ChartNumberFormatControls
+            elementId={elementId}
+            fields={chartControlFields}
+            onPatch={handleChartPatch}
+          />
+        ),
+      },
+    };
   return {
     fields: semanticFields,
     contentExtras: (

@@ -7,8 +7,17 @@ import type { ChartProps as SpecChartProps } from "@composition/rendering";
 
 import {
   CHART_DEFAULT_PROPS,
+  CHART_FAMILY_PROP_KEYS,
+  chartFamilyAvailable,
+  chartFamilyEpoch,
+  chartFamilyError,
+  chartFamilyOf,
   getChartDescriptor,
+  getChartFamily,
+  loadChartFamily,
+  pickChartFamilyProps,
   resolveChartMetrics,
+  subscribeChartFamilies,
 } from "@composition/rendering";
 
 import React from "react";
@@ -88,6 +97,30 @@ export function Chart({
 }: ChartProps): React.ReactElement {
   const ref = React.useRef<HTMLDivElement>(null);
   const rule = resolveComponentRule("Chart");
+  // ADR-306 — family 종류의 역할 · 옵션은 목록 하나 (`CHART_FAMILY_PROP_KEYS`) 로 골라 `rest` 에서
+  //   뺀다 (div 속성으로 새지 않게). 배열 값이 있어 직렬화 키로 안정화한다 (`valueFieldsKey` 선례).
+  const { familyProps, domRest } = splitFamilyProps(rest);
+  const familyKey = JSON.stringify(familyProps);
+  // ADR-306 (R1) — family 로드는 여기서 건다. epoch 가 memo 키라 로드 · 실패 뒤 다시 계산한다.
+  const familyId = chartFamilyOf(chartType);
+  const familyEpoch = React.useSyncExternalStore(
+    subscribeChartFamilies,
+    chartFamilyEpoch,
+    chartFamilyEpoch,
+  );
+  // (chunk 가 없는 family 는 기다릴 것이 없다 — scene 이 설정 오류를 그린다, Canvas 와 같은 결과.)
+  const familyReady =
+    familyId === null ||
+    getChartFamily(familyId) !== undefined ||
+    !chartFamilyAvailable(familyId);
+  const familyFailed =
+    familyId !== null &&
+    !familyReady &&
+    chartFamilyError(familyId) !== undefined;
+  React.useEffect(() => {
+    if (familyId && !familyReady && !familyFailed)
+      void loadChartFamily(familyId).catch(() => undefined);
+  }, [familyId, familyReady, familyFailed]);
   const box = useBoxSize(ref);
 
   const chartSize = React.useMemo(
@@ -156,6 +189,8 @@ export function Chart({
       ...(dimensionLabelFormat !== undefined ? { dimensionLabelFormat } : {}),
       // ADR-217 — 기준선 (배열 identity 가 memo 키 — 편집기가 새 배열을 줄 때만 다시 푼다).
       ...(referenceLines !== undefined ? { referenceLines } : {}),
+      // ADR-306 — family 역할 · 옵션 (미설정 키는 싣지 않는다).
+      ...(JSON.parse(familyKey) as Partial<SpecChartProps>),
     }),
     [
       isAnimationActive,
@@ -205,6 +240,7 @@ export function Chart({
       dimensionFormat,
       dimensionLabelFormat,
       referenceLines,
+      familyKey,
     ],
   );
 
@@ -244,7 +280,7 @@ export function Chart({
           : "ready";
   return (
     <div
-      {...rest}
+      {...domRest}
       ref={ref}
       role="group"
       aria-label={label}
@@ -268,6 +304,21 @@ export function Chart({
         </div>
       ) : status === "loading" ? (
         <div role="status">Loading…</div>
+      ) : familyFailed ? (
+        <div role="alert">
+          Chart failed to load
+          <button
+            type="button"
+            onClick={() => {
+              if (familyId)
+                void loadChartFamily(familyId).catch(() => undefined);
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : !familyReady ? (
+        <div role="status">Loading chart…</div>
       ) : box.width > 0 && box.height > 0 ? (
         <React.Suspense fallback={<div role="status">Loading chart…</div>}>
           {/* viewport는 border box 원점을 공유한다. 사용자 padding은 공통 metrics가
@@ -282,6 +333,8 @@ export function Chart({
             }}
           >
             <RechartsRuntime
+              key={familyId ?? "series"}
+              familyEpoch={familyEpoch}
               props={chartProps}
               rows={rows}
               size={chartSize}
@@ -294,4 +347,16 @@ export function Chart({
       ) : null}
     </div>
   );
+}
+
+/** ADR-306 — family 역할 · 옵션을 `rest` 에서 떼어 낸다 (목록 하나 — R2). */
+function splitFamilyProps(rest: Record<string, unknown>): {
+  familyProps: Partial<SpecChartProps>;
+  domRest: Record<string, unknown>;
+} {
+  const domRest: Record<string, unknown> = {};
+  const keys = new Set<string>(CHART_FAMILY_PROP_KEYS);
+  for (const [key, value] of Object.entries(rest))
+    if (!keys.has(key)) domRest[key] = value;
+  return { familyProps: pickChartFamilyProps(rest), domRest };
 }

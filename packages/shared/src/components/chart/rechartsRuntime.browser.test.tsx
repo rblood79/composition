@@ -7,6 +7,7 @@ import {
   computeChartScene,
   createChartInitialProps,
   type ChartProps,
+  type SeriesChartType,
   type PathMark,
   type RectMark,
 } from "@composition/rendering";
@@ -39,7 +40,7 @@ const selector = {
     "path.recharts-radial-bar-sector, path.recharts-radial-bar-background-sector",
   // ADR-217 — 산점도 점 (custom shape). 이 스위트의 fixture 는 scatter 를 돌리지 않는다 (P5 browser 테스트).
   scatter: "[data-chart-scatter-series]",
-} satisfies Record<ChartProps["chartType"], string>;
+} satisfies Record<SeriesChartType, string>;
 async function check(patch: Partial<ChartProps>, source = rows) {
   const props = {
     ...CHART_DEFAULT_PROPS,
@@ -89,12 +90,15 @@ async function check(patch: Partial<ChartProps>, source = rows) {
       ),
   );
   await vi.waitFor(() =>
-    expect(host.querySelectorAll(selector[props.chartType]).length).toBe(
-      wanted.length,
-    ),
+    expect(
+      host.querySelectorAll(selector[props.chartType as SeriesChartType])
+        .length,
+    ).toBe(wanted.length),
   );
   const actual = Array.from(
-    host.querySelectorAll<SVGPathElement>(selector[props.chartType]),
+    host.querySelectorAll<SVGPathElement>(
+      selector[props.chartType as SeriesChartType],
+    ),
   );
   const actualLabels = Array.from(
     host.querySelectorAll<SVGTextElement>("svg text"),

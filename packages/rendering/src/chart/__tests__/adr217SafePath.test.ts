@@ -12,7 +12,7 @@ import {
   CHART_INVALID_SETTINGS_TEXT,
   computeChartScene,
 } from "../computeChartScene";
-import { CHART_TYPES } from "../types";
+import { SERIES_CHART_TYPES as CHART_TYPES } from "../types";
 import { resolveChartModel } from "../model";
 import { resolveChartPresentation } from "../presentation";
 import { resolveChartData } from "../runtimeData";
@@ -32,7 +32,7 @@ const unknown = {
 } satisfies ChartProps;
 
 describe("ADR-217 G1 — 미지원 chartType 안전 경로", () => {
-  it("CHART_TYPES 는 ChartType 유니온의 값 목록이다 (7종 — P4 scatter 포함)", () => {
+  it("시리즈 격자 종류 목록 (7종 — P4 scatter 포함 · ADR-306 family 종류는 SERIES 밖)", () => {
     expect([...CHART_TYPES]).toEqual([
       "bar",
       "line",

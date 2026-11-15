@@ -11,6 +11,7 @@ import {
   CHART_INVALID_SETTINGS_TEXT,
   clampWindowRange,
   dotRadius,
+  isFamilyChartType,
   linearScale,
   polarLabelAnchor,
   resolveCategoryBand,
@@ -61,6 +62,7 @@ import {
   legacyStepHorizontal,
   legacyStepVertical,
 } from "./legacyMonotone";
+import { FamilySceneHost } from "./FamilySceneHost";
 import { renderMark, renderText, seriesVar } from "./svgDecorations";
 import type { RenderChartWindowTrack } from "./windowTrack";
 
@@ -135,7 +137,34 @@ const subscribeMotion = (onChange: () => void) => {
 const readMotion = () => window.matchMedia(motionQuery).matches;
 
 /** 마크는 native Recharts가 계산한다. 공통 rows/domain/layout/장식 계약만 재사용한다. */
-export function RechartsChart({
+/**
+ * ADR-306 — 분기 하나: family 종류는 scene host (`FamilySceneHost`), 기존 7 종은 아래 그대로.
+ * 두 경로의 hook 이 섞이지 않게 컴포넌트를 나눈다 (`Chart.components.tsx` 가 family 마다 key 를 준다).
+ */
+export function RechartsChart(
+  input: Parameters<typeof SeriesRechartsChart>[0] & { familyEpoch?: number },
+) {
+  const reducedMotion = useSyncExternalStore(
+    subscribeMotion,
+    readMotion,
+    () => true,
+  );
+  if (isFamilyChartType(input.props.chartType))
+    return (
+      <FamilySceneHost
+        props={input.props}
+        rows={input.rows}
+        size={input.size}
+        metrics={input.metrics}
+        label={input.label}
+        familyEpoch={input.familyEpoch ?? 0}
+        reducedMotion={reducedMotion}
+      />
+    );
+  return <SeriesRechartsChart {...input} />;
+}
+
+function SeriesRechartsChart({
   props,
   rows,
   size,

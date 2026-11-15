@@ -49,7 +49,9 @@ import {
   CHART_OTHERS_COLOR_INDEX,
   CHART_OTHERS_FALLBACK_TOKEN,
   CHART_REFERENCE_FALLBACK_TOKEN,
+  chartPaintToken,
   computeChartScene,
+  pickChartFamilyProps,
   r2,
   resolveChartMetrics,
   resolveChartPalette,
@@ -65,6 +67,7 @@ import type {
   ChartStackType,
   ChartProps,
   ChartType,
+  ChartPaintRole,
   PolarGridType,
   Mark,
   TextMark,
@@ -2862,6 +2865,8 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       // ADR-210 표시 설정 8키 + ADR-211 예산 4키. 미설정은 싣지 않는다 (specs 가 group/auto 로 읽는다).
       //   검증은 `resolveChartPresentation` 이 하므로 여기서는 값을 그대로 넘긴다.
       ...pickChartPresentationProps(props),
+      // ADR-306 — family 종류의 역할 · 옵션 (DOM 과 같은 목록 `CHART_FAMILY_PROP_KEYS`).
+      ...pickChartFamilyProps(props),
     },
     rows,
     { width, height },
@@ -2886,6 +2891,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const referenceToken = (channel?.reference ??
     CHART_REFERENCE_FALLBACK_TOKEN) as TokenRef;
   const textToken = (paint.color ?? "{color.neutral}") as TokenRef;
+  // ADR-306 — paint 역할 (DOM 은 `--chart-paint-<role>`).
+  const paintToken = (role: ChartPaintRole): TokenRef =>
+    chartPaintToken(channel, role) as TokenRef;
 
   const shapes: Shape[] = [];
 
@@ -2962,7 +2970,13 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
           y: mark.y,
           width: mark.w,
           height: mark.h,
-          fill: seriesToken(mark.seriesIndex),
+          fill:
+            mark.fillPaint !== undefined
+              ? paintToken(mark.fillPaint)
+              : seriesToken(mark.seriesIndex),
+          ...(mark.fillOpacity !== undefined
+            ? { fillAlpha: mark.fillOpacity }
+            : {}),
         });
         return;
       case "path":
@@ -3000,6 +3014,19 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
                 strokeWidth: mark.strokeWidth ?? metrics.strokeWidth,
               }
             : {}),
+          // ADR-306 — paint 역할 칠 · 선 (불투명도 미지정 1 — DOM 과 같은 기본값).
+          ...(mark.fillPaint !== undefined
+            ? {
+                fill: paintToken(mark.fillPaint),
+                fillAlpha: mark.fillOpacity ?? 1,
+              }
+            : {}),
+          ...(mark.strokePaint !== undefined
+            ? {
+                stroke: paintToken(mark.strokePaint),
+                strokeWidth: mark.strokeWidth ?? metrics.strokeWidth,
+              }
+            : {}),
           strokeCap: "round",
           strokeJoin: "round",
           ...(mark.fillRule ? { fillRule: mark.fillRule } : {}),
@@ -3013,12 +3040,16 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
           x2: mark.x2,
           y2: mark.y2,
           stroke:
-            mark.role === "grid"
-              ? gridToken
-              : mark.role === "reference"
-                ? referenceToken
-                : axisToken,
-          strokeWidth: 1,
+            mark.paint !== undefined
+              ? paintToken(mark.paint)
+              : mark.role === "grid"
+                ? gridToken
+                : mark.role === "reference"
+                  ? referenceToken
+                  : axisToken,
+          strokeWidth: mark.width ?? 1,
+          // ADR-306 — 굵은 선 (게이지 눈금 · 덤벨 연결선) 의 끝 모양은 DOM 과 같은 round.
+          ...(mark.width !== undefined ? { strokeCap: "round" as const } : {}),
           // ADR-217 — 기준선 파선 (DOM `stroke-dasharray` 와 같은 배열).
           ...(mark.dash ? { strokeDasharray: [...mark.dash] } : {}),
         });

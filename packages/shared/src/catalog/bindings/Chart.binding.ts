@@ -1,4 +1,11 @@
+import {
+  CHART_FAMILY_PROP_KEYS,
+  SERIES_CHART_TYPES,
+} from "@composition/rendering";
 import type { PrimitiveBinding } from "../types";
+
+/** ADR-306 — 필드 역할을 읽는 종류 (조건은 `computeChartScene` · family 의 실제 소비 — R2). */
+const SERIES_TYPES: string[] = [...SERIES_CHART_TYPES];
 
 /**
  * Chart — 데이터 시각화 leaf (ADR-194).
@@ -53,6 +60,10 @@ export const chartBinding: PrimitiveBinding = {
           { value: "radar", label: "Radar" },
           { value: "radial", label: "Radial" },
           { value: "scatter", label: "Scatter" },
+          // ADR-306 kpi family (Phase 2).
+          { value: "gauge", label: "Gauge" },
+          { value: "bullet", label: "Bullet" },
+          { value: "dumbbell", label: "Dumbbell" },
         ],
       },
       dimension: {
@@ -60,6 +71,11 @@ export const chartBinding: PrimitiveBinding = {
         label: "Category",
         section: "collection",
         default: "category",
+        // ADR-306 — gauge 는 범주가 없다 (첫 행의 값 하나).
+        visibleWhen: {
+          key: "chartType",
+          oneOf: [...SERIES_TYPES, "bullet", "dumbbell"],
+        },
       },
       metric: {
         kind: "string",
@@ -67,14 +83,121 @@ export const chartBinding: PrimitiveBinding = {
         section: "collection",
         default: "value",
         // ADR-210 — columns 모드는 값 필드 목록(`valueFields`)이 값 축이다. legacy metric
-        //   은 휴면 보존되지만 편집 화면에서는 숨긴다 (breakdown §4.1).
-        visibleWhen: { key: "dataMode", equals: "group" },
+        //   은 휴면 보존되지만 편집 화면에서는 숨긴다 (breakdown §4.1). ADR-306 — dumbbell 은
+        //   값 하나가 아니라 이전 · 이후 두 필드다.
+        visibleWhen: {
+          all: [
+            { key: "dataMode", equals: "group" },
+            { key: "chartType", oneOf: [...SERIES_TYPES, "gauge", "bullet"] },
+          ],
+        },
       },
       color: {
         kind: "string",
         label: "Series",
         section: "collection",
-        visibleWhen: { key: "dataMode", equals: "group" },
+        visibleWhen: {
+          all: [
+            { key: "dataMode", equals: "group" },
+            { key: "chartType", oneOf: SERIES_TYPES },
+          ],
+        },
+      },
+      /**
+       * ── ADR-306 — family 종류의 데이터 역할 (descriptor `roles` — 패널은 역할 필드를 컬럼 Select 로
+       *   승격한다, `CHART_FIELD_ROLE_KEYS`) · 모양 옵션 (Content). 전부 선택적 — 기존 문서에는 없다.
+       *   새 key 는 `accepts` 가산이라 contract 를 올리지 않는다 (breakdown §6).
+       */
+      goalField: {
+        kind: "string",
+        label: "Goal",
+        section: "collection",
+        visibleWhen: { key: "chartType", oneOf: ["gauge", "bullet"] },
+      },
+      rangeFields: {
+        kind: "string-array",
+        label: "Range Fields",
+        section: "collection",
+        visibleWhen: { key: "chartType", equals: "bullet" },
+      },
+      startField: {
+        kind: "string",
+        label: "Start",
+        section: "collection",
+        visibleWhen: { key: "chartType", equals: "dumbbell" },
+      },
+      endField: {
+        kind: "string",
+        label: "End",
+        section: "collection",
+        visibleWhen: { key: "chartType", equals: "dumbbell" },
+      },
+      valueMin: {
+        kind: "number",
+        label: "Min Value",
+        section: "appearance",
+        default: 0,
+        visibleWhen: { key: "chartType", equals: "gauge" },
+      },
+      valueMax: {
+        kind: "number",
+        label: "Max Value",
+        section: "appearance",
+        default: 100,
+        visibleWhen: { key: "chartType", equals: "gauge" },
+      },
+      centerLabel: {
+        kind: "string",
+        label: "Center Label",
+        section: "appearance",
+        visibleWhen: { key: "chartType", equals: "gauge" },
+      },
+      shape: {
+        kind: "enum",
+        label: "Shape",
+        section: "appearance",
+        default: "arc",
+        // 값 집합은 종류마다 다르다 (breakdown §2.2) — Phase 2 는 gauge 하나 (Phase 0: options 가
+        //   chartType 으로 갈리는 기구는 없다 — 다음 family 가 shape 를 받을 때 정한다).
+        options: [
+          { value: "arc", label: "Arc" },
+          { value: "semi", label: "Semicircle" },
+          { value: "ring", label: "Ring" },
+          { value: "ticks", label: "Ticks" },
+        ],
+        visibleWhen: { key: "chartType", equals: "gauge" },
+      },
+      bands: {
+        kind: "string-array",
+        label: "Bands",
+        section: "appearance",
+        visibleWhen: { key: "chartType", equals: "gauge" },
+      },
+      independent: {
+        kind: "boolean",
+        label: "Independent Scale",
+        section: "appearance",
+        default: true,
+        visibleWhen: { key: "chartType", equals: "bullet" },
+      },
+      sort: {
+        kind: "enum",
+        label: "Sort",
+        section: "appearance",
+        default: "descending",
+        options: [
+          { value: "none", label: "Data Order" },
+          { value: "descending", label: "Descending" },
+          { value: "ascending", label: "Ascending" },
+        ],
+        visibleWhen: { key: "chartType", equals: "dumbbell" },
+      },
+      includeZero: {
+        kind: "boolean",
+        label: "Include Zero",
+        section: "appearance",
+        default: false,
+        visibleWhen: { key: "chartType", equals: "dumbbell" },
       },
       /**
        * ── ADR-210 — 다중 수치 컬럼·시리즈 표시·숫자 형식 ──
@@ -380,7 +503,13 @@ export const chartBinding: PrimitiveBinding = {
           { value: "value", label: "Value" },
           { value: "category", label: "Category Name" },
         ],
-        visibleWhen: { key: "showValueLabels", truthy: true },
+        // ADR-306 — family 종류는 값 라벨 내용을 고르지 않는다 (값만 적는다).
+        visibleWhen: {
+          all: [
+            { key: "showValueLabels", truthy: true },
+            { key: "chartType", oneOf: SERIES_TYPES },
+          ],
+        },
       },
       // ADR-215 — 시리즈 팔레트 (RSC `Chart.colors` 팔레트 이름 참조). 상자 시각 ·
       //   `colorBy` (데이터→색 매핑) 와 다른 축 — 색 관련 두 필드가 패널에서 이웃하도록 colorBy 바로 앞에 둔다. 값은 rule `chart.series` / `chart.palettes` 가 푼다.
@@ -662,6 +791,8 @@ export const chartBinding: PrimitiveBinding = {
       "animationDuration",
       "animationEasing",
       "palette",
+      // ADR-306 — family 역할 · 옵션 (목록 하나 — DOM · Skia 와 같은 `CHART_FAMILY_PROP_KEYS`).
+      ...CHART_FAMILY_PROP_KEYS,
     ],
   },
   skiaPrimitive: "chart_scene",

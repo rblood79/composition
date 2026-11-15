@@ -1,6 +1,19 @@
 import React from "react";
-import { CHART_OTHERS_COLOR_INDEX } from "@composition/rendering";
-import type { Mark, TextMark, ChartScene } from "@composition/rendering";
+import {
+  CHART_OTHERS_COLOR_INDEX,
+  chartPaintVar,
+} from "@composition/rendering";
+import type {
+  ChartPaintRole,
+  ChartScene,
+  Mark,
+  TextMark,
+} from "@composition/rendering";
+
+/** ADR-306 — paint 역할 → 생성 CSS 변수 (`--chart-paint-<role>`, Skia 는 같은 rule 토큰). */
+export function paintVar(role: ChartPaintRole): string {
+  return chartPaintVar(role);
+}
 /** scene 의 series 인덱스 → CSS 변수. 1-based (shadcn `--chart-1..N` 관례). */
 export function seriesVar(index: number): string {
   // ADR-211 others 범주 (`CHART_OTHERS_COLOR_INDEX` −1) — 팔레트가 아니라 `--chart-others`.
@@ -59,7 +72,12 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
           y={mark.y}
           width={mark.w}
           height={mark.h}
-          fill={seriesVar(mark.seriesIndex)}
+          fill={
+            mark.fillPaint !== undefined
+              ? paintVar(mark.fillPaint)
+              : seriesVar(mark.seriesIndex)
+          }
+          fillOpacity={mark.fillOpacity}
         />
       );
     case "path":
@@ -68,36 +86,45 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
           key={key}
           d={mark.d}
           fill={
-            // 축 토큰 채우기 (ADR-207 radial 트랙) — Skia 의 fillRole 분기와 같은 규약.
-            mark.fillRole !== undefined
-              ? mark.fillRole === "grid"
-                ? "var(--chart-grid, currentColor)"
-                : "var(--chart-axis, currentColor)"
-              : mark.fillSeries !== undefined
-                ? seriesVar(mark.fillSeries)
-                : "none"
+            // ADR-306 — paint 역할 칠 (Skia `paintToken` 과 같은 우선순위 — 마지막에 덮는다).
+            mark.fillPaint !== undefined
+              ? paintVar(mark.fillPaint)
+              : // 축 토큰 채우기 (ADR-207 radial 트랙) — Skia 의 fillRole 분기와 같은 규약.
+                mark.fillRole !== undefined
+                ? mark.fillRole === "grid"
+                  ? "var(--chart-grid, currentColor)"
+                  : "var(--chart-axis, currentColor)"
+                : mark.fillSeries !== undefined
+                  ? seriesVar(mark.fillSeries)
+                  : "none"
           }
           fillOpacity={
-            mark.fillRole !== undefined
-              ? 0.35
-              : mark.fillSeries !== undefined
-                ? // ADR-217 — 산점도 점은 1 (Skia `fillAlpha` 와 같은 기본값 규약).
-                  (mark.fillOpacity ?? 0.85)
-                : undefined
+            mark.fillPaint !== undefined
+              ? (mark.fillOpacity ?? 1)
+              : mark.fillRole !== undefined
+                ? 0.35
+                : mark.fillSeries !== undefined
+                  ? // ADR-217 — 산점도 점은 1 (Skia `fillAlpha` 와 같은 기본값 규약).
+                    (mark.fillOpacity ?? 0.85)
+                  : undefined
           }
           fillRule={mark.fillRule}
           stroke={
-            // 격자·축 path (ADR-207 극좌표) 는 축 토큰 — Skia 쪽 `pushMark` 와 같은 규약.
-            mark.role !== undefined
-              ? mark.role === "grid"
-                ? "var(--chart-grid, currentColor)"
-                : "var(--chart-axis, currentColor)"
-              : mark.strokeSeries !== undefined
-                ? seriesVar(mark.strokeSeries)
-                : "none"
+            mark.strokePaint !== undefined
+              ? paintVar(mark.strokePaint)
+              : // 격자·축 path (ADR-207 극좌표) 는 축 토큰 — Skia 쪽 `pushMark` 와 같은 규약.
+                mark.role !== undefined
+                ? mark.role === "grid"
+                  ? "var(--chart-grid, currentColor)"
+                  : "var(--chart-axis, currentColor)"
+                : mark.strokeSeries !== undefined
+                  ? seriesVar(mark.strokeSeries)
+                  : "none"
           }
           strokeWidth={
-            mark.role !== undefined ? (mark.strokeWidth ?? 1) : mark.strokeWidth
+            mark.role !== undefined && mark.strokePaint === undefined
+              ? (mark.strokeWidth ?? 1)
+              : mark.strokeWidth
           }
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -112,13 +139,16 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
           x2={mark.x2}
           y2={mark.y2}
           stroke={
-            mark.role === "grid"
-              ? "var(--chart-grid, currentColor)"
-              : mark.role === "reference"
-                ? "var(--chart-reference, currentColor)"
-                : "var(--chart-axis, currentColor)"
+            mark.paint !== undefined
+              ? paintVar(mark.paint)
+              : mark.role === "grid"
+                ? "var(--chart-grid, currentColor)"
+                : mark.role === "reference"
+                  ? "var(--chart-reference, currentColor)"
+                  : "var(--chart-axis, currentColor)"
           }
-          strokeWidth={1}
+          strokeWidth={mark.width ?? 1}
+          strokeLinecap={mark.width !== undefined ? "round" : undefined}
           // ADR-217 — 기준선 파선 (Skia `strokeDasharray` 와 같은 배열).
           strokeDasharray={mark.dash ? mark.dash.join(" ") : undefined}
         />

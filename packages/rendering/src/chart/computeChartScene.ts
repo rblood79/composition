@@ -21,6 +21,12 @@ import type { ChartBudgetMetrics } from "./budget";
 import { CHART_TICK_COUNT, resolveChartLayout } from "./layout";
 import type { ChartLayout } from "./layout";
 import { resolveChartModel } from "./model";
+import {
+  CHART_INVALID_SETTINGS_TEXT,
+  chartEmptyScene,
+  chartPendingScene,
+} from "./sceneStates";
+import { chartFamilyAvailable, getChartFamily } from "./families/registry";
 import { buildAreaMarks } from "./marks/area";
 import { buildBarMarks } from "./marks/bar";
 import { buildWindowTrackMarks } from "./marks/windowTrack";
@@ -60,11 +66,14 @@ import type {
   ChartMetrics,
   ChartProps,
   ChartRow,
+  ChartPaintRole,
   ChartScene,
   ChartSize,
   Mark,
   Rect,
 } from "./types";
+import { chartFamilyOf, isFamilyChartType } from "./types";
+import { chartFrame } from "./frame";
 
 /** 팔레트 소진 시 순환 기준 — rule 의 series 배열 길이가 없을 때의 기본값. */
 export const CHART_DEFAULT_SERIES_COUNT = 8;
@@ -108,40 +117,8 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   legendPosition: "bottom",
 };
 
-function emptyScene(
-  size: ChartSize,
-  plot: Rect,
-  text = "No data",
-  diagnostics?: readonly ChartDiagnostic[],
-): ChartScene {
-  return {
-    size,
-    plot,
-    marks: [
-      {
-        kind: "text",
-        x: r2(plot.x + plot.w / 2),
-        y: r2(plot.y + plot.h / 2),
-        text,
-        anchor: "middle",
-        baseline: "middle",
-        role: "empty",
-      },
-    ],
-    axes: [],
-    legend: null,
-    tooltip: null,
-    empty: true,
-    ...(diagnostics && diagnostics.length > 0 ? { diagnostics } : {}),
-  };
-}
-
-/**
- * ADR-210 — 설정 오류 상태의 안내 문구. 데이터는 보존되고 (props 불변) 다른 뜻으로
- * 렌더하지 않는다 — 두 consumer 가 `empty` 텍스트 마크를 그대로 그리므로 Canvas 와
- * DOM 이 같은 안내를 낸다.
- */
-export const CHART_INVALID_SETTINGS_TEXT = "Check chart settings";
+const emptyScene = chartEmptyScene;
+export { CHART_INVALID_SETTINGS_TEXT };
 
 /**
  * R7 — 신규 `chartType` 이 분기 없이 통과하는 자리를 컴파일 오류로 바꾼다.
@@ -326,6 +303,29 @@ export function computeChartScene(
   size: ChartSize,
   metrics: ChartMetrics = CHART_DEFAULT_METRICS,
 ): ChartScene {
+  // ADR-306 — family 종류는 시리즈 격자를 지나지 않는다 (breakdown §4.3). 로드되지 않았으면 상자만
+  //   (pending), 이 build 에 chunk 가 없으면 설정 오류. 기존 7 종의 경로는 아래 그대로다.
+  if (isFamilyChartType(props.chartType)) {
+    const familyId = chartFamilyOf(props.chartType)!;
+    const family = getChartFamily(familyId);
+    if (family) return family.buildScene(props, rows, size, metrics);
+    const frame = chartFrame(size, metrics);
+    if (!chartFamilyAvailable(familyId))
+      return chartEmptyScene(
+        frame.size,
+        frame.outer,
+        CHART_INVALID_SETTINGS_TEXT,
+        [
+          {
+            code: "chartFamily.unavailable",
+            severity: "error",
+            message: `chartType "${props.chartType}" is not available in this build`,
+            value: props.chartType,
+          },
+        ],
+      );
+    return chartPendingScene(frame.size, frame.outer);
+  }
   // ADR-211 — 모델 층 (행 상한 · 예산 · 창) 은 DOM leg 와 같은 `resolveChartModel` 이다.
   //   Canvas 는 창 `start = 0` 을 정적으로 그린다 (빌더는 상호작용 표면이 아니다).
   const model = resolveChartModel(rows, props, {
@@ -710,6 +710,8 @@ export interface ChartRuleChannel {
   others?: string;
   /** ADR-217 — 기준선 토큰 (`--chart-reference`) */
   reference?: string;
+  /** ADR-306 — paint 역할 토큰 (`--chart-paint-<role>`). 없는 키는 `CHART_PAINT_FALLBACK_TOKENS`. */
+  paint?: Readonly<Partial<Record<ChartPaintRole, string>>>;
   /** ADR-211 — 표시 예산 (최소 단위 5종 · `M` · `P` · `R` · 창 트랙 높이). 없는 키는 P0 확정값. */
   budget?: Partial<ChartBudgetMetrics>;
 }

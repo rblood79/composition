@@ -767,12 +767,20 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
  * side over the size's (`resolveCatalogRuleCanvasBox`). **Why (2026-11-13)**: only the shorthand
  * counted, so the size block's `padding: 0px 0px` overrode a declared side in the DOM alone.
  */
-function containerDeclaresPadding(c: ContainerStylesSchema | undefined): boolean {
+function containerDeclaresPadding(
+  c: ContainerStylesSchema | undefined,
+): boolean {
   return (
     c != null &&
-    (["padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"] as const).some(
-      (key) => (c as Record<string, unknown>)[key] != null,
-    )
+    (
+      [
+        "padding",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+      ] as const
+    ).some((key) => (c as Record<string, unknown>)[key] != null)
   );
 }
 
@@ -1034,6 +1042,10 @@ function generateChartVariables<Props>(spec: ComponentSpec<Props>): string[] {
   lines.push(
     `  --chart-reference: ${tokenToCSSVar((chart.reference ?? CHART_REFERENCE_FALLBACK_TOKEN) as TokenRef)};`,
   );
+  // ADR-306 — paint 역할 (Skia 는 `chartPaintToken` 으로 같은 rule 키를 읽는다). rule 이 paint 를
+  //   선언할 때만 낸다 (미보유 rule 의 CSS diff 0).
+  for (const [role, token] of Object.entries(chart.paint ?? {}))
+    lines.push(`  --chart-paint-${role}: ${tokenToCSSVar(token as TokenRef)};`);
   if (chart.strokeWidth !== undefined) {
     lines.push(`  --chart-stroke-width: ${chart.strokeWidth}px;`);
   }

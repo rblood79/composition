@@ -7,6 +7,7 @@ import { catalogSideNavChevronItem } from "../../../../../packages/shared/src/ca
 import {
   getIconData,
   getSkiaPrimitiveMode,
+  isFamilyChartType,
   resolveToken,
   snapBorderWidth,
   type TokenRef,
@@ -3435,6 +3436,22 @@ function bindInColorMode(
         }
       return seeded;
     };
+    /**
+     * ADR-306 (R1): a Chart family finished loading — the bound Charts of a family type drew a
+     * pending scene (`chart_scene` computes synchronously and never loads). They are dirty, so the
+     * next `update()` derives their node data again with the family in place (no rebind).
+     */
+    const seedChartFamilyRecords = (): number => {
+      let seeded = 0;
+      for (const [id, node] of bound) {
+        if (dirty.has(id) || !root.canvasInputs.has(id)) continue;
+        if (root.typeOf(node) !== "Chart") continue;
+        if (!isFamilyChartType(node.props.chartType)) continue;
+        dirty.add(id);
+        seeded += 1;
+      }
+      return seeded;
+    };
     return {
       get stream() {
         return stream;
@@ -3477,6 +3494,7 @@ function bindInColorMode(
       scrollable,
       scrollBy,
       seedImageOwners,
+      seedChartFamilyRecords,
       /** Verification (ADR-270): the records that looked up an image URL. */
       imageOwnersOf: (url: string): readonly string[] => [
         ...(imageOwners.get(url) ?? []),

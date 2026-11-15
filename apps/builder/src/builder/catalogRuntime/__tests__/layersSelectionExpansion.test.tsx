@@ -127,7 +127,7 @@ async function open() {
 }
 
 describe("Layers — rows a selection opened stay open", () => {
-  it("Chart rows follow all seven palette icons when chartType changes", async () => {
+  it("Chart rows follow every palette icon when chartType changes", async () => {
     const { workspace, select, row } = await open();
     const chartId = "project:node:chart-icons" as NodeId;
     act(() => {
@@ -152,7 +152,8 @@ describe("Layers — rows a selection opened stay open", () => {
     const variants = getPaletteItems().filter(
       (item) => item.componentType === "Chart",
     );
-    expect(variants).toHaveLength(7);
+    // 기존 7 + ADR-306 kpi 3.
+    expect(variants).toHaveLength(10);
     for (const item of variants) {
       const chartType = item.initialProps?.chartType;
       if (typeof chartType !== "string") throw new Error("Missing chartType");

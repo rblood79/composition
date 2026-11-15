@@ -13785,6 +13785,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       others: "{color.neutral-subdued}",
       // ADR-217 기준선 — 강한 중립 (RSC gray-800 상당), 라벨도 같은 토큰.
       reference: "{color.neutral}",
+      // ADR-306 — paint 역할 (뜻 있는 색 — 시리즈 팔레트 밖). accent = 강조 · 값 (accent 사다리 1200),
+      //   neutral = 비강조 · 구간 (others 와 같은 중립), positive · negative = 증감 (ADR-302 두 축),
+      //   step = 값 단계 (빈 칸 + accent 사다리 400 → 1200, 보간 없음).
+      paint: {
+        accent: "{color.chart-accent-1}",
+        neutral: "{color.neutral-subdued}",
+        positive: "{color.positive}",
+        negative: "{color.negative}",
+        "step-0": "{color.neutral-subtle}",
+        "step-1": "{color.chart-accent-4}",
+        "step-2": "{color.chart-accent-3}",
+        "step-3": "{color.chart-accent-2}",
+        "step-4": "{color.chart-accent-1}",
+      },
       // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
       //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
       metrics: { padding: 12, fontSize: 11 },

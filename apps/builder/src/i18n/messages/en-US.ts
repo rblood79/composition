@@ -69,6 +69,7 @@ const catalog: TranslationKeys = {
     total: "Total",
     none: "None",
     columnQualifier: "Field",
+    familyLoadFailed: "Couldn't load this chart type. Try again.",
     variant: "Variant",
     size: "Size",
     data: "Data",

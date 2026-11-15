@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-306 Phase 2 — Chart family 기반 + Gauge · Bullet · Dumbbell] - 2026-11-16
+
+### Added
+
+- **Chart 종류 3 — Gauge · Bullet · Dumbbell** (ADR-306 Phase 2, kpi family): 팔레트 Charts 에 세 항목. Gauge 는 첫 행 값을 Min · Max 범위의 비율로 (모양 Arc · Semicircle · Ring · Ticks, 목표 필드 · 구간 경계 · 가운데 설명), Bullet 은 행마다 값 막대 · 목표선 · 구간 띠 (Range Fields, 행마다 따로 또는 공용 축), Dumbbell 은 행마다 이전 · 이후 두 값 (Start · End 필드, 정렬 · 0 포함). Design 패널의 Collection 에 종류가 읽는 필드 (Goal · Start · End · Range Fields) 만 서고, 시리즈 전용 컨트롤은 나오지 않는다. Preview · Publish 는 hover 와 화살표 키로 값 툴팁을 연다.
+  - 위치: `packages/rendering/src/chart/families/` (`registry.ts` · `kpi.ts` · `fields.ts` · `niceScale.ts` — ztd-charts 0.5.0 축 범위 식 이식, MIT) · `chart/{types,authoring,computeChartScene,paint,frame,sceneStates}.ts` · `renderers/skiaPrimitives.ts` · `packages/shared/src/components/chart/FamilySceneHost.tsx` · `RechartsChart.tsx` · `svgDecorations.tsx` · `Chart.components.tsx` · `catalog/bindings/Chart.binding.ts` · `apps/builder/.../ruleShapes.ts` · `canvasBinding.ts` · `canvasScene.ts` · `CatalogCanvas.tsx` · `CatalogComponentsPanel.tsx` · `useChartPropertyExtras.tsx` · `chartFieldOptions.ts`
+- **Chart family 기반** (ADR-306 — 나머지 24 종이 Phase 3 ~ 5 에 같은 틀로 들어온다): 새 종류의 계산 · 표본은 family 마다 지연 로드되는 chunk 이고 (첫 화면에 들지 않는다), 로드 전 차트는 빈 상자 → 로드 뒤 Canvas · DOM 이 같은 scene 으로 다시 그린다 (Canvas 는 그 Chart 만 다시 기록). 실패하면 DOM 은 다시 시도 버튼, 팔레트 삽입은 안내. 새 prop 은 목록 하나 (`CHART_FAMILY_PROP_KEYS`) 로 binding · DOM · Canvas 에 같이 닿는다. 색은 시리즈 팔레트 밖의 뜻 있는 역할 (`accent` · `neutral` · `positive` · `negative` · 값 단계) 을 rule `Chart.chart.paint` → `--chart-paint-*` 로 받는다.
+
+### Changed
+
+- **번들 상한 — Builder ≤ 1,418,476 B** (ADR-201 재승인, ADR-306 사용자 결정 2): Phase 2 실측 Builder +4,476 · Preview +2,969 B gzip (종류 목록 · 등록 기구 · prop 목록 · 패널). kpi 계산 · 표본은 별도 chunk (5,174 B). Preview 상한 무변경. 위치: `apps/builder/scripts/adr201-bundle-gate.mjs` · `.github/workflows/deploy.yml` · `CLAUDE.md`.
+
 ## [ADR-306 Phase 0 · 1 — Chart 의 공개 size 삭제 (contract 68)] - 2026-11-15
 
 ### Removed

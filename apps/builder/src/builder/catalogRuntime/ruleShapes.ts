@@ -6,10 +6,15 @@ import {
 } from "../../../../../packages/shared/src/catalog/document/pickerTrigger";
 import {
   buildCatalogShapes,
+  chartFamilyAvailable,
+  chartFamilyError,
+  chartFamilyOf,
   composeCatalogShapes,
   cssVarToTokenRef,
+  getChartFamily,
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
+  loadChartFamily,
   resolveToken,
   S2_TOAST_EDGE,
   snapBorderWidth,
@@ -554,6 +559,26 @@ function imageShape(
   });
 }
 
+/**
+ * ADR-306 (R1) — a Chart of a family type loads its family here, in the Builder scene-node layer:
+ * `chart_scene` computes synchronously (a pending box until loaded) and the resolver is the shared
+ * pure function Preview · Publish run too. The load's end seeds the bound Charts (`CatalogCanvas`
+ * → `chartFamilyLoaded`). A failed load is not retried from here (each failure would draw again
+ * and load again) — a palette insert in the Builder (the same realm) or the next session loads it;
+ * the Preview iframe's retry is another realm's registry (open item — breakdown §10 Phase 2).
+ */
+function ensureChartFamily(chartType: unknown): void {
+  const family = chartFamilyOf(chartType);
+  if (
+    !family ||
+    getChartFamily(family) ||
+    !chartFamilyAvailable(family) ||
+    chartFamilyError(family) !== undefined
+  )
+    return;
+  void loadChartFamily(family).catch(() => undefined);
+}
+
 function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
   const { rect, rule, type } = input;
   const { ctx } = ruleShapeContext(input);
@@ -563,6 +588,7 @@ function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
     props._containerHeight = rect.height;
   }
   if (type === "Chart" && rule.chart) props._chartRule = rule.chart;
+  if (type === "Chart") ensureChartFamily(props.chartType);
   const binding = getPrimitiveBinding(type)?.skiaPrimitive;
   const keys = binding ? (Array.isArray(binding) ? binding : [binding]) : [];
   for (const key of keys) {

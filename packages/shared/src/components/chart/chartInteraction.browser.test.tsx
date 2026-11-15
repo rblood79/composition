@@ -4,7 +4,9 @@ import { userEvent } from "vitest/browser";
 import { Chart } from "../Chart";
 import {
   CHART_DESCRIPTORS,
+  completeChartCreationProps,
   createChartInitialProps,
+  isFamilyChartType,
 } from "@composition/rendering";
 let root: Root;
 let host: HTMLDivElement;
@@ -24,23 +26,41 @@ const round = (value: string | null) =>
 const signature = () =>
   Array.from(
     host.querySelectorAll(
-      ".recharts-surface path, .recharts-surface clipPath rect",
+      ".recharts-surface path, .recharts-surface clipPath rect, [data-chart-family] rect, [data-chart-family] line",
     ),
   )
     .map((node) =>
-      ["d", "width", "height", "stroke-dasharray", "transform"]
+      [
+        "d",
+        "x",
+        "y",
+        "x1",
+        "y1",
+        "width",
+        "height",
+        "stroke-dasharray",
+        "transform",
+      ]
         .map((key) => round(node.getAttribute(key)))
         .join(":"),
     )
     .join("|");
 // ADR-217 — 산점도는 Recharts 그래픽 항목 없이 scene path 를 그린다 (P=5,000 점의 점별 요소가 스텝당
 //   ~290 ms — P6 perf) → 진입 애니메이션이 없다. 재전송 동일성만 본다 (animation 축은 해당 없음).
+// ADR-306 — family 종류도 scene host (Recharts 그래픽 항목 없음) 라 진입은 opacity 한 번 (기하 불변) —
+//   재전송 동일성만 본다. 생성 props 는 family chunk 의 sample 로 채운다 (팔레트 생성 경로와 같다).
 for (const descriptor of CHART_DESCRIPTORS)
-  for (const active of descriptor.chartType === "scatter"
+  for (const active of descriptor.chartType === "scatter" ||
+  isFamilyChartType(descriptor.chartType)
     ? [false]
     : [false, true])
     it(`${descriptor.chartType} native animation=${active}과 동일 rows 재전송`, async () => {
-      const props = createChartInitialProps(descriptor.chartType);
+      const props = (await completeChartCreationProps(
+        createChartInitialProps(descriptor.chartType) as unknown as Record<
+          string,
+          unknown
+        >,
+      )) as unknown as ReturnType<typeof createChartInitialProps>;
       host = document.createElement("div");
       document.body.append(host);
       root = createRoot(host);
@@ -56,7 +76,9 @@ for (const descriptor of CHART_DESCRIPTORS)
       );
       root.render(render(props.data));
       await vi.waitFor(() =>
-        expect(host.querySelector(".recharts-surface path")).toBeTruthy(),
+        expect(
+          host.querySelector(".recharts-surface path, [data-chart-family]"),
+        ).toBeTruthy(),
       );
       const snapshots = new Set<string>();
       const start = performance.now();

@@ -7,6 +7,28 @@
  * skiaPrimitives → shared 가 순환이 된다 (review round 1 h1).
  */
 export * from "./types";
+// ADR-306 — family 등록 · 지연 로드 (계산 코드는 family chunk — 여기서 `./families/kpi` 를 export 하지 않는다).
+export {
+  chartFamilyAvailable,
+  chartFamilyEpoch,
+  chartFamilyError,
+  getChartFamily,
+  loadChartFamily,
+  subscribeChartFamilies,
+} from "./families/registry";
+export type { ChartFamily } from "./families/types";
+export {
+  CHART_PAINT_FALLBACK_TOKENS,
+  chartPaintToken,
+  chartPaintVar,
+} from "./paint";
+export {
+  CHART_NO_DATA_TEXT,
+  chartEmptyScene,
+  chartPendingScene,
+} from "./sceneStates";
+export { chartFrame } from "./frame";
+export type { ChartFrame } from "./frame";
 export {
   CHART_REFERENCE_DASH,
   CHART_REFERENCE_FALLBACK_TOKEN,

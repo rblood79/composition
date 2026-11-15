@@ -30,7 +30,8 @@ describe("ADR-209 공통 저작/데이터 계약", () => {
     });
     expect(createChartInitialProps("pie").data).toHaveLength(4);
     expect(createChartInitialProps("radar").data).toHaveLength(8);
-    expect(new Set(CHART_DESCRIPTORS.map((d) => d.paletteId)).size).toBe(7);
+    // ADR-306 Phase 2 — 기존 7 + kpi 3 (나머지 family 는 Phase 3 ~ 5 가 더한다).
+    expect(new Set(CHART_DESCRIPTORS.map((d) => d.paletteId)).size).toBe(10);
   });
   it("프리셋은 이전 소유 키를 reset하되 데이터와 실행 옵션을 소유하지 않는다", () => {
     const line = getChartDescriptor("line");

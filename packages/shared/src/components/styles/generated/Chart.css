@@ -58,6 +58,15 @@
   --chart-grid: var(--border);
   --chart-others: var(--fg-muted);
   --chart-reference: var(--fg);
+  --chart-paint-accent: var(--chart-accent-1);
+  --chart-paint-neutral: var(--fg-muted);
+  --chart-paint-positive: var(--positive);
+  --chart-paint-negative: var(--negative);
+  --chart-paint-step-0: var(--bg-muted);
+  --chart-paint-step-1: var(--chart-accent-4);
+  --chart-paint-step-2: var(--chart-accent-3);
+  --chart-paint-step-3: var(--chart-accent-2);
+  --chart-paint-step-4: var(--chart-accent-1);
   --chart-stroke-width: 2px;
   --chart-tooltip-bg: var(--bg-muted);
   --chart-tooltip-border: var(--border);

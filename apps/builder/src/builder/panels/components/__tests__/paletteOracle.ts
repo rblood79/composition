@@ -494,6 +494,25 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "Scatter Chart",
     icon: "ScatterChart",
   },
+  // ADR-306 Phase 2 — kpi family.
+  {
+    type: "chart-gauge",
+    category: "charts",
+    label: "Gauge",
+    icon: "Gauge",
+  },
+  {
+    type: "chart-bullet",
+    category: "charts",
+    label: "Bullet Chart",
+    icon: "ChartBarDecreasing",
+  },
+  {
+    type: "chart-dumbbell",
+    category: "charts",
+    label: "Dumbbell Chart",
+    icon: "ChartNoAxesGantt",
+  },
   {
     type: "Calendar",
     category: "dateTime",

@@ -10,7 +10,10 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { setBorderSnapRatio } from "@composition/rendering";
+import {
+  setBorderSnapRatio,
+  subscribeChartFamilies,
+} from "@composition/rendering";
 import {
   renameDefinition,
   updatePage,
@@ -1218,6 +1221,13 @@ export function CatalogCanvas({
       if (process.env.NODE_ENV === "development") imagesLoadedInFrame += 1;
       scheduler.invalidate();
     });
+    // ADR-306 (R1): a Chart family loaded — the Charts that drew its pending box record again in
+    //   the next frame's sync (the same path as a loaded image).
+    const unsubscribeChartFamilies = subscribeChartFamilies(() => {
+      scene.chartFamilyLoaded();
+      sceneStale = true;
+      scheduler.invalidate();
+    });
     // The compare filter (or the page it shows) changed: the drawn page roots follow next frame.
     let compareRoot = compareOnlyRoot();
     const followCompareFilter = () => {
@@ -2011,6 +2021,7 @@ export function CatalogCanvas({
       unsubscribeAi();
       unsubscribeGridTracks();
       unsubscribeImages();
+      unsubscribeChartFamilies();
       unsubscribeCompare();
       invalidateOverlayRef.current = undefined;
       spacingCommitRef.current = undefined;

@@ -235,7 +235,8 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     axis: string;
     grid: string;
     strokeWidth?: number;
-    metrics?: Record<string, { padding: number; fontSize: number }>;
+    /** ADR-306 — 기하 px 한 벌 (공개 size 축 삭제). */
+    metrics?: { padding: number; fontSize: number };
     tooltipBackground?: string;
     tooltipBorder?: string;
     tooltipText?: string;
@@ -243,6 +244,8 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     others?: string;
     /** ADR-217 — 기준선 토큰 (`--chart-reference`) */
     reference?: string;
+    /** ADR-306 — paint 역할 토큰 (`--chart-paint-<role>`) */
+    paint?: Record<string, string>;
   };
 
   /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음). 값 = 휴지 칠 (ADR-297). */

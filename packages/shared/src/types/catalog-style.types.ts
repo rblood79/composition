@@ -431,6 +431,24 @@ export interface ComponentRuleChart {
   /** ADR-217 — 기준선 토큰 (`--chart-reference`) */
   reference?: string;
   /**
+   * ADR-306 — paint 역할 토큰 (accent · neutral · positive · negative · step-0 ~ 4). DOM
+   * `--chart-paint-<role>` · Skia 같은 TokenRef. 없는 키는 `CHART_PAINT_FALLBACK_TOKENS`.
+   */
+  paint?: Partial<
+    Record<
+      | "accent"
+      | "neutral"
+      | "positive"
+      | "negative"
+      | "step-0"
+      | "step-1"
+      | "step-2"
+      | "step-3"
+      | "step-4",
+      string
+    >
+  >;
+  /**
    * ADR-211 — 표시 예산 (px · 개수, 테마 무관 상수). 최소 슬롯 간격 5종 · 요소 마크 상한 `M`
    * (`markBudget`) · 경로 점 상한 `P` (`pointBudget`) · 행 상한 `R` (`rowCap`) · 창 트랙 높이.
    * 두 consumer 가 `resolveChartMetrics` 로 같이 읽는다 — 없는 키는 specs 의 P0 확정값.

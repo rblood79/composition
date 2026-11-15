@@ -104,6 +104,14 @@ export function notifyOperationRefused(error: unknown): void {
   });
 }
 
+/** ADR-306 — a Chart family's chunk did not load, so the new chart was not inserted. */
+export function notifyChartFamilyLoadFailed(error: unknown): void {
+  if (process.env.NODE_ENV === "development") console.warn(error);
+  useToastStore.getState().showToast("error", "chart.familyLoadFailed", {
+    messageKey: "chart.familyLoadFailed",
+  });
+}
+
 /** The selection is page bodies only: the old `operation.bodyLocked` notice. */
 export function notifyBodyLocked(): void {
   useToastStore.getState().showToast("info", "operation.bodyLocked", {

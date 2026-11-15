@@ -343,6 +343,9 @@ export function supportsBudgetMode(
     case "scatter":
       // ADR-217 — 집계 (원본에 없는 좌표) · others 는 산점도의 뜻을 바꾼다 (HC9).
       return mode === "window" || mode === "extrema";
+    default:
+      // ADR-306 — family 종류는 시리즈 예산을 쓰지 않는다 (family 가 자기 예산을 진단으로 낸다).
+      return false;
   }
 }
 

@@ -4,6 +4,7 @@ import {
   CHART_DESCRIPTORS,
   getChartDescriptor,
   getChartPresetId,
+  isFamilyChartType,
 } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components/property/PropertySelect";
@@ -22,6 +23,20 @@ const COLUMNS_UNSUPPORTED_TYPES: readonly string[] = ["pie", "radial"];
  * (209 breakdown §116). 2단계 (버튼 → Select) 는 안전 이득 0 에 클릭만 더했다 (2026-09-11
  * 사용자 판정). 프리셋/종류 변경은 일반 필드와 같은 canonical batch writer 를 한 번 호출한다.
  */
+/**
+ * ADR-306 — 종류 변경 patch. family 종류는 시리즈 원천 (`dataMode`) 을 읽지 않고 그 모드를 바꾸는
+ * 컨트롤 (`ChartDataMappingControls`) 도 내지 않는다. Value Columns 로 둔 채 바꾸면 Value 칸
+ * (`metric` — group 모드에서만 보인다) 을 고를 길이 없어지므로 group 으로 되돌린다.
+ */
+export function chartTypeChangePatch(
+  props: Readonly<Record<string, unknown>>,
+  chartType: string,
+): Record<string, unknown> {
+  return isFamilyChartType(chartType) && props.dataMode === "columns"
+    ? { chartType, dataMode: "group" }
+    : { chartType };
+}
+
 export const ChartAuthoringControls = memo(function ChartAuthoringControls({
   fields,
   onPatch,
@@ -52,7 +67,8 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
           disabledKeys={unsupportedTypes}
           onChange={(value) => {
             if (unsupportedTypes?.includes(value)) return;
-            if (value !== descriptor.chartType) onPatch({ chartType: value });
+            if (value === descriptor.chartType) return;
+            onPatch(chartTypeChangePatch(props, value));
           }}
           afterControl={
             columnsMode ? (

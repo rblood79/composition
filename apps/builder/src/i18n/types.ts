@@ -1027,6 +1027,8 @@ export interface TranslationKeys {
     none: string;
     /** None 라벨과 같은 이름의 데이터 컬럼을 구분하는 보조 표시. */
     columnQualifier: string;
+    /** ADR-306 — family 종류의 계산 chunk 를 받지 못해 차트를 넣지 못했다. */
+    familyLoadFailed: string;
     variant: string;
     size: string;
     data: string;

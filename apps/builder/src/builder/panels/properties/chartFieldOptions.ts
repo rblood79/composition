@@ -8,18 +8,29 @@
  * 입력의 `dataBinding` 은 편집 계약(`resolveEditContract`)이 산출한 `currentValue` 다 —
  * canonical 의 저장 위치(props / `x-composition`)를 이 모듈이 다시 판정하지 않는다.
  */
+import {
+  CHART_DESCRIPTORS,
+  CHART_FIELD_ROLE_KEYS,
+} from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import type { PanelField } from "./generic/GenericFieldRenderer";
 
 import type { DataTable } from "../../../types/builder/data.types";
 import { fieldsFromOwner } from "./hooks/useOwnerCollectionColumns";
 
-/** collection 컬럼 Select 로 승격되는 매핑 필드. */
-export const CHART_MAPPING_FIELD_KEYS: readonly string[] = [
-  "dimension",
-  "metric",
+/**
+ * collection 컬럼 Select 로 승격되는 매핑 필드 — 시리즈 축 3 + ADR-306 descriptor 의 field 역할
+ * (goalField · startField · endField …). 역할 표 하나에서 나온다 (`CHART_FIELD_ROLE_KEYS`).
+ */
+export const CHART_MAPPING_FIELD_KEYS: readonly string[] =
+  CHART_FIELD_ROLE_KEYS;
+/** 해제 항목 (None) 을 첫 자리에 두는 선택 역할 — 비워도 그려지는 필드. */
+const OPTIONAL_FIELD_KEYS: ReadonlySet<string> = new Set([
   "color",
-];
+  ...CHART_DESCRIPTORS.flatMap((d) =>
+    d.roles.filter((role) => !role.required).map((role) => role.prop),
+  ),
+]);
 
 export interface ChartFieldOptionLabels {
   /** 빈 값(미설정·시리즈 해제) 항목의 표시 라벨 — `chart.none`. */
@@ -75,10 +86,9 @@ export function buildChartSemanticFields(
       const current = currentField ? storedValue(currentField) : rawCurrent;
       // Series 에만 해제 항목을 **항상 첫 자리**에 둔다. Category/Value 는 새 해제 명령을
       //   추가하지 않고, 현재 값이 이미 빈 값일 때의 기존 항목만 그대로 유지한다.
-      const values =
-        field.key === "color"
-          ? ["", ...(current === "" ? [] : [current]), ...columns]
-          : [current, ...columns];
+      const values = OPTIONAL_FIELD_KEYS.has(field.key)
+        ? ["", ...(current === "" ? [] : [current]), ...columns]
+        : [current, ...columns];
       return {
         ...field,
         optionsFromData: true,

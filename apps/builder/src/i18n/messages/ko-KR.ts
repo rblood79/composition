@@ -69,6 +69,7 @@ const catalog: TranslationKeys = {
     total: "합계",
     none: "없음",
     columnQualifier: "필드",
+    familyLoadFailed: "이 차트 종류를 불러오지 못했습니다. 다시 시도하세요.",
     variant: "변형",
     size: "크기",
     data: "데이터",
