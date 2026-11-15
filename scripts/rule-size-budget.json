@@ -1,0 +1,26 @@
+{
+  "_comment": "rule 파일 바이트 상한 (ratchet — 내리기만 한다). 목록에 없는 rule 은 defaultBytes. lineLimited 는 Claude Code 문서의 로드 한계 (CLAUDE.md 200줄 권장 · MEMORY.md 200줄/25KB 뒤 잘림).",
+  "defaultBytes": 24000,
+  "files": {
+    ".claude/rules/canvas-rendering.md": 55100,
+    ".claude/rules/catalog-subparts.md": 37157,
+    ".claude/rules/css-tokens.md": 39599,
+    ".claude/rules/data-interaction.md": 53210,
+    ".claude/rules/layout-engine.md": 40292,
+    ".claude/rules/panel-structure.md": 39624,
+    ".claude/rules/state-management.md": 34192,
+    ".claude/rules/style-ssot.md": 26063
+  },
+  "lineLimited": {
+    "CLAUDE.md": {
+      "lines": 200
+    },
+    "CLAUDE.local.md": {
+      "lines": 200
+    },
+    "MEMORY.md": {
+      "lines": 200,
+      "bytes": 25000
+    }
+  }
+}
