@@ -2267,7 +2267,7 @@ export function catalogDerivedProps(
   const tracked = tracks
     ? {
         ...colored,
-        _tableTracks: tracks.tracks,
+        _tableTracks: tracks.list.join(" "),
         ...(tracks.deviceTracks
           ? { _tableDeviceTracks: tracks.deviceTracks }
           : {}),

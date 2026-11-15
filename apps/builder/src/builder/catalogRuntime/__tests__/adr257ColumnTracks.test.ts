@@ -80,7 +80,7 @@ async function engineSizes(
           display: "grid",
           width: `${tableWidth}px`,
           gridTemplateColumns: parseGridTemplate(
-            catalogTableColumnTracks(columns),
+            catalogTableColumnTracks(columns).list.join(" "),
           ),
         },
         children: cells.map((_, index) => index),

@@ -91,7 +91,7 @@ describe("ADR-310 Phase 8 — a virtual Table's column widths = the Canvas grid"
   for (const [name, width, columns] of cases)
     it(name, async () => {
       const tracks = parseGridTemplate(
-        catalogTableColumnTracks(columns),
+        catalogTableColumnTracks(columns).list.join(" "),
       ) as string[];
       const expected = await engineWidths(width, tracks);
       const actual = catalogTableTrackWidths(tracks, width)!;

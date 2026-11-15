@@ -142,24 +142,23 @@ export function catalogColumnTrack({
   return done(`minmax(${min.value}px, ${pct}%)`);
 }
 
-/** A Table's track list from its Columns in order (empty string = no columns). */
+/**
+ * A Table's tracks from its Columns in order: `list` — one track per column (the Canvas's px) —
+ * and `deviceTracks`, the DOM's track list when a track follows the device (`deviceTrack`).
+ */
 export function catalogTableColumnTracks(
   columns: readonly CatalogColumnInput[],
-): string {
-  return columns.map((column) => catalogColumnTrack(column).track).join(" ");
-}
-
-/**
- * The DOM's track list when a track follows the device (`deviceTrack`); undefined when every
- * track is the same on every device (the DOM then reads `catalogTableColumnTracks`).
- */
-export function catalogTableColumnDeviceTracks(
-  columns: readonly CatalogColumnInput[],
-): string | undefined {
+): { list: string[]; deviceTracks?: string } {
   const tracks = columns.map((column) => catalogColumnTrack(column));
+  const list = tracks.map((track) => track.track);
   return tracks.some((track) => track.deviceTrack)
-    ? tracks.map((track) => track.deviceTrack ?? track.track).join(" ")
-    : undefined;
+    ? {
+        list,
+        deviceTracks: tracks
+          .map((track) => track.deviceTrack ?? track.track)
+          .join(" "),
+      }
+    : { list };
 }
 
 // ── Records: the shared track list of a Table's rows ─────────────────────────
@@ -234,17 +233,16 @@ export function catalogTableSelectionColumn<T extends TrackRecord>(
 
 /**
  * The track list a Table's header row · Row lays out on (`display: grid` — Canvas `styleOf`, DOM
- * `catalogDomStyle` · the Table parts): `tracks` in px (the Canvas's — the selection column at
- * `selectionWidth`, desktop 40 — and `list`, the same per column) and `deviceTracks` when a track
- * follows the device (the DOM's — the selection column's CSS variable). Undefined for any other
- * record or a Table without Columns.
+ * `catalogDomStyle` · the Table parts) — `catalogTableColumnTracks` of its Columns, the selection
+ * column at `selectionWidth` (desktop 40). Undefined for any other record or a Table without
+ * Columns.
  */
 export function catalogTableRowTracks<T extends TrackRecord>(
   node: T,
   get: TrackLookup<T>,
   typeOf: TrackTypeOf<T>,
   selectionWidth?: number,
-): { tracks: string; list: string[]; deviceTracks?: string } | undefined {
+): ReturnType<typeof catalogTableColumnTracks> | undefined {
   const table = catalogTrackTableOf(node, get, typeOf);
   if (!table) return undefined;
   // (A highlight-selection Table has no selection column — Phase 3.)
@@ -262,13 +260,7 @@ export function catalogTableRowTracks<T extends TrackRecord>(
       ? { selection: true, selectionWidth }
       : {}),
   }));
-  const deviceTracks = catalogTableColumnDeviceTracks(inputs);
-  const list = inputs.map((input) => catalogColumnTrack(input).track);
-  return {
-    tracks: list.join(" "),
-    list,
-    ...(deviceTracks ? { deviceTracks } : {}),
-  };
+  return catalogTableColumnTracks(inputs);
 }
 
 /**

@@ -114,7 +114,7 @@ export function catalogVirtualListLayout(
       left: px(style.paddingLeft ?? style.padding),
     },
     ...(type === "Table" && device
-      ? tableTrackInput(root, items[0], get, typeOf, readers.rowTracks, device)
+      ? tableTrackInput(root, items[0], get, readers, device)
       : {}),
     // (A horizontal list's items are their px width — the `ListLayout`'s `rowSize`.)
     rows: fixedWidths
@@ -137,8 +137,7 @@ function tableTrackInput(
   root: CatalogCompositionRoot,
   row: CatalogConsumerNode | undefined,
   get: (id: string) => CatalogConsumerNode | undefined,
-  typeOf: (node: CatalogConsumerNode) => string,
-  rowTracks: typeof catalogTableRowTracks,
+  { typeOf, rowTracks }: CatalogVirtualListReaders,
   device: CatalogTableDeviceColumns,
 ): Pick<CatalogVirtualInput, "columnTracks" | "rowEdge"> {
   if (!row) return {};
