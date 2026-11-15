@@ -8,6 +8,7 @@ import {
   type CatalogVirtualLayout,
   type CatalogVirtualRefusal,
 } from "./virtualLayout";
+import { catalogVirtualFlow } from "./virtualFlow";
 import type { catalogVirtualGridOptions } from "./virtualGrid";
 
 /**
@@ -62,9 +63,29 @@ export function catalogVirtualListLayout(
     return props.layout === "waterfall"
       ? { refused: "waterfall" }
       : { kind: "grid", type, props };
+  // (A list's direction is its drawn flow — the S2 lists have no `orientation`: a horizontal list
+  //  is the author's flex row. A horizontal `ListLayout` measures an item's width in a box of the
+  //  estimate, so the items must have one px width there — the Canvas's flex gives a fixed main
+  //  size `flex-shrink: 0`.)
+  const flow = type === "Table" ? { orientation: "vertical" as const } : catalogVirtualFlow(style);
+  if ("refused" in flow) return flow;
+  let fixedWidths: number[] | undefined;
+  if (flow.orientation === "horizontal") {
+    const widths = items.map((item) => {
+      const own = root.getDrawnLayoutStyle(item.id) ?? {};
+      const width = /^(\d+(?:\.\d+)?)px$/.exec(String(own.width ?? ""));
+      const margin = px(own.marginLeft) + px(own.marginRight);
+      return width && Number(own.flexShrink) === 0 && !margin
+        ? Number(width[1])
+        : undefined;
+    });
+    if (!widths.length || widths.some((width) => width !== widths[0]))
+      return { refused: "itemSize" };
+    fixedWidths = widths as number[];
+  }
   const input: CatalogVirtualInput = {
     kind: type === "Table" ? "table" : "list",
-    orientation: props.orientation === "horizontal" ? "horizontal" : "vertical",
+    orientation: flow.orientation,
     rowGap: px(style.rowGap ?? gap),
     columnGap: px(style.columnGap ?? gap),
     padding: {
@@ -73,12 +94,39 @@ export function catalogVirtualListLayout(
       bottom: px(style.paddingBottom ?? style.padding),
       left: px(style.paddingLeft ?? style.padding),
     },
-    rows: items.map((item) => sizeOf(item.id)).filter((size) => !!size),
+    ...(type === "Table" ? tableTrackInput(root, items[0]) : {}),
+    // (A horizontal list's items are their px width — the `ListLayout`'s `rowSize`.)
+    rows: fixedWidths
+      ? fixedWidths.map((width) => ({ width, height: 0 }))
+      : items.map((item) => sizeOf(item.id)).filter((size) => !!size),
     headings: collectHeadings(record, get, typeOf)
       .map((item) => sizeOf(item.id))
       .filter((size) => !!size),
   };
   return catalogVirtualLayout(input);
+}
+
+/**
+ * A Table's column tracks and its Row's edge, read from a body Row's engine input (the Canvas's —
+ * the same in the Preview's root): the tracks the grid lays the cells on (`_tableTracks`, with the
+ * drag column's) and the border · padding the row adds around them.
+ */
+function tableTrackInput(
+  root: CatalogCompositionRoot,
+  row: CatalogConsumerNode | undefined,
+): Pick<CatalogVirtualInput, "columnTracks" | "rowEdge"> {
+  if (!row) return {};
+  const style = root.getDrawnLayoutStyle(row.id) ?? {};
+  const tracks = style.gridTemplateColumns;
+  const side = (border: unknown, padding: unknown) =>
+    px(border ?? style.border) + px(padding ?? style.padding);
+  return {
+    ...(Array.isArray(tracks) ? { columnTracks: tracks.map(String) } : {}),
+    rowEdge: {
+      top: side(style.borderTop, style.paddingTop),
+      bottom: side(style.borderBottom, style.paddingBottom),
+    },
+  };
 }
 
 /** A list's section headers · a Table's header row (the `Layout`'s heading size). */

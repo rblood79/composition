@@ -11,12 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-310 Phase 8 (진행 중) — 세로 목록 · 카드 grid 의 가상 스크롤] - 2026-11-15
+## [ADR-310 Phase 8 (진행 중) — 세로 · 가로 목록 · 카드 grid · Table 의 가상 스크롤] - 2026-11-15
 
 ### Added
 
 - **행 표시 「가상 스크롤」**: 높이를 정한 연결 목록은 Design 패널 「행 표시」 에서 가상 스크롤을 고를 수 있다 — Preview · Publish 가 보이는 행만 DOM 에 두고 (250 행 목록에서 13 ~ 14 개) 스크롤 · 키보드 이동 · 선택은 그대로다. 높이가 정해지지 않은 목록은 고를 수 없고 이유가 보인다.
-- **카드 grid 의 가상 스크롤**: CardView · GridList (grid 배치) 도 가상 스크롤을 고를 수 있다. 칸 크기 · 간격은 S2 CardView 의 크기 표 (CardView — 크기 prop, 폭에 2열이 들어가지 않으면 한 단계 작게) 와 RAC `GridLayout` 기본값 (GridList) 을 따르고, Canvas 도 같은 열 · 간격으로 칸을 놓는다 (Publish 와 첫 행 위치 같음, 250 장 중 DOM 4 ~ 6 장). waterfall 배치는 아직 고를 수 없다. Table · 가로 목록은 다음 단계.
+- **카드 grid 의 가상 스크롤**: CardView · GridList (grid 배치) 도 가상 스크롤을 고를 수 있다. 칸 크기 · 간격은 S2 CardView 의 크기 표 (CardView — 크기 prop, 폭에 2열이 들어가지 않으면 한 단계 작게) 와 RAC `GridLayout` 기본값 (GridList) 을 따르고, Canvas 도 같은 열 · 간격으로 칸을 놓는다 (Publish 와 첫 행 위치 같음, 250 장 중 DOM 4 ~ 6 장). waterfall 배치는 아직 고를 수 없다.
+- **Table · 가로 목록의 가상 스크롤**: Table 은 Canvas 의 열 트랙을 같은 폭에서 그대로 열 폭으로 쓰고 (RAC 의 정수 열 폭 대신 — 199.33 · 199.33 · 199.33), 행 높이에 Row 의 아래 테두리까지 넣는다 (Canvas 41 = Publish 41). 가로 목록 (Styles 의 flex row) 은 그 방향으로 놓고 항목이 줄 높이를 채운다. 줄바꿈 · 역순 · 여러 열 grid 처럼 한 줄 목록이 아닌 배치는 고를 수 없고 이유가 보인다.
+
+### Fixed
+
+- **가상 스크롤 Table 이 높이에 맞는 행까지만 스크롤** (ADR-310 Phase 8):
+  - 300 px Table 에 250 행을 연결해 가상 스크롤로 바꿔도 Publish 는 11 행에서 끝났다.
+  - **Why**: 높이를 정한 Table 은 높이에 들어가는 행만 남기는데 (`boundTableRows`), 그 자르기가 가상 스크롤 Table 에도 걸렸다. 이제 Preview · Publish 는 모든 행을 두고 Builder 만 표본으로 자른다.
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts`
 
 ## [ADR-310 Phase 7 — 연결한 목록의 「페이지」 표시 · Pagination 연결] - 2026-11-15
 

@@ -144,6 +144,30 @@ describe("ADR-310 Phase 8 — a virtual list's options from the Canvas's values"
           { width: 600, height: 48 },
         ],
       }),
-    ).toEqual({ kind: "table", options: { rowHeight: 48, headingHeight: 40 } });
+    ).toEqual({
+      kind: "table",
+      options: { rowHeight: 48, headingHeight: 40, rowEdge: { top: 0, bottom: 0 } },
+    });
+  });
+
+  it("a Table carries the Canvas's column tracks and its Row's edge to the TableLayout", () => {
+    expect(
+      catalogVirtualLayout({
+        kind: "table",
+        rowGap: 0,
+        columnGap: 0,
+        padding: padding(0),
+        rows: [],
+        columnTracks: ["40px", "minmax(75px, 1fr)"],
+        rowEdge: { top: 0, bottom: 1 },
+      }),
+    ).toEqual({
+      kind: "table",
+      options: {
+        estimatedRowHeight: 40,
+        columnTracks: ["40px", "minmax(75px, 1fr)"],
+        rowEdge: { top: 0, bottom: 1 },
+      },
+    });
   });
 });

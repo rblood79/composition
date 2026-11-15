@@ -1179,6 +1179,7 @@ const catalog: TranslationKeys = {
       height: "Give the list a fixed height first",
       padding: "Use the same padding on all four sides",
       waterfall: "Waterfall layout is not virtual-scrolled yet",
+      flow: "Keep the items in one line",
     },
     legacyBinding:
       "Legacy {source} binding — choosing a collection switches it to dataTable.",

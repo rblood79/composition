@@ -11,6 +11,7 @@ import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
 } from "./compositionRoot";
+import { catalogTableTrackWidths } from "./tableTrackWidths";
 import {
   catalogVirtualListLayout,
   type CatalogVirtualListReaders,
@@ -46,6 +47,84 @@ class CatalogGridLayout extends GridLayout<unknown> {
         minSpace: size(options.minSpace),
       },
     });
+  }
+}
+
+type TableInput = {
+  columnTracks?: readonly string[];
+  rowEdge?: { top: number; bottom: number };
+  columnWidths?: Map<unknown, number>;
+};
+type TableContext = Parameters<TableLayout<unknown>["update"]>[0];
+type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
+
+/**
+ * RAC's `TableLayout` placing a Table as the Canvas does: the columns are the Canvas's grid tracks
+ * at the scroll width (`catalogTableTrackWidths` — RAC's `TableColumnLayout` rounds to whole px
+ * and reads a selection · drag Column as `1fr`), and a row is its cells plus the Row's own border ·
+ * padding (`rowEdge` — RAC sizes a row by its measured cells, so a Row's bottom divider fell
+ * outside its pitch: 40 a row, the Canvas's 41). A resizable Table keeps RAC's widths (its
+ * `ResizableTableContainer` gives them — the Preview's own operation).
+ */
+class CatalogTableLayout extends TableLayout<unknown> {
+  private rowEdge = { top: 0, bottom: 0 };
+  override shouldInvalidateLayoutOptions(next: object, previous: object): boolean {
+    const a = next as TableInput;
+    const b = previous as TableInput;
+    return (
+      a.columnTracks?.join(" ") !== b.columnTracks?.join(" ") ||
+      a.rowEdge?.top !== b.rowEdge?.top ||
+      a.rowEdge?.bottom !== b.rowEdge?.bottom ||
+      super.shouldInvalidateLayoutOptions(next as never, previous as never)
+    );
+  }
+  override update(context: TableContext): void {
+    const options = (context.layoutOptions ?? {}) as TableInput;
+    this.rowEdge = options.rowEdge ?? { top: 0, bottom: 0 };
+    const columns = this.virtualizer?.collection
+      ? (this.virtualizer.collection as unknown as { columns: { key: unknown }[] })
+          .columns
+      : [];
+    const widths =
+      !options.columnWidths && options.columnTracks?.length === columns.length
+        ? catalogTableTrackWidths(
+            options.columnTracks,
+            (this.virtualizer?.size.width ?? 0) - this.padding * 2,
+          )
+        : undefined;
+    super.update(
+      widths
+        ? ({
+            ...context,
+            layoutOptions: {
+              ...context.layoutOptions,
+              columnWidths: new Map(
+                columns.map((column, index) => [column.key, widths[index]!]),
+              ),
+            },
+          } as TableContext)
+        : context,
+    );
+  }
+  protected override getEstimatedRowHeight(): number {
+    return (
+      super.getEstimatedRowHeight() + this.rowEdge.top + this.rowEdge.bottom
+    );
+  }
+  protected override buildRow(
+    ...args: Parameters<TableLayout<unknown>["buildRow"]>
+  ): RowNode {
+    const node = super.buildRow(...args);
+    const { top, bottom } = this.rowEdge;
+    if (!top && !bottom) return node;
+    // (The cells start below the Row's top edge; the row holds them and its bottom edge.)
+    if (top)
+      for (const child of node.children ?? []) {
+        child.layoutInfo = child.layoutInfo.copy();
+        child.layoutInfo.rect.y += top;
+      }
+    node.layoutInfo.rect.height += top + bottom;
+    return node;
   }
 }
 
@@ -93,7 +172,7 @@ export default function CatalogVirtualizer({
       children: element,
     } as never);
   return createElement(Virtualizer, {
-    layout: layout.kind === "table" ? TableLayout : ListLayout,
+    layout: layout.kind === "table" ? CatalogTableLayout : ListLayout,
     layoutOptions: layout.options,
     children: element,
   } as never);

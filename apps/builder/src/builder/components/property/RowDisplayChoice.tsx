@@ -6,6 +6,7 @@ import {
 } from "../../../../../../packages/shared/src/catalog/commands/rowDisplay";
 import type { NodeEntry } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogGrowsWithRows } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
+import { catalogVirtualFlow } from "../../../../../../packages/shared/src/catalog/runtime/virtualFlow";
 import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
 import { useCatalogStepReading } from "../../catalogRuntime/react.runtime";
 import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
@@ -57,11 +58,24 @@ export default function RowDisplayChoice({
       //  list it cannot place the same way draws as it is there. Kept out of this panel's import —
       //  it moved shared modules into the Builder's initial chunk, +1,160 B.)
       // (A waterfall is RAC's `WaterfallLayout` — the Canvas does not place it that way yet.)
+      // (A list that is not one line of stretched items — a wrapping · reversed flex, a many-column
+      //  grid in Styles — is not a `ListLayout`'s: `catalogVirtualFlow`. Grids are GridLayouts.)
+      const grid =
+        record.ruleId === "CardView" ||
+        (record.ruleId === "GridList" && record.props.layout !== "stack");
+      const flow =
+        record.ruleId === "Table" || grid
+          ? undefined
+          : catalogVirtualFlow(
+              workspace.root.getDrawnLayoutStyle(elementId) ?? {},
+            );
       virtualBlocked = !bounded
         ? "height"
         : record.props.layout === "waterfall"
           ? "waterfall"
-          : undefined;
+          : flow && "refused" in flow
+            ? flow.refused
+            : undefined;
     }
     return {
       listId: target.id,

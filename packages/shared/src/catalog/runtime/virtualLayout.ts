@@ -27,6 +27,10 @@ export interface CatalogVirtualInput {
   readonly rows: readonly CatalogVirtualSize[];
   /** Section headers · a Table's header row. */
   readonly headings?: readonly CatalogVirtualSize[];
+  /** A Table's shared column tracks (`_tableTracks` — the Canvas's grid, engine input form). */
+  readonly columnTracks?: readonly string[];
+  /** A Table Row's own border + padding above · below its cells (the Canvas's row box). */
+  readonly rowEdge?: { readonly top: number; readonly bottom: number };
 }
 
 export type CatalogVirtualLayout =
@@ -54,6 +58,13 @@ export type CatalogVirtualLayout =
         readonly rowHeight?: number;
         readonly estimatedRowHeight?: number;
         readonly headingHeight?: number;
+        /**
+         * The Canvas's column tracks — the `TableLayout` sizes the columns as the grid does
+         * (`catalogTableTrackWidths`), not RAC's whole-px `TableColumnLayout`.
+         */
+        readonly columnTracks?: readonly string[];
+        /** The Row's border + padding: a row is its cells plus these (the cells start below top). */
+        readonly rowEdge: { readonly top: number; readonly bottom: number };
       };
     };
 
@@ -62,7 +73,14 @@ export type CatalogVirtualRefusal =
   /** A `ListLayout`'s padding is one value: the list's four sides differ. */
   | "padding"
   /** A waterfall is RAC's `WaterfallLayout` — not placed by the Canvas yet. */
-  | "waterfall";
+  | "waterfall"
+  /** Not one line of stretched items (`catalogVirtualFlow` — a wrapping · reversed flex, a grid). */
+  | "flow"
+  /**
+   * A horizontal list whose items have no one px width (a `ListLayout` cannot measure it so) —
+   * read in the Preview's chunk only, as `padding`: the list draws as it is there.
+   */
+  | "itemSize";
 
 /** Sizes equal within half a pixel: fixed; else the average as an estimate. */
 function sizeOf(values: readonly number[]): { fixed?: number; estimate?: number } {
@@ -94,6 +112,10 @@ export function catalogVirtualLayout(
         ...(row.fixed !== undefined ? { rowHeight: row.fixed } : {}),
         ...(row.estimate !== undefined ? { estimatedRowHeight: row.estimate } : {}),
         ...(heading !== undefined ? { headingHeight: heading } : {}),
+        ...(input.columnTracks?.length
+          ? { columnTracks: input.columnTracks }
+          : {}),
+        rowEdge: input.rowEdge ?? { top: 0, bottom: 0 },
       },
     };
   }

@@ -622,6 +622,24 @@ function catalogTableTrackStyle(
     : { display: "grid", gridTemplateColumns: tracks };
 }
 
+/**
+ * ADR-310 Phase 8: a part fills the box RAC's virtual `Layout` gives it — a Table's Row (its cells
+ * sit in the row box, so its own border draws at the box's edge) and an item of a horizontal list
+ * (its list's drawn flow is a flex row — `catalogVirtualFlow`: the box is the line's height, as
+ * the Canvas's flex stretches the item; a vertical list's block item fills its width).
+ */
+function catalogFillsVirtualBox(
+  root: CatalogCompositionRoot,
+  /** The Row's Table · the item's list. */
+  list: CatalogConsumerNode | undefined,
+  row: boolean,
+): boolean {
+  return (
+    list?.derivedProps?._rowDisplay === "virtual" &&
+    (row || root.getDrawnLayoutStyle(list.id)?.flexDirection === "row")
+  );
+}
+
 /** Inline CSS from the shared box model plus resolved paint/text values. */
 export function catalogDomStyle(
   node: CatalogConsumerNode,
@@ -2620,6 +2638,15 @@ function ruleDom(
   let style = {
     ...authoredStyle(root, node),
     ...catalogTableTrackStyle(node, resizable),
+    // (ADR-310 Phase 8: a virtual-scrolled Table's Row fills the row box RAC's `TableLayout` gives
+    //  it — its cells are placed in that box, so the Row's own border draws at the box's edge.)
+    ...(catalogFillsVirtualBox(
+      root,
+      type === "Row" ? operationsTable : domGet(node.parentId),
+      type === "Row",
+    )
+      ? { height: "100%" }
+      : {}),
     // (ADR-295 후속 C7: S2's checkbox column part ends 8 in — `catalogBoxModel`; an authored end wins.)
     ...(node.derivedProps?._tableSelectionPart === true &&
     catalogAuthoredVisual(root, node).paddingRight === undefined

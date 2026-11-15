@@ -876,6 +876,7 @@ export interface TranslationKeys {
       height: string;
       padding: string;
       waterfall: string;
+      flow: string;
     };
     fieldTemplatePlaceholder: string;
     insertField: string;

@@ -2166,6 +2166,7 @@ export function resolveCatalogNode(
               `${instancePath.join("/")}::${node.id}`,
               viewSortsByVariable(node.binding, lookupEntry),
               () => project(undefined),
+              node.rowDisplay?.mode === "virtual",
             )
           : undefined;
       push(children, finishBoundTable(project(table?.shown ?? rowSet), table));
@@ -2293,6 +2294,11 @@ export function resolveCatalogNode(
     sortedByVariable: boolean,
     /** The Table without rows (its header's Columns name the sorted field). */
     bare: () => ResolvedCatalogNode | undefined,
+    /**
+     * ADR-310 Phase 8: the Table is virtual-scrolled (`rowDisplay` `virtual`) — the Preview keeps
+     * every row (the `Virtualizer` puts the visible ones in the DOM); the Builder still samples.
+     */
+    virtual: boolean,
   ): BoundTableRows => {
     const typeOf = (resolved: ResolvedCatalogNode) =>
       lookupDefinition(resolved.definitionId).name;
@@ -2339,7 +2345,10 @@ export function resolveCatalogNode(
       typeof prop("height") === "number"
         ? (prop("height") as number)
         : (tableBinding.props.accepts.height?.default as number | undefined);
-    const fixed = heightMode === "fixed" && typeof height === "number";
+    const fixed =
+      heightMode === "fixed" &&
+      typeof height === "number" &&
+      (!virtual || !!rowSample);
     const bodyId = (
       template && "children" in template ? template.children : []
     ).find(
