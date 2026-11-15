@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Chart 계약 게이트 `codex:chart-contract`** (ADR-306 Phase 0): `pnpm test:chart-contract` (rendering `src/chart` unit) 를 `codex:preflight` 사슬에 넣었다. 첫 항목은 ztd-charts 0.5.0 (`3c4376c`, MIT) 의 36 항목 · 채널 · 옵션 key 전부를 채택 / 대응 / 제외 / 사용자 결정으로 나눈 분류 census (`ztdRegistry.pinned.ts` — 원본 텍스트에서 옮긴 key · `ztdCoverage.fixture.ts` — 분류, 분류 누락 · 남는 분류를 막는다).
 
+## [ADR-311 설계 — RAC anatomy 기반 SVG 자산 미리보기] - 2026-11-15
+
+### Documentation
+
+- **ADR-311 Proposed — 구현 전 설계**:
+  - RAC anatomy와 catalog·layout을 연결해 SVG 본체·치수선·정렬 가이드를 생성하고 hover/focus에서 완성된 모습으로 전환하는 구조를 정의했다.
+  - Components·Blocks·Layouts·Templates의 source/activation 경계, Navigator Layouts 보존, 안정 ID·section 변경·의존성 digest·release 이력과 검증 계획을 포함했다.
+  - 위치: `docs/adr/311-catalog-anatomy-svg-asset-previews.md`, `docs/adr/design/311-catalog-anatomy-svg-asset-previews-breakdown.md`. Phase 0–6은 실행 계획이며 제품 동작 변경은 없다.
+  - Nexvyn 갤러리 실측과 시안 판정을 반영했다 — 최소 카드 폭 160px 가로형 카드, 계층 6종, 진입 연출 1회, hover 700ms 전환, 치수선은 숫자와 함께만, 내용 글자는 막대 유지.
+
 ## [ADR-310 Implemented — Phase 8 세로 · 가로 목록 · 카드 grid · Table 의 가상 스크롤] - 2026-11-15
 
 ### Added

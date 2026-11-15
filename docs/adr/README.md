@@ -2,6 +2,8 @@
 
 > **2026-11-15 ADR-306 Accepted · In Progress — Phase 0 · 1 닫힘** (사용자 `/execute-adr 306` — 설계 판독 round 4 승인). Phase 0: ztd 0.5.0 36 항목 · 채널 · 옵션 분류 census + `codex:chart-contract` (preflight 연결) · 기준선 Builder 1,545,850 · Preview 152,370 B (Builder 는 착수 전부터 상한 1,414,000 초과 — 이 ADR 밖, 사용자 보고) · 선행 실패 3 원인 · scatter 키보드 없음. Phase 1: Chart 공개 `size` · `data-size` 삭제 + **contract 68** (67 이하 문서는 열리지 않음 — Breaking) · Chart browser 382/382 · Δ Builder −197 · Preview −18 B · live (Chrome MCP — 삽입 · 리사이즈 · Preview · Publish · 재열기). 다음: Phase 2 (기반 + kpi family). [본문](306-chart-36-types-recharts-size-removal.md) · [breakdown §10](design/306-chart-36-types-recharts-size-removal-breakdown.md#10-기록).
 
+> **2026-11-15 ADR-311 Proposed 추가** (사용자 ADR 작성 요청): RAC anatomy 역할을 기존 catalog 부품에 연결하고 catalog·layout에서 SVG 본체와 가이드를 생성한다. 채택 D — 필요한 공통 계산 추출 + 순수 SVG emitter + 정적 사전 생성/동적 지연 생성. 기존 제작물은 90종이며 현재 Builder 관찰은 폭 228px·2열·카드 102×100px; anatomy 출력·전체 성능은 미구현/UNVERIFIED. `component / block / layout / template`와 section을 구분하고 안정 ID·목록/정의/표현/산출물 digest·release 이력을 관리한다. 문서 schema 변경 0, Navigator Layouts 유지. 사용자 결정 2건은 Blocks 삽입 관계와 Templates 적용 대상이며 해당 종류 제품 활성화 때 확정한다. 열림 **4** (Proposed 4 — 311·306·304·245, 245 보류). 번호가 붙은 ADR 파일 실측은 **343** (루트 4 + `completed/` 보관 339; 보관 수에는 Superseded/Deprecated/부분 완료도 포함하며 Implemented 수가 아님). 구현·리뷰 전, Phase 0–6. [본문](311-catalog-anatomy-svg-asset-previews.md) · [breakdown](design/311-catalog-anatomy-svg-asset-previews-breakdown.md).
+
 > **이 파일은 "지금 열려 있는 것" 중심 대시보드다.** 완료 ADR 의 상세는 각 `completed/NNN-*.md`
 > 본문이 정본이고, 사용자-가시 변경의 정본은 [CHANGELOG](../CHANGELOG.md) 다.
 >
@@ -710,6 +712,11 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
+#### [311](311-catalog-anatomy-svg-asset-previews.md) — RAC anatomy와 catalog 기반 SVG 자산 미리보기
+
+- **상태**: Proposed 2026-11-15. 사용자 방향 확정 (RAC anatomy · catalog 기하 · 자체 가이드/hover · 네 kind · 버전관리) · 시안 판정 반영 (최소 카드 폭 160px · 가이드는 Canvas 선택 파랑 · 치수선은 숫자와 함께만 · 내용 글자 막대 유지 · 목표 = 사용자 지정 Nexvyn 구조 분석), 제품 구현·설계 리뷰 전.
+- **규모**: 해소된 scene 경계·SVG emitter·anatomy 앵커·패널 연결·Navigator Layouts 재사용·Blocks/Templates adapter fixture·manifest/release 이력. 추정 20–30개 파일 + 생성물, Phase 0–6, G0–G6. 문서 schema 변경 0. 사용자 결정 2건은 향후 Blocks/Templates 활성화 때 확정. [breakdown](design/311-catalog-anatomy-svg-asset-previews-breakdown.md).
+
 #### [306](306-chart-36-types-recharts-size-removal.md) — Recharts를 유지하는 Chart 36종 확장과 공개 size 제거
 
 - **상태**: Accepted · In Progress 2026-11-15 — Phase 0 · 1 닫힘 (분류 census · chart-contract 게이트 · 기준선 / 공개 size 삭제 · contract 68). 사용자 방향 3건 · 결정 2 확정, 설계 판독 round 4 종결 ([reviews/306](reviews/306.md)). 다음 Phase 2 (기반 + kpi).
@@ -751,6 +758,7 @@
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |  1   | [306](306-chart-36-types-recharts-size-removal.md)                                             | Accepted · In Progress 2026-11-15 · Phase 0 · 1 닫힘 (contract 68)                | `/execute-adr 306` 계속 · Phase 2 (기반 · kpi family · paint 역할 · DOM host · 번들 Δ 실측)                                                                                             |
 |  2   | [304](304-app-frame-layout-presets.md)                                                         | Proposed 2026-11-08 · 리뷰 전 · 문서 스키마 · 명령 신설 0                         | 리뷰 (`/review-adr 304`) pending 0 뒤 · 사용자 결정 6 (흡수 · 사이드 폭 · 랜드마크 · 콘텐츠 집합 · 번들 · tablet 판정) · 번들 여유 G0 재측정 (Builder ≈ 1.5 KB · Preview ≈ 1.9 KB 추정) |
+|  3   | [311](311-catalog-anatomy-svg-asset-previews.md)                                               | Proposed 2026-11-15 · 방향 확정 · 리뷰 전                                         | G0에서 inventory·후처리 경계·기준선 확정. 304/306은 착수 선행 조건 아님; Blocks/Templates 활성화 결정 2건은 해당 시점에 확정                                                            |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                          |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                  |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                                                                                                             |
