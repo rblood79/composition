@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart 를 지우면 앱이 멈추던 것] - 2026-11-16
+
+### Fixed
+
+- **Chart 를 선택해 Backspace (또는 Layers 삭제) 로 지우면 빌더가 하얀 화면으로 멈추던 것**: Layers 의 Chart 줄 아이콘은 그 줄의 `chartType` 을 구독하는데, 지운 노드의 읽기가 실패하자 read model 이 캐시를 지웠고, 트리가 줄을 빼기 전에 한 번 더 그려진 그 줄이 새로 계산하다 `CatalogValidationError` 를 던졌다 (React 오류 경계 밖).
+  - 수정: 대상이 사라진 구독 읽기는 마지막 값을 들고 있다가 마지막 구독자가 떠나면 지우고, 대상이 돌아오면 (Undo) 다시 따른다 (`apps/builder/src/builder/catalogRuntime/readModel.ts`).
+
+### Tests
+
+- `phase4cReadModel.test.ts` — 구독 중 노드 삭제 → 다시 읽기 · Undo 뒤 값 변경 추적 (수정 전 RED — 사용자 보고와 같은 오류).
+
 ## [Chart Property 패널 — 그 종류에 쓰이지 않는 칸 정리 · family 범례 위치] - 2026-11-16
 
 ### Fixed

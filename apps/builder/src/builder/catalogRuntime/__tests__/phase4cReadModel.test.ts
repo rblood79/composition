@@ -286,4 +286,33 @@ describe("ADR-248 Phase 4c read model", () => {
     runtime.undo();
     expect(model.collectionUsage("data:collection:users")).toEqual([]);
   });
+
+  /**
+   * 2026-11-16 /fix — Chart 를 선택해 Backspace 로 지우면 앱이 멈췄다 (`CatalogValidationError` — Layers 의 Chart 줄 아이콘이
+   * 구독하던 `chartType` 을 지운 노드에서 다시 읽음). 읽기가 실패하면 캐시를 지웠는데, 그 줄은 트리가 줄을 빼기 전에 한 번
+   * 더 그려져 새로 계산하다 던졌다. 구독 중인 읽기는 마지막 값을 들고 있다가, 노드가 돌아오면 (Undo) 다시 따라간다.
+   */
+  it("a subscribed prop read of a removed node keeps its last value and follows the node back on undo", async () => {
+    const { runtime, model, run } = await open([text("gone", "Gone")], ["gone"]);
+    const target: EditTarget = { kind: "node", id: id("gone") };
+    const seen: unknown[] = [];
+    const unsubscribe = model.subscribePropSource(target, "children", (v) =>
+      seen.push(v.value),
+    );
+    const before = model.propSource(target, "children").value;
+    run(removeTargets({ targets: [target] }));
+    // The row that still shows the removed node renders once more before it unmounts.
+    expect(() => model.propSource(target, "children")).not.toThrow();
+    expect(model.propSource(target, "children").value).toEqual(before);
+    runtime.undo();
+    expect(model.propSource(target, "children").value).toEqual(before);
+    run(
+      setFields({
+        targets: [target],
+        props: { children: { kind: "set", value: "Back" } },
+      }),
+    );
+    expect(model.propSource(target, "children").value).toBe("Back");
+    unsubscribe();
+  });
 });

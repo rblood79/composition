@@ -48,6 +48,12 @@ interface CachedRead<T> {
   /** The listing's parent (a page or an owned node): recompute only when these fields changed. */
   parentDeps?: Map<string, ParentFields>;
   listeners: Set<Listener<T>>;
+  /**
+   * The read's subject is gone (a removed node, page or position) but it still has readers — a row
+   * that renders once more before it unmounts. It keeps its last value, sits out of the indexes, and
+   * recomputes on each read until the subject is back (Undo) or its last reader leaves.
+   */
+  orphan?: boolean;
   compute: () => {
     value: T;
     deps: Set<string>;
@@ -171,6 +177,7 @@ export class CatalogReadModel {
     compute: CachedRead<T>["compute"],
   ): CachedRead<T> {
     let cached = this.reads.get(key) as CachedRead<T> | undefined;
+    if (cached?.orphan) this.revive(key, cached as CachedRead<unknown>);
     if (!cached) {
       const first = compute();
       cached = { ...first, listeners: new Set(), compute };
@@ -178,6 +185,21 @@ export class CatalogReadModel {
       this.index(key, cached as CachedRead<unknown>);
     }
     return cached;
+  }
+  /** An orphaned read whose subject is back (Undo) rejoins the indexes with its current value. */
+  private revive(key: string, cached: CachedRead<unknown>): void {
+    let next: ReturnType<typeof cached.compute>;
+    try {
+      next = cached.compute();
+    } catch {
+      return;
+    }
+    cached.orphan = false;
+    cached.value = same(next.value, cached.value) ? cached.value : next.value;
+    cached.deps = next.deps;
+    cached.rowDeps = next.rowDeps;
+    cached.parentDeps = next.parentDeps;
+    this.index(key, cached);
   }
   private index(key: string, cached: CachedRead<unknown>): void {
     for (const dep of cached.deps)
@@ -212,6 +234,7 @@ export class CatalogReadModel {
     cached.listeners.add(listener);
     return () => {
       cached.listeners.delete(listener);
+      if (cached.orphan && !cached.listeners.size) this.reads.delete(key);
     };
   }
 
@@ -591,8 +614,10 @@ export class CatalogReadModel {
       try {
         next = cached.compute();
       } catch {
-        // The read's subject is gone (a removed page or position): its readers unmount.
-        this.reads.delete(key);
+        // The read's subject is gone (a removed page or position). Its readers unmount — but a row
+        //   can render once more first (the Layers row of a just-deleted Chart, 2026-11-16 /fix:
+        //   recomputing there threw `CatalogValidationError` and stopped the app). Keep the last value.
+        cached.orphan = true;
         continue;
       }
       const differs = !same(next.value, cached.value);
