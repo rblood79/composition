@@ -694,8 +694,12 @@ describe("ADR-248 4e library origin view", () => {
         "Bubble",
       ].map((name) => `Chart / ${name} Chart`),
     );
+    // (2026-11-16: a sample writes only what differs from the origin — the bar origin's kind is
+    // its own.)
     expect(chartTypes.map((cell) => sampleOf(cell).props.chartType)).toEqual(
-      CHART_DESCRIPTORS.map((d) => ({ kind: "set", value: d.chartType })),
+      CHART_DESCRIPTORS.map((d) =>
+        d.chartType === "bar" ? undefined : { kind: "set", value: d.chartType },
+      ),
     );
     expect(sampleOf(chartTypes[0]!).definitionId).toBe(
       "lib:definition:origin-component-chart",

@@ -103,7 +103,7 @@ export async function openAdr296(
             definitionId,
             ...(name ? { name } : {}),
             children: [],
-            props: catalogCreationProps(library!, definitionId, type, props),
+            props: catalogCreationProps(graph(), definitionId, type, props),
             visual: {},
             sizing: {},
             descendantOverrides: [],

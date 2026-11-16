@@ -50,7 +50,7 @@ async function open(children: string | RichText) {
           id,
           definitionId,
           children: [],
-          props: catalogCreationProps(graph().library, definitionId, "Text"),
+          props: catalogCreationProps(graph(), definitionId, "Text"),
           visual: {},
           sizing: {},
           descendantOverrides: [],

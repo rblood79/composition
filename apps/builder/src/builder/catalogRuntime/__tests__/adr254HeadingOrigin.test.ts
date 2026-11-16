@@ -88,7 +88,12 @@ async function workspaceWith(props: Record<string, string>) {
           id: NODE,
           definitionId,
           children: [],
-          props: catalogCreationProps(library, definitionId, "Heading", props),
+          props: catalogCreationProps(
+            workspace.runtime.graph,
+            definitionId,
+            "Heading",
+            props,
+          ),
           visual: {},
           sizing: {},
           descendantOverrides: [],

@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [새로 놓은 요소의 Overrides — 원본과 같은 생성 값은 쓰지 않는다] - 2026-11-16
+
+### Fixed
+
+- **팔레트에서 놓은 Chart 가 처음부터 Overrides 30 개 안팎을 보이던 것**:
+  - Component 섹션 Overrides 가 놓자마자 `chartType` · `dimension` · `orientation` … `animationEasing` 을 모두 instance 의 자기 값으로 나열했다 (36 종 전부, Bar 포함).
+  - **Why**: 생성 props 를 「정의의 `defaults` 와 다를 때만 저장」 으로 걸렀는데, Chart 원본은 composite 라 `defaults: {}` 이고 값은 원본 template 루트에 있다. 그래서 비교 상대가 늘 빈 값이었다.
+  - 수정: 비교 기준을 「새 노드가 자기 값 없이 보이는 값」 (Reset 이 돌아가는 값과 같은 계층 — 원본 template 루트 · 프로젝트 기본값 포함) 으로 바꿨다. 잠금 해제한 원본은 프로젝트 사본을 읽는다.
+  - 이제 원본 (직접 놓는 Chart = bar · 격자 끔) 과 실제로 다른 값만 남는다: Bar 1 개 (`showGrid`), Line 3 개 (`chartType` · `curve` · `showGrid`), 다른 종류 2 ~ 8 개. 그려지는 값은 같다.
+  - 같은 함수를 쓰는 다른 composite 원본도 원본과 같은 생성 값을 쓰지 않는다 (예: ActionButtonGroup 의 `density="regular"` 가 Code 보기에 더는 나오지 않는다).
+  - 위치: `apps/builder/src/builder/catalogRuntime/paletteInsert.ts` (`catalogCreationProps` — 첫 인자가 문서 reader), `packages/shared/src/catalog/resolution/fieldSource.ts` (`readDefinitionProp`)
+
+### Tests
+
+- `chartCreationOverrides.test.ts` — 36 종을 놓고 Bar · Line 의 자기 값 목록, 모든 종류의 보이는 값이 팔레트 값과 같은지, 자기 값마다 상속 값과 다른지 확인한다 (수정 전 3 건 RED).
+
 ## [ADR-306 Phase 6 — Chart 공통 상호작용: 강조 · 주석 · 손익 색 · 범위 선택 · 동기화] - 2026-11-16
 
 ### Added

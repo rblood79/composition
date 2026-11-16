@@ -38,10 +38,12 @@ describe("ActionButton family Code and Events", () => {
     const button = h.add("ActionButton", { label: "Copy", isQuiet: false });
     const group = h.add("ActionButtonGroup", { density: "regular" });
     const before = h.code();
+    // (2026-11-16: the origin's density — regular — is not the group's own, so the code does not
+    // write it; the edit adds the attribute.)
+    expect(before).not.toContain("density=");
     const result = h.apply(
       before
-        .replace('density="regular"', 'density="compact"')
-        .replace("isQuiet={false}", "isQuiet={true}"),
+        .replace("<ActionButtonGroup>", '<ActionButtonGroup density="compact">'),
     );
     expect(result.rejected).toEqual([]);
     expect(h.code()).toContain('density="compact"');

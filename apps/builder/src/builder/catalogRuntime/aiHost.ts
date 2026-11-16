@@ -366,14 +366,14 @@ export function createCatalogAiReadHost(
 
 /** A new node's own props before the AI's: the definition's defaults and its creation defaults. */
 function catalogStartingProps(
-  library: CatalogWorkspace["runtime"]["graph"]["library"],
+  graph: CatalogWorkspace["runtime"]["graph"],
   definitionId: Parameters<typeof catalogCreationProps>[1],
   type: string,
 ): Record<string, unknown> {
-  const definition = library.definitions.get(definitionId) as
+  const definition = graph.library.definitions.get(definitionId) as
     { defaults?: Readonly<Record<string, unknown>> } | undefined;
   const creation = Object.fromEntries(
-    Object.entries(catalogCreationProps(library, definitionId, type)).flatMap(
+    Object.entries(catalogCreationProps(graph, definitionId, type)).flatMap(
       ([key, write]) =>
         write.kind === "set"
           ? [[key, (write as { value: unknown }).value]]
@@ -588,7 +588,7 @@ export function createCatalogAiWriteHost(
         //   definition's own starting props (its defaults · creation defaults), in the same insert.
         const props = normalizeColorControlPatch(
           input.type,
-          catalogStartingProps(graph.library, definitionId, input.type),
+          catalogStartingProps(graph, definitionId, input.type),
           given,
         );
         const build = (parent: NodeParent, index?: number) =>
@@ -599,7 +599,7 @@ export function createCatalogAiWriteHost(
               {
                 ...entry,
                 props: catalogCreationProps(
-                  graph.library,
+                  graph,
                   definitionId,
                   input.type,
                   props,

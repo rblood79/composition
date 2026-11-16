@@ -219,7 +219,7 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
           workspace.newId,
           option.type && definitionId.startsWith("lib:")
             ? catalogCreationProps(
-                graph.library,
+                graph,
                 definitionId as Parameters<typeof catalogCreationProps>[1],
                 option.type,
               )
@@ -246,7 +246,7 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
           workspace.newId,
           option.type && definitionId.startsWith("lib:")
             ? catalogCreationProps(
-                graph.library,
+                graph,
                 definitionId as Parameters<typeof catalogCreationProps>[1],
                 option.type,
               )

@@ -134,7 +134,7 @@ const insertMissing =
         id: newId("node") as NodeId,
         definitionId,
         children: [],
-        props: catalogCreationProps(library, definitionId, type),
+        props: catalogCreationProps(reader, definitionId, type),
         visual: {},
         sizing: {},
         descendantOverrides: [],

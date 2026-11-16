@@ -418,7 +418,7 @@ export function catalogCellSpanCommand(
           children: [],
           props: definitionId.startsWith("lib:")
             ? catalogCreationProps(
-                graph.library,
+                graph,
                 definitionId as `lib:definition:${string}`,
                 "Cell",
               )

@@ -1794,7 +1794,7 @@ class Planner {
     >;
     const props = component
       ? {}
-      : catalogCreationProps(library, definitionId, type);
+      : catalogCreationProps(this.reader, definitionId, type);
     this.idIsProp = this.acceptsId(definitionId);
     const sorted = this.sortControlled(
       element,

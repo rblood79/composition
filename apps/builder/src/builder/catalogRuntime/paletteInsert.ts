@@ -13,6 +13,7 @@ import type {
   NodeParent,
   PropWrites,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { readDefinitionProp } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import { getDefaultProps } from "../../types/builder/unified.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
@@ -53,24 +54,21 @@ export function catalogPaletteDefinitionId(
 /**
  * The own props a new node of a palette type starts with: the type's creation defaults (the old
  * palette's `getDefaultProps` — a Text's text, an Icon's glyph …) and the item's initial props,
- * kept where the definition accepts the key and the value differs from its default (so editing the
- * definition still reaches the node). `chartType` marks the palette entry point and is kept as
- * given.
+ * kept where the definition accepts the key and the value differs from what a new node of it shows
+ * (`readDefinitionProp` — a composite origin's template root values included), so editing
+ * the definition still reaches the node and a placed instance lists no Overrides it did not make
+ * (2026-11-16: every palette Chart listed ~30 — the Chart origin's values are its template's).
  */
 export function catalogCreationProps(
-  library: CatalogLibrary,
+  reader: CatalogReader,
   definitionId: LibraryDefinitionId,
   type: string,
   initialProps?: Readonly<Record<string, unknown>>,
 ): Record<string, PropWrites[string]> {
-  const definition = library.definitions.get(definitionId) as
-    | {
-        accepts?: Readonly<Record<string, unknown>>;
-        defaults?: Readonly<Record<string, unknown>>;
-      }
+  const definition = reader.library.definitions.get(definitionId) as
+    | { accepts?: Readonly<Record<string, unknown>> }
     | undefined;
   const accepts = definition?.accepts ?? {};
-  const defaults = definition?.defaults ?? {};
   const props: Record<string, PropWrites[string]> = {};
   const given: Record<string, unknown> = {
     ...(getDefaultProps(type) as Record<string, unknown>),
@@ -82,10 +80,11 @@ export function catalogCreationProps(
     // (`catalogCreationStyle`), never as a prop (the document rejects an object prop value).
     if (value === undefined || key === "style") continue;
     const initial = initialProps !== undefined && key in initialProps;
-    if (key !== "chartType" && !(key in accepts) && !initial) continue;
+    if (!(key in accepts) && !initial) continue;
     if (
-      key === "chartType" ||
-      JSON.stringify(defaults[key]) !== JSON.stringify(value)
+      JSON.stringify(
+        readDefinitionProp(reader, definitionId, key),
+      ) !== JSON.stringify(value)
     )
       props[key] = { kind: "set", value } as PropWrites[string];
   }
@@ -163,7 +162,7 @@ export function catalogPaletteInsertPlan(
 ): CatalogPaletteInsertPlan | { command?: undefined; refusal: unknown } {
   const definitionId = catalogPaletteDefinitionId(host.graph.library, type);
   const props = catalogCreationProps(
-    host.graph.library,
+    host.graph,
     definitionId,
     type,
     initialProps,

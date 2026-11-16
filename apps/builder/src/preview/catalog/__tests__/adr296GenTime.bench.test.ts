@@ -73,7 +73,7 @@ describe.runIf(RUN)("ADR-296 generation time (bench)", () => {
       id: `project:node:g${(serial += 1)}` as NodeId,
       definitionId: def(type),
       children,
-      props: catalogCreationProps(h.library, def(type), type, props as never),
+      props: catalogCreationProps(h.graph(), def(type), type, props as never),
       visual: {},
       sizing: {},
       descendantOverrides: [],

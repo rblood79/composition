@@ -119,7 +119,7 @@ async function open(collection: CodeViewCollection = ORDERS) {
             definitionId,
             children: [],
             props: catalogCreationProps(
-              graph().library,
+              graph(),
               definitionId,
               "ListBox",
             ),

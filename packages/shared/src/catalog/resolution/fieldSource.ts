@@ -393,13 +393,11 @@ function followTemplateBinding(
   }
   return [
     ...layers.slice(0, index),
-    ...propLayers(
-      reader,
-      bound,
-      name,
-      new Set([...following, followKey]),
-    ).map((found) =>
-      found.source === "own" ? { ...found, source: "instance" as const } : found,
+    ...propLayers(reader, bound, name, new Set([...following, followKey])).map(
+      (found) =>
+        found.source === "own"
+          ? { ...found, source: "instance" as const }
+          : found,
     ),
   ];
 }
@@ -452,8 +450,7 @@ function propLayers(
   )) {
     const patched = descendantPatchOf(found.override)?.props?.[key];
     const source = found.owner === owner ? "own" : "template";
-    if (patched?.kind === "set")
-      layers.push({ source, value: patched.value });
+    if (patched?.kind === "set") layers.push({ source, value: patched.value });
     else if (patched?.kind === "mask")
       layers.push({ source, value: undefined });
   }
@@ -711,6 +708,45 @@ export function readPropSource(
   };
 }
 
+/**
+ * What a new node of a definition shows for `key` before it writes anything — the value a reset
+ * falls back to on an owned node (`readPropSource(...).inherited`), read before the node exists:
+ * placement (a Form's context, a display state) is not read. A composite's keys outside its schema
+ * are its template root's (the reader's — an unlocked origin's template is the project's copy) —
+ * the Chart origin keeps every value there (`defaults: {}`), so a creation write compared with the
+ * definition's defaults alone was always kept (2026-11-16 /fix: each palette Chart listed ~30
+ * Overrides when placed).
+ */
+export function readDefinitionProp(
+  reader: CatalogReader,
+  definitionId: DefinitionId,
+  key: string,
+  following: ReadonlySet<string> = new Set(),
+): AuthoredValue | undefined {
+  const [first] = definitionChain(reader, definitionId, key);
+  // A whole `{name}` binding on the root reads the node's own `name` — none yet: its chain
+  // (`followTemplateBinding` with no own layer).
+  const name =
+    first?.source === "template" && typeof first.value === "string"
+      ? WHOLE_TEMPLATE_BINDING.exec(first.value)?.[1]
+      : undefined;
+  const binder = first?.binder;
+  if (name && binder) {
+    const followKey = `${binder.definitionId}:${binder.at}:${name}`;
+    if (
+      !following.has(followKey) &&
+      Object.hasOwn(readDefinition(reader, binder.definitionId).accepts, name)
+    )
+      return readDefinitionProp(
+        reader,
+        definitionId,
+        name,
+        new Set([...following, followKey]),
+      );
+  }
+  return first?.value;
+}
+
 /** A prop value a target shows now (authored, before rules): `readPropSource(...).value`. */
 export function readTargetProp(
   reader: CatalogReader,
@@ -782,8 +818,7 @@ export function readOwnFields(
   if (owner?.kind !== "node")
     throw new CatalogValidationError("NODE_REQUIRED", target.ownerId);
   const patch = descendantPatchOf(overrideAt(owner, target.address));
-  if (!patch)
-    return { props: {}, visual: {}, layout: {}, sizing: {} };
+  if (!patch) return { props: {}, visual: {}, layout: {}, sizing: {} };
   return {
     props: patch.props ?? {},
     visual: patch.visual ?? {},

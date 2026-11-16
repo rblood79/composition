@@ -112,7 +112,7 @@ async function open(
             definitionId,
             children: [],
             props: catalogCreationProps(
-              graph().library,
+              graph(),
               definitionId,
               type,
               props,

@@ -166,7 +166,7 @@ export const catalogFieldPrefixCommand =
       definitionId,
       children: [],
       props: {
-        ...catalogCreationProps(library, definitionId, spec.type, spec.props),
+        ...catalogCreationProps(reader, definitionId, spec.type, spec.props),
         slot: { kind: "set", value: "prefix" },
       },
       visual: {},

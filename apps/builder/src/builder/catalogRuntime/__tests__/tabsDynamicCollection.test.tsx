@@ -46,7 +46,7 @@ it("ADR-310 G2: Tab + TabPanel nodes — add, undo, delete, duplicate keep every
   });
   const id = "project:node:tabs" as const;
   const definitionId = "lib:definition:origin-component-tabs" as const;
-  const creation = catalogCreationProps(library, definitionId, "Tabs");
+  const creation = catalogCreationProps(graph, definitionId, "Tabs");
   expect(creation).not.toHaveProperty("items");
   workspace.execute(
     insertNodes({

@@ -622,7 +622,7 @@ function replaceItems(
         const props = (initial: Record<string, unknown>) =>
           lib
             ? catalogCreationProps(
-                stage.library,
+                stage,
                 shape as LibraryDefinitionId,
                 items.type,
                 initial,
@@ -821,7 +821,7 @@ export function catalogFilterCommand(
         children: [],
         props: definitionId.startsWith("lib:")
           ? catalogCreationProps(
-              stage.library,
+              stage,
               definitionId as LibraryDefinitionId,
               spec.type,
               initial,
@@ -1567,7 +1567,7 @@ function paletteNode(
     children: [],
     props: definitionId.startsWith("lib:")
       ? catalogCreationProps(
-          reader.library,
+          reader,
           definitionId as LibraryDefinitionId,
           type,
           props,

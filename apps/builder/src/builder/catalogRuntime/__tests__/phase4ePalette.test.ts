@@ -173,7 +173,8 @@ describe("ADR-248 Phase 4e-4 Components palette", () => {
       visual: Record<string, unknown>;
     };
     expect(entry.props).not.toHaveProperty("style");
-    expect(entry.props.chartType).toEqual({ kind: "set", value: "bar" });
+    // (2026-11-16: the kind the origin already is — bar — is not written; the origin carries it.)
+    expect(entry.props.chartType).toBeUndefined();
     // (2026-11-13: the old creation width 320 is gone — 「width 100%, min-width 320, aspect-ratio 16/9」.)
     expect(entry.sizing.width).toBeUndefined();
     expect(entry.visual.width).toBeUndefined();

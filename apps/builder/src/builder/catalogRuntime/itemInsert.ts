@@ -289,7 +289,7 @@ export function catalogItemInsertChoices(
     children,
     props: definitionId.startsWith("lib:")
       ? catalogCreationProps(
-          graph.library,
+          graph,
           definitionId as LibraryDefinitionId,
           itemType,
           initialProps,

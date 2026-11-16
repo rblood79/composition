@@ -618,7 +618,7 @@ function pageKit(
     fixed(
       node(id, textId, {
         name,
-        props: catalogCreationProps(library, textId, "Text", {
+        props: catalogCreationProps(graph, textId, "Text", {
           children: value,
         }),
         ...catalogCreationStyle({ style }),
@@ -1382,7 +1382,7 @@ export function catalogComponentsPageEntries(
               node(originInstanceId(origin.id, `type/${kind.key}`), origin.id, {
                 name: `${origin.name} / ${kind.label}`,
                 props: catalogCreationProps(
-                  library,
+                  graph,
                   origin.id,
                   origin.name,
                   // ADR-306 — a Chart family type's sample rows come from its chunk: filled when

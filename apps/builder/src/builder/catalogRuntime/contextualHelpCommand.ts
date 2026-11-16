@@ -155,7 +155,7 @@ export const catalogContextualHelpCommand =
       id: input.newId("node") as NodeId,
       definitionId: helpDefinition,
       children: [],
-      props: catalogCreationProps(library, helpDefinition, "ContextualHelp", {
+      props: catalogCreationProps(reader, helpDefinition, "ContextualHelp", {
         variant: input.kind,
       }),
       visual: {},

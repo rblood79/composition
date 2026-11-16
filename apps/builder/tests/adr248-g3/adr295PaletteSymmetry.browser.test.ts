@@ -114,12 +114,7 @@ function documentFor(
     id: "project:node:subject" as NodeEntry["id"],
     definitionId,
     children: [],
-    props: catalogCreationProps(
-      code,
-      definitionId as never,
-      type,
-      initialProps,
-    ) as NodeEntry["props"],
+    props: {},
     visual: style.visual,
     sizing: style.sizing,
     layout: {
@@ -130,7 +125,7 @@ function documentFor(
     },
     descendantOverrides: [],
   };
-  return {
+  const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
     libraryContractVersion: code.contractVersion ?? 52,
@@ -160,6 +155,17 @@ function documentFor(
       },
       [node.id]: node,
     },
+  };
+  // (The creation props read what a new node shows — the document's library view.)
+  const props = catalogCreationProps(
+    new CatalogGraph(document, code),
+    definitionId as never,
+    type,
+    initialProps,
+  ) as NodeEntry["props"];
+  return {
+    ...document,
+    entries: { ...document.entries, [node.id]: { ...node, props } },
   };
 }
 
