@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-306 Implemented — Chart 36 종] - 2026-11-16
+
+### Changed
+
+- **ADR-306 을 Implemented 로 닫았다** (G5 사용자 확인): Chart 36 종 (기존 9 항목 보강 + 새 종류 27 — kpi · category · distribution · matrix · network) · 공개 size 삭제 · 공통 상호작용 (강조 · 주석 · 손익 색 · 범위 선택 · 확대 · 동기화). 본문은 `docs/adr/completed/306-chart-36-types-recharts-size-removal.md`.
+- **남긴 것**: 36 종이 데이터를 받는 방식이 제각각이다 — 표본 행 편집기 칸이 7 종에만 맞고, 같은 역할 칸의 뜻이 종류마다 다르고, 여러 값 열을 고르는 방식이 세 가지다. 개별 수정 대신 데이터 포맷 표준을 새 ADR 로 정한 뒤 고친다.
+
 ## [Chart 를 지우면 앱이 멈추던 것] - 2026-11-16
 
 ### Fixed

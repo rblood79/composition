@@ -1,6 +1,6 @@
 # ADR-306 구현 설계: Chart 36종 · Recharts 유지 · 공개 size 제거
 
-> 본문: [ADR-306](../306-chart-36-types-recharts-size-removal.md). Proposed 2026-11-10 (같은 날 재작성). 아래의 새 모듈 · 함수 · prop 이름은 제안이고 아직 구현되지 않았다. 코드 인용은 `c464b4fb7` 기준이고 2026-11-15 `f01653b77` 에서 라인 · 사실을 다시 대조했다.
+> 본문: [ADR-306](../completed/306-chart-36-types-recharts-size-removal.md). Proposed 2026-11-10 (같은 날 재작성). 아래의 새 모듈 · 함수 · prop 이름은 제안이고 아직 구현되지 않았다. 코드 인용은 `c464b4fb7` 기준이고 2026-11-15 `f01653b77` 에서 라인 · 사실을 다시 대조했다.
 
 ## 1. 전제
 
@@ -375,3 +375,8 @@ export function chartFamilyEpoch(): number; // 로드될 때마다 +1
 - **회귀**: rendering `src/chart` 809 · Chart browser chart 612 + chart-a11y 239 · 패널 오라클 · i18n 66 · type-check PASS · builder unit 새 실패 0 (어휘 검사 1 은 수리 — 주석 칸 「유형 · 이벤트 · 레이블」 로 기존 번역어와 맞춤) · shared unit 새 실패 0.
 - **번들** — 같은 기계, 기준선 = Phase 5 커밋 `35f4ae0ec` 트리: Builder **1,561,442 → 1,567,004 (+5,562)** · Preview **162,450 → 167,075 (+4,625)** gzip. 시리즈 종류의 주석 · 강조 · 선 나누기 builder 는 Canvas scene 의 동기 · 첫 화면 경로, 범위 선택 · 동기화는 Preview — family 강조는 family chunk. 사용자 결정 2 대로 Builder 상한 **1,435,351** (gate · deploy.yml · ADR-201 · CLAUDE.md).
 - **live**: 본문 `### Live Exercise`.
+
+### 종결 — 2026-11-16 (G5 사용자 확인 → Implemented)
+
+- 사용자 확인: 「adr306은 구현가능에 집중이었고 구현확인이 되었으니」 + 결정 「새 ADR + 306 닫기」. Phase 6 뒤 사용자 보고 수리 3 (`9d697b676` Overrides · `7a864e42e` Property 칸 · family 범례 위치 · 간격 16px · `eb981fea4` 삭제 시 멈춤).
+- 이 ADR 밖으로 남긴 것: 36 종 데이터 포맷 표준화 — 표본 행 편집기 칸이 7 종에만 맞음 · 같은 역할 키의 뜻이 종류마다 다름 · 여러 값 열 지정 방식 3 가지 · parallel 의 원천 모드 토글이 읽히지 않음 · 역할이 아닌 기본 `dimension` · `metric` 저장. 새 ADR 에서 포맷을 정한 뒤 고친다 (사용자 「임시적인 처리가 아닌 근본적인 포멧」).

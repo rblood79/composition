@@ -26,7 +26,7 @@ Components 패널의 90종 정적 SVG 제작물은 존재하지만 현재 카드
 | Builder chrome | Grid 카드, 가이드선 배치와 공개 순서, hover/focus 연출. anatomy 메타데이터는 기하·문서 구조의 두 번째 정본이 아니다.                          |
 | 사용자 문서    | `CatalogGraph`가 계속 정본이다. 미리보기와 캐시는 저장하지 않으며, 삽입·레이아웃 적용만 기존 명령 → `workspace.execute` 경로를 쓴다.          |
 
-선행 관계: [ADR-248](completed/248-unified-catalog-document.md)의 graph/runtime과 [ADR-305](completed/305-builder-chrome-component-css-separation.md)의 chrome 경계를 소비하는 응용 ADR이다. [ADR-309](completed/309-date-value-authoring.md)의 날짜 모델과 [ADR-310](completed/310-collection-item-repeat-marker.md)의 collection 구조를 재사용한다. [ADR-304](304-app-frame-layout-presets.md)의 새로운 App frame preset과 [ADR-306](306-chart-36-types-recharts-size-removal.md)의 Chart 확대를 기다리지 않고 시작할 수 있으며, 나중에 추가되는 항목은 같은 등록·coverage gate에 들어온다. 이 ADR은 기존 ADR의 미완료 Phase를 이전하거나 [ADR-921](completed/921-render-scene-backend-integration.md)을 재개하지 않는다.
+선행 관계: [ADR-248](completed/248-unified-catalog-document.md)의 graph/runtime과 [ADR-305](completed/305-builder-chrome-component-css-separation.md)의 chrome 경계를 소비하는 응용 ADR이다. [ADR-309](completed/309-date-value-authoring.md)의 날짜 모델과 [ADR-310](completed/310-collection-item-repeat-marker.md)의 collection 구조를 재사용한다. [ADR-304](304-app-frame-layout-presets.md)의 새로운 App frame preset과 [ADR-306](completed/306-chart-36-types-recharts-size-removal.md)의 Chart 확대를 기다리지 않고 시작할 수 있으며, 나중에 추가되는 항목은 같은 등록·coverage gate에 들어온다. 이 ADR은 기존 ADR의 미완료 Phase를 이전하거나 [ADR-921](completed/921-render-scene-backend-integration.md)을 재개하지 않는다.
 
 ### 확인된 구현 경계
 
