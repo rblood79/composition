@@ -14,6 +14,10 @@ git push origin main
 
 **예외 — 같은 checkout 에 다른 세션의 변경이 있을 때**: 커밋 직전 `git status --short` 에 자기가 편집하지 않은 파일 (병렬 세션 WIP · Cursor 수동 편집 · 이미 스테이징된 다른 세션의 삭제) 이 보이면 `git add -A` 도 `git add -u <dir>` 도 쓰지 않는다. 자기 파일만 `git add <paths>` 로 스테이징하거나 `git commit -- <paths>` (pathspec 커밋) 로 커밋한다. 파일이 많아도 같다. Why: 2026-07-25 `3045fd979` · 2026-08-30 `47636a999` 에서 병렬 세션의 미커밋 WIP 와 승인 대기 삭제가 잘못된 메시지로 main 에 push 됐다 — 메모리 `feedback-git-add-all-swallows-parallel-session-wip`. 집행 (2026-11-15): `protect-git-add-all.sh` 가 `git add -A · -u · .` · `git commit -a` 때 이 세션이 Edit/Write 로 고치지 않은 변경 (`track-session-edits.sh` 기록 밖) 이 있으면 목록과 함께 확인을 묻는다 — Bash 로 만든 자기 변경도 목록에 나온다.
 
+- **zsh 경로 목록**: 배열 (`files=(a b); git add -- "${files[@]}"`) 이나 경로를 직접 적는다. 따옴표 없는 문자열 변수는 zsh 가 나누지 않아 경로 하나로 넘어가고 add 가 실패한다 — 메모리 `reference-zsh-unquoted-var-no-wordsplit-red-backup` · `reference-git-add-pathspec-missing-path-aborts-all`.
+- **범위 없는 「커밋하고 push」**: 자기 변경을 먼저 커밋·push 한 뒤, 남은 미커밋 파일을 출처 추정별로 묶어 보여 주고 별도 커밋으로 나눌지 묻는다. 말없이 남겨 두지 않는다.
+- **push 전 번호 충돌**: `git fetch` 후 origin/main 의 새 커밋과 contract 버전 · ADR 번호가 겹치지 않는지 확인한다 (병렬 세션이 같은 번호를 먼저 올린 사례 — contract 65 → 66).
+
 **금지 행위**:
 
 - ❌ `gh pr create` / GitHub web UI PR 생성 — 절대 금지
