@@ -112,6 +112,7 @@ const catalog: TranslationKeys = {
     missingField: "원본에 없음",
     fieldTypeNumber: "수치형",
     fieldTypeText: "문자형",
+    fieldTypeDate: "날짜형",
     fieldTypeUnknown: "타입 불명",
     columnsUnsupported: "원형·라디얼 차트는 값 컬럼 모드를 지원하지 않습니다.",
     typeUnavailableInColumns: "값 컬럼 모드에서는 사용할 수 없습니다",

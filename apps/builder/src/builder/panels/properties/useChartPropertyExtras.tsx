@@ -7,6 +7,7 @@ import {
   CHART_DEFAULT_SERIES_COUNT,
   chartForms,
   chartTypeAcceptsColumns,
+  chartTypeReadsDates,
   isFamilyChartType,
   resolveChartPalette,
   type ChartRow,
@@ -42,9 +43,6 @@ import {
   ChartDateFormatControl,
   ChartTimeAxisControls,
 } from "./ChartTimeAxisControls";
-
-/** ADR-312 Decision 9 — 범주가 늘 날짜인 family (날짜 입력 형식 칸). */
-const DATE_FAMILY_TYPES: readonly string[] = ["calendar", "candlestick"];
 
 /**
  * ADR-210 컨트롤 3개가 읽는 필드 — `buildSeriesGrid`/`resolveChartPresentation` 입력 + 종류/색 축.
@@ -224,24 +222,39 @@ export function useChartPropertyExtras({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isChart, dataBindingKey, chartData, collections],
   );
-  if (!isChart) return { fields: semanticFields, contentExtras };
   // ADR-215 — 선택된 팔레트의 길이. Series 섹션 색 Select 의 순번 후보 수.
-  const chartPaletteLength =
-    resolveChartPalette(
-      resolveComponentRule("Chart")?.chart,
-      typeof chartValues.palette === "string" ? chartValues.palette : undefined,
-    ).length || CHART_DEFAULT_SERIES_COUNT;
+  const chartPaletteLength = isChart
+    ? resolveChartPalette(
+        resolveComponentRule("Chart")?.chart,
+        typeof chartValues.palette === "string"
+          ? chartValues.palette
+          : undefined,
+      ).length || CHART_DEFAULT_SERIES_COUNT
+    : 0;
   // 섹션 자리 (ADR-210/211 · 사용자 결정 2026-11-12 「Property 탭 섹션 병합」 5단계): Content = 정체 (종류 ·
   //   기준선) / Collection = Data source → 모드 · 값 필드 · 시간축 → 축 필드 (목록과 같은 섹션) / Series = 시리즈별 레코드 (적용되지 않는
   //   종류에서는 열지 않는다) / Appearance 말미 = 숫자 형식 / Interaction 말미 = 표시 예산.
-  const seriesApplies = chartSeriesConfigApplies(
-    chartControlFields,
-    chartRows,
-    chartPaletteLength,
+  //   family 의 항목 목록은 행 전체를 읽으므로 자기 입력이 바뀔 때만 다시 계산한다 (편집마다 아님).
+  const seriesApplies = useMemo(
+    () =>
+      isChart &&
+      chartSeriesConfigApplies(
+        chartControlFields,
+        chartRows,
+        chartPaletteLength,
+      ),
+    [isChart, chartControlFields, chartRows, chartPaletteLength],
   );
+  if (!isChart) return { fields: semanticFields, contentExtras };
   // ADR-306 — family 종류 (gauge · bullet · dumbbell …) 는 시리즈 격자를 지나지 않는다: 시리즈 원천 ·
   //   값 필드 · 범주 간격 · 기준선 · 표시 예산은 읽지 않으니 내지 않는다 (숫자 형식 · 시리즈 표만 공유).
   //   값 필드 목록 (columns 모드) 을 읽는 family (stream · slope · skyline) 만 원천 모드 · 값 필드를 낸다.
+  // ADR-312 — 형태가 둘 이상이거나 값 열 목록을 읽는 종류 (parallel) 만 원천 모드 · 값 열 컨트롤, 범주가 날짜인
+  //   종류 (calendar · candlestick) 는 날짜 입력 형식 (Decision 9 — 시간 축과 같은 parser).
+  const showMapping =
+    chartForms(chartValues.chartType).length > 1 ||
+    chartTypeAcceptsColumns(chartValues.chartType);
+  const showDateFormat = chartTypeReadsDates(chartValues.chartType);
   if (isFamilyChartType(chartValues.chartType))
     return {
       fields: semanticFields,
@@ -251,17 +264,12 @@ export function useChartPropertyExtras({
           <ChartAuthoringControls fields={semanticFields} onPatch={onPatch} />
         </>
       ),
-      // ADR-312 — 형태가 둘 이상이거나 값 열 목록을 읽는 종류 (parallel) 만 원천 모드 · 값 열 컨트롤을 내고,
-      //   날짜가 범주인 종류 (calendar · candlestick) 는 날짜 입력 형식 (Decision 9 — 시간 축과 같은 parser).
-      ...(chartForms(chartValues.chartType).length > 1 ||
-      chartTypeAcceptsColumns(chartValues.chartType) ||
-      DATE_FAMILY_TYPES.includes(String(chartValues.chartType))
+      ...(showMapping || showDateFormat
         ? {
             sectionLeads: {
               collection: (
                 <>
-                  {(chartForms(chartValues.chartType).length > 1 ||
-                    chartTypeAcceptsColumns(chartValues.chartType)) && (
+                  {showMapping && (
                     <ChartDataMappingControls
                       elementId={elementId}
                       fields={chartControlFields}
@@ -269,9 +277,7 @@ export function useChartPropertyExtras({
                       onPatch={handleChartPatch}
                     />
                   )}
-                  {DATE_FAMILY_TYPES.includes(
-                    String(chartValues.chartType),
-                  ) && (
+                  {showDateFormat && (
                     <ChartDateFormatControl
                       fields={chartControlFields}
                       onPatch={handleChartPatch}

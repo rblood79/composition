@@ -48,11 +48,7 @@ import {
   valueAxisY,
   type CategoryContext,
 } from "./common";
-import {
-  chartSeriesByKey,
-  chartSeriesItems,
-  chartSeriesName,
-} from "../../seriesItems";
+import { chartSeriesLookup, chartSeriesItems } from "../../seriesItems";
 
 export const pct = (v: number) =>
   Number.isFinite(v) ? `${Math.round(v * 10) / 10}%` : "-";
@@ -335,20 +331,13 @@ function categorySeries(ctx: CategoryContext, values: LabeledValue[]) {
   const items = chartSeriesItems(ctx.props, ctx.rows, ctx.metrics.seriesCount, {
     diagnostics: ctx.input.diagnostics,
   });
-  const byKey = chartSeriesByKey(items);
-  const rank = new Map(items.map((item, i) => [item.key, i]));
+  const lookup = chartSeriesLookup(items);
   const n = Math.max(1, ctx.metrics.seriesCount);
   return {
-    ordered: [...values].sort(
-      (a, b) =>
-        (rank.get(a.label) ?? Infinity) - (rank.get(b.label) ?? Infinity),
-    ),
-    nameOf: (label: string) => {
-      const item = byKey.get(label);
-      return item ? chartSeriesName(item) : label;
-    },
+    ordered: [...values].sort((a, b) => lookup.compare(a.label, b.label)),
+    nameOf: lookup.nameOf,
     colorOf: (label: string, fallback: number) =>
-      byKey.get(label)?.seriesIndex ?? fallback % n,
+      lookup.get(label)?.seriesIndex ?? fallback % n,
   };
 }
 

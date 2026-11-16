@@ -202,19 +202,21 @@ function SeriesRechartsChart({
    */
   renderWindowTrack: RenderChartWindowTrack;
 }) {
+  // postMessage가 같은 배열 내용을 재전송해도 Recharts의 animation identity를 유지한다.
+  const rowsKey = useMemo(() => JSON.stringify(rows), [rows]);
   // ADR-312 Decision 8 — 값이 없는 역할은 기본 열 이름 (scene · 모델과 같은 함수 — 이 leg 가 props 를 직접 읽는
-  //   자리도 같은 값을 본다).
+  //   자리도 같은 값을 본다). 행은 내용 (`rowsKey`) 으로 본다 — 같은 내용의 새 배열에 새 props 를 내면 모델 ·
+  //   animation 이 다시 돈다 (채울 역할이 있을 때만 드러난다 — 원본 template 이 역할 값을 들지 않는다).
   const props = useMemo(
     () => resolveChartRoleDefaults(inputProps, rows),
-    [inputProps, rows],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [inputProps, rowsKey],
   );
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     readMotion,
     () => true,
   );
-  // postMessage가 같은 배열 내용을 재전송해도 Recharts의 animation identity를 유지한다.
-  const rowsKey = useMemo(() => JSON.stringify(rows), [rows]);
   // ADR-210 — 배열 props 는 직렬화 키로 (Chart.tsx 가 이미 안정화하지만 이 경계도 같은 규칙).
   const valueFieldsKey = JSON.stringify(props.valueFields ?? null);
   const seriesConfigKey = JSON.stringify(props.seriesConfig ?? null);
@@ -1202,7 +1204,7 @@ function SeriesRechartsChart({
                     cy,
                     count > 1 ? inner + 2 : inner,
                     total,
-                    props.centerLabel || props.metric,
+                    props.centerLabel || props.metric || "",
                     fontSize,
                     formatValue,
                   ).map((mark, i) => renderText(mark, `total-${i}`))}
@@ -1419,7 +1421,7 @@ function SeriesRechartsChart({
                   cy,
                   hole,
                   total,
-                  props.metric,
+                  props.metric ?? "",
                   fontSize,
                   formatValue,
                 ).map((mark, i) => renderText(mark, `total-${i}`))}

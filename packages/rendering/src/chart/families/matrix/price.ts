@@ -115,18 +115,6 @@ export function maPeriods(ma: readonly number[], count: number): number[] {
     .slice(0, 3);
 }
 
-/**
- * 시점 값 → epoch ms (정렬 키). ztd `toCandles` 처럼 시각 전체로 — 날짜만 자르면 같은 날의 시간봉 순서가 데이터
- * 순서로 남는다. ADR-312 Decision 9 — 해석은 시간 축 · calendar 와 같은 `chartTimeParser` (`dimensionFormat` ·
- * 엄격 ISO · epoch ms — 네 자리 연도 글자 · 순번은 날짜가 아니다).
- */
-export function timeOf(
-  value: unknown,
-  parse: (value: unknown) => number | null = chartTimeParser({}),
-): number | null {
-  return parse(value);
-}
-
 export interface CandlestickModel {
   candles: Candle[];
   hasVolume: boolean;
@@ -144,9 +132,11 @@ export function candlestickModel(
   const high = fieldKey(props.highField);
   const low = fieldKey(props.lowField);
   const volume = fieldKey(props.volumeField);
+  // 시점 → epoch ms (정렬 키). ztd `toCandles` 처럼 시각 전체로 — 날짜만 자르면 같은 날의 시간봉 순서가 데이터
+  //   순서로 남는다. ADR-312 Decision 9 — 해석은 시간 축 · calendar 와 같은 `chartTimeParser`.
   const parse = chartTimeParser(props);
   const raw = rows.map((row, i) => {
-    const t = timeOf(row[dimension], parse);
+    const t = parse(row[dimension]);
     return {
       i,
       label: readLabel(row, dimension),

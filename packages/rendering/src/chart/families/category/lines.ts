@@ -43,7 +43,7 @@ import {
   type CategoryContext,
 } from "./common";
 import {
-  chartSeriesByKey,
+  chartSeriesLookup,
   chartSeriesFill,
   chartSeriesItems,
   chartSeriesName,
@@ -687,14 +687,10 @@ export function slopeModel(ctx: CategoryContext): SlopeModel | null {
   const series = chartSeriesItems(props, rows, ctx.metrics.seriesCount, {
     diagnostics: input.diagnostics,
   });
-  const byKey = chartSeriesByKey(series);
-  const rank = new Map(series.map((item, i) => [item.key, i]));
+  const lookup = chartSeriesLookup(series);
   items = items
-    .map((it) => ({ ...it, series: byKey.get(it.label) }))
-    .sort(
-      (a, b) =>
-        (rank.get(a.label) ?? Infinity) - (rank.get(b.label) ?? Infinity),
-    );
+    .map((it) => ({ ...it, series: lookup.get(it.label) }))
+    .sort((a, b) => lookup.compare(a.label, b.label));
   const labels = props.periodLabels;
   if (Array.isArray(labels) && labels.length >= 2)
     periods = [String(labels[0]), String(labels[1])];

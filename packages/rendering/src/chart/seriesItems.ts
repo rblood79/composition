@@ -6,7 +6,7 @@
  * 읽는다. 항목 목록은 종류마다 하나 (`CHART_SERIES_KIND`) 이고, family 의 그리기와 패널의 Series 섹션이 같은
  * 함수 (`chartSeriesItems`) 를 읽는다.
  */
-import { resolveFieldRef } from "../data/fieldIdIndex";
+import { fieldKey, readLabel } from "./fieldRef";
 import {
   resolveSeriesConfig,
   seriesIdentity,
@@ -36,7 +36,7 @@ export type ChartSeriesKind =
 
 const GRID_FAMILY: readonly ChartType[] = ["stream", "bump", "skyline"];
 
-export const CHART_SERIES_KIND: Partial<Record<ChartType, ChartSeriesKind>> = {
+const CHART_SERIES_KIND: Partial<Record<ChartType, ChartSeriesKind>> = {
   ...Object.fromEntries(
     [...SERIES_CHART_TYPES, ...GRID_FAMILY].map((type) => [type, "grid"]),
   ),
@@ -67,18 +67,96 @@ export interface ChartSeriesItem {
   colored?: true;
 }
 
+/** 그 열의 값 (출현 순서, 중복 없이) — family 가 범주 · 계열을 가르는 `readLabel` 과 같은 글자. */
 const distinct = (rows: readonly ChartRow[], key: string | null): string[] => {
   if (key === null) return [];
   const seen = new Set<string>();
-  for (const row of rows) {
-    const value = row[key];
-    seen.add(value === null || value === undefined ? "" : String(value));
-  }
+  for (const row of rows) seen.add(readLabel(row, key));
   return [...seen];
 };
 
-const refKey = (ref: unknown): string | null =>
-  typeof ref === "string" && ref !== "" ? resolveFieldRef(ref) : null;
+/** 시리즈 격자 종류의 항목 — `withConfig` 면 표를 적용한 순서 · 이름 · 색, 아니면 자연 순서. */
+function gridItems(
+  props: ChartProps,
+  rows: readonly ChartRow[],
+  palette: number,
+  withConfig: boolean,
+): ChartSeriesItem[] {
+  return buildSeriesGrid(
+    rows,
+    {
+      ...props,
+      // bump 의 순위 형태는 값 대신 순위 열을 읽는다 (`seriesTable` 과 같다).
+      ...(chartActiveForm(props).id === "ranked"
+        ? { metric: props.rankField }
+        : {}),
+      ...(withConfig ? {} : { seriesConfig: undefined }),
+    },
+    palette,
+  ).series.map(({ id, key, label, seriesIndex }) => ({
+    id,
+    key,
+    ...(label !== undefined ? { label } : {}),
+    seriesIndex,
+  }));
+}
+
+/** 격자 밖 종류의 항목 — 자연 순서 (원본 값의 출현 순 · 열 목록 순). */
+function naturalItems(
+  kind: Exclude<ChartSeriesKind, "grid">,
+  props: ChartProps,
+  rows: readonly ChartRow[],
+  palette: number,
+): ChartSeriesItem[] {
+  // `field` 항목의 identity 는 저장된 참조 그대로 (`#id` — 시리즈 격자의 columns 와 같다), 이름은 풀린 key.
+  let source: ChartSeriesSource = "group";
+  let refs: { ref: string; key: string }[];
+  const fieldRefs = (values: unknown[]) =>
+    values.flatMap((ref) => {
+      const key = fieldKey(ref);
+      return key === null ? [] : [{ ref: ref as string, key }];
+    });
+  switch (kind) {
+    case "color":
+    case "category":
+      refs = distinct(
+        rows,
+        fieldKey(kind === "color" ? props.color : props.dimension),
+      ).map((key) => ({ ref: key, key }));
+      break;
+    case "startEnd":
+      source = "field";
+      refs = fieldRefs([props.startField, props.endField]);
+      break;
+    case "valueFields":
+      source = "field";
+      refs = fieldRefs(
+        Array.isArray(props.valueFields) ? props.valueFields : [],
+      );
+      break;
+  }
+  return refs.map(({ ref, key }, i) => ({
+    id: seriesIdentity(source, ref),
+    key,
+    seriesIndex: i % palette,
+  }));
+}
+
+/** 표 (`seriesConfig`) 를 자연 순서의 항목에 적용 — 표에서 색을 정한 항목은 `colored`. */
+function withSeriesConfig(
+  items: ChartSeriesItem[],
+  props: ChartProps,
+  palette: number,
+  diagnostics?: ChartDiagnostic[],
+): ChartSeriesItem[] {
+  const config = resolveSeriesConfig(props.seriesConfig, palette, diagnostics);
+  const colored = new Set(
+    config.filter((c) => c.paletteIndex !== undefined).map((c) => c.key),
+  );
+  return applySeriesConfig(items, config).map((item) =>
+    colored.has(item.id) ? { ...item, colored: true as const } : item,
+  );
+}
 
 /**
  * 그 종류의 색 항목 — 표 (`seriesConfig`) 를 적용한 순서 · 이름 · 색. `natural` 이면 표를 빼고 (패널이 「key 만
@@ -94,70 +172,38 @@ export function chartSeriesItems(
   if (!kind) return [];
   const props = resolveChartRoleDefaults(inputProps, rows);
   const palette = Math.max(1, paletteLength);
+  if (kind === "grid") return gridItems(props, rows, palette, !options.natural);
+  const natural = naturalItems(kind, props, rows, palette);
+  return options.natural
+    ? natural
+    : withSeriesConfig(natural, props, palette, options.diagnostics);
+}
+
+/**
+ * 패널 Series 섹션 — 표를 적용한 항목과 자연 순서를 한 번에. 격자 밖 종류는 원본을 한 번만 읽는다 (격자 종류는
+ * 표가 격자의 순서를 바꾸므로 두 번 만든다).
+ */
+export function chartSeriesItemsAndNatural(
+  inputProps: ChartProps,
+  rows: readonly ChartRow[],
+  paletteLength: number,
+): { items: ChartSeriesItem[]; natural: ChartSeriesItem[] } {
+  const kind = chartSeriesKind(inputProps.chartType);
+  if (!kind) return { items: [], natural: [] };
+  const props = resolveChartRoleDefaults(inputProps, rows);
+  const palette = Math.max(1, paletteLength);
   if (kind === "grid")
-    return buildSeriesGrid(
-      rows,
-      {
-        ...props,
-        // bump 의 순위 형태는 값 대신 순위 열을 읽는다 (`seriesTable` 과 같다).
-        ...(chartActiveForm(props).id === "ranked"
-          ? { metric: props.rankField }
-          : {}),
-        ...(options.natural ? { seriesConfig: undefined } : {}),
-      },
-      palette,
-    ).series.map(({ id, key, label, seriesIndex }) => ({
-      id,
-      key,
-      ...(label !== undefined ? { label } : {}),
-      seriesIndex,
-    }));
-  const config = options.natural
-    ? []
-    : resolveSeriesConfig(props.seriesConfig, palette, options.diagnostics);
-  // `field` 항목의 identity 는 저장된 참조 그대로 (`#id` — 시리즈 격자의 columns 와 같다), 이름은 풀린 key.
-  let source: ChartSeriesSource = "group";
-  let refs: { ref: string; key: string }[];
-  const fieldRefs = (values: unknown[]) =>
-    values.flatMap((ref) => {
-      const key = refKey(ref);
-      return key === null ? [] : [{ ref: ref as string, key }];
-    });
-  switch (kind) {
-    case "color":
-      refs = distinct(rows, refKey(props.color)).map((key) => ({
-        ref: key,
-        key,
-      }));
-      break;
-    case "category":
-      refs = distinct(rows, refKey(props.dimension)).map((key) => ({
-        ref: key,
-        key,
-      }));
-      break;
-    case "startEnd":
-      source = "field";
-      refs = fieldRefs([props.startField, props.endField]);
-      break;
-    case "valueFields":
-      source = "field";
-      refs = fieldRefs(
-        Array.isArray(props.valueFields) ? props.valueFields : [],
-      );
-      break;
-  }
-  const items: ChartSeriesItem[] = refs.map(({ ref, key }, i) => ({
-    id: seriesIdentity(source, ref),
-    key,
-    seriesIndex: i % palette,
-  }));
-  const colored = new Set(
-    config.filter((c) => c.paletteIndex !== undefined).map((c) => c.key),
-  );
-  return applySeriesConfig(items, config).map((item) =>
-    colored.has(item.id) ? { ...item, colored: true as const } : item,
-  );
+    return {
+      items: gridItems(props, rows, palette, true),
+      natural: gridItems(props, rows, palette, false),
+    };
+  const natural = naturalItems(kind, props, rows, palette);
+  return { items: withSeriesConfig(natural, props, palette), natural };
+}
+
+/** 패널 Series 섹션이 이름만 고치는 종류 (parallel — 축 순서는 값 열 목록, 선 색은 행마다). */
+export function chartSeriesNameOnly(type: unknown): boolean {
+  return chartSeriesKind(type) === "valueFields";
 }
 
 /** 항목 표시 이름 (설정 이름, 없으면 원본 값). */
@@ -165,11 +211,31 @@ export function chartSeriesName(item: ChartSeriesItem): string {
   return item.label ?? item.key;
 }
 
-/** key → 항목 (family 가 자기 모델의 원본 값으로 찾는다). */
-export function chartSeriesByKey(
+/** family 가 자기 모델의 원본 값 (그룹 값 · 필드 key) 으로 항목을 찾는 표. */
+export interface ChartSeriesLookup {
+  get(key: string): ChartSeriesItem | undefined;
+  /** 표시 이름 — 표의 이름, 표에 없으면 원본 값 */
+  nameOf(key: string): string;
+  /** 표 순서 비교 — 표의 항목이 앞, 나머지는 뒤 (안정 정렬로 출현 순서 유지) */
+  compare(a: string, b: string): number;
+}
+
+export function chartSeriesLookup(
   items: readonly ChartSeriesItem[],
-): Map<string, ChartSeriesItem> {
-  return new Map(items.map((item) => [item.key, item]));
+): ChartSeriesLookup {
+  const at = new Map(items.map((item, i) => [item.key, i]));
+  const get = (key: string) => {
+    const i = at.get(key);
+    return i === undefined ? undefined : items[i];
+  };
+  return {
+    get,
+    nameOf: (key) => {
+      const item = get(key);
+      return item ? chartSeriesName(item) : key;
+    },
+    compare: (a, b) => (at.get(a) ?? Infinity) - (at.get(b) ?? Infinity),
+  };
 }
 
 /**

@@ -237,7 +237,7 @@ function computePolarScene(
       showValueLabels: props.showValueLabels,
       labelText,
       showTotal: props.showTotal,
-      totalCaption: props.metric,
+      totalCaption: props.metric ?? "",
       totalText: input.formatValue,
       fontSize,
     });
@@ -438,7 +438,7 @@ export function computeChartScene(
       innerRadius: props.innerRadius,
       showTotal: props.showTotal,
       // ADR-306 Phase 5 — donut 가운데 설명 (비면 값 필드 이름 — 지금까지와 같다).
-      totalCaption: props.centerLabel || props.metric,
+      totalCaption: props.centerLabel || props.metric || "",
       centerCaption: props.centerLabel,
       totalText: formatValue,
       // 파이의 링 분할은 값 축이 없어 여기서 따로 판정한다 (bar/area 의 stackMode

@@ -7,12 +7,13 @@
  * schema 계산이다. 맞추는 규칙은 rendering 의 `reconcileChartRoles` 하나다.
  */
 import {
+  chartColumnTypeOfField,
   chartColumnsOfRows,
   chartFamilyOf,
   createChartInitialProps,
   getChartFamily,
   reconcileChartRoles,
-  standardizeChartSample,
+  standardizeChartSampleProps,
   type ChartRow,
   type ChartSourceColumn,
   type ChartType,
@@ -29,13 +30,6 @@ import {
   viewResultSchema,
   type ViewRunField,
 } from "../../../../../packages/shared/src/collections/view/evaluate";
-
-const columnType = (type: unknown): ChartSourceColumn["type"] =>
-  type === "number" || type === "integer" || type === "currency"
-    ? "number"
-    : type === "date" || type === "datetime" || type === "timestamp"
-      ? "date"
-      : "string";
 
 /**
  * 연결의 원천 열 — 컬렉션 schema 를 보기 사슬로 접은 결과 schema. 컬렉션 schema 의 필드는 id (`#id` 로 저장 —
@@ -63,7 +57,8 @@ export function chartBindingColumns(
   return result.map((field) => ({
     key: field.key,
     ...(ids.has(field.id) ? { id: field.id } : {}),
-    type: columnType(field.type),
+    // 숫자 · 날짜 밖 (boolean · 목록 …) 은 글자 열로 고른다 (범주 · 계열 역할이 받는다).
+    type: chartColumnTypeOfField(field.type) ?? "string",
   }));
 }
 
@@ -92,24 +87,18 @@ export function chartBindingRolesCommand(
     const familyId = chartFamilyOf(chartType);
     const family = familyId ? getChartFamily(familyId) : undefined;
     sample = family
-      ? (standardizeChartSample(
+      ? (standardizeChartSampleProps(
           chartType,
-          family.sample(chartType as never),
           family.sampleProps(chartType as never),
-        ).props as Record<string, unknown>)
+        ) as Record<string, unknown>)
       : {};
   }
   if (!columns) return undefined;
-  // 역할의 실제 값 = 자기 값, 없으면 Chart 원본 template 의 값 (`dimension` · `metric` · `color` — 직접 생성의 기존
-  //   기본값과 같다). 원본 값이 원천에 없는 열을 가리키면 그것도 맞출 대상이다.
-  const legacy = createChartInitialProps();
-  const inherited = {
-    dimension: legacy.dimension,
-    metric: legacy.metric,
-    color: legacy.color,
-  };
+  // 역할의 값 = 자기 값. Chart 원본 template 은 역할 값을 들지 않는다 (`createChartInitialProps` — 값이 없는
+  //   역할은 기본 열 이름으로 읽힌다). 원천에 없는 열을 가리키는 선택 역할은 그리는 쪽이 해제로 읽는다
+  //   (`resolveChartRoleDefaults`).
   const patch = reconcileChartRoles({
-    props: { ...inherited, ...own, chartType } as never,
+    props: { ...own, chartType } as never,
     columns,
     ...(sample ? { sample } : {}),
   });
@@ -120,12 +109,6 @@ export function chartBindingRolesCommand(
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) {
       if (key in own) props[key] = { kind: "remove" };
-      // Chart 원본 template 이 `dimension: "category"` · `metric: "value"` · `color: "series"` 를 든다 — 연결한
-      //   원천에 그 열이 없으면 지울 자기 값이 없으니 빈 글자 (해제) 를 쓴다. 해제하면 같은 함수가 이 빈 글자를 지워
-      //   표본의 지정이 돌아온다. **Why (Phase 5 live)**: `color` 만 그렇게 해, sparkline 의 선택 `dimension` 이
-      //   없는 열 `category` 를 가리킨 채 남아 모든 행이 한 항목으로 합쳐졌다 (Sales 연결 — 810 하나).
-      else if (binding && key in inherited)
-        props[key] = { kind: "set", value: "" as never };
     } else props[key] = { kind: "set", value: value as never };
   }
   if (Object.keys(props).length === 0) return undefined;

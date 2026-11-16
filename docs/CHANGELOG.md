@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart 데이터 포맷 정리 — 역할 판정 한 곳] - 2026-11-17
+
+### Changed
+
+- **새 Chart 의 원본 template 이 역할 값 (`dimension` · `metric` · `color`) 을 들지 않는다** — 값이 없는 역할은 기본 열 이름으로 읽힌다. 연결한 표에 없는 열을 가리키는 선택 역할은 그리는 쪽이 한 곳 (`resolveChartRoleDefaults`) 에서 「역할 없음」 으로 읽는다 (예전 template 으로 만든 문서도 같다). 연결 때 물려받은 역할을 빈 글자로 지우던 처리는 없앴다.
+- Chart 패널의 열 안내가 날짜 열을 「날짜형」 으로 보인다 (전에는 「타입 불명」) — 연결 때 역할 맞춤과 같은 형 판정 하나.
+- parallel 축 이름이 다른 종류와 같은 이름 규칙 (Series 섹션에서 비운 이름 = 빈 이름).
+
+### Fixed
+
+- family 종류에 columns 가 저장된 채 남으면 원천 모드 칸에 「pie · radial 은 값 열을 쓸 수 없다」 안내가 잘못 붙던 것 — 종류 변경과 같은 판정 (`chartKeepsStrandedColumns`).
+
 ## [ADR-312 Implemented — Chart 데이터 포맷 표준] - 2026-11-17
 
 ### Changed

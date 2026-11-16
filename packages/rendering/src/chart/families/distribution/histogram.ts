@@ -47,10 +47,9 @@ import {
   type CategoryContext,
 } from "../category/common";
 import {
-  chartSeriesByKey,
+  chartSeriesLookup,
   chartSeriesFill,
   chartSeriesItems,
-  chartSeriesName,
   chartSeriesStroke,
   chartSeriesSwatch,
   type ChartSeriesItem,
@@ -136,11 +135,8 @@ export function histogramModel(ctx: CategoryContext): HistogramModel | null {
   const series = chartSeriesItems(props, rows, ctx.metrics.seriesCount, {
     diagnostics: input.diagnostics,
   });
-  const rank = new Map(series.map((item, i) => [item.key, i]));
   const inSeriesOrder = (keys: Iterable<string>) =>
-    [...keys].sort(
-      (a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity),
-    );
+    [...keys].sort(chartSeriesLookup(series).compare);
   let bins: HistogramBin[] = [];
   let samples: HistogramSample[] = [];
 
@@ -405,10 +401,10 @@ export function histogramScene(ctx: CategoryContext) {
   if (model === null) return invalidScene(ctx);
   const { outer, fontSize } = ctx.frame;
   const { bins, samples, log } = model;
-  const seriesByKey = chartSeriesByKey(model.series);
+  const lookup = chartSeriesLookup(model.series);
   /** 묶음 k 의 표 항목 (묶음이 하나면 없음 — 표시 표는 묶음을 가르는 색에만) */
   const groupItem = (k: number) =>
-    samples.length > 1 ? seriesByKey.get(samples[k].name) : undefined;
+    samples.length > 1 ? lookup.get(samples[k].name) : undefined;
   const n = bins.length;
   if (n === 0 || outer.w <= 0 || outer.h <= 0) return noDataScene(ctx);
   const { props, input } = ctx;
@@ -565,9 +561,10 @@ export function histogramScene(ctx: CategoryContext) {
           kind: "path",
           d: roundRectPath(xa, at, w, base - at, { tl: r, tr: r }),
           bbox: bbox(xa, w),
-          ...(groupItem(fillK)?.colored
-            ? chartSeriesFill(groupItem(fillK), "neutral")
-            : { fillPaint: sh >= 1 || hiBins.has(i) ? "accent" : "neutral" }),
+          ...chartSeriesFill(
+            groupItem(fillK),
+            sh >= 1 || hiBins.has(i) ? "accent" : "neutral",
+          ),
         });
         return;
       }
@@ -799,20 +796,12 @@ export function histogramScene(ctx: CategoryContext) {
       title: `${fx(b.x0)} – ${fx(b.x1)}`,
       entries: samples.flatMap((s, k) => [
         {
-          label: grouped
-            ? (() => {
-                const item = groupItem(k);
-                return item ? chartSeriesName(item) : s.name;
-              })()
-            : "Count",
+          label: grouped ? lookup.nameOf(s.name) : "Count",
           text: `${b.counts[k]} · ${share(k, b.counts[k])}`,
-          ...(groupItem(k)?.colored
-            ? chartSeriesSwatch(groupItem(k), "accent")
-            : {
-                paint: (grouped ? k === hiGroup : isHot(i))
-                  ? ("accent" as const)
-                  : ("neutral" as const),
-              }),
+          ...chartSeriesSwatch(
+            groupItem(k),
+            (grouped ? k === hiGroup : isHot(i)) ? "accent" : "neutral",
+          ),
         },
         { label: "Cumulative", text: share(k, cums[k][i]) },
       ]),

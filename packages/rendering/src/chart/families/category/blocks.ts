@@ -29,11 +29,7 @@ import {
   type CategoryContext,
 } from "./common";
 import { pct } from "./bars";
-import {
-  chartSeriesByKey,
-  chartSeriesItems,
-  chartSeriesName,
-} from "../../seriesItems";
+import { chartSeriesLookup, chartSeriesItems } from "../../seriesItems";
 import { columnsMode, seriesTable } from "./lines";
 
 // ── marimekko ──────────────────────────────────────────────────────────────
@@ -78,9 +74,8 @@ export function marimekkoModel(ctx: CategoryContext): MarimekkoModel | null {
   const items = chartSeriesItems(props, rows, ctx.metrics.seriesCount, {
     diagnostics: input.diagnostics,
   });
-  const byKey = chartSeriesByKey(items);
-  const rank = new Map(items.map((item, i) => [item.key, i]));
-  series.sort((a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity));
+  const lookup = chartSeriesLookup(items);
+  series.sort(lookup.compare);
   const values = cols.map((c) =>
     series.map((s) => cell.get(`${c}\u0000${s}`)?.v ?? 0),
   );
@@ -94,13 +89,10 @@ export function marimekkoModel(ctx: CategoryContext): MarimekkoModel | null {
     rows: cols.map((c) =>
       series.map((s) => cell.get(`${c}\u0000${s}`)?.rows ?? []),
     ),
-    names: series.map((s) => {
-      const item = byKey.get(s);
-      return item ? chartSeriesName(item) : s;
-    }),
+    names: series.map(lookup.nameOf),
     colors: series.map(
       (s, i) =>
-        byKey.get(s)?.seriesIndex ?? i % Math.max(1, ctx.metrics.seriesCount),
+        lookup.get(s)?.seriesIndex ?? i % Math.max(1, ctx.metrics.seriesCount),
     ),
   };
 }

@@ -288,10 +288,10 @@ export interface ChartProps {
   animationDuration?: number;
   animationEasing?: ChartAnimationEasing;
   chartType: ChartType;
-  /** 범주 축 필드 키 (RSC `Bar.dimension`) */
-  dimension: string;
-  /** 값 축 필드 키 (RSC `Bar.metric`) */
-  metric: string;
+  /** 범주 축 필드 키 (RSC `Bar.dimension`). 없으면 기본 열 이름 (`category` — ADR-312 Decision 8) */
+  dimension?: string;
+  /** 값 축 필드 키 (RSC `Bar.metric`). 없으면 기본 열 이름 (`value`) */
+  metric?: string;
   /** 시리즈 분할 필드 키 (RSC `Bar.color`). 없으면 단일 시리즈. */
   color?: string;
   orientation: ChartOrientation;

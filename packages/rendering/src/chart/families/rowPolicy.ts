@@ -46,10 +46,9 @@ export function applyChartRowPolicy(
     if (refs.length === 0) return same; // 키 역할에 값이 없다 (선택 역할) — 묶지 않는다
     for (const ref of refs) {
       const col = fieldKey(ref as string);
-      if (col === null) return same; // 풀리지 않는 참조 — 그 종류의 검증이 맡는다
-      // 어느 행에도 없는 열 — 키가 아니다 (선택 키 역할이 없는 열을 가리키면 모든 행이 한 항목이 된다).
-      if (!rows.some((row) => Object.prototype.hasOwnProperty.call(row, col)))
-        return same;
+      // 해제 (`""`) · 풀리지 않는 참조 — 묶지 않는다 (검증은 그 종류가 맡는다). 어느 행에도 없는 열을
+      //   가리키는 선택 키 역할은 이 앞 (`resolveChartRoleDefaults`) 에서 해제로 읽힌다.
+      if (col === null) return same;
       keyCols.push(col);
     }
   }

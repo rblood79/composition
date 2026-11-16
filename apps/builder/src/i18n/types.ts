@@ -1070,6 +1070,7 @@ export interface TranslationKeys {
     missingField: string;
     fieldTypeNumber: string;
     fieldTypeText: string;
+    fieldTypeDate: string;
     fieldTypeUnknown: string;
     columnsUnsupported: string;
     typeUnavailableInColumns: string;

@@ -65,7 +65,7 @@ export interface SeriesGrid {
   dimmed?: ReadonlySet<number>;
 }
 
-function readField(row: ChartRow, key: string): unknown {
+function readField(row: ChartRow, key: string | undefined): unknown {
   if (!key) return undefined;
   // ADR-152 Phase 1b: `#<fieldId>` 참조는 색인으로 행 key 를 얻는다 (rename-safe). key
   //   참조 (v1) 는 그대로. 미등록 id 는 undefined (빈 범주 / 값 0 과 같은 규약).

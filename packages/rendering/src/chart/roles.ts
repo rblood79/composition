@@ -8,8 +8,9 @@
  *
  * 첫 화면 번들에 든다 (descriptor 와 함께 — HC3). 표본 · 계산은 family chunk 그대로다.
  */
-import { resolveFieldRef } from "../data/fieldIdIndex";
+import { fieldKey, hasColumn } from "./fieldRef";
 import { toFiniteNumber } from "./scales";
+import { isFamilyChartType } from "./types";
 import type {
   ChartDataMode,
   ChartDiagnostic,
@@ -33,9 +34,6 @@ export interface ChartRoleDef {
   defaultField?: string | readonly string[];
   /** 패널 기본 라벨 — 번역 조회 key (영어, `apps/builder/src/i18n/labels.ts`) */
   label: string;
-  /** 이름의 출처 — `rsc` 면 React Spectrum Charts 와 같은 이름, 아니면 대응 이름 (`rscName`) */
-  source: "rsc" | "composition";
-  rscName?: string;
 }
 
 /** 종류가 그 역할을 쓰는 방식. */
@@ -80,47 +78,40 @@ const role = (
   accepts: ChartRoleAccepts,
   additive: boolean,
   label: string,
-  extra: Partial<
-    Pick<ChartRoleDef, "defaultField" | "source" | "rscName">
-  > = {},
+  extra: Partial<Pick<ChartRoleDef, "defaultField">> = {},
 ): ChartRoleDef => ({
   key,
   kind,
   accepts,
   additive,
   label,
-  source: "composition",
   ...extra,
 });
 
 /**
  * 역할 표. 순서 = 패널 Collection 섹션의 칸 순서 (ADR-306 binding 의 순서 그대로).
+ * 이름: `dimension` · `metric` · `color` 는 React Spectrum Charts 와 같다. 대응 이름 — `goalField` = `target`,
+ * `startField` · `lowerFields` = `metricStart`, `endField` · `upperFields` = `metricEnd`, `sizeField` = `size`.
  */
 export const CHART_ROLE_DEFS: readonly ChartRoleDef[] = [
   role("dimension", "field", "string", false, "Category", {
     defaultField: "category",
-    source: "rsc",
   }),
   role("metric", "field", "number", true, "Value", {
     defaultField: "value",
-    source: "rsc",
   }),
   role("color", "field", "string", false, "Series", {
     defaultField: "series",
-    source: "rsc",
   }),
   role("goalField", "field", "number", true, "Goal", {
     defaultField: "goal",
-    rscName: "target",
   }),
   role("rangeFields", "fields", "number", false, "Range Fields"),
   role("startField", "field", "number", true, "Start", {
     defaultField: "start",
-    rscName: "metricStart",
   }),
   role("endField", "field", "number", true, "End", {
     defaultField: "end",
-    rscName: "metricEnd",
   }),
   role("kindField", "field", "string", false, "Kind", { defaultField: "kind" }),
   role("rankField", "field", "number", false, "Rank", { defaultField: "rank" }),
@@ -154,15 +145,10 @@ export const CHART_ROLE_DEFS: readonly ChartRoleDef[] = [
   role("targetField", "field", "string", false, "Target", {
     defaultField: "target",
   }),
-  role("lowerFields", "fields", "number", true, "Band Lower", {
-    rscName: "metricStart",
-  }),
-  role("upperFields", "fields", "number", true, "Band Upper", {
-    rscName: "metricEnd",
-  }),
+  role("lowerFields", "fields", "number", true, "Band Lower", {}),
+  role("upperFields", "fields", "number", true, "Band Upper", {}),
   role("sizeField", "field", "number", false, "Size", {
     defaultField: "size",
-    rscName: "size",
   }),
   // 값 열 목록 — 패널은 원천 모드 컨트롤 (`ChartDataMappingControls`) 이 편집한다 (generic 칸 아님).
   role("valueFields", "fields", "number", true, "Value Fields"),
@@ -414,6 +400,28 @@ export function chartTypeHasForm(type: unknown, id: ChartDataMode): boolean {
   return chartForms(type).some((form) => form.id === id);
 }
 
+/**
+ * 시리즈 종류에 남은 columns (pie · radial 은 값 열 목록을 받지 않는다) — ADR-210 대로 조용히 바꾸지 않고 패널이
+ * 사유를 보인다. family 종류는 종류 변경이 그 종류의 첫 형태로 되돌리므로 남지 않는다.
+ */
+export function chartKeepsStrandedColumns(
+  type: unknown,
+  mode: unknown,
+): boolean {
+  return (
+    mode === "columns" &&
+    !isFamilyChartType(type) &&
+    !chartTypeHasForm(type, "columns")
+  );
+}
+
+/** 범주가 날짜인 종류 (calendar · candlestick — 형태의 역할이 날짜를 받는다). 패널의 날짜 입력 형식 칸. */
+export function chartTypeReadsDates(type: unknown): boolean {
+  return chartForms(type).some((form) =>
+    form.roles.some((roleUse) => roleUse.accepts === "date"),
+  );
+}
+
 /** 그 역할을 쓰는 형태가 하나라도 있는 종류. */
 export function chartTypesUsingRole(key: string): ChartType[] {
   return (Object.keys(CHART_FORMS) as ChartType[]).filter((type) =>
@@ -455,31 +463,53 @@ export function chartRoleLabel(
 
 // ── 기본 열 이름 (본문 Decision 8 — 값이 없는 역할은 기본 열 이름으로 읽는다) ──
 
-const hasKey = (rows: readonly ChartRow[], key: string): boolean =>
-  rows.some((row) => Object.prototype.hasOwnProperty.call(row, key));
+/** 푼 props → 그때의 행 (같은 입력의 두 번째 풀기를 건너뛴다 — 결과는 같다). */
+const RESOLVED_ROLE_DEFAULTS = new WeakMap<object, readonly ChartRow[]>();
 
 /**
  * 지금 형태의 역할 중 값이 없는 (`undefined`) 것을 기본 열 이름으로 채운다. 필수 역할은 늘 채우고 (열이
- * 없으면 검증이 `role.missing` 을 낸다), 선택 역할은 그 열이 데이터에 있을 때만 채운다 — 없는 열을 가리키는
- * 선택 역할은 「역할 없음」 과 같아 지금 그림을 바꾸지 않는다. 빈 글자 (`""`) 는 사용자가 해제한 것이라 두고,
- * 형태 밖 역할은 건드리지 않는다. 같은 입력이면 같은 결과 (두 consumer · 여러 번 불러도 같다).
+ * 없으면 검증이 `role.missing` 을 낸다), 선택 역할은 그 열이 데이터에 있을 때만 채운다. 값이 있어도 어느 행에도
+ * 없는 열을 가리키는 선택 역할은 「역할 없음」 (`""` — 해제) 으로 읽는다 — 공통 검증 (`validateChartRoles`) 과
+ * 같은 판정이고, 모든 consumer (시리즈 격자 · family · 행 정책) 가 이 결과를 읽는다. 빈 글자 (`""`) 는 사용자가
+ * 해제한 것이라 두고, 형태 밖 역할은 건드리지 않는다. 같은 입력이면 같은 결과 (두 consumer · 여러 번 불러도 같다).
  */
 export function resolveChartRoleDefaults<T extends ChartProps>(
   props: T,
   rows: readonly ChartRow[],
 ): T {
+  // 같은 행으로 이미 푼 결과면 그대로 — scene · 모델 · 시리즈 표가 차례로 부른다 (선택 역할의 열 검사는 행 전체).
+  if (RESOLVED_ROLE_DEFAULTS.get(props) === rows) return props;
   const record = props as unknown as Record<string, unknown>;
   let out: Record<string, unknown> | null = null;
   for (const roleUse of chartActiveForm(props).roles) {
-    if (record[roleUse.role] !== undefined) continue;
+    const value = record[roleUse.role];
+    if (value !== undefined) {
+      // 행이 없으면 열을 판정하지 않는다 (공통 검증과 같다 — 원천이 아직 오지 않았을 수 있다).
+      if (
+        !roleUse.required &&
+        rows.length > 0 &&
+        typeof value === "string" &&
+        value !== ""
+      ) {
+        const key = fieldKey(value);
+        if (key === null || !hasColumn(rows, key)) {
+          out ??= { ...record };
+          out[roleUse.role] = "";
+        }
+      }
+      continue;
+    }
     const fallback = chartRoleDef(roleUse.role)?.defaultField;
     if (fallback === undefined) continue;
     const keys = typeof fallback === "string" ? [fallback] : fallback;
-    if (!roleUse.required && !keys.every((key) => hasKey(rows, key))) continue;
+    if (!roleUse.required && !keys.every((key) => hasColumn(rows, key)))
+      continue;
     out ??= { ...record };
     out[roleUse.role] = typeof fallback === "string" ? fallback : [...fallback];
   }
-  return (out ?? props) as T;
+  const resolved = (out ?? props) as T;
+  RESOLVED_ROLE_DEFAULTS.set(resolved, rows);
+  return resolved;
 }
 
 /**
@@ -493,9 +523,34 @@ export function standardizeChartSample(
   rows: readonly ChartRow[],
   sampleProps: Readonly<Partial<ChartProps>>,
 ): { rows: ChartRow[]; props: Partial<ChartProps> } {
+  const { props, rename } = standardSample(type, sampleProps);
+  const renamed = rows.map((row) => {
+    const next: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row))
+      next[rename.get(key) ?? key] = value;
+    return next;
+  });
+  return { rows: renamed, props };
+}
+
+/** 표본 props 만 (`standardizeChartSample` 의 `props` — 표본 행을 만들지 않는다. 연결 해제의 역할 맞춤). */
+export function standardizeChartSampleProps(
+  type: ChartType,
+  sampleProps: Readonly<Partial<ChartProps>>,
+): Partial<ChartProps> {
+  return standardSample(type, sampleProps).props;
+}
+
+function standardSample(
+  type: ChartType,
+  sampleProps: Readonly<Partial<ChartProps>>,
+): { props: Partial<ChartProps>; rename: Map<string, string> } {
   const props: Record<string, unknown> = { ...sampleProps };
   const forms = chartForms(type);
-  const active = forms.find((form) => form.id === props.dataMode) ?? forms[0];
+  const active = chartActiveForm({
+    chartType: type,
+    dataMode: props.dataMode as ChartDataMode | undefined,
+  });
   const used = new Set(forms.flatMap((form) => form.roles.map((u) => u.role)));
   const rename = new Map<string, string>();
   for (const roleUse of active.roles) {
@@ -519,13 +574,7 @@ export function standardizeChartSample(
     if (!used.has(def.key) && def.key in props) delete props[def.key];
   if (forms.length === 1 || props.dataMode === forms[0].id)
     delete props.dataMode;
-  const renamed = rows.map((row) => {
-    const next: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(row))
-      next[rename.get(key) ?? key] = value;
-    return next;
-  });
-  return { rows: renamed, props: props as Partial<ChartProps> };
+  return { props: props as Partial<ChartProps>, rename };
 }
 
 /**
@@ -551,7 +600,7 @@ export function chartSampleColumns(
         typeof key === "string" && key !== "" && !key.startsWith("#"),
     );
     const numeric = chartRoleAccepts(props, roleUse) === "number";
-    keys.forEach((key, i) => {
+    for (const key of keys)
       if (!out.has(key))
         out.set(key, {
           key,
@@ -561,8 +610,6 @@ export function chartSampleColumns(
               : (roleUse.label ?? def.label),
           numeric,
         });
-      void i;
-    });
   }
   for (const row of rows)
     for (const key of Object.keys(row))
@@ -583,6 +630,18 @@ export interface ChartSourceColumn {
   /** 필드 색인에 등록되는 id (컬렉션 schema 의 필드). 결과 schema 의 집계 열은 없다 — key 로 저장한다. */
   id?: string;
   type: "number" | "string" | "date" | "other";
+}
+
+/**
+ * 컬렉션 schema 의 필드 형 (`DATA_FIELD_TYPES`) → Chart 열 형. 숫자 · 날짜 · 글자만 — 그 밖 (boolean · 목록 ·
+ * 객체 · 참조) 은 undefined. 연결 때 역할 맞춤 (`chartBindingColumns`) 과 패널의 열 안내가 같이 읽는다.
+ */
+export function chartColumnTypeOfField(
+  type: unknown,
+): "number" | "date" | "string" | undefined {
+  return type === "number" || type === "date" || type === "string"
+    ? type
+    : undefined;
 }
 
 /** 표본 행의 열 (이름 · 값에서 읽은 형). */
@@ -677,8 +736,7 @@ export function reconcileChartRoles(input: {
       sampleRefs.every((ref) => byRef(ref))
     ) {
       sampleRefs.forEach((ref) => taken.add(byRef(ref)!.key));
-      patch[roleUse.role] =
-        sample[roleUse.role] === undefined ? undefined : sample[roleUse.role];
+      patch[roleUse.role] = sample[roleUse.role];
       continue;
     }
     const free = columns.filter(
@@ -705,14 +763,6 @@ export function reconcileChartRoles(input: {
 }
 
 // ── 공통 검증 (본문 Decision 7 · R5 — 36 종 한 곳, scene 계산 앞) ──
-
-function refKey(ref: unknown): string | null {
-  if (typeof ref !== "string" || ref === "") return null;
-  return resolveFieldRef(ref);
-}
-
-const hasColumn = (rows: readonly ChartRow[], key: string): boolean =>
-  rows.some((row) => Object.prototype.hasOwnProperty.call(row, key));
 
 const hasNumber = (rows: readonly ChartRow[], key: string): boolean =>
   rows.some((row) => toFiniteNumber(row[key]) !== null);
@@ -757,7 +807,7 @@ export function validateChartRoles(
     }
     // 행이 없으면 열을 판정하지 않는다 — 풀리지 않는 `#id` 도 원천이 아직 오지 않은 것일 수 있다.
     if (rows.length === 0) continue;
-    const key = refKey(value);
+    const key = fieldKey(value);
     if (key === null || !hasColumn(rows, key)) {
       if (roleUse.required)
         out.push({

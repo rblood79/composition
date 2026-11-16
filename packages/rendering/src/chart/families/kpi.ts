@@ -735,14 +735,16 @@ export function dumbbellModel(
   return { rows: out, domain, startName: start, endName: end };
 }
 
-/** 범례 견본 — 역할 칠 또는 (표에서 색을 정했으면) 팔레트 자리. */
+/** 범례 견본 — 시리즈 표의 견본 규칙 (`chartSeriesSwatch`) 을 범례 항목 모양으로. */
 const legendSwatch = (
   item: ChartSeriesItem | undefined,
   paint: ChartPaintRole,
-): { colorIndex: number; fillPaint?: ChartPaintRole } =>
-  item?.colored
-    ? { colorIndex: item.seriesIndex }
-    : { colorIndex: 0, fillPaint: paint };
+): { colorIndex: number; fillPaint?: ChartPaintRole } => {
+  const swatch = chartSeriesSwatch(item, paint);
+  return "series" in swatch
+    ? { colorIndex: swatch.series }
+    : { colorIndex: 0, fillPaint: swatch.paint };
+};
 
 function dumbbellScene(
   props: ChartProps,

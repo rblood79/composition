@@ -17,7 +17,7 @@ import {
 import { fieldKey, readLabel, readNumber } from "../fields";
 import { fitDomain } from "../niceScale";
 import { fitText } from "../shapes";
-import { chartSeriesByKey, chartSeriesItems } from "../../seriesItems";
+import { chartSeriesItems, chartSeriesLookup } from "../../seriesItems";
 
 /** 그리는 선 상한 (ztd 는 1,500 을 넘으면 canvas — 여기서는 앞 행만). */
 export const PARALLEL_MAX_LINES = 1500;
@@ -58,14 +58,14 @@ export function parallelModel(ctx: CategoryContext): ParallelModel | null {
   // 축 이름 = 시리즈 표시 표 (`seriesConfig`) 의 이름, 없으면 필드 이름. ADR-312 Phase 4 — identity 는 시리즈
   //   경로와 같은 `["field", key]` (전에는 원 key · 참조와 비교해 패널이 쓴 항목과 맞지 않았다). 축 순서는 값 열
   //   목록, 선 색은 행마다라 표의 순서 · 색은 읽지 않는다.
-  const series = chartSeriesByKey(
+  const series = chartSeriesLookup(
     chartSeriesItems(props, rows, ctx.metrics.seriesCount, {
       diagnostics: input.diagnostics,
     }),
   );
   return {
     dims,
-    names: pairs.map(({ key }) => series.get(key)?.label || key),
+    names: pairs.map(({ key }) => series.nameOf(key)),
     lines,
     domains: dims.map((_, j) => {
       const [lo, hi] = finiteExtent(lines.map((l) => l.vals[j]));

@@ -44,10 +44,11 @@ export function createCatalogDataUsageSource(
       return useMemo(() => {
         void revision;
         if (!collection || !field) return [];
+        const current = graph();
         return resolveFieldUsage(
-          catalogFieldUsageElements(graph(), collection.id).map((element) => ({
+          catalogFieldUsageElements(current, collection.id).map((element) => ({
             ...element,
-            componentType: componentTypeOf(graph(), element.type),
+            componentType: componentTypeOf(current, element.type),
           })),
           collection,
           field,

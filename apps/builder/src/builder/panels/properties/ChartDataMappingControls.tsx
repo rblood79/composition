@@ -7,7 +7,7 @@ import { useOwnedState } from "./useOwnedState";
 import {
   chartActiveForm,
   chartForms,
-  chartTypeAcceptsColumns,
+  chartKeepsStrandedColumns,
 } from "@composition/rendering";
 import type { ChartDataMode } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
@@ -59,8 +59,6 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
     fields.map((field) => [field.key, field.currentValue]),
   );
   const chartType = String(props.chartType ?? "bar");
-  // ADR-312 — 형태 표에 columns 가 없는 종류 (Pie · Radial)
-  const columnsUnsupported = !chartTypeAcceptsColumns(chartType);
   // ADR-312 — 원천 모드 칸의 선택지 = 그 종류의 형태 (`CHART_FORMS`). 형태가 하나인 종류 (parallel · pie …) 는
   //   칸이 없다. columns 를 받지 않는 종류에 columns 가 저장된 때 (columns 로 둔 pie) 만 되돌릴 수 있게 칸을 낸다
   //   (ADR-210 — 조용히 바꾸지 않는다). `dataMode` 의 값은 binding 기본값 (`group`) 을 포함하므로 「저장된 모드」
@@ -70,7 +68,8 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
     chartType: chartType as never,
     dataMode: props.dataMode as ChartDataMode | undefined,
   }).id;
-  const strandedColumns = props.dataMode === "columns" && columnsUnsupported;
+  // columns 를 받지 않는 시리즈 종류 (Pie · Radial) 에 저장된 채 남은 columns — 되돌릴 수 있게 칸을 낸다.
+  const strandedColumns = chartKeepsStrandedColumns(chartType, props.dataMode);
   const dataMode: ChartDataMode = strandedColumns ? "columns" : activeForm;
   const showMode = forms.length > 1 || strandedColumns;
   const modeLabel: Record<ChartDataMode, string> = {
@@ -93,7 +92,9 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
       ? t("chart.fieldTypeNumber")
       : type === "text"
         ? t("chart.fieldTypeText")
-        : t("chart.fieldTypeUnknown");
+        : type === "date"
+          ? t("chart.fieldTypeDate")
+          : t("chart.fieldTypeUnknown");
   const columnByKey = new Map((columns ?? []).map((c) => [c.key, c]));
 
   const applyColumns = (nextFields: string[]): void => {

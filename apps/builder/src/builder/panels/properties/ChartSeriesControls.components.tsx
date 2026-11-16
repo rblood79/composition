@@ -1,8 +1,8 @@
 import { useI18n } from "@/i18n";
 
 import {
-  chartSeriesItems,
-  chartSeriesKind,
+  chartSeriesItemsAndNatural,
+  chartSeriesNameOnly,
   seriesTokenIndex,
   seriesTokenName,
   type ChartProps,
@@ -74,15 +74,17 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
   const { grid, naturalOrder, nameOnly } = useMemo(() => {
     const palette = Math.max(1, paletteLength);
     const chartProps = props as unknown as ChartProps;
-    // ADR-312 Phase 4 — 그림과 같은 색 항목 목록 (`chartSeriesItems` — 종류마다 원천 하나).
+    // ADR-312 Phase 4 — 그림과 같은 색 항목 목록 (`chartSeriesItems` — 종류마다 원천 하나) 과 설정을 뺀
+    //   **자연 순서** (출현 / valueFields — key 만 있는 항목을 저장할지의 기준) 를 한 번에.
+    const { items, natural } = chartSeriesItemsAndNatural(
+      chartProps,
+      rows,
+      palette,
+    );
     return {
-      grid: { series: chartSeriesItems(chartProps, rows, palette) },
-      // 설정을 뺀 **자연 순서** (출현 / valueFields) — key 만 있는 항목을 저장할지의 기준.
-      naturalOrder: chartSeriesItems(chartProps, rows, palette, {
-        natural: true,
-      }).map((series) => series.id),
-      // parallel 은 축 이름만 읽는다 (축 순서는 값 열 목록, 선 색은 행마다).
-      nameOnly: chartSeriesKind(chartProps.chartType) === "valueFields",
+      grid: { series: items },
+      naturalOrder: natural.map((series) => series.id),
+      nameOnly: chartSeriesNameOnly(chartProps.chartType),
     };
     // props 는 매 렌더 새 객체 — 실제 의존은 fields/rows 다.
     // eslint-disable-next-line react-hooks/exhaustive-deps

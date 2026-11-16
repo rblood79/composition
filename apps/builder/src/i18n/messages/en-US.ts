@@ -112,6 +112,7 @@ const catalog: TranslationKeys = {
     missingField: "Missing in source",
     fieldTypeNumber: "numeric",
     fieldTypeText: "textual",
+    fieldTypeDate: "date",
     fieldTypeUnknown: "unknown type",
     columnsUnsupported:
       "Value columns are not available for pie and radial charts.",

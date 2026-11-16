@@ -2,7 +2,6 @@
  * ADR-306 — family 공용 입력 읽기. 필드 역할은 시리즈 경로와 같은 field 참조 (`#<fieldId>` 또는 key —
  * `resolveFieldRef`) 이고, 숫자 표시는 시리즈 경로와 같은 `valueFormat` 계열 (ADR-210) 이다.
  */
-import { resolveFieldRef } from "../../data/fieldIdIndex";
 import {
   chartValueFormatter,
   resolveNumberPresentation,
@@ -15,22 +14,13 @@ import type {
   ChartRow,
 } from "../types";
 
-/** 필드 참조의 행 key (미등록 id 는 null). */
-export function fieldKey(ref: string | undefined): string | null {
-  if (typeof ref !== "string" || ref === "") return null;
-  return resolveFieldRef(ref);
-}
+import { fieldKey } from "../fieldRef";
+
+export { fieldKey, readLabel } from "../fieldRef";
 
 export function readNumber(row: ChartRow, key: string | null): number {
   if (key === null) return NaN;
   return toFiniteNumber(row[key]) ?? NaN;
-}
-
-export function readLabel(row: ChartRow, key: string | null): string {
-  if (key === null) return "";
-  const value = row[key];
-  if (value === null || value === undefined) return "";
-  return typeof value === "string" ? value : String(value);
 }
 
 export interface FamilyInput {

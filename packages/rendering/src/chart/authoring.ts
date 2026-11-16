@@ -870,12 +870,25 @@ const bubbleSample: readonly ChartRow[] = [
  * Chart 직접 생성은 기존 bar 기본값, palette 생성은 종류별 기본값을 원자적으로 준다. `paletteId` 는
  * 제공 항목 (ADR-306 Phase 5 — donut · radialBar · bubble 은 같은 chartType 의 다른 기본값 행).
  */
+/**
+ * 생성 props 의 바탕 — 렌더 기본값에서 역할 값 (`dimension` · `metric`) 을 뺀 것. ADR-312 Decision 8 — 원본
+ * template 은 역할 값을 들지 않는다 (값이 없는 역할은 기본 열 이름으로 읽힌다). 들면 연결한 원천에 그 열이 없을 때
+ * 모든 instance 가 없는 열을 물려받는다.
+ */
+function chartCreateBase(): Omit<ChartProps, "dimension" | "metric"> {
+  const base: Partial<ChartProps> = { ...CHART_DEFAULT_PROPS };
+  delete base.dimension;
+  delete base.metric;
+  return base as Omit<ChartProps, "dimension" | "metric">;
+}
+
 export function createChartInitialProps(
   chartType?: ChartType,
   paletteId?: string,
-): ChartProps & {
-  data: ChartRow[];
-} {
+): Omit<ChartProps, "dimension" | "metric"> &
+  Partial<Pick<ChartProps, "dimension" | "metric">> & {
+    data: ChartRow[];
+  } {
   const row =
     paletteId !== undefined
       ? (CHART_DESCRIPTORS.find((d) => d.paletteId === paletteId) ??
@@ -885,7 +898,7 @@ export function createChartInitialProps(
   //   명령 실행 전에 `loadChartFamily` → `sample` · `sampleProps` 로 채운다 (breakdown §4.4).
   if (isFamilyChartType(chartType))
     return {
-      ...CHART_DEFAULT_PROPS,
+      ...chartCreateBase(),
       ...row.defaults,
       ...row.initial,
       chartType,
@@ -901,8 +914,7 @@ export function createChartInitialProps(
   const scatter = chartType === "scatter";
   const bubble = row.paletteId === "chart-bubble";
   return {
-    ...CHART_DEFAULT_PROPS,
-    color: "series",
+    ...chartCreateBase(),
     showLegend: true,
     // ADR-312 — 역할 값은 쓰지 않는다: 기본 열 이름 (`category` · `value` · `series` · `size`) 으로 읽힌다.
     ...(fresh

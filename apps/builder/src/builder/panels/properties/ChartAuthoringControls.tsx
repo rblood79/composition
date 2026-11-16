@@ -5,9 +5,8 @@ import {
   getChartDescriptor,
   getChartPresetId,
   chartForms,
-  chartTypeAcceptsColumns,
+  chartKeepsStrandedColumns,
   chartTypeHasForm,
-  isFamilyChartType,
 } from "@composition/rendering";
 import type { ChartDataMode } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
@@ -16,11 +15,11 @@ import { useI18n } from "@/i18n";
 
 /**
  * ADR-210 — columns 모드가 지원하지 않는 시리즈 종류 (breakdown §2.3 3). ADR-312 — 형태 표에서 (Pie · Radial).
- * family 종류는 종류 변경 patch 가 group 으로 되돌린다 (`chartTypeChangePatch`).
+ * family 종류는 종류 변경 patch 가 첫 형태로 되돌린다 (`chartTypeChangePatch`).
  */
 const COLUMNS_UNSUPPORTED_TYPES: readonly string[] =
-  CHART_TYPE_DESCRIPTORS.filter(
-    (d) => d.family === null && !chartTypeAcceptsColumns(d.chartType),
+  CHART_TYPE_DESCRIPTORS.filter((d) =>
+    chartKeepsStrandedColumns(d.chartType, "columns"),
   ).map((d) => d.chartType);
 
 /**
@@ -49,7 +48,7 @@ export function chartTypeChangePatch(
   const stranded =
     typeof mode === "string" &&
     !chartTypeHasForm(chartType, mode as ChartDataMode) &&
-    (isFamilyChartType(chartType) || mode !== "columns");
+    !chartKeepsStrandedColumns(chartType, mode);
   return stranded
     ? { chartType, dataMode: chartForms(chartType)[0].id }
     : { chartType };
