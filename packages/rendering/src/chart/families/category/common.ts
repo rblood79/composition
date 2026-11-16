@@ -19,12 +19,13 @@ import type {
   ChartSize,
   ChartSort,
   ChartTarget,
-  LegendItem,
   LegendScene,
   LineMark,
   Mark,
+  Rect,
   TextMark,
 } from "../../types";
+import { placeLegend } from "../../legend";
 import { familyInput, type FamilyInput } from "../fields";
 import { thinCentered } from "../shapes";
 import { ticksFor } from "../niceScale";
@@ -293,56 +294,32 @@ export function categoryLabels(
 }
 
 /**
- * 위 범례 — 시리즈 팔레트 색 견본 + 이름, 폭을 넘으면 다음 줄. 반환 `height` 만큼 그림 영역을 내린다.
+ * 시리즈 범례 — 팔레트 색 견본 + 이름을 범례 자리 (`legendPosition`) 에 놓고, 남은 그림 영역을 frame 으로 단
+ * context 를 돌려준다 (시리즈 경로와 같은 배치 — `placeLegend`). 끄면 · 항목이 없으면 그대로.
  */
 export function seriesLegend(
   ctx: CategoryContext,
   items: readonly { label: string; seriesIndex: number }[],
-): { legend: LegendScene | null; height: number } {
+): { legend: LegendScene | null; ctx: CategoryContext } {
   if (!ctx.props.showLegend || items.length === 0)
-    return { legend: null, height: 0 };
-  const { outer, fontSize } = ctx.frame;
-  const swatch = 10;
-  const lineH = fontSize * 1.6;
-  const out: LegendItem[] = [];
-  let x = 0;
-  let line = 0;
-  for (const item of items) {
-    const w = swatch + 6 + approxTextWidth(item.label, fontSize);
-    if (x > 0 && x + 14 + w > outer.w) {
-      x = 0;
-      line++;
-    } else if (x > 0) x += 14;
-    const lx = outer.x + x;
-    const ly = outer.y + line * lineH + lineH / 2;
-    out.push({
+    return { legend: null, ctx };
+  const { legend, plot } = placeLegend({
+    entries: items.map((item) => ({
       label: item.label,
-      seriesIndex: item.seriesIndex,
-      swatch: {
-        kind: "rect",
-        x: r2(lx),
-        y: r2(ly - swatch / 2),
-        w: swatch,
-        h: swatch,
-        seriesIndex: item.seriesIndex,
-      },
-      text: {
-        kind: "text",
-        x: r2(lx + swatch + 6),
-        y: r2(ly),
-        text: item.label,
-        anchor: "start",
-        baseline: "middle",
-        role: "legend",
-      },
-    });
-    x += w;
-  }
-  const height = (line + 1) * lineH + 4;
-  // 작은 상자 (Library 표본 칸 · 좁은 카드) 에서 범례가 그림 높이의 1/3 을 넘으면 내지 않는다 — 범례가
-  //   그림을 덮거나 밀어내 아무것도 읽히지 않는다 (색 이름은 툴팁에 남는다).
-  if (height > outer.h / 3) return { legend: null, height: 0 };
-  return { legend: { position: "top", items: out }, height };
+      colorIndex: item.seriesIndex,
+    })),
+    outer: ctx.frame.outer,
+    position: ctx.props.legendPosition,
+    fontSize: ctx.frame.fontSize,
+  });
+  return { legend, ctx: withPlot(ctx, plot) };
+}
+
+/** 범례를 뗀 뒤의 그림 영역을 frame 으로 단 context — scene 의 `plot` 도 이 영역이다. */
+export function withPlot(ctx: CategoryContext, outer: Rect): CategoryContext {
+  return outer === ctx.frame.outer
+    ? ctx
+    : { ...ctx, frame: { ...ctx.frame, outer } };
 }
 
 /** 범주 band — 칸 수 · 칸 안 막대 비율 (ztd `scaleBand(paddingInner, paddingOuter)`). */

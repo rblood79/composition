@@ -166,6 +166,7 @@ export {
   legendItemWidth,
   LEGEND_GAP,
   LEGEND_ITEM_GAP,
+  LEGEND_CHART_GAP,
   LEGEND_SWATCH,
 } from "./legend";
 export {
@@ -212,6 +213,7 @@ export {
   defaultBudgetMode,
   markFactor,
   mergeBudgetMetrics,
+  polarCenterY,
   polarGeometry,
   resolveDisplayBudget,
   resolveFitEff,

@@ -1142,7 +1142,6 @@ export interface TranslationKeys {
     layerFront: string;
     addReferenceLine: string;
     removeReferenceLine: string;
-    referenceOnlyCartesian: string;
     referenceMaxHint: string;
     // ADR-306 Phase 6 — 주석
     annotations: string;

@@ -1,5 +1,6 @@
 import {
   CHART_FAMILY_PROP_KEYS,
+  CHART_TYPE_DESCRIPTORS,
   CHART_ZERO_BY_DEFAULT_TYPES,
   SERIES_CHART_TYPES,
   chartTypesReading,
@@ -15,6 +16,18 @@ const readingIs = (prop: Parameters<typeof chartTypesReading>[0]) => ({
   key: "chartType",
   oneOf: reading(prop),
 });
+/** pie 가 아니거나, 가운데 구멍이 있는 pie (donut) — pie 는 구멍이 있을 때만 가운데 글자 · 합계를 그린다. */
+const NOT_PIE_OR_HOLE = {
+  any: [
+    {
+      key: "chartType",
+      oneOf: CHART_TYPE_DESCRIPTORS.map((d) => d.chartType).filter(
+        (type) => type !== "pie",
+      ),
+    },
+    { key: "innerRadius", truthy: true },
+  ],
+};
 const GAUGE = { key: "chartType", equals: "gauge" };
 const SEGMENTED = { key: "chartType", equals: "segmented" };
 const SPARKLINE = { key: "chartType", equals: "sparkline" };
@@ -197,7 +210,10 @@ export const chartBinding: PrimitiveBinding = {
         kind: "string",
         label: "Center Label",
         section: "appearance",
-        visibleWhen: readingIs("centerLabel"),
+        // pie 는 가운데 구멍 (innerRadius) 이 있을 때만 가운데 글자를 그린다 — 다른 종류는 늘 읽는다.
+        visibleWhen: {
+          all: [readingIs("centerLabel"), NOT_PIE_OR_HOLE],
+        },
       },
       shape: {
         kind: "enum",
@@ -708,7 +724,10 @@ export const chartBinding: PrimitiveBinding = {
         kind: "string-array",
         label: "Size Range (px)",
         section: "appearance",
-        visibleWhen: readingIs("sizeRange"),
+        // 점 크기 필드가 있을 때만 점 크기가 갈린다 (bubble).
+        visibleWhen: {
+          all: [readingIs("sizeRange"), { key: "sizeField", truthy: true }],
+        },
       },
       fit: {
         kind: "enum",
@@ -1036,9 +1055,11 @@ export const chartBinding: PrimitiveBinding = {
        * 사용자가 편집 수단 자체를 못 찾으므로(R2), 조건 표는 소비 경로와 1:1 이어야 하고
        * 그 정합은 `chartVisibleWhen.test.ts` 가 값 변화로 확인한다 (선언 대조 아님).
        *
-       * 조건을 **달지 않는 것**: `showAxis`·`showGrid`·`showLegend`·`legendPosition`·
-       * `showValueLabels`·`colorBy`·`showTooltip`. 두 계열이 함께 읽거나 전 종류 공통이다 —
-       * 억지 조건은 표만 키우고 뜻을 흐린다.
+       * 조건을 **달지 않는 것**: `palette`·`showTooltip` 과 애니메이션 — 36 종 전부가 읽는다.
+       * **Why (2026-11-16 /fix)**: 범례 · 값 이름표 · 범례 자리도 「전 종류 공통」 으로 두었는데, ADR-306
+       * family 가 들어온 뒤 21 종은 범례를 · 12 종은 값 이름표를 그리지 않고 범례 자리는 아무 종류도 읽지
+       * 않아 (위에 고정) 패널에만 있는 칸이 됐다. 오라클의 「보이는데 안 읽힘」 검사가 조건 없는 prop 을
+       * 건너뛰어 잡지 못했다 — 이제 조건 없는 prop 도 검사한다.
        */
       orientation: {
         kind: "enum",
@@ -1102,6 +1123,10 @@ export const chartBinding: PrimitiveBinding = {
         label: "Show Value Labels",
         section: "appearance",
         default: false,
+        visibleWhen: {
+          key: "chartType",
+          oneOf: [...SERIES_TYPES, ...reading("showValueLabels")],
+        },
       },
       /**
        * 레이블 **내용** (ADR-208 P4) — 켜는 스위치는 `showValueLabels` 가 그대로 갖고
@@ -1228,10 +1253,15 @@ export const chartBinding: PrimitiveBinding = {
         label: "Show Total",
         section: "appearance",
         default: false,
-        // computeChartScene.ts:359 + radial 확장 (P3 — centerTotalLabels 공유).
+        // computeChartScene.ts:359 + radial 확장 (P3 — centerTotalLabels 공유). pie 는 구멍이 있을 때만.
         visibleWhen: {
-          key: "chartType",
-          oneOf: ["pie", "radial", ...reading("showTotal")],
+          all: [
+            {
+              key: "chartType",
+              oneOf: ["pie", "radial", ...reading("showTotal")],
+            },
+            NOT_PIE_OR_HOLE,
+          ],
         },
       },
       /**
@@ -1310,16 +1340,29 @@ export const chartBinding: PrimitiveBinding = {
           oneOf: ["bar", "line", "area", "radar"],
         },
       },
+      // 시리즈 7 종 + 범례를 그리는 family 종류 (descriptor 옵션 — 나머지 family 는 범례가 없다).
       showLegend: {
         kind: "boolean",
         label: "Show Legend",
         section: "appearance",
         default: false,
+        visibleWhen: {
+          key: "chartType",
+          oneOf: [...SERIES_TYPES, ...reading("showLegend")],
+        },
       },
       legendPosition: {
         kind: "enum",
         label: "Legend Position",
-        visibleWhen: { key: "showLegend", truthy: true },
+        visibleWhen: {
+          all: [
+            { key: "showLegend", truthy: true },
+            {
+              key: "chartType",
+              oneOf: [...SERIES_TYPES, ...reading("legendPosition")],
+            },
+          ],
+        },
         section: "appearance",
         default: "bottom",
         options: [

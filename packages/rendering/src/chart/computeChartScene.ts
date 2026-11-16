@@ -17,6 +17,7 @@ import type { LegendEntry } from "./legend";
 import {
   CHART_BUDGET_DEFAULTS,
   mergeBudgetMetrics,
+  polarCenterY,
   polarGeometry,
 } from "./budget";
 import type { ChartBudgetMetrics } from "./budget";
@@ -173,7 +174,9 @@ function computePolarScene(
 
   const center = {
     x: r2(plot.x + plot.w / 2),
-    y: r2(plot.y + plot.h / 2),
+    y: r2(
+      polarCenterY(props.chartType, plot, fontSize, props, legendBox !== null),
+    ),
     outer: r2(radius.outer),
     inner: r2(radius.inner),
   };
@@ -389,9 +392,13 @@ export function computeChartScene(
 
   // ── 파이는 축이 없다 ─────────────────────────────────────────────────────
   if (props.chartType === "pie") {
+    // 위 · 아래 범례 쪽으로 원을 옮긴 plot (`polarCenterY` — 크기는 그대로).
+    const pieY =
+      polarCenterY("pie", plot, fontSize, props, legendBox !== null) -
+      (plot.y + plot.h / 2);
     const pie = buildPieMarks({
       grid,
-      plot,
+      plot: pieY === 0 ? plot : { ...plot, y: r2(plot.y + pieY) },
       seriesCount: metrics.seriesCount,
       showValueLabels: props.showValueLabels,
       labelText,

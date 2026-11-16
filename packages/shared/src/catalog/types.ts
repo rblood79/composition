@@ -206,6 +206,8 @@ export interface ItemsManagerSchema {
 /** 필드 가시성 조건 — 다른 prop 값에 따라 조건부 노출. */
 export interface VisibilityCondition {
   all?: VisibilityCondition[];
+  /** 하나라도 맞으면 통과 (`all` 과 함께 쓰면 둘 다). */
+  any?: VisibilityCondition[];
   key?: string;
   equals?: string | number | boolean;
   oneOf?: Array<string | number | boolean>;

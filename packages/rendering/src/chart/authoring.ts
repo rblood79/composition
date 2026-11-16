@@ -206,11 +206,55 @@ export function chartSyncGroup(
     : "";
 }
 
+/**
+ * 범례 · 값 이름표를 그리는 family 종류 (2026-11-16 /fix). 시리즈 7 종은 전부 읽어 여기 적지 않는다 (binding
+ * `visibleWhen` 이 시리즈 종류를 따로 더한다). 나머지 family 는 그리지 않는다 — 기본값도 `showLegend: false` 다.
+ * 범례를 그리는 종류는 자리 (`legendPosition`) 도 읽는다 (`placeLegend`).
+ */
+const LEGEND_FAMILY: ReadonlySet<ChartType> = new Set([
+  "dumbbell",
+  "segmented",
+  "marimekko",
+  "stream",
+  "skyline",
+  "heatmap",
+]);
+const TOP_LEGEND_FAMILY: ReadonlySet<ChartType> = new Set(
+  [...LEGEND_FAMILY].filter((type) => type !== "segmented"),
+);
+const VALUE_LABEL_FAMILY: ReadonlySet<ChartType> = new Set([
+  "gauge",
+  "dumbbell",
+  "lollipop",
+  "pareto",
+  "waterfall",
+  "bump",
+  "slope",
+  "skyline",
+  "histogram",
+  "heatmap",
+  "parallel",
+  "treemap",
+  "sunburst",
+  "sankey",
+  "chord",
+]);
+
 function withCommonOptions(row: ChartDescriptor): ChartDescriptor {
   const extra: (keyof ChartProps & string)[] = [
     ...(NO_HIGHLIGHT.has(row.chartType) ? [] : ["highlight" as const]),
     ...(BRUSH_TYPES.has(row.chartType) ? (["brush", "syncId"] as const) : []),
+    ...(LEGEND_FAMILY.has(row.chartType)
+      ? (["showLegend", "legendPosition"] as const)
+      : []),
+    ...(VALUE_LABEL_FAMILY.has(row.chartType)
+      ? (["showValueLabels"] as const)
+      : []),
   ];
+  // 범례를 위에 그리던 종류는 새로 만들 때 위로 둔다 (ztd 와 같은 자리 — 프리셋 판정에는 쓰지 않는다).
+  //   segmented 의 목록은 막대 아래 (기본 bottom) 그대로다.
+  if (TOP_LEGEND_FAMILY.has(row.chartType))
+    row = withInitial(row, { ...row.initial, legendPosition: "top" });
   return extra.length === 0
     ? row
     : { ...row, options: [...row.options, ...extra] };

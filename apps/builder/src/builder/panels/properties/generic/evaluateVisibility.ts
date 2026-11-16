@@ -10,6 +10,11 @@ export function evaluateVisibility(
     !condition.all.every((part) => evaluateVisibility(part, currentProps))
   )
     return false;
+  if (
+    condition.any &&
+    !condition.any.some((part) => evaluateVisibility(part, currentProps))
+  )
+    return false;
 
   const value = condition.key
     ? condition.key.includes(".")

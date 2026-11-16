@@ -85,7 +85,8 @@ export function marimekkoModel(ctx: CategoryContext): MarimekkoModel | null {
 export function marimekkoScene(ctx: CategoryContext) {
   const model = marimekkoModel(ctx);
   if (model === null) return invalidScene(ctx);
-  const { outer, fontSize } = ctx.frame;
+  const { fontSize } = ctx.frame;
+  let { outer } = ctx.frame;
   if (
     model.cols.length === 0 ||
     !(model.total > 0) ||
@@ -102,14 +103,26 @@ export function marimekkoScene(ctx: CategoryContext) {
     model.series.map(() => 0),
   );
   const colorOf = (s: number) => highlightColor(picked, s, s % n);
-  const { legend, height } = seriesLegend(
+  const placed = seriesLegend(
     ctx,
     model.series.map((label, s) => ({ label, seriesIndex: colorOf(s) })),
   );
+  const { legend } = placed;
+  ctx = placed.ctx;
+  outer = ctx.frame.outer;
   const ticks = [0, 50, 100];
-  const left = outer.x + tickColumnWidth(ticks, String, fontSize);
-  const top = outer.y + height + 6;
-  const bottom = outer.y + outer.h - (fontSize * 2.6 + 6);
+  // 눈금 글자는 `left − 6` 에 끝 정렬 — 칸 폭 (글자 + 8) 의 남는 2 는 왼쪽 범례면 뺀다 (글자 왼끝 = 영역 경계).
+  const left =
+    outer.x +
+    tickColumnWidth(ticks, String, fontSize) -
+    (legend?.position === "left" ? 2 : 0);
+  // 범례 쪽 가장자리는 자기 여백 없이 (범례 ↔ 그림 = `LEGEND_CHART_GAP`): 위는 100 눈금 글자 위끝, 아래는 두째 줄
+  //   이름 (비중) 아래끝이 영역 경계.
+  const top = outer.y + (legend?.position === "top" ? fontSize / 2 : 6);
+  const bottom =
+    outer.y +
+    outer.h -
+    (fontSize * (legend?.position === "bottom" ? 2.3 : 2.6) + 6);
   const gap = 3;
   const plotW = outer.x + outer.w - left - 4;
   const y = linearScale([0, 100], [bottom, top]);
@@ -390,7 +403,8 @@ interface BlockGeom {
 export function skylineScene(ctx: CategoryContext) {
   const model = skylineModel(ctx);
   if (model === null) return invalidScene(ctx);
-  const { outer, fontSize } = ctx.frame;
+  const { fontSize } = ctx.frame;
+  let { outer } = ctx.frame;
   const n = model.labels.length;
   if (n === 0 || outer.w <= 0 || outer.h <= 0) return noDataScene(ctx);
   const { props, input } = ctx;
@@ -420,7 +434,10 @@ export function skylineScene(ctx: CategoryContext) {
           })),
         ]
       : [];
-  const { legend, height: legendH } = seriesLegend(ctx, legendItems);
+  const placed = seriesLegend(ctx, legendItems);
+  const { legend } = placed;
+  ctx = placed.ctx;
+  outer = ctx.frame.outer;
   const below =
     SLAB + (strip ? 70 : frontLabel ? fontSize * 4.4 : fontSize * 2);
   const L = skylineLayout({
@@ -435,7 +452,7 @@ export function skylineScene(ctx: CategoryContext) {
         ? props.depth
         : SKYLINE_DEPTH_RANGE[1],
     wall,
-    top: outer.y + legendH + fontSize * 1.8,
+    top: outer.y + fontSize * 1.8,
     below,
     labelWidth: (max) =>
       Math.max(

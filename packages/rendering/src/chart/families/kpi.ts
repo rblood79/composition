@@ -11,6 +11,7 @@
  * → 예산 (줄 수) → 기하 (크기 의존) 순서다.
  */
 import { highlightSet } from "../highlight";
+import { placeLegend } from "../legend";
 import { chartFrame } from "../frame";
 import { circlePath } from "../marks/dots";
 import { arcSlicePath } from "../marks/pie";
@@ -31,7 +32,6 @@ import type {
   ChartSort,
   ChartTarget,
   FamilyChartType,
-  LegendItem,
   LineMark,
   Mark,
   Rect,
@@ -733,7 +733,8 @@ function dumbbellScene(
   metrics: ChartMetrics,
 ): ChartScene {
   const frame = chartFrame(size, metrics);
-  const { outer, fontSize } = frame;
+  const { fontSize } = frame;
+  let { outer } = frame;
   const input = familyInput(props);
   const capped =
     rows.length > metrics.rowCap ? rows.slice(0, metrics.rowCap) : rows;
@@ -759,9 +760,25 @@ function dumbbellScene(
       input.diagnostics,
     );
 
-  // 범례 줄 (showLegend) 이 없으면 위 여백은 눈금선 끝 몫만.
-  const top = props.showLegend ? fontSize * 2 : fontSize * 0.5;
-  const bottom = fontSize + 7;
+  // 범례 — 이전 (neutral) · 이후 (accent) 견본을 범례 자리 (`legendPosition`) 에 놓고 남은 영역에 그린다.
+  //   위 여백은 눈금선 끝 몫만.
+  const placed = props.showLegend
+    ? placeLegend({
+        entries: [
+          { label: model.startName, colorIndex: 0, fillPaint: "neutral" },
+          { label: model.endName, colorIndex: 0, fillPaint: "accent" },
+        ],
+        outer,
+        position: props.legendPosition,
+        fontSize,
+      })
+    : { legend: null, plot: outer };
+  outer = placed.plot;
+  // 범례 쪽 가장자리는 자기 여백 없이 — 범례 ↔ 그림 간격은 `LEGEND_CHART_GAP` (16) 하나 (사용자 결정 2026-11-16).
+  //   위: 눈금선 위끝 (top − 4) 이 영역 경계, 아래: 눈금 글자 아래끝이 영역 경계.
+  const legendSide = placed.legend?.position;
+  const top = legendSide === "top" ? 4 : fontSize * 0.5;
+  const bottom = fontSize + (legendSide === "bottom" ? 3.5 : 7);
   const minRow = Math.max(14, fontSize * 1.4);
   const fit = Math.max(0, Math.floor((outer.h - top - bottom) / minRow));
   const shown = model.rows.slice(0, fit);
@@ -783,9 +800,11 @@ function dumbbellScene(
       diagnostics: input.diagnostics,
     };
 
+  // 왼쪽 범례면 행 이름 왼끝이 영역 경계 (앞 여백 10 없음 — 범례 ↔ 그림 = `LEGEND_CHART_GAP`).
   const labelW = Math.min(
     outer.w * 0.3,
-    Math.max(...shown.map((r) => approxTextWidth(r.label, fontSize)), 24) + 10,
+    Math.max(...shown.map((r) => approxTextWidth(r.label, fontSize)), 24) +
+      (legendSide === "left" ? 0 : 10),
   );
   const valPad = props.showValueLabels
     ? Math.max(
@@ -796,19 +815,40 @@ function dumbbellScene(
       ) + 14
     : 8;
   const left = outer.x + labelW + 10;
-  const right = Math.max(left, outer.x + outer.w - valPad);
-  const x = linearScale(model.domain, [left, right]);
   const band = (outer.h - top - bottom) / shown.length;
   const yOf = (k: number) => outer.y + top + band * k + band / 2;
   const radius = Math.max(3, Math.min(5.5, band * 0.22));
-
-  const grid: LineMark[] = [];
-  const ticks: TextMark[] = [];
-  for (const t of ticksFor(
+  const tickValues = ticksFor(
     model.domain[0],
     model.domain[1],
     Math.max(2, Math.round(outer.w / 120)),
-  )) {
+  );
+  const right = Math.max(
+    left,
+    legendSide === "right"
+      ? dumbbellRightEdge({
+          left,
+          edge: outer.x + outer.w,
+          domain: model.domain,
+          ends: shown.map((r) => ({
+            value: Math.max(r.start, r.end),
+            extra:
+              props.showValueLabels && r.end >= r.start
+                ? 10 + approxTextWidth(input.formatValue(r.end), fontSize)
+                : radius,
+          })),
+          ticks: tickValues.map((t) => ({
+            value: t,
+            extra: approxTextWidth(input.formatValue(t), fontSize) / 2,
+          })),
+        })
+      : outer.x + outer.w - valPad,
+  );
+  const x = linearScale(model.domain, [left, right]);
+
+  const grid: LineMark[] = [];
+  const ticks: TextMark[] = [];
+  for (const t of tickValues) {
     const tx = r2(x(t));
     grid.push({
       kind: "line",
@@ -821,7 +861,7 @@ function dumbbellScene(
     ticks.push({
       kind: "text",
       x: tx,
-      y: r2(outer.y + outer.h - bottom / 2),
+      y: r2(outer.y + outer.h - bottom + 3.5 + fontSize / 2),
       text: input.formatValue(t),
       anchor: "middle",
       baseline: "middle",
@@ -924,50 +964,38 @@ function dumbbellScene(
   });
 
   // 범례 — 이전 (중립) · 이후 (accent), 이름은 필드 이름.
-  const legendY = outer.y + fontSize * 0.75;
-  const swatch = 10;
-  const items: LegendItem[] = [];
-  let lx = left;
-  for (const [label, paint] of [
-    [model.startName, "neutral"],
-    [model.endName, "accent"],
-  ] as const) {
-    items.push({
-      label,
-      seriesIndex: 0,
-      swatch: {
-        kind: "rect",
-        x: r2(lx),
-        y: r2(legendY - swatch / 2),
-        w: swatch,
-        h: swatch,
-        seriesIndex: 0,
-        fillPaint: paint,
-      },
-      text: {
-        kind: "text",
-        x: r2(lx + swatch + 6),
-        y: r2(legendY),
-        text: label,
-        anchor: "start",
-        baseline: "middle",
-        role: "legend",
-      },
-    });
-    lx += swatch + 6 + approxTextWidth(label, fontSize) + 14;
-  }
-
   return {
     size: frame.size,
     plot: outer,
     marks: [...marks, ...labels],
     axes: [{ axis: "x", line: null, grid, ticks }],
-    legend: props.showLegend ? { position: "top", items } : null,
+    legend: placed.legend,
     tooltip: null,
     empty: false,
     targets: props.showTooltip ? targets : [],
     ...(input.diagnostics.length > 0 ? { diagnostics: input.diagnostics } : {}),
   };
+}
+
+/**
+ * 오른쪽 범례일 때 dumbbell 값 축의 오른쪽 끝 — 가장 오른쪽으로 나가는 것 (끝 점 · 값 이름표 · 눈금 글자 반) 이 영역
+ * 끝 (`edge`) 에 정확히 닿는 값. 각 항목은 `left + f · (right − left) + extra ≤ edge` (f = 값의 축 비율) 이다.
+ */
+function dumbbellRightEdge(o: {
+  left: number;
+  edge: number;
+  domain: readonly [number, number];
+  ends: readonly { value: number; extra: number }[];
+  ticks: readonly { value: number; extra: number }[];
+}): number {
+  // 축 끝 (nice 범위의 끝) 에는 그려지는 것이 없을 수 있어 `edge` 로 자르지 않는다 — 그려진 것의 끝이 경계에 닿는다.
+  const span = o.domain[1] - o.domain[0] || 1;
+  let right = Infinity;
+  for (const { value, extra } of [...o.ends, ...o.ticks]) {
+    const f = (value - o.domain[0]) / span;
+    if (f > 0) right = Math.min(right, o.left + (o.edge - o.left - extra) / f);
+  }
+  return Number.isFinite(right) ? right : o.edge;
 }
 
 // ── family ─────────────────────────────────────────────────────────────────

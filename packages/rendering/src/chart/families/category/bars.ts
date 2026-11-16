@@ -14,6 +14,11 @@ import {
   highlightIndex,
   highlightSet,
 } from "../../highlight";
+import {
+  LEGEND_CHART_GAP,
+  LEGEND_SWATCH,
+  legendPositionOf,
+} from "../../legend";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
   AxisScene,
@@ -358,20 +363,45 @@ export function segmentedScene(ctx: CategoryContext) {
   const { props, input } = ctx;
   const tall = props.shape !== "thin";
   const barH = tall ? 28 : 8;
-  const top = outer.y + 2;
   const gap = 2;
+  // 목록 (이름 · 값 · 비중) = 이 종류의 범례 — 자리 (`legendPosition`) 가 막대와 목록의 배치를 정한다:
+  //   bottom (기본) 막대 아래 · top 막대 위 · left / right 막대 옆 한 열.
+  const rowH = Math.max(22, fontSize * 2.2);
+  const position = props.showLegend
+    ? legendPositionOf(props.legendPosition)
+    : "bottom";
+  const side = position === "left" || position === "right";
+  const listW = side ? Math.min(outer.w * 0.45, 240) : outer.w;
+  const sideGap = side ? LEGEND_CHART_GAP : 0;
+  const barX = position === "left" ? outer.x + listW + sideGap : outer.x;
+  const barW = side ? Math.max(0, outer.w - listW - sideGap) : outer.w;
+  const listX = position === "right" ? outer.x + outer.w - listW : outer.x;
+  const cols = !side && outer.w >= 420 && model.parts.length >= 4 ? 2 : 1;
+  const topRows =
+    position === "top"
+      ? Math.min(
+          Math.ceil(model.parts.length / cols),
+          Math.max(0, Math.floor((outer.h - barH - 12) / rowH)),
+        )
+      : 0;
+  // 목록 줄 (견본 10 · 글자 한 줄) ↔ 막대 = `LEGEND_CHART_GAP` (사용자 결정 2026-11-16 — 위 · 아래 16px).
+  const half = Math.max(LEGEND_SWATCH, fontSize) / 2;
+  const top =
+    topRows > 0
+      ? outer.y + rowH / 2 + (topRows - 1) * rowH + half + LEGEND_CHART_GAP
+      : outer.y + 2;
   const radius = tall ? 4 : barH / 2;
   const marks: Mark[] = [];
   const targets: ChartTarget[] = [];
   const drawn = model.parts.filter((q) => q.share > 0);
-  const room = Math.max(0, outer.w - gap * Math.max(0, drawn.length - 1));
-  let cursor = outer.x;
+  const room = Math.max(0, barW - gap * Math.max(0, drawn.length - 1));
+  let cursor = barX;
   const geo = new Map<SegmentPart, { x: number; w: number }>();
   if (drawn.length === 0)
     marks.push({
       kind: "path",
-      d: roundRectPath(outer.x, top, outer.w, barH, radius),
-      bbox: { x: outer.x, y: top, w: outer.w, h: barH },
+      d: roundRectPath(barX, top, barW, barH, radius),
+      bbox: { x: barX, y: top, w: barW, h: barH },
       fillRole: "grid",
     });
   for (const q of drawn) {
@@ -387,22 +417,26 @@ export function segmentedScene(ctx: CategoryContext) {
       });
     cursor += w + gap;
   }
-  // 막대 아래 목록 (이름 · 값 · 비중) — showLegend 가 끄면 막대만.
-  const rowH = Math.max(22, fontSize * 2.2);
-  const cols = outer.w >= 420 && model.parts.length >= 4 ? 2 : 1;
-  const colW = outer.w / cols;
-  const listTop = top + barH + 18;
-  const fitRows = Math.max(
-    0,
-    Math.floor((outer.y + outer.h - listTop + rowH / 2) / rowH),
-  );
+  // 목록 — showLegend 가 끄면 막대만.
+  const colW = listW / cols;
+  const listTop =
+    position === "bottom"
+      ? top + barH + LEGEND_CHART_GAP + half
+      : outer.y + rowH / 2;
+  const fitRows =
+    position === "top"
+      ? topRows
+      : Math.max(
+          0,
+          Math.floor((outer.y + outer.h - listTop + rowH / 2) / rowH),
+        );
   const listed = props.showLegend ? model.parts.slice(0, fitRows * cols) : [];
   if (props.showLegend) truncated(ctx, listed.length, model.parts.length);
   const listMarks: Mark[] = [];
   listed.forEach((q, k) => {
     const col = k % cols;
     const row = Math.floor(k / cols);
-    const x = outer.x + col * colW;
+    const x = listX + col * colW;
     const y = r2(listTop + row * rowH);
     const right = x + colW - (cols > 1 && col === 0 ? 16 : 0);
     const shareText = pct(q.share * 100);

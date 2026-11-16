@@ -6,7 +6,7 @@
  * 각 렌더러가 생성한다.
  */
 import { valueIncludes } from "./marks/annotations";
-import { legendExtent } from "./legend";
+import { carveLegend, legendExtent } from "./legend";
 import { categoryColorIndex } from "./budget";
 import type { LegendEntry } from "./legend";
 import { approxTextWidth, formatTick, niceTicks, r2 } from "./scales";
@@ -141,29 +141,9 @@ export function resolveChartLayout(
     );
     const capped = Math.min(extent, vertical ? outer.w * 0.4 : outer.h * 0.4);
     if (capped > 0) {
-      if (position === "bottom") {
-        legendBox = {
-          x: outer.x,
-          y: r2(outer.y + outer.h - capped),
-          w: outer.w,
-          h: r2(capped),
-        };
-        plot = { ...outer, h: r2(outer.h - capped) };
-      } else if (position === "top") {
-        legendBox = { x: outer.x, y: outer.y, w: outer.w, h: r2(capped) };
-        plot = { ...outer, y: r2(outer.y + capped), h: r2(outer.h - capped) };
-      } else if (position === "left") {
-        legendBox = { x: outer.x, y: outer.y, w: r2(capped), h: outer.h };
-        plot = { ...outer, x: r2(outer.x + capped), w: r2(outer.w - capped) };
-      } else {
-        legendBox = {
-          x: r2(outer.x + outer.w - capped),
-          y: outer.y,
-          w: r2(capped),
-          h: outer.h,
-        };
-        plot = { ...outer, w: r2(outer.w - capped) };
-      }
+      const carved = carveLegend(outer, capped, position);
+      legendBox = carved.box;
+      plot = carved.plot;
     }
   }
 
@@ -224,20 +204,34 @@ export function resolveChartLayout(
     const twoTier = timeAxisTwoTier(presentation);
     // 세로 막대: 좌측 = 값 레이블, 하단 = 범주 레이블
     // 가로 막대: 좌측 = 범주 레이블, 하단 = 값 레이블
+    // 왼쪽 범례면 축 글자 왼끝이 영역 경계 (글자는 plot 왼쪽 0.4 글자에 끝 정렬 — axes.ts) — 남는 0.4 글자가
+    //   범례 간격 (`LEGEND_CHART_GAP`) 에 더해지지 않게.
+    const legendLeft = wantsLegend && props.legendPosition === "left";
     const leftGutter =
       (horizontal
         ? timeScale
           ? fontSize * 0.55 * 8
           : widestCategory
         : widestTick) +
-      fontSize * 0.8;
-    const bottomGutter = fontSize * (twoTier && !horizontal ? 2.8 : 1.6);
+      fontSize * (legendLeft ? 0.4 : 0.8);
+    // 범례가 아래면 축 글자 끝 (눈금 글자 위끝 0.4 · 두 단이면 1.7 + 글자 한 줄 — axes.ts) 까지만 — 남는 여유가
+    //   범례 간격 (`LEGEND_CHART_GAP`) 에 더해지지 않게.
+    const legendBelow = wantsLegend && props.legendPosition === "bottom";
+    const bottomGutter =
+      fontSize *
+      (twoTier && !horizontal ? (legendBelow ? 2.7 : 2.8) : legendBelow ? 1.4 : 1.6);
+    // 세로 값 축의 맨 위 눈금 글자는 plot 위끝에 가운데 맞춰 글자 반 높이만큼 위로 나온다 — 범례가 위에 있으면
+    //   그만큼 내려 범례와의 간격 (`LEGEND_CHART_GAP`) 이 글자에서도 지켜진다 (2026-11-16 사용자 결정 16px).
+    const topGutter =
+      wantsLegend && props.legendPosition === "top" && !horizontal
+        ? fontSize / 2
+        : 0;
     const nextW = plot.w - leftGutter;
-    const nextH = plot.h - bottomGutter;
+    const nextH = plot.h - bottomGutter - topGutter;
     if (nextW > 0 && nextH > 0) {
       plot = {
         x: r2(plot.x + leftGutter),
-        y: plot.y,
+        y: r2(plot.y + topGutter),
         w: r2(nextW),
         h: r2(nextH),
       };
@@ -259,6 +253,24 @@ export function resolveChartLayout(
   //   폭은 가장 긴 시리즈 이름 (그림 폭의 28 % 까지 — ztd 와 같은 상한).
   const endLabelWidth = endLabelsWidth(props, grid, plot.w, fontSize);
   if (endLabelWidth > 0) plot = { ...plot, w: r2(plot.w - endLabelWidth) };
+
+  // 원형 (pie · radar · radial) 은 왼쪽 · 오른쪽 범례가 있어도 가로 가운데 그대로다 (사용자 결정 2026-11-16 「범례로
+  //   차트가 좌우로 이동되면 안 된다 — 차트 가로는 center」 · 「범례는 차트 부모 상자의 left · right 에」). 범례는
+  //   떼어 낸 자리 (상자 가장자리) 그대로 두고, 그림 영역을 반대쪽에서도 같은 폭만큼 줄여 가운데를 지킨다 — 원은 그
+  //   안에 들어가므로 범례와의 간격은 `LEGEND_CHART_GAP` 이상이다.
+  const side = props.legendPosition;
+  if (
+    legendBox &&
+    POLAR_TYPES.has(props.chartType) &&
+    (side === "left" || side === "right")
+  ) {
+    const e = legendBox.w;
+    plot = {
+      ...plot,
+      x: r2(outer.x + e),
+      w: r2(Math.max(0, outer.w - 2 * e)),
+    };
+  }
 
   return {
     normalizedSize,
@@ -289,6 +301,9 @@ const RANGE_MAX_TYPES: ReadonlySet<string> = new Set([
   "radar",
   "radial",
 ]);
+/** 원형 차트 — 왼쪽 · 오른쪽 범례가 있어도 가로 가운데를 지킨다 (`layoutChart` 끝). */
+const POLAR_TYPES: ReadonlySet<string> = new Set(["pie", "radar", "radial"]);
+
 /** `includeZero` 가 비면 0 을 넣고 `false` 일 때만 빼는 종류 (패널 기준값 = true — binding `defaultWhen`). */
 export const CHART_ZERO_BY_DEFAULT_TYPES = ["line", "area", "scatter"] as const;
 const ZERO_TYPES: ReadonlySet<string> = new Set(CHART_ZERO_BY_DEFAULT_TYPES);

@@ -126,6 +126,9 @@ const ALTERNATIVES: Record<string, unknown[]> = {
   highlight: [["min"], ["last"]],
 };
 
+/** scene 이 아니라 Preview · Publish 의 실행 상태가 읽는 prop — 「보이는데 안 읽힘」 검사에서 뺀다. */
+const DOM_ONLY: ReadonlySet<string> = new Set(["showTooltip"]);
+
 function sceneOf(props: ChartProps): string {
   return JSON.stringify(
     computeChartScene(props, ROWS, SIZE, CHART_DEFAULT_METRICS),
@@ -182,9 +185,10 @@ describe("ADR-208 G2 ① — 소비되는 prop 은 반드시 보인다", () => {
   }
 
   /**
-   * 반대 방향 — **조건을 단 prop 이 보이는데 안 읽히면** 그것도 결함이다. 조건을 달았다는
-   * 것은 "이 종류 전용" 이라고 선언한 것이므로, 그 종류에서 아무 반응이 없으면 선언이 넓다.
-   * 조건이 **없는** prop 은 여기서 보지 않는다 — 그건 의도적으로 전 종류 공통이다.
+   * 반대 방향 — **보이는 prop 이 안 읽히면** 그것도 결함이다 (패널에만 있는 칸). 조건이 없는 prop 도
+   * 본다 — 2026-11-16 /fix: 「전 종류 공통」 으로 둔 범례 · 값 이름표 · 범례 자리가 family 21 · 12 · 6 종에서
+   * 아무것도 바꾸지 않았는데, 이 검사가 조건 없는 prop 을 건너뛰어 잡지 못했다. 툴팁은 Preview 의 실행
+   * 상태라 scene 이 갈리지 않는다 (`DOM_ONLY`).
    */
   for (const chartType of CHART_TYPES) {
     it(`${chartType} — 조건을 단 prop 이 보이면 실제로 읽힌다`, () => {
@@ -192,7 +196,8 @@ describe("ADR-208 G2 ① — 소비되는 prop 은 반드시 보인다", () => {
       const contracts = acceptsContracts();
       const visibleButInert = [...visibleFor(chartType)].filter(
         (k) =>
-          contracts[k]?.visibleWhen !== undefined &&
+          contracts[k] !== undefined &&
+          !DOM_ONLY.has(k) &&
           ALTERNATIVES[k] !== undefined &&
           !consumed.has(k),
       );
@@ -221,6 +226,7 @@ describe("ADR-208 G2 ① — 소비되는 prop 은 반드시 보인다", () => {
  */
 const FAMILY_TYPES = CHART_DESCRIPTORS.filter(
   (d) =>
+    d.family === "kpi" ||
     d.family === "category" ||
     d.family === "distribution" ||
     d.family === "matrix" ||
@@ -229,7 +235,7 @@ const FAMILY_TYPES = CHART_DESCRIPTORS.filter(
 const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
   orientation: ["vertical"],
   sort: ["none", "ascending"],
-  shape: ["thin", "line", "bar", "dots", "violin"],
+  shape: ["thin", "line", "bar", "dots", "violin", "semi", "ring"],
   cells: [50],
   columns: [5],
   // gauge (0 ~ 100) 와 candlestick (가격 6 만 대) 의 범위가 달라 후보를 둘 둔다.
@@ -253,8 +259,9 @@ const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
   wall: [false],
   texture: ["none", "all"],
   frontRate: ["strip", "none"],
-  showValueLabels: [false],
-  showLegend: [false],
+  showValueLabels: [false, true],
+  showLegend: [false, true],
+  legendPosition: ["left", "right", "top", "bottom"],
   // Phase 4 — distribution · matrix.
   percentiles: [[50]],
   edges: [[0, 500, 1000, 2000]],
@@ -290,7 +297,13 @@ describe("ADR-306 G2 ① — category · distribution · matrix family: 소비�
     Awaited<ReturnType<typeof loadChartFamily>>
   >();
   beforeAll(async () => {
-    for (const id of ["category", "distribution", "matrix", "network"] as const)
+    for (const id of [
+      "kpi",
+      "category",
+      "distribution",
+      "matrix",
+      "network",
+    ] as const)
       families.set(id, await loadChartFamily(id));
   });
   const familyOf = (chartType: FamilyChartType) =>
@@ -354,7 +367,8 @@ describe("ADR-306 G2 ① — category · distribution · matrix family: 소비�
       expect(
         [...shown].filter(
           (k) =>
-            contracts[k]?.visibleWhen !== undefined &&
+            contracts[k] !== undefined &&
+            !DOM_ONLY.has(k) &&
             FAMILY_ALTERNATIVES[k] !== undefined &&
             !used.has(k),
         ),
@@ -395,4 +409,59 @@ describe("ADR-306 — boolean 칩: 값이 없을 때의 그림 = 기준값의 �
       expect(mismatched).toEqual([]);
     });
   }
+});
+
+/**
+ * 2026-11-16 /fix — 같은 종류 안에서 다른 값에 달린 칸: 구멍 없는 pie 는 가운데 글자 · 합계를 그리지 않고,
+ * 점 크기 필드가 없는 산점도는 크기 범위가 아무것도 바꾸지 않는다. 그 값이 있을 때만 보인다.
+ */
+describe("값에 달린 칸 — 그 값이 있을 때만 보인다", () => {
+  const shown = (values: Record<string, unknown>) => {
+    const contracts = acceptsContracts();
+    const current: Record<string, unknown> = {};
+    for (const [key, contract] of Object.entries(contracts))
+      current[key] = contract.default;
+    Object.assign(current, values);
+    return new Set(
+      Object.entries(contracts)
+        .filter(([, contract]) =>
+          evaluateVisibility(contract.visibleWhen as never, current),
+        )
+        .map(([key]) => key),
+    );
+  };
+  it("pie — Center Label · Show Total only with a hole", () => {
+    const solid = shown({ chartType: "pie", innerRadius: 0 });
+    const donut = shown({ chartType: "pie", innerRadius: 60 });
+    expect(solid.has("centerLabel")).toBe(false);
+    expect(solid.has("showTotal")).toBe(false);
+    expect(donut.has("centerLabel")).toBe(true);
+    expect(donut.has("showTotal")).toBe(true);
+    // 구멍과 무관한 종류는 그대로 — radial 합계 · gauge 가운데 글자.
+    expect(shown({ chartType: "radial", innerRadius: 0 }).has("showTotal")).toBe(
+      true,
+    );
+    expect(
+      shown({ chartType: "gauge", innerRadius: 0 }).has("centerLabel"),
+    ).toBe(true);
+  });
+  it("scatter — Size Range only with a size field", () => {
+    expect(shown({ chartType: "scatter" }).has("sizeRange")).toBe(false);
+    expect(
+      shown({ chartType: "scatter", sizeField: "size" }).has("sizeRange"),
+    ).toBe(true);
+  });
+  it("a solid pie draws the same with or without Center Label · Show Total", () => {
+    const base = {
+      ...baseProps("pie"),
+      innerRadius: 0,
+    } as unknown as Record<string, unknown>;
+    const plain = sceneOf(base as unknown as ChartProps);
+    expect(
+      sceneOf({ ...base, centerLabel: "Center" } as unknown as ChartProps),
+    ).toBe(plain);
+    expect(
+      sceneOf({ ...base, showTotal: true } as unknown as ChartProps),
+    ).toBe(plain);
+  });
 });

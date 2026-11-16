@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart Property 패널 — 그 종류에 쓰이지 않는 칸 정리 · family 범례 위치] - 2026-11-16
+
+### Fixed
+
+- **종류에 맞지 않는 Content 칸이 보이던 것**:
+  - 범례 (Show Legend) 가 범례를 그리지 않는 family 21 종, 값 이름표 (Value labels) 가 이름표를 그리지 않는 family 12 종에도 보였다.
+  - **Why**: 두 칸과 범례 위치를 「전 종류 공통」 으로 보고 표시 조건을 달지 않았는데, ADR-306 family 종류가 생긴 뒤 이 전제가 깨졌다. 표시 조건 검사 (`chartVisibleWhen.test.ts`) 도 조건 없는 칸을 건너뛰어 잡지 못했다.
+  - 수정: 읽는 종류만 보인다 — 시리즈 7 종 + 범례 6 종 (dumbbell · segmented · marimekko · stream · skyline · heatmap) · 이름표 15 종 (descriptor 옵션 → binding `visibleWhen`).
+  - 구멍 없는 pie 의 Center Label · Show Total (donut 에서만 그림), 점 크기 필드 없는 산점도의 Size Range 도 숨긴다. 표시 조건에 「하나라도 맞으면」 (`any`) 을 더했다.
+  - 축이 없는 종류 (pie · radar · radial · family) 에서 비활성 「기준선 추가」 버튼과 안내 문구가 보이던 것을 칸째 숨긴다 (주석 칸과 같은 규칙).
+- **family 범례가 Legend Position 을 무시하던 것**: 6 종 모두 위 (segmented 목록은 아래) 에 고정이었다. 이제 위 · 아래 · 왼쪽 · 오른쪽을 따르고, 시리즈 차트와 같은 배치 함수 (`placeLegend` · `carveLegend`) 를 쓴다. segmented 는 목록과 막대의 자리를, heatmap 은 색 단계 띠 (좌 · 우는 세로) 를 옮긴다. 새로 놓는 dumbbell · marimekko · stream · skyline · heatmap 은 지금과 같은 위로 시작한다 (`legendPosition: "top"` — 생성 시에만).
+- **범례가 아래 · 오른쪽일 때 차트에 붙던 것** (시리즈 · family 공통): 범례 상자의 여백이 늘 상자 끝에 있어, 아래 범례는 축 글자에 (dumbbell 4px), 오른쪽 범례는 그림 끝에 (0px) 붙었다. 여백을 그림 쪽으로 옮겼다 (`buildLegend`).
+- **범례 ↔ 차트 간격 = 차트 내용 기준 16px, 네 방향** (원형 차트의 좌 · 우는 16px 이상 — 아래) (사용자 결정 — 위 · 아래 8px → 16px, 좌우도 16px, `LEGEND_CHART_GAP`): 전에는 종류 · 방향마다 달랐다 (위 · 아래 6 ~ 16px — bar 위 6.5 · 아래 8.2, pie 12 · 6, radar 15.7, radial 13.5, stream 12, dumbbell 9.5 · 11.5 / 좌우 6 ~ 107px — 원형 차트는 남는 폭이 그대로 간격).
+  - 범례 상자 = 범례 내용 + 16px. 범례 쪽 가장자리의 차트 자기 여백을 뺀다 — bar · line 은 값 축 맨 위 눈금 글자 반 줄을 그림 안으로 · 아래 범례면 범주 축 남는 여유 0 · 왼쪽 범례면 값 축 글자 앞 여유 0, family 는 그 쪽 여백 0 (dumbbell 행 이름 앞 10 · 오른쪽은 끝 점 · 값 이름표 끝이 경계, marimekko · stream 축 글자, heatmap 행 이름 · 칸 끝 반 간격 · 강조 테두리, segmented 목록).
+  - 원형 (pie · radar · radial): 위 · 아래 범례면 중심을 범례 쪽으로 옮겨 원 (radar 는 각도 이름) 끝이 16px — 남는 세로 여백은 반대쪽 (`polarCenterY`). 왼쪽 · 오른쪽 범례면 범례는 부모 상자의 그 쪽 끝, 차트는 **가로 가운데 그대로** (사용자 결정 「범례로 차트가 좌우로 이동되면 안 된다」 · 「범례는 부모 상자의 left · right」) — 그림 영역을 반대쪽에서도 범례 폭만큼 줄여 가운데를 지킨다, 범례와의 간격은 16px 이상 (`layout.ts`). Canvas scene 과 DOM Recharts 가 같은 값을 읽는다.
+  - 위치: `packages/rendering/src/chart/legend.ts` · `authoring.ts` · `families/{kpi,category/*,matrix/grid}.ts`, `packages/shared/src/catalog/bindings/Chart.binding.ts`, `apps/builder/src/builder/panels/properties/{ChartReferenceLineControls.tsx,generic/evaluateVisibility.ts}`
+
+### Tests
+
+- `legendPosition.test.ts` — 범례 6 종 × 4 방향: 범례가 그 쪽으로 가고 그림 영역이 범례 밖에 남는다 (수정 전 11 건 RED). bar · line · pie · radar · radial + 범례 family 6 종 × 네 방향이 차트 내용과 16px (± 0.5), 원형 3 종은 좌 · 우 범례에서도 가로 중심이 범례 없을 때와 같고 간격은 16px 이상, 모든 종류의 좌 · 우 범례는 부모 상자 끝에 붙는다. `computeChartScene` 좌표 스냅샷 2 건 (아래 범례 line · 오른쪽 범례 pie) 갱신.
+- `chartVisibleWhen.test.ts` — 「보이는데 안 읽힘」 검사가 조건 없는 칸도 보고 kpi family 까지 덮는다 · 구멍 없는 pie · 크기 필드 없는 산점도 (수정 전 29 건 RED).
+
 ## [새로 놓은 요소의 Overrides — 원본과 같은 생성 값은 쓰지 않는다] - 2026-11-16
 
 ### Fixed

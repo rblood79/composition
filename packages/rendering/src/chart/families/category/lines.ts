@@ -343,7 +343,8 @@ export function streamModel(
 }
 
 export function streamScene(ctx: CategoryContext) {
-  const { outer, fontSize } = ctx.frame;
+  const { fontSize } = ctx.frame;
+  let { outer } = ctx.frame;
   const model = streamModel(ctx, Math.max(40, Math.round(outer.w / 2)));
   if (model === null) return invalidScene(ctx);
   const { table } = model;
@@ -351,16 +352,33 @@ export function streamScene(ctx: CategoryContext) {
   if (nk === 0 || table.values.length === 0 || outer.w <= 0 || outer.h <= 0)
     return noDataScene(ctx);
   const { props, input } = ctx;
-  const { legend, height } = seriesLegend(
+  const placed = seriesLegend(
     ctx,
     table.names.map((label, s) => ({ label, seriesIndex: table.colors[s] })),
   );
-  const top = outer.y + height + 4;
-  const bottom = outer.y + outer.h - (fontSize + 10);
+  const { legend } = placed;
+  ctx = placed.ctx;
+  outer = ctx.frame.outer;
+  // 범례 쪽 가장자리는 자기 여백 없이 (범례 ↔ 그림 = `LEGEND_CHART_GAP`) — 아래는 범주 글자 아래끝이 경계.
+  const top = outer.y + (legend?.position === "top" ? 0 : 4);
+  const bottom =
+    outer.y +
+    outer.h -
+    (fontSize + (legend?.position === "bottom" ? 6 : 10));
   const all = [...model.y0.flat(), ...model.y1.flat()];
   const [lo, hi] = finiteExtent(all);
   const y = linearScale([lo, hi === lo ? lo + 1 : hi], [bottom, top]);
-  const xs = evenX(nk, outer.x + 4, outer.x + outer.w - 4);
+  // 처음 · 마지막 범주 이름은 점 위에 가운데 정렬 — 왼쪽 · 오른쪽 범례면 그 이름 끝이 영역 경계에 오도록 안쪽으로
+  //   (범례 ↔ 그림 = `LEGEND_CHART_GAP`). 다른 쪽은 지금처럼 4.
+  const edgeIn = (side: "left" | "right", label: string | undefined) =>
+    legend?.position === side
+      ? Math.max(4, approxTextWidth(label ?? "", fontSize) / 2)
+      : 4;
+  const xs = evenX(
+    nk,
+    outer.x + edgeIn("left", table.categories[0]),
+    outer.x + outer.w - edgeIn("right", table.categories[nk - 1]),
+  );
   const curve = CURVES.includes(props.curve) ? props.curve : "monotone";
   const marks: PathMark[] = model.order.map((s, li) => {
     const topPts = model.y1[li].map((v, k) => ({ along: xs(k), across: y(v) }));

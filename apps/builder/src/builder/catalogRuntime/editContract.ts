@@ -139,6 +139,7 @@ export function catalogEditContract(
           readModel.propSource(target, condition.key).value ??
           contracts[condition.key]?.default;
       condition.all?.forEach(visit);
+      condition.any?.forEach(visit);
     };
     contract.defaultWhen?.forEach((entry) => visit(entry.when));
     return values;

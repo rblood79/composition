@@ -11,15 +11,28 @@
  */
 import { hasHighlight, highlightIndex } from "../../highlight";
 import { approxTextWidth, r2 } from "../../scales";
-import type { ChartPaintRole, ChartTarget, Mark, TextMark } from "../../types";
+import type {
+  ChartLegendPosition,
+  ChartPaintRole,
+  ChartTarget,
+  Mark,
+  Rect,
+  TextMark,
+} from "../../types";
 import {
   categoryLabels,
   invalidScene,
   noDataScene,
   sceneOf,
   truncated,
+  withPlot,
   type CategoryContext,
 } from "../category/common";
+import {
+  carveLegend,
+  LEGEND_CHART_GAP,
+  legendPositionOf,
+} from "../../legend";
 import { numberOption, readLabel, readNumber, requireField } from "../fields";
 import { fitText, roundRectPath } from "../shapes";
 
@@ -45,45 +58,59 @@ export function stepOf(t: number): ChartPaintRole {
 function swatchLegend(
   ctx: CategoryContext,
   labels: readonly [string, string],
-  y: number,
+  box: Rect,
+  position: ChartLegendPosition,
 ): Mark[] {
-  const { outer, fontSize } = ctx.frame;
-  const right = outer.x + outer.w;
-  const hiW = approxTextWidth(labels[1], fontSize);
+  const { fontSize } = ctx.frame;
   const sw = 12;
   const gap = 2;
-  const startX = right - hiW - 6 - 4 * (sw + gap);
   const out: Mark[] = [];
-  for (let k = 0; k < 4; k++)
+  const step = (k: number, x: number, y: number, w: number, h: number) =>
     out.push({
       kind: "rect",
-      x: r2(startX + k * (sw + gap)),
-      y: r2(y - 4.5),
-      w: sw,
-      h: 9,
+      x: r2(x),
+      y: r2(y),
+      w,
+      h,
       seriesIndex: 0,
       fillPaint: `step-${k + 1}` as ChartPaintRole,
     });
-  out.push(
-    {
+  const text = (value: string, x: number, y: number, anchor: TextMark["anchor"]) =>
+    out.push({
       kind: "text",
-      x: r2(startX - 4),
+      x: r2(x),
       y: r2(y),
-      text: labels[0],
-      anchor: "end",
+      text: value,
+      anchor,
       baseline: "middle",
       role: "legend",
-    },
-    {
-      kind: "text",
-      x: r2(right),
-      y: r2(y),
-      text: labels[1],
-      anchor: "end",
-      baseline: "middle",
-      role: "legend",
-    },
-  );
+    });
+  if (position === "left" || position === "right") {
+    // 세로 띠 — 위가 많음 (단계 4), 아래가 적음. 띠 열 (글자 · 견본 중 넓은 폭) 은 격자 반대쪽에 붙고 격자 쪽에
+    //   `LEGEND_CHART_GAP` 이 남는다.
+    const colW = Math.max(sw, ...labels.map((l) => approxTextWidth(l, fontSize)));
+    const cx =
+      position === "right"
+        ? box.x + LEGEND_CHART_GAP + colW / 2
+        : box.x + colW / 2;
+    const lineH = fontSize * 1.4;
+    const stripH = 4 * (9 + gap) - gap;
+    const y0 = box.y + lineH;
+    text(labels[1], cx, box.y + lineH / 2, "middle");
+    for (let k = 0; k < 4; k++)
+      step(3 - k, cx - sw / 2, y0 + k * (9 + gap), sw, 9);
+    text(labels[0], cx, y0 + stripH + lineH / 2, "middle");
+    return out;
+  }
+  // 가로 띠 — 오른쪽 끝 정렬. 띠 줄 (글자 한 줄 높이) 은 격자 반대쪽에 붙고 격자 쪽에 `LEGEND_CHART_GAP` 이 남는다.
+  const y =
+    box.y + (position === "bottom" ? LEGEND_CHART_GAP : 0) + fontSize / 2;
+  const right = box.x + box.w;
+  const hiW = approxTextWidth(labels[1], fontSize);
+  const startX = right - hiW - 6 - 4 * (sw + gap);
+  for (let k = 0; k < 4; k++) step(k, startX + k * (sw + gap), y - 4.5, sw, 9);
+  text(labels[0], startX - 4, y, "end");
+  text(labels[1], right, y, "end");
   return out;
 }
 
@@ -158,7 +185,8 @@ export function heatmapModel(ctx: CategoryContext): HeatmapModel | null {
 export function heatmapScene(ctx: CategoryContext) {
   const model = heatmapModel(ctx);
   if (model === null) return invalidScene(ctx);
-  const { outer, fontSize } = ctx.frame;
+  const { fontSize } = ctx.frame;
+  let { outer } = ctx.frame;
   const nCells = model.vals.length;
   if (
     nCells === 0 ||
@@ -169,15 +197,39 @@ export function heatmapScene(ctx: CategoryContext) {
     return noDataScene(ctx);
   const { props, input } = ctx;
   const fx = input.formatValue;
-  const legendH = props.showLegend !== false ? fontSize * 1.8 : 0;
+  // 색 단계 범례 — 범례 자리 (`legendPosition`) 에서 떼고 남은 영역에 격자를 그린다.
+  const legendPos = legendPositionOf(props.legendPosition);
+  const legendText = legendLabels(ctx);
+  const legendSide = legendPos === "left" || legendPos === "right";
+  const legendExtent =
+    props.showLegend === false
+      ? 0
+      : legendSide
+        ? Math.max(
+            12,
+            ...legendText.map((label) => approxTextWidth(label, fontSize)),
+          ) + LEGEND_CHART_GAP
+        : fontSize + LEGEND_CHART_GAP;
+  const legendCarve =
+    legendExtent > 0 &&
+    legendExtent <= (legendSide ? outer.w : outer.h) / 3
+      ? carveLegend(outer, legendExtent, legendPos)
+      : null;
+  if (legendCarve) {
+    ctx = withPlot(ctx, legendCarve.plot);
+    outer = ctx.frame.outer;
+  }
+  // 행 이름 칸 — 왼쪽 범례면 앞 여백 8 없이 (가장 긴 이름의 왼끝 = 영역 경계).
   const leftW = Math.min(
     outer.w * 0.3,
     model.ys.reduce((m, l) => Math.max(m, approxTextWidth(l, fontSize)), 10) +
-      8,
+      (legendCarve && legendPos === "left" ? 0 : 8),
   );
-  const bottom = fontSize + 10;
+  // 아래 범례면 열 이름 아래끝이 영역 경계 (범례 ↔ 격자 = `LEGEND_CHART_GAP`).
+  const bottom =
+    fontSize + (legendCarve && legendPos === "bottom" ? 5 : 10);
   const x0 = outer.x + leftW + 4;
-  const y0 = outer.y + legendH;
+  const y0 = outer.y;
   const plotW = outer.x + outer.w - x0;
   const plotH = outer.y + outer.h - bottom - y0;
   if (plotW < 4 || plotH < 4) return sceneOf(ctx, { marks: [] });
@@ -208,6 +260,19 @@ export function heatmapScene(ctx: CategoryContext) {
     Array.from(model.vals.subarray(0, nCells)),
     hiIdx,
   );
+  // 위 범례면 첫 줄 칸 위의 반 간격만큼 격자를 올리고, 오른쪽 범례면 마지막 열 칸 끝의 반 간격만큼 오른쪽으로 — 범례 ↔
+  //   칸 = `LEGEND_CHART_GAP`. 강조 칸의 테두리 (칸 밖 1) 가 그 끝 줄 · 열에 있으면 테두리가 끝이다.
+  const hiOnEdge = (edge: "top" | "right") =>
+    hiIdx >= 0 &&
+    (edge === "top"
+      ? Math.floor(hiIdx / fullW) === 0
+      : hiIdx % fullW === nx - 1)
+      ? 1
+      : 0;
+  const lift =
+    legendCarve && legendPos === "top" ? gap / 2 - hiOnEdge("top") : 0;
+  const shiftX =
+    legendCarve && legendPos === "right" ? gap / 2 - hiOnEdge("right") : 0;
   const valuesOn =
     props.showValueLabels === true &&
     cw >= approxTextWidth(fx(model.max), fontSize) + 8 &&
@@ -220,8 +285,8 @@ export function heatmapScene(ctx: CategoryContext) {
       const i = row * fullW + col;
       const v = model.vals[i];
       if (!Number.isFinite(v)) continue;
-      const x = x0 + col * cw + gap / 2;
-      const y = y0 + row * ch + gap / 2;
+      const x = x0 + shiftX + col * cw + gap / 2;
+      const y = y0 - lift + row * ch + gap / 2;
       const w = Math.max(0.5, cw - gap);
       const h = Math.max(0.5, ch - gap);
       const bbox = { x: r2(x), y: r2(y), w: r2(w), h: r2(h) };
@@ -265,9 +330,9 @@ export function heatmapScene(ctx: CategoryContext) {
         ],
       });
     }
-  if (legendH > 0)
+  if (legendCarve)
     marks.push(
-      ...swatchLegend(ctx, legendLabels(ctx), outer.y + legendH / 2 - 2),
+      ...swatchLegend(ctx, legendText, legendCarve.box, legendPos),
     );
   const every =
     ch >= fontSize ? 1 : Math.ceil((fontSize + 1) / Math.max(1, ch));
@@ -275,8 +340,8 @@ export function heatmapScene(ctx: CategoryContext) {
     texts.push({
       kind: "text",
       x: r2(outer.x + leftW),
-      y: r2(y0 + row * ch + ch / 2),
-      text: fitText(model.ys[row], leftW - 2, fontSize),
+      y: r2(y0 - lift + row * ch + ch / 2),
+      text: fitText(model.ys[row], leftW - (legendCarve && legendPos === "left" ? 0 : 2), fontSize),
       anchor: "end",
       baseline: "middle",
       role: "tick",
@@ -285,7 +350,7 @@ export function heatmapScene(ctx: CategoryContext) {
     categoryLabels(
       ctx,
       model.xs.slice(0, nx),
-      model.xs.slice(0, nx).map((_, col) => x0 + col * cw + cw / 2),
+      model.xs.slice(0, nx).map((_, col) => x0 + shiftX + col * cw + cw / 2),
       outer.y + outer.h - bottom + fontSize * 0.5 + 5,
     ),
   ];

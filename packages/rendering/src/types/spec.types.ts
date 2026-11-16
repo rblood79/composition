@@ -361,6 +361,8 @@ export interface BaseFieldDef {
 
 export type VisibilityCondition = {
   all?: VisibilityCondition[];
+  /** 하나라도 맞으면 통과 (`all` 과 함께 쓰면 둘 다). */
+  any?: VisibilityCondition[];
   key?: string;
   equals?: string | number | boolean;
   notEquals?: string | number | boolean;

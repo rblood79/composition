@@ -39,8 +39,8 @@ function readLines(raw: unknown): ChartReferenceLine[] {
  * - 행 하나 = 기준선 하나 (값 · 라벨 · 선 모양 · 층), 삭제는 행 메뉴, 추가는 아래 버튼 (≤ 4).
  * - 모든 편집은 배열 **전체 교체** 한 번 (`seriesConfig` 와 같은 규약) — 빈 배열은 키를 지운다
  *   (미설정 = 현행, byte 동일 경로).
- * - 값 축이 없는 종류 (pie/radar/radial) 는 안내만 두고 추가 버튼을 비활성화한다 (validator 가
- *   거부하는 값을 조용히 저장하지 않는다).
+ * - 값 축이 없는 종류 (pie/radar/radial · family) 는 그리지 않는다 — 기준선을 그리지 않는 종류에 칸을
+ *   두지 않는다 (2026-11-16 /fix, 주석 칸과 같은 규칙. 전에는 비활성 버튼 + 안내였다).
  */
 export const ChartReferenceLineControls = memo(
   function ChartReferenceLineControls({
@@ -56,7 +56,7 @@ export const ChartReferenceLineControls = memo(
     ) as Record<string, unknown>;
     const chartType = (props.chartType ??
       CHART_DEFAULT_PROPS.chartType) as ChartType;
-    const applies = CHART_REFERENCE_LINE_TYPES_SUPPORTED.includes(chartType);
+    if (!CHART_REFERENCE_LINE_TYPES_SUPPORTED.includes(chartType)) return null;
     const lines = readLines(props.referenceLines);
     const write = (next: ChartReferenceLine[]): void => {
       onPatch({ referenceLines: next.length === 0 ? undefined : next });
@@ -150,19 +150,15 @@ export const ChartReferenceLineControls = memo(
             className="control-button"
             data-variant="add"
             data-chart-add-reference-line=""
-            isDisabled={!applies || lines.length >= CHART_REFERENCE_LINES_MAX}
+            isDisabled={lines.length >= CHART_REFERENCE_LINES_MAX}
             onPress={() => write([...lines, { value: 0 }])}
           >
             <AddIcon aria-hidden="true" size={14} />
             {t("chart.addReferenceLine")}
           </Button>
-          {!applies || lines.length >= CHART_REFERENCE_LINES_MAX ? (
+          {lines.length >= CHART_REFERENCE_LINES_MAX ? (
             <span slot="description" role="status">
-              {!applies
-                ? t("chart.referenceOnlyCartesian")
-                : t("chart.referenceMaxHint", {
-                    max: CHART_REFERENCE_LINES_MAX,
-                  })}
+              {t("chart.referenceMaxHint", { max: CHART_REFERENCE_LINES_MAX })}
             </span>
           ) : null}
         </div>

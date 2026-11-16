@@ -21,6 +21,7 @@ import {
   dotRadius,
   isFamilyChartType,
   linearScale,
+  polarCenterY,
   polarLabelAnchor,
   resolveCategoryBand,
   resolveChartAnimation,
@@ -501,7 +502,13 @@ function SeriesRechartsChart({
       referenceY: presentation.referenceLines[0]?.value,
     });
     const cx = plot.x + plot.w / 2,
-      cy = plot.y + plot.h / 2;
+      cy = polarCenterY(
+        props.chartType,
+        plot,
+        fontSize,
+        props,
+        legendBox !== null,
+      );
     const polarRadius =
       Math.min(plot.w, plot.h) / 2 -
       (props.chartType === "radar" && props.showAxis

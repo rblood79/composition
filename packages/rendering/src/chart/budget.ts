@@ -120,6 +120,30 @@ export function polarGeometry(
   return { outer, inner: outer * ratio };
 }
 
+/**
+ * 원형 차트 (pie · radar · radial) 의 중심 y. 위 · 아래 범례가 놓였으면 중심을 범례 쪽으로 옮겨 원 (radar 는 각도
+ * 이름까지) 의 끝이 범례에서 `LEGEND_CHART_GAP` 이 되게 한다 — 남는 세로 여백 (각도 이름 자리 · 넓이에 맞춘 원) 은
+ * 범례 반대쪽으로 간다 (사용자 결정 2026-11-16 「차트 기준 범례와 간격 위 · 아래 16px」). Canvas scene 과 DOM 이
+ * 같이 읽는다.
+ */
+export function polarCenterY(
+  kind: ChartType,
+  plot: Rect,
+  fontSize: number,
+  props: Pick<ChartProps, "showAxis" | "innerRadius" | "legendPosition">,
+  legendPlaced: boolean,
+): number {
+  const middle = plot.y + plot.h / 2;
+  const side = props.legendPosition;
+  if (!legendPlaced || (side !== "top" && side !== "bottom")) return middle;
+  const { outer } = polarGeometry(kind, plot, fontSize, props);
+  if (outer <= 0) return middle;
+  // radar 각도 이름 — 맨 위 · 맨 아래 글자는 원 밖 글자 반 줄 + 한 줄 (`polarAxes` 의 0.5 · baseline).
+  const overhang = kind === "radar" && props.showAxis ? fontSize * 1.5 : 0;
+  const slack = Math.max(0, plot.h / 2 - outer - overhang);
+  return side === "top" ? middle - slack : middle + slack;
+}
+
 /** radial 의 sweep — `endAngle − startAngle`, 0 이하·360 초과는 한 바퀴 (`marks/radial.ts`). */
 export function budgetSweep(
   kind: ChartType,

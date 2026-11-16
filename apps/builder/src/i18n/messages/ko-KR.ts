@@ -188,7 +188,6 @@ const catalog: TranslationKeys = {
     layerFront: "앞 (데이터 위)",
     addReferenceLine: "기준선 추가",
     removeReferenceLine: "기준선 삭제",
-    referenceOnlyCartesian: "기준선은 막대·선·영역 차트에서만 씁니다.",
     referenceMaxHint: "기준선은 최대 {max}개입니다.",
     // ADR-306 Phase 6 — 주석
     annotations: "주석",

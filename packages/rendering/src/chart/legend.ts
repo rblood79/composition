@@ -8,6 +8,7 @@
 import { approxTextWidth, r2 } from "./scales";
 import type {
   ChartLegendPosition,
+  ChartPaintRole,
   LegendItem,
   LegendScene,
   Rect,
@@ -23,6 +24,8 @@ export interface LegendEntry {
   label: string;
   /** 팔레트 인덱스 (이미 modulo 됨) */
   colorIndex: number;
+  /** 팔레트 대신 역할 색 (dumbbell 의 이전 · 이후 = neutral · accent). */
+  fillPaint?: ChartPaintRole;
 }
 
 export interface LegendInput {
@@ -36,6 +39,11 @@ export interface LegendInput {
 export const LEGEND_SWATCH = 10;
 export const LEGEND_GAP = 6;
 export const LEGEND_ITEM_GAP = 14;
+/**
+ * 범례와 차트 사이 (범례 내용 ↔ 차트 내용) — 사용자 결정 2026-11-16 「차트 기준 범례와 간격 위 · 아래 8px」 → 같은 날
+ * 16px · 좌우도 16px. 줄 사이 (`LEGEND_GAP`) · 가로 항목 사이 (`LEGEND_ITEM_GAP`) 는 그대로다.
+ */
+export const LEGEND_CHART_GAP = 16;
 
 export function legendItemWidth(label: string, fontSize: number): number {
   return LEGEND_SWATCH + LEGEND_GAP + approxTextWidth(label, fontSize);
@@ -58,7 +66,7 @@ export function legendExtent(
       const w = legendItemWidth(label, fontSize);
       if (w > widest) widest = w;
     }
-    return r2(widest + LEGEND_ITEM_GAP);
+    return r2(widest + LEGEND_CHART_GAP);
   }
 
   let rows = 1;
@@ -71,7 +79,70 @@ export function legendExtent(
     }
     x += w + LEGEND_ITEM_GAP;
   }
-  return r2(rows * rowHeight + LEGEND_GAP);
+  // 줄 내용 높이 (마지막 줄 뒤 줄 간격 없음) + 차트 쪽 간격.
+  return r2(rows * rowHeight - LEGEND_GAP + LEGEND_CHART_GAP);
+}
+
+/**
+ * 범례 자리 떼기 — `position` 쪽 가장자리에서 `extent` (가로면 폭 · 세로면 높이) 만큼 범례 상자를 떼고
+ * 남은 그림 영역을 돌려준다. 시리즈 경로 (`layout.ts`) 와 family (`placeLegend`) 가 같은 배치를 쓴다.
+ */
+export function carveLegend(
+  outer: Rect,
+  extent: number,
+  position: ChartLegendPosition,
+): { box: Rect; plot: Rect } {
+  const e = r2(extent);
+  if (position === "top")
+    return {
+      box: { x: outer.x, y: outer.y, w: outer.w, h: e },
+      plot: { ...outer, y: r2(outer.y + e), h: r2(outer.h - e) },
+    };
+  if (position === "left")
+    return {
+      box: { x: outer.x, y: outer.y, w: e, h: outer.h },
+      plot: { ...outer, x: r2(outer.x + e), w: r2(outer.w - e) },
+    };
+  if (position === "right")
+    return {
+      box: { x: r2(outer.x + outer.w - e), y: outer.y, w: e, h: outer.h },
+      plot: { ...outer, w: r2(outer.w - e) },
+    };
+  return {
+    box: { x: outer.x, y: r2(outer.y + outer.h - e), w: outer.w, h: e },
+    plot: { ...outer, h: r2(outer.h - e) },
+  };
+}
+
+/** 범례 자리 이름 — 모르는 값은 기본 (bottom). */
+export function legendPositionOf(value: unknown): ChartLegendPosition {
+  return value === "top" || value === "left" || value === "right"
+    ? value
+    : "bottom";
+}
+
+/**
+ * family 범례 — 자리 (`legendPosition`) 에 범례를 놓고 남은 그림 영역을 돌려준다 (2026-11-16 /fix — 전에는
+ * family 마다 위에 고정해 그렸다). 범례가 그 방향 길이의 1/3 을 넘으면 내지 않는다 — 작은 상자 (Library
+ * 표본 칸 · 좁은 카드) 에서 범례가 그림을 밀어내 아무것도 읽히지 않는다 (색 이름은 툴팁에 남는다).
+ */
+export function placeLegend(input: {
+  entries: readonly LegendEntry[];
+  outer: Rect;
+  position: unknown;
+  fontSize: number;
+}): { legend: LegendScene | null; plot: Rect } {
+  const { entries, outer, fontSize } = input;
+  const position = legendPositionOf(input.position);
+  const vertical = position === "left" || position === "right";
+  const extent = legendExtent(entries, position, outer.w, fontSize);
+  if (extent <= 0 || extent > (vertical ? outer.w : outer.h) / 3)
+    return { legend: null, plot: outer };
+  const { box, plot } = carveLegend(outer, extent, position);
+  return {
+    legend: buildLegend({ entries, box, position, fontSize }),
+    plot,
+  };
 }
 
 export function buildLegend(input: LegendInput): LegendScene | null {
@@ -82,14 +153,18 @@ export function buildLegend(input: LegendInput): LegendScene | null {
   const rowHeight = Math.max(LEGEND_SWATCH, fontSize) + LEGEND_GAP;
   const vertical = position === "left" || position === "right";
 
-  let x = box.x;
-  let y = box.y;
+  // 상자의 여백 (`legendExtent` 의 LEGEND_CHART_GAP) 은 그림 쪽에 둔다 — top · left 는 상자 끝,
+  //   bottom · right 는 상자 시작. 늘 시작점부터 놓으면 bottom · right 범례가 그림 (축 글자 · 막대) 에 붙는다
+  //   (2026-11-16 /fix — 사용자 보고 「legend bottom 일 때 chart 와 여백이 없다」).
+  const startX = box.x + (position === "right" ? LEGEND_CHART_GAP : 0);
+  let x = startX;
+  let y = box.y + (position === "bottom" ? LEGEND_CHART_GAP : 0);
 
   for (const entry of entries) {
     const label = entry.label;
     const width = legendItemWidth(label, fontSize);
-    if (!vertical && x > box.x && x + width > box.x + box.w) {
-      x = box.x;
+    if (!vertical && x > startX && x + width > box.x + box.w) {
+      x = startX;
       y += rowHeight;
     }
 
@@ -104,6 +179,7 @@ export function buildLegend(input: LegendInput): LegendScene | null {
         w: LEGEND_SWATCH,
         h: LEGEND_SWATCH,
         seriesIndex: entry.colorIndex,
+        ...(entry.fillPaint ? { fillPaint: entry.fillPaint } : {}),
       },
       text: {
         kind: "text",

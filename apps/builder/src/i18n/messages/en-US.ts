@@ -191,8 +191,6 @@ const catalog: TranslationKeys = {
     layerFront: "Front (over data)",
     addReferenceLine: "Add reference line",
     removeReferenceLine: "Remove reference line",
-    referenceOnlyCartesian:
-      "Reference lines are for bar, line and area charts only.",
     referenceMaxHint: "Up to {max} reference lines.",
     // ADR-306 Phase 6 — annotations
     annotations: "Annotations",

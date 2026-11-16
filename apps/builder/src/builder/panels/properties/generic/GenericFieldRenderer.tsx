@@ -1527,7 +1527,8 @@ function collectGateKeys(
 ): void {
   if (!condition) return;
   if (condition.key) out.add(condition.key.split(".")[0]!);
-  for (const part of condition.all ?? []) collectGateKeys(part, out);
+  for (const part of [...(condition.all ?? []), ...(condition.any ?? [])])
+    collectGateKeys(part, out);
 }
 
 /**
