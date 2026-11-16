@@ -219,4 +219,18 @@ describe("프롬프트 직렬화", () => {
     for (const category of categories)
       expect(index).toContain(`- ${category}:`);
   });
+
+  // ADR-312 Decision 7 — Chart 의 종류별 형태 · 필수 역할 · 기본 열 이름 · 행 정책이 역할 표에서 나온다.
+  it("Chart 상세에 종류별 입력 형태가 실린다 (역할 표 파생)", () => {
+    const text = formatCatalogEntry(getAiCatalogEntry("Chart")!, tr);
+    expect(text).toContain(
+      "  - bump: ranked(dimension*=category, color*=series, rankField*=rank) sum · group(dimension*=category, color*=series, metric*=value) sum",
+    );
+    expect(text).toContain(
+      "  - parallel: columns(valueFields*, labelField=label, invertFields) row",
+    );
+    expect(text).toContain(
+      "  - box: group(dimension*=category, metric*=value) sample",
+    );
+  });
 });

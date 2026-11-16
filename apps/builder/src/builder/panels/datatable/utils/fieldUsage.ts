@@ -7,10 +7,13 @@
  * - **바인딩 `fieldMap`** (label/value/description/icon) — 값이 `field.id` 또는 `field.key`
  * - **`columnMapping`** — 그 필드 key 를 가진 열 (차트 시리즈 · 테이블 열)
  * - **`{field}` / `{#fieldId}` 템플릿** — 문자열 prop 전수 (`compileFieldTemplate`)
+ * - **Chart 역할** (ADR-312) — 그 collection 에 연결된 Chart 의 역할 prop (역할 표 `CHART_ROLE_KEYS` — 값이
+ *   `#field.id` 또는 field.key, 목록 역할은 그 원소)
  *
  * 바인딩이 있으면 그 collection 에 매인 요소만, 없으면 (텍스트 요소) 템플릿·columnMapping 만
  * 본다. 순수 함수 — store 를 모른다.
  */
+import { CHART_ROLE_KEYS } from "@composition/rendering";
 import {
   compileFieldTemplate,
   resolveBoundCollection,
@@ -23,11 +26,14 @@ import type {
 export interface UsageBearingElement {
   id: string;
   type?: string;
+  /** 컴포넌트 type 이름 (`Chart`) — `type` 이 정의 id 일 때 어댑터가 채운다. */
+  componentType?: string;
   props?: unknown;
   dataBinding?: unknown;
 }
 
-export type FieldUsageReason = "fieldMap" | "columnMapping" | "template";
+export type FieldUsageReason =
+  "fieldMap" | "columnMapping" | "template" | "chartRole";
 
 export interface FieldUsageRef {
   id: string;
@@ -61,6 +67,19 @@ function usesInColumnMapping(props: unknown, field: DataField): boolean {
   const mapping = (props as { columnMapping?: unknown }).columnMapping;
   if (!mapping || typeof mapping !== "object") return false;
   return Object.prototype.hasOwnProperty.call(mapping, field.key);
+}
+
+/** ADR-312 — Chart 의 역할 prop 이 그 필드를 가리키는가 (`#id` 또는 key, 목록 역할은 원소). */
+function chartRoleUsesField(props: unknown, field: DataField): boolean {
+  if (!props || typeof props !== "object") return false;
+  const record = props as Record<string, unknown>;
+  const hits = (value: unknown): boolean =>
+    typeof value === "string" &&
+    ((!!field.id && value === `#${field.id}`) || value === field.key);
+  return CHART_ROLE_KEYS.some((key) => {
+    const value = record[key];
+    return Array.isArray(value) ? value.some(hits) : hits(value);
+  });
 }
 
 /** 문자열 값 안에서 field.key (flat 토큰) 또는 `#field.id` 저장형 토큰을 쓰는가. */
@@ -117,6 +136,12 @@ export function resolveFieldUsage(
     else if (usesInColumnMapping(element.props, field))
       reason = "columnMapping";
     else if (anyTemplateUsesField(element.props, field)) reason = "template";
+    else if (
+      boundHere &&
+      (element.componentType ?? element.type) === "Chart" &&
+      chartRoleUsesField(element.props, field)
+    )
+      reason = "chartRole";
 
     if (reason)
       out.push({ id: element.id, type: element.type ?? null, reason });

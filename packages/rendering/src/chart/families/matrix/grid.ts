@@ -28,13 +28,10 @@ import {
   withPlot,
   type CategoryContext,
 } from "../category/common";
-import {
-  carveLegend,
-  LEGEND_CHART_GAP,
-  legendPositionOf,
-} from "../../legend";
+import { carveLegend, LEGEND_CHART_GAP, legendPositionOf } from "../../legend";
 import { numberOption, readLabel, readNumber, requireField } from "../fields";
 import { fitText, roundRectPath } from "../shapes";
+import { chartTimeParser } from "../../series";
 
 /** 값 목록의 「거의 최대」 — 24 개 이상이면 95 번째 백분위 (튀는 칸 하나가 나머지를 흐리게 하지 않게). */
 export function robustMax(values: ArrayLike<number>): number {
@@ -75,7 +72,12 @@ function swatchLegend(
       seriesIndex: 0,
       fillPaint: `step-${k + 1}` as ChartPaintRole,
     });
-  const text = (value: string, x: number, y: number, anchor: TextMark["anchor"]) =>
+  const text = (
+    value: string,
+    x: number,
+    y: number,
+    anchor: TextMark["anchor"],
+  ) =>
     out.push({
       kind: "text",
       x: r2(x),
@@ -88,7 +90,10 @@ function swatchLegend(
   if (position === "left" || position === "right") {
     // 세로 띠 — 위가 많음 (단계 4), 아래가 적음. 띠 열 (글자 · 견본 중 넓은 폭) 은 격자 반대쪽에 붙고 격자 쪽에
     //   `LEGEND_CHART_GAP` 이 남는다.
-    const colW = Math.max(sw, ...labels.map((l) => approxTextWidth(l, fontSize)));
+    const colW = Math.max(
+      sw,
+      ...labels.map((l) => approxTextWidth(l, fontSize)),
+    );
     const cx =
       position === "right"
         ? box.x + LEGEND_CHART_GAP + colW / 2
@@ -211,8 +216,7 @@ export function heatmapScene(ctx: CategoryContext) {
           ) + LEGEND_CHART_GAP
         : fontSize + LEGEND_CHART_GAP;
   const legendCarve =
-    legendExtent > 0 &&
-    legendExtent <= (legendSide ? outer.w : outer.h) / 3
+    legendExtent > 0 && legendExtent <= (legendSide ? outer.w : outer.h) / 3
       ? carveLegend(outer, legendExtent, legendPos)
       : null;
   if (legendCarve) {
@@ -226,8 +230,7 @@ export function heatmapScene(ctx: CategoryContext) {
       (legendCarve && legendPos === "left" ? 0 : 8),
   );
   // 아래 범례면 열 이름 아래끝이 영역 경계 (범례 ↔ 격자 = `LEGEND_CHART_GAP`).
-  const bottom =
-    fontSize + (legendCarve && legendPos === "bottom" ? 5 : 10);
+  const bottom = fontSize + (legendCarve && legendPos === "bottom" ? 5 : 10);
   const x0 = outer.x + leftW + 4;
   const y0 = outer.y;
   const plotW = outer.x + outer.w - x0;
@@ -331,9 +334,7 @@ export function heatmapScene(ctx: CategoryContext) {
       });
     }
   if (legendCarve)
-    marks.push(
-      ...swatchLegend(ctx, legendText, legendCarve.box, legendPos),
-    );
+    marks.push(...swatchLegend(ctx, legendText, legendCarve.box, legendPos));
   const every =
     ch >= fontSize ? 1 : Math.ceil((fontSize + 1) / Math.max(1, ch));
   for (let row = 0; row < ny; row += every)
@@ -341,7 +342,11 @@ export function heatmapScene(ctx: CategoryContext) {
       kind: "text",
       x: r2(outer.x + leftW),
       y: r2(y0 - lift + row * ch + ch / 2),
-      text: fitText(model.ys[row], leftW - (legendCarve && legendPos === "left" ? 0 : 2), fontSize),
+      text: fitText(
+        model.ys[row],
+        leftW - (legendCarve && legendPos === "left" ? 0 : 2),
+        fontSize,
+      ),
       anchor: "end",
       baseline: "middle",
       role: "tick",
@@ -376,23 +381,17 @@ const MONTHS = [
   "Dec",
 ];
 
-/** 날짜 값 → UTC 자정 epoch (읽을 수 없으면 null). `YYYY-MM-DD` 는 timezone 과 무관하게 그 날. */
-export function utcDay(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    const d = new Date(value);
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  }
-  if (typeof value !== "string") return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
-  if (m) {
-    const t = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    const d = new Date(t);
-    // 2023-02-29 처럼 없는 날은 거부한다 (Date 가 3 월 1 일로 넘기지 않게).
-    return d.getUTCMonth() === Number(m[2]) - 1 ? t : null;
-  }
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) return null;
-  const d = new Date(parsed);
+/**
+ * 날짜 값 → 그날 0 시 (UTC). ADR-312 Decision 9 — 해석은 시간 축과 같은 `chartTimeParser` (`dimensionFormat` ·
+ * 엄격 ISO · epoch ms) 이고 여기서는 날로 자를 뿐이다. 없는 날 (2023-02-29) 은 null.
+ */
+export function utcDay(
+  value: unknown,
+  parse: (value: unknown) => number | null = chartTimeParser({}),
+): number | null {
+  const t = parse(value);
+  if (t === null) return null;
+  const d = new Date(t);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
@@ -423,8 +422,9 @@ export function calendarModel(ctx: CategoryContext): CalendarModel | null {
   if (!input.ok || dimension === null || metric === null) return null;
   const ws = Math.round(numberOption(props.weekStart, 0, 0, 1));
   const byDay = new Map<number, { v: number; rows: number[] }>();
+  const parse = chartTimeParser(props);
   rows.forEach((row, i) => {
-    const t = utcDay(row[dimension]);
+    const t = utcDay(row[dimension], parse);
     if (t === null) return;
     const v = readNumber(row, metric);
     const prev = byDay.get(t);

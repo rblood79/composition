@@ -175,7 +175,15 @@ export type ChartRow = Readonly<Record<string, unknown>>;
  * - `columns`: `valueFields` 의 **필드 하나가 시리즈 하나** (wide 표 `{month, desktop, mobile}`).
  *   원본 행을 long 으로 변환해 저장하지 않는다 — 집계에서 필드를 읽는다.
  */
-export type ChartDataMode = "group" | "columns";
+export type ChartDataMode =
+  | "group"
+  | "columns"
+  /** ADR-312 — histogram: 미리 센 구간 (시작 · 끝 · 개수) */
+  | "binned"
+  /** ADR-312 — bump: 순위 열을 그대로 */
+  | "ranked"
+  /** ADR-312 — slope: 항목마다 앞 · 뒤 두 값 */
+  | "pair";
 
 /**
  * ADR-215 — 시리즈 팔레트 id. `categorical` = rule `chart.series` (Spectrum categorical 8),
@@ -248,6 +256,8 @@ export type ChartDiagnosticCode =
   // ADR-306 — family 입력 (breakdown §4.2 「검증」 단계).
   | "role.missing"
   | "role.notNumeric"
+  // ADR-312 Phase 3 — 같은 키의 행에서 합칠 수 없는 역할 (순위 · 구간 경계) 이 갈린다 — 첫 행 값을 쓴다.
+  | "rows.duplicate"
   | "valueRange.invalid"
   | "bands.invalid"
   | "rangeFields.invalid"
@@ -489,7 +499,6 @@ export interface ChartProps {
   openField?: string;
   highField?: string;
   lowField?: string;
-  closeField?: string;
   volumeField?: string;
   /** 종가 이동평균 기간 (candlestick — 2 이상 · 봉 수 미만 · 앞의 3 개). */
   movingAverages?: readonly (number | string)[];

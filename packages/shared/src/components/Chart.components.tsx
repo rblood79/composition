@@ -140,7 +140,8 @@ export function Chart({
       chartType: chartType ?? CHART_DEFAULT_PROPS.chartType,
       dimension: dimension ?? CHART_DEFAULT_PROPS.dimension,
       metric: metric ?? CHART_DEFAULT_PROPS.metric,
-      ...(color ? { color } : {}),
+      // ADR-312 — 빈 글자는 「Series 해제」 (명시), 없음은 「기본 열 이름」 — 둘을 합치지 않는다.
+      ...(color !== undefined ? { color } : {}),
       orientation: orientation ?? CHART_DEFAULT_PROPS.orientation,
       stackType: stackType ?? CHART_DEFAULT_PROPS.stackType,
       curve: curve ?? CHART_DEFAULT_PROPS.curve,

@@ -9,9 +9,14 @@
  * canonical 의 저장 위치(props / `x-composition`)를 이 모듈이 다시 판정하지 않는다.
  */
 import {
-  CHART_DESCRIPTORS,
   CHART_FIELD_ROLE_KEYS,
+  chartActiveForm,
+  chartRoleDef,
+  chartRoleLabel,
+  chartSampleColumns,
 } from "@composition/rendering";
+import type { ChartRow } from "@composition/rendering";
+import type { ChartProps } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import type { PanelField } from "./generic/GenericFieldRenderer";
 
@@ -25,22 +30,18 @@ import { fieldsFromOwner } from "./hooks/useOwnerCollectionColumns";
 export const CHART_MAPPING_FIELD_KEYS: readonly string[] =
   CHART_FIELD_ROLE_KEYS;
 /**
- * 해제 항목 (None) 을 첫 자리에 두는 선택 역할 — 비워도 그려지는 필드. 종류마다 다르다 (sparkline 의
- * Category 는 선택이지만 bar 의 Category 는 필수) — 시리즈 7 종은 Series 하나, family 는 descriptor 의
- * 필수가 아닌 역할.
+ * 해제 항목 (None) 을 첫 자리에 두는 선택 역할 — 비워도 그려지는 필드. 종류 · 형태마다 다르다 (sparkline 의
+ * Category 는 선택이지만 bar 의 Category 는 필수) — ADR-312 역할 표의 지금 형태 (`chartActiveForm`).
  */
-function optionalFieldKeys(chartType: unknown): ReadonlySet<string> {
-  const descriptor = CHART_DESCRIPTORS.find((d) => d.chartType === chartType);
-  if (!descriptor) return SERIES_OPTIONAL;
-  const optional = descriptor.roles
-    .filter((role) => !role.required)
-    .map((role) => role.prop);
-  // ADR-306 Phase 5 — 시리즈 7 종도 보강 역할 (scatter 크기 · 이름) 은 선택이다.
-  return descriptor.family === null
-    ? new Set([...SERIES_OPTIONAL, ...optional])
-    : new Set(optional);
+function optionalFieldKeys(
+  props: Pick<ChartProps, "chartType" | "dataMode">,
+): ReadonlySet<string> {
+  return new Set(
+    chartActiveForm(props)
+      .roles.filter((use) => !use.required)
+      .map((use) => use.role),
+  );
 }
-const SERIES_OPTIONAL: ReadonlySet<string> = new Set(["color"]);
 
 export interface ChartFieldOptionLabels {
   /** 빈 값(미설정·시리즈 해제) 항목의 표시 라벨 — `chart.none`. */
@@ -68,11 +69,18 @@ export function buildChartSemanticFields(
   fields: ResolvedField[],
   collections: readonly DataTable[],
   labels: ChartFieldOptionLabels,
+  /**
+   * ADR-312 F14 — 연결의 원천 열 (보기의 결과 schema — `chartBindingColumns`). 있으면 컬렉션 schema 대신 이것이
+   * 열 선택지다: 집계 열은 id 가 없어 key 로 저장된다.
+   */
+  sourceColumns?: readonly { key: string; id?: string }[],
 ): PanelField[] {
   const props = Object.fromEntries(
     fields.map((field) => [field.key, field.currentValue]),
   );
-  const ownerFields = fieldsFromOwner({ props }, collections);
+  const ownerFields = sourceColumns
+    ? sourceColumns.map(({ key, id }) => ({ key, ...(id ? { id } : {}) }))
+    : fieldsFromOwner({ props }, collections);
   // ADR-152 1b: collection 필드는 저장 값 = `#<fieldId>` (rename-safe), 표시 = key.
   //   id 없는 출처 (정적 items · legacy static) 는 key 그대로. 현재 값이 구 형식 (key) 이고
   //   같은 key 에 id 가 있으면 `#id` 항목으로 접는다 (저장 값은 다음 편집 때 바뀐다).
@@ -84,12 +92,39 @@ export function buildChartSemanticFields(
     return ownerFields?.find((f) => f.id === id)?.key ?? value;
   };
   const columns = ownerFields?.map(storedValue) ?? null;
-  const optional = optionalFieldKeys(props.chartType);
+  const form = props as Pick<ChartProps, "chartType" | "dataMode">;
+  const availableKeys = new Set<string>(
+    ownerFields
+      ? ownerFields.map((f) => f.key)
+      : (Array.isArray(props.data) ? (props.data as object[]) : []).flatMap(
+          (row) => (row && typeof row === "object" ? Object.keys(row) : []),
+        ),
+  );
+  const optional = optionalFieldKeys(form);
   return fields
     .filter((field) => field.key !== "data" || !props.dataBinding)
     .map((field): PanelField => {
+      if (field.key === "data" && field.itemsManager)
+        return withSampleColumns(field, form, props.data);
       if (!CHART_MAPPING_FIELD_KEYS.includes(field.key)) return field;
-      if (!columns) return { ...field, optionsFromData: true };
+      // ADR-312 Decision 8 — 값이 없는 역할은 기본 열 이름으로 읽힌다: 칸도 그 이름을 보인다 (빈 글자는 해제라 그대로).
+      //   선택 역할은 그 열이 원천에 있을 때만 읽히므로 (`resolveChartRoleDefaults`) 열이 있을 때만 보인다.
+      if (field.currentValue === undefined) {
+        const fallback = chartRoleDef(field.key)?.defaultField;
+        const use = chartActiveForm(form).roles.find(
+          (u) => u.role === field.key,
+        );
+        if (
+          typeof fallback === "string" &&
+          use &&
+          (use.required || availableKeys.has(fallback))
+        )
+          // (칸 값은 leaf hook 이 문서에서 읽고 값이 없으면 기준값 — 기준값도 기본 열 이름.)
+          field = { ...field, currentValue: fallback, baseValue: fallback };
+      }
+      // ADR-312 — 종류 · 형태별 라벨 (scatter 의 X · Y, calendar 의 Date). 번역은 라벨이 조회 key 다.
+      const label = chartRoleLabel(form, field.key) ?? field.label;
+      if (!columns) return { ...field, label, optionsFromData: true };
       const rawCurrent = String(field.currentValue ?? "");
       const currentField = ownerFields?.find(
         (f) => f.key === rawCurrent && f.id,
@@ -102,6 +137,7 @@ export function buildChartSemanticFields(
         : [current, ...columns];
       return {
         ...field,
+        label,
         optionsFromData: true,
         // 구 형식 (key) 현재 값은 `#id` 항목이 선택 상태로 보이도록 접는다.
         ...(current !== rawCurrent ? { currentValue: current } : {}),
@@ -112,4 +148,34 @@ export function buildChartSemanticFields(
         })),
       };
     });
+}
+
+/**
+ * ADR-312 — 표본 행 편집기의 칸은 지금 형태의 역할에서 (고정 Category · Value · Series 가 아니다 — F3). 역할이
+ * 가리키는 열 + 행에만 있는 열, 새 행은 숫자 열 0 · 글자 열 「New」.
+ */
+function withSampleColumns(
+  field: ResolvedField,
+  form: Pick<ChartProps, "chartType" | "dataMode">,
+  data: unknown,
+): PanelField {
+  const rows = (Array.isArray(data) ? data : []) as ChartRow[];
+  const columns = chartSampleColumns(form, rows);
+  if (columns.length === 0 || !field.itemsManager) return field;
+  const firstText = columns.find((column) => !column.numeric) ?? columns[0];
+  return {
+    ...field,
+    itemsManager: {
+      ...field.itemsManager,
+      itemSchema: columns.map((column) => ({
+        key: column.key,
+        type: "string" as const,
+        label: column.label,
+      })),
+      defaultItem: Object.fromEntries(
+        columns.map((column) => [column.key, column.numeric ? 0 : "New"]),
+      ),
+      labelKey: firstText.key,
+    },
+  };
 }

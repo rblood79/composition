@@ -34,6 +34,7 @@ import type {
   ChartValueLocale,
 } from "./types";
 import { supportsBudgetMode } from "./budget";
+import { chartTypeHasForm } from "./roles";
 
 // ── identity ────────────────────────────────────────────────────────────────
 
@@ -142,7 +143,6 @@ const CHART_PERCENT_UNITS: readonly ChartPercentUnit[] = [
   "ratio",
   "percentagePoints",
 ];
-const CHART_DATA_MODES: readonly ChartDataMode[] = ["group", "columns"];
 
 /** ISO 4217 형식 + 런타임 Intl 지원 여부 (지원 목록 API 가 없으면 형식만). */
 export function isSupportedCurrency(code: unknown): code is string {
@@ -286,6 +286,81 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * `seriesConfig` 해석 — 형식 검증 (`seriesConfig.invalid` error) · 중복 key (first-wins 경고) · 팔레트 토큰 검증.
+ * ADR-312 Phase 4 — 시리즈 경로 (`resolveChartPresentation`) 와 family (`chartSeriesItems`) 가 같이 읽는다.
+ */
+export function resolveSeriesConfig(
+  rawConfig: unknown,
+  paletteLength: number,
+  diagnostics: ChartDiagnostic[] = [],
+): ResolvedSeriesConfig[] {
+  const seriesConfig: ResolvedSeriesConfig[] = [];
+  const error = (
+    code: ChartDiagnosticCode,
+    message: string,
+    value?: string,
+  ): void => {
+    diagnostics.push({ code, severity: "error", message, value });
+  };
+  const warning = (
+    code: ChartDiagnosticCode,
+    message: string,
+    value?: string,
+  ): void => {
+    diagnostics.push({ code, severity: "warning", message, value });
+  };
+  if (rawConfig !== undefined) {
+    if (!Array.isArray(rawConfig)) {
+      error("seriesConfig.invalid", "seriesConfig must be an array");
+    } else {
+      const seen = new Set<string>();
+      for (const entry of rawConfig as unknown[]) {
+        if (
+          !isRecord(entry) ||
+          typeof entry.key !== "string" ||
+          parseSeriesIdentity(entry.key) === null ||
+          (Object.hasOwn(entry, "label") && typeof entry.label !== "string") ||
+          (Object.hasOwn(entry, "colorToken") &&
+            typeof entry.colorToken !== "string")
+        ) {
+          error(
+            "seriesConfig.invalid",
+            "seriesConfig entry needs a series identity key and string label/colorToken",
+          );
+          continue;
+        }
+        if (seen.has(entry.key)) {
+          warning(
+            "seriesConfig.duplicateKey",
+            `duplicate series config "${entry.key}" — first one is used`,
+            entry.key,
+          );
+          continue;
+        }
+        seen.add(entry.key);
+        const resolved: ResolvedSeriesConfig = { key: entry.key };
+        if (Object.hasOwn(entry, "label"))
+          resolved.label = entry.label as string;
+        if (Object.hasOwn(entry, "colorToken")) {
+          const index = seriesTokenIndex(entry.colorToken, paletteLength);
+          if (index === null) {
+            warning(
+              "seriesConfig.colorToken.invalid",
+              `unknown palette token "${String(entry.colorToken)}" — default color is used`,
+              String(entry.colorToken),
+            );
+          } else {
+            resolved.paletteIndex = index;
+          }
+        }
+        seriesConfig.push(resolved);
+      }
+    }
+  }
+  return seriesConfig;
+}
+
+/**
  * 저장 props → 정규화된 표시 설정. 원본 `props` 는 읽기만 한다.
  *
  * `paletteLength` 는 rule chart 채널의 `series.length` — colorToken 검증 기준이다.
@@ -349,13 +424,15 @@ export function resolveChartPresentation(
   if (rawMode !== undefined) {
     if (
       typeof rawMode === "string" &&
-      (CHART_DATA_MODES as readonly string[]).includes(rawMode)
+      // ADR-312 — 그 종류의 형태 (`CHART_FORMS`) 만. pie · radial 의 columns 는 아래 전용 진단이 맡는다.
+      (chartTypeHasForm(props.chartType, rawMode as ChartDataMode) ||
+        rawMode === "columns")
     ) {
       dataMode = rawMode as ChartDataMode;
     } else {
       error(
         "dataMode.invalid",
-        `dataMode must be group or columns`,
+        `dataMode must be one of the chart type's forms`,
         String(rawMode),
       );
     }
@@ -394,7 +471,8 @@ export function resolveChartPresentation(
     ) {
       error("valueFields.empty", "columns mode needs at least one value field");
     }
-    if (props.chartType === "pie" || props.chartType === "radial") {
+    // ADR-312 — 형태 표에 columns 가 없는 종류 (ADR-210 — Pie · Radial).
+    if (!chartTypeHasForm(props.chartType, "columns")) {
       error(
         "columns.unsupportedChartType",
         `columns mode is not supported for ${props.chartType} charts`,
@@ -411,56 +489,11 @@ export function resolveChartPresentation(
   }
 
   // ── seriesConfig ──
-  const seriesConfig: ResolvedSeriesConfig[] = [];
-  const rawConfig = props.seriesConfig as unknown;
-  if (rawConfig !== undefined) {
-    if (!Array.isArray(rawConfig)) {
-      error("seriesConfig.invalid", "seriesConfig must be an array");
-    } else {
-      const seen = new Set<string>();
-      for (const entry of rawConfig as unknown[]) {
-        if (
-          !isRecord(entry) ||
-          typeof entry.key !== "string" ||
-          parseSeriesIdentity(entry.key) === null ||
-          (Object.hasOwn(entry, "label") && typeof entry.label !== "string") ||
-          (Object.hasOwn(entry, "colorToken") &&
-            typeof entry.colorToken !== "string")
-        ) {
-          error(
-            "seriesConfig.invalid",
-            "seriesConfig entry needs a series identity key and string label/colorToken",
-          );
-          continue;
-        }
-        if (seen.has(entry.key)) {
-          warning(
-            "seriesConfig.duplicateKey",
-            `duplicate series config "${entry.key}" — first one is used`,
-            entry.key,
-          );
-          continue;
-        }
-        seen.add(entry.key);
-        const resolved: ResolvedSeriesConfig = { key: entry.key };
-        if (Object.hasOwn(entry, "label"))
-          resolved.label = entry.label as string;
-        if (Object.hasOwn(entry, "colorToken")) {
-          const index = seriesTokenIndex(entry.colorToken, paletteLength);
-          if (index === null) {
-            warning(
-              "seriesConfig.colorToken.invalid",
-              `unknown palette token "${String(entry.colorToken)}" — default color is used`,
-              String(entry.colorToken),
-            );
-          } else {
-            resolved.paletteIndex = index;
-          }
-        }
-        seriesConfig.push(resolved);
-      }
-    }
-  }
+  const seriesConfig = resolveSeriesConfig(
+    props.seriesConfig,
+    paletteLength,
+    diagnostics,
+  );
 
   // ── number format ──
   let format: ChartValueFormat = "auto";

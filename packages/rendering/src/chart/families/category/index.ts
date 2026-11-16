@@ -22,6 +22,7 @@ import {
 import { marimekkoScene, skylineScene } from "./blocks";
 import { categoryContext, type CategoryContext } from "./common";
 import { bumpScene, slopeScene, sparklineScene, streamScene } from "./lines";
+import { withRowPolicy } from "../rowPolicy";
 
 export const CATEGORY_TYPES = [
   "lollipop",
@@ -214,7 +215,7 @@ const SAMPLE_PROPS: Record<CategoryType, Partial<ChartProps>> = {
 
 export const categoryFamily: ChartFamily = {
   id: "category",
-  buildScene(props, rows, size, metrics) {
+  buildScene: withRowPolicy((props, rows, size, metrics) => {
     const type = props.chartType as FamilyChartType;
     if (!isCategory(type)) {
       const frame = chartFrame(size, metrics);
@@ -233,7 +234,7 @@ export const categoryFamily: ChartFamily = {
       );
     }
     return SCENES[type](categoryContext(props, rows, size, metrics));
-  },
+  }),
   sample(type) {
     return isCategory(type) ? SAMPLES[type]() : [];
   },

@@ -18,6 +18,7 @@ import { categoryContext, type CategoryContext } from "../category/common";
 import type { ChartFamily } from "../types";
 import { chordScene, sankeyScene } from "./links";
 import { sunburstScene, treemapScene } from "./tree";
+import { withRowPolicy } from "../rowPolicy";
 
 export const NETWORK_TYPES = [
   "treemap",
@@ -105,7 +106,7 @@ const SAMPLE_PROPS: Record<NetworkType, Partial<ChartProps>> = {
 
 export const networkFamily: ChartFamily = {
   id: "network",
-  buildScene(props, rows, size, metrics) {
+  buildScene: withRowPolicy((props, rows, size, metrics) => {
     const type = props.chartType as FamilyChartType;
     if (!isNetwork(type)) {
       const frame = chartFrame(size, metrics);
@@ -124,7 +125,7 @@ export const networkFamily: ChartFamily = {
       );
     }
     return SCENES[type](categoryContext(props, rows, size, metrics, false));
-  },
+  }),
   sample(type) {
     return isNetwork(type) ? SAMPLES[type]() : [];
   },

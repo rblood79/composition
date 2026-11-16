@@ -174,3 +174,35 @@ export const ChartTimeAxisControls = memo(function ChartTimeAxisControls({
     </>
   );
 });
+
+/**
+ * ADR-312 Decision 9 — 날짜가 범주인 family (calendar · candlestick) 의 날짜 입력 형식. 시간 축과 같은
+ * `dimensionFormat` (같은 parser — `chartTimeParser`) 이고, 축은 늘 날짜라 간격 선택은 두지 않는다.
+ */
+export const ChartDateFormatControl = memo(function ChartDateFormatControl({
+  fields,
+  onPatch,
+}: {
+  fields: ResolvedField[];
+  onPatch: (patch: Record<string, unknown>) => void;
+}) {
+  const { t } = useI18n();
+  const current = fields.find(
+    (field) => field.key === "dimensionFormat",
+  )?.currentValue;
+  const format = typeof current === "string" ? current : "";
+  return (
+    <div className="fieldset-row" data-wide="true">
+      <PropertyInput
+        label={t("chart.dimensionFormat")}
+        value={format}
+        placeholder={t("chart.dimensionFormatPlaceholder")}
+        onChange={(text) => {
+          const next = text.trim() === "" ? undefined : text;
+          if (next !== (format === "" ? undefined : format))
+            onPatch({ dimensionFormat: next });
+        }}
+      />
+    </div>
+  );
+});

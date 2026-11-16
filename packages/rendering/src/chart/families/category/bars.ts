@@ -48,6 +48,11 @@ import {
   valueAxisY,
   type CategoryContext,
 } from "./common";
+import {
+  chartSeriesByKey,
+  chartSeriesItems,
+  chartSeriesName,
+} from "../../seriesItems";
 
 export const pct = (v: number) =>
   Number.isFinite(v) ? `${Math.round(v * 10) / 10}%` : "-";
@@ -322,6 +327,31 @@ export function lollipopScene(ctx: CategoryContext) {
   return sceneOf(ctx, { marks: [...marks, ...labels], axes, targets });
 }
 
+/**
+ * ADR-312 Phase 4 — 범주가 색 조각인 종류 (segmented · waffle) 의 시리즈 표시 표. 표의 항목이 앞 (표 순서),
+ * 나머지는 출현 순서로 줄을 세우고 (그 뒤 정렬 옵션이 이긴다 — 안정 정렬), 이름 · 팔레트 자리를 준다.
+ */
+function categorySeries(ctx: CategoryContext, values: LabeledValue[]) {
+  const items = chartSeriesItems(ctx.props, ctx.rows, ctx.metrics.seriesCount, {
+    diagnostics: ctx.input.diagnostics,
+  });
+  const byKey = chartSeriesByKey(items);
+  const rank = new Map(items.map((item, i) => [item.key, i]));
+  const n = Math.max(1, ctx.metrics.seriesCount);
+  return {
+    ordered: [...values].sort(
+      (a, b) =>
+        (rank.get(a.label) ?? Infinity) - (rank.get(b.label) ?? Infinity),
+    ),
+    nameOf: (label: string) => {
+      const item = byKey.get(label);
+      return item ? chartSeriesName(item) : label;
+    },
+    colorOf: (label: string, fallback: number) =>
+      byKey.get(label)?.seriesIndex ?? fallback % n,
+  };
+}
+
 // ── segmented ──────────────────────────────────────────────────────────────
 
 export interface SegmentPart extends LabeledValue {
@@ -335,9 +365,9 @@ export function segmentedModel(
 ): { parts: SegmentPart[]; total: number } | null {
   const values = labelValues(ctx, true);
   if (values === null) return null;
-  const ordered = sortByValue(values, sortOf(ctx.props, "descending"));
+  const series = categorySeries(ctx, values);
+  const ordered = sortByValue(series.ordered, sortOf(ctx.props, "descending"));
   const total = ordered.reduce((s, r) => s + r.value, 0);
-  const n = Math.max(1, ctx.metrics.seriesCount);
   // ADR-306 Phase 6 — `highlight` 를 주면 강조 밖 조각은 neutral (others 색 index — ztd segmented 기본 max).
   const picked = highlightSet(
     ctx.props.highlight,
@@ -347,8 +377,9 @@ export function segmentedModel(
   return {
     parts: ordered.map((r, k) => ({
       ...r,
+      label: series.nameOf(r.label),
       share: total > 0 ? r.value / total : 0,
-      color: highlightColor(picked, k, k % n),
+      color: highlightColor(picked, k, series.colorOf(r.label, k)),
     })),
     total,
   };
@@ -518,8 +549,10 @@ export interface WaffleModel {
 }
 
 export function waffleModel(ctx: CategoryContext): WaffleModel | null {
-  const values = labelValues(ctx, true);
-  if (values === null) return null;
+  const raw = labelValues(ctx, true);
+  if (raw === null) return null;
+  const series = categorySeries(ctx, raw);
+  const values = series.ordered;
   const { props } = ctx;
   const finite = (v: unknown, fallback: number) =>
     typeof v === "number" && Number.isFinite(v) ? v : fallback;
@@ -535,7 +568,6 @@ export function waffleModel(ctx: CategoryContext): WaffleModel | null {
     props.valueMax !== undefined && Number.isFinite(props.valueMax)
       ? props.valueMax
       : values.reduce((s, r) => s + r.value, 0);
-  const n = Math.max(1, ctx.metrics.seriesCount);
   // ADR-306 Phase 6 — `highlight` 를 주면 강조 밖 칸은 neutral, 요약 숫자는 강조 행 (ztd waffle 기본 first).
   const picked = highlightSet(
     ctx.props.highlight,
@@ -546,7 +578,8 @@ export function waffleModel(ctx: CategoryContext): WaffleModel | null {
     hi: picked ? firstHighlight(picked) : 0,
     items: values.map((r, k) => ({
       ...r,
-      color: highlightColor(picked, k, k % n),
+      label: series.nameOf(r.label),
+      color: highlightColor(picked, k, series.colorOf(r.label, k)),
     })),
     counts: allocateCells(
       values.map((r) => r.value),

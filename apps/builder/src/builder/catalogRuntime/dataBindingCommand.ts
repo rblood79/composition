@@ -29,6 +29,7 @@ import type {
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { catalogPaletteDefinitionId } from "./paletteInsert";
+import { chartBindingRolesCommand } from "./chartRoleReconcile";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
   RAC_COLLECTION_CHILD_TYPES,
@@ -220,6 +221,9 @@ export const catalogBindingCommand = (
           );
         continue;
       }
+      // ADR-312 Decision 10 — Chart 는 원천 (보기의 결과 schema · 해제면 표본) 에 역할을 맞춘다 (같은 step).
+      if (type === "Chart")
+        run(chartBindingRolesCommand(stage, target.id, binding));
       if (!binding) {
         run(clearRowTemplates(target.id));
         continue;

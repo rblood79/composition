@@ -20,6 +20,7 @@ import type { ChartFamily } from "../types";
 import { calendarScene, heatmapScene } from "./grid";
 import { parallelScene } from "./parallel";
 import { candlestickScene } from "./price";
+import { withRowPolicy } from "../rowPolicy";
 
 export const MATRIX_TYPES = [
   "heatmap",
@@ -191,7 +192,7 @@ const SAMPLE_PROPS: Record<MatrixType, Partial<ChartProps>> = {
     openField: "open",
     highField: "high",
     lowField: "low",
-    closeField: "close",
+    metric: "close",
     volumeField: "volume",
     // 패널 목록 칸 (string-array) 이 저장하는 모양 그대로 — 문서 검증이 글자 배열만 받는다.
     movingAverages: ["5", "20"],
@@ -206,7 +207,7 @@ const SAMPLE_PROPS: Record<MatrixType, Partial<ChartProps>> = {
 
 export const matrixFamily: ChartFamily = {
   id: "matrix",
-  buildScene(props, rows, size, metrics) {
+  buildScene: withRowPolicy((props, rows, size, metrics) => {
     const type = props.chartType as FamilyChartType;
     if (!isMatrix(type)) {
       const frame = chartFrame(size, metrics);
@@ -225,7 +226,7 @@ export const matrixFamily: ChartFamily = {
       );
     }
     return SCENES[type](categoryContext(props, rows, size, metrics, false));
-  },
+  }),
   sample(type) {
     return isMatrix(type) ? SAMPLES[type]() : [];
   },

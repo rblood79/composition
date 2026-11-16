@@ -1,8 +1,8 @@
 import { useI18n } from "@/i18n";
 
 import {
-  buildSeriesGrid,
-  seriesLabel,
+  chartSeriesItems,
+  chartSeriesKind,
   seriesTokenIndex,
   seriesTokenName,
   type ChartProps,
@@ -71,17 +71,18 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
   ) as Record<string, unknown>;
   const configField = fields.find((field) => field.key === "seriesConfig");
   const config = readSeriesConfig(props.seriesConfig);
-  const { grid, naturalOrder } = useMemo(() => {
+  const { grid, naturalOrder, nameOnly } = useMemo(() => {
     const palette = Math.max(1, paletteLength);
     const chartProps = props as unknown as ChartProps;
+    // ADR-312 Phase 4 — 그림과 같은 색 항목 목록 (`chartSeriesItems` — 종류마다 원천 하나).
     return {
-      grid: buildSeriesGrid(rows, chartProps, palette),
+      grid: { series: chartSeriesItems(chartProps, rows, palette) },
       // 설정을 뺀 **자연 순서** (출현 / valueFields) — key 만 있는 항목을 저장할지의 기준.
-      naturalOrder: buildSeriesGrid(
-        rows,
-        { ...chartProps, seriesConfig: undefined },
-        palette,
-      ).series.map((series) => series.id),
+      naturalOrder: chartSeriesItems(chartProps, rows, palette, {
+        natural: true,
+      }).map((series) => series.id),
+      // parallel 은 축 이름만 읽는다 (축 순서는 값 열 목록, 선 색은 행마다).
+      nameOnly: chartSeriesKind(chartProps.chartType) === "valueFields",
     };
     // props 는 매 렌더 새 객체 — 실제 의존은 fields/rows 다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -138,7 +139,7 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
           seriesTokenIndex(entry.colorToken, paletteLength) !== null
             ? entry.colorToken
             : "";
-        const name = seriesLabel(series, t("chart.series"));
+        const name = series.label ?? (series.key || t("chart.series"));
         return (
           <div key={series.id} className="fieldset-row chart-series-row">
             <PropertyInput
@@ -154,38 +155,44 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
                 )
               }
             />
-            <PropertySelect
-              label={t("chart.seriesColor")}
-              className="chart-series-color"
-              value={token}
-              options={tokenOptions}
-              translateOptions={false}
-              onChange={(value) =>
-                write((entries) =>
-                  entries.map((e, i) => {
-                    if (i !== index) return e;
-                    const { colorToken: _drop, ...rest } = e;
-                    return value ? { ...rest, colorToken: value } : rest;
-                  }),
-                )
-              }
-            />
+            {!nameOnly && (
+              <PropertySelect
+                label={t("chart.seriesColor")}
+                className="chart-series-color"
+                value={token}
+                options={tokenOptions}
+                translateOptions={false}
+                onChange={(value) =>
+                  write((entries) =>
+                    entries.map((e, i) => {
+                      if (i !== index) return e;
+                      const { colorToken: _drop, ...rest } = e;
+                      return value ? { ...rest, colorToken: value } : rest;
+                    }),
+                  )
+                }
+              />
+            )}
             <div className="fieldset-actions actions-chart-series">
               <PropertyRowMenu
                 label={`${name} ${t("chart.rowActions")}`}
                 items={[
-                  {
-                    id: "up",
-                    label: t("chart.moveUp"),
-                    icon: ArrowUp,
-                    isDisabled: index === 0,
-                  },
-                  {
-                    id: "down",
-                    label: t("chart.moveDown"),
-                    icon: ArrowDown,
-                    isDisabled: index === grid.series.length - 1,
-                  },
+                  ...(nameOnly
+                    ? []
+                    : [
+                        {
+                          id: "up",
+                          label: t("chart.moveUp"),
+                          icon: ArrowUp,
+                          isDisabled: index === 0,
+                        },
+                        {
+                          id: "down",
+                          label: t("chart.moveDown"),
+                          icon: ArrowDown,
+                          isDisabled: index === grid.series.length - 1,
+                        },
+                      ]),
                   {
                     id: "reset",
                     label: t("common.reset"),

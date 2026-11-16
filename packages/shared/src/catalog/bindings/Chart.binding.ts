@@ -1,5 +1,8 @@
 import {
   CHART_FAMILY_PROP_KEYS,
+  CHART_FORMS,
+  CHART_ROLE_DEFS,
+  CHART_ROLE_KEYS,
   CHART_TYPE_DESCRIPTORS,
   CHART_ZERO_BY_DEFAULT_TYPES,
   SERIES_CHART_TYPES,
@@ -9,6 +12,73 @@ import type { PrimitiveBinding } from "../types";
 
 /** ADR-306 — 필드 역할을 읽는 종류 (조건은 `computeChartScene` · family 의 실제 소비 — R2). */
 const SERIES_TYPES: string[] = [...SERIES_CHART_TYPES];
+
+/**
+ * ADR-312 — 역할 칸이 보이는 조건 = 그 역할을 쓰는 형태 (`CHART_FORMS`). 모든 형태가 쓰는 종류는 종류만,
+ * 일부 형태만 쓰는 종류는 그 형태의 `dataMode` 까지 본다 (미설정 = binding 기본 `group`).
+ */
+function roleVisibleWhen(key: string) {
+  const always: string[] = [];
+  const byMode = new Map<string, string[]>();
+  for (const [type, forms] of Object.entries(CHART_FORMS)) {
+    const using = forms.filter((form) =>
+      form.roles.some((use) => use.role === key),
+    );
+    if (using.length === 0) continue;
+    if (using.length === forms.length) {
+      always.push(type);
+      continue;
+    }
+    for (const form of using) {
+      // 미설정 `dataMode` = 그 종류의 첫 형태 — 첫 형태는 「값 없음」 도 맞는다.
+      const id = form === forms[0] ? `${form.id}|first` : form.id;
+      byMode.set(id, [...(byMode.get(id) ?? []), type]);
+    }
+  }
+  return {
+    any: [
+      { key: "chartType", oneOf: always },
+      ...[...byMode].map(([mode, types]) => {
+        const [id, first] = mode.split("|");
+        return {
+          all: [
+            { key: "chartType", oneOf: types },
+            first
+              ? {
+                  any: [
+                    { key: "dataMode", equals: id },
+                    { key: "dataMode", truthy: false },
+                  ],
+                }
+              : { key: "dataMode", equals: id },
+          ],
+        };
+      }),
+    ],
+  };
+}
+
+/**
+ * ADR-312 — 역할 칸 (`valueFields` 는 원천 모드 컨트롤이 편집해 아래에 따로 둔다). `dimension` · `metric` 의
+ * binding 기본값 (`category` · `value`) 은 저장 계약이라 Phase 2 (기본 열 이름) 까지 그대로 둔다.
+ */
+const CHART_ROLE_ACCEPTS = Object.fromEntries(
+  CHART_ROLE_DEFS.filter((def) => def.key !== "valueFields").map((def) => [
+    def.key,
+    {
+      kind:
+        def.kind === "fields" ? ("string-array" as const) : ("string" as const),
+      label: def.label,
+      section: "collection",
+      ...(def.key === "dimension"
+        ? { default: "category" }
+        : def.key === "metric"
+          ? { default: "value" }
+          : {}),
+      visibleWhen: roleVisibleWhen(def.key),
+    },
+  ]),
+);
 /** ADR-306 — descriptor 역할 · 옵션 표에서 그 prop 을 읽는 family 종류 (손으로 적은 목록을 두지 않는다). */
 const reading = (prop: Parameters<typeof chartTypesReading>[0]): string[] =>
   chartTypesReading(prop);
@@ -120,78 +190,9 @@ export const chartBinding: PrimitiveBinding = {
           { value: "chord", label: "Chord" },
         ],
       },
-      dimension: {
-        kind: "string",
-        label: "Category",
-        section: "collection",
-        default: "category",
-        // ADR-306 — gauge 는 범주가 없다 (첫 행의 값 하나).
-        visibleWhen: {
-          key: "chartType",
-          oneOf: [...SERIES_TYPES, ...reading("dimension")],
-        },
-      },
-      metric: {
-        kind: "string",
-        label: "Value",
-        section: "collection",
-        default: "value",
-        // ADR-210 — columns 모드는 값 필드 목록(`valueFields`)이 값 축이다. legacy metric
-        //   은 휴면 보존되지만 편집 화면에서는 숨긴다 (breakdown §4.1). ADR-306 — dumbbell 은
-        //   값 하나가 아니라 이전 · 이후 두 필드다.
-        visibleWhen: {
-          all: [
-            { key: "dataMode", equals: "group" },
-            {
-              key: "chartType",
-              oneOf: [...SERIES_TYPES, ...reading("metric")],
-            },
-          ],
-        },
-      },
-      color: {
-        kind: "string",
-        label: "Series",
-        section: "collection",
-        visibleWhen: {
-          all: [
-            { key: "dataMode", equals: "group" },
-            {
-              key: "chartType",
-              oneOf: [...SERIES_TYPES, ...reading("color")],
-            },
-          ],
-        },
-      },
-      /**
-       * ── ADR-306 — family 종류의 데이터 역할 (descriptor `roles` — 패널은 역할 필드를 컬럼 Select 로
-       *   승격한다, `CHART_FIELD_ROLE_KEYS`) · 모양 옵션 (Content). 전부 선택적 — 기존 문서에는 없다.
-       *   새 key 는 `accepts` 가산이라 contract 를 올리지 않는다 (breakdown §6).
-       */
-      goalField: {
-        kind: "string",
-        label: "Goal",
-        section: "collection",
-        visibleWhen: readingIs("goalField"),
-      },
-      rangeFields: {
-        kind: "string-array",
-        label: "Range Fields",
-        section: "collection",
-        visibleWhen: readingIs("rangeFields"),
-      },
-      startField: {
-        kind: "string",
-        label: "Start",
-        section: "collection",
-        visibleWhen: readingIs("startField"),
-      },
-      endField: {
-        kind: "string",
-        label: "End",
-        section: "collection",
-        visibleWhen: readingIs("endField"),
-      },
+      // ADR-312 — 데이터 역할 칸 전부 (36 종 · 기존 9 항목 포함) 은 역할 표 (`CHART_ROLE_DEFS`) 에서 만든다.
+      //   패널은 field 역할을 컬럼 Select 로 승격한다 (`CHART_FIELD_ROLE_KEYS`).
+      ...CHART_ROLE_ACCEPTS,
       // 기본값을 두지 않는다 — gauge 는 비면 0 (`kpi.ts`), candlestick 은 비면 자동 범위다. 0 을 기본값으로
       //   적으면 Library 표본 · 패널이 candlestick 가격 축을 0 부터 그린다 (ADR-306 Phase 4 live).
       valueMin: {
@@ -288,24 +289,6 @@ export const chartBinding: PrimitiveBinding = {
         visibleWhen: readingIs("includeZero"),
       },
       // ── ADR-306 Phase 3 — category family 의 역할 · 옵션 ──
-      kindField: {
-        kind: "string",
-        label: "Kind",
-        section: "collection",
-        visibleWhen: readingIs("kindField"),
-      },
-      rankField: {
-        kind: "string",
-        label: "Rank",
-        section: "collection",
-        visibleWhen: readingIs("rankField"),
-      },
-      frontFields: {
-        kind: "string-array",
-        label: "Front Fields",
-        section: "collection",
-        visibleWhen: readingIs("frontFields"),
-      },
       cells: {
         kind: "number",
         label: "Cells",
@@ -460,72 +443,6 @@ export const chartBinding: PrimitiveBinding = {
         visibleWhen: readingIs("frontRate"),
       },
       // ── ADR-306 Phase 4 — distribution · matrix family 의 역할 · 옵션 ──
-      binStartField: {
-        kind: "string",
-        label: "Bin Start",
-        section: "collection",
-        visibleWhen: readingIs("binStartField"),
-      },
-      binEndField: {
-        kind: "string",
-        label: "Bin End",
-        section: "collection",
-        visibleWhen: readingIs("binEndField"),
-      },
-      countField: {
-        kind: "string",
-        label: "Count",
-        section: "collection",
-        visibleWhen: readingIs("countField"),
-      },
-      labelField: {
-        kind: "string",
-        label: "Label",
-        section: "collection",
-        visibleWhen: readingIs("labelField"),
-      },
-      rowField: {
-        kind: "string",
-        label: "Row",
-        section: "collection",
-        visibleWhen: readingIs("rowField"),
-      },
-      openField: {
-        kind: "string",
-        label: "Open",
-        section: "collection",
-        visibleWhen: readingIs("openField"),
-      },
-      highField: {
-        kind: "string",
-        label: "High",
-        section: "collection",
-        visibleWhen: readingIs("highField"),
-      },
-      lowField: {
-        kind: "string",
-        label: "Low",
-        section: "collection",
-        visibleWhen: readingIs("lowField"),
-      },
-      closeField: {
-        kind: "string",
-        label: "Close",
-        section: "collection",
-        visibleWhen: readingIs("closeField"),
-      },
-      volumeField: {
-        kind: "string",
-        label: "Volume",
-        section: "collection",
-        visibleWhen: readingIs("volumeField"),
-      },
-      invertFields: {
-        kind: "string-array",
-        label: "Inverted Axes",
-        section: "collection",
-        visibleWhen: readingIs("invertFields"),
-      },
       percentiles: {
         kind: "string-array",
         label: "Percentiles",
@@ -642,24 +559,6 @@ export const chartBinding: PrimitiveBinding = {
         visibleWhen: readingIs("movingAverages"),
       },
       // ── ADR-306 Phase 5 — network family 의 역할 · 옵션 ──
-      pathFields: {
-        kind: "string-array",
-        label: "Path",
-        section: "collection",
-        visibleWhen: readingIs("pathFields"),
-      },
-      sourceField: {
-        kind: "string",
-        label: "Source",
-        section: "collection",
-        visibleWhen: readingIs("sourceField"),
-      },
-      targetField: {
-        kind: "string",
-        label: "Target",
-        section: "collection",
-        visibleWhen: readingIs("targetField"),
-      },
       nodeWidth: {
         kind: "number",
         label: "Node Width",
@@ -690,18 +589,6 @@ export const chartBinding: PrimitiveBinding = {
         visibleWhen: readingIs("padAngle"),
       },
       // ── ADR-306 Phase 5 — 기존 종류 보강 (breakdown §2.1) ──
-      lowerFields: {
-        kind: "string-array",
-        label: "Band Lower",
-        section: "collection",
-        visibleWhen: readingIs("lowerFields"),
-      },
-      upperFields: {
-        kind: "string-array",
-        label: "Band Upper",
-        section: "collection",
-        visibleWhen: readingIs("upperFields"),
-      },
       endLabels: {
         kind: "boolean",
         label: "End Labels",
@@ -713,12 +600,6 @@ export const chartBinding: PrimitiveBinding = {
         label: "Connect Gaps",
         section: "appearance",
         visibleWhen: readingIs("connectNulls"),
-      },
-      sizeField: {
-        kind: "string",
-        label: "Size",
-        section: "collection",
-        visibleWhen: readingIs("sizeField"),
       },
       sizeRange: {
         kind: "string-array",
@@ -844,11 +725,16 @@ export const chartBinding: PrimitiveBinding = {
         kind: "enum",
         label: "Data Mode",
         section: "collection",
-        default: "group",
+        // ADR-312 — 기본값을 두지 않는다: 미설정 = 그 종류의 첫 형태 (bump 는 ranked). binding 기본값은 모든
+        //   종류의 해석 props 에 실려 bump 를 group 형태로 읽게 했다.
         editorHidden: true,
+        // ADR-312 — 형태 (`CHART_FORMS`) 의 id 전부. 종류마다 받는 값은 형태 표가 정한다.
         options: [
           { value: "group", label: "Group Field" },
           { value: "columns", label: "Value Columns" },
+          { value: "binned", label: "Binned Counts" },
+          { value: "ranked", label: "Rank Field" },
+          { value: "pair", label: "Start · End" },
         ],
       },
       valueFields: {
@@ -1176,13 +1062,18 @@ export const chartBinding: PrimitiveBinding = {
           { value: "category", label: "Category" },
         ],
         // ADR-210 — columns 는 시리즈 색뿐이다 (범주색 조합 미지원, breakdown §3). 미설정
-        //   dataMode 는 default "group" 이 conditionValues 에 채워져 기존 노출 그대로다.
+        //   dataMode 는 bar 의 첫 형태 (group) 다 (ADR-312 — dataMode 기본값 없음).
         //   bar 조건은 오라클 (`chartVisibleWhen.test.ts` "조건을 단 prop 은 읽힌다") 의
         //   요구다 — `colorBy` 는 bar 만 읽는다 (computeChartScene legend/buildBarMarks).
         visibleWhen: {
           all: [
             { key: "chartType", equals: "bar" },
-            { key: "dataMode", equals: "group" },
+            {
+              any: [
+                { key: "dataMode", equals: "group" },
+                { key: "dataMode", truthy: false },
+              ],
+            },
           ],
         },
       },
@@ -1414,11 +1305,9 @@ export const chartBinding: PrimitiveBinding = {
     toRacProps: "default",
     propPassthrough: [
       "chartType",
-      "dimension",
-      "metric",
-      "color",
+      // ADR-312 — 역할 prop 전부 (역할 표 — 손 목록 없음).
+      ...CHART_ROLE_KEYS,
       "dataMode",
-      "valueFields",
       "seriesConfig",
       "valueFormat",
       "valueLocale",
@@ -1460,7 +1349,7 @@ export const chartBinding: PrimitiveBinding = {
       "animationEasing",
       "palette",
       // ADR-306 — family 역할 · 옵션 (목록 하나 — DOM · Skia 와 같은 `CHART_FAMILY_PROP_KEYS`).
-      ...CHART_FAMILY_PROP_KEYS,
+      ...CHART_FAMILY_PROP_KEYS.filter((key) => !CHART_ROLE_KEYS.includes(key)),
     ],
   },
   skiaPrimitive: "chart_scene",

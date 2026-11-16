@@ -76,6 +76,7 @@ import type {
 } from "./types";
 import { chartFamilyOf, isFamilyChartType } from "./types";
 import { chartFrame } from "./frame";
+import { resolveChartRoleDefaults, validateChartRoles } from "./roles";
 
 /** 팔레트 소진 시 순환 기준 — rule 의 series 배열 길이가 없을 때의 기본값. */
 export const CHART_DEFAULT_SERIES_COUNT = 8;
@@ -300,18 +301,50 @@ function computePolarScene(
   };
 }
 
+/** 역할 경고를 scene 진단 뒤에 붙인다 (없으면 그대로 — 같은 입력의 scene 무변경). */
+function withRoleWarnings(
+  scene: ChartScene,
+  warnings: readonly ChartDiagnostic[],
+): ChartScene {
+  if (warnings.length === 0) return scene;
+  return {
+    ...scene,
+    diagnostics: [...(scene.diagnostics ?? []), ...warnings],
+  };
+}
+
 export function computeChartScene(
-  props: ChartProps,
+  inputProps: ChartProps,
   rows: readonly ChartRow[],
   size: ChartSize,
   metrics: ChartMetrics = CHART_DEFAULT_METRICS,
 ): ChartScene {
+  // ADR-312 Decision 8 — 값이 없는 역할은 기본 열 이름으로 읽는다 (역할 표 한 곳 — 두 consumer 공통).
+  const props = resolveChartRoleDefaults(inputProps, rows);
   // ADR-306 — family 종류는 시리즈 격자를 지나지 않는다 (breakdown §4.3). 로드되지 않았으면 상자만
   //   (pending), 이 build 에 chunk 가 없으면 설정 오류. 기존 7 종의 경로는 아래 그대로다.
   if (isFamilyChartType(props.chartType)) {
+    // ADR-312 — 역할 검증은 36 종 공통 (`validateChartRoles` — 본문 Decision 7). 시리즈 경로는 모델
+    //   (`resolveChartModel`) 이 같은 함수를 읽어 DOM leg 와 같이 받는다. 필수 역할이 행에 없으면 설정
+    //   오류, 숫자 역할에 숫자가 없으면 경고 (그림은 그 종류의 「No data」 그대로).
+    const roleDiagnostics = validateChartRoles(props, rows);
+    const roleInvalid = roleDiagnostics.some((d) => d.severity === "error");
     const familyId = chartFamilyOf(props.chartType)!;
     const family = getChartFamily(familyId);
-    if (family) return family.buildScene(props, rows, size, metrics);
+    if (family && roleInvalid) {
+      const frame = chartFrame(size, metrics);
+      return chartEmptyScene(
+        frame.size,
+        frame.outer,
+        CHART_INVALID_SETTINGS_TEXT,
+        roleDiagnostics,
+      );
+    }
+    if (family)
+      return withRoleWarnings(
+        family.buildScene(props, rows, size, metrics),
+        roleDiagnostics,
+      );
     const frame = chartFrame(size, metrics);
     if (!chartFamilyAvailable(familyId))
       return chartEmptyScene(

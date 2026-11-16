@@ -11,6 +11,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-312 Implemented — Chart 데이터 포맷 표준] - 2026-11-17
+
+### Changed
+
+- **ADR-312 를 Implemented 로 닫았다** (G5 사용자 확인): Chart 36 종이 같은 방식으로 데이터를 받는다 — 역할 표 하나 · 종류마다 입력 형태 · 같은 키의 행 처리 (행 정책) · 시리즈 이름 · 색 · 순서 표 · 날짜 해석 한 곳 · 생성 때 기본 열 이름 · 컬렉션 연결 때 역할 자동 맞춤. 본문은 `docs/adr/completed/312-chart-data-format-standard.md`.
+- 확인: 36 종 전부를 Data 패널에서 만든 표 (기본 열 이름과 다른 열 이름) 에 연결해 모두 그려진다.
+
+## [ADR-312 Phase 5 — Chart 날짜 해석 공통 · AI 설명] - 2026-11-17
+
+### Changed
+
+- **calendar · candlestick 이 시간 축과 같은 날짜 해석을 쓴다** — Collection 의 「Date Input Format」 (예: `%d/%m/%Y`) 을 읽고, 비우면 ISO 날짜만 날짜로 본다 (전에는 브라우저의 느슨한 해석이라 「05/01/2026」 이 5 월 1 일로 읽혔다). 위치: `packages/rendering/src/chart/series.ts` `chartTimeParser`.
+- AI 가 Chart 를 만들 때 종류마다 입력 형태 · 필수 역할 · 기본 열 이름 · 행 정책을 안다 (역할 표에서 파생).
+
+### Fixed
+
+- **표를 연결한 Scatter · Bubble 이 「No data」 였던 것** — Why: X 가 어떤 형이든 받아 연결 때 첫 글자 열을 골랐다. 이제 X 는 숫자 열 (시간 축이면 날짜 열), 다시 연결하면 형이 맞지 않는 지정도 고쳐진다.
+- **표를 연결한 Sparkline 이 모든 행을 하나로 합치던 것** — Why: 원본의 기본 범주 열 (`category`) 이 표에 없는데 연결 때 지워지지 않았다. 연결하면 표에 없는 기본 열 지정은 해제된다.
+- **값 열 형태 (Skyline · 값 열 모드) 의 범례에 필드 id (`#0171…`) 가 보이던 것** — Why: 연결한 값 열은 id 로 저장되는데 시리즈 이름에 그대로 썼다. 이제 필드 이름.
+- **Bump · Histogram 의 원천 모드 칸에 「pie · radial 에는 값 열을 쓸 수 없다」 안내가 뜨던 것** — Why: 안내 조건을 「값 열 형태가 없는 종류」 로 바꾸면서 pie · radial 밖의 종류까지 포함했다 (ADR-312 Phase 1). 이제 값 열이 저장된 채 남은 때만.
+
+### Performance
+
+- 첫 화면 번들 Builder +4,462 B · Preview +3,303 B gzip (ADR-312 전체 — 역할 · 형태 표, 시리즈 표시 표, 연결 때 역할 맞춤). Builder 증가는 ADR-201 Δ 상한 (+4,096) 을 넘어 사용자 승인으로 수용했다.
+
+## [ADR-312 Phase 4 — Chart 시리즈 표시 표 공통] - 2026-11-17
+
+### Changed
+
+- **시리즈 이름 · 색 · 순서 (Series 섹션) 를 더 많은 차트가 읽는다** — marimekko (계열) · segmented · waffle (조각) · dumbbell (앞 · 뒤) · histogram (묶음) · slope (항목). 패널 Series 섹션이 이 종류에서도 열리고, 그림과 같은 항목 목록을 보인다. 시리즈 경로와 같은 규칙 — 표에 적은 항목이 앞 (표 순서 · 이름 · 색), 나머지는 출현 순서.
+- segmented · waffle 의 기본 색은 정렬 뒤 자리가 아니라 **출현 순서** — 값이 바뀌어 순서가 바뀌어도 조각의 색이 그대로다.
+- dumbbell · histogram · slope 는 강조 · 기본 칠 (accent · neutral) 을 유지하고, Series 섹션에서 색을 정한 항목만 그 팔레트 색으로 그린다.
+
+### Fixed
+
+- **parallel 의 축 이름이 Series 섹션 이름을 읽지 않던 것** — 축 이름을 원래 필드 key 로 비교해 패널이 저장한 항목 (`["field", key]`) 과 맞지 않았다. Why: 시리즈 표의 identity 형식이 종류마다 갈렸다 (ADR-312 F9). 이제 축 이름 칸만 보인다 (축 순서는 값 열 목록, 선 색은 행마다).
+
+## [ADR-312 Phase 3 — Chart 행 정책 (같은 contract 69 안의 해석 변경)] - 2026-11-17
+
+### Changed
+
+- **같은 키의 행을 종류마다 선언대로 읽는다** — 형태마다 행 정책 (`sum` · `row` · `sample`) 과 키 역할을 적었다 (`ChartForm.rows` · `key`). 범주 × 값 종류 (lollipop · segmented · waffle · funnel · pareto) · bullet · dumbbell 은 같은 범주의 행을 bar 처럼 **합친다** (전에는 행마다 막대). gauge 는 여러 행이면 합 (전에는 첫 행), slope 는 같은 시점 · 항목을 합 (전에는 마지막 행), sparkline 은 범주 열이 있으면 같은 항목을 합한다. 비숫자 값은 0 이 아니라 결측이다.
+- **합칠 수 없는 값이 갈리면 경고** `rows.duplicate` — bump 의 순위 (전에는 더했다 — 지금은 첫 행) · bullet 의 구간 경계. 첫 행 값을 쓴다.
+- scatter · waterfall · candlestick · parallel (행마다 표식) · box · beeswarm · ridgeline · histogram 값 (행 = 표본) 과 이미 합치던 종류 (시리즈 7 종 · stream · skyline · marimekko · heatmap · calendar · treemap · sunburst · sankey · chord · histogram 구간) 는 그대로다. 표본 차트의 그림은 같다 (표본에는 같은 키의 행이 없다).
+
+## [ADR-312 Phase 2 — Chart 저장 계약 (contract 69)] - 2026-11-17
+
+### Changed (Breaking)
+
+- **contract 68 → 69** — 68 이하 프로젝트는 열리지 않는다 (변환 없음 — 다시 만든다). candlestick 의 종가는 `metric` (옛 `closeField` 는 받지 않는다). `dataMode` 에 `binned` (histogram 구간 개수) · `ranked` (bump 순위 — 기본) · `pair` (slope 앞 · 뒤 값) — 형태는 역할의 유무가 아니라 `dataMode` 로 고른다. parallel 은 값 열 형태 하나.
+- **값이 없는 역할은 기본 열 이름으로 읽는다** (`category` · `value` · `series` · `goal` · `start` · `end` …) — 필수 역할은 늘, 선택 역할은 그 열이 데이터에 있을 때만. 새 차트의 표본 열이 이 이름이라 생성 때 역할 값을 쓰지 않는다 (Overrides 에 남지 않는다 — 값 열 목록 같은 목록 역할만).
+- **표본 행 편집기 칸이 차트 종류를 따른다** — 그 형태의 역할이 가리키는 열 + 행에만 있는 열 (전에는 7 종에만 맞는 Category · Value · Series 고정).
+- **컬렉션을 연결하면 역할이 원천을 따라간다** — 가리키는 열이 없는 필수 역할은 형이 맞는 첫 열로 (날짜 역할은 날짜 열), 묶고 합친 보기를 연결하면 집계 이름 (`total`) 으로, 해제하면 표본으로 다시 그려진다 (같은 명령 · Undo 한 번). 역할 칸 선택지도 보기의 결과 열이다.
+
+### Fixed
+
+- 기본 열 이름 읽기에서 Canvas · Preview 가 Series 해제 (`color: ""`) 를 「없음」 으로 버리던 것 — 해제가 기본 `series` 로 읽혀 두 그림이 갈렸다.
+
+### Tests
+
+- `adr312ChartContract.test.ts` · `adr312ChartBindingColumns.test.ts` · `adr312Roles.test.ts` (기본 열 이름 · 표본 표준화 · 역할 맞춤 G6) · `adr312Inventory.test.ts` (표준 표) · `adr312DataModeControl.test.tsx` · `chartFieldOptions.fieldId.test.ts` · family 테스트 (bump group · slope pair · histogram binned) 갱신 · contract fixture 32. 원복 RED 4.
+
+## [ADR-312 Phase 0 · 1 — Chart 역할 표 하나] - 2026-11-16
+
+### Changed
+
+- **Chart 36 종의 데이터 역할을 표 하나로** (`packages/rendering/src/chart/roles.ts` — 역할 정의 `CHART_ROLE_DEFS` · 종류별 형태 `CHART_FORMS`). 기존 9 항목 (bar · line · area · pie · donut · radar · radial · scatter · bubble) 도 이 표에 들어가 별도 목록이 없어졌다. 패널 칸 · 선택 / 필수 · 라벨, binding 의 역할 칸 · 전달 목록, columns 판정이 이 표에서 나온다. 저장 key · 값은 그대로다 (contract 무변경).
+- **역할 칸 라벨이 종류를 따른다**: scatter · bubble 의 X · Y, calendar · candlestick 의 Date, slope 의 Period · Item (형태별), box · ridgeline · beeswarm 의 Groups (`chart.rolePeriod` · `roleItem` · `roleGroup`).
+- **parallel 의 원천 모드 칸 (Series source) 을 없앴다** — 값 열 목록만 읽는 종류라 칸을 바꿔도 그림이 같았다. columns 로 저장된 pie · radial 만 되돌리는 칸이 남는다 (ADR-210).
+- **연결된 Chart 가 쓰는 필드가 Data 패널의 「사용 중」 에 나온다** — 필드 삭제 · 이름 변경 확인에 Chart 가 보인다 (`fieldUsage.ts` 네 번째 축, 역할 prop 의 `#id` · key · 목록 원소).
+
+### Fixed
+
+- **시리즈 종류에서 역할이 가리키는 열이 데이터에 없을 때 「No data」 로 보이던 것** → 「Check chart settings」 + 어느 역할인지 진단 (`role.missing`, value = 역할 key). 36 종 공통 검증 (`validateChartRoles`) 을 모델 (`resolveChartModel`) 이 읽어 Canvas · Preview 가 같이 받는다. 숫자 역할에 숫자가 하나도 없으면 경고 `role.notNumeric` (그림은 그대로).
+
+### Tests
+
+- `adr312Inventory.test.ts` (Phase 0 — 36 항목의 현재 표: 표본 열 · 저장 역할 · 읽지 않는 역할 (동작 판정) · 범례 · `seriesConfig` · 행 복제) · `adr312Roles.test.ts` · `adr312DataModeControl.test.tsx` · `chartFieldOptions.fieldId.test.ts` · `fieldUsage.test.ts` · `adr306FamilyProps.test.ts` 갱신. 원복 RED 4 (공통 검증 · 사용처 축 · 종류별 라벨 · binding 역할 칸). `computeChartScene` snapshot · `chartParity` 무변경 (HC2).
+- `adr312Perf.test.ts` — 1 만 행 scene 시간 기준선 (`ADR312_PERF=<json>` 일 때만).
+
 ## [ADR-306 Implemented — Chart 36 종] - 2026-11-16
 
 ### Changed

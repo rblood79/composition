@@ -16,6 +16,9 @@ const catalog: TranslationKeys = {
   chart: {
     section: "Charts",
     category: "Category",
+    rolePeriod: "Period",
+    roleItem: "Item",
+    roleGroup: "Groups",
     series: "Series",
     type: "Chart type",
     sampleRows: "Sample rows",
@@ -96,6 +99,9 @@ const catalog: TranslationKeys = {
     dataMode: "Series source",
     modeGroup: "Group field",
     modeColumns: "Value columns",
+    modeBinned: "Binned Counts",
+    modeRanked: "Rank Field",
+    modePair: "Start · End",
     valueFields: "Value fields",
     addField: "Add field",
     chooseFields: "Choose value fields",
@@ -1723,6 +1729,8 @@ const catalog: TranslationKeys = {
     compositeHint:
       "- Composite component — after creating it, check the editable props with get_editor_state",
     noEditableProps: "- No editable props (composed from child elements)",
+    chartForms:
+      "- Data forms (chartType: dataMode(roles …) row policy — * required, = default column name read when the role is empty, first form = dataMode unset):",
     repairIntro: "The previous attempt got these wrong. Fix only those:",
   },
   aiExec: {

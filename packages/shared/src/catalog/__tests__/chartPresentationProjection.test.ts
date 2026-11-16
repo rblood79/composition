@@ -58,7 +58,8 @@ describe("ADR-210 Chart binding — 표시 설정 투영", () => {
       { id: "c", type: "Chart", props: { chartType: "bar" } } as never,
       binding,
     );
-    expect(bare.dataMode).toBe("group");
+    // ADR-312 Phase 2 — `dataMode` 는 기본값이 없다 (값이 없으면 그 종류의 첫 형태 — bump 의 첫 형태는 ranked).
+    expect(bare.dataMode).toBeUndefined();
     expect(bare.valueFormat).toBe("auto");
     expect(bare.valueFields).toBeUndefined();
     expect(bare.seriesConfig).toBeUndefined();

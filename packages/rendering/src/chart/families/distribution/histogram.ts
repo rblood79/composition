@@ -7,6 +7,7 @@
  * 편차: ztd 의 기준선 `side` (below) · 이름은 받지 않는다 — 기준값을 넘는 쪽이 나쁜 쪽이다 (`threshold`
  * 숫자 하나, pareto 의 같은 prop). 분위 · 기준 이름표의 바탕 (panel 색) 은 그리지 않는다.
  */
+import { chartActiveForm } from "../../roles";
 import { highlightIndex, highlightSet } from "../../highlight";
 import { circlePath } from "../../marks/dots";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
@@ -45,6 +46,15 @@ import {
   valueAxisY,
   type CategoryContext,
 } from "../category/common";
+import {
+  chartSeriesByKey,
+  chartSeriesFill,
+  chartSeriesItems,
+  chartSeriesName,
+  chartSeriesStroke,
+  chartSeriesSwatch,
+  type ChartSeriesItem,
+} from "../../seriesItems";
 
 export interface HistogramBin {
   x0: number;
@@ -75,6 +85,8 @@ export interface HistogramModel {
   /** 그룹마다 분위 선 (`percentiles` 순) · 중앙값 */
   quantiles: { median: number; marks: { p: number; v: number }[] }[];
   threshold: number | null;
+  /** ADR-312 Phase 4 — 묶음의 표시 이름 · 색 (`seriesConfig`, key = 묶음 값) */
+  series: ChartSeriesItem[];
 }
 
 const DEFAULT_MARKS = [50, 95];
@@ -113,12 +125,22 @@ export function pastShare(b: HistogramBin, t: number, log: boolean): number {
 export function histogramModel(ctx: CategoryContext): HistogramModel | null {
   const { props, rows, input } = ctx;
   const log = props.log === true;
-  const binned = fieldKey(props.countField) !== null;
+  // ADR-312 — 형태는 `dataMode` 로만 (구간 입력 = binned). 역할의 유무로 고르지 않는다.
+  const binned = chartActiveForm(props).id === "binned";
   const group = fieldKey(props.color);
   const groupOf = (i: number) =>
     group === null ? "" : readLabel(rows[i], group);
   const names: string[] = [];
   const seen = new Map<string, number>();
+  // ADR-312 Phase 4 — 묶음의 순서 · 이름 · 색은 시리즈 표시 표 (표의 항목이 앞, 나머지는 출현 순서).
+  const series = chartSeriesItems(props, rows, ctx.metrics.seriesCount, {
+    diagnostics: input.diagnostics,
+  });
+  const rank = new Map(series.map((item, i) => [item.key, i]));
+  const inSeriesOrder = (keys: Iterable<string>) =>
+    [...keys].sort(
+      (a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity),
+    );
   let bins: HistogramBin[] = [];
   let samples: HistogramSample[] = [];
 
@@ -153,7 +175,7 @@ export function histogramModel(ctx: CategoryContext): HistogramModel | null {
       cell.by.set(g, (cell.by.get(g) ?? 0) + n);
       cell.rows.push(i);
     });
-    names.push(...[...seen.keys()].slice(0, HISTOGRAM_MAX_GROUPS));
+    names.push(...inSeriesOrder(seen.keys()).slice(0, HISTOGRAM_MAX_GROUPS));
     for (const cell of [...cells.values()].sort(
       (a, b) => a.x0 - b.x0 || a.x1 - b.x1,
     )) {
@@ -198,7 +220,7 @@ export function histogramModel(ctx: CategoryContext): HistogramModel | null {
         s.rows.push(i);
       }
     });
-    names.push(...[...by.keys()].slice(0, HISTOGRAM_MAX_GROUPS));
+    names.push(...inSeriesOrder(by.keys()).slice(0, HISTOGRAM_MAX_GROUPS));
     for (const g of by.keys()) seen.set(g, seen.size);
     const edgeList = numberList(props.edges);
     const edges = names.length
@@ -283,6 +305,7 @@ export function histogramModel(ctx: CategoryContext): HistogramModel | null {
     log,
     quantiles,
     threshold,
+    series,
   };
 }
 
@@ -382,6 +405,10 @@ export function histogramScene(ctx: CategoryContext) {
   if (model === null) return invalidScene(ctx);
   const { outer, fontSize } = ctx.frame;
   const { bins, samples, log } = model;
+  const seriesByKey = chartSeriesByKey(model.series);
+  /** 묶음 k 의 표 항목 (묶음이 하나면 없음 — 표시 표는 묶음을 가르는 색에만) */
+  const groupItem = (k: number) =>
+    samples.length > 1 ? seriesByKey.get(samples[k].name) : undefined;
   const n = bins.length;
   if (n === 0 || outer.w <= 0 || outer.h <= 0) return noDataScene(ctx);
   const { props, input } = ctx;
@@ -538,7 +565,9 @@ export function histogramScene(ctx: CategoryContext) {
           kind: "path",
           d: roundRectPath(xa, at, w, base - at, { tl: r, tr: r }),
           bbox: bbox(xa, w),
-          fillPaint: sh >= 1 || hiBins.has(i) ? "accent" : "neutral",
+          ...(groupItem(fillK)?.colored
+            ? chartSeriesFill(groupItem(fillK), "neutral")
+            : { fillPaint: sh >= 1 || hiBins.has(i) ? "accent" : "neutral" }),
         });
         return;
       }
@@ -616,7 +645,7 @@ export function histogramScene(ctx: CategoryContext) {
       d: stepPath(ex, tops, base),
       bbox: bounds,
       ...(strong
-        ? { strokePaint: "accent" as const }
+        ? chartSeriesStroke(groupItem(k), "accent")
         : { role: "axis" as const }),
       strokeWidth: strong ? 2 : 1.6,
     });
@@ -648,9 +677,11 @@ export function histogramScene(ctx: CategoryContext) {
       d: pts.map(([px, py], j) => `${j ? "L" : "M"}${px},${py}`).join(""),
       bbox: bounds,
       strokeWidth: 1.6,
-      ...(grouped && k === hiGroup
-        ? { strokePaint: "accent" as const }
-        : { role: "axis" as const }),
+      ...(groupItem(k)?.colored
+        ? chartSeriesStroke(groupItem(k), "accent")
+        : grouped && k === hiGroup
+          ? { strokePaint: "accent" as const }
+          : { role: "axis" as const }),
     };
     marks.push(path);
   });
@@ -768,11 +799,20 @@ export function histogramScene(ctx: CategoryContext) {
       title: `${fx(b.x0)} – ${fx(b.x1)}`,
       entries: samples.flatMap((s, k) => [
         {
-          label: grouped ? s.name : "Count",
+          label: grouped
+            ? (() => {
+                const item = groupItem(k);
+                return item ? chartSeriesName(item) : s.name;
+              })()
+            : "Count",
           text: `${b.counts[k]} · ${share(k, b.counts[k])}`,
-          paint: (grouped ? k === hiGroup : isHot(i))
-            ? ("accent" as const)
-            : ("neutral" as const),
+          ...(groupItem(k)?.colored
+            ? chartSeriesSwatch(groupItem(k), "accent")
+            : {
+                paint: (grouped ? k === hiGroup : isHot(i))
+                  ? ("accent" as const)
+                  : ("neutral" as const),
+              }),
         },
         { label: "Cumulative", text: share(k, cums[k][i]) },
       ]),

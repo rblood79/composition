@@ -43,6 +43,7 @@ import {
 } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
 import { buildSeriesGrid, sortCategories } from "./series";
+import { resolveChartRoleDefaults, validateChartRoles } from "./roles";
 import type { SeriesGrid } from "./series";
 import { resolveTimeAxisModel } from "./timeAxis";
 import type { ChartTimeAxisModel } from "./timeAxis";
@@ -185,13 +186,31 @@ function emptyBudget(
  * rows + props + 크기 → 모델. 순수 함수 — 같은 입력이면 두 leg 가 같은 visible 에 이른다.
  * 두 leg 가 갈리는 입력은 `view.size` (Compare Mode 반폭) 와 `view.windowStart` 뿐이다.
  */
+function withRoleDiagnostics<
+  T extends { ok: boolean; diagnostics: readonly ChartDiagnostic[] },
+>(presentation: T, roles: readonly ChartDiagnostic[]): T {
+  if (roles.length === 0) return presentation;
+  return {
+    ...presentation,
+    ok: presentation.ok && !roles.some((d) => d.severity === "error"),
+    diagnostics: [...presentation.diagnostics, ...roles],
+  };
+}
+
 export function resolveChartModel(
   rows: readonly ChartRow[],
-  props: ChartProps,
+  inputProps: ChartProps,
   view: ChartModelView,
 ): ChartModel {
+  // ADR-312 Decision 8 — DOM leg 도 같은 기본 열 이름을 읽는다 (scene 경로와 같은 함수 — 여러 번 불러도 같다).
+  const props = resolveChartRoleDefaults(inputProps, rows);
   const { metrics } = view;
-  const presentation = resolveChartPresentation(props, metrics.seriesCount);
+  // ADR-312 — 공통 역할 검증 (`validateChartRoles`) 을 표시 설정 진단에 합친다: 오류면 설정 오류로 (두 leg 가
+  //   `presentation.ok` 하나를 읽는다), 경고는 그대로 실린다.
+  const presentation = withRoleDiagnostics(
+    resolveChartPresentation(props, metrics.seriesCount),
+    validateChartRoles(props, rows),
+  );
   const capped = capRows(rows, metrics.rowCap);
   const built = buildSeriesGrid(
     capped.rows,

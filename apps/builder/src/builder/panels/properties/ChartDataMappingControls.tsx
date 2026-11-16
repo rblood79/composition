@@ -4,6 +4,11 @@ import { Checkbox } from "@composition/shared/components/list";
 import { memo } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useOwnedState } from "./useOwnedState";
+import {
+  chartActiveForm,
+  chartForms,
+  chartTypeAcceptsColumns,
+} from "@composition/rendering";
 import type { ChartDataMode } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";
@@ -54,9 +59,31 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
     fields.map((field) => [field.key, field.currentValue]),
   );
   const chartType = String(props.chartType ?? "bar");
-  const columnsUnsupported = chartType === "pie" || chartType === "radial";
-  const dataMode: ChartDataMode =
-    props.dataMode === "columns" ? "columns" : "group";
+  // ADR-312 — 형태 표에 columns 가 없는 종류 (Pie · Radial)
+  const columnsUnsupported = !chartTypeAcceptsColumns(chartType);
+  // ADR-312 — 원천 모드 칸의 선택지 = 그 종류의 형태 (`CHART_FORMS`). 형태가 하나인 종류 (parallel · pie …) 는
+  //   칸이 없다. columns 를 받지 않는 종류에 columns 가 저장된 때 (columns 로 둔 pie) 만 되돌릴 수 있게 칸을 낸다
+  //   (ADR-210 — 조용히 바꾸지 않는다). `dataMode` 의 값은 binding 기본값 (`group`) 을 포함하므로 「저장된 모드」
+  //   로 쓰지 않는다.
+  const forms = chartForms(chartType);
+  const activeForm = chartActiveForm({
+    chartType: chartType as never,
+    dataMode: props.dataMode as ChartDataMode | undefined,
+  }).id;
+  const strandedColumns = props.dataMode === "columns" && columnsUnsupported;
+  const dataMode: ChartDataMode = strandedColumns ? "columns" : activeForm;
+  const showMode = forms.length > 1 || strandedColumns;
+  const modeLabel: Record<ChartDataMode, string> = {
+    group: t("chart.modeGroup"),
+    columns: t("chart.modeColumns"),
+    binned: t("chart.modeBinned"),
+    ranked: t("chart.modeRanked"),
+    pair: t("chart.modePair"),
+  };
+  const modeIds: ChartDataMode[] = [
+    ...forms.map((form) => form.id),
+    ...(strandedColumns ? (["columns"] as const) : []),
+  ];
   const valueFields = readValueFields(props.valueFields);
   const [picking, setPicking] = useOwnedState(elementId, false);
   const [picked, setPicked] = useOwnedState<string[]>(elementId, EMPTY_PICKED);
@@ -84,34 +111,37 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
 
   return (
     <>
-      <div className="fieldset-row" data-wide="true">
-        <PropertySelect
-          label={t("chart.dataMode")}
-          value={picking ? "columns" : dataMode}
-          options={[
-            { value: "group", label: t("chart.modeGroup") },
-            { value: "columns", label: t("chart.modeColumns") },
-          ]}
-          translateOptions={false}
-          disabledKeys={columnsUnsupported ? COLUMNS_MODE_KEY : undefined}
-          onChange={(value) => {
-            if (value === "group") {
+      {showMode && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertySelect
+            label={t("chart.dataMode")}
+            value={picking ? "columns" : dataMode}
+            options={modeIds.map((id) => ({ value: id, label: modeLabel[id] }))}
+            translateOptions={false}
+            // columns 선택지는 형태 표에 있거나 (받는 종류) 저장된 채 남은 때 (받지 않는 종류) 만 있다 —
+            //   안내 · 비활성화는 뒤의 경우뿐 (형태 표에 columns 가 없는 bump · histogram … 에 pie · radial 안내가
+            //   붙던 것 — ADR-312 Phase 5 live).
+            disabledKeys={strandedColumns ? COLUMNS_MODE_KEY : undefined}
+            onChange={(value) => {
+              // columns 는 값 열을 고르기 전까지 지금 형태를 유지하는 선택 화면 (ADR-210)
+              if (value === "columns") {
+                if (dataMode !== "columns") {
+                  setPicked(valueFields);
+                  setPicking(true);
+                }
+                return;
+              }
               setPicking(false);
-              if (dataMode !== "group") onPatch({ dataMode: "group" });
-              return;
+              if (value !== dataMode) onPatch({ dataMode: value });
+            }}
+            afterControl={
+              strandedColumns ? (
+                <span slot="description">{t("chart.columnsUnsupported")}</span>
+              ) : undefined
             }
-            if (value === "columns" && dataMode !== "columns") {
-              setPicked(valueFields);
-              setPicking(true);
-            }
-          }}
-          afterControl={
-            columnsUnsupported ? (
-              <span slot="description">{t("chart.columnsUnsupported")}</span>
-            ) : undefined
-          }
-        />
-      </div>
+          />
+        </div>
+      )}
       {picking && (
         <fieldset className="properties-aria chart-field-picker">
           <legend className="fieldset-legend">{t("chart.chooseFields")}</legend>
@@ -159,7 +189,7 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
           </div>
         </fieldset>
       )}
-      {dataMode === "columns" && !picking && (
+      {activeForm === "columns" && !picking && (
         <>
           {valueFields.map((key, index) => {
             const column = columnByKey.get(key);

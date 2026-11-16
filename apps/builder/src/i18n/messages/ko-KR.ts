@@ -16,6 +16,9 @@ const catalog: TranslationKeys = {
   chart: {
     section: "차트",
     category: "범주",
+    rolePeriod: "기간",
+    roleItem: "항목",
+    roleGroup: "묶음",
     series: "계열",
     type: "차트 종류",
     sampleRows: "샘플 데이터",
@@ -96,6 +99,9 @@ const catalog: TranslationKeys = {
     dataMode: "계열 원천",
     modeGroup: "그룹 필드",
     modeColumns: "값 컬럼",
+    modeBinned: "구간 개수",
+    modeRanked: "순위 필드",
+    modePair: "앞 · 뒤 값",
     valueFields: "값 필드",
     addField: "필드 추가",
     chooseFields: "값 필드 선택",
@@ -1719,6 +1725,8 @@ const catalog: TranslationKeys = {
     compositeHint:
       "- 조합 컴포넌트 — 만든 뒤 get_editor_state 로 편집 가능한 props 를 확인하세요",
     noEditableProps: "- 편집 가능한 props 없음 (자식 요소로 구성)",
+    chartForms:
+      "- 데이터 형태 (종류: dataMode(역할 …) 행 정책 — * 필수, = 값이 비면 읽는 기본 열 이름, 첫 형태 = dataMode 미설정):",
     repairIntro: "이전 시도에서 다음이 어긋났습니다. 그 부분만 고치세요:",
   },
   aiExec: {

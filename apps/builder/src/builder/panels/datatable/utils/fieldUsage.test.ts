@@ -155,4 +155,34 @@ describe("resolveFieldUsage", () => {
       resolveFieldUsage(els, table, table.schema[1]).map((u) => u.id),
     ).toEqual(["nested"]);
   });
+
+  // ADR-312 F11 — Phase 0 재현 (세 축 어디에도 들지 않음) → Phase 1 의 네 번째 축 (Chart 역할).
+  it("ADR-312 F11 — 연결된 Chart 의 역할 prop 이 가리키는 필드는 사용처에 나온다 (`#id` · key · 목록 역할)", () => {
+    const chart: UsageBearingElement = {
+      ...bound("chart", { dimension: "#f-id", metric: "name" }),
+      type: "lib:definition:Chart",
+      componentType: "Chart",
+    };
+    const usage = (index: number) =>
+      resolveFieldUsage([chart], table, table.schema[index]);
+    expect(usage(0)).toEqual([
+      { id: "chart", type: "lib:definition:Chart", reason: "chartRole" },
+    ]);
+    expect(usage(1).map((u) => u.reason)).toEqual(["chartRole"]);
+    expect(usage(2)).toEqual([]);
+    const list: UsageBearingElement = {
+      ...bound("chart2", { valueFields: ["email"] }),
+      componentType: "Chart",
+    };
+    expect(
+      resolveFieldUsage([list], table, table.schema[2]).map((u) => u.id),
+    ).toEqual(["chart2"]);
+    // 연결하지 않은 Chart 의 역할은 표본 열을 가리킨다 — 세지 않는다
+    const sample: UsageBearingElement = {
+      id: "sample",
+      componentType: "Chart",
+      props: { metric: "name" },
+    };
+    expect(resolveFieldUsage([sample], table, table.schema[1])).toEqual([]);
+  });
 });

@@ -213,7 +213,12 @@ describe("ADR-306 G4 — distribution 모델 (손계산)", () => {
     const m = histogramModel(
       ctxOf(
         "histogram",
-        { binStartField: "a", binEndField: "b", countField: "n" },
+        {
+          dataMode: "binned",
+          binStartField: "a",
+          binEndField: "b",
+          countField: "n",
+        },
         rows,
       ),
     )!;

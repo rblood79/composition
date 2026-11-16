@@ -1,5 +1,7 @@
 import {
   buildSeriesGrid,
+  chartSeriesItems,
+  chartSeriesKind,
   type ChartProps,
   type ChartRow,
   type ChartSeriesConfig,
@@ -10,7 +12,8 @@ import type { ResolvedField } from "@composition/shared";
 import "./ChartAuthoringControls.css";
 
 /**
- * 범주가 색을 가르는 모드 (pie · 단일 시리즈 radial · bar colorBy=category) 에서는 시리즈
+ * ADR-312 Phase 4 — 시리즈 표시 표를 읽는 종류 (`chartSeriesKind`) 에서만 연다. 범주가 색을 가르는 모드
+ * (pie · 단일 시리즈 radial · bar colorBy=category) 에서는 시리즈
  * 설정이 적용되지 않는다 — Series 섹션 자체를 열지 않는다 (저장 config 는 휴면 보존).
  * Properties 패널 (`CatalogPropertiesPanel.components.tsx` → `useChartPropertyExtras`) 이 `sectionExtras.series` 를 넣을지 여기로 판정한다.
  */
@@ -23,6 +26,16 @@ export function chartSeriesConfigApplies(
     fields.map((field) => [field.key, field.currentValue]),
   ) as Record<string, unknown>;
   const chartType = String(props.chartType ?? "bar");
+  // ADR-312 Phase 4 — 시리즈 표시 표를 읽는 종류에서만 연다 (family 는 색 항목이 하나라도 있을 때 —
+  //   histogram 의 묶음 없는 그림 · 값 열이 없는 parallel 은 닫는다).
+  const kind = chartSeriesKind(chartType);
+  if (!kind) return false;
+  if (kind !== "grid")
+    return (
+      chartSeriesItems(props as unknown as ChartProps, rows, paletteLength, {
+        natural: true,
+      }).length > 0
+    );
   if (chartType === "pie") return false;
   if (chartType === "bar" && props.colorBy === "category") return false;
   if (chartType === "radial") {

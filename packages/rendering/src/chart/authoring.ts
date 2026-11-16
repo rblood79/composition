@@ -8,6 +8,15 @@ import type {
 } from "./types";
 import { chartFamilyOf, isFamilyChartType } from "./types";
 import { getChartFamily, loadChartFamily } from "./families/registry";
+import {
+  standardizeChartSample,
+  CHART_ROLE_DEFS,
+  CHART_ROLE_KEYS,
+  chartForms,
+  chartTypeHasForm,
+  chartTypesUsingRole,
+} from "./roles";
+import type { ChartForm } from "./roles";
 
 /**
  * 프리셋/종류 변경 patch — **시각 props 만**. ADR-210 의 표시 설정 (모드·필드·시리즈·
@@ -31,30 +40,18 @@ export interface ChartPreset {
   label: string;
   patch: VisualPatch;
 }
-/**
- * ADR-306 — 종류가 읽는 데이터 역할 하나 (breakdown §4.1). 이 표 하나에서 (a) 패널의 필드 지정
- * (b) family 의 입력 검증 이름 (c) prop 전달 목록 (`CHART_FAMILY_PROP_KEYS`) 이 나온다.
- */
-export interface ChartRole {
-  prop: keyof ChartProps & string;
-  kind: "field" | "fields";
-  required: boolean;
-  accepts: "number" | "string" | "date" | "any";
-}
 export interface ChartDescriptor {
   paletteId: string;
   chartType: ChartType;
   /** ADR-306 — null = 시리즈 격자 종류 (기존 7). */
   family: ChartFamilyId | null;
-  /** ADR-306 — 데이터 역할 (필드). 기존 7 종은 `dimension` · `metric` · `color` 그대로 (빈 배열). */
-  roles: readonly ChartRole[];
+  /**
+   * ADR-312 — 입력 형태 (역할 집합). 기존 9 항목 포함 36 항목 전부 역할 표 (`roles.ts`) 에서 — 형태가 둘
+   * 이상이면 `dataMode` 가 고른다.
+   */
+  forms: readonly ChartForm[];
   /** ADR-306 — 모양 · 옵션 prop (패널 Content). 전달 목록에 들어간다. */
   options: readonly (keyof ChartProps & string)[];
-  /**
-   * ADR-306 — 값 필드 목록 (columns 모드 — `valueFields` 하나하나가 시리즈) 을 읽는가. 기존 7 종은
-   * 시리즈 경로가 정하고 (true), family 는 stream · slope · skyline 만.
-   */
-  columns: boolean;
   label: string;
   icon: string;
   searchLabels: readonly string[];
@@ -79,18 +76,15 @@ function descriptor(
   defaults: VisualPatch,
   extras: Array<[string, string, VisualPatch]>,
   defaultLabel = "Default",
-  roles: readonly ChartRole[] = [],
   options: readonly (keyof ChartProps & string)[] = [],
-  columns = chartFamilyOf(chartType) === null,
   paletteId = `chart-${chartType}`,
 ): ChartDescriptor {
   return {
     paletteId,
     chartType,
     family: chartFamilyOf(chartType),
-    roles,
+    forms: chartForms(chartType),
     options,
-    columns,
     label,
     icon,
     searchLabels,
@@ -106,24 +100,7 @@ function descriptor(
   };
 }
 
-const CATEGORY_ROLE: ChartRole = {
-  prop: "dimension",
-  kind: "field",
-  required: true,
-  accepts: "string",
-};
-const VALUE_ROLE: ChartRole = {
-  prop: "metric",
-  kind: "field",
-  required: true,
-  accepts: "number",
-};
-
-// ── ADR-306 Phase 5 — 기존 9 항목 보강 (breakdown §2.1). 시리즈 7 종의 새 역할 · 옵션.
-const LINE_ROLES: readonly ChartRole[] = [
-  { prop: "lowerFields", kind: "fields", required: false, accepts: "number" },
-  { prop: "upperFields", kind: "fields", required: false, accepts: "number" },
-];
+// ── ADR-306 Phase 5 — 기존 9 항목 보강 (breakdown §2.1). 시리즈 7 종의 새 옵션 (역할은 `roles.ts`).
 // ADR-306 Phase 6 — 공통 상호작용 (사용자 결정 1): 주석 (line · area · bar · candlestick), 손익 색 ·
 //   띠 시작 · 띠 밖 점 (line · area).
 const ANNOTATION_OPTIONS: readonly (keyof ChartProps & string)[] = [
@@ -145,26 +122,11 @@ const PIE_OPTIONS: readonly (keyof ChartProps & string)[] = [
   "sort",
   "centerLabel",
 ];
-const SCATTER_ROLES: readonly ChartRole[] = [
-  { prop: "sizeField", kind: "field", required: false, accepts: "number" },
-  { prop: "labelField", kind: "field", required: false, accepts: "string" },
-];
 const SCATTER_OPTIONS: readonly (keyof ChartProps & string)[] = [
   "sizeRange",
   "includeZero",
   "fit",
   "quadrants",
-];
-const PATH_ROLE: ChartRole = {
-  prop: "pathFields",
-  kind: "fields",
-  required: true,
-  accepts: "string",
-};
-const FLOW_ROLES: readonly ChartRole[] = [
-  { prop: "sourceField", kind: "field", required: true, accepts: "string" },
-  { prop: "targetField", kind: "field", required: true, accepts: "string" },
-  { prop: "metric", kind: "field", required: true, accepts: "number" },
 ];
 
 const cartesian = {
@@ -274,7 +236,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["expand", "Stacked 100%", { stackType: "expand" }],
     ],
     "Default",
-    LINE_ROLES,
     LINE_OPTIONS,
   ),
   descriptor(
@@ -289,7 +250,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["expand", "Stacked 100%", { stackType: "expand" }],
     ],
     "Default",
-    [],
     ["sort", ...ANNOTATION_OPTIONS],
   ),
   descriptor(
@@ -304,7 +264,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["dots", "Dots", { showDots: true }],
     ],
     "Default",
-    LINE_ROLES,
     LINE_OPTIONS,
   ),
   descriptor(
@@ -324,7 +283,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["donut-total", "Donut Total", { innerRadius: 60, showTotal: true }],
     ],
     "Default",
-    [],
     PIE_OPTIONS,
   ),
   // ADR-306 Phase 5 — 제공 항목 donut (§2.1 #05): pie 의 프리셋 행 (같은 chartType · 다른 기본값).
@@ -343,9 +301,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     },
     [],
     "Default",
-    [],
     PIE_OPTIONS,
-    true,
     "chart-donut",
   ),
   descriptor(
@@ -369,7 +325,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["lines", "Lines Only", { fillArea: false }],
     ],
     "Polygon",
-    [],
     ["valueMax"],
   ),
   // ADR-306 Phase 5 — 제공 항목 radialBar (§2.1 #07) 는 이 행이다: 새로 만드는 차트는 상한 100 (진행률 —
@@ -395,7 +350,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
         ["total", "Total", { showTotal: true }],
       ],
       "Default",
-      [],
       ["valueMax"],
     ),
     { valueMax: 100 },
@@ -409,7 +363,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { ...cartesian, showDots: true },
     [],
     "Default",
-    SCATTER_ROLES,
     SCATTER_OPTIONS,
   ),
   // ADR-306 Phase 5 — 제공 항목 bubble (§2.1 #09): scatter 의 프리셋 행 — 점 크기 필드 지정.
@@ -421,9 +374,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { ...cartesian, showDots: true },
     [],
     "Default",
-    SCATTER_ROLES,
     SCATTER_OPTIONS,
-    true,
     "chart-bubble",
   ),
   // ── ADR-306 kpi family (Phase 2). 계산 · sample 은 family chunk (`families/kpi.ts`). ──
@@ -439,10 +390,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["ticks", "Ticks", { shape: "ticks" }],
     ],
     "Arc",
-    [
-      { prop: "metric", kind: "field", required: true, accepts: "number" },
-      { prop: "goalField", kind: "field", required: false, accepts: "number" },
-    ],
     ["valueMin", "valueMax", "centerLabel", "shape", "bands"],
   ),
   descriptor(
@@ -453,17 +400,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { independent: true, showAxis: false, showGrid: false, showLegend: false },
     [["shared", "Shared Scale", { independent: false }]],
     "Default",
-    [
-      { prop: "dimension", kind: "field", required: true, accepts: "string" },
-      { prop: "metric", kind: "field", required: true, accepts: "number" },
-      { prop: "goalField", kind: "field", required: false, accepts: "number" },
-      {
-        prop: "rangeFields",
-        kind: "fields",
-        required: false,
-        accepts: "number",
-      },
-    ],
     ["independent"],
   ),
   descriptor(
@@ -480,11 +416,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     },
     [["unsorted", "Data Order", { sort: "none" }]],
     "Default",
-    [
-      { prop: "dimension", kind: "field", required: true, accepts: "string" },
-      { prop: "startField", kind: "field", required: true, accepts: "number" },
-      { prop: "endField", kind: "field", required: true, accepts: "number" },
-    ],
     ["sort", "includeZero"],
   ),
   // ── ADR-306 category family (Phase 3). 계산 · sample 은 family chunk (`families/category/`). ──
@@ -506,7 +437,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["unsorted", "Data Order", { sort: "none" }],
     ],
     "Default",
-    [CATEGORY_ROLE, VALUE_ROLE],
     ["orientation", "sort"],
   ),
   descriptor(
@@ -520,7 +450,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["bar-only", "Bar Only", { showLegend: false }],
     ],
     "Default",
-    [CATEGORY_ROLE, VALUE_ROLE],
     ["shape", "sort"],
   ),
   descriptor(
@@ -531,7 +460,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { cells: 100, columns: 10, showTotal: true, showLegend: false },
     [["grid-only", "Grid Only", { showTotal: false }]],
     "Default",
-    [CATEGORY_ROLE, VALUE_ROLE],
     ["cells", "columns", "valueMax", "showTotal", "centerLabel"],
   ),
   descriptor(
@@ -542,7 +470,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showRates: true, rateBase: "previous", showLegend: false },
     [["first", "vs. First Step", { rateBase: "first" }]],
     "Default",
-    [CATEGORY_ROLE, VALUE_ROLE],
     ["showRates", "rateBase", "rateLabel"],
   ),
   descriptor(
@@ -560,7 +487,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     },
     [["ranks", "Rank Labels", { rankLabels: true }]],
     "Default",
-    [CATEGORY_ROLE, VALUE_ROLE],
     ["threshold", "sort", "rankLabels"],
   ),
   descriptor(
@@ -578,11 +504,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     },
     [["end-total", "End Total", { endTotal: true }]],
     "Default",
-    [
-      CATEGORY_ROLE,
-      VALUE_ROLE,
-      { prop: "kindField", kind: "field", required: false, accepts: "string" },
-    ],
     ["startTotal", "endTotal", "connectors"],
   ),
   descriptor(
@@ -603,10 +524,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["bar", "Bar", { shape: "bar" }],
     ],
     "Area",
-    [
-      { prop: "metric", kind: "field", required: true, accepts: "number" },
-      { prop: "dimension", kind: "field", required: false, accepts: "any" },
-    ],
     ["shape", "showTotal", "showExtremes"],
   ),
   descriptor(
@@ -617,11 +534,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showLegend: true, showGrid: true },
     [],
     "Default",
-    [
-      CATEGORY_ROLE,
-      { prop: "color", kind: "field", required: true, accepts: "string" },
-      VALUE_ROLE,
-    ],
     [],
   ),
   descriptor(
@@ -637,13 +549,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     },
     [["silhouette", "Silhouette", { streamOffset: "silhouette" }]],
     "Wiggle",
-    [
-      CATEGORY_ROLE,
-      VALUE_ROLE,
-      { prop: "color", kind: "field", required: false, accepts: "string" },
-    ],
     ["streamOffset", "reorder", "curve"],
-    true,
   ),
   descriptor(
     "bump",
@@ -653,12 +559,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showValueLabels: true, showLegend: false },
     [],
     "Default",
-    [
-      CATEGORY_ROLE,
-      { prop: "color", kind: "field", required: true, accepts: "string" },
-      { prop: "rankField", kind: "field", required: false, accepts: "number" },
-      { prop: "metric", kind: "field", required: false, accepts: "number" },
-    ],
     [],
   ),
   descriptor(
@@ -669,13 +569,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showValueLabels: true, showLegend: false },
     [],
     "Default",
-    [
-      CATEGORY_ROLE,
-      { prop: "color", kind: "field", required: true, accepts: "string" },
-      VALUE_ROLE,
-    ],
     ["periodLabels"],
-    true,
   ),
   descriptor(
     "skyline",
@@ -695,19 +589,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["flat", "No Texture", { texture: "none" }],
     ],
     "Default",
-    [
-      CATEGORY_ROLE,
-      VALUE_ROLE,
-      { prop: "color", kind: "field", required: false, accepts: "string" },
-      {
-        prop: "frontFields",
-        kind: "fields",
-        required: false,
-        accepts: "number",
-      },
-    ],
     ["depth", "wall", "texture", "frontRate"],
-    true,
   ),
   // ── ADR-306 distribution family (Phase 4). 계산 · sample 은 family chunk (`families/distribution/`). ──
   descriptor(
@@ -727,24 +609,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["step", "Step", { shape: "step" }],
     ],
     "Bars",
-    [
-      // 원시 표본 (Value) 또는 사전 집계 (구간 시작 · 끝 · 개수) — 어느 쪽이든 되므로 둘 다 선택 역할이다.
-      { prop: "metric", kind: "field", required: false, accepts: "number" },
-      { prop: "color", kind: "field", required: false, accepts: "string" },
-      {
-        prop: "binStartField",
-        kind: "field",
-        required: false,
-        accepts: "number",
-      },
-      {
-        prop: "binEndField",
-        kind: "field",
-        required: false,
-        accepts: "number",
-      },
-      { prop: "countField", kind: "field", required: false, accepts: "number" },
-    ],
     [
       "shape",
       "percentiles",
@@ -767,7 +631,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["both", "Box + Violin", { shape: "both" }],
     ],
     "Box",
-    [CATEGORY_ROLE, VALUE_ROLE],
     ["shape", "outliers", "whiskers", "includeZero"],
   ),
   descriptor(
@@ -778,11 +641,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showMedian: true, showLegend: false },
     [],
     "Default",
-    [
-      VALUE_ROLE,
-      { prop: "dimension", kind: "field", required: false, accepts: "string" },
-      { prop: "labelField", kind: "field", required: false, accepts: "string" },
-    ],
     ["dotRadius", "showMedian"],
   ),
   descriptor(
@@ -793,7 +651,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { overlap: 1.5, sort: "none", showLegend: false },
     [["median", "By Median", { sort: "ascending" }]],
     "Data Order",
-    [CATEGORY_ROLE, VALUE_ROLE],
     ["overlap", "bandwidth", "sort"],
   ),
   // ── ADR-306 matrix family (Phase 4). 계산 · sample 은 family chunk (`families/matrix/`). ──
@@ -805,11 +662,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showLegend: true, showValueLabels: false },
     [["values", "Values", { showValueLabels: true }]],
     "Default",
-    [
-      CATEGORY_ROLE,
-      { prop: "rowField", kind: "field", required: true, accepts: "string" },
-      VALUE_ROLE,
-    ],
     ["legendLabels"],
   ),
   descriptor(
@@ -820,7 +672,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { weekStart: 0, cellGap: 2.5, showLegend: false },
     [["monday", "Monday Start", { weekStart: 1 }]],
     "Sunday Start",
-    [{ ...CATEGORY_ROLE, accepts: "date" }, VALUE_ROLE],
     ["weekStart", "cellGap"],
   ),
   descriptor(
@@ -831,19 +682,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showGrid: true, showLegend: false },
     [],
     "Default",
-    [
-      { ...CATEGORY_ROLE, accepts: "date" },
-      { prop: "openField", kind: "field", required: false, accepts: "number" },
-      { prop: "highField", kind: "field", required: false, accepts: "number" },
-      { prop: "lowField", kind: "field", required: false, accepts: "number" },
-      { prop: "closeField", kind: "field", required: true, accepts: "number" },
-      {
-        prop: "volumeField",
-        kind: "field",
-        required: false,
-        accepts: "number",
-      },
-    ],
     ["movingAverages", "valueMin", "valueMax", ...ANNOTATION_OPTIONS],
   ),
   descriptor(
@@ -854,23 +692,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { showValueLabels: true, showLegend: false },
     [],
     "Default",
-    [
-      {
-        prop: "valueFields",
-        kind: "fields",
-        required: true,
-        accepts: "number",
-      },
-      { prop: "labelField", kind: "field", required: false, accepts: "string" },
-      {
-        prop: "invertFields",
-        kind: "fields",
-        required: false,
-        accepts: "number",
-      },
-    ],
     [],
-    true,
   ),
   // ── ADR-306 network family (Phase 5). 계산 · sample 은 family chunk (`families/network/`). ──
   descriptor(
@@ -889,7 +711,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["unsorted", "Data Order", { sort: "none" }],
     ],
     "Default",
-    [PATH_ROLE, VALUE_ROLE],
     ["labelKey", "sort"],
   ),
   descriptor(
@@ -903,7 +724,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["sorted", "Largest First", { sort: "descending" }],
     ],
     "Default",
-    [PATH_ROLE, VALUE_ROLE],
     ["innerRadius", "sort"],
   ),
   descriptor(
@@ -919,7 +739,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     },
     [["thin", "Thin Nodes", { nodeWidth: 4 }]],
     "Default",
-    FLOW_ROLES,
     ["nodeWidth", "nodePadding"],
   ),
   descriptor(
@@ -930,7 +749,6 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     { padAngle: 3, showValueLabels: true, showLegend: false },
     [["tight", "No Gaps", { padAngle: 0 }]],
     "Default",
-    FLOW_ROLES,
     ["padAngle"],
   ),
 ].map(withCommonOptions);
@@ -942,51 +760,42 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
 export const CHART_TYPE_DESCRIPTORS: readonly ChartDescriptor[] =
   CHART_DESCRIPTORS.filter((d) => d.paletteId === `chart-${d.chartType}`);
 
-/** 이 종류가 이 prop 을 읽는가 (역할 · 옵션). 시리즈 7 종은 descriptor 에 적지 않는다. */
+/** 이 종류가 이 prop 을 읽는가 (역할 — 어느 형태에서든 · 옵션). */
 export function chartTypesReading(
   prop: keyof ChartProps & string,
 ): ChartType[] {
+  const byRole = new Set<string>(chartTypesUsingRole(prop));
   return CHART_TYPE_DESCRIPTORS.filter(
-    (d) =>
-      d.roles.some((role) => role.prop === prop) || d.options.includes(prop),
+    (d) => byRole.has(d.chartType) || d.options.includes(prop),
   ).map((d) => d.chartType);
 }
 
-/** columns 모드 (값 필드 목록) 를 읽는 종류인가. */
+/** columns 형태 (값 필드 목록) 를 받는 종류인가 (ADR-312 — 형태 표에서). */
 export function chartTypeAcceptsColumns(type: unknown): boolean {
-  return CHART_DESCRIPTORS.some((d) => d.chartType === type && d.columns);
+  return chartTypeHasForm(type, "columns");
 }
 
 /**
- * ADR-306 — family 종류의 새 prop 전부 (descriptor 의 역할 + 옵션 — 기존 prop 제외). binding
- * `propPassthrough` · DOM destructure · Skia allowlist 세 곳이 이 목록 하나를 읽는다 (R2).
+ * ADR-306 — family 종류의 새 prop 전부 (역할 표 + 옵션 — ADR-306 전부터 시리즈 경로가 싣던 prop 제외).
+ * binding `propPassthrough` · DOM destructure · Skia allowlist 세 곳이 이 목록 하나를 읽는다 (R2).
  */
-const SERIES_PROP_KEYS = new Set(["dimension", "metric", "color"]);
-/** ADR-306 전부터 있던 prop — 시리즈 경로가 이미 싣는다 (family 가 읽어도 전달 목록에 다시 넣지 않는다). */
 const EXISTING_PROP_KEYS: ReadonlySet<string> = new Set([
-  ...SERIES_PROP_KEYS,
   ...Object.keys(CHART_DEFAULT_PROPS),
+  "color",
   "dataMode",
   "valueFields",
 ]);
 export const CHART_FAMILY_PROP_KEYS: readonly (keyof ChartProps & string)[] = [
-  ...new Set(
-    CHART_DESCRIPTORS.flatMap((d) => [
-      ...d.roles.map((role) => role.prop),
-      ...d.options,
-    ]).filter((key) => !EXISTING_PROP_KEYS.has(key)),
-  ),
-];
+  ...new Set([
+    ...CHART_ROLE_KEYS,
+    ...CHART_DESCRIPTORS.flatMap((d) => d.options),
+  ]),
+].filter((key) => !EXISTING_PROP_KEYS.has(key));
 
-/** ADR-306 — 패널의 필드 지정 칸으로 승격되는 역할 prop (field 하나짜리). */
-export const CHART_FIELD_ROLE_KEYS: readonly string[] = [
-  ...SERIES_PROP_KEYS,
-  ...new Set(
-    CHART_DESCRIPTORS.flatMap((d) =>
-      d.roles.filter((role) => role.kind === "field").map((role) => role.prop),
-    ).filter((key) => !SERIES_PROP_KEYS.has(key)),
-  ),
-];
+/** ADR-306 — 패널의 필드 지정 칸으로 승격되는 역할 prop (field 하나짜리 — 역할 표 순서). */
+export const CHART_FIELD_ROLE_KEYS: readonly string[] = CHART_ROLE_DEFS.filter(
+  (def) => def.kind === "field",
+).map((def) => def.key);
 
 /** ADR-306 — family props 만 골라낸다 (DOM · Skia 전달 — 미설정 키는 싣지 않는다). */
 export function pickChartFamilyProps(
@@ -1031,27 +840,30 @@ const legacySample: readonly ChartRow[] = [
   { category: "Thu", value: 14, series: "B" },
 ];
 
-/** ADR-217 — 산점도 sample (숫자 x · 겹친 점 1 쌍 · 시리즈 2). 범주 sample 은 x 파싱에 전부 실패한다. */
+/**
+ * ADR-217 — 산점도 sample (숫자 x · 겹친 점 1 쌍 · 시리즈 2). 범주 sample 은 x 파싱에 전부 실패한다.
+ * ADR-312 결정 3 — 열 이름은 역할의 기본 열 이름 (X = `category`, Y = `value`).
+ */
 const scatterSample: readonly ChartRow[] = [
-  { x: 1, y: 12, series: "A" },
-  { x: 2, y: 20, series: "A" },
-  { x: 3, y: 8, series: "A" },
-  { x: 4, y: 25, series: "A" },
-  { x: 4, y: 25, series: "A" },
-  { x: 1.5, y: 6, series: "B" },
-  { x: 2.5, y: 14, series: "B" },
-  { x: 3.5, y: 18, series: "B" },
+  { category: 1, value: 12, series: "A" },
+  { category: 2, value: 20, series: "A" },
+  { category: 3, value: 8, series: "A" },
+  { category: 4, value: 25, series: "A" },
+  { category: 4, value: 25, series: "A" },
+  { category: 1.5, value: 6, series: "B" },
+  { category: 2.5, value: 14, series: "B" },
+  { category: 3.5, value: 18, series: "B" },
 ];
 
 /** ADR-306 Phase 5 — bubble 표본 (산점도 표본 + 점 크기). */
 const bubbleSample: readonly ChartRow[] = [
-  { x: 1, y: 12, size: 40, series: "A" },
-  { x: 2, y: 20, size: 120, series: "A" },
-  { x: 3, y: 8, size: 15, series: "A" },
-  { x: 4, y: 25, size: 90, series: "A" },
-  { x: 1.5, y: 6, size: 60, series: "B" },
-  { x: 2.5, y: 14, size: 30, series: "B" },
-  { x: 3.5, y: 18, size: 150, series: "B" },
+  { category: 1, value: 12, size: 40, series: "A" },
+  { category: 2, value: 20, size: 120, series: "A" },
+  { category: 3, value: 8, size: 15, series: "A" },
+  { category: 4, value: 25, size: 90, series: "A" },
+  { category: 1.5, value: 6, size: 60, series: "B" },
+  { category: 2.5, value: 14, size: 30, series: "B" },
+  { category: 3.5, value: 18, size: 150, series: "B" },
 ];
 
 /**
@@ -1092,8 +904,7 @@ export function createChartInitialProps(
     ...CHART_DEFAULT_PROPS,
     color: "series",
     showLegend: true,
-    ...(scatter ? { dimension: "x", metric: "y" } : {}),
-    ...(bubble ? { sizeField: "size" } : {}),
+    // ADR-312 — 역할 값은 쓰지 않는다: 기본 열 이름 (`category` · `value` · `series` · `size`) 으로 읽힌다.
     ...(fresh
       ? {
           ...row.defaults,
@@ -1165,11 +976,17 @@ function withFamilySample(
     sampleProps: (t: never) => Partial<ChartProps>;
   },
 ): Record<string, unknown> {
-  const type = initialProps.chartType as never;
+  const type = initialProps.chartType as ChartType;
+  // ADR-312 결정 3 — 표본 열은 역할의 기본 열 이름, 그렇게 읽히는 역할 값은 쓰지 않는다 (목록 역할만 남는다).
+  const sample = standardizeChartSample(
+    type,
+    family.sample(type as never),
+    family.sampleProps(type as never),
+  );
   return {
     ...initialProps,
-    ...family.sampleProps(type),
-    data: family.sample(type).map((row) => ({ ...row })),
+    ...sample.props,
+    data: sample.rows,
   };
 }
 

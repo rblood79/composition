@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-11-16
+Implemented — 2026-11-17 (G5 사용자 확인 — 36 종 전부를 Data 패널 표에 연결한 live 결과 뒤 「Implemented 승격」. 사용자 결정 5 건 모두 답함: 1 · 2 · 3 · 4 권고안, 5 「초과분 수용」 · HC6 「표준대로 두고 수용」). Accepted — 2026-11-16 (사용자 `/execute-adr 312` 호출 + [reviews/312](../reviews/312.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed. 사용자 결정 5 건은 그 Phase 에 닿을 때 묻는다)
 
 - 사용자 요청: `/create-adr Chart 데이터 포맷 표준화` (2026-11-16).
 - 방향을 정한 사용자 원문 (2026-11-16 대화 순서대로):
@@ -10,10 +10,25 @@ Proposed — 2026-11-16
   - 「뒤로 미루고 임시적인 처리가 아닌 근본적인 포멧을 정하는 것이다 adr306은 구현가능에 집중이었고 구현확인이 되었으니 모든차트의 표준화를 해야한다」
   - 「https://ui.shadcn.com/docs/components/aria/chart 와 react-spectrum-chart의 데이터 표준화도 체크해」
   - 「추가로 https://json-render.dev/ 도 체크해」
-- 사용자가 이미 답한 확인 항목: ADR 분리 — 「새 ADR + 306 닫기」 (2026-11-16 질문. ADR-306 은 같은 날 Implemented, 데이터 포맷은 [306 Status](completed/306-chart-36-types-recharts-size-removal.md) 가 「이 ADR 범위 밖 — 새 ADR」 로 적었다).
+- 사용자가 이미 답한 확인 항목: ADR 분리 — 「새 ADR + 306 닫기」 (2026-11-16 질문. ADR-306 은 같은 날 Implemented, 데이터 포맷은 [306 Status](306-chart-36-types-recharts-size-removal.md) 가 「이 ADR 범위 밖 — 새 ADR」 로 적었다).
+
+> **Phase 2 종결 (2026-11-17 — G2 · G6, contract 69, Breaking)**: 저장 계약 한 번 — candlestick 종가 `closeField` → `metric` · `dataMode` 에 `binned` (histogram) · `ranked` (bump — 첫 형태) · `pair` (slope — 항목 = `color`, 앞 · 뒤 값) · parallel 은 형태 하나 · binding 의 `dataMode` 기본값 삭제 (bump 를 group 으로 읽게 했다). 값이 없는 역할은 기본 열 이름으로 읽힌다 (`resolveChartRoleDefaults` — 필수는 늘, 선택은 그 열이 있을 때만, 빈 글자는 해제) · 새 차트의 표본 열 = 역할 기본 열 이름 (`standardizeChartSample`), 생성 때 역할 값은 목록 역할만 · 표본 행 편집기 칸 = 형태의 역할 · 원천이 바뀔 때 역할을 맞춘다 (`reconcileChartRoles` · 연결 명령 한 step · 결과 schema `chartBindingColumns` — 집계 열은 key 로) · 패널 열 선택지도 결과 schema (F14). HC2 (snapshot · parity) 무변경 — parity 를 지키려 두 consumer 가 `color: ""` (해제) 를 버리던 것을 고쳤다. HC7 파일 diff 0. 원복 RED 4 · live (새 프로젝트 — Bar · Dumbbell 생성 Overrides 에 역할 값 없음 · 표본 편집기 Category · Start · End · 컬렉션 연결 → `status` · `points` 자동 · 해제 → 표본 · Undo 두 번 · Publish 같은 막대). 68 이하 문서는 열리지 않는다.
+>
+> **Phase 5 종결 (2026-11-17 — G5 · G6, 사용자 확인 2026-11-17 → Implemented)**: 범주 축 해석 한 곳 (`chartTimeParser` — 시간 축 · calendar · candlestick, 자체 `Date.parse` 삭제 · 패널 Date Input Format 칸) · AI catalog 의 종류별 형태 설명 (형태 표 파생) · 번들 Builder +4,462 B gzip (Δ 상한 +4,096 초과 — 사용자 결정 5 「초과분 수용」) · Preview +3,303 B. live 에서 Phase 1 회귀 하나를 찾아 고쳤다 (columns 형태 없는 종류에 pie · radial 안내). live G5: family 5 개 + 시리즈 경로 — 생성 · 연결 (Calendar 의 Date = `date`) · 종류 전환 · `role.missing` · 형태 전환 · 저장 재열기 · Publish · 필드 사용처. 사용자 요청으로 36 종 전부를 Data 패널 표 (Sales) 에 연결 — 32 종이 바로 그려졌고 결함 4 (산점도 X 형 · 맞춤의 형 검사 · 상속 역할 해제 · columns 시리즈 이름의 `#id`) 를 고쳐 36 종 모두 그려진다. 상세 [breakdown §8](../design/312-chart-data-format-standard-breakdown.md).
+
+> **Phase 4 종결 (2026-11-17 — G4, 저장 무변경)**: 시리즈 표시 표 공통 — 색 항목 목록을 종류마다 하나 (`seriesItems.ts` `chartSeriesItems` — 시리즈 격자 · `color` 값 · 범주 값 · 앞 · 뒤 열 · 값 열) 로 두고 시리즈 경로의 `applySeriesConfig` 규칙 그대로 적용한다. marimekko · segmented · waffle · dumbbell · histogram 묶음 · slope 가 표의 이름 · 색 · 순서를 읽고, parallel 축 이름은 `["field", key]` identity 로 고쳤다. 역할 칠 (accent · neutral) 로 그리는 종류는 표에서 색을 정한 항목만 팔레트 색으로 바꾼다. 패널 Series 섹션이 같은 목록으로 적용 대상 family 에서도 열린다 (parallel 은 이름만). G4 10 · 원복 RED 9 · HC2 (chartParity) 무변경 · live Dumbbell 「Before」 · Series 3 이 Canvas 와 Publish 에 같이.
+
+> **Phase 3 종결 (2026-11-17 — G3, 같은 contract 69 안의 해석 변경)**: 형태마다 행 정책 (`ChartForm.rows` · `key` · `grouped`) 을 선언하고, 스스로 합치지 않는 종류는 family 앞의 공용 묶기 (`families/rowPolicy.ts`) 를 지난다 — 범주 × 값 5 종 · bullet · dumbbell · gauge · sparkline · slope 합산, bump 순위는 첫 행 + `rows.duplicate`. 이미 합치던 종류의 루프는 그대로 두고 같은 정책을 손계산 fixture 로 고정했다 (공용 묶기를 앞에 더하면 같은 행을 두 번 지난다). 손계산 fixture 64 · 원복 RED 15 · 표본 36 항목 겹침 없음 (표본 scene 동일). HC6: 바뀐 종류 7 개는 빨라졌고 gauge (+0.52ms) · slope (+0.18ms, 1 만 행) 는 늘었다 — 사용자 답 「표준대로 두고 수용」. live: Dumbbell 표본에서 범주를 겹치게 바꾸면 Canvas · Publish 가 같이 합친다 (Seoul 4.6 + 1.8 = 6.4).
+
+> **사용자 결정 (2026-11-16, Phase 2 착수 전 — 같은 contract 에 묶이는 Phase 3 몫 포함)**: 결정 2 「`<뜻>Field` 유지」 · 결정 3 「역할의 기본 열 이름」 · 결정 4 「전부 표준대로」 · 결정 1 「ADR-284 보기 사용」 — 넷 다 권고안. 결정 5 (번들 상한) 는 초과할 때 묻는다.
+>
+> **Phase 1 종결 (2026-11-16 — G1 · G2, 저장 무변경)**: 역할 표 하나 (`roles.ts` — `CHART_ROLE_DEFS` 29 · 종류별 형태 `CHART_FORMS`) 에 기존 9 항목 포함 36 항목. 파생 — binding 역할 칸 · 전달 목록 · 패널 선택 / 필수 · 종류별 라벨 (X · Y · Date · Period · Item · Groups) · columns 판정 · 원천 모드 칸 (형태가 둘 이상일 때만 — parallel 의 읽지 않는 토글 제거) · 공통 검증 (`role.missing` 이 시리즈 경로의 「No data」 를 대체 · `role.notNumeric`) · 필드 사용처 Chart 축. snapshot · parity 무변경, 원복 RED 4, live (Chrome MCP — scatter 라벨 · parallel 모드 칸). 상세 [breakdown §8](../design/312-chart-data-format-standard-breakdown.md).
+>
+> **Phase 0 종결 (2026-11-16 — G0)**: 현재 표를 fixture 로 고정 (`adr312Inventory.test.ts` — 36 항목의 표본 열 · 저장 역할 · 읽지 않는 역할 (동작 판정) · 범례 · `seriesConfig` 반응 · 행 복제 반응). breakdown §3 과의 차이 1 건 — gauge 의 `dimension` 도 읽지 않는다 (F5 에 추가, §3.1 정정). F11 재현 (`fieldUsage.test.ts`). `seriesConfig` 적용 대상 16 확정 (지금 읽는 12 + parallel identity + 읽지 않는 marimekko · segmented · waffle · dumbbell · histogram · slope). 보기의 집계 열은 필드 색인에 등록되지 않아 (`#total` 이 풀리지 않음) 결과 schema 의 집계 열은 key 로 저장한다. 기준선: 1 만 행 scene 시간 36 종 · 번들 Builder 1,566,868 · Preview 166,576 B gzip (closure 측정). 상세 [breakdown §8](../design/312-chart-data-format-standard-breakdown.md).
+
 - 아래의 새 이름 (역할 표 · 형태 · 행 정책 · `dataMode` 값) 은 제안이고 아직 구현되지 않았다. 코드 인용은 main `eb981fea4` 기준이다.
 
-> **설계 리뷰 round 1 반영 (2026-11-16, [reviews/312](reviews/312.md) — reviewer codex, HIGH 2 · MEDIUM 1 · LOW 1)**. 세 반례를 코드로 대조해 모두 받아들였다. **h1** (기본 열이 없는 목록 역할을 생략 · 삭제하면 표본이 그려지지 않는다 — parallel) → Decision 8 을 「기본 열 이름이 있는 역할만 생략, 목록 역할은 생성 때 쓴다」 로, 해제 규칙을 「값을 지운다」 에서 「표본 지정 → 형이 맞는 표본 열 → 지움」 순서의 복구로 고치고 보장 범위를 적었다 (해제 = 표본으로 다시 그려짐, 연결 전과 같은 지정 = Undo). **h2** (묶기 · 집계 보기는 원본과 다른 schema — 원본 schema 로 맞추면 빈 차트) → 「원천의 열」 을 연결한 보기의 **결과 schema** 로 정의하고 자동 지정 · 보존 판정 · 패널 선택지가 모두 그것을 읽게 했다 (F14). **m3** (역할의 형을 공통 정의에만 두면 calendar 의 날짜 `dimension` 을 못 가른다) → 종류의 역할 사용에 형 제약을 둔다. **l4** (React Spectrum Charts 의 기본 열 이름은 종류마다 다르다) → 레퍼런스 서술을 고쳤다.
+> **설계 리뷰 round 1 반영 (2026-11-16, [reviews/312](../reviews/312.md) — reviewer codex, HIGH 2 · MEDIUM 1 · LOW 1)**. 세 반례를 코드로 대조해 모두 받아들였다. **h1** (기본 열이 없는 목록 역할을 생략 · 삭제하면 표본이 그려지지 않는다 — parallel) → Decision 8 을 「기본 열 이름이 있는 역할만 생략, 목록 역할은 생성 때 쓴다」 로, 해제 규칙을 「값을 지운다」 에서 「표본 지정 → 형이 맞는 표본 열 → 지움」 순서의 복구로 고치고 보장 범위를 적었다 (해제 = 표본으로 다시 그려짐, 연결 전과 같은 지정 = Undo). **h2** (묶기 · 집계 보기는 원본과 다른 schema — 원본 schema 로 맞추면 빈 차트) → 「원천의 열」 을 연결한 보기의 **결과 schema** 로 정의하고 자동 지정 · 보존 판정 · 패널 선택지가 모두 그것을 읽게 했다 (F14). **m3** (역할의 형을 공통 정의에만 두면 calendar 의 날짜 `dimension` 을 못 가른다) → 종류의 역할 사용에 형 제약을 둔다. **l4** (React Spectrum Charts 의 기본 열 이름은 종류마다 다르다) → 레퍼런스 서술을 고쳤다.
 >
 > **설계 리뷰 종결 (2026-11-16, round 2 수리 검증 — 미해결 HIGH 0 · MEDIUM 0 · pending 0)**. round 1 의 네 건 모두 fixed, 새 차단 이슈 없음. 실행자가 설계 리뷰를 닫는다. 사용자 결정 5 건의 승인과 Status 승격은 이것과 다른 일이다 — Accepted 는 `/execute-adr 312` 때.
 
@@ -21,7 +36,7 @@ Proposed — 2026-11-16
 
 ### 도메인
 
-- **D2 (Props/API)**. Chart 는 S2 · RAC 에 대응이 없어 모든 prop 이 composition 확장이다 (`d2Provenance.ts:39` `CATALOG_D2_COMPOSITION_TYPES`). 이름의 참조 원천은 React Spectrum Charts 다 ([ADR-194](completed/194-chart-component-headless-geometry.md) — `dimension` · `metric` · `color`).
+- **D2 (Props/API)**. Chart 는 S2 · RAC 에 대응이 없어 모든 prop 이 composition 확장이다 (`d2Provenance.ts:39` `CATALOG_D2_COMPOSITION_TYPES`). 이름의 참조 원천은 React Spectrum Charts 다 ([ADR-194](194-chart-component-headless-geometry.md) — `dimension` · `metric` · `color`).
 - D1 (DOM · 접근성) · D3 (catalog rule · 생성 CSS) 은 바꾸지 않는다. scene 은 데이터 해석의 결과라, 같은 키의 행을 다루는 방식이 바뀌는 종류에서만 달라진다 — 두 consumer (Skia · DOM host) 는 지금처럼 같은 scene 을 읽는다.
 - 생성기 선언: 이 ADR 은 catalog rule 의 selector · variant 를 더하지 않는다. `generate-css.ts` 는 대상이 아니다.
 
@@ -29,13 +44,13 @@ Proposed — 2026-11-16
 
 ADR-306 은 36 종을 그릴 수 있게 하는 데 집중했고, 종류마다 ztd-charts 의 채널을 그때그때 prop 에 대응시켰다 (`ztdCoverage.fixture.ts`). 그 결과 36 종이 데이터를 받는 방식이 여섯 군데에서 갈린다.
 
-### 코드 사실 (2026-11-16 실측 — 전수 표는 [breakdown §3](design/312-chart-data-format-standard-breakdown.md))
+### 코드 사실 (2026-11-16 실측 — 전수 표는 [breakdown §3](../design/312-chart-data-format-standard-breakdown.md))
 
 - **F1 — 행은 이미 표 한 장이다.** `ChartRow = Readonly<Record<string, unknown>>` (`packages/rendering/src/chart/types.ts:170`). 모든 종류가 같은 행 배열을 받는다 (`computeChartScene.ts:311-330`).
 - **F2 — 역할 표가 9 항목을 빼고 있다.** descriptor 의 `roles` 가 패널 · 검증 · 전달 목록의 원천인데 (`authoring.ts:37-50`), 기존 9 항목 (bar · line · area · pie · donut · radar · radial · scatter · bubble) 은 `roles` 가 비었거나 보강 역할만 있다. 그 종류의 `dimension` · `metric` · `color` 는 별도 목록 (`SERIES_PROP_KEYS` `authoring.ts:964`) 이 든다.
 - **F3 — 표본 행 편집기는 7 항목에만 맞는다.** `data` 의 편집 칸이 `category` · `value` · `series` 로 고정이다 (`packages/shared/src/catalog/bindings/Chart.binding.ts:1032-1048`). 표본 열 이름이 다른 29 항목은 행 이름이 비고, 새로 넣은 행을 차트가 읽지 않는다.
 - **F4 — 표본 열 이름이 종류마다 다르다.** family 표본은 `kpi` · `actual` · `feature` · `usage` · `from` · `to` 처럼 종류마다 이름을 짓고 (`families/kpi.ts:1004` · `category/index.ts:94` · `distribution/index.ts:46` · `matrix/index.ts:46` · `network/index.ts:42`), 그래서 생성할 때 역할 prop 을 전부 써야 한다 (`sampleProps`).
-- **F5 — 읽지 않는 값이 저장된다.** `CHART_DEFAULT_PROPS` 의 `dimension: "category"` · `metric: "value"` (`computeChartScene.ts:95-98`) 가 그 역할을 읽지 않는 종류에도 실린다 — dumbbell · candlestick 의 `metric`, parallel · treemap · sunburst · sankey · chord · histogram 의 `dimension`.
+- **F5 — 읽지 않는 값이 저장된다.** `CHART_DEFAULT_PROPS` 의 `dimension: "category"` · `metric: "value"` (`computeChartScene.ts:95-98`) 가 그 역할을 읽지 않는 종류에도 실린다 — dumbbell · candlestick 의 `metric`, gauge (표본 지정 `dimension=label`) · parallel · treemap · sunburst · sankey · chord · histogram 의 `dimension`.
 - **F6 — 입력 형태를 바꾸는 방식이 셋이다.**
   - 명시 칸: `dataMode` (group · columns) — 시리즈 종류 · stream · skyline (`presentation.ts:347-411`).
   - 선택 역할의 유무: histogram 은 `countField` 가 있으면 구간 집계 입력으로 읽고 (`distribution/histogram.ts:116`), bump 는 `rankField` 가 있으면 순위 입력으로 읽는다 (`category/lines.ts:445`).
@@ -57,15 +72,15 @@ ADR-306 은 36 종을 그릴 수 있게 하는 데 집중했고, 종류마다 zt
 
 유지하는 것:
 
-- [ADR-194](completed/194-chart-component-headless-geometry.md) — React Spectrum Charts 이름 · 같은 범주 합산 · 비숫자는 결측.
-- [ADR-209](completed/209-chart-authoring-canvas-recharts-runtime.md) — 원본 행의 key · 값은 번역하지 않는다. 프리셋은 데이터 지정을 덮지 않는다.
-- [ADR-210](completed/210-chart-multi-field-series-presentation.md) — 원본 행을 wide ↔ long 으로 저장 변환하지 않는다. `seriesConfig` identity (`["group", 값]` · `["field", key]`). 모드 전환 때 가려진 값은 지우지 않는다.
-- [ADR-211](completed/211-chart-display-budget-pixel-fit-window-decimation.md) — `budgetAggregate` 는 표시 예산이 만든 bucket 에만 적용.
-- [ADR-216](completed/216-chart-time-axis-format-window.md) · [217](completed/217-chart-reference-line-scatter.md) — 시간 축은 선택 설정, scatter 는 행 = 점.
-- [ADR-152](completed/152-data-panel-collection-binding-integration.md) — 필드 참조 `#id`. 모든 역할이 이 해석을 지난다.
-- [ADR-284](completed/284-data-view-filter-sort-group-query.md) Decision 3 — 「묶기 · 집계는 파생 보기에서만」. 연결한 Chart 는 보기의 결과 행을 읽는다 (`packages/shared/src/catalog/runtime/dataBinding.ts:192`).
-- [ADR-277](completed/277-table-tableview-merge.md) Decision 2 · [ADR-310](completed/310-collection-item-repeat-marker.md) — Table 은 첫 연결에서 schema 의 열을 받는다 (연결 명령이 대상의 지정을 맞추는 선례). 반복 항목의 공통 모델은 Chart 를 포함하지 않는다.
-- [ADR-306](completed/306-chart-36-types-recharts-size-removal.md) — 역할 표가 패널 · 검증 · 전달 목록의 원천. family 는 원본 행을 직접 읽는다. 종류 전환은 행을 두고 채워지지 않는 필수 역할을 비운다. 문서 변환 코드를 만들지 않는다.
+- [ADR-194](194-chart-component-headless-geometry.md) — React Spectrum Charts 이름 · 같은 범주 합산 · 비숫자는 결측.
+- [ADR-209](209-chart-authoring-canvas-recharts-runtime.md) — 원본 행의 key · 값은 번역하지 않는다. 프리셋은 데이터 지정을 덮지 않는다.
+- [ADR-210](210-chart-multi-field-series-presentation.md) — 원본 행을 wide ↔ long 으로 저장 변환하지 않는다. `seriesConfig` identity (`["group", 값]` · `["field", key]`). 모드 전환 때 가려진 값은 지우지 않는다.
+- [ADR-211](211-chart-display-budget-pixel-fit-window-decimation.md) — `budgetAggregate` 는 표시 예산이 만든 bucket 에만 적용.
+- [ADR-216](216-chart-time-axis-format-window.md) · [217](217-chart-reference-line-scatter.md) — 시간 축은 선택 설정, scatter 는 행 = 점.
+- [ADR-152](152-data-panel-collection-binding-integration.md) — 필드 참조 `#id`. 모든 역할이 이 해석을 지난다.
+- [ADR-284](284-data-view-filter-sort-group-query.md) Decision 3 — 「묶기 · 집계는 파생 보기에서만」. 연결한 Chart 는 보기의 결과 행을 읽는다 (`packages/shared/src/catalog/runtime/dataBinding.ts:192`).
+- [ADR-277](277-table-tableview-merge.md) Decision 2 · [ADR-310](310-collection-item-repeat-marker.md) — Table 은 첫 연결에서 schema 의 열을 받는다 (연결 명령이 대상의 지정을 맞추는 선례). 반복 항목의 공통 모델은 Chart 를 포함하지 않는다.
+- [ADR-306](306-chart-36-types-recharts-size-removal.md) — 역할 표가 패널 · 검증 · 전달 목록의 원천. family 는 원본 행을 직접 읽는다. 종류 전환은 행을 두고 채워지지 않는 필수 역할을 비운다. 문서 변환 코드를 만들지 않는다.
 
 바꾸는 것:
 
@@ -75,23 +90,23 @@ ADR-306 은 36 종을 그릴 수 있게 하는 데 집중했고, 종류마다 zt
 
 ### collection 과의 경계 (2026-11-16 실측)
 
-Chart 는 목록 · 표와 같은 데이터 연결을 쓴다 ([ADR-194](completed/194-chart-component-headless-geometry.md) 「새 data source 경로 0」). 같이 쓰는 것과 다른 것을 적어 둔다 — 이 ADR 은 같이 쓰는 경로를 바꾸지 않는다.
+Chart 는 목록 · 표와 같은 데이터 연결을 쓴다 ([ADR-194](194-chart-component-headless-geometry.md) 「새 data source 경로 0」). 같이 쓰는 것과 다른 것을 적어 둔다 — 이 ADR 은 같이 쓰는 경로를 바꾸지 않는다.
 
 같이 쓰는 것:
 
 - 연결 (`binding`) 과 그 명령 — `catalogBindingCommand` (`apps/builder/src/builder/catalogRuntime/dataBindingCommand.ts:176`).
-- 행을 읽는 함수 하나 — `catalogBoundRows` (`packages/shared/src/catalog/runtime/dataBinding.ts:179`). 보기 (필터 · 정렬 · 묶기 · 집계, ADR-284) 와 계산 열 ([ADR-291](completed/291-data-query-vocabulary-computed-fields.md)) 이 먼저 돌고 그 결과를 Chart 도 읽는다 (`:190-192` · `:211-216`).
+- 행을 읽는 함수 하나 — `catalogBoundRows` (`packages/shared/src/catalog/runtime/dataBinding.ts:179`). 보기 (필터 · 정렬 · 묶기 · 집계, ADR-284) 와 계산 열 ([ADR-291](291-data-query-vocabulary-computed-fields.md)) 이 먼저 돌고 그 결과를 Chart 도 읽는다 (`:190-192` · `:211-216`).
 - 필드 참조 `#id` (ADR-152) · 로딩 · 오류 상태 (`packages/shared/src/components/Chart.components.tsx:274-277`). 연결된 Chart 는 로딩 · 오류 · 빈 결과에서 표본 행으로 돌아가지 않는다 (ADR-209 breakdown §상태 표).
 
 다른 것 (성격 차이라 그대로 둔다):
 
-- **받는 행**: 목록 · 표는 표시 창만큼 (`"items"` — 더 보기 · 페이지 · 가상 스크롤, [ADR-310](completed/310-collection-item-repeat-marker.md)), Chart 는 보기 결과의 전체 행 (`"records"` — `packages/shared/src/catalog/resolution/resolver.ts:2086-2094`). 합산 · 통계는 전체 행이 있어야 하고, 줄이는 일은 표시 예산 (ADR-211) 이 맡는다.
+- **받는 행**: 목록 · 표는 표시 창만큼 (`"items"` — 더 보기 · 페이지 · 가상 스크롤, [ADR-310](310-collection-item-repeat-marker.md)), Chart 는 보기 결과의 전체 행 (`"records"` — `packages/shared/src/catalog/resolution/resolver.ts:2086-2094`). 합산 · 통계는 전체 행이 있어야 하고, 줄이는 일은 표시 예산 (ADR-211) 이 맡는다.
 - **필드 지정의 자리**: 목록 · 표는 연결 안의 `fieldMap` 과 항목 템플릿의 `{필드}`, Chart 는 자기 역할 prop. Chart 에는 행마다 반복할 항목 노드가 없어 ADR-310 의 공통 표 (`COLLECTION_TYPE_TABLE` — `packages/shared/src/catalog/document/collectionItems.ts`) 에 들지 않는다.
 - **표본**: 목록 · 표는 템플릿 항목, Chart 는 `data` 의 표본 행. 연결하면 표본 행 칸은 숨고 값은 남는다 (`apps/builder/src/builder/panels/properties/chartFieldOptions.ts:89`).
 
 비어 있는 것:
 
-- **F13 — 연결해도 역할이 따라가지 않는다.** Chart 에 컬렉션을 연결하는 명령은 `binding` 만 쓴다 (`dataBindingCommand.ts:176-215` — 반복 항목 type 만 행 템플릿을 받는다). 역할 prop 은 표본의 열 이름을 그대로 가리켜, 그 열이 없는 컬렉션이면 빈 차트가 된다. Table 은 첫 연결에서 schema 의 열을 받는다 ([ADR-277](completed/277-table-tableview-merge.md) Decision 2 — `resolveColumnMode`, `apps/builder/src/builder/panels/datatable/utils/quickConnectPlan.ts:46-55`).
+- **F13 — 연결해도 역할이 따라가지 않는다.** Chart 에 컬렉션을 연결하는 명령은 `binding` 만 쓴다 (`dataBindingCommand.ts:176-215` — 반복 항목 type 만 행 템플릿을 받는다). 역할 prop 은 표본의 열 이름을 그대로 가리켜, 그 열이 없는 컬렉션이면 빈 차트가 된다. Table 은 첫 연결에서 schema 의 열을 받는다 ([ADR-277](277-table-tableview-merge.md) Decision 2 — `resolveColumnMode`, `apps/builder/src/builder/panels/datatable/utils/quickConnectPlan.ts:46-55`).
 - **F14 — 패널의 열 선택지는 원본 schema 다.** Chart 가 읽는 행은 보기의 결과인데 (`packages/shared/src/catalog/runtime/dataBinding.ts:286-294` — 묶은 보기는 묶음 열과 집계 이름으로 된 결과 schema `viewResultSchema`, `packages/shared/src/collections/view/evaluate.ts:431`), 패널의 역할 선택지는 컬렉션의 원본 schema 만 읽는다 (`apps/builder/src/builder/panels/properties/hooks/useOwnerCollectionColumns.ts:48-56`). `points` 를 합쳐 `total` 로 내는 보기를 연결하면 결과 행에 `points` 가 없고 선택지에 `total` 이 없다.
 
 ### 레퍼런스 (2026-11-16 확인)
@@ -202,7 +217,7 @@ contract 는 저장 key · `dataMode` 값이 바뀌는 Phase 에서 한 번 올�
 - **B** — catalog 에 객체 kind 가 없어 패널 · override · 참조 해석을 모두 다시 지어야 하고, 기존 9 항목의 key 를 옮겨 HC2 를 깬다. 평탄 key 로 같은 표준을 얻을 수 있다.
 - **C** — `size` · `target` 이 이미 다른 뜻으로 쓰인 이름이고, 문법이 둘이 되어 정적 검사로 역할 key 를 가를 수 없다. 이름의 출처는 역할 표의 출처 칸으로 남긴다. (사용자 결정 2 로 뒤집을 수 있다.)
 
-> 구현 상세: [312-chart-data-format-standard-breakdown.md](design/312-chart-data-format-standard-breakdown.md)
+> 구현 상세: [312-chart-data-format-standard-breakdown.md](../design/312-chart-data-format-standard-breakdown.md)
 
 ### 사용자 결정 (5건 — 그 Phase 에 닿을 때 묻는다)
 
@@ -244,7 +259,15 @@ contract 는 저장 key · `dataMode` 값이 바뀌는 Phase 에서 한 번 올�
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실행자 live (Chrome MCP, dev 5173, 새 프로젝트 adr312-live — contract 68 이하 문서는 열리지 않는다). 결과는 Canvas 와 Publish DOM 에서 읽었다.
+
+- **Phase 2 (G2 · G6)**: Bar · Dumbbell 생성 → Overrides 에 역할 값 없음 · 표본 편집기 칸 Category · Start · End → 컬렉션 연결 → 필수 역할이 `status` · `points` 로 채워짐 → 해제 → 표본 그림 → Undo 두 번이 각 상태로 → Publish 같은 막대.
+- **Phase 3 (G3)**: Dumbbell 표본 행의 범주를 겹치게 바꾸면 Canvas · Publish 가 같이 합친다 (Seoul 4.6 + 1.8 = 6.4).
+- **Phase 4 (G4)**: Dumbbell Series 섹션 — 이름 「Before」 · 색 3 이 Canvas 와 Publish 에 같이.
+- **Phase 5 (G5 · G6)**: family 마다 1 종 — Calendar 생성 → 표 연결 (Date = 날짜 열 `date`, 첫 열 아님) → Line → Bump (`role.missing`) → 형태 전환 Rank → Group → Histogram (Series 섹션) → Sankey (Source · Target 지정) → 새로고침 뒤 연결 · 형태 유지 → Publish 같은 그림 · 콘솔 0. 필드 사용처: 열 삭제 확인에 「used in 2 place(s)」 (F11).
+- **36 종 전부 연결 (사용자 요청 2026-11-17)**: Data 패널 Data table creator → Paste 로 「Sales」 (region · product · month · sales · cost · units, 10 행 — 기본 열 이름과 다른 이름) → 팔레트 Chart 36 항목을 하나씩 넣고 Data source = Sales. 32 종이 바로 그려졌고 결함 4 (산점도 X 형 · 맞춤의 형 검사 · 상속 역할 해제 · columns 시리즈 이름의 `#id`) 를 고친 뒤 36 종 모두 그려진다 (Seoul 435 = 120 + 90 + 130 + 95 · Donut 810 · Scatter X sales · Y cost · Sparkline 행마다 · Skyline 범례 sales · cost · units). 회귀 `adr312LiveSales.test.ts` 6 · 원복 RED 4.
+- **사용자 확인 (G5)**: 2026-11-17 「Implemented 승격」.
+- 남은 관찰 (결함 아님): 값 하나뿐인 시리즈 범례가 「series」 · Gauge 기본 최대 100 이라 합 810 이 넘침 (최대 값은 사용자 설정).
 
 ## Consequences
 

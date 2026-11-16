@@ -285,7 +285,10 @@ describe("ADR-306 §2.1 — 산점도 보강 (bubble · scatter)", () => {
     expect(box.x + box.w).toBeLessThanOrEqual(SIZE.width);
     expect(box.y + box.h).toBeLessThanOrEqual(SIZE.height);
     // 그림이 가장 큰 반지름 (18) 만큼 안으로 — 크기 없는 산점도보다 좁다.
-    expect(s.plot.w).toBeLessThan(scene(base, pts).plot.w - 30);
+    // (크기 열이 있어도 `sizeField: ""` 는 해제 — ADR-312 기본 열 이름 읽기 밖)
+    expect(s.plot.w).toBeLessThan(
+      scene({ ...base, sizeField: "" }, pts).plot.w - 30,
+    );
   });
 
   it("작은 상자 (Library 칸 140 × 78) — 큰 반지름이 그림 짧은 변의 1/8 로 줄고 점이 상자 안", () => {

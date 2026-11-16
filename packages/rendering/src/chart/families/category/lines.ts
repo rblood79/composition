@@ -4,6 +4,7 @@
  * stream · bump 는 시리즈 격자 (`buildSeriesGrid` — 같은 (범주, 시리즈) 는 합산) 를 지난다
  * (breakdown §4.2 — category family 만 격자를 쓴다).
  */
+import { chartActiveForm } from "../../roles";
 import { highlightColor, highlightIndex, highlightSet } from "../../highlight";
 import { curveCommands } from "../../curves";
 import { circlePath } from "../../marks/dots";
@@ -41,6 +42,15 @@ import {
   truncated,
   type CategoryContext,
 } from "./common";
+import {
+  chartSeriesByKey,
+  chartSeriesFill,
+  chartSeriesItems,
+  chartSeriesName,
+  chartSeriesStroke,
+  chartSeriesSwatch,
+  type ChartSeriesItem,
+} from "../../seriesItems";
 
 const CURVES: readonly ChartCurve[] = ["linear", "monotone", "step"];
 
@@ -362,9 +372,7 @@ export function streamScene(ctx: CategoryContext) {
   // 범례 쪽 가장자리는 자기 여백 없이 (범례 ↔ 그림 = `LEGEND_CHART_GAP`) — 아래는 범주 글자 아래끝이 경계.
   const top = outer.y + (legend?.position === "top" ? 0 : 4);
   const bottom =
-    outer.y +
-    outer.h -
-    (fontSize + (legend?.position === "bottom" ? 6 : 10));
+    outer.y + outer.h - (fontSize + (legend?.position === "bottom" ? 6 : 10));
   const all = [...model.y0.flat(), ...model.y1.flat()];
   const [lo, hi] = finiteExtent(all);
   const y = linearScale([lo, hi === lo ? lo + 1 : hi], [bottom, top]);
@@ -439,8 +447,10 @@ export function bumpModel(ctx: CategoryContext): BumpModel | null {
   const { props, input } = ctx;
   requireField(input, "Category", props.dimension);
   requireField(input, "Series", props.color);
-  const byRank = fieldKey(props.rankField) !== null;
-  if (!byRank) requireField(input, "Value", props.metric);
+  // ADR-312 — 형태는 `dataMode` 로만 (ranked = 순위 열 그대로, group = 값으로 순위를 낸다).
+  const byRank = chartActiveForm(props).id === "ranked";
+  if (byRank) requireField(input, "Rank", props.rankField);
+  else requireField(input, "Value", props.metric);
   if (!input.ok) return null;
   const table = seriesTable(ctx, byRank ? props.rankField : props.metric);
   const nk = table.categories.length;
@@ -595,11 +605,16 @@ export function bumpScene(ctx: CategoryContext) {
 
 // ── slope ──────────────────────────────────────────────────────────────────
 
+const nameOf = (it: SlopeItem): string =>
+  it.series ? chartSeriesName(it.series) : it.label;
+
 export interface SlopeItem {
   label: string;
   a: number;
   b: number;
   rows: number[];
+  /** ADR-312 Phase 4 — 시리즈 표시 표의 항목 (표시 이름 · 색). `label` 은 원본 값 (`highlight` 가 읽는다). */
+  series?: ChartSeriesItem;
 }
 
 export interface SlopeModel {
@@ -611,38 +626,34 @@ export interface SlopeModel {
 }
 
 /**
- * group 모드: `dimension` = 시점, `color` = 항목, `metric` = 값 — 첫 시점과 마지막 시점.
- * columns 모드: `dimension` = 항목, `valueFields` 첫 · 끝 = 두 시점.
+ * ADR-312 — 역할의 뜻은 형태와 무관하다: `color` = 항목.
+ * group 형태: `dimension` = 시점, `metric` = 값 — 첫 시점과 마지막 시점.
+ * pair 형태: 항목마다 앞 · 뒤 두 값 (`startField` · `endField`). 같은 항목의 행이 여럿이면 마지막 행 (Phase 3 의 행 정책 전).
  */
 export function slopeModel(ctx: CategoryContext): SlopeModel | null {
   const { props, rows, input } = ctx;
-  const columns = columnsMode(ctx);
-  const dimension = requireField(
-    input,
-    columns ? "Item" : "Period",
-    props.dimension,
-  );
+  const pair = chartActiveForm(props).id === "pair";
   let items: SlopeItem[] = [];
   let periods: [string, string] = ["", ""];
-  if (columns) {
-    const fields = props.valueFields!;
-    if (fields.length < 2)
-      input.error(
-        "role.missing",
-        "two value fields are required",
-        "valueFields",
-      );
-    if (!input.ok || dimension === null) return null;
-    const a = fieldKey(fields[0]);
-    const b = fieldKey(fields[fields.length - 1]);
-    items = rows.map((row, i) => ({
-      label: readLabel(row, dimension),
-      a: readNumber(row, a),
-      b: readNumber(row, b),
-      rows: [i],
-    }));
-    periods = [a ?? "", b ?? ""];
+  if (pair) {
+    const series = requireField(input, "Item", props.color);
+    const a = requireField(input, "Start", props.startField);
+    const b = requireField(input, "End", props.endField);
+    if (!input.ok || series === null || a === null || b === null) return null;
+    const map = new Map<string, SlopeItem>();
+    rows.forEach((row, i) => {
+      const label = readLabel(row, series);
+      map.set(label, {
+        label,
+        a: readNumber(row, a),
+        b: readNumber(row, b),
+        rows: [i],
+      });
+    });
+    items = [...map.values()];
+    periods = [a, b];
   } else {
+    const dimension = requireField(input, "Period", props.dimension);
     const series = requireField(input, "Item", props.color);
     const metric = requireField(input, "Value", props.metric);
     if (!input.ok || dimension === null || series === null || metric === null)
@@ -672,6 +683,18 @@ export function slopeModel(ctx: CategoryContext): SlopeModel | null {
     items = [...map.values()];
   }
   items = items.filter((it) => Number.isFinite(it.a) && Number.isFinite(it.b));
+  // ADR-312 Phase 4 — 항목 (`color` 값) 의 순서 · 이름 · 색은 시리즈 표시 표.
+  const series = chartSeriesItems(props, rows, ctx.metrics.seriesCount, {
+    diagnostics: input.diagnostics,
+  });
+  const byKey = chartSeriesByKey(series);
+  const rank = new Map(series.map((item, i) => [item.key, i]));
+  items = items
+    .map((it) => ({ ...it, series: byKey.get(it.label) }))
+    .sort(
+      (a, b) =>
+        (rank.get(a.label) ?? Infinity) - (rank.get(b.label) ?? Infinity),
+    );
   const labels = props.periodLabels;
   if (Array.isArray(labels) && labels.length >= 2)
     periods = [String(labels[0]), String(labels[1])];
@@ -708,7 +731,7 @@ export function slopeScene(ctx: CategoryContext) {
     outer.w * 0.34,
     Math.max(
       ...items.map((it) =>
-        approxTextWidth(`${it.label} ${fx(it.a)}`, fontSize),
+        approxTextWidth(`${nameOf(it)} ${fx(it.a)}`, fontSize),
       ),
       30,
     ) + 16,
@@ -717,7 +740,7 @@ export function slopeScene(ctx: CategoryContext) {
     outer.w * 0.34,
     Math.max(
       ...items.map((it) =>
-        approxTextWidth(`${fx(it.b)} ${it.label}`, fontSize),
+        approxTextWidth(`${fx(it.b)} ${nameOf(it)}`, fontSize),
       ),
       30,
     ) + 16,
@@ -787,27 +810,41 @@ export function slopeScene(ctx: CategoryContext) {
     const yb = r2(y(it.b));
     const rr = hi ? 4 : 3;
     marks.push(
-      {
-        kind: "line",
-        x1: xa,
-        y1: ya,
-        x2: xb,
-        y2: yb,
-        role: "grid",
-        paint: hi ? "accent" : "neutral",
-        width: hi ? 2.8 : 1.6,
-      },
+      // 표에서 색을 정한 항목은 팔레트 색 선 (path — 선 마크는 역할 칠만 받는다).
+      it.series?.colored
+        ? {
+            kind: "path",
+            d: `M${xa},${ya}L${xb},${yb}`,
+            bbox: {
+              x: Math.min(xa, xb),
+              y: Math.min(ya, yb),
+              w: Math.abs(xb - xa),
+              h: Math.abs(yb - ya),
+            },
+            ...chartSeriesStroke(it.series, "accent"),
+            strokeWidth: hi ? 2.8 : 1.6,
+          }
+        : {
+            kind: "line",
+            x1: xa,
+            y1: ya,
+            x2: xb,
+            y2: yb,
+            role: "grid",
+            paint: hi ? "accent" : "neutral",
+            width: hi ? 2.8 : 1.6,
+          },
       {
         kind: "path",
         d: circlePath(xa, ya, rr),
         bbox: { x: r2(xa - rr), y: r2(ya - rr), w: rr * 2, h: rr * 2 },
-        fillPaint: hi ? "accent" : "neutral",
+        ...chartSeriesFill(it.series, hi ? "accent" : "neutral"),
       },
       {
         kind: "path",
         d: circlePath(xb, yb, rr),
         bbox: { x: r2(xb - rr), y: r2(yb - rr), w: rr * 2, h: rr * 2 },
-        fillPaint: hi ? "accent" : "neutral",
+        ...chartSeriesFill(it.series, hi ? "accent" : "neutral"),
       },
     );
   }
@@ -819,7 +856,7 @@ export function slopeScene(ctx: CategoryContext) {
           kind: "text",
           x: r2(xa - 9),
           y: ysL[k],
-          text: `${fitText(it.label, lw - 10 - approxTextWidth(fx(it.a), fontSize), fontSize)} ${fx(it.a)}`,
+          text: `${fitText(nameOf(it), lw - 10 - approxTextWidth(fx(it.a), fontSize), fontSize)} ${fx(it.a)}`,
           anchor: "end",
           baseline: "middle",
           role,
@@ -828,7 +865,7 @@ export function slopeScene(ctx: CategoryContext) {
           kind: "text",
           x: r2(xb + 9),
           y: ysR[k],
-          text: `${fx(it.b)} ${fitText(it.label, rw - 10 - approxTextWidth(fx(it.b), fontSize), fontSize)}`,
+          text: `${fx(it.b)} ${fitText(nameOf(it), rw - 10 - approxTextWidth(fx(it.b), fontSize), fontSize)}`,
           anchor: "start",
           baseline: "middle",
           role,
@@ -843,13 +880,13 @@ export function slopeScene(ctx: CategoryContext) {
       y: r2((y(it.a) + y(it.b)) / 2),
       r: 12,
       rows: it.rows,
-      title: it.label,
+      title: nameOf(it),
       entries: [
         { label: model.periods[0], text: fx(it.a) },
         {
           label: model.periods[1],
           text: fx(it.b),
-          paint: it === hiItem ? "accent" : "neutral",
+          ...chartSeriesSwatch(it.series, it === hiItem ? "accent" : "neutral"),
         },
         {
           label: "Change",

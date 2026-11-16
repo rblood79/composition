@@ -4,15 +4,24 @@ import {
   CHART_TYPE_DESCRIPTORS,
   getChartDescriptor,
   getChartPresetId,
+  chartForms,
   chartTypeAcceptsColumns,
+  chartTypeHasForm,
   isFamilyChartType,
 } from "@composition/rendering";
+import type { ChartDataMode } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";
 
-/** ADR-210 — columns 모드가 지원하지 않는 종류 (breakdown §2.3 3). */
-const COLUMNS_UNSUPPORTED_TYPES: readonly string[] = ["pie", "radial"];
+/**
+ * ADR-210 — columns 모드가 지원하지 않는 시리즈 종류 (breakdown §2.3 3). ADR-312 — 형태 표에서 (Pie · Radial).
+ * family 종류는 종류 변경 patch 가 group 으로 되돌린다 (`chartTypeChangePatch`).
+ */
+const COLUMNS_UNSUPPORTED_TYPES: readonly string[] =
+  CHART_TYPE_DESCRIPTORS.filter(
+    (d) => d.family === null && !chartTypeAcceptsColumns(d.chartType),
+  ).map((d) => d.chartType);
 
 /**
  * Content 선두 — 차트의 **정체** (종류 · 프리셋). shadcn 갤러리의 "종류 × 변형" 층.
@@ -34,10 +43,15 @@ export function chartTypeChangePatch(
   props: Readonly<Record<string, unknown>>,
   chartType: string,
 ): Record<string, unknown> {
-  return isFamilyChartType(chartType) &&
-    !chartTypeAcceptsColumns(chartType) &&
-    props.dataMode === "columns"
-    ? { chartType, dataMode: "group" }
+  // ADR-312 — 새 종류의 형태에 없는 `dataMode` 는 그 종류의 첫 형태로 되돌린다 (slope pair → bar 등). 단
+  //   시리즈 종류에 남은 columns (pie · radial) 는 ADR-210 대로 조용히 바꾸지 않는다 — 패널이 사유를 보인다.
+  const mode = props.dataMode;
+  const stranded =
+    typeof mode === "string" &&
+    !chartTypeHasForm(chartType, mode as ChartDataMode) &&
+    (isFamilyChartType(chartType) || mode !== "columns");
+  return stranded
+    ? { chartType, dataMode: chartForms(chartType)[0].id }
     : { chartType };
 }
 

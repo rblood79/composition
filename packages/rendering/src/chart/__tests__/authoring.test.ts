@@ -43,10 +43,13 @@ describe("ADR-209 공통 저작/데이터 계약", () => {
       showTotal: true,
       centerLabel: "Total",
     });
-    expect(createChartInitialProps("scatter", "chart-bubble")).toMatchObject({
-      chartType: "scatter",
-      sizeField: "size",
-    });
+    // ADR-312 결정 3 — bubble 은 크기 역할 값을 쓰지 않고 표본의 기본 열 이름 (`size`) 으로 읽힌다.
+    const bubble = createChartInitialProps("scatter", "chart-bubble");
+    expect(bubble).toMatchObject({ chartType: "scatter" });
+    expect(bubble.sizeField).toBeUndefined();
+    expect(Object.keys(bubble.data[0]).sort()).toEqual(
+      ["category", "series", "size", "value"].sort(),
+    );
   });
   it("프리셋은 이전 소유 키를 reset하되 데이터와 실행 옵션을 소유하지 않는다", () => {
     const line = getChartDescriptor("line");

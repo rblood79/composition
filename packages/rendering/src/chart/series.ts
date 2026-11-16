@@ -8,7 +8,10 @@
 import { toFiniteNumber } from "./scales";
 import { resolveFieldRef } from "../data/fieldIdIndex";
 import { resolveChartPresentation, seriesIdentity } from "./presentation";
-import type { ResolvedChartPresentation } from "./presentation";
+import type {
+  ResolvedChartPresentation,
+  ResolvedSeriesConfig,
+} from "./presentation";
 import { parseIsoStrict } from "./budget";
 import { parseTime, resolveTimeLocale } from "./timeFormat";
 import type { ChartProps, ChartRow } from "./types";
@@ -170,6 +173,25 @@ export function timeLabelParser(
 }
 
 /**
+ * ADR-312 Decision 9 — 날짜 범주 **값** → epoch ms (UTC). 시간 축 · calendar · candlestick 이 같이 읽는 해석 하나
+ * (F12 — calendar · candlestick 의 자체 해석을 없앴다). 글자는 `timeLabelParser` (`dimensionFormat` 지시자 + 값
+ * locale, 없으면 엄격 ISO), 숫자는 epoch ms 로 볼 만큼 클 때만 (|v| > 1e10 — 네 자리 연도 · 순번은 날짜가 아니다).
+ */
+export function chartTimeParser(
+  props: Pick<ChartProps, "dimensionFormat" | "valueLocale">,
+): (value: unknown) => number | null {
+  const parse = timeLabelParser(props);
+  return (value) =>
+    typeof value === "number"
+      ? Number.isFinite(value) && Math.abs(value) > 1e10
+        ? value
+        : null
+      : typeof value === "string"
+        ? parse(value.trim())
+        : null;
+}
+
+/**
  * 행을 (범주 × 시리즈) 격자로 접는다. 같은 (범주, 시리즈) 가 여러 행이면 **합산**
  * (dataTable 이 이미 집계돼 있지 않은 흔한 형태 — 집계 없이 마지막 행만 남기면
  * 사용자가 준 값의 일부가 조용히 사라진다).
@@ -218,10 +240,19 @@ export function buildSeriesGrid(
   };
   // columns — 시리즈는 필드 선택 순서로 **미리** 만든다 (값이 없는 필드도 시리즈다:
   //   행 출현에 따라 순서가 흔들리면 팔레트 색이 데이터에 좌우된다).
+  //   ADR-312 — 이름 (`key`) 은 풀린 필드 key, identity 는 저장된 참조 그대로 (`#id` — 필드 이름을 바꿔도 시리즈
+  //   표의 항목이 남는다). 연결 때 값 열이 `#id` 로 저장되면 범례에 id 글자가 그려졌다 (Phase 5 live).
+  const columnIndex = new Map<SeriesData, number>();
   if (columns) {
-    for (const field of presentation.valueFields) {
-      addSeries(field, seriesIdentity("field", field));
-    }
+    presentation.valueFields.forEach((field, i) => {
+      columnIndex.set(
+        addSeries(
+          resolveFieldRef(field) ?? field,
+          seriesIdentity("field", field),
+        ),
+        i,
+      );
+    });
   }
 
   const accumulate = (series: SeriesData, ci: number, raw: unknown): void => {
@@ -239,7 +270,7 @@ export function buildSeriesGrid(
   const sizeRef = pointPerRow ? props.sizeField : undefined;
   const labelRef = pointPerRow ? props.labelField : undefined;
   const fieldOf = (refs: readonly string[], series: SeriesData) =>
-    columns ? refs[presentation.valueFields.indexOf(series.key)] : refs[0];
+    columns ? refs[columnIndex.get(series) ?? -1] : refs[0];
   const addExtra = (
     series: SeriesData,
     key: "lower" | "upper" | "size",
@@ -315,7 +346,7 @@ export function buildSeriesGrid(
   if (!parseDimension) {
     return {
       categories,
-      series: applySeriesConfig(orderedSeries, presentation),
+      series: applySeriesConfig(orderedSeries, presentation.seriesConfig),
       hasValues,
     };
   }
@@ -323,7 +354,7 @@ export function buildSeriesGrid(
   return {
     categories: sorted.categories,
     positions: sorted.positions,
-    series: applySeriesConfig(sorted.series, presentation),
+    series: applySeriesConfig(sorted.series, presentation.seriesConfig),
     hasValues,
     parseFailures,
   };
@@ -373,17 +404,16 @@ function sortByPosition(
  * (group) / valueFields (columns) 순서대로 뒤에 둔다. 팔레트 인덱스는 **정렬 전**
  * 출현 순서로 이미 배정돼 있어 config 만 재정렬해도 색은 그대로다 (breakdown §2);
  * 검증된 토큰만 그 인덱스를 덮는다. 보이지 않는 시리즈의 설정은 건드리지 않는다
- * (휴면 보존 — 저장 배열은 여기서 읽기만 한다).
+ * (휴면 보존 — 저장 배열은 여기서 읽기만 한다). ADR-312 Phase 4 — family 의 색 항목도 같은 규칙 (`chartSeriesItems`).
  */
-function applySeriesConfig(
-  series: SeriesData[],
-  presentation: ResolvedChartPresentation,
-): SeriesData[] {
-  if (presentation.seriesConfig.length === 0) return series;
+export function applySeriesConfig<
+  T extends { id: string; label?: string; seriesIndex: number },
+>(series: T[], seriesConfig: readonly ResolvedSeriesConfig[]): T[] {
+  if (seriesConfig.length === 0) return series;
   const byId = new Map(series.map((s) => [s.id, s]));
-  const ordered: SeriesData[] = [];
-  const placed = new Set<SeriesData>();
-  for (const config of presentation.seriesConfig) {
+  const ordered: T[] = [];
+  const placed = new Set<T>();
+  for (const config of seriesConfig) {
     const target = byId.get(config.key);
     if (!target || placed.has(target)) continue;
     if (config.label !== undefined) target.label = config.label;

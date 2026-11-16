@@ -5,6 +5,7 @@ import {
 } from "@composition/shared";
 import {
   CHART_DEFAULT_SERIES_COUNT,
+  chartForms,
   chartTypeAcceptsColumns,
   isFamilyChartType,
   resolveChartPalette,
@@ -22,6 +23,8 @@ import { useCollections } from "../../stores/data";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartBudgetControls } from "./ChartBudgetControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
+import { useOptionalCatalogWorkspace } from "../../catalogRuntime/react.runtime";
+import { chartBindingColumns } from "../../catalogRuntime/chartRoleReconcile";
 import { buildChartSemanticFields } from "./chartFieldOptions";
 import type { PanelField } from "./generic/GenericFieldRenderer";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
@@ -35,7 +38,13 @@ import {
   ChartSeriesControls,
   chartSeriesConfigApplies,
 } from "./ChartSeriesControls";
-import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
+import {
+  ChartDateFormatControl,
+  ChartTimeAxisControls,
+} from "./ChartTimeAxisControls";
+
+/** ADR-312 Decision 9 — 범주가 늘 날짜인 family (날짜 입력 형식 칸). */
+const DATE_FAMILY_TYPES: readonly string[] = ["calendar", "candlestick"];
 
 /**
  * ADR-210 컨트롤 3개가 읽는 필드 — `buildSeriesGrid`/`resolveChartPresentation` 입력 + 종류/색 축.
@@ -111,15 +120,35 @@ export function useChartPropertyExtras({
   const { t } = useI18n();
   const collections = useCollections();
   const isChart = elementType === "Chart";
+  // ADR-312 F14 — 연결한 Chart 의 열 선택지는 보기의 결과 schema (묶기 · 집계면 묶음 열 + 집계 이름). 바인딩이
+  //   바뀌면 contract 의 `dataBinding` 값이 바뀌어 다시 읽는다.
+  const workspace = useOptionalCatalogWorkspace();
+  const bindingKey = JSON.stringify(
+    baseFields.find((field) => field.key === "dataBinding")?.currentValue ??
+      null,
+  );
+  const sourceColumns = useMemo(() => {
+    void bindingKey;
+    if (!isChart || !workspace) return undefined;
+    const graph = workspace.runtime.graph;
+    const node = graph.getEntry(elementId as never);
+    const binding = node?.kind === "node" ? node.binding : undefined;
+    return binding ? chartBindingColumns(graph, binding) : undefined;
+  }, [bindingKey, elementId, isChart, workspace]);
   const semanticFields = useMemo(
     () =>
       isChart
-        ? buildChartSemanticFields(baseFields, collections, {
-            none: t("chart.none"),
-            columnQualifier: t("chart.columnQualifier"),
-          })
+        ? buildChartSemanticFields(
+            baseFields,
+            collections,
+            {
+              none: t("chart.none"),
+              columnQualifier: t("chart.columnQualifier"),
+            },
+            sourceColumns,
+          )
         : baseFields,
-    [baseFields, collections, isChart, t],
+    [baseFields, collections, isChart, sourceColumns, t],
   );
   const chartValues = isChart
     ? Object.fromEntries(
@@ -211,7 +240,7 @@ export function useChartPropertyExtras({
     chartPaletteLength,
   );
   // ADR-306 — family 종류 (gauge · bullet · dumbbell …) 는 시리즈 격자를 지나지 않는다: 시리즈 원천 ·
-  //   값 필드 · 범주 간격 · 기준선 · 시리즈 표 · 표시 예산은 읽지 않으니 내지 않는다 (숫자 형식만 공유).
+  //   값 필드 · 범주 간격 · 기준선 · 표시 예산은 읽지 않으니 내지 않는다 (숫자 형식 · 시리즈 표만 공유).
   //   값 필드 목록 (columns 모드) 을 읽는 family (stream · slope · skyline) 만 원천 모드 · 값 필드를 낸다.
   if (isFamilyChartType(chartValues.chartType))
     return {
@@ -222,21 +251,50 @@ export function useChartPropertyExtras({
           <ChartAuthoringControls fields={semanticFields} onPatch={onPatch} />
         </>
       ),
-      ...(chartTypeAcceptsColumns(chartValues.chartType)
+      // ADR-312 — 형태가 둘 이상이거나 값 열 목록을 읽는 종류 (parallel) 만 원천 모드 · 값 열 컨트롤을 내고,
+      //   날짜가 범주인 종류 (calendar · candlestick) 는 날짜 입력 형식 (Decision 9 — 시간 축과 같은 parser).
+      ...(chartForms(chartValues.chartType).length > 1 ||
+      chartTypeAcceptsColumns(chartValues.chartType) ||
+      DATE_FAMILY_TYPES.includes(String(chartValues.chartType))
         ? {
             sectionLeads: {
               collection: (
-                <ChartDataMappingControls
-                  elementId={elementId}
-                  fields={chartControlFields}
-                  columns={chartColumns}
-                  onPatch={handleChartPatch}
-                />
+                <>
+                  {(chartForms(chartValues.chartType).length > 1 ||
+                    chartTypeAcceptsColumns(chartValues.chartType)) && (
+                    <ChartDataMappingControls
+                      elementId={elementId}
+                      fields={chartControlFields}
+                      columns={chartColumns}
+                      onPatch={handleChartPatch}
+                    />
+                  )}
+                  {DATE_FAMILY_TYPES.includes(
+                    String(chartValues.chartType),
+                  ) && (
+                    <ChartDateFormatControl
+                      fields={chartControlFields}
+                      onPatch={handleChartPatch}
+                    />
+                  )}
+                </>
               ),
             },
           }
         : {}),
       sectionExtras: {
+        // ADR-312 Phase 4 — 시리즈 표시 표를 읽는 family (stream · bump · skyline · marimekko · segmented ·
+        //   waffle · dumbbell · histogram 묶음 · slope · parallel 축 이름) 도 Series 섹션을 연다.
+        series: seriesApplies ? (
+          <ChartSeriesControls
+            elementId={elementId}
+            fields={chartControlFields}
+            rows={chartRows}
+            paletteLength={chartPaletteLength}
+            isRefInstance={isRefInstance}
+            onPatch={handleChartPatch}
+          />
+        ) : undefined,
         appearance: (
           <ChartNumberFormatControls
             elementId={elementId}

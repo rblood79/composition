@@ -973,6 +973,9 @@ export interface TranslationKeys {
   chart: {
     section: string;
     category: string;
+    rolePeriod: string;
+    roleItem: string;
+    roleGroup: string;
     series: string;
     type: string;
     sampleRows: string;
@@ -1054,6 +1057,9 @@ export interface TranslationKeys {
     dataMode: string;
     modeGroup: string;
     modeColumns: string;
+    modeBinned: string;
+    modeRanked: string;
+    modePair: string;
     valueFields: string;
     addField: string;
     chooseFields: string;
@@ -1497,6 +1503,7 @@ export interface TranslationKeys {
     container: string;
     compositeHint: string;
     noEditableProps: string;
+    chartForms: string;
     repairIntro: string;
   };
   aiExec: {

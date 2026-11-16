@@ -24,6 +24,7 @@ import {
 } from "../sceneStates";
 import type {
   ChartMetrics,
+  ChartPaintRole,
   ChartProps,
   ChartRow,
   ChartScene,
@@ -47,6 +48,14 @@ import {
   type FamilyInput,
 } from "./fields";
 import { fitDomain, niceDomain, ticksFor } from "./niceScale";
+import { withRowPolicy } from "./rowPolicy";
+import {
+  chartSeriesFill,
+  chartSeriesItems,
+  chartSeriesName,
+  chartSeriesSwatch,
+  type ChartSeriesItem,
+} from "../seriesItems";
 
 // ── gauge ──────────────────────────────────────────────────────────────────
 
@@ -726,6 +735,15 @@ export function dumbbellModel(
   return { rows: out, domain, startName: start, endName: end };
 }
 
+/** 범례 견본 — 역할 칠 또는 (표에서 색을 정했으면) 팔레트 자리. */
+const legendSwatch = (
+  item: ChartSeriesItem | undefined,
+  paint: ChartPaintRole,
+): { colorIndex: number; fillPaint?: ChartPaintRole } =>
+  item?.colored
+    ? { colorIndex: item.seriesIndex }
+    : { colorIndex: 0, fillPaint: paint };
+
 function dumbbellScene(
   props: ChartProps,
   rows: readonly ChartRow[],
@@ -739,6 +757,15 @@ function dumbbellScene(
   const capped =
     rows.length > metrics.rowCap ? rows.slice(0, metrics.rowCap) : rows;
   const model = dumbbellModel(props, capped, input);
+  // ADR-312 Phase 4 — 앞 · 뒤 값의 표시 이름 · 색 (시리즈 표시 표 — `["field", key]`). 색을 정하지 않은 쪽은
+  //   역할 칠 (앞 neutral · 뒤 accent) 그대로.
+  const series = chartSeriesItems(props, capped, metrics.seriesCount, {
+    diagnostics: input.diagnostics,
+  });
+  const startItem = series.find((item) => item.key === model?.startName);
+  const endItem = series.find((item) => item.key === model?.endName);
+  const startName = startItem ? chartSeriesName(startItem) : model?.startName;
+  const endName = endItem ? chartSeriesName(endItem) : model?.endName;
   if (model === null)
     return chartEmptyScene(
       frame.size,
@@ -765,9 +792,20 @@ function dumbbellScene(
   const placed = props.showLegend
     ? placeLegend({
         entries: [
-          { label: model.startName, colorIndex: 0, fillPaint: "neutral" },
-          { label: model.endName, colorIndex: 0, fillPaint: "accent" },
-        ],
+          {
+            item: startItem,
+            entry: {
+              label: startName!,
+              ...legendSwatch(startItem, "neutral"),
+            },
+          },
+          {
+            item: endItem,
+            entry: { label: endName!, ...legendSwatch(endItem, "accent") },
+          },
+        ]
+          .sort((a, b) => series.indexOf(a.item!) - series.indexOf(b.item!))
+          .map(({ entry }) => entry),
         outer,
         position: props.legendPosition,
         fontSize,
@@ -901,7 +939,7 @@ function dumbbellScene(
           w: r2(radius * 2),
           h: r2(radius * 2),
         },
-        fillPaint: "neutral",
+        ...chartSeriesFill(startItem, "neutral"),
       },
       {
         kind: "path",
@@ -912,7 +950,9 @@ function dumbbellScene(
           w: r2(radius * 2),
           h: r2(radius * 2),
         },
-        fillPaint: picked && !picked.has(k) ? "neutral" : "accent",
+        ...(picked && !picked.has(k)
+          ? { fillPaint: "neutral" as const }
+          : chartSeriesFill(endItem, "accent")),
       },
     );
     labels.push({
@@ -946,14 +986,14 @@ function dumbbellScene(
       title: r.label,
       entries: [
         {
-          label: model.startName,
+          label: startName!,
           text: input.formatValue(r.start),
-          paint: "neutral",
+          ...chartSeriesSwatch(startItem, "neutral"),
         },
         {
-          label: model.endName,
+          label: endName!,
           text: input.formatValue(r.end),
-          paint: "accent",
+          ...chartSeriesSwatch(endItem, "accent"),
         },
         {
           label: "Difference",
@@ -1068,7 +1108,7 @@ const isKpi = (type: FamilyChartType): type is KpiType =>
 
 export const kpiFamily: ChartFamily = {
   id: "kpi",
-  buildScene(props, rows, size, metrics) {
+  buildScene: withRowPolicy((props, rows, size, metrics) => {
     switch (props.chartType) {
       case "gauge":
         return gaugeScene(props, rows, size, metrics);
@@ -1091,7 +1131,7 @@ export const kpiFamily: ChartFamily = {
           ],
         );
     }
-  },
+  }),
   sample(type) {
     return isKpi(type) ? SAMPLES[type].map((row) => ({ ...row })) : [];
   },

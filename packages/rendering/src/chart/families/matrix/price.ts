@@ -39,6 +39,7 @@ import {
 } from "../fields";
 import { fitDomain, ticksFor } from "../niceScale";
 import { roundRectPath } from "../shapes";
+import { chartTimeParser } from "../../series";
 
 export interface Candle {
   /** 정렬 뒤 첫 봉 인덱스 */
@@ -115,15 +116,15 @@ export function maPeriods(ma: readonly number[], count: number): number[] {
 }
 
 /**
- * 시점 값 → epoch ms (정렬 키). ztd `toCandles` 처럼 시각 전체로 — 날짜만 자르면 같은 날의 시간봉 순서가
- * 데이터 순서로 남는다. 숫자는 |v| > 1e10 일 때만 ms (그 밖은 순번), 네 자리 연도 글자는 날짜로 보지 않는다.
+ * 시점 값 → epoch ms (정렬 키). ztd `toCandles` 처럼 시각 전체로 — 날짜만 자르면 같은 날의 시간봉 순서가 데이터
+ * 순서로 남는다. ADR-312 Decision 9 — 해석은 시간 축 · calendar 와 같은 `chartTimeParser` (`dimensionFormat` ·
+ * 엄격 ISO · epoch ms — 네 자리 연도 글자 · 순번은 날짜가 아니다).
  */
-export function timeOf(value: unknown): number | null {
-  if (typeof value === "number")
-    return Number.isFinite(value) && Math.abs(value) > 1e10 ? value : null;
-  if (typeof value !== "string" || /^\d{4}$/.test(value.trim())) return null;
-  const t = Date.parse(value);
-  return Number.isFinite(t) ? t : null;
+export function timeOf(
+  value: unknown,
+  parse: (value: unknown) => number | null = chartTimeParser({}),
+): number | null {
+  return parse(value);
 }
 
 export interface CandlestickModel {
@@ -136,14 +137,16 @@ export function candlestickModel(
 ): CandlestickModel | null {
   const { props, rows, input } = ctx;
   const dimension = requireField(input, "Date", props.dimension);
-  const close = requireField(input, "Close", props.closeField);
+  // ADR-312 Decision 3 — 주 값 (종가) 은 `metric`.
+  const close = requireField(input, "Close", props.metric);
   if (!input.ok || dimension === null || close === null) return null;
   const open = fieldKey(props.openField);
   const high = fieldKey(props.highField);
   const low = fieldKey(props.lowField);
   const volume = fieldKey(props.volumeField);
+  const parse = chartTimeParser(props);
   const raw = rows.map((row, i) => {
-    const t = timeOf(row[dimension]);
+    const t = timeOf(row[dimension], parse);
     return {
       i,
       label: readLabel(row, dimension),

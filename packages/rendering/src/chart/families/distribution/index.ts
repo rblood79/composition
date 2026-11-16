@@ -22,6 +22,7 @@ import { gauss, seeded } from "../samples";
 import type { ChartFamily } from "../types";
 import { histogramScene } from "./histogram";
 import { beeswarmScene, boxScene, ridgelineScene } from "./spread";
+import { withRowPolicy } from "../rowPolicy";
 
 export const DISTRIBUTION_TYPES = [
   "histogram",
@@ -127,7 +128,7 @@ const SAMPLE_PROPS: Record<DistributionType, Partial<ChartProps>> = {
 
 export const distributionFamily: ChartFamily = {
   id: "distribution",
-  buildScene(props, rows, size, metrics) {
+  buildScene: withRowPolicy((props, rows, size, metrics) => {
     const type = props.chartType as FamilyChartType;
     if (!isDistribution(type)) {
       const frame = chartFrame(size, metrics);
@@ -146,7 +147,7 @@ export const distributionFamily: ChartFamily = {
       );
     }
     return SCENES[type](categoryContext(props, rows, size, metrics, false));
-  },
+  }),
   sample(type) {
     return isDistribution(type) ? SAMPLES[type]() : [];
   },

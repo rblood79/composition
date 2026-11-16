@@ -92,7 +92,11 @@ describe("ADR-306 — Library 의 Chart Types 카드는 family 로드 뒤에 저
       expect(props, type).toBeDefined();
       expect((props!.data as unknown[]).length, type).toBeGreaterThan(0);
     }
-    expect(charts.get("dumbbell")!.startField).toBe("before");
+    // ADR-312 결정 3 — 표본 열은 역할의 기본 열 이름 (`start` · `end`), 역할 값은 쓰지 않는다.
+    expect(charts.get("dumbbell")!.startField).toBeUndefined();
+    expect(
+      Object.keys((charts.get("dumbbell")!.data as object[])[0]).sort(),
+    ).toEqual(["category", "end", "start"]);
     expect(charts.get("skyline")!.frontFields).toEqual(["Failed", "Retried"]);
     workspace.dispose();
   });

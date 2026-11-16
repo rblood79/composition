@@ -21,6 +21,7 @@ import {
   type InspectorFieldKind,
   type ResolvedField,
 } from "@composition/shared";
+import { CHART_FORMS, chartRoleDef } from "@composition/rendering";
 import type { PromptTranslate } from "../promptTranslate";
 
 /** 카탈로그가 모델에게 알려 주는 prop 1개. */
@@ -208,7 +209,29 @@ export function formatCatalogEntry(
     return `${head}\n${t("aiRuntime.noEditableProps")}`;
   }
   const lines = semantic.map((p) => `- ${p.name}: ${formatValues(p, t)}`);
+  if (entry.type === "Chart")
+    lines.push(t("aiRuntime.chartForms"), ...formatChartForms());
   return [head, ...lines].join("\n");
+}
+
+/**
+ * ADR-312 Decision 7 — Chart 의 종류별 입력 형태 (역할 표 · 형태 표에서 파생). 한 줄 = 종류 하나:
+ * `bar: group(dimension*=category, metric*=value, color=series) sum · columns(…) sum`. `*` = 필수, `=` 뒤는 값이 없을
+ * 때 읽는 기본 열 이름, 끝은 행 정책 (sum · row · sample). 첫 형태가 `dataMode` 미설정이다.
+ */
+export function formatChartForms(): string[] {
+  return Object.entries(CHART_FORMS).map(([type, forms]) => {
+    const described = forms.map((form) => {
+      const roles = form.roles.map((use) => {
+        const fallback = chartRoleDef(use.role)?.defaultField;
+        return `${use.role}${use.required ? "*" : ""}${
+          typeof fallback === "string" ? `=${fallback}` : ""
+        }`;
+      });
+      return `${form.id}(${roles.join(", ")}) ${form.rows}`;
+    });
+    return `  - ${type}: ${described.join(" · ")}`;
+  });
 }
 
 /** 여러 entry 를 한 블록으로. */

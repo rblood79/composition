@@ -139,7 +139,6 @@ export interface ChartProps {
   openField?: SpecChartProps["openField"];
   highField?: SpecChartProps["highField"];
   lowField?: SpecChartProps["lowField"];
-  closeField?: SpecChartProps["closeField"];
   volumeField?: SpecChartProps["volumeField"];
   movingAverages?: SpecChartProps["movingAverages"];
   invertFields?: SpecChartProps["invertFields"];

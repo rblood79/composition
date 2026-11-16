@@ -7,6 +7,8 @@ import { readFileSync } from "node:fs";
 import {
   CHART_DESCRIPTORS,
   CHART_FAMILY_PROP_KEYS,
+  CHART_ROLE_DEFS,
+  CHART_ROLE_KEYS,
   pickChartFamilyProps,
 } from "@composition/rendering";
 import { describe, expect, it } from "vitest";
@@ -126,7 +128,7 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
         "openField",
         "highField",
         "lowField",
-        "closeField",
+        // ADR-312 Phase 2 — closeField 는 없앴다 (종가 = metric)
         "volumeField",
         "movingAverages",
         "invertFields",
@@ -204,15 +206,28 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
     ).toEqual({ goalField: "t" });
   });
 
-  it("역할 표 하나 — descriptor roles 의 field 역할은 accepts 에 collection 으로 있다", () => {
+  it("ADR-312 G2 — accepts 의 역할 칸 = 역할 표 (`CHART_ROLE_DEFS`) · 형태가 쓰는 역할은 전부 칸이 있다", () => {
+    for (const def of CHART_ROLE_DEFS) {
+      const contract = chartBinding.props.accepts[def.key];
+      expect(contract, def.key).toBeTruthy();
+      expect(contract.section, def.key).toBe("collection");
+      expect(contract.kind, def.key).toBe(
+        def.kind === "fields" ? "string-array" : "string",
+      );
+      // valueFields 는 원천 모드 컨트롤이 편집한다 (generic 칸 아님)
+      if (def.key !== "valueFields") expect(contract.label).toBe(def.label);
+    }
     for (const d of CHART_DESCRIPTORS)
-      for (const role of d.roles) {
-        const contract = chartBinding.props.accepts[role.prop];
-        expect(contract, `${d.chartType}.${role.prop}`).toBeTruthy();
-        expect(contract.section).toBe("collection");
-        expect(contract.kind).toBe(
-          role.kind === "fields" ? "string-array" : "string",
-        );
-      }
+      for (const form of d.forms)
+        for (const use of form.roles)
+          expect(
+            chartBinding.props.accepts[use.role],
+            `${d.chartType}.${use.role}`,
+          ).toBeTruthy();
+    // 역할 prop 전부가 전달 목록에 있다 (손 목록 없음)
+    for (const key of CHART_ROLE_KEYS)
+      expect(chartBinding.props.propPassthrough ?? []).toContain(key);
+    const passthrough = chartBinding.props.propPassthrough ?? [];
+    expect(new Set(passthrough).size).toBe(passthrough.length);
   });
 });

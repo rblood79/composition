@@ -1,5 +1,6 @@
 import {
   angleScale,
+  resolveChartRoleDefaults,
   approxTextWidth,
   buildAxes,
   buildDotMarks,
@@ -183,7 +184,7 @@ export function RechartsChart(
 }
 
 function SeriesRechartsChart({
-  props,
+  props: inputProps,
   rows,
   size,
   metrics,
@@ -201,6 +202,12 @@ function SeriesRechartsChart({
    */
   renderWindowTrack: RenderChartWindowTrack;
 }) {
+  // ADR-312 Decision 8 — 값이 없는 역할은 기본 열 이름 (scene · 모델과 같은 함수 — 이 leg 가 props 를 직접 읽는
+  //   자리도 같은 값을 본다).
+  const props = useMemo(
+    () => resolveChartRoleDefaults(inputProps, rows),
+    [inputProps, rows],
+  );
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     readMotion,

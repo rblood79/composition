@@ -40,6 +40,8 @@ export type {
   ReferenceLineMarks,
 } from "./marks/referenceLine";
 export * from "./authoring";
+export * from "./roles";
+export * from "./seriesItems";
 export * from "./runtimeData";
 export {
   approxTextWidth,

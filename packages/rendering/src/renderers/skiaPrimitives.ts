@@ -2803,9 +2803,8 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
         CHART_DEFAULT_PROPS.dimension,
       metric:
         (props.metric as string | undefined) ?? CHART_DEFAULT_PROPS.metric,
-      ...(typeof props.color === "string" && props.color
-        ? { color: props.color }
-        : {}),
+      // ADR-312 — 빈 글자는 「Series 해제」 (명시), 없음은 「기본 열 이름」 — 둘을 합치지 않는다.
+      ...(typeof props.color === "string" ? { color: props.color } : {}),
       orientation:
         (props.orientation as ChartOrientation | undefined) ??
         CHART_DEFAULT_PROPS.orientation,

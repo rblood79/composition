@@ -361,8 +361,9 @@ export const ZTD_CLASS: Record<string, ZtdEntryClass> = {
     family: "category",
     channels: { label: A("color"), x: A("dimension"), value: A("metric") },
     options: {
-      start: A("valueFields"),
-      end: A("valueFields"),
+      // ADR-312 — slope 의 pair 형태 (`dataMode: "pair"`): 앞 · 뒤 값 역할
+      start: A("startField"),
+      end: A("endField"),
       periodLabels: A("periodLabels"),
     },
   },
@@ -477,7 +478,8 @@ export const ZTD_CLASS: Record<string, ZtdEntryClass> = {
       open: A("openField"),
       high: A("highField"),
       low: A("lowField"),
-      close: A("closeField"),
+      // ADR-312 Decision 3 — 종가 = 주 값 `metric`
+      close: A("metric"),
       volume: A("volumeField"),
     },
     options: {

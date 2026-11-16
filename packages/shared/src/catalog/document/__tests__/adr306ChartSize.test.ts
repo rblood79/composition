@@ -72,14 +72,14 @@ const documentWithChart = (props: NodeEntry["props"]) => {
 
 describe("ADR-306 G1 — Chart 공개 size 삭제", () => {
   it("contract 는 68 이고 typed Chart 원본에 size 가 없다", async () => {
-    expect(LIBRARY_CONTRACT_VERSION).toBe(68);
+    expect(LIBRARY_CONTRACT_VERSION).toBe(69); // ADR-312 Phase 2 가 69 로 올렸다 (68 = ADR-306)
     const template = REUSABLE_ORIGIN_TEMPLATES.find(
       (t) => t.id === "lib:template:component-chart",
     )!;
     expect(template).toBeTruthy();
     expect(template.props).not.toHaveProperty("size");
     const library = await buildCodeCatalogLibrary();
-    expect(library.contractVersion).toBe(68);
+    expect(library.contractVersion).toBe(69);
   });
 
   it("그 전 번호의 문서는 Chart 유무와 무관하게 거부된다", async () => {

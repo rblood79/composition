@@ -29,6 +29,11 @@ import {
   type CategoryContext,
 } from "./common";
 import { pct } from "./bars";
+import {
+  chartSeriesByKey,
+  chartSeriesItems,
+  chartSeriesName,
+} from "../../seriesItems";
 import { columnsMode, seriesTable } from "./lines";
 
 // ── marimekko ──────────────────────────────────────────────────────────────
@@ -42,6 +47,9 @@ export interface MarimekkoModel {
   total: number;
   /** `[열][계열]` → 원본 행들 */
   rows: number[][][];
+  /** ADR-312 Phase 4 — 계열의 표시 이름 · 팔레트 자리 (`seriesConfig` — 시리즈 경로와 같은 규칙) */
+  names: string[];
+  colors: number[];
 }
 
 export function marimekkoModel(ctx: CategoryContext): MarimekkoModel | null {
@@ -66,6 +74,13 @@ export function marimekkoModel(ctx: CategoryContext): MarimekkoModel | null {
     prev.rows.push(i);
     cell.set(key, prev);
   });
+  // ADR-312 Phase 4 — 계열의 순서 · 이름 · 색은 시리즈 표시 표 (표의 항목이 앞, 나머지는 출현 순서).
+  const items = chartSeriesItems(props, rows, ctx.metrics.seriesCount, {
+    diagnostics: input.diagnostics,
+  });
+  const byKey = chartSeriesByKey(items);
+  const rank = new Map(items.map((item, i) => [item.key, i]));
+  series.sort((a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity));
   const values = cols.map((c) =>
     series.map((s) => cell.get(`${c}\u0000${s}`)?.v ?? 0),
   );
@@ -78,6 +93,14 @@ export function marimekkoModel(ctx: CategoryContext): MarimekkoModel | null {
     total: colTotals.reduce((a, b) => a + b, 0),
     rows: cols.map((c) =>
       series.map((s) => cell.get(`${c}\u0000${s}`)?.rows ?? []),
+    ),
+    names: series.map((s) => {
+      const item = byKey.get(s);
+      return item ? chartSeriesName(item) : s;
+    }),
+    colors: series.map(
+      (s, i) =>
+        byKey.get(s)?.seriesIndex ?? i % Math.max(1, ctx.metrics.seriesCount),
     ),
   };
 }
@@ -94,18 +117,17 @@ export function marimekkoScene(ctx: CategoryContext) {
     outer.h <= 0
   )
     return noDataScene(ctx);
-  const { input, metrics } = ctx;
-  const n = Math.max(1, metrics.seriesCount);
+  const { input } = ctx;
   // ADR-306 Phase 6 — `highlight` 를 주면 강조 밖 계열은 neutral (ztd marimekko — 계열 이름, 기본 first).
   const picked = highlightSet(
     ctx.props.highlight,
     model.series,
     model.series.map(() => 0),
   );
-  const colorOf = (s: number) => highlightColor(picked, s, s % n);
+  const colorOf = (s: number) => highlightColor(picked, s, model.colors[s]);
   const placed = seriesLegend(
     ctx,
-    model.series.map((label, s) => ({ label, seriesIndex: colorOf(s) })),
+    model.names.map((label, s) => ({ label, seriesIndex: colorOf(s) })),
   );
   const { legend } = placed;
   ctx = placed.ctx;
@@ -143,7 +165,7 @@ export function marimekkoScene(ctx: CategoryContext) {
     const x0 = left + 4 + acc;
     acc += w + gap;
     let ys = 0;
-    model.series.forEach((name, si) => {
+    model.series.forEach((_, si) => {
       const v = model.values[ci][si];
       const share = colTotals[ci] ? (v / colTotals[ci]) * 100 : 0;
       const ya = y(ys);
@@ -166,7 +188,7 @@ export function marimekkoScene(ctx: CategoryContext) {
         y: r2(yb),
         rect: { x: r2(x0), y: r2(yb), w: r2(w), h: r2(Math.max(1, h)) },
         rows: model.rows[ci][si],
-        title: `${col} · ${name}`,
+        title: `${col} · ${model.names[si]}`,
         entries: [
           { label: "Share in column", text: pct(share), series: colorOf(si) },
           { label: "Value", text: input.formatValue(v) },

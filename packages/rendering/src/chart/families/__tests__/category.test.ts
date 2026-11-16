@@ -215,7 +215,7 @@ describe("ADR-306 G4 — category 모델 (손계산)", () => {
     ]);
     expect(model.total).toBeCloseTo(100, 10);
   });
-  it("bump — 순위 필드 없으면 값으로 순위 · 가장 많이 오른 계열 강조", () => {
+  it("bump — group 형태 (ADR-312 — `dataMode` 로 고름) 는 값으로 순위 · 가장 많이 오른 계열 강조", () => {
     const rows = [
       { m: "1", app: "A", v: 10 },
       { m: "1", app: "B", v: 30 },
@@ -227,7 +227,7 @@ describe("ADR-306 G4 — category 모델 (손계산)", () => {
     const model = bumpModel(
       ctxOf(
         "bump",
-        { dimension: "m", color: "app", metric: "v", rankField: undefined },
+        { dimension: "m", color: "app", metric: "v", dataMode: "group" },
         rows,
       ),
     )!;
@@ -238,7 +238,7 @@ describe("ADR-306 G4 — category 모델 (손계산)", () => {
     ]);
     expect(model.lines.find((l) => l.hi)?.name).toBe("A");
   });
-  it("slope — 첫 · 끝 시점 · columns 모드", () => {
+  it("slope — 첫 · 끝 시점 · pair 형태 (ADR-312 — 항목 = `color` 는 형태와 무관)", () => {
     const group = slopeModel(ctxOf("slope"))!;
     expect(group.periods).toEqual(["2024", "2025"]);
     expect(group.items.find((it) => it.label === "Our brand")).toMatchObject({
@@ -249,7 +249,12 @@ describe("ADR-306 G4 — category 모델 (손계산)", () => {
     const columns = slopeModel(
       ctxOf(
         "slope",
-        { dimension: "name", dataMode: "columns", valueFields: ["y1", "y2"] },
+        {
+          color: "name",
+          dataMode: "pair",
+          startField: "y1",
+          endField: "y2",
+        },
         [
           { name: "x", y1: 1, y2: 5 },
           { name: "y", y1: 4, y2: 2 },
