@@ -4,6 +4,8 @@
  * stream · bump 는 시리즈 격자 (`buildSeriesGrid` — 같은 (범주, 시리즈) 는 합산) 를 지난다
  * (breakdown §4.2 — category family 만 격자를 쓴다).
  */
+import { highlightIndex, highlightSet } from "../../highlight";
+import { CHART_OTHERS_COLOR_INDEX } from "../../budget";
 import { curveCommands } from "../../curves";
 import { circlePath } from "../../marks/dots";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
@@ -51,6 +53,8 @@ export interface SparklineModel {
   rows: number[];
   /** 마지막 숫자 값의 인덱스 (-1 = 없음) */
   last: number;
+  /** ADR-306 Phase 6 — 표시 점 (`highlight`, 비면 `last`; −1 = 없음). */
+  mark: number;
 }
 
 export function sparklineModel(ctx: CategoryContext): SparklineModel | null {
@@ -68,6 +72,16 @@ export function sparklineModel(ctx: CategoryContext): SparklineModel | null {
     values,
     rows: rows.map((_, i) => i),
     last,
+    // ADR-306 Phase 6 — 표시 점 (ztd sparkline `mark` → `highlight`: last · max · min · none · 이름). 비면 마지막.
+    mark: highlightIndex(
+      ctx.props.highlight,
+      rows.map((row, i) =>
+        dimension === null ? String(i + 1) : readLabel(row, dimension),
+      ),
+      values,
+      "last",
+      last,
+    ),
   };
 }
 
@@ -110,8 +124,8 @@ export function sparklineScene(ctx: CategoryContext) {
         group = g;
         best = k;
       } else if (
-        k === model.last ||
-        (best !== model.last && Math.abs(vals[k]) > Math.abs(vals[best]))
+        k === model.mark ||
+        (best !== model.mark && Math.abs(vals[k]) > Math.abs(vals[best]))
       )
         best = k;
     }
@@ -144,7 +158,7 @@ export function sparklineScene(ctx: CategoryContext) {
           w: r2(bw),
           h: r2(Math.abs(y0 - yy)),
         },
-        fillPaint: k === model.last ? "accent" : "neutral",
+        fillPaint: k === model.mark ? "accent" : "neutral",
       });
     }
   } else {
@@ -181,9 +195,9 @@ export function sparklineScene(ctx: CategoryContext) {
         strokeWidth: 1.3,
       });
     }
-  if (shape !== "bar") {
-    const cx = r2(xs(model.last));
-    const cy = r2(y(vals[model.last]));
+  if (shape !== "bar" && model.mark >= 0 && Number.isFinite(vals[model.mark])) {
+    const cx = r2(xs(model.mark));
+    const cy = r2(y(vals[model.mark]));
     marks.push({
       kind: "path",
       d: circlePath(cx, cy, 3.2),
@@ -256,10 +270,24 @@ export function seriesTable(
     metrics.seriesCount,
   );
   const nk = grid.categories.length;
+  const names = grid.series.map((s) => seriesLabel(s, "Value"));
+  // ADR-306 Phase 6 — `highlight` 를 주면 강조 밖 시리즈는 neutral (others 색 index — stream · skyline 뒷 계열).
+  const picked = highlightSet(
+    props.highlight,
+    names,
+    grid.series.map((s) => {
+      let t = 0;
+      for (const v of s.values.values()) if (Number.isFinite(v)) t += v;
+      return t;
+    }),
+    "max",
+  );
   return {
     categories: grid.categories,
-    names: grid.series.map((s) => seriesLabel(s, "Value")),
-    colors: grid.series.map((s) => s.seriesIndex),
+    names,
+    colors: grid.series.map((s, i) =>
+      picked && !picked.has(i) ? CHART_OTHERS_COLOR_INDEX : s.seriesIndex,
+    ),
     values: grid.series.map((s) =>
       Array.from({ length: nk }, (_, k) => s.values.get(k) ?? NaN),
     ),
@@ -429,7 +457,13 @@ export function bumpModel(ctx: CategoryContext): BumpModel | null {
     const b = [...r].reverse().find(Number.isFinite) ?? 0;
     return a - b;
   });
-  const hi = argMax(improve);
+  const hi = highlightIndex(
+    ctx.props.highlight,
+    table.names,
+    improve,
+    "max",
+    argMax(improve),
+  );
   return {
     categories: table.categories,
     lines: table.names.map((name, s) => ({ name, ranks: rk[s], hi: s === hi })),
@@ -642,7 +676,13 @@ export function slopeModel(ctx: CategoryContext): SlopeModel | null {
     items,
     periods,
     domain: fitDomain(mn, mx, 4, { zero: false, pad: 0.04 }),
-    hi: argMax(items.map((it) => it.b - it.a)),
+    hi: highlightIndex(
+      ctx.props.highlight,
+      items.map((it) => it.label),
+      items.map((it) => it.b - it.a),
+      "max",
+      argMax(items.map((it) => it.b - it.a)),
+    ),
   };
 }
 

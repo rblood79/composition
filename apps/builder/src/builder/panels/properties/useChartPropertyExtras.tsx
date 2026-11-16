@@ -30,6 +30,7 @@ import {
   chartPresentationPatch,
 } from "./chartPresentationPatch";
 import { ChartReferenceLineControls } from "./ChartReferenceLineControls";
+import { ChartAnnotationControls } from "./ChartAnnotationControls";
 import {
   ChartSeriesControls,
   chartSeriesConfigApplies,
@@ -66,6 +67,8 @@ const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
   "dimensionLabelFormat",
   // ADR-217 — 기준선 (ChartReferenceLineControls).
   "referenceLines",
+  // ADR-306 Phase 6 — 주석 (ChartAnnotationControls).
+  "annotations",
   "dataBinding",
 ]);
 const EMPTY_FIELDS: ResolvedField[] = [];
@@ -250,6 +253,10 @@ export function useChartPropertyExtras({
         {contentExtras}
         <ChartAuthoringControls fields={semanticFields} onPatch={onPatch} />
         <ChartReferenceLineControls
+          fields={chartControlFields}
+          onPatch={handleChartPatch}
+        />
+        <ChartAnnotationControls
           fields={chartControlFields}
           onPatch={handleChartPatch}
         />

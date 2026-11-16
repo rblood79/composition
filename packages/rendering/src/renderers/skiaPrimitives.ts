@@ -3029,6 +3029,21 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
                 strokeWidth: mark.strokeWidth ?? metrics.strokeWidth,
               }
             : {}),
+          // ADR-306 Phase 6 — 선 불투명도 · 파선 · 자르기 상자 (DOM `renderMark` 와 같은 값).
+          ...(mark.strokeOpacity !== undefined
+            ? { strokeAlpha: mark.strokeOpacity }
+            : {}),
+          ...(mark.dash ? { strokeDasharray: [...mark.dash] } : {}),
+          ...(mark.clip
+            ? {
+                clip: {
+                  x: mark.clip.x,
+                  y: mark.clip.y,
+                  width: mark.clip.w,
+                  height: mark.clip.h,
+                },
+              }
+            : {}),
           strokeCap: "round",
           strokeJoin: "round",
           ...(mark.fillRule ? { fillRule: mark.fillRule } : {}),
@@ -3050,6 +3065,7 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
                   ? referenceToken
                   : axisToken,
           strokeWidth: mark.width ?? 1,
+          ...(mark.opacity !== undefined ? { strokeAlpha: mark.opacity } : {}),
           // ADR-306 — 굵은 선 (게이지 눈금 · 덤벨 연결선) 의 끝 모양은 DOM 과 같은 round.
           ...(mark.width !== undefined ? { strokeCap: "round" as const } : {}),
           // ADR-217 — 기준선 파선 (DOM `stroke-dasharray` 와 같은 배열).

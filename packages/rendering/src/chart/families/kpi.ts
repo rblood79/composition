@@ -10,6 +10,7 @@
  * 단계는 검증 → 모델 (`gaugeModel` · `bulletModel` · `dumbbellModel` — 크기 독립, 테스트가 직접 잰다)
  * → 예산 (줄 수) → 기하 (크기 의존) 순서다.
  */
+import { highlightSet } from "../highlight";
 import { chartFrame } from "../frame";
 import { circlePath } from "../marks/dots";
 import { arcSlicePath } from "../marks/pie";
@@ -544,6 +545,13 @@ function bulletScene(
   const marks: Mark[] = [];
   const labels: TextMark[] = [];
   const targets: ChartTarget[] = [];
+  // ADR-306 Phase 6 — `highlight` 를 주면 그 행만 accent, 나머지 neutral (ztd bullet — 값 / 목표, 기본 min).
+  const picked = highlightSet(
+    props.highlight,
+    shown.map((r) => r.label),
+    shown.map((r) => (r.target ? r.value / r.target : NaN)),
+    "min",
+  );
   shown.forEach((r, k) => {
     const sx = linearScale(
       [0, model.independent ? r.max : model.globalMax],
@@ -580,7 +588,7 @@ function bulletScene(
       w: r2(end - x0),
       h: r2(barH),
       seriesIndex: 0,
-      fillPaint: "accent",
+      fillPaint: picked && !picked.has(k) ? "neutral" : "accent",
     });
     if (Number.isFinite(r.target)) {
       const tx = r2(sx(r.target));
@@ -824,6 +832,13 @@ function dumbbellScene(
   const marks: Mark[] = [];
   const labels: TextMark[] = [];
   const targets: ChartTarget[] = [];
+  // ADR-306 Phase 6 — `highlight` 를 주면 그 행의 끝점 · 연결선만 accent (ztd dumbbell — 차이, 기본 max).
+  const picked = highlightSet(
+    props.highlight,
+    shown.map((r) => r.label),
+    shown.map((r) => r.end - r.start),
+    "max",
+  );
   shown.forEach((r, k) => {
     const cy = r2(yOf(k));
     const xa = r2(x(r.start));
@@ -836,7 +851,7 @@ function dumbbellScene(
         x2: xb,
         y2: cy,
         role: "grid",
-        paint: "neutral",
+        paint: picked?.has(k) ? "accent" : "neutral",
         width: 4,
       },
       {
@@ -859,7 +874,7 @@ function dumbbellScene(
           w: r2(radius * 2),
           h: r2(radius * 2),
         },
-        fillPaint: "accent",
+        fillPaint: picked && !picked.has(k) ? "neutral" : "accent",
       },
     );
     labels.push({

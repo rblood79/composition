@@ -3,6 +3,7 @@
  * `src/charts/sankey.tsx` · `chord.tsx`) 을 따른다: 행 = 출발 → 도착 흐름 하나 (같은 쌍은 합산), 강조
  * 하나 (sankey 는 마지막 열의 가장 큰 노드, chord 는 가장 큰 마디) 와 그에 닿는 흐름 (accent), 나머지 중립.
  */
+import { highlightIndex } from "../../highlight";
 import { approxTextWidth, r2 } from "../../scales";
 import type { ChartTarget, Mark, PathMark, TextMark } from "../../types";
 import {
@@ -116,6 +117,14 @@ export function sankeyScene(ctx: CategoryContext) {
   for (const n of graph.nodes)
     if (n.layer === maxLayer && (top < 0 || n.value > graph.nodes[top].value))
       top = n.index;
+  // ADR-306 Phase 6 — `highlight`: 노드 이름 · 값 (ztd sankey — 지정하면 모든 노드에서, 기본 max).
+  top = highlightIndex(
+    props.highlight,
+    graph.nodes.map((n) => n.id),
+    graph.nodes.map((n) => n.value),
+    "max",
+    top,
+  );
   const hotLink = (l: (typeof graph.links)[number]) =>
     l.source.index === top || l.target.index === top;
   const marks: Mark[] = [];
@@ -306,6 +315,14 @@ export function chordScene(ctx: CategoryContext) {
   lay.groups.forEach((g) => {
     if (g.value > lay.groups[top].value) top = g.index;
   });
+  // ADR-306 Phase 6 — `highlight`: 마디 이름 · 합계 (ztd chord 와 같다 — 기본 max).
+  top = highlightIndex(
+    props.highlight,
+    lay.groups.map((g) => model.names[g.index] ?? ""),
+    lay.groups.map((g) => g.value),
+    "max",
+    top,
+  );
   const marks: Mark[] = [];
   const texts: TextMark[] = [];
   const targets: ChartTarget[] = [];

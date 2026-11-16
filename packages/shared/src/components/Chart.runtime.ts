@@ -158,6 +158,15 @@ export interface ChartProps {
   sizeRange?: SpecChartProps["sizeRange"];
   fit?: SpecChartProps["fit"];
   quadrants?: SpecChartProps["quadrants"];
+  // ADR-306 Phase 6 — 공통 상호작용.
+  highlight?: SpecChartProps["highlight"];
+  annotations?: SpecChartProps["annotations"];
+  signColors?: SpecChartProps["signColors"];
+  baseline?: SpecChartProps["baseline"];
+  bandFrom?: SpecChartProps["bandFrom"];
+  outside?: SpecChartProps["outside"];
+  brush?: SpecChartProps["brush"];
+  syncId?: SpecChartProps["syncId"];
   variant?: string;
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
   data?: readonly ChartRow[];

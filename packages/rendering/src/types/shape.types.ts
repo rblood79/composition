@@ -466,6 +466,10 @@ export interface PathShape {
   strokeJoin?: "miter" | "round" | "bevel";
   /** 채우기 규칙 (기본 nonzero — pie donut 등 구멍 뚫린 형상은 evenodd) */
   fillRule?: "nonzero" | "evenodd";
+  /** 선 파선 (ADR-306 Phase 6 — Chart 예측 구간 · 추세선). */
+  strokeDasharray?: number[];
+  /** 이 상자 안만 그린다 (ADR-306 Phase 6 — Chart 손익 색 · 예측 구간). 노드 로컬 px. */
+  clip?: { x: number; y: number; width: number; height: number };
 }
 
 /**

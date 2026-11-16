@@ -318,6 +318,7 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
           slice.categoryIndex,
           palette,
           grid.othersIndex,
+          grid.dimmed,
         ),
         // 고리는 바깥/안쪽 두 경로가 겹친다 — evenodd 라야 구멍이 뚫린다.
         ...(ringInner > 0 ? { fillRule: "evenodd" as const } : {}),

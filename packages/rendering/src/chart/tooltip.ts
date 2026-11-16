@@ -132,6 +132,7 @@ export function buildRadialTooltip(
             slice.categoryIndex,
             palette,
             grid.othersIndex,
+            grid.dimmed,
           ),
           text: formatValue(slice.raw),
         },

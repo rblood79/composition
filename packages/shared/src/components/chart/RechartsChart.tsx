@@ -4,6 +4,11 @@ import {
   buildAxes,
   buildDotMarks,
   buildSeriesExtraMarks,
+  bandCenter,
+  buildSeriesDecor,
+  CHART_OTHERS_COLOR_INDEX,
+  primarySeries,
+  rowCategoryLabel,
   buildLegend,
   buildPolarAxes,
   buildReferenceLineMarks,
@@ -66,6 +71,14 @@ import {
 } from "./legacyMonotone";
 import { FamilySceneHost } from "./FamilySceneHost";
 import { renderMark, renderText, seriesVar } from "./svgDecorations";
+import { Button as AriaButton } from "react-aria-components";
+import {
+  brushMarks,
+  syncCursorMarks,
+  useChartBrush,
+  useChartSync,
+  zoomCategoryLabels,
+} from "./chartInteraction";
 import type { RenderChartWindowTrack } from "./windowTrack";
 
 /**
@@ -208,6 +221,19 @@ function SeriesRechartsChart({
     end?: number;
   }>({ key: resetKey, start: 0 });
   const windowLive = windowState.key === resetKey;
+  // ADR-306 Phase 6 — 범위 선택 확대: 고른 범주의 행만 남긴다 (뷰 상태 — 저장하지 않고, 데이터 · 종류가
+  //   바뀌면 `resetKey` 로 풀린다).
+  const [zoom, setZoom] = useState<{ key: string; labels: string[] } | null>(
+    null,
+  );
+  const zoomLive = zoom !== null && zoom.key === resetKey ? zoom : null;
+  const zoomKey = zoomLive ? zoomLive.labels.join("\u0000") : "";
+  const viewRows = useMemo(() => {
+    if (!zoomLive) return rows;
+    const keep = new Set(zoomLive.labels);
+    return rows.filter((row) => keep.has(rowCategoryLabel(row, props)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowsKey, zoomKey, props.dimension]);
   const windowStart = windowLive ? windowState.start : 0;
   const windowEnd = windowLive ? windowState.end : undefined;
   // ADR-211 — Canvas 와 같은 `resolveChartModel` 경로: 행 상한 `R` · 슬롯 예산 `fit` · 창을
@@ -215,7 +241,7 @@ function SeriesRechartsChart({
   //   `props` 는 Chart.tsx 가 memo 로 안정화한 객체라 값이 같으면 identity 도 같다.
   const model = useMemo(
     () =>
-      resolveChartData(rows, props, metrics.seriesCount, {
+      resolveChartData(viewRows, props, metrics.seriesCount, {
         size,
         metrics,
         windowStart,
@@ -224,6 +250,7 @@ function SeriesRechartsChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       rowsKey,
+      zoomKey,
       props,
       valueFieldsKey,
       seriesConfigKey,
@@ -319,6 +346,75 @@ function SeriesRechartsChart({
     plot,
     fontSize,
   ]);
+  // ADR-306 Phase 6 — 주석 · 손익 색 · 예측 파선: scene 과 같은 builder · 같은 band · value. 나눠 칠한
+  //   선 · 면이 있으면 Recharts 선 · 면은 숨기고 (툴팁 · 점은 그대로) 격자 층 끝에 그린다 (점 아래 — scene
+  //   순서). 위 층 (사건 · 추세선 · 이름) 은 기준선 front 와 같은 overlay — Customized 는 늘 시리즈 아래다.
+  const geometry = useMemo(() => {
+    const { band, timeAxis } = resolveCategoryBand(
+      model.time,
+      grid,
+      horizontal ? [plot.y, plot.y + plot.h] : [plot.x, plot.x + plot.w],
+      model.linear,
+    );
+    const value = linearScale(
+      ticks.domain,
+      horizontal ? [plot.x, plot.x + plot.w] : [plot.y + plot.h, plot.y],
+    );
+    return { band, timeScale: timeAxis?.scale ?? null, value };
+  }, [model.time, model.linear, grid, horizontal, plot, ticks.domain]);
+  const decor = useMemo(
+    () =>
+      buildSeriesDecor({
+        props,
+        grid,
+        band: geometry.band,
+        value: geometry.value,
+        plot,
+        stackMode,
+        timeScale: geometry.timeScale,
+        fontSize,
+        strokeWidth: metrics.strokeWidth,
+      }),
+    [geometry, props, grid, plot, stackMode, fontSize, metrics.strokeWidth],
+  );
+  // ADR-306 Phase 6 — 범위 선택 · 동기화 (line · area · bar — 실행 상태).
+  const interactive =
+    presentation.ok &&
+    (props.chartType === "line" ||
+      props.chartType === "area" ||
+      props.chartType === "bar");
+  const centers = useMemo(
+    () => grid.categories.map((_, ci) => bandCenter(geometry.band, ci)),
+    [grid, geometry],
+  );
+  const primaryValues = useMemo(() => {
+    const p = [...primarySeries(props, grid)][0] ?? 0;
+    return grid.categories.map((_, ci) => grid.series[p]?.values.get(ci));
+  }, [props, grid]);
+  const brushMode =
+    interactive && (props.brush === "select" || props.brush === "zoom")
+      ? props.brush
+      : null;
+  // 집계 · others 범주는 원본 행의 범주 이름이 아니라 확대 (행 걸러내기) 를 할 수 없다 — 고르기만.
+  //   보이는 범주를 원본 자리로 바꿔 그 사이 행을 전부 남긴다 (`zoomCategoryLabels` — extrema 도 된다).
+  const canZoom =
+    brushMode === "zoom" &&
+    model.budget.applied !== "aggregate" &&
+    model.budget.windowReduced !== "aggregate" &&
+    grid.othersIndex === undefined;
+  const brush = useChartBrush({
+    enabled: brushMode !== null,
+    centers,
+    plot,
+    horizontal,
+    keep: !canZoom,
+    onCommit: (range) => {
+      if (!canZoom || !range) return;
+      const labels = zoomCategoryLabels(model.input, grid, range);
+      if (labels) setZoom({ key: resetKey, labels });
+    },
+  });
+  const sync = useChartSync(interactive ? props.syncId : undefined);
   const isBar = props.chartType === "bar";
   const radarFlatDomain = Math.max(0, ticks.domain[1]) === 0;
   const n = grid.categories.length;
@@ -475,7 +571,15 @@ function SeriesRechartsChart({
                 ? renderText(mark, `reference-back-${i}`)
                 : renderMark(mark, `reference-back-${i}`),
             )}
+            {decor.under.map((mark, i) => renderMark(mark, `note-under-${i}`))}
             {extras.back.map((mark, i) => renderMark(mark, `extra-back-${i}`))}
+            {decor.series ? (
+              <g data-chart-series-style="">
+                {decor.series.map((mark, i) =>
+                  renderMark(mark, `series-style-${i}`),
+                )}
+              </g>
+            ) : null}
           </g>
         )}
       />
@@ -722,6 +826,20 @@ function SeriesRechartsChart({
       accessibilityLayer: true,
       "aria-label": label,
       style: { fontSize, overflow: "visible" },
+      // ADR-306 Phase 6 — 동기화: 가리킨 범주 이름을 같은 `syncId` 의 차트들에 보낸다.
+      ...(props.syncId
+        ? {
+            onMouseMove: (state: { activeTooltipIndex?: unknown }) => {
+              // 그림 밖 (축 글자 · 범례) 이면 null — `Number(null)` 은 0 이라 먼저 거른다 (판독 MEDIUM-1).
+              const raw = state?.activeTooltipIndex;
+              const i = raw === null || raw === undefined ? NaN : Number(raw);
+              sync.publish(
+                Number.isInteger(i) ? (grid.categories[i] ?? null) : null,
+              );
+            },
+            onMouseLeave: () => sync.publish(null),
+          }
+        : {}),
     };
     const margin = {
       left: plot.x,
@@ -916,16 +1034,22 @@ function SeriesRechartsChart({
                 >
                   {/* 범주별 색일 때만 셀마다 Cell — 시리즈 색이면 Bar 의 fill 하나로 충분하다.
                     W800 에서 Cell 800개는 React 요소·props 병합 비용만 더한다 (ADR-210 P4). */}
-                  {props.colorBy === "category"
+                  {/* ADR-306 Phase 6 — 범주 단위 강조 (`grid.dimmed`) 도 셀마다 — scene `bar.ts` 와 같은 식. */}
+                  {props.colorBy === "category" || grid.dimmed
                     ? data.map((_, ci) => (
                         <Cell
                           key={ci}
                           fill={seriesVar(
-                            categoryColorIndex(
-                              ci,
-                              metrics.seriesCount,
-                              grid.othersIndex,
-                            ),
+                            props.colorBy === "category"
+                              ? categoryColorIndex(
+                                  ci,
+                                  metrics.seriesCount,
+                                  grid.othersIndex,
+                                  grid.dimmed,
+                                )
+                              : grid.dimmed?.has(ci)
+                                ? CHART_OTHERS_COLOR_INDEX
+                                : grid.series[si].seriesIndex,
                           )}
                         />
                       ))
@@ -937,7 +1061,8 @@ function SeriesRechartsChart({
               dataKey: key,
               name: seriesLabel(grid.series[si], "series"),
               type: curve,
-              stroke: paint,
+              // ADR-306 Phase 6 — 나눠 칠한 선이 대신 그린다 (격자 층의 `data-chart-series-style`).
+              stroke: decor.series ? "none" : paint,
               strokeWidth: metrics.strokeWidth,
               strokeLinecap: "round" as const,
               strokeLinejoin: "round" as const,
@@ -973,8 +1098,8 @@ function SeriesRechartsChart({
                 key={key}
                 {...lineProps}
                 stroke="none"
-                style={{ stroke: paint }}
-                fill={paint}
+                style={{ stroke: decor.series ? "none" : paint }}
+                fill={decor.series ? "none" : paint}
                 fillOpacity={0.85}
               >
                 {labels}
@@ -1050,6 +1175,7 @@ function SeriesRechartsChart({
                     slice.categoryIndex,
                     metrics.seriesCount,
                     grid.othersIndex,
+                    grid.dimmed,
                   ),
                 )}
               />
@@ -1240,6 +1366,7 @@ function SeriesRechartsChart({
                         ci,
                         metrics.seriesCount,
                         grid.othersIndex,
+                        grid.dimmed,
                       )
                     : grid.series[si].seriesIndex,
                 )}
@@ -1342,6 +1469,15 @@ function SeriesRechartsChart({
     props.fit,
     JSON.stringify(props.sizeRange ?? null),
     JSON.stringify(props.quadrants ?? null),
+    // ADR-306 Phase 6 — 주석 · 강조 · 손익 색 · 띠 시작 (배열은 직렬화 키).
+    JSON.stringify(props.annotations ?? null),
+    JSON.stringify(props.highlight ?? null),
+    props.signColors,
+    props.baseline,
+    props.bandFrom,
+    props.outside,
+    decor,
+    sync.publish,
     presentation.referenceLines,
     n,
     tickText,
@@ -1370,8 +1506,40 @@ function SeriesRechartsChart({
   const total = model.budget.n;
   const fitEff = model.budget.fitEff;
   // ADR-217 — `front` 기준선 overlay (Recharts svg 의 형제, 같은 좌표계, 입력 차단 0).
+  // ADR-306 Phase 6 — 주석 위 층 · 범위 선택 띠 · 동기화 안내선도 같은 overlay (시리즈 위).
+  const syncIndex =
+    sync.received !== null ? grid.categories.indexOf(sync.received) : -1;
+  const interactionMarks = [
+    ...(brush.range
+      ? brushMarks({
+          range: brush.range,
+          centers,
+          labels: grid.categories,
+          values: primaryValues,
+          value: geometry.value,
+          plot,
+          horizontal,
+          dragging: brush.dragging,
+          formatValue,
+        })
+      : []),
+    ...(syncIndex >= 0 && centers[syncIndex] !== undefined
+      ? syncCursorMarks({
+          at: centers[syncIndex],
+          plot,
+          horizontal,
+          text:
+            primaryValues[syncIndex] !== undefined
+              ? `${grid.categories[syncIndex]} · ${formatValue(primaryValues[syncIndex]!)}`
+              : grid.categories[syncIndex],
+        })
+      : []),
+  ];
   const front =
-    presentation.ok && reference && reference.front.length > 0 ? (
+    presentation.ok &&
+    ((reference && reference.front.length > 0) ||
+      decor.over.length > 0 ||
+      interactionMarks.length > 0) ? (
       <svg
         className="chart-decoration-front"
         data-chart-reference-front=""
@@ -1386,11 +1554,23 @@ function SeriesRechartsChart({
           overflow: "visible",
         }}
       >
-        {reference.front.map((mark, i) =>
+        {reference?.front.map((mark, i) =>
           mark.kind === "text"
             ? renderText(mark, `reference-front-${i}`)
             : renderMark(mark, `reference-front-${i}`),
         )}
+        {decor.over.length > 0 ? (
+          <g data-chart-annotations="">
+            {decor.over.map((mark, i) => renderMark(mark, `note-over-${i}`))}
+          </g>
+        ) : null}
+        {interactionMarks.length > 0 ? (
+          <g data-chart-interaction="">
+            {interactionMarks.map((mark, i) =>
+              renderMark(mark, `interaction-${i}`),
+            )}
+          </g>
+        ) : null}
       </svg>
     ) : null;
   const hitRadius = dotRadius(metrics.strokeWidth) + 4;
@@ -1463,19 +1643,63 @@ function SeriesRechartsChart({
         ) : null}
       </div>
     ) : null;
+  // ADR-306 Phase 6 — 범위 선택: Recharts 의 hover · 툴팁을 막지 않게 이벤트만 가로챈다 (`display:
+  //   contents` — 상자를 만들지 않는다). 확대 중이면 「Show all」 로 돌아온다 (Esc 도).
+  const surface = brushMode ? (
+    <div
+      data-chart-brush={brushMode}
+      style={{ display: "contents" }}
+      {...brush.handlers}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && zoomLive && !brush.range) {
+          setZoom(null);
+          return;
+        }
+        brush.handlers.onKeyDown?.(event);
+      }}
+    >
+      {chart}
+    </div>
+  ) : (
+    chart
+  );
+  const zoomReset = zoomLive ? (
+    <AriaButton
+      data-chart-zoom-reset=""
+      aria-label="Show all (reset zoom)"
+      onPress={() => setZoom(null)}
+      style={{
+        position: "absolute",
+        top: 0,
+        right: 0,
+        height: 24,
+        padding: "0 10px",
+        borderRadius: 12,
+        border: "1px solid var(--chart-grid, currentColor)",
+        background: "var(--chart-tooltip-bg, Canvas)",
+        color: "inherit",
+        fontSize: 11.5,
+        zIndex: 4,
+      }}
+    >
+      Show all
+    </AriaButton>
+  ) : null;
   if (!track || !win || total <= fitEff || !presentation.ok)
-    return front || scatterHit ? (
+    return front || scatterHit || zoomReset || brushMode ? (
       <>
-        {chart}
+        {surface}
         {front}
         {scatterHit}
+        {zoomReset}
       </>
     ) : (
       chart
     );
   return (
     <>
-      {chart}
+      {surface}
+      {zoomReset}
       {front}
       {scatterHit}
       {renderWindowTrack({

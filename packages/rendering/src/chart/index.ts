@@ -110,6 +110,26 @@ export {
   SIZE_RANGE_DEFAULT,
 } from "./marks/seriesExtras";
 export type { SeriesExtraInput, SeriesExtraMarks } from "./marks/seriesExtras";
+// ADR-306 Phase 6 — 공통 상호작용 (강조 · 주석 · 손익 색 · 예측 파선).
+export { buildSeriesDecor, primarySeries } from "./marks/seriesDecor";
+export { rowCategoryLabel } from "./series";
+export type { SeriesDecorInput, SeriesDecorMarks } from "./marks/seriesDecor";
+export {
+  annotationAxis,
+  buildAnnotationMarks,
+  forecastAt,
+  forecastFrom,
+  resolveAnnotations,
+  valueIncludes,
+} from "./marks/annotations";
+export type { AnnotationAxis } from "./marks/annotations";
+export {
+  firstHighlight,
+  hasHighlight,
+  highlightList,
+  resolveHighlight,
+} from "./highlight";
+export type { HighlightFallback } from "./highlight";
 export {
   buildWindowTrackMarks,
   CHART_WINDOW_THUMB,

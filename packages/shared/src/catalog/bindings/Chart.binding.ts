@@ -726,6 +726,91 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         visibleWhen: readingIs("quadrants"),
       },
+      // ── ADR-306 Phase 6 — 공통 상호작용 (사용자 결정 1). 기본값 없음 — 비면 지금 그림 그대로.
+      //   주석 목록은 `ChartAnnotationControls` (Content) — generic 편집기는 숨긴다.
+      annotations: {
+        kind: "items-manager",
+        label: "Annotations",
+        section: "content",
+        editorHidden: true,
+        visibleWhen: readingIs("annotations"),
+        itemsManager: {
+          itemsKey: "annotations",
+          itemTypeName: "ChartAnnotation",
+          defaultItem: { type: "event" },
+          itemSchema: [
+            { key: "type", type: "string", label: "Type" },
+            { key: "x", type: "string", label: "X" },
+            { key: "xEnd", type: "string", label: "X End" },
+            { key: "y", type: "string", label: "Value" },
+            { key: "yEnd", type: "string", label: "Value End" },
+            { key: "label", type: "string", label: "Label" },
+          ],
+          labelKey: "label",
+        },
+      },
+      signColors: {
+        kind: "boolean",
+        label: "Sign Colors",
+        section: "appearance",
+        visibleWhen: readingIs("signColors"),
+      },
+      // 손익 색을 켰을 때만 읽는다 — 끈 채로 보이면 아무것도 하지 않는 칸이 된다.
+      baseline: {
+        kind: "number",
+        label: "Baseline",
+        section: "appearance",
+        visibleWhen: {
+          all: [readingIs("baseline"), { key: "signColors", truthy: true }],
+        },
+      },
+      bandFrom: {
+        kind: "enum",
+        label: "Band From",
+        section: "appearance",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "forecast", label: "Forecast" },
+        ],
+        // 범위 띠 (아래 경계 필드) 가 있을 때만 읽는다.
+        visibleWhen: {
+          all: [readingIs("bandFrom"), { key: "lowerFields", truthy: true }],
+        },
+      },
+      outside: {
+        kind: "boolean",
+        label: "Outside Points",
+        section: "appearance",
+        // 범위 띠 (아래 경계 필드) 가 있을 때만 읽는다.
+        visibleWhen: {
+          all: [readingIs("outside"), { key: "lowerFields", truthy: true }],
+        },
+      },
+      // 강조 — 모드 (max · min · first · last · none) 또는 항목 이름. 비면 종류의 기본 강조.
+      highlight: {
+        kind: "string-array",
+        label: "Highlight",
+        section: "appearance",
+        visibleWhen: readingIs("highlight"),
+      },
+      // 범위 선택 · 동기화 — Preview · Publish 의 실행 상태 (저장하지 않는 뷰 상태를 켜는 설정).
+      brush: {
+        kind: "enum",
+        label: "Range Select",
+        section: "interaction",
+        options: [
+          { value: "none", label: "None" },
+          { value: "select", label: "Select" },
+          { value: "zoom", label: "Zoom" },
+        ],
+        visibleWhen: readingIs("brush"),
+      },
+      syncId: {
+        kind: "string",
+        label: "Sync Group",
+        section: "interaction",
+        visibleWhen: readingIs("syncId"),
+      },
       /**
        * ── ADR-210 — 다중 수치 컬럼·시리즈 표시·숫자 형식 ──
        *

@@ -4,6 +4,7 @@
  * 미포함), `invertFields` 는 작은 값이 위, 값이 없는 축에서 선을 끊는다, 첫 행 강조 (accent · 위에 그림),
  * 나머지는 중립. 축 이름은 값 필드 이름 (시리즈 표의 label — ztd `dimensionLabels` 대응 · §3).
  */
+import { highlightIndex } from "../../highlight";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type { ChartTarget, Mark, TextMark } from "../../types";
 import {
@@ -86,7 +87,15 @@ export function parallelScene(ctx: CategoryContext) {
       String(model.lines.length),
     );
   const nd = model.dims.length;
-  const hiLine = lines[0];
+  // ADR-306 Phase 6 — `highlight`: 선 이름 (`labelField`) · 첫 축 값 (비면 첫 행 — ztd 기본 first).
+  const hiK = highlightIndex(
+    props.highlight,
+    lines.map((l) => l.label),
+    lines.map((l) => l.vals[0] ?? NaN),
+    "first",
+    0,
+  );
+  const hiLine = hiK >= 0 ? lines[hiK] : undefined;
   const showLabels = props.showValueLabels !== false && lines.length <= 60;
   const labelR =
     showLabels && hiLine?.label
@@ -137,7 +146,10 @@ export function parallelScene(ctx: CategoryContext) {
   const ysOf = (vals: readonly number[]) =>
     vals.map((v, j) => (Number.isFinite(v) ? scales[j](v) : NaN));
   // 강조 선은 마지막에 (위에 그린다).
-  const order = [...lines.slice(1), ...(hiLine ? [hiLine] : [])];
+  const order = [
+    ...lines.filter((l) => l !== hiLine),
+    ...(hiLine ? [hiLine] : []),
+  ];
   for (const l of order) {
     const hi = l === hiLine;
     const ys = ysOf(l.vals);

@@ -118,6 +118,12 @@ const ALTERNATIVES: Record<string, unknown[]> = {
   includeZero: [false],
   endLabels: [true],
   centerLabel: ["Center"],
+  // ADR-306 Phase 6 — 주석 · 손익 색. 띠 시작 · 띠 밖 점은 띠 필드가 없는 이 표본에서 갈리지 않는다
+  //   (전용 검사 — `adr306Interactions.test.ts`), 기준값은 손익 색을 켤 때만 보인다.
+  annotations: [[{ type: "band", y: 5, yEnd: 10 }]],
+  signColors: [true],
+  // 강조 — 범위 선택 · 동기화는 실행 상태라 scene 이 갈리지 않는다 (DOM 전용 검사).
+  highlight: [["min"], ["last"]],
 };
 
 function sceneOf(props: ChartProps): string {
@@ -273,6 +279,9 @@ const FAMILY_ALTERNATIVES: Record<string, unknown[]> = {
   nodeWidth: [4],
   nodePadding: [40],
   padAngle: [12],
+  // Phase 6 — 강조 · 주석 (candlestick).
+  highlight: [["min"], ["last"], ["first"]],
+  annotations: [[{ type: "band", y: 5, yEnd: 10 }]],
 };
 
 describe("ADR-306 G2 ① — category · distribution · matrix family: 소비되는 prop 은 보이고, 보이는 조건 prop 은 읽힌다", () => {

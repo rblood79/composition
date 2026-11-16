@@ -25,7 +25,35 @@ import type {
 import { circlePath } from "./dots";
 import { fittedSizeRange } from "./sizeRange";
 export { SIZE_RANGE_DEFAULT } from "./sizeRange";
+import { linearFit } from "./fit";
+export { linearFit } from "./fit";
 import { bandCenter, seriesAxialPoints, splitRuns } from "./line";
+import { forecastFrom, resolveAnnotations } from "./annotations";
+import { parseIsoStrict } from "../budget";
+import { parseTime } from "../timeFormat";
+
+/**
+ * ADR-306 Phase 6 — 범위 띠를 그리기 시작하는 범주 (ztd `bandStartIndex`). `forecast` 면 예측 주석의 시작
+ * x 이상인 첫 범주 — 그런 범주가 없으면 범주 수 (띠 없음, ztd 와 같음). 비면 0.
+ */
+export function bandStartIndex(
+  props: Pick<ChartProps, "bandFrom" | "annotations" | "dimensionFormat">,
+  grid: Pick<SeriesGrid, "categories" | "positions">,
+): number {
+  const n = grid.categories.length;
+  if (props.bandFrom !== "forecast") return 0;
+  const from = forecastFrom(resolveAnnotations(props.annotations));
+  if (from === undefined) return n;
+  const i = grid.categories.indexOf(from);
+  if (i >= 0) return i;
+  if (!grid.positions) return n;
+  const t = props.dimensionFormat
+    ? parseTime(props.dimensionFormat, from)
+    : parseIsoStrict(from);
+  if (t === null) return n;
+  const k = grid.positions.findIndex((p) => p >= t);
+  return k < 0 ? n : k;
+}
 
 export interface SeriesExtraInput {
   props: Pick<
@@ -39,6 +67,10 @@ export interface SeriesExtraInput {
     | "labelField"
     | "fit"
     | "quadrants"
+    | "bandFrom"
+    | "outside"
+    | "annotations"
+    | "dimensionFormat"
   >;
   grid: SeriesGrid;
   band: BandScale;
@@ -89,15 +121,58 @@ function lineExtras(input: SeriesExtraInput): SeriesExtraMarks {
   const { props, grid, band, value, plot, stackMode, fontSize } = input;
   const orientation = props.orientation;
   const back: Mark[] = [];
+  const front: Mark[] = [];
+  // ADR-306 Phase 6 — 띠 시작 (`bandFrom`) · 띠 밖 점 (`outside`).
+  const start = bandStartIndex(props, grid);
   // 범위 띠 — 위 경계를 앞으로, 아래 경계를 거꾸로 이어 닫는다 (area 와 같은 곡선).
   if (stackMode === "none")
     grid.series.forEach((series) => {
       const lower = series.extras?.lower;
       const upper = series.extras?.upper;
       if (!lower || !upper) return;
+      if (props.outside === true) {
+        // 띠 밖 점 — 시리즈 색 점 (ztd 의 바탕색 테두리는 역할 색이 없어 뺀다), 시리즈당 path 하나.
+        const r = 3.6;
+        const out: string[] = [];
+        const box = {
+          x0: Infinity,
+          y0: Infinity,
+          x1: -Infinity,
+          y1: -Infinity,
+        };
+        for (let ci = start; ci < grid.categories.length; ci++) {
+          const v = series.values.get(ci);
+          const a = lower.get(ci);
+          const b = upper.get(ci);
+          if (v === undefined || a === undefined || b === undefined) continue;
+          if (v >= Math.min(a, b) && v <= Math.max(a, b)) continue;
+          const p = toScreen(orientation, {
+            along: bandCenter(band, ci),
+            across: value(v),
+          });
+          out.push(circlePath(p.x, p.y, r));
+          box.x0 = Math.min(box.x0, p.x - r);
+          box.y0 = Math.min(box.y0, p.y - r);
+          box.x1 = Math.max(box.x1, p.x + r);
+          box.y1 = Math.max(box.y1, p.y + r);
+        }
+        if (out.length > 0)
+          front.push({
+            kind: "path",
+            d: out.join(" "),
+            bbox: {
+              x: r2(box.x0),
+              y: r2(box.y0),
+              w: r2(box.x1 - box.x0),
+              h: r2(box.y1 - box.y0),
+            },
+            fillSeries: series.seriesIndex,
+            fillOpacity: 1,
+          });
+      }
       const pts: { categoryIndex: number; lo: AxialPoint; hi: AxialPoint }[] =
         [];
-      for (let ci = 0; ci < grid.categories.length; ci++) {
+      for (let ci = start; ci < grid.categories.length; ci++) {
         const a = lower.get(ci);
         const b = upper.get(ci);
         if (a === undefined || b === undefined) continue;
@@ -134,7 +209,6 @@ function lineExtras(input: SeriesExtraInput): SeriesExtraMarks {
         fillOpacity: 0.18,
       });
     });
-  const front: Mark[] = [];
   if (props.endLabels === true && orientation !== "horizontal") {
     const ends: { si: number; x: number; y: number }[] = [];
     grid.series.forEach((_, si) => {
@@ -164,31 +238,6 @@ function lineExtras(input: SeriesExtraInput): SeriesExtraMarks {
     );
   }
   return { back, dots: null, front };
-}
-
-/** 최소제곱 직선 (ztd `linearFit`) — 점이 둘 미만이거나 x 가 모두 같으면 null. */
-export function linearFit(
-  pts: readonly { x: number; y: number }[],
-): { slope: number; at: (x: number) => number } | null {
-  const n = pts.length;
-  if (n < 2) return null;
-  let mx = 0;
-  let my = 0;
-  for (const q of pts) {
-    mx += q.x;
-    my += q.y;
-  }
-  mx /= n;
-  my /= n;
-  let sxy = 0;
-  let sxx = 0;
-  for (const q of pts) {
-    sxy += (q.x - mx) * (q.y - my);
-    sxx += (q.x - mx) ** 2;
-  }
-  if (!(sxx > 0)) return null;
-  const slope = sxy / sxx;
-  return { slope, at: (x) => my + slope * (x - mx) };
 }
 
 function scatterExtras(input: SeriesExtraInput): SeriesExtraMarks {

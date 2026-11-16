@@ -145,6 +145,15 @@ describe("ADR-306 G3 — family prop 전달 목록 하나 (R2)", () => {
         "sizeRange",
         "fit",
         "quadrants",
+        // Phase 6 — 공통 상호작용 (주석 · 손익 색 · 띠 시작 · 띠 밖 점).
+        "annotations",
+        "signColors",
+        "baseline",
+        "bandFrom",
+        "outside",
+        "highlight",
+        "brush",
+        "syncId",
       ].sort(),
     );
   });

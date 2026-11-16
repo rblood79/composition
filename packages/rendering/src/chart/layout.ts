@@ -5,6 +5,7 @@
  * 재기 전에 `plot` 을 알아야 하는데, scene 진입점을 import 하면 순환이다. 마크 path 는
  * 각 렌더러가 생성한다.
  */
+import { valueIncludes } from "./marks/annotations";
 import { legendExtent } from "./legend";
 import { categoryColorIndex } from "./budget";
 import type { LegendEntry } from "./legend";
@@ -12,7 +13,7 @@ import { approxTextWidth, formatTick, niceTicks, r2 } from "./scales";
 import { formatChartNumber } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
 import { timeAxisTwoTier } from "./timeAxis";
-import { referenceValues, seriesLabel, valueExtent } from "./series";
+import { seriesLabel, valueExtent } from "./series";
 import { fittedSizeRange } from "./marks/sizeRange";
 import type { SeriesGrid, StackMode } from "./series";
 import type {
@@ -102,7 +103,12 @@ export function resolveChartLayout(
     ? grid.categories.map((label, ci) => ({
         label: label || "category",
         // input 격자는 `othersIndex` 가 없다 — others 범례는 model 이 transformed 로 다시 만든다.
-        colorIndex: categoryColorIndex(ci, palette, grid.othersIndex),
+        colorIndex: categoryColorIndex(
+          ci,
+          palette,
+          grid.othersIndex,
+          grid.dimmed,
+        ),
       }))
     : grid.series.map((series) => ({
         label: seriesLabel(series, "series"),
@@ -186,7 +192,7 @@ export function resolveChartLayout(
     props,
     grid,
     stackMode,
-    referenceValues(presentation),
+    valueIncludes(presentation, props, stackMode),
   );
   const horizontal = props.orientation === "horizontal";
   // expand 축만 정규화 단위다 — opt-in 형식이면 항상 퍼센트, auto 면 기존 문자열.

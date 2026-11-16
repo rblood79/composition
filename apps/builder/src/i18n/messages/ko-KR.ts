@@ -190,6 +190,22 @@ const catalog: TranslationKeys = {
     removeReferenceLine: "기준선 삭제",
     referenceOnlyCartesian: "기준선은 막대·선·영역 차트에서만 씁니다.",
     referenceMaxHint: "기준선은 최대 {max}개입니다.",
+    // ADR-306 Phase 6 — 주석
+    annotations: "주석",
+    annotationType: "유형",
+    annotationBand: "구간",
+    annotationEvent: "이벤트",
+    annotationForecast: "예측",
+    annotationTrend: "추세선",
+    annotationWeekends: "주말",
+    annotationX: "X",
+    annotationXEnd: "X 끝",
+    annotationY: "값",
+    annotationYEnd: "값 끝",
+    annotationLabel: "레이블",
+    addAnnotation: "주석 추가",
+    removeAnnotation: "주석 삭제",
+    annotationMaxHint: "주석은 최대 {max}개입니다.",
   },
   itemsManager: {
     total: "총 {count}개",
@@ -3455,6 +3471,8 @@ const formattedMessages: Record<
     `${String(args?.count ?? 0)}행은 날짜로 읽지 못해 제외됩니다.`,
   "chart.referenceMaxHint": (args) =>
     `기준선은 최대 ${String(args?.max ?? 4)}개입니다.`,
+  "chart.annotationMaxHint": (args) =>
+    `주석은 최대 ${String(args?.max ?? 8)}개입니다.`,
   "itemsManager.total": (args) => `총 ${String(args?.count ?? 0)}개`,
   "navigator.layersDragCount": (args) => `레이어 ${String(args?.count ?? 0)}개`,
   "properties.usingLayout": (args) =>

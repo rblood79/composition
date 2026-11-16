@@ -10,6 +10,8 @@
  * m4). `layout` 은 input 격자로 푼다 — 축 여백 (가장 긴 범주 라벨) 이 창 위치에 따라 변하면
  * `plot` → `fit` → 창이 서로를 다시 정하는 순환이 생긴다.
  */
+import { valueIncludes } from "./marks/annotations";
+import { applyGridHighlight, resolveGridHighlight } from "./highlightGrid";
 import {
   applyBudget,
   budgetSweep,
@@ -40,7 +42,7 @@ import {
   resolveChartPresentation,
 } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
-import { buildSeriesGrid, referenceValues, sortCategories } from "./series";
+import { buildSeriesGrid, sortCategories } from "./series";
 import type { SeriesGrid } from "./series";
 import { resolveTimeAxisModel } from "./timeAxis";
 import type { ChartTimeAxisModel } from "./timeAxis";
@@ -198,13 +200,17 @@ export function resolveChartModel(
     presentation,
   );
   // ADR-306 Phase 5 — bar · pie 의 `sort` (범주 축이 시간 · 숫자면 그 순서가 뜻이라 정렬하지 않는다).
-  const input =
+  const sorted =
     (props.chartType === "bar" || props.chartType === "pie") &&
     (props.sort === "ascending" || props.sort === "descending") &&
     presentation.dimension.scale !== "time" &&
     presentation.dimension.scale !== "linear"
       ? sortCategories(built, props.sort, props.chartType === "pie")
       : built;
+  // ADR-306 Phase 6 — `highlight`: 원본 격자에서 한 번 고르고 (창 · 집계 뒤에도 같은 이름), 강조 밖은
+  //   neutral 색 index. 지정이 없으면 같은 객체 (지금 그림 그대로).
+  const highlight = resolveGridHighlight(props, sorted);
+  const input = applyGridHighlight(sorted, highlight);
   const settings = presentation.budget;
   // ADR-216 — 시간 스케일은 정의상 기간 축 (인접 index = 인접 시각) 이라 `ordinal` 로 고정한다
   //   (`resolveAxisKind` 의 ISO 판정은 category 스케일의 예산 힌트 — breakdown §1 (3)).
@@ -276,12 +282,24 @@ export function resolveChartModel(
   }
   const { layout: baseLayout, decided, stacked } = pass;
   // 변환 — 창 · bucket 집계 · 극값 선택 · others · pie 링 상한 (§2.4 · §2.5).
-  const { budget, transformed, visible } = applyBudget(input, decided, {
+  const budgeted = applyBudget(input, decided, {
     kind: props.chartType,
     stacked,
     othersLabel: settings.othersLabel,
     metrics,
   });
+  const { budget } = budgeted;
+  // 예산이 만든 새 격자 (창 · 집계 · others) 에 같은 강조를 다시 — 그대로 넘긴 격자는 이미 적용됐다.
+  const transformed =
+    budgeted.transformed === input
+      ? input
+      : applyGridHighlight(budgeted.transformed, highlight);
+  const visible =
+    budgeted.visible === budgeted.transformed
+      ? transformed
+      : budgeted.visible === input
+        ? input
+        : applyGridHighlight(budgeted.visible, highlight);
   const start = budget.window?.start ?? 0;
   // 실제 적용 (`applied`) 으로 판정한다 — 극값 fallback 은 요청 `mode` 가 extrema 여도 집계다.
   const suffix =
@@ -310,7 +328,12 @@ export function resolveChartModel(
     byCategoryLegend && transformed !== input
       ? transformed.categories.map((label, ci) => ({
           label: label || "category",
-          colorIndex: categoryColorIndex(ci, palette, transformed.othersIndex),
+          colorIndex: categoryColorIndex(
+            ci,
+            palette,
+            transformed.othersIndex,
+            transformed.dimmed,
+          ),
         }))
       : baseLayout.legendEntries;
   const legendBox =
@@ -338,7 +361,7 @@ export function resolveChartModel(
           props,
           transformed,
           baseLayout.stackMode,
-          referenceValues(presentation),
+          valueIncludes(presentation, props, baseLayout.stackMode),
         );
   // ADR-216 — 시간 축: transformed 의 epoch 범위 (집계는 `t1` 까지) → domain · 눈금 · 라벨. 축 픽셀은
   //   최종 plot (트랙 예약 뒤) — 두 leg 가 같은 plot 을 보므로 같은 눈금 수에 이른다.

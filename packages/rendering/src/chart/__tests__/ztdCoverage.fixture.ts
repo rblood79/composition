@@ -21,7 +21,6 @@ export type ZtdClass =
 const A = (...props: string[]): ZtdClass => ({ kind: "adopt", props });
 const M = (to: string): ZtdClass => ({ kind: "map", to });
 const X = (reason: string): ZtdClass => ({ kind: "exclude", reason });
-const D: ZtdClass = { kind: "decision" };
 
 export type ChartFamilyId =
   "category" | "kpi" | "distribution" | "matrix" | "network";
@@ -75,7 +74,7 @@ const ZERO = A("includeZero");
 export const ZTD_COMMON_CLASS: Record<string, ZtdClass> = {
   height: M("Layout height (aspect-ratio 16/9 기본 — ADR-306 F9)"),
   width: M("Layout width"),
-  highlight: D,
+  highlight: A("highlight"),
   format: M("valueFormat (ADR-210)"),
   unit: M("valueFormat 계열 (valuePercentUnit · valueCurrency)"),
   locale: M("valueLocale"),
@@ -87,20 +86,24 @@ export const ZTD_COMMON_CLASS: Record<string, ZtdClass> = {
   animateOnView: X("viewport 진입 재생 — ztd runtime 기구"),
   showLabels: M("showValueLabels"),
   tooltip: M("showTooltip"),
-  syncId: D,
+  syncId: A("syncId"),
   ariaLabel: M("aria-label"),
   description: X("자동 설명 문장 — ztd runtime 기구 (Decision 8)"),
 };
 
 const LABEL_VALUE = { label: A("dimension"), value: A("metric") };
+// ADR-306 Phase 6 — 사용자 결정 1 (공통 상호작용) 을 채택 · 대응으로 닫았다. 가로 기준선 주석 (`line`) 은
+//   `referenceLines` (ADR-217) 가 맡는다.
 const SIGN_DECISION = {
-  brush: D,
-  annotations: D,
-  signColors: D,
-  baseline: D,
-  downColor: D,
-  bandFrom: D,
-  outside: D,
+  brush: A("brush"),
+  annotations: A("annotations"),
+  signColors: A("signColors"),
+  baseline: A("baseline"),
+  downColor: M(
+    "paint 역할 neutral — 임의 CSS 색은 받지 않는다 (breakdown §5.1)",
+  ),
+  bandFrom: A("bandFrom"),
+  outside: A("outside"),
 };
 const LINE_AREA_CHANNELS = {
   x: A("dimension"),
@@ -314,7 +317,7 @@ export const ZTD_CLASS: Record<string, ZtdEntryClass> = {
       layout: M("stackType"),
       orientation: M("orientation"),
       sort: A("sort"),
-      annotations: D,
+      annotations: A("annotations"),
     },
   },
   radialBar: {
@@ -350,7 +353,7 @@ export const ZTD_CLASS: Record<string, ZtdEntryClass> = {
       variant: A("shape"),
       showValue: M("showTotal"),
       showExtremes: A("showExtremes"),
-      mark: D,
+      mark: M("highlight (last · max · min · none — ztd mark 와 같은 값)"),
     },
   },
   slope: {
@@ -482,9 +485,9 @@ export const ZTD_CLASS: Record<string, ZtdEntryClass> = {
       upColor: M("paint 역할 accent (breakdown §5.1)"),
       downColor: M("paint 역할 neutral (breakdown §5.1)"),
       maxCandles: RUNTIME_BUDGET,
-      brush: D,
+      brush: A("brush"),
       yDomain: VALUE_RANGE,
-      annotations: D,
+      annotations: A("annotations"),
     },
   },
   segmented: {

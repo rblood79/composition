@@ -1144,6 +1144,22 @@ export interface TranslationKeys {
     removeReferenceLine: string;
     referenceOnlyCartesian: string;
     referenceMaxHint: string;
+    // ADR-306 Phase 6 — 주석
+    annotations: string;
+    annotationType: string;
+    annotationBand: string;
+    annotationEvent: string;
+    annotationForecast: string;
+    annotationTrend: string;
+    annotationWeekends: string;
+    annotationX: string;
+    annotationXEnd: string;
+    annotationY: string;
+    annotationYEnd: string;
+    annotationLabel: string;
+    addAnnotation: string;
+    removeAnnotation: string;
+    annotationMaxHint: string;
   };
   itemsManager: {
     total: string;

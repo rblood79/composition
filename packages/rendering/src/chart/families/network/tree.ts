@@ -7,6 +7,7 @@
  * - sunburst: 깊이마다 고리 하나 · 가운데 구멍 `innerRadius` % · 바깥 고리 잎은 바깥 이름표 (양쪽으로
  *   밀어내기), 안쪽 조각은 이름이 들어갈 때만 · 기본 정렬 데이터 순서.
  */
+import { hasHighlight, highlightIndex } from "../../highlight";
 import { approxTextWidth, r2 } from "../../scales";
 import type {
   ChartProps,
@@ -76,6 +77,18 @@ export function treeModel(
   for (const leaf of leaves(root))
     if (leaf !== root && leaf.value > 0 && (!top || leaf.value > top.value))
       top = leaf;
+  // ADR-306 Phase 6 — `highlight`: 잎 이름 · 값 (ztd treemap · sunburst 와 같다 — 기본 max).
+  if (hasHighlight(props.highlight)) {
+    const all = leaves(root).filter((l) => l !== root);
+    const k = highlightIndex(
+      props.highlight,
+      all.map((l) => l.label),
+      all.map((l) => l.value),
+      "max",
+      -1,
+    );
+    top = k >= 0 ? all[k] : null;
+  }
   return { root, top };
 }
 

@@ -4,6 +4,7 @@
  * 중앙값이 가장 큰 그룹 (그룹이 없는 beeswarm 은 가장 큰 점), 통계는 원본 전체 (잘린 표본으로 분위를
  * 내지 않는다 — breakdown §4.2), 그리는 요소만 줄인다. 배치 비율은 ztd 값, 글자 크기만 rule metric.
  */
+import { highlightIndex } from "../../highlight";
 import { circlePath } from "../../marks/dots";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
@@ -143,7 +144,13 @@ export function boxModel(ctx: CategoryContext): BoxModel | null {
       (m, row) => row.reduce((a, v) => (v > a ? v : a), m),
       1e-9,
     ),
-    hi: argMaxOf(stats.map((s) => s.median)),
+    hi: highlightIndex(
+      props.highlight,
+      groups.map((g) => g.name),
+      stats.map((s) => s.median),
+      "max",
+      argMaxOf(stats.map((s) => s.median)),
+    ),
     whiskers,
   };
 }
@@ -355,9 +362,27 @@ export function beeswarmModel(ctx: CategoryContext): BeeswarmModel | null {
   const medians = groups.map((g) => medianOf(g.values));
   const all = groups.flatMap((g) => g.values);
   const [mn, mx] = finiteExtent(all);
+  // ADR-306 Phase 6 — `highlight`: 그룹이면 그룹 이름 · 중앙값, 아니면 점 이름 (`labelField`) · 값 (ztd 기본 max).
   let hi = -1;
-  if (grouped) hi = argMaxOf(medians);
-  else if (groups[0]) hi = groups[0].rows[argMaxOf(groups[0].values)] ?? -1;
+  if (grouped)
+    hi = highlightIndex(
+      props.highlight,
+      groups.map((g) => g.name),
+      medians,
+      "max",
+      argMaxOf(medians),
+    );
+  else if (groups[0]) {
+    const g0 = groups[0];
+    const k = highlightIndex(
+      props.highlight,
+      g0.rows.map((i) => labels.get(i) ?? ""),
+      g0.values,
+      "max",
+      argMaxOf(g0.values),
+    );
+    hi = k >= 0 ? (g0.rows[k] ?? -1) : -1;
+  }
   return {
     grouped,
     groups,
@@ -573,7 +598,13 @@ export function ridgelineModel(ctx: CategoryContext): RidgelineModel | null {
       (m, r) => r.dens.reduce((a, v) => (v > a ? v : a), m),
       1e-9,
     ),
-    hi: argMaxOf(ridges.map((r) => r.median)),
+    hi: highlightIndex(
+      props.highlight,
+      ridges.map((r) => r.name),
+      ridges.map((r) => r.median),
+      "max",
+      argMaxOf(ridges.map((r) => r.median)),
+    ),
   };
 }
 

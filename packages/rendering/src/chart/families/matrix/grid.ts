@@ -9,6 +9,7 @@
  *
  * calendar 의 날짜는 UTC 로 읽는다 (`2024-02-29` 가 어느 timezone 에서나 같은 칸 — breakdown §7.1).
  */
+import { hasHighlight, highlightIndex } from "../../highlight";
 import { approxTextWidth, r2 } from "../../scales";
 import type { ChartPaintRole, ChartTarget, Mark, TextMark } from "../../types";
 import {
@@ -197,6 +198,17 @@ export function heatmapScene(ctx: CategoryContext) {
       (hiIdx < 0 || model.vals[i] > model.vals[hiIdx])
     )
       hiIdx = i;
+  // ADR-306 Phase 6 — `highlight`: 칸 이름 「x|y」 (ztd heatmap 과 같은 꼴) · 값.
+  hiIdx = highlightIndex(
+    props.highlight,
+    Array.from(
+      { length: nCells },
+      (_, i) => `${model.xs[i % fullW]}|${model.ys[Math.floor(i / fullW)]}`,
+    ),
+    Array.from(model.vals.subarray(0, nCells)),
+    "max",
+    hiIdx,
+  );
   const valuesOn =
     props.showValueLabels === true &&
     cw >= approxTextWidth(fx(model.max), fontSize) + 8 &&
@@ -457,6 +469,17 @@ export function calendarScene(ctx: CategoryContext) {
   for (const d of days)
     if (Number.isFinite(d.value) && (!hiDay || d.value > hiDay.value))
       hiDay = d;
+  // ADR-306 Phase 6 — `highlight`: 날짜 (YYYY-MM-DD, UTC) · 값.
+  if (hasHighlight(props.highlight)) {
+    const k = highlightIndex(
+      props.highlight,
+      days.map((d) => new Date(d.t).toISOString().slice(0, 10)),
+      days.map((d) => d.value),
+      "max",
+      -1,
+    );
+    hiDay = k >= 0 ? days[k] : null;
+  }
   const pos = (d: CalendarDay) => ({
     x: x0 + d.week * step,
     y: top0 + (d.year - firstYear) * blockH + topH + d.wd * step,

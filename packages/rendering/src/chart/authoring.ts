@@ -124,12 +124,22 @@ const LINE_ROLES: readonly ChartRole[] = [
   { prop: "lowerFields", kind: "fields", required: false, accepts: "number" },
   { prop: "upperFields", kind: "fields", required: false, accepts: "number" },
 ];
+// ADR-306 Phase 6 — 공통 상호작용 (사용자 결정 1): 주석 (line · area · bar · candlestick), 손익 색 ·
+//   띠 시작 · 띠 밖 점 (line · area).
+const ANNOTATION_OPTIONS: readonly (keyof ChartProps & string)[] = [
+  "annotations",
+];
 const LINE_OPTIONS: readonly (keyof ChartProps & string)[] = [
   "valueMin",
   "valueMax",
   "includeZero",
   "connectNulls",
   "endLabels",
+  ...ANNOTATION_OPTIONS,
+  "signColors",
+  "baseline",
+  "bandFrom",
+  "outside",
 ];
 const PIE_OPTIONS: readonly (keyof ChartProps & string)[] = [
   "sort",
@@ -163,6 +173,28 @@ const cartesian = {
   showAxis: true,
   showGrid: true,
 } as const;
+/**
+ * ADR-306 Phase 6 — 공통 옵션: 강조 (`highlight`) 는 강조할 항목이 있는 종류 전부 (gauge 는 값 하나라 없다
+ * — ztd 도 없다). 범위 선택 · 동기화는 범주 축이 있는 line · area · bar · candlestick (실행 상태라 scene
+ * 은 그대로 — 패널에 보이고 Preview · Publish 가 읽는다).
+ */
+const NO_HIGHLIGHT: ReadonlySet<ChartType> = new Set(["gauge"]);
+const BRUSH_TYPES: ReadonlySet<ChartType> = new Set([
+  "line",
+  "area",
+  "bar",
+  "candlestick",
+]);
+function withCommonOptions(row: ChartDescriptor): ChartDescriptor {
+  const extra: (keyof ChartProps & string)[] = [
+    ...(NO_HIGHLIGHT.has(row.chartType) ? [] : ["highlight" as const]),
+    ...(BRUSH_TYPES.has(row.chartType) ? (["brush", "syncId"] as const) : []),
+  ];
+  return extra.length === 0
+    ? row
+    : { ...row, options: [...row.options, ...extra] };
+}
+
 export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
   descriptor(
     "area",
@@ -193,7 +225,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     ],
     "Default",
     [],
-    ["sort"],
+    ["sort", ...ANNOTATION_OPTIONS],
   ),
   descriptor(
     "line",
@@ -747,7 +779,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
         accepts: "number",
       },
     ],
-    ["movingAverages", "valueMin", "valueMax"],
+    ["movingAverages", "valueMin", "valueMax", ...ANNOTATION_OPTIONS],
   ),
   descriptor(
     "parallel",
@@ -836,7 +868,7 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     FLOW_ROLES,
     ["padAngle"],
   ),
-];
+].map(withCommonOptions);
 
 /**
  * ADR-306 Phase 5 — 종류마다 첫 행 (프리셋 행 donut · bubble 을 뺀 것). 종류 선택지 ·

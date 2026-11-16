@@ -473,10 +473,15 @@ export function renderPath(
   if (!path) return;
 
   const translated = offsetX !== 0 || offsetY !== 0;
-  if (translated) {
-    canvas.save();
-    canvas.translate(offsetX, offsetY);
-  }
+  const clip = node.path.clip;
+  if (translated || clip) canvas.save();
+  if (translated) canvas.translate(offsetX, offsetY);
+  if (clip)
+    canvas.clipRect(
+      ck.XYWHRect(clip.x, clip.y, clip.width, clip.height),
+      ck.ClipOp.Intersect,
+      true,
+    );
 
   if (hasFill) {
     const paint = acquirePooledPaint(ck);
@@ -509,11 +514,19 @@ export function renderPath(
           : ck.StrokeJoin.Miter,
     );
     paint.setColor(strokeColor!);
+    const dashes = node.path.strokeDasharray;
+    const dashEffect =
+      dashes && dashes.length >= 2 ? ck.PathEffect.MakeDash(dashes) : null;
+    if (dashEffect) paint.setPathEffect(dashEffect);
     canvas.drawPath(path, paint);
+    if (dashEffect) {
+      paint.setPathEffect(null);
+      dashEffect.delete();
+    }
     releasePooledPaint(paint);
   }
 
-  if (translated) canvas.restore();
+  if (translated || clip) canvas.restore();
 }
 
 /**

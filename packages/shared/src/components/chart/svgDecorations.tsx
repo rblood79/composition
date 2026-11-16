@@ -82,8 +82,8 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
           fillOpacity={mark.fillOpacity}
         />
       );
-    case "path":
-      return (
+    case "path": {
+      const path = (
         <path
           key={key}
           d={mark.d}
@@ -130,8 +130,29 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
           }
           strokeLinejoin="round"
           strokeLinecap="round"
+          // ADR-306 Phase 6 — 선 불투명도 · 파선 (Skia `strokeAlpha` · `strokeDasharray` 와 같은 값).
+          strokeOpacity={mark.strokeOpacity}
+          strokeDasharray={mark.dash ? mark.dash.join(" ") : undefined}
         />
       );
+      // ADR-306 Phase 6 — 자르기 상자: 상자 크기의 중첩 svg (viewBox = 상자 → 좌표 그대로, 밖은 잘린다).
+      //   clipPath id 를 만들지 않아 같은 페이지의 여러 차트가 id 로 부딪히지 않는다. Skia 는 `clipRect`.
+      if (!mark.clip) return path;
+      const c = mark.clip;
+      return (
+        <svg
+          key={key}
+          x={c.x}
+          y={c.y}
+          width={Math.max(0, c.w)}
+          height={Math.max(0, c.h)}
+          viewBox={`${c.x} ${c.y} ${Math.max(0, c.w)} ${Math.max(0, c.h)}`}
+          overflow="hidden"
+        >
+          {path}
+        </svg>
+      );
+    }
     case "line":
       return (
         <line
@@ -150,6 +171,7 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
                   : "var(--chart-axis, currentColor)"
           }
           strokeWidth={mark.width ?? 1}
+          strokeOpacity={mark.opacity}
           strokeLinecap={mark.width !== undefined ? "round" : undefined}
           // ADR-217 — 기준선 파선 (Skia `strokeDasharray` 와 같은 배열).
           strokeDasharray={mark.dash ? mark.dash.join(" ") : undefined}

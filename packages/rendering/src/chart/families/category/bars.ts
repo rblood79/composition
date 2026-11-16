@@ -8,6 +8,8 @@
  * positive / negative, 항목마다 색이 필요한 종류 (segmented · waffle) 는 시리즈 팔레트 (`seriesIndex`).
  */
 import { circlePath } from "../../marks/dots";
+import { firstHighlight, highlightIndex, highlightSet } from "../../highlight";
+import { CHART_OTHERS_COLOR_INDEX } from "../../budget";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
   AxisScene,
@@ -84,7 +86,14 @@ export function lollipopModel(ctx: CategoryContext): LollipopModel | null {
   return {
     items,
     domain: fitDomain(mn, mx, 4),
-    hi: argMax(items.map((r) => r.value)),
+    // ADR-306 Phase 6 — `highlight` (비면 가장 큰 값 — 지금 그대로).
+    hi: highlightIndex(
+      ctx.props.highlight,
+      items.map((r) => r.label),
+      items.map((r) => r.value),
+      "max",
+      argMax(items.map((r) => r.value)),
+    ),
   };
 }
 
@@ -320,11 +329,18 @@ export function segmentedModel(
   const ordered = sortByValue(values, sortOf(ctx.props, "descending"));
   const total = ordered.reduce((s, r) => s + r.value, 0);
   const n = Math.max(1, ctx.metrics.seriesCount);
+  // ADR-306 Phase 6 — `highlight` 를 주면 강조 밖 조각은 neutral (others 색 index — ztd segmented 기본 max).
+  const picked = highlightSet(
+    ctx.props.highlight,
+    ordered.map((r) => r.label),
+    ordered.map((r) => r.value),
+    "max",
+  );
   return {
     parts: ordered.map((r, k) => ({
       ...r,
       share: total > 0 ? r.value / total : 0,
-      color: k % n,
+      color: picked && !picked.has(k) ? CHART_OTHERS_COLOR_INDEX : k % n,
     })),
     total,
   };
@@ -455,6 +471,8 @@ export function segmentedScene(ctx: CategoryContext) {
 
 export interface WaffleModel {
   items: (LabeledValue & { color: number })[];
+  /** ADR-306 Phase 6 — 요약 숫자의 행 (`highlight`, 비면 첫 행). */
+  hi: number;
   /** 항목마다 칸 수 (합 = 칸 수, `valueMax` 가 합보다 크면 비율만큼) */
   counts: number[];
   cells: number;
@@ -481,8 +499,19 @@ export function waffleModel(ctx: CategoryContext): WaffleModel | null {
       ? props.valueMax
       : values.reduce((s, r) => s + r.value, 0);
   const n = Math.max(1, ctx.metrics.seriesCount);
+  // ADR-306 Phase 6 — `highlight` 를 주면 강조 밖 칸은 neutral, 요약 숫자는 강조 행 (ztd waffle 기본 first).
+  const picked = highlightSet(
+    ctx.props.highlight,
+    values.map((r) => r.label),
+    values.map((r) => r.value),
+    "first",
+  );
   return {
-    items: values.map((r, k) => ({ ...r, color: k % n })),
+    hi: picked ? firstHighlight(picked) : 0,
+    items: values.map((r, k) => ({
+      ...r,
+      color: picked && !picked.has(k) ? CHART_OTHERS_COLOR_INDEX : k % n,
+    })),
     counts: allocateCells(
       values.map((r) => r.value),
       cells,
@@ -518,10 +547,10 @@ export function waffleScene(ctx: CategoryContext) {
   const gridW = cols * cell + (cols - 1) * gap;
   const gridH = rowsN * cell + (rowsN - 1) * gap;
   const gy = outer.y + (outer.h - gridH) / 2;
-  const hiRow = model.items[0];
+  const hiRow = model.items[Math.max(0, model.hi)];
   const share = model.total > 0 ? (hiRow.value / model.total) * 100 : 0;
   const others = model.items
-    .slice(1)
+    .filter((r) => r !== hiRow)
     .map((r) => `${r.label} ${input.formatValue(r.value)}`)
     .join(" · ");
   const gapS = Math.max(14, (outer.w - gridW) * 0.12);
@@ -670,7 +699,14 @@ export function funnelModel(ctx: CategoryContext): FunnelModel | null {
   });
   return {
     stages,
-    hi: argMin(stages.map((s) => (s.rate === null ? NaN : s.rate))),
+    // ADR-306 Phase 6 — 비면 전환율이 가장 낮은 단계, 지정하면 값으로 (ztd funnel 과 같다).
+    hi: highlightIndex(
+      ctx.props.highlight,
+      stages.map((s) => s.label),
+      stages.map((s) => s.value),
+      "max",
+      argMin(stages.map((s) => (s.rate === null ? NaN : s.rate))),
+    ),
     base,
   };
 }
@@ -859,6 +895,14 @@ export function paretoModel(
     const next = bars[k + 1];
     if (next && next.cum > threshold + 0.5) break;
   }
+  // ADR-306 Phase 6 — `highlight` 를 주면 그 막대들 (ztd pareto 와 같다 — 값으로 max).
+  const picked = highlightSet(
+    ctx.props.highlight,
+    bars.map((b) => b.label),
+    bars.map((b) => b.value),
+    "max",
+  );
+  if (picked) bars.forEach((b, k) => (b.hi = picked.has(k)));
   return { bars, threshold };
 }
 
@@ -1097,6 +1141,13 @@ export function waterfallScene(ctx: CategoryContext) {
   const lines: LineMark[] = [];
   const labels: TextMark[] = [];
   const targets: ChartTarget[] = [];
+  // ADR-306 Phase 6 — `highlight` 를 주면 그 증감 막대는 accent (ztd waterfall — 증감, 기본 max).
+  const picked = highlightSet(
+    props.highlight,
+    steps.map((s) => s.label),
+    steps.map((s) => (s.total ? -Infinity : s.value)),
+    "max",
+  );
   steps.forEach((s, k) => {
     const bx = band.at(k);
     const ya = y(s.start);
@@ -1104,7 +1155,12 @@ export function waterfallScene(ctx: CategoryContext) {
     const top0 = Math.min(ya, yb);
     const h = Math.max(Math.abs(yb - ya), 1);
     const up = s.total || s.value >= 0;
-    const paint = s.total ? "accent" : s.value >= 0 ? "positive" : "negative";
+    const paint =
+      s.total || picked?.has(k)
+        ? "accent"
+        : s.value >= 0
+          ? "positive"
+          : "negative";
     marks.push({
       kind: "path",
       d: roundRectPath(

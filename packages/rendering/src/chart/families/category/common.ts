@@ -112,7 +112,14 @@ export function sceneOf(
     legend: parts.legend ?? null,
     tooltip: null,
     empty: false,
-    targets: ctx.props.showTooltip ? (parts.targets ?? []) : [],
+    // ADR-306 Phase 6 — 범위 선택 · 동기화도 targets 를 읽는다 (툴팁 상자는 host 가 `showTooltip` 으로 가른다).
+    targets:
+      ctx.props.showTooltip ||
+      ctx.props.brush === "select" ||
+      ctx.props.brush === "zoom" ||
+      (typeof ctx.props.syncId === "string" && ctx.props.syncId.trim() !== "")
+        ? (parts.targets ?? [])
+        : [],
     ...(ctx.input.diagnostics.length > 0
       ? { diagnostics: ctx.input.diagnostics }
       : {}),

@@ -549,6 +549,10 @@ export function specShapesToSkia(
             ...(shape.strokeCap ? { strokeCap: shape.strokeCap } : {}),
             ...(shape.strokeJoin ? { strokeJoin: shape.strokeJoin } : {}),
             ...(shape.fillRule ? { fillRule: shape.fillRule } : {}),
+            ...(shape.strokeDasharray
+              ? { strokeDasharray: shape.strokeDasharray }
+              : {}),
+            ...(shape.clip ? { clip: shape.clip } : {}),
           },
         };
 

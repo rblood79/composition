@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-306 Phase 6 — Chart 공통 상호작용: 강조 · 주석 · 손익 색 · 범위 선택 · 동기화] - 2026-11-16
+
+### Added
+
+- **Highlight** (ADR-306 Phase 6): 차트에서 강조할 항목을 고른다 — `max` · `min` · `first` · `last` · `none` 또는 항목 이름 (여럿 가능). Gauge 를 뺀 34 종. 비워 두면 지금 그림 그대로이고, 막대 · 선 · 영역 · 원 같은 시리즈 차트는 강조 밖 시리즈 · 항목이 회색이 된다. Bullet · Dumbbell · Waterfall · Segmented · Waffle · Stream · Marimekko · Skyline 은 지정할 때만 강조하고, Candlestick 은 고른 봉의 종가에 파선과 가격을 그린다. Sparkline 의 표시 점도 이 값으로 고른다.
+- **Annotations** (ADR-306 Phase 6): Line · Area · Bar · Candlestick 에 구간 (값 또는 범주 · 날짜 구간) · 사건 · 예측 (그 뒤 선은 파선) · 추세선 · 주말 음영 (시간 축). Content 의 「Add annotation」 으로 추가하고 칸 둘씩 편집한다. 가로 기준선은 기존 Reference lines.
+- **Sign Colors · Baseline · Band From · Outside Points** (ADR-306 Phase 6): Line · Area 의 강조 시리즈를 기준값 위 · 아래 색으로, 범위 띠를 예측 시작부터, 띠 밖 점 표시. 기준값은 Sign Colors 를 켰을 때, Band From · Outside Points 는 띠 아래 경계 필드가 있을 때 보인다.
+- **Range Select · Sync Group** (ADR-306 Phase 6, Preview · Publish): 그림을 끌어 구간을 고르면 등락 · 최고 · 최저를 보여 주거나 (Select) 그 구간으로 확대하고 「Show all」 로 돌아온다 (Zoom — Shift + 화살표 · Enter · Esc 도). 같은 Sync Group 의 차트끼리 가리킨 범주에 안내선과 값을 보인다. 저장하지 않는 보기 상태이고 Canvas 는 그대로다.
+
+### Changed
+
+- **번들 상한 — Builder ≤ 1,435,351 B** (ADR-201 재승인, ADR-306 사용자 결정 2): Phase 6 실측 Builder +5,562 · Preview +4,625 B gzip (시리즈 차트의 주석 · 강조 · 선 나누기는 Canvas 첫 화면 경로, 범위 선택 · 동기화는 Preview).
+
 ## [ADR-306 Phase 5 — Chart 종류 4 (network family) · 기존 종류 보강 → 36 종] - 2026-11-16
 
 ### Added

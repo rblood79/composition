@@ -36,6 +36,16 @@ describe("ADR-306 G0 — ztd 0.5.0 분류 census", () => {
     },
   );
 
+  it("Phase 6 뒤 결정 대기 항목 0 — 공통 상호작용이 전부 채택 · 대응으로 닫혔다", () => {
+    const open: string[] = [];
+    for (const [key, c] of Object.entries(ZTD_COMMON_CLASS))
+      if (c.kind === "decision") open.push(`common.${key}`);
+    for (const [type, cls] of Object.entries(ZTD_CLASS))
+      for (const [key, c] of Object.entries(cls.options))
+        if (c.kind === "decision") open.push(`${type}.${key}`);
+    expect(open).toEqual([]);
+  });
+
   it("encoding 채널은 전부 채택이다 (Decision 8)", () => {
     for (const [type, cls] of Object.entries(ZTD_CLASS))
       for (const [key, c] of Object.entries(cls.channels))

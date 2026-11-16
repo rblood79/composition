@@ -55,6 +55,11 @@ export interface SeriesGrid {
   positionRanges?: ReadonlyArray<readonly [number, number]>;
   /** 시간 파싱에 실패해 제외한 행 수 (input 격자에만) — 진단 `dimension.parse.failed` 의 값. */
   parseFailures?: number;
+  /**
+   * ADR-306 Phase 6 — 강조 밖 범주 (`highlight` 범주 단위 — pie · 시리즈 1 bar · radial). 범주색 · 시리즈색
+   * 자리가 neutral (`CHART_OTHERS_COLOR_INDEX`) 로 칠한다 (`categoryColorIndex`).
+   */
+  dimmed?: ReadonlySet<number>;
 }
 
 function readField(row: ChartRow, key: string): unknown {
@@ -367,6 +372,17 @@ function applySeriesConfig(
   }
   for (const s of series) if (!placed.has(s)) ordered.push(s);
   return ordered;
+}
+
+/**
+ * ADR-306 Phase 6 — 행의 범주 이름 (`buildSeriesGrid` 와 같은 읽기). 범위 선택의 확대가 고른 범주의 행만
+ * 남길 때 쓴다.
+ */
+export function rowCategoryLabel(
+  row: ChartRow,
+  props: Pick<ChartProps, "dimension">,
+): string {
+  return toLabel(readField(row, props.dimension));
 }
 
 /** 시리즈 표시명 — 설정 label (빈 문자열 포함) > 원본 키 > 기본 이름. */

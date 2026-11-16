@@ -7,6 +7,7 @@
  * 편차: ztd 의 기준선 `side` (below) · 이름은 받지 않는다 — 기준값을 넘는 쪽이 나쁜 쪽이다 (`threshold`
  * 숫자 하나, pareto 의 같은 prop). 분위 · 기준 이름표의 바탕 (panel 색) 은 그리지 않는다.
  */
+import { highlightIndex, highlightSet } from "../../highlight";
 import { circlePath } from "../../marks/dots";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
@@ -414,11 +415,31 @@ export function histogramScene(ctx: CategoryContext) {
   }
 
   // 강조: 그룹이 있으면 첫 그룹 (윤곽), 없으면 기준을 넘은 구간 · 기준이 없으면 가장 높은 구간.
-  const hiGroup = grouped ? 0 : -1;
+  //   ADR-306 Phase 6 — `highlight` 가 그룹 (이름 · 표본 수, ztd 기본 first) 이나 구간 (구간 글자 · 개수,
+  //   ztd 기본 max) 을 고른다. 기준 (`threshold`) 이 있으면 구간 강조는 기준이 정한다 (ztd 와 같다).
+  const hiGroup = grouped
+    ? highlightIndex(
+        props.highlight,
+        samples.map((s) => s.name),
+        samples.map((s) => s.n),
+        "first",
+        0,
+      )
+    : -1;
   const counts0 = bins.map((b) => b.counts[0]);
   const maxCount = Math.max(0, ...bins.flatMap((b) => b.counts));
-  const hiBins = new Set<number>();
-  if (!grouped && th === null && maxCount > 0)
+  // 지정한 강조는 기준 (`threshold`) 의 넘는 쪽 칠보다 앞선다 (기준선은 그대로) — ztd 는 기준이 있으면
+  //   강조를 무시하지만, 그러면 패널의 칸이 아무 일도 하지 않는다.
+  const picked = !grouped
+    ? highlightSet(
+        props.highlight,
+        bins.map((b) => `${fx(b.x0)} – ${fx(b.x1)}`),
+        counts0,
+        "max",
+      )
+    : null;
+  const hiBins = picked ?? new Set<number>();
+  if (!picked && !grouped && th === null && maxCount > 0)
     hiBins.add(counts0.indexOf(maxCount));
   const fillK = grouped && hiGroup === 0 ? 1 : 0;
   const lineK = grouped ? 1 - fillK : 0;
@@ -489,7 +510,8 @@ export function histogramScene(ctx: CategoryContext) {
   const tpx = th !== null && inDomain(th) ? X(th) : null;
   const ex = [X(bins[0].x0), ...bins.map((b) => X(b.x1))];
   const isHot = (i: number) =>
-    hiBins.has(i) || (th !== null && pastShare(bins[i], th, log) >= 0.5);
+    hiBins.has(i) ||
+    (!picked && th !== null && pastShare(bins[i], th, log) >= 0.5);
 
   const marks: Mark[] = [];
   const axes: AxisScene[] = [];
@@ -506,7 +528,7 @@ export function histogramScene(ctx: CategoryContext) {
       if (w <= 0 || cnt <= 0) return;
       const at = yTop(cnt, y(cnt));
       const r = Math.min(2, w / 4);
-      const sh = th !== null && !grouped ? pastShare(b, th, log) : 0;
+      const sh = th !== null && !grouped && !picked ? pastShare(b, th, log) : 0;
       const bbox = (x: number, ww: number) => ({
         x: r2(x),
         y: r2(at),

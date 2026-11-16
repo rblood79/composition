@@ -9,7 +9,7 @@
  * 그린 막대에 비중을 또 적으면 사용자가 준 숫자가 화면에서 사라진다.
  */
 import { approxTextWidth, r2 } from "../scales";
-import { categoryColorIndex } from "../budget";
+import { categoryColorIndex, CHART_OTHERS_COLOR_INDEX } from "../budget";
 import type { LinearScale, BandScale } from "../scales";
 import { stackBands } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
@@ -193,8 +193,10 @@ export function buildBarMarks(input: BarMarkInput): BarMarks {
     // 범주별 색은 시리즈 인덱스 대신 범주 인덱스를 팔레트에 넣는다 (shadcn mixed).
     const colorOf = (seriesIndex: number): number =>
       colorBy === "category"
-        ? categoryColorIndex(ci, palette, grid.othersIndex)
-        : seriesIndex;
+        ? categoryColorIndex(ci, palette, grid.othersIndex, grid.dimmed)
+        : grid.dimmed?.has(ci)
+          ? CHART_OTHERS_COLOR_INDEX
+          : seriesIndex;
 
     if (stackMode !== "none") {
       for (const { series, from, to } of stackBands(grid, ci, stackMode)) {

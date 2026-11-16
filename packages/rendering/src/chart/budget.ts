@@ -674,9 +674,12 @@ export function categoryColorIndex(
   ci: number,
   palette: number,
   othersIndex: number | null | undefined,
+  /** ADR-306 Phase 6 — 강조 밖 범주 (`SeriesGrid.dimmed`) 도 neutral. */
+  dimmed?: ReadonlySet<number>,
 ): number {
   if (othersIndex !== null && othersIndex !== undefined && ci === othersIndex)
     return CHART_OTHERS_COLOR_INDEX;
+  if (dimmed?.has(ci)) return CHART_OTHERS_COLOR_INDEX;
   return ci % Math.max(1, palette);
 }
 

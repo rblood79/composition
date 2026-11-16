@@ -525,9 +525,66 @@ export interface ChartProps {
    * 값 축 기준선 (`referenceLines` 의 첫 값) 과 x 평균 — ztd 의 `refLines.x` 에 해당하는 x 기준선이 없어서다.
    */
   quadrants?: readonly string[];
+
+  // ── ADR-306 Phase 6 — 공통 상호작용 (사용자 결정 1, breakdown §8). 전부 선택적이고 비면 지금 그림 그대로.
+  /**
+   * 강조 대상 — 모드 (`max` · `min` · `first` · `last` · `none`) 또는 항목 이름, 여럿이면 합친다 (ztd
+   * `highlight` — 판별 함수 · 인덱스는 받지 않는다). 비면 종류의 기본 강조 (family 는 지금과 같고, 시리즈
+   * 종류는 강조 없음 — 팔레트 그대로). 시리즈 종류에 주면 강조 밖 시리즈 · 항목은 neutral 색.
+   */
+  highlight?: readonly string[];
+  /** 주석 (line · area · bar · candlestick — 최대 `CHART_ANNOTATIONS_MAX`). 가로 기준선은 `referenceLines`. */
+  annotations?: readonly ChartAnnotation[];
+  /** 강조 시리즈 (비면 첫 시리즈) 를 `baseline` 위아래 색으로 (line · area, 누적이 아닐 때) — 아래는 neutral. */
+  signColors?: boolean;
+  /** `signColors` 의 기준값 (비면 0). */
+  baseline?: number;
+  /** 범위 띠를 그리기 시작하는 곳 — `forecast` 면 예측 주석의 시작 x 부터 (없으면 띠 없음). 비면 처음부터. */
+  bandFrom?: ChartBandFrom;
+  /** 범위 띠 밖으로 나간 점을 표시한다 (line · area). */
+  outside?: boolean;
+  /**
+   * 범위 선택 (line · area · bar · candlestick) — `select` 는 끌어서 고른 구간의 등락 · 최고 · 최저,
+   * `zoom` 은 그 구간으로 확대. Preview · Publish 의 실행 상태이고 저장하지 않는다 (Canvas 는 그대로).
+   */
+  brush?: ChartBrush;
+  /** 같은 이름의 차트끼리 가리킨 x 를 함께 보인다 (line · area · bar · candlestick, Preview · Publish). */
+  syncId?: string;
 }
 
 export type ChartFit = "none" | "linear";
+
+/** ADR-306 Phase 6 — 주석 종류 (ztd `Annotation.type`, 가로 기준선 `line` 은 `referenceLines` 가 맡는다). */
+export type ChartAnnotationType =
+  "band" | "event" | "forecast" | "trend" | "weekends";
+export const CHART_ANNOTATION_TYPES: readonly ChartAnnotationType[] = [
+  "band",
+  "event",
+  "forecast",
+  "trend",
+  "weekends",
+];
+export const CHART_ANNOTATIONS_MAX = 8;
+
+/**
+ * 주석 한 칸. ztd 의 `x: [a, b]` · `y: [lo, hi]` · `from` 을 평평한 칸으로 (패널 목록 편집):
+ * - `band`: `y` ~ `yEnd` (값 구간) 또는 `x` ~ `xEnd` (범주 · 날짜 구간).
+ * - `event`: `x` 의 세로 표시 + 이름.
+ * - `forecast`: `x` 부터 예측 (선이 파선, 구간 음영).
+ * - `trend`: 강조 시리즈의 최소제곱 직선.
+ * - `weekends`: 시간 축 (`dimensionScale: time`) 의 주말 음영.
+ */
+export interface ChartAnnotation {
+  type: ChartAnnotationType;
+  x?: string;
+  xEnd?: string;
+  y?: number | string;
+  yEnd?: number | string;
+  label?: string;
+}
+
+export type ChartBandFrom = "start" | "forecast";
+export type ChartBrush = "none" | "select" | "zoom";
 
 export type ChartRateBase = "previous" | "first";
 export type ChartStreamOffset = "wiggle" | "silhouette";
@@ -711,6 +768,15 @@ export interface PathMark {
   fillPaint?: ChartPaintRole;
   /** ADR-306 — 역할 색으로 긋는다 (`strokeSeries` 대신, 두께는 `strokeWidth` · 미지정 metrics). */
   strokePaint?: ChartPaintRole;
+  /** ADR-306 Phase 6 — 선 파선 (Skia `strokeDasharray` · DOM `stroke-dasharray` 같은 배열). */
+  dash?: readonly number[];
+  /** ADR-306 Phase 6 — 선 불투명도 (미지정 1). */
+  strokeOpacity?: number;
+  /**
+   * ADR-306 Phase 6 — 이 상자 안만 그린다 (손익 색의 기준선 위 · 아래, 예측 구간의 앞 · 뒤 — ztd 의
+   * clipPath). Skia 는 `clipRect`, DOM 은 상자 크기의 중첩 `<svg>` (id 없이 자른다).
+   */
+  clip?: Rect;
 }
 
 export interface TextMark {
@@ -743,6 +809,8 @@ export interface LineMark {
   paint?: ChartPaintRole;
   /** ADR-306 — 선 두께 (미지정 1). */
   width?: number;
+  /** ADR-306 Phase 6 — 선 불투명도 (미지정 1). */
+  opacity?: number;
 }
 
 export type Mark = RectMark | PathMark | TextMark | LineMark;
@@ -885,6 +953,12 @@ export interface ChartTarget {
     a1: number;
   };
   rows: readonly number[];
+  /**
+   * ADR-306 Phase 6 — 범주 축 종류 (candlestick) 의 범주 이름 · 대표 값 (종가). DOM 의 범위 선택 · 동기화가
+   * 읽는다 (Canvas 는 targets 를 읽지 않는다).
+   */
+  key?: string;
+  value?: number;
   /** 툴팁 제목 + 줄 (`label: text`). */
   title: string;
   entries: readonly {

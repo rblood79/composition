@@ -5,6 +5,7 @@
  * Preview/Publish(SVG) 가 이 하나를 호출하고, 좌표를 복사만 한다 — "CSS 가 기준"
  * 도 "Skia 가 기준" 도 아니고 이 함수가 기준이다 (ssot-hierarchy §1 D3 대칭).
  */
+import { buildSeriesDecor } from "./marks/seriesDecor";
 import { buildAxes } from "./axes";
 import { parsePadding4Way } from "../primitives/cssValueParser";
 import { buildPolarAxes } from "./polarAxes";
@@ -484,6 +485,8 @@ export function computeChartScene(
 
   let marks: Mark[];
   let labels: Mark[] = [];
+  // ADR-306 Phase 6 — line · area 의 시리즈 path (나눠 칠할 때 바꿀 자리).
+  const seriesPaths = new Set<Mark>();
   // R7 — 분기를 `else` 로 닫으면 신규 chartType 이 조용히 line 으로 그려진다.
   //   `assertNever` 가 그 자리를 컴파일 오류로 바꾼다 (유니온 확장 자체는 컴파일
   //   신호를 안 남기므로 — breakdown F15 — 방어선은 여기 하나뿐이다).
@@ -545,6 +548,7 @@ export function computeChartScene(
       connectNulls: props.connectNulls === true,
     });
     marks = [...area.marks];
+    area.marks.forEach((m) => seriesPaths.add(m));
     labels = area.labels;
     if (props.showDots)
       area.upper.forEach((points, si) => pushDots(points, si));
@@ -563,6 +567,7 @@ export function computeChartScene(
       connectNulls: props.connectNulls === true,
     });
     marks = [...line.marks];
+    line.marks.forEach((m) => seriesPaths.add(m));
     labels = line.labels;
     if (props.showDots) {
       for (let si = 0; si < grid.series.length; si++) {
@@ -576,6 +581,26 @@ export function computeChartScene(
     }
   } else {
     return assertNever(cartesianType);
+  }
+
+  // ADR-306 Phase 6 — 주석 · 손익 색 · 예측 파선 (line · area · bar). DOM 도 같은 builder 를 부른다.
+  //   나눠 칠한 선 · 면이 있으면 시리즈 path 를 그것으로 바꾼다 (점 · 값 레이블은 그대로).
+  const decor = buildSeriesDecor({
+    props,
+    grid,
+    band,
+    value,
+    plot,
+    stackMode,
+    timeScale: timeAxis?.scale ?? null,
+    fontSize,
+    strokeWidth: metrics.strokeWidth,
+  });
+  if (decor.series) {
+    const at = marks.findIndex((m) => seriesPaths.has(m));
+    const rest = marks.filter((m) => !seriesPaths.has(m));
+    rest.splice(Math.max(0, at), 0, ...decor.series);
+    marks = rest;
   }
 
   // ADR-306 Phase 5 — 보강 마크 (범위 띠 · 끝 이름표 · 산점도 크기 · 이름 · 추세선 · 사분면). DOM 도 같은
@@ -597,6 +622,9 @@ export function computeChartScene(
 
   // 값 레이블은 마크 뒤에 — 겹치는 자리에서 글자가 위에 온다.
   if (labels.length > 0) marks = [...marks, ...labels];
+  // ADR-306 Phase 6 — 주석: 아래는 시리즈 · 띠 앞 (격자 다음), 위는 값 레이블 다음.
+  if (decor.under.length > 0 || decor.over.length > 0)
+    marks = [...decor.under, ...marks, ...decor.over];
   // ADR-217 기준선 — `back` 은 데이터 마크 앞 (격자 뒤), `front` 는 값 라벨 뒤 · 축선 앞.
   //   미설정이면 두 묶음이 비어 marks 는 그대로다 (HC1 byte 동일).
   const reference = buildReferenceLineMarks({

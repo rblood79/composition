@@ -8,6 +8,12 @@
  * 편차: ztd 의 brush (구간 선택) · 주석 · 마지막 값 표는 Phase 6 (공통 상호작용) 몫이다. 가격 축 범위
  * 고정은 `valueMin` · `valueMax` (ztd `yDomain`).
  */
+import {
+  annotationValues,
+  buildAnnotationMarks,
+  resolveAnnotations,
+} from "../../marks/annotations";
+import { firstHighlight, highlightSet } from "../../highlight";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
   AxisScene,
@@ -203,6 +209,12 @@ export function candlestickScene(ctx: CategoryContext) {
     hi = Math.max(hi, q.h);
     if (Number.isFinite(q.v)) vmax = Math.max(vmax, q.v);
   }
+  // ADR-306 Phase 6 — 주석 (값 구간은 가격 축 범위에 넣는다 — 시리즈 종류와 같은 규칙).
+  const notes = resolveAnnotations(props.annotations);
+  for (const v of annotationValues(notes)) {
+    lo = Math.min(lo, v);
+    hi = Math.max(hi, v);
+  }
   const top = outer.y + 10;
   const bottomRoom = fontSize + 10;
   const base = outer.y + outer.h - bottomRoom;
@@ -332,6 +344,8 @@ export function candlestickScene(ctx: CategoryContext) {
         : null;
     targets.push({
       id: `candle-${k}`,
+      key: q.label,
+      value: q.c,
       x: r2(xx),
       y: r2(y(q.h)),
       rect: {
@@ -420,5 +434,57 @@ export function candlestickScene(ctx: CategoryContext) {
     return t.x - half >= outer.x && t.x + half <= outer.x + outer.w;
   });
   axes.push(dateAxis);
+  // 주석 — 봉 칸 (범주 이름 = 봉 이름, 칸 절반 = step / 2, 예측은 칸 왼쪽 끝부터 — ztd edge). 주말 음영은
+  //   시간 축이 아니라 그리지 않는다 (봉 x 는 범주 칸).
+  const annotated = buildAnnotationMarks({
+    list: notes,
+    axis: {
+      at: (v) => {
+        const k = cs.findIndex((q) => q.label === v);
+        return k < 0 ? null : cx(k);
+      },
+      half: step / 2,
+      lo: x0,
+      hi: x1,
+    },
+    value: y,
+    plot: { x: x0, y: top, w: x1 - x0, h: priceBottom - top },
+    orientation: "vertical",
+    fontSize,
+    trendPoints: cs.map((q, k) => ({ along: cx(k), across: y(q.c) })),
+    edge: true,
+  });
+  marks.unshift(...annotated.under);
+  marks.push(...annotated.over);
+  // ADR-306 Phase 6 — `highlight` (ztd candlestick 기본 last): 고른 봉의 종가 파선 · 가격 글자 (오른쪽 끝).
+  const markK = firstHighlight(
+    highlightSet(
+      props.highlight,
+      cs.map((q) => q.label),
+      cs.map((q) => q.c),
+      "last",
+    ) ?? new Set<number>(),
+  );
+  if (markK >= 0 && Number.isFinite(cs[markK].c)) {
+    const yc = r2(y(cs[markK].c));
+    marks.push({
+      kind: "line",
+      x1: r2(cx(markK)),
+      y1: yc,
+      x2: r2(x1),
+      y2: yc,
+      role: "reference",
+      dash: [3, 3],
+    });
+    texts.push({
+      kind: "text",
+      x: r2(x1 + 4),
+      y: yc,
+      text: fx(cs[markK].c),
+      anchor: "start",
+      baseline: "middle",
+      role: "reference",
+    });
+  }
   return sceneOf(ctx, { marks: [...marks, ...texts], axes, targets });
 }

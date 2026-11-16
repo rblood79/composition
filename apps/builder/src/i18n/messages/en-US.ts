@@ -194,6 +194,22 @@ const catalog: TranslationKeys = {
     referenceOnlyCartesian:
       "Reference lines are for bar, line and area charts only.",
     referenceMaxHint: "Up to {max} reference lines.",
+    // ADR-306 Phase 6 — annotations
+    annotations: "Annotations",
+    annotationType: "Type",
+    annotationBand: "Band",
+    annotationEvent: "Event",
+    annotationForecast: "Forecast",
+    annotationTrend: "Trend",
+    annotationWeekends: "Weekends",
+    annotationX: "X",
+    annotationXEnd: "X end",
+    annotationY: "Value",
+    annotationYEnd: "Value end",
+    annotationLabel: "Label",
+    addAnnotation: "Add annotation",
+    removeAnnotation: "Remove annotation",
+    annotationMaxHint: "Up to {max} annotations.",
   },
   itemsManager: {
     total: "Total: {count}",
@@ -3462,6 +3478,8 @@ const formattedMessages: Record<
     `${String(args?.count ?? 0)} row(s) skipped — not readable as dates.`,
   "chart.referenceMaxHint": (args) =>
     `Up to ${String(args?.max ?? 4)} reference lines.`,
+  "chart.annotationMaxHint": (args) =>
+    `Up to ${String(args?.max ?? 8)} annotations.`,
   "itemsManager.total": (args) => `Total: ${String(args?.count ?? 0)}`,
   "navigator.layersDragCount": (args) => `${String(args?.count ?? 0)} layers`,
   "properties.usingLayout": (args) =>
