@@ -3029,10 +3029,7 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
                 strokeWidth: mark.strokeWidth ?? metrics.strokeWidth,
               }
             : {}),
-          // ADR-306 Phase 6 — 선 불투명도 · 파선 · 자르기 상자 (DOM `renderMark` 와 같은 값).
-          ...(mark.strokeOpacity !== undefined
-            ? { strokeAlpha: mark.strokeOpacity }
-            : {}),
+          // ADR-306 Phase 6 — 파선 · 자르기 상자 (DOM `renderMark` 와 같은 값).
           ...(mark.dash ? { strokeDasharray: [...mark.dash] } : {}),
           ...(mark.clip
             ? {

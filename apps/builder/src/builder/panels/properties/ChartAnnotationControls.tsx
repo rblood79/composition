@@ -5,6 +5,8 @@ import {
   CHART_ANNOTATIONS_MAX,
   CHART_DEFAULT_PROPS,
   chartTypesReading,
+  isChartAnnotation,
+  toFiniteNumber,
 } from "@composition/rendering";
 import type {
   ChartAnnotation,
@@ -21,21 +23,13 @@ import { useI18n } from "@/i18n";
 
 const AddIcon = ACTION_ICONS.add;
 
-/** 저장 배열을 읽는다 — 종류가 없는 칸은 버린다 (scene 의 `resolveAnnotations` 와 같은 규칙). */
+/** 저장 배열을 읽는다 — 종류가 없는 칸은 버린다 (scene 과 같은 판정 `isChartAnnotation`, 상한은 추가 버튼이). */
 function readAnnotations(raw: unknown): ChartAnnotation[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (item): item is ChartAnnotation =>
-      item !== null &&
-      typeof item === "object" &&
-      CHART_ANNOTATION_TYPES.includes((item as ChartAnnotation).type),
-  );
+  return Array.isArray(raw) ? raw.filter(isChartAnnotation) : [];
 }
 
-const toNumber = (v: unknown): number | undefined => {
-  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
-  return Number.isFinite(n) ? n : undefined;
-};
+const toNumber = (v: unknown): number | undefined =>
+  toFiniteNumber(v) ?? undefined;
 
 /**
  * ADR-306 Phase 6 — 주석 (`annotations[]`) 편집. 자리는 Content 의 기준선 편집 아래. 행 하나 = 주석 하나

@@ -139,28 +139,39 @@ export function styleSeriesMarks(
           });
         }
   }
-  const under: LineMark[] = sign
-    ? [
-        horizontal
-          ? {
-              kind: "line",
-              x1: r2(cb),
-              y1: plot.y,
-              x2: r2(cb),
-              y2: plot.y + plot.h,
-              role: "axis",
-            }
-          : {
-              kind: "line",
-              x1: plot.x,
-              y1: r2(cb),
-              x2: plot.x + plot.w,
-              y2: r2(cb),
-              role: "axis",
-            },
-      ]
-    : [];
+  const under: LineMark[] = sign ? [plotLine(plot, horizontal, r2(cb))] : [];
   return { marks: out.map(clean), under };
+}
+
+/**
+ * 그림 상자를 가로지르는 선 — `vertical` 이면 x = `at` 의 세로선, 아니면 y = `at` 의 가로선 (역할 axis).
+ * 손익 기준선 · 동기화 안내선 · 범위 선택 끝선이 같이 쓴다.
+ */
+export function plotLine(
+  plot: Rect,
+  vertical: boolean,
+  at: number,
+  extra?: Partial<Omit<LineMark, "kind" | "x1" | "y1" | "x2" | "y2">>,
+): LineMark {
+  return vertical
+    ? {
+        kind: "line",
+        x1: at,
+        y1: plot.y,
+        x2: at,
+        y2: plot.y + plot.h,
+        role: "axis",
+        ...extra,
+      }
+    : {
+        kind: "line",
+        x1: plot.x,
+        y1: at,
+        x2: plot.x + plot.w,
+        y2: at,
+        role: "axis",
+        ...extra,
+      };
 }
 
 function withoutStroke(mark: PathMark): PathMark {

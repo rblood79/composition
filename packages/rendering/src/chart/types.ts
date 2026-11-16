@@ -770,8 +770,6 @@ export interface PathMark {
   strokePaint?: ChartPaintRole;
   /** ADR-306 Phase 6 — 선 파선 (Skia `strokeDasharray` · DOM `stroke-dasharray` 같은 배열). */
   dash?: readonly number[];
-  /** ADR-306 Phase 6 — 선 불투명도 (미지정 1). */
-  strokeOpacity?: number;
   /**
    * ADR-306 Phase 6 — 이 상자 안만 그린다 (손익 색의 기준선 위 · 아래, 예측 구간의 앞 · 뒤 — ztd 의
    * clipPath). Skia 는 `clipRect`, DOM 은 상자 크기의 중첩 `<svg>` (id 없이 자른다).

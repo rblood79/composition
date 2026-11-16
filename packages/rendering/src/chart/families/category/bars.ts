@@ -8,8 +8,12 @@
  * positive / negative, 항목마다 색이 필요한 종류 (segmented · waffle) 는 시리즈 팔레트 (`seriesIndex`).
  */
 import { circlePath } from "../../marks/dots";
-import { firstHighlight, highlightIndex, highlightSet } from "../../highlight";
-import { CHART_OTHERS_COLOR_INDEX } from "../../budget";
+import {
+  firstHighlight,
+  highlightColor,
+  highlightIndex,
+  highlightSet,
+} from "../../highlight";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
   AxisScene,
@@ -82,7 +86,8 @@ export function lollipopModel(ctx: CategoryContext): LollipopModel | null {
   const values = labelValues(ctx, false);
   if (values === null) return null;
   const items = sortByValue(values, sortOf(ctx.props, "descending"));
-  const [mn, mx] = finiteExtent(items.map((r) => r.value));
+  const nums = items.map((r) => r.value);
+  const [mn, mx] = finiteExtent(nums);
   return {
     items,
     domain: fitDomain(mn, mx, 4),
@@ -90,9 +95,8 @@ export function lollipopModel(ctx: CategoryContext): LollipopModel | null {
     hi: highlightIndex(
       ctx.props.highlight,
       items.map((r) => r.label),
-      items.map((r) => r.value),
-      "max",
-      argMax(items.map((r) => r.value)),
+      nums,
+      argMax(nums),
     ),
   };
 }
@@ -334,13 +338,12 @@ export function segmentedModel(
     ctx.props.highlight,
     ordered.map((r) => r.label),
     ordered.map((r) => r.value),
-    "max",
   );
   return {
     parts: ordered.map((r, k) => ({
       ...r,
       share: total > 0 ? r.value / total : 0,
-      color: picked && !picked.has(k) ? CHART_OTHERS_COLOR_INDEX : k % n,
+      color: highlightColor(picked, k, k % n),
     })),
     total,
   };
@@ -504,13 +507,12 @@ export function waffleModel(ctx: CategoryContext): WaffleModel | null {
     ctx.props.highlight,
     values.map((r) => r.label),
     values.map((r) => r.value),
-    "first",
   );
   return {
     hi: picked ? firstHighlight(picked) : 0,
     items: values.map((r, k) => ({
       ...r,
-      color: picked && !picked.has(k) ? CHART_OTHERS_COLOR_INDEX : k % n,
+      color: highlightColor(picked, k, k % n),
     })),
     counts: allocateCells(
       values.map((r) => r.value),
@@ -704,7 +706,6 @@ export function funnelModel(ctx: CategoryContext): FunnelModel | null {
       ctx.props.highlight,
       stages.map((s) => s.label),
       stages.map((s) => s.value),
-      "max",
       argMin(stages.map((s) => (s.rate === null ? NaN : s.rate))),
     ),
     base,
@@ -900,7 +901,6 @@ export function paretoModel(
     ctx.props.highlight,
     bars.map((b) => b.label),
     bars.map((b) => b.value),
-    "max",
   );
   if (picked) bars.forEach((b, k) => (b.hi = picked.has(k)));
   return { bars, threshold };
@@ -1146,7 +1146,6 @@ export function waterfallScene(ctx: CategoryContext) {
     props.highlight,
     steps.map((s) => s.label),
     steps.map((s) => (s.total ? -Infinity : s.value)),
-    "max",
   );
   steps.forEach((s, k) => {
     const bx = band.at(k);

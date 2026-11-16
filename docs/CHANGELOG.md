@@ -20,8 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sign Colors · Baseline · Band From · Outside Points** (ADR-306 Phase 6): Line · Area 의 강조 시리즈를 기준값 위 · 아래 색으로, 범위 띠를 예측 시작부터, 띠 밖 점 표시. 기준값은 Sign Colors 를 켰을 때, Band From · Outside Points 는 띠 아래 경계 필드가 있을 때 보인다.
 - **Range Select · Sync Group** (ADR-306 Phase 6, Preview · Publish): 그림을 끌어 구간을 고르면 등락 · 최고 · 최저를 보여 주거나 (Select) 그 구간으로 확대하고 「Show all」 로 돌아온다 (Zoom — Shift + 화살표 · Enter · Esc 도). 같은 Sync Group 의 차트끼리 가리킨 범주에 안내선과 값을 보인다. 저장하지 않는 보기 상태이고 Canvas 는 그대로다.
 
+### Fixed
+
+- **주석 · 예측 시작 · 띠 시작의 날짜를 격자와 같은 locale 로 읽는다** (ADR-306 Phase 6 정리):
+  - **Why**: 주석 쪽이 `dimensionFormat` 을 en-US 로만 읽어, 값 locale ko-KR 에 월 이름 (`%b`) 형식이면 격자는 읽는 날짜를 주석은 읽지 못해 조용히 사라졌다.
+  - 수정: 격자와 주석이 같은 파서 `timeLabelParser` 를 쓴다. 위치: `packages/rendering/src/chart/series.ts`
+- **Candlestick 범위 선택의 High · Low 글자가 숫자 형식 (통화 · 퍼센트) 을 따른다** (ADR-306 Phase 6 정리):
+  - **Why**: family host 가 `toLocaleString()` 으로 따로 형식을 만들어 축 · 가격 글자와 달랐다. 위치: `packages/shared/src/components/chart/FamilySceneHost.tsx`
+
 ### Changed
 
+- **Chart 상호작용 코드 정리** (ADR-306 Phase 6, `/simplify`): 확대 상태 · 「Show all」 · 범위 선택 · 동기화 판정을 두 host (Recharts · family) 가 같은 hook 으로 쓰고, 막대 · radial 의 색 index 를 Canvas 와 DOM 이 같은 함수 (`markColorIndex`) 로 고른다. 선 · 면을 나눠 칠할 때 Canvas 는 이미 만든 path 를 다시 쓴다. 범위 선택 · 동기화를 쓰지 않는 차트는 범주 좌표를 계산하지 않는다. 번들 Builder −954 · Preview −1,067 B.
 - **번들 상한 — Builder ≤ 1,435,351 B** (ADR-201 재승인, ADR-306 사용자 결정 2): Phase 6 실측 Builder +5,562 · Preview +4,625 B gzip (시리즈 차트의 주석 · 강조 · 선 나누기는 Canvas 첫 화면 경로, 범위 선택 · 동기화는 Preview).
 
 ## [ADR-306 Phase 5 — Chart 종류 4 (network family) · 기존 종류 보강 → 36 종] - 2026-11-16

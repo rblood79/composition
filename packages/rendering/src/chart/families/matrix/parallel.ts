@@ -92,7 +92,6 @@ export function parallelScene(ctx: CategoryContext) {
     props.highlight,
     lines.map((l) => l.label),
     lines.map((l) => l.vals[0] ?? NaN),
-    "first",
     0,
   );
   const hiLine = hiK >= 0 ? lines[hiK] : undefined;

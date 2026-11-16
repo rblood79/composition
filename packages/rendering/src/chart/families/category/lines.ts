@@ -4,12 +4,11 @@
  * stream · bump 는 시리즈 격자 (`buildSeriesGrid` — 같은 (범주, 시리즈) 는 합산) 를 지난다
  * (breakdown §4.2 — category family 만 격자를 쓴다).
  */
-import { highlightIndex, highlightSet } from "../../highlight";
-import { CHART_OTHERS_COLOR_INDEX } from "../../budget";
+import { highlightColor, highlightIndex, highlightSet } from "../../highlight";
 import { curveCommands } from "../../curves";
 import { circlePath } from "../../marks/dots";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
-import { buildSeriesGrid, seriesLabel } from "../../series";
+import { buildSeriesGrid, seriesLabel, seriesTotals } from "../../series";
 import type {
   AxisScene,
   ChartCurve,
@@ -79,7 +78,6 @@ export function sparklineModel(ctx: CategoryContext): SparklineModel | null {
         dimension === null ? String(i + 1) : readLabel(row, dimension),
       ),
       values,
-      "last",
       last,
     ),
   };
@@ -272,22 +270,11 @@ export function seriesTable(
   const nk = grid.categories.length;
   const names = grid.series.map((s) => seriesLabel(s, "Value"));
   // ADR-306 Phase 6 — `highlight` 를 주면 강조 밖 시리즈는 neutral (others 색 index — stream · skyline 뒷 계열).
-  const picked = highlightSet(
-    props.highlight,
-    names,
-    grid.series.map((s) => {
-      let t = 0;
-      for (const v of s.values.values()) if (Number.isFinite(v)) t += v;
-      return t;
-    }),
-    "max",
-  );
+  const picked = highlightSet(props.highlight, names, seriesTotals(grid));
   return {
     categories: grid.categories,
     names,
-    colors: grid.series.map((s, i) =>
-      picked && !picked.has(i) ? CHART_OTHERS_COLOR_INDEX : s.seriesIndex,
-    ),
+    colors: grid.series.map((s, i) => highlightColor(picked, i, s.seriesIndex)),
     values: grid.series.map((s) =>
       Array.from({ length: nk }, (_, k) => s.values.get(k) ?? NaN),
     ),
@@ -461,7 +448,6 @@ export function bumpModel(ctx: CategoryContext): BumpModel | null {
     ctx.props.highlight,
     table.names,
     improve,
-    "max",
     argMax(improve),
   );
   return {
@@ -672,6 +658,7 @@ export function slopeModel(ctx: CategoryContext): SlopeModel | null {
   if (Array.isArray(labels) && labels.length >= 2)
     periods = [String(labels[0]), String(labels[1])];
   const [mn, mx] = finiteExtent(items.flatMap((it) => [it.a, it.b]));
+  const diffs = items.map((it) => it.b - it.a);
   return {
     items,
     periods,
@@ -679,9 +666,8 @@ export function slopeModel(ctx: CategoryContext): SlopeModel | null {
     hi: highlightIndex(
       ctx.props.highlight,
       items.map((it) => it.label),
-      items.map((it) => it.b - it.a),
-      "max",
-      argMax(items.map((it) => it.b - it.a)),
+      diffs,
+      argMax(diffs),
     ),
   };
 }

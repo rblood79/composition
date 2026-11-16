@@ -117,6 +117,7 @@ export function boxModel(ctx: CategoryContext): BoxModel | null {
     ? [Math.min(wa, wb), Math.max(wa, wb)]
     : null;
   const stats = groups.map((g) => boxStats(g.values, whiskers ?? undefined));
+  const medians = stats.map((s) => s.median);
   const [mn, mx] = finiteExtent(groups.flatMap((g) => g.values));
   const domain = fitDomain(mn, mx, 4, {
     zero: props.includeZero === true,
@@ -147,9 +148,8 @@ export function boxModel(ctx: CategoryContext): BoxModel | null {
     hi: highlightIndex(
       props.highlight,
       groups.map((g) => g.name),
-      stats.map((s) => s.median),
-      "max",
-      argMaxOf(stats.map((s) => s.median)),
+      medians,
+      argMaxOf(medians),
     ),
     whiskers,
   };
@@ -369,7 +369,6 @@ export function beeswarmModel(ctx: CategoryContext): BeeswarmModel | null {
       props.highlight,
       groups.map((g) => g.name),
       medians,
-      "max",
       argMaxOf(medians),
     );
   else if (groups[0]) {
@@ -378,7 +377,6 @@ export function beeswarmModel(ctx: CategoryContext): BeeswarmModel | null {
       props.highlight,
       g0.rows.map((i) => labels.get(i) ?? ""),
       g0.values,
-      "max",
       argMaxOf(g0.values),
     );
     hi = k >= 0 ? (g0.rows[k] ?? -1) : -1;
@@ -590,6 +588,7 @@ export function ridgelineModel(ctx: CategoryContext): RidgelineModel | null {
     ridges = [...ridges].sort((a, b) => a.median - b.median);
   else if (props.sort === "descending")
     ridges = [...ridges].sort((a, b) => b.median - a.median);
+  const medians = ridges.map((r) => r.median);
   return {
     ridges,
     domain,
@@ -601,9 +600,8 @@ export function ridgelineModel(ctx: CategoryContext): RidgelineModel | null {
     hi: highlightIndex(
       props.highlight,
       ridges.map((r) => r.name),
-      ridges.map((r) => r.median),
-      "max",
-      argMaxOf(ridges.map((r) => r.median)),
+      medians,
+      argMaxOf(medians),
     ),
   };
 }

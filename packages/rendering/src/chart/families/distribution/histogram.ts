@@ -422,7 +422,6 @@ export function histogramScene(ctx: CategoryContext) {
         props.highlight,
         samples.map((s) => s.name),
         samples.map((s) => s.n),
-        "first",
         0,
       )
     : -1;
@@ -435,7 +434,6 @@ export function histogramScene(ctx: CategoryContext) {
         props.highlight,
         bins.map((b) => `${fx(b.x0)} – ${fx(b.x1)}`),
         counts0,
-        "max",
       )
     : null;
   const hiBins = picked ?? new Set<number>();

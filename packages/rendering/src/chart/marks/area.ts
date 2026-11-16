@@ -47,6 +47,8 @@ export interface AreaMarkInput {
 
 export interface AreaMarks {
   marks: PathMark[];
+  /** `marks[i]` 의 격자 시리즈 자리 (`LineMarks.seriesOf` 와 같다). */
+  seriesOf: number[];
   /** 시리즈별 위 경계 화면 좌표 — 점 표시(dots)가 여기 찍힌다. */
   upper: ScreenPoint[][];
   labels: TextMark[];
@@ -80,6 +82,7 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
   const ranges =
     stackMode === "none" ? null : stackRangesBySeries(grid, stackMode);
   const marks: PathMark[] = [];
+  const seriesOf: number[] = [];
   const upperPoints: ScreenPoint[][] = [];
   const labels: TextMark[] = [];
 
@@ -146,6 +149,7 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
       strokeSeries: series.seriesIndex,
       strokeWidth,
     });
+    seriesOf.push(si);
     const upper = bands.map((b) => toScreen(orientation, b.upper));
     upperPoints.push(upper);
     if (showValueLabels) {
@@ -160,5 +164,5 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
     }
   }
 
-  return { marks, upper: upperPoints, labels };
+  return { marks, seriesOf, upper: upperPoints, labels };
 }

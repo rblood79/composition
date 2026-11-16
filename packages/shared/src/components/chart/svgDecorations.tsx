@@ -130,8 +130,7 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
           }
           strokeLinejoin="round"
           strokeLinecap="round"
-          // ADR-306 Phase 6 — 선 불투명도 · 파선 (Skia `strokeAlpha` · `strokeDasharray` 와 같은 값).
-          strokeOpacity={mark.strokeOpacity}
+          // ADR-306 Phase 6 — 파선 (Skia `strokeDasharray` 와 같은 값).
           strokeDasharray={mark.dash ? mark.dash.join(" ") : undefined}
         />
       );

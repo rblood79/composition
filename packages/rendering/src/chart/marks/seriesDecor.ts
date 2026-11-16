@@ -6,16 +6,17 @@
  */
 import type { BandScale, LinearScale } from "../scales";
 import type { SeriesGrid, StackMode } from "../series";
-import { seriesLabel } from "../series";
-import type { ChartProps, Mark, Rect } from "../types";
-import { resolveHighlight } from "../highlight";
+import type { ChartProps, Mark, PathMark, Rect } from "../types";
+import { seriesHighlight } from "../highlightGrid";
 import {
   annotationAxis,
   buildAnnotationMarks,
   forecastAt,
   forecastFrom,
+  isAnnotatedType,
   resolveAnnotations,
   signBaseline,
+  signColorsOn,
 } from "./annotations";
 import { buildAreaMarks } from "./area";
 import { buildLineMarks, seriesAxialPoints } from "./line";
@@ -33,6 +34,7 @@ export interface SeriesDecorInput {
     | "signColors"
     | "baseline"
     | "dimensionFormat"
+    | "valueLocale"
   >;
   grid: SeriesGrid;
   band: BandScale;
@@ -43,6 +45,14 @@ export interface SeriesDecorInput {
   timeScale: LinearScale | null;
   fontSize: number;
   strokeWidth: number;
+  /** scene 이 이미 만든 시리즈 path (같은 builder) — 없으면 나눠 칠할 때 여기서 만든다 (DOM). */
+  paths?: SeriesPaths;
+}
+
+/** 시리즈 path 와 그 격자 시리즈 자리 (`LineMarks` · `AreaMarks` 의 앞 두 칸). */
+export interface SeriesPaths {
+  marks: readonly PathMark[];
+  seriesOf: readonly number[];
 }
 
 export interface SeriesDecorMarks {
@@ -61,21 +71,35 @@ export function primarySeries(
   props: Pick<ChartProps, "highlight">,
   grid: SeriesGrid,
 ): Set<number> {
-  const names = grid.series.map((s) => seriesLabel(s, "series"));
-  const totals = grid.series.map((s) => {
-    let t = 0;
-    for (const v of s.values.values()) if (Number.isFinite(v)) t += v;
-    return t;
-  });
-  return resolveHighlight(props.highlight, names, totals, "first");
+  return seriesHighlight(props.highlight, grid, "first");
+}
+
+/** 겹치기 선 · 면의 시리즈 path — scene 과 같은 builder · 같은 입력 (값 레이블은 쓰지 않는다). */
+function seriesPaths(input: SeriesDecorInput): SeriesPaths {
+  const { props, grid, band, value, plot } = input;
+  const common = {
+    grid,
+    band,
+    value,
+    plot,
+    orientation: props.orientation,
+    strokeWidth: input.strokeWidth,
+    curve: props.curve,
+    showValueLabels: false,
+    labelText: () => "",
+    connectNulls: props.connectNulls === true,
+  };
+  return props.chartType === "line"
+    ? buildLineMarks({ ...common, fontSize: input.fontSize })
+    : buildAreaMarks({ ...common, stackMode: "none" });
 }
 
 export function buildSeriesDecor(input: SeriesDecorInput): SeriesDecorMarks {
   const { props, grid, band, value, plot, stackMode } = input;
   const t = props.chartType;
-  if (t !== "line" && t !== "area" && t !== "bar") return EMPTY;
+  if (!isAnnotatedType(t)) return EMPTY;
   const list = resolveAnnotations(props.annotations);
-  const signOn = props.signColors === true && t !== "bar";
+  const signOn = signColorsOn(props, stackMode);
   if (list.length === 0 && !signOn) return EMPTY;
   const horizontal = props.orientation === "horizontal";
   const axis = annotationAxis({
@@ -102,45 +126,14 @@ export function buildSeriesDecor(input: SeriesDecorInput): SeriesDecorMarks {
   });
   let series: Mark[] | null = null;
   const under = [...notes.under];
-  // 누적은 나누지 않는다 (`styleSeriesMarks` 가 null) — 시리즈 path 를 만들지 않는다.
-  if (t !== "bar" && stackMode === "none") {
-    const xf = forecastAt(axis, forecastFrom(list));
-    // 시리즈마다 따로 만든다 — 마크와 격자 자리를 짝짓는다 (겹치기에서는 시리즈 path 가 서로 독립이라
-    //   한꺼번에 만든 scene 의 path 와 같다).
-    const paths = grid.series.flatMap((_, si) => {
-      const one = { ...grid, series: [grid.series[si]] };
-      const marks =
-        t === "line"
-          ? buildLineMarks({
-              grid: one,
-              band,
-              value,
-              plot,
-              orientation: props.orientation,
-              strokeWidth: input.strokeWidth,
-              curve: props.curve,
-              showValueLabels: false,
-              labelText: () => "",
-              fontSize: input.fontSize,
-              connectNulls: props.connectNulls === true,
-            }).marks
-          : buildAreaMarks({
-              grid: one,
-              band,
-              value,
-              plot,
-              orientation: props.orientation,
-              strokeWidth: input.strokeWidth,
-              stackMode,
-              curve: props.curve,
-              showValueLabels: false,
-              labelText: () => "",
-              connectNulls: props.connectNulls === true,
-            }).marks;
-      return marks.map((mark) => ({ mark, si }));
-    });
+  const xf = t === "bar" ? null : forecastAt(axis, forecastFrom(list));
+  // 나눌 것 (예측 · 손익 색) 이 있을 때만 시리즈 path 를 쓴다 — 누적은 나누지 않는다 (`signColorsOn` ·
+  //   `styleSeriesMarks`). scene 은 이미 만든 path 를 넘기고, DOM 은 여기서 한 번 만든다 (같은 builder ·
+  //   같은 입력).
+  if (stackMode === "none" && (xf !== null || signOn)) {
+    const built = input.paths ?? seriesPaths(input);
     const styled = styleSeriesMarks({
-      marks: paths,
+      marks: built.marks.map((mark, k) => ({ mark, si: built.seriesOf[k] })),
       grid,
       value,
       plot,

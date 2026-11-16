@@ -11,9 +11,17 @@
  *   세로 안내선과 강조 시리즈의 값을 그린다 — ztd 는 받은 차트에 툴팁을 띄운다 (편차: 툴팁 대신 안내선 ·
  *   값 글자 — 차트 종류 (Recharts · family host) 와 무관하게 같은 표시).
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
-import type { LineMark, Mark, Rect, TextMark } from "@composition/rendering";
+import { Button as AriaButton } from "react-aria-components";
+import { plotLine, rowCategoryLabel } from "@composition/rendering";
+import type {
+  ChartProps,
+  ChartRow,
+  Mark,
+  Rect,
+  TextMark,
+} from "@composition/rendering";
 
 // ── 동기화 bus ────────────────────────────────────────────────────────────────
 
@@ -39,16 +47,15 @@ export function sendChartSync(
 }
 
 /**
- * 같은 `syncId` 의 다른 차트가 가리킨 범주 이름 (없으면 null) 과, 이 차트가 가리킨 범주를 보내는 함수.
- * `syncId` 가 비면 아무것도 주고받지 않는다.
+ * 같은 묶음 (`chartSyncGroup`) 의 다른 차트가 가리킨 범주 이름 (없으면 null) 과, 이 차트가 가리킨 범주를
+ * 보내는 함수. 묶음이 "" 면 아무것도 주고받지 않는다.
  */
-export function useChartSync(syncId: string | undefined): {
+export function useChartSync(id: string): {
   received: string | null;
   publish: (label: string | null) => void;
 } {
   const [self] = useState(() => ({}));
   const [received, setReceived] = useState<string | null>(null);
-  const id = typeof syncId === "string" && syncId.trim() !== "" ? syncId : "";
   useEffect(() => {
     if (!id) return undefined;
     const leave = joinChartSync(id, (label, from) => {
@@ -79,25 +86,7 @@ export function syncCursorMarks(input: {
   text: string | null;
 }): Mark[] {
   const { at, plot, horizontal } = input;
-  const line: LineMark = horizontal
-    ? {
-        kind: "line",
-        x1: plot.x,
-        y1: at,
-        x2: plot.x + plot.w,
-        y2: at,
-        role: "axis",
-        dash: [3, 3],
-      }
-    : {
-        kind: "line",
-        x1: at,
-        y1: plot.y,
-        x2: at,
-        y2: plot.y + plot.h,
-        role: "axis",
-        dash: [3, 3],
-      };
+  const line = plotLine(plot, !horizontal, at, { dash: [3, 3] });
   if (!input.text) return [line];
   const text: TextMark = horizontal
     ? {
@@ -172,11 +161,15 @@ export function useChartBrush(o: {
     p.y >= o.plot.y &&
     p.y <= o.plot.y + o.plot.h;
   const alongOf = (p: { x: number; y: number }) => (o.horizontal ? p.y : p.x);
-  const clear = () => {
+  // 고르던 것을 지운다 (키보드 기준점은 Esc 만 지운다 — `clear`).
+  const drop = () => {
     start.current = null;
-    anchor.current = null;
     setDragging(false);
     setRange(null);
+  };
+  const clear = () => {
+    anchor.current = null;
+    drop();
   };
   const handlers = o.enabled
     ? {
@@ -215,7 +208,7 @@ export function useChartBrush(o: {
           start.current = null;
           if (!s) return;
           setDragging(false);
-          if (!s.moved || e.type === "pointercancel") {
+          if (!s.moved) {
             if (range) {
               setRange(null);
               o.onCommit(null);
@@ -230,10 +223,7 @@ export function useChartBrush(o: {
         },
         // 끌기가 취소되면 (창 전환 · 시스템 제스처) 고르던 것을 지운다 — 남은 `start` 로 다음 이동이 끌기가 되지 않게.
         onPointerCancel: () => {
-          if (!start.current) return;
-          start.current = null;
-          setDragging(false);
-          setRange(null);
+          if (start.current) drop();
         },
         onKeyDown: (e: KeyboardEvent<Element>) => {
           if (e.key === "Escape" && range) {
@@ -276,7 +266,7 @@ export function useChartBrush(o: {
         },
       }
     : {};
-  return { range, dragging, handlers, clear };
+  return { range, dragging, handlers };
 }
 
 /** a → b 의 바뀐 비율 (a 가 0 이면 null — ztd `changeRatio`). */
@@ -299,13 +289,12 @@ export function brushMarks(input: {
   centers: readonly number[];
   labels: readonly string[];
   values: readonly (number | undefined)[];
-  value: (v: number) => number;
+  /** 항목 k 의 최고 · 최저 글자 기준점 (값 축 좌표 — Recharts 는 값 축 scale, family 는 target 의 점). */
+  acrossOf: (k: number) => number;
   plot: Rect;
   horizontal: boolean;
   dragging: boolean;
   formatValue: (v: number) => string;
-  /** 값 축 좌표 대신 항목의 기준점 (family host — 값 축 scale 이 DOM 에 없다). */
-  acrossOf?: (k: number) => number;
 }): Mark[] {
   const { range, centers, plot, horizontal } = input;
   const a = centers[range.from];
@@ -316,28 +305,8 @@ export function brushMarks(input: {
   const box: Rect = horizontal
     ? { x: plot.x, y: lo, w: plot.w, h: Math.max(1, hi - lo) }
     : { x: lo, y: plot.y, w: Math.max(1, hi - lo), h: plot.h };
-  const edge = (at: number): LineMark =>
-    horizontal
-      ? {
-          kind: "line",
-          x1: plot.x,
-          y1: at,
-          x2: plot.x + plot.w,
-          y2: at,
-          role: "axis",
-          paint: "accent",
-          opacity: 0.7,
-        }
-      : {
-          kind: "line",
-          x1: at,
-          y1: plot.y,
-          x2: at,
-          y2: plot.y + plot.h,
-          role: "axis",
-          paint: "accent",
-          opacity: 0.7,
-        };
+  const edge = (at: number) =>
+    plotLine(plot, !horizontal, at, { paint: "accent", opacity: 0.7 });
   const out: Mark[] = [
     {
       kind: "rect",
@@ -382,7 +351,7 @@ export function brushMarks(input: {
     const tag = (k: number, name: string, above: boolean): TextMark => {
       const v = input.values[k]!;
       const c = centers[k];
-      const across = input.acrossOf ? input.acrossOf(k) : input.value(v);
+      const across = input.acrossOf(k);
       return horizontal
         ? {
             kind: "text",
@@ -422,4 +391,62 @@ export function zoomCategoryLabels(
   const b = input.categories.indexOf(visible.categories[range.to] ?? "");
   if (a < 0 || b < 0) return null;
   return input.categories.slice(Math.min(a, b), Math.max(a, b) + 1);
+}
+
+// ── 확대 ──────────────────────────────────────────────────────────────────────
+
+/**
+ * 범위 선택 확대 상태 — 고른 범주의 행만 남긴다 (뷰 상태: 저장하지 않고, `resetKey` (데이터 · 종류) 가 바뀌면
+ * 풀린다). Recharts host 와 family host 가 같이 쓴다.
+ */
+export function useChartZoom(
+  rows: readonly ChartRow[],
+  rowsKey: string,
+  resetKey: string,
+  props: Pick<ChartProps, "dimension">,
+) {
+  const [zoom, setZoom] = useState<{ key: string; labels: string[] } | null>(
+    null,
+  );
+  const live = zoom !== null && zoom.key === resetKey ? zoom : null;
+  const zoomKey = live ? live.labels.join("\u0000") : "";
+  const viewRows = useMemo(() => {
+    if (!live) return rows;
+    const keep = new Set(live.labels);
+    return rows.filter((row) => keep.has(rowCategoryLabel(row, props)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowsKey, zoomKey, props.dimension]);
+  return {
+    viewRows,
+    zoomKey,
+    zoomed: live !== null,
+    zoomTo: (labels: string[]) => setZoom({ key: resetKey, labels }),
+    reset: () => setZoom(null),
+  };
+}
+
+/** 확대 중일 때 오른쪽 위 「Show all」 — 누르면 전체 보기. */
+export function ChartZoomReset({ onPress }: { onPress: () => void }) {
+  return (
+    <AriaButton
+      data-chart-zoom-reset=""
+      aria-label="Show all (reset zoom)"
+      onPress={onPress}
+      style={{
+        position: "absolute",
+        top: 0,
+        right: 0,
+        height: 24,
+        padding: "0 10px",
+        borderRadius: 12,
+        border: "1px solid var(--chart-grid, currentColor)",
+        background: "var(--chart-tooltip-bg, Canvas)",
+        color: "inherit",
+        fontSize: 11.5,
+        zIndex: 4,
+      }}
+    >
+      Show all
+    </AriaButton>
+  );
 }

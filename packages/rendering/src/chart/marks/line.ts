@@ -37,6 +37,8 @@ export interface LineMarkInput {
 
 export interface LineMarks {
   marks: PathMark[];
+  /** `marks[i]` 의 격자 시리즈 자리 (빈 시리즈는 마크가 없어 index 가 밀린다 — ADR-306 Phase 6 나눠 칠하기). */
+  seriesOf: number[];
   labels: TextMark[];
 }
 
@@ -154,6 +156,7 @@ export function buildLineMarks(input: LineMarkInput): LineMarks {
     labelText,
   } = input;
   const marks: PathMark[] = [];
+  const seriesOf: number[] = [];
   const labels: TextMark[] = [];
   for (let si = 0; si < grid.series.length; si++) {
     const points = seriesAxialPoints(grid, si, band, value);
@@ -173,6 +176,7 @@ export function buildLineMarks(input: LineMarkInput): LineMarks {
       strokeSeries: grid.series[si].seriesIndex,
       strokeWidth,
     });
+    seriesOf.push(si);
     if (showValueLabels) {
       screen.forEach((point, i) => {
         const label = pointValueLabel(
@@ -184,5 +188,5 @@ export function buildLineMarks(input: LineMarkInput): LineMarks {
       });
     }
   }
-  return { marks, labels };
+  return { marks, seriesOf, labels };
 }

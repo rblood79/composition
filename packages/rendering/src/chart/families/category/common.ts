@@ -2,6 +2,7 @@
  * ADR-306 Phase 3 — category family 공용 조각: 상태 scene · 행 예산 · 값 축 · 범주 라벨 · 범례.
  * family 마다 축 자리를 스스로 정하므로 (breakdown §4.2) 시리즈 경로의 `axes.ts` 를 쓰지 않는다.
  */
+import { chartBrushMode, chartSyncGroup } from "../../authoring";
 import { chartFrame, type ChartFrame } from "../../frame";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import {
@@ -115,9 +116,8 @@ export function sceneOf(
     // ADR-306 Phase 6 — 범위 선택 · 동기화도 targets 를 읽는다 (툴팁 상자는 host 가 `showTooltip` 으로 가른다).
     targets:
       ctx.props.showTooltip ||
-      ctx.props.brush === "select" ||
-      ctx.props.brush === "zoom" ||
-      (typeof ctx.props.syncId === "string" && ctx.props.syncId.trim() !== "")
+      chartBrushMode(ctx.props) !== null ||
+      chartSyncGroup(ctx.props) !== ""
         ? (parts.targets ?? [])
         : [],
     ...(ctx.input.diagnostics.length > 0

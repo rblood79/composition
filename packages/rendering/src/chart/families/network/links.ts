@@ -122,7 +122,6 @@ export function sankeyScene(ctx: CategoryContext) {
     props.highlight,
     graph.nodes.map((n) => n.id),
     graph.nodes.map((n) => n.value),
-    "max",
     top,
   );
   const hotLink = (l: (typeof graph.links)[number]) =>
@@ -320,7 +319,6 @@ export function chordScene(ctx: CategoryContext) {
     props.highlight,
     lay.groups.map((g) => model.names[g.index] ?? ""),
     lay.groups.map((g) => g.value),
-    "max",
     top,
   );
   const marks: Mark[] = [];

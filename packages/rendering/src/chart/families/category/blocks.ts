@@ -4,8 +4,7 @@
  * `mergeFactor` · `groupRange` · `Prism`) 을 따른다. skyline 의 빗금은 선 묶음 path (pattern fill 을
  * 새 mark 로 만들지 않는다 — breakdown §5.1), 옆면 그늘은 축 토큰 반투명 면이다.
  */
-import { highlightSet } from "../../highlight";
-import { CHART_OTHERS_COLOR_INDEX } from "../../budget";
+import { highlightColor, highlightSet } from "../../highlight";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
   AxisScene,
@@ -101,10 +100,8 @@ export function marimekkoScene(ctx: CategoryContext) {
     ctx.props.highlight,
     model.series,
     model.series.map(() => 0),
-    "first",
   );
-  const colorOf = (s: number) =>
-    picked && !picked.has(s) ? CHART_OTHERS_COLOR_INDEX : s % n;
+  const colorOf = (s: number) => highlightColor(picked, s, s % n);
   const { legend, height } = seriesLegend(
     ctx,
     model.series.map((label, s) => ({ label, seriesIndex: colorOf(s) })),

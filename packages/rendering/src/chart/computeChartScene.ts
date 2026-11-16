@@ -6,6 +6,7 @@
  * 도 "Skia 가 기준" 도 아니고 이 함수가 기준이다 (ssot-hierarchy §1 D3 대칭).
  */
 import { buildSeriesDecor } from "./marks/seriesDecor";
+import type { SeriesPaths } from "./marks/seriesDecor";
 import { buildAxes } from "./axes";
 import { parsePadding4Way } from "../primitives/cssValueParser";
 import { buildPolarAxes } from "./polarAxes";
@@ -485,8 +486,8 @@ export function computeChartScene(
 
   let marks: Mark[];
   let labels: Mark[] = [];
-  // ADR-306 Phase 6 — line · area 의 시리즈 path (나눠 칠할 때 바꿀 자리).
-  const seriesPaths = new Set<Mark>();
+  // ADR-306 Phase 6 — line · area 의 시리즈 path (`marks` 의 앞자리 — 나눠 칠할 때 바꾼다).
+  let seriesPaths: SeriesPaths | undefined;
   // R7 — 분기를 `else` 로 닫으면 신규 chartType 이 조용히 line 으로 그려진다.
   //   `assertNever` 가 그 자리를 컴파일 오류로 바꾼다 (유니온 확장 자체는 컴파일
   //   신호를 안 남기므로 — breakdown F15 — 방어선은 여기 하나뿐이다).
@@ -548,7 +549,7 @@ export function computeChartScene(
       connectNulls: props.connectNulls === true,
     });
     marks = [...area.marks];
-    area.marks.forEach((m) => seriesPaths.add(m));
+    seriesPaths = area;
     labels = area.labels;
     if (props.showDots)
       area.upper.forEach((points, si) => pushDots(points, si));
@@ -567,7 +568,7 @@ export function computeChartScene(
       connectNulls: props.connectNulls === true,
     });
     marks = [...line.marks];
-    line.marks.forEach((m) => seriesPaths.add(m));
+    seriesPaths = line;
     labels = line.labels;
     if (props.showDots) {
       for (let si = 0; si < grid.series.length; si++) {
@@ -595,13 +596,10 @@ export function computeChartScene(
     timeScale: timeAxis?.scale ?? null,
     fontSize,
     strokeWidth: metrics.strokeWidth,
+    paths: seriesPaths,
   });
-  if (decor.series) {
-    const at = marks.findIndex((m) => seriesPaths.has(m));
-    const rest = marks.filter((m) => !seriesPaths.has(m));
-    rest.splice(Math.max(0, at), 0, ...decor.series);
-    marks = rest;
-  }
+  if (decor.series)
+    marks.splice(0, seriesPaths?.marks.length ?? 0, ...decor.series);
 
   // ADR-306 Phase 5 — 보강 마크 (범위 띠 · 끝 이름표 · 산점도 크기 · 이름 · 추세선 · 사분면). DOM 도 같은
   //   builder 를 부른다 (`RechartsChart`). 크기 점이 있으면 산점도 기본 점을 대신한다.

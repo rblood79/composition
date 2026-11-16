@@ -13,7 +13,7 @@ import {
   buildAnnotationMarks,
   resolveAnnotations,
 } from "../../marks/annotations";
-import { firstHighlight, highlightSet } from "../../highlight";
+import { highlightIndex } from "../../highlight";
 import { approxTextWidth, linearScale, r2 } from "../../scales";
 import type {
   AxisScene,
@@ -457,13 +457,11 @@ export function candlestickScene(ctx: CategoryContext) {
   marks.unshift(...annotated.under);
   marks.push(...annotated.over);
   // ADR-306 Phase 6 — `highlight` (ztd candlestick 기본 last): 고른 봉의 종가 파선 · 가격 글자 (오른쪽 끝).
-  const markK = firstHighlight(
-    highlightSet(
-      props.highlight,
-      cs.map((q) => q.label),
-      cs.map((q) => q.c),
-      "last",
-    ) ?? new Set<number>(),
+  const markK = highlightIndex(
+    props.highlight,
+    cs.map((q) => q.label),
+    cs.map((q) => q.c),
+    -1,
   );
   if (markK >= 0 && Number.isFinite(cs[markK].c)) {
     const yc = r2(y(cs[markK].c));

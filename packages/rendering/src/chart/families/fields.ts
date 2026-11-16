@@ -3,8 +3,11 @@
  * `resolveFieldRef`) 이고, 숫자 표시는 시리즈 경로와 같은 `valueFormat` 계열 (ADR-210) 이다.
  */
 import { resolveFieldRef } from "../../data/fieldIdIndex";
-import { formatChartNumber, resolveChartPresentation } from "../presentation";
-import { formatTick, toFiniteNumber } from "../scales";
+import {
+  chartValueFormatter,
+  resolveNumberPresentation,
+} from "../presentation";
+import { toFiniteNumber } from "../scales";
 import type {
   ChartDiagnostic,
   ChartDiagnosticCode,
@@ -43,20 +46,11 @@ export interface FamilyInput {
  * 검증 (`resolveChartPresentation`) 이 낸다 — family 는 그 진단 중 숫자 형식 몫만 이어받는다.
  */
 export function familyInput(props: ChartProps): FamilyInput {
-  const presentation = resolveChartPresentation(
-    {
-      valueFormat: props.valueFormat,
-      valueLocale: props.valueLocale,
-      valueFractionDigits: props.valueFractionDigits,
-      valueCurrency: props.valueCurrency,
-      valuePercentUnit: props.valuePercentUnit,
-    } as Parameters<typeof resolveChartPresentation>[0],
-    1,
-  );
+  const presentation = resolveNumberPresentation(props);
   const diagnostics: ChartDiagnostic[] = presentation.diagnostics.filter((d) =>
     d.code.startsWith("value"),
   );
-  const numberFormat = presentation.numberFormat;
+  const formatValue = chartValueFormatter(presentation.numberFormat);
   return {
     diagnostics,
     error(code, message, value) {
@@ -68,12 +62,7 @@ export function familyInput(props: ChartProps): FamilyInput {
     get ok() {
       return !diagnostics.some((d) => d.severity === "error");
     },
-    formatValue(value) {
-      if (!Number.isFinite(value)) return "-";
-      return numberFormat.format === "auto"
-        ? formatTick(value)
-        : formatChartNumber(value, numberFormat, "raw");
-    },
+    formatValue,
   };
 }
 

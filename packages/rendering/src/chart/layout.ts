@@ -103,12 +103,7 @@ export function resolveChartLayout(
     ? grid.categories.map((label, ci) => ({
         label: label || "category",
         // input 격자는 `othersIndex` 가 없다 — others 범례는 model 이 transformed 로 다시 만든다.
-        colorIndex: categoryColorIndex(
-          ci,
-          palette,
-          grid.othersIndex,
-          grid.dimmed,
-        ),
+        colorIndex: categoryColorIndex(ci, palette, grid),
       }))
     : grid.series.map((series) => ({
         label: seriesLabel(series, "series"),

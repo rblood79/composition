@@ -74,7 +74,9 @@ export {
   CHART_OTHERS_LABEL,
   CHART_CURRENCY_CANDIDATES,
   CHART_SERIES_TOKEN_PREFIX,
+  chartValueFormatter,
   formatChartNumber,
+  resolveNumberPresentation,
   isSupportedCurrency,
   parseSeriesIdentity,
   resolveChartPresentation,
@@ -106,30 +108,15 @@ export type { AreaMarks } from "./marks/area";
 export { buildDotMarks, circlePath, dotRadius } from "./marks/dots";
 export {
   buildSeriesExtraMarks,
-  linearFit,
   SIZE_RANGE_DEFAULT,
 } from "./marks/seriesExtras";
+export { linearFit } from "./marks/fit";
 export type { SeriesExtraInput, SeriesExtraMarks } from "./marks/seriesExtras";
 // ADR-306 Phase 6 — 공통 상호작용 (강조 · 주석 · 손익 색 · 예측 파선).
 export { buildSeriesDecor, primarySeries } from "./marks/seriesDecor";
 export { rowCategoryLabel } from "./series";
-export type { SeriesDecorInput, SeriesDecorMarks } from "./marks/seriesDecor";
-export {
-  annotationAxis,
-  buildAnnotationMarks,
-  forecastAt,
-  forecastFrom,
-  resolveAnnotations,
-  valueIncludes,
-} from "./marks/annotations";
-export type { AnnotationAxis } from "./marks/annotations";
-export {
-  firstHighlight,
-  hasHighlight,
-  highlightList,
-  resolveHighlight,
-} from "./highlight";
-export type { HighlightFallback } from "./highlight";
+export { isChartAnnotation } from "./marks/annotations";
+export { plotLine } from "./marks/seriesStyle";
 export {
   buildWindowTrackMarks,
   CHART_WINDOW_THUMB,
@@ -212,6 +199,7 @@ export {
   bucketLabel,
   categoryColorIndex,
   groupOthers,
+  markColorIndex,
   parseIsoStrict,
   pickCategories,
   resolveAxisKind,

@@ -9,10 +9,10 @@
  *   (`fit: linear` — 최소제곱, 점의 x 범위 안 · y 축 밖은 자른다) · 사분면 이름 (`quadrants`).
  */
 import { curveCommands, toScreen } from "../curves";
-import type { AxialPoint } from "../curves";
+import type { AxialPoint, ScreenPoint } from "../curves";
 import { approxTextWidth, r2 } from "../scales";
 import type { BandScale, LinearScale } from "../scales";
-import { seriesLabel } from "../series";
+import { seriesLabel, timeLabelParser } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
 import type {
   ChartProps,
@@ -22,22 +22,22 @@ import type {
   Rect,
   TextMark,
 } from "../types";
-import { circlePath } from "./dots";
+import { buildDotMarks, circlePath } from "./dots";
 import { fittedSizeRange } from "./sizeRange";
 export { SIZE_RANGE_DEFAULT } from "./sizeRange";
 import { linearFit } from "./fit";
-export { linearFit } from "./fit";
 import { bandCenter, seriesAxialPoints, splitRuns } from "./line";
 import { forecastFrom, resolveAnnotations } from "./annotations";
-import { parseIsoStrict } from "../budget";
-import { parseTime } from "../timeFormat";
 
 /**
  * ADR-306 Phase 6 — 범위 띠를 그리기 시작하는 범주 (ztd `bandStartIndex`). `forecast` 면 예측 주석의 시작
  * x 이상인 첫 범주 — 그런 범주가 없으면 범주 수 (띠 없음, ztd 와 같음). 비면 0.
  */
-export function bandStartIndex(
-  props: Pick<ChartProps, "bandFrom" | "annotations" | "dimensionFormat">,
+function bandStartIndex(
+  props: Pick<
+    ChartProps,
+    "bandFrom" | "annotations" | "dimensionFormat" | "valueLocale"
+  >,
   grid: Pick<SeriesGrid, "categories" | "positions">,
 ): number {
   const n = grid.categories.length;
@@ -47,9 +47,7 @@ export function bandStartIndex(
   const i = grid.categories.indexOf(from);
   if (i >= 0) return i;
   if (!grid.positions) return n;
-  const t = props.dimensionFormat
-    ? parseTime(props.dimensionFormat, from)
-    : parseIsoStrict(from);
+  const t = timeLabelParser(props)(from);
   if (t === null) return n;
   const k = grid.positions.findIndex((p) => p >= t);
   return k < 0 ? n : k;
@@ -71,6 +69,7 @@ export interface SeriesExtraInput {
     | "outside"
     | "annotations"
     | "dimensionFormat"
+    | "valueLocale"
   >;
   grid: SeriesGrid;
   band: BandScale;
@@ -132,43 +131,22 @@ function lineExtras(input: SeriesExtraInput): SeriesExtraMarks {
       if (!lower || !upper) return;
       if (props.outside === true) {
         // 띠 밖 점 — 시리즈 색 점 (ztd 의 바탕색 테두리는 역할 색이 없어 뺀다), 시리즈당 path 하나.
-        const r = 3.6;
-        const out: string[] = [];
-        const box = {
-          x0: Infinity,
-          y0: Infinity,
-          x1: -Infinity,
-          y1: -Infinity,
-        };
+        const points: ScreenPoint[] = [];
         for (let ci = start; ci < grid.categories.length; ci++) {
           const v = series.values.get(ci);
           const a = lower.get(ci);
           const b = upper.get(ci);
           if (v === undefined || a === undefined || b === undefined) continue;
           if (v >= Math.min(a, b) && v <= Math.max(a, b)) continue;
-          const p = toScreen(orientation, {
-            along: bandCenter(band, ci),
-            across: value(v),
-          });
-          out.push(circlePath(p.x, p.y, r));
-          box.x0 = Math.min(box.x0, p.x - r);
-          box.y0 = Math.min(box.y0, p.y - r);
-          box.x1 = Math.max(box.x1, p.x + r);
-          box.y1 = Math.max(box.y1, p.y + r);
+          points.push(
+            toScreen(orientation, {
+              along: bandCenter(band, ci),
+              across: value(v),
+            }),
+          );
         }
-        if (out.length > 0)
-          front.push({
-            kind: "path",
-            d: out.join(" "),
-            bbox: {
-              x: r2(box.x0),
-              y: r2(box.y0),
-              w: r2(box.x1 - box.x0),
-              h: r2(box.y1 - box.y0),
-            },
-            fillSeries: series.seriesIndex,
-            fillOpacity: 1,
-          });
+        const dots = buildDotMarks(points, series.seriesIndex, 3.6, 1);
+        if (dots) front.push(dots);
       }
       const pts: { categoryIndex: number; lo: AxialPoint; hi: AxialPoint }[] =
         [];

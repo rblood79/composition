@@ -84,7 +84,6 @@ export function treeModel(
       props.highlight,
       all.map((l) => l.label),
       all.map((l) => l.value),
-      "max",
       -1,
     );
     top = k >= 0 ? all[k] : null;

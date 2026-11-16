@@ -6,13 +6,14 @@ import {
   buildSeriesExtraMarks,
   bandCenter,
   buildSeriesDecor,
-  CHART_OTHERS_COLOR_INDEX,
   primarySeries,
-  rowCategoryLabel,
+  chartBrushMode,
+  chartSyncGroup,
   buildLegend,
   buildPolarAxes,
   buildReferenceLineMarks,
   categoryColorIndex,
+  markColorIndex,
   centerCaptionLabel,
   centerTotalLabels,
   CHART_INVALID_SETTINGS_TEXT,
@@ -71,12 +72,13 @@ import {
 } from "./legacyMonotone";
 import { FamilySceneHost } from "./FamilySceneHost";
 import { renderMark, renderText, seriesVar } from "./svgDecorations";
-import { Button as AriaButton } from "react-aria-components";
 import {
   brushMarks,
+  ChartZoomReset,
   syncCursorMarks,
   useChartBrush,
   useChartSync,
+  useChartZoom,
   zoomCategoryLabels,
 } from "./chartInteraction";
 import type { RenderChartWindowTrack } from "./windowTrack";
@@ -223,17 +225,8 @@ function SeriesRechartsChart({
   const windowLive = windowState.key === resetKey;
   // ADR-306 Phase 6 — 범위 선택 확대: 고른 범주의 행만 남긴다 (뷰 상태 — 저장하지 않고, 데이터 · 종류가
   //   바뀌면 `resetKey` 로 풀린다).
-  const [zoom, setZoom] = useState<{ key: string; labels: string[] } | null>(
-    null,
-  );
-  const zoomLive = zoom !== null && zoom.key === resetKey ? zoom : null;
-  const zoomKey = zoomLive ? zoomLive.labels.join("\u0000") : "";
-  const viewRows = useMemo(() => {
-    if (!zoomLive) return rows;
-    const keep = new Set(zoomLive.labels);
-    return rows.filter((row) => keep.has(rowCategoryLabel(row, props)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowsKey, zoomKey, props.dimension]);
+  const zoom = useChartZoom(rows, rowsKey, resetKey, props);
+  const { viewRows, zoomKey } = zoom;
   const windowStart = windowLive ? windowState.start : 0;
   const windowEnd = windowLive ? windowState.end : undefined;
   // ADR-211 — Canvas 와 같은 `resolveChartModel` 경로: 행 상한 `R` · 슬롯 예산 `fit` · 창을
@@ -377,24 +370,23 @@ function SeriesRechartsChart({
       }),
     [geometry, props, grid, plot, stackMode, fontSize, metrics.strokeWidth],
   );
-  // ADR-306 Phase 6 — 범위 선택 · 동기화 (line · area · bar — 실행 상태).
-  const interactive =
-    presentation.ok &&
-    (props.chartType === "line" ||
-      props.chartType === "area" ||
-      props.chartType === "bar");
+  // ADR-306 Phase 6 — 범위 선택 · 동기화 (line · area · bar — 실행 상태). 쓰지 않으면 범주 좌표 · 값을
+  //   만들지 않는다.
+  const brushMode = presentation.ok ? chartBrushMode(props) : null;
+  const syncGroup = presentation.ok ? chartSyncGroup(props) : "";
+  const interacts = brushMode !== null || syncGroup !== "";
   const centers = useMemo(
-    () => grid.categories.map((_, ci) => bandCenter(geometry.band, ci)),
-    [grid, geometry],
+    () =>
+      interacts
+        ? grid.categories.map((_, ci) => bandCenter(geometry.band, ci))
+        : [],
+    [interacts, grid, geometry],
   );
   const primaryValues = useMemo(() => {
+    if (!interacts) return [];
     const p = [...primarySeries(props, grid)][0] ?? 0;
     return grid.categories.map((_, ci) => grid.series[p]?.values.get(ci));
-  }, [props, grid]);
-  const brushMode =
-    interactive && (props.brush === "select" || props.brush === "zoom")
-      ? props.brush
-      : null;
+  }, [interacts, props, grid]);
   // 집계 · others 범주는 원본 행의 범주 이름이 아니라 확대 (행 걸러내기) 를 할 수 없다 — 고르기만.
   //   보이는 범주를 원본 자리로 바꿔 그 사이 행을 전부 남긴다 (`zoomCategoryLabels` — extrema 도 된다).
   const canZoom =
@@ -411,10 +403,10 @@ function SeriesRechartsChart({
     onCommit: (range) => {
       if (!canZoom || !range) return;
       const labels = zoomCategoryLabels(model.input, grid, range);
-      if (labels) setZoom({ key: resetKey, labels });
+      if (labels) zoom.zoomTo(labels);
     },
   });
-  const sync = useChartSync(interactive ? props.syncId : undefined);
+  const sync = useChartSync(syncGroup);
   const isBar = props.chartType === "bar";
   const radarFlatDomain = Math.max(0, ticks.domain[1]) === 0;
   const n = grid.categories.length;
@@ -827,7 +819,7 @@ function SeriesRechartsChart({
       "aria-label": label,
       style: { fontSize, overflow: "visible" },
       // ADR-306 Phase 6 — 동기화: 가리킨 범주 이름을 같은 `syncId` 의 차트들에 보낸다.
-      ...(props.syncId
+      ...(syncGroup
         ? {
             onMouseMove: (state: { activeTooltipIndex?: unknown }) => {
               // 그림 밖 (축 글자 · 범례) 이면 null — `Number(null)` 은 0 이라 먼저 거른다 (판독 MEDIUM-1).
@@ -1040,16 +1032,13 @@ function SeriesRechartsChart({
                         <Cell
                           key={ci}
                           fill={seriesVar(
-                            props.colorBy === "category"
-                              ? categoryColorIndex(
-                                  ci,
-                                  metrics.seriesCount,
-                                  grid.othersIndex,
-                                  grid.dimmed,
-                                )
-                              : grid.dimmed?.has(ci)
-                                ? CHART_OTHERS_COLOR_INDEX
-                                : grid.series[si].seriesIndex,
+                            markColorIndex(
+                              grid,
+                              ci,
+                              grid.series[si].seriesIndex,
+                              props.colorBy === "category",
+                              metrics.seriesCount,
+                            ),
                           )}
                         />
                       ))
@@ -1174,8 +1163,7 @@ function SeriesRechartsChart({
                   categoryColorIndex(
                     slice.categoryIndex,
                     metrics.seriesCount,
-                    grid.othersIndex,
-                    grid.dimmed,
+                    grid,
                   ),
                 )}
               />
@@ -1361,14 +1349,13 @@ function SeriesRechartsChart({
               <Cell
                 key={ci}
                 fill={seriesVar(
-                  keys.length === 1
-                    ? categoryColorIndex(
-                        ci,
-                        metrics.seriesCount,
-                        grid.othersIndex,
-                        grid.dimmed,
-                      )
-                    : grid.series[si].seriesIndex,
+                  markColorIndex(
+                    grid,
+                    ci,
+                    grid.series[si].seriesIndex,
+                    keys.length === 1,
+                    metrics.seriesCount,
+                  ),
                 )}
               />
             ))}
@@ -1469,11 +1456,7 @@ function SeriesRechartsChart({
     props.fit,
     JSON.stringify(props.sizeRange ?? null),
     JSON.stringify(props.quadrants ?? null),
-    // ADR-306 Phase 6 — 주석 · 강조 · 손익 색 · 띠 시작 (배열은 직렬화 키).
-    JSON.stringify(props.annotations ?? null),
-    JSON.stringify(props.highlight ?? null),
-    props.signColors,
-    props.baseline,
+    // ADR-306 Phase 6 — 띠 시작 · 띠 밖 점 (주석 · 강조 · 손익 색은 `decor` · `grid` 가 덮는다).
     props.bandFrom,
     props.outside,
     decor,
@@ -1516,7 +1499,7 @@ function SeriesRechartsChart({
           centers,
           labels: grid.categories,
           values: primaryValues,
-          value: geometry.value,
+          acrossOf: (k) => geometry.value(primaryValues[k]!),
           plot,
           horizontal,
           dragging: brush.dragging,
@@ -1651,8 +1634,8 @@ function SeriesRechartsChart({
       style={{ display: "contents" }}
       {...brush.handlers}
       onKeyDown={(event) => {
-        if (event.key === "Escape" && zoomLive && !brush.range) {
-          setZoom(null);
+        if (event.key === "Escape" && zoom.zoomed && !brush.range) {
+          zoom.reset();
           return;
         }
         brush.handlers.onKeyDown?.(event);
@@ -1663,27 +1646,8 @@ function SeriesRechartsChart({
   ) : (
     chart
   );
-  const zoomReset = zoomLive ? (
-    <AriaButton
-      data-chart-zoom-reset=""
-      aria-label="Show all (reset zoom)"
-      onPress={() => setZoom(null)}
-      style={{
-        position: "absolute",
-        top: 0,
-        right: 0,
-        height: 24,
-        padding: "0 10px",
-        borderRadius: 12,
-        border: "1px solid var(--chart-grid, currentColor)",
-        background: "var(--chart-tooltip-bg, Canvas)",
-        color: "inherit",
-        fontSize: 11.5,
-        zIndex: 4,
-      }}
-    >
-      Show all
-    </AriaButton>
+  const zoomReset = zoom.zoomed ? (
+    <ChartZoomReset onPress={zoom.reset} />
   ) : null;
   if (!track || !win || total <= fitEff || !presentation.ok)
     return front || scatterHit || zoomReset || brushMode ? (

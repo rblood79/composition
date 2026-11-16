@@ -14,7 +14,8 @@
  */
 import { CHART_OTHERS_COLOR_INDEX } from "./budget";
 import { hasHighlight, resolveHighlight } from "./highlight";
-import { seriesLabel } from "./series";
+import type { HighlightFallback } from "./highlight";
+import { seriesLabel, seriesTotals } from "./series";
 import type { SeriesGrid } from "./series";
 import type { ChartProps } from "./types";
 
@@ -57,17 +58,27 @@ export function resolveGridHighlight(
       labels: new Set([...set].map((ci) => grid.categories[ci])),
     };
   }
-  const names = grid.series.map((s) => seriesLabel(s, "series"));
-  const totals = grid.series.map((s) => {
-    let t = 0;
-    for (const v of s.values.values()) if (Number.isFinite(v)) t += v;
-    return t;
-  });
-  const set = resolveHighlight(props.highlight, names, totals, "none");
+  const set = seriesHighlight(props.highlight, grid, "none");
   return {
     kind: "series",
-    labels: new Set([...set].map((si) => names[si])),
+    labels: new Set(
+      [...set].map((si) => seriesLabel(grid.series[si], "series")),
+    ),
   };
+}
+
+/** 시리즈 단위 강조 — 시리즈 이름 · 합계로 고른 시리즈 index (손익 색 · 추세선도 이것으로). */
+export function seriesHighlight(
+  raw: unknown,
+  grid: SeriesGrid,
+  fallback: HighlightFallback,
+): Set<number> {
+  return resolveHighlight(
+    raw,
+    grid.series.map((s) => seriesLabel(s, "series")),
+    seriesTotals(grid),
+    fallback,
+  );
 }
 
 /** 고른 강조를 격자에 적용한다 (null 이면 그대로 — 같은 객체). */

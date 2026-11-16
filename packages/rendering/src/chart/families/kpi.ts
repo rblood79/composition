@@ -550,7 +550,6 @@ function bulletScene(
     props.highlight,
     shown.map((r) => r.label),
     shown.map((r) => (r.target ? r.value / r.target : NaN)),
-    "min",
   );
   shown.forEach((r, k) => {
     const sx = linearScale(
@@ -837,7 +836,6 @@ function dumbbellScene(
     props.highlight,
     shown.map((r) => r.label),
     shown.map((r) => r.end - r.start),
-    "max",
   );
   shown.forEach((r, k) => {
     const cy = r2(yOf(k));

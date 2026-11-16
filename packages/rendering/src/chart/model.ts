@@ -328,12 +328,7 @@ export function resolveChartModel(
     byCategoryLegend && transformed !== input
       ? transformed.categories.map((label, ci) => ({
           label: label || "category",
-          colorIndex: categoryColorIndex(
-            ci,
-            palette,
-            transformed.othersIndex,
-            transformed.dimmed,
-          ),
+          colorIndex: categoryColorIndex(ci, palette, transformed),
         }))
       : baseLayout.legendEntries;
   const legendBox =

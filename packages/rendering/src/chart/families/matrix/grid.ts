@@ -206,7 +206,6 @@ export function heatmapScene(ctx: CategoryContext) {
       (_, i) => `${model.xs[i % fullW]}|${model.ys[Math.floor(i / fullW)]}`,
     ),
     Array.from(model.vals.subarray(0, nCells)),
-    "max",
     hiIdx,
   );
   const valuesOn =
@@ -475,7 +474,6 @@ export function calendarScene(ctx: CategoryContext) {
       props.highlight,
       days.map((d) => new Date(d.t).toISOString().slice(0, 10)),
       days.map((d) => d.value),
-      "max",
       -1,
     );
     hiDay = k >= 0 ? days[k] : null;

@@ -884,3 +884,39 @@ export const CHART_AUTO_NUMBER_FORMAT: ResolvedNumberFormat = {
   format: "auto",
   locale: DEFAULT_LOCALE,
 };
+
+/**
+ * 숫자 형식 prop 만으로 푼 presentation — family (시리즈 설정을 쓰지 않는다) 의 형식 · 진단과, family host
+ * 의 범위 선택 글자 (ADR-306 Phase 6) 가 같이 쓴다.
+ */
+export function resolveNumberPresentation(
+  props: Pick<
+    ChartProps,
+    | "valueFormat"
+    | "valueLocale"
+    | "valueFractionDigits"
+    | "valueCurrency"
+    | "valuePercentUnit"
+  >,
+): ResolvedChartPresentation {
+  return resolveChartPresentation(
+    {
+      valueFormat: props.valueFormat,
+      valueLocale: props.valueLocale,
+      valueFractionDigits: props.valueFractionDigits,
+      valueCurrency: props.valueCurrency,
+      valuePercentUnit: props.valuePercentUnit,
+    } as Parameters<typeof resolveChartPresentation>[0],
+    1,
+  );
+}
+
+/** 값 → 문자열 (`auto` 는 `formatTick` — `formatChartNumber` 가 가른다, 유한이 아니면 「-」). */
+export function chartValueFormatter(
+  numberFormat: ResolvedNumberFormat,
+): (value: number) => string {
+  return (value) =>
+    Number.isFinite(value)
+      ? formatChartNumber(value, numberFormat, "raw")
+      : "-";
+}

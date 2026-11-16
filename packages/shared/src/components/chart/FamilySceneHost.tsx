@@ -11,7 +11,10 @@
 import {
   computeChartScene,
   resolveChartAnimation,
-  rowCategoryLabel,
+  chartBrushMode,
+  chartSyncGroup,
+  chartValueFormatter,
+  resolveNumberPresentation,
   type ChartMetrics,
   type ChartProps,
   type ChartRow,
@@ -20,7 +23,6 @@ import {
 } from "@composition/rendering";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Customized, ScatterChart, XAxis, YAxis } from "recharts";
-import { Button as AriaButton } from "react-aria-components";
 import {
   paintVar,
   renderChartScene,
@@ -29,9 +31,11 @@ import {
 } from "./svgDecorations";
 import {
   brushMarks,
+  ChartZoomReset,
   syncCursorMarks,
   useChartBrush,
   useChartSync,
+  useChartZoom,
 } from "./chartInteraction";
 
 function hitTarget(
@@ -99,18 +103,8 @@ export function FamilySceneHost({
   // 같은 내용의 행 재전송은 같은 scene (직렬화 키 — `rowsKey` 선례).
   const rowsKey = useMemo(() => JSON.stringify(rows), [rows]);
   // ADR-306 Phase 6 — candlestick 의 범위 선택 확대 (고른 봉의 행만 — 뷰 상태, 데이터가 바뀌면 풀린다).
-  const interactive = props.chartType === "candlestick";
-  const [zoom, setZoom] = useState<{ key: string; labels: string[] } | null>(
-    null,
-  );
-  const zoomLive = zoom !== null && zoom.key === rowsKey ? zoom : null;
-  const zoomKey = zoomLive ? zoomLive.labels.join("\u0000") : "";
-  const viewRows = useMemo(() => {
-    if (!zoomLive) return rows;
-    const keep = new Set(zoomLive.labels);
-    return rows.filter((row) => keep.has(rowCategoryLabel(row, props)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowsKey, zoomKey, props.dimension]);
+  const zoom = useChartZoom(rows, rowsKey, rowsKey, props);
+  const { viewRows, zoomKey } = zoom;
   const scene = useMemo(
     () => computeChartScene(props, viewRows, size, metrics),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,8 +114,8 @@ export function FamilySceneHost({
   const [active, setActive] = useState<number | null>(null);
   const live = active !== null && active < targets.length ? active : null;
   const target = live !== null ? targets[live] : null;
-  // 범위 선택 · 동기화는 범주 이름이 있는 target (봉) 에서.
-  const keyed = interactive && targets.every((t) => t.key !== undefined);
+  // 범위 선택 · 동기화는 범주 이름이 있는 target (봉) 에서 — 읽는 종류는 `chartBrushMode` · `chartSyncGroup`.
+  const keyed = targets.every((t) => t.key !== undefined);
   const centers = keyed ? targets.map((t) => t.x) : [];
   const first = targets[0]?.rect;
   const last = targets[targets.length - 1]?.rect;
@@ -134,10 +128,7 @@ export function FamilySceneHost({
           h: first.h,
         }
       : scene.plot;
-  const brushMode =
-    keyed && (props.brush === "select" || props.brush === "zoom")
-      ? props.brush
-      : null;
+  const brushMode = keyed ? chartBrushMode(props) : null;
   // 봉을 합쳤으면 (표시 예산) 봉 이름이 행 이름과 1 : 1 이 아니라 확대 (행 걸러내기) 를 할 수 없다.
   const canZoom = brushMode === "zoom" && targets.length === viewRows.length;
   const brush = useChartBrush({
@@ -148,13 +139,17 @@ export function FamilySceneHost({
     keep: !canZoom,
     onCommit: (range) => {
       if (!canZoom || !range) return;
-      setZoom({
-        key: rowsKey,
-        labels: targets.slice(range.from, range.to + 1).map((t) => t.key ?? ""),
-      });
+      zoom.zoomTo(
+        targets.slice(range.from, range.to + 1).map((t) => t.key ?? ""),
+      );
     },
   });
-  const sync = useChartSync(keyed ? props.syncId : undefined);
+  const sync = useChartSync(keyed ? chartSyncGroup(props) : "");
+  // 범위 선택 글자 — scene 의 값 글자와 같은 숫자 형식.
+  const formatValue = useMemo(
+    () => chartValueFormatter(resolveNumberPresentation(props).numberFormat),
+    [props],
+  );
   const activeKey = live !== null ? (targets[live]?.key ?? null) : null;
   const publish = sync.publish;
   useEffect(() => {
@@ -171,12 +166,11 @@ export function FamilySceneHost({
           centers,
           labels: targets.map((t) => t.key ?? ""),
           values: targets.map((t) => t.value),
-          value: () => 0,
           acrossOf: (k) => targets[k].y,
           plot: band,
           horizontal: false,
           dragging: brush.dragging,
-          formatValue: (v) => v.toLocaleString(),
+          formatValue,
         })
       : []),
     ...(syncIndex >= 0
@@ -260,8 +254,8 @@ export function FamilySceneHost({
       onKeyDown={(event) => {
         // ADR-306 Phase 6 — Shift + 화살표 · Enter · Esc 는 범위 선택이 먼저 (확대 중 Esc 는 전체 보기).
         if (brushMode) {
-          if (event.key === "Escape" && zoomLive && !brush.range) {
-            setZoom(null);
+          if (event.key === "Escape" && zoom.zoomed && !brush.range) {
+            zoom.reset();
             return;
           }
           if (
@@ -310,28 +304,7 @@ export function FamilySceneHost({
           {interaction.map((mark, i) => renderMark(mark, `interaction-${i}`))}
         </svg>
       ) : null}
-      {zoomLive ? (
-        <AriaButton
-          data-chart-zoom-reset=""
-          aria-label="Show all (reset zoom)"
-          onPress={() => setZoom(null)}
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            height: 24,
-            padding: "0 10px",
-            borderRadius: 12,
-            border: "1px solid var(--chart-grid, currentColor)",
-            background: "var(--chart-tooltip-bg, Canvas)",
-            color: "inherit",
-            fontSize: 11.5,
-            zIndex: 4,
-          }}
-        >
-          Show all
-        </AriaButton>
-      ) : null}
+      {zoom.zoomed ? <ChartZoomReset onPress={zoom.reset} /> : null}
       {target && props.showTooltip ? (
         <div
           className="react-aria-Chart-tooltip"

@@ -4,6 +4,7 @@
  * (`max` · `min` · `first` · `last` · `none`) 또는 항목 이름. ztd 의 판별 함수 · 숫자 인덱스는 문서에
  * 저장할 수 없어 받지 않는다 (같은 일은 이름으로 한다).
  */
+import { CHART_OTHERS_COLOR_INDEX } from "./budget";
 
 export type HighlightFallback = "max" | "min" | "first" | "last" | "none";
 
@@ -73,6 +74,15 @@ export function resolveHighlight(
   return out;
 }
 
+/** 강조 집합 밖이면 neutral (others 색 index), 집합이 없거나 안이면 `base`. */
+export function highlightColor(
+  picked: ReadonlySet<number> | null,
+  k: number,
+  base: number,
+): number {
+  return picked && !picked.has(k) ? CHART_OTHERS_COLOR_INDEX : base;
+}
+
 /** 강조 하나만 쓰는 자리 (family 의 accent 하나) — 가장 앞 인덱스, 없으면 -1. */
 export function firstHighlight(set: ReadonlySet<number>): number {
   let best = -1;
@@ -82,17 +92,16 @@ export function firstHighlight(set: ReadonlySet<number>): number {
 
 /**
  * family 의 강조 하나 — `highlight` 가 비면 지금 고른 것 (`current` — 종류의 기본, 그림 그대로), 지정하면
- * 그 첫 항목 (없으면 −1 = 강조 없음). ztd 의 기본 (`fallback`) 은 이름 · 모드가 섞일 때만 쓰인다.
+ * 그 첫 항목 (없으면 −1 = 강조 없음).
  */
 export function highlightIndex(
   raw: unknown,
   labels: readonly string[],
   values: readonly number[],
-  fallback: HighlightFallback,
   current: number,
 ): number {
   if (!hasHighlight(raw)) return current;
-  return firstHighlight(resolveHighlight(raw, labels, values, fallback));
+  return firstHighlight(resolveHighlight(raw, labels, values, "none"));
 }
 
 /** 강조 집합 — `highlight` 가 비면 null (종류의 기본을 그대로 쓴다). */
@@ -100,8 +109,7 @@ export function highlightSet(
   raw: unknown,
   labels: readonly string[],
   values: readonly number[],
-  fallback: HighlightFallback,
 ): Set<number> | null {
   if (!hasHighlight(raw)) return null;
-  return resolveHighlight(raw, labels, values, fallback);
+  return resolveHighlight(raw, labels, values, "none");
 }

@@ -185,6 +185,27 @@ const BRUSH_TYPES: ReadonlySet<ChartType> = new Set([
   "bar",
   "candlestick",
 ]);
+/** 범위 선택 방식 — 읽는 종류 (`brush` 옵션이 있는 종류) 이고 select · zoom 일 때만, 아니면 null. */
+export function chartBrushMode(
+  props: Pick<ChartProps, "chartType" | "brush">,
+): "select" | "zoom" | null {
+  return BRUSH_TYPES.has(props.chartType) &&
+    (props.brush === "select" || props.brush === "zoom")
+    ? props.brush
+    : null;
+}
+
+/** 동기화 묶음 이름 — 읽는 종류이고 비어 있지 않을 때만, 아니면 "". */
+export function chartSyncGroup(
+  props: Pick<ChartProps, "chartType" | "syncId">,
+): string {
+  return BRUSH_TYPES.has(props.chartType) &&
+    typeof props.syncId === "string" &&
+    props.syncId.trim() !== ""
+    ? props.syncId
+    : "";
+}
+
 function withCommonOptions(row: ChartDescriptor): ChartDescriptor {
   const extra: (keyof ChartProps & string)[] = [
     ...(NO_HIGHLIGHT.has(row.chartType) ? [] : ["highlight" as const]),

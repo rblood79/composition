@@ -11,7 +11,7 @@
  */
 import { arcSlicePath, centerTotalLabels } from "./pie";
 import { r2 } from "../scales";
-import { categoryColorIndex, CHART_OTHERS_COLOR_INDEX } from "../budget";
+import { markColorIndex } from "../budget";
 import { stackBands } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
 import type { ChartLabelFormatter, PathMark, TextMark } from "../types";
@@ -158,11 +158,13 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
       const sweep = r2(end - start);
       const raw = band.to - band.from;
       if (sweep <= 0) continue;
-      const colorIndex = byCategory
-        ? categoryColorIndex(ci, palette, grid.othersIndex, grid.dimmed)
-        : grid.dimmed?.has(ci)
-          ? CHART_OTHERS_COLOR_INDEX
-          : band.series.seriesIndex;
+      const colorIndex = markColorIndex(
+        grid,
+        ci,
+        band.series.seriesIndex,
+        byCategory,
+        palette,
+      );
       const arc = arcMark(center, outer, inner, start, sweep, {
         fillSeries: colorIndex,
       });

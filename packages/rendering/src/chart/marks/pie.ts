@@ -314,12 +314,7 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
           h: r2(ringOuter * 2),
         },
         // 파이는 시리즈가 아니라 **범주**가 색을 가른다 (조각마다 다른 색).
-        fillSeries: categoryColorIndex(
-          slice.categoryIndex,
-          palette,
-          grid.othersIndex,
-          grid.dimmed,
-        ),
+        fillSeries: categoryColorIndex(slice.categoryIndex, palette, grid),
         // 고리는 바깥/안쪽 두 경로가 겹친다 — evenodd 라야 구멍이 뚫린다.
         ...(ringInner > 0 ? { fillRule: "evenodd" as const } : {}),
       });

@@ -535,10 +535,8 @@ describe("ADR-211 G2 — others (ranking 손계산 · 부호 · 공존 · domain
     const out = groupOthers(g, 4, "Other");
     expect(out.categories).toEqual(["A", "C", "D", "Other"]);
     expect(values(out, 0)).toEqual([3, 0, 2, 1 + 1]); // B + 원본 Other
-    expect(categoryColorIndex(3, 8, out.othersIndex)).toBe(
-      CHART_OTHERS_COLOR_INDEX,
-    );
-    expect(categoryColorIndex(1, 8, out.othersIndex)).toBe(1);
+    expect(categoryColorIndex(3, 8, out)).toBe(CHART_OTHERS_COLOR_INDEX);
+    expect(categoryColorIndex(1, 8, out)).toBe(1);
     // fitEff 1 → others 없이 상위 1개
     const one = groupOthers(g, 1, "Other");
     expect(one.categories).toEqual(["A"]);

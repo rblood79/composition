@@ -128,12 +128,7 @@ export function buildRadialTooltip(
       entries: [
         {
           label,
-          colorIndex: categoryColorIndex(
-            slice.categoryIndex,
-            palette,
-            grid.othersIndex,
-            grid.dimmed,
-          ),
+          colorIndex: categoryColorIndex(slice.categoryIndex, palette, grid),
           text: formatValue(slice.raw),
         },
       ],

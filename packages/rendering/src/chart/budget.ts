@@ -669,18 +669,40 @@ export const CHART_OTHERS_COLOR_INDEX = -1;
 /** rule 채널에 `others` 가 없을 때의 토큰 — 두 consumer 가 같은 상수를 본다. */
 export const CHART_OTHERS_FALLBACK_TOKEN = "{color.neutral-subdued}";
 
-/** 범주색 (`ci % palette`) — others 범주면 `CHART_OTHERS_COLOR_INDEX`. 범주색 자리 전부가 이것을 쓴다. */
+/** 범주색을 neutral 로 바꾸는 격자 표시 — others 범주 · 강조 밖 범주. */
+export interface NeutralCategories {
+  othersIndex?: number | null;
+  dimmed?: ReadonlySet<number>;
+}
+
+/**
+ * 범주색 (`ci % palette`) — others 범주 · 강조 밖 범주 (ADR-306 Phase 6 `SeriesGrid.dimmed`) 면
+ * `CHART_OTHERS_COLOR_INDEX`. 범주색 자리 전부가 이것을 쓴다.
+ */
 export function categoryColorIndex(
   ci: number,
   palette: number,
-  othersIndex: number | null | undefined,
-  /** ADR-306 Phase 6 — 강조 밖 범주 (`SeriesGrid.dimmed`) 도 neutral. */
-  dimmed?: ReadonlySet<number>,
+  grid: NeutralCategories,
 ): number {
-  if (othersIndex !== null && othersIndex !== undefined && ci === othersIndex)
+  if (grid.othersIndex != null && ci === grid.othersIndex)
     return CHART_OTHERS_COLOR_INDEX;
-  if (dimmed?.has(ci)) return CHART_OTHERS_COLOR_INDEX;
+  if (grid.dimmed?.has(ci)) return CHART_OTHERS_COLOR_INDEX;
   return ci % Math.max(1, palette);
+}
+
+/**
+ * 범주 · 시리즈 한 칸의 색 — 범주색이면 `categoryColorIndex`, 아니면 시리즈 색 (강조 밖 범주는 neutral).
+ * 막대 · radial 의 scene 과 DOM Cell 이 같이 쓴다.
+ */
+export function markColorIndex(
+  grid: NeutralCategories,
+  ci: number,
+  seriesIndex: number,
+  byCategory: boolean,
+  palette: number,
+): number {
+  if (byCategory) return categoryColorIndex(ci, palette, grid);
+  return grid.dimmed?.has(ci) ? CHART_OTHERS_COLOR_INDEX : seriesIndex;
 }
 
 export interface ChartWindow {

@@ -9,11 +9,9 @@
  */
 import { toScreen } from "../curves";
 import type { AxialPoint } from "../curves";
-import { approxTextWidth, r2 } from "../scales";
+import { approxTextWidth, r2, toFiniteNumber } from "../scales";
 import type { BandScale, LinearScale } from "../scales";
-import { parseIsoStrict } from "../budget";
-import { parseTime } from "../timeFormat";
-import { referenceValues } from "../series";
+import { referenceValues, timeLabelParser } from "../series";
 import type { StackMode } from "../series";
 import type { ResolvedChartPresentation } from "../presentation";
 import type {
@@ -30,25 +28,20 @@ import { CHART_ANNOTATIONS_MAX, CHART_ANNOTATION_TYPES } from "../types";
 import { linearFit } from "./fit";
 import { circlePath } from "./dots";
 
+/** 읽을 수 있는 주석 칸인가 — 객체이고 아는 종류 (패널 편집기도 같은 판정). */
+export function isChartAnnotation(item: unknown): item is ChartAnnotation {
+  return (
+    !!item &&
+    typeof item === "object" &&
+    CHART_ANNOTATION_TYPES.includes((item as ChartAnnotation).type)
+  );
+}
+
 /** 저장된 칸을 읽을 수 있는 주석으로 — 종류가 없거나 모르는 칸은 버리고 최대 `CHART_ANNOTATIONS_MAX`. */
 export function resolveAnnotations(raw: unknown): ChartAnnotation[] {
   if (!Array.isArray(raw)) return [];
-  const out: ChartAnnotation[] = [];
-  for (const item of raw) {
-    if (out.length >= CHART_ANNOTATIONS_MAX) break;
-    if (!item || typeof item !== "object") continue;
-    const a = item as ChartAnnotation;
-    if (!CHART_ANNOTATION_TYPES.includes(a.type)) continue;
-    out.push(a);
-  }
-  return out;
+  return raw.filter(isChartAnnotation).slice(0, CHART_ANNOTATIONS_MAX);
 }
-
-const num = (v: unknown): number => {
-  if (typeof v === "number") return v;
-  if (typeof v === "string" && v.trim() !== "") return Number(v);
-  return NaN;
-};
 const str = (v: unknown): string | undefined =>
   typeof v === "string" && v !== ""
     ? v
@@ -61,15 +54,29 @@ export function annotationValues(list: readonly ChartAnnotation[]): number[] {
   const out: number[] = [];
   for (const a of list)
     if (a.type === "band" && str(a.x) === undefined) {
-      const lo = num(a.y);
-      const hi = num(a.yEnd);
-      if (Number.isFinite(lo) && Number.isFinite(hi)) out.push(lo, hi);
+      const lo = toFiniteNumber(a.y);
+      const hi = toFiniteNumber(a.yEnd);
+      if (lo !== null && hi !== null) out.push(lo, hi);
     }
   return out;
 }
 
-/** 주석 · 손익 색을 그리는 시리즈 종류 (candlestick 은 family 가 따로 읽는다). */
-const ANNOTATED: ReadonlySet<string> = new Set(["line", "area", "bar"]);
+/** 주석을 그리는 시리즈 종류인가 (candlestick 은 family 가 따로 읽는다). */
+export function isAnnotatedType(chartType: string): boolean {
+  return chartType === "line" || chartType === "area" || chartType === "bar";
+}
+
+/** 손익 색이 켜졌는가 — line · area 의 겹치기 (누적은 나누지 않는다 — `styleSeriesMarks`). */
+export function signColorsOn(
+  props: Pick<ChartProps, "chartType" | "signColors">,
+  stackMode: StackMode,
+): boolean {
+  return (
+    props.signColors === true &&
+    stackMode === "none" &&
+    (props.chartType === "line" || props.chartType === "area")
+  );
+}
 
 /**
  * 값 축 범위에 넣을 값 전부 — 기준선 (ADR-217) + 값 구간 주석 + 손익 색 기준값 (누적이 아닐 때). layout ·
@@ -84,23 +91,15 @@ export function valueIncludes(
   stackMode: StackMode,
 ): readonly number[] {
   const base = referenceValues(presentation);
-  if (!ANNOTATED.has(props.chartType)) return base;
+  if (!isAnnotatedType(props.chartType)) return base;
   const extra = annotationValues(resolveAnnotations(props.annotations));
-  if (
-    props.signColors === true &&
-    stackMode === "none" &&
-    props.chartType !== "bar"
-  ) {
-    const b = num(props.baseline);
-    extra.push(Number.isFinite(b) ? b : 0);
-  }
+  if (signColorsOn(props, stackMode)) extra.push(signBaseline(props));
   return extra.length === 0 ? base : [...base, ...extra];
 }
 
 /** 손익 색 기준값 (비면 0). */
 export function signBaseline(props: Pick<ChartProps, "baseline">): number {
-  const b = num(props.baseline);
-  return Number.isFinite(b) ? b : 0;
+  return toFiniteNumber(props.baseline) ?? 0;
 }
 
 /** 예측이 시작하는 x (첫 `forecast` 주석의 `x`). */
@@ -133,19 +132,18 @@ export function annotationAxis(input: {
   range: readonly [number, number];
   positions?: readonly number[];
   timeScale?: LinearScale | null;
-  props: Pick<ChartProps, "dimensionFormat">;
+  props: Pick<ChartProps, "dimensionFormat" | "valueLocale">;
 }): AnnotationAxis {
   const { categories, band, positions, timeScale } = input;
   const center = (i: number) => band.at(i) + band.bandwidth / 2;
   const isTime = !!(timeScale && positions && positions.length > 0);
+  const parseTimeLabel = timeLabelParser(input.props);
   const half = isTime || !(band.step > 0) ? 0 : band.step / 2;
   const at = (v: string): number | null => {
     const i = categories.indexOf(v);
     if (i >= 0) return center(i);
     if (isTime) {
-      const t = input.props.dimensionFormat
-        ? parseTime(input.props.dimensionFormat, v)
-        : parseIsoStrict(v);
+      const t = parseTimeLabel(v);
       return t === null ? null : timeScale!(t);
     }
     return null;
@@ -284,9 +282,11 @@ export function buildAnnotationMarks(input: AnnotationInput): AnnotationMarks {
     const xEnd = str(a.xEnd);
     if (a.type === "band" && x === undefined) {
       // 값 구간 — accent 0.1 면 + 양 끝 파선.
-      const ya = value(num(a.y));
-      const yb = value(num(a.yEnd));
-      if (!Number.isFinite(ya) || !Number.isFinite(yb)) return;
+      const y0 = toFiniteNumber(a.y);
+      const y1 = toFiniteNumber(a.yEnd);
+      if (y0 === null || y1 === null) return;
+      const ya = value(y0);
+      const yb = value(y1);
       const c0 = clampC(Math.min(ya, yb));
       const c1 = clampC(Math.max(ya, yb));
       under.push({
@@ -404,7 +404,7 @@ export function buildAnnotationMarks(input: AnnotationInput): AnnotationMarks {
         .map((p) => ({ x: p.along, y: p.across }))
         .filter((q) => Number.isFinite(q.x) && Number.isFinite(q.y));
       const fit = linearFit(pts);
-      if (!fit || pts.length < 2) return;
+      if (!fit) return;
       const xa = pts[0].x;
       const xb = pts[pts.length - 1].x;
       over.push(

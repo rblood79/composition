@@ -130,6 +130,15 @@ export type SeriesGridProps = Pick<
     >
   >;
 
+/** ADR-306 Phase 6 — 시리즈마다 유한 값의 합 (강조의 max · min 비교 값). */
+export function seriesTotals(grid: Pick<SeriesGrid, "series">): number[] {
+  return grid.series.map((s) => {
+    let t = 0;
+    for (const v of s.values.values()) if (Number.isFinite(v)) t += v;
+    return t;
+  });
+}
+
 /**
  * ADR-216 — 시간 스케일의 범주 파서. `dimensionFormat` 이 있으면 지시자 (`parseTime`), 없으면
  * 엄격 ISO (`parseIsoStrict`). 둘 다 UTC · 달력 넘침 거부 (HC7). 실패는 null → 행 제외.
@@ -141,9 +150,22 @@ export function resolveDimensionParser(
   if (presentation.dimension.scale === "linear")
     return (label) => toFiniteNumber(label);
   if (presentation.dimension.scale !== "time") return null;
-  const format = presentation.dimension.format;
+  return timeLabelParser({
+    dimensionFormat: presentation.dimension.format,
+    valueLocale: presentation.numberFormat.locale,
+  });
+}
+
+/**
+ * 시간 축 범주 이름 → epoch — 격자와 같은 파서 (`dimensionFormat` 지시자 + 값 locale, 없으면 엄격 ISO).
+ * 주석 x · 예측 시작 · 띠 시작처럼 격자 밖에서 날짜를 읽는 곳도 이것을 쓴다.
+ */
+export function timeLabelParser(
+  props: Pick<ChartProps, "dimensionFormat" | "valueLocale">,
+): (label: string) => number | null {
+  const format = props.dimensionFormat;
   if (!format) return parseIsoStrict;
-  const locale = resolveTimeLocale(presentation.numberFormat.locale);
+  const locale = resolveTimeLocale(props.valueLocale);
   return (label) => parseTime(format, label, locale);
 }
 
