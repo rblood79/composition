@@ -31,8 +31,8 @@ describe("LayoutSection Gap input contract", () => {
     expect(field).toContain('units={["px"]}');
     expect(field).toContain("presets={SPACING_PRESET_OPTIONS}");
     expect(field).not.toContain("unitSuffix");
-    expect(field).toContain(
-      'icon={flexDirectionKeys[0] === "column" ? GapVertical : GapHorizontal}',
+    expect(field).toMatch(
+      /icon=\{\s*flexDirectionKeys\[0\] === "column" \? GapVertical : GapHorizontal\s*\}/,
     );
   });
 });

@@ -80,7 +80,7 @@ const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
  * Columns · Rows: a count combo like Gap (1 – 6 presets) — a new track is Fill, the sized ones stay;
  * a template the track list cannot show stays text.
  */
-const GridTrackField = memo(function GridTrackField({
+export const GridTrackField = memo(function GridTrackField({
   label,
   icon,
   value,
@@ -110,7 +110,10 @@ const GridTrackField = memo(function GridTrackField({
             { id: "auto", label: localize("Auto"), value: "auto" },
             ...GRID_TRACK_PRESETS,
           ]
-        : GRID_TRACK_PRESETS,
+        : [
+            { id: "auto-fit", label: "auto-fit", value: "auto-fit" },
+            ...GRID_TRACK_PRESETS,
+          ],
     [auto, localize],
   );
   const tracks = gridTrackList(value);
@@ -140,6 +143,9 @@ const GridTrackField = memo(function GridTrackField({
         const count = Number(next.trim());
         // Auto keeps the pinned items where they are (implicit rows hold them).
         if (!next.trim() || next.trim().toLowerCase() === "auto") onCommit("");
+        // Auto-fit opens the existing template editor; a typed count returns to this combo.
+        else if (!auto && next === "auto-fit")
+          onCommit("repeat(auto-fit, minmax(200px, 1fr))");
         else if (Number.isInteger(count) && count > 0)
           onCommit(
             gridTrackListTemplate(gridTrackListResized(tracks, count)),
@@ -613,7 +619,9 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
                 숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) */}
             <PropertyUnitInput
               label="Gap"
-              icon={flexDirectionKeys[0] === "column" ? GapVertical : GapHorizontal}
+              icon={
+                flexDirectionKeys[0] === "column" ? GapVertical : GapHorizontal
+              }
               className={`displayGap${sessionGap !== null ? " property-unit-input--session-active" : ""}`}
               value={sessionGap !== null ? `${sessionGap}px` : styleValues.gap}
               units={["px"]}

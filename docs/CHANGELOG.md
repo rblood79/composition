@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Grid Columns — auto-fit 입력 진입] - 2026-11-17
+
+### Fixed
+
+- **Columns 메뉴에 `auto-fit` 추가** — 선택하면 `repeat(auto-fit, minmax(200px, 1fr))`를 적용하고 기존 CSS 텍스트 입력으로 전환한다. 최소 너비를 직접 편집할 수 있고 숫자를 입력하면 고정 열 개수로 돌아온다. 기존 숫자 프리셋과 Rows Auto는 유지한다.
+  - **Why:** 복합 템플릿의 표시·편집 경로는 있었지만 숫자 입력에서 진입할 방법이 없었다.
+  - 위치: `apps/builder/src/builder/panels/styles/sections/LayoutSection.tsx`
+
 ## [S2 정렬 — 라벨 행 (FieldLabel) · Meter · ProgressBar 값 글자] - 2026-11-18
 
 ### Changed
