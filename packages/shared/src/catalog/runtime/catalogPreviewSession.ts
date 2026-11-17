@@ -82,6 +82,7 @@ import {
   ENDPOINT_LOAD_ARGUMENTS,
   endpointReadsTemplate,
   loadCollectionEndpoint,
+  type IntakeCollections,
   resolvedEndpointUrl,
 } from "../../collections/executeCollectionEndpoint";
 import {
@@ -93,6 +94,9 @@ import {
 import { catalogTableColumnKey } from "./tableSort";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
 import { catalogRuntimeData, type CatalogRuntimeData } from "./catalogData";
+import { normalizeRows } from "../../collections/intake/normalizeRows";
+import { intakeQueryItems } from "../../collections/intake/queryItems";
+import { coerceDateText } from "../../state/dateValueEditing";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -100,12 +104,13 @@ import { catalogRuntimeData, type CatalogRuntimeData } from "./catalogData";
  */
 export function catalogPreviewDataServices(
   endpoints: ApiEndpointDefinition[],
+  collections: IntakeCollections = [],
 ): CollectionDataServices {
   return {
     apiEndpointService: {
       getApiEndpoints: () => endpoints,
-      executeApiEndpoint: createCollectionEndpointExecutor(endpoints),
-      submitApiEndpoint: createCollectionEndpointSubmitter(endpoints),
+      executeApiEndpoint: createCollectionEndpointExecutor(endpoints, collections),
+      submitApiEndpoint: createCollectionEndpointSubmitter(endpoints, collections),
     },
   };
 }
@@ -557,6 +562,8 @@ export class CatalogPreviewSession {
     this.servicesOf = endpoints;
     this.services = catalogPreviewDataServices(
       endpoints as ApiEndpointDefinition[],
+      // (ADR-313 — the intake reads the collections as they are at each run.)
+      () => this.collections,
     );
   }
   private state: RuntimeStateHandle | undefined;
@@ -944,30 +951,23 @@ export class CatalogPreviewSession {
     return keys.flatMap((key) => (byKey.has(key) ? [byKey.get(key)] : []));
   }
   /**
-   * The schema's fields of a rule's value: a `number` field as a number, a `boolean` one as a
-   * boolean (a Form sends strings); a collection without a schema takes every field.
+   * The schema's fields of a rule's value, in the collection's stored values (ADR-313 Decision 4 — a
+   * Form's values are texts: the text rule reads them by the field's type and notation; values that
+   * already have a type are kept). A collection without a schema takes every field.
    */
   private itemFields(
     collection: CollectionDataSource,
     value: Readonly<Record<string, unknown>>,
   ): Record<string, unknown> {
     const schema = collection.schema ?? [];
-    const types = new Map(
-      schema.map((field) => [field.key, (field as { type?: string }).type]),
-    );
+    const keys = new Set(schema.map((field) => field.key));
     const next: Record<string, unknown> = {};
-    for (const [key, field] of Object.entries(value)) {
-      if (schema.length && !types.has(key)) continue;
-      const type = types.get(key);
-      if (type === "number" && typeof field === "string") {
-        const number = Number(field);
-        next[key] =
-          field.trim() === "" || Number.isNaN(number) ? field : number;
-      } else if (type === "boolean" && typeof field === "string")
-        next[key] = field === "true" || field === "on";
-      else next[key] = field;
-    }
-    return next;
+    for (const [key, field] of Object.entries(value))
+      if (!schema.length || keys.has(key)) next[key] = field;
+    if (!schema.length) return next;
+    return normalizeRows([next], schema, "text", {
+      readDateText: coerceDateText,
+    }).rows[0] as Record<string, unknown>;
   }
   private edit(
     collectionId: string,
@@ -1158,6 +1158,13 @@ export class CatalogPreviewSession {
       const fieldId = field.replace(/^data:field:/, "");
       return schema.find((item) => item.id === fieldId)?.key ?? fieldId;
     }
+    // (ADR-313 Decision 6 — no Tree names the key: the collection's key field, as the lists key it.)
+    if (role === "value") {
+      const keyField = this.collections.find(
+        (item) => item.id === collectionId,
+      )?.keyField;
+      if (keyField) return schema.find((item) => item.id === keyField)?.key;
+    }
     return undefined;
   }
   private childrenKeyOf(collectionId: string | undefined): string | undefined {
@@ -1284,8 +1291,10 @@ export class CatalogPreviewSession {
         page.cursor === undefined ? rest : { ...rest, cursor: page.cursor },
       );
       this.loadingStates.set(collectionId, "idle");
+      // (ADR-313 Decision 4 — the response in the collection's stored values.)
+      const intake = intakeQueryItems(page.items, this.collections.find((item) => item.id === collectionId));
       const items = (
-        Array.isArray(page.items) ? page.items : [page.items]
+        Array.isArray(intake) ? intake : [intake]
       ).filter(
         (item): item is Record<string, unknown> =>
           !!item && typeof item === "object",
@@ -1423,6 +1432,8 @@ export class CatalogPreviewSession {
                     key: field.key,
                     type: field.type,
                     ...(field.formula ? { formula: field.formula } : {}),
+                    // (ADR-313 — a value sent is written back with the field's notation.)
+                    ...(field.encoding ? { encoding: field.encoding } : {}),
                   },
                 ]
               : [],
@@ -2374,8 +2385,9 @@ export class CatalogPreviewSession {
         cursor,
       );
       if (unit.request !== controller) return;
+      const intake = intakeQueryItems(answer.items, this.collections.find((item) => item.id === id));
       unit.items = (
-        Array.isArray(answer.items) ? answer.items : [answer.items]
+        Array.isArray(intake) ? intake : [intake]
       ).filter(
         (item): item is Record<string, unknown> =>
           !!item && typeof item === "object",

@@ -19,6 +19,7 @@
  * or `enabled` reads a variable, and the controls whose rules set that variable. Re-entering edits
  * that condition; it never makes a second variable or rule.
  */
+import type { FieldEncoding } from "../../../../../packages/shared/src/collections/intake/encoding";
 import { catalogGroupSelectionStoreProp } from "../../../../../packages/shared/src/catalog/runtime/groupSelection";
 import { catalogActionsDeep } from "../../../../../packages/shared/src/catalog/document/interactionActions";
 import { registerCodeViewActions } from "./codeViewActions";
@@ -333,6 +334,7 @@ export function catalogViewFields(
           type?: string;
           reference?: { collectionId: string; keyField: string };
           formula?: string;
+          encoding?: FieldEncoding;
         }[];
       }
     | undefined,
@@ -347,11 +349,12 @@ export function catalogViewFields(
   const schema = viewRunSchema(table?.schema);
   const references = viewRunReferences(collections as never);
   const out: CatalogFilterField[] = schema.map(
-    ({ id, key, type, formula }) => ({
+    ({ id, key, type, formula, encoding }) => ({
       id,
       key,
       ...(type ? { type } : {}),
       ...(formula ? { formula } : {}),
+      ...(encoding ? { encoding } : {}),
     }),
   );
   for (const field of schema) {

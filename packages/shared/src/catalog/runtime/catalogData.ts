@@ -68,6 +68,7 @@ function collectionOf(
     mockData: entry.mockData as Row[],
     ...(rows ? { runtimeData: rows } : {}),
     useMockData: entry.useMockData,
+    ...(entry.keyField !== undefined ? { keyField: entry.keyField } : {}),
   };
   collectionCache.set(entry, { rows, source });
   return source;

@@ -185,10 +185,14 @@ describe("design-data 감사 §1-1 — 시맨틱 variant 미배선 회귀 가드
       fileURLToPath(new URL("../../components/Toast.tsx", import.meta.url)),
       "utf8",
     );
-    const runtimeScopes = [
-      ...new Set(regionSource.match(/\bcatalog-toast-shaped\b/g) ?? []),
-    ];
-    expect(runtimeScopes).toEqual(["catalog-toast-shaped"]);
+    // region 의 class 는 skin 접두사 (`${p}-shaped`) 로 만든다 (b77ecb88d — 빌더 알림과 앱 Toast 가 같은
+    //   region 을 다른 접두사로 쓴다). 스코프 = Preview · Publish skin (`CATALOG_TOAST_SKIN`) 의 접두사 + `-shaped`.
+    const appPrefix = regionSource.match(
+      /CATALOG_TOAST_SKIN:\s*ToastRegionSkin\s*=\s*\{\s*prefix:\s*"([\w-]+)"/,
+    )?.[1];
+    expect(appPrefix).toBe("catalog-toast");
+    expect(regionSource).toContain("${p}-shaped");
+    const runtimeScopes = [`${appPrefix}-shaped`];
     for (const scope of runtimeScopes)
       expect(
         toastSource.includes(scope),

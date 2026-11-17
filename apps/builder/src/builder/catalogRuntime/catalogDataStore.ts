@@ -71,6 +71,7 @@ export function toCollectionEntry(table: DataTable): CollectionEntry {
     schema: table.schema as unknown as CatalogDataField[],
     mockData: table.mockData,
     useMockData: table.useMockData,
+    ...(table.keyField !== undefined ? { keyField: table.keyField } : {}),
     ...(table.executionPolicy
       ? { executionPolicy: table.executionPolicy }
       : {}),

@@ -61,6 +61,17 @@ import { useFormulaEngine } from "../../../catalogRuntime/formulaEngine";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { planFieldRename } from "../utils/fieldRename";
 import {
+  ENCODING_PRESETS,
+  choiceId,
+  choiceLabel,
+  type ColumnChoice,
+} from "../utils/encodingChoices";
+import {
+  encodingChangeToOps,
+  previewEncodingChange,
+  type EncodingChangePreview,
+} from "../utils/encodingChange";
+import {
   COMPUTED_FIELD_GLYPH,
   FIELD_FORMATS,
   FIELD_TYPES,
@@ -409,6 +420,7 @@ export function ColumnEditor({
       existingKeys={table.schema.map((f) => f.key)}
       rows={table.mockData}
       field={field}
+      keyField={table.keyField}
       usage={usage}
       dt={dt}
       write={write}
@@ -425,6 +437,8 @@ interface FieldFormProps {
   existingKeys: string[];
   rows: readonly Record<string, unknown>[];
   field: DataField;
+  /** ADR-313 — the table's key field id. */
+  keyField?: string;
   usage: readonly FieldUsageRef[];
   dt: Dt;
   write: (ops: DataOp[], label?: string) => Promise<boolean>;
@@ -454,6 +468,7 @@ function FieldForm({
   existingKeys,
   rows,
   field,
+  keyField,
   usage,
   dt,
   write,
@@ -497,6 +512,50 @@ function FieldForm({
 
   const fieldId = field.id ?? field.key;
   const type = field.type;
+
+  // ADR-313 Decision 2 · 사용자 결정 6 — the value notation: a closed list (Y/N · a number text · a
+  // compact date …), picking one may change the type; the authored rows that read are rewritten, the
+  // rest asks clear / keep (the type change's rule).
+  const [pendingEncoding, setPendingEncoding] = useState<{
+    choice: ColumnChoice;
+    preview: EncodingChangePreview;
+  } | null>(null);
+  const storedChoice = useMemo<ColumnChoice | undefined>(
+    () => (field.encoding ? { type: field.type, encoding: field.encoding } : undefined),
+    [field.type, field.encoding],
+  );
+  const notationOptions = useMemo(() => {
+    const presets = [...ENCODING_PRESETS];
+    if (storedChoice && !presets.some((c) => choiceId(c) === choiceId(storedChoice)))
+      presets.push(storedChoice);
+    return [
+      { value: "", label: dt("fieldNotationNone") },
+      ...presets.map((choice) => ({ value: choiceId(choice), label: choiceLabel(choice, dt) })),
+    ];
+  }, [dt, storedChoice]);
+  const notationChoice = (id: string): ColumnChoice | undefined =>
+    id === ""
+      ? { type: field.type }
+      : ENCODING_PRESETS.find((c) => choiceId(c) === id) ??
+        (storedChoice && choiceId(storedChoice) === id ? storedChoice : undefined);
+  const requestNotation = (id: string) => {
+    const choice = notationChoice(id);
+    if (!choice || id === (storedChoice ? choiceId(storedChoice) : "")) return;
+    const remap = choice.type !== field.type ? remapDefault(field, choice.type).patch : {};
+    const preview = previewEncodingChange(field, choice, rows);
+    if (preview.invalidRowIndexes.length === 0) {
+      void write(encodingChangeToOps(collectionId, field, choice, preview, "keep", remap));
+      return;
+    }
+    setPendingEncoding({ choice, preview });
+  };
+  const applyNotation = async (mode: "keep" | "clear") => {
+    if (!pendingEncoding) return;
+    const { choice, preview } = pendingEncoding;
+    const remap = choice.type !== field.type ? remapDefault(field, choice.type).patch : {};
+    setPendingEncoding(null);
+    await write(encodingChangeToOps(collectionId, field, choice, preview, mode, remap));
+  };
 
   // The default as text — committed on blur · Enter (`coerceCellValue`), the stored value re-read
   // through `resolveFieldDefault` (a legacy text default shows coerced; a mismatch shows a note).
@@ -743,6 +802,19 @@ function FieldForm({
         ) : null}
         {computedDraft ? null : (
           <div className="fieldset-row" data-wide>
+            <PropertySelect
+              className="datatable-field-notation"
+              label={dt("fieldNotation")}
+              value={storedChoice ? choiceId(storedChoice) : ""}
+              optionValueMode="literal"
+              translateOptions={false}
+              options={notationOptions}
+              onChange={requestNotation}
+            />
+          </div>
+        )}
+        {computedDraft ? null : (
+          <div className="fieldset-row" data-wide>
             <FieldValueInput
               className="datatable-field-default"
               field={{ ...field, defaultValue: null }}
@@ -779,6 +851,25 @@ function FieldForm({
             onChange={(checked) => void patchField({ required: checked })}
           />
         </div>
+        {computed || !field.id ? null : (
+          <div className="fieldset-row" data-wide>
+            {/* ADR-313 Decision 6 — the table's key field (an item's key in every bound list). */}
+            <PropertySwitch
+              className="datatable-field-keyfield"
+              label={dt("fieldKeyField")}
+              isSelected={keyField === field.id}
+              onChange={(checked) =>
+                void write([
+                  {
+                    op: "update_collection",
+                    collectionId,
+                    patch: { keyField: checked ? field.id! : null },
+                  },
+                ])
+              }
+            />
+          </div>
+        )}
         {type === "reference" ? (
           <ReferenceTarget
             reference={field.reference}
@@ -850,6 +941,26 @@ function FieldForm({
         onConfirm={() => void applyTypeChange("clear")}
         onCancel={() => void applyTypeChange("keep")}
         onDismiss={() => setPendingType(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingEncoding !== null}
+        title={dt("fieldNotationChangeTitle", { key: field.key })}
+        message={
+          pendingEncoding
+            ? dt("fieldNotationInvalid", {
+                total: pendingEncoding.preview.total,
+                count: pendingEncoding.preview.invalidRowIndexes.length,
+                notation: choiceLabel(pendingEncoding.choice, dt),
+              })
+            : ""
+        }
+        tone="default"
+        confirmLabel={dt("fieldTypeChangeClear")}
+        cancelLabel={dt("fieldTypeChangeKeep")}
+        onConfirm={() => void applyNotation("clear")}
+        onCancel={() => void applyNotation("keep")}
+        onDismiss={() => setPendingEncoding(null)}
       />
     </div>
   );

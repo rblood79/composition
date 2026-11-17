@@ -5,6 +5,7 @@
  * DataChange (`importPlanToOps`: 새 열 add_field → replace_rows/insert_rows) 로 적용한다.
  * 모달이 아니라 격자 위 인라인 staging (스냅 패널 어법 HC2). 쓰기는 상위 `write` (applyDataChange).
  */
+import type { IntakeSource } from "../../../../../../../packages/shared/src/collections/intake/normalizeRows";
 import { useMemo, useState } from "react";
 import type { DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
@@ -14,6 +15,7 @@ import { PropertySegment } from "../../../components/property/PropertySegment";
 import type { DataField } from "../../../../types/builder/data.types";
 import { CompactSelect } from "../editors/CompactSelect";
 import {
+  importPlanReport,
   importPlanToOps,
   planImport,
   type ImportColumnAction,
@@ -22,6 +24,8 @@ import "./ImportPreview.css";
 
 export interface ImportPreviewProps {
   rows: Record<string, unknown>[];
+  /** ADR-313 — the source kind (JSON · CSV / tab text) the file told. */
+  source: IntakeSource;
   schema: readonly DataField[];
   collectionId: string;
   rowCount: number;
@@ -31,6 +35,7 @@ export interface ImportPreviewProps {
 
 export function ImportPreview({
   rows,
+  source,
   schema,
   collectionId,
   rowCount,
@@ -42,10 +47,27 @@ export function ImportPreview({
     key: string,
     params?: Record<string, string | number | boolean>,
   ) => t(`datatable.${key}`, params);
-  const base = useMemo(() => planImport(rows, schema), [rows, schema]);
+  const base = useMemo(
+    () => planImport(rows, schema, source),
+    [rows, schema, source],
+  );
   const [actions, setActions] = useState<Record<string, ImportColumnAction>>(
     () => Object.fromEntries(base.columns.map((c) => [c.sourceKey, c.action])),
   );
+  // ADR-313 G3 — what the import does not read as the target types (per source column): a JSON
+  // value of another type stays as is (counted), a text that does not read is emptied.
+  const report = useMemo(() => importPlanReport(base), [base]);
+  const countsOf = (key: string) =>
+    (
+      [
+        ["intakeTypeMismatch", report.typeMismatch[key]],
+        ["intakeUnread", report.unread[key]],
+        ["intakePrecision", report.precision[key]],
+      ] as const
+    )
+      .filter(([, count]) => !!count)
+      .map(([label, count]) => dt(label, { count: count! }))
+      .join(" · ");
   const [mode, setMode] = useState<"replace" | "append">("replace");
   const [busy, setBusy] = useState(false);
 
@@ -84,6 +106,11 @@ export function ImportPreview({
           <div className="datatable-import-col" key={col.sourceKey}>
             <span className="datatable-import-col-key">{col.sourceKey}</span>
             <span className="datatable-import-col-type">{col.type}</span>
+            {countsOf(col.sourceKey) ? (
+              <span className="datatable-import-col-counts">
+                {countsOf(col.sourceKey)}
+              </span>
+            ) : null}
             <CompactSelect
               value={actions[col.sourceKey] ?? col.action}
               onChange={(v) =>

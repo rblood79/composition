@@ -3408,6 +3408,31 @@ const semanticLabels: Record<string, string> = {
   "datatable.fields.jsonSchema": "JSON 스키마",
   "datatable.fields.jsonSchemaHint": "JSON Schema URL 또는 인라인 스키마",
   "datatable.fields.examples": "예시",
+  // ADR-313 — intake: value notation · key field
+  "datatable.exportSchemaCopy": "JSON Schema 복사",
+  "datatable.exportSchemaFile": "JSON Schema 내보내기",
+  "datatable.methodSchema": "스키마",
+  "datatable.schemaDrop": "api-docs (OpenAPI) · JSON Schema 파일을 놓거나 클릭",
+  "datatable.schemaPaste": "또는 JSON 붙여넣기",
+  "datatable.schemaPick": "스키마",
+  "datatable.schemaRows": "행 위치",
+  "datatable.schemaRowsWhole": "스키마 자체 (한 행)",
+  "datatable.schemaEndpoint": "API 정의도 만들기",
+  "datatable.schemaNotJson": "JSON 문서가 아닙니다. api-docs 를 JSON 으로 내보내세요 (YAML 은 읽지 않습니다).",
+  "datatable.schemaNotSchema": "이 문서에서 객체 스키마를 찾지 못했습니다.",
+  "datatable.intakeKeyField": "key 필드",
+  "datatable.intakeKeyNone": "없음",
+  "datatable.intakeKeySuggested": "key 후보",
+  "datatable.intakeSuggested": "표본에서 제안",
+  "datatable.notation.wire.number": "숫자",
+  "datatable.notation.wire.string": "글자",
+  "datatable.notation.numberText": "글자로 쓴 숫자",
+  "datatable.notation.datePartsDate": "[연, 월, 일]",
+  "datatable.notation.datePartsDateTime": "[연, 월, 일, 시, 분]",
+  "datatable.notation.bigInt": "큰 정수 (글자로 보존)",
+  "datatable.fieldNotation": "값 표현",
+  "datatable.fieldNotationNone": "JSON 값 그대로",
+  "datatable.fieldKeyField": "key 필드",
   "datatable.types.string": "문자열",
   "datatable.types.number": "숫자",
   "datatable.types.boolean": "불리언",
@@ -3619,6 +3644,39 @@ const formattedMessages: Record<
     `붙여넣은 데이터에 열이 ${String(args?.count ?? 0)}개 더 있습니다 (${String(args?.keys ?? "")}). 새 필드로 추가할까요?`,
   "datatable.gridImported": (args) =>
     `CSV ${String(args?.rows ?? 0)}개 행으로 교체했습니다.`,
+  // ADR-313 — intake counts · notation labels
+  "datatable.schemaCopied": (args) =>
+    `"${String(args?.name ?? "")}" 의 JSON Schema 를 복사했습니다.`,
+  "datatable.schemaPreview": (args) =>
+    `열 — ${String(args?.fields ?? 0)}개 필드`,
+  "datatable.schemaNotImported": (args) =>
+    `가져오지 않은 것 (${String(args?.count ?? 0)})`,
+  "datatable.schemaReportConstruct": (args) =>
+    `${String(args?.name ?? "")} — 읽지 않음`,
+  "datatable.schemaReportConstraint": (args) =>
+    `${String(args?.name ?? "")} — 저장하지 않음 (규칙)`,
+  "datatable.schemaNumericNames": (args) =>
+    `숫자 이름의 속성은 순서가 바뀔 수 있습니다: ${String(args?.names ?? "")}`,
+  "datatable.intakeTypeMismatch": (args) =>
+    `타입과 다른 셀 ${String(args?.count ?? 0)}`,
+  "datatable.intakeUnread": (args) =>
+    `읽지 못한 셀 ${String(args?.count ?? 0)}`,
+  "datatable.intakePrecision": (args) =>
+    `정밀도를 잃는 셀 ${String(args?.count ?? 0)}`,
+  "datatable.notation.flag": (args) =>
+    `${String(args?.true ?? "")} / ${String(args?.false ?? "")}`,
+  "datatable.notation.compactDate": (args) =>
+    `YYYYMMDD (${String(args?.wire ?? "")})`,
+  "datatable.notation.compactDateTime": (args) =>
+    `YYYYMMDDHHmmss (${String(args?.wire ?? "")})`,
+  "datatable.notation.epochMs": (args) =>
+    `epoch 밀리초 (${String(args?.wire ?? "")})`,
+  "datatable.notation.epochSec": (args) =>
+    `epoch 초 (${String(args?.wire ?? "")})`,
+  "datatable.fieldNotationChangeTitle": (args) =>
+    `"${String(args?.key ?? "")}" 의 값 표현 바꾸기`,
+  "datatable.fieldNotationInvalid": (args) =>
+    `${String(args?.total ?? 0)} 행 중 ${String(args?.count ?? 0)} 행은 ${String(args?.notation ?? "")} 로 읽히지 않습니다.`,
   "datatable.fieldUsedBy": (args) => `사용처 ${String(args?.count ?? 0)}`,
   "datatable.fieldDeleteConfirmTitle": (args) =>
     `"${String(args?.key ?? "")}" 필드 삭제`,

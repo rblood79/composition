@@ -6,6 +6,7 @@ import type {
   VariableOwner,
 } from "@composition/shared";
 import type { EndpointQuerySerialization } from "../../../../../packages/shared/src/collections/view/serialize";
+import type { FieldEncoding } from "../../../../../packages/shared/src/collections/intake/encoding";
 
 export type { ExecutionPolicy } from "@composition/shared";
 
@@ -74,6 +75,9 @@ export interface DataField {
   /** ADR-284 — `type: "reference"`: the target collection and the field its key matches. */
   reference?: { collectionId: string; keyField: string };
 
+  /** ADR-313 — how the source carries this field in JSON (rows keep the type's canonical value). */
+  encoding?: FieldEncoding;
+
   /** ADR-291 — a computed field: its json-formula expression over field ids (`type` = the result type). */
   formula?: string;
 }
@@ -101,6 +105,9 @@ export interface DataTable {
   /** true면 mockData 사용, false면 API 결과 사용 */
   useMockData: boolean;
 
+  /** ADR-313 — the key field's id (a row's item key). */
+  keyField?: string;
+
   /** ADR-218 — 실행 정책. 미설정 = manual (BC read 호환). */
   executionPolicy?: ExecutionPolicy;
 
@@ -115,6 +122,8 @@ export type DataTableCreate = Pick<DataTable, "name" | "project_id"> & {
   schema?: DataField[];
   mockData?: Record<string, unknown>[];
   useMockData?: boolean;
+  /** ADR-313 — the key field's id (a field of `schema`). */
+  keyField?: string;
 };
 
 /**
@@ -175,12 +184,6 @@ export interface PaginationConfig {
 export interface ResponseMapping {
   /** JSON Path to data array/object (예: "data", "response.items", "results") */
   dataPath: string;
-
-  /** 필드 매핑 (선택적, 이름 변환용) */
-  fieldMappings?: {
-    sourceKey: string; // API 응답 필드
-    targetKey: string; // DataTable 필드
-  }[];
 
   /** 페이지네이션 설정 (선택적) */
   pagination?: PaginationConfig;

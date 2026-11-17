@@ -10,6 +10,7 @@
  * `items.filter(…conditions with empty values passing…).toSorted(collator…)`, a count is
  * `reduce`.
  */
+import type { FieldEncoding } from "../intake/encoding";
 import type {
   DataFieldPath,
   ViewAggregate,
@@ -43,6 +44,8 @@ export interface ViewRunField {
    * (`'f-price' * 'f-qty'`), written onto the rows before the views read them (`withComputedCells`).
    */
   formula?: string;
+  /** ADR-313 — how the source carries the field: a value sent to the server is written back with it. */
+  encoding?: FieldEncoding;
 }
 
 /** A referenced collection as the run reads it (the target of a reference field). */
@@ -91,6 +94,7 @@ export function viewRunSchema(
         type?: string;
         reference?: { collectionId: string; keyField: string };
         formula?: string;
+        encoding?: FieldEncoding;
       }[]
     | undefined,
 ): ViewRunField[] {
@@ -103,6 +107,7 @@ export function viewRunSchema(
             ...(field.type ? { type: field.type } : {}),
             ...(field.reference ? { reference: field.reference } : {}),
             ...(field.formula ? { formula: field.formula } : {}),
+            ...(field.encoding ? { encoding: field.encoding } : {}),
           },
         ]
       : [],

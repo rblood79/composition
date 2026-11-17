@@ -298,7 +298,7 @@ export function useCollectionData({
           type: field.type,
           label: field.label,
         }));
-        return { ...snapshot, schema };
+        return { ...snapshot, schema, keyField: table.keyField };
       }
     }
     return null;
@@ -570,6 +570,7 @@ export function useCollectionData({
     reload,
     clearCache,
     schema: dataTableResult?.schema,
+    keyField: dataTableResult?.keyField,
     sort,
     filterText,
     setFilterText,

@@ -1,3 +1,4 @@
+import type { FieldEncoding } from "./intake/encoding";
 import {
   registerFieldIds,
   resolveFieldRef,
@@ -144,9 +145,13 @@ export type CollectionDataSource = {
     reference?: { collectionId: string; keyField: string };
     /** ADR-291 — a computed field's formula (over field ids). */
     formula?: string;
+    /** ADR-313 — how the source carries the field in JSON. */
+    encoding?: FieldEncoding;
   }[];
   runtimeData?: Record<string, unknown>[];
   useMockData?: boolean;
+  /** ADR-313 Decision 6 — the key field's id: an item's key after the binding's `fieldMap.value`. */
+  keyField?: string;
 };
 
 /**
@@ -279,9 +284,15 @@ const FIELD_ROLE_KEYS = ["value", "children", "parentId"] as const;
 export function resolveFieldRoles(
   dataBinding: unknown,
   schema?: readonly { id?: string; key: string }[],
+  keyField?: string,
 ): CollectionFieldRoles | undefined {
-  if (!isRecord(dataBinding) || !isRecord(dataBinding.fieldMap))
-    return undefined;
+  if (!isRecord(dataBinding)) return undefined;
+  // (ADR-313 Decision 6 — an item's key: the binding's `fieldMap.value` → the collection's key field.)
+  const keyName = keyField
+    ? schema?.find((field) => field.id === keyField)?.key
+    : undefined;
+  if (!isRecord(dataBinding.fieldMap))
+    return keyName !== undefined ? { value: keyName } : undefined;
   const fieldMap = dataBinding.fieldMap;
   const roles: CollectionFieldRoles = {};
   for (const role of FIELD_ROLE_KEYS) {
@@ -292,6 +303,7 @@ export function resolveFieldRoles(
       : (resolveFieldRef(`#${ref}`) ?? ref);
     roles[role] = key;
   }
+  if (roles.value === undefined && keyName !== undefined) roles.value = keyName;
   return roles.value !== undefined ||
     roles.children !== undefined ||
     roles.parentId !== undefined
@@ -309,7 +321,7 @@ function resolveInputFieldRoles(
     input.dataBinding,
     input.collections ?? [],
   );
-  return resolveFieldRoles(input.dataBinding, table?.schema);
+  return resolveFieldRoles(input.dataBinding, table?.schema, table?.keyField);
 }
 
 /** 고정 필드 우선순위로 string 값 추출 (number 는 String 변환). */

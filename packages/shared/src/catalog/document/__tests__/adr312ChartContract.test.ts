@@ -61,7 +61,7 @@ const documentWithChart = (props: NodeEntry["props"]) => {
 
 describe("ADR-312 Phase 2 — Chart 저장 계약 (contract 69)", () => {
   it("contract 69 — 68 문서는 거부된다", async () => {
-    expect(LIBRARY_CONTRACT_VERSION).toBe(69);
+    expect(LIBRARY_CONTRACT_VERSION).toBeGreaterThanOrEqual(69); // ADR-313 Phase 1 이 70 으로
     const library = await buildCodeCatalogLibrary();
     const { document } = createG1Fixture();
     failureCode(

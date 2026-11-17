@@ -27,9 +27,10 @@ describe("planImport", () => {
   });
 });
 
+// (ADR-313 — 글자 원본 (CSV · 탭) 은 대상 열 타입으로 읽고, JSON 원본은 선언 없는 값을 바꾸지 않는다.)
 describe("importPlanToOps", () => {
-  it("replace + 새 열 추가 → add_field 먼저, 그 다음 replace_rows (강제 타입)", () => {
-    const plan = planImport(rows, schema);
+  it("replace + 새 열 추가 → add_field 먼저, 그 다음 replace_rows (글자 원본은 열 타입으로)", () => {
+    const plan = planImport(rows, schema, "text");
     const ops = importPlanToOps(plan, {
       collectionId: "c1",
       mode: "replace",
@@ -47,14 +48,14 @@ describe("importPlanToOps", () => {
     ]);
   });
   it("append → insert_rows (끝에)", () => {
-    const plan = planImport([{ id: "3", name: "Cy" }], schema);
+    const plan = planImport([{ id: "3", name: "Cy" }], schema, "text");
     const ops = importPlanToOps(plan, { collectionId: "c1", mode: "append", at: 5 });
     expect(ops).toEqual([
       { op: "insert_rows", collectionId: "c1", rows: [{ id: 3, name: "Cy" }], at: 5 },
     ]);
   });
   it("ignore 한 열은 add_field·행에서 빠진다", () => {
-    const plan = planImport(rows, schema);
+    const plan = planImport(rows, schema, "text");
     plan.columns[2].action = "ignore"; // city 무시
     const ops = importPlanToOps(plan, { collectionId: "c1", mode: "replace" });
     expect(ops.some((o) => o.op === "add_field")).toBe(false);
@@ -62,9 +63,15 @@ describe("importPlanToOps", () => {
     expect(replace.rows[0]).toEqual({ id: 1, name: "Ann" });
   });
   it("강제 실패 셀은 null (0 아님)", () => {
-    const plan = planImport([{ id: "x", name: "Ann" }], schema);
+    const plan = planImport([{ id: "x", name: "Ann" }], schema, "text");
     const ops = importPlanToOps(plan, { collectionId: "c1", mode: "replace" });
     const replace = ops.find((o) => o.op === "replace_rows") as { rows: Record<string, unknown>[] };
     expect(replace.rows[0]).toEqual({ id: null, name: "Ann" });
+  });
+  it("ADR-313 — JSON 원본은 선언 없는 값을 그대로 둔다 (전후 표 2 행)", () => {
+    const plan = planImport([{ id: "3", name: "Cy" }], schema);
+    const ops = importPlanToOps(plan, { collectionId: "c1", mode: "replace" });
+    const replace = ops.find((o) => o.op === "replace_rows") as { rows: Record<string, unknown>[] };
+    expect(replace.rows[0]).toEqual({ id: "3", name: "Cy" });
   });
 });

@@ -38,6 +38,22 @@
   line-height: 1.5;
 }
 
+/* ADR-313 — the schema import's 「Not imported」 list (constructs · rules it does not keep). */
+.creator-schema-report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+.creator-schema-report code {
+  color: var(--fg);
+}
+
 /* ============================================
    Preset Grid - extends common list-group
    ============================================ */

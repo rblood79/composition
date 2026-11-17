@@ -20,6 +20,8 @@
  * - 붙여넣기 (⌘V, 셀 포커스): `planGridPaste` → 넘치는 열은 `ConfirmDialog` "새 필드로 추가?".
  *   파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음).
  */
+import { fieldsToJsonSchema } from "../utils/fieldsToJsonSchema";
+import type { IntakeSource } from "../../../../../../../packages/shared/src/collections/intake/normalizeRows";
 import { useTableNavigationLock } from "../../../hooks/useTableNavigationLock";
 import { resolveField, type DataOp } from "@composition/shared";
 
@@ -225,9 +227,11 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const [frozenKeys, setFrozenKeys] = useState<readonly string[]>([]);
   const [pendingPaste, setPendingPaste] = useState<GridPastePlan | null>(null);
   const [focusRequest, setFocusRequest] = useState<CellCoord | null>(null);
-  const [importRows, setImportRows] = useState<
-    Record<string, unknown>[] | null
-  >(null);
+  // (ADR-313 — the rows with the source kind their file told: JSON · CSV text.)
+  const [importRows, setImportRows] = useState<{
+    rows: Record<string, unknown>[];
+    source: IntakeSource;
+  } | null>(null);
   const [addingField, setAddingField] = useState(false);
   // ADR-289 Decision 1 — the row form (Insert row… · ↗ Update row · Shift+Enter) beside the grid.
   const [rowForm, setRowForm] = useState<RowFormMode | null>(null);
@@ -552,7 +556,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     ): Promise<boolean> => {
       const field = fieldByKey.get(coord.key);
       if (!field) return false;
-      const coerced = coerceCellValue(field.type, raw);
+      const coerced = coerceCellValue(field.type, raw, field.encoding);
       if (!coerced.ok) {
         globalToast.error(t("gridCellInvalid", { type: field.type }));
         return false;
@@ -811,7 +815,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               finish();
               return;
             }
-            setImportRows(parsed.rows);
+            setImportRows({ rows: parsed.rows, source: "json" });
             finish();
             return;
           }
@@ -827,7 +831,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                 finish();
                 return;
               }
-              setImportRows(rows);
+              setImportRows({ rows, source: "text" });
               finish();
             },
             error: (error: Error) => {
@@ -891,6 +895,31 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       URL.revokeObjectURL(url);
     },
     [serializeRows, table.name],
+  );
+  const exportSchema = useCallback(
+    async (to: "schemaCopy" | "schemaFile") => {
+      const text = JSON.stringify(fieldsToJsonSchema(table), null, 2);
+      if (to === "schemaCopy") {
+        try {
+          await navigator.clipboard.writeText(text);
+          announceDataPanelStatus(t("schemaCopied", { name: table.name }), {
+            tone: "success",
+          });
+        } catch {
+          globalToast.error(t("gridCopyFailed"));
+        }
+        return;
+      }
+      const url = URL.createObjectURL(
+        new Blob([text], { type: "application/schema+json;charset=utf-8;" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${table.name || "data"}.schema.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    [table, t],
   );
   const selectedRows = useMemo(
     () => selectedRowIndexes.map((index) => rows[index]).filter(Boolean),
@@ -1190,12 +1219,22 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
             <ToolbarMenu
               label={t("export")}
               icon={<Download {...iconEditProps} />}
-              isDisabled={rows.length === 0}
+              isDisabled={rows.length === 0 && schema.length === 0}
               items={[
-                { id: "csv", label: t("exportCsv") },
-                { id: "json", label: t("exportJson") },
+                ...(rows.length
+                  ? [
+                      { id: "csv", label: t("exportCsv") },
+                      { id: "json", label: t("exportJson") },
+                    ]
+                  : []),
+                // ADR-313 Decision 8 — the table's columns as JSON Schema (copy · file).
+                { id: "schemaCopy", label: t("exportSchemaCopy") },
+                { id: "schemaFile", label: t("exportSchemaFile") },
               ]}
-              onAction={(id) => exportRows(rows, id as "csv" | "json")}
+              onAction={(id) => {
+                if (id === "schemaCopy" || id === "schemaFile") void exportSchema(id);
+                else exportRows(rows, id as "csv" | "json");
+              }}
             />
           )}
         </div>
@@ -1207,7 +1246,8 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       )}
       {importRows && (
         <ImportPreview
-          rows={importRows}
+          rows={importRows.rows}
+          source={importRows.source}
           schema={schema}
           collectionId={collectionId}
           rowCount={rows.length}

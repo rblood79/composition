@@ -5,8 +5,12 @@
  *
  * - JSON: 배열이면 그대로, 객체면 관례 키 안의 배열 (`resolveResponseData` — Track 0 과 같은 규칙)
  * - 표: 첫 줄 헤더. 탭이 있으면 탭, 없으면 쉼표 (따옴표 감싼 값 안의 쉼표 보존).
- *   숫자 · true/false 는 형변환, 빈 칸은 null — `detectColumns` 가 타입을 추론한다.
+ *   ADR-313 — 셀은 글자 그대로 (빈 칸은 null). 글자에는 타입이 없다: `detectColumns(rows, "text")` 가 열
+ *   단위로 타입을 정하고 변환기 (`normalizeRows(…, "text")`) 가 그 타입으로 읽는다 (`01234` 는 글자로 남는다).
+ * - JSON 은 큰 정수를 보존해 읽는다 (`parseJsonLossless` — 2^53 을 넘는 정수 literal 은 글자).
  */
+import { parseJsonLossless } from "../../../../../../../packages/shared/src/collections/intake/parseJsonLossless";
+import type { IntakeSource } from "../../../../../../../packages/shared/src/collections/intake/normalizeRows";
 import { resolveResponseData } from "../../../../utils/data/responseData";
 
 export type PastedRowsParseReason =
@@ -38,7 +42,7 @@ function parseJson(text: string): PastedRowsParseResult | null {
   if (head !== "[" && head !== "{") return null;
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = parseJsonLossless(text);
   } catch {
     return null;
   }
@@ -71,13 +75,15 @@ function splitCsvLine(line: string): string[] {
   return cells;
 }
 
-function coerceCell(raw: string): unknown {
+/** A table cell: its text (no type — ADR-313 §2.3), an empty cell `null`. */
+function cellText(raw: string): string | null {
   const value = raw.trim();
-  if (value === "") return null;
-  if (value === "true") return true;
-  if (value === "false") return false;
-  if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
-  return value;
+  return value === "" ? null : value;
+}
+
+/** The source kind a paste's format tells the intake (ADR-313 Decision 4 — never guessed from values). */
+export function pastedRowsSource(format: "json" | "table"): IntakeSource {
+  return format === "json" ? "json" : "text";
 }
 
 function parseTable(text: string): PastedRowsParseResult {
@@ -94,7 +100,7 @@ function parseTable(text: string): PastedRowsParseResult {
     const cells = split(line);
     const row: Record<string, unknown> = {};
     header.forEach((key, i) => {
-      row[key] = coerceCell(cells[i] ?? "");
+      row[key] = cellText(cells[i] ?? "");
     });
     return row;
   });

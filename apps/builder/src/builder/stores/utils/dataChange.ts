@@ -27,6 +27,7 @@ import type { EndpointQuerySerialization } from "../../../../../../packages/shar
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
 import { variableDefaultForType } from "../../../../../../packages/shared/src/catalog/runtime/variableTypeChange";
+import { ENCODING_FIELD_TYPE } from "../../../../../../packages/shared/src/collections/intake/encodingKinds";
 import type {
   ApiEndpoint,
   DataField,
@@ -599,6 +600,7 @@ function reduceOne(
         schema: op.schema as DataField[],
         mockData: (op.rows ?? []) as Row[],
         useMockData: op.source !== "api",
+        ...(op.keyField !== undefined ? { keyField: op.keyField } : {}),
         created_at: stamp,
         updated_at: stamp,
       }).collection;
@@ -631,13 +633,20 @@ function reduceOne(
         schema: existing.schema,
         rows: existing.mockData,
         source: existing.useMockData ? "manual" : "api",
+        ...(existing.keyField !== undefined
+          ? { keyField: existing.keyField }
+          : {}),
       });
       return;
     }
     case "update_collection": {
       const existing = requireCollection(collections, op);
       const next: DataTable = { ...existing };
-      const prev: { name?: string; description?: string | null } = {};
+      const prev: {
+        name?: string;
+        description?: string | null;
+        keyField?: string | null;
+      } = {};
       if (op.patch.name !== undefined) {
         prev.name = existing.name;
         next.name = op.patch.name;
@@ -646,6 +655,11 @@ function reduceOne(
         prev.description = existing.description ?? null;
         if (op.patch.description === null) delete next.description;
         else next.description = op.patch.description;
+      }
+      if (op.patch.keyField !== undefined) {
+        prev.keyField = existing.keyField ?? null;
+        if (op.patch.keyField === null) delete next.keyField;
+        else next.keyField = op.patch.keyField;
       }
       touch(next);
       out.applied.push(op);
@@ -684,7 +698,14 @@ function reduceOne(
       const existing = requireCollection(collections, op);
       const index = requireFieldIndex(existing, op.fieldId, op);
       const field = existing.schema[index];
-      const patch = op.patch as Record<string, unknown>;
+      // ADR-313 — a type change drops a value notation the new type does not take (inverse restores it).
+      const patch =
+        op.patch.type !== undefined &&
+        op.patch.encoding === undefined &&
+        field.encoding &&
+        ENCODING_FIELD_TYPE[field.encoding.kind] !== op.patch.type
+          ? { ...(op.patch as Record<string, unknown>), encoding: null }
+          : (op.patch as Record<string, unknown>);
       const nextField = applyFieldPatch(field, patch);
       if (!nextField.key)
         throw new DataChangeError("필드 key 는 비울 수 없습니다", op);
@@ -720,11 +741,22 @@ function reduceOne(
       const existing = requireCollection(collections, op);
       const index = requireFieldIndex(existing, op.fieldId, op);
       const field = existing.schema[index];
-      touch({
+      // ADR-313 — removing the key field clears the collection's key (inverse sets it back after the field).
+      const wasKey =
+        existing.keyField !== undefined && existing.keyField === field.id;
+      const next: DataTable = {
         ...existing,
         schema: existing.schema.filter((_, i) => i !== index),
-      });
+      };
+      if (wasKey) delete next.keyField;
+      touch(next);
       out.applied.push({ ...op, fieldId: field.id ?? op.fieldId });
+      if (wasKey)
+        out.inverse.unshift({
+          op: "update_collection",
+          collectionId: op.collectionId,
+          patch: { keyField: existing.keyField },
+        });
       out.inverse.unshift({
         op: "add_field",
         collectionId: op.collectionId,

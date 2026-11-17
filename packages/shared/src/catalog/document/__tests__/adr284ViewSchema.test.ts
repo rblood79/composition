@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../graph";
-import type {
-  CatalogEntry,
-  EntryId,
-  InteractionEntry,
-  NodeEntry,
-  StateVariableEntry,
-  ViewEntry,
+import {
+  LIBRARY_CONTRACT_VERSION,
+  type CatalogEntry,
+  type EntryId,
+  type InteractionEntry,
+  type NodeEntry,
+  type StateVariableEntry,
+  type ViewEntry,
 } from "../types";
 import {
   addView,
@@ -69,7 +70,7 @@ describe("ADR-284 — the view shape", () => {
       accepted([bound({ view: { where: { ...where, items: [gender] } } })]),
     ).toBe("ACCEPTED");
     expect(accepted([bound({ viewId: VIEW })], [shared()])).toBe("ACCEPTED");
-    expect(documentOf([], []).libraryContractVersion).toBe(69);
+    expect(documentOf([], []).libraryContractVersion).toBe(LIBRARY_CONTRACT_VERSION);
   });
 
   it("refuses: both view and viewId · grouping in a built-in view · an empty `or` · duplicate ids", () => {

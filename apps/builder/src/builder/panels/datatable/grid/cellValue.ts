@@ -5,53 +5,29 @@
  * `null` — 값을 0 이나 오늘 날짜로 바꿔 넣지 않는다 (UX-3, 리서치 U6 의 `convertValueToType`
  * 와 다른 점). 빈 입력은 어느 타입이든 `null` (성공).
  */
-import type { DataFieldType } from "../../../../types/builder/data.types";
+import type { DataField, DataFieldType } from "../../../../types/builder/data.types";
 import { coerceDateText } from "../../../../../../../packages/shared/src/state/dateValueEditing";
+import { readEncodedText } from "../../../../../../../packages/shared/src/collections/intake/encoding";
+import { readTextCell } from "../../../../../../../packages/shared/src/collections/intake/normalizeRows";
 
 export type CoercedCell =
   { ok: true; value: unknown } | { ok: false; value: null };
 
 const FAIL: CoercedCell = { ok: false, value: null };
-const EMPTY: CoercedCell = { ok: true, value: null };
 
-export function coerceCellValue(type: DataFieldType, raw: string): CoercedCell {
-  const text = raw.trim();
-  if (text === "") return EMPTY;
-  switch (type) {
-    case "number": {
-      if (!/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(text)) return FAIL;
-      const value = Number(text);
-      return Number.isFinite(value) ? { ok: true, value } : FAIL;
-    }
-    case "boolean": {
-      const lower = text.toLowerCase();
-      if (["true", "1", "yes", "y"].includes(lower))
-        return { ok: true, value: true };
-      if (["false", "0", "no", "n"].includes(lower))
-        return { ok: true, value: false };
-      return FAIL;
-    }
-    case "date": {
-      // (The variables' date — an ISO text whose shape says its precision; a looser text the
-      //   browser reads becomes a day · a day and time, `coerceDateText`.)
-      const value = coerceDateText(text);
-      return value === undefined ? FAIL : { ok: true, value };
-    }
-    case "array":
-    case "object": {
-      // (One JSON type on screen — an object or an array, 2026-10-29.)
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        return FAIL;
-      }
-      if (typeof parsed !== "object" || parsed === null) return FAIL;
-      return { ok: true, value: parsed };
-    }
-    default:
-      return { ok: true, value: text };
-  }
+/**
+ * ADR-313 Decision 4 — 격자 입력 · 붙여넣기 · 행 양식은 글자 원본이다: 선언의 표기 (`encoding` — `"Y"`)
+ * 를 먼저 읽고, 아니면 열 타입의 글자 읽기 (shared `readTextCell` — 진입 변환기와 같은 함수). 수로 정확히
+ * 옮겨지지 않는 숫자 글자 (`9007199254740993`) 는 실패다 (HC7 — 근삿값을 넣지 않는다).
+ */
+export function coerceCellValue(
+  type: DataFieldType,
+  raw: string,
+  encoding?: DataField["encoding"],
+): CoercedCell {
+  const declared = encoding ? readEncodedText(encoding, raw) : undefined;
+  const read = declared ?? readTextCell(type, raw, coerceDateText);
+  return read.ok ? { ok: true, value: read.value } : FAIL;
 }
 
 export function formatCellValue(value: unknown): string {

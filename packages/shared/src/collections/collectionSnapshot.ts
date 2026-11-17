@@ -40,13 +40,15 @@ export function resolveCollectionSnapshot<
 export function toRuntimeCollection(
   table: DataTableDefinition,
 ): DataTableDefinition {
-  const { id, name, schema, mockData, useMockData } = table;
+  const { id, name, schema, mockData, useMockData, keyField } = table;
   return {
     id,
     name,
     ...(schema !== undefined ? { schema } : {}),
     ...(mockData !== undefined ? { mockData } : {}),
     ...(useMockData !== undefined ? { useMockData } : {}),
+    // (ADR-313 — the item key reads it in publish too.)
+    ...(keyField !== undefined ? { keyField } : {}),
   };
 }
 
@@ -122,8 +124,8 @@ export function createCollectionSnapshotServices(
     },
     apiEndpointService: {
       getApiEndpoints: () => endpoints,
-      executeApiEndpoint: createCollectionEndpointExecutor(endpoints),
-      submitApiEndpoint: createCollectionEndpointSubmitter(endpoints),
+      executeApiEndpoint: createCollectionEndpointExecutor(endpoints, tables),
+      submitApiEndpoint: createCollectionEndpointSubmitter(endpoints, tables),
     },
   };
 }

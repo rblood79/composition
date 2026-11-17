@@ -15,8 +15,11 @@ import {
 } from "../../../builder/panels/datatable/utils/columnDetector";
 import {
   parsePastedRows,
+  pastedRowsSource,
   type PastedRowsParseReason,
 } from "../../../builder/panels/datatable/utils/pasteRows";
+import { intakeRows } from "../../../builder/panels/datatable/utils/intakeRows";
+import type { IntakeField } from "../../../../../../packages/shared/src/collections/intake/normalizeRows";
 import {
   curlToEndpointDraft,
   looksLikeCurl,
@@ -28,7 +31,12 @@ export interface PasteProposalOptions {
   name?: string;
   /** 있으면 기존 collection 에 행 추가 */
   collectionId?: string;
-  collections: readonly { id: string; name: string }[];
+  collections: readonly {
+    id: string;
+    name: string;
+    /** ADR-313 — the target's fields: pasted rows are read into their stored values. */
+    schema?: readonly IntakeField[];
+  }[];
 }
 
 export type PasteProposal =
@@ -84,26 +92,30 @@ export function buildPasteProposal(
   const parsed = parsePastedRows(text);
   if (!parsed.ok) return { kind: "error", reason: `paste-${parsed.reason}` };
 
+  // (ADR-313 Decision 4 — the rows in the schema's values, by the source kind the paste told.)
+  const source = pastedRowsSource(parsed.format);
   if (options.collectionId) {
     const target = resolveCollection(options.collectionId, options.collections);
     if (!target) return { kind: "error", reason: "collection-not-found" };
+    const rows = intakeRows(parsed.rows, target.schema ?? [], source).rows as Record<string, unknown>[];
     return {
       kind: "rows",
       format: parsed.format,
-      rows: parsed.rows,
+      rows,
       schema: null,
       target,
-      ops: [{ op: "insert_rows", collectionId: target.id, rows: parsed.rows }],
+      ops: [{ op: "insert_rows", collectionId: target.id, rows }],
     };
   }
 
   const name = options.name?.trim() ?? "";
   if (!name) return { kind: "error", reason: "name-required" };
-  const schema = columnsToSchema(detectColumns(parsed.rows));
+  const schema = columnsToSchema(detectColumns(parsed.rows, source));
+  const rows = intakeRows(parsed.rows, schema, source).rows as Record<string, unknown>[];
   return {
     kind: "rows",
     format: parsed.format,
-    rows: parsed.rows,
+    rows,
     schema: schema.map((f) => ({ key: f.key, type: f.type })),
     target: null,
     ops: [
@@ -111,7 +123,7 @@ export function buildPasteProposal(
         op: "create_collection",
         name,
         schema,
-        rows: parsed.rows,
+        rows,
         source: "manual",
       },
     ],

@@ -24,15 +24,23 @@ describe("parsePastedRows", () => {
     });
   });
 
-  it("탭 구분 표: 첫 줄 헤더 · 숫자/불리언은 형변환 · 빈 칸은 null", () => {
+  it("탭 구분 표: 첫 줄 헤더 · 셀은 글자 그대로 (ADR-313 — 타입은 열 감지) · 빈 칸은 null", () => {
     const text = "name\tage\tactive\nAna\t30\ttrue\nBo\t\tfalse\n";
     expect(parsePastedRows(text)).toEqual({
       ok: true,
       format: "table",
       rows: [
-        { name: "Ana", age: 30, active: true },
-        { name: "Bo", age: null, active: false },
+        { name: "Ana", age: "30", active: "true" },
+        { name: "Bo", age: null, active: "false" },
       ],
+    });
+  });
+
+  it("ADR-313 F5 — JSON 의 2^53 을 넘는 정수는 글자로", () => {
+    expect(parsePastedRows('[{"id":9007199254740993,"n":1}]')).toEqual({
+      ok: true,
+      format: "json",
+      rows: [{ id: "9007199254740993", n: 1 }],
     });
   });
 
@@ -42,8 +50,8 @@ describe("parsePastedRows", () => {
       ok: true,
       format: "table",
       rows: [
-        { title: "a, b", note: 1 },
-        { title: "c", note: 2 },
+        { title: "a, b", note: "1" },
+        { title: "c", note: "2" },
       ],
     });
   });

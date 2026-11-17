@@ -223,6 +223,13 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     reason: "빌더 placeholder (빈 slot 틀) — S2 대응 없음",
   },
   {
+    component: "TabPanel",
+    key: "minHeight",
+    values: { "structure.containerStyles": 0 },
+    reason:
+      "S2 값 그대로 — `Tabs.tsx` `tabPanel` 의 `flexGrow: 1` · `minHeight: 0` (세로 flex 에서 패널이 줄어들 수 있게 하는 값, 치수 단이 아님)",
+  },
+  {
     component: "Chart",
     key: "fontSize",
     values: { "chart.metrics": 11 },

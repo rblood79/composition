@@ -139,7 +139,7 @@ export function planGridPaste({
         continue;
       }
       if (c >= line.length) continue; // 짧은 줄 — 없는 셀은 건드리지 않는다
-      const coerced = coerceCellValue(field.type, raw);
+      const coerced = coerceCellValue(field.type, raw, field.encoding);
       if (!coerced.ok) invalidCount += 1;
       if (newRow) newRow[field.key] = coerced.value;
       else

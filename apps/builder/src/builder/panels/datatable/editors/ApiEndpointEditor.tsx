@@ -8,6 +8,11 @@
  * 추천 (`recommendArrayPaths`) → 컬럼 감지 → "테이블로 저장" (ADR-213 cross-store DataChange).
  * cURL 붙여넣기 → 요청 바·탭 채움. production 은 CORS 경고 (UX-8).
  */
+import { ColumnIntakeTable } from "./ColumnIntakeTable";
+import type { ColumnChoice } from "../utils/encodingChoices";
+import { intakeRows } from "../utils/intakeRows";
+import { newFieldId } from "../../../../utils/data/normalizeCollection";
+import { parseJsonLossless } from "../../../../../../../packages/shared/src/collections/intake/parseJsonLossless";
 import {
   useCallback,
   useEffect,
@@ -50,7 +55,7 @@ import {
   parseCurlCommand,
   curlToEndpointDraft,
 } from "../../../../utils/data/curlCommand";
-import { detectColumns, type DetectedColumn } from "../utils/columnDetector";
+import { applyColumnChoice, columnsToSchema, detectColumns, type DetectedColumn } from "../utils/columnDetector";
 import {
   readPath,
   resolveResponseData,
@@ -873,7 +878,8 @@ function ResponseTab({
     bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
   let parsed: unknown = null;
   try {
-    parsed = JSON.parse(response.bodyPreview);
+    // (ADR-313 F5 — a key past 2^53 shows as its text, as the run stores it.)
+    parsed = parseJsonLossless(response.bodyPreview);
   } catch {
     // 비-JSON 응답 — Raw 로만 본다
   }
@@ -969,7 +975,18 @@ function SchemaView({
     const resolved = resolveResponseData(readPath(parsed, path), "");
     return Array.isArray(resolved.data) ? resolved.data : [];
   }, [parsed, path]);
-  const columns: DetectedColumn[] = useMemo(() => detectColumns(rows), [rows]);
+  const columns: DetectedColumn[] = useMemo(() => detectColumns(rows, "json"), [rows]);
+  // ADR-313 Decision 7 — the column table's choices (type + notation) and the key field.
+  const [choices, setChoices] = useState<Record<string, ColumnChoice>>({});
+  const [keyColumn, setKeyColumn] = useState<string | null>(null);
+  const chosen = useMemo(
+    () => columns.map((column) => applyColumnChoice(column, choices[column.key])),
+    [columns, choices],
+  );
+  const intake = useMemo(() => {
+    const schema = columnsToSchema(chosen).map((field) => ({ ...field, id: field.key }));
+    return intakeRows(rows as Record<string, unknown>[], schema, "json", keyColumn ?? undefined);
+  }, [chosen, rows, keyColumn]);
 
   if (candidates.length === 0) {
     return <div className="datatable-api-empty">{dt("apiSchemaNoArray")}</div>;
@@ -980,11 +997,15 @@ function SchemaView({
     setSaving(true);
     try {
       const collectionId = attach ? attachId! : crypto.randomUUID();
-      const schema = columns
-        .filter((c) => c.selected !== false)
-        .map((c) => ({ key: c.key, type: c.type }));
+      // (ADR-313 — the chosen types · notations, ids for the key field, the rows in stored values.)
+      const schema = columnsToSchema(chosen.filter((c) => c.selected !== false)).map(
+        (field) => ({ ...field, id: newFieldId() }),
+      );
+      const keyField = keyColumn
+        ? new Map(schema.map((field) => [field.key, field.id])).get(keyColumn)
+        : undefined;
       const selectedKeys = new Set(schema.map((s) => s.key));
-      const projectedRows = (rows as Record<string, unknown>[]).map((r) => {
+      const projectedRows = (intake.rows as Record<string, unknown>[]).map((r) => {
         const out: Record<string, unknown> = {};
         for (const key of selectedKeys) out[key] = r[key];
         return out;
@@ -994,6 +1015,7 @@ function SchemaView({
         collectionId,
         tableName,
         schema,
+        ...(keyField && !attach ? { keyField } : {}),
         rows: projectedRows,
         endpoint,
         dataPath: path,
@@ -1033,14 +1055,17 @@ function SchemaView({
           }),
         }))}
       />
-      <ul className="datatable-api-schema-cols">
-        {columns.map((c) => (
-          <li key={c.key}>
-            <code>{c.key}</code>
-            <span className="datatable-api-schema-type">{c.type}</span>
-          </li>
-        ))}
-      </ul>
+      <ColumnIntakeTable
+        detected={columns}
+        choices={choices}
+        onChoice={(key, choice) =>
+          setChoices((current) => ({ ...current, [key]: choice }))
+        }
+        keyColumn={keyColumn}
+        onKeyColumn={setKeyColumn}
+        report={intake.report}
+        dt={(key, params) => dt(key, params)}
+      />
       <Checkbox
         className="datatable-api-attach"
         isSelected={attach}

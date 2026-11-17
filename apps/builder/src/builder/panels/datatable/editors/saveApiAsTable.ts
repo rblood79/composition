@@ -18,7 +18,9 @@ export interface SaveApiAsTableInput {
   projectId: string;
   collectionId: string;
   tableName: string;
-  schema: { key: string; type: DataField["type"] }[];
+  schema: Pick<DataField, "id" | "key" | "type" | "format" | "encoding">[];
+  /** ADR-313 — the key field's id (a field of `schema`, create mode). */
+  keyField?: string;
   rows: Record<string, unknown>[];
   endpoint: ApiEndpoint;
   dataPath: string;
@@ -35,6 +37,7 @@ export function buildSaveApiAsTableOps(input: SaveApiAsTableInput): DataOp[] {
     endpoint,
     dataPath,
     mode,
+    keyField,
   } = input;
   const ops: DataOp[] = [];
   if (mode === "create") {
@@ -43,9 +46,16 @@ export function buildSaveApiAsTableOps(input: SaveApiAsTableInput): DataOp[] {
       id: collectionId,
       projectId,
       name: tableName,
-      schema: schema.map((f) => ({ key: f.key, type: f.type })),
+      schema: schema.map((f) => ({
+        ...(f.id ? { id: f.id } : {}),
+        key: f.key,
+        type: f.type,
+        ...(f.format ? { format: f.format } : {}),
+        ...(f.encoding ? { encoding: f.encoding } : {}),
+      })),
       rows,
       source: "api",
+      ...(keyField ? { keyField } : {}),
     });
   }
   // 컬렉션 source = api 만 표시한다. endpoint↔collection 연결은 define_endpoint.targetCollectionId

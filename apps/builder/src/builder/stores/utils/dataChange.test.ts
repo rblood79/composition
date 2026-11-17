@@ -261,6 +261,86 @@ describe("reduceDataOps — op 별 결과 + 역연산 왕복", () => {
     ]);
   });
 
+  it("ADR-313 — update_collection keyField (설정 · 해제) · update_field encoding 왕복", () => {
+    const r = roundTrip([
+      { op: "update_collection", collectionId: "c1", patch: { keyField: "f_name" } },
+      {
+        op: "update_field",
+        collectionId: "c1",
+        fieldId: "f_email",
+        patch: { type: "boolean", encoding: { kind: "flag", true: "Y", false: "N" } },
+      },
+    ]);
+    const table = r.collections.get("c1")!;
+    expect(table.keyField).toBe("f_name");
+    expect(table.schema[1].encoding).toEqual({ kind: "flag", true: "Y", false: "N" });
+    roundTrip([
+      { op: "update_collection", collectionId: "c1", patch: { keyField: "f_name" } },
+      { op: "update_collection", collectionId: "c1", patch: { keyField: null } },
+    ]);
+  });
+
+  it("ADR-313 — 타입을 바꾸면 맞지 않는 값 표현은 빠지고 inverse 가 되살린다", () => {
+    const before = new Map([
+      [
+        "c1",
+        {
+          ...users(),
+          schema: [
+            { id: "f_flag", key: "flag", type: "boolean" as const, encoding: { kind: "flag" as const, true: "Y", false: "N" } },
+          ],
+        },
+      ],
+    ]);
+    const forward = reduceDataOps(
+      before,
+      [{ op: "update_field", collectionId: "c1", fieldId: "f_flag", patch: { type: "string" } }],
+      { projectId: "p" },
+    );
+    expect(forward.collections.get("c1")!.schema[0]).toEqual({ id: "f_flag", key: "flag", type: "string" });
+    const back = reduceDataOps(forward.collections, forward.inverse, { projectId: "p" });
+    expect(back.collections.get("c1")!.schema[0].encoding).toEqual({ kind: "flag", true: "Y", false: "N" });
+    expect(back.collections.get("c1")!.schema[0].type).toBe("boolean");
+  });
+
+  it("ADR-313 — key 필드를 지우면 keyField 도 빠지고 inverse 가 필드 · key 순으로 되살린다", () => {
+    const before = new Map([["c1", { ...users(), keyField: "f_name" }]]);
+    const forward = reduceDataOps(
+      before,
+      [{ op: "remove_field", collectionId: "c1", fieldId: "f_name" }],
+      { projectId: "p" },
+    );
+    expect(forward.collections.get("c1")!.keyField).toBeUndefined();
+    expect(forward.inverse.map((op) => op.op)).toEqual(["add_field", "update_collection"]);
+    const back = reduceDataOps(forward.collections, forward.inverse, { projectId: "p" });
+    expect(back.collections.get("c1")!.keyField).toBe("f_name");
+    expect(back.collections.get("c1")!.schema.map((f) => f.id)).toEqual(["f_name", "f_email"]);
+  });
+
+  it("ADR-313 — create_collection 의 keyField 와 delete 의 inverse", () => {
+    const r = roundTrip([{ op: "delete_collection", collectionId: "c1" }]);
+    expect(r.collections.has("c1")).toBe(false);
+    const created = reduceDataOps(
+      new Map(),
+      [
+        DataOpSchema.parse({
+          op: "create_collection",
+          id: "c2",
+          name: "U",
+          schema: [{ id: "f_id", key: "ID", type: "string", encoding: { kind: "bigInt" } }],
+          keyField: "f_id",
+        }),
+      ],
+      { projectId: "p" },
+    );
+    const table = created.collections.get("c2")!;
+    expect(table.keyField).toBe("f_id");
+    // (zod 스키마가 encoding 을 버리지 않는다.)
+    expect(table.schema[0].encoding).toEqual({ kind: "bigInt" });
+    const removed = reduceDataOps(created.collections, [{ op: "delete_collection", collectionId: "c2" }], { projectId: "p" });
+    expect(removed.inverse[0]).toMatchObject({ op: "create_collection", keyField: "f_id" });
+  });
+
   it("set_execution_policy (ADR-218) — 정책 설정 + inverse 는 이전 정책(없었으면 null)", () => {
     const r = roundTrip([
       {

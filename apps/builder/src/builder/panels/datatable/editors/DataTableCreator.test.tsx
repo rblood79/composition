@@ -9,12 +9,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
   createDataTable,
+  applyDataChange,
   createAndBindDataTable,
   openApiCreator,
   openTableEditor,
   setVisibility,
   quickConnect,
 } = vi.hoisted(() => ({
+  applyDataChange: vi.fn(async (_change: unknown) => ({ collectionIds: [] })),
   createDataTable: vi.fn(async (input: { name: string }) => ({
     id: "new-1",
     name: input.name,
@@ -36,7 +38,7 @@ const {
 
 vi.mock("../../../stores/data", () => ({
   useDataStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ createDataTable }),
+    selector({ createDataTable, applyDataChange }),
 }));
 vi.mock("../stores/dataTableEditorStore", () => ({
   useDataTableEditorStore: (
@@ -51,6 +53,7 @@ import type { ReactNode } from "react";
 import { I18nProvider, useI18n } from "@/i18n";
 import { globalToast } from "../../../stores/toast";
 import { DataTableCreator } from "./DataTableCreator";
+import { SPRING_OPENAPI_30 } from "../../../../../../../packages/shared/src/collections/intake/__tests__/fixtures/springSamples";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
 import { useAiComposerDraftStore } from "../../ai/aiComposerDraft";
 import {
@@ -98,6 +101,7 @@ describe("DataTableCreator (ADR-212 Phase 1)", () => {
       "preset",
       "paste",
       "file",
+      "schema",
       "api",
       "ai",
     ]);
@@ -135,6 +139,68 @@ describe("DataTableCreator (ADR-212 Phase 1)", () => {
       ),
     );
     expect(openTableEditor).toHaveBeenCalledWith("new-1");
+  });
+
+  it("ADR-313 — 붙여넣기 미리보기 열 표: 큰 정수는 기본 선택 (글자 + bigInt) · key 필드 선택 칸 · 값은 저장 값으로", async () => {
+    const { container, getByLabelText, getAllByText } = render(
+      wrap(<DataTableCreator projectId="p" onClose={() => {}} />),
+    );
+    fireEvent.click(getByLabelText("Paste"));
+    fireEvent.change(getByLabelText("Paste rows"), {
+      target: { value: "ID\tUSE_YN\n9007199254740993\tY\n1001\tN" },
+    });
+    // (열 표 — key 필드 칸과 열마다의 타입 · 값 표현 칸.)
+    expect(getAllByText("Key field").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll(".datatable-intake-column")).toHaveLength(2);
+    press([...container.querySelectorAll(".creator-footer button")].at(-1)!);
+    await vi.waitFor(() => expect(createDataTable).toHaveBeenCalled());
+    const input = createDataTable.mock.calls.at(-1)![0] as unknown as {
+      schema: { key: string; type: string; id?: string; encoding?: unknown }[];
+      mockData: Record<string, unknown>[];
+      keyField?: string;
+    };
+    expect(input.schema.map((f) => [f.key, f.type, f.encoding])).toEqual([
+      ["ID", "string", { kind: "bigInt" }],
+      // (Y/N 은 후보일 뿐 — 고르지 않으면 글자 열.)
+      ["USE_YN", "string", undefined],
+    ]);
+    expect(input.schema.every((f) => typeof f.id === "string")).toBe(true);
+    expect(input.mockData).toEqual([
+      { ID: "9007199254740993", USE_YN: "Y" },
+      { ID: "1001", USE_YN: "N" },
+    ]);
+    expect(input.keyField).toBeUndefined();
+  });
+
+  it("ADR-313 — Schema: api-docs 붙여넣기 → 응답 스키마 · 행 경로 content · 열 표 · 표 + API 정의 한 변경 (네트워크 0)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const { container, getByLabelText, findByText } = render(
+      wrap(<DataTableCreator projectId="p" onClose={() => {}} />),
+    );
+    fireEvent.click(getByLabelText("Schema"));
+    fireEvent.change(await vi.waitFor(() => getByLabelText("Or paste the JSON")), {
+      target: { value: JSON.stringify(SPRING_OPENAPI_30) },
+    });
+    await findByText(/Columns — 10 fields/);
+    expect(container.querySelectorAll(".datatable-intake-column")).toHaveLength(10);
+    press([...container.querySelectorAll(".creator-footer button")].at(-1)!);
+    await vi.waitFor(() => expect(applyDataChange).toHaveBeenCalled());
+    const change = applyDataChange.mock.calls.at(-1)![0] as unknown as { ops: Record<string, unknown>[] };
+    expect(change.ops.map((op) => op.op)).toEqual(["create_collection", "set_source", "define_endpoint"]);
+    const created = change.ops[0] as { schema: { key: string; id: string; required?: boolean }[]; keyField?: string };
+    expect(created.schema.map((f) => f.key)).toEqual([
+      "REG_DTM", "createdAt", "USER_ID", "USER_NM", "USE_YN", "SALARY_AMT", "JOIN_DT", "ZIP_CD", "email", "DEPT_ID",
+    ]);
+    // (key 후보 USER_ID 가 key 필드 기본 — 필수 · 이름 · int64.)
+    expect(created.keyField).toBe(created.schema.find((f) => f.key === "USER_ID")!.id);
+    expect((change.ops[2] as { endpoint: Record<string, unknown> }).endpoint).toMatchObject({
+      method: "GET",
+      path: "/api/users",
+      dataPath: "content",
+      totalPath: "totalElements",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
 
   it("프리셋: 카드 선택 → 생성 조건 (seed · blank %) → 라벨 해소된 스키마 + seed 재현 행", async () => {

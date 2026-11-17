@@ -24,6 +24,7 @@
  * format cannot carry a grouping either: its conditions are sent and the rows are loaded whole
  * (`GROUP` · `load: "all"`), the grouping runs here.
  */
+import { outgoingFieldValue } from "../intake/outgoing";
 import type {
   DataFieldPath,
   ViewAggregate,
@@ -153,6 +154,27 @@ function text(value: unknown): string {
 }
 
 /**
+ * ADR-313 Decision 5 — a field's value as the server reads it: a declared notation writes it back
+ * (`true` → `"Y"`, a day → `"20261106"`); undeclared fields send the value as before.
+ */
+function fieldText(field: ViewRunField | undefined, value: unknown): string {
+  const written = outgoingFieldValue(field, dateLike(value), "text");
+  return written === undefined ? text(value) : (written as string);
+}
+function fieldJson(field: ViewRunField | undefined, value: unknown): unknown {
+  if (!field?.encoding) return value;
+  const one = (item: unknown) => outgoingFieldValue(field, dateLike(item), "json") ?? item;
+  if (value instanceof Set) return [...value].map(one);
+  return Array.isArray(value) ? value.map(one) : one(value);
+}
+/** A date-like object (a picker's value) as its day text, so a date notation can read it. */
+function dateLike(value: unknown): unknown {
+  return value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Set)
+    ? (viewDay(value) ?? value)
+    : value;
+}
+
+/**
  * ADR-291 Decision 5 — where a view chain reads a computed field (`ViewRunField.formula`): a
  * condition's field, the sort's, a group key, an aggregate's input. A computed field reading
  * another is computed itself, so the transit is in the set. A sort held by a variable is judged by
@@ -243,7 +265,14 @@ export function serializeViewQueries(
     return {
       fields: read.fields.map((field) => field.key),
       op: condition.op,
-      ...(read.value !== undefined ? { value: read.value } : {}),
+      ...(read.value !== undefined
+        ? {
+            value:
+              read.fields.length === 1
+                ? fieldJson(read.fields[0], read.value)
+                : read.value,
+          }
+        : {}),
       ...(condition.sensitivity ? { sensitivity: condition.sensitivity } : {}),
       ...(condition.unit ? { unit: condition.unit } : {}),
     };
@@ -286,9 +315,9 @@ export function serializeViewQueries(
         return;
       }
       if (low !== undefined && low !== null && low !== "")
-        params.push([`${key}${gte}`, text(low)]);
+        params.push([`${key}${gte}`, fieldText(read.fields[0], low)]);
       if (high !== undefined && high !== null && high !== "")
-        params.push([`${key}${lte}`, text(high)]);
+        params.push([`${key}${lte}`, fieldText(read.fields[0], high)]);
       return;
     }
     const suffix = suffixes[op];
@@ -308,7 +337,8 @@ export function serializeViewQueries(
             ? read.value
             : [read.value]
         : [read.value];
-    for (const value of values) params.push([`${key}${suffix}`, text(value)]);
+    for (const value of values)
+      params.push([`${key}${suffix}`, fieldText(read.fields[0], value)]);
   };
   /** A group in the suffix format: `and` flattens; an `or` of two or more applied items cannot. */
   const suffixGroup = (group: ViewConditionGroup) => {

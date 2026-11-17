@@ -194,6 +194,7 @@ export const createCreateDataTableAction =
               schema: data.schema ?? [],
               rows: data.mockData ?? [],
               source: (data.useMockData ?? true) ? "manual" : "api",
+              ...(data.keyField ? { keyField: data.keyField } : {}),
             },
           ],
           origin: "user",
@@ -709,9 +710,14 @@ export const createExecuteApiEndpointAction =
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
+      // ADR-313 F5 — a Java `Long` key past 2^53 stays its text (the converter loads with the
+      // first run — not on the Builder's first screen, HC3).
+      const { parseJsonLossless } = await import(
+        "../../../../../../packages/shared/src/collections/intake/parseJsonLossless"
+      );
       let result: unknown;
       try {
-        result = JSON.parse(responseText);
+        result = parseJsonLossless(responseText);
       } catch {
         throw new Error("응답 본문이 JSON 이 아닙니다");
       }
@@ -753,9 +759,14 @@ export const createExecuteApiEndpointAction =
             schema: targetTable.schema,
             secretRevisions: await getSecretRevisions(endpoint.project_id),
           });
-          const runtimeData = Array.isArray(mappedData)
-            ? mappedData
-            : [mappedData];
+          // ADR-313 Decision 4 — the response in the collection's stored values (the JSON rule).
+          const { intakeQueryItems } = await import(
+            "../../../../../../packages/shared/src/collections/intake/queryItems"
+          );
+          const runtimeData = intakeQueryItems(
+            Array.isArray(mappedData) ? mappedData : [mappedData],
+            targetTable,
+          ) as Record<string, unknown>[];
           // ADR-218 (R2/HC5) — 이 실행이 여전히 최신 seq 인지. 더 늦게 시작한 실행이
           // 이미 있으면(늦은 A ← 빠른 B) 이 응답은 버린다 (single-flight 수용).
           const isLatest =

@@ -15,6 +15,7 @@
  */
 import { z } from "zod";
 import { VARIABLE_DEF_TYPES } from "../state/variable.types";
+import type { FieldEncoding } from "../collections/intake/encoding";
 
 /**
  * The value types a field holds by itself (an AI table spec's choices) — the variables' types
@@ -53,6 +54,23 @@ const DataFieldReferenceSchema = z.object({
   keyField: z.string(),
 });
 
+/**
+ * ADR-313 Decision 2 — a field's value notation (the closed kinds of `collections/intake/encoding.ts`;
+ * the document validation checks the kind fits the field type).
+ */
+const FlagNotationSchema = z.union([z.string(), z.number(), z.boolean()]);
+const WireSchema = z.enum(["number", "string"]);
+export const FieldEncodingSchema: z.ZodType<FieldEncoding> = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("flag"), true: FlagNotationSchema, false: FlagNotationSchema }),
+  z.object({ kind: z.literal("numberText") }),
+  z.object({ kind: z.literal("epochMs"), wire: WireSchema }),
+  z.object({ kind: z.literal("epochSec"), wire: WireSchema }),
+  z.object({ kind: z.literal("compactDate"), wire: WireSchema }),
+  z.object({ kind: z.literal("compactDateTime"), wire: WireSchema }),
+  z.object({ kind: z.literal("dateParts"), precision: z.enum(["date", "dateTime"]) }),
+  z.object({ kind: z.literal("bigInt") }),
+]);
+
 export interface DataFieldShape {
   id?: string;
   key: string;
@@ -64,6 +82,8 @@ export interface DataFieldShape {
   defaultValue?: unknown;
   children?: DataFieldShape[];
   reference?: DataFieldReference;
+  /** ADR-313 — how the source carries the field (`FieldEncodingSchema`). */
+  encoding?: FieldEncoding;
 }
 
 export const DataFieldSchema: z.ZodType<DataFieldShape> = z.object({
@@ -78,6 +98,7 @@ export const DataFieldSchema: z.ZodType<DataFieldShape> = z.object({
     return z.array(DataFieldSchema).optional();
   },
   reference: DataFieldReferenceSchema.optional(),
+  encoding: FieldEncodingSchema.optional(),
 });
 
 /**
@@ -95,6 +116,7 @@ export const DataFieldPatchSchema = z.object({
     return z.array(DataFieldSchema).nullable().optional();
   },
   reference: DataFieldReferenceSchema.nullable().optional(),
+  encoding: FieldEncodingSchema.nullable().optional(),
 });
 
 const RowSchema = z.record(z.string(), z.unknown());
@@ -187,6 +209,8 @@ export const DataOpSchema = z.discriminatedUnion("op", [
     schema: z.array(DataFieldSchema),
     rows: RowsSchema.optional(),
     source: SourceSchema.optional(),
+    /** ADR-313 Decision 6 — the key field's id. */
+    keyField: z.string().min(1).optional(),
   }),
   z.object({ op: z.literal("delete_collection"), ...collectionRef }),
   z.object({
@@ -195,6 +219,8 @@ export const DataOpSchema = z.discriminatedUnion("op", [
     patch: z.object({
       name: z.string().min(1).optional(),
       description: z.string().nullable().optional(),
+      /** ADR-313 Decision 6 — the key field's id (`null` clears it). */
+      keyField: z.string().min(1).nullable().optional(),
     }),
   }),
   z.object({

@@ -51,6 +51,7 @@ export function fromCollectionEntry(
     mockData: entry.mockData as Row[],
     ...(runtime ? { runtimeData: runtime } : {}),
     useMockData: entry.useMockData,
+    ...(entry.keyField !== undefined ? { keyField: entry.keyField } : {}),
     ...(entry.executionPolicy
       ? { executionPolicy: { ...entry.executionPolicy } }
       : {}),

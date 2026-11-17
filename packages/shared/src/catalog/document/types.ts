@@ -1,5 +1,6 @@
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CatalogNumberRange } from "./numberRangeValue";
+import type { FieldEncoding } from "../../collections/intake/encodingKinds";
 /** ADR-248 Phase 1. This module has no Builder or persistence dependency. */
 export const CATALOG_FORMAT = "composition-catalog" as const;
 export const CATALOG_SCHEMA_VERSION = 1 as const;
@@ -167,9 +168,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 69 — ADR-312 Phase 2: Chart 데이터 포맷 표준 — candlestick 종가 `closeField` → `metric` (accepts 삭제) ·
  *      `dataMode` 값에 `binned` (histogram) · `ranked` (bump) · `pair` (slope) — 형태는 역할의 유무가 아니라
  *      `dataMode` 로 · 값이 없는 역할은 기본 열 이름으로 읽힌다 (같은 문서가 다르게 읽힌다).
+ * 70 — ADR-313 Phase 1: 외부 데이터 가져오기 표준 — 필드의 값 표현 `encoding` (Y/N · 숫자 글자 · epoch ·
+ *      붙여 쓴 날짜 · 날짜 배열 · 큰 정수) · collection 의 key 필드 `keyField` (필드 id).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 69 as const;
+export const LIBRARY_CONTRACT_VERSION = 70 as const;
 
 export type EntryKind =
   | "project"
@@ -1578,6 +1581,12 @@ export interface CatalogDataField {
    * (number · string · boolean · date). Absent = an authored column.
    */
   formula?: string;
+  /**
+   * ADR-313 Decision 2 — how the source carries this field in JSON (`"Y"`/`"N"` · a number text ·
+   * epoch · a compact date · a date array · a big integer text). Rows keep the type's canonical value;
+   * entries read with it and outgoing values are written back with it. Absent = the JSON value as is.
+   */
+  encoding?: FieldEncoding;
 }
 /** ADR-286 Decision 1 — a collection's definition: its schema and the rows the author wrote. */
 export interface CollectionEntry {
@@ -1589,6 +1598,11 @@ export interface CollectionEntry {
   /** At most `CATALOG_COLLECTION_ROW_LIMIT` rows (사용자 결정 1, 2026-10-28). */
   mockData: readonly Readonly<Record<string, unknown>>[];
   useMockData: boolean;
+  /**
+   * ADR-313 Decision 6 — the field (its `id`) whose value is a row's item key (a table's PK). An item
+   * key reads a binding's `fieldMap.value` → this → the row's `id` · `key` · `value` → `row-N`.
+   */
+  keyField?: string;
   executionPolicy?: {
     mode: "auto" | "manual" | "interval";
     intervalSec?: number;

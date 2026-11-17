@@ -3414,6 +3414,31 @@ const semanticLabels: Record<string, string> = {
   "datatable.fields.jsonSchema": "JSON schema",
   "datatable.fields.jsonSchemaHint": "JSON Schema URL or inline schema",
   "datatable.fields.examples": "Examples",
+  // ADR-313 — intake: value notation · key field
+  "datatable.exportSchemaCopy": "Copy JSON Schema",
+  "datatable.exportSchemaFile": "Export JSON Schema",
+  "datatable.methodSchema": "Schema",
+  "datatable.schemaDrop": "Drop an api-docs (OpenAPI) or JSON Schema file, or click",
+  "datatable.schemaPaste": "Or paste the JSON",
+  "datatable.schemaPick": "Schema",
+  "datatable.schemaRows": "Rows at",
+  "datatable.schemaRowsWhole": "The schema itself (one row)",
+  "datatable.schemaEndpoint": "Also create the API definition",
+  "datatable.schemaNotJson": "Not a JSON document. Export api-docs as JSON (YAML is not read).",
+  "datatable.schemaNotSchema": "No object schema found in this document.",
+  "datatable.intakeKeyField": "Key field",
+  "datatable.intakeKeyNone": "None",
+  "datatable.intakeKeySuggested": "Suggested key",
+  "datatable.intakeSuggested": "Suggested from the sample",
+  "datatable.notation.wire.number": "number",
+  "datatable.notation.wire.string": "text",
+  "datatable.notation.numberText": "number written as text",
+  "datatable.notation.datePartsDate": "[year, month, day]",
+  "datatable.notation.datePartsDateTime": "[year, month, day, hour, minute]",
+  "datatable.notation.bigInt": "big integer (kept as text)",
+  "datatable.fieldNotation": "Value notation",
+  "datatable.fieldNotationNone": "As the JSON value",
+  "datatable.fieldKeyField": "Key field",
   "datatable.types.string": "String",
   "datatable.types.number": "Number",
   "datatable.types.boolean": "Boolean",
@@ -3628,6 +3653,39 @@ const formattedMessages: Record<
     `The pasted data has ${String(args?.count ?? 0)} extra columns (${String(args?.keys ?? "")}). Add them as new fields?`,
   "datatable.gridImported": (args) =>
     `Replaced with ${String(args?.rows ?? 0)} rows from CSV.`,
+  // ADR-313 — intake counts · notation labels
+  "datatable.schemaCopied": (args) =>
+    `Copied the JSON Schema of "${String(args?.name ?? "")}".`,
+  "datatable.schemaPreview": (args) =>
+    `Columns — ${String(args?.fields ?? 0)} fields`,
+  "datatable.schemaNotImported": (args) =>
+    `Not imported (${String(args?.count ?? 0)})`,
+  "datatable.schemaReportConstruct": (args) =>
+    `${String(args?.name ?? "")} — not read`,
+  "datatable.schemaReportConstraint": (args) =>
+    `${String(args?.name ?? "")} — not stored (rule)`,
+  "datatable.schemaNumericNames": (args) =>
+    `Numeric property names keep the JSON order only as text: ${String(args?.names ?? "")}`,
+  "datatable.intakeTypeMismatch": (args) =>
+    `${String(args?.count ?? 0)} cells differ from the type`,
+  "datatable.intakeUnread": (args) =>
+    `${String(args?.count ?? 0)} cells could not be read`,
+  "datatable.intakePrecision": (args) =>
+    `${String(args?.count ?? 0)} cells would lose precision`,
+  "datatable.notation.flag": (args) =>
+    `${String(args?.true ?? "")} / ${String(args?.false ?? "")}`,
+  "datatable.notation.compactDate": (args) =>
+    `YYYYMMDD (${String(args?.wire ?? "")})`,
+  "datatable.notation.compactDateTime": (args) =>
+    `YYYYMMDDHHmmss (${String(args?.wire ?? "")})`,
+  "datatable.notation.epochMs": (args) =>
+    `epoch milliseconds (${String(args?.wire ?? "")})`,
+  "datatable.notation.epochSec": (args) =>
+    `epoch seconds (${String(args?.wire ?? "")})`,
+  "datatable.fieldNotationChangeTitle": (args) =>
+    `Change the notation of "${String(args?.key ?? "")}"`,
+  "datatable.fieldNotationInvalid": (args) =>
+    `${String(args?.count ?? 0)} of ${String(args?.total ?? 0)} rows do not read as ${String(args?.notation ?? "")}.`,
   "datatable.fieldUsedBy": (args) => `Used by ${String(args?.count ?? 0)}`,
   "datatable.fieldDeleteConfirmTitle": (args) =>
     `Delete field "${String(args?.key ?? "")}"`,

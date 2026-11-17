@@ -1049,6 +1049,10 @@ export const COLLECTION_COVERAGE: CodeViewCoverage<CollectionEntry> = {
     "updateCollection",
     3,
   ),
+  keyField: {
+    notInCode:
+      "the item key the lists read (ADR-313) — the code reads the rows' keys, not which field makes them",
+  },
 };
 
 export const DATA_FIELD_COVERAGE: CodeViewCoverage<CatalogDataField> = {
@@ -1097,6 +1101,10 @@ export const DATA_FIELD_COVERAGE: CodeViewCoverage<CatalogDataField> = {
     "updateCollection",
     3,
   ),
+  encoding: {
+    notInCode:
+      "how the source carries the field in JSON (ADR-313) — the code reads the stored value, whose TS type is the field's",
+  },
 };
 
 export const ENDPOINT_COVERAGE: CodeViewCoverage<EndpointEntry> = {

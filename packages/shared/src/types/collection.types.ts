@@ -1,3 +1,4 @@
+import type { FieldEncoding } from "../collections/intake/encoding";
 import type { EndpointQuerySerialization } from "../collections/view/serialize";
 /**
  * Collection Data Types
@@ -25,6 +26,8 @@ export interface SchemaField {
   label?: string;
   /** ADR-291 — a computed field: its json-formula expression over field ids. */
   formula?: string;
+  /** ADR-313 — how the source carries the field in JSON. */
+  encoding?: FieldEncoding;
 }
 
 // ============================================
@@ -57,6 +60,8 @@ export interface DataTableDefinition {
   useMockData?: boolean;
   /** ADR-218 — 실행 정책. 미설정 = manual (BC read 호환). */
   executionPolicy?: ExecutionPolicy;
+  /** ADR-313 Decision 6 — the key field's id (an item's key). */
+  keyField?: string;
 }
 
 /**
@@ -116,7 +121,6 @@ export interface ApiEndpointDefinition {
   bodyTemplate?: string;
   responseMapping?: {
     dataPath: string;
-    fieldMappings?: Array<{ sourceKey: string; targetKey: string }>;
     /**
      * `useAsyncList` pagination — where the response holds the next `cursor` (`next` ·
      * `meta.nextPage`); none / empty = the last page. A URL cursor is fetched as is.
@@ -192,6 +196,8 @@ export interface UseCollectionDataResult {
   clearCache: () => void;
   /** DataTable 스키마 정보 (Field 자동 생성용) */
   schema?: SchemaField[];
+  /** ADR-313 — the collection's key field id (the items' key). */
+  keyField?: string;
   /** 정렬 함수 */
   sort?: (descriptor: {
     column: string;

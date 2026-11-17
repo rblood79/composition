@@ -54,7 +54,7 @@ export function finalRowValue(
       value: fallback.ok ? cloneCellValue(fallback.value) : null,
     };
   }
-  const coerced = coerceCellValue(field.type, draft.text);
+  const coerced = coerceCellValue(field.type, draft.text, field.encoding);
   return coerced.ok
     ? { kind: "value", value: coerced.value }
     : { kind: "invalid" };

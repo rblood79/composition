@@ -81,6 +81,7 @@ export function useResolvedCollectionItems(
     error,
     reload,
     schema,
+    keyField,
   } = useCollectionData({
     dataBinding,
     componentName,
@@ -111,7 +112,7 @@ export function useResolvedCollectionItems(
     // ADR-152 Phase 3: fieldMap 역할 (value · children · parentId) — Skia `getFlatProjectionRows` 와 같은
     //   resolver (`resolveFieldRoles`) 로 id → key. schema 는 useCollectionData 가 준다.
     const roles = hasBoundRows
-      ? resolveFieldRoles(dataBinding, schema)
+      ? resolveFieldRoles(dataBinding, schema, keyField)
       : undefined;
     const visibleRows =
       windowLimit === undefined ? sourceRows : sourceRows.slice(0, windowLimit);
@@ -136,6 +137,7 @@ export function useResolvedCollectionItems(
     windowLimit,
     dataBinding,
     schema,
+    keyField,
   ]);
 
   return useMemo<UseResolvedCollectionItemsResult>(

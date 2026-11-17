@@ -15,7 +15,7 @@ import {
   REUSABLE_ORIGIN_TEMPLATES,
 } from "../generated/reusableOriginLibrary";
 import { CatalogGraph } from "../graph";
-import type { CatalogEntry, NodeEntry } from "../types";
+import { LIBRARY_CONTRACT_VERSION, type CatalogEntry, type NodeEntry } from "../types";
 import { paintAt } from "../../rule/rulePaintTree";
 
 const sourceValue = (value: string | number | undefined) => {
@@ -209,7 +209,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     const repeated = await buildCodeCatalogLibrary();
     expect(library.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(repeated.revision).toBe(library.revision);
-    expect(library.contractVersion).toBe(69);
+    expect(library.contractVersion).toBe(LIBRARY_CONTRACT_VERSION);
     for (const type of CODE_CATALOG_SUPPORTED_TYPES) {
       const registration = componentCatalog.find(
         (entry) => entry.type === type && entry.kind === "primitive",

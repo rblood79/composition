@@ -16,6 +16,8 @@
  * @see presets/dataTablePresets.ts (카탈로그) · @composition/sample-data (생성기, ADR-220) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
  */
 
+import type { IntakeSource } from "../../../../../../../packages/shared/src/collections/intake/normalizeRows";
+import { intakeRows } from "../utils/intakeRows";
 import {
   ArrowLeftRight,
   BadgeCheck,
@@ -54,6 +56,7 @@ import {
   Users,
   Wrench,
   X,
+  Braces,
 } from "lucide-react";
 import Papa from "papaparse";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -84,8 +87,17 @@ import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import type { QuickConnectTarget } from "../types/editorTypes";
 import { useQuickConnectHost } from "../usage/quickConnectHost";
-import { columnsToSchema, detectColumns } from "../utils/columnDetector";
-import { parsePastedRows } from "../utils/pasteRows";
+import {
+  applyColumnChoice,
+  columnsToSchema,
+  detectColumns,
+} from "../utils/columnDetector";
+import type { ColumnChoice } from "../utils/encodingChoices";
+import { ColumnIntakeTable } from "./ColumnIntakeTable";
+import { SchemaImportSection, type SchemaImportDraft } from "./SchemaImportSection";
+import { newFieldId } from "../../../../utils/data/normalizeCollection";
+import type { DataField } from "../../../../types/builder/data.types";
+import { parsePastedRows, pastedRowsSource } from "../utils/pasteRows";
 import {
   targetHasBinding,
   unmatchedColumnKeys,
@@ -139,7 +151,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
 // ============================================
 
 export type CreatorMethod =
-  "empty" | "preset" | "paste" | "file" | "api" | "ai";
+  "empty" | "preset" | "paste" | "file" | "schema" | "api" | "ai";
 
 const METHODS: {
   id: CreatorMethod;
@@ -161,6 +173,8 @@ const METHODS: {
     icon: ACTION_ICONS.paste,
   },
   { id: "file", labelKey: "methodFile", label: "CSV / JSON", icon: FileUp },
+  // ADR-313 Decision 7 — an api-docs (OpenAPI) · JSON Schema file → the table's columns (no network).
+  { id: "schema", labelKey: "methodSchema", label: "Schema", icon: Braces },
   { id: "api", labelKey: "methodApi", label: "From API", icon: Globe },
   { id: "ai", labelKey: "methodAi", label: "Describe to AI", icon: Sparkles },
 ];
@@ -189,10 +203,25 @@ const PRECHECK_MESSAGE_KEY: Record<
   "binding-changed": "connectBindingChanged",
 };
 
+/** ADR-313 — the schema with ids, and the key field's id when a column was chosen. */
+function withKeyField(
+  schema: DataField[],
+  keyColumn: string | null,
+): { schema: DataField[]; keyField?: string } {
+  const withIds = schema.map((field) => ({ ...field, id: newFieldId() }));
+  // (A column key → the new field's id — the schema was made from those columns just now.)
+  const key = keyColumn
+    ? new Map(withIds.map((field) => [field.key, field.id])).get(keyColumn)
+    : undefined;
+  return { schema: withIds, ...(key ? { keyField: key } : {}) };
+}
+
 /** 붙여넣기 · 파일에서 읽은 행 + 감지 스키마 (미리보기 · 생성 입력) */
 interface ImportedRows {
   rows: Record<string, unknown>[];
   format: string;
+  /** ADR-313 — the source kind the input told (JSON · CSV / tab text). */
+  source: IntakeSource;
 }
 
 function rowsFromFileText(name: string, text: string): ImportedRows | null {
@@ -200,15 +229,17 @@ function rowsFromFileText(name: string, text: string): ImportedRows | null {
   if (trimmed === "") return null;
   if (/\.json$/i.test(name) || /^[[{]/.test(trimmed)) {
     const parsed = parsePastedRows(trimmed);
-    return parsed.ok ? { rows: parsed.rows, format: "json" } : null;
+    return parsed.ok
+      ? { rows: parsed.rows, format: "json", source: "json" }
+      : null;
   }
+  // (ADR-313 §2.3 — a CSV cell has no type: kept as text, the column's type is detected.)
   const result = Papa.parse<Record<string, unknown>>(trimmed, {
     header: true,
     skipEmptyLines: true,
-    dynamicTyping: true,
   });
   if (!result.data.length) return null;
-  return { rows: result.data, format: "csv" };
+  return { rows: result.data, format: "csv", source: "text" };
 }
 
 // ============================================
@@ -239,6 +270,9 @@ export function DataTableCreator({
     [locale],
   );
   const createDataTable = useDataStore((state) => state.createDataTable);
+  const applyDataChange = useDataStore((state) => state.applyDataChange);
+  // ADR-313 — the 「Schema」 method's draft (columns · key · endpoint draft).
+  const [schemaDraft, setSchemaDraft] = useState<SchemaImportDraft | null>(null);
   const openApiCreator = useDataTableEditorStore(
     (state) => state.openApiCreator,
   );
@@ -289,19 +323,62 @@ export function DataTableCreator({
     setSampleCount(preset.defaultSampleCount);
   }, []);
 
-  /** 붙여넣기 · 파일의 현재 입력 → 행 + 스키마 (미리보기와 생성이 같은 값을 본다) */
-  const imported = useMemo(() => {
+  /** 붙여넣기 · 파일의 현재 입력 → 원본 행 + 원본 종류 */
+  const importedSource = useMemo(() => {
     let source: ImportedRows | null = null;
     if (method === "paste") {
       const parsed = parsePastedRows(pasteText);
-      source = parsed.ok ? { rows: parsed.rows, format: parsed.format } : null;
+      source = parsed.ok
+        ? {
+            rows: parsed.rows,
+            format: parsed.format,
+            source: pastedRowsSource(parsed.format),
+          }
+        : null;
     } else if (method === "file") {
       source = fileRows;
     }
-    if (!source) return null;
-    const schema = columnsToSchema(detectColumns(source.rows));
-    return { ...source, schema };
+    return source;
   }, [method, pasteText, fileRows]);
+  /** ADR-313 §2.5 — the detected columns (types · candidates · key candidates). */
+  const detected = useMemo(
+    () =>
+      importedSource
+        ? detectColumns(importedSource.rows, importedSource.source)
+        : [],
+    [importedSource],
+  );
+  // ADR-313 Decision 7 — the preview's choices (a candidate is never applied by itself) and the key
+  // field, fresh for each input.
+  const [choices, setChoices] = useState<Record<string, ColumnChoice>>({});
+  const [keyColumn, setKeyColumn] = useState<string | null>(null);
+  const [choicesOf, setChoicesOf] = useState(detected);
+  if (choicesOf !== detected) {
+    setChoicesOf(detected);
+    setChoices({});
+    setKeyColumn(null);
+  }
+  /** The schema with the choices and the rows read by it (the preview and the create see the same). */
+  const imported = useMemo(() => {
+    if (!importedSource) return null;
+    const schema = columnsToSchema(
+      detected.map((column) => applyColumnChoice(column, choices[column.key])),
+    );
+    // (ADR-313 Decision 4 — the rows stored are the schema's values, read by the source kind's rule;
+    // the key field is counted by the column key until the fields get their ids on create.)
+    const intake = intakeRows(
+      importedSource.rows,
+      schema.map((field) => ({ ...field, id: field.key })),
+      importedSource.source,
+      keyColumn ?? undefined,
+    );
+    return {
+      ...importedSource,
+      schema,
+      rows: intake.rows as Record<string, unknown>[],
+      report: intake.report,
+    };
+  }, [importedSource, detected, choices, keyColumn]);
 
 
   const readImportFile = useCallback(
@@ -336,6 +413,8 @@ export function DataTableCreator({
       case "paste":
       case "file":
         return imported !== null && imported.rows.length > 0;
+      case "schema":
+        return schemaDraft !== null;
       case "api":
         return true;
       case "ai":
@@ -367,6 +446,7 @@ export function DataTableCreator({
             name: string;
             schema: ReturnType<typeof resolvePresetSchema>;
             mockData: Record<string, unknown>[];
+            keyField?: string;
           }
         | undefined;
       if (method === "empty") {
@@ -395,9 +475,50 @@ export function DataTableCreator({
             (method === "file" && fileRows
               ? fileRows.fileName.replace(/\.[^.]+$/, "")
               : localize("newTable", "New Table")),
-          schema: imported.schema,
+          // (ADR-313 — the fields get their ids here so the key field can name one.)
+          ...withKeyField(imported.schema, keyColumn),
           mockData: imported.rows,
         };
+      }
+      if (method === "schema" && schemaDraft) {
+        const name = tableName.trim() || localize("newTable", "New Table");
+        const withIds = withKeyField(schemaDraft.schema, schemaDraft.keyColumn);
+        if (schemaDraft.endpoint && !connect) {
+          // (사용자 결정 2 — the table and its API definition in one change; nothing runs.)
+          setIsSubmitting(true);
+          const id = crypto.randomUUID();
+          await applyDataChange({
+            ops: [
+              {
+                op: "create_collection",
+                id,
+                projectId,
+                name,
+                schema: withIds.schema,
+                rows: [],
+                source: "api",
+                ...(withIds.keyField ? { keyField: withIds.keyField } : {}),
+              },
+              { op: "set_source", collectionId: id, source: "api" },
+              {
+                op: "define_endpoint",
+                endpoint: {
+                  ...schemaDraft.endpoint,
+                  name: schemaDraft.endpoint.name || name,
+                  headers: [],
+                  bodyType: "none",
+                  targetCollectionId: id,
+                },
+              },
+            ],
+            origin: "user",
+          });
+          if (!mountedRef.current) return;
+          announceDataPanelStatus(t("tableCreated", { name }), { tone: "success" });
+          openTableEditor(id);
+          return;
+        }
+        draft = { name, ...withIds, mockData: [] };
       }
       if (!draft) {
         onClose();
@@ -464,6 +585,9 @@ export function DataTableCreator({
     seed,
     blankPercent,
     imported,
+    keyColumn,
+    schemaDraft,
+    applyDataChange,
     fileRows,
     aiDescription,
     projectId,
@@ -712,6 +836,14 @@ export function DataTableCreator({
           </Section>
         )}
 
+        {method === "schema" && (
+          <SchemaImportSection
+            dt={(key, params) => t(key, params)}
+            tableName={tableName}
+            onDraft={setSchemaDraft}
+          />
+        )}
+
         {method === "file" && (
           <Section
             id="creator-file"
@@ -887,12 +1019,17 @@ export function DataTableCreator({
           })}
           collapsible={false}
         >
-          {previewFields.map((field) => (
-            <div key={field.key} className="creator-schema-field">
-              <span className="schema-field-name">{field.key}</span>
-              <span className="schema-field-type">{field.type}</span>
-            </div>
-          ))}
+          <ColumnIntakeTable
+            detected={detected}
+            choices={choices}
+            onChoice={(key, choice) =>
+              setChoices((current) => ({ ...current, [key]: choice }))
+            }
+            keyColumn={keyColumn}
+            onKeyColumn={setKeyColumn}
+            report={imported.report}
+            dt={(key, params) => t(key, params)}
+          />
         </Section>
       )}
 

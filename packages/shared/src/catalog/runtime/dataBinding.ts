@@ -461,10 +461,8 @@ function boundRowsOf(
     }));
   const seen = new Set<string>();
   // (`useTreeData.getChildren` — the binding's children field: each row carries its child rows.)
-  const roles = resolveFieldRoles(
-    dataBinding,
-    resolveBoundCollection(dataBinding, collections)?.schema,
-  );
+  const bound = resolveBoundCollection(dataBinding, collections);
+  const roles = resolveFieldRoles(dataBinding, bound?.schema, bound?.keyField);
   const childrenKey = roles?.children;
   const parentKey = roles?.parentId;
   const childRows = (item: unknown): CatalogBoundRow[] | undefined => {

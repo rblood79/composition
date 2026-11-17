@@ -42,6 +42,7 @@ import { catalogNumberRangeFits } from "./numberRangeValue";
 import { catalogDateRangeFits } from "./dateRangeValue";
 import type { ComputedSchemaField } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
+import { encodingProblem } from "../../collections/intake/encodingKinds";
 
 export class CatalogValidationError extends Error {
   constructor(
@@ -526,9 +527,15 @@ function dataFields(value: unknown, at: string, depth = 0): void {
         "children",
         "reference",
         "formula",
+        "encoding",
       ],
       here,
     );
+    // ADR-313 Decision 2 — a closed list of kinds, each for one field type.
+    if (field.encoding !== undefined) {
+      const problem = encodingProblem(field.encoding, field.type as string | undefined);
+      if (problem) invalid(problem, `${here}.encoding`);
+    }
     if (field.format !== undefined) string(field.format, `${here}.format`);
     if (field.id !== undefined) string(field.id, `${here}.id`);
     if (field.formula !== undefined) {
@@ -2393,6 +2400,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "schema",
           "mockData",
           "useMockData",
+          "keyField",
           "executionPolicy",
         ],
         "entry",
@@ -2410,6 +2418,15 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         jsonValue(row, `entry.mockData[${index}]`);
       });
       boolean(item.useMockData, "entry.useMockData");
+      // ADR-313 Decision 6 — the key field is one of the collection's own authored fields (by id).
+      if (item.keyField !== undefined) {
+        string(item.keyField, "entry.keyField");
+        const keyField = (item.schema as readonly Record<string, unknown>[]).find(
+          (field) => field.id === item.keyField,
+        );
+        if (!keyField || keyField.formula !== undefined)
+          invalid("KEY_FIELD_MISSING", "entry.keyField");
+      }
       if (item.executionPolicy !== undefined) {
         const policy = object(item.executionPolicy, "entry.executionPolicy");
         exact(policy, ["mode", "intervalSec"], "entry.executionPolicy");

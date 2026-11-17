@@ -2,7 +2,22 @@
 
 ## Status
 
-Proposed — 2026-11-16
+Accepted — 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](reviews/313.md) round 2 pending 0 · HIGH 0). Proposed 2026-11-16.
+
+> **Phase 5 (2026-11-17 — G5, 사용자 확인 대기)**: 격자 Export 메뉴의 「Copy · Download JSON Schema」 — 저장 값 (정규 값) 을 기술하는 2020-12 스키마 (key 필드 필수 · `date` 는 `format` 없이 주석 · 값 표현 · key 는 `x-composition-*` 주석). 독립 구현 (zod `fromJSONSchema`) 이 정답표 행을 받고 어긋난 행을 떨어뜨린다 (4 · RED 4/4). 규칙 문서 `data-interaction.md` §4. 회귀 새 실패 0 · 번들 Builder +1,481 · Preview +3 B. live: 스키마 복사 · ListBox 연결 → Publish 항목 key = `keyField` 의 큰 정수 그대로 · 외부 요청 0 · 격자 필터. 보기 정렬 · 실제 네트워크 차단은 exercise 하지 못했다. 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+
+> **Phase 4 종결 (2026-11-17 — G4)**: 생성 방법 「Schema」 — api-docs (OpenAPI 3.0 · 3.1) · JSON Schema 를 붙여넣거나 놓으면 (네트워크 0) 스키마 · 행 위치 (포장 · 페이지 — `content` · `totalElements`) 를 고르고 열 표로 정한 뒤 표와 API 정의 초안을 한 번에 만든다. 받지 않는 구성 · 저장하지 않는 제약은 「Not imported」 에 전부. `int64` = number (key 후보만 큰 정수 후보). G4 9 · RED 4/4 · live (네트워크 요청 0). 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+
+> **Phase 3 종결 (2026-11-17 — G3)**: 감지가 값 표현 후보 (참 · 거짓 짝 · 숫자 글자 · 붙여 쓴 날짜 · epoch · 날짜 배열) 와 key 후보를 내고, 큰 정수만 기본 선택한다. 생성 미리보기 · API 저장의 열 표에서 열마다 타입 · 값 표현을 고르고 key 필드를 정하며, 지금 선택으로 읽은 어긋난 셀 수를 본다. 열 편집 팝오버에 「Value notation」 · 「Key field」 — 표현을 바꾸면 작성 행은 타입 변경과 같은 규칙 (사용자 결정 6). 원복 RED 4/4 · live (후보 선택 → 생성 → 표현 변경 → Undo → key 필드). 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+
+> **Phase 2 종결 (2026-11-17 — G2)**: 네 진입 (붙여넣기 · 파일 · 기존 표로 가져오기 · Builder API 실행 · Preview/Publish 조회) 과 격자 입력 · 목록 편집 값 · AI 붙여넣기가 같은 변환기를 지난다 — 표 · CSV 셀은 글자 그대로 들어와 열 감지 (§2.5 의 타입 기본) 뒤 열 타입으로 읽히고, JSON 은 큰 정수를 보존해 선언 없는 값을 바꾸지 않는다. 출구 (보기 조건 쿼리 · body · `targetCollectionId` 가 있는 Form 제출) 가 값 표현으로 되돌리고 큰 정수는 literal. 항목 key = `fieldMap.value` → `keyField` → `id` · `key` · `value` → `row-N` (Canvas · DOM · 세션 · Publish). 전후 표 11 행이 「표준」 열과 일치 (9 행의 뜻 정정 — 각 열), 원복 RED 8/8, 새 실패 0, HC6 변환 불필요 응답의 새 행 객체 0, 번들 Builder +1,500 · Preview −1 B (첫 측정 +4,541 → 변환기 lazy 로 수리). 큰 정수 보존 파싱의 기본 경로는 원문 훑기 (reviver 보다 2.5 배 빠름). live: CSV · JSON 붙여넣기 → 큰 정수 · `01234` · `"Y"` 보존 → 새로고침 뒤 같음. 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+
+> **Phase 1 종결 (2026-11-17 — G1, contract 70)**: shared `collections/intake` (값 표현 8 종의 읽기 · 되돌리기 · 진입 변환기 `normalizeRows` · 큰 정수 보존 파싱 · 쓰기, 의존 0 · barrel 밖) · entry 형 `CatalogDataField.encoding` · `CollectionEntry.keyField` · 문서 검증 (`INVALID_FIELD_ENCODING` · `FIELD_ENCODING_TYPE_MISMATCH` · `KEY_FIELD_MISSING`) · DataChange 스키마 · 적용기 (타입 변경이 맞지 않는 값 표현을 지움 · key 필드 삭제가 `keyField` 를 지움, 둘 다 inverse 복원) · `fieldMappings` 삭제. 검사 G1 34 + 적용기 4 · 원복 RED 7/7 · 새 실패 0. Code 보기는 `encoding` · `keyField` 를 쓰지 않는다 (진입 설정). 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+
+> **Phase 0 종결 (2026-11-17 — G0)**: 손으로 쓴 Spring 표본 (응답 14 열 · 포장 응답 · Oracle CSV · OpenAPI 3.0 · 3.1) 과 정답표를 fixture 로 고정 · 전후 표 11 행의 「지금」 열과 F4 · F5 를 실제 코드로 실행 (`adr313Current.test.ts` 10/10, breakdown 과 차이 0) · 인벤토리 4 항목 (필드를 키별로 옮기는 곳 = Code 보기 · 보기 결과 schema / Preview 의 API 행 = (c) 의 결과 / 작성 행은 진입 때 한 번 / Form 제출은 `targetCollectionId` 가 있을 때만 collection 을 안다) · 기준선 (1 만 행 × 20 열 파싱 6.5 · 8.7 ms, 번들 Builder 1,571,651 · Preview 170,275 B gzip closure). contract 는 69 (ADR-312) → 이 ADR 이 70. 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+
+- 사용자 결정 2 · 3 · 4 · 5 · 6 확정 (2026-11-17, Phase 3 착수 전 — 모두 권고안): 2 = 표 + endpoint 초안 · 3 = JSON 만 · 4 = 제약은 보고만 · 5 = `int64` 기본 `number` (key · 안전 범위 밖 표본만 `bigInt` 제안) · 6 = 값 표현 변경은 타입 변경과 같은 규칙 (바뀌는 값은 바꾸고 못 바꾸는 값은 비운다).
+- 사용자 결정 1 확정 (2026-11-17 「손으로 쓴 표본」): Phase 0 fixture 는 Spring Boot 기본 설정을 가정해 손으로 쓴 표본이다 — 형식 판정에만 쓰고 빈도 · 분포의 근거로 쓰지 않는다.
 
 - 사용자 요청: `/create-adr` (2026-11-16).
 - 방향을 정한 사용자 원문 (2026-11-16 대화 순서대로):
@@ -48,7 +63,7 @@ Proposed — 2026-11-16
 - **F9 — 날짜 값은 ISO 글자이고 모양이 정밀도다.** `parseDateValue` 가 날짜 · 일시 (offset 없음) · 시각 · 절대 시각으로 나눈다 (`packages/shared/src/state/dateValue.ts:31-46`, ADR-309). offset 없는 일시는 정상 값이다.
 - **F10 — 설치본.** zod 4.6.7 (builder · shared 직접 의존성) 에 `fromJSONSchema` 가 있다 — `draft-2020-12` · `draft-7` · `draft-4` · `openapi-3.0`, 외부 `$ref` 는 가져오지 않고 예외 (`zod/v4/classic/from-json-schema.js:106-108`), 타입 주석이 「semi-experimental」 이라 적는다. `ajv@6` · `js-yaml@3` 은 다른 패키지를 통해 들어온 것이다. OpenAPI 를 읽는 코드는 없다.
 - **F11 — 행 상한.** 작성 행 1,000 (`types.ts:1596` `CATALOG_COLLECTION_ROW_LIMIT`), 로컬 실행 1 만 (`serialize.ts:48` `VIEW_LOCAL_LOAD_CAP`).
-- **F12 — contract 68** (`types.ts:169`). entry 의 허용 키가 고정이라 (F1) 필드 추가는 contract 를 올린다.
+- **F12 — contract 68** (`types.ts:169` — 2026-11-17 ADR-312 로 69, 이 ADR 은 70). entry 의 허용 키가 고정이라 (F1) 필드 추가는 contract 를 올린다.
 
 ### 선행 결정
 

@@ -1,4 +1,35 @@
 import type { ApiEndpointDefinition } from "../types/collection.types";
+import type { IntakeCollection } from "./intake/queryItems";
+
+export type { IntakeCollection } from "./intake/queryItems";
+
+/**
+ * ADR-313 — the intake modules load with the first request (HC3: this module is on the Builder's
+ * first screen through `collectionSnapshot`; the converter is not).
+ */
+const intake = () =>
+  Promise.all([
+    import("./intake/parseJsonLossless"),
+    import("./intake/queryItems"),
+    import("./intake/outgoing"),
+  ]).then(([lossless, query, outgoing]) => ({ ...lossless, ...query, ...outgoing }));
+
+/** ADR-313 F5 — a response body read keeping the integers past 2^53 (a Java `Long` key) as their text. */
+async function responseJson(response: Response): Promise<unknown> {
+  const { parseJsonLossless } = await intake();
+  return parseJsonLossless(await response.text());
+}
+
+/** The collections the intake reads — a list, or a reader of the current ones (a session's). */
+export type IntakeCollections = readonly IntakeCollection[] | (() => readonly IntakeCollection[]);
+
+/** The collection an endpoint fills (`targetCollectionId`), as the intake reads it. */
+export function targetCollectionOf(endpoint: ApiEndpointDefinition, collections: IntakeCollections): IntakeCollection | undefined {
+  if (!endpoint.targetCollectionId) return undefined;
+  const list = typeof collections === "function" ? collections() : collections;
+  return list.find((item) => item.id === endpoint.targetCollectionId);
+}
+
 
 /**
  * Resolves the `{{ }}` templates of an endpoint's path · query values (`/users/{{ params.id }}`) —
@@ -67,7 +98,7 @@ export function resolvedEndpointUrl(endpoint: ApiEndpointDefinition, resolve: En
 }
 
 /** The request body: a view's JSON over the endpoint's body template object, else the template. */
-function requestBody(endpoint: ApiEndpointDefinition, extra?: EndpointRequestExtra): string | undefined {
+function requestBody(endpoint: ApiEndpointDefinition, extra: EndpointRequestExtra | undefined, stringifyJsonLossless: (value: unknown) => string): string | undefined {
   if (extra?.body === undefined) return endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined;
   let base: unknown;
   try {
@@ -75,7 +106,8 @@ function requestBody(endpoint: ApiEndpointDefinition, extra?: EndpointRequestExt
   } catch {
     base = undefined;
   }
-  return JSON.stringify(base && typeof base === "object" && !Array.isArray(base) ? {...base, ...(extra.body as object)} : extra.body);
+  // (ADR-313 Decision 5 — a big integer key goes as a literal, not a quoted text.)
+  return stringifyJsonLossless(base && typeof base === "object" && !Array.isArray(base) ? {...base, ...(extra.body as object)} : extra.body);
 }
 
 /** An endpoint's request parts (URL · headers · method · timeout signal) — the query and the submit share them. */
@@ -112,11 +144,11 @@ function readPath(value: unknown, path: string): unknown {
 export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, cursor?: string, extra?: EndpointRequestExtra): Promise<{items: unknown; cursor?: string; selectedKeys?: string[] | "all"; total?: number}> {
   const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve, extra);
   const target = cursor && !endpointReadsTemplate(endpoint, "cursor") && /^(https?:)?\//.test(cursor) ? new URL(cursor, url) : url;
-  const body = requestBody(endpoint, extra);
+  const body = requestBody(endpoint, extra, (await intake()).stringifyJsonLossless);
   const response = await fetch(target, {method, headers, signal: requestSignal,
     body: method !== "GET" && method !== "HEAD" ? body : undefined});
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  const result = await response.json();
+  const result = await responseJson(response);
   const cursorPath = endpoint.responseMapping?.cursorPath;
   const next = cursorPath ? readPath(result, cursorPath) : undefined;
   const selectedPath = endpoint.responseMapping?.selectedKeysPath;
@@ -149,7 +181,7 @@ export async function executeCollectionEndpoint(endpoint: ApiEndpointDefinition,
   const response = await fetch(url, {method, headers, signal: requestSignal,
     body: method !== "GET" && method !== "HEAD" && endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined});
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  return mappedItems(endpoint, await response.json());
+  return mappedItems(endpoint, await responseJson(response));
 }
 
 /**
@@ -163,30 +195,41 @@ export async function submitCollectionEndpoint(endpoint: ApiEndpointDefinition, 
   const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal);
   if (method === "GET" || method === "HEAD") throw new Error(`${method} endpoint 는 body 를 보낼 수 없습니다`);
   if (!Object.keys(headers).some((key) => key.toLowerCase() === "content-type")) headers["Content-Type"] = "application/json";
-  const response = await fetch(url, {method, headers, signal: requestSignal, body: body === undefined ? undefined : JSON.stringify(body)});
+  const { stringifyJsonLossless } = await intake();
+  const response = await fetch(url, {method, headers, signal: requestSignal, body: body === undefined ? undefined : stringifyJsonLossless(body)});
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   if (response.status === 204 || response.headers.get("content-length") === "0") return undefined;
   if (!/json/i.test(response.headers.get("content-type") ?? "")) return undefined;
   const text = await response.text();
   if (!text.trim()) return undefined;
+  const { parseJsonLossless } = await intake();
   try {
-    return JSON.parse(text);
+    return parseJsonLossless(text);
   } catch {
     return undefined;
   }
 }
 
-/** The submit service over a project's endpoints (by id — no request sharing). */
-export function createCollectionEndpointSubmitter(endpoints: ApiEndpointDefinition[]) {
+/**
+ * The submit service over a project's endpoints (by id — no request sharing). ADR-313 Decision 5 — a
+ * body to an endpoint that fills a collection (`targetCollectionId`) is written back with its fields'
+ * notations (a Form's values are texts: read first, then written back).
+ */
+export function createCollectionEndpointSubmitter(endpoints: ApiEndpointDefinition[], collections: IntakeCollections = []) {
   return async (id: string, body: unknown, signal?: AbortSignal): Promise<unknown> => {
     const endpoint = endpoints.find((item) => item.id === id);
     if (!endpoint) throw new Error(`API Endpoint '${id}'을 찾을 수 없습니다`);
-    return submitCollectionEndpoint(endpoint, body, signal ?? new AbortController().signal);
+    const { outgoingRecord } = await intake();
+    const outgoing = outgoingRecord(body, targetCollectionOf(endpoint, collections)?.schema, "text");
+    return submitCollectionEndpoint(endpoint, outgoing, signal ?? new AbortController().signal);
   };
 }
 
-/** 같은 provider의 동시 consumer는 요청을 공유하고, 마지막 consumer가 떠날 때 취소한다. */
-export function createCollectionEndpointExecutor(endpoints: ApiEndpointDefinition[]) {
+/**
+ * 같은 provider의 동시 consumer는 요청을 공유하고, 마지막 consumer가 떠날 때 취소한다. ADR-313 — 응답은
+ * endpoint 가 채우는 collection (`targetCollectionId`) 의 schema 로 진입 변환한다.
+ */
+export function createCollectionEndpointExecutor(endpoints: ApiEndpointDefinition[], collections: IntakeCollections = []) {
   const pending = new Map<string, {controller: AbortController; promise: Promise<unknown>; consumers: Set<symbol>}>();
   return async (id: string, signal?: AbortSignal): Promise<unknown> => {
     if (signal?.aborted) throw signal.reason;
@@ -195,7 +238,8 @@ export function createCollectionEndpointExecutor(endpoints: ApiEndpointDefinitio
     let request = pending.get(id);
     if (!request) {
       const controller = new AbortController();
-      const promise = executeCollectionEndpoint(endpoint, controller.signal).finally(() => {
+      const target = targetCollectionOf(endpoint, collections);
+      const promise = executeCollectionEndpoint(endpoint, controller.signal).then(async (items) => (await intake()).intakeQueryItems(items, target)).finally(() => {
         if (pending.get(id)?.controller === controller) pending.delete(id);
       });
       request = {controller, promise, consumers: new Set()};

@@ -183,6 +183,7 @@ export function createCatalogQuickConnectHost(
               schema,
               rows: input.mockData ?? [],
               source: (input.useMockData ?? true) ? "manual" : "api",
+              ...(input.keyField ? { keyField: input.keyField } : {}),
             },
           ],
           origin: "user",

@@ -13,7 +13,7 @@
  */
 import type { DataField, DataTable } from "../../types/builder/data.types";
 
-function newFieldId(): string {
+export function newFieldId(): string {
   const c = globalThis.crypto;
   if (c && typeof c.randomUUID === "function") return c.randomUUID();
   return `f_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;

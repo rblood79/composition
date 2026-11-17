@@ -45,7 +45,11 @@ export const understandPasteTool: ToolExecutor = {
           typeof args.collectionId === "string" && args.collectionId
             ? args.collectionId
             : undefined,
-        collections: collections.map((c) => ({ id: c.id, name: c.name })),
+        collections: collections.map((c) => ({
+          id: c.id,
+          name: c.name,
+          schema: c.schema,
+        })),
       });
 
       if (built.kind === "error") {
