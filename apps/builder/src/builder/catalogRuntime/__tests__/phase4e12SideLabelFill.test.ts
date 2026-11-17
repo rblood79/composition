@@ -29,6 +29,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { fieldLabelRecord } from "./support/fieldLabel";
 
 const measure: CatalogTextMeasure = (text, font) => ({
   width: text.length * font.fontSize * 0.5,
@@ -80,9 +81,11 @@ async function openOwner(type: string, extra: Partial<NodeEntry> = {}) {
     (record) => record.sourceId === "project:node:owner",
   )!;
   const child = (type: string) =>
-    owner.children
-      .map((id) => root.canvasInputs.get(id)!)
-      .find((record) => root.typeOf(record) === type)!;
+    type === "Label"
+      ? fieldLabelRecord(root.canvasInputs, (record) => root.typeOf(record), owner)!
+      : owner.children
+          .map((id) => root.canvasInputs.get(id)!)
+          .find((record) => root.typeOf(record) === type)!;
   const box = (id: string) => root.getGeometry([id]).get(id)!;
   return { workspace, root, owner, child, box };
 }
@@ -94,7 +97,8 @@ const side = {
 describe("ADR-248 4e-12 labelPosition side", () => {
   it("a side TextField puts its label column (its text's width) beside the input (one row)", async () => {
     const { owner, child, box } = await openOwner("TextField", side);
-    const label = box(child("Label").id);
+    // (The label column is the label row — S2 `FieldLabel`, 2026-11-18.)
+    const label = box(child("FieldLabel").id);
     // (The control is the field's box Group — S2 `FieldGroup`, 2026-11-14.)
     const input = box(child("Group").id);
     // `[data-label-position="side"]` is a grid `auto minmax(0, 1fr)` (S2 `field()`, 2026-10-10):
@@ -116,7 +120,9 @@ describe("ADR-248 4e-12 labelPosition side", () => {
       },
     } as Partial<NodeEntry>);
     // `[data-label-align="end"] { --form-label-align: end }` → the side Label's `text-align`.
-    expect(child("Label").visual.textAlign).toBe("end");
+    // (The label row stands in the Label's place — S2 `FieldLabel`, 2026-11-18: the row's own
+    //  alignment carries it, its Label stays content-wide.)
+    expect(child("FieldLabel").layout?.justifyContent).toBe("end");
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     expect(getSkiaNode(child("Label").id)).toBeDefined();
     canvas.dispose();

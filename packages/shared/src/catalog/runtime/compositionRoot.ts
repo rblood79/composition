@@ -178,7 +178,9 @@ import {
 import {
   parseGapValue,
   resolveTextSourceText,
+  resolveToken,
   snapBorderWidthAt,
+  type TokenRef,
 } from "@composition/rendering";
 import { applyTextTransform } from "./textTransform";
 import {
@@ -252,6 +254,7 @@ import {
   catalogItemLabels,
   catalogItemSlotInset,
   catalogFieldLabelPart,
+  catalogFieldLabelRowColor,
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
   catalogProgressFillLayout,
@@ -4595,6 +4598,14 @@ export class CatalogCompositionRoot {
       return {
         ...derived,
         color: derived.staticColor === "white" ? "#ffffff" : "#000000",
+      };
+    // S2 `FieldLabel` paints its Label `fieldLabel()` (`neutral-subdued`) — a Meter's · ProgressBar's ·
+    // LabeledValue's too (`catalogFieldLabelRowColor`), unless the label authors its own color.
+    const rowColor = catalogFieldLabelRowColor(record, get, this.typeOf);
+    if (rowColor && catalogAuthoredVisual(this, record).color === undefined)
+      return {
+        ...derived,
+        color: String(resolveToken(rowColor as TokenRef, this.colorMode)),
       };
     // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d; so does a TreeItem's
     // chevron glyph — `Tree.css` `all: unset` on its button, the row's color — Phase 5h.)

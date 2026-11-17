@@ -151,7 +151,8 @@ describe("ADR-256 Phase 7c — Slider draws its node tree", () => {
       createElement(
         Slider,
         { defaultValue: 30, minValue: 0, maxValue: 100, step: 1 },
-        createElement(Label, null, "Volume"),
+        // (S2 `FieldLabel` — the label row `div`, 2026-11-18.)
+        createElement("div", null, createElement(Label, null, "Volume")),
         createElement(SliderOutput),
         createElement(SliderTrack, {
           children: () => [

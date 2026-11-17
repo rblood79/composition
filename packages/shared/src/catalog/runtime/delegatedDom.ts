@@ -3,7 +3,6 @@ export {
   catalogCollectionSelectedKeys,
   catalogOwnerDrawnPart,
   CATALOG_LABEL_NODE_FIELDS,
-  catalogFieldLabelNode,
   catalogFieldHintNodes,
   CATALOG_INPUT_NODE_FIELDS,
   CATALOG_WRAPPED_CONTROL_FIELDS,

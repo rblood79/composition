@@ -262,8 +262,25 @@ it.each(
       expect(
         Math.abs(targetRect.x - last.right - (refRect.x - refLast.right)),
       ).toBeLessThanOrEqual(0.75);
+      // (The asterisk is a replaced box on the line's baseline — measured from the baseline: the
+      // document font (Pretendard, 사용자 결정 — kept) and S2's Adobe Clean have different content
+      // areas, so a line-top offset differs by the font, not the mark. The text mark keeps the
+      // line-top offset: its own content area is the line's.)
+      const baseline = (host: Element) => {
+        const marker = host.appendChild(document.createElement("span"));
+        marker.style.cssText = "display:inline-block;width:0;height:0";
+        const y = marker.getBoundingClientRect().top;
+        marker.remove();
+        return y;
+      };
       expect(
-        Math.abs(targetRect.y - last.top - (refRect.y - refLast.top)),
+        Math.abs(
+          mode === "icon"
+            ? targetRect.bottom -
+                baseline(body) -
+                (refRect.bottom - baseline(referenceLabel))
+            : targetRect.y - last.top - (refRect.y - refLast.top),
+        ),
       ).toBeLessThanOrEqual(0.75);
       const geo = h.root.getGeometry([
         h.body.id,

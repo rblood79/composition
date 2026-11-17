@@ -211,8 +211,18 @@ function derivePartsHosts(): Readonly<Record<string, readonly string[]>> {
     const parts = hosts.get(host) ?? new Set<string>();
     hosts.set(host, parts);
     for (const childId of root.children) {
-      const type = typeOf(String(templates.get(String(childId))!.definitionId));
+      const child = templates.get(String(childId))!;
+      const type = typeOf(String(child.definitionId));
       if (type) parts.add(type);
+      // A label row (S2 `FieldLabel` — 2026-11-18) stands in its Label's place: what it holds stays
+      // a part of the host too (a field placed before the row, a Label taken out of it).
+      if (type === "FieldLabel")
+        for (const inRow of child.children) {
+          const rowPart = typeOf(
+            String(templates.get(String(inRow))!.definitionId),
+          );
+          if (rowPart) parts.add(rowPart);
+        }
     }
   }
   for (const [host, parts] of hosts) {

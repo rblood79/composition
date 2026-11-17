@@ -69,7 +69,7 @@ const FIELDS = [
   "CheckboxGroup",
   "RadioGroup",
 ] as const;
-const HINTS = new Set(["Label", "Description", "FieldError"]);
+const HINTS = new Set(["FieldLabel", "Label", "Description", "FieldError"]);
 
 async function open(
   type: string,
@@ -140,7 +140,8 @@ async function open(
     children.find((record) => root.typeOf(record) === kind)!;
   // (A SearchField's control is its Group — S2 `FieldGroup`, 2026-11-13.)
   const control = children.find((record) => !HINTS.has(root.typeOf(record)))!;
-  const ids = [of("Label").id, control.id, of("Description").id, owner.id];
+  // (The label row stands in the Label's place — S2 `FieldLabel`, 2026-11-18.)
+  const ids = [of("FieldLabel").id, control.id, of("Description").id, owner.id];
   const box = (id: string) =>
     root.getGeometry([id]).get(id) as {
       x: number;

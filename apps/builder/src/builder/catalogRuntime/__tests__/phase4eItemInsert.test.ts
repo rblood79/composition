@@ -599,7 +599,7 @@ describe("ADR-248 4e item insert ('+')", () => {
     add(workspace, "RadioItems", "Radio");
     expect(values()).toEqual(["option1", "option2", "option3", "option4"]);
     expect(childTypes(workspace, "RadioGroup")).toEqual([
-      "Label",
+      "FieldLabel",
       "RadioItems",
       // ADR-253: the group's hint parts (instances of the Description · FieldError origins).
       "Description",
@@ -617,7 +617,7 @@ describe("ADR-248 4e item insert ('+')", () => {
       Array.from({ length: before + 2 }, () => "Checkbox"),
     );
     expect(childTypes(workspace, "CheckboxGroup")).toEqual([
-      "Label",
+      "FieldLabel",
       "CheckboxItems",
       // ADR-253: the group's hint parts (instances of the Description · FieldError origins).
       "Description",

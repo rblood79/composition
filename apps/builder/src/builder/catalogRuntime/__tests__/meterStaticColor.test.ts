@@ -166,7 +166,6 @@ for (const type of ["Meter", "ProgressBar"] as const)
       it(`${color}: S2's track 17% · fill 94% · label and value in the static color`, async () => {
         const shown = await open(type, {
           staticColor: color,
-          showValueLabel: true,
           ...(type === "Meter" ? { variant: "positive" } : {}),
         });
         expect(shown.tag).toContain(`data-static-color="${color}"`);

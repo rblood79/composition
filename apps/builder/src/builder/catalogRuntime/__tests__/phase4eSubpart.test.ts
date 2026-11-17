@@ -56,8 +56,11 @@ describe("ADR-248 Phase 4e delegated sub-part owner (catalog records)", () => {
       definitionTypeName(graph, records.get(id)!.definitionId as DefinitionId);
     const all = [...records.keys()];
     const field = all.find((id) => typeOf(id) === "TextField")!;
+    // (The Label sits in the field's S2 `FieldLabel` row — 2026-11-18.)
     const label = all.find(
-      (id) => typeOf(id) === "Label" && records.get(id)!.parentId === field,
+      (id) =>
+        typeOf(id) === "Label" &&
+        records.get(records.get(id)!.parentId!)?.parentId === field,
     )!;
     const frame = all.find((id) => typeOf(id) === "frame")!;
     expect(field && label && frame).toBeTruthy();

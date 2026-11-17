@@ -22,7 +22,7 @@
 
   /* Default variant */
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-muted);
   border: none;
 
   /* Default size */
@@ -34,7 +34,7 @@
 
 .react-aria-MeterValue:where([data-variant="informative"]) {
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-muted);
 }
 
 .react-aria-MeterValue:where([data-variant="informative"][data-hovered]) {
@@ -77,7 +77,7 @@
 
 .react-aria-MeterValue:where([data-variant="positive"]) {
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-muted);
 }
 
 .react-aria-MeterValue:where([data-variant="positive"][data-hovered]) {
@@ -120,7 +120,7 @@
 
 .react-aria-MeterValue:where([data-variant="notice"]) {
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-muted);
 }
 
 .react-aria-MeterValue:where([data-variant="notice"][data-hovered]) {
@@ -163,7 +163,7 @@
 
 .react-aria-MeterValue:where([data-variant="negative"]) {
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-muted);
 }
 
 .react-aria-MeterValue:where([data-variant="negative"][data-hovered]) {

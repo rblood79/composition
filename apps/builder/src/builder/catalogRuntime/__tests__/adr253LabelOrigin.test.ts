@@ -21,6 +21,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { fieldLabelRecord } from "./support/fieldLabel";
 
 /**
  * ADR-253 Phase 2 (G2): a TextField's Label is an instance of the Label origin. The field's
@@ -76,9 +77,12 @@ async function open(fields: Partial<NodeEntry> = {}) {
     const field = [...workspace.root.canvasInputs.values()].find(
       (record) => record.sourceId === FIELD,
     )!;
-    const record = field.children
-      .map((id) => workspace.root.canvasInputs.get(id)!)
-      .find((child) => child.definitionId === "lib:definition:type-Label")!;
+    // (in its S2 `FieldLabel` row — 2026-11-18)
+    const record = fieldLabelRecord(
+      workspace.root.canvasInputs,
+      (child) => workspace.root.typeOf(child),
+      field,
+    )!;
     return { record, dom: workspace.root.domInputs.get(record.id)! };
   };
   return { workspace, library, label };

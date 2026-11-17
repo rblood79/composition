@@ -100,10 +100,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   FileTrigger: { isDisabled: "composition" },
   GridList: { layout: "rac" },
   Link: { isDisabled: "rac" },
-  Meter: { showValueLabel: "v3" },
   NumberField: { isQuiet: "v3" },
   Popover: { defaultOpen: "rac" },
-  ProgressBar: { showValueLabel: "v3" },
   SearchField: { isQuiet: "v3" },
   Slider: { showValueLabel: "v3" },
   // Authored Text/Icon children expose their content on the S2 item instance.

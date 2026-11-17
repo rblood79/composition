@@ -106,6 +106,7 @@ import {
   catalogFieldBoxInputStyle,
   catalogFieldBox,
   catalogFieldBoxInputEnd,
+  CATALOG_FIELD_ERROR_ICON,
   catalogFieldBoxInputStart,
   catalogFieldBoxOfInput,
   catalogFieldBoxStyle,
@@ -209,7 +210,10 @@ import {
   catalogHasAuthoredVisual,
   catalogHasExplicitVisual,
 } from "./libraryVisual";
-import { catalogFieldLabelPartsHidden } from "./presence";
+import {
+  catalogFieldLabelPartsHidden,
+  catalogFieldLabelRowAbsent,
+} from "./presence";
 import { catalogSelectionGroupOf } from "./groupSelection";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
 import { catalogLayoutTokenCss, catalogNodeTokenCss } from "./nodeTokenCss";
@@ -406,6 +410,40 @@ export function repeatTemplatePart(
     const { root, id } = part.props as CatalogDomNodeProps;
     return root.domInputs.get(id)?.bindingId === bindingId;
   });
+}
+
+const NECESSITY_PARTS: ReadonlySet<string> = new Set([
+  "necessity-space",
+  "necessity-icon",
+  "necessity-label",
+]);
+/**
+ * S2 `FieldLabel` (`Field.tsx`): the NBSP and the necessity mark (asterisk · "(required)") sit in
+ * one `span` (`whiteSpace: nowrap`) after the label text — drawn only when a part shows. The parts
+ * stay the Label's nodes (the Canvas lays them out as the Label's inline children; the span has no
+ * box, so the geometry is the same).
+ */
+function necessityGrouped(children: ReactElement[]): ReactElement[] {
+  const record = (child: ReactElement) => {
+    if (!isValidElement(child) || child.type !== CatalogDomNode) return;
+    const { root, id } = child.props as CatalogDomNodeProps;
+    return root.domInputs.get(id);
+  };
+  const parts = children.filter((child) =>
+    NECESSITY_PARTS.has(String(record(child)?.props.slot ?? "")),
+  );
+  if (!parts.length) return children;
+  const rest = children.filter((child) => !parts.includes(child));
+  return parts.some((child) => !record(child)?.hidden)
+    ? [
+        ...rest,
+        createElement(
+          "span",
+          { key: "necessity", style: { whiteSpace: "nowrap" } },
+          ...parts,
+        ),
+      ]
+    : rest;
 }
 
 type DomBinding = (
@@ -1131,14 +1169,18 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   label: (node, style, children) =>
     createElement(
       Label,
-      { key: node.id, "data-catalog-id": node.id, style } as Parameters<
-        typeof Label
-      >[0],
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        // (S2 LabeledValue: a `span` — `_labelElement`.)
+        elementType: node.derivedProps?._labelElement,
+        style,
+      } as Parameters<typeof Label>[0],
       // (A ColorSlider's Label without its own text shows the channel's name — RAC's, ADR-258.)
       ...(catalogRacOwnsText(node) || node.derivedProps?._fieldComposed === true
         ? []
         : [String(node.props.children ?? "")]),
-      ...children,
+      ...necessityGrouped(children),
     ),
   description: (node, style) =>
     createElement(RacSlotScope, {
@@ -1801,6 +1843,68 @@ function forwardFocus(event: {
     ?.focus();
 }
 
+/**
+ * S2 `FieldErrorIcon` in an invalid field's box (`fieldPrefix.ts` `catalogFieldErrorIcon`): the glyph
+ * element after its input. The input keeps the glyph's room at its end (its end padding), so the glyph
+ * takes no room of its own — its start margin pulls it back over that room (and the box's gap before
+ * it), its end margin is the rest: the Canvas draws it at the same place on the input.
+ */
+function withFieldErrorIcon(
+  root: CatalogCompositionRoot,
+  group: CatalogConsumerNode,
+  field: CatalogConsumerNode,
+  box: { buttoned: boolean },
+  children: ReactElement[],
+): ReactElement[] {
+  const at = children.findIndex(
+    (child) =>
+      isValidElement(child) &&
+      child.type === CatalogDomNode &&
+      typeof root.domInputs.get((child.props as CatalogDomNodeProps).id)
+        ?.derivedProps?._fieldErrorIcon === "number",
+  );
+  if (at < 0) return children;
+  const input = root.domInputs.get(
+    (children[at]!.props as CatalogDomNodeProps).id,
+  )!;
+  const size = Number(input.derivedProps!._fieldErrorIcon);
+  const end = Number(input.derivedProps!._fieldErrorIconEnd ?? 0);
+  const authored = authoredStyle(root, group) as CSSProperties;
+  const gap =
+    authored.columnGap ??
+    authored.gap ??
+    catalogFieldBoxStyle(
+      field.props.size,
+      catalogTypeName(root, field),
+      box.buttoned,
+    ).gap ??
+    0;
+  const gapCss = typeof gap === "number" ? `${gap}px` : String(gap);
+  return [
+    ...children.slice(0, at + 1),
+    createElement(Icon, {
+      key: "field-error-icon",
+      "aria-hidden": true,
+      "data-field-error-icon": "",
+      iconName: CATALOG_FIELD_ERROR_ICON,
+      style: {
+        flexShrink: 0,
+        width: size,
+        height: size,
+        fontSize: size,
+        color: "var(--negative)",
+        alignSelf:
+          input.derivedProps?._fieldErrorIconTop === true
+            ? "flex-start"
+            : "center",
+        marginInlineStart: `calc(${-(end + size)}px - ${gapCss})`,
+        marginInlineEnd: end,
+      },
+    }),
+    ...children.slice(at + 1),
+  ];
+}
+
 function nodeTreeControlGroup(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -1816,6 +1920,7 @@ function nodeTreeControlGroup(
   );
   const ownGroup = PREFIX_GROUP_BINDINGS.has(field.bindingId ?? "");
   const disabled = field.props.isDisabled === true;
+  if (box) children = withFieldErrorIcon(root, node, field, box, children);
   // The input's name: its label, then the prefix (S2 `FieldGroup` extends `InputContext` — not a
   // TextArea's, S2 G0 oracle).
   const prefixId =
@@ -3958,6 +4063,12 @@ export function renderNode(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,
+    ) ||
+    // (A field's label row without label text — S2 `FieldLabel`, the Canvas's predicate.)
+    catalogFieldLabelRowAbsent(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
     )
   )
     return null;
@@ -4018,7 +4129,8 @@ export function renderNode(
     )
   )
     return null;
-  // (A ProgressBar's · Meter's value text while `showValueLabel` is false — the Canvas's predicate.)
+  // (A ProgressBar's · Meter's value text without a label or while indeterminate (S2), a Slider's while
+  //  `showValueLabel` is false — the Canvas's predicate.)
   if (
     catalogProgressValueHidden(
       node,

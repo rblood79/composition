@@ -32,11 +32,19 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-FieldLabel {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-FieldLabel .react-aria-Label {
+    color: var(--fg-muted);
+  }
 
 
 } /* @layer components */

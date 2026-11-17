@@ -520,11 +520,11 @@ const progressNodeTreeMarkup = (
   // RAC 1.22 stopped forwarding Meter's obsolete boolean `progressbar` DOM attribute.
   const current =
     label === "Meter" ? markup.replace(" progressbar>", ">") : markup;
+  // (S2 `label &&`: no value text without a label — 2026-11-18.)
   return name === "no label"
-    ? current.replace(
-        /^<div aria-labelledby (aria-valuemax)/,
-        `<div aria-label=${label} $1`,
-      )
+    ? current
+        .replace(/^<div aria-labelledby (aria-valuemax)/, `<div aria-label=${label} $1`)
+        .replace(/<span class=value>[^<]*<\/>/, "")
     : current;
 };
 /**
@@ -562,6 +562,51 @@ const sliderNodeTreeMarkup = (markup: string, name: string) => {
  */
 const NECESSITY_NAMED_TYPES = ["checkboxgroup", "select"];
 const PLAIN_LABEL_TYPES = ["meter", "progressbar", "taggroup"];
+/**
+ * S2 `FieldLabel` (2026-11-18 — every labelled origin holds the label row node): the root's own
+ * Label sits in `div.react-aria-FieldLabel`. Wraps the first Label child of the outermost element
+ * (`<tag …>` opens, `</>` closes); item labels deeper down stay as they are.
+ */
+/** A field's Label node — in its S2 `FieldLabel` row (2026-11-18), or a direct child. */
+function fieldLabelNode<T extends { bindingId?: string; children: readonly string[] }>(
+  records: ReadonlyMap<string, T>,
+  field: { children: readonly string[] },
+): T {
+  for (const id of field.children) {
+    const child = records.get(id)!;
+    if (child.bindingId === "label") return child;
+    if (child.bindingId === "fieldlabel") return fieldLabelNode(records, child);
+  }
+  throw new Error("no Label");
+}
+
+const fieldLabelRowMarkup = (markup: string) => {
+  const tokens = markup.match(/<\/>|<[^>]*>|[^<]+/g) ?? [];
+  let depth = 0;
+  let start = -1;
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index]!;
+    if (token === "</>") {
+      depth--;
+      if (start >= 0 && depth === 1) {
+        return [
+          ...tokens.slice(0, start),
+          "<div class=react-aria-FieldLabel>",
+          ...tokens.slice(start, index + 1),
+          "</>",
+          ...tokens.slice(index + 1),
+        ].join("");
+      }
+      continue;
+    }
+    if (!token.startsWith("<")) continue;
+    if (start < 0 && depth === 1 && /class=react-aria-Label[ >]/.test(token))
+      start = index;
+    depth++;
+  }
+  return markup;
+};
+
 const labelInlineMarkup = (markup: string, type: string) => {
   if (PLAIN_LABEL_TYPES.includes(type)) return markup;
   const named = NECESSITY_NAMED_TYPES.includes(type);
@@ -585,7 +630,8 @@ const labelInlineMarkup = (markup: string, type: string) => {
               ? "<span aria-hidden=false aria-label=(required) class=react-aria-Icon data-icon=s2-asterisk role=img slot=necessity-icon></>"
               : "<span aria-hidden=true class=react-aria-Icon data-icon=s2-asterisk slot=necessity-icon></>"
             : text("necessity-label", mark, !named && hidden !== ""));
-      return `${open}${text("label-content", words)}${necessity}</>`;
+      // (S2 `FieldLabel`: the NBSP and the mark in one `white-space: nowrap` span.)
+      return `${open}${text("label-content", words)}${necessity ? `<span >${necessity}</>` : ""}</>`;
     },
   );
 };
@@ -908,7 +954,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               ? ownedGroupItems
               : (text: string) => text;
           // S2 HelpText parts now carry their own generated catalog sheet/state.
-          const hints = labelInlineMarkup(expected, type)
+          const hints = fieldLabelRowMarkup(labelInlineMarkup(expected, type))
             .replaceAll(
               "class=react-aria-Text id slot=description",
               "class=react-aria-Description data-variant=default id slot=description",
@@ -917,7 +963,18 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               "class=react-aria-FieldError data-rac= id slot=errorMessage",
               "class=react-aria-FieldError data-rac= data-variant=default id slot=errorMessage",
             );
-          expect(owned(glyphless(withoutNecessityGlyph(structure)))).toBe(
+          // (An invalid field's S2 `FieldErrorIcon` is drawn by the field, not a node — its own check is
+          //  `s2FieldErrorIcon.test.tsx`.)
+          const withoutErrorIcon = (markup: string) =>
+            markup.replace(
+              /<div aria-hidden=true class=react-aria-Icon data-field-error-icon=>(?:<svg [^>]*>(?:<path [^>]*><\/>)*<\/>)?<\/>/,
+              "",
+            );
+          expect(
+            withoutErrorIcon(
+              owned(glyphless(withoutNecessityGlyph(structure))),
+            ),
+          ).toBe(
             withOriginItemKeys(type, owned(glyphless(hints))),
           );
           return;
@@ -948,9 +1005,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       async () => {
         const rendered = (await render(type, {}))!;
         const { workspace, field } = rendered;
-        const label = field.children
-          .map((id) => workspace.root.domInputs.get(id)!)
-          .find((child) => child.bindingId === "label")!;
+        const label = fieldLabelNode(workspace.root.domInputs, field);
         expect(label.collapsedSourceIds).toEqual([
           "lib:template:component-label",
         ]);
@@ -968,9 +1023,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
   for (const type of TYPES)
     it.skipIf(write)(`${type} — its size sizes its Label`, async () => {
       const large = await render(type, { size: "L" });
-      const label = large!.field.children
-        .map((id) => large!.workspace.root.canvasInputs.get(id)!)
-        .find((child) => child.bindingId === "label")!;
+      const label = fieldLabelNode(
+        large!.workspace.root.canvasInputs,
+        large!.field,
+      );
       expect(label.props.size).toBe("L");
       expect(label.visual.fontSize).toBe(16);
       expect(
@@ -990,10 +1046,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       async () => {
         const { workspace, field } = (await render(type, {}))!;
         const label = () => {
-          const record = workspace.root.domInputs
-            .get(field.id)!
-            .children.map((id) => workspace.root.domInputs.get(id)!)
-            .find((child) => child.bindingId === "label")!;
+          const record = fieldLabelNode(
+            workspace.root.domInputs,
+            workspace.root.domInputs.get(field.id)!,
+          );
           return {
             dom: record,
             canvas: workspace.root.canvasInputs.get(record.id)!,

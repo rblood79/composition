@@ -638,9 +638,10 @@ describe("TagList — the catalog 100% height", () => {
     const list = group.children
       .map((id) => root.layoutInputs.get(id)!)
       .find((record) => record.bindingId === "taglist")!;
+    // (The label row — S2 `FieldLabel`, 2026-11-18.)
     const label = group.children
       .map((id) => root.layoutInputs.get(id)!)
-      .find((record) => record.bindingId === "label")!;
+      .find((record) => record.bindingId === "fieldlabel")!;
     const boxes = root.getGeometry([group.id, list.id, label.id]);
     const gap = Number(group.visual.gap ?? 0);
     expect(boxes.get(list.id)!.height).toBeCloseTo(

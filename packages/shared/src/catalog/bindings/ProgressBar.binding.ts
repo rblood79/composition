@@ -14,7 +14,7 @@ import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
  * 부모의 것 — `catalogDerivedProps`).
  *
  * D1: RAC `<ProgressBar role="progressbar">` 그대로.
- * D2: value · minValue · maxValue · label · formatOptions · size · isIndeterminate · showValueLabel ·
+ * D2: value · minValue · maxValue · label · formatOptions · size · isIndeterminate ·
  *     valueLabel · labelPosition · staticColor.
  * D3: catalog ProgressBar rule (`.bar` · `.value` · `.fill` composition) + ProgressBarTrack ·
  *     ProgressBarFill rule.
@@ -75,11 +75,6 @@ export const progressBarBinding: PrimitiveBinding = {
         label: "Indeterminate",
         section: "value",
       },
-      showValueLabel: {
-        kind: "boolean",
-        label: "Show Value Label",
-        section: "appearance",
-      },
       // RAC/RSP 정합 감사 (2026-07-15): valueLabel 은 delegatedDom `progressbar` 가 RAC `ProgressBar` 에 넘기고,
       //   값 글자는 ProgressBarValue 노드 (`{valueText}`) 가 그린다. labelPosition(top/side) 은 D3 구현
       //   완료로 재노출 — CSS(catalog structure.composition.containerVariants["label-position"].side →
@@ -99,8 +94,6 @@ export const progressBarBinding: PrimitiveBinding = {
         kind: "string",
         label: "Value Label",
         section: "appearance",
-        // RSP: valueLabel 은 showValueLabel 일 때만 표시 (2026-09-15)
-        visibleWhen: { key: "showValueLabel", equals: true },
       },
     },
     toRacProps: "default",

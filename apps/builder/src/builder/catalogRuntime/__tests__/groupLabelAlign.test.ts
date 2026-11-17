@@ -65,9 +65,10 @@ async function openGroup(type: string, props: NodeEntry["props"]) {
   const owner = [...root.domInputs.values()].find(
     (record) => record.sourceId === OWNER,
   )!;
+  // (The label row stands in the Label's place — S2 `FieldLabel`, 2026-11-18.)
   const label = owner.children
     .map((id) => root.canvasInputs.get(id)!)
-    .find((record) => root.typeOf(record) === "Label")!;
+    .find((record) => root.typeOf(record) === "FieldLabel")!;
   const html = renderToStaticMarkup(renderCatalogDom(root, owner.id));
   return { definitionId, label, html };
 }
@@ -89,14 +90,14 @@ describe.each(["CheckboxGroup", "RadioGroup"])("S2 %s labelAlign", (type) => {
   });
 
   it.each(["end"])(
-    "%s: the DOM group carries data-label-align and the Canvas label paints it",
+    "%s: the DOM group carries data-label-align and the Canvas label row aligns it",
     async (align) => {
       const { label, html } = await openGroup(type, {
         labelPosition: { kind: "set", value: "side" },
         labelAlign: { kind: "set", value: align },
       });
       expect(html).toContain(`data-label-align="${align}"`);
-      expect(label.visual.textAlign).toBe(align);
+      expect(label.layout?.justifyContent).toBe(align);
     },
   );
 
@@ -105,6 +106,6 @@ describe.each(["CheckboxGroup", "RadioGroup"])("S2 %s labelAlign", (type) => {
       labelPosition: { kind: "set", value: "side" },
     });
     expect(html).not.toContain("data-label-align");
-    expect(label.visual.textAlign).toBe("start");
+    expect(label.layout?.justifyContent).toBe("start");
   });
 });

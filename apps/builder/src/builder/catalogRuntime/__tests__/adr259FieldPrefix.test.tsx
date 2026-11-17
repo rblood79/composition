@@ -286,7 +286,9 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       );
       if (kind === "none") setPrefix("text");
       setPrefix(kind);
-      const label = recordOf("Label")[0]!;
+      // (The label row stands in the Label's place — S2 `FieldLabel`, 2026-11-18; the generated
+      //  sheet widens the rule's Label selectors to it, `partAliases`.)
+      const label = recordOf("FieldLabel")[0]!;
       const input = recordOf("Input")[0]!;
       // (The Input sits in the box Group with or without a prefix — S2 `FieldGroup`, 2026-11-14.)
       const group = root.canvasInputs.get(input.parentId!)!;
@@ -307,8 +309,12 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       )!;
       expect(
         host
-          .querySelector("label")!
-          .matches(rule.selector.replace(/^>\s*/, "")),
+          .querySelector(".react-aria-FieldLabel")!
+          .matches(
+            rule.selector
+              .replace(/^>\s*/, "")
+              .replace(".react-aria-Label", ".react-aria-FieldLabel"),
+          ),
       ).toBe(true);
       await done();
     });

@@ -1201,18 +1201,6 @@ const container =
 
 export { CATALOG_LABEL_NODE_FIELDS };
 
-/** The Label node of a field that draws its Label from it; `undefined` = the field composes it. */
-export function catalogFieldLabelNode(
-  root: CatalogCompositionRoot,
-  field: CatalogConsumerNode,
-): CatalogConsumerNode | undefined {
-  if (CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] === undefined)
-    return undefined;
-  return childrenOf(root, field).find(
-    (child) => catalogTypeName(root, child) === "Label",
-  );
-}
-
 /**
  * The hint part nodes (`Description` · `FieldError`) of a field that draws them from its nodes
  * (`FIELD_HINT_OWNERS`): instances of the part origins, each drawn by its own binding inside the

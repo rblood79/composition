@@ -138,10 +138,19 @@ describe("ADR-256 Phase 2 review — a field's parts inside a layout frame", () 
         Object.fromEntries(
           [...workspace.root.canvasInputs.values()]
             .filter((record) => record.id !== FIELD)
-            .map((record) => [
-              record.sourceId,
-              { derived: record.derivedProps, hidden: record.hidden },
-            ]),
+            .map((record) => {
+              // (The color drawn: a Label in its row takes the row's S2 `fieldLabel()` color as a
+              //  part value, one moved out of the row the same color derived — compare what shows.)
+              const { color, ...derived } = record.derivedProps ?? {};
+              return [
+                record.sourceId,
+                {
+                  derived,
+                  hidden: record.hidden,
+                  color: color ?? record.visual.color,
+                },
+              ];
+            }),
         );
       const before = { dom: control(html()), canvas: derived() };
       workspace.execute(

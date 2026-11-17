@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — 라벨 행 (FieldLabel) · Meter · ProgressBar 값 글자] - 2026-11-18
+
+### Changed
+
+- **라벨 행 = S2 `FieldLabel`** — 라벨을 가진 원본 21종 (TextField · Select · ComboBox · DatePicker · CheckboxGroup · Slider · Meter · ProgressBar · LabeledValue 등) 이 라벨을 늘 행 노드 `FieldLabel > Label` 로 갖는다 (Layers 에 FieldLabel 행이 보인다). 라벨 글자를 비우면 행도 사라지고, 도움말 (contextual help) 은 이 행에 넣고 뺀다 — 끌 때 행은 남는다. 이미 놓인 문서는 그대로 열린다.
+- **LabeledValue 라벨** — Text 대신 S2 처럼 `FieldLabel > Label` (Publish 의 요소는 `span`).
+- **Meter · ProgressBar 값 글자 = S2 조건** — 라벨이 있을 때만 보이고, ProgressBar 는 indeterminate 동안 숨는다. `Show Value Label` 칸은 삭제 (S2 에 없는 v3 prop — Slider 는 그대로).
+- **라벨 · 값 글자 색 = S2** — Meter · ProgressBar · LabeledValue 의 라벨과 Meter · ProgressBar 의 값 글자가 field 라벨처럼 회색 (`neutral-subdued`) 이다 (그전 진한 #292929).
+- **필수 표시** — Publish 에서 라벨 뒤 빈칸과 별표 · 「(필수)」 가 S2 처럼 한 묶음 (`span`, 줄바꿈 없음) 이다.
+
+### Added
+
+- **invalid field 의 경고 아이콘 (S2 `FieldErrorIcon`)** — TextField · TextArea · NumberField · ComboBox · ColorField · DateField · TimeField · DatePicker · DateRangePicker 가 invalid 이면 입력칸 끝 (버튼 앞) 에 빨간 경고 아이콘을 그린다 (Canvas · Publish). disabled 이면 그리지 않는다.
+
+### Fixed
+
+- **static Meter · ProgressBar 라벨 색** — 라벨이 행 안으로 들어가며 static white · black 색을 잃지 않게, Canvas 가 행을 건너 owner 를 찾는다.
+
 ## [S2 정렬 — Dialog 구조 · isDismissible] - 2026-11-18
 
 ### Added

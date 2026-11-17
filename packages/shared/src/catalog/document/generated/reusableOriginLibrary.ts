@@ -2998,14 +2998,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-progressbar",
     "definitionId": "lib:definition:type-ProgressBar",
     "children": [
-      "lib:template:component-progressbar__1",
+      "lib:template:component-progressbar__1-row",
       "lib:template:component-progressbar__2",
       "lib:template:component-progressbar__3"
     ],
     "props": {
       "label": "Progress",
       "value": 50,
-      "showValueLabel": true,
       "size": "M"
     },
     "visual": {},
@@ -3013,6 +3012,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "rowGap": "4px",
       "columnGap": "12px"
     }
+  },
+  {
+    "id": "lib:template:component-progressbar__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-progressbar__1"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-progressbar__1",
@@ -4125,7 +4133,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-textfield",
     "definitionId": "lib:definition:type-TextField",
     "children": [
-      "lib:template:component-textfield__1",
+      "lib:template:component-textfield__1-row",
       "lib:template:component-textfield__group",
       "lib:template:component-textfield__description",
       "lib:template:component-textfield__3"
@@ -4145,6 +4153,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isInvalid": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textfield__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-textfield__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4205,7 +4222,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-textarea",
     "definitionId": "lib:definition:type-TextArea",
     "children": [
-      "lib:template:component-textarea__1",
+      "lib:template:component-textarea__1-row",
       "lib:template:component-textarea__group",
       "lib:template:component-textarea__description",
       "lib:template:component-textarea__3"
@@ -4223,6 +4240,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isInvalid": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-textarea__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-textarea__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4282,7 +4308,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-numberfield",
     "definitionId": "lib:definition:type-NumberField",
     "children": [
-      "lib:template:component-numberfield__1",
+      "lib:template:component-numberfield__1-row",
       "lib:template:component-numberfield__2",
       "lib:template:component-numberfield__description",
       "lib:template:component-numberfield__3"
@@ -4300,6 +4326,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isRequired": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-numberfield__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-numberfield__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4424,7 +4459,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-searchfield",
     "definitionId": "lib:definition:type-SearchField",
     "children": [
-      "lib:template:component-searchfield__1",
+      "lib:template:component-searchfield__1-row",
       "lib:template:component-searchfield__2",
       "lib:template:component-searchfield__description",
       "lib:template:component-searchfield__error"
@@ -4439,6 +4474,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isRequired": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-searchfield__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-searchfield__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4528,7 +4572,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorfield",
     "definitionId": "lib:definition:type-ColorField",
     "children": [
-      "lib:template:component-colorfield__1",
+      "lib:template:component-colorfield__1-row",
       "lib:template:component-colorfield__group",
       "lib:template:component-colorfield__description",
       "lib:template:component-colorfield__error"
@@ -4539,6 +4583,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "labelPosition": "top",
       "isDisabled": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorfield__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-colorfield__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4644,7 +4697,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-checkboxgroup",
     "definitionId": "lib:definition:type-CheckboxGroup",
     "children": [
-      "lib:template:component-checkboxgroup__1",
+      "lib:template:component-checkboxgroup__1-row",
       "lib:template:component-checkboxgroup__2",
       "lib:template:component-checkboxgroup__description",
       "lib:template:component-checkboxgroup__error"
@@ -4659,6 +4712,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isRequired": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkboxgroup__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-checkboxgroup__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4766,7 +4828,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-radiogroup",
     "definitionId": "lib:definition:type-RadioGroup",
     "children": [
-      "lib:template:component-radiogroup__1",
+      "lib:template:component-radiogroup__1-row",
       "lib:template:component-radiogroup__2",
       "lib:template:component-radiogroup__description",
       "lib:template:component-radiogroup__error"
@@ -4781,6 +4843,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isRequired": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radiogroup__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-radiogroup__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -4886,7 +4957,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-select",
     "definitionId": "lib:definition:type-Select",
     "children": [
-      "lib:template:component-select__1",
+      "lib:template:component-select__1-row",
       "lib:template:component-select__2",
       "lib:template:component-select__description",
       "lib:template:component-select__error",
@@ -4901,6 +4972,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isInvalid": false,
       "isRequired": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-select__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -5287,7 +5367,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-combobox",
     "definitionId": "lib:definition:type-ComboBox",
     "children": [
-      "lib:template:component-combobox__1",
+      "lib:template:component-combobox__1-row",
       "lib:template:component-combobox__2",
       "lib:template:component-combobox__description",
       "lib:template:component-combobox__error",
@@ -5304,6 +5384,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isRequired": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-combobox__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -5648,7 +5737,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-slider",
     "definitionId": "lib:definition:type-Slider",
     "children": [
-      "lib:template:component-slider__1",
+      "lib:template:component-slider__1-row",
       "lib:template:component-slider__2",
       "lib:template:component-slider__3"
     ],
@@ -5666,6 +5755,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {
       "width": "100%"
     }
+  },
+  {
+    "id": "lib:template:component-slider__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-slider__1"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-slider__1",
@@ -5724,7 +5822,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-meter",
     "definitionId": "lib:definition:type-Meter",
     "children": [
-      "lib:template:component-meter__1",
+      "lib:template:component-meter__1-row",
       "lib:template:component-meter__2",
       "lib:template:component-meter__3"
     ],
@@ -5733,7 +5831,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "value": 75,
       "minValue": 0,
       "maxValue": 100,
-      "showValueLabel": true,
       "variant": "informative",
       "size": "M"
     },
@@ -5742,6 +5839,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "rowGap": "4px",
       "columnGap": "12px"
     }
+  },
+  {
+    "id": "lib:template:component-meter__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-meter__1"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-meter__1",
@@ -6490,7 +6596,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-datepicker",
     "definitionId": "lib:definition:type-DatePicker",
     "children": [
-      "lib:template:component-datepicker__1",
+      "lib:template:component-datepicker__1-row",
       "lib:template:component-datepicker__2",
       "lib:template:component-datepicker__description",
       "lib:template:component-datepicker__error",
@@ -6506,6 +6612,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "iconName": "calendar"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datepicker__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-datepicker__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -6589,7 +6704,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-daterangepicker",
     "definitionId": "lib:definition:type-DateRangePicker",
     "children": [
-      "lib:template:component-daterangepicker__1",
+      "lib:template:component-daterangepicker__1-row",
       "lib:template:component-daterangepicker__2",
       "lib:template:component-daterangepicker__description",
       "lib:template:component-daterangepicker__error",
@@ -6605,6 +6720,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "iconName": "calendar"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-daterangepicker__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-daterangepicker__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -6712,7 +6836,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-datefield",
     "definitionId": "lib:definition:type-DateField",
     "children": [
-      "lib:template:component-datefield__1",
+      "lib:template:component-datefield__1-row",
       "lib:template:component-datefield__group",
       "lib:template:component-datefield__description",
       "lib:template:component-datefield__3"
@@ -6727,6 +6851,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isInvalid": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datefield__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-datefield__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -6784,7 +6917,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-timefield",
     "definitionId": "lib:definition:type-TimeField",
     "children": [
-      "lib:template:component-timefield__1",
+      "lib:template:component-timefield__1-row",
       "lib:template:component-timefield__group",
       "lib:template:component-timefield__description",
       "lib:template:component-timefield__3"
@@ -6800,6 +6933,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isReadOnly": false,
       "isInvalid": false
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-timefield__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-timefield__1"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -7582,9 +7724,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorslider",
     "definitionId": "lib:definition:type-ColorSlider",
     "children": [
-      "lib:template:component-colorslider__label",
+      "lib:template:component-colorslider__label-row",
       "lib:template:component-colorslider__output",
       "lib:template:component-colorslider__track"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorslider__label-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-colorslider__label"
     ],
     "props": {},
     "visual": {}
@@ -8094,7 +8245,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-taggroup",
     "definitionId": "lib:definition:type-TagGroup",
     "children": [
-      "lib:template:component-taggroup__1",
+      "lib:template:component-taggroup__1-row",
       "lib:template:component-taggroup__2",
       "lib:template:component-taggroup__description",
       "lib:template:component-taggroup__error"
@@ -8110,6 +8261,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {
       "width": "100%"
     }
+  },
+  {
+    "id": "lib:template:component-taggroup__1-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-taggroup__1"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-taggroup__1",
@@ -9374,13 +9534,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tokenfield",
     "definitionId": "lib:definition:type-TokenField",
     "children": [
-      "lib:template:component-tokenfield__label",
+      "lib:template:component-tokenfield__label-row",
       "lib:template:component-tokenfield__input",
       "lib:template:component-tokenfield__description"
     ],
     "props": {
       "value": "{value}"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__label-row",
+    "definitionId": "lib:definition:type-FieldLabel",
+    "children": [
+      "lib:template:component-tokenfield__label"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -9988,7 +10157,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   "id": "lib:template:component-labeledvalue",
   "definitionId": "lib:definition:type-LabeledValue",
   "children": [
-    "lib:template:component-labeledvalue__label",
+    "lib:template:component-labeledvalue__label-row",
     "lib:template:component-labeledvalue__value"
   ],
   "props": {
@@ -9999,13 +10168,23 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   "visual": {}
 },
 {
+  "id": "lib:template:component-labeledvalue__label-row",
+  "definitionId": "lib:definition:type-FieldLabel",
+  "children": [
+    "lib:template:component-labeledvalue__label"
+  ],
+  "props": {},
+  "visual": {}
+},
+{
   "id": "lib:template:component-labeledvalue__label",
-  "definitionId": "lib:definition:text",
+  "definitionId": "lib:definition:origin-component-label",
   "children": [],
   "props": {
-    "slot": "label",
-    "children": "{label}"
+    "children": "{label}",
+    "size": "{size}"
   },
+  "presentWhen": "nonEmptyText",
   "visual": {}
 },
 {

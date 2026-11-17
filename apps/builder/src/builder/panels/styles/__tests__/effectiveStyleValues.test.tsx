@@ -159,7 +159,16 @@ describe("Text 탭 — 부모 size 전파", () => {
     async (type) => {
       const local = await openStylesFixture([{ id: "field", type }]);
       local.workspace.execute(setSiteSettings({ patch: { lang: "ko-KR" } }));
-      const id = local.descendantRecord("field", "Text");
+      // (The Label's body Text — in the S2 `FieldLabel` row since 2026-11-18, deeper than a
+      //  Select's value Text, so found through its Label.)
+      const label = local.descendantRecord("field", "Label");
+      const id = local.workspace.root.domInputs
+        .get(label)!
+        .children.find(
+          (child) =>
+            local.workspace.root.domInputs.get(child)?.props.slot ===
+            "label-content",
+        )!;
       local.workspace.selectRecords([id]);
       const view = renderHook(() => useTypographyValues(id), {
         wrapper: local.wrapper,

@@ -175,7 +175,8 @@ describe("ADR-256 Phase 5d — TagGroup is the reference's node tree", () => {
       createElement(
         TagGroup,
         { selectionMode: "multiple", onRemove: () => {} },
-        createElement(Label, null, "Tag Group"),
+        // (S2 `FieldLabel` — the label row `div`, 2026-11-18.)
+        createElement("div", null, createElement(Label, null, "Tag Group")),
         createElement(
           TagList,
           null,

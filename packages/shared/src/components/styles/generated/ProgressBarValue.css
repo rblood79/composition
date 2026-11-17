@@ -22,7 +22,7 @@
 
   /* Default variant */
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-muted);
   border: none;
 
   /* Default size */
@@ -34,7 +34,7 @@
 
 .react-aria-ProgressBarValue:where([data-variant="default"]) {
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-muted);
 }
 
 .react-aria-ProgressBarValue:where([data-variant="default"][data-hovered]) {

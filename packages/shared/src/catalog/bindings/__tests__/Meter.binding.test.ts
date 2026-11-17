@@ -46,7 +46,7 @@ describe("Meter binding — value-fill compound (ProgressBar 동형, internal wr
     expect([...getCatalogCutoverTypes()]).toContain("Meter");
   });
 
-  it("accepts: value/minValue/maxValue/label/variant/size/showValueLabel — isIndeterminate 부재", () => {
+  it("accepts: value/minValue/maxValue/label/variant/size — isIndeterminate · showValueLabel 부재 (S2)", () => {
     const a = meterBinding.props.accepts;
     expect(a.value?.kind).toBe("number");
     expect(a.minValue?.kind).toBe("number");
@@ -54,7 +54,7 @@ describe("Meter binding — value-fill compound (ProgressBar 동형, internal wr
     expect(a.label?.kind).toBe("string");
     expect(a.variant?.kind).toBe("variant");
     expect(a.size?.kind).toBe("size");
-    expect(a.showValueLabel?.kind).toBe("boolean");
+    expect(a.showValueLabel).toBeUndefined();
     // ProgressBar 와 차이: Meter 는 isIndeterminate 부재 (측정값은 항상 확정)
     expect(a.isIndeterminate).toBeUndefined();
   });

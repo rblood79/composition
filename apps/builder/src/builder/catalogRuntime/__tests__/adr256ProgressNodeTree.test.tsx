@@ -170,12 +170,17 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
   it("has the reference example's structure (Decision 11)", async () => {
     const { root, bar } = await open({ label: "Loading", value: 30 });
     const actual = renderToStaticMarkup(renderCatalogDom(root, bar().id));
-    // react-aria.adobe.com ProgressBar (G0 example 14).
+    // react-aria.adobe.com ProgressBar (G0 example 14) with S2's label row.
     const reference = renderToStaticMarkup(
       createElement(ProgressBar, {
         value: 30,
         children: ({ percentage, valueText }) => [
-          createElement(Label, { key: "l" }, "Loading"),
+          // (S2 `FieldLabel` — the label in a row `div`, 2026-11-18.)
+          createElement(
+            "div",
+            { key: "l" },
+            createElement(Label, null, "Loading"),
+          ),
           createElement("span", { key: "v", className: "value" }, valueText),
           createElement(
             "div",
@@ -245,7 +250,7 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     );
   });
 
-  it("valueLabel is RAC's value text; showValueLabel false hides it on both", async () => {
+  it("valueLabel is RAC's value text; no label hides it on both (S2 `label && !isIndeterminate` — no showValueLabel)", async () => {
     const { part, draw, edit } = await open({
       label: "Upload",
       value: 60,
@@ -253,9 +258,12 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     });
     expect(draw().querySelector(".value")?.textContent).toBe("2.4 MB · 60%");
     expect(part("ProgressBarValue")!.props.children).toBe("2.4 MB · 60%");
-    edit({ showValueLabel: false });
+    edit({ label: "" });
     expect(draw().querySelector(".value")).toBeNull();
     expect(part("ProgressBarValue")!.hidden).toBe(true);
+    edit({ label: "Upload" });
+    expect(draw().querySelector(".value")?.textContent).toBe("2.4 MB · 60%");
+    expect(part("ProgressBarValue")!.hidden).toBeFalsy();
   });
 
   it("indeterminate: no value text, no fill width — the fill fills the track on both sides (G5 example 14: the reference's fill box stays put; only its paint moves)", async () => {
@@ -266,7 +274,9 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     });
     const element = draw();
     expect(element.getAttribute("data-indeterminate")).toBe("true");
-    expect(element.querySelector(".value")?.textContent).toBe("");
+    // (S2 `label && !isIndeterminate` — no value text while indeterminate.)
+    expect(element.querySelector(".value")).toBeNull();
+    expect(part("ProgressBarValue")!.hidden).toBe(true);
     expect((element.querySelector(".fill") as HTMLElement).style.width).toBe(
       "",
     );
@@ -368,7 +378,7 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
 });
 
 describe("ADR-256 Phase 7b — Meter draws its node tree", () => {
-  it("has the reference structure: Meter > Label + span.value {valueText} + div.track > div.fill (Decision 11)", async () => {
+  it("has the reference structure: Meter > FieldLabel > Label + span.value {valueText} + div.track > div.fill (Decision 11)", async () => {
     const { root, bar } = await open({ label: "Storage", value: 75 }, "meter");
     const actual = renderToStaticMarkup(renderCatalogDom(root, bar().id));
     // react-aria.adobe.com Meter (the ProgressBar example's anatomy — Meter gives the same values).
@@ -376,7 +386,12 @@ describe("ADR-256 Phase 7b — Meter draws its node tree", () => {
       createElement(Meter, {
         value: 75,
         children: ({ percentage, valueText }) => [
-          createElement(Label, { key: "l" }, "Storage"),
+          // (S2 `FieldLabel` — the label in a row `div`, 2026-11-18.)
+          createElement(
+            "div",
+            { key: "l" },
+            createElement(Label, null, "Storage"),
+          ),
           createElement("span", { key: "v", className: "value" }, valueText),
           createElement(
             "div",
@@ -414,6 +429,16 @@ describe("ADR-256 Phase 7b — Meter draws its node tree", () => {
       geometry.get(part("MeterTrack")!.id)!.width * 0.5,
       1,
     );
+  });
+
+  it("no label hides the value text on both (S2 Meter `label &&`)", async () => {
+    const { part, draw, edit } = await open(
+      { label: "Storage", value: 75 },
+      "meter",
+    );
+    edit({ label: "" });
+    expect(draw().querySelector(".value")).toBeNull();
+    expect(part("MeterValue")!.hidden).toBe(true);
   });
 
   it("the Preview's run value (a runtime override of the Meter only) reaches the bound parts", async () => {

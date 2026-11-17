@@ -17,6 +17,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { fieldLabelRecord } from "./support/fieldLabel";
 
 /**
  * A required field's Label shows its necessity indicator alike on the Canvas and in the DOM, by
@@ -98,11 +99,15 @@ async function place(
   );
   const root = workspace.root;
   const fieldRecord = [...root.canvasInputs.values()].find(
-    (record) => record.sourceId === FIELD && root.typeOf(record) !== "Label",
+    (record) =>
+      record.sourceId === FIELD &&
+      !["Label", "FieldLabel"].includes(root.typeOf(record)),
   )!;
-  const label = fieldRecord.children
-    .map((id) => root.canvasInputs.get(id)!)
-    .find((child) => root.typeOf(child) === "Label")!;
+  const label = fieldLabelRecord(
+    root.canvasInputs,
+    (record) => root.typeOf(record),
+    fieldRecord,
+  )!;
   const marker = label.children
     .map((id) => root.canvasInputs.get(id)!)
     .find(

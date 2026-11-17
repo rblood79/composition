@@ -151,7 +151,12 @@ describe("ADR-258 Phase 2 — the Color controls draw their node trees", () => {
       createElement(
         ColorSlider,
         { defaultValue: "hsl(120, 100%, 50%)", channel: "hue" },
-        createElement(Label),
+        // (S2 `FieldLabel` — the label row `div`, 2026-11-18.)
+        createElement(
+          "div",
+          { className: "react-aria-FieldLabel" },
+          createElement(Label),
+        ),
         createElement(SliderOutput),
         createElement(SliderTrack, null, createElement(ColorThumb)),
       ),

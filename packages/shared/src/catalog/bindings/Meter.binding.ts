@@ -11,7 +11,7 @@ import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
  *
  * D1: RAC `<Meter role="meter progressbar">` 그대로.
  * D2: value · minValue · maxValue · label · variant (informative · positive · notice · negative — S2 1.8.0, 2026-10-10 값 정렬) ·
- *     size · showValueLabel · valueLabel · labelPosition · staticColor. isIndeterminate 없음 (RAC
+ *     size · valueLabel · labelPosition · staticColor. isIndeterminate 없음 (RAC
  *     Meter 에 없다).
  * D3: catalog Meter rule (`.bar` · `.value` · `.fill`) + MeterTrack · MeterFill rule.
  */
@@ -56,11 +56,6 @@ export const meterBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      showValueLabel: {
-        kind: "boolean",
-        label: "Show Value Label",
-        section: "appearance",
-      },
       // RAC/RSP 정합 감사 (2026-07-15): valueLabel 은 delegatedDom `meter` 가 RAC `Meter` 에 넘기고,
       //   값 글자는 MeterValue 노드 (`{valueText}`) 가 그린다. labelPosition(top/side) 은 D3 구현
       //   완료로 재노출 — CSS(catalog structure.composition.containerVariants["label-position"].side →
@@ -96,8 +91,6 @@ export const meterBinding: PrimitiveBinding = {
         kind: "string",
         label: "Value Label",
         section: "appearance",
-        // RSP: valueLabel 은 showValueLabel 일 때만 표시 (2026-09-15)
-        visibleWhen: { key: "showValueLabel", equals: true },
       },
     },
     toRacProps: "default",

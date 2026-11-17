@@ -33,12 +33,14 @@ import {
 /**
  * ADR-259 Phase 3 — a field's contextual help (S2 `contextualHelp`) as one Design choice: none, or
  * a ContextualHelp origin instance (`help` · `info`) beside the field's Label in its label row
- * (S2 `FieldLabel` — `Field.tsx:96-184`). Adding wraps the Label in a FieldLabel, removing unwraps
- * it; changing the variant writes the help's `variant`. One command = one step (one undo).
+ * (S2 `FieldLabel` — `Field.tsx:96-184`). Every field origin holds the row (S2 — 2026-11-18): adding
+ * puts the help after the row's Label, removing takes it out and leaves the row; changing the
+ * variant writes the help's `variant`. A field placed before the row was in its origin has its Label
+ * wrapped in a new row. One command = one step (one undo).
  *
- * As with the prefix (ADR-259 Phase 2, 사용자 결정 2026-10-13 「5종 모두 진행」), wrapping the Label
- * of a placed field makes the field's template children owned copies (`ensureChildList`): its Label
- * · Description no longer follow its `label` · `description` props.
+ * As with the prefix (ADR-259 Phase 2, 사용자 결정 2026-10-13 「5종 모두 진행」), writing into the
+ * row of a placed field makes the field's template children owned copies (`ensureChildList`): its
+ * Label · Description no longer follow its `label` · `description` props.
  */
 export type CatalogContextualHelpKind = "none" | "help" | "info";
 
@@ -101,12 +103,7 @@ export const catalogContextualHelpCommand =
     if (!state) return fail("NOT_A_HELP_FIELD", input.field.identity);
     const label =
       input.kind === "none" ? "Remove contextual help" : "Contextual help";
-    // A row left without its help (deleted in Layers) still reads "none": None unwraps it.
-    if (
-      state.kind === input.kind &&
-      !(input.kind === "none" && state.fieldLabel)
-    )
-      return { label, ops: [] };
+    if (state.kind === input.kind) return { label, ops: [] };
     const draft = new CommandDraft(reader);
 
     // Another variant: the help's own prop.
@@ -121,26 +118,18 @@ export const catalogContextualHelpCommand =
       return { label, ops: draft.ops() };
     }
 
-    // Take the help out and unwrap the label row (its other children take its place).
+    // Take the help out of its row (the row stays — S2's FieldLabel is always there).
     if (input.kind === "none") {
-      if (state.fieldLabel?.target.kind !== "node")
-        return fail("HELP_ROW_NOT_OWNED", input.field.identity);
-      const rowId = state.fieldLabel.target.id;
-      const helpId =
-        state.help?.target.kind === "node" ? state.help.target.id : undefined;
-      const at = locate(draft, rowId).parent;
-      const outer = childList(draft, at) ?? [];
-      const index = outer.indexOf(rowId);
-      const rest = (childList(draft, { kind: "node", id: rowId }) ?? []).filter(
-        (id) => id !== helpId,
+      if (state.help?.target.kind !== "node")
+        return fail("HELP_NOT_OWNED", input.field.identity);
+      const helpId = state.help.target.id;
+      const at = locate(draft, helpId).parent;
+      setChildList(
+        draft,
+        at,
+        (childList(draft, at) ?? []).filter((id) => id !== helpId),
       );
-      setChildList(draft, at, [
-        ...outer.slice(0, index),
-        ...rest,
-        ...outer.slice(index + 1),
-      ]);
-      draft.write({ ...draft.node(rowId), children: [] });
-      removeWithReferrers(draft, helpId ? [helpId, rowId] : [rowId]);
+      removeWithReferrers(draft, [helpId]);
       return { label, ops: draft.ops() };
     }
 
@@ -164,19 +153,28 @@ export const catalogContextualHelpCommand =
     };
     draft.create(help);
 
-    // A row is already there (its help was deleted): the help goes back after its Label.
+    // The row is there (the origin's, or a placed one's own): the help goes after its Label.
     if (state.fieldLabel) {
-      if (state.fieldLabel.target.kind !== "node")
-        return fail("HELP_ROW_NOT_OWNED", input.field.identity);
-      const rowAt: NodeParent = {
-        kind: "node",
-        id: state.fieldLabel.target.id,
-      };
-      const inRow = childList(draft, rowAt) ?? [];
-      const labelAt =
-        state.label.target.kind === "node"
-          ? inRow.indexOf(state.label.target.id)
-          : -1;
+      let rowId: NodeId;
+      if (state.fieldLabel.target.kind === "node")
+        rowId = state.fieldLabel.target.id;
+      else {
+        const list = ensureChildList(
+          draft,
+          parentOfChild(draft, state.fieldLabel.target),
+          input.newId,
+        );
+        const found = list.find(
+          (id) => typeOf(reader, draft.node(id).definitionId) === "FieldLabel",
+        );
+        if (!found) return fail("HELP_ROW_NOT_OWNED", input.field.identity);
+        rowId = found;
+      }
+      const rowAt: NodeParent = { kind: "node", id: rowId };
+      const inRow = ensureChildList(draft, rowAt, input.newId);
+      const labelAt = inRow.findIndex(
+        (id) => typeOf(reader, draft.node(id).definitionId) === "Label",
+      );
       if (labelAt < 0) return fail("HELP_LABEL_MISSING", input.field.identity);
       setChildList(draft, rowAt, [
         ...inRow.slice(0, labelAt + 1),

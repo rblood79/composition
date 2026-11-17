@@ -329,9 +329,11 @@ describe("ADR-248 Phase 4e-4e bound rows", () => {
     ]);
     // The group's own label is the group's, not a row's.
     const [group] = workspace.root.recordsOfSource(LIST);
-    const label = workspace.root.domInputs.get(
+    // (in its S2 `FieldLabel` row — 2026-11-18)
+    const row = workspace.root.domInputs.get(
       workspace.root.domInputs.get(group!)!.children[0]!,
     )!;
+    const label = workspace.root.domInputs.get(row.children[0]!)!;
     expect(label.props.children).toBe("Tag Group");
     const plain = await open("TagGroup", false);
     expect(items(plain.workspace, "Tag").map((item) => item.texts[0])).toEqual([

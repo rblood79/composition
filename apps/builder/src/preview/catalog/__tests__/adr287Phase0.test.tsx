@@ -113,7 +113,6 @@ describe("ADR-287 G0 — ③ 「변수로 정하기」", () => {
       minValue: "number",
       variant: "choice",
       label: "string",
-      showValueLabel: "boolean",
     });
     expect(props.formatOptions).toBeUndefined();
     h.view.unmount();

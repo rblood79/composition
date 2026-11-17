@@ -5,6 +5,7 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { PICKER_INVALID_ICON } from "../document/pickerTrigger";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { CATALOG_BOXED_FIELDS } from "../../domain/componentTraits";
@@ -140,6 +141,7 @@ function inputBox(size: unknown) {
   const borderWidth = px(spec.borderWidth);
   return {
     fontSize,
+    lineHeight,
     paddingX,
     paddingY,
     borderWidth,
@@ -345,6 +347,90 @@ type CatalogFieldBoxInputContentStyle = Omit<
  * template lays its padding down).
  */
 export function catalogFieldBoxInputEnd(
+  input: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): number | undefined {
+  const own = boxInputEnd(input, get, typeOf);
+  const icon = catalogFieldErrorIcon(input, get, typeOf);
+  return icon ? icon.inputEnd : own;
+}
+
+/**
+ * S2 `FieldErrorIcon` (`Field.tsx`) — the alert glyph an invalid field draws in its box after the input
+ * (TextField · TextArea · NumberField · ComboBox · ColorField; the date fields' `InvalidIndicator`; not
+ * while disabled). Its box: `1lh` square, start margin `text-to-visual` (`fontRelative(6)`), end margin
+ * `fontRelative(-2)`. It is not a node — the field draws it as Select draws its own (`pickerTrigger.ts`):
+ * the input (the last one — a DateRangePicker's end DateInput) keeps the glyph's room at its end
+ * (`reserve` — its end padding, `catalogFieldBoxInputEnd`) and the glyph stands in that room,
+ * `offsetEnd` before the input's end edge. The Canvas draws it on the input (`ruleShapes`), the DOM
+ * puts a glyph element after the input in the box (`domBinding`).
+ */
+export const CATALOG_FIELD_ERROR_ICON_FIELDS: ReadonlySet<string> = new Set([
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "ComboBox",
+  "ColorField",
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
+]);
+/** The glyph Select already draws for its invalid state (`pickerTrigger.ts`) — the icon set stays ours. */
+export const CATALOG_FIELD_ERROR_ICON = PICKER_INVALID_ICON;
+export function catalogFieldErrorIcon(
+  input: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+):
+  | {
+      size: number;
+      start: number;
+      end: number;
+      reserve: number;
+      offsetEnd: number;
+      /** The input's end padding: its own and the glyph's room. */
+      inputEnd: number;
+      /** At the first line (a TextArea's box aligns its items to the start), not centred. */
+      top: boolean;
+    }
+  | undefined {
+  if (!BOX_INPUT_TYPES.has(typeOf(input))) return undefined;
+  const group = get(input.parentId);
+  const box = group && catalogFieldBox(group, get, typeOf);
+  if (
+    !box ||
+    !CATALOG_FIELD_ERROR_ICON_FIELDS.has(typeOf(box.field)) ||
+    box.field.props.isInvalid !== true ||
+    box.field.props.isDisabled === true
+  )
+    return undefined;
+  const last = group.children
+    .map((id) => get(id))
+    .filter(
+      (child): child is CatalogConsumerNode =>
+        !!child && !child.hidden && BOX_INPUT_TYPES.has(typeOf(child)),
+    )
+    .at(-1);
+  if (last?.id !== input.id) return undefined;
+  const { fontSize, lineHeight, paddingX } = inputBox(box.field.props.size);
+  const round = (value: number) => Math.round(value * 100) / 100;
+  const start = round((fontSize * 6) / 14);
+  const end = round((fontSize * -2) / 14);
+  const own = boxInputEnd(input, get, typeOf) ?? paddingX;
+  return {
+    size: lineHeight,
+    start,
+    end,
+    reserve: round(start + lineHeight + end),
+    offsetEnd: round(own + end),
+    inputEnd: round(own + start + lineHeight + end),
+    top: typeOf(box.field) === "TextArea",
+  };
+}
+
+function boxInputEnd(
   input: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,

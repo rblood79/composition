@@ -57,7 +57,7 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
     id: "lib:template:component-rangeslider",
     definitionId: "lib:definition:type-RangeSlider",
     children: [
-      "lib:template:component-rangeslider__1",
+      "lib:template:component-rangeslider__1-row",
       "lib:template:component-rangeslider__2",
       "lib:template:component-rangeslider__3",
     ],
@@ -74,6 +74,14 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
     visual: {
       width: "100%",
     },
+  },
+  {
+    // (S2 `FieldLabel` — the label row, 2026-11-18.)
+    id: "lib:template:component-rangeslider__1-row",
+    definitionId: "lib:definition:type-FieldLabel",
+    children: ["lib:template:component-rangeslider__1"],
+    props: {},
+    visual: {},
   },
   {
     id: "lib:template:component-rangeslider__1",

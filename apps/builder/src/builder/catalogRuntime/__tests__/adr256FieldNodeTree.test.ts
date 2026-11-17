@@ -76,12 +76,17 @@ const WRAPPER = "project:node:free-wrapper" as NodeId;
 const wrapper = (child: NodeId): NodeEntry =>
   node(WRAPPER, "lib:definition:type-frame", {}, [child]);
 
-// The editable field Label is composed from a real Text child.
+// The editable field Label is composed from a real Text child, in S2's `FieldLabel` row `div`
+// (every labelled origin holds the row — 2026-11-18).
 const composedLabel = (value: string) =>
   createElement(
-    Label,
+    "div",
     null,
-    createElement("span", { slot: "label-content" }, value),
+    createElement(
+      Label,
+      null,
+      createElement("span", { slot: "label-content" }, value),
+    ),
   );
 
 async function open(type: string, props: Record<string, string | boolean>) {
@@ -279,7 +284,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
         catalogDomRendersNode(workspace.root, kid.id),
       ]),
     ).toEqual([
-      ["Label", true],
+      ["FieldLabel", true],
       ["Button", true],
       ["Description", true],
       ["FieldError", true],
@@ -339,7 +344,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
         catalogDomRendersNode(workspace.root, kid.id),
       ]),
     ).toEqual([
-      ["Label", true],
+      ["FieldLabel", true],
       ["Group", true],
       ["Description", true],
       ["FieldError", true],
@@ -407,7 +412,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
           catalogDomRendersNode(workspace.root, kid.id),
         ]),
       ).toEqual([
-        ["Label", true],
+        ["FieldLabel", true],
         ["Group", true],
         ["Description", true],
         ["FieldError", true],

@@ -45,7 +45,7 @@ describe("ProgressBar binding — value-fill compound (internal wrapper 위임)"
     expect([...getCatalogCutoverTypes()]).toContain("ProgressBar");
   });
 
-  it("accepts: value/minValue/maxValue/label/size/isIndeterminate/showValueLabel — no variant (2026-10-12)", () => {
+  it("accepts: value/minValue/maxValue/label/size/isIndeterminate — no variant (2026-10-12), no showValueLabel (S2 — the value text shows with a label)", () => {
     const a = progressBarBinding.props.accepts;
     expect(a.value?.kind).toBe("number");
     expect(a.minValue?.kind).toBe("number");
@@ -54,7 +54,7 @@ describe("ProgressBar binding — value-fill compound (internal wrapper 위임)"
     expect(a.variant).toBeUndefined();
     expect(a.size?.kind).toBe("size");
     expect(a.isIndeterminate?.kind).toBe("boolean");
-    expect(a.showValueLabel?.kind).toBe("boolean");
+    expect(a.showValueLabel).toBeUndefined();
   });
 
   it("toRacProps: value(number) React prop 통과, size 는 data-attr 라우팅 (variant 축 없음)", () => {

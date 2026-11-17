@@ -255,7 +255,6 @@ describe("S2 formatOptions — the numberFormat value type", () => {
         value: 1234.5,
         minValue: 0,
         maxValue: 5000,
-        showValueLabel: true,
       });
       for (const format of FORMATS) {
         if (format) edit({ formatOptions: format });
@@ -337,7 +336,6 @@ describe("S2 formatOptions — the numberFormat value type", () => {
   it("clearing the format (unset) is RAC's default again", async () => {
     const { workspace, part, edit } = await open("meter", {
       value: 30,
-      showValueLabel: true,
     });
     edit({ formatOptions: { style: "currency", currency: "USD" } });
     expect(part("MeterValue")!.props.children).toBe("$30.00");

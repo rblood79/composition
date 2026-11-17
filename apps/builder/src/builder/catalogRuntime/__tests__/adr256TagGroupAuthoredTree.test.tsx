@@ -221,7 +221,8 @@ describe("Codex Round 20 H1 — a TagGroup drawn from its node tree", () => {
     const reactRoot = createRoot(host);
     await act(async () => reactRoot.render(renderCatalogDom(root, groupId())));
     const labelElement = host.querySelector(
-      ".react-aria-TagGroup > .react-aria-Group .react-aria-Label",
+      // (The Label's Group sits in its S2 `FieldLabel` row — 2026-11-18.)
+      ".react-aria-TagGroup > .react-aria-FieldLabel > .react-aria-Group .react-aria-Label",
     )!;
     expect(labelElement.textContent).toBe("Visible tags");
     const grid = host.querySelector('[role="grid"]')!;

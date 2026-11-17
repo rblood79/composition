@@ -145,8 +145,11 @@ describe("ADR-248 Phase 4e-4 Properties", () => {
       workspace.root.domInputs.get(
         workspace.root.recordsOfSource(id("field"))[0],
       )!;
+    // (The Label in the field's S2 `FieldLabel` row — 2026-11-18.)
     const labelSize = () =>
-      workspace.root.domInputs.get(root().children[0])!.visual.fontSize;
+      workspace.root.domInputs.get(
+        workspace.root.domInputs.get(root().children[0])!.children[0]!,
+      )!.visual.fontSize;
     const before = labelSize();
     const { result } = workspace.execute(patch([on("field")], { size: "L" })!);
     // Only the instance changed; its Label shows the larger size.

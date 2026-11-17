@@ -135,11 +135,11 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
           record.sourceId === "project:node:owner" &&
           record.bindingId === owner.toLowerCase(),
       )!;
-      // Structure: Label · wrapper under the group (then its hint parts, hidden at rest —
+      // Structure: the label row (S2 FieldLabel > Label — 2026-11-18) · wrapper under the group (then its hint parts, hidden at rest —
       // ADR-253), the items under the wrapper.
       const kids = group.children.map((id) => root.layoutInputs.get(id)!);
       expect(kids.map((record) => record.bindingId)).toEqual([
-        "label",
+        "fieldlabel",
         wrapperBinding,
         "description",
         "fielderror",

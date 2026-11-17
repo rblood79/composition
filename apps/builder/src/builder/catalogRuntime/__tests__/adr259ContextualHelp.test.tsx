@@ -222,7 +222,7 @@ describe("ADR-259 Phase 3 — contextual help", () => {
   });
 
   for (const type of FIELDS)
-    it(`${type}: one step in · the label row in the Label's place · the button is the oracle's · one undo out`, async () => {
+    it(`${type}: one step in · the help in the origin's label row (S2 FieldLabel — always there) · the button is the oracle's · one undo out`, async () => {
       const { workspace, state, setHelp, root, recordsOf, render } = await open(
         type,
         type,
@@ -230,16 +230,18 @@ describe("ADR-259 Phase 3 — contextual help", () => {
       expect(state().kind).toBe("none");
       const recordsBefore = root.canvasInputs.size;
       const fieldRecord = recordsOf(type).find((r) => r.parentId)!;
-      const labelIndex = fieldRecord.children.findIndex(
-        (id) => root.typeOf(root.canvasInputs.get(id)!) === "Label",
+      const rowIndex = fieldRecord.children.findIndex(
+        (id) => root.typeOf(root.canvasInputs.get(id)!) === "FieldLabel",
       );
+      expect(rowIndex, "the origin's label row").toBeGreaterThanOrEqual(0);
 
       setHelp("help");
       expect(state().kind).toBe("help");
       const row = recordsOf("FieldLabel")[0]!;
       expect(row, "label row").toBeDefined();
       const field = root.canvasInputs.get(row.parentId!)!;
-      expect(field.children.indexOf(row.id)).toBe(labelIndex);
+      expect(field.children.indexOf(row.id)).toBe(rowIndex);
+      expect(recordsOf("FieldLabel"), "no second row").toHaveLength(1);
       expect(
         row.children.map((id) => root.typeOf(root.canvasInputs.get(id)!)),
       ).toEqual(["Label", "ContextualHelp"]);
@@ -272,7 +274,7 @@ describe("ADR-259 Phase 3 — contextual help", () => {
       expect(root.canvasInputs.size).toBe(recordsBefore);
     });
   for (const type of FIELDS)
-    it(`${type}: removing the help unwraps the label row (the Label back in its place)`, async () => {
+    it(`${type}: removing the help leaves the label row with its Label (S2 FieldLabel)`, async () => {
       const { state, setHelp, root, recordsOf } = await open(
         type,
         `${type}-out`,
@@ -288,12 +290,17 @@ describe("ADR-259 Phase 3 — contextual help", () => {
       setHelp("none");
       expect(state().kind).toBe("none");
       expect(types()).toEqual(before);
-      expect(recordsOf("FieldLabel")).toHaveLength(0);
+      expect(recordsOf("FieldLabel")).toHaveLength(1);
+      expect(
+        recordsOf("FieldLabel")[0]!.children.map((id) =>
+          root.typeOf(root.canvasInputs.get(id)!),
+        ),
+      ).toEqual(["Label"]);
       expect(recordsOf("ContextualHelp")).toHaveLength(0);
       expect(root.canvasInputs.size).toBe(recordsBefore);
     });
 
-  it("a label row whose help was deleted (Layers): Help puts one back in it, None unwraps it", async () => {
+  it("a label row whose help was deleted (Layers): Help puts one back in it, None leaves it", async () => {
     const { workspace, state, setHelp, root, recordsOf } = await open(
       "TextField",
       "row-left",
@@ -328,8 +335,9 @@ describe("ADR-259 Phase 3 — contextual help", () => {
     expect(state().kind).toBe("info");
 
     workspace.execute(removeTargets({ targets: [state().help!.target] }));
-    setHelp("none");
-    expect(recordsOf("FieldLabel")).toHaveLength(0);
+    // (None is already the state — the row stays: S2's FieldLabel is always there.)
+    expect(state().kind).toBe("none");
+    expect(recordsOf("FieldLabel")).toHaveLength(1);
     expect(types()).toEqual(before);
   });
 

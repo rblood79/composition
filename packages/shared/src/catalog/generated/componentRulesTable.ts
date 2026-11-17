@@ -6141,6 +6141,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   fit-content`: a Slider's label row beside its output. A side field's rule centers it.)
         alignSelf: "flex-start",
       },
+      // S2 `FieldLabel` paints its Label `fieldLabel()` — `neutral-subdued` — wherever it stands
+      // (a field, Meter · ProgressBar, LabeledValue). The Label skips its sheet, so the color
+      // reaches it as a typed part (`rulePartRules` — both consumers read the record).
+      composition: {
+        delegation: [],
+        staticSelectors: {
+          ".react-aria-Label": { color: "var(--fg-muted)" },
+        },
+      },
       stateStyles: {
         ...FOCUS_RING_STATE,
       },
@@ -9590,6 +9599,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   MeterValue: {
+    // S2 `valueStyles` = `fieldLabel()` — `neutral-subdued` (Meter.tsx · ProgressBar.tsx), the
+    // label row's color.
     defaultVariant: "informative",
     defaultSize: "M",
     variants: {
@@ -9613,7 +9624,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           color: {
-            default: "{color.neutral}",
+            default: "{color.neutral-subdued}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -9649,7 +9660,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           color: {
-            default: "{color.neutral}",
+            default: "{color.neutral-subdued}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -9686,7 +9697,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           color: {
-            default: "{color.neutral}",
+            default: "{color.neutral-subdued}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -9723,7 +9734,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           color: {
-            default: "{color.neutral}",
+            default: "{color.neutral-subdued}",
             staticColor: {
               black: {
                 default: "#000000",
@@ -10706,6 +10717,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   ProgressBarValue: {
+    // S2 `valueStyles` = `fieldLabel()` — `neutral-subdued` (Meter.tsx · ProgressBar.tsx), the
+    // label row's color.
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
@@ -10729,7 +10742,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           color: {
-            default: "{color.neutral}",
+            default: "{color.neutral-subdued}",
             staticColor: {
               black: {
                 default: "#000000",

@@ -39,6 +39,7 @@ import {
 } from "./colorControlParts";
 import {
   catalogNotificationBadgeText,
+  cssVarToTokenRef,
   getIconData,
   resolveToken,
   resolveTextSourceText,
@@ -115,7 +116,11 @@ import type {
 } from "../document/types";
 import { catalogStateKeysOf } from "../document/stateOwnerRefs";
 import { isFieldControlGroup } from "../../domain/componentTraits";
-import { catalogFieldBox, catalogFieldBoxOfInput } from "./fieldPrefix";
+import {
+  catalogFieldBox,
+  catalogFieldBoxOfInput,
+  catalogFieldErrorIcon,
+} from "./fieldPrefix";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
   CATALOG_EMPTY_STATE_TYPE,
@@ -838,7 +843,8 @@ export function catalogAbsentByOwnerValue(
 ): boolean {
   if (
     catalogAbsentByValue(node) ||
-    catalogFieldLabelPartsHidden(node, get, typeOf)
+    catalogFieldLabelPartsHidden(node, get, typeOf) ||
+    catalogFieldLabelRowAbsent(node, get, typeOf)
   )
     return true;
   if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
@@ -921,7 +927,8 @@ export function catalogHiddenAtRest(
     return true;
   if (
     catalogAbsentByValue(node) ||
-    catalogFieldLabelPartsHidden(node, get, typeOf)
+    catalogFieldLabelPartsHidden(node, get, typeOf) ||
+    catalogFieldLabelRowAbsent(node, get, typeOf)
   )
     return true;
   if (catalogActionButtonPartAbsent(node, get, typeOf)) return true;
@@ -1109,6 +1116,11 @@ export function catalogPresenceScope(
       catalogSideNavPanelOf(node, get, typeOf)
     );
   if (typeOf(node) === "Accordion") return node;
+  // A field's label row follows its Label's text (S2 `FieldLabel` — `catalogFieldLabelRowAbsent`).
+  if (typeOf(node) === "Label") {
+    const row = get(node.parentId);
+    if (row && typeOf(row) === "FieldLabel") return row;
+  }
   // (2026-11-14) An ActionButton's icon · avatar · count badge follow its values and each other
   //   (`catalogActionButtonPartAbsent`).
   if (typeOf(node) === "ActionButton") return node;
@@ -1120,7 +1132,8 @@ export function catalogPresenceScope(
   if (typeOf(node) === "Table") return node;
   // A Dialog's ButtonGroup follows its `isDismissible` (S2, 2026-11-18).
   if (typeOf(node) === "Dialog") return node;
-  // A ProgressBar's · Meter's value text follows its `showValueLabel` (ADR-256 Phase 7a).
+  // A ProgressBar's · Meter's value text follows its `label` · `isIndeterminate` (S2), a Slider's its
+  //   `showValueLabel` (ADR-256 Phase 7a).
   if (PROGRESS_VALUES[typeOf(node)]) return node;
   // Which crumb is current (its separator hidden) follows the Breadcrumbs' crumb list.
   if (typeOf(node) === "Breadcrumbs") return node;
@@ -1153,6 +1166,7 @@ export function catalogPresenceDependents(
 ): CatalogConsumerNode[] {
   if (typeOf(scope) === "SideNavPanel" || typeOf(scope) === "SideNav")
     return catalogSideNavDependents(scope, get, typeOf);
+  if (typeOf(scope) === "FieldLabel") return [scope];
   if (typeOf(scope) === "Table")
     return catalogTableSelectionParts(scope, get, typeOf);
   if (typeOf(scope) === "Dialog")
@@ -1885,7 +1899,7 @@ export function catalogProgressFillOwner(
   return undefined;
 }
 
-/** A progress owner's value text part (RSP `showValueLabel` — false hides it). */
+/** A progress owner's value text part (`catalogProgressValueHidden` — when it shows). */
 const PROGRESS_VALUES: Readonly<Record<string, string>> = {
   ProgressBar: "ProgressBarValue",
   Meter: "MeterValue",
@@ -2010,12 +2024,19 @@ export function catalogProgressValueHidden(
 ): boolean {
   const type = node.ruleId ?? typeOf(node);
   if (!PROGRESS_VALUE_TYPES.has(type)) return false;
-  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
-    if (PROGRESS_VALUES[typeOf(cursor)])
-      return (
-        PROGRESS_VALUES[typeOf(cursor)] === type &&
-        cursor.props.showValueLabel === false
-      );
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
+    const owner = typeOf(cursor);
+    if (!PROGRESS_VALUES[owner]) continue;
+    if (PROGRESS_VALUES[owner] !== type) return false;
+    // (S2 1.8.2 `ProgressBar.tsx` · `Meter.tsx`: the value text shows with a label — `label &&`,
+    //  and not while a ProgressBar is indeterminate. S2 has no `showValueLabel` there; a Slider
+    //  keeps its v3 `showValueLabel`.)
+    if (owner === "Slider") return cursor.props.showValueLabel === false;
+    return (
+      String(cursor.props.label ?? "") === "" ||
+      (owner === "ProgressBar" && cursor.props.isIndeterminate === true)
+    );
+  }
   return false;
 }
 
@@ -2350,6 +2371,18 @@ export function catalogDerivedProps(
       ? { isDisabled: true }
       : {}),
     ...pickerPart,
+    // (S2 `FieldErrorIcon`: an invalid field's input keeps the alert glyph's room — the Canvas draws
+    //  it there, `fieldPrefix.ts` `catalogFieldErrorIcon`.)
+    ...(() => {
+      const icon = catalogFieldErrorIcon(node, get, typeOf);
+      return icon
+        ? {
+            _fieldErrorIcon: icon.size,
+            _fieldErrorIconEnd: icon.offsetEnd,
+            ...(icon.top ? { _fieldErrorIconTop: true } : {}),
+          }
+        : {};
+    })(),
     ...(selectionItem
       ? {
           _selectionMarkHidden: !catalogStateValue(
@@ -2499,7 +2532,11 @@ function catalogProgressStaticText(
 ): "white" | "black" | "auto" | undefined {
   const type = node.ruleId ?? typeOf(node);
   if (type !== "Label" && !PROGRESS_VALUE_TYPES.has(type)) return undefined;
-  const owner = get(node.parentId);
+  // (The Label sits in its label row — S2 `FieldLabel`, passed through.)
+  const owner =
+    type === "Label"
+      ? catalogPartParent(node, get, typeOf)
+      : get(node.parentId);
   if (!owner) return undefined;
   const ownerType = typeOf(owner);
   if (!PROGRESS_TRACKS[ownerType]) return undefined;
@@ -2784,10 +2821,15 @@ function ownDerivedProps(
 ): Readonly<Record<string, string | number | boolean>> | undefined {
   const base = ownDerivedPropsBase(node, get, typeOf, locale);
   const necessityText = catalogLabelNecessityText(node, get, typeOf, locale);
-  const own =
+  const composed =
     necessityText === undefined
       ? base
       : { ...base, _fieldComposed: true, _necessityText: necessityText };
+  // (S2 LabeledValue's label is `FieldLabel elementType="span"` — no control to label.)
+  const labeledValue =
+    typeOf(node) === "Label" &&
+    typeOf(catalogPartParent(node, get, typeOf) ?? node) === "LabeledValue";
+  const own = labeledValue ? { ...composed, _labelElement: "span" } : composed;
   // S2 Button `isPending`: the button's children (its icon · text nodes) stay laid out but are not
   // shown (`buttonPending.ts` — the DOM wraps them in `visibility: hidden`, the Canvas registers
   // them unpainted).
@@ -3516,7 +3558,8 @@ function derivedDependents(
       (child) => typeOf(child) === track,
     );
     // (its label and value text — their `staticColor`, `catalogProgressStaticText`)
-    const texts = childrenOf(owner, get).filter(
+    // (the Label through its label row — S2 `FieldLabel`)
+    const texts = partChildrenOf(owner, get, typeOf).filter(
       (child) =>
         typeOf(child) === "Label" || typeOf(child) === PROGRESS_VALUES[type],
     );
@@ -3851,6 +3894,49 @@ export function catalogFieldLabelPartsHidden(
     catalogFieldLabelPart(node, get, typeOf)?.hidden === true
   );
 }
+/**
+ * A field's label row (S2 `FieldLabel` — `Field.tsx`: `if (!props.children) return null`) is absent
+ * with its Label: no label text, no row (its help with it). The Canvas, the DOM and the Layers tree
+ * read this one predicate; the row is the presence scope of its Label (`catalogPresenceScope`).
+ */
+export function catalogFieldLabelRowAbsent(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "FieldLabel") return false;
+  const label = childrenOf(node, get).find(
+    (child) => typeOf(child) === "Label",
+  );
+  return (
+    !!label &&
+    (catalogAbsentByValue(label) ||
+      catalogFieldLabelPartsHidden(label, get, typeOf))
+  );
+}
+/**
+ * The color S2 `FieldLabel` gives the Label in its row — `fieldLabel()` `neutral-subdued`, the
+ * FieldLabel rule's `.react-aria-Label` block (its generated sheet carries the same) — for a row's
+ * Label whose text is its own: a Meter's · ProgressBar's · LabeledValue's. A field's composed Label
+ * holds its text in parts that take the color themselves (the Label rule's `label-content` block,
+ * disabled included). Undefined for any other node.
+ */
+export function catalogFieldLabelRowColor(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  if (typeOf(node) !== "Label") return undefined;
+  const row = get(node.parentId);
+  if (!row || typeOf(row) !== "FieldLabel") return undefined;
+  if (catalogComposedFieldLabel(node, get, typeOf)) return undefined;
+  const color = (
+    COMPONENT_RULES_TABLE.FieldLabel?.structure?.composition as
+      { staticSelectors?: Record<string, Record<string, string>> } | undefined
+  )?.staticSelectors?.[".react-aria-Label"]?.color;
+  return color ? (cssVarToTokenRef(color) ?? color) : undefined;
+}
+
 export function catalogFieldLabelPartsDependents(
   owner: CatalogConsumerNode,
   get: CatalogRecordLookup,

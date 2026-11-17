@@ -163,8 +163,9 @@ describe("S2 Form context", () => {
     });
     // The side Form's label column (176 — `--form-label-width`, through the frame: the variable is
     // inherited, the nearest Form's) on the Canvas, its text at the end.
-    expect(box(part(TEXT, "Label").id).width).toBe(176);
-    expect(part(TEXT, "Label").visual.textAlign).toBe("end");
+    // (The label row stands in the Label's place — S2 `FieldLabel`, 2026-11-18.)
+    expect(box(part(TEXT, "FieldLabel").id).width).toBe(176);
+    expect(part(TEXT, "FieldLabel").layout?.justifyContent).toBe("end");
     expect(html()).toMatch(
       /class="react-aria-TextField"[^>]*data-label-position="side"|data-label-position="side"[^>]*class="react-aria-TextField"/,
     );
@@ -180,7 +181,7 @@ describe("S2 Form context", () => {
       value: "top",
       source: "own",
     });
-    expect(box(part(OWN, "Label").id).width).not.toBe(176);
+    expect(box(part(OWN, "FieldLabel").id).width).not.toBe(176);
   });
 
   it("Required · Disabled reach every field (a group too), and follow the Form's edits", async () => {

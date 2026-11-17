@@ -1,4 +1,5 @@
 import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { CATALOG_FIELD_ERROR_ICON } from "../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import {
   PICKER_INVALID_ICON,
   PICKER_INVALID_WIDTH,
@@ -235,6 +236,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...catalogDialogChromeShapes(input),
     ...catalogSheetHandleShapes(input),
     ...pickerChromeShapes(input, base),
+    ...fieldErrorIconShapes(input),
     ...sideNavIndicatorShapes(input),
   ];
   const quiet = catalogQuietStyles(
@@ -506,6 +508,33 @@ export function catalogDialogChromeShapes(
       y: CATALOG_DIALOG_CLOSE_INSET + box / 2,
       fontSize: CATALOG_DIALOG_CLOSE_GLYPH_SIZE,
       fill: resolveToken("{color.neutral}" as TokenRef, theme) as string,
+      strokeWidth: 2,
+    } as Shape,
+  ];
+}
+
+/**
+ * S2 `FieldErrorIcon` — an invalid field's alert glyph in the room its input keeps at its end
+ * (`fieldPrefix.ts` `catalogFieldErrorIcon`): `1lh` square, `_fieldErrorIconEnd` before the input's
+ * end edge, centred on the line (a TextArea's first line), in the negative color. The DOM puts the
+ * same glyph after the input in the box (`domBinding`).
+ */
+function fieldErrorIconShapes(input: CatalogRuleShapeInput): Shape[] {
+  const size = input.node.derivedProps?._fieldErrorIcon;
+  if (typeof size !== "number") return [];
+  const end = Number(input.node.derivedProps?._fieldErrorIconEnd ?? 0);
+  const multiline = input.node.derivedProps?._fieldErrorIconTop === true;
+  return [
+    {
+      type: "icon_font",
+      iconName: CATALOG_FIELD_ERROR_ICON,
+      x: input.rect.width - end - size / 2,
+      y: multiline ? size / 2 : input.rect.height / 2,
+      fontSize: size,
+      fill: resolveToken(
+        "{color.negative}" as TokenRef,
+        input.theme ?? "light",
+      ) as string,
       strokeWidth: 2,
     } as Shape,
   ];
