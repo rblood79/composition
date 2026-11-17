@@ -20,6 +20,12 @@ import {
   catalogTypeName,
 } from "./delegatedDom.runtime";
 import { catalogSelectionGroupOf } from "./groupSelection";
+import { catalogPickerTimeFieldOf } from "./presence";
+
+const parentLookup =
+  (root: CatalogCompositionRoot) =>
+  (id: string): CatalogConsumerNode | undefined =>
+    root.domInputs.get(id);
 
 /**
  * 2026-10-14 (사용자 「모든컴퍼넌트와 컴퍼넌트 자식들 전수조사후 불필요하게 등록된 프러퍼티 제거」): a
@@ -36,7 +42,8 @@ import { catalogSelectionGroupOf } from "./groupSelection";
  *   group and its form value (S2 passes both — 2026-10-15).
  * - a Select's · ComboBox's ListBox: RAC's picker owns the selection (its `ListStateContext`), so
  *   the list's selection mode and its items' Selected are the picker's.
- * - a DatePicker's · DateRangePicker's calendar (`CATALOG_PICKER_CALENDAR_PROPS` — ADR-256 Phase 9).
+ * - a DatePicker's · DateRangePicker's calendar (`CATALOG_PICKER_CALENDAR_PROPS` — ADR-256 Phase 9),
+ *   and its time field (S2 `CalendarPopover`, 2026-11-18 — `PICKER_TIME_FIELD_PROPS`).
  * - an overlay body in its trigger (2026-11-11 사용자 결정 「뜨는 창 쪽을 숨김」): a Modal · Popover ·
  *   Tooltip · SheetOverlay inside a trigger · picker · submenu — open is the trigger's (RAC: the
  *   body's own `isOpen` beats the trigger's context and the press stops opening it). A body
@@ -56,6 +63,18 @@ const GROUP_ITEM_PROPS: Readonly<Record<string, readonly string[]>> = {
 const PICKER_LIST_PROPS = ["selectionMode", "disallowEmptySelection"];
 const PICKER_ITEM_PROPS = ["isSelected"];
 const OVERLAY_BODY_OPEN_PROPS = ["isOpen", "defaultOpen"];
+/** A picker's time field: its value, granularity, hour cycle, time zone and bounds are the picker's. */
+const PICKER_TIME_FIELD_PROPS = [
+  "value",
+  "defaultValue",
+  "granularity",
+  "hourCycle",
+  "hideTimeZone",
+  "shouldForceLeadingZeros",
+  "minValue",
+  "maxValue",
+  "placeholderValue",
+];
 
 /**
  * The types an owner can decide props of — the rest have none, so a caller skips the ancestor walk
@@ -72,6 +91,7 @@ export const CATALOG_OWNER_DECIDED_TYPES: ReadonlySet<string> = new Set([
   "Checkbox",
   "Calendar",
   "RangeCalendar",
+  "TimeField",
   ...CATALOG_OPEN_BODY_TYPES,
 ]);
 
@@ -134,6 +154,12 @@ export function catalogOwnerDecidedProps(
           ? CATALOG_PICKER_RANGE_CALENDAR_PROPS
           : CATALOG_PICKER_CALENDAR_PROPS,
       );
+  }
+  if (type === "TimeField") {
+    const at = catalogPickerTimeFieldOf(node, parentLookup(root), (record) =>
+      catalogTypeName(root, record),
+    );
+    if (at) add(at.picker, PICKER_TIME_FIELD_PROPS);
   }
   // ADR-308 Decision 4 · 5 — a Card · ToggleButton · Checkbox in its selection group: its Selected
   // is the group's (the group's Value field) — alone it stays its own (RAC's own state).

@@ -42,12 +42,13 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * ADR-256 Phase 9 (G2) — a Calendar · RangeCalendar draws the reference starter's node tree in
- * RAC's calendar: `div.months > div.month (one per shown month) > header (Button[previous] on the
- * first block · CalendarHeading · Button[next] on the last) + CalendarGrid > CalendarCell`. Oracle:
- * the starter (react-aria.adobe.com Calendar.md, 2026-10-09) mounted on the installed RAC 1.21.0
- * with the same props — compared as a structure (tags · roles · aria · slot · text; ids, classes,
- * data and style left out — Decision 11).
+ * ADR-256 Phase 9 (G2) — a Calendar · RangeCalendar draws its node tree in RAC's calendar. Since
+ * 2026-11-18 (사용자 결정 「S2 와 같게」) the tree is S2 1.8.2 `Calendar.tsx`'s: one header row
+ * (`CalendarHeader` = S2 `Header`) of per-month heading groups (`CalendarMonth` = S2 `div.heading`:
+ * Button[previous] on the first · CalendarHeading · Button[next] on the last), then one row of the
+ * grids (`frame` = S2's grid `div` > CalendarGrid per month). Oracle: that S2 structure mounted on the
+ * installed RAC with the same props — compared as a structure (tags · roles · aria · slot · text;
+ * ids, classes, data and style left out — Decision 11).
  */
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:calendar" as NodeId;
@@ -128,7 +129,7 @@ async function place(type: "calendar" | "rangecalendar" | "datefield") {
   return { workspace, root, write, render };
 }
 
-/** The reference starter (`Calendar.tsx` · `RangeCalendar.tsx` of the vanilla starter). */
+/** S2 1.8.2 `Calendar` · `RangeCalendar` (`CalendarHeader` · `CalendarGrid` there) on RAC. */
 function Starter({
   range,
   ...props
@@ -139,26 +140,28 @@ function Starter({
   return (
     <I18nProvider locale="en-US">
       <Root {...props}>
-        <div className="months">
+        <header>
           {Array.from({ length: months }, (_, i) => (
-            <div key={i} className="month">
-              <header>
-                {i === 0 && (
-                  <Button slot="previous">
-                    <svg />
-                  </Button>
-                )}
-                <CalendarHeading offset={{ months: i }} />
-                {i === months - 1 && (
-                  <Button slot="next">
-                    <svg />
-                  </Button>
-                )}
-              </header>
-              <CalendarGrid offset={{ months: i }}>
-                {(date) => <CalendarCell date={date} />}
-              </CalendarGrid>
+            <div key={i}>
+              {i === 0 && (
+                <Button slot="previous">
+                  <svg />
+                </Button>
+              )}
+              <CalendarHeading offset={{ months: i }} />
+              {i === months - 1 && (
+                <Button slot="next">
+                  <svg />
+                </Button>
+              )}
             </div>
+          ))}
+        </header>
+        <div>
+          {Array.from({ length: months }, (_, i) => (
+            <CalendarGrid key={i} offset={{ months: i }}>
+              {(date) => <CalendarCell date={date} />}
+            </CalendarGrid>
           ))}
         </div>
       </Root>
@@ -435,26 +438,26 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
     return (
       <I18nProvider locale="en-US">
         <Root aria-label={range ? "Range Calendar" : "Calendar"}>
-          <div className="months">
-            <div className="month">
-              <header>
-                <Button slot="previous">
-                  <svg />
-                </Button>
-                <CalendarMonthPicker>
-                  {(props) => <PickerSelect {...props} />}
-                </CalendarMonthPicker>
-                <CalendarYearPicker>
-                  {(props) => <PickerSelect {...props} />}
-                </CalendarYearPicker>
-                <Button slot="next">
-                  <svg />
-                </Button>
-              </header>
-              <CalendarGrid>
-                {(date) => <CalendarCell date={date} />}
-              </CalendarGrid>
+          <header>
+            <div>
+              <Button slot="previous">
+                <svg />
+              </Button>
+              <CalendarMonthPicker>
+                {(props) => <PickerSelect {...props} />}
+              </CalendarMonthPicker>
+              <CalendarYearPicker>
+                {(props) => <PickerSelect {...props} />}
+              </CalendarYearPicker>
+              <Button slot="next">
+                <svg />
+              </Button>
             </div>
+          </header>
+          <div>
+            <CalendarGrid>
+              {(date) => <CalendarCell date={date} />}
+            </CalendarGrid>
           </div>
         </Root>
       </I18nProvider>
@@ -468,8 +471,9 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
     const heading = [...root.domInputs.values()].find(
       (record) => root.typeOf(record) === "CalendarHeading",
     )!;
+    // (the heading group — S2 `div.heading`, the CalendarMonth in the header row)
     const header = [...root.domInputs.values()].find(
-      (record) => root.typeOf(record) === "CalendarHeader",
+      (record) => root.typeOf(record) === "CalendarMonth",
     )!;
     workspace.execute(
       removeTargets({
@@ -611,7 +615,7 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
     expect(document.querySelectorAll('[role="option"]')).toHaveLength(5);
   });
 
-  it("판독 R1: a node put beside the month blocks (the frame becomes a filled slot) keeps the blocks repeating", async () => {
+  it("판독 R1: a node put beside the grids (the frame becomes a filled slot) keeps the heading groups and grids repeating", async () => {
     const { workspace, root, write, render } = await place("calendar");
     write({ visibleDuration: { months: 2 } });
     const frame = [...root.domInputs.values()].find(
@@ -647,16 +651,22 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
         newId: workspace.newId,
       }),
     );
-    const months = [...root.canvasInputs.values()].filter(
-      (record) => root.typeOf(record) === "CalendarMonth",
-    );
-    expect(months.map((month) => month.monthIndex)).toEqual([0, 1]);
+    const of = (type: string) =>
+      [...root.canvasInputs.values()]
+        .filter((record) => root.typeOf(record) === type)
+        .map((record) => record.monthIndex);
+    expect(of("CalendarMonth")).toEqual([0, 1]);
+    expect(of("CalendarGrid")).toEqual([0, 1]);
     const host = render();
-    expect(host.querySelectorAll(".month")).toHaveLength(2);
+    expect(host.querySelectorAll("header > div")).toHaveLength(2);
+    expect(host.querySelectorAll("table")).toHaveLength(2);
+    // (each grid stays a table — its cells follow its fixed layout; an inline `block` undid it)
+    for (const table of host.querySelectorAll<HTMLElement>("table"))
+      expect(table.style.display).not.toBe("block");
     expect(host.querySelectorAll('[slot="next"]')).toHaveLength(1);
   });
 
-  it("판독 M1: the month blocks are not data rows — Layers keeps them as positions it can open", async () => {
+  it("판독 M1: the repeated grids are not data rows — Layers keeps them as positions it can open", async () => {
     const { workspace, root, write } = await place("calendar");
     write({ visibleDuration: { months: 2 } });
     const frame = [...root.domInputs.values()].find(
@@ -664,11 +674,12 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
         root.typeOf(record) === "frame" &&
         root.typeOf(root.domInputs.get(record.parentId)!) === "Calendar",
     )!;
-    const months = frame.children.map((id) => root.domInputs.get(id)!);
-    expect(months.map((month) => month.rowIndex)).toEqual([
-      undefined,
-      undefined,
+    const grids = frame.children.map((id) => root.domInputs.get(id)!);
+    expect(grids.map((grid) => root.typeOf(grid))).toEqual([
+      "CalendarGrid",
+      "CalendarGrid",
     ]);
+    expect(grids.map((grid) => grid.rowIndex)).toEqual([undefined, undefined]);
     expect(
       workspace.boundRowsOf(workspace.positionOfRecord(frame.id)!),
     ).toBeUndefined();

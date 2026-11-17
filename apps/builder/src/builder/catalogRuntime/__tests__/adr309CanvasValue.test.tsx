@@ -90,8 +90,20 @@ async function place(type: string) {
   /** The Canvas's DateInput segment texts (each DateInput's editable segments, joined by `|`). */
   const canvas = () => {
     const root = workspace.root;
+    // (Drawn ones only — a picker's TimeField stays hidden off a time granularity, S2.)
+    const drawn = (record: { hidden?: boolean; parentId?: string }) => {
+      for (
+        let cursor: typeof record | undefined = record;
+        cursor;
+        cursor = cursor.parentId
+          ? root.canvasInputs.get(cursor.parentId)
+          : undefined
+      )
+        if (cursor.hidden) return false;
+      return true;
+    };
     return [...root.canvasInputs.values()]
-      .filter((record) => root.typeOf(record) === "DateInput")
+      .filter((record) => root.typeOf(record) === "DateInput" && drawn(record))
       .map((record) => {
         root.getGeometry([record.id]);
         return (root.dateSegmentPaint(record.id)?.runs ?? [])

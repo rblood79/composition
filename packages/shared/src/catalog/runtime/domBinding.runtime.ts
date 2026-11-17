@@ -213,6 +213,7 @@ import {
 import {
   catalogFieldLabelPartsHidden,
   catalogFieldLabelRowAbsent,
+  catalogPickerTimeAbsent,
 } from "./presence";
 import { catalogSelectionGroupOf } from "./groupSelection";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
@@ -1584,9 +1585,10 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       ),
     );
   },
-  // ADR-256 Phase 9: a calendar's parts (the reference starter's `div.month > header (Button[previous]
-  // + CalendarHeading + Button[next]) + CalendarGrid > CalendarCell`). A month block is one copy per
-  // shown month (the resolver's — its `monthIndex`); its heading · grid show the month at that offset.
+  // ADR-256 Phase 9 · S2 1.8.2 `Calendar.tsx` (2026-11-18): a calendar's parts — `header > div (one
+  // heading group per shown month: Button[previous] + CalendarHeading + Button[next]) + div >
+  // CalendarGrid (one per shown month) > CalendarCell`. A heading group · grid is one copy per shown
+  // month (the resolver's — its `monthIndex`); its heading · grid show the month at that offset.
   calendarmonth: (node, style, children) =>
     createElement(
       CalendarMonthOffset.Provider,
@@ -1605,13 +1607,22 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     ),
   calendarheading: (node, style) =>
     createElement(CatalogCalendarHeading, { key: node.id, node, style }),
-  calendargrid: (node, style, children) =>
-    createElement(CatalogCalendarGrid, {
+  // (A grid repeated on its own in the grid row — S2's, 2026-11-18 — is its own month's copy.)
+  calendargrid: (node, style, children) => {
+    const grid = createElement(CatalogCalendarGrid, {
       key: node.id,
       node,
       style,
       parts: children,
-    }),
+    });
+    return node.monthIndex === undefined
+      ? grid
+      : createElement(
+          CalendarMonthOffset.Provider,
+          { key: node.id, value: node.monthIndex },
+          grid,
+        );
+  },
   calendarcell: (node, style, children) =>
     createElement(CatalogCalendarCell, {
       key: node.id,
@@ -2597,6 +2608,23 @@ function inDialogTrigger(
   return false;
 }
 
+/**
+ * The Dialog sits in a DatePicker's · DateRangePicker's Popover (S2 `CalendarPopover`, 2026-11-18):
+ * RAC's picker names it (`DialogContext` — `aria-labelledby` = the picker's label), so no fallback.
+ */
+function inPickerPopover(
+  root: CatalogCompositionRoot,
+  dialog: CatalogConsumerNode,
+): boolean {
+  const popover = catalogDomPartParent(root, dialog);
+  if (!popover || catalogTypeName(root, popover) !== "Popover") return false;
+  const picker = catalogDomPartParent(root, popover);
+  return (
+    picker?.bindingId === "datepicker" ||
+    picker?.bindingId === "daterangepicker"
+  );
+}
+
 /** A Dialog's title: a Heading below it with RAC's `title` slot (not one of a nested Dialog). */
 function dialogTitleOf(
   root: CatalogCompositionRoot,
@@ -2925,7 +2953,8 @@ function ruleDom(
     lower === "dialog" &&
     !node.ariaLabel &&
     !dialogTitleOf(root, node) &&
-    !inDialogTrigger(root, node)
+    !inDialogTrigger(root, node) &&
+    !inPickerPopover(root, node)
   )
     rest["aria-label"] = "Dialog";
   // S2 Dialog `isDismissible` gives its Modal RAC's `isDismissable` (`_dialogDismissible`).
@@ -4069,7 +4098,9 @@ export function renderNode(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,
-    )
+    ) ||
+    // (A picker's time field off its time granularity — S2 `showTimeField`.)
+    catalogPickerTimeAbsent(node, (id) => root.domInputs.get(id), root.typeOf)
   )
     return null;
   if (

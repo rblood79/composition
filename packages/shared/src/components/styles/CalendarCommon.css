@@ -17,38 +17,50 @@
     color: var(--fg);
   }
 
-  /* ========== Month block · Header Layout ========== */
-  /* ADR-256 Phase 9 — the reference starter's `div.month` (one per shown month): its header over its
-     grid, 6px apart (`manualBoxRules` CalendarMonth — the Canvas reads the same).
-     The calendar has no size (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」 —
-     RAC · S2 Calendar take none): a month is 7 cells of 30 (+ the tds' 2px padding each side = 238)
-     unless the calendar is given a width — then it fills it, wider or narrower (`flex: 1 1 auto`,
-     `min-width: 0`, `max-width: 100%`); its day cells follow its width (`container-type` — `100cqw`
-     below, the RAC starter's `calc(100cqw / 7 - gap)`; the Canvas: `catalogCalendarGridSize`). */
-  .react-aria-Calendar .month,
-  .react-aria-RangeCalendar .month {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    /* 칸 30px = Canvas `CalendarGrid` iconSize + 4 (ADR-295 Phase 1 — 종전 글자 토큰 text-3xl). */
-    width: calc(7 * (30px + 2 * var(--spacing-2xs)));
-    flex: 1 1 auto;
-    max-width: 100%;
-    min-width: 0;
-    container-type: inline-size;
-  }
+  /* ========== Header row · heading groups · grid row ========== */
+  /* S2 1.8.2 `Calendar.tsx` (2026-11-18 사용자 「S2 와 같게」): the calendar is a column (the
+     Calendar rule's gap — S2 24) of one header row of heading groups and one row of grids. */
 
-  /* The header row (the CalendarHeader node — `manualBoxRules` CalendarHeader): the author's nav
-     Buttons and heading in a flex row. */
+  /* The header row (the CalendarHeader node — S2 `headerStyles`; `manualBoxRules` CalendarHeader):
+     one heading group per shown month, 24 apart (the grid row's gap — each group over its grid). */
   .react-aria-Calendar header,
   .react-aria-RangeCalendar header {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    /* RAC reference (Calendar.md 「Month and year pickers」 — `header style={{display: 'flex',
-       gap: 4}}`, 2026-10-13; the Canvas: `manualBoxRules` CalendarHeader). */
+    gap: 24px;
+  }
+
+  /* A heading group (the CalendarMonth node — S2 `headingStyles`; `manualBoxRules` CalendarMonth):
+     the author's nav Buttons and heading in a flex row, the groups sharing the row alike. RAC
+     reference (Calendar.md 「Month and year pickers」 — `header style={{display: 'flex', gap: 4}}`,
+     2026-10-13): 4px between its parts. */
+  .react-aria-Calendar header > .month,
+  .react-aria-RangeCalendar header > .month {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1 1 0%;
+    min-width: 0;
     gap: 4px;
+  }
+
+  /* A grid (S2's grid row holds one per shown month): 7 cells of 30 (+ the tds' 2px padding each
+     side = 238) unless the calendar is given a width — then it fills it, wider or narrower
+     (`flex: 1 1 auto`, `min-width: 0`, `max-width: 100%`). The calendar has no size (사용자
+     2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」 — RAC · S2 Calendar take none).
+     Its day cells are a seventh of it (`table-layout: fixed` + square cells below — a table is no
+     size container in Chrome, 2026-11-18 실측; the Canvas: `catalogCalendarGridSize`). */
+  .react-aria-Calendar .react-aria-CalendarGrid,
+  .react-aria-RangeCalendar .react-aria-CalendarGrid {
+    /* 칸 30px = Canvas `CalendarGrid` iconSize + 4 (ADR-295 Phase 1 — 종전 글자 토큰 text-3xl). */
+    width: calc(7 * (30px + 2 * var(--spacing-2xs)));
+    flex: 1 1 auto;
+    max-width: 100%;
+    min-width: 0;
+    table-layout: fixed;
   }
 
   /* A month · year picker's Select: the two share what the nav Buttons leave equally — the
@@ -87,8 +99,8 @@
 
   /* The previous · next Buttons only (the header's own Buttons) — a month · year picker's Select
      trigger is a Button too and keeps its Select's size and shape (2026-10-13). */
-  .react-aria-Calendar header > .react-aria-Button,
-  .react-aria-RangeCalendar header > .react-aria-Button {
+  .react-aria-Calendar header > .month > .react-aria-Button,
+  .react-aria-RangeCalendar header > .month > .react-aria-Button {
     --btn-radius: var(--radius-sm);
     --btn-padding: 0;
     /* Button.css 고정(inline-flex) override — Calendar 네비 버튼 한정 */
@@ -120,8 +132,12 @@
 
   /* ADR-256 Phase 9 — a nav Button's chevron Icon node: the glyph's own box (the Canvas draws it at
      its icon size; the Icon sheet's default 24px height is a standalone icon's). */
-  .react-aria-Calendar header > .react-aria-Button > .react-aria-Icon,
-  .react-aria-RangeCalendar header > .react-aria-Button > .react-aria-Icon {
+  .react-aria-Calendar header > .month > .react-aria-Button > .react-aria-Icon,
+  .react-aria-RangeCalendar
+    header
+    > .month
+    > .react-aria-Button
+    > .react-aria-Icon {
     height: auto;
   }
 
@@ -146,12 +162,10 @@
 
   .react-aria-CalendarGridBody td {
     padding: var(--spacing-2xs);
-    /* A day cell: a seventh of its month less the td padding (the RAC starter's
-       `calc(100cqw / 7 - var(--gap))` — 30 at the month's own 238). */
+    /* A day cell: its column (a seventh of the fixed-layout grid) less the td padding — a square
+       (30 at the grid's own 238). */
     .react-aria-CalendarCell {
-      --calendar-cell: calc(100cqw / 7 - 2 * var(--spacing-2xs));
-      width: var(--calendar-cell);
-      height: var(--calendar-cell);
+      aspect-ratio: 1;
       margin: 0px;
       line-height: var(--text-sm--line-height);
       font-size: var(--text-sm);

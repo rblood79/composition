@@ -493,7 +493,8 @@ export function ruleTypeDefinition(
     stateRules: {},
   };
   if (!rule) {
-    // (A part without a D3 rule whose box a manual stylesheet states — ADR-256 Phase 9 CalendarMonth.)
+    // (A part without a D3 rule whose box a manual stylesheet states — a calendar's heading group,
+    //  CalendarMonth.)
     if (manualBoxRule(type)) {
       const layout: Record<string, string> = {};
       const visual: Record<string, VisualValues[keyof VisualValues]> = {};

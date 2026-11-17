@@ -30,11 +30,13 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
  * Calendar width (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」): RAC · S2
- * Calendar take no `size`. A month is 7 cells of 30 (+ the tds' 2px padding — 238 wide) and shrinks
- * with its parent; a calendar given a width — wider or narrower (사용자 「캘린더 크기를 변경해도 캘린더 폭은
- * 고정이다」) — its month fills it; the day cells follow (`W / 7 - 4`, the RAC starter's `calc(100cqw / 7
- * - gap)`). The Canvas lays the grid at its month's width and re-measures its height there; the DOM
- * sheet does the same with a container query. An old document's `size` is dropped on load.
+ * Calendar take no `size`. A month's grid is 7 cells of 30 (+ the tds' 2px padding — 238 wide) and
+ * shrinks with its parent; a calendar given a width — wider or narrower (사용자 「캘린더 크기를 변경해도 캘린더
+ * 폭은 고정이다」) — its grid fills it; the day cells follow (`W / 7 - 4`). The Canvas lays the grid out
+ * and re-measures its height at that width; the DOM sheet does the same with a fixed-layout table of
+ * square cells (2026-11-18 — the S2 grid row holds the grids directly, and a table is no size
+ * container). The heading group (S2 `div.heading`) above it shares its width. An old document's
+ * `size` is dropped on load.
  */
 const FRAME = "project:node:frame" as NodeId;
 const OWNER = "project:node:calendar" as NodeId;
@@ -159,11 +161,10 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
       expect(
         catalogCalendarGridSize(7, rows, emptyRows, 175)!.height,
       ).toBeCloseTo(box(grid).height);
-      // The header keeps its 30 squares at the ends.
-      const header = one("CalendarHeader");
-      expect(box(header).width).toBe(175);
+      // The header row keeps its 30 squares at the ends (its heading group's nav Buttons).
+      expect(box(one("CalendarHeader")).width).toBe(175);
       const navs = root.canvasInputs
-        .get(header)!
+        .get(one("CalendarMonth"))!
         .children.filter(
           (child) => root.typeOf(root.canvasInputs.get(child)!) === "Button",
         );
@@ -227,22 +228,22 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
     );
   });
 
-  it("the DOM sheet: a month 7 cells of 30 by itself, filling a calendar given a width; its cells follow its width", () => {
+  it("the DOM sheet: a grid 7 cells of 30 by itself, filling a calendar given a width; its cells follow its width", () => {
     const styles = join(
       dirname(fileURLToPath(import.meta.url)),
       "../../../../../../packages/shared/src/components/styles",
     );
     const common = readFileSync(join(styles, "CalendarCommon.css"), "utf8");
-    const month = common.slice(
-      common.indexOf(".react-aria-RangeCalendar .month {"),
+    const grid = common.slice(
+      common.indexOf(".react-aria-RangeCalendar .react-aria-CalendarGrid {"),
     );
-    expect(month.slice(0, month.indexOf("}"))).toMatch(
+    expect(grid.slice(0, grid.indexOf("}"))).toMatch(
       // ADR-295 Phase 1: 칸 30px 고정 (종전 글자 토큰 text-3xl — 글자 값이 S2 로 바뀌어 Canvas 와 갈렸다)
-      /width: calc\(7 \* \(30px \+ 2 \* var\(--spacing-2xs\)\)\);\s*flex: 1 1 auto;\s*max-width: 100%;\s*min-width: 0;\s*container-type: inline-size;/,
+      /width: calc\(7 \* \(30px \+ 2 \* var\(--spacing-2xs\)\)\);\s*flex: 1 1 auto;\s*max-width: 100%;\s*min-width: 0;\s*table-layout: fixed;/,
     );
-    expect(common).toMatch(
-      /--calendar-cell: calc\(100cqw \/ 7 - 2 \* var\(--spacing-2xs\)\);\s*width: var\(--calendar-cell\);\s*height: var\(--calendar-cell\);/,
-    );
+    // (a cell is its column less the td padding — a square)
+    expect(common).toMatch(/\.react-aria-CalendarCell \{\s*aspect-ratio: 1;/);
+    expect(common).not.toContain("cqw");
     for (const sheet of [
       "CalendarCommon.css",
       "Calendar.css",

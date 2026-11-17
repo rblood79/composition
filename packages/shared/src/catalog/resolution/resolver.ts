@@ -699,8 +699,9 @@ export const CATALOG_PART_RULE_PASS_HOSTS: Readonly<
   // (2026-11-13: a field's control Group passes its rules to its button's glyph —
   //  `.react-aria-Button .react-aria-Icon svg`: the clear cross · picker chevron · calendar.)
   Group: new Set(["SearchField", "ComboBox", "DatePicker", "DateRangePicker"]),
-  CalendarMonthPicker: new Set(["CalendarHeader"]),
-  CalendarYearPicker: new Set(["CalendarHeader"]),
+  // (2026-11-18 S2 structure: the pickers sit in the header row's heading group — CalendarMonth.)
+  CalendarMonthPicker: new Set(["CalendarMonth"]),
+  CalendarYearPicker: new Set(["CalendarMonth"]),
 };
 /** Resolved props: scalars and structured values (string lists, item lists). */
 type Props = Record<string, PropValue>;
@@ -1080,15 +1081,35 @@ export function resolveCatalogNode(
     resolved: ResolvedCatalogNode | undefined,
     context: ParentContext | undefined,
   ): void => {
-    if (ruleDefinitionOf(child.definitionId).name === "CalendarMonth")
+    if (
+      repeatsPerMonth(ruleDefinitionOf(child.definitionId).name, context)
+    )
       pushCalendarMonths(out, resolved, context);
     else push(out, resolved);
   };
   /**
-   * ADR-256 Phase 9 — a calendar's month block is a repeat template (the reference starter's
-   * `Array.from({length: months}, (_, i) => <div className="month">…)`): one copy per shown month,
-   * each its own record (`rowKey`) whose index (`monthIndex`) is the month offset of the heading · grid
-   * in it. The copies edit the one template node.
+   * The calendar parts repeated per shown month: a heading group (`CalendarMonth` — S2's
+   * `div.heading` in the header row), and a grid not inside one (S2 1.8.2 `Calendar.tsx` — the grid
+   * row holds one `CalendarGrid` per month, 2026-11-18). A grid inside a month block is that block's.
+   */
+  const repeatsPerMonth = (
+    name: string,
+    context: ParentContext | undefined,
+  ): boolean => {
+    if (name === "CalendarMonth") return true;
+    if (name !== "CalendarGrid") return false;
+    for (let cursor = context; cursor; cursor = cursor.parent) {
+      const parent = ruleDefinitionOf(cursor.definitionId).name;
+      if (parent === "CalendarMonth") return false;
+      if (parent === "Calendar" || parent === "RangeCalendar") return true;
+    }
+    return false;
+  };
+  /**
+   * ADR-256 Phase 9 — a calendar's per-month part is a repeat template (S2's `Array.from({length:
+   * visibleMonths}, (_, i) => …)` — a heading group, a grid): one copy per shown month, each its own
+   * record (`rowKey`) whose index (`monthIndex`) is the month offset of the heading · grid in it. The
+   * copies edit the one template node.
    */
   const pushCalendarMonths = (
     out: ResolvedCatalogNode[],
@@ -2911,7 +2932,7 @@ export function resolveCatalogNode(
           patches,
           childRowing,
         );
-        if (templateTypeName(childId) === "CalendarMonth")
+        if (repeatsPerMonth(templateTypeName(childId), childrenParent))
           pushCalendarMonths(out, projected, childrenParent);
         else push(out, projected);
       }

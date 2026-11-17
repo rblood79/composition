@@ -94,6 +94,9 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * of `maxVisibleMonths`. The grid's weekday cell (`__weekday` — CalendarHeaderCell) and a date input's
  * segment (`component-dateinput__segment` — DateSegment) are repeat templates too (Decision 13); the
  * month · year pickers (CalendarMonthPicker · CalendarYearPicker) are origins of their own.
+ *   (2026-11-18, contract unchanged — template ids kept: S2 1.8.2 `Calendar.tsx`'s tree — `Calendar >
+ *   CalendarHeader (__header) > CalendarMonth (__month — the heading group, repeated) > Button[previous]
+ *   + CalendarHeading + Button[next]`, then `frame (__months) > CalendarGrid (__grid — repeated)`.)
  * 38 — ADR-256 Phase 10: the S2 Card — `Card > CardPreview + Content (Text[slot=title] +
  * Text[slot=description]) + Footer` (CardHeader gone; CardContent · CardFooter are the shared S2
  * types `Content` · `Footer`); the Card origin takes no `title` · `description` (its Text nodes hold

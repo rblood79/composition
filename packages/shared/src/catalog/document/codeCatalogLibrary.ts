@@ -1,3 +1,4 @@
+import { manualBoxRule } from "./manualBoxRules";
 import { catalogHasSlotContract } from "../racSlotContract";
 import { selectionItemTemplates } from "./selectionItemTemplates";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
@@ -763,7 +764,12 @@ function withRuleParts(
   };
   return definitions.map((definition) => {
     const ruleId =
-      definition.ruleId ?? (definition.name === "Label" ? "Label" : undefined);
+      definition.ruleId ??
+      (definition.name === "Label" ? "Label" : undefined) ??
+      // (A rule-less part with a manual sheet's part rules — `CalendarMonth`, 2026-11-18.)
+      (manualBoxRule(definition.name)?.parts?.length
+        ? definition.name
+        : undefined);
     if (definition.mode === "composite" || !ruleId) return definition;
     const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
       ruleId

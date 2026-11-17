@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { Dialog } from "react-aria-components/Dialog";
 import "fake-indexeddb/auto";
 import { createElement, type ElementType, type ReactElement } from "react";
 import {
@@ -356,7 +357,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     ["datepicker", "Date Picker"],
     ["daterangepicker", "Date Range"],
   ])(
-    "%s has the reference example's structure: Group(DateInput + Button) · Popover > calendar (ADR-256 Phase 6e)",
+    "%s has S2's structure: Group(DateInput + Button) · Popover > Dialog > calendar · help text (ADR-256 Phase 6e · S2 2026-11-18)",
     async (type, label) => {
       const { workspace, field } = await open(type, { description: "Pick" });
       const actual = renderToStaticMarkup(
@@ -392,13 +393,19 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
                 input("end"),
                 button,
               ),
-          createElement(Text, { slot: "description" }, "Pick"),
-          createElement(FieldError),
+          // (S2 1.8.2 `DatePicker`: `CalendarPopover` (Popover > Dialog > calendar) before the help
+          //  text — 2026-11-18.)
           createElement(
             Popover as ElementType,
             { hideArrow: true },
-            createElement(Calendar as ElementType),
+            createElement(
+              Dialog as ElementType,
+              null,
+              createElement(Calendar as ElementType),
+            ),
           ),
+          createElement(Text, { slot: "description" }, "Pick"),
+          createElement(FieldError),
         ),
       );
       expect(structure(actual)).toBe(structure(reference));
@@ -414,9 +421,9 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       ).toEqual([
         ["FieldLabel", true],
         ["Group", true],
+        ["Popover", false],
         ["Description", true],
         ["FieldError", true],
-        ["Popover", false],
       ]);
       const popover = [...workspace.root.canvasInputs.values()].find(
         (item) =>
@@ -426,9 +433,11 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       expect(popover?.hidden).toBe(true);
       // The range picker's calendar is RAC's RangeCalendar (RAC's DateRangePicker gives its context
       // to that one only).
-      const calendar = workspace.root.domInputs.get(
+      const dialog = workspace.root.domInputs.get(
         workspace.root.domInputs.get(popover!.id)!.children[0]!,
       )!;
+      expect(workspace.root.typeOf(dialog)).toBe("Dialog");
+      const calendar = workspace.root.domInputs.get(dialog.children[0]!)!;
       expect(workspace.root.typeOf(calendar)).toBe(
         type === "datepicker" ? "Calendar" : "RangeCalendar",
       );

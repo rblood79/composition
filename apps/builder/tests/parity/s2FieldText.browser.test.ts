@@ -1508,13 +1508,26 @@ it.each(necessityFieldTypes)(
   async (type) => {
     const h = await fixture(type, "M");
     try {
-      const parts = [...h.root.domInputs.values()].filter((n) =>
-        [
-          "label-content",
-          "necessity-icon",
-          "necessity-label",
-          "necessity-space",
-        ].includes(String(n.props.slot)),
+      // (the field's own Label — a picker's Popover TimeField, hidden off a time granularity, has
+      //  its own; S2 `CalendarPopover`, 2026-11-18)
+      const inPickerTime = (n: { parentId?: string }) => {
+        for (
+          let c = n.parentId ? h.root.domInputs.get(n.parentId) : undefined;
+          c;
+          c = c.parentId ? h.root.domInputs.get(c.parentId) : undefined
+        )
+          if (h.root.typeOf(c) === "TimeField" && type !== "TimeField")
+            return true;
+        return false;
+      };
+      const parts = [...h.root.domInputs.values()].filter(
+        (n) =>
+          [
+            "label-content",
+            "necessity-icon",
+            "necessity-label",
+            "necessity-space",
+          ].includes(String(n.props.slot)) && !inPickerTime(n),
       );
       expect(parts).toHaveLength(4);
       const label = h.root.domInputs.get(parts[0].parentId)!;

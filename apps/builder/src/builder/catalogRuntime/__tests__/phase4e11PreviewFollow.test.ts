@@ -237,7 +237,10 @@ describe("Calendar nav buttons — no generic Button min-width", () => {
     );
     const block = css.slice(
       // (2026-10-13: the header's own Buttons only — a picker's Select trigger keeps its own box.)
-      css.indexOf(".react-aria-RangeCalendar header > .react-aria-Button {"),
+      // (2026-11-18 S2: the Buttons sit in the header row's heading group — `.month`.)
+      css.indexOf(
+        ".react-aria-RangeCalendar header > .month > .react-aria-Button {",
+      ),
     );
     expect(block.slice(0, block.indexOf("&["))).toContain("min-width: unset;");
   });
@@ -245,8 +248,9 @@ describe("Calendar nav buttons — no generic Button min-width", () => {
   // 사용자 2026-10-13 「높이가 30 이면 넓이도 30 이어야」: a square, like the reference starter's
   // icon-only Button (`width: var(--spacing-8)` = its height).
   it("the Canvas header row reads the nav width (a square — 30; the calendar has no size)", () => {
-    // (ADR-256 Phase 9: the nav Buttons are nodes — the header's part rules give their box.)
-    const navs = (manualBoxRule("CalendarHeader")?.parts ?? []).filter(
+    // (ADR-256 Phase 9: the nav Buttons are nodes — their heading group's part rules give their
+    //  box, S2's `div.heading` in the header row since 2026-11-18.)
+    const navs = (manualBoxRule("CalendarMonth")?.parts ?? []).filter(
       (part) =>
         part.childType === "Button" && part.childProps?.slot === "previous",
     );

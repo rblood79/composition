@@ -156,9 +156,24 @@ async function open(
       }),
     );
   const root = workspace.root;
+  // (Drawn label rows — a picker's TimeField, with its own label row, stays hidden off a time
+  //  granularity: S2 `CalendarPopover`, 2026-11-18.)
+  const drawn = (record: { hidden?: boolean; parentId?: string }) => {
+    for (
+      let cursor: typeof record | undefined = record;
+      cursor;
+      cursor = cursor.parentId
+        ? root.canvasInputs.get(cursor.parentId)
+        : undefined
+    )
+      if (cursor.hidden) return false;
+    return true;
+  };
   const recordsOf = (recordType: string) =>
     [...root.canvasInputs.values()].filter(
-      (r) => root.typeOf(r) === recordType,
+      (r) =>
+        root.typeOf(r) === recordType &&
+        (recordType !== "FieldLabel" || drawn(r)),
     );
   const render = async (recordId?: string) => {
     (

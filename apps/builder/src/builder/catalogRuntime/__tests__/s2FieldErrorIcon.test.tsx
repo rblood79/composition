@@ -74,9 +74,22 @@ async function place(origin: string, props: Record<string, unknown> = {}) {
   const root = workspace.root;
   const owner = () =>
     [...root.domInputs.values()].find((record) => record.sourceId === PLACED)!;
+  // (the field's own inputs — a picker's Popover TimeFields stay hidden off a time granularity)
+  const drawn = (record: { hidden?: boolean; parentId?: string }) => {
+    for (
+      let cursor: typeof record | undefined = record;
+      cursor;
+      cursor = cursor.parentId
+        ? root.canvasInputs.get(cursor.parentId)
+        : undefined
+    )
+      if (cursor.hidden) return false;
+    return true;
+  };
   const inputs = () =>
-    [...root.canvasInputs.values()].filter((record) =>
-      ["Input", "DateInput"].includes(root.typeOf(record)),
+    [...root.canvasInputs.values()].filter(
+      (record) =>
+        ["Input", "DateInput"].includes(root.typeOf(record)) && drawn(record),
     );
   const marked = () =>
     inputs().filter(

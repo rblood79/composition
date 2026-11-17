@@ -367,7 +367,7 @@ function positionTypeName(
  * choice passes the same nesting check the insert command runs (`assertNestable` at the list
  * position), so what is listed goes in.
  */
-/** ADR-256 Phase 9 — the parts a calendar's header takes beside its nav Buttons. */
+/** ADR-256 Phase 9 — the parts a calendar's heading group takes beside its nav Buttons. */
 const CALENDAR_HEADER_PARTS = [
   "CalendarHeading",
   "CalendarMonthPicker",
@@ -381,7 +381,8 @@ const CALENDAR_HEADER_PARTS = [
  * select counts).
  */
 export const CATALOG_PART_INSERT_HOSTS: ReadonlySet<string> = new Set([
-  "CalendarHeader",
+  // (a calendar's heading group — S2's `div.heading` in the header row, 2026-11-18)
+  "CalendarMonth",
 ]);
 
 export function catalogSlotInsertOptions(

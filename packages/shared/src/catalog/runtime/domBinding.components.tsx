@@ -242,6 +242,10 @@ export function CatalogCalendarGrid({
   const offset = useContext(CalendarMonthOffset);
   const cell = repeatTemplatePart(parts, "calendarcell");
   const weekday = repeatTemplatePart(parts, "calendarheadercell");
+  // (RAC's `table` stays a table: its cells follow its fixed layout — `CalendarCommon.css`; the box's
+  //  default `block` is the Canvas leaf's, 2026-11-18.)
+  const { display, ...rest } = style;
+  const tableStyle = display === "block" ? rest : style;
   const cellOf = (date: RAC.CalendarCellProps["date"]) =>
     cell
       ? createElement(CalendarCellDate.Provider, { value: date }, cell)
@@ -249,7 +253,7 @@ export function CatalogCalendarGrid({
   return createElement(RAC.CalendarGrid as ElementType, {
     "data-catalog-id": node.id,
     ...(offset ? { offset: { months: offset } } : {}),
-    style,
+    style: tableStyle,
     // (With a weekday template: RAC's header · body around the templates — the same DOM as RAC's
     // own function form.)
     children: weekday

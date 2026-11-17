@@ -158,6 +158,19 @@ async function open(
     "";
   const byType = (type: string) =>
     [...root.canvasInputs.values()].filter((input) => typeOf(input) === type);
+  /** Drawn records only (none under a hidden one — a picker's TimeField off a time granularity). */
+  const drawn = (input: CatalogConsumerNode) => {
+    for (
+      let cursor: CatalogConsumerNode | undefined = input;
+      cursor;
+      cursor = cursor.parentId
+        ? root.canvasInputs.get(cursor.parentId)
+        : undefined
+    )
+      if (cursor.hidden) return false;
+    return true;
+  };
+  const drawnByType = (type: string) => byType(type).filter(drawn);
   const fresh = () =>
     new Map(
       new CatalogCompositionRoot(runtime, new StyleLayoutEngine(), {
@@ -165,7 +178,7 @@ async function open(
         height: 900,
       }).canvasInputs,
     );
-  return { root, runtime, engine, nodeId, typeOf, byType, fresh };
+  return { root, runtime, engine, nodeId, typeOf, byType, drawnByType, fresh };
 }
 
 describe("ADR-248 Phase 3 resting-state presence", () => {
@@ -680,11 +693,12 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "lib:definition:type-Calendar" as DefinitionId,
       "calendar-project",
       {
-        children: [id("month")],
+        children: [id("header"), id("grid")],
         nodes: [
-          // (The parts take no text or locale of their own — RAC reads the Calendar's.)
-          entry("month", "CalendarMonth", [id("header"), id("grid")]),
-          entry("header", "CalendarHeader", [
+          // (The parts take no text or locale of their own — RAC reads the Calendar's. S2's tree:
+          // the header row's heading group, then the grid.)
+          entry("header", "CalendarHeader", [id("month")]),
+          entry("month", "CalendarMonth", [
             id("previous"),
             id("heading"),
             id("next"),
@@ -730,7 +744,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(record("heading").derivedProps?.children).toBe(title("ja-JP"));
     expect(measured).toContain(title("ja-JP"));
     // The nav Buttons are the calendar sheet's boxes (squares — 2026-10-13: 30 × 30; the calendar has
-    // no size), the heading fills the row between them (`flex: 1`) — the header row's part rules.
+    // no size), the heading fills the row between them (`flex: 1`) — the heading group's part rules.
     const nav = () => [record("previous").visual, record("next").visual];
     expect(nav()).toEqual([
       expect.objectContaining({ width: 30, height: 30, fill: "transparent" }),
@@ -925,7 +939,8 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     const range = await pickerScene(
       "lib:definition:origin-component-daterangepicker",
     );
-    const pair = range.scene.byType("DateInput");
+    // (the field's own pair — its Popover's TimeFields stay hidden off a time granularity)
+    const pair = range.scene.drawnByType("DateInput");
     expect(pair.map((node) => node.props.slot)).toEqual(["start", "end"]);
     for (const node of pair) expect(node.visual.fill).toBeUndefined();
     expect(texts(range.shapes)[0]).not.toContain("–");
@@ -949,8 +964,21 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         `lib:definition:origin-component-${definition}` as DefinitionId,
         `necessity-${definition}`,
       );
+      // (the field's own Label — a picker's Popover TimeFields stay hidden off a time granularity)
+      const shown = (records: Map<string, CatalogConsumerNode>) => {
+        const visible = (node: CatalogConsumerNode) => {
+          for (
+            let cursor: CatalogConsumerNode | undefined = node;
+            cursor;
+            cursor = cursor.parentId ? records.get(cursor.parentId) : undefined
+          )
+            if (cursor.hidden && cursor.id !== node.id) return false;
+          return true;
+        };
+        return [...records.values()].filter(visible);
+      };
       const text = (records: Map<string, CatalogConsumerNode>) =>
-        [...records.values()]
+        shown(records)
           .filter((node) => node.props.slot === "necessity-label")
           .map((node) => [node.props.children, node.derivedProps?.children]);
       const write = (key: string, value: string | boolean) =>

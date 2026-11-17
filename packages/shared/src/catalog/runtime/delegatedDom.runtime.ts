@@ -107,9 +107,15 @@ import { CatalogComboBox } from "./comboBoxSelectionText";
 
 import { DateField as AriaDateField } from "react-aria-components/DateField";
 
-import { DatePicker as AriaDatePicker } from "react-aria-components/DatePicker";
+import {
+  DatePicker as AriaDatePicker,
+  DatePickerStateContext,
+} from "react-aria-components/DatePicker";
 
-import { DateRangePicker as AriaDateRangePicker } from "react-aria-components/DateRangePicker";
+import {
+  DateRangePicker as AriaDateRangePicker,
+  DateRangePickerStateContext,
+} from "react-aria-components/DateRangePicker";
 
 import { Disclosure as RacDisclosure } from "react-aria-components/Disclosure";
 
@@ -160,7 +166,10 @@ import { Text as AriaText } from "react-aria-components/Text";
 
 import { TextField as AriaTextField } from "react-aria-components/TextField";
 
-import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
+import {
+  TimeField as AriaTimeField,
+  TimeFieldContext,
+} from "react-aria-components/TimeField";
 
 import { TreeItem as AriaTreeItem } from "react-aria-components/Tree";
 
@@ -257,6 +266,8 @@ import {
   catalogGroupDisclosures,
   catalogNumberFieldValue,
   catalogPartParent,
+  catalogPickerTimeFieldOf,
+  catalogPickerTimeGranularity,
   catalogSliderRange,
   catalogTabsSelection,
   catalogToggleGroupItems,
@@ -1292,14 +1303,21 @@ const CALENDAR_PICKER_BINDINGS: ReadonlySet<string> = new Set([
 
 /**
  * The picker whose RAC calendar context a Calendar · RangeCalendar node takes (its value, focus and
- * paging — D1): one in a DatePicker · DateRangePicker — in its Popover, the reference's `Popover >
- * Calendar` (ADR-256 Phase 6e), or its direct child (RAC's context reaches it there too).
+ * paging — D1): one in a DatePicker · DateRangePicker — in its Popover's Dialog (S2 1.8.2
+ * `CalendarPopover`, 2026-11-18), in its Popover (ADR-256 Phase 6e's reference), or its direct child
+ * (RAC's context reaches it there too).
  */
 export function catalogCalendarPicker(
   root: CatalogCompositionRoot,
   calendar: CatalogConsumerNode,
 ): CatalogConsumerNode | undefined {
-  return pickerHost(root, calendar, CALENDAR_PICKER_BINDINGS);
+  const parent = catalogDomPartParent(root, calendar);
+  const inDialog = parent && catalogTypeName(root, parent) === "Dialog";
+  return pickerHost(
+    root,
+    inDialog ? parent : calendar,
+    CALENDAR_PICKER_BINDINGS,
+  );
 }
 
 /**
@@ -1637,7 +1655,10 @@ function calendarPickerSelect(
 function nodeTreeField(
   component: ElementType,
   type: string,
-  own: (props: CatalogConsumerNode["props"]) => Record<string, unknown>,
+  own: (
+    props: CatalogConsumerNode["props"],
+    input?: DelegatedDomInput,
+  ) => Record<string, unknown>,
   i18n?: (props: CatalogConsumerNode["props"]) => [unknown, unknown?],
   defaultLabelAlign?: string,
   /** ADR-280 — RAC's changed value as the record's runtime `value` (the document's form). */
@@ -1655,7 +1676,7 @@ function nodeTreeField(
         isQuiet,
         ...base
       } = fieldBase(input);
-      const ownProps = own(props);
+      const ownProps = own(props, input);
       const element = createElement(
         component,
         {
@@ -1690,6 +1711,66 @@ function nodeTreeField(
       if (!i18n) return element;
       const [locale, calendar] = i18n(props);
       return withI18n(element, locale, calendar);
+    },
+  };
+}
+
+/** A TimeField node's picker and place in a DatePicker's · DateRangePicker's Popover Dialog. */
+function pickerTimeFieldOf(input: DelegatedDomInput) {
+  return catalogPickerTimeFieldOf(
+    input.node,
+    (id) => input.root.domInputs.get(id),
+    (record) => catalogTypeName(input.root, record),
+  );
+}
+
+/**
+ * S2 `DatePicker` · `DateRangePicker` (2026-11-18): their Popover's TimeField shows and sets the
+ * picker's time — `state.timeValue` · `setTimeValue` (a range: `timeRange.start|end` ·
+ * `setTime('start'|'end')`), through RAC's `TimeFieldContext` (the element carries no value of its
+ * own there).
+ */
+function PickerTimeFieldValue({
+  end,
+  children,
+}: {
+  end: boolean;
+  children: ReactElement;
+}): ReactElement {
+  const single = useContext(DatePickerStateContext);
+  const range = useContext(DateRangePickerStateContext);
+  const value = single
+    ? single.timeValue
+    : ((end ? range?.timeRange?.end : range?.timeRange?.start) ?? null);
+  return createElement(
+    TimeFieldContext.Provider,
+    {
+      value: {
+        value: value ?? null,
+        onChange: (next: unknown) => {
+          if (single) single.setTimeValue(next as never);
+          else range?.setTime(end ? "end" : "start", next as never);
+        },
+      },
+    },
+    children,
+  );
+}
+
+/** The TimeField binding, a picker's time field bound to the picker's time (`PickerTimeFieldValue`). */
+function pickerTimeField(binding: DelegatedDomBinding): DelegatedDomBinding {
+  return {
+    ...binding,
+    render: (input) => {
+      const element = binding.render(input);
+      const at = pickerTimeFieldOf(input);
+      return at && element
+        ? createElement(PickerTimeFieldValue, {
+            key: input.node.id,
+            end: at.index === 1,
+            children: element as ReactElement,
+          })
+        : element;
     },
   };
 }
@@ -2837,26 +2918,50 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     undefined,
     dateToOverride,
   ),
-  timefield: nodeTreeField(
-    AriaTimeField,
-    "TimeField",
-    (props) => ({
-      defaultValue: timeValue(catalogDateStartValue(props)) ?? null,
-      hourCycle: num(props.hourCycle) ?? 24,
-      placeholderValue: timeValue(props.placeholderValue),
-      minValue: timeValue(props.minValue),
-      maxValue: timeValue(props.maxValue),
-      hideTimeZone: props.hideTimeZone !== false,
-      shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
-      granularity: ["hour", "minute", "second"].includes(
-        String(props.granularity),
-      )
-        ? props.granularity
-        : "minute",
-    }),
-    (props) => [props.locale],
-    undefined,
-    dateToOverride,
+  timefield: pickerTimeField(
+    nodeTreeField(
+      AriaTimeField,
+      "TimeField",
+      (props, input) => {
+        // (A picker's time field — S2 `CalendarPopover`'s TimeField, 2026-11-18: the picker's time
+        //  granularity, hour cycle, time zone and time bounds; its value the picker's state's —
+        //  `PickerTimeFieldValue`.)
+        const picker = input && pickerTimeFieldOf(input)?.picker;
+        if (picker) {
+          const own = picker.props;
+          const timeBound = (value: unknown) =>
+            typeof value === "string" && value.includes("T")
+              ? timeValue(value)
+              : undefined;
+          return {
+            hourCycle: num(own.hourCycle),
+            placeholderValue: timeBound(own.placeholderValue),
+            minValue: timeBound(own.minValue),
+            maxValue: timeBound(own.maxValue),
+            hideTimeZone: own.hideTimeZone !== false,
+            shouldForceLeadingZeros: own.shouldForceLeadingZeros !== false,
+            granularity: catalogPickerTimeGranularity(picker) ?? "minute",
+          };
+        }
+        return {
+          defaultValue: timeValue(catalogDateStartValue(props)) ?? null,
+          hourCycle: num(props.hourCycle) ?? 24,
+          placeholderValue: timeValue(props.placeholderValue),
+          minValue: timeValue(props.minValue),
+          maxValue: timeValue(props.maxValue),
+          hideTimeZone: props.hideTimeZone !== false,
+          shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
+          granularity: ["hour", "minute", "second"].includes(
+            String(props.granularity),
+          )
+            ? props.granularity
+            : "minute",
+        };
+      },
+      (props) => [props.locale],
+      undefined,
+      dateToOverride,
+    ),
   ),
   colorfield: nodeTreeField(
     AriaColorField,

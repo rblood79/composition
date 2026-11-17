@@ -47,7 +47,10 @@ function typeOf(reader: CatalogReader, position: CatalogPosition): string {
   }
 }
 
-/** The calendar's headers (one per month block template), shown positions only. */
+/**
+ * The calendar's heading groups (one template per header row — S2's `div.heading`, the CalendarMonth
+ * in the CalendarHeader, 2026-11-18), shown positions only.
+ */
 function headers(
   reader: CatalogReader,
   calendar: CatalogPosition,
@@ -56,7 +59,7 @@ function headers(
   const visit = (position: CatalogPosition, depth: number) => {
     for (const child of childPositions(reader, position)) {
       const type = typeOf(reader, child);
-      if (type === "CalendarHeader") found.push(child);
+      if (type === "CalendarMonth") found.push(child);
       else if (depth < 3 && type !== "CalendarGrid") visit(child, depth + 1);
     }
   };

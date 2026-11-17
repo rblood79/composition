@@ -6298,6 +6298,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-calendar",
     "definitionId": "lib:definition:type-Calendar",
     "children": [
+      "lib:template:component-calendar__header",
       "lib:template:component-calendar__months"
     ],
     "props": {
@@ -6312,23 +6313,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-calendar__months",
     "definitionId": "lib:definition:type-frame",
     "children": [
-      "lib:template:component-calendar__month"
+      "lib:template:component-calendar__grid"
     ],
     "props": {},
     "visual": {
-      "gap": 16
+      "gap": 24
     },
     "layout": {
       "display": "flex",
-      "flexDirection": "row"
+      "flexDirection": "row",
+      "alignItems": "flex-start"
     }
   },
   {
     "id": "lib:template:component-calendar__month",
     "definitionId": "lib:definition:type-CalendarMonth",
     "children": [
-      "lib:template:component-calendar__header",
-      "lib:template:component-calendar__grid"
+      "lib:template:component-calendar__previous",
+      "lib:template:component-calendar__heading",
+      "lib:template:component-calendar__next"
     ],
     "props": {},
     "visual": {}
@@ -6337,19 +6340,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-calendar__header",
     "definitionId": "lib:definition:type-CalendarHeader",
     "children": [
-      "lib:template:component-calendar__previous",
-      "lib:template:component-calendar__heading",
-      "lib:template:component-calendar__next"
+      "lib:template:component-calendar__month"
     ],
     "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "alignItems": "center",
-      "verticalAlign": "middle"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-calendar__previous",
@@ -6598,9 +6592,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-datepicker__1-row",
       "lib:template:component-datepicker__2",
+      "lib:template:component-datepicker__popover",
       "lib:template:component-datepicker__description",
-      "lib:template:component-datepicker__error",
-      "lib:template:component-datepicker__popover"
+      "lib:template:component-datepicker__error"
     ],
     "props": {
       "label": "Date Picker",
@@ -6688,9 +6682,55 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-datepicker__popover",
     "definitionId": "lib:definition:type-Popover",
     "children": [
-      "lib:template:component-datepicker__3"
+      "lib:template:component-datepicker__dialog"
     ],
     "props": {},
+    "visual": {
+      "paddingTop": 0,
+      "paddingRight": 0,
+      "paddingBottom": 0,
+      "paddingLeft": 0
+    }
+  },
+  {
+    "id": "lib:template:component-datepicker__dialog",
+    "definitionId": "lib:definition:type-Dialog",
+    "children": [
+      "lib:template:component-datepicker__3",
+      "lib:template:component-datepicker__time"
+    ],
+    "props": {},
+    "visual": {
+      "paddingTop": 24,
+      "paddingRight": 16,
+      "paddingBottom": 24,
+      "paddingLeft": 16,
+      "gap": 0,
+      "width": "fit-content"
+    }
+  },
+  {
+    "id": "lib:template:component-datepicker__time",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-datepicker__time_1"
+    ],
+    "props": {},
+    "visual": {
+      "gap": 16
+    },
+    "layout": {
+      "display": "flex",
+      "flexDirection": "row"
+    }
+  },
+  {
+    "id": "lib:template:component-datepicker__time_1",
+    "definitionId": "lib:definition:origin-component-timefield",
+    "children": [],
+    "props": {
+      "label": "Time"
+    },
     "visual": {}
   },
   {
@@ -6706,9 +6746,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-daterangepicker__1-row",
       "lib:template:component-daterangepicker__2",
+      "lib:template:component-daterangepicker__popover",
       "lib:template:component-daterangepicker__description",
-      "lib:template:component-daterangepicker__error",
-      "lib:template:component-daterangepicker__popover"
+      "lib:template:component-daterangepicker__error"
     ],
     "props": {
       "label": "Date Range",
@@ -6820,9 +6860,66 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-daterangepicker__popover",
     "definitionId": "lib:definition:type-Popover",
     "children": [
-      "lib:template:component-daterangepicker__3"
+      "lib:template:component-daterangepicker__dialog"
     ],
     "props": {},
+    "visual": {
+      "paddingTop": 0,
+      "paddingRight": 0,
+      "paddingBottom": 0,
+      "paddingLeft": 0
+    }
+  },
+  {
+    "id": "lib:template:component-daterangepicker__dialog",
+    "definitionId": "lib:definition:type-Dialog",
+    "children": [
+      "lib:template:component-daterangepicker__3",
+      "lib:template:component-daterangepicker__time"
+    ],
+    "props": {},
+    "visual": {
+      "paddingTop": 24,
+      "paddingRight": 16,
+      "paddingBottom": 24,
+      "paddingLeft": 16,
+      "gap": 0,
+      "width": "fit-content"
+    }
+  },
+  {
+    "id": "lib:template:component-daterangepicker__time",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-daterangepicker__time_start",
+      "lib:template:component-daterangepicker__time_end"
+    ],
+    "props": {},
+    "visual": {
+      "gap": 16
+    },
+    "layout": {
+      "display": "flex",
+      "flexDirection": "row",
+      "marginTop": "24px"
+    }
+  },
+  {
+    "id": "lib:template:component-daterangepicker__time_start",
+    "definitionId": "lib:definition:origin-component-timefield",
+    "children": [],
+    "props": {
+      "label": "Start time"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-daterangepicker__time_end",
+    "definitionId": "lib:definition:origin-component-timefield",
+    "children": [],
+    "props": {
+      "label": "End time"
+    },
     "visual": {}
   },
   {
@@ -6999,6 +7096,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-rangecalendar",
     "definitionId": "lib:definition:type-RangeCalendar",
     "children": [
+      "lib:template:component-rangecalendar__header",
       "lib:template:component-rangecalendar__months"
     ],
     "props": {
@@ -7013,23 +7111,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-rangecalendar__months",
     "definitionId": "lib:definition:type-frame",
     "children": [
-      "lib:template:component-rangecalendar__month"
+      "lib:template:component-rangecalendar__grid"
     ],
     "props": {},
     "visual": {
-      "gap": 16
+      "gap": 24
     },
     "layout": {
       "display": "flex",
-      "flexDirection": "row"
+      "flexDirection": "row",
+      "alignItems": "flex-start"
     }
   },
   {
     "id": "lib:template:component-rangecalendar__month",
     "definitionId": "lib:definition:type-CalendarMonth",
     "children": [
-      "lib:template:component-rangecalendar__header",
-      "lib:template:component-rangecalendar__grid"
+      "lib:template:component-rangecalendar__previous",
+      "lib:template:component-rangecalendar__heading",
+      "lib:template:component-rangecalendar__next"
     ],
     "props": {},
     "visual": {}
@@ -7038,19 +7138,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-rangecalendar__header",
     "definitionId": "lib:definition:type-CalendarHeader",
     "children": [
-      "lib:template:component-rangecalendar__previous",
-      "lib:template:component-rangecalendar__heading",
-      "lib:template:component-rangecalendar__next"
+      "lib:template:component-rangecalendar__month"
     ],
     "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "alignItems": "center",
-      "verticalAlign": "middle"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-rangecalendar__previous",

@@ -63,8 +63,8 @@ const sizesOf = (type: string) =>
 const CALENDAR_HEADER = { nav: 30, font: "text-sm", triggerInset: 8 } as const;
 
 /**
- * A calendar month block's own width: 7 cells (`CalendarGrid` rule `iconSize + 4`) plus the tds' 2px
- * padding each side (`CalendarCommon.css` `.month`) — a calendar given a width stretches it.
+ * A calendar grid's own width: 7 cells (`CalendarGrid` rule `iconSize + 4`) plus the tds' 2px padding
+ * each side (`CalendarCommon.css` `.react-aria-CalendarGrid`) — a calendar given a width stretches it.
  */
 const calendarMonthWidth = (): number | undefined => {
   const icon = px(sizesOf("CalendarGrid").M?.iconSize);
@@ -73,6 +73,9 @@ const calendarMonthWidth = (): number | undefined => {
 
 /** RAC reference header gap (Calendar.md 「Month and year pickers」 `gap: 4`) — `CalendarCommon.css`. */
 const CALENDAR_HEADER_GAP = 4;
+
+/** S2 `headerStyles` `columnGap` · the grid row's `gap` (`Calendar.tsx` — 24) — `CalendarCommon.css`. */
+const CALENDAR_ROW_GAP = 24;
 
 /**
  * S2 ButtonGroup gap (`ButtonGroup.tsx` `buttongroup` — S 8 · M · L · XL 12; XS, not in S2, takes S's,
@@ -505,16 +508,17 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       ],
     };
   },
-  // ADR-256 Phase 9 — a calendar month block's header row (`generated/CalendarHeader.css` is not
-  // loaded, `UNLOADED_GENERATED_CSS` D): `CalendarCommon.css` `.react-aria-Calendar header` — a flex
-  // row (space-between, centered, 4 apart) around the author's parts. Its nav Buttons
-  // (`Button[slot=previous|next]` — plain RAC Buttons) are `header > .react-aria-Button` boxes:
-  // `--text-3xl` squares, no padding, border or fill, `--fg` glyph. Its RAC `CalendarHeading` fills
-  // the rest (`flex: 1`) — `--text-sm`, bold, centered, `--text-base--line-height`.
-  // ADR-256 Phase 9 — a calendar's month block (`CalendarCommon.css` `.month`): its header over its
-  // grid, 6 apart.
-  // ADR-256 Phase 9 — RAC's month · year pickers render no element: their Select is the header's
-  // item (`display: contents` — the engine lays their children out in the parent's flow).
+  // ADR-256 Phase 9 · S2 1.8.2 `Calendar.tsx` (2026-11-18 사용자 「S2 와 같게」): a calendar is a column
+  // (the Calendar rule's gap — S2 `calendarStyles` 24) of its header row and its grid row
+  // (`generated/CalendarHeader.css` is not loaded, `UNLOADED_GENERATED_CSS` D — the DOM boxes are
+  // `CalendarCommon.css`'s). The header row (`CalendarHeader` = S2 `headerStyles`) holds one heading
+  // group per shown month (`CalendarMonth` = S2 `headingStyles` — a flex row, space-between,
+  // centered, growing alike, 4 apart) around the author's parts: its nav Buttons
+  // (`Button[slot=previous|next]` — plain RAC Buttons, `.month > .react-aria-Button` boxes:
+  // `--text-3xl` squares, no padding, border or fill, `--fg` glyph) and its RAC `CalendarHeading`
+  // (the rest — `flex: 1`, `--text-sm`, bold, centered, `--text-base--line-height`).
+  // ADR-256 Phase 9 — RAC's month · year pickers render no element: their Select is the heading
+  // group's item (`display: contents` — the engine lays their children out in the parent's flow).
   CalendarMonthPicker: () => ({
     replace: true,
     layout: { display: "contents" },
@@ -523,24 +527,19 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     replace: true,
     layout: { display: "contents" },
   }),
-  // (No size — 2026-10-13: 7 cells of 30 wide unless the calendar is given a width, which it then
-  // fills, wider or narrower — the DOM's `.month` `width: 238px; flex: 1 1 auto; max-width: 100%`
-  // with no intrinsic minimum (`container-type` — `min-width: 0` here); its grid's cells follow its
-  // width — `catalogCalendarGridSize`.)
-  CalendarMonth: () => {
+  // (No size — 2026-10-13: a grid is 7 cells of 30 wide unless the calendar is given a width, which
+  // it then fills, wider or narrower — the DOM's `.react-aria-CalendarGrid` `width: 238px; flex: 1 1
+  // auto; max-width: 100%; min-width: 0` (`table-layout: fixed` — its cells a seventh of it); its
+  // cells follow its width — `catalogCalendarGridSize`. Before 2026-11-18 the month block held it.)
+  CalendarGrid: (): ManualBoxRule => {
     const width = calendarMonthWidth();
     return {
-      replace: true,
-      layout: {
-        display: "flex",
-        flexDirection: "column",
-        flexGrow: "1",
-        flexShrink: "1",
-        maxWidth: "100%",
-      },
-      visual: { gap: 6, ...(width ? { width, minWidth: 0 } : {}) },
+      layout: { flexGrow: "1", flexShrink: "1", maxWidth: "100%" },
+      ...(width ? { visual: { width, minWidth: 0 } } : {}),
     };
   },
+  // The header row (S2 `headerStyles`: a flex row, space-between, centered, `columnGap: 24` — the
+  // grid row's gap, so each heading group stands over its grid).
   CalendarHeader: () => ({
     replace: true,
     layout: {
@@ -549,9 +548,24 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       justifyContent: "space-between",
       alignItems: "center",
     },
+    visual: { gap: CALENDAR_ROW_GAP },
+  }),
+  // A heading group (S2 `headingStyles`: a flex row, space-between, centered, growing alike — `flex:
+  // 1 1 0%`, so the groups share the row like the grids below them).
+  CalendarMonth: () => ({
+    replace: true,
+    layout: {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexGrow: "1",
+      flexShrink: "1",
+      flexBasis: "0%",
+    },
     // RAC reference (Calendar.md 「Month and year pickers」 — `header style={{display: 'flex', gap:
-    // 4}}`): 4px between the header's parts (`CalendarCommon.css`, 2026-10-13).
-    visual: { gap: CALENDAR_HEADER_GAP },
+    // 4}}`): 4px between the group's parts (`CalendarCommon.css`, 2026-10-13).
+    visual: { gap: CALENDAR_HEADER_GAP, minWidth: 0 },
     parts: ((): CompiledPartRule[] => {
       const navHeight = CALENDAR_HEADER.nav;
       const fontSize = textPx(CALENDAR_HEADER.font);

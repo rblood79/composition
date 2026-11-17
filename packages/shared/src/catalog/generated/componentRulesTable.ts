@@ -4823,8 +4823,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
             nested: [
               {
-                // The picker's Popover holds its calendar directly (ADR-256 Phase 6e — no Dialog, as the
-                //   reference): the Popover is the frame, the calendar's own box stays off.
+                // The picker's Popover holds its calendar in a Dialog (S2 1.8.2 `CalendarPopover`, 2026-11-18
+                //   — the Popover unpadded, the Dialog's 24 · 16 are template values): the Popover is the
+                //   frame, the calendar's own box stays off.
                 selector: ".react-aria-Calendar",
                 styles: {
                   background: "transparent",
@@ -5060,8 +5061,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
             nested: [
               {
-                // The picker's Popover holds its calendar directly (ADR-256 Phase 6e — no Dialog, as the
-                //   reference): the Popover is the frame, the calendar's own box stays off.
+                // The picker's Popover holds its calendar in a Dialog (S2 1.8.2 `CalendarPopover`, 2026-11-18
+                //   — the Popover unpadded, the Dialog's 24 · 16 are template values): the Popover is the
+                //   frame, the calendar's own box stays off.
                 selector: ".react-aria-RangeCalendar",
                 styles: {
                   background: "transparent",

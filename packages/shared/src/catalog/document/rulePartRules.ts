@@ -2293,7 +2293,9 @@ export function compileRulePartRules(
         }>;
       }
     | undefined;
-  if (!rule) return [];
+  // (A part with no D3 rule whose box a manual stylesheet states — a calendar's heading group,
+  //  `CalendarMonth` — keeps that sheet's part rules, 2026-11-18.)
+  if (!rule) return [...(manualBoxRule(parentType)?.parts ?? [])];
   const blocks: Array<{
     selector: string;
     declarations: Record<string, string>;

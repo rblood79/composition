@@ -268,6 +268,8 @@ import {
   catalogTreeChevronLayout,
   catalogTreeItemLayout,
   catalogTreeChevrons,
+  catalogPickerTimeFieldOf,
+  catalogPickerTimeGranularity,
 } from "./presence";
 import { catalogElementlessWithChildren } from "./elementless";
 import {
@@ -5581,9 +5583,22 @@ export class CatalogCompositionRoot {
     )
       if (Number(cursor.visual.lineHeight) > 0)
         lineHeight = Number(cursor.visual.lineHeight);
-    const prop = (key: string) => record.props[key] ?? owner?.props[key];
-    const granularity = prop("granularity");
-    const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
+    // (A picker's time field — S2 `CalendarPopover`'s TimeField: the picker's time granularity and
+    //  hour cycle, unset = the locale's — `presence.ts` derives its value the same way.)
+    const pickerTime = owner
+      ? catalogPickerTimeFieldOf(owner, get, this.typeOf)
+      : undefined;
+    const prop = (key: string) =>
+      pickerTime
+        ? pickerTime.picker.props[key]
+        : (record.props[key] ?? owner?.props[key]);
+    const granularity = pickerTime
+      ? catalogPickerTimeGranularity(pickerTime.picker)
+      : prop("granularity");
+    const hourCycle = racFieldHourCycle(
+      pickerTime ? this.typeOf(pickerTime.picker) : ownerType,
+      prop("hourCycle"),
+    );
     // ADR-309 Decision 4 — the owner's value (`presence.ts` `_dateValue` — re-derived when the owner
     // changes), read as the DOM reads it: a TimeField's time, else a date at the granularity.
     const derived = record.derivedProps ?? {};

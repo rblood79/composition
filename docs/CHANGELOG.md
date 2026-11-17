@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — 날짜 묶음 (Calendar 머리 줄 · picker 팝업 Dialog · 시각 입력)] - 2026-11-18
+
+### Changed
+
+- **Calendar · RangeCalendar = S2 구조** — 달마다 [머리 + 표] 를 반복하던 묶음 대신 S2 처럼 머리 줄 하나 (달별 ‹ 제목 › 묶음) 와 표 줄 하나 (달마다 표) 로 그린다. 머리 줄 ↔ 표 · 달 사이 간격은 S2 의 24. Layers 의 달력 트리가 `CalendarHeader > CalendarMonth` + `frame > CalendarGrid` 로 바뀐다 (이미 놓인 달력도 원본을 따라 바뀐다).
+  - Publish 의 칸 크기는 컨테이너 쿼리 대신 고정 표 배치 + 정사각 칸으로 정한다 (Chrome 에서 `table` 은 크기 기준 상자가 아니다).
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` · `resolution/resolver.ts` (`repeatsPerMonth`) · `document/manualBoxRules.ts` · `components/styles/CalendarCommon.css`
+- **DatePicker · DateRangePicker 팝업 = S2 `CalendarPopover`** — `Popover > Dialog > 달력`, Popover 는 도움말 앞. 여백은 Dialog 가 갖는다 (위아래 24 · 좌우 16). 팝업의 이름은 picker 라벨에서 온다.
+
+### Added
+
+- **시각 단위 picker 의 시간 입력 (S2)** — DatePicker · DateRangePicker 의 단위가 시 · 분 · 초면 팝업의 달력 아래에 TimeField (`Time`, range 는 `Start time` · `End time`) 가 나타나 picker 의 시각을 보이고 바꾼다 (Canvas · Publish). 단위가 day 면 없다.
+
 ## [Grid Columns — auto-fit 입력 진입] - 2026-11-17
 
 ### Fixed

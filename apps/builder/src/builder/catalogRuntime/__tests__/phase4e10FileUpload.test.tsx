@@ -208,7 +208,15 @@ describe("DateRangePicker — the end input's catalog grow", () => {
     );
     const root = workspace.root;
     const records = [...root.layoutInputs.values()];
-    const inputs = records.filter((record) => record.bindingId === "dateinput");
+    // (the field's own pair — its Popover's TimeFields stay hidden off a time granularity)
+    const inputs = records.filter(
+      (record) =>
+        record.bindingId === "dateinput" &&
+        root.canvasInputs.get(record.parentId!)?.bindingId === "group" &&
+        !root.canvasInputs
+          .get(root.canvasInputs.get(record.parentId!)!.parentId!)
+          ?.bindingId?.startsWith("timefield"),
+    );
     expect(inputs.map((record) => record.props.slot)).toEqual(["start", "end"]);
     expect(root.getLayoutInput(inputs[0]!.id)).not.toMatchObject({
       flexGrow: 1,

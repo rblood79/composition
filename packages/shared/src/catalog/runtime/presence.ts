@@ -844,7 +844,8 @@ export function catalogAbsentByOwnerValue(
   if (
     catalogAbsentByValue(node) ||
     catalogFieldLabelPartsHidden(node, get, typeOf) ||
-    catalogFieldLabelRowAbsent(node, get, typeOf)
+    catalogFieldLabelRowAbsent(node, get, typeOf) ||
+    catalogPickerTimeAbsent(node, get, typeOf)
   )
     return true;
   if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
@@ -928,7 +929,8 @@ export function catalogHiddenAtRest(
   if (
     catalogAbsentByValue(node) ||
     catalogFieldLabelPartsHidden(node, get, typeOf) ||
-    catalogFieldLabelRowAbsent(node, get, typeOf)
+    catalogFieldLabelRowAbsent(node, get, typeOf) ||
+    catalogPickerTimeAbsent(node, get, typeOf)
   )
     return true;
   if (catalogActionButtonPartAbsent(node, get, typeOf)) return true;
@@ -1211,6 +1213,10 @@ export function catalogPresenceDependents(
       ...partChildrenOf(scope, get, typeOf).filter((child) =>
         ["Description", "FieldError"].includes(typeOf(child)),
       ),
+      // (a picker's time fields follow its granularity — S2 `showTimeField`)
+      ...(PICKER_TYPES.has(typeOf(scope))
+        ? pickerTimeParts(scope, get, typeOf)
+        : []),
       ...(typeOf(scope) === "SearchField"
         ? partChildrenOf(scope, get, typeOf)
             .flatMap((child) =>
@@ -1857,16 +1863,158 @@ function calendarModelInput(
         }),
   };
 }
-/** The picker a calendar opens from: `DatePicker > Popover > Calendar` (ADR-256 Phase 6e). */
+/**
+ * The picker a calendar opens from: `DatePicker > Popover > Dialog > Calendar` (S2 1.8.2
+ * `CalendarPopover`, 2026-11-18) — or the Popover's direct child (ADR-256 Phase 6e's reference).
+ */
 function calendarPicker(
   calendar: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  const popover = get(calendar.parentId);
+  let popover = get(calendar.parentId);
+  if (popover && typeOf(popover) === "Dialog") popover = get(popover.parentId);
   if (!popover || typeOf(popover) !== "Popover") return undefined;
   const picker = get(popover.parentId);
   return picker && PICKER_TYPES.has(typeOf(picker)) ? picker : undefined;
+}
+
+/**
+ * S2 1.8.2 `DatePicker` · `DateRangePicker` (2026-11-18 사용자 「이번에 넣음」): with a time
+ * granularity the picker's `CalendarPopover` holds a TimeField (a range: start · end) after its
+ * calendar — the picker's time value (`state.timeValue` · `timeRange`). A TimeField in a picker's
+ * Popover Dialog (layout frames skipped): its picker and its place among the picker's time fields
+ * (0 = the time · the start, 1 = the end).
+ */
+export function catalogPickerTimeFieldOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): { picker: CatalogConsumerNode; index: number } | undefined {
+  if (typeOf(node) !== "TimeField") return undefined;
+  const dialog = catalogPartParent(node, get, typeOf);
+  if (!dialog || typeOf(dialog) !== "Dialog") return undefined;
+  const popover = get(dialog.parentId);
+  if (!popover || typeOf(popover) !== "Popover") return undefined;
+  const picker = get(popover.parentId);
+  if (!picker || !PICKER_TYPES.has(typeOf(picker))) return undefined;
+  const fields = pickerTimeFields(dialog, get, typeOf);
+  return {
+    picker,
+    index: Math.max(
+      0,
+      fields.findIndex((field) => field.id === node.id),
+    ),
+  };
+}
+
+/** The TimeFields in a picker's Dialog, in order (layout frames passed through). */
+function pickerTimeFields(
+  dialog: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  const out: CatalogConsumerNode[] = [];
+  const visit = (record: CatalogConsumerNode) => {
+    for (const child of childrenOf(record, get)) {
+      const type = typeOf(child);
+      if (type === "TimeField") out.push(child);
+      else if (PART_FRAME_TYPES.has(type)) visit(child);
+    }
+  };
+  visit(dialog);
+  return out;
+}
+
+/**
+ * The time of a picker's ISO value for its TimeField (RAC `state.timeValue` — a date-only value is
+ * midnight, ADR-309): `HH:mm[:ss[.sss]]`.
+ */
+function catalogTimeOfDateValue(value: string): string {
+  const time = /T(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)/.exec(value);
+  return time ? time[1]! : "00:00:00";
+}
+
+/** A field's DateInputs (through its Group). */
+function dateInputsOf(
+  field: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  const out: CatalogConsumerNode[] = [];
+  const visit = (record: CatalogConsumerNode) => {
+    for (const child of childrenOf(record, get)) {
+      if (typeOf(child) === "DateInput") out.push(child);
+      else if (typeOf(child) === "Group") visit(child);
+    }
+  };
+  visit(field);
+  return out;
+}
+
+/** S2 `timeGranularity`: the picker's granularity when it is a time one (hour · minute · second). */
+export function catalogPickerTimeGranularity(
+  picker: CatalogConsumerNode,
+): "hour" | "minute" | "second" | undefined {
+  const granularity = picker.props.granularity;
+  return granularity === "hour" ||
+    granularity === "minute" ||
+    granularity === "second"
+    ? granularity
+    : undefined;
+}
+
+/**
+ * S2 `showTimeField`: a picker's TimeField shows only at a time granularity — and the frame holding
+ * only those (S2's time `div`) goes with them. Both consumers (Canvas presence · DOM render).
+ */
+export function catalogPickerTimeAbsent(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const type = typeOf(node);
+  if (type === "TimeField") {
+    const at = catalogPickerTimeFieldOf(node, get, typeOf);
+    return !!at && !catalogPickerTimeGranularity(at.picker);
+  }
+  if (type !== "frame") return false;
+  const children = childrenOf(node, get);
+  return (
+    children.length > 0 &&
+    children.every(
+      (child) =>
+        typeOf(child) === "TimeField" &&
+        catalogPickerTimeAbsent(child, get, typeOf),
+    )
+  );
+}
+
+/** A picker's time parts (its Dialog's TimeFields and the frames holding them). */
+function pickerTimeParts(
+  picker: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  const out: CatalogConsumerNode[] = [];
+  for (const popover of childrenOf(picker, get)) {
+    if (typeOf(popover) !== "Popover") continue;
+    for (const dialog of childrenOf(popover, get)) {
+      if (typeOf(dialog) !== "Dialog") continue;
+      for (const field of pickerTimeFields(dialog, get, typeOf)) {
+        out.push(field);
+        for (
+          let frame = get(field.parentId);
+          frame &&
+          frame.id !== dialog.id &&
+          PART_FRAME_TYPES.has(typeOf(frame));
+          frame = get(frame.parentId)
+        )
+          if (!out.includes(frame)) out.push(frame);
+      }
+    }
+  }
+  return out;
 }
 
 /** RAC ProgressBar/Meter and the track sub-part whose fill they own. */
@@ -2118,29 +2266,41 @@ function fieldSubpartProps(
   if (!wrapper || !owner) return undefined;
   const ownerType = typeOf(owner);
   if (!DATE_INPUT_OWNERS.has(ownerType)) return undefined;
-  const prop = (key: string) => node.props[key] ?? owner.props[key];
+  // (A picker's time field — S2 `CalendarPopover`'s TimeField, 2026-11-18: the picker's time value,
+  //  granularity, hour cycle and time zone.)
+  const pickerTime = catalogPickerTimeFieldOf(owner, get, typeOf);
+  const source = pickerTime?.picker ?? owner;
+  const prop = (key: string) =>
+    pickerTime ? source.props[key] : (node.props[key] ?? owner.props[key]);
   const out: Record<string, string | number | boolean> = {
     _parentTag: ownerType,
   };
-  const granularity = prop("granularity");
+  const granularity = pickerTime
+    ? catalogPickerTimeGranularity(pickerTime.picker)
+    : prop("granularity");
   if (typeof granularity === "string") out._granularity = granularity;
-  const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
+  // (A picker's time field takes the picker's hour cycle — unset = the locale's, as S2 passes
+  //  `props.hourCycle` — not a standalone TimeField's 24.)
+  const hourCycle = racFieldHourCycle(
+    pickerTime ? typeOf(source) : ownerType,
+    prop("hourCycle"),
+  );
   if (hourCycle !== undefined) out._hourCycle = hourCycle;
   // ADR-309 Decision 4 — the value its segments show: the owner's start value (a range picker's
   // start · end DateInput its end of the range — RAC shows a range only when both ends read).
-  const start = catalogDateStartValue(owner.props);
+  const start = catalogDateStartValue(source.props);
+  const end = pickerTime ? pickerTime.index === 1 : node.props.slot === "end";
   const shown =
-    ownerType === "DateRangePicker"
+    typeOf(source) === "DateRangePicker"
       ? catalogDateRange(start)
-        ? (start as Record<string, unknown>)[
-            node.props.slot === "end" ? "end" : "start"
-          ]
+        ? (start as Record<string, unknown>)[end ? "end" : "start"]
         : undefined
       : start;
-  if (typeof shown === "string" && shown) out._dateValue = shown;
+  if (typeof shown === "string" && shown)
+    out._dateValue = pickerTime ? catalogTimeOfDateValue(shown) : shown;
   if (owner.props.shouldForceLeadingZeros === false)
     out._forceLeadingZeros = false;
-  if (owner.props.hideTimeZone === false) out._hideTimeZone = false;
+  if (source.props.hideTimeZone === false) out._hideTimeZone = false;
   const ownLocale = prop("locale");
   const resolvedLocale =
     typeof ownLocale === "string" && ownLocale ? ownLocale : locale;
@@ -3214,9 +3374,10 @@ function ownDerivedPropsBase(
   // (A plain Heading in a calendar's header takes RAC Calendar's `HeadingContext` — the visible
   // range's title, `useVisibleRangeDescription`.)
   if (partType === "Heading") {
+    // (its heading group — S2's `div.heading` in the header row, 2026-11-18)
     const header = get(node.parentId);
     const calendar =
-      header && typeOf(header) === "CalendarHeader"
+      header && typeOf(header) === "CalendarMonth"
         ? catalogCalendarOf(header, get, typeOf)
         : undefined;
     if (calendar)
@@ -3242,9 +3403,9 @@ function ownDerivedPropsBase(
         ),
       };
   }
-  // A calendar header's month · year pickers in the calendar's locale order (`_childOrder` — the
-  // Canvas engine's child order and the DOM's render order, composition extension).
-  if (partType === "CalendarHeader") {
+  // A calendar heading group's month · year pickers in the calendar's locale order (`_childOrder` —
+  // the Canvas engine's child order and the DOM's render order, composition extension).
+  if (partType === "CalendarMonth") {
     const calendar = catalogCalendarOf(node, get, typeOf);
     const order =
       calendar &&
@@ -3661,11 +3822,21 @@ function derivedDependents(
   }
   // A picker's first day, bounds and value (ADR-309) are its calendar's (`calendarPicker`).
   if (PICKER_TYPES.has(type))
-    return childrenOf(owner, get)
-      .filter((popover) => typeOf(popover) === "Popover")
-      .flatMap((popover) => childrenOf(popover, get))
-      .filter((calendar) => CALENDAR_TYPES.has(typeOf(calendar)))
-      .flatMap((calendar) => calendarModelParts(calendar, get, typeOf));
+    return [
+      ...childrenOf(owner, get)
+        .filter((popover) => typeOf(popover) === "Popover")
+        .flatMap((popover) => childrenOf(popover, get))
+        // (S2 `CalendarPopover`: the calendar in the Popover's Dialog)
+        .flatMap((child) =>
+          typeOf(child) === "Dialog" ? childrenOf(child, get) : [child],
+        )
+        .filter((calendar) => CALENDAR_TYPES.has(typeOf(calendar)))
+        .flatMap((calendar) => calendarModelParts(calendar, get, typeOf)),
+      // (and its time fields' inputs — the picker's time value, S2 `CalendarPopover`)
+      ...pickerTimeParts(owner, get, typeOf)
+        .filter((part) => typeOf(part) === "TimeField")
+        .flatMap((field) => dateInputsOf(field, get, typeOf)),
+    ];
   // A Disclosure's header turns its chevron with the expansion — inside an Accordion every
   // sibling's (the group's expanded keys).
   if (type === "Disclosure" || type === "Accordion") {
@@ -4390,7 +4561,7 @@ function calendarModelParts(
       if (CALENDAR_TYPES.has(type)) continue;
       if (
         type === "CalendarHeading" ||
-        type === "CalendarHeader" ||
+        type === "CalendarMonth" ||
         type === "CalendarGrid" ||
         type === "Heading" ||
         type === "CalendarMonthPicker" ||
@@ -4473,7 +4644,10 @@ export function catalogCalendarOf(
   return undefined;
 }
 
-/** The month block a calendar part sits in (its offset — the block's index). */
+/**
+ * The per-month part a calendar part sits in or is (its offset — the copy's index): its heading
+ * group (`CalendarMonth`), or the repeated grid itself.
+ */
 export function catalogCalendarMonthOf(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -4485,7 +4659,9 @@ export function catalogCalendarMonthOf(
     cursor = get(cursor.parentId)
   ) {
     const type = typeOf(cursor);
-    if (type === "CalendarMonth") return cursor;
+    // (A heading group, or a grid repeated on its own in the grid row — S2's, 2026-11-18.)
+    if (type === "CalendarMonth" || cursor.monthIndex !== undefined)
+      return cursor;
     if (CALENDAR_TYPES.has(type)) return undefined;
   }
   return undefined;

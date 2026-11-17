@@ -9,13 +9,14 @@ import type { PrimitiveBinding } from "../types";
  *
  * **Skia = calendar_month_grid replace**: the grid primitive draws the weekday row, the day cells
  * and the today dot from the calendar model (`_calendarGrid` — `runtime/calendarModel.ts`, RAC's
- * date arithmetic for the calendar's duration · first day · weeks at the block's offset). The cell
+ * date arithmetic for the calendar's duration · first day · weeks at the grid's month offset). The cell
  * template has no Canvas box of its own (`catalogHiddenAtRest`).
  *
  * D1: RAC's `CalendarGrid` (`table[role=grid]` — RAC's dates, keyboard navigation).
  * D2: `defaultToday` (the Canvas today dot) — no size or variant (2026-10-12 · 10-13).
- * D3: the CalendarGrid rule (`sizes.iconSize` — the widest cell) + the calendar sheets; the cells
- *     follow the month's width (`catalogCalendarGridSize`).
+ * D3: the CalendarGrid rule (`sizes.iconSize` — the widest cell) + `manualBoxRules` CalendarGrid (7
+ *     cells of 30 by itself, filling the grid row — S2's, 2026-11-18, where the grid repeats per
+ *     shown month); the cells follow its width (`catalogCalendarGridSize`).
  */
 export const calendarGridBinding: PrimitiveBinding = {
   source: {

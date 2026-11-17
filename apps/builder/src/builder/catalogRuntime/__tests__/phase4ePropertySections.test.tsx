@@ -1175,10 +1175,11 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         [...root.domInputs.values()].find(
           (record) => root.typeOf(record) === type,
         )!;
+      // (owned: the header row filled — its heading group is the document's own node then)
       if (owned) {
         const frame = [...root.domInputs.values()].find(
           (record) =>
-            root.typeOf(record) === "frame" &&
+            root.typeOf(record) === "CalendarHeader" &&
             root.typeOf(root.domInputs.get(record.parentId)!) === "Calendar",
         )!;
         const at = workspace.positionOfRecord(frame.id)!.target;
@@ -1198,8 +1199,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
           }),
         );
       }
+      // (the heading group — S2's `div.heading`, the CalendarMonth in the header row)
       const target = workspace.positionOfRecord(
-        recordOf("CalendarHeader").id,
+        recordOf("CalendarMonth").id,
       )!.target;
       expect(target.kind).toBe(owned ? "node" : "descendant");
       expect(catalogSlotPosition(workspace.runtime.graph, target)).toBe(
@@ -1208,11 +1210,11 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       const section = render(
         <I18nProvider initialLocale="en-US">
           <CatalogWorkspaceProvider workspace={workspace}>
-            <CatalogSlotSection target={target} type="CalendarHeader" />
+            <CatalogSlotSection target={target} type="CalendarMonth" />
           </CatalogWorkspaceProvider>
         </I18nProvider>,
       );
-      // Another part with no slot (the month frame) takes content from the palette: no list
+      // Another part with no slot (the grid row frame) takes content from the palette: no list
       // computed per selection (ADR-246 select counts).
       const frame = render(
         <I18nProvider initialLocale="en-US">
@@ -1249,7 +1251,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         fireEvent.click(month!);
       });
       // The picker joins the header after its parts (the heading and the nav Buttons stay).
-      const header = recordOf("CalendarHeader");
+      const header = recordOf("CalendarMonth");
       expect(
         [...root.domInputs.values()]
           .filter((r) => r.parentId === header.id)

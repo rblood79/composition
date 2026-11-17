@@ -70,11 +70,11 @@ async function open(definitionId: string, owned: boolean) {
   const root = workspace.root;
   const recordOf = (type: string) =>
     [...root.domInputs.values()].find((record) => root.typeOf(record) === type);
-  // The calendar's month frame filled: its blocks are the document's own nodes then.
+  // The calendar's header row filled: its heading groups are the document's own nodes then.
   if (owned) {
     const frame = [...root.domInputs.values()].find(
       (record) =>
-        root.typeOf(record) === "frame" &&
+        root.typeOf(record) === "CalendarHeader" &&
         CALENDARS.has(root.typeOf(root.domInputs.get(record.parentId)!)),
     )!;
     const at = workspace.positionOfRecord(frame.id)!.target;
@@ -91,7 +91,7 @@ async function open(definitionId: string, owned: boolean) {
     );
   }
   const header = () => {
-    const record = recordOf("CalendarHeader")!;
+    const record = recordOf("CalendarMonth")!;
     return record.children.map((child) =>
       root.typeOf(root.domInputs.get(child)!),
     );
@@ -121,7 +121,7 @@ const CALENDAR_TYPE: Record<string, string> = {
 describe("ADR-256 Phase 9 — calendar header choice", () => {
   for (const definitionId of Object.keys(CALENDAR_TYPE))
     for (const owned of [false, true])
-      it(`${CALENDAR_TYPE[definitionId]}${owned ? " (owned month blocks)" : ""}: heading ⇄ month · year pickers, one step each`, async () => {
+      it(`${CALENDAR_TYPE[definitionId]}${owned ? " (owned heading groups)" : ""}: heading ⇄ month · year pickers, one step each`, async () => {
         const { workspace, root, recordOf, header, mode, switchTo } =
           await open(definitionId, owned);
         expect(mode()).toBe("heading");
@@ -175,7 +175,7 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
           "Button",
         ]);
         expect(recordOf("CalendarMonthPicker")!.props.format).toBe("long");
-        expect(root.typeOf(recordOf("CalendarHeader")!)).toBe("CalendarHeader");
+        expect(root.typeOf(recordOf("CalendarMonth")!)).toBe("CalendarMonth");
       });
 
   it("the Calendar's Properties: one switch puts the pickers in; their format · visible years edit every shown picker", async () => {
@@ -397,7 +397,7 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
       false,
     );
     switchTo("pickers");
-    const header = recordOf("CalendarHeader")!;
+    const header = recordOf("CalendarMonth")!;
     const box = (rid: string) => root.getGeometry([rid]).get(rid)!;
     const parts = () => {
       const out: Array<{ type: string; x: number; width: number }> = [];
