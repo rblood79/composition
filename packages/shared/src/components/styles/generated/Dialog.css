@@ -18,6 +18,7 @@
   overflow: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
 
   /* Default variant */
   background: var(--bg-inset);
@@ -82,11 +83,52 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Dialog {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-Dialog > .dialog-close-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--catalog-token-size-height-M);
+    height: var(--catalog-token-size-height-M);
+    padding: 0;
+    border: none;
+    border-radius: 9999px;
+    background: transparent;
+    color: inherit;
+    outline: none;
+    transition: background-color 130ms ease-in-out, transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+    will-change: transform;
+  }
+
+  .react-aria-Dialog > .dialog-close-button[data-pressed] {
+    transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+  }
+
+  .react-aria-Dialog > .dialog-close-button svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .react-aria-Dialog > .dialog-close-button:is([data-hovered], [data-pressed], [data-focus-visible]) {
+    background: var(--neutral-surface-hover);
+  }
+
+  .react-aria-Dialog > .dialog-close-button[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
 
 
 } /* @layer components */

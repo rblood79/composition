@@ -352,16 +352,17 @@ describe("ADR-278 — overlay body = slot", () => {
     } = await open();
     const fillId = fillText(dialogContent, "Confirm body text");
     const fill = fillAt(DIALOG, "component-dialog__content-region")!;
-    // The template's description (owned when placed) stays first; the fill goes after it.
+    // The template's Text (owned when placed) stays first; the fill goes after it.
     expect(fill.childIds.length).toBe(2);
     expect(fill.childIds[1]).toBe(fillId);
     expect(nodeOf(fillId).props.children).toEqual(set("Confirm body text"));
 
-    // Canvas record: the Text stands last under the content region, inside the hidden Modal.
+    // Canvas record: the Text stands last under the content region — S2's `Content` (2026-11-18),
+    // inside the hidden Modal.
     const [textRecord] = root.recordsOfSource(fillId);
     const record = root.canvasInputs.get(textRecord!)!;
     const region = root.canvasInputs.get(record.parentId)!;
-    expect(root.typeOf(region)).toBe("frame");
+    expect(root.typeOf(region)).toBe("Content");
     expect(region.children.at(-1)).toBe(record.id);
     let above = region;
     while (above && !above.hidden)
@@ -405,7 +406,7 @@ describe("ADR-278 — overlay body = slot", () => {
     expect(chain.slice(-4)).toEqual([
       "Modal",
       "Dialog",
-      "frame[content]",
+      "Content[content]",
       "Text",
     ]);
     store.dispose();

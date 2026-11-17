@@ -11,6 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — Dialog 구조 · isDismissible] - 2026-11-18
+
+### Added
+
+- **Dialog `isDismissible`** — Property 탭 Behavior 의 Dismissible 을 켜면 S2 처럼 머리 오른쪽에 ✕ 닫기 버튼이 생기고 (Canvas · Publish), 바깥을 눌러도 닫히며, 버튼 줄 (ButtonGroup) 은 사라진다.
+
+### Changed
+
+- **Dialog 원본 = S2 구조** — `Dialog > Heading + Content > Text + ButtonGroup`. 본문 교체 자리 (slot) 가 S2 `Content` 노드가 되고, 본문 글자는 Text (16px · #292929), 버튼 줄은 composition 자체 상자 DialogFooter 대신 S2 `ButtonGroup`.
+- **ButtonGroup 간격 = S2** — XS · S 8, M · L · XL 12 (전에는 크기와 상관없이 8). Canvas 와 Publish 가 같은 표를 읽고, 직접 적은 간격은 그대로 이긴다.
+
+### Removed
+
+- **DialogFooter** — Dialog 의 버튼 줄이 S2 `ButtonGroup` 이 되어 쓰지 않는 composition 자체 type 을 지웠다. 예전에 Dialog 를 detach 해 DialogFooter 노드를 가진 문서는 열 때 검증 오류가 난다 (개발 단계 — 마이그레이션 없음).
+
+### Fixed
+
+- **ButtonGroup 안의 `slot="close"` 버튼** — ButtonGroup 이 Dialog 의 닫기 연결을 지워 Close 버튼이 Dialog 를 닫지 못하던 문제.
+- **Canvas 에서 열린 overlay 의 글자** — overlay 가 열릴 때 크기가 바뀌지 않은 안쪽 요소가 닫혀 있을 때의 숨김 상태로 남을 수 있던 부분 갱신.
+
+## [S2 정렬 — ProgressCircle · StatusLight 의 Preview · Publish DOM] - 2026-11-18
+
+### Changed
+
+- **ProgressCircle 루트 = RAC `ProgressBar`** — Preview · Publish 의 원형 진행률이 직접 만든 `div[role=progressbar]` 대신 S2 처럼 RAC `ProgressBar` 로 그려진다. 화면 리더가 읽는 값 글자 (`aria-valuetext`, 예: 75%) 가 생겼고 모양 · 크기는 그대로다. Button 의 pending 원 · 목록 로딩 원도 같은 컴포넌트다.
+- **ProgressCircle 접근 이름** — 놓은 원은 기본 이름 「Loading…」 (S2 가 직접 쓰는 로딩 원의 이름) 을 갖고, Property 탭 Accessibility 의 ARIA label 칸에서 바꾼다 (칸이 비면 기본 이름을 placeholder 로 보여 준다). 전에는 이름이 없어 화면 리더가 무엇의 진행률인지 알 수 없었다.
+- **StatusLight 점 = svg circle** — 상태 점이 `span` 배경이 아니라 S2 처럼 `svg > circle` 의 fill 로 그려진다. 크기 · 색 · 위치는 그대로다.
+- 문서 · Canvas 는 바뀌지 않는다.
+
 ## [S2 정렬 — Tooltip · InlineAlert · IllustratedMessage 의 글자 감싸기 층] - 2026-11-18
 
 ### Changed

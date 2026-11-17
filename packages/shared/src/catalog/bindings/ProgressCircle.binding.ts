@@ -25,7 +25,7 @@ import type { PrimitiveBinding } from "../types";
  *   data-size 둘 다 emit. value(number kind)/isIndeterminate(boolean kind)는 DATA_ATTR_KINDS 가 아니라
  *   기본 React prop 통과 → propPassthrough 불요. variant 는 단일 "default" 고정이라 accepts 제외.
  *
- * D1: composition `<div role="progressbar">` (SVG circle track + indicator, internal source, 어댑터).
+ * D1: RAC `ProgressBar` 루트 (S2 ProgressCircle 과 같다 — 2026-11-18) 안의 SVG circle track + indicator (internal source, 어댑터).
  * D2: value(0-100) + size(sm/md/lg) + isIndeterminate.
  * D3: track 색 = rule fill base({color.neutral-subtle}=var(--bg-muted)) / indicator 색 = {color.accent}.
  *     Skia escape(value_fill_arc) ↔ DOM SVG stroke 시각 대칭.
@@ -74,6 +74,16 @@ export const progressCircleBinding: PrimitiveBinding = {
       // RSP S2 "over background" (design-data 감사 §2-F, 2026-08-21): 유색/이미지 배경 위
       //   고정 흑백 스킴 — Button 형(bg 반전)이 아니라 track=static 25% wash + indicator=solid.
       //   DOM = ProgressCircle.tsx 인라인 stroke / Skia = value_fill_arc 동일 상수 (0.25 대칭).
+      // 접근 가능한 이름 (S2 ProgressCircle — 보이는 label 이 없어 `aria-label` 필수, RAC 는 없으면 경고).
+      //   기본 = S2 예제의 「Loading…」. 패널 칸은 Property 탭 Accessibility 의 Aria Label (노드
+      //   `metadata.ariaLabel` — DOM 에서 이 값을 이긴다, 2026-11-18 사용자 「기본이름 + 이름변경」).
+      "aria-label": {
+        kind: "string",
+        label: "Accessible label",
+        section: "content",
+        editorHidden: true,
+        default: "Loading…",
+      },
       staticColor: {
         kind: "enum",
         label: "Static Color",

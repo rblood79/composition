@@ -67,6 +67,8 @@ import {
   type ReactNode,
 } from "react";
 import { CatalogToastShapeContext } from "./toastShapeContext";
+import { mergeProps } from "react-aria/mergeProps";
+import { CATALOG_BUTTON_GROUP_GAP } from "../document/manualBoxRules";
 
 import {
   DEFAULT_SLOT,
@@ -840,6 +842,51 @@ function ToastNodeClose({ onClose }: { onClose?: () => void }): ReactElement {
       ...(press ? { onPress: press } : {}),
     },
     toastGlyph(CATALOG_TOAST_CLOSE_ICON),
+  );
+}
+/**
+ * A ButtonGroup's size · disabled for its Buttons and Links, merged into the context they already
+ * read — a Dialog's `ButtonContext` names its `close` slot (S2 Dialog > ButtonGroup > Button
+ * slot=close), and a plain provider would drop it: the Close button stopped closing (2026-11-18).
+ */
+function mergeSlotted<T extends object>(
+  outer: unknown,
+  own: T,
+): Record<PropertyKey, unknown> {
+  if (outer && typeof outer === "object" && "slots" in outer) {
+    const slots = (outer as { slots: Record<PropertyKey, object> }).slots;
+    return {
+      ...outer,
+      slots: Object.fromEntries(
+        Reflect.ownKeys(slots).map((key) => [
+          key,
+          mergeProps(slots[key as keyof typeof slots], own),
+        ]),
+      ),
+    };
+  }
+  return mergeProps((outer ?? {}) as object, own) as Record<
+    PropertyKey,
+    unknown
+  >;
+}
+function ButtonGroupMemberContexts({
+  memberProps,
+  children,
+}: {
+  memberProps: { size: unknown; isDisabled: boolean };
+  children?: ReactNode;
+}): ReactElement {
+  const button = useContext(ButtonContext);
+  const link = useContext(LinkContext);
+  return createElement(
+    ButtonContext.Provider,
+    { value: mergeSlotted(button, memberProps) as never },
+    createElement(
+      LinkContext.Provider,
+      { value: mergeSlotted(link, memberProps) as never },
+      children,
+    ),
   );
 }
 /** The Toast's box: `alert` on a page; inside RAC's Toast (the region — already an alertdialog) none. */
@@ -3541,13 +3588,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         center: "center",
         end: "flex-end",
       };
-      const gap: Record<string, number> = {
-        XS: 4,
-        S: 6,
-        M: 8,
-        L: 10,
-        XL: 12,
-      };
+      // S2 ButtonGroup gap — the Canvas's table (`manualBoxRules.ts`); an authored gap is in
+      //   `input.style` below and wins.
+      const gap = CATALOG_BUTTON_GROUP_GAP[str(props.size || "M")] ?? 12;
       return createElement(
         "div",
         {
@@ -3556,8 +3599,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: {
             display: "flex",
             flexDirection: props.orientation === "vertical" ? "column" : "row",
-            rowGap: gap[str(props.size || "M")] ?? 8,
-            columnGap: gap[str(props.size || "M")] ?? 8,
+            rowGap: gap,
+            columnGap: gap,
             justifyContent: justify[str(props.align || "end")] ?? "flex-end",
             // This group has no generated class; consume the typed catalog root height.
             height:
@@ -3569,13 +3612,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           },
         },
         createElement(
-          ButtonContext.Provider,
-          { value: memberProps },
-          createElement(
-            LinkContext.Provider,
-            { value: memberProps },
-            ...renderAll(input),
-          ),
+          ButtonGroupMemberContexts,
+          { memberProps },
+          ...renderAll(input),
         ),
       );
     },
@@ -3681,8 +3720,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       ),
   },
   // ADR-256 Phase 10: S2 Content · Footer — plain sections; their owner arranges them. (Keyed by the
-  // type's binding id; their renderer ids are `s2content` · `s2footer` — a DialogFooter's generic
-  // `footer` element renderer has that id.)
+  // type's binding id; their renderer ids are `s2content` · `s2footer`.)
   content: {
     render: container("div", (input) => chrome(input, "Content")),
   },

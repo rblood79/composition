@@ -15,7 +15,7 @@ import type { PrimitiveBinding } from "../types";
  *   React 컴포넌트). variant/size/children 이 props 라 generic fallback 으로는 안 그려진다(자식 0)
  *   → INTERNAL_RENDERERS 어댑터 필수(IllustratedMessage 선례 동형).
  *
- * D1: composition `<div>` (dot span + label span, internal source, INTERNAL_RENDERERS 어댑터).
+ * D1: composition `<div>` (점 svg circle + label span — S2 StatusLight 의 점, 2026-11-18. internal source, INTERNAL_RENDERERS 어댑터).
  * D2: variant(5종 neutral/informative/positive/notice/negative) + size(sm/md/lg/xl) + children(label).
  * D3: dot 색은 variant status 색(theme rule fill base 와 동일 CSS var). Skia escape ↔ DOM 인라인
  *     style 시각 대칭.

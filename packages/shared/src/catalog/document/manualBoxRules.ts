@@ -74,12 +74,16 @@ const calendarMonthWidth = (): number | undefined => {
 /** RAC reference header gap (Calendar.md 「Month and year pickers」 `gap: 4`) — `CalendarCommon.css`. */
 const CALENDAR_HEADER_GAP = 4;
 
-/** `renderButtonGroup` inline style (`LayoutRenderers.tsx`): gap by size, justify by align. */
-const BUTTON_GROUP_GAP: Readonly<Record<string, number>> = {
-  XS: 4,
-  S: 6,
-  M: 8,
-  L: 10,
+/**
+ * S2 ButtonGroup gap (`ButtonGroup.tsx` `buttongroup` — S 8 · M · L · XL 12; XS, not in S2, takes S's,
+ * 2026-11-18 — was 4 · 6 · 8 · 10 · 12). The Canvas reads it here (the size's conditional visual), the
+ * DOM `buttongroup` renderer the same table (`delegatedDom.runtime.ts`).
+ */
+export const CATALOG_BUTTON_GROUP_GAP: Readonly<Record<string, number>> = {
+  XS: 8,
+  S: 8,
+  M: 12,
+  L: 12,
   XL: 12,
 };
 const BUTTON_GROUP_JUSTIFY: Readonly<Record<string, string>> = {
@@ -277,7 +281,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       justifyContent: "flex-end",
     },
     conditional: [
-      ...Object.entries(BUTTON_GROUP_GAP).map(([size, gap]) => ({
+      ...Object.entries(CATALOG_BUTTON_GROUP_GAP).map(([size, gap]) => ({
         when: { size },
         visual: { gap },
       })),

@@ -61,7 +61,6 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   //   부터 archetype 미지정 (`"default"`) 도 같은 중립 상자다. Body는 page-root class 계약 복구로
   //   로드 전환했고, 나머지 미로드 3 (AvatarGroup · ButtonGroup · CardView)은 기존 판정을 유지한다.
   ButtonGroup: "E container — DisplayComponents.ts 인라인",
-  DialogFooter: "E container — OverlayComponents.ts 인라인",
   // F. ADR-238 Phase 2 — 목록 section 층. DOM 은 RAC `<section>` 을 UA block 그대로 두고 section 간격은 생성
   //   `ListBox.css` (ListBox rule 의 `> .react-aria-ListBoxSection:not(:first-child)` — 2026-10-12 수동 CSS 에서 이관,
   //   Canvas 도 같은 값) 가 맡는다 — 생성 base (font-size 등) 를 실으면 이관 전 DOM 과 갈린다 (G5 —

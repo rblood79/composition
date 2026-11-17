@@ -61,7 +61,7 @@ const EXPANDED: Record<string, string> = {
     "PreviewTrigger(Button Popover(OverlayArrow div(Heading Description)))",
   // Modal.md — `<DialogTrigger><Button/><Modal><Dialog><Heading slot="title"/>…<Button slot="close"/>`.
   Dialog:
-    "DialogTrigger(Button Modal(Dialog(Heading div(Description) DialogFooter(div Button))))",
+    "DialogTrigger(Button Modal(Dialog(Heading Content(Text) ButtonGroup(div Button))))",
   // (No RAC Sheet page — Modal's shape: the trigger, then the overlay holding the dialog.)
   Sheet:
     "SheetTrigger(Button SheetOverlay(SheetBackdrop Sheet(SheetContent(Heading div(Description) Button))))",

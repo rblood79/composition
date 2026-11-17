@@ -3,7 +3,7 @@ import type { PrimitiveBinding } from "../types";
 /**
  * CardPreview — Card 미디어/preview 슬롯 컨테이너 (image/media 영역, composition 자체 추상,
  * RAC/starter 전용 컴포넌트 없음). Card origin template 의 자식 노드다 (reusableOriginLibrary.ts).
- * palette 미노출 sub-part(FormField/DialogFooter 동형).
+ * palette 미노출 sub-part(FormField 동형).
  *
  * **ADR-912 childSpec→catalog cutover (2026-06-15)**: 시각 source =
  *   rule(`COMPONENT_RULES_TABLE.CardPreview`) + generic box(shell).

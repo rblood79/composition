@@ -145,12 +145,11 @@ describe("ADR-254 Phase 2 — the containers' parts are origin instances", () =>
       const titles = () => parts("heading");
       const descriptions = () => parts("description");
       expect(titles().length).toBe(type === "tooltip" ? 0 : 1);
-      // (S2 마이그레이션 2026-11-18: an S2 InlineAlert's · Tooltip's words have no description slot
-      //   — S2 `Content` / the Tooltip's own children — so they are a Text, not the Description
-      //   origin's instance: `adr255OverlayTrigger` · `adr256CardS2` check them.)
-      expect(descriptions().length).toBe(
-        type === "inline-alert" || type === "tooltip" ? 0 : 1,
-      );
+      // (S2 마이그레이션 2026-11-18: an S2 InlineAlert's · Tooltip's · Dialog's words have no
+      //   description slot — S2 `Content` / the Tooltip's own children — so they are a Text, not the
+      //   Description origin's instance: `adr255OverlayTrigger` · `adr256CardS2` ·
+      //   `adr256DialogModal` check them.)
+      expect(descriptions().length).toBe(type === "popover" ? 1 : 0);
       for (const record of [...titles(), ...descriptions()])
         expect(record.collapsedSourceIds).toEqual([
           record.bindingId === "heading"

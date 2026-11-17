@@ -16,7 +16,7 @@ import { useCatalogSlotProps } from "./catalogSlotContexts";
  *   dot 에 인라인 색 적용. Skia escape(skiaPrimitives.ts status_light)도 같은 rule fill base 를
  *   읽으므로 양쪽이 같은 source(rule) → 시각 대칭. (사용자 결정 2026-06-06: "DOM 도 rule 기반 20 variant")
  *
- * D1: composition `<div>` (dot span + label span, internal source, INTERNAL_RENDERERS 어댑터).
+ * D1: composition `<div>` (점 svg circle + label span — S2 StatusLight 의 점 모양, 2026-11-18. internal source, INTERNAL_RENDERERS 어댑터).
  * D2: variant(20종: neutral/informative/positive/notice/negative + named color 15) + size(sm/md/lg/xl) + children.
  * D3: dot 색 = rule fill base(theme rule SSOT). Skia escape ↔ DOM 인라인 style 시각 대칭.
  */
@@ -142,15 +142,19 @@ export function StatusLight(ownProps: StatusLightProps): React.ReactElement {
       }}
       className={className}
     >
-      <span
+      {/* 점 = S2 `light` 의 `svg > circle` (fill = 상태 색, overflow visible — iOS 에서 잘리지 않게). */}
+      <svg
+        aria-hidden="true"
         style={{
           width: dotSize,
           height: dotSize,
-          borderRadius: "50%",
-          backgroundColor: dotColor,
+          fill: dotColor,
+          overflow: "visible",
           flexShrink: 0,
         }}
-      />
+      >
+        <circle r="50%" cx="50%" cy="50%" />
+      </svg>
       {children != null && children !== "" && (
         <span style={{ fontSize, lineHeight }}>{children}</span>
       )}

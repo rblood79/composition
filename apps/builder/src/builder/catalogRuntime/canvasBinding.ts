@@ -2998,6 +2998,17 @@ function bindInColorMode(
         )
           clipChanged.add(id);
         reRegister.add(id);
+        // A box that is shown or hidden again (an overlay body opening — its Modal) changes how
+        // every descendant draws (`catalogCanvasHidden` reads the ancestors): they register
+        // again though their rects may not change — a Text that measures 0 × 0 while shown kept
+        // the hidden data its closed overlay gave it (2026-11-18, S2 Dialog `Content > Text`).
+        if (Boolean(before.hidden) !== Boolean(node.hidden))
+          for (const stack = [...node.children]; stack.length;) {
+            const child = stack.pop()!;
+            if (!layoutMap.has(child)) continue;
+            reRegister.add(child);
+            stack.push(...(input(child)?.children ?? []));
+          }
         bound.set(id, node);
         // Use the engine's complete, already measured input, including visual longhands and
         // derived Table tracks. Fixed container geometry does not imply fixed child geometry.

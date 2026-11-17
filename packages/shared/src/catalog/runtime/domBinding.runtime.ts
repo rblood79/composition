@@ -246,6 +246,7 @@ import {
   catalogItemLabels,
   catalogItemRemoveGlyphItem,
   catalogProgressValueHidden,
+  catalogDismissibleDialogOf,
   catalogSkeletonIdle,
   catalogStateConditions,
   catalogStateOwner,
@@ -2822,6 +2823,9 @@ function ruleDom(
     !inDialogTrigger(root, node)
   )
     rest["aria-label"] = "Dialog";
+  // S2 Dialog `isDismissible` gives its Modal RAC's `isDismissable` (`_dialogDismissible`).
+  if (lower === "modal" && node.derivedProps?._dialogDismissible === true)
+    rest.isDismissable = true;
   // An open modal's underlay is the Modal rule's (`_modalUnderlay` — the Canvas backdrop paints the
   // same): the shared Modal · a Dialog opening its own modal put it on their `ModalOverlay`.
   const underlay = node.derivedProps?._modalUnderlay;
@@ -3991,6 +3995,15 @@ export function renderNode(
   // (A highlight-selection Table's selection checkbox column — the Canvas's predicate, S2.)
   if (
     catalogTableSelectionPartHidden(
+      node,
+      (recordId) => root.domInputs.get(recordId),
+      (entry) => catalogTypeName(root, entry),
+    )
+  )
+    return null;
+  // (A dismissible Dialog's ButtonGroup — its close button replaces it, the Canvas's predicate, S2.)
+  if (
+    catalogDismissibleDialogOf(
       node,
       (recordId) => root.domInputs.get(recordId),
       (entry) => catalogTypeName(root, entry),

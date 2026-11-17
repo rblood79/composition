@@ -296,12 +296,13 @@ function expectSinceConversion(
   // S2 마이그레이션 (2026-11-18): an S2 InlineAlert's words are S2 `Content`'s own (no RAC
   //   description slot) — a Text in the Content, out of the Heading · Description origin parts
   //   (`adr256CardS2` · `inlineAlertFillStyle` check its size and color).
+  //   The Dialog's too (S2 `Dialog` — `Content > Text`, `adr256DialogModal`).
   const kept = Object.entries(before.records).filter(
-    ([, was]) => type !== "inline-alert" || was.binding !== "description",
+    ([, was]) =>
+      (type !== "inline-alert" && type !== "dialog") ||
+      was.binding !== "description",
   );
-  expect(Object.keys(now.records)).toEqual(
-    kept.map(([path]) => pathNow(path)),
-  );
+  expect(Object.keys(now.records)).toEqual(kept.map(([path]) => pathNow(path)));
   for (const [path, was] of kept) {
     const part = now.records[pathNow(path)]!;
     expect(part.binding).toBe(was.binding);
@@ -374,9 +375,15 @@ function expectSinceConversion(
           // ADR-278: the description is the `content` slot's default content — the placed
           // instance's own node (2026-10-14), which carries its DOM id like any owned node.
           // `3ca03f661`: a Description is S2 HelpText (`span.react-aria-Description`, its variant).
+          // S2 마이그레이션 (2026-11-18): S2 `Dialog > Heading + Content + ButtonGroup` — the
+          // words are the Content's Text (no description slot), the buttons a ButtonGroup.
           .replace(
-            "<span class=react-aria-Text slot=description>Dialog content goes here.</>",
-            "<span class=react-aria-Description data-variant=default id slot=description>Dialog content goes here.</>",
+            "<div><span class=react-aria-Text slot=description>Dialog content goes here.</>",
+            "<div class=react-aria-Content data-size=M data-variant=default><span class=react-aria-Text data-size=M id>Dialog content goes here.</>",
+          )
+          .replace(
+            "<div class=react-aria-DialogFooter data-size=M>",
+            "<div role=group>",
           )
       : type === "inline-alert"
         ? // ADR-256 Phase 10: S2 `InlineAlert > Heading + Content` — the description sits in a

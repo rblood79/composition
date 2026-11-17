@@ -5535,46 +5535,57 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         width: "310px",
         maxWidth: "100%",
         overflow: "auto",
+        // (the dismissible Dialog's close button stands against the Dialog's box — below)
+        position: "relative",
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
       },
-    },
-  },
-  DialogFooter: {
-    defaultSize: "M",
-    variants: {},
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
+      // S2 Dialog `isDismissible` (2026-11-18): S2 `CloseButton` — control M, 12 from the top and end
+      //   edges (S2 header `paddingTop` · `paddingEnd`), round, transparent · hover · press gray-200
+      //   (`neutral-surface-hover`), the cross 12 in the Dialog's text color. Canvas =
+      //   `ruleShapes.ts` `catalogDialogChromeShapes` (the resting glyph), DOM = `components/Dialog.tsx`.
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "& > .dialog-close-button": {
+            styles: {
+              position: "absolute",
+              top: "12px",
+              right: "12px",
+              display: "inline-flex",
+              "align-items": "center",
+              "justify-content": "center",
+              width: "var(--catalog-token-size-height-M)",
+              height: "var(--catalog-token-size-height-M)",
+              padding: "0",
+              border: "none",
+              "border-radius": "9999px",
+              background: "transparent",
+              color: "inherit",
+              outline: "none",
+              transition: `background-color 130ms ease-in-out, ${CATALOG_PRESS_TRANSITION}`,
+              "will-change": CATALOG_PRESS_WILL_CHANGE,
+            },
+          },
+          "& > .dialog-close-button[data-pressed]": {
+            styles: { transform: catalogPressTransform() },
+          },
+          "& > .dialog-close-button svg": {
+            styles: { width: "12px", height: "12px" },
+          },
+          "& > .dialog-close-button:is([data-hovered], [data-pressed], [data-focus-visible])":
+            {
+              styles: { background: "var(--neutral-surface-hover)" },
+            },
+          "& > .dialog-close-button[data-focus-visible]": {
+            styles: {
+              outline: "2px solid var(--focus-ring)",
+              "outline-offset": "2px",
+            },
+          },
+        },
       },
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
-    structure: {
-      archetype: "simple",
-      element: "div",
-      containerStyles: undefined,
     },
   },
   Disclosure: {

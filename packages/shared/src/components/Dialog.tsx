@@ -1,5 +1,13 @@
-import { useContext } from "react";
+import { useContext, type ReactNode } from "react";
 import { Modal, ModalOverlay } from "react-aria-components/Modal";
+import { Button as RACButton } from "react-aria-components/Button";
+import { useLocale } from "react-aria-components/I18nProvider";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
+import { getIconData } from "@composition/rendering";
+import {
+  CATALOG_DIALOG_CLOSE_ICON,
+  CATALOG_DIALOG_CLOSE_LABELS,
+} from "../catalog/document/dialogChrome";
 import { DialogTriggerScope } from "./DialogTrigger";
 import { Dialog as RACDialog, DialogProps } from "react-aria-components/Dialog";
 import type { ComponentSize } from "../types";
@@ -19,15 +27,52 @@ export interface DialogExtendedProps extends DialogProps {
   size?: ComponentSize;
   isDismissable?: boolean;
   /**
+   * S2 `isDismissible` (2026-11-18): draws S2's CloseButton at the header's end (RAC Button
+   * `slot="close"` — the Dialog's close) and, opening its own modal, closes on an outside press.
+   * Its ButtonGroup gives way (the catalog's `catalogDismissibleDialogOf`).
+   */
+  isDismissible?: boolean;
+  /**
    * The scrim under the modal this Dialog opens (a CSS color — the catalog Modal rule's underlay,
    * given by the catalog DOM binding). Only read when it opens its own modal.
    */
   underlay?: string;
 }
 
+/** S2 `CloseButton` of a dismissible Dialog (its name in the locale — en · ko). */
+function DialogCloseButton(): ReactNode {
+  const { locale } = useLocale();
+  const glyph = getIconData(CATALOG_DIALOG_CLOSE_ICON);
+  return (
+    <RACButton
+      slot="close"
+      className="dialog-close-button"
+      aria-label={
+        CATALOG_DIALOG_CLOSE_LABELS[locale.split("-")[0] ?? "en"] ??
+        CATALOG_DIALOG_CLOSE_LABELS.en
+      }
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {(glyph?.paths ?? []).map((d, i) => (
+          <path key={i} d={d} />
+        ))}
+      </svg>
+    </RACButton>
+  );
+}
+
 export function Dialog({
   size = "M",
   isDismissable,
+  isDismissible,
   underlay,
   ...props
 }: DialogExtendedProps) {
@@ -39,19 +84,29 @@ export function Dialog({
     ? `react-aria-Dialog ${baseClassName}`
     : "react-aria-Dialog";
 
+  const children = isDismissible
+    ? composeRenderProps(props.children, (inner) => (
+        <>
+          {inner}
+          <DialogCloseButton />
+        </>
+      ))
+    : props.children;
   const content = (
     <RACDialog
       {...props}
       className={dialogClassName}
       data-size={size}
-      data-dismissible={isDismissable || undefined}
-    />
+      data-dismissible={isDismissable || isDismissible || undefined}
+    >
+      {children}
+    </RACDialog>
   );
   if (!hasTrigger) return content;
   return (
     <ModalOverlay
       className="react-aria-ModalOverlay"
-      isDismissable={isDismissable}
+      isDismissable={isDismissable || isDismissible}
       style={underlay ? { backgroundColor: underlay } : undefined}
     >
       <Modal

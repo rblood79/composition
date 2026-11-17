@@ -137,6 +137,13 @@ export const CatalogAccessibilitySection = memo(
         };
       }),
     });
+    // The name the element has while the field is empty — its binding's default (a placed
+    // ProgressCircle's 「Loading…」, S2's own loading circles' name; 2026-11-18).
+    const shownAriaLabel = record?.props?.["aria-label"];
+    const defaultAriaLabel =
+      typeof shownAriaLabel === "string" && shownAriaLabel.trim()
+        ? shownAriaLabel
+        : undefined;
     return (
       <>
         {nodeId && (
@@ -179,7 +186,9 @@ export const CatalogAccessibilitySection = memo(
               label="Aria Label"
               value={ariaLabel}
               onChange={writeAriaLabel}
-              placeholder={t("propertiesPanel.ariaLabelPlaceholder")}
+              placeholder={
+                defaultAriaLabel ?? t("propertiesPanel.ariaLabelPlaceholder")
+              }
             />
           </div>
         )}

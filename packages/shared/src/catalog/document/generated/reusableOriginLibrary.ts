@@ -3900,7 +3900,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "align": "end"
     },
     "visual": {
-      "gap": 8,
       "width": "fit-content"
     },
     "layout": {
@@ -7057,7 +7056,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-dialog__content-region",
-    "definitionId": "lib:definition:type-frame",
+    "definitionId": "lib:definition:type-Content",
     "slot": {
       "name": "content",
       "required": false
@@ -7066,42 +7065,28 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-dialog__2_2"
     ],
     "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "column",
-      "rowGap": "0",
-      "columnGap": "0"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-dialog__2_2",
-    "definitionId": "lib:definition:origin-component-description",
+    "definitionId": "lib:definition:text",
     "children": [],
     "props": {
-      "children": "Dialog content goes here.",
-      "size": "L"
+      "children": "Dialog content goes here."
     },
-    "visual": {},
-    "layout": {
-      "display": "block"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-dialog__2_3",
-    "definitionId": "lib:definition:type-DialogFooter",
+    "definitionId": "lib:definition:type-ButtonGroup",
     "children": [
       "lib:template:component-dialog__actions-region",
       "lib:template:component-dialog__2_3_1"
     ],
-    "props": {},
-    "visual": {
-      "gap": "8px"
+    "props": {
+      "align": "end"
     },
-    "layout": {
-      "display": "flex",
-      "justifyContent": "flex-end"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-dialog__actions-region",

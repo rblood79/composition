@@ -452,8 +452,8 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   //   TAG_SPEC_MAP/Taffy 자동 등록 + Card.css embedded CSS 였던 것을 catalog 로 전환 — Skia 는
   //   buildCatalogShapes shell(투명, rule variants:{} → fill 없음, render.shapes []와 동일), DOM 은
   //   부모 Card 자식 재귀로 generic `<div>`. layout(flex/row|column/gap/width)은 factory props.style
-  //   복귀(ADR-092 가 spec containerStyles 로 이관했던 것 — Skia/Taffy 직접 read). FormField/
-  //   DialogFooter 동형. DisclosureHeader/Content sub-part 선례 동일 — category "structure", palette
+  //   복귀(ADR-092 가 spec containerStyles 로 이관했던 것 — Skia/Taffy 직접 read). FormField
+  //   동형. DisclosureHeader/Content sub-part 선례 동일 — category "structure", palette
   //   비노출(Card 자식, ComponentList 미등록 → 단독 배치 안 함).
   // ADR-256 Phase 10 (2026-10-11): S2 `Content` · `Footer` — shared sections (a Card's body and
   //   action row, an InlineAlert's body); were CardContent · CardFooter, CardHeader removed.
@@ -1279,18 +1279,6 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     category: "forms",
     label: "drop zone",
     icon: "Upload",
-  }),
-  // DialogFooter — ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 버튼 영역 슬롯
-  //   컨테이너 sub-part. Dialog factory 자동 생성(palette 미노출 — PALETTE_ORDER 비포함,
-  //   SelectValue/Field 동형). spec(render.shapes []) 의 childSpecs(ADR-094
-  //   expandChildSpecs) 경로 → catalog generic box shell 로 cutover. 시각 shell-only(투명 fill
-  //   없음 — footer 시각은 자식 버튼 Element). footer layout(flex/justifyContent/gap)은 factory
-  //   props.style SSOT(ADR-907 Layer B). DOM=generic(KNOWN_HTML DialogFooter→footer), Skia=
-  //   buildCatalogShapes box(render.shapes []와 시각 동일).
-  primitiveEntry("DialogFooter", "overlays", FAMILY_6_CUTOVER, {
-    category: "overlays",
-    label: "dialog footer",
-    icon: "AppWindowMac",
   }),
   // Toast — ADR-912 R7 G1-c 순수 box-shell catalog cutover (2026-06-15): factory(createToastDefinition)가
   //   Heading + Description 자식 자동 생성 → 런타임 항상 _hasChildren=true → 컨테이너 box(bg+border)만

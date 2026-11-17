@@ -147,7 +147,7 @@ function structure(element: Element): string {
 }
 
 describe("ADR-256 Phase 8b — Dialog in its Modal node", () => {
-  it("the origin is DialogTrigger > Button + Modal > Dialog (title · content · footer)", () => {
+  it("the origin is DialogTrigger > Button + Modal > Dialog (Heading · Content · ButtonGroup)", () => {
     const node = (id: string) =>
       REUSABLE_ORIGIN_TEMPLATES.find((entry) => entry.id === id)!;
     const types = (id: string) =>
@@ -159,11 +159,26 @@ describe("ADR-256 Phase 8b — Dialog in its Modal node", () => {
     ]);
     const modal = node(root).children[1]!;
     expect(types(modal)).toEqual(["lib:definition:type-Dialog"]);
-    expect(types(node(modal).children[0]!)).toEqual([
+    // S2 Dialog (2026-11-18 사용자 결정): Heading + `Content` (the ADR-278 `content` slot — the
+    // Content node is the slot, its words a Text) + `ButtonGroup` (the `actions` slot frame and the
+    // close Button) — no composition DialogFooter box.
+    const dialog = node(modal).children[0]!;
+    expect(types(dialog)).toEqual([
       "lib:definition:origin-component-heading",
-      "lib:definition:type-frame",
-      "lib:definition:type-DialogFooter",
+      "lib:definition:type-Content",
+      "lib:definition:type-ButtonGroup",
     ]);
+    const [, content, group] = node(dialog).children;
+    expect(node(content!).slot).toEqual({ name: "content", required: false });
+    expect(types(content!)).toEqual(["lib:definition:text"]);
+    expect(types(group!)).toEqual([
+      "lib:definition:type-frame",
+      "lib:definition:origin-component-button",
+    ]);
+    expect(node(node(group!).children[0]!).slot).toEqual({
+      name: "actions",
+      required: false,
+    });
   });
 
   it("dismissing on an outside press is the Modal's prop, not the Dialog's", () => {
@@ -193,9 +208,9 @@ describe("ADR-256 Phase 8b — Dialog in its Modal node", () => {
           <Dialog>
             <Heading slot="title">Dialog Title</Heading>
             <div>
-              <Text slot="description">Dialog content goes here.</Text>
+              <Text>Dialog content goes here.</Text>
             </div>
-            <div>
+            <div role="group">
               <div />
               <Button slot="close">
                 {/* (ADR-276: a Button's words are its Text{label} child — a plain span here: RAC's

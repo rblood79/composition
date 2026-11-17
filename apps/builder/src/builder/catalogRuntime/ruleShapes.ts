@@ -54,6 +54,11 @@ import {
   catalogToastIcon,
 } from "../../../../../packages/shared/src/catalog/document/toastChrome";
 import {
+  CATALOG_DIALOG_CLOSE_GLYPH_SIZE,
+  CATALOG_DIALOG_CLOSE_ICON,
+  CATALOG_DIALOG_CLOSE_INSET,
+} from "../../../../../packages/shared/src/catalog/document/dialogChrome";
+import {
   colorIntToFloat32,
   cssColorToAlpha,
   cssColorToHex,
@@ -227,6 +232,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...linkOutShapes(input),
     ...inlineAlertIconShapes(input),
     ...catalogToastChromeShapes(input),
+    ...catalogDialogChromeShapes(input),
     ...catalogSheetHandleShapes(input),
     ...pickerChromeShapes(input, base),
     ...sideNavIndicatorShapes(input),
@@ -474,6 +480,35 @@ export function catalogToastChromeShapes(
     strokeWidth: 2,
   } as Shape);
   return shapes;
+}
+
+/**
+ * S2 Dialog `isDismissible` (`dialogChrome.ts`): the CloseButton's cross — 12, centred in a control-M
+ * box 12 from the top and end edges, in the Dialog's text color (`{color.neutral}`). The DOM draws
+ * the same box (`dialog-close-button` — the Dialog rule's `rootSelectors`).
+ */
+export function catalogDialogChromeShapes(
+  input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
+): Shape[] {
+  if (input.type !== "Dialog" || input.node.props.isDismissible !== true)
+    return [];
+  const theme = input.theme ?? "light";
+  const control = resolveToken("{size.height.M}" as TokenRef, theme);
+  const box =
+    typeof control === "number"
+      ? control
+      : Number.parseFloat(String(control)) || 32;
+  return [
+    {
+      type: "icon_font",
+      iconName: CATALOG_DIALOG_CLOSE_ICON,
+      x: input.rect.width - CATALOG_DIALOG_CLOSE_INSET - box / 2,
+      y: CATALOG_DIALOG_CLOSE_INSET + box / 2,
+      fontSize: CATALOG_DIALOG_CLOSE_GLYPH_SIZE,
+      fill: resolveToken("{color.neutral}" as TokenRef, theme) as string,
+      strokeWidth: 2,
+    } as Shape,
+  ];
 }
 
 function pickerChromeShapes(

@@ -20,12 +20,13 @@ import { useCatalogSlotProps } from "./catalogSlotContexts";
  *   선 굵기 = rule `sizes.indicator.strokeWidth` (S2 S 2 · M 3 · L 4, 터치 불변). value 비례 호: DOM 은 S2 처럼
  *   `pathLength` 100 의 dashoffset, Skia 는 arc sweepAngle — 같은 value 비율.
  *
- * D1: composition `<div role="progressbar">` (SVG circle track + indicator, internal source, 어댑터).
+ * D1: RAC `ProgressBar` (S2 ProgressCircle 과 같은 루트 — 2026-11-18) 안의 SVG circle track + indicator.
  * D2: value(0-100) + size(sm/md/lg) + isIndeterminate + isDisabled.
  * D3: track 색 = rule fill base / indicator 색 = {color.accent}(theme). Skia escape ↔ DOM SVG 대칭.
  */
 
 import React from "react";
+import { ProgressBar as RACProgressBar } from "react-aria-components/ProgressBar";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
 import { paintAt } from "../catalog/rule/rulePaintTree";
@@ -167,15 +168,18 @@ export function ProgressCircle(
       ? `rgb(${staticRgb} / 0.94)`
       : colorTokenToCss("{color.accent}", "var(--accent)"));
 
+  // 루트 = RAC `ProgressBar` (S2 `ProgressCircle.tsx` 와 같다 — role · aria-value* · valuetext 는 RAC 가 낸다).
+  //   class 를 받지 않는 자리 (Button pending · 목록 로딩) 에 RAC 기본값 `react-aria-ProgressBar` 가 붙으면
+  //   Preview 에 실린 생성 `ProgressBar.css` (막대 grid) 를 받는다 — 자기 type 이름을 준다.
   return (
-    <div
+    <RACProgressBar
       {...rest}
       ref={ref}
       slot={slot ?? undefined}
-      role="progressbar"
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={isIndeterminate ? undefined : clamped}
+      value={clamped}
+      minValue={min}
+      maxValue={max}
+      isIndeterminate={isIndeterminate}
       style={{
         width: box,
         height: box,
@@ -183,7 +187,7 @@ export function ProgressCircle(
         ...(isDisabled ? { opacity: 0.38, pointerEvents: "none" } : {}),
         ...style,
       }}
-      className={className}
+      className={className ?? "react-aria-ProgressCircle"}
     >
       <svg width="100%" height="100%" fill="none" style={{ display: "block" }}>
         <circle
@@ -210,6 +214,6 @@ export function ProgressCircle(
           />
         )}
       </svg>
-    </div>
+    </RACProgressBar>
   );
 }

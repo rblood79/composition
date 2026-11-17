@@ -15,47 +15,47 @@ import { paintAt } from "../../catalog/rule/rulePaintTree";
  * **DOM dot style 고정 (사용자 결정 2026-06-06: "DOM 도 rule 기반 20 variant 색")**:
  *   StatusLight 은 dot indicator outlier 라 generated CSS(`[data-variant]{background}`, 컨테이너에
  *   칠함)를 못 쓴다. 대신 컴포넌트가 theme rule(resolveComponentRule)의 variant fill base 를
- *   colorTokenToCss 로 변환해 dot span 에 인라인 적용한다. Skia escape(skiaPrimitives status_light)도
+ *   colorTokenToCss 로 변환해 점 svg 의 fill 에 인라인 적용한다 (2026-11-18 전에는 span 배경). Skia escape(skiaPrimitives status_light)도
  *   같은 rule fill base 를 읽으므로 양쪽이 같은 source → 시각 대칭.
  *
  *   본 테스트는 named color(yellow) 1개 + 표준 semantic(positive) 1개로 **DOM dot 의 실제
- *   background-color 인라인 값을 고정**한다. RTL/jsdom 없이 react-dom/server renderToStaticMarkup
+ *   fill 인라인 값을 고정**한다. RTL/jsdom 없이 react-dom/server renderToStaticMarkup
  *   로 컴포넌트 정적 출력을 직접 검사(shared 는 RTL/jsdom 미설치 — 신규 의존성 회피).
  */
 
-/** dot span(첫 <span>)의 background-color 인라인 값 추출. */
-function dotBackgroundColor(html: string): string | null {
-  const firstSpan = html.match(/<span style="([^"]*)"/);
-  if (!firstSpan) return null;
-  const bg = firstSpan[1].match(/background-color:([^;]+)/);
-  return bg ? bg[1] : null;
+/** 점 (S2 `light` 의 `svg > circle`, 2026-11-18 — 전에는 span 의 background-color) 의 fill 인라인 값. */
+function dotFill(html: string): string | null {
+  const svg = html.match(/<svg aria-hidden="true" style="([^"]*)"/);
+  if (!svg) return null;
+  const fill = svg[1].match(/(?:^|;)fill:([^;]+)/);
+  return fill ? fill[1] : null;
 }
 
 describe("StatusLight — DOM dot 색 = rule fill base (20 variant 대칭)", () => {
-  it("named color variant(yellow) → dot background-color = var(--hue-yellow)", () => {
+  it("named color variant(yellow) → dot fill = var(--hue-yellow)", () => {
     const html = renderToStaticMarkup(
       <StatusLight variant="yellow">Online</StatusLight>,
     );
-    expect(dotBackgroundColor(html)).toBe("var(--hue-yellow)");
+    expect(dotFill(html)).toBe("var(--hue-yellow)");
   });
 
-  it("표준 semantic variant(positive) → dot background-color = var(--positive-visual) (ADR-302 — S2 StatusLight fill = positive-visual-color)", () => {
+  it("표준 semantic variant(positive) → dot fill = var(--positive-visual) (ADR-302 — S2 StatusLight fill = positive-visual-color)", () => {
     const html = renderToStaticMarkup(
       <StatusLight variant="positive">Available</StatusLight>,
     );
-    expect(dotBackgroundColor(html)).toBe("var(--positive-visual)");
+    expect(dotFill(html)).toBe("var(--positive-visual)");
   });
 
-  it("default(neutral) variant → dot background-color = var(--fg-muted)", () => {
+  it("default(neutral) variant → dot fill = var(--fg-muted)", () => {
     const html = renderToStaticMarkup(<StatusLight>Idle</StatusLight>);
-    expect(dotBackgroundColor(html)).toBe("var(--fg-muted)");
+    expect(dotFill(html)).toBe("var(--fg-muted)");
   });
 
   it("children 없으면 label span 생략, dot 만 렌더", () => {
     const html = renderToStaticMarkup(<StatusLight variant="yellow" />);
-    const spanCount = (html.match(/<span/g) ?? []).length;
-    expect(spanCount).toBe(1); // dot 만, label span 없음
-    expect(dotBackgroundColor(html)).toBe("var(--hue-yellow)");
+    expect(html.match(/<span/g)).toBeNull(); // label span 없음
+    expect(html.match(/<circle/g)).toHaveLength(1); // 점만
+    expect(dotFill(html)).toBe("var(--hue-yellow)");
   });
 });
 
@@ -71,7 +71,7 @@ describe("StatusLight — DOM/Skia 시각 대칭 source 정합", () => {
       const html = renderToStaticMarkup(
         <StatusLight variant={variant}>x</StatusLight>,
       );
-      expect(dotBackgroundColor(html)).toBe(expected);
+      expect(dotFill(html)).toBe(expected);
     }
   });
 
@@ -124,17 +124,13 @@ describe("StatusLight — cutover DOM 경로 (toRacProps propPassthrough)", () =
   });
 
   it("cutover 경로에서 variant 변경이 dot 색에 반영 (yellow → var(--hue-yellow))", () => {
-    expect(dotBackgroundColor(cutoverHtml("yellow"))).toBe("var(--hue-yellow)");
+    expect(dotFill(cutoverHtml("yellow"))).toBe("var(--hue-yellow)");
   });
 
   it("cutover 경로에서 positive → var(--positive-visual) (회색 고정 아님)", () => {
-    expect(dotBackgroundColor(cutoverHtml("positive"))).toBe(
-      "var(--positive-visual)",
-    );
+    expect(dotFill(cutoverHtml("positive"))).toBe("var(--positive-visual)");
     // neutral 회색과 다름을 명시 — 버그였다면 둘 다 var(--fg-muted) 였음
-    expect(dotBackgroundColor(cutoverHtml("positive"))).not.toBe(
-      "var(--fg-muted)",
-    );
+    expect(dotFill(cutoverHtml("positive"))).not.toBe("var(--fg-muted)");
   });
 
   it("cutover 경로에서 data-variant 가 root 에 passthrough (CSS/debug marker 보존)", () => {

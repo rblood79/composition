@@ -20,6 +20,15 @@ export const dialogBinding: PrimitiveBinding = {
       },
       // (Dismissing on an outside press is the Modal's — RAC `ModalOverlayProps.isDismissable`,
       // ADR-256 Phase 8b.)
+      // S2 Dialog `isDismissible` (2026-11-18 사용자 결정): S2 의 CloseButton (머리 끝의 ✕ —
+      //   `catalogDialogChromeShapes` · DOM `Dialog`) + 바깥 클릭 닫기 (Modal 의 RAC `isDismissable` —
+      //   파생 `_dialogDismissible`) + ButtonGroup 숨김 (「Dismissible dialogs replace their
+      //   ButtonGroup with a close button」 — `catalogHiddenAtRest`).
+      isDismissible: {
+        kind: "boolean",
+        label: "Dismissible",
+        section: "overlay",
+      },
       role: {
         kind: "enum",
         label: "Role",

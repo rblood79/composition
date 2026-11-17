@@ -76,7 +76,6 @@ import { fieldLabelBinding } from "./FieldLabel.binding";
 import { tooltipTriggerBinding } from "./TooltipTrigger.binding";
 import { menuTriggerBinding } from "./MenuTrigger.binding";
 import { dialogBinding } from "./Dialog.binding";
-import { dialogFooterBinding } from "./DialogFooter.binding";
 import { disclosureBinding } from "./Disclosure.binding";
 import { disclosurePanelBinding } from "./DisclosurePanel.binding";
 import { accordionBinding } from "./Accordion.binding";
@@ -229,7 +228,6 @@ export * from "./DatePicker.binding";
 export * from "./DateRangePicker.binding";
 export * from "./Description.binding";
 export * from "./Dialog.binding";
-export * from "./DialogFooter.binding";
 export * from "./DisclosurePanel.binding";
 export * from "./Accordion.binding";
 export * from "./DropZone.binding";
@@ -454,12 +452,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   OverlayArrow: overlayArrowBinding,
   Form: formBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part
-  //   (DialogFooter 동형 — 두 번째 childSpec 제거). internal/div shell, layout 은 origin template 의 layout · visual.
+  //   (두 번째 childSpec 제거). internal/div shell, layout 은 origin template 의 layout · visual.
   // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. variant=primary/secondary/
   //   tertiary/quiet(구 cardType/isQuiet 흡수). internal/div shell + variant 별 배경/테두리.
   Card: cardBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 sub-part 일괄
-  //   (FormField/DialogFooter 동형 — Card.spec.childSpecs 제거). internal/div shell, layout 은 origin
+  //   (FormField 동형 — Card.spec.childSpecs 제거). internal/div shell, layout 은 origin
   //   template 의 layout · visual.
   CardPreview: cardPreviewBinding,
   // ADR-256 Phase 10 (2026-10-11): S2 `Content` · `Footer` — the Card's sections (were CardContent ·
@@ -587,10 +585,6 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-259 Phase 3: S2 ContextualHelp (RAC DialogTrigger — a quiet Button + its Popover).
   ContextualHelp: contextualHelpBinding,
   MenuTrigger: menuTriggerBinding,
-  // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯 컨테이너 sub-part
-  //   (palette 미노출, Dialog origin template 의 자식 노드). Canvas=rule box shell, layout=template
-  //   노드의 layout. DOM=`ruleDom` fallback `div.react-aria-DialogFooter`.
-  DialogFooter: dialogFooterBinding,
   Modal: modalBinding,
   Popover: popoverBinding,
   Tooltip: tooltipBinding,

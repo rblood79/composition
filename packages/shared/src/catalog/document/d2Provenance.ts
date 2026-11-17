@@ -43,7 +43,6 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
   "Illustration",
   "Nav",
   "Pagination",
-  "DialogFooter",
   // (S2 toasts are queued (`ToastQueue`), not nodes — the placed Toast takes S2's `variant` values, no size.)
   "Toast",
   // (The Meter · ProgressBar parts the reference draws as elements — their own variant · size.)

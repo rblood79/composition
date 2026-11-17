@@ -20,7 +20,7 @@ import type { PrimitiveBinding } from "../types";
 export const contentBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    // (Not "content"/"footer" alone — a DialogFooter's generic `footer` element renderer takes that id.)
+    // (Not "content" alone — the S2-prefixed id names the shared S2 slot container.)
     renderer: "s2content",
   },
   props: {

@@ -1549,12 +1549,6 @@ export function createDefaultColorAreaProps(): BaseElementProps {
 export function createDefaultColorSliderProps(): BaseElementProps {
   return { style: { display: "block", width: "100%" } };
 }
-export function createDefaultDialogFooterProps(): BaseElementProps {
-  return {
-    style: { display: "flex", justifyContent: "flex-end", gap: "8px" },
-  };
-}
-
 export function createDefaultLabelProps(): BaseElementProps {
   return {
     children: "Tag Group",
@@ -2274,7 +2268,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Footer: createDefaultFooterProps,
   ColorArea: createDefaultColorAreaProps,
   ColorSlider: createDefaultColorSliderProps,
-  DialogFooter: createDefaultDialogFooterProps,
   Avatar: createDefaultAvatarProps,
   AvatarGroup: createDefaultAvatarGroupProps,
   ButtonGroup: createDefaultButtonGroupProps,

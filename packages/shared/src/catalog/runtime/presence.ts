@@ -619,6 +619,21 @@ function catalogSelectionCheckboxes(
     );
 }
 
+/** The dismissible Dialog (S2 `isDismissible`) whose ButtonGroup `node` is — it gives way to the close button. */
+export function catalogDismissibleDialogOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "ButtonGroup") return undefined;
+  const dialog = catalogPartParent(node, get, typeOf);
+  return dialog &&
+    typeOf(dialog) === "Dialog" &&
+    dialog.props.isDismissible === true
+    ? dialog
+    : undefined;
+}
+
 /** A Tree selection slot is visible only in its checkbox selection style. */
 export function catalogTreeSelectionCheckboxHidden(
   node: CatalogConsumerNode,
@@ -928,6 +943,8 @@ export function catalogHiddenAtRest(
   if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
   // RAC renders a Tree selection Checkbox only for toggle/checkbox selection.
   if (catalogTreeSelectionCheckboxHidden(node, get, typeOf)) return true;
+  // S2 Dialog `isDismissible`: its close button replaces its ButtonGroup (2026-11-18).
+  if (catalogDismissibleDialogOf(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
@@ -1101,6 +1118,8 @@ export function catalogPresenceScope(
   }
   // A Table's selection column follows its `selectionStyle` (ADR-257 Phase 3).
   if (typeOf(node) === "Table") return node;
+  // A Dialog's ButtonGroup follows its `isDismissible` (S2, 2026-11-18).
+  if (typeOf(node) === "Dialog") return node;
   // A ProgressBar's · Meter's value text follows its `showValueLabel` (ADR-256 Phase 7a).
   if (PROGRESS_VALUES[typeOf(node)]) return node;
   // Which crumb is current (its separator hidden) follows the Breadcrumbs' crumb list.
@@ -1136,6 +1155,10 @@ export function catalogPresenceDependents(
     return catalogSideNavDependents(scope, get, typeOf);
   if (typeOf(scope) === "Table")
     return catalogTableSelectionParts(scope, get, typeOf);
+  if (typeOf(scope) === "Dialog")
+    return partChildrenOf(scope, get, typeOf).filter(
+      (child) => typeOf(child) === "ButtonGroup",
+    );
   if (typeOf(scope) === "ActionButton")
     return childrenOf(scope, get).filter((child) =>
       ["Icon", "Avatar", "Badge"].includes(typeOf(child)),
@@ -2356,6 +2379,15 @@ export function catalogDerivedProps(
         _containerLayer: catalogContainerLayerAbove(node, get),
       }
     : withSideNav;
+  // (S2 Dialog `isDismissible` gives its Modal RAC's `isDismissable` — an outside press closes it.)
+  if (
+    typeOf(node) === "Modal" &&
+    partChildrenOf(node, get, typeOf).some(
+      (child) =>
+        typeOf(child) === "Dialog" && child.props.isDismissible === true,
+    )
+  )
+    return { ...withContainer, _dialogDismissible: true };
   if (typeOf(node) === "Sheet") {
     const overlay = catalogPartParent(node, get, typeOf);
     if (overlay && typeOf(overlay) === "SheetOverlay") {
@@ -3323,6 +3355,13 @@ export function catalogDerivedPropsDependents(
     ...(typeOf(owner) === "SheetOverlay"
       ? partChildrenOf(owner, get, typeOf).filter(
           (child) => typeOf(child) === "Sheet",
+        )
+      : []),
+    // (A Dialog's `isDismissible` is its Modal's `_dialogDismissible`.)
+    ...(typeOf(owner) === "Dialog"
+      ? [catalogPartParent(owner, get, typeOf)].filter(
+          (parent): parent is CatalogConsumerNode =>
+            !!parent && typeOf(parent) === "Modal",
         )
       : []),
     ...derivedDependents(owner, get, typeOf),
