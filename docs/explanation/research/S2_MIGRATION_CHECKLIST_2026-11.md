@@ -4,6 +4,8 @@
 
 **현재 코드 재점검: 2026-11-14, HEAD `1a8e000ad`.** 기존 11-14/11-15 live 기록의 날짜는 원기록을 보존했다. 이번 갱신은 레퍼런스·코드·단위 테스트 대조이며 live를 다시 수행하지 않았다.
 
+**게이트 재실행: 2026-11-18, HEAD `62d56d224`.** 11-14 기록의 실패 3건이 모두 닫혔다 (§6). 구조 분류 · 부록은 그 사이 S2 관련 변경이 ADR-310 Tabs 뿐이라 그대로다.
+
 ## 0. 방법과 한계
 
 | 축               | 근거                                                                                                  | 이번 확인 범위                                                                                                         |
@@ -31,8 +33,8 @@
 
 축별 상태:
 
-- **스타일 값**: 기존 값 대조 게이트 `d3S2Alignment` 73 통과. 전체 레퍼런스 기능의 잔여 0을 뜻하지 않는다 (§4.1·부록 C·D). rule 리터럴 분류 게이트는 1건 실패 — `TabPanel.structure.containerStyles.minHeight = 0` 미분류 (Tabs 커밋 `7f76a6ee8` 에 들어감).
-- **프로퍼티 이름·값**: `d2S2Alignment` **4 통과·1 실패** — `Tabs.items`가 S2 Tabs의 prop이 아니며 `d2Provenance.ts`에도 없다. S2 예제는 `TabList.items`와 `Collection.items`에 데이터를 준다. composition의 루트 저작 모델을 출처로 명시하는 작업이 남는다. 역방향 키 대조는 부록 A·B, 옵션·기본값 차이는 부록 C.
+- **스타일 값**: 기존 값 대조 게이트 `d3S2Alignment` 통과. 전체 레퍼런스 기능의 잔여 0을 뜻하지 않는다 (§4.1·부록 C·D). rule 리터럴 분류 게이트도 통과 — `TabPanel.structure.containerStyles.minHeight = 0` 을 S2 값 그대로 (`Tabs.tsx` `tabPanel` `minHeight: 0`) `INTENTIONAL_LITERAL` 에 등재 (11-18).
+- **프로퍼티 이름·값**: `d2S2Alignment` 전부 통과 — 11-14 의 `Tabs.items` 실패는 ADR-310 Phase 2 (`02eb776c5`) 가 Tabs 항목을 노드 (Tab + 짝 TabPanel) 로 바꾸며 `items` 배열 경로를 삭제해 사라졌다. 역방향 키 대조는 부록 A·B, 옵션·기본값 차이는 부록 C.
 - **구조**: 최초 대조한 61종 가운데 30종 일치·31종 잔여/부분 완료. Tabs의 `TabPanels` 제거는 완료됐으나 Icon 포함 구조는 이번에 닫지 않아 분류 수는 유지했다.
 
 ## 2. 구조 일치 — 30
@@ -146,7 +148,8 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 
 ## 6. 구현·커밋·검증 (HEAD `1a8e000ad` 기준)
 
-- [x] Tabs — `7f76a6ee8` 커밋. rule 리터럴 분류 게이트의 `TabPanel.structure.containerStyles.minHeight = 0` 미분류 1건은 남아 있다
+- [x] Tabs — `7f76a6ee8` 커밋. rule 리터럴 분류 게이트의 `TabPanel.structure.containerStyles.minHeight = 0` 미분류는 11-18 S2 값으로 등재해 닫음
+- [x] Tabs 항목 = 노드 (Tab + 짝 TabPanel), `items` 배열 경로 삭제 — ADR-310 Phase 2 `02eb776c5` (D2 `Tabs.items` 실패 해소)
 - [x] Separator — S2 Divider 정렬 `7f76a6ee8` 커밋
 - [x] Toolbar·Pagination·Nav — S2 패턴 값·조립·상속 `6635cd9b4` 커밋 (§4.1)
 - [x] ActionButton Avatar · Badge (`Badge.value`) — `9ef5e0669`. S2 와 같게: Avatar 가 Icon 자리를 대신함 · 비활성 버튼은 Badge 숨김 · staticColor 버튼의 Badge 는 그 색 바탕 + 대비 글자. live (verify-ab-1114): Canvas · Preview 위치 · 크기 같음, console 오류 0
@@ -175,12 +178,23 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 
 합계 **14개 파일·271 통과·3 실패**. 제품 코드는 이번 점검에서 수정하지 않았다. 로그는 로컬 `.agent/runs/s2-migration-checklist-review-20261114/{builder-current,shared-current}.log`에 있다.
 
+재실행 (2026-11-18, HEAD `62d56d224` + 게이트 수리):
+
+| 검사                                                            | 결과                                                                                              |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `d2S2Alignment` · `d3S2Alignment` · `s2PatternNoCounterpart`    | 3 파일 91 통과                                                                                    |
+| shared `componentRulesTable` · `designDataSurfaceGaps`          | 2 파일 33 통과                                                                                    |
+| RED 변이 (수리한 두 게이트가 여전히 잡는지 — 실행 뒤 원본 복원) | `Toast.css` 에 스코프 없는 `.react-aria-Toast` 줄 추가 → 실패 · TabPanel `minHeight` 0 → 2 → 실패 |
+
+수리 내용: `designDataSurfaceGaps` 의 Toast 검사는 region 소스에서 리터럴 `catalog-toast-shaped` 를 찾았는데, `b77ecb88d` 가 class 를 skin 접두사 (`${p}-shaped`) 로 만들도록 바꿔 리터럴이 사라졌다. 수동 CSS 의 `.catalog-toast-shaped > .react-aria-Toast` 규칙은 그대로라 제품 결함이 아니라 검사의 소스 탐지가 낡은 것 — 스코프를 `CATALOG_TOAST_SKIN.prefix` + `-shaped` 로 파생하도록 고쳤다.
+
 검증 잔여:
 
-- [ ] `Tabs.items` D2 출처 등록·게이트 복구 (이번 재현)
+- [x] `Tabs.items` D2 게이트 복구 — ADR-310 `02eb776c5` 로 해소 (11-18 재실행 통과)
 - [ ] field · picker FieldGroup 커밋 (`33b1133b8`) live (Canvas · Preview) 확인
 - [ ] parity 기존 실패 (작업 상태 기록, 이 문서에서 다시 실행하지 않음) — `s2FieldText` SearchField · ComboBox 32건 · `s2InlineLabel` icon 필수 표시 52건 · `themeColorParity` 100건 · `s2SelectionStates` · `selectValueSize` 의 isSelected · `adr248CatalogRealDom` combobox
-- [ ] shared `designDataSurfaceGaps` Toast 수동 CSS 실패 (`b77ecb88d` 이후 기록, 이번 재현)
+- [x] shared `designDataSurfaceGaps` Toast 수동 CSS 실패 — 검사의 스코프 탐지 수리 (11-18)
+- [x] shared `componentRulesTable` TabPanel `minHeight` 리터럴 — S2 값으로 등재 (11-18)
 
 ## 7. 결정 대기
 
