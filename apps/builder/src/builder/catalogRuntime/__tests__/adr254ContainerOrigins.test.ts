@@ -145,7 +145,12 @@ describe("ADR-254 Phase 2 — the containers' parts are origin instances", () =>
       const titles = () => parts("heading");
       const descriptions = () => parts("description");
       expect(titles().length).toBe(type === "tooltip" ? 0 : 1);
-      expect(descriptions().length).toBe(1);
+      // (S2 마이그레이션 2026-11-18: an S2 InlineAlert's · Tooltip's words have no description slot
+      //   — S2 `Content` / the Tooltip's own children — so they are a Text, not the Description
+      //   origin's instance: `adr255OverlayTrigger` · `adr256CardS2` check them.)
+      expect(descriptions().length).toBe(
+        type === "inline-alert" || type === "tooltip" ? 0 : 1,
+      );
       for (const record of [...titles(), ...descriptions()])
         expect(record.collapsedSourceIds).toEqual([
           record.bindingId === "heading"
@@ -225,7 +230,8 @@ describe("ADR-254 Decision 5 — a bound text has one source", () => {
   /** The bound part of each case: the container, the part's binding, the container's prop. */
   const CASES = [
     { type: "inline-alert", binding: "heading", prop: "title" },
-    { type: "inline-alert", binding: "description", prop: "description" },
+    // (S2 마이그레이션 2026-11-18: the alert's words are a Text in its S2 Content.)
+    { type: "inline-alert", binding: "text", prop: "description" },
     { type: "textfield", binding: "label", prop: "label" },
   ] as const;
 

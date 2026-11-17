@@ -7013,7 +7013,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로
     //   진행해, orientation 도 같이 넣어」): S2 `@react-spectrum/s2/src/IllustratedMessage.tsx` — no
     //   padding, no box; the picture · heading · content are child nodes (Illustration · Heading ·
-    //   Description), their sizes from this size (`CATALOG_SIZE_STEP`). The parts' places are the
+    //   Content > Text — S2 마이그레이션 2026-11-18), their sizes from this size (`CATALOG_SIZE_STEP`). The parts' places are the
     //   `orientation` blocks below (`rulePartRules.ts` reads them for the Canvas, the generated sheet
     //   for the Preview).
     sizes: {
@@ -7083,8 +7083,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector: '> [slot="description"]',
+                  // (S2 Content holds the words: they sit centred in it — a Text is fit-content.)
+                  selector: "> .react-aria-Content",
                   styles: {
+                    "align-items": "center",
                     "text-align": "center",
                   },
                 },
@@ -7120,7 +7122,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector: '> [slot="description"]',
+                  selector: "> .react-aria-Content",
                   styles: {
                     "grid-column": "2",
                     "grid-row": "2",

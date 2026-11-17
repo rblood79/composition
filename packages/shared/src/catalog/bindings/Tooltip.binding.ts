@@ -3,7 +3,7 @@ import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
  * ADR-142 family ⑥(overlays) — Tooltip primitive 의 `PrimitiveBinding`.
  *
  * inventory(§2-1) primitive. composition wrapper(`Tooltip.tsx`)가 RAC Tooltip 을 그리고 자식 노드
- * (OverlayArrow · Description) 를 순서대로 담는다 (`rulePaint.ts` `SHELL_ONLY_TYPES`). Canvas 상자는
+ * (OverlayArrow · 본문 slot frame > Text — S2 Tooltip 에는 description slot 이 없다) 를 순서대로 담는다 (`rulePaint.ts` `SHELL_ONLY_TYPES`). Canvas 상자는
  * rule(`COMPONENT_RULES_TABLE.Tooltip`). 화살표는 자식 `OverlayArrow` 노드다 (ADR-256 Phase 8a — 옛 Skia `tooltip_arrow`
  * primitive 는 뗐다: 읽던 `showArrow` 가 accepts 에 없어 Canvas 에 그려진 적이 없다).
  */

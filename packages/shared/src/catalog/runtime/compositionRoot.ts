@@ -444,6 +444,9 @@ export const CATALOG_TEXT_STYLE_CONTAINERS: ReadonlySet<string> = new Set([
   // ADR-276: a Button · ToggleButton's words are its Text child — its typography reaches them.
   "Button",
   "ToggleButton",
+  // S2 `Content` (2026-11-18): the owner's context styles the section, its words inherit it — an
+  //   IllustratedMessage's centred / start-aligned content (`> .react-aria-Content`).
+  "Content",
 ]);
 // ToggleButton's native <button> and catalog font-family own these defaults. Unlike the
 // bound Button (which explicitly forwards resolved text CSS), its rule DOM does not inherit

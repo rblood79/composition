@@ -70,7 +70,8 @@
   text-align: center;
 }
 
-.react-aria-IllustratedMessage[data-orientation="vertical"] > [slot="description"] {
+.react-aria-IllustratedMessage[data-orientation="vertical"] > .react-aria-Content {
+  align-items: center;
   text-align: center;
 }
 
@@ -96,7 +97,7 @@
   text-align: start;
 }
 
-.react-aria-IllustratedMessage[data-orientation="horizontal"] > [slot="description"] {
+.react-aria-IllustratedMessage[data-orientation="horizontal"] > .react-aria-Content {
   grid-column: 2;
   grid-row: 2;
   align-self: start;

@@ -242,7 +242,6 @@ const colorNow = (color: unknown) =>
  */
 const DESCRIPTION_SIZE_NOW: Record<string, string> = {
   popover: "S",
-  tooltip: "S",
 };
 const fontSizeNow = (type: string, binding: string, fontSize: unknown) =>
   type === "dialog" && binding === "description" ? 16 : fontSize;
@@ -272,6 +271,14 @@ function expectSinceConversion(
   before: PartsOf,
 ) {
   const alertSize = authored.size ?? "M";
+  // S2 마이그레이션 (2026-11-18): an S2 Tooltip has no description — its words are plain children
+  //   (S2 `Tooltip.tsx` — after the OverlayArrow), here a Text at the tooltip's own font (12 ·
+  //   its color), so the Tooltip has no title / description part any more.
+  if (type === "tooltip") {
+    expect(now.records).toEqual({});
+    expect(now.dom).toBe(before.dom);
+    return;
+  }
   // ADR-255: a Popover · Tooltip origin is its trigger and its overlay — the parts sit one level
   // down (in the overlay, `__overlay`, after the trigger Button). ADR-256 Phase 8a: after the
   // overlay's first child, its OverlayArrow.
@@ -286,10 +293,16 @@ function expectSinceConversion(
     const [first, ...rest] = path.slice(1).split("/");
     return `/1/1/${Number(first)}${rest.map((step) => `/${step}`).join("")}`;
   };
-  expect(Object.keys(now.records)).toEqual(
-    Object.keys(before.records).map(pathNow),
+  // S2 마이그레이션 (2026-11-18): an S2 InlineAlert's words are S2 `Content`'s own (no RAC
+  //   description slot) — a Text in the Content, out of the Heading · Description origin parts
+  //   (`adr256CardS2` · `inlineAlertFillStyle` check its size and color).
+  const kept = Object.entries(before.records).filter(
+    ([, was]) => type !== "inline-alert" || was.binding !== "description",
   );
-  for (const [path, was] of Object.entries(before.records)) {
+  expect(Object.keys(now.records)).toEqual(
+    kept.map(([path]) => pathNow(path)),
+  );
+  for (const [path, was] of kept) {
     const part = now.records[pathNow(path)]!;
     expect(part.binding).toBe(was.binding);
     expect(part.text).toBe(was.text);
@@ -374,8 +387,9 @@ function expectSinceConversion(
           structureOf(before.dom)
             .replace(
               /<span class=react-aria-Text slot=description>(.*?<\/>)/,
-              // (`3ca03f661`: the Description is S2 HelpText — `span.react-aria-Description`.)
-              "<div class=react-aria-Content data-size=M data-variant=default><span class=react-aria-Description data-variant=default slot=description>$1</>",
+              // (S2 마이그레이션 2026-11-18: the words are S2 `Content`'s — a Text one step below
+              //  the alert's size, no description slot.)
+              `<div class=react-aria-Content data-size=M data-variant=default><span class=react-aria-Text data-size=${{ S: "XS", M: "S", L: "M" }[alertSize]}>$1</>`,
             )
             .replace(
               /^<div (class=react-aria-InlineAlert [^>]*) id>/,

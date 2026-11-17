@@ -504,7 +504,7 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
     );
   });
 
-  it("an InlineAlert is Heading + Content (S2), its description reads the alert's size as is", async () => {
+  it("an InlineAlert is Heading + Content (S2), its words a Text one step below the alert's size", async () => {
     const { workspace, root, placed, kids, part } = await place(
       "inline-alert",
       {},
@@ -513,18 +513,18 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
       "Heading",
       "Content",
     ]);
+    // (S2 마이그레이션 2026-11-18: S2 `Content` holds the words — no RAC description slot.)
     expect(
       kids(part("Content").id).map((record) => root.typeOf(record)),
-    ).toEqual(["Description"]);
-    // The alert's size (M) reaches the description through the Content as is (9d68000e6: the
-    // one-step map is gone — the Description ladder is S2 `controlFont` 12/14/16, M = body-sm 14).
-    expect(part("Description").props.size).toBe("M");
+    ).toEqual(["Text"]);
+    // The alert's size (M) reaches the words through the Content one Text step below (S — S2
+    // `body-sm` 14, `CATALOG_SIZE_STEP.InlineAlert`).
+    expect(part("Text").props.size).toBe("S");
+    expect(part("Text").visual.fontSize).toBe(14);
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     expect(shape(host.querySelector(".react-aria-InlineAlert")!)).toBe(
       // (S2 renders its variant icon first — informative: InfoCircle, 2026-10-13.)
-      // (3ca03f661: the Description part is RAC Text with the Description rule's class —
-      //  `className: "react-aria-Description"`, still `slot="description"`.)
-      "div.react-aria-InlineAlert(svg(path + path + circle) + h3.react-aria-Heading + div.react-aria-Content(span.react-aria-Description[slot=description]))",
+      "div.react-aria-InlineAlert(svg(path + path + circle) + h3.react-aria-Heading + div.react-aria-Content(span.react-aria-Text))",
     );
   });
 });

@@ -196,8 +196,10 @@ describe("ADR-256 Phase 8a — OverlayArrow node", () => {
       "lib:definition:type-OverlayArrow",
       "lib:definition:type-frame",
     ]);
+    // (S2 마이그레이션 2026-11-18: an S2 Tooltip's words are plain children — a Text, not RAC's
+    //   description slot.)
     expect(children(region("lib:template:component-tooltip"))).toEqual([
-      "lib:definition:origin-component-description",
+      "lib:definition:text",
     ]);
   });
 
@@ -267,7 +269,7 @@ describe("ADR-256 Phase 8a — OverlayArrow node", () => {
           <OverlayArrow>{arrowSvg(8)}</OverlayArrow>
           {/* ADR-278: the body is the `content` slot's region frame (a defined difference). */}
           <div>
-            <Text slot="description">Tooltip text</Text>
+            <Text>Tooltip text</Text>
           </div>
         </Tooltip>
       </TooltipTrigger>,

@@ -55,7 +55,8 @@ const EXPANDED: Record<string, string> = {
   // Popover.md — `<DialogTrigger><Button/><Popover>…` (the starter's OverlayArrow · content inside).
   Popover:
     "DialogTrigger(Button Popover(OverlayArrow div(Heading Description)))",
-  Tooltip: "TooltipTrigger(Button Tooltip(OverlayArrow div(Description)))",
+  // (S2 마이그레이션 2026-11-18: an S2 Tooltip's words are plain children — a Text in the `content` slot.)
+  Tooltip: "TooltipTrigger(Button Tooltip(OverlayArrow div(Text)))",
   PreviewTrigger:
     "PreviewTrigger(Button Popover(OverlayArrow div(Heading Description)))",
   // Modal.md — `<DialogTrigger><Button/><Modal><Dialog><Heading slot="title"/>…<Button slot="close"/>`.

@@ -2826,7 +2826,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-inline-alert__description",
-    "definitionId": "lib:definition:origin-component-description",
+    "definitionId": "lib:definition:text",
     "children": [],
     "props": {
       "children": "{description}"
@@ -2839,7 +2839,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-illustratedmessage__illustration",
       "lib:template:component-illustratedmessage__title",
-      "lib:template:component-illustratedmessage__description"
+      "lib:template:component-illustratedmessage__content"
     ],
     "props": {
       "size": "M",
@@ -2866,11 +2866,19 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-illustratedmessage__content",
+    "definitionId": "lib:definition:type-Content",
+    "children": [
+      "lib:template:component-illustratedmessage__description"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-illustratedmessage__description",
-    "definitionId": "lib:definition:origin-component-description",
+    "definitionId": "lib:definition:text",
     "children": [],
     "props": {
-      "slot": "description",
       "children": "{description}"
     },
     "visual": {}
@@ -7386,16 +7394,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-tooltip__1",
-    "definitionId": "lib:definition:origin-component-description",
+    "definitionId": "lib:definition:text",
     "children": [],
     "props": {
       "children": "Tooltip text",
-      "size": "S"
+      "size": "XS"
     },
-    "visual": {},
-    "layout": {
-      "display": "block"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-label",

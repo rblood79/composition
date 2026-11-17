@@ -4,8 +4,8 @@ import type { PrimitiveBinding } from "../types";
  * InlineAlert — 인라인 알림 box 컨테이너 leaf (Spectrum 2 InlineAlert).
  *
  * **Canvas**: rule(`COMPONENT_RULES_TABLE.InlineAlert`, 5 variant fill + border) 이 bg roundRect +
- *   border **shell 만** 그린다. 제목 · 설명은 Heading · Description 원본의 instance 인 자식 노드가
- *   그린다 (ADR-254 — InlineAlert 는 size 를 전달).
+ *   border **shell 만** 그린다. 제목은 Heading 원본의 instance, 본문은 S2 `Content` 안의 Text 인
+ *   자식 노드가 그린다 (ADR-254 · S2 마이그레이션 2026-11-18 — InlineAlert 는 size 를 전달).
  *
  * **DOM**: `INTERNAL_RENDERERS` 에 `inlinealert` 가 없어 `ruleDom` 의 fallback
  *   `div.react-aria-InlineAlert` (+ `data-size` / `data-variant`) 로 그린다 → generated

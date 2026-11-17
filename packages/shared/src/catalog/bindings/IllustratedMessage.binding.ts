@@ -6,9 +6,10 @@ import type { PrimitiveBinding } from "../types";
  *
  * 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로
  * 진행해, orientation 도 같이 넣어」): the picture, the heading and the content are child nodes — an
- * `Illustration` and instances of the Heading · Description origins (the origin's `{title}` ·
- * `{description}`, `component-illustratedmessage`). The old props `heading` · `description` and the
- * Canvas escape / Preview component that drew them are gone.
+ * `Illustration`, an instance of the Heading origin and S2's `Content` holding a Text (the origin's
+ * `{title}` · `{description}`, `component-illustratedmessage` — S2 마이그레이션 2026-11-18: no RAC
+ * description slot). The old props `heading` · `description` and the Canvas escape / Preview
+ * component that drew them are gone.
  *
  * **DOM**: `ruleDom`'s fallback `div.react-aria-IllustratedMessage` (+ `data-size` ·
  *   `data-orientation`) — the generated sheet places the parts (`orientation` blocks).

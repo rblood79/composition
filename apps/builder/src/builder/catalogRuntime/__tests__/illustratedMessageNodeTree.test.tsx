@@ -28,6 +28,9 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * Horizontal: the illustration left of the heading and content (gap 12), max width 528. The
  * illustration is M (96) for S · M and L (160) for L; the heading `title` 16 · `title-xl` 20 ·
  * `title-2xl` 22 (the Heading's 16 · 20 · 24); the content `body-xs` 12 · `body-sm` 14 · 14.
+ *
+ * S2 마이그레이션 (2026-11-18 — 글자 감싸기 층): the content is S2's `Content` (a div holding the
+ * words) — here `Content > Text` (a node holds the words), not RAC's description slot.
  */
 const BODY = "project:node:home-body" as NodeId;
 const ROOT = "project:node:root" as NodeId;
@@ -81,25 +84,34 @@ async function open(props: Record<string, string> = {}) {
   const message = records.find((r) => root.typeOf(r) === "IllustratedMessage")!;
   const child = (type: string) =>
     records.find((r) => r.parentId === message.id && root.typeOf(r) === type)!;
+  // The words in the S2 Content.
+  const words = () =>
+    records.find(
+      (r) => r.parentId === child("Content").id && root.typeOf(r) === "Text",
+    )!;
   const rect = (id: string) => root.getGeometry([id]).get(id)!;
-  return { root, message, child, rect };
+  return { root, message, child, words, rect };
 }
 
 describe("IllustratedMessage — the S2 node tree", () => {
-  it("is IllustratedMessage > Illustration + Heading + Description (the origin's title · description)", async () => {
-    const { root, message } = await open();
+  it("is IllustratedMessage > Illustration + Heading + Content > Text (the origin's title · description)", async () => {
+    const { root, message, words } = await open();
     const records = [...root.canvasInputs.values()];
     const kids = records.filter((r) => r.parentId === message.id);
     expect(kids.map((r) => root.typeOf(r))).toEqual([
       "Illustration",
       "Heading",
-      "Description",
+      "Content",
     ]);
     expect(kids.map((r) => r.props.children ?? r.props.iconName)).toEqual([
       "image",
       "No results",
-      "Try another search term.",
+      undefined,
     ]);
+    expect(words().props.children).toBe("Try another search term.");
+    expect(words().props.slot).toBeUndefined();
+    // (S2 `body` — the Description's subdued #525252 before.)
+    expect(words().visual.color).toBe("#292929");
   });
 
   it.each([
@@ -109,21 +121,23 @@ describe("IllustratedMessage — the S2 node tree", () => {
   ])(
     "vertical %s: illustration %i · heading %ipx · content %ipx, centred, gaps %i / 4",
     async (size, picture, heading, content, gap) => {
-      const { message, child, rect } = await open({ size });
+      const { message, child, words, rect } = await open({ size });
       const illustration = rect(child("Illustration").id);
       const title = rect(child("Heading").id);
-      const description = rect(child("Description").id);
+      const description = rect(child("Content").id);
+      // (The words, not only their Content box — the Content is the message's width.)
+      const text = rect(words().id);
       const box = rect(message.id);
       expect([illustration.width, illustration.height]).toEqual([
         picture,
         picture,
       ]);
       expect(child("Heading").visual.fontSize).toBe(heading);
-      expect(child("Description").visual.fontSize).toBe(content);
+      expect(words().visual.fontSize).toBe(content);
       // No padding: the picture is at the top; every part is centred; max width 380.
       expect(illustration.y).toBe(box.y);
       expect(box.width).toBe(380);
-      for (const part of [illustration, title, description])
+      for (const part of [illustration, title, description, text])
         expect(
           Math.abs(part.x + part.width / 2 - (box.x + box.width / 2)),
         ).toBeLessThanOrEqual(1);
@@ -137,7 +151,7 @@ describe("IllustratedMessage — the S2 node tree", () => {
     const box = rect(message.id);
     const illustration = rect(child("Illustration").id);
     const title = rect(child("Heading").id);
-    const description = rect(child("Description").id);
+    const description = rect(child("Content").id);
     expect(box.width).toBe(528);
     // The picture spans both `1fr` rows: (96 − 4) / 2 each — the box is the picture's height.
     expect([box.height, illustration.y]).toEqual([96, box.y]);
@@ -157,11 +171,11 @@ describe("IllustratedMessage — the S2 node tree", () => {
   it.each(["vertical", "horizontal"])(
     "Canvas %s: paints the picture glyph and the centred / start-aligned text",
     async (orientation) => {
-      const { root, child } = await open({ orientation });
+      const { root, child, words } = await open({ orientation });
       const binding = bindCatalogCanvas(root, root.pageRootRecords());
       const picture = getSkiaNode(child("Illustration").id);
       const heading = getSkiaNode(child("Heading").id);
-      const description = getSkiaNode(child("Description").id);
+      const description = getSkiaNode(words().id);
       binding.dispose();
       expect(picture).toBeDefined();
       const align = orientation === "vertical" ? "center" : undefined;
@@ -170,7 +184,7 @@ describe("IllustratedMessage — the S2 node tree", () => {
     },
   );
 
-  it("Preview: the S2 parts in order — svg, heading, description — under the rule's box", async () => {
+  it("Preview: the S2 parts in order — svg, heading, content (its words) — under the rule's box", async () => {
     const { root, message } = await open({ orientation: "horizontal" });
     (
       globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -194,7 +208,8 @@ describe("IllustratedMessage — the S2 node tree", () => {
     expect(picture.querySelector("svg")?.getAttribute("width")).toBe("1em");
     expect(heading.textContent).toBe("No results");
     expect(heading.style.textAlign).toBe("start");
-    expect(description.getAttribute("slot")).toBe("description");
+    expect(description.className).toBe("react-aria-Content");
+    expect(description.querySelector('[slot="description"]')).toBeNull();
     expect(description.textContent).toBe("Try another search term.");
     await act(async () => reactRoot.unmount());
     host.remove();

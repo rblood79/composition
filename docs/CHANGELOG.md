@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — Tooltip · InlineAlert · IllustratedMessage 의 글자 감싸기 층] - 2026-11-18
+
+### Changed
+
+- **InlineAlert · IllustratedMessage 본문 = S2 `Content` 안의 Text** — 본문 글자가 RAC 설명 slot (`Description[slot=description]`) 이 아니라 S2 처럼 `Content` 안에 놓인다 (`div.react-aria-Content > span.react-aria-Text`). 글자 크기는 그대로 (InlineAlert S · M · L = 12 · 14 · 16, IllustratedMessage 12 · 14 · 14), 색은 S2 본문 색 #292929 (그전 흐린 #525252).
+- **Tooltip 글자 = Text** — Tooltip 안 글자가 설명 slot 없는 Text 가 되어 Tooltip 의 글자 크기 · 색 (12px · #292929) 을 그대로 쓴다. 본문을 Local 컴포넌트로 바꿔 끼우는 `content` slot 자리 (ADR-278) 는 그대로다.
+- 기존 문서는 그대로 열린다 (원본 template id 유지 — 문서 형식 버전 변경 없음).
+
 ## [ADR-313 Phase 5 — 표의 스키마를 JSON Schema 로 내보내기] - 2026-11-17
 
 ### Added

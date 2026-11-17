@@ -130,9 +130,15 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(overlay.bindingId).toBe("tooltip");
     expect(overlay.hidden).toBe(true);
     expect(child(overlay, 0).bindingId).toBe("overlayarrow");
-    // (ADR-278: the `content` slot's region frame holds the description.)
+    // (ADR-278: the `content` slot's region frame holds the words — a Text, S2 마이그레이션 2026-11-18.)
     expect(child(overlay, 1).bindingId).toBe("frame");
-    expect(child(child(overlay, 1), 0).bindingId).toBe("description");
+    const words = child(child(overlay, 1), 0);
+    expect(words.bindingId).toBe("text");
+    // (S2 Tooltip: the words take the tooltip's font — `ui-sm` 12 · the tooltip's color.)
+    expect(words.visual.fontSize).toBe(overlay.visual.fontSize);
+    expect(words.visual.fontSize).toBe(12);
+    // (the Tooltip rule's text `{color.neutral}` — the Description's subdued #525252 before)
+    expect(words.visual.color).toBe("#292929");
   });
 
   it("the Preview shows the trigger and no closed overlay", async () => {
@@ -200,23 +206,13 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(popover.textContent).toContain("Popover content goes here.");
   });
 
-  it("the Preview's Tooltip opens on the trigger's keyboard focus, and follows the Description origin", async () => {
+  it("the Preview's Tooltip opens on the trigger's keyboard focus, its words a plain Text (S2 — no description slot)", async () => {
     const { workspace, root } = await place("tooltip");
     // (S2 TooltipTrigger owns the placement — the trigger node's prop reaches RAC's Tooltip by context.)
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: PLACED }],
         props: { placement: set("bottom"), crossOffset: set(6) },
-      }),
-    );
-    workspace.execute(
-      setLibraryDefault({
-        definitionId:
-          "lib:definition:origin-component-description" as LibraryDefinitionId,
-        scope: "visual",
-        key: "color",
-        write: set("#00aa00"),
-        newId: workspace.newId,
       }),
     );
     const host = await mount(workspace, root().id);
@@ -234,10 +230,10 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(tooltip.textContent).toContain("Tooltip text");
     expect(tooltip.getAttribute("data-placement")).toBe("bottom");
     expect(button.getAttribute("aria-describedby")).toBe(tooltip.id);
-    expect(
-      (tooltip.querySelector('[slot="description"]') as HTMLElement).style
-        .color,
-    ).toBe("rgb(0, 170, 0)");
+    expect(tooltip.querySelector('[slot="description"]')).toBeNull();
+    expect(tooltip.querySelector(".react-aria-Text")?.textContent).toBe(
+      "Tooltip text",
+    );
   });
 
   /**

@@ -109,13 +109,15 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   DateRangePicker: WRAPPED_FIELD_PARTS,
   Meter: ["Label"],
   ProgressBar: ["Label"],
-  // ADR-254: an InlineAlert's title and description are instances of the Heading · Description
-  //   origins, sized by their own rules at the alert's size (`CATALOG_SIZE_STEP` maps the step).
-  InlineAlert: ["Heading", "Description"],
+  // ADR-254: an InlineAlert's title is an instance of the Heading origin, sized by its own rule at
+  //   the alert's size. S2 마이그레이션 (2026-11-18): its words are a Text in the S2 Content (S2
+  //   `Content` holds them — no RAC description slot), one Text step below (`CATALOG_SIZE_STEP`).
+  InlineAlert: ["Heading", "Text"],
   // ADR-259 Phase 3: S2 ContextualHelp's `size` is its ActionButton's (XS · S).
   ContextualHelp: ["Button"],
-  // 2026-10-09: an S2 IllustratedMessage sizes its picture, heading and content (its contexts).
-  IllustratedMessage: ["Illustration", "Heading", "Description"],
+  // 2026-10-09: an S2 IllustratedMessage sizes its picture, heading and content (its contexts) —
+  //   the content's words are a Text in the S2 Content (S2 마이그레이션 2026-11-18).
+  IllustratedMessage: ["Illustration", "Heading", "Text"],
 };
 
 /**
@@ -145,8 +147,8 @@ export const CATALOG_SIZE_CONTEXT_OF: Readonly<Record<string, string>> = {
 export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   "Group",
   "frame",
-  // ADR-256 Phase 10: S2 `Content` — an InlineAlert's body section (its Description reads the
-  //   alert's size one step up, as before the section).
+  // ADR-256 Phase 10: S2 `Content` — an InlineAlert's · IllustratedMessage's body section (its Text
+  //   reads the owner's size).
   "Content",
   // ADR-259 Phase 3: a field's label row — the field's size reaches its Label and ContextualHelp.
   "FieldLabel",
@@ -183,9 +185,7 @@ const CONTEXTUAL_HELP_SIZE_OWNERS = [
 
 /**
  * Owner type → child type → the child's size for each owner size, where the child's rule names
- * the same look one step apart. An owner size missing here passes as is. (An InlineAlert's
- * description — S2 `body-sm` 14 at M — reads the alert's size as is since the Description ladder
- * became S2 `controlFont` 12/14/16 (2026-11-06); the old one-step map made it 14/16/18.)
+ * the same look one step apart. An owner size missing here passes as is.
  */
 export const CATALOG_SIZE_STEP: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
@@ -223,7 +223,12 @@ export const CATALOG_SIZE_STEP: Readonly<
   IllustratedMessage: {
     Illustration: { S: "M", M: "M", L: "L" },
     Heading: { S: "M", M: "XL", L: "XXL" },
-    Description: { S: "S", M: "M", L: "M" },
+    Text: { S: "XS", M: "S", L: "S" },
+  },
+  // S2 InlineAlert (`InlineAlert.tsx` `content`): the words are `body-sm` — 12 · 14 · 16 at the
+  //   alert's S · M · L as before (the Description ladder 12/14/16 = Text XS · S · M).
+  InlineAlert: {
+    Text: { S: "XS", M: "S", L: "M" },
   },
 };
 

@@ -148,13 +148,13 @@ describe("S2 InlineAlert fillStyle", () => {
     expect(rgb(headingText?.text?.color)).toEqual([255, 255, 255]);
     // The DOM Heading carries the derived color inline (over its own dark default).
     expect(html).toMatch(/<h3[^>]*color:#ffffff/);
-    // (2026-11-09) So does the description: its sheet's resting `--fg-muted` would draw gray text on
-    //   the bold fill, the Canvas white.
-    const description = [...root.domInputs.values()].find(
-      (item) => item.bindingId === "description",
+    // (2026-11-09) So do the words: their sheet's resting color would draw dark text on the bold
+    //   fill, the Canvas white. (S2 마이그레이션 2026-11-18: a Text in the S2 Content.)
+    const words = [...root.domInputs.values()].find(
+      (item) => item.bindingId === "text",
     );
-    expect(description?.derivedProps?.color).toBe("#ffffff");
-    expect(html).toMatch(/class="react-aria-Description"[^>]*color:#ffffff|<span[^>]*slot="description"[^>]*color:#ffffff/);
+    expect(words?.derivedProps?.color).toBe("#ffffff");
+    expect(html).toMatch(/class="react-aria-Text"[^>]*color:#ffffff/);
   });
 
   it("boldFill notice: black text (S2)", async () => {
