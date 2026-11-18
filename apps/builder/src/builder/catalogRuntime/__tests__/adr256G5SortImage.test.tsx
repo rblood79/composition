@@ -23,9 +23,8 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
  * ADR-256 G5 (2026-10-12, 사용자 지시 「둘 다 레퍼런스대로 고쳐」):
- * - example 11 — a sortable Column's sort indicator is the reference's (react-aria.adobe.com
- *   Table.md `Column`): `span.sort-indicator` right after the name Group, always — hidden while
- *   the column is not sorted, its box kept (the Canvas keeps it beside the name).
+ * - example 11 — moved to S2 TableView (2026-11-19): the sort arrow is S2 `ColumnContents`' —
+ *   `s2TableViewStructure.test.tsx` · `adr257TableOperations.test.tsx`.
  * - example 10 — an Image outside an S2 Card's preview is the RAC examples' plain `img`.
  */
 const BODY = "project:node:home-body" as NodeId;
@@ -92,85 +91,6 @@ async function open(entries: NodeEntry[], rootIds: string[]) {
     root.getGeometry([record(sourceId).id]).get(record(sourceId).id)!;
   return { workspace, root, record, draw, rect };
 }
-
-/** A Table whose Name column is the Column original's shape: `Column > Group[presentation] > Text`. */
-const table = (nameProps: Record<string, unknown>) => [
-  node("project:node:t", "Table", {}, ["project:node:th", "project:node:tb"]),
-  node("project:node:th", "TableHeader", {}, [
-    "project:node:name",
-    "project:node:type",
-  ]),
-  node("project:node:name", "Column", { children: "Name", ...nameProps }, [
-    "project:node:name-group",
-  ]),
-  node("project:node:name-group", "Group", { role: "presentation" }, [
-    "project:node:name-text",
-  ]),
-  {
-    ...node("project:node:name-text", "Text", { children: "Name" }),
-    definitionId: "lib:definition:text",
-  } as NodeEntry,
-  node("project:node:type", "Column", { children: "Type" }),
-  node("project:node:tb", "TableBody", {}, ["project:node:r0"]),
-  node("project:node:r0", "Row", {}, [
-    "project:node:r0c0",
-    "project:node:r0c1",
-  ]),
-  node("project:node:r0c0", "Cell", { children: "Games" }),
-  node("project:node:r0c1", "Cell", { children: "File folder" }),
-];
-
-describe("ADR-256 G5 example 11 — the reference's sort indicator", () => {
-  it("DOM: a sortable column's indicator follows its name Group (a chevron, hidden at rest); none in an unsortable one", async () => {
-    const { draw } = await open(table({ allowsSorting: true }), [
-      "project:node:t",
-    ]);
-    const container = draw("project:node:t");
-    const [name, type] = container.querySelectorAll("[role=columnheader]");
-    const group = name.querySelector("[role=presentation]")!;
-    const indicator = group.nextElementSibling!;
-    expect(indicator.tagName).toBe("SPAN");
-    expect(indicator.className).toBe("sort-indicator");
-    expect(indicator.getAttribute("aria-hidden")).toBe("true");
-    expect(indicator.children[0].tagName.toLowerCase()).toBe("svg");
-    // (`visibility: hidden` while the column is not sorted — `Table.css`.)
-    expect(name.hasAttribute("data-sort-direction")).toBe(false);
-    expect(type.querySelector(".sort-indicator")).toBeNull();
-  });
-
-  it("the sortable column is the reference's `.column-header` row: the name takes the rest beside the indicator's box (Canvas = DOM)", async () => {
-    const { root, record, rect } = await open(table({ allowsSorting: true }), [
-      "project:node:t",
-    ]);
-    const column = record("project:node:name");
-    expect(column.layout.display).toBe("flex");
-    expect(column.layout.alignItems).toBe("center");
-    const group = record("project:node:name-group");
-    expect(group.layout.flexGrow ?? group.layout.flex).toBeDefined();
-    // The Canvas name Group ends where the DOM indicator begins: the column's content box less
-    // the indicator (16px chevron + 2px each side). (Its side padding = S2 16 — ADR-295 후속 C7.)
-    const columnBox = rect("project:node:name");
-    const groupBox = rect("project:node:name-group");
-    expect(groupBox.width).toBe(columnBox.width - 16 * 2 - 20);
-    void root;
-  });
-
-  it("allowsSorting on and off moves the Canvas name box (the Column's dependents)", async () => {
-    const { workspace, record, rect } = await open(table({}), [
-      "project:node:t",
-    ]);
-    const full = rect("project:node:name-group").width;
-    workspace.root.execute(
-      setFields({
-        targets: [
-          workspace.positionOfRecord(record("project:node:name").id)!.target,
-        ],
-        props: { allowsSorting: set(true) },
-      }),
-    );
-    expect(rect("project:node:name-group").width).toBe(full - 20);
-  });
-});
 
 describe("S2 Image outside an S2 Card (2026-11-18 — was the RAC examples' plain img, G5 example 10)", () => {
   it("in a frame: a box around its `img`, as S2 `Image`", async () => {

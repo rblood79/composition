@@ -111,23 +111,6 @@
     }
   }
 
-  /* G5 example 11 (2026-10-12) — the reference's sort indicator (react-aria.adobe.com Table.md):
-     after the column's name, a 16px chevron with 2px on each side, hidden while the column is not
-     sorted (its box stays — the Canvas keeps it beside the name). The row it sits in is the
-     Column rule's `allows-sorting` block (the reference's `.column-header`). */
-  .react-aria-Table[data-node-table] .react-aria-Column {
-    .sort-indicator {
-      padding: 0 2px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    &:not([data-sort-direction]) .sort-indicator {
-      visibility: hidden;
-    }
-  }
-
   /* ADR-257 Phase 4 — S2 Column `allowsResizing`: RAC's `ResizableTableContainer` is the Table's
      box (its border, background, height and scroll — `CatalogTable`), the table inside lays the
      rows out at RAC's column widths. The values are `.react-aria-Table`'s. */
@@ -330,17 +313,6 @@
   /* ========== Link Rows ========== */
   .react-aria-Row[data-href] {
     cursor: pointer;
-  }
-
-  /* ========== Sort Indicator ========== */
-  .react-aria-Column {
-    .sort-indicator {
-      padding: 0 var(--spacing-2xs);
-    }
-
-    &:not([data-sort-direction]) .sort-indicator {
-      visibility: hidden;
-    }
   }
 
   /* ========== Table Body ========== */

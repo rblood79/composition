@@ -13610,25 +13610,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-257 Phase 3: the header cell's own alignment (S2 Column `align` — not its Cells').
     containerVariants: {
-      // ADR-257 Phase 3 — S2 `align` (start · center · end — S2 `cellContent` textAlign; start is
-      //   the variant's left).
-      align: {
-        center: { styles: { "text-align": "center" } },
-        end: { styles: { "text-align": "right" } },
-      },
-      // G5 example 11 (2026-10-12) — a sortable column is the reference's `.column-header`
-      //   (react-aria.adobe.com Table.md): its name Group and the sort indicator after it in one
-      //   row, the name taking the rest (`.column-name` `flex: 1`). The indicator is RAC render
-      //   output (`tableOperationsDom.tsx`) — the Canvas keeps its box beside the name
-      //   (`catalogColumnSortNameGroup`).
-      "allows-sorting": {
+      // S2 `ColumnWithMenu` (2026-11-19): a column with its menu (`allowsResizing`) has no side
+      //   padding (`columnStyles` `paddingX: isMenu 0`); its content wrapper is the menu Button
+      //   (`resizableMenuButtonWrapper` `paddingX: 16`, full height).
+      "allows-resizing": {
         true: {
-          styles: { display: "flex", "align-items": "center" },
+          // (Its end line is the Table's part value — `manualBoxRules` Table, after the header
+          //  cells' bottom-only border.)
+          styles: {
+            "padding-left": "0px",
+            "padding-right": "0px",
+          },
           nested: [
             {
-              selector: "> .react-aria-Group",
-              styles: { flex: "1", "min-width": "0" },
+              selector: "> div",
+              styles: {
+                "padding-left": "16px",
+                "padding-right": "16px",
+              },
             },
+          ],
+        },
+      },
+      // ADR-257 Phase 3 — S2 `align` (start · center · end). S2 `ColumnContents` puts it on the
+      //   content wrapper (`columnContentWrapper` `justifyContent` — the frame, `> div`); the
+      //   column's own `text-align` keeps a wrapped name's lines with it.
+      align: {
+        center: {
+          styles: { "text-align": "center" },
+          nested: [
+            { selector: "> div", styles: { "justify-content": "center" } },
+          ],
+        },
+        end: {
+          styles: { "text-align": "right" },
+          nested: [
+            { selector: "> div", styles: { "justify-content": "flex-end" } },
           ],
         },
       },
@@ -13710,10 +13727,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   Column — 사용자 결정 7) and the Table's `overflowMode`.
     containerVariants: {
       // ADR-257 Phase 3 — S2 `align` (start · center · end — S2 `cellContent` textAlign; start is
-      //   the variant's left).
+      //   the variant's left). S2 TableView (2026-11-19): the content is the Cell's Text (S2
+      //   `cellContent` span) — the alignment is its own; a Cell holding its text directly keeps
+      //   the root's.
       align: {
-        center: { styles: { "text-align": "center" } },
-        end: { styles: { "text-align": "right" } },
+        center: {
+          styles: { "text-align": "center" },
+          nested: [
+            {
+              selector: "> .react-aria-Text",
+              styles: { "text-align": "center" },
+            },
+          ],
+        },
+        end: {
+          styles: { "text-align": "right" },
+          nested: [
+            {
+              selector: "> .react-aria-Text",
+              styles: { "text-align": "right" },
+            },
+          ],
+        },
       },
       // S2 `showDivider`: a 1px line at the cell's end, the border color (S2 `--borderColorGray`).
       "show-divider": {
@@ -13734,6 +13769,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "white-space": "nowrap",
             "text-overflow": "ellipsis",
           },
+          // (S2 `cellContent` `truncate` — the Cell's Text, S2 TableView 2026-11-19.)
+          nested: [
+            {
+              selector: "> .react-aria-Text",
+              styles: {
+                overflow: "hidden",
+                "white-space": "nowrap",
+                "text-overflow": "ellipsis",
+              },
+            },
+          ],
         },
         wrap: {
           styles: {
@@ -13741,6 +13787,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "white-space": "normal",
             "text-overflow": "ellipsis",
           },
+          nested: [
+            {
+              selector: "> .react-aria-Text",
+              styles: { "white-space": "normal" },
+            },
+          ],
         },
       },
     },

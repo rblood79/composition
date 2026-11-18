@@ -256,9 +256,6 @@ import {
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
   catalogProgressFillLayout,
-  catalogColumnSortNameGroup,
-  catalogColumnSortsAtEnd,
-  CATALOG_COLUMN_SORT_INDICATOR_WIDTH,
   catalogSliderFillLayout,
   catalogSliderThumbs,
   catalogPartParent,
@@ -5348,12 +5345,6 @@ export class CatalogCompositionRoot {
       Object.keys(this.withoutAuthored(record, { paddingLeft: 0 })).length === 0
         ? undefined
         : catalogItemSlotInset(record, get, this.typeOf);
-    // (A sortable Column's sort indicator follows its name — hidden at rest, its box kept: G5
-    // example 11, `catalogColumnSortNameGroup`.)
-    const sortIndicator =
-      !record.hidden && catalogColumnSortNameGroup(record, get, this.typeOf);
-    const sortIndicatorAtEnd =
-      !record.hidden && catalogColumnSortsAtEnd(record, get, this.typeOf);
     const remainder = this.remainderAreas.get(record.id);
     return {
       ...style,
@@ -5405,26 +5396,10 @@ export class CatalogCompositionRoot {
             )}px`,
           }
         : {}),
-      ...(sortIndicator && !withoutAddedRoom
-        ? {
-            marginRight: `${
-              Number.parseFloat(String(style.marginRight ?? "0")) +
-              CATALOG_COLUMN_SORT_INDICATOR_WIDTH
-            }px`,
-          }
-        : {}),
       ...(separator !== undefined && !withoutAddedRoom
         ? {
             paddingRight: `${
               Number.parseFloat(String(style.paddingRight ?? "0")) + separator
-            }px`,
-          }
-        : {}),
-      ...(sortIndicatorAtEnd && !withoutAddedRoom
-        ? {
-            paddingRight: `${
-              Number.parseFloat(String(style.paddingRight ?? "0")) +
-              CATALOG_COLUMN_SORT_INDICATOR_WIDTH
             }px`,
           }
         : {}),

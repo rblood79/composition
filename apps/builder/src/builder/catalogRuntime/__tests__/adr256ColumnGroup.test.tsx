@@ -2,15 +2,6 @@
 import "fake-indexeddb/auto";
 import { act, render } from "@testing-library/react";
 import { createElement } from "react";
-import { Group } from "react-aria-components/Group";
-import {
-  Cell,
-  Column,
-  Row,
-  Table,
-  TableBody,
-  TableHeader,
-} from "react-aria-components/Table";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   insertNodes,
@@ -35,12 +26,10 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * ADR-256 Phase 6h (G2) — a Column's name sits in a RAC `Group` (react-aria.adobe.com Table: the
- * starter Column is `Column > Group[role=presentation].column-name > children`; G0 inventory
- * `Column > Group > …`). The Column origin is `Column > Group[role=presentation] > Text`, the Text
- * bound to the origin's `children` (the column's name — what Insert Column, the Properties "Text"
- * and the data columns read). The palette Table's starter columns (ADR-277 — Name · Type · Status)
- * are instances of the same Column origin (their name in the Group too).
+ * ADR-256 Phase 6h (G2) → S2 TableView (2026-11-19, 사용자 「table 도 S2 (TableView) 와 같은 구조로」):
+ * a Column's name sits in S2 `ColumnContents`' wrapper `div` — the Column origin is
+ * `Column > frame > Text` (was the RAC starter's `Group[role=presentation]`), the Text reading the
+ * Column's `children` (`{children}`), bold as the column header.
  */
 const BODY = "project:node:home-body" as NodeId;
 const OWNER = "project:node:table" as NodeId;
@@ -133,61 +122,27 @@ async function open(origin = "lib:definition:origin-component-table") {
   return { workspace, root, record, ofType, part, insert, draw };
 }
 
-/** A column header as roles and its name: `columnheader > presentation "Name"`. */
+/** A column header as its element path and its name: `th > div > span "Name"`. */
 const headers = (grid: Element) =>
   [...grid.querySelectorAll("[role=columnheader]")].map((header) => {
-    const roles = (element: Element): string[] =>
-      [...element.children].flatMap((child) => [
-        ...(child.getAttribute("role") ? [child.getAttribute("role")!] : []),
-        ...roles(child),
-      ]);
-    return `columnheader > ${roles(header).join(" > ")} "${header.textContent}"`;
+    const path: string[] = [header.tagName.toLowerCase()];
+    for (let at = header.firstElementChild; at; at = at.firstElementChild)
+      path.push(
+        `${at.tagName.toLowerCase()}${at.getAttribute("role") ? `[role=${at.getAttribute("role")}]` : ""}`,
+      );
+    return `${path.join(" > ")} "${header.textContent}"`;
   });
 
-describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
-  it("the reference's column header: the name in a `Group[role=presentation]`", async () => {
+describe("S2 TableView — the Column's name in its content wrapper", () => {
+  it("S2 `ColumnContents`: th > div (no role) > span", async () => {
     const { insert, draw } = await open();
     insert("Column");
     insert("Column");
     insert("Row");
-    // RAC Table with the starter Column's name group (the starter's `.column-header` div is its
-    // look — here the Column's own rule). ADR-277: the palette Table starts with three columns.
+    // ADR-277: the palette Table starts with three columns.
     const names = ["Name", "Type", "Status", "Column 4", "Column 5"];
-    const view = render(
-      createElement(
-        Table,
-        { "aria-label": "Table" },
-        createElement(
-          TableHeader,
-          null,
-          ...names.map((name, index) =>
-            createElement(
-              Column,
-              { key: name, isRowHeader: index === 0 },
-              createElement(
-                Group,
-                { role: "presentation", tabIndex: -1 },
-                name,
-              ),
-            ),
-          ),
-        ),
-        createElement(
-          TableBody,
-          null,
-          createElement(
-            Row,
-            null,
-            ...names.map((name) => createElement(Cell, { key: name }, "Cell")),
-          ),
-        ),
-      ),
-    );
-    cleanups.push(() => view.unmount());
-    const reference = view.container.querySelector("[role=grid]")!;
-    expect(headers(draw())).toEqual(headers(reference));
-    expect(headers(reference)).toEqual(
-      names.map((name) => `columnheader > presentation "${name}"`),
+    expect(headers(draw())).toEqual(
+      names.map((name) => `th > div > span "${name}"`),
     );
   });
 
@@ -237,7 +192,7 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     const [column] = ofType("Column");
     const group = root.canvasInputs.get(column!.children[0]!)!;
     const name = root.canvasInputs.get(group.children[0]!)!;
-    expect(root.typeOf(group)).toBe("Group");
+    expect(root.typeOf(group)).toBe("frame");
     expect(texts(getSkiaNode(column!.id))).toEqual([]);
     // (A text leaf is its own text node.)
     const text = getSkiaNode(name.id);
@@ -245,12 +200,12 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     expect(text?.text?.content).toBe("Name");
     expect(String(text?.text?.fontWeight)).toBe("600");
     const span = draw().querySelector(
-      "[role=columnheader] [role=presentation] > *",
+      "[role=columnheader] > div > span",
     ) as HTMLElement;
     expect(span.style.fontWeight).toBe("600");
   });
 
-  it("the palette Table's starter columns are Column origin instances (ADR-277 — their name in the Group)", async () => {
+  it("the palette Table's starter columns are Column origin instances (ADR-277 — their name in the content wrapper)", async () => {
     const { root, ofType } = await open();
     const columns = ofType("Column");
     expect(columns.map((column) => column.props.children)).toEqual([
@@ -260,7 +215,7 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     ]);
     for (const column of columns) {
       const group = root.canvasInputs.get(column.children[0]!)!;
-      expect(root.typeOf(group)).toBe("Group");
+      expect(root.typeOf(group)).toBe("frame");
       expect(root.canvasInputs.get(group.children[0]!)!.props.children).toBe(
         column.props.children,
       );

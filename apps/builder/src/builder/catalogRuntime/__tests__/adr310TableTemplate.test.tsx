@@ -28,6 +28,7 @@ import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
+import { classifyTableCellDisplay } from "../../../../../../packages/shared/src/collections/cellValue";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -42,10 +43,13 @@ const BINDING = {
   collectionId: "data:collection:c1",
   fieldMap: {},
 } as DataBindingRef;
-const rowsOf = (count: number): CatalogBoundRow[] =>
+const rowsOf = (
+  count: number,
+  status: (index: number) => unknown = (index) => `S${index}`,
+): CatalogBoundRow[] =>
   Array.from({ length: count }, (_, index) => ({
     key: `r${index}`,
-    values: { name: `N${index}`, type: `T${index}`, status: `S${index}` },
+    values: { name: `N${index}`, type: `T${index}`, status: status(index) },
   }));
 
 let library: CatalogLibrary;
@@ -53,8 +57,8 @@ beforeAll(async () => {
   library = await buildCodeCatalogLibrary();
 });
 
-async function boundTable(count: number) {
-  const rows = rowsOf(count);
+async function boundTable(count: number, status?: (index: number) => unknown) {
+  const rows = rowsOf(count, status);
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -156,13 +160,14 @@ function drawnRows(workspace: CatalogWorkspace) {
   const body = record(table!).children.find(
     (id) => root.typeOf(record(id)) === "TableBody",
   )!;
+  // (A node with children shows theirs — S2 TableView's Cell is `Cell > Text`, its `children`
+  // prop the Text's.)
   const text = (id: string): string =>
-    [
-      typeof record(id).props.children === "string"
+    record(id).children.length
+      ? record(id).children.map(text).join("")
+      : typeof record(id).props.children === "string"
         ? (record(id).props.children as string)
-        : "",
-      ...record(id).children.map(text),
-    ].join("");
+        : "";
   // (Its data cells — not the selection cell, which holds the selection Checkbox.)
   const dataCells = (id: string) =>
     record(id).children.filter(
@@ -426,6 +431,52 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
     }
   });
 
+  it("binding a Table holding no row builds its template's data cells as Cell originals — `Cell > Text` (S2 TableView)", async () => {
+    const workspace = await boundTable(1);
+    try {
+      const [starter] = ownRows(workspace);
+      workspace.execute(
+        removeTargets({ targets: [{ kind: "node", id: starter!.id }] }),
+      );
+      bind(workspace);
+      const root = workspace.root;
+      const [row] = drawnRows(workspace);
+      expect(row!.cells).toEqual(["N0", "T0", "S0"]);
+      const body = root.canvasInputs
+        .get(root.recordsOfSource(TABLE)[0]!)!
+        .children.map((id) => root.canvasInputs.get(id)!)
+        .find((record) => root.typeOf(record) === "TableBody")!;
+      const cells = root.canvasInputs
+        .get(body.children[0]!)!
+        .children.map((id) => root.canvasInputs.get(id)!)
+        .filter((cell) => !selectionCell(workspace, cell.sourceId));
+      expect(
+        cells.map((cell) =>
+          root.typeOf(root.canvasInputs.get(cell.children[0]!)!),
+        ),
+      ).toEqual(["Text", "Text", "Text"]);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it("a list value shows as a Table cell's text in the Cell's Text (S2 TableView — `Cell > Text`)", async () => {
+    const workspace = await boundTable(1, () => ["a", "b", "c", "d", "e"]);
+    try {
+      bind(workspace);
+      const cell = drawnRows(workspace)[0]!.cells[2]!;
+      const display = classifyTableCellDisplay(["a", "b", "c", "d", "e"]);
+      expect(display.kind).not.toBe("text");
+      expect(cell).toBe(
+        display.kind !== "text"
+          ? `${display.items.join(", ")}${display.overflow ? ` +${display.overflow}` : ""}`
+          : "",
+      );
+    } finally {
+      workspace.dispose();
+    }
+  });
+
   it("a field edit inside the bound Row template reaches every drawn row (the cell's text · a Checkbox's label cleared)", async () => {
     // (Why — 2026-11-15: a repeated row's record id carries `#row:<key>` but the resolver asks for
     //  the template position, so a template cell's edit missed its owned path —
@@ -469,7 +520,8 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
           newId: workspace.newId,
         }),
       );
-      expect(drawnRows(workspace)[1]!.cells[0]).toBe("T1CheckboxCheckbox");
+      // (the cell's Text · the Checkbox's Label)
+      expect(drawnRows(workspace)[1]!.cells[0]).toBe("T1Checkbox");
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: checkbox }],

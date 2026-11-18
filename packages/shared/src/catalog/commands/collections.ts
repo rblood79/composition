@@ -1687,7 +1687,15 @@ export const insertTableRow =
       draft.create({
         ...entry,
         ...(column ? tableColumnHiding(draft, column) : {}),
-        ...(checkbox ? { props, children: [checkbox.id] } : {}),
+        // (A plain Cell: the Cell original's Text would stand beside the Checkbox.)
+        ...(checkbox
+          ? {
+              definitionId:
+                "lib:definition:type-Cell" as NodeEntry["definitionId"],
+              props,
+              children: [checkbox.id],
+            }
+          : {}),
       });
     }
     // (A row whose definition brings cells of its own — a reusable row's — would hold more.)

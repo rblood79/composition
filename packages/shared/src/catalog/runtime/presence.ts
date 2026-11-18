@@ -1168,6 +1168,8 @@ export function catalogHiddenAtRest(
   if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
   // ADR-257 Phase 3: a highlight-selection Table has no selection checkbox column (S2).
   if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
+  // S2 `ColumnWithMenu`: a Column's ⋮ only while it has its menu.
+  if (catalogColumnMenuIconHidden(node, get, typeOf)) return true;
   // A Tree · GridList · CardView item's selection Checkbox only for checkbox selection (S2).
   if (catalogSelectionCheckboxHidden(node, get, typeOf)) return true;
   // S2 Dialog `isDismissible`: its close button replaces its ButtonGroup (2026-11-18).
@@ -1938,12 +1940,6 @@ export function catalogTreeChevronGlyphItem(
   return button ? catalogTreeChevronButtonItem(button, get, typeOf) : undefined;
 }
 
-/**
- * The box of a sortable Column's sort indicator (G5 example 11 — the reference's
- * `span.sort-indicator`: a 16px chevron, `padding: 0 2px`).
- */
-export const CATALOG_COLUMN_SORT_INDICATOR_WIDTH = 20;
-
 /** A sortable Column in a Table's header (`allowsSorting` — RAC's sort operation). */
 function sortableTableColumn(
   column: CatalogConsumerNode,
@@ -1962,49 +1958,85 @@ function sortableTableColumn(
   );
 }
 
-/** A Column's name Group — its first Group (layout frames skipped; the reference's `.column-name`). */
-export function catalogColumnNameGroup(
+/**
+ * A Column's content wrapper — its first frame (S2 `ColumnContents`' `div`, flex · centered · the
+ * column's `align` as `justifyContent`).
+ */
+export function catalogColumnContent(
   column: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   return typeOf(column) === "Column"
-    ? partChildrenOf(column, get, typeOf).find(
-        (child) => typeOf(child) === "Group",
-      )
+    ? childrenOf(column, get).find((child) => typeOf(child) === "frame")
     : undefined;
 }
 
 /**
- * G5 example 11 (2026-10-12) — the sortable Column whose name Group `node` is. The reference puts
- * the sort indicator right after that Group, always — hidden while the column is not sorted
- * (`visibility: hidden`, its box stays): the DOM renders it there (`tableOperationsDom.tsx`), the
- * Canvas — never sorted — keeps its box beside the name (a Column without a name Group: at its
- * end — `catalogColumnSortsAtEnd`).
+ * The sortable Column whose content wrapper `node` is: S2 draws the sort arrow there, before the
+ * name, only while the column is sorted (`sortDirection != null`) — the DOM (`CatalogSortIndicator`);
+ * the Canvas is never sorted and keeps no box for it.
  */
-export function catalogColumnSortNameGroup(
+export function catalogColumnSortContent(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  if (typeOf(node) !== "Group") return undefined;
-  const column = catalogPartParent(node, get, typeOf);
+  if (typeOf(node) !== "frame") return undefined;
+  const column = get(node.parentId);
   return column &&
     sortableTableColumn(column, get, typeOf) &&
-    catalogColumnNameGroup(column, get, typeOf)?.id === node.id
+    catalogColumnContent(column, get, typeOf)?.id === node.id
     ? column
     : undefined;
 }
 
-/** A sortable Column without a name Group: its sort indicator follows its content. */
-export function catalogColumnSortsAtEnd(
+/**
+ * S2 `ColumnWithMenu`: a Column with a menu (`allowsResizing` — S2's `menuItems` is not authored
+ * here) puts its content in a menu Button ending in a ⋮ (`MoreVertical`). The ⋮ Icon of its content
+ * wrapper is there only then.
+ */
+export function catalogColumnMenuIconHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "Icon") return false;
+  const wrapper = get(node.parentId);
+  const column = wrapper && get(wrapper.parentId);
+  return (
+    !!column &&
+    typeOf(column) === "Column" &&
+    catalogColumnContent(column, get, typeOf)?.id === wrapper.id &&
+    column.props.allowsResizing !== true
+  );
+}
+
+/** S2 `ColumnWithMenu`: the content wrapper `node` of a Column with a menu (`allowsResizing`). */
+export function catalogColumnMenuContent(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "frame") return false;
+  const column = get(node.parentId);
+  return (
+    !!column &&
+    typeOf(column) === "Column" &&
+    column.props.allowsResizing === true &&
+    catalogColumnContent(column, get, typeOf)?.id === node.id
+  );
+}
+
+/** A sortable Column without a content wrapper: its sort arrow goes before its content. */
+export function catalogColumnSortsInline(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
   return (
     sortableTableColumn(node, get, typeOf) &&
-    !catalogColumnNameGroup(node, get, typeOf)
+    !catalogColumnContent(node, get, typeOf)
   );
 }
 
@@ -3951,16 +3983,17 @@ export function catalogDerivedPropsDependents(
     ...catalogColorControlParts(owner, get, typeOf),
     // (A Table's select-all checkboxes follow its selection mode and its rows — Phase 5i-2.)
     ...catalogTableSelectAllCheckboxes(owner, get, typeOf),
+    // (A Column's menu ⋮ follows its `allowsResizing` — S2 `ColumnWithMenu`.)
+    ...(typeOf(owner) === "Column"
+      ? [catalogColumnContent(owner, get, typeOf)]
+          .filter((wrapper): wrapper is CatalogConsumerNode => !!wrapper)
+          .flatMap((wrapper) => childrenOf(wrapper, get))
+          .filter((child) => typeOf(child) === "Icon")
+      : []),
     // (ADR-257: its Table's header row and Rows lay out on the Columns' tracks.)
     ...catalogTableTrackDependents(owner, get, typeOf),
     // (ADR-300 Decision 3 ⑤: a panel's · nav's · item's change re-derives the parts below.)
     ...catalogSideNavDependents(owner, get, typeOf),
-    // (A Column's name Group keeps the sort indicator's box while it sorts — G5 example 11.)
-    ...(typeOf(owner) === "Column"
-      ? [catalogColumnNameGroup(owner, get, typeOf)].filter(
-          (group): group is CatalogConsumerNode => !!group,
-        )
-      : []),
     // The box a quiet field's own rule styles (`ownerStyledQuietBox`).
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),

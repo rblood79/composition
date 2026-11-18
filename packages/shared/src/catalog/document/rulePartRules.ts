@@ -70,6 +70,8 @@ const SUBPART_TOKENS: Readonly<
   Label: { Icon: ['.react-aria-Icon[slot="necessity-icon"]'] },
   // ADR-253: the trigger is a Button instance (its own class token) holding the value and an Icon.
   Select: { SelectValue: [".react-aria-SelectValue"] },
+  // S2 TableView: a Column's content wrapper (`ColumnContents` `div` — a frame node).
+  Column: { frame: ["div"] },
   // ADR-253: the container holds an Input instance and a FieldButton instance (their own tokens).
   ComboBox: { Group: [".combobox-container"] },
   // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
@@ -1644,11 +1646,10 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   Tab: { density: "density", orientation: "orientation" },
   // ADR-257 Phase 3: S2 Column `align` · Cell `align` · `showDivider`, and the Table's
   // `overflowMode` (carried to its Columns · Cells — `CATALOG_OVERFLOW_MODE_OWNERS`).
-  // (and a sortable Column's row — the reference's `.column-header`, G5 example 11)
   Column: {
     align: "align",
     "overflow-mode": "overflowMode",
-    "allows-sorting": "allowsSorting",
+    "allows-resizing": "allowsResizing",
   },
   Cell: {
     align: "align",

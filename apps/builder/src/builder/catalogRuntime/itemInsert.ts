@@ -419,12 +419,13 @@ export function catalogItemInsertChoices(
       const row = rows.find(
         (child) => typeOf(graph, child.definitionId) === "Row",
       );
+      // (The row's data cells' definition — its last Cell: S2's selection cell comes first.)
       const cellDefinition =
         (row &&
           readModel
             .childRows(row)
-            .find((child) => typeOf(graph, child.definitionId) === "Cell")
-            ?.definitionId) ??
+            .filter((child) => typeOf(graph, child.definitionId) === "Cell")
+            .at(-1)?.definitionId) ??
         catalogPaletteDefinitionId(graph.library, "Cell");
       return insertTableRow({
         body: parent,

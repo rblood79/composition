@@ -4,10 +4,7 @@ import {
   tableHeaderColumns,
   tableHeaderPosition,
 } from "../../../../../../../packages/shared/src/catalog/commands";
-import {
-  type CatalogCommand,
-} from "../../../../../../../packages/shared/src/catalog/commands/compose";
-import { catalogTypeDefinitionId } from "../../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { type CatalogCommand } from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import type {
   NodeEntry,
   NodeId,
@@ -18,6 +15,7 @@ import type {
   DataTable,
 } from "../../../../types/builder/data.types";
 import { catalogCollectionId } from "../../../catalogRuntime/dataBinding";
+import { catalogPaletteDefinitionId } from "../../../catalogRuntime/paletteInsert";
 import { catalogBindingCommand } from "../../../catalogRuntime/dataBindingCommand";
 import { catalogTargetTypeName } from "../../../catalogRuntime/interactions";
 import { catalogRouteIdOf } from "../../../catalogRuntime/project";
@@ -151,7 +149,8 @@ export function createCatalogQuickConnectHost(
                 entries: [
                   column(
                     id,
-                    catalogTypeDefinitionId(
+                    catalogPaletteDefinitionId(
+                      workspace.runtime.graph.library,
                       "Cell",
                     ) as NodeEntry["definitionId"],
                   ),

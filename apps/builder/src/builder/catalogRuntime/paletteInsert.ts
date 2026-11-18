@@ -40,11 +40,19 @@ export interface CatalogPaletteHost {
  * old palette made every such item an instance of that origin, ADR-228), else the type's
  * definition.
  */
+/**
+ * Part types whose new node is an original's instance though they are no palette reusable: S2
+ * TableView's data cell is `Cell > Text{children}` (S2 `cellContent` span — 2026-11-19).
+ */
+const PART_ORIGINS: Readonly<Record<string, string>> = {
+  Cell: "component-table-cell",
+};
+
 export function catalogPaletteDefinitionId(
   library: CatalogLibrary,
   type: string,
 ): LibraryDefinitionId {
-  const reusableId = getReusableOriginId(type);
+  const reusableId = getReusableOriginId(type) ?? PART_ORIGINS[type];
   const origin = reusableId && `lib:definition:origin-${reusableId}`;
   return origin && library.definitions.has(origin as LibraryDefinitionId)
     ? (origin as LibraryDefinitionId)
@@ -66,8 +74,7 @@ export function catalogCreationProps(
   initialProps?: Readonly<Record<string, unknown>>,
 ): Record<string, PropWrites[string]> {
   const definition = reader.library.definitions.get(definitionId) as
-    | { accepts?: Readonly<Record<string, unknown>> }
-    | undefined;
+    { accepts?: Readonly<Record<string, unknown>> } | undefined;
   const accepts = definition?.accepts ?? {};
   const props: Record<string, PropWrites[string]> = {};
   const given: Record<string, unknown> = {
@@ -82,9 +89,8 @@ export function catalogCreationProps(
     const initial = initialProps !== undefined && key in initialProps;
     if (!(key in accepts) && !initial) continue;
     if (
-      JSON.stringify(
-        readDefinitionProp(reader, definitionId, key),
-      ) !== JSON.stringify(value)
+      JSON.stringify(readDefinitionProp(reader, definitionId, key)) !==
+      JSON.stringify(value)
     )
       props[key] = { kind: "set", value } as PropWrites[string];
   }

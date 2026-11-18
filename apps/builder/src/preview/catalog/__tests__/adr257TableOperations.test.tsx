@@ -181,28 +181,30 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     const history = workspace.history.getSnapshot().labels.length;
     expect(firstCells(view.container)).toEqual(["b10", "a", "b9", "C"]);
     const name = header(view.container, "Name");
-    // (G5 example 11 — the reference's indicator is there at rest, after the name: a chevron the
-    // sheet hides while the column is not sorted, its box kept.)
-    const indicator = () => name.querySelector(".sort-indicator")!;
-    expect(indicator().getAttribute("aria-hidden")).toBe("true");
+    // (S2 `ColumnContents`: no sort arrow at rest — `sortDirection != null &&`; while sorted, the
+    // up · down arrow before the name.)
+    const arrow = () => name.querySelector(".sort-indicator");
+    expect(arrow()).toBeNull();
     expect(name.hasAttribute("data-sort-direction")).toBe(false);
-    expect(name.lastElementChild).toBe(indicator());
-    const chevronDown = indicator().innerHTML;
     act(() => {
       fireEvent.click(name);
     });
     // Numeric-aware, case-insensitive text order (b9 before b10).
     expect(firstCells(view.container)).toEqual(["a", "b9", "b10", "C"]);
     expect(name.getAttribute("aria-sort")).toBe("ascending");
-    // (A chevron up while ascending, down otherwise — the reference's ChevronUp · ChevronDown.)
     expect(name.getAttribute("data-sort-direction")).toBe("ascending");
-    expect(indicator().innerHTML).not.toBe(chevronDown);
+    expect(arrow()!.getAttribute("aria-hidden")).toBe("true");
+    expect(arrow()!.getAttribute("data-sort-direction")).toBe("ascending");
+    // (Before the name: the Column's first child — this Column has no content wrapper.)
+    expect(name.firstElementChild).toBe(arrow());
+    const arrowUp = arrow()!.innerHTML;
     act(() => {
       fireEvent.click(name);
     });
     expect(firstCells(view.container)).toEqual(["C", "b10", "b9", "a"]);
     expect(name.getAttribute("aria-sort")).toBe("descending");
-    expect(indicator().innerHTML).toBe(chevronDown);
+    expect(arrow()!.getAttribute("data-sort-direction")).toBe("descending");
+    expect(arrow()!.innerHTML).not.toBe(arrowUp);
     // Nothing reached the document: no history step, the Builder's rows in document order.
     expect(workspace.history.getSnapshot().labels.length).toBe(history);
     const body = workspace.root.domInputs.get(
@@ -213,6 +215,37 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
         (rowId) => workspace.root.domInputs.get(rowId)!.sourceId,
       ),
     ).toEqual([id("r0"), id("r1"), id("r2"), id("r3")]);
+  });
+
+  it("S2 `ColumnContents`: a Column with its content wrapper sorts with the arrow inside it, before the name", async () => {
+    const { view } = await open(() => {
+      const [table, header, c0, ...rest] = authoredTable({
+        allowsSorting: true,
+      })();
+      return [
+        table!,
+        header!,
+        { ...c0!, children: [id("c0-content")] } as NodeEntry,
+        node("c0-content", "frame", ["c0-name"]),
+        {
+          ...node("c0-name", "Text", [], { children: "Name" }),
+          definitionId: "lib:definition:text",
+        } as NodeEntry,
+        ...rest,
+      ];
+    });
+    const name = header(view.container, "Name");
+    const wrapper = name.firstElementChild!;
+    expect(wrapper.tagName).toBe("DIV");
+    expect(wrapper.querySelector(".sort-indicator")).toBeNull();
+    act(() => {
+      fireEvent.click(name);
+    });
+    expect(firstCells(view.container)).toEqual(["a", "b9", "b10", "C"]);
+    expect(wrapper.firstElementChild!.getAttribute("class")).toBe(
+      "sort-indicator",
+    );
+    expect(wrapper.lastElementChild!.textContent).toBe("Name");
   });
 
   it("a column without allowsSorting does not sort", async () => {
@@ -351,6 +384,57 @@ describe("ADR-257 Phase 4b — Preview column resizing (S2 Column allowsResizing
         ".react-aria-ColumnResizer",
       ),
     ).toBeNull();
+  });
+
+  it("S2 `ColumnWithMenu`: a resizable column's content is a menu Button (name · ⋮); its menu sorts and starts a resize; the resizer sits in a `div` RAC focus skips", async () => {
+    const { view } = await open(() => {
+      const [table, header, c0, ...rest] = authoredTable({
+        allowsSorting: true,
+        allowsResizing: true,
+      })();
+      return [
+        table!,
+        header!,
+        { ...c0!, children: [id("c0-content")] } as NodeEntry,
+        node("c0-content", "frame", ["c0-name", "c0-menu"]),
+        {
+          ...node("c0-name", "Text", [], { children: "Name" }),
+          definitionId: "lib:definition:text",
+        } as NodeEntry,
+        node("c0-menu", "Icon", [], { iconName: "ellipsis-vertical" }),
+        ...rest,
+      ];
+    });
+    const name = header(view.container, "Name");
+    const button = name.querySelector("button") as HTMLElement;
+    expect(button).not.toBeNull();
+    expect(button.getAttribute("aria-haspopup")).toBe("true");
+    expect(button.textContent).toBe("Name");
+    // (the ⋮ after the name)
+    expect(button.lastElementChild!.querySelector("svg")).not.toBeNull();
+    const resizer = name.querySelector(".react-aria-ColumnResizer")!;
+    expect(
+      resizer.parentElement!.getAttribute("data-react-aria-prevent-focus"),
+    ).toBe("true");
+    act(() => {
+      fireEvent.click(button);
+    });
+    const items = () =>
+      [...document.querySelectorAll("[role='menuitem']")] as HTMLElement[];
+    expect(items().map((item) => item.textContent)).toEqual([
+      "Sort Ascending",
+      "Sort Descending",
+      "Resize column",
+    ]);
+    act(() => {
+      fireEvent.click(items()[0]!);
+    });
+    expect(firstCells(view.container)).toEqual(["a", "b9", "b10", "C"]);
+    expect(name.getAttribute("aria-sort")).toBe("ascending");
+    // (the arrow opens the button's content, before the name)
+    expect(button.firstElementChild!.getAttribute("class")).toBe(
+      "sort-indicator",
+    );
   });
 
   it("a Table without a resizable column is not wrapped", async () => {

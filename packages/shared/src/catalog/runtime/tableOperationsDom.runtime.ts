@@ -34,39 +34,77 @@ export const CatalogColumnSortContext = createContext<
 >(null);
 
 /**
- * A RAC Column's children with its operations: the sort direction for its sort indicator (after
- * the name Group — `CatalogSortIndicator`), RAC's `ColumnResizer` when it resizes, and (in one
- * Column of a resizable Table) the track writer.
+ * S2 `ColumnWithMenu` — what the menu of the Column being rendered does (RAC's Column render props
+ * `sort` · `startResize`): `null` outside a Column with a menu.
+ */
+export interface CatalogColumnMenu {
+  readonly allowsSorting: boolean;
+  readonly sort: (direction: "ascending" | "descending") => void;
+  readonly startResize: () => void;
+}
+export const CatalogColumnMenuContext = createContext<CatalogColumnMenu | null>(
+  null,
+);
+
+/**
+ * A RAC Column's children with its operations: the sort direction for its sort arrow (S2
+ * `ColumnContents` — inside its content wrapper, `CatalogSortIndicator`; a Column without one gets
+ * it before its content), RAC's `ColumnResizer` when it resizes, and (in one Column of a resizable
+ * Table) the track writer.
  */
 export function catalogColumnChildren(
   content: readonly ReactNode[],
   options: {
     readonly sortable: boolean;
-    /** A Column without a name Group: the indicator follows its content. */
-    readonly sortsAtEnd: boolean;
+    /** A Column without a content wrapper: the arrow goes before its content. */
+    readonly sortsInline: boolean;
     readonly resizable: boolean;
     readonly writesTracks: boolean;
   },
-): (values: { sortDirection?: string }) => ReactNode {
-  return ({ sortDirection }) => [
-    options.sortable
+): (values: {
+  sortDirection?: string;
+  sort?: (direction: "ascending" | "descending") => void;
+  startResize?: () => void;
+}) => ReactNode {
+  return ({ sortDirection, sort, startResize }) => {
+    const sorted = options.sortable
       ? createElement(
           CatalogColumnSortContext.Provider,
           { key: "content", value: sortDirection },
-          ...content,
-          options.sortsAtEnd
+          options.sortsInline
             ? createElement(CatalogSortIndicator, { key: "sort-indicator" })
             : null,
+          ...content,
         )
-      : content,
-    options.resizable
-      ? createElement(ColumnResizer, {
-          key: "resizer",
-          "aria-label": "Resize column",
-        })
-      : null,
-    options.writesTracks
-      ? createElement(CatalogTableResizeTracks, { key: "tracks" })
-      : null,
-  ];
+      : content;
+    return [
+      // (S2 `ColumnWithMenu` — a resizable Column's content is its menu Button: the menu sorts
+      //  through RAC's `sort` and starts a resize through `startResize`.)
+      options.resizable && sort && startResize
+        ? createElement(
+            CatalogColumnMenuContext.Provider,
+            {
+              key: "menu",
+              value: { allowsSorting: options.sortable, sort, startResize },
+            },
+            sorted,
+          )
+        : sorted,
+      // (S2: the resizer in a `div` RAC's focus skips — `data-react-aria-prevent-focus`.)
+      options.resizable
+        ? createElement(
+            "div",
+            { key: "resizer", "data-react-aria-prevent-focus": "true" },
+            // (S2 marks the resizer too; RAC's `ColumnResizerProps` do not type data attributes.)
+            createElement(ColumnResizer, {
+              ...({ "data-react-aria-prevent-focus": "true" } as object),
+              "aria-label": "Resize column",
+            }),
+          )
+        : null,
+      options.writesTracks
+        ? createElement(CatalogTableResizeTracks, { key: "tracks" })
+        : null,
+    ];
+  };
 }

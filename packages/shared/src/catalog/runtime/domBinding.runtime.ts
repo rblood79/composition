@@ -231,6 +231,7 @@ import {
   catalogPickerTimeAbsent,
   catalogSelectionCheckboxHidden,
   catalogMenuSeparatorHidden,
+  catalogColumnMenuIconHidden,
 } from "./presence";
 import { catalogSelectionGroupOf } from "./groupSelection";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
@@ -257,8 +258,9 @@ import {
   catalogAccordionOf,
   catalogCalendarNavButton,
   catalogCalendarNavButtonGlyph,
-  catalogColumnSortNameGroup,
-  catalogColumnSortsAtEnd,
+  catalogColumnMenuContent,
+  catalogColumnSortContent,
+  catalogColumnSortsInline,
   catalogContextualHelpOfTrigger,
   catalogIllustrationInDropZone,
   catalogDisclosureOfHeading,
@@ -300,6 +302,7 @@ import { type CatalogStateStyles } from "./stateStyles";
 import {
   catalogColumnChildren,
   catalogResizableTracks,
+  CatalogColumnMenuButton,
   CatalogSortIndicator,
 } from "./tableOperationsDom";
 
@@ -3055,7 +3058,7 @@ function ruleDom(
     operationsTable
       ? {
           sortable: node.props.allowsSorting === true,
-          sortsAtEnd: catalogColumnSortsAtEnd(node, domGet, domType),
+          sortsInline: catalogColumnSortsInline(node, domGet, domType),
           resizable: node.props.allowsResizing === true,
           // (One Column of a resizable Table writes RAC's widths as the rows' tracks.)
           writesTracks:
@@ -4362,6 +4365,12 @@ export function renderNode(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,
+    ) ||
+    // (S2 `ColumnWithMenu`: a Column's ⋮ only while it has its menu.)
+    catalogColumnMenuIconHidden(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
     )
   )
     return null;
@@ -4461,6 +4470,18 @@ export function renderNode(
         : element,
     ];
   });
+  // A sortable Column's sort arrow opens its content wrapper, before the name (S2
+  // `ColumnContents` — drawn only while sorted, `CatalogSortIndicator`).
+  if (
+    catalogColumnSortContent(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )
+  )
+    children.unshift(
+      createElement(CatalogSortIndicator, { key: "sort-indicator" }),
+    );
   // A bound Table's end loads its next page (`TableLoadMoreItem` — `onLoadMore`, S2 TableView).
   if (node.ruleId === "TableBody") {
     const table = root.domInputs.get(node.parentId);
@@ -5050,12 +5071,19 @@ export function renderNode(
         )
       : ruleDom(root, node, children, context);
   const slot = itemSlotRole(root, node);
+  // S2 `ColumnWithMenu`: a resizable Column's content wrapper is its menu Button (Preview).
+  const menuWrapped = catalogColumnMenuContent(node, domGet, domType)
+    ? createElement(CatalogColumnMenuButton, {
+        key: node.id,
+        element: rendered as ReactElement,
+      })
+    : rendered;
   const named = withHtmlId(
     root,
     node,
     slot
-      ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
-      : rendered,
+      ? cloneElement(menuWrapped as ReactElement<{ slot?: string }>, { slot })
+      : menuWrapped,
   );
   // ADR-259 Phase 2: a field's prefix carries the id its input's name points at (S2 `FieldGroup`).
   const prefixParent =
@@ -5093,16 +5121,7 @@ export function renderNode(
           ),
       ),
     });
-  // A sortable Column's sort indicator follows its name Group (G5 example 11 — the reference's
-  // `span.sort-indicator`, `catalogColumnSortNameGroup`).
-  return catalogColumnSortNameGroup(node, domGet, domType)
-    ? createElement(
-        Fragment,
-        { key: node.id },
-        element,
-        createElement(CatalogSortIndicator, { key: "sort-indicator" }),
-      )
-    : element;
+  return element;
 }
 
 /**

@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 TableView 구조 — Table 의 Column · Cell · Column 메뉴] - 2026-11-19
+
+사용자 요청 「table 도 S2 (TableView) 와 같은 구조 패턴으로」 — 설치된 `@react-spectrum/s2` 1.8.2 `TableView.tsx` 대조. 사용자 결정: Cell 글자는 Text 노드로 · Column 메뉴는 S2 대로.
+
+### Changed
+
+- **Column 머리 칸 내용** — S2 `ColumnContents` 처럼 `Column > frame (flex · 가운데 · 열 `align` 에 따라 정렬) > Text`. 그전에는 RAC 예제의 `Group[role=presentation]` 이었고, Canvas 는 끝 정렬 (`align: end`) 머리 글자를 시작 쪽에 그렸다.
+- **정렬 화살표** — S2 처럼 정렬됐을 때만 글자 **앞**에 위 · 아래 화살표 (16 · 끝 여백 8). 그전에는 RAC 예제처럼 글자 뒤 chevron 이 늘 자리를 차지했다 (Canvas 가 정렬 가능한 열의 글자 칸을 20 줄였다).
+- **Cell 내용** — 표 칸은 S2 `cellContent` 처럼 `Cell > Text` (Cell 원본 — Cell 의 글자가 Text 의 `{children}`). 줄임 (한 줄 · 말줄임) · 줄바꿈 · 정렬이 Text 에 걸린다. 팔레트 Table · 행 추가 · 열 추가 · 데이터 연결 · Quick Connect · 칸 합치기가 만드는 칸이 모두 원본 instance 이고, 선택 칸은 Checkbox 만 담은 plain Cell 그대로. 이미 있는 문서의 plain Cell 은 지금처럼 글자를 직접 그린다.
+
+### Added
+
+- **Column 메뉴** (S2 `ColumnWithMenu`) — 크기 조절 가능한 열 (`allowsResizing`) 은 머리 칸이 메뉴 Button 이다: 이름 뒤 ⋮, 누르면 「Sort Ascending · Sort Descending」 (정렬 가능할 때) · 「Resize column」 (S2 문구 — ko · ja · zh 번역). 크기 조절은 메뉴에서 시작하고 (키보드 화살표로 조정), 끌기 손잡이는 RAC focus 가 건너뛰는 `div` 안에 둔다. 그 열은 좌우 여백이 Button 으로 옮겨 가고 (S2 `paddingX: isMenu 0` · Button 16) 끝에 1px 선이 생긴다. Canvas 도 ⋮ · 여백 · 끝 선을 같이 그린다.
+
+### Notes
+
+- S2 와 남은 차이: S2 TableView 의 뿌리는 늘 `ResizableTableContainer` + 가상화 div 격자이고 우리는 크기 조절 열이 있을 때만 감싼 `<table>` 이다 (열 폭 계산이 RAC 폭으로 바뀌어 모든 Table 의 배치가 달라지므로 이번에 바꾸지 않음). S2 `menuItems` (사용자 메뉴 항목) 는 저작 표면이 없다. ⋮ · 화살표는 우리 아이콘 (lucide `ellipsis-vertical` · `arrow-up/down`) 이다.
+- 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (Column 원본 · Cell 원본 `component-table-cell`) · `generated/componentRulesTable.ts` (Column `align` · `allows-resizing`, Cell 의 Text 블록) · `document/manualBoxRules.ts` (메뉴 열 끝 선) · `runtime/presence.ts` · `runtime/tableOperationsDom.*` (`CatalogSortIndicator` · `CatalogColumnMenuButton`) · `runtime/domBinding.runtime.ts` · 회귀 `apps/builder/src/builder/catalogRuntime/__tests__/s2TableViewStructure.test.tsx` · `adr257TableOperations.test.tsx` · `adr310TableTemplate.test.tsx`
+
 ## [ADR-314 — Skeleton 을 S2 래퍼로 (Implemented, Breaking · contract 71)] - 2026-11-18
 
 ADR-314 Implemented (G6 — 사용자 확인, 샘플 프로젝트 「Skeleton 샘플」). [본문](adr/completed/314-skeleton-s2-wrapper.md)

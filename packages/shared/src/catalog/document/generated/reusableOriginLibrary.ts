@@ -1824,6 +1824,20 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-table-column"
   },
   {
+    "id": "lib:definition:origin-component-table-cell",
+    "name": "Cell",
+    "mode": "composite",
+    "accepts": {
+      "children": "string"
+    },
+    "defaults": {
+      "children": ""
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-table-cell"
+  },
+  {
     "id": "lib:definition:origin-component-table-row",
     "name": "Row",
     "mode": "composite",
@@ -6439,7 +6453,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-table__2_1_1",
-    "definitionId": "lib:definition:type-Cell",
+    "definitionId": "lib:definition:origin-component-table-cell",
     "children": [],
     "props": {
       "children": "Item 1"
@@ -6448,7 +6462,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-table__2_1_2",
-    "definitionId": "lib:definition:type-Cell",
+    "definitionId": "lib:definition:origin-component-table-cell",
     "children": [],
     "props": {
       "children": "File"
@@ -6457,7 +6471,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-table__2_1_3",
-    "definitionId": "lib:definition:type-Cell",
+    "definitionId": "lib:definition:origin-component-table-cell",
     "children": [],
     "props": {
       "children": "Active"
@@ -9366,14 +9380,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-table-column__name",
-    "definitionId": "lib:definition:type-Group",
+    "definitionId": "lib:definition:type-frame",
     "children": [
-      "lib:template:component-table-column__label"
+      "lib:template:component-table-column__label",
+      "lib:template:component-table-column__menu"
     ],
-    "props": {
-      "role": "presentation"
+    "props": {},
+    "layout": {
+      "display": "flex",
+      "alignItems": "center"
     },
-    "visual": {}
+    "visual": {
+      "width": "100%",
+      "minWidth": 0
+    }
   },
   {
     "id": "lib:template:component-table-column__label",
@@ -9384,6 +9404,40 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {
       "fontWeight": 600
+    }
+  },
+  {
+    "id": "lib:template:component-table-column__menu",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "ellipsis-vertical",
+      "size": "XS"
+    },
+    "layout": {
+      "marginLeft": "6px",
+      "flexShrink": "0"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table-cell",
+    "definitionId": "lib:definition:type-Cell",
+    "children": [
+      "lib:template:component-table-cell__text"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table-cell__text",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{children}"
+    },
+    "visual": {
+      "width": "100%"
     }
   },
   {
