@@ -135,7 +135,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         kind: "boolean",
         label: "Hide time zone",
         section: "locale",
-        default: true,
+        default: false,
       },
       name: { kind: "string", label: "Name", section: "forms" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

@@ -328,6 +328,7 @@ import {
   CatalogDateSegment,
   CatalogDomNode,
 } from "./domBinding.components";
+import { BUTTON_FORM_FOCUS_ACCEPTS } from "../bindings/Button.binding";
 import {
   catalogRacOwnsText,
   catalogValueKeysIn,
@@ -1256,17 +1257,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             isPending: node.props.isPending,
             autoFocus: node.props.autoFocus,
             isDisabled: buttonDisabled(node) || node.props.isDisabled,
-            // (2026-11-14) S2 form · focus props (binding — editorHidden).
-            name: node.props.name,
-            value: node.props.value,
-            form: node.props.form,
-            formAction: node.props.formAction,
-            formMethod: node.props.formMethod,
-            formEncType: node.props.formEncType,
-            formTarget: node.props.formTarget,
-            formNoValidate: node.props.formNoValidate,
-            excludeFromTabOrder: node.props.excludeFromTabOrder,
-            preventFocusOnPress: node.props.preventFocusOnPress,
+            ...buttonFormFocusProps(node),
             ...racSlotProps(resolution),
             style,
           } as Parameters<typeof ActionButton>[0],
@@ -2432,6 +2423,16 @@ const buttonDisabled = (node: CatalogConsumerNode) =>
   node.props.isDisabled === true || node.derivedProps?.isDisabled === true;
 
 /** A Button node's element (its RAC slot resolved in the parent's Button context). */
+/** S2 form · focus props of a Button · ActionButton (binding — editorHidden): the authored ones. */
+function buttonFormFocusProps(
+  node: CatalogConsumerNode,
+): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+  for (const key of Object.keys(BUTTON_FORM_FOCUS_ACCEPTS))
+    if (node.props[key] !== undefined) props[key] = node.props[key];
+  return props;
+}
+
 function buttonElement(
   node: CatalogConsumerNode,
   style: CSSProperties,
@@ -2484,6 +2485,7 @@ function buttonElement(
       //  `buttonPending.ts`; RAC marks the element and blocks the press.)
       ...(node.props.isPending === true ? { isPending: true } : {}),
       ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
+      ...buttonFormFocusProps(node),
       // RAC's named slot of the parent this Button belongs to (a NumberField's steppers) —
       // ADR-256 Decision 4: the slot the context resolves to (`null` = detached).
       ...racSlotProps(resolution),
@@ -2891,8 +2893,8 @@ const MARKER_WRAPPED_RULE_TYPES: ReadonlySet<string> = new Set<string>();
  * (the Preview's delegating renderers) need their own binding and fail here explicitly.
  */
 /**
- * Whether an Image is in an S2 Card's `CardPreview` (layout frames skipped) — there it is S2's
- * Image (a box around its `img`); elsewhere the RAC examples' plain `img`.
+ * Whether an Image is in an S2 Card's `CardPreview` (layout frames skipped) — there the Card's sheet
+ * paints its placeholder; elsewhere the Image rule's rest paint goes inline.
  */
 function imageInS2CardPreview(
   root: CatalogCompositionRoot,
@@ -3290,33 +3292,29 @@ function ruleDom(
     // (S2 InlineAlert `fillStyle` — the generated `[data-fill-style]` blocks.)
     if (typeof node.props.fillStyle === "string")
       dataAttrs["data-fill-style"] = String(node.props.fillStyle);
-    // An Image outside an S2 Card's preview is the RAC examples' plain `img` (G5 example 10 — the
-    // GridList item's photo): the element is the box (no source — the placeholder fill).
-    if (type === "Image" && !imageInS2CardPreview(root, node)) {
-      // (The placeholder is the Image rule's rest paint — S2 `Image` wrapper `gray-100`, the Canvas box's;
-      //  the rule has no generated sheet, so it goes inline under an authored fill. ADR-297 후속 ⑤.)
-      const rule = node.ruleId
+    // S2 `Image` (2026-11-18 — every Image, not only a Card preview's): a box around its `img`. Outside
+    // an S2 Card's preview the box carries the placeholder — the Image rule's rest paint, S2 wrapper
+    // `gray-100`, the Canvas box's; the rule has no generated sheet, so it goes inline under an
+    // authored fill (ADR-297 후속 ⑤). S2's wrapper clips (`overflow: hidden`).
+    const imageRule =
+      type === "Image" && !imageInS2CardPreview(root, node) && node.ruleId
         ? root.runtime.graph.library.rules.get(node.ruleId)
         : undefined;
-      const placeholder = paintAt(
-        rule?.variants[rule.defaultVariant ?? "default"]?.paint.backgroundColor,
-      );
-      return createElement("img", {
-        key: node.id,
-        "data-catalog-id": node.id,
-        slot: catalogDomSlot(node),
-        className: "react-aria-Image",
-        ...imageElementProps(node.props),
-        ...dataAttrs,
-        style: {
-          objectFit: "cover",
-          ...(placeholder?.startsWith("{")
-            ? { backgroundColor: tokenToCSSVar(placeholder as TokenRef) }
-            : {}),
-          ...style,
-        },
-      });
-    }
+    const imagePlaceholder = paintAt(
+      imageRule?.variants[imageRule.defaultVariant ?? "default"]?.paint
+        .backgroundColor,
+    );
+    const imageBox: CSSProperties | undefined =
+      type === "Image"
+        ? {
+            overflow: "hidden",
+            ...(imagePlaceholder?.startsWith("{")
+              ? {
+                  backgroundColor: tokenToCSSVar(imagePlaceholder as TokenRef),
+                }
+              : {}),
+          }
+        : undefined;
     // S2 InlineAlert's variant icon — first, as S2 renders it (`catalogInlineAlertIcon`; the
     // Canvas draws the same box, `ruleShapes`).
     const alertIcon =
@@ -3334,7 +3332,9 @@ function ruleDom(
         ...binding?.staticAttrs,
         style: alertIcon
           ? { ...style, position: style.position ?? "relative" }
-          : style,
+          : imageBox
+            ? { ...imageBox, ...style }
+            : style,
       },
       ...(alertIcon
         ? [
@@ -3351,9 +3351,9 @@ function ruleDom(
             }),
           ]
         : []),
-      // In an S2 Card's preview the Image is S2's: a box around its `img` (`@react-spectrum/s2`
-      // 1.8.0 mounted — G5 example 13) — the `img` fills the box (S2 `imgStyles`, the Card's
-      // `objectFit: cover`); with no source it paints nothing, the box keeps the placeholder fill.
+      // The Image is S2's: a box around its `img` (`@react-spectrum/s2` 1.8.2 `Image.tsx`) — the `img`
+      // fills the box (S2 `imgStyles`, cover); with no source it paints nothing, the box keeps the
+      // placeholder fill.
       ...(type === "Image"
         ? [
             createElement("img", {

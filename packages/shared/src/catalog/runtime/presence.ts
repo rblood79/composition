@@ -803,25 +803,13 @@ const CHECKBOX_SELECTION_COLLECTIONS: Readonly<Record<string, string>> = {
   Card: "CardView",
 };
 
-/**
- * The `selectionStyle` a collection uses when its record has none — its binding default: S2's
- * `checkbox`, except the Tree's `highlight` (`Tree.binding.ts` — kept for documents written
- * before the prop).
- */
-const SELECTION_STYLE_DEFAULTS: Readonly<Record<string, string>> = {
-  Tree: "highlight",
-};
-
 /** Whether a collection selects with checkboxes (S2: a selection mode and the `checkbox` style). */
 export function catalogCheckboxSelection(
   collection: CatalogConsumerNode,
-  typeOf: CatalogTypeOf,
 ): boolean {
   const mode = collection.props.selectionMode;
-  const style =
-    collection.props.selectionStyle ??
-    SELECTION_STYLE_DEFAULTS[typeOf(collection)] ??
-    "checkbox";
+  // (No style = S2's `checkbox` — every collection, the Tree too since 2026-11-18 §7-5.)
+  const style = collection.props.selectionStyle ?? "checkbox";
   return (mode === "single" || mode === "multiple") && style === "checkbox";
 }
 
@@ -868,7 +856,7 @@ export function catalogSelectionCheckboxHidden(
   return (
     !collection ||
     typeOf(collection) !== collectionType ||
-    !catalogCheckboxSelection(collection, typeOf)
+    !catalogCheckboxSelection(collection)
   );
 }
 
@@ -2610,7 +2598,7 @@ function fieldSubpartProps(
     out._dateValue = pickerTime ? catalogTimeOfDateValue(shown) : shown;
   if (owner.props.shouldForceLeadingZeros === false)
     out._forceLeadingZeros = false;
-  if (source.props.hideTimeZone === false) out._hideTimeZone = false;
+  if (source.props.hideTimeZone === true) out._hideTimeZone = true;
   const ownLocale = prop("locale");
   const resolvedLocale =
     typeof ownLocale === "string" && ownLocale ? ownLocale : locale;

@@ -33,7 +33,7 @@ export const badgeBinding: PrimitiveBinding = {
         kind: "variant",
         label: "Variant",
         section: "appearance",
-        default: "accent",
+        default: "neutral",
       },
       size: {
         kind: "size",

@@ -363,8 +363,12 @@ it("Image consumes its local context on the actual image root", async () => {
       ),
     );
     expect(ref.current).toBe(h.element(h.ids[0]));
-    expect(ref.current?.tagName).toBe("IMG");
-    expect(ref.current?.getAttribute("alt")).toBe("제공된 대체 텍스트");
+    // S2 `Image` (2026-11-18): the box takes the ref · class, its `img` the alt.
+    expect(ref.current?.tagName).toBe("DIV");
+    expect(ref.current?.hasAttribute("alt")).toBe(false);
+    expect(ref.current?.querySelector("img")?.getAttribute("alt")).toBe(
+      "제공된 대체 텍스트",
+    );
     expect(ref.current?.classList.contains("provided-image")).toBe(true);
     h.declare(h.ids[0], { slot: false });
     expect(h.element(h.ids[0])?.classList.contains("provided-image")).toBe(

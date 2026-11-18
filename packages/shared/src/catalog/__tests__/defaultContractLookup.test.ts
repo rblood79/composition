@@ -71,9 +71,9 @@ describe("resolveBindingSelectionMode — collection 선택 모드 기본값", (
 });
 
 describe("resolveBindingSelectionStyle — 선택 표시 기본값 (r24m1)", () => {
-  it("binding 이 선언한 값을 준다 (GridList checkbox · Tree highlight)", () => {
+  it("binding 이 선언한 값을 준다 (GridList checkbox · Tree checkbox — S2 기본, 2026-11-18 §7-5)", () => {
     expect(resolveBindingSelectionStyle("GridList")).toBe("checkbox");
-    expect(resolveBindingSelectionStyle("Tree")).toBe("highlight");
+    expect(resolveBindingSelectionStyle("Tree")).toBe("checkbox");
   });
 
   it("미선언 타입은 undefined — 호출자의 fallback 이 최후로 남는다", () => {

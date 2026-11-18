@@ -107,12 +107,11 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
   //   호출자가 selectionBehavior 를 직접 준 경우는 그대로 존중.
   const restProps = {
     ...rest,
-    // fallback 이 GridList("toggle")와 다르다 — Tree 는 렌더러가 오래 `"replace"` 를 넘겨
-    //   체크박스 없는 상태가 실질 기본이었다. 무지정 문서의 동작을 보존한다.
+    // S2 TreeView 기본 `checkbox` (= RAC `toggle`) — 2026-11-18 사용자 §7-5 「전부 S2 로」.
     selectionBehavior: resolveSelectionBehavior({
       selectionStyle,
       selectionBehavior: rest.selectionBehavior,
-      fallback: "replace",
+      fallback: "toggle",
     }),
   };
 

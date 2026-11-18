@@ -18,6 +18,7 @@
   height: fit-content;
   max-width: 960px;
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
 
   /* Default variant */

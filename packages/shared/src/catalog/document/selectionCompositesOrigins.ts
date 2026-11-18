@@ -125,14 +125,28 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: "lib:template:component-actionbar",
     definitionId: "lib:definition:type-ActionBar",
+    // S2 `ActionBar.tsx`: the actions' box first in the DOM (their Tab stop first), the clear ·
+    // count box second — shown at the start edge (S2 `order`; the root's `row-reverse` here, the
+    // engine has no `order`).
     children: [
+      "lib:template:component-actionbar__actions-box",
       "lib:template:component-actionbar__summary",
-      "lib:template:component-actionbar__actions",
     ],
     props: {
       selectedItemCount: 1,
     },
     visual: {},
+  },
+  {
+    // S2's `div` around the ActionButtonGroup (`order: 1, marginStart: 'auto'`).
+    id: "lib:template:component-actionbar__actions-box",
+    definitionId: "lib:definition:type-frame",
+    children: ["lib:template:component-actionbar__actions"],
+    props: {},
+    visual: {},
+    layout: {
+      marginLeft: "auto",
+    },
   },
   {
     id: "lib:template:component-actionbar__summary",
@@ -182,10 +196,6 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
       isQuiet: true,
     },
     visual: {},
-    layout: {
-      flexGrow: "1",
-      justifyContent: "flex-end",
-    },
   },
   {
     id: "lib:template:component-actionbar__action1",

@@ -152,7 +152,8 @@ export function Avatar(ownProps: AvatarProps): React.ReactElement {
       {resolvedSrc ? (
         <img
           src={resolvedSrc}
-          alt={alt || "Avatar"}
+          // S2 Avatar `alt = ''` — decorative unless the author names it.
+          alt={alt ?? ""}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       ) : (

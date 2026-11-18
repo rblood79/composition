@@ -171,11 +171,15 @@
   pointer-events: none;
 }
 
-.react-aria-Link.react-aria-Link:where([data-quiet]) {
+.react-aria-Link.react-aria-Link:where([data-standalone="true"][data-quiet]) {
   text-decoration: none;
 }
 
-.react-aria-Link.react-aria-Link:where([data-quiet][data-hovered]) {
+.react-aria-Link.react-aria-Link:where([data-standalone="true"][data-quiet][data-hovered]) {
+  text-decoration: underline;
+}
+
+.react-aria-Link.react-aria-Link:where([data-standalone="true"][data-quiet][data-focus-visible]) {
   text-decoration: underline;
 }
 

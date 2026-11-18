@@ -215,7 +215,12 @@ describe("ADR-256 Phase 5h — TreeItem is the reference's node tree", () => {
   it.each([[[]], [["item-1"]]])(
     "the Tree origin has the reference structure (expandedKeys %j)",
     async (expandedKeys) => {
-      const { html, of } = await open({ expandedKeys });
+      // (The reference's rows carry no selection Checkbox — `highlight`; the Tree's default is S2
+      //  `checkbox` since 2026-11-18, covered below.)
+      const { html, of } = await open({
+        expandedKeys,
+        selectionStyle: "highlight",
+      });
       expect(structure(treeOf(html()))).toBe(
         structure(treeOf(reference(expandedKeys))),
       );

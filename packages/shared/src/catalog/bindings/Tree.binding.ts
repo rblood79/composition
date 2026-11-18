@@ -87,15 +87,13 @@ export const treeBinding: PrimitiveBinding = {
       // 컬렉션 전체 isDisabled 는 2026-09-10 제거 — RAC/RSP 컬렉션은 `disabledKeys`·항목별
       //   isDisabled 만 두고(D2), 이 값은 DOM(wrapper 미소비)·Skia(항목 투영에 부모 상태 없음)
       //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 항목 노드 자신의 isDisabled 다.
-      // RSP TreeView `selectionStyle` (design-data 감사 §1-2 축②, 2026-08-21).
-      //   기본이 GridList 와 다른 `highlight` 인 것은 옛 Preview renderer 가 오래 selectionBehavior:
-      //   "replace" 를 넘겨 체크박스 없는 상태가 실질 기본이었기 때문 — 무지정 문서의 시각을
-      //   보존한다(RSP 기본은 checkbox 지만 기존 문서를 조용히 바꾸지 않는다).
+      // RSP TreeView `selectionStyle` (design-data 감사 §1-2 축②, 2026-08-21). 기본 = S2
+      //   `checkbox` (2026-11-18 사용자 §7-5 「전부 S2 로」 — 그전 `highlight` 는 옛 문서 보존용).
       selectionStyle: {
         kind: "enum",
         label: "Selection Style",
         section: "state",
-        default: "highlight",
+        default: "checkbox",
         options: [
           { value: "checkbox", label: "Checkbox" },
           { value: "highlight", label: "Highlight" },

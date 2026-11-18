@@ -454,7 +454,8 @@ describe("TreeItem chevron — Tree.css width in every host", () => {
   const labelInset = async (type: string) => {
     const workspace = await openOwner(
       type,
-      {},
+      // (A row without the selection Checkbox — the Tree's default is S2 `checkbox` since 2026-11-18.)
+      type === "Tree" ? { selectionStyle: "highlight" } : {},
       type === "TreeItem"
         ? "lib:definition:origin-component-tree-item-default"
         : undefined,

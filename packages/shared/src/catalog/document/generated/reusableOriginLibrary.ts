@@ -2785,7 +2785,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-inline-alert__content"
     ],
     "props": {
-      "variant": "informative",
+      "variant": "neutral",
       "fillStyle": "border"
     },
     "visual": {}
@@ -3109,7 +3109,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Badge",
     "children": [],
     "props": {
-      "variant": "accent",
+      "variant": "neutral",
       "size": "S",
       "fillStyle": "bold",
       "children": "Badge",
@@ -3128,7 +3128,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Progress",
-      "value": 50,
+      "value": 0,
       "size": "M"
     },
     "visual": {},
@@ -3211,7 +3211,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "src": "",
-      "alt": "Avatar",
+      "alt": "",
       "initials": "A",
       "size": 24
     },
@@ -4038,7 +4038,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "size": "M",
       "orientation": "horizontal",
-      "align": "end"
+      "align": "start"
     },
     "visual": {
       "width": "fit-content"
@@ -5987,7 +5987,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Storage",
-      "value": 75,
+      "value": 0,
       "minValue": 0,
       "maxValue": 100,
       "variant": "informative",
@@ -6822,7 +6822,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Date Picker",
       "size": "M",
       "labelPosition": "top",
-      "hideTimeZone": true,
+      "hideTimeZone": false,
       "shouldForceLeadingZeros": true,
       "isDisabled": false,
       "isReadOnly": false,
@@ -6976,7 +6976,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Date Range",
       "size": "M",
       "labelPosition": "top",
-      "hideTimeZone": true,
+      "hideTimeZone": false,
       "shouldForceLeadingZeros": true,
       "isDisabled": false,
       "isReadOnly": false,
@@ -7164,7 +7164,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Date Field",
       "size": "M",
       "labelPosition": "top",
-      "hideTimeZone": true,
+      "hideTimeZone": false,
       "shouldForceLeadingZeros": true,
       "isDisabled": false,
       "isReadOnly": false,
@@ -7246,7 +7246,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "M",
       "labelPosition": "top",
       "granularity": "minute",
-      "hideTimeZone": true,
+      "hideTimeZone": false,
       "shouldForceLeadingZeros": true,
       "isDisabled": false,
       "isReadOnly": false,

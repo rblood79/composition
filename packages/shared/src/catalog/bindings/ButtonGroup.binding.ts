@@ -50,7 +50,7 @@ export const buttonGroupBinding: PrimitiveBinding = {
         kind: "enum",
         label: "Align",
         section: "appearance",
-        default: "end",
+        default: "start",
         options: [
           { value: "start", label: "Start" },
           { value: "center", label: "Center" },

@@ -531,8 +531,8 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
     expect(part("Text").visual.fontSize).toBe(14);
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     expect(shape(host.querySelector(".react-aria-InlineAlert")!)).toBe(
-      // (S2 renders its variant icon first — informative: InfoCircle, 2026-10-13.)
-      "div.react-aria-InlineAlert(svg(path + path + circle) + h3.react-aria-Heading + div.react-aria-Content(span.react-aria-Text))",
+      // (S2 renders a variant icon first — none for the default `neutral`, 2026-11-18 §7-5.)
+      "div.react-aria-InlineAlert(h3.react-aria-Heading + div.react-aria-Content(span.react-aria-Text))",
     );
   });
 });

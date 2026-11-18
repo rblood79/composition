@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — 미대조 9종 구조 · 결정 대기 반영 (기본값 · Button form 속성)] - 2026-11-18
+
+### Changed
+
+- **기본값을 S2 로** (사용자 결정 §7-5 「전부 S2 로」) — 새로 놓는 Badge `variant` neutral (전 accent), InlineAlert `variant` neutral (전 informative — 아이콘 없음), ButtonGroup `align` start (전 end — Dialog 의 ButtonGroup 은 S2 처럼 end 그대로), Tree `selectionStyle` checkbox (전 highlight — 선택 모드가 있으면 행마다 Checkbox), DatePicker · DateRangePicker · DateField · TimeField `hideTimeZone` false (전 true — 시간대가 있는 시각에 `GMT+9` 같은 시간대가 보인다), Meter · ProgressBar `value` 0 (전 75 · 50). 값을 저장하지 않은 기존 문서는 새 기본값으로 그려진다 (마이그레이션 없음).
+- **일반 Button 도 S2 form · focus 속성 10개를 받는다** (사용자 결정 §7-4) — `name` · `value` · `form` · `formAction` · `formMethod` · `formEncType` · `formTarget` · `formNoValidate` · `excludeFromTabOrder` · `preventFocusOnPress`. ActionButton 처럼 Property 탭에는 내지 않고 DOM 의 `button` 에만 실린다. LinkButton 은 받지 않는다 (S2 도 없음).
+- **ActionBar = S2 구조** — DOM 순서가 S2 처럼 동작 버튼 묶음 먼저, 지우기 · 개수 묶음 뒤다 (Tab 이동도 동작 버튼 먼저). 화면 배치는 그대로 (지우기 · 개수 왼쪽, 동작 오른쪽 — 엔진에 CSS `order` 가 없어 root 를 `row-reverse` 로). 동작 묶음은 S2 의 감싸개 상자 안에 있고, 묶음 · 지우기 버튼 이름이 S2 문자열로 언어를 따른다 (「액션」 · 「선택 항목 지우기」 — 전에는 영어 고정).
+- **SegmentedControl** — 기본 선택이 S2 처럼 첫 항목이다 (비활성이어도 — 전에는 첫 활성 항목). 글자를 지운 항목은 Text 가 없다 (아이콘만 32 × 32).
+- **Link 의 quiet** — S2 처럼 단독 (`isStandalone`) 링크만 평소 밑줄이 없고, 문단 안 링크는 quiet 이어도 밑줄을 유지한다. hover 와 키보드 focus 에 밑줄이 다시 생긴다 (전에는 hover 만).
+- **Image = S2 `div > img`** — 어디에 두든 상자 `div` 가 크기 · 바탕 · 잘림을 갖고 안 `img` 가 채운다 (전에는 Card 미리보기 밖에서 `img` 하나). Avatar 의 그림은 `alt` 를 적지 않으면 장식 (`alt=""`) 이다 (S2 — 전에는 「Avatar」).
+- **정리** — 쓰이지 않던 Link 외부 아이콘 코드 · CSS (binding 에서는 2026-09-10 에 빠짐), Text rule 의 요소 이름 (`p` → 실제 DOM 인 `span`), 테스트만 부르던 `catalogSegmentSelected`.
+  - 위치: `reusableOriginLibrary.ts` · `selectionCompositesOrigins.ts` · `rangeSegmentsOrigins.ts` · `rule/selectionComposites.ts` · `rule/conditionTree.ts` (`isStandalone`) · `componentRulesTable.ts` (Link · Text) · `bindings/{Button,ActionButton,LinkButton,Badge,InlineAlert,ButtonGroup,Tree,DatePicker,DateRangePicker,TimeField,Meter,ProgressBar}.binding.ts` · `domBinding.runtime.ts` · `domBinding.components.tsx` · `delegatedDom.runtime.ts` · `presence.ts` · `groupSelection.ts` · `selectionComposites.components.tsx` · `commands/collections.ts` · `ruleShapes.ts`
+
 ## [S2 정렬 — DropZone (IllustratedMessage) · Tab 아이콘 자리 · Toast 겹] - 2026-11-18
 
 ### Changed

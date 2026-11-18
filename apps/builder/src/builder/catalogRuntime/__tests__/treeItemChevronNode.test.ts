@@ -150,9 +150,11 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
   it.each([false, true])(
     "each TreeItem holds its row content (chevron Button > Icon, label); the button and label keep the old node's place (expanded %s)",
     async (expanded) => {
-      const { workspace, root, kids, parentItem, leafItem } = await openTree(
-        expanded ? { expandedKeys: ["item-1"] } : {},
-      );
+      // (The row without a selection Checkbox — the Tree's default turned S2 `checkbox` 2026-11-18.)
+      const { workspace, root, kids, parentItem, leafItem } = await openTree({
+        selectionStyle: "highlight",
+        ...(expanded ? { expandedKeys: ["item-1"] } : {}),
+      });
       expect(kids(parentItem.id).map((child) => child.bindingId)).toEqual([
         "treeitemcontent",
         "treeitem",

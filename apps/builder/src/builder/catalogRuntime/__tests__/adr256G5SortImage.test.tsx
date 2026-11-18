@@ -172,8 +172,8 @@ describe("ADR-256 G5 example 11 — the reference's sort indicator", () => {
   });
 });
 
-describe("ADR-256 G5 example 10 — Image is the RAC examples' plain img outside an S2 Card", () => {
-  it("in a frame: the `img` itself carries the Image's box", async () => {
+describe("S2 Image outside an S2 Card (2026-11-18 — was the RAC examples' plain img, G5 example 10)", () => {
+  it("in a frame: a box around its `img`, as S2 `Image`", async () => {
     const { draw } = await open(
       [
         {
@@ -186,10 +186,11 @@ describe("ADR-256 G5 example 10 — Image is the RAC examples' plain img outside
     );
     const container = draw("project:node:f");
     const image = container.querySelector(".react-aria-Image")!;
-    expect(image.tagName).toBe("IMG");
-    expect(image.getAttribute("alt")).toBe("");
+    expect(image.tagName).toBe("DIV");
     expect(image.getAttribute("data-catalog-id")).toBeTruthy();
-    expect(image.children.length).toBe(0);
+    expect(image.children.length).toBe(1);
+    expect(image.children[0]!.tagName).toBe("IMG");
+    expect(image.children[0]!.getAttribute("alt")).toBe("");
   });
 });
 

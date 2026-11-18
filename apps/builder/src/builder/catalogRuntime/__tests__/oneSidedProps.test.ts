@@ -205,7 +205,7 @@ describe("a prop reaches the Canvas and the Preview alike", () => {
     for (const tag of found) expect(tag).toContain('data-variant="quiet"');
   });
 
-  it("Link Quiet: the Canvas text has no underline (the rule's `[data-quiet]` block)", async () => {
+  it("Link Quiet: a standalone quiet Link's Canvas text has no underline (S2 — an inline one keeps it)", async () => {
     const underline = async (props: Record<string, string | boolean>) => {
       const { workspace, canvas } = await open("link", props);
       const [link] = canvas("Link");
@@ -220,6 +220,9 @@ describe("a prop reaches the Canvas and the Preview alike", () => {
         .map((shape) => (shape as { textDecoration?: string }).textDecoration);
     };
     expect(await underline({})).toContain("underline");
-    expect(await underline({ isQuiet: true })).not.toContain("underline");
+    expect(await underline({ isQuiet: true })).toContain("underline");
+    expect(
+      await underline({ isQuiet: true, isStandalone: true }),
+    ).not.toContain("underline");
   });
 });

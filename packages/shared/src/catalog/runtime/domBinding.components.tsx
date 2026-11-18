@@ -550,16 +550,20 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           )
         ) {
           const own = element.props as Record<string, unknown>;
+          // S2 `Image`: the context's picture props (`alt` · `src`) are the inner `img`'s (they
+          // reach it as the record's props above); the box takes the rest (ref · class · slot).
+          const { alt: _alt, src: _src, ...box } = inherited;
+          const given = consumer === "Image" ? box : inherited;
           return cloneElement(
             element as ReactElement<Record<string, unknown>>,
             {
-              ...mergeProps(inherited, own),
+              ...mergeProps(given, own),
               style: {
-                ...(inherited.style as CSSProperties),
+                ...(given.style as CSSProperties),
                 ...(own.style as CSSProperties),
               },
               ref: mergeRefs(
-                inherited.ref as Ref<HTMLElement>,
+                given.ref as Ref<HTMLElement>,
                 own.ref as Ref<HTMLElement>,
               ),
             },

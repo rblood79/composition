@@ -34,7 +34,7 @@ export const inlineAlertBinding: PrimitiveBinding = {
         kind: "variant",
         label: "Variant",
         section: "appearance",
-        default: "informative",
+        default: "neutral",
       },
       size: {
         kind: "size",

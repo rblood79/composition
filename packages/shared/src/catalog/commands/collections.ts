@@ -718,16 +718,26 @@ export const insertGroupItem =
             },
           } as NodeParent)
         : undefined;
+    // (The wrapper may sit in a layout frame — S2 ActionBar's `div` around its ActionButtonGroup.)
+    const isWrapper = (parent: NodeParent) =>
+      positionType(draft, parent) === wrapperType;
     const wrapperRow =
       inner && wrapperType
-        ? inner.rows.find(
-            (row) => positionType(draft, parentOfTarget(row)) === wrapperType,
-          )
+        ? (inner.rows.find((row) => isWrapper(parentOfTarget(row))) ??
+          inner.rows
+            .filter(
+              (row) => positionType(draft, parentOfTarget(row)) === "frame",
+            )
+            .flatMap((row) => positionRows(reader, row))
+            .find((row) => isWrapper(parentOfTarget(row))))
         : undefined;
     const container: NodeParent = wrapperType
-      ? (hostChildren.find(
-          (child) => positionType(draft, child) === wrapperType,
-        ) ?? fail("NO_ITEMS_WRAPPER", groupType))
+      ? (hostChildren.find(isWrapper) ??
+        hostChildren
+          .filter((child) => positionType(draft, child) === "frame")
+          .flatMap((child) => childPositions(draft, child))
+          .find(isWrapper) ??
+        fail("NO_ITEMS_WRAPPER", groupType))
       : (rootSlot ?? { kind: "node", id: host.id });
     const containerChildren = wrapperType
       ? (childList(draft, container)?.map((id): NodeParent => ({

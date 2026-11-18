@@ -521,12 +521,15 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     const nestedHandleStyles = [...tree.engine.styles.values()].filter(
       (style) => style.display === "none",
     );
-    // (And each row's selection Checkbox rests hidden — the Tree's selection style is not
-    // `checkbox`, 2026-10-23 `51d5ecfc8`.)
+    // (A row's selection Checkbox shows only while the Tree selects with checkboxes — S2's default
+    // `checkbox` since 2026-11-18 §7-5, so a visible row's shows; a collapsed row's rests hidden
+    // with its row.)
     const hiddenSelections = tree
       .byType("Checkbox")
       .filter((checkbox) => checkbox.hidden === true);
-    expect(hiddenSelections.length).toBeGreaterThan(0);
+    expect(
+      tree.byType("Checkbox").some((checkbox) => checkbox.hidden !== true),
+    ).toBe(true);
     // Every record that rests hidden is out of layout — the collapsed items, the leaf glyphs, the
     // selection Checkboxes, the collection's empty state while it has items (2026-10-23
     // `b24a4b77f`) and the parts their own rules hide (an empty Description …).

@@ -211,6 +211,8 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
     props: {
       children: "{label}",
     },
+    // S2 wraps only a string child in Text (`SegmentedControl.tsx`) — an icon-only item has none.
+    presentWhen: "nonEmptyText",
     visual: {},
   },
   {

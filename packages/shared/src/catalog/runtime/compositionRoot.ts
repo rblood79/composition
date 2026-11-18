@@ -5631,7 +5631,7 @@ export class CatalogCompositionRoot {
         ? {
             value,
             shouldForceLeadingZeros: derived._forceLeadingZeros !== false,
-            hideTimeZone: derived._hideTimeZone !== false,
+            hideTimeZone: derived._hideTimeZone === true,
           }
         : {}),
       // The field's locale and calendar system (`-u-ca-`), else the environment's locale.

@@ -180,6 +180,12 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
         // S2 마이그레이션 (2026-11-18): S2 IllustratedMessage's `Content` is optional — an empty
         // description (a DropZone without one) is no Text.
         expect(template.definitionId).toBe("lib:definition:text");
+      else if (
+        template.id === "lib:template:component-segmentedcontrol__first__label"
+      )
+        // S2 SegmentedControl (2026-11-18): only a string child becomes its Text — an icon-only
+        // item has none.
+        expect(template.definitionId).toBe("lib:definition:text");
       else if (template.definitionId === "lib:definition:text")
         // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).
         expect(template.props.slot).toBe("description");

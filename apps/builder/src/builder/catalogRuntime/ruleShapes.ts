@@ -913,15 +913,15 @@ export function catalogCalendarGridPaintProps(
 }
 
 /** A rule node's text decoration: off for a crumb's Link, the node's own, else the rule's. */
-function catalogTextDecoration(
+export function catalogTextDecoration(
   props: Readonly<Record<string, unknown>>,
   visual: unknown,
   ruleDecoration: string | undefined,
 ): string | undefined {
   if (props._noUnderline === true) return undefined;
-  // S2 Link `isQuiet`: no underline at rest (the Link rule's `&[data-quiet="true"]` — the DOM's
-  // generated sheet; its hover underline is the Preview's).
-  if (props.isQuiet === true) return undefined;
+  // S2 Link: a standalone quiet Link rests without its underline (the Link rule's state tree — the
+  // DOM's generated sheet; its hover · focus underline is the Preview's). An inline one keeps it.
+  if (props.isQuiet === true && props.isStandalone === true) return undefined;
   const own = (visual as Record<string, unknown> | undefined)?.textDecoration;
   if (own === undefined) return ruleDecoration;
   return String(own) === "none" ? undefined : String(own);

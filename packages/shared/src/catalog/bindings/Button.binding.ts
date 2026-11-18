@@ -14,7 +14,69 @@
  * 시각(variant/size 값 집합, 색상)은 theme/tokens 가 `data-*` 규칙으로 적용 — 본 binding 에 없음.
  */
 
-import type { PrimitiveBinding } from "../types";
+import type { PrimitiveBinding, PropContract } from "../types";
+import { formBinding } from "./Form.binding";
+
+const {
+  method: { default: _methodDefault, ...formMethod },
+  encType: formEncType,
+  target: formTarget,
+} = formBinding.props.accepts as Required<typeof formBinding.props.accepts>;
+
+/**
+ * S2 `ButtonProps` · `ActionButtonProps` (RAC `ButtonProps`) 의 form 제출 · focus 속성. 개발자용 HTML
+ * 속성이라 받기만 하고 패널에 내지 않는다 (2026-11-11 사용자 결정) — ActionButton 2026-11-14,
+ * Button 2026-11-18 (사용자 §7-4 「ActionButton 처럼 숨김 추가」). LinkButton (RAC `LinkProps`) 은
+ * 받지 않는다.
+ */
+export const BUTTON_FORM_FOCUS_ACCEPTS: Readonly<Record<string, PropContract>> =
+  {
+    name: {
+      kind: "string",
+      label: "Name",
+      section: "forms",
+      editorHidden: true,
+    },
+    value: {
+      kind: "string",
+      label: "Submit value",
+      section: "forms",
+      editorHidden: true,
+    },
+    form: {
+      kind: "string",
+      label: "Form",
+      section: "forms",
+      editorHidden: true,
+    },
+    formAction: {
+      kind: "string",
+      label: "Form action",
+      section: "forms",
+      editorHidden: true,
+    },
+    formMethod: { ...formMethod, label: "Form method", section: "forms" },
+    formEncType: { ...formEncType, label: "Form enc type", section: "forms" },
+    formTarget: { ...formTarget, label: "Form target", section: "forms" },
+    formNoValidate: {
+      kind: "boolean",
+      label: "Form no validate",
+      section: "forms",
+      editorHidden: true,
+    },
+    excludeFromTabOrder: {
+      kind: "boolean",
+      label: "Exclude from tab order",
+      section: "state",
+      editorHidden: true,
+    },
+    preventFocusOnPress: {
+      kind: "boolean",
+      label: "Prevent focus on press",
+      section: "state",
+      editorHidden: true,
+    },
+  };
 
 export const buttonBinding: PrimitiveBinding = {
   source: {
@@ -116,6 +178,7 @@ export const buttonBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — generic toRacProps 경로.
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      ...BUTTON_FORM_FOCUS_ACCEPTS,
     },
     toRacProps: "default",
   },

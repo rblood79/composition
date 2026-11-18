@@ -81,7 +81,7 @@ export function Badge(ownProps: BadgeProps): React.ReactElement {
   const {
     ref: _ownRef,
     slot,
-    variant = "accent",
+    variant = "neutral",
     size = "S",
     isDot = false,
     isPulsing = false,

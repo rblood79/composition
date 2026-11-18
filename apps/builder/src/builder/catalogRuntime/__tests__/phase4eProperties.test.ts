@@ -106,6 +106,17 @@ describe("ADR-248 Phase 4e-4 Properties", () => {
       "isPending",
       "isDisabled",
       "autoFocus",
+      // (S2 form · focus props, hidden from the panel — 2026-11-18 §7-4.)
+      "name",
+      "value",
+      "form",
+      "formAction",
+      "formMethod",
+      "formEncType",
+      "formTarget",
+      "formNoValidate",
+      "excludeFromTabOrder",
+      "preventFocusOnPress",
     ]);
     expect(field(on("icon"), "label")).toMatchObject({
       origin: "semantic",

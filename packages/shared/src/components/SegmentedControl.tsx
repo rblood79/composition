@@ -138,14 +138,13 @@ export const SegmentedControlItem = forwardRef<
     if (
       registered &&
       !registered.current &&
-      !props.isDisabled &&
       props.id != null &&
       state
     ) {
       registered.current = true;
       state.toggleKey(props.id);
     }
-  }, [registered, state, props.id, props.isDisabled]);
+  }, [registered, state, props.id]);
   return (
     <ToggleButton
       {...props}

@@ -30,7 +30,7 @@ export const progressBarBinding: PrimitiveBinding = {
         kind: "number",
         label: "Value",
         section: "value",
-        default: 50,
+        default: 0,
       },
       minValue: {
         kind: "number",

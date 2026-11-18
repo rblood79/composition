@@ -241,7 +241,8 @@ function stored(
 
 /**
  * A group's selection (ADR-308 Decision 2 · 3): the controlled prop, else the default one, else the
- * group's RAC default — Tabs · SegmentedControl the first enabled item, the rest nothing. A
+ * group's default — Tabs RAC's first enabled item, SegmentedControl S2's first item (disabled or
+ * not — `DefaultSelectionTracker`, 2026-11-18), the rest nothing. A
  * collection that selects nothing (`selectionMode` none) has an empty selection, as RAC's.
  */
 export function catalogGroupSelection(
@@ -264,8 +265,8 @@ export function catalogGroupSelection(
     case "key": {
       const key = keyText(raw);
       if (type === "ComboBox") return key === undefined ? [] : [key];
-      // (Tabs · SegmentedControl: a key no item has — or none — is RAC's first enabled item,
-      //  `useTabListState` · the single-selection group's `disallowEmptySelection`.)
+      // (A key no item has — or none: Tabs RAC's first enabled item (`useTabListState`),
+      //  SegmentedControl S2's first item, disabled or not (`DefaultSelectionTracker`).)
       const items = catalogGroupItems(group, get, typeOf);
       if (
         key !== undefined &&
@@ -275,11 +276,14 @@ export function catalogGroupSelection(
       const disabledKeys = new Set(
         Array.isArray(props.disabledKeys) ? props.disabledKeys.map(String) : [],
       );
-      const first = items.find(
-        (item) =>
-          item.props.isDisabled !== true &&
-          !disabledKeys.has(catalogItemKey(item, typeOf)),
-      );
+      const first =
+        type === "SegmentedControl"
+          ? items[0]
+          : items.find(
+              (item) =>
+                item.props.isDisabled !== true &&
+                !disabledKeys.has(catalogItemKey(item, typeOf)),
+            );
       return first ? [catalogItemKey(first, typeOf)] : [];
     }
     case "picker": {

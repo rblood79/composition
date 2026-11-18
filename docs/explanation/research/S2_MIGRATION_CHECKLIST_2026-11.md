@@ -24,6 +24,8 @@
 
 **DropZone · Tabs · Toast: 2026-11-18** — DropZone 내용 = S2 IllustratedMessage, Tab 의 Icon 은 글자 앞, Toast 모양 template 에 S2 body · ToastContent 겹 완료 (§3). §3 구조 잔여 0.
 
+**미대조 9종 · 결정 대기: 2026-11-18** — §5 9종을 설치본과 대조해 구조 잔여를 고쳤다 (ActionBar 순서 · 감싸개 · 이름, SegmentedControl 기본 선택 · 글자 없는 항목, Image `div > img`, Avatar `alt`, Link quiet 밑줄). Skeleton 은 S2 래퍼 전환을 별도 ADR 로 (사용자 결정). §7 결정 6건 확정 — 기본값 S2 (부록 C.2) · Button form 속성 숨김 추가 · 세로 눌림 S2 대로 · 확장 유지 · 범위 큰 둘은 정리만.
+
 **게이트 재실행: 2026-11-18, HEAD `62d56d224`.** 11-14 기록의 실패 3건이 모두 닫혔다 (§6). 구조 분류 · 부록은 그 사이 S2 관련 변경이 ADR-310 Tabs 뿐이라 그대로다.
 
 ## 0. 방법과 한계
@@ -157,14 +159,21 @@ Nav 2단계 live 확인 (같은 프로젝트): Selected route `/about` 에서 Ab
 
 Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview DOM 202.4×32, 버튼 다섯 개 높이 32 · 모서리 8 · quiet, page 1 만 선택 칠 (두 화면 같음), `<nav aria-label="Pagination">` 안 ToggleButtonGroup `role=radiogroup`, console 오류 0.
 
-## 5. 구조 미대조 — 9
+## 5. 구조 미대조 — 9 (2026-11-18 대조 완료)
 
-| 완료 | 컴포넌트                                      | 상태                                                                                                                                                         |
-| ---- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [ ]  | Text · Keyboard · Skeleton                    | 11-14 대조표에 없음                                                                                                                                          |
-| [ ]  | ActionBar · SelectBoxGroup · SegmentedControl | 11-07 에 slot · 상속 패턴 감사 · 수리 완료. 구조 대조표에는 없음                                                                                             |
-| [ ]  | Avatar · Link                                 | 구조 판정 없음. initials · 외부 아이콘은 S2 에 없는 확장으로만 기록 (§7 결정 대기 1)                                                                         |
-| [ ]  | Image                                         | 팔레트 진입은 overlay이나 rule-only `type-Image`가 있음 (`itemLinks.ts`: `src`·`alt`·`slot`). S2 조건부 source·오류·loading·ImageCoordinator는 잔여 (부록 D) |
+| 완료 | 컴포넌트         | 대조 결과 (S2 1.8.2 설치본)                                                                                                                                                                                                                                                                                                                                                                           |
+| ---- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [x]  | Text             | 구조 일치 — RAC `Text` `span` · slot context. rule 의 요소 이름 `p` → `span` 정정. S2 의 `data-rsp-slot` · `isHidden` 은 없음 (S2 내부 스타일 훅 · prop — 미채택)                                                                                                                                                                                                                                     |
+| [x]  | Keyboard         | 구조 일치 — RAC `Keyboard` `kbd dir=ltr`. MenuItem 단축키 자리 = S2 grid 자리. binding 에 `slot` 키 없음 (LOW — 재현 시나리오 없음)                                                                                                                                                                                                                                                                   |
+| [ ]  | Skeleton         | **S2 고유 대응 없음 → S2 래퍼 전환은 별도 ADR (사용자 결정 11-18)**. S2 는 요소 없는 context 래퍼 (`Skeleton isLoading > 자식`, Text · Icon · Badge · Image 등 9종이 스스로 로딩 모양 · `inert`) · 우리는 자식 없는 자리표시 상자 (`role=status`). `SkeletonCollection` 도 대응 없음                                                                                                                  |
+| [x]  | ActionBar        | 구조 잔여 수정 — DOM 순서 = 동작 묶음 (S2 `div` 감싸개 > ActionButtonGroup `aria-label` 「Actions」) 먼저, 지우기 · 개수 묶음 뒤 (S2 `order` → root `row-reverse`). 묶음 · 지우기 버튼 이름 = S2 intl (en · ko · ja · zh). 지우기 버튼은 작성 가능한 ActionButton `slot=clear` (확장). 컨테이너 기능 (애니메이션 · `announce` · `renderActionBar` · `isInContainer`) 은 별도 작업 (사용자 결정 11-18) |
+| [x]  | SelectBoxGroup   | 구조 일치 — ListBox grid > ListBoxItem > 선택 표시 · Illustration 자리 · label · description. 선택 표시는 Checkbox 노드 (11-18 「노드로 늘 둠」 결정과 같은 모양), Illustration 은 lucide Icon (S2 일러스트 라이브러리 대응 없음). 남은 차이: 가로 항목의 S2 `:has()` 변형 (라벨만 · 그림 없음) — 레이아웃 값                                                                                         |
+| [x]  | SegmentedControl | 구조 일치 + 수정 — 기본 선택 = 첫 항목 (비활성이어도, S2 `DefaultSelectionTracker`), 글자 없는 항목은 Text 없음 (`presentWhen`). Icon 감싸개 `CenterBaseline` 은 두지 않는다 (11-14 결정). 세로 방향 · 데이터 반복은 확장                                                                                                                                                                             |
+| [x]  | Avatar           | 구조 일치 + 수정 — `div` > `img` (그림 없으면 이니셜 `span` — S2 에 없는 확장, §7-1 유지). `alt` 기본 `""` (S2). S2 의 기본 `slot="avatar"` · Image 로딩 상태는 없음                                                                                                                                                                                                                                  |
+| [x]  | Link             | 구조 일치 — RAC Link `a` / `span`. quiet 밑줄을 S2 대로 (단독일 때만 없음 · hover · focus 에 다시). 외부 아이콘 잔재 삭제 (binding 은 09-10 에 이미 제거). `isDisabled` · `size` 는 composition 확장                                                                                                                                                                                                  |
+| [x]  | Image            | 구조 수정 — 늘 `div > img` (전: Card 미리보기 밖은 `img` 하나), context 의 `alt` 는 `img`, ref · class 는 상자. 조건부 source · 오류 화면 · 로딩 공개 · ImageCoordinator · HTML 속성은 부록 D.2 (별도 작업 — 사용자 결정 11-18)                                                                                                                                                                       |
+
+검증: `s2UncomparedStructure.test.tsx` 9 · `s2DefaultValues.test.ts` 9 · `actionButtonS2Props.test.tsx` 4 · `adr309CanvasValue` hideTimeZone 2, 원복 RED 18. live (verify-s2text-1118, Compare): 12종 Canvas = Preview 상자 (ActionBar 부품 9개 위치까지 · Image 390 × 200 · DatePicker `GMT+9` 양쪽), SegmentedControl 아이콘만 항목 32 × 32 · 첫 항목 비활성 때 선택 유지 · 되돌리기, console 오류 0.
 
 ## 6. 구현·커밋·검증 (HEAD `1a8e000ad` 기준)
 
@@ -224,16 +233,16 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 - [x] shared `designDataSurfaceGaps` Toast 수동 CSS 실패 — 검사의 스코프 탐지 수리 (11-18)
 - [x] shared `componentRulesTable` TabPanel `minHeight` 리터럴 — S2 값으로 등재 (11-18)
 
-## 7. 결정 대기
+## 7. 결정 대기 — 2026-11-18 모두 결정
 
-1. S2 에 없는 확장 유지 여부 — Avatar initials · Link 외부 아이콘.
-2. 세로 flex 에서 눌림 — Tree (overflow auto) · Table (min-height 40 + overflow auto) · Chart (고유 최소 높이 없음) · SideNav / SideNavPanel (S2 minHeight 0).
-3. 프로퍼티 후보 (§2 · §3 · 부록 A) 가운데 무엇을 Property 탭에 낼지.
-4. 일반 Button에도 S2 form·focus prop 10개 (`name`·`value`·`form*`·`excludeFromTabOrder`·`preventFocusOnPress`)를 넣을지.
-5. 부록 C의 기본값 차이를 S2로 통일할지, 삽입 프리셋/기존 문서 호환 차이로 유지할지. 옵션 누락은 같은 부록에서 별도 추적.
-6. 부록 D의 별도 S2 컴포넌트·변형을 새 팔레트 항목으로 제공할지, 기존 조합으로 제공할지. 문서 추가는 신규 구현 승인이나 완료 판정이 아니다.
+1. [x] S2 에 없는 확장 — **Avatar initials 유지** (composition 확장). Link 외부 아이콘은 이미 화면에서 빠져 있어 남은 코드만 지웠다.
+2. [x] 세로 flex 에서 눌림 (Tree · Table · Chart · SideNav / SideNavPanel) — **S2 대로 둔다** (스크롤 상자 `minHeight 0`, 내용은 안에서 스크롤).
+3. [x] 프로퍼티 후보 (부록 A · B) 를 Property 탭에 낼지 — **분류만 (§9.1 · §9.2), 구현은 별도 작업** (사용자 결정).
+4. [x] 일반 Button 의 S2 form · focus prop 10개 — **ActionButton 처럼 숨김으로 추가** (DOM 에만, LinkButton 제외).
+5. [x] 부록 C.2 기본값 — **전부 S2 로** (Meter · ProgressBar 값 0 포함).
+6. [x] 부록 D 의 별도 S2 컴포넌트 · 변형 — **분류만 (§9.3), 구현은 별도 작업** (사용자 결정).
 
-결정됨: 놓은 ProgressCircle 의 접근 가능한 이름 = 기본 「Loading…」 + Property 탭 Accessibility 의 ARIA label 칸으로 변경 (사용자 11-18 「기본이름 넣고 프로퍼티에 이름변경」 — S2 ProgressCircle 은 `aria-label` 기본값이 없고, S2 가 직접 쓰는 로딩 원은 「Loading…」 을 넣는다). ActionButton 의 Type · Auto focus 는 패널에서 숨김 (사용자 11-14 「숨겨」). toggle 3종 배치 차이는 S2 대로 맞춤 (사용자 11-15 「진행해」 — §6).
+결정됨: 놓은 ProgressCircle 의 접근 가능한 이름 = 기본 「Loading…」 + Property 탭 Accessibility 의 ARIA label 칸으로 변경 (사용자 11-18 「기본이름 넣고 프로퍼티에 이름변경」 — S2 ProgressCircle 은 `aria-label` 기본값이 없고, S2 가 직접 쓰는 로딩 원은 「Loading…」 을 넣는다). ActionButton 의 Type · Auto focus 는 패널에서 숨김 (사용자 11-14 「숨겨」). toggle 3종 배치 차이는 S2 대로 맞춤 (사용자 11-15 「진행해」 — §6). Skeleton 의 S2 래퍼 전환 · Image 기능 잔여 · ActionBar 컨테이너 기능은 별도 작업 (사용자 11-18).
 
 ## 8. staticColor `auto` — S2 방식 (사용자 11-14 진행 지시)
 
@@ -249,6 +258,72 @@ S2 1.8.2 `style/tokens.ts` `autoStaticColor`: 놓인 바탕 (`--s2-container-bg`
 - [x] 바탕 편집 → 아래 auto 노드 · 부품 재파생 (`catalogStaticAutoDependents`)
 - [x] emphasized ActionBar 의 흑 / 백도 같은 LCH 규칙 (그전 WCAG 대비)
 - [x] live (2026-11-15, 새 프로젝트 verify-static-auto-1115) — #111111 바탕: auto Button · ProgressCircle = 흰 스킴 (DOM `data-static-color=white` · 바탕 rgba(255,255,255,.85) · 글자 검정), None Button = 테마 (#292929 · 흰 글자), Canvas 같음. 바탕을 #f5f5f5 로 바꾸자 auto 둘 다 검정 스킴 (Canvas · Preview). 패널 Static color 칸 None · Auto · ○ · ● — Auto / None 클릭이 반영. console 오류 0
+
+## 9. 프로퍼티 후보 · 별도 컴포넌트 분류 (2026-11-18 — §7-3 · §7-6, 구현은 별도 작업)
+
+분류 기준: **패널** = Property 탭에 낼 만한 사용자 기능 · **숨김** = binding 에 받기만 (`editorHidden` — DOM 에만, Button form 속성과 같은 방식) · **대응 있음** = 다른 경로로 이미 됨 · **안 함** = 저작 칸으로 두지 않음. 판단은 이 문서 작성자의 제안이며 구현 전에 다시 확인한다.
+
+### 9.1 루트 prop (부록 A.1)
+
+| 컴포넌트                                       | 패널                                                                                              | 숨김                                                                                                                    | 대응 있음 · 안 함                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Text · Keyboard                                |                                                                                                   |                                                                                                                         | `isHidden` 안 함 (보이기 조건 · Hidden 이 있음)                                              |
+| StatusLight                                    | `role` (상태 알림 — Accessibility)                                                                |                                                                                                                         |                                                                                              |
+| AvatarGroup                                    | `label`                                                                                           |                                                                                                                         |                                                                                              |
+| LabeledValue · RangeSlider                     | `contextualHelp` (16종과 같은 명령)                                                               |                                                                                                                         |                                                                                              |
+| Card                                           | `density`                                                                                         | `allowsArrowNavigation` · `focusMode` · `textValue`                                                                     |                                                                                              |
+| CardView                                       | `density` · `selectionStyle` · `disabledKeys` · `disallowEmptySelection`                          | `disabledBehavior` · `disallowTypeAhead` · `escapeKeyBehavior` · `shouldSelectOnPressUp` · `orientation`                | `loadingState` 대응 있음 (데이터 연결이 정함)                                                |
+| Accordion                                      | `density` · `isQuiet`                                                                             |                                                                                                                         |                                                                                              |
+| SideNav                                        | `expandedKeys`                                                                                    |                                                                                                                         | `disabledKeys` 대응 있음 (11-18)                                                             |
+| Menu                                           | `disallowEmptySelection` · `shouldCloseOnSelect` · `shouldFocusWrap`                              | `escapeKeyBehavior`                                                                                                     | `disabledKeys` 대응 있음 (11-18) · `isVirtualized` = 표시 방식 「가상」                      |
+| TextField · TextArea · SearchField             | `validationBehavior` (Form 상속을 덮는 칸)                                                        |                                                                                                                         |                                                                                              |
+| NumberField                                    | `validationBehavior` · `commitBehavior`                                                           | `incrementAriaLabel` · `decrementAriaLabel`                                                                             |                                                                                              |
+| ColorSwatchPicker                              | `density` · `rounding`                                                                            |                                                                                                                         |                                                                                              |
+| Checkbox · Switch · CheckboxGroup · RadioGroup | `validationBehavior`                                                                              |                                                                                                                         |                                                                                              |
+| Select                                         | `validationBehavior` · `disabledKeys` · `shouldCloseOnSelect`                                     | `autoComplete`                                                                                                          | `shouldFlip` 대응 있음 (자식 Popover)                                                        |
+| ComboBox                                       | `disabledKeys` · `formValue`                                                                      | `shouldFocusWrap`                                                                                                       | `shouldFlip` 대응 있음 (자식 Popover)                                                        |
+| Form                                           |                                                                                                   | `autoComplete` · `autoCapitalize` · `role`                                                                              | `validationErrors` 안 함 — 서버 응답 · 규칙 경로로 (D.3)                                     |
+| Table                                          | `disabledKeys` · `sortDescriptor` (처음 정렬)                                                     | `disabledBehavior` · `escapeKeyBehavior` · `keyboardNavigationBehavior` · `shouldSelectOnPressUp`                       | `treeColumn` · `expandedKeys` · `defaultExpandedKeys` = Table 트리 기능 (별도)               |
+| GridList · Tree                                | `disabledKeys`                                                                                    | `disabledBehavior` · `disallowTypeAhead` · `escapeKeyBehavior` · `keyboardNavigationBehavior` · `shouldSelectOnPressUp` |                                                                                              |
+| TagGroup                                       | `selectionBehavior`                                                                               | `escapeKeyBehavior` · `shouldSelectOnPressUp`                                                                           | `disabledKeys` · `groupActionLabel` 대응 있음 (11-18)                                        |
+| Calendar · RangeCalendar                       | `selectionAlignment`                                                                              | (Range) `commitBehavior`                                                                                                | `visibleMonths` = `visibleDuration` · `defaultFocusedValue` 대응 있음 · `focusedValue` 안 함 |
+| DatePicker · DateRangePicker                   | `maxVisibleMonths`                                                                                | (Range) `commitBehavior` · (DatePicker) `autoComplete`                                                                  | `shouldFlip` 대응 있음 (자식 Popover)                                                        |
+| DateField                                      |                                                                                                   | `autoComplete`                                                                                                          |                                                                                              |
+| Dialog                                         | `isKeyboardDismissDisabled`                                                                       |                                                                                                                         | `isDismissible` 대응 있음 (11-18)                                                            |
+| Popover                                        | `hideArrow` · `padding` · `isNonModal`                                                            | `role`                                                                                                                  |                                                                                              |
+| ContextualHelp                                 | `placement` · `offset` · `crossOffset` · `containerPadding` · `shouldFlip` (자식 Popover 로 전달) |                                                                                                                         |                                                                                              |
+
+### 9.2 부품 (부록 B)
+
+| 부품                                | 패널                                                                                | 숨김 · 대응 있음 · 안 함                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| MenuSection                         | `selectionMode` · `selectedKeys` · `disallowEmptySelection` · `shouldCloseOnSelect` |                                                                                              |
+| MenuItem                            | `isDisabled` · `shouldCloseOnSelect`                                                | `textValue` 안 함 (글자에서 자동)                                                            |
+| MenuTrigger                         | `trigger` 옵션 `contextMenu` (부록 C.1)                                             | `shouldFlip` 숨김                                                                            |
+| TooltipTrigger                      | `shouldCloseOnPress`                                                                |                                                                                              |
+| Column                              | `showDivider` · `menuItems`                                                         | `allowsArrowNavigation` · `focusMode` 숨김 · `textValue` 안 함                               |
+| Cell                                | `isSticky`                                                                          | `allowsArrowNavigation` · `focusMode` 숨김 · `textValue` 안 함                               |
+| Row · ListBoxItem                   |                                                                                     | `textValue` 안 함 (글자에서 자동)                                                            |
+| GridListItem · TreeItem             |                                                                                     | `hasChildItems` 대응 있음 (11-18 GridList chevron · Tree 자식) · 나머지 숨김                 |
+| SideNavItem                         |                                                                                     | `focusMode` 숨김                                                                             |
+| Tag                                 |                                                                                     | `label` · `textValue` 안 함 (안 Text 가 이름)                                                |
+| DisclosurePanel                     |                                                                                     | `label` · `labelElementType` · `role` 숨김                                                   |
+| Heading · Header · Content · Footer |                                                                                     | `isHidden` 안 함                                                                             |
+| body (Provider)                     |                                                                                     | `locale` · `background` · `router` 대응 있음 (Site 설정 · 테마 · 경로) · `elementType` 안 함 |
+
+### 9.3 별도 S2 컴포넌트 · 변형 (부록 D.1)
+
+| S2                                                                                                                                                                                         | 분류                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| AlertDialog                                                                                                                                                                                | **새 팔레트 후보** — 경고 · 파괴 동작 버튼 의미가 있는 Dialog 변형     |
+| UnavailableMenuItemTrigger · EditableCell · TableFooter                                                                                                                                    | **새 부품 후보** — 비활성 이유 팝오버 · 편집 셀 · 표 바닥 줄           |
+| AssetCard · UserCard · ProductCard · CollectionCardPreview                                                                                                                                 | **Library 조합 후보** — Card 원본의 프리셋 (새 type 아님)              |
+| CustomDialog · FullscreenDialog                                                                                                                                                            | **Dialog 변형 후보** — 크기 · 전체 화면 prop                           |
+| ActionMenu                                                                                                                                                                                 | 대응 있음 (MenuTrigger + quiet ActionButton 조합) — 팔레트 이름만 후보 |
+| ImageCoordinator · SkeletonCollection                                                                                                                                                      | 각각 Image 기능 잔여 · Skeleton 래퍼 ADR 과 함께                       |
+| Provider · Accordion 부품 · ComboBoxItem · NotificationBadge · DisclosureTitle · CenterBaseline · ContextualHelpPopover · Collection · TreeViewLoadMoreItem · ToastContainer · CloseButton | 대응 있음 (각 행의 현재 대응 — 부록 D.1)                               |
+| DialogContainer · DragPreview                                                                                                                                                              | 안 함 — 명령형 열기는 규칙 Do, 끌기 미리보기는 낮은 우선순위           |
+| icons · illustrations                                                                                                                                                                      | 안 함 (Icon 은 S2 맞추기 대상 아님 — 11-14 결정)                       |
 
 ## 부록 A. 루트 prop 역방향 대조
 
@@ -340,15 +415,15 @@ binding과 `RULE_TYPE_PROP_CONTRACTS`를 함께 확인했다. 아래는 **편집
 
 ### C.2 레퍼런스 API 표에 명시된 기본값과 binding 기본값 차이
 
-| 컴포넌트·prop                             | S2 reference | 현재 binding | 판정                                                                 |
-| ----------------------------------------- | ------------ | ------------ | -------------------------------------------------------------------- |
-| Badge `variant`                           | neutral      | accent       | 설치본 `Badge.tsx` 기본 neutral도 확인. 기본 외형 차이               |
-| InlineAlert `variant`                     | neutral      | informative  | 설치본 기본 neutral도 확인                                           |
-| ButtonGroup `align`                       | start        | end          | 설치본 기본 start도 확인. 배치 차이                                  |
-| Tree `selectionStyle`                     | checkbox     | highlight    | 설치본 `TreeView.tsx` 기본 checkbox도 확인. 선택 표시·상호작용 차이  |
-| DatePicker·DateRangePicker `hideTimeZone` | false        | true         | S2는 해당 prop을 RAC에 전달. zoned 값에서 시간대 표시 차이 확인 필요 |
-| Meter `value`                             | 0            | 75           | 삽입 예시값/초기 프리셋 성격일 수 있음. S2 API 기본값과 구분         |
-| ProgressBar `value`                       | 0            | 50           | 삽입 예시값/초기 프리셋 성격일 수 있음. S2 API 기본값과 구분         |
+| 컴포넌트·prop                             | S2 reference | 현재 binding (11-18) | 판정                                                      |
+| ----------------------------------------- | ------------ | -------------------- | --------------------------------------------------------- |
+| Badge `variant`                           | neutral      | neutral              | [x] S2 로 (전 accent)                                     |
+| InlineAlert `variant`                     | neutral      | neutral              | [x] S2 로 (전 informative)                                |
+| ButtonGroup `align`                       | start        | start                | [x] S2 로 (전 end — Dialog 의 ButtonGroup 은 S2 대로 end) |
+| Tree `selectionStyle`                     | checkbox     | checkbox             | [x] S2 로 (전 highlight)                                  |
+| DatePicker·DateRangePicker `hideTimeZone` | false        | false                | [x] S2 로 (DateField · TimeField 도 같은 값으로)          |
+| Meter `value`                             | 0            | 0                    | [x] S2 로 (전 75)                                         |
+| ProgressBar `value`                       | 0            | 0                    | [x] S2 로 (전 50)                                         |
 
 **8개 컴포넌트·prop 쌍**이다 (DatePicker 두 종을 한 행으로 묶음). 명시된 기본값이 있는 API 표와 binding을 기계 대조한 결과이며, 문서에서 생략한 기본값·origin template override·기존 문서 저장값까지 일치한다는 판정은 아니다. 기존 `staticColor auto` 기본값 문제는 §8에서 해소됐다.
 

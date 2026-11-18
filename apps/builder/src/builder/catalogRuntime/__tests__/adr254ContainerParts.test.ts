@@ -324,9 +324,10 @@ function expectSinceConversion(
         6,
       );
       // (S2 icon, 2026-10-13: an alert with an icon places its title clear of it — stretched,
-      // the icon's size as its end margin; `inlineAlertIcon.test.tsx`.)
+      // the icon's size as its end margin; `inlineAlertIcon.test.tsx`. No variant = S2's
+      // `neutral`, no icon — 2026-11-18 §7-5.)
       const iconPlaced =
-        heading && authored.variant !== "neutral"
+        heading && (authored.variant ?? "neutral") !== "neutral"
           ? { alignSelf: "stretch", marginRight: "20px" }
           : {};
       expect(part.layout).toEqual({
@@ -408,6 +409,13 @@ function expectSinceConversion(
               "class=react-aria-InlineAlert data-size",
               "class=react-aria-InlineAlert data-fill-style=border data-size",
             )
+            // (No variant = S2's `neutral` — 2026-11-18 §7-5; the fixture placed `informative`.)
+            .replace(
+              /data-variant=informative id role=alert/,
+              authored.variant
+                ? "data-variant=informative id role=alert"
+                : "data-variant=neutral id role=alert",
+            )
         : structureOf(before.dom);
   // S2 InlineAlert's variant icon (2026-10-13 — `inlineAlertIcon.test.tsx` checks its box and
   // glyph): before the parts, named by the variant's string; the parts compare without it.
@@ -423,7 +431,7 @@ function expectSinceConversion(
           notice: "Warning",
           negative: "Error",
         } as Record<string, string>
-      )[authored.variant ?? "informative"],
+      )[authored.variant ?? "neutral"], // (no variant = S2's neutral — no icon, 2026-11-18 §7-5)
     );
   expect(nowStructure.replace(ICON, "")).toBe(expected);
   // Each part element inlines its record's values (the Canvas draws the same record).

@@ -8090,9 +8090,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       stateStyles: {
         ...FOCUS_RING_STATE,
         ...DISABLED_STATE,
-        // ADR-297 Phase 3c — quiet: no underline until hovered; hover thins it (was `rootSelectors`)
+        // S2 `Link.tsx` (2026-11-18): only a standalone quiet Link rests without its underline — an
+        //   inline Link keeps it (accessibility); hover and keyboard focus bring it back. Hover thins it.
         textDecoration: {
-          isQuiet: { default: "none", isHovered: "underline" },
+          isStandalone: {
+            isQuiet: {
+              default: "none",
+              isHovered: "underline",
+              isFocusVisible: "underline",
+            },
+          },
         },
         textDecorationThickness: { isHovered: "1.5px" },
         // (2026-11-14) A Nav's current Link (RAC `data-current` — its `aria-current`): bold, S2 SideNav's
@@ -14553,7 +14560,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     structure: {
       archetype: "text",
-      element: "p",
+      element: "span",
       containerStyles: {
         display: "block",
         width: "fit-content",

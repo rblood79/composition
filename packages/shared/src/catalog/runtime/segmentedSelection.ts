@@ -25,19 +25,6 @@ export function catalogSegmentKey(item: CatalogConsumerNode): string {
   return resolveStaticItemKey(item.props as Record<string, unknown>, item.id);
 }
 
-export function catalogSegmentSelected(
-  owner: CatalogConsumerNode,
-  get: Lookup,
-): string | null {
-  if (owner.props.selectedKey != null) return String(owner.props.selectedKey);
-  if (owner.props.defaultSelectedKey != null)
-    return String(owner.props.defaultSelectedKey);
-  const first = catalogSegmentItems(owner, get).find(
-    (item) => item.props.isDisabled !== true,
-  );
-  return first ? catalogSegmentKey(first) : null;
-}
-
 export function catalogSegmentOwner(
   node: CatalogConsumerNode,
   get: Lookup,

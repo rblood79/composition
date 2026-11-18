@@ -20,16 +20,6 @@ export interface LinkProps extends RACLinkProps {
   isQuiet?: boolean;
   staticColor?: StaticColor;
   /**
-   * Whether the link is external (opens in new tab)
-   * Automatically adds rel="noopener noreferrer" for security
-   */
-  isExternal?: boolean;
-  /**
-   * Whether to show external link icon
-   * @default true (when isExternal is true)
-   */
-  showExternalIcon?: boolean;
-  /**
    * Show loading skeleton instead of content
    * @default false
    */
@@ -49,14 +39,13 @@ export interface LinkProps extends RACLinkProps {
  * - M3 color tokens for consistent theming
  *
  * Features:
- * - External link support with security (rel="noopener noreferrer")
- * - Optional external icon indicator
  * - Keyboard accessible with focus ring
  * - Hover and pressed states
  *
  * @example
  * <Link variant="primary" size="M" href="/about">About</Link>
- * <Link variant="secondary" isExternal href="https://example.com">External Link</Link>
+ * (S2 Link has no external icon — `isExternal` · `showExternalIcon` removed 2026-11-18; the catalog
+ *  binding dropped them 2026-09-10.)
  */
 export function Link(props: LinkProps) {
   const { focusProps, isFocusVisible } = useFocusRing();
@@ -65,8 +54,6 @@ export function Link(props: LinkProps) {
     size = "M",
     isQuiet = false,
     staticColor,
-    isExternal,
-    showExternalIcon = true,
     isLoading,
     ...restProps
   } = props;
@@ -82,19 +69,7 @@ export function Link(props: LinkProps) {
     );
   }
 
-  // External link security: automatically add rel="noopener noreferrer"
-  const externalProps = isExternal
-    ? {
-        target: "_blank",
-        rel: "noopener noreferrer",
-      }
-    : {};
-
-  const allProps = mergeProps(
-    restProps as object,
-    focusProps as object,
-    externalProps,
-  );
+  const allProps = mergeProps(restProps as object, focusProps as object);
 
   // 빈 문자열 href 는 React 경고("empty string passed to href") 유발 + RAC 가 빈 <a href="">
   // 렌더 → 모든 href 진입 경로(renderLink / Breadcrumb / collection item)의 최종 수렴점에서
@@ -113,33 +88,11 @@ export function Link(props: LinkProps) {
       data-quiet={isQuiet || undefined}
       data-static-color={staticColor}
       data-focus-visible={isFocusVisible || undefined}
-      data-external={isExternal || undefined}
       className={composeRenderProps(props.className, (cls) =>
         cls ? `react-aria-Link ${cls}` : "react-aria-Link",
       )}
     >
-      {composeRenderProps(props.children, (children) => (
-        <>
-          {children}
-          {isExternal && showExternalIcon && (
-            <svg
-              className="link-external-icon"
-              width="1em"
-              height="1em"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          )}
-        </>
-      ))}
+      {props.children}
     </RACLink>
   );
 }

@@ -38,7 +38,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
   {
     type: "Badge",
     props: {
-      variant: "accent",
+      variant: "neutral", // S2 Badge 기본값 (2026-11-18 §7-5)
       size: "S",
       fillStyle: "bold", // catalog bindingOnly 보강
       overflowMode: "wrap", // ADR-257 후속 — S2 Badge 기본값

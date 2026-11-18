@@ -1,12 +1,17 @@
 import type { PrimitiveBinding } from "../types";
-import { buttonBinding } from "./Button.binding";
+import { BUTTON_FORM_FOCUS_ACCEPTS, buttonBinding } from "./Button.binding";
 import { linkBinding } from "./Link.binding";
 
 const {
   type: _type,
   isPending: _isPending,
-  ...buttonProps
+  ...buttonAccepts
 } = buttonBinding.props.accepts;
+const buttonProps = Object.fromEntries(
+  Object.entries(buttonAccepts).filter(
+    ([key]) => !(key in BUTTON_FORM_FOCUS_ACCEPTS),
+  ),
+);
 const {
   children: _children,
   isQuiet: _isQuiet,

@@ -6,6 +6,9 @@ const clearPaint = {
 };
 const actionBarBox = {
   display: "flex",
+  // S2 shows its second DOM box (clear · count) first with `order`; the engine has no `order`, so
+  // the row runs reversed — same picture, same DOM (actions first) as S2 (2026-11-18).
+  flexDirection: "row-reverse",
   alignItems: "center",
   width: "100%",
   height: "fit-content",

@@ -157,7 +157,7 @@ export const datePickerBinding: PrimitiveBinding = {
         kind: "boolean",
         label: "Hide time zone",
         section: "locale",
-        default: true,
+        default: false,
         // 시간 granularity 에서만 의미 (2026-09-15)
         visibleWhen: {
           key: "granularity",

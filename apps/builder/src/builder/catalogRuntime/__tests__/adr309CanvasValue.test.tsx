@@ -435,3 +435,33 @@ describe("ADR-309 — a disabled day's color comes from the rule", () => {
     );
   });
 });
+
+/**
+ * (2026-11-18, 사용자 §7-5 「전부 S2 로」) `hideTimeZone` 기본 = S2 · RAC 의 false — a zoned time
+ * shows its zone on the Canvas and in the DOM until the author hides it.
+ */
+describe("S2 hideTimeZone default (false)", () => {
+  for (const type of ["datefield", "datepicker"])
+    it(type, async () => {
+      const { workspace, write } = await place(type);
+      const zoneShown = () => {
+        const root = workspace.root;
+        return [...root.canvasInputs.values()]
+          .filter((record) => root.typeOf(record) === "DateInput")
+          .some((record) => {
+            root.getGeometry([record.id]);
+            return (root.dateSegmentPaint(record.id)?.runs ?? []).some(
+              (run) => /GMT/.test(run.text),
+            );
+          });
+      };
+      write({
+        granularity: "minute",
+        value: "2026-11-05T10:30:00+09:00[Asia/Seoul]",
+      });
+      expect(zoneShown()).toBe(true);
+      write({ hideTimeZone: true });
+      expect(zoneShown()).toBe(false);
+      workspace.dispose();
+    });
+});

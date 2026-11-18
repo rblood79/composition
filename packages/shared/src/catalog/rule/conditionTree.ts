@@ -32,6 +32,9 @@ export const CONDITIONS = [
   //   `[data-side-panel-collapsed]` ancestor). Canvas: `presence.ts` `catalogSideNavState`.
   "isCurrent",
   "isCollapsed",
+  // S2 Link `isStandalone` (2026-11-18) — a quiet Link loses its underline only when standalone
+  //   (`Link.tsx` textDecoration). DOM `data-standalone` (`toRacProps`), Canvas the record prop.
+  "isStandalone",
 ] as const;
 export type Condition = (typeof CONDITIONS)[number];
 
@@ -221,6 +224,7 @@ const FLAG_SELECTORS: Readonly<Record<Condition | DomCondition, string>> = {
     ":is([data-current], [data-current-ancestor]:not([data-expanded]))",
   isCollapsed:
     ":is([data-side-panel-collapsed], [data-side-panel-collapsed] *)",
+  isStandalone: '[data-standalone="true"]',
   isDialogTrigger: "[data-dialog-trigger]",
   isCatalogNode: "[data-catalog-id]",
   isLink: "[href]",

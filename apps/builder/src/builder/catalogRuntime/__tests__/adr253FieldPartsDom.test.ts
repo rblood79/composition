@@ -323,6 +323,29 @@ const WRAPPED_TYPES = [
   "daterangepicker",
 ];
 /**
+ * (2026-11-18, 사용자 §7-5 「전부 S2 로」) Meter · ProgressBar 의 기본 `value` = S2 의 0 — the
+ * fixture's placed bars (75 · 50) applied.
+ */
+const S2_DEFAULT_VALUE_MARKUP: Record<
+  string,
+  readonly (readonly [string, string])[]
+> = {
+  meter: [
+    [
+      "aria-valuenow=75 aria-valuetext=75%",
+      "aria-valuenow=0 aria-valuetext=0%",
+    ],
+    ["<span class=value>75%</>", "<span class=value>0%</>"],
+  ],
+  progressbar: [
+    [
+      "aria-valuenow=50 aria-valuetext=50%",
+      "aria-valuenow=0 aria-valuetext=0%",
+    ],
+    ["<span class=value>50%</>", "<span class=value>0%</>"],
+  ],
+};
+/**
  * What a date field's part nodes write differently from the component's own composition
  * (ADR-253), applied to the fixture: the DateInput's box is the DateInput rule's sheet (no
  * `inset` utility class); a range picker's separator is a Text node.
@@ -910,7 +933,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               : (text: string) => text;
           const fixed = groupItemsUnselected(
             type,
-            (DATE_PART_MARKUP[type] ?? []).reduce(
+            [
+              ...(DATE_PART_MARKUP[type] ?? []),
+              ...(S2_DEFAULT_VALUE_MARKUP[type] ?? []),
+            ].reduce(
               (text, [before, after]) => text.replaceAll(before, after),
               fixture[`${type}/${name}`],
             ),

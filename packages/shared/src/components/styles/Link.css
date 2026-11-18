@@ -14,14 +14,6 @@
     border-radius: var(--radius-sm);
     outline: none;
 
-    /* External icon spacing */
-    & .link-external-icon {
-      margin-left: var(--spacing-sm);
-      width: 0.85em;
-      height: 0.85em;
-      opacity: 0.7;
-    }
-
     &[data-hovered] {
       text-decoration: underline;
       text-decoration-thickness: 2px;
@@ -30,12 +22,6 @@
 
     /* ADR-297 Phase 3b: a catalog Link's disabled dim and focus ring are the Link rule's state tree
        (generated `:where` blocks, which this sheet's state selectors would outrank) — Builder Link only. */
-
-    &[data-external="true"] {
-      & .link-external-icon {
-        opacity: 1;
-      }
-    }
 
     /* ===== Color Variants ===== */
 

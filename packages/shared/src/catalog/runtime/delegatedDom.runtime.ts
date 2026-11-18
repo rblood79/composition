@@ -1863,7 +1863,7 @@ const datePickerProps = (props: CatalogConsumerNode["props"]) => ({
     : "day",
   minValue: dateValue(props.minValue),
   maxValue: dateValue(props.maxValue),
-  hideTimeZone: props.hideTimeZone !== false,
+  hideTimeZone: props.hideTimeZone === true,
   shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
   shouldCloseOnSelect: props.shouldCloseOnSelect !== false,
   pageBehavior: props.pageBehavior === "single" ? "single" : undefined,
@@ -2578,7 +2578,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           selectionMode: props.selectionMode ?? "single",
           disallowEmptySelection: bool(props.disallowEmptySelection),
           // RSP `selectionStyle` (checkbox → RAC `toggle`, highlight → `replace`): the shared Tree
-          // converts it (`resolveSelectionBehavior`, highlight when unset).
+          // converts it (`resolveSelectionBehavior`, S2's checkbox when unset).
           selectionStyle: props.selectionStyle,
           // In the Preview the user's expansion is a runtime prop of the record (ADR-250); the
           // declared keys stay in the document. Controlled from the first render (ADR-280).
@@ -2957,7 +2957,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     (props) => ({
       defaultValue:
         dateValue(catalogDateStartValue(props), props.granularity) ?? null,
-      hideTimeZone: props.hideTimeZone !== false,
+      hideTimeZone: props.hideTimeZone === true,
       shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
       minValue: dateValue(props.minValue),
       maxValue: dateValue(props.maxValue),
@@ -2997,7 +2997,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             placeholderValue: timeBound(own.placeholderValue),
             minValue: timeBound(own.minValue),
             maxValue: timeBound(own.maxValue),
-            hideTimeZone: own.hideTimeZone !== false,
+            hideTimeZone: own.hideTimeZone === true,
             shouldForceLeadingZeros: own.shouldForceLeadingZeros !== false,
             granularity: catalogPickerTimeGranularity(picker) ?? "minute",
           };
@@ -3008,7 +3008,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           placeholderValue: timeValue(props.placeholderValue),
           minValue: timeValue(props.minValue),
           maxValue: timeValue(props.maxValue),
-          hideTimeZone: props.hideTimeZone !== false,
+          hideTimeZone: props.hideTimeZone === true,
           shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
           granularity: ["hour", "minute", "second"].includes(
             String(props.granularity),
@@ -4222,23 +4222,19 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       } catch {
         color = parseColor("#3b82f6");
       }
-      const element = createElement(
-        AriaColorSwatchPickerItem as ElementType,
-        {
-          ...marker(input),
-          style: input.style,
-          className: "react-aria-ColorSwatchPickerItem",
-          color,
-          isDisabled:
-            bool(props.isDisabled) || picker?.props.isDisabled === true,
-          // S2 `ColorSwatchPicker`: the selected item's selection `div` after its swatch
-          // (`colorHandle.ts` — the Canvas `color_swatch` reads the same values).
-          children: ({ isSelected }: { isSelected: boolean }) => [
-            ...renderAll(input),
-            isSelected ? swatchSelectionRing() : null,
-          ],
-        },
-      );
+      const element = createElement(AriaColorSwatchPickerItem as ElementType, {
+        ...marker(input),
+        style: input.style,
+        className: "react-aria-ColorSwatchPickerItem",
+        color,
+        isDisabled: bool(props.isDisabled) || picker?.props.isDisabled === true,
+        // S2 `ColorSwatchPicker`: the selected item's selection `div` after its swatch
+        // (`colorHandle.ts` — the Canvas `color_swatch` reads the same values).
+        children: ({ isSelected }: { isSelected: boolean }) => [
+          ...renderAll(input),
+          isSelected ? swatchSelectionRing() : null,
+        ],
+      });
       // (Outside a picker RAC needs its collection: a host with no box.)
       return picker &&
         catalogTypeName(input.root, picker) === "ColorSwatchPicker"
