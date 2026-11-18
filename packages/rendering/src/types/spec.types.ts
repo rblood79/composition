@@ -785,6 +785,8 @@ export interface VariantRestPaint {
   text: TokenRef;
   /** rest border color */
   border?: TokenRef;
+  /** The variant's border line (`ComponentVisualRule.borderStyle` — DropZone `dashed`); absent = solid. */
+  borderStyle?: "solid" | "dashed" | "dotted";
 }
 
 /**

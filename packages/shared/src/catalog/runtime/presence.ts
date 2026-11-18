@@ -391,15 +391,33 @@ export function catalogToggleButtonGlyphOwner(
 }
 
 /**
- * ADR-259 Phase 3 — the ContextualHelp a Button is the trigger of (its parent, layout frames
- * skipped): S2's quiet icon-only ActionButton (`slot={null}`), its box the ContextualHelp part rule.
+ * S2 마이그레이션 (2026-11-18) — the picture of a DropZone's IllustratedMessage (S2 `DropZone >
+ * IllustratedMessage > Illustration`): S2 colors it accent while a drag is over the zone
+ * (`IllustratedMessageContext.isDropTarget` → `--iconPrimary`).
+ */
+export function catalogIllustrationInDropZone(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "Illustration") return false;
+  const message = catalogPartParent(node, get, typeOf);
+  if (!message || typeOf(message) !== "IllustratedMessage") return false;
+  const zone = catalogPartParent(message, get, typeOf);
+  return zone !== undefined && typeOf(zone) === "DropZone";
+}
+
+/**
+ * ADR-259 Phase 3 — the ContextualHelp an ActionButton is the trigger of (its parent, layout frames
+ * skipped): S2's quiet icon-only ActionButton (`slot={null}` — S2 `ContextualHelp.tsx:198`), its box
+ * the ActionButton rule's icon-only square at the help's size (XS 20 · S 24).
  */
 export function catalogContextualHelpOfTrigger(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  if (typeOf(node) !== "Button") return undefined;
+  if (typeOf(node) !== "ActionButton") return undefined;
   const parent = catalogPartParent(node, get, typeOf);
   return parent && typeOf(parent) === "ContextualHelp" ? parent : undefined;
 }

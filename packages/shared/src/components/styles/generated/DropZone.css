@@ -19,7 +19,7 @@
   /* Default variant */
   background: var(--container-bg, var(--bg));
   color: var(--fg-muted);
-  border: var(--border-width-thick) solid var(--border);
+  border: var(--border-width-thick) dashed var(--border);
 
   /* Default size */
   height: auto;
@@ -28,7 +28,6 @@
   border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-thick);
   gap: 12px;
-  --icon-size: 32px;
 }
 
 .react-aria-DropZone:where([data-variant="default"]) {
@@ -50,7 +49,6 @@
   border-radius: var(--catalog-token-radius-md);
   border-width: var(--border-width-thick);
   gap: 8px;
-  --icon-size: 24px;
 }
 
 .react-aria-DropZone[data-size="M"] {
@@ -60,7 +58,6 @@
   border-radius: var(--catalog-token-radius-lg);
   border-width: var(--border-width-thick);
   gap: 12px;
-  --icon-size: 32px;
 }
 
 .react-aria-DropZone[data-size="L"] {
@@ -70,7 +67,6 @@
   border-radius: var(--catalog-token-radius-xl);
   border-width: var(--border-width-thick);
   gap: 16px;
-  --icon-size: 40px;
 }
 
 .react-aria-DropZone.react-aria-DropZone:where([data-focus-visible]) {
@@ -87,31 +83,10 @@
 .react-aria-DropZone.react-aria-DropZone:where([data-drop-target]) {
   background: var(--bg-inset);
   color: var(--accent-content);
+  border-style: solid;
 }
 
 /* ── Tier 2: Composite Delegation ── */
-
-.react-aria-DropZone .dropzone-icon {
-  width: var(--icon-size);
-  height: var(--icon-size);
-  flex-shrink: 0;
-}
-
-.react-aria-DropZone [slot="label"] {
-  font-size: inherit;
-  font-weight: inherit;
-  line-height: 1.5;
-  color: inherit;
-  text-align: center;
-}
-
-.react-aria-DropZone [slot="description"] {
-  font-size: var(--catalog-token-text-xs);
-  font-weight: inherit;
-  line-height: 1.5;
-  color: inherit;
-  text-align: center;
-}
 
 
 @media (forced-colors: active) {
@@ -127,6 +102,10 @@
 
   .react-aria-DropZone .dropzone-replace {
     display: none;
+  }
+
+  .react-aria-DropZone[data-drop-target] .react-aria-Illustration {
+    color: var(--accent-content);
   }
 
   .react-aria-DropZone[data-drop-target] .dropzone-replace {

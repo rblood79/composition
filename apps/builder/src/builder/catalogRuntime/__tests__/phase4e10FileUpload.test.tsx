@@ -248,7 +248,7 @@ describe("DateRangePicker — the end input's catalog grow", () => {
  * measures them (CSS `min-height: auto` keeps a declared-height DropZone at its content) and paints
  * them; the FileUpload template's DropZone fits its content.
  */
-describe("DropZone content — catalog declaration in both consumers", () => {
+describe("DropZone content — its S2 IllustratedMessage in both consumers", () => {
   // 7 px per character, words break at spaces.
   const measure: CatalogTextMeasure = (text, font, maxWidth) => {
     const char = font.fontSize / 2;
@@ -314,43 +314,6 @@ describe("DropZone content — catalog declaration in both consumers", () => {
     return { workspace, root, zone };
   }
 
-  it("generated CSS declares the content (icon size · label · description)", () => {
-    const css = readFileSync(`${GENERATED}/DropZone.css`, "utf8");
-    const icon = blockOf(css, ".react-aria-DropZone .dropzone-icon");
-    expect(icon).toContain("width: var(--icon-size);");
-    expect(icon).toContain("height: var(--icon-size);");
-    const label = blockOf(css, '.react-aria-DropZone [slot="label"]');
-    expect(label).toContain("font-size: inherit;");
-    expect(label).toContain("color: inherit;");
-    const description = blockOf(
-      css,
-      '.react-aria-DropZone [slot="description"]',
-    );
-    expect(description).toContain("font-size: var(--catalog-token-text-xs);");
-    expect(description).toContain("color: inherit;");
-  });
-
-  it("the DOM content items are the DropZone's own flex items", () => {
-    const { container } = render(
-      <DropZone label="Drop files here" description="or browse" />,
-    );
-    const zone = container.querySelector(".react-aria-DropZone")!;
-    expect(zone.querySelector(".dropzone-content")).toBeNull();
-    const items = [...zone.children].filter(
-      (child) =>
-        !child.querySelector("input, button") && child.tagName !== "INPUT",
-    );
-    expect(
-      items.map(
-        (child) => child.getAttribute("slot") ?? child.getAttribute("class"),
-      ),
-    ).toEqual([
-      expect.stringContaining("dropzone-icon"),
-      "label",
-      "description",
-    ]);
-  });
-
   it("a declared-height DropZone keeps its content height when its column is short (min-height: auto)", async () => {
     const { root, workspace } = await open("FileUpload", {
       width: { kind: "set", value: 220 },
@@ -359,33 +322,37 @@ describe("DropZone content — catalog declaration in both consumers", () => {
     const zone = [...root.layoutInputs.values()].find(
       (record) => record.bindingId === "dropzone",
     )!;
-    const input = root.getLayoutInput(zone.id)!;
-    expect(Number(input.contentHeight)).toBeGreaterThan(0);
+    // (S2 마이그레이션 2026-11-18: its content is S2's IllustratedMessage — a child node.)
+    const message = [...root.layoutInputs.values()].find(
+      (record) => record.parentId === zone.id,
+    )!;
+    expect(root.typeOf(message)).toBe("IllustratedMessage");
+    const content = root.getGeometry([message.id]).get(message.id)!;
+    expect(content.height).toBeGreaterThan(0);
     const box = root.getGeometry([zone.id]).get(zone.id)!;
-    // padding 24 × 2 + border 2 × 2 + icon 32 + gap 12 + label 21 + gap 12 + description (2 lines × 18)
-    expect(box.height).toBeGreaterThan(52);
-    expect(box.height).toBeCloseTo(52 + Number(input.contentHeight), 0);
+    // padding 24 × 2 + border 2 × 2 + the message (picture 96 + heading + description lines)
+    expect(box.height).toBeCloseTo(52 + content.height, 0);
     workspace.dispose();
   });
 
-  it("the Canvas paints the icon, the label and the description, centered", async () => {
+  it("the palette DropZone composes nothing of its own — its S2 IllustratedMessage draws the picture and words, centered", async () => {
     const { root, workspace, zone } = await open("DropZone");
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const data = getSkiaNode(zone.id)!;
-    const parts = (data.children ?? []).filter(
-      (child) =>
-        child.type === "icon_path" || child.text?.content === "Drop files here",
-    );
-    expect(parts.map((child) => child.type)).toEqual(["icon_path", "text"]);
-    const [icon, label] = parts;
-    expect(icon!.width).toBe(32);
-    // Centered on the box's horizontal axis.
-    expect(icon!.x + icon!.width / 2).toBeCloseTo(data.width / 2, 0);
-    // The text child spans the node and sits at its padding (the executor's convention).
-    const text = label!.text!;
-    expect(text.autoCenter).toBe(false);
-    expect(text.paddingLeft + text.maxWidth / 2).toBeCloseTo(data.width / 2, 0);
-    expect(text.paddingTop).toBeGreaterThan(icon!.y + icon!.height);
+    // (No composed icon · text: S2 `DropZone > IllustratedMessage`, 2026-11-18.)
+    expect(
+      (data.children ?? []).filter(
+        (child) => child.type === "icon_path" || child.text !== undefined,
+      ),
+    ).toEqual([]);
+    const message = [...root.canvasInputs.values()].find(
+      (record) => record.parentId === zone.id,
+    )!;
+    expect(root.typeOf(message)).toBe("IllustratedMessage");
+    const zoneBox = root.getGeometry([zone.id]).get(zone.id)!;
+    const box = root.getGeometry([message.id]).get(message.id)!;
+    // Centered on the zone's horizontal axis (S2 `justifyContent: center`).
+    expect(box.x + box.width / 2).toBeCloseTo(zoneBox.width / 2, 0);
     canvas.dispose();
     workspace.dispose();
   });

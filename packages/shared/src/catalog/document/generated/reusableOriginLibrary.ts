@@ -1045,8 +1045,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-dropzone",
     "name": "DropZone",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "label": "string",
+      "description": "string"
+    },
+    "defaults": {
+      "label": "Drop files here",
+      "description": ""
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-dropzone"
@@ -2806,13 +2812,45 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-toast",
     "definitionId": "lib:definition:type-Toast",
     "children": [
-      "lib:template:component-toast__title",
-      "lib:template:component-toast__action"
+      "lib:template:component-toast__body"
     ],
     "props": {
       "variant": "info"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-toast__body",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-toast__content",
+      "lib:template:component-toast__action"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexWrap": "wrap",
+      "alignItems": "center",
+      "flexGrow": "1",
+      "rowGap": "8px",
+      "columnGap": "24px"
+    }
+  },
+  {
+    "id": "lib:template:component-toast__content",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-toast__title"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "alignItems": "baseline",
+      "rowGap": "8px",
+      "columnGap": "8px"
+    }
   },
   {
     "id": "lib:template:component-toast__title",
@@ -2834,7 +2872,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "fillStyle": "outline",
       "staticColor": "white"
     },
-    "visual": {}
+    "visual": {},
+    "layout": {
+      "marginLeft": "auto"
+    }
   },
   {
     "id": "lib:template:component-inline-alert__description",
@@ -2889,6 +2930,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-illustratedmessage__description",
     "definitionId": "lib:definition:text",
+    "presentWhen": "nonEmptyText",
     "children": [],
     "props": {
       "children": "{description}"
@@ -6028,7 +6070,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-dropzone",
     "definitionId": "lib:definition:type-DropZone",
-    "children": [],
+    "children": [
+      "lib:template:component-dropzone__message"
+    ],
     "props": {},
     "visual": {
       "paddingTop": 24,
@@ -6044,6 +6088,27 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "rowGap": "12px",
       "columnGap": "12px"
     }
+  },
+  {
+    "id": "lib:template:component-dropzone__message",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {
+      "title": "{label}",
+      "description": "{description}"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "upload"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-filetrigger",
@@ -7612,11 +7677,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-contextualhelp__trigger",
-    "definitionId": "lib:definition:origin-component-button",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
       "slot": false,
-      "variant": "secondary",
+      "isQuiet": true,
       "label": ""
     },
     "visual": {}
@@ -7625,9 +7690,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-contextualhelp__overlay",
     "definitionId": "lib:definition:type-Popover",
     "children": [
-      "lib:template:component-contextualhelp__title",
-      "lib:template:component-contextualhelp__content",
-      "lib:template:component-contextualhelp__footer"
+      "lib:template:component-contextualhelp__body"
     ],
     "props": {
       "size": "S",
@@ -7638,12 +7701,34 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "containerPadding": "{containerPadding}"
     },
     "visual": {
+      "width": "fit-content",
+      "paddingTop": 0,
+      "paddingRight": 0,
+      "paddingBottom": 0,
+      "paddingLeft": 0
+    }
+  },
+  {
+    "id": "lib:template:component-contextualhelp__body",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-contextualhelp__title",
+      "lib:template:component-contextualhelp__content",
+      "lib:template:component-contextualhelp__footer"
+    ],
+    "props": {},
+    "visual": {
       "width": "268px",
       "paddingTop": 24,
       "paddingRight": 24,
       "paddingBottom": 24,
-      "paddingLeft": 24,
-      "gap": 8
+      "paddingLeft": 24
+    },
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column",
+      "rowGap": "0",
+      "columnGap": "0"
     }
   },
   {
@@ -7656,7 +7741,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "S",
       "level": 2
     },
-    "visual": {}
+    "visual": {},
+    "layout": {
+      "marginBottom": "8px"
+    }
   },
   {
     "id": "lib:template:component-contextualhelp__content",
@@ -7692,8 +7780,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-contextualhelp__link"
     ],
     "props": {},
-    "visual": {
-      "paddingTop": 8
+    "visual": {},
+    "layout": {
+      "marginTop": "16px"
     }
   },
   {

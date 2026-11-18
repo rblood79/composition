@@ -202,12 +202,7 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     reason:
       "Color 조작기의 swatch · thumb 치수 — 아이콘이 아니다 (3c 에서 S2 ColorSwatch · ColorThumb 와 대조)",
   })),
-  {
-    component: "DropZone",
-    key: "iconSize",
-    values: { S: 24, M: 32, L: 40 },
-    reason: "DropZone 일러스트 글리프 — S2 아이콘 단이 아니다 (3c 대조)",
-  },
+  // (DropZone: 2026-11-18 its picture is the S2 IllustratedMessage's Illustration — no rule glyph.)
   // (Toast: 295 후속 C9 — size 축을 지우고 아이콘은 S2 Icon M `{size.icon.M}` 토큰.)
   {
     component: "ListBoxItem",

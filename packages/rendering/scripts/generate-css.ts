@@ -594,6 +594,9 @@ function variantRestPaint(v: ComponentRuleVariant): VariantRestPaint {
     background: paintAt(v.paint.backgroundColor) as TokenRef | undefined,
     text: (paintAt(v.paint.color) ?? "{color.neutral}") as TokenRef,
     ...(border !== undefined ? { border: border as TokenRef } : {}),
+    // (The Canvas reads the variant's line — `buildCatalogShapes` `visual.borderStyle`; the sheet
+    //  wrote `solid` for every rule, so a DropZone was dashed on the Canvas only — 2026-11-18.)
+    ...(v.borderStyle ? { borderStyle: v.borderStyle } : {}),
   };
 }
 

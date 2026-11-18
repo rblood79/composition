@@ -621,7 +621,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
         );
       } else {
         lines.push(
-          `  border: ${bw} solid ${tokenToCSSVar(defaultVariant.border)};`,
+          `  border: ${bw} ${defaultVariant.borderStyle ?? "solid"} ${tokenToCSSVar(defaultVariant.border)};`,
         );
       }
     } else {

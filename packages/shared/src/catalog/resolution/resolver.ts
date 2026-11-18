@@ -1094,9 +1094,7 @@ export function resolveCatalogNode(
     resolved: ResolvedCatalogNode | undefined,
     context: ParentContext | undefined,
   ): void => {
-    if (
-      repeatsPerMonth(ruleDefinitionOf(child.definitionId).name, context)
-    )
+    if (repeatsPerMonth(ruleDefinitionOf(child.definitionId).name, context))
       pushCalendarMonths(out, resolved, context);
     else push(out, resolved);
   };
@@ -1786,7 +1784,10 @@ export function resolveCatalogNode(
   ): void => {
     if (lookupDefinition(definitionId).name !== "Icon") return;
     const button = structuralParent(parent);
-    if (!button || lookupDefinition(button.definitionId).name !== "Button")
+    if (
+      !button ||
+      lookupDefinition(button.definitionId).name !== "ActionButton"
+    )
       return;
     const help = structuralParent(button.parent);
     if (!help || lookupDefinition(help.definitionId).name !== "ContextualHelp")
@@ -2038,8 +2039,10 @@ export function resolveCatalogNode(
     // ADR-310 Phase 7 — a connected Pagination's number group selects the page shown.
     const pager =
       ownedType === "ToggleButtonGroup" &&
-      (graph.getEntry(graph.ownerOf(node.id) as NodeId) as NodeEntry | undefined);
-    const pages = pager && pager.pagesOf && rows?.pages?.(pager.pagesOf, pager.id);
+      (graph.getEntry(graph.ownerOf(node.id) as NodeId) as
+        NodeEntry | undefined);
+    const pages =
+      pager && pager.pagesOf && rows?.pages?.(pager.pagesOf, pager.id);
     if (pages) {
       delete props.defaultSelectedKeys;
       props.selectedKeys = [String(pages.page)];

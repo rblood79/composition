@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — DropZone (IllustratedMessage) · Tab 아이콘 자리 · Toast 겹] - 2026-11-18
+
+### Changed
+
+- **DropZone 내용 = S2 IllustratedMessage** — 원본이 `DropZone > IllustratedMessage (Illustration + Heading + Content > Text)` 를 갖는다 (S2 예제 구조). DropZone 의 `label` · `description` 은 그 제목 · 글자이고 (설명이 비면 Text 없음), DropZone 크기 S · M · L 이 IllustratedMessage 로 간다 (그림 96 · 96 · 160 — 전에는 DropZone 이 그리던 32px 아이콘). 그림은 기존 `upload` 글리프이고 끄는 동안 accent 가 된다 (S2 `--iconPrimary`). 전에는 아이콘 · 라벨 · 설명이 노드가 아니라 DropZone 이 그린 글자였다.
+- **DropZone 이 그리던 글자 경로 삭제** — 자식 없는 DropZone 이 `label` · `description` · 업로드 아이콘을 직접 그리던 경로 (`dropZoneContent.ts` · Canvas 합성 자식 · 생성 CSS 의 `.dropzone-icon` · `[slot]` 규칙 · DropZone rule 의 `iconSize`) 를 지웠다 (사용자 승인 11-18). 글자는 IllustratedMessage 노드만 그리고, 그것을 지운 DropZone 은 S2 처럼 빈 영역이다.
+- **DropZone 크기 · 테두리 수정** — Publish 의 `data-size` 가 크기와 무관하게 늘 M 이던 것 (DropZone 컴포넌트의 기본값이 `toRacProps` 의 값을 덮었다), 생성 CSS 테두리가 Canvas 의 dashed 와 달리 solid 이던 것 (생성기가 variant 의 `borderStyle` 을 읽지 않았다 — S2 대로 휴지 dashed · 끄는 동안 solid).
+- **Tab 에 넣은 Icon 은 글자 앞** — S2 Tab 은 아이콘을 CSS `order` 로 글자 앞에 둔다. 엔진 · DOM 은 자식 순서를 따르므로 Tab 에 Icon 을 넣으면 Text 앞 자리에 들어간다 (`Indicator → Icon → Text`). 전에는 끝에 붙어 글자 뒤에 그려졌다.
+- **Toast 모양 template = S2 겹** — `Toast > frame (S2 body — flex · 줄바꿈 · 간격 24 / 8) > frame (S2 ToastContent — 간격 8 · baseline) > Text` + action Button. 기본 Toast 와 Site 「토스트 모양」 경로는 그대로 동작하고 상자 치수도 같다 (294 × 56).
+  - 위치: `reusableOriginLibrary.ts` (`component-dropzone__message` · `component-toast__body` · `__content`) · `sizePropagation.ts` · `components/DropZone.tsx` · `domBinding.runtime.ts` · `presence.ts` (`catalogIllustrationInDropZone`) · `componentRulesTable.ts` (DropZone) · `generate-css.ts` · `CSSGenerator.ts` (`borderStyle`) · `commands/structure.ts` (`catalogAppendIndex`)
+
+## [S2 정렬 — ContextualHelp (트리거 ActionButton · Popover 여백 상자)] - 2026-11-18
+
+### Changed
+
+- **ContextualHelp 트리거 = S2 quiet ActionButton** — 도움말 버튼이 Button 원본 + quiet 정사각 part rule 대신 S2 처럼 ActionButton 원본의 quiet · icon-only instance 다 (`slot={null}` 그대로 — field 의 Button context 를 받지 않는다). 크기는 ActionButton rule 의 icon-only 정사각 (XS 20 · S 24 — field 크기 S · M → XS, L · XL → S 그대로), 칠 · hover · 누름은 ActionButton 시트 (S2 quiet: 투명 바탕, 누르면 축소). 이름 (「Help」 · 「Information」, field 안에서는 라벨 + 자신) 은 그대로다.
+- **ContextualHelp Popover = S2 `ContextualHelpPopover` 구조** — `Popover (여백 0) > frame (폭 268 · 여백 24 · 세로) > Heading + Content + Footer`, 간격은 S2 대로 제목 아래 8 · Footer 위 16 이다. 전에는 Popover 자신이 여백 24 · gap 8 을 갖고 Footer 가 위 여백 8 을 더했다 (보이는 크기는 같다 — 268 × 142). 원본 template 만 바뀌고 이미 놓은 도움말은 옮기지 않는다.
+  - 위치: `reusableOriginLibrary.ts` (`component-contextualhelp__trigger` · `__overlay` · `__body`) · `components/ContextualHelp.tsx` (`ContextualHelpButton`) · `domBinding.runtime.ts` · `presence.ts` (`catalogContextualHelpOfTrigger`) · `resolver.ts` (`applyContextualHelpGlyph`) · `sizePropagation.ts` — `rulePartRules.ts` 의 `contextualHelpPartRules` · `quietIconSquareRules` 삭제
+
 ## [S2 정렬 — Slider · RangeSlider (라벨 묶음 · 입력 묶음 · track 행 · 막대 · S2 색 · 비활성)] - 2026-11-18
 
 ### Changed

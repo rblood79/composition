@@ -6,7 +6,6 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { Button as RACButton } from "react-aria-components/Button";
 import { DialogTrigger as RACDialogTrigger } from "react-aria-components/Dialog";
 import { HeadingContext } from "react-aria-components/Heading";
 import { useLocale } from "react-aria-components/I18nProvider";
@@ -17,6 +16,8 @@ import {
   Provider,
   useSlottedContext,
 } from "react-aria-components/slots";
+import type { ComponentSize } from "../types";
+import { ActionButton } from "./ActionButton";
 
 /**
  * ADR-259 Phase 3 — inside a field's label row (`FieldLabel`): the help's name joins the field's
@@ -140,17 +141,20 @@ function ContextualHelpOverlay({
 }
 
 export interface ContextualHelpButtonProps {
+  size?: ComponentSize;
+  isQuiet?: boolean;
   style?: CSSProperties;
   isDisabled?: boolean;
   autoFocus?: boolean;
   children?: ReactNode;
   "data-catalog-id"?: string;
+  "data-icon-only"?: boolean;
 }
 
 /**
- * The help's trigger Button node: RAC's plain Button, detached from any Button context
- * (`slot={null}` — S2 `ActionButton slot={null}`), named by its ContextualHelp. Its quiet box is
- * the record's (the ContextualHelp part rule — inline, as the Canvas draws it).
+ * The help's trigger ActionButton node (S2 `ContextualHelp.tsx:198-209`): the ActionButton,
+ * detached from any Button context (`slot={null}`), named by its ContextualHelp. Its quiet
+ * icon-only square is the ActionButton sheet's (`data-quiet` · `data-size`).
  */
 export function ContextualHelpButton({
   children,
@@ -158,13 +162,13 @@ export function ContextualHelpButton({
 }: ContextualHelpButtonProps) {
   const trigger = useContext(ContextualHelpTriggerContext);
   return (
-    <RACButton
+    <ActionButton
       {...props}
       {...(trigger ?? {})}
       slot={null}
       data-contextual-help=""
     >
       {children}
-    </RACButton>
+    </ActionButton>
   );
 }

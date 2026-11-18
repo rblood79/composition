@@ -142,7 +142,6 @@ describe("ADR-276 Button origin template", () => {
       "lib:template:component-dialog__1": "Open Dialog",
       "lib:template:component-dialog__2_3_1": "Close",
       "lib:template:component-popover__trigger": "Open Popover",
-      "lib:template:component-contextualhelp__trigger": "",
       "lib:template:component-tooltip__trigger": "Hover me",
       "lib:template:component-fieldbutton": "",
       "lib:template:component-togglebuttongroup__1": "Toggle 1",
@@ -159,10 +158,11 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 23 Button + 10 ToggleButton positions; the 9 state variants carry no text of their own.
+    // 22 Button + 10 ToggleButton positions; the 9 state variants carry no text of their own.
     // (2026-11-14: the Toolbar's three and a Pagination's step buttons are ActionButtons — S2's action
-    //  group; a Pagination's three pages are ToggleButtons.)
-    expect(nested).toHaveLength(33);
+    //  group; a Pagination's three pages are ToggleButtons. 2026-11-18: a ContextualHelp's trigger is
+    //  S2's quiet ActionButton.)
+    expect(nested).toHaveLength(32);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)
@@ -235,9 +235,10 @@ describe("ADR-276 Button origin template", () => {
       expect(catalogAbsentByValue(record)).toBe(true);
     // (A worded host of Buttons — a Pagination holds ActionButtons · ToggleButtons since 2026-11-14.)
     const group = add("ButtonGroup");
-    expect(parts(group, LABEL).map((record) => record.props.children)).toEqual(
-      ["Cancel", "Save"],
-    );
+    expect(parts(group, LABEL).map((record) => record.props.children)).toEqual([
+      "Cancel",
+      "Save",
+    ]);
     const tooltip = add("Tooltip");
     expect(parts(tooltip, LABEL).map((r) => r.props.children)).toEqual([
       "Hover me",

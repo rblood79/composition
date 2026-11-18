@@ -420,6 +420,26 @@ describe("ADR-259 Phase 3 — contextual help", () => {
       name: "Need help?",
       headingLevel: oracle.headingLevel,
     });
+    // S2 마이그레이션 (2026-11-18) — S2 `ContextualHelpPopover`: the Popover has no padding of its
+    // own (`padding="none"`) and holds one 268-wide box of padding 24 (`wrappingDiv` · `dialogInner`)
+    // with the Heading (`marginBottom: 8`), Content and Footer (`marginTop: 16`) in a column.
+    const box = dialog.querySelector<HTMLElement>(
+      ":scope > div[data-catalog-id]",
+    )!;
+    const footer = box.querySelector<HTMLElement>(".react-aria-Footer, footer");
+    expect({
+      popoverPadding: dialog.style.paddingTop || "0px",
+      box: [box.style.width, box.style.paddingTop, box.style.paddingLeft],
+      column: box.style.flexDirection,
+      headingGap: (heading as HTMLElement).style.marginBottom,
+      footerGap: footer?.style.marginTop,
+    }).toEqual({
+      popoverPadding: "0px",
+      box: ["268px", "24px", "24px"],
+      column: "column",
+      headingGap: "8px",
+      footerGap: "16px",
+    });
     await done();
   });
 
@@ -471,24 +491,31 @@ describe("ADR-259 Phase 3 — contextual help", () => {
     ["L", 24],
     ["XL", 24],
   ] as const)
-    it(`Canvas: the help button is S2's quiet ${box}px square at a ${size} field (Field.tsx:182)`, async () => {
+    it(`Canvas · DOM: the help button is S2's quiet icon-only ActionButton, a ${box}px square at a ${size} field (Field.tsx:182 · ContextualHelp.tsx:198)`, async () => {
       const { setHelp, root, recordsOf, render } = await open(
         "TextField",
         `size-${size}`,
         { size },
       );
       setHelp("help");
-      const button = recordsOf("Button")[0]!;
+      const button = recordsOf("ActionButton")[0]!;
+      expect(button.props.isQuiet).toBe(true);
+      expect(button.derivedProps?._actionIconOnly).toBe(true);
       const geometry = root.getGeometry([button.id]).get(button.id)!;
       expect([geometry.width, geometry.height]).toEqual([box, box]);
       const { host, done } = await render();
       const el = host.querySelector<HTMLElement>("[data-contextual-help]")!;
+      expect(el.classList.contains("react-aria-ActionButton")).toBe(true);
       expect([
-        el.style.width,
-        el.style.height,
-        el.style.minWidth,
-        el.style.borderWidth,
-      ]).toEqual([`${box}px`, `${box}px`, "0px", "0px"]);
+        el.getAttribute("data-quiet"),
+        el.getAttribute("data-size"),
+        el.getAttribute("data-icon-only"),
+      ]).toEqual(["true", box === 20 ? "XS" : "S", "true"]);
+      // (The quiet fill and the border are the ActionButton sheet's, by state — not inline.)
+      expect([el.style.backgroundColor, el.style.borderColor]).toEqual([
+        "",
+        "",
+      ]);
       await done();
     });
 
@@ -616,7 +643,7 @@ describe("ADR-259 Phase 3 — contextual help", () => {
           entry(ids[0], "lib:definition:type-ContextualHelp", [ids[1]], {
             variant: "help",
           }),
-          entry(ids[1], "lib:definition:type-Button", [ids[2]]),
+          entry(ids[1], "lib:definition:type-ActionButton", [ids[2]]),
           entry(ids[2], "lib:definition:type-Icon", []),
         ],
         rootIds: [ids[0]],

@@ -21,6 +21,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { getPaletteItems } from "../../panels/components/paletteItems";
+import type { CatalogConsumerNode } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
 import { renderCatalogDom } from "../domBinding";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
@@ -77,16 +78,40 @@ async function open(props: Record<string, string> = {}) {
   const root = workspace.root;
   const records = () => [...root.canvasInputs.values()];
   const toast = () => records().find((r) => root.typeOf(r) === "Toast")!;
+  const byId = (id: string) => records().find((r) => r.id === id);
+  /** The record's ancestors up to the Toast (nearest first). */
+  const chain = (record: CatalogConsumerNode) => {
+    const out: CatalogConsumerNode[] = [];
+    for (let at = byId(record.parentId); at; at = byId(at.parentId)) {
+      out.push(at);
+      if (at.id === toast().id) break;
+    }
+    return out;
+  };
+  /** The Toast's first part of a type — S2 `Toast > body > ToastContent > Text` + the Button (not a Button's own text). */
   const child = (type: string) =>
-    records().find(
-      (r) => root.typeOf(r) === type && r.parentId === toast().id,
-    )!;
-  /** A child's offset in the Toast (Canvas layout). */
+    records().find((r) => {
+      if (root.typeOf(r) !== type) return false;
+      const up = chain(r);
+      return (
+        up.some((at) => at.id === toast().id) &&
+        !up.some((at) => root.typeOf(at) === "Button")
+      );
+    })!;
+  /** A part's offset in the Toast (Canvas layout — a rect is its parent's coordinates). */
   const offset = (id: string) => {
     const rects = workspace.root.getGeometry([toast().id, id]);
     const box = rects.get(toast().id)!;
     const own = rects.get(id)!;
-    return { x: own.x - box.x, y: own.y - box.y, box, own };
+    let x = own.x;
+    let y = own.y;
+    for (const at of chain(byId(id)!)) {
+      if (at.id === toast().id) break;
+      const rect = workspace.root.getGeometry([at.id]).get(at.id)!;
+      x += rect.x;
+      y += rect.y;
+    }
+    return { x, y, box, own };
   };
   const dom = () => {
     const html = renderToStaticMarkup(
@@ -122,9 +147,32 @@ describe("S2 Toast node (palette 「toast」)", () => {
     expect(toast.libraryOnly).toBe(true);
   });
 
-  it("its origin: Text + the S2 action Button; info by default", async () => {
+  it("its origin: S2's layers — body > ToastContent > Text, + the S2 action Button; info by default", async () => {
     const { root, toast, child } = await open();
     expect(toast().props.variant).toBe("info");
+    // S2 `Toast.tsx`: `div[role=presentation]` (the body — flex · wrap · gaps 24 / 8) holds
+    // `ToastContent` (flex · gap 8 · baseline — the words) and the action Button (S2 마이그레이션
+    // 2026-11-18 — the origin was `Toast > Text + Button`).
+    const records = [...root.canvasInputs.values()];
+    const parentOf = (id: string) =>
+      records.find((r) => r.id === records.find((c) => c.id === id)!.parentId)!;
+    const content = parentOf(child("Text").id);
+    const body = parentOf(content.id);
+    expect([root.typeOf(content), root.typeOf(body)]).toEqual([
+      "frame",
+      "frame",
+    ]);
+    expect(parentOf(body.id).id).toBe(toast().id);
+    expect(parentOf(child("Button").id).id).toBe(body.id);
+    expect([
+      body.layout.flexWrap,
+      body.layout.columnGap,
+      body.layout.rowGap,
+    ]).toEqual(["wrap", "24px", "8px"]);
+    expect([content.layout.alignItems, content.layout.columnGap]).toEqual([
+      "baseline",
+      "8px",
+    ]);
     const text = child("Text");
     const button = child("Button");
     expect(text.props.children).toBe("Toast message");

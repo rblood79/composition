@@ -768,7 +768,9 @@ describe("ADR-248 4e library origin view", () => {
     expect([
       sampleRect("colorslider").width,
       sampleRect("dropzone").width,
-      sampleRect("dropzone").height < 120,
+      // (S2 마이그레이션 2026-11-18: its content is S2's IllustratedMessage — a 96 picture, the
+      //  heading — so 188 tall, not the card's height.)
+      sampleRect("dropzone").height < 200,
       widthOf(fieldInput),
     ]).toEqual([
       innerOf("colorslider"),

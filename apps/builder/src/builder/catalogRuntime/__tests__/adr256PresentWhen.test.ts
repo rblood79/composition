@@ -174,13 +174,21 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
         // ADR-276: a Button's words — no Text node while its `label` is empty (icon-only).
         // (ActionButton · LinkButton the same — `8586c64bd` · `8ac17dc12`, S2's icon-only form.)
         expect(template.props.slot).toBe("label");
+      else if (
+        template.id === "lib:template:component-illustratedmessage__description"
+      )
+        // S2 마이그레이션 (2026-11-18): S2 IllustratedMessage's `Content` is optional — an empty
+        // description (a DropZone without one) is no Text.
+        expect(template.definitionId).toBe("lib:definition:text");
       else if (template.definitionId === "lib:definition:text")
         // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).
         expect(template.props.slot).toBe("description");
       else if (template.id === "lib:template:component-checkbox__1")
         // ADR-256 Phase 5f: the reference's `<Checkbox slot="selection" />` has no label text.
         expect(template.definitionId).toBe("lib:definition:type-Label");
-      else if (template.id === "lib:template:component-menu-item-default__shortcut")
+      else if (
+        template.id === "lib:template:component-menu-item-default__shortcut"
+      )
         // ADR-256 Phase 5g: the reference writes `<Keyboard>` only with a shortcut.
         expect(template.definitionId).toBe("lib:definition:type-Keyboard");
       else if (template.id === "lib:template:component-taggroup__error")

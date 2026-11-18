@@ -1,13 +1,14 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * ADR-259 Phase 3 — S2 `ContextualHelp`: a quiet icon-only Button that opens a Popover of help
- * (`ContextualHelp > Button > Icon + Popover > Heading[slot=title] + Content + Footer`). The DOM is
+ * ADR-259 Phase 3 — S2 `ContextualHelp`: a quiet icon-only ActionButton that opens a Popover of help
+ * (`ContextualHelp > ActionButton > Icon + Popover > frame > Heading[slot=title] + Content + Footer`
+ * — S2 `ContextualHelpPopover`'s padded box, 2026-11-18). The DOM is
  * RAC `DialogTrigger` (no element — S2 `ContextualHelp.tsx:195-216`); the Canvas lays it out as
  * `display: contents` and leaves its closed Popover out (`TRIGGER_OVERLAY_CHILDREN`).
  *
  * D2 (S2 1.8.0): `variant` names the help (`help` · `info` — the Button's glyph and accessible name),
- * `size` is the Button's (XS · S — inside a field's label row the field's size gives it, S2
+ * `size` is the ActionButton's (XS · S — inside a field's label row the field's size gives it, S2
  * `Field.tsx:182`), `isOpen` · `defaultOpen` are the DialogTrigger's. The Popover's place
  * (`placement` · `offset` · …) is the origin's, bound to its Popover node.
  */

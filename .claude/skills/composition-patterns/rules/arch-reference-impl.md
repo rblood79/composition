@@ -38,23 +38,23 @@ tags: [architecture, reference, patterns]
 
 ## Property Editor 패턴
 
-| 패턴                 | 참조 파일                                                     | 설명                                                                                                  |
-| -------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Properties 편집 명령 | `builder/catalogRuntime/editContract.ts`                      | `catalogPropertiesPatchCommand` — 바뀐 키만, binding 키 분리, 여럿이면 `composeCommands` (entry 하나) |
-| 패널 명령 실행       | `builder/catalogRuntime/commandRunner.ts` | `workspace.execute` + 거절 toast                                                                      |
-| Styles host          | `builder/panels/styles/catalog/catalogStylesHost.ts`          | CSS 키 → typed field 명령, 미리보기 `previewRecord`                                                   |
+| 패턴                 | 참조 파일                                            | 설명                                                                                                  |
+| -------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Properties 편집 명령 | `builder/catalogRuntime/editContract.ts`             | `catalogPropertiesPatchCommand` — 바뀐 키만, binding 키 분리, 여럿이면 `composeCommands` (entry 하나) |
+| 패널 명령 실행       | `builder/catalogRuntime/commandRunner.ts`            | `workspace.execute` + 거절 toast                                                                      |
+| Styles host          | `builder/panels/styles/catalog/catalogStylesHost.ts` | CSS 키 → typed field 명령, 미리보기 `previewRecord`                                                   |
 
 ## Canvas/Skia 패턴
 
-| 패턴               | 참조 파일                                                                                               | 설명                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Canvas 바인딩      | `builder/catalogRuntime/canvasBinding.ts`                                                               | record → Skia 명령, rect diff 무효화                    |
-| Selection hit-test | `builder/catalogRuntime/canvasPick.ts`                                                                  | `CatalogCanvasPicking` — 맥락 깊이로 정규화한 대상      |
-| 드래그 · 드롭      | `builder/catalogRuntime/canvasGesture.ts` · `canvasBinding.ts` (`dropZoneContentData`) · `layerTree.ts` | `moveNodes` 명령으로 이동                               |
-| Viewport Control   | `builder/workspace/canvas/viewport/ViewportController.ts`                                               | 줌/팬 처리                                              |
-| Spec → Skia 변환   | `builder/workspace/canvas/skia/specShapeConverter.ts`                                                   | Shape[] → SkiaNodeData                                  |
-| Skia 노드 렌더링   | `builder/workspace/canvas/skia/nodeRenderers.ts`                                                        | box/text/image/line/container 렌더                      |
-| rule 실행기        | `builder/catalogRuntime/ruleShapes.ts` · `rulePaint.ts`                                                 | catalog rule → shapes · paint (`_hasChildren` 3-branch) |
+| 패턴               | 참조 파일                                                                       | 설명                                                    |
+| ------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Canvas 바인딩      | `builder/catalogRuntime/canvasBinding.ts`                                       | record → Skia 명령, rect diff 무효화                    |
+| Selection hit-test | `builder/catalogRuntime/canvasPick.ts`                                          | `CatalogCanvasPicking` — 맥락 깊이로 정규화한 대상      |
+| 드래그 · 드롭      | `builder/catalogRuntime/canvasGesture.ts` · `canvasBinding.ts` · `layerTree.ts` | `moveNodes` 명령으로 이동                               |
+| Viewport Control   | `builder/workspace/canvas/viewport/ViewportController.ts`                       | 줌/팬 처리                                              |
+| Spec → Skia 변환   | `builder/workspace/canvas/skia/specShapeConverter.ts`                           | Shape[] → SkiaNodeData                                  |
+| Skia 노드 렌더링   | `builder/workspace/canvas/skia/nodeRenderers.ts`                                | box/text/image/line/container 렌더                      |
+| rule 실행기        | `builder/catalogRuntime/ruleShapes.ts` · `rulePaint.ts`                         | catalog rule → shapes · paint (`_hasChildren` 3-branch) |
 
 ## 상태 패턴 (catalog runtime — ADR-248)
 

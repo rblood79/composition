@@ -114,10 +114,13 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   `Content` holds them — no RAC description slot), one Text step below (`CATALOG_SIZE_STEP`).
   InlineAlert: ["Heading", "Text"],
   // ADR-259 Phase 3: S2 ContextualHelp's `size` is its ActionButton's (XS · S).
-  ContextualHelp: ["Button"],
+  ContextualHelp: ["ActionButton"],
   // 2026-10-09: an S2 IllustratedMessage sizes its picture, heading and content (its contexts) —
   //   the content's words are a Text in the S2 Content (S2 마이그레이션 2026-11-18).
   IllustratedMessage: ["Illustration", "Heading", "Text"],
+  // S2 마이그레이션 (2026-11-18): S2 DropZone gives its IllustratedMessage its size
+  //   (`IllustratedMessageContext` — `size` S · M · L).
+  DropZone: ["IllustratedMessage"],
 };
 
 /**

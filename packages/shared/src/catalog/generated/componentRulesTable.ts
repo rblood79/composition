@@ -5411,8 +5411,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   // ADR-259 Phase 3: S2 ContextualHelp is RAC DialogTrigger — no element (`display: contents`, as
-  //   DialogTrigger). Its Button's quiet icon-only box is the part rule `contextualHelpPartRules`
-  //   (S2 ActionButton XS · S, `isQuiet`) per its size.
+  //   DialogTrigger). Its trigger is S2's quiet icon-only ActionButton (S2 마이그레이션 2026-11-18 —
+  //   the ActionButton rule's square, XS · S by `size`), its Popover `Popover > frame (268 · 24)`.
   ContextualHelp: {
     defaultSize: "XS",
     variants: {},
@@ -6001,7 +6001,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.thick}",
         height: 0,
-        iconSize: 24,
       },
       M: {
         paddingX: 24,
@@ -6011,7 +6010,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.thick}",
         height: 0,
-        iconSize: 32,
       },
       L: {
         paddingX: 32,
@@ -6021,7 +6019,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xl}",
         borderWidth: "{border.width.thick}",
         height: 0,
-        iconSize: 40,
       },
     },
     structure: {
@@ -6037,6 +6034,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-297 Phase 3c — a drag over it (was `rootSelectors["&[data-drop-target]"]`)
         background: { isDropTarget: "var(--bg-inset)" },
         color: { isDropTarget: "var(--accent-content)" },
+        // (S2 `borderStyle: {default: 'dashed', isDropTarget: 'solid'}` — 2026-11-18.)
+        borderStyle: { isDropTarget: "solid" },
       },
       composition: {
         rootSelectors: {
@@ -6053,6 +6052,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               display: "none",
             },
           },
+          // S2 마이그레이션 (2026-11-18): S2 IllustratedMessage in a DropZone — its picture is accent
+          //   while a drag is over the zone (`--iconPrimary` · `isDropTarget`; rest = the Icon sheet's
+          //   `--fg`, the Canvas's neutral). DOM-only state, as the banner.
+          "&[data-drop-target] .react-aria-Illustration": {
+            styles: {
+              color: "var(--accent-content)",
+            },
+          },
           "&[data-drop-target] .dropzone-replace": {
             styles: {
               display: "flex",
@@ -6067,41 +6074,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        // ADR-248 4e-10 (사용자 결정 A 2026-10-02): the composed content (DropZone.tsx — upload
-        //   icon, label and description) are the DropZone column's own flex items. The Canvas reads
-        //   the same entries (`catalogDropZoneContentStyle`): icon = `sizes.iconSize`, label = the
-        //   DropZone font, description = text-xs, both centered at line-height 1.5 in the variant
-        //   text color (the generic `.react-aria-Text` rule otherwise paints them 16 px dark).
-        delegation: [
-          {
-            childSelector: ".dropzone-icon",
-            bridges: {
-              width: "var(--icon-size)",
-              height: "var(--icon-size)",
-              "flex-shrink": "0",
-            },
-          },
-          {
-            childSelector: '[slot="label"]',
-            bridges: {
-              "font-size": "inherit",
-              "font-weight": "inherit",
-              "line-height": "1.5",
-              color: "inherit",
-              "text-align": "center",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--text-xs)",
-              "font-weight": "inherit",
-              "line-height": "1.5",
-              color: "inherit",
-              "text-align": "center",
-            },
-          },
-        ],
+        delegation: [],
       },
     },
   },

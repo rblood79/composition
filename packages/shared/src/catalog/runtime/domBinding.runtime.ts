@@ -83,7 +83,10 @@ import {
 import { Heading, Label, Text } from "react-aria-components";
 import { TableLoadMoreItem } from "react-aria-components/Table";
 
-import { ActionButton } from "../../components/ActionButton";
+import {
+  ActionButton,
+  type ActionButtonProps,
+} from "../../components/ActionButton";
 import { Button } from "../../components/Button";
 
 import { ContextualHelpButton } from "../../components/ContextualHelp";
@@ -256,6 +259,7 @@ import {
   catalogColumnSortNameGroup,
   catalogColumnSortsAtEnd,
   catalogContextualHelpOfTrigger,
+  catalogIllustrationInDropZone,
   catalogDisclosureOfHeading,
   catalogDisclosureOfTrigger,
   catalogDisclosureOfTriggerPart,
@@ -4857,10 +4861,11 @@ export function renderNode(
   // (`isDisabled`, ids, aria), so "authored" is read against the document record — otherwise the
   // rule's disabled paint differs from the rest `visual` and the rest color went inline over the
   // sheet's `[data-disabled]` paint (2026-11-09: a disabled Select drew #292929, the Canvas gray).
-  // ADR-259 Phase 3: a ContextualHelp's trigger is RAC's plain Button (S2's quiet ActionButton,
-  // detached from any Button context) — its box and quiet paint are the record's, inline.
+  // ADR-259 Phase 3: a ContextualHelp's trigger is S2's quiet ActionButton, detached from any
+  // Button context (S2 `slot={null}`) and named by its help — its box and quiet paint are the
+  // ActionButton sheet's, as for any ActionButton (S2 마이그레이션 2026-11-18).
   const helpOwner =
-    node.bindingId === "button"
+    node.bindingId === "actionbutton"
       ? catalogContextualHelpOfTrigger(
           node,
           (id) => root.domInputs.get(id),
@@ -4869,8 +4874,7 @@ export function renderNode(
       : undefined;
   if (
     bound &&
-    (node.bindingId === "button" || node.bindingId === "actionbutton") &&
-    !helpOwner
+    (node.bindingId === "button" || node.bindingId === "actionbutton")
   ) {
     const partField = catalogPartField(root, node);
     const declared = root.domInputs.get(node.id) ?? node;
@@ -4963,13 +4967,19 @@ export function renderNode(
   // the Canvas resting color (the item's, `derivedOf`) does not go inline.
   // (A Disclosure trigger's chevron takes the trigger's color — hover included — the same way.)
   const sheetColored =
-    node.bindingId === "icon" &&
-    (catalogTreeChevronGlyphItem(node, domGet, domType) ||
-      catalogDisclosureOfTriggerPart(node, domGet, domType) ||
-      // (A calendar nav Button's chevron takes the Button's `--fg` — ADR-256 Phase 9.)
-      catalogCalendarNavButtonGlyph(node, domGet, domType) ||
-      // (A Tag's remove X takes the Tag's color through its button — `TagGroup.css`.)
-      catalogItemRemoveGlyphItem(node, domGet, domType))
+    // (S2 DropZone — its IllustratedMessage's picture turns accent while a drag is over the zone
+    //  (`--iconPrimary` · `isDropTarget`): the color is the sheet's, rest `--fg` as the Canvas
+    //  paints it — S2 마이그레이션 2026-11-18.)
+    (node.bindingId === "illustration" &&
+      !glyphColorWritten(node) &&
+      catalogIllustrationInDropZone(node, domGet, domType)) ||
+    (node.bindingId === "icon" &&
+      (catalogTreeChevronGlyphItem(node, domGet, domType) ||
+        catalogDisclosureOfTriggerPart(node, domGet, domType) ||
+        // (A calendar nav Button's chevron takes the Button's `--fg` — ADR-256 Phase 9.)
+        catalogCalendarNavButtonGlyph(node, domGet, domType) ||
+        // (A Tag's remove X takes the Tag's color through its button — `TagGroup.css`.)
+        catalogItemRemoveGlyphItem(node, domGet, domType)))
       ? {
           ...node,
           visual: withTokenRefs(
@@ -4996,15 +5006,14 @@ export function renderNode(
         ContextualHelpButton,
         {
           "data-catalog-id": node.id,
-          // (The Button sheet gives every RAC Button a border — the quiet box writes its own out.)
-          style: {
-            ...bound,
-            ...(Number(node.visual.borderWidth) === 0
-              ? { borderWidth: 0 }
-              : {}),
-            ...styleOverride,
-          },
-          ...(buttonDisabled(node) ? { isDisabled: true } : {}),
+          "data-icon-only":
+            node.derivedProps?._actionIconOnly === true || undefined,
+          size: node.props.size as ActionButtonProps["size"],
+          isQuiet: node.props.isQuiet === true,
+          style: { ...bound, ...styleOverride },
+          ...(buttonDisabled(node) || node.props.isDisabled === true
+            ? { isDisabled: true }
+            : {}),
           ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
         },
         ...children,

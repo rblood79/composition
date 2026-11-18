@@ -17,7 +17,6 @@ import {
   ARCHETYPE_BASE_STYLES,
   cssVarToTokenRef,
   deriveAutoDelegationVariables,
-  ICON_SIZE_TOKEN_REF,
   resolveToken,
   ruleSizeLengthRef,
   spacing as SPACING_TOKENS,
@@ -1101,55 +1100,6 @@ export function catalogSelectPlaceholderColor(
     : resolved;
 }
 
-/** One composed text of the DropZone content: its own px font size (absent = the DropZone's). */
-export interface CatalogDropZoneTextStyle {
-  readonly fontSize?: number;
-  /** Ratio to the font size. */
-  readonly lineHeight: number;
-}
-
-/**
- * The DropZone's composed content (DropZone.tsx: upload icon, label, description) as its rule
- * delegation declares it — the generated CSS emits the same entries. The icon box is the size's
- * `iconSize` (`var(--icon-size)`); a text's `font-size: inherit` is the DropZone font.
- */
-export function catalogDropZoneContentStyle(): {
-  readonly label: CatalogDropZoneTextStyle;
-  readonly description: CatalogDropZoneTextStyle;
-} {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
-    .DropZone;
-  const delegation = (
-    rule?.structure?.composition as
-      | {
-          delegation?: Array<{
-            childSelector?: string;
-            bridges?: Record<string, string>;
-          }>;
-        }
-      | undefined
-  )?.delegation;
-  const text = (selector: string): CatalogDropZoneTextStyle => {
-    const bridges =
-      delegation?.find((entry) => entry.childSelector === selector)?.bridges ??
-      {};
-    const size = bridges["font-size"];
-    const fontSize =
-      typeof size === "string" && size.trim() !== "inherit"
-        ? lengthPx(size)
-        : undefined;
-    const ratio = Number(bridges["line-height"]);
-    return {
-      ...(fontSize !== undefined ? { fontSize } : {}),
-      lineHeight: Number.isFinite(ratio) && ratio > 0 ? ratio : 1.5,
-    };
-  };
-  return {
-    label: text('[slot="label"]'),
-    description: text('[slot="description"]'),
-  };
-}
-
 /**
  * A toggle-indicator control's indicator box (checkbox box, radio circle, switch track —
  * `sizes[size].indicator`): the `CheckboxIndicator` / `RadioIndicator` / `SwitchIndicator` child
@@ -1547,92 +1497,6 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
           },
         ]
       : [];
-  });
-}
-
-/**
- * ADR-259 Phase 3 — S2 `ContextualHelp`'s trigger: a quiet icon-only ActionButton (`isQuiet`,
- * `ContextualHelp.tsx:198-209`) of the help's size — S2 control sizes XS 20 · S 24, square — over
- * the Button origin's box: no fill, no border, no padding, no minimum width; its glyph the Button
- * rule's icon size at that size, in the text color. The DOM draws the trigger as RAC's plain Button
- * with this record box inline (`ContextualHelpButton`).
- */
-const CONTEXTUAL_HELP_BUTTON_PX: Readonly<Record<string, number>> = {
-  XS: 20,
-  S: 24,
-};
-/**
- * S2's quiet icon-only ActionButton square over a Button node (ContextualHelp's trigger · SideNavPanel's
- * expand button): the box with no fill, no border, no padding, no minimum size, and its glyph in the
- * text color. `match` narrows the Button (and the Icon's `via`) to one child; `size` keys both rules.
- */
-function quietIconSquareRules(
-  box: number,
-  icon: Scalar | undefined,
-  options: {
-    size?: string;
-    radius?: number;
-    match?: Readonly<Record<string, string>>;
-  } = {},
-): CompiledPartRule[] {
-  const { size, radius, match } = options;
-  return [
-    {
-      childType: "Button",
-      ...(size ? { size } : {}),
-      ...(match ? { childProps: match } : {}),
-      layout: {},
-      visual: {
-        width: box,
-        height: box,
-        minWidth: 0,
-        // (ADR-295 Phase 3: an ActionButton square — not the Button's S2 min-height.)
-        minHeight: 0,
-        paddingTop: 0,
-        paddingRight: 0,
-        paddingBottom: 0,
-        paddingLeft: 0,
-        borderWidth: 0,
-        ...(radius === undefined ? {} : { radius }),
-        fill: "transparent",
-      },
-    },
-    ...(icon === undefined
-      ? []
-      : [
-          {
-            childType: "Icon",
-            via: "Button",
-            ...(size ? { size } : {}),
-            ...(match ? { viaProps: match } : {}),
-            layout: { flexShrink: "0" },
-            visual: {
-              width: icon,
-              height: icon,
-              iconSize: icon,
-              color: "{color.neutral}",
-            },
-          },
-        ]),
-  ];
-}
-
-function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
-  if (parentType !== "ContextualHelp") return [];
-  const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
-    .Button;
-  return Object.entries(CONTEXTUAL_HELP_BUTTON_PX).flatMap(([size, box]) => {
-    const icon = button?.sizes[size]?.iconSize;
-    // (ADR-295 Phase 3b · 3c: the Button's S2 icon — a step, or its line `1lh` · font `1em` — keeps
-    //   its ref, a token value in the library.)
-    return quietIconSquareRules(
-      box,
-      typeof icon === "number" ||
-        (typeof icon === "string" && ICON_SIZE_TOKEN_REF.test(icon))
-        ? icon
-        : undefined,
-      { size },
-    );
   });
 }
 
@@ -2390,7 +2254,6 @@ export function compileRulePartRules(
     ...sliderThumbPartRules(parentType),
     ...disclosureChevronPartRules(parentType),
     ...fieldPrefixPartRules(parentType),
-    ...contextualHelpPartRules(parentType),
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),

@@ -472,3 +472,69 @@ it("disabledKeys changes the initial selection and disabled paint state", async 
     workspace.dispose();
   }
 });
+
+it("an Icon put in a Tab sits before its words (S2 `Tabs.tsx` — Icon `order: 0`, Text `order: 1`), as the child order both consumers keep", async () => {
+  const { workspace, root } = await open();
+  const node = (
+    id: string,
+    definitionId: string,
+    children: string[] = [],
+    props: Record<string, unknown> = {},
+  ) =>
+    ({
+      kind: "node",
+      id,
+      definitionId,
+      children,
+      props: Object.fromEntries(
+        Object.entries(props).map(([key, value]) => [key, set(value as never)]),
+      ),
+      visual: {},
+      sizing: {},
+      descendantOverrides: [],
+    }) as NodeEntry;
+  const tabs = "project:node:own-tabs";
+  const list = "project:node:own-tablist";
+  const tab = "project:node:own-tab";
+  const words = "project:node:own-tab-text";
+  workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: BODY },
+      entries: [
+        node(tabs, "lib:definition:type-Tabs", [list]),
+        node(list, "lib:definition:type-TabList", [tab]),
+        node(tab, "lib:definition:type-Tab", [words], { id: "own" }),
+        node(words, "lib:definition:text", [], { children: "Own" }),
+      ],
+      rootIds: [tabs as never],
+      newId: workspace.newId,
+    }),
+  );
+  const glyph = "project:node:own-tab-icon";
+  workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: tab },
+      entries: [
+        node(glyph, "lib:definition:type-Icon", [], { iconName: "star" }),
+      ],
+      rootIds: [glyph as never],
+      newId: workspace.newId,
+    }),
+  );
+  const entry = workspace.runtime.graph.getEntry(tab as never) as NodeEntry;
+  expect(entry.children).toEqual([glyph, words]);
+  // (A Text put after it still goes to the end — only an Icon takes the place before the words.)
+  const more = "project:node:own-tab-more";
+  workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: tab },
+      entries: [node(more, "lib:definition:text", [], { children: "More" })],
+      rootIds: [more as never],
+      newId: workspace.newId,
+    }),
+  );
+  expect(
+    (workspace.runtime.graph.getEntry(tab as never) as NodeEntry).children,
+  ).toEqual([glyph, words, more]);
+  void root;
+});

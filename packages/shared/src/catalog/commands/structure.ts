@@ -180,6 +180,21 @@ export function catalogAppendIndex(
     );
   };
   if (ids.some(emptyState)) return list.length;
+  // S2 Tab (`Tabs.tsx` — `IconContext` `order: 0`, `TextContext` `order: 1`): an Icon put in a
+  // Tab sits before its words — the engine and the DOM keep the child order (no CSS `order`), so
+  // the place is the order (S2 마이그레이션 2026-11-18).
+  if (parentType === "Tab" && ids.length > 0) {
+    const typeOf = (id: string) => {
+      const entry = draft.read(id);
+      return entry?.kind === "node"
+        ? definitionTypeName(draft.reader, entry.definitionId)
+        : undefined;
+    };
+    if (ids.every((id) => typeOf(id) === "Icon")) {
+      const text = list.findIndex((id) => typeOf(id) === "Text");
+      if (text >= 0) return text;
+    }
+  }
   const at = list.findIndex(emptyState);
   return at < 0 ? list.length : at;
 }
@@ -267,9 +282,10 @@ export const insertNodes =
     stage.apply(plan.ops);
     const ops = [...plan.ops];
     for (const entry of bound) {
-      const marked = markRowTemplates({ ownerId: entry.id, newId: input.newId })(
-        stage,
-      );
+      const marked = markRowTemplates({
+        ownerId: entry.id,
+        newId: input.newId,
+      })(stage);
       stage.apply(marked.ops);
       ops.push(...marked.ops);
     }
@@ -1574,7 +1590,13 @@ export const duplicateNodes =
       addRelated(draft, clone.relatedEntries);
       placeAt(draft, parent, index + 1, [clone.rootId], input.newId);
       copies.push(clone.rootId);
-      duplicatePairedPanels(draft, sources[at]!, clone.rootId, sources, input.newId);
+      duplicatePairedPanels(
+        draft,
+        sources[at]!,
+        clone.rootId,
+        sources,
+        input.newId,
+      );
     });
     // (A duplicate needs no check: it sits beside its original — the same ancestors — and an owner
     // inside the copy is the copy's.)
@@ -1599,7 +1621,10 @@ function duplicatePairedPanels(
 ): void {
   const written = draft.node(copyId).props.id;
   if (written?.kind !== "set") return;
-  for (const panel of catalogPairedTabPanels(draft, { kind: "node", id: sourceId })) {
+  for (const panel of catalogPairedTabPanels(draft, {
+    kind: "node",
+    id: sourceId,
+  })) {
     if (panel.kind !== "node" || sources.includes(panel.id)) continue;
     const { parent, index } = locate(draft, panel.id);
     const clone = cloneNodeSubgraph(

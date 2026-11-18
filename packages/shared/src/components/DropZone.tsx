@@ -2,10 +2,7 @@ import {
   DropZone as AriaDropZone,
   DropZoneProps as AriaDropZoneProps,
 } from "react-aria-components/DropZone";
-import { Text } from "react-aria-components/Text";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
-
-import { Upload } from "lucide-react";
 import type { ComponentSize } from "../types";
 
 export interface DropZoneProps extends AriaDropZoneProps {
@@ -15,12 +12,10 @@ export interface DropZoneProps extends AriaDropZoneProps {
    */
   size?: ComponentSize;
   /**
-   * Label text displayed in the drop zone
+   * The catalog's `label` · `description` — the zone's S2 IllustratedMessage child shows them
+   * (template binding); the zone itself draws no words (S2 마이그레이션 2026-11-18).
    */
   label?: string;
-  /**
-   * Description text
-   */
   description?: string;
   /**
    * S2 — the zone already holds a file: while a drag is over it, the replace banner shows
@@ -40,17 +35,18 @@ export interface DropZoneProps extends AriaDropZoneProps {
  * - Drag and drop file handling
  * - Visual feedback on drag over (data-drop-target from RAC)
  * - Accessible keyboard interaction
- * - Custom content support
+ * - Its content is its children (S2: an IllustratedMessage)
  *
  * @example
  * <DropZone onDrop={handleDrop}>
- *   <Text slot="label">Drop files here</Text>
+ *   <IllustratedMessage>…</IllustratedMessage>
  * </DropZone>
  */
 export function DropZone({
-  size = "M",
-  label,
-  description,
+  size,
+  // (Not RAC props — kept off the element.)
+  label: _label,
+  description: _description,
   isFilled,
   replaceMessage,
   children,
@@ -75,22 +71,20 @@ export function DropZone({
     </div>
   ) : null;
   return (
-    <AriaDropZone {...props} className={dropZoneClassName} data-size={size}>
-      {children ? (
+    // (The catalog passes the size as `data-size` — `toRacProps` — a direct `size` wins; M by default.)
+    <AriaDropZone
+      {...props}
+      className={dropZoneClassName}
+      data-size={
+        size ?? (props as { "data-size"?: ComponentSize })["data-size"] ?? "M"
+      }
+    >
+      {composeRenderProps(children, (content) => (
         <>
-          {children}
+          {content}
           {replace}
         </>
-      ) : (
-        <>
-          {/* The DropZone column's own flex items (catalog delegation: icon `--icon-size`,
-              label · description fonts) — the Canvas lays out and paints the same three. */}
-          <Upload className="dropzone-icon" aria-hidden />
-          {label && <Text slot="label">{label}</Text>}
-          {description && <Text slot="description">{description}</Text>}
-          {replace}
-        </>
-      )}
+      ))}
     </AriaDropZone>
   );
 }
