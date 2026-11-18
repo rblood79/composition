@@ -1,7 +1,4 @@
-import {
-  catalogSkeletonHidden,
-  catalogSkeletonParticipant,
-} from "./skeletonContext";
+import { catalogSkeletonState } from "./skeletonContext";
 import type { CatalogActionBadgeContent } from "../rule/actionBadge";
 import { catalogStaticScheme } from "./staticBackdrop";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
@@ -2627,12 +2624,11 @@ export function catalogDerivedProps(
   // cut between — `skeletonContext.ts`) draws its loading look (its rule's `isSkeleton` branch, Phase 3).
   // Phase 3 — below a loading wrapped participant (a Badge's words …) it is not drawn (S2
   //   `visibility: hidden`; the layout keeps its box).
-  const participant = catalogSkeletonParticipant(node, get, typeOf);
-  const hidden = catalogSkeletonHidden(node, get, typeOf);
-  return participant || hidden
+  const { isSkeleton, hidden } = catalogSkeletonState(node, get, typeOf);
+  return isSkeleton || hidden
     ? {
         ...derived,
-        ...(participant ? { isSkeleton: true } : {}),
+        ...(isSkeleton ? { isSkeleton: true } : {}),
         ...(hidden ? { _skeletonHidden: true } : {}),
       }
     : derived;

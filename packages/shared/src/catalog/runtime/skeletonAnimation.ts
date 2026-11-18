@@ -1,4 +1,11 @@
-import { createElement, type ReactNode, type Ref, type RefCallback } from "react";
+import {
+  createElement,
+  type ReactNode,
+  type Ref,
+  type RefCallback,
+} from "react";
+import { mergeRefs } from "react-aria/mergeRefs";
+import { prefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import {
   CATALOG_SKELETON_LOOK,
   CATALOG_SKELETON_LOOK_ATTR,
@@ -12,20 +19,13 @@ import {
  */
 const RUNNING = new WeakMap<Element, Animation>();
 
-function reducedMotion(): boolean {
-  return (
-    typeof matchMedia === "function" &&
-    matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
 /** Ref callback (React 19 — its return is the cleanup): start the shared animation on `element`. */
 export const catalogSkeletonAnimate: RefCallback<Element> = (element) => {
   if (
     !element ||
     RUNNING.has(element) ||
     typeof (element as HTMLElement).animate !== "function" ||
-    reducedMotion()
+    prefersReducedMotion()
   )
     return;
   const { animation } = CATALOG_SKELETON_LOOK;
@@ -60,19 +60,7 @@ export function catalogSkeletonRef(
   if (own == null) return catalogSkeletonAnimate;
   let merged = MERGED.get(own as object);
   if (!merged) {
-    merged = (element) => {
-      let ownCleanup: void | (() => void) = undefined;
-      if (typeof own === "function")
-        ownCleanup = own(element) as void | (() => void);
-      else (own as { current: Element | null }).current = element;
-      const stop = catalogSkeletonAnimate(element);
-      return () => {
-        if (typeof stop === "function") stop();
-        if (typeof ownCleanup === "function") ownCleanup();
-        else if (typeof own === "function") own(null);
-        else (own as { current: Element | null }).current = null;
-      };
-    };
+    merged = mergeRefs(own, catalogSkeletonAnimate) as RefCallback<Element>;
     MERGED.set(own as object, merged);
   }
   return merged;

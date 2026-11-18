@@ -190,10 +190,7 @@ import {
   type CatalogInheritedValues,
 } from "./inheritedProps";
 
-import {
-  CATALOG_INHERITED_RECEIVERS,
-  catalogProviderValues,
-} from "./providerContexts";
+import { catalogProviderValues } from "./providerContexts";
 
 import {
   CalendarCellDate,
@@ -666,7 +663,9 @@ function catalogSkeletonMarked(
             ref: catalogSkeletonRef(props.ref),
           }
         : {}),
-      ...(look === "statusLight" ? { [CATALOG_SKELETON_DOT_ATTR]: "true" } : {}),
+      ...(look === "statusLight"
+        ? { [CATALOG_SKELETON_DOT_ATTR]: "true" }
+        : {}),
     } as Record<string, unknown>,
     ...(words ? [catalogSkeletonText(props.children)] : []),
   );

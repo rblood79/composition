@@ -3931,6 +3931,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         source?.kind === "node" &&
         source.rowDisplay?.mode === "virtual" &&
         !waterfall;
+      // (One element for every skeleton item — the template's content is the same in each.)
+      const skeletonContent = skeletons
+        ? input.renderChild(template!.id)
+        : null;
       const grid = (count: number) =>
         createElement(
           (waterfall ? CatalogWaterfallGrid : AriaGridList) as ElementType,
@@ -3953,7 +3957,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             //   (each Card's selection Checkbox — `catalogSelectionCheckboxHidden`).
             selectionBehavior:
               props.selectionStyle === "highlight" ? "replace" : "toggle",
-            ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
+            ...controlled(
+              input,
+              SELECTED_KEYS,
+              selected,
+              catalogSelectionValue,
+            ),
             disabledKeys: cards
               .filter((card) => card.props.isDisabled === true)
               .map(key),
@@ -3964,16 +3973,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             },
           },
           ...catalogRenderRuns(input, cards, GridListLoadMoreItem),
-          ...Array.from({ length: skeletons ? count : 0 }, (_, index) =>
-            createElement(
-              CatalogSkeletonItem,
-              {
-                key: `__skeleton-${index}`,
-                id: `__skeleton-${index}`,
-                measure: index === 0 && !virtual,
-                children: input.renderChild(template!.id),
-              },
-            ),
+          ...Array.from({ length: count }, (_, index) =>
+            createElement(CatalogSkeletonItem, {
+              key: `__skeleton-${index}`,
+              id: `__skeleton-${index}`,
+              measure: index === 0 && !virtual,
+              children: skeletonContent,
+            }),
           ),
           // (ADR-310 「더 보기」: S2 CardView `onLoadMore` — RAC's GridList end sentinel. With skeleton
           //  items its spinner is not shown — S2's layouts give the loader no height then.)
@@ -3987,7 +3993,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             skeletons,
           ),
         );
-      if (!skeletons || virtual) return grid(1);
+      if (!skeletons) return grid(0);
+      if (virtual) return grid(1);
       return createElement(CatalogSkeletonFill, {
         key: `${input.node.id}:skeletons`,
         render: grid,

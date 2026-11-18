@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactElement,
@@ -15,7 +16,14 @@ import {
   catalogGridSkeletonCount,
   catalogWaterfallSkeletonCount,
 } from "./skeletonRepeat";
-import { catalogWaterfallLanes, type WaterfallExtent } from "./waterfall";
+import {
+  catalogElementScale,
+  catalogGridTrackCount,
+  catalogPx as px,
+  catalogWaterfallExtents,
+  catalogWaterfallItems,
+  catalogWaterfallLanes,
+} from "./waterfall";
 
 /**
  * ADR-314 Phase 4 — S2 `SkeletonCollection` (`@react-spectrum/s2/src/SkeletonCollection.tsx`) on the
@@ -57,14 +65,9 @@ function SkeletonMeasure(): ReactElement {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (fill && ref.current) fill.measure(ref.current);
-  });
+  }, [fill]);
   return <span ref={ref} hidden data-skeleton-measure="" />;
 }
-
-const px = (value: string) => {
-  const n = parseFloat(value);
-  return Number.isFinite(n) ? n : 0;
-};
 
 export interface CatalogSkeletonFillProps {
   /** The CardView element for a count (its children: cards, then `count` skeleton items). */
@@ -100,10 +103,11 @@ export function CatalogSkeletonFill({
       const cs = view.getComputedStyle(grid);
       const rowGap = px(cs.rowGap);
       const columnGap = px(cs.columnGap);
-      const box = card.getBoundingClientRect();
-      const tracks = cs.gridTemplateColumns
-        .split(/\s+/)
-        .filter((token) => /^-?[\d.]+px$/.test(token)).length;
+      // (Heights in CSS px — a zoomed Preview frame draws them scaled.)
+      const scale = catalogElementScale(grid);
+      const rect = card.getBoundingClientRect();
+      const box = { width: rect.width / scale, height: rect.height / scale };
+      const tracks = catalogGridTrackCount(cs);
       const inner = grid.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight);
       const columns =
         cs.display.includes("grid") && tracks > 0
@@ -115,21 +119,11 @@ export function CatalogSkeletonFill({
       const viewportHeight = fixedHeight ? grid.clientHeight : undefined;
       let next: number;
       if (waterfall) {
-        const cards = [...grid.children]
-          .filter(
-            (el): el is HTMLElement =>
-              el instanceof view.HTMLElement &&
-              view.getComputedStyle(el).display !== "none",
-          )
-          .slice(0, existing);
-        const extents: WaterfallExtent[] = cards.map((el) => {
-          const ecs = view.getComputedStyle(el);
-          return [
-            px(ecs.marginTop),
-            el.getBoundingClientRect().height,
-            px(ecs.marginBottom),
-          ];
-        });
+        const extents = catalogWaterfallExtents(
+          catalogWaterfallItems(grid, view).slice(0, existing),
+          view,
+          scale,
+        );
         const lanes = catalogWaterfallLanes(extents, columns, rowGap);
         const heights = new Array<number>(columns).fill(rowGap);
         lanes.forEach((lane, i) => {
@@ -155,8 +149,9 @@ export function CatalogSkeletonFill({
     [existing, waterfall, fixedHeight],
   );
   const element = render(count);
+  const fill = useMemo(() => ({ measure }), [measure]);
   return (
-    <SkeletonFillContext.Provider value={{ measure }}>
+    <SkeletonFillContext.Provider value={fill}>
       {cloneElement(element, rest)}
     </SkeletonFillContext.Provider>
   );

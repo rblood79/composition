@@ -470,25 +470,17 @@ async function generateAllCSS(
   specs: ComponentSpec<unknown>[],
   outputDir: string,
 ): Promise<void> {
-  const statePath = path.join(outputDir, "CatalogStates.css");
-  const stateCss = catalogStateStylesheet();
-  if (process.argv.includes("--check")) {
-    if ((await fs.readFile(statePath, "utf8")) !== stateCss)
-      throw new Error("CATALOG_CSS_STALE:CatalogStates");
-  } else await fs.writeFile(statePath, stateCss, "utf8");
-  // ADR-314 — S2 Skeleton 로딩 모양 (`catalog/rule/skeletonLook.ts`).
-  const skeletonPath = path.join(outputDir, "CatalogSkeleton.css");
-  const skeletonCss = catalogSkeletonStylesheet();
-  if (process.argv.includes("--check")) {
-    if ((await fs.readFile(skeletonPath, "utf8")) !== skeletonCss)
-      throw new Error("CATALOG_CSS_STALE:CatalogSkeleton");
-  } else await fs.writeFile(skeletonPath, skeletonCss, "utf8");
-  for (const { name, css } of stateOnlySheets()) {
+  for (const { name, css } of [
+    { name: "CatalogStates", css: catalogStateStylesheet() },
+    // ADR-314 — S2 Skeleton 로딩 모양 (`catalog/rule/skeletonLook.ts`).
+    { name: "CatalogSkeleton", css: catalogSkeletonStylesheet() },
+    ...stateOnlySheets(),
+  ]) {
     const filePath = path.join(outputDir, `${name}.css`);
     if (process.argv.includes("--check")) {
       if ((await fs.readFile(filePath, "utf8")) !== css)
         throw new Error(`CATALOG_CSS_STALE:${name}`);
-    } else await fs.writeFile(filePath, css, "utf-8");
+    } else await fs.writeFile(filePath, css, "utf8");
   }
   for (const spec of specs) {
     const css = generateCSS(

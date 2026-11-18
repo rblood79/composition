@@ -161,17 +161,6 @@ export interface TableProps<T extends { id: string | number }> {
   // 콜백
   onColumnsDetected?: (columns: ColumnDefinition<T>[]) => void; // 자동 감지된 컬럼 전달
   onItemsPerPageChange?: (itemsPerPage: number) => void; // 페이지당 항목 수 변경 콜백
-
-  /**
-   * Show loading skeleton instead of table
-   * @default false
-   */
-  isLoading?: boolean;
-  /**
-   * Number of skeleton rows to show when loading
-   * @default 5
-   */
-  skeletonRowCount?: number;
 }
 
 // Table className helper

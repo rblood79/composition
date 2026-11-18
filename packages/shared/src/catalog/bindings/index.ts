@@ -400,7 +400,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-201 Phase 3 (2026-09-17): 대용량 파일 업로드 compound. internal source (RAC 에 없음),
   //   renderer "fileupload". 자식 DropZone/FileTrigger/frame(Text+ProgressBar) 는 origin template 의 자식 노드다.
   FileUpload: fileUploadBinding,
-  // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
+  // ADR-314: S2 Skeleton — an element-less loading context; its content draws the loading look.
   Skeleton: skeletonBinding,
   // ADR-314 Phase 4: S2 SkeletonCollection — a CardView's loading placeholder items (Card template).
   SkeletonCollection: skeletonCollectionBinding,

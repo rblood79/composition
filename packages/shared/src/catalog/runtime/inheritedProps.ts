@@ -59,7 +59,11 @@ export function catalogInheritedTakes(
   inherited: CatalogInheritedValues,
 ): readonly CatalogInheritedFlag[] | undefined {
   const takes = CATALOG_INHERITED_RECEIVERS.get(type);
-  if (!takes || !inherited.skeleton || CATALOG_SKELETON_DISABLED_TYPES.has(type))
+  if (
+    !takes ||
+    !inherited.skeleton ||
+    CATALOG_SKELETON_DISABLED_TYPES.has(type)
+  )
     return takes;
   return takes.filter((flag) => flag !== "isDisabled");
 }
@@ -82,7 +86,8 @@ export function catalogHostInherited(
       ? { isDisabled: true, skeleton: true }
       : undefined;
   // (ADR-314 Phase 4 — S2 `SkeletonCollection`: its content is always a loading Skeleton's.)
-  if (type === "SkeletonCollection") return { isDisabled: true, skeleton: true };
+  if (type === "SkeletonCollection")
+    return { isDisabled: true, skeleton: true };
   const keys = CATALOG_INHERITANCE_HOSTS[type];
   if (!keys) return undefined;
   const out: CatalogInheritedValues = {};
@@ -205,15 +210,13 @@ export function catalogInheritedFlag(
   get: (id: string) => CatalogConsumerNode | undefined,
   typeOf: (node: CatalogConsumerNode) => string,
 ): boolean {
+  const inherited = catalogAncestorInherited(node, get, typeOf);
   return (
-    (() => {
-      const inherited = catalogAncestorInherited(node, get, typeOf);
-      return catalogInheritedFlags(
-        node.props,
-        catalogInheritedTakes(typeOf(node), inherited),
-        inherited,
-      );
-    })()[flag] === true
+    catalogInheritedFlags(
+      node.props,
+      catalogInheritedTakes(typeOf(node), inherited),
+      inherited,
+    )[flag] === true
   );
 }
 

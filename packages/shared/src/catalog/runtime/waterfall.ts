@@ -45,16 +45,18 @@ export function catalogWaterfallLanes(
   });
 }
 
-const pxOf = (value: string) => {
+/** A computed CSS length in px (0 when it is not a number). */
+export const catalogPx = (value: string): number => {
   const n = parseFloat(value);
   return Number.isFinite(n) ? n : 0;
 };
 
-/** Lays `grid`'s item elements out as a waterfall (see the module comment). */
-export function catalogWaterfallPlace(grid: HTMLElement): void {
-  const view = grid.ownerDocument.defaultView;
-  if (!view) return;
-  const items = [...grid.children].filter(
+/** `grid`'s laid-out item elements: shown, in flow. */
+export function catalogWaterfallItems(
+  grid: HTMLElement,
+  view: Window & typeof globalThis,
+): HTMLElement[] {
+  return [...grid.children].filter(
     (el): el is HTMLElement =>
       el instanceof view.HTMLElement &&
       (() => {
@@ -66,34 +68,54 @@ export function catalogWaterfallPlace(grid: HTMLElement): void {
         );
       })(),
   );
+}
+
+/** The number of resolved grid tracks (`grid-template-columns` px tokens). */
+export function catalogGridTrackCount(cs: CSSStyleDeclaration): number {
+  return cs.gridTemplateColumns
+    .split(/\s+/)
+    .filter((token) => /^-?[\d.]+px$/.test(token)).length;
+}
+
+/** The element's own scale (a zoomed Preview frame): drawn px per CSS px. */
+export function catalogElementScale(el: HTMLElement): number {
+  return el.offsetWidth > 0
+    ? el.getBoundingClientRect().width / el.offsetWidth || 1
+    : 1;
+}
+
+/** The items' margin boxes on the column axis, in CSS px. */
+export function catalogWaterfallExtents(
+  items: readonly HTMLElement[],
+  view: Window & typeof globalThis,
+  scale: number,
+): WaterfallExtent[] {
+  return items.map((el) => {
+    const ecs = view.getComputedStyle(el);
+    return [
+      catalogPx(ecs.marginTop),
+      el.getBoundingClientRect().height / scale,
+      catalogPx(ecs.marginBottom),
+    ];
+  });
+}
+
+/** Lays `grid`'s item elements out as a waterfall (see the module comment). */
+export function catalogWaterfallPlace(grid: HTMLElement): void {
+  const view = grid.ownerDocument.defaultView;
+  if (!view) return;
+  const items = catalogWaterfallItems(grid, view);
   const cs = view.getComputedStyle(grid);
-  const columns = Math.max(
-    1,
-    cs.gridTemplateColumns
-      .split(/\s+/)
-      .filter((token) => /^-?[\d.]+px$/.test(token)).length,
-  );
-  const rowGap = pxOf(cs.rowGap);
-  // The grid's own scale (a zoomed Preview frame): heights in CSS px.
-  const scale =
-    grid.offsetWidth > 0
-      ? grid.getBoundingClientRect().width / grid.offsetWidth
-      : 1;
+  const columns = Math.max(1, catalogGridTrackCount(cs));
+  const rowGap = catalogPx(cs.rowGap);
+  const scale = catalogElementScale(grid);
   const place = (lanes: readonly number[]) =>
     items.forEach((el, i) => {
       el.style.gridColumn = `${lanes[i] + 1} / span 1`;
       el.style.gridRow = "1 / span 1";
       el.style.alignSelf = "start";
     });
-  const measure = (): WaterfallExtent[] =>
-    items.map((el) => {
-      const ecs = view.getComputedStyle(el);
-      return [
-        pxOf(ecs.marginTop),
-        el.getBoundingClientRect().height / (scale || 1),
-        pxOf(ecs.marginBottom),
-      ];
-    });
+  const measure = () => catalogWaterfallExtents(items, view, scale);
   const roundRobin = items.map((_, i) => i % columns);
   place(roundRobin);
   let extents = measure();

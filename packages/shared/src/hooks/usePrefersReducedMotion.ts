@@ -9,7 +9,8 @@ function subscribe(onChange: () => void): () => void {
   return () => media.removeEventListener("change", onChange);
 }
 
-function getSnapshot(): boolean {
+/** The current OS setting — for code outside a render (a ref callback). */
+export function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && !!window.matchMedia
     ? window.matchMedia(QUERY).matches
     : false;
@@ -19,5 +20,9 @@ const getServerSnapshot = () => false;
 
 /** Toast와 SideNav가 같은 OS 모션 설정을 구독한다. SSR에서는 모션 감소를 가정하지 않는다. */
 export function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(
+    subscribe,
+    prefersReducedMotion,
+    getServerSnapshot,
+  );
 }

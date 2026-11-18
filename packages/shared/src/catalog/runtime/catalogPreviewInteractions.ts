@@ -64,7 +64,6 @@ import {
   receivingInstanceOf,
 } from "../document/componentEvents";
 import { componentBoundariesOf } from "./componentBoundaries";
-import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 
 /**
  * The records an interaction's owner is drawn as (every row of a bound row template too). An
@@ -746,8 +745,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
           (node) => ({ ...node.props, ...this.overrideOf(node.id) }),
         );
         const takes =
-          catalogInheritedTakes(catalogTypeName(root, record), fromHosts) ??
-          [];
+          catalogInheritedTakes(catalogTypeName(root, record), fromHosts) ?? [];
         const hostFlag = (flag: "isDisabled" | "isReadOnly") =>
           takes.includes(flag) && fromHosts[flag] === true;
         const inherited = {
@@ -1035,7 +1033,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   paginationClick(recordId: string, target: Element, nav: Element): void {
     const root = this.options.root();
     const record = root?.domInputs.get(recordId);
-    const source = record && root?.runtime.graph.getEntry(record.sourceId as never);
+    const source =
+      record && root?.runtime.graph.getEntry(record.sourceId as never);
     const listId = source?.kind === "node" ? source.pagesOf : undefined;
     if (!root || !record || !listId) return;
     const kids = record.children
@@ -1061,7 +1060,10 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         return;
       }
       const page = Number(root.domInputs.get(id)?.props.id);
-      if (root.domInputs.get(id)?.parentId === group?.id && Number.isInteger(page)) {
+      if (
+        root.domInputs.get(id)?.parentId === group?.id &&
+        Number.isInteger(page)
+      ) {
         this.goToPage(listId, page);
         return;
       }
