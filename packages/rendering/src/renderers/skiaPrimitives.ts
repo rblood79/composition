@@ -16,6 +16,13 @@
  */
 
 import {
+  CATALOG_COLOR_CHECKER,
+  CATALOG_COLOR_CONTROL_OUTLINE,
+  CATALOG_COLOR_SWATCH_BORDER,
+  CATALOG_COLOR_SWATCH_CHECKER,
+  CATALOG_COLOR_SWATCH_SELECTION,
+  CATALOG_COLOR_SWATCH_SLASH,
+  catalogColorCheckerPath,
   parseBorderWidth,
   parsePxValue,
   parseShadow,
@@ -1402,31 +1409,224 @@ function colorRadius(style: Record<string, unknown> | undefined): number {
   return Number.isFinite(radius) && radius > 0 ? radius : 0;
 }
 
-/** `color_area_fill` (replace) — a ColorArea's gradient layers in its rounded box. */
+/** A rounded box's edge as an SVG path (`inset` px in from the box). */
+function roundedBoxPath(w: number, h: number, radius: number, inset: number) {
+  const x = inset;
+  const y = inset;
+  const width = w - inset * 2;
+  const height = h - inset * 2;
+  const r = Math.max(0, Math.min(radius - inset, width / 2, height / 2));
+  return (
+    `M${x + r} ${y}h${width - r * 2}a${r} ${r} 0 0 1 ${r} ${r}v${height - r * 2}` +
+    `a${r} ${r} 0 0 1 ${-r} ${r}h${-(width - r * 2)}a${r} ${r} 0 0 1 ${-r} ${-r}` +
+    `v${-(height - r * 2)}a${r} ${r} 0 0 1 ${r} ${-r}z`
+  );
+}
+
+/**
+ * S2's face outline of a Color control (`outline: 1px gray-1000/10`, offset −1 — the 1px band inside
+ * the edge, `colorHandle.ts`); none on a disabled (one-color) part.
+ */
+function colorFaceOutline(
+  w: number,
+  h: number,
+  radius: number,
+  {
+    width,
+    token,
+    alpha,
+  }: {
+    width: number;
+    token: string;
+    alpha: number;
+  } = CATALOG_COLOR_CONTROL_OUTLINE,
+): Shape {
+  return {
+    type: "path",
+    d: roundedBoxPath(w, h, radius, width / 2),
+    width: w,
+    height: h,
+    stroke: token as TokenRef,
+    strokeAlpha: alpha,
+    strokeWidth: width,
+  };
+}
+
+/** S2's checkerboard under a ColorSlider's track gradient (`colorHandle.ts`). */
+function colorChecker(w: number, h: number, radius: number): Shape[] {
+  return [
+    {
+      type: "roundRect",
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      radius,
+      fill: CATALOG_COLOR_CHECKER.light,
+    },
+    {
+      type: "path",
+      d: catalogColorCheckerPath(w, h),
+      width: w,
+      height: h,
+      fill: CATALOG_COLOR_CHECKER.dark,
+      clip: { x: 0, y: 0, width: w, height: h, radius },
+    },
+  ];
+}
+
+/** `color_area_fill` (replace) — a ColorArea's gradient layers in its rounded box, S2's outline. */
 const colorAreaFill: SkiaPrimitiveDrawFn = ({ props, style }) => {
   const paint = colorPaintOf(props);
   if (!paint) return null;
   const { w, h } = colorBox(props);
-  return colorLayerShapes(paint, w, h, colorRadius(style));
+  const radius = colorRadius(style);
+  const shapes = colorLayerShapes(paint, w, h, radius);
+  return paint.kind === "solid"
+    ? shapes
+    : [...shapes, colorFaceOutline(w, h, radius)];
 };
 
 /**
- * `color_slider_track` (replace) — a ColorSlider's SliderTrack: its channel gradient in the track
- * box. A Slider's track has no `_colorGradient` and keeps its rule box (null → the base shapes).
+ * `color_slider_track` (replace) — a ColorSlider's SliderTrack: its channel gradient over S2's
+ * checkerboard in the track box, S2's outline. A Slider's track has no `_colorGradient` and keeps its
+ * rule box (null → the base shapes).
  */
 const colorSliderTrack: SkiaPrimitiveDrawFn = ({ props, style }) => {
   const paint = colorPaintOf(props);
   if (!paint) return null;
   const { w, h } = colorBox(props);
-  return colorLayerShapes(paint, w, h, colorRadius(style));
+  const radius = colorRadius(style);
+  const shapes = colorLayerShapes(paint, w, h, radius);
+  return paint.kind === "solid"
+    ? shapes
+    : [
+        ...colorChecker(w, h, radius),
+        ...shapes,
+        colorFaceOutline(w, h, radius),
+      ];
 };
 
-/** `color_wheel_track` (replace) — a ColorWheel's hue sweep in its ring. */
+/**
+ * `color_wheel_track` (replace) — a ColorWheel's hue sweep in its ring, S2's outer outline (offset
+ * −1) and its inner `div`'s outline (outside the inner radius).
+ */
 const colorWheelTrack: SkiaPrimitiveDrawFn = ({ props }) => {
   const paint = colorPaintOf(props);
   if (!paint) return null;
   const { w, h } = colorBox(props);
-  return colorLayerShapes(paint, w, h, 0);
+  const shapes = colorLayerShapes(paint, w, h, 0);
+  if (paint.kind !== "wheel") return shapes;
+  const { width, token, alpha } = CATALOG_COLOR_CONTROL_OUTLINE;
+  const ring = (radius: number): Shape => ({
+    type: "circle",
+    x: w / 2,
+    y: h / 2,
+    radius,
+    fillAlpha: alpha,
+    stroke: token as TokenRef,
+    strokeWidth: width,
+  });
+  return [...shapes, ring(paint.outerRadius), ring(paint.innerRadius + width)];
+};
+
+/**
+ * S2 ColorSwatch's background over the rule's fill (its color): a translucent color over the swatch
+ * checkerboard (`0% 50%` in the padding box), alpha 0 = the red slash only (`no-repeat` in the padding
+ * box — CSS `to bottom right`, 4px across the middle). An opaque color adds nothing.
+ */
+function colorSwatchFace(
+  color: unknown,
+  w: number,
+  h: number,
+  radius: number,
+): Shape[] {
+  if (typeof color !== "string" || !/^#[0-9a-f]{8}$/i.test(color)) return [];
+  const alpha = Number.parseInt(color.slice(7), 16);
+  const inset = CATALOG_COLOR_SWATCH_BORDER.width;
+  if (alpha === 255) return [];
+  if (alpha === 0) {
+    const iw = w - inset * 2;
+    const ih = h - inset * 2;
+    // (The CSS corner gradient's line: 2wh / √(w² + h²) long.)
+    const half =
+      CATALOG_COLOR_SWATCH_SLASH.width /
+      2 /
+      ((2 * iw * ih) / Math.hypot(iw, ih));
+    const clear = "#00000000";
+    const red = CATALOG_COLOR_SWATCH_SLASH.token as TokenRef;
+    return [
+      {
+        type: "gradient",
+        x: inset,
+        y: inset,
+        width: iw,
+        height: ih,
+        radius: Math.max(0, radius - inset),
+        gradient: {
+          type: "linear",
+          to: "bottom right",
+          stops: [
+            { offset: 0, color: clear },
+            { offset: 0.5 - half, color: clear },
+            { offset: 0.5 - half, color: red },
+            { offset: 0.5 + half, color: red },
+            { offset: 0.5 + half, color: clear },
+            { offset: 1, color: clear },
+          ],
+        },
+      },
+    ];
+  }
+  const { light, dark, place } = CATALOG_COLOR_SWATCH_CHECKER;
+  return [
+    { type: "roundRect", x: 0, y: 0, width: w, height: h, radius, fill: light },
+    {
+      type: "path",
+      d: catalogColorCheckerPath(w, h, { ...place, inset }),
+      width: w,
+      height: h,
+      fill: dark,
+      clip: { x: 0, y: 0, width: w, height: h, radius },
+    },
+    { type: "roundRect", x: 0, y: 0, width: w, height: h, radius, fill: color },
+  ];
+}
+
+/**
+ * `color_swatch` (append) — S2's ColorSwatch over its color: the checkerboard · slash background
+ * (`colorSwatchFace`), the 1px `gray-1000/42` border inside the box, and on a picker's selected swatch (`_swatchSelected`) S2's selection `div` filling the item — a
+ * 2px `gray-900` border and a 2px `gray-25` outline 4px in (`outline-offset: -4`, the band 2 ~ 4 in),
+ * the swatch's corner (`colorHandle.ts`).
+ */
+const colorSwatch: SkiaPrimitiveDrawFn = ({ props, style }) => {
+  const { w, h } = colorBox(props);
+  if (!(w > 0 && h > 0)) return null;
+  const radius = Math.min(colorRadius(style), w / 2, h / 2);
+  const edge = colorFaceOutline(w, h, radius, CATALOG_COLOR_SWATCH_BORDER);
+  const face = [...colorSwatchFace(props._swatchColor, w, h, radius), edge];
+  if (!props._swatchSelected) return face;
+  const { border, outline } = CATALOG_COLOR_SWATCH_SELECTION;
+  const outlineInset = -outline.offset - outline.width / 2;
+  return [
+    ...face,
+    {
+      type: "path",
+      d: roundedBoxPath(w, h, radius, border.width / 2),
+      width: w,
+      height: h,
+      stroke: border.token as TokenRef,
+      strokeWidth: border.width,
+    },
+    {
+      type: "path",
+      d: roundedBoxPath(w, h, radius, outlineInset),
+      width: w,
+      height: h,
+      stroke: outline.token as TokenRef,
+      strokeWidth: outline.width,
+    },
+  ];
 };
 
 /** A resolved shadow token's layers as shadow shapes on the thumb (the color as hex + alpha). */
@@ -1451,8 +1651,10 @@ function thumbShadows(value: string): Shape[] {
 }
 
 /**
- * `color_thumb` (replace) — a ColorThumb: the displayed color in a ring of the rule's width and
- * color, with the rule's shadow (the CSS `border-box` handle).
+ * `color_thumb` (replace) — a ColorThumb: S2 `ColorHandle` — the displayed color over the
+ * checkerboard (a color with alpha shows it), the rule's border ring and its outline outside, the
+ * inner `div` ring inside the border (`colorHandle.ts`), the rule's shadow if it has one (the CSS
+ * `border-box` handle). A disabled handle is one color (no checkerboard).
  */
 const colorThumb: SkiaPrimitiveDrawFn = ({ props, theme }) => {
   if (typeof props._colorThumb !== "string") return null;
@@ -1461,6 +1663,9 @@ const colorThumb: SkiaPrimitiveDrawFn = ({ props, theme }) => {
     size: number;
     borderWidth: number;
     borderColor: string;
+    outline?: { width: number; color: string; alpha: number };
+    innerRing?: { width: number; color: string; alpha: number };
+    checker?: boolean;
     shadow?: string;
   };
   const { w } = colorBox(props);
@@ -1469,9 +1674,33 @@ const colorThumb: SkiaPrimitiveDrawFn = ({ props, theme }) => {
     thumb.shadow && thumb.shadow.startsWith("{")
       ? resolveToken(thumb.shadow as TokenRef, theme ?? "light")
       : thumb.shadow;
-  // One box, as the CSS handle: the color fills it (under the ring too — `background-clip:
-  // border-box`), the ring is its border over it, the shadow is the box's.
+  // (A `#rrggbbaa` color under 1 alpha shows the checkerboard below it — S2's background layers.)
+  const translucent =
+    /^#[0-9a-f]{8}$/i.test(thumb.color) &&
+    thumb.color.slice(7).toLowerCase() !== "ff";
+  const side = radius * 2;
   return [
+    ...(thumb.checker && translucent
+      ? ([
+          {
+            type: "circle",
+            x: radius,
+            y: radius,
+            radius,
+            fill: CATALOG_COLOR_CHECKER.light,
+          },
+          {
+            type: "path",
+            d: catalogColorCheckerPath(side, side),
+            width: side,
+            height: side,
+            fill: CATALOG_COLOR_CHECKER.dark,
+            clip: { x: 0, y: 0, width: side, height: side, radius },
+          },
+        ] satisfies Shape[])
+      : []),
+    // One box, as the CSS handle: the color fills it (under the ring too — `background-clip:
+    // border-box`), the ring is its border over it, the shadow is the box's.
     {
       id: "thumb",
       type: "circle",
@@ -1482,6 +1711,34 @@ const colorThumb: SkiaPrimitiveDrawFn = ({ props, theme }) => {
       stroke: thumb.borderColor as TokenRef,
       strokeWidth: thumb.borderWidth,
     },
+    // S2's inner `div`: a ring filling the box inside the border (its own 1px border).
+    ...(thumb.innerRing
+      ? ([
+          {
+            type: "circle",
+            x: radius,
+            y: radius,
+            radius: radius - thumb.borderWidth,
+            fillAlpha: thumb.innerRing.alpha,
+            stroke: thumb.innerRing.color,
+            strokeWidth: thumb.innerRing.width,
+          },
+        ] satisfies Shape[])
+      : []),
+    // The rule's `outline` — a ring outside the border box.
+    ...(thumb.outline
+      ? ([
+          {
+            type: "circle",
+            x: radius,
+            y: radius,
+            radius: radius + thumb.outline.width,
+            fillAlpha: thumb.outline.alpha,
+            stroke: thumb.outline.color,
+            strokeWidth: thumb.outline.width,
+          },
+        ] satisfies Shape[])
+      : []),
     ...(typeof shadow === "string" ? thumbShadows(shadow) : []),
   ];
 };
@@ -3119,6 +3376,7 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   color_slider_track: colorSliderTrack,
   color_wheel_track: colorWheelTrack,
   color_thumb: colorThumb,
+  color_swatch: colorSwatch,
   // ADR-142 Inc3 overlays (append 모드 — SKIA_PRIMITIVE_MODES 참조)
   // ADR-166 Phase 4: dialog_shadow / popover_shadow 제거 (catalog boxShadow 단일 채널)
   overlay_backdrop: overlayBackdrop,
@@ -3175,6 +3433,8 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   //   전체 자체 생성(buildCatalogShapes box+single-text 로 재현 불가) → replace.
   listbox_item: "replace",
   overlay_backdrop: "prepend",
+  // S2 ColorSwatchPicker's selection `div` over the swatch box (2026-11-18).
+  color_swatch: "append",
   // (value_fill_arc 는 자체 track+indicator arc 라 box+text 대체 → replace(기본, 미등록).)
   // ADR-912 SliderThumb: slider_thumb 는 circle 핸들이 전체 외형 → base box 무의미 → replace
   //   (avatar/radio 동형). 미등록=replace 지만 의도 명시.

@@ -174,7 +174,7 @@ const WRAPPED_PART_TOKENS: Readonly<
       childType: "Icon",
       via: "Button",
     },
-  },  // The field button's glyph (chevron · calendar — 2026-11-13): ComboBox · DatePicker ·
+  }, // The field button's glyph (chevron · calendar — 2026-11-13): ComboBox · DatePicker ·
   // DateRangePicker reach it through their control Group (`CATALOG_PART_RULE_PASS_HOSTS`).
   ...Object.fromEntries(
     ["ComboBox", "Select", "DatePicker", "DateRangePicker"].map((type) => [
@@ -769,7 +769,12 @@ function compileDeclarations(
  * other rules' child `border-radius` declarations are not read on the Canvas yet (their children
  * draw their own rule's radius). S2 Disclosure (2026-10-10): a square trigger, rounded when quiet.
  */
-const RADIUS_PART_OWNERS: ReadonlySet<string> = new Set(["Disclosure"]);
+const RADIUS_PART_OWNERS: ReadonlySet<string> = new Set([
+  "Disclosure",
+  // S2 ColorSlider: the track is S2 `borderRadius: default` (8 — its `orientation` blocks), not the
+  // SliderTrack rule's pill (2026-11-18).
+  "ColorSlider",
+]);
 /** `visual` with the block's `border-radius` (`RADIUS_PART_OWNERS`). */
 function withPartRadius(
   parentType: string,

@@ -102,12 +102,13 @@
   }
 
   .react-aria-ColorSlider[data-disabled] .react-aria-SliderTrack {
-    background: gray !important;
+    background: var(--bg-disabled) !important;
+    opacity: 1;
   }
 
   .react-aria-ColorSlider[data-disabled] .react-aria-ColorThumb {
-    background: gray !important;
-    opacity: 0.5;
+    background: var(--bg-disabled) !important;
+    border-color: var(--border-disabled);
   }
 
 

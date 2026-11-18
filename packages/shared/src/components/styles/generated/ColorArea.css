@@ -45,7 +45,7 @@
 }
 
 .react-aria-ColorArea.react-aria-ColorArea:where([data-disabled]) {
-  background: gray !important;
+  background: var(--bg-disabled) !important;
 }
 
 /* ── Tier 2: Composite Delegation ── */
@@ -59,7 +59,8 @@
 
 
   .react-aria-ColorArea[data-disabled] .react-aria-ColorThumb {
-    background: gray !important;
+    background: var(--bg-disabled) !important;
+    border-color: var(--border-disabled);
   }
 
 

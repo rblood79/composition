@@ -125,6 +125,8 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "ColorArea",
   "ColorWheelTrack",
   "ColorThumb",
+  // (A picker's selected swatch draws S2's selection ring at its box — `color_swatch`.)
+  "ColorSwatch",
   "ListBox",
   "ColorField",
   "Skeleton",

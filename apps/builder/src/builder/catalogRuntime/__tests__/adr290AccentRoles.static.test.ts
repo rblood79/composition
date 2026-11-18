@@ -45,7 +45,6 @@ const CLASSIFICATION: Record<string, string> = {
   "Badge.variants.accent.paint.borderColor.fillStyle.outline": "accent-content",
   // (ADR-297 3h #2: an accent outline Button's text is S2 `baseColor('neutral')` — no accent-content)
   // (Card: 2026-11-18 — its selection is S2's SelectionIndicator, no accent border)
-  "ColorSwatch.variants.default.paint.borderColor.isSelected": "accent-content",
   "DateInput.variants.accent.paint.borderColor.default": "accent-content",
   "DropZone.variants.default.paint.color.isHovered": "accent-content",
   "DropZone.variants.default.paint.borderColor.isHovered": "accent-content",

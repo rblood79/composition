@@ -201,8 +201,14 @@ export interface SkiaNodeData {
     fillRule?: "nonzero" | "evenodd";
     /** ADR-306 Phase 6 — 선 파선. */
     strokeDasharray?: number[];
-    /** ADR-306 Phase 6 — 이 상자 안만 그린다 (노드 로컬 px, offset 전 좌표). */
-    clip?: { x: number; y: number; width: number; height: number };
+    /** ADR-306 Phase 6 — 이 상자 안만 그린다 (노드 로컬 px, offset 전 좌표). `radius` = 둥근 상자. */
+    clip?: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      radius?: number;
+    };
   };
   partialBorder?: PartialBorderData;
   iconPath?: {

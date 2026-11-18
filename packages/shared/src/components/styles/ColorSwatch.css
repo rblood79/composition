@@ -7,13 +7,8 @@
        정사각을 `styleOf` 가 공급한다 (compositionRoot.ts). */
     aspect-ratio: 1 / 1;
     border-radius: var(--radius-md);
-    /* 경계 링 — elevation 이 아니다 (2026-07-25 복원). RAC starter `ColorSwatch.css` 원본은
-       `inset 0 0 0 1px rgba(0,0,0,.1)`, 즉 임의 색상 견본 위에 얹는 1px 테두리다. 이전의
-       `var(--drop-shadow-sm)` 는 drop-shadow() filter 함수를 box-shadow 에 쓴 타입 오용이라
-       계산값이 `none` 이었고(링 소실), 값의 의미도 elevation 으로 바뀌어 있었다.
-       색만 `color-mix(--fg N%)` 로 바꿔 다크 스와치에서도 링이 보이게 한다.
-       elevation 이 아니므로 catalog `containerStyles.boxShadow` 이관 대상 아님. */
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+    /* 경계선은 S2 `border: 1px solid gray-1000/42` — 견본 DOM inline (`domBinding`) · Canvas
+       `color_swatch` 가 같은 값 (`colorHandle.ts`). 옛 inset box-shadow 링은 2026-11-18 삭제. */
   }
 
   /* S2 1.8.0 `rounding` (2026-10-10): default → sm · none → 0 · full → 원 — 생성 size 블록은 S2 기본

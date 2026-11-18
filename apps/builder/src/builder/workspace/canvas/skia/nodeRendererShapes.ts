@@ -476,7 +476,17 @@ export function renderPath(
   const clip = node.path.clip;
   if (translated || clip) canvas.save();
   if (translated) canvas.translate(offsetX, offsetY);
-  if (clip)
+  if (clip?.radius)
+    canvas.clipRRect(
+      ck.RRectXY(
+        ck.XYWHRect(clip.x, clip.y, clip.width, clip.height),
+        clip.radius,
+        clip.radius,
+      ),
+      ck.ClipOp.Intersect,
+      true,
+    );
+  else if (clip)
     canvas.clipRect(
       ck.XYWHRect(clip.x, clip.y, clip.width, clip.height),
       ck.ClipOp.Intersect,

@@ -22,7 +22,13 @@ import {
 import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
 import { CatalogTokenField, CatalogTokenInput } from "./tokenField.components";
 import { isPropVar } from "../document/valueType";
-import { getIconData, resolveTextSourceText } from "@composition/rendering";
+import {
+  CATALOG_COLOR_SWATCH_SELECTION,
+  getIconData,
+  resolveTextSourceText,
+  tokenToCSSVar,
+  type TokenRef,
+} from "@composition/rendering";
 import {
   CATALOG_TOAST_CLOSE_ICON,
   CATALOG_TOAST_CLOSE_LABELS,
@@ -382,6 +388,27 @@ export interface DelegatedDomInput {
  * filtered on the server; the collection then shows what the server gave (`defaultFilter` keeps
  * every item — the reference passes `items`, which RAC does not filter).
  */
+/** S2 `ColorSwatchPicker`'s selection `div` (`colorHandle.ts`). */
+function swatchSelectionRing(): ReactElement {
+  const { border, outline } = CATALOG_COLOR_SWATCH_SELECTION;
+  return createElement("div", {
+    key: "__selection",
+    "aria-hidden": true,
+    className: "color-swatch-selection",
+    style: {
+      position: "absolute",
+      pointerEvents: "none",
+      inset: 0,
+      boxSizing: "border-box",
+      border: `${border.width}px solid ${tokenToCSSVar(border.token as TokenRef)}`,
+      outline: `${outline.width}px solid ${tokenToCSSVar(outline.token as TokenRef)}`,
+      outlineOffset: outline.offset,
+      forcedColorAdjust: "none",
+      borderRadius: "inherit",
+    },
+  });
+}
+
 function serverFiltered(
   input: DelegatedDomInput,
   props: Record<string, unknown>,
@@ -4204,8 +4231,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           color,
           isDisabled:
             bool(props.isDisabled) || picker?.props.isDisabled === true,
+          // S2 `ColorSwatchPicker`: the selected item's selection `div` after its swatch
+          // (`colorHandle.ts` — the Canvas `color_swatch` reads the same values).
+          children: ({ isSelected }: { isSelected: boolean }) => [
+            ...renderAll(input),
+            isSelected ? swatchSelectionRing() : null,
+          ],
         },
-        ...renderAll(input),
       );
       // (Outside a picker RAC needs its collection: a host with no box.)
       return picker &&

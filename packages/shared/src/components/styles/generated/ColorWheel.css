@@ -48,12 +48,16 @@
 
 
   .react-aria-ColorWheel[data-disabled] .react-aria-ColorWheelTrack {
-    background: gray !important;
+    background: var(--bg-disabled) !important;
   }
 
   .react-aria-ColorWheel[data-disabled] .react-aria-ColorThumb {
-    background: gray !important;
-    opacity: 0.5;
+    background: var(--bg-disabled) !important;
+    border-color: var(--border-disabled);
+  }
+
+  .react-aria-ColorWheel[data-disabled] .color-wheel-inner-ring {
+    display: none;
   }
 
 

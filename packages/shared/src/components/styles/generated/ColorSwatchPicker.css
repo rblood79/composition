@@ -11,14 +11,4 @@
   outline-offset: 2px;
 }
 
-.react-aria-ColorSwatchPicker.react-aria-ColorSwatchPicker .react-aria-ColorSwatchPickerItem:where([data-selected])::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 2px solid black;
-  outline: 2px solid white;
-  outline-offset: -4px;
-  border-radius: inherit;
-}
-
 } /* @layer components */

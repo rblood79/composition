@@ -11,8 +11,8 @@
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);
-    border: 4px solid var(--bg-inset);
-    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--color-white);
+    outline: 1px solid rgb(0 0 0 / 0.42);
     width: calc(var(--catalog-token-size-unit) * 16 / 1);
     height: calc(var(--catalog-token-size-unit) * 16 / 1);
     border-radius: 50%;

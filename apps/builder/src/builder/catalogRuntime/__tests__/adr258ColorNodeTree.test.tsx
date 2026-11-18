@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { act } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, type CSSProperties } from "react";
+import { CATALOG_COLOR_CHECKER_CSS } from "@composition/rendering";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   ColorArea,
@@ -129,15 +130,24 @@ function structure(html: string): string {
   return [...host.children].map(walk).join("\n");
 }
 
+/**
+ * S2 `ColorHandle` (2026-11-18): RAC's ColorThumb with the displayed color over the checkerboard and
+ * the inner ring `div` — the reference the Preview's handle follows (`colorHandleDom.runtime.ts`).
+ */
+const s2Handle = () =>
+  createElement(ColorThumb, {
+    style: ({ defaultStyle }: { defaultStyle: CSSProperties }) => ({
+      ...defaultStyle,
+      background: `linear-gradient(${defaultStyle.backgroundColor}, ${defaultStyle.backgroundColor}), ${CATALOG_COLOR_CHECKER_CSS}`,
+    }),
+    children: createElement("div", { className: "color-handle-ring" }),
+  });
+
 describe("ADR-258 Phase 2 — the Color controls draw their node trees", () => {
   it("ColorArea > ColorThumb — the reference structure, RAC's gradient and thumb", async () => {
     const { html } = await open("colorarea", { defaultValue: "#8040c0" });
     const reference = renderToStaticMarkup(
-      createElement(
-        ColorArea,
-        { defaultValue: "#8040c0" },
-        createElement(ColorThumb),
-      ),
+      createElement(ColorArea, { defaultValue: "#8040c0" }, s2Handle()),
     );
     expect(structure(html())).toBe(structure(reference));
   });
@@ -158,7 +168,17 @@ describe("ADR-258 Phase 2 — the Color controls draw their node trees", () => {
           createElement(Label),
         ),
         createElement(SliderOutput),
-        createElement(SliderTrack, null, createElement(ColorThumb)),
+        // (S2 ColorSlider: the channel gradient over the checkerboard.)
+        createElement(
+          SliderTrack,
+          {
+            style: ({ defaultStyle }: { defaultStyle: CSSProperties }) => ({
+              ...defaultStyle,
+              background: `${defaultStyle.background}, ${CATALOG_COLOR_CHECKER_CSS}`,
+            }),
+          },
+          s2Handle(),
+        ),
       ),
     );
     expect(structure(html())).toBe(structure(reference));
@@ -185,7 +205,12 @@ describe("ADR-258 Phase 2 — the Color controls draw their node trees", () => {
           innerRadius: 72,
         },
         createElement(ColorWheelTrack),
-        createElement(ColorThumb),
+        // (S2 ColorWheel's inner border `div`.)
+        createElement("div", {
+          "aria-hidden": true,
+          className: "color-wheel-inner-ring",
+        }),
+        s2Handle(),
       ),
     );
     expect(structure(html())).toBe(structure(reference));
@@ -301,18 +326,33 @@ describe("ADR-258 Phase 2 — the Canvas lays the parts out where RAC puts them"
     expect(track.derivedProps?._colorGradient).toBeUndefined();
   });
 
-  it("disabled: the rule's gray (and the track's disabled dimming)", async () => {
+  it("disabled: S2's 'disabled' colors (theme tokens) — the track not dimmed, the handle's border too", async () => {
     const { root } = await open("colorslider", { isDisabled: true });
     const track = box(root, "SliderTrack").record;
     expect(JSON.parse(String(track.derivedProps?._colorGradient))).toEqual({
       kind: "solid",
-      color: "#808080ff",
+      color: "{color.disabled}",
     });
-    expect(track.derivedProps?._opacity).toBe(0.38);
+    expect(track.derivedProps?._opacity).toBeUndefined();
     const thumb = box(root, "ColorThumb").record;
-    expect(JSON.parse(String(thumb.derivedProps?._colorThumb)).color).toBe(
-      "#808080ff",
-    );
-    expect(thumb.derivedProps?._opacity).toBe(0.5);
+    const paint = JSON.parse(String(thumb.derivedProps?._colorThumb));
+    expect([paint.color, paint.borderColor, paint.checker]).toEqual([
+      "{color.disabled}",
+      "{color.border-disabled}",
+      undefined,
+    ]);
+    expect(thumb.derivedProps?._opacity).toBeUndefined();
+    // (the same handle and face on a ColorArea · ColorWheel)
+    for (const type of ["colorarea", "colorwheel"]) {
+      const other = (await open(type, { isDisabled: true })).root;
+      const handle = JSON.parse(
+        String(box(other, "ColorThumb").record.derivedProps?._colorThumb),
+      );
+      expect([type, handle.color, handle.borderColor]).toEqual([
+        type,
+        "{color.disabled}",
+        "{color.border-disabled}",
+      ]);
+    }
   });
 });

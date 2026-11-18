@@ -20,6 +20,7 @@ import {
   type CatalogColorControlType,
   type CatalogColorGradientLayer,
 } from "./colorControlGradient";
+import { CATALOG_COLOR_HANDLE_INNER_RING } from "@composition/rendering";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import {
   catalogPartParent,
@@ -61,7 +62,7 @@ export type CatalogColorPaint =
       innerRadius: number;
     }
   | {
-      /** A disabled control: one color (the rule's `gray`), clipped as the part is. */
+      /** A disabled control: one color (the rule's — S2 'disabled', a theme token), clipped as the part is. */
       kind: "solid";
       color: string;
       ring?: { outerRadius: number; innerRadius: number };
@@ -72,9 +73,16 @@ export interface CatalogColorThumbPaint {
   /** The ring (`border`) — width px and the color token. */
   borderWidth: number;
   borderColor: string;
+  /** The rule's `outline` outside the border (S2 `ColorHandle` 1px `black/42`) — color `#rrggbb` + alpha. */
+  outline?: { width: number; color: string; alpha: number };
   /** The shadow token (`{shadow.sm}`). */
   shadow?: string;
-  opacity?: number;
+  /**
+   * S2 `ColorHandle`'s inner `div` ring and the checkerboard under the color (`colorHandle.ts`) — a
+   * disabled handle has no checkerboard (S2 paints it one color).
+   */
+  innerRing?: { width: number; color: string; alpha: number };
+  checker?: boolean;
 }
 
 const CSS_KEYWORD_COLORS: Readonly<Record<string, string>> = {
@@ -121,20 +129,25 @@ function disabledStyles(
       ? undefined
       : { background: String(background) };
   }
-  return rootSelectors(controlType)[
-    `&[data-disabled] .react-aria-${partClass}`
-  ]?.styles;
+  return rootSelectors(controlType)[`&[data-disabled] .react-aria-${partClass}`]
+    ?.styles;
 }
 
 const plainColor = (value: string | undefined) =>
   value?.replace(/\s*!important\s*$/, "").trim();
 
+/** A rule color — a theme token (`var(--bg-disabled)` → `{color.disabled}`, resolved per theme) or a CSS color → `#rrggbbaa`. */
+function ruleColor(value: string | undefined): string | undefined {
+  const color = plainColor(value);
+  if (!color) return undefined;
+  return cssVarToTokenRef(color) ?? catalogColorHex(color);
+}
+
 function disabledColor(
   controlType: string,
   partClass: string,
 ): string | undefined {
-  const color = plainColor(disabledStyles(controlType, partClass)?.background);
-  return color ? catalogColorHex(color) : undefined;
+  return ruleColor(disabledStyles(controlType, partClass)?.background);
 }
 
 /** The SliderTrack rule's disabled opacity (its state tree under `isDisabled` — `structure.stateStyles`). */
@@ -198,7 +211,13 @@ export function catalogColorControlDerivedProps(
   const type = typeOf(node);
   if (type === "ColorSwatch") {
     const color = catalogColorSwatchColor(node, get, typeOf);
-    return color ? { _swatchColor: color } : undefined;
+    if (!color) return undefined;
+    return {
+      _swatchColor: color,
+      ...(catalogColorSwatchSelected(node, color, get, typeOf)
+        ? { _swatchSelected: 1 }
+        : {}),
+    };
   }
   if (type === "ColorArea") {
     const disabled =
@@ -231,8 +250,12 @@ export function catalogColorControlDerivedProps(
           layers: [layerPaint(colorSliderGradient(control.props))],
         };
     // (RAC marks a disabled ColorSlider's track `data-disabled` — the SliderTrack rule's disabled
-    //  state dims it with the thumb inside, as the generated sheet does.)
-    const dimmed = disabled ? sliderTrackDisabledOpacity() : undefined;
+    //  state dims it with the thumb inside unless the control's rule sets the track's opacity, as
+    //  the generated sheets do — S2 ColorSlider does not dim it.)
+    const own = Number(disabledStyles(controlType, "SliderTrack")?.opacity);
+    const opacity = Number.isFinite(own) ? own : sliderTrackDisabledOpacity();
+    const dimmed =
+      disabled && opacity !== undefined && opacity < 1 ? opacity : undefined;
     return {
       _colorGradient: JSON.stringify(paint),
       ...(dimmed !== undefined ? { _opacity: dimmed } : {}),
@@ -263,18 +286,17 @@ export function catalogColorControlDerivedProps(
     const off = disabled
       ? disabledStyles(controlType, "ColorThumb")
       : undefined;
-    const gray = plainColor(off?.background);
-    const opacity = Number(off?.opacity);
+    const gray = ruleColor(off?.background);
+    const grayBorder = ruleColor(off?.["border-color"]);
     const paint: CatalogColorThumbPaint = {
-      color: catalogColorHex(gray ?? thumb.color),
+      color: gray ?? catalogColorHex(thumb.color),
       ...ring,
-      ...(Number.isFinite(opacity) && opacity < 1 ? { opacity } : {}),
+      ...(grayBorder ? { borderColor: grayBorder } : {}),
+      // (S2 draws the inner ring on a disabled handle too; the checkerboard only under a color.)
+      innerRing: { ...CATALOG_COLOR_HANDLE_INNER_RING },
+      ...(gray ? {} : { checker: true }),
     };
-    return {
-      _colorThumb: JSON.stringify(paint),
-      // (The Canvas dims the whole handle, as CSS `opacity` does — `withOpacity`.)
-      ...(paint.opacity !== undefined ? { _opacity: paint.opacity } : {}),
-    };
+    return { _colorThumb: JSON.stringify(paint) };
   }
   return undefined;
 }
@@ -305,6 +327,31 @@ export function catalogColorSwatchColor(
   }
 }
 
+/**
+ * Whether a ColorSwatch is its picker's selected swatch — RAC `ColorSwatchPicker` keys its items by
+ * their color (`hexa`) and selects the one equal to the picker's value: the swatch's ColorSwatchPickerItem
+ * color against the picker's `value` (else `defaultValue`). The Canvas draws S2's selection `div` on it
+ * (`color_swatch`), the DOM draws the `div` from RAC's `isSelected`.
+ */
+function catalogColorSwatchSelected(
+  node: CatalogConsumerNode,
+  color: string,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const item = get(node.parentId);
+  if (!item || typeOf(item) !== "ColorSwatchPickerItem") return false;
+  const picker = get(item.parentId);
+  if (!picker || typeOf(picker) !== "ColorSwatchPicker") return false;
+  const value = picker.props.value ?? picker.props.defaultValue;
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    return catalogColorHex(value) === color;
+  } catch {
+    return false;
+  }
+}
+
 /** The ColorThumb rule's box (`composition.containerStyles`): size, ring and shadow. */
 export function catalogColorThumbRing(): Omit<
   CatalogColorThumbPaint,
@@ -328,10 +375,26 @@ export function catalogColorThumbRing(): Omit<
   if (!border || !Number.isFinite(size))
     throw new Error("CATALOG_COLOR_THUMB_RULE_UNSUPPORTED");
   const shadow = styles?.["box-shadow"];
+  const outline =
+    /^(\d+(?:\.\d+)?)px solid rgb\((\d+) (\d+) (\d+) \/ (\d*(?:\.\d+)?)\)$/.exec(
+      styles?.outline ?? "",
+    );
+  if (styles?.outline && !outline)
+    throw new Error("CATALOG_COLOR_THUMB_RULE_UNSUPPORTED");
+  const hex = (value: string) => Number(value).toString(16).padStart(2, "0");
   return {
     size,
     borderWidth: Number(border[1]),
     borderColor: cssVarToTokenRef(border[2].trim()) ?? border[2].trim(),
+    ...(outline
+      ? {
+          outline: {
+            width: Number(outline[1]),
+            color: `#${hex(outline[2])}${hex(outline[3])}${hex(outline[4])}`,
+            alpha: Number(outline[5]),
+          },
+        }
+      : {}),
     ...(shadow ? { shadow: cssVarToTokenRef(shadow) ?? shadow } : {}),
   };
 }
@@ -393,6 +456,15 @@ export function catalogColorControlParts(
   if (typeOf(control) === "ColorSwatchPickerItem")
     return catalogPartChildren(control, get, typeOf).filter(
       (child) => typeOf(child) === "ColorSwatch",
+    );
+  // (A picker's value selects one of its swatches — `catalogColorSwatchSelected`.)
+  if (typeOf(control) === "ColorSwatchPicker")
+    return catalogPartChildren(control, get, typeOf).flatMap((item) =>
+      typeOf(item) === "ColorSwatchPickerItem"
+        ? catalogPartChildren(item, get, typeOf).filter(
+            (child) => typeOf(child) === "ColorSwatch",
+          )
+        : [],
     );
   if (!COLOR_CONTROL_TYPES.has(typeOf(control))) return [];
   const out: CatalogConsumerNode[] = [];

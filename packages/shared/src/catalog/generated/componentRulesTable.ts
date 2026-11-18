@@ -3513,13 +3513,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         rootSelectors: {
           "&[data-disabled] .react-aria-ColorThumb": {
-            styles: { background: "gray !important" },
+            styles: {
+              background: "var(--bg-disabled) !important",
+              "border-color": "var(--border-disabled)",
+            },
           },
         },
       },
       stateStyles: {
         // ADR-297 Phase 3c (was `rootSelectors["&[data-disabled]"]` — the Canvas reads it too, `colorControlParts`)
-        background: { isDisabled: "gray !important" },
+        background: { isDisabled: "var(--bg-disabled) !important" },
       },
     },
   },
@@ -3816,11 +3819,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           '&[data-orientation="vertical"] .react-aria-ColorThumb': {
             styles: { left: "50%" },
           },
+          // (S2 ColorSlider: the track is the 'disabled' color, not dimmed — over the SliderTrack rule's
+          //  0.38 for a Slider.)
           "&[data-disabled] .react-aria-SliderTrack": {
-            styles: { background: "gray !important" },
+            styles: { background: "var(--bg-disabled) !important", opacity: "1" },
           },
           "&[data-disabled] .react-aria-ColorThumb": {
-            styles: { background: "gray !important", opacity: "0.5" },
+            styles: {
+              background: "var(--bg-disabled) !important",
+              "border-color": "var(--border-disabled)",
+            },
           },
         },
       },
@@ -3845,8 +3853,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
-        // ADR-297 Phase 3d — a selected swatch keeps its fill and takes the accent ring (was the `selected`
-        //   variant the Canvas swapped in for `isSelected`).
+        // The border is S2's 1px `gray-1000/42` over the color (2026-11-18 — `colorHandle.ts`
+        //   `CATALOG_COLOR_SWATCH_BORDER`: Canvas `color_swatch` · DOM inline), so the rule's own is
+        //   transparent. A picker's selection is S2's `div` (ColorSwatchPicker — was this rule's
+        //   `isSelected` accent border, which no consumer showed).
         paint: {
           backgroundColor: {
             default: "{color.base}",
@@ -3857,8 +3867,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral}",
           },
           borderColor: {
-            default: "{color.border}",
-            isSelected: "{color.accent-content}",
+            default: "{color.transparent}",
           },
         },
       },
@@ -3916,21 +3925,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   ColorSwatchPicker: {
-    // ADR-297 Phase 3g — the swatch items' focus · selected ring (옛 수동 `ColorSwatchPicker.css` — 생성 sheet 가 없는
-    //   rule 이라 상태 블록만 담은 `generated/ColorSwatchPicker.css`).
+    // ADR-297 Phase 3g — the swatch items' focus ring (옛 수동 `ColorSwatchPicker.css` — 생성 sheet 가 없는
+    //   rule 이라 상태 블록만 담은 `generated/ColorSwatchPicker.css`). The selected ring is S2's `div`
+    //   (2026-11-18 — was this rule's `::after`): `delegatedDom` `swatchSelectionRing` · Canvas
+    //   `color_swatch`, values `colorHandle.ts`.
     partStateStyles: {
       "& .react-aria-ColorSwatchPickerItem%": {
         outline: { isFocusVisible: "2px solid var(--focus-ring)" },
         outlineOffset: { isFocusVisible: "2px" },
-      },
-      "& .react-aria-ColorSwatchPickerItem%::after": {
-        content: { isSelected: '""' },
-        position: { isSelected: "absolute" },
-        inset: { isSelected: "0" },
-        border: { isSelected: "2px solid black" },
-        outline: { isSelected: "2px solid white" },
-        outlineOffset: { isSelected: "-4px" },
-        borderRadius: { isSelected: "inherit" },
       },
     },
     defaultVariant: "default",
@@ -3978,9 +3980,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   // ADR-258 Phase 2: the handle of a ColorArea · ColorSlider · ColorWheel (RAC ColorThumb) — its
-  //   color is RAC's (the displayed color, inline); its box · ring · shadow · focus size are the
-  //   former manual sheets' (사용자 결정 2). The Canvas reads the same declarations
-  //   (`catalogColorThumbRing` → `color_thumb`).
+  //   color is RAC's (the displayed color, inline). Its box is S2 `ColorHandle` (2026-11-18 — was the
+  //   former manual sheets' 4px `--bg-inset` ring + `shadow-sm`): 16 (focus 32), a 2px white border,
+  //   a 1px `black/42` outline, no shadow; disabled = S2 'disabled' background · border (the
+  //   controls' `rootSelectors` — was gray at 0.5). The inner ring · checkerboard are `runtime/colorHandle.ts`.
+  //   The Canvas reads the same declarations (`catalogColorThumbRing` → `color_thumb`).
   ColorThumb: {
     defaultSize: "M",
     variants: {},
@@ -3999,8 +4003,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         delegation: [],
         containerStyles: {
-          border: "4px solid var(--bg-inset)",
-          "box-shadow": "var(--shadow-sm)",
+          border: "2px solid var(--color-white)",
+          outline: "1px solid rgb(0 0 0 / 0.42)",
           width: scaledLengthRef(16),
           height: scaledLengthRef(16),
           "border-radius": "50%",
@@ -4057,10 +4061,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         containerStyles: {},
         rootSelectors: {
           "&[data-disabled] .react-aria-ColorWheelTrack": {
-            styles: { background: "gray !important" },
+            styles: { background: "var(--bg-disabled) !important" },
           },
           "&[data-disabled] .react-aria-ColorThumb": {
-            styles: { background: "gray !important", opacity: "0.5" },
+            styles: {
+              background: "var(--bg-disabled) !important",
+              "border-color": "var(--border-disabled)",
+            },
+          },
+          // S2 ColorWheel's inner border `div` (`outlineStyle.isDisabled: none`).
+          "&[data-disabled] .color-wheel-inner-ring": {
+            styles: { display: "none" },
           },
         },
       },

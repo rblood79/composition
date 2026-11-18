@@ -468,8 +468,17 @@ export interface PathShape {
   fillRule?: "nonzero" | "evenodd";
   /** 선 파선 (ADR-306 Phase 6 — Chart 예측 구간 · 추세선). */
   strokeDasharray?: number[];
-  /** 이 상자 안만 그린다 (ADR-306 Phase 6 — Chart 손익 색 · 예측 구간). 노드 로컬 px. */
-  clip?: { x: number; y: number; width: number; height: number };
+  /**
+   * 이 상자 안만 그린다 (ADR-306 Phase 6 — Chart 손익 색 · 예측 구간). 노드 로컬 px. `radius` 는 둥근
+   * 상자 (S2 Color 조작기의 체커보드 — 원형 thumb · 둥근 track, 2026-11-18).
+   */
+  clip?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    radius?: number;
+  };
 }
 
 /**

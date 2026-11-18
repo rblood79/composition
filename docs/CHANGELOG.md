@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — Color 조작기 (ColorHandle · 면 바깥선 · ColorWheel 안쪽 고리 · ColorSwatchPicker 선택 테두리)] - 2026-11-18
+
+### Changed
+
+- **Color 손잡이 = S2 `ColorHandle`** — ColorArea · ColorSlider · ColorWheel 의 thumb 가 16 · 흰 테두리 2 · 바깥선 1 `black/42` · 안쪽 고리 1 `black/42` 로, 반투명 색은 체커보드 위에 칠한다 (Canvas · Publish). 전에는 4px `--bg-inset` 고리 + 그림자였다.
+  - 위치: `packages/rendering/src/primitives/colorHandle.ts` (두 consumer 의 값) · `componentRulesTable.ts` (ColorThumb) · `skiaPrimitives.ts` `color_thumb` · `runtime/colorHandleDom.runtime.ts`
+- **ColorArea · ColorSlider track · ColorWheel 고리 = S2 바깥선** 1 `gray-1000/10` (offset −1, 비활성이면 없음), ColorSlider track 은 체커보드 위 그라데이션, ColorWheel 은 안쪽 고리 `div` 를 하나 더 둔다.
+- **Color 조작기 비활성 = S2 `disabled` 색** — ColorArea · ColorSlider track · ColorWheel 고리는 `{color.disabled}`, 손잡이는 같은 바탕 + `{color.border-disabled}` 테두리로 칠하고 흐리게 하지 않는다 (테마를 따른다). 전에는 고정 `gray` 에 손잡이 0.5 · ColorSlider track 0.38 흐림이었다.
+- **ColorSlider track 모서리 = S2 `default` 8px** — 전에는 SliderTrack rule 의 pill (9999px) 이 ColorSlider 의 radius 를 덮었다 (Canvas · Publish 모두).
+- **ColorSwatch 테두리 = S2 1px `gray-1000/42`** — 견본 색 위에 그린다. 전에는 rule 의 1px `--border` 테두리 위에 수동 CSS 의 inset 링 (`--fg` 10%) 이 겹쳤고, 선택 견본의 accent 테두리 선언은 어느 쪽에도 보이지 않는 죽은 값이었다 (삭제). 반투명 색은 S2 처럼 견본 체커보드 (`#e6e6e6`, `0% 50%`) 위에, 색이 없으면 (alpha 0) 빨간 사선을 그린다 — 전에는 투명 견본이 빈 상자였다.
+- **ColorSwatchPicker 선택 표시 = S2 선택 `div`** (테두리 2 `gray-900` · 바깥선 2 `gray-25` offset −4) — 전에는 생성 CSS 의 `::after` 라 Canvas 에 선택 표시가 없었다. 이제 Canvas 도 picker 값과 같은 색의 swatch 에 같은 테두리를 그린다 (`color_swatch`).
+
+### Added
+
+- **Color 손잡이 Loupe** (Preview · Publish) — 끄는 동안 손잡이 위에 S2 Loupe (48 × 64, 체커보드 위 현재 색, elevated 그림자, 125ms 들고 남) 가 뜬다. Canvas 는 끌기가 없어 그리지 않는다. 이동 중에도 보인다 (진입 애니메이션은 열릴 때 한 번 — 매 이동마다 투명에서 다시 시작하던 것을 고침).
+
 ## [S2 정렬 — 메뉴 · 태그 묶음 (Menu 항목 grid · Section 머리 · Divider · 빈 상태 글자, DisclosureHeader, SideNav 링크 아이콘 · 패널 묶음, Tag 내용 묶음, disabledKeys, TagGroup 그룹 동작 버튼)] - 2026-11-18
 
 ### Changed

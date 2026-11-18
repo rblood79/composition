@@ -60,4 +60,7 @@ export const colorSwatchBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
+  // (2026-11-18) S2's 1px `gray-1000/42` border over the color, and a picker's selected swatch's
+  //   selection `div` (`_swatchSelected`).
+  skiaPrimitive: "color_swatch",
 };

@@ -95,11 +95,18 @@ import { Slot } from "../../components/Slot";
 import { isBodyType } from "../../domain/predicates";
 import { containerTypeSet } from "../../domain/componentTraits";
 import {
+  CATALOG_COLOR_CHECKER_CSS,
+  CATALOG_COLOR_CONTROL_OUTLINE,
+  CATALOG_COLOR_CONTROL_OUTLINE_CSS,
+  CATALOG_COLOR_SWATCH_BORDER_CSS,
+  CATALOG_COLOR_SWATCH_CHECKER_CSS,
+  CATALOG_COLOR_SWATCH_SLASH,
   getIconData,
   ruleLengthCss,
   tokenToCSSVar,
   type TokenRef,
 } from "@composition/rendering";
+import { CatalogColorHandle } from "./colorHandleDom.runtime";
 import {
   CATALOG_FIELD_BOX_CLASS,
   CATALOG_PREFIX_UNNAMED_FIELDS,
@@ -1539,6 +1546,28 @@ const bindings: Readonly<Record<string, DomBinding>> = {
               ),
             }
           : style,
+      // S2 ColorSlider: the channel gradient over the checkerboard, the face outline (none while
+      // disabled) — `colorHandle.ts`, the Canvas `color_slider_track`.
+      ...(typeof node.derivedProps?._colorGradient === "string"
+        ? {
+            style: ({
+              defaultStyle,
+              isDisabled,
+            }: {
+              defaultStyle: CSSProperties;
+              isDisabled: boolean;
+            }) => ({
+              ...defaultStyle,
+              ...style,
+              ...(isDisabled
+                ? {}
+                : {
+                    ...COLOR_FACE_OUTLINE,
+                    background: `${defaultStyle.background}, ${CATALOG_COLOR_CHECKER_CSS}`,
+                  }),
+            }),
+          }
+        : {}),
       children: catalogStateChildren(node.id, () => children),
     }),
   sliderfill: (node, style) =>
@@ -1732,18 +1761,61 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   // ADR-258 Phase 2: a Color control's parts are RAC's, in its context — RAC places the thumb at
   // the value and paints it the displayed color, and sizes · paints · clips the wheel's ring (the
   // node's own style never moves or repaints them — `RAC_COLOR_PART_KEYS`).
+  // (S2 `ColorHandle` — the inner ring, checkerboard and drag Loupe: `colorHandleDom.runtime.ts`.)
   colorthumb: (node, style) =>
-    createElement(RAC.ColorThumb as ElementType, {
+    createElement(CatalogColorHandle as ElementType, {
       key: node.id,
       "data-catalog-id": node.id,
       style: withoutRacColorPart(withoutRacPlacement(style)),
     }),
+  // S2 ColorWheel: the track's outline (offset −1) and the inner border `div` (inset = the track,
+  // its outline outside) — none while disabled (`colorHandle.ts`, the Canvas `color_wheel_track`).
   colorwheeltrack: (node, style) =>
-    createElement(RAC.ColorWheelTrack as ElementType, {
-      key: node.id,
-      "data-catalog-id": node.id,
-      style: withoutRacColorPart(style),
-    }),
+    createElement(
+      Fragment,
+      { key: node.id },
+      createElement(RAC.ColorWheelTrack as ElementType, {
+        "data-catalog-id": node.id,
+        style: ({ isDisabled }: { isDisabled: boolean }) => ({
+          ...withoutRacColorPart(style),
+          ...(isDisabled ? {} : COLOR_FACE_OUTLINE),
+        }),
+      }),
+      // (Hidden while the wheel is disabled — the ColorWheel rule's `[data-disabled]` selector.)
+      createElement("div", {
+        "aria-hidden": true,
+        className: "color-wheel-inner-ring",
+        style: {
+          position: "absolute",
+          inset: CATALOG_COLOR_WHEEL_TRACK,
+          pointerEvents: "none",
+          borderRadius: "50%",
+          outline: CATALOG_COLOR_CONTROL_OUTLINE_CSS,
+        },
+      }),
+    ),
+};
+
+/** S2's Color control face outline (`outline 1px gray-1000/10`, offset −1 — `colorHandle.ts`). */
+/** S2 `ColorSwatch.tsx`'s background for the swatch color (`#rrggbbaa` — `_swatchColor`). */
+function colorSwatchBackground(color: unknown): CSSProperties {
+  if (typeof color !== "string" || !/^#[0-9a-f]{8}$/i.test(color)) return {};
+  const alpha = Number.parseInt(color.slice(7), 16);
+  if (alpha === 255) return {};
+  if (alpha > 0)
+    return {
+      background: `linear-gradient(${color}, ${color}), ${CATALOG_COLOR_SWATCH_CHECKER_CSS}`,
+    };
+  const half = CATALOG_COLOR_SWATCH_SLASH.width / 2;
+  const red = tokenToCSSVar(CATALOG_COLOR_SWATCH_SLASH.token as TokenRef);
+  return {
+    background: `linear-gradient(to bottom right, transparent calc(50% - ${half}px), ${red} calc(50% - ${half}px) calc(50% + ${half}px), transparent calc(50% + ${half}px)) no-repeat`,
+  };
+}
+
+const COLOR_FACE_OUTLINE: CSSProperties = {
+  outline: CATALOG_COLOR_CONTROL_OUTLINE_CSS,
+  outlineOffset: -CATALOG_COLOR_CONTROL_OUTLINE.width,
 };
 
 /** Keys RAC writes on a ColorThumb · ColorWheelTrack from the control's state (`useColorWheel` · `ColorThumb`). */
@@ -3014,6 +3086,18 @@ function ruleDom(
     delete rest.size;
     style = { ...style, width: diameter, height: diameter };
   }
+  // S2 ColorArea's face outline (offset −1, none while disabled — `colorHandle.ts`; the Canvas
+  // `color_area_fill`).
+  if (lower === "colorarea" && node.props.isDisabled !== true)
+    style = { ...COLOR_FACE_OUTLINE, ...style };
+  // S2 ColorSwatch: its border over its color (the rule's own is transparent), a translucent color
+  // over the swatch checkerboard, alpha 0 = the red slash (`colorHandle.ts` — the Canvas `color_swatch`).
+  if (lower === "colorswatch")
+    style = {
+      ...style,
+      border: CATALOG_COLOR_SWATCH_BORDER_CSS,
+      ...colorSwatchBackground(node.derivedProps?._swatchColor),
+    };
   // ADR-258 Decision 1 · 8 — the Color controls get the props the Canvas reads
   //   (`catalogColorControlProps`): a RAC color value (the binding default when empty or not one)
   //   and channels of the effective space — one fallback for both consumers (RAC throws on the

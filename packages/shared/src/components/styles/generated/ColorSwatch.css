@@ -19,7 +19,7 @@
   /* Default variant */
   background: var(--bg);
   color: var(--fg);
-  border: var(--border-width-thin) solid var(--border);
+  border: var(--border-width-thin) solid transparent;
 
   /* Default size */
   height: calc(var(--catalog-token-size-unit) * 32 / 1);
@@ -31,7 +31,7 @@
 .react-aria-ColorSwatch:where([data-variant="default"]) {
   background: var(--bg);
   color: var(--fg);
-  border-color: var(--border);
+  border-color: transparent;
 }
 
 .react-aria-ColorSwatch:where([data-variant="default"][data-hovered]) {
@@ -40,10 +40,6 @@
 
 .react-aria-ColorSwatch:where([data-variant="default"][data-pressed]) {
   background: var(--bg-overlay);
-}
-
-.react-aria-ColorSwatch:where([data-variant="default"][data-selected]) {
-  border-color: var(--accent-content);
 }
 
 .react-aria-ColorSwatch[data-size="XS"] {
