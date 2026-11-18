@@ -14,6 +14,8 @@ paths:
 
 # Canvas 렌더링 규칙
 
+- Skeleton 로딩 글자의 Canvas 막대는 DOM 로딩 span 의 줄 상자를 따른다 — 높이 = span 자기 서체 content area (`measureFontBox`, 줄 baseline 기준), `pre` · `pre-wrap` 은 줄 끝 공백 포함, 말줄임은 host padding box 끝 (`skeletonLines.ts`). host 장식선은 시트가 투명으로 지운다. **Why (2026-11-19):** 줄의 모든 글자 사각형을 합쳐 큰 RichText 구간에서 막대가 높아졌고, 공백 제외 · border box 끝으로 막대 폭이 DOM 과 갈렸다. Link 밑줄은 WebKit 만 막대 위에 그렸다 (Chromium · WebKit 실측).
+
 - DOM pass 의 노드 props 에는 RAC context 가 합쳐져 있다 — 「작성값」 (`catalogAuthoredVisual`) 은 문서 record (`root.domInputs.get(id)`) 로 판정하고, 상위가 비활성화하는 Button (ButtonGroup · field) 의 글자 · 아이콘은 그 Button 의 상태 칠을 따른다 (`catalogToggleButtonGlyphOwner`). **Why (2026-11-09):** context `isDisabled` 로 규칙 disabled 칠이 휴지 `visual` 과 달라져 휴지 #292929 가 inline 에 실렸다 — disabled Select 가 Preview 진한 색 · Canvas 회색, ButtonGroup Save 는 Canvas 회색 바탕에 흰 글자.
 
 - 글자 모양 입력 (OpenType 기능 · 가변 축) 은 서체 이름으로 가르지 않고 CSS 규칙 하나로 두 consumer 에 준다 — 기능은 `CATALOG_FONT_FEATURES` 를 Canvas paragraph 와 문서 root (`applyCatalogPreviewTheme`) 가 읽고, 축은 `cssFontVariations` (`wght` · `wdth` · `opsz` = 글자 크기) 를 측정 · 그리기가 쓴다. **Why (2026-11-09):** Publish 에 기능이 없어 Pretendard 14px 문장이 Canvas 343.35 / DOM 341.80 으로 Label 줄 나눔이 갈렸고, Canvas 가 `opsz` 를 빼 Inter 16px 이 531.26 / 525.86 이었다 (`wdth` 는 Adobe Clean 에만 넘기는 분기였다). 게이트 `documentFontFeatures` · `variableFontAxes` (내장 서체 전부).

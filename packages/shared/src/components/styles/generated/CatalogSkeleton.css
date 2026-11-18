@@ -3,5 +3,5 @@
 [data-skeleton-look] * { visibility: hidden; }
 [data-skeleton-look="text"] { color: transparent; -webkit-box-decoration-break: clone; box-decoration-break: clone; border-radius: var(--catalog-token-radius-sm); }
 [data-skeleton-look="icon"] { border-radius: var(--catalog-token-radius-sm); }
-:has(> [data-skeleton-look="text"]) { -webkit-text-fill-color: transparent; }
+:has(> [data-skeleton-look="text"]) { -webkit-text-fill-color: transparent; text-decoration-color: transparent !important; }
 [data-skeleton-dot] > svg { fill: var(--skeleton-status-light) !important; }

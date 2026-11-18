@@ -89,8 +89,11 @@ export function catalogSkeletonStylesheet(): string {
     `[${attr}] * { visibility: hidden; }`,
     `[${attr}="text"] { color: transparent; -webkit-box-decoration-break: clone; box-decoration-break: clone; border-radius: ${radius}; }`,
     `[${attr}="icon"] { border-radius: ${radius}; }`,
-    // (`useSkeletonText` — the host's own `-webkit-text-fill-color` hides an ellipsis too.)
-    `:has(> [${attr}="text"]) { -webkit-text-fill-color: transparent; }`,
+    // (`useSkeletonText` — the host's own `-webkit-text-fill-color` hides an ellipsis too. S2 hides
+    //  every glyph: the host's decoration (a Link's underline, an authored one) drew over the bar in
+    //  WebKit only — Chromium paints it in the fill color — so its color goes transparent, over the
+    //  host's inline style too. The Canvas draws none — `skeletonLines.ts`, 2026-11-19.)
+    `:has(> [${attr}="text"]) { -webkit-text-fill-color: transparent; text-decoration-color: transparent !important; }`,
     `[${CATALOG_SKELETON_DOT_ATTR}] > svg { fill: ${tokenToCSSVar(look.statusLight)} !important; }`,
     "",
   ].join("\n");
