@@ -104,6 +104,15 @@ describe("ADR-301 G1 — the expanded instances are the reference's use code", (
     );
   });
 
+  it("a SkeletonCollection is S2's — its Card template expands as a CardView's Card (ADR-314)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = await openAdr296();
+    h.add("SkeletonCollection");
+    expect(pageShape(code(session(h)))).toMatch(
+      /^SkeletonCollection\(Card\(CardPreview\(Image\) Content\(Text Text\) Footer\(Button\)\)/,
+    );
+  });
+
   it('the Popover — the RAC names imported, the frame `<div className="frame">`, `<OverlayArrow />`, the Library defaults not written', async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const h = await openAdr296();
@@ -133,7 +142,9 @@ describe("ADR-301 G1 — the expanded instances are the reference's use code", (
   it("the rest of the Library instances keep their one element (field wrappers · TagGroup · ActionBar …)", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     for (const type of PALETTE_REUSABLE_ORIGIN_TYPES) {
-      if (type in EXPANDED || type === "CardView") continue;
+      // (A CardView · a SkeletonCollection hold a Card origin — its positions expand, tested above.)
+      if (type in EXPANDED || type === "CardView" || type === "SkeletonCollection")
+        continue;
       const h = await openAdr296();
       h.add(type);
       const s = session(h);

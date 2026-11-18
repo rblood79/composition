@@ -11,7 +11,6 @@ import { Breadcrumb as BreadcrumbItem } from "./Breadcrumb";
 import { Icon } from "./Icon";
 
 import { useResolvedCollectionItems } from "../hooks";
-import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
 
 /**
@@ -38,16 +37,6 @@ export interface BreadcrumbsExtendedProps<
    */
   columnMapping?: ColumnMapping;
   /**
-   * Show loading skeleton instead of breadcrumbs
-   * @default false
-   */
-  isLoading?: boolean;
-  /**
-   * Number of skeleton items to show when loading
-   * @default 3
-   */
-  skeletonCount?: number;
-  /**
    * 정적 items SSOT (ADR-912 영역 B (A): StoredBreadcrumbItem[]).
    * dataBinding 없을 때 source. useResolvedCollectionItems 가 dataBinding 과 동일 normalizer 로 흡수.
    */
@@ -73,8 +62,6 @@ export function Breadcrumbs<T extends object>({
   size = "M",
   dataBinding,
   columnMapping: _columnMapping,
-  isLoading: externalLoading,
-  skeletonCount = 3,
   items,
   separatorTemplate,
   children,
@@ -109,48 +96,6 @@ export function Breadcrumbs<T extends object>({
   const breadcrumbsClassName = baseClassName
     ? `react-aria-Breadcrumbs ${baseClassName}`
     : "react-aria-Breadcrumbs";
-
-  // External loading state - show skeleton breadcrumbs
-  if (externalLoading) {
-    return (
-      <nav
-        className={
-          props.className
-            ? `react-aria-Breadcrumbs ${props.className}`
-            : "react-aria-Breadcrumbs"
-        }
-        data-size={size}
-        aria-busy="true"
-        aria-label="Loading breadcrumbs..."
-      >
-        <ol
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: `${separatorIcon.gap}px`,
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
-          }}
-        >
-          {Array.from({ length: skeletonCount }).map((_, i) => (
-            <li
-              key={i}
-              className="react-aria-Breadcrumb"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: `${separatorIcon.gap}px`,
-              }}
-            >
-              <Skeleton componentVariant="breadcrumb" size="M" index={i} />
-              {i < skeletonCount - 1 && separator}
-            </li>
-          ))}
-        </ol>
-      </nav>
-    );
-  }
 
   // dataBinding async 로딩/에러 — 단일 placeholder crumb. 바인딩이 없으면 (정적 items · 정적 자식) 해당 없음 —
   //   ADR-237 Phase 3: 종전엔 바인딩 없는 정적 자식 Breadcrumbs 가 이 분기에 걸려 자식에 도달하지 못했다.

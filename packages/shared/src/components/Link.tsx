@@ -4,7 +4,6 @@ import { LinkPrimitive as RACLink } from "./LinkPrimitive";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { LinkVariant, ComponentSize, StaticColor } from "../types";
-import { Skeleton } from "./Skeleton";
 
 export interface LinkProps extends RACLinkProps {
   /**
@@ -19,11 +18,6 @@ export interface LinkProps extends RACLinkProps {
   size?: ComponentSize;
   isQuiet?: boolean;
   staticColor?: StaticColor;
-  /**
-   * Show loading skeleton instead of content
-   * @default false
-   */
-  isLoading?: boolean;
 }
 
 /**
@@ -54,20 +48,10 @@ export function Link(props: LinkProps) {
     size = "M",
     isQuiet = false,
     staticColor,
-    isLoading,
     ...restProps
   } = props;
 
   // Show skeleton when loading
-  if (isLoading) {
-    return (
-      <Skeleton
-        componentVariant="link"
-        className={props.className as string}
-        aria-label="Loading link..."
-      />
-    );
-  }
 
   const allProps = mergeProps(restProps as object, focusProps as object);
 

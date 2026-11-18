@@ -304,6 +304,17 @@ export const COLOR_ALIASES: Readonly<Record<string, ColorAliasEntry>> = {
   "collection-item-focus": tone(200, 200, {
     source: "S2 Menu.tsx:265 baseColor('gray-100').isFocusVisible = gray-200",
   }),
+
+  // ── ADR-314 S2 Skeleton — 로딩 모양 (`Skeleton.tsx` loadingStyle · `StatusLight.tsx:126`) ──
+  skeleton: tone(100, 100, {
+    source: "S2 Skeleton.tsx loadingStyle gradient gray-100 (33% · 66%)",
+  }),
+  "skeleton-highlight": tone(25, 300, {
+    source: "S2 Skeleton.tsx loadingStyle light-dark(gray-25, gray-300)",
+  }),
+  "skeleton-status-light": tone(200, 200, {
+    source: "S2 StatusLight.tsx:126 fill isSkeleton gray-200",
+  }),
   /** named hue `gray` — Tone 의 gray 사다리 (design-data gray 와 같은 family). */
   gray: tone(700, 500, { oracle: "gray-background-color-default" }),
   "gray-hover": tone(800, 600, {

@@ -21,7 +21,6 @@ import {
   toItemProjectionRow,
   type CollectionTreeRow,
 } from "../collections/resolveCollectionItems";
-import { Skeleton } from "./Skeleton";
 
 import { useComponentStrings } from "../i18n";
 
@@ -40,16 +39,6 @@ export interface MyTreeProps<T extends object> extends TreeProps<T> {
    * Data binding configuration
    */
   dataBinding?: DataBinding | DataBindingValue;
-  /**
-   * Show loading skeleton instead of tree
-   * @default false
-   */
-  isLoading?: boolean;
-  /**
-   * Number of skeleton tree nodes to show when loading
-   * @default 3
-   */
-  skeletonNodeCount?: number;
   /**
    * RSP TreeView `selectionStyle` (2026-08-21) — 선택을 **무엇으로 표시하는가**.
    * - `"checkbox"`(기본): 행에 선택 체크박스를 그린다.
@@ -95,8 +84,6 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
     variant = "primary",
     size = "M",
     dataBinding,
-    isLoading: externalLoading,
-    skeletonNodeCount = 3,
     children,
     selectionStyle,
     ...rest
@@ -134,35 +121,6 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
       : undefined,
   });
   const treeData = treeRows;
-
-  // External loading state - show skeleton tree
-  if (externalLoading) {
-    return (
-      <div
-        className={
-          restProps.className
-            ? `react-aria-Tree ${restProps.className}`
-            : "react-aria-Tree"
-        }
-        data-composition-tree="true"
-        data-variant={variant}
-        data-size={size}
-        role="tree"
-        aria-busy="true"
-        aria-label="Loading tree..."
-      >
-        {Array.from({ length: skeletonNodeCount }).map((_, i) => (
-          <div
-            key={i}
-            className="react-aria-TreeItem"
-            style={{ paddingLeft: i === 1 ? "24px" : i === 2 ? "48px" : "0" }}
-          >
-            <Skeleton componentVariant="tree-node" size={size} index={i} />
-          </div>
-        ))}
-      </div>
-    );
-  }
 
   const treeClassName = composeRenderProps(restProps.className, (cls) =>
     cls ? `react-aria-Tree ${cls}` : "react-aria-Tree",

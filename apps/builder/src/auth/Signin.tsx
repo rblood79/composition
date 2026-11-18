@@ -194,7 +194,7 @@ const Signin = () => {
             size="M"
             className="auth-submit"
             isDisabled={!canSubmit}
-            isLoading={verifying}
+            isPending={verifying}
           >
             {verifying ? t("verifying") : t("submit")}
           </Button>

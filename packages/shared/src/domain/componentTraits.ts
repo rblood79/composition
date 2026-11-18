@@ -463,7 +463,18 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   SideNavHeader: { owners: ["SideNavSection"] },
   // ADR-256 Phase 10: S2 CardView is a RAC GridList whose items are its Cards
   //   (`@react-spectrum/s2/src/CardView.tsx`).
-  CardView: { container: "collection", children: ["Card"] },
+  CardView: {
+    container: "collection",
+    // ADR-314 Phase 4: S2 `SkeletonCollection` — the loading items after the cards.
+    children: ["Card", "SkeletonCollection"],
+  },
+  // ADR-314 Phase 4: S2 `SkeletonCollection` — around its Card template. It means something in a
+  //   CardView (its loading items); elsewhere the DOM draws nothing (no owner rule — the palette and
+  //   the Library page place every origin on a page, as a Skeleton).
+  SkeletonCollection: {
+    container: "collection",
+    children: ["Card"],
+  },
   TreeItem: {
     container: "collection",
     children: ["TreeItem", "TreeItemContent"],

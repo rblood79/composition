@@ -131,7 +131,6 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "ColorSwatch",
   "ListBox",
   "ColorField",
-  "Skeleton",
   "TagList",
   "CalendarHeader",
   // The calendar's day cells follow its grid's laid-out width (2026-10-13).

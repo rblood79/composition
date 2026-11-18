@@ -14,7 +14,6 @@ import { CheckIcon, Minus } from "lucide-react";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ComponentSizeSubset } from "../types";
-import { Skeleton } from "./Skeleton";
 import { useContext } from "react";
 import { SelectBoxSelectionContext } from "./SelectBoxSelectionContext";
 
@@ -31,11 +30,6 @@ export interface CheckboxProps extends Omit<AriaCheckboxProps, "children"> {
    * @default 'M'
    */
   size?: ComponentSizeSubset;
-  /**
-   * Show loading skeleton instead of checkbox
-   * @default false
-   */
-  isLoading?: boolean;
 }
 
 /**
@@ -50,7 +44,6 @@ export function MyCheckbox(props: CheckboxProps) {
     isTreeItemChild = false,
     isEmphasized = false,
     size = "M",
-    isLoading,
     ...restProps
   } = props;
   const { focusProps, isFocusVisible } = useFocusRing();
@@ -92,15 +85,6 @@ export function MyCheckbox(props: CheckboxProps) {
     );
   }
 
-  if (isLoading) {
-    return (
-      <Skeleton
-        componentVariant="checkbox"
-        size={size}
-        aria-label="Loading checkbox..."
-      />
-    );
-  }
 
   // TreeItem 내부에서 사용될 때는 slot을 설정하지 않음
   const checkboxProps = isTreeItemChild

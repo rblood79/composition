@@ -54,7 +54,10 @@ import {
   catalogSelectionGroupOf,
 } from "./groupSelection";
 import { catalogInteractionAppliesTo } from "../resolution/effectiveInteractions";
-import { catalogAncestorInherited } from "./inheritedProps";
+import {
+  catalogAncestorInherited,
+  catalogInheritedTakes,
+} from "./inheritedProps";
 import {
   componentEventKeyOf,
   emitDefinitionOf,
@@ -743,7 +746,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
           (node) => ({ ...node.props, ...this.overrideOf(node.id) }),
         );
         const takes =
-          CATALOG_INHERITED_RECEIVERS.get(catalogTypeName(root, record)) ?? [];
+          catalogInheritedTakes(catalogTypeName(root, record), fromHosts) ??
+          [];
         const hostFlag = (flag: "isDisabled" | "isReadOnly") =>
           takes.includes(flag) && fromHosts[flag] === true;
         const inherited = {

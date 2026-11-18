@@ -307,6 +307,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "SideNav",
         "SideNavSection",
         "SideNavItem",
+        // ADR-314 Phase 4: S2 SkeletonCollection — a CardView's Card template as `skeleton` items.
+        "SkeletonCollection",
       ]),
     );
   });
@@ -329,7 +331,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       TableBody: ["Row"],
       Row: ["Cell"],
       Tree: ["TreeItem"],
-      CardView: ["Card"],
+      CardView: ["Card", "SkeletonCollection"],
       TreeItem: ["TreeItem", "TreeItemContent"],
       ColorSwatchPicker: ["ColorSwatchPickerItem"],
       CalendarGrid: ["CalendarHeaderCell", "CalendarCell"],
@@ -338,6 +340,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SelectBoxGroup: ["SelectBox"],
       SideNav: ["SideNavItem", "SideNavSection"],
       SideNavSection: ["SideNavHeader", "SideNavItem"],
+      SkeletonCollection: ["Card"],
       SideNavItem: ["SideNavItem", "SideNavItemContent"],
     });
     for (const type of Object.keys(componentContractMap("children")))

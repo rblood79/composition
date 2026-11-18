@@ -187,6 +187,10 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "neutral-outline-hover": "var(--neutral-outline-hover)",
   "on-neutral": "var(--on-neutral)",
   "gray-1000": "var(--gray-1000)",
+  // ADR-314 — S2 Skeleton 로딩 모양 (`colorAliases.ts`)
+  skeleton: "var(--skeleton)",
+  "skeleton-highlight": "var(--skeleton-highlight)",
+  "skeleton-status-light": "var(--skeleton-status-light)",
 
   "neutral-subdued": "var(--fg-muted)",
   "neutral-subtle": "var(--bg-muted)",

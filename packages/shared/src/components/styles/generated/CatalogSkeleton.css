@@ -1,0 +1,7 @@
+/* Generated from catalog/rule/skeletonLook.ts (ADR-314). Do not edit. */
+[data-skeleton-look] { background-image: linear-gradient(to right, var(--skeleton) 33%, var(--skeleton-highlight), var(--skeleton) 66%); background-size: 300%; }
+[data-skeleton-look] * { visibility: hidden; }
+[data-skeleton-look="text"] { color: transparent; -webkit-box-decoration-break: clone; box-decoration-break: clone; border-radius: var(--catalog-token-radius-sm); }
+[data-skeleton-look="icon"] { border-radius: var(--catalog-token-radius-sm); }
+:has(> [data-skeleton-look="text"]) { -webkit-text-fill-color: transparent; }
+[data-skeleton-dot] > svg { fill: var(--skeleton-status-light) !important; }

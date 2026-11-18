@@ -1,6 +1,13 @@
 import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
-import { catalogElementlessWithChildren } from "../../../../../packages/shared/src/catalog/runtime/elementless";
+import {
+  catalogElementlessWithChildren,
+  catalogEmptySkeleton,
+} from "../../../../../packages/shared/src/catalog/runtime/elementless";
+import {
+  CATALOG_SKELETON_LOOK,
+  CATALOG_SKELETON_LOOK_OF,
+} from "../../../../../packages/shared/src/catalog/rule/skeletonLook";
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import { catalogDisclosureBorders } from "../../../../../packages/shared/src/catalog/runtime/disclosureBorders";
 import { catalogSideNavChevronItem } from "../../../../../packages/shared/src/catalog/runtime/sideNav";
@@ -427,6 +434,26 @@ function container(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
   };
 }
 
+/** ADR-314 결정 3: an empty Skeleton's edit-only stand-in — a dashed outline, no fill. */
+function emptySkeletonPlaceholder(
+  node: CatalogConsumerNode,
+  rect: Rect,
+): SkiaNodeData {
+  return {
+    type: "box",
+    elementId: node.id,
+    ...rect,
+    visible: true,
+    box: {
+      fillColor: rgba(undefined),
+      borderRadius: 4,
+      strokeColor: rgba("#8f8f8f"),
+      strokeWidth: 1,
+      strokeStyle: "dashed",
+    },
+  };
+}
+
 /**
  * The node's resolved `opacity` (a disabled state rule, or authored) as the layer effect the old
  * Canvas put on a disabled catalog node (`{ type: "opacity", source: "state" }`); the DOM carries
@@ -708,6 +735,16 @@ const bindings: Readonly<Record<string, Binding>> = {
   // ADR-256 Phase 6g: RAC Autocomplete has no element — `display: contents` (its rule), so its
   // children are its parent's items; nothing of its own to paint.
   autocomplete: container,
+  // ADR-314: S2 Skeleton has no element either (its rule's `display: contents`) — nothing to paint
+  //   around its content. Empty, the Canvas alone shows its edit-only placeholder (사용자 결정 3 —
+  //   `catalogEmptySkeleton`; the DOM draws nothing).
+  skeleton: (node, rect) =>
+    catalogEmptySkeleton("Skeleton", node.children.length)
+      ? emptySkeletonPlaceholder(node, rect)
+      : container(node, rect),
+  // ADR-314 Phase 4: S2 SkeletonCollection has no element (`display: contents`) — its Card template
+  //   is the CardView's item, drawn once on the Canvas (the edit target; the Preview repeats it).
+  skeletoncollection: container,
   // ADR-256 Phase 5h: RAC TreeItemContent has no element (a layout box for the row's flex line).
   treeitemcontent: container,
   box,
@@ -1257,6 +1294,25 @@ function paintedNodeData(
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
+  // ADR-314 Phase 3 — below a loading wrapped participant (a Badge's words, a Meter track's fill):
+  //   S2 `visibility: hidden` — the box stays laid out, nothing drawn.
+  if (input.derivedProps?._skeletonHidden === true)
+    return hiddenNode(input, rect);
+  return withSkeletonLook(
+    root,
+    input,
+    rect,
+    paintedNodeDataAtRest(root, input, rect, binding, parent),
+  );
+}
+
+function paintedNodeDataAtRest(
+  root: CatalogCompositionRoot,
+  input: CatalogConsumerNode,
+  rect: Rect,
+  binding: Binding | undefined,
+  parent: CatalogConsumerNode | undefined,
+): SkiaNodeData {
   // (A node RAC gives no element once it has children — a FileTrigger around its Button — paints
   //  nothing of its own: the DOM draws only the children.)
   if (
@@ -1322,6 +1378,73 @@ function paintedNodeData(
       ),
     ),
   );
+}
+
+/**
+ * ADR-314 Phase 3 — S2 Skeleton's loading look on the Canvas: the still frame (`rule/skeletonLook.ts`
+ * — at rest the 300% gradient shows its `gray-100` end, one color). A text participant's words become
+ * line boxes (`text.skeleton` — `nodeRendererText.ts`), a wrapped one (Icon · Badge · Meter track ·
+ * Image · Avatar) a box of its own corner (an Icon's `sm`, an Avatar's circle) with its content
+ * dropped, a StatusLight's dot `gray-200` and its words line boxes. The generated `CatalogSkeleton.css`
+ * draws the same on the DOM.
+ */
+function withSkeletonLook(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  if (node.derivedProps?.isSkeleton !== true || !data.visible) return data;
+  const type = root.typeOf(node);
+  const look = CATALOG_SKELETON_LOOK_OF[type];
+  if (!look) return data;
+  const tokenColor = (ref: TokenRef) =>
+    rgba(resolveToken(ref, root.colorMode));
+  const fill = tokenColor(CATALOG_SKELETON_LOOK.fill);
+  const radius = Number(resolveToken(CATALOG_SKELETON_LOOK.radius, "light"));
+  const lines = (shape: SkiaNodeData): SkiaNodeData =>
+    shape.text
+      ? { ...shape, text: { ...shape.text, skeleton: { color: fill, radius } } }
+      : shape;
+  if (look === "text")
+    return { ...lines(data), children: data.children?.map(lines) };
+  if (look === "statusLight") {
+    const dot = tokenColor(CATALOG_SKELETON_LOOK.statusLight);
+    return {
+      ...data,
+      children: data.children?.map((shape) =>
+        shape.text
+          ? lines(shape)
+          : shape.type === "box" && shape.box
+            ? { ...shape, box: { ...shape.box, fillColor: dot } }
+            : shape,
+      ),
+    };
+  }
+  const {
+    text: _text,
+    iconPath: _iconPath,
+    image: _image,
+    children: _children,
+    presentationFillTargets: _fills,
+    presentationTextTargets: _texts,
+    presentationTextMetricTargets: _metrics,
+    ...rest
+  } = data;
+  return {
+    ...rest,
+    type: "box",
+    box: {
+      ...data.box,
+      fillColor: fill,
+      borderRadius:
+        look === "icon"
+          ? radius
+          : type === "Avatar"
+            ? Math.min(rect.width, rect.height) / 2
+            : (data.box?.borderRadius ?? 0),
+    },
+  };
 }
 
 /**

@@ -38,7 +38,6 @@
    JS 채널 전용이던 파일 — 종전 preview 문서에서 index.css 시트보다 앞에 실렸다 (모듈 평가 순서).
    같은 특이도에서 아래 블록들에 진다 (예: 수동 Button.css < generated/Button.css). 그 관계를 그대로 둔다.
    ============================================ */
-@import "./Skeleton.css";
 @import "./Button.css";
 @import "./generated/ActionButton.css";
 @import "./generated/ActionButtonGroup.css";
@@ -272,3 +271,4 @@
 
 /* Authored catalog state values, scoped to catalog node attributes. */
 @import "./generated/CatalogStates.css";
+@import "./generated/CatalogSkeleton.css"; /* ADR-314 — S2 Skeleton 로딩 모양 (catalog/rule/skeletonLook.ts) */

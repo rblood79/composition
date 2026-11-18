@@ -548,7 +548,8 @@ describe("ADR-256 Phase 10b — CardView · ButtonGroup · AvatarGroup", () => {
     const { workspace, root, placed, kids } = await place("cardview");
     expect(catalogChildKind("CardView")).toEqual({
       kind: "items",
-      items: ["Card"],
+      // (ADR-314 Phase 4: S2 `SkeletonCollection` — the loading items after the cards.)
+      items: ["Card", "SkeletonCollection"],
     });
     expect(kids(placed().id).map((record) => root.typeOf(record))).toEqual([
       "Card",

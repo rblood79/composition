@@ -270,7 +270,11 @@ import {
   catalogPickerTimeGranularity,
   catalogTagGroupActionLabel,
 } from "./presence";
-import { catalogElementlessWithChildren } from "./elementless";
+import {
+  CATALOG_EMPTY_SKELETON_STYLE,
+  catalogElementlessWithChildren,
+  catalogEmptySkeleton,
+} from "./elementless";
 import {
   catalogSideNavChevronGlyphItem,
   catalogSideNavCurrentWeight,
@@ -5283,6 +5287,9 @@ export class CatalogCompositionRoot {
       catalogElementlessWithChildren(this.typeOf(record))
     )
       return { display: "contents" };
+    // (An empty Skeleton — ADR-314 결정 3: the Canvas's edit-only placeholder box; the DOM has none.)
+    if (catalogEmptySkeleton(this.typeOf(record), record.children.length))
+      return { ...CATALOG_EMPTY_SKELETON_STYLE };
     const frame = this.pageFrameStyle(record);
     const style = styleOf(
       record,

@@ -1,7 +1,6 @@
 import { useCatalogSlotProps } from "./catalogSlotContexts";
 import React from "react";
 import type { BadgeVariant, ComponentSize } from "../types";
-import { Skeleton } from "./Skeleton";
 import {
   catalogNotificationBadgeDigits,
   catalogNotificationBadgeText,
@@ -52,11 +51,6 @@ export interface BadgeProps extends Omit<
    * @default 'wrap'
    */
   overflowMode?: "wrap" | "truncate";
-  /**
-   * Show loading skeleton instead of content
-   * @default false
-   */
-  isLoading?: boolean;
 }
 
 /**
@@ -87,22 +81,11 @@ export function Badge(ownProps: BadgeProps): React.ReactElement {
     isPulsing = false,
     value,
     fillStyle,
-    isLoading = false,
     overflowMode = "wrap",
     className,
     children,
     ...props
   } = contextProps;
-  if (isLoading) {
-    return (
-      <Skeleton
-        componentVariant="badge"
-        size={size}
-        className={className}
-        aria-label="Loading badge..."
-      />
-    );
-  }
 
   return (
     <span

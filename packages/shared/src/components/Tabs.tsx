@@ -19,7 +19,6 @@ import type {
 } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
-import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
 
 /**
@@ -49,16 +48,6 @@ export interface TabsExtendedProps extends TabsProps {
    * Column mapping for data binding
    */
   columnMapping?: ColumnMapping;
-  /**
-   * Show loading skeleton instead of tabs
-   * @default false
-   */
-  isLoading?: boolean;
-  /**
-   * Number of skeleton tabs to show when loading
-   * @default 3
-   */
-  skeletonTabCount?: number;
 }
 
 export interface TabListExtendedProps<
@@ -113,8 +102,6 @@ export function Tabs({
   size = "M",
   dataBinding,
   columnMapping,
-  isLoading: externalLoading,
-  skeletonTabCount = 3,
   children,
   ...props
 }: TabsExtendedProps) {
@@ -136,37 +123,6 @@ export function Tabs({
     ],
   });
   const boundData = boundRows;
-
-  // External loading state - show skeleton tabs
-  if (externalLoading) {
-    return (
-      <div
-        className={
-          props.className
-            ? `react-aria-Tabs ${props.className}`
-            : "react-aria-Tabs"
-        }
-        data-density={density}
-        data-label-behavior={labelBehavior}
-        data-size={size}
-        role="tablist"
-        aria-busy="true"
-        aria-label="Loading tabs..."
-      >
-        <div
-          className="react-aria-TabList"
-          style={{ display: "flex", gap: "4px" }}
-        >
-          {Array.from({ length: skeletonTabCount }).map((_, i) => (
-            <Skeleton key={i} componentVariant="tab" size={size} index={i} />
-          ))}
-        </div>
-        <div className="react-aria-TabPanel" style={{ padding: "16px" }}>
-          <Skeleton variant="text" lines={3} />
-        </div>
-      </div>
-    );
-  }
 
   // PropertyDataBinding 형식 감지
   const isPropertyBinding =

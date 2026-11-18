@@ -55,7 +55,7 @@ const put = (entry: CollectionEntry) => {
 
 describe("ADR-313 Phase 1 — 데이터 저장 계약 (contract 70)", () => {
   it("contract 70 — 69 문서는 거부된다", async () => {
-    expect(LIBRARY_CONTRACT_VERSION).toBe(70);
+    expect(LIBRARY_CONTRACT_VERSION).toBeGreaterThanOrEqual(70); // ADR-314 Phase 1 이 71
     const library = await buildCodeCatalogLibrary();
     const { document } = createG1Fixture();
     let failure: unknown;

@@ -8,13 +8,9 @@ import { Tree, TreeItem } from "../Tree";
 
 const TREE_STYLE_MARKER = 'data-composition-tree="true"';
 
-function renderPublicTree(props: { isLoading?: boolean } = {}): string {
+function renderPublicTree(): string {
   return renderToStaticMarkup(
-    <Tree
-      aria-label="Files"
-      className="consumer-tree"
-      isLoading={props.isLoading}
-    >
+    <Tree aria-label="Files" className="consumer-tree">
       <TreeItem id="file-1" title="File 1" showInfoButton={false} />
     </Tree>,
   );
@@ -46,10 +42,6 @@ describe("Tree public style scope", () => {
 
     expect(html).toContain(TREE_STYLE_MARKER);
     expect(html).toMatch(/class="[^"]*react-aria-Tree[^"]*consumer-tree/);
-  });
-
-  it("loading skeleton 경로도 동일한 style marker를 발행한다", () => {
-    expect(renderPublicTree({ isLoading: true })).toContain(TREE_STYLE_MARKER);
   });
 
   it("raw React Aria Tree는 public Tree style scope에 자동 편입되지 않는다", () => {

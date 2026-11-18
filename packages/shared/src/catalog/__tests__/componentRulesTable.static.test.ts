@@ -372,12 +372,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     { S: 1, M: 2, L: 4 },
     "S2 Divider 두께 S 1 · M 2 · L 4 (`Divider.tsx`) 그대로",
   ),
-  sizes(
-    "Skeleton",
-    "height",
-    { S: 16, M: 20, L: 24 },
-    "S2 Skeleton 은 감싸는 모양이라 size 가 없다 — composition 단독 자리 높이",
-  ),
 ];
 
 /**

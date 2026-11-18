@@ -12060,50 +12060,51 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-314 Phase 1 (2026-11-18): S2 `Skeleton` has no element — a context around its content
+  //   (`<SkeletonContext.Provider value={isLoading}>{children}</…>`). The Canvas lays it out as
+  //   `display: contents` (its children are its parent's items, its own box their union — selection
+  //   only, as Autocomplete). No paint and no size of its own: the loading look is the wrapped
+  //   components' (Phase 3). An empty Skeleton's edit-only placeholder is the Canvas's
+  //   (`catalogEmptySkeletonStyle`), not this rule's. The `default` variant stays empty (the
+  //   removed variant axis — `s2VariantRemoval`).
   Skeleton: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.layer-2}",
-            isHovered: "{color.layer-2}",
-            isPressed: "{color.layer-2}",
-          },
-          color: {
-            default: "{color.neutral-subdued}",
-          },
-        },
-      },
-    },
+    variants: { default: { paint: {} } },
     sizes: {
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.sm}",
-        height: 16,
-      },
       M: {
+        height: 0,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 20,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.md}",
-        height: 24,
+        borderRadius: "{radius.none}",
       },
     },
     structure: {
-      archetype: "simple",
+      archetype: "container",
       element: "div",
+      skipCSSGeneration: true,
       containerStyles: {
-        // ADR-923 Phase 5 후속 HC2 전환 (2026-09-03): inline-flex → block. DOM 실효값은 수동
-        //   `styles/Skeleton.css:65` (.react-aria-Skeleton display block, Skeleton.tsx import) 이고
-        //   generated/Skeleton.css 는 로드되지 않는다 — Canvas (resolveDefaultDisplay) 가 같은 outer 를 읽도록
-        //   catalog 를 DOM 에 맞춘다. evidence/923-phase5-followup-hc2-conversion.md.
-        display: "block",
-        alignItems: "center",
+        display: "contents",
+      },
+    },
+  },
+  // ADR-314 Phase 4 — S2 SkeletonCollection: no element (its Card template is the CardView's item).
+  SkeletonCollection: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: { default: { paint: {} } },
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      containerStyles: {
+        display: "contents",
       },
     },
   },

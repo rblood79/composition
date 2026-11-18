@@ -74,7 +74,7 @@ async function scene(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 70,
+    libraryContractVersion: 71,
     revision: 0,
     projectId,
     rootId: projectId,

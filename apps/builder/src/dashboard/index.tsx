@@ -354,7 +354,7 @@ function CreateProjectTile({
           variant="accent"
           size="S"
           isDisabled={isBusy || !value.trim()}
-          isLoading={isBusy}
+          isPending={isBusy}
         >
           Create
         </Button>

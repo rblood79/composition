@@ -502,6 +502,52 @@ export function renderText(
     }
   };
 
+  // ADR-314 Phase 3 — S2 `SkeletonText` (`box-decoration-break: clone` · radius `sm`): one rounded
+  //   box per line over its glyphs, no words. An ellipsis line runs to the box edge — the DOM span's
+  //   inline box spans the whole run, clipped by its host.
+  const drawSkeletonLines = (
+    paragraph: Paragraph,
+    drawX: number,
+    drawY: number,
+    skeleton: { color: Float32Array; radius: number },
+  ): void => {
+    const paint = acquirePooledPaint(ck);
+    try {
+      paint.setAntiAlias(true);
+      paint.setColor(skeleton.color);
+      for (const line of paragraph.getLineMetrics()) {
+        let left = Infinity;
+        let top = Infinity;
+        let right = -Infinity;
+        let bottom = -Infinity;
+        for (const box of paragraph.getRectsForRange(
+          line.startIndex,
+          line.endExcludingWhitespaces,
+          ck.RectHeightStyle.Tight,
+          ck.RectWidthStyle.Tight,
+        )) {
+          const [l, t, r, b] = box.rect;
+          left = Math.min(left, l!);
+          top = Math.min(top, t!);
+          right = Math.max(right, r!);
+          bottom = Math.max(bottom, b!);
+        }
+        if (isEllipsis) right = Math.max(right, node.width - drawX);
+        if (!(right > left) || !(bottom > top)) continue;
+        canvas.drawRRect(
+          ck.RRectXY(
+            ck.LTRBRect(drawX + left, drawY + top, drawX + right, drawY + bottom),
+            skeleton.radius,
+            skeleton.radius,
+          ),
+          paint,
+        );
+      }
+    } finally {
+      releasePooledPaint(paint);
+    }
+  };
+
   // The retained hit and the fresh miss draw the same: shadows and text inside the `clipText` box
   // (ellipsis lays out one line). The hit path drew unclipped — a re-recorded fixed-height text
   // overflowed its box where the DOM clips it (audit M9).
@@ -521,6 +567,12 @@ export function renderText(
     }
     // Glyphs where CSS puts them: SkParagraph splits the letter spacing around each glyph.
     const glyphX = drawX + cssLetterSpacingShift(node.text?.letterSpacing);
+    const skeleton = node.text?.skeleton;
+    if (skeleton) {
+      drawSkeletonLines(paragraph, glyphX, drawY, skeleton);
+      if (shouldClip) canvas.restore();
+      return;
+    }
     renderTextShadows(paragraph, glyphX, drawY);
     drawTextWithPresentationColor(paragraph, glyphX, drawY);
     // Decorations from the same origin: SkParagraph's line `left` already holds the leading half

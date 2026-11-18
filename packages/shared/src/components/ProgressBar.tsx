@@ -13,7 +13,6 @@ import {
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset } from "../types";
 import { formatPercent } from "../utils/core/numberUtils";
-import { Skeleton } from "./Skeleton";
 
 // 수동 static-color 오버레이 — 고정 흑백(over background)은 catalog 토큰으로 표현 불가 (Button.css 선례).
 
@@ -55,11 +54,6 @@ export interface ProgressBarProps extends AriaProgressBarProps {
    */
   labelPosition?: "top" | "side";
   /**
-   * Show loading skeleton instead of progress bar
-   * @default false
-   */
-  isLoading?: boolean;
-  /**
    * RSP S2 "over background" — 유색/이미지 배경 위 고정 흑백 스킴.
    * track = static 25% wash / fill·label·value = solid static.
    * @default 'auto'
@@ -81,21 +75,10 @@ export function ProgressBar({
   showValueLabel = true,
   valueLabel,
   labelPosition = "top",
-  isLoading,
   isIndeterminate,
   staticColor,
   ...props
 }: ProgressBarProps) {
-  if (isLoading) {
-    return (
-      <Skeleton
-        componentVariant="progress"
-        size={size}
-        className={props.className as string}
-        aria-label="Loading progress bar..."
-      />
-    );
-  }
   // formatOptions 유효성 보정: currency/unit style에 필수값 없으면 decimal로 fallback
   const safeFormatOptions = (() => {
     if (!formatOptions) return undefined;

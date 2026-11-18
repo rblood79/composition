@@ -1991,16 +1991,6 @@ export function createDefaultImageProps(): BaseElementProps {
   };
 }
 
-export function createDefaultSkeletonProps(): BaseElementProps {
-  return {
-    // CSS base: 로딩 플레이스홀더
-    style: {
-      width: "100%",
-      height: "20px",
-      borderRadius: "6px",
-    },
-  };
-}
 
 // === 통합된 기본 props 생성 함수 ===
 /**
@@ -2258,7 +2248,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Group: createDefaultGroupProps,
   Image: createDefaultImageProps,
   Icon: createDefaultIconProps,
-  Skeleton: createDefaultSkeletonProps,
   // ADR-139 baseline debt 해소 — factory definition parent props 정합
   // 자식 sub-part baseline (2026-06-23 전수 정정 — factory props.style 미러, 단일 부모 컨텍스트)
   SliderOutput: createDefaultSliderOutputProps,

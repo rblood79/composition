@@ -35,8 +35,10 @@ import {
   S2_SPACING_SCALE,
   TYPOGRAPHY_STEPS,
   type TokenRef,
+  COLOR_ALIASES,
 } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { CATALOG_SKELETON_LOOK } from "../../../../../../packages/shared/src/catalog/rule/skeletonLook";
 import { catalogFieldBoxStyle } from "../../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import { evaluateConditionTree } from "../../../../../../packages/shared/src/catalog/rule/conditionTree";
 import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
@@ -1891,5 +1893,52 @@ describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소
       expect(size.borderRadius).toBe("{radius.sm}");
     expect(CATALOG_SIZE_PROPAGATION.ColorSwatchPicker).toEqual(["ColorSwatch"]);
     expect(CATALOG_SIZE_PASS_THROUGH.has("ColorSwatchPickerItem")).toBe(true);
+  });
+});
+
+/**
+ * ADR-314 Phase 3 (HC4) — S2 Skeleton's loading look (`rule/skeletonLook.ts`) against the installed
+ * source: `Skeleton.tsx` `loadingStyle` · `SkeletonText` · `useLoadingAnimation` and
+ * `StatusLight.tsx` `isSkeleton`. The colors are alias rows (tone steps — `colorAliases.ts`).
+ */
+describe("ADR-314 Skeleton loading look = S2 1.8.2", () => {
+  const s2 = (file: string) =>
+    readFileSync(
+      resolve(__dirname, "../../../../node_modules/@react-spectrum/s2/src", file),
+      "utf8",
+    ).replace(/\s+/g, " ");
+
+  it("gradient · size · corner · animation", () => {
+    const source = s2("Skeleton.tsx");
+    const look = CATALOG_SKELETON_LOOK;
+    expect(source).toContain(
+      `linear-gradient(to right, \${color('gray-100')} ${look.stops[0]}%, light-dark(\${color('gray-25')}, \${color('gray-300')}), \${color('gray-100')} ${look.stops[1]}%)`,
+    );
+    expect(source).toContain(`background-size: ${look.backgroundSize};`);
+    expect(source).toContain("* { visibility: hidden; }");
+    expect(source).toContain("boxDecorationBreak: 'clone', borderRadius: 'sm'");
+    expect(look.radius).toBe("{radius.sm}");
+    expect(source).toContain(
+      `[{backgroundPosition: '${look.animation.from}'}, {backgroundPosition: '${look.animation.to}'}], { duration: ${look.animation.durationMs}, iterations: Infinity, easing: '${look.animation.easing}' }`,
+    );
+    expect(source).toContain("animationRef.current.startTime = 0;");
+    expect(s2("StatusLight.tsx")).toContain("isSkeleton: 'gray-200'");
+  });
+
+  it("the colors are the gray steps S2 names", () => {
+    expect(COLOR_ALIASES.skeleton).toMatchObject({ axis: "tone", light: 100, dark: 100 });
+    expect(COLOR_ALIASES["skeleton-highlight"]).toMatchObject({
+      axis: "tone",
+      light: 25,
+      dark: 300,
+    });
+    expect(COLOR_ALIASES["skeleton-status-light"]).toMatchObject({
+      axis: "tone",
+      light: 200,
+      dark: 200,
+    });
+    expect(CATALOG_SKELETON_LOOK.fill).toBe("{color.skeleton}");
+    expect(CATALOG_SKELETON_LOOK.highlight).toBe("{color.skeleton-highlight}");
+    expect(CATALOG_SKELETON_LOOK.statusLight).toBe("{color.skeleton-status-light}");
   });
 });

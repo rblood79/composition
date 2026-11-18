@@ -39,8 +39,6 @@ import { CatalogPopover } from "./CatalogPopover";
 
 import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
 
-import { Skeleton } from "@composition/shared/components/Skeleton";
-
 import { StatusLight } from "@composition/shared/components/StatusLight";
 
 import { Tab, Tabs } from "@composition/shared/components/Tabs";
@@ -103,7 +101,6 @@ export const INTERNAL_RENDERERS: Readonly<
   keyboard: CatalogKeyboard,
   chart: Chart,
   badge: Badge,
-  skeleton: Skeleton,
   statuslight: StatusLight,
   avatar: Avatar,
   progresscircle: ProgressCircle,

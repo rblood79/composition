@@ -1,21 +1,14 @@
 /**
- * ADR-142 family ①(primitives/actions) — Skeleton leaf primitive 의 `PrimitiveBinding`.
- * (ADR-912 단계 5 선행-1: catalog 미등록 leaf 등록 — internal source, generic box 커버.)
+ * Skeleton — S2 `Skeleton` (ADR-314, 2026-11-18): a loading context around real content, not a
+ * placeholder box. `<Skeleton isLoading>{children}</Skeleton>` renders no element of its own
+ * (`@react-spectrum/s2/src/Skeleton.tsx` — `SkeletonContext.Provider`); the wrapped Text · Link ·
+ * Icon · Image · StatusLight · Badge · Meter · Card draw their own loading look (Phase 3).
  *
- * Skeleton 은 RAC controller 가 없는 composition 내부 leaf(loading placeholder).
- * `Skeleton.tsx` 가 `<div role="status" data-variant data-animation data-size>` 로 렌더 —
- * Badge/Icon 에 이은 세 번째 `internal` source leaf.
- *
- * **빌더 배치 노드는 단순 box** (factory `createDefaultSkeletonProps` 가 skeletonVariant 미설정 →
- * spec render.shapes 의 text 분기 roundRect 1개). spec 의 avatar/card/list 분기는
- * `skeletonVariant` 를 요구하는데 빌더에 그 편집 surface 가 없어 dead — generic box+text
- * (buildCatalogShapes)로 Skia 커버 가능, skiaPrimitive escape 불필요(Badge 의 isDot 같은 비-box
- * 모드 없음). 내부 컴포넌트가 자기-로딩 시 쓰는 `<Skeleton componentVariant="...">` 는
- * 빌더 배치 노드의 prop 이 아니라 별도 사용 경로.
- *
- * D1: composition 내부 `<div role="status">` (RAC primitive 아님 — internal source).
- * D2: size 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12); skeletonVariant 는 빌더 미노출).
- * D3: 시각(배경/borderRadius)은 theme/tokens data-* rules. Skia 는 buildCatalogShapes box.
+ * D1: no element — the DOM gives only the children (`domBinding.runtime.ts` `skeleton`); the Canvas
+ *     lays it out as `display: contents` (its rule).
+ * D2: S2 `SkeletonProps` — `isLoading` (+ `children`, the node's own). `dataBinding` is composition's
+ *     data layer (`d2Provenance.ts`). No `size` (S2 · design-data · v3 have none — removed, contract 71).
+ * D3: none of its own — the loading look is each wrapped component's rule.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -27,16 +20,8 @@ export const skeletonBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-      },
-      // S2 1.8.0 Skeleton `isLoading` (2026-10-10): S2 는 isLoading 일 때만 children 을
-      //   skeleton 으로 그린다 — placeholder leaf 인 우리 Skeleton 은 false 면 그릴 것이 없다.
-      //   양 consumer 가 한 술어로 숨긴다 (`presence.ts` catalogSkeletonIdle). 기본 true
-      //   (지금까지의 모양 — S2 는 기본값 없는 필수 prop).
+      // S2 `isLoading` (required there; default true here — a placed Skeleton shows its loading look).
+      //   `false` = the wrapped content as it is (the content is the Skeleton's, not a hidden box).
       isLoading: {
         kind: "boolean",
         label: "Loading",

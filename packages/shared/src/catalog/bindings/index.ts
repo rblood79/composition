@@ -146,6 +146,7 @@ import { listBoxSectionBinding } from "./ListBoxSection.binding";
 import { menuSectionBinding } from "./MenuSection.binding";
 import { gridListSectionBinding } from "./GridListSection.binding";
 import { skeletonBinding } from "./Skeleton.binding";
+import { skeletonCollectionBinding } from "./SkeletonCollection.binding";
 import { sliderBinding } from "./Slider.binding";
 import { sliderOutputBinding } from "./SliderOutput.binding";
 import { sliderFillBinding } from "./SliderFill.binding";
@@ -298,6 +299,7 @@ export * from "./ListBoxSection.binding";
 export * from "./MenuSection.binding";
 export * from "./GridListSection.binding";
 export * from "./Skeleton.binding";
+export * from "./SkeletonCollection.binding";
 export * from "./Slider.binding";
 export * from "./SliderTrack.binding";
 export * from "./SliderTrackBar.binding";
@@ -400,6 +402,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   FileUpload: fileUploadBinding,
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
   Skeleton: skeletonBinding,
+  // ADR-314 Phase 4: S2 SkeletonCollection — a CardView's loading placeholder items (Card template).
+  SkeletonCollection: skeletonCollectionBinding,
   // ADR-912 진로 1번: 상태 표시 dot+label internal leaf (status_light escape, replace)
   StatusLight: statusLightBinding,
   // ADR-912 진로 1번: 사용자 아바타 circle+image internal leaf (avatar escape, replace — image 미generic)

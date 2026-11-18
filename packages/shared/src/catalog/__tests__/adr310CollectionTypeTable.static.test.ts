@@ -29,6 +29,8 @@ const EXCLUDED: Readonly<Record<string, string>> = {
     "S2 SideNav takes `items`, but it has no data binding contract yet — not in ADR-310's scope (reported 2026-11-15)",
   SideNavSection: "SideNav's section (see SideNav)",
   SideNavItem: "SideNav's item (see SideNav)",
+  SkeletonCollection:
+    "ADR-314 — a CardView's loading placeholder around its Card template, not a data list",
 };
 /** Children of a collection that are not its items (headers, separators, row content). */
 const NON_ITEM_CHILDREN = new Set([
@@ -37,6 +39,8 @@ const NON_ITEM_CHILDREN = new Set([
   "SubmenuTrigger",
   "TreeItemContent",
   "Popover",
+  // (ADR-314 — a CardView's loading items: drawn while its collection loads, not one of its rows.)
+  "SkeletonCollection",
 ]);
 
 const rowOf = (type: string) =>

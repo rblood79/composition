@@ -10,7 +10,8 @@
  * 이 결함이었고, 본 테스트는 비위임 internal leaf 전수를 lock 한다.
  *
  * 대상 = INTERNAL_RENDERERS(domRegistry.tsx) 중 DELEGATING 집합
- * (renderFacetDeclaration.ts)에 없는 leaf 6종 (IllustratedMessage 는 2026-10-09 노드 트리 전환으로 제외). delegating renderer 는 wrapper div 가
+ * (renderFacetDeclaration.ts)에 없는 leaf (IllustratedMessage 는 2026-10-09 노드 트리 전환으로, Skeleton 은
+ * 2026-11-18 ADR-314 로 요소 없는 S2 래퍼가 되어 제외 — 공용 `Skeleton.tsx` 의 자리표시 경로도 삭제). delegating renderer 는 wrapper div 가
  * marker 를 보유하므로 대상 아님.
  */
 
@@ -21,7 +22,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Icon } from "../Icon";
 import { Badge } from "../Badge";
 import { ProgressBar } from "../ProgressBar";
-import { Skeleton } from "../Skeleton";
 import { StatusLight } from "../StatusLight";
 import { Avatar } from "../Avatar";
 import { ProgressCircle } from "../ProgressCircle";
@@ -40,17 +40,6 @@ const NON_DELEGATING_INTERNAL_LEAVES: Array<{
 }> = [
   { name: "icon", component: Icon as AnyComponent, props: {} },
   { name: "badge", component: Badge as AnyComponent, props: { children: "b" } },
-  { name: "skeleton", component: Skeleton as AnyComponent, props: {} },
-  {
-    name: "skeleton (componentVariant 분기)",
-    component: Skeleton as AnyComponent,
-    props: { componentVariant: "button" },
-  },
-  {
-    name: "skeleton (multi-line 분기)",
-    component: Skeleton as AnyComponent,
-    props: { lines: 3 },
-  },
   {
     name: "statuslight",
     component: StatusLight as AnyComponent,

@@ -104,6 +104,7 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Separator",
         // ADR-912 단계 5 선행-1: loading placeholder internal leaf
         "Skeleton",
+        "SkeletonCollection",
         "ToggleButton",
         "ToggleButtonGroup",
         "Toolbar",

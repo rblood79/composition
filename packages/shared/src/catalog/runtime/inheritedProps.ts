@@ -19,6 +19,49 @@ export interface CatalogInheritedValues {
   isRequired?: boolean;
   locale?: string;
   colorScheme?: "light" | "dark";
+  /**
+   * ADR-314 — `isDisabled` comes from a loading Skeleton only: S2 `useFormProps` disables just the
+   * components that call it (`CATALOG_SKELETON_DISABLED_TYPES`), not every RAC context that takes the
+   * flag (a Link · Tabs · Disclosure · date field stays enabled).
+   */
+  skeleton?: true;
+}
+
+/**
+ * S2 1.8.2 components that call `useFormProps` (`Form.tsx:45` — 「Skeleton always wins」): Button ·
+ * LinkButton (`Button.tsx:416 · 541`), ActionButton, ToggleButton, Checkbox · CheckboxGroup, Switch,
+ * RadioGroup, TextField · TextArea (`TextField.tsx:152`), NumberField, SearchField, Picker (Select),
+ * ComboBox, Slider · RangeSlider, ColorField.
+ */
+export const CATALOG_SKELETON_DISABLED_TYPES: ReadonlySet<string> = new Set([
+  "Button",
+  "LinkButton",
+  "ActionButton",
+  "ToggleButton",
+  "Checkbox",
+  "CheckboxGroup",
+  "Switch",
+  "RadioGroup",
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "SearchField",
+  "Select",
+  "ComboBox",
+  "Slider",
+  "RangeSlider",
+  "ColorField",
+]);
+
+/** The inherited flags a receiver of `type` takes from `inherited` (a Skeleton's only S2's form set). */
+export function catalogInheritedTakes(
+  type: string,
+  inherited: CatalogInheritedValues,
+): readonly CatalogInheritedFlag[] | undefined {
+  const takes = CATALOG_INHERITED_RECEIVERS.get(type);
+  if (!takes || !inherited.skeleton || CATALOG_SKELETON_DISABLED_TYPES.has(type))
+    return takes;
+  return takes.filter((flag) => flag !== "isDisabled");
 }
 
 const FLAGS: readonly CatalogInheritedFlag[] = [
@@ -32,6 +75,14 @@ export function catalogHostInherited(
   type: string,
   props: Readonly<Record<string, unknown>>,
 ): CatalogInheritedValues | undefined {
+  // ADR-314 Phase 2 — S2 `useFormProps`: a loading Skeleton disables the form components inside it
+  //   (「Skeleton always wins」 — the receivers' OR below), nothing while it is not loading.
+  if (type === "Skeleton")
+    return props.isLoading === true
+      ? { isDisabled: true, skeleton: true }
+      : undefined;
+  // (ADR-314 Phase 4 — S2 `SkeletonCollection`: its content is always a loading Skeleton's.)
+  if (type === "SkeletonCollection") return { isDisabled: true, skeleton: true };
   const keys = CATALOG_INHERITANCE_HOSTS[type];
   if (!keys) return undefined;
   const out: CatalogInheritedValues = {};
@@ -53,7 +104,16 @@ export function catalogMergeInherited(
   outer: CatalogInheritedValues,
   inner: CatalogInheritedValues | undefined,
 ): CatalogInheritedValues {
-  return inner ? { ...outer, ...inner } : outer;
+  if (!inner) return outer;
+  const merged: CatalogInheritedValues = { ...outer, ...inner };
+  // (A disable that is not a Skeleton's — inner, or an outer one a Skeleton repeats — reaches all.)
+  if (
+    merged.skeleton &&
+    (("isDisabled" in inner && !inner.skeleton) ||
+      (outer.isDisabled === true && !outer.skeleton))
+  )
+    delete merged.skeleton;
+  return merged;
 }
 
 /** What a record's ancestors pass down to it (its own declaration not included). */
@@ -74,9 +134,16 @@ export function catalogAncestorInherited(
   ) {
     seen.add(parent.id);
     const own = catalogHostInherited(typeOf(parent), propsOf(parent));
-    if (own)
-      for (const [key, value] of Object.entries(own))
-        if (!(key in out)) (out as Record<string, unknown>)[key] = value;
+    if (!own) continue;
+    // (An outer non-Skeleton disable under a Skeleton's: it reaches every receiver.)
+    if (out.skeleton && own.isDisabled === true && !own.skeleton)
+      delete out.skeleton;
+    for (const [key, value] of Object.entries(own)) {
+      if (key === "skeleton") continue;
+      if (key in out) continue;
+      (out as Record<string, unknown>)[key] = value;
+      if (key === "isDisabled" && own.skeleton) out.skeleton = true;
+    }
   }
   return out;
 }
@@ -87,7 +154,7 @@ export function catalogHostInheritedChanged(
   before: CatalogConsumerNode | undefined,
   after: CatalogConsumerNode,
 ): boolean {
-  if (!CATALOG_INHERITANCE_HOSTS[type]) return false;
+  if (!CATALOG_INHERITANCE_HOSTS[type] && type !== "Skeleton") return false;
   return (
     JSON.stringify(catalogHostInherited(type, before?.props ?? {}) ?? {}) !==
     JSON.stringify(catalogHostInherited(type, after.props) ?? {})
@@ -139,11 +206,14 @@ export function catalogInheritedFlag(
   typeOf: (node: CatalogConsumerNode) => string,
 ): boolean {
   return (
-    catalogInheritedFlags(
-      node.props,
-      CATALOG_INHERITED_RECEIVERS.get(typeOf(node)),
-      catalogAncestorInherited(node, get, typeOf),
-    )[flag] === true
+    (() => {
+      const inherited = catalogAncestorInherited(node, get, typeOf);
+      return catalogInheritedFlags(
+        node.props,
+        catalogInheritedTakes(typeOf(node), inherited),
+        inherited,
+      );
+    })()[flag] === true
   );
 }
 

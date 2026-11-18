@@ -173,9 +173,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      `dataMode` 로 · 값이 없는 역할은 기본 열 이름으로 읽힌다 (같은 문서가 다르게 읽힌다).
  * 70 — ADR-313 Phase 1: 외부 데이터 가져오기 표준 — 필드의 값 표현 `encoding` (Y/N · 숫자 글자 · epoch ·
  *      붙여 쓴 날짜 · 날짜 배열 · 큰 정수) · collection 의 key 필드 `keyField` (필드 id).
+ * 71 — ADR-314 Phase 1: Skeleton 을 S2 래퍼로 — 요소 없는 container (자식을 감싼다) · `size` 삭제
+ *      (사용자 결정 1 — `size` 를 적은 옛 Skeleton 은 검증을 통과하지 못한다).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 70 as const;
+export const LIBRARY_CONTRACT_VERSION = 71 as const;
 
 export type EntryKind =
   | "project"

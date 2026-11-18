@@ -35,6 +35,10 @@ import {
   catalogToastIcon,
 } from "../document/toastChrome";
 import { CatalogWaterfallGrid } from "./waterfall.components";
+import {
+  CatalogSkeletonFill,
+  CatalogSkeletonItem,
+} from "./skeletonCollection.components";
 import { catalogWaterfallLayout } from "./waterfall";
 import { catalogItemLinkProps } from "../document/itemLinks";
 import type {
@@ -517,6 +521,8 @@ export function catalogLoadMoreItem(
   Item: ElementType,
   pages: (collectionId: string) => boolean,
   moreLoadedOf?: (collectionId: string, ownerId: string) => boolean,
+  /** ADR-314 — skeleton items stand for the loading: no spinner (S2 loader height 0). */
+  quiet = false,
 ): ReactElement[] {
   if (!loadMore) return [];
   // (A picker's list shows the picker's collection — `Select · ComboBox > Popover > ListBox`, S2
@@ -531,7 +537,7 @@ export function catalogLoadMoreItem(
     moreLoadedOf?.(collectionId, owner.sourceId) ??
     (owner.rowCount ?? 0) > (owner.rowsShown ?? 0);
   if (!moreLoaded && !pages(collectionId)) return [];
-  const isLoading = owner.props.loadingState === "loadingMore";
+  const isLoading = !quiet && owner.props.loadingState === "loadingMore";
   return [
     createElement(
       Item,
@@ -3896,48 +3902,100 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const selectionMode = str(props.selectionMode || "none");
       const selected = runtimeState(input, "selectedKeys") as string[];
       const waterfall = catalogWaterfallLayout(input.node);
-      return createElement(
-        (waterfall ? CatalogWaterfallGrid : AriaGridList) as ElementType,
-        {
-          ...(waterfall ? { as: AriaGridList } : {}),
-          ...marker(input),
-          // (A static render: a changed authored selection remounts RAC's uncontrolled state — as
-          // a TagGroup's. A running Preview: controlled — ADR-280.)
-          key: stateKey(
-            input,
-            `${input.node.id}:${selectionMode}:${[...selected].join(",")}`,
-          ),
-          className: "react-aria-CardView",
-          "aria-label": str(props["aria-label"] || "Card view"),
-          layout: "grid",
-          "data-size": str(props.size || "M"),
-          "data-variant": str(props.variant || "primary"),
-          selectionMode,
-          // S2 CardView `selectionStyle` (2026-11-18): highlight = RAC `replace`, checkbox = `toggle`
-          //   (each Card's selection Checkbox — `catalogSelectionCheckboxHidden`).
-          selectionBehavior:
-            props.selectionStyle === "highlight" ? "replace" : "toggle",
-          ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
-          disabledKeys: cards
-            .filter((card) => card.props.isDisabled === true)
-            .map(key),
-          style: {
-            display: "flex",
-            flexWrap: "wrap",
-            ...input.style,
-          },
-        },
-        ...catalogRenderRuns(input, cards, GridListLoadMoreItem),
-        // (ADR-310 「더 보기」: S2 CardView `onLoadMore` — RAC's GridList end sentinel.)
-        ...catalogLoadMoreItem(
-          input.root,
-          input.node,
-          input.loadMore,
-          GridListLoadMoreItem,
-          (id) => input.pages?.(id) ?? false,
-          (id, ownerId) => input.moreLoaded?.(id, ownerId) ?? false,
-        ),
+      // ADR-314 Phase 4 — S2 `SkeletonCollection`: while the CardView's collection loads (its
+      //   `loadingState` — the owner's query or its runs', `resolver.ts` `LOADING_STATE_TYPES`), its
+      //   Card template is drawn as `skeleton` items after the cards (S2 order: cards · skeletons ·
+      //   sentinel). `loading` and `loadingMore` alike; none otherwise.
+      const template = children(input)
+        .filter(
+          (child) =>
+            catalogTypeName(input.root, child) === "SkeletonCollection",
+        )
+        .flatMap((collection) =>
+          collection.children
+            .map((id) => input.root.domInputs.get(id))
+            .filter(
+              (card): card is CatalogConsumerNode =>
+                !!card && catalogTypeName(input.root, card) === "Card",
+            ),
+        )[0];
+      const loading =
+        props.loadingState === "loading" ||
+        props.loadingState === "loadingMore";
+      const skeletons = loading && template !== undefined;
+      const source = input.root.runtime.graph.getEntry(
+        input.node.sourceId as never,
       );
+      // (A virtualized grid: RAC's `GridLayout` repeats the one node — a waterfall is not virtualized.)
+      const virtual =
+        source?.kind === "node" &&
+        source.rowDisplay?.mode === "virtual" &&
+        !waterfall;
+      const grid = (count: number) =>
+        createElement(
+          (waterfall ? CatalogWaterfallGrid : AriaGridList) as ElementType,
+          {
+            ...(waterfall ? { as: AriaGridList } : {}),
+            ...marker(input),
+            // (A static render: a changed authored selection remounts RAC's uncontrolled state — as
+            // a TagGroup's. A running Preview: controlled — ADR-280.)
+            key: stateKey(
+              input,
+              `${input.node.id}:${selectionMode}:${[...selected].join(",")}`,
+            ),
+            className: "react-aria-CardView",
+            "aria-label": str(props["aria-label"] || "Card view"),
+            layout: "grid",
+            "data-size": str(props.size || "M"),
+            "data-variant": str(props.variant || "primary"),
+            selectionMode,
+            // S2 CardView `selectionStyle` (2026-11-18): highlight = RAC `replace`, checkbox = `toggle`
+            //   (each Card's selection Checkbox — `catalogSelectionCheckboxHidden`).
+            selectionBehavior:
+              props.selectionStyle === "highlight" ? "replace" : "toggle",
+            ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
+            disabledKeys: cards
+              .filter((card) => card.props.isDisabled === true)
+              .map(key),
+            style: {
+              display: "flex",
+              flexWrap: "wrap",
+              ...input.style,
+            },
+          },
+          ...catalogRenderRuns(input, cards, GridListLoadMoreItem),
+          ...Array.from({ length: skeletons ? count : 0 }, (_, index) =>
+            createElement(
+              CatalogSkeletonItem,
+              {
+                key: `__skeleton-${index}`,
+                id: `__skeleton-${index}`,
+                measure: index === 0 && !virtual,
+                children: input.renderChild(template!.id),
+              },
+            ),
+          ),
+          // (ADR-310 「더 보기」: S2 CardView `onLoadMore` — RAC's GridList end sentinel. With skeleton
+          //  items its spinner is not shown — S2's layouts give the loader no height then.)
+          ...catalogLoadMoreItem(
+            input.root,
+            input.node,
+            input.loadMore,
+            GridListLoadMoreItem,
+            (id) => input.pages?.(id) ?? false,
+            (id, ownerId) => input.moreLoaded?.(id, ownerId) ?? false,
+            skeletons,
+          ),
+        );
+      if (!skeletons || virtual) return grid(1);
+      return createElement(CatalogSkeletonFill, {
+        key: `${input.node.id}:skeletons`,
+        render: grid,
+        existing: cards.length,
+        waterfall,
+        fixedHeight:
+          input.style.height !== undefined && input.style.height !== "auto",
+      });
     },
   },
   pagination: {

@@ -1,3 +1,7 @@
+import {
+  catalogSkeletonHidden,
+  catalogSkeletonParticipant,
+} from "./skeletonContext";
 import type { CatalogActionBadgeContent } from "../rule/actionBadge";
 import { catalogStaticScheme } from "./staticBackdrop";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
@@ -72,6 +76,7 @@ import {
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import {
   catalogAncestorInherited,
+  catalogInheritedTakes,
   catalogInheritedFlag,
 } from "./inheritedProps";
 import { catalogNavLinkDerived, catalogNavLinks } from "./navRoute";
@@ -1164,7 +1169,6 @@ export function catalogHiddenAtRest(
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
   if (catalogStepperHidden(node, get, typeOf)) return true;
   if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
-  if (catalogSkeletonIdle(node, typeOf)) return true;
   // ADR-257 Phase 3: a highlight-selection Table has no selection checkbox column (S2).
   if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
   // A Tree · GridList · CardView item's selection Checkbox only for checkbox selection (S2).
@@ -2417,18 +2421,6 @@ export function catalogToastText(
 }
 
 /**
- * S2 1.8.0 Skeleton `isLoading` (2026-10-10): the placeholder is only there while loading — S2
- * draws the skeleton only when `isLoading`; our Skeleton is the placeholder itself. The Canvas
- * (`catalogHiddenAtRest`) and the DOM (`renderNode`) read this one predicate.
- */
-export function catalogSkeletonIdle(
-  node: CatalogConsumerNode,
-  typeOf: CatalogTypeOf,
-): boolean {
-  return typeOf(node) === "Skeleton" && node.props.isLoading === false;
-}
-
-/**
  * S2 1.8.0 NumberField `hideStepper` (2026-10-10): its increment · decrement Buttons are not
  * there (S2 renders no stepper). The nearest NumberField owner decides — the buttons sit in its
  * control Group. The Canvas (`catalogHiddenAtRest`) and the DOM (`renderNode`) read this one
@@ -2624,6 +2616,35 @@ export function catalogDerivedProps(
   // (ADR-300 user decision 1: the shown page's route — a SideNav without `selectedRoute` marks it.)
   shownRoute?: CatalogSideNavShownRoute,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
+  const derived = derivedPropsBeforeSkeleton(
+    node,
+    get,
+    typeOf,
+    locale,
+    shownRoute,
+  );
+  // ADR-314 Phase 2 — S2 `SkeletonContext`: a participant inside a loading Skeleton (the context not
+  // cut between — `skeletonContext.ts`) draws its loading look (its rule's `isSkeleton` branch, Phase 3).
+  // Phase 3 — below a loading wrapped participant (a Badge's words …) it is not drawn (S2
+  //   `visibility: hidden`; the layout keeps its box).
+  const participant = catalogSkeletonParticipant(node, get, typeOf);
+  const hidden = catalogSkeletonHidden(node, get, typeOf);
+  return participant || hidden
+    ? {
+        ...derived,
+        ...(participant ? { isSkeleton: true } : {}),
+        ...(hidden ? { _skeletonHidden: true } : {}),
+      }
+    : derived;
+}
+
+function derivedPropsBeforeSkeleton(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  locale?: string,
+  shownRoute?: CatalogSideNavShownRoute,
+): Readonly<Record<string, string | number | boolean>> | undefined {
   const ownControl = ownDerivedProps(node, get, typeOf, locale);
   const toggleGroup = ["Radio", "Checkbox"].includes(typeOf(node))
     ? catalogItemGroup(node, get, typeOf)
@@ -2720,9 +2741,12 @@ export function catalogDerivedProps(
   // ADR-281 Decision 3 — a page root's · frame's isDisabled · isReadOnly reach the components whose
   // RAC context takes them (RAC `Provider` on the DOM side). An own `false` does not re-enable: a
   // record cannot tell an authored `false` from its origin's declared default (`catalogInheritedFlags`).
-  const takes = CATALOG_INHERITED_RECEIVERS.get(typeOf(node));
-  const fromHosts = takes
+  const fromHosts = CATALOG_INHERITED_RECEIVERS.has(typeOf(node))
     ? catalogAncestorInherited(node, get, typeOf)
+    : undefined;
+  // (A loading Skeleton's disable reaches S2's `useFormProps` components only — ADR-314.)
+  const takes = fromHosts
+    ? catalogInheritedTakes(typeOf(node), fromHosts)
     : undefined;
   const hostFlag = (flag: "isDisabled" | "isReadOnly") =>
     !!takes?.includes(flag) && fromHosts?.[flag] === true;

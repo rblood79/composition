@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-314 — Skeleton 을 S2 래퍼로 (Implemented, Breaking · contract 71)] - 2026-11-18
+
+ADR-314 Implemented (G6 — 사용자 확인, 샘플 프로젝트 「Skeleton 샘플」). [본문](adr/completed/314-skeleton-s2-wrapper.md)
+
+### Added
+
+- **SkeletonCollection** (Phase 4, S2) — CardView 를 고른 채 팔레트의 skeleton collection 을 넣으면 그 안에 Card 템플릿 하나를 가진 노드가 들어간다. Preview · Publish 에서 CardView 의 데이터를 불러오는 동안 (`loading` — 처음 · `loadingMore` — 「더 보기」) 그 템플릿이 회색 로딩 모양의 카드로 기존 카드 뒤에 반복되고, 응답 · 오류 뒤에는 사라진다. 반복 수는 S2 (RAC `GridLayout` · `WaterfallLayout`) 와 같은 규칙 — 높이를 정한 CardView 는 화면을 채우고, 내용 높이 CardView 는 지금 행 끝 + 한 행 (waterfall 은 모든 열에 하나). Canvas 는 템플릿 1 개를 로딩 모양으로 보인다 (편집 대상).
+
+### Removed
+
+- **수동 Skeleton 스타일 · 컴포넌트별 자리표시** (Phase 5, 사용자 결정 4) — 수동 `Skeleton.css` (1,189 줄) · 옛 `Skeleton` 컴포넌트 (`components/Skeleton.tsx`) 와 ProgressBar · Link · Slider · Checkbox · Switch · Badge · Tabs · Tree · Breadcrumbs · ListBox · Table 의 `isLoading` 자리표시 분기 (catalog 문서에서는 닿지 않던 경로). 로딩 모양은 Skeleton 래퍼 하나가 낸다.
+  - 위치: `packages/shared/src/components/{ProgressBar,Link,Slider,Checkbox,Switch,Badge,Tabs,Tree,Breadcrumbs,ListBox,Table.components}.tsx` · `components/list.ts` · `index.ts` · `styles/index.css` · `apps/builder/src/types/builder/unified.types.ts` (`createDefaultSkeletonProps`). 번들 Phase 0 대비 Builder +818 · Preview +150 B gzip (CSS −2,034) — ADR-201 상한 안. 로딩 요소 200 개의 Preview frame p95 = 대조군과 같음 (1x · 4x).
+
+### Fixed
+
+- **CardView 「더 보기」 스피너** — 다음 쪽을 불러오는 동안에도 스피너가 없던 것 (CardView 가 collection 의 로딩 상태를 받지 않았다). 자리 항목이 있으면 S2 처럼 스피너 대신 자리 항목이 보인다.
+
+### Changed
+
+- **Builder 의 로그인 · 대시보드 버튼 로딩** (Phase 5) — 처리 중 버튼이 회색 자리표시 상자 대신 RAC `isPending` (진행 원 · 누르기 막음) 으로 표시된다.
+- **로딩 모양** (Phase 3) — 로딩 중인 Skeleton 안의 글자 (Text · Link · Meter 값 · StatusLight 글자) 는 줄마다 둥근 회색 상자, Icon · Badge · Meter 막대 · Image · Avatar 는 회색 상자 (안의 내용은 숨김), StatusLight 점은 옅은 회색이 된다 (S2 값 — `gray-100` · 밝은 띠 `gray-25` / dark `gray-300` · 점 `gray-200`). Preview · Publish 에서는 S2 처럼 밝은 띠가 2 초마다 지나가고 (페이지의 모든 로딩 요소가 함께), 움직임 줄이기 설정이면 움직이지 않는다. Canvas 는 같은 모양의 정지 화면이다. 모양이 붙어도 위치 · 크기는 그대로다.
+- **로딩 중 비활성 범위 수정** (Phase 2 수정) — S2 처럼 입력 필드 · Button · Checkbox 등 form 컴포넌트만 비활성이 되고, Link · Tabs · Disclosure · 날짜 · 색 조작기는 비활성이 되지 않는다 (전에는 Canvas 에서 Link 가 흐려졌다).
+  - 위치 (Phase 4): `bindings/SkeletonCollection.binding.ts` · `CardView.binding.ts` (`loadingState`) · `componentRulesTable.ts` · `componentCatalog.ts` · `domain/componentTraits.ts` · `reusableOriginLibrary.ts` (`component-skeletoncollection`) · `resolver.ts` (`LOADING_STATE_TYPES`) · `runtime/skeletonCollection.components.tsx` · `skeletonRepeat.ts` · `delegatedDom.runtime.ts` (`cardview`) · `canvasBinding.ts`
+  - 위치: `catalog/rule/skeletonLook.ts` (값 한 곳) · `generated/CatalogSkeleton.css` · `styles/index.css` · `colorAliases.ts` · `tokenResolver.ts` (`--skeleton*`) · `runtime/skeletonAnimation.ts` · `skeletonContext.ts` · `inheritedProps.ts` · `providerContexts.ts` · `domBinding.components.tsx` · `domBinding.runtime.ts` · `components/Icon.tsx` · `canvasBinding.ts` · `nodeRendererText.ts`
+- **로딩 중인 Skeleton 안의 내용** (Phase 2) — Text · Link · Icon · Badge · Card 등이 로딩 상태를 받아 Preview · Publish 에서 `inert` (클릭 · 포커스 안 됨) 가 되고, 안의 입력 필드 · Button 은 비활성이 된다 (S2). Button 안의 글자 · 아이콘은 로딩 대상이 아니다. 화면 모양 (회색 줄 상자) 은 Phase 3.
+- **Skeleton 은 이제 내용을 감싸는 래퍼다** (S2 `Skeleton`) — 자식 없는 회색 자리표시 상자 (`div role="status"`) 가 아니라 실제 내용을 넣고 감싸는 요소 없는 노드다. Preview · Publish 에는 Skeleton 요소가 없고 감싼 내용이 Skeleton 부모의 항목으로 놓인다 (Canvas 도 같은 위치). 팔레트에서 놓으면 S2 문서 예시처럼 표본 내용 (Image + 제목 · 본문 Text) 을 감싼 채 들어오고 (사용자 결정 2), 고른 채 다른 컴포넌트를 넣으면 Skeleton 안에 들어간다. `Loading` 을 끄면 노드를 숨기지 않고 내용이 보통 모양으로 남는다. 감싼 내용의 로딩 모양 (gradient · 글자 줄 상자) 은 Phase 3 에서 붙는다 — 지금은 감싸기만 한다.
+- **빈 Skeleton** 은 Canvas 에만 편집용 점선 자리 (높이 48) 가 있어 클릭해 고를 수 있다 (사용자 결정 3). Preview · Publish 에는 아무것도 없다.
+- **Breaking — contract 71**: Skeleton 의 `size` 를 지웠다 (S2 · design-data · v3 어디에도 없음). 옛 contract 의 프로젝트는 열리지 않는다 (사용자 결정 1 — 변환 없음).
+  - 위치: `bindings/Skeleton.binding.ts` · `componentRulesTable.ts` (Skeleton — `display: contents`) · `nestingRules.ts` · `presence.ts` (`catalogSkeletonIdle` 삭제) · `domBinding.runtime.ts` · `domRegistry.runtime.ts` · `elementless.ts` (`catalogEmptySkeleton`) · `compositionRoot.ts` · `canvasBinding.ts` · `ruleShapes.ts` · `reusableOriginLibrary.ts` (`component-skeleton` — 루트 slot `Content`) · `componentCatalog.ts` · `document/types.ts` (contract 71). ADR-314 Phase 0 인벤토리 (shared 자기 로딩 경로는 catalog 문서에서 닿지 않음 · 번들 기준선) 는 [breakdown §7](adr/design/314-skeleton-s2-wrapper-breakdown.md).
+
 ## [S2 정렬 — 미대조 9종 구조 · 결정 대기 반영 (기본값 · Button form 속성)] - 2026-11-18
 
 ### Changed

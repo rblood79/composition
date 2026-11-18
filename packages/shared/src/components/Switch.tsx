@@ -13,7 +13,6 @@ import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ComponentSizeSubset } from "../types";
-import { Skeleton } from "./Skeleton";
 
 
 export interface SwitchProps extends Omit<AriaSwitchProps, "children"> {
@@ -28,11 +27,6 @@ export interface SwitchProps extends Omit<AriaSwitchProps, "children"> {
    * @default 'M'
    */
   size?: ComponentSizeSubset;
-  /**
-   * Show loading skeleton instead of switch
-   * @default false
-   */
-  isLoading?: boolean;
 }
 
 /**
@@ -45,20 +39,10 @@ export function Switch({
   children,
   isEmphasized = false,
   size = "M",
-  isLoading,
   ...props
 }: SwitchProps) {
   const { focusProps, isFocusVisible } = useFocusRing();
 
-  if (isLoading) {
-    return (
-      <Skeleton
-        componentVariant="switch"
-        size={size}
-        aria-label="Loading switch..."
-      />
-    );
-  }
 
   return (
     <AriaSwitch

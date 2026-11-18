@@ -185,7 +185,15 @@ describe("ADR-302 G2 — 두 축", () => {
           "popover-outline",
           "collection-item-focus",
           "gray-subtle",
+          "skeleton",
+          "skeleton-status-light",
         ],
+      },
+      // ADR-314 — S2 Skeleton 의 밝은 띠 `light-dark(gray-25, gray-300)`: light 는 층 단, dark 는 면 단
+      //   (gray-100 면 위에서 밝아지는 쪽 — dark 사다리는 명도가 뒤집혀 있다).
+      skeletonHighlight: {
+        range: [25, 300],
+        roles: ["skeleton-highlight"],
       },
       content: {
         range: [600, 1000],

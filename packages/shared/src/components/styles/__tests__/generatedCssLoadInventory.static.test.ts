@@ -28,7 +28,6 @@ const REPO_ROOT = resolve(STYLES_DIR, "../../../../..");
 export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   // B. 수동 CSS 가 같은 `.react-aria-X` 를 담당 (base.css/forms.css 또는 컴포넌트 모듈 import)
   // (FieldError: 3ca03f661 이 index.css 로 로드 — 미로드 목록에서 뺐다.)
-  Skeleton: "B 수동 — Skeleton.css (Skeleton.tsx import)",
   Breadcrumb: "B 수동 — Breadcrumbs.css (Breadcrumbs.tsx import)",
   // C. 컴포넌트가 resolveComponentRule 로 catalog 를 런타임 인라인 소비 (생성 CSS 는 설계상 dead)
   Avatar: "C 런타임 인라인 (Avatar.tsx)",
@@ -183,17 +182,21 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   //   SheetBackdrop · SheetContent · SideNav · SideNavHeader · SideNavItem · SideNavItemLink · SideNavPanel ·
   //   SideNavSection · Token · TokenField · TokenInput) +22 · index +22, DisclosureGroup → Accordion 개명
   //   (`2f39ffc5d`) ±0, FieldError index 로드 (`3ca03f661`) index +1 · 미로드 −1.
-  it("인벤토리 집계 — 생성 131 · index 111 · 모듈 0 · 미로드 20 (새 컴포넌트 sheet 22 · FieldError 로드 · ADR-297 상태 sheet 6 · IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
+  // 2026-11-18 — S2 정렬 묶음 (미로드 목록은 HEAD 에서도 19 — 집계 20 과 어긋나 있었다 · DisclosureHeader · SliderTrackBar · SliderLabelContainer · SliderFieldInput 등 —
+  //   커밋 때 집계를 고치지 않아 HEAD `eed6e7c93` 이 이미 135 ≠ 131 이었다) + ADR-314: CatalogSkeleton (index 로드,
+  //   `rule/skeletonLook.ts`) +1 · 옛 Skeleton 생성 sheet 삭제 (rule 이 `skipCSSGeneration` — 생성기가 더 내지 않음,
+  //   미로드 B · 수동 `Skeleton.css` 도 삭제, 사용자 결정 4) −1 · 미로드 −1.
+  it("인벤토리 집계 — 생성 135 · index 117 · 모듈 0 · 미로드 18 (새 컴포넌트 sheet 22 · FieldError 로드 · ADR-297 상태 sheet 6 · IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
     //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
     // (ADR-259 Phase 3: + FieldLabel — a field's label row, loaded.)
-    expect(generated.length).toBe(131);
-    expect(indexImported.size).toBe(111);
+    expect(generated.length).toBe(135);
+    expect(indexImported.size).toBe(117);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(20);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(18);
   });
 });

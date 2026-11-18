@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 70,
+    libraryContractVersion: 71,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -576,6 +576,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + DisclosureHeader (2026-11-18 — S2's title row around a Disclosure's Heading).
     // + SliderTrackBar (2026-11-18 — S2 `upperTrack`, the bar holding a Slider's fill).
     // + SliderLabelContainer · SliderFieldInput (2026-11-18 — S2 Slider `labelContainer` · `fieldInput()`).
-    expect(types.length).toBe(181);
+    // + SkeletonCollection (2026-11-18 — ADR-314 Phase 4, S2's loading items in a CardView).
+    expect(types.length).toBe(182);
   }, 120_000);
 });

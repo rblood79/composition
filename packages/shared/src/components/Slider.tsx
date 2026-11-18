@@ -10,7 +10,6 @@ import {
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset } from "../types";
 import { formatNumber } from "../utils/core/numberUtils";
-import { Skeleton } from "./Skeleton";
 
 export interface SliderProps<T> extends AriaSliderProps<T> {
   label?: string;
@@ -54,11 +53,6 @@ export interface SliderProps<T> extends AriaSliderProps<T> {
    * @default 'top'
    */
   labelPosition?: "top" | "side";
-  /**
-   * Show loading skeleton instead of slider
-   * @default false
-   */
-  isLoading?: boolean;
 }
 
 /**
@@ -76,19 +70,8 @@ export function Slider<T extends number | number[]>({
   customFormatter,
   showValueLabel = true,
   labelPosition = "top",
-  isLoading,
   ...props
 }: SliderProps<T>) {
-  if (isLoading) {
-    return (
-      <Skeleton
-        componentVariant="slider"
-        size={size}
-        className={props.className as string}
-        aria-label="Loading slider..."
-      />
-    );
-  }
 
   const sliderClassName = composeRenderProps(props.className, (className) =>
     className ? `react-aria-Slider ${className}` : "react-aria-Slider",

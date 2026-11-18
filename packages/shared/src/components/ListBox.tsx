@@ -45,7 +45,6 @@ import {
   CollectionLoadingState,
   CollectionErrorDisplay,
 } from "./CollectionErrorState";
-import { Skeleton } from "./Skeleton";
 
 import { useComponentStrings } from "../i18n";
 
@@ -87,17 +86,6 @@ interface ExtendedListBoxProps<T extends object> extends Omit<
    */
   filterFields?: readonly (keyof T)[];
   /**
-   * Show loading skeleton instead of list
-   * Overrides internal loading state
-   * @default false
-   */
-  isLoading?: boolean;
-  /**
-   * Number of skeleton items to show when loading
-   * @default 5
-   */
-  skeletonCount?: number;
-  /**
    * ADR-159 P3: 행 텍스트 `{field}` 템플릿 소스 (renderer 가 slot text > template item
    * props precedence 로 이미 판정한 문자열). 내부 기본/가상화 렌더가 shared resolver 로
    * 보간 — 토큰 없으면 compile null → 기존 label 휴리스틱 (BC).
@@ -123,8 +111,6 @@ export function ListBox<T extends object>({
   filter,
   filterText,
   filterFields = DEFAULT_COLLECTION_FILTER_FIELDS as readonly (keyof T)[],
-  isLoading: externalLoading,
-  skeletonCount = 5,
   rowTemplateSources,
   ...props
 }: ExtendedListBoxProps<T>) {
@@ -320,21 +306,6 @@ export function ListBox<T extends object>({
   // Early Returns (모든 Hooks 호출 후)
   // ================================================================
 
-  // External isLoading prop - shows skeleton immediately
-  if (externalLoading) {
-    return (
-      <div
-        className={`react-aria-ListBox ${variant}`}
-        role="listbox"
-        aria-busy="true"
-        aria-label="Loading list..."
-      >
-        {Array.from({ length: skeletonCount }).map((_, i) => (
-          <Skeleton key={i} componentVariant="list-item" size="M" index={i} />
-        ))}
-      </div>
-    );
-  }
 
   // ========== 가상화 렌더링 ==========
   if (enableVirtualization && hasDataBinding && virtualItems.length > 0) {

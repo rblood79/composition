@@ -53,7 +53,6 @@ import { generateId } from "../utils";
 
 import { Button } from "./list";
 
-import { Skeleton } from "./Skeleton";
 import {
   buildTableRowIdResolver,
   ColumnDefinition,
@@ -187,8 +186,6 @@ export default React.memo(function Table<T extends { id: string | number }>(
     enableResize = true,
     onColumnsDetected, // 자동 감지된 컬럼 콜백
     onItemsPerPageChange, // 페이지당 항목 수 변경 콜백
-    isLoading: externalLoading,
-    skeletonRowCount = 5,
   } = props;
 
   // ADR-152: raw useCollectionData → shared 정규화 (useResolvedCollectionItems, 다른 9종과
@@ -842,73 +839,6 @@ export default React.memo(function Table<T extends { id: string | number }>(
     Object.entries(props).filter(([key]) => key.startsWith("data-")),
   );
   // ---------- 렌더 ----------
-  if (externalLoading) {
-    const skeletonColumnCount = Math.max(columns.length, 3);
-    return (
-      <div
-        {...dataAttributes}
-        className={getTableClassName(variant, size, className)}
-        style={style}
-        data-variant={variant}
-        data-size={size}
-        role="grid"
-        aria-busy="true"
-        aria-label="Loading table..."
-      >
-        <div
-          className="react-aria-TableVirtualizer"
-          style={{ height: calculatedHeight, overflow: "hidden" }}
-        >
-          <table style={{ display: "grid", width: "100%" }}>
-            <thead
-              className="react-aria-TableHeader"
-              style={{ display: "grid" }}
-            >
-              <tr
-                className="react-aria-Row"
-                style={{ display: "flex", width: "100%" }}
-              >
-                {Array.from({ length: skeletonColumnCount }).map((_, i) => (
-                  <th
-                    key={i}
-                    className="react-aria-Column"
-                    style={{ flex: 1, padding: "8px 12px" }}
-                  >
-                    <Skeleton variant="text" width="60%" height={16} />
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="react-aria-TableBody" style={{ display: "grid" }}>
-              {Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
-                <tr
-                  key={rowIndex}
-                  className="react-aria-Row"
-                  style={{ display: "flex", width: "100%" }}
-                >
-                  {Array.from({ length: skeletonColumnCount }).map(
-                    (_, colIndex) => (
-                      <td
-                        key={colIndex}
-                        className="react-aria-Cell"
-                        style={{ flex: 1, padding: "8px 12px" }}
-                      >
-                        <Skeleton
-                          componentVariant="table-cell"
-                          size={size}
-                          index={rowIndex}
-                        />
-                      </td>
-                    ),
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>

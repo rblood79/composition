@@ -323,7 +323,7 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "ProgressCircle",
   "DataTable",
   "Separator",
-  "Skeleton",
+  // (Skeleton — ADR-314: an S2 context around content, no longer a placeholder leaf.)
   "Input",
   // (DateInput — ADR-256 Phase 9: it holds its segment template.)
   "Illustration",
@@ -482,7 +482,6 @@ export const HTML_PHRASING_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Image",
   "Badge",
   "Avatar",
-  "Skeleton",
   "Button",
   "ToggleButton",
   "SegmentedControlItem",

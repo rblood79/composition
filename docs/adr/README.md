@@ -1,5 +1,21 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
+> **2026-11-18 ADR-314 Implemented** (G6 — 사용자 「확인했다」, 샘플 프로젝트 「Skeleton 샘플」: Skeleton 기본 · `Skeleton > Card` Loading 켬 · 끔 · 데이터 연결한 Skeleton · CardView + SkeletonCollection — Builder Canvas · Publish). Phase 0 ~ 5 요약: Skeleton = S2 래퍼 (요소 없는 container · contract 71) · 감싼 내용이 스스로 로딩 모양 (S2 `loadingStyle` 한 곳 → 생성 CSS · Canvas 정지 프레임 · Web Animations) · form 17 종 비활성 · `inert` · `SkeletonCollection` (CardView 로딩 자리 항목) · 수동 CSS · 자기 로딩 분기 삭제 · 번들 Builder +818 / Preview +150 B · frame p95 비율 1.00. 본문을 `completed/` 로 옮기고 열림 · 순서 표에서 뺐다. 열림 4 (In Progress 1 = 313 · Proposed 3 — 311 · 304 · 245 보류). `components/Skeleton.tsx` (import 0) 도 사용자 승인으로 삭제.
+
+> **2026-11-18 ADR-314 Phase 5 종결 (G6 사용자 확인 대기)**: 수동 `Skeleton.css` (1,189 줄) · 컴포넌트 11 곳의 자기 로딩 분기 · Skeleton 내보내기 삭제 (사용자 결정 4), Builder chrome Button 두 곳은 RAC `isPending`. 번들 Phase 0 대비 Builder +818 · Preview +150 B gzip (ADR-201 Δ 상한 안 — 결정 5). frame — 로딩 요소 203 · 같은 문서 끔 / 켬 교대 3 쌍 p95 비율 1x 1.00 · 4x 1.00. Canvas 정지 (켬 2 초 렌더 카운터 0). 회귀 새 실패 0. 남은 것: G6 (사용자 확인) 뒤 Implemented · `components/Skeleton.tsx` (import 0) 삭제 승인.
+
+> **2026-11-18 ADR-314 Phase 4 종결**: `SkeletonCollection` (CardView 안 Card 템플릿) — CardView 가 `loadingState` 를 받고 (owner 조회 · 반복 run), `loading` · `loadingMore` 동안 템플릿이 RAC `skeleton` 컬렉션 노드로 반복된다 (가상 grid 는 RAC `GridLayout`, 그 밖은 그려진 grid 를 잰 계산 — 설치본 `GridLayout` · `WaterfallLayout` 대조 일치). CardView sentinel 스피너 결함 닫힘. RED 7/7 · 회귀 새 실패 0 · live (Playwright — 요청 보류 Publish 의 loading · loadingMore · 응답 뒤 0). 다음 Phase 5 = 정리 (수동 CSS 삭제 · 번들 · frame · 종결 live).
+
+> **2026-11-18 ADR-314 Phase 3 종결**: 로딩 모양 — S2 `loadingStyle` 값 한 곳 (`rule/skeletonLook.ts`) 을 생성 `CatalogSkeleton.css` 와 Canvas 정지 프레임이 읽는다 (글자 줄 상자 · 감싼 요소 상자 · StatusLight 점), Preview 움직임 = S2 Web Animations 동기. form 비활성을 S2 `useFormProps` 17 종으로 좁힘 (Phase 2 는 Link 까지 비활성). 사용자 결정 4 (수동 CSS 삭제) · 5 (번들 상한 안) 확정. RED 7/7 · 회귀 새 실패 0 · live (Canvas · Publish 움직임 · 한 줄 · 여러 줄 대조). 다음 Phase 4 = `SkeletonCollection`.
+
+> **2026-11-18 ADR-314 Phase 2 종결**: Skeleton 의 로딩 여부가 감싼 내용에 닿는다 — 참여 9 종 (Text · Link · Icon · Image · Avatar · StatusLight · Badge · MeterTrack · Card) 파생 `isSkeleton` · DOM `data-skeleton` · S2 의 `inert`, Button 내용 · 감싸개 안쪽에서 끊김, form 컴포넌트 비활성 (ADR-281 상속 host). RED 5/5 · live (Publish DOM). 다음 Phase 3 = 로딩 모양.
+
+> **2026-11-18 ADR-314 Phase 1 종결** (contract 71, Breaking): Skeleton = 요소 없는 container (`display: contents`) · `size` 삭제 · 놓으면 표본 내용 (Image + 제목 · 본문 Text) 을 감싼 원본 (루트 slot `Content`) · 빈 Skeleton 은 Canvas 만 점선 자리 · `Loading` 끔 = 내용 유지. 사용자 결정 1 · 2 · 3 = 권고안. 원복 RED 3/3 · 회귀 새 실패 0 · live (놓기 · Publish DOM 요소 0 · Loading · 빈 자리 · Undo · 고른 채 넣기).
+
+> **2026-11-18 ADR-314 Accepted · Phase 0 종결** (`/execute-adr 314`): 참여 표 줄 번호 차이 0 · shared 12 파일의 자기 로딩은 catalog 문서에서 닿지 않음 (catalog 밖 Builder chrome Button 2 곳) · **옛 `size` 는 accepts 에서 지우면 `PROP_NOT_ACCEPTED` 로 프로젝트가 안 열림** (본문 「빈 래퍼로 열림」 정정 — 사용자 결정 1) · 인용 테스트 15 (Phase 1 고침 4) · CardView 경로 = flex wrap · `CatalogWaterfallGrid` · 가상 grid (RAC `GridLayout` 이 skeleton 처리) · 번들 기준선 B 1,580,802 / P 171,660. 열림 5 (In Progress 2 = 313 · 314 · Proposed 3 — 311 · 304 · 245 보류).
+
+> **2026-11-18 ADR-314 Proposed 추가** (사용자 `/create-adr` — 같은 날 S2 체크리스트 §5 대조에서 「S2 래퍼로 전환 (별도 ADR)」): Skeleton 을 S2 래퍼로. 실측 (main `eed6e7c93` · S2 1.8.2): S2 `Skeleton` 은 요소 없는 context 래퍼 (prop `children` · `isLoading`) 이고 로딩 모양은 감싼 Text · Link · Icon · Image · StatusLight · Badge · Meter · Card 가 스스로 낸다 (form 은 비활성 · Button 내용은 제외) · 우리는 자식 없는 `div role="status"` 상자 (`size` prop · 수동 CSS 1,189 줄 · 생성 CSS 미로드) · `SkeletonCollection` 대응 없음. 채택 C — 요소 없는 container (`display: contents`) + resolver 의 읽는 시점 전달 + rule 조건 `isSkeleton` 하나 (Canvas 정지 프레임 · Preview 는 S2 움직임) + `SkeletonCollection`. 문서 변환 없음 (옛 자리표시 상자는 빈 래퍼). 사용자 결정 5 (옛 문서 · 기본 내용 · 빈 상태 표시 · 수동 CSS 삭제 · 번들). 열림 **5** (In Progress 1 = 313 · Proposed 4 — 314 · 311 · 304 · 245 보류). 번호가 붙은 ADR 파일 실측 **346** (루트 5 + `completed/` 341). [본문](completed/314-skeleton-s2-wrapper.md) · [breakdown](design/314-skeleton-s2-wrapper-breakdown.md)
+>
 > **2026-11-17 ADR-312 Implemented** (G5 사용자 확인 — 36 종 전부를 Data 패널 표 「Sales」 에 연결한 live 결과 뒤 「Implemented 승격」): Chart 데이터 포맷 표준 — 역할 표 하나 (`roles.ts`) · 입력 형태 선언 (`dataMode` group · columns · binned · ranked · pair) · 행 정책 (합산 · 행마다 · 표본, 순위는 첫 행 + 경고) · 시리즈 표시 표 공통 (`seriesItems.ts`) · 날짜 해석 한 곳 · 연결 때 역할 맞춤 (형 검사 · 상속 역할 해제) · AI catalog 형태 설명 · contract 69 (Breaking — `closeField` → `metric`). 36 종 연결 live 에서 결함 4 수리 (산점도 X 형 · 맞춤의 형 검사 · 상속 역할 해제 · columns 시리즈 이름의 `#id`). 사용자 결정 5 건 모두 답함 (번들 Builder +4,462 B 「초과분 수용」 · HC6 「표준대로 두고 수용」). 본문을 `completed/` 로 옮기고 열림 · 순서 표에서 뺐다.
 >
 > **2026-11-17 ADR-313 Phase 5 — G5 사용자 확인 대기**: JSON Schema 내보내기 (격자 Export — 복사 · 파일, 독립 구현 zod 검사 · RED 4/4) · 규칙 문서 · live (스키마 복사 · Publish 항목 key = 큰 정수 key · 외부 요청 0). 사용자 확인 뒤 Implemented.
@@ -778,7 +794,7 @@
 
 > **참고**: ADR-029에 동일 번호의 [Text Edit Overlay UX 개선](completed/029-text-edit-overlay-improvements.md) 문서가 존재하며, ADR-027의 후속 개선으로 Phase 1-2 모두 구현 완료 (Accepted).
 
-### 권장 착수 순서 — 2026-11-17 갱신
+### 권장 착수 순서 — 2026-11-18 갱신
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날) → 225(09-19, Phase 0~~4 / G0~~G6 종결 같은 날) → 224(09-19, G5 소유자 확인으로 종결) → 226(09-19, Phase 0~~3 / G0~~G4 종결 같은 날 + ADR-221 잔존 gesture session 결함 수리) → 228(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 3 수리: chartType canonical diff · scene origin props · ref resolve O(n²); codex round 3 같은 날 — Button 안 Button · origin 재정렬 보존 · parity 56 pair Skia 픽셀 · scene.build 계측) → 229(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 9 + 사용자 지적 3 수리).
 >
@@ -795,7 +811,7 @@
 
 ---
 
-## 완료 ADR (327)
+## 완료 ADR (332)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -1132,6 +1148,7 @@
 | [309](completed/309-date-value-authoring.md) | 날짜 · 시각 값을 문서가 저장한다 — 날짜 계열 6종 (DateField · TimeField · DatePicker · DateRangePicker · Calendar · RangeCalendar) 의 `value` (ISO 글자 · 범위 `{start, end}` · Calendar 다중 목록) · 읽는 함수 하나 (`runtime/dateValueRead.ts` — 시작 값 고르기 · granularity 맞추기 · Calendar 모드별 양방향) · Canvas 값 글자 · 선택 원 · 범위 띠 · 보이는 달 · Design 패널 날짜 칸 (Value · Min · Max · Placeholder) · Code 보기 `parseDate('…')` 왕복 · 규칙 날짜 인자 · 계약 번호 유지 | Implemented 2026-11-12 |
 | [306](completed/306-chart-36-types-recharts-size-removal.md) | Recharts 를 유지하는 Chart 36 종 확장과 공개 size 제거 — 새 chartType 27 (family 5: kpi · category · distribution · matrix · network) + 기존 9 항목 보강 · 공유 scene 을 Canvas (Skia) 와 Recharts scene host 가 같이 그림 · family 계산 · 표본은 지연 로드 chunk · paint 역할 · 공개 S/M/L 삭제 (contract 68) · 공통 상호작용 (강조 · 주석 · 손익 색 · 범위 선택 · 확대 · 동기화) · Builder 상한 1,435,351 · 후속: 36 종 데이터 포맷 표준화 (새 ADR) | Implemented 2026-11-16 |
 | [312](completed/312-chart-data-format-standard.md) | Chart 데이터 포맷 표준 — 역할 표 하나 (`roles.ts` 36 항목 형태 · 파생 · 공통 검증 · 필드 사용처) · 입력 형태 `dataMode` (group · columns · binned · ranked · pair) · 행 정책 공용 묶기 (`rowPolicy.ts`) · 시리즈 표시 표 공통 (`seriesItems.ts`) · 날짜 해석 한 곳 (`chartTimeParser`) · 생성 때 기본 열 이름 · 연결 때 역할 맞춤 (결과 schema · 형 검사) · AI catalog 형태 설명 · contract 69 (Breaking) · 36 종 Data 패널 표 연결 live | Implemented 2026-11-17 |
+| [314](completed/314-skeleton-s2-wrapper.md) | Skeleton 을 S2 래퍼로 — 요소 없는 로딩 context (`display: contents` · `isLoading` · `dataBinding`, `size` 삭제 contract 71) · 부모 사슬 판정 `skeletonContext.ts` · 감싼 내용이 스스로 로딩 모양 (S2 `loadingStyle` 한 곳 `rule/skeletonLook.ts` → 생성 `CatalogSkeleton.css` · Canvas 정지 프레임 · WAAPI 2 초) · form 17 종 비활성 · `inert` · `SkeletonCollection` (CardView `loading` · `loadingMore` 자리 항목, RAC `skeleton` 노드) · 수동 `Skeleton.css` · 자기 로딩 분기 삭제 | Implemented 2026-11-18 |
 | [310](completed/310-collection-item-repeat-marker.md) | 항목 추가 · 데이터 연결 공통 모델 — 연결한 목록은 `repeat` 표시 항목 하나를 데이터 행마다 반복하고 나머지는 고정 항목 (RAC 「Combining collections」) · Tabs 항목 = 노드 (Tab + 짝 TabPanel, contract 67) · bound Table = Row 템플릿 · 항목 · section 자체 데이터와 구간별 source · Code 보기 렌더 함수 · 표시 방식 더 보기 · 페이지 (Pagination 연결 · 쪽 목록별 조회 단위) · 가상 스크롤 (RAC `Virtualizer`, Canvas 와 1 px — 사용자 결정 8 로 frame 은 순수 RAC 대비) | Implemented 2026-11-15 |
 | [308](completed/308-group-owned-selection-item-ids.md) | 선택은 그룹이 저장한다 — 그룹의 `selectedKey(s)` · `value` · `expandedKeys` 가 정본, 항목은 key (`id` · Radio · Checkbox `value`) 만 · 판정 함수 하나 (`runtime/groupSelection.ts`) 를 Canvas · DOM · dispatcher 가 읽음 · Design 패널 Value 구획의 그룹 칸 (단일 드롭다운 · 다중 · 펼침 체크 목록) + 항목 「Item ID」 · 그룹 안 항목 Do 는 그룹 값의 key 넣기 · 빼기 · key 변경 · 항목 삭제가 그룹 값 · TabPanel 짝을 같은 명령에서 고침 · 항목 `isSelected` 계약 삭제 · 계약 64 · Code 보기 왕복 | Implemented 2026-11-12 |
 

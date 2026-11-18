@@ -9,9 +9,10 @@ import { openAdr280Preview } from "./support/adr280Harness";
  * `useAsyncList`'s `loadingState` beside its `items` (the reference passes both from one list —
  * `<TableView loadingState={list.loadingState}>` · `<Skeleton isLoading={list.isLoading}>`): a
  * component bound to a collection gets the collection's load state from the session. A Table
- * shows S2's progress circle in its empty body while loading; a bound Skeleton is there only while
- * loading. The Canvas loads nothing: the authored value stays. Measurement: jsdom + a `fetch`
- * stub the test answers.
+ * shows S2's progress circle in its empty body while loading; a bound Skeleton's `isLoading` is true
+ * only while loading (ADR-314: the Skeleton has no element — its content stays, the record's
+ * `isLoading` is what changes). The Canvas loads nothing: the authored value stays. Measurement:
+ * jsdom + a `fetch` stub the test answers.
  */
 afterEach(() => {
   vi.restoreAllMocks();
@@ -92,16 +93,24 @@ async function boundPreview() {
   h.flush();
   const progress = () =>
     h.element(table)?.querySelectorAll('[role="progressbar"]').length ?? 0;
-  const skeletonShown = () => !!h.element(skeleton);
-  return { ...h, skeleton, table, progress, skeletonShown };
+  // (ADR-314: the Skeleton draws no element — its Preview record's `isLoading` is the state, and its
+  //  wrapped content stays in the DOM either way.)
+  const skeletonShown = () =>
+    [...h.session.root!.domInputs.values()].find(
+      (record) => record.sourceId === skeleton,
+    )?.props.isLoading === true;
+  const contentShown = () =>
+    h.view.container.textContent?.includes("Placeholder title") ?? false;
+  return { ...h, skeleton, table, progress, skeletonShown, contentShown };
 }
 
 describe("loadingState — a bound component follows its collection's load", () => {
-  it("while a load runs the Table's empty body shows the progress circle and the Skeleton is there; after it, neither", async () => {
+  it("while a load runs the Table's empty body shows the progress circle and the Skeleton is loading; after it, neither", async () => {
     const answers = pendingServer();
     const h = await boundPreview();
-    // (Idle: nothing loads — a bound Skeleton is not there, the Table shows no circle.)
+    // (Idle: nothing loads — a bound Skeleton is not loading, the Table shows no circle.)
     expect(h.skeletonShown()).toBe(false);
+    expect(h.contentShown()).toBe(true);
     expect(h.progress()).toBe(0);
     let done: Promise<void> | undefined;
     act(() => {
@@ -109,6 +118,7 @@ describe("loadingState — a bound component follows its collection's load", () 
     });
     await settle();
     expect(h.skeletonShown()).toBe(true);
+    expect(h.contentShown()).toBe(true);
     expect(h.progress()).toBe(1);
     await act(async () => {
       answers[0]!([{ id: "u1", name: "Kim" }]);

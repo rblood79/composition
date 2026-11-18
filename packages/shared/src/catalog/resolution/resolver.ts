@@ -396,6 +396,9 @@ const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
   "Select",
   "ComboBox",
   "Skeleton",
+  // ADR-314 Phase 4 — S2 CardView `loadingState`: its SkeletonCollection's items and its end
+  //   sentinel's spinner (`delegatedDom.runtime.ts` `cardview`).
+  "CardView",
 ]);
 /** Bound collections whose rows the Builder samples when they grow with them (ADR-157). */
 const SAMPLED_ROW_OWNERS: ReadonlySet<string> = new Set([

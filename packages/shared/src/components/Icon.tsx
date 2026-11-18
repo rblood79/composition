@@ -25,6 +25,8 @@ export interface IconComponentProps {
   style?: React.CSSProperties;
   className?: string;
   children?: React.ReactNode;
+  /** ADR-314 — the wrapper element (S2 `SkeletonWrapper`'s loading animation). */
+  ref?: React.Ref<HTMLElement>;
   [key: string]: unknown;
 }
 
@@ -35,6 +37,7 @@ export const Icon = memo(function Icon({
   strokeWidth = 2,
   style,
   className,
+  ref,
   ...rest
 }: IconComponentProps) {
   // fontSize 오버라이드 시 iconSize = fontSize
@@ -67,7 +70,9 @@ export const Icon = memo(function Icon({
       key.startsWith("aria-") ||
       key === "role" ||
       key === "id" ||
-      key === "slot"
+      key === "slot" ||
+      // (ADR-314 — S2 `SkeletonWrapper` marks a loading Icon `inert`.)
+      key === "inert"
     ) {
       dataProps[key] = value;
     }
@@ -75,6 +80,7 @@ export const Icon = memo(function Icon({
 
   return (
     <Element
+      ref={ref as React.Ref<HTMLDivElement>}
       style={style}
       className={`react-aria-Icon${className ? ` ${className}` : ""}`}
       {...dataProps}

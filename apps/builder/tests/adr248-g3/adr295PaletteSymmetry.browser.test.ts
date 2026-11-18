@@ -451,9 +451,8 @@ const KNOWN_ASYMMETRIC = new Set([
   "Separator@S",
   "Separator@M",
   "Separator@L",
-  "Skeleton@S",
-  "Skeleton@M",
-  "Skeleton@L",
+  // (ADR-314: S2 Skeleton has no element — like Autocomplete, the DOM has no box to measure.)
+  "Skeleton",
   "Image@M",
   "Section@S",
   "Section@M",

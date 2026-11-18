@@ -9,6 +9,7 @@ import { format } from "prettier";
 
 import { lightColors, darkColors } from "../src/primitives/colors";
 import { catalogStateStylesheet } from "../../shared/src/catalog/runtime/stateStyles";
+import { catalogSkeletonStylesheet } from "../../shared/src/catalog/rule/skeletonLook";
 import { generateCSS, isArchetypeId } from "../src/renderers/CSSGenerator";
 import {
   ruleLengthCss,
@@ -475,6 +476,13 @@ async function generateAllCSS(
     if ((await fs.readFile(statePath, "utf8")) !== stateCss)
       throw new Error("CATALOG_CSS_STALE:CatalogStates");
   } else await fs.writeFile(statePath, stateCss, "utf8");
+  // ADR-314 — S2 Skeleton 로딩 모양 (`catalog/rule/skeletonLook.ts`).
+  const skeletonPath = path.join(outputDir, "CatalogSkeleton.css");
+  const skeletonCss = catalogSkeletonStylesheet();
+  if (process.argv.includes("--check")) {
+    if ((await fs.readFile(skeletonPath, "utf8")) !== skeletonCss)
+      throw new Error("CATALOG_CSS_STALE:CatalogSkeleton");
+  } else await fs.writeFile(skeletonPath, skeletonCss, "utf8");
   for (const { name, css } of stateOnlySheets()) {
     const filePath = path.join(outputDir, `${name}.css`);
     if (process.argv.includes("--check")) {

@@ -1,3 +1,10 @@
+import { CATALOG_SKELETON_INERT } from "./skeletonContext";
+import {
+  CATALOG_SKELETON_DOT_ATTR,
+  CATALOG_SKELETON_LOOK_ATTR,
+  CATALOG_SKELETON_LOOK_OF,
+} from "../rule/skeletonLook";
+import { catalogSkeletonRef, catalogSkeletonText } from "./skeletonAnimation";
 import { useCatalogDomInput } from "./domBinding.runtime";
 
 import {
@@ -12,6 +19,7 @@ import {
   type CSSProperties,
   type ElementType,
   type ReactElement,
+  type ReactNode,
 } from "react";
 
 import { catalogRacSlotConsumer, racSlotProps } from "./racSlot";
@@ -176,6 +184,8 @@ import {
   CatalogInheritedContext,
   catalogHostInherited,
   catalogInheritedFlags,
+  catalogInheritedTakes,
+  CATALOG_SKELETON_DISABLED_TYPES,
   catalogMergeInherited,
   type CatalogInheritedValues,
 } from "./inheritedProps";
@@ -466,7 +476,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
   // ADR-281 Decision 3 — the flags a page root · frame passes down (ORed into the receiver's props).
   const inheritedProps = catalogInheritedFlags(
     overridden.props,
-    CATALOG_INHERITED_RECEIVERS.get(catalogTypeName(root, overridden)),
+    catalogInheritedTakes(catalogTypeName(root, overridden), outerInherited),
     outerInherited,
   );
   const shown =
@@ -487,14 +497,20 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           record,
           withRuntime(
             withCatalogStateStyles(
-              renderNode(
+              // (ADR-314: on the node's own element — inside a value gate · slot scope, which are
+              //  components that would not pass the marks on.)
+              catalogSkeletonMarked(
                 root,
                 record,
-                context,
-                parentInput,
-                partParent,
-                watchedParent,
-                styleOverride,
+                renderNode(
+                  root,
+                  record,
+                  context,
+                  parentInput,
+                  partParent,
+                  watchedParent,
+                  styleOverride,
+                ),
               ),
               catalogDomStateStyles(record),
             ),
@@ -618,6 +634,45 @@ export const CatalogDomNode = memo(function CatalogDomNode({
 });
 
 /**
+ * ADR-314 Phase 2 — S2 `SkeletonContext` on the DOM: a participant inside a loading Skeleton carries
+ * `data-skeleton` and S2's `inert` where S2 sets it (Text · Link · the wrapped Icon · Badge · Meter
+ * track · Card). The record's derived `isSkeleton` is the Canvas's same reading (`skeletonContext.ts`).
+ * Phase 3 — its loading look (`rule/skeletonLook.ts`, the generated `CatalogSkeleton.css`): a text
+ * participant's words in S2's `SkeletonText` span (line boxes), a wrapped one marked on itself, a
+ * StatusLight's dot · words — each look element running the shared animation (`skeletonAnimation.ts`).
+ */
+function catalogSkeletonMarked(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  element: ReactElement | null,
+): ReactElement | null {
+  if (!element || node.derivedProps?.isSkeleton !== true) return element;
+  const type = catalogTypeName(root, node);
+  const look = CATALOG_SKELETON_LOOK_OF[type];
+  const props = element.props as { children?: ReactNode; ref?: Ref<Element> };
+  // (A text participant whose element holds its words — a Meter's value, a StatusLight's label —
+  //  gets the span here; the Text binding wraps its own words, `domBinding.runtime.ts` `text`.)
+  const words =
+    (look === "text" || look === "statusLight") &&
+    (typeof props.children === "string" || typeof props.children === "number");
+  return cloneElement(
+    element,
+    {
+      "data-skeleton": "true",
+      ...(CATALOG_SKELETON_INERT.has(type) ? { inert: true } : {}),
+      ...(look === "box" || look === "icon"
+        ? {
+            [CATALOG_SKELETON_LOOK_ATTR]: look,
+            ref: catalogSkeletonRef(props.ref),
+          }
+        : {}),
+      ...(look === "statusLight" ? { [CATALOG_SKELETON_DOT_ATTR]: "true" } : {}),
+    } as Record<string, unknown>,
+    ...(words ? [catalogSkeletonText(props.children)] : []),
+  );
+}
+
+/**
  * ADR-281 Decision 3 — a page root's · frame's descendants under RAC's own context: `Provider`
  * fills the contexts that take each inherited flag (`providerContexts.ts`), `I18nProvider` the
  * locale; RAC's rules decide inside (a component's own value and an inner context win).
@@ -633,7 +688,10 @@ function catalogInheritanceProvider(
       { locale: values.locale },
       inner,
     );
-  const provided = catalogProviderValues(values);
+  const provided = catalogProviderValues(
+    values,
+    CATALOG_SKELETON_DISABLED_TYPES,
+  );
   if (provided.length)
     inner = createElement(
       RAC.Provider as ElementType,

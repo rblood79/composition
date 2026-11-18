@@ -1,3 +1,4 @@
+import { catalogSkeletonText } from "./skeletonAnimation";
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
 import { catalogToggleItemHelpRefs } from "../rule/toggleLayout";
 import { catalogEffectiveStaticColor } from "./staticBackdrop";
@@ -268,7 +269,6 @@ import {
   catalogItemRemoveGlyphItem,
   catalogProgressValueHidden,
   catalogDismissibleDialogOf,
-  catalogSkeletonIdle,
   catalogStateConditions,
   catalogStateOwner,
   catalogStateValue,
@@ -1125,6 +1125,12 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                 node.visual.textDecoration,
               ) ??
               String(node.derivedProps?.children ?? node.props.children ?? "");
+            // ADR-314 Phase 3 — S2 `useSkeletonText`: in a loading Skeleton the words sit in the
+            //   look's inline span (`skeletonAnimation.ts`).
+            const words =
+              node.derivedProps?.isSkeleton === true
+                ? catalogSkeletonText(text)
+                : text;
             return detachedSlot(resolution)
               ? createElement(
                   "span",
@@ -1141,14 +1147,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                       ? { slot: node.props.slot }
                       : {}),
                   },
-                  text,
+                  words,
                 )
               : createElement(
                   Text,
                   { ...props, ...racSlotProps(resolution) } as Parameters<
                     typeof Text
                   >[0],
-                  text,
+                  words,
                 );
           },
         }),
@@ -1427,6 +1433,12 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         ),
   // ADR-256 Phase 6g: RAC `Autocomplete` — no element of its own; it gives the text field inside
   // its input props and the collection beside it the filter · virtual focus.
+  // ADR-314: S2 `Skeleton` — a loading context with no element of its own; only its children.
+  // ADR-314 Phase 4: a CardView draws its SkeletonCollection's template as loading items itself
+  //   (`delegatedDom.runtime.ts` `cardview`); anywhere else it is nothing.
+  skeletoncollection: (node) => createElement(Fragment, { key: node.id }),
+  skeleton: (node, _style, children) =>
+    createElement(Fragment, { key: node.id }, ...children),
   autocomplete: (node, _style, children, context) => {
     // (Its list filtered on the server — `inputValue={list.filterText}
     // onInputChange={list.setFilterText}`, no client filter.)
@@ -3594,7 +3606,19 @@ function ruleDom(
       context: "Link",
       authored: node.props.slot,
       render: (resolution) =>
-        cloneElement(element, { slot: undefined, ...racSlotProps(resolution) }),
+        cloneElement(
+          element,
+          { slot: undefined, ...racSlotProps(resolution) },
+          // ADR-314 Phase 3 — S2 Link `useSkeletonText`: in a loading Skeleton the words sit in
+          //   the look's inline span.
+          ...(node.derivedProps?.isSkeleton === true
+            ? [
+                catalogSkeletonText(
+                  (element.props as { children?: ReactNode }).children,
+                ),
+              ]
+            : []),
+        ),
     });
   // Preview `hostOrphanRadio` / `hostOrphanCollectionItem`: RAC items need their host.
   if (lower === "radio" && collection !== "radiogroup")
@@ -4359,9 +4383,6 @@ export function renderNode(
       "TagGroup",
     ) === false
   )
-    return null;
-  // (A Skeleton after loading — `isLoading: false`, the Canvas's predicate, S2.)
-  if (catalogSkeletonIdle(node, (entry) => catalogTypeName(root, entry)))
     return null;
   // (A NumberField's stepper Buttons while `hideStepper` — the Canvas's predicate, S2.)
   if (

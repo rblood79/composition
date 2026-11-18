@@ -146,6 +146,12 @@ export interface SkiaNodeData {
       color?: Float32Array;
       fontSize?: number;
     };
+    /**
+     * ADR-314 Phase 3 — S2 `SkeletonText`: the words are not drawn; each laid-out line's box (the
+     * glyphs' tight rects — the inline span's content area) is a rounded rect in `color` (the still
+     * frame of the loading look, `rule/skeletonLook.ts`). The paragraph stays the words' (HC3).
+     */
+    skeleton?: { color: Float32Array; radius: number };
   };
   /**
    * ADR-270 Phase 2: the image's own size (`naturalWidth/Height` — object-fit reads it) is apart from

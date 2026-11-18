@@ -104,13 +104,25 @@ export const CATALOG_INHERITED_RECEIVERS: ReadonlyMap<
 
 /** The `Provider` values for the inherited flags in force (only the contexts that take one). */
 export function catalogProviderValues(
-  flags: Readonly<Partial<Record<CatalogInheritedFlag, boolean>>>,
+  flags: Readonly<Partial<Record<CatalogInheritedFlag, boolean>>> & {
+    /** ADR-314 — `isDisabled` is a loading Skeleton's: only `skeletonTakes` types take it. */
+    readonly skeleton?: true;
+  },
+  skeletonTakes?: ReadonlySet<string>,
 ): [Context<unknown>, Record<string, boolean>][] {
   const out: [Context<unknown>, Record<string, boolean>][] = [];
-  for (const { context, props } of RAC_PROVIDER_CHECK) {
+  for (const { type, context, props } of RAC_PROVIDER_CHECK) {
     const value: Record<string, boolean> = {};
     for (const prop of props)
-      if (flags[prop] !== undefined) value[prop] = flags[prop]!;
+      if (
+        flags[prop] !== undefined &&
+        !(
+          prop === "isDisabled" &&
+          flags.skeleton &&
+          !skeletonTakes?.has(type)
+        )
+      )
+        value[prop] = flags[prop]!;
     if (Object.keys(value).length) out.push([context, value]);
   }
   return out;

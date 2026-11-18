@@ -238,10 +238,16 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "file upload",
     icon: "CloudUpload",
   }),
-  // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
+  // ADR-314: S2 Skeleton — an element-less loading context around content (origin: sample content).
   primitiveEntry("Skeleton", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "skeleton",
+    icon: "Loader",
+  }),
+  // ADR-314 Phase 4: S2 SkeletonCollection — a CardView's loading items (origin: a Card template).
+  primitiveEntry("SkeletonCollection", "primitives", FAMILY_1_CUTOVER, {
+    category: "collections",
+    label: "skeleton collection",
     icon: "Loader",
   }),
   // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source).
@@ -1526,6 +1532,7 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
  *
  * 사용자 결정 ② "origin 범위 = RAC 컴포넌트만": `PALETTE_ORDER` 66 − 내용/레이아웃 primitive 8
  * (Text · Icon · Separator · Skeleton · Image · frame · Section · Slot) − IllustratedMessage
+ * (Skeleton 은 ADR-314 결정 2 로 2026-11-18 origin 을 받았다 — 표본 내용을 감싼 래퍼)
  * (148 Phase 3 부적격) = 56 = 아래 52 + 위 손 seed 4 (Toolbar · Form · InlineAlert · Card — IconButton 은 ADR-276 에서 Button 에 통합).
  * builder `adr228Inventory.test.ts` 가 이 목록 ↔ PALETTE_ORDER − 제외 9 − 기존 5 의 일치를 강제한다.
  *
@@ -1548,6 +1555,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "LabeledValue",
   "StatusLight",
   "ProgressCircle",
+  // ADR-314 결정 2 (2026-11-18): S2 Skeleton wraps sample content — Image + title + body Text.
+  "Skeleton",
   // 295 후속 C9 — S2 Toast (InlineAlert 뒤에 놓인다 — `PALETTE_ORDER`).
   "Toast",
   // layout / navigation
@@ -1559,6 +1568,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Accordion",
   "Disclosure",
   "CardView",
+  // ADR-314 Phase 4: S2 SkeletonCollection — goes into a CardView (a Card template inside).
+  "SkeletonCollection",
   // buttons
   "Button",
   "LinkButton",

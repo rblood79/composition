@@ -8,7 +8,6 @@ import {
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ButtonVariant, ComponentSize, StaticColor } from "../types";
-import { Skeleton } from "./Skeleton";
 import { ProgressCircle } from "./ProgressCircle";
 import {
   CATALOG_BUTTON_PENDING_DELAY_MS,
@@ -63,10 +62,6 @@ export interface ButtonProps extends RACButtonProps {
   size?: ComponentSize;
   /** Static color for colored/image backgrounds (S2) — fixed black/white scheme */
   staticColor?: StaticColor;
-  /** Show loading skeleton instead of content */
-  isLoading?: boolean;
-  /** Accessible label shown during loading */
-  loadingLabel?: string;
 }
 
 /**
@@ -77,8 +72,6 @@ export interface ButtonProps extends RACButtonProps {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(props, ref) {
     const {
-      isLoading,
-      loadingLabel = "Loading...",
       children,
       variant = "primary",
       fillStyle = "fill",
@@ -110,15 +103,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...mergeProps(restProps, focusProps)}
         type={props.type}
-        isDisabled={isLoading || props.isDisabled}
+        isDisabled={props.isDisabled}
         data-picker={picker ? "true" : undefined}
         data-variant={variant}
         data-fill-style={fillStyle}
         data-size={size}
         data-static-color={staticColor}
         data-focus-visible={isFocusVisible || undefined}
-        data-loading={isLoading || undefined}
-        aria-busy={isLoading || undefined}
         className={composeRenderProps(className, (cls) => {
           // A quiet field's box (a quiet Select's trigger, `data-quiet`): the field sheet draws it
           // (no fill, an underline) — the filled `.button-base` paint (a later layer) stays off.
@@ -130,16 +121,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         })}
         style={pendingIndicator ? { position: "relative", ...style } : style}
       >
-        {isLoading ? (
-          <>
-            <Skeleton
-              componentVariant="button"
-              size={size}
-              aria-label={loadingLabel}
-            />
-            <span className="sr-only">{loadingLabel}</span>
-          </>
-        ) : pendingIndicator ? (
+        {pendingIndicator ? (
           // (RAC children may be a render function — called with RAC's render props, as RAC does.)
           (renderProps: PendingRenderProps) => (
             <>

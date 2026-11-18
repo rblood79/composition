@@ -1,4 +1,5 @@
 import type { PrimitiveBinding } from "../types";
+import { LOADING_STATE_PROP } from "./loadingStateProps";
 
 /**
  * CardView — Card 그리드/워터폴 컬렉션 레이아웃 컨테이너 (Card 자식 묶음). composition 자체 추상
@@ -33,6 +34,9 @@ export const cardViewBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 CardView `loadingState` (ADR-314 Phase 4) — derived from its collection's load: its
+      //   SkeletonCollection's items while `loading` · `loadingMore`, the end sentinel's state.
+      loadingState: LOADING_STATE_PROP,
       // ADR-310 Phase 1: the S2 `items` collection (rows repeat the item template).
       dataBinding: {
         kind: "binding",

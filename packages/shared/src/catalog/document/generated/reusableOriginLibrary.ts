@@ -269,6 +269,30 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-toast"
   },
   {
+    "id": "lib:definition:origin-component-skeleton",
+    "name": "Skeleton",
+    "mode": "composite",
+    "accepts": {
+      "isLoading": "boolean"
+    },
+    "defaults": {
+      "isLoading": true
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-skeleton"
+  },
+  {
+    "id": "lib:definition:origin-component-skeletoncollection",
+    "name": "SkeletonCollection",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-skeletoncollection"
+  },
+  {
     "id": "lib:definition:origin-component-illustratedmessage",
     "name": "IllustratedMessage",
     "mode": "composite",
@@ -2876,6 +2900,109 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "layout": {
       "marginLeft": "auto"
     }
+  },
+  {
+    "id": "lib:template:component-skeletoncollection",
+    "definitionId": "lib:definition:type-SkeletonCollection",
+    "slot": {
+      "name": "Card",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-skeletoncollection__card"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-skeletoncollection__card",
+    "definitionId": "lib:definition:origin-component-card",
+    "children": [],
+    "props": {
+      "id": "skeleton-card"
+    },
+    "visual": {
+      "width": "100%"
+    }
+  },
+  {
+    "id": "lib:template:component-skeleton",
+    "definitionId": "lib:definition:type-Skeleton",
+    "slot": {
+      "name": "Content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-skeleton__row"
+    ],
+    "props": {
+      "isLoading": "{isLoading}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-skeleton__row",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-skeleton__image",
+      "lib:template:component-skeleton__text"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "rowGap": "16px",
+      "columnGap": "16px"
+    }
+  },
+  {
+    "id": "lib:template:component-skeleton__image",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "visual": {
+      "width": 160,
+      "height": 120
+    },
+    "layout": {
+      "flexShrink": "0"
+    }
+  },
+  {
+    "id": "lib:template:component-skeleton__text",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-skeleton__title",
+      "lib:template:component-skeleton__body"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column",
+      "flexGrow": "1",
+      "rowGap": "16px",
+      "columnGap": "16px"
+    }
+  },
+  {
+    "id": "lib:template:component-skeleton__title",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "Placeholder title",
+      "size": "XL"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-skeleton__body",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "This is placeholder content approximating the length of the real content to avoid layout shifting when the real content appears."
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-inline-alert__description",
