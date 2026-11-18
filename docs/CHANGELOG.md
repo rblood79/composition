@@ -26,6 +26,9 @@ ADR-314 Implemented (G6 — 사용자 확인, 샘플 프로젝트 「Skeleton �
 
 ### Fixed
 
+- **CardView 자리 항목 개수 · 멈춤** (후속, ultrareview) — 로딩 중인 CardView 의 카드 크기 · 간격 · 열 수 · CardView 크기를 바꾸면 자리 항목 개수가 옛 값에 남아 빈칸이 생기거나 넘치던 것, 그리고 높이를 정한 CardView 의 템플릿 높이 · 행 간격이 모두 0 이면 Preview · Publish 탭이 멈추던 것 (grid 개수 계산이 끝나지 않았다 — waterfall 은 자리 항목 10,000 개). 이제 그릴 때마다 다시 재고, 높이를 늘리지 못하는 행은 그 행 끝 (waterfall 은 열마다 하나) 에서 멈춘다.
+  - **Why**: 정리 커밋 (`9b9d30cab`) 이 측정 effect 를 측정 함수가 바뀔 때만 돌게 했는데, 그 함수는 `existing` · `waterfall` · `fixedHeight` 만 읽어 모양 편집이 재측정을 일으키지 않았다. grid 개수는 행이 높이를 늘리지 않으면 「viewport 가 남음」 이 늘 참이었다 (RAC `GridLayout` 은 추정 높이가 있어 0 이 없다).
+  - 위치: `catalog/runtime/skeletonCollection.components.tsx` (`SkeletonMeasure`) · `skeletonRepeat.ts` · 회귀 `apps/builder/src/preview/catalog/__tests__/adr314SkeletonRepeatRemeasure.test.tsx`
 - **CardView 「더 보기」 스피너** — 다음 쪽을 불러오는 동안에도 스피너가 없던 것 (CardView 가 collection 의 로딩 상태를 받지 않았다). 자리 항목이 있으면 S2 처럼 스피너 대신 자리 항목이 보인다.
 
 ### Changed

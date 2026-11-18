@@ -47,7 +47,10 @@ export function catalogGridSkeletonCount(
     y += input.itemHeight + input.gap;
     if (skeleton && row === rows - 1) {
       if (input.viewportHeight !== undefined) {
-        if (y < input.viewportHeight) rows += 1;
+        // (A row that adds no height cannot fill the viewport — stop at the row's end. RAC's loop
+        //  would not end either; its rows always have an estimated height.)
+        if (input.itemHeight + input.gap > 0 && y < input.viewportHeight)
+          rows += 1;
       } else if (extraRows > 0) {
         extraRows -= 1;
         rows += 1;
@@ -75,6 +78,8 @@ export function catalogWaterfallSkeletonCount(
   const heights = input.columnHeights.length
     ? [...input.columnHeights]
     : [input.gap];
+  // (Items that add no height cannot fill the viewport — one in every column, not the bound's 10,000.)
+  if (input.itemHeight + input.gap <= 0) return heights.length;
   const start = [...heights];
   let count = 0;
   // (A safety bound — the loop ends once every column grew and the shortest passed the viewport.)

@@ -59,13 +59,17 @@ interface SkeletonFill {
 }
 const SkeletonFillContext = createContext<SkeletonFill | null>(null);
 
-/** A hidden marker before the first item: its next sibling is the drawn template, its parent the grid. */
+/**
+ * A hidden marker before the first item: its next sibling is the drawn template, its parent the grid.
+ * Measures after every render — a card size · gap · column edit changes the grid without changing
+ * what `measure` closes over (an unchanged count is no re-render: `setCount` keeps the value).
+ */
 function SkeletonMeasure(): ReactElement {
   const fill = useContext(SkeletonFillContext);
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (fill && ref.current) fill.measure(ref.current);
-  }, [fill]);
+  });
   return <span ref={ref} hidden data-skeleton-measure="" />;
 }
 
