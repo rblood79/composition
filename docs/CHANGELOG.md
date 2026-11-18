@@ -97,6 +97,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **시각 단위 picker 의 시간 입력 (S2)** — DatePicker · DateRangePicker 의 단위가 시 · 분 · 초면 팝업의 달력 아래에 TimeField (`Time`, range 는 `Start time` · `End time`) 가 나타나 picker 의 시각을 보이고 바꾼다 (Canvas · Publish). 단위가 day 면 없다.
 
+## [Grid Columns — auto-fit 셀렉트 유지] - 2026-11-17
+
+### Fixed
+
+- **`auto-fit` 선택 후에도 Columns 셀렉트 유지** — CSS 입력폼으로 전환하지 않고 `auto-fit`을 선택값으로 표시한다. 같은 메뉴에서 숫자 열 개수로 돌아갈 수 있으며, 이미 저장된 최소 너비는 포커스 이동·재선택으로 바뀌지 않는다.
+  - **Why:** 자동 반복을 트랙 목록으로 해석할 수 없다는 이유로 일반 복합 CSS 텍스트 입력 분기에 들어갔다.
+  - 위치: `apps/builder/src/builder/panels/styles/sections/LayoutSection.tsx`
+
 ## [Grid Columns — auto-fit 입력 진입] - 2026-11-17
 
 ### Fixed

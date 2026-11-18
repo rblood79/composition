@@ -120,7 +120,8 @@ export function parseUnitValue(value: string): {
 } {
   const trimmed = value.trim();
 
-  if (KEYWORDS.includes(trimmed)) {
+  // Grid's auto-fit preset is a mode, not a numeric length (do not display it as 0).
+  if (KEYWORDS.includes(trimmed) || trimmed === "auto-fit") {
     return { numericValue: null, unit: trimmed };
   }
 

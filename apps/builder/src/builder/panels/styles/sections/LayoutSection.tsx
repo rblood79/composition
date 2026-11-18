@@ -78,7 +78,7 @@ const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
 
 /**
  * Columns · Rows: a count combo like Gap (1 – 6 presets) — a new track is Fill, the sized ones stay;
- * a template the track list cannot show stays text.
+ * auto-fit stays a preset; other templates the track list cannot show stay text.
  */
 export const GridTrackField = memo(function GridTrackField({
   label,
@@ -117,7 +117,8 @@ export const GridTrackField = memo(function GridTrackField({
     [auto, localize],
   );
   const tracks = gridTrackList(value);
-  if (tracks === null)
+  const isAutoFit = !auto && /^repeat\(\s*auto-fit\s*,/.test(value.trim());
+  if (tracks === null && !isAutoFit)
     return (
       <PropertyInput
         label={label}
@@ -131,7 +132,9 @@ export const GridTrackField = memo(function GridTrackField({
     <PropertyUnitInput
       label={label}
       icon={icon}
-      value={tracks.length ? String(tracks.length) : ""}
+      value={
+        isAutoFit ? "auto-fit" : tracks?.length ? String(tracks.length) : ""
+      }
       units={[]}
       isDisabled={isDisabled}
       allowKeywords={false}
@@ -143,13 +146,13 @@ export const GridTrackField = memo(function GridTrackField({
         const count = Number(next.trim());
         // Auto keeps the pinned items where they are (implicit rows hold them).
         if (!next.trim() || next.trim().toLowerCase() === "auto") onCommit("");
-        // Auto-fit opens the existing template editor; a typed count returns to this combo.
-        else if (!auto && next === "auto-fit")
-          onCommit("repeat(auto-fit, minmax(200px, 1fr))");
-        else if (Number.isInteger(count) && count > 0)
+        // Selecting the same mode keeps an authored minimum (including loaded templates).
+        else if (!auto && next === "auto-fit") {
+          if (!isAutoFit) onCommit("repeat(auto-fit, minmax(200px, 1fr))");
+        } else if (Number.isInteger(count) && count > 0)
           onCommit(
-            gridTrackListTemplate(gridTrackListResized(tracks, count)),
-            tracks.map((_, index) => index).filter((index) => index >= count),
+            gridTrackListTemplate(gridTrackListResized(tracks ?? [], count)),
+            tracks?.map((_, index) => index).filter((index) => index >= count),
           );
       }}
       min={1}

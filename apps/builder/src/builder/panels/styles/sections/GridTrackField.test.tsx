@@ -43,8 +43,8 @@ async function openPresets() {
 }
 
 describe("GridTrackField auto-fit entry", () => {
-  it("selects auto-fit, edits the minimum, and returns to a fixed count", async () => {
-    const { container, commit } = mount();
+  it("keeps the combo after selecting auto-fit and returns through its count menu", async () => {
+    const { commit } = mount();
     await openPresets();
     fireEvent.click(screen.getByRole("option", { name: "auto-fit" }));
     expect(commit).toHaveBeenLastCalledWith(
@@ -52,24 +52,38 @@ describe("GridTrackField auto-fit entry", () => {
       undefined,
     );
 
-    const input = container.querySelector("input")!;
-    expect(input.value).toBe("repeat(auto-fit, minmax(200px, 1fr))");
-    fireEvent.change(input, {
-      target: { value: "repeat(auto-fit, minmax(240px, 1fr))" },
-    });
-    fireEvent.keyDown(input, { key: "Enter" });
-    expect(commit).toHaveBeenLastCalledWith(
-      "repeat(auto-fit, minmax(240px, 1fr))",
-      undefined,
-    );
-
-    fireEvent.change(input, { target: { value: "3" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    expect(input.value).toBe("auto-fit");
+    expect(screen.queryByRole("textbox")).toBeNull();
+    fireEvent.focus(input);
+    fireEvent.blur(input);
+    expect(commit).toHaveBeenCalledTimes(1);
+    await openPresets();
+    expect(
+      screen
+        .getByRole("option", { name: "auto-fit" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+    fireEvent.click(screen.getByRole("option", { name: "3" }));
     expect(commit).toHaveBeenLastCalledWith(
       "repeat(3, minmax(0, 1fr))",
       undefined,
     );
     expect((screen.getByRole("combobox") as HTMLInputElement).value).toBe("3");
+  });
+
+  it("keeps a loaded auto-fit template and its authored minimum on focus or reselection", async () => {
+    const { commit } = mount({
+      initial: "repeat( auto-fit, minmax(240px, 1fr))",
+    });
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    expect(input.value).toBe("auto-fit");
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+    await openPresets();
+    fireEvent.click(screen.getByRole("option", { name: "auto-fit" }));
+    expect(commit).not.toHaveBeenCalled();
   });
 
   it("keeps sized tracks and the removed-track contract for numeric edits", () => {
