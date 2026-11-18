@@ -62,8 +62,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // ADR-256 Phase 3: the Switch's hint parts (its text takes the Switch sheet's size font —
   //   `manualBoxRules` Switch).
   Switch: ["Description", "FieldError"],
-  Slider: ["SliderTrack", "Label", "ContextualHelp"],
-  RangeSlider: ["SliderTrack", "Label", "ContextualHelp"],
+  Slider: ["SliderTrack", "SliderFieldInput", "Label", "ContextualHelp"],
+  RangeSlider: ["SliderTrack", "SliderFieldInput", "Label", "ContextualHelp"],
   // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size. (ADR-256 Phase 5d:
   //   its hint parts — the reference's `Text[description]` · `Text[errorMessage]`.)
   TagGroup: ["TagList", ...FIELD_PARTS],
@@ -161,6 +161,10 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   "ListBoxSection",
   // A ColorSwatchPicker's RAC item around each swatch (the picker's size reaches the swatch).
   "ColorSwatchPickerItem",
+  // (2026-11-18) A Slider's label container · field input (S2 `labelContainer` · `fieldInput()`): the
+  //   Slider's size reaches its Label and track in them (the field input takes it too — its gap).
+  "SliderLabelContainer",
+  "SliderFieldInput",
 ]);
 
 /** ADR-259 Phase 3: the fields whose label row holds a ContextualHelp (`CATALOG_CONTEXTUAL_HELP_FIELDS`). */

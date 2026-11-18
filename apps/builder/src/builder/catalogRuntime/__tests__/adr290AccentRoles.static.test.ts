@@ -63,8 +63,6 @@ const CLASSIFICATION: Record<string, string> = {
     "accent-content",
   "SliderFill.variants.emphasized.paint.backgroundColor.default":
     "accent-content",
-  "SliderThumb.variants.emphasized.paint.backgroundColor.default":
-    "accent-content",
   "TagGroup.variants.accent.paint.borderColor.default": "accent-content",
 };
 
@@ -94,8 +92,8 @@ const TRANSPARENT_SURFACES = ["base", "layer-1", "layer-2", "elevated"];
 /** 채움 자체가 accent-content 인 부품 → 그 아래 track rule. */
 const TRACK_OF: Record<string, string> = {
   ProgressBarFill: "ProgressBarTrack",
-  SliderFill: "SliderTrack",
-  SliderThumb: "SliderTrack",
+  // (S2 `upperTrack > SliderFill` — the bar under the fill, 2026-11-18.)
+  SliderFill: "SliderTrackBar",
 };
 
 function tokensOf(value: unknown): string[] {
@@ -134,9 +132,13 @@ function backdropsOf(type: string, path: string[]): string[] {
   else if (path[3] === "fillBar") fill = backgroundFor(variant, []);
   else {
     const track = rules[TRACK_OF[type]!]!;
-    fill = Object.values(track.variants as Record<string, Json>).map((v) =>
-      backgroundFor(v, []),
-    );
+    // (A disabled track holds a disabled fill — the fill's own `isDisabled` branch is no accent.)
+    fill = Object.values(track.variants as Record<string, Json>).map((v) => {
+      const bg = backgroundFor(v, []);
+      if (!bg || typeof bg !== "object") return bg;
+      const { isDisabled: _d, ...rest } = bg as Json;
+      return rest;
+    });
   }
   const tokens = tokensOf(fill).filter(
     (t) => t !== "accent-content" && t !== "accent-content-hover",

@@ -13,7 +13,7 @@
     font-family: var(--font-sans);
 
   /* Default variant */
-  background: var(--fg);
+  background: var(--fg-muted);
   color: var(--fg);
   border: none;
 
@@ -25,13 +25,21 @@
 }
 
 .react-aria-SliderFill:where([data-variant="default"]) {
-  background: var(--fg);
+  background: var(--fg-muted);
   color: var(--fg);
+}
+
+.react-aria-SliderFill:where([data-variant="default"][data-disabled]) {
+  background: var(--bg-disabled);
 }
 
 .react-aria-SliderFill:where([data-variant="emphasized"]) {
   background: var(--accent-content);
   color: var(--fg);
+}
+
+.react-aria-SliderFill:where([data-variant="emphasized"][data-disabled]) {
+  background: var(--bg-disabled);
 }
 
 .react-aria-SliderFill[data-size="S"] {
@@ -65,12 +73,6 @@
 .react-aria-SliderFill.react-aria-SliderFill:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-SliderFill.react-aria-SliderFill:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 @media (forced-colors: active) {

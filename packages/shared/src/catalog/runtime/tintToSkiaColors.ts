@@ -57,4 +57,8 @@ export const ACCENT_CONTENT_TEXT_BACKDROPS = [
   "elevated",
   "accent-subtle",
 ] as const;
-export const ACCENT_CONTENT_GRAPHIC_BACKDROPS = ["neutral-subtle"] as const;
+export const ACCENT_CONTENT_GRAPHIC_BACKDROPS = [
+  "neutral-subtle",
+  // (S2 Slider emphasized fill on its `gray-300` bar — `upperTrack`, 2026-11-18.)
+  "neutral-outline",
+] as const;

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
  * S2 1.8.0 Slider `isEmphasized` (2026-10-10, 조사 문서 목록 D): the filled track is neutral
- * (S2 `gray-700`), accent when emphasized (S2 `accent-900`) — as our Checkbox · Switch selected
- * paint (neutral · accent). The thumb follows the same pair (our thumb is a filled dot). DOM: the
- * Slider's `data-emphasized`, its SliderFill's `data-variant` (the SliderFill sheet); Canvas: the
- * SliderFill · SliderThumb rules' `emphasized` variant (derived from the Slider).
+ * (S2 `gray-700`), accent when emphasized (S2 `accent-900`). The thumb has no emphasized look (S2
+ * 1.8.2 `thumb` — `gray-25` with a `gray-800` border, 2026-11-18). DOM: the Slider's
+ * `data-emphasized`, its SliderFill's `data-variant` (the SliderFill sheet); Canvas: the SliderFill
+ * rule's `emphasized` variant (derived from the Slider).
  */
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
@@ -88,12 +88,10 @@ async function open(props: Record<string, unknown>) {
     box?: { fillColor?: Record<string, number> };
     children?: Painted[];
   };
-  /** The color the Canvas fills the part with (the thumb's dot is its first shape). */
+  /** The color the Canvas fills the part with. */
   const paint = (type: string) => {
     const node = getSkiaNode(part(type).id) as unknown as Painted;
-    const color = (
-      type === "SliderThumb" ? node.children![0]! : node
-    ).box!.fillColor!;
+    const color = node.box!.fillColor!;
     return [color[0], color[1], color[2]].map((value) =>
       Math.round(value * 255),
     );
@@ -119,7 +117,9 @@ describe("S2 Slider isEmphasized", () => {
     expect(html).not.toContain("data-emphasized");
     expect(html).not.toContain('data-variant="emphasized"');
     expect(isNeutral(painted.fill)).toBe(true);
-    expect(painted.thumb).toEqual(painted.fill);
+    // (S2 thumb: `gray-25` — not the fill's color.)
+    expect(painted.thumb).not.toEqual(painted.fill);
+    expect(isNeutral(painted.thumb)).toBe(true);
   });
 
   it("emphasized: accent fill and thumb on the Canvas · the DOM's emphasis attributes", async () => {
@@ -131,24 +131,24 @@ describe("S2 Slider isEmphasized", () => {
     );
     expect(isNeutral(painted.fill)).toBe(false);
     expect(painted.fill).not.toEqual(plain.painted.fill);
-    expect(painted.thumb).toEqual(painted.fill);
+    // (S2's thumb has no emphasized look.)
+    expect(painted.thumb).toEqual(plain.painted.thumb);
   });
 
-  it("the sheets paint the same pair: neutral (--fg) · accent-content (ADR-290)", () => {
+  it("the sheets paint the same pair: neutral-subdued (--fg-muted) · accent-content (ADR-290)", () => {
     const fill = readFileSync(`${STYLES}/SliderFill.css`, "utf8");
     expect(fill).toMatch(
-      /\.react-aria-SliderFill \{[^}]*background: var\(--fg\)/,
+      /\.react-aria-SliderFill \{[^}]*background: var\(--fg-muted\)/,
     );
     expect(fill).toMatch(
       // (ADR-297 Phase 3: the variant paint is the tree's `:where` block)
       /\.react-aria-SliderFill:where\(\[data-variant="emphasized"\]\) \{[^}]*background: var\(--accent-content\)/,
     );
     const slider = readFileSync(`${STYLES}/Slider.css`, "utf8");
+    // (S2 thumb: `gray-25` (--bg) · 2px `gray-800` border (--fg), no emphasized block.)
     expect(slider).toMatch(
-      /\.react-aria-SliderThumb \{[^}]*background: var\(--fg\)/,
+      /\.react-aria-SliderThumb \{[^}]*background: var\(--bg\);[^}]*border: 2px solid var\(--fg\)/,
     );
-    expect(slider).toMatch(
-      /\[data-emphasized\] \.react-aria-SliderThumb \{[^}]*background: var\(--accent-content\)/,
-    );
+    expect(slider).not.toMatch(/\[data-emphasized\] \.react-aria-SliderThumb/);
   });
 });

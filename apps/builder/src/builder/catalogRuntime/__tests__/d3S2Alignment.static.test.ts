@@ -1064,36 +1064,29 @@ describe("ADR-295 G4 — 3c-3c ②c Slider track 행 · 막대 = S2", () => {
       /const trackStyling = \{\s*height: \{\s*trackStyle: /,
     );
     expect(s2).toEqual({ thin: 4, thick: 16 });
-    for (const block of Object.values(rules.SliderTrack!.sizes))
+    // (2026-11-18: the bar is the SliderTrackBar node — S2 `upperTrack`.)
+    for (const block of Object.values(rules.SliderTrackBar!.sizes))
       expect(block.height).toBe(s2.thin);
     expect(CATALOG_SLIDER_THICK_TRACK.height).toBe(s2.thick);
   });
 
-  it("track 행 = S2 `track` height (24 · 32 · 40 · 48) = 막대 + 위아래 margin", () => {
+  it("track 행 = S2 `track` height (24 · 32 · 40 · 48) = SliderTrack 의 높이 (막대는 그 가운데)", () => {
     const s2 = s2SizeTable(
       "Slider.tsx",
       /export let track = style\(\{[^}]*?height: \{\s*size: /,
     );
     expect(s2).toEqual({ S: 24, M: 32, L: 40, XL: 48 });
-    const selectors = rules.Slider!.structure!.composition!.sizeSelectors!;
-    for (const [size, row] of Object.entries(s2)) {
-      const track = selectors[size]![".react-aria-SliderTrack"]!;
-      expect(track["margin-top"]).toBe(track["margin-bottom"]);
-      const bar = rules.SliderTrack!.sizes[size]!.height as number;
-      // (ADR-295 후속: the margin is `scaled` — its desktop px.)
-      expect(
-        bar + 2 * Number(resolveToken(track["margin-top"]! as TokenRef)),
-      ).toBe(row);
-      // (DOM: a press anywhere in the row moves the thumb — the track's row-tall `::before`.)
-      const hit = (
-        COMPONENT_RULES_TABLE.SliderTrack.structure?.composition as {
-          rootSelectors: Record<string, { styles: Record<string, string> }>;
-        }
-      ).rootSelectors[
-        `&:is(.react-aria-Slider *)[data-size="${size}"]::before`
-      ];
-      expect(hit?.styles.height).toBe(`{length.size.unit*${row}/1}`);
-    }
+    for (const [size, row] of Object.entries(s2))
+      expect(rules.SliderTrack!.sizes[size]!.height).toBe(row);
+    // (The row is a flex line centering its bar — no margins, no `::before` hit box.)
+    expect(
+      COMPONENT_RULES_TABLE.SliderTrack.structure?.containerStyles,
+    ).toMatchObject({ display: "flex", alignItems: "center" });
+    expect(
+      rules.Slider!.structure!.composition!.sizeSelectors!.M![
+        ".react-aria-SliderTrack"
+      ],
+    ).toBeUndefined();
   });
 });
 
@@ -1543,16 +1536,10 @@ describe("ADR-295 후속 — S2 고정 sizing 숫자 = 기기 배율 (`scaled` �
       expect(ruleSizeLengthRef(indicator, "trackHeight"), size).toBe(
         scaledRef(bar.thin!),
       );
-      const track =
-        rules.Slider!.structure!.composition!.sizeSelectors![size]![
-          ".react-aria-SliderTrack"
-        ]!;
-      expect(track["margin-top"], size).toBe(
-        scaledRef((row[size]! - bar.thin!) / 2),
-      );
     }
     expectScaled("SliderThumb", "height", (size) => thumb[size]!);
-    expectScaled("SliderTrack", "height", () => bar.thin!);
+    expectScaled("SliderTrack", "height", (size) => row[size]!);
+    expectScaled("SliderTrackBar", "height", () => bar.thin!);
     expectScaled("SliderTrack", "thumbSize", (size) => thumb[size]!);
     // (thick 막대 · precise 손잡이: Canvas `catalogScaledPx` · DOM `catalogDeviceScaledCss` — 같은 S2 숫자.)
     expect(CATALOG_SLIDER_THICK_TRACK.height).toBe(bar.thick);

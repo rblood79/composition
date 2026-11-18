@@ -802,6 +802,23 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "slider track",
     icon: "SlidersHorizontal",
   }),
+  // S2 `upperTrack` (2026-11-18): the bar in a Slider's track row, holding its SliderFill (palette 미노출).
+  primitiveEntry("SliderTrackBar", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider track bar",
+    icon: "SlidersHorizontal",
+  }),
+  // S2 `labelContainer` · field input `div` (2026-11-18): a Slider's label · input rows (palette 미노출).
+  primitiveEntry("SliderLabelContainer", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider label container",
+    icon: "SlidersHorizontal",
+  }),
+  primitiveEntry("SliderFieldInput", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider field input",
+    icon: "SlidersHorizontal",
+  }),
   // ADR-256 Phase 7c: RAC SliderFill — the filled part of a Slider's track (palette 미노출).
   primitiveEntry("SliderFill", "selection", FAMILY_3_CUTOVER, {
     category: "forms",

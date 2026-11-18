@@ -1225,12 +1225,12 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
 };
 
 /**
- * `slider_thumb` — Slider 핸들 (replace): 자기 box 중앙의 원 + 2px 링.
+ * `slider_thumb` — Slider 핸들 (replace): 자기 box 를 채우는 둥근 상자 + 2px 테두리.
  *
  * ADR-256 Phase 7c: SliderThumb 노드가 자기 handle 을 그린다 — box 는 RAC 배치와 같은 자리
- * (`catalogSliderThumbLayout` — 엔진이 absolute 를 배치한다). 지름 = box (rule thumb 크기), 칠 = rule
- * fill (`{color.accent}`), 링 = `{color.base}` 2px — slider archetype 의 `.react-aria-SliderThumb`
- * (`border: 2px solid var(--bg)`) 와 같은 값. (전에는 SliderTrack 의 `slider_fill_bar` 가 그렸다.)
+ * (`catalogSliderThumbLayout` — 엔진이 absolute 를 배치한다). S2 1.8.2 `Slider.tsx` `thumb`
+ * (2026-11-18): 원 (default) · 좁은 막대 (precise — 6 × size + 2) 모두 모서리 full, 칠 = rule 트리
+ * (바탕 `gray-25` · 테두리 `gray-800`, 비활성 테두리 `disabled`) — slider archetype sheet 와 같은 값.
  */
 const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const width =
@@ -1241,21 +1241,27 @@ const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
         : typeof size.height === "number"
           ? size.height
           : 18;
-  const radius = width / 2;
+  const height =
+    typeof props._containerHeight === "number" && props._containerHeight > 0
+      ? (props._containerHeight as number)
+      : width;
+  const radius = Math.min(width, height) / 2;
   return [
     {
       id: "thumb",
-      type: "circle",
-      x: radius,
-      y: radius,
+      type: "roundRect",
+      x: 0,
+      y: 0,
+      width,
+      height,
       radius,
-      fill: paint.backgroundColor ?? ("{color.accent}" as TokenRef),
+      fill: paint.backgroundColor ?? ("{color.base}" as TokenRef),
     },
     {
       type: "border",
       target: "thumb",
       borderWidth: 2,
-      color: "{color.base}" as TokenRef,
+      color: paint.borderColor ?? ("{color.neutral}" as TokenRef),
       radius,
     },
   ];

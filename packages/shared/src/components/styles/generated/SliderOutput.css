@@ -14,7 +14,13 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg-muted);
+  border: none;
 
   /* Default size */
   height: 18px;
@@ -22,6 +28,15 @@
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-SliderOutput:where([data-variant="default"]) {
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.react-aria-SliderOutput:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-SliderOutput[data-size="S"] {
@@ -59,12 +74,6 @@
 .react-aria-SliderOutput.react-aria-SliderOutput:where([data-focus-visible]) {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-SliderOutput.react-aria-SliderOutput:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 @media (forced-colors: active) {

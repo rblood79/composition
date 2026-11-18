@@ -5819,9 +5819,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-slider",
     "definitionId": "lib:definition:type-Slider",
     "children": [
-      "lib:template:component-slider__1-row",
-      "lib:template:component-slider__2",
-      "lib:template:component-slider__3"
+      "lib:template:component-slider__label",
+      "lib:template:component-slider__input"
     ],
     "props": {
       "label": "Slider",
@@ -5837,6 +5836,37 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {
       "width": "100%"
     }
+  },
+  {
+    "id": "lib:template:component-slider__label",
+    "definitionId": "lib:definition:type-SliderLabelContainer",
+    "children": [
+      "lib:template:component-slider__1-row",
+      "lib:template:component-slider__2"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-slider__input",
+    "definitionId": "lib:definition:type-SliderFieldInput",
+    "children": [
+      "lib:template:component-slider__3",
+      "lib:template:component-slider__2-side"
+    ],
+    "props": {
+      "size": "M"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-slider__2-side",
+    "definitionId": "lib:definition:type-SliderOutput",
+    "children": [],
+    "props": {
+      "size": "M"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-slider__1-row",
@@ -5864,23 +5894,28 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "size": "M"
     },
-    "visual": {
-      "width": "fit-content"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-slider__3",
     "definitionId": "lib:definition:type-SliderTrack",
     "children": [
-      "lib:template:component-slider__3_2",
+      "lib:template:component-slider__3_bar",
       "lib:template:component-slider__3_1"
     ],
     "props": {
       "size": "M"
     },
-    "visual": {
-      "width": "100%"
-    }
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-slider__3_bar",
+    "definitionId": "lib:definition:type-SliderTrackBar",
+    "children": [
+      "lib:template:component-slider__3_2"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-slider__3_1",

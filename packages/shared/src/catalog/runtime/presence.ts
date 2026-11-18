@@ -302,10 +302,14 @@ const childrenOf = (node: CatalogConsumerNode, get: CatalogRecordLookup) =>
 //   the field's label (its necessity mark, its text owner, the field context).
 // 2026-11-18: a Disclosure's title row (S2 `DisclosureHeader` — a plain `div`) too: its Heading and
 //   trigger stay the Disclosure's.
+// 2026-11-18: a Slider's label container · field input (S2 `labelContainer` · `fieldInput()` — plain
+//   `div`s) too: the label, value text and track in them stay the Slider's.
 const PART_FRAME_TYPES: ReadonlySet<string> = new Set([
   "frame",
   "FieldLabel",
   "DisclosureHeader",
+  "SliderLabelContainer",
+  "SliderFieldInput",
 ]);
 
 /** A node's parent with the layout frames it sits in skipped (`PART_FRAME_TYPES`). */
@@ -350,6 +354,9 @@ export function catalogToggleButtonGlyphOwner(
       "TimeField",
       "DatePicker",
       "DateRangePicker",
+      // (2026-11-18: S2 Slider's `color` — `neutral-subdued`, `disabled` while disabled — no dimmed root.)
+      "Slider",
+      "RangeSlider",
     ].includes(typeOf(parent))
   )
     return parent;
@@ -1576,8 +1583,86 @@ export function catalogSliderRange(slider: CatalogConsumerNode): {
 }
 
 /**
- * The Slider whose track holds `node` — a SliderFill or SliderThumb (past the layout frames the
- * author puts around a part — `catalogPartParent`).
+ * S2 1.8.2 Slider · RangeSlider value text width in characters (`Slider.tsx` `maxLabelLength` — the
+ * SliderOutput is `${n}ch` wide with tabular digits, so the text does not move as the value
+ * changes): the longer of the min and max formatted (a RangeSlider's: the ranges `[min, min + step]`
+ * and `[max - step, max]`), counted in code points.
+ */
+export function catalogSliderValueChars(
+  slider: CatalogConsumerNode,
+  range: boolean,
+  locale?: string,
+): number {
+  const own =
+    typeof slider.props.locale === "string" ? slider.props.locale : "";
+  const formatter = new NumberFormatter(
+    own || locale || globalThis.navigator?.language || "en-US",
+    catalogNumberFormatOptions(slider.props.formatOptions),
+  );
+  const { min, max } = catalogSliderRange(slider);
+  const length = (text: string) => [...text].length;
+  if (!range)
+    return Math.max(
+      length(formatter.format(min)),
+      length(formatter.format(max)),
+    );
+  const step = Number(slider.props.step) || 1;
+  return Math.max(
+    length(formatter.formatRange(min, min + step)),
+    length(formatter.formatRange(max - step, max)),
+  );
+}
+
+/** Whether `node` sits in its Slider's label container (past the author's frames). */
+function catalogInLabelContainer(
+  node: CatalogConsumerNode,
+  slider: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  for (
+    let cursor = get(node.parentId);
+    cursor && cursor.id !== slider.id;
+    cursor = get(cursor.parentId)
+  )
+    if (typeOf(cursor) === "SliderLabelContainer") return true;
+  return false;
+}
+
+/**
+ * The SliderTrack holding `node` — a SliderTrackBar · SliderThumb in it, or a SliderFill in its bar
+ * (S2 `track > upperTrack > SliderFill`, 2026-11-18; a fill straight in the track too), past the
+ * layout frames the author puts around a part (`catalogPartParent`).
+ */
+function catalogSliderTrackOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const parent = catalogPartParent(node, get, typeOf);
+  const track =
+    parent && typeOf(parent) === "SliderTrackBar"
+      ? catalogPartParent(parent, get, typeOf)
+      : parent;
+  return track && typeOf(track) === "SliderTrack" ? track : undefined;
+}
+
+/** The parts of a Slider's track — its bars, the fills in them and its thumbs (`catalogSliderTrackOf`). */
+function catalogSliderTrackParts(
+  track: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return partChildrenOf(track, get, typeOf).flatMap((child) =>
+    typeOf(child) === "SliderTrackBar"
+      ? [child, ...partChildrenOf(child, get, typeOf)]
+      : [child],
+  );
+}
+
+/**
+ * The Slider whose track holds `node` — a SliderTrackBar, SliderFill or SliderThumb
+ * (`catalogSliderTrackOf`).
  */
 function catalogSliderOfTrackPart(
   node: CatalogConsumerNode,
@@ -1585,10 +1670,10 @@ function catalogSliderOfTrackPart(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   const type = node.ruleId ?? typeOf(node);
-  if (type !== "SliderFill" && type !== "SliderThumb") return undefined;
-  const track = catalogPartParent(node, get, typeOf);
-  if (!track || typeOf(track) !== "SliderTrack") return undefined;
-  const slider = catalogPartParent(track, get, typeOf);
+  if (!["SliderFill", "SliderThumb", "SliderTrackBar"].includes(type))
+    return undefined;
+  const track = catalogSliderTrackOf(node, get, typeOf);
+  const slider = track ? catalogPartParent(track, get, typeOf) : undefined;
   return slider && ["Slider", "RangeSlider"].includes(typeOf(slider))
     ? slider
     : undefined;
@@ -1605,11 +1690,8 @@ export function catalogSliderFillLayout(
   typeOf: CatalogTypeOf,
 ): Record<string, string> | undefined {
   if ((node.ruleId ?? typeOf(node)) !== "SliderFill") return undefined;
-  // (Through the layout frames the author puts around a part — `catalogPartParent`.)
-  const track = catalogPartParent(node, get, typeOf);
-  const slider = track ? catalogPartParent(track, get, typeOf) : undefined;
-  if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
-  if (!["Slider", "RangeSlider"].includes(typeOf(slider))) return undefined;
+  const slider = catalogSliderOfTrackPart(node, get, typeOf);
+  if (!slider) return undefined;
   const { min, max, value } = catalogSliderRange(slider);
   const ratio = (at: number): number =>
     max > min ? Math.min(1, Math.max(0, (at - min) / (max - min))) : 0;
@@ -1653,9 +1735,9 @@ export function catalogSliderThumbLayout(
 ): Record<string, unknown> | undefined {
   if (typeOf(node) !== "SliderThumb") return undefined;
   // (Through the layout frames the author puts around a part — `catalogPartParent`.)
-  const track = catalogPartParent(node, get, typeOf);
-  const slider = track ? catalogPartParent(track, get, typeOf) : undefined;
-  if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
+  const track = catalogSliderTrackOf(node, get, typeOf);
+  const slider = catalogSliderOfTrackPart(node, get, typeOf);
+  if (!track || !slider) return undefined;
   const number = (value: unknown, fallback: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
   const { min, max, value } = catalogSliderRange(slider);
@@ -1684,10 +1766,8 @@ export function catalogSliderThumbLayout(
   // (The rule gives one side — the circle; a written width is the DOM's inline width too.)
   const width = precise ? catalogScaledPx(6) : number(node.visual.width, size);
   const height = precise ? size + catalogScaledPx(2) : size;
-  const trackHeight =
-    slider.props.trackStyle === "thick"
-      ? catalogScaledPx(CATALOG_SLIDER_THICK_TRACK.height)
-      : number(track.visual.height, height);
+  // (Centered across the track row — S2 `thumbContainer` `top: 50%` · `translate(-50%, -50%)`.)
+  const trackHeight = number(track.visual.height, height);
   return {
     position: "absolute",
     insetLeft: `${ratio * 100}%`,
@@ -1714,23 +1794,6 @@ export const CATALOG_SLIDER_THICK_TRACK = { height: 16, radius: 4 } as const;
 export function catalogScaledPx(px: number): number {
   const unit = resolveToken("{size.unit}" as TokenRef);
   return px * (typeof unit === "number" ? unit : 1);
-}
-
-/**
- * ADR-295 Phase 3c-3c ②c — a thick track keeps the S2 track row (24 · 32 · 40 · 48): its 16px bar
- * takes the row's margins (the Slider's `sizeSelectors`, sized for the thin bar) less half the
- * extra height. The Canvas (`styleOf`) and the DOM inline read this one value.
- */
-export function catalogSliderThickTrackMargins(
-  node: Pick<CatalogConsumerNode, "layout" | "visual">,
-): { marginTop: string; marginBottom: string } | undefined {
-  const px = (value: unknown) =>
-    typeof value === "string" ? Number.parseFloat(value) : Number(value);
-  const margin = px(node.layout.marginTop);
-  const bar = px(node.visual.height);
-  if (!Number.isFinite(margin) || !Number.isFinite(bar)) return undefined;
-  const value = `${margin - (catalogScaledPx(CATALOG_SLIDER_THICK_TRACK.height) - bar) / 2}px`;
-  return { marginTop: value, marginBottom: value };
 }
 
 /**
@@ -2389,8 +2452,20 @@ export function catalogProgressValueHidden(
 ): boolean {
   const type = node.ruleId ?? typeOf(node);
   if (!PROGRESS_VALUE_TYPES.has(type)) return false;
+  // (S2 1.8.2 `Slider.tsx`, 2026-11-18: the value text follows the label — in the label container
+  //  with the label on top, after the track in the field input with the label at the side. Each
+  //  place holds its own SliderOutput; the other one is not there.)
+  let row: string | undefined;
   for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
     const owner = typeOf(cursor);
+    if (owner === "SliderLabelContainer" || owner === "SliderFieldInput")
+      row ??= owner;
+    if (
+      row &&
+      (owner === "Slider" || owner === "RangeSlider") &&
+      (row === "SliderFieldInput") !== (cursor.props.labelPosition === "side")
+    )
+      return true;
     if (!PROGRESS_VALUES[owner]) continue;
     if (PROGRESS_VALUES[owner] !== type) return false;
     // (S2 1.8.2 `ProgressBar.tsx` · `Meter.tsx`: the value text shows with a label — `label &&`,
@@ -3326,22 +3401,43 @@ function ownDerivedPropsBase(
   // ADR-258 Phase 2: a Color control's gradient · thumb paint (its value's — the record diff
   // repaints the part when the control's value changes).
   const color = catalogColorControlDerivedProps(node, get, typeOf);
-  if (color) return color;
-  // S2 Slider `trackStyle: thick` — the track bar is 16px with the S2 sm corner
-  // (`CATALOG_SLIDER_THICK_TRACK`): the Canvas height (`styleOf`) and the DOM inline read the
-  // derived value; the paint radius is the SliderTrack rule's `containerVariants`.
-  if ((node.ruleId ?? typeOf(node)) === "SliderTrack") {
+  // (S2 1.8.2 Slider · ColorSlider: the value text is `disabled` while its control is — the
+  //  SliderOutput rule's tree; RAC's `data-disabled` in the DOM. 2026-11-18)
+  // (S2 1.8.2 Slider · RangeSlider: the value text is `${n}ch` wide with tabular digits —
+  //  `_valueChars`, the Canvas width · the DOM inline — at the end in the label container, at the
+  //  start after the track — `_valueAlign`, `Slider.tsx` `output`. 2026-11-18)
+  if ((node.ruleId ?? typeOf(node)) === "SliderOutput") {
     const owner = catalogPartParent(node, get, typeOf);
-    if (
-      owner &&
-      ["Slider", "RangeSlider"].includes(typeOf(owner)) &&
-      owner.props.trackStyle === "thick"
-    )
-      return { trackStyle: "thick" };
+    const ownerType = owner && typeOf(owner);
+    const slider = ownerType === "Slider" || ownerType === "RangeSlider";
+    const derived = {
+      ...color,
+      ...(owner && slider
+        ? {
+            _valueChars: catalogSliderValueChars(
+              owner,
+              ownerType === "RangeSlider",
+              locale,
+            ),
+            _valueAlign: catalogInLabelContainer(node, owner, get, typeOf)
+              ? "end"
+              : "start",
+          }
+        : {}),
+      ...((slider || ownerType === "ColorSlider") &&
+      owner!.props.isDisabled === true
+        ? { isDisabled: true }
+        : {}),
+    };
+    if (Object.keys(derived).length > 0) return derived;
   }
-  // S2 Slider `isEmphasized`: its fill and thumb take their rules' `emphasized` variant (the DOM's
-  // `data-emphasized` · the SliderFill's `data-variant`). `fillOffset` rides to the fill (RAC
-  // SliderFill `offset`), `thumbStyle: precise` to the thumb (its layout).
+  if (color) return color;
+  // S2 Slider parts (2026-11-18): `trackStyle: thick` — the bar 16px with the S2 sm corner, the fill
+  // the same corner (`CATALOG_SLIDER_THICK_TRACK`: the Canvas height `styleOf`, the DOM inline, the
+  // rules' `track-style` block); `isDisabled` — the bar · fill · thumb take S2's disabled colors
+  // (RAC's `data-disabled` in the DOM); `isEmphasized` — the fill's `emphasized` variant (the DOM's
+  // SliderFill `data-variant`; S2's thumb has no emphasized look). `fillOffset` rides to the fill
+  // (RAC SliderFill `offset`), `thumbStyle: precise` to the thumb (its layout).
   const slider = catalogSliderOfTrackPart(node, get, typeOf);
   if (
     slider &&
@@ -3364,7 +3460,7 @@ function ownDerivedPropsBase(
       ),
       form: String(slider.props.form ?? ""),
       thumbLabel: index === 1 ? "Maximum" : "Minimum",
-      ...(slider.props.isEmphasized ? { variant: "emphasized" } : {}),
+      ...(slider.props.isDisabled === true ? { isDisabled: true } : {}),
       ...(slider.props.thumbStyle === "precise"
         ? { thumbStyle: "precise" }
         : {}),
@@ -3372,7 +3468,15 @@ function ownDerivedPropsBase(
   }
   if (slider) {
     const derived: Record<string, string | number | boolean> = {};
-    if (slider.props.isEmphasized === true) derived.variant = "emphasized";
+    const type = node.ruleId ?? typeOf(node);
+    if (slider.props.isDisabled === true) derived.isDisabled = true;
+    if (type === "SliderFill" && slider.props.isEmphasized === true)
+      derived.variant = "emphasized";
+    if (
+      (type === "SliderFill" || type === "SliderTrackBar") &&
+      slider.props.trackStyle === "thick"
+    )
+      derived.trackStyle = "thick";
     const offset = Number(slider.props.fillOffset);
     if (
       (node.ruleId ?? typeOf(node)) === "SliderFill" &&
@@ -4177,16 +4281,25 @@ export function catalogSliderThumbs(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   if (!["Slider", "RangeSlider"].includes(typeOf(slider))) return [];
-  // (and its fill — ADR-256 Phase 7c: RAC's SliderFill follows the same values)
-  // (The track itself follows the Slider's `trackStyle` — the derived thick bar.)
+  // (and its fill — ADR-256 Phase 7c: RAC's SliderFill follows the same values; the bar follows the
+  //  Slider's `trackStyle` · `isDisabled` — the derived thick · disabled bar.)
   return partChildrenOf(slider, get, typeOf)
-    .filter((child) => typeOf(child) === "SliderTrack")
-    .flatMap((track) => [
-      track,
-      ...partChildrenOf(track, get, typeOf).filter((child) =>
-        ["SliderThumb", "SliderFill"].includes(typeOf(child)),
-      ),
-    ]);
+    .filter((child) =>
+      // (its value text — the disabled color)
+      ["SliderTrack", "SliderOutput"].includes(typeOf(child)),
+    )
+    .flatMap((track) =>
+      typeOf(track) === "SliderOutput"
+        ? [track]
+        : [
+            track,
+            ...catalogSliderTrackParts(track, get, typeOf).filter((child) =>
+              ["SliderThumb", "SliderFill", "SliderTrackBar"].includes(
+                typeOf(child),
+              ),
+            ),
+          ],
+    );
 }
 
 /**
@@ -4352,6 +4465,9 @@ export function catalogFieldLabelRowColor(
   const row = get(node.parentId);
   if (!row || typeOf(row) !== "FieldLabel") return undefined;
   if (catalogComposedFieldLabel(node, get, typeOf)) return undefined;
+  // (A field whose color tree paints its Label — a Slider's `neutral-subdued` · `disabled`, S2
+  //  `FieldLabel isDisabled` — keeps it: `catalogToggleButtonGlyphOwner`, 2026-11-18.)
+  if (catalogToggleButtonGlyphOwner(node, get, typeOf)) return undefined;
   const color = (
     COMPONENT_RULES_TABLE.FieldLabel?.structure?.composition as
       { staticSelectors?: Record<string, Record<string, string>> } | undefined

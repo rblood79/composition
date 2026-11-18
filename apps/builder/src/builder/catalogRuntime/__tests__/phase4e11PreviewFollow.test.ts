@@ -342,17 +342,16 @@ describe("group size reaches the items", () => {
 
 /**
  * slider-track-size-not-propagated: the Slider size reaches its track (the old `size → SliderTrack`
- * propagation): the typed SliderTrack takes the catalog track height (S2 thin 4) and row margins, and the DOM
- * `<SliderTrack>` carries `data-size` so the generated `SliderTrack.css` size blocks apply.
+ * propagation): the typed SliderTrack takes the catalog row height (S2 `track` 24 · 40 — its bar S2 thin 4,
+ * 2026-11-18), and the DOM `<SliderTrack>` carries `data-size` so the generated `SliderTrack.css` size
+ * blocks apply.
  */
 describe("Slider size reaches the track", () => {
-  // (ADR-295 Phase 3c-3c ②c: the bar is S2 thin 4 at every size; the row — S2 `track` 24 · 40 — is its
-  // margins.)
   it.each([
     ["S", 4, 24],
     ["L", 4, 40],
   ])(
-    "Slider %s track is %d tall in a %d row in both consumers",
+    "Slider %s bar is %d tall in a %d row in both consumers",
     async (size, height, row) => {
       const workspace = await openOwner("Slider", { size });
       const root = workspace.root;
@@ -360,11 +359,13 @@ describe("Slider size reaches the track", () => {
         (record) => record.bindingId === "slidertrack",
       )!;
       expect(track.props.size).toBe(size);
-      expect(root.getGeometry([track.id]).get(track.id)!.height).toBe(height);
-      expect(
-        height + 2 * Number.parseFloat(String(track.layout.marginTop)),
-      ).toBe(row);
-      expect(track.layout.marginBottom).toBe(track.layout.marginTop);
+      const bar = [...root.layoutInputs.values()].find(
+        (record) => record.bindingId === "slidertrackbar",
+      )!;
+      const geometry = root.getGeometry([track.id, bar.id]);
+      expect(geometry.get(track.id)!.height).toBe(row);
+      expect(geometry.get(bar.id)!.height).toBe(height);
+      expect(geometry.get(bar.id)!.y).toBe((row - height) / 2);
       const group = [...root.domInputs.values()].find(
         (record) => record.sourceId === "project:node:owner",
       )!;

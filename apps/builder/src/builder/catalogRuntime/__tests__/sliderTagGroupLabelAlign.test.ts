@@ -77,14 +77,18 @@ async function openGroup(type: string, props: NodeEntry["props"]) {
     (record) => record.sourceId === OWNER,
   )!;
   // (The label row stands in the Label's place — S2 `FieldLabel`, 2026-11-18.)
+  // (A Slider's label column is its label container — S2 `labelContainer`, which aligns its label
+  //  row; its track sits in its field input — 2026-11-18.)
   const label = owner.children
     .map((id) => root.canvasInputs.get(id)!)
-    .find((record) => root.typeOf(record) === "FieldLabel")!;
+    .find((record) =>
+      ["FieldLabel", "SliderLabelContainer"].includes(root.typeOf(record)),
+    )!;
   const html = renderToStaticMarkup(renderCatalogDom(root, owner.id));
   const filler = owner.children
     .map((id) => root.canvasInputs.get(id)!)
     .find((record) =>
-      ["SliderTrack", "TagList"].includes(root.typeOf(record)),
+      ["SliderFieldInput", "TagList"].includes(root.typeOf(record)),
     )!;
   const geometry = root.getGeometry([label.id, filler.id, owner.id]);
   const box = (id: string) =>

@@ -188,8 +188,9 @@ describe("ADR-256 Phase 7 판독 — 값 바인딩 노드 트리 편집", () => 
     // (react-aria.adobe.com Slider example: `.track { position: absolute }` around the fill — the
     // fill's containing block, here stretched over the track by its insets; a static frame is not
     // one, and the engine places an absolute box in its parent — ADR-164.)
-    const track = part("SliderTrack");
-    const wrapper = root.canvasInputs.get(track.children[0]!)!;
+    // (S2 `upperTrack > SliderFill` — the frame stands in the bar, 2026-11-18.)
+    const bar = part("SliderTrackBar");
+    const wrapper = root.canvasInputs.get(bar.children[0]!)!;
     expect(root.typeOf(wrapper)).toBe("frame");
     workspace.execute(
       setFields({
@@ -225,7 +226,8 @@ describe("ADR-256 Phase 7 판독 — 값 바인딩 노드 트리 편집", () => 
     frame("SliderFill");
     const box = (name: string) =>
       root.getGeometry([part(name).id]).get(part(name).id)!;
-    const track = box("SliderTrack");
+    // (The fill's positioned box is the bar — S2 `upperTrack`, the track's width.)
+    const track = box("SliderTrackBar");
     expect(track.width).toBeGreaterThan(0);
     expect(box("SliderFill").width).toBeCloseTo(track.width * 0.3, 1);
     expect(box("SliderFill").height).toBeCloseTo(track.height, 1);

@@ -69,6 +69,16 @@ export function catalogContextualHelp(
   } catch {
     return undefined;
   }
+  // (A Slider's label row sits in its label container — S2 `labelContainer`, 2026-11-18.)
+  children = children.flatMap((child) => {
+    if (typeOf(reader, child.definitionId) !== "SliderLabelContainer")
+      return [child];
+    try {
+      return childPositions(reader, child);
+    } catch {
+      return [];
+    }
+  });
   const fieldLabel = children.find(
     (child) => typeOf(reader, child.definitionId) === "FieldLabel",
   );

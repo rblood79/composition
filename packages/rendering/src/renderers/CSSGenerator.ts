@@ -112,33 +112,31 @@ export const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     `    [slot="value"] { grid-area: value; }`,
     `    .bar { grid-area: track; }`,
   ],
+  // S2 1.8.2 `Slider.tsx` (2026-11-18): the `field()` grid — the label container (label row · value
+  //   text), then the field input (track · side value text). They take the `label` · `input` cells
+  //   in order (one column on top, two at the side — the rule's `label-position` block), so no
+  //   `grid-area`: a named area would hold the base rows on the Canvas (its lines are compiled
+  //   from the top areas).
   slider: [
     `    display: grid;`,
-    `    grid-template-areas: "label output" "track track";`,
-    `    grid-template-columns: 1fr auto;`,
+    `    grid-template-areas: "label" "input";`,
+    `    grid-template-columns: 1fr;`,
     `    box-sizing: border-box;`,
     ``,
-    `    .react-aria-Label { grid-area: label; }`,
-    `    .react-aria-SliderOutput { grid-area: output; justify-self: end; }`,
-    `    .react-aria-SliderTrack {`,
-    `      grid-area: track;`,
-    `      position: relative;`,
-    `      display: flex;`,
-    `      align-items: center;`,
-    `    }`,
-    // ADR-256 Phase 7c: the track's bar is the SliderTrack itself (its rule — background · radius),
-    //   the fill is RAC's SliderFill node (its rule), the thumb RAC's SliderThumb (here — its size
-    //   per owner size from `generateSliderSizeMetrics`). Thumb colors: --fg (--accent when the
-    //   Slider is emphasized — S2 `isEmphasized`, the SliderThumb rule's pair; `accent-content`, ADR-290 —
-    //   a mark on the track, not a fill under on-accent text) · border --bg.
+    // S2 1.8.2 `Slider.tsx` (2026-11-18): the track is the row, its bar the SliderTrackBar node (its
+    //   rule), the fill RAC's SliderFill in the bar (its rule), the thumb RAC's SliderThumb (here —
+    //   its size per owner size from `generateSliderSizeMetrics`). Thumb colors = the SliderThumb
+    //   rule's tree (the Canvas `slider_thumb`): `gray-25` (--bg) · 2px `gray-800` border (--fg),
+    //   `gray-900` hovered · dragged, `disabled` border while disabled; no emphasized look (S2).
     `    .react-aria-SliderThumb {`,
     `      top: 50%;`,
     `      border-radius: var(--radius-full);`,
-    `      background: var(--fg);`,
-    `      border: 2px solid var(--bg);`,
+    `      background: var(--bg);`,
+    `      border: 2px solid var(--fg);`,
     `      box-sizing: border-box;`,
     `    }`,
-    `    &[data-emphasized] .react-aria-SliderThumb { background: var(--accent-content); }`,
+    `    .react-aria-SliderThumb:is([data-hovered], [data-dragging]) { border-color: var(--neutral-content-hover); }`,
+    `    .react-aria-SliderThumb[data-disabled] { border-color: var(--border-disabled); }`,
   ],
   "tabs-indicator": [
     `    display: flex;`,

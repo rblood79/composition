@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — Slider · RangeSlider (라벨 묶음 · 입력 묶음 · track 행 · 막대 · S2 색 · 비활성)] - 2026-11-18
+
+### Changed
+
+- **Slider · RangeSlider 의 행 = S2 `field()` 구조** — `Slider > SliderLabelContainer (FieldLabel + 값 글자) + SliderFieldInput (SliderTrack [+ 값 글자])`. 두 묶음은 새 부품 type (S2 `labelContainer` · `fieldInput()` 의 `div`) 이고, 값 글자는 S2 처럼 라벨 위치를 따라간다 — 위면 라벨 묶음 끝, 옆이면 track 뒤 (원본에 두 자리가 있고 라벨 위치에 맞는 하나만 보인다). 라벨 행과 track 행 사이 간격은 S2 대로 0 (M 높이 54 → 50), 옆 배치는 S2 grid 두 열 (`auto 1fr`, 간격 S 16 · M 16 · L 20 · XL 24 — XL 은 전 20), 값 글자는 S2 `minWidth` 처럼 줄지 않는다.
+- **Slider 값 글자 폭 = S2 `Nch` 고정 폭 + `tabular-nums`** — 최소값 · 최대값 표기 중 긴 쪽의 글자 수 (RangeSlider 는 `[min, min+step]` · `[max−step, max]` 범위 표기, 예: 「99–100」 → 6ch) 만큼 폭을 잡고 숫자는 고정폭이라 값이 바뀌어도 글자가 흔들리지 않는다. 위 배치는 끝, 옆 배치는 시작에 둔다 — 값 글자 상자는 flex 라 `text-align` 이 글자를 옮기지 못해 `justify-content` 로 둔다 (S2 는 blockify 된 `<output>` 의 `text-align`). 전에는 글자 폭 그대로라 값마다 상자 폭이 달랐다. `minValue` · `maxValue` · `formatOptions` 를 바꾸면 폭이 따라간다; 작성한 폭이 있으면 그것을 쓴다.
+- **Slider 옆 배치에서 값 글자가 사라지던 것 수정** — track 의 `width: 100%` 를 template 작성값에서 SliderTrack rule (S2 `track` `width: 'full'`) 로 옮겼다. 원본이 문서에 저장된 프로젝트에서는 template 값이 작성한 고정 폭으로 읽혀 `flex-shrink: 0` 이 붙었고, 입력 묶음 flex 행에서 track 이 줄지 않아 값 글자가 Slider 밖으로 밀려 잘렸다 (Canvas · Publish 모두).
+  - 위치: `runtime/presence.ts` (`catalogSliderValueChars` · `_valueChars` · `_valueAlign`) · `compositionRoot.ts` (`sliderValueWidth`) · `domBinding.runtime.ts` (`sliderValueStyle`) · `ruleShapes.ts` (`sliderValueText`)
+- **Slider track = S2 구조** — `SliderTrack` 은 S2 `track` 행 (S 24 · M 32 · L 40 · XL 48, 칠 없음 — 누르면 thumb 가 움직이는 자리) 이고, 그 가운데 막대 `SliderTrackBar` (S2 `upperTrack`, 새 부품 type) 가 있으며 `SliderFill` 은 막대 안에 있다 (`Slider > … > SliderTrack > SliderTrackBar > SliderFill + SliderThumb`). 전에는 track 자신이 4px 막대였고 위아래 margin 으로 행을 만들었다 (Preview 는 `::before` 누르는 상자). thick 막대 (16 · 모서리 4) 는 막대와 채움이 받는다. Slider · RangeSlider 원본 template 에 막대 노드를 넣었다 (template id 유지).
+  - 위치: `componentRulesTable.ts` (SliderTrack · SliderTrackBar · SliderFill · SliderThumb) · `bindings/SliderTrackBar.binding.ts` · `components/RangeSlider.tsx` (`SliderTrackBar`) · `runtime/presence.ts` (`catalogSliderTrackOf`)
+- **Slider 색 = S2** — 막대 `gray-300` (전: light `gray-100`), 채움 `gray-700` (전: `gray-800`) · 강조면 `accent-900`, 손잡이는 `gray-25` 바탕 + 2px `gray-800` 테두리 (hover · 끌기 `gray-900`). 전에는 채움과 같은 색의 원에 흰 고리였고 강조면 손잡이도 accent 였다 — S2 손잡이는 강조 모양이 없다. 값 글자도 S2 `neutral-subdued` (Slider · ColorSlider).
+- **Slider 비활성 = S2 `disabled` 색** — 막대 · 채움 `disabled`, 손잡이 테두리 `border-disabled`, 라벨 · 값 글자 `disabled` 로 칠하고 흐리게 하지 않는다 (Canvas · Publish). 전에는 Slider 전체를 0.38 로 흐렸다.
+
 ## [S2 정렬 — Color 조작기 (ColorHandle · 면 바깥선 · ColorWheel 안쪽 고리 · ColorSwatchPicker 선택 테두리)] - 2026-11-18
 
 ### Changed

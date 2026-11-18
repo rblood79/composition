@@ -3822,7 +3822,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           // (S2 ColorSlider: the track is the 'disabled' color, not dimmed — over the SliderTrack rule's
           //  0.38 for a Slider.)
           "&[data-disabled] .react-aria-SliderTrack": {
-            styles: { background: "var(--bg-disabled) !important", opacity: "1" },
+            styles: {
+              background: "var(--bg-disabled) !important",
+              opacity: "1",
+            },
           },
           "&[data-disabled] .react-aria-ColorThumb": {
             styles: {
@@ -12142,35 +12145,39 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     defaultSize: "M",
-    variants: {},
+    // (S2 1.8.2 `Slider.tsx` `slider` `color`: `neutral-subdued`, `disabled` while disabled — the
+    //  Label takes it (Canvas `catalogToggleButtonGlyphOwner` · DOM inherit), not a dimmed root.)
+    defaultVariant: "default",
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
+    // S2 1.8.2 `Slider.tsx` (2026-11-18): the S2 `field()` grid — the label container
+    //   (`SliderLabelContainer`) above the field input (`SliderFieldInput` — the track, and the value
+    //   text beside it when the label is at the side). No row gap (S2's `--field-gap` is 0 in a
+    //   slider's label container); `side` = two columns `auto 1fr`, centered, column gap 16 · 16 · 20 · 24.
     containerStyles: {
       display: "grid",
-      gridTemplateAreas: '"label output" "track track"',
-      gridTemplateColumns: "1fr auto",
+      gridTemplateAreas: '"label" "input"',
+      gridTemplateColumns: "1fr",
     },
-    // 2026-07-16: labelPosition="side" (Skia resolveActiveContainerVariants 소비 — 부모 grid→flex-row).
-    //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 재정렬(label→track→value)은
-    //   implicitStyles Slider 분기 (ProgressBar/Meter side 선례 동형).
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            display: "flex",
-            "flex-direction": "row",
+            "grid-template-areas": '"label input"',
+            "grid-template-columns": "auto 1fr",
             "align-items": "center",
           },
         },
       },
     },
     // ADR-295 Phase 3c-3c ②c: `height` · `indicator.trackHeight` = the S2 thin bar 4 (no reader — the
-    //   bar is the SliderTrack rule's, the row its margins below).
+    //   bar is the SliderTrackBar rule's, the row the SliderTrack's).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.full}",
         height: scaled(4),
-        gap: 4,
+        gap: 0,
         columnGap: 16,
         indicator: { trackHeight: scaled(4), thumbSize: scaled(18) },
       },
@@ -12179,7 +12186,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.full}",
         height: scaled(4),
-        gap: 4,
+        gap: 0,
         columnGap: 16,
         indicator: { trackHeight: scaled(4), thumbSize: scaled(20) },
       },
@@ -12188,7 +12195,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.full}",
         height: scaled(4),
-        gap: 4,
+        gap: 0,
         columnGap: 20,
         indicator: { trackHeight: scaled(4), thumbSize: scaled(22) },
       },
@@ -12197,8 +12204,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.full}",
         height: scaled(4),
-        gap: 4,
-        columnGap: 20,
+        gap: 0,
+        columnGap: 24,
         indicator: { trackHeight: scaled(4), thumbSize: scaled(24) },
       },
     },
@@ -12207,22 +12214,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       containerStyles: {
         display: "grid",
-        gridTemplateAreas: '"label output" "track track"',
-        gridTemplateColumns: "1fr auto",
+        gridTemplateAreas: '"label" "input"',
+        gridTemplateColumns: "1fr",
       },
+      // (S2 dims nothing while disabled — the parts take S2's `disabled` colors.)
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
       },
       composition: {
-        // ADR-295 Phase 3c-3c ②c: the track row = S2 `track` height 24 · 32 · 40 · 48 — the 4px bar
-        //   with (row − 4) / 2 above and below (a thick 16px bar: `CATALOG_SLIDER_THICK_TRACK`).
+        // (The track row — S2 `track` 24 · 32 · 40 · 48 — is the SliderTrack rule's height, 2026-11-18.)
         sizeSelectors: {
           S: {
-            ".react-aria-SliderTrack": {
-              "margin-top": scaledLengthRef(10),
-              "margin-bottom": scaledLengthRef(10),
-            },
             ".react-aria-Label": {
               "font-size": "var(--text-xs)",
             },
@@ -12231,10 +12233,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           M: {
-            ".react-aria-SliderTrack": {
-              "margin-top": scaledLengthRef(14),
-              "margin-bottom": scaledLengthRef(14),
-            },
             ".react-aria-Label": {
               "font-size": "var(--text-sm)",
             },
@@ -12243,10 +12241,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           L: {
-            ".react-aria-SliderTrack": {
-              "margin-top": scaledLengthRef(18),
-              "margin-bottom": scaledLengthRef(18),
-            },
             ".react-aria-Label": {
               "font-size": "var(--text-base)",
             },
@@ -12255,10 +12249,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           XL: {
-            ".react-aria-SliderTrack": {
-              "margin-top": scaledLengthRef(22),
-              "margin-bottom": scaledLengthRef(22),
-            },
             ".react-aria-Label": {
               "font-size": "var(--text-lg)",
             },
@@ -12268,34 +12258,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         containerVariants: {
-          // 2026-07-16: labelPosition="side" — Slider 3요소(label/track/value) grid→flex-row.
-          //   부모 flex-row + 자식 order(track 중간 flex:1, value 끝) → Label · Track · Value 가로 배치.
-          //   Skia 자식 재정렬은 implicitStyles Slider 분기가 동일 시각 결과 주입 (D3 대칭).
+          // S2 `field()` side: label column `auto`, the field input `1fr`, centered (S2 `slider`
+          //   `alignItems: { labelPosition: { side: 'center' } }`). The label container aligns the
+          //   label at `--form-label-align` (S2 `labelContainer` `textAlign`).
           "label-position": {
             side: {
               styles: {
-                display: "flex",
-                "flex-direction": "row",
+                "grid-template-areas": '"label input"',
+                "grid-template-columns": "auto 1fr",
                 "align-items": "center",
               },
               nested: [
                 {
-                  // S2 labelAlign (2026-10-10): the side label's text at `--form-label-align` (the
-                  //   fields' block). Its width is its text (S2 side label column `auto`, as Meter ·
-                  //   ProgressBar) — the track / list takes the rest.
-                  selector: "> .react-aria-Label",
+                  selector: ".react-aria-SliderLabelContainer",
                   styles: {
-                    "text-align": "var(--form-label-align, start)",
+                    display: "flex",
                     "justify-content": "var(--form-label-align, start)",
                   },
-                },
-                {
-                  selector: ".react-aria-SliderTrack",
-                  styles: { order: "1", flex: "1" },
-                },
-                {
-                  selector: ".react-aria-SliderOutput",
-                  styles: { order: "2" },
                 },
               ],
             },
@@ -12313,19 +12292,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  // ADR-256 Phase 7c: RAC's SliderFill (the reference `SliderTrack > SliderFill`) — the filled part
-  //   of the track, placed by RAC (`insetInlineStart` · width — the thumbs' range); accent, full
-  //   radius (as the old track primitive's fill).
+  // ADR-256 Phase 7c: RAC's SliderFill — the filled part of the bar, placed by RAC (`insetInlineStart` ·
+  //   width — the thumbs' range). S2 1.8.2 `Slider.tsx` `filledTrack` (2026-11-18): in the bar
+  //   (`SliderTrackBar` — S2 `upperTrack > SliderFill`), `gray-700`, `accent-900` when the Slider is
+  //   emphasized (the variant is derived from the Slider — `presence.ts`), `disabled` while disabled
+  //   (no dimming); the bar's corner (thin lg — a pill at 4 · thick sm 4, the derived `trackStyle`).
   SliderFill: {
     defaultVariant: "default",
     defaultSize: "M",
-    // S2 Slider `isEmphasized` (2026-10-10): neutral, accent when the Slider is emphasized (the
-    //   variant is derived from the Slider — `presence.ts`).
+    containerVariants: {
+      "track-style": {
+        thick: { styles: { "border-radius": "4px" } },
+      },
+    },
     variants: {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.neutral}",
+            default: "{color.neutral-subdued}",
+            isDisabled: "{color.disabled}",
           },
           color: {
             default: "{color.neutral}",
@@ -12336,6 +12321,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paint: {
           backgroundColor: {
             default: "{color.accent-content}",
+            isDisabled: "{color.disabled}",
           },
           color: {
             default: "{color.neutral}",
@@ -12366,13 +12352,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
       },
     },
   },
+  // S2 1.8.2 `Slider.tsx` (2026-11-18): the value text takes the Slider's `color` — `neutral-subdued`,
+  //   `disabled` while disabled (no dimming).
   SliderOutput: {
+    defaultVariant: "default",
     defaultSize: "M",
-    variants: {},
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral-subdued}",
+            isDisabled: "{color.disabled-content}",
+          },
+        },
+      },
+    },
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
@@ -12402,40 +12402,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "simple",
       element: "output",
+      // (S2 gives the value text a `minWidth` — it never shrinks beside the track at the side.)
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
+        flexShrink: 0,
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
       },
     },
   },
-  // ADR-912 SliderThumb catalog cutover (2026-06-16): circle 핸들 leaf. slider_thumb escape 가
-  //   circle fill = variant default fill.default.base({color.accent}) 를 읽는다. height = thumb 지름
-  //   (Slider.spec.sizes.*.indicator.thumbSize SSOT 미러 14/18/22/26). 기존 16/20/24 는 stale 값으로
-  //   spec(SliderThumb.spec.sizes 14/18/22/26)과 불일치였음 → SSOT 정합 + xl 추가.
+  // ADR-912 SliderThumb: the handle leaf (`slider_thumb` draws it in its box). height = the S2 thumb
+  //   (`thumbStyle: default` 18 · 20 · 22 · 24). S2 1.8.2 `Slider.tsx` `thumb` (2026-11-18): `gray-25`
+  //   with a 2px `gray-800` border — `gray-900` hovered · dragged, `disabled` border while disabled
+  //   (no emphasized look — S2's thumb has none). The DOM paints the same values from the slider
+  //   archetype sheet (`CSSGenerator.ts` — RAC's `data-hovered` · `data-dragging` · `data-disabled`).
   SliderThumb: {
     defaultVariant: "default",
     defaultSize: "M",
-    // S2 Slider `isEmphasized` (2026-10-10): neutral, accent when the Slider is emphasized (the
-    //   variant is derived from the Slider — `presence.ts`).
     variants: {
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.neutral}",
+            default: "{color.base}",
           },
-          color: {
+          borderColor: {
             default: "{color.neutral}",
-          },
-        },
-      },
-      emphasized: {
-        paint: {
-          backgroundColor: {
-            default: "{color.accent-content}",
+            isHovered: "{color.neutral-content-hover}",
+            isDisabled: "{color.border-disabled}",
           },
           color: {
             default: "{color.neutral}",
@@ -12466,27 +12461,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  // ADR-256 Phase 7c: the track's bar is the SliderTrack itself (background · full radius — both
-  //   consumers); its fill is the SliderFill node, its thumbs the SliderThumb nodes.
+  // S2 1.8.2 `Slider.tsx` `track` (2026-11-18): RAC's SliderTrack is the row a press moves the thumb
+  //   in — 24 · 32 · 40 · 48, no paint of its own. Its bar is the `SliderTrackBar` node (S2
+  //   `upperTrack`, centered across the row — the row is a flex line), holding the SliderFill; the
+  //   SliderThumb nodes sit on the row's middle (RAC places them). thumbSize = the handle diameter.
+  //   (A ColorSlider's track is its gradient face — the ColorSlider rule sizes and rounds it.)
   SliderTrack: {
     defaultVariant: "default",
     defaultSize: "M",
-    // S2 1.8.0 Slider trackStyle thick (2026-10-10): 트랙 radius 는 S2 sm (4px — thin 은 full).
-    //   Canvas rule 집행기가 파생 trackStyle 로 읽는다 (`rulePaint.ts` containerVariantPaint);
-    //   높이 16px 는 `CATALOG_SLIDER_THICK_TRACK` (presence.ts — styleOf · DOM inline 동일 값).
-    containerVariants: {
-      "track-style": {
-        thick: { styles: { "border-radius": "4px" } },
-      },
-    },
     variants: {
-      // The bar (neutral-subtle — the generated `--bg-muted`).
       default: {
         paint: {
           backgroundColor: {
-            default: "{color.neutral-subtle}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
+            default: "{color.transparent}",
           },
           color: {
             default: "{color.neutral}",
@@ -12494,74 +12481,157 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    // ADR-295 Phase 3c-3c ②c: the bar is S2 thin 4 at every size (`Slider.tsx` `trackStyling`); the
-    //   track row (S2 `track` height 24 · 32 · 40 · 48) is the bar plus the Slider's per-size margins
-    //   (`sizeSelectors` `.react-aria-SliderTrack`). thumbSize = the handle diameter.
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.full}",
-        height: scaled(4),
+        borderRadius: "{radius.none}",
+        height: scaled(24),
         thumbSize: scaled(18),
       },
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.full}",
-        height: scaled(4),
+        borderRadius: "{radius.none}",
+        height: scaled(32),
         thumbSize: scaled(20),
       },
       L: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.full}",
-        height: scaled(4),
+        borderRadius: "{radius.none}",
+        height: scaled(40),
         thumbSize: scaled(22),
       },
       XL: {
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.full}",
-        height: scaled(4),
+        borderRadius: "{radius.none}",
+        height: scaled(48),
         thumbSize: scaled(24),
       },
     },
     structure: {
       archetype: "slider",
       element: "div",
+      // (S2 `track` `width: 'full'` — a rule length, so in the field input's flex row it shrinks
+      //  for the side value text; a template-written `100%` read as the author's fixed size and
+      //  did not — `catalogFixedMainShrink`, 2026-11-18.)
       containerStyles: {
-        display: "grid",
+        display: "flex",
+        alignItems: "center",
         position: "relative",
+        width: "100%",
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
       },
-      // ADR-295 Phase 3c-3c ②c: the S2 track row (24 · 32 · 40 · 48) is where a press moves the thumb
-      //   (S2 `track` — the 4px bar sits in it). The row's margins are space, so the DOM gives the bar
-      //   a hit box of the row's height (an interaction-only box the Canvas does not draw — ADR-223).
-      //   `::before` paints below the fill and thumbs (tree order), so they keep their presses.
       composition: {
-        rootSelectors: {
-          "&:is(.react-aria-Slider *)::before": {
-            styles: {
-              content: "''",
-              position: "absolute",
-              "inset-inline": "0",
-              top: "50%",
-              transform: "translateY(-50%)",
-            },
+        delegation: [],
+      },
+    },
+  },
+  // S2 1.8.2 `Slider.tsx` `upperTrack` (2026-11-18): the bar across the track row — full width, S2
+  //   `trackStyling` thin 4 · thick 16 (`CATALOG_SLIDER_THICK_TRACK` — the derived `trackStyle`),
+  //   corner thin lg (a pill at 4) · thick sm 4; `gray-300`, `disabled` while disabled (no dimming).
+  //   Positioned: its SliderFill is placed in it (RAC — `insetInlineStart` · width, height 100%).
+  SliderTrackBar: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    containerVariants: {
+      "track-style": {
+        thick: { styles: { "border-radius": "4px" } },
+      },
+    },
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: {
+            default: "{color.neutral-outline}",
+            isDisabled: "{color.disabled}",
           },
-          '&:is(.react-aria-Slider *)[data-size="S"]::before': {
-            styles: { height: scaledLengthRef(24) },
-          },
-          '&:is(.react-aria-Slider *)[data-size="M"]::before': {
-            styles: { height: scaledLengthRef(32) },
-          },
-          '&:is(.react-aria-Slider *)[data-size="L"]::before': {
-            styles: { height: scaledLengthRef(40) },
-          },
-          '&:is(.react-aria-Slider *)[data-size="XL"]::before': {
-            styles: { height: scaledLengthRef(48) },
+          color: {
+            default: "{color.neutral}",
           },
         },
+      },
+    },
+    sizes: {
+      S: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.full}",
+        height: scaled(4),
+      },
+      M: {
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.full}",
+        height: scaled(4),
+      },
+      L: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.full}",
+        height: scaled(4),
+      },
+      XL: {
+        fontSize: "{typography.text-lg}",
+        borderRadius: "{radius.full}",
+        height: scaled(4),
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "block",
+        position: "relative",
+        width: "100%",
+      },
+      composition: {
+        delegation: [],
+      },
+    },
+  },
+  // S2 1.8.2 `Slider.tsx` `labelContainer` (2026-11-18): the label row and, with the label on top,
+  //   the value text at its end — a grid `1fr auto` (S2 `gridTemplateColumns: ['1fr', 'auto']`). With
+  //   the label at the side it holds the label only (the Slider's `side` block — flex at the label
+  //   alignment).
+  SliderLabelContainer: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: { borderRadius: "{radius.none}" },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        alignItems: "center",
+        width: "100%",
+      },
+      composition: {
+        delegation: [],
+      },
+    },
+  },
+  // S2 1.8.2 `Slider.tsx` field input `div` (2026-11-18 — `fieldInput()` · `inline-flex`, centered):
+  //   the track, and the value text after it when the label is at the side; gap S 16 · M 16 · L 20 ·
+  //   XL 24 (the Slider's size).
+  SliderFieldInput: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      S: { borderRadius: "{radius.none}", gap: 16 },
+      M: { borderRadius: "{radius.none}", gap: 16 },
+      L: { borderRadius: "{radius.none}", gap: 20 },
+      XL: { borderRadius: "{radius.none}", gap: 24 },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        alignItems: "center",
+        width: "100%",
+      },
+      composition: {
         delegation: [],
       },
     },

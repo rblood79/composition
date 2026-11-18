@@ -261,6 +261,9 @@
 /* Slider: generated from Spec */
 @import "./generated/Slider.css";
 @import "./generated/SliderTrack.css";
+@import "./generated/SliderTrackBar.css"; /* S2 upperTrack — 막대 노드 (2026-11-18) */
+@import "./generated/SliderLabelContainer.css"; /* S2 labelContainer (2026-11-18) */
+@import "./generated/SliderFieldInput.css"; /* S2 field input div (2026-11-18) */
 @import "./generated/SliderOutput.css";
 @import "./generated/SliderFill.css"; /* ADR-256 Phase 7c — RAC SliderFill 노드 */
 /* SliderThumb.css 제거 (ADR-912 catalog cutover 2026-06-16): DOM thumb 은 부모 Slider.css 의

@@ -151,6 +151,9 @@ import { sliderOutputBinding } from "./SliderOutput.binding";
 import { sliderFillBinding } from "./SliderFill.binding";
 import { sliderThumbBinding } from "./SliderThumb.binding";
 import { sliderTrackBinding } from "./SliderTrack.binding";
+import { sliderTrackBarBinding } from "./SliderTrackBar.binding";
+import { sliderLabelContainerBinding } from "./SliderLabelContainer.binding";
+import { sliderFieldInputBinding } from "./SliderFieldInput.binding";
 import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
@@ -297,6 +300,9 @@ export * from "./GridListSection.binding";
 export * from "./Skeleton.binding";
 export * from "./Slider.binding";
 export * from "./SliderTrack.binding";
+export * from "./SliderTrackBar.binding";
+export * from "./SliderLabelContainer.binding";
+export * from "./SliderFieldInput.binding";
 export * from "./SliderFill.binding";
 export * from "./StatusLight.binding";
 export * from "./Switch.binding";
@@ -515,8 +521,13 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   RangeSlider: rangeSliderBinding,
   SegmentedControl: segmentedControlBinding,
   SegmentedControlItem: segmentedControlItemBinding,
-  // ADR-256 Phase 7c: a Slider's parts are RAC's — SliderTrack (its bar) > SliderFill + SliderThumb.
+  // ADR-256 Phase 7c: a Slider's parts are RAC's — SliderTrack (the S2 row) > SliderTrackBar (S2
+  //   `upperTrack`, 2026-11-18) > SliderFill · SliderThumb.
   SliderTrack: sliderTrackBinding,
+  SliderTrackBar: sliderTrackBarBinding,
+  // (S2 `labelContainer` · field input `div` — the Slider's two rows, 2026-11-18.)
+  SliderLabelContainer: sliderLabelContainerBinding,
+  SliderFieldInput: sliderFieldInputBinding,
   SliderFill: sliderFillBinding,
   SliderThumb: sliderThumbBinding,
   // ADR-256 Phase 7: a ProgressBar's · Meter's track (`div.bar`) and fill (`div.fill`) nodes.

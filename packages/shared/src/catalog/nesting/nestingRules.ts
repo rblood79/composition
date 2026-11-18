@@ -145,6 +145,14 @@ export const PART_WRAPPER_TYPES: readonly string[] = [
   "Group",
 ];
 
+/** Wrappers whose template contents stay parts of their host (`derivePartsHosts`). */
+const ROW_WRAPPER_TYPES: ReadonlySet<string> = new Set([
+  "FieldLabel",
+  "SliderLabelContainer",
+  "SliderFieldInput",
+]);
+type LibraryTemplateNodeLike = { readonly children: readonly unknown[] };
+
 /** 팔레트 type 이 아닌 code-catalog 정의 id 의 type 이름 (template 자식이 쓰는 둘). */
 const CODE_CATALOG_DEFINITION_NAMES: Readonly<Record<string, string>> = {
   "lib:definition:text": "Text",
@@ -235,14 +243,19 @@ function derivePartsHosts(): Readonly<Record<string, readonly string[]>> {
       const type = typeOf(String(child.definitionId));
       if (type) parts.add(type);
       // A label row (S2 `FieldLabel` — 2026-11-18) stands in its Label's place: what it holds stays
-      // a part of the host too (a field placed before the row, a Label taken out of it).
-      if (type === "FieldLabel")
-        for (const inRow of child.children) {
-          const rowPart = typeOf(
-            String(templates.get(String(inRow))!.definitionId),
-          );
-          if (rowPart) parts.add(rowPart);
+      // a part of the host too (a field placed before the row, a Label taken out of it). So do a
+      // Slider's label container · field input (S2 `labelContainer` · `fieldInput()`, 2026-11-18) —
+      // and the label row in its label container.
+      const addRowParts = (row: LibraryTemplateNodeLike) => {
+        for (const inRow of row.children) {
+          const node = templates.get(String(inRow))!;
+          const rowPart = typeOf(String(node.definitionId));
+          if (!rowPart) continue;
+          parts.add(rowPart);
+          if (rowPart === "FieldLabel") addRowParts(node);
         }
+      };
+      if (type && ROW_WRAPPER_TYPES.has(type)) addRowParts(child);
     }
   }
   for (const [host, parts] of hosts) {

@@ -234,7 +234,6 @@ import {
   type CatalogComposedPart,
   CATALOG_SLIDER_THICK_TRACK,
   catalogScaledPx,
-  catalogSliderThickTrackMargins,
   catalogHiddenAtRest,
   type CatalogOriginBodyOpen,
   catalogInlineAlertBoldText,
@@ -1845,6 +1844,7 @@ function styleOf(
       ? { overflowX: node.visual.overflow, overflowY: node.visual.overflow }
       : {}),
     ...containerTracks(node, measure),
+    ...sliderValueWidth(node, measure),
     // ADR-257: a Table's header row · Row is a grid on the Columns' shared tracks
     // (`catalogTableRowTracks`) — every row has the same tracks, so a column lines up in all.
     ...(typeof node.derivedProps?._tableTracks === "string"
@@ -1866,9 +1866,10 @@ function styleOf(
     ...(node.derivedProps?._justified === true
       ? { flexGrow: 1, flexBasis: "0%" }
       : {}),
-    // S2 Slider `trackStyle: thick` — the track bar's 16px (the DOM track inline reads the same
-    // value, `CATALOG_SLIDER_THICK_TRACK`).
-    ...(node.derivedProps?.trackStyle === "thick"
+    // S2 Slider `trackStyle: thick` — the bar's 16px (the DOM bar inline reads the same value,
+    // `CATALOG_SLIDER_THICK_TRACK`).
+    ...(node.derivedProps?.trackStyle === "thick" &&
+    node.bindingId === "slidertrackbar"
       ? { height: `${catalogScaledPx(CATALOG_SLIDER_THICK_TRACK.height)}px` }
       : {}),
     // A standalone list's item does not shrink (its list rule's item selector — the resolver's
@@ -1887,11 +1888,6 @@ function styleOf(
     // (2026-11-15: a grouped Checkbox's help text — S2 `isInCheckboxGroup`, over the item's own field
     //  margins (its part rule); the DOM's same inline margins, `toggleLayout.ts`.)
     ...catalogToggleItemHelpLayout(node.derivedProps),
-    // (ADR-295 Phase 3c-3c ②c: the thick bar keeps the S2 track row — its margins refine the row margins
-    // `itemLayout` carries, `catalogSliderThickTrackMargins`.)
-    ...(node.derivedProps?.trackStyle === "thick"
-      ? catalogSliderThickTrackMargins(node)
-      : {}),
     ...(node.fillLayout ?? {}),
     // RAC `WaterfallLayout` · S2 CardView `layout="waterfall"`: the grid's row axis is masonry —
     // the engine stacks the items under the shortest column (`waterfall.ts`).
@@ -1972,20 +1968,47 @@ function containerTracks(
       node.layout[key] ??
       (typeof sized === "number" ? `${sized}px` : undefined);
     if (value === undefined || value === "none") continue;
-    // `ch` = the advance of "0" in the node's own font (CSS Values 4).
     const ch = /^(\d+(?:\.\d+)?)ch$/.exec(value);
     if (!ch) out[key] = value;
-    else if (measure && Number(node.visual.fontSize) > 0)
-      out[key] = `${
-        Number(ch[1]) *
-        (measure("0", {
-          fontSize: Number(node.visual.fontSize),
-          fontWeight: Number(node.visual.fontWeight ?? 400),
-          lineHeight: 0,
-        }).exactWidth ?? 0)
-      }px`;
+    else {
+      const width = chWidth(node, measure, Number(ch[1]));
+      if (width !== undefined) out[key] = width;
+    }
   }
   return out;
+}
+
+/** `n` `ch` in px — the advance of "0" in the node's own font (CSS Values 4). */
+function chWidth(
+  node: CatalogConsumerNode,
+  measure: CatalogTextMeasure | undefined,
+  n: number,
+): string | undefined {
+  if (!measure || !(Number(node.visual.fontSize) > 0)) return undefined;
+  const zero = measure("0", {
+    fontSize: Number(node.visual.fontSize),
+    fontWeight: Number(node.visual.fontWeight ?? 400),
+    lineHeight: 0,
+  });
+  return `${n * (zero.exactWidth ?? zero.width)}px`;
+}
+
+/**
+ * S2 1.8.2 Slider value text: `${n}ch` wide and at least as wide (`Slider.tsx` — the presence's
+ * `_valueChars`; the DOM inline is the same `ch`). An authored width wins.
+ */
+function sliderValueWidth(
+  node: CatalogConsumerNode,
+  measure: CatalogTextMeasure | undefined,
+): Record<string, string> {
+  const chars = node.derivedProps?._valueChars;
+  if (
+    typeof chars !== "number" ||
+    (node.sizing.width ?? node.visual.width) != null
+  )
+    return {};
+  const width = chWidth(node, measure, chars);
+  return width === undefined ? {} : { width, minWidth: width };
 }
 
 /** Typed item/placement layout fields (same names as Rust `NodeStyle`). */
@@ -7456,7 +7479,12 @@ export class CatalogCompositionRoot {
     // its children are the owner's direct parts, 2026-11-18.)
     const direct = after.children.flatMap((childId) => {
       const child = this.records.get(childId);
-      return child && this.typeOf(child) === "DisclosureHeader"
+      return child &&
+        [
+          "DisclosureHeader",
+          "SliderLabelContainer",
+          "SliderFieldInput",
+        ].includes(this.typeOf(child))
         ? [childId, ...child.children]
         : [childId];
     });
@@ -7829,7 +7857,11 @@ export class CatalogCompositionRoot {
           ids.flatMap((childId) => {
             const child = this.records.get(childId);
             return child && CATALOG_SIZE_PASS_THROUGH.has(this.typeOf(child))
-              ? through(child.children)
+              ? // (A pass-through the owner sizes too — a Slider's field input — re-resolves itself.)
+                [
+                  ...(sized?.includes(this.typeOf(child)) ? [childId] : []),
+                  ...through(child.children),
+                ]
               : [childId];
           });
         const reached = sized ? through(record.children) : [];

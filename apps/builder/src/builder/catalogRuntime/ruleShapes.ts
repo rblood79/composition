@@ -121,6 +121,8 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "Image",
   "Slider",
   "SliderTrack",
+  // (S2 thumb — a circle or the precise bar, drawn at its box: 2026-11-18.)
+  "SliderThumb",
   // ADR-258 Phase 2: the Color controls' gradient · ring · handle are drawn at the box.
   "ColorArea",
   "ColorWheelTrack",
@@ -783,7 +785,29 @@ export function catalogRuleNodeData(
   }
   if ((tableText && !tableWraps) || badgeTruncates) ellipsize(data);
   if (tableText) alignTableText(data, input.node.visual.textAlign);
+  sliderValueText(data, input.node);
   return data;
+}
+
+/**
+ * S2 1.8.2 Slider value text (the presence's `_valueChars` · `_valueAlign` — `Slider.tsx` `output`):
+ * tabular digits in its `${n}ch` box, at its row's side (the label container's end, the start after
+ * the track) — the DOM's `justify-content` on the flex box (`sliderValueStyle`).
+ */
+function sliderValueText(
+  data: SkiaNodeData,
+  node: CatalogRuleShapeInput["node"],
+): void {
+  if (typeof node.derivedProps?._valueChars !== "number") return;
+  const align = node.derivedProps._valueAlign === "end" ? "right" : "left";
+  const paint = (item: SkiaNodeData) => {
+    if (item.text) {
+      item.text.fontVariant = "tabular-nums";
+      item.text.align = align;
+    }
+    for (const child of item.children ?? []) paint(child);
+  };
+  paint(data);
 }
 
 /** ADR-257 Phase 3 — a cell's own S2 `align` (the rule's `align` block: center · right). */

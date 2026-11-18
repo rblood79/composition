@@ -1,0 +1,38 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SliderLabelContainer — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SliderLabelContainer {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 1fr auto;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  border-radius: var(--catalog-token-radius-none);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-SliderLabelContainer {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

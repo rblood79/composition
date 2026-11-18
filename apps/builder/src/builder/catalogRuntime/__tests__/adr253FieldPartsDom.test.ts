@@ -175,12 +175,12 @@ const numberFieldEmptyMarkup = (markup: string) => {
  * (`CATALOG_BOXED_FIELDS`, 2026-11-13 · DateRangePicker 2026-11-14).
  */
 const fieldBoxGroupMarkup = (markup: string, field: string) => {
-  const size = new RegExp(`class=react-aria-${field}[^>]*? data-size=(\\w+)`).exec(
-    markup,
-  )?.[1];
-  const quiet = new RegExp(`class=react-aria-${field}[^>]*? data-quiet=true`).test(
-    markup,
-  );
+  const size = new RegExp(
+    `class=react-aria-${field}[^>]*? data-size=(\\w+)`,
+  ).exec(markup)?.[1];
+  const quiet = new RegExp(
+    `class=react-aria-${field}[^>]*? data-quiet=true`,
+  ).test(markup);
   // (The class value is its space-separated tokens — the attributes after it carry `=`.)
   return markup
     .replace(
@@ -258,16 +258,18 @@ function tagGroupMarkup(text: string): string {
       "aria-describedby aria-labelledby aria-live=off",
       "aria-describedby aria-label=Tag group aria-live=off",
     );
-  return text.replace(
-    /<div aria-selected=(\w+) class=react-aria-Tag ([^>]*)><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=(\w+) slot=label>([^<]*)</g,
-    (_match, selected, rest, size, label) =>
-      // (A Tag has no `variant` — RAC · S2 Tag has none; its selection is the group's, 2026-10-09.)
-      // (Its text in the Tag's content `div` — S2 `TagWrapper`, 2026-11-18.)
-      `<div aria-label=${label} aria-labelledby aria-selected=${selected} class=react-aria-Tag ${rest.replace(" data-variant=default", "")}><div aria-colindex=1 role=gridcell><div ><span class=react-aria-Text data-size=${size}>${label}</></><`,
-  ).replace(
-    /(<div ><span class=react-aria-Text data-size=\w+>[^<]*<\/><\/>)<\/>/g,
-    "$1",
-  );
+  return text
+    .replace(
+      /<div aria-selected=(\w+) class=react-aria-Tag ([^>]*)><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=(\w+) slot=label>([^<]*)</g,
+      (_match, selected, rest, size, label) =>
+        // (A Tag has no `variant` — RAC · S2 Tag has none; its selection is the group's, 2026-10-09.)
+        // (Its text in the Tag's content `div` — S2 `TagWrapper`, 2026-11-18.)
+        `<div aria-label=${label} aria-labelledby aria-selected=${selected} class=react-aria-Tag ${rest.replace(" data-variant=default", "")}><div aria-colindex=1 role=gridcell><div ><span class=react-aria-Text data-size=${size}>${label}</></><`,
+    )
+    .replace(
+      /(<div ><span class=react-aria-Text data-size=\w+>[^<]*<\/><\/>)<\/>/g,
+      "$1",
+    );
 }
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
 /** Side label fields (their hints sit in the control's column — S2 `field()` grid, 2026-10-10). */
@@ -399,7 +401,8 @@ function searchFieldGroupMarkup(markup: string): string {
   // (2026-11-13) S2 SearchField: the glyph · Input · clear button sit in its `FieldGroup` — the
   // control Group node, the Input rule's box (`FieldBox`) at the field's size, taking the field's
   // disabled · invalid · read-only and quiet itself (RAC's SearchField gives no `GroupContext`).
-  const root = /<div class=react-aria-SearchField([^>]*)>/.exec(markup)?.[1] ?? "";
+  const root =
+    /<div class=react-aria-SearchField([^>]*)>/.exec(markup)?.[1] ?? "";
   const flag = (name: string) =>
     new RegExp(` data-${name}=true`).test(root) ? ` data-${name}=true` : "";
   const size = / data-size=(\w+)/.exec(root)?.[1] ?? "M";
@@ -414,14 +417,17 @@ function searchFieldGroupMarkup(markup: string): string {
  * element — and a DateInput's hidden form input after it (RAC's DateInput renders both).
  */
 function plainFieldBoxMarkup(markup: string, field: string): string {
-  const root = new RegExp(`<div class=react-aria-${field}([^>]*)>`).exec(markup)?.[1] ?? "";
+  const root =
+    new RegExp(`<div class=react-aria-${field}([^>]*)>`).exec(markup)?.[1] ??
+    "";
   const flag = (name: string) =>
     new RegExp(` data-${name}=true`).test(root) ? ` data-${name}=true` : "";
   const size = / data-size=(\w+)/.exec(root)?.[1] ?? "M";
   const group = `<div class=react-aria-Group react-aria-FieldBox${flag("disabled")}${flag("invalid")}${flag("quiet")} data-rac=${flag("readonly")} data-size=${size} data-variant=default role=presentation>`;
-  const start = /<(input|textarea)[^>]*class=react-aria-(Input|TextArea)[\s>]|<div[^>]*class=react-aria-DateInput[\s>]/.exec(
-    markup,
-  )?.index;
+  const start =
+    /<(input|textarea)[^>]*class=react-aria-(Input|TextArea)[\s>]|<div[^>]*class=react-aria-DateInput[\s>]/.exec(
+      markup,
+    )?.index;
   if (start === undefined) return markup;
   // The element's end: its tags balanced (`<x …>` opens, `</>` closes).
   const close = (from: number) => {
@@ -435,7 +441,9 @@ function plainFieldBoxMarkup(markup: string, field: string): string {
     return markup.length;
   };
   let end = close(start);
-  const hidden = /^<input class=[^>]* hidden=[^>]*><\/>/.exec(markup.slice(end));
+  const hidden = /^<input class=[^>]* hidden=[^>]*><\/>/.exec(
+    markup.slice(end),
+  );
   if (hidden) end += hidden[0].length;
   return `${markup.slice(0, start)}${group}${markup.slice(start, end)}</>${markup.slice(end)}`;
 }
@@ -527,7 +535,10 @@ const progressNodeTreeMarkup = (
   // (S2 `label &&`: no value text without a label — 2026-11-18.)
   return name === "no label"
     ? current
-        .replace(/^<div aria-labelledby (aria-valuemax)/, `<div aria-label=${label} $1`)
+        .replace(
+          /^<div aria-labelledby (aria-valuemax)/,
+          `<div aria-label=${label} $1`,
+        )
         .replace(/<span class=value>[^<]*<\/>/, "")
     : current;
 };
@@ -540,18 +551,37 @@ const sliderNodeTreeMarkup = (markup: string, name: string) => {
   const disabled = /class=react-aria-Slider [^>]*data-disabled=true/.test(
     markup,
   );
+  // (S2 1.8.2 `Slider.tsx`, 2026-11-18: the fill stands in the bar — `upperTrack`, the
+  //  SliderTrackBar node — and the output · fill name their variant for the sheets' disabled color.)
   const tree = markup
     .replace(/<div class=slider-track-bg[^>]*><\/>/, "")
     .replace(
       /<div class=slider-fill[^>]*><\/>/,
-      `<div class=react-aria-SliderFill ${disabled ? "data-disabled=true " : ""}data-orientation=horizontal data-rac=></>`,
+      `<div class=react-aria-SliderTrackBar ${disabled ? "data-disabled=true " : ""}data-variant=default><div class=react-aria-SliderFill ${disabled ? "data-disabled=true " : ""}data-orientation=horizontal data-rac= data-variant=default></></>`,
+    )
+    .replace(
+      /(<output aria-live=off class=react-aria-SliderOutput [^>]*?data-rac= )/,
+      "$1data-variant=default ",
     );
+  // (S2 1.8.2 `Slider.tsx`, 2026-11-18: the label container `div` holds the label row and the top value
+  //  text, the field input `div` the track (and the side value text after it).)
+  const head = tree.slice(0, tree.indexOf(">") + 1);
+  const at = tree.indexOf("<output ");
+  const output = /<output [^>]*>[^<]*<\/>/.exec(tree)![0];
+  // (the label row — S2 `FieldLabel` — inside the container)
+  const labelPart = tree.slice(head.length, at)
+    ? `<div class=react-aria-FieldLabel>${tree.slice(head.length, at)}</>`
+    : "";
+  const track = tree.slice(at + output.length).replace(/<\/>$/, "");
+  const side = /data-label-position=side/.test(head);
+  const size = /data-size=(\w+)/.exec(head)?.[1] ?? "M";
+  const restructured = `${head}<div class=react-aria-SliderLabelContainer>${labelPart}${side ? "" : output}</><div class=react-aria-SliderFieldInput data-size=${size}>${track}${side ? output : ""}</></>`;
   return name === "no label"
-    ? tree.replace(
+    ? restructured.replace(
         /^<div aria-labelledby (class=react-aria-Slider)/,
         "<div aria-label=Slider $1",
       )
-    : tree;
+    : restructured;
 };
 /**
  * db5351e4c (2026-11-07, S2 Label inline layout — S2 `FieldLabel`): a field's Label holds its
@@ -572,14 +602,18 @@ const PLAIN_LABEL_TYPES = ["meter", "progressbar", "taggroup"];
  * (`<tag …>` opens, `</>` closes); item labels deeper down stay as they are.
  */
 /** A field's Label node — in its S2 `FieldLabel` row (2026-11-18), or a direct child. */
-function fieldLabelNode<T extends { bindingId?: string; children: readonly string[] }>(
-  records: ReadonlyMap<string, T>,
-  field: { children: readonly string[] },
-): T {
+function fieldLabelNode<
+  T extends { bindingId?: string; children: readonly string[] },
+>(records: ReadonlyMap<string, T>, field: { children: readonly string[] }): T {
   for (const id of field.children) {
     const child = records.get(id)!;
     if (child.bindingId === "label") return child;
-    if (child.bindingId === "fieldlabel") return fieldLabelNode(records, child);
+    if (
+      child.bindingId === "fieldlabel" ||
+      // (a Slider's label container — S2 `labelContainer`, 2026-11-18)
+      child.bindingId === "sliderlabelcontainer"
+    )
+      return fieldLabelNode(records, child);
   }
   throw new Error("no Label");
 }
@@ -947,9 +981,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                                     : type === "colorfield"
                                       ? plainFieldBoxMarkup(fixed, "ColorField")
                                       : type === "datefield"
-                                        ? plainFieldBoxMarkup(fixed, "DateField")
+                                        ? plainFieldBoxMarkup(
+                                            fixed,
+                                            "DateField",
+                                          )
                                         : type === "timefield"
-                                          ? plainFieldBoxMarkup(fixed, "TimeField")
+                                          ? plainFieldBoxMarkup(
+                                              fixed,
+                                              "TimeField",
+                                            )
                                           : fixed;
           const owned =
             type === "checkboxgroup" ||
@@ -978,9 +1018,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             withoutErrorIcon(
               owned(glyphless(withoutNecessityGlyph(structure))),
             ),
-          ).toBe(
-            withOriginItemKeys(type, owned(glyphless(hints))),
-          );
+          ).toBe(withOriginItemKeys(type, owned(glyphless(hints))));
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.
@@ -2129,8 +2167,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         // (ADR-295 Phase 3c-3: S2 `edge-to-text` — the XL field height 48 × 3/8 — now the box's start.)
         expect(box().visual).toMatchObject({ minWidth: 220 });
         expect(
-          (scene.workspace.root.getLayoutInput(box().id) as Record<string, unknown>)
-            .paddingLeft,
+          (
+            scene.workspace.root.getLayoutInput(box().id) as Record<
+              string,
+              unknown
+            >
+          ).paddingLeft,
         ).toBe("18px");
         // The DateInput origin is where its shape comes from.
         scene.workspace.execute(
@@ -2313,8 +2355,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           .get(field.id)!
           .children.map((id) => records.get(id)!)
           .find((child) => typeOf(child.id) === "Group")!;
-      const parts = () =>
-        groupOf().children.map((id) => records.get(id)!);
+      const parts = () => groupOf().children.map((id) => records.get(id)!);
       const host = () => {
         const element = document.createElement("div");
         element.innerHTML = renderToStaticMarkup(
@@ -2604,7 +2645,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
     // the centring padding and border around it (S2 `FieldGroup`, 2026-11-14).
     expect(input().visual.height).toBe(54);
     // (The box is the field's former Input height — 68.)
-    expect([rect(group().id).height, rect(input().id).height]).toEqual([68, 54]);
+    expect([rect(group().id).height, rect(input().id).height]).toEqual([
+      68, 54,
+    ]);
     expect(rows()).toBe("3");
     workspace.execute(
       setFields({
@@ -2613,7 +2656,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       }),
     );
     expect(input().visual.height).toBe(90);
-    expect([rect(group().id).height, rect(input().id).height]).toEqual([104, 90]);
+    expect([rect(group().id).height, rect(input().id).height]).toEqual([
+      104, 90,
+    ]);
     expect(rows()).toBe("5");
   });
 

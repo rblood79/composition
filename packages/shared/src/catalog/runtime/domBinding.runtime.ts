@@ -1,7 +1,12 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
 import { catalogToggleItemHelpRefs } from "../rule/toggleLayout";
 import { catalogEffectiveStaticColor } from "./staticBackdrop";
-import { SliderThumb as CatalogSliderThumb } from "../../components/RangeSlider";
+import {
+  SliderThumb as CatalogSliderThumb,
+  SliderTrackBar as CatalogSliderTrackBar,
+  SliderLabelContainer as CatalogSliderLabelContainer,
+  SliderFieldInput as CatalogSliderFieldInput,
+} from "../../components/RangeSlider";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import { LinkButton } from "../../components/LinkButton";
 import { LinkPrimitive } from "../../components/LinkPrimitive";
@@ -243,7 +248,6 @@ import type { CatalogTableDeviceColumns } from "./virtualListLayout";
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
-  catalogSliderThickTrackMargins,
   catalogAbsentByValue,
   catalogActionButtonPartAbsent,
   catalogAccordionOf,
@@ -1513,8 +1517,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   slideroutput: (node, style) =>
     createElement(
       RAC.SliderOutput as ElementType,
-      // (Its type size is the Slider sheet's — `.react-aria-Slider[data-size] .react-aria-SliderOutput`.)
-      { key: node.id, "data-catalog-id": node.id, style },
+      // (Its type size is the Slider sheet's — `.react-aria-Slider[data-size] .react-aria-SliderOutput`;
+      //  its variant named, so the sheet's disabled color — `[data-variant][data-disabled]` — reaches it.)
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        "data-variant": "default",
+        style: sliderValueStyle(node, style),
+      },
       ...(catalogRacOwnsText(node) || node.derivedProps?._fieldComposed === true
         ? []
         : [String(node.props.children ?? "")]),
@@ -1524,28 +1534,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       key: node.id,
       "data-catalog-id": node.id,
       "data-size": String(node.props.size ?? "M"),
-      // S2 `trackStyle: thick` — the 16px bar with the S2 sm corner (the Canvas reads the same
-      // values: `CATALOG_SLIDER_THICK_TRACK` in `styleOf`, the rule's containerVariants radius).
-      ...(node.derivedProps?.trackStyle === "thick"
-        ? { "data-track-style": "thick" }
-        : {}),
-      style:
-        node.derivedProps?.trackStyle === "thick"
-          ? {
-              ...style,
-              // (ADR-295 후속: the S2 bar · row are `size()` numbers — the device formula of the desktop px.)
-              height: catalogDeviceScaledCss(CATALOG_SLIDER_THICK_TRACK.height),
-              borderRadius: CATALOG_SLIDER_THICK_TRACK.radius,
-              ...Object.fromEntries(
-                Object.entries(catalogSliderThickTrackMargins(node) ?? {}).map(
-                  ([key, value]) => [
-                    key,
-                    catalogDeviceScaledCss(Number.parseFloat(value)),
-                  ],
-                ),
-              ),
-            }
-          : style,
+      style,
       // S2 ColorSlider: the channel gradient over the checkerboard, the face outline (none while
       // disabled) — `colorHandle.ts`, the Canvas `color_slider_track`.
       ...(typeof node.derivedProps?._colorGradient === "string"
@@ -1570,19 +1559,54 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         : {}),
       children: catalogStateChildren(node.id, () => children),
     }),
+  // S2 `upperTrack` (2026-11-18): the bar in the track row, holding the fill (`SliderTrackBar` — its
+  // disabled look is the Slider's RAC state). A thick bar is 16 with the S2 sm corner (the Canvas
+  // reads the same values: `CATALOG_SLIDER_THICK_TRACK` in `styleOf`, the rule's `track-style` block).
+  // S2 `labelContainer` · field input `div` (2026-11-18): a Slider's two rows — plain `div`s.
+  sliderlabelcontainer: (node, style, children) =>
+    createElement(
+      CatalogSliderLabelContainer as ElementType,
+      { key: node.id, "data-catalog-id": node.id, style },
+      ...children,
+    ),
+  sliderfieldinput: (node, style, children) =>
+    createElement(
+      CatalogSliderFieldInput as ElementType,
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        size: String(node.props.size ?? "M"),
+        style,
+      },
+      ...children,
+    ),
+  slidertrackbar: (node, style, children) =>
+    createElement(
+      CatalogSliderTrackBar as ElementType,
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        ...sliderThickTrack(node, style, true),
+      },
+      ...children,
+    ),
   sliderfill: (node, style) =>
     createElement(RAC.SliderFill as ElementType, {
       key: node.id,
       "data-catalog-id": node.id,
-      // (S2 `isEmphasized` — the SliderFill sheet's variant, derived from the Slider.)
+      // (S2 `isEmphasized` — the SliderFill sheet's variant, derived from the Slider; always named, so
+      //  the sheet's disabled branch — `[data-variant][data-disabled]` — reaches the default fill.)
       "data-variant":
-        node.derivedProps?.variant === "emphasized" ? "emphasized" : undefined,
+        node.derivedProps?.variant === "emphasized" ? "emphasized" : "default",
+      ...(node.derivedProps?.trackStyle === "thick"
+        ? { "data-track-style": "thick" }
+        : {}),
       // (S2 `fillOffset` — RAC's own fill placement starts there; derived from the Slider.)
       ...(typeof node.derivedProps?._fillOffset === "number"
         ? { offset: node.derivedProps._fillOffset }
         : {}),
       style: ({ defaultStyle }: { defaultStyle: CSSProperties }) => ({
-        ...withoutRacPlacement(style),
+        ...withoutRacPlacement(sliderThickTrack(node, style, false).style),
         ...defaultStyle,
       }),
     }),
@@ -1844,6 +1868,51 @@ const RAC_PLACED_KEYS = [
   "insetInlineStart",
   "transform",
 ] as const;
+
+/**
+ * S2 `trackStyle: thick` on a Slider's bar · fill (the derived `trackStyle`): the S2 sm corner, and
+ * the bar's 16 height (ADR-295 후속: an S2 `size()` number — the device formula of the desktop px).
+ */
+function sliderThickTrack(
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+  bar: boolean,
+): { style: CSSProperties; "data-track-style"?: "thick" } {
+  if (node.derivedProps?.trackStyle !== "thick") return { style };
+  return {
+    "data-track-style": "thick",
+    style: {
+      ...style,
+      ...(bar
+        ? { height: catalogDeviceScaledCss(CATALOG_SLIDER_THICK_TRACK.height) }
+        : {}),
+      borderRadius: CATALOG_SLIDER_THICK_TRACK.radius,
+    },
+  };
+}
+
+/**
+ * S2 1.8.2 Slider value text (`Slider.tsx` — the presence's `_valueChars` · `_valueAlign`): `${n}ch`
+ * wide and at least as wide (an authored width wins), tabular digits, its text at its row's side.
+ * The SliderOutput rule's box is a flex box, where `text-align` does not move the text (its
+ * anonymous item is only as wide as the text) — `justify-content` does, as S2's `textAlign` on its
+ * blockified `<output>`. The Canvas reads the same (`sliderValueWidth`, `sliderValueText`).
+ */
+function sliderValueStyle(
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+): CSSProperties {
+  const chars = node.derivedProps?._valueChars;
+  if (typeof chars !== "number") return style;
+  const align = node.derivedProps?._valueAlign;
+  return {
+    width: `${chars}ch`,
+    minWidth: `${chars}ch`,
+    ...style,
+    fontVariantNumeric: "tabular-nums",
+    justifyContent: align === "end" ? "flex-end" : "flex-start",
+  };
+}
 
 function withoutRacPlacement(style: CSSProperties): CSSProperties {
   const out = { ...style };

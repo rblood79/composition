@@ -245,7 +245,11 @@ describe("ADR-259 Phase 3 — contextual help", () => {
       expect(state().kind).toBe("none");
       const recordsBefore = root.canvasInputs.size;
       const fieldRecord = recordsOf(type).find((r) => r.parentId)!;
-      const rowIndex = fieldRecord.children.findIndex(
+      // (A Slider's label row sits in its label container — S2 `labelContainer`, 2026-11-18.)
+      const container = fieldRecord.children
+        .map((id) => root.canvasInputs.get(id)!)
+        .find((child) => root.typeOf(child) === "SliderLabelContainer");
+      const rowIndex = (container ?? fieldRecord).children.findIndex(
         (id) => root.typeOf(root.canvasInputs.get(id)!) === "FieldLabel",
       );
       expect(rowIndex, "the origin's label row").toBeGreaterThanOrEqual(0);

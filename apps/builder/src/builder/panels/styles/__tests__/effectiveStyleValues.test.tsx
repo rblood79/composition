@@ -121,10 +121,11 @@ describe("Layout 탭 — 루트가 받지 않는 size 값", () => {
     }
   });
 
-  it("Slider 의 grid 간격은 record 의 rowGap longhand (4px) — 상자 모델 밖의 채널도 읽는다", () => {
+  // (S2 1.8.2 Slider, 2026-11-18: no row gap — S2's `--field-gap` is 0 in a slider's label container.)
+  it("Slider 의 grid 간격은 record 의 rowGap longhand (0px) — 상자 모델 밖의 채널도 읽는다", () => {
     const values = layoutOf(fixture.recordOf("sl"));
     expect(values?.display).toBe("grid");
-    expect(values?.gap).toBe("4px");
+    expect(values?.gap).toBe("0px");
   });
 
   // (ADR-295 Phase 3: the block padding is the S2 centring padding — M (32 − 18 − 2) / 2 = 6.)
@@ -227,7 +228,8 @@ describe("Layout 탭 Display — top 이 grid 인 라벨 위치 컨테이너", (
     expect(keysOf(fixture.recordOf(id))).toEqual(["grid"]);
   });
 
-  it("side 는 flex row 로 표시한다", () => {
-    expect(keysOf(fixture.recordOf("slside"))).toEqual(["row"]);
+  // (S2 1.8.2 Slider, 2026-11-18: the side Slider stays the `field()` grid — two columns.)
+  it("side 도 grid 로 표시한다 (S2 field grid — 열 둘)", () => {
+    expect(keysOf(fixture.recordOf("slside"))).toEqual(["grid"]);
   });
 });

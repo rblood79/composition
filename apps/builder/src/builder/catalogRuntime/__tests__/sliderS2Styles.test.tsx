@@ -114,38 +114,44 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
 
   it("trackStyle thick: a 16px bar with the S2 sm corner in both consumers", async () => {
     const { root, part, html } = await open({ trackStyle: "thick" });
-    const track = part("SliderTrack")!;
-    expect(track.derivedProps?.trackStyle).toBe("thick");
-    expect(geometry(root, track.id).height).toBe(16);
-    // (The style attribute precedes the class in the markup.)
+    // (S2 `upperTrack` — the bar node in the track row, 2026-11-18; the fill takes its corner.)
+    const bar = part("SliderTrackBar")!;
+    expect(bar.derivedProps?.trackStyle).toBe("thick");
+    expect(part("SliderFill")!.derivedProps?.trackStyle).toBe("thick");
+    expect(geometry(root, bar.id).height).toBe(16);
     // (ADR-295 후속: the DOM writes S2 `size()` numbers as the device formula — 16 px on desktop.)
     expect(html).toMatch(
-      /<div [^>]*height:calc\(var\(--catalog-token-size-unit\) \* 16 \/ 1\);border-radius:4px[^>]*data-track-style="thick"/,
+      /<div [^>]*height:calc\(var\(--catalog-token-size-unit\) \* 16 \/ 1\);border-radius:4px[^>]*class="react-aria-SliderTrackBar"/,
     );
-    // (ADR-295 Phase 3c-3c ②c: the row stays S2 M 32 — 16 + 8 × 2, both consumers.)
-    expect(html).toMatch(
-      /height:calc\(var\(--catalog-token-size-unit\) \* 16 \/ 1\);border-radius:4px;margin-top:calc\(var\(--catalog-token-size-unit\) \* 8 \/ 1\);margin-bottom:calc\(var\(--catalog-token-size-unit\) \* 8 \/ 1\)/,
-    );
+    expect(html).toMatch(/class="react-aria-SliderFill"[^>]*border-radius:4px|border-radius:4px[^>]*class="react-aria-SliderFill"/);
+    // (The row stays S2 M 32 — both consumers.)
+    expect(geometry(root, part("SliderTrack")!.id).height).toBe(32);
     const thin = await open({});
     expect(geometry(root, part("Slider")!.id).height).toBe(
       geometry(thin.root, thin.part("Slider")!.id).height,
     );
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
-    const painted = getSkiaNode(track.id) as unknown as {
-      box?: { borderRadius?: number | number[] };
+    const painted = (id: string) => {
+      const radius = (
+        getSkiaNode(id) as unknown as {
+          box?: { borderRadius?: number | number[] };
+        }
+      ).box?.borderRadius;
+      return Array.isArray(radius) ? radius[0] : radius;
     };
+    const corners = [painted(bar.id), painted(part("SliderFill")!.id)];
     canvas.dispose();
-    const radius = painted.box?.borderRadius;
-    expect(Array.isArray(radius) ? radius[0] : radius).toBe(4);
+    expect(corners).toEqual([4, 4]);
   });
 
-  it("default: the S2 thin bar (4px) in the S2 track row (M 32 — margins 14)", async () => {
+  it("default: the S2 thin bar (4px) across the S2 track row (M 32)", async () => {
     const { root, part } = await open({});
     const track = part("SliderTrack")!;
-    expect(track.derivedProps?.trackStyle).toBeUndefined();
-    expect(geometry(root, track.id).height).toBe(4);
-    expect(track.layout.marginTop).toBe("14px");
-    expect(track.layout.marginBottom).toBe("14px");
+    const bar = part("SliderTrackBar")!;
+    expect(bar.derivedProps?.trackStyle).toBeUndefined();
+    expect(geometry(root, track.id).height).toBe(32);
+    expect(geometry(root, bar.id).height).toBe(4);
+    expect(track.layout.marginTop).toBeUndefined();
   });
 
   it("thumbStyle precise: a 6-wide, size+2-tall bar in both consumers", async () => {
@@ -173,8 +179,9 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
     )!;
     const fillBox = geometry(root, fill.id);
     const trackBox = geometry(root, track.id);
+    // (The fill's box is in the bar's coordinates — the bar spans the track.)
     expect(fillBox.width / trackBox.width).toBeCloseTo(0.2, 2);
-    expect((fillBox.x - trackBox.x) / trackBox.width).toBeCloseTo(0.3, 2);
+    expect(fillBox.x / trackBox.width).toBeCloseTo(0.3, 2);
   });
 
   it("no fillOffset: the fill runs from the start to the value", async () => {
@@ -188,6 +195,6 @@ describe("S2 Slider trackStyle · thumbStyle · fillOffset", () => {
     const fillBox = geometry(root, fill.id);
     const trackBox = geometry(root, track.id);
     expect(fillBox.width / trackBox.width).toBeCloseTo(0.3, 2);
-    expect(fillBox.x - trackBox.x).toBeCloseTo(0, 1);
+    expect(fillBox.x).toBeCloseTo(0, 1);
   });
 });

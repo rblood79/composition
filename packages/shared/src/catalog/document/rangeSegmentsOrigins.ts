@@ -57,9 +57,8 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
     id: "lib:template:component-rangeslider",
     definitionId: "lib:definition:type-RangeSlider",
     children: [
-      "lib:template:component-rangeslider__1-row",
-      "lib:template:component-rangeslider__2",
-      "lib:template:component-rangeslider__3",
+      "lib:template:component-rangeslider__label",
+      "lib:template:component-rangeslider__input",
     ],
     props: {
       label: "{label}",
@@ -74,6 +73,39 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
     visual: {
       width: "100%",
     },
+  },
+  {
+    // (S2 `labelContainer` · field input `div` — the two rows; the value text in the one its label
+    //  position names, 2026-11-18.)
+    id: "lib:template:component-rangeslider__label",
+    definitionId: "lib:definition:type-SliderLabelContainer",
+    children: [
+      "lib:template:component-rangeslider__1-row",
+      "lib:template:component-rangeslider__2",
+    ],
+    props: {},
+    visual: {},
+  },
+  {
+    id: "lib:template:component-rangeslider__input",
+    definitionId: "lib:definition:type-SliderFieldInput",
+    children: [
+      "lib:template:component-rangeslider__3",
+      "lib:template:component-rangeslider__2-side",
+    ],
+    props: {
+      size: "M",
+    },
+    visual: {},
+  },
+  {
+    id: "lib:template:component-rangeslider__2-side",
+    definitionId: "lib:definition:type-SliderOutput",
+    children: [],
+    props: {
+      size: "M",
+    },
+    visual: {},
   },
   {
     // (S2 `FieldLabel` — the label row, 2026-11-18.)
@@ -100,24 +132,28 @@ export const RANGE_SEGMENT_TEMPLATES: readonly LibraryTemplateNode[] = [
     props: {
       size: "M",
     },
-    visual: {
-      width: "fit-content",
-    },
+    visual: {},
   },
   {
     id: "lib:template:component-rangeslider__3",
     definitionId: "lib:definition:type-SliderTrack",
     children: [
-      "lib:template:component-rangeslider__3_2",
+      "lib:template:component-rangeslider__3_bar",
       "lib:template:component-rangeslider__3_1",
       "lib:template:component-rangeslider__3_3",
     ],
     props: {
       size: "M",
     },
-    visual: {
-      width: "100%",
-    },
+    visual: {},
+  },
+  {
+    // (S2 `upperTrack` — the bar holding the fill, 2026-11-18.)
+    id: "lib:template:component-rangeslider__3_bar",
+    definitionId: "lib:definition:type-SliderTrackBar",
+    children: ["lib:template:component-rangeslider__3_2"],
+    props: {},
+    visual: {},
   },
   {
     id: "lib:template:component-rangeslider__3_1",

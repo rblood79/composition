@@ -1,4 +1,9 @@
-import { createContext, forwardRef, useContext } from "react";
+import {
+  createContext,
+  forwardRef,
+  useContext,
+  type HTMLAttributes,
+} from "react";
 import {
   Slider,
   SliderContext,
@@ -6,6 +11,7 @@ import {
   SliderOutput,
   SliderTrack,
   SliderFill,
+  SliderStateContext,
   type SliderProps,
   type SliderThumbProps,
 } from "react-aria-components/Slider";
@@ -110,7 +116,16 @@ export const RangeSlider = forwardRef<HTMLDivElement, RangeSliderProps>(
           {props.children ??
             rangeSegmentsDefaultChildren(
               "RangeSlider",
-              { Label, SliderOutput, SliderTrack, SliderFill, SliderThumb },
+              {
+                Label,
+                SliderOutput,
+                SliderTrack,
+                SliderTrackBar,
+                SliderLabelContainer,
+                SliderFieldInput,
+                SliderFill,
+                SliderThumb,
+              },
               label === undefined ? {} : { label },
             )}
         </Slider>
@@ -139,3 +154,53 @@ export const SliderThumb = forwardRef<HTMLDivElement, SliderThumbProps>(
     );
   },
 );
+
+/**
+ * S2 `upperTrack` (`Slider.tsx`, 2026-11-18): the bar in a Slider's track row, holding its fill — a
+ * plain `div` (no role), disabled with the Slider (RAC's state — the fill and thumbs carry the same
+ * `data-disabled`). Its look is the SliderTrackBar rule's sheet.
+ */
+export const SliderTrackBar = forwardRef<
+  HTMLDivElement,
+  HTMLAttributes<HTMLDivElement>
+>(function SliderTrackBar(props, ref) {
+  const state = useContext(SliderStateContext);
+  return (
+    <div
+      data-variant="default"
+      {...props}
+      ref={ref}
+      className={props.className ?? "react-aria-SliderTrackBar"}
+      data-disabled={state?.isDisabled || undefined}
+    />
+  );
+});
+
+/** S2 `labelContainer` (`Slider.tsx`, 2026-11-18): the label row and the top value text — a `div`. */
+export const SliderLabelContainer = forwardRef<
+  HTMLDivElement,
+  HTMLAttributes<HTMLDivElement>
+>(function SliderLabelContainer(props, ref) {
+  return (
+    <div
+      {...props}
+      ref={ref}
+      className={props.className ?? "react-aria-SliderLabelContainer"}
+    />
+  );
+});
+
+/** S2 field input `div` (`Slider.tsx`, 2026-11-18): the track and the side value text. */
+export const SliderFieldInput = forwardRef<
+  HTMLDivElement,
+  HTMLAttributes<HTMLDivElement> & { size?: string }
+>(function SliderFieldInput({ size, ...props }, ref) {
+  return (
+    <div
+      data-size={size}
+      {...props}
+      ref={ref}
+      className={props.className ?? "react-aria-SliderFieldInput"}
+    />
+  );
+});

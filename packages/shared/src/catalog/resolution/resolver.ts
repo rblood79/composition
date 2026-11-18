@@ -711,6 +711,10 @@ export const CATALOG_PART_RULE_PASS_HOSTS: Readonly<
 const PART_RULE_LAYOUT_FRAMES: ReadonlySet<string> = new Set([
   "frame",
   "DisclosureHeader",
+  // (2026-11-18: a Slider's label container · field input — S2 `labelContainer` · `fieldInput()`:
+  //  the Slider sheet styles the Label, value text, track and thumbs in them.)
+  "SliderLabelContainer",
+  "SliderFieldInput",
 ]);
 /** Resolved props: scalars and structured values (string lists, item lists). */
 type Props = Record<string, PropValue>;
@@ -1476,7 +1480,10 @@ export function resolveCatalogNode(
           // (S2 SideNavPanel's nav sits in its content `div` — a frame, 2026-11-18 — and a Tag's
           //  icon · avatar · text in its content `div`, S2 `TagWrapper`.)
           name === "SideNavPanel" ||
-          name === "Tag")
+          name === "Tag" ||
+          // (2026-11-18: a Slider's rows — its label container · field input.)
+          name === "Slider" ||
+          name === "RangeSlider")
       );
     };
     const owner = toggleFamily(pastFrames(near)) ? pastFrames(near)! : near;

@@ -510,9 +510,10 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     it("slider → display:grid + gridTemplateAreas/Columns + sizes gap (grid 경로)", () => {
       expect(resolveContainerStylesFallback("slider", {})).toEqual({
         display: "grid",
-        gridTemplateAreas: '"label output" "track track"',
-        gridTemplateColumns: "1fr auto",
-        rowGap: 4,
+        // (S2 1.8.2 Slider, 2026-11-18: label container above field input, no row gap.)
+        gridTemplateAreas: '"label" "input"',
+        gridTemplateColumns: "1fr",
+        rowGap: 0,
         columnGap: 16,
       });
     });

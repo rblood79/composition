@@ -115,7 +115,9 @@ function structure(html: string): string {
   const all = [...host.querySelectorAll("*")];
   const position = (id: string) => {
     const index = all.findIndex((element) => element.id === id);
-    return index < 0 ? `missing:${id}` : `#${index}`;
+    // (An id absent from the markup is React's — its value follows the component depth, which the
+    //  S2 row `div`s change; it is missing on both sides alike.)
+    return index < 0 ? "missing" : `#${index}`;
   };
   const walk = (element: Element): string => {
     const attributes = [...element.attributes]
@@ -136,7 +138,6 @@ function structure(html: string): string {
   return [...host.children].map(walk).join("\n");
 }
 
-
 const fillOf = (element: HTMLElement) =>
   element.querySelector(".react-aria-SliderFill") as HTMLElement;
 const thumbOf = (element: HTMLElement) =>
@@ -151,26 +152,39 @@ describe("ADR-256 Phase 7c — Slider draws its node tree", () => {
       createElement(
         Slider,
         { defaultValue: 30, minValue: 0, maxValue: 100, step: 1 },
-        // (S2 `FieldLabel` — the label row `div`, 2026-11-18.)
-        createElement("div", null, createElement(Label, null, "Volume")),
-        createElement(SliderOutput),
-        createElement(SliderTrack, {
-          children: () => [
-            createElement(
-              "div",
-              { key: "t", className: "track inset" },
-              createElement(SliderFill),
-            ),
-            createElement(SliderThumb, { key: "0", index: 0 }),
-          ],
-        }),
+        // (S2 1.8.2 `Slider.tsx`, 2026-11-18: the label container `div` — the `FieldLabel` row `div`
+        //  and the value text — then the field input `div` around the track.)
+        createElement(
+          "div",
+          null,
+          createElement("div", null, createElement(Label, null, "Volume")),
+          createElement(SliderOutput),
+        ),
+        createElement(
+          "div",
+          null,
+          createElement(SliderTrack, {
+            children: () => [
+              // (S2 `upperTrack` — the bar `div` holding the fill, 2026-11-18.)
+              createElement(
+                "div",
+                { key: "t", className: "react-aria-SliderTrackBar" },
+                createElement(SliderFill),
+              ),
+              createElement(SliderThumb, { key: "0", index: 0 }),
+            ],
+          }),
+        ),
       ),
     );
     expect(structure(actual)).toBe(structure(reference));
   });
 
   it("RAC places the fill and the thumb and writes the value; the Canvas the same from the record", async () => {
-    const { root, part, draw, edit } = await open({ label: "Volume", value: 30 });
+    const { root, part, draw, edit } = await open({
+      label: "Volume",
+      value: 30,
+    });
     let element = draw();
     expect(element.querySelector(".react-aria-SliderOutput")?.textContent).toBe(
       "30",
@@ -179,16 +193,27 @@ describe("ADR-256 Phase 7c — Slider draws its node tree", () => {
     expect(thumbOf(element).style.left).toBe("30%");
     expect(part("SliderOutput")!.props.children).toBe("30");
     const box = () => {
-      const ids = ["SliderTrack", "SliderFill", "SliderThumb"].map(
-        (type) => part(type)!.id,
-      );
+      const ids = [
+        "SliderTrack",
+        "SliderFill",
+        "SliderThumb",
+        "SliderTrackBar",
+      ].map((type) => part(type)!.id);
       const geometry = root.getGeometry(ids);
       return ids.map((id) => geometry.get(id)!);
     };
-    let [track, fill, thumb] = box();
+    let [track, fill, thumb, barBox] = box();
     expect(fill.width).toBeCloseTo(track.width * 0.3, 1);
-    expect(fill.height).toBe(track.height);
-    expect(thumb.x + thumb.width / 2).toBeCloseTo(track.x + track.width * 0.3, 1);
+    // (S2: the fill fills the bar — 4 across the middle of the 32 row.)
+    expect(fill.height).toBe(barBox!.height);
+    expect(barBox!.height).toBe(4);
+    // (Boxes are in their parent's coordinates — the bar and the thumb in the track row.)
+    expect(barBox!.y + 2).toBeCloseTo(track.height / 2, 1);
+    expect(thumb.y + thumb.height / 2).toBeCloseTo(track.height / 2, 1);
+    expect(thumb.x + thumb.width / 2).toBeCloseTo(
+      track.x + track.width * 0.3,
+      1,
+    );
     edit({ value: 70 });
     element = draw();
     expect(element.querySelector(".react-aria-SliderOutput")?.textContent).toBe(
@@ -198,7 +223,10 @@ describe("ADR-256 Phase 7c — Slider draws its node tree", () => {
     expect(part("SliderOutput")!.props.children).toBe("70");
     [track, fill, thumb] = box();
     expect(fill.width).toBeCloseTo(track.width * 0.7, 1);
-    expect(thumb.x + thumb.width / 2).toBeCloseTo(track.x + track.width * 0.7, 1);
+    expect(thumb.x + thumb.width / 2).toBeCloseTo(
+      track.x + track.width * 0.7,
+      1,
+    );
   });
 
   it("a mounted Preview follows a document value edit (RAC's value is its run state — it starts again)", async () => {
@@ -215,17 +243,18 @@ describe("ADR-256 Phase 7c — Slider draws its node tree", () => {
     expect(fillOf(element).style.width).toBe("60%");
   });
 
-  it("the Canvas draws the track bar, the fill and the thumb from their own rules", async () => {
+  it("the Canvas draws the bar, the fill and the thumb from their own rules", async () => {
     const { root, part } = await open({ label: "Volume", value: 50 });
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     cleanups.push(() => canvas.dispose());
     const color = (type: string) =>
       Array.from(getSkiaNode(part(type)!.id)?.box?.fillColor ?? []).join(",");
-    expect(color("SliderTrack")).not.toBe("");
-    expect(color("SliderFill")).not.toBe(color("SliderTrack"));
-    // The thumb draws its handle in its own box: the fill's accent circle with the 2px ring.
-    const handle = getSkiaNode(part("SliderThumb")!.id)?.children?.[0]?.box;
-    expect(Array.from(handle?.fillColor ?? []).join(",")).toBe(
+    // (S2: the track row has no paint; the bar `gray-300`, the fill `gray-700` — both opaque.)
+    expect(color("SliderTrackBar")).not.toBe("");
+    expect(color("SliderFill")).not.toBe(color("SliderTrackBar"));
+    // The thumb draws its handle in its own box: `gray-25` with a 2px `gray-800` border (S2).
+    const handle = getSkiaNode(part("SliderThumb")!.id)?.box;
+    expect(Array.from(handle?.fillColor ?? []).join(",")).not.toBe(
       color("SliderFill"),
     );
     expect(handle?.strokeWidth).toBe(2);
