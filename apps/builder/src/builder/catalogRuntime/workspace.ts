@@ -32,7 +32,7 @@ import type { CatalogPosition } from "../../../../../packages/shared/src/catalog
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
-  CATALOG_EMPTY_STATE_TYPE,
+  catalogEmptyStateType,
   RAC_COLLECTION_CHILD_TYPES,
 } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import type { CatalogTransactionResult } from "../../../../../packages/shared/src/catalog/transactions/transaction";
@@ -911,7 +911,7 @@ export class CatalogWorkspace {
     } catch {
       return false;
     }
-    if (type === CATALOG_EMPTY_STATE_TYPE)
+    if (type === catalogEmptyStateType(parentType))
       return (
         (
           root.canvasInputs.get(position.identity) ??

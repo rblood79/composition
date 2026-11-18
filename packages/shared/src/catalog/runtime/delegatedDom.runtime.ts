@@ -276,7 +276,7 @@ import {
   catalogSelectionCheckboxHidden,
   FIELD_HINT_OWNERS,
 } from "./presence";
-import { CATALOG_EMPTY_STATE_TYPE } from "../nesting/nestingRules";
+import { catalogEmptyStateType } from "../nesting/nestingRules";
 
 import { catalogDomSlot, racSlotProps } from "./racSlot";
 
@@ -452,8 +452,11 @@ export function catalogEmptyState(
 ): { renderEmptyState?: () => ReactNode } {
   if (loadingState === "loading")
     return { renderEmptyState: catalogLoadingEmptyState };
+  const emptyType = catalogEmptyStateType(
+    catalogTypeName(input.root, input.node),
+  );
   const content = children(input).find(
-    (child) => catalogTypeName(input.root, child) === CATALOG_EMPTY_STATE_TYPE,
+    (child) => catalogTypeName(input.root, child) === emptyType,
   );
   return content
     ? { renderEmptyState: () => input.renderChild(content.id) }
@@ -464,7 +467,13 @@ export function catalogEmptyState(
 const isEmptyStateChild = (
   child: CatalogConsumerNode,
   root: CatalogCompositionRoot,
-) => catalogTypeName(root, child) === CATALOG_EMPTY_STATE_TYPE;
+) => {
+  const parent = root.domInputs.get(child.parentId);
+  return (
+    catalogTypeName(root, child) ===
+    catalogEmptyStateType(parent ? catalogTypeName(root, parent) : "")
+  );
+};
 
 /**
  * The reference's load-more item at a bound collection's end (S2 passes `onLoadMore` and draws it
@@ -1868,6 +1877,10 @@ export const TagGroupRunContext = createContext<{
   readonly removed: ReadonlySet<Key>;
   /** (Held here: RAC also renders the TagList in its hidden collection copy — `useTagMaxRows`.) */
   readonly rows: TagRowsState;
+  /** S2 `groupActionLabel` — the action button after the tags (empty = none). */
+  readonly groupActionLabel: string;
+  /** An interaction rule's S2 `onGroupAction` (`withRuntime` puts it on the TagGroup). */
+  readonly onGroupAction?: () => void;
 } | null>(null);
 
 /** A Tag node's RAC key (as its binding gives it). */
@@ -1897,7 +1910,11 @@ export const tagChipText = (
   root: CatalogCompositionRoot,
   tag: CatalogConsumerNode,
 ) =>
+  // (A Tag's texts sit in its content `div` — S2 `TagWrapper`, a frame — 2026-11-18.)
   childrenOf(root, tag)
+    .flatMap((kid) =>
+      catalogTypeName(root, kid) === "frame" ? childrenOf(root, kid) : [kid],
+    )
     .filter((kid) => catalogTypeName(root, kid) === "Text")
     .map((kid) => str(kid.props.children))
     .join(" ");
@@ -2463,6 +2480,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ? {}
               : { "aria-label": "Menu" }),
           ...catalogEmptyState(input),
+          // (S2 `disabledKeys` · `disallowEmptySelection`, 2026-11-18.)
+          ...(Array.isArray(props.disabledKeys)
+            ? { disabledKeys: props.disabledKeys.map(String) }
+            : {}),
+          ...(props.disallowEmptySelection === true
+            ? { disallowEmptySelection: true }
+            : {}),
           ...(props.selectionMode && props.selectionMode !== "none"
             ? {
                 selectionMode: props.selectionMode,
@@ -2650,6 +2674,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             style: input.style,
             label: str(props["aria-label"] || "Navigation"),
             selectedRoute: opt(props.selectedRoute),
+            // (S2 `disabledKeys` — RAC NavigationTree's, 2026-11-18.)
+            ...(Array.isArray(props.disabledKeys)
+              ? { disabledKeys: props.disabledKeys.map(String) }
+              : {}),
             expandedKeys: treeKeys(runtimeState(input, "expandedKeys")),
             ...(input.setRuntimeProps
               ? {

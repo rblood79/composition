@@ -96,11 +96,22 @@ describe("collection empty state (renderEmptyState)", () => {
     expect(origins.map((origin) => typeOf(origin.definitionId)).sort()).toEqual(
       ["GridList", "ListBox", "Menu", "TagList", "Tree"],
     );
-    for (const origin of origins)
-      expect(
-        origin.children.map((id) => templates.get(id as never)?.definitionId),
-        origin.id,
-      ).toContain("lib:definition:origin-component-illustratedmessage");
+    for (const origin of origins) {
+      const children = origin.children.map((id) => templates.get(id as never));
+      // (S2 Menu's empty state is a line of text — 「No results」, 2026-11-18 사용자 결정.)
+      if (typeOf(origin.definitionId) === "Menu")
+        expect(
+          children.find(
+            (child) => child?.definitionId === "lib:definition:text",
+          )?.props.children,
+          origin.id,
+        ).toBe("No results");
+      else
+        expect(
+          children.map((child) => child?.definitionId),
+          origin.id,
+        ).toContain("lib:definition:origin-component-illustratedmessage");
+    }
   });
 
   it.each(["ListBox", "GridList", "Tree", "TagGroup"])(

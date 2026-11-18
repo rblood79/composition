@@ -1,6 +1,12 @@
 import type { LibraryTemplateNode } from "./types";
 
-/** S2 Menu/Picker/ComboBox: selection and icon share the label row; description is below it. */
+/**
+ * S2 Menu/Picker/ComboBox: selection and icon share the label row; description is below it.
+ * A MenuItem takes the ListBox item's selection parts (its checkbox · check mark); its grid, the
+ * parts' places and S2 margins (`text-to-control` · `text-to-visual` · 8) are the MenuItem rule's
+ * (2026-11-18 — `menuitem` `gridTemplateAreas`), so the copied parts drop the ListBox item's own
+ * placement and the picker column width.
+ */
 export function selectionItemTemplates(
   templates: readonly LibraryTemplateNode[],
 ): readonly LibraryTemplateNode[] {
@@ -49,7 +55,6 @@ export function selectionItemTemplates(
           menu + "__check",
           ...node.children,
         ] as LibraryTemplateNode["children"],
-        layout: itemLayout,
       };
     if (/component-(select|combobox)__item-\d+$/.test(node.id))
       return {
@@ -83,13 +88,15 @@ export function selectionItemTemplates(
       const { showWhen: _showWhen, ...rest } = node;
       return rest;
     }
-    if (node.id.startsWith(menu + "__")) {
-      const { showWhen, ...rest } = node;
-      return {
-        ...rest,
-        ...(node.id.endsWith("__check") ? {} : { showWhen }),
-        layout: { ...node.layout, ...layoutOf(node.id) },
-      };
+    // (S2 draws the check mark in every item of a single-selection Menu, hidden until selected —
+    // `catalogMenuCheckUnselected`.)
+    if (node.id === menu + "__check") {
+      const { showWhen: _showWhen, layout: _layout, ...rest } = node;
+      return rest;
+    }
+    if (node.id === menu + "__selection") {
+      const { layout: _layout, ...rest } = node;
+      return { ...rest, visual: {} };
     }
     return node;
   });

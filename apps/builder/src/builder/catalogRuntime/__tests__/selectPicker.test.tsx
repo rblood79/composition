@@ -693,7 +693,11 @@ it.each(["Select", "ComboBox", "Menu"])(
         '[slot="selection"][data-icon="check"]',
       );
       expect(mark).not.toBeNull();
-      expect(mark?.style.gridRowStart).toBe("1");
+      // (A MenuItem's parts are placed by its rule's sheet — S2 `menuitem` areas, 2026-11-18 — and
+      // the Canvas record carries the same place.)
+      if (type === "Menu")
+        expect(root.canvasInputs.get(check.id)!.layout.gridRowStart).toBe("1");
+      else expect(mark?.style.gridRowStart).toBe("1");
       expect(mark?.style.position).not.toBe("absolute");
       expect(mark?.style.visibility).toBe("hidden");
       view.unmount();
@@ -719,7 +723,8 @@ it.each(["Select", "Menu"])(
       const label = item.children
         .map((id) => root.canvasInputs.get(id)!)
         .find((n) => n.props.slot === "label")!;
-      expect(checkbox.layout.gridRowEnd).toBe("auto");
+      if (type === "Menu") expect(checkbox.layout.gridRowStart).toBe("1");
+      else expect(checkbox.layout.gridRowEnd).toBe("auto");
       const boxes = root.getGeometry([checkbox.id, label.id]);
       const a = boxes.get(checkbox.id)!;
       const b = boxes.get(label.id)!;

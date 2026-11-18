@@ -703,6 +703,15 @@ export const CATALOG_PART_RULE_PASS_HOSTS: Readonly<
   CalendarMonthPicker: new Set(["CalendarMonth"]),
   CalendarYearPicker: new Set(["CalendarMonth"]),
 };
+/**
+ * Layout rows a part rule's owner reaches through like a `frame`: S2's `DisclosureHeader` (the
+ * Disclosure title Heading's row, 2026-11-18 — the Disclosure sheet styles the Heading and trigger
+ * in it).
+ */
+const PART_RULE_LAYOUT_FRAMES: ReadonlySet<string> = new Set([
+  "frame",
+  "DisclosureHeader",
+]);
 /** Resolved props: scalars and structured values (string lists, item lists). */
 type Props = Record<string, PropValue>;
 /** The resolving node's parent (and its parent: `via` part rules reach through one wrapper). */
@@ -1447,7 +1456,10 @@ export function resolveCatalogNode(
     };
     const pastFrames = (context: ParentContext | undefined) => {
       let cursor = context;
-      while (cursor && lookupDefinition(cursor.definitionId).name === "frame")
+      while (
+        cursor &&
+        PART_RULE_LAYOUT_FRAMES.has(lookupDefinition(cursor.definitionId).name)
+      )
         cursor = structuralParent(cursor.parent);
       return cursor;
     };
@@ -1460,7 +1472,11 @@ export function resolveCatalogNode(
         (OWNER_DRAWN_PART_HOSTS[name] !== undefined ||
           Object.values(OWNER_DRAWN_PART_HOSTS).includes(name) ||
           name === "TreeItemContent" ||
-          name === "Disclosure")
+          name === "Disclosure" ||
+          // (S2 SideNavPanel's nav sits in its content `div` — a frame, 2026-11-18 — and a Tag's
+          //  icon · avatar · text in its content `div`, S2 `TagWrapper`.)
+          name === "SideNavPanel" ||
+          name === "Tag")
       );
     };
     const owner = toggleFamily(pastFrames(near)) ? pastFrames(near)! : near;

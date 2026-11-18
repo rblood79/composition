@@ -99,7 +99,9 @@ async function workspace() {
       (r) =>
         root.typeOf(r) === "Button" &&
         r.props.slot === "trigger" &&
-        root.canvasInputs.get(r.parentId)?.parentId === disclosure.id,
+        // (`Disclosure > DisclosureHeader > Heading > Button` — S2, 2026-11-18)
+        root.canvasInputs.get(root.canvasInputs.get(r.parentId)?.parentId ?? "")
+          ?.parentId === disclosure.id,
     )!;
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const painted = getSkiaNode(disclosure.id) as unknown as Painted;

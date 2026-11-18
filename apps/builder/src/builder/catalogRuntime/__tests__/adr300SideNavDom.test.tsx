@@ -174,8 +174,15 @@ const row = (
     createElement(
       NavigationTreeItemContent,
       null,
-      ...(icon ? [createElement("svg", { key: "icon", "aria-hidden": "true" })] : []),
-      createElement(Link, { key: "link" }, text),
+      // (S2 `SideNavItemLink`: the icon is the link's first part — `treeRowLink`, 2026-11-18.)
+      createElement(
+        Link,
+        { key: "link" },
+        ...(icon
+          ? [createElement("svg", { key: "icon", "aria-hidden": "true" })]
+          : []),
+        text,
+      ),
       createElement(
         Button,
         { key: "chevron", slot: "chevron" },
@@ -266,7 +273,7 @@ describe("ADR-300 G2 — the SideNav DOM is the installed RAC's", () => {
     // (A collapsed panel's `display: none` — an inline display would beat it.)
     expect(text.style.display).toBe("");
     const icon = root.querySelector<HTMLElement>(
-      ".react-aria-SideNavItem [role=gridcell] > .react-aria-Icon",
+      ".react-aria-SideNavItem [role=gridcell] > .react-aria-SideNavItemLink > .react-aria-Icon",
     )!;
     expect(icon.style.color).toBe("inherit");
     const chevron = root.querySelector<HTMLElement>(

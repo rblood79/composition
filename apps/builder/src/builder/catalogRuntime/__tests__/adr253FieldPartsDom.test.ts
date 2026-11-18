@@ -262,7 +262,11 @@ function tagGroupMarkup(text: string): string {
     /<div aria-selected=(\w+) class=react-aria-Tag ([^>]*)><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=(\w+) slot=label>([^<]*)</g,
     (_match, selected, rest, size, label) =>
       // (A Tag has no `variant` — RAC · S2 Tag has none; its selection is the group's, 2026-10-09.)
-      `<div aria-label=${label} aria-labelledby aria-selected=${selected} class=react-aria-Tag ${rest.replace(" data-variant=default", "")}><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=${size}>${label}<`,
+      // (Its text in the Tag's content `div` — S2 `TagWrapper`, 2026-11-18.)
+      `<div aria-label=${label} aria-labelledby aria-selected=${selected} class=react-aria-Tag ${rest.replace(" data-variant=default", "")}><div aria-colindex=1 role=gridcell><div ><span class=react-aria-Text data-size=${size}>${label}</></><`,
+  ).replace(
+    /(<div ><span class=react-aria-Text data-size=\w+>[^<]*<\/><\/>)<\/>/g,
+    "$1",
   );
 }
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */

@@ -170,6 +170,7 @@
 
 /* Simple Compositions */
 @import "./generated/Disclosure.css";
+@import "./generated/DisclosureHeader.css";
 @import "./generated/Form.css";
 @import "./generated/InlineAlert.css";
 @import "./generated/IllustratedMessage.css";

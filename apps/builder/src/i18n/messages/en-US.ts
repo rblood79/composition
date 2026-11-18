@@ -900,6 +900,9 @@ const catalog: TranslationKeys = {
       collapse: {
         onCollapsedChange: "On panel collapse or expand",
       },
+      groupAction: {
+        onGroupAction: "On group action",
+      },
       remove: {
         onRemove: "On item removal",
       },
@@ -935,6 +938,7 @@ const catalog: TranslationKeys = {
       sort: "Sort",
       expansion: "Expansion",
       collapse: "Panel collapse",
+      groupAction: "Group action",
       remove: "Removal",
       focusedDate: "Focused date",
       form: "Form",
@@ -3181,6 +3185,11 @@ const semanticLabels: Record<string, string> = {
   "properties.spacious": "Spacious",
   "properties.emphasized": "Emphasized",
   "properties.disallowEmptySelection": "Disallow empty selection",
+  "properties.disabledKeys": "Disabled keys",
+  "properties.selectionBehavior": "Selection behavior",
+  "properties.toggle": "Toggle",
+  "properties.replace": "Replace",
+  "properties.groupActionLabel": "Group action label",
   "properties.min": "Min",
   "properties.max": "Max",
   "properties.valueLabel": "Value label",

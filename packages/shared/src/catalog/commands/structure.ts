@@ -2,6 +2,8 @@ import { componentTypeSet } from "../../domain/componentTraits";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
   CATALOG_EMPTY_STATE_TYPE,
+  catalogEmptyStateType,
+  catalogIsEmptyState,
 } from "../nesting/nestingRules";
 import {
   absoluteStart,
@@ -163,13 +165,18 @@ export function catalogAppendIndex(
   draft: CommandDraft,
   list: readonly string[],
   ids: readonly string[],
+  /** The list's owner type — a Menu's empty state is its Text (S2, 2026-11-18). */
+  parentType?: string,
 ): number {
+  const emptyType =
+    parentType && CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType)
+      ? catalogEmptyStateType(parentType)
+      : CATALOG_EMPTY_STATE_TYPE;
   const emptyState = (id: string) => {
     const entry = draft.read(id);
     return (
       entry?.kind === "node" &&
-      definitionTypeName(draft.reader, entry.definitionId) ===
-        CATALOG_EMPTY_STATE_TYPE
+      definitionTypeName(draft.reader, entry.definitionId) === emptyType
     );
   };
   if (ids.some(emptyState)) return list.length;
@@ -186,7 +193,13 @@ function placeAt(
 ): void {
   const list = ensureChildList(draft, parent, newId);
   const at = clampIndex(
-    index ?? catalogAppendIndex(draft, list, ids),
+    index ??
+      catalogAppendIndex(
+        draft,
+        list,
+        ids,
+        parentAncestorTypes(draft, parent)[0],
+      ),
     list.length,
   );
   setChildList(draft, parent, [
@@ -915,11 +928,7 @@ function emptyStateCollectionOf(
     target.kind === "node"
       ? parentAncestorTypes(draft, { kind: "node", id: target.id })
       : parentAncestorTypes(draft, target);
-  return type === CATALOG_EMPTY_STATE_TYPE &&
-    parentType &&
-    CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType)
-    ? parentType
-    : undefined;
+  return catalogIsEmptyState(type, parentType) ? parentType : undefined;
 }
 
 export const moveNodes =

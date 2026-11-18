@@ -1,0 +1,36 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog DisclosureHeader — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-DisclosureHeader {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: 4px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-DisclosureHeader {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

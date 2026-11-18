@@ -60,6 +60,7 @@ import {
   SELECTED_KEYS,
 } from "./runtimeStateProps";
 import { catalogForwardHandlers, catalogStateFrame } from "./stateFrames";
+import { catalogTagGroupActionLabel } from "./presence";
 
 import {
   AuthoredDomAttributes,
@@ -273,6 +274,7 @@ export function CalendarPickerList({
 
 export function TagGroupRun({
   input,
+  onGroupAction,
   ...authored
 }: { input: DelegatedDomInput } & AuthoredDomAttributes): ReactElement {
   const props = input.node.props;
@@ -310,6 +312,11 @@ export function TagGroupRun({
         labelPosition,
         removed,
         rows,
+        groupActionLabel: catalogTagGroupActionLabel(props),
+        onGroupAction:
+          typeof onGroupAction === "function"
+            ? (onGroupAction as () => void)
+            : undefined,
       },
     },
     createElement(
@@ -340,6 +347,10 @@ export function TagGroupRun({
         selectionMode: props.selectionMode ?? "none",
         selectionBehavior: props.selectionBehavior || "toggle",
         disallowEmptySelection: bool(props.disallowEmptySelection),
+        // (S2 `disabledKeys`, 2026-11-18.)
+        ...(Array.isArray(props.disabledKeys)
+          ? { disabledKeys: props.disabledKeys.map(String) }
+          : {}),
         onRemove: bool(props.allowsRemoving)
           ? (keys: "all" | Iterable<Key>) =>
               setRemoved(
@@ -384,16 +395,26 @@ export function TagListRun({
     tags.map((tag) => tagChipText(input.root, tag)).join("\u0000"),
   );
   const shown = showCollapsed ? tags.slice(0, visibleTagCount) : tags;
-  const showButton = (label: string, collapse: boolean) =>
+  // S2's quiet `ActionButton` at the group's size — the generated ActionButton sheet's box, text and
+  // quiet paint (the Canvas box reads the same rule — `CatalogCompositionRoot.tagActionBox`).
+  const showButton = (label: string, onPress: () => void) =>
     createElement(
-      "button",
+      AriaButton as ElementType,
       {
-        className: "tag-show-all-btn",
-        type: "button",
-        onClick: () => setIsCollapsed(collapse),
+        className: "react-aria-ActionButton",
+        "data-variant": "default",
+        "data-size": size,
+        "data-quiet": true,
+        style: { flexShrink: 0, whiteSpace: "nowrap" },
+        onPress,
       },
       label,
     );
+  const showAll = showCollapsed && visibleTagCount < tags.length;
+  const showLess = hasMaxRows && !isCollapsed;
+  // (S2 shows the action group only while the list has a tag — `!isEmpty`.)
+  const groupAction =
+    tags.length > 0 && run?.groupActionLabel ? run.groupActionLabel : "";
   return createElement(
     "div",
     {
@@ -433,10 +454,31 @@ export function TagListRun({
       { className: "react-aria-TagList", ...catalogEmptyState(input) },
       ...shown.map((tag) => input.renderChild(tag.id)),
     ),
-    showCollapsed && visibleTagCount < tags.length
-      ? showButton(`Show all (${tags.length})`, false)
+    // S2 `ActionGroup` (`TagGroup.tsx`): the show-all · show-less button and the group action
+    // (`groupActionLabel` · `onGroupAction`) in a `role=group` named 「Actions」 (after the group's own
+    // name) — `display: contents`, the buttons keep their place in the chip flow (2026-11-18).
+    showAll || showLess || groupAction
+      ? createElement(
+          "div",
+          {
+            role: "group",
+            className: "tag-actions",
+            "aria-label": [input.node.props["aria-label"], "Actions"]
+              .filter((part) => typeof part === "string" && part !== "")
+              .join(" "),
+            style: { display: "contents" },
+          },
+          showAll
+            ? showButton(`Show all (${tags.length})`, () =>
+                setIsCollapsed(false),
+              )
+            : null,
+          showLess ? showButton("Show less", () => setIsCollapsed(true)) : null,
+          groupAction
+            ? showButton(groupAction, () => run?.onGroupAction?.())
+            : null,
+        )
       : null,
-    hasMaxRows && !isCollapsed ? showButton("Show less", true) : null,
   );
 }
 

@@ -485,6 +485,12 @@ export const semanticLabelKeys: Record<string, string> = {
   Spacious: "properties.spacious",
   Emphasized: "properties.emphasized",
   "Disallow Empty Selection": "properties.disallowEmptySelection",
+  // 2026-11-18 S2 — collection `disabledKeys` · TagGroup `selectionBehavior` · `groupActionLabel`.
+  "Disabled keys": "properties.disabledKeys",
+  "Selection Behavior": "properties.selectionBehavior",
+  Toggle: "properties.toggle",
+  Replace: "properties.replace",
+  "Group action label": "properties.groupActionLabel",
   Min: "properties.min",
   Max: "properties.max",
   "Value Label": "properties.valueLabel",

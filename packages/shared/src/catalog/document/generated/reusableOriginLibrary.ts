@@ -2552,8 +2552,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-menu-item-default__icon",
       "lib:template:component-menu-item-default__label",
-      "lib:template:component-menu-item-default__shortcut",
       "lib:template:component-menu-item-default__description",
+      "lib:template:component-menu-item-default__shortcut",
       "lib:template:component-menu-item-default__chevron"
     ],
     "props": {},
@@ -2605,6 +2605,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
+      "slot": "descriptor",
       "iconName": "chevron-right",
       "size": "XS"
     },
@@ -3650,8 +3651,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-disclosure",
     "definitionId": "lib:definition:type-Disclosure",
     "children": [
-      "lib:template:component-disclosure__heading",
+      "lib:template:component-disclosure__header",
       "lib:template:component-disclosure__panel"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-disclosure__header",
+    "definitionId": "lib:definition:type-DisclosureHeader",
+    "children": [
+      "lib:template:component-disclosure__heading"
     ],
     "props": {},
     "visual": {}
@@ -4071,21 +4081,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-menu__menu__empty-state",
-    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "definitionId": "lib:definition:text",
     "children": [],
-    "props": {},
-    "visual": {},
-    "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-illustratedmessage",
-          "lib:template:component-illustratedmessage__illustration"
-        ],
-        "props": {
-          "iconName": "folder-open"
-        }
-      }
-    ]
+    "props": {
+      "children": "No results"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-menu__item-1",
@@ -8341,9 +8342,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tag-item-default",
     "definitionId": "lib:definition:type-Tag",
     "children": [
-      "lib:template:component-tag-item-default__icon",
-      "lib:template:component-tag-item-default__avatar",
-      "lib:template:component-tag-item-default__label",
+      "lib:template:component-tag-item-default__content",
       "lib:template:component-tag-item-default__remove"
     ],
     "props": {},
@@ -8356,6 +8355,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "alignItems": "center"
     },
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-tag-item-default__content",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-tag-item-default__icon",
+      "lib:template:component-tag-item-default__avatar",
+      "lib:template:component-tag-item-default__label"
+    ],
+    "props": {},
+    "visual": {
+      "gap": 4,
+      "minWidth": 0
+    },
+    "layout": {
+      "display": "flex",
+      "alignItems": "center"
+    }
   },
   {
     "id": "lib:template:component-tag-item-default__icon",
@@ -8562,6 +8579,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__label"
         ],
         "props": {
@@ -8571,6 +8589,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__icon"
         ],
         "enabled": false
@@ -8578,6 +8597,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__avatar"
         ],
         "enabled": false
@@ -8596,6 +8616,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__label"
         ],
         "props": {
@@ -8605,6 +8626,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__icon"
         ],
         "enabled": false
@@ -8612,6 +8634,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__avatar"
         ],
         "enabled": false
@@ -8630,6 +8653,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__label"
         ],
         "props": {
@@ -8639,6 +8663,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__icon"
         ],
         "enabled": false
@@ -8646,6 +8671,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__avatar"
         ],
         "enabled": false
@@ -8664,6 +8690,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__label"
         ],
         "props": {
@@ -8673,6 +8700,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__icon"
         ],
         "enabled": false
@@ -8680,6 +8708,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tag-item-default",
+          "lib:template:component-tag-item-default__content",
           "lib:template:component-tag-item-default__avatar"
         ],
         "enabled": false
@@ -8896,10 +8925,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-menu-section__header",
     "definitionId": "lib:definition:type-Header",
+    "children": [
+      "lib:template:component-menu-section__heading",
+      "lib:template:component-menu-section__description"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu-section__heading",
+    "definitionId": "lib:definition:heading",
     "children": [],
     "props": {
       "children": "Section"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu-section__description",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "description",
+      "children": ""
+    },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -9117,7 +9167,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-sidenavitem__content",
     "definitionId": "lib:definition:type-SideNavItemContent",
     "children": [
-      "lib:template:component-sidenavitem__icon",
       "lib:template:component-sidenavitem__link",
       "lib:template:component-sidenavitem__chevron"
     ],
@@ -9138,6 +9187,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-sidenavitem__link",
     "definitionId": "lib:definition:type-SideNavItemLink",
     "children": [
+      "lib:template:component-sidenavitem__icon",
       "lib:template:component-sidenavitem__label"
     ],
     "props": {},
@@ -9210,6 +9260,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
         "templatePath": [
           "lib:template:component-sidenavitem",
           "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
           "lib:template:component-sidenavitem__icon"
         ],
         "props": {
@@ -9246,6 +9297,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
         "templatePath": [
           "lib:template:component-sidenavitem",
           "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
           "lib:template:component-sidenavitem__icon"
         ],
         "props": {
@@ -9304,6 +9356,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
         "templatePath": [
           "lib:template:component-sidenavitem",
           "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
           "lib:template:component-sidenavitem__icon"
         ],
         "props": {
@@ -9327,14 +9380,48 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-sidenavpanel",
     "definitionId": "lib:definition:type-SideNavPanel",
     "children": [
-      "lib:template:component-sidenavpanel__nav",
-      "lib:template:component-sidenavpanel__collapse"
+      "lib:template:component-sidenavpanel__content",
+      "lib:template:component-sidenavpanel__footer"
     ],
     "props": {
       "aria-label": "Side navigation"
     },
     "visual": {
       "width": "240px"
+    }
+  },
+  {
+    "id": "lib:template:component-sidenavpanel__content",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-sidenavpanel__nav"
+    ],
+    "props": {},
+    "visual": {
+      "minHeight": 0
+    },
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column",
+      "flexGrow": "1",
+      "flexShrink": "1"
+    }
+  },
+  {
+    "id": "lib:template:component-sidenavpanel__footer",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-sidenavpanel__collapse"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "marginTop": "4px",
+      "marginBottom": "4px",
+      "marginLeft": "4px"
     }
   },
   {
@@ -9375,6 +9462,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
         "templatePath": [
           "lib:template:component-sidenavitem",
           "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
           "lib:template:component-sidenavitem__icon"
         ],
         "props": {
@@ -9411,6 +9499,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
         "templatePath": [
           "lib:template:component-sidenavitem",
           "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
           "lib:template:component-sidenavitem__icon"
         ],
         "props": {
@@ -9469,6 +9558,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
         "templatePath": [
           "lib:template:component-sidenavitem",
           "lib:template:component-sidenavitem__content",
+          "lib:template:component-sidenavitem__link",
           "lib:template:component-sidenavitem__icon"
         ],
         "props": {
@@ -9490,24 +9580,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-sidenavpanel__collapse",
-    "definitionId": "lib:definition:type-Button",
-    "children": [
-      "lib:template:component-sidenavpanel__collapse__icon"
-    ],
-    "props": {
-      "slot": "collapse",
-      "size": "S",
-      "children": ""
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-sidenavpanel__collapse__icon",
-    "definitionId": "lib:definition:type-Icon",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
-      "iconName": "panel-left",
-      "size": "S"
+      "slot": "collapse",
+      "isQuiet": true,
+      "icon": "panel-left",
+      "label": ""
     },
     "visual": {}
   },

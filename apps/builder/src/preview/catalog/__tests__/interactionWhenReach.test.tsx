@@ -634,6 +634,20 @@ const ROWS: Row[] = [
     event: "onCollapsedChange",
     act: (h, u) => press(u, q(h, 'button[slot="collapse"]')),
   },
+  // 2026-11-18 S2 `onGroupAction` — the `groupActionLabel` button in the 「Actions」 group.
+  {
+    palette: "TagGroup",
+    type: "TagGroup",
+    event: "onGroupAction",
+    declare: { groupActionLabel: "Clear all" },
+    act: (h, u) =>
+      press(
+        u,
+        qa(h, ".tag-actions button").find(
+          (button) => button.textContent === "Clear all",
+        ),
+      ),
+  },
   {
     palette: "TagGroup",
     type: "TagGroup",

@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — 메뉴 · 태그 묶음 (Menu 항목 grid · Section 머리 · Divider · 빈 상태 글자, DisclosureHeader, SideNav 링크 아이콘 · 패널 묶음, Tag 내용 묶음, disabledKeys, TagGroup 그룹 동작 버튼)] - 2026-11-18
+
+### Changed
+
+- **Menu 항목 = S2 `menuitem` grid** — 선택 표시 · 아이콘 · 라벨 (아래 줄에 설명) · 단축키 · 하위 메뉴 chevron 이 S2 의 열에 놓이고, 간격은 S2 처럼 부품 margin (선택 표시 `text-to-control` · 아이콘 `text-to-visual` · 단축키 · chevron 앞 8) 이다 (Canvas · Publish). 원본 순서도 S2 예제대로 설명 → 단축키.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (MenuItem) · `document/selectionItemTemplates.ts`
+- **Menu Section 머리 = `Header > Heading + Text(description)`**, 「+ Section」 이 S2 처럼 Section 뒤 Divider 를 같이 넣는다 — 첫 자리 · 끝 자리 · 다음이 Divider 인 Divider 는 숨김 (S2 `isSeparatorHidden`). Divider 는 항목 글자 시작에 맞춰 안쪽으로 (위아래 5).
+- **Menu 빈 상태 = 「No results」 글자 한 줄** (사용자 결정 「S2 대로 글자 한 줄」) — control 높이 · edge-to-text 여백. 다른 컬렉션은 IllustratedMessage 그대로.
+- **Menu · ListBox Section 머리 글자색 = S2 `neutral`** (설명 글자는 그대로 `neutral-subdued`) — 전에는 제목도 흐린 회색이었다.
+- **TagGroup 「Show all」 · 「Show less」 · 그룹 동작 버튼 = S2 quiet ActionButton** — 크기의 control 높이 (M 32) · 좌우 `edge-to-text` · medium 굵기 · `neutral-content` 글자 · hover 바탕. 전에는 Tag 모양을 흉내 낸 수동 CSS 라 Preview 28 · Canvas 32 로 높이가 달랐고 글자도 accent 색이었다.
+- **Disclosure 제목 줄 = S2 `DisclosureHeader`** — `Disclosure > DisclosureHeader > Heading > Button` (새 type, 제목 옆에 ActionButton 을 둘 수 있는 줄).
+- **SideNav 항목 아이콘을 링크 안으로** (S2 `treeRowLink`), **SideNavPanel = 내용 묶음 (nav) + 바닥 묶음 (접기 ActionButton, quiet)** — 접기 버튼이 Button 에서 S2 ActionButton 으로.
+- **Tag 의 아이콘 · 아바타 · 글자를 내용 묶음 안으로** (S2 `TagWrapper`), 「모두 보기 / 접기」 버튼을 `role=group` 「Actions」 안으로 (S2 `ActionGroup`).
+
+### Added
+
+- **Menu `disabledKeys` · `disallowEmptySelection`, TagGroup `disabledKeys` · `selectionBehavior`, SideNav `disabledKeys`, MenuItem `isDisabled`** (S2) — 이름 붙인 항목은 Canvas 에서도 비활성으로 그린다 (`catalogItemKeyDisabled` — Menu 항목은 rule 의 0.38 흐림, Tag · SideNav 행은 비활성 글자색).
+- **TagGroup `groupActionLabel` · When 「그룹 동작 버튼을 누를 때」 (`onGroupAction`)** (S2) — 이름을 적으면 Tag 뒤 (접혀 있으면 「Show all」 뒤) 에 동작 버튼이 생기고, 누르면 그 When 의 규칙이 실행된다 (Canvas · Publish). Tag 가 없으면 버튼도 없다 (S2 `!isEmpty`). S2 는 `onGroupAction` 이 있어야 버튼을 그리지만 Builder 는 이름만으로 그린다 — 규칙 유무를 Canvas 가 알 수 없어서다.
+  - 위치: `runtime/compositionRoot.ts` (`settleTagRows` — 버튼 상자) · `runtime/delegatedDom.components.tsx` (`TagListRun`) · `interactions/concepts/groupAction.ts`
+- Design 패널 라벨 번역 — Disabled keys · Selection behavior (Toggle · Replace) · Group action label.
+
+### Fixed
+
+- **padding 이 있는 grid 상자의 min-height 가 Canvas 에서 padding 만큼 커지던 것** — 내용이 min-height 보다 낮아 엔진이 min-height 로 다시 풀 때 border-box 높이를 돌려줘 부모가 padding 을 한 번 더 더했다 (`min-height: 32px` + padding 7/7 → 46, Chrome 32).
+  - **Why:** grid 재해석이 받은 높이를 그대로 돌려줘 auto 높이 상자의 content-box 계약 (§26) 을 어겼다. 글자 높이가 늦게 오는 Canvas 증분에서 처음 해석이 늘 이 경로를 탄다.
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid_tracks` min/max 재해석)
+- **비활성 Tag 의 글자가 Canvas 에서 보통 색이던 것** — Preview 는 수동 `TagGroup.css` 의 `[data-disabled]` 회색, Canvas 는 Tag 칠 트리에 비활성 가지가 없어 보통 색이었다. Tag rule 칠 트리에 S2 `color.isDisabled` (`{color.disabled-content}`) 를 둔다.
+- **Menu 의 `disabledKeys` 가 Publish 에서 무시되던 것** — 항목에 `isDisabled: false` 를 늘 넘겨 RAC 가 그 값을 따랐다. 비활성 항목만 `isDisabled` 를 넘긴다.
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts`
+
 ## [S2 정렬 — 선택 부품 묶음 (GridList · Table · CardView 선택 Checkbox · Card 선택 덮개 · 항목 chevron)] - 2026-11-18
 
 ### Changed

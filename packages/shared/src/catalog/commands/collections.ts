@@ -26,6 +26,7 @@ import {
   definitionTypeName,
   fail,
   overrideAt,
+  parentAncestorTypes,
   setChildList,
   templateDefinitionId,
   type EditTarget,
@@ -370,7 +371,12 @@ function place(
   assertNestable(draft, parent, [root.definitionId]);
   for (const entry of entries) draft.create(entry);
   const list = ensureChildList(draft, parent, newId);
-  const at = catalogAppendIndex(draft, list, [rootId]);
+  const at = catalogAppendIndex(
+    draft,
+    list,
+    [rootId],
+    parentAncestorTypes(draft, parent)[0],
+  );
   setChildList(draft, parent, [
     ...list.slice(0, at),
     rootId,

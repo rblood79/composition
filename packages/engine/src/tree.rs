@@ -6054,7 +6054,7 @@ impl LayoutTree {
                     for &c in children {
                         self.mark_subtree_dirty(c);
                     }
-                    return self.solve_grid(
+                    let (w, h) = self.solve_grid(
                         handle,
                         children,
                         explicit_w,
@@ -6062,6 +6062,16 @@ impl LayoutTree {
                         avail_w,
                         avail_h,
                     );
+                    // The re-solve takes the clamped size as an explicit (border-box) height and
+                    // returns it so; this box's own height is auto, so it answers content-box like
+                    // the unclamped path (§26 — the parent adds its padding · border). Returning the
+                    // border-box counted them twice: `min-height: 32px` + padding 7/7 over shorter
+                    // content gave 46 (Chrome 32 — S2 MenuItem grid, 2026-11-18).
+                    let content_h = (h - own_pb_v).max(0.0);
+                    if let Some(n) = self.get_mut(handle) {
+                        n.layout.height = content_h;
+                    }
+                    return (w, content_h);
                 }
             }
         }
@@ -9322,6 +9332,58 @@ mod tests {
             2, 400.0, -1.0,
         );
         assert_eq!(t.get_layout(h[1]).width, 70.0, "50 + 10 + 10");
+    }
+
+    /// A grid whose content is shorter than its `min-height` is re-solved at the clamped size; with
+    /// padding its border-box is still the min-height (Chrome 32 — content 18, padding 7 + 7), also
+    /// when the content height arrives after the first solve (the TS text rewrap).
+    #[test]
+    fn grid_min_height_clamp_returns_content_box_with_padding() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"display":"block","width":"fit-content","height":"fit-content","contentHeight":18,"contentMinWidth":40,"contentMaxWidth":40},"children":[]},
+            {"style":{"display":"grid","minHeight":"32px","paddingTop":"7px","paddingBottom":"7px"},"children":[0]},
+            {"style":{"display":"block","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 32.0, "grid min-height 32 (border-box) — content 18 + 14");
+        // Incremental: the text height arrives after the first solve (TS rewrap).
+        let (mut t, h) = solve(
+            r#"[
+            {"style":{"display":"block","width":"fit-content","height":"fit-content","contentMinWidth":40,"contentMaxWidth":40},"children":[]},
+            {"style":{"display":"grid","minHeight":"32px","paddingTop":"7px","paddingBottom":"7px"},"children":[0]},
+            {"style":{"display":"block","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        let first = t.get_layout(h[1]).height;
+        let mut style = t.get(h[0]).unwrap().style.clone();
+        style.content_height = Some(18.0);
+        t.update_style(h[0], style);
+        t.compute_layout(h[2], 400.0, -1.0);
+        assert_eq!((first, t.get_layout(h[1]).height), (32.0, 32.0), "incremental");
+        // Two rows (a label over its description) whose heights arrive after the first solve.
+        let (mut t, h) = solve(
+            r#"[
+            {"style":{"display":"block","width":"fit-content","height":"fit-content","gridColumnStart":"1","gridRowStart":"1","contentMinWidth":40,"contentMaxWidth":40},"children":[]},
+            {"style":{"display":"block","width":"fit-content","height":"fit-content","gridColumnStart":"1","gridRowStart":"2","contentMinWidth":40,"contentMaxWidth":40},"children":[]},
+            {"style":{"display":"grid","alignItems":"center","rowGap":"1px","gridTemplateColumns":["minmax(0, 1fr)"],"minHeight":"32px","paddingTop":"7px","paddingBottom":"7px"},"children":[0,1]},
+            {"style":{"display":"block","width":"400px"},"children":[2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        for (i, ch) in [(0usize, 18.0f32), (1, 16.0)] {
+            let mut style = t.get(h[i]).unwrap().style.clone();
+            style.content_height = Some(ch);
+            t.update_style(h[i], style);
+        }
+        t.compute_layout(h[3], 400.0, -1.0);
+        assert_eq!(
+            (t.get_layout(h[0]).height, t.get_layout(h[1]).height, t.get_layout(h[2]).height),
+            (18.0, 16.0, 49.0),
+            "two rows after the text heights arrive"
+        );
     }
 
     /// grid `auto` 트랙 기여 — padded leaf 와 padded 컨테이너 모두 border-box (+ margin) 기여.

@@ -14,9 +14,11 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   background: var(--bg-inset);
-  color: var(--fg-muted);
+  color: var(--fg);
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   position: sticky;
 
   /* Default size */
@@ -68,11 +70,30 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Header {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-Header .react-aria-Heading {
+    margin: 0;
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+    font-weight: 700;
+    color: var(--fg);
+  }
+
+  .react-aria-Header .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+    font-weight: 400;
+    color: var(--fg-muted);
+  }
 
 
 } /* @layer components */

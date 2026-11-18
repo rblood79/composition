@@ -113,7 +113,23 @@ describe("S2 Menu size reaches its items", () => {
       expect(items).toHaveLength(2);
       for (const item of items) {
         expect(item.props.size).toBe(size);
-        expect(root.getGeometry([item.id]).get(item.id)!.height).toBe(height);
+        const box = root.getGeometry([item.id]).get(item.id)!;
+        // (S2 `menuitem` areas, 2026-11-18: a description sits on its own row under the label, in
+        //  the label's column; an item without one is the control height.)
+        const [labelId, descriptionId] = item.children;
+        if (item.children.length === 1) expect(box.height).toBe(height);
+        else {
+          const boxes = root.getGeometry([labelId!, descriptionId!]);
+          const labelBox = boxes.get(labelId!)!;
+          const descriptionBox = boxes.get(descriptionId!)!;
+          // (No text measure in this harness — the rows share the control height; the live
+          //  Builder draws the taller item.)
+          expect(box.height).toBeGreaterThanOrEqual(height);
+          expect(descriptionBox.y).toBeGreaterThanOrEqual(
+            labelBox.y + labelBox.height,
+          );
+          expect(descriptionBox.x).toBe(labelBox.x);
+        }
       }
       const text = (slot: string) =>
         records.filter(

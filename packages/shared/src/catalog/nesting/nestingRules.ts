@@ -101,6 +101,26 @@ export const CATALOG_EMPTY_STATE_COLLECTIONS: ReadonlySet<string> =
   componentTypeSet("emptyStateCollection");
 
 /**
+ * A collection's empty-state type: S2 Menu's is a line of text (`Menu.tsx` `renderEmptyState` —
+ * 「No results」, 2026-11-18 사용자 결정 「S2 대로 글자 한 줄」), the others' an IllustratedMessage.
+ */
+export function catalogEmptyStateType(collectionType: string): string {
+  return collectionType === "Menu" ? "Text" : CATALOG_EMPTY_STATE_TYPE;
+}
+
+/** Whether a child of `parentType` is that collection's empty state (its direct empty-state node). */
+export function catalogIsEmptyState(
+  childType: string,
+  parentType: string | null | undefined,
+): boolean {
+  return (
+    !!parentType &&
+    CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType) &&
+    childType === catalogEmptyStateType(parentType)
+  );
+}
+
+/**
  * 합성 부품이 뜻을 갖기 위해 조상 어딘가에 있어야 하는 소유자. 직계가 아니어도 된다
  * (Tab 은 TabList 안, TabList 는 Tabs 안 — 두 단계 모두 검사된다).
  */
@@ -511,9 +531,7 @@ export function resolveNestingViolation(
   // 층 2 — RAC 합성 (a): 항목 목록 부품 (RAC collection) 은 항목만 받는다 — 래퍼도 RAC 가 버린다.
   if (parentType !== null && !isOpaque(parentType)) {
     const allowed = RAC_COLLECTION_CHILD_TYPES[parentType];
-    const emptyState =
-      childType === CATALOG_EMPTY_STATE_TYPE &&
-      CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType);
+    const emptyState = catalogIsEmptyState(childType, parentType);
     if (allowed && !allowed.includes(childType) && !emptyState) {
       return {
         layer: "rac-composition",

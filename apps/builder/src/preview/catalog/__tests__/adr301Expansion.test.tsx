@@ -62,7 +62,7 @@ const EXPANDED: Record<string, string> = {
   Sheet:
     "SheetTrigger(Button SheetOverlay(SheetBackdrop Sheet(SheetContent(Heading div(Description) Button))))",
   // Menu.md — `<MenuTrigger><Button/><Menu>…` (ADR-256 — the Popover is a node of the tree).
-  Menu: "MenuTrigger(ActionButton Popover(Menu(MenuItem MenuItem MenuItem IllustratedMessage)))",
+  Menu: "MenuTrigger(ActionButton Popover(Menu(MenuItem MenuItem MenuItem Text)))",
   // S2 Tabs.md — `<Tabs><TabList><Tab/>…</TabList><TabPanel/>…` (contract 65 — no TabPanels).
   Tabs: "Tabs(TabList(Tab Tab) TabPanel(Text) TabPanel(Text))",
   // Table.md — `<Table><TableHeader><Column/>…</TableHeader><TableBody><Row><Cell/>…`.

@@ -78,6 +78,7 @@ import { menuTriggerBinding } from "./MenuTrigger.binding";
 import { dialogBinding } from "./Dialog.binding";
 import { disclosureBinding } from "./Disclosure.binding";
 import { disclosurePanelBinding } from "./DisclosurePanel.binding";
+import { disclosureHeaderBinding } from "./DisclosureHeader.binding";
 import { accordionBinding } from "./Accordion.binding";
 import { dropZoneBinding } from "./DropZone.binding";
 import { fieldBinding } from "./Field.binding";
@@ -229,6 +230,7 @@ export * from "./DateRangePicker.binding";
 export * from "./Description.binding";
 export * from "./Dialog.binding";
 export * from "./DisclosurePanel.binding";
+export * from "./DisclosureHeader.binding";
 export * from "./Accordion.binding";
 export * from "./DropZone.binding";
 export * from "./FieldError.binding";
@@ -380,6 +382,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Description: descriptionBinding,
   // ADR-256 Phase 8c: RAC DisclosurePanel (the reference `Disclosure > Heading + DisclosurePanel`).
   DisclosurePanel: disclosurePanelBinding,
+  // 2026-11-18: S2 DisclosureHeader (the title Heading's row).
+  DisclosureHeader: disclosureHeaderBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,

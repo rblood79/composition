@@ -1142,8 +1142,35 @@ describe("ADR-295 G4 — 3c-3c ③ MenuItem = S2 menuitem (control 형 · label 
         parseRuleLengthRef(ruleSizeLengthRef(block, "paddingX")!),
         size,
       ).toMatchObject({ base: `{size.height.${size}}`, ratio: 3 / 8 });
-      expect(ruleSizeLengthRef(block, "gap"), size).toBeDefined();
+      // S2 `menuitem` turns `control()`'s gap off (`columnGap: 0`) — its parts carry their own
+      //   margins (2026-11-18): the check mark · checkbox `text-to-control`, the icon `text-to-visual`.
+      expect(block.gap, size).toBeUndefined();
+      const font = String(block.fontSize).slice(1, -1);
+      const selectors = (
+        rule.structure?.composition as {
+          sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
+        }
+      ).sizeSelectors?.[size];
+      expect(
+        selectors?.['.react-aria-Icon[slot="selection"]']?.["margin-right"],
+        size,
+      ).toBe(`{length.${font}*10/14}`);
+      expect(
+        selectors?.['.react-aria-Icon[slot="icon"]']?.["margin-right"],
+        size,
+      ).toBe(`{length.${font}*6/14~8/17}`);
     }
+    expect(menu).toMatch(/\.\.\.control\(\{shape: 'default', wrap: true, icon: true\}\),\s*columnGap: 0/);
+    expect(
+      (
+        COMPONENT_RULES_TABLE.MenuItem as unknown as {
+          structure: { containerStyles: Record<string, unknown> };
+        }
+      ).structure.containerStyles,
+    ).toMatchObject({
+      display: "grid",
+      columnGap: "0px",
+    });
   });
 
   it("label = controlFont · medium, description = S ui-xs · M ui-sm · L ui · XL ui-lg", () => {

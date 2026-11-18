@@ -184,8 +184,9 @@ describe("ADR-256 Phase 5d — TagGroup is the reference's node tree", () => {
             createElement(
               Tag,
               { key: text, id: text, textValue: text },
-              // (Our label is a Text node — a span around the reference's text.)
-              createElement("span", null, text),
+              // (Our label is a Text node — a span around the reference's text — in the Tag's
+              //  content `div`, S2 `TagWrapper` (2026-11-18).)
+              createElement("div", null, createElement("span", null, text)),
               createElement(Button, { slot: "remove" }, glyph()),
             ),
           ),

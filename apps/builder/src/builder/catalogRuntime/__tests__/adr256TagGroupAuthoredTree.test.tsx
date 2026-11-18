@@ -321,7 +321,9 @@ describe("Codex Round 20 H1 — maxRows collapses the list", () => {
       });
       const chips = () => host.querySelectorAll('[role="row"]').length;
       const button = () =>
-        host.querySelector<HTMLButtonElement>(".tag-show-all-btn");
+        host.querySelector<HTMLButtonElement>(
+          ".tag-actions .react-aria-ActionButton",
+        );
       expect([chips(), button()?.textContent]).toEqual([2, "Show all (4)"]);
       await act(async () => button()!.click());
       expect([chips(), button()?.textContent]).toEqual([4, "Show less"]);
@@ -379,7 +381,8 @@ describe("maxRows — a Tag added to an open Preview is counted again", () => {
       await settle();
       const chips = () => host.querySelectorAll('[role="row"]').length;
       const button = () =>
-        host.querySelector(".tag-show-all-btn")?.textContent ?? null;
+        host.querySelector(".tag-actions .react-aria-ActionButton")
+          ?.textContent ?? null;
       expect([chips(), button()]).toEqual([4, null]);
       const { catalogItemInsertChoices } = await import("../itemInsert");
       const choice = catalogItemInsertChoices(

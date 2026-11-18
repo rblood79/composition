@@ -4,7 +4,7 @@ import { moveNodes } from "../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
-  CATALOG_EMPTY_STATE_TYPE,
+  catalogIsEmptyState,
 } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import {
   catalogComponentPageStored,
@@ -172,9 +172,7 @@ const nameOf = (
 };
 /** A collection's direct IllustratedMessage — its EmptyState (RAC `renderEmptyState`). */
 const isEmptyState = (typeName: string, parentType: string | undefined) =>
-  typeName === CATALOG_EMPTY_STATE_TYPE &&
-  !!parentType &&
-  CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType);
+  catalogIsEmptyState(typeName, parentType);
 /**
  * A row's mark: a component's origin in place (ADR-260) and the definition view's root are the
  * origin, as is a built-in origin's sample on the Components page (whose own root is only the

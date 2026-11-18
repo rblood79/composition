@@ -75,6 +75,10 @@ import {
   sidePanelCollapse,
   type S2SideNavPanelCollapseProps,
 } from "./concepts/collapse";
+import {
+  groupAction,
+  type S2TagGroupActionProps,
+} from "./concepts/groupAction";
 import { collectionDragDrop } from "./concepts/collectionDragDrop";
 import { expansionKeys, expansionOne } from "./concepts/expansion";
 import { dragDrop, fileSelect } from "./concepts/files";
@@ -309,6 +313,8 @@ export const COMPONENT_INTERACTION_SPECS = {
       { concept: multiSelection },
       { concept: action },
       { concept: remove },
+      // (S2's `onGroupAction` — the `groupActionLabel` button, 2026-11-18.)
+      { concept: groupAction },
     ],
   },
   Menu: {
@@ -452,7 +458,7 @@ interface RacPropsOf {
   Tree: TreeProps<object> & DragAndDropOptions;
   SideNav: NavigationTreeProps<object>;
   SideNavPanel: S2SideNavPanelCollapseProps;
-  TagGroup: TagGroupProps;
+  TagGroup: TagGroupProps & S2TagGroupActionProps;
   Menu: MenuProps<object>;
   Breadcrumbs: BreadcrumbsProps<object>;
   Tabs: TabsProps;

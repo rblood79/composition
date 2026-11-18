@@ -217,16 +217,31 @@ describe("TagGroup maxRows — the collapse reads only the TagLists", () => {
 });
 
 describe("TagGroup maxRows — the Canvas paint", () => {
-  it("draws the Show all box (accent text) and no collapsed tag; a collapse change rebinds", async () => {
+  it("draws the Show all box (S2 quiet ActionButton) and no collapsed tag; a collapse change rebinds", async () => {
     const { root, edit, of } = await open(2, 140);
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const list = of("TagList")[0]!;
     const showAll = root.tagShowAllInputs.get(list.id)!;
     const box = getSkiaNode(showAll.id)!;
     expect(box.text?.content).toBe("Show all (4)");
-    // (The accent text — `.tag-show-all-btn { color: var(--accent-content) }`, ADR-290.)
+    // S2 `ActionGroup`'s quiet ActionButton at M: the control height 32, `edge-to-text` 12 a side,
+    // medium weight, the rule's corner 8, no border (the generated ActionButton sheet's box).
+    expect({
+      height: box.height,
+      paddingX: showAll.paddingX,
+      fontWeight: box.text?.fontWeight,
+      radius: showAll.radius,
+      borderWidth: showAll.borderWidth,
+    }).toEqual({
+      height: 32,
+      paddingX: 12,
+      fontWeight: 500,
+      radius: 8,
+      borderWidth: 0,
+    });
+    // (The quiet resting text — the ActionButton rule's `{color.neutral-content}`.)
     const accent = String(
-      resolveToken("{color.accent-content}" as TokenRef, "light"),
+      resolveToken("{color.neutral-content}" as TokenRef, "light"),
     );
     expect(
       Array.from(box.text!.color as Float32Array)

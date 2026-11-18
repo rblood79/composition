@@ -13,6 +13,7 @@ import {
   catalogItemKey,
   catalogItemSelected,
   catalogKeysHold,
+  catalogSelectionGroupOf,
 } from "./groupSelection";
 import { selectBoxDisabledKeys } from "./selectBoxSelection";
 import { catalogSegmentOwner, catalogSegmentItems } from "./segmentedSelection";
@@ -123,7 +124,7 @@ import {
 } from "./fieldPrefix";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
-  CATALOG_EMPTY_STATE_TYPE,
+  catalogIsEmptyState,
   RAC_COLLECTION_CHILD_TYPES,
   catalogChildKind,
 } from "../nesting/nestingRules";
@@ -299,7 +300,13 @@ const childrenOf = (node: CatalogConsumerNode, get: CatalogRecordLookup) =>
  */
 // ADR-259 Phase 3: a field's label row (FieldLabel — S2's plain `div`) too: the Label in it stays
 //   the field's label (its necessity mark, its text owner, the field context).
-const PART_FRAME_TYPES: ReadonlySet<string> = new Set(["frame", "FieldLabel"]);
+// 2026-11-18: a Disclosure's title row (S2 `DisclosureHeader` — a plain `div`) too: its Heading and
+//   trigger stay the Disclosure's.
+const PART_FRAME_TYPES: ReadonlySet<string> = new Set([
+  "frame",
+  "FieldLabel",
+  "DisclosureHeader",
+]);
 
 /** A node's parent with the layout frames it sits in skipped (`PART_FRAME_TYPES`). */
 export function catalogPartParent(
@@ -696,6 +703,54 @@ function catalogSelectionCheckboxes(
     );
 }
 
+/**
+ * S2 Menu's Divider (`separator-utils.ts` `isSeparatorHidden`, 2026-11-18): a Separator among a
+ * Menu's items is not drawn first, last or right before another Separator — the one S2 puts after a
+ * MenuSection (the Menu's 「+ Section」 adds it) disappears when the section ends the menu. The
+ * Menu's empty-state Text is not an item.
+ */
+export function catalogMenuSeparatorHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "Separator") return false;
+  const menu = get(node.parentId);
+  if (!menu || typeOf(menu) !== "Menu") return false;
+  const items = childrenOf(menu, get).filter(
+    (child) => typeOf(child) !== "Text",
+  );
+  const at = items.findIndex((child) => child.id === node.id);
+  const next = items[at + 1];
+  return at <= 0 || !next || typeOf(next) === "Separator";
+}
+
+/**
+ * An item its collection's `disabledKeys` names (S2 Menu · TagGroup · SideNav — RAC disables the
+ * item: no press · selection, the disabled paint), 2026-11-18. The DOM's RAC reads the collection's
+ * prop; the Canvas paints the item disabled.
+ */
+export function catalogItemKeyDisabled(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const type = typeOf(node);
+  const owner =
+    type === "MenuItem"
+      ? catalogPickerOfOption(node, get, typeOf)
+      : type === "Tag"
+        ? catalogSelectionGroupOf(node, get, typeOf)
+        : type === "SideNavItem"
+          ? catalogSideNavOf(node, get, typeOf)
+          : undefined;
+  const keys = owner?.props.disabledKeys;
+  return (
+    Array.isArray(keys) &&
+    keys.map(String).includes(catalogItemKey(node, typeOf))
+  );
+}
+
 /** The dismissible Dialog (S2 `isDismissible`) whose ButtonGroup `node` is — it gives way to the close button. */
 export function catalogDismissibleDialogOf(
   node: CatalogConsumerNode,
@@ -1003,6 +1058,19 @@ export function catalogAbsentByOwnerValue(
 }
 
 /**
+ * A TagGroup's S2 `groupActionLabel` (`TagGroup.tsx` `ActionGroup`): the label of the action button
+ * after its tags — empty = no button. The Canvas (`settleTagRows`) and the DOM (`TagListRun`) read
+ * this one value.
+ */
+export function catalogTagGroupActionLabel(
+  props: Readonly<Record<string, unknown>>,
+): string {
+  return typeof props.groupActionLabel === "string"
+    ? props.groupActionLabel
+    : "";
+}
+
+/**
  * ADR-256 Decision 7 — a node whose value condition (`presentWhen: "nonEmptyText"`) does not hold:
  * its final text (`String(value ?? "")`, every binding substituted — no trim) is empty and it
  * holds no child nodes. The Canvas and the DOM read this one predicate.
@@ -1090,6 +1158,8 @@ export function catalogHiddenAtRest(
   if (catalogSelectionCheckboxHidden(node, get, typeOf)) return true;
   // S2 Dialog `isDismissible`: its close button replaces its ButtonGroup (2026-11-18).
   if (catalogDismissibleDialogOf(node, get, typeOf)) return true;
+  // S2 Menu Divider: none first, last or before another (2026-11-18).
+  if (catalogMenuSeparatorHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
@@ -1104,10 +1174,7 @@ export function catalogHiddenAtRest(
   const parentType = typeOf(parent);
   // RAC `renderEmptyState` (2026-10-23): a collection's IllustratedMessage is drawn while it has no
   // items.
-  if (
-    type === CATALOG_EMPTY_STATE_TYPE &&
-    CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType)
-  )
+  if (catalogIsEmptyState(type, parentType))
     return catalogCollectionHasItems(parent, get, typeOf);
   // (A closed overlay keeps its trigger owner through a layout frame — RAC's `PopoverContext`
   // reaches it there, `catalogPartParent`.)
@@ -2544,7 +2611,9 @@ export function catalogDerivedProps(
       catalogButtonGroupOf(node, get, typeOf)?.props.isDisabled === true) ||
     (typeOf(node) === "ActionButton" &&
       node.props.isDisabled !== false &&
-      catalogActionButtonGroupOf(node, get, typeOf)?.props.isDisabled === true);
+      catalogActionButtonGroupOf(node, get, typeOf)?.props.isDisabled ===
+        true) ||
+    catalogItemKeyDisabled(node, get, typeOf);
   // (A select-all checkbox while some rows — not all — are selected: RAC's indeterminate dash.)
   const selectAll =
     checkboxItem && typeOf(checkboxItem) === "Column"
@@ -4040,8 +4109,11 @@ export function catalogItemLabels(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // (Through layout frames — a Tag's texts sit in its content `div`, S2 `TagWrapper`, 2026-11-18.)
   return MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
-    ? childrenOf(item, get).filter((child) => typeOf(child) === "Text")
+    ? partChildrenOf(item, get, typeOf).filter(
+        (child) => typeOf(child) === "Text",
+      )
     : [];
 }
 

@@ -69,16 +69,10 @@
 }
 
 
-  .react-aria-SideNavPanel > .react-aria-SideNav {
+  .react-aria-SideNavPanel .react-aria-SideNav {
     flex-grow: 1;
     flex-shrink: 1;
     min-width: 0px;
-  }
-
-  .react-aria-SideNavPanel > .react-aria-Button[slot="collapse"] {
-    margin: 4px;
-    align-self: flex-start;
-    flex-shrink: 0;
   }
 
 

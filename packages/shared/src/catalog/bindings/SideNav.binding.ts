@@ -56,6 +56,14 @@ export const sideNavBinding: PrimitiveBinding = {
         label: "Selected route",
         section: "value",
       },
+      // 2026-11-18 S2 `disabledKeys` — the items it names are disabled (RAC; the Canvas paints them
+      //   disabled — `catalogItemKeyDisabled`).
+      disabledKeys: {
+        kind: "string-array",
+        label: "Disabled keys",
+        section: "state",
+      },
+
       "aria-label": {
         kind: "string",
         label: "aria-label",

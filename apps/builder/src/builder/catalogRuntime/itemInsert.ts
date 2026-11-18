@@ -480,6 +480,18 @@ export function catalogItemInsertChoices(
         newId,
       });
     }
+    // S2 `MenuSection` draws a Divider after itself (2026-11-18): a Menu's new section comes with
+    // its Separator (hidden while it ends the menu — `catalogMenuSeparatorHidden`).
+    if (itemType === "MenuSection" && type === "Menu") {
+      const section = entry(definitionFor(itemType), itemType);
+      const divider = entry(catalogTypeDefinitionId("Separator"), "Separator");
+      return insertNodes({
+        parent,
+        entries: [section, divider],
+        rootIds: [section.id, divider.id],
+        newId,
+      });
+    }
     // A collection item: a new key (Tab ↔ TabPanel pairing, selection); a section has none.
     const key = crypto.randomUUID();
     const section = COLLECTION_FAMILIES.some(

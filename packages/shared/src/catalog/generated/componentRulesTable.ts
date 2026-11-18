@@ -5740,8 +5740,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         staticSelectors: {
+          // 2026-11-18 S2: the title row (`DisclosureHeader`) passes the Disclosure's size font on to
+          //   its Heading (its own sheet's size font would stop it — the Heading inherits).
+          ".react-aria-DisclosureHeader": {
+            "font-size": "inherit",
+          },
           ".react-aria-Heading": {
             margin: "0",
+            // S2 `headingStyle`: the Heading fills its row (`flexGrow: 1 · minWidth: 0`).
+            "flex-grow": "1",
+            "min-width": "0",
             // `<Heading>` 은 `<h3>` 로 렌더돼 **브라우저 기본 h3 font-size(16px)** 를 갖는다 →
             //   `.react-aria-Disclosure[data-size]` 의 font-size 상속 체인을 여기서 끊는다.
             //   아래 trigger 버튼의 `font-size: inherit` 는 **직계 부모**(= 이 Heading)를 따르므로,
@@ -5838,6 +5846,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // generateCompositionCSS 가 comp.delegation 을 무조건 iterate (CSSGenerator:1218) —
         //   composition 보유 시 delegation 필수(빈 배열 허용). 삭제된 spec 도 delegation:[] 였음.
         delegation: [],
+      },
+    },
+  },
+  // 2026-11-18 — S2 `DisclosureHeader` (`Disclosure.tsx` `DisclosureHeaderWithForwardRef`): the title
+  //   Heading's row — `display: flex · alignItems: center · gap: 4` (ActionButtons beside the title).
+  //   Its font is its Disclosure's (the Disclosure sheet's `.react-aria-DisclosureHeader` inherit).
+  DisclosureHeader: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: "4px",
       },
     },
   },
@@ -6822,14 +6854,39 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         position: "sticky",
         background: "{color.layer-2}",
-        text: "{color.neutral-subdued}",
+        // S2 `sectionHeader` — `color: 'neutral'` (the title; its description stays `neutral-subdued`).
+        text: "{color.neutral}",
         // ADR-171 Phase 3 (2026-07-29): archetype base 가 생성 CSS 에만 emit 하던 값이라
         //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
         display: "inline-flex",
-        alignItems: "center",
+        // 2026-11-18 S2 `sectionHeader`: a section title over its description (`Header > Heading +
+        //   Text[slot=description]`) — a column, still centred in the control height.
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "flex-start",
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
+      },
+      // 2026-11-18 S2 Menu `HeadingContext` (`sectionHeading` — `font: ui`, bold, no margin) and the
+      //   section's description Text (S2 `description` — one step down, `neutral-subdued`).
+      composition: {
+        delegation: [],
+        staticSelectors: {
+          ".react-aria-Heading": {
+            margin: "0",
+            "font-size": "var(--text-sm)",
+            "line-height": "var(--text-sm--line-height)",
+            "font-weight": "700",
+            color: "var(--fg)",
+          },
+          '.react-aria-Text[slot="description"]': {
+            "font-size": "var(--text-xs)",
+            "line-height": "var(--text-xs--line-height)",
+            "font-weight": "400",
+            color: "var(--fg-muted)",
+          },
+        },
       },
     },
   },
@@ -8636,6 +8693,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // standalone Menu의 표면은 유지하고 portal 안에서만 부모가 표면을 소유한다.
       composition: {
         delegation: [],
+        // 2026-11-18 S2 Menu `Divider` (`dividerPlacement` — `gridColumn 2 / -2` · `marginY: size(5)`):
+        //   between the items' `edge-to-text` columns (the item height × 3/8), 5 above and below.
+        sizeSelectors: {
+          S: { ".react-aria-Separator": { margin: "5px 9px" } },
+          M: { ".react-aria-Separator": { margin: "5px 12px" } },
+          L: { ".react-aria-Separator": { margin: "5px 15px" } },
+          XL: { ".react-aria-Separator": { margin: "5px 18px" } },
+        },
         externalStyles: [
           {
             selector:
@@ -8719,7 +8784,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.S}",
         paddingX: ofHeight(3, 8),
         paddingY: 4,
-        gap: TEXT_TO_VISUAL,
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -8730,7 +8794,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.M}",
         paddingX: ofHeight(3, 8),
         paddingY: 7,
-        gap: TEXT_TO_VISUAL,
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -8741,7 +8804,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.L}",
         paddingX: ofHeight(3, 8),
         paddingY: 10,
-        gap: TEXT_TO_VISUAL,
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -8752,15 +8814,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minHeight: "{size.height.XL}",
         paddingX: ofHeight(3, 8),
         paddingY: 13,
-        gap: TEXT_TO_VISUAL,
       },
     },
     structure: {
       archetype: "simple",
       element: "div",
+      // 2026-11-18 S2 `menuitem`: a grid — `checkmark icon label keyboard descriptor` with the
+      //   description under the label (S2's areas, its `value` column unused here). No column gap:
+      //   S2 spaces the parts with their own margins (an absent part leaves an empty track), and a
+      //   1px row gap under a description (`space(1)`).
       containerStyles: {
-        display: "inline-flex",
+        display: "grid",
+        gridTemplateColumns: "auto auto minmax(0, 1fr) auto auto",
         alignItems: "center",
+        columnGap: "0px",
+        rowGap: "1px",
       },
       stateStyles: {
         // RAC MenuItem은 public variant 축이 없다. CSS는 같은 칠 트리를 클래스에 적용한다.
@@ -8782,6 +8850,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   (`ui-xs` · `ui-sm` · `ui` · `ui-lg`) — the item's Text slots (a Text's own rule is the body font).
         sizeSelectors: {
           S: {
+            // S2 checkmark · checkbox `marginEnd: text-to-control`, icon `marginEnd: text-to-visual`.
+            '.react-aria-Icon[slot="selection"]': {
+              "margin-right": "{length.typography.text-xs*10/14}",
+            },
+            '.react-aria-Checkbox[slot="selection"]': {
+              "margin-right": "{length.typography.text-xs*10/14}",
+            },
+            '.react-aria-Icon[slot="icon"]': {
+              "margin-right": "{length.typography.text-xs*6/14~8/17}",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-xs)",
               "line-height": "var(--text-xs--line-height)",
@@ -8793,6 +8871,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           M: {
+            // S2 checkmark · checkbox `marginEnd: text-to-control`, icon `marginEnd: text-to-visual`.
+            '.react-aria-Icon[slot="selection"]': {
+              "margin-right": "{length.typography.text-sm*10/14}",
+            },
+            '.react-aria-Checkbox[slot="selection"]': {
+              "margin-right": "{length.typography.text-sm*10/14}",
+            },
+            '.react-aria-Icon[slot="icon"]': {
+              "margin-right": "{length.typography.text-sm*6/14~8/17}",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-sm)",
               "line-height": "var(--text-sm--line-height)",
@@ -8804,6 +8892,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           L: {
+            // S2 checkmark · checkbox `marginEnd: text-to-control`, icon `marginEnd: text-to-visual`.
+            '.react-aria-Icon[slot="selection"]': {
+              "margin-right": "{length.typography.text-base*10/14}",
+            },
+            '.react-aria-Checkbox[slot="selection"]': {
+              "margin-right": "{length.typography.text-base*10/14}",
+            },
+            '.react-aria-Icon[slot="icon"]': {
+              "margin-right": "{length.typography.text-base*6/14~8/17}",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-base)",
               "line-height": "var(--text-base--line-height)",
@@ -8815,6 +8913,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           XL: {
+            // S2 checkmark · checkbox `marginEnd: text-to-control`, icon `marginEnd: text-to-visual`.
+            '.react-aria-Icon[slot="selection"]': {
+              "margin-right": "{length.typography.text-lg*10/14}",
+            },
+            '.react-aria-Checkbox[slot="selection"]': {
+              "margin-right": "{length.typography.text-lg*10/14}",
+            },
+            '.react-aria-Icon[slot="icon"]': {
+              "margin-right": "{length.typography.text-lg*6/14~8/17}",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-lg)",
               "line-height": "var(--text-lg--line-height)",
@@ -8824,6 +8932,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-base)",
               "line-height": "var(--text-base--line-height)",
             },
+          },
+        },
+        // 2026-11-18 S2 grid areas (`menuitem` `gridTemplateAreas`): the selection mark, the icon, the
+        //   label over its description, the keyboard shortcut and the submenu chevron (S2 `descriptor`,
+        //   `marginStart: 8` as the keyboard's).
+        staticSelectors: {
+          '.react-aria-Icon[slot="selection"]': {
+            "grid-column": "1",
+            "grid-row": "1",
+          },
+          '.react-aria-Checkbox[slot="selection"]': {
+            "grid-column": "1",
+            "grid-row": "1",
+          },
+          '.react-aria-Icon[slot="icon"]': {
+            "grid-column": "2",
+            "grid-row": "1",
+          },
+          '.react-aria-Text[slot="label"]': {
+            "grid-column": "3",
+            "grid-row": "1",
+          },
+          '.react-aria-Text[slot="description"]': {
+            "grid-column": "3",
+            "grid-row": "2",
+          },
+          ".react-aria-Keyboard": {
+            "grid-column": "4",
+            "grid-row": "1",
+            "margin-left": "8px",
+          },
+          '.react-aria-Icon[slot="descriptor"]': {
+            "grid-column": "5",
+            "grid-row": "1",
+            "margin-left": "8px",
           },
         },
         rootSelectors: {},
@@ -13914,6 +14057,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               default: "{color.base}",
               isEmphasized: "{color.on-accent}",
             },
+            // S2 `tagStyles` `color.isDisabled: 'disabled'` — a disabled Tag (its own or its group's
+            //   `disabledKeys`) on both consumers (was the manual `TagGroup.css` only, 2026-11-18).
+            isDisabled: "{color.disabled-content}",
           },
           borderColor: {
             default: "{color.border}",
@@ -15898,18 +16044,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           // S2 `transition: width 200ms` (none with reduced motion) — a DOM interaction.
           "&": { styles: { transition: "width 200ms" } },
         },
+        // 2026-11-18 S2 `SideNavPanel`: the nav sits in the panel's content `div` (a column that
+        //   grows) and the collapse ActionButton in its footer `div` (`margin: 4` top · bottom ·
+        //   start) — the origin's frames hold those boxes, and these reach the nav through them.
         staticSelectors: {
           // S2 panel: the nav grows, its 160 minimum is unset inside a panel (`isInSideNavPanel`).
-          "> .react-aria-SideNav": {
+          ".react-aria-SideNav": {
             "flex-grow": "1",
             "flex-shrink": "1",
             "min-width": "0px",
-          },
-          // S2 expand-button row: `margin: 4` (top · bottom · start).
-          '> .react-aria-Button[slot="collapse"]': {
-            margin: "4px",
-            "align-self": "flex-start",
-            "flex-shrink": "0",
           },
         },
       },

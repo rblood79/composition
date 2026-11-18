@@ -573,6 +573,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + ActionButton · ActionButtonGroup.
     // + S2 독립 6종 및 SegmentedControlItem · SelectBox (8).
     // − DialogFooter (2026-11-18 — S2 Dialog 의 버튼 줄은 ButtonGroup, 사용자 승인 삭제).
-    expect(types.length).toBe(177);
+    // + DisclosureHeader (2026-11-18 — S2's title row around a Disclosure's Heading).
+    expect(types.length).toBe(178);
   }, 120_000);
 });

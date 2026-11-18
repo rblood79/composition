@@ -214,6 +214,7 @@ import {
   catalogFieldLabelRowAbsent,
   catalogPickerTimeAbsent,
   catalogSelectionCheckboxHidden,
+  catalogMenuSeparatorHidden,
 } from "./presence";
 import { catalogSelectionGroupOf } from "./groupSelection";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
@@ -1675,6 +1676,19 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           ...children,
         ),
     }),
+  // 2026-11-18: S2 `DisclosureHeader` — the title Heading's row (a plain `div`; RAC's Disclosure
+  // contexts reach the Heading through it).
+  disclosureheader: (node, style, children) =>
+    createElement(
+      "div",
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        className: "react-aria-DisclosureHeader",
+        style,
+      },
+      ...children,
+    ),
   // ADR-256 Phase 8c: RAC `DisclosurePanel` around the starter's content `div`, which is the
   // node's box (the Disclosure sheet's `.react-aria-DisclosurePanel > div` padding).
   disclosurepanel: (node, style, children) =>
@@ -3304,7 +3318,9 @@ function ruleDom(
               node.id,
             ),
             textValue: itemLabelText(root, node),
-            isDisabled: node.props.isDisabled === true,
+            // (Only a disabled item says so — an explicit `false` beats its Menu's `disabledKeys`
+            //  in RAC, 2026-11-18.)
+            ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
             // ADR-295 Phase 3c-3c ③: its Menu's size (the resolver carries it) — the sheet's
             // `[data-size]` blocks (S2 control height · padding · label font).
             "data-size": String(node.props.size ?? "M"),
@@ -3594,8 +3610,14 @@ function itemTextChildren(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): string {
+  // (Through layout frames — a Tag's text sits in its content `div`, S2 `TagWrapper`, 2026-11-18.)
   return node.children
     .map((id) => root.domInputs.get(id))
+    .flatMap((child) =>
+      child && catalogTypeName(root, child) === "frame"
+        ? child.children.map((id) => root.domInputs.get(id))
+        : [child],
+    )
     .filter(
       (child) =>
         !!child &&
@@ -4153,6 +4175,12 @@ export function renderNode(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,
+    ) ||
+    // (S2 Menu Divider: none first, last or before another.)
+    catalogMenuSeparatorHidden(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
     )
   )
     return null;
@@ -4579,7 +4607,7 @@ export function renderNode(
   // (`.react-aria-Tag .react-aria-Text { color: inherit }`): RAC's run selection recolors the item
   // in the Preview, and the Canvas's item color (`derivedOf`) is the authored state's (2026-10-09).
   const itemOfLabel = () => {
-    const item = root.domInputs.get(node.parentId);
+    const item = catalogDomPartParent(root, node);
     return (
       item &&
       catalogItemLabels(

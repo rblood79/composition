@@ -83,6 +83,9 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
     ...ITEM_LINK_PROP_CONTRACTS,
     hideLinkOutIcon: ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
     id: ITEM_KEY_PROP_CONTRACT,
+    // 2026-11-18 S2 · RAC `MenuItemProps.isDisabled` — also what its Menu's `disabledKeys` turns on
+    //   (`catalogItemKeyDisabled`): the rule's disabled dimming reaches the Canvas through it.
+    isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
   },
   // ADR-281 Decision 3 (user decision 1) — a frame passes these down like the page root; a keyed
   // binding (`useListData.getItem`) gives its descendants one item's fields (a detail view).

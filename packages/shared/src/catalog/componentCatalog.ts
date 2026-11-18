@@ -361,6 +361,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "progress circle",
     icon: "CircleDashed",
   }),
+  // 2026-11-18: S2 DisclosureHeader — the row (`div` flex) around a Disclosure's title Heading
+  //   (palette 미노출 — the Disclosure origin has it).
+  primitiveEntry("DisclosureHeader", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "disclosure header",
+    icon: "Rows3",
+  }),
   // ADR-256 Phase 8c: RAC DisclosurePanel — a Disclosure's panel (palette 미노출).
   primitiveEntry("DisclosurePanel", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",

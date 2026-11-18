@@ -185,14 +185,17 @@ function structure(element: Element): string {
 
 const starter = (title: string, content: string) => (
   <Disclosure id={title}>
-    <Heading>
-      <Button slot="trigger">
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path d="m9 18 6-6-6-6" />
-        </svg>
-        <Text>{title}</Text>
-      </Button>
-    </Heading>
+    {/* (S2 `DisclosureHeader` — the title row's `div`, 2026-11-18) */}
+    <div>
+      <Heading>
+        <Button slot="trigger">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+          <Text>{title}</Text>
+        </Button>
+      </Heading>
+    </div>
     <DisclosurePanel>
       <div>
         <Text>{content}</Text>

@@ -50,6 +50,19 @@ export const menuBinding: PrimitiveBinding = {
       // ADR-259 Phase 1: S2 `hideLinkOutIcon` — its link items opening a new tab draw no link-out
       //   glyph (carried to the items — `CATALOG_LINK_OUT_OWNERS`).
       hideLinkOutIcon: HIDE_LINK_OUT_ICON_CONTRACT,
+      // 2026-11-18 S2 `disabledKeys` — the items it names are disabled (RAC; the Canvas paints them
+      //   disabled — `catalogItemKeyDisabled`).
+      disabledKeys: {
+        kind: "string-array",
+        label: "Disabled keys",
+        section: "state",
+      },
+      // 2026-11-18 S2 `disallowEmptySelection` — RAC keeps one item selected.
+      disallowEmptySelection: {
+        kind: "boolean",
+        label: "Disallow Empty Selection",
+        section: "state",
+      },
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

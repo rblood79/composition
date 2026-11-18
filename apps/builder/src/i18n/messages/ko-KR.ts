@@ -899,6 +899,9 @@ const catalog: TranslationKeys = {
       collapse: {
         onCollapsedChange: "패널 접힘이 바뀔 때",
       },
+      groupAction: {
+        onGroupAction: "그룹 동작 버튼을 누를 때",
+      },
       remove: {
         onRemove: "항목을 제거할 때",
       },
@@ -934,6 +937,7 @@ const catalog: TranslationKeys = {
       sort: "정렬",
       expansion: "펼침",
       collapse: "패널 접힘",
+      groupAction: "그룹 동작",
       remove: "제거",
       focusedDate: "포커스 날짜",
       form: "폼",
@@ -3175,6 +3179,11 @@ const semanticLabels: Record<string, string> = {
   "properties.spacious": "넓게",
   "properties.emphasized": "강조",
   "properties.disallowEmptySelection": "빈 선택 금지",
+  "properties.disabledKeys": "비활성 항목",
+  "properties.selectionBehavior": "선택 방식",
+  "properties.toggle": "토글",
+  "properties.replace": "덮어쓰기",
+  "properties.groupActionLabel": "그룹 동작 이름",
   "properties.min": "최소",
   "properties.max": "최대",
   "properties.valueLabel": "값 라벨",

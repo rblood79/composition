@@ -138,8 +138,14 @@
 }
 
 
+  .react-aria-Disclosure .react-aria-DisclosureHeader {
+    font-size: inherit;
+  }
+
   .react-aria-Disclosure .react-aria-Heading {
     margin: 0;
+    flex-grow: 1;
+    min-width: 0;
     font-size: inherit;
   }
 

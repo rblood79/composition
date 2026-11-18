@@ -270,6 +270,7 @@ import {
   catalogTreeChevrons,
   catalogPickerTimeFieldOf,
   catalogPickerTimeGranularity,
+  catalogTagGroupActionLabel,
 } from "./presence";
 import { catalogElementlessWithChildren } from "./elementless";
 import {
@@ -2196,9 +2197,10 @@ function sameRecord(
 
 /** Test-entry-only assembly. Consumer maps are inputs, not G3 visual parity results. */
 /**
- * The "Show all (N)" box of a TagGroup's collapsed TagList on the Canvas (the DOM's
- * `.tag-show-all-btn` — `TagGroup.css`): a layout leaf after the shown tags, chip-sized (the Tag's
- * padding, border box and font), the accent text without a fill.
+ * A button box of a TagList's S2 `ActionGroup` on the Canvas (the DOM's quiet
+ * `.react-aria-ActionButton` — the generated ActionButton sheet): the "Show all (N)" of a collapsed
+ * list, and the TagGroup's `groupActionLabel` button after it — a layout leaf after the shown tags,
+ * the size's control height, `neutral-content` text without a fill at rest.
  */
 export interface CatalogTagShowAll {
   readonly id: string;
@@ -2206,6 +2208,7 @@ export interface CatalogTagShowAll {
   readonly text: string;
   readonly fontSize: number;
   readonly lineHeight: number;
+  readonly fontWeight: number;
   readonly paddingX: number;
   readonly paddingY: number;
   readonly borderWidth: number;
@@ -2324,6 +2327,8 @@ export class CatalogCompositionRoot {
   >();
   /** Collapsed TagLists (`settleTagRows`). */
   private readonly tagRows = new Map<string, TagRowsCollapse>();
+  /** The S2 `groupActionLabel` button of a TagList whose group has one (`settleTagRows`). */
+  private readonly tagGroupActions = new Map<string, CatalogTagShowAll>();
   /** The TagList records (`settleTagRows` reads these, not every record — `trackTagList`). */
   private readonly tagLists = new Map<string, true>();
   /** Collapsed Breadcrumbs (`settleBreadcrumbs`). */
@@ -2493,6 +2498,18 @@ export class CatalogCompositionRoot {
     return new Map(
       [...this.tagRows].map(([listId, collapse]) => [listId, collapse.showAll]),
     );
+  }
+  /**
+   * The S2 `ActionGroup` buttons of every TagList, in order (by TagList id — `settleTagRows`): its
+   * Show all (collapsed) and its group's `groupActionLabel` button.
+   */
+  get tagActionInputs(): ReadonlyMap<string, readonly CatalogTagShowAll[]> {
+    const out = new Map<string, CatalogTagShowAll[]>();
+    for (const [listId, collapse] of this.tagRows)
+      out.set(listId, [collapse.showAll]);
+    for (const [listId, action] of this.tagGroupActions)
+      out.set(listId, [...(out.get(listId) ?? []), action]);
+    return out;
   }
   /** The folder menu of every collapsed Breadcrumbs (by Breadcrumbs id — `settleBreadcrumbs`). */
   get breadcrumbMenuInputs(): ReadonlyMap<string, CatalogBreadcrumbMenu> {
@@ -4700,7 +4717,8 @@ export class CatalogCompositionRoot {
       catalogItemRemoveGlyphItem(record, get, this.typeOf) ??
       catalogTreeChevronGlyphItem(record, get, this.typeOf) ??
       sideNavOwner;
-    const item = glyphItem ?? get(record.parentId);
+    // (A label in a layout frame — a Tag's content `div` — takes its item's color too.)
+    const item = glyphItem ?? catalogPartParent(record, get, this.typeOf);
     // (A bound Button has no rule id: its glyph · label read the Button rule by type.)
     const ruleByType =
       !!item &&
@@ -5678,7 +5696,12 @@ export class CatalogCompositionRoot {
       this.childOrder(record),
     );
     const showAll = this.tagRows.get(record.id)?.showAll;
-    return showAll ? [...children, showAll.id] : children;
+    const action = this.tagGroupActions.get(record.id);
+    return [
+      ...children,
+      ...(showAll ? [showAll.id] : []),
+      ...(action ? [action.id] : []),
+    ];
   }
   /** A Breadcrumbs' engine children: its folder menu box (when collapsed) after the first crumb. */
   private breadcrumbsEngineChildren(record: CatalogConsumerNode): string[] {
@@ -5727,42 +5750,52 @@ export class CatalogCompositionRoot {
       },
     };
   }
-  /** The Show all box of a list of `total` tags, sized as its first tag (`TagGroup.css`). */
-  private tagShowAll(
+  /**
+   * An `ActionGroup` button box of a list (`text` — "Show all (N)" or the group action label): S2's
+   * quiet ActionButton at the size of its first tag.
+   */
+  private tagActionBox(
     list: CatalogConsumerNode,
     tag: CatalogConsumerNode,
-    total: number,
+    text: string,
+    part: "show-all" | "group-action",
   ): CatalogTagShowAll {
     const num = (value: unknown, fallback = 0) =>
       typeof value === "number" && Number.isFinite(value) ? value : fallback;
+    // S2 `ActionGroup`'s buttons are quiet `ActionButton`s at the group's size — the ActionButton
+    // rule's size (weight · corner · no border). Its height is the size's control height and its
+    // font the size's control font, as the Tag chip's (S2 Tag `control()`), so those come from the
+    // chip's resolved box; the side padding is the control's `edge-to-text` (height × 3/8).
+    const size = String(tag.props.size ?? list.props.size ?? "M");
+    const action = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+      .ActionButton!;
+    const actionSize = action.sizes[size] ?? action.sizes[action.defaultSize!];
     const fontSize = num(tag.visual.fontSize, 14);
     const lineHeight = num(tag.visual.lineHeight, 1.4285714285714286);
-    const paddingX = num(tag.visual.paddingX);
-    const paddingY = num(tag.visual.paddingY);
-    const borderWidth = num(tag.visual.borderWidth);
-    const text = `Show all (${total})`;
-    const textWidth = this.textMeasure
-      ? (this.textMeasure(text, { fontSize, fontWeight: 400, lineHeight })
-          .exactWidth ??
-        this.textMeasure(text, { fontSize, fontWeight: 400, lineHeight }).width)
-      : 0;
-    const height = num(
-      tag.visual.height,
-      fontSize * lineHeight + 2 * (paddingY + borderWidth),
-    );
+    const fontWeight = num(actionSize?.fontWeight, 500);
+    const height = num(tag.visual.height, 32);
+    const paddingX = (height * 3) / 8;
+    const paddingY = (height - fontSize * lineHeight) / 2;
+    const measured = this.textMeasure?.(text, {
+      fontSize,
+      fontWeight,
+      lineHeight,
+    });
+    const textWidth = measured ? (measured.exactWidth ?? measured.width) : 0;
     return {
-      id: `${list.id}::show-all`,
+      id: `${list.id}::${part}`,
       listId: list.id,
       text,
       fontSize,
       lineHeight,
+      fontWeight,
       paddingX,
       paddingY,
-      borderWidth,
-      radius: num(tag.visual.radius),
+      borderWidth: 0,
+      radius: num(actionSize?.borderRadius, 8),
       style: {
         display: "block",
-        width: `${Math.ceil(textWidth) + 2 * (paddingX + borderWidth)}px`,
+        width: `${Math.ceil(textWidth) + 2 * paddingX}px`,
         height: `${height}px`,
         flexShrink: 0,
       },
@@ -5979,40 +6012,81 @@ export class CatalogCompositionRoot {
    * TagGroup `maxRows` on the Canvas (the DOM's `useTagMaxRows`): with every tag laid out, the
    * tags past the group's `maxRows` rows leave the flow and a "Show all (N)" box follows the rest.
    * Runs after each layout: a collapsed list is opened first (the rows are counted with every tag,
-   * as the DOM's mirror), then collapsed again. Returns the records whose collapse changed (the
-   * lists and their tags — their Canvas paint changes).
+   * as the DOM's mirror), then collapsed again. The group's S2 `groupActionLabel` button follows
+   * (after Show all — S2 `ActionGroup`) while the list has a tag. Returns the records whose
+   * collapse or button changed (the lists and their tags — their Canvas paint changes).
    */
   private settleTagRows(): string[] {
     const get = (key: string) => this.records.get(key);
-    const lists: Array<[CatalogConsumerNode, number]> = [];
+    const lists: Array<[CatalogConsumerNode, number, string]> = [];
     for (const id of this.tagLists.keys()) {
       const record = get(id);
       if (!record || record.hidden) continue;
       const group = get(record.parentId);
-      const maxRows =
-        group && this.typeOf(group) === "TagGroup"
-          ? Number(group.props.maxRows ?? 0)
-          : 0;
-      if (maxRows > 0 || this.tagRows.has(record.id))
-        lists.push([record, maxRows > 0 ? Math.floor(maxRows) : 0]);
+      const isGroup = !!group && this.typeOf(group) === "TagGroup";
+      const maxRows = isGroup ? Number(group.props.maxRows ?? 0) : 0;
+      const label = isGroup ? catalogTagGroupActionLabel(group.props) : "";
+      if (
+        maxRows > 0 ||
+        label ||
+        this.tagRows.has(record.id) ||
+        this.tagGroupActions.has(record.id)
+      )
+        lists.push([record, maxRows > 0 ? Math.floor(maxRows) : 0, label]);
     }
     if (!lists.length) return [];
     const before = new Map(
-      lists.map(([list]) => [list.id, this.tagRows.get(list.id)]),
+      lists.map(([list]) => [
+        list.id,
+        [this.tagRows.get(list.id), this.tagGroupActions.get(list.id)] as const,
+      ]),
     );
-    // Every tag laid out (the DOM counts its mirror of every tag).
+    const tagsOf = (list: CatalogConsumerNode) =>
+      list.children
+        .map(get)
+        .filter(
+          (tag): tag is CatalogConsumerNode =>
+            !!tag && !tag.hidden && this.typeOf(tag) === "Tag",
+        );
+    // The group action box each list should end with (none without a label or a tag).
+    const actions = new Map<string, CatalogTagShowAll>();
+    for (const [list, , label] of lists) {
+      const tags = tagsOf(list);
+      if (label && tags.length)
+        actions.set(
+          list.id,
+          this.tagActionBox(list, tags[0]!, label, "group-action"),
+        );
+    }
+    // Every tag laid out (the DOM counts its mirror of every tag — without the buttons).
     let opened = false;
-    for (const [list] of lists) {
+    for (const [list, maxRows] of lists) {
       const collapse = this.tagRows.get(list.id);
-      if (!collapse) continue;
-      this.keep(this.tagRows, list.id);
-      this.tagRows.delete(list.id);
-      this.layout.updateChildren(list.id, this.tagListEngineChildren(list));
-      this.layout.removeNode(collapse.showAll.id);
-      for (const id of collapse.hidden) {
-        const tag = get(id);
-        if (tag) this.layout.updateNodeStyle(id, this.styleFor(tag));
+      const action = this.tagGroupActions.get(list.id);
+      const next = actions.get(list.id);
+      const keepAction =
+        !!action &&
+        !maxRows &&
+        !!next &&
+        JSON.stringify(action) === JSON.stringify(next);
+      if (!collapse && (!action || keepAction)) continue;
+      if (collapse) {
+        this.keep(this.tagRows, list.id);
+        this.tagRows.delete(list.id);
       }
+      if (action && !keepAction) {
+        this.keep(this.tagGroupActions, list.id);
+        this.tagGroupActions.delete(list.id);
+      }
+      this.layout.updateChildren(list.id, this.tagListEngineChildren(list));
+      if (collapse) {
+        this.layout.removeNode(collapse.showAll.id);
+        for (const id of collapse.hidden) {
+          const tag = get(id);
+          if (tag) this.layout.updateNodeStyle(id, this.styleFor(tag));
+        }
+      }
+      if (action && !keepAction) this.layout.removeNode(action.id);
       opened = true;
     }
     if (opened)
@@ -6021,12 +6095,7 @@ export class CatalogCompositionRoot {
     let collapsed = false;
     for (const [list, maxRows] of lists) {
       if (!maxRows) continue;
-      const tags = list.children
-        .map(get)
-        .filter(
-          (tag): tag is CatalogConsumerNode =>
-            !!tag && !tag.hidden && this.typeOf(tag) === "Tag",
-        );
+      const tags = tagsOf(list);
       const rects = this.layout.getLayoutsForIds(tags.map((tag) => tag.id));
       let rowY = -Infinity;
       let rows = 0;
@@ -6044,7 +6113,12 @@ export class CatalogCompositionRoot {
       if (shown >= tags.length) continue;
       const collapse: TagRowsCollapse = {
         hidden: tags.slice(shown).map((tag) => tag.id),
-        showAll: this.tagShowAll(list, tags[0]!, tags.length),
+        showAll: this.tagActionBox(
+          list,
+          tags[0]!,
+          `Show all (${tags.length})`,
+          "show-all",
+        ),
       };
       this.keep(this.tagRows, list.id);
       this.tagRows.set(list.id, collapse);
@@ -6054,15 +6128,27 @@ export class CatalogCompositionRoot {
       this.layout.updateChildren(list.id, this.tagListEngineChildren(list));
       collapsed = true;
     }
+    // The group action button after the rest (S2 `ActionGroup` — after Show all).
+    for (const [list] of lists) {
+      const next = actions.get(list.id);
+      if (!next || this.tagGroupActions.has(list.id)) continue;
+      this.keep(this.tagGroupActions, list.id);
+      this.tagGroupActions.set(list.id, next);
+      this.layout.addNode(next.id, { ...next.style });
+      this.layout.updateChildren(list.id, this.tagListEngineChildren(list));
+      collapsed = true;
+    }
     if (collapsed)
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
     const changed: string[] = [];
     for (const [list] of lists) {
-      const was = before.get(list.id);
+      const [was, wasAction] = before.get(list.id)!;
       const now = this.tagRows.get(list.id);
+      const nowAction = this.tagGroupActions.get(list.id);
       if (
         was?.showAll.text === now?.showAll.text &&
-        sameList(was?.hidden ?? [], now?.hidden ?? [])
+        sameList(was?.hidden ?? [], now?.hidden ?? []) &&
+        JSON.stringify(wasAction) === JSON.stringify(nowAction)
       )
         continue;
       changed.push(
@@ -7366,7 +7452,15 @@ export class CatalogCompositionRoot {
     // Direct children, and the children of a `via` wrapper child (descendant rules).
     // The resolver passes these structural hosts when applying a via rule. Its invalidation
     // reaches the same wrappers, including Disclosure > Heading > Button > Text/Icon.
-    const wrappers = after.children.flatMap((childId) => {
+    // (A layout row the resolver reaches through like a frame — S2's `DisclosureHeader` — opens:
+    // its children are the owner's direct parts, 2026-11-18.)
+    const direct = after.children.flatMap((childId) => {
+      const child = this.records.get(childId);
+      return child && this.typeOf(child) === "DisclosureHeader"
+        ? [childId, ...child.children]
+        : [childId];
+    });
+    const wrappers = direct.flatMap((childId) => {
       const child = this.records.get(childId);
       return child &&
         CATALOG_PART_RULE_PASS_HOSTS[this.typeOf(child)]?.has(
@@ -7381,7 +7475,7 @@ export class CatalogCompositionRoot {
         ? targets(child.children, child.definitionId)
         : [];
     });
-    return [...targets(after.children, undefined), ...wrapped];
+    return [...targets(direct, undefined), ...wrapped];
   }
 
   /**

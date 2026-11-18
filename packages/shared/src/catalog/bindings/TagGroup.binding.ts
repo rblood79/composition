@@ -42,6 +42,14 @@ export const tagGroupBinding: PrimitiveBinding = {
         label: "Description",
         section: "content",
       },
+      // 2026-11-18 S2 `groupActionLabel` — an action button after the tags (S2 `ActionGroup`, after
+      //   Show all); its press is the When `onGroupAction`. Canvas `settleTagRows` · DOM `TagListRun`
+      //   read `catalogTagGroupActionLabel` — empty = no button.
+      groupActionLabel: {
+        kind: "string",
+        label: "Group action label",
+        section: "content",
+      },
       size: {
         kind: "size",
         label: "Size",
@@ -115,6 +123,25 @@ export const tagGroupBinding: PrimitiveBinding = {
         kind: "boolean",
         label: "Disallow Empty Selection",
         section: "state",
+      },
+      // 2026-11-18 S2 `disabledKeys` — the items it names are disabled (RAC; the Canvas paints them
+      //   disabled — `catalogItemKeyDisabled`).
+      disabledKeys: {
+        kind: "string-array",
+        label: "Disabled keys",
+        section: "state",
+      },
+      // 2026-11-18 S2 `selectionBehavior` — toggle (each press adds · removes) or replace (a press
+      //   selects that tag alone); `TagGroupRun` hands it to RAC.
+      selectionBehavior: {
+        kind: "enum",
+        label: "Selection Behavior",
+        section: "state",
+        default: "toggle",
+        options: [
+          { value: "toggle", label: "Toggle" },
+          { value: "replace", label: "Replace" },
+        ],
       },
       // S2 1.8.0 TagGroup `isInvalid` · `errorMessage` (2026-10-09): the error text (the template's
       //   FieldError `{errorMessage}`) shows while the group is invalid — S2 `HelpText`; RAC's TagGroup

@@ -1315,6 +1315,42 @@ function textAreaPartRules(parentType: string): CompiledPartRule[] {
  * grew from S2's 32 to 35. One value both consumers read — the engine's line box, the DOM inline.
  * (2026-11-15: it was a hand-written `Table.css` rule, so the Canvas placed it on the baseline.)
  */
+/**
+ * S2 Menu's empty state (2026-11-18 사용자 결정 「S2 대로 글자 한 줄」 — `Menu.tsx` `emptyStateText`):
+ * the Menu's direct Text (its RAC `renderEmptyState`, `catalogEmptyStateType`) is one row of the
+ * Menu's control height, its size font (`ui-sm` · `ui` · `ui-lg` · `ui-xl`) and `edge-to-text` at
+ * both ends, centred. The values go on the record, so the Canvas and the DOM inline read them alike
+ * (the DOM element sits in RAC's `display: contents` wrapper — no sheet selector reaches it alone).
+ */
+function menuEmptyStatePartRules(parentType: string): CompiledPartRule[] {
+  if (parentType !== "Menu") return [];
+  const fonts: Readonly<Record<string, string>> = {
+    S: "text-xs",
+    M: "text-sm",
+    L: "text-base",
+    XL: "text-lg",
+  };
+  return Object.entries(fonts).map(([size, font]): CompiledPartRule => {
+    const height = Number(resolveToken(`{size.height.${size}}` as TokenRef));
+    const fontPx = Number(resolveToken(`{typography.${font}}` as TokenRef));
+    const line = Number(
+      resolveToken(`{typography.${font}--line-height}` as TokenRef),
+    );
+    return {
+      childType: "Text",
+      size,
+      layout: { display: "flex", alignItems: "center" },
+      visual: {
+        fontSize: `{typography.${font}}`,
+        ...(fontPx && line ? { lineHeight: line / fontPx } : {}),
+        height,
+        paddingLeft: (height * 3) / 8,
+        paddingRight: (height * 3) / 8,
+      },
+    };
+  });
+}
+
 function tableCellCheckboxPartRules(parentType: string): CompiledPartRule[] {
   return parentType === "Column" || parentType === "Cell"
     ? [{ childType: "Checkbox", layout: { verticalAlign: "top" }, visual: {} }]
@@ -1593,30 +1629,6 @@ function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
       { size },
     );
   });
-}
-
-/**
- * ADR-300 Phase 4 — S2 `SideNavPanel`'s expand button: a quiet icon-only ActionButton (`isQuiet`,
- * `SideNavPanel.tsx` `ExpandButton` — the default size M: `control({shape: 'default', icon: true})`
- * 32 square, corner 8, the icon `fontRelative(20)`) over the collapse Button node's box: no fill, no
- * border, no padding; its glyph in the text color (ActionButton `gray-800`). The ContextualHelp
- * trigger's way — the DOM takes the record box inline.
- */
-const SIDE_NAV_PANEL_BUTTON_PX = 32;
-const SIDE_NAV_PANEL_ICON_PX = 20;
-function sideNavPanelPartRules(parentType: string): CompiledPartRule[] {
-  if (parentType !== "SideNavPanel") return [];
-  // (The ActionButton family's M corner — the ToggleButton rule's, S2 `control` default shape.)
-  const radius = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
-    .ToggleButton?.sizes.M?.borderRadius;
-  return quietIconSquareRules(
-    SIDE_NAV_PANEL_BUTTON_PX,
-    SIDE_NAV_PANEL_ICON_PX,
-    {
-      radius: typeof radius === "number" ? radius : undefined,
-      match: { slot: "collapse" },
-    },
-  );
 }
 
 /**
@@ -2374,11 +2386,11 @@ export function compileRulePartRules(
     ...disclosureChevronPartRules(parentType),
     ...fieldPrefixPartRules(parentType),
     ...contextualHelpPartRules(parentType),
-    ...sideNavPanelPartRules(parentType),
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),
     ...tableCellCheckboxPartRules(parentType),
+    ...menuEmptyStatePartRules(parentType),
     ...selectBoxPartRules(parentType),
     ...(parentType === "LabeledValue"
       ? Object.entries(COMPONENT_RULES_TABLE.LabeledValue.sizes).flatMap(

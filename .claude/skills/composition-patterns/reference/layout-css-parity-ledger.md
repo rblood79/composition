@@ -76,6 +76,7 @@
 - ❌ auto 폭을 clamp 바인딩과 무관하게 definite 승격 → flex/grid item 의 used 크기를 커널에서 뺏는다 (부모 block 한정이 정본)
 - ❌ aspect 전송값을 `explicit_h` 로 굳히기 → §5.2.2 content 하한이 죽어 내용이 상자를 넘긴다
 - ❌ 부모 intake 에서 자식의 w→h 를 다시 파생 → 자식이 이미 낸 값을 덮어 하한이 사라진다
+- ❌ grid 의 clamp 재진입 결과를 그대로 반환 (2026-11-18) → 재진입은 clamp 값을 explicit (border-box) 높이로 받아 그대로 돌려주는데, 이 상자의 높이는 auto 라 부모는 content-box (§26) 로 읽고 padding · border 를 다시 더한다. 실측: `display: grid` · `min-height: 32px` · padding 7/7 · 글자 18 → 엔진 46 / Chrome 32 (flex · block 은 32). 글자 높이가 늦게 오는 Canvas 증분에서 첫 해석 (내용 0) 이 늘 이 경로를 탄다 — 재진입 반환에서 pad/border 를 빼 content-box 로 (`solve_grid_tracks`, Rust `grid_min_height_clamp_returns_content_box_with_padding`)
 
 ## body 는 뷰포트가 아니다 — 상자는 뷰포트, 배치는 내용 (2026-07-28)
 

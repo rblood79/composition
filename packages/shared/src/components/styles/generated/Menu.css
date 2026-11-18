@@ -109,4 +109,21 @@
 }
 
 
+  .react-aria-Menu[data-size="S"] .react-aria-Separator {
+    margin: 5px 9px;
+  }
+
+  .react-aria-Menu[data-size="M"] .react-aria-Separator {
+    margin: 5px 12px;
+  }
+
+  .react-aria-Menu[data-size="L"] .react-aria-Separator {
+    margin: 5px 15px;
+  }
+
+  .react-aria-Menu[data-size="XL"] .react-aria-Separator {
+    margin: 5px 18px;
+  }
+
+
 } /* @layer components */

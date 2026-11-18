@@ -20,7 +20,7 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands/context";
 import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
-  CATALOG_EMPTY_STATE_TYPE,
+  catalogEmptyStateType,
   catalogChildKind,
 } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import {
@@ -460,7 +460,7 @@ export function catalogSlotInsertOptions(
     }
     // Its empty state (RAC `renderEmptyState`, 2026-10-23): an IllustratedMessage beside the items.
     if (CATALOG_EMPTY_STATE_COLLECTIONS.has(type)) {
-      const option = ofType(CATALOG_EMPTY_STATE_TYPE);
+      const option = ofType(catalogEmptyStateType(type));
       if (option) candidates.push(option);
     }
     // (A collection's nesting check keeps only item-rooted components; a group's nesting is open,

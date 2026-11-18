@@ -206,8 +206,14 @@ describe("Tag selection — a Tag's label and remove X follow the Preview's sele
         )?.style.color,
       }));
     // (The Canvas still paints them the item's colour — the derived value stays.)
+    // (The label sits in the Tag's content `div` — S2 `TagWrapper`, a frame.)
     const label = of("Text").find(
-      (text) => root.typeOf(root.canvasInputs.get(text.parentId)!) === "Tag",
+      (text) =>
+        root.typeOf(
+          root.canvasInputs.get(
+            root.canvasInputs.get(text.parentId)!.parentId,
+          )!,
+        ) === "Tag",
     )!;
     expect(label.derivedProps?.color).toBeDefined();
     for (const row of inline()) expect(row).toEqual({ label: "", glyph: "" });

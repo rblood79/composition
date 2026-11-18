@@ -115,9 +115,10 @@ async function open(groupProps: Record<string, unknown>) {
     const tag = tags()[index]!;
     const node = getSkiaNode(tag.id) as unknown as Painted;
     // (its label is the Text node in it — the Tag's color, `catalogRuleTextColor`)
-    const label = tag.children.find(
-      (id) => root.typeOf(root.canvasInputs.get(id)!) === "Text",
-    )!;
+    // (in the Tag's content `div` — S2 `TagWrapper`, a frame)
+    const label = tag.children
+      .flatMap((id) => [id, ...root.canvasInputs.get(id)!.children])
+      .find((id) => root.typeOf(root.canvasInputs.get(id)!) === "Text")!;
     return {
       fill: rgb(node.box!.fillColor!),
       text: textColor(getSkiaNode(label) as unknown as Painted),

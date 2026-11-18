@@ -64,6 +64,8 @@ export type ComponentTag =
   | "Dialog"
   | "DialogTrigger"
   | "Disclosure"
+  // 2026-11-18: S2 `DisclosureHeader` — the row around a Disclosure's title Heading.
+  | "DisclosureHeader"
   | "Accordion"
   | "DropZone"
   | "Field"

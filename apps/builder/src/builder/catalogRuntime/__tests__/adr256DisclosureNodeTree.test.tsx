@@ -184,10 +184,10 @@ const shape = (id: string): unknown => [
 ];
 
 describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
-  it("the origin is Disclosure > Heading > Button[trigger] > Icon + title Text, + DisclosurePanel > Text", () => {
+  it("the origin is Disclosure > DisclosureHeader > Heading > Button[trigger] > Icon + title Text, + DisclosurePanel > Text", () => {
     expect(shape("lib:template:component-disclosure")).toEqual([
       "Disclosure",
-      ["heading", ["Button", ["Icon"], ["text"]]],
+      ["DisclosureHeader", ["heading", ["Button", ["Icon"], ["text"]]]],
       ["DisclosurePanel", ["text"]],
     ]);
     const trigger = node("lib:template:component-disclosure__trigger");
@@ -215,15 +215,18 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
     document.body.innerHTML = "";
     const reference = await mount(
       <Disclosure defaultExpanded>
-        <Heading>
-          <Button slot="trigger">
-            {/* (lucide's ChevronRight — the starter's glyph.) */}
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-            <Text>Section Title</Text>
-          </Button>
-        </Heading>
+        {/* (S2 `DisclosureHeader` — the title row's `div`, 2026-11-18) */}
+        <div>
+          <Heading>
+            <Button slot="trigger">
+              {/* (lucide's ChevronRight — the starter's glyph.) */}
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+              <Text>Section Title</Text>
+            </Button>
+          </Heading>
+        </div>
         <DisclosurePanel>
           <div>
             <Text>Section content goes here.</Text>

@@ -234,6 +234,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   OverlayArrow: { owners: ["Popover", "Tooltip"] },
   // ADR-256 Phase 8c: RAC DisclosurePanel — its Disclosure's context (throws outside it, G0 ⑧).
   DisclosurePanel: { owners: ["Disclosure"] },
+  // 2026-11-18: S2 DisclosureHeader — the title row in its Disclosure.
+  DisclosureHeader: { owners: ["Disclosure"] },
 
   // ── 텍스트 ──
   Text: { families: ["textHost"] },

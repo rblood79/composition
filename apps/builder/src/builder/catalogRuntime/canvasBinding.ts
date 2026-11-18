@@ -1769,8 +1769,9 @@ function chromeText(
 }
 
 /**
- * A collapsed TagList's "Show all (N)" box (`CatalogCompositionRoot.settleTagRows` — the DOM's
- * `.tag-show-all-btn`: the Tag's padding and font, accent text, no fill or visible border).
+ * A TagList's `ActionGroup` button box — a collapsed list's "Show all (N)" or its group's
+ * `groupActionLabel` (`CatalogCompositionRoot.settleTagRows` — the DOM's quiet
+ * `.react-aria-ActionButton`: S2's quiet ActionButton, `neutral-content` text, no fill at rest).
  */
 function tagShowAllData(showAll: CatalogTagShowAll, rect: Rect): SkiaNodeData {
   const inset = (value: number) => value + showAll.borderWidth;
@@ -1784,10 +1785,15 @@ function tagShowAllData(showAll: CatalogTagShowAll, rect: Rect): SkiaNodeData {
       content: showAll.text,
       fontFamilies: ["Pretendard"],
       fontSize: showAll.fontSize,
+      fontWeight: showAll.fontWeight,
       lineHeight: showAll.fontSize * showAll.lineHeight,
-      // (The theme's accent in the bind's color mode — the sheet's `var(--accent-content)`.)
+      // (The ActionButton rule's resting quiet color in the bind's color mode — the sheet's
+      // `var(--neutral-content)`.)
       color: rgba(
-        resolveToken("{color.accent-content}" as TokenRef, colorMode) as string,
+        resolveToken(
+          "{color.neutral-content}" as TokenRef,
+          colorMode,
+        ) as string,
       ),
       paddingLeft: inset(showAll.paddingX),
       paddingTop: inset(showAll.paddingY),
@@ -2360,9 +2366,9 @@ function bindInColorMode(
           children.map((id) => sceneNodes.get(id)!),
         );
       }
-    // (`tagShowAllInputs` builds a Map per read: read it once for the bind.)
-    const tagShowAll = root.tagShowAllInputs;
-    for (const showAll of tagShowAll.values()) {
+    // (`tagActionInputs` builds a Map per read: read it once for the bind.)
+    const tagActions = root.tagActionInputs;
+    for (const showAll of [...tagActions.values()].flat()) {
       if (!boundInputs.has(showAll.listId)) continue;
       const rect = root.getGeometry([showAll.id]).get(showAll.id);
       if (!rect) throw new Error(`TAG_SHOW_ALL_LAYOUT_REQUIRED:${showAll.id}`);
@@ -2399,13 +2405,13 @@ function bindInColorMode(
     }
     for (const node of boundInputs.values()) {
       const chrome = root.slotChromeInputs.get(node.id);
-      const showAll = tagShowAll.get(node.id);
+      const actions = tagActions.get(node.id) ?? [];
       const menu = breadcrumbMenus.get(node.id);
       const childIds = [
         ...(chrome && context.slotMode !== "page"
           ? [...node.children, chrome.id]
           : node.children),
-        ...(showAll ? [showAll.id] : []),
+        ...actions.map((action) => action.id),
         ...(menu ? [menu.id] : []),
       ];
       const children = childIds.map((id) => sceneNodes.get(id));
@@ -2498,7 +2504,8 @@ function bindInColorMode(
      */
     const tagRowsState = () =>
       JSON.stringify([
-        [...root.tagShowAllInputs.values()]
+        [...root.tagActionInputs.values()]
+          .flat()
           .filter((showAll) => belongsToScene(showAll.listId))
           .map((showAll) => [
             showAll.id,
@@ -2882,9 +2889,12 @@ function bindInColorMode(
       // the bind put them (a collapse change rebinds above — `tagRowsState`).
       const synthetic = new Map<string, string[]>();
       if (regions.length) {
-        for (const showAll of root.tagShowAllInputs.values())
-          if (sceneNodes.has(showAll.id))
-            synthetic.set(showAll.listId, [showAll.id]);
+        for (const [listId, actions] of root.tagActionInputs) {
+          const ids = actions
+            .map((action) => action.id)
+            .filter((id) => sceneNodes.has(id));
+          if (ids.length) synthetic.set(listId, ids);
+        }
         for (const menu of root.breadcrumbMenuInputs.values())
           if (sceneNodes.has(menu.id)) synthetic.set(menu.listId, [menu.id]);
       }
