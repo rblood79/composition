@@ -17,7 +17,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * D1: composition `<div role="grid">` (internal source — delegatedDom 이 role 을 부여).
  * D2: variant/size/layout(appearance) + selectionMode(state) surface. columns 는 2026-09-10 제거 —
- *     S2 CardView 에도 columns 없음. S2 density · selectionStyle 은 2026-10-14 제거 — 어느 consumer 도
+ *     S2 CardView 에도 columns 없음. S2 density 는 2026-10-14 제거 (selectionStyle 도 같은 날 제거했다가 2026-11-18 다시 — 선택 부품 묶음) — 어느 consumer 도
  *     읽지 않았다 (사용자 「불필요하게 등록된 프러퍼티 제거」 · 「지금은 제거」). S2 `layout` 은 같은 날
  *     제거했다가 2026-10-26 다시 들였다 (사용자 「waterfall(masonry) 패턴 누락 — 적용해」): `waterfall`
  *     이면 열은 grid 트랙 그대로, 카드는 가장 짧은 열 아래로 쌓인다 (`runtime/waterfall.ts` — Canvas
@@ -86,6 +86,19 @@ export const cardViewBinding: PrimitiveBinding = {
           { value: "none", label: "None" },
           { value: "single", label: "Single" },
           { value: "multiple", label: "Multiple" },
+        ],
+      },
+      // S2 CardView `selectionStyle` (2026-11-18 — back, 사용자 「S2 대로」): checkbox draws each Card's
+      //   selection Checkbox (`CardCheckbox` — the Card origin's node), highlight only its selection
+      //   indicator; the DOM gives RAC `selectionBehavior` toggle · replace.
+      selectionStyle: {
+        kind: "enum",
+        label: "Selection Style",
+        section: "state",
+        default: "checkbox",
+        options: [
+          { value: "checkbox", label: "Checkbox" },
+          { value: "highlight", label: "Highlight" },
         ],
       },
     },

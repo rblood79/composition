@@ -2568,9 +2568,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. 구 Card.spec 의 비표준
   //   `isQuiet` boolean 분기(transparent vs layer-2)를 S2 정본 variant 모델(primary/secondary/
-  //   tertiary/quiet)로 흡수 — quiet = base transparent. isSelected 2px accent border 는
-  //   `selectedBorder: accent`(border 색 전환, ADR-142 §3 데이터 분기)로 대체. 4 variant 의
-  //   fill.default 만 다르고 hover/pressed/selected 는 공통(neutral-subtle/accent-subtle).
+  //   tertiary/quiet)로 흡수 — quiet = base transparent. 선택 표시는 2026-11-18 S2 대로 바탕 ·
+  //   테두리 칠을 바꾸지 않고 (tertiary 테두리만 걷힘) Card 원본의 SelectionIndicator 노드 (2px
+  //   gray-1000 덮개) 와 elevated 그림자가 맡는다 (사용자 「S2 대로」 — 옛 accent 바탕 · 테두리 삭제).
   //   ToggleButton variant fill 구조 동형. layout(flex/gap/padding)은 factory props.style SSOT
   //   (ADR-907 Layer B) — sizes 의 paddingX/gap 은 DOM base fallback + Skia shell 메트릭.
   Card: {
@@ -2605,21 +2605,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             // ADR-303 (사용자 결정 1 a): S2 `Card.tsx:94` primary `--s2-container-bg: elevated` 고정 —
             //   hover · focus · selected 는 배경 단이 아니라 그림자 (`structure.stateStyles.boxShadow`).
             default: "{color.elevated}",
-            isSelected: {
-              default: "{color.accent-subtle}",
-            },
           },
           color: {
             default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
           },
           borderColor: {
             default: "{color.transparent}",
-            isSelected: {
-              default: "{color.accent-content}",
-            },
           },
         },
       },
@@ -2629,21 +2620,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           backgroundColor: {
             // ADR-303: S2 `Card.tsx:94` secondary `layer-1` 고정 (그림자는 primary 와 같다).
             default: "{color.layer-1}",
-            isSelected: {
-              default: "{color.accent-subtle}",
-            },
           },
           color: {
             default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
           },
           borderColor: {
             default: "{color.transparent}",
-            isSelected: {
-              default: "{color.accent-content}",
-            },
           },
         },
       },
@@ -2653,15 +2635,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           backgroundColor: {
             // ADR-303: S2 `Card.tsx:104` tertiary · quiet `transparent` 고정.
             default: "{color.transparent}",
-            isSelected: {
-              default: "{color.accent-subtle}",
-            },
           },
           color: {
             default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
           },
           borderColor: {
             // ADR-303: S2 `Card.tsx:117` tertiary 테두리 `gray-100` → hover · focus `gray-200`
@@ -2670,8 +2646,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             default: "{color.neutral-surface}",
             isHovered: "{color.neutral-surface-hover}",
             isFocusVisible: "{color.neutral-surface-hover}",
+            // (S2 tertiary `isSelected: 'none'` — its border goes; the SelectionIndicator draws.)
             isSelected: {
-              default: "{color.accent-content}",
+              default: "{color.transparent}",
             },
           },
         },
@@ -2682,21 +2659,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           backgroundColor: {
             // ADR-303: S2 `Card.tsx:104` tertiary · quiet `transparent` 고정.
             default: "{color.transparent}",
-            isSelected: {
-              default: "{color.accent-subtle}",
-            },
           },
           color: {
             default: "{color.neutral}",
-            isSelected: {
-              default: null,
-            },
           },
           borderColor: {
             default: "{color.transparent}",
-            isSelected: {
-              default: "{color.accent-content}",
-            },
           },
         },
       },

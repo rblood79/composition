@@ -1001,7 +1001,7 @@ export function fillTableTemplateCells(
   // A Column read under its label (no `key`) keeps that key: the template cell now names the
   // field, so a later label edit must not move the column's key (its sort) off the cell's field.
   columns.forEach((column, index) => {
-    if (column.kind !== "node") return;
+    if (column.kind !== "node" || tableSelectionPart(draft, column)) return;
     const node = draft.node(column.id);
     if (node.props.key?.kind === "set") return;
     draft.write({
@@ -1057,6 +1057,37 @@ function partChildren(draft: CommandDraft, position: NodeParent): NodeParent[] {
     ...(root ? childPositions(draft, root) : []),
     ...childPositions(draft, position),
   ];
+}
+/**
+ * S2 TableView's selection column (2026-11-18): a Column · Cell holding `Checkbox[slot=selection]`
+ * (as its child or inside a frame in it — `catalogTableSelectionColumn`, read on the document). The
+ * column the Table origin starts with; adding rows and columns keeps it (S2 adds it itself).
+ */
+function tableSelectionPart(draft: CommandDraft, part: NodeParent): boolean {
+  const holds = (position: NodeParent, depth: number): boolean =>
+    partChildren(draft, position).some(
+      (child) =>
+        (positionType(draft, child) === "Checkbox" &&
+          readProp(draft.reader, child, "slot") === "selection") ||
+        (depth > 0 && holds(child, depth - 1)),
+    );
+  return holds(part, 1);
+}
+/** The selection Checkbox a new Row's cell in the selection column holds (as the origin's). */
+function selectionCheckboxEntry(newId: NewId): NodeEntry {
+  return {
+    kind: "node",
+    id: newId("node") as NodeId,
+    definitionId: "lib:definition:origin-component-checkbox",
+    children: [],
+    props: {
+      slot: { kind: "set", value: "selection" },
+      children: { kind: "set", value: "" },
+    },
+    visual: {},
+    sizing: {},
+    descendantOverrides: [],
+  } as NodeEntry;
 }
 function positionKey(position: NodeParent): string {
   return position.kind === "descendant"
@@ -1433,20 +1464,23 @@ export function tableHeaderColumns(
   header: NodeParent,
 ): TableColumnSpec[] {
   const draft = new CommandDraft(reader);
-  return childPositions(draft, header).map((column, index) => {
-    const key = columnKey(reader, column, index);
-    const label = readProp(reader, column, "label");
-    const text = readProp(reader, column, "children");
-    return {
-      key,
-      label:
-        typeof label === "string" && label
-          ? label
-          : typeof text === "string" && text
-            ? text
-            : key,
-    };
-  });
+  // (S2's selection column is no data column — quick connect neither counts nor replaces it.)
+  return childPositions(draft, header)
+    .filter((column) => !tableSelectionPart(draft, column))
+    .map((column, index) => {
+      const key = columnKey(reader, column, index);
+      const label = readProp(reader, column, "label");
+      const text = readProp(reader, column, "children");
+      return {
+        key,
+        label:
+          typeof label === "string" && label
+            ? label
+            : typeof text === "string" && text
+              ? text
+              : key,
+      };
+    });
 }
 
 /**
@@ -1476,10 +1510,17 @@ export const insertTableColumns =
       fail("NOT_A_TABLE_HEADER", positionId(input.header));
     // The keys are read before an instance's header list becomes its own (the new column records
     // exist only in the draft, not in `reader`).
-    const keys = childPositions(draft, input.header).map((column, index) =>
-      columnKey(reader, column, index),
-    );
+    // (S2's selection column is no data column — a new column is named after the data ones.)
+    const keys = childPositions(draft, input.header)
+      .filter((column) => !tableSelectionPart(draft, column))
+      .map((column, index) => columnKey(reader, column, index));
     const current = ensureChildList(draft, input.header, input.newId);
+    // S2's selection column stays through a replace (quick connect) — first, as S2 draws it.
+    const kept = input.replace
+      ? current.filter((id) =>
+          tableSelectionPart(draft, { kind: "node", id: id as NodeId }),
+        )
+      : [];
     let specs = input.columns;
     if (!specs) {
       const taken = new Set(keys);
@@ -1488,10 +1529,12 @@ export const insertTableColumns =
       specs = [{ key: `column${n}`, label: `Column ${n}` }];
     }
     if (input.replace) {
-      setChildList(draft, input.header, []);
+      setChildList(draft, input.header, kept);
       removeWithReferrers(
         draft,
-        current.flatMap((id) => subtree(draft, id)),
+        current
+          .filter((id) => !kept.includes(id))
+          .flatMap((id) => subtree(draft, id)),
       );
     }
     const columnIds: NodeId[] = [];
@@ -1529,8 +1572,12 @@ export const insertTableColumns =
         // binding is removed and the rows show again.
         for (const rowId of rows) {
           const row = draft.node(rowId);
-          const ownCells = row.children;
-          draft.write({ ...row, children: [] });
+          // (its selection cells stay with the selection column)
+          const keptCells = row.children.filter((id) =>
+            tableSelectionPart(draft, { kind: "node", id }),
+          );
+          const ownCells = row.children.filter((id) => !keptCells.includes(id));
+          draft.write({ ...row, children: keptCells });
           removeWithReferrers(
             draft,
             ownCells.flatMap((id) => subtree(draft, id)),
@@ -1542,7 +1589,7 @@ export const insertTableColumns =
             for (const entry of cell.entries) draft.create(entry);
           draft.write({
             ...draft.node(rowId),
-            children: cells.map((cell) => cell.rootId),
+            children: [...keptCells, ...cells.map((cell) => cell.rootId)],
           });
         }
       } else {
@@ -1612,11 +1659,20 @@ export const insertTableRow =
       built.entries.find((entry) => entry.id === built.rootId)?.children ?? [];
     for (const entry of built.entries) {
       const index = cellIds.indexOf(entry.id);
-      draft.create(
-        index >= 0 && columns[index]
-          ? { ...entry, ...tableColumnHiding(draft, columns[index]) }
-          : entry,
-      );
+      const column = index >= 0 ? columns[index] : undefined;
+      // A new row's cell in S2's selection column is the selection cell, as the others': the
+      // selection Checkbox only (S2 `checkboxCellStyle` — any text the builder gave it goes).
+      const checkbox =
+        column && !entry.children.length && tableSelectionPart(draft, column)
+          ? selectionCheckboxEntry(input.newId)
+          : undefined;
+      if (checkbox) draft.create(checkbox);
+      const { children: _text, ...props } = entry.props;
+      draft.create({
+        ...entry,
+        ...(column ? tableColumnHiding(draft, column) : {}),
+        ...(checkbox ? { props, children: [checkbox.id] } : {}),
+      });
     }
     // (A row whose definition brings cells of its own — a reusable row's — would hold more.)
     if (

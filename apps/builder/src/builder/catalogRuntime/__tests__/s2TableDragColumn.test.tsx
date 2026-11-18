@@ -94,7 +94,9 @@ async function open() {
     const of = (type: string) => records.filter((r) => root.typeOf(r) === type);
     const header = of("TableHeader")[0]!;
     const rows = of("Row");
-    const columns = of("Column");
+    // (the shown Columns — the origin's selection column is not there while the Table selects
+    // nothing, S2)
+    const columns = of("Column").filter((column) => !column.hidden);
     const box = (id: string) => root.getGeometry([id]).get(id)!;
     const table = [...root.domInputs.values()].find(
       (r) => r.sourceId === TABLE,

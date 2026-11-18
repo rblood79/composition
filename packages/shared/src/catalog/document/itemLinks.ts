@@ -107,17 +107,46 @@ export function catalogItemLinkOut(
   type: string,
   props: Readonly<Record<string, unknown>>,
 ): boolean {
+  return opensNewTab(type, props) && props.hideLinkOutIcon !== true;
+}
+
+function opensNewTab(
+  type: string,
+  props: Readonly<Record<string, unknown>>,
+): boolean {
   return (
     type in CATALOG_LINK_OUT_OWNERS &&
     typeof props.href === "string" &&
     props.href !== "" &&
-    props.target === "_blank" &&
-    props.hideLinkOutIcon !== true
+    props.target === "_blank"
   );
 }
 
 /** The Lucide glyph standing for S2's `ui-icons/LinkOut` (the set every icon here comes from). */
 export const CATALOG_LINK_OUT_ICON = "external-link";
+
+/** The Lucide glyph standing for S2's `ui-icons/Chevron` (pointing to the end). */
+export const CATALOG_CHILD_ITEMS_ICON = "chevron-right";
+
+/**
+ * The glyph S2 draws at an item's end, if any — its link-out glyph (`catalogItemLinkOut`), else a
+ * ListView item's chevron while it has child items (`ListView.tsx` `hasChildItems && !isLinkOut` —
+ * a new-tab link draws no chevron even when its glyph is hidden, 2026-11-18). Both glyphs share the
+ * place and box (`catalogLinkOutGlyph`).
+ */
+export function catalogItemTrailingIcon(
+  type: string,
+  props: Readonly<Record<string, unknown>>,
+): string | undefined {
+  if (catalogItemLinkOut(type, props)) return CATALOG_LINK_OUT_ICON;
+  if (
+    type === "GridListItem" &&
+    props.hasChildItems === true &&
+    !opensNewTab(type, props)
+  )
+    return CATALOG_CHILD_ITEMS_ICON;
+  return undefined;
+}
 
 /**
  * S2 link-out glyph box per item size: the S2 UI icon (`LinkOut` M · L · XL = 10 · 12 · 14 px —

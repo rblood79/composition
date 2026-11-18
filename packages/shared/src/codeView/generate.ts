@@ -53,6 +53,7 @@ import {
   codeViewAddressKey,
   codeViewExpandedBoundKeys,
   codeViewExpandedRoot,
+  codeViewOwnerDrawnPosition,
   codeViewPositionBindings,
   codeViewPositionUnit,
   codeViewRuleKeys,
@@ -1235,7 +1236,8 @@ class Generator {
    * variable's start, ADR-309 a date prop's literal); none for a text that reads as no date.
    */
   private dateExpression(value: unknown): string | undefined {
-    const parsed = typeof value === "string" ? parseDateValue(value) : undefined;
+    const parsed =
+      typeof value === "string" ? parseDateValue(value) : undefined;
     if (!parsed) return undefined;
     // (An instant written with `Z` · an offset is read in UTC — `parseZonedDateTime` takes only
     //   the bracketed zone form, review 2026-10-29.)
@@ -3001,7 +3003,15 @@ class Generator {
     // (Every position's key is its class in the root's tree — one class table for all of them.)
     const classes = codeViewTreeClasses(this.doc.input.reader as never, [root]);
     for (const child of template?.children ?? [])
-      this.writePosition(out, node, [root, child as string], row, classes);
+      // (not a Card's own drawn parts — S2's use code has no element for them)
+      if (!(
+        this.doc.typeOf(node) === "Card" &&
+        codeViewOwnerDrawnPosition(
+          this.doc.input.reader as never,
+          child as string,
+        )
+      ))
+        this.writePosition(out, node, [root, child as string], row, classes);
   }
 
   /**
@@ -3316,7 +3326,10 @@ class Generator {
             item.target.name === "textValue",
         )
       ) {
-        attribute("textValue", `{String(${frame.row ?? "item"}.${frame.label})}`);
+        attribute(
+          "textValue",
+          `{String(${frame.row ?? "item"}.${frame.label})}`,
+        );
         attributes.unshift(attributes.pop()!);
       }
       attribute(rowTemplate.prop, `{${rowTemplate.code}}`);
@@ -3458,8 +3471,7 @@ class Generator {
       metadata?.htmlId &&
       !/^[a-z][a-z0-9-]*_\d+$/.test(metadata.htmlId) &&
       !attributes.some(
-        (item) =>
-          item.target.kind === "attribute" && item.target.name === "id",
+        (item) => item.target.kind === "attribute" && item.target.name === "id",
       )
     )
       attribute("id", jsx(metadata.htmlId), "metadata");
@@ -3500,8 +3512,7 @@ class Generator {
       ...fills.filter((fill) => fill.root).flatMap((fill) => fill.childIds),
     ].filter(
       (id) =>
-        !treeRows ||
-        this.doc.typeOf(this.doc.node(id) ?? node) !== "TreeItem",
+        !treeRows || this.doc.typeOf(this.doc.node(id) ?? node) !== "TreeItem",
     );
     const slots = fills.filter((fill) => !fill.root);
     // (What makes the element a block — anything but its text inside.)
@@ -3524,7 +3535,8 @@ class Generator {
             .write(`<Slot name=${jsx(slot.key)}>`)
             .end()
             .in();
-          for (const child of slot.childIds) this.writeChild(writer, child, row);
+          for (const child of slot.childIds)
+            this.writeChild(writer, child, row);
           writer.out().start().write("</Slot>");
         }
         writer.anchor(at, {
@@ -3558,7 +3570,9 @@ class Generator {
       out.write(code).anchor(at, { kind: "text", nodeId: node.id });
     };
     if (framed)
-      this.rowFrames.push(this.rowFrame(binding!, this.boundRows(node, binding!)));
+      this.rowFrames.push(
+        this.rowFrame(binding!, this.boundRows(node, binding!)),
+      );
     const shorthand = this.itemsShorthand(type, children, slots, text);
     if (shorthand) {
       // (The only item repeats over the list's rows: the list takes them — `items` + render.)
@@ -3721,7 +3735,8 @@ class Generator {
     const group = GROUP_REPEAT_ITEMS[this.doc.typeOf(node)];
     if (group && this.rowTemplate?.nodeId === node.id) {
       const text =
-        this.doc.typeOf(node) === "Radio" || this.doc.typeOf(node) === "Checkbox"
+        this.doc.typeOf(node) === "Radio" ||
+        this.doc.typeOf(node) === "Checkbox"
           ? "children"
           : "label";
       if (!props[text])
@@ -3750,7 +3765,13 @@ class Generator {
     text: unknown,
   ): string | undefined {
     const frame = this.rowFrames.at(-1);
-    if (!frame || frame.row || !CODE_VIEW_ITEMS_HOSTS.has(type) || slots.length || text)
+    if (
+      !frame ||
+      frame.row ||
+      !CODE_VIEW_ITEMS_HOSTS.has(type) ||
+      slots.length ||
+      text
+    )
       return undefined;
     const items = children.filter((id) => {
       const child = this.doc.node(id);

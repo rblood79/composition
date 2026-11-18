@@ -135,7 +135,12 @@ describe("ADR-280 G3 — RAC testers observe the rules", () => {
     const column = [...h.session.root!.domInputs.values()].find(
       (record) =>
         record.bindingId === "column" &&
-        record.sourceId.startsWith("project:node:"),
+        record.sourceId.startsWith("project:node:") &&
+        // (a data Column — not S2's selection column, the origin's first since 2026-11-18)
+        !record.children.some(
+          (child) =>
+            h.session.root!.domInputs.get(child)?.props.slot === "selection",
+        ),
     )!;
     h.declare(column.sourceId as NodeId, { allowsSorting: true });
     const tester = () =>

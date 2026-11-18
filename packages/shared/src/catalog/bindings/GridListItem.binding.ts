@@ -53,6 +53,13 @@ export const gridListItemBinding: PrimitiveBinding = {
       // (ADR-308: its selection is its group's keys — no `isSelected` of its own.)
       // (its GridList's `hideLinkOutIcon` — the resolver carries it, S2 ListView context.)
       hideLinkOutIcon: ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
+      // S2 ListViewItem `hasChildItems` (2026-11-18): the item draws a chevron at its end (not for a
+      //   new-tab link — `catalogItemTrailingIcon`), in the link-out glyph's place.
+      hasChildItems: {
+        kind: "boolean",
+        label: "Has child items",
+        section: "content",
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // ADR-257 후속 — the GridList's S2 `overflowMode` (ListView), carried here by the resolver
       //   (`CATALOG_OVERFLOW_MODE_OWNERS`) for the label · description Text inside — not edited on

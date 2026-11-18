@@ -205,7 +205,14 @@ describe("useAsyncList — load arguments", () => {
       .find((record) => record?.ruleId === "TableHeader")!;
     const name = header.children
       .map((id) => root.domInputs.get(id)!)
-      .find((record) => record.ruleId === "Column")!;
+      // (a data Column — not S2's selection column, the origin's first since 2026-11-18)
+      .find(
+        (record) =>
+          record.ruleId === "Column" &&
+          !record.children.some(
+            (child) => root.domInputs.get(child)?.props.slot === "selection",
+          ),
+      )!;
     act(() => {
       h.session.sortTable(table.id, {
         column: catalogTableColumnKey(name),

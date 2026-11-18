@@ -259,14 +259,17 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
     // gave the Table origin a starter (Name · Type · Status): the same rule — the number after the
     // header's columns — appends `column4` after them.
     expect(old.reader.columns).toEqual([{ key: "column1", label: "Column 1" }]);
+    // (S2's selection column first — no label, 2026-11-18)
     expect(columns.slice(0, -1).map((column) => column.label)).toEqual([
+      undefined,
       "Name",
       "Type",
       "Status",
     ]);
+    // (named after the data columns — the selection column is not one)
     expect(columns.at(-1)).toEqual({
-      key: `column${columns.length}`,
-      label: `Column ${columns.length}`,
+      key: `column${columns.length - 1}`,
+      label: `Column ${columns.length - 1}`,
     });
   });
 

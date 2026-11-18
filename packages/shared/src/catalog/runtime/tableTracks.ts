@@ -245,11 +245,11 @@ export function catalogTableRowTracks<T extends TrackRecord>(
 ): ReturnType<typeof catalogTableColumnTracks> | undefined {
   const table = catalogTrackTableOf(node, get, typeOf);
   if (!table) return undefined;
-  // (A highlight-selection Table has no selection column — Phase 3.)
+  // (A Table not selecting with checkboxes has no selection column — Phase 3, 2026-11-18.)
   const columns = tableColumns(table, get, typeOf).filter(
     (column) =>
       !(
-        highlightSelection(table) &&
+        !checkboxSelection(table) &&
         catalogTableSelectionColumn(column, get, typeOf)
       ),
   );
@@ -313,15 +313,24 @@ export function catalogTableTrackDependents<T extends TrackRecord>(
 }
 
 /** S2 `selectionStyle` highlight (RAC `selectionBehavior="replace"`). */
-function highlightSelection(table: TrackRecord): boolean {
-  return table.props.selectionStyle === "highlight";
+/**
+ * S2 TableView selects with its checkbox column only with a selection mode and the `checkbox`
+ * style (RAC `useTableOptions` gives `selectionBehavior: null` for `selectionMode` none).
+ */
+function checkboxSelection(table: TrackRecord): boolean {
+  const mode = table.props.selectionMode;
+  return (
+    (mode === "single" || mode === "multiple") &&
+    table.props.selectionStyle !== "highlight"
+  );
 }
 
 /**
- * ADR-257 Phase 3 — S2 adds its selection checkbox column only for `selectionStyle` checkbox
- * (`TableView.tsx` — `selectionBehavior === 'toggle' && selectionStyle === 'checkbox'`): in a
- * highlight Table the Column holding `Checkbox[slot=selection]` and each Row's Cell holding one
- * are not there — on the Canvas (`catalogHiddenAtRest`), in the DOM and in the track list.
+ * ADR-257 Phase 3 — S2 adds its selection checkbox column only while the Table selects with
+ * checkboxes (`TableView.tsx` — `selectionMode !== 'none' && selectionBehavior === 'toggle' &&
+ * selectionStyle === 'checkbox'`; 2026-11-18 — `selectionMode` none too): otherwise the Column
+ * holding `Checkbox[slot=selection]` and each Row's Cell holding one are not there — on the Canvas
+ * (`catalogHiddenAtRest`), in the DOM and in the track list.
  */
 export function catalogTableSelectionPartHidden<T extends TrackRecord>(
   node: T,
@@ -334,7 +343,7 @@ export function catalogTableSelectionPartHidden<T extends TrackRecord>(
   const table = row ? catalogTrackTableOf(row, get, typeOf) : undefined;
   return (
     !!table &&
-    highlightSelection(table) &&
+    !checkboxSelection(table) &&
     catalogTableSelectionColumn(node, get, typeOf)
   );
 }

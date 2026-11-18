@@ -346,6 +346,39 @@ const NOT_AN_ELEMENT_POSITION = new Set([
 ]);
 
 /**
+ * S2 정렬 — 선택 부품 묶음 (2026-11-18): the parts S2 Card draws itself — its `SelectionIndicator`
+ * and `CardCheckbox` (the Card origin's nodes, so both consumers draw them). S2's use code has no
+ * element for them (`<Card><CardPreview>…<Content>…<Footer>`), so an expanded Card instance's
+ * code skips their positions.
+ */
+export function codeViewOwnerDrawnPosition(
+  reader: Reader,
+  id: string,
+): boolean {
+  const node = treeNode(reader, id);
+  if (!node) return false;
+  const type = typeOf(reader, node.definitionId);
+  if (type === "SelectionIndicator") return true;
+  // (`CardCheckbox` — the plate `frame` around the selection Checkbox)
+  const selection = (child: TreeNode | undefined) => {
+    const slot = (child as { props?: Record<string, unknown> } | undefined)
+      ?.props?.slot;
+    return (
+      !!child &&
+      typeOf(reader, child.definitionId) === "Checkbox" &&
+      (slot === "selection" ||
+        (typeof slot === "object" &&
+          slot !== null &&
+          (slot as { value?: unknown }).value === "selection"))
+    );
+  };
+  return (
+    type === "frame" &&
+    node.children.some((child) => selection(treeNode(reader, child)))
+  );
+}
+
+/**
  * ADR-301 — the Library template root a Library origin instance is written as (its template tree
  * in the page's code); undefined = written as one element (a field wrapper · an unlocked origin ·
  * the rest).
@@ -368,8 +401,16 @@ export function codeViewExpandedRoot(
   // · `Table > TableHeader + TableBody` · `Card > CardPreview + Content + Footer`. A root with
   // its own inner parts too — TagGroup's Label · ActionBar's clear button — is a field wrapper:
   // the reference's use code is one element, its insides the component file's.)
-  return template.children.length > 0 &&
-    template.children.every((id) => {
+  // (A Card's own drawn parts — `codeViewOwnerDrawnPosition` — are no positions of its code.)
+  const positions = template.children.filter(
+    (id) =>
+      !(
+        typeOf(reader, template.definitionId) === "Card" &&
+        codeViewOwnerDrawnPosition(reader, id)
+      ),
+  );
+  return positions.length > 0 &&
+    positions.every((id) => {
       const child = treeNode(reader, id);
       return (
         !!child?.slot &&

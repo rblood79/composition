@@ -79,6 +79,9 @@ export default function Home() {
       <Text>{`${itemsApplied.find(row => row.id === 'row-1')?.applied ?? ''}`}</Text>
       <Table sortDescriptor={sortDescriptor} onSortChange={setSortDescriptor}>
         <Slot name="Columns">
+          <Column>
+            <Checkbox slot="selection">{``}</Checkbox>
+          </Column>
           <Column key="name" allowsSorting={true}>Name</Column>
           <Column key="type" allowsSorting={true}>Type</Column>
           <Column key="status" allowsSorting={true}>Status</Column>
@@ -87,6 +90,9 @@ export default function Home() {
           <Collection items={items}>
             {item => (
               <Row id={item.id} textValue={String(item.common_name)}>
+                <Cell>
+                  <Checkbox slot="selection" />
+                </Cell>
                 <Cell>{`${item?.name ?? ''}`}</Cell>
                 <Cell>{`${item?.type ?? ''}`}</Cell>
                 <Cell>{`${item?.status ?? ''}`}</Cell>

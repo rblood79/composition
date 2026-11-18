@@ -1234,7 +1234,16 @@ function ownedColumns(reader: CatalogReader, tableId: NodeId): NodeId[] {
     const node = reader.getEntry(id);
     if (node?.kind !== "node" || depth > 3) return;
     if (typeOf(reader, node.definitionId) === "Column") {
-      out.push(id);
+      // (not S2's selection column — it holds the selection Checkbox and sorts nothing, 2026-11-18)
+      const selection = node.children.some((child) => {
+        const entry = reader.getEntry(child);
+        return (
+          entry?.kind === "node" &&
+          entry.props.slot?.kind === "set" &&
+          entry.props.slot.value === "selection"
+        );
+      });
+      if (!selection) out.push(id);
       return;
     }
     node.children.forEach((child) => visit(child, depth + 1));

@@ -113,8 +113,7 @@ import {
   catalogIsFieldPrefix,
 } from "./fieldPrefix";
 import {
-  CATALOG_LINK_OUT_ICON,
-  catalogItemLinkOut,
+  catalogItemTrailingIcon,
   catalogLinkOutCardEndInset,
   catalogItemLinkProps,
   catalogLinkOutGlyph,
@@ -214,6 +213,7 @@ import {
   catalogFieldLabelPartsHidden,
   catalogFieldLabelRowAbsent,
   catalogPickerTimeAbsent,
+  catalogSelectionCheckboxHidden,
 } from "./presence";
 import { catalogSelectionGroupOf } from "./groupSelection";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
@@ -1389,14 +1389,25 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   },
   // ADR-256 Phase 5e: RAC `SelectionIndicator` in its item's context (there while the item is
   // selected); its box is the item sheet's (`.react-aria-Tab .react-aria-SelectionIndicator`).
+  // (A Card's is S2's own `SelectionIndicator` div — `CatalogCardSelectionIndicator`.)
   selectionindicator: (node, style) =>
-    createElement(RAC.SelectionIndicator, {
-      key: node.id,
-      "data-catalog-id": node.id,
-      "data-variant": "default",
-      "data-disabled": node.derivedProps?.isDisabled === true || undefined,
-      style,
-    } as Parameters<typeof RAC.SelectionIndicator>[0]),
+    node.derivedProps?._cardIndicator === true
+      ? createElement(CatalogCardSelectionIndicator, {
+          key: node.id,
+          id: node.id,
+          isSelected:
+            typeof node.derivedProps._isSelected === "boolean"
+              ? node.derivedProps._isSelected
+              : undefined,
+          style,
+        })
+      : createElement(RAC.SelectionIndicator, {
+          key: node.id,
+          "data-catalog-id": node.id,
+          "data-variant": "default",
+          "data-disabled": node.derivedProps?.isDisabled === true || undefined,
+          style,
+        } as Parameters<typeof RAC.SelectionIndicator>[0]),
   // ADR-256 Phase 5g: RAC `SubmenuTrigger` — no element of its own; it reads its item (the first
   // child — RAC gives it `aria-haspopup`) and the Popover holding the submenu (the second).
   submenutrigger: (node, _style, children) =>
@@ -3026,12 +3037,15 @@ function ruleDom(
   // ADR-259 Phase 1: S2 `hideLinkOutIcon` is an owner's context value (its items carry a copy) —
   // no RAC prop.
   delete rest.hideLinkOutIcon;
+  // (S2 ListView's `hasChildItems` draws the chevron below — no RAC prop.)
+  delete rest.hasChildItems;
   // (An emptied link field is no link — RAC makes any `href` one.)
   for (const key of ["href", "target", "rel"])
     if (rest[key] === "") delete rest[key];
-  // S2's link-out glyph of an item opening a new tab — the box the Canvas draws (`ruleShapes`).
-  const linkOut = catalogItemLinkOut(type, node.props);
-  if (linkOut) {
+  // S2's link-out glyph of an item opening a new tab, or a ListView item's chevron while it has
+  // child items — the box the Canvas draws (`ruleShapes`).
+  const trailingIcon = catalogItemTrailingIcon(type, node.props);
+  if (trailingIcon) {
     const ownRight = catalogLinkOutOwnRight(node);
     style = {
       ...style,
@@ -3057,7 +3071,9 @@ function ruleDom(
             node.textRuns,
             node.visual.textDecoration,
           ) ?? [String(textChildren)])),
-    ...(linkOut ? [catalogLinkOutGlyphElement(node, type)] : []),
+    ...(trailingIcon
+      ? [catalogLinkOutGlyphElement(node, type, trailingIcon)]
+      : []),
   ];
   if (lower === "sheet" && node.derivedProps?._sheetHandle === true)
     content.unshift(
@@ -3456,12 +3472,39 @@ function catalogLinkOutOwnRight(node: CatalogConsumerNode): number {
  * (a card's in its bottom padding — `catalogLinkOutCardEndInset`) and in the item's text color
  * (`currentColor`).
  */
+/**
+ * S2 Card `SelectionIndicator` (2026-11-18): a plain `div` over the card while it is selected — its
+ * RAC item's selection in a CardView (RAC `SelectionIndicatorContext`, live in the Preview), else
+ * the standalone Card's (`isSelected`). Presses go through to what it covers (S2 `pointerEvents:
+ * 'none'`). Not RAC's `SelectionIndicator` — that one needs a `SharedElementTransition`.
+ */
+function CatalogCardSelectionIndicator({
+  id,
+  isSelected,
+  style,
+}: {
+  id: string;
+  isSelected?: boolean;
+  style?: CSSProperties;
+}): ReactNode {
+  const item = useContext(RAC.SelectionIndicatorContext) as
+    { isSelected?: boolean } | null | undefined;
+  if (!(isSelected ?? item?.isSelected)) return null;
+  return createElement("div", {
+    "data-catalog-id": id,
+    className: "react-aria-SelectionIndicator",
+    "data-variant": "default",
+    style: { pointerEvents: "none", ...style },
+  });
+}
+
 function catalogLinkOutGlyphElement(
   node: CatalogConsumerNode,
   type: string,
+  icon: string,
 ): ReactNode {
   const glyph = catalogLinkOutGlyph(type, node.props.size);
-  const data = getIconData(CATALOG_LINK_OUT_ICON);
+  const data = getIconData(icon);
   const cardEnd = catalogLinkOutCardEndInset(type);
   const bottom = catalogBoxModel(node).padding?.bottom;
   const place =
@@ -4100,7 +4143,17 @@ export function renderNode(
       root.typeOf,
     ) ||
     // (A picker's time field off its time granularity — S2 `showTimeField`.)
-    catalogPickerTimeAbsent(node, (id) => root.domInputs.get(id), root.typeOf)
+    catalogPickerTimeAbsent(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
+    ) ||
+    // (An item's selection Checkbox · a Card's checkbox plate off checkbox selection — S2.)
+    catalogSelectionCheckboxHidden(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
+    )
   )
     return null;
   if (

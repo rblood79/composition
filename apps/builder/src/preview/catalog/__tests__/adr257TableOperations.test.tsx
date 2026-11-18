@@ -279,7 +279,13 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     );
     // (ADR-310 Phase 4: the key edit takes the Row template's cell along — the Properties write's
     // companion, `catalogColumnKeyRenameCommands`.)
-    const column = ofType("Column")[0]!;
+    // (the first data Column — the origin's first is S2's selection column, 2026-11-18)
+    const column = ofType("Column").find(
+      (record) =>
+        !record.children.some(
+          (child) => root.domInputs.get(child)?.props.slot === "selection",
+        ),
+    )!;
     workspace.execute(() =>
       composeCommands(workspace.runtime.graph, "Column key", [
         setFields({
@@ -308,7 +314,11 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     });
     expect(shown().slice(0, 3)).toEqual(["30", "29", "28"]);
     // The Builder's rows keep the data's order.
-    expect(ofType("Cell")[0]!.props.children).toBe("10");
+    // (its first data Cell — after the selection cell)
+    expect(
+      ofType("Cell").find((cell) => cell.props.children !== undefined)!.props
+        .children,
+    ).toBe("10");
   });
 });
 

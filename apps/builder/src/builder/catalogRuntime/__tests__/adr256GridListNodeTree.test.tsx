@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CheckboxButton, CheckboxField } from "react-aria-components/Checkbox";
 import { GridList, GridListItem, Text } from "react-aria-components/GridList";
 import { describe, expect, it } from "vitest";
+import type { CatalogConsumerNode } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -192,23 +193,19 @@ function reference(withCheckbox: boolean): string {
 }
 
 describe("ADR-256 Phase 5f — a GridList item's selection checkbox is a Checkbox[selection] node", () => {
-  it("multiple selection without the node: no checkbox (the item does not add one)", async () => {
-    const { html } = await open({ selectionMode: "multiple" });
-    expect(gridStructure(html())).toBe(gridStructure(reference(false)));
-  });
+  // (2026-11-18 S2 정렬 — 사용자 「노드로 늘 둠」: the item origin holds the node, there while the
+  //  list selects with checkboxes — S2 ListView `ListSelectionCheckbox`. Before, the author put it in.)
+  const selectionBoxes = (of: (type: string) => CatalogConsumerNode[]) =>
+    of("Checkbox").filter((box) => box.props.slot === "selection");
 
-  it("the author's Checkbox[selection] node: the reference structure, connected to the item", async () => {
-    const { html, addCheckboxes } = await open({ selectionMode: "multiple" });
-    addCheckboxes();
+  it("multiple selection: the item origin's Checkbox[selection] node — the reference structure, connected to the item", async () => {
+    const { html } = await open({ selectionMode: "multiple" });
     expect(gridStructure(html())).toBe(gridStructure(reference(true)));
   });
 
   it("on the Canvas the node is drawn in the item, unselected as the item is", async () => {
-    const { root, of, addCheckboxes } = await open({
-      selectionMode: "multiple",
-    });
-    addCheckboxes();
-    const boxes = of("Checkbox");
+    const { root, of } = await open({ selectionMode: "multiple" });
+    const boxes = selectionBoxes(of);
     expect(boxes).toHaveLength(3);
     expect(boxes.every((box) => box.hidden !== true)).toBe(true);
     for (const box of boxes) {
@@ -232,31 +229,24 @@ describe("ADR-256 Phase 5f — a GridList item's selection checkbox is a Checkbo
     ).toBe(true);
   });
 
-  it("a list that selects nothing: the checkbox is disabled (RAC `canSelectItem`) — Canvas and DOM", async () => {
-    const { html, of, addCheckboxes } = await open();
-    addCheckboxes();
-    expect(
-      of("Checkbox").every((box) => box.derivedProps?.isDisabled === true),
-    ).toBe(true);
-    expect(html().match(/<input[^>]*type="checkbox"[^>]*>/g)).toHaveLength(3);
-    expect(
-      html()
-        .match(/<input[^>]*type="checkbox"[^>]*>/g)!
-        .every((input) => input.includes("disabled")),
-    ).toBe(true);
+  it("a list that selects nothing: no checkbox (S2 — the node is not there) — Canvas and DOM", async () => {
+    const { html, of } = await open();
+    expect(selectionBoxes(of).every((box) => box.hidden === true)).toBe(true);
+    expect(html()).not.toContain('slot="selection"');
+    expect(html().match(/<input[^>]*type="checkbox"/g)).toBeNull();
   });
 
   it("a Checkbox without the slot name is the item's plain content (RAC's default slot)", async () => {
     const { html, of, addCheckboxes } = await open({
       selectionMode: "multiple",
     });
-    addCheckboxes(null);
-    expect(html()).not.toContain('slot="selection"');
-    expect(html()).not.toContain('aria-label="Select"');
+    const added = addCheckboxes(null);
+    // (the origin's selection Checkbox stays one per item)
+    expect(html().match(/slot="selection"/g)).toHaveLength(3);
     expect(
-      of("Checkbox").every(
-        (box) => box.derivedProps?._isSelected === undefined,
-      ),
+      of("Checkbox")
+        .filter((box) => added.some((id) => box.sourceId === id))
+        .every((box) => box.derivedProps?._isSelected === undefined),
     ).toBe(true);
   });
 });

@@ -29,7 +29,6 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  */
 const REMOVED: ReadonlyArray<readonly [string, string, unknown]> = [
   ["CardView", "density", "compact"],
-  ["CardView", "selectionStyle", "highlight"],
   ["ColorSwatchPicker", "density", "compact"],
   ["ColorSwatchPicker", "rounding", "full"],
   ["ColorPicker", "defaultValue", "#ff0000"],
@@ -105,7 +104,8 @@ describe("props no consumer read are not registered", () => {
     ).toEqual([]);
     for (const type of HIDDEN_ITEM_TEXT) {
       const entry = componentCatalog.find(
-        (candidate) => candidate.kind === "primitive" && candidate.type === type,
+        (candidate) =>
+          candidate.kind === "primitive" && candidate.type === type,
       );
       expect(
         entry?.kind === "primitive" &&

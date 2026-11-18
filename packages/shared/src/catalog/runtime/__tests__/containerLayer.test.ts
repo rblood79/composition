@@ -75,10 +75,10 @@ describe("ADR-303 — containerLayerOf (한 판정 함수)", () => {
   });
 
   it("휴지 배경은 칠과 같은 조건으로 — 선택 · emphasized · disabled · fillStyle 가지가 층을 바꾼다", () => {
-    // (선택된 Card 는 accent-subtle — 층이 아니다)
-    expect(
-      catalogContainerLayerOf(node("Card", { isSelected: true })),
-    ).toBeUndefined();
+    // (선택된 Card 도 휴지 바탕 그대로 — S2: 선택은 SelectionIndicator 덮개와 그림자, 2026-11-18)
+    expect(catalogContainerLayerOf(node("Card", { isSelected: true }))).toBe(
+      "elevated",
+    );
     expect(
       catalogContainerLayerOf(node("ActionBar", { isEmphasized: true })),
     ).toBeUndefined();

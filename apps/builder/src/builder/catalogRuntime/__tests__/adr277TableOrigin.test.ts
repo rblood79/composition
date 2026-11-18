@@ -176,9 +176,11 @@ async function open() {
 describe("ADR-277 — the palette Table's origin (the starter)", () => {
   it("a new Table resolves to TableHeader(Column 3: Name · Type · Status) + TableBody(Row 1 · Cell 3)", async () => {
     const { resolved, columnKeys, aligned } = await open();
-    expect(resolved().columns).toEqual(["Name", "Type", "Status"]);
+    // (First S2's selection column — a Column · Cell holding the selection Checkbox, 2026-11-18;
+    // no data column, so not among the keys.)
+    expect(resolved().columns).toEqual(["", "Name", "Type", "Status"]);
     expect(resolved().rows).toEqual([
-      { type: "Row", cells: ["Item 1", "File", "Active"] },
+      { type: "Row", cells: ["", "Item 1", "File", "Active"] },
     ]);
     // (`resolveTableColumnKey`: a Column without `key` reads its name, lower-cased.)
     expect(columnKeys()).toEqual(["name", "type", "status"]);
@@ -195,14 +197,14 @@ describe("ADR-277 — the palette Table's origin (the starter)", () => {
     // (The starter's keys read nothing from `{title, price}` — the cells are empty; the first
     // connect below replaces the columns.)
     expect(resolved().rows).toEqual([
-      { type: "Row", cells: ["", "", ""] },
-      { type: "Row", cells: ["", "", ""] },
+      { type: "Row", cells: ["", "", "", ""] },
+      { type: "Row", cells: ["", "", "", ""] },
     ]);
     workspace.execute(
       catalogBindingCommand([{ kind: "node", id: table }], undefined),
     );
     expect(resolved().rows).toEqual([
-      { type: "Row", cells: ["{name}", "{type}", "{status}"] },
+      { type: "Row", cells: ["", "{name}", "{type}", "{status}"] },
     ]);
   });
 });
@@ -249,12 +251,15 @@ describe("ADR-277 Decision 2 — the first Quick Connect replaces the starter co
     expect(host.readBack(captured.elementId, created.id)).toBe(true);
     expect(bindingOf()?.collectionId).toBe(`data:collection:${created.id}`);
     expect(columnKeys()).toEqual(["title", "price"]);
-    expect(resolved().columns).toEqual(["title", "price"]);
+    // (S2's selection column stays first — quick connect replaces data columns only.)
+    expect(resolved().columns).toEqual(["", "title", "price"]);
     expect(resolved().rows).toEqual([
-      { type: "Row", cells: ["A", "10"] },
-      { type: "Row", cells: ["B", "20"] },
+      { type: "Row", cells: ["", "A", "10"] },
+      { type: "Row", cells: ["", "B", "20"] },
     ]);
-    expect(resolved().rows.flatMap((row) => row.cells)).not.toContain("");
+    expect(resolved().rows.flatMap((row) => row.cells.slice(1))).not.toContain(
+      "",
+    );
     expect(aligned()).toBe(true);
   });
 
@@ -290,9 +295,9 @@ describe("ADR-277 Decision 2 — the first Quick Connect replaces the starter co
     );
     // The starter Row — the rows' template — stays with a cell per schema column (ADR-310 Phase 4:
     // each reads its column's key).
-    expect(resolved().columns).toEqual(["title", "price"]);
+    expect(resolved().columns).toEqual(["", "title", "price"]);
     expect(resolved().rows).toEqual([
-      { type: "Row", cells: ["{title}", "{price}"] },
+      { type: "Row", cells: ["", "{title}", "{price}"] },
     ]);
     expect(aligned()).toBe(true);
   });

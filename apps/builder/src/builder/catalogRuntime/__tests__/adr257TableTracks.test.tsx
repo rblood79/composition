@@ -51,7 +51,11 @@ const node = (
     descendantOverrides: [],
   }) as NodeEntry;
 
-async function openTable(type: "Table", columns: Record<string, unknown>[]) {
+async function openTable(
+  type: "Table",
+  columns: Record<string, unknown>[],
+  tableProps: Record<string, unknown> = {},
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -76,6 +80,7 @@ async function openTable(type: "Table", columns: Record<string, unknown>[]) {
       entries: [
         node("t", type, ["th", "tb"], {
           ...(type === "Table" ? { heightMode: "auto" } : {}),
+          ...tableProps,
         }),
         node("th", "TableHeader", cols),
         ...columns.map((props, index) =>
@@ -245,7 +250,10 @@ describe("ADR-257 Table column tracks", () => {
   });
 
   it("the selection column (a Column with Checkbox[slot=selection]) is S2's 40px track", async () => {
-    const workspace = await openTable("Table", [{}, {}]);
+    const workspace = await openTable("Table", [{}, {}], {
+      // (S2 draws the selection column while the Table selects — 2026-11-18)
+      selectionMode: "multiple",
+    });
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: id("c0") },
@@ -334,7 +342,10 @@ describe("ADR-295 후속 C7 — S2 칸 여백 (TableView `paddingX: 16` · 선�
   });
 
   it("the selection Column · Cell: 16 at the start, 8 at the end (S2 checkbox column)", async () => {
-    const workspace = await openTable("Table", [{}, {}]);
+    const workspace = await openTable("Table", [{}, {}], {
+      // (S2 draws the selection column while the Table selects — 2026-11-18)
+      selectionMode: "multiple",
+    });
     for (const parent of ["c0", "r1d0"])
       workspace.execute(
         insertNodes({

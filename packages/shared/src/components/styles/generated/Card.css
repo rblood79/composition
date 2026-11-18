@@ -37,80 +37,40 @@
   background: var(--bg-elevated);
 }
 
-.react-aria-Card:where([data-variant="primary"][data-selected]) {
-  background: var(--accent-subtle);
-}
-
 .react-aria-Card:where([data-variant="secondary"]) {
   background: var(--bg-overlay);
 }
 
-.react-aria-Card:where([data-variant="secondary"][data-selected]) {
-  background: var(--accent-subtle);
-}
-
 .react-aria-Card:where([data-variant="tertiary"]) {
   background: transparent;
-}
-
-.react-aria-Card:where([data-variant="tertiary"][data-selected]) {
-  background: var(--accent-subtle);
 }
 
 .react-aria-Card:where([data-variant="quiet"]) {
   background: transparent;
 }
 
-.react-aria-Card:where([data-variant="quiet"][data-selected]) {
-  background: var(--accent-subtle);
-}
-
 .react-aria-Card:where([data-variant="primary"]) {
   color: var(--fg);
 }
 
-.react-aria-Card:where([data-variant="primary"][data-selected]) {
-  color: inherit;
-}
-
 .react-aria-Card:where([data-variant="secondary"]) {
   color: var(--fg);
-}
-
-.react-aria-Card:where([data-variant="secondary"][data-selected]) {
-  color: inherit;
 }
 
 .react-aria-Card:where([data-variant="tertiary"]) {
   color: var(--fg);
 }
 
-.react-aria-Card:where([data-variant="tertiary"][data-selected]) {
-  color: inherit;
-}
-
 .react-aria-Card:where([data-variant="quiet"]) {
   color: var(--fg);
-}
-
-.react-aria-Card:where([data-variant="quiet"][data-selected]) {
-  color: inherit;
 }
 
 .react-aria-Card:where([data-variant="primary"]) {
   border-color: transparent;
 }
 
-.react-aria-Card:where([data-variant="primary"][data-selected]) {
-  border-color: var(--accent-content);
-}
-
 .react-aria-Card:where([data-variant="secondary"]) {
   border-color: transparent;
-}
-
-.react-aria-Card:where([data-variant="secondary"][data-selected]) {
-  border-color: var(--accent-content);
 }
 
 .react-aria-Card:where([data-variant="tertiary"]) {
@@ -126,15 +86,11 @@
 }
 
 .react-aria-Card:where([data-variant="tertiary"][data-selected]) {
-  border-color: var(--accent-content);
+  border-color: transparent;
 }
 
 .react-aria-Card:where([data-variant="quiet"]) {
   border-color: transparent;
-}
-
-.react-aria-Card:where([data-variant="quiet"][data-selected]) {
-  border-color: var(--accent-content);
 }
 
 .react-aria-Card[data-size="XS"] {

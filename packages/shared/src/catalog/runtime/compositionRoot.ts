@@ -82,7 +82,7 @@ import {
 } from "./fieldPrefix";
 import {
   CATALOG_LINK_OUT_OWNERS,
-  catalogItemLinkOut,
+  catalogItemTrailingIcon,
   catalogLinkOutCardEndInset,
   catalogLinkOutPaddingRight,
 } from "../document/itemLinks";
@@ -2350,7 +2350,10 @@ export class CatalogCompositionRoot {
   private readonly wrapHeights = new Map<string, number>();
   private readonly wrapBaselines = new Map<string, number>();
   /** ADR-310 Phase 8 — a virtual grid's `GridLayout` columns at its laid-out width (`rewrap`). */
-  private readonly virtualGrids = new Map<string, Record<string, string | string[]>>();
+  private readonly virtualGrids = new Map<
+    string,
+    Record<string, string | string[]>
+  >();
   /** Hears every `previewRecord` (the Canvas re-lays its scene out: siblings may move). */
   private readonly previewListeners = new Set<() => void>();
   /** Records a gesture previews (`previewRecord`): the record it replaced and the one shown. */
@@ -2408,31 +2411,40 @@ export class CatalogCompositionRoot {
     this.rows =
       rows &&
       // (ADR-310 Phase 7 — the source's pages go along: a Pagination reads its list's.)
-      Object.assign((authored: Parameters<CatalogRowSource>[0], kind?: Parameters<CatalogRowSource>[1], ownerId?: NodeId, instancePath?: readonly string[]) => {
-        // ADR-284: the binding's view, its references read for this node (runtime values in the
-        // Preview · Publish, defaults on the Canvas) — the row source runs it before the window.
-        // (ADR-294 R6: an origin's input variable reads the instance on the node's path — each
-        // instance its own rows; a view reading none is the same query for every instance.)
-        const query = catalogBindingQuery(
-          this.runtime.graph,
-          authored,
-          ownerId,
-          this.viewStateSource(),
-          (columnKey) => this.tableColumnField(columnKey),
-          instancePath,
-        );
-        const binding = query ? { ...authored, query } : authored;
-        if (binding.key === undefined) return rows(binding, kind, ownerId);
-        const key = catalogBindingKey(
-          this.runtime.graph,
-          binding.key,
-          ownerId,
-          this.stateSource,
-        );
-        if (key !== undefined) return rows({ ...binding, key }, kind, ownerId);
-        const { key: _template, ...every } = binding;
-        return rows(every, kind, ownerId)?.slice(0, 1);
-      }, rows.pages ? { pages: rows.pages } : {});
+      Object.assign(
+        (
+          authored: Parameters<CatalogRowSource>[0],
+          kind?: Parameters<CatalogRowSource>[1],
+          ownerId?: NodeId,
+          instancePath?: readonly string[],
+        ) => {
+          // ADR-284: the binding's view, its references read for this node (runtime values in the
+          // Preview · Publish, defaults on the Canvas) — the row source runs it before the window.
+          // (ADR-294 R6: an origin's input variable reads the instance on the node's path — each
+          // instance its own rows; a view reading none is the same query for every instance.)
+          const query = catalogBindingQuery(
+            this.runtime.graph,
+            authored,
+            ownerId,
+            this.viewStateSource(),
+            (columnKey) => this.tableColumnField(columnKey),
+            instancePath,
+          );
+          const binding = query ? { ...authored, query } : authored;
+          if (binding.key === undefined) return rows(binding, kind, ownerId);
+          const key = catalogBindingKey(
+            this.runtime.graph,
+            binding.key,
+            ownerId,
+            this.stateSource,
+          );
+          if (key !== undefined)
+            return rows({ ...binding, key }, kind, ownerId);
+          const { key: _template, ...every } = binding;
+          return rows(every, kind, ownerId)?.slice(0, 1);
+        },
+        rows.pages ? { pages: rows.pages } : {},
+      );
     this.tableSort = options.tableSort;
     this.rowSample = options.rowSample;
     this.onRowSampleStale = options.onRowSampleStale;
@@ -5345,7 +5357,7 @@ export class CatalogCompositionRoot {
       ...(record.hidden ? {} : this.fieldBoxLayout(record, get)),
       ...(!withoutAddedRoom &&
       !record.hidden &&
-      catalogItemLinkOut(this.typeOf(record), record.props) &&
+      catalogItemTrailingIcon(this.typeOf(record), record.props) &&
       catalogLinkOutCardEndInset(this.typeOf(record)) === undefined
         ? {
             paddingRight: `${catalogLinkOutPaddingRight(
@@ -6337,12 +6349,12 @@ export class CatalogCompositionRoot {
         const border = this.usedBorder(id);
         const next =
           rect && record.derivedProps?._rowDisplay === "virtual"
-          ? catalogVirtualGridStyle(
-              this.typeOf(record),
-              record.props,
-              rect.width - border.left - border.right,
-            )
-          : undefined;
+            ? catalogVirtualGridStyle(
+                this.typeOf(record),
+                record.props,
+                rect.width - border.left - border.right,
+              )
+            : undefined;
         if (JSON.stringify(next) === JSON.stringify(this.virtualGrids.get(id)))
           continue;
         this.keep(this.virtualGrids, id);

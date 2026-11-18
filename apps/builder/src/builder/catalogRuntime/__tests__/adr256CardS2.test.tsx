@@ -176,11 +176,20 @@ const S2_CARD_TEXT: Record<
 describe("ADR-256 Phase 10a — the S2 Card", () => {
   it("is the S2 tree: CardPreview + Content (Text[title] + Text[description]) + Footer", async () => {
     const { workspace, root, placed, kids, slotText } = await place("card");
+    // (+ S2's own drawn parts — its SelectionIndicator and CardCheckbox, 2026-11-18: not there in a
+    // standalone Card)
     expect(kids(placed().id).map((record) => root.typeOf(record))).toEqual([
       "CardPreview",
       "Content",
       "Footer",
+      "SelectionIndicator",
+      "frame",
     ]);
+    expect(
+      kids(placed().id)
+        .slice(3)
+        .map((record) => record.hidden),
+    ).toEqual([true, true]);
     expect(slotText("title").props.children).toBe("Card Title");
     expect(slotText("description").props.children).toBe(
       "Card description text goes here.",
@@ -420,8 +429,7 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
         target: { kind: "node" as const, id },
         sourceId: id,
         instancePath: [],
-        definitionId: (graph.getEntry(id) as NodeEntry)
-          .definitionId,
+        definitionId: (graph.getEntry(id) as NodeEntry).definitionId,
         identity: id,
       };
     };
@@ -589,7 +597,10 @@ describe("ADR-256 Phase 10b — CardView · ButtonGroup · AvatarGroup", () => {
         }),
       );
     // (ADR-308: the Card's key in the CardView's selection.)
-    set({ kind: "node", id: PLACED }, { defaultSelectedKeys: [String(first().props.id)] });
+    set(
+      { kind: "node", id: PLACED },
+      { defaultSelectedKeys: [String(first().props.id)] },
+    );
     // selectionMode none: neither side selects.
     expect(first().derivedProps?._isSelected).toBe(false);
     let host = await mount(renderCatalogDom(workspace.root, placed().id));

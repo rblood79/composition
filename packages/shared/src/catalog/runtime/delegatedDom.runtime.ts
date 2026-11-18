@@ -273,7 +273,7 @@ import {
   catalogToggleGroupItems,
   catalogToggleGroupOf,
   catalogTreeItemExpanded,
-  catalogTreeSelectionCheckboxHidden,
+  catalogSelectionCheckboxHidden,
   FIELD_HINT_OWNERS,
 } from "./presence";
 import { CATALOG_EMPTY_STATE_TYPE } from "../nesting/nestingRules";
@@ -346,7 +346,11 @@ export interface DelegatedDomInput {
   /** ADR-310 Decision 11 — a collection's load (a run's own load-more spinner). */
   readonly loadingOf?: (collectionId: string) => string | undefined;
   /** ADR-310 Phase 7 — a click in a Pagination (a running Preview's — it steps its list). */
-  readonly paginationClick?: (recordId: string, target: Element, nav: Element) => void;
+  readonly paginationClick?: (
+    recordId: string,
+    target: Element,
+    nav: Element,
+  ) => void;
   /** The collection the record's text filters on the server · that text's load (`setFilterText`). */
   readonly serverFilterOf?: (recordId: string) => string | undefined;
   readonly setFilterText?: (collectionId: string, filterText: string) => void;
@@ -3248,7 +3252,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   checkbox: {
     render: (input) => {
       if (
-        catalogTreeSelectionCheckboxHidden(
+        catalogSelectionCheckboxHidden(
           input.node,
           (id) => input.root.domInputs.get(id),
           input.root.typeOf,
@@ -3854,6 +3858,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-size": str(props.size || "M"),
           "data-variant": str(props.variant || "primary"),
           selectionMode,
+          // S2 CardView `selectionStyle` (2026-11-18): highlight = RAC `replace`, checkbox = `toggle`
+          //   (each Card's selection Checkbox — `catalogSelectionCheckboxHidden`).
+          selectionBehavior:
+            props.selectionStyle === "highlight" ? "replace" : "toggle",
           ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
           disabledKeys: cards
             .filter((card) => card.props.isDisabled === true)
@@ -3885,7 +3893,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       "aria-label": "Pagination",
       ...(input.paginationClick
         ? {
-            onClickCapture: (event: { target: unknown; currentTarget: unknown }) =>
+            onClickCapture: (event: {
+              target: unknown;
+              currentTarget: unknown;
+            }) =>
               input.paginationClick!(
                 input.node.id,
                 event.target as Element,

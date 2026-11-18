@@ -272,8 +272,18 @@ export function catalogItemInsertChoices(
     itemType: string,
     fallback?: NodeEntry["definitionId"],
   ) =>
-    rows.find((row) => typeOf(graph, row.definitionId) === itemType)
-      ?.definitionId ??
+    rows.find(
+      (row) =>
+        typeOf(graph, row.definitionId) === itemType &&
+        // (not S2's selection column — a Column holding the selection Checkbox, 2026-11-18: a new
+        //  Column is a data column, the Column origin's)
+        !(
+          itemType === "Column" &&
+          readModel
+            .childRows(row)
+            .some((child) => typeOf(graph, child.definitionId) === "Checkbox")
+        ),
+    )?.definitionId ??
     fallback ??
     catalogTemplateItemDefinition(graph, position.target, itemType) ??
     catalogPaletteDefinitionId(graph.library, itemType);

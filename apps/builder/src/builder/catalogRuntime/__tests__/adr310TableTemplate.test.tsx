@@ -105,7 +105,21 @@ const bind = (workspace: CatalogWorkspace) =>
     ),
   );
 
-/** The Table's own rows (its TableBody fill) and each one's cells. */
+/** A row's selection cell (S2's selection column — the origin's first, 2026-11-18) holds the
+ * selection Checkbox only: the rows below read their data cells. */
+function selectionCell(workspace: CatalogWorkspace, cellId: string): boolean {
+  const graph = workspace.runtime.graph;
+  const cell = graph.getEntry(cellId as NodeId) as NodeEntry;
+  if (cell.props.children?.kind === "set" && cell.props.children.value)
+    return false;
+  return cell.children.some((id) => {
+    const child = graph.getEntry(id) as NodeEntry;
+    const slot = child.props.slot;
+    return slot?.kind === "set" && slot.value === "selection";
+  });
+}
+
+/** The Table's own rows (its TableBody fill) and each one's data cells. */
 function ownRows(workspace: CatalogWorkspace) {
   const graph = workspace.runtime.graph;
   const fill = (graph.getEntry(TABLE) as NodeEntry).descendantOverrides.find(
@@ -120,11 +134,16 @@ function ownRows(workspace: CatalogWorkspace) {
       id,
       type: definitionTypeName(graph, row.definitionId),
       repeat: row.repeat,
-      cells: row.children.map((cellId) => {
-        const cell = graph.getEntry(cellId) as NodeEntry;
-        const text = cell.props.children;
-        return text?.kind === "set" ? text.value : undefined;
-      }),
+      selectionCells: row.children.filter((cellId) =>
+        selectionCell(workspace, cellId),
+      ).length,
+      cells: row.children
+        .filter((cellId) => !selectionCell(workspace, cellId))
+        .map((cellId) => {
+          const cell = graph.getEntry(cellId) as NodeEntry;
+          const text = cell.props.children;
+          return text?.kind === "set" ? text.value : undefined;
+        }),
     };
   });
 }
@@ -144,11 +163,23 @@ function drawnRows(workspace: CatalogWorkspace) {
         : "",
       ...record(id).children.map(text),
     ].join("");
+  // (Its data cells — not the selection cell, which holds the selection Checkbox.)
+  const dataCells = (id: string) =>
+    record(id).children.filter(
+      (cell) =>
+        !!record(cell).props.children ||
+        !record(cell).children.some(
+          (child) =>
+            root.typeOf(record(child)) === "Checkbox" &&
+            record(child).props.slot === "selection",
+        ),
+    );
   return record(body).children.map((id) => ({
     source: record(id).sourceId,
     row: record(id).rowIndex,
-    cells: record(id).children.map(text),
-    types: record(id).children.map((cell) =>
+    selectionCells: record(id).children.length - dataCells(id).length,
+    cells: dataCells(id).map(text),
+    types: dataCells(id).map((cell) =>
       record(cell).children.map((child) => root.typeOf(record(child))),
     ),
   }));
@@ -166,6 +197,7 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
             id: expect.any(String),
             type: "Row",
             repeat: true,
+            selectionCells: 1,
             cells: ["{name}", "{type}", "{status}"],
           },
         ]);
@@ -191,8 +223,9 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
       bind(workspace);
       const [template] = ownRows(workspace);
       const graph = workspace.runtime.graph;
+      // (after the selection cell — S2's selection column, 2026-11-18)
       const statusCell = (graph.getEntry(template!.id) as NodeEntry)
-        .children[2]!;
+        .children[3]!;
       const badge = workspace.newId("node") as NodeId;
       workspace.execute(
         insertNodes({
@@ -341,19 +374,20 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
           override.address.templatePath.at(-1) ===
             "lib:template:component-table__1",
       ) as { childIds: readonly NodeId[] };
+      // (S2's selection column first — no key: no data column)
       const keys = () =>
         header.childIds.map((id) => {
           const key = (graph.getEntry(id) as NodeEntry).props.key;
           return key?.kind === "set" ? key.value : undefined;
         });
-      expect(keys()).toEqual(["name", "type", "status"]);
+      expect(keys()).toEqual([undefined, "name", "type", "status"]);
       workspace.execute(
         setFields({
-          targets: [{ kind: "node", id: header.childIds[1]! }],
+          targets: [{ kind: "node", id: header.childIds[2]! }],
           props: { children: { kind: "set", value: "Role" } },
         }),
       );
-      expect(keys()).toEqual(["name", "type", "status"]);
+      expect(keys()).toEqual([undefined, "name", "type", "status"]);
       expect(drawnRows(workspace).map((row) => row.cells[1])).toEqual([
         "T0",
         "T1",
@@ -378,6 +412,8 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
           id: expect.any(String),
           type: "Row",
           repeat: true,
+          // (the plain Row's selection cell holds its Checkbox — `insertTableRow`)
+          selectionCells: 1,
           cells: ["{name}", "{type}", "{status}"],
         },
       ]);
@@ -400,7 +436,8 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
       bind(workspace);
       const [template] = ownRows(workspace);
       const graph = workspace.runtime.graph;
-      const cell = (graph.getEntry(template!.id) as NodeEntry).children[0]!;
+      // (its first data cell — after S2's selection cell)
+      const cell = (graph.getEntry(template!.id) as NodeEntry).children[1]!;
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: cell }],

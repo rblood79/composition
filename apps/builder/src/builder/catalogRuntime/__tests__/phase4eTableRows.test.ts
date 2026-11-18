@@ -127,7 +127,18 @@ async function open(rowCount = 2) {
 const typeOf = (workspace: CatalogWorkspace, record: CatalogConsumerNode) =>
   workspace.runtime.graph.getDefinition(record.definitionId as DefinitionId)
     ?.name ?? "";
-/** The TableBody's rows as cell texts. */
+/** A Column · Cell of S2's selection column (it holds the selection Checkbox — 2026-11-18). */
+function selectionPart(
+  workspace: CatalogWorkspace,
+  record: CatalogConsumerNode,
+): boolean {
+  const records = workspace.root.domInputs;
+  return record.children.some(
+    (id) => records.get(id)?.props.slot === "selection",
+  );
+}
+
+/** The TableBody's rows as their data cells' texts (not the selection cell). */
 function bodyRows(workspace: CatalogWorkspace): string[][] {
   const records = workspace.root.domInputs;
   const find = (id: string, type: string): CatalogConsumerNode | undefined => {
@@ -143,9 +154,9 @@ function bodyRows(workspace: CatalogWorkspace): string[][] {
   const [table] = workspace.root.recordsOfSource(TABLE);
   const body = find(table, "TableBody");
   return (body?.children ?? []).map((rowId) =>
-    (records.get(rowId)?.children ?? []).map((cellId) =>
-      String(records.get(cellId)?.props.children ?? ""),
-    ),
+    (records.get(rowId)?.children ?? [])
+      .filter((cellId) => !selectionPart(workspace, records.get(cellId)!))
+      .map((cellId) => String(records.get(cellId)?.props.children ?? "")),
   );
 }
 
@@ -163,11 +174,17 @@ describe("ADR-248 4e bound Table rows", () => {
     const all = [...records.values()].filter((record) =>
       record.id.startsWith(table.split("::")[0]),
     );
+    // (the first data column · cell — S2's selection column is not there while the Table selects
+    // nothing)
     const firstColumn = all.find(
-      (record) => typeOf(workspace, record) === "Column",
+      (record) =>
+        typeOf(workspace, record) === "Column" &&
+        !selectionPart(workspace, record),
     )!;
     const firstCell = all.find(
-      (record) => typeOf(workspace, record) === "Cell",
+      (record) =>
+        typeOf(workspace, record) === "Cell" &&
+        !selectionPart(workspace, record),
     )!;
     expect(geometry(firstCell.id)?.width).toBeCloseTo(
       geometry(firstColumn.id)!.width,
@@ -216,7 +233,8 @@ describe("ADR-248 4e bound Table rows", () => {
     const column = [...records.values()].find(
       (record) =>
         record.id.startsWith(table.split("::")[0]) &&
-        typeOf(workspace, record) === "Column",
+        typeOf(workspace, record) === "Column" &&
+        !selectionPart(workspace, record),
     )!;
     // (ADR-310 Phase 4: the Properties write takes the Row template's cell along —
     // `catalogColumnKeyRenameCommands`.)

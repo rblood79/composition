@@ -546,6 +546,78 @@ function catalogCollectionItemSelected(
 }
 
 /**
+ * Whether a SelectionIndicator's item is selected — a Card's from its CardView's keys first (the
+ * Card record's own derived selection is judged later in the same step), else the item's state.
+ */
+function catalogIndicatorItemSelected(
+  item: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  return (
+    (typeOf(item) === "Card"
+      ? catalogCollectionItemSelected(item, get, typeOf)
+      : undefined) ??
+    catalogStateValue(item, "isSelected", get, typeOf) === true
+  );
+}
+
+/**
+ * S2 `CardCheckbox` — the Card origin's plate `frame` around its selection Checkbox (S2's `div`
+ * at the card's spacing with its backdrop, 2026-11-18): the Card it sits in, if `node` is that
+ * frame.
+ */
+function catalogCardCheckboxCard(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "frame") return undefined;
+  const card = get(node.parentId);
+  if (!card || typeOf(card) !== "Card") return undefined;
+  return node.children.some((id) => {
+    const child = get(id);
+    return (
+      !!child &&
+      typeOf(child) === "Checkbox" &&
+      child.props.slot === "selection"
+    );
+  })
+    ? card
+    : undefined;
+}
+
+/** A Card's padding at its size (its rule's `paddingX` — S2 `--card-spacing`). */
+function catalogCardSpacing(card: CatalogConsumerNode): number | undefined {
+  const sizes = (
+    COMPONENT_RULES_TABLE as Record<
+      string,
+      { sizes?: Record<string, { paddingX?: unknown }> }
+    >
+  ).Card?.sizes;
+  const value = sizes?.[String(card.props.size ?? "M")]?.paddingX;
+  return typeof value === "number" ? value : undefined;
+}
+
+/**
+ * The RAC contexts a part gives its children (`RAC_SLOT_PROVIDERS`) — a Card in a CardView is RAC's
+ * GridListItem (the `card` renderer — S2 CardView), so it gives a GridListItem's.
+ */
+function racSlotProvision(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): (typeof RAC_SLOT_PROVIDERS)[string] | undefined {
+  if (typeOf(node) === "Card") {
+    const view = catalogCollectionOfItem(node, get, typeOf);
+    return view && typeOf(view) === "CardView"
+      ? RAC_SLOT_PROVIDERS.GridListItem
+      : undefined;
+  }
+  return RAC_SLOT_PROVIDERS[typeOf(node)];
+}
+
+/**
  * ADR-256 Phase 5f — the item a `Checkbox[slot=selection]` is the selection checkbox of: the
  * nearest ancestor providing RAC's Checkbox context, when its slots have `selection` (GridListItem
  * · TreeItem · Row — the installed RAC's `useGridListSelectionCheckbox` props). Undefined for any
@@ -561,7 +633,7 @@ export function catalogSelectionCheckboxItem(
   const pickerItem = catalogPickerSelectionItem(node, get, typeOf);
   if (pickerItem) return pickerItem;
   for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
-    const provision = RAC_SLOT_PROVIDERS[typeOf(cursor)]?.Checkbox;
+    const provision = racSlotProvision(cursor, get, typeOf)?.Checkbox;
     if (!provision) continue;
     return !provision.cleared && provision.slots?.includes("selection")
       ? cursor
@@ -608,7 +680,7 @@ function catalogSelectionCheckboxes(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   if (
-    !RAC_SLOT_PROVIDERS[typeOf(item)]?.Checkbox &&
+    !racSlotProvision(item, get, typeOf)?.Checkbox &&
     !["ListBoxItem", "MenuItem"].includes(typeOf(item))
   )
     return [];
@@ -639,20 +711,84 @@ export function catalogDismissibleDialogOf(
     : undefined;
 }
 
-/** A Tree selection slot is visible only in its checkbox selection style. */
-export function catalogTreeSelectionCheckboxHidden(
+/**
+ * The collections whose items carry a selection Checkbox only while the collection selects with
+ * checkboxes — S2 draws it for `selectionMode !== 'none' && selectionBehavior === 'toggle'` (the
+ * `checkbox` style): TreeView `TreeSelectionCheckbox`, ListView `ListSelectionCheckbox`, Card
+ * `CardCheckbox` (2026-11-18 — GridList · CardView joined the Tree).
+ */
+const CHECKBOX_SELECTION_COLLECTIONS: Readonly<Record<string, string>> = {
+  TreeItem: "Tree",
+  GridListItem: "GridList",
+  Card: "CardView",
+};
+
+/**
+ * The `selectionStyle` a collection uses when its record has none — its binding default: S2's
+ * `checkbox`, except the Tree's `highlight` (`Tree.binding.ts` — kept for documents written
+ * before the prop).
+ */
+const SELECTION_STYLE_DEFAULTS: Readonly<Record<string, string>> = {
+  Tree: "highlight",
+};
+
+/** Whether a collection selects with checkboxes (S2: a selection mode and the `checkbox` style). */
+export function catalogCheckboxSelection(
+  collection: CatalogConsumerNode,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const mode = collection.props.selectionMode;
+  const style =
+    collection.props.selectionStyle ??
+    SELECTION_STYLE_DEFAULTS[typeOf(collection)] ??
+    "checkbox";
+  return (mode === "single" || mode === "multiple") && style === "checkbox";
+}
+
+/**
+ * A Tree · GridList · CardView item's selection Checkbox is there only while its collection
+ * selects with checkboxes (`catalogCheckboxSelection`) — on the Canvas (`catalogHiddenAtRest`)
+ * and in the DOM.
+ */
+export function catalogSelectionCheckboxHidden(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
   const item = catalogSelectionCheckboxItem(node, get, typeOf);
-  if (!item || typeOf(item) !== "TreeItem") return false;
-  const tree = catalogCollectionOfItem(item, get, typeOf);
+  // S2 TableHeader: the selection column heads with a select-all Checkbox only for `multiple`
+  // (`single` — a visually hidden label; its column follows `catalogTableSelectionPartHidden`).
+  if (item && typeOf(item) === "Column") {
+    const table = catalogTableOfColumn(item, get, typeOf);
+    return (
+      !!table &&
+      (table.props.selectionMode !== "multiple" ||
+        catalogTableSelectionPartHidden(item, get, typeOf))
+    );
+  }
+  // (A Card's plate is there while its Checkbox is — S2 `CardCheckbox`.)
+  if (catalogCardCheckboxCard(node, get, typeOf))
+    return node.children.some((id) => {
+      const child = get(id);
+      return (
+        !!child &&
+        typeOf(child) === "Checkbox" &&
+        catalogSelectionCheckboxHidden(child, get, typeOf)
+      );
+    });
+  // (A standalone Card's — no RAC item, no selection: S2 draws `CardCheckbox` only in a CardView.)
+  if (!item && typeOf(node) === "Checkbox" && node.props.slot === "selection") {
+    let parent = get(node.parentId);
+    while (parent && typeOf(parent) === "frame") parent = get(parent.parentId);
+    if (parent && typeOf(parent) === "Card") return true;
+  }
+  const collectionType = item && CHECKBOX_SELECTION_COLLECTIONS[typeOf(item)];
+  if (!item || !collectionType) return false;
+  const collection = catalogCollectionOfItem(item, get, typeOf);
   return (
-    !tree ||
-    typeOf(tree) !== "Tree" ||
-    tree.props.selectionMode === "none" ||
-    tree.props.selectionStyle !== "checkbox"
+    !collection ||
+    typeOf(collection) !== collectionType ||
+    !catalogCheckboxSelection(collection, typeOf)
   );
 }
 
@@ -950,8 +1086,8 @@ export function catalogHiddenAtRest(
   if (catalogSkeletonIdle(node, typeOf)) return true;
   // ADR-257 Phase 3: a highlight-selection Table has no selection checkbox column (S2).
   if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
-  // RAC renders a Tree selection Checkbox only for toggle/checkbox selection.
-  if (catalogTreeSelectionCheckboxHidden(node, get, typeOf)) return true;
+  // A Tree · GridList · CardView item's selection Checkbox only for checkbox selection (S2).
+  if (catalogSelectionCheckboxHidden(node, get, typeOf)) return true;
   // S2 Dialog `isDismissible`: its close button replaces its ButtonGroup (2026-11-18).
   if (catalogDismissibleDialogOf(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
@@ -960,7 +1096,7 @@ export function catalogHiddenAtRest(
   // `SelectionIndicatorContext` — the item's `isSelected`).
   if (typeOf(node) === "SelectionIndicator") {
     const item = catalogStateOwner(node, "isSelected", undefined, get, typeOf);
-    return !item || !catalogStateValue(item, "isSelected", get, typeOf);
+    return !item || !catalogIndicatorItemSelected(item, get, typeOf);
   }
   const parent = get(node.parentId);
   if (!parent) return false;
@@ -1132,6 +1268,8 @@ export function catalogPresenceScope(
   }
   // A Table's selection column follows its `selectionStyle` (ADR-257 Phase 3).
   if (typeOf(node) === "Table") return node;
+  // A GridList's · CardView's item selection Checkboxes follow its selection mode · style (S2).
+  if (typeOf(node) === "GridList" || typeOf(node) === "CardView") return node;
   // A Dialog's ButtonGroup follows its `isDismissible` (S2, 2026-11-18).
   if (typeOf(node) === "Dialog") return node;
   // A ProgressBar's · Meter's value text follows its `label` · `isIndeterminate` (S2), a Slider's its
@@ -1169,8 +1307,20 @@ export function catalogPresenceDependents(
   if (typeOf(scope) === "SideNavPanel" || typeOf(scope) === "SideNav")
     return catalogSideNavDependents(scope, get, typeOf);
   if (typeOf(scope) === "FieldLabel") return [scope];
+  if (typeOf(scope) === "GridList" || typeOf(scope) === "CardView")
+    return catalogCollectionItems(scope, get, typeOf).flatMap((item) => [
+      ...catalogSelectionCheckboxes(item, get, typeOf),
+      // (a Card's checkbox plate — S2 `CardCheckbox`)
+      ...childrenOf(item, get).filter(
+        (child) => !!catalogCardCheckboxCard(child, get, typeOf),
+      ),
+    ]);
   if (typeOf(scope) === "Table")
-    return catalogTableSelectionParts(scope, get, typeOf);
+    return [
+      ...catalogTableSelectionParts(scope, get, typeOf),
+      // (its select-all Checkbox is there only for `multiple` — S2 TableHeader)
+      ...catalogTableSelectAllCheckboxes(scope, get, typeOf),
+    ];
   if (typeOf(scope) === "Dialog")
     return partChildrenOf(scope, get, typeOf).filter(
       (child) => typeOf(child) === "ButtonGroup",
@@ -2404,9 +2554,19 @@ export function catalogDerivedProps(
     !!selectAll &&
     selectAll.selected > 0 &&
     selectAll.selected < selectAll.total;
-  const marked = partial
+  const checkboxMarked = partial
     ? { ...withSelection, isIndeterminate: true }
     : withSelection;
+  // (A Card's selection Checkbox plate sits at the card's spacing from its corner — S2
+  //  `CardCheckbox` `top` · `insetStart: '--card-spacing'`: the card's padding at its size.)
+  const checkboxCard = catalogCardCheckboxCard(node, get, typeOf);
+  const cardSpacing = checkboxCard
+    ? catalogCardSpacing(checkboxCard)
+    : undefined;
+  const marked =
+    cardSpacing !== undefined
+      ? { ...checkboxMarked, _cardSpacing: cardSpacing }
+      : checkboxMarked;
   // ADR-281 Decision 3 — a page root's · frame's isDisabled · isReadOnly reach the components whose
   // RAC context takes them (RAC `Provider` on the DOM side). An own `false` does not re-enable: a
   // record cannot tell an authored `false` from its origin's declared default (`catalogInheritedFlags`).
@@ -3308,6 +3468,17 @@ function ownDerivedPropsBase(
   }
   if (typeOf(node) === "SelectionIndicator") {
     const tab = catalogPartParent(node, get, typeOf);
+    // (A Card's — S2 `SelectionIndicator`, 2026-11-18: S2's own div, not RAC's. In a CardView it
+    //  reads its RAC item's selection; a standalone Card has no RAC item, so it gets the Card's.)
+    if (tab && typeOf(tab) === "Card") {
+      const view = catalogCollectionOfItem(tab, get, typeOf);
+      return view && typeOf(view) === "CardView"
+        ? { _cardIndicator: true }
+        : {
+            _cardIndicator: true,
+            _isSelected: catalogIndicatorItemSelected(tab, get, typeOf),
+          };
+    }
     const tabs = tab && catalogTabsOfTab(tab, get, typeOf);
     if (tab && tabs)
       return {
@@ -3640,6 +3811,10 @@ export function catalogDerivedPropsDependents(
       ...catalogSelectionIndicators(item, get, typeOf),
       // (its selection checkboxes — the item's selection and selectability, Phase 5f)
       ...catalogSelectionCheckboxes(item, get, typeOf),
+      // (a Card's checkbox plate — its spacing follows the Card's size, S2 `CardCheckbox`)
+      ...childrenOf(item, get).filter(
+        (child) => !!catalogCardCheckboxCard(child, get, typeOf),
+      ),
       ...partChildrenOf(item, get, typeOf).filter(
         (child) =>
           catalogPickerSelectionItem(child, get, typeOf)?.id === item.id,
@@ -3889,6 +4064,10 @@ export function catalogSelectionIndicators(
 export function catalogSelectionIndicatorLayout(
   node: CatalogConsumerNode,
 ): Record<string, string> | undefined {
+  // (A Card's selection Checkbox at the card's spacing from its corner — `_cardSpacing`.)
+  const spacing = node.derivedProps?._cardSpacing;
+  if (typeof spacing === "number")
+    return { insetTop: `${spacing}px`, insetLeft: `${spacing}px` };
   return node.bindingId === "selectionindicator" &&
     node.derivedProps?.orientation === "vertical"
     ? {

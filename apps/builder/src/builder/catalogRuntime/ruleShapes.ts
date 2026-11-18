@@ -43,8 +43,7 @@ import type {
   CatalogConsumerNode,
 } from "./compositionRoot";
 import {
-  CATALOG_LINK_OUT_ICON,
-  catalogItemLinkOut,
+  catalogItemTrailingIcon,
   catalogLinkOutCardEndInset,
   catalogLinkOutGlyph,
 } from "../../../../../packages/shared/src/catalog/document/itemLinks";
@@ -318,14 +317,16 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
 }
 
 /**
- * ADR-259 Phase 1 — S2's link-out glyph of an item that opens a new tab (`catalogItemLinkOut`): in
+ * ADR-259 Phase 1 — S2's link-out glyph of an item that opens a new tab (`catalogItemTrailingIcon`): in
  * the end padding the layout added (`catalogLinkOutPaddingRight`), its own right padding (and its
  * border) outside it, centred on the box — a card's in its bottom padding instead
  * (`catalogLinkOutCardEndInset`); the item's text color (S2 `currentColor`). The DOM draws the same glyph
  * box (`domBinding` — `catalogLinkOutGlyph`).
  */
 function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
-  if (!catalogItemLinkOut(input.type, input.node.props)) return [];
+  // (or a ListView item's chevron while it has child items — S2 `hasChildItems`, same place)
+  const icon = catalogItemTrailingIcon(input.type, input.node.props);
+  if (!icon) return [];
   const glyph = catalogLinkOutGlyph(input.type, input.node.props.size);
   const box = catalogBoxModel(input.node);
   const px = (value: unknown) =>
@@ -347,7 +348,7 @@ function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
   return [
     {
       type: "icon_font",
-      iconName: CATALOG_LINK_OUT_ICON,
+      iconName: icon,
       x:
         input.rect.width -
         (cardEnd === undefined ? ownRight : border * 2 + cardEnd) -

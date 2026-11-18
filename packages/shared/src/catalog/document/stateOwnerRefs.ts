@@ -25,6 +25,9 @@ const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
   RangeSlider: "Slider",
   SegmentedControl: "ToggleButtonGroup",
   SegmentedControlItem: "ToggleButton",
+  // (2026-11-18) A Card is RAC's GridListItem in its CardView (S2 CardView — its SelectionIndicator
+  //   reads the item's `isSelected`).
+  Card: "GridListItem",
 };
 
 /**

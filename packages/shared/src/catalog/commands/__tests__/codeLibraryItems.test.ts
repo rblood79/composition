@@ -142,6 +142,8 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
         column.props.children,
       ]),
     ).toEqual([
+      // (S2's selection column first — 2026-11-18)
+      [undefined, undefined],
       [undefined, "Name"],
       [undefined, "Type"],
       [undefined, "Status"],
@@ -180,6 +182,7 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
       ["option1", undefined],
       ["option2", undefined],
       ["option3", undefined],
-    ]);    expect(ofType(graph, group, "RadioGroup")[0].props.value).toBe("option3");
+    ]);
+    expect(ofType(graph, group, "RadioGroup")[0].props.value).toBe("option3");
   });
 });

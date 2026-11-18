@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — 선택 부품 묶음 (GridList · Table · CardView 선택 Checkbox · Card 선택 덮개 · 항목 chevron)] - 2026-11-18
+
+### Changed
+
+- **GridList · Table · CardView 의 선택 Checkbox = S2** — S2 처럼 `selectionMode` 가 none 이 아니고 `selectionStyle` 이 checkbox 이면 항목마다 선택 Checkbox 가 보인다 (Canvas · Publish). 원본이 Checkbox 노드를 늘 가져 (Layers 에서 보이고 고칠 수 있음) 모드 · 스타일에 따라 보이고 숨는다 — 이미 놓인 컴포넌트도 원본을 따라 바뀐다.
+  - Table 은 맨 앞에 선택 열 (폭 40) 이 생기고, 머리 줄 전체 선택 Checkbox 는 multiple 만. 행 추가 · 데이터 연결 (Quick Connect 교체) · 정렬 연결은 선택 열을 데이터 열로 세지 않는다.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` · `runtime/presence.ts` (`catalogSelectionCheckboxHidden`) · `runtime/tableTracks.ts` · `commands/collections.ts`
+- **CardView 의 Card 선택 모양 = S2** — 선택해도 바탕 · 테두리 칠은 그대로 두고 2px 진한 회색 덮개 (SelectionIndicator) 와 그림자로 표시한다. 선택 Checkbox 는 Card 모서리의 받침 위에 놓인다 (S2 `CardCheckbox`). 단독 Card 에는 둘 다 없다.
+
+### Added
+
+- **CardView `selectionStyle`** (checkbox · highlight) — 2026-10-14 에 뺀 S2 prop 을 다시 넣는다 (highlight = Checkbox 없이 덮개만).
+- **GridList 항목 `hasChildItems`** (S2 ListView) — 켜면 항목 끝에 chevron 을 그린다 (새 탭 링크면 링크 아이콘이 우선).
+
 ## [S2 정렬 — 날짜 묶음 (Calendar 머리 줄 · picker 팝업 Dialog · 시각 입력)] - 2026-11-18
 
 ### Changed

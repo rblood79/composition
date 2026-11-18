@@ -117,7 +117,7 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  *   2026-11-11 사용자 결정 「삭제」): a display-only component has nothing to disable.
  */
 const UNUSED_PROPS = {
-  CardView: { density: dropOf, selectionStyle: dropOf },
+  CardView: { density: dropOf },
   ColorSwatchPicker: { density: dropOf, rounding: dropOf },
   ColorPicker: { defaultValue: dropOf },
   GridListItem: { children: dropOf },

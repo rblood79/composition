@@ -81,7 +81,14 @@ const history = (h: Adr296Harness) => h.workspace.runtime.historyDepth.undo;
 
 it("G6: every bound family — the render body is the template, applied as written it changes nothing", async () => {
   const h = await open();
-  for (const type of ["ListBox", "Table", "Tabs", "Tree", "RadioGroup", "TagGroup"])
+  for (const type of [
+    "ListBox",
+    "Table",
+    "Tabs",
+    "Tree",
+    "RadioGroup",
+    "TagGroup",
+  ])
     bind(h, h.add(type));
   const code = h.code();
   // ③ only the template: the list takes `items`.
@@ -90,8 +97,13 @@ it("G6: every bound family — the render body is the template, applied as writt
   );
   // A Tabs' list and its panels read the same rows; a Table's row its cells' `{field}`.
   expect(code).toContain("<TabList items={users}>");
-  expect(code).toMatch(/<Collection items=\{users\}>\s+\{item => \(\s+<TabPanel itemId=\{item\.id\}>/);
-  expect(code).toMatch(/<Row id=\{item\.id\}[^>]*>\s+<Cell>\{`\$\{item\?\.name \?\? ''\}`\}<\/Cell>/);
+  expect(code).toMatch(
+    /<Collection items=\{users\}>\s+\{item => \(\s+<TabPanel itemId=\{item\.id\}>/,
+  );
+  // (after the row's selection cell — S2's selection column, 2026-11-18)
+  expect(code).toMatch(
+    /<Row id=\{item\.id\}[^>]*>\s+<Cell>\s+<Checkbox slot="selection" \/>\s+<\/Cell>\s+<Cell>\{`\$\{item\?\.name \?\? ''\}`\}<\/Cell>/,
+  );
   // A RAC group is no collection: an array's `map`, keyed by the row.
   expect(code).toContain("{users.map(item => (");
   expect(code).toContain("<Radio key={item.id} value={item.id}");
@@ -107,9 +119,14 @@ it("G6: every bound family — the render body is the template, applied as writt
 it("G6: a Tree over child rows renders them with its own function", async () => {
   const h = await open();
   const tree = h.add("Tree");
-  bind(h, tree, { ...USERS, fieldMap: { children: "data:field:kids" } } as DataBindingRef);
+  bind(h, tree, {
+    ...USERS,
+    fieldMap: { children: "data:field:kids" },
+  } as DataBindingRef);
   const code = h.code();
-  expect(code).toMatch(/<Tree items=\{users\}>\s+\{function renderItem\(item\) \{\s+return \(\s+<TreeItem id=\{item\.id\}[^>]*>\s+<Collection items=\{item\.kids\}>\{renderItem\}<\/Collection>/);
+  expect(code).toMatch(
+    /<Tree items=\{users\}>\s+\{function renderItem\(item\) \{\s+return \(\s+<TreeItem id=\{item\.id\}[^>]*>\s+<Collection items=\{item\.kids\}>\{renderItem\}<\/Collection>/,
+  );
   expect(code).not.toContain('id="item-1-1"');
   const result = h.apply(code);
   expect(result.rejected).toEqual([]);
@@ -123,7 +140,8 @@ it("G6: a mixed list — `<Collection>` in the repeated item's place; moved, it 
   const [, middle] = items(h, list) as [NodeId, NodeId, NodeId];
   bind(h, middle);
   let code = h.code();
-  let collection = /( *)<Collection items=\{users\}>\n[\s\S]*?<\/Collection>\n/.exec(code)!;
+  let collection =
+    /( *)<Collection items=\{users\}>\n[\s\S]*?<\/Collection>\n/.exec(code)!;
   expect(collection).toBeTruthy();
   expect(code.indexOf('id="inbox"')).toBeLessThan(collection.index);
   expect(collection.index).toBeLessThan(code.indexOf('id="archive"'));
@@ -145,7 +163,8 @@ it("G6: a mixed list — `<Collection>` in the repeated item's place; moved, it 
   expect(refused.rejected.map((item) => item.reason)).toContain("notInCode");
   // Moved before the first static item: the repeated item moves (one step), nothing else changes.
   const before = history(h);
-  collection = /( *)<Collection items=\{users\}>\n[\s\S]*?<\/Collection>\n/.exec(code)!;
+  collection =
+    /( *)<Collection items=\{users\}>\n[\s\S]*?<\/Collection>\n/.exec(code)!;
   const first = /( *)<ListBoxItem id="inbox"/.exec(code)!;
   const moved =
     code.slice(0, first.index) +
@@ -170,7 +189,9 @@ it("G6: an owner-bound list with static items keeps them beside `<Collection>` (
   expect(h.apply(code)).toMatchObject({ rejected: [], count: 0 });
   // An edit beside it: the `<Collection>`'s `items` is the list's binding, not the item's.
   const order = items(h, list);
-  const result = h.apply(code.replace("<ListBox>", '<ListBox aria-label="People">'));
+  const result = h.apply(
+    code.replace("<ListBox>", '<ListBox aria-label="People">'),
+  );
   expect(result.rejected).toEqual([]);
   expect(items(h, list)).toEqual(order);
   const template = items(h, list).find((id) => h.node(id).repeat)!;
@@ -183,7 +204,10 @@ it("G6: an edit beside a group's `map` · a Tree's `renderItem` keeps their repe
   const group = h.add("RadioGroup");
   bind(h, group);
   const tree = h.add("Tree");
-  bind(h, tree, { ...USERS, fieldMap: { children: "data:field:kids" } } as DataBindingRef);
+  bind(h, tree, {
+    ...USERS,
+    fieldMap: { children: "data:field:kids" },
+  } as DataBindingRef);
   /** The repeated items under the two (fills · children, any depth). */
   const repeated = () => {
     const found: string[] = [];
@@ -219,7 +243,10 @@ it("G6: an edit beside a group's `map` · a Tree's `renderItem` keeps their repe
 it("G6 useTreeData: a Tree a rule edits over its child rows — `useTreeData`, its nodes' `value` · `children`", async () => {
   const h = await open();
   const tree = h.add("Tree");
-  bind(h, tree, { ...USERS, fieldMap: { children: "data:field:kids" } } as DataBindingRef);
+  bind(h, tree, {
+    ...USERS,
+    fieldMap: { children: "data:field:kids" },
+  } as DataBindingRef);
   h.rules(tree, [
     {
       trigger: "onMove",
@@ -237,8 +264,12 @@ it("G6 useTreeData: a Tree a rule edits over its child rows — `useTreeData`, i
   const code = h.code();
   expect(code).toContain("let users = useTreeData({");
   expect(code).toContain("getChildren: item => item.kids ?? []");
-  expect(code).toMatch(/<TreeItem id=\{item\.key\} textValue=\{String\(item\.value\.name\)\}/);
-  expect(code).toContain("<Collection items={item.children}>{renderItem}</Collection>");
+  expect(code).toMatch(
+    /<TreeItem id=\{item\.key\} textValue=\{String\(item\.value\.name\)\}/,
+  );
+  expect(code).toContain(
+    "<Collection items={item.children}>{renderItem}</Collection>",
+  );
   expect(code).toContain("onMove(e)");
   const result = h.apply(code.replace("<Tree ", '<Tree aria-label="Files" '));
   expect(result.rejected).toEqual([]);

@@ -12,11 +12,7 @@ import {
   type CatalogCodeViewProjectSession,
 } from "../../../builder/catalogRuntime/codeViewApply";
 import { createComponent } from "../../../../../../packages/shared/src/catalog/commands";
-import {
-  BODY,
-  openAdr296,
-  type Adr296Harness,
-} from "./support/adr296Harness";
+import { BODY, openAdr296, type Adr296Harness } from "./support/adr296Harness";
 
 /**
  * ADR-301 Phase 1 (G1) — a trigger · structure Library instance is written as its template tree,
@@ -71,7 +67,9 @@ const EXPANDED: Record<string, string> = {
   Tabs: "Tabs(TabList(Tab Tab) TabPanel(Text) TabPanel(Text))",
   // Table.md — `<Table><TableHeader><Column/>…</TableHeader><TableBody><Row><Cell/>…`.
   Table:
-    "Table(TableHeader(Column Column Column) TableBody(Row(Cell Cell Cell)))",
+    // (S2's selection column first — the RAC reference's `<Column><Checkbox slot="selection" /></Column>`,
+    // 2026-11-18)
+    "Table(TableHeader(Column(Checkbox) Column Column Column) TableBody(Row(Cell(Checkbox) Cell Cell Cell)))",
 };
 
 describe("ADR-301 G1 — the expanded instances are the reference's use code", () => {
@@ -317,13 +315,16 @@ describe("ADR-301 G1 — a new expanded instance written with its props (판독 
   it.each([
     ['<Popover size="L" />', '<Popover size="L" className="popover">'],
     ['<Popover size="L" isOpen={true} />', "<DialogTrigger isOpen={true}>"],
-  ])("%s — applied, the prop at the position that reads it", async (line, expected) => {
-    const { h, result } = await insert(line);
-    expect(result.rejected).toEqual([]);
-    const after = code(session(h));
-    expect(after).toContain(expected);
-    expect(after).toContain('<Popover size="L" className="popover">');
-  });
+  ])(
+    "%s — applied, the prop at the position that reads it",
+    async (line, expected) => {
+      const { h, result } = await insert(line);
+      expect(result.rejected).toEqual([]);
+      const after = code(session(h));
+      expect(after).toContain(expected);
+      expect(after).toContain('<Popover size="L" className="popover">');
+    },
+  );
 
   it("a value the positions do not hold is still refused", async () => {
     const { result } = await insert('<Popover nope="x" />');

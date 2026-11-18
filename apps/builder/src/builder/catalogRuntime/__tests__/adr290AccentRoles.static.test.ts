@@ -44,13 +44,7 @@ const CLASSIFICATION: Record<string, string> = {
   // 바탕 위 역할 — 글자 · 선 · track 위 채움
   "Badge.variants.accent.paint.borderColor.fillStyle.outline": "accent-content",
   // (ADR-297 3h #2: an accent outline Button's text is S2 `baseColor('neutral')` — no accent-content)
-  "Card.variants.primary.paint.borderColor.isSelected.default":
-    "accent-content",
-  "Card.variants.secondary.paint.borderColor.isSelected.default":
-    "accent-content",
-  "Card.variants.tertiary.paint.borderColor.isSelected.default":
-    "accent-content",
-  "Card.variants.quiet.paint.borderColor.isSelected.default": "accent-content",
+  // (Card: 2026-11-18 — its selection is S2's SelectionIndicator, no accent border)
   "ColorSwatch.variants.default.paint.borderColor.isSelected": "accent-content",
   "DateInput.variants.accent.paint.borderColor.default": "accent-content",
   "DropZone.variants.default.paint.color.isHovered": "accent-content",
@@ -97,12 +91,7 @@ function accentRefs(): Array<[string, string]> {
   return out;
 }
 
-const TRANSPARENT_SURFACES = [
-  "base",
-  "layer-1",
-  "layer-2",
-  "elevated",
-];
+const TRANSPARENT_SURFACES = ["base", "layer-1", "layer-2", "elevated"];
 /** 채움 자체가 accent-content 인 부품 → 그 아래 track rule. */
 const TRACK_OF: Record<string, string> = {
   ProgressBarFill: "ProgressBarTrack",

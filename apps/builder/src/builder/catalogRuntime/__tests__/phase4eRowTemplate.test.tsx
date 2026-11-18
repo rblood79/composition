@@ -128,7 +128,8 @@ function rowTexts(workspace: CatalogWorkspace) {
       const texts: string[] = [];
       const collect = (childId: string) => {
         const child = records.get(childId);
-        if (!child) return;
+        // (not the item's selection Checkbox — S2 ListView's, the origin's since 2026-11-18)
+        if (!child || child.props.slot === "selection") return;
         if (typeof child.props.children === "string")
           texts.push(child.props.children);
         child.children.forEach(collect);

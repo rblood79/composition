@@ -2344,12 +2344,23 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-gridlist-item-default",
     "definitionId": "lib:definition:type-GridListItem",
     "children": [
+      "lib:template:component-gridlist-item-default__selection",
       "lib:template:component-gridlist-item-default__label",
       "lib:template:component-gridlist-item-default__description"
     ],
     "props": {},
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-gridlist-item-default__selection",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-gridlist-item-default__label",
@@ -2889,11 +2900,81 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-card__preview",
       "lib:template:component-card__content",
-      "lib:template:component-card__footer"
+      "lib:template:component-card__footer",
+      "lib:template:component-card__selection-indicator",
+      "lib:template:component-card__selection"
     ],
     "props": {
       "variant": "primary",
       "size": "M"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-card__selection-indicator",
+    "definitionId": "lib:definition:type-SelectionIndicator",
+    "children": [],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "insetTop": "0px",
+      "insetLeft": "0px"
+    },
+    "visual": {
+      "width": "100%",
+      "height": "100%",
+      "zIndex": 2,
+      "borderWidth": 2,
+      "borderColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_gray-1000"
+      },
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_transparent"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_lg"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-card__selection",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-card__selection__checkbox"
+    ],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "display": "flex"
+    },
+    "visual": {
+      "zIndex": 2,
+      "paddingX": 4,
+      "paddingY": 4,
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_base"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_md"
+      },
+      "boxShadow": {
+        "kind": "token",
+        "tokenId": "lib:token:shadow_sm"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-card__selection__checkbox",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
     },
     "visual": {}
   },
@@ -6028,11 +6109,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "required": false
     },
     "children": [
+      "lib:template:component-table__1_0",
       "lib:template:component-table__1_1",
       "lib:template:component-table__1_2",
       "lib:template:component-table__1_3"
     ],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__1_0",
+    "definitionId": "lib:definition:type-Column",
+    "children": [
+      "lib:template:component-table__1_0_1"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__1_0_1",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
+    },
     "visual": {}
   },
   {
@@ -6079,12 +6180,32 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-table__2_1",
     "definitionId": "lib:definition:origin-component-table-row",
     "children": [
+      "lib:template:component-table__2_1_0",
       "lib:template:component-table__2_1_1",
       "lib:template:component-table__2_1_2",
       "lib:template:component-table__2_1_3"
     ],
     "props": {
       "id": "row-1"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__2_1_0",
+    "definitionId": "lib:definition:type-Cell",
+    "children": [
+      "lib:template:component-table__2_1_0_1"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__2_1_0_1",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
     },
     "visual": {}
   },

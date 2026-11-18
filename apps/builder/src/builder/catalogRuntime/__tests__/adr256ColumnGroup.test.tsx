@@ -92,8 +92,19 @@ async function open(origin = "lib:definition:origin-component-table") {
   const root = workspace.root;
   const record = (sourceId: string) =>
     [...root.domInputs.values()].find((r) => r.sourceId === sourceId)!;
+  // (Columns: the data columns — not S2's selection column, the origin's first since 2026-11-18;
+  //  its name is no Group but the selection Checkbox.)
   const ofType = (type: string) =>
-    [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === type);
+    [...root.canvasInputs.values()].filter(
+      (r) =>
+        root.typeOf(r) === type &&
+        !(
+          type === "Column" &&
+          r.children.some(
+            (child) => root.canvasInputs.get(child)?.props.slot === "selection",
+          )
+        ),
+    );
   const part = (type: "TableHeader" | "TableBody") =>
     [...root.domInputs.values()].find(
       (r) => r.parentId === record(OWNER).id && root.typeOf(r) === type,
