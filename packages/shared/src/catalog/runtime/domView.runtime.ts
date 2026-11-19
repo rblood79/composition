@@ -104,6 +104,7 @@ export function catalogPreviewRuntime(
     loadingOf: (collectionId) => session.loadingStateOf(collectionId),
     pageOf: (listId) => session.pageOf(listId),
     goToPage: (listId, to) => session.goToPage(listId, to),
+    setPageSize: (listId, size) => session.setPageSize(listId, size),
     append: (collectionId, value, parentKey) =>
       session.append(collectionId, value, parentKey),
     update: (collectionId, key, value, fieldId) =>

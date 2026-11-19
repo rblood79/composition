@@ -490,7 +490,11 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-pagination",
     "name": "Pagination",
     "mode": "composite",
-    "accepts": {},
+    "accepts": {
+      "controls": "string",
+      "pageRange": "number",
+      "showRowsPerPage": "boolean"
+    },
     "defaults": {},
     "visual": {},
     "stateRules": {},
@@ -3616,7 +3620,26 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-pagination",
     "definitionId": "lib:definition:type-Pagination",
-    "slot": { "name": "Buttons", "required": false },
+    "children": [
+      "lib:template:component-pagination__size",
+      "lib:template:component-pagination__nav"
+    ],
+    "props": {},
+    "visual": {},
+    "slot": {
+      "name": "Buttons",
+      "required": false
+    },
+    "layout": {
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "space-between",
+      "columnGap": "16px"
+    }
+  },
+  {
+    "id": "lib:template:component-pagination__nav",
+    "definitionId": "lib:definition:type-frame",
     "children": [
       "lib:template:component-pagination__previous",
       "lib:template:component-pagination__pages",
@@ -3625,8 +3648,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {},
     "visual": {},
     "layout": {
+      "display": "flex",
       "flexDirection": "row",
-      "alignItems": "center"
+      "alignItems": "center",
+      "columnGap": "8px"
     }
   },
   {
@@ -3634,61 +3659,108 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
-      "label": "←",
+      "label": "Previous",
+      "icon": "chevron-left",
       "isQuiet": true
     },
     "visual": {}
   },
   {
     "id": "lib:template:component-pagination__pages",
-    "definitionId": "lib:definition:type-ToggleButtonGroup",
-    "slot": {
-      "name": "Pages",
-      "required": false
-    },
+    "definitionId": "lib:definition:type-ActionButtonGroup",
     "children": [
+      "lib:template:component-pagination__first",
+      "lib:template:component-pagination__gap-start",
       "lib:template:component-pagination__page-1",
       "lib:template:component-pagination__page-2",
-      "lib:template:component-pagination__page-3"
+      "lib:template:component-pagination__page-3",
+      "lib:template:component-pagination__gap-end",
+      "lib:template:component-pagination__last"
     ],
     "props": {
       "orientation": "horizontal",
-      "selectionMode": "single",
-      "disallowEmptySelection": true,
-      "isQuiet": true,
-      "defaultSelectedKeys": [
-        "1"
-      ]
+      "density": "regular",
+      "aria-label": "Pages"
+    },
+    "visual": {},
+    "slot": {
+      "name": "Pages",
+      "required": false
+    }
+  },
+  {
+    "id": "lib:template:component-pagination__first",
+    "definitionId": "lib:definition:origin-component-actionbutton",
+    "children": [],
+    "props": {
+      "id": "first",
+      "label": "1",
+      "isQuiet": true
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-pagination__gap-start",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "ellipsis",
+      "size": "S"
     },
     "visual": {}
   },
   {
     "id": "lib:template:component-pagination__page-1",
-    "definitionId": "lib:definition:origin-component-togglebutton",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
       "id": "1",
-      "label": "1"
+      "label": "1",
+      "isQuiet": false,
+      "aria-current": "page"
     },
     "visual": {}
   },
   {
     "id": "lib:template:component-pagination__page-2",
-    "definitionId": "lib:definition:origin-component-togglebutton",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
       "id": "2",
-      "label": "2"
+      "label": "2",
+      "isQuiet": true
     },
     "visual": {}
   },
   {
     "id": "lib:template:component-pagination__page-3",
-    "definitionId": "lib:definition:origin-component-togglebutton",
+    "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
       "id": "3",
-      "label": "3"
+      "label": "3",
+      "isQuiet": true
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-pagination__gap-end",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "ellipsis",
+      "size": "S"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-pagination__last",
+    "definitionId": "lib:definition:origin-component-actionbutton",
+    "children": [],
+    "props": {
+      "id": "last",
+      "label": "10",
+      "isQuiet": true
     },
     "visual": {}
   },
@@ -3697,10 +3769,42 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-actionbutton",
     "children": [],
     "props": {
-      "label": "→",
+      "label": "Next",
+      "icon": "chevron-right",
       "isQuiet": true
     },
-    "visual": {}
+    "visual": {},
+    "layout": {
+      "flexDirection": "row-reverse"
+    }
+  },
+  {
+    "id": "lib:template:component-pagination__size",
+    "definitionId": "lib:definition:origin-component-select",
+    "children": [],
+    "props": {
+      "label": "Rows per page",
+      "placeholder": "10",
+      "labelPosition": "side",
+      "defaultValue": "10"
+    },
+    "visual": {
+      "width": "fit-content"
+    },
+    "layout": {
+      "flexShrink": "0"
+    },
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-select",
+          "lib:template:component-select__2"
+        ],
+        "visual": {
+          "minWidth": 64
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-accordion",

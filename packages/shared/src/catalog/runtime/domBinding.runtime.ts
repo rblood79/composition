@@ -231,6 +231,7 @@ import {
   catalogPickerTimeAbsent,
   catalogSelectionCheckboxHidden,
   catalogMenuSeparatorHidden,
+  catalogPaginationPartHidden,
   catalogColumnMenuIconHidden,
 } from "./presence";
 import { catalogSelectionGroupOf } from "./groupSelection";
@@ -1265,6 +1266,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             type: node.props.type,
             isPending: node.props.isPending,
             autoFocus: node.props.autoFocus,
+            // (A Pagination's shown page · an icon-only step button's word — 2026-11-19.)
+            "aria-current": node.props["aria-current"],
+            "aria-label": node.props["aria-label"],
             isDisabled: buttonDisabled(node) || node.props.isDisabled,
             ...buttonFormFocusProps(node),
             ...racSlotProps(resolution),
@@ -4362,6 +4366,12 @@ export function renderNode(
     ) ||
     // (S2 Menu Divider: none first, last or before another.)
     catalogMenuSeparatorHidden(
+      node,
+      (id) => root.domInputs.get(id),
+      root.typeOf,
+    ) ||
+    // (A Pagination's first · last page and gaps: around its page window.)
+    catalogPaginationPartHidden(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,

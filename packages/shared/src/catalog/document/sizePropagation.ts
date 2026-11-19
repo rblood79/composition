@@ -45,8 +45,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   Toolbar: ["ActionButton"],
   // (A Nav's size is its Links' — the row has no box of its own, 2026-11-14.)
   Nav: ["Link"],
-  // (A Pagination's page numbers are a ToggleButtonGroup — the size goes on to its ToggleButtons.)
-  Pagination: ["ActionButton", "ToggleButtonGroup", "ToggleButton"],
+  // (A Pagination's page numbers are an ActionButtonGroup — it sizes its ActionButtons, 2026-11-19.)
+  Pagination: ["ActionButton", "ActionButtonGroup", "Icon", "Select"],
   // ADR-251: group → items wrapper (internal `size`, never edited) → item.
   RadioGroup: ["RadioItems", ...FIELD_PARTS],
   RadioItems: ["Radio"],

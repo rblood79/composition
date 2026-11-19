@@ -87,6 +87,10 @@ export const SELECTION_COMPOSITE_DEFINITIONS: readonly LibraryDefinition[] = [
       isQuiet: "boolean",
       isDisabled: "boolean",
       isPending: "boolean",
+      // (2026-11-19 — a Pagination's page button: the shown page is `aria-current="page"`, RAC
+      //  `useButton`'s prop.)
+      "aria-current": "string",
+      "aria-label": "string",
     },
     defaults: {
       label: "Action",

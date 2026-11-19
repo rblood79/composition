@@ -163,6 +163,8 @@ export const GROUP_REPEAT_ITEMS: Readonly<Record<string, string>> = {
   Checkbox: "CheckboxGroup",
   ToggleButton: "ToggleButtonGroup",
   SegmentedControlItem: "SegmentedControl",
+  // (2026-11-19 — a Pagination's page numbers: ActionButtons in its ActionButtonGroup, one per page.)
+  ActionButton: "ActionButtonGroup",
 };
 
 /**

@@ -2213,7 +2213,9 @@ export class CatalogPreviewSession {
               if (!set) this.paginationsOf.set(listId, (set = new Set()));
               set.add(paginationId);
               const info = this.pageOf(listId);
-              return info ? { count: info.count, page: info.page } : undefined;
+              return info
+                ? { count: info.count, page: info.page, size: info.size }
+                : undefined;
             },
           },
         ),
@@ -2255,8 +2257,8 @@ export class CatalogPreviewSession {
     display: CatalogRowDisplay,
   ) {
     const id = binding.collectionId.replace(/^data:collection:/, "");
-    const size = catalogRowDisplaySize(display);
     const unit = this.pageUnit(binding.collectionId, ownerId);
+    const size = unit.size ?? catalogRowDisplaySize(display);
     if (this.remotePages(id)) {
       if (!unit.items) {
         if (!unit.request)
@@ -2303,6 +2305,8 @@ export class CatalogPreviewSession {
     | {
         page: number;
         count?: number;
+        /** Rows a page — the viewer's pick, else the document's. */
+        size: number;
         canPrevious: boolean;
         canNext: boolean;
       }
@@ -2311,9 +2315,9 @@ export class CatalogPreviewSession {
     if (entry?.kind !== "node" || entry.rowDisplay?.mode !== "pages") return undefined;
     const binding = entry.binding;
     if (!binding) return undefined;
-    const size = catalogRowDisplaySize(entry.rowDisplay);
     const id = binding.collectionId.replace(/^data:collection:/, "");
     const unit = this.pageUnit(binding.collectionId, listId);
+    const size = unit.size ?? catalogRowDisplaySize(entry.rowDisplay);
     const remote = this.remotePages(id);
     const numbered =
       !remote ||
@@ -2325,6 +2329,7 @@ export class CatalogPreviewSession {
     return {
       page: unit.page,
       ...(count !== undefined ? { count } : {}),
+      size,
       canPrevious: unit.page > 1,
       canNext:
         count !== undefined
@@ -2358,6 +2363,26 @@ export class CatalogPreviewSession {
       this.showPage(binding.collectionId, listId);
     }
   }
+  /**
+   * 2026-11-19 — a Pagination's 「Rows per page」 Select: the viewer's page size for a paged list (the
+   * document's `rowDisplay.size` stays) — the list starts over at page 1.
+   */
+  async setPageSize(listId: string, size: number): Promise<void> {
+    const entry = this.graph?.getEntry(listId as never);
+    const binding = entry?.kind === "node" ? entry.binding : undefined;
+    if (!binding || entry?.kind !== "node" || entry.rowDisplay?.mode !== "pages")
+      return;
+    if (!Number.isInteger(size) || size < 1) return;
+    const unit = this.pageUnit(binding.collectionId, listId);
+    if ((unit.size ?? catalogRowDisplaySize(entry.rowDisplay)) === size) return;
+    unit.size = size;
+    unit.page = 1;
+    unit.cursors = [];
+    const id = binding.collectionId.replace(/^data:collection:/, "");
+    if (this.remotePages(id))
+      await this.loadPageUnit(binding.collectionId, listId, 1);
+    else this.showPage(binding.collectionId, listId);
+  }
   /** One page of a remote collection for a paged list (its own request — Decision 12). */
   private async loadPageUnit(
     collectionId: string,
@@ -2367,9 +2392,9 @@ export class CatalogPreviewSession {
     const id = collectionId.replace(/^data:collection:/, "");
     const unit = this.pageUnit(collectionId, listId);
     const entry = this.graph?.getEntry(listId as never);
-    const size = catalogRowDisplaySize(
-      entry?.kind === "node" ? entry.rowDisplay : undefined,
-    );
+    const size =
+      unit.size ??
+      catalogRowDisplaySize(entry?.kind === "node" ? entry.rowDisplay : undefined);
     unit.request?.abort();
     const controller = new AbortController();
     unit.request = controller;
@@ -2455,6 +2480,8 @@ interface CatalogPageUnit {
   request?: AbortController;
   /** The query the page was of (a local list's sort · filter — another one starts at page 1). */
   query?: string;
+  /** The viewer's rows per page (a Pagination's 「Rows per page」 Select) over the document's. */
+  size?: number;
 }
 
 /** A display window's key: the collection (without its prefix) and the bound node. */

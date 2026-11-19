@@ -88,6 +88,11 @@ import { resolveTableColumnKey } from "../../collections/resolveCollectionItems"
 import { classifyTableCellDisplay } from "../../collections/cellValue";
 import { catalogNearestSkeletonOwner } from "./skeletonOwner";
 import {
+  catalogPageWindow,
+  PAGINATION_PAGE_SIZES,
+} from "../document/pageWindow";
+import { catalogRowDisplaySize } from "../document/types";
+import {
   catalogTableColumnKey,
   catalogTableSorted,
   type CatalogTableSortSource,
@@ -197,7 +202,9 @@ export type CatalogRowSource = ((
   readonly pages?: (
     listId: NodeId,
     paginationId: NodeId,
-  ) => { readonly count?: number; readonly page: number } | undefined;
+  ) =>
+    | { readonly count?: number; readonly page: number; readonly size?: number }
+    | undefined;
 };
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
 export type CatalogLoadingState =
@@ -566,6 +573,7 @@ const GROUP_ROW_ITEM: Readonly<Record<string, { key: string; text: string }>> =
     Checkbox: { key: "value", text: "children" },
     ToggleButton: { key: "id", text: "label" },
     SegmentedControlItem: { key: "id", text: "label" },
+    ActionButton: { key: "id", text: "label" },
   };
 /** The row is the item: its key prop takes the row's key (a group item shows the row's label). */
 function keyRowItem(
@@ -1004,7 +1012,7 @@ export function resolveCatalogNode(
    * with `pagesOf`.
    */
   const paginationRows = (id: string): CatalogBoundRow[] | undefined => {
-    if (!rows?.pages) return undefined;
+    let inSelect = false;
     for (
       let owner = graph.ownerOf(id as NodeId);
       owner;
@@ -1012,15 +1020,43 @@ export function resolveCatalogNode(
     ) {
       const entry = graph.getEntry(owner as NodeId);
       if (entry?.kind !== "node") return undefined;
+      if (ruleDefinitionOf(entry.definitionId).name === "Select") inSelect = true;
       if (!entry.pagesOf) continue;
+      // (2026-11-19 — its 「Rows per page」 Select's item repeats per size: 10 · 20 · 50 · 100.)
+      if (inSelect)
+        return PAGINATION_PAGE_SIZES.map((size) => {
+          const key = String(size);
+          return { key, values: { id: key, label: key } };
+        });
+      if (!rows?.pages) return undefined;
       const pages = rows.pages(entry.pagesOf, entry.id);
       if (!pages) return undefined;
-      return Array.from({ length: pages.count ?? 0 }, (_, index) => {
-        const key = String(index + 1);
+      const range = entry.props.pageRange;
+      return catalogPageWindow(
+        pages.page,
+        pages.count ?? 0,
+        range?.kind === "set" ? range.value : undefined,
+      ).map((page) => {
+        const key = String(page);
         return { key, values: { id: key, label: key } };
       });
     }
     return undefined;
+  };
+  /**
+   * 2026-11-19 — the page size a Pagination's 「Rows per page」 Select shows: its list's — the running
+   * Preview's (the viewer's pick), else the list node's own Rows per page. Undefined = the Select is
+   * no connected Pagination's.
+   */
+  const paginationPageSize = (selectId: string): number | undefined => {
+    const pager = graph.getEntry(graph.ownerOf(selectId as NodeId) as NodeId);
+    if (pager?.kind !== "node" || !pager.pagesOf) return undefined;
+    const pages = rows?.pages?.(pager.pagesOf, pager.id);
+    if (pages?.size !== undefined) return pages.size;
+    const list = graph.getEntry(pager.pagesOf);
+    return list?.kind === "node" && list.rowDisplay?.mode === "pages"
+      ? catalogRowDisplaySize(list.rowDisplay)
+      : undefined;
   };
   /**
    * `<Skeleton isLoading={list.isLoading}>` without a second binding (2026-11-19 사용자 결정): a
@@ -2076,16 +2112,85 @@ export function resolveCatalogNode(
           props[key] = bindTemplateValue(props[key], ownedForkBindings);
       withoutUnboundSlot(props, ownedForkBindings);
     }
-    // ADR-310 Phase 7 — a connected Pagination's number group selects the page shown.
-    const pager =
-      ownedType === "ToggleButtonGroup" &&
-      (graph.getEntry(graph.ownerOf(node.id) as NodeId) as
-        NodeEntry | undefined);
-    const pages =
-      pager && pager.pagesOf && rows?.pages?.(pager.pagesOf, pager.id);
-    if (pages) {
-      delete props.defaultSelectedKeys;
-      props.selectedKeys = [String(pages.page)];
+    // ADR-310 Phase 7 — a connected Pagination's number group: the window it shows (its first ·
+    // last page and gaps read it — `catalogPaginationPartHidden`), the shown page `aria-current`
+    // and not quiet (shadcn `PaginationLink isActive` — outline among ghosts), the last page's number.
+    // (The Pagination above a part — across its navigation frame: shadcn's `Field` + `nav` pair,
+    //  2026-11-19.)
+    const paginationAbove = (id: string | undefined): NodeEntry | undefined => {
+      for (
+        let owner = id ? graph.ownerOf(id as NodeId) : undefined;
+        owner;
+        owner = graph.ownerOf(owner as NodeId)
+      ) {
+        const entry = graph.getEntry(owner as NodeId);
+        if (entry?.kind !== "node") return undefined;
+        const name = ruleDefinitionOf(entry.definitionId).name;
+        if (name === "Pagination") return entry;
+        if (name !== "frame") return undefined;
+      }
+      return undefined;
+    };
+    const pagerOf = (groupId: string | undefined) => {
+      const pager = paginationAbove(groupId);
+      return pager?.pagesOf ? pager : undefined;
+    };
+    // (A Pagination's 「Icons only」 — 2026-11-19: its step buttons show the chevron alone — the word's
+    //  Text hides, `catalogPaginationPartHidden` — and the word becomes the name.)
+    if (ownedType === "ActionButton") {
+      const pagination = paginationAbove(node.id);
+      const controls = pagination?.props.controls;
+      const word = node.props.label;
+      if (
+        controls?.kind === "set" &&
+        controls.value === "iconsOnly" &&
+        word?.kind === "set" &&
+        typeof word.value === "string" &&
+        word.value !== ""
+      )
+        props["aria-label"] = word.value;
+    }
+    // (Its 「Rows per page」 Select shows the list's page size — the viewer's in a running Preview,
+    //  else the list's own Rows per page (the Canvas): 사용자 「table 의 시작값을 받아오게」 2026-11-19.
+    //  The Canvas draws the trigger's own text — the Select origin's SelectValue reads `{placeholder}`.)
+    if (ownedType === "Select") {
+      const size = paginationPageSize(node.id);
+      if (size !== undefined) {
+        delete props.defaultValue;
+        props.value = String(size);
+        // (Also a size the Select does not offer — the list's own Rows per page, say 5.)
+        props.placeholder = String(size);
+      }
+    }
+    if (ownedType === "ActionButtonGroup" || ownedType === "ActionButton") {
+      const groupId =
+        ownedType === "ActionButtonGroup" ? node.id : graph.ownerOf(node.id);
+      const pager = pagerOf(groupId);
+      const pages = pager && rows?.pages?.(pager.pagesOf!, pager.id);
+      // (Connected without pages — the Canvas draws the template once: a window of that one page, so
+      //  the sample's last page 「10」 does not show a count the list does not have.)
+      if (pager && !pages && ownedType === "ActionButtonGroup") {
+        props._pageWindow = { start: 1, end: 1 };
+        props._pageCount = 1;
+      }
+      if (pager && pages) {
+        const range = pager.props.pageRange;
+        const window = catalogPageWindow(
+          pages.page,
+          pages.count ?? 0,
+          range?.kind === "set" ? range.value : undefined,
+        );
+        if (ownedType === "ActionButtonGroup") {
+          props._pageWindow = { start: window[0] ?? 1, end: window.at(-1) ?? 0 };
+          props._pageCount = pages.count ?? 0;
+        }
+        else if (ownedRow && ownedRowing?.rowStart) {
+          const current = ownedRow.key === String(pages.page);
+          props.isQuiet = !current;
+          if (current) props["aria-current"] = "page";
+          else delete props["aria-current"];
+        } else if (props.id === "last") props.label = String(pages.count ?? "");
+      }
     }
     if (ownedRow) {
       // ADR-310 Phase 4: a Cell that shows one field (`{status}`) shows it as a Table's data cell
@@ -2213,6 +2318,12 @@ export function resolveCatalogNode(
               ...(ownedRowing?.rowStart ? ["id"] : []),
               // (The collection's load reaches the template root — the Table record.)
               ...(props.loadingState !== undefined ? ["loadingState"] : []),
+              // (An icons-only Pagination step button's word as its name · its 「Rows per page」
+              //  Select's value — 2026-11-19.)
+              ...(props["aria-label"] !== undefined ? ["aria-label"] : []),
+              ...(ownedType === "Select" && paginationPageSize(node.id) !== undefined
+                ? ["value"]
+                : []),
             ]),
             props,
             [

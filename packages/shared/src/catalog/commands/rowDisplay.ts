@@ -10,7 +10,47 @@ import {
 } from "../resolution/positions";
 import { stageOver, type CatalogCommand } from "./compose";
 import { CommandDraft, definitionTypeName } from "./context";
-import { clearRowTemplates, markRowTemplates } from "./rowTemplate";
+import {
+  clearRowTemplates,
+  markRowTemplates,
+  setOwnRows,
+} from "./rowTemplate";
+import { removeTargets } from "./structure";
+
+/** A Pagination's 「Rows per page」 Select — its own Select child (an owned node). */
+function catalogPaginationSizeSelect(
+  reader: CatalogReader,
+  paginationId: NodeId,
+): NodeId | undefined {
+  for (const child of childPositions(reader, nodePosition(reader, paginationId))) {
+    if (child.target.kind !== "node") continue;
+    let type = "";
+    try {
+      type = definitionTypeName(reader, child.definitionId);
+    } catch {
+      type = "";
+    }
+    if (type === "Select") return child.target.id;
+  }
+  return undefined;
+}
+
+/**
+ * The page-number buttons of a Pagination's number group — its ActionButtons whose `id` is a number
+ * (the first · last page buttons are `first` · `last`, the gaps Icons).
+ */
+function catalogPageButtons(reader: CatalogReader, groupId: NodeId): NodeId[] {
+  const ids: NodeId[] = [];
+  for (const child of childPositions(reader, nodePosition(reader, groupId))) {
+    if (child.target.kind !== "node") continue;
+    const entry = reader.getEntry(child.target.id);
+    const id = entry?.kind === "node" ? entry.props.id : undefined;
+    const value = id?.kind === "set" ? id.value : undefined;
+    if (value !== undefined && /^\d+$/.test(String(value)))
+      ids.push(child.target.id);
+  }
+  return ids;
+}
 
 /**
  * ADR-310 Decision 10 — a bound list's row display (「더 보기」 · pages · virtual scroll). `undefined`
@@ -29,7 +69,7 @@ export const setRowDisplay =
     return { label: "Row display", ops: draft.ops() };
   };
 
-/** A Pagination's number buttons: the ToggleButtonGroup its positions hold (the origin's Pages). */
+/** A Pagination's number buttons: the ActionButtonGroup its positions hold (the origin's Pages). */
 export function catalogPaginationPages(
   reader: CatalogReader,
   paginationId: NodeId,
@@ -42,7 +82,7 @@ export function catalogPaginationPages(
       } catch {
         type = "";
       }
-      if (type === "ToggleButtonGroup" && child.target.kind === "node")
+      if (type === "ActionButtonGroup" && child.target.kind === "node")
         return child.target.id;
       const inner = visit(child);
       if (inner) return inner;
@@ -55,7 +95,8 @@ export function catalogPaginationPages(
 /**
  * ADR-310 사용자 결정 6 — a Pagination pages a list (`pagesOf`): its first number button becomes the
  * template repeated per page and the other number buttons go (the Canvas draws the template once —
- * the authored sample); `undefined` disconnects (the template stays one static button). One step.
+ * the authored sample), its first · last page buttons and gaps stay (2026-11-19 — they show around
+ * the page window); `undefined` disconnects (the template stays one static button). One step.
  */
 export const setPagination =
   (paginationId: NodeId, listId: NodeId | undefined): CatalogCommand =>
@@ -75,11 +116,28 @@ export const setPagination =
     ops.push(...first);
     const pages = catalogPaginationPages(stage, paginationId);
     if (pages) {
-      const plan = (
-        listId ? markRowTemplates({ ownerId: pages }) : clearRowTemplates(pages)
-      )(stage);
-      stage.apply(plan.ops);
-      ops.push(...plan.ops);
+      const run = (command: CatalogCommand) => {
+        const plan = command(stage);
+        stage.apply(plan.ops);
+        ops.push(...plan.ops);
+      };
+      // (Its 「Rows per page」 Select: its first item repeats per size, the sample's others go.)
+      const select = catalogPaginationSizeSelect(stage, paginationId);
+      if (select)
+        run(listId ? markRowTemplates({ ownerId: select }) : clearRowTemplates(select));
+      if (!listId) run(clearRowTemplates(pages));
+      else {
+        // (The first number repeats per page; the sample's other numbers go. The first · last page
+        //  buttons and the gaps stay — they show around the window.)
+        const [template, ...rest] = catalogPageButtons(stage, pages);
+        if (template) run(setOwnRows(template, true));
+        if (rest.length)
+          run(
+            removeTargets({
+              targets: rest.map((id) => ({ kind: "node" as const, id })),
+            }),
+          );
+      }
     }
     return { label, ops };
   };

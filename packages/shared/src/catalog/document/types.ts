@@ -178,9 +178,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 72 — Table 의 `heightMode` · `height` prop 삭제 (사용자 결정 2026-11-19) — 높이는 Styles 높이 하나
  *      (S2 는 `styles` 로 받는다). 원본의 기본 400 은 template `visual.height` — 두 prop 을 적은 옛
  *      Table 은 검증을 통과하지 못한다.
+ * 73 — Pagination 원본을 쪽 이동 의미로 (2026-11-19 사용자 「3번까지 진행」 — shadcn aria Pagination 비교):
+ *      번호 묶음 ToggleButtonGroup (radio) → ActionButtonGroup + ActionButton (보이는 쪽 `aria-current`),
+ *      이전 · 다음 = 화살표 + 「Previous」 · 「Next」, 첫 · 끝 쪽 버튼과 생략 Icon. 옛 Pagination 은 번호가
+ *      ToggleButton 이라 연결 · 쪽 넘기기를 하지 못한다.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 72 as const;
+export const LIBRARY_CONTRACT_VERSION = 73 as const;
 
 export type EntryKind =
   | "project"

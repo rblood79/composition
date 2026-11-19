@@ -126,9 +126,6 @@ describe("ADR-276 Button origin template", () => {
     // the library before the change, copied here (breakdown §2b).
     const expected: Record<string, string> = {
       // (2026-11-14: a Pagination's pages are ToggleButtons; its step buttons are ActionButtons.)
-      "lib:template:component-pagination__page-1": "1",
-      "lib:template:component-pagination__page-2": "2",
-      "lib:template:component-pagination__page-3": "3",
       "lib:template:component-buttongroup__1": "Cancel",
       "lib:template:component-buttongroup__2": "Save",
       // (A Card's Footer Button — user 2026-10-25 「card(origin) - footer - slot 에 button 추가」.)
@@ -158,11 +155,12 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 22 Button + 10 ToggleButton positions; the 9 state variants carry no text of their own.
+    // 22 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
     // (2026-11-14: the Toolbar's three and a Pagination's step buttons are ActionButtons — S2's action
-    //  group; a Pagination's three pages are ToggleButtons. 2026-11-18: a ContextualHelp's trigger is
-    //  S2's quiet ActionButton.)
-    expect(nested).toHaveLength(32);
+    //  group. 2026-11-18: a ContextualHelp's trigger is S2's quiet ActionButton. 2026-11-19: a
+    //  Pagination's pages are ActionButtons too — page navigation, not a toggle; its 「Rows per page」 is a
+    //  Select origin instance.)
+    expect(nested).toHaveLength(29);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)

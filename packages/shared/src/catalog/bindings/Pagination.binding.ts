@@ -1,4 +1,5 @@
 import type { PrimitiveBinding } from "../types";
+import { PAGINATION_PAGE_RANGE_DEFAULT } from "../document/pageWindow";
 
 /**
  * Pagination — 페이지네이션 컨테이너 (이전/페이지 N개/다음 Button 묶음). composition 자체 추상.
@@ -38,6 +39,40 @@ export const paginationBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "M",
+      },
+      // 2026-11-19 사용자 결정 「simple, icons only 기능도 추가」 — shadcn aria Pagination's examples:
+      // `default` Previous · numbers · Next, `simple` the numbers only, `iconsOnly` the two chevrons
+      // (named by their words). Presence `catalogPaginationPartHidden` · resolver (the chevrons' words).
+      controls: {
+        kind: "enum",
+        label: "Controls",
+        section: "appearance",
+        default: "default",
+        options: [
+          { value: "default", label: "Default" },
+          { value: "simple", label: "Simple" },
+          { value: "iconsOnly", label: "Icons only" },
+        ],
+      },
+      // 2026-11-19 사용자 「rows per page [select] 기능도 추가」 — shadcn's 「Rows per page」 Select before the
+      // buttons: the viewer picks 10 · 20 · 50 · 100 rows a page (the Preview session's page size —
+      // `setPageSize`; the document's Rows per page is the start).
+      showRowsPerPage: {
+        kind: "boolean",
+        label: "Rows per page",
+        section: "content",
+        default: false,
+      },
+      // 2026-11-19 사용자 결정 — the number buttons a list-paging Pagination shows at once: a window
+      // of `pageRange` pages around the shown one (resolver `paginationRows`). composition's own
+      // (Pagination has no S2 · v3 counterpart).
+      pageRange: {
+        kind: "number",
+        label: "Page range",
+        section: "content",
+        default: PAGINATION_PAGE_RANGE_DEFAULT,
+        min: 1,
+        step: 1,
       },
     },
     toRacProps: "default",

@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Pagination — 쪽 이동 의미 · Page range 5 · 첫 · 끝 쪽과 생략 표시 · Simple · Icons only · Rows per page] - 2026-11-19
+
+### Added
+
+- **Pagination 에 「Rows per page」 Select 를 켤 수 있다** (사용자 「rows per page [select] 기능도 추가」 — shadcn aria Pagination 의 Icons Only 예제) — Property 의 Show 「Rows per page」 를 켜면 버튼 앞에 옆 라벨 Select 가 나온다. 기존 Select 원본을 그대로 놓고 (사용자 「select 컴퍼넌트도 기존의 컴퍼넌트를 사용」), 목록에 연결하면 그 첫 항목이 10 · 20 · 50 · 100 으로 반복된다 (표본의 나머지 항목은 지운다 — 쪽 번호와 같은 방식). Select 의 값은 연결된 목록의 Rows per page 다 — Canvas 도 목록의 값을 그리고 (사용자 「table 의 시작값을 받아오게」) 목록에서 바꾸면 따라간다. Preview · Publish 에서 보는 사람이 고르면 목록이 그 행 수로 1 쪽부터 다시 나뉜다 (원격 목록은 그 크기로 다시 요청, 문서 값은 그대로). 선택지에 없는 값 (5 등) 도 Select 가 그 수를 보인다. 위치: `bindings/Pagination.binding.ts` `showRowsPerPage` · `resolution/resolver.ts` `paginationPageSize` · `paginationRows` · `commands/rowDisplay.ts` `setPagination` · `runtime/catalogPreviewSession.ts` `setPageSize` · `runtime/catalogPreviewInteractions.ts` `pickPageSize`. 회귀 `adr310Pages.test.tsx` · `adr310BuilderPages.test.ts` · `paginationActionGroup.test.tsx` (목록 값 대신 시작 값을 쓰면 Canvas 가 10 · 고르기가 세션에 닿지 않으면 · Select 숨김을 끄면 실패).
+
+- **Pagination 은 「Rows per page」 와 이동 버튼 묶음 두 덩이다** (사용자 「shadcn 은 rows per page · pagination 이 그룹화 — 좌 rows per page, 우 pagination 배치를 할 수 없다」 — shadcn 예제의 `Field` + `nav` 를 `justify-between` 으로 나란히) — 원본이 `Pagination > Select + frame (Previous · 번호 묶음 · Next)` 이고 Pagination 의 가로 배치가 양 끝 정렬 (space-between · 간격 16) 이다. Styles 에서 Pagination 폭을 늘리면 Select 는 왼쪽 끝, 이동 버튼은 오른쪽 끝에 붙는다 (폭이 내용만큼이면 그대로 나란히). 버튼 묶음 frame 안 간격은 8. 쪽 넘기기 · Controls · 첫 · 끝 쪽 판정은 frame 을 건너 Pagination 을 찾는다. 위치: `document/generated/reusableOriginLibrary.ts` `component-pagination__nav` · `runtime/presence.ts` `catalogPaginationPartHidden` · `runtime/catalogPreviewInteractions.ts` `paginationClick` · `resolution/resolver.ts` `paginationAbove`. 회귀 `paginationActionGroup.test.tsx` (양 끝 정렬을 빼면 · frame 건너기를 빼면 presence 11 건 · 클릭 7 건 · resolver 8 건 실패).
+
+- **Pagination 의 Property 에 Controls (Default · Simple · Icons only) 가 생겼다** (사용자 「simple, icons only 기능도 추가」 — shadcn aria Pagination 의 두 예제) — Simple 은 번호만 (이전 · 다음, 첫 · 끝 쪽, 생략 표시 없음), Icons only 는 화살표 버튼 둘만 (번호 없음 — 글자는 숨고 「Previous」 · 「Next」 가 버튼 이름으로 남는다). 연결된 목록에서 둘 다 쪽을 넘긴다. 위치: `bindings/Pagination.binding.ts` `controls` · `runtime/presence.ts` `catalogPaginationPartHidden` (Canvas · DOM 같은 판정) · `resolution/resolver.ts` (화살표 버튼의 이름 `aria-label`). 회귀 `paginationActionGroup.test.tsx` · `adr310Pages.test.tsx` (숨김 판정을 끄면 2 건 실패).
+
+- **Pagination 의 Property 에 Page range (기본 5) 가 생겼다** (사용자 결정 「기본 page range 를 5 개로」) — 목록을 넘기는 Pagination 이 한 번에 보이는 쪽 번호 수다. 보이는 쪽이 가운데에 오고, 처음 · 끝 쪽에서는 창이 끝에 붙어 늘 그 수만큼 보인다. 쪽이 더 적으면 전부 보인다. 그전에는 쪽 수만큼 번호를 다 그려 250 행 · 20 행/쪽이면 13 개가 한 줄에 나왔다. Pagination 은 S2 · v3 에 없는 composition 컴포넌트라 prop 도 composition 것이다. 위치: `packages/shared/src/catalog/bindings/Pagination.binding.ts` `pageRange` · `document/pageWindow.ts` `catalogPageWindow` · `resolution/resolver.ts` `paginationRows`.
+- **첫 · 끝 쪽 버튼과 생략 표시** (shadcn aria Pagination 의 `PaginationEllipsis`, 사용자 「3번까지 진행」) — 창 밖의 첫 쪽 · 끝 쪽을 늘 누를 수 있고, 사이에 건너뛴 쪽이 있으면 「…」 이 보인다: 13 쪽 중 1 쪽 = `1 2 3 4 5 … 13`, 5 쪽 = `1 … 3 4 5 6 7 … 13`, 13 쪽 = `1 … 9 10 11 12 13`. 위치: `runtime/presence.ts` `catalogPaginationPartHidden` (Canvas · DOM 이 같이 읽는다) · `runtime/catalogPreviewInteractions.ts` `paginationClick`.
+
+### Changed
+
+- **Pagination 의 쪽 번호를 「쪽 이동」 으로 읽는다** (shadcn aria Pagination 비교, 사용자 「3번까지 진행」) — 번호 묶음이 하나만 고르는 ToggleButtonGroup 이라 화면 낭독기가 「라디오 3 / 13」 으로 읽었다. 이제 번호는 ActionButtonGroup 안의 ActionButton 이고, 보이는 쪽은 `aria-current="page"` 에 quiet 이 풀린 모양 (나머지는 quiet — shadcn 의 outline · ghost) 이다. 이전 · 다음은 화살표만이던 「←」 · 「→」 에서 화살표 + 「Previous」 · 「Next」 글자가 되어 이름이 글자다. 연결 전 표본은 `‹ Previous 1 2 3 … 10 Next ›`, Builder 에서 연결된 Pagination 은 쪽 정보가 없어 `‹ Previous 1 Next ›` (거짓 쪽 수를 보이지 않는다). 위치: `document/generated/reusableOriginLibrary.ts` `component-pagination` · `commands/rowDisplay.ts` `setPagination` (첫 번호만 반복, 표본의 나머지 번호 삭제 — 첫 · 끝 쪽과 생략은 남김) · `bindings/ActionButton.binding.ts` (`aria-current` · 항목 `id`, 패널 숨김). 회귀 `adr310Pages.test.tsx` · `paginationActionGroup.test.tsx` · `adr310BuilderPages.test.ts` (현재 쪽 표시를 끄면 2 건, 첫 · 끝 · 생략 숨김을 끄면 8 건 실패).
+
+### Breaking
+
+- **라이브러리 계약 73** — Pagination 원본이 바뀌어 이전 계약 (72) 으로 저장한 프로젝트는 열리지 않는다 (마이그레이션 없음).
+
 ## [Table 높이는 Styles 한 곳 · 「Pages」 가 Rows per page 를 따름 · Pagination 자동 연결] - 2026-11-19
 
 ### Changed

@@ -301,8 +301,9 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
   );
 
   // Pagination's page buttons (2026-10-30 — 사용자 「pagination 의 button S:7, M:8, L:9, XL:10」). Since
-  // 2026-11-14 they are S2 action controls — quiet ActionButtons around a ToggleButtonGroup of pages — whose
-  // own rule gives that corner at the Pagination's size (it reaches them): no Button, no `data-field-button`.
+  // 2026-11-14 they are S2 action controls — quiet ActionButtons (2026-11-19: the numbers too, in an
+  // ActionButtonGroup — shadcn's page links) — whose own rule gives that corner at the Pagination's size
+  // (it reaches them): no Button, no `data-field-button`.
   it.each([
     ["S", 7],
     ["M", 8],
@@ -311,11 +312,12 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
   ] as const)(
     "the Pagination at %s: its page · step buttons are %i",
     async (size, radius) => {
-      const pages = await open("Pagination", size, "togglebutton");
-      expect(pages.radii).toEqual([radius, radius, radius]);
-      expect(pages.html).not.toMatch(/data-field-button/);
-      const steps = await open("Pagination", size, "actionbutton");
-      expect(steps.radii).toEqual([radius, radius]);
+      // (Previous · 1 2 3 · last · Next — the first page button is hidden on the Canvas.)
+      const buttons = await open("Pagination", size, "actionbutton");
+      expect(buttons.radii.filter((value) => value != null)).toEqual(
+        Array(6).fill(radius),
+      );
+      expect(buttons.html).not.toMatch(/data-field-button/);
     },
   );
 

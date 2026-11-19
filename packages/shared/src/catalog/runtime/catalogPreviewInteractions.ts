@@ -466,12 +466,15 @@ export interface CatalogPreviewInteractionsOptions {
     listId: string,
     to: number | "previous" | "next",
   ) => Promise<unknown>;
+  /** A Pagination's 「Rows per page」 pick (`CatalogPreviewSession.setPageSize`). */
+  setPageSize?: (listId: string, size: number) => Promise<unknown>;
 }
 
 /** ADR-310 Phase 7 — a paged list's page and the steps it allows (absent count = unknown). */
 export interface CatalogListPage {
   readonly page: number;
   readonly count?: number;
+  readonly size?: number;
   readonly canPrevious: boolean;
   readonly canNext: boolean;
 }
@@ -1027,8 +1030,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   }
   /**
    * ADR-310 Phase 7 (사용자 결정 6) — a click in a Pagination that pages a list: its first child
-   * steps back, its last forward, a button of its number group (the template repeated per page)
-   * shows that page.
+   * steps back, its last forward, a button of its number group (the template repeated per page, the
+   * first · last page buttons) shows that page.
    */
   paginationClick(recordId: string, target: Element, nav: Element): void {
     const root = this.options.root();
@@ -1037,11 +1040,17 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       record && root?.runtime.graph.getEntry(record.sourceId as never);
     const listId = source?.kind === "node" ? source.pagesOf : undefined;
     if (!root || !record || !listId) return;
-    const kids = record.children
-      .map((id) => root.domInputs.get(id))
-      .filter((kid): kid is NonNullable<typeof kid> => !!kid);
+    // (Its parts — across its navigation frame, the step buttons' and number group's box beside a
+    //  「Rows per page」 Select: shadcn's `Field` + `nav` pair, 2026-11-19.)
+    const partsOf = (ids: readonly string[]): NonNullable<ReturnType<typeof root.domInputs.get>>[] =>
+      ids.flatMap((id) => {
+        const kid = root.domInputs.get(id);
+        if (!kid) return [];
+        return catalogTypeName(root, kid) === "frame" ? partsOf(kid.children) : [kid];
+      });
+    const kids = partsOf(record.children);
     const group = kids.find(
-      (kid) => catalogTypeName(root, kid) === "ToggleButtonGroup",
+      (kid) => catalogTypeName(root, kid) === "ActionButtonGroup",
     );
     for (
       let element: Element | null = target;
@@ -1051,18 +1060,32 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       const id = element.getAttribute("data-catalog-id");
       if (!id) continue;
       const current = this.pageOf(listId);
-      if (id === kids[0]?.id) {
+      // (Its step buttons: its first and last ActionButton — a 「Rows per page」 Select may lead.)
+      const steps = kids.filter(
+        (kid) => catalogTypeName(root, kid) === "ActionButton",
+      );
+      if (id === steps[0]?.id) {
         if (current?.canPrevious) this.goToPage(listId, "previous");
         return;
       }
-      if (id === kids.at(-1)?.id) {
+      if (id === steps.at(-1)?.id) {
         if (current?.canNext) this.goToPage(listId, "next");
         return;
       }
-      const page = Number(root.domInputs.get(id)?.props.id);
+      // (A number's `id` is its page; the first · last page buttons are `first` · `last` — 2026-11-19.)
+      const key = String(root.domInputs.get(id)?.props.id ?? "");
+      const page =
+        key === "first"
+          ? 1
+          : key === "last"
+            ? (current?.count ?? Number.NaN)
+            : /^\d+$/.test(key)
+              ? Number(key)
+              : Number.NaN;
       if (
         root.domInputs.get(id)?.parentId === group?.id &&
-        Number.isInteger(page)
+        Number.isInteger(page) &&
+        page > 0
       ) {
         this.goToPage(listId, page);
         return;
@@ -1217,6 +1240,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     this.forwardTemplateBound(id, patch);
     if ("sortDescriptor" in patch)
       this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
+    if ("value" in patch) this.pickPageSize(id, patch.value);
     if (patch.colorScheme === "light" || patch.colorScheme === "dark")
       this.options.colorScheme?.(patch.colorScheme);
     // ADR-284 Phase 6 — a named state follows its prop when a rule writes it too (a capability's
@@ -1233,6 +1257,25 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             value: normalizeImplicitStateValue(mirror.type, patch[mirror.prop]),
           });
     this.touch(id);
+  }
+  /**
+   * 2026-11-19 — a pick in a connected Pagination's 「Rows per page」 Select: its list's page size (the
+   * Select is the Pagination's own child).
+   */
+  private pickPageSize(id: string, value: unknown): void {
+    const root = this.options.root();
+    const record = root?.domInputs.get(id);
+    if (!root || !record || catalogTypeName(root, record) !== "Select") return;
+    const parent = record.parentId ? root.domInputs.get(record.parentId) : undefined;
+    if (!parent || catalogTypeName(root, parent) !== "Pagination") return;
+    const source = root.runtime.graph.getEntry(parent.sourceId as never);
+    const listId = source?.kind === "node" ? source.pagesOf : undefined;
+    const size = Number(value);
+    if (!listId || !Number.isInteger(size) || size < 1) return;
+    this.options.setPageSize?.(listId, size).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[interactions] rows per page ${size} 실패 — ${message}`);
+    });
   }
   /** One record's runtime props over its declarations (what `overrideOf` reads back). */
   private writeOverride(

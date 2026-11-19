@@ -753,6 +753,86 @@ export function catalogMenuSeparatorHidden(
 }
 
 /**
+ * A Pagination's parts that its controls and page window leave out (2026-11-19 — shadcn aria
+ * Pagination). `controls`: `simple` = the numbers only (no step buttons, no first · last page or gaps),
+ * `iconsOnly` = the step buttons only, their chevrons alone (no number group, no words); its 「Rows per
+ * page」 Select while `showRowsPerPage`. Around the page window of its number group
+ * (the resolver's `_pageWindow` — a connected Pagination in a running Preview) the first page shows
+ * when the window starts after it and its gap when a page lies between, the last page and its gap
+ * likewise. Without a window (an unconnected sample) the sample's end shows: its last page and the
+ * gap before it.
+ */
+export function catalogPaginationPartHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const type = typeOf(node);
+  const parent = get(node.parentId);
+  if (!parent) return false;
+  // (The Pagination above a part — across its navigation frame: shadcn's `Field` + `nav` pair,
+  //  사용자 「rows per page 와 pagination 이 그룹화」 2026-11-19.)
+  const paginationOf = (record: CatalogConsumerNode | undefined) => {
+    let cursor = record;
+    while (cursor && typeOf(cursor) === "frame") cursor = get(cursor.parentId);
+    return cursor && typeOf(cursor) === "Pagination" ? cursor : undefined;
+  };
+  // An icons-only step button's word (its name instead — the resolver's `aria-label`).
+  if (type === "Text" && typeOf(parent) === "ActionButton")
+    return paginationOf(get(parent.parentId))?.props.controls === "iconsOnly";
+  // (Its 「Rows per page」 Select — the Pagination's own child — only while asked for.)
+  if (typeOf(parent) === "Pagination" && type === "Select")
+    return parent.props.showRowsPerPage !== true;
+  // Its step buttons and number group (in its navigation frame).
+  if (typeOf(parent) === "frame") {
+    const pagination = paginationOf(parent);
+    if (!pagination) return false;
+    const controls = pagination.props.controls;
+    if (type === "ActionButton") return controls === "simple";
+    if (type === "ActionButtonGroup") return controls === "iconsOnly";
+    return false;
+  }
+  if (typeOf(parent) !== "ActionButtonGroup") return false;
+  const pagination = paginationOf(get(parent.parentId));
+  if (!pagination) return false;
+  let part: "first" | "last" | "gapStart" | "gapEnd" | undefined;
+  if (
+    type === "ActionButton" &&
+    (node.props.id === "first" || node.props.id === "last")
+  )
+    part = node.props.id;
+  else if (type === "Icon") {
+    // (A gap before the numbers is the start's, after them the end's.)
+    const siblings = childrenOf(parent, get);
+    const at = siblings.findIndex((child) => child.id === node.id);
+    const numbered = siblings.some(
+      (child, index) =>
+        index < at &&
+        typeOf(child) === "ActionButton" &&
+        /^\d+$/.test(String(child.props.id ?? "")),
+    );
+    part = numbered ? "gapEnd" : "gapStart";
+  }
+  if (!part) return false;
+  if (pagination.props.controls === "simple") return true;
+  const span = parent.props._pageWindow as
+    | { start: number; end: number }
+    | undefined;
+  if (!span) return part === "first" || part === "gapStart";
+  const window = { ...span, count: Number(parent.props._pageCount ?? 0) };
+  switch (part) {
+    case "first":
+      return window.start <= 1;
+    case "gapStart":
+      return window.start <= 2;
+    case "gapEnd":
+      return window.end >= window.count - 1;
+    case "last":
+      return window.end >= window.count;
+  }
+}
+
+/**
  * An item its collection's `disabledKeys` names (S2 Menu · TagGroup · SideNav — RAC disables the
  * item: no press · selection, the disabled paint), 2026-11-18. The DOM's RAC reads the collection's
  * prop; the Canvas paints the item disabled.
@@ -1176,6 +1256,8 @@ export function catalogHiddenAtRest(
   if (catalogDismissibleDialogOf(node, get, typeOf)) return true;
   // S2 Menu Divider: none first, last or before another (2026-11-18).
   if (catalogMenuSeparatorHidden(node, get, typeOf)) return true;
+  // A Pagination's first · last page and gaps: around its page window (2026-11-19).
+  if (catalogPaginationPartHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its

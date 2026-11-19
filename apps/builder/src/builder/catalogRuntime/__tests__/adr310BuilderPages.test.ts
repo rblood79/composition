@@ -199,6 +199,21 @@ describe("「Show rows」 → Pages brings its Pagination", () => {
     ]);
     expect((graph.getEntry(pagination) as NodeEntry).pagesOf).toBe(LIST);
     expect(selected()).toEqual([record().id]);
+    // (2026-11-19 — its numbers: the template once; the sample's other numbers went, the first · last
+    //  page buttons and gaps stay but the Canvas has no pages — they hide, no false 「10」.)
+    const group = [...workspace.root.domInputs.values()].find(
+      (item) => workspace.root.typeOf(item) === "ActionButtonGroup",
+    )!;
+    const shown = group.children
+      .map((id) => workspace.root.domInputs.get(id)!)
+      .filter((kid) => !kid.hidden)
+      .map((kid) => kid.props.id ?? kid.props.iconName);
+    expect(shown).toEqual(["1"]);
+    expect(
+      group.children.map(
+        (id) => workspace.root.domInputs.get(id)!.props.id ?? "icon",
+      ),
+    ).toEqual(["first", "icon", "1", "icon", "last"]);
 
     // A list a Pagination pages already: only the size changes.
     workspace.execute(
@@ -265,4 +280,37 @@ describe("「Show rows」 → Pages brings its Pagination", () => {
       workspace.dispose();
     },
   );
+});
+
+// 2026-11-19 사용자 「Canvas 는 … 시작 값 10 → table 의 시작값을 받아오게」: the Canvas has no viewer pick —
+// the Pagination's 「Rows per page」 Select (the Select origin) reads its list's own Rows per page.
+describe("ADR-310 — a Pagination's Rows per page Select on the Canvas", () => {
+  it("reads the list's Rows per page and follows its edit; its one item repeats per size once connected", async () => {
+    const { workspace } = await open("Table");
+    const records = () => [...workspace.root.domInputs.values()];
+    const list = () => records().find((item) => item.sourceId === LIST)!;
+    workspace.execute(catalogPagedListCommand(workspace, list().id, LIST, 5, false));
+    await resampled();
+    const trigger = () =>
+      records()
+        .filter((item) => workspace.root.typeOf(item) === "SelectValue")
+        .map((item) => item.props.children);
+    const select = () =>
+      records().find((item) => workspace.root.typeOf(item) === "Select")!;
+    expect(trigger()).toEqual(["5"]);
+    expect(select().props.value).toBe("5");
+    // (Connected: the Select origin's sample items went but one — it repeats per size.)
+    expect(
+      records()
+        .filter((item) => workspace.root.typeOf(item) === "ListBoxItem")
+        .map((item) => item.props.id),
+    ).toEqual(["10", "20", "50", "100"]);
+    // The list's Rows per page edit reaches the Select (no stale 5).
+    workspace.execute(setRowDisplay(LIST, { mode: "pages", size: 20 }));
+    await resampled();
+    expect(trigger()).toEqual(["20"]);
+    workspace.undo();
+    await resampled();
+    expect(trigger()).toEqual(["5"]);
+  });
 });
