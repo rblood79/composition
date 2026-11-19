@@ -261,6 +261,11 @@ interface BoundTableRows {
   /** The rows drawn: the ones a fixed height holds, else the Builder's sample. */
   readonly shown: readonly CatalogBoundRow[];
   readonly fixed: boolean;
+  /**
+   * ADR-310 Phase 8: virtual-scrolled in the Preview (every row, the `Virtualizer` placing the
+   * visible ones) — nothing to cut.
+   */
+  readonly virtualized: boolean;
   /** ADR-284 Decision 5: its view sorts by a variable (that sort, when the rows carry it). */
   readonly sortedByView?: { readonly sort: unknown };
 }
@@ -2454,6 +2459,7 @@ export function resolveCatalogNode(
       ordered,
       shown,
       fixed,
+      virtualized: virtual && !rowSample,
       ...(sortedByView ? { sortedByView: { sort: variableSort } } : {}),
     };
   };
@@ -2470,6 +2476,9 @@ export function resolveCatalogNode(
       (child) => typeOf(child) === "TableBody",
     );
     if (!body) return projected;
+    // (A virtual-scrolled Table in the Preview cuts nothing: RAC's `Virtualizer` places the rows
+    //  absolutely in a body of no height — a clipping body hid every row, 2026-11-19 사용자 보고.)
+    const clip = !table.virtualized;
     return {
       ...projected,
       // ADR-284 Decision 5: a Table sorted by its view's variable shows the variable's sort and
@@ -2484,13 +2493,19 @@ export function resolveCatalogNode(
           }
         : {}),
       // Table.css clips the outer table (`overflow: hidden`): rows past its height are cut.
-      visual: extendedVisual(projected.visual, { overflow: "hidden" }),
+      ...(clip
+        ? { visual: extendedVisual(projected.visual, { overflow: "hidden" }) }
+        : {}),
       children: projected.children.map((child) =>
         child === body
           ? {
               ...body,
               // The rows past a fixed height are cut.
-              visual: extendedVisual(body.visual, { overflow: "hidden" }),
+              ...(clip
+                ? {
+                    visual: extendedVisual(body.visual, { overflow: "hidden" }),
+                  }
+                : {}),
               // The other modes grow with every row (the Builder samples them).
               ...(table.fixed
                 ? {}

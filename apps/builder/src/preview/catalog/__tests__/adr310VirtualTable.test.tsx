@@ -70,12 +70,22 @@ describe("ADR-310 Phase 8 — a virtual Table's rows", () => {
           root.domInputs.get(record.parentId)?.bindingId === "tablebody",
       ).length;
     };
-    // (Shown as it is, the fixed height holds a few rows.)
+    const bodyOverflow = () => {
+      const root = h.session.root!;
+      return [...root.domInputs.values()].find(
+        (record) => record.bindingId === "tablebody",
+      )?.visual.overflow;
+    };
+    // (Shown as it is, the fixed height holds a few rows — the body cuts the rest.)
     expect(rows()).toBeLessThan(250);
+    expect(bodyOverflow()).toBe("hidden");
     h.workspace.execute(setRowDisplay(id, { mode: "virtual" }));
     h.flush();
     await settle();
     expect(rows()).toBe(250);
+    // (2026-11-19 사용자 보고 「가상스크롤시에 table 내의 내용이 보이지 않는다」: the `Virtualizer`
+    //  places the rows absolutely in a body of no height — a clipping body cut every row.)
+    expect(bodyOverflow()).not.toBe("hidden");
     h.view.unmount();
     // (250 Table rows render past the default 5 s under a loaded suite run.)
   }, 30_000);

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [가상 스크롤 Table — Preview 에서 행이 보이지 않던 문제] - 2026-11-19
+
+### Fixed
+
+- **가상 스크롤로 둔 Table 의 내용이 Preview · Publish 에서 비어 보이던 문제** (사용자 보고 「가상스크롤시에 table 내의 내용이 보이지 않는다」) — 높이가 고정된 Table 은 넘치는 행을 자르려고 Table 과 TableBody 에 `overflow: hidden` 을 붙인다. 가상 스크롤에서는 RAC `Virtualizer` 가 높이 0 인 body 안에 행을 absolute 로 놓기 때문에, 그 자르기가 모든 행을 잘랐다 (ADR-310 Phase 4 부터). 이제 Preview 에서 가상 스크롤인 Table 은 자르지 않는다. Canvas 의 표본 행 표시는 그대로다. 위치: `packages/shared/src/catalog/resolution/resolver.ts` `BoundTableRows.virtualized` · `finishBoundTable`.
+- 확인: 회귀 `adr310VirtualTable.test.tsx` (수정 전 RED). Live (Publish): 가상 Table 에 행이 보이고 스크롤하면 Person488 ~ 493 까지 이어짐, DOM 행 12 개 (가상화 유지), ListBox · CardView 가상화 정상.
+
 ## [편집 한 번이 문서 전체를 다시 계산하던 회귀 — page 프레임 = 내용만큼 뒤] - 2026-11-19
 
 ### Fixed
