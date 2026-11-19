@@ -95,6 +95,8 @@ export function catalogPreviewRuntime(
     loadMore: (collectionId) => session.loadMore(collectionId),
     showMore: (collectionId, ownerId, moreLoaded) =>
       session.showMore(collectionId, ownerId, moreLoaded),
+    showRows: (owner, first, last, total) =>
+      session.showRows(owner, first, last, total),
     setFilterText: (collectionId, filterText) =>
       session.setFilterText(collectionId, filterText),
     serverFilterOf: (recordId) => session.serverFilterOf(recordId),

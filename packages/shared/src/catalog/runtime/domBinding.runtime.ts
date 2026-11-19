@@ -56,7 +56,14 @@ import {
   toRacProps,
   usesButtonBaseUtility,
 } from "@composition/shared";
-import { useCallback, useSyncExternalStore } from "react";
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
+import { CatalogRowWindowMode } from "./rowWindowContext";
 
 import {
   cloneElement,
@@ -317,6 +324,7 @@ import {
   CATALOG_DRAG_COLUMN_WIDTH,
   catalogCellSpan,
   catalogTableSelectionColumn,
+  catalogTableRowTracks,
   catalogTableSelectionPartHidden,
   catalogTrackTableOf,
   CATALOG_SELECTION_COLUMN_VAR,
@@ -370,6 +378,11 @@ export interface CatalogDomRuntime {
    * the rows already loaded (`moreLoaded`), else the next page loads, then the window grows.
    */
   showMore?(collectionId: string, ownerId: string, moreLoaded: boolean): void;
+  /**
+   * A windowed Table's rows `[first, last]` of `total` are drawn without records — its window moves
+   * to hold them (`CatalogPreviewSession.showRows`).
+   */
+  showRows?(owner: string, first: number, last: number, total: number): void;
   /** ADR-310 「더 보기」 — loaded rows past the list's display window (`CatalogPreviewSession.moreLoaded`). */
   moreLoaded?(collectionId: string, ownerId: string): boolean;
   /** ADR-310 Decision 11 — a collection's load (a run's own load-more spinner). */
@@ -3404,23 +3417,7 @@ function ruleDom(
   // spans change (`colSpan`, a cell taken or left) is built again (RAC throws on a stale index).
   // (A selection cell a highlight Table leaves out moves the others' indices too — Phase 3; so does
   //  the drag cell a draggable Table puts first — ADR-295 후속.)
-  const rowSpans =
-    lower === "row"
-      ? (node.derivedProps?._allowsDragging === true ? "drag," : "") +
-        node.children
-          .map((childId) => {
-            const child = root.domInputs.get(childId);
-            if (!child) return 1;
-            return catalogTableSelectionPartHidden(
-              child,
-              (recordId) => root.domInputs.get(recordId),
-              (entry) => catalogTypeName(root, entry),
-            )
-              ? "-"
-              : catalogCellSpan(child);
-          })
-          .join(",")
-      : undefined;
+  const rowSpans = lower === "row" ? catalogRowSpans(root, node) : undefined;
   // ADR-257 Phase 5: RAC's resizable container keeps the column widths it started with (a Column's
   // document width is RAC's `defaultWidth` there) — a document change of a width builds the Table
   // again (the widths a drag left are runtime state: they give way to the document's edit).
@@ -4104,6 +4101,18 @@ export interface CatalogDomNodeProps {
   root: CatalogCompositionRoot;
   id: string;
   context: CatalogDomContext;
+  /**
+   * A windowed Table's row (`CatalogWindowRows`): its RAC key, and the cells a row without a
+   * record draws. The node draws the row's record when it has one (`id`), else the empty row — in
+   * the same element, so RAC's collection keeps the row as the window moves.
+   */
+  windowRow?: string;
+  rowShape?: CatalogRowShape;
+}
+/** A windowed Table's rows' cells: how many, and their spans (`catalogRowSpans` — the Row's key). */
+export interface CatalogRowShape {
+  readonly cells: number;
+  readonly spans: string;
 }
 
 /** Each bound key's owner record id (`catalogValueOwner` — the Canvas's). */
@@ -4261,6 +4270,245 @@ function tableColumnWidthKey(
       return `${id}:${String(width)}:${String(defaultWidth)}:${String(minWidth)}:${String(maxWidth)}`;
     })
     .join(";");
+}
+
+/**
+ * A Row's cells as RAC keeps them (ADR-257 Phase 2): each cell's span, a selection cell left out
+ * as `-`, the drag cell first — a row whose spans change is built again (the Row's key).
+ */
+export function catalogRowSpans(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string {
+  return (
+    (node.derivedProps?._allowsDragging === true ? "drag," : "") +
+    node.children
+      .map((childId) => {
+        const child = root.domInputs.get(childId);
+        if (!child) return 1;
+        return catalogTableSelectionPartHidden(
+          child,
+          (recordId) => root.domInputs.get(recordId),
+          (entry) => catalogTypeName(root, entry),
+        )
+          ? "-"
+          : catalogCellSpan(child);
+      })
+      .join(",")
+  );
+}
+
+/** No record: a windowed row outside its Table's record window (`CatalogDomNodeProps.id`). */
+const CATALOG_ROW_PENDING_ID = "catalog:row-pending";
+/**
+ * A windowed Table's Row element key — the same for the row's record and its empty row, so the
+ * RAC Row (its collection node) stays when the window moves over it. A row whose RAC id or spans
+ * differ from the empty row's is built again (RAC refuses an id · a cell index changing in place).
+ */
+const windowRowKey = (rowKey: string, spans: string) =>
+  `catalog:row|${rowKey}|${spans}`;
+/** A windowed row's record element under that key (`catalogWindowRowPending` — the same key). */
+export function catalogWindowRowElement(
+  root: CatalogCompositionRoot,
+  record: CatalogConsumerNode,
+  element: ReactElement | null,
+): ReactElement | null {
+  return element
+    ? cloneElement(element, {
+        key: windowRowKey(
+          resolveStaticItemKey(
+            record.props as Record<string, unknown>,
+            record.id,
+          ),
+          catalogRowSpans(root, record),
+        ),
+      })
+    : element;
+}
+/**
+ * A windowed Table's row outside its record window (2026-11-19 — `CatalogRowWindowKeys`): RAC's
+ * collection holds every row (keys · order — keyboard, selection, the scroll height), so each is a
+ * keyed RAC Row with a Cell per column and no content. The `Layout` reports the rows coming into
+ * view (`CatalogTableLayout`), and the window moves over them before the frame paints — one of
+ * these is drawn only as an empty row for the frames a move takes.
+ */
+export function catalogWindowRowPending(
+  rowKey: string,
+  shape: CatalogRowShape,
+): ReactElement {
+  return createElement(
+    RAC.Row as ElementType,
+    {
+      key: windowRowKey(rowKey, shape.spans),
+      id: rowKey,
+      "data-row-pending": "",
+    },
+    Array.from({ length: shape.cells }, (_, cell) =>
+      createElement(RAC.Cell as ElementType, { key: `pending:${cell}` }),
+    ),
+  );
+}
+
+/** Rows a chunk: a window move re-renders the chunks it crosses, not every row of the Table. */
+const WINDOW_ROW_CHUNK = 64;
+const NO_ROW_IDS: readonly string[] = [];
+interface WindowRowChunkProps {
+  root: CatalogCompositionRoot;
+  context: CatalogDomContext;
+  keys: readonly string[];
+  from: number;
+  to: number;
+  /** The first row of `[from, to)` with a record, and those rows' record ids. */
+  at: number;
+  ids: readonly string[];
+  shape: CatalogRowShape;
+}
+const CatalogWindowRowChunk = memo(
+  function CatalogWindowRowChunk({
+    root,
+    context,
+    keys,
+    from,
+    to,
+    at,
+    ids,
+    shape,
+  }: WindowRowChunkProps): ReactElement {
+    const rows: ReactElement[] = [];
+    for (let index = from; index < to; index += 1)
+      rows.push(
+        createElement(CatalogDomNode, {
+          key: keys[index],
+          root,
+          id: ids[index - at] ?? CATALOG_ROW_PENDING_ID,
+          context,
+          windowRow: keys[index]!,
+          rowShape: shape,
+        }),
+      );
+    return createElement(Fragment, null, rows);
+  },
+  (before, after) =>
+    before.root === after.root &&
+    before.context === after.context &&
+    before.keys === after.keys &&
+    before.from === after.from &&
+    before.to === after.to &&
+    before.at === after.at &&
+    before.shape === after.shape &&
+    before.ids.length === after.ids.length &&
+    before.ids.every((id, index) => id === after.ids[index]),
+);
+
+/**
+ * A windowed TableBody's data rows — every row of the data, in RAC's collection: the window's as
+ * their records, the rest as empty rows, each under its row key so a row keeps its RAC Row as the
+ * window moves over it (2026-11-19: an empty row swapped for its record's element took the row out
+ * of RAC's collection and put it back — RAC then renumbers every row after it, 10,000 rows a move).
+ * Inside the `Virtualizer` only (`CatalogRowWindowMode`): until its chunk loads the Table draws its
+ * window's rows, and a Table its `Layout` refuses draws as it is — every row a record (asked once).
+ */
+const CatalogWindowRows = memo(function CatalogWindowRows({
+  root,
+  context,
+  keys,
+  start,
+  ids,
+  cells,
+  spans,
+  owner,
+}: {
+  root: CatalogCompositionRoot;
+  context: CatalogDomContext;
+  keys: readonly string[];
+  start: number;
+  ids: readonly string[];
+  cells: number;
+  spans: string;
+  owner: string;
+}): ReactElement {
+  const mode = useContext(CatalogRowWindowMode);
+  const runtime = context.runtime;
+  useLayoutEffect(() => {
+    if (mode === "refused")
+      runtime?.showRows?.(owner, 0, keys.length - 1, keys.length);
+  }, [mode, runtime, owner, keys]);
+  const shape = useMemo(() => ({ cells, spans }), [cells, spans]);
+  const rows: ReactElement[] = [];
+  if (mode !== "virtual" || !cells) {
+    ids.forEach((id, place) =>
+      rows.push(
+        createElement(CatalogDomNode, {
+          key: keys[start + place],
+          root,
+          id,
+          context,
+        }),
+      ),
+    );
+    return createElement(Fragment, null, rows);
+  }
+  const end = start + ids.length;
+  for (let from = 0; from < keys.length; from += WINDOW_ROW_CHUNK) {
+    const to = Math.min(keys.length, from + WINDOW_ROW_CHUNK);
+    const lo = Math.max(from, start);
+    const hi = Math.min(to, end);
+    rows.push(
+      createElement(CatalogWindowRowChunk, {
+        key: from,
+        root,
+        context,
+        keys,
+        from,
+        to,
+        at: lo < hi ? lo : from,
+        ids: lo < hi ? ids.slice(lo - start, hi - start) : NO_ROW_IDS,
+        shape,
+      }),
+    );
+  }
+  return createElement(Fragment, null, rows);
+});
+
+/**
+ * A windowed TableBody's children: its other children as they are, its data rows as one
+ * `CatalogWindowRows` (the records' rows are one run — the resolver's window).
+ */
+function windowRowChildren(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  ids: readonly string[],
+  context: CatalogDomContext,
+  childElement: (childId: string) => ReactElement[],
+): ReactElement[] | undefined {
+  const window = node.rowWindow;
+  if (!window) return undefined;
+  const data = ids.map((id) => root.domInputs.get(id)?.rowIndex !== undefined);
+  const first = data.indexOf(true);
+  const last = data.lastIndexOf(true);
+  if (first < 0) return undefined;
+  const get = (id: string) => root.domInputs.get(id);
+  const row = get(ids[first]!)!;
+  // (The tracks are read from a Row — `catalogTrackTableOf` takes a Row or the header.)
+  const cells =
+    (catalogTableRowTracks(row, get, (entry) => catalogTypeName(root, entry))
+      ?.list.length ?? 0) +
+    (row.derivedProps?._allowsDragging === true ? 1 : 0);
+  return [
+    ...ids.slice(0, first).flatMap(childElement),
+    createElement(CatalogWindowRows, {
+      key: "catalog:window-rows",
+      root,
+      context,
+      keys: window.keys,
+      start: window.start,
+      ids: ids.slice(first, last + 1),
+      cells,
+      spans: catalogRowSpans(root, row),
+      owner: window.owner,
+    }),
+    ...ids.slice(last + 1).flatMap(childElement),
+  ];
 }
 
 /**
@@ -4448,14 +4696,14 @@ export function renderNode(
     )
   )
     return null;
-  const children: ReactElement[] = (
+  const childIds =
     node.bindingId === "submenutrigger"
       ? submenuTriggerChildren(root, node)
       : node.ruleId === "TableBody"
         ? tableBodyOrder(root, node, context)
         : // A derived show order (a calendar header's pickers in its locale order).
-          (catalogChildOrder(node.derivedProps) ?? node.children)
-  ).flatMap((childId) => {
+          (catalogChildOrder(node.derivedProps) ?? node.children);
+  const childElement = (childId: string): ReactElement[] => {
     const child = root.domInputs.get(childId);
     // A part its owner draws has no element of its own — but a toggle indicator in a layout
     // frame inside its button is drawn there by the button's state (ADR-256 Phase 3 review m1).
@@ -4479,7 +4727,12 @@ export function renderNode(
           })
         : element,
     ];
-  });
+  };
+  // (A windowed Table's data rows: every row under its key — `CatalogWindowRows`.)
+  const children: ReactElement[] =
+    (node.ruleId === "TableBody"
+      ? windowRowChildren(root, node, childIds, context, childElement)
+      : undefined) ?? childIds.flatMap(childElement);
   // A sortable Column's sort arrow opens its content wrapper, before the name (S2
   // `ColumnContents` — drawn only while sorted, `CatalogSortIndicator`).
   if (

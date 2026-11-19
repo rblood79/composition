@@ -105,6 +105,8 @@ import type {
 import type {
   CatalogRowPitch,
   CatalogRowSampleBasis,
+  CatalogRowWindowKeys,
+  CatalogRowWindowSource,
   CatalogRowSource,
   CatalogResolutionSelection,
   ResolvedCatalogNode,
@@ -418,6 +420,8 @@ export interface CatalogConsumerNode {
   readonly rowCount?: number;
   /** With `rowCount`: the rows the DOM lays out (`ResolvedCatalogNode.rowsShown`). */
   readonly rowsShown?: number;
+  /** A windowed row owner's keys and window start (`ResolvedCatalogNode.rowWindow`). */
+  readonly rowWindow?: CatalogRowWindowKeys;
 }
 /** Text keys a text leaf takes from its nearest declaring ancestor (CSS inherited properties). */
 export const CATALOG_INHERITED_TEXT_KEYS = [
@@ -1111,6 +1115,11 @@ export interface CatalogRootOptions {
   rows?: CatalogRowSource;
   /** ADR-257 Phase 4 — the Preview's sort of a bound Table (runtime state); absent = none. */
   tableSort?: CatalogTableSortSource;
+  /**
+   * The Preview · Publish's row windows (`resolveCatalogNode`'s `rowWindow` — a virtual-scrolled
+   * Table's records are the rows around the ones shown). Absent = every row.
+   */
+  rowWindow?: CatalogRowWindowSource;
   /**
    * The Builder's sample policy (ADR-157): a row owner that grows with its rows builds only the
    * rows its page shows (`catalogRowSampleCount` — `resolveCatalogNode`'s `rowSample`); the rest
@@ -2152,6 +2161,8 @@ function sameRecord(
     left.monthIndex === right.monthIndex &&
     left.rowCount === right.rowCount &&
     left.rowsShown === right.rowsShown &&
+    left.rowWindow?.start === right.rowWindow?.start &&
+    left.rowWindow?.keys === right.rowWindow?.keys &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&
     JSON.stringify(left.valueTemplate ?? null) ===
       JSON.stringify(right.valueTemplate ?? null) &&
@@ -2249,6 +2260,30 @@ export class CatalogCompositionRoot {
   readonly colorMode: "light" | "dark";
   private readonly rows?: CatalogRowSource;
   private readonly tableSort?: CatalogTableSortSource;
+  private readonly rowWindow?: CatalogRowWindowSource;
+  /**
+   * A row window move being planned (`moveRowWindow`): by owner, the rows its body's records hold
+   * (place → record id) and the keys they were resolved from; `rowsKeptIds` = the ones the resolver
+   * left out (`CatalogRowWindow.kept`).
+   */
+  private rowsKept:
+    | Map<
+        string,
+        | {
+            readonly keys: readonly string[];
+            readonly ids: Map<number, string>;
+          }
+        | undefined
+      >
+    | undefined;
+  private rowsKeptIds: Set<string> | undefined;
+  /** The rows each list binding read last (owner · kind · path) — a window move reads these. */
+  private readonly rowsRead = new Map<
+    string,
+    NonNullable<ReturnType<CatalogRowSource>>
+  >();
+  /** A windowed owner's body record id, as last found (checked on use). */
+  private readonly rowBodies = new Map<string, string>();
   /** `CatalogRootOptions.rowSample`. */
   private readonly rowSample?: boolean;
   private readonly stateSource?: CatalogStateSource;
@@ -2426,7 +2461,17 @@ export class CatalogCompositionRoot {
             instancePath,
           );
           const binding = query ? { ...authored, query } : authored;
-          if (binding.key === undefined) return rows(binding, kind, ownerId);
+          if (binding.key === undefined) {
+            // (A window move reads nothing again — `moveRowWindow`: the rows are the ones its
+            //  records were resolved from. Reading 10,000 rows took 2.6 ms of each move, live.)
+            const read = `${ownerId}|${kind}|${instancePath?.join("/")}`;
+            const held = this.rowsKept ? this.rowsRead.get(read) : undefined;
+            if (held) return held;
+            const result = rows(binding, kind, ownerId);
+            if (result) this.rowsRead.set(read, result);
+            else this.rowsRead.delete(read);
+            return result;
+          }
           const key = catalogBindingKey(
             this.runtime.graph,
             binding.key,
@@ -2441,6 +2486,7 @@ export class CatalogCompositionRoot {
         rows.pages ? { pages: rows.pages } : {},
       );
     this.tableSort = options.tableSort;
+    this.rowWindow = options.rowWindow;
     this.rowSample = options.rowSample;
     this.onRowSampleStale = options.onRowSampleStale;
     this.stateSource = options.state;
@@ -2905,6 +2951,61 @@ export class CatalogCompositionRoot {
   refreshNodes(ids: ReadonlySet<string>): unknown[] {
     return ids.size ? (this.refreshSources(ids) ?? []) : [];
   }
+  /**
+   * A virtual-scrolled Table's row window moved (the session's `showRows`) and nothing else did:
+   * re-resolve `ids` (document node ids), keeping the records of the rows that stay in the window —
+   * only the rows coming in are resolved (2026-11-19: a move resolved the whole window again, 150
+   * rows a move — live, scrolling 1,000 rows p95 100 ms at 1x where RAC's own Table holds 8.4).
+   */
+  moveRowWindow(ids: ReadonlySet<string>): unknown[] {
+    return ids.size ? (this.refreshSources(ids, true) ?? []) : [];
+  }
+  /** The window of `owner` — in a window move, with the rows its body already holds (`kept`). */
+  private readonly rowWindowOf: CatalogRowWindowSource = (owner) => {
+    const window = this.rowWindow?.(owner);
+    const held = window && this.rowsHeld(owner);
+    return held
+      ? {
+          ...window,
+          kept: (index, key) => {
+            const id =
+              held.keys[index] === key ? held.ids.get(index) : undefined;
+            if (id === undefined) return false;
+            this.rowsKeptIds!.add(id);
+            return true;
+          },
+        }
+      : window;
+  };
+  private rowsHeld(owner: string) {
+    const kept = this.rowsKept;
+    if (!kept) return undefined;
+    if (kept.has(owner)) return kept.get(owner);
+    let body = this.records.get(this.rowBodies.get(owner) ?? "");
+    if (body?.rowWindow?.owner !== owner) {
+      body = undefined;
+      for (const record of this.records.values())
+        if (record.rowWindow?.owner === owner) {
+          body = record;
+          break;
+        }
+      if (body) this.rowBodies.set(owner, body.id);
+      else this.rowBodies.delete(owner);
+    }
+    const held = body?.rowWindow
+      ? {
+          keys: body.rowWindow.keys,
+          ids: new Map(
+            body.children.flatMap((id) => {
+              const index = this.records.get(id)?.rowIndex;
+              return index === undefined ? [] : [[index, id] as const];
+            }),
+          ),
+        }
+      : undefined;
+    kept.set(owner, held);
+    return held;
+  }
   /** A document node holding a data binding. */
   private isBindingOwner(id: string): boolean {
     const entry = this.runtime.graph.getEntry(id);
@@ -2914,8 +3015,21 @@ export class CatalogCompositionRoot {
    * Re-resolve the binding owners of `sources` (document node ids) outside a step: the subscriber
    * errors, or `undefined` when no owner was resolved again.
    */
-  private refreshSources(sources: ReadonlySet<string>): unknown[] | undefined {
-    const plan = this.planBindingOwners(sources);
+  private refreshSources(
+    sources: ReadonlySet<string>,
+    keepRows = false,
+  ): unknown[] | undefined {
+    if (keepRows) {
+      this.rowsKept = new Map();
+      this.rowsKeptIds = new Set();
+    }
+    let plan: ConsumePlan;
+    try {
+      plan = this.planBindingOwners(sources);
+    } finally {
+      this.rowsKept = undefined;
+      this.rowsKeptIds = undefined;
+    }
     if (!plan.roots.length) return undefined;
     this.undoLog = [];
     this.layoutTouched = false;
@@ -2964,7 +3078,14 @@ export class CatalogCompositionRoot {
         next.set(key, record);
     }
     const lookup = (key: string) => next.get(key) ?? this.records.get(key);
-    return { before, next, lookup };
+    // (A window move: the rows left as they are keep their records — theirs and their subtrees'.)
+    const kept = new Set<string>();
+    const keep = (id: string) => {
+      kept.add(id);
+      for (const child of this.records.get(id)?.children ?? []) keep(child);
+    };
+    for (const id of this.rowsKeptIds ?? []) keep(id);
+    return { before, next, lookup, kept };
   }
   /** Reuse the structural resolver's region contract for data-driven owner subtrees. */
   private planBindingOwners(
@@ -3024,7 +3145,7 @@ export class CatalogCompositionRoot {
     }
     const roots: ConsumePlan["roots"][number][] = [];
     for (const [rootId, ids] of grouped) {
-      const { before, next, lookup } = this.resolveRegions(
+      const { before, next, lookup, kept } = this.resolveRegions(
         rootId,
         ids,
         () => resolverVisits++,
@@ -3043,7 +3164,7 @@ export class CatalogCompositionRoot {
       roots.push({
         rootId,
         updates,
-        removed: [...before].filter((id) => !next.has(id)),
+        removed: [...before].filter((id) => !next.has(id) && !kept.has(id)),
       });
     }
     return {
@@ -4286,6 +4407,9 @@ export class CatalogCompositionRoot {
       };
     }
     const visit = (node: ResolvedCatalogNode, parentId: string): string => {
+      // (A window move's row left as it is — `moveRowWindow`: its record stays.)
+      if (node.rowKept)
+        return this.rowsHeld(node.rowWindow!.owner)!.ids.get(node.rowIndex!)!;
       const id = identity(node);
       const layers = this.collapseLayers(node);
       const children = collapsedChildren(layers).map((child) =>
@@ -4304,6 +4428,7 @@ export class CatalogCompositionRoot {
       this.rows,
       this.tableSort,
       this.rowSampleBasis(),
+      this.rowWindowOf,
     );
     const find = (
       node: ResolvedCatalogNode,
@@ -6674,6 +6799,9 @@ export class CatalogCompositionRoot {
             rowsShown: target.rowsShown ?? top.rowsShown,
           }
         : {}),
+      ...((target.rowWindow ?? top.rowWindow)
+        ? { rowWindow: target.rowWindow ?? top.rowWindow }
+        : {}),
       instancePath: top.instancePath,
       ...(layers.length > 1
         ? {
@@ -7097,21 +7225,35 @@ export class CatalogCompositionRoot {
     rects: ReadonlyMap<string, PageFrameRect>;
   };
 
+  // (The journal records the one member changed, not a copy of the set — a bound list's rows are
+  //  N records of one template source, and copying its set before each added row was Σk = O(N²):
+  //  ~1 GB at 1,000 Table rows, a crashed tab at 2,000. `boundRowsJournalLinear.test.tsx`.)
   private addSourceInstance(sourceId: string, id: string): void {
-    this.keep(this.sourceInstances, sourceId);
-    let instances = this.sourceInstances.get(sourceId);
+    const instances = this.sourceInstances.get(sourceId);
     if (!instances) {
-      instances = new Set();
-      this.sourceInstances.set(sourceId, instances);
+      this.sourceInstances.set(sourceId, new Set([id]));
+      this.undoLog?.push(() => this.sourceInstances.delete(sourceId));
+      return;
     }
+    if (instances.has(id)) return;
     instances.add(id);
+    this.undoLog?.push(() => instances.delete(id));
+  }
+
+  /** Whether a record of `sourceId` is still in `rootId` (no copy of the set — see above). */
+  private sourceInRoot(sourceId: string, rootId: NodeId): boolean {
+    for (const recordId of this.sourceInstances.get(sourceId) ?? [])
+      if (this.recordRoots.get(recordId) === rootId) return true;
+    return false;
   }
 
   private removeSourceInstance(sourceId: string, id: string): void {
-    this.keep(this.sourceInstances, sourceId);
     const instances = this.sourceInstances.get(sourceId);
-    instances?.delete(id);
-    if (instances?.size === 0) this.sourceInstances.delete(sourceId);
+    if (!instances?.delete(id)) return;
+    this.undoLog?.push(() => instances.add(id));
+    if (instances.size) return;
+    this.sourceInstances.delete(sourceId);
+    this.undoLog?.push(() => this.sourceInstances.set(sourceId, instances));
   }
 
   /** Consumer computations for one record (style, measured text, Slot chrome). May throw. */
@@ -7164,12 +7306,7 @@ export class CatalogCompositionRoot {
         this.keep(this.sourceRoots, sourceId);
         const roots = this.sourceRoots.get(sourceId);
         this.removeSourceInstance(sourceId, id);
-        if (
-          ![...(this.sourceInstances.get(sourceId) ?? [])].some(
-            (recordId) => this.recordRoots.get(recordId) === rootId,
-          )
-        )
-          roots?.delete(rootId);
+        if (!this.sourceInRoot(sourceId, rootId)) roots?.delete(rootId);
         if (roots?.size === 0) this.sourceRoots.delete(sourceId);
       }
     for (const sourceId of nextSources)
@@ -7282,12 +7419,7 @@ export class CatalogCompositionRoot {
         this.keep(this.sourceRoots, sourceId);
         const roots = this.sourceRoots.get(sourceId);
         this.removeSourceInstance(sourceId, id);
-        if (
-          ![...(this.sourceInstances.get(sourceId) ?? [])].some(
-            (recordId) => this.recordRoots.get(recordId) === rootId,
-          )
-        )
-          roots?.delete(rootId);
+        if (!this.sourceInRoot(sourceId, rootId)) roots?.delete(rootId);
         if (roots?.size === 0) this.sourceRoots.delete(sourceId);
       }
     }
@@ -7631,6 +7763,7 @@ export class CatalogCompositionRoot {
       this.rows,
       this.tableSort,
       this.rowSampleBasis(),
+      this.rowWindow,
     );
     const find = (
       node: ResolvedCatalogNode,
@@ -8696,6 +8829,7 @@ export class CatalogCompositionRoot {
             this.rows,
             this.tableSort,
             this.rowSampleBasis(),
+            this.rowWindow,
           ),
         ),
       ),

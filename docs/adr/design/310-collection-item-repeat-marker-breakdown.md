@@ -495,3 +495,19 @@ ReUI 2.8.1 의 실제 기반은 Base UI · Radix 이고 RAC 가 아니다. 목�
   - 후속 (2026-11-15) — 터치 기기의 Table 선택 열 52 · drag 열 20: 위 열 폭 항목. G8 ⑦ (하니스 Table 의 첫 Column 에 `Checkbox[slot=selection]` · Preview `data-catalog-touch`) dev 실측 데스크톱 [40, 279, 279] · 터치 [52, 273, 273] · 머리글 = 본문 행, 원복 RED (터치 토큰 52 인데 [40, 279, 279]). `adr256TableNodeTree.test.tsx` — 실제 root 의 가상 Layout 열이 데스크톱 = Canvas 트랙, 터치 = 52 (원복 RED: 데스크톱 40 고정).
   - 발견한 별도 결함 2 (가상 스크롤과 무관 — 일반 Table 에서도) — 2026-11-15 수리: ① 전체선택 Checkbox 가 든 머리글 행 높이 Canvas 35 · DOM 32 (G8 ② Table 이 3 px 로 FAIL) — 칸 안 Checkbox 의 `vertical-align: top` 이 수동 `Table.css` 에만 있어 엔진은 baseline 에 놓았다 → Column · Cell 의 part rule (`tableCellCheckboxPartRules`) 로 옮기고 수동 규칙 삭제. ② 바운드 Table 의 Row 템플릿 안 `setFields` (Cell 글자 · Checkbox 라벨) 가 `RESOLVED_INSTANCE_MISSING` 으로 거부 — `resolvePruned` 가 행 record id (`…#row:<key>`) 로 소유 경로를 적고 resolver 는 템플릿 자리로 물었다 → 자리 키로. 이어 비운 라벨이 「Checkbox」 로 돌아옴 — `withoutSampleContent` 가 빈 글자도 표본으로 뺐다 → 빈 글자는 남김. live G8 (dev) 14/14 PASS: ② Table 머리글 Canvas [40, 279, 279] × 32 = DOM, 본문 행 차이 0 · ⑧ 행 템플릿 Cell 의 선택 Checkbox 가 보이는 11 행 모두 라벨 없이. 원복 RED 3 (행 접미사 키 → `RESOLVED_INSTANCE_MISSING` · 빈 글자 빼기 → 「Checkbox」 · part rule 끔 → verticalAlign 없음).
 - **live 중간 확인** (5173 `verify-adr310-p7`, Chrome MCP — Builder 탭 스크린샷이 시간 초과라 dev 하니스 핸들 `__COMPOSITION_CATALOG__` 로 ListBox 높이 300 · `setRowDisplay(virtual)` 를 명령으로, Publish 는 `window.open` 가로채기로 연 새 탭): 250 행 · DOM option 13 ~ 14 · 스크롤 중간 Person 78 ~ 91 · 끝 238 ~ 250 · 전체 높이 9,912 · 키보드 End → Person 250 (스크롤 따라감) · Home → Person 1 · Space 선택 · 콘솔 오류 0. **G8 (세로 목록)**: DOM 행 `getBoundingClientRect` (목록 기준) x 4.5 · y 4.5 / 36.5 / 68.5 / 100.5 · 높이 32 = Canvas 표본 행 geometry 같은 값 (차이 0 px, DPR 2 · 폭은 각 화면 폭 − 9).
+
+### 후속 — 가상 스크롤 Table 의 행 창 (2026-11-19, 사용자 「1번 진행해」)
+
+배경: 데이터 그리드 용도 검토 (현재 Table vs TanStack Table + Virtual 대조 — `apps/builder/scripts/datagrid-table-vs-tanstack-live.mjs`) 에서 가상 스크롤 Table 이 불러온 행 전부를 record 로 만드는 비용이 드러났다 (10,000 행 로드 6.4 s · 1,079 MB · 정렬 클릭 6.1 s, 순수 RAC Table + Virtualizer 0.4 s). RAC Table 은 그대로 두고 record 만 보이는 행 근처로 줄였다.
+
+- [x] **resolver 행 창** — `windowedRows` (정렬 뒤 `[start, start + limit)`), TableBody 에 `rowWindow: { owner, start, keys }`, 행 identity · `rowIndex` 는 전체 행 기준 (`rowBaseOf`).
+- [x] **DOM** — `CatalogWindowRows`: 모든 행을 행 key 의 `CatalogDomNode` 로 (64 행 묶음 memo), record 없는 행은 빈 RAC Row. record 행과 빈 행의 element key 를 같게 (`windowRowKey` — RAC id · span 이 같을 때) 두어 RAC Row 가 창 이동에 남는다.
+- [x] **창 이동** — `CatalogTableLayout.getVisibleLayoutInfos` → 세션 `showRows` (microtask, 16 행 단위) → `root.moveRowWindow` (남는 행 `rowKept` — record 유지 · 행 데이터 · 정렬 결과 재사용).
+- [x] **빈 행 높이** — 잰 행들의 중앙값을 추정값으로 (`CatalogTableLayout.takeMeasured`) — 스크롤 높이가 순수 RAC 와 같다 (1,000 행 43,032 · 10,000 행 430,032).
+- [x] 테스트 `adr310VirtualTable.test.tsx` (창 유지 · 이동 · 끝 · 확대 · 전체, RAC 가 전체 행을 가짐 `aria-rowcount` 251, 남는 행 record 동일 객체 · 재해석 수) — 원복 RED: `moveRowWindow` → `refreshNodes` 로 1 실패.
+- **live** (production `pnpm perf:build-dist`, headed Chrome 120 Hz, Publish 탭, 같은 문서 A/B — 순수 RAC · TanStack 팔은 `display: none`): 로드 · 끝까지 스크롤 (frame 마다 120 px) · 정렬 클릭 6 회 × 2 열, CPU 1x · 4x. 수치는 CHANGELOG 2026-11-19 「행 창」. 내용 없는 행이 보인 frame 0 · 콘솔 오류 0.
+- **무효였던 중간 측정**: 처음 구현은 창 밖 행이 RAC 에 들어가지 않아 Table 이 60 행만 스크롤했다 (스크롤 높이가 1,000 · 10,000 행 모두 2,524) — 유리한 수치를 버리고 `aria-rowcount` 단언을 넣었다.
+- **남은 것** (하지 않음):
+  - 창 이동 frame 의 길이 (4x p95 108 ~ 175 ms) — 고정 비용이 RAC 쪽이다 (collection 이 바뀌면 보이는 행 전부 다시 그림 · collection 복제가 행 수 비례). 없애려면 행 내용이 들어와도 RAC collection 이 바뀌지 않는 구조 (행 껍데기 고정 · 칸 내용만 늦게) 가 필요하다 — 행 · 칸의 style · class 가 record 에서 오므로 별도 설계.
+  - ListBox · GridList · CardView 가상 목록은 그대로 전체 record.
+  - 창 밖 행은 `textValue` 가 없다 (글자로 행 찾기는 창 안에서만) · 끌어 놓기 (`CatalogDragItems`) 는 record 행 기준.

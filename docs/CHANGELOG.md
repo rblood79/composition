@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [가상 스크롤 Table — 보이는 행만 계산 (행 창)] - 2026-11-19
+
+### Changed
+
+- **가상 스크롤 Table 은 Preview · Publish 에서 보이는 행 근처만 계산한다**
+  - 전에는 불러온 행 전부를 화면에 그릴 준비 (행마다 record 13 개) 까지 해 두고 그중 보이는 행만 DOM 에 두었다. 이제 보이는 행과 위아래 16 행 (60 행부터, Table 이 크면 그만큼 더) 만 계산하고, 스크롤로 보이는 행이 16 행 벗어날 때마다 그 16 행을 새로 계산한다. 나머지 행은 데이터로만 있고 RAC 에는 key 만 가진 빈 행으로 들어간다 — 스크롤 높이 · 키보드 이동 · 선택 · 행 수 (`aria-rowcount`) 는 전체 행 그대로다.
+  - 창이 움직일 때 남는 행은 다시 계산하지 않고, 행 데이터도 다시 읽지 않는다. 빈 행의 높이는 잰 행의 높이를 따른다 (추정 41 · 실제 43 이면 창이 움직일 때마다 뒤 행 전부가 다시 놓이고 스크롤 높이가 흔들렸다).
+  - production 실측 (headed Chrome 120 Hz, 열 6, 같은 문서의 순수 RAC Table 대조 — 괄호 안은 이 변경 전):
+    - 10,000 행 로드 0.50 s · 메모리 210 MB (6.4 s · 1,079 MB), 1,000 행 0.32 s · 98 MB (0.9 s · 177 MB)
+    - 정렬 클릭 → 화면: 1,000 행 111 ~ 118 ms (550 ~ 585), 10,000 행 512 ~ 520 ms (6.1 s — 순수 RAC 410 ~ 419). CPU 4x: 1,000 행 0.36 s (2.3 s), 10,000 행 1.9 ~ 2.1 s (25.6 s — 순수 RAC 1.6 s)
+    - 빠른 스크롤 (frame 마다 120 px) 의 frame 당 일: 1x 1,000 행 6.8 ms (6.7) · 10,000 행 8.9 ms (8.9), 4x 30 ms (27) · 42 ms (44) — 평균은 같다
+    - **나빠진 것**: 창이 움직이는 frame 이 길다 — frame 간격 p95 가 1x 16.7 ms (8.8) · 33 ms (16.6), 4x 108 ms (35) · 175 ms (58). 창 이동 한 번에 RAC 가 보이는 행을 다시 그리고 (collection 이 바뀌면 전부) 새 16 행을 계산한다. 내용 없는 행이 화면에 보인 frame 은 0.
+  - 다른 가상 목록 (ListBox · GridList · CardView) 은 그대로 불러온 행 전부를 계산한다.
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts` `windowedRows` · `keptRowOf`, `runtime/compositionRoot.ts` `moveRowWindow`, `runtime/catalogPreviewSession.ts` `showRows` (`CATALOG_ROW_WINDOW_STEP`), `runtime/domBinding.runtime.ts` `CatalogWindowRows`, `runtime/catalogVirtualizer.components.tsx` `CatalogTableLayout`. 회귀 `apps/builder/src/preview/catalog/__tests__/adr310VirtualTable.test.tsx` (원복 RED: 창 이동이 전체를 다시 계산하면 실패). 측정 하니스 `apps/builder/scripts/datagrid-table-vs-tanstack-live.mjs`.
+
+## [연결된 목록의 행이 많으면 Preview · Publish 탭이 죽던 문제] - 2026-11-19
+
+### Fixed
+
+- **2,000 행 이상에 연결한 Table 이 Preview · Publish 에서 열린다**
+  - 가상 스크롤 Table (열 6) 을 원격 데이터 2,000 행에 연결하면 탭이 3 초 안에 죽었다 (1,000 행도 열리는 동안 메모리 1.1 GB).
+  - **Why**: 화면 갱신이 실패할 때 되돌리려고 남기는 기록이, 행 하나를 더할 때마다 같은 템플릿에 묶인 행 목록 전체를 복사했다 — 행 수의 제곱. 이제 바뀐 행 하나만 기록한다.
+  - production 실측 (headed Chrome, 같은 Table): 1,000 행 로드 0.9 s · 메모리 177 MB, 10,000 행 6.4 s · 1.1 GB (전: 2,000 행부터 탭 죽음).
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` `addSourceInstance` · `removeSourceInstance` · `sourceInRoot`, 회귀 `apps/builder/src/preview/catalog/__tests__/boundRowsJournalLinear.test.tsx`
+
 ## [Pagination — 쪽 이동 의미 · Page range 5 · 첫 · 끝 쪽과 생략 표시 · Simple · Icons only · Rows per page] - 2026-11-19
 
 ### Added

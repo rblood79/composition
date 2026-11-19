@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactElement } from "react";
-import { cloneElement, createElement } from "react";
+import { cloneElement, createElement, useRef } from "react";
 import {
   GridLayout,
   ListLayout,
@@ -11,6 +11,7 @@ import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
 } from "./compositionRoot";
+import { CatalogRowWindowMode } from "./rowWindowContext";
 import { catalogTableTrackWidths } from "./tableTrackWidths";
 import {
   catalogVirtualListLayout,
@@ -96,10 +97,25 @@ export class CatalogListLayout extends ListLayout<unknown> {
   }
 }
 
+/** A windowed Table's rows as its `Layout` reports the ones in view (`CatalogRowWindowKeys`). */
+type RowsInView = {
+  keys: readonly string[];
+  owner: string;
+  show: (owner: string, first: number, last: number, total: number) => void;
+};
+const KEY_INDEX = new WeakMap<readonly string[], Map<string, number>>();
+function keyIndexOf(keys: readonly string[]): Map<string, number> {
+  let index = KEY_INDEX.get(keys);
+  if (!index)
+    KEY_INDEX.set(keys, (index = new Map(keys.map((key, at) => [key, at]))));
+  return index;
+}
 type TableInput = {
   columnTracks?: readonly string[];
   rowEdge?: { top: number; bottom: number };
   columnWidths?: Map<unknown, number>;
+  /** A windowed Table's rows (a holder the Table sets each render — never part of the layout). */
+  rowsInView?: { current: RowsInView | undefined };
 };
 type TableContext = Parameters<TableLayout<unknown>["update"]>[0];
 type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
@@ -115,6 +131,68 @@ type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
  */
 class CatalogTableLayout extends TableLayout<unknown> {
   private rowEdge = { top: 0, bottom: 0 };
+  private rowsInView?: TableInput["rowsInView"];
+  /**
+   * The last measured row's cell height — the next estimate (`CatalogListLayout`'s rule, for a
+   * Table). A windowed Table's rows outside its window are never measured: at the first estimate
+   * (41 a row where the drawn rows measured 43 — live, 2026-11-19) each window move put the rows
+   * it left back at the estimate, so every row after them moved and RAC laid them all out again
+   * (10,000 rows: 2.5 s of a 600 frame scroll), and the scroll height changed as it scrolled.
+   */
+  private measured: number | undefined;
+  /** The rows measured since the last layout: each one's tallest cell. */
+  private readonly measuredRows = new Map<unknown, number>();
+  override updateItemSize(
+    ...args: Parameters<TableLayout<unknown>["updateItemSize"]>
+  ): boolean {
+    const [key, size] = args;
+    const info = this.getLayoutInfo(key);
+    if (this.rowSize == null && info?.type === "cell" && size.height > 0)
+      this.measuredRows.set(
+        info.parentKey,
+        Math.max(this.measuredRows.get(info.parentKey) ?? 0, size.height),
+      );
+    return super.updateItemSize(...args);
+  }
+  /**
+   * The estimate from the rows measured since the last layout: a row is as tall as its tallest
+   * cell, and the estimate is the rows' median (one tall row — wrapped text — does not set every
+   * unmeasured row's height; a row's cells measured one by one do not set it to a short cell's).
+   */
+  private takeMeasured(): void {
+    if (!this.measuredRows.size) return;
+    const heights = [...this.measuredRows.values()].sort((a, b) => a - b);
+    this.measuredRows.clear();
+    this.measured = heights[Math.floor(heights.length / 2)];
+  }
+  /**
+   * A windowed Table (2026-11-19): the rows the `Virtualizer` is about to draw — the rect it asks
+   * for, its overscan included — go to the session, which moves the record window over them before
+   * the frame paints (`CatalogPreviewSession.showRows`). The rows a focus keeps outside the rect
+   * (persisted) are not rows in view.
+   */
+  override getVisibleLayoutInfos(
+    ...args: Parameters<TableLayout<unknown>["getVisibleLayoutInfos"]>
+  ): ReturnType<TableLayout<unknown>["getVisibleLayoutInfos"]> {
+    const infos = super.getVisibleLayoutInfos(...args);
+    const rows = this.rowsInView?.current;
+    const rect = args[0];
+    if (rows && rect.height > 1) {
+      const index = keyIndexOf(rows.keys);
+      let first = Infinity;
+      let last = -1;
+      for (const info of infos) {
+        if (info.type !== "row") continue;
+        if (info.rect.maxY <= rect.y || info.rect.y >= rect.maxY) continue;
+        const at = index.get(String(info.key));
+        if (at === undefined) continue;
+        if (at < first) first = at;
+        if (at > last) last = at;
+      }
+      if (last >= 0) rows.show(rows.owner, first, last, rows.keys.length);
+    }
+    return infos;
+  }
   override shouldInvalidateLayoutOptions(
     next: object,
     previous: object,
@@ -131,6 +209,7 @@ class CatalogTableLayout extends TableLayout<unknown> {
   override update(context: TableContext): void {
     const options = (context.layoutOptions ?? {}) as TableInput;
     this.rowEdge = options.rowEdge ?? { top: 0, bottom: 0 };
+    this.rowsInView = options.rowsInView;
     const columns = this.virtualizer?.collection
       ? (
           this.virtualizer.collection as unknown as {
@@ -145,15 +224,32 @@ class CatalogTableLayout extends TableLayout<unknown> {
             (this.virtualizer?.size.width ?? 0) - this.padding * 2,
           )
         : undefined;
+    this.takeMeasured();
+    const sized = context.layoutOptions as
+      { rowSize?: number; rowHeight?: number } | undefined;
+    const estimate =
+      this.measured !== undefined &&
+      sized?.rowSize == null &&
+      sized?.rowHeight == null
+        ? { estimatedRowSize: this.measured }
+        : undefined;
     super.update(
-      widths
+      widths || estimate
         ? ({
             ...context,
             layoutOptions: {
               ...context.layoutOptions,
-              columnWidths: new Map(
-                columns.map((column, index) => [column.key, widths[index]!]),
-              ),
+              ...estimate,
+              ...(widths
+                ? {
+                    columnWidths: new Map(
+                      columns.map((column, index) => [
+                        column.key,
+                        widths[index]!,
+                      ]),
+                    ),
+                  }
+                : {}),
             },
           } as TableContext)
         : context,
@@ -200,6 +296,8 @@ type VirtualizerProps = {
   record: CatalogConsumerNode;
   readers: CatalogVirtualListReaders;
   element: ReactElement;
+  /** A windowed Table's rows in view go here (`CatalogDomRuntime.showRows`). */
+  showRows?: RowsInView["show"];
 };
 
 /**
@@ -207,16 +305,32 @@ type VirtualizerProps = {
  * the Canvas's tracks hold the desktop px) — only a Table reads the device (a hook).
  */
 function CatalogVirtualTable(props: VirtualizerProps): ReactElement {
-  return virtualized(props, props.readers.deviceColumns());
+  // (The windowed body's keys — read each render, held for the `Layout`.)
+  const rowsInView = useRef<RowsInView | undefined>(undefined);
+  const window = props.record.children
+    .map((id) => props.root.domInputs.get(id)?.rowWindow)
+    .find((found) => !!found);
+  rowsInView.current =
+    window && props.showRows
+      ? { keys: window.keys, owner: window.owner, show: props.showRows }
+      : undefined;
+  return virtualized(props, props.readers.deviceColumns(), rowsInView);
 }
 
 function virtualized(
   { root, record, readers, element: drawn }: VirtualizerProps,
   device?: CatalogTableDeviceColumns,
+  rowsInView?: { current: RowsInView | undefined },
 ): ReactElement {
   let element = drawn;
   const layout = catalogVirtualListLayout(root, record, readers, device);
-  if ("refused" in layout) return element;
+  // (A windowed Table reads how it is drawn — `CatalogRowWindowMode`.)
+  if ("refused" in layout)
+    return createElement(
+      CatalogRowWindowMode.Provider,
+      { value: "refused" },
+      element,
+    );
   // (The list is the scroll box the `Virtualizer` fills — its rows are placed by the `Layout`, so
   //  the list's own flex · grid flow no longer applies: RAC's reference gives it `display: block`.)
   const own = (element.props as { style?: unknown }).style;
@@ -240,9 +354,16 @@ function virtualized(
       },
       children: element,
     } as never);
-  return createElement(Virtualizer, {
-    layout: layout.kind === "table" ? CatalogTableLayout : CatalogListLayout,
-    layoutOptions: layout.options,
-    children: element,
-  } as never);
+  return createElement(
+    CatalogRowWindowMode.Provider,
+    { value: "virtual" },
+    createElement(Virtualizer, {
+      layout: layout.kind === "table" ? CatalogTableLayout : CatalogListLayout,
+      layoutOptions:
+        layout.kind === "table" && rowsInView
+          ? { ...layout.options, rowsInView }
+          : layout.options,
+      children: element,
+    } as never),
+  );
 }

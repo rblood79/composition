@@ -14,6 +14,7 @@ import {
 import type {
   CatalogBoundRow,
   CatalogBoundRows,
+  CatalogRowWindow,
 } from "../resolution/resolver";
 import { definitionTypeName } from "../commands/context";
 import {
@@ -109,8 +110,14 @@ export function catalogPreviewDataServices(
   return {
     apiEndpointService: {
       getApiEndpoints: () => endpoints,
-      executeApiEndpoint: createCollectionEndpointExecutor(endpoints, collections),
-      submitApiEndpoint: createCollectionEndpointSubmitter(endpoints, collections),
+      executeApiEndpoint: createCollectionEndpointExecutor(
+        endpoints,
+        collections,
+      ),
+      submitApiEndpoint: createCollectionEndpointSubmitter(
+        endpoints,
+        collections,
+      ),
     },
   };
 }
@@ -491,6 +498,17 @@ export class CatalogPreviewSession {
    * when the list's end is seen (`showMore`). A reload · filter · sort starts it over.
    */
   private readonly displayWindows = new Map<string, number>();
+  /**
+   * A virtual-scrolled Table's row window (2026-11-19) — where its record rows start, by the bound
+   * node's resolved identity (`instancePath::nodeId`). Its other rows are keyed Rows without content
+   * in the DOM; one of those drawn moves the window (`showRows`). Absent = it starts at the first row.
+   */
+  private readonly rowWindows = new Map<string, CatalogRowWindow>();
+  /** The rows last reported in view and not yet read (`showRows`), by owner. */
+  private readonly rowsAsked = new Map<
+    string,
+    { first: number; last: number; total: number }
+  >();
   /** The lists whose last delivered rows stopped at their window with more rows loaded (by window key). */
   private readonly windowsCut = new Set<string>();
   /**
@@ -1292,10 +1310,11 @@ export class CatalogPreviewSession {
       );
       this.loadingStates.set(collectionId, "idle");
       // (ADR-313 Decision 4 — the response in the collection's stored values.)
-      const intake = intakeQueryItems(page.items, this.collections.find((item) => item.id === collectionId));
-      const items = (
-        Array.isArray(intake) ? intake : [intake]
-      ).filter(
+      const intake = intakeQueryItems(
+        page.items,
+        this.collections.find((item) => item.id === collectionId),
+      );
+      const items = (Array.isArray(intake) ? intake : [intake]).filter(
         (item): item is Record<string, unknown> =>
           !!item && typeof item === "object",
       );
@@ -2223,10 +2242,75 @@ export class CatalogPreviewSession {
           this.serverSortedTables.has(tableId)
             ? undefined
             : this.tableSorts.get(tableId),
+        rowWindow: (owner) => this.rowWindowOf(owner),
         state: this.stateSource(),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
       },
     );
+  }
+  /** The bound node of a row owner's identity (`instancePath::nodeId`). */
+  private rowOwnerNode(owner: string): string {
+    return owner.slice(owner.lastIndexOf("::") + 2);
+  }
+  /** A virtual-scrolled list's record rows (`CatalogRootOptions.rowWindow`); none = every row. */
+  private rowWindowOf(owner: string): CatalogRowWindow | undefined {
+    return this.rowDisplayOf(this.rowOwnerNode(owner))?.mode === "virtual"
+      ? (this.rowWindows.get(owner) ?? {
+          start: 0,
+          limit: CATALOG_VIRTUAL_ROW_WINDOW,
+        })
+      : undefined;
+  }
+  /**
+   * Rows `[first, last]` of a windowed owner are coming into view (its `Layout`'s — the overscan
+   * included; a Table drawn without the `Virtualizer` gives them all): the window is centred on
+   * them, and follows once they are `CATALOG_ROW_WINDOW_STEP` rows off its centre — a move brings
+   * in that many rows, whatever the scroll speed (2026-11-19: a window three times the rows in view
+   * moved a quarter of its spare rows at once, 40 ~ 60 rows — live at 4x a 167 ms frame every few
+   * moves). It holds the rows in view and a step on each side, and only grows (a window
+   * shrinking and growing with the rows in view would move for each). The last report of a render
+   * pass decides (a microtask — before the frame paints).
+   */
+  showRows(owner: string, first: number, last: number, total: number): void {
+    const asked = this.rowsAsked.has(owner);
+    this.rowsAsked.set(owner, { first, last, total });
+    if (asked) return;
+    queueMicrotask(() => {
+      const rows = this.rowsAsked.get(owner);
+      this.rowsAsked.delete(owner);
+      if (!rows) return;
+      const current = this.rowWindows.get(owner) ?? {
+        start: 0,
+        limit: CATALOG_VIRTUAL_ROW_WINDOW,
+      };
+      const inView = rows.last - rows.first + 1;
+      const limit = Math.min(
+        rows.total,
+        Math.max(current.limit, inView + 2 * CATALOG_ROW_WINDOW_STEP),
+      );
+      const start = Math.max(
+        0,
+        Math.min(
+          Math.round((rows.first + rows.last + 1) / 2 - limit / 2),
+          rows.total - limit,
+        ),
+      );
+      if (start === current.start && limit === current.limit) return;
+      // (Less than a step off, the rows in view inside the window — at the data's ends the window
+      //  cannot centre, so the rows are checked themselves.)
+      if (
+        limit === current.limit &&
+        Math.abs(start - current.start) < CATALOG_ROW_WINDOW_STEP &&
+        rows.first >= current.start &&
+        rows.last < current.start + current.limit
+      )
+        return;
+      this.rowWindows.set(owner, { start, limit });
+      const errors =
+        this.currentRoot?.moveRowWindow(new Set([this.rowOwnerNode(owner)])) ??
+        [];
+      if (errors.length) console.error("[CatalogPreview] rows:", ...errors);
+    });
   }
   /** ADR-310 Phase 7 — a list node's row display (its document `rowDisplay`). */
   private rowDisplayOf(ownerId: string): CatalogRowDisplay | undefined {
@@ -2246,7 +2330,9 @@ export class CatalogPreviewSession {
       (item) => item.id === collectionId,
     );
     return (
-      !!collection && !collection.useMockData && !!this.endpointFilling(collection)
+      !!collection &&
+      !collection.useMockData &&
+      !!this.endpointFilling(collection)
     );
   }
   /** A paged list's rows: its page of the collection (local), or its unit's loaded page (remote). */
@@ -2275,7 +2361,9 @@ export class CatalogPreviewSession {
       );
       return rows
         ? Object.assign(rows, {
-            loadingState: unit.request ? ("loading" as const) : ("idle" as const),
+            loadingState: unit.request
+              ? ("loading" as const)
+              : ("idle" as const),
           })
         : rows;
     }
@@ -2312,7 +2400,8 @@ export class CatalogPreviewSession {
       }
     | undefined {
     const entry = this.graph?.getEntry(listId as never);
-    if (entry?.kind !== "node" || entry.rowDisplay?.mode !== "pages") return undefined;
+    if (entry?.kind !== "node" || entry.rowDisplay?.mode !== "pages")
+      return undefined;
     const binding = entry.binding;
     if (!binding) return undefined;
     const id = binding.collectionId.replace(/^data:collection:/, "");
@@ -2320,8 +2409,7 @@ export class CatalogPreviewSession {
     const size = unit.size ?? catalogRowDisplaySize(entry.rowDisplay);
     const remote = this.remotePages(id);
     const numbered =
-      !remote ||
-      endpointReadsTemplate(this.queryEndpoint(id), "page");
+      !remote || endpointReadsTemplate(this.queryEndpoint(id), "page");
     const count =
       numbered && unit.total !== undefined
         ? Math.max(1, Math.ceil(unit.total / size))
@@ -2370,7 +2458,11 @@ export class CatalogPreviewSession {
   async setPageSize(listId: string, size: number): Promise<void> {
     const entry = this.graph?.getEntry(listId as never);
     const binding = entry?.kind === "node" ? entry.binding : undefined;
-    if (!binding || entry?.kind !== "node" || entry.rowDisplay?.mode !== "pages")
+    if (
+      !binding ||
+      entry?.kind !== "node" ||
+      entry.rowDisplay?.mode !== "pages"
+    )
       return;
     if (!Number.isInteger(size) || size < 1) return;
     const unit = this.pageUnit(binding.collectionId, listId);
@@ -2394,7 +2486,9 @@ export class CatalogPreviewSession {
     const entry = this.graph?.getEntry(listId as never);
     const size =
       unit.size ??
-      catalogRowDisplaySize(entry?.kind === "node" ? entry.rowDisplay : undefined);
+      catalogRowDisplaySize(
+        entry?.kind === "node" ? entry.rowDisplay : undefined,
+      );
     unit.request?.abort();
     const controller = new AbortController();
     unit.request = controller;
@@ -2410,10 +2504,11 @@ export class CatalogPreviewSession {
         cursor,
       );
       if (unit.request !== controller) return;
-      const intake = intakeQueryItems(answer.items, this.collections.find((item) => item.id === id));
-      unit.items = (
-        Array.isArray(intake) ? intake : [intake]
-      ).filter(
+      const intake = intakeQueryItems(
+        answer.items,
+        this.collections.find((item) => item.id === id),
+      );
+      unit.items = (Array.isArray(intake) ? intake : [intake]).filter(
         (item): item is Record<string, unknown> =>
           !!item && typeof item === "object",
       );
@@ -2485,6 +2580,18 @@ interface CatalogPageUnit {
 }
 
 /** A display window's key: the collection (without its prefix) and the bound node. */
+/**
+ * A virtual-scrolled Table's record rows (2026-11-19): the rows around the ones shown. The rest are
+ * keyed Rows without content until the window reaches them.
+ */
+export const CATALOG_VIRTUAL_ROW_WINDOW = 60;
+/**
+ * The rows a window move brings in (`CatalogPreviewSession.showRows`). A move costs about the same
+ * whatever it brings (RAC draws the rows in view again for a changed collection, the Table's own
+ * records are resolved again — live 9 ms at 1x for 1,000 rows) plus each row's records (0.45 ms):
+ * 6 rows a move took 9.5 ms a frame of a fast scroll where 16 ~ 20 take 6.
+ */
+export const CATALOG_ROW_WINDOW_STEP = 16;
 function displayWindowKey(collectionId: string, ownerId: string): string {
   return `${collectionId.replace(/^data:collection:/, "")}\u0001${ownerId}`;
 }

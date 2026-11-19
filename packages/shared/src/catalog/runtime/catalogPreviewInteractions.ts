@@ -442,6 +442,13 @@ export interface CatalogPreviewInteractionsOptions {
   reloadCollection?: (collectionId: string) => Promise<unknown>;
   /** `useAsyncList.loadMore()` · `setFilterText(text)` (the session's) — reported like `reload`. */
   loadMore?: (collectionId: string) => Promise<unknown>;
+  /** A windowed Table's rows drawn without records (`CatalogPreviewSession.showRows`). */
+  showRows?: (
+    owner: string,
+    first: number,
+    last: number,
+    total: number,
+  ) => void;
   /** ADR-310 「더 보기」 — a bound list's end grows its window (`CatalogPreviewSession.showMore`). */
   showMore?: (
     collectionId: string,
@@ -1042,11 +1049,15 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     if (!root || !record || !listId) return;
     // (Its parts — across its navigation frame, the step buttons' and number group's box beside a
     //  「Rows per page」 Select: shadcn's `Field` + `nav` pair, 2026-11-19.)
-    const partsOf = (ids: readonly string[]): NonNullable<ReturnType<typeof root.domInputs.get>>[] =>
+    const partsOf = (
+      ids: readonly string[],
+    ): NonNullable<ReturnType<typeof root.domInputs.get>>[] =>
       ids.flatMap((id) => {
         const kid = root.domInputs.get(id);
         if (!kid) return [];
-        return catalogTypeName(root, kid) === "frame" ? partsOf(kid.children) : [kid];
+        return catalogTypeName(root, kid) === "frame"
+          ? partsOf(kid.children)
+          : [kid];
       });
     const kids = partsOf(record.children);
     const group = kids.find(
@@ -1098,6 +1109,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       console.warn(`[interactions] page ${String(to)} 실패 — ${message}`);
       this.options.showToast(message, FAILURE_TOAST);
     });
+  }
+  showRows(owner: string, first: number, last: number, total: number): void {
+    this.options.showRows?.(owner, first, last, total);
   }
   showMore(collectionId: string, ownerId: string, moreLoaded: boolean): void {
     const show = this.options.showMore;
@@ -1266,7 +1280,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     const root = this.options.root();
     const record = root?.domInputs.get(id);
     if (!root || !record || catalogTypeName(root, record) !== "Select") return;
-    const parent = record.parentId ? root.domInputs.get(record.parentId) : undefined;
+    const parent = record.parentId
+      ? root.domInputs.get(record.parentId)
+      : undefined;
     if (!parent || catalogTypeName(root, parent) !== "Pagination") return;
     const source = root.runtime.graph.getEntry(parent.sourceId as never);
     const listId = source?.kind === "node" ? source.pagesOf : undefined;

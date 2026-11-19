@@ -59,6 +59,9 @@ function withVirtualizer(
   root: CatalogCompositionRoot,
   record: CatalogConsumerNode,
   element: ReactElement | null,
+  showRows:
+    | ((owner: string, first: number, last: number, total: number) => void)
+    | undefined,
 ): ReactElement | null {
   if (!element) return element;
   const source = root.runtime.graph.getEntry(record.sourceId as never);
@@ -78,6 +81,7 @@ function withVirtualizer(
         rowTracks: catalogTableRowTracks,
       },
       element,
+      ...(showRows ? { showRows } : {}),
     }),
   );
 }
@@ -198,6 +202,8 @@ import {
   CalendarWeekday,
   CatalogDomNodeProps,
   catalogRowStableElement,
+  catalogWindowRowElement,
+  catalogWindowRowPending,
   catalogDomStateConditions,
   catalogDomStateStyles,
   catalogDomValueOwners,
@@ -369,6 +375,8 @@ export const CatalogDomNode = memo(function CatalogDomNode({
   root,
   id,
   context,
+  windowRow,
+  rowShape,
 }: CatalogDomNodeProps): ReactElement | null {
   const read = useCallback(() => root.domInputs.get(id), [root, id]);
   // ADR-281 Decision 3 — what this node's ancestors pass down (a host merges its own on top).
@@ -464,7 +472,11 @@ export const CatalogDomNode = memo(function CatalogDomNode({
     ),
   );
   // A removed node disappears through its parent's children delta; until then it renders nothing.
-  if (!node) return null;
+  // (A windowed Table's row without a record is its empty row — `CatalogWindowRows`.)
+  if (!node)
+    return windowRow !== undefined && rowShape
+      ? catalogWindowRowPending(windowRow, rowShape)
+      : null;
   context.onNodeRender?.(id);
   const { rendered: overridden, styleOverride } = withOverride(
     node,
@@ -484,7 +496,10 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           props: inheritedProps,
         } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
-    catalogRowStableElement(
+    (windowRow === undefined
+      ? catalogRowStableElement
+      : (row: CatalogConsumerNode, element: ReactElement | null) =>
+          catalogWindowRowElement(root, row, element))(
       record,
       withVirtualizer(
         root,
@@ -515,6 +530,10 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           ),
           runtime?.handlersOf(id),
         ),
+        runtime?.showRows
+          ? (owner: string, first: number, last: number, total: number) =>
+              runtime.showRows!(owner, first, last, total)
+          : undefined,
       ),
     );
   const drawWithSlot = (record: CatalogConsumerNode): ReactElement | null => {

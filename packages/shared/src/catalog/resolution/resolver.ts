@@ -162,6 +162,16 @@ export interface ResolvedCatalogNode {
    * which the Builder built the first (`resolveCatalogNode`'s `rowSample`).
    */
   rowsShown?: number;
+  /**
+   * On a virtual-scrolled Table's body in the Preview · Publish: its records are a window of the
+   * rows (`CatalogRowWindow`) — every row's key and where the window starts.
+   */
+  rowWindow?: CatalogRowWindowKeys;
+  /**
+   * A windowed run's row left as it is (`CatalogRowWindow.kept`): a place holder at `rowIndex` —
+   * nothing else of it is resolved. The consumer puts the row's existing record there.
+   */
+  rowKept?: true;
   children: readonly ResolvedCatalogNode[];
 }
 /** A data row a bound collection shows (the rows stay in the data store — H1). */
@@ -475,6 +485,65 @@ export interface CatalogRowPitch {
   readonly perLine: number;
   readonly start: number;
 }
+/**
+ * A virtual-scrolled Table's row window in the Preview · Publish (2026-11-19): the rows that become
+ * records — `[start, start + limit)` of the rows after the sort. The rest stay data: the DOM gives
+ * RAC a keyed Row without content for each (`rowWindow.keys`), and moves the window as they show.
+ */
+export interface CatalogRowWindow {
+  readonly start: number;
+  readonly limit: number;
+  /**
+   * A window move: the row at `index` (its key) already has its records and nothing else changed —
+   * the resolver leaves it out (`ResolvedCatalogNode.rowKept`) and the consumer keeps what it has.
+   */
+  readonly kept?: (index: number, key: string) => boolean;
+}
+/** The window of a row owner (its resolved identity — `instancePath::sourceId`); none = every row. */
+export type CatalogRowWindowSource = (
+  owner: string,
+) => CatalogRowWindow | undefined;
+/** A windowed row owner's rows as its record carries them (`ResolvedCatalogNode.rowWindow`). */
+export interface CatalogRowWindowKeys {
+  /** The owner the window is asked for (`CatalogRowWindowSource`'s argument). */
+  readonly owner: string;
+  /** The first record row's place in `keys`. */
+  readonly start: number;
+  /** Every row's key, in the order shown. */
+  readonly keys: readonly string[];
+}
+const ROW_KEYS = new WeakMap<object, readonly string[]>();
+/** A row set as a Table's runtime sort last ordered it (`boundTableRows`). */
+const SORTED_ROWS = new WeakMap<
+  object,
+  { key: string; direction: string; rows: readonly CatalogBoundRow[] }
+>();
+const rowWindowOf = (rowSet: readonly CatalogBoundRow[] | undefined) =>
+  (rowSet as { window?: CatalogRowWindowKeys } | undefined)?.window;
+/** A windowed run's row the consumer keeps (`CatalogRowWindow.kept`): its place holder. */
+const keptRowOf = (
+  rowSet: readonly CatalogBoundRow[],
+  index: number,
+  key: string,
+): ResolvedCatalogNode | undefined =>
+  (rowSet as { kept?: CatalogRowWindow["kept"] }).kept?.(index, key)
+    ? {
+        sourceId: "catalog:row-kept" as NodeId,
+        instancePath: [],
+        definitionId: "" as DefinitionId,
+        props: {},
+        visual: {},
+        layout: {},
+        sizing: {},
+        rowIndex: index,
+        rowKept: true,
+        rowWindow: rowWindowOf(rowSet),
+        children: [],
+      }
+    : undefined;
+/** A windowed run's first row's place in the whole run (0 = not windowed). */
+const rowBaseOf = (rowSet: readonly CatalogBoundRow[] | undefined) =>
+  rowWindowOf(rowSet)?.start ?? 0;
 /** What the Builder's row sample counts with (`resolveCatalogNode`'s `rowSample`). */
 export interface CatalogRowSampleBasis {
   /** The page height when the resolved root authors none (the breakpoint's screen). */
@@ -879,6 +948,8 @@ export function resolveCatalogNode(
    * (`rowCount`) for the rest. Absent = every row (the Preview · Publish).
    */
   rowSample?: CatalogRowSampleBasis,
+  /** The Preview · Publish's row windows (a virtual-scrolled Table); absent = every row. */
+  rowWindow?: CatalogRowWindowSource,
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
   // (Set again from the root's own height when the root is resolved — before any row.)
@@ -898,6 +969,31 @@ export function resolveCatalogNode(
     return Object.assign(rowSet.slice(0, sampleLimit), {
       total: rowCountOf(rowSet),
       delivered: rowSet.length,
+      ...(meta.loadingState !== undefined
+        ? { loadingState: meta.loadingState }
+        : {}),
+      ...(meta.view ? { view: meta.view } : {}),
+    });
+  };
+  /** A windowed owner's rows (`rowWindow`): the window's, with every row's key kept. */
+  const windowedRows = (
+    rowSet: readonly CatalogBoundRow[],
+    owner: string,
+  ): readonly CatalogBoundRow[] => {
+    const window = rowWindow?.(owner);
+    if (!window || rowSet.length <= window.limit) return rowSet;
+    const start = Math.max(
+      0,
+      Math.min(Math.floor(window.start), rowSet.length - window.limit),
+    );
+    let keys = ROW_KEYS.get(rowSet);
+    if (!keys) ROW_KEYS.set(rowSet, (keys = rowSet.map((row) => row.key)));
+    const meta = rowSet as CatalogBoundRows;
+    return Object.assign(rowSet.slice(start, start + window.limit), {
+      total: rowCountOf(rowSet),
+      delivered: rowSet.length,
+      window: { owner, start, keys },
+      ...(window.kept ? { kept: window.kept } : {}),
       ...(meta.loadingState !== undefined
         ? { loadingState: meta.loadingState }
         : {}),
@@ -1020,7 +1116,8 @@ export function resolveCatalogNode(
     ) {
       const entry = graph.getEntry(owner as NodeId);
       if (entry?.kind !== "node") return undefined;
-      if (ruleDefinitionOf(entry.definitionId).name === "Select") inSelect = true;
+      if (ruleDefinitionOf(entry.definitionId).name === "Select")
+        inSelect = true;
       if (!entry.pagesOf) continue;
       // (2026-11-19 — its 「Rows per page」 Select's item repeats per size: 10 · 20 · 50 · 100.)
       if (inSelect)
@@ -2181,10 +2278,12 @@ export function resolveCatalogNode(
           range?.kind === "set" ? range.value : undefined,
         );
         if (ownedType === "ActionButtonGroup") {
-          props._pageWindow = { start: window[0] ?? 1, end: window.at(-1) ?? 0 };
+          props._pageWindow = {
+            start: window[0] ?? 1,
+            end: window.at(-1) ?? 0,
+          };
           props._pageCount = pages.count ?? 0;
-        }
-        else if (ownedRow && ownedRowing?.rowStart) {
+        } else if (ownedRow && ownedRowing?.rowStart) {
           const current = ownedRow.key === String(pages.page);
           props.isQuiet = !current;
           if (current) props["aria-current"] = "page";
@@ -2321,7 +2420,8 @@ export function resolveCatalogNode(
               // (An icons-only Pagination step button's word as its name · its 「Rows per page」
               //  Select's value — 2026-11-19.)
               ...(props["aria-label"] !== undefined ? ["aria-label"] : []),
-              ...(ownedType === "Select" && paginationPageSize(node.id) !== undefined
+              ...(ownedType === "Select" &&
+              paginationPageSize(node.id) !== undefined
                 ? ["value"]
                 : []),
             ]),
@@ -2415,7 +2515,11 @@ export function resolveCatalogNode(
         ? repeatRows(childId, childPath, childRows, ownedRow)
         : undefined;
       if (segment) {
-        segment.forEach((data, index) => {
+        segment.forEach((data, place) => {
+          // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+          const index = rowBaseOf(segment) + place;
+          const kept = keptRowOf(segment, index, data.key);
+          if (kept) return void children.push(kept);
           const projected = resolveOwned(child, childPath, undefined, self, {
             row: data,
             rowStart: true,
@@ -2565,11 +2669,23 @@ export function resolveCatalogNode(
       );
       if (index >= 0) {
         const key = resolveTableColumnKey(columns[index]!.props, index);
-        ordered = catalogTableSorted(
-          rowSet,
-          sort.direction,
-          (row) => row.values[key],
-        );
+        // (The same rows sorted the same way are the same run — a window move reads its rows
+        //  again unchanged, `compositionRoot.moveRowWindow`: sorting 10,000 rows for each.)
+        const held = SORTED_ROWS.get(rowSet);
+        ordered =
+          held && held.key === key && held.direction === sort.direction
+            ? held.rows
+            : catalogTableSorted(
+                rowSet,
+                sort.direction,
+                (row) => row.values[key],
+              );
+        if (ordered !== held?.rows)
+          SORTED_ROWS.set(rowSet, {
+            key,
+            direction: sort.direction,
+            rows: ordered,
+          });
       }
     }
     const template = rootId.startsWith("lib:")
@@ -2589,7 +2705,10 @@ export function resolveCatalogNode(
     const instancePath = tableId.slice(0, tableId.lastIndexOf("::"));
     const shown = fixed
       ? ordered.slice(0, Math.ceil(height! / TABLE_MIN_ROW_HEIGHT) + 1)
-      : sampledRows(ordered, `${instancePath}::${bodyId}`);
+      : rowSample
+        ? sampledRows(ordered, `${instancePath}::${bodyId}`)
+        : // (The window is the bound node's — its `rowDisplay` says whether it has one.)
+          windowedRows(ordered, tableId);
     return {
       rowSet,
       ordered,
@@ -2649,6 +2768,9 @@ export function resolveCatalogNode(
                 : {
                     rowCount: rowCountOf(table.rowSet),
                     rowsShown: table.ordered.length,
+                    ...(rowWindowOf(table.shown)
+                      ? { rowWindow: rowWindowOf(table.shown)! }
+                      : {}),
                   }),
             }
           : child,
@@ -3119,7 +3241,11 @@ export function resolveCatalogNode(
               patches,
               { row: data, rowStart: true },
             );
-          segment.forEach((data, index) => {
+          segment.forEach((data, place) => {
+            // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+            const index = rowBaseOf(segment) + place;
+            const kept = keptRowOf(segment, index, data.key);
+            if (kept) return void out.push(kept);
             const projected = projectRow(data);
             if (projected)
               push(out, {
@@ -3355,7 +3481,11 @@ export function resolveCatalogNode(
               undefined,
               { row: data, rowStart: true, sampleOwner: childId as NodeId },
             );
-          segment.forEach((data, index) => {
+          segment.forEach((data, place) => {
+            // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+            const index = rowBaseOf(segment) + place;
+            const kept = keptRowOf(segment, index, data.key);
+            if (kept) return void children.push(kept);
             const projected = projectRow(data);
             if (projected)
               push(children, {
@@ -3421,7 +3551,11 @@ export function resolveCatalogNode(
               row: data,
               rowStart: true,
             });
-          segment.forEach((data, index) => {
+          segment.forEach((data, place) => {
+            // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+            const index = rowBaseOf(segment) + place;
+            const kept = keptRowOf(segment, index, data.key);
+            if (kept) return void children.push(kept);
             const projected = projectRow(data);
             if (projected)
               push(children, {
