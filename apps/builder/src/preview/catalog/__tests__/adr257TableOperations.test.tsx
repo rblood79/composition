@@ -194,6 +194,15 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     expect(arrow()!.getAttribute("data-sort-direction")).toBe("ascending");
     // (Before the name: the Column's first child — this Column has no content wrapper.)
     expect(name.firstElementChild).toBe(arrow());
+    // (…and on the name's line: an `svg` is a block in the Preview's sheet, and this Column's
+    //  content is a bare text — a block arrow took a line of its own, the sorted header 16px
+    //  taller than the others. Live, 2026-11-20. A Column with a content wrapper is a flex row.)
+    expect((arrow() as unknown as SVGElement).style.display).toBe(
+      "inline-block",
+    );
+    expect((arrow() as unknown as SVGElement).style.verticalAlign).toBe(
+      "middle",
+    );
     const arrowUp = arrow()!.innerHTML;
     act(() => {
       fireEvent.click(name);

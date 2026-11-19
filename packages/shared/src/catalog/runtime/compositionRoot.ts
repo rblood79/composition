@@ -2447,6 +2447,7 @@ export class CatalogCompositionRoot {
           kind?: Parameters<CatalogRowSource>[1],
           ownerId?: NodeId,
           instancePath?: readonly string[],
+          sort?: Parameters<CatalogRowSource>[4],
         ) => {
           // ADR-284: the binding's view, its references read for this node (runtime values in the
           // Preview · Publish, defaults on the Canvas) — the row source runs it before the window.
@@ -2467,7 +2468,7 @@ export class CatalogCompositionRoot {
             const read = `${ownerId}|${kind}|${instancePath?.join("/")}`;
             const held = this.rowsKept ? this.rowsRead.get(read) : undefined;
             if (held) return held;
-            const result = rows(binding, kind, ownerId);
+            const result = rows(binding, kind, ownerId, instancePath, sort);
             if (result) this.rowsRead.set(read, result);
             else this.rowsRead.delete(read);
             return result;

@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [연결된 Table — 정렬이 전체 행 기준 · 정렬 클릭과 「포함」 필터 속도] - 2026-11-20
+
+### Fixed
+
+- **「더 보기」 · 「페이지」 방식 Table 의 헤더 정렬이 전체 행을 정렬한다**
+  - 250 행을 연결하고 헤더를 눌러 내림차순으로 정렬하면, 보이던 100 행만 뒤집혀 100 번째 행이 맨 위에 왔다 (전체에서 가장 큰 값이 아니라). 「페이지」 방식은 그 쪽의 행끼리만 정렬됐다.
+  - **Why**: 행을 표시 창 · 쪽으로 자른 뒤에 정렬했다. 이제 행을 읽는 단계가 정렬을 먼저 하고 자른다 — 「더 보기」 는 정렬된 전체의 첫 100 행, 쪽은 정렬된 전체의 그 쪽. 로컬 「페이지」 목록은 정렬을 바꾸면 1 쪽으로 돌아간다 (필터를 바꿀 때와 같다).
+  - 가상 스크롤 Table 은 전부터 전체를 정렬했다. 서버가 정렬하는 Table · 정렬 변수를 쓰는 view 는 그대로다. 원격 「페이지」 목록은 받은 쪽 안에서만 정렬한다 (서버 정렬을 연결해야 전체 기준).
+  - 위치: `packages/shared/src/catalog/runtime/dataBinding.ts` `catalogBoundRows` 의 `sort` · `sortedRowOrder`, `resolution/resolver.ts` `tableRowSort`, `runtime/catalogPreviewSession.ts` `sortTable`. 회귀 `apps/builder/src/preview/catalog/__tests__/boundTableSortBeforeWindow.test.tsx`. live: production Publish 탭, 「더 보기」 1,000 행 — 오름차순 · 내림차순 모두 보이는 100 행이 전체 기준 첫 100 행.
+
+- **정렬된 열의 머리글이 다른 머리글보다 높아지지 않는다**
+  - 내용 감싸개가 없는 열 (글자를 열에 직접 적은 Column) 을 정렬하면 정렬 화살표가 이름 위 줄로 올라가 그 머리글이 16 px 높아졌다 (32 → 48 px, 「더 보기」 Table 은 머리글 줄 전체가).
+  - **Why**: Preview 의 시트에서 `svg` 는 줄 전체를 차지하는 요소인데, 감싸개가 없는 열은 화살표를 글자와 같은 block 안에 그냥 둔다. 화살표를 줄 안 (inline) 요소로 그린다. Quick Connect · 「+」 로 만든 열 (감싸개가 가로 줄) 은 전부터 한 줄이었다.
+  - 위치: `packages/shared/src/catalog/runtime/tableOperationsDom.components.tsx` `CatalogSortIndicator`. 회귀 `apps/builder/src/preview/catalog/__tests__/adr257TableOperations.test.tsx`. live: production Publish 탭 — 감싸개 없는 열 32 → 32 px (전 48), 감싸개 있는 열 34 → 34 px.
+
+### Changed
+
+- **정렬 클릭이 빨라졌다 (가상 스크롤 Table)**
+  - 정렬은 그 Table 만 다시 계산한다 — 전에는 페이지의 연결된 목록 전부를 다시 계산했다.
+  - 10,000 행에서 클릭 486 ms 중 186 ms 가 React 가 순서가 바뀐 행을 하나씩 끼워 넣을 자리를 찾는 데 쓰였다 (행 수의 제곱). 행 묶음 (64 행) 을 「들어 있는 행」 으로 이름 붙여, 정렬 때는 묶음째 새로 넣는다.
+  - 화면 밖 행의 빈 껍데기에서 칸을 뺐다 (행만 남김) — 열 6 · 10,000 행 Table 이 RAC 안에서 70,000 개 항목이던 것이 10,000 개가 됐다. 로드 · 메모리 · 스크롤 중 창 이동도 함께 줄었다.
+  - production 실측 (headed Chrome 120 Hz, 열 6, 괄호 안은 2026-11-19 「행 창」 뒤 값):
+    - 정렬 클릭 → 화면: 10,000 행 155 ~ 170 ms (512 ~ 520 — 순수 RAC 384 ~ 391), 1,000 행 80 ~ 84 ms (111 ~ 118 — 순수 RAC 27 ~ 32). CPU 4x: 10,000 행 0.55 ~ 0.58 s (1.9 ~ 2.1 s — 순수 RAC 1.57 s), 1,000 행 0.25 ~ 0.27 s (0.36 s)
+    - 로드 · 메모리: 10,000 행 0.40 s · 155 MB (0.50 s · 210 MB), 1,000 행 0.31 s · 88 MB (0.32 s · 98 MB)
+    - 빠른 스크롤 frame 간격 p95: 10,000 행 1x 16.8 ~ 25 ms (33) · 4x 115 ~ 117 ms (175), 1,000 행 4x 100 ms (108). 내용 없는 행이 보인 frame 0 · 콘솔 오류 0 · 스크롤 높이는 전과 같다.
+  - 위치: `runtime/domBinding.runtime.ts` `catalogWindowRowChunks` · `catalogWindowRowPending`, `runtime/catalogVirtualizer.components.tsx` `CatalogTableLayout.buildRow`, `runtime/catalogPreviewSession.ts` `sortTable`. 회귀 `packages/shared/src/catalog/runtime/__tests__/windowRowChunks.test.ts` · `boundTableSortBeforeWindow.test.tsx`.
+- **필터의 「포함」 비교가 빨라졌다**
+  - 전에는 칸마다 글자 위치 하나하나에서 잘라 비교했다. 이제 영문 · 숫자 칸은 한 번에 찾고 (찾은 자리만 원래 비교로 확인), 한글이 든 칸은 검색어의 첫 자모로 시작하는 글자에서만 비교한다. 결과는 전과 같다 — 언어 설정 25 개 · 무작위 440 만 건 대조에서 차이 0.
+  - 한글 · 영문이 섞인 10,000 행 × 3 필드: 13 ~ 21 ms → 2.7 ~ 5 ms, 100,000 행: 147 ~ 225 ms → 33 ~ 57 ms (node 실측).
+  - (한글은 소문자 변환 방식으로 한 번에 찾지 않는다 — 검색용 비교는 글자를 자모로 풀어 「각가」 와 「가까」 를 같게 본다.)
+  - 위치: `packages/shared/src/collections/view/comparison.ts` `textMatch`. 회귀 `collections/view/__tests__/containsFast.test.ts`.
+
 ## [가상 스크롤 Table — 보이는 행만 계산 (행 창)] - 2026-11-19
 
 ### Changed

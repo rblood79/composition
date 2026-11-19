@@ -4328,25 +4328,24 @@ export function catalogWindowRowElement(
 /**
  * A windowed Table's row outside its record window (2026-11-19 — `CatalogRowWindowKeys`): RAC's
  * collection holds every row (keys · order — keyboard, selection, the scroll height), so each is a
- * keyed RAC Row with a Cell per column and no content. The `Layout` reports the rows coming into
- * view (`CatalogTableLayout`), and the window moves over them before the frame paints — one of
- * these is drawn only as an empty row for the frames a move takes.
+ * keyed RAC Row without cells. The `Layout` reports the rows coming into view
+ * (`CatalogTableLayout`), and the window moves over them before the frame paints — one of these
+ * is drawn only as an empty row for the frames a move takes (`CatalogTableLayout.buildRow` gives
+ * it a row's height).
+ *
+ * (2026-11-20: no Cells. An empty Cell per column made the collection of a 6-column Table of
+ *  10,000 rows 70,000 nodes — RAC copies its key map on every change (a window move, a sort) and
+ *  a sort mounts them all again. RAC counts a row's cells only when it has one.)
  */
 export function catalogWindowRowPending(
   rowKey: string,
   shape: CatalogRowShape,
 ): ReactElement {
-  return createElement(
-    RAC.Row as ElementType,
-    {
-      key: windowRowKey(rowKey, shape.spans),
-      id: rowKey,
-      "data-row-pending": "",
-    },
-    Array.from({ length: shape.cells }, (_, cell) =>
-      createElement(RAC.Cell as ElementType, { key: `pending:${cell}` }),
-    ),
-  );
+  return createElement(RAC.Row as ElementType, {
+    key: windowRowKey(rowKey, shape.spans),
+    id: rowKey,
+    "data-row-pending": "",
+  });
 }
 
 /** Rows a chunk: a window move re-renders the chunks it crosses, not every row of the Table. */
@@ -4448,27 +4447,81 @@ const CatalogWindowRows = memo(function CatalogWindowRows({
     );
     return createElement(Fragment, null, rows);
   }
-  const end = start + ids.length;
-  for (let from = 0; from < keys.length; from += WINDOW_ROW_CHUNK) {
-    const to = Math.min(keys.length, from + WINDOW_ROW_CHUNK);
-    const lo = Math.max(from, start);
-    const hi = Math.min(to, end);
+  for (const chunk of catalogWindowRowChunks(keys, start, ids))
     rows.push(
       createElement(CatalogWindowRowChunk, {
-        key: from,
+        ...chunk,
         root,
         context,
         keys,
-        from,
-        to,
-        at: lo < hi ? lo : from,
-        ids: lo < hi ? ids.slice(lo - start, hi - start) : NO_ROW_IDS,
         shape,
       }),
     );
-  }
   return createElement(Fragment, null, rows);
 });
+
+/** A key list's chunks by name (`windowRowChunkNames`) — the list is the same through a window move. */
+const CHUNK_NAMES = new WeakMap<readonly string[], readonly string[]>();
+/**
+ * Each chunk's name: its place and a hash of its rows' keys — a chunk whose rows are other rows
+ * is another chunk (React mounts it whole), one whose rows are the same is the same chunk.
+ *
+ * Why (2026-11-20, live — a sort click of 10,000 rows, 186 of its 486 ms in React's
+ * `getHostSibling`): under a chunk named by its place alone, a sort put other rows in every chunk
+ * — each one an insertion, and React looks for the element after an inserted one by walking the
+ * siblings past every other inserted one: the rows squared. A chunk mounted whole is placed once.
+ * (Two key lists hashing alike only keep a chunk: its rows are then placed one by one, as before.)
+ */
+function windowRowChunkNames(keys: readonly string[]): readonly string[] {
+  let names = CHUNK_NAMES.get(keys);
+  if (!names) {
+    const out: string[] = [];
+    for (let from = 0; from < keys.length; from += WINDOW_ROW_CHUNK) {
+      const to = Math.min(keys.length, from + WINDOW_ROW_CHUNK);
+      let hash = 0x811c9dc5;
+      for (let index = from; index < to; index += 1) {
+        const key = keys[index]!;
+        for (let at = 0; at < key.length; at += 1)
+          hash = Math.imul(hash ^ key.charCodeAt(at), 0x01000193);
+        hash = Math.imul(hash ^ 0x1f, 0x01000193);
+      }
+      out.push(`${from}:${(hash >>> 0).toString(36)}`);
+    }
+    CHUNK_NAMES.set(keys, (names = out));
+  }
+  return names;
+}
+/**
+ * A windowed Table's rows as chunks: `[from, to)` of the key list under the chunk's name, with the
+ * record ids of its rows in the window (`at` = the first of them).
+ */
+export function catalogWindowRowChunks(
+  keys: readonly string[],
+  start: number,
+  ids: readonly string[],
+): {
+  key: string;
+  from: number;
+  to: number;
+  at: number;
+  ids: readonly string[];
+}[] {
+  const names = windowRowChunkNames(keys);
+  const end = start + ids.length;
+  return names.map((key, place) => {
+    const from = place * WINDOW_ROW_CHUNK;
+    const to = Math.min(keys.length, from + WINDOW_ROW_CHUNK);
+    const lo = Math.max(from, start);
+    const hi = Math.min(to, end);
+    return {
+      key,
+      from,
+      to,
+      at: lo < hi ? lo : from,
+      ids: lo < hi ? ids.slice(lo - start, hi - start) : NO_ROW_IDS,
+    };
+  });
+}
 
 /**
  * A windowed TableBody's children: its other children as they are, its data rows as one

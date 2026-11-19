@@ -4,7 +4,8 @@
  * The sort is the Preview's runtime state (사용자 결정 4 — never the document; the Canvas keeps
  * the document's order): RAC's `onSortChange` gives `{ column, direction }`, `column` being the
  * Column's RAC key (`catalogTableColumnKey`). A bound Table's rows are sorted by
- * their field values before the rows its height shows are taken (`resolver.ts` `boundTableRows`);
+ * their field values before its display cuts them — by the rows' source, before its window · page
+ * (`CatalogRowSort` → `catalogBoundRows`; a source that does not: `resolver.ts` `boundTableRows`);
  * an authored Table's Rows by the text of their cell in that column (`catalogTableSortedRows`).
  */
 
@@ -83,6 +84,33 @@ export function catalogTableSorted<T>(
         sign * catalogTableSortCompare(a.value, b.value) || a.index - b.index,
     )
     .map(({ item }) => item);
+}
+
+/** A bound Table's sort as its rows read it: the sorted Column's field and the direction. */
+export interface CatalogRowSort {
+  readonly key: string;
+  readonly direction: CatalogSortDirection;
+}
+
+/**
+ * The indexes of `count` values in `direction` order (stable — equal values keep their order):
+ * `catalogTableSorted` without the items, for a reader that takes only some of them.
+ */
+export function catalogTableSortOrder(
+  count: number,
+  direction: CatalogSortDirection,
+  valueAt: (index: number) => unknown,
+): Uint32Array {
+  const sign = direction === "descending" ? -1 : 1;
+  const values = new Array<unknown>(count);
+  const order = new Uint32Array(count);
+  for (let index = 0; index < count; index += 1) {
+    values[index] = valueAt(index);
+    order[index] = index;
+  }
+  return order.sort(
+    (a, b) => sign * catalogTableSortCompare(values[a], values[b]) || a - b,
+  );
 }
 
 interface SortRecord {

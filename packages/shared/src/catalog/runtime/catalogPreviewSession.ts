@@ -50,7 +50,7 @@ import {
   VIEW_LOCAL_LOAD_CAP,
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
-import type { CatalogTableSort } from "./tableSort";
+import type { CatalogRowSort, CatalogTableSort } from "./tableSort";
 import type {
   CatalogLoadingState,
   CatalogViewResultMeta,
@@ -1764,6 +1764,8 @@ export class CatalogPreviewSession {
     authored: Parameters<typeof catalogBoundRows>[0],
     kind: Parameters<typeof catalogBoundRows>[2],
     ownerId?: string,
+    /** A bound Table's header sort — its rows are ordered before the window · the page cuts them. */
+    sort?: CatalogRowSort,
   ) {
     // ADR-284 Decision 6: rows the server answered for this binding's view are its result — the
     // view does not run on them again; the total is the server's for that query.
@@ -1809,7 +1811,7 @@ export class CatalogPreviewSession {
     const display =
       ownerId === undefined ? undefined : this.rowDisplayOf(ownerId);
     if (ownerId !== undefined && display?.mode === "pages")
-      return this.pageRows(binding, kind, ownerId, display);
+      return this.pageRows(binding, kind, ownerId, display, sort);
     // (A virtual-scrolled list shows every loaded row — the `Virtualizer` puts the visible ones in
     //  the DOM; its end loads the next page as 「더 보기」 does.)
     const window =
@@ -1820,7 +1822,14 @@ export class CatalogPreviewSession {
           : this.displayWindows.get(
               displayWindowKey(binding.collectionId, ownerId),
             );
-    const rows = catalogBoundRows(binding, this.itemSources(), kind, window);
+    const rows = catalogBoundRows(
+      binding,
+      this.itemSources(),
+      kind,
+      window,
+      0,
+      sort,
+    );
     if (!rows) return rows;
     if (ownerId !== undefined) {
       const key = displayWindowKey(binding.collectionId, ownerId);
@@ -1993,9 +2002,30 @@ export class CatalogPreviewSession {
       return;
     }
     this.serverSortedTables.delete(tableId);
-    // (Only roots showing a binding resolve again — an authored Table's Rows are ordered by the
-    // DOM, `catalogTableSortedRows`.)
-    const errors = this.currentRoot?.refreshRows() ?? [];
+    // (A local paged list in another order starts over at its first page; its Paginations follow —
+    //  `pageRows` cannot tell: not every read of the list's rows carries its sort.)
+    const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
+    const entry = source ? this.graph?.getEntry(source as never) : undefined;
+    if (entry?.kind === "node" && entry.binding) {
+      const collectionId = entry.binding.collectionId;
+      const unit =
+        entry.rowDisplay?.mode === "pages" &&
+        !this.remotePages(collectionId.replace(/^data:collection:/, ""))
+          ? this.pageUnit(collectionId, entry.id)
+          : undefined;
+      if (unit && unit.page !== 1) {
+        unit.page = 1;
+        this.showPage(collectionId, entry.id);
+        return;
+      }
+    }
+    // (The sorted Table resolves again — its bound node alone: before, every bound owner of every
+    //  root did, 2026-11-20. A record whose source holds no binding: every bound owner, as before
+    //  — an authored Table's Rows are ordered by the DOM, `catalogTableSortedRows`.)
+    const errors =
+      (entry?.kind === "node" && entry.binding
+        ? this.currentRoot?.refreshNodes(new Set([entry.id]))
+        : this.currentRoot?.refreshRows()) ?? [];
     if (errors.length) console.error("[CatalogPreview] sort:", ...errors);
   }
   /** The record drawing `ownerId` on `recordId`'s chain (itself or an ancestor). */
@@ -2225,7 +2255,9 @@ export class CatalogPreviewSession {
             binding: Parameters<typeof catalogBoundRows>[0],
             kind: Parameters<typeof catalogBoundRows>[2],
             ownerId?: string,
-          ) => this.boundRows(binding, kind, ownerId),
+            _instancePath?: readonly string[],
+            sort?: CatalogRowSort,
+          ) => this.boundRows(binding, kind, ownerId, sort),
           {
             pages: (listId: string, paginationId: string) => {
               let set = this.paginationsOf.get(listId);
@@ -2341,6 +2373,7 @@ export class CatalogPreviewSession {
     kind: Parameters<typeof catalogBoundRows>[2],
     ownerId: string,
     display: CatalogRowDisplay,
+    sort?: CatalogRowSort,
   ) {
     const id = binding.collectionId.replace(/^data:collection:/, "");
     const unit = this.pageUnit(binding.collectionId, ownerId);
@@ -2358,6 +2391,8 @@ export class CatalogPreviewSession {
         this.itemSources(new Map([[id, unit.items]])),
         kind,
         size,
+        0,
+        sort,
       );
       return rows
         ? Object.assign(rows, {
@@ -2380,6 +2415,7 @@ export class CatalogPreviewSession {
       kind,
       unit.page * size,
       (unit.page - 1) * size,
+      sort,
     );
     if (rows) unit.total = rows.total ?? (unit.page - 1) * size + rows.length;
     return rows ? Object.assign(rows, { loadingState: "idle" as const }) : rows;

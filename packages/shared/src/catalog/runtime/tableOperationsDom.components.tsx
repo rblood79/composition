@@ -47,6 +47,11 @@ export function CatalogTableResizeTracks(): ReactNode {
  * nothing while the column is not sorted (`sortDirection != null &&`). S2 `sortIcon` — 16px
  * (`fontRelative(16)`), `marginEnd: 8`, no shrink, the current color. (Our glyphs: lucide
  * `arrow-up` · `arrow-down` — the icon set is not S2's.)
+ *
+ * Inline, on the middle of its line: a Column whose content is a bare text (no content wrapper —
+ * `catalogColumnSortsInline`) holds the arrow in its own block, where an `svg` — a block in the
+ * Preview's sheet — took a line above the name: the sorted header 16px taller than the others
+ * (live, 2026-11-20). In a content wrapper (a flex row) the arrow is a flex item either way.
  */
 export function CatalogSortIndicator(): ReactNode {
   const direction = useContext(CatalogColumnSortContext);
@@ -68,7 +73,12 @@ export function CatalogSortIndicator(): ReactNode {
       strokeWidth: 2,
       strokeLinecap: "round",
       strokeLinejoin: "round",
-      style: { flexShrink: 0, marginInlineEnd: 8 },
+      style: {
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        marginInlineEnd: 8,
+      },
     },
     ...(glyph?.paths ?? []).map((d: string, i: number) =>
       createElement("path", { key: i, d }),

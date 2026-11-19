@@ -30,6 +30,7 @@ import {
 } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
+import { catalogTableSortOrder, type CatalogRowSort } from "./tableSort";
 import type {
   CatalogReader,
   DataBindingRef,
@@ -183,6 +184,12 @@ export function catalogBoundRows(
   limit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   /** ADR-310 Phase 7 — a page's first row (`[start, limit)` — the rows before it are the earlier pages'). */
   start = 0,
+  /**
+   * A bound Table's header sort (the Preview's) — the rows are ordered by it before `limit` ·
+   * `start` cut them: 「더 보기」 and a page show the sorted collection's rows. A view that sorts
+   * (`query.sort`) keeps its own order.
+   */
+  sort?: CatalogRowSort,
 ): CatalogBoundRows | undefined {
   const dataBinding = catalogBindingValue(ref);
   const table = dataBinding && resolveBoundCollection(dataBinding, sources);
@@ -322,7 +329,15 @@ export function catalogBoundRows(
     );
   }
   if (view && ref.query?.sort) view = { ...view, sort: ref.query.sort };
-  let shown = boundRowsOf(ref, dataBinding, collections, kind, limit, start);
+  let shown = boundRowsOf(
+    ref,
+    dataBinding,
+    collections,
+    kind,
+    limit,
+    start,
+    ref.query?.sort ? undefined : sort,
+  );
   // (A key with no group in a grouped view: that group has no rows — its counts are 0, a user
   // nothing points at has 0 orders.)
   const last = ref.query?.queries.at(-1);
@@ -443,6 +458,49 @@ function runBindingView(
   return result;
 }
 
+/** The role names a row's template values carry over its item's own fields (`buildCollectionRowTemplateItem`). */
+const ROW_ROLE_VALUES = new Set(["label", "description", "icon", "value"]);
+/** The source rows last ordered by a sort (`sortedRowOrder`) — a few sorts per rows. */
+const sortedOrders = new WeakMap<
+  readonly unknown[],
+  Map<string, Uint32Array>
+>();
+/**
+ * The source rows' indexes in a Table sort's order — by the value the row's template reads for
+ * the field (`CatalogBoundRow.values[key]`). The same rows sorted the same way are the same order
+ * (a window move · another read of the step — sorting 10,000 rows for each).
+ */
+function sortedRowOrder(
+  sourceRows: readonly unknown[],
+  sort: CatalogRowSort,
+  roles: Parameters<typeof toItemProjectionRow>[2],
+): Uint32Array {
+  const role = ROW_ROLE_VALUES.has(sort.key);
+  const signature = `${sort.direction}\0${sort.key}${role ? `\0${JSON.stringify(roles ?? null)}` : ""}`;
+  let held = sortedOrders.get(sourceRows);
+  if (!held) sortedOrders.set(sourceRows, (held = new Map()));
+  let order = held.get(signature);
+  if (!order) {
+    order = catalogTableSortOrder(
+      sourceRows.length,
+      sort.direction,
+      (index) => {
+        const item = sourceRows[index];
+        if (role)
+          return buildCollectionRowTemplateItem(
+            toItemProjectionRow(item, index, roles),
+          )[sort.key];
+        return item !== null && typeof item === "object" && !Array.isArray(item)
+          ? (item as Record<string, unknown>)[sort.key]
+          : undefined;
+      },
+    );
+    if (held.size >= 8) held.delete(held.keys().next().value!);
+    held.set(signature, order);
+  }
+  return order;
+}
+
 function boundRowsOf(
   ref: DataBindingRef,
   dataBinding: DataBindingValue,
@@ -450,6 +508,7 @@ function boundRowsOf(
   kind: "items" | "records",
   limit: number,
   start = 0,
+  sort?: CatalogRowSort,
 ): CatalogBoundRows | undefined {
   if (kind === "records")
     return readDataBindingRows(dataBinding, collections).map((item, index) => ({
@@ -484,10 +543,26 @@ function boundRowsOf(
       };
     });
   };
-  const projected = getFlatProjectionRows(
-    { dataBinding, collections },
-    parentKey || ref.key !== undefined ? Number.MAX_SAFE_INTEGER : limit,
-  );
+  // (A sorted Table: the source rows in the sort's order — the rows `limit` takes are the first of
+  //  the sorted collection, not the first rows sorted among themselves.)
+  const sourceRows =
+    sort && !parentKey && ref.key === undefined
+      ? readDataBindingRows(dataBinding, collections)
+      : undefined;
+  const order =
+    sourceRows && sort ? sortedRowOrder(sourceRows, sort, roles) : undefined;
+  const taken = sourceRows
+    ? Math.min(Math.max(0, limit), sourceRows.length)
+    : 0;
+  const projected =
+    sourceRows && order
+      ? Array.from({ length: taken }, (_, place) =>
+          toItemProjectionRow(sourceRows[order[place]!], order[place]!, roles),
+        )
+      : getFlatProjectionRows(
+          { dataBinding, collections },
+          parentKey || ref.key !== undefined ? Number.MAX_SAFE_INTEGER : limit,
+        );
   const boundRow = (
     row: (typeof projected)[number],
     children?: CatalogBoundRow[],
@@ -512,7 +587,21 @@ function boundRowsOf(
           const children = node.children.map(visit);
           return children.length ? { ...row, children } : row;
         })
-    : projected.map((row) => boundRow(row, childRows(row.item)));
+    : sourceRows && order && taken === sourceRows.length
+      ? // (Every row is shown: a duplicate key's index mark goes by the source order — the same
+        //  row keeps the same key under every sort.)
+        (() => {
+          const bound = new Array<CatalogBoundRow>(taken);
+          for (const row of [...projected].sort(
+            (a, b) => a.rowIndex - b.rowIndex,
+          ))
+            bound[row.rowIndex] = boundRow(row, childRows(row.item));
+          return projected.map((row) => bound[row.rowIndex]!);
+        })()
+      : projected.map((row) => boundRow(row, childRows(row.item)));
+  /** (The rows a sort ordered say so — their reader does not sort them again.) */
+  const marked = (out: CatalogBoundRows): CatalogBoundRows =>
+    sort && order ? Object.assign(out, { sorted: sort }) : out;
   if (ref.key !== undefined) {
     const item = rows.find((row) => row.key === ref.key);
     return [item ?? { key: ref.key, values: {} }];
@@ -524,8 +613,9 @@ function boundRowsOf(
       : (flatRoots?.length ??
         readDataBindingRows(dataBinding, collections).length);
   // (A page: its rows, with the collection's count — the Pagination's page count.)
-  if (start > 0) return Object.assign(rows.slice(start), { total: all() });
-  if (rows.length < limit) return rows;
+  if (start > 0)
+    return marked(Object.assign(rows.slice(start), { total: all() }));
+  if (rows.length < limit) return marked(rows);
   const total = all();
-  return total > rows.length ? Object.assign(rows, { total }) : rows;
+  return marked(total > rows.length ? Object.assign(rows, { total }) : rows);
 }

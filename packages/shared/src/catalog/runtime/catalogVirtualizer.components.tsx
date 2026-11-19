@@ -264,6 +264,12 @@ class CatalogTableLayout extends TableLayout<unknown> {
     ...args: Parameters<TableLayout<unknown>["buildRow"]>
   ): RowNode {
     const node = super.buildRow(...args);
+    // (A windowed Table's row outside its record window has no cells — `catalogWindowRowPending`:
+    //  RAC sizes a row by its cells, so it is given a row's height.)
+    if (!node.children?.length) {
+      node.layoutInfo.rect.height = super.getEstimatedRowHeight();
+      node.validRect = node.layoutInfo.rect.intersection(this.requestedRect);
+    }
     const { top, bottom } = this.rowEdge;
     if (!top && !bottom) return node;
     // (The cells start below the Row's top edge; the row holds them and its bottom edge.)

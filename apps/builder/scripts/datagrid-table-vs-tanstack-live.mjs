@@ -40,6 +40,15 @@ const ROWS = Number(arg("--rows", "1000"));
 //   1,000 행 실행에서 잰 값. `--load-only`: Publish 가 첫 데이터 행을 그릴 때까지의 시간만.
 const BASELINES = process.argv.includes("--baselines-only");
 const LOAD_ONLY = process.argv.includes("--load-only");
+// `--display more` : 가상 스크롤 대신 「더 보기」 (불러온 행의 첫 100). `--check-sort` : 헤더 정렬이
+//   표시 창을 자르기 전에 되는지 — 보이는 행이 「정렬된 전체」 의 첫 행들인지 확인하고 끝낸다.
+const DISPLAY = arg("--display", "virtual");
+const CHECK_SORT = process.argv.includes("--check-sort");
+// `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
+//   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
+const COLUMN_ORIGIN = process.argv.includes("--column-origin")
+  ? "lib:definition:origin-component-table-column"
+  : null;
 const dist = await serveHarnessDist(distDir, 4192);
 const BASE = dist.url;
 
@@ -270,7 +279,7 @@ try {
 
     // ── 열 6 (starter 열 교체) → 연결 → 정렬 가능 → 가상 스크롤 ──
     const setup = await page.evaluate(
-      ({ COLUMNS }) => {
+      ({ COLUMNS, DISPLAY, COLUMN_ORIGIN }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
         const root = ws.root;
@@ -348,7 +357,7 @@ try {
               columns: COLUMNS.map((c) => ({ key: c.key, label: c.label })),
               replace: true,
               buildColumn: () => {
-                const entry = node(columnEntry.definitionId);
+                const entry = node(COLUMN_ORIGIN ?? columnEntry.definitionId);
                 return { entries: [entry], rootId: entry.id };
               },
               buildCell: () => {
@@ -385,9 +394,10 @@ try {
             }),
           ),
         );
-        step("virtual", () =>
-          ws.execute(h.rowDisplay.setRowDisplay(id, { mode: "virtual" })),
-        );
+        if (DISPLAY === "virtual")
+          step("virtual", () =>
+            ws.execute(h.rowDisplay.setRowDisplay(id, { mode: "virtual" })),
+          );
         const e = g.getEntry(id);
         out.rowDisplay = e.rowDisplay;
         out.binding = !!e.binding;
@@ -397,7 +407,7 @@ try {
         }));
         return out;
       },
-      { COLUMNS },
+      { COLUMNS, DISPLAY, COLUMN_ORIGIN },
     );
     log(`setup ${JSON.stringify(setup).slice(0, 1500)}`);
     results.setup = setup;
@@ -505,6 +515,126 @@ try {
         `sampled (collected included) ${(total / 1e6).toFixed(1)} MB\n--- self\n${top(self, () => true, 40).join("\n")}\n--- inclusive (src/)\n${top(inclusive, (n) => / src\//.test(n), 60).join("\n")}\n`,
       );
       log(`heap profile → ${OUT}/heap-profile.txt`);
+    }
+
+    if (CHECK_SORT) {
+      // (보이는 데이터 행의 Name 칸 — 헤더 「Name」 의 열 자리.)
+      const shown = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const heads = [...table.querySelectorAll("[role=columnheader]")];
+          const at = heads.findIndex((el) =>
+            (el.textContent ?? "").trim().startsWith("Name"),
+          );
+          const head = heads[at];
+          return {
+            sort: head?.getAttribute("aria-sort") ?? null,
+            names: [...table.querySelectorAll("[role=row]")]
+              .filter((row) => !row.querySelector("[role=columnheader]"))
+              .map((row) =>
+                (
+                  row.querySelectorAll("[role=rowheader], [role=gridcell]")[at]
+                    ?.textContent ?? ""
+                ).trim(),
+              )
+              .filter(Boolean),
+          };
+        }, OURS);
+      const clickName = async () => {
+        const at = await pub.evaluate((OURS) => {
+          const head = [
+            ...document
+              .querySelector(OURS)
+              .querySelectorAll("[role=columnheader]"),
+          ].find((el) => (el.textContent ?? "").trim().startsWith("Name"));
+          const r = head.getBoundingClientRect();
+          return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+        }, OURS);
+        await pub.mouse.click(at.x, at.y);
+        await pub.waitForTimeout(1500);
+      };
+      // (우리 정렬과 같은 비교 — `catalogTableSortCompare`.)
+      const collator = new Intl.Collator(undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+      const all = makeRows(ROWS).map((row) => row.name);
+      const ascending = [...all].sort(collator.compare);
+      const checks = [];
+      const before = await shown();
+      const headHeight = () =>
+        pub.evaluate((OURS) => {
+          const head = [
+            ...document
+              .querySelector(OURS)
+              .querySelectorAll("[role=columnheader]"),
+          ].find((el) => (el.textContent ?? "").trim().startsWith("Name"));
+          return Math.round(head.getBoundingClientRect().height);
+        }, OURS);
+      const headBefore = await headHeight();
+      for (let click = 0; click < 2; click += 1) {
+        await clickName();
+        const now = await shown();
+        const want = (
+          now.sort === "descending" ? [...ascending].reverse() : ascending
+        ).slice(0, now.names.length);
+        checks.push({
+          sort: now.sort,
+          rows: now.names.length,
+          first: now.names[0],
+          last: now.names.at(-1),
+          wantFirst: want[0],
+          wantLast: want.at(-1),
+          pass:
+            now.names.length > 0 &&
+            now.names.every(
+              (name, index) => collator.compare(name, want[index]) === 0,
+            ),
+        });
+      }
+      results.checkSort = {
+        display: DISPLAY,
+        total: ROWS,
+        unsorted: { rows: before.names.length, first: before.names[0] },
+        checks,
+      };
+      // (정렬된 머리글의 구조 · 배치 — 화살표와 이름이 한 줄인가.)
+      results.sortedHeader = await pub.evaluate((OURS) => {
+        const table = document.querySelector(OURS);
+        const heads = [...table.querySelectorAll("[role=columnheader]")];
+        const head = heads.find((el) =>
+          (el.textContent ?? "").trim().startsWith("Name"),
+        );
+        const other = heads.find((el) =>
+          (el.textContent ?? "").trim().startsWith("Dept"),
+        );
+        const describe = (el, depth = 0) => {
+          const cs = getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          return {
+            tag: el.tagName.toLowerCase(),
+            cls: el.getAttribute("class"),
+            display: cs.display,
+            flow: cs.flexDirection,
+            align: cs.alignItems,
+            box: [Math.round(r.width), Math.round(r.height)],
+            kids:
+              depth < 4
+                ? [...el.children].map((kid) => describe(kid, depth + 1))
+                : [],
+          };
+        };
+        return {
+          sorted: describe(head),
+          otherHeight: Math.round(other.getBoundingClientRect().height),
+          sortedHeight: Math.round(head.getBoundingClientRect().height),
+        };
+      }, OURS);
+      results.sortedHeader.heightBeforeSort = headBefore;
+      log(`sorted header ${JSON.stringify(results.sortedHeader)}`);
+      log(`check-sort ${JSON.stringify(results.checkSort)}`);
+      await pub.screenshot({ path: `${OUT}/check-sort.png` });
+      throw new Error("load only");
     }
 
     // ── 우리 Table 의 상자 (대조군이 같은 값으로 그린다) ──

@@ -117,21 +117,185 @@ export const NEGATED_TEXT = {
   notEndsWith: "endsWith",
 } as const satisfies Partial<Record<ViewComparison, ViewComparison>>;
 
+/**
+ * Text the plain path of `contains` reads: printable ASCII. NFC leaves it as it is, no unit of it
+ * is ignorable to a collator or expands into two, and lower-casing keeps its length.
+ * (Hangul is not plain: the search collator reads a syllable as its letters — `각가` is `가까`,
+ * `간ㅏ` is `가나` — so a folded `includes` misses matches. It takes the scan, `unitClassesOf`.)
+ */
+const PLAIN_TEXT = /^[\x20-\x7E]*$/;
+/** How a collator's equality of plain text folds: case-less, as written, or neither (`null`). */
+type PlainFold = "lower" | "same" | null;
+const plainFolds = new WeakMap<Intl.Collator, PlainFold>();
+/**
+ * The fold under which two plain units are the same unit exactly when the collator says so —
+ * read from the collator itself, once: every pair of printable ASCII units (Turkish `I` is not
+ * `i`, Lithuanian `y` is `i`, Thai ignores punctuation — neither fold is theirs: `null`).
+ */
+function plainFoldOf(collator: Intl.Collator): PlainFold {
+  let fold = plainFolds.get(collator);
+  if (fold !== undefined) return fold;
+  const units = Array.from({ length: 0x7f - 0x20 }, (_, index) =>
+    String.fromCharCode(0x20 + index),
+  );
+  let lower = true;
+  let same = true;
+  for (let a = 0; a < units.length && (lower || same); a += 1)
+    for (let b = a + 1; b < units.length; b += 1) {
+      const equal = collator.compare(units[a]!, units[b]!) === 0;
+      if (equal) same = false;
+      if (equal !== (units[a]!.toLowerCase() === units[b]!.toLowerCase()))
+        lower = false;
+    }
+  fold = same ? "same" : lower ? "lower" : null;
+  plainFolds.set(collator, fold);
+  return fold;
+}
+
+/** The Hangul letters a syllable is read as, one a class (consonants, then vowels). */
+const HANGUL_LETTERS = "ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
+/** A syllable's leading consonant as those letters, in the syllables' order (`ㄲ` = `ㄱㄱ`). */
+const HANGUL_LEADS = [
+  "ㄱ",
+  "ㄱㄱ",
+  "ㄴ",
+  "ㄷ",
+  "ㄷㄷ",
+  "ㄹ",
+  "ㅁ",
+  "ㅂ",
+  "ㅂㅂ",
+  "ㅅ",
+  "ㅅㅅ",
+  "ㅇ",
+  "ㅈ",
+  "ㅈㅈ",
+  "ㅊ",
+  "ㅋ",
+  "ㅌ",
+  "ㅍ",
+  "ㅎ",
+];
+const HANGUL_FIRST = 0xac00;
+const HANGUL_LAST = 0xd7a3;
+const JAMO_FIRST = 0x3131;
+const JAMO_LAST = 0x3163;
+/**
+ * The letter a unit begins with, as a collator reads it — its class (−1 = not known): two texts
+ * a collator finds equal begin with the same letter, so a slice beginning with another letter than
+ * the search is not compared at all (`textMatch`'s scan).
+ */
+interface UnitClasses {
+  /** Printable ASCII by its fold (none when the collator's ASCII is neither fold — `plainFoldOf`). */
+  readonly ascii: Int16Array | undefined;
+  /** A Hangul syllable by its leading consonant's first letter. */
+  readonly lead: Int16Array;
+  /** A Hangul compatibility jamo that is one of the letters. */
+  readonly jamo: Int16Array;
+}
+const unitClasses = new WeakMap<Intl.Collator, UnitClasses>();
+/**
+ * A collator's unit classes, read from the collator itself, once — `base` is the locale's
+ * base-sensitivity collator (texts a stricter one finds equal are equal to it too). A class is
+ * given only where the collator shows it: the letters differ from each other and from nothing,
+ * and a syllable equals its leading consonant's letters before its vowel (`까` = `ㄱㄱㅏ` to the
+ * search collator; not to a sort collator — its `까` then has no class and is always compared).
+ */
+function unitClassesOf(base: Intl.Collator): UnitClasses {
+  let classes = unitClasses.get(base);
+  if (classes) return classes;
+  const fold = plainFoldOf(base);
+  let ascii: Int16Array | undefined;
+  if (fold) {
+    ascii = new Int16Array(0x80).fill(-1);
+    for (let code = 0x20; code < 0x7f; code += 1)
+      ascii[code] =
+        fold === "lower"
+          ? String.fromCharCode(code).toLowerCase().charCodeAt(0)
+          : code;
+  }
+  const letters = [...HANGUL_LETTERS];
+  const lettersDiffer = letters.every(
+    (letter, at) =>
+      base.compare(letter, "") !== 0 &&
+      base.compare(letter, "a") !== 0 &&
+      letters.every(
+        (other, index) => index <= at || base.compare(letter, other) !== 0,
+      ),
+  );
+  const classOf = (letter: string) => 0x100 + HANGUL_LETTERS.indexOf(letter);
+  const lead = new Int16Array(HANGUL_LEADS.length).fill(-1);
+  const jamo = new Int16Array(JAMO_LAST - JAMO_FIRST + 1).fill(-1);
+  if (lettersDiffer) {
+    HANGUL_LEADS.forEach((spelled, index) => {
+      const syllable = String.fromCharCode(HANGUL_FIRST + index * 588);
+      if (base.compare(syllable, `${spelled}ㅏ`) === 0)
+        lead[index] = classOf(spelled[0]!);
+    });
+    for (const letter of letters)
+      jamo[letter.charCodeAt(0) - JAMO_FIRST] = classOf(letter);
+  }
+  classes = { ascii, lead, jamo };
+  unitClasses.set(base, classes);
+  return classes;
+}
+function unitClass(classes: UnitClasses, code: number): number {
+  if (code < 0x80) return classes.ascii ? classes.ascii[code]! : -1;
+  if (code >= HANGUL_FIRST && code <= HANGUL_LAST)
+    return classes.lead[((code - HANGUL_FIRST) / 588) | 0]!;
+  if (code >= JAMO_FIRST && code <= JAMO_LAST)
+    return classes.jamo[code - JAMO_FIRST]!;
+  return -1;
+}
+
+/** Text NFC leaves as it is: ASCII, Hangul syllables and compatibility jamo. */
+const NFC_STABLE = /^[\x00-\x7F\u3131-\u3163\uAC00-\uD7A3]*$/;
+/** `text` in NFC (a text of stable units is not normalized again — every cell of a filter run). */
+const nfc = (value: string): string =>
+  NFC_STABLE.test(value) ? value : value.normalize("NFC");
+
 /** `useFilter`'s `contains` · `startsWith` · `endsWith` (same scan, same collator). */
 function textMatch(
-  collator: Intl.Collator,
+  locale: string | undefined,
+  sensitivity: NonNullable<ViewCondition["sensitivity"]>,
   op: "contains" | "startsWith" | "endsWith",
   cell: string,
   search: string,
 ): boolean {
   if (search.length === 0) return true;
-  const string = cell.normalize("NFC");
-  const substring = search.normalize("NFC");
+  const collator = collatorOf(locale, sensitivity);
+  // (Plain text: one `includes` of the folded cell — the scan below compares a slice at every
+  //  unit of every cell, 12 ~ 19 ms a run of 10,000 rows × 3 fields where this takes 0.3 ~ 0.4,
+  //  2026-11-20. No hit is the answer; a hit is the collator's to confirm — a digraph its locale
+  //  reads as one letter (`cH` is not `ch` in Slovak) falls to the scan.)
+  if (op === "contains" && PLAIN_TEXT.test(search) && PLAIN_TEXT.test(cell)) {
+    const fold = plainFoldOf(collator);
+    if (fold) {
+      const at =
+        fold === "lower"
+          ? cell.toLowerCase().indexOf(search.toLowerCase())
+          : cell.indexOf(search);
+      if (at < 0) return false;
+      if (collator.compare(search, cell.slice(at, at + search.length)) === 0)
+        return true;
+    }
+  }
+  const string = nfc(cell);
+  const substring = nfc(search);
   if (op === "startsWith")
     return collator.compare(string.slice(0, substring.length), substring) === 0;
   if (op === "endsWith")
     return collator.compare(string.slice(-substring.length), substring) === 0;
-  for (let scan = 0; scan + substring.length <= string.length; scan++)
+  // (A slice beginning with another letter than the search is not the search — `unitClassesOf`:
+  //  Hangul text is compared where a syllable begins with the search's first letter, about one
+  //  unit in ten.)
+  const classes = unitClassesOf(collatorOf(locale, "base"));
+  const wanted = unitClass(classes, substring.charCodeAt(0));
+  for (let scan = 0; scan + substring.length <= string.length; scan++) {
+    if (wanted >= 0) {
+      const found = unitClass(classes, string.charCodeAt(scan));
+      if (found >= 0 && found !== wanted) continue;
+    }
     if (
       collator.compare(
         substring,
@@ -139,6 +303,7 @@ function textMatch(
       ) === 0
     )
       return true;
+  }
   return false;
 }
 
@@ -159,7 +324,11 @@ function viewTime(value: unknown): string | undefined {
       string,
       unknown
     >;
-    if (year !== undefined || typeof hour !== "number" || typeof minute !== "number")
+    if (
+      year !== undefined ||
+      typeof hour !== "number" ||
+      typeof minute !== "number"
+    )
       return undefined;
     return `${pad(hour)}:${pad(minute)}:${pad(typeof second === "number" ? second : 0)}.${pad(typeof millisecond === "number" ? millisecond : 0, 3)}`;
   }
@@ -317,7 +486,8 @@ export function viewCompare(
     case "startsWith":
     case "endsWith":
       return textMatch(
-        collatorOf(options.locale, options.sensitivity ?? "base"),
+        options.locale,
+        options.sensitivity ?? "base",
         op,
         text(cell),
         text(value),
@@ -326,7 +496,8 @@ export function viewCompare(
     case "notStartsWith":
     case "notEndsWith":
       return !textMatch(
-        collatorOf(options.locale, options.sensitivity ?? "base"),
+        options.locale,
+        options.sensitivity ?? "base",
         NEGATED_TEXT[op],
         text(cell),
         text(value),

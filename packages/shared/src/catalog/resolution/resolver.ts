@@ -95,6 +95,8 @@ import { catalogRowDisplaySize } from "../document/types";
 import {
   catalogTableColumnKey,
   catalogTableSorted,
+  type CatalogRowSort,
+  type CatalogTableSort,
   type CatalogTableSortSource,
 } from "../runtime/tableSort";
 
@@ -203,6 +205,11 @@ export type CatalogRowSource = ((
   ownerId?: NodeId,
   /** ADR-294 — the bound node's instance path (a view reading an origin's input variable). */
   instancePath?: readonly string[],
+  /**
+   * A bound Table's header sort (the Preview's `tableSort`, its Column as the field): the source
+   * orders its rows by it before its display cuts them, and says so (`CatalogBoundRows.sorted`).
+   */
+  sort?: CatalogRowSort,
 ) => CatalogBoundRows | undefined) & {
   /**
    * ADR-310 Phase 7 — a paged list's pages (`rowDisplay` `pages`): the count (absent = unknown — a
@@ -228,6 +235,8 @@ export type CatalogBoundRows = readonly CatalogBoundRow[] & {
   readonly loadingState?: CatalogLoadingState;
   /** ADR-284 — the binding's view result (absent = no view). */
   readonly view?: CatalogViewResultMeta;
+  /** The Table sort the rows are already in (the row source ordered them before its window). */
+  readonly sorted?: CatalogRowSort;
 };
 /**
  * ADR-284 Decision 3 — what a view's result covers: `matched` rows of `loaded` source rows (before
@@ -2388,10 +2397,28 @@ export function resolveCatalogNode(
       nodeBinding && rows && charted
         ? rows(nodeBinding, "records", node.id, instancePath)
         : undefined;
-    const rowSet =
-      nodeBinding && rows && !charted
-        ? (keyedRows ?? rows(nodeBinding, "items", node.id, instancePath))
+    // (A bound Table's header sort — the Preview's: its rows are read sorted, once its header says
+    //  which field the sorted Column shows — below, `tableRowSort`.)
+    const headerSort =
+      nodeBinding &&
+      rows &&
+      tableSort &&
+      !charted &&
+      !keyedRows &&
+      definition.mode === "composite" &&
+      !!definition.templateRootId &&
+      templateTypeName(definition.templateRootId) === "Table" &&
+      !viewSortsByVariable(node.binding, lookupEntry)
+        ? tableSort(`${instancePath.join("/")}::${node.id}`)
         : undefined;
+    let rowSet =
+      nodeBinding && rows && !charted
+        ? (keyedRows ??
+          (headerSort
+            ? undefined
+            : rows(nodeBinding, "items", node.id, instancePath)))
+        : undefined;
+    let rowsRead = !headerSort;
     if (
       definition.mode === "composite" &&
       definition.templateRootId &&
@@ -2460,6 +2487,15 @@ export function resolveCatalogNode(
                   ? { rowSet: ownedRowing.rowSet }
                   : undefined,
         );
+      // (The sorted Column's field, read from the Table's header — the Table without rows; the
+      //  rows' source sorts by it before its window · page cuts them.)
+      const rowSort = headerSort
+        ? tableRowSort(headerSort, project(undefined))
+        : undefined;
+      if (!rowsRead && nodeBinding && rows) {
+        rowSet = rows(nodeBinding, "items", node.id, instancePath, rowSort);
+        rowsRead = true;
+      }
       // ADR-310 Phase 4: a bound Table repeats its Row template — over the rows sorted and cut
       // first (`boundTableRows`), then its body counts them (`finishBoundTable`).
       const table =
@@ -2478,11 +2514,13 @@ export function resolveCatalogNode(
               templateRootId,
               `${instancePath.join("/")}::${node.id}`,
               viewSortsByVariable(node.binding, lookupEntry),
-              () => project(undefined),
+              rowSort,
             )
           : undefined;
       push(children, finishBoundTable(project(table?.shown ?? rowSet), table));
     }
+    if (!rowsRead && nodeBinding && rows)
+      rowSet = rows(nodeBinding, "items", node.id, instancePath);
     const ownedChildren =
       selection?.ownedChildren?.(node.id, instancePath) ?? node.children;
     const childRows =
@@ -2633,6 +2671,37 @@ export function resolveCatalogNode(
       );
     return typeof height === "number" && height > 0 ? height : undefined;
   };
+  /**
+   * A Table's header sort as its rows read it: the field of the sorted Column (`bare` = the Table
+   * without rows — its header's Columns name it). Undefined = no Column of that key.
+   */
+  const tableRowSort = (
+    sort: CatalogTableSort,
+    bare: ResolvedCatalogNode | undefined,
+  ): CatalogRowSort | undefined => {
+    const typeOf = (resolved: ResolvedCatalogNode) =>
+      lookupDefinition(resolved.definitionId).name;
+    const header = bare?.children.find(
+      (child) => typeOf(child) === "TableHeader",
+    );
+    const columns = (header?.children ?? []).filter(
+      (child) => typeOf(child) === "Column",
+    );
+    // (A Column's RAC key — `catalogTableColumnKey` of its record; its field `resolveTableColumnKey`.)
+    const index = columns.findIndex(
+      (column) =>
+        catalogTableColumnKey({
+          id: `${column.instancePath.join("/")}::${column.sourceId}`,
+          ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+        }) === sort.column,
+    );
+    return index < 0
+      ? undefined
+      : {
+          key: resolveTableColumnKey(columns[index]!.props, index),
+          direction: sort.direction,
+        };
+  };
   const boundTableRows = (
     rowSet: readonly CatalogBoundRow[],
     /** The Table's px height (`tableBoxHeight`); none = it grows with its rows. */
@@ -2642,51 +2711,39 @@ export function resolveCatalogNode(
     tableId: string,
     /** ADR-284: the node's view sorts by a variable (the Table's own runtime sort steps aside). */
     sortedByVariable: boolean,
-    /** The Table without rows (its header's Columns name the sorted field). */
-    bare: () => ResolvedCatalogNode | undefined,
+    /** The Table's header sort as its rows read it (`tableRowSort`). */
+    rowSort: CatalogRowSort | undefined,
   ): BoundTableRows => {
-    const typeOf = (resolved: ResolvedCatalogNode) =>
-      lookupDefinition(resolved.definitionId).name;
     const variableSort = (rowSet as { view?: CatalogViewResultMeta }).view
       ?.sort;
     const sortedByView = variableSort !== undefined || sortedByVariable;
-    const sort = sortedByView ? undefined : tableSort?.(tableId);
+    const sort = sortedByView ? undefined : rowSort;
     let ordered = rowSet;
-    if (sort) {
-      const header = bare()?.children.find(
-        (child) => typeOf(child) === "TableHeader",
-      );
-      const columns = (header?.children ?? []).filter(
-        (child) => typeOf(child) === "Column",
-      );
-      // (A Column's RAC key — `catalogTableColumnKey` of its record; its field `resolveTableColumnKey`.)
-      const index = columns.findIndex(
-        (column) =>
-          catalogTableColumnKey({
-            id: `${column.instancePath.join("/")}::${column.sourceId}`,
-            ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-          }) === sort.column,
-      );
-      if (index >= 0) {
-        const key = resolveTableColumnKey(columns[index]!.props, index);
-        // (The same rows sorted the same way are the same run — a window move reads its rows
-        //  again unchanged, `compositionRoot.moveRowWindow`: sorting 10,000 rows for each.)
-        const held = SORTED_ROWS.get(rowSet);
-        ordered =
-          held && held.key === key && held.direction === sort.direction
-            ? held.rows
-            : catalogTableSorted(
-                rowSet,
-                sort.direction,
-                (row) => row.values[key],
-              );
-        if (ordered !== held?.rows)
-          SORTED_ROWS.set(rowSet, {
-            key,
-            direction: sort.direction,
-            rows: ordered,
-          });
-      }
+    // (The rows' source sorts them before its window · page — `CatalogBoundRows.sorted`. A source
+    //  that does not is sorted here: the rows it delivered, among themselves.)
+    const delivered = (rowSet as CatalogBoundRows).sorted;
+    if (
+      sort &&
+      !(delivered?.key === sort.key && delivered.direction === sort.direction)
+    ) {
+      const key = sort.key;
+      // (The same rows sorted the same way are the same run — a window move reads its rows
+      //  again unchanged, `compositionRoot.moveRowWindow`: sorting 10,000 rows for each.)
+      const held = SORTED_ROWS.get(rowSet);
+      ordered =
+        held && held.key === key && held.direction === sort.direction
+          ? held.rows
+          : catalogTableSorted(
+              rowSet,
+              sort.direction,
+              (row) => row.values[key],
+            );
+      if (ordered !== held?.rows)
+        SORTED_ROWS.set(rowSet, {
+          key,
+          direction: sort.direction,
+          rows: ordered,
+        });
     }
     const template = rootId.startsWith("lib:")
       ? library.templates.get(rootId as `lib:template:${string}`)

@@ -511,3 +511,20 @@ ReUI 2.8.1 의 실제 기반은 Base UI · Radix 이고 RAC 가 아니다. 목�
   - 창 이동 frame 의 길이 (4x p95 108 ~ 175 ms) — 고정 비용이 RAC 쪽이다 (collection 이 바뀌면 보이는 행 전부 다시 그림 · collection 복제가 행 수 비례). 없애려면 행 내용이 들어와도 RAC collection 이 바뀌지 않는 구조 (행 껍데기 고정 · 칸 내용만 늦게) 가 필요하다 — 행 · 칸의 style · class 가 record 에서 오므로 별도 설계.
   - ListBox · GridList · CardView 가상 목록은 그대로 전체 record.
   - 창 밖 행은 `textValue` 가 없다 (글자로 행 찾기는 창 안에서만) · 끌어 놓기 (`CatalogDragItems`) 는 record 행 기준.
+
+### 후속 — 정렬 순서 · 정렬 클릭 · 「포함」 필터 (2026-11-20, 사용자 「1번 ~ 3번을 이어서 진행」)
+
+배경: TanStack Table (v9.3.1) 저장소 분석에서 우리 쪽 문제 셋을 골랐다. 착수 뒤 정렬 클릭을 production 에서 profile 해 보니 데이터 정렬 계산은 2 ms 수준이었고 (TanStack 식 단계 캐시가 줄일 몫이 아니다), 시간은 React 의 행 재배치와 RAC collection 에 있었다 — 2번은 그쪽을 고쳤다.
+
+- [x] **정렬이 자르기 앞** — resolver 가 정렬된 Column 의 필드 (`tableRowSort` — rows 없는 Table 의 header) 를 행 source 에 넘기고 (`CatalogRowSource` 다섯째 인자 `CatalogRowSort`), `catalogBoundRows` 가 원본 행의 순서 (`sortedRowOrder` — 행 배열 · key · 방향별 캐시) 를 낸 뒤 `limit` · `start` 로 자른다. 정렬한 rows 는 `sorted` 표시를 달고 resolver 는 다시 정렬하지 않는다 (표시 없는 source — Canvas · 테스트의 직접 source — 는 전처럼 resolver 가 정렬). 모든 행을 그릴 때 중복 key 의 번호 표시는 원본 순서로 (정렬마다 같은 행이 같은 key). 로컬 「페이지」 목록은 `sortTable` 이 1 쪽으로 돌린다 (`pageRows` 의 query 비교에 넣으면 정렬을 싣지 않는 읽기 — `loadingState` — 가 매번 1 쪽으로 돌린다: 구현 중 실측).
+- [x] **정렬은 그 Table 만** — `sortTable` → `refreshNodes(bound node)` (전: `refreshRows()` — 모든 root 의 모든 연결 owner). 테스트: 연결 Table 둘 중 하나를 정렬 — 원복 RED `layoutInputVisits` 2844 (둘 다) vs 상한 2133.
+- [x] **행 묶음 이름 = 든 행** — `catalogWindowRowChunks`: 묶음의 React key = 자리 + 행 key 들의 hash. 정렬은 모든 묶음이 새 묶음 (통째 mount — 자리 찾기 1 회), 창 이동 · 끝에 행 추가는 묶음 유지. **Why**: 자리로만 이름 붙인 묶음 안에서 행이 전부 바뀌면 React 가 넣는 행마다 다음 host 형제를 찾으며 (`getHostSibling`) 뒤따르는 「넣는 중」 행 전부를 지난다 — 10,000 행 정렬 486 ms 중 186 ms (self time 1 위), 행 수 제곱. 순수 RAC 팔도 같은 값을 낸다 (384 ms).
+- [x] **빈 행 = 칸 없는 Row** — `catalogWindowRowPending` 이 Cell 을 만들지 않는다. RAC 는 칸이 하나라도 있을 때만 칸 수를 검사하고 (`TableCollection.commit`), 높이는 `CatalogTableLayout.buildRow` 가 추정 행 높이를 준다. collection 항목 70,000 → 10,000 (열 6 · 10,000 행).
+- [x] **「포함」** — `textMatch`: ① 칸 · 검색어가 printable ASCII 면 fold 한 `indexOf` 한 번 (fold = collator 의 ASCII 95 자 쌍 비교로 판정 — 소문자 fold · 그대로 · 없음 (터키어 · 리투아니아어 · 태국어)), 찾은 자리는 collator 로 확인, 실패하면 scan. ② 그 밖 (한글) 은 scan 을 하되 검색어 첫 단위와 「첫 글자 class」 가 다른 자리는 비교하지 않는다 (`unitClassesOf` — ASCII fold · 음절의 초성 첫 자모 · 기본 자모 24 자, collator 가 그렇게 읽는지 probe 로 확인한 것만 class 를 준다). NFC 는 안정 문자열이면 건너뛴다.
+  - **무효였던 첫 구현**: 한글 음절도 「그대로」 fold 로 `includes` 했다 — 2,000,000 건 무작위 대조에서 7 건 불일치. `Intl.Collator(usage: "search")` 는 음절을 자모로 읽어 `각가` = `가까` · `간ㅏ` = `가나` · `값` = `갑ㅅ` 다 (`usage: "sort"` 는 아님, 호환 자모 겹글자 `ㄲ` ≠ `ㄱㄱ`). 분석 보고의 「한글 · 영문에서는 결과가 같았다」 는 그 벤치 데이터에서만 맞았다.
+  - 대조: `containsFast.test.ts` (13 locale × 4 sensitivity × 400) + 일회 대조 2,000,000 (25 locale) · 2,400,000 (한글 재철자) 건 불일치 0.
+- **live** (production `pnpm perf:build-dist`, headed Chrome 120 Hz, Publish 탭): ① 가상 스크롤 1,000 · 10,000 행 — 로드 · 끝까지 스크롤 · 정렬 클릭 6 회 × 2 열, CPU 1x · 4x (수치는 CHANGELOG 2026-11-20). 내용 없는 행이 보인 frame 0 · 콘솔 오류 0 · 스크롤 높이 전과 같음. ② 「더 보기」 1,000 행 (`--display more --check-sort`) — Name 헤더 클릭 2 회: 오름차순 첫 행 `Person 1` · 내림차순 첫 행 `Person 3995`, 보이는 100 행이 전체 정렬의 첫 100 행과 일치. 「페이지」 방식의 정렬은 jsdom 테스트로만 확인했다 (하니스 collection 이 원격이라 쪽마다 서버 조회 경로다).
+- [x] **정렬된 머리글 높이** (사용자 「머리글 높이 문제 수정」) — 감싸개 없는 Column 의 정렬 화살표가 이름 위 줄로 올라가 머리글이 32 → 48 px 였다 (`svg` 가 block, 화살표가 글자와 같은 block 안). `CatalogSortIndicator` 를 inline-block · 가운데 정렬로. 감싸개 있는 Column (제품의 Quick Connect · 「+ Column」 — 하니스 `--column-origin`) 은 전부터 한 줄 (34 px). live: 정렬 전 · 후 32 px.
+- **남은 것** (하지 않음):
+  - 1,000 행 정렬 클릭 80 ms 중 44 ms 는 새 창 60 행의 record 해석이다 (행당 ~0.6 ms) — 순수 RAC 27 ~ 32 ms 와의 차이.
+  - resolver 가 `loadingState` 만 읽으려고 행을 한 번 더 읽는다 (`rows(nodeBinding, "items", node.id)?.loadingState`) — profile 에서 2 ms 미만.
