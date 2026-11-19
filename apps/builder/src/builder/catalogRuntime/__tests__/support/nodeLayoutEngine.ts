@@ -21,6 +21,8 @@ type RawLayout = {
   getStickyConstraints(handle: number): string;
   clear(): void;
   nodeCount(): number;
+  solveVisits(): number;
+  resetCounters(): void;
 };
 
 type Glue = {
@@ -52,8 +54,31 @@ function loadGlue(): Promise<Glue> {
 }
 
 export async function nodeLayoutEngine(): Promise<LayoutEngineAPI> {
+  return (await countedNodeLayoutEngine()).engine;
+}
+
+/**
+ * The same engine with its deterministic `solve_node` visit count (ADR-268): how much of the tree
+ * a `computeLayout` solved again.
+ */
+export async function countedNodeLayoutEngine(): Promise<{
+  engine: LayoutEngineAPI;
+  /** Visits since the last call (the counter is reset). */
+  takeSolveVisits(): number;
+}> {
   const glue = await loadGlue();
   const raw = new glue.LayoutEngine();
+  return {
+    engine: engineOf(raw),
+    takeSolveVisits: () => {
+      const visits = raw.solveVisits();
+      raw.resetCounters();
+      return visits;
+    },
+  };
+}
+
+function engineOf(raw: RawLayout): LayoutEngineAPI {
   return {
     isAvailable: () => true,
     hasBinaryProtocol: () => false,

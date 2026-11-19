@@ -632,6 +632,17 @@ struct TreeNode {
     masonry_lanes: Option<Vec<usize>>,
     /// 트랙 pass 가 센 명시 열 수 (waterfall lane 수).
     masonry_cols: usize,
+    /// grid item 의 **행 기여 측정** (1차 solve) 결과 —
+    /// `(max(subtree_gen, viewport_gen), area_w, container_h, 반환 w, 반환 h)`.
+    ///
+    /// **Why**: `solve_grid` 는 item 을 두 번 푼다 — 행 높이를 재는 1차 (available = 컨테이너) 와
+    /// 셀에 놓는 2차 (available = 셀). `last_avail` 은 칸이 하나라 둘이 번갈아 덮어, 셀 높이가
+    /// 컨테이너 available 과 다르면 계산마다 서브트리 전체가 MISS 였다 (page 격자: 프레임이
+    /// 내용만큼이면 편집 한 번에 모든 page 를 다시 풀었다, 2026-11-19). 1차 결과를 서브트리 세대로
+    /// 기억하면 바뀌지 않은 item 은 1차를 건너뛰고, 서브트리에는 직전 2차 (셀) 상태가 그대로
+    /// 남아 2차도 HIT 한다. 키가 `intrinsic_content_w` 와 같은 이유로 `subtree_gen` 이다 — 형제
+    /// 편집은 HIT 를 깨지 않는다.
+    grid_row_measure: Option<(u64, f32, f32, f32, f32)>,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -886,6 +897,7 @@ impl LayoutTree {
             definite_consumer: None,
             masonry_lanes: None,
             masonry_cols: 0,
+            grid_row_measure: None,
         })
     }
 
@@ -1186,6 +1198,7 @@ impl LayoutTree {
                 definite_consumer: None,
                 masonry_lanes: None,
                 masonry_cols: 0,
+                grid_row_measure: None,
             });
             // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
             for &ch in &child_handles {
@@ -1656,6 +1669,24 @@ impl LayoutTree {
 
     /// 자식의 블록 축이 auto 또는 intrinsic 키워드이면 상하 pad+border 합, 아니면 0.
     /// 두 경우 모두 solve 반환은 content-box이므로 행 기여는 border-box로 올린다 (인라인 축 대칭).
+    /// grid item `c` 의 행 기여 측정 (`grid_row_measure`) 을 그대로 쓸 수 있으면 그 반환값.
+    ///
+    /// 조건: 본 배치 (측정 pass 아님) · 서브트리와 viewport 가 기록 뒤로 그대로 · 같은 available ·
+    /// 서브트리에 dirty 없음 · 직전 solve 결과가 살아 있음 (숨김 처리는 `last_solved` 를 지운다).
+    fn grid_row_measure_hit(&self, c: usize, area_w: f32, container_h: f32) -> Option<(f32, f32)> {
+        if self.measure_depth != 0 {
+            return None;
+        }
+        let node = self.get(c)?;
+        let (gen, w, h, cw, ch) = node.grid_row_measure?;
+        (gen == node.subtree_gen.max(self.viewport_gen)
+            && w == area_w
+            && h == container_h
+            && node.last_solved.is_some()
+            && !self.subtree_has_dirty(c))
+        .then_some((cw, ch))
+    }
+
     fn child_auto_block_pad_border(&self, c: usize, container_w: f32, container_h: f32) -> f32 {
         let Some(n) = self.get(c) else { return 0.0 };
         let h = n.style.height.as_deref();
@@ -1722,6 +1753,7 @@ impl LayoutTree {
             n.last_avail = None;
             n.last_definite_h = None;
             n.fixed_size = None;
+            n.grid_row_measure = None;
             n.dirty = false;
             n.subtree_dirty = false;
         }
@@ -5593,6 +5625,8 @@ impl LayoutTree {
         let mut row_spanning: Vec<(usize, usize, f32)> = Vec::new();
         // 자식별 측정 폭 (grid area 폭) — 최종 셀 solve 의 stale 캐시 판정이 이 값과 비교한다.
         let mut measured_w: Vec<f32> = vec![container_w; children.len()];
+        // 1차 solve 를 건너뛴 자식 (`grid_row_measure` HIT) — 서브트리는 직전 셀 배치 상태 그대로다.
+        let mut row_measure_reused: Vec<bool> = vec![false; children.len()];
         if needs_row_measure && !children.is_empty() {
             measured_with_container = true;
             // 열은 확정됐으니 placement 만으로 area 폭이 나온다 — 행 템플릿은 아직 미확정이라
@@ -5618,7 +5652,28 @@ impl LayoutTree {
                 let area_w = area_bounds.get(i * 4 + 2).copied().unwrap_or(container_w);
                 let area_w = if area_w > 0.0 { area_w } else { container_w };
                 measured_w[i] = area_w;
-                let (cw, ch) = self.solve_node(c, area_w, container_h);
+                let (cw, ch) = match self.grid_row_measure_hit(c, area_w, container_h) {
+                    Some(measured) => {
+                        row_measure_reused[i] = true;
+                        measured
+                    }
+                    None => {
+                        let measured = self.solve_node(c, area_w, container_h);
+                        if self.measure_depth == 0 {
+                            let viewport_gen = self.viewport_gen;
+                            if let Some(n) = self.get_mut(c) {
+                                n.grid_row_measure = Some((
+                                    n.subtree_gen.max(viewport_gen),
+                                    area_w,
+                                    container_h,
+                                    measured.0,
+                                    measured.1,
+                                ));
+                            }
+                        }
+                        measured
+                    }
+                };
                 // auto 높이의 solve 반환은 content-box — 행 기여는 border-box 라 pad/border 를
                 // 더한다 (인라인 축 `col_contribution` 과 대칭. 실측: padded 컨테이너 행 20 / 40).
                 let ch = ch + self.child_auto_block_pad_border(c, area_w, container_h);
@@ -5790,9 +5845,12 @@ impl LayoutTree {
             // 어긋나 눈에 잘 안 띈다. 프레임을 페이지에 적용한 뒤 content 슬롯에 요소를 넣으면
             // sidebar 폭이 빠지지 않는 형태로 드러났다 (2026-07-27).
             //
-            // 셀 크기가 측정 available 과 같으면 되살리지 않는다 — 증분 재사용 보존.
+            // 셀 크기가 측정 available 과 같으면 되살리지 않는다 — 증분 재사용 보존. 1차 solve 를
+            // 건너뛴 자식 (`row_measure_reused`) 도 되살리지 않는다: 이번 계산에서 컨테이너 크기로
+            // 풀린 적이 없어 서브트리는 직전 셀 배치 상태이고, 셀이 달라졌으면 `last_avail` 키가 잡는다.
             const CELL_RESOLVE_EPS: f32 = 0.5;
             if measured_with_container
+                && !row_measure_reused[i]
                 && ((w - measured_w.get(i).copied().unwrap_or(container_w)).abs() > CELL_RESOLVE_EPS
                     || (h - container_h).abs() > CELL_RESOLVE_EPS)
             {
@@ -13861,6 +13919,118 @@ mod tests {
         tree.compute_layout(root, 200.0, 40.0);
         let [visits, miss] = tree.counters();
         assert!(visits > 0 && miss >= 1, "자손 편집 뒤 재측정: {visits} {miss}");
+    }
+
+    // ── page grid 증분 (2026-11-19) ──
+
+    const PAGE_CARD: &str = r#"{"display":"block","width":"160px","height":"80px","flexShrink":0}"#;
+
+    /// catalog 의 page 격자 그대로: grid (px 열 4 · `gridAutoRows: auto` · start 정렬) > page 프레임
+    /// (`height: fit-content`) > 내용 상자 (`min-height`) > flex 행 3 > px 카드 3. `edits` 는
+    /// (page, 그 page 의 첫 카드 style) — 처음부터 그 style 로 짓는다. 반환: (tree, root, 전 handle,
+    /// page 별 첫 카드).
+    fn page_grid(pages: usize, edits: &[(usize, &str)]) -> (LayoutTree, usize, Vec<usize>, Vec<usize>) {
+        let mut nodes: Vec<String> = Vec::new();
+        let mut frames = Vec::new();
+        let mut first_cards = Vec::new();
+        for p in 0..pages {
+            let mut rows = Vec::new();
+            for r in 0..3 {
+                let mut cards = Vec::new();
+                for c in 0..3 {
+                    let mut style = PAGE_CARD;
+                    if r == 0 && c == 0 {
+                        first_cards.push(nodes.len());
+                        if let Some((_, edited)) = edits.iter().find(|(page, _)| *page == p) {
+                            style = edited;
+                        }
+                    }
+                    cards.push(nodes.len());
+                    nodes.push(format!(r#"{{"style":{style},"children":[]}}"#));
+                }
+                rows.push(nodes.len());
+                nodes.push(format!(
+                    r#"{{"style":{{"display":"flex","columnGap":"16px"}},"children":{cards:?}}}"#
+                ));
+            }
+            let content = nodes.len();
+            nodes.push(format!(
+                r#"{{"style":{{"display":"block","minHeight":"1080px","position":"static"}},"children":{rows:?}}}"#
+            ));
+            frames.push(nodes.len());
+            nodes.push(format!(
+                r#"{{"style":{{"width":"1920px","height":"fit-content","display":"block","position":"relative"}},"children":[{content}]}}"#
+            ));
+        }
+        let cols = vec![r#""1920px""#; 4].join(",");
+        nodes.push(format!(
+            r#"{{"style":{{"display":"grid","columnGap":"100px","rowGap":"100px","alignItems":"start","justifyItems":"start","justifyContent":"start","alignContent":"start","gridTemplateColumns":[{cols}],"gridAutoRows":["auto"],"width":"7980px"}},"children":{frames:?}}}"#
+        ));
+        let mut tree = LayoutTree::new();
+        let handles = tree.build_tree_batch(&format!("[{}]", nodes.join(","))).unwrap();
+        let root = *handles.last().unwrap();
+        let first_cards = first_cards.into_iter().map(|i| handles[i]).collect();
+        tree.compute_layout(root, 1440.0, 900.0);
+        (tree, root, handles, first_cards)
+    }
+
+    fn page_grid_layouts(tree: &LayoutTree, handles: &[usize]) -> Vec<(f32, f32, f32, f32)> {
+        handles
+            .iter()
+            .map(|&h| {
+                let l = tree.get(h).unwrap().layout;
+                (l.x, l.y, l.width, l.height)
+            })
+            .collect()
+    }
+
+    fn page_grid_edit(tree: &mut LayoutTree, root: usize, card: usize, style: &str) -> u32 {
+        tree.reset_counters();
+        tree.update_style(card, serde_json::from_str(style).unwrap());
+        tree.compute_layout(root, 1440.0, 900.0);
+        tree.counters()[0]
+    }
+
+    /// 한 page 의 카드 하나를 고치면 다른 page 는 다시 풀리지 않는다 — grid 가 행 높이를 재는 1차
+    /// solve (available = 컨테이너) 와 셀 배치 2차 solve (available = 셀) 가 `last_avail` 을 번갈아
+    /// 덮어, 프레임 높이가 컨테이너 available 과 다르면 (내용만큼 = `fit-content`) 매 계산마다 모든
+    /// page 서브트리가 MISS 였다 (22 page 문서 편집 1회 25 ms × 4 — 2026-11-19).
+    #[test]
+    fn page_grid_edit_leaves_other_pages_unsolved() {
+        let edited = r#"{"display":"block","width":"170px","height":"80px","flexShrink":0}"#;
+        let visits = [4usize, 8, 16].map(|pages| {
+            let (mut tree, root, _, cards) = page_grid(pages, &[]);
+            page_grid_edit(&mut tree, root, cards[0], edited)
+        });
+        // 다른 page 는 프레임의 셀 배치 진입 1 (HIT) 뿐 — page 당 서브트리 16 노드가 아니다.
+        assert!(
+            visits[1] - visits[0] <= 4 && visits[2] - visits[1] <= 8,
+            "page 수에 서브트리가 비례하면 안 된다: {visits:?}"
+        );
+    }
+
+    /// 증분 결과 = 처음부터 지은 결과. 행 높이를 바꾸는 편집 (같은 행의 다른 page 셀 · 아래 행의
+    /// 위치가 바뀐다) · 둘째 행 page 의 편집 · 되돌림을 차례로.
+    #[test]
+    fn page_grid_incremental_edit_matches_fresh_build() {
+        let tall = r#"{"display":"block","width":"160px","height":"2000px","flexShrink":0}"#;
+        let wide = r#"{"display":"block","width":"900px","height":"80px","flexShrink":0}"#;
+        let (mut tree, root, handles, cards) = page_grid(8, &[]);
+        let steps: [(usize, &str, Vec<(usize, &str)>); 4] = [
+            (0, tall, vec![(0, tall)]),
+            (5, tall, vec![(0, tall), (5, tall)]),
+            (0, PAGE_CARD, vec![(5, tall)]),
+            (5, wide, vec![(5, wide)]),
+        ];
+        for (page, style, fresh_edits) in steps {
+            page_grid_edit(&mut tree, root, cards[page], style);
+            let (fresh, _, fresh_handles, _) = page_grid(8, &fresh_edits);
+            assert_eq!(
+                page_grid_layouts(&tree, &handles),
+                page_grid_layouts(&fresh, &fresh_handles),
+                "page {page} 편집 {style}"
+            );
+        }
     }
 
     // ── ADR-268 1-a: 서브트리 세대 캐시 (자기 폭 제외 슬롯) ──

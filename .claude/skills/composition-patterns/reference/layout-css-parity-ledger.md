@@ -229,6 +229,16 @@ flex item 의 automatic minimum size (min-width/height:auto = content 하한) �
 - 회귀 감시: `tree.rs::incremental_skip_is_idempotent_for_padded_auto_container` (형제만 3회 바꾸고 skip 대상 높이 불변 단언 — 되돌리면 회당 +26 으로 RED).
 - 이 결함은 **기준값도 오염시킨다**: 최초 로드 직후 이미 1회 skip 이 섞여 GridListItem 94(정답 68) / iconButton 40(정답 30) 이었다. "누적" 만 고쳐졌는지 보지 말고 **첫 값이 CSS 계산과 맞는지** 같이 확인할 것.
 
+### grid 는 item 을 두 번 푼다 — `last_avail` 한 칸으로는 둘 다 못 기억한다 (2026-11-19)
+
+`solve_grid` 는 item 마다 행 높이를 재는 1차 solve (`available = (area 폭, 컨테이너 높이)`) 와 셀에 놓는 2차 solve (`available = 셀`) 를 한다. `last_avail` 은 칸이 하나라 두 값이 다르면 서로를 덮고, 다음 계산의 1차는 `AvailChanged` MISS · 2차는 「측정 pass 가 clean 으로 만든 서브트리」 를 되살리는 `mark_subtree_dirty` 로 서브트리 전체를 다시 푼다. 셀 높이 = 컨테이너 available 일 때만 우연히 HIT 였다.
+
+- **드러난 자리 — page 격자**: catalog root 는 page 프레임의 grid 다. 프레임이 화면 높이 고정 px 이던 때는 셀 = available 이라 HIT 였고, 프레임을 내용만큼 (`height: fit-content`, `8ec1eed18` 2026-11-13) 으로 바꾸자 dirty 노드 하나에 **모든 page 서브트리** 를 다시 풀었다. Height 를 px 로 준 body 도 같았다 (셀 1400 ≠ available 1080). 실측 (production · 22 page · 노드 3,317): `computeLayout` 1회 25 ms (변경 없으면 0 ms), 편집 1 step 에 4회.
+- **수정**: item 의 1차 결과를 `TreeNode::grid_row_measure = (max(subtree_gen, viewport_gen), area_w, container_h, w, h)` 로 기억한다. 서브트리 · viewport 세대와 available 이 같고 dirty 가 없으면 1차 solve 를 건너뛴다 — 서브트리에는 직전 2차 (셀) 상태가 남아 있어 2차는 `last_avail` 로 HIT 하고, 셀이 달라졌으면 그 키가 MISS 로 잡는다 (건너뛴 item 은 `mark_subtree_dirty` 로 되살리지 않는다). 측정 pass (`measure_depth > 0`) 에서는 쓰지도 기록하지도 않고, 숨김 (`zero_subtree_layout`) 은 지운다.
+- **결과**: 엔진 `solve_visits` — 편집 1회에 4 · 8 · 16 page 71 · 135 · 263 → 23 · 27 · 35 (다른 page 는 프레임의 2차 진입 1 = HIT). 22 page 편집 1회 `computeLayout` 25 ms → 1 ms 미만.
+- 회귀 감시: `tree.rs::page_grid_edit_leaves_other_pages_unsolved` (page 수 차등 — 되돌리면 64 · 128 증가로 RED) · `page_grid_incremental_edit_matches_fresh_build` (행 높이를 바꾸는 편집 · 둘째 행 편집 · 되돌림이 처음부터 지은 결과와 같다) · catalog 경로 `phase4PageFrames.test.tsx` 「does not lay the other pages out again」.
+- 남은 것: flex 의 used-main 재-solve 도 같은 모양 (`mark_subtree_dirty` 뒤 재-solve) 이다 — 한 컨테이너의 자식 범위라 page 안에 머문다.
+
 ### 금지 패턴
 
 - ❌ 증분 skip 게이트를 dirty 단독으로 판정 → 재부모화·부모 리사이즈에서 stale 크기 반환

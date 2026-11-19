@@ -4143,7 +4143,7 @@ export class CatalogCompositionRoot {
           );
           if (!options.target && options.deadline?.()) break;
         }
-      if (updated.length) this.settleLayout(updated, notices);
+      if (updated.length) this.settleLayout(updated, notices, [rootId]);
     } catch (cause) {
       this.fillStates.set(rootId, backup);
       this.fillFailed.set(rootId, revision);
@@ -5991,6 +5991,25 @@ export class CatalogCompositionRoot {
   }
 
   /**
+   * Whether a record is in one of `roots` (absent = every root). The collapse passes
+   * (`settleTagRows` · `settleBreadcrumbs`) open, lay out and collapse their lists again — two
+   * more engine layouts — so a step settles the lists of the roots it changed only: a page's
+   * inner layout does not read another page's (the page grid's tracks and the frames' sizes are
+   * lengths or the frame's own content). **Why (2026-11-19)**: an edit on any page re-settled the
+   * collapsed Breadcrumbs of every page (22 pages: 53 of the edit's 105 ms).
+   */
+  private inRoots(id: string, roots: readonly NodeId[] | undefined): boolean {
+    return (
+      !roots || roots.some((rootId) => this.rootMembers.get(rootId)?.has(id))
+    );
+  }
+  /** The root a record is in (`inRoots`' scope for a step on one record). */
+  private rootsOf(id: string): NodeId[] | undefined {
+    for (const [rootId, members] of this.rootMembers)
+      if (members.has(id)) return [rootId];
+    return undefined;
+  }
+  /**
    * TagGroup `maxRows` on the Canvas (the DOM's `useTagMaxRows`): with every tag laid out, the
    * tags past the group's `maxRows` rows leave the flow and a "Show all (N)" box follows the rest.
    * Runs after each layout: a collapsed list is opened first (the rows are counted with every tag,
@@ -5998,12 +6017,12 @@ export class CatalogCompositionRoot {
    * (after Show all — S2 `ActionGroup`) while the list has a tag. Returns the records whose
    * collapse or button changed (the lists and their tags — their Canvas paint changes).
    */
-  private settleTagRows(): string[] {
+  private settleTagRows(roots?: readonly NodeId[]): string[] {
     const get = (key: string) => this.records.get(key);
     const lists: Array<[CatalogConsumerNode, number, string]> = [];
     for (const id of this.tagLists.keys()) {
       const record = get(id);
-      if (!record || record.hidden) continue;
+      if (!record || record.hidden || !this.inRoots(id, roots)) continue;
       const group = get(record.parentId);
       const isGroup = !!group && this.typeOf(group) === "TagGroup";
       const maxRows = isGroup ? Number(group.props.maxRows ?? 0) : 0;
@@ -6146,12 +6165,16 @@ export class CatalogCompositionRoot {
    * first crumb. Runs after each layout: a collapsed list is opened first, measured, then collapsed
    * again. Returns the records whose collapse changed (the lists and their crumbs).
    */
-  private settleBreadcrumbs(): string[] {
+  private settleBreadcrumbs(roots?: readonly NodeId[]): string[] {
     const get = (key: string) => this.records.get(key);
     const lists: CatalogConsumerNode[] = [];
     for (const id of this.breadcrumbLists.keys()) {
       const record = get(id);
-      if (record && (!record.hidden || this.crumbCollapses.has(id)))
+      if (
+        record &&
+        (!record.hidden || this.crumbCollapses.has(id)) &&
+        this.inRoots(id, roots)
+      )
         lists.push(record);
     }
     if (!lists.length) return [];
@@ -7023,9 +7046,10 @@ export class CatalogCompositionRoot {
     const errors: unknown[] = [];
     // (A resized TagGroup can collapse or open its tags: they and the list repaint too; a
     // resized sample row moves its list's area of the rows not built.)
+    const roots = this.rootsOf(id);
     for (const changed of [
-      ...this.settleTagRows(),
-      ...this.settleBreadcrumbs(),
+      ...this.settleTagRows(roots),
+      ...this.settleBreadcrumbs(roots),
       ...this.settleRowRemainders(),
     ])
       if (changed !== id)
@@ -8761,6 +8785,10 @@ export class CatalogCompositionRoot {
       this.settleLayout(
         plan.roots.flatMap(({ updates }) => updates.map((update) => update.id)),
         notices,
+        // (Another root set · no root named: every list settles.)
+        plan.nextRootIds || !plan.roots.length
+          ? undefined
+          : plan.roots.map(({ rootId }) => rootId),
       );
     this.currentMetrics = {
       ...plan.metrics,
@@ -8769,15 +8797,23 @@ export class CatalogCompositionRoot {
     };
     return notices;
   }
-  /** One layout pass over the applied records (`updated`), then the height-for-width remeasure. */
-  private settleLayout(updated: readonly string[], notices: Notice[]): void {
+  /**
+   * One layout pass over the applied records (`updated`), then the height-for-width remeasure.
+   * `roots` = the roots the step changed (their collapsing lists settle again — `inRoots`); absent
+   * = every root.
+   */
+  private settleLayout(
+    updated: readonly string[],
+    notices: Notice[],
+    roots?: readonly NodeId[],
+  ): void {
     const parentRects = this.parentRectsOf(updated);
     this.layoutTouched = true;
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.rewrapScope(updated, parentRects));
     for (const id of [
-      ...this.settleTagRows(),
-      ...this.settleBreadcrumbs(),
+      ...this.settleTagRows(roots),
+      ...this.settleBreadcrumbs(roots),
       ...this.settleOverlays(),
       ...this.settleRowRemainders(),
     ]) {

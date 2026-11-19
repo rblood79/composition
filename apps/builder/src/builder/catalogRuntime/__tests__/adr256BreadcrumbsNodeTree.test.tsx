@@ -10,6 +10,7 @@ import {
 } from "react-aria-components/Breadcrumbs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createPage,
   insertNodes,
   removeTargets,
   setFields,
@@ -28,6 +29,7 @@ import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
+import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -60,7 +62,11 @@ const node = (
     ...extra,
   }) as unknown as NodeEntry;
 
-async function open(entries: NodeEntry[], rootId: string) {
+async function open(
+  entries: NodeEntry[],
+  rootId: string,
+  wrapEngine: (engine: LayoutEngineAPI) => LayoutEngineAPI = (engine) => engine,
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -72,7 +78,7 @@ async function open(entries: NodeEntry[], rootId: string) {
     ),
     new CatalogStorage(indexedDB, `adr256-crumbs-${Math.random()}`),
     {
-      engine: await nodeLayoutEngine(),
+      engine: wrapEngine(await nodeLayoutEngine()),
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
     },
@@ -276,7 +282,6 @@ describe("Breadcrumbs is S2's — RAC Breadcrumb > Link(content) + separator · 
     expect(markup.match(/react-aria-Icon/g)).toHaveLength(1);
   });
 
-
   it("an edit of a crumb's href reaches its Link", async () => {
     const { workspace, html } = await open([palette()], "crumbs");
     const firstCrumb = (
@@ -296,7 +301,10 @@ describe("Breadcrumbs is S2's — RAC Breadcrumb > Link(content) + separator · 
   });
 
   it("the current crumb's label is S2 `currentStyles` — neutral bold on the Canvas and in the DOM (after an edit too)", async () => {
-    const { workspace, root, html, records } = await open([palette()], "crumbs");
+    const { workspace, root, html, records } = await open(
+      [palette()],
+      "crumbs",
+    );
     // (An edit rebuilds the records: the label is judged by id, not by the record object.)
     workspace.root.execute(
       setFields({
@@ -313,13 +321,19 @@ describe("Breadcrumbs is S2's — RAC Breadcrumb > Link(content) + separator · 
       true,
     ]);
     const page = labels[2]!;
-    const metrics = catalogTextMetrics(page, root.canvasInputs.get(page.parentId));
+    const metrics = catalogTextMetrics(
+      page,
+      root.canvasInputs.get(page.parentId),
+    );
     expect([metrics.fontWeight, metrics.color]).toEqual([700, "var(--fg)"]);
     expect(html()).toMatch(/color:var\(--fg\);font-weight:700[^"]*">Page</);
   });
 
   it("a disabled Breadcrumbs: the links' labels take S2 `disabled`, the current crumb stays neutral (no opacity)", async () => {
-    const { workspace, root, html, records } = await open([palette()], "crumbs");
+    const { workspace, root, html, records } = await open(
+      [palette()],
+      "crumbs",
+    );
     workspace.root.execute(
       setFields({
         targets: [
@@ -353,14 +367,22 @@ describe("Breadcrumbs is S2's — RAC Breadcrumb > Link(content) + separator · 
       }),
     );
     expect(records("Breadcrumbs")[0]!.layout.marginLeft).toBe("9px");
-    expect(html()).toMatch(/<ol[^>]*margin-left:calc\(var\(--catalog-token-size-unit/);
+    expect(html()).toMatch(
+      /<ol[^>]*margin-left:calc\(var\(--catalog-token-size-unit/,
+    );
   });
 
   it("the separator chevron is S2 Chevron M — 10 on the Canvas, `10 × --s2-scale` in the DOM", async () => {
     const { html, records } = await open([palette()], "crumbs");
-    const separator = records("Icon").find((r) => r.props.slot === "separator")!;
-    expect([separator.visual.iconSize, separator.visual.width]).toEqual([10, 10]);
-    const icon = html().match(/<div style="([^"]*)" class="react-aria-Icon"/)![1]!;
+    const separator = records("Icon").find(
+      (r) => r.props.slot === "separator",
+    )!;
+    expect([separator.visual.iconSize, separator.visual.width]).toEqual([
+      10, 10,
+    ]);
+    const icon = html().match(
+      /<div style="([^"]*)" class="react-aria-Icon"/,
+    )![1]!;
     expect(icon).toContain("--catalog-token-size-unit");
     expect(icon).not.toMatch(/width:10px/);
   });
@@ -409,10 +431,14 @@ describe("Breadcrumbs collapse (S2 folder menu)", () => {
     const list = opened.records("Breadcrumbs")[0]!;
     const menu = opened.root.breadcrumbMenuInputs.get(list.id)!;
     expect(menu).toBeDefined();
-    expect(crumbs.map((crumb) => opened.root.breadcrumbCollapsed(crumb.id))).toEqual(
-      [false, true, true, false, false],
-    );
-    const rects = opened.root.getGeometry([crumbs[0]!.id, menu.id, crumbs[3]!.id]);
+    expect(
+      crumbs.map((crumb) => opened.root.breadcrumbCollapsed(crumb.id)),
+    ).toEqual([false, true, true, false, false]);
+    const rects = opened.root.getGeometry([
+      crumbs[0]!.id,
+      menu.id,
+      crumbs[3]!.id,
+    ]);
     const first = rects.get(crumbs[0]!.id)!;
     const box = rects.get(menu.id)!;
     // (S2: the list gap 6, the menu crumb's start margin −6 — the button follows the first crumb.)
@@ -435,9 +461,7 @@ describe("Breadcrumbs collapse (S2 folder menu)", () => {
     opened.workspace.root.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
-        entries: [
-          node("other", "lib:definition:type-frame", []),
-        ],
+        entries: [node("other", "lib:definition:type-frame", [])],
         rootIds: [id("other")],
         newId: opened.workspace.newId,
       }),
@@ -486,11 +510,94 @@ describe("Breadcrumbs collapse (S2 folder menu)", () => {
       );
     width(40);
     const crumbs = crumbsOf(opened);
-    expect(crumbs.map((crumb) => opened.root.breadcrumbCollapsed(crumb.id))).toEqual(
-      [false, true, false],
-    );
+    expect(
+      crumbs.map((crumb) => opened.root.breadcrumbCollapsed(crumb.id)),
+    ).toEqual([false, true, false]);
     width(800);
     expect([...opened.root.breadcrumbMenuInputs.keys()]).toEqual([]);
+  });
+
+  it("an edit on another page does not open and collapse this page's list again (2026-11-19)", async () => {
+    // Every settle opened each collapsed Breadcrumbs of the document, laid out, measured and
+    // collapsed it again — two more engine layouts per edit, whatever page the edit was on.
+    let layouts = 0;
+    const opened = await open(
+      [palette()],
+      "crumbs",
+      (engine) =>
+        new Proxy(engine, {
+          get(target, key, receiver) {
+            const value = Reflect.get(target, key, receiver);
+            if (key !== "computeLayout") return value;
+            return (...args: Parameters<LayoutEngineAPI["computeLayout"]>) => {
+              layouts++;
+              return (value as LayoutEngineAPI["computeLayout"]).apply(
+                target,
+                args,
+              );
+            };
+          },
+        }),
+    );
+    opened.workspace.root.execute(
+      insertNodes({
+        parent: { kind: "node", id: id("crumbs") },
+        entries: ["d", "e"].map((label) =>
+          node(
+            `extra-${label}`,
+            "lib:definition:origin-component-breadcrumb-item-default",
+            [],
+            { href: `/${label}` },
+          ),
+        ),
+        rootIds: ["d", "e"].map((label) => id(`extra-${label}`)),
+        newId: opened.workspace.newId,
+      }),
+    );
+    opened.workspace.root.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: "project:page:other" as EntryId<"page">,
+          name: "Other",
+          route: "/other",
+          children: [id("other-body")],
+        },
+        entries: [
+          node("other-body", "lib:definition:type-body", ["other-box"]),
+          node("other-box", "lib:definition:type-frame", [], {}, {
+            sizing: { width: set(100), height: set(40) },
+          } as Partial<NodeEntry>),
+        ],
+      }),
+    );
+    const list = opened.records("Breadcrumbs")[0]!;
+    const collapsed = () =>
+      crumbsOf(opened).map((crumb) =>
+        opened.root.breadcrumbCollapsed(crumb.id),
+      );
+    expect(collapsed()).toEqual([false, true, true, false, false]);
+    const box = [...opened.root.canvasInputs.values()].find(
+      (record) => record.sourceId === id("other-box"),
+    )!;
+    layouts = 0;
+    opened.workspace.root.execute(
+      setFields({
+        targets: [opened.workspace.positionOfRecord(box.id)!.target],
+        sizing: { width: set(140) },
+      }),
+    );
+    // (The step's one layout — no open · collapse passes for the Home list.)
+    expect(layouts).toBe(1);
+    expect(collapsed()).toEqual([false, true, true, false, false]);
+    // An edit on the list's own page still settles it: narrowed, only the first and last stay.
+    opened.workspace.root.execute(
+      setFields({
+        targets: [opened.workspace.positionOfRecord(list.id)!.target],
+        sizing: { width: set(40) },
+      }),
+    );
+    expect(collapsed()).toEqual([false, true, true, true, false]);
   });
 
   it("the DOM renders the same collapse: the folder menu crumb (RAC Breadcrumb) between the first and the last two", async () => {
@@ -499,7 +606,17 @@ describe("Breadcrumbs collapse (S2 folder menu)", () => {
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
       function (this: HTMLElement) {
         const width = this.tagName === "OL" ? 1200 : 60;
-        return { x: 0, y: 0, top: 0, left: 0, right: width, bottom: 32, width, height: 32, toJSON: () => ({}) } as DOMRect;
+        return {
+          x: 0,
+          y: 0,
+          top: 0,
+          left: 0,
+          right: width,
+          bottom: 32,
+          width,
+          height: 32,
+          toJSON: () => ({}),
+        } as DOMRect;
       },
     );
     const host = document.createElement("div");
@@ -520,9 +637,11 @@ describe("Breadcrumbs collapse (S2 folder menu)", () => {
     expect(menu.querySelector("button svg")?.getAttribute("viewBox")).toBe(
       "0 0 20 20",
     );
-    expect(menu.querySelector(":scope > .react-aria-Icon svg")?.getAttribute("viewBox")).toBe(
-      "0 0 10 10",
-    );
+    expect(
+      menu
+        .querySelector(":scope > .react-aria-Icon svg")
+        ?.getAttribute("viewBox"),
+    ).toBe("0 0 10 10");
     const crumbs = crumbsOf(opened);
     const shown = items.map((item) => item.getAttribute("data-catalog-id"));
     expect(shown).toEqual([crumbs[0]!.id, null, crumbs[3]!.id, crumbs[4]!.id]);
@@ -562,7 +681,9 @@ describe("Breadcrumbs separatorIcon — the list's separator, a crumb's own chan
 
   it("a Breadcrumbs separatorIcon reaches every crumb's separator (Canvas and DOM)", async () => {
     const opened = await open([palette()], "crumbs");
-    setOn(opened, opened.records("Breadcrumbs")[0]!.id, { separatorIcon: "slash" });
+    setOn(opened, opened.records("Breadcrumbs")[0]!.id, {
+      separatorIcon: "slash",
+    });
     expect(drawn(opened)).toEqual(["slash", "slash", "slash"]);
     expect(domIcons(opened)).toEqual(["slash", "slash"]);
   });
@@ -570,7 +691,9 @@ describe("Breadcrumbs separatorIcon — the list's separator, a crumb's own chan
   it("a crumb whose separator the author changed keeps its own", async () => {
     const opened = await open([palette()], "crumbs");
     setOn(opened, separators(opened)[1]!.id, { iconName: "minus" });
-    setOn(opened, opened.records("Breadcrumbs")[0]!.id, { separatorIcon: "slash" });
+    setOn(opened, opened.records("Breadcrumbs")[0]!.id, {
+      separatorIcon: "slash",
+    });
     expect(drawn(opened)).toEqual(["slash", "minus", "slash"]);
     expect(domIcons(opened)).toEqual(["slash", "minus"]);
   });

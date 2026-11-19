@@ -27,6 +27,8 @@ paths:
 - `display: contents` 의 보고용 경계에 `position: fixed` 자식의 중간 상자를 합치지 않는다.
 - flex item 재배치의 used 크기는 백분율 min/max 의 새 containing block 이 아니다 — 원래 부모 문맥에서 해소한 제약을 임시 적용하고 저작 값을 복원한다. 미해소 `%` 를 px 로 치환한 반환도 content 슬롯으로 되돌릴 때 padding 을 뺀다.
 - 숨김 처리로 서브트리 layout 을 0 으로 덮어쓸 때 (`zero_subtree_layout`) 기존 solve 결과 · available 키 · 최종 fixed 크기 캐시도 함께 무효화한다 — 재표시 첫 solve 는 다시 실행돼야 한다.
+- grid item 의 행 기여 측정 (1차 solve) 결과는 `grid_row_measure` 에 `subtree_gen` 키로 기억한다 — 1차 (컨테이너 available) 와 셀 배치 2차가 `last_avail` 한 칸을 번갈아 덮지 않게. 바뀌지 않은 item 은 1차를 건너뛰고 2차는 HIT (원장 §증분 skip — page 격자, 2026-11-19).
+- 접힘 재측정 (`settleTagRows` · `settleBreadcrumbs`) 은 그 step 이 바꾼 root 의 목록만 (`inRoots`) — page 의 안쪽 배치는 다른 page 를 읽지 않는다.
 - fixed 배치는 viewport 단계에서 수행하고 부모 기준 임시 배치로 최종 제약 캐시를 덮어쓰지 않는다. 크기 재사용은 subtree/environment 세대와 containing block 제약이 같을 때만.
 
 > 아키텍처/WASM 경계: [layout-engine.md](../skills/composition-patterns/reference/layout-engine.md) · **엔진 CSS 정합 실측 기록 23절 전문**: [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md)

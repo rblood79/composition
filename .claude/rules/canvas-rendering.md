@@ -306,6 +306,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - page root 필터는 geometry·Skia 등록·구독에 같은 reachable 집합을 사용한다. portal·fixed·숨긴 자손은 소유 관계를 유지한다. **Why (2026-11-04):** 50페이지/7,050 record에서 한 페이지만 그리면서도 전체를 구독하던 비용이 해당 페이지 141개로 줄었다.
 - 데이터는 graph의 binding 인덱스에서 owner와 연쇄 참조 reader를 찾아 기존 region resolver로 갱신한다. 같은 record를 재사용하고 transaction rollback을 유지한다. **Why (2026-11-04):** API 행 한 셀 변경이 무관한 형제 5,000개까지 다시 해석했다. owner 범위 적용 후 layout 입력은 13개로 일정했다.
 - 드래그의 top-layer 변경은 기존 binding에서 명령을 다시 구성한다. 문서 구조·미지원 patch의 full rebind는 별도 판단한다. **Why (2026-11-04):** 30페이지 production에서 시작·끝 전체 rebind가 picture를 폐기했다. 재사용 후 단일 비교의 drag long task는 2회→0회였으며 command 생성 자체는 아직 선형이다.
+- page root 의 상자가 바뀌면 (프레임 = 내용만큼) 그 page 가 patch 영역이다 — `geometryRegion` 은 scene root 에서 멈추고, 밀린 page 는 `movePageRoots` 가 놓는다 (fixed · overlay 를 가진 page 는 새 자리에서 다시 기록, `recordSubtree` pageLayer). 장면 전체를 다시 묶지 않는다. **Why (2026-11-19):** 카드 하나의 높이가 `geometry-reaches-scene-root` · `page-grid` 로 22 page 를 다시 묶었다 (편집 뒤 프레임 97 → 23 ms, `phase4PageFrames.test.tsx`).
 - idle 준비도 기록과 같은 예산을 확인한다. JS 수집·거리 계산·선택·정렬을 작은 묶음으로 중단하고 revision/camera 변경 시 취소한다. **Why (2026-11-04):** 기존 경로는 예산 0에서도 30,000개 후보를 조회했다. native 공간 질의·단일 Skia 호출까지 선점 가능하다고 간주하지 않는다.
 
 ## 상세 레퍼런스

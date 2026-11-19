@@ -17,7 +17,10 @@ import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
 import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
 import { setFields } from "../../../../../../packages/shared/src/catalog/commands/fields";
-import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  countedNodeLayoutEngine,
+  nodeLayoutEngine,
+} from "./support/nodeLayoutEngine";
 
 /**
  * ADR-248 Phase 4a-4: product page frames — each page's body is a frame on the ADR-232 page
@@ -269,6 +272,184 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
     expect(batches).toBe(1);
     expect(after.get("project:page:home")?.height).toBe(2000);
     expect(after.get("project:page:about")?.y).toBe(2100);
+  });
+});
+
+/**
+ * A page frame is as tall as its content (user 2026-11-13), so an edit inside a page can resize its
+ * root. The Canvas patches that page — its root records its own box again, the changed records
+ * follow — and the pages the taller row pushed down are placed (`movePageRoots`); the scene is not
+ * bound again. **Why (2026-11-19)**: `geometry-reaches-scene-root` bound every page again for one
+ * card's height (22 pages: ~95 ms of the edit's next frame).
+ */
+describe("a page that grows with its content is patched on the Canvas", () => {
+  const box = (id: string, height: number): NodeEntry => ({
+    ...body(id),
+    sizing: { width: set(200), height: set(height) },
+  });
+  const pages = ["home", "about", "contact", "blog", "faq"];
+  async function grown() {
+    const root = await scene(
+      pages.map((name) => page(name)),
+      pages.flatMap((name) => [
+        body(`${name}Body`, { children: [`project:node:${name}Box`] as never }),
+        box(`${name}Box`, 300),
+      ]),
+      { pageLayout: { direction: "auto", gap: 100, columns: 2 } },
+    );
+    return root;
+  }
+  const grow = (root: Awaited<ReturnType<typeof grown>>, height: number) =>
+    root.execute(
+      setFields({
+        targets: [{ kind: "node", id: "project:node:homeBox" as never }],
+        sizing: { height: set(height) },
+      }),
+    );
+  const boundsOf = (canvas: ReturnType<typeof bindCatalogCanvas>) =>
+    Object.fromEntries(
+      [...canvas.stream.boundsMap].sort(([a], [b]) => a.localeCompare(b)),
+    );
+
+  it("patches the page and places the pages below — the same scene as a fresh bind", async () => {
+    const root = await grown();
+    const roots = root.pageRootRecords();
+    for (const height of [3000, 300, 1500]) {
+      // (Bound again each step — the Skia node registry is shared with the fresh bind below.)
+      const canvas = bindCatalogCanvas(root, roots);
+      grow(root, height);
+      const update = canvas.update();
+      expect(update.status).toBe("patched");
+      // (The scene's next step — `CatalogCanvasScene.pageGridChanged`.)
+      const moved = canvas.movePageRoots();
+      expect(moved).not.toBeNull();
+      const patched = boundsOf(canvas);
+      const nodes = Object.fromEntries(
+        Object.keys(patched).map((id) => [id, getSkiaNode(id)]),
+      );
+      canvas.dispose();
+      const fresh = bindCatalogCanvas(root, roots);
+      expect(patched).toEqual(boundsOf(fresh));
+      for (const [id, data] of Object.entries(nodes))
+        expect(data, id).toEqual(getSkiaNode(id));
+      fresh.dispose();
+    }
+  });
+
+  it("an edit on one page does not lay the other pages out again (engine visits)", async () => {
+    // The page grid solved every page twice a layout (the row measure, then the cell) under two
+    // availables, so a frame as tall as its content missed the engine's one-slot cache: one edit
+    // solved the whole document again, four times a step (2026-11-19 — 22 pages 25 ms each).
+    const visits: number[] = [];
+    for (const count of [4, 12]) {
+      const names = Array.from({ length: count }, (_, index) => `p${index}`);
+      const counted = await countedNodeLayoutEngine();
+      const root = await scene(
+        names.map((name) => page(name)),
+        names.flatMap((name) => [
+          body(`${name}Body`, {
+            children: [0, 1, 2].map(
+              (i) => `project:node:${name}Box${i}`,
+            ) as never,
+          }),
+          ...[0, 1, 2].map((i) => box(`${name}Box${i}`, 300)),
+        ]),
+        { pageLayout: { direction: "auto", gap: 100, columns: 4 } },
+        "desktop",
+        "light",
+        () => counted.engine,
+      );
+      counted.takeSolveVisits();
+      root.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:p0Box0" as never }],
+          sizing: { height: set(3000) },
+        }),
+      );
+      visits.push(counted.takeSolveVisits());
+    }
+    // (Each other page: its frame's cell solve — a cache hit — per layout, not its subtree.)
+    expect(visits[1]! - visits[0]!).toBeLessThanOrEqual(8 * 3);
+  });
+
+  it("consecutive edits on one binding end where a fresh bind does", async () => {
+    const root = await grown();
+    const roots = root.pageRootRecords();
+    const canvas = bindCatalogCanvas(root, roots);
+    for (const height of [3000, 1500, 200, 2400]) {
+      grow(root, height);
+      expect(canvas.update().status).toBe("patched");
+      expect(canvas.movePageRoots()).not.toBeNull();
+    }
+    const patched = boundsOf(canvas);
+    canvas.dispose();
+    const fresh = bindCatalogCanvas(root, roots);
+    expect(patched).toEqual(boundsOf(fresh));
+    fresh.dispose();
+  });
+
+  it("a moved page that holds a fixed box is recorded again at its new place — no scene bind", async () => {
+    // (A fixed box is drawn in its page's layer: the page's subtree cannot be translated.)
+    const root = await scene(
+      pages.map((name) => page(name)),
+      pages.flatMap((name) => [
+        body(`${name}Body`, {
+          children: [
+            `project:node:${name}Box`,
+            ...(name === "contact" ? ["project:node:contactBar"] : []),
+          ] as never,
+        }),
+        box(`${name}Box`, 300),
+        ...(name === "contact"
+          ? [
+              {
+                ...box("contactBar", 48),
+                layout: {
+                  position: set("fixed"),
+                  insetLeft: set("0px"),
+                  insetTop: set("0px"),
+                },
+              } as NodeEntry,
+            ]
+          : []),
+      ]),
+      { pageLayout: { direction: "auto", gap: 100, columns: 2 } },
+    );
+    const roots = root.pageRootRecords();
+    const canvas = bindCatalogCanvas(root, roots);
+    for (const height of [3000, 1500]) {
+      grow(root, height);
+      expect(canvas.update().status).toBe("patched");
+      const moved = canvas.movePageRoots();
+      // (contact · blog · faq are below Home's row.)
+      expect(moved?.length).toBe(3);
+    }
+    const patched = boundsOf(canvas);
+    const nodes = Object.fromEntries(
+      Object.keys(patched).map((id) => [id, getSkiaNode(id)]),
+    );
+    canvas.dispose();
+    const fresh = bindCatalogCanvas(root, roots);
+    expect(patched).toEqual(boundsOf(fresh));
+    for (const [id, data] of Object.entries(nodes))
+      expect(data, id).toEqual(getSkiaNode(id));
+    fresh.dispose();
+  });
+
+  it("records only the page that changed", async () => {
+    const root = await grown();
+    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+    grow(root, 3000);
+    const update = canvas.update();
+    expect(update.status).toBe("patched");
+    if (update.status !== "patched") return;
+    const home = [...root.canvasInputs.values()].find(
+      (record) => record.sourceId === "project:node:homeBody",
+    )!.id;
+    expect(update.patchRoots).toEqual([home]);
+    // (The body and its box — not the other four pages' records.)
+    expect(update.rebound.length).toBeLessThanOrEqual(2);
+    canvas.dispose();
   });
 });
 

@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [편집 한 번이 문서 전체를 다시 계산하던 회귀 — page 프레임 = 내용만큼 뒤] - 2026-11-19
+
+### Fixed
+
+- **page 가 많은 문서에서 편집이 느려지던 문제** — page 프레임 높이를 「내용만큼」 으로 바꾼 뒤 (`8ec1eed18`, 2026-11-13) 요소 하나를 고칠 때마다 모든 page 의 배치를 다시 계산하고 Canvas 장면 전체를 다시 묶었다. 실측 (production · throttle 없음 · 편집 1회의 명령 처리 + 다음 프레임): 22 page 105 + 97 ms → 6 + 23 ms, 44 page 220 + 180 ms → 5 + 43 ms (2026-11-11 빌드는 22 page 4 + 11 ms). 세 곳을 고쳤다.
+  - **레이아웃 엔진** — page 격자 (grid) 가 page 마다 행 높이 측정과 셀 배치를 서로 다른 available 로 두 번 풀어 캐시 키가 매번 어긋났다. 행 높이 측정 결과를 page 별로 기억해 (`grid_row_measure`, 서브트리 세대 키) 바뀌지 않은 page 는 다시 풀지 않는다. 위치: `packages/engine/src/tree.rs` `solve_grid` · `grid_row_measure_hit`.
+  - **Canvas** — 내용이 늘어 page 크기가 바뀌면 그 page 만 다시 기록하고, 밀린 page 는 옮긴다 (fixed 상자 · 열린 overlay 를 가진 page 는 새 자리에서 다시 기록). 전에는 `geometry-reaches-scene-root` · `page-grid` 사유로 모든 page 를 다시 묶었다. 위치: `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` `geometryRegion` · `movePageRoots` · `recordSubtree`.
+  - **Breadcrumbs · TagGroup 접힘** — 편집마다 문서의 접힌 목록을 전부 폈다 접으며 배치를 두 번 더 계산했다 (`2e5bbb9e7`). 이제 그 편집이 바꾼 page 의 목록만 다시 잰다. 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` `inRoots` · `settleLayout`.
+- 확인: 엔진 `cargo test` 522 + 41 PASS · 회귀 `tree.rs` `page_grid_*` 2 · `phase4PageFrames.test.tsx` 5 · `adr256BreadcrumbsNodeTree.test.tsx` 1 (각각 수정 전 RED). Live (Playwright · production 빌드, 22 · 44 page 문서): page 를 키우고 줄이는 편집 3회마다 patch 된 장면의 상자 (6,841 · 13,644 개) 와 화면 픽셀이 장면을 다시 묶은 결과와 같음, 콘솔 오류 0.
+- 남은 것: page 높이가 바뀌는 편집은 아래 page 를 옮기는 비용이 page 수에 비례한다 (44 page 43 ms).
+
 ## [Skeleton — 빈 래퍼로 놓기 · 안쪽 데이터의 로딩을 따름 · Preview 의 React Fragment 경고] - 2026-11-19
 
 ### Changed
