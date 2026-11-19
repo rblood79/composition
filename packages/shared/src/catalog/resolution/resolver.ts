@@ -87,6 +87,7 @@ import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../../collections/rowTemplateBi
 import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import { classifyTableCellDisplay } from "../../collections/cellValue";
 import { tableBinding } from "../bindings/Table.binding";
+import { catalogNearestSkeletonOwner } from "./skeletonOwner";
 import {
   catalogTableColumnKey,
   catalogTableSorted,
@@ -1016,6 +1017,38 @@ export function resolveCatalogNode(
       });
     }
     return undefined;
+  };
+  /**
+   * `<Skeleton isLoading={list.isLoading}>` without a second binding (2026-11-19 사용자 결정): a
+   * Skeleton follows the load of the content bound inside it — loading while any of those
+   * collections is `loading` (S2 example's `useAsyncList` state), else not. Its content is the
+   * document nodes whose nearest Skeleton (or SkeletonCollection) owner is this one. `undefined` = no
+   * bound content (or no load to read — the Canvas): the authored `isLoading` stands.
+   */
+  const skeletonContentLoading = (skeletonId: string): boolean | undefined => {
+    if (!rows || !graph.hasBoundNodes()) return undefined;
+    const project = graph.getEntry(graph.projectId);
+    let bound = false;
+    for (const collectionId of project?.kind === "project"
+      ? (project.collectionIds ?? [])
+      : [])
+      for (const id of graph.bindingsOf(collectionId)) {
+        if (
+          catalogNearestSkeletonOwner(
+            graph,
+            id,
+            (entry) => ruleDefinitionOf(entry.definitionId).name,
+          ) !== skeletonId
+        )
+          continue;
+        const entry = graph.getEntry(id as NodeId);
+        if (entry?.kind !== "node" || !entry.binding) continue;
+        const state = rows(entry.binding, "items", entry.id)?.loadingState;
+        if (state === undefined) continue;
+        if (state === "loading") return true;
+        bound = true;
+      }
+    return bound ? false : undefined;
   };
   /**
    * ADR-310 Decision 11 — an unbound list's load is its runs' (items repeated over data of their
@@ -2071,12 +2104,16 @@ export function resolveCatalogNode(
     // · `<Skeleton isLoading={list.isLoading}>`): a bound Table · Skeleton reads its collection's load.
     const loadingType = rows ? ownedType : undefined;
     if (loadingType && LOADING_STATE_TYPES.has(loadingType)) {
-      const state = nodeBinding
-        ? (keyedRows ?? rows!(nodeBinding, "items", node.id))?.loadingState
-        : runsLoadingState(node, instancePath);
-      if (state && loadingType === "Skeleton")
-        props.isLoading = state === "loading";
-      else if (state) props.loadingState = state;
+      if (loadingType === "Skeleton") {
+        // (2026-11-19: the content bound inside it — no binding of its own.)
+        const loading = skeletonContentLoading(node.id);
+        if (loading !== undefined) props.isLoading = loading;
+      } else {
+        const state = nodeBinding
+          ? (keyedRows ?? rows!(nodeBinding, "items", node.id))?.loadingState
+          : runsLoadingState(node, instancePath);
+        if (state) props.loadingState = state;
+      }
     }
     applyFormContext(
       node.definitionId,
@@ -2714,13 +2751,12 @@ export function resolveCatalogNode(
     }
     // (The owned node's `loadingState` beside its items — a bound Table · Skeleton in the template.)
     const ownLoading = ownRows?.loadingState;
-    if (ownLoading) {
-      const loadingType = ruleDefinitionOf(template.definitionId).name;
-      if (loadingType === "Skeleton")
-        props.isLoading = ownLoading === "loading";
-      else if (LOADING_STATE_TYPES.has(loadingType))
-        props.loadingState = ownLoading;
-    }
+    const templateType = ruleDefinitionOf(template.definitionId).name;
+    if (templateType === "Skeleton") {
+      const loading = skeletonContentLoading(template.id);
+      if (loading !== undefined) props.isLoading = loading;
+    } else if (ownLoading && LOADING_STATE_TYPES.has(templateType))
+      props.loadingState = ownLoading;
     if (rowing?.records)
       props.data = rowing.records.map(
         (record) => record.values,

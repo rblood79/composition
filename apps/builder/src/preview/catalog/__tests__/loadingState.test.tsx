@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
+import { catalogPaletteInsertPlan } from "../../../builder/catalogRuntime/paletteInsert";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -42,11 +43,33 @@ function pendingServer() {
   return answers;
 }
 
-async function boundPreview() {
+async function boundPreview(types: readonly string[] = ["Skeleton"]) {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
-  const h = await openAdr280Preview(["Skeleton", "Table"]);
-  const [skeleton, table] = h.ids as [NodeId, NodeId];
+  const h = await openAdr280Preview(types);
+  const [skeleton] = h.ids as [NodeId];
+  // (2026-11-19 사용자 결정: the Skeleton takes no collection of its own — it follows the load of
+  //  the content bound inside it. The palette puts a Table inside the selected Skeleton.)
+  const skeletonRecord = [...h.workspace.root.domInputs.values()].find(
+    (record) => record.sourceId === skeleton,
+  )!;
+  h.workspace.selectRecords([skeletonRecord.id]);
+  const plan = catalogPaletteInsertPlan(
+    {
+      graph: h.workspace.runtime.graph,
+      records: h.workspace.root.domInputs,
+      selection: () => h.workspace.session.getSnapshot().selection,
+      itemOfRecord: (identity) => h.workspace.itemOfRecord(identity),
+      pageContent: () => ({ kind: "node", id: "project:node:home-body" as NodeId }),
+      newId: h.workspace.newId,
+    },
+    "Table",
+  );
+  if (!plan.command || plan.relocated) throw new Error("Table not inside");
+  h.workspace.execute(plan.command);
+  const table = [...h.workspace.root.domInputs.values()].find(
+    (record) => h.workspace.root.typeOf(record) === "Table",
+  )!.sourceId as NodeId;
   act(() => {
     h.session.receive({
       type: "CATALOG_DATA",
@@ -79,10 +102,7 @@ async function boundPreview() {
   });
   h.workspace.execute(
     catalogBindingCommand(
-      [
-        { kind: "node", id: skeleton },
-        { kind: "node", id: table },
-      ],
+      [{ kind: "node", id: table }],
       catalogBindingRef({
         source: "dataTable",
         collectionId: "users",
@@ -95,20 +115,20 @@ async function boundPreview() {
     h.element(table)?.querySelectorAll('[role="progressbar"]').length ?? 0;
   // (ADR-314: the Skeleton draws no element — its Preview record's `isLoading` is the state, and its
   //  wrapped content stays in the DOM either way.)
-  const skeletonShown = () =>
+  const loadingOf = (id: NodeId) =>
     [...h.session.root!.domInputs.values()].find(
-      (record) => record.sourceId === skeleton,
+      (record) => record.sourceId === id,
     )?.props.isLoading === true;
-  const contentShown = () =>
-    h.view.container.textContent?.includes("Placeholder title") ?? false;
-  return { ...h, skeleton, table, progress, skeletonShown, contentShown };
+  const skeletonShown = () => loadingOf(skeleton);
+  const contentShown = () => h.element(table) !== null;
+  return { ...h, skeleton, table, progress, skeletonShown, contentShown, loadingOf };
 }
 
 describe("loadingState — a bound component follows its collection's load", () => {
   it("while a load runs the Table's empty body shows the progress circle and the Skeleton is loading; after it, neither", async () => {
     const answers = pendingServer();
     const h = await boundPreview();
-    // (Idle: nothing loads — a bound Skeleton is not loading, the Table shows no circle.)
+    // (Idle: nothing loads — the Skeleton around the bound Table is not loading, no circle.)
     expect(h.skeletonShown()).toBe(false);
     expect(h.contentShown()).toBe(true);
     expect(h.progress()).toBe(0);
@@ -150,7 +170,29 @@ describe("loadingState — a bound component follows its collection's load", () 
     h.view.unmount();
   });
 
-  it("the Canvas loads nothing: a bound Skeleton keeps its authored isLoading", async () => {
+  it("a Skeleton with no bound content keeps its authored isLoading while other data loads", async () => {
+    const answers = pendingServer();
+    const h = await boundPreview(["Skeleton", "Skeleton"]);
+    const other = h.ids[1] as NodeId;
+    expect(h.loadingOf(other)).toBe(true);
+    let done: Promise<void> | undefined;
+    act(() => {
+      done = h.session.reload("users");
+    });
+    await settle();
+    expect(h.skeletonShown()).toBe(true);
+    expect(h.loadingOf(other)).toBe(true);
+    await act(async () => {
+      answers[0]!([{ id: "u1", name: "Kim" }]);
+      await done;
+    });
+    await settle();
+    expect(h.skeletonShown()).toBe(false);
+    expect(h.loadingOf(other)).toBe(true);
+    h.view.unmount();
+  });
+
+  it("the Canvas loads nothing: the Skeleton keeps its authored isLoading", async () => {
     pendingServer();
     const h = await boundPreview();
     const record = h.workspace.root.recordsOfSource(h.skeleton)[0]!;

@@ -6,8 +6,11 @@
  *
  * D1: no element — the DOM gives only the children (`domBinding.runtime.ts` `skeleton`); the Canvas
  *     lays it out as `display: contents` (its rule).
- * D2: S2 `SkeletonProps` — `isLoading` (+ `children`, the node's own). `dataBinding` is composition's
- *     data layer (`d2Provenance.ts`). No `size` (S2 · design-data · v3 have none — removed, contract 71).
+ * D2: S2 `SkeletonProps` — `isLoading` (+ `children`, the node's own). No `size` (S2 · design-data · v3
+ *     have none — removed, contract 71). No `dataBinding` (2026-11-19 사용자 결정): S2's
+ *     `<Skeleton isLoading={list.isLoading}>` is the list its content shows — the Preview gives the
+ *     Skeleton the load of the content bound inside it (`resolver.ts` `skeletonContentLoading`), so a
+ *     second collection pick on the Skeleton is not asked for.
  * D3: none of its own — the loading look is each wrapped component's rule.
  */
 
@@ -28,9 +31,6 @@ export const skeletonBinding: PrimitiveBinding = {
         section: "state",
         default: true,
       },
-      // `<Skeleton isLoading={list.isLoading}>` — bound to a collection, the Preview gives it the
-      //   collection's load (composition's data layer, `dataBinding`); the Canvas keeps `isLoading`.
-      dataBinding: { kind: "binding", label: "Data", section: "content" },
     },
     toRacProps: "default",
   },

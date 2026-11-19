@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Skeleton — 빈 래퍼로 놓기 · 안쪽 데이터의 로딩을 따름 · Preview 의 React Fragment 경고] - 2026-11-19
+
+### Changed
+
+- **Skeleton 안의 Table — 머리 칸 · 칸 글자는 그대로 보인다** (S2 정렬, 사용자 결정 「S2 와 맞게」) — S2 TableView 는 Column · Cell 의 글자를 `Text` 가 아닌 plain `span` (`columnHeaderText` · `cellContent`) 으로 그려 Skeleton 을 따르지 않는다. 그전에는 Table 을 Skeleton 으로 감싸면 머리 글자와 칸 글자가 전부 회색 막대였다 (Column · Cell 원본이 그 글자를 Text 노드로 가져서). 칸 안에 따로 넣은 Text · 머리 칸의 ⋮ · 정렬 화살표 (S2 Icon) 는 지금처럼 로딩 모양이 된다. Canvas · Preview 같은 판정. 위치: `packages/shared/src/catalog/runtime/skeletonContext.ts` `tablePartWords`.
+
+- **Skeleton 의 Data 칸 삭제 — 안쪽에 연결된 데이터의 로딩을 따른다** (ADR-314 결정 변경, 사용자 지적 「Skeleton 과 자식에서 같은 collection 을 두 번 고르는 것은 불편」) — Preview · Publish 에서 Skeleton 은 안쪽 (다음 Skeleton 전까지) 에 collection 을 연결한 컴포넌트 중 하나라도 불러오는 중이면 로딩 모양이 되고, 응답 · 오류 뒤 풀린다. 안쪽에 연결된 것이 없으면 Loading 칸 값 그대로. Canvas 는 지금처럼 Loading 칸 값. 위치: `packages/shared/src/catalog/resolution/resolver.ts` `skeletonContentLoading` · `resolution/skeletonOwner.ts` · `runtime/compositionRoot.ts` `planBindingOwners` (행 갱신 때 그 Skeleton 까지 다시 해석). 이미 Skeleton 에 걸어 둔 연결은 무시된다.
+
+- **팔레트로 놓는 Skeleton 이 비어 있다** (ADR-314 사용자 결정 2 변경) — 그전에는 S2 문서 예시 표본 (`frame > Image 160×120 + frame > 제목 · 본문 Text`) 이 따라 들어왔다. Skeleton 은 실제 내용 (Table 등) 을 감싸는 용도라 표본을 매번 지워야 했다 (사용자 지적). 놓은 Skeleton 은 Canvas 에 점선 자리 (높이 48) 로 보이고, 고른 채 넣는 컴포넌트가 그 안에 들어간다. 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` `component-skeleton`. 이미 놓은 Skeleton 의 표본은 그대로 남는다.
+
+### Fixed
+
+- **Skeleton 안에 Table 을 넣은 Preview 의 콘솔 오류** — 「Invalid prop `id` supplied to `React.Fragment`」. 모든 노드가 자동 HTML id (`skeleton_1`) 를 갖는데, 요소 없이 Fragment 로 그리는 binding (S2 `Skeleton` · `SkeletonCollection` · 자식 하나인 `SubmenuTrigger`) 에도 작성자 id · class · `aria-label` 을 붙이고 있었다. 이제 Fragment 에는 붙이지 않는다 (`domBinding.runtime.ts` `withHtmlId`, 회귀 `adr314SkeletonContext.test.tsx`).
+
 ## [S2 TableView 구조 — Table 의 Column · Cell · Column 메뉴] - 2026-11-19
 
 사용자 요청 「table 도 S2 (TableView) 와 같은 구조 패턴으로」 — 설치된 `@react-spectrum/s2` 1.8.2 `TableView.tsx` 대조. 사용자 결정: Cell 글자는 Text 노드로 · Column 메뉴는 S2 대로.

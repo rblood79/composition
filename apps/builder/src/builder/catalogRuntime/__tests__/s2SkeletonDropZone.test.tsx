@@ -4,7 +4,7 @@
  * - Skeleton (ADR-314 Phase 1, 2026-11-18 — 2026-10-10 의 placeholder leaf 를 대체): S2 처럼
  *   요소 없는 래퍼다. DOM 은 감싼 내용만 내고 (Skeleton 요소 0), Canvas 는 `display: contents` 로
  *   내용을 부모 흐름에 세운다. `isLoading: false` 는 노드를 숨기지 않는다 — 내용이 보통 모양으로
- *   남는다. 놓은 Skeleton 은 표본 내용 (Image + 제목 · 본문 Text — 사용자 결정 2) 을 감싸고, 빈
+ *   남는다. 놓은 Skeleton 은 비어 있고 (사용자 결정 2 갱신 2026-11-19 — 표본 내용 삭제), 빈
  *   Skeleton 은 Canvas 만 점선 자리 (결정 3) 를 갖는다.
  * - DropZone `isFilled` · `replaceMessage`: 채워진 영역 위로 끌 때 교체 배너
  *   (S2 `renderProps.isDropTarget && props.isFilled`). 배너는 DOM 에 상주하고 RAC 의
@@ -90,40 +90,88 @@ async function open(
     (item) => item.sourceId === OWNER,
   )!;
   const html = renderToStaticMarkup(renderCatalogDom(root, record.id));
-  return { workspace, root, record, html, definitionId };
+  const skeleton = () =>
+    [...root.domInputs.values()].find((item) => item.sourceId === OWNER)!;
+  return {
+    workspace,
+    root,
+    record,
+    html,
+    definitionId,
+    skeleton,
+    render: () => renderToStaticMarkup(renderCatalogDom(root, skeleton().id)),
+  };
+}
+
+/** The palette puts `type` inside the selected Skeleton (its origin root is a slot). */
+function insideSkeleton(
+  opened: Awaited<ReturnType<typeof open>>,
+  type: string,
+) {
+  const { workspace } = opened;
+  workspace.selectRecords([opened.skeleton().id]);
+  const plan = catalogPaletteInsertPlan(
+    {
+      graph: workspace.runtime.graph,
+      records: workspace.root.domInputs,
+      selection: () => workspace.session.getSnapshot().selection,
+      itemOfRecord: (identity) => workspace.itemOfRecord(identity),
+      pageContent: () => ({
+        kind: "node",
+        id: "project:node:home-body" as NodeId,
+      }),
+      newId: workspace.newId,
+    },
+    type,
+  );
+  if (!plan.command || plan.relocated) throw new Error(`${type} not inside`);
+  workspace.execute(plan.command);
 }
 
 describe("S2 Skeleton — an element-less wrapper (ADR-314 Phase 1)", () => {
-  it("the Design panel offers Loading (true by default) and no Size", async () => {
+  it("the Design panel offers Loading (true by default) — no Size, no Data", async () => {
     const { definitionId } = await open("Skeleton", {});
     const contracts = catalogSemanticContracts(definitionId, "Skeleton");
     expect(contracts.isLoading).toMatchObject({ kind: "boolean", default: true });
     expect(contracts.size).toBeUndefined();
+    // (2026-11-19 사용자 결정: it follows the load of the content bound inside it.)
+    expect(contracts.dataBinding).toBeUndefined();
   });
 
-  it("placed: no element of its own — the DOM is its sample content", async () => {
-    const { record, html } = await open("Skeleton", {});
+  it("placed: empty — no element and no content in the DOM, the Canvas's 48px spot (결정 2 · 3)", async () => {
+    // (2026-11-19 사용자 결정 — the S2 example sample (frame > Image + title · body Text) is gone: a
+    //  Skeleton wraps the author's real content, and the sample had to be deleted every time.)
+    const { root, record, html } = await open("Skeleton", {});
     expect(record.hidden).not.toBe(true);
+    expect(record.children).toEqual([]);
+    expect(html).toBe("");
+    expect(root.getGeometry([record.id]).get(record.id)!.height).toBe(48);
+  });
+
+  it("no element of its own — the DOM is the content put inside", async () => {
+    const opened = await open("Skeleton", {});
+    insideSkeleton(opened, "Text");
+    const html = opened.render();
     expect(html).not.toContain("react-aria-Skeleton");
     expect(html).not.toContain('role="status"');
-    expect(html).toContain("Placeholder title");
-    expect(html).toContain("react-aria-Image");
-    // The wrapper's first DOM element is its content row, not a box of its own.
-    expect(html.startsWith("<div")).toBe(true);
+    expect(html).toContain(">Text<");
   });
 
   it("isLoading false keeps the content (the content is not a hidden box)", async () => {
-    const { record, html } = await open("Skeleton", { isLoading: false });
-    expect(record.hidden).not.toBe(true);
-    expect(html).toContain("Placeholder title");
+    const opened = await open("Skeleton", { isLoading: false });
+    insideSkeleton(opened, "Text");
+    expect(opened.skeleton().hidden).not.toBe(true);
+    expect(opened.render()).toContain(">Text<");
   });
 
   it("the Canvas lays its content out in its parent's flow (its box = the content's)", async () => {
-    const { root, record } = await open("Skeleton", {});
-    const [rowId] = record.children;
-    const geometry = root.getGeometry([record.id, rowId]);
-    expect(geometry.get(record.id)).toEqual(geometry.get(rowId));
-    expect(geometry.get(rowId)!.height).toBeGreaterThan(0);
+    const opened = await open("Skeleton", {});
+    insideSkeleton(opened, "Image");
+    const record = opened.skeleton();
+    const [contentId] = record.children;
+    const geometry = opened.root.getGeometry([record.id, contentId]);
+    expect(geometry.get(record.id)).toEqual(geometry.get(contentId));
+    expect(geometry.get(contentId)!.height).toBeGreaterThan(0);
   });
 
   it("toggling isLoading after insert keeps the record drawn (live path)", async () => {

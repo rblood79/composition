@@ -5251,6 +5251,11 @@ function withHtmlId(
   element: ReactElement,
 ): ReactElement {
   if (!node.htmlId && !node.className && !node.ariaLabel) return element;
+  // (A binding with no element of its own — S2 `Skeleton` · `SkeletonCollection`, a lone
+  //  SubmenuTrigger — draws a Fragment: no element to name. Why (2026-11-19): every record has an
+  //  automatic id, and a Skeleton's reached its Fragment — React 「Invalid prop `id` supplied to
+  //  React.Fragment」.)
+  if (element.type === Fragment) return element;
   const patch: Record<string, unknown> = {};
   // (A collection item's and a TabPanel's `id` is RAC's key — RAC writes their element id and pairs
   // a TabPanel with its Tab by it: the author's HTML id would change the key, not the element id.

@@ -138,7 +138,7 @@ describe("ADR-314 Phase 3 — the loading look on the DOM", () => {
     const s = await open();
     const html = s.html();
     // S2 `SkeletonText` — the words in an inert inline span (Text · Link · Meter value · StatusLight).
-    for (const words of ["Placeholder title", "Link", "0%", "Available"])
+    for (const words of ["Text", "Link", "0%", "Available"])
       expect(html).toContain(
         `<span data-skeleton-look="text" inert="">${words}</span>`,
       );

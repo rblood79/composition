@@ -117,7 +117,7 @@ HIGH 이상인 대안이 없다 — 루프 추가 없이 판정한다.
 **대안 C 를 채택한다.**
 
 1. **Skeleton = 요소 없는 container.** 자식을 받고 DOM 에 요소를 내지 않는다. Canvas 는 `display: contents` 로 배치하고 자기 상자 (자식의 합) 는 선택에만 쓴다.
-2. **prop 은 `isLoading` 과 `dataBinding`.** `size` 를 지운다. `isLoading: false` 면 감싼 내용이 보통 모양으로 보인다 (지금의 「노드를 숨김」 을 대체). collection 연결 시 로딩을 받는 동작 (F13) 은 그대로다.
+2. **prop 은 `isLoading` 과 `dataBinding`.** (2026-11-19 사용자 재제기로 `dataBinding` 삭제 — 「Skeleton 에서도 · 자식에서도 같은 collection 을 두 번 고르는 것은 불편, 자식의 data 를 같이 쓰면 된다」. Preview 의 Skeleton 은 안쪽 (다음 Skeleton · SkeletonCollection 전까지) 에 연결된 노드의 collection 중 하나라도 `loading` 이면 로딩, 연결된 노드가 있고 모두 아니면 로딩 아님, 없으면 작성 `isLoading` — resolver `skeletonContentLoading` · `resolution/skeletonOwner.ts`, 행 갱신 영역은 그 Skeleton 으로 넓힌다 — `planBindingOwners`.) `size` 를 지운다. `isLoading: false` 면 감싼 내용이 보통 모양으로 보인다 (지금의 「노드를 숨김」 을 대체). collection 연결 시 로딩을 받는 동작 (F13) 은 그대로다.
 3. **로딩 여부는 resolver 가 자손에 전달한다.** 가장 가까운 Skeleton 의 `isLoading` 이 자손 record 의 한 필드가 되고, Button 계열은 자기 내용에서 끊는다. 두 consumer 가 같은 record 를 읽는다.
 4. **로딩 모양은 감싼 컴포넌트의 rule 이 낸다.** 참여 범위는 S2 그대로 — Text · Link · Icon · Image (Avatar) · StatusLight · Badge · Meter · Card. Heading 등은 참여하지 않는다 (F4). 값은 S2 설치본 (F5).
 5. **form 컴포넌트는 Skeleton 안에서 비활성**이고 로딩 중인 요소는 `inert` 다 (자기 `isDisabled` 보다 우선).
@@ -140,8 +140,10 @@ HIGH 이상인 대안이 없다 — 루프 추가 없이 판정한다.
 execute-adr 가 해당 Phase 에 닿을 때 묻는다.
 
 1. **옛 문서의 자리표시 Skeleton** (Phase 1) — contract 를 올리지 않고 빈 래퍼로 열리게 둘지 (권고 — Phase 0 에서 남은 `size` 값이 문서 검증을 통과하는지 확인한 경우), contract 71 로 옛 프로젝트를 열지 않을지. → **확정 2026-11-18: contract 71** (Phase 0 실측 — `size` 는 검증을 통과하지 못한다 · 저장소 관행 = prop 삭제 시 contract 올림).
-2. **팔레트에서 놓을 때의 기본 내용** (Phase 1) — 표본 내용 (Image + Text 두 줄 — S2 문서 예시, 권고) 인지 빈 래퍼인지. → **확정 2026-11-18: 표본 내용**.
+2. **팔레트에서 놓을 때의 기본 내용** (Phase 1) — 표본 내용 (Image + Text 두 줄 — S2 문서 예시, 권고) 인지 빈 래퍼인지. → **확정 2026-11-18: 표본 내용** → **2026-11-19 사용자 재제기로 변경: 빈 래퍼** (사용자 「기본 frame 이 따라 들어오는데 불필요」 — 실제 내용 (Table 등) 을 감싸는 용도라 표본을 매번 지워야 했다. 놓은 Skeleton 은 결정 3 의 점선 자리로 보이고, 고른 채 넣는 내용이 그 안에 들어간다. `component-skeleton` = 루트 slot `Content` 만).
 3. **빈 Skeleton 의 Canvas 표시** (Phase 1) — 편집용 점선 자리 (Canvas 전용, 권고) 인지 Layers 로만 선택하는지. → **확정 2026-11-18: 편집용 점선 자리**.
+
+> **후속 (2026-11-19, 사용자 결정 「S2 와 맞게」)**: Table 의 Column · Cell 원본이 가진 글자 Text (`Column > frame > Text` · `Cell > Text` — 같은 날 `2e449e6a7` 로 노드가 됨) 는 Skeleton 참여자가 아니다 — S2 `TableView.tsx` 는 그 글자를 `Text` 가 아닌 `span` (`columnHeaderText` · `cellContent`) 으로 그린다. 판정 `skeletonContext.ts` `tablePartWords` (Cell 의 첫 Text · Column 내용 frame 의 첫 Text), 회귀 `adr314SkeletonContext.test.tsx`, live `adr314-skeleton-derived-loading-live.mjs` (표 안 로딩 글자 0).
 4. **수동 `Skeleton.css` · `Skeleton.tsx` 의 `componentVariant` 삭제** (Phase 5) — 도달 경로 조사 결과를 보고 승인. → **확정 2026-11-18: 삭제** (사용자 「수동 css삭제」 — Builder chrome 의 Button `isLoading` 두 곳은 Phase 5 에서 함께 정리).
 5. **번들 상한 초과 시** (Phase 5) — 초과분 수용인지 범위 축소인지 (삭제가 승인되면 순감 예상). → **확정 2026-11-18: 번들 상한 안** (사용자 「번들 상한」 — Phase 5 에서 기준선 대비 Δ 를 재고 상한 안을 확인).
 

@@ -2946,75 +2946,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "name": "Content",
       "required": false
     },
-    "children": [
-      "lib:template:component-skeleton__row"
-    ],
+    "children": [],
     "props": {
       "isLoading": "{isLoading}"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-skeleton__row",
-    "definitionId": "lib:definition:type-frame",
-    "children": [
-      "lib:template:component-skeleton__image",
-      "lib:template:component-skeleton__text"
-    ],
-    "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "rowGap": "16px",
-      "columnGap": "16px"
-    }
-  },
-  {
-    "id": "lib:template:component-skeleton__image",
-    "definitionId": "lib:definition:type-Image",
-    "children": [],
-    "props": {},
-    "visual": {
-      "width": 160,
-      "height": 120
-    },
-    "layout": {
-      "flexShrink": "0"
-    }
-  },
-  {
-    "id": "lib:template:component-skeleton__text",
-    "definitionId": "lib:definition:type-frame",
-    "children": [
-      "lib:template:component-skeleton__title",
-      "lib:template:component-skeleton__body"
-    ],
-    "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "column",
-      "flexGrow": "1",
-      "rowGap": "16px",
-      "columnGap": "16px"
-    }
-  },
-  {
-    "id": "lib:template:component-skeleton__title",
-    "definitionId": "lib:definition:text",
-    "children": [],
-    "props": {
-      "children": "Placeholder title",
-      "size": "XL"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-skeleton__body",
-    "definitionId": "lib:definition:text",
-    "children": [],
-    "props": {
-      "children": "This is placeholder content approximating the length of the real content to avoid layout shifting when the real content appears."
     },
     "visual": {}
   },

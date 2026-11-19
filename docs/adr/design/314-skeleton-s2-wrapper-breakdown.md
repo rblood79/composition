@@ -160,13 +160,13 @@
 
 ### Phase 1 — 래퍼 구조 (2026-11-18, G1)
 
-- **사용자 결정** (2026-11-18, 셋 다 권고안): 1 = contract 71 (Phase 0 실측 — 옛 `size` 는 검증 실패) · 2 = 표본 내용 · 3 = Canvas 편집용 점선 자리.
+- **사용자 결정** (2026-11-18, 셋 다 권고안): 1 = contract 71 (Phase 0 실측 — 옛 `size` 는 검증 실패) · 2 = 표본 내용 (2026-11-19 빈 래퍼로 변경 — 아래 Phase 1 원본 줄) · 3 = Canvas 편집용 점선 자리.
 - **구현**:
   - binding (`Skeleton.binding.ts`) — `isLoading` · `dataBinding` 만 (`size` 삭제). rule (`componentRulesTable.ts`) — Autocomplete · MenuTrigger 와 같은 요소 없는 container (`display: contents` · `skipCSSGeneration`), `variants.default` 는 빈 칠로 남김 (`s2VariantRemoval` 계약).
   - `nestingRules.ts` — `DOM_LEAF_TYPES` · `HTML_PHRASING_CHILD_TYPES` 에서 뺌. `presence.ts` `catalogSkeletonIdle` 와 그 두 호출 (Canvas `catalogHiddenAtRest` · DOM `renderNode`) 삭제.
   - DOM — `domBinding.runtime.ts` `bindings.skeleton` = 자식만 (Fragment), `domRegistry.runtime.ts` `INTERNAL_RENDERERS.skeleton` (공유 `Skeleton.tsx`) 삭제. Canvas — `canvasBinding.ts` `skeleton` (자식 있으면 칠 없는 container), `ruleShapes.ts` box 목록에서 뺌.
   - 빈 Skeleton (결정 3) — `elementless.ts` `catalogEmptySkeleton` 판정 하나를 엔진 입력 (`compositionRoot.ts` `recordStyle` → `CATALOG_EMPTY_SKELETON_STYLE` block · 100% · 48px) 과 Canvas 칠 (점선 1px · 모서리 4) 이 읽는다. DOM 은 없음.
-  - 원본 (결정 2) — `componentCatalog.ts` `PALETTE_REUSABLE_ORIGIN_TYPES` 에 Skeleton, `reusableOriginLibrary.ts` `component-skeleton` = `Skeleton[slot Content] > frame (row · gap 16) > Image (160 × 120 · shrink 0) + frame (column · gap 16 · grow) > Text XL 「Placeholder title」 + Text 본문`. 루트 slot 은 live 에서 찾은 결함의 수리 — slot 없이는 Skeleton 을 고른 채 넣은 Badge 가 「cannot be placed inside Skeleton」 으로 body 에 갔다 (Form 원본과 같은 모양).
+  - 원본 (결정 2) — `componentCatalog.ts` `PALETTE_REUSABLE_ORIGIN_TYPES` 에 Skeleton, `reusableOriginLibrary.ts` `component-skeleton` = `Skeleton[slot Content] > frame (row · gap 16) > Image (160 × 120 · shrink 0) + frame (column · gap 16 · grow) > Text XL 「Placeholder title」 + Text 본문`. **2026-11-19 사용자 결정 2 변경**: 표본 (frame · Image · Text 두 줄) 삭제 — 원본 = `Skeleton[slot Content]` 만. 루트 slot 은 live 에서 찾은 결함의 수리 — slot 없이는 Skeleton 을 고른 채 넣은 Badge 가 「cannot be placed inside Skeleton」 으로 body 에 갔다 (Form 원본과 같은 모양).
   - contract 71 (`document/types.ts`) — 테스트 fixture 의 `libraryContractVersion: 70` 32 파일을 71 로, `adr313DataContract` 의 고정값은 「70 이상」.
 - **테스트**: `s2SkeletonDropZone.test.tsx` 의 Skeleton 절 다시 씀 (7 — 패널 · 요소 없음 · Loading 끔 · Canvas 상자 = 내용 · 증분 · 팔레트 넣기 · 빈 자리) · `loadingState.test.tsx` (판정 = Preview record `isLoading` + 내용 유지) · `componentRulesTable.static` (Skeleton height 리터럴 항목 삭제) · `adr295PaletteSymmetry.browser` (`Skeleton@S · M · L` → `Skeleton` — Autocomplete 와 같은 요소 없는 노드).
 - **원복 RED 3/3**: DOM 렌더러 + 빈 자리 엔진 입력 되돌림 → 2 실패 · 원본 루트 slot 제거 → 팔레트 넣기 실패. 복원 `cmp` 확인.

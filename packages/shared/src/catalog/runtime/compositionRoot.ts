@@ -93,6 +93,7 @@ import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
 import { componentOriginOf } from "../document/componentOrigin";
 import { definitionTypeName } from "../commands/context";
+import { catalogNearestSkeletonOwner } from "../resolution/skeletonOwner";
 import type {
   CatalogReader,
   DefinitionId,
@@ -3013,6 +3014,21 @@ export class CatalogCompositionRoot {
             regionSource = owner;
             break;
           }
+      // (2026-11-19: a Skeleton follows the load of the content bound inside it — the resolver's
+      //  `skeletonContentLoading` — so that Skeleton's subtree is the region.)
+      const skeleton = catalogNearestSkeletonOwner(
+        graph,
+        regionSource,
+        (node) => {
+          try {
+            return definitionTypeName(graph, node.definitionId);
+          } catch {
+            return "";
+          }
+        },
+      );
+      if (skeleton && this.sourceInstances.get(skeleton)?.size)
+        regionSource = skeleton;
       for (const id of this.sourceInstances.get(regionSource) ?? []) {
         let region = this.records.get(id);
         // Repeated rows are materialized by their collection owner. Keep that resolver context

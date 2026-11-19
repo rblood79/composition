@@ -66,13 +66,48 @@ export interface CatalogSkeletonState {
 
 const NOT_LOADING: CatalogSkeletonState = { isSkeleton: false, hidden: false };
 
+/**
+ * A Table part's own words — no participant. S2 TableView draws a Column's · Cell's `children` in a
+ * plain span (`TableView.tsx` `ColumnContents` `columnHeaderText` · `Cell` `cellContent`), not a
+ * `Text`, so a Skeleton around a table leaves them as they are. Here those words are a Text node of
+ * the Column · Cell origin (`Column > frame > Text` · `Cell > Text`): the first Text of a Cell, or of
+ * a Column's content wrapper (its first frame). A Text the author puts beside them is S2
+ * `<Cell>…<Text/></Cell>` — a participant; the wrapper's Icons (⋮ · sort arrow) are S2 Icons.
+ * Why (2026-11-19 사용자 보고): a Table inside a Skeleton drew every header and cell as a gray bar.
+ */
+function tablePartWords(
+  node: CatalogConsumerNode,
+  get: (id: string) => CatalogConsumerNode | undefined,
+  typeOf: (node: CatalogConsumerNode) => string,
+): boolean {
+  if (typeOf(node) !== "Text") return false;
+  const parent = get(node.parentId);
+  if (!parent) return false;
+  const first = (owner: CatalogConsumerNode, type: string) =>
+    owner.children
+      .map(get)
+      .find((child) => child !== undefined && typeOf(child) === type);
+  if (first(parent, "Text")?.id !== node.id) return false;
+  const parentType = typeOf(parent);
+  if (parentType === "Cell") return true;
+  if (parentType !== "frame") return false;
+  const column = get(parent.parentId);
+  return (
+    column !== undefined &&
+    typeOf(column) === "Column" &&
+    first(column, "frame")?.id === parent.id
+  );
+}
+
 /** `node`'s skeleton state — one walk up to the nearest Skeleton (or SkeletonCollection). */
 export function catalogSkeletonState(
   node: CatalogConsumerNode,
   get: (id: string) => CatalogConsumerNode | undefined,
   typeOf: (node: CatalogConsumerNode) => string,
 ): CatalogSkeletonState {
-  const participant = CATALOG_SKELETON_PARTICIPANTS.has(typeOf(node));
+  const participant =
+    CATALOG_SKELETON_PARTICIPANTS.has(typeOf(node)) &&
+    !tablePartWords(node, get, typeOf);
   const seen = new Set<string>();
   let cut = false;
   let wrapped = false;
