@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Table 높이는 Styles 한 곳 · 「Pages」 가 Rows per page 를 따름 · Pagination 자동 연결] - 2026-11-19
+
+### Changed
+
+- **Table 의 Property 에서 Height Mode · Height 칸이 없어졌다** (사용자 결정 「나눠서 있을 필요가 없다」, S2 정렬 — S2 TableView 는 높이를 prop 이 아니라 `styles` 로 받는다). Table 의 높이는 Styles 의 Height 하나다. 새 Table 의 기본 높이는 400 그대로이고 (원본 template 의 Styles 높이), 내용만큼 늘리려면 Styles 에서 Hug 로 둔다. 그전에는 Height Mode 네 값 중 Fixed 만 실제로 구분됐고 (Auto · Viewport · Full 은 같은 동작), Styles 에서 높이를 주면 Property 의 Height 는 쓰이지 않았다.
+  - 높이에 드는 행만 그리는 계산과 Data source 의 「Virtual scroll」 선택 가능 여부도 Styles 높이를 읽는다 — 다른 목록 (ListBox · GridList) 과 같은 판정. 그전에는 Styles 에서 높이를 240 으로 줄여도 행 수는 Property 의 400 기준이었다.
+  - 기본 Table 의 바깥 높이가 402 → 400 (테두리 1px 이 높이 안에 든다 — Styles 의 다른 상자와 같은 border-box).
+  - 위치: `packages/shared/src/catalog/bindings/Table.binding.ts` · `resolution/resolver.ts` `tableBoxHeight` · `document/generated/reusableOriginLibrary.ts` `component-table` · `apps/builder/src/builder/components/property/RowDisplayChoice.tsx`. 삭제: `compositionRoot.ts` `catalogTableHeight` · `CatalogTable` 의 높이 분기.
+
+- **「Show rows」 에서 Pages 를 고르면 Pagination 이 같이 놓인다** (사용자 결정 「자동으로 붙여주는 게 편하다」) — 그 목록을 넘기는 Pagination 이 아직 없으면 목록 바로 뒤에 Pagination 을 놓고 연결한다. 한 단계라 Undo 한 번에 둘 다 되돌아가고, 선택은 목록에 그대로 남는다. 이미 연결된 Pagination 이 있으면 표시 방식만 바뀐다. Pages 에서 「Show more at the end」 · 「Virtual scroll」 로 바꾸면 그 목록에 연결된 Pagination 도 같이 지운다 (사용자 결정 — 역시 한 단계, Undo 로 복귀). 그전에는 Pagination 을 따로 놓고 패널의 셀렉트 (기본 None) 에서 골라야 페이지를 넘길 수 있었다 — 그 셀렉트 (Rows per page 아래) 는 연결을 자동으로 하게 되어 없앴다 (사용자 결정). Table · ListBox · GridList · CardView 공통. 위치: `apps/builder/src/builder/catalogRuntime/pagedList.ts` `catalogPagedListCommand` · `catalogUnpagedListCommand` · `paletteInsert.ts` (`beside` — 선택 바로 뒤에 놓기).
+
+### Fixed
+
+- **Table 의 「Pages」 에서 Rows per page 가 듣지 않던 문제** (사용자 보고) — 높이가 정해진 Table 은 Preview · Publish 에서도 「높이에 드는 행」 만 남겼다 (400 → 14 행). 그래서 Rows per page 를 20 · 30 으로 바꿔도 14 행이었고, 「Show more at the end」 도 창의 나머지 행에 닿을 수 없었다. 이제 높이로 자르는 것은 Builder 의 표본뿐이고, Preview 는 표시 방식이 주는 행 (한 페이지 · 더 보기 창 · 가상 스크롤 전체) 을 다 두고 Table 안에서 스크롤한다. 위치: `resolver.ts` `boundTableRows` (`fixed` · `sampled`). 회귀 `adr310Pages.test.tsx` (수정 전 20 → 14) · `adr310ShowMore.test.tsx` (Table 추가).
+- **「Pages」 인 목록을 Canvas 가 첫 페이지로 그린다** (사용자 보고 — Compare Mode 에서 CSS · Preview 는 Rows per page 만큼, Canvas 는 전부) — Builder 의 행 읽기가 표시 방식을 보지 않아 Canvas 는 높이에 드는 행을 다 그렸다 (ListBox 는 40 행 전부). 이제 Rows per page 만큼 읽고, 그 페이지가 Canvas 가 세는 전부다 (「+N more」 표시 없음). Table · ListBox · GridList · CardView 공통. 위치: `apps/builder/src/builder/catalogRuntime/catalogDataRead.ts` `catalogBuilderBoundRows` (Builder root 의 `rows`). 회귀 `adr310BuilderPages.test.ts` (수정 전 5 → 14 · 40).
+- **Table 머리 줄이 스크롤해도 위에 남는다** (S2 TableView) — 머리 줄을 위에 고정하고 Table 의 바탕으로 아래 행을 가린다. 가상 스크롤 Table 은 고정된 머리 줄이 투명해서 머리 글자가 첫 행 글자와 겹쳐 보였다. 위치: `packages/shared/src/components/styles/Table.css` `[data-node-table]`.
+
+### Breaking
+
+- **library contract 71 → 72** — `heightMode` · `height` prop 삭제. 이전 contract 로 저장한 프로젝트는 열리지 않는다 (변환 없음 — 개발 단계 원칙).
+
 ## [가상 스크롤 Table — Preview 에서 행이 보이지 않던 문제] - 2026-11-19
 
 ### Fixed

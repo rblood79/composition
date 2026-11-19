@@ -142,10 +142,7 @@ function authoredTable(
 ) {
   const values = ["b10", "a", "b9", "C"];
   return () => [
-    node("t", "Table", ["th", "tb"], {
-      heightMode: "auto",
-      ...tableProps,
-    }),
+    node("t", "Table", ["th", "tb"], tableProps),
     node("th", "TableHeader", ["c0", "c1"]),
     node("c0", "Column", [], { children: "Name", width: 120, ...columnProps }),
     node("c1", "Column", [], { children: "Index" }),
@@ -257,7 +254,8 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     expect(header(view.container, "Name").getAttribute("aria-sort")).toBeNull();
   });
 
-  it("a bound Table sorts every data row by value before its height takes the rows it shows", async () => {
+  // (2026-11-19: the Preview keeps every row — only the Builder's sample is cut to its height.)
+  it("a bound Table sorts every data row by value", async () => {
     // 30 rows; a fixed-height Table (the default 400) shows its first 14. The smallest and largest
     // values are past them, so sorting only the shown rows could not bring them up.
     const values = [
@@ -334,7 +332,7 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     flush();
     const shown = () => firstCells(view.container);
     expect(shown()[0]).toBe("10");
-    expect(shown().length).toBeLessThan(values.length);
+    expect(shown()).toHaveLength(values.length);
     const scoreHeader = view.container.querySelector(
       "[role='columnheader']",
     ) as HTMLElement;
@@ -522,10 +520,7 @@ describe("ADR-295 후속 — a resizable Table's selection column (S2 useScale 4
   );
   /** A resizable Table whose first Column holds the select-all checkbox (S2's checkbox column). */
   const selectionTable = () => () => [
-    node("t", "Table", ["th", "tb"], {
-      heightMode: "auto",
-      selectionMode: "multiple",
-    }),
+    node("t", "Table", ["th", "tb"], { selectionMode: "multiple" }),
     node("th", "TableHeader", ["c0", "c1", "c2"]),
     node("c0", "Column", ["c0x"]),
     node("c0x", "Checkbox", [], { slot: "selection" }),

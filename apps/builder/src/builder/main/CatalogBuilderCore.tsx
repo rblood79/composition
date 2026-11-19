@@ -37,8 +37,8 @@ import {
 } from "../catalogRuntime/builderTheme";
 import { onThemeLaddersLoaded } from "../../../../../packages/shared/src/catalog/runtime/themeLadders";
 import { watchCatalogComponentEdits } from "../catalogRuntime/componentConfirm";
-import { catalogBoundRows } from "../catalogRuntime/dataBinding";
 import {
+  catalogBuilderBoundRows,
   catalogCollectionTables,
   catalogDataProjectId,
   catalogProjectVariableDefs,
@@ -279,8 +279,9 @@ export function CatalogBuilderCore() {
           // ADR-157 sample: a bound list that grows with its rows builds the rows its page shows.
           rowSample: true,
           // ADR-286: the document's collections, with the API rows the store caches.
-          rows: (binding, kind) =>
-            catalogBoundRows(binding, catalogCollectionTables(graph), kind),
+          // (A paged list: its first page — `catalogBuilderBoundRows`.)
+          rows: (binding, kind, ownerId) =>
+            catalogBuilderBoundRows(graph, binding, kind, ownerId),
           // `{{ name }}` at defaults; project variables are the document's (ADR-286).
           state: {
             projectVariables: () => catalogProjectVariableDefs(graph),

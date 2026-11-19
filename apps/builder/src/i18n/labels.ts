@@ -599,7 +599,6 @@ export const semanticLabelKeys: Record<string, string> = {
   "Calendar Icon": "properties.calendarIcon",
   "Separator Icon": "properties.separatorIcon",
   "Menu Icon": "properties.menuIcon",
-  "Height Mode": "properties.heightMode",
   Fixed: "properties.fixed",
   Viewport: "properties.viewport",
   Full: "properties.full",

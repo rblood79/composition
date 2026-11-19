@@ -310,16 +310,36 @@ describe("ADR-256 Phase 5i-1 — Table draws its node tree", () => {
     expect(rows.every((row) => row.children.length === 3)).toBe(true);
   });
 
-  it("a fixed-height Table keeps its height on both sides (Canvas box = DOM box)", async () => {
-    const { root, record, draw } = await open({
-      heightMode: "fixed",
-      height: 240,
-    });
+  // (사용자 결정 2026-11-19: the height is the Styles height — no `heightMode` · `height` props.)
+  it("a Table with a Styles height keeps it on both sides (Canvas box = DOM box)", async () => {
+    const { root, record, draw } = await open({}, {
+      sizing: { height: { kind: "set", value: 240 } },
+    } as Partial<NodeEntry>);
     const grid = draw() as HTMLElement;
-    // (Its 1px border outside the 240 — `catalogTableHeight`; a `<table>` is border-box.)
-    expect(grid.style.height).toBe("242px");
+    // (A `<table>` is border-box: its 1px border is inside the 240.)
+    expect(grid.style.height).toBe("240px");
     const table = record(OWNER);
-    expect(root.getGeometry([table.id]).get(table.id)!.height).toBe(242);
+    expect(root.getGeometry([table.id]).get(table.id)!.height).toBe(240);
+  });
+
+  it("a Table without a height follows its rows — no default height of its own", async () => {
+    const { root, record, draw } = await open();
+    expect((draw() as HTMLElement).style.height).toBe("");
+    const table = record(OWNER);
+    const parts = [...root.domInputs.values()].filter((item) =>
+      ["TableHeader", "TableBody"].includes(root.typeOf(item)),
+    );
+    const geometry = root.getGeometry([
+      table.id,
+      ...parts.map((part) => part.id),
+    ]);
+    const partsHeight = parts.reduce(
+      (sum, part) => sum + geometry.get(part.id)!.height,
+      0,
+    );
+    // (Its header · body and its 1px border — not the old `heightMode: fixed` 402.)
+    expect(parts).toHaveLength(2);
+    expect(geometry.get(table.id)!.height).toBe(partsHeight + 2);
   });
 
   // ADR-310 Phase 4: a bound Table's rows are its Row template's; other Rows are static (a total).

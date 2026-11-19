@@ -135,7 +135,7 @@ const ids = await page.evaluate(async (commands) => {
         ),
       }),
     );
-  write(of("Table")[0], { selectionMode: "multiple", heightMode: "auto" });
+  write(of("Table")[0], { selectionMode: "multiple" });
   const [select, name] = of("Column");
   write(select, { children: "" });
   write(name, { children: "Name" });

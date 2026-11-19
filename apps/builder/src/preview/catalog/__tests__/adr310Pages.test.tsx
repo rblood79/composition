@@ -120,7 +120,11 @@ it("G7: 250 rows · size 20 — 13 numbers, page 3 shows rows 41 ~ 60, ← · �
   await h.press(pagination, "3");
   const selected = () =>
     [...(h.element(pagination)?.querySelectorAll("button") ?? [])]
-      .filter((button) => button.getAttribute("aria-checked") === "true" || button.hasAttribute("data-selected"))
+      .filter(
+        (button) =>
+          button.getAttribute("aria-checked") === "true" ||
+          button.hasAttribute("data-selected"),
+      )
       .map((button) => button.textContent?.trim());
   expect(selected()).toEqual(["3"]);
   expect(h.labels(list)).toHaveLength(20);
@@ -178,15 +182,20 @@ function serve(cursorOnly = false) {
     const url = new URL(String(input));
     urls.push(`${url.pathname}${url.search}`);
     const page = Number(
-      (cursorOnly ? url.searchParams.get("cursor") : url.searchParams.get("page")) ||
-        1,
+      (cursorOnly
+        ? url.searchParams.get("cursor")
+        : url.searchParams.get("page")) || 1,
     );
     const size = Number(url.searchParams.get("size") || 20);
     const items = ROWS.slice((page - 1) * size, page * size);
     return new Response(
       JSON.stringify(
         cursorOnly
-          ? { items, total: ROWS.length, next: page * size < ROWS.length ? String(page + 1) : null }
+          ? {
+              items,
+              total: ROWS.length,
+              next: page * size < ROWS.length ? String(page + 1) : null,
+            }
           : { items, total: ROWS.length },
       ),
       { headers: { "content-type": "application/json" } },
@@ -223,8 +232,14 @@ it("G7: a remote collection — each paged list its own page (`page=3`), a 「�
   await settle();
   expect(h.labels(b)[0]).toBe("Row 1");
   // (Its numbers show page 1 again — no press made this change.)
-  const selected = [...(h.element(pagination)?.querySelectorAll("button") ?? [])]
-    .filter((button) => button.getAttribute("aria-checked") === "true" || button.hasAttribute("data-selected"))
+  const selected = [
+    ...(h.element(pagination)?.querySelectorAll("button") ?? []),
+  ]
+    .filter(
+      (button) =>
+        button.getAttribute("aria-checked") === "true" ||
+        button.hasAttribute("data-selected"),
+    )
     .map((button) => button.textContent?.trim());
   expect(selected).toEqual(["1"]);
   // A row's edit is the collection's: every list showing that key shows it (the units share it).
@@ -236,7 +251,8 @@ it("G7: a remote collection — each paged list its own page (`page=3`), a 「�
     [...(h.element(id)?.querySelectorAll('[role="option"]') ?? [])].map(
       (option) => option.textContent ?? "",
     );
-  for (const id of [a, b, c]) expect(text(id).some((t) => t.includes("Row 2b"))).toBe(true);
+  for (const id of [a, b, c])
+    expect(text(id).some((t) => t.includes("Row 2b"))).toBe(true);
 });
 
 it("G7: an endpoint that reads no page — no numbers, → · ← step by its cursor", async () => {
@@ -267,7 +283,11 @@ it("G7: an endpoint that reads no page — no numbers, → · ← step by its cu
           path: "/people",
           queryParams: [{ key: "cursor", value: "{{ cursor }}" }],
           targetCollection: "People",
-          responseMapping: { dataPath: "items", cursorPath: "next", totalPath: "total" },
+          responseMapping: {
+            dataPath: "items",
+            cursorPath: "next",
+            totalPath: "total",
+          },
         },
       ],
     } as never);
@@ -286,3 +306,27 @@ it("G7: an endpoint that reads no page — no numbers, → · ← step by its cu
   await h.press(pagination, "←");
   expect(h.labels(list)[0]).toBe("Row 1");
 });
+
+// 2026-11-19 사용자 보고 「page 를 선택시 Rows per page 동작이 되지않는다」 (Table).
+it("G7: a Table's page holds `size` rows — its height does not cut the page", async () => {
+  const h = await open(["Table", "Pagination"]);
+  const [table, pagination] = h.ids as [NodeId, NodeId];
+  h.bind(table);
+  const rows = () =>
+    [...(h.element(table)?.querySelectorAll('tbody [role="row"]') ?? [])].map(
+      (row) => row.getAttribute("data-key") ?? row.textContent ?? "",
+    );
+  for (const size of [20, 5, 30]) {
+    h.workspace.execute(setRowDisplay(table, { mode: "pages", size }));
+    h.workspace.execute(setPagination(pagination, table));
+    h.flush();
+    await settle();
+    // (Its 400 height holds 14 rows — the page is not cut to them; the Table scrolls.)
+    expect(rows(), `size ${size}`).toHaveLength(size);
+    expect(rows()[0]).toBe("r1");
+    expect(h.numbers(pagination)).toHaveLength(Math.ceil(250 / size));
+  }
+  await h.press(pagination, "2");
+  expect(rows()[0]).toBe("r31");
+  expect(rows()).toHaveLength(30);
+}, 30_000);

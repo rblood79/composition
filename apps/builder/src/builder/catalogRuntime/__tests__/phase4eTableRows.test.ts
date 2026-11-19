@@ -9,7 +9,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import type { CatalogBoundRow } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
+import {
+  catalogGrowsWithRows,
+  type CatalogBoundRow,
+} from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import {
   insertNodes,
   insertTableColumns,
@@ -41,7 +44,8 @@ const user = (key: string, name: string, tags: string[] = []) => ({
   values: { id: key, name, email: `${name.toLowerCase()}@x.io`, tags },
 });
 
-async function open(rowCount = 2) {
+/** `sampled` = the Builder's root (`rowSample` — it draws the rows a px height holds, cut). */
+async function open(rowCount = 2, sampled = false) {
   const library = await buildCodeCatalogLibrary();
   let rows: CatalogBoundRow[] | undefined = Array.from(
     { length: rowCount },
@@ -64,6 +68,7 @@ async function open(rowCount = 2) {
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
       root: {
+        ...(sampled ? { rowSample: true } : {}),
         rows: (binding) =>
           binding.collectionId === BINDING.collectionId ? rows : undefined,
       },
@@ -190,9 +195,9 @@ describe("ADR-248 4e bound Table rows", () => {
       geometry(firstColumn.id)!.width,
       0,
     );
-    // The DOM's boxes: fixed 400 viewport + border, one-line rows. ADR-257: the columns are the
+    // The DOM's boxes: 400 border-box (the origin's Styles height), one-line rows. ADR-257: the columns are the
     // rows' shared tracks — no width written = S2/RAC `1fr` (the old 150px default is gone).
-    expect(geometry(table)!.height).toBe(402);
+    expect(geometry(table)!.height).toBe(400);
     expect(records.get(firstCell.parentId)?.derivedProps?._tableTracks).toBe(
       "minmax(75px, 1fr) minmax(75px, 1fr) minmax(75px, 1fr)",
     );
@@ -204,8 +209,9 @@ describe("ADR-248 4e bound Table rows", () => {
     expect(geometry(firstRow.id)!.height).toBe(
       Math.max(geometry(firstColumn.id)!.height, 40 + 1),
     );
-    // Rows past the height are cut (Table.css clips the table; the body holds the rows).
-    expect(records.get(table)!.visual.overflow).toBe("hidden");
+    // (Not the Builder's sample — the Preview's root: nothing is cut, the Table scrolls
+    //  (`Table.css` `overflow: auto`). The sample's cut is the height test below.)
+    expect(records.get(table)!.visual.overflow).not.toBe("hidden");
     // The body holds the rows below the header.
     const body = all.find(
       (record) => typeOf(workspace, record) === "TableBody",
@@ -251,17 +257,64 @@ describe("ADR-248 4e bound Table rows", () => {
     workspace.dispose();
   });
 
-  it("a fixed-height Table shows the rows its height holds; auto shows every row", async () => {
+  // (2026-11-19 사용자 보고 「Rows per page 동작이 되지않는다」: the height cut the Preview's rows
+  //  too — a page of 20 showed 14.)
+  it("only the Builder's sample is cut to the rows a px height holds — the Preview's root keeps every row", async () => {
     const { workspace } = await open(40);
-    // Fixed 400 (the template): ceil(400 / 32) + 1 rows.
-    expect(bodyRows(workspace)).toHaveLength(14);
+    expect(bodyRows(workspace)).toHaveLength(40);
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: TABLE }],
-        props: { heightMode: { kind: "set", value: "auto" } },
+        sizing: { height: { kind: "set", value: 240 } },
       }),
     );
     expect(bodyRows(workspace)).toHaveLength(40);
+    workspace.dispose();
+  });
+
+  it("the Builder: a Table with a px height shows the rows that height holds; a hug Table samples its page", async () => {
+    const { workspace } = await open(40, true);
+    // 400 (the origin template's Styles height): ceil(400 / 32) + 1 rows, the rest cut.
+    expect(bodyRows(workspace)).toHaveLength(14);
+    const tableRecord = () =>
+      [...workspace.root.domInputs.values()].find(
+        (record) => typeOf(workspace, record) === "Table",
+      )!;
+    // (사용자 결정 2026-11-19 — no `heightMode` · `height` props: the Styles height is the height.
+    //  What the 「Virtual scroll」 choice reads: a bounded box.)
+    expect(tableRecord().props.heightMode).toBeUndefined();
+    expect(tableRecord().props.height).toBeUndefined();
+    expect(
+      catalogGrowsWithRows(
+        tableRecord().visual as never,
+        tableRecord().sizing as never,
+      ),
+    ).toBe(false);
+    expect(tableRecord().visual.overflow).toBe("hidden");
+    // A Styles height of its own: ceil(240 / 32) + 1 rows.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: TABLE }],
+        sizing: { height: { kind: "set", value: 240 } },
+      }),
+    );
+    expect(bodyRows(workspace)).toHaveLength(9);
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: TABLE }],
+        sizing: { height: { kind: "set", value: null } },
+        visual: { height: { kind: "set", value: "fit-content" } },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // (Hug: the page's sample — more than the 240 held, as tall as its rows below.)
+    expect(bodyRows(workspace).length).toBeGreaterThan(9);
+    expect(
+      catalogGrowsWithRows(
+        tableRecord().visual as never,
+        tableRecord().sizing as never,
+      ),
+    ).toBe(true);
     // The body grows with its rows (the table is as tall as them, like the DOM's auto table).
     const records = [...workspace.root.domInputs.values()];
     const named = (name: string) =>
@@ -275,6 +328,15 @@ describe("ADR-248 4e bound Table rows", () => {
     expect(geometry.get(body!.id)!.height).toBeGreaterThanOrEqual(
       rows.reduce((sum, row) => sum + geometry.get(row.id)!.height, 0),
     );
+    // (Styles 「auto」 · Reset removes its own height — the origin's 400 is back, as the record reads.)
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: TABLE }],
+        visual: { height: { kind: "mask" } },
+      }),
+    );
+    expect(tableRecord().visual.height).toBe(400);
+    expect(bodyRows(workspace)).toHaveLength(14);
     workspace.dispose();
   });
 });

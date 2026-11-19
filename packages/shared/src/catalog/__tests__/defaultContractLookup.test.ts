@@ -20,11 +20,11 @@ type PropsNode = { id: string; type: string; props?: Record<string, unknown> };
  * 동작하므로 두 조회 모두 casing 을 흡수한다.
  */
 describe("resolveBindingPropDefault — binding accepts default 조회", () => {
-  it("Pascal · lowercase 둘 다 같은 값 (Table 높이 축)", () => {
-    expect(resolveBindingPropDefault("Table", "height")).toBe(400);
-    expect(resolveBindingPropDefault("table", "height")).toBe(400);
-    expect(resolveBindingPropDefault("Table", "heightMode")).toBe("fixed");
-    expect(resolveBindingPropDefault("table", "heightMode")).toBe("fixed");
+  // (2026-11-19: the Table's `heightMode` · `height` props are gone — its height is the Styles
+  //  height. The lookup is shown on its `overflowMode`.)
+  it("Pascal · lowercase 둘 다 같은 값 (Table overflowMode)", () => {
+    expect(resolveBindingPropDefault("Table", "overflowMode")).toBe("truncate");
+    expect(resolveBindingPropDefault("table", "overflowMode")).toBe("truncate");
   });
 
   it("toRacProps 가 prop 부재에 채우는 값과 같다", () => {
@@ -35,16 +35,16 @@ describe("resolveBindingPropDefault — binding accepts default 조회", () => {
       props: {},
     } as unknown as PropsNode;
     const racProps = toRacProps(node, binding);
-    expect(racProps.height).toBe(resolveBindingPropDefault("Table", "height"));
-    expect(racProps.heightMode).toBe(
-      resolveBindingPropDefault("Table", "heightMode"),
+    expect(racProps.overflowMode).toBe(
+      resolveBindingPropDefault("Table", "overflowMode"),
     );
   });
 
   it("미등록 타입 · 미선언 키는 undefined", () => {
     expect(resolveBindingPropDefault("Table", "notAProp")).toBeUndefined();
+    expect(resolveBindingPropDefault("Table", "heightMode")).toBeUndefined();
     expect(
-      resolveBindingPropDefault("NotAComponent", "height"),
+      resolveBindingPropDefault("NotAComponent", "overflowMode"),
     ).toBeUndefined();
   });
 });

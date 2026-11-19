@@ -13906,8 +13906,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
     //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
     //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
-    // ADR-923 r21m1 (2026-09-02): 수동 Table.css `min-height: 40px` 도 같은 채널 — heightMode
-    //   "auto" 의 빈 Table 이 DOM 40 vs layout 0 이었다 (fixed 는 implicitStyles 가 height 를 덮는다).
+    // ADR-923 r21m1 (2026-09-02): 수동 Table.css `min-height: 40px` 도 같은 채널 — 높이 없는
+    //   빈 Table 이 DOM 40 vs layout 0 이었다. (2026-11-19: `heightMode` · `height` prop 삭제 —
+    //   높이는 Styles 높이, 원본의 기본 400 은 template `visual.height`.)
     containerStyles: {
       width: "100%",
       minHeight: "40px",
@@ -13916,7 +13917,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   테두리 transparent · radius 0 (아래 containerVariants.quiet — Canvas 는 rule 집행기의
     //   containerVariantPaint, DOM 은 수동 Table.css 의 `[data-quiet]` 블록이 같은 값). 테두리는
     //   폭을 지우지 않고 색만 지운다 — 양 consumer 의 기하 (border-box 높이) 가 그대로다
-    //   (S2 는 width 0 이지만 우리 catalogTableHeight 가 1px 테두리를 기하에 더한다).
+    //   (S2 는 width 0 이지만 우리 Table 은 1px 테두리를 border-box 높이 안에 둔다).
     containerVariants: {
       quiet: {
         true: {
@@ -13948,7 +13949,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-295 후속 C1 (2026-10-31, 사용자 「Table S/M/L 크기 축 제거」): S2 TableView 에 size 축이 없다 —
     //   한 벌. 모서리 = S2 `table` style `borderRadius: '[6px]'` (임의 px — scale 무관). 글자는 팔레트
     //   Table 이 쓰던 S 의 단 (칸 · 머리글은 각자 controlFont — Column · Cell rule). 여백 · 높이는
-    //   Table 상자가 읽지 않아 (행 높이 = Column · Cell density, 상자 높이 = catalogTableHeight) 뺐다.
+    //   Table 상자가 읽지 않아 (행 높이 = Column · Cell density, 상자 높이 = Styles 높이) 뺐다.
     sizes: {
       M: {
         fontSize: "{typography.text-sm}",

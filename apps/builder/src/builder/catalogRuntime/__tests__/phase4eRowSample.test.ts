@@ -23,10 +23,7 @@ import { catalogPageLayoutCommand } from "../pageLayoutSettings";
 import { catalogBindingCommand } from "../dataBindingCommand";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
-import {
-  catalogRowRemainderBox,
-  catalogRowRemainders,
-} from "../rowSample";
+import { catalogRowRemainderBox, catalogRowRemainders } from "../rowSample";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
@@ -137,9 +134,10 @@ function pageRows(
   rows: readonly { id: string }[],
   height = 800,
 ) {
-  const geometry = workspace.root.getGeometry(rows.slice(0, 2).map((r) => r.id));
-  const pitch =
-    geometry.get(rows[1]!.id)!.y - geometry.get(rows[0]!.id)!.y;
+  const geometry = workspace.root.getGeometry(
+    rows.slice(0, 2).map((r) => r.id),
+  );
+  const pitch = geometry.get(rows[1]!.id)!.y - geometry.get(rows[0]!.id)!.y;
   const start = pageTop(workspace, rows[0]!.id);
   return {
     pitch,
@@ -279,8 +277,7 @@ describe("ADR-248 4e row sample", () => {
     expect(Math.max(...frames.map((frame) => frame.y))).toBeGreaterThan(800);
     const rowsOn = (id: string) =>
       rowRecords(workspace, "ListBoxItem").filter(
-        (row) =>
-          row.parentId.includes(id) && !row.parentId.includes(`${id}-`),
+        (row) => row.parentId.includes(id) && !row.parentId.includes(`${id}-`),
       );
     const first = rowRecords(workspace, "ListBoxItem").filter(
       (row) => !row.parentId.includes(lower),
@@ -423,14 +420,14 @@ describe("ADR-248 4e row sample", () => {
     ten.dispose();
   });
 
-  it("a Table samples in auto height; a fixed Table shows the rows its height holds", async () => {
+  it("a Table samples in hug height; a Table with a px height shows the rows that height holds", async () => {
     const workspace = await open("Table", rowsOf(100));
-    // Fixed (the binding default): no sample.
+    // 400 (the origin template's Styles height): no sample.
     expect(catalogRowRemainders(workspace.root)).toEqual([]);
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: LIST }],
-        props: { heightMode: { kind: "set", value: "auto" } },
+        visual: { height: { kind: "set", value: "fit-content" } },
       }),
     );
     await resampled();

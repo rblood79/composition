@@ -153,6 +153,8 @@ export function catalogPaletteInsertCommand(
 /** The insert's placement outcome: where it went, and what refused the aimed target (if any). */
 export interface CatalogPaletteInsertPlan {
   command: CatalogCommand;
+  /** The node the command creates. */
+  id: NodeId;
   /** The first candidate (the selection) refused it; the insert went to `target` instead. */
   relocated?: { refusal: unknown; target: EditTarget };
 }
@@ -165,6 +167,8 @@ export function catalogPaletteInsertPlan(
   host: CatalogPaletteHost,
   type: string,
   initialProps?: Readonly<Record<string, unknown>>,
+  /** `beside`: never inside the selection — right after it (a list's Pagination, `pagedList.ts`). */
+  options?: { readonly beside?: boolean },
 ): CatalogPaletteInsertPlan | { command?: undefined; refusal: unknown } {
   const definitionId = catalogPaletteDefinitionId(host.graph.library, type);
   const props = catalogCreationProps(
@@ -182,20 +186,23 @@ export function catalogPaletteInsertPlan(
     ...catalogCreationStyle(initialProps),
     descendantOverrides: [],
   };
-  const placed = catalogInsertPlacement(host, (candidate) =>
-    insertNodes({
-      parent: parentOf(candidate.target),
-      index: candidate.index,
-      entries: [entry],
-      rootIds: [entry.id],
-      newId: host.newId,
-      label: "Add element",
-    }),
+  const placed = catalogInsertPlacement(
+    host,
+    (candidate) =>
+      insertNodes({
+        parent: parentOf(candidate.target),
+        index: candidate.index,
+        entries: [entry],
+        rootIds: [entry.id],
+        newId: host.newId,
+        label: "Add element",
+      }),
+    options,
   );
   if (!placed.command) return placed;
   return placed.relocated
-    ? { command: placed.command, relocated: placed.relocated }
-    : { command: placed.command };
+    ? { command: placed.command, id: entry.id, relocated: placed.relocated }
+    : { command: placed.command, id: entry.id };
 }
 
 /**
@@ -213,11 +220,13 @@ export interface CatalogInsertCandidate {
 
 export function catalogInsertCandidates(
   host: CatalogPaletteHost,
+  options?: { readonly beside?: boolean },
 ): CatalogInsertCandidate[] {
   const candidates: CatalogInsertCandidate[] = [];
   const [first] = host.selection();
   if (first) {
-    candidates.push({ target: first.target, identity: first.identity });
+    if (!options?.beside)
+      candidates.push({ target: first.target, identity: first.identity });
     let child = host.records.get(first.identity);
     let record = child && host.records.get(child.parentId);
     while (child && record) {
@@ -244,6 +253,7 @@ export function catalogInsertCandidates(
 export function catalogInsertPlacement(
   host: CatalogPaletteHost,
   build: (candidate: CatalogInsertCandidate) => CatalogCommand,
+  options?: { readonly beside?: boolean },
 ):
   | {
       command: CatalogCommand;
@@ -252,7 +262,7 @@ export function catalogInsertPlacement(
     }
   | { command?: undefined; refusal: unknown } {
   let refusal: unknown;
-  for (const candidate of catalogInsertCandidates(host)) {
+  for (const candidate of catalogInsertCandidates(host, options)) {
     const command = build(candidate);
     try {
       command(host.graph);

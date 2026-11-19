@@ -112,9 +112,6 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     slot: "rac",
     autoFocus: "rac",
   },
-  // (The RAC Table takes S2's table axes — `d2S2Alignment` reads it against S2's table type; the
-  // height axes are composition's. ADR-277: the table is one type.)
-  Table: { heightMode: "composition", height: "composition" },
   // (S2 removes by `onRemove` being set — composition's boolean shows the remove button.)
   TagGroup: { allowsRemoving: "composition" },
   TextArea: { isQuiet: "v3", rows: "composition" },

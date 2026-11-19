@@ -8,9 +8,10 @@ import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
  * ADR-310 Phase 8 — a virtual-scrolled Table holds every loaded row in the Preview (the
- * `Virtualizer` puts the visible ones in the DOM). A fixed-height Table otherwise keeps the rows
- * its height holds (`boundTableRows`) — before, that cut applied to a virtual Table too: live, a
- * 300 px Table bound to 250 rows scrolled to its 11th row only.
+ * `Virtualizer` puts the visible ones in the DOM). Before, the rows its height holds were all the
+ * Preview kept (`boundTableRows`): live, a 300 px Table bound to 250 rows scrolled to its 11th row
+ * only. (2026-11-19: only the Builder's sample is cut by the height — the Preview keeps what the
+ * display mode delivers in every mode, and the Table scrolls.)
  */
 afterEach(() => {
   vi.restoreAllMocks();
@@ -76,9 +77,10 @@ describe("ADR-310 Phase 8 — a virtual Table's rows", () => {
         (record) => record.bindingId === "tablebody",
       )?.visual.overflow;
     };
-    // (Shown as it is, the fixed height holds a few rows — the body cuts the rest.)
-    expect(rows()).toBeLessThan(250);
-    expect(bodyOverflow()).toBe("hidden");
+    // (Shown as it is — 「더 보기」: the window of 100, not the rows its height holds. The Preview
+    //  cuts nothing — the Table scrolls. 2026-11-19: a page of 20 showed 14.)
+    expect(rows()).toBe(100);
+    expect(bodyOverflow()).not.toBe("hidden");
     h.workspace.execute(setRowDisplay(id, { mode: "virtual" }));
     h.flush();
     await settle();

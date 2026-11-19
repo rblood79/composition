@@ -70,7 +70,7 @@ async function openTable(columns: Record<string, unknown>[]) {
     insertNodes({
       parent: { kind: "node", id: "project:node:home-body" as NodeId },
       entries: [
-        node("t", "Table", ["th", "tb"], { heightMode: "auto" }),
+        node("t", "Table", ["th", "tb"]),
         node("th", "TableHeader", cols),
         ...columns.map((props, index) =>
           node(`c${index}`, "Column", [], { children: `C${index}`, ...props }),
@@ -108,8 +108,7 @@ const span = (workspace: CatalogWorkspace, cell: string, value: unknown) => {
     [{ kind: "node", id: id(cell) }],
     { colSpan: value },
     (key) =>
-      workspace.readModel.propSource({ kind: "node", id: id(cell) }, key)
-        .value,
+      workspace.readModel.propSource({ kind: "node", id: id(cell) }, key).value,
     new Set(),
     workspace.newId,
   )!;
@@ -204,7 +203,9 @@ describe("ADR-257 Phase 2 — colSpan", () => {
   it("the Preview DOM re-renders a narrowed span without RAC's stale column index (live G2-3)", async () => {
     const { createRoot } = await import("react-dom/client");
     const { act } = await import("react");
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
     const workspace = await openTable([{}, {}, {}]);
     const host = document.createElement("div");
     document.body.appendChild(host);
@@ -249,9 +250,8 @@ describe("ADR-257 Phase 2 — colSpan", () => {
   it("a column reorder is refused while a row spans columns", async () => {
     const workspace = await openTable([{}, {}, {}]);
     span(workspace, "r1d0", 2);
-    const { moveNodes } = await import(
-      "../../../../../../packages/shared/src/catalog/commands"
-    );
+    const { moveNodes } =
+      await import("../../../../../../packages/shared/src/catalog/commands");
     expect(() =>
       workspace.execute(
         moveNodes({

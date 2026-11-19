@@ -869,8 +869,6 @@ export interface TranslationKeys {
     rowDisplayMore: string;
     rowDisplayPages: string;
     rowDisplayPageSize: string;
-    rowDisplayPagination: string;
-    rowDisplayPaginationNone: string;
     rowDisplayVirtual: string;
     rowDisplayVirtualBlocked: {
       height: string;

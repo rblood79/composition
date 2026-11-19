@@ -78,10 +78,7 @@ async function openTable(
     insertNodes({
       parent: { kind: "node", id: "project:node:home-body" as NodeId },
       entries: [
-        node("t", type, ["th", "tb"], {
-          ...(type === "Table" ? { heightMode: "auto" } : {}),
-          ...tableProps,
-        }),
+        node("t", type, ["th", "tb"], tableProps),
         node("th", "TableHeader", cols),
         ...columns.map((props, index) =>
           node(`c${index}`, "Column", [], { children: `C${index}`, ...props }),

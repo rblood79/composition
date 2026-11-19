@@ -86,7 +86,6 @@ import {
 import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../../collections/rowTemplateBindableProps";
 import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import { classifyTableCellDisplay } from "../../collections/cellValue";
-import { tableBinding } from "../bindings/Table.binding";
 import { catalogNearestSkeletonOwner } from "./skeletonOwner";
 import {
   catalogTableColumnKey,
@@ -262,10 +261,10 @@ interface BoundTableRows {
   readonly shown: readonly CatalogBoundRow[];
   readonly fixed: boolean;
   /**
-   * ADR-310 Phase 8: virtual-scrolled in the Preview (every row, the `Virtualizer` placing the
-   * visible ones) — nothing to cut.
+   * The Builder's sample (it draws what the height holds, cut) — the Preview keeps every row its
+   * display mode delivers and scrolls (a virtual Table: the `Virtualizer` places the visible ones).
    */
-  readonly virtualized: boolean;
+  readonly sampled: boolean;
   /** ADR-284 Decision 5: its view sorts by a variable (that sort, when the rows carry it). */
   readonly sortedByView?: { readonly sort: unknown };
 }
@@ -2256,12 +2255,19 @@ export function resolveCatalogNode(
         rowSet && templateTypeName(templateRootId) === "Table"
           ? boundTableRows(
               rowSet,
-              props,
+              tableBoxHeight(
+                templateRootId,
+                visual,
+                sizing,
+                "height" in node.visual ||
+                  layers.some(
+                    (layer) => layer.visual && "height" in layer.visual,
+                  ),
+              ),
               templateRootId,
               `${instancePath.join("/")}::${node.id}`,
               viewSortsByVariable(node.binding, lookupEntry),
               () => project(undefined),
-              node.rowDisplay?.mode === "virtual",
             )
           : undefined;
       push(children, finishBoundTable(project(table?.shown ?? rowSet), table));
@@ -2374,14 +2380,48 @@ export function resolveCatalogNode(
   /**
    * ADR-310 Phase 4 — the rows a bound Table's Row template repeats over: sorted by the Preview's
    * header sort (ADR-257 Phase 4 — by the field value, over every delivered row; a Table whose view
-   * sorts by a variable keeps the view's order — ADR-284 Decision 5), then cut — a fixed-height
-   * Table (`heightMode` "fixed", the binding default) takes the rows its height can hold, the
-   * other modes grow with every row (the Builder samples them, its TableBody's measured pitch).
+   * sorts by a variable keeps the view's order — ADR-284 Decision 5), then cut — a Table with a px
+   * height (its Styles height — the origin's default 400) takes the rows that height can hold, one
+   * without grows with every row (the Builder samples them, its TableBody's measured pitch).
    */
+  /**
+   * A Table's px height — what its record's box reads (`sizing.height ?? visual.height`): the
+   * instance's authored height over its origin template root's (the default 400). A keyword · `%`
+   * height is none (사용자 결정 2026-11-19: the height is the Styles height — no `heightMode`).
+   */
+  const tableBoxHeight = (
+    rootId: TemplateId,
+    visual: Readonly<Record<string, unknown>>,
+    sizing: Readonly<Record<string, number | null>>,
+    /** The instance authored its own `visual.height` (a keyword over the root's px). */
+    ownVisualHeight: boolean,
+  ): number | undefined => {
+    const template = rootId.startsWith("lib:")
+      ? library.templates.get(rootId as `lib:template:${string}`)
+      : graph.getEntry(rootId);
+    const rootVisual: Props = {};
+    const rootSizing: Record<string, number | null> = {};
+    if (template && "kind" in template) {
+      if (template.kind === "node") {
+        applyWrites(rootVisual, template.visual);
+        applyWrites(rootSizing, template.sizing);
+      }
+    } else if (template) applyValues(rootVisual, template.visual);
+    const height =
+      sizing.height ??
+      rootSizing.height ??
+      // (A masked height of its own leaves the root's — the record still reads the root's.)
+      pxLength(
+        ownVisualHeight && visual.height !== undefined
+          ? visual.height
+          : rootVisual.height,
+      );
+    return typeof height === "number" && height > 0 ? height : undefined;
+  };
   const boundTableRows = (
     rowSet: readonly CatalogBoundRow[],
-    /** The instance's resolved props (over its template root's). */
-    instanceProps: Props,
+    /** The Table's px height (`tableBoxHeight`); none = it grows with its rows. */
+    height: number | undefined,
     rootId: TemplateId,
     /** The bound node's record identity (the instance — its template root collapses into it). */
     tableId: string,
@@ -2389,11 +2429,6 @@ export function resolveCatalogNode(
     sortedByVariable: boolean,
     /** The Table without rows (its header's Columns name the sorted field). */
     bare: () => ResolvedCatalogNode | undefined,
-    /**
-     * ADR-310 Phase 8: the Table is virtual-scrolled (`rowDisplay` `virtual`) — the Preview keeps
-     * every row (the `Virtualizer` puts the visible ones in the DOM); the Builder still samples.
-     */
-    virtual: boolean,
   ): BoundTableRows => {
     const typeOf = (resolved: ResolvedCatalogNode) =>
       lookupDefinition(resolved.definitionId).name;
@@ -2429,21 +2464,11 @@ export function resolveCatalogNode(
     const template = rootId.startsWith("lib:")
       ? library.templates.get(rootId as `lib:template:${string}`)
       : graph.getEntry(rootId);
-    const rootProps: Props = {};
-    if (template && "kind" in template) {
-      if (template.kind === "node") applyWrites(rootProps, template.props);
-    } else if (template) applyValues(rootProps, template.props);
-    const prop = (key: string) => instanceProps[key] ?? rootProps[key];
-    const heightMode =
-      prop("heightMode") ?? tableBinding.props.accepts.heightMode?.default;
-    const height =
-      typeof prop("height") === "number"
-        ? (prop("height") as number)
-        : (tableBinding.props.accepts.height?.default as number | undefined);
-    const fixed =
-      heightMode === "fixed" &&
-      typeof height === "number" &&
-      (!virtual || !!rowSample);
+    // (The Builder draws the rows a px height holds — its sample. The Preview keeps every row its
+    //  display mode delivers — a window · a page · all of them — and the Table scrolls inside its
+    //  height: a page of 20 in a 400 Table showed 14, 2026-11-19 사용자 보고 「Rows per page 동작이
+    //  되지않는다」.)
+    const fixed = typeof height === "number" && !!rowSample;
     const bodyId = (
       template && "children" in template ? template.children : []
     ).find(
@@ -2452,14 +2477,14 @@ export function resolveCatalogNode(
     );
     const instancePath = tableId.slice(0, tableId.lastIndexOf("::"));
     const shown = fixed
-      ? ordered.slice(0, Math.ceil(height / TABLE_MIN_ROW_HEIGHT) + 1)
+      ? ordered.slice(0, Math.ceil(height! / TABLE_MIN_ROW_HEIGHT) + 1)
       : sampledRows(ordered, `${instancePath}::${bodyId}`);
     return {
       rowSet,
       ordered,
       shown,
       fixed,
-      virtualized: virtual && !rowSample,
+      sampled: !!rowSample,
       ...(sortedByView ? { sortedByView: { sort: variableSort } } : {}),
     };
   };
@@ -2476,9 +2501,10 @@ export function resolveCatalogNode(
       (child) => typeOf(child) === "TableBody",
     );
     if (!body) return projected;
-    // (A virtual-scrolled Table in the Preview cuts nothing: RAC's `Virtualizer` places the rows
-    //  absolutely in a body of no height — a clipping body hid every row, 2026-11-19 사용자 보고.)
-    const clip = !table.virtualized;
+    // (Only the Builder's sample is cut. The Preview cuts nothing: its Table scrolls (`Table.css`),
+    //  and RAC's `Virtualizer` places a virtual Table's rows absolutely in a body of no height — a
+    //  clipping body hid every row, 2026-11-19 사용자 보고.)
+    const clip = table.sampled;
     return {
       ...projected,
       // ADR-284 Decision 5: a Table sorted by its view's variable shows the variable's sort and

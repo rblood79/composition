@@ -48,9 +48,24 @@
   .react-aria-Table[data-node-table] {
     overflow: auto;
 
+    /* The header stays at the top while the rows scroll (S2 TableView) and covers them with the
+       table's own background — a page of 20 rows in a 400 Table scrolls inside it (2026-11-19).
+       At rest it looks as before (the Canvas draws no header background of its own). A virtual
+       Table's header has no height of its own (its row is absolute) — RAC's two unclassed wrappers
+       (the content box, then the sticky header box) pass the background on, and the header box
+       covers the rows: the header's words sat on the first row's (live, 2026-11-19). */
+    > [role="presentation"],
+    > [role="presentation"]
+      > [role="presentation"]:has(> .react-aria-TableHeader) {
+      background: inherit;
+    }
+
     .react-aria-TableHeader {
-      background: transparent;
+      background: inherit;
       color: inherit;
+      position: sticky;
+      top: 0;
+      z-index: 1;
 
       /* ADR-257: the header row is a grid on the Columns' shared tracks — the TableHeader node
          carries them (`--table-column-tracks`, `catalogDomStyle`), every Row has the same. */

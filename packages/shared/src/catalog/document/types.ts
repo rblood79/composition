@@ -175,9 +175,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      붙여 쓴 날짜 · 날짜 배열 · 큰 정수) · collection 의 key 필드 `keyField` (필드 id).
  * 71 — ADR-314 Phase 1: Skeleton 을 S2 래퍼로 — 요소 없는 container (자식을 감싼다) · `size` 삭제
  *      (사용자 결정 1 — `size` 를 적은 옛 Skeleton 은 검증을 통과하지 못한다).
+ * 72 — Table 의 `heightMode` · `height` prop 삭제 (사용자 결정 2026-11-19) — 높이는 Styles 높이 하나
+ *      (S2 는 `styles` 로 받는다). 원본의 기본 400 은 template `visual.height` — 두 prop 을 적은 옛
+ *      Table 은 검증을 통과하지 못한다.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 71 as const;
+export const LIBRARY_CONTRACT_VERSION = 72 as const;
 
 export type EntryKind =
   | "project"

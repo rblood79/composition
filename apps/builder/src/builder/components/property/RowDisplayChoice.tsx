@@ -1,13 +1,14 @@
 import { SelectValue } from "react-aria-components/Select";
 import { useI18n } from "@/i18n";
-import {
-  setPagination,
-  setRowDisplay,
-} from "../../../../../../packages/shared/src/catalog/commands/rowDisplay";
+import { setRowDisplay } from "../../../../../../packages/shared/src/catalog/commands/rowDisplay";
 import type { NodeEntry } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogGrowsWithRows } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { catalogVirtualFlow } from "../../../../../../packages/shared/src/catalog/runtime/virtualFlow";
 import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
+import {
+  catalogPagedListCommand,
+  catalogUnpagedListCommand,
+} from "../../catalogRuntime/pagedList";
 import { useCatalogStepReading } from "../../catalogRuntime/react.runtime";
 import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
 import { PanelSelect, PanelSelectItem } from "./PanelSelect";
@@ -43,17 +44,14 @@ export default function RowDisplayChoice({
       });
     }
     // ADR-310 Phase 8 — a list can virtual-scroll when it has a scroll box (a bounded height —
-    // a Table's fixed height mode) and a `Layout` places its rows as the Canvas does.
+    // a Table's too: its Styles height) and a `Layout` places its rows as the Canvas does.
     const record = workspace.root.domInputs.get(elementId);
     let virtualBlocked: string | undefined;
     if (record) {
-      const bounded =
-        record.ruleId === "Table"
-          ? record.props.heightMode === "fixed"
-          : !catalogGrowsWithRows(
-              record.visual as never,
-              record.sizing as never,
-            );
+      const bounded = !catalogGrowsWithRows(
+        record.visual as never,
+        record.sizing as never,
+      );
       // (The `Layout` check — four equal paddings — runs in the Preview's chunk: a
       //  list it cannot place the same way draws as it is there. Kept out of this panel's import —
       //  it moved shared modules into the Builder's initial chunk, +1,160 B.)
@@ -100,14 +98,25 @@ export default function RowDisplayChoice({
           onSelectionChange={(key) =>
             runCatalogCommand(
               workspace,
-              setRowDisplay(
-                listId,
-                key === "pages"
-                  ? { mode: "pages", size: state.size }
-                  : key === "virtual"
-                    ? { mode: "virtual" }
-                    : undefined,
-              ),
+              key === "pages"
+                ? // (Pages brings its Pagination along — `catalogPagedListCommand`.)
+                  catalogPagedListCommand(
+                    workspace,
+                    elementId,
+                    listId,
+                    state.size,
+                    !!connected,
+                  )
+                : // (Away from Pages its Paginations go too — `catalogUnpagedListCommand`.)
+                  catalogUnpagedListCommand(
+                    listId,
+                    key === "virtual" ? { mode: "virtual" } : undefined,
+                    state.mode === "pages"
+                      ? state.paginations
+                          .filter((item) => item.pagesOf === listId)
+                          .map((item) => item.id as NodeEntry["id"])
+                      : [],
+                  ),
             )
           }
           trigger={<SelectValue />}
@@ -133,52 +142,22 @@ export default function RowDisplayChoice({
           />
         </PanelSelect>
       </div>
+      {/* (No Pagination picker — 사용자 결정 2026-11-19: Pages places its Pagination and pages it,
+          another display removes it — `pagedList.ts`.) */}
       {state.mode === "pages" && (
-        <>
-          <PropertyInput
-            label={t("propertiesPanel.rowDisplayPageSize")}
-            value={String(state.size)}
-            onChange={(text) => {
-              const size = Number(text);
-              if (Number.isInteger(size) && size >= 1 && size <= 1000)
-                runCatalogCommand(
-                  workspace,
-                  setRowDisplay(listId, { mode: "pages", size }),
-                );
-            }}
-          />
-          <div className="binding-row">
-            <PanelSelect
-              aria-label={t("propertiesPanel.rowDisplayPagination")}
-              selectedKey={connected?.id ?? "none"}
-              onSelectionChange={(key) => {
-                if (key === "none") {
-                  if (connected)
-                    runCatalogCommand(
-                      workspace,
-                      setPagination(connected.id as NodeEntry["id"], undefined),
-                    );
-                  return;
-                }
-                runCatalogCommand(
-                  workspace,
-                  setPagination(String(key) as NodeEntry["id"], listId),
-                );
-              }}
-              trigger={<SelectValue />}
-            >
-              <PanelSelectItem
-                id="none"
-                label={t("propertiesPanel.rowDisplayPaginationNone")}
-              />
-              {state.paginations.map((item) => (
-                <PanelSelectItem key={item.id} id={item.id} label={item.name} />
-              ))}
-            </PanelSelect>
-          </div>
-        </>
+        <PropertyInput
+          label={t("propertiesPanel.rowDisplayPageSize")}
+          value={String(state.size)}
+          onChange={(text) => {
+            const size = Number(text);
+            if (Number.isInteger(size) && size >= 1 && size <= 1000)
+              runCatalogCommand(
+                workspace,
+                setRowDisplay(listId, { mode: "pages", size }),
+              );
+          }}
+        />
       )}
     </>
   );
 }
-

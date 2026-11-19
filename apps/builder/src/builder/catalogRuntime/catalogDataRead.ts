@@ -12,6 +12,15 @@ import type {
   ProjectEntry,
   ProjectVariableEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import {
+  catalogRowDisplaySize,
+  type NodeId,
+} from "../../../../../packages/shared/src/catalog/document/types";
+import type {
+  CatalogBoundRows,
+  CatalogRowBinding,
+} from "../../../../../packages/shared/src/catalog/resolution/resolver";
+import { catalogBoundRows } from "../../../../../packages/shared/src/catalog/runtime/dataBinding";
 import type { DataField, DataTable } from "../../types/builder/data.types";
 import { useDataStore } from "../stores/data";
 
@@ -93,6 +102,33 @@ export function catalogCollectionTables(
       runtime.get(rawId(entry.id, COLLECTION)),
     ),
   );
+}
+
+/**
+ * The Canvas's rows of a bound node (the root's `rows`): the document's collections with the API
+ * rows the store caches. A paged list (`rowDisplay` `pages`) reads its first page — `size` rows,
+ * and that page is all the Canvas counts (its height sample is taken of the page, no 「+N more」
+ * for the later pages). Before (2026-11-19 사용자 보고 — Compare Mode): the Preview drew 「Rows per
+ * page」 rows and the Canvas drew every row its height held.
+ */
+export function catalogBuilderBoundRows(
+  reader: Reader,
+  binding: CatalogRowBinding,
+  kind?: "items" | "records",
+  ownerId?: NodeId,
+): CatalogBoundRows | undefined {
+  const tables = catalogCollectionTables(reader);
+  const owner = ownerId ? reader.getEntry(ownerId) : undefined;
+  const display = owner?.kind === "node" ? owner.rowDisplay : undefined;
+  if (display?.mode !== "pages" || kind === "records")
+    return catalogBoundRows(binding, tables, kind);
+  const page = catalogBoundRows(
+    binding,
+    tables,
+    kind,
+    catalogRowDisplaySize(display),
+  );
+  return page ? Object.assign(page, { total: page.length }) : page;
 }
 
 /** The project variables as `VariableDef` (the `{{ }}` env — Canvas defaults, ADR-214). */

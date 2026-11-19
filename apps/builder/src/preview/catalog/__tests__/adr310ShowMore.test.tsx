@@ -118,9 +118,9 @@ describe("ADR-310 G1 — 「더 보기」 reaches the last row", () => {
     },
   );
 
-  // (A bound Table's rows are synthesized — a fixed-height Table shows the rows its height holds,
-  // the Preview too; ADR-310 Phase 4 replaces that path with the Row template.)
-  it.each(["CardView"])(
+  // (A Table with a px height too — 2026-11-19: only the Builder's sample is cut to the rows the
+  // height holds; the Preview keeps its window and the Table scrolls to its end.)
+  it.each(["CardView", "Table"])(
     "%s: a 250-row mock list shows its last row once its end is seen",
     async (type) => {
       seeEverySentinel();

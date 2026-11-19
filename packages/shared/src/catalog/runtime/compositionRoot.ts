@@ -90,7 +90,6 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { SEGMENTED_INDICATOR_BORDER } from "../rule/segmentedControl";
 import { inlineTextContent } from "./inlineText";
 import type { ComponentRule } from "../../types/catalog-style.types";
-import { tableBinding } from "../bindings/Table.binding";
 import { componentOriginOf } from "../document/componentOrigin";
 import { definitionTypeName } from "../commands/context";
 import { catalogNearestSkeletonOwner } from "../resolution/skeletonOwner";
@@ -1507,28 +1506,6 @@ function segmentRuns(
 }
 
 /** Rust `NodeStyle` input. It has no `padding`/`gap` shorthand (serde drops unknown keys). */
-/**
- * A Table's own height when the author set none (the old layout's Table rule): `heightMode`
- * "fixed" (the binding default) is the DOM virtualizer's `height` (default 400) inside the outer
- * box's border; the other modes follow the content.
- */
-function catalogTableHeight(
-  node: CatalogConsumerNode,
-  borderWidth: CatalogLength | undefined,
-): { height?: string } {
-  const accepts = tableBinding.props.accepts;
-  const mode = node.props.heightMode ?? accepts.heightMode?.default;
-  if (mode !== "fixed") return {};
-  const height =
-    typeof node.props.height === "number"
-      ? node.props.height
-      : accepts.height?.default;
-  if (typeof height !== "number") return {};
-  // Table.css `border: 1px solid` when the rule writes none.
-  const border = typeof borderWidth === "number" ? borderWidth : 1;
-  return { height: `${height + border * 2}px` };
-}
-
 /** The width before a StatusLight's label: its dot (rule `indicator.dotSize`) and the row gap. */
 function catalogStatusLightLead(node: CatalogConsumerNode): number {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
@@ -1799,9 +1776,7 @@ function styleOf(
       ? { height: px(box.height) }
       : glyph !== undefined
         ? { height: `${glyph}px` }
-        : node.bindingId === "table"
-          ? catalogTableHeight(node, box.borderWidth)
-          : {}),
+        : {}),
     ...(box.minHeight !== undefined ? { minHeight: px(box.minHeight) } : {}),
     ...(box.minWidth !== undefined ? { minWidth: px(box.minWidth) } : {}),
     ...(box.gap !== undefined

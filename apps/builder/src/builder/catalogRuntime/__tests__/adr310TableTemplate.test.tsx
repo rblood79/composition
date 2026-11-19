@@ -73,6 +73,8 @@ async function boundTable(count: number, status?: (index: number) => unknown) {
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
       root: {
+        // (The Builder's root — it draws the rows a px height holds; the Preview's keeps them all.)
+        rowSample: true,
         rows: (binding) =>
           binding.collectionId === BINDING.collectionId ? rows : undefined,
       },
@@ -208,7 +210,7 @@ describe("ADR-310 G4 — a bound Table's Row template", () => {
         ]);
         counts.push(workspace.runtime.graph.size);
         const drawn = drawnRows(workspace);
-        // (A fixed-height Table — the binding default, 400 — draws the rows its height holds.)
+        // (A Table with a px height — the origin's 400 — draws the rows its height holds.)
         expect(drawn.length).toBe(count === 0 ? 0 : 14);
         if (count)
           expect(drawn.slice(0, 2)).toEqual([

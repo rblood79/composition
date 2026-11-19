@@ -6272,10 +6272,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-table__2"
     ],
     "props": {
-      "selectionMode": "none",
-      "height": 400
+      "selectionMode": "none"
     },
-    "visual": {}
+    "visual": {
+      "height": 400
+    }
   },
   {
     "id": "lib:template:component-table__1",

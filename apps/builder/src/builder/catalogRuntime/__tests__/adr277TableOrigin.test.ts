@@ -332,7 +332,7 @@ describe("ADR-277 — one table type", () => {
     const palette = getPaletteItems();
     expect(palette.some((item) => item.type === "TableView")).toBe(false);
     expect(palette.filter((item) => item.type === "Table")).toHaveLength(1);
-    // The Table keeps its surface (S2 TableView's axes + composition's height).
+    // The Table keeps its surface (S2 TableView's axes).
     const table = getPrimitiveBinding("Table")!;
     for (const key of [
       "dataBinding",
@@ -341,10 +341,11 @@ describe("ADR-277 — one table type", () => {
       "selectionMode",
       "selectionStyle",
       "overflowMode",
-      "heightMode",
-      "height",
     ])
       expect(table.props.accepts, key).toHaveProperty(key);
+    // (사용자 결정 2026-11-19: no height props — the height is the Styles height, as S2's `styles`.)
+    for (const key of ["heightMode", "height"])
+      expect(table.props.accepts, key).not.toHaveProperty(key);
     // (S2 TableView has no size axis — ADR-295 후속 C1 removed the Table's S · M · L.)
     expect(table.props.accepts).not.toHaveProperty("size");
   });

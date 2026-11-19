@@ -1198,8 +1198,6 @@ const catalog: TranslationKeys = {
     rowDisplayMore: "Show more at the end",
     rowDisplayPages: "Pages",
     rowDisplayPageSize: "Rows per page",
-    rowDisplayPagination: "Pagination",
-    rowDisplayPaginationNone: "None",
     rowDisplayVirtual: "Virtual scroll",
     rowDisplayVirtualBlocked: {
       height: "Give the list a fixed height first",
@@ -3296,7 +3294,6 @@ const semanticLabels: Record<string, string> = {
   "properties.calendarIcon": "Calendar icon",
   "properties.separatorIcon": "Separator icon",
   "properties.menuIcon": "Menu icon",
-  "properties.heightMode": "Height mode",
   "properties.fixed": "Fixed",
   "properties.viewport": "Viewport",
   "properties.full": "Full",

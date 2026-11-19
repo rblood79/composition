@@ -115,7 +115,7 @@ async function open(type: string, rows: CatalogBoundRow[]) {
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: LIST }],
-        props: { heightMode: { kind: "set", value: "auto" } },
+        visual: { height: { kind: "set", value: "fit-content" } },
       }),
     );
   }
@@ -166,7 +166,9 @@ describe("ADR-248 4e Layers row sample", () => {
     const nodes = layers(workspace)();
     expect(drawnRows(workspace)).toBeLessThan(100);
     expect(childrenOf(nodes, "ListBox")).toEqual([["ListBoxItem", true]]);
-    expect(nodes.find((node) => node.typeName === "ListBoxItem")!.repeat).toEqual({
+    expect(
+      nodes.find((node) => node.typeName === "ListBoxItem")!.repeat,
+    ).toEqual({
       count: 100,
     });
     workspace.dispose();
@@ -176,7 +178,9 @@ describe("ADR-248 4e Layers row sample", () => {
     const workspace = await open("GridList", rowsOf(10));
     const nodes = layers(workspace)();
     expect(childrenOf(nodes, "GridList")).toEqual([["GridListItem", true]]);
-    expect(nodes.find((node) => node.typeName === "GridListItem")!.repeat).toEqual({
+    expect(
+      nodes.find((node) => node.typeName === "GridListItem")!.repeat,
+    ).toEqual({
       count: 10,
     });
     workspace.dispose();

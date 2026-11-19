@@ -73,10 +73,9 @@ import {
  * `.react-aria-Keyboard`.
  */
 /**
- * ADR-256 Phase 5i — the node tree's RAC Table (`[data-node-table]` — `Table.css`). `heightMode`
- * "fixed" (the binding default) keeps its `height` (default 400) inside its border and scrolls when
- * the author set no height, as the Canvas sizes it (`catalogTableHeight` — a `<table>` is
- * `box-sizing: border-box`); the other modes follow the rows.
+ * ADR-256 Phase 5i — the node tree's RAC Table (`[data-node-table]` — `Table.css`). Its height is
+ * its Styles height (the origin's default 400 — a `<table>` is `box-sizing: border-box`); with
+ * none it follows the rows.
  */
 /**
  * ADR-257 Phase 4 — a resizable Table's `<table>` inside RAC's `ResizableTableContainer`: the

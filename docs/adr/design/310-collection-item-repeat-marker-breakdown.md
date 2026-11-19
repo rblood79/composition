@@ -352,7 +352,7 @@ ReUI 2.8.1 의 실제 기반은 Base UI · Radix 이고 RAC 가 아니다. 목�
 - `dropRemovedItemKeys` = 지운 항목의 key 를 가장 가까운 그룹의 선택 · 펼침 값에서 뺀다.
 - Canvas 에서 데이터 행을 고르면 `positionOfRecord` 가 `#row:` 를 잘라 템플릿 자리를 편집한다 (`workspace.ts:1140`).
 - `codeViewApply` 는 렌더 함수 본문을 해석하지 않는다 — 고치면 `notInCode` 로 거부 (Phase 6 대상).
-- 높이 판정: ListBox · GridList 는 `growsWithRows` (높이 · 최대 높이를 쓰지 않음 = 내용만큼), Table 은 `heightMode === "fixed"` — 가상 스크롤의 「정해진 높이」 판정에 같은 함수를 쓴다 (Phase 8).
+- 높이 판정: ListBox · GridList 는 `growsWithRows` (높이 · 최대 높이를 쓰지 않음 = 내용만큼), Table 은 `heightMode === "fixed"` — 가상 스크롤의 「정해진 높이」 판정에 같은 함수를 쓴다 (Phase 8). **2026-11-19 변경 (사용자 결정)**: Table 의 `heightMode` · `height` prop 을 지웠다 — Table 도 `growsWithRows` 하나로 판정하고, 높이에 드는 행 수는 해석된 px 높이 (`tableBoxHeight` — Styles 높이, 원본 기본 400 은 template `visual.height`) 로 센다 (contract 72).
 - `GridLayout` (react-stately 3.51.0 `private/layout/GridLayout.mjs:35-125`) 은 폭 · `minItemSize` · `minSpace` · `maxColumns` 로 열 수 (`floor(w / (min + space))`) · 칸 폭 · 가로 간격 · 가운데 여백을 정하는 닫힌 산식이다 — CSS grid 가 아니다. Canvas 가 같은 함수를 쓰면 같은 칸을 낼 수 있다 (사용자 결정 7 의 재료 — Phase 8 에서 묻는다).
 - 새로 찾은 것: **SideNav** (S2 `items` 지원) 가 항목 type 목록 다섯 곳 어디에도 없다 — 연결 계약도 없다. 이 ADR 범위 밖으로 보고하고 type 표 게이트에 사유와 함께 제외로 둔다.
 

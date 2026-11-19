@@ -1198,8 +1198,6 @@ const catalog: TranslationKeys = {
     rowDisplayMore: "끝에서 더 보기",
     rowDisplayPages: "페이지",
     rowDisplayPageSize: "쪽당 행 수",
-    rowDisplayPagination: "페이지 이동",
-    rowDisplayPaginationNone: "없음",
     rowDisplayVirtual: "가상 스크롤",
     rowDisplayVirtualBlocked: {
       height: "목록에 높이를 먼저 정하세요",
@@ -3290,7 +3288,6 @@ const semanticLabels: Record<string, string> = {
   "properties.calendarIcon": "캘린더 아이콘",
   "properties.separatorIcon": "구분자 아이콘",
   "properties.menuIcon": "메뉴 아이콘",
-  "properties.heightMode": "높이 모드",
   "properties.fixed": "고정",
   "properties.viewport": "뷰포트",
   "properties.full": "전체",

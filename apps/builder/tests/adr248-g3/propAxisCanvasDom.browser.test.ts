@@ -233,7 +233,7 @@ const CASES: Array<{
   {
     key: "Table-nodes",
     type: "Table",
-    props: { heightMode: "auto" },
+    props: {},
     edit: (subject) => {
       const at = (part: string) => ({
         kind: "descendant" as const,
@@ -303,7 +303,7 @@ const CASES: Array<{
   {
     key: "Table-selection",
     type: "Table",
-    props: { heightMode: "auto", selectionMode: "multiple" },
+    props: { selectionMode: "multiple" },
     edit: (subject) => {
       const at = (part: string) => ({
         kind: "descendant" as const,
@@ -410,7 +410,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 71,
+    libraryContractVersion: 72,
     revision: 0,
     projectId,
     rootId: projectId,

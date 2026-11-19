@@ -276,7 +276,8 @@ try {
       const lists = [
         ["vlist", "ListBox", { width: 600, height: 300 }, {}, "virtual"],
         ["hlist", "ListBox", { width: 600, height: 120 }, {}, "virtual"],
-        ["table", "Table", { width: 600 }, { height: 300 }, "virtual"],
+        // (2026-11-19: the Table's height is its Styles height — no `height` prop.)
+        ["table", "Table", { width: 600, height: 300 }, {}, "virtual"],
         ["cards", "CardView", { width: 700, height: 420 }, {}, "virtual"],
         ["more", "ListBox", { width: 600, height: 300 }, {}, "more"],
         ["remote", "ListBox", { width: 600, height: 300 }, {}, "virtual"],

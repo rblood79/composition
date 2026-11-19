@@ -104,29 +104,10 @@ export const tableBinding: PrimitiveBinding = {
           { value: "wrap", label: "Wrap" },
         ],
       },
-      // ADR-923 r21m1 (2026-09-02) — 높이 축. `heightMode`(fixed/auto/viewport/full) × `height` 로
-      //   Table 높이를 정한다 — DOM 은 `domRegistry.tsx` `CatalogTable`, Canvas 는 `compositionRoot.ts`
-      //   `catalogTableHeight` 가 같은 두 prop 을 읽는다. 여기 선언이 없으면 렌더러(`renderCatalogDom`)가
-      //   둘 다 전달하지 않는다 (r18m1 Disclosure title 과 같은 형태 — 선언 없는 prop 은 소비 경로가 없다).
-      heightMode: {
-        kind: "enum",
-        label: "Height Mode",
-        section: "appearance",
-        default: "fixed",
-        options: [
-          { value: "fixed", label: "Fixed" },
-          { value: "auto", label: "Auto" },
-          { value: "viewport", label: "Viewport" },
-          { value: "full", label: "Full" },
-        ],
-      },
-      height: {
-        kind: "number",
-        label: "Height",
-        section: "appearance",
-        min: 0,
-        default: 400,
-      },
+      // (No height props — 사용자 결정 2026-11-19: the Table's height is its Styles height, as S2
+      //  takes it by `styles`. The `heightMode` · `height` props are gone: only "fixed" was ever
+      //  read, and an authored Styles height already won over `height`. The origin template
+      //  carries the default 400 — `component-table` `visual.height`.)
     },
     toRacProps: "default",
   },
