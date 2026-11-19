@@ -17,6 +17,7 @@
  */
 
 import type { IntakeSource } from "../../../../../../../packages/shared/src/collections/intake/normalizeRows";
+import { CATALOG_COLLECTION_ROW_LIMIT } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { intakeRows } from "../utils/intakeRows";
 import {
   ArrowLeftRight,
@@ -94,7 +95,10 @@ import {
 } from "../utils/columnDetector";
 import type { ColumnChoice } from "../utils/encodingChoices";
 import { ColumnIntakeTable } from "./ColumnIntakeTable";
-import { SchemaImportSection, type SchemaImportDraft } from "./SchemaImportSection";
+import {
+  SchemaImportSection,
+  type SchemaImportDraft,
+} from "./SchemaImportSection";
 import { newFieldId } from "../../../../utils/data/normalizeCollection";
 import type { DataField } from "../../../../types/builder/data.types";
 import { parsePastedRows, pastedRowsSource } from "../utils/pasteRows";
@@ -272,7 +276,9 @@ export function DataTableCreator({
   const createDataTable = useDataStore((state) => state.createDataTable);
   const applyDataChange = useDataStore((state) => state.applyDataChange);
   // ADR-313 — the 「Schema」 method's draft (columns · key · endpoint draft).
-  const [schemaDraft, setSchemaDraft] = useState<SchemaImportDraft | null>(null);
+  const [schemaDraft, setSchemaDraft] = useState<SchemaImportDraft | null>(
+    null,
+  );
   const openApiCreator = useDataTableEditorStore(
     (state) => state.openApiCreator,
   );
@@ -379,7 +385,6 @@ export function DataTableCreator({
       report: intake.report,
     };
   }, [importedSource, detected, choices, keyColumn]);
-
 
   const readImportFile = useCallback(
     (file: File) => {
@@ -514,7 +519,9 @@ export function DataTableCreator({
             origin: "user",
           });
           if (!mountedRef.current) return;
-          announceDataPanelStatus(t("tableCreated", { name }), { tone: "success" });
+          announceDataPanelStatus(t("tableCreated", { name }), {
+            tone: "success",
+          });
           openTableEditor(id);
           return;
         }
@@ -862,7 +869,12 @@ export function DataTableCreator({
               }}
             >
               <FileTrigger
-                acceptedFileTypes={[".csv", ".json", "text/csv", "application/json"]}
+                acceptedFileTypes={[
+                  ".csv",
+                  ".json",
+                  "text/csv",
+                  "application/json",
+                ]}
                 onSelect={(files) => {
                   const file = files?.[0];
                   if (file) readImportFile(file);
@@ -970,7 +982,7 @@ export function DataTableCreator({
               label={localize("rowCount", "Row count")}
               value={sampleCount}
               min={0}
-              max={100}
+              max={CATALOG_COLLECTION_ROW_LIMIT}
               allowEmpty={false}
               onChange={(value) => setSampleCount(value ?? 0)}
             />
