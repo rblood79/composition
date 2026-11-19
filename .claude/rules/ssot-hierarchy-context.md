@@ -3,6 +3,8 @@ description: SSOT 체인 배경 맥락 — 역사적 맥락(§0) · 용어 사�
 paths:
   - "docs/adr/**"
   - "packages/shared/src/catalog/**"
+  - "packages/rendering/**"
+  - "apps/builder/src/builder/workspace/canvas/**"
 ---
 
 # SSOT 체인 — 배경 맥락 (역사 · 용어 · ADR 관계)
@@ -36,3 +38,67 @@ paths:
 - **ADR-062 (Field variant 제거)**: D2 정리. RSP 미규정 prop 제거 + RSP 규정 prop(isQuiet) 보강
 - **ADR-063 (본 charter)**: 본 규칙의 ADR 형식 정식화
 - **ADR-142 (Starter/Spec Component System Cutover, Implemented 2026-06-02)**: D3 SSOT를 컴포넌트당 spec 파일에서 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection으로 재정의. ADR-036/907/908의 spec 스키마 메커니즘을 폐기 (907/908 의 primitive · fill 계약은 `packages/rendering` 에 존속, spec 파일은 ADR-248 에서 전부 삭제)
+
+## 9. ssot-hierarchy.md 에서 옮긴 사례 · 집행 (2026-11-19)
+
+> 상시 로드 비용을 줄이려고 정본에서 옮겼다. 원문 그대로 — 정본의 §4 · §7 은 여기를 가리킨다.
+
+### D3 — 사고 기록 (Why 2026-11-05 · 11-13)
+
+- **Why (2026-11-05)**: Publish의 layer 밖 `:focus-visible` 기본값이 catalog의 `data-focus-visible` 분기를 덮어 마우스 Menu hover에도 2px outline을 그렸다. 앱 기본 focus 규칙은 컴포넌트 상태 규칙보다 낮은 우선순위에 둔다.
+- **Why (2026-11-13)**: 같은 기제가 margin 에서도 났다 — Publish 의 layer 밖 `* { margin: 0 }` 이 catalog margin (SideNav 행 `margin-top: 6px` · SideNavHeader `margin-bottom: 8px`) 을 지워 Publish 만 행이 붙었다 (`@layer preview-system` 으로 옮김). 그리고 CSS 생성기는 `emitContainerStyles` 에 줄이 없는 rule 값 (SideNav `min-width` · SideNavHeader `margin-bottom` · Token `white-space` …) 을 버렸고, size 블록의 `padding: 0px 0px` 가 rule 이 선언한 padding 한쪽 (SideNavHeader · Toast) 을 덮었다 — Canvas 는 둘 다 읽었다. 앱 reset 은 가장 낮은 layer 에, rule 값은 두 consumer 가 모두 쓴다 (`CSSGenerator.containerStyles.test.ts` 가 모든 rule 의 키를 검사).
+
+### D1 ↔ D3 분리 사례 — RAC Group ↔ canonical frame
+
+**D1 ↔ D3 분리 사례 — RAC `Group` ↔ canonical `frame` (ADR-130 Implemented 2026-05-13)**:
+
+- RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — catalog Group definition/primitive binding
+- canonical `frame` = D3 layout container — catalog frame definition (skipCSSGeneration:true, ARIA role 없음)
+- 진입점 단일화: builder palette / multi-select grouping / pencil import 모두 `type: "frame"`. RAC ARIA Group 으로 layout 의도 흡수 금지 (D1 침범)
+- canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 와 catalog `frame` entry 1:1 정합. `frame` 을 Group 의 alias 로 두는 패턴 금지 — ARIA role emit 으로 D1 침범 (옛 `BASE_TAG_SPEC_MAP` 은 ADR-248 에서 삭제)
+- legacy `type: "Group" + customId="group_N"` 은 `isLegacyGroupForFrameMigration()` 으로 1회 hydration migration 대상. ARIA Group (customId 없음 또는 다른 prefix) 보존
+
+### 생성 CSS archetype 미지정 = 중립 상자
+
+**생성 CSS archetype 미지정 = 중립 상자 (ADR-223 Implemented 2026-09-18)**: catalog `structure.archetype: "default"` (와 잔존 spec 의 archetype 미선언) 의 생성 CSS base 는 `container` 와 같은 block · box-sizing · font-family 뿐이다 — Skia 가 읽지 않는 버튼 어법 (inline-flex · align/justify center · cursor · user-select · transition) 을 기본값으로 싣지 않는다. 정렬·크기 (geometry) 는 `structure.containerStyles` 로 두 consumer 가 같이 읽고, Canvas 저작 surface 에 대응이 없는 DOM interaction (cursor · user-select · transition) 은 `composition.rootSelectors["&"]` 가 catalog 정본이되 Canvas 는 소비하지 않는다 (Card · Tab). 신규 entry 는 archetype 또는 `composition.layout` 을 명시한다 (`archetypeDefaultCohort.static.test.ts` ratchet).
+
+### §4 집행 메커니즘
+
+#### 집행 메커니즘 (원 §4)
+
+##### 4-1. 대칭 검증 수단
+
+- **runtime**: `/cross-check` skill (단일 컴포넌트 · 패밀리는 영향 컴포넌트마다 반복)
+- **검증 대상**: 시각 결과 일치 — Builder Skia 렌더와 Preview DOM/CSS 렌더의 스크린샷 or 구조적 비교
+- **build-time 자동화**: 미완성. 향후 과제
+
+##### 4-2. 위반 감지 및 대응
+
+| 위반 유형                     | 감지                                    | 대응                                    |
+| ----------------------------- | --------------------------------------- | --------------------------------------- |
+| 수동 CSS가 SSOT에서 파생 아님 | catalog rule 에 없는 값을 가진 수동 CSS | ADR 작성 → 해체 계획                    |
+| consumer-to-consumer 참조     | `@sync` 주석                            | catalog 경유로 재작성                   |
+| catalog 가 D1/D2 침범         | 코드 리뷰                               | 위반 코드 즉시 거부                     |
+| 시각 비대칭 (CSS≠Skia)        | `/cross-check` 실패                     | 어느 쪽이 SSOT 맞는지 조사 후 양쪽 정렬 |
+| RSP 미규정 prop 임의 도입     | 코드 리뷰                               | 거부, RSP 참조 요구                     |
+
+##### 4-3. 문서 교차 참조 의무
+
+새 ADR 작성 시 Context 섹션에서 **3개 domain 중 어느 것에 해당하는지 명시** 필수. 경계 교차 시 정당화 필요.
+
+### §7 허용 패턴
+
+#### 허용 패턴 (원 §7)
+
+- ✅ catalog(`COMPONENT_RULES_TABLE`) + theme/tokens가 색상 토큰/사이즈/레이아웃 정의 (일반 컴포넌트)
+- ✅ Frame/Group/Slot도 catalog가 색상 토큰/사이즈/레이아웃을 정의
+- ✅ `generate-css.ts` 가 catalog SSOT 를 CSS 로 자동 변환
+- ✅ Skia 렌더가 catalog 를 shape 로 변환
+- ✅ RAC 컴포넌트를 그대로 사용 + CSS로 스타일 적용
+- ✅ RSP props를 custom 구현으로 catalog binding에 추가
+- ✅ `/cross-check`로 시각 대칭 확인
+- ✅ 의심스러운 회색지대는 "시각적으로 달라질 수 있나" 기준으로 판정
+
+### Select 다중 선택 Why (2026-11-05)
+
+- **Why (2026-11-05, Select 다중 선택)**: RAC SelectValue의 기본값은 선택 항목 자식을 나열하므로 목록 label의 `width: 100%`까지 복제되어 간격이 벌어졌다. D1 선택 상태는 RAC에 두고, D2 S2의 2개 이상 선택 개수 표시와 단일 check / 다중 checkbox 계약은 catalog binding에서 두 소비자가 공유한다.
