@@ -3,6 +3,7 @@ import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import {
   ChevronRight,
+  EyeOff,
   GripVertical,
   Repeat,
   Settings2,
@@ -66,7 +67,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
     <div
       className={`elementItem ${isSelected ? "active" : ""} ${
         isFocusVisible ? "focused" : ""
-      }`}
+      }${node.columnHidden ? " layer-column-hidden" : ""}`}
       data-selection-region={selectionRegion}
       onContextMenu={(event) => onContextMenu?.(node, event)}
     >
@@ -115,6 +116,18 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
           />
         )}
         <span className="elementItemLabelText">{name}</span>
+        {/* ADR-315: a Table's hidden column — kept here to select, not drawn on the Canvas. */}
+        {node.columnHidden && (
+          <EyeOff
+            className="layer-hidden-icon"
+            size={12}
+            strokeWidth={ICON_EDIT_PROPS.stroke}
+            role="img"
+            aria-label="Hidden column"
+          >
+            <title>Hidden column</title>
+          </EyeOff>
+        )}
         {node.repeat?.count !== undefined && (
           <span className="layer-repeat-count" translate="no">
             × {node.repeat.count}

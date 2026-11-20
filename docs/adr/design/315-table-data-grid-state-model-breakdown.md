@@ -701,7 +701,7 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 
 **사용자 결정 (2026-11-20, 종결 때 질문)**: G3 의 검색 입력 속도 — 결과가 바뀌는 글자의 136 ~ 152 ms 는 RAC collection 재구성 비용이고 Worker (Phase 7) 로는 줄지 않는다. 선택지 셋 — (가) 기준을 정렬 클릭 기준선으로 맞춘다 (HC4 가 열 조작에 쓰는 상한), (나) collection 에 두는 행 수를 줄이는 설계를 Phase 7 에 더한다 (행 창 — ADR-310 의 설계를 건드린다), (다) 지금대로 Phase 7 에서 측정만 다시 한다 — 가운데 사용자가 **(가)** 를 골랐다. 본문 HC4 · G3 의 문구를 그에 맞췄다.
 
-### Phase 4 (진행 중 — 2026-11-20 착수, 사용자 결정 3 = 메뉴 + 끌기)
+### Phase 4 (2026-11-21 — G4 통과, 미해결 1 건은 사용자 결정으로 Phase 7)
 
 **착수 조사 — 열이 지나던 길 (실측)**: resolver 는 데이터에 연결한 Table 에서만 표 상태를 읽었다 (`resolver.ts` 의 `boundTableState` — 연결하지 않은 Table 은 상태를 전혀 읽지 않음). 세션의 열 목록 (`tableColumns`) 은 해석된 record 의 머리글이라 그리지 않는 열을 알 수 없었고, 열 조각이 바뀌어도 다시 해석하는 길이 없었다. 폭 조절의 끝을 받는 자리 (`onResize` · `onResizeEnd`) 와 가상 layout 의 고정 열 훅 (`isStickyColumn`) 은 없다. Column ↔ Cell 대응은 「자리 순서」 뿐이다 (resolver 에 대응 함수 없음 — 작성 명령 쪽 `tableColumnGrid` 는 draft 기반).
 
@@ -716,7 +716,7 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **세션**: `setTableState` 가 열 조각 (숨김 · 순서 · 고정) 변경 뒤 `root.reprojectColumns` 를 부른다 — 마지막으로 읽은 행을 그대로 쓰고 행 source 를 부르지 않는다 (HC4, 호출 수 0 을 테스트가 막음). `tableColumnsNow` (지금 숨긴 · 고정한 열). 기억한 열 조각은 복원 때 바로 투영한다 (Publish 는 복원 뒤 다시 해석하는 일이 없다).
 - **검사**: `resolution/__tests__/tableColumns.test.ts` 12 (따로 적은 나무 — 숨김 · 순서 · 고정 순서 · 작성 기본값 · row header · colSpan 덩어리 · 어긋난 행 · 유지 행 · 접힌 층 · Builder 의 숨김 표시) · `adr315Columns.test.tsx` 8 (세션 + DOM — 숨김 · 순서 · 행 source 0 · 숨긴 열 검색 · 정렬 · 가상 · 작성자 key 편집 뒤 목록 · Canvas 기본값 · 연결 안 한 Table · Table 자신의 값 편집) · `adr315RememberState.test.tsx` +1. 회귀 새 실패 0 (shared 2,703 · builder 9,394 통과). 변이 RED 는 아직.
 - **live (2026-11-20, dev 서버 · Chrome MCP · 새 프로젝트)**: 놓은 Table (연결 없음) 의 Type Column 을 Layers 에서 골라 「Hidden by default」 누름 → Canvas 머리글 Name · Status (트랙 다시 나뉨) · Layers 에서 숨긴 Column 다시 고름 (Design 패널에 그 Column) → 끔 → Type 돌아옴 → 켬 → 사라짐 · Publish 새 탭 머리글 `[Name, Status]` · 행 `[Item 1, Active]` · 콘솔 오류 0.
-- **아직 안 한 것**: Layers 에 숨긴 Column 표시 (지금은 다른 Column 과 구분 없음) · 가상 표에서 열 변경 때 빈 행 key (칸 span 서명) 가 바뀌어 전부 다시 mount 되는 비용 측정 (HC4 — 정렬 클릭 기준선 안인지).
+- **아직 안 한 것** (→ 아래 「증분 1 의 남은 것」 에서 끝): Layers 에 숨긴 Column 표시 · 가상 표에서 열 변경 때 빈 행 key (칸 span 서명) 가 바뀌어 전부 다시 mount 되는 비용 측정 (HC4).
 
 **증분 2 — 열 고정 (끝, `df1528d82`)**:
 
@@ -782,7 +782,7 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **검사**: `adr315ColumnChooser.test.tsx` 4 (열 선택 — 목록 · 체크 · 숨김 · 다시 보임 · row header 잠김 · 행 source 0 / Table 따라가기 — 열 이름 변경이 메뉴에 / 열 Do — 보이기 · 숨기기 · 쉼표 목록 · row header 유지 · 뒤 고정 · 해제 · 필터 · 지우기 / 패널 스위치 — 연결 안 한 Table · 표 바로 앞 · 「Columns」 · 끄면 제거). 게이트 갱신 (의도): 등록표 guard 목록 +8 (`deriveRegistry`), Do 등록 type 68 → 69 (`capabilityLabelKeys`), 도달 행렬에 이 테스트 (`capabilityBindingReach`), by-id 읽기 세션 3 → 5 (`stagedLoadReaders`), 필드 목록 스냅샷 (`fieldCoverage` +1). 변이 RED 15/15 (행 출처 없음 · 감싸개가 출처를 버림 · 선택 미전달 · 선택 무시 · 메뉴에 안 알림 · 잠김 없음 · 다시 해석 안 함 · Do 미전달 · 고정 · 필터가 보는 사람 허용을 봄 · 쉼표 목록 · 표본 항목 남김 · 「Columns」 없음 · multiple 아님 · 머리글 글자 없음). 회귀 새 실패 0 (shared 2,714 통과 · 실패 7 = 착수 전 목록, 셋은 HEAD worktree 에서 같은 실패 확인 · builder 단독 재실행 실패 12 = 착수 전 목록 — 전체 실행에서 시간 초과로 빠진 16 파일은 단독 실행 통과). 처음 회귀에서 이 증분의 실패 4 를 찾아 고쳤다 — 위 게이트 넷 (ADR-287 조회 수 게이트: 모든 `selectedKeys` 쓰기가 record 를 찾던 것을 「메뉴로 알린 record 만」 · 「열 prop 이 있는 patch 만」 으로). type-check PASS.
 - **live (2026-11-20, dev 서버 · Chrome MCP · 새 프로젝트 「adr315-p4d-check」)**: Table 을 놓고 Behavior 「Column visibility menu」 켬 → Canvas 표 위 「Columns」 버튼 · Table 이 그 아래로 → Publish 새 탭: 「Columns」 → [Name ✓ (꺼짐) · Type ✓ · Status ✓] → Type 누름 → 머리글 [Name · Status] · 메뉴 그대로 열림 · Type 해제 → 다시 누름 → [Name · Type · Status] → Name 누름 → 그대로 → Builder 에서 스위치 끔 → 「Columns」 사라짐 · 콘솔 오류 0.
 
-**증분 5 — 머리글 끌기 (끝, 미커밋 — 사용자 결정 3 의 「끌기」)**:
+**증분 5 — 머리글 끌기 (끝, `705fb5f55` — 사용자 결정 3 의 「끌기」)**:
 
 - **자리**: Table 「Reorder columns」 를 켠 표의 데이터 Column (`isMenu` — 선택 열은 해당 없음) 의 머리글 안 우리 손잡이 (`span.catalog-column-drag-handle` — 시작 쪽 padding 위 14px, 평소 투명 · 머리글 hover · 손잡이 focus · 끌기 중에 보임 — 키보드 focus 를 받도록 `display: none` 이 아니다). RAC Column 의 DOM 은 그대로다 (D1). 열 순서 허용을 Table 에서 읽어 다른 이유로 메뉴가 있는 열 (「Allow hiding」 …) 에는 손잡이가 없다.
 - **끌기 · 놓기 = react-aria `useDrag` · `useDrop`** (S5 그대로). 놓을 자리는 끌기 중에만 생긴다 — 같은 표의 다른 머리글을 덮는 `div.catalog-column-drop`, 끌고 있는 열을 받을 수 있는 곳만 (세션에 한 번 묻는다). 놓는 쪽 선은 끌린 열이 뒤에서 오면 시작 쪽, 앞에서 오면 끝 쪽. 끌기 상태 (어느 표의 어느 열) 는 모듈 하나가 들고 `onDragStart` · `onDragEnd` 에서 바뀐다. react-aria 의 키보드 끌기는 끌기 중에 등록되는 놓을 자리도 받는다 (`registerDropTarget` → `updateValidDropTargets` — 설치본 `DragManager.mjs` 확인).
@@ -792,7 +792,7 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **검사**: `tableColumnMenu.test.ts` +3 (뒤 · 앞에 놓기 · 상태의 순서에서 시작 / 허용 없음 · 자기 자신 · 고정 쪽 넘기 · 같은 쪽 안 / 숨긴 열의 자리) · `adr315ColumnDrag.test.tsx` 3 (손잡이 — 데이터 열마다 이름 붙은 손잡이 · 스위치 없으면 다른 이유의 메뉴가 있어도 없음 / 손잡이 누름은 정렬하지 않음 / 키보드 끌기 — 놓을 자리 2 · Tab · Enter → `columnOrder` · 행 source 0 · 문서 그대로 · 놓은 뒤 놓을 자리 0). 게이트 갱신 (의도): `adr297ManualStateRatchet` Table.css 1 → 2 (손잡이 focus 표시 — rule class 가 아닌 런타임 요소). 변이 RED 9/9 (놓는 자리 · 허용 검사 · `from` 이 목록 밖 · 세션 미적용 · 스위치 검사 · 그리지 않음 · 끌기 끝 미정리 · 놓기 미적용 · Space 전파). GREEN 이던 넷: 고정 쪽 검사 · 자기 머리글 제외 는 다른 검사가 이미 막는 중복이라 지웠고, 손잡이의 pointer · click 전파 차단 둘은 jsdom 에서 native drag 시작을 볼 수 없어 live 로 확인했다 (S5 — RAC Column 의 press 가 mousedown 기본 동작을 막으면 native drag 가 시작되지 않는다). 회귀 새 실패 0 (shared 7 · builder 12 는 착수 전 목록 그대로 — builder 는 단독 실행으로 대조).
 - **live (2026-11-20, production 빌드 + Playwright `--check-drag`)**: Table 「Reorder columns」 → Publish: 손잡이 6 · hover 때 보임 → Name 손잡이를 포인터로 Amount 머리글에 → [Dept · City · Amount · Name · Qty · Date] · 놓을 자리 0 → Date 손잡이 focus · Enter (끌기 시작 · 놓을 자리 5) · Tab (「여기로 열 이동: Dept」) · Enter → [Date · Dept · City · Amount · Name · Qty] → 정렬 없음 → Qty 머리글 클릭 → 오름차순. 가상 · 「더 보기」 × Chrome · WebKit 네 조합 PASS · 콘솔 오류 0.
 
-**증분 6 — Phase 2 · 3 에서 넘어온 것 (끝, 미커밋)**:
+**증분 6 — Phase 2 · 3 에서 넘어온 것 (끝, `705fb5f55`)**:
 
 - **넘어온 목록의 정리**: Phase 2 의 「정렬에 추가」 메뉴 항목 · Phase 3 의 열 필터 조작 자리 (열 메뉴 「필터」 · 열 필터 Do · `tableFacet` 의 소비처) 는 증분 4b · 4c · 4d 에서 끝났다. 「정렬에 추가」 Do 는 4d 에서 두지 않기로 했다 (값 하나로 쓰는 Do 축에 맞지 않음). 두 「스위치 막기」 는 Phase 2 · 3 이 사유 한 줄 (`CatalogTableSortNotice`) 로 이미 끝냈다. 남은 하나가 「작성된 기본 정렬을 머리글에 표시 (Canvas 순번 포함)」 — 이 증분이다.
 - **작성된 정렬**: 연결한 Table 의 보기가 행을 남기는 정렬 — 정렬이 있는 마지막 보기의 리터럴 정렬 (뒤 보기가 묶으면 없음, 변수 정렬은 ADR-284 Decision 5 의 것), 필드는 그 key (= 그 필드를 보이는 Column 의 key). 열이 보이지 못하는 항목 (참조 경로 · 없는 필드 · Column 이 없는 필드) 에서 목록이 끝난다 — 행은 그 항목으로 먼저 정렬돼 있어 뒤 항목만 표시하면 틀린 표시다. resolver 가 Table record 에 `_authoredSort` (JSON 글자 — `tableColumns.ts` `catalogViewAuthoredSort`) 로 싣는다. 행을 읽지 않은 Table (원격 collection 의 Builder) 에도 싣는다 — 정렬은 문서의 것이다.
@@ -808,6 +808,29 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **live (2026-11-20, production 빌드 · Playwright `--check-authored-sort --column-origin`, 200 행 원격 collection, 보기 정렬 Dept ↑ · Amount ↓)**: Builder — Dept · Amount 감싸개 record 의 `_sortMark` (`ascending:1` · `descending:2`) · 표시 part 폭 25.2 (16 + 2 + 7.2) · 이름이 그 뒤 8, Canvas 화면에 「↑ 1 Dept」 · 「↓ 2 Amount」 (스크린샷 확인). Publish — `aria-sort` Dept ↑, 화살표 · 순번 Dept 1 ↑ · Amount 2 ↓, 표시 상자 폭 25.195 (Chrome) · 25.188 (WebKit), 화살표 색 = 이름 글자 색, 첫 8 행 = 하니스 행 생성기로 따로 계산한 「Dept 번호 ↑, 그 안 Amount ↓」 → Amount 머리글 클릭 → `aria-sort` Amount ↑ · 순번 없음 · 첫 8 행 = 작성 순서 위의 Amount ↑ 안정 정렬. 콘솔 오류 0. Chrome · WebKit × 가상 · 「더 보기」 네 조합 PASS. Chrome · 가상 8 회 중 1 회는 Amount 클릭 뒤 내림차순 (두 번 누른 결과와 같음) — 바로 뒤 3 회 재실행은 PASS, 원인 미확인 (Phase 4 검증의 live 에서 다시 본다).
 - **알려진 한계**: 내용 감싸개가 없는 Column (`sortsInline` — 옛 하니스 열 정의처럼 글자가 Column 바로 아래) 은 Canvas 에 표시를 그리지 않는다 (Preview 는 그린다). 지금 palette 의 Column 원본은 감싸개가 있다.
 
-**남은 증분**: 증분 1 의 남은 것 (Layers 의 숨긴 Column 표시 · 가상 표 열 변경 비용) — Phase 4 검증 전에.
+**증분 1 의 남은 것 (끝, 미커밋)**:
+
+- **Layers 의 숨긴 Column**: Builder 가 남겨 두는 숨긴 열의 record (`_columnHidden` — Column 과 그 Cell) 는 Layers 에서 줄을 그대로 두고, 흐린 아이콘 · 이름 + 눈 감은 표시 (`EyeOff`, 이름 「Hidden column」) 를 단다. 판정은 workspace 한 곳 (`columnHidden` — 지금 root 의 record), 줄 객체의 `columnHidden`, 그리고 Layers 가 step 마다 다시 읽는 판정 목록 (`columnGated` — 「Hidden by default」 는 줄 목록을 바꾸지 않으므로 EmptyState 의 `collectionGated` 와 같은 길).
+- **검사**: `adr315LayersHiddenColumn.test.ts` 1 (스위치 켬 → 그 step 만으로 Column · Cell 줄에 표시, 줄은 남음 → 끔 → 표시 없음). 변이 RED 3/3 (step 판정 목록 · 줄 비교 · workspace 판정). catalogRuntime · navigator 테스트의 실패 4 파일 (8) 은 이 변경을 되돌린 HEAD 판에서도 같은 8 이다.
+- **live (2026-11-21, dev 서버 · Chrome MCP · 「adr315-p4d-check」)**: Layers 에서 Gender Column 을 골라 「Hidden by default」 켬 → Canvas 머리글에서 Gender 빠짐 · 그 줄이 흐려지고 눈 감은 표시 (다른 줄을 골라도 남음) → 다시 골라 끔 → Gender 돌아옴 · 표시 없음.
+- **가상 표의 열 변경 비용 (HC4)** — 측정 하니스 `--profile-columns` (production 빌드, 원격 collection 10,000 행 · 가상 · 열 6, `--column-origin`): 모든 열 「Allow hiding」 · 「Allow pinning」, Table 「Reorder columns」 · 「Column visibility menu」. Publish 에서 Dept 「앞에 고정」 · 「고정 해제」, Name 「오른쪽으로」 · 「왼쪽으로」, 열 선택 메뉴의 Qty 끔 · 켬 — 항목 누름 → 머리글이 바뀐 다음 frame. 기준선 = 같은 페이지의 정렬 (Amount · Name 의 열 메뉴 「오름차순 · 내림차순」 — 메뉴가 있는 열은 머리글 누름이 메뉴를 연다, S2 `isMenu`) 의 항목 누름 → 첫 행이 바뀐 다음 frame. CPU 1x · 4x 각 3 회 중앙값.
+  - **찾은 결함**: 정렬된 표에서 열 숨김 · 보이기가 4x 2,093 / 2,855 ms (정렬 706 ~ 726 ms — 기준선의 3 배). 1x (83 / 91 ms) 와 정렬 없는 4x (402 ms) 는 기준선 안이었다 (4x 회차는 1x 회차의 정렬 뒤에 돈다). CPU profile: 2,104 ms 중 React `getHostSibling` 1,435 ms (self 1,300) — 가상 표의 빈 행 10,000 개의 React key 에 칸 span 서명이 들어 있어, 열 수가 바뀌면 그대로인 묶음 (fragment) 안에서 행마다 key 가 바뀌고 React 가 행을 하나씩 다시 놓으며 뒤따르는 놓을 행을 매번 건너 걸었다 (메모리 `reference-react-keyed-reorder-gethostsibling-quadratic` 과 같은 기제).
+  - **수리** (`domBinding.runtime.ts`): 빈 행은 칸이 없어 RAC 가 낡은 칸 번호를 들 일이 없다 — key 를 행 key 만으로 (`windowRowKey` — 칸 span 이 표의 행 모양과 다른 record 행만 span 을 key 에 더한다, 창이 지날 때 빈 행 ↔ record 의 key 가 같은 것은 그대로). 표의 행 모양이 바뀌면 묶음의 key (`catalogWindowRowChunkKey` — 이름 + 모양) 가 바뀌어 묶음째 다시 mount — 묶음마다 한 번 놓인다 (정렬 수리와 같은 길). 검사 `windowRowKeys.test.ts` 2 (빈 행 key 는 모양과 무관 · 묶음 key 는 모양을 따름), 변이 RED 2/2, 가상 표 · ADR-315 · ADR-257 Preview 테스트 14 파일 75 통과.
+  - **수리 뒤 (10,000 행)**: 1x — 고정 · 해제 · 이동 66 ~ 84 ms · 숨김 · 보이기 75 / 77 ms · 정렬 210 ~ 221 ms. 4x — 고정 · 해제 · 이동 224 ~ 252 ms · 숨김 · 보이기 572 / 587 ms · 정렬 696 ~ 718 ms. 열 변경이 모두 정렬 기준선 아래 (HC4). 1,000 행: 1x 75 ~ 84 vs 정렬 75 ~ 77 ms (같은 부류), 4x 220 ~ 302 vs 345 ~ 354 ms.
+  - 하니스에서 본 것 (결함 아님): Builder Canvas 의 첫 머리글 「Name」 은 데이터 연결 표시 칩 (「Grid」) 이 덮는다 — record 글자는 그대로.
+
+**Phase 4 검증 (2026-11-21)**:
+
+- **회귀**: shared 실패 7 · 통과 2,722, builder 실패 12 (7 파일) · 통과 9,421 — 실패는 착수 전 목록 그대로 (catalogRuntime 의 4 파일 8 건은 이 Phase 의 변경을 되돌린 판에서도 같다, `actionIcons.static` 은 `CatalogLayerIcon.tsx` 의 기존 import). type-check PASS.
+- **변이 RED**: 증분별 합 128 (1: 14 + 3 · 2: 16 · 3: 6 · 4a: 12 · 4b: 12 · 4c: 15 + 1 · 4d: 15 · 5: 9 · 6: 23 · HC4 수리: 2) — 전부 RED.
+- **번들** (`vite build` + closure, Phase 3 커밋 `9e44cb76d` 의 worktree 빌드 대비): Builder initial JS gzip 1,592,408 → 1,600,425 B (**+8,017** — 사용자 결정 6 의 +8,000 을 17 B 넘음, 보고) · Preview 171,810 → 171,814 B (+4). 열 메뉴 · 필터 대화상자 · 끌기는 쓰는 표에서만 읽는 lazy chunk 다 (HC5). ADR-201 절대 상한 (Builder 1,435,351) 은 Phase 3 기준선부터 넘는다 — 이 ADR 의 판정은 결정 6 의 Δ.
+- **HC4 A/B** (production 하니스 빌드, 10,000 행 · 가상 · 열 6, Phase 3 빌드 `dist-p3base` 대 Phase 4 빌드, headed Chrome):
+  - 전체 하니스 5 쌍 (base 먼저 3 · Phase 4 먼저 2): 로드 1.01 · 힙 1.00 · 스크롤 p95 1x 1.01 · 4x 1.01 (중앙값) · 정렬 클릭 1x 1.05 / 1.00 · **4x 1.18 / 1.11** — 순서를 바꿔도 같다.
+  - 정렬만 (ABBA 6 쌍, 스크롤 없음): 1x 1.02 / 1.01 · 4x 0.99 / 1.02. 스크롤 1 회 뒤 정렬 (세 빌드 — Phase 3 · HEAD `705fb5f55` · HEAD + 열 변경 수리 — 순환 3 회): 4x 세 빌드 같음 (631 ~ 711 / 634 ~ 663 / 635 ~ 640 ms) — 수리가 원인이 아니다.
+  - 그래서 느려지는 것은 긴 순서 (스크롤 6 회 + 1x 정렬 12 회 + 4x 스크롤 3 회) 뒤의 정렬뿐이다 — 창 이동 · 정렬이 쌓는 무언가로 보인다 (CPU profile: 그 정렬의 React commit +79 ms · passive effect unmount +49 ms). 원인을 찾지 않았다 — **사용자 결정 (2026-11-21) 으로 Phase 7 A/B 가 같은 순서로 다시 잰다**.
+  - 하니스 추가: `--profile-columns` (열 변경 · 메뉴 정렬 기준선) · `--sort-only [scrolled]` · `--profile-sort [scrolled] --profile-rate 4` · `--profile-chooser [sorted]`.
+- **live**: 증분마다 한 것으로 닫는다 (위 증분 기록 — 고정 Chrome · WebKit × 가상 · 비가상, 폭 기억, 필터, 끌기, 작성 정렬, 열 선택 메뉴, Layers 숨김 표시). 마지막 재확인 묶음과 Canvas 기본값 `/cross-check` (G4 조건) 은 사용자 결정으로 Phase 7.
+- **Gate G4**: 열 숨김 · 순서 · 고정 · 폭 기억 Preview · Publish 동작 (live) · 검색 중 열 숨김의 요청 · 결과 무변경 · 행 source 0 (`adr315Columns.test.tsx`) · RAC 불변식 throw 0 (`tableColumns.test.ts` 의 row header · colSpan · 어긋난 행) · 가로 스크롤 중 고정 (가상 · 비가상 × Chrome · WebKit, 증분 2) — 통과. Canvas 기본값 `/cross-check` 은 Phase 7.
+- **남은 한계 (기록)**: colSpan 이 덮는 열의 메뉴 이동은 묶음을 따르지 않는다 · RTL 의 이동 라벨 테스트 없음 · 크기 조절 손잡이의 뒤쪽 절반이 다음 열 머리글 아래 (기존) · 패널 칩을 켜면 Overrides 줄이 늘어 Behavior 칩이 밀린다 (이 ADR 밖).
 
 (다음 Phase 의 기록은 여기에 이어 적는다)

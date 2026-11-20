@@ -67,6 +67,11 @@ export interface CatalogLayerNode {
    */
   readonly emptyState?: true;
   /**
+   * A Table's hidden column the Builder keeps (ADR-315 Phase 4 — a Column 「Hidden by default」
+   * and its Cells): listed, so the author selects it, but not drawn on the Canvas.
+   */
+  readonly columnHidden?: true;
+  /**
    * ADR-310 Decision 3 — the rows' template of a bound collection (its item marked `repeat`): the
    * row shows a repeat icon and `count` = the data rows it draws (absent while the rows are unknown).
    */
@@ -117,6 +122,8 @@ export interface CatalogLayerTreeHost {
    * state (EmptyState) while it has items, its item positions while its loaded data is empty.
    */
   collectionRowHidden?(position: CatalogPosition, parentType: string): boolean;
+  /** Whether a Column · Cell is a hidden column the Builder keeps (ADR-315 Phase 4). */
+  columnHidden?(position: CatalogPosition): boolean;
   /**
    * Whether a position has a drawn record (ADR-310: a bound list's rows' template draws nothing
    * while its loaded data is empty — its row counts 0 rows, not unknown).
@@ -171,6 +178,8 @@ const nameOf = (
   );
 };
 /** A collection's direct IllustratedMessage — its EmptyState (RAC `renderEmptyState`). */
+/** The rows a Table's hidden column marks (ADR-315 Phase 4). */
+const COLUMN_TYPES: ReadonlySet<string> = new Set(["Column", "Cell"]);
 const isEmptyState = (typeName: string, parentType: string | undefined) =>
   catalogIsEmptyState(typeName, parentType);
 /**
@@ -216,6 +225,7 @@ const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.slot === b.slot &&
   a.keptOrigin === b.keptOrigin &&
   a.emptyState === b.emptyState &&
+  a.columnHidden === b.columnHidden &&
   a.repeat?.count === b.repeat?.count &&
   String(a.repeat?.keyConflicts ?? "") ===
     String(b.repeat?.keyConflicts ?? "") &&
@@ -257,6 +267,11 @@ export class CatalogLayerTreeStore {
   private collectionGated: readonly {
     position: CatalogPosition;
     parentType: string;
+    hidden: boolean;
+  }[] = [];
+  /** ADR-315 — the Column · Cell rows judged by `columnHidden`, with the judgment. */
+  private columnGated: readonly {
+    position: CatalogPosition;
     hidden: boolean;
   }[] = [];
   /**
@@ -321,6 +336,11 @@ export class CatalogLayerTreeStore {
         if (counting) docCounters.layersGatedChecked += 1;
         return (host.absentByValue?.(position) ?? false) !== absent;
       });
+      // ADR-315: a Column's 「Hidden by default」 flips its mark without the row list changing.
+      const columnFlipped = this.columnGated.some(
+        ({ position, hidden }) =>
+          (host.columnHidden?.(position) ?? false) !== hidden,
+      );
       const collectionFlipped = this.collectionGated.some(
         ({ position, parentType, hidden }) =>
           (host.collectionRowHidden?.(position, parentType) ?? false) !==
@@ -346,6 +366,7 @@ export class CatalogLayerTreeStore {
         renamed ||
         gated ||
         collectionFlipped ||
+        columnFlipped ||
         repeatFlipped ||
         conflictsChanged ||
         this.rowsChanged ||
@@ -428,6 +449,7 @@ export class CatalogLayerTreeStore {
       parentType: string;
       hidden: boolean;
     }[] = [];
+    const columnGated: { position: CatalogPosition; hidden: boolean }[] = [];
     const wanted = new Set<string>(["page"]);
     // A template part absent by its parent's empty prop has no row (owned nodes stay listed).
     const listed = (rows: readonly CatalogPosition[]) => {
@@ -502,6 +524,11 @@ export class CatalogLayerTreeStore {
           ? graph.getEntry(position.target.id)
           : undefined;
       const repeats = entry?.kind === "node" && entry.repeat === true;
+      const columnHidden =
+        COLUMN_TYPES.has(typeName) &&
+        (this.host.columnHidden?.(position) ?? false);
+      if (COLUMN_TYPES.has(typeName) && this.host.columnHidden)
+        columnGated.push({ position, hidden: columnHidden });
       const expanded = count > 0 && this.expanded.has(position.identity);
       const next: CatalogLayerNode = {
         id: position.identity,
@@ -513,6 +540,7 @@ export class CatalogLayerTreeStore {
         ...(isEmptyState(typeName, parentType)
           ? { emptyState: true as const }
           : {}),
+        ...(columnHidden ? { columnHidden: true as const } : {}),
         ...(repeats
           ? {
               repeat: {
@@ -616,6 +644,7 @@ export class CatalogLayerTreeStore {
     this.visibleNodes = visibleNodes;
     this.valueGated = valueGated;
     this.collectionGated = collectionGated;
+    this.columnGated = columnGated;
     this.repeatGated = repeatGated;
     this.wanted = wanted;
     // (Unconnected, the rows are only read — `connect` subscribes the lists this read wanted.)

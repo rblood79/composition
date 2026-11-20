@@ -59,6 +59,7 @@ import {
 import type { CatalogBoundLayerRows } from "./layerTree";
 import { CatalogReadModel } from "./readModel";
 import { catalogAbsentByOwnerValue } from "../../../../../packages/shared/src/catalog/runtime/presence";
+import { CATALOG_COLUMN_HIDDEN_PROP } from "../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { CatalogHistoryStore } from "./history";
 import type { EditTarget } from "../../../../../packages/shared/src/catalog/document/types";
 import type { OwnFields } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
@@ -927,6 +928,17 @@ export class CatalogWorkspace {
     return (
       (RAC_COLLECTION_CHILD_TYPES[parentType] ?? []).includes(type) &&
       !root.domInputs.has(position.identity)
+    );
+  }
+  /**
+   * Whether a Column · Cell is a Table's hidden column the Builder keeps (ADR-315 Phase 4 — a
+   * Column 「Hidden by default」: not drawn, but its record stays so Layers can select it).
+   */
+  columnHidden(position: CatalogPosition): boolean {
+    return (
+      this.currentRoot.domInputs.get(position.identity)?.props[
+        CATALOG_COLUMN_HIDDEN_PROP
+      ] === true
     );
   }
   boundRowsOf(position: CatalogPosition): CatalogBoundLayerRows | undefined {

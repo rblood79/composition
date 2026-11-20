@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-315 Phase 4 (진행 중) — Table 열 숨김 · 순서 · 고정 · 폭을 표 상태로] - 2026-11-20
+## [ADR-315 Phase 4 — Table 열 숨김 · 순서 · 고정 · 폭 · 열 메뉴 · 열 선택 메뉴 · 머리글 끌기] - 2026-11-21
 
 ### Breaking Changes
 
@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **작성된 정렬을 머리글에 표시** — 데이터 보기에 정렬을 적은 Table (Code 보기의 `toSorted` 등) 은 그 정렬을 머리글에 보인다: 정렬 허용 열에 화살표, 여러 열이면 순번. Builder Canvas 도 같이 그린다 (전에는 Canvas · Preview 모두 행만 정렬되고 머리글은 비어 있었다). Preview · Publish 에서 머리글을 누르면 그 방향에서 시작하고 (작성된 오름차순 열 → 내림차순), Shift 는 작성된 목록 끝에 더하며, 「Allow unsorted」 의 마지막 누름은 작성된 정렬로 돌아간다. 화살표와 순번은 한 상자이고 순번 칸은 고정 폭이다 (Canvas 와 같은 폭). 위치: `packages/shared/src/catalog/resolution/tableColumns.ts` (`catalogViewAuthoredSort` · `_authoredSort`) · `resolver.ts` · `runtime/presence.ts` (`catalogTableAuthoredSortShown` · `_sortMark` · `catalogSortMarkWidth`) · `compositionRoot.ts` (정렬 표시 part) · `catalogPreviewSession.ts` (`tableSortNow`) · `domBinding.runtime.ts` · `tableOperationsDom.components.tsx` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`. 회귀 `adr315AuthoredSort.test.tsx` · `tableColumns.test.ts`. live: production 빌드 — Builder Canvas 의 「↑ 1 Dept」 · 「↓ 2 Amount」, Publish 의 같은 표시 · 행 순서 · Amount 클릭 뒤 오름차순, Chrome · WebKit × 가상 · 「더 보기」, 콘솔 오류 0. 알려진 한계: 내용 감싸개가 없는 Column 은 Canvas 에 표시를 그리지 않는다 (Preview 는 그린다).
 
 - **Column 「Hidden by default」 · 「Pinned」 (Design 패널 Property 탭)**
-  - 「Hidden by default」 를 켠 열은 처음부터 보이지 않는다 — Canvas · Preview · Publish 모두. 숨긴 열도 검색 · 정렬 · 필터 대상이다. 행 머리글 열이 전부 숨으면 마지막 하나는 남는다. Builder 에서는 숨긴 Column 을 Layers 에서 그대로 고를 수 있다 (그 스위치를 다시 끄기 위해).
+  - 「Hidden by default」 를 켠 열은 처음부터 보이지 않는다 — Canvas · Preview · Publish 모두. 숨긴 열도 검색 · 정렬 · 필터 대상이다. 행 머리글 열이 전부 숨으면 마지막 하나는 남는다. Builder 에서는 숨긴 Column 을 Layers 에서 그대로 고를 수 있다 (그 스위치를 다시 끄기 위해) — 그 줄과 칸 줄은 흐리게, 눈 감은 표시 (「Hidden column」) 와 함께 보인다 (`layerTree.ts` `columnHidden` · `CatalogLayerItem.tsx`).
   - 「Pinned」 (None · Start · End) 로 고정한 열은 가로로 스크롤해도 표의 왼쪽 · 오른쪽 끝에 남는다 — 가상 스크롤 표와 「더 보기」 · 「쪽」 표 모두, 머리글과 칸 둘 다. 고정 쪽 끝 열에는 1px 경계선이 그려진다 (Column · Cell rule 의 `pinned-edge` — Canvas 와 DOM 이 같이 읽는다). 앞 고정이 있으면 선택 checkbox 열도 같이 남는다.
   - 표 상태 (숨김 · 순서 · 고정) 는 Preview · Publish 실행 중 값이고 문서는 바뀌지 않는다. 「Remember state」 를 켠 표는 그 값을 브라우저에 남긴다. 최종 사용자가 쓰는 자리는 아래 열 메뉴 (필터 포함) · 열 선택 메뉴 · 머리글 끌기다.
   - 위치: `packages/shared/src/catalog/resolution/tableColumns.ts` (열 투영 한 곳 — 머리글 · 모든 행의 칸 · 트랙) · `resolver.ts` · `runtime/catalogPreviewSession.ts` (`tableColumnsNow` · 열 조각 변경 때 `root.reprojectColumns` — 행 source 를 부르지 않는다) · `compositionRoot.ts` (`touchesTableRows`) · `domBinding.runtime.ts` (`data-pinned` · `--table-pin-at`) · `tableOperationsDom.components.tsx` (`CatalogTablePinMeasure`) · `catalogVirtualizer.components.tsx` (`isStickyColumn` · 끝 고정 칸) · `components/styles/Table.css` · `bindings/Column.binding.ts`. 회귀 `resolution/__tests__/tableColumns.test.ts` · `adr315Columns.test.tsx`. live: production 빌드 2,000 행 · 가로 700 스크롤 — 가상 · 비가상 × Chrome · WebKit 네 조합에서 고정 열 머리글 · 칸이 끝에 남고 경계선은 고정 쪽 끝 열에만. dev 서버 Builder 에서 「Pinned: Start」 → Canvas · Preview 의 경계선 · sticky, 콘솔 오류 0.
@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **가상 스크롤 Table 의 열 숨김 · 보이기가 정렬된 표에서 수 초** (ADR-315 Phase 4 증분 1 부터, HC4 측정에서 발견):
+  - **Why**: 10,000 행 · 정렬된 표에서 열 선택 메뉴로 열을 숨기면 CPU 4x 2,093 ms · 보이면 2,855 ms (같은 표의 정렬 706 ms). 화면 밖 빈 행의 React key 에 칸 span 서명이 들어 있어 열 수가 바뀌면 행 10,000 개가 묶음 안에서 하나씩 다시 놓였다 (React `getHostSibling` 1,435 ms).
+  - 수정: 빈 행은 칸이 없어 key 를 행 key 만으로 두고, 행 모양이 바뀌면 64 행 묶음째 다시 만든다 (`domBinding.runtime.ts` `windowRowKey` · `catalogWindowRowChunkKey`). 4x 572 / 587 ms, 1x 75 / 77 ms (정렬 210 ~ 221 ms). 회귀 `windowRowKeys.test.ts` (원복 RED).
 - **원격 collection 표의 필터 후보 값 개수가 0** (ADR-315 Phase 3 의 `tableFacet`, 4c live 에서 발견):
   - **Why**: endpoint 가 채우는 collection 의 묶음 보기는 「데이터의 일부」 표시로 개수를 `"13+"` 글자로 내는데, 후보 값은 그 글자를 숫자로 읽어 0 이 됐다 (Phase 3 의 live 는 후보 값의 집합만 봤다).
   - 수정: 후보 값은 정의상 불러온 행의 것이라 `loaded` 를 지금의 「일부」 판정으로 넘기고, 개수는 숫자 부분을 읽는다 (`catalogPreviewSession.ts` `tableFacet`). 회귀 `adr315FacetItems.test.tsx` (원복 RED).

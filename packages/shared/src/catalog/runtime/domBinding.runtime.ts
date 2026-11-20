@@ -4528,15 +4528,28 @@ const CATALOG_ROW_PENDING_ID = "catalog:row-pending";
 /**
  * A windowed Table's Row element key — the same for the row's record and its empty row, so the
  * RAC Row (its collection node) stays when the window moves over it. A row whose RAC id or spans
- * differ from the empty row's is built again (RAC refuses an id · a cell index changing in place).
+ * differ from the empty row's is built again (RAC refuses an id · a cell index changing in place):
+ * a record row whose spans are not its Table's row shape keys them too.
+ *
+ * (ADR-315 Phase 4 — an empty row has no cells, so its key is its row key alone. A change of the
+ *  row shape — a column hidden or shown — builds every row again through its chunk's key
+ *  (`catalogWindowRowChunkKey`): keyed by the shape, each of 10,000 empty rows was re-keyed in
+ *  place, and React placed them one by one — live, sorted, CPU 4x: a column hide 2,104 ms, 1,435
+ *  of them `getHostSibling`.)
  */
-const windowRowKey = (rowKey: string, spans: string) =>
-  `catalog:row|${rowKey}|${spans}`;
+const windowRowKey = (rowKey: string, spans: string, shapeSpans: string) =>
+  spans === shapeSpans
+    ? `catalog:row|${rowKey}`
+    : `catalog:row|${rowKey}|${spans}`;
+/** A row chunk's element key: its name and the Table's row shape (`windowRowKey`). */
+export const catalogWindowRowChunkKey = (name: string, shapeSpans: string) =>
+  `${name}|${shapeSpans}`;
 /** A windowed row's record element under that key (`catalogWindowRowPending` — the same key). */
 export function catalogWindowRowElement(
   root: CatalogCompositionRoot,
   record: CatalogConsumerNode,
   element: ReactElement | null,
+  shape: CatalogRowShape,
 ): ReactElement | null {
   return element
     ? cloneElement(element, {
@@ -4546,6 +4559,7 @@ export function catalogWindowRowElement(
             record.id,
           ),
           catalogRowSpans(root, record),
+          shape.spans,
         ),
       })
     : element;
@@ -4567,7 +4581,7 @@ export function catalogWindowRowPending(
   shape: CatalogRowShape,
 ): ReactElement {
   return createElement(RAC.Row as ElementType, {
-    key: windowRowKey(rowKey, shape.spans),
+    key: windowRowKey(rowKey, shape.spans, shape.spans),
     id: rowKey,
     "data-row-pending": "",
   });
@@ -4676,6 +4690,7 @@ const CatalogWindowRows = memo(function CatalogWindowRows({
     rows.push(
       createElement(CatalogWindowRowChunk, {
         ...chunk,
+        key: catalogWindowRowChunkKey(chunk.key, spans),
         root,
         context,
         keys,

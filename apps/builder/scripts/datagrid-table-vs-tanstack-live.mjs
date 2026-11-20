@@ -90,6 +90,14 @@ const CHECK_DRAG = process.argv.includes("--check-drag");
 // Column records carry the marks (`_sortMark` · the mark part), the Publish header shows them, a
 // press on Amount starts from its authored direction.
 const CHECK_AUTHORED = process.argv.includes("--check-authored-sort");
+// `--profile-columns` (ADR-315 Phase 4 — HC4): every data Column 「Allow hiding」 · 「Allow pinning」, the
+//   Table 「Reorder columns」 and its 「Column visibility menu」 (the panel chip). Publish: per CPU 1x · 4x,
+//   three times — Dept 「Pin to start」 · 「Unpin」, Name 「Move right」 · 「Move left」, the chooser's Qty
+//   off · on — each item press → the next frame after the header changed, ms; then the sort (Amount ·
+//   Name, ascending · descending) from the same menu as the baseline (item press → the first row
+//   changed — a Column with a menu sorts from it). HC4: a column change ≤ the sort. With
+//   `--column-origin` (the menu Button is the Column's content wrapper).
+const PROFILE_COLUMNS = process.argv.includes("--profile-columns");
 const BROWSER = arg("--browser", "chromium");
 // `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
 //   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
@@ -340,6 +348,7 @@ try {
         CHECK_FILTER,
         CHECK_DRAG,
         CHECK_AUTHORED,
+        PROFILE_COLUMNS,
       }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
@@ -561,6 +570,29 @@ try {
               }),
             ),
           );
+        if (PROFILE_COLUMNS) {
+          step("column menu", () =>
+            ws.execute(
+              C.setFields({
+                targets: all(table(), "Column")
+                  .map(owned)
+                  .filter((x) => x && g.getEntry(x))
+                  .map((x) => ({ kind: "node", id: x })),
+                props: { allowsHiding: set(true), allowsPinning: set(true) },
+                label: "column menu",
+              }),
+            ),
+          );
+          step("reorder", () =>
+            ws.execute(
+              C.setFields({
+                targets: [{ kind: "node", id }],
+                props: { allowsColumnReordering: set(true) },
+                label: "reorder",
+              }),
+            ),
+          );
+        }
         const e = g.getEntry(id);
         out.rowDisplay = e.rowDisplay;
         out.binding = !!e.binding;
@@ -579,6 +611,7 @@ try {
         CHECK_FILTER,
         CHECK_DRAG,
         CHECK_AUTHORED,
+        PROFILE_COLUMNS,
       },
     );
     log(`setup ${JSON.stringify(setup).slice(0, 1500)}`);
@@ -608,8 +641,7 @@ try {
             return {
               column: column?.props?.children ?? column?.props?.key,
               mark: r.derivedProps._sortMark,
-              fontSize:
-                r.visual.fontSize ?? r.inheritedText?.fontSize ?? null,
+              fontSize: r.visual.fontSize ?? r.inheritedText?.fontSize ?? null,
               part: rects.get(part) ?? null,
               nameX: name ? (rects.get(name)?.x ?? null) : null,
             };
@@ -618,7 +650,13 @@ try {
       });
       log(`authored builder ${JSON.stringify(results.authoredBuilder)}`);
     }
-    if (CHECK_REMEMBER || CHECK_MULTISORT || CHECK_SEARCH || CHECK_FACET) {
+    if (
+      CHECK_REMEMBER ||
+      CHECK_MULTISORT ||
+      CHECK_SEARCH ||
+      CHECK_FACET ||
+      PROFILE_COLUMNS
+    ) {
       await page.evaluate(() => {
         const ws = window.__COMPOSITION_CATALOG__.workspace;
         const record = [...ws.root.canvasInputs.values()].find(
@@ -674,6 +712,20 @@ try {
           )?.props?.rememberState?.value ?? null,
       );
       log(`remember switch ${JSON.stringify(results.rememberSwitch)}`);
+      if (PROFILE_COLUMNS) {
+        const chip = page.getByRole("switch", {
+          name: /^(column visibility menu|열 선택 메뉴)$/i,
+        });
+        results.chooserSwitch = { shown: await chip.count() };
+        if (results.chooserSwitch.shown) {
+          // (RAC Switch: the role is on its visually hidden input — a pointer click at its box
+          //  did not toggle it; the input's own click does, as a keyboard Space would.)
+          await chip.first().evaluate((el) => el.click());
+          await page.waitForTimeout(1500);
+        }
+        results.chooserSwitch.checked = await chip.first().isChecked();
+        log(`chooser switch ${JSON.stringify(results.chooserSwitch)}`);
+      }
       if (CHECK_MULTISORT) {
         const chip = page.getByRole("button", {
           name: /^(multi-column sort|여러 열 정렬)$/i,
@@ -1284,7 +1336,10 @@ try {
       );
       // 포인터: Name 의 손잡이 → Amount 머리글 (정중앙을 누르지 않는다 — react-aria 의 TalkBack 판정).
       const nameHead = await box("Name");
-      await pub.mouse.move(nameHead.x + nameHead.w / 2, nameHead.y + nameHead.h / 2);
+      await pub.mouse.move(
+        nameHead.x + nameHead.w / 2,
+        nameHead.y + nameHead.h / 2,
+      );
       await settle();
       const handle = await box("Name", ".catalog-column-drag-handle");
       const handleShown = await pub.evaluate(
@@ -1358,9 +1413,13 @@ try {
         await pub.mouse.click(qty.x + qty.w / 2, qty.y + qty.h / 2);
         await settle();
       }
-      const menuOpen = await pub.evaluate(() => !!document.querySelector("[role=menu]"));
+      const menuOpen = await pub.evaluate(
+        () => !!document.querySelector("[role=menu]"),
+      );
       if (menuOpen) {
-        await pub.getByRole("menuitem", { name: /Sort Ascending|오름차순/ }).click();
+        await pub
+          .getByRole("menuitem", { name: /Sort Ascending|오름차순/ })
+          .click();
         await settle();
       }
       const sortAfterClick = await sorted();
@@ -2540,8 +2599,19 @@ try {
   };
   if (process.argv.includes("--profile-sort")) {
     await show("ours");
+    // (`--profile-sort scrolled`: after a scroll sweep — the full run sorts after its sweeps.)
+    if (
+      process.argv[process.argv.indexOf("--profile-sort") + 1] === "scrolled"
+    ) {
+      await sweep("ours");
+      await show("ours");
+    }
     await sortOnce("ours", "Amount");
     await pub.waitForTimeout(500);
+    // (`--profile-rate 4`: the profiled click at CPU 4x.)
+    await cdp.send("Emulation.setCPUThrottlingRate", {
+      rate: Number(arg("--profile-rate", "1")),
+    });
     await profiled(
       "sort-profile.txt",
       async () => `sort click ${await sortOnce("ours", "Amount")} ms`,
@@ -2563,6 +2633,243 @@ try {
       },
       "moveRowWindow ",
     );
+    throw new Error("load only");
+  }
+  if (PROFILE_COLUMNS) {
+    await show("ours");
+    const timed = async (press) => {
+      const probe = pub.evaluate(
+        ({ sel }) =>
+          new Promise((resolve) => {
+            const sig = () =>
+              [...document.querySelectorAll(sel)]
+                .map((el) => (el.textContent ?? "").trim())
+                .join("|");
+            const before = sig();
+            let t0 = 0;
+            document.addEventListener(
+              "pointerdown",
+              () => {
+                t0 = performance.now();
+              },
+              { capture: true, once: true },
+            );
+            const started = performance.now();
+            const tick = () => {
+              if (t0 && sig() !== before)
+                return requestAnimationFrame(() =>
+                  resolve(Math.round((performance.now() - t0) * 10) / 10),
+                );
+              if (performance.now() - started > 120000) return resolve(null);
+              requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          }),
+        { sel: ARMS.ours.heads },
+      );
+      await pub.waitForTimeout(100);
+      await press();
+      const ms = await probe;
+      await pub.waitForTimeout(400);
+      return ms;
+    };
+    const firstRowTimed = async (press) => {
+      const probe = pub.evaluate(
+        ({ rows }) =>
+          new Promise((resolve) => {
+            const first = () => {
+              let best = null;
+              let top = Infinity;
+              for (const row of document.querySelectorAll(rows)) {
+                if (row.querySelector("[role=columnheader]")) continue;
+                const y = row.getBoundingClientRect().top;
+                if (y < top) {
+                  top = y;
+                  best = row;
+                }
+              }
+              return best?.textContent ?? "";
+            };
+            const before = first();
+            let t0 = 0;
+            document.addEventListener(
+              "pointerdown",
+              () => {
+                t0 = performance.now();
+              },
+              { capture: true, once: true },
+            );
+            const started = performance.now();
+            const tick = () => {
+              if (t0 && first() !== before)
+                return requestAnimationFrame(() =>
+                  resolve(Math.round((performance.now() - t0) * 10) / 10),
+                );
+              if (performance.now() - started > 60000) return resolve(null);
+              requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          }),
+        { rows: ARMS.ours.rows },
+      );
+      await pub.waitForTimeout(100);
+      await press();
+      const ms = await probe;
+      await pub.waitForTimeout(400);
+      return ms;
+    };
+    const heads = () =>
+      pub.evaluate(
+        (sel) =>
+          [...document.querySelectorAll(sel)]
+            .map((el) => (el.textContent ?? "").trim())
+            .join(","),
+        ARMS.ours.heads,
+      );
+    const item = (label) =>
+      pub
+        .locator("[role=menu] [role^=menuitem]")
+        .filter({ hasText: new RegExp(`^(${label})$`) })
+        .first();
+    const columnItem = async (column, label) => {
+      await pub
+        .locator(ARMS.ours.heads)
+        .filter({ hasText: new RegExp(`^${column}`) })
+        .first()
+        .locator("button")
+        .first()
+        .click();
+      await pub.waitForTimeout(400);
+      if (!results.columns.menu)
+        results.columns.menu = await pub
+          .locator("[role=menu] [role^=menuitem]")
+          .allTextContents();
+      return timed(() => item(label).click());
+    };
+    const chooser = () =>
+      pub.getByRole("button", { name: /^(Columns|열)$/ }).first();
+    results.columns = { start: await heads() };
+    const med = (list) => {
+      const ok = list.filter((t) => t != null).sort((x, y) => x - y);
+      return ok.length ? ok[Math.floor(ok.length / 2)] : null;
+    };
+    // `--profile-chooser`: one chooser hide at CPU 4x under the sampling profiler.
+    if (process.argv.includes("--profile-chooser")) {
+      // (`--profile-chooser sorted`: Name sorted first — the loop's 4x round runs after the sorts.)
+      if (
+        process.argv[process.argv.indexOf("--profile-chooser") + 1] === "sorted"
+      ) {
+        await pub
+          .locator(ARMS.ours.heads)
+          .filter({ hasText: /^Name/ })
+          .first()
+          .locator("button")
+          .first()
+          .click();
+        await pub.waitForTimeout(400);
+        await item("Sort Ascending|오름차순 정렬").click();
+        await pub.waitForTimeout(1500);
+      }
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+      await chooser().click();
+      await pub.waitForTimeout(600);
+      await profiled(
+        "chooser-profile.txt",
+        async () => `chooser hide ${await timed(() => item("Qty").click())} ms`,
+      );
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+      throw new Error("load only");
+    }
+    for (const rate of [1, 4]) {
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate });
+      const runs = {
+        pin: [],
+        unpin: [],
+        right: [],
+        left: [],
+        hide: [],
+        show: [],
+      };
+      for (let i = 0; i < 3; i++) {
+        runs.pin.push(await columnItem("Dept", "Pin to start|앞에 고정"));
+        if (i === 0 && rate === 1) results.columns.pinned = await heads();
+        runs.unpin.push(await columnItem("Dept", "Unpin|고정 해제"));
+        runs.right.push(await columnItem("Name", "Move right|오른쪽으로 이동"));
+        if (i === 0 && rate === 1) results.columns.moved = await heads();
+        runs.left.push(await columnItem("Name", "Move left|왼쪽으로 이동"));
+        await chooser().click();
+        await pub.waitForTimeout(400);
+        runs.hide.push(await timed(() => item("Qty").click()));
+        if (i === 0 && rate === 1) results.columns.hidden = await heads();
+        runs.show.push(await timed(() => item("Qty").click()));
+        await pub.keyboard.press("Escape");
+        await pub.waitForTimeout(400);
+        log(
+          `columns cpu${rate}x #${i + 1} ${JSON.stringify(Object.fromEntries(Object.entries(runs).map(([k, v]) => [k, v.at(-1)])))}`,
+        );
+      }
+      // (A Column with a menu sorts from it — the header press opens the menu, S2 `isMenu`. The
+      //  baseline is the same sort through the menu item: item press → the first row changed.)
+      const sort = {};
+      for (const column of ["Amount", "Name"]) {
+        const times = [];
+        for (let i = 0; i < (rate === 4 ? 3 : 6); i++) {
+          await pub
+            .locator(ARMS.ours.heads)
+            .filter({ hasText: new RegExp(`^${column}`) })
+            .first()
+            .locator("button")
+            .first()
+            .click();
+          await pub.waitForTimeout(400);
+          times.push(
+            await firstRowTimed(() =>
+              item(
+                i % 2
+                  ? "Sort Descending|내림차순 정렬"
+                  : "Sort Ascending|오름차순 정렬",
+              ).click(),
+            ),
+          );
+        }
+        sort[column] = { times, median: med(times) };
+      }
+      results.columns[`cpu${rate}x`] = {
+        ...Object.fromEntries(
+          Object.entries(runs).map(([k, v]) => [
+            k,
+            { times: v, median: med(v) },
+          ]),
+        ),
+        sort,
+      };
+      log(
+        `columns cpu${rate}x ${JSON.stringify(results.columns[`cpu${rate}x`])}`,
+      );
+    }
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+    results.columns.end = await heads();
+    await pub.screenshot({ path: `${OUT}/profile-columns.png` });
+    throw new Error("load only");
+  }
+  // `--sort-only`: our Table's sort clicks only (CPU 1x · 4x) — a short arm for A/B pairs.
+  if (process.argv.includes("--sort-only")) {
+    results.sort = {};
+    // (`--sort-only scrolled`: CPU 4x only, after a scroll sweep — as the full run sorts.)
+    const scrolled =
+      process.argv[process.argv.indexOf("--sort-only") + 1] === "scrolled";
+    for (const rate of scrolled ? [4] : [1, 4]) {
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate });
+      if (scrolled) {
+        await sweep("ours");
+        await show("ours");
+      }
+      results.sort[`cpu${rate}x`] = { ours: await sortArm("ours", 6) };
+      log(
+        `sort cpu${rate}x ${JSON.stringify(results.sort[`cpu${rate}x`].ours)}`,
+      );
+    }
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
     throw new Error("load only");
   }
   results.scroll = {};

@@ -196,6 +196,17 @@
   color: var(--negative);
 }
 
+/* ADR-315: a Table's hidden column — listed to select, not drawn on the Canvas. */
+.layer-column-hidden .elementItemLabelText,
+.layer-column-hidden .layer-node-icon {
+  opacity: 0.5;
+}
+
+.layer-hidden-icon {
+  flex: 0 0 auto;
+  color: var(--fg-muted);
+}
+
 .layer-repeat-count {
   flex: 0 0 auto;
   font-size: var(--text-2xs);
@@ -253,6 +264,7 @@
 .elementItem.active .elementItemLabel,
 .elementItem.active .layer-slot-role,
 .elementItem.active .layer-repeat-icon,
+.elementItem.active .layer-hidden-icon,
 .elementItem.active .layer-repeat-count {
   color: var(--bg-overlay);
 }

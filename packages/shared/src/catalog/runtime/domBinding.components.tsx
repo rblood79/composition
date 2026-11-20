@@ -505,10 +505,10 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           props: inheritedProps,
         } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
-    (windowRow === undefined
+    (windowRow === undefined || !rowShape
       ? catalogRowStableElement
       : (row: CatalogConsumerNode, element: ReactElement | null) =>
-          catalogWindowRowElement(root, row, element))(
+          catalogWindowRowElement(root, row, element, rowShape))(
       record,
       withVirtualizer(
         root,
