@@ -53,7 +53,7 @@ import {
 } from "./positioning";
 import { docCounters } from "../docCounters";
 import { catalogColorPartLayout } from "./colorControlParts";
-import type { CatalogTableSortSource } from "./tableSort";
+import type { CatalogTableStateSource } from "./tableState";
 import {
   CATALOG_FORM_CONTEXT_KEYS,
   CATALOG_FORM_FIELDS,
@@ -1113,8 +1113,8 @@ export interface CatalogRootOptions {
   devicePixelRatio?: number;
   /** Data rows of bound collections (the data store); absent = template items only. */
   rows?: CatalogRowSource;
-  /** ADR-257 Phase 4 — the Preview's sort of a bound Table (runtime state); absent = none. */
-  tableSort?: CatalogTableSortSource;
+  /** ADR-315 — the Preview's state of a bound Table (runtime, never the document); absent = none. */
+  tableState?: CatalogTableStateSource;
   /**
    * The Preview · Publish's row windows (`resolveCatalogNode`'s `rowWindow` — a virtual-scrolled
    * Table's records are the rows around the ones shown). Absent = every row.
@@ -2259,7 +2259,7 @@ export class CatalogCompositionRoot {
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
   private readonly rows?: CatalogRowSource;
-  private readonly tableSort?: CatalogTableSortSource;
+  private readonly tableState?: CatalogTableStateSource;
   private readonly rowWindow?: CatalogRowWindowSource;
   /**
    * A row window move being planned (`moveRowWindow`): by owner, the rows its body's records hold
@@ -2486,7 +2486,7 @@ export class CatalogCompositionRoot {
         },
         rows.pages ? { pages: rows.pages } : {},
       );
-    this.tableSort = options.tableSort;
+    this.tableState = options.tableState;
     this.rowWindow = options.rowWindow;
     this.rowSample = options.rowSample;
     this.onRowSampleStale = options.onRowSampleStale;
@@ -4427,7 +4427,7 @@ export class CatalogCompositionRoot {
       this.breakpoint,
       this.colorMode,
       this.rows,
-      this.tableSort,
+      this.tableState,
       this.rowSampleBasis(),
       this.rowWindowOf,
     );
@@ -7762,7 +7762,7 @@ export class CatalogCompositionRoot {
       breakpoint,
       this.colorMode,
       this.rows,
-      this.tableSort,
+      this.tableState,
       this.rowSampleBasis(),
       this.rowWindow,
     );
@@ -8828,7 +8828,7 @@ export class CatalogCompositionRoot {
             this.breakpoint,
             this.colorMode,
             this.rows,
-            this.tableSort,
+            this.tableState,
             this.rowSampleBasis(),
             this.rowWindow,
           ),

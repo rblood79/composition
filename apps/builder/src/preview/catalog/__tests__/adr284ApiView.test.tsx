@@ -101,7 +101,7 @@ const SUFFIX_VIEW: ViewQuery = {
       enabled: VAR("hide"),
     }),
   ]),
-  sort: { field: ["data:field:f-age"], direction: "ascending" },
+  sort: [{ field: ["data:field:f-age"], direction: "ascending" }],
 };
 /** ⑥ search AND (female OR age < 25). */
 const EITHER: ViewConditionGroup = {

@@ -102,6 +102,31 @@ export const columnBinding: PrimitiveBinding = {
         label: "Allow Sorting",
         section: "state",
       },
+      // ADR-315 Phase 2 — a sortable Column's options (composition extensions — `d2Provenance.ts`):
+      //   the direction its first press gives (TanStack `sortDescFirst`) and where its empty
+      //   values go, in both directions (`sortUndefined` — absent = last).
+      sortFirstDirection: {
+        kind: "enum",
+        label: "First direction",
+        section: "state",
+        default: "ascending",
+        options: [
+          { value: "ascending", label: "Ascending" },
+          { value: "descending", label: "Descending" },
+        ],
+        visibleWhen: { key: "allowsSorting", equals: true },
+      },
+      sortEmptyValues: {
+        kind: "enum",
+        label: "Empty values",
+        section: "state",
+        default: "last",
+        options: [
+          { value: "last", label: "Last" },
+          { value: "first", label: "First" },
+        ],
+        visibleWhen: { key: "allowsSorting", equals: true },
+      },
       allowsResizing: {
         kind: "boolean",
         label: "Allow Resizing",

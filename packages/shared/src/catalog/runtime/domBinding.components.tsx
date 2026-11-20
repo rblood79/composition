@@ -447,7 +447,16 @@ export const CatalogDomNode = memo(function CatalogDomNode({
         : watches(node, root),
   );
   // ADR-257 Phase 4: a TableBody orders its Rows by its Table's Preview sort (runtime props).
-  const sortTableId = node?.ruleId === "TableBody" ? node.parentId : undefined;
+  // ADR-315 Phase 2: a Column draws its place in its Table's sort of several columns — the same
+  // Table record's runtime props (`_sortEntries`). One watcher for both: a hook of its own for the
+  // Column was one more store subscription in every record's component (+9 MB at 10,000 rows —
+  // production heap 154 → 163 MB, 2026-11-20 A/B).
+  const sortTableId =
+    node?.ruleId === "TableBody"
+      ? node.parentId
+      : node?.ruleId === "Column" && parentInput?.ruleId === "TableHeader"
+        ? parentInput.parentId
+        : undefined;
   useWatchedChildren(root, runtime, sortTableId ? [sortTableId] : NO_CHILDREN);
   // A Column's row-header default reads its sibling columns (`columnIsRowHeader` — RAC throws
   // when an edit to another column leaves the table without one, ADR-256 Phase 5 Round 12).

@@ -67,6 +67,12 @@ export async function openAdr280Preview(
   /** ADR-281 — the session's theme hooks (`applyTheme` sees the color mode a rule sets). */
   sessionOptions: {
     applyTheme?: (state: ReturnType<typeof catalogThemeState>) => void;
+    /** ADR-315 — a published app's Table state storage (the Builder's Preview has none). */
+    tableStateStorage?: {
+      getItem(key: string): string | null;
+      setItem(key: string, value: string): void;
+      removeItem(key: string): void;
+    };
   } = {},
 ) {
   library ??= await buildCodeCatalogLibrary();
@@ -116,6 +122,9 @@ export async function openAdr280Preview(
     engine: () => new NullLayoutEngine(),
     viewport: { width: 1000, height: 800 },
     stateStorage: null,
+    ...(sessionOptions.tableStateStorage
+      ? { tableStateStorage: sessionOptions.tableStateStorage }
+      : {}),
     ...(sessionOptions.applyTheme
       ? { theme: catalogThemeState, applyTheme: sessionOptions.applyTheme }
       : {}),
@@ -140,7 +149,9 @@ export async function openAdr280Preview(
       message?.type !== "CATALOG_DATA" ||
       (message.apiEndpoints === undefined &&
         message.variables === undefined &&
-        !message.collections?.some((item) => "name" in item || "schema" in item))
+        !message.collections?.some(
+          (item) => "name" in item || "schema" in item,
+        ))
     )
       return receive(value);
     return sendCatalogData(

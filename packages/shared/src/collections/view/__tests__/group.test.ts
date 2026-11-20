@@ -126,7 +126,7 @@ describe("ADR-284 G4 — group · aggregate", () => {
       where: NONE,
       groupBy: [["data:field:f-status"]],
       aggregates: [{ fn: "sum", field: ["data:field:f-points"], as: "total" }],
-      sort: { field: ["data:field:total"], direction: "descending" },
+      sort: [{ field: ["data:field:total"], direction: "descending" }],
     };
     expect(run([grouped]).rows.map((row) => (row as never)["status"])).toEqual([
       "todo",
@@ -134,7 +134,7 @@ describe("ADR-284 G4 — group · aggregate", () => {
       "done",
     ]);
     const ascending = runViewQueries(ROWS, {
-      queries: [{ ...grouped, sort: { variableId: "data:variable:v" } }],
+      queries: [{ ...grouped, sort: [{ variableId: "data:variable:v" }] }],
       schema: SCHEMA,
       resolve: (value) =>
         value === "!var.data:variable:v"

@@ -44,6 +44,15 @@ const LOAD_ONLY = process.argv.includes("--load-only");
 //   표시 창을 자르기 전에 되는지 — 보이는 행이 「정렬된 전체」 의 첫 행들인지 확인하고 끝낸다.
 const DISPLAY = arg("--display", "virtual");
 const CHECK_SORT = process.argv.includes("--check-sort");
+// `--check-remember on|off` (ADR-315 사용자 결정 1): Builder 의 Property 패널에서 Table 의
+//   「Remember state」 스위치를 실제로 누르고 (on), Publish 에서 머리글을 눌러 정렬한 뒤 새로고침 —
+//   on 이면 정렬이 그대로, off 이면 작성 순서로 돌아오는지 확인하고 끝낸다.
+const CHECK_REMEMBER = arg("--check-remember", null);
+// `--check-multisort` (ADR-315 Phase 2): Builder 의 Property 패널에서 Table 의 「Multi-column sort」
+//   스위치를 실제로 누르고, Publish 에서 「Dept」 머리글을 누른 뒤 Shift 를 누른 채 「Amount」 를 두 번
+//   눌러 (오름 → 내림) 보이는 첫 행들이 「Dept 오름 · 그 안에서 Amount 내림」 인지 — 이 파일의 행
+//   생성기로 따로 계산한 순서와 — 그리고 머리글의 순번 표시 · `aria-sort` 를 확인하고 끝낸다.
+const CHECK_MULTISORT = process.argv.includes("--check-multisort");
 // `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
 //   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
 const COLUMN_ORIGIN = process.argv.includes("--column-origin")
@@ -415,6 +424,82 @@ try {
       throw new Error("setup failed");
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `${OUT}/builder.png` });
+    if (CHECK_REMEMBER || CHECK_MULTISORT) {
+      await page.evaluate(() => {
+        const ws = window.__COMPOSITION_CATALOG__.workspace;
+        const record = [...ws.root.canvasInputs.values()].find(
+          (r) => r.sourceId === "project:node:dg-table",
+        );
+        ws.selectRecords([record.id]);
+      });
+      await page.waitForTimeout(1000);
+      // (Design 패널을 열고 Property 탭으로 — 닫힌 패널 · 구획은 내용을 그리지 않는다.)
+      await page.getByRole("button", { name: "Design", exact: true }).click();
+      await page.waitForTimeout(800);
+      const propertyTab = page.getByRole("tab", { name: /propert|속성/i });
+      if (await propertyTab.count()) {
+        await propertyTab.first().click();
+        await page.waitForTimeout(600);
+      }
+      // (접힌 구획을 펼친다 — Behavior 구획에 Table 의 상태 스위치들이 있다.)
+      const behavior = page.getByRole("button", {
+        name: "Behavior",
+        exact: true,
+      });
+      if ((await behavior.getAttribute("aria-expanded")) === "false") {
+        await behavior.click();
+        await page.waitForTimeout(500);
+      }
+      if (process.argv.includes("--list-buttons"))
+        log(
+          `panel ${JSON.stringify(
+            await page.evaluate(() =>
+              [...document.querySelectorAll("button, [role=switch]")]
+                .map(
+                  (el) =>
+                    `${el.getAttribute("role") ?? "button"}[${el.getAttribute("aria-pressed") ?? el.getAttribute("aria-checked") ?? el.getAttribute("aria-expanded") ?? ""}]:${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 30)}`,
+                )
+                .slice(-40),
+            ),
+          )}`,
+        );
+      // (boolean prop 은 누르는 칩이다 — 패널의 다른 boolean 「Quiet」 과 같은 컨트롤.)
+      const toggle = page.getByRole("button", {
+        name: /^(remember state|상태 기억)$/i,
+      });
+      results.rememberSwitch = { shown: await toggle.count() };
+      if (CHECK_REMEMBER === "on" && results.rememberSwitch.shown) {
+        await toggle.first().click({ force: true });
+        await page.waitForTimeout(800);
+      }
+      // (문서의 prop — 작성 값은 `{ kind: "set", value }` 로 적힌다.)
+      results.rememberSwitch.prop = await page.evaluate(
+        () =>
+          window.__COMPOSITION_CATALOG__.workspace.root.runtime.graph.getEntry(
+            "project:node:dg-table",
+          )?.props?.rememberState?.value ?? null,
+      );
+      log(`remember switch ${JSON.stringify(results.rememberSwitch)}`);
+      if (CHECK_MULTISORT) {
+        const chip = page.getByRole("button", {
+          name: /^(multi-column sort|여러 열 정렬)$/i,
+        });
+        results.multiSortSwitch = { shown: await chip.count() };
+        if (results.multiSortSwitch.shown) {
+          await chip.first().click({ force: true });
+          await page.waitForTimeout(800);
+        }
+        results.multiSortSwitch.prop = await page.evaluate(
+          () =>
+            window.__COMPOSITION_CATALOG__.workspace.root.runtime.graph.getEntry(
+              "project:node:dg-table",
+            )?.props?.allowsMultiSort?.value ?? null,
+        );
+        log(`multi-sort switch ${JSON.stringify(results.multiSortSwitch)}`);
+      }
+      await page.screenshot({ path: `${OUT}/builder-remember.png` });
+      await page.waitForTimeout(1500);
+    }
 
     // ── Publish ──
     const loadStart = Date.now();
@@ -517,6 +602,184 @@ try {
       log(`heap profile → ${OUT}/heap-profile.txt`);
     }
 
+    if (CHECK_REMEMBER) {
+      const state = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const heads = [...table.querySelectorAll("[role=columnheader]")];
+          const at = heads.findIndex((el) =>
+            (el.textContent ?? "").trim().startsWith("Name"),
+          );
+          return {
+            sort: heads[at]?.getAttribute("aria-sort") ?? null,
+            names: [...table.querySelectorAll("[role=row]")]
+              .filter((row) => !row.querySelector("[role=columnheader]"))
+              .map((row) =>
+                (
+                  row.querySelectorAll("[role=rowheader], [role=gridcell]")[at]
+                    ?.textContent ?? ""
+                ).trim(),
+              )
+              .filter(Boolean)
+              .slice(0, 5),
+            kept: Object.keys(localStorage)
+              .filter((key) => key.startsWith("composition:table-state:"))
+              .map((key) => localStorage.getItem(key)),
+          };
+        }, OURS);
+      const rows = () =>
+        pub.waitForFunction(
+          (OURS) =>
+            [...document.querySelectorAll(`${OURS} [role=row]`)].some((row) =>
+              /Person \d+/.test(row.textContent ?? ""),
+            ),
+          OURS,
+          { timeout: 60000 },
+        );
+      const opened = await state();
+      const head = await pub.evaluate((OURS) => {
+        const el = [
+          ...document
+            .querySelector(OURS)
+            .querySelectorAll("[role=columnheader]"),
+        ].find((h) => (h.textContent ?? "").trim().startsWith("Name"));
+        const r = el.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }, OURS);
+      await pub.mouse.click(head.x, head.y);
+      await pub.waitForTimeout(1500);
+      const sorted = await state();
+      await pub.reload();
+      await rows();
+      await pub.waitForTimeout(1000);
+      const reloaded = await state();
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      results.checkRemember = {
+        mode: CHECK_REMEMBER,
+        switch: results.rememberSwitch,
+        opened,
+        sorted,
+        reloaded,
+        pass:
+          sorted.sort === "ascending" &&
+          !same(sorted.names, opened.names) &&
+          (CHECK_REMEMBER === "on"
+            ? results.rememberSwitch?.prop === true &&
+              sorted.kept.length === 1 &&
+              reloaded.sort === "ascending" &&
+              same(reloaded.names, sorted.names)
+            : sorted.kept.length === 0 &&
+              reloaded.sort !== "ascending" &&
+              same(reloaded.names, opened.names)),
+      };
+      log(`check-remember ${JSON.stringify(results.checkRemember)}`);
+      await pub.screenshot({ path: `${OUT}/check-remember.png` });
+      throw new Error("load only");
+    }
+
+    if (CHECK_MULTISORT) {
+      const state = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const heads = [...table.querySelectorAll("[role=columnheader]")];
+          const label = (el) =>
+            (el.textContent ?? "").replace(/^\d+/, "").trim();
+          const at = (name) => heads.findIndex((el) => label(el) === name);
+          const cell = (row, index) =>
+            (
+              row.querySelectorAll("[role=rowheader], [role=gridcell]")[index]
+                ?.textContent ?? ""
+            ).trim();
+          return {
+            ariaSort: heads
+              .filter(
+                (el) =>
+                  el.getAttribute("aria-sort") &&
+                  el.getAttribute("aria-sort") !== "none",
+              )
+              .map((el) => `${label(el)}:${el.getAttribute("aria-sort")}`),
+            marks: heads.flatMap((el) => {
+              const mark = el.querySelector(".sort-order");
+              return mark
+                ? [
+                    `${label(el)}:${mark.textContent}:${el.querySelector(".sort-indicator")?.getAttribute("data-sort-direction")}`,
+                  ]
+                : [];
+            }),
+            rows: [...table.querySelectorAll("[role=row]")]
+              .filter((row) => !row.querySelector("[role=columnheader]"))
+              .map(
+                (row) =>
+                  `${cell(row, at("Name"))}|${cell(row, at("Dept"))}|${cell(row, at("Amount"))}`,
+              )
+              .filter((text) => text.startsWith("Person"))
+              .slice(0, 8),
+          };
+        }, OURS);
+      const press = async (name, shift) => {
+        const head = await pub.evaluate(
+          ({ OURS, name }) => {
+            const el = [
+              ...document
+                .querySelector(OURS)
+                .querySelectorAll("[role=columnheader]"),
+            ].find(
+              (h) => (h.textContent ?? "").replace(/^\d+/, "").trim() === name,
+            );
+            const r = el.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+          },
+          { OURS, name },
+        );
+        if (shift) await pub.keyboard.down("Shift");
+        await pub.mouse.click(head.x, head.y);
+        if (shift) await pub.keyboard.up("Shift");
+        await pub.waitForTimeout(1500);
+      };
+      // (따로 계산한 순서 — 이 파일의 행 생성기에서: Dept 번호 오름, 그 안에서 Amount 내림.)
+      const dept = (row) => Number(row.dept.replace("Dept ", ""));
+      const expected = (rows) =>
+        rows.slice(0, 8).map((row) => `${row.name}|${row.dept}|${row.amount}`);
+      const all = makeRows(ROWS);
+      const byDept = [...all].sort((a, b) => dept(a) - dept(b));
+      const byDeptAmount = [...all].sort(
+        (a, b) => dept(a) - dept(b) || b.amount - a.amount,
+      );
+      const opened = await state();
+      await press("Dept", false);
+      const one = await state();
+      await press("Amount", true);
+      await press("Amount", true);
+      const two = await state();
+      await pub.screenshot({ path: `${OUT}/check-multisort-two.png` });
+      // (Shift 없이 누르면 그 열 하나만 — 목록이 사라진다.)
+      await press("Name", false);
+      const back = await state();
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      results.checkMultiSort = {
+        switch: results.multiSortSwitch,
+        opened,
+        one,
+        two,
+        back,
+        expectedOne: expected(byDept),
+        expectedTwo: expected(byDeptAmount),
+        pass:
+          results.multiSortSwitch?.prop === true &&
+          same(one.ariaSort, ["Dept:ascending"]) &&
+          one.marks.length === 0 &&
+          same(one.rows, expected(byDept)) &&
+          same(two.ariaSort, ["Dept:ascending"]) &&
+          same(two.marks, ["Dept:1:ascending", "Amount:2:descending"]) &&
+          same(two.rows, expected(byDeptAmount)) &&
+          same(back.ariaSort, ["Name:ascending"]) &&
+          back.marks.length === 0,
+      };
+      log(`check-multisort ${JSON.stringify(results.checkMultiSort)}`);
+      await pub.screenshot({ path: `${OUT}/check-multisort.png` });
+      throw new Error("load only");
+    }
+
     if (CHECK_SORT) {
       // (보이는 데이터 행의 Name 칸 — 헤더 「Name」 의 열 자리.)
       const shown = () =>
@@ -553,7 +816,7 @@ try {
         await pub.mouse.click(at.x, at.y);
         await pub.waitForTimeout(1500);
       };
-      // (우리 정렬과 같은 비교 — `catalogTableSortCompare`.)
+      // (우리 정렬의 글자 비교와 같은 collator — `sortOrder.ts`.)
       const collator = new Intl.Collator(undefined, {
         numeric: true,
         sensitivity: "base",

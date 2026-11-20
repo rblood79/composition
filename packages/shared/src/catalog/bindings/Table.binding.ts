@@ -79,6 +79,40 @@ export const tableBinding: PrimitiveBinding = {
         label: "Disallow Empty Selection",
         section: "state",
       },
+      // ADR-315 사용자 결정 1 (2026-11-20 「표마다 켜는 스위치」 — default off): a published
+      //   Table keeps what its user changed (the sort, and its columns' hiding · order · pinning ·
+      //   widths as those arrive) in that browser — `catalogTableStateRemembered`. The Builder's
+      //   Preview never keeps it. A composition extension (`d2Provenance.ts`).
+      rememberState: {
+        kind: "boolean",
+        label: "Remember state",
+        section: "state",
+      },
+      // ADR-315 Phase 2 — the Table's sort options (breakdown §6 「Sorting」; composition
+      //   extensions — `d2Provenance.ts`; all off = the Table as it was). `allowsMultiSort`: a
+      //   Shift press on a header adds that Column to the sort (TanStack `enableMultiSort`), up to
+      //   `maxSortColumns` (`maxMultiSortColCount`; absent = any number). `allowsUnsorted`: a
+      //   Column's press cycle ends at no sort (`enableSortingRemoval`; off = RAC's two states).
+      //   A Table whose rows' request cannot carry a sort list stays at one sort
+      //   (`catalogTableSliceServable`).
+      allowsMultiSort: {
+        kind: "boolean",
+        label: "Multi-column sort",
+        section: "state",
+      },
+      maxSortColumns: {
+        kind: "number",
+        label: "Max sort columns",
+        section: "state",
+        min: 1,
+        step: 1,
+        visibleWhen: { key: "allowsMultiSort", equals: true },
+      },
+      allowsUnsorted: {
+        kind: "boolean",
+        label: "Allow unsorted",
+        section: "state",
+      },
       // ADR-257 Phase 3 — S2 `selectionStyle` (default checkbox): highlight selects a row by its
       //   background (RAC `selectionBehavior="replace"`) and the selection checkbox column is
       //   not there (`catalogTableSelectionPartHidden`).

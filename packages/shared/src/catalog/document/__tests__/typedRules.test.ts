@@ -90,7 +90,7 @@ const templates: LibraryTemplateNode[] = [
 ];
 const library = (definitions = [parent, part, composite]) =>
   buildCatalogLibrary({
-    contractVersion: 73,
+    contractVersion: 74,
     revision: "typed-rules",
     bindingIds: ["field", "part"],
     actionOpCodes: [],
@@ -113,7 +113,7 @@ function graph(nodes: NodeEntry[], nested: NodeEntry[] = []) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 73,
+    libraryContractVersion: 74,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",

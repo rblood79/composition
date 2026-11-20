@@ -69,7 +69,7 @@ export function catalogPreviewRuntime(
   session: CatalogPreviewSession,
   toast: { show: (message: string, options?: CatalogToastOptions) => void },
 ): CatalogPreviewInteractions {
-  return new CatalogPreviewInteractions({
+  const runtime = new CatalogPreviewInteractions({
     graph: () => session.graph,
     root: () => session.root,
     subscribe: session.subscribe,
@@ -82,6 +82,8 @@ export function catalogPreviewRuntime(
       session.itemsByKeys(collectionId, keys),
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
     sortTable: (tableId, sort) => session.sortTable(tableId, sort),
+    pressTableSort: (tableId, column, add) =>
+      session.pressTableSort(tableId, column, add),
     colorScheme: (mode) => session.setColorScheme(mode),
     // (A submit in flight is what a `reload` in the same event waits for — `await fetch; reload()`.)
     submitEndpoint: (endpointId, body) =>
@@ -119,6 +121,9 @@ export function catalogPreviewRuntime(
     // (A load's `selectedKeys` select in the components showing the collection.)
     subscribeLoadedSelection: (listener) => session.onLoadedSelection(listener),
   });
+  // (ADR-315 — a sort the session restored from the browser is told to RAC through the runtime.)
+  session.attachRuntimeProps((id, patch) => runtime.setRuntimeProps(id, patch));
+  return runtime;
 }
 
 /**

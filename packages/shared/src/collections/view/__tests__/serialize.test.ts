@@ -131,7 +131,7 @@ describe("ADR-284 — view → suffix parameters (json-server)", () => {
       serialize(
         {
           where: where([c("g", "oneOf", "f-gender", { value: "!var.s" })]),
-          sort: { field: ["data:field:f-age"], direction: "descending" },
+          sort: [{ field: ["data:field:f-age"], direction: "descending" }],
         },
         { "!var.s": new Set(["male", "female"]) },
       ).params,
@@ -171,10 +171,12 @@ describe("ADR-284 — view → body JSON", () => {
   it("⑥ as a tree; skipped conditions leave the tree; GET is reported", () => {
     const query = {
       where: where([TASKS.two, TASKS.sixOr]),
-      sort: {
-        field: ["data:field:f-name" as const],
-        direction: "ascending" as const,
-      },
+      sort: [
+        {
+          field: ["data:field:f-name" as const],
+          direction: "ascending" as const,
+        },
+      ],
     };
     expect(serialize(query, { "!var.q": "" }, "body", "POST")).toEqual({
       params: [],

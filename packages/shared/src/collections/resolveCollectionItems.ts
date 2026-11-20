@@ -705,7 +705,16 @@ export function resolveTableColumnKey(
   if (typeof text === "string" && text.length > 0) return text.toLowerCase();
   const id = props?.id;
   if (typeof id === "string" && id.length > 0) return id;
-  return `col${index}`;
+  return catalogDefaultColumnKey(index);
+}
+/**
+ * The key of a Column that names none (no `key`, no label text, no `id`): its place, from 1 — the
+ * name the column commands write (`insertTableColumns`). One function for the reader and the
+ * commands (ADR-315 Phase 1 — they were `col${index}` and `column${index + 1}`, so a Table state
+ * written under one name pointed at no column under the other).
+ */
+export function catalogDefaultColumnKey(index: number): string {
+  return `column${index + 1}`;
 }
 
 /** 유효 열 폭 — `clamp(width ?? 150, minWidth ?? 20, maxWidth)` (TanStack `getSize()` 와 같은 값, 리뷰 r1 m1). */

@@ -132,9 +132,10 @@ describe("ADR-284 view evaluator — comparisons", () => {
     expect(
       filter(condition("notStartsWith", "f-name", { value: "elo" })),
     ).toEqual(["u1", "u2", "u3"]);
-    expect(filter(condition("notContains", "f-name", { value: "e" }))).toEqual(
-      ["u1", "u2"],
-    );
+    expect(filter(condition("notContains", "f-name", { value: "e" }))).toEqual([
+      "u1",
+      "u2",
+    ]);
     expect(filter(condition("notEndsWith", "f-name", { value: "RK" }))).toEqual(
       ["u1", "u3", "u4"],
     );
@@ -275,7 +276,10 @@ describe("ADR-284 view evaluator — condition tree · skip · applied", () => {
         ],
       },
     ]);
-    expect(ids(run({ where: nested }, { "!var.q": "" }).rows)).toEqual(["u1", "u3"]);
+    expect(ids(run({ where: nested }, { "!var.q": "" }).rows)).toEqual([
+      "u1",
+      "u3",
+    ]);
     // (Several fields: any matching — plants' name OR scientific.)
     const both: ViewCondition = {
       id: "both",
@@ -326,14 +330,14 @@ describe("ADR-284 view evaluator — sort · chain", () => {
       ids(
         run({
           where: where([]),
-          sort: { field: ["data:field:f-age"], direction: "descending" },
+          sort: [{ field: ["data:field:f-age"], direction: "descending" }],
         }).rows,
       ),
     ).toEqual(["u3", "u1", "u4", "u2"]);
     expect(
       ids(
         run(
-          { where: where([]), sort: { variableId: "data:variable:sort" } },
+          { where: where([]), sort: [{ variableId: "data:variable:sort" }] },
           {
             "!var.data:variable:sort": {
               column: "name",
@@ -428,9 +432,9 @@ describe("ADR-292 review 2026-10-29 M4 — a time-only date compares by its time
     expect(viewCompare("equals", "10:30", "10:30:00", date)).toBe(true);
     expect(viewCompare("before", "09:15", "10:30", date)).toBe(true);
     expect(viewCompare("after", "10:30:01", "10:30", date)).toBe(true);
-    expect(
-      viewCompare("equals", "10:30", { hour: 10, minute: 30 }, date),
-    ).toBe(true);
+    expect(viewCompare("equals", "10:30", { hour: 10, minute: 30 }, date)).toBe(
+      true,
+    );
     expect(viewCompare("equals", "10:30", "2026-10-29", date)).toBe(false);
     expect(viewCompare("equals", "2026-10-29T10:30", "2026-10-29", date)).toBe(
       true,

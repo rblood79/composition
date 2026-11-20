@@ -417,6 +417,8 @@ export interface CatalogPreviewInteractionsOptions {
   report?: (rule: InteractionRule, reason: string) => void;
   /** ADR-257 Phase 4 — a Table's sort set by RAC (`sortDescriptor` runtime prop): the session's. */
   sortTable?: (tableId: string, sort: CatalogTableSort | undefined) => void;
+  /** ADR-315 Phase 2 — a Table's header press (the Column's RAC key · Shift held): the session's. */
+  pressTableSort?: (tableId: string, column: string, add: boolean) => void;
   /**
    * ADR-281 Decision 6 — a page root's `colorScheme` set by a rule: the session shows the theme in
    * that color mode (its CSS variables and `data-theme`, the theme's own variable sets).
@@ -1248,6 +1250,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             : next,
       });
     }
+  }
+  pressTableSort(tableId: string, column: string, add: boolean): void {
+    this.options.pressTableSort?.(tableId, column, add);
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
     this.writeOverride(id, patch);

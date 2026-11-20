@@ -25,7 +25,7 @@ import {
   viewValueList,
   type ViewFieldKind,
 } from "./comparison";
-import { catalogTableSortCompare } from "../../catalog/runtime/tableSort";
+import { viewSortOrder } from "./sortOrder";
 import { withComputedCells } from "../formula/compute";
 import { resolveCollectionSnapshot } from "../collectionSnapshot";
 import type { CollectionState } from "../../types/collection.types";
@@ -400,27 +400,65 @@ function countApplied(group: PreparedGroup): number {
 const appliesAny = (item: PreparedCondition | PreparedGroup): boolean =>
   item.kind === "group" ? item.items.some(appliesAny) : !item.skip;
 
-/** A sort's field and direction as the run reads them (a variable holds `{column, direction}`). */
-function sortOf(
+/** A view's sort entries as the run reads them (a variable holds `{column, direction}`). */
+export interface ViewRunSort {
+  field: ViewRunField;
+  direction: "ascending" | "descending";
+  empty?: "first" | "last";
+}
+function sortsOf(
   query: ViewQuery,
   input: ViewRunInput,
   schema: readonly ViewRunField[],
-): { field: ViewRunField; direction: "ascending" | "descending" } | undefined {
-  const sort = query.sort;
-  if (!sort) return undefined;
-  if ("field" in sort) {
-    const field = viewFieldOf(sort.field, schema, input.references);
-    return field ? { field, direction: sort.direction } : undefined;
+): ViewRunSort[] {
+  const out: ViewRunSort[] = [];
+  for (const sort of query.sort ?? []) {
+    if ("field" in sort) {
+      const field = viewFieldOf(sort.field, schema, input.references);
+      if (field)
+        out.push({
+          field,
+          direction: sort.direction,
+          ...(sort.empty ? { empty: sort.empty } : {}),
+        });
+      continue;
+    }
+    const value = input.resolve(`!var.${sort.variableId}`)?.value;
+    if (!value || typeof value !== "object") continue;
+    const { column, direction } = value as Record<string, unknown>;
+    if (direction !== "ascending" && direction !== "descending") continue;
+    const name = String(column ?? "");
+    const field = schema.find(
+      (item) => item.id === fieldId(name) || item.key === name,
+    );
+    if (field) out.push({ field, direction });
   }
-  const value = input.resolve(`!var.${sort.variableId}`)?.value;
-  if (!value || typeof value !== "object") return undefined;
-  const { column, direction } = value as Record<string, unknown>;
-  if (direction !== "ascending" && direction !== "descending") return undefined;
-  const name = String(column ?? "");
-  const field = schema.find(
-    (item) => item.id === fieldId(name) || item.key === name,
+  return out;
+}
+
+/**
+ * ADR-315 Phase 2 — the numbers of `rows` in the order of `sorts`: the view's sort and a Table's
+ * header sort are this one function (`viewSortOrder` — each field's values by its type). `cache`
+ * = the rows are held between calls (a column's ranks are kept per rows — `sortOrder.ts`).
+ */
+export function viewRowsOrder(
+  rows: readonly unknown[],
+  sorts: readonly ViewRunSort[],
+  cache = false,
+): Uint32Array {
+  return viewSortOrder(
+    rows.length,
+    sorts.map((sort) => ({
+      valueAt: (index: number) => cellOf(rows[index], sort.field),
+      direction: sort.direction,
+      ...(sort.field.type !== undefined ? { type: sort.field.type } : {}),
+      ...(sort.empty ? { empty: sort.empty } : {}),
+      // (A field read through a function — a reference path · a role — has no name to keep by.)
+      ...(cache && !sort.field.read
+        ? { cache: { rows, name: sort.field.key } }
+        : {}),
+    })),
   );
-  return field ? { field, direction } : undefined;
 }
 
 /** The broken marks of a grouping · an aggregate whose field does not resolve. */
@@ -465,6 +503,17 @@ export function viewResultSchema(
 const groupKeyOf = (value: unknown) =>
   JSON.stringify(value === undefined ? null : value);
 
+const CELL_COLLATOR = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+/** Two cells of a `min` · `max`: numbers by value, the rest by their text (digits by value). */
+function cellCompare(a: unknown, b: unknown): number {
+  if (typeof a === "number" && typeof b === "number")
+    return Number.isNaN(a) || Number.isNaN(b) ? 0 : a - b;
+  return CELL_COLLATOR.compare(String(a), String(b));
+}
+
 function aggregateOf(
   aggregate: ViewAggregate,
   field: ViewRunField | undefined,
@@ -481,7 +530,7 @@ function aggregateOf(
     if (!cells.length) return null;
     const sign = aggregate.fn === "min" ? 1 : -1;
     return cells.reduce((best, cell) =>
-      sign * catalogTableSortCompare(cell, best) < 0 ? cell : best,
+      sign * cellCompare(cell, best) < 0 ? cell : best,
     );
   }
   // (`sum` · `mean` read numbers — Chart `budgetAggregate`'s; a text cell that is a number counts.)
@@ -582,16 +631,10 @@ function runQuery(
       broken,
       sourceApplied,
     );
-  const sort = sortOf(query, input, resultSchema);
-  if (sort) {
-    const sign = sort.direction === "descending" ? -1 : 1;
-    out = out
-      .map((row, index) => ({ row, index, value: cellOf(row, sort.field) }))
-      .sort(
-        (a, b) =>
-          sign * catalogTableSortCompare(a.value, b.value) || a.index - b.index,
-      )
-      .map((item) => item.row);
+  const sorts = sortsOf(query, input, resultSchema);
+  if (sorts.length) {
+    const sorted = out;
+    out = Array.from(viewRowsOrder(sorted, sorts), (index) => sorted[index]);
   }
   return { rows: out, schema: resultSchema, applied };
 }

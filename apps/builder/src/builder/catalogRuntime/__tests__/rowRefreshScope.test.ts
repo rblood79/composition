@@ -261,7 +261,7 @@ describe("data refresh owner scope", () => {
         updateView({
           entry: {
             ...view,
-            sort: { field: ["data:field:label"], direction: "descending" },
+            sort: [{ field: ["data:field:label"], direction: "descending" }],
           },
         }),
       );

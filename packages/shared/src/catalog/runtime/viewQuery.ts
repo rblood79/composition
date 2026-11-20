@@ -40,6 +40,11 @@ export interface CatalogRowQuery {
     depth?: number;
     /** ADR-291 Decision 5 — the answer's shape: the view's rows, or its grouped result (`group` sent). */
     mode?: "rows" | "aggregate";
+    /**
+     * ADR-315 Phase 2 — the request carried the bound Table's sort (the query's last view holds
+     * it): the answer is in that order and is not sorted here again.
+     */
+    sorted?: true;
   };
   /** The session's load of an API collection the view runs on locally: `complete` = no further page. */
   loaded?: { complete: boolean };
@@ -60,7 +65,7 @@ export function catalogCountOnlyView(query: ViewQuery): boolean {
   return (
     !query.where.items.length &&
     !query.groupBy &&
-    !query.sort &&
+    !query.sort?.length &&
     !!query.aggregates?.length &&
     query.aggregates.every(
       (aggregate) => aggregate.fn === "count" || aggregate.fn === "applied",
@@ -113,8 +118,8 @@ export function catalogViewReferences(queries: readonly ViewQuery[]): string[] {
   };
   for (const query of queries) {
     visit(query.where);
-    if (query.sort && "variableId" in query.sort)
-      refs.add(`!var.${query.sort.variableId}`);
+    for (const sort of query.sort ?? [])
+      if ("variableId" in sort) refs.add(`!var.${sort.variableId}`);
   }
   return [...refs];
 }
@@ -182,17 +187,18 @@ export function catalogBindingQuery(
   // (A sort variable a Table's `onSortChange` rule wrote names its Column by RAC key: the view sorts
   // by that Column's field. A rule's text value `<key>:<direction>` reads the same.)
   let sort: CatalogRowQuery["sort"];
-  for (const query of queries) {
-    if (!query.sort || !("variableId" in query.sort)) continue;
-    const ref = `!var.${query.sort.variableId}`;
-    const raw = catalogTableSortOf(values[ref]);
-    if (!raw) continue;
-    sort = raw;
-    values[ref] = {
-      column: columnField?.(raw.column) ?? raw.column,
-      direction: raw.direction,
-    };
-  }
+  for (const query of queries)
+    for (const entry of query.sort ?? []) {
+      if (!("variableId" in entry)) continue;
+      const ref = `!var.${entry.variableId}`;
+      const raw = catalogTableSortOf(values[ref]);
+      if (!raw) continue;
+      sort = raw;
+      values[ref] = {
+        column: columnField?.(raw.column) ?? raw.column,
+        direction: raw.direction,
+      };
+    }
   return { queries, values, names: [...names], ...(sort ? { sort } : {}) };
 }
 

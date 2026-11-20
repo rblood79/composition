@@ -80,6 +80,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   RangeCalendar: { visibleDuration: "rac", weeksInMonth: "rac" },
   ColorField: { isQuiet: "v3" },
   ColorSwatchPicker: { layout: "rac", isDisabled: "composition" },
+  // ADR-315 Phase 2 — a sortable Column's first direction · its empty values' place.
+  Column: { sortFirstDirection: "composition", sortEmptyValues: "composition" },
   // RAC ComboBoxState.open/close에 연결하는 저작 상태. RAC ComboBox props에는 없다.
   ComboBox: {
     isQuiet: "v3",
@@ -113,6 +115,14 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     autoFocus: "rac",
   },
   // (S2 removes by `onRemove` being set — composition's boolean shows the remove button.)
+  // ADR-315 사용자 결정 1 (2026-11-20) — the Table's end-user state kept in the browser.
+  // ADR-315 Phase 2 — the sort options (several columns · their most · a press ending unsorted).
+  Table: {
+    rememberState: "composition",
+    allowsMultiSort: "composition",
+    maxSortColumns: "composition",
+    allowsUnsorted: "composition",
+  },
   TagGroup: { allowsRemoving: "composition" },
   TextArea: { isQuiet: "v3", rows: "composition" },
   TextField: { isQuiet: "v3" },

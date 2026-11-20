@@ -60,16 +60,24 @@ const DataFieldReferenceSchema = z.object({
  */
 const FlagNotationSchema = z.union([z.string(), z.number(), z.boolean()]);
 const WireSchema = z.enum(["number", "string"]);
-export const FieldEncodingSchema: z.ZodType<FieldEncoding> = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("flag"), true: FlagNotationSchema, false: FlagNotationSchema }),
-  z.object({ kind: z.literal("numberText") }),
-  z.object({ kind: z.literal("epochMs"), wire: WireSchema }),
-  z.object({ kind: z.literal("epochSec"), wire: WireSchema }),
-  z.object({ kind: z.literal("compactDate"), wire: WireSchema }),
-  z.object({ kind: z.literal("compactDateTime"), wire: WireSchema }),
-  z.object({ kind: z.literal("dateParts"), precision: z.enum(["date", "dateTime"]) }),
-  z.object({ kind: z.literal("bigInt") }),
-]);
+export const FieldEncodingSchema: z.ZodType<FieldEncoding> =
+  z.discriminatedUnion("kind", [
+    z.object({
+      kind: z.literal("flag"),
+      true: FlagNotationSchema,
+      false: FlagNotationSchema,
+    }),
+    z.object({ kind: z.literal("numberText") }),
+    z.object({ kind: z.literal("epochMs"), wire: WireSchema }),
+    z.object({ kind: z.literal("epochSec"), wire: WireSchema }),
+    z.object({ kind: z.literal("compactDate"), wire: WireSchema }),
+    z.object({ kind: z.literal("compactDateTime"), wire: WireSchema }),
+    z.object({
+      kind: z.literal("dateParts"),
+      precision: z.enum(["date", "dateTime"]),
+    }),
+    z.object({ kind: z.literal("bigInt") }),
+  ]);
 
 export interface DataFieldShape {
   id?: string;
@@ -163,6 +171,7 @@ export const ApiEndpointDraftSchema = z.object({
       suffixes: z.record(z.string(), z.string()).optional(),
       sortParam: z.string().optional(),
       orderParam: z.string().optional(),
+      multiSort: z.boolean().optional(),
     })
     .nullable()
     .optional(),

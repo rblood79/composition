@@ -2375,6 +2375,7 @@ const catalog: TranslationKeys = {
     apiQueryNotSent: "보내지 않음",
     apiQuery_sortParam: "정렬 필드",
     apiQuery_orderParam: "정렬 방향",
+    apiQueryMultiSort: "여러 정렬 받기 (쉼표 목록)",
     apiQueryViews: "이 collection 을 읽는 데이터 보기",
     apiQueryCarried: "조건 전부를 보낸다",
     apiQueryWarnOR_GROUP:
@@ -2388,6 +2389,8 @@ const catalog: TranslationKeys = {
     apiQueryWarnBROKEN: "「{condition}」 필드가 없다 — 건너뛴다",
     apiQueryWarnGET_BODY: "GET 은 본문을 보내지 않는다 — 방식을 POST 로",
     apiQueryWarnMULTI_VIEW: "서로 다른 보기 여럿 — 요청에 싣지 않는다",
+    apiQueryWarnMULTI_SORT:
+      "정렬 여러 개 — 이 endpoint 는 하나만 받는다. 첫 정렬만 보낸다",
     apiQueryWarnGROUP:
       "묶기 · 집계는 파라미터로 보낼 수 없다 — 전체 행을 불러와 ({cap} 행까지) 여기서 묶는다",
     apiQueryWarnCOMPUTED:
@@ -2638,6 +2641,10 @@ const catalog: TranslationKeys = {
       "Library 컴포넌트 — 읽기 전용. 잠금을 해제하면 프로젝트 컴포넌트로 고칠 수 있습니다.",
   },
   dataView: {
+    multiSortRefused_suffixSingle:
+      "이 endpoint 는 정렬을 하나만 받습니다 — 표는 한 열로 정렬됩니다. 여러 열로 정렬하려면 endpoint 조회 형식에서 「여러 정렬 받기」 를 켜세요.",
+    multiSortRefused_sortTemplate:
+      "이 endpoint 는 자체 sortDescriptor 템플릿으로 한 열만 정렬합니다 — 표는 한 열로 정렬됩니다.",
     section: "검색 · 필터",
     add: "검색 추가",
     field: "필드",
@@ -3177,6 +3184,16 @@ const semanticLabels: Record<string, string> = {
   "properties.spacious": "넓게",
   "properties.emphasized": "강조",
   "properties.disallowEmptySelection": "빈 선택 금지",
+  "properties.rememberState": "상태 기억",
+  "properties.multiColumnSort": "여러 열 정렬",
+  "properties.maxSortColumns": "최대 정렬 열 수",
+  "properties.allowUnsorted": "정렬 해제 허용",
+  "properties.sortFirstDirection": "첫 정렬 방향",
+  "properties.sortEmptyValues": "빈 값 위치",
+  "properties.ascending": "오름차순",
+  "properties.descending": "내림차순",
+  "properties.last": "뒤",
+  "properties.first": "앞",
   "properties.disabledKeys": "비활성 항목",
   "properties.selectionBehavior": "선택 방식",
   "properties.toggle": "토글",
@@ -3429,7 +3446,8 @@ const semanticLabels: Record<string, string> = {
   "datatable.schemaRows": "행 위치",
   "datatable.schemaRowsWhole": "스키마 자체 (한 행)",
   "datatable.schemaEndpoint": "API 정의도 만들기",
-  "datatable.schemaNotJson": "JSON 문서가 아닙니다. api-docs 를 JSON 으로 내보내세요 (YAML 은 읽지 않습니다).",
+  "datatable.schemaNotJson":
+    "JSON 문서가 아닙니다. api-docs 를 JSON 으로 내보내세요 (YAML 은 읽지 않습니다).",
   "datatable.schemaNotSchema": "이 문서에서 객체 스키마를 찾지 못했습니다.",
   "datatable.intakeKeyField": "key 필드",
   "datatable.intakeKeyNone": "없음",

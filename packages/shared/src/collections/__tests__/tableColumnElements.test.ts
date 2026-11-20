@@ -62,13 +62,14 @@ describe("ADR-241 G1 — 유효 열 폭 = TanStack getSize", () => {
 });
 
 describe("ADR-241 G1 — Column 요소 reader", () => {
-  it("key 규칙 = Preview dataKey (key · 글자 소문자 · props.id · col<index>)", () => {
+  it("key 규칙 = Preview dataKey (key · 글자 소문자 · props.id · column<자리 — 1 부터>)", () => {
     expect(resolveTableColumnKey({ key: "email", children: "E" }, 0)).toBe(
       "email",
     );
     expect(resolveTableColumnKey({ children: "Name" }, 0)).toBe("name");
     expect(resolveTableColumnKey({ id: "c9" }, 0)).toBe("c9");
-    expect(resolveTableColumnKey({}, 3)).toBe("col3");
+    // (ADR-315 Phase 1 — 명령이 쓰는 이름과 같다: `column${index + 1}`.)
+    expect(resolveTableColumnKey({}, 3)).toBe("column4");
   });
 
   it("삭제 표시 · Column 밖 type 제외, index 는 남은 열 기준 · 글자 = text source", () => {
@@ -80,7 +81,7 @@ describe("ADR-241 G1 — Column 요소 reader", () => {
     ]);
     expect(columns).toEqual([
       { id: "a", label: "A", width: 80 },
-      { id: "col1", label: "", width: 150 },
+      { id: "column2", label: "", width: 150 },
     ]);
   });
 });

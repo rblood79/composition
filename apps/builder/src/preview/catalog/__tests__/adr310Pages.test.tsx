@@ -131,7 +131,9 @@ it("G7: 250 rows · size 20 — 13 pages, 5 numbers at once with the first · la
       .filter((button) => button.getAttribute("aria-current") === "page")
       .map((button) => button.textContent?.trim());
   expect(
-    h.element(pagination)?.querySelectorAll('[role="radio"], [role="radiogroup"]'),
+    h
+      .element(pagination)
+      ?.querySelectorAll('[role="radio"], [role="radiogroup"]'),
   ).toHaveLength(0);
   expect(selected()).toEqual(["3"]);
   expect(h.labels(list)).toHaveLength(20);
@@ -158,7 +160,7 @@ it("G7: 250 rows · size 20 — 13 pages, 5 numbers at once with the first · la
         })!,
         view: {
           where: { id: "where", op: "and", items: [] },
-          sort: { field: ["data:field:f-label"], direction: "descending" },
+          sort: [{ field: ["data:field:f-label"], direction: "descending" }],
         },
       } as never),
     );
@@ -397,7 +399,8 @@ it("G7: Controls — Simple pages by its numbers alone, Icons only by its two ch
   await settle();
   const words = () =>
     [...(h.element(pagination)?.querySelectorAll("button") ?? [])].map(
-      (button) => button.textContent?.trim() || button.getAttribute("aria-label"),
+      (button) =>
+        button.textContent?.trim() || button.getAttribute("aria-label"),
     );
   // (No step buttons, no first · last page, no gaps — the window's numbers.)
   expect(words()).toEqual(["1", "2", "3", "4", "5"]);
@@ -429,7 +432,9 @@ it("G7: Rows per page — the Pagination's Select shows the list's size, a pick 
   h.workspace.execute(setRowDisplay(list, { mode: "pages", size: 20 }));
   h.workspace.execute(setPagination(pagination, list));
   const select = () =>
-    h.element(pagination)?.querySelector(".react-aria-Select") as HTMLElement | null;
+    h
+      .element(pagination)
+      ?.querySelector(".react-aria-Select") as HTMLElement | null;
   // (Off by default.)
   h.flush();
   await settle();

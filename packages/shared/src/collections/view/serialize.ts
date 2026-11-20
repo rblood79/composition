@@ -65,6 +65,18 @@ export interface EndpointQuerySerialization {
   pageSize?: number;
   /** The response header holding the whole count (json-server `X-Total-Count`); absent = that. */
   totalHeader?: string;
+  /**
+   * ADR-315 Phase 2 — `suffix`: the endpoint takes several sorts as comma lists in the sort · order
+   * parameters (json-server). Absent = one sort only. `body` always carries the list.
+   */
+  multiSort?: boolean;
+}
+
+/** A sort entry as a request carries it (`body.sort` — one entry an object, more a list). */
+export interface SerializedSort {
+  field: string;
+  direction: "ascending" | "descending";
+  empty?: "first" | "last";
 }
 
 /**
@@ -104,6 +116,8 @@ export type SerializationWarningCode =
   | "MULTI_VIEW"
   /** A grouping · aggregates in a `suffix` format: not parameters — every row is loaded, grouped here. */
   | "GROUP"
+  /** ADR-315 Phase 2 — several sorts in a `suffix` format that takes one: only the first is sent. */
+  | "MULTI_SORT"
   /**
    * ADR-291 Decision 5 — the view reads a computed field (a condition · the sort · a group key · an
    * aggregate's input): nothing of it is sent, every row is loaded, the whole chain runs here.
@@ -132,7 +146,7 @@ export interface SerializedViewQuery {
   /** `body`: the JSON the request carries. */
   body?: {
     where?: unknown;
-    sort?: { field: string; direction: string };
+    sort?: SerializedSort | SerializedSort[];
     group?: SerializedViewGroup;
     page?: { cursor?: string; limit?: number };
     total?: true;
@@ -163,13 +177,17 @@ function fieldText(field: ViewRunField | undefined, value: unknown): string {
 }
 function fieldJson(field: ViewRunField | undefined, value: unknown): unknown {
   if (!field?.encoding) return value;
-  const one = (item: unknown) => outgoingFieldValue(field, dateLike(item), "json") ?? item;
+  const one = (item: unknown) =>
+    outgoingFieldValue(field, dateLike(item), "json") ?? item;
   if (value instanceof Set) return [...value].map(one);
   return Array.isArray(value) ? value.map(one) : one(value);
 }
 /** A date-like object (a picker's value) as its day text, so a date notation can read it. */
 function dateLike(value: unknown): unknown {
-  return value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Set)
+  return value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !(value instanceof Set)
     ? (viewDay(value) ?? value)
     : value;
 }
@@ -181,7 +199,8 @@ function dateLike(value: unknown): unknown {
  * the run (`serializeViewQueries` resolves it); the static limits take it as not computed.
  */
 export function computedViewUses(
-  input: Pick<ViewRunInput, "queries" | "schema"> & Partial<Pick<ViewRunInput, "resolve">>,
+  input: Pick<ViewRunInput, "queries" | "schema"> &
+    Partial<Pick<ViewRunInput, "resolve">>,
 ): SerializationWarning[] {
   const warnings: SerializationWarning[] = [];
   const computedOf = (path: DataFieldPath): ViewRunField | undefined => {
@@ -195,7 +214,11 @@ export function computedViewUses(
     }
     const computed = item.fields.map(computedOf).find((field) => field);
     if (computed)
-      warnings.push({ code: "COMPUTED", conditionId: item.id, field: computed.key });
+      warnings.push({
+        code: "COMPUTED",
+        conditionId: item.id,
+        field: computed.key,
+      });
   };
   for (const query of input.queries) {
     visit(query.where);
@@ -206,26 +229,32 @@ export function computedViewUses(
     for (const aggregate of query.aggregates ?? []) {
       const computed = aggregate.field && computedOf(aggregate.field);
       if (computed)
-        warnings.push({ code: "COMPUTED", aggregate: aggregate.as, field: computed.key });
+        warnings.push({
+          code: "COMPUTED",
+          aggregate: aggregate.as,
+          field: computed.key,
+        });
     }
-    const sort = query.sort;
-    if (sort && "field" in sort) {
-      const computed = computedOf(sort.field);
-      if (computed) warnings.push({ code: "COMPUTED", field: computed.key });
-    } else if (sort && input.resolve) {
-      const value = input.resolve(`!var.${sort.variableId}`)?.value as
-        | { column?: unknown }
-        | undefined;
-      const column = value && typeof value === "object" ? String(value.column) : undefined;
-      const computed =
-        column !== undefined
-          ? input.schema.find(
-              (item) =>
-                item.formula &&
-                (item.id === column.replace(/^data:field:/, "") || item.key === column),
-            )
-          : undefined;
-      if (computed) warnings.push({ code: "COMPUTED", field: computed.key });
+    for (const sort of query.sort ?? []) {
+      if ("field" in sort) {
+        const computed = computedOf(sort.field);
+        if (computed) warnings.push({ code: "COMPUTED", field: computed.key });
+      } else if (input.resolve) {
+        const value = input.resolve(`!var.${sort.variableId}`)?.value as
+          { column?: unknown } | undefined;
+        const column =
+          value && typeof value === "object" ? String(value.column) : undefined;
+        const computed =
+          column !== undefined
+            ? input.schema.find(
+                (item) =>
+                  item.formula &&
+                  (item.id === column.replace(/^data:field:/, "") ||
+                    item.key === column),
+              )
+            : undefined;
+        if (computed) warnings.push({ code: "COMPUTED", field: computed.key });
+      }
     }
   }
   return warnings;
@@ -356,29 +385,35 @@ export function serializeViewQueries(
 
   const queries = input.queries;
   const last = queries[queries.length - 1];
-  const sortOf = (query: ViewQuery | undefined) => {
-    const sort = query?.sort;
-    if (!sort) return undefined;
-    if ("field" in sort) {
-      const field = viewFieldOf(sort.field, input.schema);
-      return field
-        ? { field: field.key, direction: sort.direction }
-        : undefined;
-    }
-    const value = input.resolve(`!var.${sort.variableId}`)?.value as
-      { column?: unknown; direction?: unknown } | undefined;
-    if (!value || typeof value !== "object") return undefined;
-    const field = input.schema.find(
-      (item) =>
-        item.id === String(value.column).replace(/^data:field:/, "") ||
-        item.key === String(value.column),
-    );
-    return field &&
-      (value.direction === "ascending" || value.direction === "descending")
-      ? { field: field.key, direction: value.direction }
-      : undefined;
-  };
-  const sort = sortOf(last);
+  /** The last view's sort entries as the request names them (a field by its key). */
+  const sortsOf = (query: ViewQuery | undefined): SerializedSort[] =>
+    (query?.sort ?? []).flatMap((sort): SerializedSort[] => {
+      if ("field" in sort) {
+        const field = viewFieldOf(sort.field, input.schema);
+        return field
+          ? [
+              {
+                field: field.key,
+                direction: sort.direction,
+                ...(sort.empty ? { empty: sort.empty } : {}),
+              },
+            ]
+          : [];
+      }
+      const value = input.resolve(`!var.${sort.variableId}`)?.value as
+        { column?: unknown; direction?: unknown } | undefined;
+      if (!value || typeof value !== "object") return [];
+      const field = input.schema.find(
+        (item) =>
+          item.id === String(value.column).replace(/^data:field:/, "") ||
+          item.key === String(value.column),
+      );
+      return field &&
+        (value.direction === "ascending" || value.direction === "descending")
+        ? [{ field: field.key, direction: value.direction }]
+        : [];
+    });
+  const sorts = sortsOf(last);
   const grouped = queries.some((query) => query.groupBy || query.aggregates);
 
   // (`none` returned above: anything but `suffix` is the body tree.)
@@ -395,7 +430,9 @@ export function serializeViewQueries(
       page?.cursor !== undefined || serialization.pageSize !== undefined
         ? {
             ...(page?.cursor !== undefined ? { cursor: page.cursor } : {}),
-            ...(serialization.pageSize !== undefined ? { limit: serialization.pageSize } : {}),
+            ...(serialization.pageSize !== undefined
+              ? { limit: serialization.pageSize }
+              : {}),
           }
         : undefined;
     return {
@@ -407,7 +444,12 @@ export function serializeViewQueries(
                 groups.length === 1 ? groups[0] : { op: "and", items: groups },
             }
           : {}),
-        ...(sort ? { sort } : {}),
+        // (ADR-315 Phase 2 — one entry is the object it always was; more are the list, in order.)
+        ...(sorts.length === 1
+          ? { sort: sorts[0] }
+          : sorts.length
+            ? { sort: sorts }
+            : {}),
         ...(group ? { group } : {}),
         ...(pageBody ? { page: pageBody } : {}),
         total: true,
@@ -416,16 +458,30 @@ export function serializeViewQueries(
     };
   }
   for (const query of queries) suffixGroup(query.where);
-  if (sort) {
-    params.push([serialization.sortParam ?? "_sort", sort.field]);
+  if (sorts.length) {
+    // (ADR-315 Phase 2 — a flat format names one sort unless the endpoint says it takes a comma
+    //  list (`multiSort` — json-server `_sort=a,b&_order=asc,desc`). The entries past the first of
+    //  a format that does not are not sent, and said so: a page cut by one sort is not the page of
+    //  two (리뷰 round 1 H1) — a Table's state never holds them (`catalogTableSortLimit`).)
+    const sent = serialization.multiSort ? sorts : sorts.slice(0, 1);
+    if (sent.length < sorts.length) warnings.push({ code: "MULTI_SORT" });
+    params.push([
+      serialization.sortParam ?? "_sort",
+      sent.map((sort) => sort.field).join(","),
+    ]);
     params.push([
       serialization.orderParam ?? "_order",
-      sort.direction === "descending" ? "desc" : "asc",
+      sent
+        .map((sort) => (sort.direction === "descending" ? "desc" : "asc"))
+        .join(","),
     ]);
   }
   if (serialization.pageSize !== undefined) {
     params.push([serialization.pageParam ?? "_page", page?.cursor ?? "1"]);
-    params.push([serialization.limitParam ?? "_limit", String(serialization.pageSize)]);
+    params.push([
+      serialization.limitParam ?? "_limit",
+      String(serialization.pageSize),
+    ]);
   }
   // (ADR-291 Decision 6 — a flat parameter list has no grouping: every row, grouped here.)
   if (grouped) {
@@ -440,14 +496,22 @@ function bodyGroupOf(
   queries: readonly ViewQuery[],
   schema: readonly ViewRunField[],
 ): SerializedViewGroup | undefined {
-  const query = [...queries].reverse().find((item) => item.groupBy || item.aggregates);
+  const query = [...queries]
+    .reverse()
+    .find((item) => item.groupBy || item.aggregates);
   if (!query) return undefined;
   const keyOf = (path: DataFieldPath) => viewFieldOf(path, schema)?.key;
   return {
-    by: (query.groupBy ?? []).map(keyOf).filter((key): key is string => key !== undefined),
+    by: (query.groupBy ?? [])
+      .map(keyOf)
+      .filter((key): key is string => key !== undefined),
     aggregates: (query.aggregates ?? []).map((aggregate) => {
       const field = aggregate.field && keyOf(aggregate.field);
-      return { fn: aggregate.fn, ...(field ? { field } : {}), as: aggregate.as };
+      return {
+        fn: aggregate.fn,
+        ...(field ? { field } : {}),
+        as: aggregate.as,
+      };
     }),
   };
 }

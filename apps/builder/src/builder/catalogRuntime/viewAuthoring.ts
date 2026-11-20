@@ -1287,7 +1287,7 @@ export function catalogSortFollowCommand(
   );
   const sortBy = (query: ViewQuery): ViewQuery => ({
     ...query,
-    sort: { variableId },
+    sort: [{ variableId }],
   });
   const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [
     (stage) => {
@@ -1366,7 +1366,8 @@ function viewVariables(query: ViewQuery): string[] {
     else out.push(...conditionVariables(item));
   };
   visit(query.where);
-  if (query.sort && "variableId" in query.sort) out.push(query.sort.variableId);
+  for (const sort of query.sort ?? [])
+    if ("variableId" in sort) out.push(sort.variableId);
   return out;
 }
 

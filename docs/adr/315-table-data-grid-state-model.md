@@ -2,7 +2,13 @@
 
 ## Status
 
-Proposed — 2026-11-20
+Accepted — 2026-11-20 (사용자 `/execute-adr 315` + [reviews/315.md](reviews/315.md) round 3 pending 0 · HIGH 0). Proposed 2026-11-20.
+
+> **Phase 2 종결 (2026-11-20 — G2)**: 여러 열 정렬. 정렬 구현이 하나가 됐다 (`collections/view/sortOrder.ts` — 보기의 정렬 · 표 머리글 정렬 · 작성 Row 정렬이 같은 함수, 필드 타입별 비교 (숫자 · 날짜 · 불리언 · 글자), 빈 값은 방향과 무관하게 뒤 · 열마다 앞으로 바꿀 수 있음, 열의 순위를 보관해 방향 전환 · 둘째 정렬에서 값을 다시 읽지 않는다). 표 상태의 정렬은 번역 하나 (`runtime/tableStateQuery.ts`) 로 로컬 행 순서와 서버 요청이 같이 읽고, 서버가 쪽을 나누는 표는 요청이 정렬 목록 전체를 담을 때만 여러 열 정렬을 받는다 (`catalogTableSliceServable` — `body` 는 목록, `suffix` 는 endpoint 의 「여러 정렬 받기」 를 켰을 때 쉼표 목록, 아니면 한 열 — 줄여 보내지 않는다). Preview · Publish 에서 Shift 를 누른 머리글 누름이 열을 정렬에 더하고 정렬 열에 순번이 붙는다 (`aria-sort` 는 첫 정렬만 — RAC). 새 설정: Table 「Multi-column sort」 · 「Max sort columns」 · 「Allow unsorted」, Column 「First direction」 · 「Empty values」 (기본은 전부 지금과 같음). 문서 형: 보기의 `sort` 가 목록 — **contract 74** (이전 프로젝트는 열리지 않는다). 검사: 새 테스트 34 · 변이 RED 16/16 · 회귀 새 실패 0 (shared 2,641 · builder 9,371 통과 — 실패 7 · 12 건은 착수 전과 같은 목록) · 속도 비율 0.94 ~ 1.03 · 힙 1.00 (Phase 1 빌드와 교대 3 쌍, 10,000 행 — 첫 측정이 잡은 힙 +9 MB 는 구독 하나를 같이 쓰게 고친 뒤 다시 잼) · 번들 Builder +1,732 · Preview 0 B · live (Builder 패널 스위치 → Publish 에서 Dept 클릭 · Shift + Amount → 따로 계산한 순서와 일치 · 순번 표시). 뒤로 옮긴 것 (범위 그대로): 작성된 기본 정렬의 머리글 표시 (Canvas 순번 포함) · 「정렬에 추가」 Do 는 Phase 4 로. 상세 [breakdown §9](design/315-table-data-grid-state-model-breakdown.md).
+>
+> **Phase 1 종결 (2026-11-20 — G1)**: 표 상태 모델 하나 (`runtime/tableState.ts` — 닫힌 형과 조각 사이 규칙) 가 세션에 들어왔다. 정렬 상태 (`tableSorts`) 가 그 안으로 옮겨졌고 쓰기 (`setTableState`) · 읽기 (`tableState`) 가 하나씩이다 — 열은 Column key 로 적고 (RAC key 는 세션 가장자리에서 바꾼다), 데이터 조각이 바뀔 때만 행을 다시 읽는다 (열 조각 쓰기의 행 source 호출 0 — 테스트가 호출 수로 막는다). 사용자 결정 1 = 「표마다 켜는 스위치」: Table 의 「Remember state」 (기본 꺼짐) 를 켜면 Publish 에서 정렬이 새로고침 뒤에도 남는다 (Builder 의 Preview 는 저장하지 않는다). 이름 없는 열의 기본 key 를 한 함수로 합쳤다 (F5). 화면 동작은 그 스위치 말고는 그대로다. 검사: 새 테스트 17 · 변이 RED 6/6 · 회귀 새 실패 0 (실패 19 건은 착수 전과 같은 목록) · 속도 비율 0.97 ~ 1.006 (변경 전 · 후 빌드 교대 3 쌍, 1x · 4x — 기준 ≤ 1.10) · 번들 Builder −3 · Preview 0 B · live (Builder 패널의 스위치 → Publish 정렬 → 새로고침, 켬 · 끔). 실행 순서 조정 (범위 그대로): 조각의 변수 · Do 노출은 그 조각의 prop 이 생기는 Phase 로, 폭을 상태로 올리는 것은 Phase 4 로, 번역 함수와 실행 자리 판정은 Phase 2 로. 상세 [breakdown §9](design/315-table-data-grid-state-model-breakdown.md).
+
+> **Phase 0 종결 (2026-11-20 — G0)**: 기능 표 「지금」 열 재대조 (차이 2 정정 — 집계는 값 5 종 + `applied` · 줄 번호 하나). 시제품 6 은 전부 go 다 — 설치된 RAC 1.22.1 의 공개 prop · `protected` 훅 · CSS · `render` prop 만으로 Chrome 157 (판정 78) · WebKit (77) 에서 통과: 고정 열 (가상 · 비가상, 앞 · 뒤) · 행 창 위 펼침 행 (11,000 행, 빈 행 0) · 고정 행 (위 · 아래) · Shift 정렬 판정 · 열 메뉴 항목과 머리글 끌기 (포인터 · 키보드) · 칸 범위 선택. 칸 범위 선택은 VoiceOver 청취가 남아 조건부다 (G6). 시제품이 설계에 더한 것: 접힌 묶음도 자식 Row 가 collection 에 있어야 `aria-expanded` 가 붙는다 · 끝 고정과 아래 고정은 CSS `:has` + flex 채움 · 머리글과 body 의 `allowOverflow`. 기준선 (10,000 행 · production · headed Chrome): 로드 389 ms · 힙 155 MB · 정렬 클릭 154 ~ 169 ms (4x 556 ~ 589) · 스크롤 p95 16.7 ~ 25 ms (4x 108 ~ 109). 번들 (closure) Builder 1,586,066 · Preview 171,811 B. 10 만 행 화면 스레드 계산: 검색 12 ~ 56 ms · 글자 열 정렬 246 ms (1x) — 정렬 순서를 유지한 채 거르면 검색 입력은 100 ms 안이다 (Worker 판정은 G3 · G7 의 실측으로). 시제품은 순수 RAC 위에서 돈 것이고 제품의 resolver · 행 창 경로와의 결합은 Phase 4 · 5 의 일이다. 상세 [breakdown §9](design/315-table-data-grid-state-model-breakdown.md).
 
 - 사용자 요청: `/create-adr` (2026-11-20).
 - 방향을 정한 사용자 원문 (2026-11-19 ~ 20 대화 순서대로):
@@ -19,7 +25,6 @@ Proposed — 2026-11-20
   > h4 「이 묶음의 행」 · 「이 key 의 행」 을 필터 조건 (`equals` · `notExists` · `oneOf`) 으로 적으면 대소문자만 다른 값 · `null` 과 빈 글자가 섞인다 → 식별은 `where` 밖의 요청 항목 (`groupOf` · `keys`) 으로 싣고, 그 항목을 선언한 endpoint 에만 보낸다. 서버가 구현해야 하는 새 계약이다 (breakdown §4.3.3).
 - 리뷰 round 3 (2026-11-20, codex) 이 h4 를 fixed 로 확인했다 — 미해결 HIGH 0 · pending 0. 설계 리뷰를 닫는다 (전제 확정 — [premise-decision-points.md](../../.claude/rules/premise-decision-points.md) 종결 계약 1).
 - 아래의 새 이름 (표 상태 · 조각 이름 · Column · Table 의 새 prop) 은 제안이고 아직 구현되지 않았다. 코드 인용은 main `23b1c802b` 기준이다.
-- 리뷰 전.
 
 ## Context
 
@@ -35,7 +40,7 @@ Proposed — 2026-11-20
 고객은 대량 데이터를 정렬 · 차트 · 다중 조건 필터로 조회한다. 우리 Table 은 2026-11-19 ~ 20 작업으로 10,000 행에서 순수 RAC Table 보다 빠른 정렬 클릭 (155 ~ 170 ms 대 384 ~ 391 ms) 과 보이는 행만 계산하는 행 창을 갖췄지만, data grid 로 쓰기에는 기능이 빠져 있다. TanStack Table v9.3.1 의 기능 17 개와 대조하면 (전수 표는 [breakdown §2](design/315-table-data-grid-state-model-breakdown.md)):
 
 - **있음 4**: 열 필터 (보기 조건 — 그리고 / 또는 묶음, 연산자 21), 열 폭 · 폭 조절, 쪽 나누기 (더 보기 · 쪽 · 가상 스크롤), 행 선택.
-- **일부 6**: 전체 검색 (조건 하나가 필드 여러 개를 읽을 수 있으나 「이 표의 모든 열」 이 없고 유사 검색 없음), 정렬 (한 열만 · 날짜를 글자로 비교), 필터 후보 값 (작성 때 20 개까지 · 실행 중 없음), 묶기 · 집계 (결과가 새 표가 되고 표 안의 묶음 행이 아님 · 집계 5 종), 칸 병합 (`colSpan` 만), 서버 처리 (조건 · 정렬 하나 · 쪽).
+- **일부 6**: 전체 검색 (조건 하나가 필드 여러 개를 읽을 수 있으나 「이 표의 모든 열」 이 없고 유사 검색 없음), 정렬 (한 열만 · 날짜를 글자로 비교), 필터 후보 값 (작성 때 20 개까지 · 실행 중 없음), 묶기 · 집계 (결과가 새 표가 되고 표 안의 묶음 행이 아님 · 값 집계 5 종 + `applied`), 칸 병합 (`colSpan` 만), 서버 처리 (조건 · 정렬 하나 · 쪽).
 - **작성 때만 2**: 열 순서 · 열 숨김 (문서의 Column 노드를 옮기거나 끄는 것 — 최종 사용자가 바꿀 수 없음).
 - **없음 5**: 열 고정, 행 펼침, 행 고정, 칸 범위 선택, Worker 계산.
 
@@ -47,7 +52,7 @@ Proposed — 2026-11-20
 - **F2 정렬 비교는 필드 타입을 읽지 않는다.** `catalogTableSortCompare` 는 숫자끼리는 뺄셈, 나머지는 숫자 인식 collator 의 글자 비교다 (`tableSort.ts:65-71`). 머리글 정렬 · 보기 정렬 · min · max 집계가 같은 함수를 쓰고, 날짜 순서를 아는 비교는 필터 조건에만 있다 (`comparison.ts` `order`).
 - **F3 데이터 계산은 평가기 하나다.** 조건 · 묶기 · 집계 · 정렬은 `runViewQueries` (`collections/view/evaluate.ts:600`) 가 Canvas · Preview · Publish 에서 같이 돌고, 서버로 나가는 요청은 `serializeViewQueries` 가 같은 보기에서 만든다 (`serialize.ts` — body 형식 `{ where, sort, group, page, total }`, 정렬은 `sort?: { field, direction }` 하나 `:135`).
 - **F4 정렬 · 자르기 순서.** 머리글 정렬은 데이터 층에서 원본 행 번호를 정렬한 뒤 (`sortedRowOrder`, `dataBinding.ts:473`) 창 · 쪽으로 자른다. 가상 Table 은 보이는 행만 record 가 된다 — 새 기능은 「모든 행의 record 가 있다」 고 가정할 수 없다 ([data-interaction.md](../../.claude/rules/data-interaction.md) 행 창).
-- **F5 열은 작성 노드다.** Column 은 문서 노드이고 필드와는 `resolveTableColumnKey` 로 잇는다 (`props.key` → 라벨 소문자 → `props.id` → `col${index}`, `resolveCollectionItems.ts:697`). 명령 쪽 기본 key 는 `column${index+1}` 이라 (`commands/collections.ts:893`) 두 기본값이 다르고, `key` 가 없으면 라벨을 고칠 때 필드 연결이 바뀐다.
+- **F5 열은 작성 노드다.** Column 은 문서 노드이고 필드와는 `resolveTableColumnKey` 로 잇는다 (`props.key` → 라벨 소문자 → `props.id` → `col${index}`, `resolveCollectionItems.ts:697`). 명령 쪽 기본 key 는 `column${index+1}` 이라 (`commands/collections.ts:906`) 두 기본값이 다르고, `key` 가 없으면 라벨을 고칠 때 필드 연결이 바뀐다.
 - **F6 RAC 가 주는 것** (1.22.1 설치본, [breakdown §3](design/315-table-data-grid-state-model-breakdown.md)): 한 열 정렬 · 폭 조절 · 행 선택 · **펼침 행** (`treeColumn` · `expandedKeys` · 중첩 `Row` · `hasChildItems`, `UNSTABLE_` 아님 — `useTableState.d.ts:27,56,60`) · Cell `colSpan` · 행 끌어 놓기 · 더 불러오기 · `TableFooter` · 가로 열 가상화 · 칸 단위 키보드 focus.
 - **F7 RAC 가 주지 않는 것**: 여러 열 정렬, 최종 사용자의 열 순서 변경, 열 고정의 공개 prop, 행 고정, `rowSpan`, 머리글 묶음 (RAC `Column` 은 leaf), 칸 범위 선택. 열을 빼는 것은 Column 을 collection 에서 빼는 것이고 두 불변식이 있다 — `isRowHeader` 열이 하나 이상 (`Table.mjs:145`), 행의 칸 수 = 열 수 (colSpan 합, `Table.mjs:117`). 어기면 throw 다.
 - **F8 열 고정의 길이 있다.** `TableLayout.isStickyColumn(node)` 은 `protected` 훅이고 (`TableLayout.d.ts:66`, 기본 false — `TableLayout.mjs:232`) 고정 열과 row header 열은 가로 가상화에서 늘 남는다 (`:78`). S2 는 이 훅을 `node.props.isSticky` 로 덮는다 (`TableView.tsx:339-340` — `Cell isSticky` 는 `@private`). 우리는 이미 `TableLayout` 을 상속한다 (`CatalogTableLayout`, `catalogVirtualizer.components.tsx:132`).
@@ -183,6 +188,8 @@ HIGH 0 이면서 범위를 채우는 대안은 D 다. 루프 추가 없음. D �
 > 구현 상세: [315-table-data-grid-state-model-breakdown.md](design/315-table-data-grid-state-model-breakdown.md)
 
 ### 사용자 결정 (7 건 — 그 Phase 에 닿을 때 묻는다)
+
+- **결정 1 확정 (2026-11-20, Phase 1 착수 때)**: 「표마다 켜는 스위치」 — 작성자가 표마다 「상태 기억」 을 켜고 기본은 꺼짐. 켠 표만 그 브라우저에 저장한다 (Builder 의 Preview 는 저장하지 않는다).
 
 |  #  | 항목                                                                                                                                                              | 권고                                                                     | 닿는 Phase |
 | :-: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | :--------: |

@@ -34,7 +34,7 @@ const VIEW: ViewQuery = {
     op: "and",
     items: [{ id: "c", fields: [f("f-qty")], op: "gt", value: "!var.min" }],
   },
-  sort: { field: f("f-total"), direction: "descending" },
+  sort: [{ field: f("f-total"), direction: "descending" }],
 };
 
 describe("ADR-291 R6 — computed cell cache", () => {
@@ -55,8 +55,7 @@ describe("ADR-291 R6 — computed cell cache", () => {
         queries: [VIEW],
         schema: SCHEMA,
         today: "2026-10-29",
-        resolve: (value) =>
-          value === "!var.min" ? { value: min } : { value },
+        resolve: (value) => (value === "!var.min" ? { value: min } : { value }),
       });
     expect(run(0).rows.map((row) => (row as { id: string }).id)).toEqual([
       "r3",
@@ -124,9 +123,11 @@ describe("ADR-291 R6 — computed cell cache", () => {
       field.formula ? { ...field, formula: "'f-price' * 'f-qty' * 2" } : field,
     );
     expect(
-      (withComputedCells(rows, doubled, { today: "2026-10-29" })[2] as {
-        total: number;
-      }).total,
+      (
+        withComputedCells(rows, doubled, { today: "2026-10-29" })[2] as {
+          total: number;
+        }
+      ).total,
     ).toBe(180);
     const calls = spy.mock.calls.length;
     expect(calls).toBeGreaterThan(0);

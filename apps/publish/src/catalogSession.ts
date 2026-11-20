@@ -5,6 +5,15 @@ import { NullLayoutEngine } from "../../../packages/shared/src/catalog/runtime/n
 import { catalogThemeState } from "../../../packages/shared/src/catalog/runtime/theme";
 import type { LoadedCatalogProject } from "./catalogProject";
 
+/** The browser's `localStorage`, or none where it is blocked (a private window · a sandbox). */
+function browserStorage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function createPublishedSession(
   project: LoadedCatalogProject,
   library: CatalogLibrary,
@@ -18,6 +27,8 @@ export function createPublishedSession(
     // The session applies the theme on the snapshot and again in a rule's color mode
     // (ADR-281 Decision 6 — a page root's colorScheme), as the Builder's Preview does.
     applyTheme: applyCatalogPreviewTheme,
+    // ADR-315 사용자 결정 1 — a Table with 「Remember state」 keeps its user's state in this browser.
+    tableStateStorage: browserStorage(),
   });
   // ADR-286: the data definitions (collections · endpoints · variables) are the document's — the
   // session reads them from the snapshot; a published app has no Builder API rows to receive.

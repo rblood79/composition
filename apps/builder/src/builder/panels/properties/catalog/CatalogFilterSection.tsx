@@ -66,6 +66,7 @@ import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox";
+import { catalogTableSliceServable } from "../../../../../../../packages/shared/src/catalog/runtime/tableStateQuery";
 import { useCollections, useDataStore } from "../../../stores/data";
 import { catalogBindingViews } from "../../../../../../../packages/shared/src/catalog/runtime/viewQuery";
 import { explainViewRow } from "../../../../../../../packages/shared/src/collections/view/evaluate";
@@ -130,6 +131,50 @@ function useBoundTable(nodeId: NodeId | undefined): DataTable | undefined {
     const id = binding?.collectionId.replace(/^data:collection:/, "");
     return collections.find((table) => table.id === id);
   }, [collections, nodeId, revision, workspace]);
+}
+
+/**
+ * ADR-315 Phase 2 — a bound Table with 「Multi-column sort」 on whose rows' request cannot carry a
+ * sort list (breakdown §4.3.1 · §6): the Table sorts by one column there, and the panel says why —
+ * the session's own judgment (`catalogTableSliceServable`), so the notice and the Preview agree.
+ */
+export function CatalogTableSortNotice({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const revision = useGraphRevision();
+  const table = useBoundTable(listId);
+  const endpoints = useDataStore((state) => state.apiEndpoints);
+  const several = useMemo(() => {
+    void revision;
+    const node = workspace.runtime.graph.getEntry(listId);
+    if (node?.kind !== "node") return false;
+    const own = node.props.allowsMultiSort as { value?: unknown } | undefined;
+    return own?.value === true;
+  }, [listId, revision, workspace]);
+  if (!several || !table || table.useMockData !== false) return null;
+  const endpoint = [...endpoints.values()].find((item) =>
+    item.targetCollectionId
+      ? item.targetCollectionId === table.id
+      : item.targetCollection === table.name,
+  );
+  if (!endpoint) return null;
+  const servable = catalogTableSliceServable(
+    {
+      remote: true,
+      // (`load({sortDescriptor})` — the endpoint's own template names one column.)
+      readsSortTemplate: JSON.stringify(endpoint).includes("sortDescriptor"),
+      ...(endpoint.querySerialization
+        ? { format: endpoint.querySerialization }
+        : {}),
+    },
+    "sort",
+  );
+  if (servable.accepts === "whole") return null;
+  return (
+    <p className="datatable-api-hint" role="status">
+      {t(`dataView.multiSortRefused_${servable.reason}`)}
+    </p>
+  );
 }
 
 /** A list's fields for a condition · a grouping: its own and those through its references. */
@@ -542,9 +587,10 @@ function SortFollow({ listId }: { listId: NodeId }) {
           : undefined;
         return shared?.kind === "view" ? shared.sort : undefined;
       })();
+    const sortEntry = sort?.find((entry) => "variableId" in entry);
     const sortVariable =
-      sort && "variableId" in sort
-        ? graph.getEntry(sort.variableId)
+      sortEntry && "variableId" in sortEntry
+        ? graph.getEntry(sortEntry.variableId)
         : undefined;
     const isTable = typeName(listId) === "Table";
     const pageId = catalogNodePage(graph as never, listId);

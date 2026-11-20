@@ -61,14 +61,15 @@ const SCHEMA = [
     formula: "sum('f-items'[*].v)",
   },
 ];
-const makeRows = () => Array.from({ length: ROWS }, (_, i) => ({
-  id: `r${i}`,
-  name: `Order ${i}`,
-  price: (i * 37) % 1000,
-  qty: (i % 7) + 1,
-  due: `2026-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
-  items: [{ v: i % 10 }, { v: (i * 3) % 10 }, { v: 1 }],
-}));
+const makeRows = () =>
+  Array.from({ length: ROWS }, (_, i) => ({
+    id: `r${i}`,
+    name: `Order ${i}`,
+    price: (i * 37) % 1000,
+    qty: (i % 7) + 1,
+    due: `2026-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
+    items: [{ v: i % 10 }, { v: (i * 3) % 10 }, { v: 1 }],
+  }));
 const rows = makeRows();
 const f = (id: string) => [`data:field:${id}` as const];
 /** A view that reads the computed fields: a condition on `late`, sorted by `total`. */
@@ -81,17 +82,15 @@ const VIEW: ViewQuery = {
       { id: "c2", fields: [f("f-qty")], op: "gt", value: "!var.min" },
     ],
   },
-  sort: { field: f("f-total"), direction: "descending" },
+  sort: [{ field: f("f-total"), direction: "descending" }],
 };
 const VIEW_PLAIN: ViewQuery = {
   where: {
     id: "where",
     op: "and",
-    items: [
-      { id: "c2", fields: [f("f-qty")], op: "gt", value: "!var.min" },
-    ],
+    items: [{ id: "c2", fields: [f("f-qty")], op: "gt", value: "!var.min" }],
   },
-  sort: { field: f("f-price"), direction: "descending" },
+  sort: [{ field: f("f-price"), direction: "descending" }],
 };
 
 const median = (xs: number[]) => {

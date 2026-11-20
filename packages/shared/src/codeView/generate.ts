@@ -154,6 +154,7 @@ const NOT_SENT: Record<SerializationWarningCode, string> = {
   GET_BODY: "a GET request carries no body",
   MULTI_VIEW: "several views",
   GROUP: "a grouping",
+  MULTI_SORT: "the sorts after the first",
   COMPUTED: "a computed field",
 };
 const FOREIGN_DROPS = new Set(["onInsert", "onRootDrop", "onItemDrop"]);
@@ -1199,9 +1200,9 @@ class Generator {
 
   private isSortVariable(entry: StateVariableEntry): boolean {
     const isSort = (query: ViewQuery | undefined) =>
-      !!query?.sort &&
-      "variableId" in query.sort &&
-      query.sort.variableId === entry.id;
+      !!query?.sort?.some(
+        (sort) => "variableId" in sort && sort.variableId === entry.id,
+      );
     return (
       this.nodes.some((node) => isSort(node.binding?.view)) ||
       [...this.views.values()].some((view) =>
@@ -1462,7 +1463,7 @@ class Generator {
     const countOnly = (query: ViewQuery) =>
       !query.where.items.length &&
       !query.groupBy &&
-      !query.sort &&
+      !query.sort?.length &&
       !!query.aggregates?.length &&
       query.aggregates.every(
         (aggregate) => aggregate.fn === "count" || aggregate.fn === "applied",
@@ -1655,7 +1656,8 @@ class Generator {
     view: ViewCode,
     format: EndpointQuerySerialization,
   ): void {
-    const sort = query.sort;
+    // (ADR-315 Phase 2 — the code names the first sort entry: no authoring surface writes more.)
+    const sort = query.sort?.[0];
     if (!sort) return;
     const sortParam = literal(format.sortParam ?? "_sort");
     const orderParam = literal(format.orderParam ?? "_order");
@@ -1690,7 +1692,8 @@ class Generator {
     query: ViewQuery,
     view: ViewCode,
   ): { field: string; direction: string; when?: string } | undefined {
-    const sort = query.sort;
+    // (ADR-315 Phase 2 — the code names the first sort entry: no authoring surface writes more.)
+    const sort = query.sort?.[0];
     if (!sort) return undefined;
     if ("variableId" in sort) {
       const variable = this.variables.get(sort.variableId);
@@ -1742,8 +1745,8 @@ class Generator {
     };
     for (const { query } of served.chain) {
       visit(query.where);
-      if (query.sort && "variableId" in query.sort)
-        add(`!var.${query.sort.variableId}`);
+      for (const sort of query.sort ?? [])
+        if ("variableId" in sort) add(`!var.${sort.variableId}`);
     }
     return names;
   }
@@ -1796,7 +1799,8 @@ class Generator {
       out.line(`let ${code.name} = ${source};`);
       return;
     }
-    const sort = query.sort;
+    // (ADR-315 Phase 2 — the code names the first sort entry: no authoring surface writes more.)
+    const sort = query.sort?.[0];
     let dir: string | undefined;
     if (sort && "variableId" in sort) {
       const variable = this.variables.get(sort.variableId);

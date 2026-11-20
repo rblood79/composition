@@ -208,13 +208,17 @@ function editCommand(
     case "sortField":
       return writeQuery(reader, edit.owner, (query) => ({
         ...query,
-        sort: {
-          field: edit.field,
-          direction:
-            query.sort && "direction" in query.sort
-              ? query.sort.direction
-              : "ascending",
-        },
+        // (ADR-315 Phase 2 — the code names the first sort entry: the entries after it stay.)
+        sort: [
+          {
+            field: edit.field,
+            direction:
+              query.sort?.[0] && "direction" in query.sort[0]
+                ? query.sort[0].direction
+                : "ascending",
+          },
+          ...(query.sort ?? []).slice(1),
+        ],
       }));
     case "trigger":
       return (stage) => {

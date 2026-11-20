@@ -485,6 +485,18 @@ export const semanticLabelKeys: Record<string, string> = {
   Spacious: "properties.spacious",
   Emphasized: "properties.emphasized",
   "Disallow Empty Selection": "properties.disallowEmptySelection",
+  // ADR-315 — a Table keeps its user's state in the browser.
+  "Remember state": "properties.rememberState",
+  // ADR-315 Phase 2 — the Table's · a Column's sort options.
+  "Multi-column sort": "properties.multiColumnSort",
+  "Max sort columns": "properties.maxSortColumns",
+  "Allow unsorted": "properties.allowUnsorted",
+  "First direction": "properties.sortFirstDirection",
+  "Empty values": "properties.sortEmptyValues",
+  Ascending: "properties.ascending",
+  Descending: "properties.descending",
+  Last: "properties.last",
+  First: "properties.first",
   // 2026-11-18 S2 — collection `disabledKeys` · TagGroup `selectionBehavior` · `groupActionLabel`.
   "Disabled keys": "properties.disabledKeys",
   "Selection Behavior": "properties.selectionBehavior",

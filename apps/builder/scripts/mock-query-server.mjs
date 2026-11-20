@@ -10,12 +10,27 @@
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 
-const collator = new Intl.Collator("en", { usage: "search", sensitivity: "base" });
+const collator = new Intl.Collator("en", {
+  usage: "search",
+  sensitivity: "base",
+});
 const same = (a, b) => collator.compare(String(a), String(b)) === 0;
 const has = (haystack, needle) =>
-  String(haystack).toLocaleLowerCase().normalize("NFD").replace(/\p{M}/gu, "")
-    .includes(String(needle).toLocaleLowerCase().normalize("NFD").replace(/\p{M}/gu, ""));
-const empty = (v) => v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+  String(haystack)
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .includes(
+      String(needle)
+        .toLocaleLowerCase()
+        .normalize("NFD")
+        .replace(/\p{M}/gu, ""),
+    );
+const empty = (v) =>
+  v === null ||
+  v === undefined ||
+  v === "" ||
+  (Array.isArray(v) && v.length === 0);
 const day = (v) => (typeof v === "string" ? v.slice(0, 10) : v);
 const num = (v) => (typeof v === "number" ? v : Number(v));
 const compare = (a, b) => {
@@ -31,27 +46,64 @@ function holds(condition, row) {
   const list = v instanceof Set ? [...v] : Array.isArray(v) ? v : [v];
   return values.some((cell) => {
     switch (condition.op) {
-      case "equals": return same(cell, v);
-      case "notEquals": return !same(cell, v);
-      case "contains": return Array.isArray(cell) ? cell.some((x) => same(x, v)) : has(cell ?? "", v);
-      case "notContains": return Array.isArray(cell) ? !cell.some((x) => same(x, v)) : !has(cell ?? "", v);
-      case "startsWith": return String(cell ?? "").toLowerCase().startsWith(String(v).toLowerCase());
-      case "endsWith": return String(cell ?? "").toLowerCase().endsWith(String(v).toLowerCase());
-      case "notStartsWith": return !String(cell ?? "").toLowerCase().startsWith(String(v).toLowerCase());
-      case "notEndsWith": return !String(cell ?? "").toLowerCase().endsWith(String(v).toLowerCase());
-      case "oneOf": return list.some((x) => same(cell, x));
-      case "containsAny": return Array.isArray(cell) && list.some((x) => cell.some((y) => same(x, y)));
-      case "containsAll": return Array.isArray(cell) && list.every((x) => cell.some((y) => same(x, y)));
-      case "gte": return compare(cell, v) >= 0;
-      case "gt": return compare(cell, v) > 0;
-      case "lte": return compare(cell, v) <= 0;
-      case "lt": return compare(cell, v) < 0;
-      case "between": return compare(cell, list[0]) >= 0 && compare(cell, list[1]) <= 0;
-      case "before": return day(cell) < day(v);
-      case "after": return day(cell) > day(v);
-      case "exists": return !empty(cell);
-      case "notExists": return empty(cell);
-      default: throw new Error(`mock server: unknown comparison ${condition.op}`);
+      case "equals":
+        return same(cell, v);
+      case "notEquals":
+        return !same(cell, v);
+      case "contains":
+        return Array.isArray(cell)
+          ? cell.some((x) => same(x, v))
+          : has(cell ?? "", v);
+      case "notContains":
+        return Array.isArray(cell)
+          ? !cell.some((x) => same(x, v))
+          : !has(cell ?? "", v);
+      case "startsWith":
+        return String(cell ?? "")
+          .toLowerCase()
+          .startsWith(String(v).toLowerCase());
+      case "endsWith":
+        return String(cell ?? "")
+          .toLowerCase()
+          .endsWith(String(v).toLowerCase());
+      case "notStartsWith":
+        return !String(cell ?? "")
+          .toLowerCase()
+          .startsWith(String(v).toLowerCase());
+      case "notEndsWith":
+        return !String(cell ?? "")
+          .toLowerCase()
+          .endsWith(String(v).toLowerCase());
+      case "oneOf":
+        return list.some((x) => same(cell, x));
+      case "containsAny":
+        return (
+          Array.isArray(cell) && list.some((x) => cell.some((y) => same(x, y)))
+        );
+      case "containsAll":
+        return (
+          Array.isArray(cell) && list.every((x) => cell.some((y) => same(x, y)))
+        );
+      case "gte":
+        return compare(cell, v) >= 0;
+      case "gt":
+        return compare(cell, v) > 0;
+      case "lte":
+        return compare(cell, v) <= 0;
+      case "lt":
+        return compare(cell, v) < 0;
+      case "between":
+        return compare(cell, list[0]) >= 0 && compare(cell, list[1]) <= 0;
+      case "before":
+        return day(cell) < day(v);
+      case "after":
+        return day(cell) > day(v);
+      case "exists":
+        return !empty(cell);
+      case "notExists":
+        return empty(cell);
+      default:
+        throw new Error(`mock server: unknown comparison ${condition.op}`);
     }
   });
 }
@@ -61,16 +113,33 @@ function holdsGroup(group, row) {
   const results = group.items.map((item) => holdsGroup(item, row));
   return group.op === "or" ? results.some(Boolean) : results.every(Boolean);
 }
+// (ADR-315 Phase 2 — `sort` is one entry or a list: the first, then the next among its equal rows.)
 function sorted(rows, sort) {
-  if (!sort) return rows;
-  const sign = sort.direction === "descending" ? -1 : 1;
-  return [...rows].sort((a, b) => sign * compare(a[sort.field], b[sort.field]));
+  const sorts = (Array.isArray(sort) ? sort : sort ? [sort] : []).filter(
+    Boolean,
+  );
+  if (!sorts.length) return rows;
+  return [...rows].sort((a, b) => {
+    for (const entry of sorts) {
+      const order =
+        (entry.direction === "descending" ? -1 : 1) *
+        compare(a[entry.field], b[entry.field]);
+      if (order) return order;
+    }
+    return 0;
+  });
 }
 function aggregate(fn, rows, field) {
   if (fn === "count") return rows.length;
   const cells = rows.map((row) => row[field]).filter((cell) => !empty(cell));
-  if (fn === "min") return cells.length ? cells.reduce((m, c) => (compare(c, m) < 0 ? c : m)) : null;
-  if (fn === "max") return cells.length ? cells.reduce((m, c) => (compare(c, m) > 0 ? c : m)) : null;
+  if (fn === "min")
+    return cells.length
+      ? cells.reduce((m, c) => (compare(c, m) < 0 ? c : m))
+      : null;
+  if (fn === "max")
+    return cells.length
+      ? cells.reduce((m, c) => (compare(c, m) > 0 ? c : m))
+      : null;
   const numbers = cells.map(num).filter(Number.isFinite);
   const sum = numbers.reduce((t, c) => t + c, 0);
   if (fn === "sum") return sum;
@@ -85,8 +154,11 @@ function grouped(rows, group) {
     buckets.get(key).push(row);
   }
   return [...buckets.entries()].map(([key, members]) => {
-    const out = Object.fromEntries(group.by.map((field, index) => [field, JSON.parse(key)[index]]));
-    for (const a of group.aggregates) out[a.as] = aggregate(a.fn, members, a.field);
+    const out = Object.fromEntries(
+      group.by.map((field, index) => [field, JSON.parse(key)[index]]),
+    );
+    for (const a of group.aggregates)
+      out[a.as] = aggregate(a.fn, members, a.field);
     return out;
   });
 }
@@ -99,16 +171,26 @@ export function answerBody(rows, body = {}) {
   const total = out.length;
   const offset = body.page?.cursor !== undefined ? Number(body.page.cursor) : 0;
   const limit = body.page?.limit;
-  const items = limit === undefined ? out.slice(offset) : out.slice(offset, offset + limit);
-  const next = limit !== undefined && offset + limit < total ? String(offset + limit) : undefined;
-  return { items, ...(body.total ? { total } : {}), ...(next !== undefined ? { cursor: next } : {}) };
+  const items =
+    limit === undefined ? out.slice(offset) : out.slice(offset, offset + limit);
+  const next =
+    limit !== undefined && offset + limit < total
+      ? String(offset + limit)
+      : undefined;
+  return {
+    items,
+    ...(body.total ? { total } : {}),
+    ...(next !== undefined ? { cursor: next } : {}),
+  };
 }
 
 /** json-server parameters: `{ items, headers }` with `X-Total-Count`. */
 export function answerSuffix(rows, params) {
-  const list = params instanceof URLSearchParams ? [...params.entries()] : [...params];
+  const list =
+    params instanceof URLSearchParams ? [...params.entries()] : [...params];
   const byKey = new Map();
-  for (const [key, value] of list) byKey.set(key, [...(byKey.get(key) ?? []), value]);
+  for (const [key, value] of list)
+    byKey.set(key, [...(byKey.get(key) ?? []), value]);
   let out = rows.filter((row) =>
     [...byKey.entries()].every(([key, values]) => {
       if (key.startsWith("_")) return true;
@@ -116,19 +198,35 @@ export function answerSuffix(rows, params) {
       const field = match[1];
       const cell = row[field];
       switch (match[2]) {
-        case "_ne": return values.every((v) => !same(cell, v));
-        case "_like": return values.some((v) => has(cell ?? "", v));
-        case "_gte": return values.every((v) => compare(cell, v) >= 0);
-        case "_gt": return values.every((v) => compare(cell, v) > 0);
-        case "_lte": return values.every((v) => compare(cell, v) <= 0);
-        case "_lt": return values.every((v) => compare(cell, v) < 0);
-        default: return values.some((v) => same(cell, v));
+        case "_ne":
+          return values.every((v) => !same(cell, v));
+        case "_like":
+          return values.some((v) => has(cell ?? "", v));
+        case "_gte":
+          return values.every((v) => compare(cell, v) >= 0);
+        case "_gt":
+          return values.every((v) => compare(cell, v) > 0);
+        case "_lte":
+          return values.every((v) => compare(cell, v) <= 0);
+        case "_lt":
+          return values.every((v) => compare(cell, v) < 0);
+        default:
+          return values.some((v) => same(cell, v));
       }
     }),
   );
   const sortField = byKey.get("_sort")?.[0];
-  if (sortField)
-    out = sorted(out, { field: sortField, direction: byKey.get("_order")?.[0] === "desc" ? "descending" : "ascending" });
+  if (sortField) {
+    // (json-server: `_sort=a,b&_order=asc,desc` — comma lists, in order.)
+    const orders = (byKey.get("_order")?.[0] ?? "").split(",");
+    out = sorted(
+      out,
+      sortField.split(",").map((field, index) => ({
+        field,
+        direction: orders[index] === "desc" ? "descending" : "ascending",
+      })),
+    );
+  }
   const total = out.length;
   const page = byKey.get("_page")?.[0];
   const limit = byKey.get("_limit")?.[0];
@@ -140,7 +238,10 @@ export function answerSuffix(rows, params) {
   return { items: out, headers: { "X-Total-Count": String(total) } };
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {
+if (
+  process.argv[1] &&
+  import.meta.url.endsWith(process.argv[1].split("/").pop())
+) {
   const [, , file, port = "5199"] = process.argv;
   if (!file) {
     console.error("usage: node mock-query-server.mjs <rows.json> [port]");
@@ -150,13 +251,20 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()
   createServer((request, response) => {
     const url = new URL(request.url, "http://127.0.0.1");
     const send = (status, payload, headers = {}) => {
-      response.writeHead(status, { "content-type": "application/json", "access-control-allow-origin": "*", "access-control-expose-headers": "X-Total-Count", ...headers });
+      response.writeHead(status, {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "X-Total-Count",
+        ...headers,
+      });
       response.end(JSON.stringify(payload));
     };
     if (request.method === "POST" && url.pathname === "/query") {
       let text = "";
       request.on("data", (chunk) => (text += chunk));
-      request.on("end", () => send(200, answerBody(rows, text ? JSON.parse(text) : {})));
+      request.on("end", () =>
+        send(200, answerBody(rows, text ? JSON.parse(text) : {})),
+      );
       return;
     }
     if (request.method === "GET" && url.pathname === "/rows") {
@@ -165,5 +273,9 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()
       return;
     }
     send(404, { error: "not found" });
-  }).listen(Number(port), "127.0.0.1", () => console.log(`mock query server: ${rows.length} rows on http://127.0.0.1:${port}`));
+  }).listen(Number(port), "127.0.0.1", () =>
+    console.log(
+      `mock query server: ${rows.length} rows on http://127.0.0.1:${port}`,
+    ),
+  );
 }

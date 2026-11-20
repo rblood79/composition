@@ -108,7 +108,7 @@ describe("ADR-291 G5 — local evaluator = mock server (body format)", () => {
   it("filter + sort without a grouping: the same rows in the same order, the page cursor as an offset", () => {
     const view: ViewQuery = {
       where,
-      sort: { field: f("f-score"), direction: "descending" },
+      sort: [{ field: f("f-score"), direction: "descending" }],
     };
     const local = runViewQueries(ROWS, {
       queries: [view],

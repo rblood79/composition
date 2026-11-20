@@ -163,11 +163,11 @@ const OPERATIONS: Operation[] = [
     ours: [
       {
         where: NO_WHERE,
-        sort: { field: f("f-amount"), direction: "descending" },
+        sort: [{ field: f("f-amount"), direction: "descending" }],
       },
       {
         where: NO_WHERE,
-        sort: { field: f("f-amount"), direction: "ascending" },
+        sort: [{ field: f("f-amount"), direction: "ascending" }],
       },
     ],
     tanstack: [
@@ -178,10 +178,13 @@ const OPERATIONS: Operation[] = [
   {
     label: "sort — text",
     ours: [
-      { where: NO_WHERE, sort: { field: f("f-name"), direction: "ascending" } },
       {
         where: NO_WHERE,
-        sort: { field: f("f-name"), direction: "descending" },
+        sort: [{ field: f("f-name"), direction: "ascending" }],
+      },
+      {
+        where: NO_WHERE,
+        sort: [{ field: f("f-name"), direction: "descending" }],
       },
     ],
     tanstack: [
@@ -199,11 +202,11 @@ const OPERATIONS: Operation[] = [
     ours: [
       {
         where: where("1", 2000),
-        sort: { field: f("f-amount"), direction: "descending" },
+        sort: [{ field: f("f-amount"), direction: "descending" }],
       },
       {
         where: where("2", 3000),
-        sort: { field: f("f-amount"), direction: "ascending" },
+        sort: [{ field: f("f-amount"), direction: "ascending" }],
       },
     ],
     tanstack: [

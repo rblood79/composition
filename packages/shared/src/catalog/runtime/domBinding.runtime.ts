@@ -315,10 +315,13 @@ import {
 } from "./tableOperationsDom";
 
 import {
+  catalogTableColumnKey,
   catalogTableResizable,
   catalogTableSortedRows,
   catalogTableSortOf,
+  type CatalogTableSort,
 } from "./tableSort";
+import { catalogTableColumnRoles } from "./tableColumnRoles";
 
 import {
   CATALOG_DRAG_COLUMN_WIDTH,
@@ -371,6 +374,12 @@ export interface CatalogDomRuntime {
    * of the record — the same values a capability writes, never the document (ADR-250).
    */
   setRuntimeProps?(id: string, patch: Readonly<Record<string, unknown>>): void;
+  /**
+   * ADR-315 Phase 2 — a Table's header press: the Column RAC named (its RAC key) and whether the
+   * press adds to the sort (Shift held). The session turns the Column's direction and keeps the
+   * list; RAC is told the first sort back (`sortDescriptor`).
+   */
+  pressTableSort?(tableId: string, column: string, add: boolean): void;
   /** `useAsyncList.loadMore()` — a bound collection's end loads the next page (the session's). */
   loadMore?(collectionId: string): void;
   /**
@@ -2753,24 +2762,20 @@ function columnIsRowHeader(
       (child): child is CatalogConsumerNode =>
         !!child && catalogTypeName(root, child) === "Column",
     );
-  // (Not a selection column — its `Checkbox[slot=selection]` names no row, ADR-256 Phase 5i-2.)
-  const named = columns.filter(
-    (child) =>
-      !child.children.some((id) => {
-        const box = root.domInputs.get(id);
-        return (
-          !!box &&
-          catalogTypeName(root, box) === "Checkbox" &&
-          box.props.slot === "selection"
-        );
-      }),
+  // (Not a selection column — its `Checkbox[slot=selection]` names no row, ADR-256 Phase 5i-2.
+  //  One rule with the session's Table state — `catalogTableColumnRoles`, ADR-315.)
+  const roles = catalogTableColumnRoles(columns, (id) => {
+    const box = root.domInputs.get(id);
+    return (
+      !!box &&
+      catalogTypeName(root, box) === "Checkbox" &&
+      box.props.slot === "selection"
+    );
+  });
+  return (
+    roles[columns.findIndex((child) => child.id === column.id)]?.rowHeader ===
+    true
   );
-  if (columns.some((child) => child.props.isRowHeader === true)) return false;
-  const first =
-    named.find((child) => child.props.isRowHeader !== false) ??
-    named[0] ??
-    columns[0];
-  return first?.id === column.id;
 }
 
 /**
@@ -3076,6 +3081,8 @@ function ruleDom(
       ? {
           sortable: node.props.allowsSorting === true,
           sortsInline: catalogColumnSortsInline(node, domGet, domType),
+          // (ADR-315 Phase 2 — this Column's place in a sort of several: its order mark.)
+          sortEntry: columnSortEntry(node, operationsTable, context),
           resizable: node.props.allowsResizing === true,
           // (One Column of a resizable Table writes RAC's widths as the rows' tracks.)
           writesTracks:
@@ -3524,12 +3531,19 @@ function ruleDom(
             // (ADR-284 Decision 5: a Table its view's variable sorts — the header press is the
             // rule's, which writes the variable; no runtime sort of its own.)
             ...(context.runtime?.setRuntimeProps && !node.props._sortByVariable
-              ? {
-                  onSortChange: (sortDescriptor: unknown) =>
-                    context.runtime!.setRuntimeProps!(node.id, {
-                      sortDescriptor: catalogTableSortOf(sortDescriptor),
-                    }),
-                }
+              ? context.runtime.pressTableSort
+                ? {
+                    // (ADR-315 Phase 2 — `CatalogTable` adds whether Shift was held: RAC's
+                    //  `onSortChange` names the Column only.)
+                    onSortPress: (column: string, add: boolean) =>
+                      context.runtime!.pressTableSort!(node.id, column, add),
+                  }
+                : {
+                    onSortChange: (sortDescriptor: unknown) =>
+                      context.runtime!.setRuntimeProps!(node.id, {
+                        sortDescriptor: catalogTableSortOf(sortDescriptor),
+                      }),
+                  }
               : {}),
             tableResizable: resizable,
             ...catalogControlledProps(
@@ -4569,6 +4583,40 @@ function windowRowChildren(
  * cell in the sorted column). Data rows come sorted by value from the resolver (the rows a fixed
  * height shows are the sorted data's first — `boundTableRows`).
  */
+/** A Table record's sort entries as its view reads them (RAC keys): the list, else the one sort. */
+function tableSortEntries(
+  override: Readonly<Record<string, unknown>> | undefined,
+): readonly CatalogTableSort[] | undefined {
+  const entries = override?._sortEntries;
+  if (Array.isArray(entries)) {
+    const list = entries.flatMap((entry) => catalogTableSortOf(entry) ?? []);
+    if (list.length) return list;
+  }
+  const one = catalogTableSortOf(override?.sortDescriptor);
+  return one ? [one] : undefined;
+}
+
+/**
+ * A Column's place in its Table's sort of several columns (ADR-315 Phase 2): its 1-based order and
+ * direction. Undefined = the Table has one sort or none (RAC's own direction draws the arrow).
+ */
+function columnSortEntry(
+  node: CatalogConsumerNode,
+  table: CatalogConsumerNode,
+  context: CatalogDomContext,
+): { order: number; direction: "ascending" | "descending" } | undefined {
+  const entries = tableSortEntries(context.runtime?.overrideOf(table.id));
+  if (!entries || entries.length < 2) return undefined;
+  const key = catalogTableColumnKey({
+    id: node.id,
+    ...(node.htmlId ? { htmlId: node.htmlId } : {}),
+  });
+  const index = entries.findIndex((entry) => entry.column === key);
+  return index < 0
+    ? undefined
+    : { order: index + 1, direction: entries[index]!.direction };
+}
+
 function tableBodyOrder(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -4579,9 +4627,7 @@ function tableBodyOrder(
   return (
     catalogTableSortedRows(
       node,
-      catalogTableSortOf(
-        context.runtime?.overrideOf(node.parentId)?.sortDescriptor,
-      ),
+      tableSortEntries(context.runtime?.overrideOf(node.parentId)),
       (recordId) => root.domInputs.get(recordId),
       (entry) => catalogTypeName(root, entry),
     ) ?? node.children

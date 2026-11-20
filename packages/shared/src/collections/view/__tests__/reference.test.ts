@@ -83,7 +83,19 @@ describe("ADR-284 G4 — a reference path (team.name)", () => {
       names(
         run({
           where: where([]),
-          sort: { field: [...TEAM_NAME], direction: "ascending" },
+          sort: [{ field: [...TEAM_NAME], direction: "ascending" }],
+        }).rows,
+      ),
+      // (ADR-315 Phase 2 — the rows without a team are empty values: last, whatever the direction.
+      //  Before, an empty value sorted as the text `""` — first when ascending.)
+    ).toEqual(["Park", "Kim", "Lee", "Cho", "Choi"]);
+    expect(
+      names(
+        run({
+          where: where([]),
+          sort: [
+            { field: [...TEAM_NAME], direction: "ascending", empty: "first" },
+          ],
         }).rows,
       ),
     ).toEqual(["Cho", "Choi", "Park", "Kim", "Lee"]);

@@ -9,6 +9,7 @@ import type {
   WriteValue,
 } from "../document/types";
 import { COLLECTION_TYPE_TABLE } from "../document/collectionItems";
+import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import { descendantPatchOf } from "../document/types";
 import { readPropSource } from "../resolution/fieldSource";
 import {
@@ -896,14 +897,15 @@ function columnKey(
   column: NodeParent,
   index: number,
 ): string {
-  const key = readProp(reader, column, "key");
-  if (typeof key === "string" && key) return key;
-  if (typeof key === "number") return String(key);
-  const text = readProp(reader, column, "children");
-  if (typeof text === "string" && text) return text.toLowerCase();
-  const id = readProp(reader, column, "id");
-  if (typeof id === "string" && id) return id;
-  return `column${index + 1}`;
+  // (One rule with the reader — `resolveTableColumnKey`, ADR-315 Phase 1.)
+  return resolveTableColumnKey(
+    {
+      key: readProp(reader, column, "key"),
+      children: readProp(reader, column, "children"),
+      id: readProp(reader, column, "id"),
+    },
+    index,
+  );
 }
 /**
  * Tables whose header and body hold the column and row nodes: RAC `Table` (ADR-256 Phase 5i — RAC

@@ -26,12 +26,17 @@ export function catalogResizableTracks(tracks: string): string {
 }
 
 /**
- * The sort direction of the sortable Column being rendered (RAC's Column render props) — `null`
- * outside one.
+ * The sort of the sortable Column being rendered — `null` outside one: its direction (RAC's Column
+ * render props — the Table's first sort; a Column sorted after it has the Table state's), and its
+ * 1-based place in a sort of several columns (ADR-315 Phase 2 — absent in a sort of one).
  */
-export const CatalogColumnSortContext = createContext<
-  string | undefined | null
->(null);
+export interface CatalogColumnSort {
+  readonly direction?: string;
+  readonly order?: number;
+}
+export const CatalogColumnSortContext = createContext<CatalogColumnSort | null>(
+  null,
+);
 
 /**
  * S2 `ColumnWithMenu` — what the menu of the Column being rendered does (RAC's Column render props
@@ -58,6 +63,11 @@ export function catalogColumnChildren(
     readonly sortable: boolean;
     /** A Column without a content wrapper: the arrow goes before its content. */
     readonly sortsInline: boolean;
+    /** This Column's place in its Table's sort of several columns (its order mark). */
+    readonly sortEntry?: {
+      readonly order: number;
+      readonly direction: "ascending" | "descending";
+    };
     readonly resizable: boolean;
     readonly writesTracks: boolean;
   },
@@ -70,7 +80,16 @@ export function catalogColumnChildren(
     const sorted = options.sortable
       ? createElement(
           CatalogColumnSortContext.Provider,
-          { key: "content", value: sortDirection },
+          {
+            key: "content",
+            // (RAC knows the first sort only: a Column sorted after it reads the state's entry.)
+            value: options.sortEntry
+              ? {
+                  direction: options.sortEntry.direction,
+                  order: options.sortEntry.order,
+                }
+              : { direction: sortDirection },
+          },
           options.sortsInline
             ? createElement(CatalogSortIndicator, { key: "sort-indicator" })
             : null,

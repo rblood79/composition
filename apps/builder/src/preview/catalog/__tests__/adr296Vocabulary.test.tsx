@@ -167,7 +167,8 @@ const CASES: Record<string, Case> = {
   '<DialogTrigger><Button className="button" /><Popover className="popover">… (a Library instance\'s positions)':
     {
       build: (h) => ({ dialog: h.add("Dialog") }),
-      shows: /<DialogTrigger>\n\s+<Button className="button" \/>\n\s+<Modal className="modal">/,
+      shows:
+        /<DialogTrigger>\n\s+<Button className="button" \/>\n\s+<Modal className="modal">/,
       edit: (code) =>
         code.replace(
           '<Heading className="heading" />',
@@ -372,7 +373,7 @@ const CASES: Record<string, Case> = {
     shows: /url\.searchParams\.set\('_sort', 'name'\);/,
     edit: (code) => code.replace("set('_sort', 'name')", "set('_sort', 'age')"),
     check: (h, made) =>
-      expect(viewOf(h, made.list as string)?.sort).toMatchObject({
+      expect(viewOf(h, made.list as string)?.sort?.[0]).toMatchObject({
         field: ["data:field:users-age"],
       }),
   },
@@ -463,7 +464,7 @@ const CASES: Record<string, Case> = {
         "String(a.age), String(b.age)",
       ),
     check: (h, made) =>
-      expect(viewOf(h, made.list as string)?.sort).toMatchObject({
+      expect(viewOf(h, made.list as string)?.sort?.[0]).toMatchObject({
         field: ["data:field:users-age"],
       }),
   },
@@ -1249,12 +1250,17 @@ Object.assign(FILE_CASES, {
       path: "index.html",
       build: () => undefined,
       edit: (code: string) =>
-        code.replace('<meta charset="utf-8" />', '<meta charset="utf-8" />\n    <title>Hello</title>'),
+        code.replace(
+          '<meta charset="utf-8" />',
+          '<meta charset="utf-8" />\n    <title>Hello</title>',
+        ),
       check: (h: Adr296Harness) =>
         expect(
-          (h.graph().getEntry(h.graph().projectId) as unknown as {
-            site?: { title?: string };
-          }).site?.title,
+          (
+            h.graph().getEntry(h.graph().projectId) as unknown as {
+              site?: { title?: string };
+            }
+          ).site?.title,
         ).toBe("Hello"),
     },
   "export default siteConfig({search, redirects, access})": {
@@ -1264,9 +1270,11 @@ Object.assign(FILE_CASES, {
       "import {siteConfig} from '@composition/code';\n\nexport default siteConfig({\n  redirects: [{from: '/a', to: '/b', permanent: false}],\n});\n",
     check: (h: Adr296Harness) =>
       expect(
-        (h.graph().getEntry(h.graph().projectId) as unknown as {
-          site?: { redirects?: unknown };
-        }).site?.redirects,
+        (
+          h.graph().getEntry(h.graph().projectId) as unknown as {
+            site?: { redirects?: unknown };
+          }
+        ).site?.redirects,
       ).toEqual([{ from: "/a", to: "/b", permanent: false }]),
   },
   // ADR-294 — the origin rule's event (its component's own file — ADR-296 Phase 5).
@@ -1388,7 +1396,7 @@ function sortBy(h: Adr296Harness, list: NodeId, fieldId: string) {
         ...binding,
         view: {
           where: { id: "root", op: "and", items: [] },
-          sort: { field: [`data:field:${fieldId}`], direction: "ascending" },
+          sort: [{ field: [`data:field:${fieldId}`], direction: "ascending" }],
         } as never,
       },
       label: "Sort",

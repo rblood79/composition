@@ -34,6 +34,7 @@ import { catalogTargetTypeName } from "../../../catalogRuntime/interactions";
 import { useOptionalCatalogWorkspace } from "../../../catalogRuntime/react.runtime";
 import { Section } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useDataStore } from "../../../stores/data";
 import type { ApiEndpoint } from "../../../../types/builder/data.types";
 import { Input } from "react-aria-components/Input";
@@ -274,6 +275,18 @@ export function QueryFormatSection({
             </label>
           ))}
         </fieldset>
+      )}
+      {format.kind === "suffix" && (
+        // ADR-315 Phase 2 — the endpoint takes several sorts as comma lists in the sort · order
+        // parameters (json-server). Off: a Table on it sorts by one column (never sent short).
+        <PropertySwitch
+          label={dt("apiQueryMultiSort")}
+          isSelected={format.multiSort === true}
+          onChange={(selected) => {
+            const { multiSort: _previous, ...rest } = format;
+            setFormat(selected ? { ...rest, multiSort: true } : rest);
+          }}
+        />
       )}
       {format.kind !== "none" && views.length > 0 && (
         <ul

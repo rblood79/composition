@@ -42,13 +42,14 @@ export function mapViewVariables<Q extends ViewQuery>(
   query: Q,
   map: (id: string) => string | undefined,
 ): Q {
-  const sort =
-    query.sort && "variableId" in query.sort
+  const sort = query.sort?.map((entry) =>
+    "variableId" in entry
       ? {
-          variableId: (map(query.sort.variableId) ??
-            query.sort.variableId) as typeof query.sort.variableId,
+          variableId: (map(entry.variableId) ??
+            entry.variableId) as typeof entry.variableId,
         }
-      : query.sort;
+      : entry,
+  );
   return {
     ...query,
     where: mapItem(query.where, map) as ViewConditionGroup,

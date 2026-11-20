@@ -51,6 +51,14 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
     [3, "P", "Preview interaction index"],
   ],
   [
+    "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",
+    [
+      1,
+      "P",
+      "ADR-315 remembered Table states — looked up after a root is built and after `fillShown` (`restoreDue`): another page's Tables when that page is shown",
+    ],
+  ],
+  [
     "packages/shared/src/catalog/runtime/delegatedDom.runtime.ts",
     [1, "P", "Preview tag list"],
   ],
@@ -77,7 +85,11 @@ const BY_ID = /\.recordsOfSource\(/g;
 const KNOWN_BY_ID = new Map<string, readonly [number, string, string]>([
   [
     "apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx",
-    [6, "R A", "page bodies (compare · active · reveal) · loading roots · badges · overlay"],
+    [
+      6,
+      "R A",
+      "page bodies (compare · active · reveal) · loading roots · badges · overlay",
+    ],
   ],
   [
     "apps/builder/src/builder/catalogRuntime/workspace.ts",

@@ -5,9 +5,11 @@
  * the document's order): RAC's `onSortChange` gives `{ column, direction }`, `column` being the
  * Column's RAC key (`catalogTableColumnKey`). A bound Table's rows are sorted by
  * their field values before its display cuts them — by the rows' source, before its window · page
- * (`CatalogRowSort` → `catalogBoundRows`; a source that does not: `resolver.ts` `boundTableRows`);
+ * (`CatalogRowSorts` → `catalogBoundRows`; a source that does not: `resolver.ts` `boundTableRows`);
  * an authored Table's Rows by the text of their cell in that column (`catalogTableSortedRows`).
+ * ADR-315 Phase 2 — the order itself is the views' (`collections/view/sortOrder.ts`): one sort.
  */
+import { viewSortOrder } from "../../collections/view/sortOrder";
 
 export type CatalogSortDirection = "ascending" | "descending";
 
@@ -16,11 +18,6 @@ export interface CatalogTableSort {
   readonly column: string;
   readonly direction: CatalogSortDirection;
 }
-
-/** The Preview's sort of a Table record (absent = the document's order). */
-export type CatalogTableSortSource = (
-  tableId: string,
-) => CatalogTableSort | undefined;
 
 /**
  * A Column's RAC key — the name RAC's sort gives it: the author's HTML id when it has one (the DOM
@@ -56,60 +53,32 @@ export function catalogTableSortOf(
   return { column: String(column), direction };
 }
 
-const COLLATOR = new Intl.Collator(undefined, {
-  numeric: true,
-  sensitivity: "base",
-});
-
-/** Ascending order of two cell values: numbers by value, the rest by their text (numeric-aware). */
-export function catalogTableSortCompare(a: unknown, b: unknown): number {
-  if (typeof a === "number" && typeof b === "number")
-    return Number.isNaN(a) || Number.isNaN(b) ? 0 : a - b;
-  const text = (value: unknown) =>
-    value === undefined || value === null ? "" : String(value);
-  return COLLATOR.compare(text(a), text(b));
-}
-
-/** `items` in `sort` order by `valueOf` (stable — equal values keep their order). */
-export function catalogTableSorted<T>(
-  items: readonly T[],
-  direction: CatalogSortDirection,
-  valueOf: (item: T) => unknown,
-): T[] {
-  const sign = direction === "descending" ? -1 : 1;
-  return items
-    .map((item, index) => ({ item, index, value: valueOf(item) }))
-    .sort(
-      (a, b) =>
-        sign * catalogTableSortCompare(a.value, b.value) || a.index - b.index,
-    )
-    .map(({ item }) => item);
-}
-
-/** A bound Table's sort as its rows read it: the sorted Column's field and the direction. */
+/**
+ * A bound Table's sort entry as its rows read it: the sorted Column's field, the direction and
+ * where its empty values go (ADR-315 Phase 2 — the Column's `sortEmptyValues`; absent = last).
+ */
 export interface CatalogRowSort {
   readonly key: string;
   readonly direction: CatalogSortDirection;
+  readonly empty?: "first" | "last";
 }
+/** A bound Table's sort: its entries in order (the first, then the next among its equal rows). */
+export type CatalogRowSorts = readonly CatalogRowSort[];
 
-/**
- * The indexes of `count` values in `direction` order (stable — equal values keep their order):
- * `catalogTableSorted` without the items, for a reader that takes only some of them.
- */
-export function catalogTableSortOrder(
-  count: number,
-  direction: CatalogSortDirection,
-  valueAt: (index: number) => unknown,
-): Uint32Array {
-  const sign = direction === "descending" ? -1 : 1;
-  const values = new Array<unknown>(count);
-  const order = new Uint32Array(count);
-  for (let index = 0; index < count; index += 1) {
-    values[index] = valueAt(index);
-    order[index] = index;
-  }
-  return order.sort(
-    (a, b) => sign * catalogTableSortCompare(values[a], values[b]) || a - b,
+/** Two sorts are the same entries in the same order. */
+export function catalogRowSortsEqual(
+  a: CatalogRowSorts | undefined,
+  b: CatalogRowSorts | undefined,
+): boolean {
+  if (!a?.length || !b?.length) return !a?.length && !b?.length;
+  return (
+    a.length === b.length &&
+    a.every(
+      (entry, index) =>
+        entry.key === b[index]!.key &&
+        entry.direction === b[index]!.direction &&
+        (entry.empty ?? "last") === (b[index]!.empty ?? "last"),
+    )
   );
 }
 
@@ -179,31 +148,53 @@ function cellAt<T extends SortRecord>(
 
 /**
  * An authored TableBody's child ids in the Table's Preview sort: its Rows by the text of their
- * cell in the sorted column (other children keep their places). Undefined = no sort applies (no
- * sort, an unknown column, or a body of data rows — the resolver sorts those by value).
+ * cells in the sorted columns, entry after entry (other children keep their places). Undefined =
+ * no sort applies (no sort, no known column, or a body of data rows — their source sorts those by
+ * value). The order is the views' (`viewSortOrder` — one sort, ADR-315 HC2).
  */
 export function catalogTableSortedRows<T extends SortRecord>(
   body: T,
-  sort: CatalogTableSort | undefined,
+  sorts: readonly CatalogTableSort[] | undefined,
   get: SortLookup<T>,
   typeOf: SortTypeOf<T>,
 ): readonly string[] | undefined {
-  if (!sort || typeOf(body) !== "TableBody") return undefined;
+  if (!sorts?.length || typeOf(body) !== "TableBody") return undefined;
   const table = get(body.parentId);
   if (!table) return undefined;
-  const index = tableColumns(table, get, typeOf).findIndex(
-    (column) => catalogTableColumnKey(column) === sort.column,
-  );
-  if (index < 0) return undefined;
+  const columns = tableColumns(table, get, typeOf);
+  const entries = sorts.flatMap((sort) => {
+    const index = columns.findIndex(
+      (column) => catalogTableColumnKey(column) === sort.column,
+    );
+    if (index < 0) return [];
+    const empty = columns[index]!.props.sortEmptyValues;
+    return [
+      {
+        index,
+        direction: sort.direction,
+        ...(empty === "first" ? { empty: "first" as const } : {}),
+      },
+    ];
+  });
+  if (!entries.length) return undefined;
   const rows = recordChildren(body, get).filter((row) => typeOf(row) === "Row");
   if (rows.length < 2) return undefined;
-  const sorted = catalogTableSorted(rows, sort.direction, (row) => {
-    const cell = cellAt(row, index, get, typeOf);
-    return cell ? recordText(cell, get) : "";
-  });
+  const order = viewSortOrder(
+    rows.length,
+    entries.map(({ index, direction, empty }) => ({
+      valueAt: (place: number) => {
+        const cell = cellAt(rows[place]!, index, get, typeOf);
+        return cell ? recordText(cell, get) : "";
+      },
+      direction,
+      // (A cell's text — digits by value, as the collator reads them.)
+      type: "string",
+      ...(empty ? { empty } : {}),
+    })),
+  );
   let next = 0;
   return body.children.map((id) =>
-    rows.some((row) => row.id === id) ? sorted[next++]!.id : id,
+    rows.some((row) => row.id === id) ? rows[order[next++]!]!.id : id,
   );
 }
 

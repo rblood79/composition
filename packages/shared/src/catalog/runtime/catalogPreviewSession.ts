@@ -50,7 +50,8 @@ import {
   VIEW_LOCAL_LOAD_CAP,
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
-import type { CatalogRowSort, CatalogTableSort } from "./tableSort";
+import { viewSchemaAt } from "../../collections/view/evaluate";
+import type { CatalogRowSorts, CatalogTableSort } from "./tableSort";
 import type {
   CatalogLoadingState,
   CatalogViewResultMeta,
@@ -93,6 +94,24 @@ import {
   toItemProjectionRow,
 } from "../../collections/resolveCollectionItems";
 import { catalogTableColumnKey } from "./tableSort";
+import { catalogTableColumnRoles } from "./tableColumnRoles";
+import {
+  CATALOG_TABLE_DATA_SLICES,
+  catalogStoredTableStates,
+  catalogStoreTableStates,
+  catalogTableStateRead,
+  catalogTableStateRemembered,
+  catalogTableStateWith,
+  type CatalogTableShape,
+  type CatalogTableSortItem,
+  type CatalogTableState,
+} from "./tableState";
+import {
+  catalogRowSortsView,
+  catalogTableSliceServable,
+  catalogTableStateQueries,
+  catalogTableStateRowSorts,
+} from "./tableStateQuery";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
 import { catalogRuntimeData, type CatalogRuntimeData } from "./catalogData";
 import { normalizeRows } from "../../collections/intake/normalizeRows";
@@ -441,6 +460,27 @@ export interface CatalogPreviewSessionOptions {
   root?: Omit<CatalogRootOptions, "colorMode" | "rows" | "state">;
   /** Where persisted project variable values live (default `localStorage`; `null` = nowhere). */
   stateStorage?: RuntimeKeyValueStorage | null;
+  /**
+   * ADR-315 사용자 결정 1 — where a Table with 「Remember state」 keeps its state (a published app:
+   * the browser's `localStorage`). Absent · `null` = nowhere — the Builder's Preview never keeps
+   * it (a design check does not start from an earlier session's sort).
+   */
+  tableStateStorage?: RuntimeKeyValueStorage | null;
+}
+
+const NO_TABLE_STATE: CatalogTableState = Object.freeze({});
+const NO_SORTS: CatalogRowSorts = Object.freeze([]);
+/** The query of a binding without a view (a sorted Table's state gives it one). */
+const NO_VIEW_QUERY: CatalogRowQuery = Object.freeze({
+  queries: [],
+  values: {},
+  names: [],
+});
+/** A Table state without its sort (a Table its server sorts — the rows keep the server's order). */
+function withoutSort(state: CatalogTableState): CatalogTableState | undefined {
+  if (!state.sort) return state === NO_TABLE_STATE ? undefined : state;
+  const { sort: _sort, ...rest } = state;
+  return Object.keys(rest).length ? rest : undefined;
 }
 
 /**
@@ -557,12 +597,27 @@ export class CatalogPreviewSession {
   private readonly loadedViewQueries = new Map<string, CatalogRowQuery>();
   /** Tables the server sorts (their endpoint reads `sortDescriptor`) — no client sort on them. */
   private readonly serverSortedTables = new Set<string>();
+  /** The session is telling its view a Table's sort (`echoTableSort`) — not a sort being set. */
+  private echoing = false;
   /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
   private readonly loadingStates = new Map<string, CatalogLoadingState>();
   /** Endpoint submits in flight — a `reload` waits for them (`await fetch; list.reload()`). */
   private readonly pendingSubmits = new Set<Promise<unknown>>();
-  /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
-  private readonly tableSorts = new Map<string, CatalogTableSort>();
+  /**
+   * ADR-315 — each Table record's grid state (runtime, never the document): the one place its
+   * slices live (it was `tableSorts`, the sort alone — ADR-257 Phase 4). Columns by Column key.
+   */
+  private readonly tableStates = new Map<string, CatalogTableState>();
+  /** Table records whose remembered state was looked up (once a record, a project). */
+  private readonly restoredTables = new Set<string>();
+  /** A root built · a page filled since the last look (`restoreTableStates`). */
+  private restoreDue = true;
+  /** Writes a record's runtime props (the view's rule runtime — `attachRuntimeProps`). */
+  private runtimePropsWriter:
+    | ((id: string, patch: Readonly<Record<string, unknown>>) => void)
+    | undefined;
+  /** Restored Tables whose sort RAC has not been told (no rule runtime yet). */
+  private readonly pendingSortEchoes = new Set<string>();
   /** The project variables (the document's — ADR-286). */
   private get variables(): readonly VariableDef[] {
     return this.data().variables;
@@ -613,6 +668,7 @@ export class CatalogPreviewSession {
       this.syncServices();
       if (update.invalidatedIds === "all") {
         this.runtime = new CatalogRuntime(update.graph);
+        this.restoredTables.clear();
         this.openState(update.graph.projectId);
         this.syncDefinitions();
         this.applyTheme(true);
@@ -771,6 +827,7 @@ export class CatalogPreviewSession {
    * tried again each time (the page shows its shell meanwhile).
    */
   private fillShown(): void {
+    this.restoreDue = true;
     const root = this.currentRoot;
     const pageId = this.pageId;
     if (!root || !pageId || !root.hasPendingFill) return;
@@ -1331,6 +1388,48 @@ export class CatalogPreviewSession {
     }
   }
   /**
+   * A Table record's state sort as its rows read it (`catalogTableStateRowSorts`); none for a
+   * record that is not a sorted Table, or one its endpoint's own `{{ sortDescriptor }}` sorts.
+   */
+  private recordRowSorts(recordId: string): CatalogRowSorts {
+    const sort = this.tableStates.get(recordId)?.sort;
+    if (!sort?.length || this.serverSortedTables.has(recordId)) return NO_SORTS;
+    return catalogTableStateRowSorts(sort, this.tableColumns(recordId));
+  }
+  /**
+   * A binding's query with a Table's sort as its bound view's (`catalogTableStateQueries` — the
+   * one translation the request and the served check read). Undefined = no sort, or one that
+   * names no field of the rows (it runs on the rows here only).
+   */
+  private sortedRowQuery(
+    collectionId: string,
+    query: CatalogRowQuery,
+    sorts: CatalogRowSorts | undefined,
+  ): CatalogRowQuery | undefined {
+    if (!sorts?.length) return undefined;
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const schema = (collection?.schema ?? []).flatMap((field) =>
+      field.id && field.key
+        ? [{ id: field.id, key: field.key, type: field.type }]
+        : [],
+    );
+    // (The fields the Table's rows have: its view's result fields — a grouped view's.)
+    const fields = query.queries.length
+      ? viewSchemaAt({ queries: query.queries, schema }, query.queries.length)
+      : schema;
+    const view = catalogRowSortsView(sorts, fields);
+    if (!view) return undefined;
+    return {
+      ...query,
+      queries: catalogTableStateQueries(
+        query.queries.length ? query.queries : undefined,
+        view,
+      )!,
+    };
+  }
+  /**
    * ADR-284 Decision 6 — the view a collection's query endpoint carries: the one view (by its
    * definition) the bindings of that collection read, when the endpoint names a query format. Two
    * different views on one endpoint are not sent (`MULTI_VIEW` — each filters its loaded rows).
@@ -1380,7 +1479,8 @@ export class CatalogPreviewSession {
     for (const nodeId of graph.bindingsOf(`data:collection:${collectionId}`)) {
       const entry = graph.getEntry(nodeId as never);
       const binding = entry?.kind === "node" ? entry.binding : undefined;
-      if (!binding || (!binding.view && !binding.viewId)) continue;
+      if (!binding) continue;
+      const viewed = !!binding.view || !!binding.viewId;
       // A template is a different query at each drawn instance occurrence. An unused origin
       // has no request; the Canvas/Preview record path also restores collapsed inner instances.
       const root = this.currentRoot;
@@ -1388,18 +1488,26 @@ export class CatalogPreviewSession {
       for (const recordId of records) {
         const record = root!.domInputs.get(recordId);
         if (!record) continue;
-        const query = catalogBindingQuery(
-          graph,
-          binding,
-          nodeId,
-          this.stateSource(),
-          undefined,
-          componentInstancePath(record, nodeId),
-        );
+        // (ADR-315 Phase 2 — a Table record's state sort is part of its query: the request carries
+        //  it. A binding without a view is one only while its Table is sorted.)
+        const sorts = this.recordRowSorts(recordId);
+        if (!viewed && !sorts.length) continue;
+        const query = viewed
+          ? catalogBindingQuery(
+              graph,
+              binding,
+              nodeId,
+              this.stateSource(),
+              undefined,
+              componentInstancePath(record, nodeId),
+            )
+          : NO_VIEW_QUERY;
         if (!query) continue;
+        const sorted = this.sortedRowQuery(collectionId, query, sorts);
+        if (!viewed && !sorted) continue;
         const base = {
-          ...query,
-          queries: catalogCountlessViews(query.queries),
+          ...(sorted ?? query),
+          queries: catalogCountlessViews((sorted ?? query).queries),
         };
         views.set(catalogRowQueryKey(base), { query: base, nodeId });
       }
@@ -1765,38 +1873,49 @@ export class CatalogPreviewSession {
     kind: Parameters<typeof catalogBoundRows>[2],
     ownerId?: string,
     /** A bound Table's header sort — its rows are ordered before the window · the page cuts them. */
-    sort?: CatalogRowSort,
+    sort?: CatalogRowSorts,
   ) {
     // ADR-284 Decision 6: rows the server answered for this binding's view are its result — the
     // view does not run on them again; the total is the server's for that query.
     let binding = authored;
-    if (authored.query) {
-      const id = authored.collectionId.replace(/^data:collection:/, "");
+    const id = authored.collectionId.replace(/^data:collection:/, "");
+    // (ADR-315 Phase 2 — the Table's sort is its bound view's: an answer to that query is in that
+    //  order, and is not sorted here again.)
+    const sorted = this.sortedRowQuery(
+      id,
+      authored.query ?? NO_VIEW_QUERY,
+      sort,
+    );
+    const asked = sorted ?? authored.query;
+    if (asked) {
       const view = this.serverView(id);
       const loaded = this.loadedViewQueries.get(id);
       const depth = loaded?.queries.length ?? 0;
       if (
         view &&
         loaded &&
-        catalogRowQueryKey(loaded) ===
-          catalogRowQueryKey(authored.query, depth) &&
-        authored.query.queries.slice(depth).every(catalogCountOnlyView)
+        catalogRowQueryKey(loaded) === catalogRowQueryKey(asked, depth) &&
+        asked.queries.slice(depth).every(catalogCountOnlyView)
       ) {
         const total = this.loadTotals.get(id);
         binding = {
           ...authored,
           query: {
-            ...authored.query,
+            ...asked,
             served: {
               ...(total !== undefined ? { total } : {}),
               complete: this.loadArguments.get(id)?.cursor === undefined,
               warnings: view.serialized.warnings.length,
-              ...(depth < authored.query.queries.length ? { depth } : {}),
+              ...(depth < asked.queries.length ? { depth } : {}),
               mode: view.mode,
+              ...(sorted ? { sorted: true as const } : {}),
             },
           },
         };
-      } else if (!this.collections.find((item) => item.id === id)?.useMockData)
+      } else if (
+        authored.query &&
+        !this.collections.find((item) => item.id === id)?.useMockData
+      )
         binding = {
           ...authored,
           query: {
@@ -1942,7 +2061,7 @@ export class CatalogPreviewSession {
   /** A Table record's server sort: its bound collection and the sort by field, else undefined. */
   private serverSort(
     tableId: string,
-    sort: CatalogTableSort | undefined,
+    sort: CatalogTableSortItem | undefined,
   ):
     | { collectionId: string; sortDescriptor: CatalogTableSort | undefined }
     | undefined {
@@ -1963,36 +2082,318 @@ export class CatalogPreviewSession {
         : undefined;
     if (!endpoint || !endpointReadsTemplate(endpoint, "sortDescriptor"))
       return undefined;
-    if (!sort) return { collectionId, sortDescriptor: undefined };
+    // (The state names the Column by its Column key — the field the server sorts by.)
+    return {
+      collectionId,
+      sortDescriptor: sort && {
+        column: sort.column,
+        direction: sort.direction,
+      },
+    };
+  }
+  /**
+   * A Table record's Columns as drawn: each one's RAC key (what RAC's sort names —
+   * `catalogTableColumnKey`) and its Column key (what the Table state names — the field it shows).
+   */
+  private tableColumns(tableId: string): {
+    racKey: string;
+    key: string;
+    rowHeader: boolean;
+    /** ADR-315 Phase 2 — the Column's sort options (`sortFirstDirection` · `sortEmptyValues`). */
+    sortFirstDirection: "ascending" | "descending";
+    sortEmptyValues?: "first";
+  }[] {
+    const root = this.currentRoot;
+    const table = root?.domInputs.get(tableId);
+    if (!root || !table) return [];
     const header = table.children
       .map((id) => root.domInputs.get(id))
       .find((record) => record?.ruleId === "TableHeader");
     const columns = (header?.children ?? [])
       .map((id) => root.domInputs.get(id))
-      .filter((record) => record?.ruleId === "Column");
-    const index = columns.findIndex(
-      (column) =>
-        !!column &&
-        catalogTableColumnKey({
+      .filter(
+        (record): record is NonNullable<typeof record> =>
+          record?.ruleId === "Column",
+      );
+    const roles = catalogTableColumnRoles(columns, (id) => {
+      const box = root.domInputs.get(id);
+      return box?.ruleId === "Checkbox" && box.props.slot === "selection";
+    });
+    // (The selection column is not a data column: a state names none. The key's index is the
+    //  Column's place among all of them — the resolver's, `tableRowSort`.)
+    return columns
+      .map((column, index) => ({
+        racKey: catalogTableColumnKey({
           id: column.id,
           ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-        }) === sort.column,
-    );
-    if (index < 0) return undefined;
+        }),
+        key: resolveTableColumnKey(column.props, index),
+        rowHeader: roles[index]!.rowHeader,
+        selection: roles[index]!.selection,
+        sortFirstDirection:
+          column.props.sortFirstDirection === "descending"
+            ? ("descending" as const)
+            : ("ascending" as const),
+        ...(column.props.sortEmptyValues === "first"
+          ? { sortEmptyValues: "first" as const }
+          : {}),
+      }))
+      .filter((column) => !column.selection);
+  }
+  /** A Table record's state (absent slices = the authored defaults). */
+  tableState(tableId: string): CatalogTableState {
+    return this.tableStates.get(tableId) ?? NO_TABLE_STATE;
+  }
+  /** A Table record as the rules between its state's slices read it (`catalogTableStateWith`). */
+  private tableShape(tableId: string): CatalogTableShape {
+    const table = this.currentRoot?.domInputs.get(tableId);
+    const max = table?.props.maxSortColumns;
     return {
-      collectionId,
-      sortDescriptor: {
-        column: resolveTableColumnKey(columns[index]!.props, index),
-        direction: sort.direction,
-      },
+      columns: this.tableColumns(tableId),
+      // (ADR-315 Phase 2 — several sorts only on a Table that allows them and whose rows' request
+      //  carries the whole list: what it cannot carry is not accepted into the state, §4.3.1 — a
+      //  write, a press and the browser's memory alike.)
+      multiSort:
+        table?.props.allowsMultiSort === true &&
+        this.tableSliceServable(tableId, "sort").accepts === "whole",
+      ...(typeof max === "number" && max > 0 ? { maxSortColumns: max } : {}),
     };
   }
+  /**
+   * Writes slices of a Table record's state through the rules between them
+   * (`catalogTableStateWith`); true = the state changed. The caller reads the rows again.
+   */
+  private writeTableState(
+    tableId: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): boolean {
+    const before = this.tableState(tableId);
+    const next = catalogTableStateWith(before, patch, this.tableShape(tableId));
+    if (next === before) return false;
+    if (Object.keys(next).length) this.tableStates.set(tableId, next);
+    else this.tableStates.delete(tableId);
+    return true;
+  }
+  /**
+   * ADR-315 — the one write of a Table record's state (a header press, a rule's Do, the browser's
+   * memory): the slices go through the rules between them, and a data slice (sort · search ·
+   * column filters · grouping) changing reads the Table's rows again. A column · row · cell slice
+   * never reads rows (HC4 — the row source is not called).
+   */
+  setTableState(
+    tableId: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): void {
+    const before = this.tableState(tableId);
+    if (!this.writeTableState(tableId, patch)) return;
+    const next = this.tableState(tableId);
+    this.rememberTableState(tableId);
+    if (
+      CATALOG_TABLE_DATA_SLICES.some((slice) => before[slice] !== next[slice])
+    )
+      this.readTableRows(tableId, next);
+    // (RAC's header reads the first sort; the other sorted Columns' marks read the list.)
+    if (before.sort !== next.sort) this.echoTableSort(tableId);
+  }
+  /** The project's remembered Table states as stored (`{}` = none · no storage). */
+  private rememberedTableStates(): Record<string, unknown> {
+    const projectId = this.graph?.projectId;
+    return projectId
+      ? catalogStoredTableStates(this.options.tableStateStorage, projectId)
+      : {};
+  }
+  /** Keeps a 「Remember state」 Table's state in the browser (사용자 결정 1): its remembered slices. */
+  private rememberTableState(tableId: string): void {
+    const storage = this.options.tableStateStorage;
+    const projectId = this.graph?.projectId;
+    if (!storage || !projectId) return;
+    if (this.currentRoot?.domInputs.get(tableId)?.props.rememberState !== true)
+      return;
+    const all = { ...this.rememberedTableStates() };
+    const kept = catalogTableStateRemembered(this.tableState(tableId));
+    if (Object.keys(kept).length) all[tableId] = kept;
+    else delete all[tableId];
+    catalogStoreTableStates(storage, projectId, all);
+  }
+  /**
+   * Gives the 「Remember state」 Tables drawn now the state their browser kept — once a record,
+   * before the view reads the root (`changed`): no frame shows the data's order first. A stored
+   * value goes through the same rules as a write (`catalogTableStateRead` — a column the Table no
+   * longer has is dropped), and a state the session already holds wins.
+   */
+  private restoreTableStates(): void {
+    const root = this.currentRoot;
+    if (!root) return;
+    const stored = this.rememberedTableStates();
+    if (!Object.keys(stored).length) return;
+    const tables = [...root.domInputs.values()].filter(
+      (record) =>
+        record.ruleId === "Table" &&
+        record.props.rememberState === true &&
+        !this.restoredTables.has(record.id),
+    );
+    for (const table of tables) {
+      this.restoredTables.add(table.id);
+      const value = stored[table.id];
+      if (value === undefined || this.tableStates.has(table.id)) continue;
+      const state = catalogTableStateRemembered(
+        catalogTableStateRead(value, this.tableShape(table.id)),
+      );
+      if (!Object.keys(state).length) continue;
+      this.tableStates.set(table.id, state);
+      if (!state.sort) continue;
+      this.readTableRows(table.id, state);
+      this.echoTableSort(table.id);
+    }
+  }
+  /**
+   * The view's rule runtime writes records' runtime props (`CatalogPreviewInteractions`): a sort
+   * the session restored is told to RAC through it — the header's indicator and `aria-sort`.
+   */
+  attachRuntimeProps(
+    write: (id: string, patch: Readonly<Record<string, unknown>>) => void,
+  ): void {
+    this.runtimePropsWriter = write;
+    for (const tableId of [...this.pendingSortEchoes])
+      this.echoTableSort(tableId);
+  }
+  /**
+   * A Table record's sort told to its view: RAC's `sortDescriptor` (the first entry — RAC's header
+   * holds one sort, `aria-sort` on one header) and every entry by RAC key (`_sortEntries` — the
+   * order marks of the Columns sorted after the first, ADR-315 Phase 2).
+   */
+  private echoTableSort(tableId: string): void {
+    const write = this.runtimePropsWriter;
+    if (!write) {
+      this.pendingSortEchoes.add(tableId);
+      return;
+    }
+    this.pendingSortEchoes.delete(tableId);
+    const columns = this.tableColumns(tableId);
+    const entries = (this.tableState(tableId).sort ?? []).flatMap((sort) => {
+      const column = columns.find((item) => item.key === sort.column);
+      return column
+        ? [{ column: column.racKey, direction: sort.direction }]
+        : [];
+    });
+    this.echoing = true;
+    try {
+      write(tableId, {
+        sortDescriptor: entries[0],
+        _sortEntries: entries.length > 1 ? entries : undefined,
+      });
+    } finally {
+      this.echoing = false;
+    }
+  }
+  /**
+   * A sort set as a value (a rule's `sortDescriptor` Do · the runtime prop): that one sort, or none.
+   * The first entry of the list the state already holds is no change — the echo above comes back
+   * through here.
+   */
   sortTable(tableId: string, sort: CatalogTableSort | undefined): void {
-    if (sort) this.tableSorts.set(tableId, sort);
-    else this.tableSorts.delete(tableId);
+    if (this.echoing) return;
+    // (RAC names the sorted Column by its RAC key; the state keeps its Column key.)
+    const column = sort
+      ? this.tableColumns(tableId).find((item) => item.racKey === sort.column)
+      : undefined;
+    const first = this.tableState(tableId).sort?.[0];
+    if (
+      sort &&
+      column &&
+      first?.column === column.key &&
+      first.direction === sort.direction
+    )
+      return;
+    this.setTableState(tableId, {
+      sort:
+        sort && column
+          ? [{ column: column.key, direction: sort.direction }]
+          : [],
+    });
+    // (A value that named no Column: the view shows the state — no sort.)
+    if (sort && !column) this.echoTableSort(tableId);
+  }
+  /**
+   * ADR-315 Phase 2 — a header press (RAC's `onSortChange` names the Column; RAC knows the first
+   * sort only, so the direction is the state's to turn). The Column's cycle: its first direction
+   * (`sortFirstDirection`) → the other → unsorted when the Table allows it (`allowsUnsorted`),
+   * else the first again. `add` (Shift held · the menu's 「add to sort」) on a Table that takes
+   * several sorts turns that Column within the list (a new one goes last); without it the press
+   * is the only sort (TanStack `toggleSorting(desc, isMulti)`).
+   */
+  pressTableSort(tableId: string, racKey: string, add = false): void {
+    const columns = this.tableColumns(tableId);
+    const column = columns.find((item) => item.racKey === racKey);
+    if (!column) return;
+    const table = this.currentRoot?.domInputs.get(tableId);
+    const current = this.tableState(tableId).sort ?? [];
+    const held = current.find((item) => item.column === column.key);
+    const first = column.sortFirstDirection;
+    const second = first === "ascending" ? "descending" : "ascending";
+    const direction = !held
+      ? first
+      : held.direction === first
+        ? second
+        : table?.props.allowsUnsorted === true
+          ? undefined
+          : first;
+    const entry = direction && { column: column.key, direction };
+    const several =
+      add &&
+      table?.props.allowsMultiSort === true &&
+      this.tableSliceServable(tableId, "sort").accepts === "whole";
+    const next = !several
+      ? entry
+        ? [entry]
+        : []
+      : held
+        ? current.flatMap((item) =>
+            item.column === column.key ? (entry ? [entry] : []) : [item],
+          )
+        : entry
+          ? [...current, entry]
+          : current;
+    const before = this.tableState(tableId).sort;
+    this.setTableState(tableId, { sort: next });
+    // (A press the state did not take — past the Table's most sort columns: RAC's header already
+    //  shows its own guess; the echo puts the state's back.)
+    if (this.tableState(tableId).sort === before) this.echoTableSort(tableId);
+  }
+  /**
+   * How a Table record's rows are served (`catalogTableSliceServable`'s reading): its bound
+   * collection's endpoint, whether that reads `{{ sortDescriptor }}`, and its query format.
+   */
+  private tableService(tableId: string) {
+    const table = this.currentRoot?.domInputs.get(tableId);
+    const source = table && this.graph?.getEntry(table.sourceId as never);
+    const binding = source?.kind === "node" ? source.binding : undefined;
+    const collectionId = binding?.collectionId.replace(/^data:collection:/, "");
+    const collection = collectionId
+      ? this.collections.find((item) => item.id === collectionId)
+      : undefined;
+    const endpoint =
+      collection && !collection.useMockData
+        ? this.endpointFilling(collection)
+        : undefined;
+    return {
+      remote: !!endpoint,
+      readsSortTemplate:
+        !!endpoint && endpointReadsTemplate(endpoint, "sortDescriptor"),
+      ...(endpoint?.querySerialization
+        ? { format: endpoint.querySerialization }
+        : {}),
+    };
+  }
+  /** What of a slice a Table record accepts into its state (`catalogTableSliceServable`). */
+  tableSliceServable(tableId: string, slice: "sort") {
+    return catalogTableSliceServable(this.tableService(tableId), slice);
+  }
+  /** A Table record's rows read again for its state's data slices (the sort, until Phase 3). */
+  private readTableRows(tableId: string, state: CatalogTableState): void {
     // A bound Table whose query endpoint reads `sortDescriptor` is sorted by the server
     // (`load({sortDescriptor})`, the column as its field): the client keeps the server's order.
-    const server = this.serverSort(tableId, sort);
+    const server = this.serverSort(tableId, state.sort?.[0]);
     if (server) {
       this.serverSortedTables.add(tableId);
       this.sortCollection(server.collectionId, server.sortDescriptor).catch(
@@ -2002,6 +2403,9 @@ export class CatalogPreviewSession {
       return;
     }
     this.serverSortedTables.delete(tableId);
+    // (ADR-315 Phase 2 — a Table whose request carries its view: the sort is that view's, another
+    //  request — `loadRouted` loads when the request changed (S2 `sorting`).)
+    if (this.tableService(tableId).remote) this.loadRouted("sorting");
     // (A local paged list in another order starts over at its first page; its Paginations follow —
     //  `pageRows` cannot tell: not every read of the list's rows carries its sort.)
     const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
@@ -2234,6 +2638,7 @@ export class CatalogPreviewSession {
     return root;
   }
   private createRoot(): CatalogCompositionRoot {
+    this.restoreDue = true;
     return new CatalogCompositionRoot(
       this.runtime!,
       this.options.engine(),
@@ -2256,7 +2661,7 @@ export class CatalogPreviewSession {
             kind: Parameters<typeof catalogBoundRows>[2],
             ownerId?: string,
             _instancePath?: readonly string[],
-            sort?: CatalogRowSort,
+            sort?: CatalogRowSorts,
           ) => this.boundRows(binding, kind, ownerId, sort),
           {
             pages: (listId: string, paginationId: string) => {
@@ -2270,10 +2675,11 @@ export class CatalogPreviewSession {
             },
           },
         ),
-        tableSort: (tableId) =>
+        // (A Table its server sorts keeps the server's order: its `sort` slice is not the rows'.)
+        tableState: (tableId) =>
           this.serverSortedTables.has(tableId)
-            ? undefined
-            : this.tableSorts.get(tableId),
+            ? withoutSort(this.tableState(tableId))
+            : this.tableStates.get(tableId),
         rowWindow: (owner) => this.rowWindowOf(owner),
         state: this.stateSource(),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
@@ -2373,7 +2779,7 @@ export class CatalogPreviewSession {
     kind: Parameters<typeof catalogBoundRows>[2],
     ownerId: string,
     display: CatalogRowDisplay,
-    sort?: CatalogRowSort,
+    sort?: CatalogRowSorts,
   ) {
     const id = binding.collectionId.replace(/^data:collection:/, "");
     const unit = this.pageUnit(binding.collectionId, ownerId);
@@ -2594,6 +3000,11 @@ export class CatalogPreviewSession {
     };
   }
   private changed(): void {
+    // (A root built · a page filled: its 「Remember state」 Tables take what the browser kept.)
+    if (this.restoreDue && this.options.tableStateStorage) {
+      this.restoreDue = false;
+      this.restoreTableStates();
+    }
     this.version += 1;
     for (const listener of [...this.listeners]) listener();
   }

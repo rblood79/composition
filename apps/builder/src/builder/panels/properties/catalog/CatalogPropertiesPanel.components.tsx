@@ -1,4 +1,7 @@
-import { CatalogListFilterSection } from "./CatalogFilterSection";
+import {
+  CatalogListFilterSection,
+  CatalogTableSortNotice,
+} from "./CatalogFilterSection";
 import { Settings2 } from "lucide-react";
 
 import {
@@ -666,6 +669,13 @@ function withFilterSections(
         {sectionExtras?.collection}
         {/* Its add · share forms belong to the list they were opened on. */}
         <CatalogListFilterSection key={nodeId} listId={nodeId} />
+      </>
+    ),
+    // (ADR-315 Phase 2 — why a Table's 「Multi-column sort」 sorts by one column on its endpoint.)
+    state: (
+      <>
+        {sectionExtras?.state}
+        <CatalogTableSortNotice key={`sort:${nodeId}`} listId={nodeId} />
       </>
     ),
   };

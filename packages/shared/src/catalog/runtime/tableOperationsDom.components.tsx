@@ -54,14 +54,17 @@ export function CatalogTableResizeTracks(): ReactNode {
  * (live, 2026-11-20). In a content wrapper (a flex row) the arrow is a flex item either way.
  */
 export function CatalogSortIndicator(): ReactNode {
-  const direction = useContext(CatalogColumnSortContext);
+  const sort = useContext(CatalogColumnSortContext);
+  const direction = sort?.direction;
   if (direction !== "ascending" && direction !== "descending") return null;
   const glyph = getIconData(
     direction === "ascending" ? "arrow-up" : "arrow-down",
   );
-  return createElement(
+  const order = sort?.order;
+  const arrow = createElement(
     "svg",
     {
+      key: "arrow",
       "aria-hidden": true,
       className: "sort-indicator",
       "data-sort-direction": direction,
@@ -77,13 +80,41 @@ export function CatalogSortIndicator(): ReactNode {
         display: "inline-block",
         verticalAlign: "middle",
         flexShrink: 0,
-        marginInlineEnd: 8,
+        // (In a sort of several columns the order mark follows the arrow and takes its gap.)
+        marginInlineEnd: order === undefined ? 8 : 2,
       },
     },
     ...(glyph?.paths ?? []).map((d: string, i: number) =>
       createElement("path", { key: i, d }),
     ),
   );
+  if (order === undefined) return arrow;
+  // ADR-315 Phase 2 — a sort of several columns: this Column's place in it, after its arrow. RAC
+  // gives `aria-sort` to the first sorted header only (APG — one header at a time); the mark is the
+  // sighted cue, and the header's name carries the order for the rest (`aria-description`-free:
+  // the visually hidden text below).
+  return [
+    arrow,
+    createElement(
+      "span",
+      {
+        key: "order",
+        className: "sort-order",
+        "data-sort-order": order,
+        "aria-hidden": true,
+        style: {
+          display: "inline-block",
+          verticalAlign: "middle",
+          flexShrink: 0,
+          marginInlineEnd: 8,
+          fontSize: "0.75em",
+          lineHeight: 1,
+          fontVariantNumeric: "tabular-nums",
+        },
+      },
+      String(order),
+    ),
+  ];
 }
 
 /**

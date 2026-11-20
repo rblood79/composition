@@ -182,9 +182,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      번호 묶음 ToggleButtonGroup (radio) → ActionButtonGroup + ActionButton (보이는 쪽 `aria-current`),
  *      이전 · 다음 = 화살표 + 「Previous」 · 「Next」, 첫 · 끝 쪽 버튼과 생략 Icon. 옛 Pagination 은 번호가
  *      ToggleButton 이라 연결 · 쪽 넘기기를 하지 못한다.
+ * 74 — ADR-315 Phase 2: 보기의 정렬 `sort` 가 한 항목에서 목록으로 (여러 열 정렬 — 첫 항목, 그 안에서
+ *      다음 항목 …) · 리터럴 항목의 빈 값 위치 `empty`. 한 항목으로 적은 옛 보기는 검증을 통과하지 못한다.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 73 as const;
+export const LIBRARY_CONTRACT_VERSION = 74 as const;
 
 export type EntryKind =
   | "project"
@@ -850,12 +852,17 @@ export interface ViewAggregate {
   as: string;
 }
 /**
- * ADR-284 Decision 5 — the sort: a variable holding a `SortDescriptor` (`{column, direction}` — a
- * Table's `onSortChange` writes it; `column` names a field by id or key), or a literal one.
+ * ADR-284 Decision 5 — a sort entry: a variable holding a `SortDescriptor` (`{column, direction}` —
+ * a Table's `onSortChange` writes it; `column` names a field by id or key), or a literal one.
+ * ADR-315 Phase 2 — `empty`: where the field's empty values go, in both directions (absent = last).
  */
 export type ViewSort =
   | { variableId: EntryId<"stateVariable"> | ProjectVariableId }
-  | { field: DataFieldPath; direction: "ascending" | "descending" };
+  | {
+      field: DataFieldPath;
+      direction: "ascending" | "descending";
+      empty?: "first" | "last";
+    };
 /** ADR-284 — what a view computes over its source: conditions → group · aggregate → sort. */
 export interface ViewQuery {
   where: ViewConditionGroup;
@@ -866,7 +873,11 @@ export interface ViewQuery {
    */
   emptyGroups?: "all";
   aggregates?: readonly ViewAggregate[];
-  sort?: ViewSort;
+  /**
+   * ADR-315 Phase 2 — the sort entries in order: the first, then the next among its equal rows
+   * (before contract 74: one entry, not a list).
+   */
+  sort?: readonly ViewSort[];
 }
 /**
  * ADR-284 Decision 1 — a shared (named) view. Its source is a collection or another shared view (a

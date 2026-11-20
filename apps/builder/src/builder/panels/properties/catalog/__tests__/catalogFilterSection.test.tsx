@@ -240,8 +240,10 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     const graph = fixture.workspace.runtime.graph;
     const list = graph.getEntry(nodeIdOf("list")) as NodeEntry;
     const table = graph.getEntry(nodeIdOf("table")) as NodeEntry;
-    const sort = list.binding!.view!.sort as { variableId: string };
-    expect(table.binding!.view!.sort).toEqual(sort);
+    const [sort] = list.binding!.view!.sort as unknown as [
+      { variableId: string },
+    ];
+    expect(table.binding!.view!.sort).toEqual([sort]);
     expect(graph.getEntry(sort.variableId)).toMatchObject({
       name: "tableSort",
     });

@@ -662,7 +662,7 @@ describe("ADR-284 G3 — 「정렬 따라가기」 and the Table that keeps its 
     });
     for (const id of [tableId, h.list])
       expect((h.graph().getEntry(id) as NodeEntry).binding!.view!.sort).toEqual(
-        { variableId: created.variableId },
+        [{ variableId: created.variableId }],
       );
     await pressName(h, tableId);
     expect(listOrder(h, tableId)).toEqual(["Kim", "Lee", "Park"]);

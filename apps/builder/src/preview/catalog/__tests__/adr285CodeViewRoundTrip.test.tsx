@@ -111,12 +111,7 @@ async function open(
             id,
             definitionId,
             children: [],
-            props: catalogCreationProps(
-              graph(),
-              definitionId,
-              type,
-              props,
-            ),
+            props: catalogCreationProps(graph(), definitionId, type, props),
             visual: {},
             sizing: {},
             descendantOverrides: [],
@@ -1013,10 +1008,9 @@ describe("ADR-285 G2 — the forms read back (edits)", () => {
       ),
     ]);
     expect(result).toEqual({ applied: true, reasons: [] });
-    expect(viewOf(h, list)?.sort).toEqual({
-      field: ["data:field:u-age"],
-      direction: "descending",
-    });
+    expect(viewOf(h, list)?.sort).toEqual([
+      { field: ["data:field:u-age"], direction: "descending" },
+    ]);
   });
 });
 

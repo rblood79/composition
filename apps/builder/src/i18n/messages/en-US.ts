@@ -2385,6 +2385,7 @@ const catalog: TranslationKeys = {
     apiQueryNotSent: "Not sent",
     apiQuery_sortParam: "Sort field",
     apiQuery_orderParam: "Sort direction",
+    apiQueryMultiSort: "Several sorts (comma lists)",
     apiQueryViews: "Data views reading this collection",
     apiQueryCarried: "All conditions are sent",
     apiQueryWarnOR_GROUP:
@@ -2398,6 +2399,8 @@ const catalog: TranslationKeys = {
     apiQueryWarnBROKEN: '"{condition}" field is missing — skipped',
     apiQueryWarnGET_BODY: "GET sends no body — use POST",
     apiQueryWarnMULTI_VIEW: "Several different views — not put in the request",
+    apiQueryWarnMULTI_SORT:
+      "Several sorts — this endpoint takes one; only the first is sent",
     apiQueryWarnGROUP:
       "Grouping · aggregates cannot be parameters — every row is loaded (up to {cap}) and grouped here",
     apiQueryWarnCOMPUTED:
@@ -2650,6 +2653,10 @@ const catalog: TranslationKeys = {
       "Library component — read only. Unlock it to edit it as a project component.",
   },
   dataView: {
+    multiSortRefused_suffixSingle:
+      "This endpoint takes one sort — the Table sorts by one column. Turn on 「Several sorts」 in the endpoint's query format to sort by several.",
+    multiSortRefused_sortTemplate:
+      "This endpoint sorts by its own sortDescriptor template — one column. The Table sorts by one column.",
     section: "Search · filter",
     add: "Add search",
     field: "Field",
@@ -3183,6 +3190,16 @@ const semanticLabels: Record<string, string> = {
   "properties.spacious": "Spacious",
   "properties.emphasized": "Emphasized",
   "properties.disallowEmptySelection": "Disallow empty selection",
+  "properties.rememberState": "Remember state",
+  "properties.multiColumnSort": "Multi-column sort",
+  "properties.maxSortColumns": "Max sort columns",
+  "properties.allowUnsorted": "Allow unsorted",
+  "properties.sortFirstDirection": "First direction",
+  "properties.sortEmptyValues": "Empty values",
+  "properties.ascending": "Ascending",
+  "properties.descending": "Descending",
+  "properties.last": "Last",
+  "properties.first": "First",
   "properties.disabledKeys": "Disabled keys",
   "properties.selectionBehavior": "Selection behavior",
   "properties.toggle": "Toggle",
@@ -3429,13 +3446,15 @@ const semanticLabels: Record<string, string> = {
   "datatable.exportSchemaCopy": "Copy JSON Schema",
   "datatable.exportSchemaFile": "Export JSON Schema",
   "datatable.methodSchema": "Schema",
-  "datatable.schemaDrop": "Drop an api-docs (OpenAPI) or JSON Schema file, or click",
+  "datatable.schemaDrop":
+    "Drop an api-docs (OpenAPI) or JSON Schema file, or click",
   "datatable.schemaPaste": "Or paste the JSON",
   "datatable.schemaPick": "Schema",
   "datatable.schemaRows": "Rows at",
   "datatable.schemaRowsWhole": "The schema itself (one row)",
   "datatable.schemaEndpoint": "Also create the API definition",
-  "datatable.schemaNotJson": "Not a JSON document. Export api-docs as JSON (YAML is not read).",
+  "datatable.schemaNotJson":
+    "Not a JSON document. Export api-docs as JSON (YAML is not read).",
   "datatable.schemaNotSchema": "No object schema found in this document.",
   "datatable.intakeKeyField": "Key field",
   "datatable.intakeKeyNone": "None",

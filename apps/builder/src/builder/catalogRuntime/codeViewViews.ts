@@ -817,7 +817,8 @@ class ViewPlanner {
       ...(groupBy ? { groupBy } : {}),
       ...(spec.groupBy?.all ? { emptyGroups: "all" as const } : {}),
       ...(aggregates ? { aggregates } : {}),
-      ...(sort ? { sort } : {}),
+      // (ADR-315 Phase 2 — the code names the first sort entry: the entries after it stay.)
+      ...(sort ? { sort: [sort, ...(_sort ?? []).slice(1)] } : {}),
     };
   }
 

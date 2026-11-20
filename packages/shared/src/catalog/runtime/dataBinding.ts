@@ -5,6 +5,7 @@ import {
   parentRowsToTree,
   readDataBindingRows,
   resolveBoundCollection,
+  resolveField,
   resolveFieldRoles,
   toItemProjectionRow,
   type CollectionDataSource,
@@ -30,7 +31,8 @@ import {
 } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
-import { catalogTableSortOrder, type CatalogRowSort } from "./tableSort";
+import { viewSortOrder } from "../../collections/view/sortOrder";
+import type { CatalogRowSorts } from "./tableSort";
 import type {
   CatalogReader,
   DataBindingRef,
@@ -185,11 +187,12 @@ export function catalogBoundRows(
   /** ADR-310 Phase 7 — a page's first row (`[start, limit)` — the rows before it are the earlier pages'). */
   start = 0,
   /**
-   * A bound Table's header sort (the Preview's) — the rows are ordered by it before `limit` ·
-   * `start` cut them: 「더 보기」 and a page show the sorted collection's rows. A view that sorts
-   * (`query.sort`) keeps its own order.
+   * A bound Table's header sort (the Preview's — its entries in order) — the rows are ordered by
+   * it before `limit` · `start` cut them: 「더 보기」 and a page show the sorted collection's rows.
+   * A view its variable sorts (`query.sort`) keeps its own order, and so do rows the server
+   * answered in that sort (`query.served.sorted` — the request carried it, ADR-315 HC2).
    */
-  sort?: CatalogRowSort,
+  sort?: CatalogRowSorts,
 ): CatalogBoundRows | undefined {
   const dataBinding = catalogBindingValue(ref);
   const table = dataBinding && resolveBoundCollection(dataBinding, sources);
@@ -336,8 +339,11 @@ export function catalogBoundRows(
     kind,
     limit,
     start,
-    ref.query?.sort ? undefined : sort,
+    ref.query?.sort || ref.query?.served?.sorted ? undefined : sort,
   );
+  // (The server answered in the Table's sort: the rows say so — their reader does not sort them.)
+  if (shown && sort?.length && ref.query?.served?.sorted)
+    Object.assign(shown, { sorted: sort });
   // (A key with no group in a grouped view: that group has no rows — its counts are 0, a user
   // nothing points at has 0 orders.)
   const last = ref.query?.queries.at(-1);
@@ -467,33 +473,53 @@ const sortedOrders = new WeakMap<
 >();
 /**
  * The source rows' indexes in a Table sort's order — by the value the row's template reads for
- * the field (`CatalogBoundRow.values[key]`). The same rows sorted the same way are the same order
- * (a window move · another read of the step — sorting 10,000 rows for each).
+ * each entry's field (`CatalogBoundRow.values[key]`), compared by the field's type (the views'
+ * sort — `viewSortOrder`). The same rows sorted the same way are the same order (a window move ·
+ * another read of the step — sorting 10,000 rows for each); a column's ranks are kept too, so
+ * another direction or one more entry compares numbers only.
  */
 function sortedRowOrder(
   sourceRows: readonly unknown[],
-  sort: CatalogRowSort,
+  sorts: CatalogRowSorts,
   roles: Parameters<typeof toItemProjectionRow>[2],
+  schema: readonly { id?: string; key: string; type?: string }[] | undefined,
 ): Uint32Array {
-  const role = ROW_ROLE_VALUES.has(sort.key);
-  const signature = `${sort.direction}\0${sort.key}${role ? `\0${JSON.stringify(roles ?? null)}` : ""}`;
+  const byRole = sorts.some((sort) => ROW_ROLE_VALUES.has(sort.key));
+  // (The Column key is the field's key — `resolveField`, ADR-152.)
+  const types = sorts.map((sort) => resolveField(schema, sort.key)?.type);
+  const signature = JSON.stringify([
+    sorts.map((sort) => [sort.key, sort.direction, sort.empty ?? "last"]),
+    types,
+    byRole ? (roles ?? null) : 0,
+  ]);
   let held = sortedOrders.get(sourceRows);
   if (!held) sortedOrders.set(sourceRows, (held = new Map()));
   let order = held.get(signature);
   if (!order) {
-    order = catalogTableSortOrder(
+    order = viewSortOrder(
       sourceRows.length,
-      sort.direction,
-      (index) => {
-        const item = sourceRows[index];
-        if (role)
-          return buildCollectionRowTemplateItem(
-            toItemProjectionRow(item, index, roles),
-          )[sort.key];
-        return item !== null && typeof item === "object" && !Array.isArray(item)
-          ? (item as Record<string, unknown>)[sort.key]
-          : undefined;
-      },
+      sorts.map((sort, entry) => {
+        const role = ROW_ROLE_VALUES.has(sort.key);
+        return {
+          valueAt: (index: number) => {
+            const item = sourceRows[index];
+            if (role)
+              return buildCollectionRowTemplateItem(
+                toItemProjectionRow(item, index, roles),
+              )[sort.key];
+            return item !== null &&
+              typeof item === "object" &&
+              !Array.isArray(item)
+              ? (item as Record<string, unknown>)[sort.key]
+              : undefined;
+          },
+          direction: sort.direction,
+          ...(types[entry] !== undefined ? { type: types[entry] } : {}),
+          ...(sort.empty ? { empty: sort.empty } : {}),
+          // (A role's value depends on the binding's roles: not kept by the key alone.)
+          ...(role ? {} : { cache: { rows: sourceRows, name: sort.key } }),
+        };
+      }),
     );
     if (held.size >= 8) held.delete(held.keys().next().value!);
     held.set(signature, order);
@@ -508,8 +534,10 @@ function boundRowsOf(
   kind: "items" | "records",
   limit: number,
   start = 0,
-  sort?: CatalogRowSort,
+  sorts?: CatalogRowSorts,
 ): CatalogBoundRows | undefined {
+  // (No entry is no sort.)
+  const sort = sorts?.length ? sorts : undefined;
   if (kind === "records")
     return readDataBindingRows(dataBinding, collections).map((item, index) => ({
       key: String(index),
@@ -550,7 +578,9 @@ function boundRowsOf(
       ? readDataBindingRows(dataBinding, collections)
       : undefined;
   const order =
-    sourceRows && sort ? sortedRowOrder(sourceRows, sort, roles) : undefined;
+    sourceRows && sort
+      ? sortedRowOrder(sourceRows, sort, roles, bound?.schema)
+      : undefined;
   const taken = sourceRows
     ? Math.min(Math.max(0, limit), sourceRows.length)
     : 0;

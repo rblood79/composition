@@ -11,6 +11,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-315 Phase 2 — Table 여러 열 정렬 · 필드 타입별 정렬 · 라이브러리 계약 74] - 2026-11-20
+
+### Added
+
+- **Table 을 여러 열로 정렬 (Preview · Publish)**
+  - Table 의 「Multi-column sort」 (Design 패널 Property 탭 · Behavior 구획, 기본 꺼짐) 를 켜면, 게시한 화면에서 Shift 를 누른 채 머리글을 눌러 그 열을 정렬에 더한다. 같은 열을 Shift 로 다시 누르면 그 자리에서 방향이 바뀌고, Shift 없이 누르면 그 열 하나만 남는다.
+  - 여러 열로 정렬된 표는 정렬 열마다 화살표 뒤에 순번 (1 · 2 …) 이 붙는다. 화면 낭독기가 읽는 정렬 표시 (`aria-sort`) 는 첫 정렬 열 하나다 (RAC).
+  - 「Max sort columns」 로 정렬 열 수를 제한하고, 「Allow unsorted」 를 켜면 한 열을 세 번째 누를 때 정렬이 풀린다 (꺼 두면 지금처럼 오름 ↔ 내림).
+  - Column 의 「First direction」 (처음 누를 때의 방향) · 「Empty values」 (빈 값을 뒤 · 앞 — 방향과 무관) — 「Allow Sorting」 을 켠 열에 나온다.
+  - 「더 보기」 · 「쪽」 · 가상 스크롤 표는 정렬된 전체에서 자기 행을 보여 준다.
+  - 서버가 쪽을 나눠 주는 표: 요청이 정렬 목록 전체를 담을 때만 여러 열 정렬이 된다 — `body` 형식은 `sort` 목록, `suffix` 형식은 endpoint 조회 형식의 새 스위치 「여러 정렬 받기 (쉼표 목록)」 를 켰을 때 `_sort=a,b&_order=asc,desc`. 담지 못하는 endpoint 의 표는 한 열로 정렬되고 (첫 정렬만 보내고 나머지를 받은 행에서 메우지 않는다 — 다른 쪽이 나온다), 패널이 그 사유를 알려 준다.
+  - 위치: `packages/shared/src/catalog/runtime/tableStateQuery.ts` (번역 · 판정) · `catalogPreviewSession.ts` (`pressTableSort` · `tableSliceServable` · `uniqueView`) · `domRegistry.components.tsx` (Shift 기억) · `tableOperationsDom.components.tsx` (순번) · `bindings/Table.binding.ts` · `Column.binding.ts` · `collections/view/serialize.ts` (`multiSort`). 회귀 `adr315MultiSort.test.tsx` · `adr315MultiSortModes.test.tsx` · `runtime/__tests__/tableStateQuery.test.ts`. live: production 빌드 10,000 행 — Builder 패널에서 스위치를 누르고 Publish 에서 「Dept」 클릭 → Shift + 「Amount」 두 번 → 첫 행들이 따로 계산한 「Dept 오름, 그 안에서 Amount 내림」 순서 · 순번 표시 `Dept 1` · `Amount 2`.
+
+### Changed
+
+- **정렬이 필드 타입을 읽는다 — 빈 값은 뒤 (Table 머리글 정렬 · 데이터 보기의 정렬 공통)**
+  - 날짜 필드는 시각으로, 숫자 필드는 값으로 (숫자 글자 `"10"` 포함), 불리언은 거짓 → 참, 글자는 지금처럼 (대소문자 무시 · 숫자 부분은 값으로) 비교한다.
+  - **빈 값이 있는 열을 오름차순으로 정렬하면 빈 값이 맨 앞이 아니라 맨 뒤에 온다** (내림차순은 지금처럼 뒤). 전에는 빈 값을 빈 글자로 읽어 오름차순에서 맨 앞이었다.
+  - 정렬 구현이 하나가 됐다 (`collections/view/sortOrder.ts` — 보기 · 표 · 작성한 Row 가 같은 함수). 열의 순위를 보관해 방향을 뒤집거나 둘째 정렬로 쓸 때 값을 다시 읽지 않는다.
+  - 회귀 `collections/view/__tests__/sortOrder.test.ts` · `runtime/__tests__/tableSortedRows.test.ts`. production 실측 (Phase 1 빌드와 교대 3 쌍, 10,000 행): 로드 · 힙 · 정렬 클릭 · 스크롤의 비율 0.94 ~ 1.03.
+- **라이브러리 계약 74** — 데이터 보기의 정렬 `sort` 가 한 항목에서 목록으로 바뀌어, 이전 계약 (73) 으로 저장한 프로젝트는 열리지 않는다 (마이그레이션 없음).
+
+## [ADR-315 Phase 0 · 1 — Table 의 실행 상태를 한 곳에 · 「Remember state」] - 2026-11-20
+
+### Added
+
+- **Table 의 「Remember state」 스위치 (Design 패널 Property 탭 · Behavior 구획, 기본 꺼짐)**
+  - 켠 표는 게시한 화면 (Publish) 에서 사용자가 누른 정렬이 새로고침 뒤에도 그 브라우저에 남는다. 꺼 두면 지금처럼 작성한 순서로 돌아온다.
+  - Builder 의 Preview 는 저장하지 않는다 — 디자인 확인이 이전 조작에 물들지 않게.
+  - 기억하는 것은 정렬이고, 열 숨김 · 순서 · 고정 · 폭은 그 기능이 들어올 때 (ADR-315 Phase 4) 같이 기억한다.
+  - 저장된 값은 열이 지워지면 버린다 (열은 그 열이 보이는 필드의 key 로 적는다).
+  - 위치: `packages/shared/src/catalog/bindings/Table.binding.ts` (`rememberState`) · `runtime/tableState.ts` · `runtime/catalogPreviewSession.ts` (`setTableState` · `restoreTableStates`) · `apps/publish/src/catalogSession.ts`. 회귀 `apps/builder/src/preview/catalog/__tests__/adr315RememberState.test.tsx`. live: production 빌드 — Builder 패널에서 스위치를 누르고 Publish 에서 「Name」 머리글 클릭 → 새로고침 → 오름차순 그대로 (끈 표는 작성 순서로).
+
+### Changed
+
+- **Table 의 실행 상태가 한 모델이다 (ADR-315 Phase 1 — 화면 동작은 그대로)**
+  - 정렬 · 검색 · 열 필터 · 묶기 / 열 숨김 · 순서 · 고정 · 폭 / 펼침 · 행 고정 · 선택 · 쪽 / 칸 범위를 한 형 (`CatalogTableState`) 으로 두고, 조각 사이 규칙 (없는 열 버리기 · 데이터 조각이 바뀌면 첫 쪽 · 마지막 row header 열은 숨기지 않음) 을 한 함수가 지킨다. 지금 쓰이는 조각은 정렬이다.
+  - 세션의 정렬 상태가 이 모델로 들어왔다. 쓰기 · 읽기가 하나씩이고, 정렬 · 검색처럼 행을 바꾸는 조각이 바뀔 때만 행을 다시 읽는다.
+  - 이름 없는 열 (key · 글자 · id 가 모두 없는 Column) 의 기본 key 가 읽는 쪽과 명령 쪽에서 달랐다 (`col0` · `column1`) — `column<자리>` 하나로 맞췄다.
+  - 위치: `runtime/tableState.ts` · `runtime/tableColumnRoles.ts` · `resolution/resolver.ts` (`tableState` reader) · `collections/resolveCollectionItems.ts` (`catalogDefaultColumnKey`). 회귀 `runtime/__tests__/tableState.test.ts` · `adr315TableState.test.tsx`.
+  - production 실측 (변경 전 · 후 빌드 교대 3 쌍, 10,000 행): 로드 · 힙 · 정렬 클릭 · 스크롤의 비율 0.97 ~ 1.006.
+
+### Internal
+
+- **ADR-315 Phase 0 — 시제품 · 기준선** — 설치된 RAC 만으로 고정 열 · 행 창 위 펼침 행 · 고정 행 · Shift 정렬 · 열 메뉴와 머리글 끌기 · 칸 범위 선택이 되는지 실제 브라우저 (Chrome · WebKit) 에서 확인했다 (전부 통과 — 칸 범위 선택의 화면 낭독기 청취만 남음). 10 만 행의 화면 스레드 계산 시간과 속도 · 번들 기준선도 쟀다. `apps/builder/scripts/adr315-phase0-prototypes.mjs` · `adr315-phase0-mainthread.mjs`, 기록은 ADR-315 breakdown §9.
+
 ## [연결된 Table — 정렬이 전체 행 기준 · 정렬 클릭과 「포함」 필터 속도] - 2026-11-20
 
 ### Fixed

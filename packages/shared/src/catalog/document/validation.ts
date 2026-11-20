@@ -533,7 +533,10 @@ function dataFields(value: unknown, at: string, depth = 0): void {
     );
     // ADR-313 Decision 2 — a closed list of kinds, each for one field type.
     if (field.encoding !== undefined) {
-      const problem = encodingProblem(field.encoding, field.type as string | undefined);
+      const problem = encodingProblem(
+        field.encoding,
+        field.type as string | undefined,
+      );
       if (problem) invalid(problem, `${here}.encoding`);
     }
     if (field.format !== undefined) string(field.format, `${here}.format`);
@@ -1581,21 +1584,33 @@ function viewQuery(
     });
   }
   if (item.sort !== undefined) {
-    const sort = object(item.sort, `${at}.sort`);
-    if (sort.variableId !== undefined) {
-      exact(sort, ["variableId"], `${at}.sort`);
-      const variableId = id(sort.variableId, "", `${at}.sort.variableId`);
-      if (
-        !variableId.startsWith("project:stateVariable:") &&
-        !variableId.startsWith("data:variable:")
-      )
-        invalid("INVALID_VARIABLE_REF", `${at}.sort.variableId`);
-    } else {
-      exact(sort, ["field", "direction"], `${at}.sort`);
-      dataFieldPath(sort.field, `${at}.sort.field`);
-      if (sort.direction !== "ascending" && sort.direction !== "descending")
-        invalid("INVALID_SORT_DIRECTION", `${at}.sort.direction`);
-    }
+    // (ADR-315 Phase 2 — a list of entries, at least one: no sort is no `sort`.)
+    if (!Array.isArray(item.sort) || !item.sort.length)
+      invalid("INVALID_SORT_LIST", `${at}.sort`);
+    (item.sort as unknown[]).forEach((raw, index) => {
+      const path = `${at}.sort[${index}]`;
+      const sort = object(raw, path);
+      if (sort.variableId !== undefined) {
+        exact(sort, ["variableId"], path);
+        const variableId = id(sort.variableId, "", `${path}.variableId`);
+        if (
+          !variableId.startsWith("project:stateVariable:") &&
+          !variableId.startsWith("data:variable:")
+        )
+          invalid("INVALID_VARIABLE_REF", `${path}.variableId`);
+      } else {
+        exact(sort, ["field", "direction", "empty"], path);
+        dataFieldPath(sort.field, `${path}.field`);
+        if (sort.direction !== "ascending" && sort.direction !== "descending")
+          invalid("INVALID_SORT_DIRECTION", `${path}.direction`);
+        if (
+          sort.empty !== undefined &&
+          sort.empty !== "first" &&
+          sort.empty !== "last"
+        )
+          invalid("INVALID_SORT_EMPTY", `${path}.empty`);
+      }
+    });
   }
   return item;
 }
@@ -2421,9 +2436,9 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       // ADR-313 Decision 6 — the key field is one of the collection's own authored fields (by id).
       if (item.keyField !== undefined) {
         string(item.keyField, "entry.keyField");
-        const keyField = (item.schema as readonly Record<string, unknown>[]).find(
-          (field) => field.id === item.keyField,
-        );
+        const keyField = (
+          item.schema as readonly Record<string, unknown>[]
+        ).find((field) => field.id === item.keyField);
         if (!keyField || keyField.formula !== undefined)
           invalid("KEY_FIELD_MISSING", "entry.keyField");
       }
