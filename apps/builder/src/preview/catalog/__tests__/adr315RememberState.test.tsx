@@ -168,6 +168,156 @@ describe("a Table's 「Remember state」", () => {
     second.h.view.unmount();
   }, 120_000);
 
+  it("keeps the hidden · ordered Columns, and the next session draws them so (ADR-315 Phase 4)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const headers = (h: Awaited<ReturnType<typeof openTable>>["h"]) =>
+      [...h.view.container.querySelectorAll('[role="columnheader"]')].map(
+        (cell) => (cell.textContent ?? "").trim(),
+      );
+    const storage = memory();
+    const first = await openTable(storage, true);
+    expect(headers(first.h)).toEqual(["Name", "Type", "Status"]);
+    act(() =>
+      first.h.session.setTableState(first.table().id, {
+        hiddenColumns: ["type"],
+        columnOrder: ["status", "name"],
+      }),
+    );
+    await settle();
+    expect(headers(first.h)).toEqual(["Status", "Name"]);
+    expect(JSON.parse(storage.items.get(KEY)!)).toEqual({
+      [first.table().id]: {
+        hiddenColumns: ["type"],
+        columnOrder: ["status", "name"],
+      },
+    });
+    first.h.view.unmount();
+
+    const second = await openTable(storage, true);
+    expect(second.h.session.tableState(second.table().id)).toEqual({
+      hiddenColumns: ["type"],
+      columnOrder: ["status", "name"],
+    });
+    expect(headers(second.h)).toEqual(["Status", "Name"]);
+
+    // The restore itself draws them: a root built with nothing resolved after it (Publish opens a
+    // finished document — no author's edit follows the restore). The session's own 「a root was
+    // built」 mark is set by hand here: the harness has no second document to open.
+    const session = second.h.session as unknown as {
+      tableStates: Map<string, unknown>;
+      restoredTables: Set<string>;
+      restoreDue: boolean;
+      changed(): void;
+    };
+    act(() =>
+      second.h.session.setTableState(second.table().id, {
+        hiddenColumns: [],
+        columnOrder: [],
+      }),
+    );
+    await settle();
+    expect(headers(second.h)).toEqual(["Name", "Type", "Status"]);
+    storage.setItem(
+      KEY,
+      JSON.stringify({ [second.table().id]: { hiddenColumns: ["status"] } }),
+    );
+    session.tableStates.clear();
+    session.restoredTables.clear();
+    session.restoreDue = true;
+    act(() => session.changed());
+    await settle();
+    expect(headers(second.h)).toEqual(["Name", "Type"]);
+    second.h.view.unmount();
+  }, 120_000);
+
+  it("keeps a resized Column's width, and the next session starts its resize there (ADR-315 Phase 4)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const storage = memory();
+    const resizable = async (opened: Awaited<ReturnType<typeof openTable>>) => {
+      const { h, table } = opened;
+      const header = table()
+        .children.map((child) => h.session.root!.domInputs.get(child))
+        .find((record) => record?.ruleId === "TableHeader")!;
+      const name = header.children
+        .map((child) => h.session.root!.domInputs.get(child)!)
+        .find((record) => record.props.key === "name")!;
+      h.workspace.execute(
+        setFields({
+          targets: [h.workspace.positionOfRecord(name.id)!.target],
+          props: { allowsResizing: { kind: "set", value: true } },
+        }),
+      );
+      h.flush();
+      await settle();
+      return catalogTableColumnKey(h.session.root!.domInputs.get(name.id)!);
+    };
+    /** RAC's widths as the Table's tracks (`CatalogTableResizeTracks`). */
+    const tracks = (opened: Awaited<ReturnType<typeof openTable>>) =>
+      opened.h.view.container
+        .querySelector<HTMLElement>("[data-node-table]")!
+        .style.getPropertyValue("--table-resized-tracks")
+        .split(" ")[0];
+    const first = await openTable(storage, true);
+    const racKey = await resizable(first);
+    /** The runtime props the session writes to RAC (its echoes). */
+    const echoes = (opened: Awaited<ReturnType<typeof openTable>>) => {
+      const writes: Record<string, unknown>[] = [];
+      const session = opened.h.session as unknown as {
+        runtimePropsWriter?: (
+          id: string,
+          patch: Record<string, unknown>,
+        ) => void;
+      };
+      const write = session.runtimePropsWriter;
+      expect(write).toBeDefined();
+      session.runtimePropsWriter = (id, patch) => {
+        writes.push(patch);
+        write!(id, patch);
+      };
+      return () => writes.filter((patch) => "_widthsRevision" in patch).length;
+    };
+    const firstEchoes = echoes(first);
+    // (RAC's `onResizeEnd` — jsdom drags nothing: the widths it gives, by RAC key.)
+    act(() =>
+      first.h.session.resizeTableColumns(first.table().id, {
+        [racKey]: 260,
+        "not-a-column": 90,
+      }),
+    );
+    await settle();
+    expect(first.h.session.tableState(first.table().id)).toEqual({
+      columnWidths: { name: 260 },
+    });
+    expect(JSON.parse(storage.items.get(KEY)!)).toEqual({
+      [first.table().id]: { columnWidths: { name: 260 } },
+    });
+    expect(first.h.session.tableColumnWidths(first.table().id)).toEqual({
+      [racKey]: 260,
+    });
+    // (They are RAC's already: the Table is not built again.)
+    expect(firstEchoes()).toBe(0);
+    first.h.view.unmount();
+
+    // The next session: the Column's resize starts at the kept width.
+    const second = await openTable(storage, true);
+    await resizable(second);
+    expect(second.h.session.tableState(second.table().id)).toEqual({
+      columnWidths: { name: 260 },
+    });
+    expect(tracks(second)).toBe("260px");
+    // A width set from outside the drag (a reset): the Table is built again from it.
+    const secondEchoes = echoes(second);
+    act(() =>
+      second.h.session.setTableState(second.table().id, { columnWidths: {} }),
+    );
+    await settle();
+    expect(secondEchoes()).toBe(1);
+    expect(tracks(second)).not.toBe("260px");
+    second.h.view.unmount();
+  }, 120_000);
+
   it("keeps nothing for a Table without the switch, or a session without a storage", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});

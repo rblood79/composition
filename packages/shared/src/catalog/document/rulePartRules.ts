@@ -1650,11 +1650,14 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
     align: "align",
     "overflow-mode": "overflowMode",
     "allows-resizing": "allowsResizing",
+    // (ADR-315 Phase 4 — the derived `pinnedEdge`, `derivedVariantProps.ts`.)
+    "pinned-edge": "pinnedEdge",
   },
   Cell: {
     align: "align",
     "show-divider": "showDivider",
     "overflow-mode": "overflowMode",
+    "pinned-edge": "pinnedEdge",
   },
   // ADR-257 후속: S2 Badge `overflowMode` (its own text) · ListView's (carried to the items —
   // their label · description Text, `TEXT_BOX_VARIANT_AXIS`).
@@ -1739,7 +1742,8 @@ function blockVariables(
 /**
  * ADR-257 Phase 3 — the rules whose root variant blocks also set their own text box: S2 Table's
  * cell content (`text-align` · `white-space` · truncation — S2 `cellContent`) and a Cell's divider
- * (`border-right-width`, its color the rule's border); S2 Badge's text (ADR-257 후속). Only these:
+ * (`border-right-width`, its color the rule's border) · a pinned column's edge (`border-left-width`
+ * too — ADR-315 Phase 4); S2 Badge's text (ADR-257 후속). Only these:
  * the other rules' blocks do not reach the Canvas text through here.
  */
 const TEXT_VARIANT_RULES: ReadonlySet<string> = new Set([
@@ -1766,6 +1770,10 @@ function cellTextVisual(
     else if (key === "border-right-width") {
       const px = lengthPx(value);
       if (px !== undefined) out.borderRightWidth = px;
+    } else if (key === "border-left-width") {
+      // (ADR-315 Phase 4 — a pinned column's edge at the end side: the line at its start.)
+      const px = lengthPx(value);
+      if (px !== undefined) out.borderLeftWidth = px;
     }
   }
   return out;

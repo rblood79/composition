@@ -69,11 +69,14 @@ export function CatalogTable({
   selectionStyle,
   tableResizable,
   onSortPress,
+  onColumnsResized,
   style,
   ...props
 }: Record<string, unknown> & {
   style?: CSSProperties;
   onSortPress?: (column: string, add: boolean) => void;
+  /** ADR-315 Phase 4 — RAC's `onResizeEnd`: the px widths it left, by RAC key. */
+  onColumnsResized?: (widths: Record<string, number>) => void;
 }) {
   const shift = useShiftMemory(!!onSortPress);
   // S2 `isQuiet` — square corners: the rule's radius rides the inline style, which would beat
@@ -117,6 +120,24 @@ export function CatalogTable({
           "data-node-table-container": "",
           "data-quiet": (props as Record<string, unknown>)["data-quiet"],
           style: boxStyle,
+          ...(onColumnsResized
+            ? {
+                // (RAC gives the Columns it laid out in px — the ones after the drag keep their
+                //  `fr` · `%` sizes, which are no width to keep.)
+                onResizeEnd: (widths: Map<unknown, unknown>) =>
+                  onColumnsResized(
+                    Object.fromEntries(
+                      [...widths].flatMap(([key, width]) =>
+                        typeof width === "number" &&
+                        Number.isFinite(width) &&
+                        width > 0
+                          ? [[String(key), width]]
+                          : [],
+                      ),
+                    ),
+                  ),
+              }
+            : {}),
         },
         table,
       )

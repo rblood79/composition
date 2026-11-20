@@ -3,6 +3,7 @@ import { createContext, createElement, type ReactNode } from "react";
 import { ColumnResizer } from "react-aria-components/Table";
 import {
   CatalogSortIndicator,
+  CatalogTablePinMeasure,
   CatalogTableResizeTracks,
 } from "./tableOperationsDom.components";
 
@@ -70,6 +71,8 @@ export function catalogColumnChildren(
     };
     readonly resizable: boolean;
     readonly writesTracks: boolean;
+    /** ADR-315 Phase 4 — a pinned Column: its header's width is measured for the pinned ones after it. */
+    readonly measuresPin?: boolean;
   },
 ): (values: {
   sortDirection?: string;
@@ -123,6 +126,9 @@ export function catalogColumnChildren(
         : null,
       options.writesTracks
         ? createElement(CatalogTableResizeTracks, { key: "tracks" })
+        : null,
+      options.measuresPin
+        ? createElement(CatalogTablePinMeasure, { key: "pin" })
         : null,
     ];
   };

@@ -503,6 +503,9 @@ export const semanticLabelKeys: Record<string, string> = {
   Contains: "properties.searchContains",
   Fuzzy: "properties.searchFuzzy",
   Searchable: "properties.searchable",
+  // ADR-315 Phase 4 — a Column's part in the Table's column projection.
+  "Hidden by default": "properties.columnDefaultHidden",
+  Pinned: "properties.columnPinned",
   // 2026-11-18 S2 — collection `disabledKeys` · TagGroup `selectionBehavior` · `groupActionLabel`.
   "Disabled keys": "properties.disabledKeys",
   "Selection Behavior": "properties.selectionBehavior",

@@ -693,7 +693,16 @@ export type TableColumnElementLike = {
   props?: Record<string, unknown>;
 };
 
-/** 데이터 필드 key — `key` · 글자 소문자 · `props.id` · `col<index>` 순 (Preview TableRenderer 의 dataKey 규칙). */
+/**
+ * ADR-315 Phase 4 — a resolved Column record's authored place among its header's Columns, as its
+ * Table's column projection wrote it (`catalog/resolution/tableColumns.ts`). A Column drawn at
+ * another place — a column before it hidden · moved — keeps the key of that place: a Column
+ * without a name is `column3` wherever it stands. Only the place: the Column's own `key` · label ·
+ * `id` are read as they are now (a key edit is not a structure change — the place stays).
+ */
+export const CATALOG_COLUMN_PLACE_PROP = "_columnPlace";
+
+/** 데이터 필드 key — `key` · 글자 소문자 · `props.id` · `column<자리+1>` 순 (Preview TableRenderer 의 dataKey 규칙). 자리 = 투영이 적은 작성 자리, 없으면 `index`. */
 export function resolveTableColumnKey(
   props: Record<string, unknown> | undefined,
   index: number,
@@ -705,7 +714,8 @@ export function resolveTableColumnKey(
   if (typeof text === "string" && text.length > 0) return text.toLowerCase();
   const id = props?.id;
   if (typeof id === "string" && id.length > 0) return id;
-  return catalogDefaultColumnKey(index);
+  const place = props?.[CATALOG_COLUMN_PLACE_PROP];
+  return catalogDefaultColumnKey(typeof place === "number" ? place : index);
 }
 /**
  * The key of a Column that names none (no `key`, no label text, no `id`): its place, from 1 — the

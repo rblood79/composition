@@ -3202,6 +3202,8 @@ const semanticLabels: Record<string, string> = {
   "properties.searchContains": "포함",
   "properties.searchFuzzy": "유사",
   "properties.searchable": "검색 대상",
+  "properties.columnDefaultHidden": "처음에 숨김",
+  "properties.columnPinned": "고정",
   "properties.ascending": "오름차순",
   "properties.descending": "내림차순",
   "properties.last": "뒤",

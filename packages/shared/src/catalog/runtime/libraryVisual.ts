@@ -120,12 +120,24 @@ export function catalogDerivedRestVisual(
   const keys = Object.keys(derived);
   if (!keys.length) return {};
   const authored = catalogAuthoredVisual(root, node);
+  // (ADR-315 Phase 4 — a pinned column's edge line stands over the side widths its Table's part
+  //  rule gives a header cell: a part value reads as authored here, `manualBoxRules` Table —
+  //  「bottom only」.)
+  const edge = node.derivedProps.pinnedEdge !== undefined;
   return Object.fromEntries(
     keys
-      .filter((key) => authored[key] === undefined)
+      .filter(
+        (key) =>
+          authored[key] === undefined ||
+          (edge && PINNED_EDGE_WIDTH_KEYS.has(key)),
+      )
       .map((key) => [key, derived[key]]),
   );
 }
+const PINNED_EDGE_WIDTH_KEYS: ReadonlySet<string> = new Set([
+  "borderRightWidth",
+  "borderLeftWidth",
+]);
 
 /**
  * Resolved visual values of a rule-backed node that differ from what its definition declares:

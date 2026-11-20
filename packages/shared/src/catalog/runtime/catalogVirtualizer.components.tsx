@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactElement } from "react";
+import { CATALOG_COLUMN_PINNED_PROP } from "../resolution/tableColumns";
+import { catalogTableColumnKey } from "./tableSort";
 import { cloneElement, createElement, useRef } from "react";
 import {
   GridLayout,
@@ -116,6 +118,12 @@ type TableInput = {
   columnWidths?: Map<unknown, number>;
   /** A windowed Table's rows (a holder the Table sets each render — never part of the layout). */
   rowsInView?: { current: RowsInView | undefined };
+  /**
+   * ADR-315 Phase 4 — the pinned columns' RAC keys, a side each joined by `\n`
+   * (`catalogTablePinnedKeys`): the `Layout` keeps their cells in view (`isStickyColumn`).
+   */
+  pinnedStart?: string;
+  pinnedEnd?: string;
 };
 type TableContext = Parameters<TableLayout<unknown>["update"]>[0];
 type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
@@ -132,6 +140,9 @@ type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
 class CatalogTableLayout extends TableLayout<unknown> {
   private rowEdge = { top: 0, bottom: 0 };
   private rowsInView?: TableInput["rowsInView"];
+  /** ADR-315 Phase 4 — the pinned columns' RAC keys (`TableInput.pinnedStart` · `pinnedEnd`). */
+  private pinned = new Set<string>();
+  private pinnedAtEnd = false;
   /**
    * The last measured row's cell height — the next estimate (`CatalogListLayout`'s rule, for a
    * Table). A windowed Table's rows outside its window are never measured: at the first estimate
@@ -203,6 +214,8 @@ class CatalogTableLayout extends TableLayout<unknown> {
       a.columnTracks?.join(" ") !== b.columnTracks?.join(" ") ||
       a.rowEdge?.top !== b.rowEdge?.top ||
       a.rowEdge?.bottom !== b.rowEdge?.bottom ||
+      a.pinnedStart !== b.pinnedStart ||
+      a.pinnedEnd !== b.pinnedEnd ||
       super.shouldInvalidateLayoutOptions(next as never, previous as never)
     );
   }
@@ -210,6 +223,12 @@ class CatalogTableLayout extends TableLayout<unknown> {
     const options = (context.layoutOptions ?? {}) as TableInput;
     this.rowEdge = options.rowEdge ?? { top: 0, bottom: 0 };
     this.rowsInView = options.rowsInView;
+    this.pinned = new Set(
+      [options.pinnedStart, options.pinnedEnd].flatMap((keys) =>
+        keys ? keys.split("\n") : [],
+      ),
+    );
+    this.pinnedAtEnd = !!options.pinnedEnd;
     const columns = this.virtualizer?.collection
       ? (
           this.virtualizer.collection as unknown as {
@@ -255,6 +274,48 @@ class CatalogTableLayout extends TableLayout<unknown> {
         : context,
     );
   }
+  /**
+   * ADR-315 Phase 4 (Phase 0 S1) — a pinned column's header · cells stay in view: RAC keeps a
+   * sticky column's cells out of its column virtualization and draws their wrappers sticky. A cell
+   * node's column is `collection.columns[colIndex]`.
+   */
+  protected override isStickyColumn(
+    ...args: Parameters<TableLayout<unknown>["isStickyColumn"]>
+  ): boolean {
+    if (!this.pinned.size) return super.isStickyColumn(...args);
+    const node = args[0] as {
+      type: string;
+      key: unknown;
+      colIndex?: number | null;
+      index: number;
+    };
+    const columns = (
+      this.virtualizer?.collection as unknown as
+        { columns: { key: unknown }[] } | undefined
+    )?.columns;
+    const column =
+      node.type === "column" ? node : columns?.[node.colIndex ?? node.index];
+    return (
+      (!!column && this.pinned.has(String(column.key))) ||
+      super.isStickyColumn(...args)
+    );
+  }
+  // (RAC draws the header and the body `overflow: hidden`: a sticky box inside would stick to
+  //  that box, not to the Table's scroll box — Phase 0 S1.)
+  protected override buildTableHeader(
+    ...args: Parameters<TableLayout<unknown>["buildTableHeader"]>
+  ): ReturnType<TableLayout<unknown>["buildTableHeader"]> {
+    const header = super.buildTableHeader(...args);
+    if (this.pinned.size) header.layoutInfo.allowOverflow = true;
+    return header;
+  }
+  protected override buildRowGroup(
+    ...args: Parameters<TableLayout<unknown>["buildRowGroup"]>
+  ): ReturnType<TableLayout<unknown>["buildRowGroup"]> {
+    const group = super.buildRowGroup(...args);
+    if (this.pinned.size) group.layoutInfo.allowOverflow = true;
+    return group;
+  }
   protected override getEstimatedRowHeight(): number {
     return (
       super.getEstimatedRowHeight() + this.rowEdge.top + this.rowEdge.bottom
@@ -263,7 +324,21 @@ class CatalogTableLayout extends TableLayout<unknown> {
   protected override buildRow(
     ...args: Parameters<TableLayout<unknown>["buildRow"]>
   ): RowNode {
-    const node = super.buildRow(...args);
+    // (ADR-315 Phase 4 — a column pinned at the end: its cell is built though it is past the
+    //  columns in view — RAC stops at the first cell past `requestedRect`. The cells drawn are
+    //  still the ones in view and the pinned ones, Phase 0 S1.)
+    let node: RowNode;
+    if (this.pinnedAtEnd) {
+      const requested = this.requestedRect;
+      this.requestedRect = requested.copy();
+      this.requestedRect.width = Number.MAX_SAFE_INTEGER;
+      try {
+        node = super.buildRow(...args);
+      } finally {
+        this.requestedRect = requested;
+      }
+      node.validRect = node.layoutInfo.rect.intersection(requested);
+    } else node = super.buildRow(...args);
     // (A windowed Table's row outside its record window has no cells — `catalogWindowRowPending`:
     //  RAC sizes a row by its cells, so it is given a row's height.)
     if (!node.children?.length) {
@@ -323,6 +398,37 @@ function CatalogVirtualTable(props: VirtualizerProps): ReactElement {
   return virtualized(props, props.readers.deviceColumns(), rowsInView);
 }
 
+/**
+ * ADR-315 Phase 4 — a Table record's pinned columns by RAC key (`catalogTableColumnKey`), a side
+ * each joined by `\n` (a text: the `Layout` compares its options by value) — the header's Columns
+ * its column projection marked (`CATALOG_COLUMN_PINNED_PROP`).
+ */
+function catalogTablePinnedKeys(
+  root: VirtualizerProps["root"],
+  table: VirtualizerProps["record"],
+): Pick<TableInput, "pinnedStart" | "pinnedEnd"> {
+  const sides: Record<"start" | "end", string[]> = { start: [], end: [] };
+  for (const headerId of table.children) {
+    const header = root.domInputs.get(headerId);
+    if (header?.ruleId !== "TableHeader") continue;
+    for (const columnId of header.children) {
+      const column = root.domInputs.get(columnId);
+      const side = column?.props[CATALOG_COLUMN_PINNED_PROP];
+      if (column && (side === "start" || side === "end"))
+        sides[side].push(
+          catalogTableColumnKey({
+            id: column.id,
+            ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+          }),
+        );
+    }
+  }
+  return {
+    ...(sides.start.length ? { pinnedStart: sides.start.join("\n") } : {}),
+    ...(sides.end.length ? { pinnedEnd: sides.end.join("\n") } : {}),
+  };
+}
+
 function virtualized(
   { root, record, readers, element: drawn }: VirtualizerProps,
   device?: CatalogTableDeviceColumns,
@@ -366,8 +472,12 @@ function virtualized(
     createElement(Virtualizer, {
       layout: layout.kind === "table" ? CatalogTableLayout : CatalogListLayout,
       layoutOptions:
-        layout.kind === "table" && rowsInView
-          ? { ...layout.options, rowsInView }
+        layout.kind === "table"
+          ? {
+              ...layout.options,
+              ...(rowsInView ? { rowsInView } : {}),
+              ...catalogTablePinnedKeys(root, record),
+            }
           : layout.options,
       children: element,
     } as never),

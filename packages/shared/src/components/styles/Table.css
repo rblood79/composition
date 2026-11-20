@@ -124,6 +124,108 @@
         white-space: nowrap;
       }
     }
+
+    /* ADR-315 Phase 4 — pinned columns (`catalogProjectTableColumns` marks the Column · Cells:
+       `data-pinned` · `data-pinned-at`). A Table drawn without the `Virtualizer`: each one is
+       sticky past the pinned columns before it (`--table-pin-at` — the Table measures their widths,
+       `CatalogTablePinMeasure`) and covers the cells scrolling under it with its row's background (a
+       row that draws none takes the Table's — zero specificity: a row's own state paint wins). */
+    .react-aria-TableHeader > tr > [data-pinned],
+    .react-aria-Row > [data-pinned] {
+      position: sticky;
+      z-index: 1;
+      background-color: inherit;
+    }
+
+    .react-aria-TableHeader > tr > [data-pinned="start"],
+    .react-aria-Row > [data-pinned="start"] {
+      inset-inline-start: var(--table-pin-at, 0px);
+    }
+
+    .react-aria-TableHeader > tr > [data-pinned="end"],
+    .react-aria-Row > [data-pinned="end"] {
+      inset-inline-end: var(--table-pin-at, 0px);
+    }
+
+    :where(&:has([data-pinned]))
+      :where(
+        .react-aria-TableHeader > tr,
+        .react-aria-TableBody,
+        .react-aria-Row,
+        [role="presentation"],
+        [role="row"]
+      ) {
+      background-color: inherit;
+    }
+
+    /* A sticky box stays inside its parent's box: a row has to be as wide as its tracks, or a
+       pinned cell leaves with the row's box once the Table scrolls past it (live, 2026-11-20 —
+       a row was the scroll box's width, its cells past it). Px tracks make it that wide; `fr`
+       tracks keep it at the Table's width. */
+    :where(&:has([data-pinned])) :where(.react-aria-Row) {
+      min-width: min-content;
+    }
+
+    /* (The header row's own `min-width: 0` — above — is for a Table without pinned columns.) */
+    &:has([data-pinned]) .react-aria-TableHeader > tr {
+      min-width: min-content;
+    }
+
+    /* In the `Virtualizer` the header row is no `tr` under the header: it takes the Columns'
+       tracks here (a pinned Table's — its box is then the tracks' width, and its end side has a
+       track to stand on, below). */
+    .react-aria-TableHeader
+      [role="row"]:has(> [role="presentation"] > [data-pinned]) {
+      display: grid;
+      grid-template-columns: var(--table-column-tracks, none);
+      min-width: min-content;
+    }
+
+    /* In the `Virtualizer` RAC's `TableLayout` makes a pinned cell's wrapper sticky
+       (`CatalogTableLayout.isStickyColumn`) and gives it `left` — the start side stands at its own
+       place. The end side is given `right` here. A sticky box is pulled from where it stands, so
+       it has to stand at its own column: the row is a grid on the Columns' tracks (a Row's own
+       style · the header row above), and the wrapper is put on its track from the end (live,
+       2026-11-20: left to the grid's flow it stood on the first free track, and stopped following
+       once the Table scrolled past it). */
+    /* (RAC stacks the header's cells the first one on top — `zIndex` falls column by column: a
+       pinned one stands over the cells scrolling under it whichever column it is. Live,
+       2026-11-20: the last column pinned at the end was drawn under the one before it.) */
+    [role="row"] > [role="presentation"]:has(> [data-pinned]) {
+      z-index: 1000 !important;
+    }
+
+    [role="row"] > [role="presentation"]:has(> [data-pinned="end"]) {
+      left: auto !important;
+      right: 0;
+      grid-row: 1;
+      grid-column: -2 / -1;
+    }
+
+    [role="row"]
+      > [role="presentation"]:has(> [data-pinned="end"][data-pinned-at="1"]) {
+      right: var(--table-pin-end-1, 0px);
+      grid-column: -3 / -2;
+    }
+
+    [role="row"]
+      > [role="presentation"]:has(> [data-pinned="end"][data-pinned-at="2"]) {
+      right: var(--table-pin-end-2, 0px);
+      grid-column: -4 / -3;
+    }
+
+    [role="row"]
+      > [role="presentation"]:has(> [data-pinned="end"][data-pinned-at="3"]) {
+      right: var(--table-pin-end-3, 0px);
+      grid-column: -5 / -4;
+    }
+
+    /* (In the `Virtualizer` the boxes between the Table and a cell are RAC's wrappers — each
+       passes the Table's background on, above: a pinned cell with none of its own let the cells
+       scrolling under it show through, live 2026-11-20.) */
+    [role="presentation"] > [data-pinned] {
+      background-color: inherit;
+    }
   }
 
   /* ADR-257 Phase 4 — S2 Column `allowsResizing`: RAC's `ResizableTableContainer` is the Table's

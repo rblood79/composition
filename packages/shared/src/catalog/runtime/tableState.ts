@@ -100,6 +100,13 @@ export interface CatalogTableShape {
     readonly key: string;
     /** RAC `isRowHeader` — a Table keeps one in view (RAC throws without). */
     readonly rowHeader?: boolean;
+    /**
+     * ADR-315 Phase 4 — the author's defaults (a Column's `defaultHidden` · `defaultPinned`): the
+     * columns a state without that slice shows. A slice equal to them is no slice, and an empty
+     * list over them is one (「show every column」 — the author hid some).
+     */
+    readonly hidden?: boolean;
+    readonly pinned?: "start" | "end";
   }[];
   /** Whether the Table sorts by more than one column (absent = one). */
   readonly multiSort?: boolean;
@@ -232,7 +239,14 @@ function sliceOf(
       if (headers.length && headers.every((column) => hidden.has(column.key)))
         hidden.delete(headers.at(-1)!.key);
       const out = list.filter((key) => hidden.has(key));
-      return out.length ? out : null;
+      // (The authored hidden Columns are what no slice shows: the same list is no slice.)
+      const authored = shape.columns
+        .filter((column) => column.hidden)
+        .map((column) => column.key);
+      return authored.length === out.length &&
+        authored.every((key) => hidden.has(key))
+        ? null
+        : out;
     }
     case "pinnedColumns": {
       if (!isRecord(value)) return undefined;
@@ -241,7 +255,17 @@ function sliceOf(
       const end = (columns(value.end) ?? []).filter(
         (key) => !start.includes(key),
       );
-      return start.length || end.length ? { start, end } : null;
+      // (The authored pinned Columns are what no slice shows: the same sides are no slice.)
+      const authored = (side: "start" | "end") =>
+        shape.columns
+          .filter((column) => column.pinned === side)
+          .map((column) => column.key);
+      const same = (left: readonly string[], right: readonly string[]) =>
+        left.length === right.length &&
+        left.every((key, index) => key === right[index]);
+      return same(start, authored("start")) && same(end, authored("end"))
+        ? null
+        : { start, end };
     }
     case "columnWidths": {
       if (!isRecord(value)) return undefined;

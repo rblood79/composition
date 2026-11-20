@@ -34,6 +34,21 @@ export const CATALOG_SELECTION_COLUMN_VAR =
  * Table drags (`collectionDragState.ts`).
  */
 export const CATALOG_DRAG_COLUMN_WIDTH = 16;
+/**
+ * ADR-315 Phase 4 — a Column · Cell record whose column is hidden and kept (the Builder's Canvas —
+ * `catalogProjectTableColumns`' `keepHidden`): not drawn and in no track (`catalogHiddenAtRest` ·
+ * `catalogTableRowTracks`), still a record — the author selects it in Layers and turns 「Hidden by
+ * default」 off.
+ */
+export const CATALOG_COLUMN_HIDDEN_PROP = "_columnHidden";
+/** A Column · Cell record's side when its column is pinned (`start` · `end`) — `tableColumns.ts`. */
+export const CATALOG_COLUMN_PINNED_PROP = "_pinned";
+/**
+ * A pinned Column · Cell record at its side's edge — the start side's last column, the end side's
+ * first: the line between the pinned columns and the ones scrolling under them (the Column · Cell
+ * rule's `pinned-edge` block, through the derived `pinnedEdge` — `presence.ts`).
+ */
+export const CATALOG_COLUMN_PINNED_EDGE_PROP = "_pinnedEdge";
 
 const FR = /^([1-9]\d*)fr$/;
 const PERCENT = /^(\d+)%$/;
@@ -246,8 +261,10 @@ export function catalogTableRowTracks<T extends TrackRecord>(
   const table = catalogTrackTableOf(node, get, typeOf);
   if (!table) return undefined;
   // (A Table not selecting with checkboxes has no selection column — Phase 3, 2026-11-18.)
+  // (ADR-315 Phase 4: a hidden Column the Builder keeps as a record has no track.)
   const columns = tableColumns(table, get, typeOf).filter(
     (column) =>
+      column.props[CATALOG_COLUMN_HIDDEN_PROP] !== true &&
       !(
         !checkboxSelection(table) &&
         catalogTableSelectionColumn(column, get, typeOf)

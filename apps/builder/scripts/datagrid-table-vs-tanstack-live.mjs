@@ -22,7 +22,7 @@
 // CDP 계측 (시스템 자신의 계측 아님).
 import { createServer } from "node:http";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 import { createFrameResolver, serveHarnessDist } from "./perfDist.mjs";
 
 const OUT = process.argv[2] ?? "/private/tmp/datagrid-perf";
@@ -65,6 +65,17 @@ const SEARCH_FUZZY =
 //   넣고 (항목 = 그 필드의 후보 값 보기), Publish 에서 항목이 「전체」 + 데이터의 도시 전부 (50 — 옛
 //   표본 상한 20 을 넘는다) 인지, 하나를 고르면 표의 행 수가 이 파일의 행 생성기로 센 값인지 본다.
 const CHECK_FACET = process.argv.includes("--check-facet");
+// `--check-pin` (ADR-315 Phase 4 — G4): 열 여섯을 400px 로 넓혀 가로 스크롤을 만들고 `Dept` 를 앞에,
+//   `Date` 를 뒤에 고정한다 (Column 「Pinned」 의 작성 기본값). Publish 에서 가로로 스크롤한 뒤
+//   고정 열의 머리글 · 칸이 표의 왼쪽 · 오른쪽 끝에 붙어 있고 다른 열은 밀려 났는지를
+//   `getBoundingClientRect` 로 본다. `--display more` 는 가상 스크롤을 쓰지 않는 표,
+//   `--browser webkit` 은 WebKit.
+const CHECK_PIN = process.argv.includes("--check-pin");
+// `--check-resize` (ADR-315 Phase 4 — 폭을 상태로): Name 열을 「Allow resizing」 으로, Table 을
+//   「Remember state」 로 둔다. Publish 에서 Name 머리글의 손잡이를 오른쪽으로 120px 끌고, 표 상태가
+//   브라우저에 남았는지 · 새로고침 뒤 Name 폭이 끈 폭인지를 본다.
+const CHECK_RESIZE = process.argv.includes("--check-resize");
+const BROWSER = arg("--browser", "chromium");
 // `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
 //   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
 const COLUMN_ORIGIN = process.argv.includes("--column-origin")
@@ -157,7 +168,10 @@ const state = JSON.parse(
   readFileSync(`${REPO}/apps/builder/scripts/.auth-session.json`, "utf8"),
 );
 state.origins = (state.origins ?? []).map((o) => ({ ...o, origin: BASE }));
-const browser = await chromium.launch({ headless: false, channel: "chrome" });
+const browser =
+  BROWSER === "webkit"
+    ? await webkit.launch({ headless: false })
+    : await chromium.launch({ headless: false, channel: "chrome" });
 const context = await browser.newContext({
   storageState: state,
   viewport: { width: 1600, height: 1000 },
@@ -300,7 +314,7 @@ try {
 
     // ── 열 6 (starter 열 교체) → 연결 → 정렬 가능 → 가상 스크롤 ──
     const setup = await page.evaluate(
-      ({ COLUMNS, DISPLAY, COLUMN_ORIGIN }) => {
+      ({ COLUMNS, DISPLAY, COLUMN_ORIGIN, CHECK_PIN, CHECK_RESIZE }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
         const root = ws.root;
@@ -419,6 +433,60 @@ try {
           step("virtual", () =>
             ws.execute(h.rowDisplay.setRowDisplay(id, { mode: "virtual" })),
           );
+        if (CHECK_PIN)
+          step("pin", () => {
+            const keyed = (key) =>
+              all(table(), "Column")
+                .map(owned)
+                .filter((x) => x && g.getEntry(x)?.props?.key?.value === key)
+                .map((x) => ({ kind: "node", id: x }));
+            ws.execute(
+              C.setFields({
+                targets: all(table(), "Column")
+                  .map(owned)
+                  .filter((x) => x && g.getEntry(x)?.props?.key)
+                  .map((x) => ({ kind: "node", id: x })),
+                props: { width: set(400) },
+                label: "wide",
+              }),
+            );
+            ws.execute(
+              C.setFields({
+                targets: keyed("dept"),
+                props: { defaultPinned: set("start") },
+                label: "pin start",
+              }),
+            );
+            ws.execute(
+              C.setFields({
+                targets: keyed("date"),
+                props: { defaultPinned: set("end") },
+                label: "pin end",
+              }),
+            );
+          });
+        if (CHECK_RESIZE)
+          step("resize", () => {
+            ws.execute(
+              C.setFields({
+                targets: all(table(), "Column")
+                  .map(owned)
+                  .filter(
+                    (x) => x && g.getEntry(x)?.props?.key?.value === "name",
+                  )
+                  .map((x) => ({ kind: "node", id: x })),
+                props: { allowsResizing: set(true) },
+                label: "resizable",
+              }),
+            );
+            ws.execute(
+              C.setFields({
+                targets: [{ kind: "node", id }],
+                props: { rememberState: set(true) },
+                label: "remember",
+              }),
+            );
+          });
         const e = g.getEntry(id);
         out.rowDisplay = e.rowDisplay;
         out.binding = !!e.binding;
@@ -428,7 +496,7 @@ try {
         }));
         return out;
       },
-      { COLUMNS, DISPLAY, COLUMN_ORIGIN },
+      { COLUMNS, DISPLAY, COLUMN_ORIGIN, CHECK_PIN, CHECK_RESIZE },
     );
     log(`setup ${JSON.stringify(setup).slice(0, 1500)}`);
     results.setup = setup;
@@ -902,6 +970,208 @@ try {
       };
       log(`check-multisort ${JSON.stringify(results.checkMultiSort)}`);
       await pub.screenshot({ path: `${OUT}/check-multisort.png` });
+      throw new Error("load only");
+    }
+
+    if (CHECK_RESIZE) {
+      const measure = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const head = [...table.querySelectorAll("[role=columnheader]")].find(
+            (el) => (el.textContent ?? "").trim().startsWith("Name"),
+          );
+          const handle = head?.querySelector(
+            ".react-aria-ColumnResizer, [role=separator]",
+          );
+          const r = head?.getBoundingClientRect();
+          const h = handle?.getBoundingClientRect();
+          return {
+            head: r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null,
+            hit: h
+              ? (() => {
+                  const el = document.elementFromPoint(
+                    h.x + h.width / 2,
+                    h.y + h.height / 2,
+                  );
+                  return `${el?.tagName}.${el?.className}`;
+                })()
+              : null,
+            width: r ? Math.round(r.width) : null,
+            handle: h ? { x: h.x + h.width / 2, y: h.y + h.height / 2 } : null,
+            kept: Object.keys(localStorage)
+              .filter((key) => key.startsWith("composition:table-state:"))
+              .map((key) => localStorage.getItem(key)),
+          };
+        }, OURS);
+      // (S2: the handle shows while the column is hovered.)
+      const hovered = async () => {
+        const at = await measure();
+        if (at.head) await pub.mouse.move(at.head.x, at.head.y);
+        await pub.waitForTimeout(300);
+        return measure();
+      };
+      const opened = await hovered();
+      if (opened.handle) {
+        // (The handle's start half: its end half is under the next column's header.)
+        const x0 = opened.handle.x - 3;
+        await pub.mouse.move(x0, opened.handle.y);
+        await pub.mouse.down();
+        for (let step = 1; step <= 12; step += 1) {
+          await pub.mouse.move(x0 + step * 10, opened.handle.y);
+          await pub.waitForTimeout(16);
+        }
+        await pub.mouse.up();
+      }
+      await pub.waitForTimeout(1000);
+      const resized = await hovered();
+      await pub.reload();
+      await pub.waitForFunction(
+        (OURS) =>
+          [...document.querySelectorAll(`${OURS} [role=row]`)].some((row) =>
+            /Person \d+/.test(row.textContent ?? ""),
+          ),
+        OURS,
+        { timeout: 60000 },
+      );
+      await pub.waitForTimeout(1000);
+      const reloaded = await hovered();
+      results.checkResize = {
+        opened,
+        resized,
+        reloaded,
+        pass:
+          !!opened.handle?.x &&
+          typeof opened.width === "number" &&
+          resized.width >= opened.width + 100 &&
+          resized.kept.length === 1 &&
+          /"columnWidths":\{"name":\d/.test(resized.kept[0] ?? "") &&
+          Math.abs(reloaded.width - resized.width) <= 1,
+      };
+      log(`check-resize ${JSON.stringify(results.checkResize)}`);
+      await pub.screenshot({ path: `${OUT}/check-resize.png` });
+      throw new Error("load only");
+    }
+
+    if (CHECK_PIN) {
+      const measure = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const scroller =
+            [table, ...table.querySelectorAll("*")].find(
+              (el) => el.scrollWidth > el.clientWidth + 1,
+            ) ?? table;
+          const box = scroller.getBoundingClientRect();
+          const rect = (el) => {
+            const r = el.getBoundingClientRect();
+            return {
+              left: Math.round(r.left - box.left),
+              right: Math.round(box.left + scroller.clientWidth - r.right),
+            };
+          };
+          const heads = [...table.querySelectorAll("[role=columnheader]")];
+          const head = (name) =>
+            heads.find((el) => (el.textContent ?? "").trim() === name);
+          const row = [...table.querySelectorAll("[role=row]")].find((r) =>
+            /Person \d+/.test(r.textContent ?? ""),
+          );
+          const cells = row
+            ? [...row.querySelectorAll("[role=rowheader], [role=gridcell]")]
+            : [];
+          const cell = (pattern) =>
+            cells.find((el) => pattern.test((el.textContent ?? "").trim()));
+          const detail = (el) => {
+            const wrap = el.parentElement;
+            const cs = getComputedStyle(wrap);
+            const r = el.getBoundingClientRect();
+            return `${(el.textContent ?? "").trim().slice(0, 10)}@${Math.round(r.left - box.left)} w${Math.round(r.width)} wrap[${wrap.getAttribute("role")} ${cs.position} l:${cs.left} r:${cs.right} o:${cs.order}] pin:${el.getAttribute("data-pinned")}/${el.getAttribute("data-pinned-at")}`;
+          };
+          const rowEl = row;
+          const headRow = heads[0]?.closest("[role=row]");
+          const rowInfo = (el) =>
+            el
+              ? `${getComputedStyle(el).display} w${Math.round(el.getBoundingClientRect().width)} x${Math.round(el.getBoundingClientRect().left - box.left)}`
+              : null;
+          return {
+            details: {
+              heads: heads.map(detail),
+              cells: cells.map(detail),
+              row: rowInfo(rowEl),
+              headRow: rowInfo(headRow),
+              vars: [0, 1, 2].map((n) =>
+                getComputedStyle(table).getPropertyValue(
+                  `--table-pin-end-${n}`,
+                ),
+              ),
+            },
+            scrollLeft: Math.round(scroller.scrollLeft),
+            scrollWidth: scroller.scrollWidth,
+            clientWidth: scroller.clientWidth,
+            order: heads.map((el) => (el.textContent ?? "").trim()),
+            cellCount: cells.length,
+            // (고정 쪽의 경계선 — Column · Cell rule 의 `pinned-edge`: 앞 고정의 끝, 뒤 고정의 시작.)
+            edge: [
+              [head("Dept"), "borderRightWidth"],
+              [cell(/^Dept \d+$/), "borderRightWidth"],
+              [head("Date"), "borderLeftWidth"],
+              [cell(/^2026-\d\d-\d\d$/), "borderLeftWidth"],
+              [head("Name"), "borderRightWidth"],
+              [cell(/^Person \d+$/), "borderRightWidth"],
+            ].map(([el, key]) => (el ? getComputedStyle(el)[key] : null)),
+            head: {
+              dept: head("Dept") ? rect(head("Dept")) : null,
+              date: head("Date") ? rect(head("Date")) : null,
+              name: head("Name") ? rect(head("Name")) : null,
+            },
+            cell: {
+              dept: cell(/^Dept \d+$/) ? rect(cell(/^Dept \d+$/)) : null,
+              date: cell(/^2026-\d\d-\d\d$/)
+                ? rect(cell(/^2026-\d\d-\d\d$/))
+                : null,
+              name: cell(/^Person \d+$/) ? rect(cell(/^Person \d+$/)) : null,
+            },
+          };
+        }, OURS);
+      const scrollTo = (left) =>
+        pub.evaluate(
+          ({ OURS, left }) => {
+            const table = document.querySelector(OURS);
+            const scroller =
+              [table, ...table.querySelectorAll("*")].find(
+                (el) => el.scrollWidth > el.clientWidth + 1,
+              ) ?? table;
+            scroller.scrollLeft = left;
+          },
+          { OURS, left },
+        );
+      await pub.waitForTimeout(1000);
+      const rest = await measure();
+      await scrollTo(700);
+      await pub.waitForTimeout(1200);
+      const scrolled = await measure();
+      await pub.screenshot({ path: `${OUT}/check-pin.png` });
+      const near = (value, want) =>
+        typeof value === "number" && Math.abs(value - want) <= 2;
+      results.checkPin = { browser: BROWSER, display: DISPLAY, rest, scrolled };
+      results.checkPin.pass =
+        // (고정 순서: Dept 가 맨 앞, Date 가 맨 뒤.)
+        rest.order[0] === "Dept" &&
+        rest.order.at(-1) === "Date" &&
+        scrolled.scrollLeft >= 600 &&
+        // (스크롤한 뒤에도 Dept 는 왼쪽 끝, Date 는 오른쪽 끝 — 머리글과 칸 둘 다.)
+        near(scrolled.head.dept?.left, 0) &&
+        near(scrolled.cell.dept?.left, 0) &&
+        near(scrolled.head.date?.right, 0) &&
+        near(scrolled.cell.date?.right, 0) &&
+        // (경계선: 고정 쪽 끝 열에만 1px.)
+        JSON.stringify(scrolled.edge) ===
+          JSON.stringify(["1px", "1px", "1px", "1px", "0px", "0px"]) &&
+        // (고정하지 않은 열은 밀려 났다 — 보이지 않거나 왼쪽 밖.)
+        !(
+          scrolled.head.name &&
+          scrolled.head.name.left >= 0 &&
+          scrolled.head.name.left < 400 - 700 + 400
+        );
+      log(`check-pin ${JSON.stringify(results.checkPin)}`);
       throw new Error("load only");
     }
 

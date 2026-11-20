@@ -96,6 +96,12 @@ import {
 import { catalogTableColumnKey } from "./tableSort";
 import { catalogTableColumnRoles } from "./tableColumnRoles";
 import {
+  CATALOG_COLUMN_PLACE_PROP,
+  catalogTableColumnEntries,
+  catalogTableColumnsNow,
+} from "../resolution/tableColumns";
+import {
+  CATALOG_TABLE_COLUMN_SLICES,
   CATALOG_TABLE_DATA_SLICES,
   catalogStoredTableStates,
   catalogStoreTableStates,
@@ -617,6 +623,9 @@ export class CatalogPreviewSession {
   private readonly serverSortedTables = new Set<string>();
   /** The session is telling its view a Table's sort (`echoTableSort`) — not a sort being set. */
   private echoing = false;
+  /** ADR-315 Phase 4 — a column width written by RAC's own resize (`resizeTableColumns`). */
+  private resizing = false;
+  private widthsRevision = 0;
   /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
   private readonly loadingStates = new Map<string, CatalogLoadingState>();
   /** Endpoint submits in flight — a `reload` waits for them (`await fetch; list.reload()`). */
@@ -2124,13 +2133,20 @@ export class CatalogPreviewSession {
     };
   }
   /**
-   * A Table record's Columns as drawn: each one's RAC key (what RAC's sort names —
-   * `catalogTableColumnKey`) and its Column key (what the Table state names — the field it shows).
+   * A Table record's authored data Columns: each one's Column key (what the Table state names —
+   * the field it shows) and, for a Column that is drawn, its RAC key (what RAC's sort names —
+   * `catalogTableColumnKey`). A hidden Column is among them without a RAC key (ADR-315 Phase 4 —
+   * the Table record names every authored column, `catalogTableColumnEntries`): a state still
+   * names it, and it is searched · sorted · filtered as before.
    */
   private tableColumns(tableId: string): {
+    /** `""` = the Column is not drawn (hidden). */
     racKey: string;
     key: string;
     rowHeader: boolean;
+    /** ADR-315 Phase 4 — the author's defaults (`defaultHidden` · `defaultPinned`). */
+    hidden?: true;
+    pinned?: "start" | "end";
     /** ADR-315 Phase 2 — the Column's sort options (`sortFirstDirection` · `sortEmptyValues`). */
     sortFirstDirection: "ascending" | "descending";
     sortEmptyValues?: "first";
@@ -2155,25 +2171,74 @@ export class CatalogPreviewSession {
     });
     // (The selection column is not a data column: a state names none. The key's index is the
     //  Column's place among all of them — the resolver's, `tableRowSort`.)
-    return columns
-      .map((column, index) => ({
-        racKey: catalogTableColumnKey({
-          id: column.id,
-          ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-        }),
-        key: resolveTableColumnKey(column.props, index),
-        rowHeader: roles[index]!.rowHeader,
-        selection: roles[index]!.selection,
-        sortFirstDirection:
-          column.props.sortFirstDirection === "descending"
-            ? ("descending" as const)
-            : ("ascending" as const),
-        ...(column.props.sortEmptyValues === "first"
-          ? { sortEmptyValues: "first" as const }
+    const drawnAll = columns.map((column, index) => ({
+      racKey: catalogTableColumnKey({
+        id: column.id,
+        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+      }),
+      key: resolveTableColumnKey(column.props, index),
+      rowHeader: roles[index]!.rowHeader,
+      selection: roles[index]!.selection,
+      sortFirstDirection:
+        column.props.sortFirstDirection === "descending"
+          ? ("descending" as const)
+          : ("ascending" as const),
+      ...(column.props.sortEmptyValues === "first"
+        ? { sortEmptyValues: "first" as const }
+        : {}),
+      allowsSearching: column.props.allowsSearching !== false,
+    }));
+    const drawn = drawnAll.filter((column) => !column.selection);
+    const authored = catalogTableColumnEntries(table.props);
+    if (!authored) return drawn;
+    // (A drawn Column is the entry of its authored place: its key · options are its record's, as
+    //  they are now — the Table's list is written when the Table is resolved, not on a Column's
+    //  value edit.)
+    const byPlace = new Map(
+      columns.flatMap((column, index) => {
+        const place = column.props[CATALOG_COLUMN_PLACE_PROP];
+        const item = drawnAll[index]!;
+        return typeof place === "number" && !item.selection
+          ? [[place, item] as const]
+          : [];
+      }),
+    );
+    return authored.map((entry) => ({
+      ...(byPlace.get(entry.place) ?? {
+        racKey: "",
+        key: entry.key,
+        selection: false,
+        sortFirstDirection: entry.sortFirstDirection ?? "ascending",
+        ...(entry.sortEmptyValues
+          ? { sortEmptyValues: entry.sortEmptyValues }
           : {}),
-        allowsSearching: column.props.allowsSearching !== false,
-      }))
-      .filter((column) => !column.selection);
+        allowsSearching: entry.allowsSearching !== false,
+      }),
+      // (The row header among the authored Columns — a drawn Column's own role is among the
+      //  drawn ones: with the header Column hidden another one is RAC's.)
+      rowHeader: entry.rowHeader === true,
+      ...(entry.hidden ? { hidden: true as const } : {}),
+      ...(entry.pinned ? { pinned: entry.pinned } : {}),
+    }));
+  }
+  /**
+   * ADR-315 Phase 4 — a Table record's columns as shown now: the hidden ones and the pinned ones —
+   * the state's lists, else the authored defaults (a Column's `defaultHidden` · `defaultPinned`).
+   */
+  tableColumnsNow(tableId: string): {
+    readonly columns: readonly string[];
+    readonly hidden: readonly string[];
+    readonly pinned: {
+      readonly start: readonly string[];
+      readonly end: readonly string[];
+    };
+  } {
+    const table = this.currentRoot?.domInputs.get(tableId);
+    const entries = catalogTableColumnEntries(table?.props) ?? [];
+    return {
+      columns: entries.map((entry) => entry.key),
+      ...catalogTableColumnsNow(entries, this.tableStates.get(tableId)),
+    };
   }
   /** A Table record's state (absent slices = the authored defaults). */
   tableState(tableId: string): CatalogTableState {
@@ -2238,8 +2303,25 @@ export class CatalogPreviewSession {
           before.columnFilters === next.columnFilters &&
           before.search !== next.search,
       );
+    // (ADR-315 Phase 4 — a column slice: the Table's columns are projected again. Its rows are
+    //  not read — the ones its records were resolved from, HC4.)
+    else if (
+      CATALOG_TABLE_COLUMN_SLICES.some(
+        (slice) => slice !== "columnWidths" && before[slice] !== next[slice],
+      )
+    )
+      this.projectTableColumns(tableId);
     // (RAC's header reads the first sort; the other sorted Columns' marks read the list.)
     if (before.sort !== next.sort) this.echoTableSort(tableId);
+    if (before.columnWidths !== next.columnWidths && !this.resizing)
+      this.echoTableWidths(tableId);
+  }
+  /** A Table record resolved again for its column slices — its rows as they were read. */
+  private projectTableColumns(tableId: string): void {
+    const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
+    if (!source) return;
+    const errors = this.currentRoot!.reprojectColumns(new Set([source]));
+    if (errors.length) console.error("[CatalogPreview] columns:", ...errors);
   }
   /** The project's remembered Table states as stored (`{}` = none · no storage). */
   private rememberedTableStates(): Record<string, unknown> {
@@ -2287,7 +2369,14 @@ export class CatalogPreviewSession {
       );
       if (!Object.keys(state).length) continue;
       this.tableStates.set(table.id, state);
-      if (!state.sort) continue;
+      // (ADR-315 Phase 4 — the kept columns are drawn now: the root was resolved before the
+      //  state was here, and Publish resolves nothing after it. A sort reads the rows — that
+      //  resolves the Table, its columns with it.)
+      if (!state.sort) {
+        if (state.hiddenColumns || state.columnOrder || state.pinnedColumns)
+          this.projectTableColumns(table.id);
+        continue;
+      }
       this.readTableRows(table.id, state);
       this.echoTableSort(table.id);
     }
@@ -2338,7 +2427,8 @@ export class CatalogPreviewSession {
     const columns = this.tableColumns(tableId);
     const entries = (this.tableState(tableId).sort ?? []).flatMap((sort) => {
       const column = columns.find((item) => item.key === sort.column);
-      return column
+      // (A hidden Column is sorted by and has no header to mark.)
+      return column?.racKey
         ? [{ column: column.racKey, direction: sort.direction }]
         : [];
     });
@@ -2388,6 +2478,61 @@ export class CatalogPreviewSession {
    * several sorts turns that Column within the list (a new one goes last); without it the press
    * is the only sort (TanStack `toggleSorting(desc, isMulti)`).
    */
+  /**
+   * ADR-315 Phase 4 — the widths RAC's column resize left (its `onResizeEnd`, by RAC key): the
+   * Table's `columnWidths`, a Column's kept until another resize · the reader's reset. They are
+   * RAC's already — no echo back (a rebuilt Table would lose its scroll and focus).
+   */
+  resizeTableColumns(
+    tableId: string,
+    widths: Readonly<Record<string, number>>,
+  ): void {
+    const columns = this.tableColumns(tableId);
+    const next: Record<string, number> = {
+      ...(this.tableState(tableId).columnWidths ?? {}),
+    };
+    for (const [racKey, width] of Object.entries(widths)) {
+      const column = racKey
+        ? columns.find((item) => item.racKey === racKey)
+        : undefined;
+      if (column) next[column.key] = width;
+    }
+    this.resizing = true;
+    try {
+      this.setTableState(tableId, { columnWidths: next });
+    } finally {
+      this.resizing = false;
+    }
+  }
+  /** ADR-315 Phase 4 — a Table's state widths by RAC key (a drawn Column's resize starts there). */
+  tableColumnWidths(
+    tableId: string,
+  ): Readonly<Record<string, number>> | undefined {
+    const widths = this.tableState(tableId).columnWidths;
+    if (!widths) return undefined;
+    return Object.fromEntries(
+      this.tableColumns(tableId).flatMap((column) =>
+        column.racKey && widths[column.key] !== undefined
+          ? [[column.racKey, widths[column.key]!]]
+          : [],
+      ),
+    );
+  }
+  /**
+   * A width set from outside RAC's drag (a rule · the browser's memory · a reset): the resizable
+   * Table is built again from it — RAC's resize state keeps the widths it started with.
+   */
+  private echoTableWidths(tableId: string): void {
+    const write = this.runtimePropsWriter;
+    if (!write) return; // (nothing drawn yet — the first render reads the state)
+    this.widthsRevision += 1;
+    this.echoing = true;
+    try {
+      write(tableId, { _widthsRevision: this.widthsRevision });
+    } finally {
+      this.echoing = false;
+    }
+  }
   pressTableSort(tableId: string, racKey: string, add = false): void {
     const columns = this.tableColumns(tableId);
     const column = columns.find((item) => item.racKey === racKey);

@@ -58,6 +58,9 @@ import {
   catalogTableRowTracks,
   catalogTableSelectionColumn,
   catalogTrackTableOf,
+  CATALOG_COLUMN_HIDDEN_PROP,
+  CATALOG_COLUMN_PINNED_EDGE_PROP,
+  CATALOG_COLUMN_PINNED_PROP,
   catalogTableSelectionPartHidden,
   catalogTableSelectionParts,
   catalogTableTrackDependents,
@@ -816,8 +819,7 @@ export function catalogPaginationPartHidden(
   if (!part) return false;
   if (pagination.props.controls === "simple") return true;
   const span = parent.props._pageWindow as
-    | { start: number; end: number }
-    | undefined;
+    { start: number; end: number } | undefined;
   if (!span) return part === "first" || part === "gapStart";
   const window = { ...span, count: Number(parent.props._pageCount ?? 0) };
   switch (part) {
@@ -1248,6 +1250,9 @@ export function catalogHiddenAtRest(
   if (catalogPickerSelectionHidden(node, get, typeOf)) return true;
   // ADR-257 Phase 3: a highlight-selection Table has no selection checkbox column (S2).
   if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
+  // ADR-315 Phase 4: a Column 「Hidden by default」 and its Cells — records the Builder keeps
+  // (the author selects the Column in Layers), drawn nowhere (`catalogProjectTableColumns`).
+  if (node.props[CATALOG_COLUMN_HIDDEN_PROP] === true) return true;
   // S2 `ColumnWithMenu`: a Column's ⋮ only while it has its menu.
   if (catalogColumnMenuIconHidden(node, get, typeOf)) return true;
   // A Tree · GridList · CardView item's selection Checkbox only for checkbox selection (S2).
@@ -2975,6 +2980,13 @@ function derivedPropsBeforeSkeleton(
       ? { isDisabled: true }
       : {}),
     ...pickerPart,
+    // (ADR-315 Phase 4 — a pinned Table column's edge: the Column · Cell rule's `pinned-edge` line.
+    //  The column projection marks the record, `tableColumns.ts`.)
+    ...(node.props[CATALOG_COLUMN_PINNED_EDGE_PROP] === true &&
+    (node.props[CATALOG_COLUMN_PINNED_PROP] === "start" ||
+      node.props[CATALOG_COLUMN_PINNED_PROP] === "end")
+      ? { pinnedEdge: node.props[CATALOG_COLUMN_PINNED_PROP] as string }
+      : {}),
     // (S2 `FieldErrorIcon`: an invalid field's input keeps the alert glyph's room — the Canvas draws
     //  it there, `fieldPrefix.ts` `catalogFieldErrorIcon`.)
     ...(() => {

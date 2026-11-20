@@ -101,6 +101,7 @@ import {
   catalogTableStateRowSlices,
   type CatalogRowSlices,
 } from "../runtime/tableRowSlices";
+import { catalogProjectTableColumns } from "./tableColumns";
 import type {
   CatalogTableState,
   CatalogTableStateSource,
@@ -2410,17 +2411,17 @@ export function resolveCatalogNode(
     // (A bound Table's state — the Preview's: its rows are read filtered · sorted, once its header
     //  says which field each Column shows — below, `tableRowSlices`. A view sorted by a variable
     //  keeps that sort: the state's steps aside.)
-    const boundTableState =
-      nodeBinding &&
-      rows &&
+    // (ADR-315 Phase 4 — a Table's state, bound or not: its column slices project the columns of
+    //  any Table — `catalogProjectTableColumns`; its data slices are a bound Table's.)
+    const ownTableState =
       tableState &&
-      !charted &&
-      !keyedRows &&
       definition.mode === "composite" &&
       !!definition.templateRootId &&
       templateTypeName(definition.templateRootId) === "Table"
         ? tableState(`${instancePath.join("/")}::${node.id}`)
         : undefined;
+    const boundTableState =
+      nodeBinding && rows && !charted && !keyedRows ? ownTableState : undefined;
     const headerState: CatalogTableState | undefined =
       boundTableState && viewSortsByVariable(node.binding, lookupEntry)
         ? { ...boundTableState, sort: undefined }
@@ -2536,7 +2537,27 @@ export function resolveCatalogNode(
               rowSort,
             )
           : undefined;
-      push(children, finishBoundTable(project(table?.shown ?? rowSet), table));
+      const finished = finishBoundTable(project(table?.shown ?? rowSet), table);
+      // (ADR-315 Phase 4 — the columns shown and their order: the authored defaults, a Table
+      //  state's over them. The rows above were read by every authored Column — a hidden one is
+      //  searched · sorted · filtered as before, breakdown §4.4.)
+      push(
+        children,
+        finished && lookupDefinition(finished.definitionId).name === "Table"
+          ? catalogProjectTableColumns(
+              finished,
+              // (A kept row's place holder has no definition — `keptRowOf`.)
+              (resolved) =>
+                resolved.rowKept
+                  ? ""
+                  : lookupDefinition(resolved.definitionId).name,
+              ownTableState,
+              // (No Table state to read: the Builder's Canvas — a hidden Column stays a record
+              //  the author can select, drawn nowhere.)
+              !tableState,
+            )
+          : finished,
+      );
     }
     if (!rowsRead && nodeBinding && rows)
       rowSet = rows(nodeBinding, "items", node.id, instancePath);

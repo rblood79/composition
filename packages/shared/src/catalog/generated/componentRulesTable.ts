@@ -13610,6 +13610,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-257 Phase 3: the header cell's own alignment (S2 Column `align` — not its Cells').
     containerVariants: {
+      // ADR-315 Phase 4 — a pinned column's edge: the line between the pinned columns and the ones
+      //   scrolling under them (composition 확장 — S2 TableView has no pinned columns). The start
+      //   side's last column draws it at its end, the end side's first at its start. (A header
+      //   cell's line style · color are its Table's part value — the bottom line's, as S2
+      //   `ColumnWithMenu`'s end line: only the width here.)
+      "pinned-edge": {
+        start: { styles: { "border-right-width": "1px" } },
+        end: { styles: { "border-left-width": "1px" } },
+      },
       // S2 `ColumnWithMenu` (2026-11-19): a column with its menu (`allowsResizing`) has no side
       //   padding (`columnStyles` `paddingX: isMenu 0`); its content wrapper is the menu Button
       //   (`resizableMenuButtonWrapper` `paddingX: 16`, full height).
@@ -13748,6 +13757,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: { "text-align": "right" },
             },
           ],
+        },
+      },
+      // ADR-315 Phase 4 — a pinned column's edge: the line between the pinned columns and the ones
+      //   scrolling under them (composition 확장 — S2 TableView has no pinned columns; the line is
+      //   S2 `showDivider`'s, the border color). The start side's last column draws it at its end,
+      //   the end side's first at its start.
+      "pinned-edge": {
+        start: {
+          styles: {
+            "border-right-width": "1px",
+            "border-style": "solid",
+            "border-color": "var(--border)",
+          },
+        },
+        end: {
+          styles: {
+            "border-left-width": "1px",
+            "border-style": "solid",
+            "border-color": "var(--border)",
+          },
         },
       },
       // S2 `showDivider`: a 1px line at the cell's end, the border color (S2 `--borderColorGray`).

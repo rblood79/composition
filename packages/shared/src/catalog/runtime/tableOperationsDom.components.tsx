@@ -43,6 +43,51 @@ export function CatalogTableResizeTracks(): ReactNode {
 }
 
 /**
+ * ADR-315 Phase 4 — inside a pinned Column: its Table's pinned columns stay in view past the
+ * pinned columns before them, so their widths are measured off the header's pinned Columns
+ * (`data-pinned` · `data-pinned-at` — `catalogTablePinnedProps`) and written on the Table as
+ * `--table-pin-start-<n>` · `--table-pin-end-<n>`: the inset of that side's `n`th pinned column —
+ * the widths before it. (The tracks are CSS — `minmax(75px, 1fr)` …: a column's px is known once
+ * laid out.) Each pinned Column watches its own header; any of them writes the whole Table's.
+ */
+export function CatalogTablePinMeasure(): ReactNode {
+  const probe = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const header = probe.current?.closest<HTMLElement>('[role="columnheader"]');
+    const table = header?.closest<HTMLElement>("[data-node-table]");
+    if (!header || !table) return;
+    const write = () => catalogWriteTablePins(table);
+    write();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(write);
+    observer.observe(header);
+    return () => observer.disconnect();
+  });
+  return <span ref={probe} hidden />;
+}
+/** A Table's pinned columns' insets, written on it (`CatalogTablePinMeasure`). */
+function catalogWriteTablePins(table: HTMLElement): void {
+  const widths: Record<"start" | "end", number[]> = { start: [], end: [] };
+  for (const header of table.querySelectorAll<HTMLElement>(
+    '[role="columnheader"][data-pinned]',
+  )) {
+    const side = header.dataset.pinned === "end" ? "end" : "start";
+    widths[side][Number(header.dataset.pinnedAt)] =
+      header.getBoundingClientRect().width;
+  }
+  for (const side of ["start", "end"] as const) {
+    let inset = 0;
+    for (let at = 0; at < widths[side].length; at += 1) {
+      const name = `--table-pin-${side}-${at}`;
+      const value = `${inset}px`;
+      if (table.style.getPropertyValue(name) !== value)
+        table.style.setProperty(name, value);
+      inset += widths[side][at] ?? 0;
+    }
+  }
+}
+
+/**
  * S2 `ColumnContents` sort arrow: `SortUpArrow` while ascending, `SortDownArrow` while descending,
  * nothing while the column is not sorted (`sortDirection != null &&`). S2 `sortIcon` — 16px
  * (`fontRelative(16)`), `marginEnd: 8`, no shrink, the current color. (Our glyphs: lucide

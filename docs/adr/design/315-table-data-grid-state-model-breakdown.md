@@ -701,4 +701,48 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 
 **사용자 결정 (2026-11-20, 종결 때 질문)**: G3 의 검색 입력 속도 — 결과가 바뀌는 글자의 136 ~ 152 ms 는 RAC collection 재구성 비용이고 Worker (Phase 7) 로는 줄지 않는다. 선택지 셋 — (가) 기준을 정렬 클릭 기준선으로 맞춘다 (HC4 가 열 조작에 쓰는 상한), (나) collection 에 두는 행 수를 줄이는 설계를 Phase 7 에 더한다 (행 창 — ADR-310 의 설계를 건드린다), (다) 지금대로 Phase 7 에서 측정만 다시 한다 — 가운데 사용자가 **(가)** 를 골랐다. 본문 HC4 · G3 의 문구를 그에 맞췄다.
 
+### Phase 4 (진행 중 — 2026-11-20 착수, 사용자 결정 3 = 메뉴 + 끌기)
+
+**착수 조사 — 열이 지나던 길 (실측)**: resolver 는 데이터에 연결한 Table 에서만 표 상태를 읽었다 (`resolver.ts` 의 `boundTableState` — 연결하지 않은 Table 은 상태를 전혀 읽지 않음). 세션의 열 목록 (`tableColumns`) 은 해석된 record 의 머리글이라 그리지 않는 열을 알 수 없었고, 열 조각이 바뀌어도 다시 해석하는 길이 없었다. 폭 조절의 끝을 받는 자리 (`onResize` · `onResizeEnd`) 와 가상 layout 의 고정 열 훅 (`isStickyColumn`) 은 없다. Column ↔ Cell 대응은 「자리 순서」 뿐이다 (resolver 에 대응 함수 없음 — 작성 명령 쪽 `tableColumnGrid` 는 draft 기반).
+
+**증분 1 — 열 숨김 · 순서 투영 (끝, 미커밋)**:
+
+- **투영 한 곳** — `resolution/tableColumns.ts` `catalogProjectTableColumns`: resolver 가 Table 을 해석한 뒤 (연결 여부와 무관) 머리글의 Column 과 모든 Row 의 Cell 을 같은 순서 [선택 열 · 앞 고정 · 가운데 (`columnOrder` — 적힌 열 먼저, 나머지는 작성 순서) · 뒤 고정] 로 다시 세우고 숨긴 열을 뺀다. 행은 그 전에 모든 작성 열로 읽는다 — 숨긴 열도 검색 · 정렬 · 필터된다 (§4.4). RAC 불변식: 걸친 Cell (`colSpan`) 이 덮는 열은 한 덩어리로 숨고 · 옮겨지고 · 고정된다 · 행의 칸 수가 머리글과 맞지 않는 Table 은 그대로 둔다 · row header 열이 전부 숨으면 마지막 하나가 남는다. 창 이동의 유지 행 (자리표시자) 은 건드리지 않는다.
+- **접힌 층**: 해석된 Column · Cell · Row 는 instance 와 template root 가 한 record 다 (root 의 `collapseLayers` — Row instance 는 [빈 root, 자기 Cell …] 을 자식으로 갖는다). 투영은 그 규칙대로 읽고, 순서를 바꾼 자식은 가장 바깥 층에 다시 둔다 (구현 중 실측 — 안쪽 층만 읽으면 칸이 0 개로 보여 투영이 조용히 꺼졌다).
+- **record 에 적는 것 둘** — Table record `_tableColumns` (작성된 데이터 열 전부의 JSON 글자: key · 자리 · row header · 작성 기본값 · 정렬 · 검색 옵션 — 같은 열이면 같은 글자라 record 비교가 그대로) 과 Column record `_columnPlace` (작성 자리 — 이름 없는 열의 기본 key `column3` 이 그려진 자리와 무관). 열 key 자체는 적지 않는다: 적었더니 key 편집 (`catalogColumnKeyRenameCommands`) 이 낡은 key 를 읽어 이름 변경이 안 됐다 (회귀 2 건으로 잡음). 세션은 그려진 열을 자리로 맞대 그 record 의 지금 값을 읽고, 그리지 않는 열만 목록의 값을 쓴다.
+- **작성 기본값** — Column 「Hidden by default」 (`defaultHidden`, composition 확장 — `default*` 라 유도 Do 없음). 상태에 그 조각이 없으면 기본값, 있으면 그 목록이 전체다 (빈 목록 = 전부 보임 — 작성 기본값과 같은 목록은 조각 없음으로 접는다, `tableState.ts`).
+- **Canvas 와 Preview 의 차이 하나**: Preview · Publish (표 상태 source 가 있는 root) 는 숨긴 열을 record 에서 뺀다 (RAC collection = 보이는 열). Builder 의 Canvas 는 숨긴 열을 record 로 남기고 `_columnHidden` 으로 표시한다 — 그리지 않고 (`catalogHiddenAtRest`) 트랙에도 없지만 (`catalogTableRowTracks`), 작성자가 Layers 에서 그 Column 을 골라 스위치를 끌 수 있다. live 에서 찾은 것: 빼 버리면 Layers 의 그 줄이 아무것도 고르지 못했다.
+- **증분 해석과의 경계** (live 에서 찾은 것): 연결하지 않은 Table 은 Column 편집이 Column record 만 다시 해석해 Table 의 투영이 다시 돌지 않았다 (스위치를 켜도 Canvas 에 열이 남음). Column 의 투영 prop (`defaultHidden` · `defaultPinned` · `isRowHeader`) 편집과 숨긴 record 의 편집은 구조 경로로 보낸다 (`compositionRoot.touchesTableRows`).
+- **세션**: `setTableState` 가 열 조각 (숨김 · 순서 · 고정) 변경 뒤 `root.reprojectColumns` 를 부른다 — 마지막으로 읽은 행을 그대로 쓰고 행 source 를 부르지 않는다 (HC4, 호출 수 0 을 테스트가 막음). `tableColumnsNow` (지금 숨긴 · 고정한 열). 기억한 열 조각은 복원 때 바로 투영한다 (Publish 는 복원 뒤 다시 해석하는 일이 없다).
+- **검사**: `resolution/__tests__/tableColumns.test.ts` 12 (따로 적은 나무 — 숨김 · 순서 · 고정 순서 · 작성 기본값 · row header · colSpan 덩어리 · 어긋난 행 · 유지 행 · 접힌 층 · Builder 의 숨김 표시) · `adr315Columns.test.tsx` 8 (세션 + DOM — 숨김 · 순서 · 행 source 0 · 숨긴 열 검색 · 정렬 · 가상 · 작성자 key 편집 뒤 목록 · Canvas 기본값 · 연결 안 한 Table · Table 자신의 값 편집) · `adr315RememberState.test.tsx` +1. 회귀 새 실패 0 (shared 2,703 · builder 9,394 통과). 변이 RED 는 아직.
+- **live (2026-11-20, dev 서버 · Chrome MCP · 새 프로젝트)**: 놓은 Table (연결 없음) 의 Type Column 을 Layers 에서 골라 「Hidden by default」 누름 → Canvas 머리글 Name · Status (트랙 다시 나뉨) · Layers 에서 숨긴 Column 다시 고름 (Design 패널에 그 Column) → 끔 → Type 돌아옴 → 켬 → 사라짐 · Publish 새 탭 머리글 `[Name, Status]` · 행 `[Item 1, Active]` · 콘솔 오류 0.
+- **아직 안 한 것**: Layers 에 숨긴 Column 표시 (지금은 다른 Column 과 구분 없음) · 가상 표에서 열 변경 때 빈 행 key (칸 span 서명) 가 바뀌어 전부 다시 mount 되는 비용 측정 (HC4 — 정렬 클릭 기준선 안인지).
+
+**증분 2 — 열 고정 (끝, 미커밋)**:
+
+- **표시**: 투영이 고정 열의 Column · Cell record 에 쪽 (`_pinned` — `start` · `end`) · 그 쪽 끝에서의 자리 (`_pinnedAt`) · 쪽의 경계 (`_pinnedEdge` — 앞 고정의 마지막 열, 뒤 고정의 첫 열) 를 적는다. 앞 고정이 있으면 선택 열도 앞 고정에 든다 (선택 열이 고정 열 앞에서 밀려나지 않게). DOM 은 `data-pinned` · `data-pinned-at` 과 inline `--table-pin-at: var(--table-pin-<쪽>-<자리>, 0px)` 을 낸다.
+- **폭 재기**: 고정 열 앞에 선 고정 열들의 폭을 표에 `--table-pin-start-<n>` · `--table-pin-end-<n>` 으로 적는다 — 고정된 Column 안의 `CatalogTablePinMeasure` 가 자기 머리글을 ResizeObserver 로 보고 표 전체의 값을 다시 쓴다 (트랙이 `minmax(75px, 1fr)` 같은 CSS 라 px 는 그려진 뒤에야 안다). 처음 둔 표 수준 hook 은 지웠다 — 고정 열이 없는 표는 아무것도 재지 않는다.
+- **가상 표** (S1 의 넷 + live 에서 찾은 셋): `CatalogTableLayout` 의 `isStickyColumn` · 머리글 · body `allowOverflow` · 끝 고정 칸을 만들도록 `requestedRect` 넓히기는 S1 그대로다. 끝 고정은 S1 의 「flex 행 + `::before` 채움」 이 제품에서 맞지 않았다 — 제품의 Row 는 Column 트랙의 grid 다. 그래서 끝 고정 감싸개를 그 grid 의 끝 트랙에 세운다 (`grid-column: -2 / -1`, 자리마다 한 칸씩 앞으로). live 에서 찾은 것:
+  1. 가상 표의 머리글 행은 `tr` 이 아니라 grid 가 아니었다 — 고정 열이 있는 표의 머리글 행을 Column 트랙의 grid 로 둔다 (끝 고정이 설 트랙이 생기고, 상자가 트랙 폭이 된다).
+  2. sticky 상자는 부모 상자 안에서만 붙는다 — 행 상자가 스크롤 영역 폭이라 그 밖의 칸은 행과 같이 떠났다. 고정 열이 있는 표의 행 · 머리글 행은 `min-width: min-content`.
+  3. RAC 는 머리글 칸을 앞 열이 위에 오게 쌓는다 (`zIndex` 가 열마다 준다) — 끝 고정 머리글이 앞 열 아래에 그려졌다. 고정 감싸개는 맨 위.
+     그리고 RAC 감싸개 (`role=presentation`) 가 표 바탕을 물려받게 했다 — 바탕 없는 고정 칸 뒤로 지나가는 칸의 글자가 비쳤다.
+- **비가상 표**: CSS sticky (`inset-inline-start` · `-end: var(--table-pin-at)`) + 위 2 (행 폭).
+- **경계선 = rule (D3)**: Column · Cell rule 의 `pinned-edge` 블록 (`start` = 끝에 1px · `end` = 시작에 1px, 색은 S2 `showDivider` 의 `--border` — composition 확장: S2 TableView 에는 열 고정이 없다). 조건은 파생 variant prop `pinnedEdge` (`presence.ts` 가 투영 표시에서 — `derivedVariantProps.ts`) 라 Canvas 와 DOM 이 같은 rest 값 (`catalogDerivedRestVisual`) 을 읽는다. Column · Cell 은 생성 시트가 없어 DOM 은 inline 으로 싣는다. live 에서 찾은 것 둘: 머리글 칸은 Table 의 part rule 이 옆 폭 0 을 주어 (아래 선만) 경계선이 덮였다 — 경계 폭이 그 part 값 위에 선다. 그리고 한쪽 폭만 있는 inline 테두리는 나머지 변이 CSS 기본 `medium` 으로 그려졌다 (고정 칸이 3px 틀에 갇힘) — 상자 폭 없이 한쪽 폭만 쓴 칸은 나머지 변을 0 으로 낸다 (Cell `showDivider` 도 같은 길).
+- **작성 기본값** — Column 「Pinned」 (`defaultPinned`: none · start · end, composition 확장). 상태 조각이 작성 기본값과 같으면 조각 없음으로 접는다 (기억하는 것은 읽는 사람이 바꾼 것만).
+- **검사**: `tableColumns.test.ts` (고정 순서 · 자리 · 경계 · 선택 열) · `adr315Columns.test.tsx` (DOM 표시 · inset · 폭 변수 · 경계선 · 나머지 변 0 · Canvas 파생값 · 작성 기본값 접기). 변이 RED 16/16 (증분 1 은 14/14). 회귀 새 실패 0 (shared 2,703 · builder 9,395 통과 — 기존 실패 7 · 12 그대로). 번들 (Phase 3 대비, 증분 1 + 2): Builder 초기 JS gzip +3,799 B · Preview JS −1 B · Preview CSS +271 B.
+- **live (2026-11-20)**: production 빌드 + Playwright (`--check-pin`, 2,000 행 · 열 여섯 400px · Dept 앞 고정 · Date 뒤 고정 · 가로 700 스크롤) — 가상 · 비가상 × Chrome · WebKit 네 조합 모두 머리글 · 칸의 Dept 왼쪽 끝 · Date 오른쪽 끝 유지, 고정하지 않은 열은 밀려 남, 경계선 1px 은 고정 쪽 끝 열에만. dev 서버 Builder (Chrome MCP): Status Column 의 「Pinned」 를 Start 로 → Canvas 머리글 [Status · Name] 과 Status 끝 경계선, Preview 탭에서 Status 머리글 · 칸이 sticky + 오른쪽 1px · Name 은 0 · 콘솔 오류 0.
+
+**증분 3 — 폭을 상태로 (끝, 미커밋)**:
+
+- **쓰기**: 크기 조절 Table 의 RAC `ResizableTableContainer` `onResizeEnd` (px 로 놓인 열만 — 끈 열 뒤의 `fr` · `%` 열은 지킬 폭이 아니다) → 세션 `resizeTableColumns` 가 RAC key 를 Column key 로 바꿔 `columnWidths` 에 더한다. 열 조각이라 행을 읽지 않고 (HC4) 다시 해석하지도 않는다. 「Remember state」 Table 은 다른 열 조각처럼 브라우저에 남는다.
+- **읽기**: 크기 조절 Column 의 `defaultWidth` = 상태의 폭이 있으면 그것, 없으면 문서 폭 (`tableColumnWidths` — RAC key 로). RAC 의 폭 상태는 처음 받은 폭을 지키므로, 끌기 밖에서 바뀐 폭 (규칙 · 기억 복원 · 초기화) 은 세션이 Table record 에 runtime prop `_widthsRevision` 을 올려 Table 을 다시 만든다. 끌기가 남긴 폭은 RAC 것이 이미 같아 다시 만들지 않는다 (스크롤 · focus 를 잃지 않게 — 테스트가 echo 수로 막음).
+- **검사**: `adr315RememberState.test.tsx` +1 (끝난 폭 → 상태 · 기억 · RAC key 대응 · echo 0 → 다음 세션의 트랙 260px → 초기화 echo 1). 변이 RED 6/6. 회귀 새 실패 0 (shared 2,703 · builder 9,396 통과).
+- **live (2026-11-20, production 빌드 + Playwright `--check-resize`)**: Name 열 「Allow resizing」 + Table 「Remember state」 → Publish 에서 머리글을 hover 해 손잡이를 120px 끌기 → 150 → 270px · 브라우저에 `{"columnWidths":{"name":270}}` → 새로고침 뒤 270px. 가상 · 비가상 × Chrome · WebKit 네 조합 PASS.
+- **본 것 (기존, 이 증분 밖)**: S2 손잡이 (12px, 열 끝에 걸침) 의 뒤쪽 절반은 다음 열 머리글 아래에 있어 잡히지 않는다 (`elementFromPoint` 가 다음 머리글) — 손잡이 앞쪽 절반만 끌린다. ADR-257 Phase 4 의 손잡이 쌓임 문제로, 열 메뉴의 「크기 조절」 (증분 4) 과 같이 본다.
+
+**증분 4 착수 조사 — 열 메뉴가 서는 조건 (실측, 코드 변경 전)**: 지금 메뉴는 크기 조절 Column 에만 있다 (S2 `isMenu` = `allowsResizing || menuItems` 중 앞쪽만). 그 모양이 `allowsResizing` prop 하나에 세 곳에서 묶여 있다 — Column rule 의 `allows-resizing` variant (옆 여백 0 · 감싸개 16), Table 의 part rule (`manualBoxRules` — `childProps: { allowsResizing: true }` 의 끝 선), `presence.ts` `catalogColumnMenuContent` (내용 감싸개를 메뉴 Button 으로). 숨김 · 고정 · 이동 항목을 크기 조절하지 않는 열에도 내려면 이 셋이 「메뉴가 있는 열」 이라는 한 조건을 읽어야 하는데, part rule 은 resolver 가 열 투영 전에 적용하고 그 조건은 Table 의 스위치 (자식 Column 의 prop 이 아님) 에 달려 있다. 그래서 증분 4 는 (4a) 「메뉴가 있는 열」 조건을 한 곳 (Table 스위치 → Column record 파생, part rule · variant · DOM 이 같이 읽음) 으로 세우고 Canvas 모양까지 S2 `isMenu` 로 맞추기 → (4b) 메뉴 항목 (정렬 · 정렬에 추가 · 숨기기 · 고정 · 이동 · 크기 조절 — 세션 한 곳이 항목과 동작을 낸다) → (4c) 필터 항목 · `tableFacet` → (4d) 열 선택 메뉴 · 유도 Do 순서로 한다. 항목 목록과 조각 쓰기는 HC5 에 따라 열 메뉴를 쓰는 표에서만 읽는 lazy chunk 다.
+
+**남은 증분**: 4 열 메뉴 · 열 선택 메뉴 · Do · 5 머리글 끌기 · 6 Phase 2 · 3 에서 넘어온 것. 증분 1 의 남은 것 (Layers 의 숨긴 Column 표시 · 가상 표 열 변경 비용) 도 Phase 4 검증 전에.
+
 (다음 Phase 의 기록은 여기에 이어 적는다)

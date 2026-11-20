@@ -136,6 +136,30 @@ export const columnBinding: PrimitiveBinding = {
         section: "state",
         default: true,
       },
+      // ADR-315 Phase 4 — the Column starts hidden (TanStack `initialState.columnVisibility`; a
+      //   composition extension). The Canvas draws it hidden (HC9); in the Preview · Publish the
+      //   Table state's `hiddenColumns` replaces it — the Table's column menu shows the Column
+      //   again. `default*`: an initial value, no Do of its own (the Table's column Do writes
+      //   the state). The last row header Column never hides (RAC throws without one).
+      defaultHidden: {
+        kind: "boolean",
+        label: "Hidden by default",
+        section: "state",
+      },
+      // ADR-315 Phase 4 — the Column starts pinned at a side (TanStack `initialState.columnPinning`;
+      //   a composition extension). Pinned columns stand first (start) · last (end) and stay in
+      //   view while the Table scrolls sideways; the Table state's `pinnedColumns` replaces it.
+      defaultPinned: {
+        kind: "enum",
+        label: "Pinned",
+        section: "state",
+        default: "none",
+        options: [
+          { value: "none", label: "None" },
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+      },
       allowsResizing: {
         kind: "boolean",
         label: "Allow Resizing",

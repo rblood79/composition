@@ -8,12 +8,17 @@ import { catalogNotificationBadgeDigits } from "@composition/rendering";
  *
  * - `fieldButton`: a field's own Button — its size (S2 Button is a pill; a field button keeps its
  *   size's corner — `presence.ts` `catalogFieldButtonSize`).
+ * - `pinnedEdge`: a pinned Table column's Column · Cell at the edge of its side — the line between
+ *   the pinned columns and the rest (ADR-315 Phase 4).
  */
 export const CATALOG_DERIVED_VARIANT_PROPS: ReadonlySet<string> = new Set([
   "fieldButton",
   "isEmpty",
   // (2026-11-14) a notification Badge's digits — `single` · `double` (`catalogNotificationBadgeDigits`).
   "notification",
+  // (ADR-315 Phase 4) a pinned Column · Cell at its side's edge — `start` · `end` (`presence.ts`,
+  //   from the column projection's `_pinnedEdge`).
+  "pinnedEdge",
 ]);
 
 /** 저장하지 않는 RAC 상태를 part rule 조건과 증분 invalidation에서 동일하게 읽는다. */

@@ -293,6 +293,10 @@ import {
 import { catalogBindingQuery } from "./viewQuery";
 import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import {
+  CATALOG_COLUMN_HIDDEN_PROP,
+  CATALOG_COLUMN_PROJECTION_PROPS,
+} from "../resolution/tableColumns";
+import {
   CatalogRuntime,
   type CatalogExternalEffect,
   type CatalogStepConsumer,
@@ -2279,6 +2283,8 @@ export class CatalogCompositionRoot {
   private rowsKeptIds: Set<string> | undefined;
   /** The rows being kept are read again (`reorderRows` — another order · other rows, the same data). */
   private rowsReordered = false;
+  /** The rows are the ones read last (`reprojectColumns` — the columns changed, no row did). */
+  private rowsReused = false;
   /** The rows each list binding read last (owner · kind · path) — a window move reads these. */
   private readonly rowsRead = new Map<
     string,
@@ -2469,7 +2475,7 @@ export class CatalogCompositionRoot {
             //  records were resolved from. Reading 10,000 rows took 2.6 ms of each move, live.)
             const read = `${ownerId}|${kind}|${instancePath?.join("/")}`;
             const held =
-              this.rowsKept && !this.rowsReordered
+              (this.rowsKept && !this.rowsReordered) || this.rowsReused
                 ? this.rowsRead.get(read)
                 : undefined;
             if (held) return held;
@@ -2981,6 +2987,21 @@ export class CatalogCompositionRoot {
       return this.refreshSources(ids, true) ?? [];
     } finally {
       this.rowsReordered = false;
+    }
+  }
+  /**
+   * ADR-315 Phase 4 — the columns of `ids` (document node ids — Tables) changed (a Table state's
+   * hidden · order · pinned slices), no row did: the Tables resolve again over the rows they read
+   * last — the row source is not called (HC4: a column slice never reads rows). Every row in the
+   * record window is resolved again: its cells are other cells.
+   */
+  reprojectColumns(ids: ReadonlySet<string>): unknown[] {
+    if (!ids.size) return [];
+    this.rowsReused = true;
+    try {
+      return this.refreshSources(ids) ?? [];
+    } finally {
+      this.rowsReused = false;
     }
   }
   /** The window of `owner` — in a window move, with the rows its body already holds (`kept`). */
@@ -8461,6 +8482,12 @@ export class CatalogCompositionRoot {
     for (const op of result.forward) {
       if (op.kind !== "patchNodeProp") continue;
       if (op.key === "visibleDuration") return true;
+      // ADR-315 Phase 4: a Column's place in its Table's column projection (hidden · pinned at
+      // first, the row header that never hides) — the Table's header and every Row's cells change
+      // with it (`catalogProjectTableColumns`: a structure change of the Table's subtree). Live
+      // (2026-11-20): on a Table that is not bound the Column alone was resolved again, and the
+      // Canvas kept drawing a Column 「Hidden by default」.
+      if (CATALOG_COLUMN_PROJECTION_PROPS.has(op.key)) return true;
       // Tabs 항목의 수정은 Tab과 TabPanel 두 컬렉션을 함께 다시 투영한다.
       const entry = op.key === "items" ? graph.getEntry(op.id) : undefined;
       if (
@@ -8468,6 +8495,16 @@ export class CatalogCompositionRoot {
         definitionTypeName(graph, entry.definitionId) === "Tabs"
       )
         return true;
+    }
+    // (A hidden Column · Cell the Builder keeps is marked by the Table's projection: resolved on
+    //  its own — an edit of it — the mark would be gone and the Canvas would draw it.)
+    for (const op of result.forward) {
+      if (!("id" in op) || typeof op.id !== "string") continue;
+      for (const recordId of this.sourceInstances.get(op.id) ?? [])
+        if (
+          this.records.get(recordId)?.props[CATALOG_COLUMN_HIDDEN_PROP] === true
+        )
+          return true;
     }
     return false;
   }

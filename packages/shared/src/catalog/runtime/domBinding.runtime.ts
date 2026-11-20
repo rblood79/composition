@@ -156,6 +156,7 @@ import { copyResolvedTokenRefs } from "../resolution/resolver";
 import {
   CATALOG_AUTHORED_PAINT_KEYS,
   CATALOG_RADIUS_CSS,
+  CATALOG_SIDE_WIDTH_KEYS,
   catalogAuthoredDomStyle,
   catalogAuthoredPaintCss,
   catalogVisualWithBackground,
@@ -322,6 +323,10 @@ import {
   type CatalogTableSort,
 } from "./tableSort";
 import { catalogTableColumnRoles } from "./tableColumnRoles";
+import {
+  CATALOG_COLUMN_PINNED_AT_PROP,
+  CATALOG_COLUMN_PINNED_PROP,
+} from "../resolution/tableColumns";
 
 import {
   CATALOG_DRAG_COLUMN_WIDTH,
@@ -380,6 +385,18 @@ export interface CatalogDomRuntime {
    * list; RAC is told the first sort back (`sortDescriptor`).
    */
   pressTableSort?(tableId: string, column: string, add: boolean): void;
+  /**
+   * ADR-315 Phase 4 — the widths RAC's column resize left (its `onResizeEnd` — RAC keys, px): the
+   * Table's state (`columnWidths`), remembered with it.
+   */
+  resizeTableColumns?(
+    tableId: string,
+    widths: Readonly<Record<string, number>>,
+  ): void;
+  /** ADR-315 Phase 4 — a Table's state widths by RAC key: where a Column's resize starts. */
+  tableColumnWidths?(
+    tableId: string,
+  ): Readonly<Record<string, number>> | undefined;
   /** `useAsyncList.loadMore()` — a bound collection's end loads the next page (the session's). */
   loadMore?(collectionId: string): void;
   /**
@@ -719,6 +736,33 @@ function catalogTableTrackStyle(
 }
 
 /**
+ * ADR-315 Phase 4 — a pinned column's Column · Cell (`catalogProjectTableColumns` marks them): where
+ * it stays while the Table scrolls sideways — past the pinned columns before it, whose widths the
+ * pinned Columns measure (`CatalogTablePinMeasure` → `--table-pin-start-<n>` · `--table-pin-end-<n>`).
+ * `Table.css` reads `--table-pin-at` (a Table drawn without the `Virtualizer`: `position: sticky`
+ * at that inset; in it RAC's `TableLayout` places the start side itself and the end side reads
+ * the same variable).
+ */
+function catalogTablePinnedStyle(node: CatalogConsumerNode): CSSProperties {
+  const side = node.props[CATALOG_COLUMN_PINNED_PROP];
+  const at = node.props[CATALOG_COLUMN_PINNED_AT_PROP];
+  if ((side !== "start" && side !== "end") || typeof at !== "number") return {};
+  return {
+    "--table-pin-at": `var(--table-pin-${side}-${at}, 0px)`,
+  } as CSSProperties;
+}
+/** The `data-pinned` attributes of a pinned column's Column · Cell (`Table.css`). */
+function catalogTablePinnedProps(
+  node: CatalogConsumerNode,
+): Record<string, string | number> {
+  const side = node.props[CATALOG_COLUMN_PINNED_PROP];
+  const at = node.props[CATALOG_COLUMN_PINNED_AT_PROP];
+  return (side === "start" || side === "end") && typeof at === "number"
+    ? { "data-pinned": side, "data-pinned-at": at }
+    : {};
+}
+
+/**
  * ADR-310 Phase 8: a part fills the box RAC's virtual `Layout` gives it — a Table's Row (its cells
  * sit in the row box, so its own border draws at the box's edge) and an item of a horizontal list
  * (its list's drawn flow is a flex row — `catalogVirtualFlow`: the box is the line's height, as
@@ -831,6 +875,7 @@ export function catalogDomStyle(
   // fields (`styleOf`), as CSS.
   Object.assign(style, catalogNodeLayoutCss(node));
   Object.assign(style, catalogTableTrackStyle(node));
+  Object.assign(style, catalogTablePinnedStyle(node));
   if (
     !(borderWidth > 0) &&
     [
@@ -2992,9 +3037,22 @@ function ruleDom(
     !!operationsTable &&
     domType(operationsTable) === "Table" &&
     catalogTableResizable(operationsTable, domGet, domType);
+  // (ADR-315 Phase 4 — a pinned column's edge line is the Column · Cell rule's derived
+  //  `pinned-edge` block: Column · Cell have no sheet of their own, so it goes inline as their
+  //  other rule values do — the same rest values the Canvas paints, `catalogDerivedRestVisual`.)
+  const edged: CatalogConsumerNode = node.derivedProps?.pinnedEdge
+    ? {
+        ...node,
+        visual: {
+          ...node.visual,
+          ...catalogDerivedRestVisual(root, node),
+        } as CatalogConsumerNode["visual"],
+      }
+    : node;
   let style = {
-    ...authoredStyle(root, node),
+    ...authoredStyle(root, edged),
     ...catalogTableTrackStyle(node, resizable),
+    ...catalogTablePinnedStyle(node),
     // (ADR-310 Phase 8: a virtual-scrolled Table's Row fills the row box RAC's `TableLayout` gives
     //  it — its cells are placed in that box, so the Row's own border draws at the box's edge.)
     ...(catalogFillsVirtualBox(
@@ -3073,12 +3131,30 @@ function ruleDom(
   if (lower === "column" && resizable) {
     if (rest.width !== undefined) rest.defaultWidth = rest.width;
     delete rest.width;
+    // (ADR-315 Phase 4 — the width the Table's state holds, a resize's or a remembered one, wins
+    //  over the document's.)
+    const kept =
+      operationsTable &&
+      context.runtime?.tableColumnWidths?.(operationsTable.id)?.[
+        catalogTableColumnKey({
+          id: node.id,
+          ...(node.htmlId ? { htmlId: node.htmlId } : {}),
+        })
+      ];
+    if (typeof kept === "number") rest.defaultWidth = kept;
   }
+  // (ADR-315 Phase 4 — a pinned Column measures its header: the pinned columns after it stand
+  //  past its width, `CatalogTablePinMeasure`.)
+  const pinnedColumn =
+    lower === "column" &&
+    (node.props[CATALOG_COLUMN_PINNED_PROP] === "start" ||
+      node.props[CATALOG_COLUMN_PINNED_PROP] === "end");
   const columnOperations =
     lower === "column" &&
-    (node.props.allowsSorting === true || resizable) &&
+    (node.props.allowsSorting === true || resizable || pinnedColumn) &&
     operationsTable
       ? {
+          measuresPin: pinnedColumn,
           sortable: node.props.allowsSorting === true,
           sortsInline: catalogColumnSortsInline(node, domGet, domType),
           // (ADR-315 Phase 2 — this Column's place in a sort of several: its order mark.)
@@ -3428,9 +3504,13 @@ function ruleDom(
   // ADR-257 Phase 5: RAC's resizable container keeps the column widths it started with (a Column's
   // document width is RAC's `defaultWidth` there) — a document change of a width builds the Table
   // again (the widths a drag left are runtime state: they give way to the document's edit).
+  // (ADR-315 Phase 4 — so does a state width set from outside the drag: a rule's, the browser's
+  //  memory — `_widthsRevision`, the session's echo. A drag's own widths are RAC's already.)
   const widthKey =
     resizable && lower === "table"
-      ? tableColumnWidthKey(root, node)
+      ? `${tableColumnWidthKey(root, node)}|${String(
+          context.runtime?.overrideOf(node.id)?._widthsRevision ?? 0,
+        )}`
       : undefined;
   // A collection item's RAC id is its key (`resolveStaticItemKey`); RAC refuses an item whose id
   // changes in place ("Cannot change the id of an item" — an open Preview while the author sets a
@@ -3515,6 +3595,10 @@ function ruleDom(
         : {}),
       // ADR-256 Phase 5i: a RAC Table names each row by its row header columns' cells — RAC throws
       // without one, so a header with none set makes its first column the row header.
+      // ADR-315 Phase 4: a pinned column's Column · Cells say so (`Table.css` keeps them in view).
+      ...(lower === "column" || lower === "cell"
+        ? catalogTablePinnedProps(node)
+        : {}),
       ...(lower === "column"
         ? {
             isRowHeader: columnIsRowHeader(root, node),
@@ -3546,6 +3630,12 @@ function ruleDom(
                   }
               : {}),
             tableResizable: resizable,
+            ...(resizable && context.runtime?.resizeTableColumns
+              ? {
+                  onColumnsResized: (widths: Record<string, number>) =>
+                    context.runtime!.resizeTableColumns!(node.id, widths),
+                }
+              : {}),
             ...catalogControlledProps(
               node.id,
               context.runtime?.setRuntimeProps
@@ -4022,6 +4112,16 @@ function authoredStyle(
     }
     Object.assign(style, css(value));
   }
+  // A side width with no box width (a Cell's divider · a pinned column's edge — ADR-315 Phase 4):
+  // the other sides draw nothing, as on the Canvas. Under the inline `border-style` CSS would
+  // draw them at `medium` (live 2026-11-20: a pinned cell stood in a 3px frame).
+  if (
+    style.borderStyle !== undefined &&
+    !(Number(node.visual.borderWidth) > 0) &&
+    CATALOG_SIDE_WIDTH_KEYS.some((side) => style[side] !== undefined)
+  )
+    for (const side of CATALOG_SIDE_WIDTH_KEYS)
+      if (style[side] === undefined) style[side] = 0;
   // ADR-295 Phase 2: a token font size over the rule sheet (a part rule's) — its device variable.
   if (node.bindingId !== "icon") catalogDeviceTypographyCss(style, node.visual);
   catalogDeviceControlCss(style, node.visual);

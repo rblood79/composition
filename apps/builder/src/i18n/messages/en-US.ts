@@ -3208,6 +3208,8 @@ const semanticLabels: Record<string, string> = {
   "properties.searchContains": "Contains",
   "properties.searchFuzzy": "Fuzzy",
   "properties.searchable": "Searchable",
+  "properties.columnDefaultHidden": "Hidden by default",
+  "properties.columnPinned": "Pinned",
   "properties.ascending": "Ascending",
   "properties.descending": "Descending",
   "properties.last": "Last",

@@ -419,6 +419,15 @@ export interface CatalogPreviewInteractionsOptions {
   sortTable?: (tableId: string, sort: CatalogTableSort | undefined) => void;
   /** ADR-315 Phase 2 — a Table's header press (the Column's RAC key · Shift held): the session's. */
   pressTableSort?: (tableId: string, column: string, add: boolean) => void;
+  /** ADR-315 Phase 4 — the widths RAC's column resize left (RAC keys, px): the session's. */
+  resizeTableColumns?: (
+    tableId: string,
+    widths: Readonly<Record<string, number>>,
+  ) => void;
+  /** ADR-315 Phase 4 — a Table's state widths by RAC key (the session's). */
+  tableColumnWidths?: (
+    tableId: string,
+  ) => Readonly<Record<string, number>> | undefined;
   /** ADR-315 Phase 3 — a Table's search set by a rule (`searchText` runtime prop): the session's. */
   searchTable?: (tableId: string, text: unknown) => void;
   /**
@@ -1255,6 +1264,17 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   }
   pressTableSort(tableId: string, column: string, add: boolean): void {
     this.options.pressTableSort?.(tableId, column, add);
+  }
+  resizeTableColumns(
+    tableId: string,
+    widths: Readonly<Record<string, number>>,
+  ): void {
+    this.options.resizeTableColumns?.(tableId, widths);
+  }
+  tableColumnWidths(
+    tableId: string,
+  ): Readonly<Record<string, number>> | undefined {
+    return this.options.tableColumnWidths?.(tableId);
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
     this.writeOverride(id, patch);
