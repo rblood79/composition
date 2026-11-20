@@ -11,6 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-315 Phase 3 — Table 검색 · 유사 검색 · 열 필터 · 필터 후보 값] - 2026-11-20
+
+### Added
+
+- **Table 검색 (Preview · Publish)**
+  - 연결한 Table 의 「Search」 스위치 (Design 패널 Property 탭 · Collection 구획) 를 켜면 표 앞에 검색 칸 (SearchField) 이 연결된 채 들어간다. 게시한 화면에서 글자를 치면 표의 행이 그 글자를 가진 행으로 좁혀진다 — 「더 보기」 · 「쪽」 · 가상 스크롤 표 모두 거른 전체에서 자기 행을 보이고, 정렬한 순서는 그대로다. 스위치를 끄면 검색 칸도 사라진다.
+  - 검색 대상은 Column 의 「Searchable」 (기본 켜짐) 인 열이다. 열을 숨겨도 검색 대상은 바뀌지 않는다.
+  - 「Search match」 로 표마다 「Contains」 (기본) · 「Fuzzy」 를 고른다. Fuzzy 는 띄엄띄엄 친 글자 (`prsn` → Person) · 낱말 첫 글자 · 한글 초성과 치는 중인 음절도 찾고, 표에 정렬이 없으면 잘 맞는 행부터 보인다.
+  - 「Search text」 로 처음부터 걸려 있을 검색어를 적을 수 있다.
+  - 서버가 쪽을 나눠 주는 표: 요청이 검색을 담을 때만 검색이 된다 — `body` 형식은 조건으로, `suffix` 형식은 endpoint 조회 형식의 새 칸 「표 검색어」 에 파라미터 이름 (json-server 의 `q`) 을 적었을 때. 담지 못하는 endpoint 의 표는 검색을 갖지 않고 (받은 쪽 안에서만 거르지 않는다 — 다른 쪽의 행이 빠진다) 패널이 사유를 알려 준다. 서버가 답하는 표의 Fuzzy 는 서버의 「포함」 검색이다. 원격 표는 글자를 멈춘 뒤 0.3 초에 요청한다.
+  - 위치: `packages/shared/src/collections/view/rowFilter.ts` · `fuzzy.ts` (거르기 — 보기의 비교 그대로) · `catalog/runtime/tableStateQuery.ts` (번역 · 판정) · `catalogPreviewSession.ts` (`searchTable` · `tableShape`) · `bindings/Table.binding.ts` · `Column.binding.ts` · `collections/view/serialize.ts` (`searchParam`) · `apps/builder/src/builder/catalogRuntime/viewAuthoring.ts` (`catalogTableSearchCommand`) · `panels/properties/catalog/CatalogFilterSection.tsx`. 회귀 `adr315Search.test.tsx` · `runtime/__tests__/tableStateSearch.test.ts` · `collections/view/__tests__/rowFilter.test.ts`. live: production 빌드 10,000 행 — Builder 패널에서 스위치를 누르고 Publish 검색 칸에 「Person 12」 · 「e」 · 「dept 3」 · 「2026-0」 · 「zzz」 를 한 글자씩 → 보이는 행과 행 수가 따로 계산한 값 (258 · 10,000 · 857 · 7,468 · 0) 과 일치.
+- **필터 컨트롤의 항목이 데이터의 값 전부다**
+  - 「검색 · 필터」 구획에서 새로 넣는 고르기 컨트롤 (Select · RadioGroup · CheckboxGroup · TagGroup …) 의 항목이 그 필드의 모든 값이다 — 전에는 넣는 순간의 표본 20 개가 고정 항목으로 들어갔다. 다른 컨트롤의 선택으로는 좁아지고 자기 선택으로는 줄지 않는다 (고른 값 때문에 다른 값이 사라지지 않는다). 대소문자만 다른 값은 한 항목, 빈 값은 한 항목이다.
+  - 전에 넣은 컨트롤의 고정 항목은 그대로다.
+  - 위치: 보기의 `facet` (`catalog/document/types.ts` · `collections/view/evaluate.ts` `facetGroups`) · `viewAuthoring.ts` (`liveItems`). 회귀 `collections/view/__tests__/facet.test.ts` · `adr315FacetItems.test.tsx`. live: production 빌드 10,000 행 — 패널에서 `city` 필드의 RadioGroup 필터를 넣고 Publish 에서 항목 51 (「All」 + 도시 50 종) · 「City 7」 을 고르면 표 193 행 (따로 센 값과 일치).
+- **열 필터 (표 상태 조각 — 조작 자리는 다음 단계)** — 열마다 조건 하나를 표 상태가 갖고 검색과 「그리고」 로 합쳐 거른다. 서버 표는 그 연산자의 파라미터가 있을 때만 받는다. 최종 사용자가 쓰는 자리 (열 메뉴 「필터」) 는 ADR-315 Phase 4 에서 들어온다.
+
+### Performance
+
+- **가상 스크롤 Table 의 검색 입력 — 결과가 같은 글자 120 ~ 128 → 72 ~ 80 ms (CPU 4x 264 ~ 272 → 128 ~ 144 ms)**
+  - **Why**: 검색 한 글자마다, 결과가 같아도 창 60 행을 전부 다시 해석하고 (키당 50 ms) RAC 가 보이는 행을 다시 그렸다 (36 ms). 필터 계산 자체는 6 ms 였다.
+  - 수정: 자리 · key 가 같은 행은 record 를 유지하고 (`compositionRoot.reorderRows`), 내용이 같은 행 key 목록은 이전 배열을 그대로 쓰며 (`heldRowWindow` — 새 배열이면 RAC 가 다른 collection 으로 본다), 보이는 행만 먼저 해석하고 나머지 창은 그 frame 이 그려진 뒤에 채운다 (`session.stageRowWindows`). 정렬 · 열 필터 변경도 같은 길이다.
+  - **남은 것**: 결과가 바뀌는 글자는 136 ~ 144 ms 다 (전 144 ~ 160). 행 집합이 바뀔 때 RAC collection 을 다시 짜는 비용 (정렬 클릭 155 ~ 170 ms 와 같은 부류) 이다. p95 는 136 ~ 152 ms 로 ADR-315 G3 의 처음 기준 (100 ms) 을 넘어, 사용자 결정으로 기준을 정렬 클릭 기준선에 맞췄다 (계산은 키당 3 ~ 6 ms 라 Worker 로는 줄지 않는다).
+  - 측정: production · headed Chrome (50 Hz) · 10,000 행 · 수정 전 · 뒤 빌드 교대 3 쌍, 25 글자의 입력 → 다음 paint. Phase 2 빌드 대비 로드 · 힙 · 정렬 클릭 · 스크롤 비율 0.92 ~ 1.05. 회귀 `adr315SearchWindow.test.tsx`.
+
+### Tests
+
+- **표 상태 모듈은 요청 직렬화기를 첫 화면에 싣지 않는다** — `runtime/__tests__/tableStateQueryImports.static.test.ts`. **Why**: `tableStateQuery.ts` 가 접미사 표를 `view/serialize.ts` 에서 값으로 import 해 직렬화기와 행 변환기 6,082 B 가 Builder 초기 번들에 들어왔다 (Phase 2 대비 +10,589 B → 접미사 표를 `view/querySuffixes.ts` 로 뗀 뒤 +4,612 B).
+
 ## [ADR-315 Phase 2 — Table 여러 열 정렬 · 필드 타입별 정렬 · 라이브러리 계약 74] - 2026-11-20
 
 ### Added

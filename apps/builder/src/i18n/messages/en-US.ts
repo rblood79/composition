@@ -2385,6 +2385,7 @@ const catalog: TranslationKeys = {
     apiQueryNotSent: "Not sent",
     apiQuery_sortParam: "Sort field",
     apiQuery_orderParam: "Sort direction",
+    apiQuery_searchParam: "Table search text",
     apiQueryMultiSort: "Several sorts (comma lists)",
     apiQueryViews: "Data views reading this collection",
     apiQueryCarried: "All conditions are sent",
@@ -2657,6 +2658,12 @@ const catalog: TranslationKeys = {
       "This endpoint takes one sort — the Table sorts by one column. Turn on 「Several sorts」 in the endpoint's query format to sort by several.",
     multiSortRefused_sortTemplate:
       "This endpoint sorts by its own sortDescriptor template — one column. The Table sorts by one column.",
+    tableSearch: "Search",
+    tableSearchLabel: "Search",
+    tableSearchRefused_suffixNoSearch:
+      "This endpoint takes no search text — the Table's search does not run. Name a parameter under 「Table search text」 in the endpoint's query format.",
+    tableSearchFuzzyServed:
+      "The server searches this Table — 「Fuzzy」 runs as the server's 「Contains」.",
     section: "Search · filter",
     add: "Add search",
     field: "Field",
@@ -3196,6 +3203,11 @@ const semanticLabels: Record<string, string> = {
   "properties.allowUnsorted": "Allow unsorted",
   "properties.sortFirstDirection": "First direction",
   "properties.sortEmptyValues": "Empty values",
+  "properties.searchText": "Search text",
+  "properties.searchMatch": "Search match",
+  "properties.searchContains": "Contains",
+  "properties.searchFuzzy": "Fuzzy",
+  "properties.searchable": "Searchable",
   "properties.ascending": "Ascending",
   "properties.descending": "Descending",
   "properties.last": "Last",

@@ -497,6 +497,12 @@ export const semanticLabelKeys: Record<string, string> = {
   Descending: "properties.descending",
   Last: "properties.last",
   First: "properties.first",
+  // ADR-315 Phase 3 — the Table's search · a Column's part in it.
+  "Search text": "properties.searchText",
+  "Search match": "properties.searchMatch",
+  Contains: "properties.searchContains",
+  Fuzzy: "properties.searchFuzzy",
+  Searchable: "properties.searchable",
   // 2026-11-18 S2 — collection `disabledKeys` · TagGroup `selectionBehavior` · `groupActionLabel`.
   "Disabled keys": "properties.disabledKeys",
   "Selection Behavior": "properties.selectionBehavior",

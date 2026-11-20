@@ -184,6 +184,8 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      ToggleButton 이라 연결 · 쪽 넘기기를 하지 못한다.
  * 74 — ADR-315 Phase 2: 보기의 정렬 `sort` 가 한 항목에서 목록으로 (여러 열 정렬 — 첫 항목, 그 안에서
  *      다음 항목 …) · 리터럴 항목의 빈 값 위치 `empty`. 한 항목으로 적은 옛 보기는 검증을 통과하지 못한다.
+ *      (+ ADR-315 Phase 3: 묶음 보기의 선택 필드 `facet` — 더하기만 하는 필드라 74 문서가 그대로 열린다.
+ *      번호는 Phase 4 의 entry 형 변경과 함께 올린다 — ADR-315 R5 「세 번으로 모은다」.)
  * An earlier contract's document is refused, never re-mapped.
  */
 export const LIBRARY_CONTRACT_VERSION = 74 as const;
@@ -872,6 +874,13 @@ export interface ViewQuery {
    * field has in the data is a row (a kanban column's count of 0).
    */
   emptyGroups?: "all";
+  /**
+   * ADR-315 Phase 3 — a grouped view as a filter's candidate values (TanStack faceting): the views
+   * it reads skip their conditions on its own group fields — each value's count is the rows that
+   * value would give once chosen, whatever is chosen now — and values the comparisons hold equal
+   * are one group (`A` · `a` under the default sensitivity; every empty value one group).
+   */
+  facet?: true;
   aggregates?: readonly ViewAggregate[];
   /**
    * ADR-315 Phase 2 — the sort entries in order: the first, then the next among its equal rows

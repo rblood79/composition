@@ -19,10 +19,12 @@ import type {
   ViewQuery,
 } from "../../catalog/document/types";
 import {
+  VIEW_EMPTY_KEY,
   viewCompare,
+  viewConditionSkips,
+  viewEqualityKeys,
   viewFieldKind,
   viewValueIsEmpty,
-  viewValueList,
   type ViewFieldKind,
 } from "./comparison";
 import { viewSortOrder } from "./sortOrder";
@@ -79,6 +81,13 @@ export interface ViewRunResult {
   /** Conditions that applied (not skipped) over the whole chain — 「적용 조건 수」. */
   applied: number;
 }
+
+/**
+ * ADR-315 Phase 3 — the id of the condition a Table's search is in its view (`tableStateQuery.ts`
+ * — one `contains` over the searchable Columns' fields): a `suffix` format sends it as its
+ * `searchParam`, and it is never a column's own condition (a candidate-values view keeps it).
+ */
+export const VIEW_SEARCH_CONDITION = "table-search";
 
 /** A condition's verdict on a row: it holds · it does not · it is skipped (passes every row). */
 export type ViewVerdict = "match" | "miss" | "skip";
@@ -312,13 +321,8 @@ export function readViewCondition(
       if (!read) return { skip: true, broken: true };
       value = read.value;
     }
-    const skipValue = condition.skip ?? "empty";
     // (`between` with both ends empty · a Selection of "all" pass every row.)
-    const empty =
-      condition.op === "between"
-        ? Array.isArray(value) && value.every(viewValueIsEmpty)
-        : viewValueIsEmpty(value) || viewValueList(value) === "all";
-    if (skipValue === "empty" ? empty : empty || value === skipValue)
+    if (viewConditionSkips(condition.op, value, condition.skip))
       return { skip: true, broken: false };
   }
   return { skip: false, fields: fields as ViewRunField[], value };
@@ -503,6 +507,98 @@ export function viewResultSchema(
 const groupKeyOf = (value: unknown) =>
   JSON.stringify(value === undefined ? null : value);
 
+/**
+ * ADR-315 Phase 3 — a view chain as its candidate-values views (`facet`) read it: the views such
+ * a view reads skip their conditions on its own group fields (TanStack faceting — 「그 열의 필터만 뺀
+ * 결과」). Only conditions joined by `and` are skipped (an `or` group is one condition of several
+ * fields), never the Table's search, and only back to the last view that groups (before it the
+ * fields are another schema's). No facet view = the chain itself.
+ */
+function withoutOwnConditions(
+  queries: readonly ViewQuery[],
+): readonly ViewQuery[] {
+  let out: ViewQuery[] | undefined;
+  queries.forEach((query, index) => {
+    if (query.facet !== true || !query.groupBy?.length) return;
+    const own = new Set(query.groupBy.map((path) => JSON.stringify(path)));
+    const strip = (group: ViewConditionGroup): ViewConditionGroup =>
+      group.op !== "and"
+        ? group
+        : {
+            ...group,
+            items: group.items.flatMap(
+              (item): (ViewCondition | ViewConditionGroup)[] =>
+                "items" in item
+                  ? [strip(item)]
+                  : item.id !== VIEW_SEARCH_CONDITION &&
+                      item.fields.length > 0 &&
+                      item.fields.every((path) => own.has(JSON.stringify(path)))
+                    ? []
+                    : [item],
+            ),
+          };
+    let start = 0;
+    for (let at = 0; at < index; at += 1)
+      if (queries[at]!.groupBy || queries[at]!.aggregates) start = at + 1;
+    for (let at = start; at < index; at += 1) {
+      out ??= [...queries];
+      out[at] = { ...out[at]!, where: strip(out[at]!.where) };
+    }
+  });
+  return out ?? queries;
+}
+
+/**
+ * A candidate-values view's groups: the rows by their group fields' values as `equals` holds them
+ * the same (`viewEqualityKeys`), in first-seen order — each group's values are its first row's (an
+ * empty value: `null`). A list cell of the one group field gives a group an element (a row counts
+ * once in each — what a filter choosing that element keeps).
+ */
+function facetGroups(
+  rows: readonly unknown[],
+  fields: readonly ViewRunField[],
+  locale: string | undefined,
+): { values: unknown[]; rows: unknown[] }[] {
+  const entries: { row: unknown; values: unknown[] }[] = [];
+  for (const row of rows) {
+    const cells = fields.map((field) => cellOf(row, field));
+    if (fields.length === 1 && Array.isArray(cells[0])) {
+      const list = cells[0] as unknown[];
+      for (const element of list.length ? list : [null])
+        entries.push({ row, values: [element] });
+    } else entries.push({ row, values: cells });
+  }
+  const keys = fields.map((field, at) =>
+    viewEqualityKeys(
+      entries.map((entry) => entry.values[at]),
+      {
+        // (A list's elements compare as text — `containsAny`.)
+        kind: field.type === "array" ? "text" : viewFieldKind(field.type),
+        ...(locale ? { locale } : {}),
+      },
+    ),
+  );
+  const groups = new Map<string, { values: unknown[]; rows: unknown[] }>();
+  entries.forEach((entry, index) => {
+    const key = keys.map((list) => list[index]).join("\u0001");
+    let group = groups.get(key);
+    if (!group)
+      groups.set(
+        key,
+        (group = {
+          values: entry.values.map((value, at) =>
+            keys[at]![index] === VIEW_EMPTY_KEY ? null : value,
+          ),
+          rows: [],
+        }),
+      );
+    // (A row whose list holds the value twice is one row of it.)
+    if (group.rows[group.rows.length - 1] !== entry.row)
+      group.rows.push(entry.row);
+  });
+  return [...groups.values()];
+}
+
 const CELL_COLLATOR = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: "base",
@@ -558,6 +654,7 @@ function groupRows(
   broken: string[],
   /** The conditions the source views applied (the `applied` aggregate). */
   sourceApplied: number,
+  locale?: string,
 ): readonly unknown[] {
   const keys = (query.groupBy ?? []).map((path) =>
     viewFieldOf(path, schema, references),
@@ -582,8 +679,13 @@ function groupRows(
   if (query.emptyGroups === "all" && fields.length)
     sourceRows.forEach((row) => groupOf(row));
   if (!fields.length) groups.set("", { values: [], rows: [...rows] });
-  else rows.forEach((row) => groupOf(row).rows.push(row));
-  return [...groups.values()].map((group) => {
+  else if (query.facet !== true)
+    rows.forEach((row) => groupOf(row).rows.push(row));
+  const grouped =
+    query.facet === true && fields.length
+      ? facetGroups(rows, fields, locale)
+      : [...groups.values()];
+  return grouped.map((group) => {
     const row: Record<string, unknown> = {};
     fields.forEach((field, index) =>
       setCell(row, field.key, group.values[index]),
@@ -630,6 +732,7 @@ function runQuery(
       input.references,
       broken,
       sourceApplied,
+      input.locale,
     );
   const sorts = sortsOf(query, input, resultSchema);
   if (sorts.length) {
@@ -652,7 +755,8 @@ export function runViewQueries(
   // (The conditions the views before this one applied — a derived view's `applied` aggregate.)
   let sourceApplied = 0;
   let grouped = false;
-  for (const query of input.queries) {
+  // (ADR-315 Phase 3 — a candidate-values view's sources skip their conditions on its fields.)
+  for (const query of withoutOwnConditions(input.queries)) {
     // (Until a view groups, the collection's rows hold every value of a field.)
     const result = runQuery(
       query,

@@ -34,8 +34,10 @@ import type {
   ViewQuery,
 } from "../../catalog/document/types";
 import { viewDay } from "./comparison";
+import { DEFAULT_QUERY_SUFFIXES } from "./querySuffixes";
 import {
   readViewCondition,
+  VIEW_SEARCH_CONDITION,
   viewFieldOf,
   type ViewRunField,
   type ViewRunInput,
@@ -70,7 +72,15 @@ export interface EndpointQuerySerialization {
    * parameters (json-server). Absent = one sort only. `body` always carries the list.
    */
   multiSort?: boolean;
+  /**
+   * ADR-315 Phase 3 — `suffix`: the parameter a Table's search text goes in (json-server `q` — the
+   * server searches its own fields). Absent = a flat format carries no search: a Table on it takes
+   * none (`catalogTableSliceServable`). `body` carries the search as a condition over its fields.
+   */
+  searchParam?: string;
 }
+
+export { VIEW_SEARCH_CONDITION };
 
 /** A sort entry as a request carries it (`body.sort` — one entry an object, more a list). */
 export interface SerializedSort {
@@ -79,25 +89,7 @@ export interface SerializedSort {
   empty?: "first" | "last";
 }
 
-/**
- * The default suffix table (json-server): `equals` is the bare field, a list repeats it. Absent
- * comparisons are not expressible as a flat parameter — the panel shows them as 「서버로 보낼 수
- * 없음」 until the author names a suffix.
- */
-export const DEFAULT_QUERY_SUFFIXES: Readonly<
-  Partial<Record<ViewComparison, string>>
-> = {
-  equals: "",
-  notEquals: "_ne",
-  contains: "_like",
-  oneOf: "",
-  gte: "_gte",
-  gt: "_gt",
-  lte: "_lte",
-  lt: "_lt",
-  after: "_gt",
-  before: "_lt",
-};
+export { DEFAULT_QUERY_SUFFIXES };
 
 export type SerializationWarningCode =
   /** An `or` of applied conditions in a flat parameter list. */
@@ -319,6 +311,12 @@ export function serializeViewQueries(
     if (read.skip) {
       if (read.broken)
         warnings.push({ code: "BROKEN", conditionId: condition.id });
+      return;
+    }
+    // (ADR-315 Phase 3 — a Table's search: the endpoint's search parameter carries the text.)
+    if (condition.id === VIEW_SEARCH_CONDITION && serialization.searchParam) {
+      // (The text as typed: it is no field's value — no field notation writes it back.)
+      params.push([serialization.searchParam, String(read.value ?? "")]);
       return;
     }
     if (condition.fields.length > 1) {
@@ -556,6 +554,7 @@ export function viewQueryLimits(
       return;
     }
     if (serialization.kind !== "suffix") return;
+    if (item.id === VIEW_SEARCH_CONDITION && serialization.searchParam) return;
     if (item.fields.length > 1) {
       warnings.push({ code: "MULTI_FIELD", conditionId: item.id });
       return;

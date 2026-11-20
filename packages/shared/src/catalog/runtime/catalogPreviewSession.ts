@@ -51,7 +51,7 @@ import {
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
 import { viewSchemaAt } from "../../collections/view/evaluate";
-import type { CatalogRowSorts, CatalogTableSort } from "./tableSort";
+import type { CatalogTableSort } from "./tableSort";
 import type {
   CatalogLoadingState,
   CatalogViewResultMeta,
@@ -107,10 +107,14 @@ import {
   type CatalogTableState,
 } from "./tableState";
 import {
-  catalogRowSortsView,
+  CATALOG_FACET_COUNT,
+  catalogRowSlicesView,
+  catalogTableFacetQueries,
   catalogTableSliceServable,
   catalogTableStateQueries,
-  catalogTableStateRowSorts,
+  catalogTableStateRowSlices,
+  type CatalogRowSlices,
+  type CatalogTableServedSlice,
 } from "./tableStateQuery";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
 import { catalogRuntimeData, type CatalogRuntimeData } from "./catalogData";
@@ -469,8 +473,7 @@ export interface CatalogPreviewSessionOptions {
 }
 
 const NO_TABLE_STATE: CatalogTableState = Object.freeze({});
-const NO_SORTS: CatalogRowSorts = Object.freeze([]);
-/** The query of a binding without a view (a sorted Table's state gives it one). */
+/** The query of a binding without a view (a Table's state — a sort · a search — gives it one). */
 const NO_VIEW_QUERY: CatalogRowQuery = Object.freeze({
   queries: [],
   values: {},
@@ -549,6 +552,21 @@ export class CatalogPreviewSession {
     string,
     { first: number; last: number; total: number }
   >();
+  /** The rows last reported in view (`showRows`), by owner — what a staged window holds. */
+  private readonly rowsSeen = new Map<
+    string,
+    { first: number; last: number }
+  >();
+  /**
+   * ADR-315 Phase 3 — the windows cut to the rows in view until the frame paints
+   * (`stageRowWindows`), by owner; `turn` tells the latest staging from one a later keystroke
+   * replaced.
+   */
+  private readonly stagedRowWindows = new Map<
+    string,
+    CatalogRowWindow & { readonly turn: number }
+  >();
+  private stagedTurn = 0;
   /** The lists whose last delivered rows stopped at their window with more rows loaded (by window key). */
   private readonly windowsCut = new Set<string>();
   /**
@@ -610,6 +628,8 @@ export class CatalogPreviewSession {
   private readonly tableStates = new Map<string, CatalogTableState>();
   /** Table records whose remembered state was looked up (once a record, a project). */
   private readonly restoredTables = new Set<string>();
+  /** Each Table record's authored `searchText` the state last took (`startTableSearches`). */
+  private readonly searchedTables = new Map<string, string>();
   /** A root built · a page filled since the last look (`restoreTableStates`). */
   private restoreDue = true;
   /** Writes a record's runtime props (the view's rule runtime — `attachRuntimeProps`). */
@@ -669,6 +689,9 @@ export class CatalogPreviewSession {
       if (update.invalidatedIds === "all") {
         this.runtime = new CatalogRuntime(update.graph);
         this.restoredTables.clear();
+        this.searchedTables.clear();
+        this.stagedRowWindows.clear();
+        this.rowsSeen.clear();
         this.openState(update.graph.projectId);
         this.syncDefinitions();
         this.applyTheme(true);
@@ -1388,25 +1411,33 @@ export class CatalogPreviewSession {
     }
   }
   /**
-   * A Table record's state sort as its rows read it (`catalogTableStateRowSorts`); none for a
-   * record that is not a sorted Table, or one its endpoint's own `{{ sortDescriptor }}` sorts.
+   * A Table record's state as its rows read it (`catalogTableStateRowSlices` — its sort · search ·
+   * column filters, each Column as its field); undefined for a record that is not a Table with a
+   * data slice. A Table its endpoint's own `{{ sortDescriptor }}` sorts has no sort here.
    */
-  private recordRowSorts(recordId: string): CatalogRowSorts {
-    const sort = this.tableStates.get(recordId)?.sort;
-    if (!sort?.length || this.serverSortedTables.has(recordId)) return NO_SORTS;
-    return catalogTableStateRowSorts(sort, this.tableColumns(recordId));
+  private recordRowSlices(recordId: string): CatalogRowSlices | undefined {
+    const held = this.tableStates.get(recordId);
+    const state =
+      held && this.serverSortedTables.has(recordId) ? withoutSort(held) : held;
+    if (!state?.sort?.length && !state?.search && !state?.columnFilters?.length)
+      return undefined;
+    return catalogTableStateRowSlices(
+      state,
+      this.tableColumns(recordId),
+      this.currentRoot?.domInputs.get(recordId)?.props,
+    );
   }
   /**
-   * A binding's query with a Table's sort as its bound view's (`catalogTableStateQueries` — the
-   * one translation the request and the served check read). Undefined = no sort, or one that
-   * names no field of the rows (it runs on the rows here only).
+   * A binding's query with a Table's state as its bound view's (`catalogTableStateQueries` — the
+   * one translation the request and the served check read). Undefined = no slice, or one that
+   * names no field of the rows (they run on the rows here only).
    */
-  private sortedRowQuery(
+  private stateRowQuery(
     collectionId: string,
     query: CatalogRowQuery,
-    sorts: CatalogRowSorts | undefined,
+    slices: CatalogRowSlices | undefined,
   ): CatalogRowQuery | undefined {
-    if (!sorts?.length) return undefined;
+    if (!slices) return undefined;
     const collection = this.collections.find(
       (item) => item.id === collectionId,
     );
@@ -1419,7 +1450,7 @@ export class CatalogPreviewSession {
     const fields = query.queries.length
       ? viewSchemaAt({ queries: query.queries, schema }, query.queries.length)
       : schema;
-    const view = catalogRowSortsView(sorts, fields);
+    const view = catalogRowSlicesView(slices, fields);
     if (!view) return undefined;
     return {
       ...query,
@@ -1488,10 +1519,11 @@ export class CatalogPreviewSession {
       for (const recordId of records) {
         const record = root!.domInputs.get(recordId);
         if (!record) continue;
-        // (ADR-315 Phase 2 — a Table record's state sort is part of its query: the request carries
-        //  it. A binding without a view is one only while its Table is sorted.)
-        const sorts = this.recordRowSorts(recordId);
-        if (!viewed && !sorts.length) continue;
+        // (ADR-315 Phase 2 · 3 — a Table record's state (its sort · search · column filters) is
+        //  part of its query: the request carries it. A binding without a view is one only while
+        //  its Table holds a data slice.)
+        const slices = this.recordRowSlices(recordId);
+        if (!viewed && !slices) continue;
         const query = viewed
           ? catalogBindingQuery(
               graph,
@@ -1503,11 +1535,11 @@ export class CatalogPreviewSession {
             )
           : NO_VIEW_QUERY;
         if (!query) continue;
-        const sorted = this.sortedRowQuery(collectionId, query, sorts);
-        if (!viewed && !sorted) continue;
+        const stated = this.stateRowQuery(collectionId, query, slices);
+        if (!viewed && !stated) continue;
         const base = {
-          ...(sorted ?? query),
-          queries: catalogCountlessViews((sorted ?? query).queries),
+          ...(stated ?? query),
+          queries: catalogCountlessViews((stated ?? query).queries),
         };
         views.set(catalogRowQueryKey(base), { query: base, nodeId });
       }
@@ -1872,21 +1904,21 @@ export class CatalogPreviewSession {
     authored: Parameters<typeof catalogBoundRows>[0],
     kind: Parameters<typeof catalogBoundRows>[2],
     ownerId?: string,
-    /** A bound Table's header sort — its rows are ordered before the window · the page cuts them. */
-    sort?: CatalogRowSorts,
+    /** A bound Table's state — its rows are filtered · ordered before the window · the page cuts them. */
+    slices?: CatalogRowSlices,
   ) {
     // ADR-284 Decision 6: rows the server answered for this binding's view are its result — the
     // view does not run on them again; the total is the server's for that query.
     let binding = authored;
     const id = authored.collectionId.replace(/^data:collection:/, "");
-    // (ADR-315 Phase 2 — the Table's sort is its bound view's: an answer to that query is in that
-    //  order, and is not sorted here again.)
-    const sorted = this.sortedRowQuery(
+    // (ADR-315 Phase 2 · 3 — the Table's state is its bound view's: an answer to that query is
+    //  those rows in that order, and is not filtered · sorted here again.)
+    const stated = this.stateRowQuery(
       id,
       authored.query ?? NO_VIEW_QUERY,
-      sort,
+      slices,
     );
-    const asked = sorted ?? authored.query;
+    const asked = stated ?? authored.query;
     if (asked) {
       const view = this.serverView(id);
       const loaded = this.loadedViewQueries.get(id);
@@ -1908,7 +1940,7 @@ export class CatalogPreviewSession {
               warnings: view.serialized.warnings.length,
               ...(depth < asked.queries.length ? { depth } : {}),
               mode: view.mode,
-              ...(sorted ? { sorted: true as const } : {}),
+              ...(stated ? { state: true as const } : {}),
             },
           },
         };
@@ -1930,7 +1962,7 @@ export class CatalogPreviewSession {
     const display =
       ownerId === undefined ? undefined : this.rowDisplayOf(ownerId);
     if (ownerId !== undefined && display?.mode === "pages")
-      return this.pageRows(binding, kind, ownerId, display, sort);
+      return this.pageRows(binding, kind, ownerId, display, slices);
     // (A virtual-scrolled list shows every loaded row — the `Virtualizer` puts the visible ones in
     //  the DOM; its end loads the next page as 「더 보기」 does.)
     const window =
@@ -1947,7 +1979,7 @@ export class CatalogPreviewSession {
       kind,
       window,
       0,
-      sort,
+      slices,
     );
     if (!rows) return rows;
     if (ownerId !== undefined) {
@@ -2102,6 +2134,8 @@ export class CatalogPreviewSession {
     /** ADR-315 Phase 2 — the Column's sort options (`sortFirstDirection` · `sortEmptyValues`). */
     sortFirstDirection: "ascending" | "descending";
     sortEmptyValues?: "first";
+    /** ADR-315 Phase 3 — the Column's `allowsSearching` (every Column unless it says no). */
+    allowsSearching: boolean;
   }[] {
     const root = this.currentRoot;
     const table = root?.domInputs.get(tableId);
@@ -2137,6 +2171,7 @@ export class CatalogPreviewSession {
         ...(column.props.sortEmptyValues === "first"
           ? { sortEmptyValues: "first" as const }
           : {}),
+        allowsSearching: column.props.allowsSearching !== false,
       }))
       .filter((column) => !column.selection);
   }
@@ -2157,6 +2192,10 @@ export class CatalogPreviewSession {
         table?.props.allowsMultiSort === true &&
         this.tableSliceServable(tableId, "sort").accepts === "whole",
       ...(typeof max === "number" && max > 0 ? { maxSortColumns: max } : {}),
+      // (ADR-315 Phase 3 — a search · a column filter only where the rows' request carries it.)
+      search: this.tableSliceServable(tableId, "search").accepts === "whole",
+      filters: (op) =>
+        this.tableSliceServable(tableId, { filter: op }).accepts === "whole",
     };
   }
   /**
@@ -2191,7 +2230,14 @@ export class CatalogPreviewSession {
     if (
       CATALOG_TABLE_DATA_SLICES.some((slice) => before[slice] !== next[slice])
     )
-      this.readTableRows(tableId, next);
+      this.readTableRows(
+        tableId,
+        next,
+        before.sort !== next.sort ? "sorting" : "filtering",
+        before.sort === next.sort &&
+          before.columnFilters === next.columnFilters &&
+          before.search !== next.search,
+      );
     // (RAC's header reads the first sort; the other sorted Columns' marks read the list.)
     if (before.sort !== next.sort) this.echoTableSort(tableId);
   }
@@ -2244,6 +2290,26 @@ export class CatalogPreviewSession {
       if (!state.sort) continue;
       this.readTableRows(table.id, state);
       this.echoTableSort(table.id);
+    }
+  }
+  /**
+   * ADR-315 Phase 3 — a Table's authored `searchText` is the search it starts with: the state
+   * takes it when the record is first drawn — before the view reads the root (as the remembered
+   * states are: no frame shows the unsearched rows first) — and again when its author edits it
+   * (the Builder's Preview follows the panel). Between those the state is the search: clearing it
+   * does not bring the authored text back.
+   */
+  private startTableSearches(): void {
+    const root = this.currentRoot;
+    if (!root) return;
+    for (const table of root.domInputs.values()) {
+      if (table.ruleId !== "Table") continue;
+      const authored = table.props.searchText;
+      const text = typeof authored === "string" ? authored : "";
+      if ((this.searchedTables.get(table.id) ?? "") === text) continue;
+      this.searchedTables.set(table.id, text);
+      if (!this.writeTableState(table.id, { search: text })) continue;
+      this.readTableRows(table.id, this.tableState(table.id), "filtering");
     }
   }
   /**
@@ -2386,11 +2452,134 @@ export class CatalogPreviewSession {
     };
   }
   /** What of a slice a Table record accepts into its state (`catalogTableSliceServable`). */
-  tableSliceServable(tableId: string, slice: "sort") {
+  tableSliceServable(tableId: string, slice: CatalogTableServedSlice) {
     return catalogTableSliceServable(this.tableService(tableId), slice);
   }
-  /** A Table record's rows read again for its state's data slices (the sort, until Phase 3). */
-  private readTableRows(tableId: string, state: CatalogTableState): void {
+  /**
+   * ADR-315 Phase 3 — a Table Column's candidate values (TanStack faceting): each value of the
+   * Column's field among the rows the Table's other slices keep — its own filter aside — with the
+   * rows it would give, and the least · most of them (a number · a date field). `partial` = the
+   * rows here are not all of the data (an endpoint's pages · a server's answer): the candidates
+   * are those of the loaded rows (breakdown §4.3.1 — 「불러온 N 행 기준」, `loaded`). Undefined =
+   * not a bound Table's Column of a field.
+   */
+  tableFacet(
+    tableId: string,
+    columnKey: string,
+  ):
+    | {
+        values: readonly { value: unknown; count: number }[];
+        min?: unknown;
+        max?: unknown;
+        partial: boolean;
+        loaded: number;
+      }
+    | undefined {
+    const graph = this.graph;
+    const table = this.currentRoot?.domInputs.get(tableId);
+    const source = table && graph?.getEntry(table.sourceId as never);
+    const binding = source?.kind === "node" ? source.binding : undefined;
+    if (!graph || !table || !binding) return undefined;
+    if (!this.tableColumns(tableId).some((column) => column.key === columnKey))
+      return undefined;
+    const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const authored = catalogBindingQuery(
+      graph,
+      binding,
+      source!.id,
+      this.stateSource(),
+      undefined,
+      componentInstancePath(table, source!.id),
+    );
+    const base = authored ?? NO_VIEW_QUERY;
+    const schema = (collection?.schema ?? []).flatMap((field) =>
+      field.id && field.key
+        ? [{ id: field.id, key: field.key, type: field.type }]
+        : [],
+    );
+    const fields = base.queries.length
+      ? viewSchemaAt({ queries: base.queries, schema }, base.queries.length)
+      : schema;
+    const field = fields.find((item) => item.key === columnKey);
+    if (!field) return undefined;
+    const fieldId = (
+      field.id.startsWith("data:field:") ? field.id : `data:field:${field.id}`
+    ) as `data:field:${string}`;
+    const rows = catalogBoundRows(
+      {
+        ...binding,
+        query: {
+          ...base,
+          queries: catalogTableFacetQueries(
+            base.queries.length ? base.queries : undefined,
+            catalogRowSlicesView(this.recordRowSlices(tableId), fields),
+            fieldId,
+          ),
+        },
+      },
+      this.itemSources(),
+      "records",
+    );
+    if (!rows) return undefined;
+    const values = rows.map((row) => ({
+      value: row.values[columnKey] ?? null,
+      count: Number(row.values[CATALOG_FACET_COUNT]) || 0,
+    }));
+    // (The least · most: numbers by value, days by their text — ISO days order as text.)
+    const kind = field.type === "number" ? "number" : field.type;
+    const ordered =
+      kind === "number"
+        ? values
+            .map((item) => Number(item.value))
+            .filter(
+              (number, index) =>
+                values[index]!.value !== null && Number.isFinite(number),
+            )
+            .sort((a, b) => a - b)
+        : kind === "date"
+          ? values
+              .map((item) => item.value)
+              .filter((value): value is string => typeof value === "string")
+              .sort()
+          : [];
+    const remote = !!collection && !collection.useMockData;
+    return {
+      values,
+      ...(ordered.length
+        ? { min: ordered[0], max: ordered[ordered.length - 1] }
+        : {}),
+      partial:
+        remote &&
+        (this.loadArguments.get(collectionId)?.cursor !== undefined ||
+          !!this.serverView(collectionId)),
+      loaded: this.collectionItems(collectionId).length,
+    };
+  }
+  /**
+   * ADR-315 Phase 3 — a Table's search set as a value (a rule's 「Search text」 Do · the runtime
+   * prop — a SearchField's `onChange` rule writes it): the state's `search`. A Table whose rows'
+   * request carries no search keeps none (`tableShape`).
+   */
+  searchTable(tableId: string, text: unknown): void {
+    this.setTableState(tableId, {
+      search: typeof text === "string" ? text : "",
+    });
+  }
+  /**
+   * A Table record's rows read again for its state's data slices. `load` = the collection's load
+   * state while a request for them runs (S2 `sorting` · `filtering`); `typing` = only the search
+   * text changed — a request for it waits 300 ms (the newest text wins, as a view's text
+   * condition does — `reloadForVariables`).
+   */
+  private readTableRows(
+    tableId: string,
+    state: CatalogTableState,
+    load: "sorting" | "filtering" = "sorting",
+    typing = false,
+  ): void {
     // A bound Table whose query endpoint reads `sortDescriptor` is sorted by the server
     // (`load({sortDescriptor})`, the column as its field): the client keeps the server's order.
     const server = this.serverSort(tableId, state.sort?.[0]);
@@ -2403,9 +2592,14 @@ export class CatalogPreviewSession {
       return;
     }
     this.serverSortedTables.delete(tableId);
-    // (ADR-315 Phase 2 — a Table whose request carries its view: the sort is that view's, another
-    //  request — `loadRouted` loads when the request changed (S2 `sorting`).)
-    if (this.tableService(tableId).remote) this.loadRouted("sorting");
+    // (ADR-315 Phase 2 · 3 — a Table whose request carries its view: the state is that view's,
+    //  another request — `loadRouted` loads when the request changed (S2 `sorting` · `filtering`).)
+    if (this.tableService(tableId).remote) {
+      clearTimeout(this.viewReloadTimer);
+      if (typing)
+        this.viewReloadTimer = setTimeout(() => this.loadRouted(load), 300);
+      else this.loadRouted(load);
+    }
     // (A local paged list in another order starts over at its first page; its Paginations follow —
     //  `pageRows` cannot tell: not every read of the list's rows carries its sort.)
     const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
@@ -2426,9 +2620,12 @@ export class CatalogPreviewSession {
     // (The sorted Table resolves again — its bound node alone: before, every bound owner of every
     //  root did, 2026-11-20. A record whose source holds no binding: every bound owner, as before
     //  — an authored Table's Rows are ordered by the DOM, `catalogTableSortedRows`.)
+    // (ADR-315 Phase 3 — the state changes which rows show and their order, not a row's data: a
+    //  row at its old place keeps its records, and a virtual Table's rows in view come first.)
+    if (entry?.kind === "node" && entry.binding) this.stageRowWindows(entry.id);
     const errors =
       (entry?.kind === "node" && entry.binding
-        ? this.currentRoot?.refreshNodes(new Set([entry.id]))
+        ? this.currentRoot?.reorderRows(new Set([entry.id]))
         : this.currentRoot?.refreshRows()) ?? [];
     if (errors.length) console.error("[CatalogPreview] sort:", ...errors);
   }
@@ -2661,8 +2858,8 @@ export class CatalogPreviewSession {
             kind: Parameters<typeof catalogBoundRows>[2],
             ownerId?: string,
             _instancePath?: readonly string[],
-            sort?: CatalogRowSorts,
-          ) => this.boundRows(binding, kind, ownerId, sort),
+            slices?: CatalogRowSlices,
+          ) => this.boundRows(binding, kind, ownerId, slices),
           {
             pages: (listId: string, paginationId: string) => {
               let set = this.paginationsOf.get(listId);
@@ -2693,11 +2890,47 @@ export class CatalogPreviewSession {
   /** A virtual-scrolled list's record rows (`CatalogRootOptions.rowWindow`); none = every row. */
   private rowWindowOf(owner: string): CatalogRowWindow | undefined {
     return this.rowDisplayOf(this.rowOwnerNode(owner))?.mode === "virtual"
-      ? (this.rowWindows.get(owner) ?? {
-          start: 0,
-          limit: CATALOG_VIRTUAL_ROW_WINDOW,
-        })
+      ? (this.stagedRowWindows.get(owner) ??
+          this.rowWindows.get(owner) ?? {
+            start: 0,
+            limit: CATALOG_VIRTUAL_ROW_WINDOW,
+          })
       : undefined;
+  }
+  /**
+   * ADR-315 Phase 3 — the rows of `nodeId` (a virtual-scrolled Table's bound node) are about to be
+   * read again for another sort · search · filter: until the frame paints its window is the rows in
+   * view (and `CATALOG_STAGED_ROW_MARGIN` on each side), and the rest of the window comes in after
+   * the paint (`moveRowWindow` — the rows drawn first keep their records). The rows off screen are
+   * most of a window (60 rows over 14 in view, live): resolving them before the paint is what a
+   * keystroke waited for. A key typed before the paint stages again — the rest waits for that
+   * frame. A window with no rows reported in view, or one the rows in view nearly fill, is left.
+   */
+  private stageRowWindows(nodeId: string): void {
+    for (const [owner, seen] of this.rowsSeen) {
+      if (this.rowOwnerNode(owner) !== nodeId) continue;
+      const window = this.rowWindows.get(owner) ?? {
+        start: 0,
+        limit: CATALOG_VIRTUAL_ROW_WINDOW,
+      };
+      const limit = seen.last - seen.first + 1 + 2 * CATALOG_STAGED_ROW_MARGIN;
+      if (limit + CATALOG_ROW_WINDOW_STEP > window.limit) {
+        this.stagedRowWindows.delete(owner);
+        continue;
+      }
+      const turn = (this.stagedTurn += 1);
+      this.stagedRowWindows.set(owner, {
+        start: Math.max(0, seen.first - CATALOG_STAGED_ROW_MARGIN),
+        limit,
+        turn,
+      });
+      afterPaint(() => {
+        if (this.stagedRowWindows.get(owner)?.turn !== turn) return;
+        this.stagedRowWindows.delete(owner);
+        const errors = this.currentRoot?.moveRowWindow(new Set([nodeId])) ?? [];
+        if (errors.length) console.error("[CatalogPreview] rows:", ...errors);
+      });
+    }
   }
   /**
    * Rows `[first, last]` of a windowed owner are coming into view (its `Layout`'s — the overscan
@@ -2712,11 +2945,23 @@ export class CatalogPreviewSession {
   showRows(owner: string, first: number, last: number, total: number): void {
     const asked = this.rowsAsked.has(owner);
     this.rowsAsked.set(owner, { first, last, total });
+    this.rowsSeen.set(owner, { first, last });
     if (asked) return;
     queueMicrotask(() => {
       const rows = this.rowsAsked.get(owner);
       this.rowsAsked.delete(owner);
       if (!rows) return;
+      // (A staged window — `stageRowWindows`: the rows in view inside it wait for the frame; rows
+      //  outside it — the Table scrolled first — end the staging, and the window moves whole.)
+      const staged = this.stagedRowWindows.get(owner);
+      if (staged) {
+        const start = Math.max(
+          0,
+          Math.min(staged.start, rows.total - staged.limit),
+        );
+        if (rows.first >= start && rows.last < start + staged.limit) return;
+        this.stagedRowWindows.delete(owner);
+      }
       const current = this.rowWindows.get(owner) ?? {
         start: 0,
         limit: CATALOG_VIRTUAL_ROW_WINDOW,
@@ -2733,16 +2978,20 @@ export class CatalogPreviewSession {
           rows.total - limit,
         ),
       );
-      if (start === current.start && limit === current.limit) return;
-      // (Less than a step off, the rows in view inside the window — at the data's ends the window
-      //  cannot centre, so the rows are checked themselves.)
-      if (
-        limit === current.limit &&
-        Math.abs(start - current.start) < CATALOG_ROW_WINDOW_STEP &&
-        rows.first >= current.start &&
-        rows.last < current.start + current.limit
-      )
-        return;
+      // (A staging just ended: the records are the staged rows — the window is read again even
+      //  where it is.)
+      if (!staged) {
+        if (start === current.start && limit === current.limit) return;
+        // (Less than a step off, the rows in view inside the window — at the data's ends the
+        //  window cannot centre, so the rows are checked themselves.)
+        if (
+          limit === current.limit &&
+          Math.abs(start - current.start) < CATALOG_ROW_WINDOW_STEP &&
+          rows.first >= current.start &&
+          rows.last < current.start + current.limit
+        )
+          return;
+      }
       this.rowWindows.set(owner, { start, limit });
       const errors =
         this.currentRoot?.moveRowWindow(new Set([this.rowOwnerNode(owner)])) ??
@@ -2779,7 +3028,7 @@ export class CatalogPreviewSession {
     kind: Parameters<typeof catalogBoundRows>[2],
     ownerId: string,
     display: CatalogRowDisplay,
-    sort?: CatalogRowSorts,
+    slices?: CatalogRowSlices,
   ) {
     const id = binding.collectionId.replace(/^data:collection:/, "");
     const unit = this.pageUnit(binding.collectionId, ownerId);
@@ -2798,7 +3047,7 @@ export class CatalogPreviewSession {
         kind,
         size,
         0,
-        sort,
+        slices,
       );
       return rows
         ? Object.assign(rows, {
@@ -2821,7 +3070,7 @@ export class CatalogPreviewSession {
       kind,
       unit.page * size,
       (unit.page - 1) * size,
-      sort,
+      slices,
     );
     if (rows) unit.total = rows.total ?? (unit.page - 1) * size + rows.length;
     return rows ? Object.assign(rows, { loadingState: "idle" as const }) : rows;
@@ -3001,9 +3250,10 @@ export class CatalogPreviewSession {
   }
   private changed(): void {
     // (A root built · a page filled: its 「Remember state」 Tables take what the browser kept.)
-    if (this.restoreDue && this.options.tableStateStorage) {
+    if (this.restoreDue) {
       this.restoreDue = false;
-      this.restoreTableStates();
+      if (this.options.tableStateStorage) this.restoreTableStates();
+      this.startTableSearches();
     }
     this.version += 1;
     for (const listener of [...this.listeners]) listener();
@@ -3039,6 +3289,18 @@ export const CATALOG_VIRTUAL_ROW_WINDOW = 60;
  * 6 rows a move took 9.5 ms a frame of a fast scroll where 16 ~ 20 take 6.
  */
 export const CATALOG_ROW_WINDOW_STEP = 16;
+/**
+ * ADR-315 Phase 3 — the rows a staged window holds on each side of the rows in view
+ * (`CatalogPreviewSession.stageRowWindows`): the rows a frame's scroll would bring in before the
+ * rest of the window arrives (it arrives after one paint).
+ */
+export const CATALOG_STAGED_ROW_MARGIN = 2;
+/** Runs `run` once the frame under way painted (a task after its animation frame). */
+function afterPaint(run: () => void): void {
+  if (typeof requestAnimationFrame === "function")
+    requestAnimationFrame(() => setTimeout(run, 0));
+  else setTimeout(run, 0);
+}
 function displayWindowKey(collectionId: string, ownerId: string): string {
   return `${collectionId.replace(/^data:collection:/, "")}\u0001${ownerId}`;
 }

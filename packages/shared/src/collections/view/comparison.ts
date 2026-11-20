@@ -85,6 +85,24 @@ export function viewValueIsEmpty(value: unknown): boolean {
   return false;
 }
 
+/**
+ * Whether a condition's value skips it (it passes every row): the default — no value · `""` · an
+ * empty list · a Selection of `"all"` (`between`: both ends empty) — or the condition's own skip
+ * value too. One rule for a view's condition (`readViewCondition`) and a Table state's
+ * (`rowFilter.ts`).
+ */
+export function viewConditionSkips(
+  op: ViewComparison,
+  value: unknown,
+  skip: ViewCondition["skip"] = "empty",
+): boolean {
+  const empty =
+    op === "between"
+      ? Array.isArray(value) && value.every(viewValueIsEmpty)
+      : viewValueIsEmpty(value) || viewValueList(value) === "all";
+  return skip === "empty" ? empty : empty || value === skip;
+}
+
 /** A RAC `Selection` (`Set` · `"all"`) or a list as an array; a scalar as a list of one. */
 export function viewValueList(value: unknown): unknown[] | "all" {
   if (value === "all") return "all";
@@ -150,6 +168,39 @@ function plainFoldOf(collator: Intl.Collator): PlainFold {
   fold = same ? "same" : lower ? "lower" : null;
   plainFolds.set(collator, fold);
   return fold;
+}
+
+/**
+ * ADR-315 Phase 3 — how a collator folds plain text (`plainFoldOf`), for a reader that folds a text
+ * itself (the fuzzy search's units): case-less, as written, or neither (`null`).
+ */
+export function viewPlainFold(
+  locale: string | undefined,
+  sensitivity: ViewCondition["sensitivity"],
+): "lower" | "same" | null {
+  return plainFoldOf(collatorOf(locale, sensitivity ?? "base"));
+}
+
+/**
+ * ADR-315 Phase 3 — `contains` of a plain search, as its plain path answers one cell: the returned
+ * function is true where the cell is plain and its folded text holds no hit — `textMatch`'s 「no hit
+ * is the answer」. A search typed on (`ab` → `abc`) cannot hit where its beginning did not, so a
+ * row every searched cell of which missed this way stays a miss (`rowFilter.ts`). Undefined = the
+ * search is not plain, or the collator folds plain text neither way: every cell is compared.
+ */
+export function viewPlainContainsMiss(
+  locale: string | undefined,
+  sensitivity: ViewCondition["sensitivity"],
+  search: string,
+): ((cell: string) => boolean) | undefined {
+  if (!search.length || !PLAIN_TEXT.test(search)) return undefined;
+  const fold = plainFoldOf(collatorOf(locale, sensitivity ?? "base"));
+  if (!fold) return undefined;
+  const lower = fold === "lower";
+  const folded = lower ? search.toLowerCase() : search;
+  return (cell) =>
+    PLAIN_TEXT.test(cell) &&
+    (lower ? cell.toLowerCase() : cell).indexOf(folded) < 0;
 }
 
 /** The Hangul letters a syllable is read as, one a class (consonants, then vowels). */
@@ -437,6 +488,64 @@ function same(a: unknown, b: unknown, options: ViewCompareOptions): boolean {
       ) === 0
     );
   return order(a, b, options) === 0;
+}
+
+/** The key of every empty value (`viewEqualityKeys`). */
+export const VIEW_EMPTY_KEY = "\0empty";
+
+/**
+ * ADR-315 Phase 3 — a key a value, for a filter's candidate values (`ViewQuery.facet`): two values
+ * of a field have the same key exactly when `equals` holds them the same (`same` — text by the
+ * search collator at the default sensitivity: `A` · `a` are one candidate; a number by value, a
+ * date by its day · time) and every empty value has the one empty key. So a candidate's count is
+ * the rows choosing it gives.
+ */
+export function viewEqualityKeys(
+  values: readonly unknown[],
+  options: ViewCompareOptions,
+): string[] {
+  const keys = new Array<string>(values.length);
+  const texts = new Map<string, number[]>();
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index];
+    if (viewValueIsEmpty(value)) {
+      keys[index] = VIEW_EMPTY_KEY;
+      continue;
+    }
+    if (options.kind === "number") {
+      const number = numberOf(value);
+      if (number !== undefined) {
+        keys[index] = `n:${number}`;
+        continue;
+      }
+    } else if (options.kind === "boolean") {
+      if (value === true || value === "true") keys[index] = "b:1";
+      else if (value === false || value === "false") keys[index] = "b:0";
+      if (keys[index] !== undefined) continue;
+    } else if (options.kind === "date") {
+      const at = viewTime(value) ?? viewDay(value);
+      if (at !== undefined) {
+        keys[index] = `d:${at}`;
+        continue;
+      }
+    }
+    // (Text — and a value its field's type cannot read: by its text.)
+    const string = text(value);
+    const held = texts.get(string);
+    if (held) held.push(index);
+    else texts.set(string, [index]);
+  }
+  if (texts.size) {
+    // (The distinct texts in the collator's order: equal ones stand together — one class.)
+    const collator = collatorOf(options.locale, options.sensitivity ?? "base");
+    const distinct = [...texts.keys()].sort(collator.compare);
+    let first = distinct[0]!;
+    for (const string of distinct) {
+      if (collator.compare(first, string) !== 0) first = string;
+      for (const index of texts.get(string)!) keys[index] = `t:${first}`;
+    }
+  }
+  return keys;
 }
 
 const UNIT_DAYS = { day: 1, week: 7, month: 30, year: 365 } as const;

@@ -127,6 +127,15 @@ export const columnBinding: PrimitiveBinding = {
         ],
         visibleWhen: { key: "allowsSorting", equals: true },
       },
+      // ADR-315 Phase 3 — whether the Table's search reads this Column's field (TanStack
+      //   `enableGlobalFilter`; a composition extension — `d2Provenance.ts`). On unless turned
+      //   off; hiding the Column does not change it (breakdown §4.4).
+      allowsSearching: {
+        kind: "boolean",
+        label: "Searchable",
+        section: "state",
+        default: true,
+      },
       allowsResizing: {
         kind: "boolean",
         label: "Allow Resizing",

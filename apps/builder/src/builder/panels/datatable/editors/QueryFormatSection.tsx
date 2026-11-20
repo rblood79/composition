@@ -254,26 +254,35 @@ export function QueryFormatSection({
               </span>
             </label>
           ))}
-          {(["sortParam", "orderParam"] as const).map((param) => (
-            <label className="datatable-api-query-row" key={param}>
-              <span className="datatable-api-query-op">
-                {dt(`apiQuery_${param}`)}
-              </span>
-              <span className="react-aria-control react-aria-Group">
-                <CommitInput
-                  key={`${param}:${format[param] ?? ""}`}
-                  defaultValue={format[param] ?? ""}
-                  placeholder={param === "sortParam" ? "_sort" : "_order"}
-                  onCommit={(text) => {
-                    const value = text.trim();
-                    if (value === (format[param] ?? "")) return;
-                    const { [param]: _previous, ...rest } = format;
-                    setFormat(value ? { ...rest, [param]: value } : rest);
-                  }}
-                />
-              </span>
-            </label>
-          ))}
+          {/* (ADR-315 Phase 3 — `searchParam`: the parameter a Table's search text goes in.) */}
+          {(["sortParam", "orderParam", "searchParam"] as const).map(
+            (param) => (
+              <label className="datatable-api-query-row" key={param}>
+                <span className="datatable-api-query-op">
+                  {dt(`apiQuery_${param}`)}
+                </span>
+                <span className="react-aria-control react-aria-Group">
+                  <CommitInput
+                    key={`${param}:${format[param] ?? ""}`}
+                    defaultValue={format[param] ?? ""}
+                    placeholder={
+                      param === "sortParam"
+                        ? "_sort"
+                        : param === "orderParam"
+                          ? "_order"
+                          : dt("apiQueryNotSent")
+                    }
+                    onCommit={(text) => {
+                      const value = text.trim();
+                      if (value === (format[param] ?? "")) return;
+                      const { [param]: _previous, ...rest } = format;
+                      setFormat(value ? { ...rest, [param]: value } : rest);
+                    }}
+                  />
+                </span>
+              </label>
+            ),
+          )}
         </fieldset>
       )}
       {format.kind === "suffix" && (

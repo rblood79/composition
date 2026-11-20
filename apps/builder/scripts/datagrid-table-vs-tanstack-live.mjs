@@ -53,6 +53,18 @@ const CHECK_REMEMBER = arg("--check-remember", null);
 //   눌러 (오름 → 내림) 보이는 첫 행들이 「Dept 오름 · 그 안에서 Amount 내림」 인지 — 이 파일의 행
 //   생성기로 따로 계산한 순서와 — 그리고 머리글의 순번 표시 · `aria-sort` 를 확인하고 끝낸다.
 const CHECK_MULTISORT = process.argv.includes("--check-multisort");
+// `--check-search [fuzzy]` (ADR-315 Phase 3): Builder 의 Property 패널에서 Table 의 「Search」
+//   스위치를 켜고 (SearchField 가 표 앞에 놓인다), Publish 에서 그 칸에 글자를 쳐 표의 행이 이
+//   파일의 행 생성기로 따로 계산한 결과와 같은지 본다. 글자마다 입력 → 다음 paint 시간 (Event
+//   Timing) 을 CPU 1x · 4x 에서 잰다. `fuzzy` 는 「Search match」 를 유사로 둔다.
+const CHECK_SEARCH = process.argv.includes("--check-search");
+const SEARCH_FUZZY =
+  CHECK_SEARCH &&
+  process.argv[process.argv.indexOf("--check-search") + 1] === "fuzzy";
+// `--check-facet` (ADR-315 Phase 3): Builder 의 「검색 · 필터」 구획에서 `city` 필드의 RadioGroup 필터를
+//   넣고 (항목 = 그 필드의 후보 값 보기), Publish 에서 항목이 「전체」 + 데이터의 도시 전부 (50 — 옛
+//   표본 상한 20 을 넘는다) 인지, 하나를 고르면 표의 행 수가 이 파일의 행 생성기로 센 값인지 본다.
+const CHECK_FACET = process.argv.includes("--check-facet");
 // `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
 //   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
 const COLUMN_ORIGIN = process.argv.includes("--column-origin")
@@ -424,7 +436,7 @@ try {
       throw new Error("setup failed");
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `${OUT}/builder.png` });
-    if (CHECK_REMEMBER || CHECK_MULTISORT) {
+    if (CHECK_REMEMBER || CHECK_MULTISORT || CHECK_SEARCH || CHECK_FACET) {
       await page.evaluate(() => {
         const ws = window.__COMPOSITION_CATALOG__.workspace;
         const record = [...ws.root.canvasInputs.values()].find(
@@ -496,6 +508,119 @@ try {
             )?.props?.allowsMultiSort?.value ?? null,
         );
         log(`multi-sort switch ${JSON.stringify(results.multiSortSwitch)}`);
+      }
+      if (CHECK_SEARCH) {
+        const rules = () =>
+          page.evaluate(() => {
+            const g =
+              window.__COMPOSITION_CATALOG__.workspace.root.runtime.graph;
+            const project = g.getEntry(g.projectId);
+            return (project?.interactionIds ?? [])
+              .map((id) => g.getEntry(id))
+              .filter((rule) =>
+                (rule?.actions ?? []).some(
+                  (action) => action.capabilityId === "setSearchText",
+                ),
+              )
+              .map((rule) => ({
+                trigger: rule.trigger,
+                owner: g.getEntry(rule.ownerId)?.definitionId ?? null,
+                target: rule.actions[0]?.target ?? null,
+              }));
+          });
+        const toggleSearch = page.getByRole("switch", {
+          name: /^(search|검색)$/i,
+        });
+        results.searchSwitch = { shown: await toggleSearch.count() };
+        if (results.searchSwitch.shown) {
+          // (RAC Switch — 보이는 것은 감싸는 label 이다: 그 한가운데를 누른다.)
+          const label = toggleSearch
+            .first()
+            .locator("xpath=ancestor::label[1]");
+          await label.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(300);
+          const box = await label.boundingBox();
+          results.searchSwitch.box = box;
+          if (box)
+            await page.mouse.click(
+              box.x + box.width / 2,
+              box.y + box.height / 2,
+            );
+          await page.waitForTimeout(1500);
+          results.searchSwitch.checked = await toggleSearch
+            .first()
+            .isChecked()
+            .catch(() => null);
+        }
+        results.searchSwitch.rules = await rules();
+        if (SEARCH_FUZZY) {
+          // (「Search match」 — 값 둘짜리 고르기: 패널의 「Fuzzy」 를 누른다.)
+          const fuzzy = page
+            .locator("[role=radio], [role=option], button, label")
+            .filter({ hasText: /^(Fuzzy|유사)$/ });
+          let through = "panel";
+          if (await fuzzy.count()) {
+            await fuzzy.first().click({ force: true });
+            await page.waitForTimeout(800);
+          } else through = "no control";
+          results.searchSwitch.match = await page.evaluate(
+            () =>
+              window.__COMPOSITION_CATALOG__.workspace.root.runtime.graph.getEntry(
+                "project:node:dg-table",
+              )?.props?.searchMatch?.value ?? null,
+          );
+          results.searchSwitch.matchThrough = through;
+        }
+        log(`search switch ${JSON.stringify(results.searchSwitch)}`);
+      }
+      if (CHECK_FACET) {
+        const add = page.getByRole("button", {
+          name: /^(Add search|검색 추가)$/,
+        });
+        results.facetAdd = { shown: await add.count() };
+        if (results.facetAdd.shown) {
+          await add.first().scrollIntoViewIfNeeded();
+          await add.first().click();
+          await page.waitForTimeout(600);
+          const form = page.locator(".data-view-add-form");
+          // (양식의 고르기 둘 — 필드 · 컨트롤: 각각 눌러 목록에서 고른다.)
+          const pick = async (index, text) => {
+            await form.locator("button").nth(index).click();
+            await page.waitForTimeout(400);
+            const option = page.getByRole("option").filter({ hasText: text });
+            const found = await option.count();
+            if (found) await option.first().click();
+            else await page.keyboard.press("Escape");
+            await page.waitForTimeout(400);
+            return found;
+          };
+          results.facetAdd.field = await pick(0, /^city$/);
+          results.facetAdd.control = await pick(1, /^RadioGroup/);
+          await form.getByRole("button", { name: /^(Create|생성)$/ }).click();
+          await page.waitForTimeout(1500);
+        }
+        // (문서: 새 RadioGroup 이 후보 값 보기 — `facet` — 에 연결됐다.)
+        results.facetAdd.bound = await page.evaluate(() => {
+          const ws = window.__COMPOSITION_CATALOG__.workspace;
+          const g = ws.root.runtime.graph;
+          const out = [];
+          const seen = new Set();
+          for (const record of ws.root.canvasInputs.values()) {
+            if (record.ruleId !== "RadioGroup" || seen.has(record.sourceId))
+              continue;
+            seen.add(record.sourceId);
+            const node = g.getEntry(record.sourceId);
+            const view = node?.binding?.viewId
+              ? g.getEntry(node.binding.viewId)
+              : undefined;
+            out.push({
+              facet: view?.facet === true,
+              groupBy: view?.groupBy ?? null,
+            });
+          }
+          return out;
+        });
+        log(`facet add ${JSON.stringify(results.facetAdd)}`);
       }
       await page.screenshot({ path: `${OUT}/builder-remember.png` });
       await page.waitForTimeout(1500);
@@ -777,6 +902,311 @@ try {
       };
       log(`check-multisort ${JSON.stringify(results.checkMultiSort)}`);
       await pub.screenshot({ path: `${OUT}/check-multisort.png` });
+      throw new Error("load only");
+    }
+
+    if (CHECK_FACET) {
+      const all = makeRows(ROWS);
+      const cities = [...new Set(all.map((row) => row.city))];
+      const radios = () =>
+        pub.evaluate(() =>
+          [...document.querySelectorAll("[role=radiogroup] label")].map(
+            (label) => (label.textContent ?? "").trim(),
+          ),
+        );
+      const rowCount = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const grid = table.matches("[role=grid]")
+            ? table
+            : table.querySelector("[role=grid]");
+          return Number(grid?.getAttribute("aria-rowcount")) - 1;
+        }, OURS);
+      await pub.waitForTimeout(1500);
+      const shown = await radios();
+      const chosen = "City 7";
+      const before = await rowCount();
+      await pub
+        .locator("[role=radiogroup] label")
+        .filter({ hasText: new RegExp(`^${chosen}$`) })
+        .first()
+        .click();
+      await pub.waitForTimeout(1500);
+      const after = await rowCount();
+      const afterRadios = await radios();
+      await pub.screenshot({ path: `${OUT}/check-facet.png` });
+      const expectedRows = all.filter((row) => row.city === chosen).length;
+      results.checkFacet = {
+        add: results.facetAdd,
+        items: shown.length,
+        first: shown.slice(0, 4),
+        expectedItems: cities.length + 1,
+        // (항목의 집합 = 「전체」 를 뺀 도시 전부.)
+        sameValues:
+          JSON.stringify([...shown.slice(1)].sort()) ===
+          JSON.stringify([...cities].sort()),
+        rowsBefore: before,
+        rowsAfter: after,
+        expectedRows,
+        // (자기 선택으로 항목이 줄지 않는다.)
+        itemsAfterChoice: afterRadios.length,
+      };
+      results.checkFacet.pass =
+        results.facetAdd?.bound?.length === 1 &&
+        results.facetAdd.bound[0].facet === true &&
+        shown.length === cities.length + 1 &&
+        results.checkFacet.sameValues &&
+        before === ROWS &&
+        after === expectedRows &&
+        afterRadios.length === shown.length;
+      log(`check-facet ${JSON.stringify(results.checkFacet)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_SEARCH) {
+      const state = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const heads = [...table.querySelectorAll("[role=columnheader]")];
+          const label = (el) =>
+            (el.textContent ?? "").replace(/^\d+/, "").trim();
+          const at = (name) => heads.findIndex((el) => label(el) === name);
+          const cell = (row, index) =>
+            (
+              row.querySelectorAll("[role=rowheader], [role=gridcell]")[index]
+                ?.textContent ?? ""
+            ).trim();
+          const grid = table.matches("[role=grid]")
+            ? table
+            : table.querySelector("[role=grid]");
+          return {
+            rowCount: grid?.getAttribute("aria-rowcount") ?? null,
+            rows: [...table.querySelectorAll("[role=row]")]
+              .filter((row) => !row.querySelector("[role=columnheader]"))
+              .map(
+                (row) =>
+                  `${cell(row, at("Name"))}|${cell(row, at("Dept"))}|${cell(row, at("Amount"))}`,
+              )
+              .filter((text) => text.startsWith("Person"))
+              .slice(0, 8),
+          };
+        }, OURS);
+      // (따로 계산한 결과 — 이 파일의 행 생성기에서: 검색 대상 열 여섯 중 하나라도 글자를 품은 행.
+      //  「포함」 은 대소문자를 접는다.)
+      const all = makeRows(ROWS);
+      const expectedOf = (text) => {
+        const q = text.toLowerCase();
+        const kept = all.filter((row) =>
+          COLUMNS.some((column) =>
+            String(row[column.key]).toLowerCase().includes(q),
+          ),
+        );
+        return {
+          count: kept.length,
+          rows: kept
+            .slice(0, 8)
+            .map((row) => `${row.name}|${row.dept}|${row.amount}`),
+        };
+      };
+      const input = pub.locator('input[type="search"]').first();
+      results.checkSearch = {
+        switch: results.searchSwitch,
+        inputs: await pub.locator('input[type="search"]').count(),
+        opened: await state(),
+        steps: [],
+      };
+      await pub.evaluate(() => {
+        window.__events = [];
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries())
+            if (entry.interactionId)
+              window.__events.push({
+                id: entry.interactionId,
+                name: entry.name,
+                duration: entry.duration,
+              });
+        }).observe({ type: "event", durationThreshold: 16, buffered: false });
+      });
+      const cdp = await context.newCDPSession(pub);
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      const typed = async (text, rate) => {
+        await input.click();
+        await pub.keyboard.press("ControlOrMeta+a");
+        await pub.keyboard.press("Backspace");
+        await pub.waitForTimeout(700);
+        await pub.evaluate(() => (window.__events = []));
+        for (const char of text) {
+          await pub.keyboard.type(char);
+          await pub.waitForTimeout(rate === 4 ? 900 : 450);
+        }
+        await pub.waitForTimeout(600);
+        // (한 글자 = 한 interaction: 그 interaction 의 가장 긴 entry — 입력 → 다음 paint.)
+        const events = await pub.evaluate(() => window.__events);
+        const byId = new Map();
+        for (const event of events)
+          byId.set(event.id, Math.max(byId.get(event.id) ?? 0, event.duration));
+        return [...byId.values()];
+      };
+      if (process.argv.includes("--profile-search")) {
+        // (글자 치기의 CPU profile — self · inclusive 상위 함수.)
+        await typed("Person 1", 1);
+        await cdp.send("Profiler.enable");
+        await cdp.send("Profiler.setSamplingInterval", { interval: 200 });
+        await cdp.send("Profiler.start");
+        const durations = await typed(arg("--profile-text", "Person 12"), 1);
+        const { profile } = await cdp.send("Profiler.stop");
+        const resolve = createFrameResolver(distDir);
+        const parent = new Map();
+        for (const n of profile.nodes)
+          for (const c of n.children ?? []) parent.set(c, n.id);
+        const names = new Map(
+          profile.nodes.map((n) => [
+            n.id,
+            resolve(
+              `${n.callFrame.functionName || "(anon)"} ${n.callFrame.url}:${n.callFrame.lineNumber + 1}`,
+            ),
+          ]),
+        );
+        const self = new Map();
+        const inclusive = new Map();
+        let total = 0;
+        profile.samples.forEach((id, i) => {
+          const dt = (profile.timeDeltas[i] ?? 0) / 1000;
+          const name = names.get(id);
+          if (/^\((idle|program)\)/.test(name)) return;
+          total += dt;
+          self.set(name, (self.get(name) ?? 0) + dt);
+          const seen = new Set();
+          for (let cur = id; cur != null; cur = parent.get(cur)) {
+            const n = names.get(cur);
+            if (seen.has(n)) continue;
+            seen.add(n);
+            inclusive.set(n, (inclusive.get(n) ?? 0) + dt);
+          }
+        });
+        const top = (m, filter, k) =>
+          [...m]
+            .filter(([n]) => filter(n))
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, k)
+            .map(([n, v]) => `${v.toFixed(1).padStart(8)} ms  ${n}`);
+        writeFileSync(
+          `${OUT}/search-profile.txt`,
+          `typing 「Person 12」 (9 keys) ${durations.join(" · ")} ms · sampled ${total.toFixed(1)} ms\n--- self\n${top(self, () => true, 45).join("\n")}\n--- inclusive (src/)\n${top(inclusive, (n) => / src\//.test(n) || /packages\//.test(n), 90).join("\n")}\n`,
+        );
+        // (위에서 아래로 보는 호출 나무 — 전체의 1.5 % 이상인 가지만.)
+        const kids = new Map(
+          profile.nodes.map((n) => [n.id, n.children ?? []]),
+        );
+        const selfOf = new Map();
+        profile.samples.forEach((id, i) =>
+          selfOf.set(
+            id,
+            (selfOf.get(id) ?? 0) + (profile.timeDeltas[i] ?? 0) / 1000,
+          ),
+        );
+        const totalOf = new Map();
+        const sum = (id) => {
+          let t = selfOf.get(id) ?? 0;
+          for (const c of kids.get(id)) t += sum(c);
+          totalOf.set(id, t);
+          return t;
+        };
+        const rootId = profile.nodes[0].id;
+        sum(rootId);
+        const lines = [];
+        const walk = (id, depth) => {
+          const t = totalOf.get(id);
+          if (t < total * 0.015 || depth > 70) return;
+          lines.push(
+            `${" ".repeat(Math.min(depth, 40))}${t.toFixed(1)} (${(selfOf.get(id) ?? 0).toFixed(1)}) ${names.get(id)}`,
+          );
+          for (const c of [...kids.get(id)].sort(
+            (a, b) => totalOf.get(b) - totalOf.get(a),
+          ))
+            walk(c, depth + 1);
+        };
+        walk(rootId, 0);
+        writeFileSync(
+          `${OUT}/search-profile-tree.txt`,
+          lines.join("\n") + "\n",
+        );
+        log(`profile → ${OUT}/search-profile.txt`);
+        throw new Error("load only");
+      }
+      const QUERIES = SEARCH_FUZZY
+        ? ["prsn 12", "dpt 3"]
+        : ["Person 12", "e", "dept 3", "2026-0", "zzz"];
+      for (const rate of [1, 4]) {
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate });
+        for (const text of QUERIES) {
+          const durations = await typed(text, rate);
+          const shown = await state();
+          const expected = SEARCH_FUZZY ? null : expectedOf(text);
+          results.checkSearch.steps.push({
+            rate,
+            text,
+            keys: text.length,
+            durations,
+            shown,
+            ...(expected
+              ? {
+                  expected,
+                  rowsMatch: same(shown.rows, expected.rows),
+                  countMatch:
+                    shown.rowCount === null
+                      ? null
+                      : Number(shown.rowCount) - 1 === expected.count,
+                }
+              : {}),
+          });
+          log(
+            `search cpu${rate}x 「${text}」 ${durations.join(" · ")} ms → ${shown.rows.length} rows shown (rowcount ${shown.rowCount})${expected ? ` · expected ${expected.count} · rows ${same(shown.rows, expected.rows)}` : ""}`,
+          );
+        }
+        if (rate === 1)
+          await pub.screenshot({ path: `${OUT}/check-search.png` });
+      }
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+      // (지우면 모든 행이 돌아온다.)
+      await input.click();
+      await pub.keyboard.press("ControlOrMeta+a");
+      await pub.keyboard.press("Backspace");
+      await pub.waitForTimeout(1200);
+      const cleared = await state();
+      const p95 = (list) => {
+        const sorted = [...list].sort((a, b) => a - b);
+        return sorted.length
+          ? sorted[
+              Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)
+            ]
+          : null;
+      };
+      const of = (rate) =>
+        results.checkSearch.steps
+          .filter((step) => step.rate === rate)
+          .flatMap((step) => step.durations);
+      results.checkSearch.cleared = cleared;
+      results.checkSearch.p95 = { cpu1x: p95(of(1)), cpu4x: p95(of(4)) };
+      results.checkSearch.keystrokes = {
+        cpu1x: of(1).length,
+        cpu4x: of(4).length,
+      };
+      results.checkSearch.pass =
+        results.searchSwitch?.rules?.length === 1 &&
+        results.checkSearch.inputs === 1 &&
+        same(cleared.rows, results.checkSearch.opened.rows) &&
+        (SEARCH_FUZZY
+          ? results.searchSwitch?.match === "fuzzy" &&
+            results.checkSearch.steps.every(
+              (step) => step.shown.rows.length > 0,
+            )
+          : results.checkSearch.steps.every(
+              (step) => step.rowsMatch && step.countMatch !== false,
+            ));
+      log(
+        `check-search ${JSON.stringify({ pass: results.checkSearch.pass, p95: results.checkSearch.p95, keystrokes: results.checkSearch.keystrokes })}`,
+      );
       throw new Error("load only");
     }
 

@@ -194,6 +194,11 @@ export function answerSuffix(rows, params) {
   let out = rows.filter((row) =>
     [...byKey.entries()].every(([key, values]) => {
       if (key.startsWith("_")) return true;
+      // (json-server `q` — the text anywhere in the row: its own search over every field.)
+      if (key === "q")
+        return values.every((v) =>
+          Object.values(row).some((cell) => has(cell ?? "", v)),
+        );
       const match = /^(.*?)(_ne|_like|_gte|_gt|_lte|_lt)?$/.exec(key);
       const field = match[1];
       const cell = row[field];

@@ -8,7 +8,11 @@
  * session holds what its user changed (never saved — ADR-257 · 287), and a Table whose author turned
  * 「Remember state」 on keeps `catalogTableStateRemembered` in the browser (사용자 결정 1, 2026-11-20).
  */
-import type { ViewCondition } from "../document/types";
+import {
+  VIEW_COMPARISONS,
+  type ViewComparison,
+  type ViewCondition,
+} from "../document/types";
 import type { CatalogSortDirection } from "./tableSort";
 
 /** One entry of the sort list — RAC's `SortDescriptor` shape, its column a Column key. */
@@ -21,14 +25,22 @@ export interface CatalogTableCell {
   readonly row: string;
   readonly column: string;
 }
+/**
+ * A column filter: a condition on that Column's field — the comparison, its value and how it
+ * compares (a view condition without its id and fields: the Column names the field). One a column.
+ */
+export interface CatalogTableColumnFilter {
+  readonly column: string;
+  readonly condition: Pick<
+    ViewCondition,
+    "op" | "value" | "sensitivity" | "unit"
+  >;
+}
 export interface CatalogTableState {
   // data slices — translated into the view query (breakdown §4.3)
   readonly sort?: readonly CatalogTableSortItem[];
   readonly search?: string;
-  readonly columnFilters?: readonly {
-    readonly column: string;
-    readonly condition: ViewCondition;
-  }[];
+  readonly columnFilters?: readonly CatalogTableColumnFilter[];
   readonly grouping?: readonly string[];
   // column slices — applied at the resolver's column projection (breakdown §4.5)
   readonly hiddenColumns?: readonly string[];
@@ -93,6 +105,13 @@ export interface CatalogTableShape {
   readonly multiSort?: boolean;
   /** The most columns a multi-column sort holds (absent = no limit). */
   readonly maxSortColumns?: number;
+  /**
+   * `false` = the Table takes no search: its rows' request cannot carry one (breakdown §4.3.1 —
+   * `catalogTableSliceServable`). Absent = it does.
+   */
+  readonly search?: boolean;
+  /** Whether the Table takes a column filter of a comparison (absent = every comparison). */
+  readonly filters?: (op: ViewComparison) => boolean;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -158,16 +177,45 @@ function sliceOf(
       return sort && (sort.length ? sort : null);
     }
     case "search":
-      return typeof value === "string" ? value || null : undefined;
+      // (A Table whose request carries no search holds none.)
+      return typeof value === "string"
+        ? shape.search === false
+          ? null
+          : value || null
+        : undefined;
     case "columnFilters": {
       if (!Array.isArray(value)) return undefined;
-      const out = value.filter(
-        (item): item is { column: string; condition: ViewCondition } =>
-          isRecord(item) &&
-          typeof item.column === "string" &&
-          has(item.column) &&
-          isRecord(item.condition),
-      );
+      const out: CatalogTableColumnFilter[] = [];
+      for (const item of value) {
+        if (!isRecord(item) || !isRecord(item.condition)) return undefined;
+        const { column } = item;
+        const { op, value: compared, sensitivity, unit } = item.condition;
+        if (typeof column !== "string") return undefined;
+        if (!(VIEW_COMPARISONS as readonly unknown[]).includes(op))
+          return undefined;
+        if (!has(column)) continue;
+        // (A comparison the Table's request cannot carry is not held.)
+        if (shape.filters && !shape.filters(op as ViewComparison)) continue;
+        const entry: CatalogTableColumnFilter = {
+          column,
+          condition: {
+            op: op as ViewComparison,
+            ...(compared !== undefined
+              ? { value: compared as ViewCondition["value"] }
+              : {}),
+            ...(typeof sensitivity === "string"
+              ? { sensitivity: sensitivity as ViewCondition["sensitivity"] }
+              : {}),
+            ...(typeof unit === "string"
+              ? { unit: unit as ViewCondition["unit"] }
+              : {}),
+          },
+        };
+        // (A column filtered again: its later condition, at its first place.)
+        const at = out.findIndex((held) => held.column === column);
+        if (at >= 0) out[at] = entry;
+        else out.push(entry);
+      }
       return out.length ? out : null;
     }
     case "grouping":

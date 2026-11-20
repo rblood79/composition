@@ -1425,7 +1425,8 @@ function binding(value: unknown, at: string): void {
     if (
       query.groupBy !== undefined ||
       query.aggregates !== undefined ||
-      query.emptyGroups !== undefined
+      query.emptyGroups !== undefined ||
+      query.facet !== undefined
     )
       invalid("VIEW_AGGREGATE_DERIVED_ONLY", `${at}.view`);
   }
@@ -1459,7 +1460,15 @@ function viewQuery(
   const item = object(value, at);
   exact(
     item,
-    ["where", "groupBy", "emptyGroups", "aggregates", "sort", ...extra],
+    [
+      "where",
+      "groupBy",
+      "emptyGroups",
+      "facet",
+      "aggregates",
+      "sort",
+      ...extra,
+    ],
     at,
   );
   const ids = new Set<string>();
@@ -1555,6 +1564,12 @@ function viewQuery(
   if (item.emptyGroups !== undefined) {
     if (item.emptyGroups !== "all")
       invalid("INVALID_EMPTY_GROUPS", `${at}.emptyGroups`);
+    if (item.groupBy === undefined)
+      invalid("GROUP_BY_REQUIRED", `${at}.groupBy`);
+  }
+  if (item.facet !== undefined) {
+    // (ADR-315 Phase 3 — candidate values are a grouping's: `true`, on a view that groups.)
+    if (item.facet !== true) invalid("INVALID_FACET", `${at}.facet`);
     if (item.groupBy === undefined)
       invalid("GROUP_BY_REQUIRED", `${at}.groupBy`);
   }

@@ -1,5 +1,6 @@
 import {
   CatalogListFilterSection,
+  CatalogTableSearchSwitch,
   CatalogTableSortNotice,
 } from "./CatalogFilterSection";
 import { Settings2 } from "lucide-react";
@@ -676,6 +677,8 @@ function withFilterSections(
       <>
         {sectionExtras?.state}
         <CatalogTableSortNotice key={`sort:${nodeId}`} listId={nodeId} />
+        {/* (ADR-315 Phase 3 — the Table's 「Search」: a SearchField wired to its search text.) */}
+        <CatalogTableSearchSwitch key={`search:${nodeId}`} listId={nodeId} />
       </>
     ),
   };

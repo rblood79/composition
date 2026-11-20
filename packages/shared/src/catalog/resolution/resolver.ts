@@ -95,11 +95,14 @@ import { catalogRowDisplaySize } from "../document/types";
 import { viewSortOrder } from "../../collections/view/sortOrder";
 import {
   catalogRowSortsEqual,
-  type CatalogRowSort,
   type CatalogRowSorts,
 } from "../runtime/tableSort";
+import {
+  catalogTableStateRowSlices,
+  type CatalogRowSlices,
+} from "../runtime/tableRowSlices";
 import type {
-  CatalogTableSortItem,
+  CatalogTableState,
   CatalogTableStateSource,
 } from "../runtime/tableState";
 
@@ -209,11 +212,11 @@ export type CatalogRowSource = ((
   /** ADR-294 — the bound node's instance path (a view reading an origin's input variable). */
   instancePath?: readonly string[],
   /**
-   * A bound Table's header sort (the Preview's Table state `sort`, each Column as its field): the
-   * source orders its rows by it before its display cuts them, and says so
-   * (`CatalogBoundRows.sorted`).
+   * A bound Table's state as its rows read it (the Preview's Table state — its sort · search ·
+   * column filters, each Column as its field): the source filters and orders its rows by it
+   * before its display cuts them, and says which sort they are in (`CatalogBoundRows.sorted`).
    */
-  sort?: CatalogRowSorts,
+  slices?: CatalogRowSlices,
 ) => CatalogBoundRows | undefined) & {
   /**
    * ADR-310 Phase 7 — a paged list's pages (`rowDisplay` `pages`): the count (absent = unknown — a
@@ -2404,9 +2407,10 @@ export function resolveCatalogNode(
       nodeBinding && rows && charted
         ? rows(nodeBinding, "records", node.id, instancePath)
         : undefined;
-    // (A bound Table's header sort — the Preview's: its rows are read sorted, once its header says
-    //  which field the sorted Column shows — below, `tableRowSort`.)
-    const headerSort =
+    // (A bound Table's state — the Preview's: its rows are read filtered · sorted, once its header
+    //  says which field each Column shows — below, `tableRowSlices`. A view sorted by a variable
+    //  keeps that sort: the state's steps aside.)
+    const boundTableState =
       nodeBinding &&
       rows &&
       tableState &&
@@ -2414,18 +2418,25 @@ export function resolveCatalogNode(
       !keyedRows &&
       definition.mode === "composite" &&
       !!definition.templateRootId &&
-      templateTypeName(definition.templateRootId) === "Table" &&
-      !viewSortsByVariable(node.binding, lookupEntry)
-        ? tableState(`${instancePath.join("/")}::${node.id}`)?.sort
+      templateTypeName(definition.templateRootId) === "Table"
+        ? tableState(`${instancePath.join("/")}::${node.id}`)
         : undefined;
+    const headerState: CatalogTableState | undefined =
+      boundTableState && viewSortsByVariable(node.binding, lookupEntry)
+        ? { ...boundTableState, sort: undefined }
+        : boundTableState;
+    const stated =
+      !!headerState?.sort?.length ||
+      !!headerState?.search ||
+      !!headerState?.columnFilters?.length;
     let rowSet =
       nodeBinding && rows && !charted
         ? (keyedRows ??
-          (headerSort?.length
+          (stated
             ? undefined
             : rows(nodeBinding, "items", node.id, instancePath)))
         : undefined;
-    let rowsRead = !headerSort?.length;
+    let rowsRead = !stated;
     if (
       definition.mode === "composite" &&
       definition.templateRootId &&
@@ -2494,13 +2505,14 @@ export function resolveCatalogNode(
                   ? { rowSet: ownedRowing.rowSet }
                   : undefined,
         );
-      // (The sorted Column's field, read from the Table's header — the Table without rows; the
-      //  rows' source sorts by it before its window · page cuts them.)
-      const rowSort = headerSort?.length
-        ? tableRowSort(headerSort, project(undefined))
+      // (Each Column's field, read from the Table's header — the Table without rows; the rows'
+      //  source filters · sorts by them before its window · page cuts them.)
+      const rowSlices = stated
+        ? tableRowSlices(headerState!, project(undefined))
         : undefined;
+      const rowSort = rowSlices?.sorts;
       if (!rowsRead && nodeBinding && rows) {
-        rowSet = rows(nodeBinding, "items", node.id, instancePath, rowSort);
+        rowSet = rows(nodeBinding, "items", node.id, instancePath, rowSlices);
         rowsRead = true;
       }
       // ADR-310 Phase 4: a bound Table repeats its Row template — over the rows sorted and cut
@@ -2679,41 +2691,39 @@ export function resolveCatalogNode(
     return typeof height === "number" && height > 0 ? height : undefined;
   };
   /**
-   * A Table's header sort as its rows read it: each entry's Column as its field, with where that
-   * Column puts its empty values (`sortEmptyValues`). `bare` = the Table without rows — its
-   * header's Columns name them. An entry of no Column is dropped; undefined = none left.
+   * A Table's state as its rows read it (`catalogTableStateRowSlices`): each Column as its field —
+   * the sort with where the Column puts its empty values, the search over the searchable Columns,
+   * the column filters. `bare` = the Table without rows — its header's Columns name them (the
+   * selection column is none of them — `Checkbox[slot=selection]`). Undefined = no slice left.
    */
-  const tableRowSort = (
-    sorts: readonly CatalogTableSortItem[],
+  const tableRowSlices = (
+    state: CatalogTableState,
     bare: ResolvedCatalogNode | undefined,
-  ): CatalogRowSorts | undefined => {
+  ): CatalogRowSlices | undefined => {
     const typeOf = (resolved: ResolvedCatalogNode) =>
       lookupDefinition(resolved.definitionId).name;
     const header = bare?.children.find(
       (child) => typeOf(child) === "TableHeader",
     );
-    const columns = (header?.children ?? []).filter(
-      (child) => typeOf(child) === "Column",
-    );
-    // (The Table state names a Column by its Column key — the field it shows, `resolveTableColumnKey`.)
-    const out = sorts.flatMap((sort): CatalogRowSort[] => {
-      const column = columns.find(
-        (item, index) =>
-          resolveTableColumnKey(item.props, index) === sort.column,
+    // (The Table state names a Column by its Column key — the field it shows,
+    //  `resolveTableColumnKey`: its place among all the header's Columns.)
+    const columns = (header?.children ?? [])
+      .filter((child) => typeOf(child) === "Column")
+      .flatMap((child, index) =>
+        child.children.some(
+          (part) =>
+            typeOf(part) === "Checkbox" && part.props.slot === "selection",
+        )
+          ? []
+          : [
+              {
+                key: resolveTableColumnKey(child.props, index),
+                sortEmptyValues: child.props.sortEmptyValues,
+                allowsSearching: child.props.allowsSearching,
+              },
+            ],
       );
-      return column
-        ? [
-            {
-              key: sort.column,
-              direction: sort.direction,
-              ...(column.props.sortEmptyValues === "first"
-                ? { empty: "first" as const }
-                : {}),
-            },
-          ]
-        : [];
-    });
-    return out.length ? out : undefined;
+    return catalogTableStateRowSlices(state, columns, bare?.props);
   };
   const boundTableRows = (
     rowSet: readonly CatalogBoundRow[],
@@ -2724,7 +2734,7 @@ export function resolveCatalogNode(
     tableId: string,
     /** ADR-284: the node's view sorts by a variable (the Table's own runtime sort steps aside). */
     sortedByVariable: boolean,
-    /** The Table's header sort as its rows read it (`tableRowSort`). */
+    /** The Table's header sort as its rows read it (`tableRowSlices`). */
     rowSort: CatalogRowSorts | undefined,
   ): BoundTableRows => {
     const variableSort = (rowSet as { view?: CatalogViewResultMeta }).view

@@ -1006,6 +1006,10 @@ export const VIEW_COVERAGE: CodeViewCoverage<ViewEntry> = {
     0,
   ),
   sort: at("src/pages/<Page>.tsx", ".toSorted(…)", "view commands", 0),
+  facet: {
+    notInCode:
+      "ADR-315 — a filter's candidate values: its sources skip their conditions on its own field (the code shows the grouping; that rule stays the document's)",
+  },
 };
 
 /* ─── data ────────────────────────────────────────────────────────────────────────────── */

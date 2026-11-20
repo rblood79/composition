@@ -419,6 +419,8 @@ export interface CatalogPreviewInteractionsOptions {
   sortTable?: (tableId: string, sort: CatalogTableSort | undefined) => void;
   /** ADR-315 Phase 2 — a Table's header press (the Column's RAC key · Shift held): the session's. */
   pressTableSort?: (tableId: string, column: string, add: boolean) => void;
+  /** ADR-315 Phase 3 — a Table's search set by a rule (`searchText` runtime prop): the session's. */
+  searchTable?: (tableId: string, text: unknown) => void;
   /**
    * ADR-281 Decision 6 — a page root's `colorScheme` set by a rule: the session shows the theme in
    * that color mode (its CSS variables and `data-theme`, the theme's own variable sets).
@@ -1259,6 +1261,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     this.forwardTemplateBound(id, patch);
     if ("sortDescriptor" in patch)
       this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
+    if ("searchText" in patch) this.options.searchTable?.(id, patch.searchText);
     if ("value" in patch) this.pickPageSize(id, patch.value);
     if (patch.colorScheme === "light" || patch.colorScheme === "dark")
       this.options.colorScheme?.(patch.colorScheme);

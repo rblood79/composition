@@ -807,6 +807,7 @@ class ViewPlanner {
     const {
       groupBy: _groupBy,
       emptyGroups: _emptyGroups,
+      facet: _facet,
       ...kept
     } = others as ViewQuery;
     void _groupBy;
@@ -816,6 +817,8 @@ class ViewPlanner {
       where: { id: current?.where.id ?? "where", op: "and", items },
       ...(groupBy ? { groupBy } : {}),
       ...(spec.groupBy?.all ? { emptyGroups: "all" as const } : {}),
+      // (ADR-315 Phase 3 — candidate values are a grouping's: they go with it.)
+      ...(groupBy && _facet ? { facet: true as const } : {}),
       ...(aggregates ? { aggregates } : {}),
       // (ADR-315 Phase 2 — the code names the first sort entry: the entries after it stay.)
       ...(sort ? { sort: [sort, ...(_sort ?? []).slice(1)] } : {}),

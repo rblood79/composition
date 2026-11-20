@@ -32,7 +32,12 @@ import {
 import { formulaRuntimeSync } from "../../collections/formula/engine";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import { viewSortOrder } from "../../collections/view/sortOrder";
+import {
+  viewRowsPassing,
+  type ViewRowTest,
+} from "../../collections/view/rowFilter";
 import type { CatalogRowSorts } from "./tableSort";
+import type { CatalogRowSlices } from "./tableRowSlices";
 import type {
   CatalogReader,
   DataBindingRef,
@@ -187,12 +192,13 @@ export function catalogBoundRows(
   /** ADR-310 Phase 7 — a page's first row (`[start, limit)` — the rows before it are the earlier pages'). */
   start = 0,
   /**
-   * A bound Table's header sort (the Preview's — its entries in order) — the rows are ordered by
-   * it before `limit` · `start` cut them: 「더 보기」 and a page show the sorted collection's rows.
-   * A view its variable sorts (`query.sort`) keeps its own order, and so do rows the server
-   * answered in that sort (`query.served.sorted` — the request carried it, ADR-315 HC2).
+   * A bound Table's state as its rows read it (the Preview's — its sort entries in order, its
+   * search, its column filters): the rows are filtered and ordered by it before `limit` · `start`
+   * cut them — 「더 보기」 and a page show the filtered · sorted collection's rows. A view its
+   * variable sorts (`query.sort`) keeps its own order, and rows the server answered with the
+   * state in the request (`query.served.state` — ADR-315 HC2) are not filtered · sorted again.
    */
-  sort?: CatalogRowSorts,
+  slices?: CatalogRowSlices,
 ): CatalogBoundRows | undefined {
   const dataBinding = catalogBindingValue(ref);
   const table = dataBinding && resolveBoundCollection(dataBinding, sources);
@@ -332,6 +338,8 @@ export function catalogBoundRows(
     );
   }
   if (view && ref.query?.sort) view = { ...view, sort: ref.query.sort };
+  const sort = slices?.sorts;
+  const { sorts: _sorts, ...unsorted } = slices ?? {};
   let shown = boundRowsOf(
     ref,
     dataBinding,
@@ -339,10 +347,10 @@ export function catalogBoundRows(
     kind,
     limit,
     start,
-    ref.query?.sort || ref.query?.served?.sorted ? undefined : sort,
+    ref.query?.served?.state ? undefined : ref.query?.sort ? unsorted : slices,
   );
   // (The server answered in the Table's sort: the rows say so — their reader does not sort them.)
-  if (shown && sort?.length && ref.query?.served?.sorted)
+  if (shown && sort?.length && ref.query?.served?.state)
     Object.assign(shown, { sorted: sort });
   // (A key with no group in a grouped view: that group has no rows — its counts are 0, a user
   // nothing points at has 0 orders.)
@@ -527,6 +535,112 @@ function sortedRowOrder(
   return order;
 }
 
+/** The source rows a Table's search · filters keep, in its sort's order — a few states per rows. */
+const keptOrders = new WeakMap<
+  readonly unknown[],
+  Map<string, Uint32Array | null>
+>();
+/** A source row's value of a key: the row's own field, or a role's template value. */
+function rowValueOf(
+  sourceRows: readonly unknown[],
+  key: string,
+  roles: Parameters<typeof toItemProjectionRow>[2],
+): (index: number) => unknown {
+  if (ROW_ROLE_VALUES.has(key))
+    return (index) =>
+      buildCollectionRowTemplateItem(
+        toItemProjectionRow(sourceRows[index], index, roles),
+      )[key];
+  return (index) => {
+    const item = sourceRows[index];
+    return item !== null && typeof item === "object" && !Array.isArray(item)
+      ? (item as Record<string, unknown>)[key]
+      : undefined;
+  };
+}
+/**
+ * ADR-315 Phase 3 — the source rows' indexes a Table's search · column filters keep, in `order`
+ * (its sort's — else the rows' own; a fuzzy search without a sort: the best matches first). The
+ * tests are the views' comparisons on row numbers (`viewRowsPassing`): the sort's order is made
+ * once and a search typed on filters it — never a sort a keystroke. Undefined = no test applies.
+ */
+function keptRowOrder(
+  sourceRows: readonly unknown[],
+  order: Uint32Array | undefined,
+  slices: CatalogRowSlices,
+  roles: Parameters<typeof toItemProjectionRow>[2],
+  schema: readonly { id?: string; key: string; type?: string }[] | undefined,
+): Uint32Array | undefined {
+  const { search, filters } = slices;
+  const typeOf = (key: string) => resolveField(schema, key)?.type;
+  const byRole = [
+    ...(search?.keys ?? []),
+    ...(filters ?? []).map((f) => f.key),
+  ].some((key) => ROW_ROLE_VALUES.has(key));
+  const signature = JSON.stringify([
+    search ?? null,
+    filters ?? null,
+    (slices.sorts ?? []).map((sort) => [
+      sort.key,
+      sort.direction,
+      sort.empty ?? "last",
+    ]),
+    [...(search?.keys ?? []), ...(filters ?? []).map((f) => f.key)].map(typeOf),
+    byRole ? (roles ?? null) : 0,
+  ]);
+  let held = keptOrders.get(sourceRows);
+  if (!held) keptOrders.set(sourceRows, (held = new Map()));
+  const before = held.get(signature);
+  if (before !== undefined) return before ?? undefined;
+  const field = (key: string) => {
+    const type = typeOf(key);
+    return {
+      valueAt: rowValueOf(sourceRows, key, roles),
+      ...(type !== undefined ? { type } : {}),
+      // (A role's value depends on the binding's roles: no name to keep a search's misses by.)
+      ...(ROW_ROLE_VALUES.has(key) ? {} : { name: key }),
+    };
+  };
+  const tests: ViewRowTest[] = [
+    ...(filters ?? []).map(({ key, ...condition }): ViewRowTest => ({
+      fields: [field(key)],
+      ...condition,
+    })),
+    ...(search
+      ? [
+          {
+            fields: search.keys.map(field),
+            op: "contains" as const,
+            value: search.text,
+            search: search.match === "fuzzy" ? "fuzzy" : "contains",
+          } satisfies ViewRowTest,
+        ]
+      : []),
+  ];
+  const { pass, rank } = viewRowsPassing(sourceRows.length, tests, {
+    rows: sourceRows,
+  });
+  let kept: Uint32Array | null = null;
+  if (pass) {
+    let count = 0;
+    for (let index = 0; index < pass.length; index += 1) count += pass[index]!;
+    kept = new Uint32Array(count);
+    let at = 0;
+    if (order) {
+      for (let place = 0; place < order.length; place += 1)
+        if (pass[order[place]!]) kept[at++] = order[place]!;
+    } else {
+      for (let index = 0; index < pass.length; index += 1)
+        if (pass[index]) kept[at++] = index;
+      // (No sort: a fuzzy search's rows by their grade — equal grades in the rows' own order.)
+      if (rank) kept.sort((a, b) => rank[a]! - rank[b]! || a - b);
+    }
+  }
+  if (held.size >= 8) held.delete(held.keys().next().value!);
+  held.set(signature, kept);
+  return kept ?? undefined;
+}
+
 function boundRowsOf(
   ref: DataBindingRef,
   dataBinding: DataBindingValue,
@@ -534,10 +648,11 @@ function boundRowsOf(
   kind: "items" | "records",
   limit: number,
   start = 0,
-  sorts?: CatalogRowSorts,
+  slices?: CatalogRowSlices,
 ): CatalogBoundRows | undefined {
   // (No entry is no sort.)
-  const sort = sorts?.length ? sorts : undefined;
+  const sort = slices?.sorts?.length ? slices.sorts : undefined;
+  const tested = !!slices?.search || !!slices?.filters?.length;
   if (kind === "records")
     return readDataBindingRows(dataBinding, collections).map((item, index) => ({
       key: String(index),
@@ -574,16 +689,20 @@ function boundRowsOf(
   // (A sorted Table: the source rows in the sort's order — the rows `limit` takes are the first of
   //  the sorted collection, not the first rows sorted among themselves.)
   const sourceRows =
-    sort && !parentKey && ref.key === undefined
+    (sort || tested) && !parentKey && ref.key === undefined
       ? readDataBindingRows(dataBinding, collections)
       : undefined;
-  const order =
+  const sortOrder =
     sourceRows && sort
       ? sortedRowOrder(sourceRows, sort, roles, bound?.schema)
       : undefined;
-  const taken = sourceRows
-    ? Math.min(Math.max(0, limit), sourceRows.length)
-    : 0;
+  // (The Table's search · filters keep some of the rows: the numbers of those, in that order.)
+  const order =
+    sourceRows && tested
+      ? (keptRowOrder(sourceRows, sortOrder, slices!, roles, bound?.schema) ??
+        sortOrder)
+      : sortOrder;
+  const taken = order ? Math.min(Math.max(0, limit), order.length) : 0;
   const projected =
     sourceRows && order
       ? Array.from({ length: taken }, (_, place) =>
@@ -617,11 +736,11 @@ function boundRowsOf(
           const children = node.children.map(visit);
           return children.length ? { ...row, children } : row;
         })
-    : sourceRows && order && taken === sourceRows.length
+    : sourceRows && order && taken === order.length
       ? // (Every row is shown: a duplicate key's index mark goes by the source order — the same
         //  row keeps the same key under every sort.)
         (() => {
-          const bound = new Array<CatalogBoundRow>(taken);
+          const bound = new Array<CatalogBoundRow>(sourceRows.length);
           for (const row of [...projected].sort(
             (a, b) => a.rowIndex - b.rowIndex,
           ))
@@ -631,7 +750,7 @@ function boundRowsOf(
       : projected.map((row) => boundRow(row, childRows(row.item)));
   /** (The rows a sort ordered say so — their reader does not sort them again.) */
   const marked = (out: CatalogBoundRows): CatalogBoundRows =>
-    sort && order ? Object.assign(out, { sorted: sort }) : out;
+    sort && sortOrder ? Object.assign(out, { sorted: sort }) : out;
   if (ref.key !== undefined) {
     const item = rows.find((row) => row.key === ref.key);
     return [item ?? { key: ref.key, values: {} }];
@@ -641,6 +760,7 @@ function boundRowsOf(
     rows.length < limit
       ? rows.length
       : (flatRoots?.length ??
+        order?.length ??
         readDataBindingRows(dataBinding, collections).length);
   // (A page: its rows, with the collection's count — the Pagination's page count.)
   if (start > 0)

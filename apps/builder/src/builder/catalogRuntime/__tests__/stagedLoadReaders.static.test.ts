@@ -53,9 +53,9 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
   [
     "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",
     [
-      1,
+      2,
       "P",
-      "ADR-315 remembered Table states — looked up after a root is built and after `fillShown` (`restoreDue`): another page's Tables when that page is shown",
+      "ADR-315 remembered Table states · a Table's authored search text (`startTableSearches`) — looked up after a root is built and after `fillShown` (`restoreDue`): another page's Tables when that page is shown",
     ],
   ],
   [

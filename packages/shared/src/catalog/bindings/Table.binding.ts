@@ -113,6 +113,28 @@ export const tableBinding: PrimitiveBinding = {
         label: "Allow unsorted",
         section: "state",
       },
+      // ADR-315 Phase 3 — the Table's search (breakdown §6 「Search」; composition extensions —
+      //   `d2Provenance.ts`). `searchText`: the text its rows are searched by — every searchable
+      //   Column's field (`allowsSearching`), TanStack `globalFilter`. The authored value is what
+      //   the Table starts with; a rule's 「Search text」 Do (a SearchField's `onChange`) writes
+      //   the Preview's — the Table state `search`, never the document. `searchMatch`: 「포함」 or
+      //   graded fuzzy matches (사용자 결정 2 — 표마다 선택, `collections/view/fuzzy.ts`); a Table
+      //   whose server answers its search is 「포함」 there.
+      searchText: {
+        kind: "string",
+        label: "Search text",
+        section: "state",
+      },
+      searchMatch: {
+        kind: "enum",
+        label: "Search match",
+        section: "state",
+        default: "contains",
+        options: [
+          { value: "contains", label: "Contains" },
+          { value: "fuzzy", label: "Fuzzy" },
+        ],
+      },
       // ADR-257 Phase 3 — S2 `selectionStyle` (default checkbox): highlight selects a row by its
       //   background (RAC `selectionBehavior="replace"`) and the selection checkbox column is
       //   not there (`catalogTableSelectionPartHidden`).

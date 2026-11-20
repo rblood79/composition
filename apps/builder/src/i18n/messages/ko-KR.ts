@@ -2375,6 +2375,7 @@ const catalog: TranslationKeys = {
     apiQueryNotSent: "보내지 않음",
     apiQuery_sortParam: "정렬 필드",
     apiQuery_orderParam: "정렬 방향",
+    apiQuery_searchParam: "표 검색어",
     apiQueryMultiSort: "여러 정렬 받기 (쉼표 목록)",
     apiQueryViews: "이 collection 을 읽는 데이터 보기",
     apiQueryCarried: "조건 전부를 보낸다",
@@ -2645,6 +2646,12 @@ const catalog: TranslationKeys = {
       "이 endpoint 는 정렬을 하나만 받습니다 — 표는 한 열로 정렬됩니다. 여러 열로 정렬하려면 endpoint 조회 형식에서 「여러 정렬 받기」 를 켜세요.",
     multiSortRefused_sortTemplate:
       "이 endpoint 는 자체 sortDescriptor 템플릿으로 한 열만 정렬합니다 — 표는 한 열로 정렬됩니다.",
+    tableSearch: "검색",
+    tableSearchLabel: "검색",
+    tableSearchRefused_suffixNoSearch:
+      "이 endpoint 는 검색어를 받지 않습니다 — 표 검색이 동작하지 않습니다. endpoint 조회 형식의 「표 검색어」 에 파라미터 이름을 적으세요.",
+    tableSearchFuzzyServed:
+      "이 표는 서버가 검색합니다 — 「유사」 는 서버의 「포함」 검색으로 동작합니다.",
     section: "검색 · 필터",
     add: "검색 추가",
     field: "필드",
@@ -3190,6 +3197,11 @@ const semanticLabels: Record<string, string> = {
   "properties.allowUnsorted": "정렬 해제 허용",
   "properties.sortFirstDirection": "첫 정렬 방향",
   "properties.sortEmptyValues": "빈 값 위치",
+  "properties.searchText": "검색어",
+  "properties.searchMatch": "검색 방식",
+  "properties.searchContains": "포함",
+  "properties.searchFuzzy": "유사",
+  "properties.searchable": "검색 대상",
   "properties.ascending": "오름차순",
   "properties.descending": "내림차순",
   "properties.last": "뒤",

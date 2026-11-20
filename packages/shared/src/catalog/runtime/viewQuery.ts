@@ -41,10 +41,11 @@ export interface CatalogRowQuery {
     /** ADR-291 Decision 5 — the answer's shape: the view's rows, or its grouped result (`group` sent). */
     mode?: "rows" | "aggregate";
     /**
-     * ADR-315 Phase 2 — the request carried the bound Table's sort (the query's last view holds
-     * it): the answer is in that order and is not sorted here again.
+     * ADR-315 Phase 2 · 3 — the request carried the bound Table's state (the query's last view
+     * holds its sort · search · column filters): the answer is those rows in that order and is
+     * not filtered · sorted here again.
      */
-    sorted?: true;
+    state?: true;
   };
   /** The session's load of an API collection the view runs on locally: `complete` = no further page. */
   loaded?: { complete: boolean };
@@ -73,12 +74,21 @@ export function catalogCountOnlyView(query: ViewQuery): boolean {
   );
 }
 
-/** A view chain without its trailing count-only views (the part a request can carry). */
+/**
+ * A view chain without its trailing count-only views and candidate-values views (ADR-315 Phase 3
+ * — `facet`: a filter control's items read the list's own request, never a second one) — the part
+ * a request can carry.
+ */
 export function catalogCountlessViews(
   queries: readonly ViewQuery[],
 ): readonly ViewQuery[] {
   let end = queries.length;
-  while (end > 1 && catalogCountOnlyView(queries[end - 1]!)) end -= 1;
+  while (
+    end > 1 &&
+    (catalogCountOnlyView(queries[end - 1]!) ||
+      queries[end - 1]!.facet === true)
+  )
+    end -= 1;
   return queries.slice(0, end);
 }
 
@@ -131,11 +141,12 @@ export function catalogRowQueryKey(
 ): string {
   const queries = query.queries.slice(0, depth);
   return JSON.stringify([
-    queries.map(({ where, sort, groupBy, aggregates }) => ({
+    queries.map(({ where, sort, groupBy, aggregates, facet }) => ({
       where,
       sort,
       groupBy,
       aggregates,
+      facet,
     })),
     catalogViewReferences(queries)
       .sort()

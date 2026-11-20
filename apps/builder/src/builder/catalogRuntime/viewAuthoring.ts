@@ -493,6 +493,13 @@ export interface CatalogFilterPlan {
   readonly reuseVariableId?:
     EntryId<"stateVariable"> | `data:variable:${string}`;
   readonly label?: string;
+  /**
+   * ADR-315 Phase 3 (Decision 4) — a new picker's items are the field's candidate values, read
+   * from the data as it is (a view of the list's — `facet`): every value, each among the rows the
+   * list's other conditions keep. `viewName` names the list's view when it is promoted to be that
+   * view's source. Absent = the items are made now from `values` (at most 20 — a sample).
+   */
+  readonly liveItems?: { readonly viewName: string };
 }
 
 /** What one 「검색 추가」 made (the confirmation screen reads them). */
@@ -842,9 +849,58 @@ export function catalogFilterCommand(
         newId,
       });
     });
+    // (Live items: the picker keeps 「전체」 — a single picker's — or one sample value, the item
+    //  its rows repeat; the values themselves come from the data.)
+    const live = !!plan.liveItems && !!spec.items;
     steps.push(() =>
-      replaceItems(controlId, spec, plan.values, plan.allLabel, newId),
+      replaceItems(
+        controlId,
+        spec,
+        live ? (spec.items!.all ? [] : plan.values.slice(0, 1)) : plan.values,
+        plan.allLabel,
+        newId,
+      ),
     );
+    if (live) {
+      const source = derivedSource(
+        graph,
+        { listId: plan.listId, viewName: plan.liveItems!.viewName },
+        newId,
+      );
+      const viewId = newId("view") as EntryId<"view">;
+      const field = groupField(plan.field);
+      if (source.step) steps.push(source.step);
+      steps.push(() =>
+        addView({
+          entry: derivedView(
+            viewId,
+            `${plan.liveItems!.viewName} · ${plan.field.key}`,
+            source.sourceId,
+            {
+              where: EMPTY_WHERE,
+              groupBy: [catalogFieldPath(plan.field)],
+              aggregates: COUNT,
+              facet: true,
+              sort: [{ field: [field], direction: "ascending" }],
+            },
+          ),
+        }),
+      );
+      // (A single picker: 「전체」 stays a fixed item and a copy of it repeats after it — its text
+      //  is a sample, the rows read the field. Else the one sample item is the template.)
+      steps.push(() =>
+        catalogBindingCommand(
+          [{ kind: "node", id: controlId }],
+          {
+            collectionId: source.binding.collectionId,
+            fieldMap: { value: field, label: field },
+            viewId,
+          },
+          newId,
+          spec.items!.all ? "keep" : "template",
+        ),
+      );
+    }
   }
   steps.push((stage) => {
     if (reuse) return undefined;
@@ -939,6 +995,137 @@ export function catalogFilterCommand(
       conditionId,
     },
   };
+}
+
+/** ADR-315 Phase 3 — the Do a search control's rule runs on its Table (`Table.searchText`'s). */
+export const CATALOG_TABLE_SEARCH_DO = "setSearchText";
+
+/** The rules that write a Table's search: a control's rule whose Do is the Table's search text. */
+export function catalogTableSearchRules(
+  reader: CatalogReader,
+  tableId: NodeId,
+): InteractionEntry[] {
+  const out: InteractionEntry[] = [];
+  for (const id of reader.referrersOf(tableId)) {
+    const rule = reader.getEntry(id);
+    if (
+      rule?.kind === "interaction" &&
+      catalogActionsDeep(rule.actions).some(
+        (action) =>
+          action.opcode === "capability" &&
+          action.capabilityId === CATALOG_TABLE_SEARCH_DO &&
+          "nodeId" in action.target &&
+          action.target.nodeId === tableId,
+      )
+    )
+      out.push(rule);
+  }
+  return out;
+}
+
+/**
+ * ADR-315 Phase 3 — the Table's 「Search」 switch on (breakdown §5.2 · §6): a SearchField placed
+ * before the Table with one rule — its text change sets the Table's search text (the Table state
+ * `search` in the Preview; no variable, no view condition: the Table searches its own searchable
+ * Columns). `created` holds the ids it makes.
+ */
+export function catalogTableSearchCommand(
+  graph: Pick<CatalogGraph, "library"> & CatalogReader,
+  plan: { readonly tableId: NodeId; readonly label: string },
+  newId: NewId,
+): {
+  command: CatalogCommand;
+  created: { controlId: NodeId; ruleId: EntryId<"interaction"> };
+} {
+  const spec = catalogFilterControl("SearchField");
+  if (!spec) throw new Error("NOT_A_FILTER_CONTROL: SearchField");
+  const controlId = newId("node") as NodeId;
+  const owner = { ownerId: controlId };
+  const rule = catalogNewInteraction(
+    owner,
+    spec.trigger,
+    {
+      opcode: "capability",
+      target: { nodeId: plan.tableId },
+      capabilityId: CATALOG_TABLE_SEARCH_DO,
+      value: `!event.${spec.arg}`,
+    },
+    newId,
+  );
+  const command = sequence("Add search", [
+    (stage) => {
+      const parent = catalogParentOfNode(stage, plan.tableId);
+      if (!parent) throw new Error(`NO_PARENT: ${plan.tableId}`);
+      const definitionId = catalogPaletteDefinitionId(stage.library, spec.type);
+      const accepts = itemAccepts(stage, definitionId);
+      const entry: NodeEntry = {
+        kind: "node",
+        id: controlId,
+        definitionId,
+        children: [],
+        props: definitionId.startsWith("lib:")
+          ? catalogCreationProps(
+              stage,
+              definitionId as LibraryDefinitionId,
+              spec.type,
+              "label" in accepts ? { label: plan.label } : {},
+            )
+          : {},
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      };
+      return insertNodes({
+        parent,
+        index: childIdsOf(stage, parent).indexOf(plan.tableId),
+        entries: [entry],
+        rootIds: [controlId],
+        newId,
+      });
+    },
+    (stage) =>
+      catalogInteractionsCommand(
+        owner,
+        [...catalogInteractionsOf(stage as never, owner), rule],
+        "Rules",
+      ),
+  ]);
+  void graph;
+  return { command, created: { controlId, ruleId: rule.id } };
+}
+
+/**
+ * The Table's 「Search」 switch off: the rules that write its search go, and with each the control
+ * that held it when that is a SearchField with no other rule (the one the switch placed — a
+ * control the author gave more to do stays, without the rule).
+ */
+export function catalogRemoveTableSearchCommand(
+  reader: CatalogReader,
+  tableId: NodeId,
+): CatalogCommand {
+  const rules = catalogTableSearchRules(reader, tableId);
+  const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [];
+  for (const rule of rules) {
+    const owner = {
+      ownerId: rule.ownerId,
+      ...(rule.address ? { address: rule.address } : {}),
+    };
+    steps.push((stage) => {
+      const left = catalogInteractionsOf(stage as never, owner as never).filter(
+        (entry) => entry.id !== rule.id,
+      );
+      const control = stage.getEntry(rule.ownerId);
+      const placed =
+        !rule.address &&
+        !left.length &&
+        control?.kind === "node" &&
+        typeOf(stage, control.definitionId) === "SearchField";
+      return placed
+        ? removeTargets({ targets: [{ kind: "node", id: control.id }] })
+        : catalogInteractionsCommand(owner as never, left, "Rules");
+    });
+  }
+  return sequence("Remove search", steps);
 }
 
 /**

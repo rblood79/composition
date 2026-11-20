@@ -50,6 +50,9 @@ import {
   catalogReferenceValueCommand,
   catalogResultCountCommand,
   catalogRemoveFilterCondition,
+  catalogRemoveTableSearchCommand,
+  catalogTableSearchCommand,
+  catalogTableSearchRules,
   catalogDefaultFilterKind,
   catalogJoinSharedView,
   catalogShareView,
@@ -66,6 +69,7 @@ import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { catalogTableSliceServable } from "../../../../../../../packages/shared/src/catalog/runtime/tableStateQuery";
 import { useCollections, useDataStore } from "../../../stores/data";
 import { catalogBindingViews } from "../../../../../../../packages/shared/src/catalog/runtime/viewQuery";
@@ -174,6 +178,86 @@ export function CatalogTableSortNotice({ listId }: { listId: NodeId }) {
     <p className="datatable-api-hint" role="status">
       {t(`dataView.multiSortRefused_${servable.reason}`)}
     </p>
+  );
+}
+
+/**
+ * ADR-315 Phase 3 — a bound Table's 「Search」 switch (breakdown §5.2 · §6 — a feature by name:
+ * on places a SearchField before the Table, its text the Table's search over its searchable
+ * Columns; off takes the rule — and the SearchField it placed — away). On a Table whose rows'
+ * request carries no search the switch says why the search does not run, and a 「Fuzzy」 match the
+ * server answers says it is the server's 「Contains」 — the session's own judgment
+ * (`catalogTableSliceServable`), so the panel and the Preview agree.
+ */
+export function CatalogTableSearchSwitch({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const table = useBoundTable(listId);
+  const endpoints = useDataStore((state) => state.apiEndpoints);
+  const graph = workspace.runtime.graph;
+  const read = useMemo(() => {
+    void revision;
+    const node = graph.getEntry(listId);
+    if (node?.kind !== "node") return undefined;
+    let type = "";
+    try {
+      type = definitionTypeName(graph, node.definitionId);
+    } catch {
+      return undefined;
+    }
+    if (type !== "Table") return undefined;
+    const match = node.props.searchMatch as { value?: unknown } | undefined;
+    return {
+      on: catalogTableSearchRules(graph, listId).length > 0,
+      fuzzy: match?.value === "fuzzy",
+    };
+  }, [graph, listId, revision]);
+  if (!read || !table) return null;
+  const endpoint =
+    table.useMockData === false
+      ? [...endpoints.values()].find((item) =>
+          item.targetCollectionId
+            ? item.targetCollectionId === table.id
+            : item.targetCollection === table.name,
+        )
+      : undefined;
+  const format = endpoint?.querySerialization;
+  const servable = catalogTableSliceServable(
+    { remote: !!endpoint, ...(format ? { format } : {}) },
+    "search",
+  );
+  // (The server answers the search where the request carries the Table's view.)
+  const served = !!format && format.kind !== "none";
+  return (
+    <>
+      <PropertySwitch
+        label={t("dataView.tableSearch")}
+        isSelected={read.on}
+        onChange={(selected) => {
+          if (selected === read.on) return;
+          run(
+            selected
+              ? catalogTableSearchCommand(
+                  graph,
+                  { tableId: listId, label: t("dataView.tableSearchLabel") },
+                  workspace.newId,
+                ).command
+              : catalogRemoveTableSearchCommand(graph, listId),
+          );
+        }}
+      />
+      {servable.accepts === "none" ? (
+        <p className="datatable-api-hint" role="status">
+          {t(`dataView.tableSearchRefused_${servable.reason}`)}
+        </p>
+      ) : read.fuzzy && served ? (
+        <p className="datatable-api-hint" role="status">
+          {t("dataView.tableSearchFuzzyServed")}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -502,6 +586,19 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
         values: catalogFieldValues(rowsOf(table), field),
         allLabel: t("dataView.allOption"),
         label: t("dataView.add"),
+        // (ADR-315 Phase 3 — a new picker's items are the field's candidate values, read from
+        //  the data: every value, not the 20 sampled here.)
+        liveItems: {
+          viewName: t("dataView.viewName", {
+            list:
+              ((): string => {
+                const node = workspace.runtime.graph.getEntry(listId);
+                return (node?.kind === "node" && node.name) || "";
+              })() ||
+              table?.name ||
+              "",
+          }),
+        },
       },
       workspace.newId,
     );

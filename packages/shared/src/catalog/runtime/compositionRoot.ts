@@ -2277,6 +2277,8 @@ export class CatalogCompositionRoot {
       >
     | undefined;
   private rowsKeptIds: Set<string> | undefined;
+  /** The rows being kept are read again (`reorderRows` — another order · other rows, the same data). */
+  private rowsReordered = false;
   /** The rows each list binding read last (owner · kind · path) — a window move reads these. */
   private readonly rowsRead = new Map<
     string,
@@ -2466,7 +2468,10 @@ export class CatalogCompositionRoot {
             // (A window move reads nothing again — `moveRowWindow`: the rows are the ones its
             //  records were resolved from. Reading 10,000 rows took 2.6 ms of each move, live.)
             const read = `${ownerId}|${kind}|${instancePath?.join("/")}`;
-            const held = this.rowsKept ? this.rowsRead.get(read) : undefined;
+            const held =
+              this.rowsKept && !this.rowsReordered
+                ? this.rowsRead.get(read)
+                : undefined;
             if (held) return held;
             const result = rows(binding, kind, ownerId, instancePath, sort);
             if (result) this.rowsRead.set(read, result);
@@ -2961,6 +2966,23 @@ export class CatalogCompositionRoot {
   moveRowWindow(ids: ReadonlySet<string>): unknown[] {
     return ids.size ? (this.refreshSources(ids, true) ?? []) : [];
   }
+  /**
+   * ADR-315 Phase 3 — which rows of `ids` (document node ids) show and their order changed (a
+   * Table's sort · search · column filters), no row's own data: a windowed Table's row that stays
+   * at its place (the same key at the same index) keeps its records, as in a window move. Live
+   * (10,000 rows, 2026-11-20) a search keystroke resolved the window's 60 rows again whether the
+   * result changed or not — 86 ms of CPU a key, the filter itself 6. A row whose data changed is
+   * not this: `refreshRows` · `refreshNodes`.
+   */
+  reorderRows(ids: ReadonlySet<string>): unknown[] {
+    if (!ids.size) return [];
+    this.rowsReordered = true;
+    try {
+      return this.refreshSources(ids, true) ?? [];
+    } finally {
+      this.rowsReordered = false;
+    }
+  }
   /** The window of `owner` — in a window move, with the rows its body already holds (`kept`). */
   private readonly rowWindowOf: CatalogRowWindowSource = (owner) => {
     const window = this.rowWindow?.(owner);
@@ -2978,6 +3000,29 @@ export class CatalogCompositionRoot {
         }
       : window;
   };
+  /**
+   * A record's row window as it holds it when the rows are the same (the same owner · start · keys
+   * in order): every read of the rows makes a new key list, and a new list is another collection
+   * to RAC — it draws every row in view again. Live (10,000 rows, 2026-11-20): a search keystroke
+   * that kept every row cost 35 ms of React for that.
+   */
+  private heldRowWindow(
+    id: string,
+    window: CatalogRowWindowKeys,
+  ): CatalogRowWindowKeys {
+    const held = this.records.get(id)?.rowWindow;
+    if (
+      !held ||
+      held.owner !== window.owner ||
+      held.start !== window.start ||
+      held.keys.length !== window.keys.length
+    )
+      return window;
+    if (held.keys !== window.keys)
+      for (let index = 0; index < held.keys.length; index += 1)
+        if (held.keys[index] !== window.keys[index]) return window;
+    return held;
+  }
   private rowsHeld(owner: string) {
     const kept = this.rowsKept;
     if (!kept) return undefined;
@@ -6801,7 +6846,12 @@ export class CatalogCompositionRoot {
           }
         : {}),
       ...((target.rowWindow ?? top.rowWindow)
-        ? { rowWindow: target.rowWindow ?? top.rowWindow }
+        ? {
+            rowWindow: this.heldRowWindow(
+              id,
+              (target.rowWindow ?? top.rowWindow)!,
+            ),
+          }
         : {}),
       instancePath: top.instancePath,
       ...(layers.length > 1

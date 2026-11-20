@@ -81,7 +81,12 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   ColorField: { isQuiet: "v3" },
   ColorSwatchPicker: { layout: "rac", isDisabled: "composition" },
   // ADR-315 Phase 2 — a sortable Column's first direction · its empty values' place.
-  Column: { sortFirstDirection: "composition", sortEmptyValues: "composition" },
+  // ADR-315 Phase 3 — whether the Table's search reads the Column.
+  Column: {
+    sortFirstDirection: "composition",
+    sortEmptyValues: "composition",
+    allowsSearching: "composition",
+  },
   // RAC ComboBoxState.open/close에 연결하는 저작 상태. RAC ComboBox props에는 없다.
   ComboBox: {
     isQuiet: "v3",
@@ -122,6 +127,9 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     allowsMultiSort: "composition",
     maxSortColumns: "composition",
     allowsUnsorted: "composition",
+    // ADR-315 Phase 3 — the search text and how it matches (포함 · 유사).
+    searchText: "composition",
+    searchMatch: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },
   TextArea: { isQuiet: "v3", rows: "composition" },
