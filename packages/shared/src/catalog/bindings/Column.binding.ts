@@ -196,6 +196,27 @@ export const columnBinding: PrimitiveBinding = {
         section: "state",
         editorHidden: true,
       },
+      // ADR-315 Phase 4 증분 4d — the Column's pinned side · filter value as a rule's Do writes them
+      //   (`concepts/tableColumns.ts` — 「Pin to start」 · 「Set column filter」 …): the Preview's
+      //   Table state, never the document. Do-only (`editorHidden`) — the author's start values
+      //   are 「Pinned」 (`defaultPinned`) and the view's conditions.
+      pinned: {
+        kind: "enum",
+        label: "Pinned",
+        section: "state",
+        editorHidden: true,
+        options: [
+          { value: "none", label: "None" },
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+      },
+      filterValue: {
+        kind: "string",
+        label: "Filter value",
+        section: "state",
+        editorHidden: true,
+      },
       size: {
         kind: "size",
         label: "Size",

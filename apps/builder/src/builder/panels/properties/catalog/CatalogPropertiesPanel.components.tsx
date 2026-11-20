@@ -1,5 +1,6 @@
 import {
   CatalogListFilterSection,
+  CatalogTableColumnsSwitch,
   CatalogTableSearchSwitch,
   CatalogTableSortNotice,
 } from "./CatalogFilterSection";
@@ -662,7 +663,22 @@ function withFilterSections(
   nodeId: NodeId | undefined,
   isBound: boolean,
 ): Partial<Record<string, ReactNode>> | undefined {
-  if (!nodeId || !isBound) return sectionExtras;
+  if (!nodeId) return sectionExtras;
+  // (ADR-315 Phase 4 — the Table's 「Column visibility menu」: a Menu of its columns — any Table,
+  //  bound or not: the columns are its authored Columns.)
+  const columns = (
+    <CatalogTableColumnsSwitch key={`columns:${nodeId}`} listId={nodeId} />
+  );
+  if (!isBound)
+    return {
+      ...sectionExtras,
+      state: (
+        <>
+          {sectionExtras?.state}
+          {columns}
+        </>
+      ),
+    };
   return {
     ...sectionExtras,
     collection: (
@@ -679,6 +695,7 @@ function withFilterSections(
         <CatalogTableSortNotice key={`sort:${nodeId}`} listId={nodeId} />
         {/* (ADR-315 Phase 3 — the Table's 「Search」: a SearchField wired to its search text.) */}
         <CatalogTableSearchSwitch key={`search:${nodeId}`} listId={nodeId} />
+        {columns}
       </>
     ),
   };

@@ -96,6 +96,21 @@ export function catalogPreviewRuntime(
     setTableColumnFilter: (tableId, racKey, condition) =>
       session.setTableColumnFilter(tableId, racKey, condition),
     searchTable: (tableId, text) => session.searchTable(tableId, text),
+    chooseTableColumns: (menuId, keys) =>
+      session.chooseTableColumns(menuId, keys),
+    tableColumnState: {
+      read: (id, prop) =>
+        prop === "visibleColumns"
+          ? session.tableVisibleColumns(id)
+          : prop === "pinned"
+            ? session.tableColumnPinned(id)
+            : session.tableColumnFilterValue(id),
+      write: (id, prop, value) => {
+        if (prop === "visibleColumns") session.showTableColumns(id, value);
+        else if (prop === "pinned") session.pinTableColumn(id, value);
+        else session.filterTableColumn(id, value);
+      },
+    },
     colorScheme: (mode) => session.setColorScheme(mode),
     // (A submit in flight is what a `reload` in the same event waits for — `await fetch; reload()`.)
     submitEndpoint: (endpointId, body) =>

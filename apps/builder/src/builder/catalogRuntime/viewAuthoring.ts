@@ -511,7 +511,7 @@ export interface CatalogFilterCreated {
 }
 
 /** Several commands as one, each planning against the earlier ones' records. */
-function sequence(
+export function sequence(
   label: string,
   steps: readonly ((stage: CatalogReader) => CatalogCommand | undefined)[],
   selectAfter?: readonly NodeId[],
@@ -539,7 +539,7 @@ const typeOf = (reader: CatalogReader, definitionId: string): string => {
 };
 
 /** A node parent's child list (to place the control before the list). */
-function childIdsOf(
+export function childIdsOf(
   reader: CatalogReader,
   parent: NodeParent,
 ): readonly NodeId[] {

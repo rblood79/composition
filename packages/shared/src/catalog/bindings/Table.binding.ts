@@ -144,6 +144,16 @@ export const tableBinding: PrimitiveBinding = {
         label: "Reorder columns",
         section: "state",
       },
+      // ADR-315 Phase 4 증분 4d — the columns the Table shows (Column keys) as a rule's Do writes
+      //   them (「Show column」 · 「Hide column」 · 「Set shown columns」 — `concepts/tableColumns.ts`):
+      //   the Preview's Table state `hiddenColumns`, never the document. Do-only (`editorHidden`) —
+      //   the author's start is each Column's 「Hidden by default」.
+      visibleColumns: {
+        editorHidden: true,
+        kind: "selection-keys",
+        label: "Shown columns",
+        section: "state",
+      },
       // ADR-257 Phase 3 — S2 `selectionStyle` (default checkbox): highlight selects a row by its
       //   background (RAC `selectionBehavior="replace"`) and the selection checkbox column is
       //   not there (`catalogTableSelectionPartHidden`).

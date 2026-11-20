@@ -24,6 +24,9 @@ const TESTS = [
   "../../../../preview/catalog/__tests__/adr280Form.test.tsx",
   // ADR-281 — a page root's · frame's inherited props (the Provider render + guard rows).
   "../../../../preview/catalog/__tests__/adr281Inheritance.test.tsx",
+  // ADR-315 Phase 4 — the Table state's column Do (a Table's shown columns · a Column's pin ·
+  // filter): the rendered header and rows, through the session (no record override).
+  "../../../../preview/catalog/__tests__/adr315ColumnChooser.test.tsx",
 ].map((path) => readFileSync(resolve(import.meta.dirname, path), "utf8"));
 
 /**

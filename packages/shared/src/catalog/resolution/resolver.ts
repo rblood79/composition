@@ -234,6 +234,15 @@ export type CatalogRowSource = ((
   ) =>
     | { readonly count?: number; readonly page: number; readonly size?: number }
     | undefined;
+  /**
+   * ADR-315 Phase 4 — a column chooser's rows (`columnsOf`): the Table's data columns, each its
+   * Column key and header text. Absent = not known here (the Builder: the chooser's Menu is
+   * closed — its template item draws once).
+   */
+  readonly tableColumns?: (
+    tableId: NodeId,
+    chooserId: NodeId,
+  ) => readonly { readonly key: string; readonly label: string }[] | undefined;
 };
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
 export type CatalogLoadingState =
@@ -1124,7 +1133,32 @@ export function resolveCatalogNode(
       const own = rows?.(entry.binding, "items", entry.id, instancePath);
       return own ? sampledRows(own, `${instancePath.join("/")}::${id}`) : own;
     }
-    return outerRow?.children ?? ownerRows ?? paginationRows(id);
+    return (
+      outerRow?.children ?? ownerRows ?? paginationRows(id) ?? chooserRows(id)
+    );
+  };
+  /**
+   * ADR-315 Phase 4 — a column chooser's item repeats per data column of its Table: a row per
+   * column (`id` = the Column key, `label` = its header text). The chooser is the nearest ancestor
+   * with `columnsOf`.
+   */
+  const chooserRows = (id: string): CatalogBoundRow[] | undefined => {
+    for (
+      let owner = graph.ownerOf(id as NodeId);
+      owner;
+      owner = graph.ownerOf(owner as NodeId)
+    ) {
+      const entry = graph.getEntry(owner as NodeId);
+      if (entry?.kind !== "node") return undefined;
+      if (!entry.columnsOf) continue;
+      return rows?.tableColumns
+        ?.(entry.columnsOf, entry.id)
+        ?.map((column) => ({
+          key: column.key,
+          values: { id: column.key, label: column.label },
+        }));
+    }
+    return undefined;
   };
   /**
    * ADR-310 Phase 7 (사용자 결정 6) — a connected Pagination's number button repeats per page of

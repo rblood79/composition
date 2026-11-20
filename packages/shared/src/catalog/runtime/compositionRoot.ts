@@ -2496,7 +2496,11 @@ export class CatalogCompositionRoot {
           const { key: _template, ...every } = binding;
           return rows(every, kind, ownerId)?.slice(0, 1);
         },
-        rows.pages ? { pages: rows.pages } : {},
+        {
+          ...(rows.pages ? { pages: rows.pages } : {}),
+          // (ADR-315 Phase 4 — a column chooser reads its Table's columns.)
+          ...(rows.tableColumns ? { tableColumns: rows.tableColumns } : {}),
+        },
       );
     this.tableState = options.tableState;
     this.rowWindow = options.rowWindow;

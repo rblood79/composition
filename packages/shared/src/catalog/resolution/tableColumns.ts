@@ -95,6 +95,8 @@ export interface CatalogTableColumnEntry {
    * now (a Column's value edit does not write this list again).
    */
   readonly place: number;
+  /** ADR-315 Phase 4 — its header text (`children`) — what a column chooser lists it by. */
+  readonly label?: string;
   /** RAC `isRowHeader` among the authored columns (`catalogTableColumnRoles`' rule). */
   readonly rowHeader?: true;
   /** The author hid it (`defaultHidden`) — the default a Table state's `hiddenColumns` replaces. */
@@ -292,9 +294,11 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
     if (selection[index]) return;
     const props = propsOf(column);
     const pinned = props.defaultPinned;
+    const label = props.children;
     entries.push({
       key: keys[index]!,
       place: index,
+      ...(typeof label === "string" && label !== "" ? { label } : {}),
       ...(rowHeader[index] ? { rowHeader: true as const } : {}),
       ...(props.defaultHidden === true ? { hidden: true as const } : {}),
       ...(pinned === "start" || pinned === "end" ? { pinned } : {}),

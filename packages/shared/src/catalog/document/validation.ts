@@ -1929,6 +1929,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "repeat",
           "rowDisplay",
           "pagesOf",
+          "columnsOf",
           "slot",
           "regions",
           "placeholder",
@@ -1963,6 +1964,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       }
       if (item.pagesOf !== undefined)
         id(item.pagesOf, "project:node:", "entry.pagesOf");
+      if (item.columnsOf !== undefined)
+        id(item.columnsOf, "project:node:", "entry.columnsOf");
       if (
         item.originOf !== undefined &&
         !/^(lib|project):definition:[A-Za-z0-9][A-Za-z0-9_-]*$/.test(

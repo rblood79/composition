@@ -128,6 +128,11 @@ import {
   type CatalogTableFacet,
 } from "./tableColumnMenu";
 import {
+  catalogColumnFilterCondition,
+  catalogColumnFilterDraft,
+  catalogFilterPicksMany,
+} from "./tableColumnFilterDraft";
+import {
   CATALOG_FACET_COUNT,
   catalogRowSlicesView,
   catalogTableFacetQueries,
@@ -662,6 +667,14 @@ export class CatalogPreviewSession {
     | undefined;
   /** Restored Tables whose sort RAC has not been told (no rule runtime yet). */
   private readonly pendingSortEchoes = new Set<string>();
+  /**
+   * ADR-315 Phase 4 — the column choosers of each Table node (`columnsOf` — they re-resolve when
+   * its columns change) and the columns each last listed (their signature).
+   */
+  private readonly columnChoosers = new Map<string, Set<string>>();
+  private readonly chooserColumnsSeen = new Map<string, string>();
+  /** The selection each chooser Menu record was last told (an unchanged one is not written). */
+  private readonly chooserEchoed = new Map<string, string>();
   /** The project variables (the document's — ADR-286). */
   private get variables(): readonly VariableDef[] {
     return this.data().variables;
@@ -2337,6 +2350,268 @@ export class CatalogPreviewSession {
     if (!source) return;
     const errors = this.currentRoot!.reprojectColumns(new Set([source]));
     if (errors.length) console.error("[CatalogPreview] columns:", ...errors);
+    this.syncColumnChoosers();
+  }
+  /** The record of a Table node (the first that draws it — a chooser names the node). */
+  private tableRecordOf(tableNodeId: string): string | undefined {
+    const root = this.currentRoot;
+    return root
+      ?.recordsOfSource(tableNodeId)
+      .find((id) => root.domInputs.get(id)?.ruleId === "Table");
+  }
+  /** A chooser node's Menu records (under each record that draws the chooser). */
+  private chooserMenusOf(chooserId: string): string[] {
+    const root = this.currentRoot;
+    if (!root) return [];
+    const out: string[] = [];
+    const visit = (id: string) => {
+      const record = root.domInputs.get(id);
+      if (!record) return;
+      if (record.ruleId === "Menu") out.push(id);
+      else for (const child of record.children) visit(child);
+    };
+    for (const id of root.recordsOfSource(chooserId)) visit(id);
+    return out;
+  }
+  /**
+   * ADR-315 Phase 4 — what a column chooser of a Table node lists: the Table's data columns (Column
+   * key · header text, the authored order), the ones shown now (`selectedKeys`) and the one it
+   * cannot hide (`disabledKeys` — the last row header shown, the projection's rule).
+   */
+  columnChoices(tableNodeId: string):
+    | {
+        readonly tableId: string;
+        readonly columns: readonly { key: string; label: string }[];
+        readonly shown: readonly string[];
+        readonly locked: readonly string[];
+      }
+    | undefined {
+    const tableId = this.tableRecordOf(tableNodeId);
+    return tableId ? this.tableColumnChoices(tableId) : undefined;
+  }
+  /** `columnChoices` of a Table record. */
+  private tableColumnChoices(tableId: string) {
+    const table = this.currentRoot?.domInputs.get(tableId);
+    const entries = catalogTableColumnEntries(table?.props);
+    if (!entries) return undefined;
+    const now = catalogTableColumnsNow(entries, this.tableStates.get(tableId));
+    const hidden = new Set(now.hidden);
+    const headers = entries.filter((entry) => entry.rowHeader);
+    if (headers.length && headers.every((entry) => hidden.has(entry.key)))
+      hidden.delete(headers.at(-1)!.key);
+    const shownHeaders = headers.filter((entry) => !hidden.has(entry.key));
+    return {
+      tableId,
+      columns: entries.map((entry) => ({
+        key: entry.key,
+        label: entry.label ?? entry.key,
+      })),
+      shown: entries
+        .filter((entry) => !hidden.has(entry.key))
+        .map((entry) => entry.key),
+      locked: shownHeaders.length === 1 ? [shownHeaders[0]!.key] : [],
+    };
+  }
+  /**
+   * A column chooser's selection (the columns its viewer checked) as the Table state: the columns
+   * left out are hidden. `menuId` is the chooser's Menu record.
+   */
+  chooseTableColumns(menuId: string, keys: unknown): void {
+    // (Only a chooser's Menu — the ones last told their selection; any other selection is not
+    //  looked at here, ADR-287 R1's lookups.)
+    if (this.echoing || !this.chooserEchoed.has(menuId)) return;
+    const tableNode = this.chooserTableOf(menuId);
+    const tableId = tableNode ? this.tableRecordOf(tableNode) : undefined;
+    if (!tableId) return;
+    this.showTableColumns(tableId, keys);
+    this.chooserEchoed.set(menuId, "");
+    this.echoColumnChoosers();
+  }
+  /**
+   * ADR-315 증분 4d — a Table record's shown columns set (a chooser's selection, a rule's 「Set
+   * shown columns」 · 「Show · Hide column」 Do): the ones left out are hidden — the last row header
+   * stays shown (the projection's rule).
+   */
+  showTableColumns(tableId: string, keys: unknown): void {
+    const choices = this.tableColumnChoices(tableId);
+    if (!choices) return;
+    const shown =
+      keys === "all"
+        ? new Set(choices.columns.map((column) => column.key))
+        : new Set(
+            (Array.isArray(keys) || keys instanceof Set
+              ? [...keys]
+              : // (A rule's text value — 「Set shown columns」: the keys by commas.)
+                typeof keys === "string"
+                ? keys.split(",").map((key) => key.trim())
+                : []
+            ).map(String),
+          );
+    // (The last row header stays shown — the state's rule, `catalogTableStateWith`.)
+    this.setTableState(tableId, {
+      hiddenColumns: choices.columns
+        .map((column) => column.key)
+        .filter((key) => !shown.has(key)),
+    });
+  }
+  /** A Table record's shown columns now (a rule's 「Show · Hide column」 reads them). */
+  tableVisibleColumns(tableId: string): readonly string[] | undefined {
+    return this.tableColumnChoices(tableId)?.shown;
+  }
+  /** A drawn Column record's Table record and RAC key (its header's — `catalogTableColumnKey`). */
+  private columnRecordPlace(
+    columnId: string,
+  ): { tableId: string; racKey: string } | undefined {
+    const root = this.currentRoot;
+    const column = root?.domInputs.get(columnId);
+    if (!root || column?.ruleId !== "Column") return undefined;
+    let table = column.parentId ? root.domInputs.get(column.parentId) : undefined;
+    while (table && table.ruleId !== "Table")
+      table = table.parentId ? root.domInputs.get(table.parentId) : undefined;
+    if (!table) return undefined;
+    return {
+      tableId: table.id,
+      racKey: catalogTableColumnKey({
+        id: column.id,
+        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+      }),
+    };
+  }
+  /** ADR-315 증분 4d — a drawn Column's pinned side now (`none` · `start` · `end`). */
+  tableColumnPinned(columnId: string): "none" | "start" | "end" | undefined {
+    const place = this.columnRecordPlace(columnId);
+    const input = place && this.columnMenuInput(place.tableId, place.racKey);
+    if (!place || !input) return undefined;
+    const pinned = this.tableColumnsNow(place.tableId).pinned;
+    return pinned.start.includes(input[0].key)
+      ? "start"
+      : pinned.end.includes(input[0].key)
+        ? "end"
+        : "none";
+  }
+  /** ADR-315 증분 4d — a rule's 「Pin column to start · end」 · 「Unpin column」 on a drawn Column. */
+  pinTableColumn(columnId: string, side: unknown): void {
+    const place = this.columnRecordPlace(columnId);
+    const input =
+      place && this.columnMenuInput(place.tableId, place.racKey, true);
+    if (!place || !input) return;
+    const now = this.tableColumnPinned(columnId);
+    const id =
+      side === "start" ? "pin-start" : side === "end" ? "pin-end" : "unpin";
+    if (now === (side === "start" || side === "end" ? side : "none")) return;
+    const patch = catalogColumnMenuPatch(id, ...input);
+    if (patch) this.setTableState(place.tableId, patch);
+  }
+  /** ADR-315 증분 4d — a drawn Column's filter value now (`""` = none — `filterValue`). */
+  tableColumnFilterValue(columnId: string): string | undefined {
+    const place = this.columnRecordPlace(columnId);
+    const input = place && this.columnMenuInput(place.tableId, place.racKey);
+    if (!place || !input) return undefined;
+    const value = input[1].state.columnFilters?.find(
+      (filter) => filter.column === input[0].key,
+    )?.condition.value;
+    return value === undefined || value === null
+      ? ""
+      : Array.isArray(value)
+        ? value.map(String).join(",")
+        : String(value);
+  }
+  /**
+   * ADR-315 증분 4d — a rule's 「Set column filter」 on a drawn Column: the value under the
+   * Column's filter now, else the comparison its dialog starts with (`catalogColumnFilterDraft` —
+   * text 「contains」, a list 「any of」, else 「equals」), read as its field kind holds it. Empty =
+   * the filter goes.
+   */
+  filterTableColumn(columnId: string, value: unknown): void {
+    const place = this.columnRecordPlace(columnId);
+    const input =
+      place && this.columnMenuInput(place.tableId, place.racKey, true);
+    if (!place || !input || !input[0].filterOps?.length) return;
+    const [column, table] = input;
+    const field = this.tableField(place.tableId, column.key)?.field;
+    const kind = viewFieldKind(field?.type);
+    const condition = table.state.columnFilters?.find(
+      (filter) => filter.column === column.key,
+    )?.condition;
+    const draft = catalogColumnFilterDraft({
+      kind,
+      ops: column.filterOps!,
+      ...(condition ? { condition } : {}),
+    });
+    const text =
+      value === undefined || value === null
+        ? ""
+        : Array.isArray(value)
+          ? value.map(String).join(",")
+          : String(value);
+    const written = catalogColumnFilterCondition(kind, {
+      ...draft,
+      text,
+      picked: text === "" ? [] : catalogFilterPicksMany(draft.op) ? text.split(",") : draft.picked,
+    });
+    const patch = catalogColumnFilterPatch(column, table, written);
+    if (patch) this.setTableState(place.tableId, patch);
+  }
+  /** The Table node a chooser's Menu record lists (the nearest record whose node has `columnsOf`). */
+  chooserTableOf(recordId: string): string | undefined {
+    const root = this.currentRoot;
+    const graph = this.graph;
+    if (!root || !graph) return undefined;
+    for (
+      let record = root.domInputs.get(recordId);
+      record;
+      record = record.parentId ? root.domInputs.get(record.parentId) : undefined
+    ) {
+      const source = graph.getEntry(record.sourceId as never);
+      if (source?.kind === "node" && source.columnsOf) return source.columnsOf;
+    }
+    return undefined;
+  }
+  /**
+   * The choosers follow their Tables: a chooser whose Table's columns changed (added · renamed ·
+   * the Table first drawn) resolves again, and every chooser's Menu shows the columns shown now.
+   */
+  private syncColumnChoosers(): void {
+    const root = this.currentRoot;
+    if (!root || !this.columnChoosers.size) return;
+    const again = new Set<string>();
+    for (const [tableNode, choosers] of this.columnChoosers) {
+      const choices = this.columnChoices(tableNode);
+      const seen = JSON.stringify(choices?.columns ?? null);
+      if (this.chooserColumnsSeen.get(tableNode) === seen) continue;
+      this.chooserColumnsSeen.set(tableNode, seen);
+      for (const id of choosers) again.add(id);
+    }
+    if (again.size) {
+      const errors = root.refreshNodes(again);
+      if (errors.length) console.error("[CatalogPreview] chooser:", ...errors);
+    }
+    this.echoColumnChoosers();
+  }
+  /** Each chooser Menu's selection told to RAC: the columns shown, the locked one disabled. */
+  private echoColumnChoosers(): void {
+    const write = this.runtimePropsWriter;
+    const root = this.currentRoot;
+    if (!write || !root || !this.columnChoosers.size) return;
+    this.echoing = true;
+    try {
+      for (const [tableNode, choosers] of this.columnChoosers) {
+        const choices = this.columnChoices(tableNode);
+        if (!choices) continue;
+        const told = JSON.stringify([choices.shown, choices.locked]);
+        for (const chooser of choosers)
+          for (const menuId of this.chooserMenusOf(chooser)) {
+            if (this.chooserEchoed.get(menuId) === told) continue;
+            this.chooserEchoed.set(menuId, told);
+            write(menuId, {
+              selectedKeys: [...choices.shown],
+              disabledKeys: [...choices.locked],
+            });
+          }
+      }
+    } finally {
+      this.echoing = false;
+    }
   }
   /** The project's remembered Table states as stored (`{}` = none · no storage). */
   private rememberedTableStates(): Record<string, unknown> {
@@ -2426,6 +2701,7 @@ export class CatalogPreviewSession {
     this.runtimePropsWriter = write;
     for (const tableId of [...this.pendingSortEchoes])
       this.echoTableSort(tableId);
+    this.echoColumnChoosers();
   }
   /**
    * A Table record's sort told to its view: RAC's `sortDescriptor` (the first entry — RAC's header
@@ -2593,6 +2869,8 @@ export class CatalogPreviewSession {
   private columnMenuInput(
     tableId: string,
     racKey: string,
+    /** A rule's Do (ADR-315 증분 4d): the author's write — the viewer's menu permissions do not apply. */
+    authored = false,
   ): [CatalogColumnMenuColumn, CatalogColumnMenuTable] | undefined {
     const root = this.currentRoot;
     const table = root?.domInputs.get(tableId);
@@ -2615,7 +2893,7 @@ export class CatalogPreviewSession {
       );
     if (!record) return undefined;
     const shape = this.tableShape(tableId);
-    const allowsFiltering = record.props.allowsFiltering === true;
+    const allowsFiltering = authored || record.props.allowsFiltering === true;
     // (ADR-315 Phase 4 증분 4c — a filter compares the Column's data field: its kind's comparisons
     //  the Table's rows' request carries. No field — an unbound Table, a role's column — none.)
     const field = allowsFiltering
@@ -2625,8 +2903,8 @@ export class CatalogPreviewSession {
       {
         key: column.key,
         allowsSorting: record.props.allowsSorting === true,
-        allowsHiding: record.props.allowsHiding === true,
-        allowsPinning: record.props.allowsPinning === true,
+        allowsHiding: authored || record.props.allowsHiding === true,
+        allowsPinning: authored || record.props.allowsPinning === true,
         allowsResizing: record.props.allowsResizing === true,
         sortFirstDirection: column.sortFirstDirection,
         allowsFiltering,
@@ -3155,6 +3433,12 @@ export class CatalogPreviewSession {
                 ? { count: info.count, page: info.page, size: info.size }
                 : undefined;
             },
+            tableColumns: (tableId: string, chooserId: string) => {
+              let set = this.columnChoosers.get(tableId);
+              if (!set) this.columnChoosers.set(tableId, (set = new Set()));
+              set.add(chooserId);
+              return this.columnChoices(tableId)?.columns;
+            },
           },
         ),
         // (A Table its server sorts keeps the server's order: its `sort` slice is not the rows'.)
@@ -3540,6 +3824,7 @@ export class CatalogPreviewSession {
       if (this.options.tableStateStorage) this.restoreTableStates();
       this.startTableSearches();
     }
+    this.syncColumnChoosers();
     this.version += 1;
     for (const listener of [...this.listeners]) listener();
   }

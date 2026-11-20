@@ -292,6 +292,16 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
       "ActionBar.setValue",
       "ActionBar.clearSelection",
       "Table.sort",
+      // (ADR-315 Phase 4 — the Table state's column slices: the author's Do, no RAC condition — the
+      //  last row header stays shown by the projection, a Column's menu permissions are the viewer's.)
+      "Table.showColumn",
+      "Table.hideColumn",
+      "Table.setVisibleColumns",
+      "Column.pinColumnStart",
+      "Column.pinColumnEnd",
+      "Column.unpinColumn",
+      "Column.setColumnFilter",
+      "Column.clearColumnFilter",
       // (ADR-300: S2 SideNavPanel's collapse has no condition — the panel takes no `isDisabled`.)
       "SideNavPanel.collapse",
       "SideNavPanel.expand",

@@ -21,6 +21,7 @@ import type {
   CheckboxGroupProps,
   CheckboxProps,
   ColorAreaProps,
+  ColumnProps,
   ColorFieldProps,
   ColorSliderProps,
   ColorSwatchPickerProps,
@@ -98,6 +99,11 @@ import { keyboard } from "./concepts/keyboard";
 import { multiSelection } from "./concepts/multiSelection";
 import { open, openObserved } from "./concepts/open";
 import { press } from "./concepts/press";
+import {
+  columnFilter,
+  columnPinning,
+  columnVisibility,
+} from "./concepts/tableColumns";
 import { remove } from "./concepts/remove";
 import { search } from "./concepts/search";
 import {
@@ -294,7 +300,13 @@ export const COMPONENT_INTERACTION_SPECS = {
       { concept: sort },
       { concept: rowAction },
       { concept: collectionDragDrop },
+      // (ADR-315 Phase 4 — the columns it shows: the Table state's column slice.)
+      { concept: columnVisibility },
     ],
+  },
+  // ADR-315 Phase 4 — a Column's pinned side and filter (the Table state's column slices).
+  Column: {
+    concepts: [{ concept: columnPinning }, { concept: columnFilter }],
   },
   Tree: {
     concepts: [
@@ -417,6 +429,18 @@ type PageRootProps = Pick<ButtonProps, "isDisabled"> &
     colorScheme?: "light" | "dark";
   };
 
+/**
+ * ADR-315 Phase 4 — the Table state's column slices as props a Do writes (composition extensions —
+ * RAC's Table has none, `concepts/tableColumns.ts`).
+ */
+interface TableColumnStateProps {
+  visibleColumns?: Iterable<string>;
+}
+interface ColumnStateProps {
+  pinned?: "none" | "start" | "end";
+  filterValue?: string;
+}
+
 interface RacPropsOf {
   ActionBar: S2ActionBarSelectionProps;
   SelectBoxGroup: ListBoxProps<object>;
@@ -454,7 +478,8 @@ interface RacPropsOf {
   CardView: GridListProps<object>;
   body: PageRootProps;
   frame: Omit<PageRootProps, "colorScheme">;
-  Table: TableProps & DragAndDropOptions;
+  Table: TableProps & DragAndDropOptions & TableColumnStateProps;
+  Column: ColumnProps & ColumnStateProps;
   Tree: TreeProps<object> & DragAndDropOptions;
   SideNav: NavigationTreeProps<object>;
   SideNavPanel: S2SideNavPanelCollapseProps;

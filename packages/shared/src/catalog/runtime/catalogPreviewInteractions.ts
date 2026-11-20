@@ -456,6 +456,17 @@ export interface CatalogPreviewInteractionsOptions {
   ) => void;
   /** ADR-315 Phase 3 — a Table's search set by a rule (`searchText` runtime prop): the session's. */
   searchTable?: (tableId: string, text: unknown) => void;
+  /** ADR-315 Phase 4 — a column chooser Menu's selection: the columns shown (`chooseTableColumns`). */
+  chooseTableColumns?: (menuId: string, keys: unknown) => void;
+  /**
+   * ADR-315 증분 4d — the Table state's column slices a rule's Do writes and reads: a Table's shown
+   * columns, a Column's pinned side and filter value (`concepts/tableColumns.ts`). They are the
+   * session's, never a record override.
+   */
+  tableColumnState?: {
+    read(recordId: string, prop: string): unknown;
+    write(recordId: string, prop: string, value: unknown): void;
+  };
   /**
    * ADR-281 Decision 6 — a page root's `colorScheme` set by a rule: the session shows the theme in
    * that color mode (its CSS variables and `data-theme`, the theme's own variable sets).
@@ -547,6 +558,16 @@ const LOADED_MULTIPLE_SELECTION_TYPES: ReadonlySet<string> = new Set([
   "Tree",
   "TagGroup",
 ]);
+
+/** ADR-315 증분 4d — the Do-written props that are the Table state's column slices. */
+const TABLE_COLUMN_STATE_PROPS = {
+  Table: ["visibleColumns"],
+  Column: ["pinned", "filterValue"],
+} as const satisfies Record<string, readonly string[]>;
+const TABLE_COLUMN_STATE_KEYS: readonly string[] = [
+  ...TABLE_COLUMN_STATE_PROPS.Table,
+  ...TABLE_COLUMN_STATE_PROPS.Column,
+];
 
 export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private index: InteractionIndex = buildInteractionIndex([]);
@@ -691,6 +712,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       },
       // ADR-280 Decision 8 — the state RAC shows (the render reads the same function).
       getRuntimeState: (id, prop) => {
+        if (this.tableColumnPropsOf(id).includes(prop))
+          return options.tableColumnState!.read(id, prop);
         const root = options.root();
         const record = root?.domInputs.get(id);
         return root && record
@@ -1329,11 +1352,27 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     this.options.setTableColumnFilter?.(tableId, racKey, condition);
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
+    // (A record is looked up only for a patch naming one of those props — ADR-287 R1's lookups.)
+    const columnProps = TABLE_COLUMN_STATE_KEYS.some((prop) => prop in patch)
+      ? this.tableColumnPropsOf(id)
+      : [];
+    if (columnProps.some((prop) => prop in patch)) {
+      const rest: Record<string, unknown> = { ...patch };
+      for (const prop of columnProps)
+        if (prop in rest) {
+          this.options.tableColumnState?.write(id, prop, rest[prop]);
+          delete rest[prop];
+        }
+      if (Object.keys(rest).length) this.setRuntimeProps(id, rest);
+      return;
+    }
     this.writeOverride(id, patch);
     this.forwardTemplateBound(id, patch);
     if ("sortDescriptor" in patch)
       this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
     if ("searchText" in patch) this.options.searchTable?.(id, patch.searchText);
+    if ("selectedKeys" in patch)
+      this.options.chooseTableColumns?.(id, patch.selectedKeys);
     if ("value" in patch) this.pickPageSize(id, patch.value);
     if (patch.colorScheme === "light" || patch.colorScheme === "dark")
       this.options.colorScheme?.(patch.colorScheme);
@@ -1351,6 +1390,16 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             value: normalizeImplicitStateValue(mirror.type, patch[mirror.prop]),
           });
     this.touch(id);
+  }
+  /** ADR-315 증분 4d — the props of a record that are the Table state's (none = not a Table · Column). */
+  private tableColumnPropsOf(id: string): readonly string[] {
+    if (!this.options.tableColumnState) return [];
+    const type = this.options.root()?.domInputs.get(id)?.ruleId;
+    return type === "Table"
+      ? TABLE_COLUMN_STATE_PROPS.Table
+      : type === "Column"
+        ? TABLE_COLUMN_STATE_PROPS.Column
+        : [];
   }
   /**
    * 2026-11-19 — a pick in a connected Pagination's 「Rows per page」 Select: its list's page size (the

@@ -80,6 +80,11 @@ import {
 } from "../../../catalogRuntime/formulaEngine";
 import { useViewSerializer } from "./viewSerializer";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
+import {
+  catalogRemoveTableColumnChoosersCommand,
+  catalogTableColumnChooserCommand,
+  catalogTableColumnChoosers,
+} from "../../../catalogRuntime/tableColumnChooser";
 import type { DataTable } from "../../../../types/builder/data.types";
 import "./CatalogFilterSection.css";
 
@@ -258,6 +263,52 @@ export function CatalogTableSearchSwitch({ listId }: { listId: NodeId }) {
         </p>
       ) : null}
     </>
+  );
+}
+
+/**
+ * ADR-315 Phase 4 증분 4d — a Table's 「Column visibility menu」 switch (breakdown §5.3 · §6): on
+ * places a Menu before the Table that lists its columns (checked = shown — the viewer's Table
+ * state); off takes the menus connected to the Table away. Any Table — the columns are its
+ * authored Columns, bound or not.
+ */
+export function CatalogTableColumnsSwitch({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const graph = workspace.runtime.graph;
+  const on = useMemo(() => {
+    void revision;
+    const node = graph.getEntry(listId);
+    if (node?.kind !== "node") return undefined;
+    try {
+      if (definitionTypeName(graph, node.definitionId) !== "Table")
+        return undefined;
+    } catch {
+      return undefined;
+    }
+    return catalogTableColumnChoosers(graph, listId).length > 0;
+  }, [graph, listId, revision]);
+  if (on === undefined) return null;
+  return (
+    <PropertySwitch
+      label={t("dataView.tableColumnChooser")}
+      isSelected={on}
+      onChange={(selected) => {
+        if (selected === on) return;
+        const command = selected
+          ? catalogTableColumnChooserCommand(
+              {
+                tableId: listId,
+                label: t("dataView.tableColumnChooserLabel"),
+              },
+              workspace.newId,
+            ).command
+          : catalogRemoveTableColumnChoosersCommand(graph, listId);
+        if (command) run(command);
+      }}
+    />
   );
 }
 

@@ -13,12 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [ADR-315 Phase 4 (진행 중) — Table 열 숨김 · 순서 · 고정 · 폭을 표 상태로] - 2026-11-20
 
+### Breaking Changes
+
+- **문서 contract 74 → 75** (ADR-315 Phase 4 증분 4d — 노드 필드 `columnsOf`): 74 로 저장한 프로젝트는 열리지 않는다 (「This project uses the previous format」). 변환은 없다 (ADR-315 R5 — entry 형 변경을 Phase 2 · 4 · 5 에 모은다).
+
 ### Added
+
+- **Table 「Column visibility menu」 (Design 패널 Property 탭 Behavior) — 열 선택 메뉴**
+  - 켜면 표 바로 앞에 「Columns」 메뉴가 들어간다 (데이터에 연결하지 않은 표도). Preview · Publish 에서 메뉴는 표의 데이터 열마다 체크 항목을 보이고, 체크를 풀면 그 열이 숨는다 (표 상태 `hiddenColumns` — 행을 다시 읽지 않는다, 「Remember state」 표는 브라우저에 남는다). 마지막 행 머리글은 꺼져 보이고 풀리지 않는다. 표의 열을 더하거나 이름을 바꾸면 메뉴가 따라온다. 끄면 그 표에 연결된 메뉴가 지워진다.
+  - 연결은 메뉴 (MenuTrigger) 노드의 `columnsOf` — Pagination 의 `pagesOf` 와 같은 방식이고, 메뉴의 첫 항목이 열마다 반복된다.
+  - 위치: `packages/shared/src/catalog/commands/rowDisplay.ts` (`setColumnChooser`) · `resolution/resolver.ts` (`chooserRows`) · `resolution/tableColumns.ts` (열 머리글 글자) · `runtime/catalogPreviewSession.ts` (`columnChoices` · `chooseTableColumns` · `syncColumnChoosers`) · `runtime/compositionRoot.ts` · `apps/builder/src/builder/catalogRuntime/tableColumnChooser.ts` · `panels/properties/catalog/CatalogFilterSection.tsx` (`CatalogTableColumnsSwitch`). 회귀 `adr315ColumnChooser.test.tsx`. live: dev 서버 Builder 스위치 → Canvas 「Columns」 → Publish 에서 Type 해제 · 다시 체크 · Name 잠김 → 스위치 끔, 콘솔 오류 0.
+- **열 Do (Interactions 패널)** — Table 「Show column」 · 「Hide column」 · 「Set shown columns」, Column 「Pin column to start」 · 「Pin column to end」 · 「Unpin column」 · 「Set column filter」 · 「Clear column filter」. Preview · Publish 의 표 상태에 쓰고 문서는 바뀌지 않는다. 작성자의 규칙은 열의 「Allow …」 (보는 사람의 메뉴 허용) 와 무관하게 동작한다. 열 필터 값은 그 열의 지금 비교 (없으면 대화상자의 시작 비교) 로 읽는다. 위치: `packages/shared/src/interactions/concepts/tableColumns.ts` · `componentInteractionSpecs.ts` · `runtime/catalogPreviewInteractions.ts` (`tableColumnState`) · `bindings/Table.binding.ts` · `Column.binding.ts`. 회귀 `adr315ColumnChooser.test.tsx`.
 
 - **Column 「Hidden by default」 · 「Pinned」 (Design 패널 Property 탭)**
   - 「Hidden by default」 를 켠 열은 처음부터 보이지 않는다 — Canvas · Preview · Publish 모두. 숨긴 열도 검색 · 정렬 · 필터 대상이다. 행 머리글 열이 전부 숨으면 마지막 하나는 남는다. Builder 에서는 숨긴 Column 을 Layers 에서 그대로 고를 수 있다 (그 스위치를 다시 끄기 위해).
   - 「Pinned」 (None · Start · End) 로 고정한 열은 가로로 스크롤해도 표의 왼쪽 · 오른쪽 끝에 남는다 — 가상 스크롤 표와 「더 보기」 · 「쪽」 표 모두, 머리글과 칸 둘 다. 고정 쪽 끝 열에는 1px 경계선이 그려진다 (Column · Cell rule 의 `pinned-edge` — Canvas 와 DOM 이 같이 읽는다). 앞 고정이 있으면 선택 checkbox 열도 같이 남는다.
-  - 표 상태 (숨김 · 순서 · 고정) 는 Preview · Publish 실행 중 값이고 문서는 바뀌지 않는다. 「Remember state」 를 켠 표는 그 값을 브라우저에 남긴다. 최종 사용자가 쓰는 자리는 아래 열 메뉴 (필터 포함) 이고, 열 선택 메뉴 · 머리글 끌기는 다음 단계에서 들어온다.
+  - 표 상태 (숨김 · 순서 · 고정) 는 Preview · Publish 실행 중 값이고 문서는 바뀌지 않는다. 「Remember state」 를 켠 표는 그 값을 브라우저에 남긴다. 최종 사용자가 쓰는 자리는 아래 열 메뉴 (필터 포함) · 열 선택 메뉴이고, 머리글 끌기는 다음 단계에서 들어온다.
   - 위치: `packages/shared/src/catalog/resolution/tableColumns.ts` (열 투영 한 곳 — 머리글 · 모든 행의 칸 · 트랙) · `resolver.ts` · `runtime/catalogPreviewSession.ts` (`tableColumnsNow` · 열 조각 변경 때 `root.reprojectColumns` — 행 source 를 부르지 않는다) · `compositionRoot.ts` (`touchesTableRows`) · `domBinding.runtime.ts` (`data-pinned` · `--table-pin-at`) · `tableOperationsDom.components.tsx` (`CatalogTablePinMeasure`) · `catalogVirtualizer.components.tsx` (`isStickyColumn` · 끝 고정 칸) · `components/styles/Table.css` · `bindings/Column.binding.ts`. 회귀 `resolution/__tests__/tableColumns.test.ts` · `adr315Columns.test.tsx`. live: production 빌드 2,000 행 · 가로 700 스크롤 — 가상 · 비가상 × Chrome · WebKit 네 조합에서 고정 열 머리글 · 칸이 끝에 남고 경계선은 고정 쪽 끝 열에만. dev 서버 Builder 에서 「Pinned: Start」 → Canvas · Preview 의 경계선 · sticky, 콘솔 오류 0.
 - **열 폭이 표 상태다** — 크기 조절 열을 끌어 놓은 폭이 표 상태에 들어가고, 「Remember state」 표는 새로고침 뒤에도 그 폭으로 열린다. 끌기가 남긴 폭은 표를 다시 만들지 않는다 (스크롤 · focus 유지). 위치: `catalogPreviewSession.ts` (`resizeTableColumns` · `tableColumnWidths`) · `domRegistry.components.tsx` (RAC `onResizeEnd`) · `domBinding.runtime.ts` (Column `defaultWidth`). 회귀 `adr315RememberState.test.tsx`. live: production 빌드 — Name 열 150 → 270 px 끌기 → 새로고침 뒤 270 px, 가상 · 비가상 × Chrome · WebKit PASS.
 - **열 메뉴 (S2 `ColumnWithMenu`) — Column 「Allow hiding」 · 「Allow pinning」, Table 「Reorder columns」 (Design 패널 Property 탭)**

@@ -186,9 +186,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      다음 항목 …) · 리터럴 항목의 빈 값 위치 `empty`. 한 항목으로 적은 옛 보기는 검증을 통과하지 못한다.
  *      (+ ADR-315 Phase 3: 묶음 보기의 선택 필드 `facet` — 더하기만 하는 필드라 74 문서가 그대로 열린다.
  *      번호는 Phase 4 의 entry 형 변경과 함께 올린다 — ADR-315 R5 「세 번으로 모은다」.)
+ * 75 — ADR-315 Phase 4: 노드의 `columnsOf` (열 선택 메뉴가 열을 나열하는 Table — Pagination 의
+ *      `pagesOf` 와 같은 연결). 옛 74 문서도 모양은 그대로지만 번호를 올린 계약이라 열리지 않는다.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 74 as const;
+export const LIBRARY_CONTRACT_VERSION = 75 as const;
 
 export type EntryKind =
   | "project"
@@ -1314,6 +1316,12 @@ export interface NodeEntry {
    * current one selected). Dangling = not connected.
    */
   pagesOf?: NodeId;
+  /**
+   * ADR-315 Phase 4 — the Table a column chooser lists (a MenuTrigger instance — the Table's
+   * 「Column visibility menu」 switch places it): its Menu's first item repeats per data column, its
+   * selection is the columns shown (the Preview's Table state). Dangling = not connected.
+   */
+  columnsOf?: NodeId;
   /**
    * A slot an instance fills. ADR-261 Decision 3 — `suggested`: components offered first when an
    * instance fills it (pen.dev 「suggested slot components」 — a hint, not a restriction).

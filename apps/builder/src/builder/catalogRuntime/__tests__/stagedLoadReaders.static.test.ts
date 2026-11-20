@@ -113,7 +113,11 @@ const KNOWN_BY_ID = new Map<string, readonly [number, string, string]>([
   ],
   [
     "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",
-    [3, "P", "Preview session"],
+    [
+      5,
+      "P",
+      "Preview session (ADR-315 증분 4d — a column chooser's Table record · its Menu records)",
+    ],
   ],
   [
     "packages/shared/src/catalog/runtime/compositionRoot.ts",

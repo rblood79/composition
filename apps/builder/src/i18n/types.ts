@@ -754,6 +754,16 @@ export interface TranslationKeys {
     paramLocale: string;
     lightScheme: string;
     darkScheme: string;
+    showColumn: string;
+    hideColumn: string;
+    setVisibleColumns: string;
+    pinColumnStart: string;
+    pinColumnEnd: string;
+    unpinColumn: string;
+    setColumnFilter: string;
+    clearColumnFilter: string;
+    paramColumnKey: string;
+    paramColumnKeys: string;
     paramValueToSelect: string;
     paramPath: string;
     paramMessage: string;

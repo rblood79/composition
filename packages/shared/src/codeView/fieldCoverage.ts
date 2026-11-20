@@ -479,6 +479,10 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
     notInCode:
       "a Pagination's list (ADR-310 사용자 결정 6) — the Design panel's Collection section connects it",
   },
+  columnsOf: {
+    notInCode:
+      "a column chooser's Table (ADR-315 Phase 4) — the Table's 「Column visibility menu」 switch connects it",
+  },
   slot: at(
     "src/components/<Name>.tsx",
     "composition={{slot: {name, required}}} on the template node",
