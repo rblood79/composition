@@ -1,4 +1,13 @@
 import { catalogSkeletonState } from "./skeletonContext";
+import {
+  CATALOG_COLUMN_PLACE_PROP,
+  resolveTableColumnKey,
+} from "../../collections/resolveCollectionItems";
+import {
+  catalogTableAuthoredSort,
+  catalogTableColumnEntries,
+} from "../resolution/tableColumns";
+import { catalogTableColumnKey } from "./tableSort";
 import type { CatalogActionBadgeContent } from "../rule/actionBadge";
 import { catalogStaticScheme } from "./staticBackdrop";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
@@ -2047,6 +2056,59 @@ function sortableTableColumn(
 }
 
 /**
+ * ADR-315 Phase 4 증분 6 — a bound Table record's authored sort as its header shows it: each
+ * entry's drawn Column by its RAC key (the key RAC's `sortDescriptor` names — `catalogTableColumnKey`).
+ * A Column is matched by its Column key (its authored place's key in the Table's column list, else
+ * its own); a hidden one has no header to mark (left out). An entry no authored Column shows ends
+ * the list. Undefined = none.
+ */
+export function catalogTableAuthoredSortShown(
+  table: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): readonly { column: string; direction: "ascending" | "descending" }[] | undefined {
+  const sort = catalogTableAuthoredSort(table.props);
+  if (!sort) return undefined;
+  const authored = catalogTableColumnEntries(table.props);
+  const columns = childrenOf(table, get)
+    .filter((child) => typeOf(child) === "TableHeader")
+    .flatMap((header) => childrenOf(header, get))
+    .filter((child) => typeOf(child) === "Column");
+  const keyOf = (column: CatalogConsumerNode, index: number) => {
+    const place = column.props[CATALOG_COLUMN_PLACE_PROP];
+    const entry =
+      typeof place === "number"
+        ? authored?.find((item) => item.place === place)
+        : undefined;
+    return entry?.key ?? resolveTableColumnKey(column.props, index);
+  };
+  // (The Canvas keeps a hidden Column's record — marked, not drawn: `CATALOG_COLUMN_HIDDEN_PROP`.)
+  const drawn = new Map(
+    columns.flatMap((column, index) =>
+      column.props[CATALOG_COLUMN_HIDDEN_PROP] === true
+        ? []
+        : [[keyOf(column, index), column] as const],
+    ),
+  );
+  const out: { column: string; direction: "ascending" | "descending" }[] = [];
+  for (const entry of sort) {
+    const column = drawn.get(entry.column);
+    if (!column) {
+      if (authored?.some((item) => item.key === entry.column)) continue;
+      break;
+    }
+    out.push({
+      column: catalogTableColumnKey({
+        id: column.id,
+        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+      }),
+      direction: entry.direction,
+    });
+  }
+  return out.length ? out : undefined;
+}
+
+/**
  * A Column's content wrapper — its first frame (S2 `ColumnContents`' `div`, flex · centered · the
  * column's `align` as `justifyContent`).
  */
@@ -2077,6 +2139,61 @@ export function catalogColumnSortContent(
     catalogColumnContent(column, get, typeOf)?.id === node.id
     ? column
     : undefined;
+}
+
+/**
+ * ADR-315 Phase 4 증분 6 — the sort mark of a sortable Column (S2 `ColumnContents`' sort arrow and
+ * our order mark — `CatalogSortIndicator`): one box before the name. Fixed px, as S2's arrow is: the
+ * order mark is ours (S2 has no sort of several columns) and does not follow the header's font —
+ * the Canvas and the DOM read the same numbers (a frame's font on the Canvas record is not the
+ * one the DOM wrapper inherits).
+ */
+export const CATALOG_SORT_MARK = {
+  /** The arrow's square (S2 `sortIcon` — 16). */
+  arrow: 16,
+  /** The space between the arrow and the order mark. */
+  orderGap: 2,
+  /** The mark's end margin (S2 `sortIcon` `marginEnd: 8`). */
+  end: 8,
+  /** The order mark's font size. */
+  orderFont: 12,
+  /** A digit's advance in the order mark (tabular figures). */
+  digit: 7.2,
+} as const;
+/** The mark box's width: the arrow, and the order mark after it in a sort of several columns. */
+export function catalogSortMarkWidth(order: number | undefined): number {
+  if (order === undefined) return CATALOG_SORT_MARK.arrow;
+  const { arrow, orderGap, digit } = CATALOG_SORT_MARK;
+  return arrow + orderGap + String(order).length * digit;
+}
+
+/**
+ * ADR-315 Phase 4 증분 6 — the authored sort a sortable Column's content wrapper `node` shows (its
+ * Table's `catalogTableAuthoredSortShown`): its direction, and its 1-based place in a sort of
+ * several columns. The Canvas draws it (HC9 — the authored layer); the DOM shows the run layer's
+ * sort, this one until a Table state's stands in.
+ */
+export function catalogColumnAuthoredSortMark(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): { direction: "ascending" | "descending"; order?: number } | undefined {
+  const column = catalogColumnSortContent(node, get, typeOf);
+  const header = column && get(column.parentId);
+  const table = header && get(header.parentId);
+  const shown = table && catalogTableAuthoredSortShown(table, get, typeOf);
+  if (!shown) return undefined;
+  const key = catalogTableColumnKey({
+    id: column!.id,
+    ...(column!.htmlId ? { htmlId: column!.htmlId } : {}),
+  });
+  const index = shown.findIndex((entry) => entry.column === key);
+  return index < 0
+    ? undefined
+    : {
+        direction: shown[index]!.direction,
+        ...(shown.length > 1 ? { order: index + 1 } : {}),
+      };
 }
 
 /**
@@ -2988,6 +3105,19 @@ function derivedPropsBeforeSkeleton(
       node.props[CATALOG_COLUMN_PINNED_PROP] === "end")
       ? { pinnedEdge: node.props[CATALOG_COLUMN_PINNED_PROP] as string }
       : {}),
+    // (ADR-315 Phase 4 증분 6 — a sorted Column's content wrapper holds its sort mark: the Canvas
+    //  lays it out as a part (`compositionRoot.partsFor`) and draws it there.)
+    ...(() => {
+      const mark = catalogColumnAuthoredSortMark(node, get, typeOf);
+      return mark
+        ? {
+            _sortMark:
+              mark.order === undefined
+                ? (mark.direction as string)
+                : `${mark.direction}:${mark.order}`,
+          }
+        : ({} as Record<string, never>);
+    })(),
     // (S2 `FieldErrorIcon`: an invalid field's input keeps the alert glyph's room — the Canvas draws
     //  it there, `fieldPrefix.ts` `catalogFieldErrorIcon`.)
     ...(() => {

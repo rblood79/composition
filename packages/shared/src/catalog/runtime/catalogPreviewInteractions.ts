@@ -444,6 +444,13 @@ export interface CatalogPreviewInteractionsOptions {
     racKey: string,
     id: CatalogColumnMenuItemId,
   ) => void;
+  /** ADR-315 Phase 4 증분 5 — a header drag's drop, asked or done (the session's). */
+  dropTableColumn?: (
+    tableId: string,
+    fromKey: string,
+    toKey: string,
+    apply: boolean,
+  ) => boolean;
   /** ADR-315 Phase 4 증분 4c — a drawn Column's filter dialog · its write (the session's). */
   tableColumnFilter?: (
     tableId: string,
@@ -1337,6 +1344,16 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     id: CatalogColumnMenuItemId,
   ): void {
     this.options.runTableColumnMenu?.(tableId, racKey, id);
+  }
+  dropTableColumn(
+    tableId: string,
+    fromKey: string,
+    toKey: string,
+    apply: boolean,
+  ): boolean {
+    return (
+      this.options.dropTableColumn?.(tableId, fromKey, toKey, apply) ?? false
+    );
   }
   tableColumnFilter(
     tableId: string,

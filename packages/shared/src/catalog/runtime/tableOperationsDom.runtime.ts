@@ -1,4 +1,10 @@
-import { createContext, createElement, type ReactNode } from "react";
+import {
+  createContext,
+  createElement,
+  lazy,
+  Suspense,
+  type ReactNode,
+} from "react";
 
 import { ColumnResizer } from "react-aria-components/Table";
 import type {
@@ -80,6 +86,20 @@ export const CatalogColumnMenuContext = createContext<CatalogColumnMenu | null>(
 );
 
 /**
+ * ADR-315 Phase 4 증분 5 — a data Column's header drag in a Table that reorders: its Table's
+ * record id, its RAC key, and the drop of another column (`from`, a RAC key) on it — asked
+ * (`apply` false) or done (the session's `dropTableColumn`).
+ */
+export interface CatalogColumnDragAccess {
+  readonly table: string;
+  readonly key: string;
+  readonly drop: (from: string, apply: boolean) => boolean;
+}
+
+/** The handle and drop target load with the first Table that reorders (HC5). */
+const CatalogColumnDrag = lazy(() => import("./tableColumnDrag.components"));
+
+/**
  * A RAC Column's children with its operations: the sort direction for its sort arrow (S2
  * `ColumnContents` — inside its content wrapper, `CatalogSortIndicator`; a Column without one gets
  * it before its content), RAC's `ColumnResizer` when it resizes, and (in one Column of a resizable
@@ -107,6 +127,8 @@ export function catalogColumnChildren(
     readonly writesTracks: boolean;
     /** ADR-315 Phase 4 — a pinned Column: its header's width is measured for the pinned ones after it. */
     readonly measuresPin?: boolean;
+    /** ADR-315 Phase 4 증분 5 — the header's drag handle and drop target (a Table that reorders). */
+    readonly drag?: CatalogColumnDragAccess;
   },
 ): (values: {
   sortDirection?: string;
@@ -171,6 +193,13 @@ export function catalogColumnChildren(
         : null,
       options.measuresPin
         ? createElement(CatalogTablePinMeasure, { key: "pin" })
+        : null,
+      options.drag
+        ? createElement(
+            Suspense,
+            { key: "drag", fallback: null },
+            createElement(CatalogColumnDrag, { access: options.drag }),
+          )
         : null,
     ];
   };

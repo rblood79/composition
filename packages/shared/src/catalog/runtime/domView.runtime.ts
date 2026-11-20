@@ -91,6 +91,8 @@ export function catalogPreviewRuntime(
       session.tableColumnMenu(tableId, racKey),
     runTableColumnMenu: (tableId, racKey, id) =>
       session.runTableColumnMenu(tableId, racKey, id),
+    dropTableColumn: (tableId, fromKey, toKey, apply) =>
+      session.dropTableColumn(tableId, fromKey, toKey, apply),
     tableColumnFilter: (tableId, racKey) =>
       session.tableColumnFilter(tableId, racKey),
     setTableColumnFilter: (tableId, racKey, condition) =>

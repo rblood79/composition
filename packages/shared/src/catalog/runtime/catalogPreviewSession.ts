@@ -101,6 +101,7 @@ import { catalogTableColumnKey } from "./tableSort";
 import { catalogTableColumnRoles } from "./tableColumnRoles";
 import {
   CATALOG_COLUMN_PLACE_PROP,
+  catalogTableAuthoredSort,
   catalogTableColumnEntries,
   catalogTableColumnsNow,
 } from "../resolution/tableColumns";
@@ -119,6 +120,7 @@ import {
 import {
   catalogColumnFilterPatch,
   catalogColumnMenuItems,
+  catalogColumnDropPatch,
   catalogColumnMenuPatch,
   type CatalogColumnFilterView,
   type CatalogColumnMenuColumn,
@@ -2339,8 +2341,15 @@ export class CatalogPreviewSession {
       )
     )
       this.projectTableColumns(tableId);
-    // (RAC's header reads the first sort; the other sorted Columns' marks read the list.)
-    if (before.sort !== next.sort) this.echoTableSort(tableId);
+    // (RAC's header reads the first sort; the other sorted Columns' marks read the list — a
+    //  hidden Column has no header, so the shown ones are told again when one hides or shows:
+    //  ADR-315 Phase 4 증분 6.)
+    if (
+      before.sort !== next.sort ||
+      (before.hiddenColumns !== next.hiddenColumns &&
+        this.tableSortNow(tableId).length)
+    )
+      this.echoTableSort(tableId);
     if (before.columnWidths !== next.columnWidths && !this.resizing)
       this.echoTableWidths(tableId);
   }
@@ -2734,6 +2743,26 @@ export class CatalogPreviewSession {
     }
   }
   /**
+   * ADR-315 Phase 4 증분 6 — the sort a Table's rows are in now: its state's, else the sort its view
+   * leaves them in as authored (`CATALOG_TABLE_AUTHORED_SORT_PROP` — the state's sort stands in for
+   * it, breakdown §4.2). What its header shows and a header press · its menu start from.
+   */
+  private tableSortNow(tableId: string): readonly CatalogTableSortItem[] {
+    const sort = this.tableState(tableId).sort;
+    if (sort?.length) return sort;
+    const authored = catalogTableAuthoredSort(
+      this.currentRoot?.domInputs.get(tableId)?.props,
+    );
+    if (!authored) return [];
+    const keys = new Set(this.tableColumns(tableId).map((item) => item.key));
+    const out: CatalogTableSortItem[] = [];
+    for (const entry of authored) {
+      if (!keys.has(entry.column)) break;
+      out.push(entry);
+    }
+    return out;
+  }
+  /**
    * A sort set as a value (a rule's `sortDescriptor` Do · the runtime prop): that one sort, or none.
    * The first entry of the list the state already holds is no change — the echo above comes back
    * through here.
@@ -2829,7 +2858,7 @@ export class CatalogPreviewSession {
     const column = columns.find((item) => item.racKey === racKey);
     if (!column) return;
     const table = this.currentRoot?.domInputs.get(tableId);
-    const current = this.tableState(tableId).sort ?? [];
+    const current = this.tableSortNow(tableId);
     const held = current.find((item) => item.column === column.key);
     const first = column.sortFirstDirection;
     const second = first === "ascending" ? "descending" : "ascending";
@@ -2916,7 +2945,7 @@ export class CatalogPreviewSession {
       },
       {
         shape,
-        state: this.tableState(tableId),
+        state: { ...this.tableState(tableId), sort: this.tableSortNow(tableId) },
         allowsColumnReordering: table.props.allowsColumnReordering === true,
       },
     ];
@@ -2941,6 +2970,24 @@ export class CatalogPreviewSession {
     const input = this.columnMenuInput(tableId, racKey);
     const patch = input && catalogColumnMenuPatch(id, ...input);
     if (patch) this.setTableState(tableId, patch);
+  }
+  /**
+   * ADR-315 Phase 4 증분 5 — a header drag: whether the Column `fromKey` (its RAC key) may drop on
+   * the Column `toKey`, and with `apply` the drop — the one write of the Table's state
+   * (`catalogColumnDropPatch`: their list's order, never the document).
+   */
+  dropTableColumn(
+    tableId: string,
+    fromKey: string,
+    toKey: string,
+    apply: boolean,
+  ): boolean {
+    const input = this.columnMenuInput(tableId, fromKey);
+    const to = this.tableColumns(tableId).find((item) => item.racKey === toKey);
+    const patch =
+      input && to && catalogColumnDropPatch(input[0].key, to.key, input[1]);
+    if (patch && apply) this.setTableState(tableId, patch);
+    return !!patch;
   }
   /**
    * ADR-315 Phase 4 증분 4c — what a drawn Column's filter dialog shows: the field kind, the

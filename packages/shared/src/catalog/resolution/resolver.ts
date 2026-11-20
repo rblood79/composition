@@ -36,6 +36,7 @@ import type {
   StateRules,
   TemplateId,
   ViewEntry,
+  ViewQuery,
   VisualWrites,
   WriteValue,
 } from "../document/types";
@@ -103,8 +104,10 @@ import {
 } from "../runtime/tableRowSlices";
 import {
   CATALOG_COLUMN_MENU_PROP,
+  CATALOG_TABLE_AUTHORED_SORT_PROP,
   catalogColumnHasMenu,
   catalogProjectTableColumns,
+  catalogViewAuthoredSort,
 } from "./tableColumns";
 import type {
   CatalogTableState,
@@ -2616,7 +2619,16 @@ export function resolveCatalogNode(
               rowSort,
             )
           : undefined;
-      const finished = finishBoundTable(project(table?.shown ?? rowSet), table);
+      const finished = withAuthoredSort(
+        finishBoundTable(project(table?.shown ?? rowSet), table),
+        // (ADR-315 Phase 4 증분 6 — its view's sort, by field key: the header shows it. Not a
+        //  Table its view's variable sorts — the variable's, ADR-284 Decision 5.)
+        nodeBinding &&
+          !table?.sortedByView &&
+          !viewSortsByVariable(node.binding, lookupEntry)
+          ? viewAuthoredSort(node.binding, lookupEntry)
+          : undefined,
+      );
       // (ADR-315 Phase 4 — the columns shown and their order: the authored defaults, a Table
       //  state's over them. The rows above were read by every authored Column — a hidden one is
       //  searched · sorted · filtered as before, breakdown §4.4.)
@@ -2897,6 +2909,25 @@ export function resolveCatalogNode(
     };
   };
   /** A bound Table after its Row template repeated (`boundTableRows`): the clip and the counts. */
+  /**
+   * ADR-315 Phase 4 증분 6 — a bound Table with the sort its rows are in as authored
+   * (`CATALOG_TABLE_AUTHORED_SORT_PROP`): the header shows it until a Table state's sort stands in.
+   */
+  const withAuthoredSort = (
+    resolved: ResolvedCatalogNode | undefined,
+    authoredSort: string | undefined,
+  ): ResolvedCatalogNode | undefined =>
+    resolved &&
+    authoredSort &&
+    lookupDefinition(resolved.definitionId).name === "Table"
+      ? {
+          ...resolved,
+          props: {
+            ...resolved.props,
+            [CATALOG_TABLE_AUTHORED_SORT_PROP]: authoredSort,
+          } as typeof resolved.props,
+        }
+      : resolved;
   const finishBoundTable = (
     projected: ResolvedCatalogNode | undefined,
     table: BoundTableRows | undefined,
@@ -3875,6 +3906,36 @@ function push(
   child: ResolvedCatalogNode | undefined,
 ): void {
   if (child) children.push(child);
+}
+
+/**
+ * ADR-315 Phase 4 증분 6 — the sort a bound Table's view leaves its rows in, by field key
+ * (`catalogViewAuthoredSort` — the text its record carries for the header to show).
+ */
+function viewAuthoredSort(
+  binding: DataBindingRef | undefined,
+  lookupEntry: (id: string) => unknown,
+): string | undefined {
+  if (!binding) return undefined;
+  const views: ViewQuery[] = [];
+  if (binding.view) views.push(binding.view);
+  else {
+    const seen = new Set<string>();
+    for (let id: string | undefined = binding.viewId; id && !seen.has(id); ) {
+      seen.add(id);
+      const view = lookupEntry(id) as ViewEntry | undefined;
+      if (view?.kind !== "view") return undefined;
+      views.unshift(view);
+      id = "viewId" in view.source ? (view.source.viewId as string) : undefined;
+    }
+  }
+  if (!views.some((view) => view.sort?.length)) return undefined;
+  const collection = lookupEntry(binding.collectionId) as
+    | { kind?: string; schema?: readonly { id?: string; key?: string }[] }
+    | undefined;
+  return collection?.kind === "collection"
+    ? catalogViewAuthoredSort(views, collection.schema ?? [])
+    : undefined;
 }
 
 /**

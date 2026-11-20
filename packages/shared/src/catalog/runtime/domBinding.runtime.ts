@@ -269,6 +269,7 @@ import {
   catalogCalendarNavButtonGlyph,
   catalogColumnMenuContent,
   catalogColumnSortContent,
+  catalogTableAuthoredSortShown,
   catalogColumnSortsInline,
   catalogContextualHelpOfTrigger,
   catalogIllustrationInDropZone,
@@ -413,6 +414,16 @@ export interface CatalogDomRuntime {
     racKey: string,
     id: CatalogColumnMenuItemId,
   ): void;
+  /**
+   * ADR-315 Phase 4 증분 5 — a header drag: may the Column `fromKey` drop on `toKey` (RAC keys),
+   * and with `apply` the drop — the session's (`catalogColumnDropPatch`).
+   */
+  dropTableColumn?(
+    tableId: string,
+    fromKey: string,
+    toKey: string,
+    apply: boolean,
+  ): boolean;
   /**
    * ADR-315 Phase 4 증분 4c — a drawn Column's filter dialog (its comparisons, filter now and
    * candidate values) and its write — the session's (`tableColumnMenu.ts`).
@@ -3194,7 +3205,7 @@ function ruleDom(
           sortable: node.props.allowsSorting === true,
           sortsInline: catalogColumnSortsInline(node, domGet, domType),
           // (ADR-315 Phase 2 — this Column's place in a sort of several: its order mark.)
-          sortEntry: columnSortEntry(node, operationsTable, context),
+          sortEntry: columnSortEntry(root, node, operationsTable, context),
           resizable: node.props.allowsResizing === true,
           // (ADR-315 Phase 4 — S2 `isMenu`, the resolver's: the same value the rule's `is-menu`
           //  block and the Table's end line read.)
@@ -3211,6 +3222,24 @@ function ruleDom(
                   ...(node.htmlId ? { htmlId: node.htmlId } : {}),
                 });
                 return {
+                  // (ADR-315 Phase 4 증분 5 — a Table that reorders: each data Column's header
+                  //  drags by its handle and takes a drop — the session's write.)
+                  ...(operationsTable.props.allowsColumnReordering === true &&
+                  runtime.dropTableColumn
+                    ? {
+                        drag: {
+                          table: operationsTable.id,
+                          key: racKey,
+                          drop: (from: string, apply: boolean) =>
+                            runtime.dropTableColumn!(
+                              operationsTable.id,
+                              from,
+                              racKey,
+                              apply,
+                            ),
+                        },
+                      }
+                    : {}),
                   menuItems: () =>
                     runtime.tableColumnMenu!(operationsTable.id, racKey),
                   runMenu: (id: CatalogColumnMenuItemId) =>
@@ -3690,7 +3719,10 @@ function ruleDom(
       // state (사용자 결정 4); a Column's resizing needs the Table in RAC's container.
       ...(lower === "table"
         ? {
-            sortDescriptor: catalogTableSortOf(node.props.sortDescriptor),
+            // (ADR-315 Phase 4 증분 6 — no sort of its own: the sort its rows are in as authored.)
+            sortDescriptor:
+              catalogTableSortOf(node.props.sortDescriptor) ??
+              catalogTableAuthoredSortShown(node, domGet, domType)?.[0],
             // (ADR-284 Decision 5: a Table its view's variable sorts — the header press is the
             // rule's, which writes the variable; no runtime sort of its own.)
             ...(context.runtime?.setRuntimeProps && !node.props._sortByVariable
@@ -4780,11 +4812,19 @@ function tableSortEntries(
  * direction. Undefined = the Table has one sort or none (RAC's own direction draws the arrow).
  */
 function columnSortEntry(
+  root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   table: CatalogConsumerNode,
   context: CatalogDomContext,
 ): { order: number; direction: "ascending" | "descending" } | undefined {
-  const entries = tableSortEntries(context.runtime?.overrideOf(table.id));
+  // (ADR-315 Phase 4 증분 6 — no sort of its own: the sort its rows are in as authored.)
+  const entries =
+    tableSortEntries(context.runtime?.overrideOf(table.id)) ??
+    catalogTableAuthoredSortShown(
+      table,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    );
   if (!entries || entries.length < 2) return undefined;
   const key = catalogTableColumnKey({
     id: node.id,

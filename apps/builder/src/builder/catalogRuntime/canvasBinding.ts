@@ -118,9 +118,12 @@ import {
 } from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
+  CATALOG_SORT_MARK_PART,
   CatalogCompositionRoot,
   catalogBindingKeepsOneLine,
+  catalogSortMarkOf,
 } from "./compositionRoot";
+import { CATALOG_SORT_MARK } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import type { SlotChromeInput } from "./slotChrome";
 import {
   catalogOverflowClips,
@@ -1899,6 +1902,97 @@ function breadcrumbMenuData(
   };
 }
 
+/**
+ * ADR-315 Phase 4 증분 6 — a sorted Column's sort mark in its content wrapper's mark part
+ * (`catalogSortMarkOf` — the DOM's `CatalogSortIndicator`): S2's sort arrow (16, the header's
+ * color) and, in a sort of several columns, the order mark after it (12px, its digits from the
+ * start of the fixed advance — `CATALOG_SORT_MARK`).
+ */
+function sortMarkData(
+  root: CatalogCompositionRoot,
+  id: string,
+  wrapper: CatalogConsumerNode,
+  rect: Rect,
+): SkiaNodeData {
+  const mark = catalogSortMarkOf(wrapper)!;
+  const { arrow, orderGap, orderFont: size } = CATALOG_SORT_MARK;
+  // (The DOM's arrow is `currentColor` — the header's color, the one its name Text paints in.)
+  const name = wrapper.children
+    .map((child) => root.canvasInputs.get(child))
+    .find((child) => child?.bindingId === "text");
+  const color = rgba(
+    wrapper.visual.color ??
+      name?.visual.color ??
+      wrapper.inheritedText?.color ??
+      "#000000",
+  );
+  const glyph = getIconData(
+    mark.direction === "ascending" ? "arrow-up" : "arrow-down",
+    "lucide",
+    "M",
+  );
+  if (!glyph) throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${id}`);
+  const children: SkiaNodeData[] = [
+    {
+      type: "icon_path",
+      x: 0,
+      y: (rect.height - arrow) / 2,
+      width: arrow,
+      height: arrow,
+      visible: true,
+      iconPath: {
+        paths: glyph.paths,
+        circles: glyph.circles,
+        viewBoxSize: glyph.viewBoxSize,
+        filled: glyph.filled,
+        cx: arrow / 2,
+        cy: arrow / 2,
+        size: arrow,
+        strokeColor: color,
+        strokeWidth: 2,
+      },
+    },
+  ];
+  if (mark.order !== undefined) {
+    const width = rect.width - arrow - orderGap;
+    const family =
+      wrapper.visual.fontFamily ?? wrapper.inheritedText?.fontFamily;
+    // (Placed by its padding in the mark's box, from its start as the DOM's — the internal text
+    //  children's way, `specShapeConverter`. A centred `nowrap` child drew ~9px right of its band
+    //  (live 2026-11-20) — the digit box is its advance, so the start is the DOM's place.)
+    children.push({
+      type: "text",
+      x: 0,
+      y: 0,
+      width: rect.width,
+      height: rect.height,
+      visible: true,
+      text: {
+        content: String(mark.order),
+        fontFamilies: catalogFontFamilies(
+          typeof family === "string" ? family : undefined,
+        ),
+        fontSize: size,
+        lineHeight: size,
+        color,
+        fontVariant: "tabular-nums",
+        paddingLeft: arrow + orderGap,
+        paddingTop: (rect.height - size) / 2,
+        maxWidth: width,
+        whiteSpace: "nowrap",
+      },
+    });
+  }
+  return {
+    type: "box",
+    elementId: id,
+    ...rect,
+    visible: true,
+    box: { fillColor: rgba(undefined), borderRadius: 0 },
+    children,
+  };
+}
+
 /** Result of applying the subscribed per-node deltas to the bound command stream. */
 export type CatalogCanvasUpdate =
   | {
@@ -2441,11 +2535,34 @@ function bindInColorMode(
       registeredIds.add(menu.id);
       childrenMap.set(menu.id, []);
     }
+    // (ADR-315 Phase 4 증분 6 — a sorted Column's sort mark: its content wrapper's part.)
+    const sortMarks = new Map<string, string>();
+    for (const node of boundInputs.values()) {
+      if (!catalogSortMarkOf(node)) continue;
+      const id = `${node.id}${CATALOG_SORT_MARK_PART}`;
+      const rect = root.getGeometry([id]).get(id);
+      if (!rect) throw new Error(`SORT_MARK_LAYOUT_REQUIRED:${id}`);
+      sceneNodes.set(id, {
+        id,
+        type: "box",
+        props: {},
+        parentId: node.id,
+        pageId: pageShell?.id ?? null,
+        layoutId: id,
+      } as CanvasSceneNode);
+      layoutMap.set(id, { ...rect, elementId: id });
+      registerSkiaNode(id, sortMarkData(root, id, node, rect));
+      registeredIds.add(id);
+      childrenMap.set(id, []);
+      sortMarks.set(node.id, id);
+    }
     for (const node of boundInputs.values()) {
       const chrome = root.slotChromeInputs.get(node.id);
       const actions = tagActions.get(node.id) ?? [];
       const menu = breadcrumbMenus.get(node.id);
+      const sortMark = sortMarks.get(node.id);
       const childIds = [
+        ...(sortMark ? [sortMark] : []),
         ...(chrome && context.slotMode !== "page"
           ? [...node.children, chrome.id]
           : node.children),
@@ -2687,6 +2804,15 @@ function bindInColorMode(
               ),
         moved ? registerMovedSkiaNode : registerSkiaNode,
       );
+      // (ADR-315 Phase 4 증분 6 — its sort mark paints with it: the header's color · font.)
+      const markId = `${id}${CATALOG_SORT_MARK_PART}`;
+      if (catalogSortMarkOf(node) && layoutMap.has(markId)) {
+        const markRect = root.getGeometry([markId]).get(markId);
+        if (markRect) {
+          layoutMap.set(markId, { ...markRect, elementId: markId });
+          registerSkiaNode(markId, sortMarkData(root, markId, node, markRect));
+        }
+      }
     };
     /** Record `id`'s subtree again under its stored context (the commit-lane splice). */
     const recordSubtree = (
@@ -2990,6 +3116,12 @@ function bindInColorMode(
         }
         for (const menu of root.breadcrumbMenuInputs.values())
           if (sceneNodes.has(menu.id)) synthetic.set(menu.listId, [menu.id]);
+        // (ADR-315 Phase 4 증분 6 — a Column content wrapper's sort mark: kept as bound.)
+        for (const [id, node] of bound) {
+          const mark = `${id}${CATALOG_SORT_MARK_PART}`;
+          if (catalogSortMarkOf(node) && sceneNodes.has(mark))
+            synthetic.set(id, [mark]);
+        }
       }
       const syntheticIds = new Set([...synthetic.values()].flat());
       for (const region of regions) {
@@ -3024,6 +3156,12 @@ function bindInColorMode(
           const before = bound.get(id);
           if (before && bindingKey(node) !== bindingKey(before))
             return rebind(id, "binding");
+          // (ADR-315 Phase 4 증분 6 — a sort mark that comes, goes or turns: bind again, as below.)
+          if (
+            (before?.derivedProps?._sortMark ?? undefined) !==
+            (node.derivedProps?._sortMark ?? undefined)
+          )
+            return rebind(id, "sort-mark");
           if (!before) {
             sceneNodes.set(id, {
               id,
@@ -3087,6 +3225,10 @@ function bindInColorMode(
           return rebind(id, "structure");
         if (bindingKey(node) !== bindingKey(before))
           return rebind(id, "binding");
+        // (ADR-315 Phase 4 증분 6 — a Column's sort mark is a node of its own beside the record's
+        //  children: one that comes, goes or turns binds again — an author's sort edit.)
+        if (before.derivedProps?._sortMark !== node.derivedProps?._sortMark)
+          return rebind(id, "sort-mark");
         // Slot chrome and a child text's inherited metric are bound together with the Slot.
         if (node.bindingId === "slot") return rebind(id, "slot");
         // A box whose paint layer changes (its z-index, or sticky — the positioned layer) moves in

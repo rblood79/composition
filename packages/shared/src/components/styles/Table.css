@@ -291,6 +291,64 @@
     }
   }
 
+  /* ADR-315 Phase 4 증분 5 — a header drag (a Table that reorders): the handle over the header's
+     start padding, shown while the header is hovered, the handle focused or dragging (focusable
+     at rest — a keyboard drag starts on it). While a column drags, each header it may drop on is
+     covered by a drop target; the target under it draws a 2px line at the edge the column takes. */
+  .catalog-column-drag-handle {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    color: var(--fg-muted);
+    cursor: grab;
+    touch-action: none;
+    opacity: 0;
+    outline: none;
+
+    &:focus-visible {
+      opacity: 1;
+      box-shadow: inset 0 0 0 2px var(--focus-ring);
+      border-radius: 4px;
+    }
+
+    &[data-dragging] {
+      opacity: 1;
+      cursor: grabbing;
+    }
+  }
+
+  .react-aria-Column:hover > .catalog-column-drag-handle {
+    opacity: 1;
+  }
+
+  .catalog-column-drop {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    outline: none;
+
+    &[data-drop-target]::before {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      width: 2px;
+      background: var(--informative);
+    }
+
+    &[data-drop-edge="start"]::before {
+      inset-inline-start: 0;
+    }
+
+    &[data-drop-edge="end"]::before {
+      inset-inline-end: 0;
+    }
+  }
+
   /* ========== Virtual Scrolling ========== */
   .react-aria-TableVirtualizer {
     overflow: auto;

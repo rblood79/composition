@@ -359,3 +359,32 @@ export function catalogColumnMenuPatch(
       return undefined;
   }
 }
+
+/**
+ * ADR-315 Phase 4 증분 5 — a header drag (사용자 결정 3): the Column `from` dropped on the Column
+ * `to` takes `to`'s place in their list (`moveList` — the pinned side's, else the unpinned order),
+ * the columns between shifting one over: dropped on a column after it, it stands after that one;
+ * before it, before. Undefined = no drop: the Table does not reorder, the two are one column, or
+ * they are in different lists (a pinned column moves among its side's — pinning is the menu's).
+ */
+export function catalogColumnDropPatch(
+  from: string,
+  to: string,
+  table: CatalogColumnMenuTable,
+): Partial<CatalogTableState> | undefined {
+  if (!table.allowsColumnReordering || from === to) return undefined;
+  const move = moveList(from, table);
+  // (A column of another list — the other pinned side, or across it — is not in this one.)
+  const at = move.list.indexOf(to);
+  if (at < 0 || !move.list.includes(from)) return undefined;
+  const list = move.list.filter((other) => other !== from);
+  list.splice(at, 0, from);
+  if (!move.side) return { columnOrder: list };
+  const { pinned } = columnsNow(table);
+  return {
+    pinnedColumns:
+      move.side === "start"
+        ? { start: list, end: pinned.end }
+        : { start: pinned.start, end: list },
+  };
+}

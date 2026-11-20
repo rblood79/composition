@@ -22,6 +22,7 @@ import {
   CATALOG_COLUMN_PLACE_PROP,
   resolveTableColumnKey,
 } from "../../collections/resolveCollectionItems";
+import type { ViewQuery } from "../document/types";
 
 import {
   CATALOG_COLUMN_HIDDEN_PROP,
@@ -151,6 +152,77 @@ export function catalogTableColumnEntries(
   return held;
 }
 const PARSED = new Map<string, readonly CatalogTableColumnEntry[]>();
+
+/**
+ * ADR-315 Phase 4 증분 6 — a bound Table record's authored sort: the sort its rows are in before
+ * any Table state (its view's literal sort, each field as its key — the Column key of a Column
+ * that shows the field). A JSON text of `{ column, direction }[]`, so the same sort is the same
+ * value to a record comparison. The header shows it (Canvas · Preview) until a Table state's sort
+ * stands in for it (breakdown §4.2).
+ */
+export const CATALOG_TABLE_AUTHORED_SORT_PROP = "_authoredSort";
+
+/** One entry of a Table's authored sort (`CATALOG_TABLE_AUTHORED_SORT_PROP`) — a Column key. */
+export interface CatalogTableAuthoredSortItem {
+  readonly column: string;
+  readonly direction: "ascending" | "descending";
+}
+
+/**
+ * The sort a binding's views leave its rows in, by field key (the text
+ * `CATALOG_TABLE_AUTHORED_SORT_PROP` holds); undefined = none to show. The last view that sorts
+ * decides the order, unless a view after it groups the rows; a sort by a variable is the
+ * variable's (ADR-284 Decision 5 — not this). An entry whose field is not one of the collection's
+ * own (a reference path · a missing field) ends the list: a header cannot show what follows it.
+ */
+export function catalogViewAuthoredSort(
+  views: readonly ViewQuery[] | undefined,
+  schema: readonly { readonly id?: string; readonly key?: string }[],
+): string | undefined {
+  if (!views?.length) return undefined;
+  let at = -1;
+  for (let index = views.length - 1; index >= 0; index -= 1)
+    if (views[index]!.sort?.length) {
+      at = index;
+      break;
+    }
+  if (at < 0 || views.slice(at + 1).some((view) => view.groupBy?.length))
+    return undefined;
+  const sort = views[at]!.sort!;
+  if (views[at]!.groupBy?.length || sort.some((entry) => "variableId" in entry))
+    return undefined;
+  const bare = (id: string) =>
+    id.startsWith("data:field:") ? id.slice("data:field:".length) : id;
+  const out: CatalogTableAuthoredSortItem[] = [];
+  for (const entry of sort) {
+    if (!("field" in entry) || entry.field.length !== 1) break;
+    const id = bare(String(entry.field[0]));
+    const key = schema.find((field) => field.id && bare(field.id) === id)?.key;
+    if (!key) break;
+    out.push({ column: key, direction: entry.direction });
+  }
+  return out.length ? JSON.stringify(out) : undefined;
+}
+
+/** A Table record's authored sort (`CATALOG_TABLE_AUTHORED_SORT_PROP`); undefined = none. */
+export function catalogTableAuthoredSort(
+  props: Readonly<Record<string, unknown>> | undefined,
+): readonly CatalogTableAuthoredSortItem[] | undefined {
+  const text = props?.[CATALOG_TABLE_AUTHORED_SORT_PROP];
+  if (typeof text !== "string") return undefined;
+  let held = PARSED_SORT.get(text);
+  if (!held) {
+    try {
+      held = JSON.parse(text) as readonly CatalogTableAuthoredSortItem[];
+    } catch {
+      return undefined;
+    }
+    if (PARSED_SORT.size > 64) PARSED_SORT.clear();
+    PARSED_SORT.set(text, held);
+  }
+  return held.length ? held : undefined;
+}
+const PARSED_SORT = new Map<string, readonly CatalogTableAuthoredSortItem[]>();
 
 /**
  * The columns hidden · pinned now: the state's lists, else the authored defaults (a state slice,

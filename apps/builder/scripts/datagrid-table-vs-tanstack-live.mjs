@@ -81,6 +81,15 @@ const CHECK_RESIZE = process.argv.includes("--check-resize");
 //   부서별 행 수) 을 보고 `Dept 3` 을 골라 적용, 끝으로 Dept 메뉴 「Clear filter」. 단계마다 표의 행 수
 //   (`aria-rowcount`) 와 후보 값을 이 파일의 행 생성기로 따로 센 값과 대조한다.
 const CHECK_FILTER = process.argv.includes("--check-filter");
+// `--check-drag` (ADR-315 Phase 4 증분 5 — 머리글 끌기): Table 을 「Reorder columns」 로 둔다. Publish 에서
+//   Name 머리글의 손잡이를 포인터로 끌어 Amount 머리글에 놓고 (→ Dept · City · Amount · Name · Qty · Date),
+//   Date 손잡이에서 키보드 끌기 (Enter → Tab → Enter) 로 순서가 바뀌는지, 끌기가 정렬을 일으키지 않는지,
+//   끌기 뒤 머리글 클릭이 정렬하는지 (S5 의 WebKit 첫 클릭) 를 본다.
+const CHECK_DRAG = process.argv.includes("--check-drag");
+// ADR-315 Phase 4 증분 6 — the Table's view sorts Dept ↑ then Amount ↓ (authored): the Builder's
+// Column records carry the marks (`_sortMark` · the mark part), the Publish header shows them, a
+// press on Amount starts from its authored direction.
+const CHECK_AUTHORED = process.argv.includes("--check-authored-sort");
 const BROWSER = arg("--browser", "chromium");
 // `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
 //   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
@@ -329,6 +338,8 @@ try {
         CHECK_PIN,
         CHECK_RESIZE,
         CHECK_FILTER,
+        CHECK_DRAG,
+        CHECK_AUTHORED,
       }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
@@ -521,6 +532,35 @@ try {
               }),
             );
           });
+        if (CHECK_AUTHORED)
+          step("authored sort", () =>
+            ws.execute(
+              h.binding.catalogBindingCommand([{ kind: "node", id }], {
+                ...h.binding.catalogBindingRef({
+                  source: "dataTable",
+                  collectionId: "grid",
+                  name: "Grid",
+                }),
+                view: {
+                  where: { id: "where", op: "and", items: [] },
+                  sort: [
+                    { field: ["data:field:f-dept"], direction: "ascending" },
+                    { field: ["data:field:f-amount"], direction: "descending" },
+                  ],
+                },
+              }),
+            ),
+          );
+        if (CHECK_DRAG)
+          step("reorder", () =>
+            ws.execute(
+              C.setFields({
+                targets: [{ kind: "node", id }],
+                props: { allowsColumnReordering: set(true) },
+                label: "reorder",
+              }),
+            ),
+          );
         const e = g.getEntry(id);
         out.rowDisplay = e.rowDisplay;
         out.binding = !!e.binding;
@@ -537,6 +577,8 @@ try {
         CHECK_PIN,
         CHECK_RESIZE,
         CHECK_FILTER,
+        CHECK_DRAG,
+        CHECK_AUTHORED,
       },
     );
     log(`setup ${JSON.stringify(setup).slice(0, 1500)}`);
@@ -545,6 +587,37 @@ try {
       throw new Error("setup failed");
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `${OUT}/builder.png` });
+    if (CHECK_AUTHORED) {
+      // (The Builder's Canvas — the authored layer: each Column's content wrapper record carries
+      //  its mark, the engine lays the mark part out before the name.)
+      results.authoredBuilder = await page.evaluate(() => {
+        const root = window.__COMPOSITION_CATALOG__.workspace.root;
+        const records = [...root.canvasInputs.values()];
+        const table = records.find(
+          (r) => r.sourceId === "project:node:dg-table" && r.ruleId === "Table",
+        );
+        const marks = records
+          .filter((r) => r.derivedProps?._sortMark)
+          .map((r) => {
+            const column = root.canvasInputs.get(r.parentId);
+            const part = `${r.id}::part:sort`;
+            const name = r.children.find(
+              (c) => root.canvasInputs.get(c)?.bindingId === "text",
+            );
+            const rects = root.getGeometry([part, ...(name ? [name] : [])]);
+            return {
+              column: column?.props?.children ?? column?.props?.key,
+              mark: r.derivedProps._sortMark,
+              fontSize:
+                r.visual.fontSize ?? r.inheritedText?.fontSize ?? null,
+              part: rects.get(part) ?? null,
+              nameX: name ? (rects.get(name)?.x ?? null) : null,
+            };
+          });
+        return { authoredSort: table?.props?._authoredSort ?? null, marks };
+      });
+      log(`authored builder ${JSON.stringify(results.authoredBuilder)}`);
+    }
     if (CHECK_REMEMBER || CHECK_MULTISORT || CHECK_SEARCH || CHECK_FACET) {
       await page.evaluate(() => {
         const ws = window.__COMPOSITION_CATALOG__.workspace;
@@ -1011,6 +1084,319 @@ try {
       };
       log(`check-multisort ${JSON.stringify(results.checkMultiSort)}`);
       await pub.screenshot({ path: `${OUT}/check-multisort.png` });
+      throw new Error("load only");
+    }
+
+    if (CHECK_AUTHORED) {
+      const errors = [];
+      pub.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+      pub.on("pageerror", (e) => errors.push(String(e)));
+      const state = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const heads = [...table.querySelectorAll("[role=columnheader]")];
+          const label = (el) =>
+            (el.textContent ?? "").replace(/^\d+/, "").trim();
+          const at = (name) => heads.findIndex((el) => label(el) === name);
+          const cell = (row, index) =>
+            (
+              row.querySelectorAll("[role=rowheader], [role=gridcell]")[index]
+                ?.textContent ?? ""
+            ).trim();
+          const mark = table.querySelector(".sort-mark");
+          return {
+            ariaSort: heads
+              .filter(
+                (el) =>
+                  el.getAttribute("aria-sort") &&
+                  el.getAttribute("aria-sort") !== "none",
+              )
+              .map((el) => `${label(el)}:${el.getAttribute("aria-sort")}`),
+            arrows: heads.flatMap((el) => {
+              const arrow = el.querySelector(".sort-indicator");
+              const order = el.querySelector(".sort-order");
+              return arrow
+                ? [
+                    `${label(el)}:${arrow.getAttribute("data-sort-direction")}${order ? `:${order.textContent}` : ""}`,
+                  ]
+                : [];
+            }),
+            // (The mark box: arrow · order as one — its width against the Canvas's formula.)
+            markBox: mark
+              ? {
+                  // (The arrow's color = the header name's — the Canvas paints it in the name
+                  //  Text's color.)
+                  arrowColor: getComputedStyle(
+                    mark.querySelector(".sort-indicator"),
+                  ).color,
+                  nameColor: (() => {
+                    const head = mark.closest("[role=columnheader]");
+                    const leaf = [...head.querySelectorAll("*")].find(
+                      (el) =>
+                        !el.children.length &&
+                        !el.closest(".sort-mark") &&
+                        el.textContent.trim() === label(head),
+                    );
+                    return leaf ? getComputedStyle(leaf).color : null;
+                  })(),
+                  width: mark.getBoundingClientRect().width,
+                  height: mark.getBoundingClientRect().height,
+                  fontSize: parseFloat(
+                    getComputedStyle(mark.parentElement).fontSize,
+                  ),
+                }
+              : null,
+            rows: [...table.querySelectorAll("[role=row]")]
+              .filter((row) => !row.querySelector("[role=columnheader]"))
+              .map(
+                (row) =>
+                  `${cell(row, at("Name"))}|${cell(row, at("Dept"))}|${cell(row, at("Amount"))}`,
+              )
+              .filter((text) => text.startsWith("Person"))
+              .slice(0, 8),
+          };
+        }, OURS);
+      const press = async (name) => {
+        const head = await pub.evaluate(
+          ({ OURS, name }) => {
+            const el = [
+              ...document
+                .querySelector(OURS)
+                .querySelectorAll("[role=columnheader]"),
+            ].find(
+              (h) => (h.textContent ?? "").replace(/^\d+/, "").trim() === name,
+            );
+            const r = el.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+          },
+          { OURS, name },
+        );
+        await pub.mouse.click(head.x, head.y);
+        await pub.waitForTimeout(1500);
+      };
+      // (따로 계산한 순서 — 이 파일의 행 생성기에서.)
+      const dept = (row) => Number(row.dept.replace("Dept ", ""));
+      const expected = (rows) =>
+        rows.slice(0, 8).map((row) => `${row.name}|${row.dept}|${row.amount}`);
+      const all = makeRows(ROWS);
+      const authored = [...all].sort(
+        (a, b) => dept(a) - dept(b) || b.amount - a.amount,
+      );
+      // (A press on Amount: ascending — a stable sort over the authored order.)
+      const byAmount = [...authored].sort((a, b) => a.amount - b.amount);
+      const opened = await state();
+      await pub.screenshot({ path: `${OUT}/check-authored-opened.png` });
+      await press("Amount");
+      const pressed = await state();
+      await pub.screenshot({ path: `${OUT}/check-authored-pressed.png` });
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      // (Arrow 16 · 2 · one digit 7.2 — fixed px on both sides, `CATALOG_SORT_MARK`.)
+      const formula = () => 16 + 2 + 7.2;
+      const builder = results.authoredBuilder;
+      results.checkAuthored = {
+        builder,
+        opened,
+        pressed,
+        expectedOpened: expected(authored),
+        expectedPressed: expected(byAmount),
+        errors,
+        pass:
+          same(
+            builder?.marks.map((m) => `${m.column}:${m.mark}`),
+            ["Dept:ascending:1", "Amount:descending:2"],
+          ) &&
+          builder.marks.every(
+            (m) =>
+              m.part &&
+              Math.abs(m.part.width - formula(m.fontSize)) < 0.01 &&
+              m.part.height === 16 &&
+              m.nameX >= m.part.x + m.part.width + 8 - 0.01,
+          ) &&
+          same(opened.ariaSort, ["Dept:ascending"]) &&
+          same(opened.arrows, ["Dept:ascending:1", "Amount:descending:2"]) &&
+          !!opened.markBox &&
+          Math.abs(opened.markBox.width - formula(opened.markBox.fontSize)) <
+            0.5 &&
+          opened.markBox.arrowColor === opened.markBox.nameColor &&
+          same(opened.rows, expected(authored)) &&
+          same(pressed.ariaSort, ["Amount:ascending"]) &&
+          same(pressed.arrows, ["Amount:ascending"]) &&
+          same(pressed.rows, expected(byAmount)) &&
+          errors.length === 0,
+      };
+      log(`check-authored ${JSON.stringify(results.checkAuthored)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_DRAG) {
+      const errors = [];
+      pub.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+      pub.on("pageerror", (e) => errors.push(String(e)));
+      const heads = () =>
+        pub.evaluate(
+          (OURS) =>
+            [...document.querySelectorAll(`${OURS} [role=columnheader]`)]
+              .map((el) =>
+                [...el.childNodes]
+                  .filter(
+                    (n) =>
+                      !(
+                        n instanceof Element &&
+                        (n.classList.contains("catalog-column-drag-handle") ||
+                          n.classList.contains("catalog-column-drop"))
+                      ),
+                  )
+                  .map((n) => n.textContent ?? "")
+                  .join("")
+                  .trim(),
+              )
+              .join(","),
+          OURS,
+        );
+      const sorted = () =>
+        pub.evaluate(
+          (OURS) =>
+            [...document.querySelectorAll(`${OURS} [role=columnheader]`)]
+              .map((el) => el.getAttribute("aria-sort"))
+              .filter((v) => v && v !== "none")
+              .join(","),
+          OURS,
+        );
+      const box = (label, selector) =>
+        pub.evaluate(
+          ({ OURS, label, selector }) => {
+            const head = [
+              ...document.querySelectorAll(`${OURS} [role=columnheader]`),
+            ].find((el) => (el.textContent ?? "").trim().startsWith(label));
+            const el = selector ? head?.querySelector(selector) : head;
+            const r = el?.getBoundingClientRect();
+            return r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null;
+          },
+          { OURS, label, selector },
+        );
+      const settle = () => pub.waitForTimeout(600);
+      const before = await heads();
+      const handles = await pub.evaluate(
+        (OURS) =>
+          document.querySelectorAll(`${OURS} .catalog-column-drag-handle`)
+            .length,
+        OURS,
+      );
+      // 포인터: Name 의 손잡이 → Amount 머리글 (정중앙을 누르지 않는다 — react-aria 의 TalkBack 판정).
+      const nameHead = await box("Name");
+      await pub.mouse.move(nameHead.x + nameHead.w / 2, nameHead.y + nameHead.h / 2);
+      await settle();
+      const handle = await box("Name", ".catalog-column-drag-handle");
+      const handleShown = await pub.evaluate(
+        (OURS) =>
+          getComputedStyle(
+            document.querySelector(`${OURS} .catalog-column-drag-handle`),
+          ).opacity,
+        OURS,
+      );
+      let pointerError = null;
+      try {
+        await pub.mouse.move(handle.x + 3, handle.y + handle.h / 2 - 4);
+        await pub.mouse.down();
+        await pub.mouse.move(handle.x + 20, handle.y + handle.h / 2, {
+          steps: 5,
+        });
+        const amount = await box("Amount");
+        await pub.mouse.move(amount.x + amount.w / 2, amount.y + amount.h / 2, {
+          steps: 12,
+        });
+        await pub.waitForTimeout(150);
+        await pub.mouse.up();
+      } catch (error) {
+        pointerError = String(error).split("\n")[0];
+      }
+      await settle();
+      const afterPointer = await heads();
+      const dropsLeft = await pub.evaluate(
+        (OURS) =>
+          document.querySelectorAll(`${OURS} .catalog-column-drop`).length,
+        OURS,
+      );
+      // 키보드: Date 손잡이에서 Enter → Tab → Enter.
+      await pub
+        .locator(`${OURS} [role=columnheader]`, { hasText: "Date" })
+        .locator(".catalog-column-drag-handle")
+        .focus();
+      await pub.keyboard.press("Enter");
+      await settle();
+      const started = await pub.evaluate(
+        (OURS) =>
+          !!document.querySelector(
+            `${OURS} .catalog-column-drag-handle[data-dragging]`,
+          ),
+        OURS,
+      );
+      const targets = await pub.evaluate(
+        (OURS) =>
+          document.querySelectorAll(`${OURS} .catalog-column-drop`).length,
+        OURS,
+      );
+      await pub.keyboard.press("Tab");
+      await settle();
+      const target = await pub.evaluate(
+        () => document.activeElement?.getAttribute("aria-label") ?? null,
+      );
+      await pub.keyboard.press("Enter");
+      await settle();
+      const afterKey = await heads();
+      const sortAfterDrags = await sorted();
+      // 끌기 뒤 머리글 클릭 = 정렬 (Qty — 메뉴의 「Sort Ascending」 이 아니라 머리글 누름: 메뉴가 열리면
+      //  첫 항목을 고른다).
+      const qty = await box("Qty");
+      await pub.mouse.click(qty.x + qty.w / 2, qty.y + qty.h / 2);
+      await settle();
+      // (WebKit: the first press after a native (pointer) drag gets no `pointerdown` — mousedown only,
+      //  so react-aria's press does not start. A second click sorts. Not ours: Phase 0 S5's plain
+      //  react-aria prototype too. Recorded, not hidden: `firstClickEaten`.)
+      const firstClickEaten = (await sorted()) === "";
+      if (firstClickEaten) {
+        await pub.mouse.click(qty.x + qty.w / 2, qty.y + qty.h / 2);
+        await settle();
+      }
+      const menuOpen = await pub.evaluate(() => !!document.querySelector("[role=menu]"));
+      if (menuOpen) {
+        await pub.getByRole("menuitem", { name: /Sort Ascending|오름차순/ }).click();
+        await settle();
+      }
+      const sortAfterClick = await sorted();
+      results.checkDrag = {
+        before,
+        handles,
+        handleShown,
+        afterPointer,
+        pointerError,
+        dropsLeft,
+        started,
+        targets,
+        target,
+        afterKey,
+        sortAfterDrags,
+        menuOpen,
+        firstClickEaten,
+        sortAfterClick,
+        errors,
+        pass:
+          before === "Name,Dept,City,Amount,Qty,Date" &&
+          handles === 6 &&
+          handleShown === "1" &&
+          afterPointer === "Dept,City,Amount,Name,Qty,Date" &&
+          dropsLeft === 0 &&
+          started &&
+          targets === 5 &&
+          afterKey !== afterPointer &&
+          afterKey.split(",").length === 6 &&
+          sortAfterDrags === "" &&
+          sortAfterClick === "ascending" &&
+          (BROWSER === "webkit" || !firstClickEaten) &&
+          errors.length === 0,
+      };
+      log(`check-drag ${JSON.stringify(results.checkDrag)}`);
+      await pub.screenshot({ path: `${OUT}/check-drag.png` });
       throw new Error("load only");
     }
 

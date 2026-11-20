@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  catalogColumnDropPatch,
   catalogColumnMenuItems,
   catalogColumnFilterPatch,
   catalogColumnMenuPatch,
@@ -277,5 +278,44 @@ describe("column filter (4c)", () => {
         { op: "equals", value: "x" },
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("catalogColumnDropPatch (증분 5 — a header drag)", () => {
+  it("a column dropped on a later one stands after it, on an earlier one before it", () => {
+    expect(catalogColumnDropPatch("a", "c", table())).toEqual({
+      columnOrder: ["b", "c", "a", "d"],
+    });
+    expect(catalogColumnDropPatch("d", "b", table())).toEqual({
+      columnOrder: ["a", "d", "b", "c"],
+    });
+    // (The order the state holds is where it starts.)
+    expect(
+      catalogColumnDropPatch(
+        "a",
+        "b",
+        table({ columnOrder: ["c", "b", "a", "d"] }),
+      ),
+    ).toEqual({ columnOrder: ["c", "a", "b", "d"] });
+  });
+
+  it("no drop without reordering, on itself, or across a pinned side", () => {
+    expect(catalogColumnDropPatch("a", "c", table({}, {}, false))).toBe(
+      undefined,
+    );
+    expect(catalogColumnDropPatch("b", "b", table())).toBe(undefined);
+    const pinned = table({ pinnedColumns: { start: ["a", "b"], end: [] } });
+    expect(catalogColumnDropPatch("a", "c", pinned)).toBe(undefined);
+    expect(catalogColumnDropPatch("c", "a", pinned)).toBe(undefined);
+    // (Within its side a pinned column moves — the side's list.)
+    expect(catalogColumnDropPatch("b", "a", pinned)).toEqual({
+      pinnedColumns: { start: ["b", "a"], end: [] },
+    });
+  });
+
+  it("a hidden column keeps its place in the list it is dropped past", () => {
+    expect(
+      catalogColumnDropPatch("a", "d", table({ hiddenColumns: ["c"] })),
+    ).toEqual({ columnOrder: ["b", "c", "d", "a"] });
   });
 });

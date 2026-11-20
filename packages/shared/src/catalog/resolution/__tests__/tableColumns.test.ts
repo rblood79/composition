@@ -8,8 +8,12 @@ import {
   catalogProjectTableColumns,
   catalogTableColumnEntries,
   catalogTableColumnsNow,
+  catalogTableAuthoredSort,
+  catalogViewAuthoredSort,
+  CATALOG_TABLE_AUTHORED_SORT_PROP,
   type CatalogTableColumnState,
 } from "../tableColumns";
+import type { ViewQuery } from "../../document/types";
 import { resolveTableColumnKey } from "../../../collections/resolveCollectionItems";
 
 /**
@@ -384,5 +388,85 @@ describe("a Table's column projection", () => {
   it("is the same node for a node that is no Table with a header", () => {
     const list = node("ListBox", {}, [node("ListBoxItem")]);
     expect(catalogProjectTableColumns(list, typeOf)).toBe(list);
+  });
+});
+
+describe("catalogViewAuthoredSort (증분 6 — a bound Table's authored sort)", () => {
+  const schema = [
+    { id: "f-type", key: "type" },
+    { id: "data:field:f-status", key: "status" },
+    { id: "f-name", key: "name" },
+  ];
+  const where = { id: "w", op: "and" as const, items: [] };
+  const view = (extra: Partial<ViewQuery>): ViewQuery =>
+    ({ where, ...extra }) as ViewQuery;
+  const field = (id: string) => [id] as never;
+  const read = (views: ViewQuery[]) =>
+    catalogTableAuthoredSort({
+      [CATALOG_TABLE_AUTHORED_SORT_PROP]: catalogViewAuthoredSort(views, schema),
+    });
+
+  it("the last view that sorts, each field as its key (either id form)", () => {
+    expect(
+      read([
+        view({ sort: [{ field: field("data:field:f-name"), direction: "ascending" }] }),
+        view({
+          sort: [
+            { field: field("data:field:f-type"), direction: "ascending" },
+            { field: field("f-status"), direction: "descending" },
+          ],
+        }),
+        // (A view after it that only filters keeps its order.)
+        view({}),
+      ]),
+    ).toEqual([
+      { column: "type", direction: "ascending" },
+      { column: "status", direction: "descending" },
+    ]);
+  });
+
+  it("none: no sort · a view that groups after it · a variable's sort", () => {
+    expect(catalogViewAuthoredSort([view({})], schema)).toBeUndefined();
+    expect(catalogViewAuthoredSort(undefined, schema)).toBeUndefined();
+    expect(
+      catalogViewAuthoredSort(
+        [
+          view({ sort: [{ field: field("f-type"), direction: "ascending" }] }),
+          view({ groupBy: [field("f-type")] as never }),
+        ],
+        schema,
+      ),
+    ).toBeUndefined();
+    expect(
+      catalogViewAuthoredSort(
+        [view({ sort: [{ variableId: "v1" } as never] })],
+        schema,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("an entry the header cannot show ends the list (a reference path · an unknown field)", () => {
+    expect(
+      read([
+        view({
+          sort: [
+            { field: field("f-type"), direction: "ascending" },
+            { field: ["data:field:f-team", "data:field:f-org"] as never, direction: "ascending" },
+            { field: field("f-name"), direction: "ascending" },
+          ],
+        }),
+      ]),
+    ).toEqual([{ column: "type", direction: "ascending" }]);
+    expect(
+      read([
+        view({
+          sort: [
+            { field: field("f-type"), direction: "ascending" },
+            { field: field("f-gone"), direction: "ascending" },
+            { field: field("f-name"), direction: "ascending" },
+          ],
+        }),
+      ]),
+    ).toEqual([{ column: "type", direction: "ascending" }]);
   });
 });

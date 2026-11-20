@@ -229,6 +229,8 @@ import {
 } from "./boxModel";
 import {
   catalogComposedParts,
+  CATALOG_SORT_MARK,
+  catalogSortMarkWidth,
   catalogDerivedProps,
   catalogDerivedPropsDependents,
   catalogContainerDependents,
@@ -501,6 +503,30 @@ function sideNavText(
     if (authored[key] === undefined && Number(value) > 0)
       out[key] = Number(value);
   return out;
+}
+/** ADR-315 Phase 4 증분 6 — the id suffix of a Column content wrapper's sort mark part. */
+export const CATALOG_SORT_MARK_PART = "::part:sort";
+/**
+ * ADR-315 Phase 4 증분 6 — a Column content wrapper's sort mark (its derived `_sortMark` —
+ * `catalogColumnAuthoredSortMark`): direction, order and the box's width (`catalogSortMarkWidth`).
+ */
+export function catalogSortMarkOf(record: CatalogConsumerNode):
+  | {
+      readonly direction: "ascending" | "descending";
+      readonly order?: number;
+      readonly width: number;
+    }
+  | undefined {
+  const mark = record.derivedProps?._sortMark;
+  if (typeof mark !== "string") return undefined;
+  const [direction, place] = mark.split(":");
+  if (direction !== "ascending" && direction !== "descending") return undefined;
+  const order = place ? Number(place) : undefined;
+  return {
+    direction,
+    ...(order !== undefined ? { order } : {}),
+    width: catalogSortMarkWidth(order),
+  };
 }
 function inheritedTextOf(
   node: CatalogConsumerNode,
@@ -5218,6 +5244,21 @@ export class CatalogCompositionRoot {
         standsEmpty: true,
         style: pageBodySplit(whole ?? this.recordStyle(record, get), body)
           .content,
+      });
+    // ADR-315 Phase 4 증분 6 — a sorted Column's sort mark opens its content wrapper (S2
+    // `ColumnContents`' arrow before the name, our order mark after it): a box before the name —
+    // the Canvas draws it there (`canvasBinding`), the DOM's `CatalogSortIndicator` is that box.
+    const sortMark = catalogSortMarkOf(record);
+    if (sortMark)
+      parts.unshift({
+        id: `${record.id}${CATALOG_SORT_MARK_PART}`,
+        style: {
+          display: "block",
+          width: `${sortMark.width}px`,
+          height: `${CATALOG_SORT_MARK.arrow}px`,
+          marginRight: `${CATALOG_SORT_MARK.end}px`,
+          flexShrink: 0,
+        },
       });
     // ADR-295 후속: a draggable Table's header row · Row — S2's drag column cell first (its track is
     // the row's first, `withTableDrag`): an empty box on the Canvas (S2 shows the handle only while

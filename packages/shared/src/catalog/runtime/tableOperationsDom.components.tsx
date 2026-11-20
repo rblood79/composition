@@ -1,3 +1,4 @@
+import { CATALOG_SORT_MARK } from "./presence";
 import { getIconData } from "@composition/rendering";
 
 import {
@@ -121,8 +122,8 @@ export function CatalogSortIndicator(): ReactNode {
       "aria-hidden": true,
       className: "sort-indicator",
       "data-sort-direction": direction,
-      width: 16,
-      height: 16,
+      width: CATALOG_SORT_MARK.arrow,
+      height: CATALOG_SORT_MARK.arrow,
       viewBox: "0 0 24 24",
       fill: "none",
       stroke: "currentColor",
@@ -134,7 +135,8 @@ export function CatalogSortIndicator(): ReactNode {
         verticalAlign: "middle",
         flexShrink: 0,
         // (In a sort of several columns the order mark follows the arrow and takes its gap.)
-        marginInlineEnd: order === undefined ? 8 : 2,
+        marginInlineEnd:
+          order === undefined ? CATALOG_SORT_MARK.end : CATALOG_SORT_MARK.orderGap,
       },
     },
     ...(glyph?.paths ?? []).map((d: string, i: number) =>
@@ -144,9 +146,23 @@ export function CatalogSortIndicator(): ReactNode {
   if (order === undefined) return arrow;
   // ADR-315 Phase 2 — a sort of several columns: this Column's place in it, after its arrow. RAC
   // gives `aria-sort` to the first sorted header only (APG — one header at a time); the mark is the
-  // sighted cue, and the header's name carries the order for the rest (`aria-description`-free:
-  // the visually hidden text below).
-  return [
+  // sighted cue. ADR-315 Phase 4 증분 6 — arrow and order are one box (the Canvas lays the same box
+  // out — `catalogSortMarkWidth`): fixed px, the digits from its start at a fixed advance — no measure.
+  const digits = String(order).length;
+  return createElement(
+    "span",
+    {
+      className: "sort-mark",
+      "aria-hidden": true,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        height: CATALOG_SORT_MARK.arrow,
+        marginInlineEnd: CATALOG_SORT_MARK.end,
+      },
+    },
     arrow,
     createElement(
       "span",
@@ -154,20 +170,18 @@ export function CatalogSortIndicator(): ReactNode {
         key: "order",
         className: "sort-order",
         "data-sort-order": order,
-        "aria-hidden": true,
         style: {
           display: "inline-block",
-          verticalAlign: "middle",
           flexShrink: 0,
-          marginInlineEnd: 8,
-          fontSize: "0.75em",
+          width: digits * CATALOG_SORT_MARK.digit,
+          fontSize: CATALOG_SORT_MARK.orderFont,
           lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
         },
       },
       String(order),
     ),
-  ];
+  );
 }
 
 /**
