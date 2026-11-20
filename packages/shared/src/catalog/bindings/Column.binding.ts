@@ -173,13 +173,22 @@ export const columnBinding: PrimitiveBinding = {
         label: "Allow pinning",
         section: "state",
       },
+      // ADR-315 Phase 4 증분 4c — the end user may filter this Column from its menu (TanStack
+      //   `enableColumnFilter`; a composition extension, default off): 「Filter…」 opens a dialog
+      //   of its field kind's comparisons and candidate values (the Table state's
+      //   `columnFilters`). Gives the Column its S2 menu (`isMenu`).
+      allowsFiltering: {
+        kind: "boolean",
+        label: "Allow filtering",
+        section: "state",
+      },
       allowsResizing: {
         kind: "boolean",
         label: "Allow Resizing",
         section: "state",
       },
       // ADR-315 Phase 4 — S2 `ColumnWithMenu`'s `isMenu`: the resolver's, never authored
-      //   (`catalogColumnHasMenu` — the Column's resize · hide · pin, its Table's reorder). The
+      //   (`catalogColumnHasMenu` — the Column's resize · hide · pin · filter, its Table's reorder). The
       //   rule's `is-menu` block, the Table's end line and the DOM's menu Button read it.
       isMenu: {
         kind: "boolean",

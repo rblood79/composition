@@ -2,9 +2,11 @@ import { createContext, createElement, type ReactNode } from "react";
 
 import { ColumnResizer } from "react-aria-components/Table";
 import type {
+  CatalogColumnFilterView,
   CatalogColumnMenuItem,
   CatalogColumnMenuItemId,
 } from "./tableColumnMenu";
+import type { CatalogTableColumnFilter } from "./tableState";
 import {
   CatalogSortIndicator,
   CatalogTablePinMeasure,
@@ -44,6 +46,18 @@ export const CatalogColumnSortContext = createContext<CatalogColumnSort | null>(
 );
 
 /**
+ * ADR-315 Phase 4 증분 4c — a Column's filter as its dialog reads and writes it (the session's
+ * `tableColumnFilter` · `setTableColumnFilter`): `read` when the dialog opens, `write` a condition
+ * (`undefined` = clear).
+ */
+export interface CatalogColumnFilterAccess {
+  readonly read: () => CatalogColumnFilterView | undefined;
+  readonly write: (
+    condition: CatalogTableColumnFilter["condition"] | undefined,
+  ) => void;
+}
+
+/**
  * S2 `ColumnWithMenu` — what the menu of the Column being rendered does (RAC's Column render props
  * `sort` · `startResize`): `null` outside a Column with a menu.
  */
@@ -58,6 +72,8 @@ export interface CatalogColumnMenu {
    */
   readonly items?: () => readonly CatalogColumnMenuItem[];
   readonly run?: (id: CatalogColumnMenuItemId) => void;
+  /** ADR-315 Phase 4 증분 4c — 「Filter…」 opens the dialog on this (absent: no session). */
+  readonly filter?: CatalogColumnFilterAccess;
 }
 export const CatalogColumnMenuContext = createContext<CatalogColumnMenu | null>(
   null,
@@ -86,6 +102,8 @@ export function catalogColumnChildren(
     /** ADR-315 Phase 4 — the session's menu items and their run (`CatalogColumnMenu`). */
     readonly menuItems?: () => readonly CatalogColumnMenuItem[];
     readonly runMenu?: (id: CatalogColumnMenuItemId) => void;
+    /** ADR-315 Phase 4 증분 4c — the session's filter dialog access (`CatalogColumnMenu.filter`). */
+    readonly filter?: CatalogColumnFilterAccess;
     readonly writesTracks: boolean;
     /** ADR-315 Phase 4 — a pinned Column: its header's width is measured for the pinned ones after it. */
     readonly measuresPin?: boolean;
@@ -130,6 +148,7 @@ export function catalogColumnChildren(
                 ...(options.menuItems && options.runMenu
                   ? { items: options.menuItems, run: options.runMenu }
                   : {}),
+                ...(options.filter ? { filter: options.filter } : {}),
               },
             },
             sorted,

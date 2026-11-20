@@ -3212,6 +3212,7 @@ const semanticLabels: Record<string, string> = {
   "properties.columnPinned": "Pinned",
   "properties.columnAllowsHiding": "Allow hiding",
   "properties.columnAllowsPinning": "Allow pinning",
+  "properties.columnAllowsFiltering": "Allow filtering",
   "properties.tableReorderColumns": "Reorder columns",
   "properties.ascending": "Ascending",
   "properties.descending": "Descending",

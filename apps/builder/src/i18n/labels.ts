@@ -508,6 +508,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Pinned: "properties.columnPinned",
   "Allow hiding": "properties.columnAllowsHiding",
   "Allow pinning": "properties.columnAllowsPinning",
+  "Allow filtering": "properties.columnAllowsFiltering",
   "Reorder columns": "properties.tableReorderColumns",
   // 2026-11-18 S2 — collection `disabledKeys` · TagGroup `selectionBehavior` · `groupActionLabel`.
   "Disabled keys": "properties.disabledKeys",

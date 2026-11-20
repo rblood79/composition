@@ -1952,7 +1952,7 @@ export function resolveCatalogNode(
   };
   /**
    * ADR-315 Phase 4 — S2 `ColumnWithMenu`'s `isMenu` (`catalogColumnHasMenu`): the Column's own
-   * resize · hide · pin, or a switch of its Table (read through the header, as `overflowMode`).
+   * resize · hide · pin · filter, or a switch of its Table (read through the header, as `overflowMode`).
    * Written before the Column's rule variants — its `is-menu` block, the Table's end line part rule
    * and the DOM read this one value. The selection column (`Checkbox[slot=selection]`) has none.
    */

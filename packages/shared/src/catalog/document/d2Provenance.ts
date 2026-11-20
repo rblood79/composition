@@ -89,9 +89,10 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     // ADR-315 Phase 4 — the Column's place in the Table's column projection (hidden at first).
     defaultHidden: "composition",
     defaultPinned: "composition",
-    // ADR-315 Phase 4 — the end user may hide · pin it from its menu.
+    // ADR-315 Phase 4 — the end user may hide · pin · filter it from its menu.
     allowsHiding: "composition",
     allowsPinning: "composition",
+    allowsFiltering: "composition",
   },
   // RAC ComboBoxState.open/close에 연결하는 저작 상태. RAC ComboBox props에는 없다.
   ComboBox: {

@@ -91,6 +91,10 @@ export function catalogPreviewRuntime(
       session.tableColumnMenu(tableId, racKey),
     runTableColumnMenu: (tableId, racKey, id) =>
       session.runTableColumnMenu(tableId, racKey, id),
+    tableColumnFilter: (tableId, racKey) =>
+      session.tableColumnFilter(tableId, racKey),
+    setTableColumnFilter: (tableId, racKey, condition) =>
+      session.setTableColumnFilter(tableId, racKey, condition),
     searchTable: (tableId, text) => session.searchTable(tableId, text),
     colorScheme: (mode) => session.setColorScheme(mode),
     // (A submit in flight is what a `reload` in the same event waits for — `await fetch; reload()`.)

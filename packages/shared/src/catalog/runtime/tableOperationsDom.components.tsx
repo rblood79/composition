@@ -3,10 +3,14 @@ import { getIconData } from "@composition/rendering";
 import {
   createElement,
   type CSSProperties,
+  Fragment,
+  lazy,
   type ReactElement,
+  Suspense,
   useContext,
   useLayoutEffect,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 
@@ -177,6 +181,8 @@ interface ColumnMenuStrings {
   readonly desc: string;
   readonly resize: string;
   readonly add: string;
+  readonly filter: string;
+  readonly clearFilter: string;
   readonly hide: string;
   readonly pinStart: string;
   readonly pinEnd: string;
@@ -190,6 +196,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     desc: "Sort Descending",
     resize: "Resize column",
     add: "Add to sort",
+    filter: "Filter…",
+    clearFilter: "Clear filter",
     hide: "Hide column",
     pinStart: "Pin to start",
     pinEnd: "Pin to end",
@@ -202,6 +210,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     desc: "내림차순 정렬",
     resize: "열 크기 조정",
     add: "정렬에 추가",
+    filter: "필터…",
+    clearFilter: "필터 지우기",
     hide: "열 숨기기",
     pinStart: "앞에 고정",
     pinEnd: "뒤에 고정",
@@ -214,6 +224,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     desc: "降順に並べ替え",
     resize: "列幅を変更",
     add: "並べ替えに追加",
+    filter: "フィルター…",
+    clearFilter: "フィルターをクリア",
     hide: "列を非表示",
     pinStart: "先頭に固定",
     pinEnd: "末尾に固定",
@@ -226,6 +238,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     desc: "降序排序",
     resize: "调整列大小",
     add: "添加到排序",
+    filter: "筛选…",
+    clearFilter: "清除筛选",
     hide: "隐藏列",
     pinStart: "固定到开头",
     pinEnd: "固定到末尾",
@@ -248,6 +262,10 @@ function columnMenuLabel(
       return strings.desc;
     case "sort-add":
       return strings.add;
+    case "filter":
+      return strings.filter;
+    case "clear-filter":
+      return strings.clearFilter;
     case "hide":
       return strings.hide;
     case "pin-start":
@@ -269,7 +287,12 @@ function columnMenuLabel(
  * The Column menu's items, read when it opens (the Table's state as it is then — the session's
  * `tableColumnMenu`); without a session, S2's sort and resize items.
  */
-function CatalogColumnMenuItems(): ReactNode {
+function CatalogColumnMenuItems({
+  openFilter,
+}: {
+  /** 「Filter…」 — the Column's filter dialog opens once the menu closes. */
+  openFilter: () => void;
+}): ReactNode {
   const menu = useContext(CatalogColumnMenuContext);
   const { locale, direction } = useLocale();
   if (!menu) return null;
@@ -294,6 +317,7 @@ function CatalogColumnMenuItems(): ReactNode {
       onAction: (key) => {
         const id = key as CatalogColumnMenuItemId;
         if (id === "resize") menu.startResize?.();
+        else if (id === "filter") openFilter();
         else if (menu.run) menu.run(id);
         else if (id === "sort-asc") menu.sort("ascending");
         else if (id === "sort-desc") menu.sort("descending");
@@ -308,6 +332,11 @@ function CatalogColumnMenuItems(): ReactNode {
     ),
   );
 }
+
+/** ADR-315 Phase 4 증분 4c — the filter dialog loads with the first one opened (HC5). */
+const CatalogColumnFilterDialog = lazy(
+  () => import("./tableColumnFilter.components"),
+);
 
 /** S2 `resizableMenuButtonWrapper` over the content wrapper's own (flex · padding) style. */
 const MENU_BUTTON_STYLE: CSSProperties = {
@@ -333,33 +362,75 @@ export function CatalogColumnMenuButton({
   element: ReactElement;
 }): ReactNode {
   const menu = useContext(CatalogColumnMenuContext);
+  const button = useRef<HTMLButtonElement>(null);
+  const [filtering, setFiltering] = useState(false);
   if (!menu) return element;
   const { children, style, ...props } = element.props as {
     children?: ReactNode;
     style?: CSSProperties;
   } & Record<string, unknown>;
+  const ownRef = props.ref as
+    | ((node: HTMLButtonElement | null) => void)
+    | { current: HTMLButtonElement | null }
+    | null
+    | undefined;
   return createElement(
-    MenuTrigger,
+    Fragment,
     null,
     createElement(
-      Button,
-      {
-        ...props,
-        // (Not `react-aria-Button`: the generated Button sheet would center and size it — the
-        //  wrapper's own flex · padding · alignment are S2's `resizableMenuButtonWrapper`.)
-        className: "catalog-column-menu-button",
-        style: { ...style, ...MENU_BUTTON_STYLE },
-      },
-      children,
+      MenuTrigger,
+      null,
+      createElement(
+        Button,
+        {
+          ...props,
+          // (The filter dialog stands at the menu Button — the wrapper's own ref kept.)
+          ref: (node: HTMLButtonElement | null) => {
+            button.current = node;
+            if (typeof ownRef === "function") ownRef(node);
+            else if (ownRef) ownRef.current = node;
+          },
+          // (Not `react-aria-Button`: the generated Button sheet would center and size it — the
+          //  wrapper's own flex · padding · alignment are S2's `resizableMenuButtonWrapper`.)
+          className: "catalog-column-menu-button",
+          style: { ...style, ...MENU_BUTTON_STYLE },
+        },
+        children,
+      ),
+      createElement(
+        Popover,
+        {
+          placement: "bottom start",
+          // (S2: the menu is the popover's one surface — no inner frame, its own width from 128.)
+          style: { padding: 0, width: "auto", minWidth: 0 },
+        },
+        createElement(CatalogColumnMenuItems, {
+          openFilter: () => setFiltering(true),
+        }),
+      ),
     ),
-    createElement(
-      Popover,
-      {
-        placement: "bottom start",
-        // (S2: the menu is the popover's one surface — no inner frame, its own width from 128.)
-        style: { padding: 0, width: "auto", minWidth: 0 },
-      },
-      createElement(CatalogColumnMenuItems),
-    ),
+    // (ADR-315 Phase 4 증분 4c — 「Filter…」: the Column's filter dialog, at its menu Button.)
+    menu.filter && filtering
+      ? createElement(
+          Popover,
+          {
+            triggerRef: button,
+            isOpen: true,
+            onOpenChange: (open: boolean) => {
+              if (!open) setFiltering(false);
+            },
+            placement: "bottom start",
+            style: { padding: 0, width: "auto", minWidth: 0 },
+          },
+          createElement(
+            Suspense,
+            { fallback: null },
+            createElement(CatalogColumnFilterDialog, {
+              access: menu.filter,
+              onClose: () => setFiltering(false),
+            }),
+          ),
+        )
+      : null,
   );
 }

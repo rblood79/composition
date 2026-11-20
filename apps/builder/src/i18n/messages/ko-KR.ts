@@ -3206,6 +3206,7 @@ const semanticLabels: Record<string, string> = {
   "properties.columnPinned": "고정",
   "properties.columnAllowsHiding": "숨기기 허용",
   "properties.columnAllowsPinning": "고정 허용",
+  "properties.columnAllowsFiltering": "필터 허용",
   "properties.tableReorderColumns": "열 순서 바꾸기",
   "properties.ascending": "오름차순",
   "properties.descending": "내림차순",

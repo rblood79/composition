@@ -31,9 +31,11 @@ import {
 } from "./capabilityTarget";
 import type { CatalogDomRuntime } from "./domBinding";
 import type {
+  CatalogColumnFilterView,
   CatalogColumnMenuItem,
   CatalogColumnMenuItemId,
 } from "./tableColumnMenu";
+import type { CatalogTableColumnFilter } from "./tableState";
 import { catalogTableSortOf, type CatalogTableSort } from "./tableSort";
 import {
   catalogCollectionItemKeys,
@@ -441,6 +443,16 @@ export interface CatalogPreviewInteractionsOptions {
     tableId: string,
     racKey: string,
     id: CatalogColumnMenuItemId,
+  ) => void;
+  /** ADR-315 Phase 4 증분 4c — a drawn Column's filter dialog · its write (the session's). */
+  tableColumnFilter?: (
+    tableId: string,
+    racKey: string,
+  ) => CatalogColumnFilterView | undefined;
+  setTableColumnFilter?: (
+    tableId: string,
+    racKey: string,
+    condition: CatalogTableColumnFilter["condition"] | undefined,
   ) => void;
   /** ADR-315 Phase 3 — a Table's search set by a rule (`searchText` runtime prop): the session's. */
   searchTable?: (tableId: string, text: unknown) => void;
@@ -1302,6 +1314,19 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     id: CatalogColumnMenuItemId,
   ): void {
     this.options.runTableColumnMenu?.(tableId, racKey, id);
+  }
+  tableColumnFilter(
+    tableId: string,
+    racKey: string,
+  ): CatalogColumnFilterView | undefined {
+    return this.options.tableColumnFilter?.(tableId, racKey);
+  }
+  setTableColumnFilter(
+    tableId: string,
+    racKey: string,
+    condition: CatalogTableColumnFilter["condition"] | undefined,
+  ): void {
+    this.options.setTableColumnFilter?.(tableId, racKey, condition);
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
     this.writeOverride(id, patch);

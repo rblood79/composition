@@ -51,6 +51,10 @@ import {
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
 import { viewSchemaAt } from "../../collections/view/evaluate";
+import {
+  VIEW_COMPARISONS_BY_KIND,
+  viewFieldKind,
+} from "../../collections/view/comparison";
 import type { CatalogTableSort } from "./tableSort";
 import type {
   CatalogLoadingState,
@@ -113,12 +117,15 @@ import {
   type CatalogTableState,
 } from "./tableState";
 import {
+  catalogColumnFilterPatch,
   catalogColumnMenuItems,
   catalogColumnMenuPatch,
+  type CatalogColumnFilterView,
   type CatalogColumnMenuColumn,
   type CatalogColumnMenuItem,
   type CatalogColumnMenuItemId,
   type CatalogColumnMenuTable,
+  type CatalogTableFacet,
 } from "./tableColumnMenu";
 import {
   CATALOG_FACET_COUNT,
@@ -2607,6 +2614,13 @@ export class CatalogPreviewSession {
           }) === racKey,
       );
     if (!record) return undefined;
+    const shape = this.tableShape(tableId);
+    const allowsFiltering = record.props.allowsFiltering === true;
+    // (ADR-315 Phase 4 증분 4c — a filter compares the Column's data field: its kind's comparisons
+    //  the Table's rows' request carries. No field — an unbound Table, a role's column — none.)
+    const field = allowsFiltering
+      ? this.tableField(tableId, column.key)?.field
+      : undefined;
     return [
       {
         key: column.key,
@@ -2615,9 +2629,15 @@ export class CatalogPreviewSession {
         allowsPinning: record.props.allowsPinning === true,
         allowsResizing: record.props.allowsResizing === true,
         sortFirstDirection: column.sortFirstDirection,
+        allowsFiltering,
+        filterOps: field
+          ? VIEW_COMPARISONS_BY_KIND[viewFieldKind(field.type)].filter(
+              (op) => !shape.filters || shape.filters(op),
+            )
+          : [],
       },
       {
-        shape: this.tableShape(tableId),
+        shape,
         state: this.tableState(tableId),
         allowsColumnReordering: table.props.allowsColumnReordering === true,
       },
@@ -2642,6 +2662,44 @@ export class CatalogPreviewSession {
   ): void {
     const input = this.columnMenuInput(tableId, racKey);
     const patch = input && catalogColumnMenuPatch(id, ...input);
+    if (patch) this.setTableState(tableId, patch);
+  }
+  /**
+   * ADR-315 Phase 4 증분 4c — what a drawn Column's filter dialog shows: the field kind, the
+   * comparisons it may use, the Column's filter now, and its candidate values (`tableFacet` — the
+   * rows the Table's other slices keep). Undefined = the Column takes no filter now.
+   */
+  tableColumnFilter(
+    tableId: string,
+    racKey: string,
+  ): CatalogColumnFilterView | undefined {
+    const input = this.columnMenuInput(tableId, racKey);
+    if (!input?.[0].allowsFiltering || !input[0].filterOps?.length)
+      return undefined;
+    const [column, table] = input;
+    const field = this.tableField(tableId, column.key)?.field;
+    const condition = table.state.columnFilters?.find(
+      (filter) => filter.column === column.key,
+    )?.condition;
+    const facet = this.tableFacet(tableId, column.key);
+    return {
+      kind: viewFieldKind(field?.type),
+      ops: column.filterOps!,
+      ...(condition ? { condition } : {}),
+      ...(facet ? { facet } : {}),
+    };
+  }
+  /**
+   * ADR-315 Phase 4 증분 4c — a Column's filter dialog applied (`condition`) or cleared
+   * (`undefined`): the one write of the Table's state (`catalogColumnFilterPatch`).
+   */
+  setTableColumnFilter(
+    tableId: string,
+    racKey: string,
+    condition: Parameters<typeof catalogColumnFilterPatch>[2],
+  ): void {
+    const input = this.columnMenuInput(tableId, racKey);
+    const patch = input && catalogColumnFilterPatch(...input, condition);
     if (patch) this.setTableState(tableId, patch);
   }
   /**
@@ -2674,30 +2732,16 @@ export class CatalogPreviewSession {
     return catalogTableSliceServable(this.tableService(tableId), slice);
   }
   /**
-   * ADR-315 Phase 3 — a Table Column's candidate values (TanStack faceting): each value of the
-   * Column's field among the rows the Table's other slices keep — its own filter aside — with the
-   * rows it would give, and the least · most of them (a number · a date field). `partial` = the
-   * rows here are not all of the data (an endpoint's pages · a server's answer): the candidates
-   * are those of the loaded rows (breakdown §4.3.1 — 「불러온 N 행 기준」, `loaded`). Undefined =
+   * The data field a bound Table's Column names (its key among the fields its rows have — the
+   * collection's, or its view's result fields), with what the Table reads it through. Undefined =
    * not a bound Table's Column of a field.
    */
-  tableFacet(
-    tableId: string,
-    columnKey: string,
-  ):
-    | {
-        values: readonly { value: unknown; count: number }[];
-        min?: unknown;
-        max?: unknown;
-        partial: boolean;
-        loaded: number;
-      }
-    | undefined {
+  private tableField(tableId: string, columnKey: string) {
     const graph = this.graph;
     const table = this.currentRoot?.domInputs.get(tableId);
     const source = table && graph?.getEntry(table.sourceId as never);
     const binding = source?.kind === "node" ? source.binding : undefined;
-    if (!graph || !table || !binding) return undefined;
+    if (!graph || !table || !source || !binding) return undefined;
     if (!this.tableColumns(tableId).some((column) => column.key === columnKey))
       return undefined;
     const collectionId = binding.collectionId.replace(/^data:collection:/, "");
@@ -2707,10 +2751,10 @@ export class CatalogPreviewSession {
     const authored = catalogBindingQuery(
       graph,
       binding,
-      source!.id,
+      source.id,
       this.stateSource(),
       undefined,
-      componentInstancePath(table, source!.id),
+      componentInstancePath(table, source.id),
     );
     const base = authored ?? NO_VIEW_QUERY;
     const schema = (collection?.schema ?? []).flatMap((field) =>
@@ -2722,7 +2766,30 @@ export class CatalogPreviewSession {
       ? viewSchemaAt({ queries: base.queries, schema }, base.queries.length)
       : schema;
     const field = fields.find((item) => item.key === columnKey);
-    if (!field) return undefined;
+    return field
+      ? { binding, collectionId, collection, base, fields, field }
+      : undefined;
+  }
+  /**
+   * ADR-315 Phase 3 — a Table Column's candidate values (TanStack faceting): each value of the
+   * Column's field among the rows the Table's other slices keep — its own filter aside — with the
+   * rows it would give, and the least · most of them (a number · a date field). `partial` = the
+   * rows here are not all of the data (an endpoint's pages · a server's answer): the candidates
+   * are those of the loaded rows (breakdown §4.3.1 — 「불러온 N 행 기준」, `loaded`). Undefined =
+   * not a bound Table's Column of a field.
+   */
+  tableFacet(
+    tableId: string,
+    columnKey: string,
+  ): CatalogTableFacet | undefined {
+    const read = this.tableField(tableId, columnKey);
+    if (!read) return undefined;
+    const { binding, collectionId, collection, base, fields, field } = read;
+    const remote = !!collection && !collection.useMockData;
+    const partial =
+      remote &&
+      (this.loadArguments.get(collectionId)?.cursor !== undefined ||
+        !!this.serverView(collectionId));
     const fieldId = (
       field.id.startsWith("data:field:") ? field.id : `data:field:${field.id}`
     ) as `data:field:${string}`;
@@ -2731,6 +2798,10 @@ export class CatalogPreviewSession {
         ...binding,
         query: {
           ...base,
+          // (The candidates are the loaded rows' by definition — `partial` says when they are not
+          //  all of the data. Without it a remote collection's grouped view marks its counts as
+          //  part of the data (`"13+"`, `partialAggregates`) and they read as 0 — 4c live.)
+          loaded: { complete: !partial },
           queries: catalogTableFacetQueries(
             base.queries.length ? base.queries : undefined,
             catalogRowSlicesView(this.recordRowSlices(tableId), fields),
@@ -2744,7 +2815,7 @@ export class CatalogPreviewSession {
     if (!rows) return undefined;
     const values = rows.map((row) => ({
       value: row.values[columnKey] ?? null,
-      count: Number(row.values[CATALOG_FACET_COUNT]) || 0,
+      count: Number.parseInt(String(row.values[CATALOG_FACET_COUNT]), 10) || 0,
     }));
     // (The least · most: numbers by value, days by their text — ISO days order as text.)
     const kind = field.type === "number" ? "number" : field.type;
@@ -2763,16 +2834,12 @@ export class CatalogPreviewSession {
               .filter((value): value is string => typeof value === "string")
               .sort()
           : [];
-    const remote = !!collection && !collection.useMockData;
     return {
       values,
       ...(ordered.length
         ? { min: ordered[0], max: ordered[ordered.length - 1] }
         : {}),
-      partial:
-        remote &&
-        (this.loadArguments.get(collectionId)?.cursor !== undefined ||
-          !!this.serverView(collectionId)),
+      partial,
       loaded: this.collectionItems(collectionId).length,
     };
   }

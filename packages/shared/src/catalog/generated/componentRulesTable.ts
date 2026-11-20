@@ -13620,7 +13620,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         end: { styles: { "border-left-width": "1px" } },
       },
       // S2 `ColumnWithMenu` (2026-11-19): a column with its menu (`isMenu` — ADR-315 Phase 4: the
-      //   resolver's `catalogColumnHasMenu`, its resize · hide · pin or its Table's reorder) has no
+      //   resolver's `catalogColumnHasMenu`, its resize · hide · pin · filter or its Table's reorder) has no
       //   side padding (`columnStyles` `paddingX: isMenu 0`); its content wrapper is the menu Button
       //   (`resizableMenuButtonWrapper` `paddingX: 16`, full height).
       "is-menu": {

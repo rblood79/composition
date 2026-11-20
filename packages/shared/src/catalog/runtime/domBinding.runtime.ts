@@ -324,9 +324,11 @@ import {
 } from "./tableSort";
 import { catalogTableColumnRoles } from "./tableColumnRoles";
 import type {
+  CatalogColumnFilterView,
   CatalogColumnMenuItem,
   CatalogColumnMenuItemId,
 } from "./tableColumnMenu";
+import type { CatalogTableColumnFilter } from "./tableState";
 import {
   CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_AT_PROP,
@@ -410,6 +412,19 @@ export interface CatalogDomRuntime {
     tableId: string,
     racKey: string,
     id: CatalogColumnMenuItemId,
+  ): void;
+  /**
+   * ADR-315 Phase 4 증분 4c — a drawn Column's filter dialog (its comparisons, filter now and
+   * candidate values) and its write — the session's (`tableColumnMenu.ts`).
+   */
+  tableColumnFilter?(
+    tableId: string,
+    racKey: string,
+  ): CatalogColumnFilterView | undefined;
+  setTableColumnFilter?(
+    tableId: string,
+    racKey: string,
+    condition: CatalogTableColumnFilter["condition"] | undefined,
   ): void;
   /** ADR-315 Phase 4 — a Table's state widths by RAC key: where a Column's resize starts. */
   tableColumnWidths?(
@@ -3200,6 +3215,27 @@ function ruleDom(
                     runtime.tableColumnMenu!(operationsTable.id, racKey),
                   runMenu: (id: CatalogColumnMenuItemId) =>
                     runtime.runTableColumnMenu!(operationsTable.id, racKey, id),
+                  // (ADR-315 Phase 4 증분 4c — 「Filter…」's dialog reads · writes the session's.)
+                  ...(runtime.tableColumnFilter && runtime.setTableColumnFilter
+                    ? {
+                        filter: {
+                          read: () =>
+                            runtime.tableColumnFilter!(
+                              operationsTable.id,
+                              racKey,
+                            ),
+                          write: (
+                            condition:
+                              CatalogTableColumnFilter["condition"] | undefined,
+                          ) =>
+                            runtime.setTableColumnFilter!(
+                              operationsTable.id,
+                              racKey,
+                              condition,
+                            ),
+                        },
+                      }
+                    : {}),
                 };
               })()
             : {}),

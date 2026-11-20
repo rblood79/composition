@@ -240,4 +240,27 @@ describe("a Table Column's candidate values with the Table's state", () => {
     expect(h.session.tableFacet(table.id, "gone")).toBeUndefined();
     h.view.unmount();
   }, 120_000);
+
+  it("counts the loaded rows of a collection an endpoint fills (not a part-of-the-data mark)", async () => {
+    // (Phase 4 증분 4c live, 2026-11-20: a remote collection's grouped view marks its counts as a
+    //  part of the data — `"13+"` — and the candidates read 0. The candidates are the loaded
+    //  rows' by definition; `partial` says so.)
+    const h = await boundList("Table", {
+      ...TABLE_USERS,
+      mockData: [],
+      runtimeData: TABLE_USERS.mockData,
+      useMockData: false,
+    });
+    const table = [...h.session.root!.domInputs.values()].find(
+      (record) => record.ruleId === "Table",
+    )!;
+    const facet = h.session.tableFacet(table.id, "status")!;
+    expect(facet.values).toEqual([
+      { value: "male", count: 13 },
+      { value: "female", count: 13 },
+    ]);
+    expect(facet.partial).toBe(false);
+    expect(facet.loaded).toBe(26);
+    h.view.unmount();
+  }, 120_000);
 });

@@ -2081,7 +2081,7 @@ export function catalogColumnSortContent(
 
 /**
  * S2 `ColumnWithMenu`: a Column with a menu (`isMenu` — the resolver's `catalogColumnHasMenu`: its
- * resize · hide · pin, its Table's reorder) puts its content in a menu Button ending in a ⋮
+ * resize · hide · pin · filter, its Table's reorder) puts its content in a menu Button ending in a ⋮
  * (`MoreVertical`). The ⋮ Icon of its content wrapper is there only then.
  */
 export function catalogColumnMenuIconHidden(

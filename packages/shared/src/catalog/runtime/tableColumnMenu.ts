@@ -4,13 +4,21 @@
  * Preview session asks it (`tableColumnMenu` · `runTableColumnMenu`), the DOM only draws the items
  * and names the one pressed. An operation the author did not allow has no item (the Column's
  * `allowsSorting` · `allowsHiding` · `allowsPinning` · `allowsResizing`, the Table's
- * `allowsColumnReordering` · multi-column sort); an item that can do nothing now (the edge column's
- * move, the last row header's hide) is there and disabled.
+ * `allowsColumnReordering` · multi-column sort, the Column's `allowsFiltering`); an item that can
+ * do nothing now (the edge column's move, the last row header's hide, a filter on a column with no
+ * comparison) is there and disabled.
  *
  * Every write goes through `session.setTableState` (the rules between slices). The resize item is
- * RAC's (`startResize` — the DOM's); the others write a slice here.
+ * RAC's (`startResize` — the DOM's) and 「Filter…」 opens the Column's filter dialog (the DOM's — its
+ * write is `catalogColumnFilterPatch`); the others write a slice here.
  */
+import type { ViewComparison } from "../document/types";
+import {
+  viewConditionSkips,
+  type ViewFieldKind,
+} from "../../collections/view/comparison";
 import type {
+  CatalogTableColumnFilter,
   CatalogTableShape,
   CatalogTableSortItem,
   CatalogTableState,
@@ -20,6 +28,8 @@ export type CatalogColumnMenuItemId =
   | "sort-asc"
   | "sort-desc"
   | "sort-add"
+  | "filter"
+  | "clear-filter"
   | "hide"
   | "pin-start"
   | "pin-end"
@@ -41,6 +51,42 @@ export interface CatalogColumnMenuColumn {
   readonly allowsPinning: boolean;
   readonly allowsResizing: boolean;
   readonly sortFirstDirection: "ascending" | "descending";
+  /** ADR-315 Phase 4 증분 4c — the end user may filter this Column (TanStack `enableColumnFilter`). */
+  readonly allowsFiltering?: boolean;
+  /**
+   * The comparisons a filter of this Column may use now: its field kind's
+   * (`VIEW_COMPARISONS_BY_KIND`) that the Table's rows' request carries (`shape.filters`). Empty =
+   * none (no field of the data — an unbound Table, a role's column): 「Filter…」 is off.
+   */
+  readonly filterOps?: readonly ViewComparison[];
+}
+
+/**
+ * A Table Column's candidate values (TanStack faceting — `session.tableFacet`): each value of its
+ * field among the rows the Table's other slices keep, with the rows it would give; the least ·
+ * most (a number · a date field); `partial` = the candidates of the `loaded` rows only (an
+ * endpoint's pages · a server's answer — 「불러온 N 행 기준」).
+ */
+export interface CatalogTableFacet {
+  readonly values: readonly {
+    readonly value: unknown;
+    readonly count: number;
+  }[];
+  readonly min?: unknown;
+  readonly max?: unknown;
+  readonly partial: boolean;
+  readonly loaded: number;
+}
+
+/** ADR-315 Phase 4 증분 4c — what a Column's filter dialog shows (`session.tableColumnFilter`). */
+export interface CatalogColumnFilterView {
+  /** The Column's field kind (the value input's). */
+  readonly kind: ViewFieldKind;
+  /** The comparisons it may use now (`CatalogColumnMenuColumn.filterOps`), the kind's order. */
+  readonly ops: readonly ViewComparison[];
+  /** Its filter now. */
+  readonly condition?: CatalogTableColumnFilter["condition"];
+  readonly facet?: CatalogTableFacet;
 }
 
 /** What the menu reads of its Table. */
@@ -147,6 +193,60 @@ function addsToSort(
   );
 }
 
+/** The Column's filter in the Table's state, if any. */
+function filterOf(
+  key: string,
+  table: CatalogColumnMenuTable,
+): CatalogTableColumnFilter | undefined {
+  return table.state.columnFilters?.find((filter) => filter.column === key);
+}
+
+/** The Table's column filters with this Column's replaced in place (or dropped — `undefined`). */
+function withFilter(
+  key: string,
+  table: CatalogColumnMenuTable,
+  condition: CatalogTableColumnFilter["condition"] | undefined,
+): Partial<CatalogTableState> {
+  const held = table.state.columnFilters ?? [];
+  const at = held.findIndex((filter) => filter.column === key);
+  const entry = condition ? { column: key, condition } : undefined;
+  const next =
+    at < 0
+      ? entry
+        ? [...held, entry]
+        : held
+      : entry
+        ? held.map((filter, index) => (index === at ? entry : filter))
+        : held.filter((_, index) => index !== at);
+  return { columnFilters: next };
+}
+
+/**
+ * ADR-315 Phase 4 증분 4c — the slice a Column's filter dialog writes: its condition as this
+ * Column's filter (in place of the one it had), none when the condition is empty (a value that
+ * skips it — `viewConditionSkips`) or cleared (`undefined`). Undefined = no write: the Column takes
+ * no filter, or not of that comparison.
+ */
+export function catalogColumnFilterPatch(
+  column: CatalogColumnMenuColumn,
+  table: CatalogColumnMenuTable,
+  condition: CatalogTableColumnFilter["condition"] | undefined,
+): Partial<CatalogTableState> | undefined {
+  if (!column.allowsFiltering) return undefined;
+  if (!condition) return withFilter(column.key, table, undefined);
+  if (!column.filterOps?.includes(condition.op)) return undefined;
+  const valueless = condition.op === "exists" || condition.op === "notExists";
+  return withFilter(
+    column.key,
+    table,
+    valueless
+      ? { op: condition.op }
+      : viewConditionSkips(condition.op, condition.value)
+        ? undefined
+        : condition,
+  );
+}
+
 /** The items of a Column's menu, in the menu's order. */
 export function catalogColumnMenuItems(
   column: CatalogColumnMenuColumn,
@@ -159,6 +259,10 @@ export function catalogColumnMenuItems(
     item("sort-asc");
     item("sort-desc");
     if (addsToSort(column, table)) item("sort-add");
+  }
+  if (column.allowsFiltering) {
+    item("filter", !column.filterOps?.length);
+    if (filterOf(column.key, table)) item("clear-filter");
   }
   if (column.allowsHiding) item("hide", lastRowHeader(column.key, table));
   if (column.allowsPinning) {
@@ -213,6 +317,8 @@ export function catalogColumnMenuPatch(
       };
       return { sort: [...(table.state.sort ?? []), entry] };
     }
+    case "clear-filter":
+      return withFilter(key, table, undefined);
     case "hide": {
       const { hidden } = columnsNow(table);
       return { hiddenColumns: [...hidden, key] };
@@ -248,6 +354,7 @@ export function catalogColumnMenuPatch(
             : { start: pinned.start, end: list },
       };
     }
+    case "filter":
     case "resize":
       return undefined;
   }

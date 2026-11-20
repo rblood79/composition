@@ -75,6 +75,12 @@ const CHECK_PIN = process.argv.includes("--check-pin");
 //   「Remember state」 로 둔다. Publish 에서 Name 머리글의 손잡이를 오른쪽으로 120px 끌고, 표 상태가
 //   브라우저에 남았는지 · 새로고침 뒤 Name 폭이 끈 폭인지를 본다.
 const CHECK_RESIZE = process.argv.includes("--check-resize");
+// `--check-filter` (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터」): Dept · Amount 열을 「Allow filtering」
+//   으로 둔다. Publish 에서 Dept 메뉴 「Filter…」 → 「Contains」 에 `dept 1` → 적용, Amount 「At least」
+//   5000 → 적용, Dept 를 다시 열어 「Equals」 의 후보 값 (자기 필터 제외 — Amount 조건만 건 행의
+//   부서별 행 수) 을 보고 `Dept 3` 을 골라 적용, 끝으로 Dept 메뉴 「Clear filter」. 단계마다 표의 행 수
+//   (`aria-rowcount`) 와 후보 값을 이 파일의 행 생성기로 따로 센 값과 대조한다.
+const CHECK_FILTER = process.argv.includes("--check-filter");
 const BROWSER = arg("--browser", "chromium");
 // `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
 //   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
@@ -175,6 +181,8 @@ const browser =
 const context = await browser.newContext({
   storageState: state,
   viewport: { width: 1600, height: 1000 },
+  // (`--check-filter` reads the column menu · dialog by their English labels.)
+  ...(CHECK_FILTER ? { locale: "en-US" } : {}),
 });
 const page = await context.newPage();
 const errors = [];
@@ -314,7 +322,14 @@ try {
 
     // ── 열 6 (starter 열 교체) → 연결 → 정렬 가능 → 가상 스크롤 ──
     const setup = await page.evaluate(
-      ({ COLUMNS, DISPLAY, COLUMN_ORIGIN, CHECK_PIN, CHECK_RESIZE }) => {
+      ({
+        COLUMNS,
+        DISPLAY,
+        COLUMN_ORIGIN,
+        CHECK_PIN,
+        CHECK_RESIZE,
+        CHECK_FILTER,
+      }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
         const root = ws.root;
@@ -487,6 +502,25 @@ try {
               }),
             );
           });
+        if (CHECK_FILTER)
+          step("filter", () => {
+            ws.execute(
+              C.setFields({
+                targets: all(table(), "Column")
+                  .map(owned)
+                  .filter(
+                    (x) =>
+                      x &&
+                      ["dept", "amount"].includes(
+                        g.getEntry(x)?.props?.key?.value,
+                      ),
+                  )
+                  .map((x) => ({ kind: "node", id: x })),
+                props: { allowsFiltering: set(true) },
+                label: "filterable",
+              }),
+            );
+          });
         const e = g.getEntry(id);
         out.rowDisplay = e.rowDisplay;
         out.binding = !!e.binding;
@@ -496,7 +530,14 @@ try {
         }));
         return out;
       },
-      { COLUMNS, DISPLAY, COLUMN_ORIGIN, CHECK_PIN, CHECK_RESIZE },
+      {
+        COLUMNS,
+        DISPLAY,
+        COLUMN_ORIGIN,
+        CHECK_PIN,
+        CHECK_RESIZE,
+        CHECK_FILTER,
+      },
     );
     log(`setup ${JSON.stringify(setup).slice(0, 1500)}`);
     results.setup = setup;
@@ -1172,6 +1213,145 @@ try {
           scrolled.head.name.left < 400 - 700 + 400
         );
       log(`check-pin ${JSON.stringify(results.checkPin)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_FILTER) {
+      const all = makeRows(ROWS);
+      // (A virtual Table's `aria-rowcount`; a 「더 보기」 Table draws its first 100 rows and has
+      //  none — its drawn data rows, against the expected count cut at 100.)
+      const rowCount = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const grid = table.matches("[role=grid]")
+            ? table
+            : table.querySelector("[role=grid]");
+          const count = grid?.getAttribute("aria-rowcount");
+          if (count) return Number(count) - 1;
+          return [...grid.querySelectorAll("[role=row]")].filter((row) =>
+            /Person \d+/.test(row.textContent ?? ""),
+          ).length;
+        }, OURS);
+      const shownOf = (count) =>
+        DISPLAY === "more" ? Math.min(count, 100) : count;
+      const header = (name) =>
+        pub
+          .locator(`${OURS} [role=columnheader]`)
+          .filter({ hasText: new RegExp(`^${name}`) })
+          .first();
+      const menu = async (name, item) => {
+        await header(name).locator("button").first().click();
+        await pub.waitForTimeout(300);
+        const items = await pub
+          .locator("[role=menu] [role=menuitem]")
+          .allTextContents();
+        log(`menu ${name}: ${JSON.stringify(items)}`);
+        await pub
+          .locator("[role=menu] [role=menuitem]")
+          .filter({ hasText: new RegExp(`^${item}$`) })
+          .first()
+          .click();
+        await pub.waitForTimeout(800);
+        return items.map((text) => text.trim());
+      };
+      const dialog = () => pub.locator("[role=dialog]").first();
+      const choose = async (label) => {
+        await dialog().locator(".react-aria-Select button").first().click();
+        await pub.waitForTimeout(300);
+        await pub
+          .locator("[role=listbox] [role=option]")
+          .filter({ hasText: new RegExp(`^${label}$`) })
+          .first()
+          .click();
+        await pub.waitForTimeout(300);
+      };
+      const apply = async () => {
+        await dialog().getByRole("button", { name: "Apply" }).click();
+        await pub.waitForTimeout(1500);
+      };
+      await pub.waitForTimeout(1500);
+      const before = await rowCount();
+      // 1) Dept 「Contains」 `dept 1` (기본 감도 — 대소문자 무시)
+      const deptItems = await menu("Dept", "Filter…");
+      const firstOp = (
+        await dialog().locator(".react-aria-SelectValue").first().textContent()
+      )?.trim();
+      await dialog().locator("input").first().fill("dept 1");
+      await apply();
+      const contains = (row) => row.dept.toLowerCase().includes("dept 1");
+      const one = await rowCount();
+      // 2) Amount 「At least」 5000
+      await menu("Amount", "Filter…");
+      await choose("At least");
+      await dialog().locator("input").first().fill("5000");
+      await apply();
+      const two = await rowCount();
+      // 3) Dept 를 다시 — 「Equals」 의 후보 값 = Amount 조건만 건 행의 부서별 수 (자기 필터 제외)
+      const deptAgain = await menu("Dept", "Filter…");
+      const prefilled = await dialog().locator("input").first().inputValue();
+      await choose("Equals");
+      await pub.screenshot({ path: `${OUT}/check-filter-dialog.png` });
+      const candidates = (
+        await dialog().locator("[role=listbox] [role=option]").allTextContents()
+      ).map((text) => text.replace(/\s+/g, " ").trim());
+      await dialog()
+        .locator("[role=listbox] [role=option]")
+        .filter({
+          has: pub.locator("[slot=label]", { hasText: /^Dept 3$/ }),
+        })
+        .first()
+        .click();
+      await apply();
+      const three = await rowCount();
+      await pub.screenshot({ path: `${OUT}/check-filter.png` });
+      // 4) Dept 「Clear filter」
+      await menu("Dept", "Clear filter");
+      const four = await rowCount();
+      const rich = all.filter((row) => row.amount >= 5000);
+      const perDept = new Map();
+      for (const row of rich)
+        perDept.set(row.dept, (perDept.get(row.dept) ?? 0) + 1);
+      const expectedCandidates = [...perDept]
+        .map(([dept, count]) => `${dept}${count}`)
+        .sort();
+      results.checkFilter = {
+        deptItems,
+        deptAgain,
+        firstOp,
+        prefilled,
+        rows: { before, one, two, three, four },
+        expected: {
+          one: shownOf(all.filter(contains).length),
+          two: shownOf(
+            all.filter((row) => contains(row) && row.amount >= 5000).length,
+          ),
+          three: shownOf(rich.filter((row) => row.dept === "Dept 3").length),
+          four: shownOf(rich.length),
+        },
+        candidates,
+        expectedCandidates,
+        sameCandidates:
+          JSON.stringify(
+            candidates.map((text) => text.replace(/ /g, "")).sort(),
+          ) ===
+          JSON.stringify(
+            expectedCandidates.map((text) => text.replace(/ /g, "")),
+          ),
+      };
+      const { rows, expected } = results.checkFilter;
+      results.checkFilter.pass =
+        before === shownOf(ROWS) &&
+        firstOp === "Contains" &&
+        prefilled === "dept 1" &&
+        rows.one === expected.one &&
+        rows.two === expected.two &&
+        rows.three === expected.three &&
+        rows.four === expected.four &&
+        results.checkFilter.sameCandidates &&
+        deptItems.includes("Filter…") &&
+        !deptItems.includes("Clear filter") &&
+        deptAgain.includes("Clear filter");
+      log(`check-filter ${JSON.stringify(results.checkFilter)}`);
       throw new Error("load only");
     }
 

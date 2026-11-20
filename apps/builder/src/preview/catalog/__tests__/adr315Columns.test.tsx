@@ -616,3 +616,164 @@ describe("a Column's menu (ADR-315 Phase 4 — S2 `ColumnWithMenu`)", () => {
     expect(t.errors).not.toHaveBeenCalled();
   });
 });
+
+describe("a Column's filter (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터」)", () => {
+  it("「Filter…」 opens its dialog: a condition of the field kind, candidate values of the other slices' rows, Apply · Clear", async () => {
+    const t = await openTable();
+    for (const key of ["type", "status"])
+      t.h.workspace.execute(
+        setFields({
+          targets: [t.h.workspace.positionOfRecord(t.column(key).id)!.target],
+          props: { allowsFiltering: { kind: "set", value: true } },
+        }),
+      );
+    t.h.flush();
+    await settle();
+    // (the author's switch gives the Column its S2 menu)
+    expect(t.column("type").props.isMenu).toBe(true);
+    expect(t.column("name").props.isMenu).not.toBe(true);
+    const header = (name: string) =>
+      [
+        ...t.h.view.container.querySelectorAll<HTMLElement>(
+          '[role="columnheader"]',
+        ),
+      ].find((cell) => (cell.textContent ?? "").trim() === name)!;
+    const menuOf = (name: string) => {
+      const button = header(name).querySelector("button")!;
+      act(() => {
+        fireEvent.click(button);
+      });
+      const open = document.getElementById(
+        button.getAttribute("aria-controls")!,
+      )!;
+      return [...open.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    };
+    const labels = (name: string) => {
+      const items = menuOf(name);
+      const out = items.map((item) => (item.textContent ?? "").trim());
+      act(() => {
+        fireEvent.keyDown(items[0]!, { key: "Escape" });
+      });
+      return out;
+    };
+    const dialog = async (name: string) => {
+      const item = menuOf(name).find(
+        (entry) => (entry.textContent ?? "").trim() === "Filter…",
+      )!;
+      act(() => {
+        fireEvent.click(item);
+      });
+      await settle();
+      return document.querySelector<HTMLElement>('[role="dialog"]')!;
+    };
+    const apply = async (box: HTMLElement) => {
+      const button = [...box.querySelectorAll("button")].find(
+        (entry) => (entry.textContent ?? "").trim() === "Apply",
+      )!;
+      act(() => {
+        fireEvent.click(button);
+      });
+      await settle();
+    };
+    const names = () => t.dom().rows.map((row) => row[0]);
+
+    expect(labels("Type")).toEqual(["Filter…"]);
+    // (text: 「Contains」 first — a typed value)
+    let box = await dialog("Type");
+    expect(box.textContent).toContain("Contains");
+    const value = box.querySelector<HTMLInputElement>("input")!;
+    act(() => {
+      fireEvent.change(value, { target: { value: "a" } });
+    });
+    await apply(box);
+    expect(t.h.session.tableState(t.table().id).columnFilters).toEqual([
+      { column: "type", condition: { op: "contains", value: "a" } },
+    ]);
+    // (the comparison's default sensitivity: 「a」 finds the A rows)
+    expect(names()).toEqual(["Chan", "Dana", "Eun"]);
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(labels("Type")).toEqual(["Filter…", "Clear filter"]);
+
+    // (number: 「Equals」 with the candidates of the rows Type's filter keeps — its own aside)
+    box = await dialog("Status");
+    expect(box.textContent).toContain("Equals");
+    const options = () =>
+      [...box.querySelectorAll<HTMLElement>('[role="option"]')].map((option) =>
+        (option.textContent ?? "").replace(/\s+/g, " ").trim(),
+      );
+    expect([...options()].sort()).toEqual(["(Empty)1", "11", "51"].sort());
+    const five = [...box.querySelectorAll<HTMLElement>('[role="option"]')].find(
+      (option) => (option.textContent ?? "").startsWith("5"),
+    )!;
+    act(() => {
+      fireEvent.click(five);
+    });
+    expect(box.querySelector<HTMLInputElement>("input")!.value).toBe("5");
+    await apply(box);
+    expect(names()).toEqual(["Dana"]);
+    expect(t.h.session.tableState(t.table().id).columnFilters?.[1]).toEqual({
+      column: "status",
+      condition: { op: "equals", value: 5 },
+    });
+
+    // (the dialog opens on the Column's filter now)
+    box = await dialog("Type");
+    expect(box.querySelector<HTMLInputElement>("input")!.value).toBe("a");
+    act(() => {
+      fireEvent.keyDown(box, { key: "Escape" });
+    });
+    await settle();
+
+    // 「Clear filter」 drops Type's filter only
+    const clear = menuOf("Type").find(
+      (entry) => (entry.textContent ?? "").trim() === "Clear filter",
+    )!;
+    act(() => {
+      fireEvent.click(clear);
+    });
+    await settle();
+    expect(t.h.session.tableState(t.table().id).columnFilters).toEqual([
+      { column: "status", condition: { op: "equals", value: 5 } },
+    ]);
+    expect(names()).toEqual(["Dana"]);
+    expect(t.errors).not.toHaveBeenCalled();
+  });
+
+  it("a Table not bound to data offers 「Filter…」 off (no field to compare)", async () => {
+    const t = await openTable(false);
+    // (the selection Column first, then Name · Type · Status — the Builder's records)
+    const typeColumn = [...t.h.workspace.root.domInputs.values()].filter(
+      (record) => record.ruleId === "Column",
+    )[2];
+    expect(typeColumn).toBeDefined();
+    t.h.workspace.execute(
+      setFields({
+        targets: [t.h.workspace.positionOfRecord(typeColumn!.id)!.target],
+        props: { allowsFiltering: { kind: "set", value: true } },
+      }),
+    );
+    t.h.flush();
+    await settle();
+    const button = [
+      ...t.h.view.container.querySelectorAll<HTMLElement>(
+        '[role="columnheader"]',
+      ),
+    ]
+      .find((cell) => (cell.textContent ?? "").trim() === "Type")!
+      .querySelector("button")!;
+    act(() => {
+      fireEvent.click(button);
+    });
+    const items = [
+      ...document
+        .getElementById(button.getAttribute("aria-controls")!)!
+        .querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    ];
+    expect(
+      items.map(
+        (item) =>
+          `${(item.textContent ?? "").trim()}${item.getAttribute("aria-disabled") === "true" ? " (off)" : ""}`,
+      ),
+    ).toEqual(["Filter… (off)"]);
+  });
+});

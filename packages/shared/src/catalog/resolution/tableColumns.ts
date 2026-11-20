@@ -68,8 +68,8 @@ export const CATALOG_TABLE_COLUMN_MENU_SWITCHES: readonly string[] = [
 ];
 /**
  * Whether a data Column has a menu: S2 `isMenu = allowsResizing || menuItems` — here the menu's
- * items are the operations the author allowed (the Column's resize · hide · pin, its Table's
- * reorder). Sorting alone gives no menu (a press sorts — S2's `ColumnWithMenu` is not a sortable
+ * items are the operations the author allowed (the Column's resize · hide · pin · filter, its
+ * Table's reorder). Sorting alone gives no menu (a press sorts — S2's `ColumnWithMenu` is not a sortable
  * column's); a column with a menu sorts from it. The selection column never has one.
  */
 export function catalogColumnHasMenu(
@@ -80,6 +80,7 @@ export function catalogColumnHasMenu(
     column.allowsResizing === true ||
     column.allowsHiding === true ||
     column.allowsPinning === true ||
+    column.allowsFiltering === true ||
     CATALOG_TABLE_COLUMN_MENU_SWITCHES.some((key) => table?.[key] === true)
   );
 }
