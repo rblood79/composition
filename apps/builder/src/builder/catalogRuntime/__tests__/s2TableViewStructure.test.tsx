@@ -338,4 +338,109 @@ describe("S2 TableView — a Column with a menu (`ColumnWithMenu`: allowsResizin
     expect(textBox.x).toBe(16);
     expect(iconBox.x).toBeCloseTo(textBox.x + textBox.width + 6, 0);
   });
+
+  it("ADR-315 Phase 4 — one condition (S2 `isMenu`): a Column's hide · pin, or its Table's 「Reorder columns」, gives the same shape; the selection column never", async () => {
+    const { root, ofType, workspace } = await open("Table");
+    const column = (name: string) =>
+      ofType("Column").find((c) => c.props.children === name)!;
+    const selection = () =>
+      ofType("Column").find((c) =>
+        c.children.some(
+          (id) => root.canvasInputs.get(id)?.props.slot === "selection",
+        ),
+      )!;
+    const icon = (name: string) => {
+      const wrapper = root.canvasInputs.get(column(name).children[0]!)!;
+      return wrapper.children
+        .map((id) => root.canvasInputs.get(id)!)
+        .find((child) => root.typeOf(child) === "Icon")!;
+    };
+    const shaped = (name: string) => {
+      const wrapper = root.canvasInputs.get(column(name).children[0]!)!;
+      const columnBox = geometryOf(root, column(name).id);
+      const wrapperBox = geometryOf(root, wrapper.id);
+      const text = root.canvasInputs.get(wrapper.children[0]!)!;
+      return {
+        menu: column(name).props.isMenu === true,
+        dots: !icon(name).hidden,
+        // (no side padding: the wrapper starts at the column's edge; the end line: 1px)
+        edge: wrapperBox.x,
+        line: Math.round(columnBox.width - wrapperBox.width),
+        textX: geometryOf(root, text.id).x,
+      };
+    };
+    // (without a menu the column's own 16 padding holds the wrapper; with it the wrapper is the
+    //  full-width button whose 16 holds the name)
+    const plain = { menu: false, dots: false, edge: 16, line: 32, textX: 0 };
+    const menu = { menu: true, dots: true, edge: 0, line: 1, textX: 16 };
+    const set = (id: string, props: Record<string, unknown>) =>
+      workspace.execute(
+        setFields({
+          targets: [workspace.itemOfRecord(id)!.target],
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value: value as never },
+            ]),
+          ),
+        }),
+      );
+    expect(shaped("Type")).toMatchObject(plain);
+    // (sorting alone gives no menu — a press sorts)
+    set(column("Type").id, { allowsSorting: true });
+    expect(shaped("Type")).toMatchObject(plain);
+    set(column("Type").id, { allowsHiding: true });
+    expect(shaped("Type")).toMatchObject(menu);
+    expect(shaped("Status")).toMatchObject(plain);
+    set(column("Type").id, { allowsHiding: false, allowsPinning: true });
+    expect(shaped("Type")).toMatchObject(menu);
+    set(column("Type").id, { allowsPinning: false });
+    expect(shaped("Type")).toMatchObject(plain);
+    // The Table's switch: every data Column, not the selection column.
+    const selectionPadding = () => {
+      const box = geometryOf(root, selection().id);
+      return { menu: selection().props.isMenu === true, width: box.width };
+    };
+    const before = selectionPadding();
+    const table = ofType("Table")[0]!;
+    set(table.id, { allowsColumnReordering: true });
+    for (const name of ["Name", "Type", "Status"])
+      expect(shaped(name)).toMatchObject(menu);
+    expect(selectionPadding()).toEqual(before);
+    expect(before.menu).toBe(false);
+    set(table.id, { allowsColumnReordering: false });
+    for (const name of ["Name", "Type", "Status"])
+      expect(shaped(name)).toMatchObject(plain);
+  });
+
+  it("ADR-315 Phase 4 — a Table's 「Reorder columns」 keeps its column projection: a Column 「Hidden by default」 stays hidden (live 2026-11-20), and so after its own menu permission changes", async () => {
+    const { root, ofType, workspace } = await open("Table");
+    const column = (name: string) =>
+      ofType("Column").find((c) => c.props.children === name)!;
+    const set = (id: string, props: Record<string, unknown>) =>
+      workspace.execute(
+        setFields({
+          targets: [workspace.itemOfRecord(id)!.target],
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value: value as never },
+            ]),
+          ),
+        }),
+      );
+    const shown = () =>
+      ["Name", "Type", "Status"].filter((name) => !column(name).hidden);
+    set(column("Type").id, { defaultHidden: true });
+    expect(shown()).toEqual(["Name", "Status"]);
+    const table = ofType("Table")[0]!;
+    set(table.id, { allowsColumnReordering: true });
+    expect(shown()).toEqual(["Name", "Status"]);
+    expect(column("Name").props.isMenu).toBe(true);
+    set(column("Type").id, { allowsHiding: true });
+    expect(shown()).toEqual(["Name", "Status"]);
+    set(table.id, { allowsColumnReordering: false });
+    expect(shown()).toEqual(["Name", "Status"]);
+    expect(column("Name").props.isMenu).toBeUndefined();
+  });
 });

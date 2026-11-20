@@ -807,11 +807,12 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         } as CompiledPartRule["visual"],
       },
       // S2 `ColumnWithMenu`: a column with its menu ends in a line (`columnStyles`
-      // `borderEndWidth: isMenu 1`, the bottom line's color).
+      // `borderEndWidth: isMenu 1`, the bottom line's color — `isMenu` the resolver's,
+      // `catalogColumnHasMenu`).
       {
         childType: "Column",
         via: "TableHeader",
-        childProps: { allowsResizing: true },
+        childProps: { isMenu: true },
         layout: {},
         visual: { borderRightWidth: 1 } as CompiledPartRule["visual"],
       },

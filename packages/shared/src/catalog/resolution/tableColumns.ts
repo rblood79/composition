@@ -25,12 +25,14 @@ import {
 
 import {
   CATALOG_COLUMN_HIDDEN_PROP,
+  CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_EDGE_PROP,
   CATALOG_COLUMN_PINNED_PROP,
 } from "../runtime/tableTracks";
 
 export {
   CATALOG_COLUMN_HIDDEN_PROP,
+  CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_EDGE_PROP,
   CATALOG_COLUMN_PINNED_PROP,
   CATALOG_COLUMN_PLACE_PROP,
@@ -55,6 +57,32 @@ export const CATALOG_COLUMN_PROJECTION_PROPS: ReadonlySet<string> = new Set([
   "defaultPinned",
   "isRowHeader",
 ]);
+
+/**
+ * The Table switches that give each of its data Columns a menu item (breakdown §6 「Columns」 —
+ * 「Reorder columns」: move left · right). An edit of one resolves its Columns again
+ * (`compositionRoot`).
+ */
+export const CATALOG_TABLE_COLUMN_MENU_SWITCHES: readonly string[] = [
+  "allowsColumnReordering",
+];
+/**
+ * Whether a data Column has a menu: S2 `isMenu = allowsResizing || menuItems` — here the menu's
+ * items are the operations the author allowed (the Column's resize · hide · pin, its Table's
+ * reorder). Sorting alone gives no menu (a press sorts — S2's `ColumnWithMenu` is not a sortable
+ * column's); a column with a menu sorts from it. The selection column never has one.
+ */
+export function catalogColumnHasMenu(
+  column: Readonly<Record<string, unknown>>,
+  table: Readonly<Record<string, unknown>> | undefined,
+): boolean {
+  return (
+    column.allowsResizing === true ||
+    column.allowsHiding === true ||
+    column.allowsPinning === true ||
+    CATALOG_TABLE_COLUMN_MENU_SWITCHES.some((key) => table?.[key] === true)
+  );
+}
 
 /** One authored data column of a Table (the selection column is none of them). */
 export interface CatalogTableColumnEntry {

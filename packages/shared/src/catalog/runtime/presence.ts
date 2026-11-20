@@ -59,6 +59,7 @@ import {
   catalogTableSelectionColumn,
   catalogTrackTableOf,
   CATALOG_COLUMN_HIDDEN_PROP,
+  CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_EDGE_PROP,
   CATALOG_COLUMN_PINNED_PROP,
   catalogTableSelectionPartHidden,
@@ -2079,9 +2080,9 @@ export function catalogColumnSortContent(
 }
 
 /**
- * S2 `ColumnWithMenu`: a Column with a menu (`allowsResizing` — S2's `menuItems` is not authored
- * here) puts its content in a menu Button ending in a ⋮ (`MoreVertical`). The ⋮ Icon of its content
- * wrapper is there only then.
+ * S2 `ColumnWithMenu`: a Column with a menu (`isMenu` — the resolver's `catalogColumnHasMenu`: its
+ * resize · hide · pin, its Table's reorder) puts its content in a menu Button ending in a ⋮
+ * (`MoreVertical`). The ⋮ Icon of its content wrapper is there only then.
  */
 export function catalogColumnMenuIconHidden(
   node: CatalogConsumerNode,
@@ -2095,11 +2096,11 @@ export function catalogColumnMenuIconHidden(
     !!column &&
     typeOf(column) === "Column" &&
     catalogColumnContent(column, get, typeOf)?.id === wrapper.id &&
-    column.props.allowsResizing !== true
+    column.props[CATALOG_COLUMN_MENU_PROP] !== true
   );
 }
 
-/** S2 `ColumnWithMenu`: the content wrapper `node` of a Column with a menu (`allowsResizing`). */
+/** S2 `ColumnWithMenu`: the content wrapper `node` of a Column with a menu (`isMenu`). */
 export function catalogColumnMenuContent(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -2110,7 +2111,7 @@ export function catalogColumnMenuContent(
   return (
     !!column &&
     typeOf(column) === "Column" &&
-    column.props.allowsResizing === true &&
+    column.props[CATALOG_COLUMN_MENU_PROP] === true &&
     catalogColumnContent(column, get, typeOf)?.id === node.id
   );
 }
@@ -4077,7 +4078,7 @@ export function catalogDerivedPropsDependents(
     ...catalogColorControlParts(owner, get, typeOf),
     // (A Table's select-all checkboxes follow its selection mode and its rows — Phase 5i-2.)
     ...catalogTableSelectAllCheckboxes(owner, get, typeOf),
-    // (A Column's menu ⋮ follows its `allowsResizing` — S2 `ColumnWithMenu`.)
+    // (A Column's menu ⋮ follows its `isMenu` — S2 `ColumnWithMenu`.)
     ...(typeOf(owner) === "Column"
       ? [catalogColumnContent(owner, get, typeOf)]
           .filter((wrapper): wrapper is CatalogConsumerNode => !!wrapper)

@@ -113,6 +113,14 @@ import {
   type CatalogTableState,
 } from "./tableState";
 import {
+  catalogColumnMenuItems,
+  catalogColumnMenuPatch,
+  type CatalogColumnMenuColumn,
+  type CatalogColumnMenuItem,
+  type CatalogColumnMenuItemId,
+  type CatalogColumnMenuTable,
+} from "./tableColumnMenu";
+import {
   CATALOG_FACET_COUNT,
   catalogRowSlicesView,
   catalogTableFacetQueries,
@@ -2570,6 +2578,71 @@ export class CatalogPreviewSession {
     // (A press the state did not take — past the Table's most sort columns: RAC's header already
     //  shows its own guess; the echo puts the state's back.)
     if (this.tableState(tableId).sort === before) this.echoTableSort(tableId);
+  }
+  /**
+   * ADR-315 Phase 4 — a drawn Column's menu (S2 `ColumnWithMenu`, `tableColumnMenu.ts`): what it
+   * reads — the Column (by its RAC key) with what its author allowed, the Table's shape · state.
+   */
+  private columnMenuInput(
+    tableId: string,
+    racKey: string,
+  ): [CatalogColumnMenuColumn, CatalogColumnMenuTable] | undefined {
+    const root = this.currentRoot;
+    const table = root?.domInputs.get(tableId);
+    const column = racKey
+      ? this.tableColumns(tableId).find((item) => item.racKey === racKey)
+      : undefined;
+    if (!root || !table || !column) return undefined;
+    const record = [...(table.children ?? [])]
+      .map((id) => root.domInputs.get(id))
+      .filter((header) => header?.ruleId === "TableHeader")
+      .flatMap((header) => header!.children)
+      .map((id) => root.domInputs.get(id))
+      .find(
+        (item) =>
+          !!item &&
+          catalogTableColumnKey({
+            id: item.id,
+            ...(item.htmlId ? { htmlId: item.htmlId } : {}),
+          }) === racKey,
+      );
+    if (!record) return undefined;
+    return [
+      {
+        key: column.key,
+        allowsSorting: record.props.allowsSorting === true,
+        allowsHiding: record.props.allowsHiding === true,
+        allowsPinning: record.props.allowsPinning === true,
+        allowsResizing: record.props.allowsResizing === true,
+        sortFirstDirection: column.sortFirstDirection,
+      },
+      {
+        shape: this.tableShape(tableId),
+        state: this.tableState(tableId),
+        allowsColumnReordering: table.props.allowsColumnReordering === true,
+      },
+    ];
+  }
+  /** ADR-315 Phase 4 — a drawn Column's menu items as the Table's state is now. */
+  tableColumnMenu(
+    tableId: string,
+    racKey: string,
+  ): readonly CatalogColumnMenuItem[] {
+    const input = this.columnMenuInput(tableId, racKey);
+    return input ? catalogColumnMenuItems(...input) : [];
+  }
+  /**
+   * ADR-315 Phase 4 — a Column menu item pressed: the slice it writes, through the one write of
+   * the Table's state (the resize item is RAC's — the DOM starts it).
+   */
+  runTableColumnMenu(
+    tableId: string,
+    racKey: string,
+    id: CatalogColumnMenuItemId,
+  ): void {
+    const input = this.columnMenuInput(tableId, racKey);
+    const patch = input && catalogColumnMenuPatch(id, ...input);
+    if (patch) this.setTableState(tableId, patch);
   }
   /**
    * How a Table record's rows are served (`catalogTableSliceServable`'s reading): its bound

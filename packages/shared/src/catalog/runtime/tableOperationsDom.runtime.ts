@@ -1,6 +1,10 @@
 import { createContext, createElement, type ReactNode } from "react";
 
 import { ColumnResizer } from "react-aria-components/Table";
+import type {
+  CatalogColumnMenuItem,
+  CatalogColumnMenuItemId,
+} from "./tableColumnMenu";
 import {
   CatalogSortIndicator,
   CatalogTablePinMeasure,
@@ -46,7 +50,14 @@ export const CatalogColumnSortContext = createContext<CatalogColumnSort | null>(
 export interface CatalogColumnMenu {
   readonly allowsSorting: boolean;
   readonly sort: (direction: "ascending" | "descending") => void;
-  readonly startResize: () => void;
+  /** A resizable Column's (RAC's `startResize` — its Table is in RAC's resizable container). */
+  readonly startResize?: () => void;
+  /**
+   * ADR-315 Phase 4 — the menu's items as the Table's state is now, and an item pressed (the
+   * Preview session's — `tableColumnMenu.ts`). Absent (no session): sort and resize only.
+   */
+  readonly items?: () => readonly CatalogColumnMenuItem[];
+  readonly run?: (id: CatalogColumnMenuItemId) => void;
 }
 export const CatalogColumnMenuContext = createContext<CatalogColumnMenu | null>(
   null,
@@ -70,6 +81,11 @@ export function catalogColumnChildren(
       readonly direction: "ascending" | "descending";
     };
     readonly resizable: boolean;
+    /** ADR-315 Phase 4 — S2 `isMenu` (`catalogColumnHasMenu`): its content is the menu Button. */
+    readonly menu: boolean;
+    /** ADR-315 Phase 4 — the session's menu items and their run (`CatalogColumnMenu`). */
+    readonly menuItems?: () => readonly CatalogColumnMenuItem[];
+    readonly runMenu?: (id: CatalogColumnMenuItemId) => void;
     readonly writesTracks: boolean;
     /** ADR-315 Phase 4 — a pinned Column: its header's width is measured for the pinned ones after it. */
     readonly measuresPin?: boolean;
@@ -100,14 +116,21 @@ export function catalogColumnChildren(
         )
       : content;
     return [
-      // (S2 `ColumnWithMenu` — a resizable Column's content is its menu Button: the menu sorts
-      //  through RAC's `sort` and starts a resize through `startResize`.)
-      options.resizable && sort && startResize
+      // (S2 `ColumnWithMenu` — a Column with a menu has its content as the menu Button: the menu
+      //  sorts through RAC's `sort` and starts a resize through `startResize`.)
+      options.menu && sort
         ? createElement(
             CatalogColumnMenuContext.Provider,
             {
               key: "menu",
-              value: { allowsSorting: options.sortable, sort, startResize },
+              value: {
+                allowsSorting: options.sortable,
+                sort,
+                ...(options.resizable && startResize ? { startResize } : {}),
+                ...(options.menuItems && options.runMenu
+                  ? { items: options.menuItems, run: options.runMenu }
+                  : {}),
+              },
             },
             sorted,
           )

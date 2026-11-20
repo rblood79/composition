@@ -135,6 +135,15 @@ export const tableBinding: PrimitiveBinding = {
           { value: "fuzzy", label: "Fuzzy" },
         ],
       },
+      // ADR-315 Phase 4 — the end user may move columns (breakdown §6 「Columns」 — 「Reorder
+      //   columns」, a composition extension, default off): every data Column's menu moves it
+      //   left · right (사용자 결정 3 — and its header drags). The order is the Table state's
+      //   `columnOrder`, never the document.
+      allowsColumnReordering: {
+        kind: "boolean",
+        label: "Reorder columns",
+        section: "state",
+      },
       // ADR-257 Phase 3 — S2 `selectionStyle` (default checkbox): highlight selects a row by its
       //   background (RAC `selectionBehavior="replace"`) and the selection checkbox column is
       //   not there (`catalogTableSelectionPartHidden`).

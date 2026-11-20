@@ -1,4 +1,4 @@
-import { act } from "@testing-library/react";
+import { act, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setFields } from "../../../../../../packages/shared/src/catalog/commands/fields";
 import { setRowDisplay } from "../../../../../../packages/shared/src/catalog/commands/rowDisplay";
@@ -491,4 +491,128 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
     expect(t.h.session.tableState(t.table().id).pinnedColumns).toBeUndefined();
     t.h.view.unmount();
   }, 120_000);
+});
+
+describe("a Column's menu (ADR-315 Phase 4 — S2 `ColumnWithMenu`)", () => {
+  it("its items are what the author allowed, as the state is now; each item writes its slice", async () => {
+    const t = await openTable();
+    const write = (id: string, props: Record<string, unknown>) => {
+      t.h.workspace.execute(
+        setFields({
+          targets: [t.h.workspace.positionOfRecord(id)!.target],
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value: value as never },
+            ]),
+          ),
+        }),
+      );
+    };
+    write(t.table().id, { allowsColumnReordering: true });
+    write(t.column("type").id, {
+      allowsSorting: true,
+      allowsHiding: true,
+      allowsPinning: true,
+    });
+    write(t.column("name").id, { allowsHiding: true });
+    t.h.flush();
+    await settle();
+    const header = (name: string) =>
+      [
+        ...t.h.view.container.querySelectorAll<HTMLElement>(
+          '[role="columnheader"]',
+        ),
+      ].find((cell) => (cell.textContent ?? "").trim() === name)!;
+    let open: HTMLElement | null = null;
+    const menuOf = (name: string) => {
+      const button = header(name).querySelector("button")!;
+      act(() => {
+        fireEvent.click(button);
+      });
+      open = document.getElementById(button.getAttribute("aria-controls")!);
+      return [...open!.querySelectorAll<HTMLElement>('[role="menuitem"]')].map(
+        (item) => ({
+          label: (item.textContent ?? "").trim(),
+          disabled: item.getAttribute("aria-disabled") === "true",
+          item,
+        }),
+      );
+    };
+    const close = () =>
+      act(() => {
+        fireEvent.keyDown(open!, { key: "Escape" });
+      });
+    const press = async (name: string, label: string) => {
+      const item = menuOf(name).find((entry) => entry.label === label)!;
+      expect(item.disabled).toBe(false);
+      act(() => {
+        fireEvent.click(item.item);
+      });
+      await settle();
+    };
+    const labels = (name: string) => {
+      const items = menuOf(name).map(({ label, disabled }) =>
+        disabled ? `${label} (off)` : label,
+      );
+      close();
+      return items;
+    };
+    expect(labels("Type")).toEqual([
+      "Sort Ascending",
+      "Sort Descending",
+      "Hide column",
+      "Pin to start",
+      "Pin to end",
+      "Move left",
+      "Move right",
+    ]);
+    // (Name: the Table's row header — its hide would leave none; the first column moves right only)
+    expect(labels("Name")).toEqual([
+      "Hide column (off)",
+      "Move left (off)",
+      "Move right",
+    ]);
+    // (Status: the Table's reorder alone)
+    expect(labels("Status")).toEqual(["Move left", "Move right (off)"]);
+
+    await press("Type", "Move right");
+    expect(t.columnKeys()).toEqual(["name", "status", "type"]);
+    expect(t.dom().headers).toEqual(["Name", "Status", "Type"]);
+    expect(t.dom().rows[0]).toEqual(["Bora", "2", "B"]);
+    expect(labels("Type")).toContain("Move right (off)");
+
+    await press("Type", "Pin to start");
+    expect(t.columnKeys()).toEqual(["type", "name", "status"]);
+    expect(t.h.session.tableState(t.table().id).pinnedColumns).toEqual({
+      start: ["type"],
+      end: [],
+    });
+    expect(labels("Type")).toEqual([
+      "Sort Ascending",
+      "Sort Descending",
+      "Hide column",
+      "Pin to end",
+      "Unpin",
+      // (alone on its side)
+      "Move left (off)",
+      "Move right (off)",
+    ]);
+    await press("Type", "Unpin");
+    // (back among the unpinned columns at the place its move left it)
+    expect(t.columnKeys()).toEqual(["name", "status", "type"]);
+
+    await press("Type", "Sort Descending");
+    expect(t.h.session.tableState(t.table().id).sort).toEqual([
+      { column: "type", direction: "descending" },
+    ]);
+    expect(header("Type").getAttribute("aria-sort")).toBe("descending");
+
+    await press("Type", "Hide column");
+    expect(t.columnKeys()).toEqual(["name", "status"]);
+    expect(t.h.session.tableState(t.table().id).hiddenColumns).toEqual([
+      "type",
+    ]);
+    expect(t.errors).not.toHaveBeenCalled();
+  });
 });

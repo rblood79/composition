@@ -89,6 +89,9 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     // ADR-315 Phase 4 — the Column's place in the Table's column projection (hidden at first).
     defaultHidden: "composition",
     defaultPinned: "composition",
+    // ADR-315 Phase 4 — the end user may hide · pin it from its menu.
+    allowsHiding: "composition",
+    allowsPinning: "composition",
   },
   // RAC ComboBoxState.open/close에 연결하는 저작 상태. RAC ComboBox props에는 없다.
   ComboBox: {
@@ -133,6 +136,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     // ADR-315 Phase 3 — the search text and how it matches (포함 · 유사).
     searchText: "composition",
     searchMatch: "composition",
+    // ADR-315 Phase 4 — the end user may move its columns.
+    allowsColumnReordering: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },
   TextArea: { isQuiet: "v3", rows: "composition" },

@@ -444,6 +444,72 @@ describe("ADR-257 Phase 4b — Preview column resizing (S2 Column allowsResizing
     );
   });
 
+  it("ADR-315 Phase 4 — S2 `isMenu` is one condition: a Column that hides (not resizable) is a menu Button without the resize item, and no resizer; the Table's 「Reorder columns」 gives every data Column one", async () => {
+    const withContent = (
+      columnProps: Record<string, unknown>,
+      tableProps: Record<string, unknown> = {},
+    ) => {
+      const [table, header, c0, ...rest] = authoredTable(
+        columnProps,
+        tableProps,
+      )();
+      return [
+        table!,
+        header!,
+        { ...c0!, children: [id("c0-content")] } as NodeEntry,
+        node("c0-content", "frame", ["c0-name", "c0-menu"]),
+        {
+          ...node("c0-name", "Text", [], { children: "Name" }),
+          definitionId: "lib:definition:text",
+        } as NodeEntry,
+        node("c0-menu", "Icon", [], { iconName: "ellipsis-vertical" }),
+        ...rest,
+      ];
+    };
+    const hiding = await open(() =>
+      withContent({ allowsSorting: true, allowsHiding: true }),
+    );
+    const name = header(hiding.view.container, "Name");
+    const button = name.querySelector("button") as HTMLElement;
+    expect(button.getAttribute("aria-haspopup")).toBe("true");
+    expect(name.querySelector(".react-aria-ColumnResizer")).toBeNull();
+    expect(
+      hiding.view.container.querySelector(
+        ".react-aria-ResizableTableContainer",
+      ),
+    ).toBeNull();
+    // (the column's side padding is its button's; the end line 1)
+    expect(name.style.paddingLeft).toBe("0px");
+    expect(name.style.borderRightWidth).toBe("1px");
+    act(() => {
+      fireEvent.click(button);
+    });
+    expect(
+      [...document.querySelectorAll("[role='menuitem']")].map(
+        (item) => item.textContent,
+      ),
+    ).toEqual(["Sort Ascending", "Sort Descending", "Hide column"]);
+    act(() => {
+      fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    });
+    hiding.view.unmount();
+
+    const sortOnly = await open(() => withContent({ allowsSorting: true }));
+    expect(
+      header(sortOnly.view.container, "Name").querySelector("button"),
+    ).toBeNull();
+    sortOnly.view.unmount();
+
+    const reorder = await open(() =>
+      withContent({}, { allowsColumnReordering: true }),
+    );
+    expect(
+      header(reorder.view.container, "Name")
+        .querySelector("button")
+        ?.getAttribute("aria-haspopup"),
+    ).toBe("true");
+  });
+
   it("a Table without a resizable column is not wrapped", async () => {
     const { view } = await open(authoredTable({ allowsSorting: true }));
     expect(

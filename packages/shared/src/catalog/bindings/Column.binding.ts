@@ -160,10 +160,32 @@ export const columnBinding: PrimitiveBinding = {
           { value: "end", label: "End" },
         ],
       },
+      // ADR-315 Phase 4 — the end user may hide · pin this Column from its menu (TanStack
+      //   `enableHiding` · `enablePinning` per column; composition extensions, default off). Either
+      //   gives the Column its S2 menu (`isMenu`).
+      allowsHiding: {
+        kind: "boolean",
+        label: "Allow hiding",
+        section: "state",
+      },
+      allowsPinning: {
+        kind: "boolean",
+        label: "Allow pinning",
+        section: "state",
+      },
       allowsResizing: {
         kind: "boolean",
         label: "Allow Resizing",
         section: "state",
+      },
+      // ADR-315 Phase 4 — S2 `ColumnWithMenu`'s `isMenu`: the resolver's, never authored
+      //   (`catalogColumnHasMenu` — the Column's resize · hide · pin, its Table's reorder). The
+      //   rule's `is-menu` block, the Table's end line and the DOM's menu Button read it.
+      isMenu: {
+        kind: "boolean",
+        label: "Menu",
+        section: "state",
+        editorHidden: true,
       },
       size: {
         kind: "size",

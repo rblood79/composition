@@ -295,6 +295,7 @@ import { resolveTableColumnKey } from "../../collections/resolveCollectionItems"
 import {
   CATALOG_COLUMN_HIDDEN_PROP,
   CATALOG_COLUMN_PROJECTION_PROPS,
+  CATALOG_TABLE_COLUMN_MENU_SWITCHES,
 } from "../resolution/tableColumns";
 import {
   CatalogRuntime,
@@ -8488,6 +8489,10 @@ export class CatalogCompositionRoot {
       // (2026-11-20): on a Table that is not bound the Column alone was resolved again, and the
       // Canvas kept drawing a Column 「Hidden by default」.
       if (CATALOG_COLUMN_PROJECTION_PROPS.has(op.key)) return true;
+      // ADR-315 Phase 4: a Table's column menu switch gives its Columns S2's `isMenu` (the
+      // resolver's `applyColumnMenu`) — the Table resolved again, so its column projection stands
+      // (live 2026-11-20: resolving the Columns alone drew a Column 「Hidden by default」 again).
+      if (CATALOG_TABLE_COLUMN_MENU_SWITCHES.includes(op.key)) return true;
       // Tabs 항목의 수정은 Tab과 TabPanel 두 컬렉션을 함께 다시 투영한다.
       const entry = op.key === "items" ? graph.getEntry(op.id) : undefined;
       if (

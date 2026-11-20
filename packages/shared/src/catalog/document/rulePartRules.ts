@@ -1649,7 +1649,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   Column: {
     align: "align",
     "overflow-mode": "overflowMode",
-    "allows-resizing": "allowsResizing",
+    // (ADR-315 Phase 4 — S2 `isMenu`, the resolver's `catalogColumnHasMenu`.)
+    "is-menu": "isMenu",
     // (ADR-315 Phase 4 — the derived `pinnedEdge`, `derivedVariantProps.ts`.)
     "pinned-edge": "pinnedEdge",
   },

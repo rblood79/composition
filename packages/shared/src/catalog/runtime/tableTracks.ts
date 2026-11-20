@@ -49,6 +49,13 @@ export const CATALOG_COLUMN_PINNED_PROP = "_pinned";
  * rule's `pinned-edge` block, through the derived `pinnedEdge` — `presence.ts`).
  */
 export const CATALOG_COLUMN_PINNED_EDGE_PROP = "_pinnedEdge";
+/**
+ * ADR-315 Phase 4 — S2 `ColumnWithMenu`: the resolved Column prop that says the column has its
+ * menu (S2's `isMenu` — its content is the menu Button, no side padding, an end line). The resolver
+ * writes it (`catalogColumnHasMenu`, the Table's switches read through the header) before the
+ * Column's rule variant, its Table's part rule and the DOM read it — one condition for the three.
+ */
+export const CATALOG_COLUMN_MENU_PROP = "isMenu";
 
 const FR = /^([1-9]\d*)fr$/;
 const PERCENT = /^(\d+)%$/;

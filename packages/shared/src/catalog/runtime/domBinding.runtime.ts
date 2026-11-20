@@ -323,7 +323,12 @@ import {
   type CatalogTableSort,
 } from "./tableSort";
 import { catalogTableColumnRoles } from "./tableColumnRoles";
+import type {
+  CatalogColumnMenuItem,
+  CatalogColumnMenuItemId,
+} from "./tableColumnMenu";
 import {
+  CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_AT_PROP,
   CATALOG_COLUMN_PINNED_PROP,
 } from "../resolution/tableColumns";
@@ -392,6 +397,19 @@ export interface CatalogDomRuntime {
   resizeTableColumns?(
     tableId: string,
     widths: Readonly<Record<string, number>>,
+  ): void;
+  /**
+   * ADR-315 Phase 4 — a drawn Column's menu (S2 `ColumnWithMenu`): its items as the Table's state
+   * is now, and an item pressed — the session's (`tableColumnMenu.ts`); RAC's resize stays here.
+   */
+  tableColumnMenu?(
+    tableId: string,
+    racKey: string,
+  ): readonly CatalogColumnMenuItem[];
+  runTableColumnMenu?(
+    tableId: string,
+    racKey: string,
+    id: CatalogColumnMenuItemId,
   ): void;
   /** ADR-315 Phase 4 — a Table's state widths by RAC key: where a Column's resize starts. */
   tableColumnWidths?(
@@ -3151,7 +3169,10 @@ function ruleDom(
       node.props[CATALOG_COLUMN_PINNED_PROP] === "end");
   const columnOperations =
     lower === "column" &&
-    (node.props.allowsSorting === true || resizable || pinnedColumn) &&
+    (node.props.allowsSorting === true ||
+      resizable ||
+      pinnedColumn ||
+      node.props[CATALOG_COLUMN_MENU_PROP] === true) &&
     operationsTable
       ? {
           measuresPin: pinnedColumn,
@@ -3160,6 +3181,28 @@ function ruleDom(
           // (ADR-315 Phase 2 — this Column's place in a sort of several: its order mark.)
           sortEntry: columnSortEntry(node, operationsTable, context),
           resizable: node.props.allowsResizing === true,
+          // (ADR-315 Phase 4 — S2 `isMenu`, the resolver's: the same value the rule's `is-menu`
+          //  block and the Table's end line read.)
+          menu: node.props[CATALOG_COLUMN_MENU_PROP] === true,
+          // (ADR-315 Phase 4 — its items and their writes are the session's, by the Column's RAC
+          //  key: `tableColumnMenu.ts`.)
+          ...(node.props[CATALOG_COLUMN_MENU_PROP] === true &&
+          context.runtime?.tableColumnMenu &&
+          context.runtime.runTableColumnMenu
+            ? (() => {
+                const runtime = context.runtime!;
+                const racKey = catalogTableColumnKey({
+                  id: node.id,
+                  ...(node.htmlId ? { htmlId: node.htmlId } : {}),
+                });
+                return {
+                  menuItems: () =>
+                    runtime.tableColumnMenu!(operationsTable.id, racKey),
+                  runMenu: (id: CatalogColumnMenuItemId) =>
+                    runtime.runTableColumnMenu!(operationsTable.id, racKey, id),
+                };
+              })()
+            : {}),
           // (One Column of a resizable Table writes RAC's widths as the rows' tracks.)
           writesTracks:
             resizable &&

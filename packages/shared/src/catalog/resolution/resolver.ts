@@ -101,7 +101,11 @@ import {
   catalogTableStateRowSlices,
   type CatalogRowSlices,
 } from "../runtime/tableRowSlices";
-import { catalogProjectTableColumns } from "./tableColumns";
+import {
+  CATALOG_COLUMN_MENU_PROP,
+  catalogColumnHasMenu,
+  catalogProjectTableColumns,
+} from "./tableColumns";
 import type {
   CatalogTableState,
   CatalogTableStateSource,
@@ -1947,6 +1951,46 @@ export function resolveCatalogNode(
     if (typeof mode === "string") props.overflowMode = mode;
   };
   /**
+   * ADR-315 Phase 4 — S2 `ColumnWithMenu`'s `isMenu` (`catalogColumnHasMenu`): the Column's own
+   * resize · hide · pin, or a switch of its Table (read through the header, as `overflowMode`).
+   * Written before the Column's rule variants — its `is-menu` block, the Table's end line part rule
+   * and the DOM read this one value. The selection column (`Checkbox[slot=selection]`) has none.
+   */
+  const applyColumnMenu = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+    children: readonly string[],
+  ): void => {
+    if (lookupDefinition(definitionId).name !== "Column") return;
+    let table = structuralParent(parent);
+    while (table && lookupDefinition(table.definitionId).name !== "Table")
+      table = structuralParent(table.parent);
+    if (
+      catalogColumnHasMenu(props, table?.props) &&
+      !children.some(
+        (childId) =>
+          templateTypeName(childId as TemplateId) === "Checkbox" &&
+          authoredScalar(childId, "slot") === "selection",
+      )
+    )
+      props[CATALOG_COLUMN_MENU_PROP] = true;
+    else delete props[CATALOG_COLUMN_MENU_PROP];
+  };
+  /** A template · node's own authored prop value (a library template's raw, a node's `set`). */
+  const authoredScalar = (id: string, key: string): unknown => {
+    const entry = id.startsWith("lib:")
+      ? library.templates.get(id as `lib:template:${string}`)
+      : graph.getEntry(id);
+    const value =
+      entry && "props" in entry
+        ? (entry.props as Record<string, unknown> | undefined)?.[key]
+        : undefined;
+    return value && typeof value === "object" && "kind" in value
+      ? (value as { value?: unknown }).value
+      : value;
+  };
+  /**
    * ADR-259 Phase 1 — S2 ListView · Menu `hideLinkOutIcon`: the nearest GridList · Menu's value
    * reaches its items (`CATALOG_LINK_OUT_OWNERS` — S2 gives it through context; an item has no
    * editor for it). The owner wins: absent there, the item's copy is cleared.
@@ -2355,6 +2399,7 @@ export function resolveCatalogNode(
     applyOwnerSize(node.definitionId, props, parent);
     applyOwnerDensity(node.definitionId, props, parent);
     applyOwnerOverflowMode(node.definitionId, props, parent);
+    applyColumnMenu(node.definitionId, props, parent, node.children);
     applyOwnerHideLinkOut(node.definitionId, props, parent);
     applyContextualHelpGlyph(node.definitionId, props, parent);
     applyOwnerEmphasis(node.definitionId, props, parent);
@@ -3194,6 +3239,12 @@ export function resolveCatalogNode(
     // Table's `density` · `overflowMode` reach them here too.)
     applyOwnerDensity(template.definitionId, props, parent);
     applyOwnerOverflowMode(template.definitionId, props, parent);
+    applyColumnMenu(
+      template.definitionId,
+      props,
+      parent,
+      "children" in template ? template.children : [],
+    );
     applyOwnerHideLinkOut(template.definitionId, props, parent);
     applyContextualHelpGlyph(template.definitionId, props, parent);
     applyOwnerEmphasis(template.definitionId, props, parent);

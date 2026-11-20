@@ -20,6 +20,10 @@ import {
   CatalogColumnMenuContext,
   CatalogColumnSortContext,
 } from "./tableOperationsDom.runtime";
+import type {
+  CatalogColumnMenuItem,
+  CatalogColumnMenuItemId,
+} from "./tableColumnMenu";
 
 /**
  * Inside a Column of a resizable Table: writes RAC's column widths (in collection order — the
@@ -164,20 +168,146 @@ export function CatalogSortIndicator(): ReactNode {
 
 /**
  * S2 1.8.2 `table.sortAscending` · `table.sortDescending` · `table.resizeColumn`
- * (`@react-spectrum/s2` intl) in the languages the Builder ships; others English.
+ * (`@react-spectrum/s2` intl) in the languages the Builder ships; others English. ADR-315 Phase 4
+ * adds the items S2 has no string for (composition's — breakdown §5.3): add to sort, hide, pin,
+ * move. A move names the screen side: `before` is the left in a left-to-right locale.
  */
-const COLUMN_MENU_STRINGS: Readonly<
-  Record<string, { asc: string; desc: string; resize: string }>
-> = {
+interface ColumnMenuStrings {
+  readonly asc: string;
+  readonly desc: string;
+  readonly resize: string;
+  readonly add: string;
+  readonly hide: string;
+  readonly pinStart: string;
+  readonly pinEnd: string;
+  readonly unpin: string;
+  readonly left: string;
+  readonly right: string;
+}
+const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
   en: {
     asc: "Sort Ascending",
     desc: "Sort Descending",
     resize: "Resize column",
+    add: "Add to sort",
+    hide: "Hide column",
+    pinStart: "Pin to start",
+    pinEnd: "Pin to end",
+    unpin: "Unpin",
+    left: "Move left",
+    right: "Move right",
   },
-  ko: { asc: "오름차순 정렬", desc: "내림차순 정렬", resize: "열 크기 조정" },
-  ja: { asc: "昇順に並べ替え", desc: "降順に並べ替え", resize: "列幅を変更" },
-  zh: { asc: "升序排序", desc: "降序排序", resize: "调整列大小" },
+  ko: {
+    asc: "오름차순 정렬",
+    desc: "내림차순 정렬",
+    resize: "열 크기 조정",
+    add: "정렬에 추가",
+    hide: "열 숨기기",
+    pinStart: "앞에 고정",
+    pinEnd: "뒤에 고정",
+    unpin: "고정 해제",
+    left: "왼쪽으로 이동",
+    right: "오른쪽으로 이동",
+  },
+  ja: {
+    asc: "昇順に並べ替え",
+    desc: "降順に並べ替え",
+    resize: "列幅を変更",
+    add: "並べ替えに追加",
+    hide: "列を非表示",
+    pinStart: "先頭に固定",
+    pinEnd: "末尾に固定",
+    unpin: "固定を解除",
+    left: "左に移動",
+    right: "右に移動",
+  },
+  zh: {
+    asc: "升序排序",
+    desc: "降序排序",
+    resize: "调整列大小",
+    add: "添加到排序",
+    hide: "隐藏列",
+    pinStart: "固定到开头",
+    pinEnd: "固定到末尾",
+    unpin: "取消固定",
+    left: "向左移动",
+    right: "向右移动",
+  },
 };
+
+/** An item's label in the menu's language (`before` · `after` by the reading direction). */
+function columnMenuLabel(
+  id: CatalogColumnMenuItemId,
+  strings: ColumnMenuStrings,
+  rtl: boolean,
+): string {
+  switch (id) {
+    case "sort-asc":
+      return strings.asc;
+    case "sort-desc":
+      return strings.desc;
+    case "sort-add":
+      return strings.add;
+    case "hide":
+      return strings.hide;
+    case "pin-start":
+      return strings.pinStart;
+    case "pin-end":
+      return strings.pinEnd;
+    case "unpin":
+      return strings.unpin;
+    case "move-before":
+      return rtl ? strings.right : strings.left;
+    case "move-after":
+      return rtl ? strings.left : strings.right;
+    case "resize":
+      return strings.resize;
+  }
+}
+
+/**
+ * The Column menu's items, read when it opens (the Table's state as it is then — the session's
+ * `tableColumnMenu`); without a session, S2's sort and resize items.
+ */
+function CatalogColumnMenuItems(): ReactNode {
+  const menu = useContext(CatalogColumnMenuContext);
+  const { locale, direction } = useLocale();
+  if (!menu) return null;
+  const strings =
+    COLUMN_MENU_STRINGS[locale.split("-")[0] ?? "en"] ??
+    COLUMN_MENU_STRINGS.en!;
+  const items: readonly CatalogColumnMenuItem[] = menu.items
+    ? menu.items()
+    : [
+        ...(menu.allowsSorting
+          ? [{ id: "sort-asc" as const }, { id: "sort-desc" as const }]
+          : []),
+        ...(menu.startResize ? [{ id: "resize" as const }] : []),
+      ];
+  return createElement(
+    Menu,
+    {
+      style: { minWidth: 128, border: "none" },
+      disabledKeys: items
+        .filter((item) => item.disabled)
+        .map((item) => item.id),
+      onAction: (key) => {
+        const id = key as CatalogColumnMenuItemId;
+        if (id === "resize") menu.startResize?.();
+        else if (menu.run) menu.run(id);
+        else if (id === "sort-asc") menu.sort("ascending");
+        else if (id === "sort-desc") menu.sort("descending");
+      },
+    },
+    ...items.map((item) =>
+      createElement(
+        MenuItem,
+        { key: item.id, id: item.id },
+        columnMenuLabel(item.id, strings, direction === "rtl"),
+      ),
+    ),
+  );
+}
 
 /** S2 `resizableMenuButtonWrapper` over the content wrapper's own (flex · padding) style. */
 const MENU_BUTTON_STYLE: CSSProperties = {
@@ -192,9 +322,9 @@ const MENU_BUTTON_STYLE: CSSProperties = {
 };
 
 /**
- * S2 `ColumnWithMenu`: a Column with a menu (`allowsResizing`) holds its content in a `MenuTrigger`
- * Button (the content wrapper node — its sort arrow, name and ⋮) whose Menu sorts (with
- * `allowsSorting`) and starts a resize. Outside a Column's operations (the Builder's DOM) the
+ * S2 `ColumnWithMenu`: a Column with a menu (`isMenu` — `catalogColumnHasMenu`) holds its content
+ * in a `MenuTrigger` Button (the content wrapper node — its sort arrow, name and ⋮) whose Menu
+ * sorts (with `allowsSorting`) and starts a resize (with `allowsResizing`). Outside a Column's operations (the Builder's DOM) the
  * wrapper stays its `div`.
  */
 export function CatalogColumnMenuButton({
@@ -203,24 +333,11 @@ export function CatalogColumnMenuButton({
   element: ReactElement;
 }): ReactNode {
   const menu = useContext(CatalogColumnMenuContext);
-  const { locale } = useLocale();
   if (!menu) return element;
-  const strings =
-    COLUMN_MENU_STRINGS[locale.split("-")[0] ?? "en"] ??
-    COLUMN_MENU_STRINGS.en!;
   const { children, style, ...props } = element.props as {
     children?: ReactNode;
     style?: CSSProperties;
   } & Record<string, unknown>;
-  const items = [
-    ...(menu.allowsSorting
-      ? [
-          { id: "sort-asc", label: strings.asc },
-          { id: "sort-desc", label: strings.desc },
-        ]
-      : []),
-    { id: "resize", label: strings.resize },
-  ];
   return createElement(
     MenuTrigger,
     null,
@@ -242,20 +359,7 @@ export function CatalogColumnMenuButton({
         // (S2: the menu is the popover's one surface — no inner frame, its own width from 128.)
         style: { padding: 0, width: "auto", minWidth: 0 },
       },
-      createElement(
-        Menu,
-        {
-          style: { minWidth: 128, border: "none" },
-          onAction: (key) => {
-            if (key === "sort-asc") menu.sort("ascending");
-            else if (key === "sort-desc") menu.sort("descending");
-            else if (key === "resize") menu.startResize();
-          },
-        },
-        ...items.map((item) =>
-          createElement(MenuItem, { key: item.id, id: item.id }, item.label),
-        ),
-      ),
+      createElement(CatalogColumnMenuItems),
     ),
   );
 }

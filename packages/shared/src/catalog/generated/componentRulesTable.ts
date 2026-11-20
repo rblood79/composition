@@ -13619,10 +13619,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         start: { styles: { "border-right-width": "1px" } },
         end: { styles: { "border-left-width": "1px" } },
       },
-      // S2 `ColumnWithMenu` (2026-11-19): a column with its menu (`allowsResizing`) has no side
-      //   padding (`columnStyles` `paddingX: isMenu 0`); its content wrapper is the menu Button
+      // S2 `ColumnWithMenu` (2026-11-19): a column with its menu (`isMenu` — ADR-315 Phase 4: the
+      //   resolver's `catalogColumnHasMenu`, its resize · hide · pin or its Table's reorder) has no
+      //   side padding (`columnStyles` `paddingX: isMenu 0`); its content wrapper is the menu Button
       //   (`resizableMenuButtonWrapper` `paddingX: 16`, full height).
-      "allows-resizing": {
+      "is-menu": {
         true: {
           // (Its end line is the Table's part value — `manualBoxRules` Table, after the header
           //  cells' bottom-only border.)

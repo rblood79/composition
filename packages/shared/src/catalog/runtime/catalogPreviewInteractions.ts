@@ -30,6 +30,10 @@ import {
   resolveCapabilityTarget,
 } from "./capabilityTarget";
 import type { CatalogDomRuntime } from "./domBinding";
+import type {
+  CatalogColumnMenuItem,
+  CatalogColumnMenuItemId,
+} from "./tableColumnMenu";
 import { catalogTableSortOf, type CatalogTableSort } from "./tableSort";
 import {
   catalogCollectionItemKeys,
@@ -428,6 +432,16 @@ export interface CatalogPreviewInteractionsOptions {
   tableColumnWidths?: (
     tableId: string,
   ) => Readonly<Record<string, number>> | undefined;
+  /** ADR-315 Phase 4 — a drawn Column's menu items · an item pressed (the session's). */
+  tableColumnMenu?: (
+    tableId: string,
+    racKey: string,
+  ) => readonly CatalogColumnMenuItem[];
+  runTableColumnMenu?: (
+    tableId: string,
+    racKey: string,
+    id: CatalogColumnMenuItemId,
+  ) => void;
   /** ADR-315 Phase 3 — a Table's search set by a rule (`searchText` runtime prop): the session's. */
   searchTable?: (tableId: string, text: unknown) => void;
   /**
@@ -1275,6 +1289,19 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     tableId: string,
   ): Readonly<Record<string, number>> | undefined {
     return this.options.tableColumnWidths?.(tableId);
+  }
+  tableColumnMenu(
+    tableId: string,
+    racKey: string,
+  ): readonly CatalogColumnMenuItem[] {
+    return this.options.tableColumnMenu?.(tableId, racKey) ?? [];
+  }
+  runTableColumnMenu(
+    tableId: string,
+    racKey: string,
+    id: CatalogColumnMenuItemId,
+  ): void {
+    this.options.runTableColumnMenu?.(tableId, racKey, id);
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
     this.writeOverride(id, patch);

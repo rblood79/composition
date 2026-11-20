@@ -87,6 +87,10 @@ export function catalogPreviewRuntime(
     resizeTableColumns: (tableId, widths) =>
       session.resizeTableColumns(tableId, widths),
     tableColumnWidths: (tableId) => session.tableColumnWidths(tableId),
+    tableColumnMenu: (tableId, racKey) =>
+      session.tableColumnMenu(tableId, racKey),
+    runTableColumnMenu: (tableId, racKey, id) =>
+      session.runTableColumnMenu(tableId, racKey, id),
     searchTable: (tableId, text) => session.searchTable(tableId, text),
     colorScheme: (mode) => session.setColorScheme(mode),
     // (A submit in flight is what a `reload` in the same event waits for — `await fetch; reload()`.)
