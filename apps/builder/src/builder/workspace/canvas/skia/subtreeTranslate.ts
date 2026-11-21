@@ -126,6 +126,9 @@ function checkTranslate(
   )
     return { reason: "invalid-span" };
   let unsafePaint = false;
+  // A page root is the viewport of its fixed boxes: they are recorded in its layer relative to it
+  // (ADR-275 Phase 7) and move with it. Placed below a page, a fixed box keeps the viewport's place.
+  const pageRoot = oldContext.parentElementId === null;
   /** Elements met so far — a sticky box's scroll container comes before it (pre-order). */
   const inside = new Set<string>();
   // ADR-269 Phase 1: walk the subtree's elements by the stream's child index, not its commands
@@ -135,10 +138,16 @@ function checkTranslate(
   while (pending.length) {
     const id = pending.pop()!;
     visited += 1;
-    if (stream.topLayerElementIds.has(id)) return { reason: "top-layer" };
+    // (A drag's top layer is recorded at the stream's top level in scene coordinates.)
+    if (
+      stream.topLayerElementIds.has(id) &&
+      (!pageRoot ||
+        stream.subtreeBuildContextByElement.get(id)?.topLayerSubtree !== false)
+    )
+      return { reason: "top-layer" };
     const node = getSkiaNode(id);
     const scrollKey = stream.scrollContextKeyByElement.get(id) ?? "";
-    if (node?.isFixed || scrollKey.includes("|self:fixed"))
+    if (!pageRoot && (node?.isFixed || scrollKey.includes("|self:fixed")))
       return { reason: "fixed-or-sticky" };
     // ADR-267 (user decision 3 (c)): a sticky box moves with the subtree when its scroll container
     // moves with it (its offset is relative to that container); placed alone — its container

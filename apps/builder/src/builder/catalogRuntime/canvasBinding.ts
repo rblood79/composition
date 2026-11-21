@@ -2858,12 +2858,14 @@ function bindInColorMode(
     /**
      * ADR-264 Phase 3: the page grid moved page frames (auto columns at a zoom, a page grid edit)
      * and their contents kept their layout — place each moved root's subtree instead of binding
-     * again. A page that holds a fixed box or an open overlay is drawn partly in its page's layer,
-     * so its subtree cannot be placed: that page is recorded again at its new place (as `update`
-     * does for such a region — ADR-307). Null when it cannot: a pending record delta, a frame that
-     * resized, or a root that can be neither placed nor recorded (the caller binds again).
+     * again. A page's fixed boxes and open overlays are drawn in its layer relative to the page, so
+     * they move with it (`checkTranslate`). A root drawn in a drag's top layer cannot be placed: that
+     * page is recorded again at its new place (as `update` does for such a region — ADR-307). Null
+     * when it cannot: a pending record delta, a frame that resized, or a root that can be neither
+     * placed nor recorded (the caller binds again).
      * **Why (2026-11-19)**: a page as tall as its content moves the pages below whenever it grows —
-     * one page with a fixed bar bound all 22 pages again on each such edit.
+     * one page with a fixed bar bound all 22 pages again on each such edit. (2026-11-22: the pages
+     * with a closed Select's Popover — fixed — were recorded again on each such edit.)
      */
     const movePageRoots = (): string[] | null => {
       hiddenMemo.clear();

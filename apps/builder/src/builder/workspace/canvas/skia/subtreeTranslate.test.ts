@@ -547,6 +547,70 @@ describe("ADR-264 옮길 수 없는 모양은 쓰기 전에 거절한다", () =>
     ).toBe("fixed-or-sticky");
   });
 
+  it("page root 를 옮길 때 그 page 의 fixed 상자 (닫힌 Popover) 도 같이 옮긴다 — 다시 기록하지 않는다", () => {
+    // fixed 상자는 page 층에 page 기준으로 기록된다 (ADR-275 Phase 7) — viewport 인 page 와 같이
+    // 움직이므로 page root 의 자기 명령 하나로 옮겨진다. **Why (2026-11-22)**: app-pages 에서 Select
+    // 를 가진 page 6 장이 위 page 높이가 바뀔 때마다 통째로 다시 기록됐다 (편집 1회 9,616 명령).
+    const pages = (y: number): Spec[] => [
+      {
+        id: "body",
+        parent: null,
+        layout: { x: 0, y, width: 400, height: 300 },
+        data: { clipChildren: true },
+        scroll: { scrollTop: 20, scrollLeft: 0 },
+      },
+      {
+        id: "r",
+        parent: "body",
+        layout: { x: 10, y: 10, width: 200, height: 40 },
+      },
+      {
+        id: "pop",
+        parent: "r",
+        layout: { x: 0, y: 60, width: 120, height: 80 },
+        data: { isFixed: true },
+      },
+      {
+        id: "item",
+        parent: "pop",
+        layout: { x: 4, y: 4, width: 100, height: 20 },
+      },
+    ];
+    const stream = build(pages(0));
+    expect(stream.topLayerElementIds.has("pop")).toBe(true);
+    const result = translateSubtree({
+      stream,
+      rootId: "body",
+      x: 0,
+      y: 500,
+      context: stream.subtreeBuildContextByElement.get("body")!,
+    });
+    expect(result.reason).toBeUndefined();
+    expect(result.applied).toBe(true);
+    const moved = new Map(index.entries);
+    clearSkiaRegistry();
+    expectSameAsRebuild(stream, build(pages(500)));
+    expect(plain(moved)).toEqual(plain(index.entries));
+  });
+
+  it("page root 를 옮겨도 drag top layer 에 기록된 자손은 거절한다", () => {
+    const stream = build(base());
+    stream.topLayerElementIds.add("c");
+    stream.subtreeBuildContextByElement.set("c", {
+      ...stream.subtreeBuildContextByElement.get("c")!,
+      topLayerSubtree: true,
+    });
+    expect(
+      translateSubtree({
+        stream,
+        rootId: "body",
+        x: 0,
+        y: 100,
+        context: stream.subtreeBuildContextByElement.get("body")!,
+      }).reason,
+    ).toBe("top-layer");
+  });
+
   it("ADR-267: sticky 는 scroll container 가 같이 옮겨질 때만 옮긴다", () => {
     const sticky = (owner: string | null) => ({
       sticky: {

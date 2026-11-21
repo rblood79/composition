@@ -11,13 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas page 이동 비용 수리 — Select 가 있는 page 를 옮길 때마다 통째로 다시 기록하던 것] - 2026-11-22
+
+### Fixed
+
+- **page 높이가 바뀌는 편집마다 아래 page 중 Select (· Popover 를 여는 컴포넌트) 가 있는 page 를 통째로 다시 기록함** — 닫힌 Popover 는 `position: fixed` 라 「옮길 수 없는 상자」 로 분류됐고, 그 page 는 옮기기 대신 새 자리에서 다시 기록됐다. fixed 상자는 page 층에 page 기준으로 기록되므로 page root 를 옮기면 같이 옮겨진다 — 이제 page root 를 옮길 때는 fixed 자손을 거절하지 않는다 (page 안 상자를 옮길 때와 drag top layer 는 그대로 거절). app-pages (22 page) 의 높이를 바꾸는 편집 1회에 다시 기록한 명령 9,630 → 14 (편집 · 되돌리기 15회 합 57,906 → 210 — 회귀 전 기준 210), dev headless 편집 뒤 2 프레임 ~48 → ~37 ms. 옮긴 뒤 명령 · 기록 문맥 · clip · 상자 · hit 영역 · 화면이 다시 묶은 결과와 같다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeTranslate.ts` (`checkTranslate`) · 시험 `subtreeTranslate.test.ts` (fixed 자손 · page scroll 을 가진 page root 옮기기 = 처음부터 기록 — 수정 전 RED `top-layer`)
+- 남은 것: 옮겨진 page 는 요소마다 상자 · hit · 색인을 고쳐 쓴다 (편집 1회 요소 ~6,800 — page 수 비례). page 를 옮기면 그 아래 화면 전체가 바뀌므로 화면 전체를 다시 그리는 것은 그대로다.
+
 ## [Canvas 편집 다시 그리기 회귀 수리 — page 프레임 높이가 바뀌는 편집이 page 전체를 다시 기록 · 화면 전체를 다시 그리던 것] - 2026-11-22
 
 ### Fixed
 
 - **page 높이가 바뀌는 편집마다 Canvas 가 그 page 를 통째로 다시 기록하고 화면 전체를 다시 그림 (8ec1eed18 「page 프레임 = 내용만큼」 회귀)** — 프레임 높이가 바뀌면 프레임의 clip 이 바뀌어 모든 자손의 기록 문맥이 달라졌고, 바뀐 요소 (seed) 는 문맥이 같을 때만 자기만 다시 기록할 수 있어 page root 까지 물러났다. 이제 부모 · 그리기 순서가 같고 자리와 clip 만 바뀐 seed 는 새 문맥으로 자기만 다시 기록한다. 그리고 page 를 옮기지 않은 프레임 크기 변화는 화면 전체 대신 patch 의 영역만 다시 그린다. ratchet `render.patchWrites` nested-flex edit 14,679 → 1,155 (기준 1,155) · sticky-lists 15,225 → 4,125 · `placeFallbackSeedContext` 6 · 9 · 60 → 0. 프레임만 자라는 편집 5 회가 전부 부분 다시 그리기 (전 5/5 full), 화면 픽셀은 전체 다시 그린 것과 같다.
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeTranslate.ts` (`placeRegion` · `placementOnlyChange`) · `subtreeCommandPatch.ts` (`placedContext`) · `catalogRuntime/canvasBinding.ts` · `workspace/canvas/catalog/CatalogCanvas.tsx` · 시험 `subtreeTranslate.test.ts` (무작위 트리 1,000 — 다시 기록은 seed 뿐, 수정 전 273 건이 조상으로 물러남)
-- 남은 것: 옮겨진 서브트리에 상자 밖으로 넘친 글자가 있으면 다시 그릴 영역을 모르므로 화면 전체를 그린다 (ADR-263 H1 계약 — nested-flex edit `contentFullRenders` 6 · app-pages 9). app-pages 의 page 이동 비용 (`patchWrites` 86,808) 은 11-19 기록의 「page root 이동」 과제다.
+- 남은 것: 옮겨진 서브트리에 상자 밖으로 넘친 글자가 있으면 다시 그릴 영역을 모르므로 화면 전체를 그린다 (ADR-263 H1 계약 — nested-flex edit `contentFullRenders` 6 · app-pages 9). app-pages 의 page 이동 비용 (`patchWrites` 86,808) 은 11-19 기록의 「page root 이동」 과제다 (같은 날 수리 — 위 엔트리).
 
 ## [Canvas 편집 성능 회귀 수리 — page 프레임 두 상자 · 내용만큼 높이 뒤 엔진이 page 전체를 다시 풀던 것] - 2026-11-21
 
