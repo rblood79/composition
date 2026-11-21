@@ -1,6 +1,6 @@
 # ADR-313 breakdown — 외부 데이터 가져오기 표준
 
-> 본문: [313-external-data-intake-standard.md](../313-external-data-intake-standard.md). 이 문서의 새 이름은 제안이다. 코드 인용은 main `3b9d7fb45` 기준이다.
+> 본문: [313-external-data-intake-standard.md](../completed/313-external-data-intake-standard.md). 이 문서의 새 이름은 제안이다. 코드 인용은 main `3b9d7fb45` 기준이다.
 
 ## 1. 전제
 
@@ -244,6 +244,15 @@
 추정 규모: shared 12 ~ 16 · builder 18 ~ 24 파일 + 테스트. Phase 0 인벤토리가 추정과 다르면 이 표를 고친다 (새 ADR 사유가 아니다).
 
 ## 8. 기록
+
+- 2026-11-21 **G5 종결 → Implemented** — 사용자 지시 「1-4 먼저 시작해」 (확인 1–4 를 Claude 가 돌리고 승격 문서 1–4 를 쓰기). Phase 5 에서 남긴 보기 정렬 · 네트워크 차단을 다뤘다.
+  - 조건: Playwright headless Chromium (CDP 로 붙은 한 브라우저) · `pnpm dev` 5173 · 착수 HEAD `dd05b99` (ADR-315 Phase 6 까지 들어간 main) · throttle 없음. 차단 = 브라우저 context 의 요청 가로채기 — localhost 밖 (http · https · ws) 을 끊고 기록. 기록된 외부 요청은 Publish 화면의 Google Fonts CSS 1 건 (이 ADR 밖). OS 회선 차단은 하지 않았다.
+  - 1 스키마 가져오기: `springSamples.ts` 의 OpenAPI 3.0 → 「Schema」 → `GET /api/users` · 행 위치 `content` → 열 10 · key 후보 `USER_ID` · 「Not imported」 4 → 표 `SchemaUsers` + API 정의 초안. 외부 요청 0.
+  - 2 붙여넣기 · 확정: CSV 4 행 (`USER_ID` `9007199254740993` · `9007199254740995` · `1001` · `12`, `USE_YN` `Y`/`N`, `JOIN_DT` `YYYYMMDD`, `ZIP_CD` `01234` …) → 열 표의 후보 (참 · 거짓 짝 · 붙여 쓴 날짜 · 큰 정수 key) 가 정답과 같음 → 표 `SortUsers` · 격자 `9007199254740993` · `01234` · `true` · `2026-11-06`. 열 편집 팝오버의 `JOIN_DT` 표현 변경 → Ctrl+Z 로 원래대로.
+  - 3 연결 · 정렬 · 필터: Canvas 에 Table · ListBox → `SortUsers` 연결. Publish 머리글 정렬 `USER_ID` 오름 = `12` · `1001` · `9007199254740993` · `9007199254740995` (`aria-sort=ascending`), 내림 = 반대 · `JOIN_DT` 시간 순 · `USE_YN` 묶임. Builder Preview (비교 iframe) 에서 같은 순서. 정렬은 ADR-315 Phase 2 의 `collections/view/sortOrder.ts` (값 표현이 읽은 정규 값 위 — 큰 정수 글자는 collator numeric). ListBox 항목 `data-key` = 큰 정수 글자 그대로. 격자 필터 `9007199254740993` → 1 행.
+  - 4 저장 · 재열기: 새로고침 → 격자 · Canvas · Publish 값 그대로 · 격자 Export 「Copy JSON Schema」 → `required: ["USER_ID"]` · `x-composition-key` · `USER_ID` `bigInt` · `USE_YN` `flag` (`Y`/`N`) · `JOIN_DT` `compactDate` · `x-composition-type: "date"`. 콘솔 오류 0.
+  - 관찰 (결함 아님): Builder Preview 의 머리글은 처음 한 번 보통 클릭이 겹친 패널에 가려 force 클릭 · 키보드 (Enter) 로 정렬했다 — 하니스 조건. Code 보기는 `keyField` 를 쓰지 않는다 (Phase 1 결정).
+  - 결함 0 · 코드 변경 0 (문서만). 본문을 `completed/` 로 옮겼다.
 
 - 2026-11-17 **Phase 5 (G5 — 사용자 확인 대기)** — JSON Schema 내보내기 · 규칙 문서 · live.
   - 내보내기 `panels/datatable/utils/fieldsToJsonSchema.ts` (§2.6): 2020-12 · 제목 = 표 이름 · 필수 = `required` 배열 + 타입 하나 (key 필드는 늘 필수) · 그 밖은 `[T, "null"]` · `date` 는 `string` + `x-composition-type: "date"` (`format` 없음 — F9) · email · uri · 객체 · 배열 `children` · `default` · 계산 필드 `readOnly` · `x-composition-id` · `order` · `encoding` · `reference` · `formula` · 루트 `x-composition-key`. 저장 값 (정규 값) 을 기술하고 원본 표기는 주석뿐. 격자의 Export 메뉴 「Copy JSON Schema」 · 「Download JSON Schema」.

@@ -2,19 +2,21 @@
 
 ## Status
 
-Accepted — 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](reviews/313.md) round 2 pending 0 · HIGH 0). Proposed 2026-11-16.
+Implemented — 2026-11-21 (G5 — 네트워크를 끊은 브라우저에서 스키마 가져오기 → 붙여넣기 → 타입 · 표현 · key → 목록 · 표 연결 → 정렬 · 필터 → 새로고침 뒤 Canvas · Preview · Publish, 아래 「Live Exercise」 · 사용자 승격 지시 「1-4 먼저 시작해」). Accepted 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](../reviews/313.md) round 2 pending 0 · HIGH 0). Proposed 2026-11-16.
 
-> **Phase 5 (2026-11-17 — G5, 사용자 확인 대기)**: 격자 Export 메뉴의 「Copy · Download JSON Schema」 — 저장 값 (정규 값) 을 기술하는 2020-12 스키마 (key 필드 필수 · `date` 는 `format` 없이 주석 · 값 표현 · key 는 `x-composition-*` 주석). 독립 구현 (zod `fromJSONSchema`) 이 정답표 행을 받고 어긋난 행을 떨어뜨린다 (4 · RED 4/4). 규칙 문서 `data-interaction.md` §4. 회귀 새 실패 0 · 번들 Builder +1,481 · Preview +3 B. live: 스키마 복사 · ListBox 연결 → Publish 항목 key = `keyField` 의 큰 정수 그대로 · 외부 요청 0 · 격자 필터. 보기 정렬 · 실제 네트워크 차단은 exercise 하지 못했다. 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+> **G5 종결 (2026-11-21)**: Phase 5 에서 남긴 두 가지 — 보기 정렬 · 네트워크 차단 — 를 이번 live 가 다뤘다. 정렬은 그 사이 ADR-315 Phase 2 가 바꾼 정렬 구현 (`collections/view/sortOrder.ts`) 위에서 확인했다 — 큰 정수 key 글자가 숫자 순, 날짜가 시간 순, 참 · 거짓이 묶임. 차단은 브라우저 단위 (localhost 밖 요청을 모두 끊고 셈) 이고 OS 의 회선 차단은 아니다. 결함 0. 상세 [breakdown §8](../design/313-external-data-intake-standard-breakdown.md).
 
-> **Phase 4 종결 (2026-11-17 — G4)**: 생성 방법 「Schema」 — api-docs (OpenAPI 3.0 · 3.1) · JSON Schema 를 붙여넣거나 놓으면 (네트워크 0) 스키마 · 행 위치 (포장 · 페이지 — `content` · `totalElements`) 를 고르고 열 표로 정한 뒤 표와 API 정의 초안을 한 번에 만든다. 받지 않는 구성 · 저장하지 않는 제약은 「Not imported」 에 전부. `int64` = number (key 후보만 큰 정수 후보). G4 9 · RED 4/4 · live (네트워크 요청 0). 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+> **Phase 5 (2026-11-17 — G5, 사용자 확인 대기)**: 격자 Export 메뉴의 「Copy · Download JSON Schema」 — 저장 값 (정규 값) 을 기술하는 2020-12 스키마 (key 필드 필수 · `date` 는 `format` 없이 주석 · 값 표현 · key 는 `x-composition-*` 주석). 독립 구현 (zod `fromJSONSchema`) 이 정답표 행을 받고 어긋난 행을 떨어뜨린다 (4 · RED 4/4). 규칙 문서 `data-interaction.md` §4. 회귀 새 실패 0 · 번들 Builder +1,481 · Preview +3 B. live: 스키마 복사 · ListBox 연결 → Publish 항목 key = `keyField` 의 큰 정수 그대로 · 외부 요청 0 · 격자 필터. 보기 정렬 · 실제 네트워크 차단은 exercise 하지 못했다. 상세 [breakdown §8](../design/313-external-data-intake-standard-breakdown.md).
 
-> **Phase 3 종결 (2026-11-17 — G3)**: 감지가 값 표현 후보 (참 · 거짓 짝 · 숫자 글자 · 붙여 쓴 날짜 · epoch · 날짜 배열) 와 key 후보를 내고, 큰 정수만 기본 선택한다. 생성 미리보기 · API 저장의 열 표에서 열마다 타입 · 값 표현을 고르고 key 필드를 정하며, 지금 선택으로 읽은 어긋난 셀 수를 본다. 열 편집 팝오버에 「Value notation」 · 「Key field」 — 표현을 바꾸면 작성 행은 타입 변경과 같은 규칙 (사용자 결정 6). 원복 RED 4/4 · live (후보 선택 → 생성 → 표현 변경 → Undo → key 필드). 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+> **Phase 4 종결 (2026-11-17 — G4)**: 생성 방법 「Schema」 — api-docs (OpenAPI 3.0 · 3.1) · JSON Schema 를 붙여넣거나 놓으면 (네트워크 0) 스키마 · 행 위치 (포장 · 페이지 — `content` · `totalElements`) 를 고르고 열 표로 정한 뒤 표와 API 정의 초안을 한 번에 만든다. 받지 않는 구성 · 저장하지 않는 제약은 「Not imported」 에 전부. `int64` = number (key 후보만 큰 정수 후보). G4 9 · RED 4/4 · live (네트워크 요청 0). 상세 [breakdown §8](../design/313-external-data-intake-standard-breakdown.md).
 
-> **Phase 2 종결 (2026-11-17 — G2)**: 네 진입 (붙여넣기 · 파일 · 기존 표로 가져오기 · Builder API 실행 · Preview/Publish 조회) 과 격자 입력 · 목록 편집 값 · AI 붙여넣기가 같은 변환기를 지난다 — 표 · CSV 셀은 글자 그대로 들어와 열 감지 (§2.5 의 타입 기본) 뒤 열 타입으로 읽히고, JSON 은 큰 정수를 보존해 선언 없는 값을 바꾸지 않는다. 출구 (보기 조건 쿼리 · body · `targetCollectionId` 가 있는 Form 제출) 가 값 표현으로 되돌리고 큰 정수는 literal. 항목 key = `fieldMap.value` → `keyField` → `id` · `key` · `value` → `row-N` (Canvas · DOM · 세션 · Publish). 전후 표 11 행이 「표준」 열과 일치 (9 행의 뜻 정정 — 각 열), 원복 RED 8/8, 새 실패 0, HC6 변환 불필요 응답의 새 행 객체 0, 번들 Builder +1,500 · Preview −1 B (첫 측정 +4,541 → 변환기 lazy 로 수리). 큰 정수 보존 파싱의 기본 경로는 원문 훑기 (reviver 보다 2.5 배 빠름). live: CSV · JSON 붙여넣기 → 큰 정수 · `01234` · `"Y"` 보존 → 새로고침 뒤 같음. 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+> **Phase 3 종결 (2026-11-17 — G3)**: 감지가 값 표현 후보 (참 · 거짓 짝 · 숫자 글자 · 붙여 쓴 날짜 · epoch · 날짜 배열) 와 key 후보를 내고, 큰 정수만 기본 선택한다. 생성 미리보기 · API 저장의 열 표에서 열마다 타입 · 값 표현을 고르고 key 필드를 정하며, 지금 선택으로 읽은 어긋난 셀 수를 본다. 열 편집 팝오버에 「Value notation」 · 「Key field」 — 표현을 바꾸면 작성 행은 타입 변경과 같은 규칙 (사용자 결정 6). 원복 RED 4/4 · live (후보 선택 → 생성 → 표현 변경 → Undo → key 필드). 상세 [breakdown §8](../design/313-external-data-intake-standard-breakdown.md).
 
-> **Phase 1 종결 (2026-11-17 — G1, contract 70)**: shared `collections/intake` (값 표현 8 종의 읽기 · 되돌리기 · 진입 변환기 `normalizeRows` · 큰 정수 보존 파싱 · 쓰기, 의존 0 · barrel 밖) · entry 형 `CatalogDataField.encoding` · `CollectionEntry.keyField` · 문서 검증 (`INVALID_FIELD_ENCODING` · `FIELD_ENCODING_TYPE_MISMATCH` · `KEY_FIELD_MISSING`) · DataChange 스키마 · 적용기 (타입 변경이 맞지 않는 값 표현을 지움 · key 필드 삭제가 `keyField` 를 지움, 둘 다 inverse 복원) · `fieldMappings` 삭제. 검사 G1 34 + 적용기 4 · 원복 RED 7/7 · 새 실패 0. Code 보기는 `encoding` · `keyField` 를 쓰지 않는다 (진입 설정). 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+> **Phase 2 종결 (2026-11-17 — G2)**: 네 진입 (붙여넣기 · 파일 · 기존 표로 가져오기 · Builder API 실행 · Preview/Publish 조회) 과 격자 입력 · 목록 편집 값 · AI 붙여넣기가 같은 변환기를 지난다 — 표 · CSV 셀은 글자 그대로 들어와 열 감지 (§2.5 의 타입 기본) 뒤 열 타입으로 읽히고, JSON 은 큰 정수를 보존해 선언 없는 값을 바꾸지 않는다. 출구 (보기 조건 쿼리 · body · `targetCollectionId` 가 있는 Form 제출) 가 값 표현으로 되돌리고 큰 정수는 literal. 항목 key = `fieldMap.value` → `keyField` → `id` · `key` · `value` → `row-N` (Canvas · DOM · 세션 · Publish). 전후 표 11 행이 「표준」 열과 일치 (9 행의 뜻 정정 — 각 열), 원복 RED 8/8, 새 실패 0, HC6 변환 불필요 응답의 새 행 객체 0, 번들 Builder +1,500 · Preview −1 B (첫 측정 +4,541 → 변환기 lazy 로 수리). 큰 정수 보존 파싱의 기본 경로는 원문 훑기 (reviver 보다 2.5 배 빠름). live: CSV · JSON 붙여넣기 → 큰 정수 · `01234` · `"Y"` 보존 → 새로고침 뒤 같음. 상세 [breakdown §8](../design/313-external-data-intake-standard-breakdown.md).
 
-> **Phase 0 종결 (2026-11-17 — G0)**: 손으로 쓴 Spring 표본 (응답 14 열 · 포장 응답 · Oracle CSV · OpenAPI 3.0 · 3.1) 과 정답표를 fixture 로 고정 · 전후 표 11 행의 「지금」 열과 F4 · F5 를 실제 코드로 실행 (`adr313Current.test.ts` 10/10, breakdown 과 차이 0) · 인벤토리 4 항목 (필드를 키별로 옮기는 곳 = Code 보기 · 보기 결과 schema / Preview 의 API 행 = (c) 의 결과 / 작성 행은 진입 때 한 번 / Form 제출은 `targetCollectionId` 가 있을 때만 collection 을 안다) · 기준선 (1 만 행 × 20 열 파싱 6.5 · 8.7 ms, 번들 Builder 1,571,651 · Preview 170,275 B gzip closure). contract 는 69 (ADR-312) → 이 ADR 이 70. 상세 [breakdown §8](design/313-external-data-intake-standard-breakdown.md).
+> **Phase 1 종결 (2026-11-17 — G1, contract 70)**: shared `collections/intake` (값 표현 8 종의 읽기 · 되돌리기 · 진입 변환기 `normalizeRows` · 큰 정수 보존 파싱 · 쓰기, 의존 0 · barrel 밖) · entry 형 `CatalogDataField.encoding` · `CollectionEntry.keyField` · 문서 검증 (`INVALID_FIELD_ENCODING` · `FIELD_ENCODING_TYPE_MISMATCH` · `KEY_FIELD_MISSING`) · DataChange 스키마 · 적용기 (타입 변경이 맞지 않는 값 표현을 지움 · key 필드 삭제가 `keyField` 를 지움, 둘 다 inverse 복원) · `fieldMappings` 삭제. 검사 G1 34 + 적용기 4 · 원복 RED 7/7 · 새 실패 0. Code 보기는 `encoding` · `keyField` 를 쓰지 않는다 (진입 설정). 상세 [breakdown §8](../design/313-external-data-intake-standard-breakdown.md).
+
+> **Phase 0 종결 (2026-11-17 — G0)**: 손으로 쓴 Spring 표본 (응답 14 열 · 포장 응답 · Oracle CSV · OpenAPI 3.0 · 3.1) 과 정답표를 fixture 로 고정 · 전후 표 11 행의 「지금」 열과 F4 · F5 를 실제 코드로 실행 (`adr313Current.test.ts` 10/10, breakdown 과 차이 0) · 인벤토리 4 항목 (필드를 키별로 옮기는 곳 = Code 보기 · 보기 결과 schema / Preview 의 API 행 = (c) 의 결과 / 작성 행은 진입 때 한 번 / Form 제출은 `targetCollectionId` 가 있을 때만 collection 을 안다) · 기준선 (1 만 행 × 20 열 파싱 6.5 · 8.7 ms, 번들 Builder 1,571,651 · Preview 170,275 B gzip closure). contract 는 69 (ADR-312) → 이 ADR 이 70. 상세 [breakdown §8](../design/313-external-data-intake-standard-breakdown.md).
 
 - 사용자 결정 2 · 3 · 4 · 5 · 6 확정 (2026-11-17, Phase 3 착수 전 — 모두 권고안): 2 = 표 + endpoint 초안 · 3 = JSON 만 · 4 = 제약은 보고만 · 5 = `int64` 기본 `number` (key · 안전 범위 밖 표본만 `bigInt` 제안) · 6 = 값 표현 변경은 타입 변경과 같은 규칙 (바뀌는 값은 바꾸고 못 바꾸는 값은 비운다).
 - 사용자 결정 1 확정 (2026-11-17 「손으로 쓴 표본」): Phase 0 fixture 는 Spring Boot 기본 설정을 가정해 손으로 쓴 표본이다 — 형식 판정에만 쓰고 빈도 · 분포의 근거로 쓰지 않는다.
@@ -28,7 +30,7 @@ Accepted — 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](reviews
   - 「필요한 수정 — 생성 단계 안에서 <-- 인데 인터넷 연결 없이(네트워크통신없이) 가능해야한다」
 - 사용자가 이미 답한 확인 항목: 네트워크 없이 동작 (위 마지막 원문). 그 밖의 판정은 아래 「사용자 결정」 에 모았다.
 - 아래의 새 이름 (`encoding` · `keyField` · `intake` 모듈 · 생성 방법 「Schema」) 은 제안이고 아직 구현되지 않았다. 코드 인용은 main `3b9d7fb45` 기준이다.
-- 리뷰 round 1 (2026-11-16, [reviews/313.md](reviews/313.md)) 반영: h1 — 변환을 「선언된 값 표현」 과 「글자 셀 읽기」 둘로 나누고 원본 종류 (JSON · 글자) 마다 규칙을 정함, 달라지는 동작을 전후 표로 고정 (HC5 · Decision 4 · G2 · breakdown §2.3) / h2 — 왕복의 보장 범위를 「서버가 같은 값으로 읽는 JSON 표현」 으로 정의, 값 표현에 JSON 타입 · 날짜 정밀도 인자 추가, 정밀도를 잃는 숫자 글자는 읽기 실패 (HC7 · Decision 5 · breakdown §2.1) / l3 — Papa 의 큰 정수 서술과 epoch 예시 정정 (F5 · breakdown §2.1). 수리 검증 round 2 (2026-11-16) — HIGH 0 · pending 0 (h1 · h2 · l3 fixed, l4 LOW deferred). **설계 리뷰 종결 (실행자 선언)**. l4 (현재 동작 인벤토리의 사실 둘 — CSV 붙여넣기도 큰 정수를 잃음 · 섞인 열의 지금 감지 타입은 number) 는 F4 · F5 · G0 · breakdown 전후 표 8 · 10 행에 같은 날 정정했다.
+- 리뷰 round 1 (2026-11-16, [reviews/313.md](../reviews/313.md)) 반영: h1 — 변환을 「선언된 값 표현」 과 「글자 셀 읽기」 둘로 나누고 원본 종류 (JSON · 글자) 마다 규칙을 정함, 달라지는 동작을 전후 표로 고정 (HC5 · Decision 4 · G2 · breakdown §2.3) / h2 — 왕복의 보장 범위를 「서버가 같은 값으로 읽는 JSON 표현」 으로 정의, 값 표현에 JSON 타입 · 날짜 정밀도 인자 추가, 정밀도를 잃는 숫자 글자는 읽기 실패 (HC7 · Decision 5 · breakdown §2.1) / l3 — Papa 의 큰 정수 서술과 epoch 예시 정정 (F5 · breakdown §2.1). 수리 검증 round 2 (2026-11-16) — HIGH 0 · pending 0 (h1 · h2 · l3 fixed, l4 LOW deferred). **설계 리뷰 종결 (실행자 선언)**. l4 (현재 동작 인벤토리의 사실 둘 — CSV 붙여넣기도 큰 정수를 잃음 · 섞인 열의 지금 감지 타입은 number) 는 F4 · F5 · G0 · breakdown 전후 표 8 · 10 행에 같은 날 정정했다.
 - 사용자 결정 8 확정 (2026-11-17 「권고안 대로」): 선언 없는 필드에 온 타입이 다른 JSON 값은 그대로 두고 세어 값 표현을 제안한다 — Decision 4 · HC5 · breakdown §2.3 전후 표가 그대로 정답이다.
 - 같은 날 대화에서 변환 규칙의 자리를 endpoint (`responseMapping.normalize`) 로 보였는데, 조사에서 붙여넣기 · 파일 경로에는 endpoint 가 없고 서버로 나가는 값이 collection schema 를 읽는다는 것을 확인해 필드 단위 선언으로 바꿨다 (대안 C 기각 사유).
 
@@ -36,7 +38,7 @@ Accepted — 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](reviews
 
 ### 도메인
 
-- D1 · D2 · D3 어느 것도 바꾸지 않는다. 대상은 **데이터 정의 계약** (ADR-286 의 문서 entry `collection` · `endpoint`) 과 **빌더 패널** (Data 패널 — builder-system UI, [panel-structure.md](../../.claude/rules/panel-structure.md)) 이다.
+- D1 · D2 · D3 어느 것도 바꾸지 않는다. 대상은 **데이터 정의 계약** (ADR-286 의 문서 entry `collection` · `endpoint`) 과 **빌더 패널** (Data 패널 — builder-system UI, [panel-structure.md](../../../.claude/rules/panel-structure.md)) 이다.
 - D1 과 닿는 곳은 하나다 — RAC collection 이 받는 항목 key. RAC 는 행 (`items`) 과 key 만 받고 스키마를 읽지 않는다. 이 ADR 은 key 를 정하는 필드를 선언할 수 있게 할 뿐, RAC 의 DOM · ARIA · 동작은 그대로다.
 - 생성기 선언: catalog rule · `generate-css.ts` 는 대상이 아니다.
 
@@ -44,7 +46,7 @@ Accepted — 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](reviews
 
 고객 데이터는 대부분 Oracle DB · Java (Spring) 로 만든 API 에서 온다 (사용자 2026-11-16). 그 응답은 JSON 타입과 뜻이 어긋나는 값이 흔하다 — 참 · 거짓을 `"Y"` · `"N"` 으로, 금액을 숫자 글자로, 날짜를 epoch 밀리초나 `"20261106"` 으로, PK 를 2^53 을 넘는 정수로 준다. 지금 Data 패널은 값의 모양만 보고 타입을 추측하고, 같은 값이 들어오는 길에 따라 다른 값이 된다. API 가 제공하는 스키마 선언 (OpenAPI = JSON Schema) 을 읽는 길은 없다.
 
-### 코드 사실 (2026-11-16 실측 — 전수 표는 [breakdown §3](design/313-external-data-intake-standard-breakdown.md))
+### 코드 사실 (2026-11-16 실측 — 전수 표는 [breakdown §3](../design/313-external-data-intake-standard-breakdown.md))
 
 - **F1 — 스키마는 자체 형식이고 RAC 로 가지 않는다.** `CatalogDataField` (`packages/shared/src/catalog/document/types.ts:1561`) 는 `key` · `type` · `format` · `required` · `children` · `reference` · `formula` 를 갖는 배열이다. 문서 검증이 허용 키를 고정한다 (`validation.ts:516-531` 필드 · `:2386-2398` collection). 스키마를 읽는 곳은 resolver · 보기 평가 · Preview 세션 · 계산 필드 · Code 보기이고 (`DataField` 참조 59 파일), RAC 컴포넌트에 전달되는 경로는 없다.
 - **F2 — 생성 방법 여섯에 스키마 선언을 읽는 것이 없다.** `"empty" | "preset" | "paste" | "file" | "api" | "ai"` (`apps/builder/src/builder/panels/datatable/editors/DataTableCreator.tsx:141`). Empty · Preset 밖의 모든 길이 `detectColumns` 로 스키마를 만든다 — 호출부 5 (`DataTableCreator.tsx:302` · `ApiEndpointEditor.tsx:972` · `utils/importPlan.ts:35` · `services/ai/tools/bindCollection.ts:75` · `services/ai/data/pasteProposal.ts:102`).
@@ -69,19 +71,19 @@ Accepted — 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](reviews
 
 유지하는 것:
 
-- [ADR-286](completed/286-catalog-single-source-data-site-settings.md) — 데이터 정의는 문서 entry, 편집은 `applyDataChange` → sink → 문서 명령 한 step.
-- [ADR-152](completed/152-data-panel-collection-binding-integration.md) — 필드의 안정 참조 `id`. 이름 (`key`) 변경이 참조를 깨지 않는다.
+- [ADR-286](286-catalog-single-source-data-site-settings.md) — 데이터 정의는 문서 entry, 편집은 `applyDataChange` → sink → 문서 명령 한 step.
+- [ADR-152](152-data-panel-collection-binding-integration.md) — 필드의 안정 참조 `id`. 이름 (`key`) 변경이 참조를 깨지 않는다.
 - 사용자 결정 2026-10-29 「공통 타입으로 맞춰」 — 필드 타입은 변수와 같은 집합, 날짜는 `date` 하나, 이메일 · URL · 이미지는 `string` 의 `format`.
-- [ADR-309](completed/309-date-value-authoring.md) — 날짜 값은 ISO 글자, 읽는 함수는 하나.
-- [ADR-284](completed/284-data-view-filter-sort-group-query.md) — 보기 조건의 서버 직렬화, 평가기 하나.
-- [ADR-218](completed/218-collection-runtime-data-persistence-execution-policy.md) — API 결과 캐시와 지문 (`sourceRev` 에 schema 포함).
-- [ADR-212](completed/212-data-panel-editor-redesign.md) · [288](completed/288-data-panel-single-surface-column-popover-variable-table.md) — 생성 방법 목록 · 가져오기 계획 · 열 편집 팝오버.
+- [ADR-309](309-date-value-authoring.md) — 날짜 값은 ISO 글자, 읽는 함수는 하나.
+- [ADR-284](284-data-view-filter-sort-group-query.md) — 보기 조건의 서버 직렬화, 평가기 하나.
+- [ADR-218](218-collection-runtime-data-persistence-execution-policy.md) — API 결과 캐시와 지문 (`sourceRev` 에 schema 포함).
+- [ADR-212](212-data-panel-editor-redesign.md) · [288](288-data-panel-single-surface-column-popover-variable-table.md) — 생성 방법 목록 · 가져오기 계획 · 열 편집 팝오버.
 - 메모리 `project-builder-data-rows-are-design-samples` — Builder 의 데이터 행은 디자인 표본이다.
 
 바꾸는 것:
 
 - ADR-212 의 「붙여넣기 · 파일의 값은 파싱한 그대로」 → 모든 진입이 같은 변환기를 지난다.
-- ADR-212 의 「기존 표로 가져오기는 모든 셀을 글자로 바꿔 대상 타입으로 강제」 → 원본 종류를 따른다 (JSON 원본은 JSON 규칙 — Decision 4). 달라지는 값은 [breakdown §2.3](design/313-external-data-intake-standard-breakdown.md) 의 전후 표가 전부다.
+- ADR-212 의 「기존 표로 가져오기는 모든 셀을 글자로 바꿔 대상 타입으로 강제」 → 원본 종류를 따른다 (JSON 원본은 JSON 규칙 — Decision 4). 달라지는 값은 [breakdown §2.3](../design/313-external-data-intake-standard-breakdown.md) 의 전후 표가 전부다.
 - `responseMapping.fieldMappings` (F7) → 삭제 (읽는 코드 0).
 
 ### 레퍼런스 (2026-11-16)
@@ -103,7 +105,7 @@ Accepted — 2026-11-17 (사용자 `/execute-adr 313` + [reviews/313.md](reviews
 - **HC3 번들 상한.** Builder 1,435,351 B · Preview 327,000 B (gzip, ADR-201, 만료 2026-12-25). 스키마 가져오기 · 감지 UI 는 생성 창을 열 때 읽는 lazy chunk 다. 변환기는 Preview · Publish 의 조회 경로에 있으므로 세션 chunk 에 든다.
 - **HC4 변환기 하나.** 행이 들어오는 길 넷 (F4) 과 서버로 나가는 길이 같은 모듈을 지난다. 같은 원본 종류 (JSON · 글자) 와 같은 스키마는 어느 길에서나 같은 행이 된다.
 - **HC5 JSON 값은 선언 없이 바꾸지 않는다.** JSON 원본에서 값 표현을 선언하지 않은 필드의 값은 이 ADR 전후가 같다 — (a) 의 JSON · (c) · (d). 예외는 안전 범위 밖 정수 literal 의 보존 (F5) 하나다. 이 ADR 로 값이 달라지는 경우는 breakdown §2.3 의 전후 표에 적은 것이 전부다 — (b) 의 JSON 원본, 글자 원본의 0 으로 시작하는 숫자 글자 · 타입이 섞인 열 · 탭 표의 큰 정수.
-- **HC6 진입 비용.** 변환이 필요 없는 행은 새 객체를 만들지 않는다 (행 배열 · 행 객체의 identity 유지 — 계산 필드 · 보기 캐시가 원본 행 배열을 키로 쓴다, [data-interaction.md](../../.claude/rules/data-interaction.md) §4). 1 만 행 × 20 열의 진입 시간은 Phase 0 기준선과 전후 비교한다.
+- **HC6 진입 비용.** 변환이 필요 없는 행은 새 객체를 만들지 않는다 (행 배열 · 행 객체의 identity 유지 — 계산 필드 · 보기 캐시가 원본 행 배열을 키로 쓴다, [data-interaction.md](../../../.claude/rules/data-interaction.md) §4). 1 만 행 × 20 열의 진입 시간은 Phase 0 기준선과 전후 비교한다.
 - **HC7 왕복 = 서버가 같은 값으로 읽는 표현.** 선언으로 읽은 값을 되돌리면 같은 JSON 타입 · 같은 값의 표현이 나간다. 글자 단위로 같은 원문은 보장하지 않는다 — 숫자 글자의 소수 자릿수와 앞의 0, 날짜 배열의 길이, 표현의 정밀도 아래 자리 (epoch 초의 밀리초). 값을 잃는 읽기는 하지 않는다 — 수로 정확히 옮길 수 없는 숫자 글자는 읽기 실패다.
 
 ### Soft constraints
@@ -192,7 +194,7 @@ contract 는 entry 형이 바뀌는 Phase 에서 한 번 올린다 (HC2).
 - **B** — 타입을 맞게 잡아도 API 응답은 원본 글자로 저장되고 (F4 c · d) 서버로 나가는 값이 틀린다 (F8). 문제의 절반만 다룬다.
 - **C** — 규칙의 자리가 둘이 되고 (endpoint 없는 진입) 되돌릴 표현을 schema 를 읽는 쪽이 찾을 수 없다.
 
-> 구현 상세: [313-external-data-intake-standard-breakdown.md](design/313-external-data-intake-standard-breakdown.md)
+> 구현 상세: [313-external-data-intake-standard-breakdown.md](../design/313-external-data-intake-standard-breakdown.md)
 
 ### 사용자 결정 (8건 — 8 은 확정, 나머지는 그 Phase 에 닿을 때 묻는다)
 
@@ -221,7 +223,7 @@ contract 는 entry 형이 바뀌는 Phase 에서 한 번 올린다 (HC2).
 
 ## Gates
 
-측정 조건 (기기 · production build · revision · CPU throttle) 을 기록에 적는다. 실행하지 않은 gate 를 PASS 로 적지 않는다. 측정 설계는 [breakdown §6](design/313-external-data-intake-standard-breakdown.md).
+측정 조건 (기기 · production build · revision · CPU throttle) 을 기록에 적는다. 실행하지 않은 gate 를 PASS 로 적지 않는다. 측정 설계는 [breakdown §6](../design/313-external-data-intake-standard-breakdown.md).
 
 | Gate | 시점    | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 실패 시 대안                                        |
 | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
@@ -236,7 +238,16 @@ contract 는 entry 형이 바뀌는 Phase 에서 한 번 올린다 (HC2).
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-21 · 실행: Claude — Playwright (headless Chromium, CDP 로 붙은 한 브라우저) · `pnpm dev` 5173 · 착수 HEAD `dd05b99` · CPU throttle 없음. **네트워크 차단**: 브라우저 context 의 모든 요청을 가로채 localhost 밖 (http · https · ws) 은 끊고 기록했다 — 기록된 외부 요청은 Publish 화면의 Google Fonts CSS 1 건뿐 (이 ADR 밖 · 끊긴 채 화면 정상). 표본은 `springSamples.ts` 의 OpenAPI 3.0 · Spring `Page` 응답 · Oracle CSV 와 정렬용 CSV 4 행 (`USER_ID` = `9007199254740993` · `9007199254740995` · `1001` · `12`, `USE_YN` `Y`/`N`, `JOIN_DT` `YYYYMMDD`, `ZIP_CD` `01234` 등).
+
+| #   | 흐름                                                                                                                        | 결과                                                                                                                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 새 프로젝트 → Data → 새 표 → 「Schema」 → OpenAPI 3.0 붙여넣기 → `GET /api/users` · 행 위치 `content` · 열 표 → 만들기      | 열 10 · key 후보 `USER_ID` · 「Not imported」 4 · 표 `SchemaUsers` 와 API 정의 초안이 함께 생김 · 그동안 외부 요청 0                                                                              |
+| 2   | 새 표 → Paste → 정렬용 CSV → 열 표에서 타입 · 값 표현 · key 확정 → 만들기 → 열 편집 팝오버에서 `JOIN_DT` 표현 변경 → Ctrl+Z | 감지 후보 (참 · 거짓 짝 · 붙여 쓴 날짜 · 큰 정수 key) 가 정답과 같음 · 격자 `9007199254740993` · `01234` · `Y` → `true` · `20261106` → `2026-11-06` · 표현 변경이 Undo 로 원래대로                |
+| 3   | Canvas 에 Table · ListBox → 표 `SortUsers` 연결 → Builder Preview (비교 iframe) 와 Publish 에서 머리글 정렬 · 격자 필터     | `USER_ID` 오름차순 = `12` · `1001` · `…993` · `…995` (글자 순 아님) · 내림차순 반대 · `JOIN_DT` 시간 순 · `USE_YN` 묶임 · ListBox 항목 key = `keyField` 의 큰 정수 글자 그대로 · 격자 필터 → 1 행 |
+| 4   | 새로고침 → 격자 · Canvas · Publish 다시 보기 · 격자 Export 「Copy JSON Schema」                                             | 값 그대로 (큰 정수 · `01234` · 날짜) · 스키마에 key 필수 · `x-composition-encoding` · `x-composition-key` · 콘솔 오류 0                                                                           |
+
+하지 않은 것: OS 수준의 회선 차단 (브라우저 단위 차단으로 대신) · 사용자 자신의 화면 확인 (승격은 사용자 지시 「1-4 먼저 시작해」 로). Code 보기는 `keyField` 를 쓰지 않는다 (`Row id={item.id}` — Phase 1 결정대로).
 
 ## Consequences
 

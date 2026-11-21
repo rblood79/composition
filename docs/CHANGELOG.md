@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-313 Implemented — 외부 데이터 가져오기 표준] - 2026-11-21
+
+### Changed
+
+- **ADR-313 을 Implemented 로 닫았다** (G5): Oracle · Java 응답의 `"Y"` · 숫자 글자 · 붙여 쓴 날짜 · epoch · 큰 정수가 어느 길 (붙여넣기 · 파일 · 가져오기 · API 실행 · Preview/Publish 조회) 로 들어와도 같은 값이 되고, 필터 · 제출은 서버가 아는 표현으로 되돌려 보낸다. 새 표 「Schema」 는 `api-docs` · JSON Schema 파일로 인터넷 연결 없이 열 · key · API 정의를 만들고, 격자 Export 는 표를 JSON Schema 로 낸다. 본문은 `docs/adr/completed/313-external-data-intake-standard.md`.
+- 확인 (외부 요청을 모두 끊은 브라우저): 스키마 가져오기 → CSV 붙여넣기 (`9007199254740993` · `01234` · `Y` · `20261106` 그대로 읽힘) → 타입 · 값 표현 · key 확정 → Table · ListBox 연결 → Builder Preview · Publish 머리글 정렬 (큰 정수 key 가 숫자 순 · 날짜가 시간 순) · 격자 필터 → 새로고침 뒤 같은 값.
+
 ## [ADR-315 Phase 7 — 고정 기능이 없는 Table 의 스크롤 속도 회복 · Worker 필요 없음 판정] - 2026-11-21
 
 ### Fixed
