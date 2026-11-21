@@ -64,6 +64,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { CatalogRowWindowMode } from "./rowWindowContext";
+import { CATALOG_GROUP_PLACEHOLDER_SUFFIX } from "./tableRowSlices";
 
 import {
   cloneElement,
@@ -270,6 +271,7 @@ import {
   catalogColumnMenuContent,
   catalogColumnSortContent,
   catalogTableAuthoredSortShown,
+  catalogTableTreeColumn,
   catalogColumnSortsInline,
   catalogContextualHelpOfTrigger,
   catalogIllustrationInDropZone,
@@ -334,6 +336,7 @@ import {
   CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_AT_PROP,
   CATALOG_COLUMN_PINNED_PROP,
+  catalogTableExpandedKeys,
 } from "../resolution/tableColumns";
 
 import {
@@ -393,6 +396,11 @@ export interface CatalogDomRuntime {
    * list; RAC is told the first sort back (`sortDescriptor`).
    */
   pressTableSort?(tableId: string, column: string, add: boolean): void;
+  /**
+   * ADR-315 Phase 5 — the group rows RAC opened · closed (its `onExpandedChange` — their row keys):
+   * the Table's state (`expandedKeys`); the rows are read again.
+   */
+  expandTableRows?(tableId: string, keys: readonly string[]): void;
   /**
    * ADR-315 Phase 4 — the widths RAC's column resize left (its `onResizeEnd` — RAC keys, px): the
    * Table's state (`columnWidths`), remembered with it.
@@ -3740,6 +3748,29 @@ function ruleDom(
                       }),
                   }
               : {}),
+            // (ADR-315 Phase 5 — a grouped Table: its rows expand from the outer grouped Column,
+            //  RAC `treeColumn`; the open group rows are the session's — controlled.)
+            ...(() => {
+              const expanded = catalogTableExpandedKeys(node.props);
+              const tree = expanded
+                ? catalogTableTreeColumn(node, domGet, domType)
+                : undefined;
+              return expanded && tree
+                ? {
+                    treeColumn: tree,
+                    expandedKeys: expanded,
+                    ...(context.runtime?.expandTableRows
+                      ? {
+                          onExpandedChange: (keys: Iterable<unknown>) =>
+                            context.runtime!.expandTableRows!(
+                              node.id,
+                              [...keys].map(String),
+                            ),
+                        }
+                      : {}),
+                  }
+                : {};
+            })(),
             tableResizable: resizable,
             ...(resizable && context.runtime?.resizeTableColumns
               ? {
@@ -4333,6 +4364,12 @@ export interface CatalogDomNodeProps {
    */
   windowRow?: string;
   rowShape?: CatalogRowShape;
+  /**
+   * ADR-315 Phase 5 — a grouped windowed Table's row: the rows inside it (its group's rows, or a
+   * closed group's empty child row — `CatalogWindowRowNest`), after its cells. Absent = a flat
+   * Table's row (its element as it was).
+   */
+  nestedRows?: readonly ReactElement[];
 }
 /** A windowed Table's rows' cells: how many, and their spans (`catalogRowSpans` — the Row's key). */
 export interface CatalogRowShape {
@@ -4550,19 +4587,23 @@ export function catalogWindowRowElement(
   record: CatalogConsumerNode,
   element: ReactElement | null,
   shape: CatalogRowShape,
+  nested?: readonly ReactElement[],
 ): ReactElement | null {
-  return element
-    ? cloneElement(element, {
-        key: windowRowKey(
-          resolveStaticItemKey(
-            record.props as Record<string, unknown>,
-            record.id,
-          ),
-          catalogRowSpans(root, record),
-          shape.spans,
-        ),
-      })
-    : element;
+  if (!element) return element;
+  const key = windowRowKey(
+    resolveStaticItemKey(record.props as Record<string, unknown>, record.id),
+    catalogRowSpans(root, record),
+    shape.spans,
+  );
+  // (ADR-315 Phase 5 — a grouped Table's row holds its rows after its cells: RAC's nested Row.)
+  return nested
+    ? cloneElement(
+        element,
+        { key },
+        (element.props as { children?: ReactNode }).children,
+        nested,
+      )
+    : cloneElement(element, { key });
 }
 /**
  * A windowed Table's row outside its record window (2026-11-19 — `CatalogRowWindowKeys`): RAC's
@@ -4579,12 +4620,17 @@ export function catalogWindowRowElement(
 export function catalogWindowRowPending(
   rowKey: string,
   shape: CatalogRowShape,
+  nested?: readonly ReactElement[],
 ): ReactElement {
-  return createElement(RAC.Row as ElementType, {
-    key: windowRowKey(rowKey, shape.spans, shape.spans),
-    id: rowKey,
-    "data-row-pending": "",
-  });
+  return createElement(
+    RAC.Row as ElementType,
+    {
+      key: windowRowKey(rowKey, shape.spans, shape.spans),
+      id: rowKey,
+      "data-row-pending": "",
+    },
+    nested,
+  );
 }
 
 /** Rows a chunk: a window move re-renders the chunks it crosses, not every row of the Table. */
@@ -4655,6 +4701,8 @@ const CatalogWindowRows = memo(function CatalogWindowRows({
   cells,
   spans,
   owner,
+  depths,
+  closed,
 }: {
   root: CatalogCompositionRoot;
   context: CatalogDomContext;
@@ -4664,6 +4712,8 @@ const CatalogWindowRows = memo(function CatalogWindowRows({
   cells: number;
   spans: string;
   owner: string;
+  depths?: readonly number[];
+  closed?: ReadonlySet<string>;
 }): ReactElement {
   const mode = useContext(CatalogRowWindowMode);
   const runtime = context.runtime;
@@ -4672,6 +4722,23 @@ const CatalogWindowRows = memo(function CatalogWindowRows({
       runtime?.showRows?.(owner, 0, keys.length - 1, keys.length);
   }, [mode, runtime, owner, keys]);
   const shape = useMemo(() => ({ cells, spans }), [cells, spans]);
+  // ADR-315 Phase 5 — a grouped Table's rows nest by depth (`CatalogRowWindowKeys.depths`). In
+  // the `Virtualizer` every row is drawn (empty outside the window); before it, the window's rows
+  // and the groups they are in.
+  if (depths)
+    return createElement(CatalogWindowRowNest, {
+      root,
+      context,
+      keys,
+      ends: windowRowEnds(depths),
+      closed: closed ?? NO_CLOSED_GROUPS,
+      from: 0,
+      to: keys.length,
+      start,
+      ids,
+      shape,
+      all: mode === "virtual",
+    });
   const rows: ReactElement[] = [];
   if (mode !== "virtual" || !cells) {
     ids.forEach((id, place) =>
@@ -4763,6 +4830,156 @@ export function catalogWindowRowChunks(
   });
 }
 
+const NO_CLOSED_GROUPS: ReadonlySet<string> = new Set();
+/** Each row's subtree end in a depth list (the index after its last nested row) — by the list. */
+const WINDOW_ROW_ENDS = new WeakMap<readonly number[], readonly number[]>();
+function windowRowEnds(depths: readonly number[]): readonly number[] {
+  let ends = WINDOW_ROW_ENDS.get(depths);
+  if (!ends) {
+    const out = new Array<number>(depths.length);
+    const open: number[] = [];
+    depths.forEach((depth, index) => {
+      while (open.length && depths[open.at(-1)!]! >= depth)
+        out[open.pop()!] = index;
+      open.push(index);
+    });
+    for (const index of open) out[index] = depths.length;
+    WINDOW_ROW_ENDS.set(depths, (ends = out));
+  }
+  return ends;
+}
+interface WindowRowNestProps {
+  root: CatalogCompositionRoot;
+  context: CatalogDomContext;
+  keys: readonly string[];
+  /** Each row's subtree end (`windowRowEnds`). */
+  ends: readonly number[];
+  closed: ReadonlySet<string>;
+  /** The rows `[from, to)` — whole subtrees, siblings at one depth. */
+  from: number;
+  to: number;
+  /** The window: its first row and its rows' record ids. */
+  start: number;
+  ids: readonly string[];
+  shape: CatalogRowShape;
+  /** Every row (the `Virtualizer`'s) — else the window's rows and their groups only. */
+  all: boolean;
+}
+/**
+ * ADR-315 Phase 5 — a grouped windowed Table's sibling rows `[from, to)`, each holding its own
+ * rows (RAC's nested Row) — the records' rows and empty rows alike, by key, so a row keeps its
+ * RAC Row as the window moves (`CatalogWindowRows`). More siblings than a chunk are cut into
+ * chunks (each one this component): a window move re-renders the chunks it crosses — inside an
+ * open group of thousands of rows too (Phase 0 시제품 S2 — 「묶음의 자식도 부모 Row 안에서 chunk」).
+ */
+const CatalogWindowRowNest = memo(
+  function CatalogWindowRowNest(props: WindowRowNestProps): ReactElement {
+    const { keys, ends, closed, from, to, start, ids, shape, all } = props;
+    const end = start + ids.length;
+    const siblings: number[] = [];
+    for (let index = from; index < to; index = ends[index]!)
+      // (Before the `Virtualizer`: only the rows the window reaches.)
+      if (all || (index < end && ends[index]! > start)) siblings.push(index);
+    const rows: ReactElement[] = [];
+    if (siblings.length > WINDOW_ROW_CHUNK) {
+      for (let at = 0; at < siblings.length; at += WINDOW_ROW_CHUNK) {
+        const first = siblings[at]!;
+        const last = siblings[Math.min(siblings.length, at + WINDOW_ROW_CHUNK) - 1]!;
+        rows.push(
+          createElement(CatalogWindowRowNest, {
+            ...props,
+            key: windowRowNestKey(keys, siblings, at),
+            from: first,
+            to: ends[last]!,
+          }),
+        );
+      }
+      return createElement(Fragment, null, rows);
+    }
+    for (const index of siblings) {
+      const key = keys[index]!;
+      const nested: ReactElement[] = [];
+      if (ends[index]! > index + 1)
+        nested.push(
+          createElement(CatalogWindowRowNest, {
+            ...props,
+            key: "catalog:nested-rows",
+            from: index + 1,
+            to: ends[index]!,
+          }),
+        );
+      // (A closed group's one empty child row — RAC opens a row that has one.)
+      if (closed.has(key))
+        nested.push(
+          catalogWindowRowPending(
+            `${key}${CATALOG_GROUP_PLACEHOLDER_SUFFIX}`,
+            shape,
+          ),
+        );
+      rows.push(
+        createElement(CatalogDomNode, {
+          key,
+          root: props.root,
+          id:
+            index >= start && index < end
+              ? ids[index - start]!
+              : CATALOG_ROW_PENDING_ID,
+          context: props.context,
+          windowRow: key,
+          rowShape: shape,
+          nestedRows: nested,
+        }),
+      );
+    }
+    return createElement(Fragment, null, rows);
+  },
+  (before, after) => {
+    if (
+      before.root !== after.root ||
+      before.context !== after.context ||
+      before.keys !== after.keys ||
+      before.ends !== after.ends ||
+      before.closed !== after.closed ||
+      before.from !== after.from ||
+      before.to !== after.to ||
+      before.shape !== after.shape ||
+      before.all !== after.all
+    )
+      return false;
+    // (The same records in `[from, to)`: the window's ids there.)
+    const idsIn = (props: WindowRowNestProps) => {
+      const lo = Math.max(props.from, props.start);
+      const hi = Math.min(props.to, props.start + props.ids.length);
+      return lo < hi
+        ? { lo, ids: props.ids.slice(lo - props.start, hi - props.start) }
+        : { lo: 0, ids: NO_ROW_IDS };
+    };
+    const a = idsIn(before);
+    const b = idsIn(after);
+    return (
+      a.lo === b.lo &&
+      a.ids.length === b.ids.length &&
+      a.ids.every((id, index) => id === b.ids[index])
+    );
+  },
+);
+/** A nest chunk's name: its first row's key and a hash of its siblings' keys (`windowRowChunkNames`). */
+function windowRowNestKey(
+  keys: readonly string[],
+  siblings: readonly number[],
+  at: number,
+): string {
+  let hash = 0x811c9dc5;
+  const to = Math.min(siblings.length, at + WINDOW_ROW_CHUNK);
+  for (let place = at; place < to; place += 1) {
+    const key = keys[siblings[place]!]!;
+    for (let index = 0; index < key.length; index += 1)
+      hash = Math.imul(hash ^ key.charCodeAt(index), 0x01000193);
+    hash = Math.imul(hash ^ 0x1f, 0x01000193);
+  }
+  return `catalog:nest|${at}:${(hash >>> 0).toString(36)}`;
+}
+
 /**
  * A windowed TableBody's children: its other children as they are, its data rows as one
  * `CatalogWindowRows` (the records' rows are one run — the resolver's window).
@@ -4799,6 +5016,9 @@ function windowRowChildren(
       cells,
       spans: catalogRowSpans(root, row),
       owner: window.owner,
+      ...(window.depths
+        ? { depths: window.depths, closed: window.closed }
+        : {}),
     }),
     ...ids.slice(last + 1).flatMap(childElement),
   ];

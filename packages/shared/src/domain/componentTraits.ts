@@ -433,7 +433,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   Row: {
     container: "collection",
     families: ["tableItemHost"],
-    children: ["Cell"],
+    // (ADR-315 Phase 5 증분 5e — a Row template's detail Row: RAC's nested `<Row>` after the cells.)
+    children: ["Cell", "Row"],
   },
   Tree: {
     container: "collection",

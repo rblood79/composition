@@ -2387,6 +2387,7 @@ const catalog: TranslationKeys = {
     apiQuery_orderParam: "정렬 방향",
     apiQuery_searchParam: "표 검색어",
     apiQueryMultiSort: "여러 정렬 받기 (쉼표 목록)",
+    apiQueryExtendedAggregates: "중앙값 · 고유 값 · 범위 · 처음 · 끝 집계 받기",
     apiQueryViews: "이 collection 을 읽는 데이터 보기",
     apiQueryCarried: "조건 전부를 보낸다",
     apiQueryWarnOR_GROUP:
@@ -2404,6 +2405,8 @@ const catalog: TranslationKeys = {
       "정렬 여러 개 — 이 endpoint 는 하나만 받는다. 첫 정렬만 보낸다",
     apiQueryWarnGROUP:
       "묶기 · 집계는 파라미터로 보낼 수 없다 — 전체 행을 불러와 ({cap} 행까지) 여기서 묶는다",
+    apiQueryWarnAGGREGATE:
+      "{aggregate} — 이 endpoint 는 그 집계를 계산하지 않는다: 전체 행을 불러와 ({cap} 행까지) 여기서 묶는다",
     apiQueryWarnCOMPUTED:
       "{field} 은(는) 계산 열 — 서버에 그 셀이 없다: 이 보기는 서버로 보낼 수 없고 전체 행을 불러와 ({cap} 행까지) 여기서 돌린다",
     apiUploadLive: "미리보기에서 실제 업로드",
@@ -2660,6 +2663,8 @@ const catalog: TranslationKeys = {
     tableSearchLabel: "검색",
     tableColumnChooser: "열 선택 메뉴",
     tableColumnChooserLabel: "열",
+    tableTotalsRow: "합계 행",
+    tableDetailRow: "상세 행",
     tableSearchRefused_suffixNoSearch:
       "이 endpoint 는 검색어를 받지 않습니다 — 표 검색이 동작하지 않습니다. endpoint 조회 형식의 「표 검색어」 에 파라미터 이름을 적으세요.",
     tableSearchFuzzyServed:
@@ -3219,6 +3224,16 @@ const semanticLabels: Record<string, string> = {
   "properties.columnAllowsHiding": "숨기기 허용",
   "properties.columnAllowsPinning": "고정 허용",
   "properties.columnAllowsFiltering": "필터 허용",
+  "properties.columnGrouped": "묶기",
+  "properties.columnAllowsGrouping": "묶기 허용",
+  "properties.columnAggregate": "묶음 · 합계 집계",
+  "properties.aggregateCount": "개수",
+  "properties.aggregateMedian": "중앙값",
+  "properties.aggregateExtent": "범위 (최소 – 최대)",
+  "properties.aggregateUnique": "고유 값",
+  "properties.aggregateUniqueCount": "고유 값 수",
+  "properties.aggregateFirst": "처음 값",
+  "properties.aggregateLast": "끝 값",
   "properties.tableReorderColumns": "열 순서 바꾸기",
   "properties.ascending": "오름차순",
   "properties.descending": "내림차순",
@@ -3800,6 +3815,8 @@ const formattedMessages: Record<
     `「${String(args?.condition ?? "")}」 필드가 없다 — 건너뛴다`,
   "datatable.apiQueryWarnGROUP": (args) =>
     `묶기 · 집계는 파라미터로 보낼 수 없다 — 전체 행을 불러와 (${String(args?.cap ?? "")} 행까지) 여기서 묶는다`,
+  "datatable.apiQueryWarnAGGREGATE": (args) =>
+    `${String(args?.aggregate ?? "")} — 이 endpoint 는 그 집계를 계산하지 않는다: 전체 행을 불러와 (${String(args?.cap ?? "")} 행까지) 여기서 묶는다`,
   "datatable.apiQueryWarnCOMPUTED": (args) =>
     `${String(args?.field ?? "")} 은(는) 계산 열 — 서버에 그 셀이 없다: 이 보기는 서버로 보낼 수 없고 전체 행을 불러와 (${String(args?.cap ?? "")} 행까지) 여기서 돌린다`,
   "datatable.apiSchemaCandidate": (args) =>

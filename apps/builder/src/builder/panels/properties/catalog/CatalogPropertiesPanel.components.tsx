@@ -1,6 +1,8 @@
 import {
   CatalogListFilterSection,
   CatalogTableColumnsSwitch,
+  CatalogTableTotalsSwitch,
+  CatalogTableDetailSwitch,
   CatalogTableSearchSwitch,
   CatalogTableSortNotice,
 } from "./CatalogFilterSection";
@@ -695,6 +697,10 @@ function withFilterSections(
         <CatalogTableSortNotice key={`sort:${nodeId}`} listId={nodeId} />
         {/* (ADR-315 Phase 3 — the Table's 「Search」: a SearchField wired to its search text.) */}
         <CatalogTableSearchSwitch key={`search:${nodeId}`} listId={nodeId} />
+        {/* (ADR-315 Phase 5 증분 5c — the Table's 「Totals row」: its footer's row of aggregates.) */}
+        <CatalogTableTotalsSwitch key={`totals:${nodeId}`} listId={nodeId} />
+        {/* (ADR-315 Phase 5 증분 5e — the Table's 「Detail row」: a row each data row expands to.) */}
+        <CatalogTableDetailSwitch key={`detail:${nodeId}`} listId={nodeId} />
         {columns}
       </>
     ),

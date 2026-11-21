@@ -107,6 +107,8 @@ export interface CatalogTableShape {
      */
     readonly hidden?: boolean;
     readonly pinned?: "start" | "end";
+    /** ADR-315 Phase 5 — the author groups by it (`defaultGrouped`). */
+    readonly grouped?: boolean;
   }[];
   /** Whether the Table sorts by more than one column (absent = one). */
   readonly multiSort?: boolean;
@@ -225,7 +227,16 @@ function sliceOf(
       }
       return out.length ? out : null;
     }
-    case "grouping":
+    case "grouping": {
+      const list = columns(value);
+      if (!list) return undefined;
+      // (ADR-315 Phase 5 — the authored grouping is what no slice shows: the same list is no
+      //  slice, and an empty list over an authored one is one — 「not grouped」.)
+      const authored = shape.columns
+        .filter((column) => column.grouped)
+        .map((column) => column.key);
+      return same(list, authored) ? null : list.length || authored.length ? list : null;
+    }
     case "columnOrder": {
       const list = columns(value);
       return list && (list.length ? list : null);

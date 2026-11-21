@@ -71,6 +71,7 @@ export function layerNodeGlyph(typeName: string): NodeGlyph {
     case "Cell":
     case "TableHeader":
     case "TableBody":
+    case "TableFooter":
       return "group";
     default:
       return "shape";

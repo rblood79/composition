@@ -2397,6 +2397,8 @@ const catalog: TranslationKeys = {
     apiQuery_orderParam: "Sort direction",
     apiQuery_searchParam: "Table search text",
     apiQueryMultiSort: "Several sorts (comma lists)",
+    apiQueryExtendedAggregates:
+      "Median · unique · extent · first · last aggregates",
     apiQueryViews: "Data views reading this collection",
     apiQueryCarried: "All conditions are sent",
     apiQueryWarnOR_GROUP:
@@ -2414,6 +2416,8 @@ const catalog: TranslationKeys = {
       "Several sorts — this endpoint takes one; only the first is sent",
     apiQueryWarnGROUP:
       "Grouping · aggregates cannot be parameters — every row is loaded (up to {cap}) and grouped here",
+    apiQueryWarnAGGREGATE:
+      "{aggregate} — this endpoint does not run that aggregate: every row is loaded (up to {cap}) and grouped here",
     apiQueryWarnCOMPUTED:
       "{field} is a computed column — the server has no such cell: nothing of this view is sent, every row is loaded (up to {cap}) and the view runs here",
     apiUploadLive: "Real upload in preview",
@@ -2672,6 +2676,8 @@ const catalog: TranslationKeys = {
     tableSearchLabel: "Search",
     tableColumnChooser: "Column visibility menu",
     tableColumnChooserLabel: "Columns",
+    tableTotalsRow: "Totals row",
+    tableDetailRow: "Detail row",
     tableSearchRefused_suffixNoSearch:
       "This endpoint takes no search text — the Table's search does not run. Name a parameter under 「Table search text」 in the endpoint's query format.",
     tableSearchFuzzyServed:
@@ -3225,6 +3231,16 @@ const semanticLabels: Record<string, string> = {
   "properties.columnAllowsHiding": "Allow hiding",
   "properties.columnAllowsPinning": "Allow pinning",
   "properties.columnAllowsFiltering": "Allow filtering",
+  "properties.columnGrouped": "Grouped",
+  "properties.columnAllowsGrouping": "Allow grouping",
+  "properties.columnAggregate": "Group · totals aggregate",
+  "properties.aggregateCount": "Count",
+  "properties.aggregateMedian": "Median",
+  "properties.aggregateExtent": "Extent (min – max)",
+  "properties.aggregateUnique": "Unique values",
+  "properties.aggregateUniqueCount": "Unique count",
+  "properties.aggregateFirst": "First value",
+  "properties.aggregateLast": "Last value",
   "properties.tableReorderColumns": "Reorder columns",
   "properties.ascending": "Ascending",
   "properties.descending": "Descending",
@@ -3812,6 +3828,8 @@ const formattedMessages: Record<
     `"${String(args?.condition ?? "")}" field is missing — skipped`,
   "datatable.apiQueryWarnGROUP": (args) =>
     `Grouping · aggregates cannot be parameters — every row is loaded (up to ${String(args?.cap ?? "")}) and grouped here`,
+  "datatable.apiQueryWarnAGGREGATE": (args) =>
+    `${String(args?.aggregate ?? "")} — this endpoint does not run that aggregate: every row is loaded (up to ${String(args?.cap ?? "")}) and grouped here`,
   "datatable.apiQueryWarnCOMPUTED": (args) =>
     `${String(args?.field ?? "")} is a computed column — the server has no such cell: nothing of this view is sent, every row is loaded (up to ${String(args?.cap ?? "")}) and the view runs here`,
   "datatable.apiSchemaCandidate": (args) =>

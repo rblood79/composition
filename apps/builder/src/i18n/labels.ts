@@ -510,6 +510,17 @@ export const semanticLabelKeys: Record<string, string> = {
   "Allow pinning": "properties.columnAllowsPinning",
   "Allow filtering": "properties.columnAllowsFiltering",
   "Reorder columns": "properties.tableReorderColumns",
+  // ADR-315 Phase 5 — a Column's grouping · its group rows' aggregate.
+  Grouped: "properties.columnGrouped",
+  "Allow grouping": "properties.columnAllowsGrouping",
+  "Group aggregate": "properties.columnAggregate",
+  Count: "properties.aggregateCount",
+  Median: "properties.aggregateMedian",
+  Extent: "properties.aggregateExtent",
+  "Unique values": "properties.aggregateUnique",
+  "Unique count": "properties.aggregateUniqueCount",
+  "First value": "properties.aggregateFirst",
+  "Last value": "properties.aggregateLast",
   // 2026-11-18 S2 — collection `disabledKeys` · TagGroup `selectionBehavior` · `groupActionLabel`.
   "Disabled keys": "properties.disabledKeys",
   "Selection Behavior": "properties.selectionBehavior",

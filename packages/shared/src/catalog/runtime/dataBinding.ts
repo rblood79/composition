@@ -18,6 +18,7 @@ import type {
   CatalogViewResultMeta,
 } from "../resolution/resolver";
 import {
+  viewAggregateOf,
   runViewQueries,
   viewResultSchema,
   viewRunReferences,
@@ -37,7 +38,12 @@ import {
   type ViewRowTest,
 } from "../../collections/view/rowFilter";
 import type { CatalogRowSorts } from "./tableSort";
-import type { CatalogRowSlices } from "./tableRowSlices";
+import {
+  CATALOG_GROUP_PLACEHOLDER_SUFFIX,
+  type CatalogRowSlices,
+  type CatalogRowTree,
+} from "./tableRowSlices";
+import { catalogGroupBoundRows } from "./tableGroupRows";
 import type {
   CatalogReader,
   DataBindingRef,
@@ -376,9 +382,16 @@ export function catalogBoundRows(
 
 /**
  * Aggregates over part of the data (an API collection before its last page) as shown: a count is
- * at least its value (`12+`), another aggregate an estimate (`≈ 4.2`) — the rows keep the group
- * fields. Display only: the run's own values are numbers.
+ * at least its value (`12+` — a `uniqueCount` too), another aggregate an estimate (`≈ 4.2`) — the
+ * rows keep the group fields. A `first` is the data's first row whatever the part (exact), and a
+ * list (`unique` · `extent`) is left as it is. Display only: the run's own values are numbers.
  */
+const EXACT_ON_PART: ReadonlySet<string> = new Set([
+  "applied",
+  "first",
+  "unique",
+  "extent",
+]);
 function partialAggregates(
   rows: readonly unknown[],
   queries: CatalogRowQuery["queries"],
@@ -387,14 +400,16 @@ function partialAggregates(
   for (const query of queries)
     for (const aggregate of query.aggregates ?? [])
       // (「적용 조건 수」 reads the conditions, not the rows — whole on any part of the data.)
-      if (aggregate.fn !== "applied") marks.set(aggregate.as, aggregate.fn);
+      if (!EXACT_ON_PART.has(aggregate.fn))
+        marks.set(aggregate.as, aggregate.fn);
   return rows.map((row) => {
     if (row === null || typeof row !== "object") return row;
     const out = { ...(row as Record<string, unknown>) };
     for (const [name, fn] of marks) {
       const value = out[name];
       if (value === null || value === undefined) continue;
-      out[name] = fn === "count" ? `${value}+` : `≈ ${value}`;
+      out[name] =
+        fn === "count" || fn === "uniqueCount" ? `${value}+` : `≈ ${value}`;
     }
     return out;
   });
@@ -559,6 +574,33 @@ function rowValueOf(
   };
 }
 /**
+ * ADR-315 Phase 5 증분 5c — a totals row's values: each aggregate over the kept rows' cells (the
+ * evaluator's — `viewAggregateOf`, as a group row's), by Column key.
+ */
+function catalogRowTotals(
+  sourceRows: readonly unknown[],
+  kept: ArrayLike<number>,
+  aggregates: NonNullable<CatalogRowSlices["totals"]>,
+  roles: Parameters<typeof toItemProjectionRow>[2],
+): Record<string, unknown> {
+  const values = Array.from(kept, (index) =>
+    buildCollectionRowTemplateItem(
+      toItemProjectionRow(sourceRows[index], index, roles),
+    ),
+  );
+  const out: Record<string, unknown> = {};
+  for (const aggregate of aggregates)
+    out[aggregate.key] = aggregate.fn
+      ? viewAggregateOf(
+          aggregate.fn,
+          () => values.map((row) => row[aggregate.key]),
+          values.length,
+        )
+      : null;
+  return out;
+}
+
+/**
  * ADR-315 Phase 3 — the source rows' indexes a Table's search · column filters keep, in `order`
  * (its sort's — else the rows' own; a fuzzy search without a sort: the best matches first). The
  * tests are the views' comparisons on row numbers (`viewRowsPassing`): the sort's order is made
@@ -641,6 +683,192 @@ function keptRowOrder(
   return kept ?? undefined;
 }
 
+/**
+ * ADR-315 Phase 5 증분 5d — a tree's rows as one flat list: every row of every level (depth-first,
+ * a row before its child rows — a binding's children field; the source rows themselves for a
+ * parent ID field), the top rows, each row's child rows and each row's key (a duplicate key's mark
+ * by its place in the list — the same under every sort · search · expansion).
+ */
+interface CatalogRowTreeIndex {
+  readonly items: readonly unknown[];
+  readonly roots: readonly number[];
+  readonly children: readonly (readonly number[] | undefined)[];
+  readonly keys: readonly string[];
+}
+const treeIndexes = new WeakMap<
+  readonly unknown[],
+  Map<string, CatalogRowTreeIndex>
+>();
+function catalogRowTreeIndex(
+  sourceRows: readonly unknown[],
+  roles: NonNullable<Parameters<typeof toItemProjectionRow>[2]>,
+): CatalogRowTreeIndex {
+  const signature = JSON.stringify([
+    roles.children ?? null,
+    roles.parentId ?? null,
+    roles.value ?? null,
+  ]);
+  let held = treeIndexes.get(sourceRows);
+  if (!held) treeIndexes.set(sourceRows, (held = new Map()));
+  const before = held.get(signature);
+  if (before) return before;
+  let items: readonly unknown[];
+  let roots: number[];
+  const children: (number[] | undefined)[] = [];
+  if (roles.parentId) {
+    // (A parent ID field: the source rows indexed by their keys — `parentRowsToTree`, a row whose
+    //  parent is missing · itself · in a cycle stands at the top.)
+    items = sourceRows;
+    const nodes = parentRowsToTree(
+      sourceRows.map((item, index) => toItemProjectionRow(item, index, roles)),
+      roles.parentId,
+    );
+    roots = nodes.map((node) => node.row.rowIndex);
+    const stack = [...nodes];
+    while (stack.length) {
+      const node = stack.pop()!;
+      if (node.children.length) {
+        children[node.row.rowIndex] = node.children.map(
+          (child) => child.row.rowIndex,
+        );
+        stack.push(...node.children);
+      }
+    }
+  } else {
+    // (A children field: each row's child rows are an array in it — listed after it.)
+    const flat: unknown[] = [];
+    const field = roles.children!;
+    const visit = (item: unknown): number => {
+      const at = flat.length;
+      flat.push(item);
+      const nested =
+        item !== null && typeof item === "object" && !Array.isArray(item)
+          ? (item as Record<string, unknown>)[field]
+          : undefined;
+      if (Array.isArray(nested) && nested.length)
+        children[at] = nested.map(visit);
+      return at;
+    };
+    roots = sourceRows.map(visit);
+    items = flat;
+  }
+  const seen = new Set<string>();
+  const keys = items.map((item, index) => {
+    const key = String(toItemProjectionRow(item, index, roles).itemKey);
+    if (!seen.has(key)) {
+      seen.add(key);
+      return key;
+    }
+    return `${key}~${index}`;
+  });
+  const index: CatalogRowTreeIndex = { items, roots, children, keys };
+  if (held.size >= 4) held.delete(held.keys().next().value!);
+  held.set(signature, index);
+  return index;
+}
+
+/**
+ * ADR-315 Phase 5 증분 5d — a bound Table's rows as a tree (TanStack's sub rows, breakdown §5.4
+ * 「계층 데이터」): every row of every level is read · tested; a row stays when it passes the
+ * search · filters or a row under it does (its path to the match stays — TanStack
+ * `filterFromLeafRows`); each level's rows stand in the sort's order among themselves; a collapsed
+ * row's child rows are not read out (one placeholder child — react-aria counts the row as
+ * expandable, as a collapsed group); the window · page count top rows (`paginateExpandedRows:
+ * false`); the totals are over every row kept, every level.
+ */
+function treeBoundRows(
+  sourceRows: readonly unknown[],
+  roles: NonNullable<Parameters<typeof toItemProjectionRow>[2]>,
+  schema: readonly { id?: string; key: string; type?: string }[] | undefined,
+  slices: CatalogRowSlices,
+  tree: CatalogRowTree,
+  limit: number,
+  start: number,
+): CatalogBoundRows {
+  const { items, roots, children, keys } = catalogRowTreeIndex(
+    sourceRows,
+    roles,
+  );
+  const sort = slices.sorts?.length ? slices.sorts : undefined;
+  let place: Uint32Array | undefined;
+  if (sort) {
+    const order = sortedRowOrder(items, sort, roles, schema);
+    place = new Uint32Array(items.length);
+    order.forEach((index, at) => (place![index] = at));
+  }
+  const passed =
+    slices.search || slices.filters?.length
+      ? keptRowOrder(items, undefined, slices, roles, schema)
+      : undefined;
+  let kept: Uint8Array | undefined;
+  if (passed) {
+    kept = new Uint8Array(items.length);
+    for (const index of passed) kept[index] = 1;
+    // (A row with a kept row under it stays: children after their parent — the parents last.)
+    const parents: number[] = [];
+    const stack = [...roots];
+    while (stack.length) {
+      const index = stack.pop()!;
+      const under = children[index];
+      if (under) {
+        parents.push(index);
+        stack.push(...under);
+      }
+    }
+    for (let at = parents.length - 1; at >= 0; at -= 1) {
+      const index = parents[at]!;
+      if (!kept[index] && children[index]!.some((child) => kept![child]))
+        kept[index] = 1;
+    }
+  }
+  const siblings = (list: readonly number[]): number[] => {
+    const shown = kept ? list.filter((index) => kept![index]) : [...list];
+    return place ? shown.sort((a, b) => place![a]! - place![b]!) : shown;
+  };
+  const expanded = tree.expanded === "all" ? undefined : new Set(tree.expanded);
+  const rowOf = (index: number, depth: number): CatalogBoundRow => {
+    const under = children[index] ? siblings(children[index]!) : [];
+    const key = keys[index]!;
+    const open = under.length > 0 && (!expanded || expanded.has(key));
+    const nested = !under.length
+      ? undefined
+      : open
+        ? under.map((child) => rowOf(child, depth + 1))
+        : tree.closedChild === false
+          ? undefined
+          : [
+              {
+                key: `${key}${CATALOG_GROUP_PLACEHOLDER_SUFFIX}`,
+                values: {},
+                placeholder: true as const,
+              },
+            ];
+    return {
+      key,
+      values: buildCollectionRowTemplateItem(
+        toItemProjectionRow(items[index], index, roles),
+      ),
+      ...(nested ? { children: nested } : {}),
+      tree: { depth, expanded: open, parent: under.length > 0 },
+    };
+  };
+  const top = siblings(roots);
+  const end = Math.min(top.length, Math.max(0, limit));
+  const out: CatalogBoundRow[] = top
+    .slice(Math.min(start, end), end)
+    .map((index) => rowOf(index, 0));
+  const meta: Record<string, unknown> = { nested: true };
+  if (start > 0 || top.length > end) meta.total = top.length;
+  if (slices.totals) {
+    const every: number[] = [];
+    for (let index = 0; index < items.length; index += 1)
+      if (!kept || kept[index]) every.push(index);
+    meta.totals = catalogRowTotals(items, every, slices.totals, roles);
+  }
+  if (sort) meta.sorted = sort;
+  return Object.assign(out, meta) as CatalogBoundRows;
+}
+
 function boundRowsOf(
   ref: DataBindingRef,
   dataBinding: DataBindingValue,
@@ -686,10 +914,41 @@ function boundRowsOf(
       };
     });
   };
+  // (ADR-315 Phase 5 증분 5d — a Table whose binding names its rows' child rows reads them as a
+  //  tree: every row of every level is searched · sorted · totalled, not just the top ones.)
+  if (
+    slices?.tree &&
+    roles &&
+    (childrenKey || parentKey) &&
+    ref.key === undefined &&
+    !slices.groups?.keys.length
+  )
+    return treeBoundRows(
+      readDataBindingRows(dataBinding, collections),
+      roles,
+      bound?.schema,
+      slices,
+      slices.tree,
+      limit,
+      start,
+    );
   // (A sorted Table: the source rows in the sort's order — the rows `limit` takes are the first of
   //  the sorted collection, not the first rows sorted among themselves.)
+  // (ADR-315 Phase 5 — a grouped Table reads every row: its groups · aggregates are over all of
+  //  them, and its window · page count group rows.)
+  const groups =
+    slices?.groups?.keys.length && !parentKey && ref.key === undefined
+      ? slices.groups
+      : undefined;
+  // (ADR-315 Phase 5 증분 5c — a totals row reads every row the slices keep, as a grouping does.)
+  const totalsOf =
+    slices?.totals && !parentKey && ref.key === undefined
+      ? slices.totals
+      : undefined;
   const sourceRows =
-    (sort || tested) && !parentKey && ref.key === undefined
+    (sort || tested || groups || totalsOf) &&
+    !parentKey &&
+    ref.key === undefined
       ? readDataBindingRows(dataBinding, collections)
       : undefined;
   const sortOrder =
@@ -702,6 +961,47 @@ function boundRowsOf(
       ? (keptRowOrder(sourceRows, sortOrder, slices!, roles, bound?.schema) ??
         sortOrder)
       : sortOrder;
+  const totals =
+    totalsOf && sourceRows
+      ? catalogRowTotals(
+          sourceRows,
+          order ??
+            Array.from({ length: sourceRows.length }, (_, index) => index),
+          totalsOf,
+          roles,
+        )
+      : undefined;
+  if (groups && sourceRows) {
+    const kept =
+      order ?? Array.from({ length: sourceRows.length }, (_, index) => index);
+    // (Each row's key by the source order — a duplicate key's mark is the same under every sort.)
+    const byIndex = new Map<number, CatalogBoundRow>();
+    for (const index of [...kept].sort((a, b) => a - b)) {
+      const row = toItemProjectionRow(sourceRows[index], index, roles);
+      let key = String(row.itemKey);
+      if (seen.has(key)) key = `${key}~${row.rowIndex}`;
+      seen.add(key);
+      // (ADR-315 Phase 5 증분 5d — under a grouping the rows' own child rows are not shown: a
+      //  group's rows are its leaves, breakdown §5.4.)
+      byIndex.set(index, {
+        key,
+        values: buildCollectionRowTemplateItem(row),
+      });
+    }
+    const top = catalogGroupBoundRows(
+      Array.from(kept, (index) => byIndex.get(index)!),
+      groups,
+    );
+    const cut = top.slice(0, Math.max(0, limit));
+    const out =
+      start > 0
+        ? Object.assign(cut.slice(start), { total: top.length })
+        : top.length > cut.length
+          ? Object.assign(cut, { total: top.length })
+          : cut;
+    if (totals) Object.assign(out, { totals });
+    return sort && sortOrder ? Object.assign(out, { sorted: sort }) : out;
+  }
   const taken = order ? Math.min(Math.max(0, limit), order.length) : 0;
   const projected =
     sourceRows && order
@@ -748,9 +1048,13 @@ function boundRowsOf(
           return projected.map((row) => bound[row.rowIndex]!);
         })()
       : projected.map((row) => boundRow(row, childRows(row.item)));
-  /** (The rows a sort ordered say so — their reader does not sort them again.) */
-  const marked = (out: CatalogBoundRows): CatalogBoundRows =>
-    sort && sortOrder ? Object.assign(out, { sorted: sort }) : out;
+  /** (The rows a sort ordered say so — their reader does not sort them again. A totals row's.) */
+  const marked = (out: CatalogBoundRows): CatalogBoundRows => {
+    if (totals) Object.assign(out, { totals });
+    // (ADR-315 Phase 5 증분 5d — a Table reads them again as a tree: `CatalogRowSlices.tree`.)
+    if (childrenKey || parentKey) Object.assign(out, { nested: true });
+    return sort && sortOrder ? Object.assign(out, { sorted: sort }) : out;
+  };
   if (ref.key !== undefined) {
     const item = rows.find((row) => row.key === ref.key);
     return [item ?? { key: ref.key, values: {} }];

@@ -249,7 +249,9 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
   it("itemSlotCollection (구 CanonicalNodeRenderer ITEM_SLOT_COLLECTIONS, 소문자)", () => {
     expect(
       sorted(componentTypeSet("itemSlotCollection", { lowercase: true })),
-    ).toEqual(literal(["listbox", "gridlist", "menu", "taggroup", "selectboxgroup"]));
+    ).toEqual(
+      literal(["listbox", "gridlist", "menu", "taggroup", "selectboxgroup"]),
+    );
   });
 
   it("disablingGroup (구 canonicalRefResolution DISABLING_GROUP_TYPES)", () => {
@@ -329,7 +331,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Table: ["TableHeader", "TableBody"],
       TableHeader: ["Column"],
       TableBody: ["Row"],
-      Row: ["Cell"],
+      Row: ["Cell", "Row"],
       Tree: ["TreeItem"],
       CardView: ["Card", "SkeletonCollection"],
       TreeItem: ["TreeItem", "TreeItemContent"],

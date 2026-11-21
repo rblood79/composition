@@ -13488,6 +13488,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       flexDirection: "column",
     },
   },
+  // ADR-315 Phase 5 증분 5c — 합계 행의 바닥글: TableBody 와 같은 상자 (행이 칸을 그린다).
+  TableFooter: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: {
+            default: "{color.transparent}",
+            isHovered: "{color.transparent}",
+            isPressed: "{color.transparent}",
+          },
+          color: {
+            default: "{color.neutral}",
+          },
+        },
+        alpha: 0,
+      },
+    },
+    sizes: {
+      M: {},
+    },
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+    },
+  },
   Row: {
     defaultVariant: "default",
     defaultSize: "M",

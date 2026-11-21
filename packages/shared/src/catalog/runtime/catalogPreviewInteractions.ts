@@ -425,6 +425,8 @@ export interface CatalogPreviewInteractionsOptions {
   sortTable?: (tableId: string, sort: CatalogTableSort | undefined) => void;
   /** ADR-315 Phase 2 — a Table's header press (the Column's RAC key · Shift held): the session's. */
   pressTableSort?: (tableId: string, column: string, add: boolean) => void;
+  /** ADR-315 Phase 5 — the group rows RAC opened · closed (their row keys): the session's. */
+  expandTableRows?: (tableId: string, keys: readonly string[]) => void;
   /** ADR-315 Phase 4 — the widths RAC's column resize left (RAC keys, px): the session's. */
   resizeTableColumns?: (
     tableId: string,
@@ -1320,6 +1322,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   }
   pressTableSort(tableId: string, column: string, add: boolean): void {
     this.options.pressTableSort?.(tableId, column, add);
+  }
+  expandTableRows(tableId: string, keys: readonly string[]): void {
+    this.options.expandTableRows?.(tableId, keys);
   }
   resizeTableColumns(
     tableId: string,

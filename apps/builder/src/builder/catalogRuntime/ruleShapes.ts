@@ -67,6 +67,7 @@ import {
   catalogBoxModel,
   catalogTextTypography,
 } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
+import { catalogTreeCellGlyph } from "../../../../../packages/shared/src/catalog/runtime/tableTreeCell";
 import {
   SHEET_HANDLE,
   catalogSheetHandleRect,
@@ -240,6 +241,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...pickerChromeShapes(input, base),
     ...fieldErrorIconShapes(input),
     ...sideNavIndicatorShapes(input),
+    ...treeCellChevronShapes(input),
   ];
   const quiet = catalogQuietStyles(
     input.rule,
@@ -326,6 +328,34 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
  * (`catalogLinkOutCardEndInset`); the item's text color (S2 `currentColor`). The DOM draws the same glyph
  * box (`domBinding` — `catalogLinkOutGlyph`).
  */
+/**
+ * ADR-315 Phase 5 증분 5b-3 — a group's tree cell (`catalogTreeCellGlyph`): the DOM's RAC expand
+ * button (`CatalogTableCell` — lucide chevron-right `1em`, centred in a `1lh` square at the
+ * content's start, turned 90° when open) in the room the box keeps (`catalogBoxModel`), in the
+ * cell's text color. The x is in the padding box, as `linkOutShapes`'.
+ */
+function treeCellChevronShapes(input: CatalogRuleShapeInput): Shape[] {
+  const glyph = catalogTreeCellGlyph(input.node);
+  if (!glyph) return [];
+  const start = Number(catalogBoxModel(input.node).padding?.left ?? 0);
+  return [
+    {
+      type: "icon_font",
+      iconName: glyph.expanded ? "chevron-down" : "chevron-right",
+      x: start - glyph.reserve + glyph.lineHeight / 2,
+      y: input.rect.height / 2,
+      fontSize: glyph.fontSize,
+      fill:
+        catalogRuleTextColor(input) ??
+        (resolveToken(
+          "{color.neutral}" as TokenRef,
+          input.theme ?? "light",
+        ) as string),
+      strokeWidth: 2,
+    } as Shape,
+  ];
+}
+
 function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
   // (or a ListView item's chevron while it has child items — S2 `hasChildItems`, same place)
   const icon = catalogItemTrailingIcon(input.type, input.node.props);

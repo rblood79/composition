@@ -8874,6 +8874,12 @@ export class CatalogCompositionRoot {
             let region = this.records.get(id);
             while (region?.id.includes(CATALOG_ROW_SEPARATOR))
               region = this.records.get(region.parentId);
+            // (ADR-315 Phase 5 증분 5e — a bound Table's body rows decide its own record too (its
+            //  expandable rows' `treeColumn` · open rows · a detail row's span): its region.)
+            if (region?.ruleId === "TableBody") {
+              const table = this.records.get(region.parentId);
+              if (table?.ruleId === "Table") region = table;
+            }
             if (region) candidates.add(region.id);
           }
       const regions = this.outermostRegions(candidates);

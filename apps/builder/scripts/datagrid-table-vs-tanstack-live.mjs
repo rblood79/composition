@@ -86,6 +86,32 @@ const CHECK_FILTER = process.argv.includes("--check-filter");
 //   Date 손잡이에서 키보드 끌기 (Enter → Tab → Enter) 로 순서가 바뀌는지, 끌기가 정렬을 일으키지 않는지,
 //   끌기 뒤 머리글 클릭이 정렬하는지 (S5 의 WebKit 첫 클릭) 를 본다.
 const CHECK_DRAG = process.argv.includes("--check-drag");
+// `--check-group` (ADR-315 Phase 5 — 표 안 묶음 행): Dept 열을 「Allow grouping」, Amount 를 「Group
+//   aggregate」 Sum 으로 둔다. Publish 에서 Dept 메뉴 「Group by column」 → 묶음 행의 수 · 각 묶음의
+//   「Dept N (개수)」 · Amount 합계를 이 파일의 행 생성기로 따로 센 값과 대조하고, Dept 가 첫 머리글인지,
+//   첫 묶음의 펼침 버튼을 눌러 자식 행 수 (aria-level 2) 가 그 묶음의 개수인지, 「Ungroup」 뒤 행이 돌아오는지 본다.
+//   메뉴 Button 은 내용 감싸개가 있는 Column 의 것이라 `--column-origin` 과 같이 돌린다.
+const CHECK_GROUP = process.argv.includes("--check-group");
+// `--check-authored-group` (ADR-315 Phase 5 증분 5b-3 — 작성 「Grouped」): Dept 열 「Grouped」 · Amount
+//   「Group aggregate」 Sum 을 작성한다. Builder Canvas 의 record (묶음 행 수 · 접힘 표시 `_treeCell` ·
+//   중첩 행 0 · Dept 첫 열) 와 화면, Publish 의 첫 화면 (treegrid · 묶음 12 · 모두 접힘 · 개수 · 합계) 을
+//   행 생성기로 따로 센 값과 대조한다. `--column-origin` 과 같이 돌린다.
+const CHECK_AUTHORED_GROUP = process.argv.includes("--check-authored-group");
+// `--check-totals` (ADR-315 Phase 5 증분 5c — 합계 행): Name 「Count」 · Amount 「Sum」 · Qty 「Mean」 을
+//   작성하고 「Totals row」 를 켠다 (같은 행을 mock 으로도 실어 Builder Canvas 가 그린다). Builder Canvas
+//   의 footer 행 record 와 Publish 의 `tfoot` 행 (가상 표 포함) 을 행 생성기로 따로 센 값과 대조한다.
+const CHECK_TOTALS = process.argv.includes("--check-totals");
+// `--check-tree` (ADR-315 Phase 5 증분 5d — 계층 데이터): 행마다 `parent` 필드 (r0 ~ r99 최상위 · r100 ~ r499
+//   는 r(i % 100) 아래 · r500 ~ 는 r(100 + i % 400) 아래) 를 두고 Table 연결에 부모 ID 필드를 고른다 (같은
+//   행을 mock 으로도 실어 Builder Canvas 가 그린다). Builder Canvas record (최상위 100 · 접힘 표시 · 중첩 0)
+//   와 Publish (treegrid · 최상위 접힘 → r0 펼침 → 자식 4 행 `aria-level` 2 → Name 정렬 뒤 단계마다 정렬)
+//   를 행 생성기로 따로 센 값과 대조한다.
+const CHECK_TREE = process.argv.includes("--check-tree");
+// `--check-detail` (ADR-315 Phase 5 증분 5e — 상세 행): Table 「Detail row」 를 켠다 (같은 행을 mock 으로도
+//   실어 Builder Canvas 가 그린다). Builder Canvas record (모든 행 접힘 표시 · 중첩 0) 와 Publish (treegrid ·
+//   모두 접힘 → r0 펼침 → 바로 아래 `r0/detail` 단계 2 · 칸 하나 · `aria-colspan` = 열 6 · 글자 = r0 의
+//   Name) 를 행 생성기로 따로 센 값과 대조한다.
+const CHECK_DETAIL = process.argv.includes("--check-detail");
 // ADR-315 Phase 4 증분 6 — the Table's view sorts Dept ↑ then Amount ↓ (authored): the Builder's
 // Column records carry the marks (`_sortMark` · the mark part), the Publish header shows them, a
 // press on Amount starts from its authored direction.
@@ -133,6 +159,12 @@ function makeRows(count) {
     amount: Math.floor(next() * 1_000_000) / 100,
     qty: Math.floor(next() * 500),
     date: `2026-${pad(Math.floor(next() * 12) + 1)}-${pad(Math.floor(next() * 28) + 1)}`,
+    ...(CHECK_TREE
+      ? {
+          parent:
+            i < 100 ? null : i < 500 ? `r${i % 100}` : `r${100 + (i % 400)}`,
+        }
+      : {}),
   }));
 }
 const DATA = JSON.stringify({ items: makeRows(ROWS), next: null });
@@ -199,7 +231,14 @@ const context = await browser.newContext({
   storageState: state,
   viewport: { width: 1600, height: 1000 },
   // (`--check-filter` reads the column menu · dialog by their English labels.)
-  ...(CHECK_FILTER ? { locale: "en-US" } : {}),
+  ...(CHECK_FILTER ||
+  CHECK_GROUP ||
+  CHECK_AUTHORED_GROUP ||
+  CHECK_TOTALS ||
+  CHECK_TREE ||
+  CHECK_DETAIL
+    ? { locale: "en-US" }
+    : {}),
 });
 const page = await context.newPage();
 const errors = [];
@@ -257,7 +296,7 @@ try {
 
     // ── 데이터 + Table ──
     await page.evaluate(
-      ({ REMOTE_BASE, COLUMNS }) => {
+      ({ REMOTE_BASE, COLUMNS, MOCK, CHECK_TREE }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
         const g = ws.root.runtime.graph;
@@ -277,9 +316,14 @@ try {
                     key: c.key,
                     type: c.type,
                   })),
+                  ...(CHECK_TREE
+                    ? [{ id: "f-parent", key: "parent", type: "string" }]
+                    : []),
                 ],
-                mockData: [],
-                useMockData: false,
+                // (`--check-authored-group`: the Builder's Canvas draws its rows — the same rows
+                //  as the server's, as mock data.)
+                mockData: MOCK ?? [],
+                useMockData: !!MOCK,
               },
               {
                 kind: "endpoint",
@@ -333,7 +377,15 @@ try {
           }),
         );
       },
-      { REMOTE_BASE, COLUMNS },
+      {
+        REMOTE_BASE,
+        COLUMNS,
+        MOCK:
+          CHECK_AUTHORED_GROUP || CHECK_TOTALS || CHECK_TREE || CHECK_DETAIL
+            ? makeRows(ROWS)
+            : null,
+        CHECK_TREE,
+      },
     );
     await page.waitForTimeout(2000);
 
@@ -346,6 +398,11 @@ try {
         CHECK_PIN,
         CHECK_RESIZE,
         CHECK_FILTER,
+        CHECK_GROUP,
+        CHECK_AUTHORED_GROUP,
+        CHECK_TOTALS,
+        CHECK_TREE,
+        CHECK_DETAIL,
         CHECK_DRAG,
         CHECK_AUTHORED,
         PROFILE_COLUMNS,
@@ -448,6 +505,7 @@ try {
                 source: "dataTable",
                 collectionId: "grid",
                 name: "Grid",
+                ...(CHECK_TREE ? { fieldMap: { parentId: "f-parent" } } : {}),
               }),
             ),
           ),
@@ -541,6 +599,111 @@ try {
               }),
             );
           });
+        if (CHECK_GROUP)
+          step("group", () => {
+            const columnOf = (key) =>
+              all(table(), "Column")
+                .map(owned)
+                .filter((x) => x && g.getEntry(x)?.props?.key?.value === key)
+                .map((x) => ({ kind: "node", id: x }));
+            ws.execute(
+              C.setFields({
+                targets: columnOf("dept"),
+                props: { allowsGrouping: set(true) },
+                label: "groupable",
+              }),
+            );
+            ws.execute(
+              C.setFields({
+                targets: columnOf("amount"),
+                props: { aggregate: set("sum") },
+                label: "aggregate",
+              }),
+            );
+          });
+        if (CHECK_AUTHORED_GROUP)
+          step("authored group", () => {
+            const columnOf = (key) =>
+              all(table(), "Column")
+                .map(owned)
+                .filter((x) => x && g.getEntry(x)?.props?.key?.value === key)
+                .map((x) => ({ kind: "node", id: x }));
+            ws.execute(
+              C.setFields({
+                targets: columnOf("dept"),
+                props: { defaultGrouped: set(true) },
+                label: "grouped",
+              }),
+            );
+            ws.execute(
+              C.setFields({
+                targets: columnOf("amount"),
+                props: { aggregate: set("sum") },
+                label: "aggregate",
+              }),
+            );
+          });
+        if (CHECK_TOTALS)
+          step("totals", () => {
+            const columnOf = (key) =>
+              all(table(), "Column")
+                .map(owned)
+                .filter((x) => x && g.getEntry(x)?.props?.key?.value === key)
+                .map((x) => ({ kind: "node", id: x }));
+            for (const [key, fn] of [
+              ["name", "count"],
+              ["amount", "sum"],
+              ["qty", "mean"],
+            ])
+              ws.execute(
+                C.setFields({
+                  targets: columnOf(key),
+                  props: { aggregate: set(fn) },
+                  label: "aggregate",
+                }),
+              );
+            ws.execute(
+              C.setTableTotalsRow({
+                tableId: id,
+                on: true,
+                buildCell: () => {
+                  const cell = node(
+                    h.palette.catalogPaletteDefinitionId(g.library, "Cell"),
+                  );
+                  return { entries: [cell], rootId: cell.id };
+                },
+                buildRow: (cellIds) => ({
+                  ...node(
+                    h.palette.catalogPaletteDefinitionId(g.library, "Row"),
+                  ),
+                  children: [...cellIds],
+                }),
+                newId: ws.newId,
+              }),
+            );
+          });
+        if (CHECK_DETAIL)
+          step("detail", () =>
+            ws.execute(
+              C.setTableDetailRow({
+                tableId: id,
+                on: true,
+                buildCell: () => {
+                  const cell = node(
+                    h.palette.catalogPaletteDefinitionId(g.library, "Cell"),
+                  );
+                  return { entries: [cell], rootId: cell.id };
+                },
+                buildRow: (cellIds) => ({
+                  ...node(
+                    h.palette.catalogPaletteDefinitionId(g.library, "Row"),
+                  ),
+                  children: [...cellIds],
+                }),
+                newId: ws.newId,
+              }),
+            ),
+          );
         if (CHECK_AUTHORED)
           step("authored sort", () =>
             ws.execute(
@@ -609,6 +772,11 @@ try {
         CHECK_PIN,
         CHECK_RESIZE,
         CHECK_FILTER,
+        CHECK_GROUP,
+        CHECK_AUTHORED_GROUP,
+        CHECK_TOTALS,
+        CHECK_TREE,
+        CHECK_DETAIL,
         CHECK_DRAG,
         CHECK_AUTHORED,
         PROFILE_COLUMNS,
@@ -620,6 +788,126 @@ try {
       throw new Error("setup failed");
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `${OUT}/builder.png` });
+    if (CHECK_TREE || CHECK_DETAIL) {
+      // (The Builder's Canvas: the body's top rows — each closed, no child Row inside it, the
+      //  first data cell of a row with child rows marked for its chevron.)
+      results.treeBuilder = await page.evaluate(() => {
+        const root = window.__COMPOSITION_CATALOG__.workspace.root;
+        const records = [...root.canvasInputs.values()];
+        const rows = records.filter(
+          (r) =>
+            r.ruleId === "Row" &&
+            r.rowIndex !== undefined &&
+            root.canvasInputs.get(r.parentId)?.ruleId === "TableBody",
+        );
+        const cellsOf = (row) =>
+          row.children
+            .map((c) => root.canvasInputs.get(c))
+            .filter(
+              (c) =>
+                c?.ruleId === "Cell" &&
+                !c.children.some(
+                  (part) =>
+                    root.canvasInputs.get(part)?.props?.slot === "selection",
+                ),
+            );
+        return {
+          rows: rows.length,
+          nested: rows.reduce(
+            (n, row) =>
+              n +
+              row.children.filter(
+                (c) => root.canvasInputs.get(c)?.ruleId === "Row",
+              ).length,
+            0,
+          ),
+          ids: rows.slice(0, 3).map((row) => row.props.id ?? null),
+          marks: rows
+            .slice(0, 3)
+            .map((row) =>
+              cellsOf(row).map((cell) => cell.props._treeCell ?? null),
+            ),
+        };
+      });
+      log(`tree builder ${JSON.stringify(results.treeBuilder)}`);
+    }
+    if (CHECK_TOTALS) {
+      // (The Builder's Canvas: the footer's row — its cells' texts by the header's keys.)
+      results.totalsBuilder = await page.evaluate(() => {
+        const root = window.__COMPOSITION_CATALOG__.workspace.root;
+        const records = [...root.canvasInputs.values()];
+        const footer = records.find((r) => r.ruleId === "TableFooter");
+        const row = footer?.children
+          .map((c) => root.canvasInputs.get(c))
+          .find((r) => r?.ruleId === "Row");
+        const header = records.find((r) => r.ruleId === "TableHeader");
+        const keys = (header?.children ?? [])
+          .map((c) => root.canvasInputs.get(c))
+          .filter((c) => c?.ruleId === "Column")
+          .map((c) => String(c.props.key ?? ""));
+        const cells = (row?.children ?? [])
+          .map((c) => root.canvasInputs.get(c))
+          .filter((c) => c?.ruleId === "Cell");
+        return Object.fromEntries(
+          keys.map((key, at) => [
+            key,
+            String(cells[at]?.props?.children ?? ""),
+          ]),
+        );
+      });
+      log(`totals builder ${JSON.stringify(results.totalsBuilder)}`);
+    }
+    if (CHECK_AUTHORED_GROUP) {
+      // (The Builder's Canvas: the Table's body rows as records — each a closed group row, the
+      //  grouped cell marked for its chevron, no child row inside it.)
+      results.authoredGroupBuilder = await page.evaluate(() => {
+        const root = window.__COMPOSITION_CATALOG__.workspace.root;
+        const records = [...root.canvasInputs.values()];
+        const rows = records.filter(
+          (r) =>
+            r.ruleId === "Row" &&
+            r.rowIndex !== undefined &&
+            root.canvasInputs.get(r.parentId)?.ruleId === "TableBody",
+        );
+        // (The selection column's cell — its `Checkbox[slot=selection]` — is no data cell.)
+        const cellsOf = (row) =>
+          row.children
+            .map((c) => root.canvasInputs.get(c))
+            .filter(
+              (c) =>
+                c?.ruleId === "Cell" &&
+                !c.children.some(
+                  (part) =>
+                    root.canvasInputs.get(part)?.props?.slot === "selection",
+                ),
+            );
+        const header = records.find((r) => r.ruleId === "TableHeader");
+        return {
+          headers: (header?.children ?? [])
+            .map((c) => root.canvasInputs.get(c))
+            .filter((c) => c?.ruleId === "Column" && !c.hidden)
+            .map((c) => String(c.props.key ?? "")),
+          rows: rows.length,
+          nested: rows.reduce(
+            (n, row) =>
+              n +
+              row.children.filter(
+                (c) => root.canvasInputs.get(c)?.ruleId === "Row",
+              ).length,
+            0,
+          ),
+          first: rows.slice(0, 3).map((row) =>
+            cellsOf(row).map((cell) => ({
+              text: cell.props.children ?? "",
+              tree: cell.props._treeCell ?? null,
+            })),
+          ),
+        };
+      });
+      log(
+        `authored group builder ${JSON.stringify(results.authoredGroupBuilder)}`,
+      );
+    }
     if (CHECK_AUTHORED) {
       // (The Builder's Canvas — the authored layer: each Column's content wrapper record carries
       //  its mark, the engine lays the mark part out before the name.)
@@ -894,11 +1182,13 @@ try {
     const OURS = '[data-catalog-id*="dg-table"]';
     try {
       await pub.waitForFunction(
-        (OURS) =>
+        ({ OURS, GROUPED }) =>
           [...document.querySelectorAll(`${OURS} [role=row]`)].some((row) =>
-            /Person \d+/.test(row.textContent ?? ""),
+            (GROUPED ? /Dept \d+ \(\d+\)/ : /Person \d+/).test(
+              row.textContent ?? "",
+            ),
           ),
-        OURS,
+        { OURS, GROUPED: CHECK_AUTHORED_GROUP },
         { timeout: 180000 },
       );
     } catch (error) {
@@ -1797,6 +2087,555 @@ try {
         !deptItems.includes("Clear filter") &&
         deptAgain.includes("Clear filter");
       log(`check-filter ${JSON.stringify(results.checkFilter)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_DETAIL) {
+      const all = makeRows(ROWS);
+      const drawn = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const grid = table.matches("[role=grid],[role=treegrid]")
+            ? table
+            : table.querySelector("[role=grid],[role=treegrid]");
+          return {
+            role: grid.getAttribute("role"),
+            columns: grid.querySelectorAll("[role=columnheader]").length,
+            rows: [...grid.querySelectorAll("[role=row][data-key]")]
+              .filter((row) =>
+                row.querySelector("[role=rowheader],[role=gridcell]"),
+              )
+              .map((row) => {
+                const cells = [
+                  ...row.querySelectorAll("[role=rowheader],[role=gridcell]"),
+                ];
+                const box = row.getBoundingClientRect();
+                const cellBox = cells[0]?.getBoundingClientRect();
+                return {
+                  key: row.getAttribute("data-key"),
+                  level: row.getAttribute("aria-level"),
+                  expanded: row.getAttribute("aria-expanded"),
+                  cells: cells.map((cell) => (cell.textContent ?? "").trim()),
+                  span: cells[0]?.getAttribute("aria-colspan") ?? null,
+                  // (The detail cell covers the row's width.)
+                  wide: !!cellBox && cellBox.width >= box.width - 2,
+                };
+              }),
+          };
+        }, OURS);
+      const first = await drawn();
+      await pub
+        .locator(`${OURS} [role=row][data-key="r0"] [slot=chevron]`)
+        .click();
+      await pub.waitForTimeout(1200);
+      const opened = await drawn();
+      await pub.screenshot({ path: `${OUT}/check-detail-open.png` });
+      const at = opened.rows.findIndex((row) => row.key === "r0");
+      const detail = opened.rows[at + 1];
+      const b = results.treeBuilder;
+      results.checkDetail = {
+        builder: b,
+        first: {
+          role: first.role,
+          rows: first.rows.length,
+          expanded: [...new Set(first.rows.map((row) => row.expanded))],
+        },
+        detail,
+        next: opened.rows[at + 2]?.key ?? null,
+        want: { name: all[0].name, columns: first.columns },
+      };
+      results.checkDetail.pass =
+        b.rows >= 10 &&
+        b.nested === 0 &&
+        b.marks.every(
+          (cells) =>
+            cells[0] === "closed" && cells.slice(1).every((m) => m === null),
+        ) &&
+        first.role === "treegrid" &&
+        first.rows.length > 5 &&
+        first.rows.every((row) => row.expanded === "false") &&
+        detail?.key === "r0/detail" &&
+        detail.level === "2" &&
+        detail.cells.length === 1 &&
+        detail.cells[0] === all[0].name &&
+        detail.span === String(first.columns) &&
+        detail.wide &&
+        opened.rows[at + 2]?.key === "r1";
+      log(`check-detail ${JSON.stringify(results.checkDetail)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_TREE) {
+      const all = makeRows(ROWS);
+      const childrenOf = (key) =>
+        all.filter((row) => row.parent === key).map((row) => row.id);
+      const nameOf = new Map(all.map((row) => [row.id, row.name]));
+      /** The rows drawn (their key · level · expanded state), in order. */
+      const drawn = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const grid = table.matches("[role=grid],[role=treegrid]")
+            ? table
+            : table.querySelector("[role=grid],[role=treegrid]");
+          return {
+            role: grid.getAttribute("role"),
+            rows: [...grid.querySelectorAll("[role=row][data-key]")]
+              .filter((row) =>
+                row.querySelector("[role=rowheader],[role=gridcell]"),
+              )
+              .map((row) => ({
+                key: row.getAttribute("data-key"),
+                level: row.getAttribute("aria-level"),
+                expanded: row.getAttribute("aria-expanded"),
+              })),
+          };
+        }, OURS);
+      const first = await drawn();
+      await pub
+        .locator(`${OURS} [role=row][data-key="r0"] [slot=chevron]`)
+        .click();
+      await pub.waitForTimeout(1200);
+      const opened = await drawn();
+      await pub.screenshot({ path: `${OUT}/check-tree-open.png` });
+      const under = (list) => {
+        const at = list.findIndex((row) => row.key === "r0");
+        const out = [];
+        for (const row of list.slice(at + 1)) {
+          if (row.level !== "2") break;
+          out.push(row.key);
+        }
+        return out;
+      };
+      // Sort by Name (the header press): each level among itself.
+      await pub
+        .locator(`${OURS} [role=columnheader]`, { hasText: "Name" })
+        .first()
+        .click();
+      await pub.waitForTimeout(1500);
+      const sorted = await drawn();
+      await pub.screenshot({ path: `${OUT}/check-tree-sorted.png` });
+      // (The views' sort — `sortOrder.ts` `COLLATOR`: numbers in text by value.)
+      const compare = new Intl.Collator(undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }).compare;
+      const byName = (keys) =>
+        [...keys].sort((a, b) => compare(nameOf.get(a), nameOf.get(b)));
+      const top = sorted.rows
+        .filter((row) => row.level === "1")
+        .map((row) => row.key);
+      const wantTop = byName(
+        all.filter((row) => row.parent === null).map((row) => row.id),
+      );
+      results.checkTree = {
+        builder: results.treeBuilder,
+        first: {
+          role: first.role,
+          rows: first.rows.length,
+          levels: [...new Set(first.rows.map((row) => row.level))],
+          expanded: [...new Set(first.rows.map((row) => row.expanded))],
+          keys: first.rows.slice(0, 4).map((row) => row.key),
+        },
+        opened: { under: under(opened.rows), want: childrenOf("r0") },
+        sorted: {
+          under: under(sorted.rows),
+          want: byName(childrenOf("r0")),
+          top: top.slice(0, 5),
+          wantTop: wantTop.slice(0, top.length).slice(0, 5),
+          topInOrder: top.every((key, at) => key === wantTop[at]),
+        },
+      };
+      const b = results.treeBuilder;
+      results.checkTree.pass =
+        // (The Builder draws its sample — the rows a 500 px Table holds.)
+        b.rows >= 10 &&
+        b.nested === 0 &&
+        b.ids.join() === "r0,r1,r2" &&
+        b.marks.every(
+          (cells) =>
+            cells[0] === "closed" && cells.slice(1).every((m) => m === null),
+        ) &&
+        first.role === "treegrid" &&
+        first.rows.length > 5 &&
+        first.rows.every(
+          (row) => row.level === "1" && row.expanded === "false",
+        ) &&
+        first.rows
+          .slice(0, 4)
+          .map((row) => row.key)
+          .join() === "r0,r1,r2,r3" &&
+        under(opened.rows).join() === childrenOf("r0").join() &&
+        // (A virtual Table draws the rows in view: r0 may have sorted out of it.)
+        (!sorted.rows.some((row) => row.key === "r0") ||
+          under(sorted.rows).join() === byName(childrenOf("r0")).join()) &&
+        results.checkTree.sorted.topInOrder;
+      log(`check-tree ${JSON.stringify(results.checkTree)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_TOTALS) {
+      const all = makeRows(ROWS);
+      const sum = (key) => all.reduce((total, row) => total + row[key], 0);
+      const want = {
+        Name: String(all.length),
+        Amount: Math.round(sum("amount") * 100) / 100,
+        Qty: sum("qty") / all.length,
+      };
+      // (The totals row is the footer — after the last row: scroll to the end. A virtual Table
+      //  draws it once it is in view.)
+      // (「더 보기」: each scroll to the end shows 100 more — until the rows stop growing.)
+      for (let round = 0, last = -1; round < 20; round += 1) {
+        const height = await pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const scroller = [table, ...table.querySelectorAll("*")].find(
+            (el) => {
+              const style = getComputedStyle(el);
+              return (
+                /auto|scroll/.test(style.overflowY) &&
+                el.scrollHeight > el.clientHeight + 1
+              );
+            },
+          );
+          if (scroller) scroller.scrollTop = scroller.scrollHeight;
+          return scroller?.scrollHeight ?? 0;
+        }, OURS);
+        await pub.waitForTimeout(900);
+        if (height === last) break;
+        last = height;
+      }
+      await pub.screenshot({ path: `${OUT}/check-totals.png` });
+      const drawn = await pub.evaluate((OURS) => {
+        const table = document.querySelector(OURS);
+        const grid = table.matches("[role=grid]")
+          ? table
+          : table.querySelector("[role=grid]");
+        const heads = [...grid.querySelectorAll("[role=columnheader]")].map(
+          (cell) => (cell.textContent ?? "").trim(),
+        );
+        const footer = grid.querySelector("tfoot, [role=rowgroup]:last-child");
+        const rows = [...grid.querySelectorAll("[role=rowgroup]")];
+        const last = rows.at(-1);
+        const row = last?.querySelector("[role=row]");
+        const cells = row
+          ? [...row.querySelectorAll("[role=rowheader],[role=gridcell]")].map(
+              (cell) => (cell.textContent ?? "").trim(),
+            )
+          : [];
+        const box = row?.getBoundingClientRect();
+        const tableBox = table.getBoundingClientRect();
+        return {
+          heads,
+          groups: rows.length,
+          footerTag: footer?.tagName ?? null,
+          cells: Object.fromEntries(
+            heads.map((head, at) => [head, cells[at] ?? ""]),
+          ),
+          inTable: !!box && box.bottom <= tableBox.bottom + 1 && box.height > 0,
+        };
+      }, OURS);
+      const number = (text) => Number(String(text).replace(/[^0-9.\-]/g, ""));
+      const b = results.totalsBuilder;
+      results.checkTotals = { want, builder: b, publish: drawn };
+      results.checkTotals.pass =
+        b.name === want.Name &&
+        Math.abs(number(b.amount) - want.Amount) < 0.005 &&
+        Math.abs(number(b.qty) - want.Qty) < 1e-6 &&
+        drawn.cells.Name === want.Name &&
+        Math.abs(number(drawn.cells.Amount) - want.Amount) < 0.005 &&
+        Math.abs(number(drawn.cells.Qty) - want.Qty) < 1e-6 &&
+        drawn.groups === 3 &&
+        drawn.inTable;
+      log(`check-totals ${JSON.stringify(results.checkTotals)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_AUTHORED_GROUP) {
+      const all = makeRows(ROWS);
+      const groups = new Map();
+      for (const row of all) {
+        const held = groups.get(row.dept) ?? { count: 0, sum: 0 };
+        held.count += 1;
+        held.sum += row.amount;
+        groups.set(row.dept, held);
+      }
+      await pub.screenshot({ path: `${OUT}/check-authored-group.png` });
+      const drawn = await pub.evaluate((OURS) => {
+        const table = document.querySelector(OURS);
+        const grid = table.matches("[role=grid],[role=treegrid]")
+          ? table
+          : table.querySelector("[role=grid],[role=treegrid]");
+        const heads = [...grid.querySelectorAll("[role=columnheader]")].map(
+          (cell) => (cell.textContent ?? "").trim(),
+        );
+        return {
+          role: grid.getAttribute("role"),
+          heads,
+          rows: [...grid.querySelectorAll("[role=row][aria-expanded]")].map(
+            (row) => {
+              const cells = [
+                ...row.querySelectorAll("[role=rowheader],[role=gridcell]"),
+              ].map((cell) => (cell.textContent ?? "").trim());
+              return {
+                expanded: row.getAttribute("aria-expanded"),
+                cells: Object.fromEntries(
+                  heads.map((head, at) => [head, cells[at] ?? ""]),
+                ),
+              };
+            },
+          ),
+        };
+      }, OURS);
+      const number = (text) => Number(String(text).replace(/[^0-9.\-]/g, ""));
+      const checks = drawn.rows.map((row) => {
+        const [, dept, count] =
+          /^(Dept \d+) \((\d+)\)$/.exec(row.cells.Dept ?? "") ?? [];
+        const want = groups.get(dept);
+        return (
+          !!want &&
+          row.expanded === "false" &&
+          want.count === Number(count) &&
+          Math.abs(want.sum - number(row.cells.Amount)) < 0.02
+        );
+      });
+      const b = results.authoredGroupBuilder;
+      results.checkAuthoredGroup = {
+        builder: b,
+        publish: {
+          role: drawn.role,
+          heads: drawn.heads,
+          groups: drawn.rows.length,
+          ok: checks.filter(Boolean).length,
+        },
+        expectedGroups: groups.size,
+      };
+      results.checkAuthoredGroup.pass =
+        b.headers[0] === "dept" &&
+        b.nested === 0 &&
+        b.first.every(
+          (cells) =>
+            /^Dept \d+ \(\d+\)$/.test(String(cells[0]?.text)) &&
+            cells[0]?.tree === "closed" &&
+            cells.slice(1).every((cell) => cell.tree === null),
+        ) &&
+        drawn.role === "treegrid" &&
+        drawn.heads[0]?.startsWith("Dept") &&
+        drawn.rows.length === groups.size &&
+        checks.every(Boolean);
+      log(`check-authored-group ${JSON.stringify(results.checkAuthoredGroup)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_GROUP) {
+      const all = makeRows(ROWS);
+      const headerNames = () =>
+        pub
+          .locator(`${OURS} [role=columnheader]`)
+          .allTextContents()
+          .then((texts) => texts.map((text) => text.trim()).filter(Boolean));
+      const menu = async (name, item) => {
+        await pub
+          .locator(`${OURS} [role=columnheader]`)
+          .filter({ hasText: new RegExp(`^${name}`) })
+          .first()
+          .locator("button")
+          .first()
+          .click();
+        await pub.waitForTimeout(300);
+        const items = (
+          await pub.locator("[role=menu] [role=menuitem]").allTextContents()
+        ).map((text) => text.trim());
+        await pub
+          .locator("[role=menu] [role=menuitem]")
+          .filter({ hasText: new RegExp(`^${item}$`) })
+          .first()
+          .click();
+        await pub.waitForTimeout(1200);
+        return items;
+      };
+      /** Each drawn row: its level, expanded state and cell texts by header. */
+      const drawn = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const grid = table.matches("[role=grid],[role=treegrid]")
+            ? table
+            : table.querySelector("[role=grid],[role=treegrid]");
+          const heads = [...grid.querySelectorAll("[role=columnheader]")].map(
+            (cell) => (cell.textContent ?? "").trim(),
+          );
+          return {
+            role: grid.getAttribute("role"),
+            rows: [...grid.querySelectorAll("[role=row]")]
+              .filter(
+                (row) => row.closest("[role=rowgroup]")?.tagName !== "THEAD",
+              )
+              .map((row) => {
+                const cells = [
+                  ...row.querySelectorAll("[role=rowheader],[role=gridcell]"),
+                ].map((cell) => (cell.textContent ?? "").trim());
+                return {
+                  level: row.getAttribute("aria-level"),
+                  expanded: row.getAttribute("aria-expanded"),
+                  cells: Object.fromEntries(
+                    heads.map((head, at) => [head, cells[at] ?? ""]),
+                  ),
+                };
+              })
+              .filter((row) => Object.values(row.cells).some(Boolean)),
+          };
+        }, OURS);
+      const groups = new Map();
+      for (const row of all) {
+        const held = groups.get(row.dept) ?? { count: 0, sum: 0 };
+        held.count += 1;
+        held.sum += row.amount;
+        groups.set(row.dept, held);
+      }
+      const deptItems = await menu("Dept", "Group by column");
+      const heads = await headerNames();
+      const grouped = await drawn();
+      const groupRows = grouped.rows.filter((row) => row.expanded !== null);
+      const number = (text) => Number(String(text).replace(/[^0-9.\-]/g, ""));
+      const groupChecks = groupRows.map((row) => {
+        const [, dept, count] =
+          /^(Dept \d+) \((\d+)\)$/.exec(row.cells.Dept ?? "") ?? [];
+        const want = groups.get(dept);
+        return {
+          dept,
+          count: Number(count),
+          sum: number(row.cells.Amount),
+          ok:
+            !!want &&
+            want.count === Number(count) &&
+            Math.abs(want.sum - number(row.cells.Amount)) < 0.02,
+        };
+      });
+      // Open the first group: its rows under it, one level down.
+      await pub
+        .locator(`${OURS} [role=row][aria-expanded] [slot=chevron]`)
+        .first()
+        .click();
+      await pub.waitForTimeout(1200);
+      const opened = await drawn();
+      await pub.screenshot({ path: `${OUT}/check-group-open.png` });
+      // (The open group's chevron turns — `Table.css` `[data-expanded]`.)
+      const chevronRotate = await pub.evaluate((OURS) => {
+        const svg = document.querySelector(
+          `${OURS} [role=row][aria-expanded=true] [slot=chevron] svg`,
+        );
+        return svg ? getComputedStyle(svg).rotate : null;
+      }, OURS);
+      const first = groupChecks[0];
+      let children = opened.rows.filter((row) => row.level === "2");
+      // ADR-315 Phase 5 증분 5b-2 — a virtual Table draws the rows in view: scroll through the open
+      // group, gathering its rows by key, and count the rows in view drawn without their cells (the
+      // window's empty rows a move left on screen) and the DOM's rows.
+      let virtualScan;
+      if (DISPLAY === "virtual") {
+        virtualScan = await pub.evaluate(async (OURS) => {
+          const table = document.querySelector(OURS);
+          const scroller = [table, ...table.querySelectorAll("*")].find(
+            (el) => {
+              const style = getComputedStyle(el);
+              return (
+                /auto|scroll/.test(style.overflowY) &&
+                el.scrollHeight > el.clientHeight + 1
+              );
+            },
+          );
+          if (!scroller) return { scroller: false };
+          const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+          const heads = [...table.querySelectorAll("[role=columnheader]")].map(
+            (cell) => (cell.textContent ?? "").trim(),
+          );
+          const dept = heads.findIndex((head) => head.startsWith("Dept"));
+          const seen = new Map();
+          let emptyInView = 0;
+          let domRowsMax = 0;
+          let steps = 0;
+          scroller.scrollTop = 0;
+          await wait(400);
+          for (;;) {
+            const box = scroller.getBoundingClientRect();
+            const rows = [...table.querySelectorAll("[role=row][data-key]")];
+            domRowsMax = Math.max(domRowsMax, rows.length);
+            for (const row of rows) {
+              const rect = row.getBoundingClientRect();
+              const inView =
+                rect.bottom > box.top + 1 && rect.top < box.bottom - 1;
+              const cells = [
+                ...row.querySelectorAll("[role=rowheader], [role=gridcell]"),
+              ];
+              if (inView && !cells.length) emptyInView += 1;
+              if (row.getAttribute("aria-level") === "2" && cells.length)
+                seen.set(
+                  row.getAttribute("data-key"),
+                  (cells[dept]?.textContent ?? "").trim(),
+                );
+            }
+            if (
+              scroller.scrollTop + scroller.clientHeight >=
+                scroller.scrollHeight - 1 ||
+              steps > 400
+            )
+              break;
+            scroller.scrollTop += Math.max(40, scroller.clientHeight - 40);
+            steps += 1;
+            await wait(250);
+          }
+          return {
+            scroller: true,
+            steps,
+            emptyInView,
+            domRowsMax,
+            children: [...seen.values()],
+          };
+        }, OURS);
+        children = (virtualScan.children ?? []).map((text) => ({
+          cells: { Dept: text },
+        }));
+      }
+      const ungroupItems = await menu("Dept", "Ungroup");
+      const ungrouped = await drawn();
+      await pub.screenshot({ path: `${OUT}/check-group.png` });
+      results.checkGroup = {
+        role: grouped.role,
+        deptItems,
+        ungroupItems,
+        heads,
+        groups: groupChecks.length,
+        expectedGroups: groups.size,
+        groupChecks,
+        chevronRotate,
+        firstExpanded: opened.rows.find((row) => row.expanded === "true")?.cells
+          .Dept,
+        children: children.length,
+        childrenDept: [...new Set(children.map((row) => row.cells.Dept))],
+        ungroupedRows: ungrouped.rows.length,
+        ...(virtualScan
+          ? {
+              virtual: {
+                steps: virtualScan.steps,
+                emptyInView: virtualScan.emptyInView,
+                domRowsMax: virtualScan.domRowsMax,
+              },
+            }
+          : {}),
+      };
+      const r = results.checkGroup;
+      r.pass =
+        deptItems.includes("Group by column") &&
+        ungroupItems.includes("Ungroup") &&
+        heads[0]?.startsWith("Dept") &&
+        r.groups === r.expectedGroups &&
+        groupChecks.every((item) => item.ok) &&
+        r.children === first.count &&
+        r.childrenDept.length === 1 &&
+        r.childrenDept[0] === first.dept &&
+        r.ungroupedRows > r.groups &&
+        r.chevronRotate === "90deg" &&
+        (!r.virtual ||
+          (r.virtual.emptyInView === 0 && r.virtual.domRowsMax < 200));
+      log(`check-group ${JSON.stringify(results.checkGroup)}`);
       throw new Error("load only");
     }
 

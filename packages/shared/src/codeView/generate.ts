@@ -155,6 +155,7 @@ const NOT_SENT: Record<SerializationWarningCode, string> = {
   MULTI_VIEW: "several views",
   GROUP: "a grouping",
   MULTI_SORT: "the sorts after the first",
+  AGGREGATE: "an aggregate the server does not run",
   COMPUTED: "a computed field",
 };
 const FOREIGN_DROPS = new Set(["onInsert", "onRootDrop", "onItemDrop"]);
@@ -1916,6 +1917,19 @@ class Generator {
           return `${name}: ${rows}.map(row => row.${field}).toSorted()[0]`;
         case "max":
           return `${name}: ${rows}.map(row => row.${field}).toSorted().at(-1)`;
+        // (ADR-315 사용자 결정 4 — TanStack's other built-ins, each one expression.)
+        case "median":
+          return `${name}: ${rows}.map(row => Number(row.${field})).toSorted((a, b) => a - b)[${rows}.length >> 1]`;
+        case "extent":
+          return `${name}: [${rows}.map(row => row.${field}).toSorted()[0], ${rows}.map(row => row.${field}).toSorted().at(-1)]`;
+        case "unique":
+          return `${name}: [...new Set(${rows}.map(row => row.${field}))]`;
+        case "uniqueCount":
+          return `${name}: new Set(${rows}.map(row => row.${field})).size`;
+        case "first":
+          return `${name}: ${rows}[0]?.${field}`;
+        case "last":
+          return `${name}: ${rows}.at(-1)?.${field}`;
         case "applied":
           return `${name}: ${this.appliedCode(code)}`;
       }

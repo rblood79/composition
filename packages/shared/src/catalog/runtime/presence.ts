@@ -4,6 +4,7 @@ import {
   resolveTableColumnKey,
 } from "../../collections/resolveCollectionItems";
 import {
+  CATALOG_TREE_COLUMN_PROP,
   catalogTableAuthoredSort,
   catalogTableColumnEntries,
 } from "../resolution/tableColumns";
@@ -2062,6 +2063,31 @@ function sortableTableColumn(
  * its own); a hidden one has no header to mark (left out). An entry no authored Column shows ends
  * the list. Undefined = none.
  */
+/**
+ * ADR-315 Phase 5 — a grouped Table record's `treeColumn`: the RAC key of the header Column its
+ * rows expand from (the resolver marks it — `CATALOG_TREE_COLUMN_PROP`); undefined = none.
+ */
+export function catalogTableTreeColumn(
+  table: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  const column = childrenOf(table, get)
+    .filter((child) => typeOf(child) === "TableHeader")
+    .flatMap((header) => childrenOf(header, get))
+    .find(
+      (child) =>
+        typeOf(child) === "Column" &&
+        child.props[CATALOG_TREE_COLUMN_PROP] === true,
+    );
+  return column
+    ? catalogTableColumnKey({
+        id: column.id,
+        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+      })
+    : undefined;
+}
+
 export function catalogTableAuthoredSortShown(
   table: CatalogConsumerNode,
   get: CatalogRecordLookup,

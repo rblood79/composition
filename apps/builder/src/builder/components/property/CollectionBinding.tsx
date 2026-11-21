@@ -89,7 +89,10 @@ interface CollectionBindingProps {
  */
 type FieldMapRole = "value" | "children" | "parentId";
 const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value"];
-/** A Tree's binding also names its items' children (`useTreeData.getChildren`). */
+/**
+ * A Tree's binding also names its items' children (`useTreeData.getChildren`) — a Table's too
+ * (its rows' child rows — ADR-315 Phase 5 증분 5d).
+ */
 const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
   "value",
   "parentId",
@@ -230,7 +233,8 @@ export const CollectionBinding = memo(function CollectionBinding({
     workspace && elementId
       ? workspace.root.domInputs.get(elementId)?.ruleId
       : undefined;
-  const isTree = ruleId === "Tree";
+  // (ADR-315 Phase 5 증분 5d — a Table's rows are a tree by the same two roles: its 「Child rows」.)
+  const isTree = ruleId === "Tree" || ruleId === "Table";
   // ADR-310 ②: a section bound to grouped rows fills its items with each group's child rows (the
   // binding's children field — the same role a Tree names).
   const isSection = !!ruleId && CATALOG_SECTION_TYPES.has(ruleId);

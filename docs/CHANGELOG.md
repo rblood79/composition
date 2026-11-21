@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-315 Phase 5 증분 5a ~ 5e — 집계 6 종 · Table 묶음 행 (가상 스크롤 · Canvas 포함) · 합계 행 · 계층 데이터 · 상세 행] - 2026-11-21
+
+### Added
+
+- **집계 6 종 (사용자 결정 4 — 「전부 더함」)** — 데이터 보기의 묶기 집계와 Table 묶음 행에 median (중앙값) · unique (값 목록) · uniqueCount (값 종류 수) · extent (최소 – 최대) · first · last (묶음 첫 · 끝 행의 값) 를 더했다. 값은 정확히 같을 때만 같은 값이다 (`"A"` · `"a"` 는 둘 — 묶기와 같은 규칙). Code 보기에서 식으로 쓰고 읽을 수 있다. 위치: `packages/shared/src/collections/view/evaluate.ts` (`viewAggregateOf`) · `document/types.ts` (`VIEW_AGGREGATE_FNS`) · `codeView/generate.ts` · `apps/builder/src/builder/catalogRuntime/codeViewViews.ts`.
+- **endpoint 「Median · unique · extent · first · last aggregates」 (Data 패널 API 조회 형식, body 형식)** — 켠 endpoint 에만 6 종 집계를 묶기 요청에 싣는다. 끈 endpoint 에서 6 종을 쓰는 보기는 묶기를 보내지 않고 전체 행을 불러와 (최대 10,000 행) 여기서 묶으며 「그 집계를 계산하지 않는다」 를 알린다. 위치: `collections/view/serialize.ts` (`extendedAggregates` · `AGGREGATE`) · `panels/datatable/editors/QueryFormatSection.tsx`.
+- **Table 묶음 행 — Column 「Grouped」 · 「Group aggregate」 · 「Allow grouping」 (Design 패널 Property 탭 Behavior)**
+  - 「Grouped」 를 켠 열 (또는 열 메뉴 「Group by column」) 로 Preview · Publish 의 연결된 Table 이 값마다 묶음 행을 보인다 — 묶은 칸은 「값 (개수)」, 「Group aggregate」 를 고른 열은 그 묶음 행 전부의 집계 (Count · Sum · Mean · Median · Min · Max · Extent · Unique values · Unique count · First value · Last value). 묶은 열은 맨 앞으로 오고 (고정 열 다음), 그 칸의 펼침 버튼 (← → 키 · 「Expand」 · 「Collapse」) 으로 묶음의 행이 한 단계 들여 써져 그 아래 나온다. 처음엔 접혀 있다. 여러 열로 묶으면 열 순서대로 중첩된다. 묶은 열로 정렬하면 묶음 순서가 그 정렬을 따른다.
+  - 묶음 · 집계는 검색 · 열 필터 · 정렬 뒤의 **모든** 행으로 계산하고, 「더 보기」 · 쪽은 묶음 행으로 센다. 접힌 묶음은 행을 그리지 않는다.
+  - 「Allow grouping」 을 켠 열은 열 메뉴에 「Group by column」 · 「Ungroup」 이 생긴다 (표 상태 `grouping` — 문서는 바뀌지 않는다).
+  - 위치: `packages/shared/src/catalog/runtime/tableGroupRows.ts` (묶음 행) · `dataBinding.ts` (`boundRowsOf`) · `tableRowSlices.ts` (`catalogTableGrouping`) · `resolution/resolver.ts` (`nestTableRows`) · `resolution/tableColumns.ts` (묶은 열 앞 · `_treeColumn`) · `domRegistry.components.tsx` (`CatalogTableCell` — 펼침 버튼) · `domBinding.runtime.ts` (`treeColumn` · `expandedKeys`) · `catalogPreviewSession.ts` (`expandTableRows`) · `tableColumnMenu.ts` · `Table.css`. 회귀 `tableGroupRows.test.ts` · `adr315GroupRows.test.tsx`. live: production · headed Chrome · 1,000 행 — Dept 메뉴 「Group by column」 → 묶음 12 개의 개수 · Amount 합계가 행 생성기로 따로 센 값과 같음 · 첫 묶음 펼침 101 행 (aria-level 2) · 「Ungroup」 (`--check-group`).
+  - **가상 스크롤 Table 의 묶음 (5b-2)** — 펼친 묶음의 행이 수천이어도 화면에 보이는 행 근처 60 행만 내용을 만든다: 행 창을 「묶음, 열린 묶음이면 그 행들」 의 보이는 순서 위에서 자르고, DOM 이 각 행을 그 묶음 안에 넣는다 (창 밖 행은 내용 없는 행 — 스크롤 높이 · 키보드 순서는 그대로). 위치: `resolution/resolver.ts` (`catalogShownGroupRows` · `windowedGroupRows` · `CatalogRowWindowKeys.depths`) · `runtime/domBinding.runtime.ts` (`CatalogWindowRowNest`). 회귀 `adr315GroupWindow.test.tsx`. live: production · headed Chrome · 1,000 행 가상 표 — 「Dept 9 (101)」 펼침 → 끝까지 스크롤하며 101 행 모두 Dept 9 · 보이는 빈 행 0 · DOM 행 최대 18.
+  - **Builder Canvas 의 「Grouped」 (5b-3)** — Canvas 도 작성한 묶음을 Preview 첫 화면처럼 그린다: 묶음마다 접힌 행 하나, 묶은 열이 맨 앞, 그 칸 시작에 펼침 표시 (Canvas 에서는 펼치지 않는다). 위치: `apps/builder/src/builder/catalogRuntime/catalogDataRead.ts` (`catalogBuilderBoundRows` 의 묶음 조각) · `packages/shared/src/catalog/runtime/tableTreeCell.ts` · `boxModel.ts` · `apps/builder/src/builder/catalogRuntime/ruleShapes.ts` (`treeCellChevronShapes`) · `resolution/resolver.ts`. 회귀 `adr315CanvasGroups.test.ts`. live: production · headed Chrome · 1,000 행 — Builder Canvas 묶음 12 행 · Publish 첫 화면 묶음 12 의 개수 · 합계가 따로 센 값과 같고 두 화면이 같은 모양 (`--check-authored-group`).
+
+- **Table 「Totals row」 (Design 패널 Property 탭 Behavior, 연결된 Table) — 합계 행 (5c)**
+  - 켜면 표 바닥 (RAC `TableFooter`) 에 행 하나가 생기고, 칸마다 그 열의 「Group · totals aggregate」 (예전 이름 「Group aggregate」 — 묶음 행과 같은 설정) 를 **검색 · 열 필터 뒤의 모든 행** 위에서 보인다 — 「더 보기」 · 쪽 · 가상 스크롤로 일부만 보일 때도 합계는 전체의 것. 집계를 고르지 않은 열은 비어 있다. 끄면 사라진다. Builder Canvas 도 그린다.
+  - 열을 더하거나 지우거나 옮기면 합계 행의 칸도 같이 맞춰진다. 합계 행은 선택 · 정렬되지 않고 표의 끝에 선다 (고정되지 않는다).
+  - 위치: `packages/shared/src/catalog/bindings/TableFooter.binding.ts` · `document/generated/reusableOriginLibrary.ts` (Table 원본의 「Totals」 slot) · `commands/collections.ts` (`setTableTotalsRow` · `tableRowGroupsOf`) · `runtime/dataBinding.ts` (`catalogRowTotals`) · `runtime/tableRowSlices.ts` (`totals`) · `runtime/tableTracks.ts` · `resolution/resolver.ts` · `apps/builder/src/builder/catalogRuntime/tableTotals.ts` · `panels/properties/catalog/CatalogFilterSection.tsx` (`CatalogTableTotalsSwitch`). 회귀 `adr315TotalsRow.test.tsx` · `adr315CanvasGroups.test.ts`. live: production · headed Chrome · 1,000 행 — Canvas · Publish (가상 · 「더 보기」) 합계가 행 생성기로 따로 센 값과 같음 (`--check-totals`).
+  - 아직: 서버가 쪽을 나누는 표 · 컴포넌트 안의 Table 의 합계.
+
+- **Table 계층 데이터 — 연결의 「Parent ID field」 · 「Children field」 (Design 패널 Collection, 5d)**
+  - Tree 처럼 연결된 Table 도 행의 부모 필드 (평평한 행의 부모 key) 또는 자식 배열 필드를 고를 수 있다. 고르면 Preview · Publish 의 표가 부모 · 자식 행이 된다 — 첫 데이터 열 (작성 순서, 숨긴 열 제외) 칸에 펼침 버튼, 처음엔 모두 접힘, 펼친 행의 자식 행은 한 단계 들여 써져 그 아래 나온다 (← → 키 · 「Expand」 · 「Collapse」 — RAC 의 것).
+  - 모든 단계의 행이 검색 · 열 필터 · 정렬 · 합계에 들어간다: 검색에 맞은 행은 조상 행과 같이 남고 (그 길이 보인다), 정렬은 단계마다 형제끼리, 합계 행은 남은 모든 단계의 행. 「더 보기」 · 쪽 · 가상 스크롤은 최상위 행으로 센다 (펼친 행의 자식은 그 쪽에 남는다). 접힌 행의 자식 행은 그리지 않는다.
+  - Builder Canvas 는 최상위 행을 모두 접힌 채 그리고, 자식이 있는 행의 첫 칸에 펼침 표시를 둔다.
+  - 묶은 (Grouped) 표에서는 묶음이 행을 담고 행 자신의 자식 행은 보이지 않는다.
+  - 위치: `packages/shared/src/catalog/runtime/dataBinding.ts` (`catalogRowTreeIndex` · `treeBoundRows`) · `tableRowSlices.ts` (`CatalogRowTree`) · `resolution/resolver.ts` (`CatalogBoundRow.tree` · 다시 읽기 · 행 창) · `resolution/tableColumns.ts` (`nested` — 첫 열이 `treeColumn`) · `catalogPreviewSession.ts` (펼침 → 다시 읽기) · `apps/builder/src/builder/components/property/CollectionBinding.tsx`. 회귀 `adr315TreeRows.test.tsx` · `adr315GroupWindow.test.tsx` · `adr315CanvasGroups.test.ts`. live: production · headed Chrome · 1,000 행 (최상위 100) — Canvas 최상위 행 접힘 표시 · Publish treegrid → r0 펼침 → 자식 4 행 · Name 정렬 뒤 최상위와 자식이 각각 정렬 (`--check-tree`, 가상 · 「더 보기」).
+- **Table 「Detail row」 (Design 패널 Property 탭 Behavior, 연결된 Table) — 상세 행 (5e)**
+  - 켜면 반복 행 템플릿 아래에 칸 하나짜리 행이 생기고 (처음엔 첫 열의 값을 보인다 — 칸 안 내용은 Layers 에서 바꾼다), Preview · Publish 에서 행마다 첫 데이터 열의 펼침 버튼으로 그 행의 상세를 연다. 상세 칸은 보이는 열 전체를 덮고 (열을 숨기거나 더하면 따라간다), 그 행의 값 (`{필드}`) 을 읽는다. 묶음 · 계층 표의 잎 행도 펼친다. 끄면 사라진다.
+  - 가상 스크롤 · 「더 보기」 · 쪽 모두 같고, 접힌 행의 상세는 그리지 않는다. Builder Canvas 는 모든 행을 접힌 채 (펼침 표시와 함께) 그린다.
+  - 위치: `packages/shared/src/catalog/commands/collections.ts` (`setTableDetailRow` · `rowCells`) · `resolution/resolver.ts` (`catalogDetailRows` · `nestTableRows` · `tableHasDetailRow`) · `resolution/tableColumns.ts` (상세 칸 `colSpan`) · `runtime/compositionRoot.ts` (본문 구조 변경의 갱신 영역) · `domain/componentTraits.ts` (Row 안 Row) · `apps/builder/src/builder/catalogRuntime/tableDetail.ts` · `panels/properties/catalog/CatalogFilterSection.tsx` (`CatalogTableDetailSwitch`). 회귀 `adr315DetailRow.test.tsx` · `adr315CanvasGroups.test.ts`. live: production · headed Chrome · 1,000 행 — Canvas 모든 행 접힘 표시 · Publish r0 펼침 → 상세 행 칸 하나 · 열 6 을 덮음 · r0 의 이름 (`--check-detail`, 가상 · 「더 보기」).
+  - 아직: 선택 가능한 표에서 상세 행도 선택된다.
+
+### Fixed
+
+- **집계 값의 부동소수 잡음** — 소수 값의 합 · 평균이 `453013.2899999999` 처럼 보였다 (live 에서 찾음). 합은 입력의 가장 긴 소수 자릿수로 반올림하고, 평균 · 중앙값은 그 합을 한 번 나눈 뒤 마지막 자리의 잡음만 맞춘다 (0.6 / 3 → 0.2 · 400 / 15 는 전체 자릿수 그대로 — 서버의 평균과 같다) (`viewAggregateOf`). 데이터 보기의 sum · mean · median 도 같다.
+- **가상 스크롤 Table 의 펼침 표시** — 펼친 묶음의 펼침 버튼이 돌지 않았다 (가상 표는 칸을 한 겹 더 감싸 `Table.css` 의 자식 결합자가 닿지 않았다) — 자손 결합자로.
+- **중첩 Row 의 선택 칸** — Table 의 Row 안 Row (묶음의 행) 가 선택 checkbox 칸을 숨기지 않아 RAC 가 예외를 냈다 — Table 찾기가 부모 Row 를 건너 올라간다 (`tableTracks.ts` `catalogTrackTableOf`).
+
 ## [ADR-315 Phase 4 — Table 열 숨김 · 순서 · 고정 · 폭 · 열 메뉴 · 열 선택 메뉴 · 머리글 끌기] - 2026-11-21
 
 ### Breaking Changes

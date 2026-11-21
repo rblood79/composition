@@ -209,6 +209,7 @@ export function QueryFormatSection({
       condition: warning.conditionId ?? "",
       comparison: warning.comparison ?? "",
       field: warning.field ?? "",
+      aggregate: warning.aggregate ?? "",
       cap: VIEW_LOCAL_LOAD_CAP.toLocaleString(),
     });
 
@@ -294,6 +295,18 @@ export function QueryFormatSection({
           onChange={(selected) => {
             const { multiSort: _previous, ...rest } = format;
             setFormat(selected ? { ...rest, multiSort: true } : rest);
+          }}
+        />
+      )}
+      {format.kind !== "suffix" && format.kind !== "none" && (
+        // ADR-315 사용자 결정 4 — the server runs median · unique · uniqueCount · extent · first ·
+        // last. Off: a grouping with one of them is loaded whole and grouped here (never sent).
+        <PropertySwitch
+          label={dt("apiQueryExtendedAggregates")}
+          isSelected={format.extendedAggregates === true}
+          onChange={(selected) => {
+            const { extendedAggregates: _previous, ...rest } = format;
+            setFormat(selected ? { ...rest, extendedAggregates: true } : rest);
           }}
         />
       )}

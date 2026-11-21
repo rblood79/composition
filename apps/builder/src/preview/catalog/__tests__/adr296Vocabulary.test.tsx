@@ -1462,6 +1462,43 @@ describe("ADR-296 G1 — every vocabulary form is read (R2)", () => {
   });
 });
 
+describe("ADR-315 사용자 결정 4 — the six aggregates read back from code", () => {
+  const FORMS: [string, string][] = [
+    ["median", "rows.map(row => Number(row.age)).toSorted((a, b) => a - b)[rows.length >> 1]"],
+    ["extent", "[rows.map(row => row.age).toSorted()[0], rows.map(row => row.age).toSorted().at(-1)]"],
+    ["unique", "[...new Set(rows.map(row => row.age))]"],
+    ["uniqueCount", "new Set(rows.map(row => row.age)).size"],
+    ["first", "rows[0]?.age"],
+    ["last", "rows.at(-1)?.age"],
+  ];
+  it.each(FORMS)("%s", async (fn, expression) => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = await openAdr296();
+    CASES["Map.groupBy(…) · counts"]!.build(h);
+    const code = h.code();
+    const edited = code.replace("count: rows.length", `pick: ${expression}`);
+    expect(edited).not.toBe(code);
+    expect(h.apply(edited).rejected).toEqual([]);
+    const views =
+      (h.graph().getEntry(h.graph().projectId) as { viewIds?: string[] })
+        .viewIds ?? [];
+    const grouped = views
+      .map(
+        (id) =>
+          h.graph().getEntry(id) as {
+            groupBy?: unknown;
+            aggregates?: { fn: string; as: string }[];
+          },
+      )
+      .find((view) => view.groupBy);
+    expect(grouped?.aggregates?.map(({ fn, as }) => ({ fn, as }))).toEqual([
+      { fn, as: "pick" },
+    ]);
+    // (And the code the document now writes is the same expression — a round trip.)
+    expect(h.code()).toContain(`pick: ${expression}`);
+  });
+});
+
 export type { NodeEntry };
 
 describe("ADR-296 G1 — the page file's Phase 1 forms in one golden (round trip)", () => {

@@ -25,9 +25,9 @@ const REMAINING: Readonly<Record<string, { count: number; reason: string }>> = {
       "portal 된 팝오버 안 입력칸 (rule 루트 아래 선택자로 못 잡는다) · Builder 색 버튼 (`.color-swatch-button`)",
   },
   "Table.css": {
-    count: 2,
+    count: 3,
     reason:
-      "drag 손잡이 숨김 (`data-focus-visible-within-row` — 상태가 아니라 행 안 focus 의 구조 규칙) · ADR-315 머리글 끌기 손잡이의 focus 표시 (`catalog-column-drag-handle` — rule class 가 아닌 런타임 요소). resizer 목록의 Builder focus 몫은 ADR-305 Phase 5 에서 빠졌다",
+      "drag 손잡이 숨김 (`data-focus-visible-within-row` — 상태가 아니라 행 안 focus 의 구조 규칙) · ADR-315 머리글 끌기 손잡이의 focus 표시 (`catalog-column-drag-handle` — rule class 가 아닌 런타임 요소) · ADR-315 Phase 5 펼침 버튼의 focus 표시 (`table-tree-chevron` — 문서 노드가 아닌 RAC `Button slot=\"chevron\"`, `CatalogTableCell` 이 그린다). resizer 목록의 Builder focus 몫은 ADR-305 Phase 5 에서 빠졌다",
   },
   "Toast.css": {
     count: 5,

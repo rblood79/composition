@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import {
   createElement,
@@ -8,9 +8,13 @@ import {
   type HTMLAttributes,
 } from "react";
 
+import { Button as RacButton } from "react-aria-components/Button";
 import { Keyboard } from "react-aria-components/Keyboard";
 
 import {
+  Cell as RacCell,
+  type CellProps,
+  type CellRenderProps,
   Table as RacTable,
   ResizableTableContainer,
 } from "react-aria-components/Table";
@@ -150,5 +154,55 @@ export function CatalogKeyboard(
   return createElement(Keyboard, {
     className: "react-aria-Keyboard",
     ...props,
+  });
+}
+
+/**
+ * ADR-315 Phase 5 — a Table's Cell: RAC `Cell` with the expand button of an expandable row in its
+ * Table's `treeColumn` (RAC's `Button slot="chevron"` — the reference's 「Expandable rows」; RAC
+ * names it 「Expand」 · 「Collapse」 and gives it the row's toggle) and the level's indent there. A
+ * Cell of a Table without `treeColumn` renders as before.
+ */
+export function CatalogTableCell({
+  children,
+  ...props
+}: Record<string, unknown> & { children?: ReactNode }): ReactElement {
+  return createElement(RacCell, {
+    ...(props as CellProps),
+    children: (cell: CellRenderProps) =>
+      cell.isTreeColumn
+        ? createElement(
+            "span",
+            {
+              className: "table-tree-cell",
+              style: { "--table-tree-level": cell.level - 1 } as CSSProperties,
+            },
+            cell.hasChildItems
+              ? createElement(
+                  RacButton,
+                  { slot: "chevron", className: "table-tree-chevron" },
+                  createElement(
+                    "svg",
+                    {
+                      viewBox: "0 0 24 24",
+                      width: "1em",
+                      height: "1em",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: 2,
+                      strokeLinecap: "round",
+                      strokeLinejoin: "round",
+                      "aria-hidden": true,
+                    },
+                    createElement("path", { d: "m9 18 6-6-6-6" }),
+                  ),
+                )
+              : createElement("span", {
+                  className: "table-tree-chevron",
+                  "aria-hidden": true,
+                }),
+            children,
+          )
+        : children,
   });
 }

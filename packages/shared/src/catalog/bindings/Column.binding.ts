@@ -146,6 +146,46 @@ export const columnBinding: PrimitiveBinding = {
         label: "Hidden by default",
         section: "state",
       },
+      // ADR-315 Phase 5 — the Table's rows start grouped by this Column (TanStack
+      //   `initialState.grouping`; a composition extension): the Preview · Publish show a group row
+      //   per value (its value · row count · each Column's 「Aggregate」) with its rows nested
+      //   (RAC expandable rows — collapsed at first). Several grouped Columns nest in column order.
+      //   The Table state's `grouping` replaces it.
+      defaultGrouped: {
+        kind: "boolean",
+        label: "Grouped",
+        section: "state",
+      },
+      // ADR-315 Phase 5 — the end user may group the Table's rows by this Column from its menu
+      //   (TanStack `enableGrouping`; a composition extension, default off): 「Group by column」 ·
+      //   「Ungroup」 write the Table state's `grouping`. Gives the Column its S2 menu (`isMenu`).
+      allowsGrouping: {
+        kind: "boolean",
+        label: "Allow grouping",
+        section: "state",
+      },
+      // ADR-315 Phase 5 · 사용자 결정 4 — what a group row shows in this Column: an aggregate of
+      //   the group's rows (TanStack `aggregationFn`; a composition extension, default none).
+      aggregate: {
+        kind: "enum",
+        label: "Group aggregate",
+        section: "state",
+        default: "none",
+        options: [
+          { value: "none", label: "None" },
+          { value: "count", label: "Count" },
+          { value: "sum", label: "Sum" },
+          { value: "mean", label: "Mean" },
+          { value: "median", label: "Median" },
+          { value: "min", label: "Min" },
+          { value: "max", label: "Max" },
+          { value: "extent", label: "Extent" },
+          { value: "unique", label: "Unique values" },
+          { value: "uniqueCount", label: "Unique count" },
+          { value: "first", label: "First value" },
+          { value: "last", label: "Last value" },
+        ],
+      },
       // ADR-315 Phase 4 — the Column starts pinned at a side (TanStack `initialState.columnPinning`;
       //   a composition extension). Pinned columns stand first (start) · last (end) and stay in
       //   view while the Table scrolls sideways; the Table state's `pinnedColumns` replaces it.

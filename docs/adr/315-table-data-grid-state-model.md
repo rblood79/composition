@@ -193,6 +193,7 @@ HIGH 0 이면서 범위를 채우는 대안은 D 다. 루프 추가 없음. D �
 
 ### 사용자 결정 (7 건 — 그 Phase 에 닿을 때 묻는다)
 
+- **결정 4 확정 (2026-11-21, Phase 5 착수 때)**: 「전부 더함」 — median · unique · uniqueCount · extent · first · last 를 표 안 묶음 · 합계 행 · 보기 집계에 같이 더한다 (집계 어휘 한 벌). 서버가 묶음을 계산하는 `body` endpoint 는 「Median · unique · extent · first · last aggregates」 를 선언했을 때만 이 집계를 받고, 아니면 전체 행을 불러와 여기서 묶는다.
 - **검증 묶음은 Phase 7 에서 한 번에 (2026-11-21, Phase 4 검증 때 — 「매번 테스트 시간이 너무 길다」)**: Phase 5 · 6 은 HC4 A/B 교대 측정 · Chrome · WebKit live 재확인 묶음 (하니스 `--check-*`) · `/cross-check` 을 하지 않고, Phase 7 종결 때 Phase 0 기준선 빌드 대 최종 빌드로 한 번 잰다. Phase 마다 남는 것: 단위 테스트 · 변이 RED · type-check · 회귀 · 번들 (결정 6 의 Phase 별 Δ) · 그 Phase 가 새로 만든 동작의 live 1 회. Phase 4 는 증분마다 한 live 로 닫고 마지막 재확인 묶음 · `/cross-check` 도 Phase 7 로 옮겼다. 선택하지 않은 안: Phase 4 부터 측정 중단 · Phase 마다 전부. 대가: 성능 결함이 여러 Phase 의 변경과 섞여 나오면 원인 Phase 를 가르는 비용이 커진다 (Phase 4 의 측정에서 열 숨김 2,093 ms 결함을 찾았다 — breakdown §9).
 - **결정 3 확정 (2026-11-20, Phase 4 착수 때)**: 「메뉴 + 끌기」 — 열 메뉴의 「왼쪽 · 오른쪽으로」 와 머리글 손잡이 끌기를 둘 다 넣는다.
 - **G3 속도 기준 (2026-11-20, Phase 3 종결 때)**: 「정렬 클릭 기준으로」 — 검색 입력의 상한을 100 ms 에서 정렬 클릭 기준선으로 (HC4 · G3). 선택하지 않은 안: collection 설계를 Phase 7 에 추가 · Phase 7 에서 재측정만.

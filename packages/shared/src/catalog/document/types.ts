@@ -844,13 +844,53 @@ export interface ViewConditionGroup {
 /**
  * ADR-284 Decision 3 — aggregate names shared with Chart `budgetAggregate` (+ `count`), and
  * `applied`: the number of conditions the source views apply (「적용 조건 수」 — a skipped condition
- * is not counted; the same for every row).
+ * is not counted; the same for every row). ADR-315 사용자 결정 4 — TanStack's other built-ins
+ * (`VIEW_EXTENDED_AGGREGATES`): `median` (a number), `unique` (the distinct values, a list),
+ * `uniqueCount`, `extent` (`[min, max]`), `first` · `last` (the group's first · last row's cell).
  */
 export type ViewAggregateFn =
-  "count" | "sum" | "mean" | "min" | "max" | "applied";
+  | "count"
+  | "sum"
+  | "mean"
+  | "min"
+  | "max"
+  | "applied"
+  | "median"
+  | "unique"
+  | "uniqueCount"
+  | "extent"
+  | "first"
+  | "last";
+/** Every aggregate name, in the order a picker lists them. */
+export const VIEW_AGGREGATE_FNS: readonly ViewAggregateFn[] = [
+  "count",
+  "sum",
+  "mean",
+  "median",
+  "min",
+  "max",
+  "extent",
+  "unique",
+  "uniqueCount",
+  "first",
+  "last",
+  "applied",
+];
+/**
+ * ADR-315 사용자 결정 4 — the aggregates added after ADR-291's body contract: a server runs them
+ * only when its endpoint says so (`EndpointQuerySerialization.extendedAggregates`).
+ */
+export const VIEW_EXTENDED_AGGREGATES: ReadonlySet<ViewAggregateFn> = new Set([
+  "median",
+  "unique",
+  "uniqueCount",
+  "extent",
+  "first",
+  "last",
+]);
 export interface ViewAggregate {
   fn: ViewAggregateFn;
-  /** The field summed · compared; absent for `count` · `applied`. */
+  /** The field the aggregate reads; absent for `count` · `applied`. */
   field?: DataFieldPath;
   /** The result field's name (unique in the view). */
   as: string;

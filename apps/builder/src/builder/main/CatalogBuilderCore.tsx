@@ -279,9 +279,10 @@ export function CatalogBuilderCore() {
           // ADR-157 sample: a bound list that grows with its rows builds the rows its page shows.
           rowSample: true,
           // ADR-286: the document's collections, with the API rows the store caches.
-          // (A paged list: its first page — `catalogBuilderBoundRows`.)
-          rows: (binding, kind, ownerId) =>
-            catalogBuilderBoundRows(graph, binding, kind, ownerId),
+          // (A paged list: its first page — `catalogBuilderBoundRows`. ADR-315 Phase 5: a Table
+          //  its author groups reads its rows grouped — the slices.)
+          rows: (binding, kind, ownerId, _instancePath, slices) =>
+            catalogBuilderBoundRows(graph, binding, kind, ownerId, slices),
           // `{{ name }}` at defaults; project variables are the document's (ADR-286).
           state: {
             projectVariables: () => catalogProjectVariableDefs(graph),

@@ -472,7 +472,8 @@ export const viewAggregateBroken = (aggregate: ViewAggregate) =>
 
 /**
  * A grouped view's result fields: its group fields as the source has them, then each aggregate
- * (`id` = `key` = its `as`; a count · sum · mean is a number, a min · max keeps its field's type).
+ * (`id` = `key` = its `as`; a count · sum · mean · median · uniqueCount is a number, a min · max ·
+ * first · last keeps its field's type, a unique · extent is a list).
  * A view without grouping or aggregates keeps the source's.
  */
 export function viewResultSchema(
@@ -492,13 +493,16 @@ export function viewResultSchema(
   }
   for (const aggregate of query.aggregates ?? []) {
     const source =
-      aggregate.field && (aggregate.fn === "min" || aggregate.fn === "max")
+      aggregate.field && AGGREGATES_KEEPING_TYPE.has(aggregate.fn)
         ? viewFieldOf(aggregate.field, schema, references)
         : undefined;
     fields.push({
       id: aggregate.as,
       key: aggregate.as,
-      type: source?.type ?? "number",
+      type:
+        aggregate.fn === "unique" || aggregate.fn === "extent"
+          ? "array"
+          : (source?.type ?? "number"),
     });
   }
   return fields;
@@ -610,32 +614,120 @@ function cellCompare(a: unknown, b: unknown): number {
   return CELL_COLLATOR.compare(String(a), String(b));
 }
 
+/** The aggregates whose result is one of the field's own cells (the result field keeps its type). */
+const AGGREGATES_KEEPING_TYPE: ReadonlySet<ViewAggregate["fn"]> = new Set([
+  "min",
+  "max",
+  "first",
+  "last",
+]);
+
+/** The least and the greatest of non-empty cells (`cellCompare`), or undefined for none. */
+function cellExtent(cells: readonly unknown[]): [unknown, unknown] | undefined {
+  if (!cells.length) return undefined;
+  let low = cells[0];
+  let high = cells[0];
+  for (const cell of cells) {
+    if (cellCompare(cell, low) < 0) low = cell;
+    if (cellCompare(cell, high) > 0) high = cell;
+  }
+  return [low, high];
+}
+
+/**
+ * One aggregate over a group's rows. Empty cells are not values (a min · a mean · a unique skip
+ * them) except for `first` · `last`, which are the first · last row's cell as it is (TanStack's).
+ * ADR-315 사용자 결정 4 — `median` · `unique` · `uniqueCount` · `extent` · `first` · `last` are
+ * TanStack's built-ins: `unique` keeps first-seen order, values the same exactly (`groupKeyOf` —
+ * `"A"` and `"a"` are two, as a grouping holds them).
+ */
+export function viewAggregateOf(
+  fn: ViewAggregate["fn"],
+  cellsOf: () => readonly unknown[],
+  rowCount: number,
+  sourceApplied = 0,
+): unknown {
+  if (fn === "count") return rowCount;
+  if (fn === "applied") return sourceApplied;
+  const all = cellsOf();
+  if (fn === "first") return all.length ? (all[0] ?? null) : null;
+  if (fn === "last") return all.length ? (all[all.length - 1] ?? null) : null;
+  const cells = all.filter((cell) => !viewValueIsEmpty(cell));
+  if (fn === "min" || fn === "max") {
+    const extent = cellExtent(cells);
+    return extent ? extent[fn === "min" ? 0 : 1] : null;
+  }
+  if (fn === "extent") return cellExtent(cells) ?? null;
+  if (fn === "unique" || fn === "uniqueCount") {
+    const seen = new Map<string, unknown>();
+    for (const cell of cells) {
+      const key = groupKeyOf(cell);
+      if (!seen.has(key)) seen.set(key, cell);
+    }
+    return fn === "uniqueCount" ? seen.size : [...seen.values()];
+  }
+  // (`sum` · `mean` · `median` read numbers — Chart `budgetAggregate`'s; a text cell that is a
+  //  number counts.)
+  const numbers = cells
+    .map((cell) => (typeof cell === "number" ? cell : Number(cell)))
+    .filter((cell) => Number.isFinite(cell));
+  // (Binary sums of decimals carry noise — 0.1 + 0.2 = 0.30000000000000004, a group's amount
+  //  453013.2899999999 in a live Table, 2026-11-21. A sum of cells with at most d decimals has at
+  //  most d: it is rounded to them — exact. A mean · median is that sum (two cells) divided once,
+  //  its last-bits noise only snapped (`withoutFloatNoise`): 400 / 15 stays 26.666666666666668 —
+  //  a server's mean (ADR-291 G5), not a display rounding.)
+  const decimals = Math.min(
+    12,
+    numbers.reduce((most, cell) => Math.max(most, decimalsOf(cell)), 0),
+  );
+  const exact = (value: number) => Number(value.toFixed(decimals));
+  if (fn === "median") {
+    if (!numbers.length) return null;
+    const sorted = numbers.sort((a, b) => a - b);
+    const middle = sorted.length >> 1;
+    return sorted.length % 2
+      ? sorted[middle]!
+      : withoutFloatNoise(exact(sorted[middle - 1]! + sorted[middle]!) / 2);
+  }
+  const sum = exact(numbers.reduce((total, cell) => total + cell, 0));
+  if (fn === "sum") return sum;
+  return numbers.length ? withoutFloatNoise(sum / numbers.length) : null;
+}
+
+/**
+ * A quotient's binary noise snapped to its shortest decimal: within 4 ulps of a 15-digit decimal
+ * (0.6 / 3 = 0.19999999999999998 → 0.2), else as it is (400 / 15 = 26.666666666666668 — its
+ * 15-digit decimal is farther: the value, not noise).
+ */
+function withoutFloatNoise(value: number): number {
+  const short = Number(value.toPrecision(15));
+  return Math.abs(short - value) <= 4 * Number.EPSILON * Math.abs(value)
+    ? short
+    : value;
+}
+
+/** A finite number's decimals as written (`1.25` → 2, `1e-7` → 7). */
+function decimalsOf(value: number): number {
+  if (Number.isInteger(value)) return 0;
+  const [digits, exponent] = String(value).split("e");
+  const fraction = digits!.split(".")[1]?.length ?? 0;
+  return Math.max(0, fraction - Number(exponent ?? 0));
+}
+
 function aggregateOf(
   aggregate: ViewAggregate,
   field: ViewRunField | undefined,
   rows: readonly unknown[],
   sourceApplied: number,
 ): unknown {
-  if (aggregate.fn === "count") return rows.length;
-  if (aggregate.fn === "applied") return sourceApplied;
+  if (aggregate.fn === "count" || aggregate.fn === "applied")
+    return viewAggregateOf(aggregate.fn, () => [], rows.length, sourceApplied);
   if (!field) return null;
-  const cells = rows
-    .map((row) => cellOf(row, field))
-    .filter((cell) => !viewValueIsEmpty(cell));
-  if (aggregate.fn === "min" || aggregate.fn === "max") {
-    if (!cells.length) return null;
-    const sign = aggregate.fn === "min" ? 1 : -1;
-    return cells.reduce((best, cell) =>
-      sign * cellCompare(cell, best) < 0 ? cell : best,
-    );
-  }
-  // (`sum` · `mean` read numbers — Chart `budgetAggregate`'s; a text cell that is a number counts.)
-  const numbers = cells
-    .map((cell) => (typeof cell === "number" ? cell : Number(cell)))
-    .filter((cell) => Number.isFinite(cell));
-  const sum = numbers.reduce((total, cell) => total + cell, 0);
-  if (aggregate.fn === "sum") return sum;
-  return numbers.length ? sum / numbers.length : null;
+  return viewAggregateOf(
+    aggregate.fn,
+    () => rows.map((row) => cellOf(row, field)),
+    rows.length,
+  );
 }
 
 /**

@@ -36,7 +36,9 @@ export type CatalogColumnMenuItemId =
   | "unpin"
   | "move-before"
   | "move-after"
-  | "resize";
+  | "resize"
+  | "group"
+  | "ungroup";
 
 export interface CatalogColumnMenuItem {
   readonly id: CatalogColumnMenuItemId;
@@ -59,6 +61,12 @@ export interface CatalogColumnMenuColumn {
    * none (no field of the data — an unbound Table, a role's column): 「Filter…」 is off.
    */
   readonly filterOps?: readonly ViewComparison[];
+  /**
+   * ADR-315 Phase 5 — the end user may group the Table's rows by this Column (TanStack
+   * `enableGrouping`); `groupable` = it has a data field to group by (a bound Table's).
+   */
+  readonly allowsGrouping?: boolean;
+  readonly groupable?: boolean;
 }
 
 /**
@@ -94,6 +102,16 @@ export interface CatalogColumnMenuTable {
   readonly shape: CatalogTableShape;
   readonly state: CatalogTableState;
   readonly allowsColumnReordering: boolean;
+}
+
+/** ADR-315 Phase 5 — the grouping now: the state's, else the authored (`defaultGrouped`). */
+function groupingNow(table: CatalogColumnMenuTable): readonly string[] {
+  return (
+    table.state.grouping ??
+    table.shape.columns
+      .filter((column) => column.grouped)
+      .map((column) => column.key)
+  );
 }
 
 /** The hidden columns and the pinned sides now: the state's, else the authored defaults. */
@@ -281,6 +299,11 @@ export function catalogColumnMenuItems(
     item("move-before", !neighbour(column.key, -1, move));
     item("move-after", !neighbour(column.key, 1, move));
   }
+  if (column.allowsGrouping)
+    item(
+      groupingNow(table).includes(column.key) ? "ungroup" : "group",
+      !column.groupable,
+    );
   if (column.allowsResizing) item("resize");
   return items;
 }
@@ -354,6 +377,12 @@ export function catalogColumnMenuPatch(
             : { start: pinned.start, end: list },
       };
     }
+    case "group":
+      return { grouping: [...groupingNow(table), key] };
+    case "ungroup":
+      return {
+        grouping: groupingNow(table).filter((other) => other !== key),
+      };
     case "filter":
     case "resize":
       return undefined;

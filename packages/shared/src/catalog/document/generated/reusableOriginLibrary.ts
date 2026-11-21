@@ -6373,7 +6373,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Table",
     "children": [
       "lib:template:component-table__1",
-      "lib:template:component-table__2"
+      "lib:template:component-table__2",
+      "lib:template:component-table__3"
     ],
     "props": {
       "selectionMode": "none"
@@ -6442,6 +6443,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "Status"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__3",
+    "definitionId": "lib:definition:type-TableFooter",
+    "slot": {
+      "name": "Totals",
+      "required": false
+    },
+    "children": [],
+    "props": {},
     "visual": {}
   },
   {

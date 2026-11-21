@@ -57,6 +57,9 @@ export const CATALOG_COLUMN_PROJECTION_PROPS: ReadonlySet<string> = new Set([
   "defaultHidden",
   "defaultPinned",
   "isRowHeader",
+  // (ADR-315 Phase 5 — the grouping stands its Columns first · a group row's aggregate cells.)
+  "defaultGrouped",
+  "aggregate",
 ]);
 
 /**
@@ -82,6 +85,7 @@ export function catalogColumnHasMenu(
     column.allowsHiding === true ||
     column.allowsPinning === true ||
     column.allowsFiltering === true ||
+    column.allowsGrouping === true ||
     CATALOG_TABLE_COLUMN_MENU_SWITCHES.some((key) => table?.[key] === true)
   );
 }
@@ -108,10 +112,26 @@ export interface CatalogTableColumnEntry {
   readonly sortFirstDirection?: "descending";
   readonly sortEmptyValues?: "first";
   readonly allowsSearching?: false;
+  /** ADR-315 Phase 5 — the author groups by it (`defaultGrouped`) · its group rows' aggregate. */
+  readonly grouped?: true;
+  readonly aggregate?: string;
 }
 
 /** What of a Table state the projection reads (absent = the authored defaults). */
 export interface CatalogTableColumnState {
+  /**
+   * ADR-315 Phase 5 — the grouping the rows are in (the resolver's — the state's or the author's):
+   * its Columns stand first among the unpinned ones (TanStack `reorder`).
+   */
+  readonly grouping?: readonly string[];
+  /**
+   * ADR-315 Phase 5 증분 5d — the rows are a tree (their binding names child rows): the first data
+   * Column in authored order that is shown holds the rows' expand button (RAC `treeColumn` — a
+   * Column key, so it moves with its Column), unless a grouping's does.
+   */
+  readonly nested?: boolean;
+  /** ADR-315 Phase 5 증분 5e — the rows hold detail rows (`ColumnsNode.rowDetail`). */
+  readonly detail?: boolean;
   readonly hiddenColumns?: readonly string[];
   readonly columnOrder?: readonly string[];
   readonly pinnedColumns?: {
@@ -124,6 +144,8 @@ interface ColumnsNode<T> {
   readonly props: Readonly<Record<string, unknown>>;
   readonly children: readonly T[];
   readonly rowKept?: boolean;
+  /** ADR-315 Phase 5 증분 5e — a data row's detail row (its one cell spans the columns drawn). */
+  readonly rowDetail?: boolean;
 }
 
 const spanOf = (props: Readonly<Record<string, unknown>>): number => {
@@ -161,6 +183,26 @@ const PARSED = new Map<string, readonly CatalogTableColumnEntry[]>();
  * stands in for it (breakdown §4.2).
  */
 export const CATALOG_TABLE_AUTHORED_SORT_PROP = "_authoredSort";
+/**
+ * ADR-315 Phase 5 — a grouped Table record's open group rows (their row keys, a JSON text — RAC
+ * `expandedKeys`) and the header Column its rows expand from (RAC `treeColumn` — the outer grouped
+ * Column, `true` on that Column's record). The resolver's, never authored.
+ */
+export const CATALOG_TABLE_EXPANDED_PROP = "_expandedKeys";
+export const CATALOG_TREE_COLUMN_PROP = "_treeColumn";
+/** A Table record's open group rows (`CATALOG_TABLE_EXPANDED_PROP`); undefined = not grouped. */
+export function catalogTableExpandedKeys(
+  props: Readonly<Record<string, unknown>> | undefined,
+): readonly string[] | undefined {
+  const text = props?.[CATALOG_TABLE_EXPANDED_PROP];
+  if (typeof text !== "string") return undefined;
+  try {
+    const value: unknown = JSON.parse(text);
+    return Array.isArray(value) ? value.map(String) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** One entry of a Table's authored sort (`CATALOG_TABLE_AUTHORED_SORT_PROP`) — a Column key. */
 export interface CatalogTableAuthoredSortItem {
@@ -383,6 +425,10 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
       ...(props.allowsSearching === false
         ? { allowsSearching: false as const }
         : {}),
+      ...(props.defaultGrouped === true ? { grouped: true as const } : {}),
+      ...(typeof props.aggregate === "string" && props.aggregate !== "none"
+        ? { aggregate: props.aggregate }
+        : {}),
     });
   });
   const now = catalogTableColumnsNow(entries, state);
@@ -390,8 +436,11 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
   for (const key of now.pinned.end) pinSide.set(key, "end");
   for (const key of now.pinned.start) pinSide.set(key, "start");
 
-  // The rows whose cells follow the columns: every body Row's (a kept row has none to move).
-  const bodies = tableKids.filter((child) => typeOf(child) === "TableBody");
+  // The rows whose cells follow the columns: every body Row's (a kept row has none to move) — and
+  // a totals row's (ADR-315 Phase 5 증분 5c — its footer).
+  const bodies = tableKids.filter(
+    (child) => typeOf(child) === "TableBody" || typeOf(child) === "TableFooter",
+  );
   const isRow = (row: T) => !row.rowKept && typeOf(row) === "Row";
   const rows = bodies.flatMap((body) => kidsOf(body).filter(isRow));
   // Columns a spanning Cell covers are one group (union-find over the column places).
@@ -421,7 +470,19 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
   const headers = entries.filter((entry) => entry.rowHeader);
   if (headers.length && headers.every((entry) => hidden.has(entry.key)))
     hidden.delete(headers.at(-1)!.key);
-  const order = state?.columnOrder ?? [];
+  // (ADR-315 Phase 5 — TanStack's `groupedColumnMode: 'reorder'`: the grouped Columns stand first
+  //  among the unpinned ones, in grouping order — the outer one holds the rows' expand button.)
+  //  (The grouping its rows are in — the resolver's: a Table its rows are not grouped in has none.)
+  const grouping = state?.grouping ?? [];
+  const treeKey =
+    grouping[0] ??
+    (state?.nested
+      ? keys.find((key, place) => !selection[place] && !hidden.has(key))
+      : undefined);
+  const order = [
+    ...grouping,
+    ...(state?.columnOrder ?? []).filter((key) => !grouping.includes(key)),
+  ];
   interface Group {
     members: number[];
     locked: boolean;
@@ -524,6 +585,13 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
     (moved ? places : columns.map((_, index) => index)).map((place) =>
       rebuilt(columns[place]!, {
         [CATALOG_COLUMN_PLACE_PROP]: place,
+        // (ADR-315 Phase 5 — the outer grouped Column (a tree's first shown Column — 5d): RAC's
+        //  `treeColumn`, its cells hold the rows' expand button.)
+        ...(!selection[place] &&
+        treeKey !== undefined &&
+        keys[place] === treeKey
+          ? { [CATALOG_TREE_COLUMN_PROP]: true }
+          : {}),
         ...pinProps(place),
         ...(aligned && keptPlaces.has(place)
           ? { [CATALOG_COLUMN_HIDDEN_PROP]: true }
@@ -531,6 +599,38 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
       }),
     ),
   );
+  // (ADR-315 Phase 5 증분 5e — a detail row's one cell spans every column drawn: the shown ones,
+  //  but the selection column of a Table not selecting with checkboxes — `catalogTableRowTracks`.)
+  const tableProps = propsOf(table);
+  const checkboxes =
+    (tableProps.selectionMode === "single" ||
+      tableProps.selectionMode === "multiple") &&
+    tableProps.selectionStyle !== "highlight";
+  const drawnPlaces = aligned
+    ? places.filter((place) => !keptPlaces.has(place))
+    : columns.map((_, index) => index);
+  const drawnCount = Math.max(
+    1,
+    drawnPlaces.filter((place) => checkboxes || !selection[place]).length,
+  );
+  const detailRow = (row: T): T =>
+    rebuilt(row, undefined, (held) => {
+      let first = true;
+      return held.map((cell) => {
+        if (!first || typeOf(cell) !== "Cell") return cell;
+        first = false;
+        return rebuilt(cell, { colSpan: drawnCount });
+      });
+    });
+  /** A body row as drawn: projected (the columns moved · pinned · hidden), its detail rows spanning. */
+  const settleRow = (row: T): T =>
+    row.rowDetail
+      ? detailRow(row)
+      : projecting
+        ? projectRow(row)
+        : rebuilt(row, undefined, (held) =>
+            held.map((child) => (isRow(child) ? settleRow(child) : child)),
+          );
   const projectRow = (row: T): T =>
     rebuilt(row, undefined, (held) => {
       // (The row's cells by the group of the column place each starts at.)
@@ -539,7 +639,8 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
       let place = 0;
       for (const cell of held) {
         if (typeOf(cell) !== "Cell") {
-          rest.push(cell);
+          // (ADR-315 Phase 5 — a row's child rows (a group's · a data row's) follow the columns too.)
+          rest.push(isRow(cell) ? settleRow(cell) : cell);
           continue;
         }
         const root = find(Math.min(place, columns.length - 1));
@@ -574,9 +675,9 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
       held.map((child) =>
         child === header
           ? nextHeader
-          : projecting && bodies.includes(child)
+          : (projecting || state?.detail) && bodies.includes(child)
             ? rebuilt(child, undefined, (bodyRows) =>
-                bodyRows.map((row) => (isRow(row) ? projectRow(row) : row)),
+                bodyRows.map((row) => (isRow(row) ? settleRow(row) : row)),
               )
             : child,
       ),

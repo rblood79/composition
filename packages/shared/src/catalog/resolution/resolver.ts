@@ -98,13 +98,17 @@ import {
   catalogRowSortsEqual,
   type CatalogRowSorts,
 } from "../runtime/tableSort";
+import { CATALOG_TREE_CELL_PROP } from "../runtime/tableTreeCell";
 import {
+  CATALOG_GROUP_PLACEHOLDER_SUFFIX,
   catalogTableStateRowSlices,
+  type CatalogRowGroups,
   type CatalogRowSlices,
 } from "../runtime/tableRowSlices";
 import {
   CATALOG_COLUMN_MENU_PROP,
   CATALOG_TABLE_AUTHORED_SORT_PROP,
+  CATALOG_TABLE_EXPANDED_PROP,
   catalogColumnHasMenu,
   catalogProjectTableColumns,
   catalogViewAuthoredSort,
@@ -188,6 +192,8 @@ export interface ResolvedCatalogNode {
    * nothing else of it is resolved. The consumer puts the row's existing record there.
    */
   rowKept?: true;
+  /** ADR-315 Phase 5 증분 5e — a data row's detail row (`nestTableRows`): its cell spans the columns. */
+  rowDetail?: true;
   children: readonly ResolvedCatalogNode[];
 }
 /** A data row a bound collection shows (the rows stay in the data store — H1). */
@@ -201,6 +207,34 @@ export interface CatalogBoundRow {
    * Tree shows them inside the row, the same item template again.
    */
   children?: readonly CatalogBoundRow[];
+  /**
+   * ADR-315 Phase 5 — a bound Table's group row (`catalogGroupBoundRows`): the Column grouped at
+   * its level, its data row count, its level (0 = outer) and whether it is expanded. Its `values`
+   * are that Column's group value and each Column's aggregate; its `children` the next level.
+   */
+  group?: {
+    readonly column: string;
+    readonly count: number;
+    readonly depth: number;
+    readonly expanded: boolean;
+  };
+  /** ADR-315 Phase 5 — the child a collapsed group holds in place of its rows (never drawn). */
+  placeholder?: true;
+  /**
+   * ADR-315 Phase 5 증분 5d — a bound Table's row of a tree (its binding names child rows —
+   * `catalogTreeBoundRows`): its level (0 = top), whether it is expanded and has child rows. A
+   * collapsed one holds a placeholder child (the DOM) or none (the Builder's Canvas).
+   */
+  tree?: {
+    readonly depth: number;
+    readonly expanded: boolean;
+    readonly parent: boolean;
+  };
+  /**
+   * ADR-315 Phase 5 증분 5e — a data row's detail row (its open row's child — `catalogDetailRows`):
+   * the Row template's detail Row, reading the row's values.
+   */
+  detail?: true;
 }
 /**
  * The rows of a binding; `undefined` = unknown (not loaded) — the template items stay. `kind`
@@ -261,6 +295,16 @@ export type CatalogBoundRows = readonly CatalogBoundRow[] & {
   readonly view?: CatalogViewResultMeta;
   /** The Table sort the rows are already in (the row source ordered them before its window). */
   readonly sorted?: CatalogRowSorts;
+  /**
+   * ADR-315 Phase 5 증분 5c — a totals row's values (`CatalogRowSlices.totals`): each Column's
+   * aggregate over every row the slices keep, by Column key.
+   */
+  readonly totals?: Readonly<Record<string, unknown>>;
+  /**
+   * ADR-315 Phase 5 증분 5d — the binding names its rows' child rows (`fieldMap.children` ·
+   * `parentId`): a Table reads its rows again as a tree (`CatalogRowSlices.tree`).
+   */
+  readonly nested?: true;
 };
 /**
  * ADR-284 Decision 3 — what a view's result covers: `matched` rows of `loaded` source rows (before
@@ -544,6 +588,15 @@ export interface CatalogRowWindowKeys {
   readonly start: number;
   /** Every row's key, in the order shown. */
   readonly keys: readonly string[];
+  /**
+   * ADR-315 Phase 5 — a grouped Table's rows nest (breakdown §5.4 「행 창과 펼침」): `keys` are the
+   * rows its open groups show, in order (a group, then its rows), and this is each one's depth
+   * (0 = a top row). The records stay flat — the DOM puts each row inside the row before it of
+   * one depth less.
+   */
+  readonly depths?: readonly number[];
+  /** With `depths`: the closed groups' keys — each holds one empty child row (RAC opens it). */
+  readonly closed?: ReadonlySet<string>;
 }
 const ROW_KEYS = new WeakMap<object, readonly string[]>();
 /** A row set as a Table's runtime sort last ordered it (`boundTableRows`). */
@@ -551,6 +604,118 @@ const SORTED_ROWS = new WeakMap<
   object,
   { sort: CatalogRowSorts; rows: readonly CatalogBoundRow[] }
 >();
+/**
+ * ADR-315 Phase 5 — a grouped run's rows as its open groups show them (TanStack's expanded row
+ * model): each group, then the rows of an open one, its own rows not read into it — with each
+ * row's depth and the closed groups. A closed group's placeholder child is not a row shown.
+ */
+interface CatalogShownGroupRows {
+  readonly rows: readonly CatalogBoundRow[];
+  readonly depths: readonly number[];
+  readonly closed: ReadonlySet<string>;
+}
+const SHOWN_GROUP_ROWS = new WeakMap<object, CatalogShownGroupRows>();
+function catalogShownGroupRows(
+  rowSet: readonly CatalogBoundRow[],
+): CatalogShownGroupRows {
+  const held = SHOWN_GROUP_ROWS.get(rowSet);
+  if (held) return held;
+  const rows: CatalogBoundRow[] = [];
+  const depths: number[] = [];
+  const closed = new Set<string>();
+  const visit = (list: readonly CatalogBoundRow[], depth: number) => {
+    for (const row of list) {
+      if (row.placeholder) continue;
+      const { children, ...own } = row;
+      rows.push(children ? own : row);
+      depths.push(depth);
+      if (
+        (row.group && !row.group.expanded) ||
+        (row.tree?.parent && !row.tree.expanded)
+      )
+        closed.add(row.key);
+      else if (children) visit(children, depth + 1);
+    }
+  };
+  visit(rowSet, 0);
+  const meta = rowSet as CatalogBoundRows;
+  const shown: CatalogShownGroupRows = {
+    rows: Object.assign(rows, {
+      ...(meta.loadingState !== undefined
+        ? { loadingState: meta.loadingState }
+        : {}),
+      ...(meta.view ? { view: meta.view } : {}),
+      ...(meta.totals ? { totals: meta.totals } : {}),
+    }),
+    depths,
+    closed,
+  };
+  SHOWN_GROUP_ROWS.set(rowSet, shown);
+  return shown;
+}
+/**
+ * ADR-315 Phase 5 증분 5e — a bound Table's rows with its detail rows (breakdown §5.4 「상세 행」):
+ * each data row with no child rows of its own (a group's · a tree's leaf too) is expandable — an
+ * open one holds its detail row (`detail` — its values, the Row template's detail Row), a closed
+ * one a placeholder child (react-aria counts it expandable — as a closed group) or, on the
+ * Builder's Canvas (`closedChild: false`), none. The rows' meta (counts · totals · sort · window)
+ * stays on the list.
+ */
+const DETAIL_ROWS = new WeakMap<
+  object,
+  { readonly signature: string; readonly rows: readonly CatalogBoundRow[] }
+>();
+function catalogDetailRows(
+  rowSet: readonly CatalogBoundRow[],
+  expanded: ReadonlySet<string>,
+  closedChild: boolean,
+): readonly CatalogBoundRow[] {
+  const signature = JSON.stringify([[...expanded], closedChild]);
+  const held = DETAIL_ROWS.get(rowSet);
+  if (held?.signature === signature) return held.rows;
+  const visit = (
+    rows: readonly CatalogBoundRow[],
+    depth: number,
+  ): CatalogBoundRow[] =>
+    rows.map((row) => {
+      if (row.placeholder) return row;
+      if (row.group || row.tree?.parent)
+        return row.children
+          ? { ...row, children: visit(row.children, depth + 1) }
+          : row;
+      const open = expanded.has(row.key);
+      const children = open
+        ? [
+            {
+              key: `${row.key}/detail`,
+              values: row.values,
+              detail: true as const,
+            },
+          ]
+        : closedChild
+          ? [
+              {
+                key: `${row.key}${CATALOG_GROUP_PLACEHOLDER_SUFFIX}`,
+                values: {},
+                placeholder: true as const,
+              },
+            ]
+          : undefined;
+      return {
+        ...row,
+        ...(children ? { children } : {}),
+        tree: { depth: row.tree?.depth ?? depth, expanded: open, parent: true },
+      };
+    });
+  const out: CatalogBoundRow[] = visit(rowSet, 0);
+  for (const key of Object.keys(rowSet))
+    if (!/^\d+$/.test(key))
+      (out as unknown as Record<string, unknown>)[key] = (
+        rowSet as unknown as Record<string, unknown>
+      )[key];
+  DETAIL_ROWS.set(rowSet, { signature, rows: out });
+  return out;
+}
 const rowWindowOf = (rowSet: readonly CatalogBoundRow[] | undefined) =>
   (rowSet as { window?: CatalogRowWindowKeys } | undefined)?.window;
 /** A windowed run's row the consumer keeps (`CatalogRowWindow.kept`): its place holder. */
@@ -574,6 +739,16 @@ const keptRowOf = (
         children: [],
       }
     : undefined;
+/**
+ * ADR-315 Phase 5 증분 5c — a bound Table's totals row (its footer's rows read it): the row source's
+ * totals (`CatalogBoundRows.totals` — every Column key, null where it has no aggregate).
+ */
+const catalogTotalsRow = (
+  rowSet: readonly CatalogBoundRow[],
+): CatalogBoundRow => ({
+  key: "totals",
+  values: (rowSet as CatalogBoundRows).totals ?? {},
+});
 /** A windowed run's first row's place in the whole run (0 = not windowed). */
 const rowBaseOf = (rowSet: readonly CatalogBoundRow[] | undefined) =>
   rowWindowOf(rowSet)?.start ?? 0;
@@ -750,8 +925,12 @@ function nestTreeRows(
   project: (row: CatalogBoundRow) => ResolvedCatalogNode | undefined,
   isTreeItem: (node: ResolvedCatalogNode) => boolean,
   isInstance: (node: ResolvedCatalogNode) => boolean,
+  isTableRow?: (node: ResolvedCatalogNode) => boolean,
 ): ResolvedCatalogNode {
-  if (!isTreeItem(node)) return node;
+  if (!isTreeItem(node))
+    return isTableRow?.(node)
+      ? nestTableRows(node, data, project, isTableRow)
+      : node;
   // (A TreeItem instance — 「TreeItem/Default」 — holds its TreeItem as its template root; its own
   // nested items — the starter's 「Node 1.1」 — are samples.)
   if (isInstance(node))
@@ -785,6 +964,84 @@ function nestTreeRows(
       ...node.children.filter((child) => !isTreeItem(child)),
       ...nested,
     ],
+  };
+}
+/**
+ * ADR-315 Phase 5 — a bound Table's row with child rows (a group row's — `catalogGroupBoundRows` —
+ * or a data row's `children`): the same Row template again for each child row, after the row's
+ * own Cells — RAC's nested `<Row>` (the expandable rows of `treeColumn`). The child Rows stand on
+ * the row's outermost layer, beside its Cells.
+ */
+function nestTableRows(
+  node: ResolvedCatalogNode,
+  data: CatalogBoundRow,
+  project: (row: CatalogBoundRow) => ResolvedCatalogNode | undefined,
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  // (ADR-315 Phase 5 증분 5e — the Row template's own Rows are its detail row: a detail row is
+  //  that Row, read with its row's values — in the place of the row; any other row leaves it. A
+  //  Row instance's first child is its template root — a layer of the same record, not a detail.)
+  if (data.detail) {
+    const detail = rowDetailOf(node, isTableRow);
+    // (Its key on every layer — a Row instance's record reads its innermost layer's props.)
+    const keyed = (row: ResolvedCatalogNode): ResolvedCatalogNode => {
+      const [first, ...rest] = row.children;
+      return {
+        ...row,
+        props: { ...row.props, id: data.key },
+        ...(first && isTableRow(first)
+          ? { children: [keyed(first), ...rest] }
+          : {}),
+      };
+    };
+    return detail
+      ? {
+          ...keyed(detail),
+          rowDetail: true,
+          ...(node.rowIndex !== undefined ? { rowIndex: node.rowIndex } : {}),
+          ...(node.rowWindow ? { rowWindow: node.rowWindow } : {}),
+        }
+      : node;
+  }
+  const own = withoutRowDetail(node, isTableRow);
+  if (!data.children?.length) return own;
+  const nested = data.children.flatMap((child) => {
+    const projected = project(child);
+    return projected
+      ? [
+          nestTableRows(
+            withRowKey(projected, child.key),
+            child,
+            project,
+            isTableRow,
+          ),
+        ]
+      : [];
+  });
+  return { ...own, children: [...own.children, ...nested] };
+}
+/**
+ * ADR-315 Phase 5 증분 5e — a resolved Row's detail Row: a Row among its children but the first —
+ * a Row instance's first child is its template root (a layer of the same record); its own
+ * children (the cells, the detail Row) follow it.
+ */
+function rowDetailOf(
+  row: ResolvedCatalogNode,
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode | undefined {
+  return row.children.slice(1).find(isTableRow);
+}
+/** A resolved Row without its detail Row. */
+function withoutRowDetail(
+  row: ResolvedCatalogNode,
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  if (!rowDetailOf(row, isTableRow)) return row;
+  return {
+    ...row,
+    children: row.children.filter(
+      (child, index) => index === 0 || !isTableRow(child),
+    ),
   };
 }
 export interface CatalogResolutionSelection {
@@ -1005,6 +1262,7 @@ export function resolveCatalogNode(
     return Object.assign(rowSet.slice(0, sampleLimit), {
       total: rowCountOf(rowSet),
       delivered: rowSet.length,
+      ...(meta.totals ? { totals: meta.totals } : {}),
       ...(meta.loadingState !== undefined
         ? { loadingState: meta.loadingState }
         : {}),
@@ -1028,12 +1286,34 @@ export function resolveCatalogNode(
     return Object.assign(rowSet.slice(start, start + window.limit), {
       total: rowCountOf(rowSet),
       delivered: rowSet.length,
+      ...(meta.totals ? { totals: meta.totals } : {}),
       window: { owner, start, keys },
       ...(window.kept ? { kept: window.kept } : {}),
       ...(meta.loadingState !== undefined
         ? { loadingState: meta.loadingState }
         : {}),
       ...(meta.view ? { view: meta.view } : {}),
+    });
+  };
+  /**
+   * ADR-315 Phase 5 — a windowed owner's group rows (breakdown §5.4 「행 창과 펼침」): the window
+   * is cut from the rows its open groups show (`catalogShownGroupRows`) — flat records, each row's
+   * depth in the window's keys. Rows that all fit (or no window) stay nested — a group's rows
+   * read into its record.
+   */
+  /** ADR-315 Phase 5 증분 5d — the Canvas tree Column of the Table being resolved (its cells). */
+  let canvasTreeColumn: string | undefined;
+  const windowedGroupRows = (
+    rowSet: readonly CatalogBoundRow[],
+    owner: string,
+  ): readonly CatalogBoundRow[] => {
+    if (!rowWindow?.(owner)) return rowSet;
+    const shown = catalogShownGroupRows(rowSet);
+    const windowed = windowedRows(shown.rows, owner);
+    const window = rowWindowOf(windowed);
+    if (!window) return rowSet;
+    return Object.assign(windowed, {
+      window: { ...window, depths: shown.depths, closed: shown.closed },
     });
   };
   const lookupEntry = (entryId: string) => graph.getEntry(entryId);
@@ -1103,6 +1383,35 @@ export function resolveCatalogNode(
   /** A resolved node is a TreeItem (a bound Tree's row — `nestTreeRows`). */
   const isTreeItemRecord = (node: ResolvedCatalogNode) =>
     ruleDefinitionOf(node.definitionId).name === "TreeItem";
+  /** ADR-315 Phase 5 — a resolved node is a Table's Row (a bound Table's row — `nestTableRows`). */
+  const isTableRowRecord = (node: ResolvedCatalogNode) =>
+    ruleDefinitionOf(node.definitionId).name === "Row";
+  /**
+   * ADR-315 Phase 5 증분 5e — a bound Table's Row template holds a detail Row (a Row among its
+   * children — `setTableDetailRow`): the template is the Table's own Row (its 「Rows」 slot's).
+   */
+  const tableHasDetailRow = (table: NodeEntry): boolean => {
+    const holds = (ids: readonly NodeId[]) =>
+      ids.some((id) => {
+        const row = graph.getEntry(id);
+        return (
+          row?.kind === "node" &&
+          row.repeat === true &&
+          row.children.some(
+            (child) => templateTypeName(child as TemplateId) === "Row",
+          )
+        );
+      });
+    return table.descendantOverrides.some(
+      (override) =>
+        override.kind === "fillSlot" &&
+        (holds(override.childIds) ||
+          override.childIds.some((id) => {
+            const part = graph.getEntry(id);
+            return part?.kind === "node" && holds(part.children);
+          })),
+    );
+  };
   /** A resolved node instantiates a composite (its template root is its child). */
   const isInstanceRecord = (node: ResolvedCatalogNode) => {
     const definition = lookupDefinition(node.definitionId);
@@ -1154,12 +1463,10 @@ export function resolveCatalogNode(
       const entry = graph.getEntry(owner as NodeId);
       if (entry?.kind !== "node") return undefined;
       if (!entry.columnsOf) continue;
-      return rows?.tableColumns
-        ?.(entry.columnsOf, entry.id)
-        ?.map((column) => ({
-          key: column.key,
-          values: { id: column.key, label: column.label },
-        }));
+      return rows?.tableColumns?.(entry.columnsOf, entry.id)?.map((column) => ({
+        key: column.key,
+        values: { id: column.key, label: column.label },
+      }));
     }
     return undefined;
   };
@@ -1670,7 +1977,12 @@ export function resolveCatalogNode(
               noteTokenRef(layout, key, rule.layoutTokens?.[key as "maxWidth"]);
           }
         }
-    const near = structuralParent(parent);
+    let near = structuralParent(parent);
+    // (ADR-315 Phase 5 증분 5e — a Row inside a Row (a detail row — RAC's nested `<Row>`, drawn as a
+    //  row of its Table's body) takes the rules a body row takes: its owner is the body.)
+    if (ruleDefinitionOf(definitionId).name === "Row")
+      while (near && ruleDefinitionOf(near.definitionId).name === "Row")
+        near = structuralParent(near.parent);
     if (!near) return;
     // A toggle's part rules are descendant selectors (`.react-aria-Checkbox .react-aria-CheckboxButton`,
     // `.react-aria-CheckboxButton … .checkbox`): a layout frame the author put inside the toggle
@@ -2406,8 +2718,30 @@ export function resolveCatalogNode(
       const labelField = rowLabelField(ownedRowing?.rowLabel, props, ownedType);
       if (labelField)
         props.children = String(ownedRow.values[labelField] ?? "");
-      if (cellField !== undefined && cellField in ownedRow.values)
-        props.children = tableCellText(ownedRow.values[cellField]);
+      if (cellField !== undefined && cellField in ownedRow.values) {
+        const group =
+          ownedRow.group?.column === cellField ? ownedRow.group : undefined;
+        props.children =
+          // (ADR-315 Phase 5 — a group row's grouped cell: its value and its row count.)
+          group
+            ? `${tableCellText(ownedRow.values[cellField])} (${group.count})`
+            : tableCellText(ownedRow.values[cellField]);
+        // (The Builder's Canvas: its top group's cell — the tree column's (`_treeColumn`) — draws
+        //  the expand button the DOM's RAC Cell draws (`CatalogTableCell`), closed. The DOM reads
+        //  RAC's render props and takes no mark.)
+        if (!tableState && group?.depth === 0)
+          props[CATALOG_TREE_CELL_PROP] = group.expanded ? "open" : "closed";
+        // (ADR-315 Phase 5 증분 5d — a tree's top row with child rows: its tree Column's cell.)
+        else if (
+          !tableState &&
+          ownedRow.tree?.depth === 0 &&
+          ownedRow.tree.parent &&
+          cellField === canvasTreeColumn
+        )
+          props[CATALOG_TREE_CELL_PROP] = ownedRow.tree.expanded
+            ? "open"
+            : "closed";
+      }
     }
     // `useAsyncList`'s `loadingState` beside its items (`<TableView loadingState={list.loadingState}>`
     // · `<Skeleton isLoading={list.isLoading}>`): a bound Table · Skeleton reads its collection's load.
@@ -2511,7 +2845,8 @@ export function resolveCatalogNode(
     const stated =
       !!headerState?.sort?.length ||
       !!headerState?.search ||
-      !!headerState?.columnFilters?.length;
+      !!headerState?.columnFilters?.length ||
+      !!headerState?.grouping?.length;
     let rowSet =
       nodeBinding && rows && !charted
         ? (keyedRows ??
@@ -2545,6 +2880,10 @@ export function resolveCatalogNode(
               ...(ownedRowing?.rowStart ? ["id"] : []),
               // (The collection's load reaches the template root — the Table record.)
               ...(props.loadingState !== undefined ? ["loadingState"] : []),
+              // (ADR-315 Phase 5 — a group row's tree cell mark reaches the Cell's root.)
+              ...(props[CATALOG_TREE_CELL_PROP] !== undefined
+                ? [CATALOG_TREE_CELL_PROP]
+                : []),
               // (An icons-only Pagination step button's word as its name · its 「Rows per page」
               //  Select's value — 2026-11-19.)
               ...(props["aria-label"] !== undefined ? ["aria-label"] : []),
@@ -2588,47 +2927,138 @@ export function resolveCatalogNode(
                   ? { rowSet: ownedRowing.rowSet }
                   : undefined,
         );
-      // (Each Column's field, read from the Table's header — the Table without rows; the rows'
-      //  source filters · sorts by them before its window · page cuts them.)
-      const rowSlices = stated
-        ? tableRowSlices(headerState!, project(undefined))
-        : undefined;
-      const rowSort = rowSlices?.sorts;
-      if (!rowsRead && nodeBinding && rows) {
-        rowSet = rows(nodeBinding, "items", node.id, instancePath, rowSlices);
-        rowsRead = true;
-      }
+      const tableId = `${instancePath.join("/")}::${node.id}`;
       // ADR-310 Phase 4: a bound Table repeats its Row template — over the rows sorted and cut
       // first (`boundTableRows`), then its body counts them (`finishBoundTable`).
-      const table =
-        rowSet && templateTypeName(templateRootId) === "Table"
-          ? boundTableRows(
-              rowSet,
-              tableBoxHeight(
+      /** ADR-315 Phase 5 — the grouping the rows were read in (its Columns stand first). */
+      let groupedBy: readonly string[] | undefined;
+      /** ADR-315 Phase 5 증분 5d — the rows were read as a tree (`CatalogRowSlices.tree`). */
+      let nestedNow = false;
+      /**
+       * ADR-315 Phase 5 증분 5e — its Row template holds a detail Row: each data row expands to it
+       * (`catalogDetailRows` — the open rows the Table state's, none on the Builder's Canvas).
+       */
+      const detailNow =
+        templateTypeName(templateRootId) === "Table" && tableHasDetailRow(node);
+      const finishTable = (rowSlices: CatalogRowSlices | undefined) => {
+        if (!rowsRead && nodeBinding && rows) {
+          rowSet = rows(nodeBinding, "items", node.id, instancePath, rowSlices);
+          rowsRead = true;
+        }
+        const shownSet =
+          rowSet && detailNow
+            ? catalogDetailRows(
+                rowSet,
+                new Set(headerState?.expandedKeys ?? []),
+                !!tableState,
+              )
+            : rowSet;
+        const table =
+          shownSet && templateTypeName(templateRootId) === "Table"
+            ? boundTableRows(
+                shownSet,
+                tableBoxHeight(
+                  templateRootId,
+                  visual,
+                  sizing,
+                  "height" in node.visual ||
+                    layers.some(
+                      (layer) => layer.visual && "height" in layer.visual,
+                    ),
+                ),
                 templateRootId,
-                visual,
-                sizing,
-                "height" in node.visual ||
-                  layers.some(
-                    (layer) => layer.visual && "height" in layer.visual,
-                  ),
-              ),
-              templateRootId,
-              `${instancePath.join("/")}::${node.id}`,
-              viewSortsByVariable(node.binding, lookupEntry),
-              rowSort,
-            )
+                tableId,
+                viewSortsByVariable(node.binding, lookupEntry),
+                rowSlices?.sorts,
+              )
+            : undefined;
+        groupedBy =
+          rowSlices?.groups && rowSet?.[0]?.group
+            ? rowSlices.groups.keys
+            : undefined;
+        nestedNow = !!rowSet?.[0]?.tree;
+        return withTableGroups(
+          withAuthoredSort(
+            finishBoundTable(project(table?.shown ?? shownSet), table),
+            // (ADR-315 Phase 4 증분 6 — its view's sort, by field key: the header shows it. Not a
+            //  Table its view's variable sorts — the variable's, ADR-284 Decision 5.)
+            nodeBinding &&
+              !table?.sortedByView &&
+              !viewSortsByVariable(node.binding, lookupEntry)
+              ? viewAuthoredSort(node.binding, lookupEntry)
+              : undefined,
+          ),
+          rowSlices?.groups,
+          shownSet,
+        );
+      };
+      // (Each Column's field, read from the Table's header — the Table without rows; the rows'
+      //  source filters · sorts · groups by them before its window · page cuts them.)
+      // (ADR-315 Phase 5 증분 5d — the Builder's Canvas: the Column a tree's top rows hold their
+      //  expand button in — the first data Column the author shows, `catalogProjectTableColumns`'s
+      //  rule without a Table state.)
+      const outerTreeColumn = canvasTreeColumn;
+      // (ADR-315 Phase 5 증분 5e — a Table with a detail row: each row's first data cell too.)
+      if (detailNow && !tableState) {
+        const bare = project(undefined);
+        canvasTreeColumn = bare
+          ? headerColumnsOf(bare).find(
+              ({ column }) => column.props.defaultHidden !== true,
+            )?.key
           : undefined;
-      const finished = withAuthoredSort(
-        finishBoundTable(project(table?.shown ?? rowSet), table),
-        // (ADR-315 Phase 4 증분 6 — its view's sort, by field key: the header shows it. Not a
-        //  Table its view's variable sorts — the variable's, ADR-284 Decision 5.)
-        nodeBinding &&
-          !table?.sortedByView &&
-          !viewSortsByVariable(node.binding, lookupEntry)
-          ? viewAuthoredSort(node.binding, lookupEntry)
-          : undefined,
+      }
+      let finished = finishTable(
+        stated ? tableRowSlices(headerState!, project(undefined)) : undefined,
       );
+      // (ADR-315 Phase 5 — a Table its author groups (a Column's 「Grouped」) and whose state does
+      //  not say otherwise: its rows are read again, grouped. The Builder's Canvas too (no Table
+      //  state — the author's default, closed groups without a child row: `closedChild`).)
+      // (ADR-315 Phase 5 증분 5c — a Table with a totals row too: its rows are read again with
+      //  the totals — every row the state keeps.)
+      // (ADR-315 Phase 5 증분 5d — a Table whose binding names its rows' child rows: read again as
+      //  a tree (every level searched · sorted, the collapsed rows' child rows not read out) —
+      //  with or without a state. The Builder's Canvas: every row collapsed, without a child row.)
+      const nestedRows =
+        templateTypeName(templateRootId) === "Table" &&
+        !!(rowSet as CatalogBoundRows | undefined)?.nested &&
+        !rowSet?.[0]?.tree &&
+        !rowSet?.[0]?.group;
+      if (
+        nodeBinding &&
+        rows &&
+        !charted &&
+        !keyedRows &&
+        finished &&
+        (nestedRows ||
+          (!stated &&
+            ((headerState?.grouping === undefined &&
+              tableGroupedByAuthor(finished)) ||
+              tableHasTotals(finished))))
+      ) {
+        const bare = project(undefined);
+        const slices = tableRowSlices(headerState ?? {}, bare, nestedRows);
+        if (nestedRows && !tableState && bare)
+          canvasTreeColumn = headerColumnsOf(bare).find(
+            ({ column }) => column.props.defaultHidden !== true,
+          )?.key;
+        if (slices?.groups || slices?.totals || slices?.tree) {
+          rowsRead = false;
+          finished = finishTable(
+            tableState
+              ? slices
+              : {
+                  ...slices,
+                  ...(slices.groups
+                    ? { groups: { ...slices.groups, closedChild: false } }
+                    : {}),
+                  ...(slices.tree
+                    ? { tree: { ...slices.tree, closedChild: false } }
+                    : {}),
+                },
+          );
+        }
+      }
+      canvasTreeColumn = outerTreeColumn;
       // (ADR-315 Phase 4 — the columns shown and their order: the authored defaults, a Table
       //  state's over them. The rows above were read by every authored Column — a hidden one is
       //  searched · sorted · filtered as before, breakdown §4.4.)
@@ -2642,7 +3072,16 @@ export function resolveCatalogNode(
                 resolved.rowKept
                   ? ""
                   : lookupDefinition(resolved.definitionId).name,
-              ownTableState,
+              groupedBy
+                ? { ...ownTableState, grouping: groupedBy, detail: detailNow }
+                : ownTableState?.grouping || nestedNow || detailNow
+                  ? {
+                      ...ownTableState,
+                      grouping: undefined,
+                      nested: nestedNow || detailNow,
+                      detail: detailNow,
+                    }
+                  : ownTableState,
               // (No Table state to read: the Builder's Canvas — a hidden Column stays a record
               //  the author can select, drawn nowhere.)
               !tableState,
@@ -2689,18 +3128,28 @@ export function resolveCatalogNode(
           const index = rowBaseOf(segment) + place;
           const kept = keptRowOf(segment, index, data.key);
           if (kept) return void children.push(kept);
-          const projected = resolveOwned(child, childPath, undefined, self, {
-            row: data,
-            rowStart: true,
-          });
+          const projectRow = (row: CatalogBoundRow) =>
+            resolveOwned(child, childPath, undefined, self, {
+              row,
+              rowStart: true,
+            });
+          const projected = projectRow(data);
           if (projected)
             push(children, {
-              ...(index === 0 &&
-              !["Tab", "TabPanel"].includes(
-                ruleDefinitionOf(child.definitionId).name,
-              )
-                ? projected
-                : withRowKey(projected, data.key)),
+              // (ADR-315 Phase 5 — a Table row's child rows nest in it: `nestTableRows`.)
+              ...nestTreeRows(
+                index === 0 &&
+                  !["Tab", "TabPanel"].includes(
+                    ruleDefinitionOf(child.definitionId).name,
+                  )
+                  ? projected
+                  : withRowKey(projected, data.key),
+                data,
+                projectRow,
+                () => false,
+                isInstanceRecord,
+                isTableRowRecord,
+              ),
               rowIndex: index,
             });
         });
@@ -2811,6 +3260,8 @@ export function resolveCatalogNode(
   const tableRowSlices = (
     state: CatalogTableState,
     bare: ResolvedCatalogNode | undefined,
+    /** ADR-315 Phase 5 증분 5d — its rows have child rows (`CatalogBoundRows.nested`). */
+    nested?: boolean,
   ): CatalogRowSlices | undefined => {
     const typeOf = (resolved: ResolvedCatalogNode) =>
       lookupDefinition(resolved.definitionId).name;
@@ -2832,10 +3283,27 @@ export function resolveCatalogNode(
                 key: resolveTableColumnKey(child.props, index),
                 sortEmptyValues: child.props.sortEmptyValues,
                 allowsSearching: child.props.allowsSearching,
+                defaultGrouped: child.props.defaultGrouped,
+                aggregate: child.props.aggregate,
               },
             ],
       );
-    return catalogTableStateRowSlices(state, columns, bare?.props);
+    return catalogTableStateRowSlices(state, columns, {
+      ...bare?.props,
+      // (ADR-315 Phase 5 증분 5c — a totals row: a row in its footer — the 「Totals」 slot.)
+      totals: !!bare && tableHasTotals(bare),
+      nested: !!nested,
+    });
+  };
+  /** ADR-315 Phase 5 증분 5c — a resolved Table has a totals row (a Row in its TableFooter). */
+  const tableHasTotals = (table: ResolvedCatalogNode): boolean => {
+    const typeOf = (resolved: ResolvedCatalogNode) =>
+      lookupDefinition(resolved.definitionId).name;
+    return table.children.some(
+      (part) =>
+        typeOf(part) === "TableFooter" &&
+        part.children.some((row) => typeOf(row) === "Row"),
+    );
   };
   const boundTableRows = (
     rowSet: readonly CatalogBoundRow[],
@@ -2897,8 +3365,16 @@ export function resolveCatalogNode(
       ? ordered.slice(0, Math.ceil(height! / TABLE_MIN_ROW_HEIGHT) + 1)
       : rowSample
         ? sampledRows(ordered, `${instancePath}::${bodyId}`)
-        : // (The window is the bound node's — its `rowDisplay` says whether it has one.)
-          windowedRows(ordered, tableId);
+        : // (The window is the bound node's — its `rowDisplay` says whether it has one. ADR-315
+          //  Phase 5: a grouped run's, over the rows its open groups show.)
+          ordered[0]?.group || ordered[0]?.tree
+          ? windowedGroupRows(ordered, tableId)
+          : windowedRows(ordered, tableId);
+    // (ADR-315 Phase 5 증분 5c — the totals are over every row: the rows shown carry them — a
+    //  fixed height's cut · a sort's order are new lists.)
+    const totals = (rowSet as CatalogBoundRows).totals;
+    if (totals && shown !== rowSet && !(shown as CatalogBoundRows).totals)
+      Object.assign(shown, { totals });
     return {
       rowSet,
       ordered,
@@ -2906,6 +3382,64 @@ export function resolveCatalogNode(
       fixed,
       sampled: !!rowSample,
       ...(sortedByView ? { sortedByView: { sort: variableSort } } : {}),
+    };
+  };
+  /** A resolved Table's header Columns with each one's Column key (the selection column is none). */
+  const headerColumnsOf = (
+    table: ResolvedCatalogNode,
+  ): { column: ResolvedCatalogNode; key: string }[] => {
+    const typeOf = (resolved: ResolvedCatalogNode) =>
+      lookupDefinition(resolved.definitionId).name;
+    const header = table.children.find(
+      (child) => typeOf(child) === "TableHeader",
+    );
+    return (header?.children ?? [])
+      .filter((child) => typeOf(child) === "Column")
+      .flatMap((child, index) =>
+        child.children.some(
+          (part) =>
+            typeOf(part) === "Checkbox" && part.props.slot === "selection",
+        )
+          ? []
+          : [{ column: child, key: resolveTableColumnKey(child.props, index) }],
+      );
+  };
+  /** ADR-315 Phase 5 — a resolved Table has a Column its author groups by (「Grouped」). */
+  const tableGroupedByAuthor = (table: ResolvedCatalogNode): boolean =>
+    headerColumnsOf(table).some(
+      ({ column }) => column.props.defaultGrouped === true,
+    );
+  /**
+   * ADR-315 Phase 5 — a grouped Table's record: the group rows open now (`CATALOG_TABLE_EXPANDED_PROP`
+   * — RAC `expandedKeys`, their row keys). Its `treeColumn` is marked by the column projection
+   * (`catalogProjectTableColumns` — the outer grouped Column, on every layer of its record).
+   */
+  const withTableGroups = (
+    table: ResolvedCatalogNode | undefined,
+    groups: CatalogRowGroups | undefined,
+    rowSet: readonly CatalogBoundRow[] | undefined,
+  ): ResolvedCatalogNode | undefined => {
+    // (ADR-315 Phase 5 증분 5d — a tree's rows too: its open rows.)
+    if (
+      !table ||
+      !((groups?.keys.length && rowSet?.[0]?.group) || rowSet?.[0]?.tree)
+    )
+      return table;
+    const expanded: string[] = [];
+    const visit = (rows: readonly CatalogBoundRow[]) => {
+      for (const row of rows)
+        if (row.group?.expanded || row.tree?.expanded) {
+          expanded.push(row.key);
+          visit(row.children ?? []);
+        }
+    };
+    visit(rowSet);
+    return {
+      ...table,
+      props: {
+        ...table.props,
+        [CATALOG_TABLE_EXPANDED_PROP]: JSON.stringify(expanded),
+      } as typeof table.props,
     };
   };
   /** A bound Table after its Row template repeated (`boundTableRows`): the clip and the counts. */
@@ -3193,7 +3727,12 @@ export function resolveCatalogNode(
     // root's — `instanceContract` — and they go on to that root, as an owned instance's do.)
     if (root)
       for (const [key, value] of Object.entries(root.props))
-        if (key in definition.accepts || definition.mode === "composite")
+        if (
+          key in definition.accepts ||
+          definition.mode === "composite" ||
+          // (ADR-315 Phase 5 — the resolver's own mark, no authored prop: a group's tree cell.)
+          key === CATALOG_TREE_CELL_PROP
+        )
           props[key] = value;
     // The template node's px size, then the instance's (as visual · layout: the instance wins —
     // 2026-11-11, the root's spread first let a user component's template width beat it).
@@ -3473,6 +4012,7 @@ export function resolveCatalogNode(
                   projectRow,
                   isTreeItemRecord,
                   isInstanceRecord,
+                  isTableRowRecord,
                 ),
                 rowIndex: index,
               });
@@ -3713,6 +4253,7 @@ export function resolveCatalogNode(
                   projectRow,
                   isTreeItemRecord,
                   isInstanceRecord,
+                  isTableRowRecord,
                 ),
                 rowIndex: index,
               });
@@ -3785,10 +4326,26 @@ export function resolveCatalogNode(
                   projectRow,
                   isTreeItemRecord,
                   isInstanceRecord,
+                  isTableRowRecord,
                 ),
                 rowIndex: index,
               });
           });
+          continue;
+        }
+        // (ADR-315 Phase 5 증분 5c — a bound Table's footer: its rows read the totals row — each
+        //  Column's aggregate over every row the state keeps, `CatalogBoundRows.totals`.)
+        const totalsRow =
+          rowSet && templateTypeName(templateId) === "TableFooter"
+            ? catalogTotalsRow(rowSet)
+            : undefined;
+        if (totalsRow) {
+          pushOwnedChild(
+            children,
+            child,
+            resolveOwned(child, childPath, undefined, self, { row: totalsRow }),
+            self,
+          );
           continue;
         }
         // (A filled slot's owned children repeat like any owned children — a month block put back
@@ -3921,7 +4478,7 @@ function viewAuthoredSort(
   if (binding.view) views.push(binding.view);
   else {
     const seen = new Set<string>();
-    for (let id: string | undefined = binding.viewId; id && !seen.has(id); ) {
+    for (let id: string | undefined = binding.viewId; id && !seen.has(id);) {
       seen.add(id);
       const view = lookupEntry(id) as ViewEntry | undefined;
       if (view?.kind !== "view") return undefined;

@@ -21,6 +21,7 @@ import type {
   CatalogRowBinding,
 } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import { catalogBoundRows } from "../../../../../packages/shared/src/catalog/runtime/dataBinding";
+import type { CatalogRowSlices } from "../../../../../packages/shared/src/catalog/runtime/tableRowSlices";
 import type { DataField, DataTable } from "../../types/builder/data.types";
 import { useDataStore } from "../stores/data";
 
@@ -110,23 +111,29 @@ export function catalogCollectionTables(
  * and that page is all the Canvas counts (its height sample is taken of the page, no 「+N more」
  * for the later pages). Before (2026-11-19 사용자 보고 — Compare Mode): the Preview drew 「Rows per
  * page」 rows and the Canvas drew every row its height held.
+ *
+ * ADR-315 Phase 5 — `slices`: a Table its author groups (a Column's 「Grouped」) reads its rows
+ * grouped (the resolver asks — `tableRowSlices`); the Canvas has no Table state, so nothing else.
  */
 export function catalogBuilderBoundRows(
   reader: Reader,
   binding: CatalogRowBinding,
   kind?: "items" | "records",
   ownerId?: NodeId,
+  slices?: CatalogRowSlices,
 ): CatalogBoundRows | undefined {
   const tables = catalogCollectionTables(reader);
   const owner = ownerId ? reader.getEntry(ownerId) : undefined;
   const display = owner?.kind === "node" ? owner.rowDisplay : undefined;
   if (display?.mode !== "pages" || kind === "records")
-    return catalogBoundRows(binding, tables, kind);
+    return catalogBoundRows(binding, tables, kind, undefined, undefined, slices);
   const page = catalogBoundRows(
     binding,
     tables,
     kind,
     catalogRowDisplaySize(display),
+    0,
+    slices,
   );
   return page ? Object.assign(page, { total: page.length }) : page;
 }

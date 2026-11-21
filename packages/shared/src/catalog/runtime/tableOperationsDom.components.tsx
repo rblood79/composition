@@ -203,6 +203,9 @@ interface ColumnMenuStrings {
   readonly unpin: string;
   readonly left: string;
   readonly right: string;
+  /** ADR-315 Phase 5 — group the Table's rows by the Column · stop. */
+  readonly group: string;
+  readonly ungroup: string;
 }
 const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
   en: {
@@ -218,6 +221,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     unpin: "Unpin",
     left: "Move left",
     right: "Move right",
+    group: "Group by column",
+    ungroup: "Ungroup",
   },
   ko: {
     asc: "오름차순 정렬",
@@ -232,6 +237,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     unpin: "고정 해제",
     left: "왼쪽으로 이동",
     right: "오른쪽으로 이동",
+    group: "이 열로 묶기",
+    ungroup: "묶기 해제",
   },
   ja: {
     asc: "昇順に並べ替え",
@@ -246,6 +253,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     unpin: "固定を解除",
     left: "左に移動",
     right: "右に移動",
+    group: "この列でグループ化",
+    ungroup: "グループ化を解除",
   },
   zh: {
     asc: "升序排序",
@@ -260,6 +269,8 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     unpin: "取消固定",
     left: "向左移动",
     right: "向右移动",
+    group: "按此列分组",
+    ungroup: "取消分组",
   },
 };
 
@@ -294,6 +305,10 @@ function columnMenuLabel(
       return rtl ? strings.left : strings.right;
     case "resize":
       return strings.resize;
+    case "group":
+      return strings.group;
+    case "ungroup":
+      return strings.ungroup;
   }
 }
 

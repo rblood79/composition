@@ -69,7 +69,8 @@ const EXPANDED: Record<string, string> = {
   Table:
     // (S2's selection column first — the RAC reference's `<Column><Checkbox slot="selection" /></Column>`,
     // 2026-11-18)
-    "Table(TableHeader(Column(Checkbox) Column Column Column) TableBody(Row(Cell(Checkbox) Cell Cell Cell)))",
+    // (ADR-315 Phase 5 증분 5c — the 「Totals」 slot: an empty TableFooter until 「Totals row」.)
+    "Table(TableHeader(Column(Checkbox) Column Column Column) TableBody(Row(Cell(Checkbox) Cell Cell Cell)) TableFooter)",
 };
 
 describe("ADR-301 G1 — the expanded instances are the reference's use code", () => {

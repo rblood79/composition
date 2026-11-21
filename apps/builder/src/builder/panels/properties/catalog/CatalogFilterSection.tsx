@@ -85,6 +85,14 @@ import {
   catalogTableColumnChooserCommand,
   catalogTableColumnChoosers,
 } from "../../../catalogRuntime/tableColumnChooser";
+import {
+  catalogTableTotalsCommand,
+  catalogTableTotalsOn,
+} from "../../../catalogRuntime/tableTotals";
+import {
+  catalogTableDetailCommand,
+  catalogTableDetailOn,
+} from "../../../catalogRuntime/tableDetail";
 import type { DataTable } from "../../../../types/builder/data.types";
 import "./CatalogFilterSection.css";
 
@@ -307,6 +315,80 @@ export function CatalogTableColumnsSwitch({ listId }: { listId: NodeId }) {
             ).command
           : catalogRemoveTableColumnChoosersCommand(graph, listId);
         if (command) run(command);
+      }}
+    />
+  );
+}
+
+/**
+ * ADR-315 Phase 5 증분 5c — a bound Table's 「Totals row」: on fills its footer with a row whose cells
+ * read each Column's 「Group · totals aggregate」 over every row its state keeps; off removes it.
+ */
+export function CatalogTableTotalsSwitch({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const graph = workspace.runtime.graph;
+  const on = useMemo(() => {
+    void revision;
+    const node = graph.getEntry(listId);
+    if (node?.kind !== "node") return undefined;
+    try {
+      if (definitionTypeName(graph, node.definitionId) !== "Table")
+        return undefined;
+    } catch {
+      return undefined;
+    }
+    return catalogTableTotalsOn(graph, listId);
+  }, [graph, listId, revision]);
+  if (on === undefined) return null;
+  return (
+    <PropertySwitch
+      label={t("dataView.tableTotalsRow")}
+      isSelected={on}
+      onChange={(selected) => {
+        if (selected === on) return;
+        run(
+          catalogTableTotalsCommand(graph, listId, selected, workspace.newId),
+        );
+      }}
+    />
+  );
+}
+
+/**
+ * ADR-315 Phase 5 증분 5e — a bound Table's 「Detail row」 switch: a Row after its Row template's
+ * cells (one cell over every column) that each data row expands to (`tableDetail.ts`).
+ */
+export function CatalogTableDetailSwitch({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const graph = workspace.runtime.graph;
+  const on = useMemo(() => {
+    void revision;
+    const node = graph.getEntry(listId);
+    if (node?.kind !== "node" || !node.binding) return undefined;
+    try {
+      if (definitionTypeName(graph, node.definitionId) !== "Table")
+        return undefined;
+    } catch {
+      return undefined;
+    }
+    return catalogTableDetailOn(graph, listId);
+  }, [graph, listId, revision]);
+  if (on === undefined) return null;
+  return (
+    <PropertySwitch
+      label={t("dataView.tableDetailRow")}
+      isSelected={on}
+      onChange={(selected) => {
+        if (selected === on) return;
+        run(
+          catalogTableDetailCommand(graph, listId, selected, workspace.newId),
+        );
       }}
     />
   );
@@ -1505,6 +1587,7 @@ function ConnectionRun({
                     condition: warning.conditionId ?? "",
                     comparison: warning.comparison ?? "",
                     field: warning.field ?? "",
+                    aggregate: warning.aggregate ?? "",
                     cap: served?.cap ?? "",
                   })}
                 </li>

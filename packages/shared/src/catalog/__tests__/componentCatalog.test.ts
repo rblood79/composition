@@ -192,6 +192,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         //   isCatalogCutover → buildCatalogShapes box+text. PALETTE_ORDER 미포함(단독 배치 불가).
         "TableHeader",
         "TableBody",
+        // (ADR-315 Phase 5 증분 5c — a totals row's footer, RAC `TableFooter`.)
+        "TableFooter",
         "Column",
         "Row",
         "Cell",

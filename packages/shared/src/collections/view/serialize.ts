@@ -25,13 +25,14 @@
  * (`GROUP` · `load: "all"`), the grouping runs here.
  */
 import { outgoingFieldValue } from "../intake/outgoing";
-import type {
-  DataFieldPath,
-  ViewAggregate,
-  ViewComparison,
-  ViewCondition,
-  ViewConditionGroup,
-  ViewQuery,
+import {
+  VIEW_EXTENDED_AGGREGATES,
+  type DataFieldPath,
+  type ViewAggregate,
+  type ViewComparison,
+  type ViewCondition,
+  type ViewConditionGroup,
+  type ViewQuery,
 } from "../../catalog/document/types";
 import { viewDay } from "./comparison";
 import { DEFAULT_QUERY_SUFFIXES } from "./querySuffixes";
@@ -78,6 +79,13 @@ export interface EndpointQuerySerialization {
    * none (`catalogTableSliceServable`). `body` carries the search as a condition over its fields.
    */
   searchParam?: string;
+  /**
+   * ADR-315 사용자 결정 4 — `body`: the server runs the aggregates added after ADR-291's contract
+   * (`median` · `unique` · `uniqueCount` · `extent` · `first` · `last` — `VIEW_EXTENDED_AGGREGATES`).
+   * Absent = `count` · `sum` · `mean` · `min` · `max` only: a grouping with another is not sent —
+   * every row is loaded and grouped here (`AGGREGATE`), never sent for a server to ignore.
+   */
+  extendedAggregates?: boolean;
 }
 
 export { VIEW_SEARCH_CONDITION };
@@ -111,6 +119,11 @@ export type SerializationWarningCode =
   /** ADR-315 Phase 2 — several sorts in a `suffix` format that takes one: only the first is sent. */
   | "MULTI_SORT"
   /**
+   * ADR-315 사용자 결정 4 — a `body` grouping with an aggregate the endpoint has not said it runs
+   * (`extendedAggregates`): the grouping is not sent, every row is loaded and grouped here.
+   */
+  | "AGGREGATE"
+  /**
    * ADR-291 Decision 5 — the view reads a computed field (a condition · the sort · a group key · an
    * aggregate's input): nothing of it is sent, every row is loaded, the whole chain runs here.
    */
@@ -121,7 +134,7 @@ export interface SerializationWarning {
   /** The condition (or group) it is about; absent = the whole view · endpoint. */
   conditionId?: string;
   comparison?: ViewComparison;
-  /** `COMPUTED`: the aggregate (its `as`) reading a computed field. */
+  /** `COMPUTED`: the aggregate (its `as`) reading a computed field. `AGGREGATE`: the one not run. */
   aggregate?: string;
   /** `COMPUTED`: the computed field's key. */
   field?: string;
@@ -422,8 +435,14 @@ export function serializeViewQueries(
       .map((query) => bodyGroup(query.where))
       .filter((group) => group !== undefined);
     // (ADR-291 Decision 6 — the chain's grouping · aggregates as the server runs them; a derived
-    // view grouping a grouped view is one grouping here (the last query's).)
-    const group = grouped ? bodyGroupOf(queries, input.schema) : undefined;
+    // view grouping a grouped view is one grouping here (the last query's). ADR-315 사용자 결정 4
+    // — an aggregate the endpoint has not said it runs: the conditions go, the grouping runs here.)
+    const unrun = grouped ? unrunAggregates(serialization, queries) : [];
+    warnings.push(...unrun);
+    const group =
+      grouped && !unrun.length
+        ? bodyGroupOf(queries, input.schema)
+        : undefined;
     const pageBody =
       page?.cursor !== undefined || serialization.pageSize !== undefined
         ? {
@@ -453,6 +472,7 @@ export function serializeViewQueries(
         total: true,
       },
       warnings,
+      ...(unrun.length ? { load: "all" as const } : {}),
     };
   }
   for (const query of queries) suffixGroup(query.where);
@@ -487,6 +507,28 @@ export function serializeViewQueries(
     return { params, warnings, load: "all" };
   }
   return { params, warnings };
+}
+
+/**
+ * ADR-315 사용자 결정 4 — the aggregates of a chain a `body` endpoint does not run: the ones added
+ * after ADR-291's contract, unless the endpoint says it runs them (`extendedAggregates`).
+ */
+function unrunAggregates(
+  serialization: EndpointQuerySerialization,
+  queries: readonly ViewQuery[],
+): SerializationWarning[] {
+  // (A `suffix` format groups nothing (`GROUP`); `none` sends nothing.)
+  if (serialization.kind !== "suffix" && serialization.kind !== "none") {
+    if (serialization.extendedAggregates) return [];
+  } else return [];
+  return queries.flatMap((query) =>
+    (query.aggregates ?? [])
+      .filter((aggregate) => VIEW_EXTENDED_AGGREGATES.has(aggregate.fn))
+      .map((aggregate) => ({
+        code: "AGGREGATE" as const,
+        aggregate: aggregate.as,
+      })),
+  );
 }
 
 /** The grouping the body carries: the last grouped query's keys and aggregates, by field key. */
@@ -576,6 +618,7 @@ export function viewQueryLimits(
     if (serialization.kind === "suffix" && (query.groupBy || query.aggregates))
       warnings.push({ code: "GROUP" });
   }
+  warnings.push(...unrunAggregates(serialization, input.queries));
   if (
     serialization.kind !== "suffix" &&
     (method.toUpperCase() === "GET" || method.toUpperCase() === "HEAD")

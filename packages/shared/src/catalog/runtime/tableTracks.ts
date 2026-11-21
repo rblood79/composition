@@ -207,7 +207,10 @@ function recordChildren<T extends TrackRecord>(
   });
 }
 
-/** The Table whose header row · Row this is (Row → TableBody → Table). */
+/**
+ * The Table whose header row · Row this is (Row → TableBody → Table; ADR-315 Phase 5 — a nested
+ * Row, a group's · a data row's child, goes up through its parent Rows).
+ */
 export function catalogTrackTableOf<T extends TrackRecord>(
   node: T,
   get: TrackLookup<T>,
@@ -216,11 +219,14 @@ export function catalogTrackTableOf<T extends TrackRecord>(
   const type = typeOf(node);
   const up = (record: T | undefined) =>
     record ? get(record.parentId) : undefined;
+  let body = type === "Row" ? up(node) : undefined;
+  while (body && typeOf(body) === "Row") body = up(body);
   const table =
     type === "TableHeader"
       ? up(node)
-      : type === "Row" && typeOf(up(node) ?? node) === "TableBody"
-        ? up(up(node))
+      : // (ADR-315 Phase 5 증분 5c — a totals row's footer is a row group too.)
+        body && (typeOf(body) === "TableBody" || typeOf(body) === "TableFooter")
+        ? up(body)
         : undefined;
   return table && TRACK_TABLE_TYPES.has(typeOf(table)) ? table : undefined;
 }
@@ -250,7 +256,21 @@ export function catalogTableSelectionColumn<T extends TrackRecord>(
         (typeOf(child) === "Checkbox" && child.props.slot === "selection") ||
         (depth > 0 && within(child, depth - 1)),
     );
-  return within(column, 1);
+  if (within(column, 1)) return true;
+  // (ADR-315 Phase 5 증분 5c — a totals row's cell holds no checkbox (the row is not selected):
+  //  it is the selection cell by its place — the selection Column's among the header's.)
+  if (typeOf(column) !== "Cell") return false;
+  const row = get(column.parentId);
+  const footer = row ? get(row.parentId) : undefined;
+  if (!row || !footer || typeOf(footer) !== "TableFooter") return false;
+  const table = get(footer.parentId);
+  const header = table
+    ? recordChildren(table, get).find((part) => typeOf(part) === "TableHeader")
+    : undefined;
+  if (!header) return false;
+  const place = recordChildren(row, get).indexOf(column);
+  const columns = recordChildren(header, get);
+  return place >= 0 && !!columns[place] && within(columns[place]!, 1);
 }
 
 /**
@@ -330,7 +350,7 @@ export function catalogTableTrackDependents<T extends TrackRecord>(
     ...recordChildren(table, get).flatMap((part) => {
       const partType = typeOf(part);
       if (partType === "TableHeader") return [part];
-      if (partType !== "TableBody") return [];
+      if (partType !== "TableBody" && partType !== "TableFooter") return [];
       return recordChildren(part, get).filter((row) => typeOf(row) === "Row");
     }),
   ];
@@ -379,14 +399,19 @@ export function catalogTableSelectionParts<T extends TrackRecord>(
   typeOf: TrackTypeOf<T>,
 ): T[] {
   if (!TRACK_TABLE_TYPES.has(typeOf(table))) return [];
+  const rowCells = (row: T): T[] =>
+    recordChildren(row, get).flatMap((child) =>
+      typeOf(child) === "Row" ? rowCells(child) : [child],
+    );
   return recordChildren(table, get)
     .flatMap((part) =>
       typeOf(part) === "TableHeader"
         ? recordChildren(part, get)
-        : typeOf(part) === "TableBody"
+        : typeOf(part) === "TableBody" || typeOf(part) === "TableFooter"
           ? recordChildren(part, get)
               .filter((row) => typeOf(row) === "Row")
-              .flatMap((row) => recordChildren(row, get))
+              // (ADR-315 Phase 5 — a Row's child Rows' cells too.)
+              .flatMap((row) => rowCells(row))
           : [],
     )
     .filter(

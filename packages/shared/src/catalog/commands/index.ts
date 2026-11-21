@@ -151,6 +151,9 @@ export {
   setTableCellSpan,
   tableHeaderColumns,
   tableBodyPosition,
+  tableFooterPosition,
+  setTableTotalsRow,
+  setTableDetailRow,
   tableHeaderPosition,
   type TableColumnSpec,
 } from "./collections";

@@ -856,6 +856,30 @@ class ViewPlanner {
         ? { fn: pick[2] === "[0]" ? "min" : "max", field, as }
         : undefined;
     }
+    // (ADR-315 사용자 결정 4 — the forms `aggregateFields` writes for TanStack's other built-ins.)
+    const forms: [RegExp, ViewAggregate["fn"]][] = [
+      [
+        /^[\w$.]+\.map\(row => Number\(row\.([\w$.]+)\)\)\.toSorted\(\(a, b\) => a - b\)\[[\w$.]+\.length >> 1\]$/,
+        "median",
+      ],
+      [
+        /^\[[\w$.]+\.map\(row => row\.([\w$.]+)\)\.toSorted\(\)\[0\], [\w$.]+\.map\(row => row\.\1\)\.toSorted\(\)\.at\(-1\)\]$/,
+        "extent",
+      ],
+      [/^\[\.\.\.new Set\([\w$.]+\.map\(row => row\.([\w$.]+)\)\)\]$/, "unique"],
+      [
+        /^new Set\([\w$.]+\.map\(row => row\.([\w$.]+)\)\)\.size$/,
+        "uniqueCount",
+      ],
+      [/^[\w$.]+\[0\]\?\.([\w$.]+)$/, "first"],
+      [/^[\w$.]+\.at\(-1\)\?\.([\w$.]+)$/, "last"],
+    ];
+    for (const [form, fn] of forms) {
+      const match = form.exec(code);
+      if (!match) continue;
+      const field = fieldOf(match[1]!);
+      return field ? { fn, field, as } : undefined;
+    }
     return undefined;
   }
 

@@ -173,6 +173,7 @@ export const ApiEndpointDraftSchema = z.object({
       orderParam: z.string().optional(),
       multiSort: z.boolean().optional(),
       searchParam: z.string().optional(),
+      extendedAggregates: z.boolean().optional(),
     })
     .nullable()
     .optional(),

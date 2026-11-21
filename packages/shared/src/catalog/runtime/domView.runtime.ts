@@ -84,6 +84,7 @@ export function catalogPreviewRuntime(
     sortTable: (tableId, sort) => session.sortTable(tableId, sort),
     pressTableSort: (tableId, column, add) =>
       session.pressTableSort(tableId, column, add),
+    expandTableRows: (tableId, keys) => session.expandTableRows(tableId, keys),
     resizeTableColumns: (tableId, widths) =>
       session.resizeTableColumns(tableId, widths),
     tableColumnWidths: (tableId) => session.tableColumnWidths(tableId),

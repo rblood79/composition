@@ -377,6 +377,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
   context,
   windowRow,
   rowShape,
+  nestedRows,
 }: CatalogDomNodeProps): ReactElement | null {
   const read = useCallback(() => root.domInputs.get(id), [root, id]);
   // ADR-281 Decision 3 — what this node's ancestors pass down (a host merges its own on top).
@@ -484,7 +485,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
   // (A windowed Table's row without a record is its empty row — `CatalogWindowRows`.)
   if (!node)
     return windowRow !== undefined && rowShape
-      ? catalogWindowRowPending(windowRow, rowShape)
+      ? catalogWindowRowPending(windowRow, rowShape, nestedRows)
       : null;
   context.onNodeRender?.(id);
   const { rendered: overridden, styleOverride } = withOverride(
@@ -508,7 +509,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
     (windowRow === undefined || !rowShape
       ? catalogRowStableElement
       : (row: CatalogConsumerNode, element: ReactElement | null) =>
-          catalogWindowRowElement(root, row, element, rowShape))(
+          catalogWindowRowElement(root, row, element, rowShape, nestedRows))(
       record,
       withVirtualizer(
         root,

@@ -166,6 +166,7 @@ import { cellBinding } from "./Cell.binding";
 import { rowBinding } from "./Row.binding";
 import { tableHeaderBinding } from "./TableHeader.binding";
 import { tableBodyBinding } from "./TableBody.binding";
+import { tableFooterBinding } from "./TableFooter.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tabBinding } from "./Tab.binding";
 import { tabListBinding } from "./TabList.binding";
@@ -314,6 +315,7 @@ export * from "./Cell.binding";
 export * from "./Row.binding";
 export * from "./TableHeader.binding";
 export * from "./TableBody.binding";
+export * from "./TableFooter.binding";
 export * from "./Tabs.binding";
 export * from "./Tab.binding";
 export * from "./TabList.binding";
@@ -593,6 +595,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   (ADR-277, 2026-10-21: S2 이름의 둘째 표 type 은 Table 로 통합 — 그 binding 은 삭제.)
   TableHeader: tableHeaderBinding,
   TableBody: tableBodyBinding,
+  // (ADR-315 Phase 5 증분 5c — 합계 행의 바닥글.)
+  TableFooter: tableFooterBinding,
   Column: columnBinding,
   Row: rowBinding,
   Cell: cellBinding,

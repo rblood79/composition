@@ -376,6 +376,7 @@ const TABLE_PART_TYPES: ReadonlySet<string> = new Set([
   "Table",
   "TableHeader",
   "TableBody",
+  "TableFooter",
   "Column",
   "Row",
   "Cell",

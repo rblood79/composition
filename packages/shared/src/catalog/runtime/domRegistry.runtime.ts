@@ -54,14 +54,18 @@ import { Tree } from "@composition/shared/components/Tree";
 import { type CSSProperties, type ElementType } from "react";
 
 import {
-  Cell as RacCell,
   Column as RacColumn,
   Row as RacRow,
   TableBody as RacTableBody,
+  TableFooter as RacTableFooter,
   TableHeader as RacTableHeader,
 } from "react-aria-components/Table";
 
-import { CatalogKeyboard, CatalogTable } from "./domRegistry.components";
+import {
+  CatalogKeyboard,
+  CatalogTable,
+  CatalogTableCell,
+} from "./domRegistry.components";
 import {
   deriveDelegatingInternalRenderers,
   deriveDelegatingRacRenderers,
@@ -125,8 +129,11 @@ export const INTERNAL_RENDERERS: Readonly<
   tableheader: RacTableHeader,
   column: RacColumn,
   tablebody: RacTableBody,
+  // (ADR-315 Phase 5 증분 5c — the totals row's footer: RAC's, its rows outside selection · sort.)
+  tablefooter: RacTableFooter,
   row: RacRow,
-  cell: RacCell,
+  // ADR-315 Phase 5 — the expand button of a grouped · nested row in its Table's `treeColumn`.
+  cell: CatalogTableCell,
   dialog: Dialog,
   dialogtrigger: DialogTrigger,
   // ADR-259 Phase 3: S2 ContextualHelp (RAC DialogTrigger) · a field's label row.

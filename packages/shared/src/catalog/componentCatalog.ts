@@ -538,6 +538,12 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "table body",
     icon: "Table",
   }),
+  // ADR-315 Phase 5 증분 5c — 합계 행의 바닥글 (Table 「Totals row」 스위치가 넣는다).
+  primitiveEntry("TableFooter", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "table footer",
+    icon: "Table",
+  }),
   primitiveEntry("Column", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
     label: "column",

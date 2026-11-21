@@ -916,12 +916,29 @@ function tableBodyOf(
   draft: CommandDraft,
   header: NodeParent,
 ): NodeParent | undefined {
-  const owner = parentOf(draft, header);
-  if (!owner || !TABLE_OWNERS.has(positionType(draft, owner))) return undefined;
-  return childPositions(draft, owner).find(
-    (child) => positionType(draft, child) === "TableBody",
+  return tableRowGroupsOf(draft, header).find(
+    (part) => positionType(draft, part) === "TableBody",
   );
 }
+/**
+ * A Table's row groups — its TableBody and its totals row's TableFooter (ADR-315 Phase 5 증분 5c):
+ * every row of either is aligned with the header's columns (RAC throws on a row whose cell count
+ * differs from the column count), so a column command takes both along.
+ */
+function tableRowGroupsOf(
+  draft: CommandDraft,
+  header: NodeParent,
+): NodeParent[] {
+  const owner = parentOf(draft, header);
+  if (!owner || !TABLE_OWNERS.has(positionType(draft, owner))) return [];
+  return childPositions(draft, owner).filter((child) =>
+    TABLE_ROW_GROUPS.has(positionType(draft, child)),
+  );
+}
+const TABLE_ROW_GROUPS: ReadonlySet<string> = new Set([
+  "TableBody",
+  "TableFooter",
+]);
 
 /**
  * The TableHeader position a Table shows — an owned child, or its template's header position in
@@ -984,7 +1001,17 @@ function templateCell(
   cell: { entries: NodeEntry[]; rootId: NodeId },
   key: string,
 ): { entries: NodeEntry[]; rootId: NodeId } {
-  if (!draft.node(rowId).repeat) return cell;
+  // (A totals row's cells read their column's aggregate the same way — ADR-315 Phase 5 증분 5c.)
+  const totals =
+    !draft.node(rowId).repeat &&
+    positionType(
+      draft,
+      parentOf(draft, { kind: "node", id: rowId }) ?? {
+        kind: "node",
+        id: rowId,
+      },
+    ) === "TableFooter";
+  if (!draft.node(rowId).repeat && !totals) return cell;
   return {
     ...cell,
     entries: cell.entries.map((entry) =>
@@ -1027,7 +1054,7 @@ export function fillTableTemplateCells(
       props: { ...node.props, key: { kind: "set", value: keys[index]! } },
     });
   });
-  partChildren(draft, { kind: "node", id: rowId }).forEach((cell, index) => {
+  rowCells(draft, { kind: "node", id: rowId }).forEach((cell, index) => {
     const key = keys[index];
     if (cell.kind !== "node" || key === undefined) return;
     const node = draft.node(cell.id);
@@ -1161,6 +1188,24 @@ function cellSpanAt(draft: CommandDraft, cell: NodeParent): number {
     : 1;
 }
 /** The columns a row's cells take (RAC's `colIndex + colSpan` — the sum of their spans). */
+/**
+ * ADR-315 Phase 5 증분 5e — a table row's cells: its parts but a nested Row (its detail row — the
+ * template Row's 「Detail」 Row, RAC's nested `<Row>` after the cells). Column commands count ·
+ * move · add cells among these; a detail row stays after them.
+ */
+function rowCells(draft: CommandDraft, row: NodeParent): NodeParent[] {
+  return partChildren(draft, row).filter(
+    (part) => positionType(draft, part) !== "Row",
+  );
+}
+/** A row's own child list without its cells: its detail row (kept after the cells). */
+function rowDetailIds(draft: CommandDraft, rowId: NodeId): NodeId[] {
+  return draft
+    .node(rowId)
+    .children.filter(
+      (id) => positionType(draft, { kind: "node", id }) === "Row",
+    );
+}
 function spanSum(draft: CommandDraft, cells: readonly NodeParent[]): number {
   return cells.reduce((sum, cell) => sum + cellSpanAt(draft, cell), 0);
 }
@@ -1203,25 +1248,25 @@ export function tableAlignedIn(
     return undefined;
   const header = headerPositionIn(draft, tableId);
   if (!header) return undefined;
-  const body = tableBodyOf(draft, header);
+  const groups = tableRowGroupsOf(draft, header);
   const columns = partChildren(draft, header);
-  const rows = body
-    ? partChildren(draft, body).map((row) => ({
-        row,
-        cells: partChildren(draft, row),
-      }))
-    : [];
+  const rowsOf = (group: NodeParent) =>
+    partChildren(draft, group).map((row) => ({
+      row,
+      cells: rowCells(draft, row),
+    }));
   return TABLE_BREAKPOINTS.every((breakpoint) => {
     const shown = (position: NodeParent) =>
       shownAt(draft, position, breakpoint);
     const count = shown(header) ? columns.filter(shown).length : 0;
-    return (
-      !body ||
-      !shown(body) ||
-      rows.every(
-        ({ row, cells }) =>
-          !shown(row) || spanSum(draft, cells.filter(shown)) === count,
-      )
+    // (Each row group — the body, a totals row's footer — its shown rows against the columns.)
+    return groups.every(
+      (group) =>
+        !shown(group) ||
+        rowsOf(group).every(
+          ({ row, cells }) =>
+            !shown(row) || spanSum(draft, cells.filter(shown)) === count,
+        ),
     );
   });
 }
@@ -1240,11 +1285,13 @@ function tableColumnGrid(draft: CommandDraft, column: NodeParent) {
   )
     return undefined;
   const columns = partChildren(draft, header);
-  const body = tableBodyOf(draft, header);
-  const rows = (body ? partChildren(draft, body) : []).flatMap((row) => {
-    const cells = partChildren(draft, row);
-    return spanSum(draft, cells) === columns.length ? [{ row, cells }] : [];
-  });
+  // (The body's rows and a totals row's — ADR-315 Phase 5 증분 5c.)
+  const rows = tableRowGroupsOf(draft, header)
+    .flatMap((group) => partChildren(draft, group))
+    .flatMap((row) => {
+      const cells = rowCells(draft, row);
+      return spanSum(draft, cells) === columns.length ? [{ row, cells }] : [];
+    });
   return { header, columns, rows };
 }
 
@@ -1388,7 +1435,7 @@ export function tableColumnOrder(
         // row with a cell spanning columns has no cell per column to move.)
         if (
           row.kind !== "node" ||
-          partChildren(draft, row).length !== before.length
+          rowCells(draft, row).length !== before.length
         ) {
           fail("TABLE_CELLS_NOT_ALIGNED", positionId(header));
           return;
@@ -1396,15 +1443,17 @@ export function tableColumnOrder(
         // A reusable row's template cells become its own first (Round 13), then all its cells take
         // the header's new order — in the list its template cells were in, else its own.
         const root = ownTableRowCells(draft, row, newId);
-        const cells = partChildren(draft, row).map(
+        const cells = rowCells(draft, row).map(
           (cell) => positionId(cell) as NodeId,
         );
         const ordered = after.map((key) => cells[before.indexOf(key)]!);
         const node = draft.node(row.id);
+        // (ADR-315 Phase 5 증분 5e — its detail row stays after its cells.)
+        const detail = rowDetailIds(draft, row.id);
         if (root) {
-          draft.write({ ...node, children: [] });
+          draft.write({ ...node, children: detail });
           setChildList(draft, root, ordered);
-        } else draft.write({ ...node, children: ordered });
+        } else draft.write({ ...node, children: [...ordered, ...detail] });
       }
     },
   };
@@ -1449,7 +1498,7 @@ export function dropTableColumnTemplateCells(
     if (!root || childList(draft, root) || !childPositions(draft, root).length)
       continue;
     // (ADR-257 Phase 2: a template row's cells spanning columns are not one per column.)
-    if (partChildren(draft, row).length !== grid.columns.length)
+    if (rowCells(draft, row).length !== grid.columns.length)
       fail("TABLE_CELLS_NOT_ALIGNED", positionId(row));
     ownTableRowCells(draft, row, newId);
     const ids = childList(draft, root)!;
@@ -1580,8 +1629,8 @@ export const insertTableColumns =
       ...(childList(draft, input.header) ?? []),
       ...columnIds,
     ]);
-    const body = tableBodyOf(draft, input.header);
-    if (body) {
+    // (The body's rows and a totals row's footer's — ADR-315 Phase 5 증분 5c.)
+    for (const body of tableRowGroupsOf(draft, input.header)) {
       const rows = ensureChildList(draft, body, input.newId);
       if (input.replace) {
         // ADR-277 Decision 2 (R2): the static rows follow the new columns — each row's own cells
@@ -1594,7 +1643,11 @@ export const insertTableColumns =
           const keptCells = row.children.filter((id) =>
             tableSelectionPart(draft, { kind: "node", id }),
           );
-          const ownCells = row.children.filter((id) => !keptCells.includes(id));
+          // (ADR-315 Phase 5 증분 5e — its detail row stays: it is no cell.)
+          const detail = rowDetailIds(draft, rowId);
+          const ownCells = row.children.filter(
+            (id) => !keptCells.includes(id) && !detail.includes(id),
+          );
           draft.write({ ...row, children: keptCells });
           removeWithReferrers(
             draft,
@@ -1607,14 +1660,18 @@ export const insertTableColumns =
             for (const entry of cell.entries) draft.create(entry);
           draft.write({
             ...draft.node(rowId),
-            children: [...keptCells, ...cells.map((cell) => cell.rootId)],
+            children: [
+              ...keptCells,
+              ...cells.map((cell) => cell.rootId),
+              ...detail,
+            ],
           });
         }
       } else {
         // (A reusable row's cells are its template's, then its own — Round 12; a new cell is its own.)
         const aligned = rows.every(
           (row) =>
-            spanSum(draft, partChildren(draft, { kind: "node", id: row })) ===
+            spanSum(draft, rowCells(draft, { kind: "node", id: row })) ===
             current.length,
         );
         if (rows.length && aligned)
@@ -1625,9 +1682,15 @@ export const insertTableColumns =
             for (const cell of cells)
               for (const entry of cell.entries) draft.create(entry);
             const row = draft.node(rowId);
+            // (ADR-315 Phase 5 증분 5e — the new cells before its detail row.)
+            const detail = rowDetailIds(draft, rowId);
             draft.write({
               ...row,
-              children: [...row.children, ...cells.map((cell) => cell.rootId)],
+              children: [
+                ...row.children.filter((id) => !detail.includes(id)),
+                ...cells.map((cell) => cell.rootId),
+                ...detail,
+              ],
             });
           }
       }
@@ -1636,6 +1699,188 @@ export const insertTableColumns =
       label: input.label ?? "Add column",
       ops: draft.ops(),
       selectAfter: columnIds,
+    };
+  };
+
+/** ADR-315 Phase 5 증분 5c — the TableFooter position a Table shows (its 「Totals」 slot). */
+export function tableFooterPosition(
+  reader: CatalogReader,
+  tableId: NodeId,
+): NodeParent | undefined {
+  const draft = new CommandDraft(reader);
+  const header = headerPositionIn(draft, tableId);
+  return header
+    ? tableRowGroupsOf(draft, header).find(
+        (part) => positionType(draft, part) === "TableFooter",
+      )
+    : undefined;
+}
+
+/**
+ * ADR-315 Phase 5 증분 5c — a Table's 「Totals row」 on: its footer (the 「Totals」 slot) gets one
+ * Row with a cell per column (breakdown §5.4) — each data column's cell reads its key (`{key}` —
+ * the totals row's aggregate, `CatalogBoundRows.totals`), the selection column's cell is empty,
+ * a hidden column's cell hidden as it is. Off: the footer's rows go. A no-op step is refused.
+ */
+export const setTableTotalsRow =
+  (input: {
+    tableId: NodeId;
+    on: boolean;
+    /** An empty cell (a Cell original's instance). */
+    buildCell: () => { entries: NodeEntry[]; rootId: NodeId };
+    /** A row holding the given cells. */
+    buildRow: (cellIds: readonly NodeId[]) => NodeEntry;
+    newId: NewId;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const header = headerPositionIn(draft, input.tableId);
+    const footer = header
+      ? tableRowGroupsOf(draft, header).find(
+          (part) => positionType(draft, part) === "TableFooter",
+        )
+      : undefined;
+    if (!header || !footer) fail("NOT_A_TABLE_VIEW", input.tableId);
+    const rows = partChildren(draft, footer!);
+    if (!input.on) {
+      if (!rows.length) fail("NO_CHANGE", input.tableId);
+      const owned = ensureChildList(draft, footer!, input.newId);
+      setChildList(draft, footer!, []);
+      removeWithReferrers(
+        draft,
+        owned.flatMap((id) => subtree(draft, id)),
+      );
+      return { label: "Remove totals row", ops: draft.ops() };
+    }
+    if (rows.length) fail("NO_CHANGE", input.tableId);
+    const columns = partChildren(draft, header!);
+    const cellIds: NodeId[] = [];
+    const cells: NodeEntry[] = [];
+    // (A column's key by its place among the data columns — `tableHeaderColumns`'.)
+    let index = 0;
+    columns.forEach((column) => {
+      if (tableSelectionPart(draft, column)) {
+        // (S2's selection column: an empty plain Cell — a totals row is not selected.)
+        const id = input.newId("node") as NodeId;
+        cells.push({
+          kind: "node",
+          id,
+          definitionId: "lib:definition:type-Cell" as NodeEntry["definitionId"],
+          children: [],
+          props: {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+          ...tableColumnHiding(draft, column),
+        });
+        cellIds.push(id);
+        return;
+      }
+      const built = input.buildCell();
+      const key = columnKey(reader, column, index++);
+      for (const entry of built.entries)
+        cells.push(
+          entry.id === built.rootId
+            ? {
+                ...entry,
+                ...tableColumnHiding(draft, column),
+                props: {
+                  ...entry.props,
+                  children: { kind: "set" as const, value: `{${key}}` },
+                },
+              }
+            : entry,
+        );
+      cellIds.push(built.rootId);
+    });
+    const row = input.buildRow(cellIds);
+    draft.create(row);
+    for (const cell of cells) draft.create(cell);
+    const list = ensureChildList(draft, footer!, input.newId);
+    setChildList(draft, footer!, [...list, row.id]);
+    return { label: "Add totals row", ops: draft.ops(), selectAfter: [] };
+  };
+
+/**
+ * ADR-315 Phase 5 증분 5e — a bound Table's 「Detail row」 on: its Row template (the body's row
+ * that repeats) gets a Row after its cells — one cell, spanning the columns drawn (the projection
+ * gives its span — `catalogProjectTableColumns`), reading the first data column's field to start
+ * with; each data row expands to it, read with that row's values (RAC's nested `<Row>`,
+ * breakdown §5.4). Off: the template's detail rows go. A no-op step is refused.
+ */
+export const setTableDetailRow =
+  (input: {
+    tableId: NodeId;
+    on: boolean;
+    /** An empty cell (a Cell original's instance). */
+    buildCell: () => { entries: NodeEntry[]; rootId: NodeId };
+    /** A row holding the given cells. */
+    buildRow: (cellIds: readonly NodeId[]) => NodeEntry;
+    newId: NewId;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const header = headerPositionIn(draft, input.tableId);
+    const body = header ? tableBodyOf(draft, header) : undefined;
+    const template = body
+      ? partChildren(draft, body).find(
+          (row): row is Extract<NodeParent, { kind: "node" }> =>
+            row.kind === "node" && draft.node(row.id).repeat === true,
+        )
+      : undefined;
+    if (!header || !template) return fail("NOT_A_TABLE_VIEW", input.tableId);
+    const detail = rowDetailIds(draft, template.id);
+    const row = draft.node(template.id);
+    if (!input.on) {
+      if (!detail.length) fail("NO_CHANGE", input.tableId);
+      draft.write({
+        ...row,
+        children: row.children.filter((id) => !detail.includes(id)),
+      });
+      removeWithReferrers(
+        draft,
+        detail.flatMap((id) => subtree(draft, id)),
+      );
+      return { label: "Remove detail row", ops: draft.ops() };
+    }
+    if (detail.length) fail("NO_CHANGE", input.tableId);
+    const columns = partChildren(draft, header);
+    const first = columns.findIndex(
+      (column) => !tableSelectionPart(draft, column),
+    );
+    const key =
+      first >= 0
+        ? columnKey(
+            reader,
+            columns[first]!,
+            columns
+              .slice(0, first)
+              .filter((column) => !tableSelectionPart(draft, column)).length,
+          )
+        : undefined;
+    const built = input.buildCell();
+    const entries = built.entries.map((entry) =>
+      entry.id === built.rootId && key !== undefined
+        ? {
+            ...entry,
+            props: {
+              ...entry.props,
+              children: { kind: "set" as const, value: `{${key}}` },
+            },
+          }
+        : entry,
+    );
+    // (Its divider · look are a body row's — the resolver gives a Row in a Row the body's rules.)
+    const detailRow = input.buildRow([built.rootId]);
+    // (A Row takes a Row — RAC's nested `<Row>`: `componentTraits` Row children.)
+    assertNestable(draft, template, [detailRow.definitionId]);
+    draft.create(detailRow);
+    for (const entry of entries) draft.create(entry);
+    draft.write({ ...row, children: [...row.children, detailRow.id] });
+    return {
+      label: "Add detail row",
+      ops: draft.ops(),
+      selectAfter: [detailRow.id],
     };
   };
 
@@ -1667,7 +1912,7 @@ export const insertTableRow =
     if (
       !rows.every(
         (row) =>
-          spanSum(draft, partChildren(draft, { kind: "node", id: row })) ===
+          spanSum(draft, rowCells(draft, { kind: "node", id: row })) ===
           columnCount,
       )
     )

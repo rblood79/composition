@@ -1,3 +1,4 @@
+import { catalogTableGrouping } from "./tableRowSlices";
 import { parseRuleValueRef } from "../../interactions/valueRef";
 import { isInputVariable } from "../document/componentEvents";
 import { componentInstancePath } from "./componentBoundaries";
@@ -104,6 +105,7 @@ import {
   catalogTableAuthoredSort,
   catalogTableColumnEntries,
   catalogTableColumnsNow,
+  catalogTableExpandedKeys,
 } from "../resolution/tableColumns";
 import {
   CATALOG_TABLE_COLUMN_SLICES,
@@ -2182,6 +2184,9 @@ export class CatalogPreviewSession {
     sortEmptyValues?: "first";
     /** ADR-315 Phase 3 — the Column's `allowsSearching` (every Column unless it says no). */
     allowsSearching: boolean;
+    /** ADR-315 Phase 5 — the author groups by it · its group rows' aggregate. */
+    defaultGrouped?: true;
+    aggregate?: string;
   }[] {
     const root = this.currentRoot;
     const table = root?.domInputs.get(tableId);
@@ -2217,6 +2222,13 @@ export class CatalogPreviewSession {
         ? { sortEmptyValues: "first" as const }
         : {}),
       allowsSearching: column.props.allowsSearching !== false,
+      ...(column.props.defaultGrouped === true
+        ? { defaultGrouped: true as const }
+        : {}),
+      ...(typeof column.props.aggregate === "string" &&
+      column.props.aggregate !== "none"
+        ? { aggregate: column.props.aggregate }
+        : {}),
     }));
     const drawn = drawnAll.filter((column) => !column.selection);
     const authored = catalogTableColumnEntries(table.props);
@@ -2243,6 +2255,8 @@ export class CatalogPreviewSession {
           ? { sortEmptyValues: entry.sortEmptyValues }
           : {}),
         allowsSearching: entry.allowsSearching !== false,
+        ...(entry.grouped ? { defaultGrouped: true as const } : {}),
+        ...(entry.aggregate ? { aggregate: entry.aggregate } : {}),
       }),
       // (The row header among the authored Columns — a drawn Column's own role is among the
       //  drawn ones: with the header Column hidden another one is RAC's.)
@@ -2279,7 +2293,10 @@ export class CatalogPreviewSession {
     const table = this.currentRoot?.domInputs.get(tableId);
     const max = table?.props.maxSortColumns;
     return {
-      columns: this.tableColumns(tableId),
+      // (ADR-315 Phase 5 — a Column the author groups by is the grouping no slice shows.)
+      columns: this.tableColumns(tableId).map((column) =>
+        column.defaultGrouped ? { ...column, grouped: true } : column,
+      ),
       // (ADR-315 Phase 2 — several sorts only on a Table that allows them and whose rows' request
       //  carries the whole list: what it cannot carry is not accepted into the state, §4.3.1 — a
       //  write, a press and the browser's memory alike.)
@@ -2333,6 +2350,16 @@ export class CatalogPreviewSession {
           before.columnFilters === next.columnFilters &&
           before.search !== next.search,
       );
+    // (ADR-315 Phase 5 — a grouped Table's open groups: their rows are read out only while open.)
+    // (ADR-315 Phase 5 증분 5d — a tree's too: its record says which rows are open.)
+    else if (
+      before.expandedKeys !== next.expandedKeys &&
+      (this.tableGroupedNow(tableId) ||
+        catalogTableExpandedKeys(
+          this.currentRoot?.domInputs.get(tableId)?.props,
+        ) !== undefined)
+    )
+      this.readTableRows(tableId, next, "filtering", false);
     // (ADR-315 Phase 4 — a column slice: the Table's columns are projected again. Its rows are
     //  not read — the ones its records were resolved from, HC4.)
     else if (
@@ -2352,6 +2379,13 @@ export class CatalogPreviewSession {
       this.echoTableSort(tableId);
     if (before.columnWidths !== next.columnWidths && !this.resizing)
       this.echoTableWidths(tableId);
+  }
+  /** ADR-315 Phase 5 — whether a Table record is grouped now (its state's · its author's grouping). */
+  private tableGroupedNow(tableId: string): boolean {
+    return (
+      catalogTableGrouping(this.tableState(tableId), this.tableColumns(tableId))
+        .length > 0
+    );
   }
   /** A Table record resolved again for its column slices — its rows as they were read. */
   private projectTableColumns(tableId: string): void {
@@ -2474,7 +2508,9 @@ export class CatalogPreviewSession {
     const root = this.currentRoot;
     const column = root?.domInputs.get(columnId);
     if (!root || column?.ruleId !== "Column") return undefined;
-    let table = column.parentId ? root.domInputs.get(column.parentId) : undefined;
+    let table = column.parentId
+      ? root.domInputs.get(column.parentId)
+      : undefined;
     while (table && table.ruleId !== "Table")
       table = table.parentId ? root.domInputs.get(table.parentId) : undefined;
     if (!table) return undefined;
@@ -2556,7 +2592,12 @@ export class CatalogPreviewSession {
     const written = catalogColumnFilterCondition(kind, {
       ...draft,
       text,
-      picked: text === "" ? [] : catalogFilterPicksMany(draft.op) ? text.split(",") : draft.picked,
+      picked:
+        text === ""
+          ? []
+          : catalogFilterPicksMany(draft.op)
+            ? text.split(",")
+            : draft.picked,
     });
     const patch = catalogColumnFilterPatch(column, table, written);
     if (patch) this.setTableState(place.tableId, patch);
@@ -2853,6 +2894,14 @@ export class CatalogPreviewSession {
       this.echoing = false;
     }
   }
+  /**
+   * ADR-315 Phase 5 — the group rows RAC opened · closed (its `onExpandedChange`, their row keys):
+   * the Table's `expandedKeys`. A group's rows are read out only while it is open
+   * (`catalogGroupBoundRows`), so the rows are read again.
+   */
+  expandTableRows(tableId: string, keys: readonly string[]): void {
+    this.setTableState(tableId, { expandedKeys: [...keys] });
+  }
   pressTableSort(tableId: string, racKey: string, add = false): void {
     const columns = this.tableColumns(tableId);
     const column = columns.find((item) => item.racKey === racKey);
@@ -2923,11 +2972,13 @@ export class CatalogPreviewSession {
     if (!record) return undefined;
     const shape = this.tableShape(tableId);
     const allowsFiltering = authored || record.props.allowsFiltering === true;
+    const allowsGrouping = authored || record.props.allowsGrouping === true;
     // (ADR-315 Phase 4 증분 4c — a filter compares the Column's data field: its kind's comparisons
     //  the Table's rows' request carries. No field — an unbound Table, a role's column — none.)
-    const field = allowsFiltering
-      ? this.tableField(tableId, column.key)?.field
-      : undefined;
+    const field =
+      allowsFiltering || allowsGrouping
+        ? this.tableField(tableId, column.key)?.field
+        : undefined;
     return [
       {
         key: column.key,
@@ -2937,15 +2988,22 @@ export class CatalogPreviewSession {
         allowsResizing: record.props.allowsResizing === true,
         sortFirstDirection: column.sortFirstDirection,
         allowsFiltering,
-        filterOps: field
-          ? VIEW_COMPARISONS_BY_KIND[viewFieldKind(field.type)].filter(
-              (op) => !shape.filters || shape.filters(op),
-            )
-          : [],
+        // (ADR-315 Phase 5 — a group of a data field: a bound Table's.)
+        allowsGrouping,
+        groupable: !!field,
+        filterOps:
+          field && allowsFiltering
+            ? VIEW_COMPARISONS_BY_KIND[viewFieldKind(field.type)].filter(
+                (op) => !shape.filters || shape.filters(op),
+              )
+            : [],
       },
       {
         shape,
-        state: { ...this.tableState(tableId), sort: this.tableSortNow(tableId) },
+        state: {
+          ...this.tableState(tableId),
+          sort: this.tableSortNow(tableId),
+        },
         allowsColumnReordering: table.props.allowsColumnReordering === true,
       },
     ];

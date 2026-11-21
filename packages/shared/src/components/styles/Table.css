@@ -813,3 +813,45 @@
    `highlightSelectionBorder`). Selection is Preview runtime state — the Canvas draws none. */
 @layer components {
 }
+
+/* ADR-315 Phase 5 — a grouped · nested row's cell in the Table's `treeColumn` (RAC expandable
+   rows — `CatalogTableCell`): the level's indent, then the expand button (RAC's
+   `Button slot="chevron"`, its name 「Expand」 · 「Collapse」 RAC's) or a blank of its size, then
+   the cell's content. S2 TableView's tree cell: 16 per level, the chevron one `1lh` square. */
+@layer components {
+  .react-aria-Cell .table-tree-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding-inline-start: calc(var(--table-tree-level, 0) * 16px);
+  }
+  .react-aria-Cell .table-tree-chevron {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1lh;
+    block-size: 1lh;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    outline: none;
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
+    & svg:dir(rtl) {
+      scale: -1 1;
+    }
+  }
+  /* (Descendant, not child: a virtual Table wraps each cell — RAC draws nested rows as siblings.) */
+  .react-aria-Row[data-expanded] .react-aria-Cell .table-tree-chevron svg {
+    rotate: 90deg;
+  }
+  .react-aria-Row:dir(rtl)[data-expanded] .react-aria-Cell .table-tree-chevron svg {
+    rotate: -90deg;
+  }
+}

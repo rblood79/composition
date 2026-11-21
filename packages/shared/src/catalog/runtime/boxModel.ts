@@ -2,6 +2,7 @@ import { BUTTON_ICON_ONLY_STYLES } from "@composition/rendering";
 import { pickerInvalidGlyph } from "../document/pickerTrigger";
 import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { catalogTreeCellGlyph } from "./tableTreeCell";
 import { catalogCurrentTextWeight } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { installedBaseFontFamily } from "./themeMaps";
 import { DEFAULT_FONT_FAMILY, GENERIC_FONT_FAMILIES } from "./fontDefaults";
@@ -151,6 +152,18 @@ export const CATALOG_SELECTION_PART_PADDING_END = 8;
 const length = (value: unknown): CatalogLength | undefined =>
   typeof value === "number" || typeof value === "string" ? value : undefined;
 
+/** A group's tree cell's start: its own and the expand button's room (`catalogTreeCellGlyph`). */
+function treeCellStart(
+  node: CatalogConsumerNode,
+  start: CatalogLength | undefined,
+): CatalogLength | undefined {
+  const glyph = catalogTreeCellGlyph(node);
+  if (!glyph) return start;
+  return typeof start === "number" || start === undefined
+    ? (start ?? 0) + glyph.reserve
+    : start;
+}
+
 export function catalogBoxModel(
   node: CatalogConsumerNode,
   authoredVisual: Readonly<Record<string, unknown>> = {},
@@ -261,10 +274,12 @@ export function catalogBoxModel(
         ? CATALOG_SELECTION_PART_PADDING_END
         : (length(node.derivedProps?._toastPaddingRight) ?? paddingX)),
     bottom: side("paddingBottom", paddingY),
-    // (295 후속 C9: S2 Toast's start · end hold its icon · close — `catalogToastEdges`.)
-    left: side(
-      "paddingLeft",
-      length(node.derivedProps?._toastPaddingLeft) ?? paddingX,
+    // (295 후속 C9: S2 Toast's start · end hold its icon · close — `catalogToastEdges`.
+    //  ADR-315 Phase 5: a group's tree cell keeps its expand button's room after its start —
+    //  `catalogTreeCellGlyph`.)
+    left: treeCellStart(
+      node,
+      side("paddingLeft", length(node.derivedProps?._toastPaddingLeft) ?? paddingX),
     ),
   };
   if (Object.values(padding).some((value) => value !== undefined))

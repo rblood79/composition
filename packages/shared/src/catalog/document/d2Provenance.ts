@@ -93,6 +93,10 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     allowsHiding: "composition",
     allowsPinning: "composition",
     allowsFiltering: "composition",
+    // ADR-315 Phase 5 — the Table's rows grouped by it · its group rows' aggregate.
+    defaultGrouped: "composition",
+    allowsGrouping: "composition",
+    aggregate: "composition",
   },
   // RAC ComboBoxState.open/close에 연결하는 저작 상태. RAC ComboBox props에는 없다.
   ComboBox: {

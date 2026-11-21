@@ -31,7 +31,9 @@ import {
   type LibraryToken,
   type TokenType,
   type ValueType,
+  VIEW_AGGREGATE_FNS,
   VIEW_COMPARISONS,
+  type ViewAggregateFn,
   type VisualField,
 } from "./types";
 import { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
@@ -1581,11 +1583,7 @@ function viewQuery(
       const path = `${at}.aggregates[${index}]`;
       const aggregate = object(raw, path);
       exact(aggregate, ["fn", "field", "as"], path);
-      if (
-        !["count", "sum", "mean", "min", "max", "applied"].includes(
-          aggregate.fn as string,
-        )
-      )
+      if (!VIEW_AGGREGATE_FNS.includes(aggregate.fn as ViewAggregateFn))
         invalid("UNKNOWN_AGGREGATE", `${path}.fn`);
       if (aggregate.fn === "applied" && aggregate.field !== undefined)
         invalid("AGGREGATE_FIELD_NOT_ALLOWED", `${path}.field`);
