@@ -416,6 +416,24 @@ export function sameBuildContext(
   );
 }
 
+/**
+ * Two contexts that differ only in where the parent puts the subtree (its position, command
+ * offset) and the clip it is under — the same parent, paint order, scroll owner and layer. A
+ * subtree recorded under the new one is a plain splice (`applyCommitSubtreeCommandPatch`
+ * `placedContext`).
+ */
+export function placementOnlyChange(
+  a: SubtreeBuildContext,
+  b: SubtreeBuildContext,
+): boolean {
+  return (
+    a.parentElementId === b.parentElementId &&
+    a.zOrderKey === b.zOrderKey &&
+    a.scrollContextKey === b.scrollContextKey &&
+    a.topLayerSubtree === b.topLayerSubtree
+  );
+}
+
 export interface SubtreePatchOutcome {
   readonly applied: boolean;
   readonly reason?: string;
@@ -438,8 +456,14 @@ export interface PlaceRegionInput {
   readonly onPath: (id: string) => boolean;
   /** Its rect changed in x · y only (size · engine input same, no descendant changed). */
   readonly movedOnly: (id: string) => boolean;
-  /** Record `id`'s subtree again under its stored context (the commit-lane splice). */
-  readonly patchSubtree: (id: string) => SubtreePatchOutcome;
+  /**
+   * Record `id`'s subtree again (the commit-lane splice) — under its stored context, or under
+   * `context` when its parent moved it or clips it differently (`placementOnlyChange`).
+   */
+  readonly patchSubtree: (
+    id: string,
+    context?: SubtreeBuildContext,
+  ) => SubtreePatchOutcome;
 }
 
 export interface PlaceRegionResult {
@@ -456,7 +480,12 @@ export interface PlaceRegionResult {
 
 type Plan =
   | { readonly kind: "none" }
-  | { readonly kind: "patch"; readonly id: string }
+  | {
+      readonly kind: "patch";
+      readonly id: string;
+      /** The new context a seed is recorded under (its parent moved it or clips it differently). */
+      readonly context?: SubtreeBuildContext;
+    }
   | {
       readonly kind: "translate";
       readonly id: string;
@@ -499,8 +528,16 @@ export function placeRegion(input: PlaceRegionInput): PlaceRegionResult {
       if (process.env.NODE_ENV === "development") renderCounters[reason] += 1;
       return patch;
     };
-    if (input.isSeed(id))
-      return same ? patch : fallback("placeFallbackSeedContext");
+    // A seed whose parent moved it or clips it differently is recorded under that new context —
+    // not at the nearest unchanged ancestor (its siblings are placed under the same context).
+    // **Why (2026-11-22)**: a page frame as tall as its content clips its children; a height
+    // change moved every clip, so an edit recorded the whole page again and drew the screen in full.
+    if (input.isSeed(id)) {
+      if (same) return patch;
+      return own && placementOnlyChange(own, context)
+        ? { kind: "patch", id, context }
+        : fallback("placeFallbackSeedContext");
+    }
     const layout = input.layoutMap.get(id);
     const translate = (): Plan | null => {
       if (!layout) return patch;
@@ -577,7 +614,7 @@ export function placeRegion(input: PlaceRegionInput): PlaceRegionResult {
   const apply = (step: Plan) => {
     if (failure || step.kind === "none") return;
     if (step.kind === "patch") {
-      const result = input.patchSubtree(step.id);
+      const result = input.patchSubtree(step.id, step.context);
       if (!result.applied) {
         failure = result.reason ?? "patch-rejected";
         return;

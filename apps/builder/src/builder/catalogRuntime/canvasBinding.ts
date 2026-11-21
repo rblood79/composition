@@ -29,6 +29,7 @@ import {
   buildSubtreeCommandStream,
   createCommandReader,
   publishPatchedCommandStreamSnapshot,
+  type SubtreeBuildContext,
 } from "../workspace/canvas/skia/renderCommands";
 import { applyCommitSubtreeCommandPatch } from "../workspace/canvas/skia/subtreeCommandPatch";
 import {
@@ -2822,11 +2823,12 @@ function bindInColorMode(
     const recordSubtree = (
       id: string,
       pageLayer = false,
+      placed?: SubtreeBuildContext,
     ): {
       patch: SubtreePatchOutcome;
       replacement?: ReturnType<typeof buildSubtreeCommandStream>;
     } => {
-      const context = stream.subtreeBuildContextByElement.get(id);
+      const context = placed ?? stream.subtreeBuildContextByElement.get(id);
       if (!context)
         return { patch: { applied: false, reason: "subtree-context" } };
       revision += 1;
@@ -2848,6 +2850,7 @@ function bindInColorMode(
           revision,
           canonicalRevision: stream.baseCanonicalRevision,
           pageLayer,
+          placedContext: placed !== undefined,
         }),
         replacement,
       };
@@ -3411,8 +3414,9 @@ function bindInColorMode(
       const patchSubtree = (
         id: string,
         pageLayer = false,
+        placed?: SubtreeBuildContext,
       ): SubtreePatchOutcome => {
-        const { patch, replacement } = recordSubtree(id, pageLayer);
+        const { patch, replacement } = recordSubtree(id, pageLayer, placed);
         if (!replacement) return patch;
         subtreeNodeVisits += replacement.subtreeSpans.size;
         if (!patch.applied) return patch;
@@ -3512,7 +3516,7 @@ function bindInColorMode(
                 isSeed: (node) => seeds.has(node),
                 onPath: (node) => onPath.has(node),
                 movedOnly,
-                patchSubtree,
+                patchSubtree: (id, placed) => patchSubtree(id, false, placed),
               })
             : patchSubtree(id);
         if (

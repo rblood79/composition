@@ -77,6 +77,12 @@ export interface ApplyCommitSubtreeCommandPatchInput {
    * are not refused. Never while a drag layer is up (its subtree is drawn outside the page).
    */
   readonly pageLayer?: boolean;
+  /**
+   * `replacement` was recorded under a new context its parent gave it (`placeRegion` — moved, or
+   * under another clip): its root clip may differ from the stream's. The caller places the rest of
+   * that clip's subtree in the same region.
+   */
+  readonly placedContext?: boolean;
 }
 
 export interface CommitSubtreeCommandPatchResult {
@@ -558,6 +564,7 @@ export function applyCommitSubtreeCommandPatch(
   const currentRootClip = current.clipContextByElement.get(rootId);
   const replacementRootClip = replacement.clipContextByElement.get(rootId);
   if (
+    !input.placedContext &&
     (currentRootClip !== undefined || replacementRootClip !== undefined) &&
     !sameClipRect(currentRootClip, replacementRootClip)
   ) {

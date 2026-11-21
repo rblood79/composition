@@ -686,13 +686,13 @@ describe("ADR-264 placeRegion — 경로 자기 patch + 옮기기 = 처음부터
             old.height === now.height
           );
         },
-        patchSubtree: (id) => {
+        patchSubtree: (id, context) => {
           revision += 1;
           const replacement = buildSubtreeCommandStream({
             rootId: id,
             childrenMap: children,
             layoutMap: layout,
-            context: stream.subtreeBuildContextByElement.get(id)!,
+            context: context ?? stream.subtreeBuildContextByElement.get(id)!,
             revision: {
               presentationRevision: revision,
               baseCanonicalRevision: 0,
@@ -704,6 +704,7 @@ describe("ADR-264 placeRegion — 경로 자기 patch + 옮기기 = 처음부터
             rootId: id,
             revision,
             canonicalRevision: 0,
+            placedContext: context !== undefined,
           });
         },
       });
@@ -726,8 +727,11 @@ describe("ADR-264 placeRegion — 경로 자기 patch + 옮기기 = 처음부터
       translatedTotal += result.translated.length;
       clearSkiaRegistry();
     }
-    // 대부분은 seed 만 다시 기록한다 (경로 문맥이 바뀐 seed 는 가까운 조상에서 다시 기록).
-    expect(selfPatched).toBeGreaterThan(fellBack);
+    // 다시 기록하는 것은 seed 뿐이다 — 부모가 옮기거나 clip 을 바꾼 seed 도 새 문맥으로 자기만
+    // 다시 기록한다. **Why (2026-11-22)**: 가까운 조상으로 물러나면 내용만큼 자라는 page 프레임
+    // (overflow clip) 의 높이가 바뀔 때 page 전체를 다시 기록했다 — 그 안 어디든 hit bounds 밖
+    // paint 가 있으면 화면 전체를 다시 그렸다 (ratchet nested-flex edit `contentFullRenders` 0 → 6).
+    expect(fellBack).toBe(0);
     expect(translatedTotal).toBeGreaterThan(500);
   });
 });

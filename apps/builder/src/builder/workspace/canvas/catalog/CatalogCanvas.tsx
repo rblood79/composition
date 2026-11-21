@@ -1035,10 +1035,13 @@ export function CatalogCanvas({
         }
         // A page grid edit (gap, columns, direction) moves page frames without a record delta,
         // and a rename changes no drawn record: the headers follow, a moved frame is placed
-        // (ADR-264 — it binds again only when a frame resized).
+        // (ADR-264 — it binds again only when a frame resized). A frame that only grew with its
+        // content moved no page: the patch's damage above already covers its old and new box.
+        // **Why (2026-11-22)**: a page as tall as its content (8ec1eed18) drew the screen in full
+        // on every edit that changed its height (ratchet `contentFullRenders` 0 → 6 ~ 9).
         if (publishHeaders() && synced.kind !== "rebound") {
-          scene.pageGridChanged();
-          renderer.invalidateContent();
+          if (scene.pageGridChanged().kind !== "unchanged")
+            renderer.invalidateContent();
           overlayVersion += 1;
           cellsVersion += 1;
         }
