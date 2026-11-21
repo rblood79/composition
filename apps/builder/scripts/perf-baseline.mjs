@@ -757,6 +757,9 @@ export async function seedDocument(
               track: true,
               children: itemIds,
               sizing: { width: 240, height: 300 },
+              // ListBox 의 기본 overflow 는 2026-11-13 (`268503f1a`) 에 빠졌다 — 스크롤은 저작한
+              // overflow 로만. 이 부류의 대상이 스크롤 상자이므로 fixture 가 직접 준다.
+              visual: { overflow: "auto" },
             },
             ...itemIds.map((id) => ({
               id,

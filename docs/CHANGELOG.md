@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 편집 성능 회귀 수리 — page 프레임 두 상자 · 내용만큼 높이 뒤 엔진이 page 전체를 다시 풀던 것] - 2026-11-21
+
+### Fixed
+
+- **page 안 요소 하나를 고칠 때 엔진이 그 page 전체를 다시 계산함 (8ec1eed18 「page 프레임 = body 그대로」 회귀)** — page 프레임 높이가 내용만큼 (`fit-content`) 이 된 뒤 page 격자의 셀 높이가 컨테이너 높이와 늘 달라, 셀 배치가 프레임 서브트리 전체를 dirty 로 되살렸다 (2026-07-27 처방 — 그때는 증분 skip 키가 dirty 뿐이었다). 되살리기를 지우고 available 키에 맡긴다. 600 요소 nested-flex 편집 1회 1,734 → 74 solve (회귀 전 73) · 하니스 ratchet `engine.solveVisits` nested-flex edit 36,258 → 1,254 · app-pages edit 34,920 → 15,696 (기준 1,284 · 15,576).
+- **absolute 자식이 많은 page 의 편집 · 끌기 · 테마 전환이 엔진 계산을 두 번 함 (5f0335963 page body 두 상자 회귀)** — 내용 상자 (명시 `position: static`) 가 absolute 자식을 자기 상자로 먼저 풀고 프레임 (containing block) 이 다시 풀어, 한 칸 skip 캐시가 번갈아 덮였다. 그 자식을 놓을 positioned 조상이 있으면 내용 상자는 풀지 않는다. ratchet `engine.solveVisits` 600 edit 18,076 → 9,076 · 60 drag 125 → 65 · theme-switch 16,899 → 8,499.
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid` 셀 배치 · `col_contribution` · `absolutes_placed_by_ancestor`) · 회귀 시험 4 (방문 수 2 — 수정 전 RED 146/398 · 43/163, 증분 = 처음부터 지은 결과 2) · 하니스 `perf-baseline.mjs` scroll-boxes fixture 가 ListBox 에 `overflow: auto` 를 직접 준다 (268503f1a 로 기본 overflow 가 빠져 ratchet 이 시작도 못 했다)
+- 남은 것: 편집으로 page 프레임 높이가 바뀌면 프레임 clip 이 바뀌어 page 전체를 다시 기록하고 화면 전체를 다시 그린다 (ratchet `contentFullRenders` 0 → 6 ~ 9 · `patchMovedOnlyCommands`) — 별도 작업.
+
 ## [ADR-315 Phase 7 — 고정 기능이 없는 Table 의 스크롤 속도 회복 · Worker 필요 없음 판정] - 2026-11-21
 
 ### Fixed
