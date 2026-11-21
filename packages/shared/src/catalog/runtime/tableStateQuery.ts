@@ -16,12 +16,14 @@
  * sent and made up for here (the server cuts the page: rows a second sort would have brought are
  * not in the answer). What the request cannot carry is not accepted into the state.
  */
-import type {
-  DataFieldId,
-  ViewComparison,
-  ViewCondition,
-  ViewQuery,
-  ViewSort,
+import {
+  VIEW_EXTENDED_AGGREGATES,
+  type DataFieldId,
+  type ViewAggregateFn,
+  type ViewComparison,
+  type ViewCondition,
+  type ViewQuery,
+  type ViewSort,
 } from "../document/types";
 // (Not from `view/serialize`: the Builder's panels read this module on the first screen, and the
 //  serializer brings the row intake with it — `tableStateQueryImports.static.test.ts`.)
@@ -64,14 +66,7 @@ export function catalogRowSlicesView(
   schema: readonly { id?: string; key?: string }[],
 ): CatalogTableStateView | undefined {
   if (!slices) return undefined;
-  const fieldOf = (key: string): DataFieldId | undefined => {
-    const field = schema.find((item) => item.id && item.key === key);
-    return field
-      ? ((field.id!.startsWith("data:field:")
-          ? field.id!
-          : `data:field:${field.id}`) as DataFieldId)
-      : undefined;
-  };
+  const fieldOf = (key: string) => catalogFieldIdOf(schema, key);
   const sort: ViewSort[] = [];
   for (const entry of slices.sorts ?? []) {
     const field = fieldOf(entry.key);
@@ -108,6 +103,19 @@ export function catalogRowSlicesView(
     ...(sort.length ? { sort } : {}),
     ...(where.length ? { where } : {}),
   };
+}
+
+/** The field id of a key in `schema` (the rows' fields), as a view names it. */
+export function catalogFieldIdOf(
+  schema: readonly { id?: string; key?: string }[],
+  key: string,
+): DataFieldId | undefined {
+  const field = schema.find((item) => item.id && item.key === key);
+  return field
+    ? ((field.id!.startsWith("data:field:")
+        ? field.id!
+        : `data:field:${field.id}`) as DataFieldId)
+    : undefined;
 }
 
 /** (Phase 2's reading of the sort alone.) */
@@ -197,15 +205,31 @@ export interface CatalogTableRowService {
     readonly searchParam?: unknown;
     /** `suffix`: the comparisons it names a parameter suffix for (absent = the default table). */
     readonly suffixes?: Readonly<Record<string, unknown>>;
+    /** ADR-315 Phase 5 증분 5g — `body`: the server answers `keys` (`only` · `except`). */
+    readonly keyRows?: unknown;
+    /** ADR-315 Phase 5 증분 5g — `body`: the server answers `groupOf` (a group's rows). */
+    readonly groupRows?: unknown;
+    /** ADR-315 사용자 결정 4 — `body`: the server runs the aggregates added after ADR-291. */
+    readonly extendedAggregates?: unknown;
+    /** ADR-315 Phase 5 증분 5g — `suffix`: the parameters of the keys to answer · to leave out. */
+    readonly keyOnlyParam?: unknown;
+    readonly keyExceptParam?: unknown;
   };
 }
 
 /**
  * A slice a Table state holds that a request may have to carry: the sort, the search, or a column
- * filter of a comparison.
+ * filter of a comparison. ADR-315 Phase 5 증분 5g — and the slices that read every row: a
+ * grouping, a totals row, a tree (its rows' child rows by a parent field · a children field).
  */
 export type CatalogTableServedSlice =
-  "sort" | "search" | { readonly filter: ViewComparison };
+  | "sort"
+  | "search"
+  | { readonly filter: ViewComparison }
+  | "grouping"
+  | "totals"
+  | "tree"
+  | "pins";
 
 /** What of a slice a Table accepts into its state. */
 export type CatalogTableSliceAccepts =
@@ -216,7 +240,22 @@ export type CatalogTableSliceAccepts =
     }
   | {
       readonly accepts: "none";
-      readonly reason: "suffixNoSearch" | "suffixComparison";
+      readonly reason:
+        | "suffixNoSearch"
+        | "suffixComparison"
+        /** ADR-315 Phase 5 증분 5g — the endpoint names no request for rows by key (pins). */
+        | "noKeyRows";
+    }
+  /**
+   * ADR-315 Phase 5 증분 5g — accepted, run here over every row: the collection loads whole
+   * (`VIEW_LOCAL_LOAD_CAP`; past it the Table shows nothing and says so) — `rowsSplit` · the
+   * endpoint's pages split what a grouping · a totals row reads; `treeIndex` · a tree's rows are
+   * indexed by their parent across every row (§4.3.1).
+   */
+  | {
+      readonly accepts: "loaded";
+      /** `aggregateNotRun` — an aggregate the server does not run (사용자 결정 4). */
+      readonly reason: "rowsSplit" | "treeIndex" | "aggregateNotRun";
     };
 
 /**
@@ -233,9 +272,42 @@ export type CatalogTableSliceAccepts =
 export function catalogTableSliceServable(
   service: CatalogTableRowService,
   slice: CatalogTableServedSlice,
+  /** A grouping's · a totals row's aggregates (the Columns' 「Aggregate」). */
+  aggregates: readonly unknown[] = [],
 ): CatalogTableSliceAccepts {
   if (!service.remote) return { accepts: "whole" };
+  // (ADR-315 Phase 5 증분 5g — the rows a server pages are part of the data: a grouping · a
+  //  totals row · a tree over them is over every row, loaded here. Never the loaded part's.)
+  // (… unless the endpoint answers a group's rows (`groupOf`): the groups · the totals are its —
+  //  a group query, and an open group's rows a request of their own, §4.3.2.)
+  // (A tree format — not `suffix` · not `none`, as the serializer reads it.)
+  const tree =
+    !!service.format &&
+    service.format.kind !== "suffix" &&
+    service.format.kind !== "none";
+  if (slice === "grouping" || slice === "totals")
+    return !tree || service.format!.groupRows !== true
+      ? { accepts: "loaded", reason: "rowsSplit" }
+      : service.format!.extendedAggregates !== true &&
+          aggregates.some((fn) =>
+            VIEW_EXTENDED_AGGREGATES.has(fn as ViewAggregateFn),
+          )
+        ? { accepts: "loaded", reason: "aggregateNotRun" }
+        : { accepts: "whole" };
+  if (slice === "tree") return { accepts: "loaded", reason: "treeIndex" };
   const suffix = service.format?.kind === "suffix";
+  // (ADR-315 Phase 5 증분 5g — a pinned row may be on another page: the pinned rows are a request
+  //  of their own (`keys.only`) and the page leaves them out (`keys.except`) — only where the
+  //  endpoint names those requests, §4.3.3. Never a condition on the key field: a key differing
+  //  in case only would be pinned with it.)
+  if (slice === "pins") {
+    const format = service.format;
+    const named = (value: unknown) => typeof value === "string" && !!value;
+    return (tree && format!.keyRows === true) ||
+      (suffix && named(format!.keyOnlyParam) && named(format!.keyExceptParam))
+      ? { accepts: "whole" }
+      : { accepts: "none", reason: "noKeyRows" };
+  }
   if (slice === "sort") {
     if (service.readsSortTemplate)
       return { accepts: "one", reason: "sortTemplate" };

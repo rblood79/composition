@@ -25,6 +25,7 @@
  * (`GROUP` · `load: "all"`), the grouping runs here.
  */
 import { outgoingFieldValue } from "../intake/outgoing";
+import { resolveField } from "../resolveBoundCollection";
 import {
   VIEW_EXTENDED_AGGREGATES,
   type DataFieldPath,
@@ -86,6 +87,51 @@ export interface EndpointQuerySerialization {
    * every row is loaded and grouped here (`AGGREGATE`), never sent for a server to ignore.
    */
   extendedAggregates?: boolean;
+  /**
+   * ADR-315 Phase 5 증분 5g — `body`: the server answers a request's `keys` — `{ field, only }`
+   * the rows whose key field is exactly one of the values, `{ field, except }` the rows whose key
+   * is none of them (breakdown §4.3.3 — an identity, not a condition: no case folding). Absent =
+   * not sent (a server that ignores an item it does not know would answer every row).
+   */
+  keyRows?: boolean;
+  /**
+   * ADR-315 Phase 5 증분 5g — `suffix`: the parameter of the keys to answer (`keys.only` — one per
+   * key) and of the keys to leave out (`keys.except`). Both named = rows by key are sent.
+   */
+  keyOnlyParam?: string;
+  keyExceptParam?: string;
+  /**
+   * ADR-315 Phase 5 증분 5g — `body`: the server answers a request's `groupOf` — `{ by, values }`
+   * the rows its own grouping by `by` puts in the group of `values` (breakdown §4.3.2 · §4.3.3:
+   * a group's rows, and a group's next-level groups). Absent = a Table's grouping · totals row
+   * over a server's pages loads every row and runs here.
+   */
+  groupRows?: boolean;
+}
+
+/** ADR-315 Phase 5 증분 5g — a group's rows in a request (`body.groupOf`): its fields and values. */
+export interface SerializedGroupOf {
+  /** The grouped fields' keys, outer first. */
+  by: readonly string[];
+  /** The group's values as its group query answered them (`null` is not `""`). */
+  values: readonly unknown[];
+}
+
+/** ADR-315 Phase 5 증분 5g — what a request asks for besides its view (§4.3.3 — identities). */
+export interface SerializedRequestItems {
+  keys?: SerializedKeyRows;
+  groupOf?: SerializedGroupOf;
+}
+
+/**
+ * ADR-315 Phase 5 증분 5g — rows by key in a request (`body.keys` · the key parameters): the item
+ * keys as the key field's values (by its type — a number key `5` is not the text `"5"`).
+ */
+export interface SerializedKeyRows {
+  /** The key field's key. */
+  field: string;
+  only?: readonly string[];
+  except?: readonly string[];
 }
 
 export { VIEW_SEARCH_CONDITION };
@@ -118,6 +164,10 @@ export type SerializationWarningCode =
   | "GROUP"
   /** ADR-315 Phase 2 — several sorts in a `suffix` format that takes one: only the first is sent. */
   | "MULTI_SORT"
+  /** ADR-315 Phase 5 증분 5g — rows by key the endpoint names no request for: not sent. */
+  | "KEYS"
+  /** ADR-315 Phase 5 증분 5g — a group's rows the endpoint names no request for: not sent. */
+  | "GROUP_OF"
   /**
    * ADR-315 사용자 결정 4 — a `body` grouping with an aggregate the endpoint has not said it runs
    * (`extendedAggregates`): the grouping is not sent, every row is loaded and grouped here.
@@ -266,6 +316,20 @@ export function computedViewUses(
 }
 
 /**
+ * ADR-315 Phase 5 증분 5g — an item key as its key field's value: the field's type reads it (a
+ * number field's `"5"` is `5`, a boolean's `"true"` is `true`); any other is the text.
+ */
+function keyFieldValue(field: ViewRunField | undefined, key: string): unknown {
+  if (field?.type === "number") {
+    const number = Number(key);
+    return key.trim() !== "" && Number.isFinite(number) ? number : key;
+  }
+  if (field?.type === "boolean" && (key === "true" || key === "false"))
+    return key === "true";
+  return key;
+}
+
+/**
  * The views of a binding (the last is the bound one; a derived view's sources first) as one
  * request. Only the bound view chain's conditions and the last sort are sent. `page` = the load's
  * cursor (a `suffix` page number · a `body` cursor) — the format's page parameters carry it.
@@ -275,7 +339,14 @@ export function serializeViewQueries(
   input: Pick<ViewRunInput, "queries" | "schema" | "resolve">,
   method = "GET",
   page?: { cursor?: string },
+  /**
+   * ADR-315 Phase 5 증분 5g — rows by key (a Table's pinned rows · the page without them) and a
+   * group's rows (an open group's children).
+   */
+  items?: SerializedRequestItems,
 ): SerializedViewQuery {
+  const keys = items?.keys;
+  const groupOf = items?.groupOf;
   const warnings: SerializationWarning[] = [];
   const params: [string, string][] = [];
   if (serialization.kind === "none") return { params, warnings };
@@ -440,9 +511,7 @@ export function serializeViewQueries(
     const unrun = grouped ? unrunAggregates(serialization, queries) : [];
     warnings.push(...unrun);
     const group =
-      grouped && !unrun.length
-        ? bodyGroupOf(queries, input.schema)
-        : undefined;
+      grouped && !unrun.length ? bodyGroupOf(queries, input.schema) : undefined;
     const pageBody =
       page?.cursor !== undefined || serialization.pageSize !== undefined
         ? {
@@ -452,9 +521,52 @@ export function serializeViewQueries(
               : {}),
           }
         : undefined;
+    // (ADR-315 Phase 5 증분 5g — rows by key: `keys` beside `where`; the pinned rows' request is
+    //  those rows only — no page cuts it.)
+    const keyed = keys && (keys.only ? true : !!keys.except?.length);
+    if (keyed && serialization.keyRows !== true)
+      warnings.push({ code: "KEYS" });
+    const keyField = keys
+      ? (resolveField(input.schema, keys.field) ?? undefined)
+      : undefined;
+    const keysBody =
+      keyed && serialization.keyRows === true
+        ? {
+            field: keys!.field,
+            ...(keys!.only
+              ? {
+                  only: keys!.only.map((key) =>
+                    fieldJson(keyField, keyFieldValue(keyField, key)),
+                  ),
+                }
+              : {
+                  except: keys!.except!.map((key) =>
+                    fieldJson(keyField, keyFieldValue(keyField, key)),
+                  ),
+                }),
+          }
+        : undefined;
+    // (ADR-315 Phase 5 증분 5g — a group's rows: `groupOf` beside `where` — the server's own
+    //  grouping decides, values as the group query gave them.)
+    if (groupOf && serialization.groupRows !== true)
+      warnings.push({ code: "GROUP_OF" });
+    const groupOfBody =
+      groupOf && serialization.groupRows === true
+        ? {
+            by: groupOf.by,
+            values: groupOf.values.map((value, index) =>
+              fieldJson(
+                resolveField(input.schema, groupOf.by[index]) ?? undefined,
+                value,
+              ),
+            ),
+          }
+        : undefined;
     return {
       params,
       body: {
+        ...(keysBody ? { keys: keysBody } : {}),
+        ...(groupOfBody ? { groupOf: groupOfBody } : {}),
         ...(groups.length
           ? {
               where:
@@ -468,7 +580,7 @@ export function serializeViewQueries(
             ? { sort: sorts }
             : {}),
         ...(group ? { group } : {}),
-        ...(pageBody ? { page: pageBody } : {}),
+        ...(pageBody && !keys?.only ? { page: pageBody } : {}),
         total: true,
       },
       warnings,
@@ -494,13 +606,32 @@ export function serializeViewQueries(
         .join(","),
     ]);
   }
-  if (serialization.pageSize !== undefined) {
+  // (ADR-315 Phase 5 증분 5g — rows by key: a parameter a key, the endpoint's names — the pinned
+  //  rows' request is those rows only, no page.)
+  const keyField = keys
+    ? (resolveField(input.schema, keys.field) ?? undefined)
+    : undefined;
+  const keyParam = keys?.only
+    ? serialization.keyOnlyParam
+    : serialization.keyExceptParam;
+  const keyList = keys?.only ?? keys?.except ?? [];
+  if (keys && (keys.only || keyList.length)) {
+    if (!keyParam) warnings.push({ code: "KEYS" });
+    else
+      for (const key of keyList)
+        params.push([
+          keyParam,
+          fieldText(keyField, keyFieldValue(keyField, key)),
+        ]);
+  }
+  if (serialization.pageSize !== undefined && !(keys?.only && keyParam)) {
     params.push([serialization.pageParam ?? "_page", page?.cursor ?? "1"]);
     params.push([
       serialization.limitParam ?? "_limit",
       String(serialization.pageSize),
     ]);
   }
+  if (groupOf) warnings.push({ code: "GROUP_OF" });
   // (ADR-291 Decision 6 — a flat parameter list has no grouping: every row, grouped here.)
   if (grouped) {
     warnings.push({ code: "GROUP" });

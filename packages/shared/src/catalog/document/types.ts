@@ -190,7 +190,7 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      `pagesOf` 와 같은 연결). 옛 74 문서도 모양은 그대로지만 번호를 올린 계약이라 열리지 않는다.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 75 as const;
+export const LIBRARY_CONTRACT_VERSION = 76 as const;
 
 export type EntryKind =
   | "project"

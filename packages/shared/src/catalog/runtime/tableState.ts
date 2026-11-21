@@ -121,6 +121,12 @@ export interface CatalogTableShape {
   readonly search?: boolean;
   /** Whether the Table takes a column filter of a comparison (absent = every comparison). */
   readonly filters?: (op: ViewComparison) => boolean;
+  /**
+   * ADR-315 Phase 5 증분 5g — `false` = the Table pins no row: its rows are a server's pages and
+   * the endpoint names no request by key (`catalogTableSliceServable` 「pins」 — §4.3.1). Absent =
+   * it does.
+   */
+  readonly rowPins?: boolean;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -235,7 +241,11 @@ function sliceOf(
       const authored = shape.columns
         .filter((column) => column.grouped)
         .map((column) => column.key);
-      return same(list, authored) ? null : list.length || authored.length ? list : null;
+      return same(list, authored)
+        ? null
+        : list.length || authored.length
+          ? list
+          : null;
     }
     case "columnOrder": {
       const list = columns(value);
@@ -298,6 +308,8 @@ function sliceOf(
     }
     case "pinnedRows": {
       if (!isRecord(value)) return undefined;
+      // (A Table whose rows' request cannot ask for rows by key pins none.)
+      if (shape.rowPins === false) return null;
       const top = strings(value.top) ?? [];
       const bottom = (strings(value.bottom) ?? []).filter(
         (key) => !top.includes(key),

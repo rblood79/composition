@@ -2389,6 +2389,10 @@ const catalog: TranslationKeys = {
     apiQuery_sortParam: "정렬 필드",
     apiQuery_orderParam: "정렬 방향",
     apiQuery_searchParam: "표 검색어",
+    apiQuery_keyOnlyParam: "고정 행 (key)",
+    apiQuery_keyExceptParam: "뺄 행 (key)",
+    apiQueryKeyRows: "key 로 행 조회 받기 (keys.only · keys.except)",
+    apiQueryGroupRows: "묶음의 행 조회 받기 (groupOf)",
     apiQueryMultiSort: "여러 정렬 받기 (쉼표 목록)",
     apiQueryExtendedAggregates: "중앙값 · 고유 값 · 범위 · 처음 · 끝 집계 받기",
     apiQueryViews: "이 collection 을 읽는 데이터 보기",
@@ -2406,6 +2410,8 @@ const catalog: TranslationKeys = {
     apiQueryWarnMULTI_VIEW: "서로 다른 보기 여럿 — 요청에 싣지 않는다",
     apiQueryWarnMULTI_SORT:
       "정렬 여러 개 — 이 endpoint 는 하나만 받는다. 첫 정렬만 보낸다",
+    apiQueryWarnKEYS:
+      "key 로 행 조회 — 이 endpoint 는 그 요청을 받지 않는다. 보내지 않는다",
     apiQueryWarnGROUP:
       "묶기 · 집계는 파라미터로 보낼 수 없다 — 전체 행을 불러와 ({cap} 행까지) 여기서 묶는다",
     apiQueryWarnAGGREGATE:
@@ -2668,6 +2674,8 @@ const catalog: TranslationKeys = {
     tableColumnChooserLabel: "열",
     tableTotalsRow: "합계 행",
     tableDetailRow: "상세 행",
+    tableRowPinsRefused:
+      "이 endpoint 는 행을 쪽으로 나눠 주고 key 로 행을 조회하는 요청을 받지 않습니다 — 표가 행을 고정하지 않습니다. endpoint 조회 형식에서 「key 로 행 조회 받기」 를 켜거나 key 파라미터를 적으세요.",
     tableSearchRefused_suffixNoSearch:
       "이 endpoint 는 검색어를 받지 않습니다 — 표 검색이 동작하지 않습니다. endpoint 조회 형식의 「표 검색어」 에 파라미터 이름을 적으세요.",
     tableSearchFuzzyServed:
@@ -3778,6 +3786,8 @@ const formattedMessages: Record<
     `${String(args?.total ?? 0)}행 중 ${String(args?.count ?? 0)}행이 ${String(args?.type ?? "")} 값이 아닙니다.`,
   "datatable.fieldAdded": (args) =>
     `필드 "${String(args?.key ?? "")}" 를 추가했습니다.`,
+  "dataView.tableWholeRows": (args) =>
+    `이 endpoint 는 행을 쪽으로 나눠 줍니다 — 묶기 · 합계 · 계층은 표가 모든 행 (최대 ${String(args?.cap ?? "")} 행) 을 불러와 여기서 계산합니다. 넘으면 행을 보이지 않습니다.`,
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,

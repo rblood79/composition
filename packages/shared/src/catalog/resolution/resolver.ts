@@ -223,6 +223,11 @@ export interface CatalogBoundRow {
     readonly count: number;
     readonly depth: number;
     readonly expanded: boolean;
+    /**
+     * ADR-315 Phase 5 증분 5g — the rows a server's answer to this group's rows has when it is not
+     * the group's count (asked again once, it still differs — §4.3.3: said, never passed quietly).
+     */
+    readonly mismatch?: number;
   };
   /** ADR-315 Phase 5 — the child a collapsed group holds in place of its rows (never drawn). */
   placeholder?: true;
@@ -317,6 +322,13 @@ export type CatalogBoundRows = readonly CatalogBoundRow[] & {
    * `parentId`): a Table reads its rows again as a tree (`CatalogRowSlices.tree`).
    */
   readonly nested?: true;
+  /**
+   * ADR-315 Phase 5 증분 5g — the rows' request cannot ask for rows by key (a server's pages on an
+   * endpoint that names no such request): a Table of them pins no row (`catalogTableSliceServable`).
+   */
+  readonly pinsRefused?: true;
+  /** ADR-315 Phase 5 증분 5g — the server's pinned rows are more than the keys pinned (§4.3.3). */
+  readonly pinMismatch?: true;
 };
 /**
  * ADR-284 Decision 3 — what a view's result covers: `matched` rows of `loaded` source rows (before
@@ -2829,7 +2841,12 @@ export function resolveCatalogNode(
         props.children =
           // (ADR-315 Phase 5 — a group row's grouped cell: its value and its row count.)
           group
-            ? `${tableCellText(ownedRow.values[cellField])} (${group.count})`
+            ? `${tableCellText(ownedRow.values[cellField])} (${
+                // (ADR-315 Phase 5 증분 5g — a server's group whose rows' answer is not its count.)
+                group.mismatch !== undefined
+                  ? `${group.count} ≠ ${group.mismatch}`
+                  : group.count
+              })`
             : tableCellText(ownedRow.values[cellField]);
         // (The Builder's Canvas: its top group's cell — the tree column's (`_treeColumn`) — draws
         //  the expand button the DOM's RAC Cell draws (`CatalogTableCell`), closed. The DOM reads
@@ -3098,11 +3115,11 @@ export function resolveCatalogNode(
             rowSlices?.groups,
             shownSet,
           ),
-          // (Rows a server answered with the Table state are its page — a pinned row of another
-          //  page is a second query, 5g: no row menu yet.)
+          // (ADR-315 Phase 5 증분 5g — rows whose request cannot ask for rows by key: a pinned
+          //  row of another page could not be shown — no row menu.)
           !!groupedBy ||
             nestedNow ||
-            !!(rowSet as CatalogBoundRows | undefined)?.view?.served,
+            !!(rowSet as CatalogBoundRows | undefined)?.pinsRefused,
           shownSet,
         );
       };

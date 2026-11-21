@@ -44,7 +44,10 @@ import {
   type CatalogRowSlices,
   type CatalogRowTree,
 } from "./tableRowSlices";
-import { catalogGroupBoundRows } from "./tableGroupRows";
+import {
+  catalogGroupBoundRows,
+  catalogServedGroupBoundRows,
+} from "./tableGroupRows";
 import type {
   CatalogReader,
   DataBindingRef,
@@ -354,7 +357,18 @@ export function catalogBoundRows(
     kind,
     limit,
     start,
-    ref.query?.served?.state ? undefined : ref.query?.sort ? unsorted : slices,
+    ref.query?.served?.state
+      ? // (ADR-315 Phase 5 증분 5g — what of the slices a server answered: its pinned rows around
+        //  its page, its groups, its totals row.)
+        servedSlicesOf(slices, computedRows)
+      : ref.query?.sort
+        ? unsorted
+        : slices?.pins?.rows
+          ? {
+              ...slices,
+              pins: { ...slices.pins, rows: computedRows(slices.pins.rows) },
+            }
+          : slices,
   );
   // (The server answered in the Table's sort: the rows say so — their reader does not sort them.)
   if (shown && sort?.length && ref.query?.served?.state)
@@ -908,6 +922,26 @@ export function catalogPinnedRowOrder(
   }
   return { top, bottom, rest };
 }
+/**
+ * ADR-315 Phase 5 증분 5g — the slices that stand on a server's answer to a Table's state: its
+ * pinned rows' answer, its groups' answers, its totals row (the rest the request carried).
+ */
+function servedSlicesOf(
+  slices: CatalogRowSlices | undefined,
+  computedRows: (rows: readonly unknown[]) => readonly unknown[],
+): CatalogRowSlices | undefined {
+  if (!slices) return undefined;
+  const out: { -readonly [K in keyof CatalogRowSlices]: CatalogRowSlices[K] } =
+    {};
+  if (slices.pins?.rows)
+    out.pins = { ...slices.pins, rows: computedRows(slices.pins.rows) };
+  if (slices.groups?.served) out.groups = slices.groups;
+  if (slices.servedTotals) {
+    out.servedTotals = slices.servedTotals;
+    if (slices.totals) out.totals = slices.totals;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 /** A row list's meta (its counts · totals · sort — the keys that are no row's place). */
 function rowListMeta(rows: readonly unknown[]): Record<string, unknown> {
   const meta: Record<string, unknown> = {};
@@ -1019,8 +1053,10 @@ function boundRowsOf(
       ? (keptRowOrder(sourceRows, sortOrder, slices!, roles, bound?.schema) ??
         sortOrder)
       : sortOrder;
-  const totals =
-    totalsOf && sourceRows
+  // (ADR-315 Phase 5 증분 5g — a server's totals row stands in for the totals over the rows here.)
+  const totals = slices?.servedTotals
+    ? { ...slices.servedTotals }
+    : totalsOf && sourceRows
       ? catalogRowTotals(
           sourceRows,
           order ??
@@ -1029,6 +1065,28 @@ function boundRowsOf(
           roles,
         )
       : undefined;
+  // (ADR-315 Phase 5 증분 5g — a server's groups: the rows are its group rows, an open group's
+  //  children its answers — `catalogServedGroupBoundRows`.)
+  if (groups?.served && sourceRows) {
+    const top = catalogServedGroupBoundRows(sourceRows, groups, (items) =>
+      items.map((item, index): CatalogBoundRow => {
+        const row = toItemProjectionRow(item, index, roles);
+        let key = String(row.itemKey);
+        if (seen.has(key)) key = `${key}~${row.rowIndex}`;
+        seen.add(key);
+        return { key, values: buildCollectionRowTemplateItem(row) };
+      }),
+    );
+    const cut = top.slice(0, Math.max(0, limit));
+    const out =
+      start > 0
+        ? Object.assign(cut.slice(start), { total: top.length })
+        : top.length > cut.length
+          ? Object.assign(cut, { total: top.length })
+          : cut;
+    if (totals) Object.assign(out, { totals });
+    return out;
+  }
   if (groups && sourceRows) {
     const kept =
       order ?? Array.from({ length: sourceRows.length }, (_, index) => index);
@@ -1062,11 +1120,19 @@ function boundRowsOf(
   }
   // (ADR-315 Phase 5 증분 5f — the pinned rows out of the others: the rest is cut — a page · the
   //  window · 「더 보기」 count it — and the pinned rows stand before · after it.)
+  // (ADR-315 Phase 5 증분 5g — a server's pinned rows: out of its answer to their request; the
+  //  rows are its page, which left them out.)
+  const pinSource = pins?.rows ?? sourceRows;
   const pinned =
-    pins && sourceRows
-      ? catalogPinnedRowOrder(sourceRows, order, pins, roles)
+    pins && pinSource
+      ? catalogPinnedRowOrder(
+          pinSource,
+          pins.rows ? undefined : order,
+          pins,
+          roles,
+        )
       : undefined;
-  const rest = pinned ? pinned.rest : order;
+  const rest = pinned && !pins?.rows ? pinned.rest : order;
   const taken = rest ? Math.min(Math.max(0, limit), rest.length) : 0;
   const projected =
     sourceRows && rest
@@ -1093,7 +1159,7 @@ function boundRowsOf(
   // (The pinned rows take their keys first — a duplicate key's mark goes to another row.)
   const pinnedOf = (indices: readonly number[], side: "top" | "bottom") =>
     indices.map((index): CatalogBoundRow => ({
-      ...boundRow(toItemProjectionRow(sourceRows![index], index, roles)),
+      ...boundRow(toItemProjectionRow(pinSource![index], index, roles)),
       pinned: side,
     }));
   const top = pinned ? pinnedOf(pinned.top, "top") : [];
@@ -1127,6 +1193,13 @@ function boundRowsOf(
     // (ADR-315 Phase 5 증분 5d — a Table reads them again as a tree: `CatalogRowSlices.tree`.)
     if (childrenKey || parentKey) Object.assign(out, { nested: true });
     if (sort && sortOrder) Object.assign(out, { sorted: sort });
+    // (ADR-315 Phase 5 증분 5g — a server's answer with more rows than the keys pinned is not
+    //  their request's: said, never passed quietly — §4.3.3.)
+    if (
+      pins?.rows &&
+      pins.rows.length > new Set([...pins.top, ...pins.bottom]).size
+    )
+      Object.assign(out, { pinMismatch: true });
     // (ADR-315 Phase 5 증분 5f — the pinned rows around the rows cut; the counts are the rest's.)
     return top.length || bottom.length
       ? Object.assign([...top, ...out, ...bottom], rowListMeta(out))

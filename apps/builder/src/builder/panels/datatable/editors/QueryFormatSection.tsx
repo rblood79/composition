@@ -255,35 +255,43 @@ export function QueryFormatSection({
               </span>
             </label>
           ))}
-          {/* (ADR-315 Phase 3 — `searchParam`: the parameter a Table's search text goes in.) */}
-          {(["sortParam", "orderParam", "searchParam"] as const).map(
-            (param) => (
-              <label className="datatable-api-query-row" key={param}>
-                <span className="datatable-api-query-op">
-                  {dt(`apiQuery_${param}`)}
-                </span>
-                <span className="react-aria-control react-aria-Group">
-                  <CommitInput
-                    key={`${param}:${format[param] ?? ""}`}
-                    defaultValue={format[param] ?? ""}
-                    placeholder={
-                      param === "sortParam"
-                        ? "_sort"
-                        : param === "orderParam"
-                          ? "_order"
-                          : dt("apiQueryNotSent")
-                    }
-                    onCommit={(text) => {
-                      const value = text.trim();
-                      if (value === (format[param] ?? "")) return;
-                      const { [param]: _previous, ...rest } = format;
-                      setFormat(value ? { ...rest, [param]: value } : rest);
-                    }}
-                  />
-                </span>
-              </label>
-            ),
-          )}
+          {/* (ADR-315 Phase 3 — `searchParam`: the parameter a Table's search text goes in.
+               Phase 5 증분 5g — `keyOnlyParam` · `keyExceptParam`: a Table's pinned rows' keys ·
+               the page without them.) */}
+          {(
+            [
+              "sortParam",
+              "orderParam",
+              "searchParam",
+              "keyOnlyParam",
+              "keyExceptParam",
+            ] as const
+          ).map((param) => (
+            <label className="datatable-api-query-row" key={param}>
+              <span className="datatable-api-query-op">
+                {dt(`apiQuery_${param}`)}
+              </span>
+              <span className="react-aria-control react-aria-Group">
+                <CommitInput
+                  key={`${param}:${format[param] ?? ""}`}
+                  defaultValue={format[param] ?? ""}
+                  placeholder={
+                    param === "sortParam"
+                      ? "_sort"
+                      : param === "orderParam"
+                        ? "_order"
+                        : dt("apiQueryNotSent")
+                  }
+                  onCommit={(text) => {
+                    const value = text.trim();
+                    if (value === (format[param] ?? "")) return;
+                    const { [param]: _previous, ...rest } = format;
+                    setFormat(value ? { ...rest, [param]: value } : rest);
+                  }}
+                />
+              </span>
+            </label>
+          ))}
         </fieldset>
       )}
       {format.kind === "suffix" && (
@@ -295,6 +303,30 @@ export function QueryFormatSection({
           onChange={(selected) => {
             const { multiSort: _previous, ...rest } = format;
             setFormat(selected ? { ...rest, multiSort: true } : rest);
+          }}
+        />
+      )}
+      {format.kind !== "suffix" && format.kind !== "none" && (
+        // ADR-315 Phase 5 증분 5g — the server answers `keys` (`only` · `except` — rows by key,
+        // exactly). Off: a Table on it pins no row (a pinned row of another page is not asked for).
+        <PropertySwitch
+          label={dt("apiQueryKeyRows")}
+          isSelected={format.keyRows === true}
+          onChange={(selected) => {
+            const { keyRows: _previous, ...rest } = format;
+            setFormat(selected ? { ...rest, keyRows: true } : rest);
+          }}
+        />
+      )}
+      {format.kind !== "suffix" && format.kind !== "none" && (
+        // ADR-315 Phase 5 증분 5g — the server answers `groupOf` (a group's rows by its own
+        // grouping). Off: a Table's grouping · totals row loads every row and runs here.
+        <PropertySwitch
+          label={dt("apiQueryGroupRows")}
+          isSelected={format.groupRows === true}
+          onChange={(selected) => {
+            const { groupRows: _previous, ...rest } = format;
+            setFormat(selected ? { ...rest, groupRows: true } : rest);
           }}
         />
       )}

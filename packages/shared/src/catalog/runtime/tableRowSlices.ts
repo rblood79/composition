@@ -19,6 +19,11 @@ import type { CatalogTableState } from "./tableState";
  * (never drawn — the group is closed; `catalogGroupBoundRows` · a windowed Table's DOM).
  */
 export const CATALOG_GROUP_PLACEHOLDER_SUFFIX = "/collapsed";
+/**
+ * ADR-315 Phase 5 증분 5g — the count a server's group row carries (`count` — its rows: the group
+ * row's 「(N)」 and whether an open group's rows are all there, §4.3.2).
+ */
+export const CATALOG_GROUP_ROW_COUNT = "groupRowCount";
 /** ADR-315 Phase 5 증분 5e — the key suffix of an open row's detail row (`catalogDetailRows`). */
 export const CATALOG_DETAIL_ROW_SUFFIX = "/detail";
 
@@ -74,6 +79,19 @@ export interface CatalogRowGroups {
    * Row would be drawn inside its group's row). Absent = its one placeholder child (the DOM).
    */
   readonly closedChild?: false;
+  /**
+   * ADR-315 Phase 5 증분 5g — a server's groups (its group query answered the rows: they are the
+   * top level's group rows — values · `CATALOG_GROUP_ROW_COUNT` · aggregates by Column key) and
+   * its answers to an open group's rows (`groupOf`, §4.3.2): by the group's values (outer first),
+   * the next level's group rows or the group's rows, and the rows' count the server gave when it
+   * is not the group's (said on the group row). Undefined = not answered yet.
+   */
+  readonly served?: (path: readonly unknown[]) =>
+    | {
+        readonly rows: readonly unknown[];
+        readonly mismatch?: number;
+      }
+    | undefined;
 }
 /**
  * ADR-315 Phase 5 증분 5d — a bound Table whose binding names its rows' child rows (the binding's
@@ -95,6 +113,12 @@ export interface CatalogRowPins {
   readonly top: readonly string[];
   readonly bottom: readonly string[];
   readonly keep?: true;
+  /**
+   * ADR-315 Phase 5 증분 5g — a server's answer to the pinned rows' request (`keys.only`): the
+   * pinned rows come from it, and the rows are the server's page without them (`keys.except`) —
+   * neither is searched · cut here. Absent = the pinned rows are read out of the rows (local).
+   */
+  readonly rows?: readonly unknown[];
 }
 /** A bound Table's data slices as its rows read them (each Column as its field). */
 export interface CatalogRowSlices {
@@ -115,6 +139,11 @@ export interface CatalogRowSlices {
     readonly key: string;
     readonly fn?: ViewAggregateFn;
   }[];
+  /**
+   * ADR-315 Phase 5 증분 5g — the totals row a server answered (a group query without fields —
+   * its one row's aggregates by Column key): it stands in for the totals over the rows here.
+   */
+  readonly servedTotals?: Readonly<Record<string, unknown>>;
 }
 
 /**

@@ -174,6 +174,11 @@ export const ApiEndpointDraftSchema = z.object({
       multiSort: z.boolean().optional(),
       searchParam: z.string().optional(),
       extendedAggregates: z.boolean().optional(),
+      // (ADR-315 Phase 5 증분 5g — rows by key: `body.keys` · the suffix key parameters.)
+      keyRows: z.boolean().optional(),
+      keyOnlyParam: z.string().optional(),
+      keyExceptParam: z.string().optional(),
+      groupRows: z.boolean().optional(),
     })
     .nullable()
     .optional(),

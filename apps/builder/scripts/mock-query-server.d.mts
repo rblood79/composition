@@ -7,6 +7,10 @@ export interface MockBodyRequest {
   group?: { by: string[]; aggregates: { fn: string; field?: string; as: string }[] };
   page?: { cursor?: string; limit?: number };
   total?: true;
+  /** ADR-315 5g — rows by key (exact). */
+  keys?: { field: string; only?: unknown[]; except?: unknown[] };
+  /** ADR-315 5g — a group's rows (this server's grouping). */
+  groupOf?: { by: string[]; values: unknown[] };
 }
 export function answerBody(
   rows: readonly Record<string, unknown>[],
@@ -15,4 +19,6 @@ export function answerBody(
 export function answerSuffix(
   rows: readonly Record<string, unknown>[],
   params: URLSearchParams | Iterable<[string, string]>,
+  /** ADR-315 5g — the key parameters' names and the key field. */
+  keyParams?: { field: string; only: string; except: string },
 ): { items: Record<string, unknown>[]; headers: Record<string, string> };

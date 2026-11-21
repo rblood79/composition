@@ -165,7 +165,22 @@ function grouped(rows, group) {
 
 /** The body format: `{ items, total, cursor? }` (the cursor is the next offset). */
 export function answerBody(rows, body = {}) {
-  let out = rows.filter((row) => holdsGroup(body.where, row));
+  // (ADR-315 5g — `keys`: rows by key, an exact match of the key field's value — no folding.)
+  const keyed = (row) =>
+    !body.keys
+      ? true
+      : body.keys.only
+        ? body.keys.only.some((value) => row[body.keys.field] === value)
+        : !body.keys.except.some((value) => row[body.keys.field] === value);
+  // (ADR-315 5g — `groupOf`: the rows this server's grouping by `by` puts in `values`' group —
+  //  the same equality `grouped` uses.)
+  const ofGroup = (row) =>
+    !body.groupOf ||
+    JSON.stringify(body.groupOf.by.map((field) => row[field] ?? null)) ===
+      JSON.stringify(body.groupOf.values);
+  let out = rows.filter(
+    (row) => keyed(row) && ofGroup(row) && holdsGroup(body.where, row),
+  );
   out = sorted(out, body.sort);
   if (body.group) out = grouped(out, body.group);
   const total = out.length;
@@ -185,7 +200,7 @@ export function answerBody(rows, body = {}) {
 }
 
 /** json-server parameters: `{ items, headers }` with `X-Total-Count`. */
-export function answerSuffix(rows, params) {
+export function answerSuffix(rows, params, keyParams) {
   const list =
     params instanceof URLSearchParams ? [...params.entries()] : [...params];
   const byKey = new Map();
@@ -194,6 +209,11 @@ export function answerSuffix(rows, params) {
   let out = rows.filter((row) =>
     [...byKey.entries()].every(([key, values]) => {
       if (key.startsWith("_")) return true;
+      // (ADR-315 5g — the key parameters: the rows of those keys · without them, exact text.)
+      if (keyParams && key === keyParams.only)
+        return values.includes(String(row[keyParams.field]));
+      if (keyParams && key === keyParams.except)
+        return !values.includes(String(row[keyParams.field]));
       // (json-server `q` — the text anywhere in the row: its own search over every field.)
       if (key === "q")
         return values.every((v) =>

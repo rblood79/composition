@@ -195,6 +195,48 @@ export function CatalogTableSortNotice({ listId }: { listId: NodeId }) {
 }
 
 /**
+ * ADR-315 Phase 5 증분 5g — a bound Table with 「Row pinning」 on whose rows are a server's pages
+ * on an endpoint that names no request for rows by key (breakdown §4.3.1 · §6): the Table pins no
+ * row (a pinned row of another page could not be shown) — the session's own judgment.
+ */
+export function CatalogTableRowPinsNotice({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const revision = useGraphRevision();
+  const table = useBoundTable(listId);
+  const endpoints = useDataStore((state) => state.apiEndpoints);
+  const on = useMemo(() => {
+    void revision;
+    const node = workspace.runtime.graph.getEntry(listId);
+    if (node?.kind !== "node") return false;
+    const own = node.props.allowsRowPinning as { value?: unknown } | undefined;
+    return own?.value === true;
+  }, [listId, revision, workspace]);
+  if (!on || !table || table.useMockData !== false) return null;
+  const endpoint = [...endpoints.values()].find((item) =>
+    item.targetCollectionId
+      ? item.targetCollectionId === table.id
+      : item.targetCollection === table.name,
+  );
+  if (!endpoint) return null;
+  const servable = catalogTableSliceServable(
+    {
+      remote: true,
+      ...(endpoint.querySerialization
+        ? { format: endpoint.querySerialization }
+        : {}),
+    },
+    "pins",
+  );
+  if (servable.accepts === "whole") return null;
+  return (
+    <p className="datatable-api-hint" role="status">
+      {t("dataView.tableRowPinsRefused")}
+    </p>
+  );
+}
+
+/**
  * ADR-315 Phase 3 — a bound Table's 「Search」 switch (breakdown §5.2 · §6 — a feature by name:
  * on places a SearchField before the Table, its text the Table's search over its searchable
  * Columns; off takes the rule — and the SearchField it placed — away). On a Table whose rows'
@@ -354,6 +396,87 @@ export function CatalogTableTotalsSwitch({ listId }: { listId: NodeId }) {
         );
       }}
     />
+  );
+}
+
+/**
+ * ADR-315 Phase 5 증분 5g — a bound Table whose endpoint pages its rows and that groups (a
+ * Column's 「Grouped」), totals (「Totals row」) or nests them (a parent · children field): the
+ * Table loads every row up to the cap and runs those here (breakdown §4.3.1 · §6 — not blocked,
+ * said). The session's own judgment (`catalogTableSliceServable` `loaded`).
+ */
+export function CatalogTableWholeRowsNotice({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const revision = useGraphRevision();
+  const table = useBoundTable(listId);
+  const endpoints = useDataStore((state) => state.apiEndpoints);
+  const graph = workspace.runtime.graph;
+  const endpoint =
+    table && table.useMockData === false
+      ? [...endpoints.values()].find((item) =>
+          item.targetCollectionId
+            ? item.targetCollectionId === table.id
+            : item.targetCollection === table.name,
+        )
+      : undefined;
+  const wanted = useMemo(() => {
+    void revision;
+    const node = graph.getEntry(listId);
+    // (An endpoint that pages: a cursor, or a page size its query format sends.)
+    if (
+      node?.kind !== "node" ||
+      !endpoint ||
+      (!endpoint.responseMapping?.cursorPath &&
+        endpoint.querySerialization?.pageSize === undefined)
+    )
+      return false;
+    try {
+      if (definitionTypeName(graph, node.definitionId) !== "Table")
+        return false;
+    } catch {
+      return false;
+    }
+    // (The author's grouping: a Column record's 「Grouped」 — the Canvas resolves the header.)
+    const records = workspace.root.domInputs;
+    const record = records.get(workspace.recordsOfNode(listId)[0] ?? "");
+    const header = record?.children
+      .map((id) => records.get(id))
+      .find((part) => part?.ruleId === "TableHeader");
+    const slices = [
+      ...((header?.children ?? []).some(
+        (id) => records.get(id)?.props.defaultGrouped === true,
+      )
+        ? ["grouping" as const]
+        : []),
+      ...(catalogTableTotalsOn(graph, listId) ? ["totals" as const] : []),
+      ...(node.binding?.fieldMap.children || node.binding?.fieldMap.parentId
+        ? ["tree" as const]
+        : []),
+    ];
+    const format = endpoint.querySerialization;
+    // (The Columns' 「Aggregate」 — one the server does not run loads every row too.)
+    const aggregates = (header?.children ?? []).flatMap((id) => {
+      const fn = records.get(id)?.props.aggregate;
+      return typeof fn === "string" ? [fn] : [];
+    });
+    return slices.some(
+      (slice) =>
+        catalogTableSliceServable(
+          { remote: true, ...(format ? { format } : {}) },
+          slice,
+          aggregates,
+        ).accepts === "loaded",
+    );
+  }, [endpoint, graph, listId, revision, workspace]);
+  const serializer = useViewSerializer(wanted);
+  if (!wanted || !serializer) return null;
+  return (
+    <p className="datatable-api-hint" role="status">
+      {t("dataView.tableWholeRows", {
+        cap: serializer.VIEW_LOCAL_LOAD_CAP.toLocaleString(),
+      })}
+    </p>
   );
 }
 

@@ -117,6 +117,15 @@ const CHECK_DETAIL = process.argv.includes("--check-detail");
 //   「Pin to top」 · r5 「Pin to bottom」 → 위 · 가운데 · 끝까지 스크롤하며 r3 은 머리글 바로 아래, r5 는
 //   스크롤 상자 바닥에 1 px 안에서 붙고 그 자리의 hit test 가 그 행) 를 잰다.
 const CHECK_ROWPIN = process.argv.includes("--check-rowpin");
+// `--check-server group|pin` (ADR-315 Phase 5 증분 5g — 서버가 쪽을 나누는 표): endpoint 가 `body` 형식
+//   (쪽 50 · 「묶음의 행 조회」 · 「key 로 행 조회」), 서버는 mock 조회 서버 (`answerBody` — 독립 oracle).
+//   group: Dept 「Grouped」 + 합계 행 — Publish 의 묶음 행 · 합계가 행 생성기로 따로 센 값과 같고, 묶음
+//   하나를 펼치면 `groupOf` 요청이 그 묶음의 행만 준다 (행 쪽 요청 없음). pin: 「Row pinning」 — r3 을 위에
+//   고정하면 본문 요청이 `keys.except` · 고정 요청이 `keys.only` 이고, 「더 보기」 로 다음 쪽을 불러도 r3 은
+//   한 번만.
+const CHECK_SERVER = arg("--check-server", "");
+const SERVER_GROUP = CHECK_SERVER === "group";
+const SERVER_PIN = CHECK_SERVER === "pin";
 // ADR-315 Phase 4 증분 6 — the Table's view sorts Dept ↑ then Amount ↓ (authored): the Builder's
 // Column records carry the marks (`_sortMark` · the mark part), the Publish header shows them, a
 // press on Amount starts from its authored direction.
@@ -173,17 +182,31 @@ function makeRows(count) {
   }));
 }
 const DATA = JSON.stringify({ items: makeRows(ROWS), next: null });
+const { answerBody } = await import("./mock-query-server.mjs");
+const SERVER_ROWS = makeRows(ROWS);
 
 const requests = [];
 const server = createServer((req, res) => {
   const cors = {
     "access-control-allow-origin": "*",
     "access-control-allow-headers": "*",
-    "access-control-allow-methods": "GET, OPTIONS",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
   };
   if (req.method === "OPTIONS") {
     res.writeHead(204, cors);
     res.end();
+    return;
+  }
+  // (`--check-server`: the mock query server's body format over the same rows.)
+  if (req.method === "POST") {
+    let text = "";
+    req.on("data", (chunk) => (text += chunk));
+    req.on("end", () => {
+      const body = text ? JSON.parse(text) : {};
+      requests.push({ url: req.url, body });
+      res.writeHead(200, { "content-type": "application/json", ...cors });
+      res.end(JSON.stringify(answerBody(SERVER_ROWS, body)));
+    });
     return;
   }
   requests.push(req.url);
@@ -242,7 +265,8 @@ const context = await browser.newContext({
   CHECK_TOTALS ||
   CHECK_TREE ||
   CHECK_DETAIL ||
-  CHECK_ROWPIN
+  CHECK_ROWPIN ||
+  CHECK_SERVER
     ? { locale: "en-US" }
     : {}),
 });
@@ -302,7 +326,7 @@ try {
 
     // ── 데이터 + Table ──
     await page.evaluate(
-      ({ REMOTE_BASE, COLUMNS, MOCK, CHECK_TREE }) => {
+      ({ REMOTE_BASE, COLUMNS, MOCK, CHECK_TREE, SERVER }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
         const g = ws.root.runtime.graph;
@@ -331,28 +355,54 @@ try {
                 mockData: MOCK ?? [],
                 useMockData: !!MOCK,
               },
-              {
-                kind: "endpoint",
-                id: "data:endpoint:grid",
-                name: "listGrid",
-                method: "GET",
-                baseUrl: REMOTE_BASE,
-                path: "/grid",
-                headers: [],
-                // (Preview 세션은 cursor 를 읽는 endpoint 만 스스로 불러온다 — 한 쪽에 전부, `next: null`.)
-                queryParams: [
-                  {
-                    key: "page",
-                    value: "{{ cursor }}",
-                    type: "string",
-                    required: false,
+              SERVER
+                ? {
+                    // (ADR-315 5g — a server that pages its rows and answers a group's · a key's rows.)
+                    kind: "endpoint",
+                    id: "data:endpoint:grid",
+                    name: "queryGrid",
+                    method: "POST",
+                    baseUrl: REMOTE_BASE,
+                    path: "/grid",
+                    headers: [],
+                    queryParams: [],
+                    bodyType: "none",
+                    responseMapping: {
+                      dataPath: "items",
+                      totalPath: "total",
+                      cursorPath: "cursor",
+                    },
+                    querySerialization: {
+                      kind: "body",
+                      pageSize: 50,
+                      groupRows: true,
+                      keyRows: true,
+                    },
+                    targetCollectionId: "data:collection:grid",
+                    executionMode: "client",
+                  }
+                : {
+                    kind: "endpoint",
+                    id: "data:endpoint:grid",
+                    name: "listGrid",
+                    method: "GET",
+                    baseUrl: REMOTE_BASE,
+                    path: "/grid",
+                    headers: [],
+                    // (Preview 세션은 cursor 를 읽는 endpoint 만 스스로 불러온다 — 한 쪽에 전부, `next: null`.)
+                    queryParams: [
+                      {
+                        key: "page",
+                        value: "{{ cursor }}",
+                        type: "string",
+                        required: false,
+                      },
+                    ],
+                    bodyType: "none",
+                    responseMapping: { dataPath: "items", cursorPath: "next" },
+                    targetCollectionId: "data:collection:grid",
+                    executionMode: "client",
                   },
-                ],
-                bodyType: "none",
-                responseMapping: { dataPath: "items", cursorPath: "next" },
-                targetCollectionId: "data:collection:grid",
-                executionMode: "client",
-              },
             ],
             label: "grid data",
           }),
@@ -391,6 +441,7 @@ try {
             ? makeRows(ROWS)
             : null,
         CHECK_TREE,
+        SERVER: !!CHECK_SERVER,
       },
     );
     await page.waitForTimeout(2000);
@@ -790,11 +841,12 @@ try {
         CHECK_RESIZE,
         CHECK_FILTER,
         CHECK_GROUP,
-        CHECK_AUTHORED_GROUP,
-        CHECK_TOTALS,
+        // (`--check-server group`: the authored grouping · the totals row; `pin`: row pinning.)
+        CHECK_AUTHORED_GROUP: CHECK_AUTHORED_GROUP || SERVER_GROUP,
+        CHECK_TOTALS: CHECK_TOTALS || SERVER_GROUP,
         CHECK_TREE,
         CHECK_DETAIL,
-        CHECK_ROWPIN,
+        CHECK_ROWPIN: CHECK_ROWPIN || SERVER_PIN,
         CHECK_DRAG,
         CHECK_AUTHORED,
         PROFILE_COLUMNS,
@@ -1206,7 +1258,7 @@ try {
               row.textContent ?? "",
             ),
           ),
-        { OURS, GROUPED: CHECK_AUTHORED_GROUP },
+        { OURS, GROUPED: CHECK_AUTHORED_GROUP || SERVER_GROUP },
         { timeout: 180000 },
       );
     } catch (error) {
@@ -2108,6 +2160,180 @@ try {
       throw new Error("load only");
     }
 
+    if (SERVER_GROUP) {
+      // (ADR-315 5g — the group rows are the server's group query; one opened asks for its rows.)
+      await pub.waitForTimeout(1500);
+      const all = makeRows(ROWS);
+      const groups = new Map();
+      for (const row of all) {
+        const held = groups.get(row.dept) ?? { count: 0, sum: 0 };
+        held.count += 1;
+        held.sum += row.amount;
+        groups.set(row.dept, held);
+      }
+      const read = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const grid = table.matches("[role=grid],[role=treegrid]")
+            ? table
+            : table.querySelector("[role=grid],[role=treegrid]");
+          const heads = [...grid.querySelectorAll("[role=columnheader]")].map(
+            (cell) => (cell.textContent ?? "").trim(),
+          );
+          const cellsOf = (row) =>
+            Object.fromEntries(
+              [...row.querySelectorAll("[role=rowheader],[role=gridcell]")]
+                .map((cell) => (cell.textContent ?? "").trim())
+                .map((text, at) => [heads[at] ?? at, text]),
+            );
+          return {
+            heads,
+            groups: [...grid.querySelectorAll("[role=row][aria-expanded]")].map(
+              (row) => ({
+                expanded: row.getAttribute("aria-expanded"),
+                cells: cellsOf(row),
+              }),
+            ),
+            leaves: [...grid.querySelectorAll('[role=row][aria-level="2"]')].map(
+              cellsOf,
+            ),
+            footer: [...grid.querySelectorAll("tfoot [role=row], [role=rowgroup]:last-child [role=row]")]
+              .map(cellsOf)
+              .at(-1),
+          };
+        }, OURS);
+      const before = await read();
+      const number = (text) => Number(String(text).replace(/[^0-9.\-]/g, ""));
+      const groupOk = before.groups.map((row) => {
+        const [, dept, count] =
+          /^(Dept \d+) \((\d+)\)$/.exec(row.cells.Dept ?? "") ?? [];
+        const want = groups.get(dept);
+        return (
+          !!want &&
+          want.count === Number(count) &&
+          Math.abs(want.sum - number(row.cells.Amount)) < 0.02
+        );
+      });
+      // Open the first group: its rows are the server's answer to `groupOf`.
+      const first = /^(Dept \d+)/.exec(before.groups[0]?.cells.Dept ?? "")?.[1];
+      await pub
+        .locator(`${OURS} [role=row][aria-expanded]`)
+        .first()
+        .locator('[slot="chevron"]')
+        .click();
+      await pub.waitForTimeout(2000);
+      const after = await read();
+      await pub.screenshot({ path: `${OUT}/check-server-group.png` });
+      const bodies = requests.filter((r) => r && r.body).map((r) => r.body);
+      const groupOf = bodies.filter((b) => b.groupOf);
+      const totalsWant = {
+        Name: all.length,
+        Amount: Math.round(all.reduce((t, r) => t + r.amount, 0) * 100) / 100,
+        Qty: all.reduce((t, r) => t + r.qty, 0) / all.length,
+      };
+      results.checkServerGroup = {
+        heads: before.heads,
+        groups: before.groups.length,
+        groupOk: groupOk.filter(Boolean).length,
+        expectedGroups: groups.size,
+        opened: first,
+        leaves: after.leaves.length,
+        leavesDept: [...new Set(after.leaves.map((c) => c.Dept))],
+        expected: groups.get(first)?.count,
+        groupRequests: bodies.filter((b) => b.group && b.group.by?.length).length,
+        totalsRequests: bodies.filter((b) => b.group && !b.group.by?.length).length,
+        groupOf: groupOf.map((b) => b.groupOf),
+        rowPages: bodies.filter((b) => !b.group && !b.groupOf).length,
+        footer: before.footer,
+        totalsWant,
+      };
+      const c = results.checkServerGroup;
+      c.pass =
+        c.groups === groups.size &&
+        c.groupOk === groups.size &&
+        c.leaves === c.expected &&
+        c.leavesDept.length === 1 &&
+        c.leavesDept[0] === first &&
+        c.groupOf.length >= 1 &&
+        JSON.stringify(c.groupOf.at(-1)) ===
+          JSON.stringify({ by: ["dept"], values: [first] }) &&
+        c.rowPages === 0 &&
+        c.totalsRequests >= 1 &&
+        number(c.footer?.Name) === totalsWant.Name &&
+        Math.abs(number(c.footer?.Amount) - totalsWant.Amount) < 0.02 &&
+        Math.abs(number(c.footer?.Qty) - totalsWant.Qty) < 0.01;
+      log(`check-server group ${JSON.stringify(c)}`);
+      throw new Error("load only");
+    }
+    if (SERVER_PIN) {
+      // (ADR-315 5g — a pinned row of a server's pages: its own request; the pages leave it out.)
+      await pub.waitForTimeout(1500);
+      const keys = () =>
+        pub.evaluate(
+          (OURS) =>
+            [
+              ...document.querySelectorAll(
+                `${OURS} [role=rowgroup] [role=row][data-key]`,
+              ),
+            ].map((row) => [
+              row.getAttribute("data-key"),
+              row.getAttribute("data-pinned-row"),
+            ]),
+          OURS,
+        );
+      const rest = await keys();
+      const row = pub.locator(`${OURS} [role=row][data-key="r3"]`);
+      await row.hover();
+      await row.locator(".table-row-pin-button").click();
+      await pub.getByRole("menuitem", { name: "Pin to top" }).click();
+      await pub.waitForTimeout(2000);
+      const pinned = await keys();
+      // 「더 보기」: the next page by the server's cursor.
+      for (let round = 0; round < 3; round += 1) {
+        await pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const scroller = [table, ...table.querySelectorAll("*")].find(
+            (el) =>
+              /auto|scroll/.test(getComputedStyle(el).overflowY) &&
+              el.scrollHeight > el.clientHeight + 1,
+          );
+          if (scroller) scroller.scrollTop = scroller.scrollHeight;
+        }, OURS);
+        await pub.waitForTimeout(1200);
+      }
+      const more = await keys();
+      await pub.screenshot({ path: `${OUT}/check-server-pin.png` });
+      const bodies = requests.filter((r) => r && r.body).map((r) => r.body);
+      const only = bodies.filter((b) => b.keys?.only);
+      const except = bodies.filter((b) => b.keys?.except);
+      results.checkServerPin = {
+        rest: rest.length,
+        pinnedFirst: pinned[0],
+        pinnedCount: pinned.length,
+        r3: pinned.filter(([key]) => key === "r3").length,
+        more: more.length,
+        r3More: more.filter(([key]) => key === "r3").length,
+        only: only.map((b) => ({ keys: b.keys, page: b.page ?? null })),
+        except: except.map((b) => ({ keys: b.keys, page: b.page ?? null })),
+      };
+      const c = results.checkServerPin;
+      c.pass =
+        c.pinnedFirst?.[0] === "r3" &&
+        c.pinnedFirst?.[1] === "top" &&
+        c.pinnedCount === 51 &&
+        c.r3 === 1 &&
+        c.more > c.pinnedCount &&
+        c.r3More === 1 &&
+        c.only.length >= 1 &&
+        JSON.stringify(c.only.at(-1)) ===
+          JSON.stringify({ keys: { field: "id", only: ["r3"] }, page: null }) &&
+        c.except.length >= 2 &&
+        c.except.every(
+          (e) => JSON.stringify(e.keys) === JSON.stringify({ field: "id", except: ["r3"] }),
+        );
+      log(`check-server pin ${JSON.stringify(c)}`);
+      throw new Error("load only");
+    }
     if (CHECK_ROWPIN) {
       // (The Builder's Canvas: its Table pinnable, no row pinned — a viewer pins rows.)
       const builder = await page.evaluate(() => {

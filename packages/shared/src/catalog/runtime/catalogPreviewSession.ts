@@ -1,4 +1,13 @@
-import { catalogTableGrouping } from "./tableRowSlices";
+import {
+  CATALOG_GROUP_ROW_COUNT,
+  catalogTableGroupKey,
+  catalogTableGrouping,
+} from "./tableRowSlices";
+import {
+  catalogRowGroupLevelView,
+  catalogRowTotalsView,
+  catalogTableGroupedQueries,
+} from "./tableGroupQuery";
 import { parseRuleValueRef } from "../../interactions/valueRef";
 import { isInputVariable } from "../document/componentEvents";
 import { componentInstancePath } from "./componentBoundaries";
@@ -49,6 +58,7 @@ import { onThemeLaddersLoaded } from "./themeLadders";
 import {
   serializeViewQueries,
   VIEW_LOCAL_LOAD_CAP,
+  type SerializedKeyRows,
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
 import { viewSchemaAt } from "../../collections/view/evaluate";
@@ -95,6 +105,7 @@ import {
 import {
   getItemKey,
   parentRowsToTree,
+  resolveFieldRoles,
   resolveTableColumnKey,
   toItemProjectionRow,
 } from "../../collections/resolveCollectionItems";
@@ -504,6 +515,11 @@ export interface CatalogPreviewSessionOptions {
 
 const NO_TABLE_STATE: CatalogTableState = Object.freeze({});
 /** The query of a binding without a view (a Table's state — a sort · a search — gives it one). */
+/** ADR-315 Phase 5 증분 5g — a pinned rows' answer's key: the Table node and its pins. */
+const pinAnswerKey = (
+  nodeId: string,
+  pins: { readonly top: readonly string[]; readonly bottom: readonly string[] },
+) => `${nodeId}\u0000${JSON.stringify([pins.top, pins.bottom])}`;
 const NO_VIEW_QUERY: CatalogRowQuery = Object.freeze({
   queries: [],
   values: {},
@@ -1460,13 +1476,61 @@ export class CatalogPreviewSession {
     const held = this.tableStates.get(recordId);
     const state =
       held && this.serverSortedTables.has(recordId) ? withoutSort(held) : held;
-    if (!state?.sort?.length && !state?.search && !state?.columnFilters?.length)
+    // (ADR-315 Phase 5 증분 5g — a grouping · a totals row a server answers: its group query.)
+    const grouped = this.tableServes(recordId, "grouping");
+    const totals = this.tableServes(recordId, "totals");
+    if (
+      !state?.sort?.length &&
+      !state?.search &&
+      !state?.columnFilters?.length &&
+      !grouped &&
+      !totals
+    )
       return undefined;
     return catalogTableStateRowSlices(
-      state,
+      state ?? NO_TABLE_STATE,
       this.tableColumns(recordId),
-      this.currentRoot?.domInputs.get(recordId)?.props,
+      {
+        ...this.currentRoot?.domInputs.get(recordId)?.props,
+        ...(totals ? { totals: true } : {}),
+      },
     );
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — a Table record's grouping · totals row its server answers (a group
+   * query — the endpoint answers a group's rows, `catalogTableSliceServable` `whole`).
+   */
+  private tableServes(tableId: string, slice: "grouping" | "totals"): boolean {
+    const service = this.tableService(tableId);
+    if (!service.remote) return false;
+    if (
+      slice === "grouping"
+        ? !this.tableGroupedNow(tableId)
+        : !this.tableHasTotalsRow(tableId)
+    )
+      return false;
+    return (
+      catalogTableSliceServable(service, slice, this.tableAggregates(tableId))
+        .accepts === "whole"
+    );
+  }
+  /** A Table record's Columns' aggregates (a group row's · the totals row's). */
+  private tableAggregates(tableId: string): string[] {
+    return this.tableColumns(tableId).flatMap((column) =>
+      column.aggregate ? [column.aggregate] : [],
+    );
+  }
+  /** A Table record has a totals row (a Row in its footer — the 「Totals row」 switch). */
+  private tableHasTotalsRow(tableId: string): boolean {
+    const root = this.currentRoot;
+    const table = root?.domInputs.get(tableId);
+    return !!table?.children.some((id) => {
+      const part = root!.domInputs.get(id);
+      return (
+        part?.ruleId === "TableFooter" &&
+        part.children.some((row) => root!.domInputs.get(row)?.ruleId === "Row")
+      );
+    });
   }
   /**
    * A binding's query with a Table's state as its bound view's (`catalogTableStateQueries` — the
@@ -1477,6 +1541,11 @@ export class CatalogPreviewSession {
     collectionId: string,
     query: CatalogRowQuery,
     slices: CatalogRowSlices | undefined,
+    /**
+     * ADR-315 Phase 5 증분 5g — the grouping's level its server answers (0 = the group rows, a
+     * level past the last = a group's rows); the slices' totals row instead (`"totals"`).
+     */
+    level: number | "totals" = 0,
   ): CatalogRowQuery | undefined {
     if (!slices) return undefined;
     const collection = this.collections.find(
@@ -1491,14 +1560,50 @@ export class CatalogPreviewSession {
     const fields = query.queries.length
       ? viewSchemaAt({ queries: query.queries, schema }, query.queries.length)
       : schema;
-    const view = catalogRowSlicesView(slices, fields);
-    if (!view) return undefined;
+    const totals = level === "totals";
+    const view = catalogRowSlicesView(
+      totals ? { ...slices, sorts: undefined } : slices,
+      fields,
+    );
+    // (A slice that names no field of the rows: they run on the rows here only.)
+    if (
+      !view &&
+      (slices.search ||
+        slices.filters?.length ||
+        (!totals && slices.sorts?.length))
+    )
+      return undefined;
+    // (ADR-315 Phase 5 증분 5g — the grouping · the totals row its server answers: a group query.)
+    const service = this.collectionRowService(collectionId);
+    const served = (slice: "grouping" | "totals", fns: readonly unknown[]) =>
+      service.remote &&
+      catalogTableSliceServable(service, slice, fns).accepts === "whole";
+    const groups = slices.groups;
+    const grouped = totals
+      ? slices.totals &&
+        served(
+          "totals",
+          slices.totals.flatMap((entry) => (entry.fn ? [entry.fn] : [])),
+        )
+        ? catalogRowTotalsView(slices.totals, fields)
+        : undefined
+      : groups?.keys.length &&
+          level < groups.keys.length &&
+          served(
+            "grouping",
+            groups.aggregates.map((entry) => entry.fn),
+          )
+        ? (catalogRowGroupLevelView(groups, level, fields) ?? null)
+        : undefined;
+    if (grouped === null || (totals && !grouped)) return undefined;
+    if (!view && !grouped) return undefined;
+    const stated = catalogTableStateQueries(
+      query.queries.length ? query.queries : undefined,
+      view,
+    );
     return {
       ...query,
-      queries: catalogTableStateQueries(
-        query.queries.length ? query.queries : undefined,
-        view,
-      )!,
+      queries: grouped ? catalogTableGroupedQueries(stated, grouped) : stated!,
     };
   }
   /**
@@ -1547,7 +1652,10 @@ export class CatalogPreviewSession {
     const endpoint = this.endpointFilling(collection);
     const format = endpoint?.querySerialization;
     if (!endpoint || !format || format.kind === "none") return undefined;
-    const views = new Map<string, { query: CatalogRowQuery; nodeId: string }>();
+    const views = new Map<
+      string,
+      { query: CatalogRowQuery; nodeId: string; keys?: SerializedKeyRows }
+    >();
     for (const nodeId of graph.bindingsOf(`data:collection:${collectionId}`)) {
       const entry = graph.getEntry(nodeId as never);
       const binding = entry?.kind === "node" ? entry.binding : undefined;
@@ -1564,7 +1672,9 @@ export class CatalogPreviewSession {
         //  part of its query: the request carries it. A binding without a view is one only while
         //  its Table holds a data slice.)
         const slices = this.recordRowSlices(recordId);
-        if (!viewed && !slices) continue;
+        // (ADR-315 Phase 5 증분 5g — a Table's pinned rows: its page leaves them out.)
+        const pinRequest = this.tablePinRequest(recordId);
+        if (!viewed && !slices && !pinRequest) continue;
         const query = viewed
           ? catalogBindingQuery(
               graph,
@@ -1577,16 +1687,26 @@ export class CatalogPreviewSession {
           : NO_VIEW_QUERY;
         if (!query) continue;
         const stated = this.stateRowQuery(collectionId, query, slices);
-        if (!viewed && !stated) continue;
+        if (!viewed && !stated && !pinRequest) continue;
         const base = {
           ...(stated ?? query),
           queries: catalogCountlessViews((stated ?? query).queries),
         };
-        views.set(catalogRowQueryKey(base), { query: base, nodeId });
+        const except = pinRequest
+          ? { field: pinRequest.field, except: pinRequest.keys }
+          : undefined;
+        views.set(
+          `${catalogRowQueryKey(base)}\u0000${JSON.stringify(except)}`,
+          {
+            query: base,
+            nodeId,
+            ...(except ? { keys: except } : {}),
+          },
+        );
       }
     }
     if (!views.size) return undefined;
-    const [{ query, nodeId }] = [...views.values()];
+    const [{ query, nodeId, keys }] = [...views.values()];
     if (views.size > 1) {
       // Preserve ADR-284's standalone MULTI_VIEW policy; instance-dependent inputs require
       // the unfiltered local load because no one instance's filtered response can be shared.
@@ -1617,32 +1737,40 @@ export class CatalogPreviewSession {
         },
       };
     }
+    const serialized = serializeViewQueries(
+      format,
+      {
+        queries: query.queries,
+        schema: (collection.schema ?? []).flatMap((field) =>
+          field.id && field.key
+            ? [
+                {
+                  id: field.id,
+                  key: field.key,
+                  type: field.type,
+                  ...(field.formula ? { formula: field.formula } : {}),
+                  // (ADR-313 — a value sent is written back with the field's notation.)
+                  ...(field.encoding ? { encoding: field.encoding } : {}),
+                },
+              ]
+            : [],
+        ),
+        resolve: catalogRowQueryResolve(query),
+      },
+      endpoint.method,
+      page,
+      keys ? { keys } : undefined,
+    );
+    // (ADR-315 Phase 5 증분 5g — a Table reading every row: what the format carries is sent, the
+    //  answer is not the Table's rows — every page loads and its slices run here, §4.3.1.)
     return {
       query,
       nodeId,
-      serialized: serializeViewQueries(
-        format,
-        {
-          queries: query.queries,
-          schema: (collection.schema ?? []).flatMap((field) =>
-            field.id && field.key
-              ? [
-                  {
-                    id: field.id,
-                    key: field.key,
-                    type: field.type,
-                    ...(field.formula ? { formula: field.formula } : {}),
-                    // (ADR-313 — a value sent is written back with the field's notation.)
-                    ...(field.encoding ? { encoding: field.encoding } : {}),
-                  },
-                ]
-              : [],
-          ),
-          resolve: catalogRowQueryResolve(query),
-        },
-        endpoint.method,
-        page,
-      ),
+      serialized:
+        serialized.load !== "all" &&
+        this.collectionTablesReadWhole(collectionId)
+          ? { ...serialized, load: "all" }
+          : serialized,
     };
   }
   /**
@@ -1661,6 +1789,16 @@ export class CatalogPreviewSession {
     return this.uniqueView(collectionId)?.serialized.load === "all";
   }
   /**
+   * The collection's rows must all be here before its readers are right: its view runs here
+   * (ADR-291), or a Table reads every row (ADR-315 Phase 5 증분 5g — `tableReadsWhole`).
+   */
+  private loadsWhole(collectionId: string): boolean {
+    return (
+      this.viewLoadsAll(collectionId) ||
+      this.collectionTablesReadWhole(collectionId)
+    );
+  }
+  /**
    * ADR-291 Decision 5 · 사용자 결정 3 — every page of a collection whose view runs here, up to
    * `VIEW_LOCAL_LOAD_CAP`; past the cap the view is refused: no rows, a notice — never a quiet
    * partial result.
@@ -1676,7 +1814,11 @@ export class CatalogPreviewSession {
         this.refuseView(collectionId, total ?? shown);
         return;
       }
+      const before = this.loadArguments.get(collectionId)?.cursor;
       await this.loadMore(collectionId);
+      // (A load in flight — `loadMore` does nothing then — or a page that brought no cursor
+      //  change: stop; the load that runs finishes the whole · its own reload calls this again.)
+      if (this.loadArguments.get(collectionId)?.cursor === before) return;
     }
   }
   /** The rows a refused view would show: none (the bound components show their empty state). */
@@ -1721,10 +1863,14 @@ export class CatalogPreviewSession {
       if (key.startsWith(prefix)) this.displayWindows.delete(key);
     this.resetPages(collectionId);
     this.showLoaded(collectionId, page.items);
+    // (ADR-315 Phase 5 증분 5g — the Tables' pinned rows · open groups · totals: another query is
+    //  their requests too.)
+    this.syncServedRows(collectionId);
     if (page.selectedKeys !== undefined)
       this.selectLoaded(collectionId, page.selectedKeys, false);
-    // (ADR-291 — a view that runs here needs the whole data before it is right.)
-    if (this.viewLoadsAll(collectionId)) await this.loadAll(collectionId);
+    // (ADR-291 — a view that runs here needs the whole data before it is right. ADR-315 Phase 5
+    //  증분 5g — so does a Table that reads every row.)
+    if (this.loadsWhole(collectionId)) await this.loadAll(collectionId);
   }
   /**
    * The keys a load returned (`useAsyncList` load `selectedKeys` — `responseMapping.selectedKeysPath`)
@@ -1777,6 +1923,8 @@ export class CatalogPreviewSession {
     const page = await this.loadPage(collectionId, "loadingMore", cursor);
     if (!page) return;
     this.showLoaded(collectionId, [...shown, ...page.items]);
+    // (ADR-315 Phase 5 증분 5g — a server's next group rows: the open ones' rows.)
+    void this.syncGroupRows(collectionId);
     if (page.selectedKeys !== undefined)
       this.selectLoaded(collectionId, page.selectedKeys, true);
   }
@@ -1959,7 +2107,17 @@ export class CatalogPreviewSession {
       authored.query ?? NO_VIEW_QUERY,
       slices,
     );
-    const asked = stated ?? authored.query;
+    // (ADR-315 Phase 5 증분 5g — a server's pages and pinned rows: the page is asked for without
+    //  them, they are asked for by key — `syncPinnedRows`.)
+    const pinsRefused =
+      ownerId !== undefined && this.rowPinsRefused(id, ownerId);
+    const servedPins =
+      !!slices?.pins &&
+      ownerId !== undefined &&
+      !pinsRefused &&
+      this.collectionRowService(id).remote;
+    const asked =
+      stated ?? authored.query ?? (servedPins ? NO_VIEW_QUERY : undefined);
     if (asked) {
       const view = this.serverView(id);
       const loaded = this.loadedViewQueries.get(id);
@@ -1985,7 +2143,42 @@ export class CatalogPreviewSession {
             },
           },
         };
+        // (ADR-315 Phase 5 증분 5g — a server's groups: an open group's rows are its answers.)
+        if (slices?.groups && stated?.queries.at(-1)?.groupBy) {
+          const queryKey = catalogRowQueryKey(asked);
+          const owner = ownerId;
+          slices = {
+            ...slices,
+            groups: {
+              ...slices.groups,
+              served: (path) =>
+                owner === undefined
+                  ? undefined
+                  : this.groupAnswerOf(owner, path, queryKey),
+            },
+          };
+        }
+        if (servedPins)
+          slices = {
+            ...slices!,
+            pins: {
+              ...slices!.pins!,
+              rows:
+                this.pinAnswers.get(pinAnswerKey(ownerId!, slices!.pins!))
+                  ?.items ?? [],
+            },
+          };
       } else if (
+        view?.mode === "aggregate" &&
+        slices?.groups &&
+        stated?.queries.at(-1)?.groupBy
+      )
+        // (ADR-315 Phase 5 증분 5g — a server's groups not answered yet: no rows but the load —
+        //  never the rows held grouped here.)
+        return Object.assign([] as CatalogBoundRow[], {
+          loadingState: "loading" as const,
+        }) as CatalogBoundRows;
+      else if (
         authored.query &&
         !this.collections.find((item) => item.id === id)?.useMockData
       )
@@ -2002,8 +2195,32 @@ export class CatalogPreviewSession {
     // ADR-310 Phase 7 — a paged list shows its page (its query unit's rows when remote).
     const display =
       ownerId === undefined ? undefined : this.rowDisplayOf(ownerId);
+    // (ADR-315 Phase 5 증분 5g — a totals row its server answers: that row (none yet = empty).)
+    if (slices?.totals && ownerId !== undefined) {
+      const query = this.stateRowQuery(
+        id,
+        authored.query ?? NO_VIEW_QUERY,
+        slices,
+        "totals",
+      );
+      if (query) {
+        const answer = this.totalsAnswers.get(ownerId);
+        slices = {
+          ...slices,
+          servedTotals:
+            answer?.queryKey === catalogRowQueryKey(query)
+              ? (answer.row ?? {})
+              : {},
+        };
+      }
+    }
+    // (ADR-315 Phase 5 증분 5g — rows a Table of pins none of: its record says so.)
+    const marked = <T extends object | undefined>(rows: T): T =>
+      rows && pinsRefused
+        ? (Object.assign(rows, { pinsRefused: true as const }) as T)
+        : rows;
     if (ownerId !== undefined && display?.mode === "pages")
-      return this.pageRows(binding, kind, ownerId, display, slices);
+      return marked(this.pageRows(binding, kind, ownerId, display, slices));
     // (A virtual-scrolled list shows every loaded row — the `Virtualizer` puts the visible ones in
     //  the DOM; its end loads the next page as 「더 보기」 does.)
     const window =
@@ -2030,9 +2247,402 @@ export class CatalogPreviewSession {
       else this.windowsCut.delete(key);
     }
     const collectionId = binding.collectionId.replace(/^data:collection:/, "");
-    return Object.assign(rows, {
-      loadingState: this.loadingStates.get(collectionId) ?? "idle",
-    });
+    return marked(
+      Object.assign(rows, {
+        loadingState: this.loadingStates.get(collectionId) ?? "idle",
+      }),
+    );
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — the servers' answers to the Tables' pinned rows' requests, by the
+   * Table node and its pins (`pinAnswerKey`): the request they answer (its URL · body) and rows.
+   */
+  private readonly pinAnswers = new Map<
+    string,
+    { url: string; items: Record<string, unknown>[] }
+  >();
+  /**
+   * ADR-315 Phase 5 증분 5g — the servers' answers to an open group's rows (`groupOf`), by the
+   * Table node and the group's key: the query they belong to (`catalogRowQueryKey` of the group
+   * query — another state's are not these groups'), the request, the rows, and the rows' count
+   * when it is not the group's.
+   */
+  private readonly groupAnswers = new Map<
+    string,
+    {
+      queryKey: string;
+      url: string;
+      rows?: readonly Record<string, unknown>[];
+      mismatch?: number;
+    }
+  >();
+  /** ADR-315 Phase 5 증분 5g — groups asked again once for a count that did not match. */
+  private readonly groupRetries = new Set<string>();
+  /** ADR-315 Phase 5 증분 5g — the servers' totals rows, by the Table node (`syncTotals`). */
+  private readonly totalsAnswers = new Map<
+    string,
+    { queryKey: string; url: string; row?: Readonly<Record<string, unknown>> }
+  >();
+  /** An open group's answer (`CatalogRowGroups.served`) — none while not answered. */
+  private groupAnswerOf(
+    nodeId: string,
+    path: readonly unknown[],
+    queryKey: string,
+  ) {
+    const answer = this.groupAnswers.get(
+      `${nodeId}\u0000${catalogTableGroupKey(path)}`,
+    );
+    return answer?.queryKey === queryKey && answer.rows
+      ? {
+          rows: answer.rows,
+          ...(answer.mismatch !== undefined
+            ? { mismatch: answer.mismatch }
+            : {}),
+        }
+      : undefined;
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — the requests a collection's Tables add to its page's (§4.3.2 ·
+   * §4.3.3): their pinned rows, their open groups' rows, their totals rows.
+   */
+  private syncServedRows(collectionId: string): void {
+    void this.syncPinnedRows(collectionId);
+    void this.syncGroupRows(collectionId);
+    void this.syncTotals(collectionId);
+  }
+  /** Every page of a request (a group's rows — no sentinel inside a group: §4.3.2 Phase 5 note). */
+  private async loadEveryPage(
+    collectionId: string,
+    extraAt: (cursor: string | undefined) => {
+      query: [string, string][];
+      body?: unknown;
+    },
+  ): Promise<{ rows: Record<string, unknown>[]; total?: number }> {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const endpoint = this.queryEndpoint(collectionId);
+    const rows: Record<string, unknown>[] = [];
+    let total: number | undefined;
+    let cursor: string | undefined;
+    do {
+      const answer = await loadCollectionEndpoint(
+        endpoint,
+        new AbortController().signal,
+        this.endpointTemplateFor(collectionId, cursor),
+        cursor,
+        extraAt(cursor),
+      );
+      const intake = intakeQueryItems(answer.items, collection);
+      rows.push(
+        ...(Array.isArray(intake) ? intake : [intake]).filter(
+          (item): item is Record<string, unknown> =>
+            !!item && typeof item === "object",
+        ),
+      );
+      if (answer.total !== undefined) total = answer.total;
+      cursor = answer.cursor === cursor ? undefined : answer.cursor;
+    } while (cursor !== undefined && rows.length < VIEW_LOCAL_LOAD_CAP);
+    return { rows, ...(total !== undefined ? { total } : {}) };
+  }
+  /** The Table records bound to a collection, with their node's binding and authored query. */
+  private boundTableRecords(collectionId: string) {
+    const graph = this.graph;
+    const root = this.currentRoot;
+    const out: {
+      recordId: string;
+      nodeId: string;
+      /** The node's authored query at this record (its instance path) — read when asked. */
+      authoredQuery: () => CatalogRowQuery | undefined;
+    }[] = [];
+    if (!graph || !root) return out;
+    for (const nodeId of graph.bindingsOf(`data:collection:${collectionId}`)) {
+      const entry = graph.getEntry(nodeId as never);
+      const binding = entry?.kind === "node" ? entry.binding : undefined;
+      if (!binding) continue;
+      for (const recordId of root.recordsOfSource(nodeId)) {
+        const record = root.domInputs.get(recordId);
+        if (record?.ruleId !== "Table") continue;
+        out.push({
+          recordId,
+          nodeId,
+          authoredQuery: () =>
+            binding.view || binding.viewId
+              ? catalogBindingQuery(
+                  graph,
+                  binding,
+                  nodeId,
+                  this.stateSource(),
+                  undefined,
+                  componentInstancePath(record, nodeId),
+                )
+              : NO_VIEW_QUERY,
+        });
+      }
+    }
+    return out;
+  }
+  /** A query as a request (`serializeViewQueries` in the endpoint's format · fields). */
+  private requestOf(
+    collectionId: string,
+    query: CatalogRowQuery,
+    page?: { cursor?: string },
+    items?: Parameters<typeof serializeViewQueries>[4],
+  ) {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const endpoint = collection ? this.endpointFilling(collection) : undefined;
+    const format = endpoint?.querySerialization;
+    if (!endpoint || !format) return undefined;
+    const serialized = serializeViewQueries(
+      format,
+      {
+        queries: catalogCountlessViews(query.queries),
+        schema: this.requestSchema(collectionId),
+        resolve: catalogRowQueryResolve(query),
+      },
+      endpoint.method,
+      page,
+      items,
+    );
+    if (serialized.load === "all") return undefined;
+    const extra = {
+      query: serialized.params,
+      ...(serialized.body ? { body: serialized.body } : {}),
+    };
+    const url = resolvedEndpointUrl(
+      endpoint,
+      this.endpointTemplateFor(collectionId, page?.cursor),
+      extra,
+    );
+    return url ? { extra, url } : undefined;
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — an open group's rows a server answers (§4.3.2): one request a group
+   * — the Table's `where` · sort and `groupOf` its values; the next level's group query when
+   * more levels follow. Every page of it loads (a group's rows have no sentinel of their own —
+   * its count bounds them). An answer whose count is not the group's: the group query is asked
+   * again once, then the group row says so (`mismatch`, §4.3.3).
+   */
+  private async syncGroupRows(collectionId: string): Promise<void> {
+    let retry = false;
+    for (const { recordId, nodeId, authoredQuery } of this.boundTableRecords(
+      collectionId,
+    )) {
+      const slices = this.recordRowSlices(recordId);
+      const groups = slices?.groups;
+      const authored = groups ? authoredQuery() : undefined;
+      if (!authored) continue;
+      const main = this.stateRowQuery(collectionId, authored, slices, 0);
+      if (!groups || !main?.queries.at(-1)?.groupBy) continue;
+      const loaded = this.loadedViewQueries.get(collectionId);
+      const queryKey = catalogRowQueryKey(main);
+      if (!loaded || catalogRowQueryKey(loaded) !== queryKey) continue;
+      const open = (key: string) =>
+        groups.expanded === "all" || groups.expanded.includes(key);
+      let changed = false;
+      const walk = async (
+        rows: readonly Record<string, unknown>[],
+        depth: number,
+        outer: readonly unknown[],
+      ): Promise<void> => {
+        for (const row of rows) {
+          const path = [...outer, row[groups.keys[depth]!] ?? null];
+          const groupKey = catalogTableGroupKey(path);
+          if (!open(groupKey)) continue;
+          const query =
+            this.stateRowQuery(collectionId, authored, slices, depth + 1) ??
+            authored;
+          const groupOf = { by: groups.keys.slice(0, depth + 1), values: path };
+          const first = this.requestOf(collectionId, query, undefined, {
+            groupOf,
+          });
+          if (!first) continue;
+          const key = `${nodeId}\u0000${groupKey}`;
+          let answer = this.groupAnswers.get(key);
+          if (answer?.url !== first.url || answer.queryKey !== queryKey) {
+            this.groupAnswers.set(key, (answer = { queryKey, url: first.url }));
+            const got = await this.loadEveryPage(
+              collectionId,
+              (cursor) =>
+                this.requestOf(
+                  collectionId,
+                  query,
+                  cursor === undefined ? undefined : { cursor },
+                  { groupOf },
+                )?.extra ?? first.extra,
+            );
+            if (this.groupAnswers.get(key) !== answer) return;
+            // (The rows the answer has: the next level's counts, else the server's total.)
+            const deeper = depth + 1 < groups.keys.length;
+            const count = Number(row[CATALOG_GROUP_ROW_COUNT]);
+            const rowsOf = deeper
+              ? got.rows.reduce(
+                  (sum, item) =>
+                    sum + (Number(item[CATALOG_GROUP_ROW_COUNT]) || 0),
+                  0,
+                )
+              : (got.total ?? got.rows.length);
+            const retryKey = `${queryKey}\u0000${key}`;
+            if (Number.isFinite(count) && rowsOf !== count) {
+              if (!this.groupRetries.has(retryKey)) {
+                this.groupRetries.add(retryKey);
+                this.groupAnswers.delete(key);
+                retry = true;
+                continue;
+              }
+              console.warn(
+                `[CatalogPreview] ${collectionId}: the group ${groupKey} counts ${count} rows, the server's answer to its rows has ${rowsOf} — said on its row.`,
+              );
+            }
+            answer = {
+              queryKey,
+              url: first.url,
+              rows: got.rows,
+              ...(Number.isFinite(count) && rowsOf !== count
+                ? { mismatch: rowsOf }
+                : {}),
+            };
+            this.groupAnswers.set(key, answer);
+            changed = true;
+          }
+          if (answer.rows && depth + 1 < groups.keys.length)
+            await walk(answer.rows, depth + 1, path);
+        }
+      };
+      await walk(
+        this.collectionItems(collectionId) as Record<string, unknown>[],
+        0,
+        [],
+      );
+      if (changed) {
+        const errors = this.currentRoot?.refreshNodes(new Set([nodeId]));
+        if (errors?.length)
+          console.error("[CatalogPreview] groups:", ...errors);
+        this.changed();
+      }
+    }
+    // (A count that did not match: the group query once more — its answer asks the rows again.)
+    if (retry) await this.reload(collectionId, "filtering");
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — a Table's totals row its server answers (§4.3.2): a group query
+   * without fields over the Table's `where` — one row of each Column's aggregate.
+   */
+  private async syncTotals(collectionId: string): Promise<void> {
+    for (const { recordId, nodeId, authoredQuery } of this.boundTableRecords(
+      collectionId,
+    )) {
+      const slices = this.recordRowSlices(recordId);
+      const authored = slices?.totals ? authoredQuery() : undefined;
+      if (!slices?.totals || !authored) continue;
+      const query = this.stateRowQuery(
+        collectionId,
+        authored,
+        slices,
+        "totals",
+      );
+      const request = query && this.requestOf(collectionId, query);
+      if (!query || !request) continue;
+      const queryKey = catalogRowQueryKey(query);
+      const held = this.totalsAnswers.get(nodeId);
+      if (held?.url === request.url && held.queryKey === queryKey) continue;
+      const answer = { queryKey, url: request.url };
+      this.totalsAnswers.set(nodeId, answer);
+      try {
+        const got = await this.loadEveryPage(collectionId, () => request.extra);
+        if (this.totalsAnswers.get(nodeId) !== answer) continue;
+        this.totalsAnswers.set(nodeId, { ...answer, row: got.rows[0] ?? {} });
+        const errors = this.currentRoot?.refreshNodes(new Set([nodeId]));
+        if (errors?.length)
+          console.error("[CatalogPreview] totals:", ...errors);
+        this.changed();
+      } catch (error) {
+        console.warn(
+          `[CatalogPreview] ${collectionId} 의 합계를 읽지 못했다:`,
+          error,
+        );
+      }
+    }
+  }
+  /** A collection's fields as a request names them (with their notation · formula). */
+  private requestSchema(collectionId: string) {
+    return (
+      this.collections.find((item) => item.id === collectionId)?.schema ?? []
+    ).flatMap((field) =>
+      field.id && field.key
+        ? [
+            {
+              id: field.id,
+              key: field.key,
+              type: field.type,
+              ...(field.formula ? { formula: field.formula } : {}),
+              // (ADR-313 — a value sent is written back with the field's notation.)
+              ...(field.encoding ? { encoding: field.encoding } : {}),
+            },
+          ]
+        : [],
+    );
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — the pinned rows of a collection's Tables whose server pages its rows
+   * (breakdown §4.3.3 · §5.4): one request a Table — its `where` (without it under 「Keep pinned
+   * rows」 — the authored view's only) and `keys.only` its pinned keys, no page. A request that
+   * has not changed is not sent again; an answer with more rows than the keys is said (§4.3.3).
+   */
+  private async syncPinnedRows(collectionId: string): Promise<void> {
+    const name =
+      this.collections.find((item) => item.id === collectionId)?.name ??
+      collectionId;
+    const loads: Promise<void>[] = [];
+    for (const { recordId, nodeId, authoredQuery } of this.boundTableRecords(
+      collectionId,
+    )) {
+      const request = this.tablePinRequest(recordId);
+      const pinned = this.tableStates.get(recordId)?.pinnedRows;
+      const authored = request && pinned ? authoredQuery() : undefined;
+      if (!request || !pinned || !authored) continue;
+      const query = request.keep
+        ? authored
+        : (this.stateRowQuery(
+            collectionId,
+            authored,
+            this.recordRowSlices(recordId),
+          ) ?? authored);
+      const asked = this.requestOf(collectionId, query, undefined, {
+        keys: { field: request.field, only: request.keys },
+      });
+      const key = pinAnswerKey(nodeId, pinned);
+      const held = this.pinAnswers.get(key);
+      if (!asked || held?.url === asked.url) continue;
+      // (Asked: the answer this request brings replaces the one held — a later request wins.)
+      this.pinAnswers.set(key, { url: asked.url, items: held?.items ?? [] });
+      loads.push(
+        (async () => {
+          const { rows: items } = await this.loadEveryPage(
+            collectionId,
+            () => asked.extra,
+          );
+          if (this.pinAnswers.get(key)?.url !== asked.url) return;
+          if (items.length > new Set(request.keys).size)
+            console.warn(
+              `[CatalogPreview] ${name}: the pinned rows' request (${request.keys.length} keys) was answered with ${items.length} rows — not a request by key; the rows of those keys are pinned.`,
+            );
+          this.pinAnswers.set(key, { url: asked.url, items });
+          const errors = this.currentRoot?.refreshNodes(new Set([nodeId]));
+          if (errors?.length)
+            console.error("[CatalogPreview] pinned rows:", ...errors);
+          this.changed();
+        })().catch((error: unknown) =>
+          console.warn(
+            `[CatalogPreview] ${name} 의 고정 행을 읽지 못했다:`,
+            error,
+          ),
+        ),
+      );
+    }
+    await Promise.all(loads);
   }
   /**
    * An endpoint's `{{ }}` (route params · variables) read from the session's state, each on its
@@ -2120,7 +2730,25 @@ export class CatalogPreviewSession {
         this.endpointTemplateFor(collection.id),
         this.viewRequest(collection.id),
       );
-      if (!url || this.loadedUrls.get(collection.id) === url) continue;
+      if (!url || this.loadedUrls.get(collection.id) === url) {
+        // (ADR-315 Phase 5 증분 5g — the page's request the same, a pinned rows' one may not be:
+        //  「Keep pinned rows」 turned on · off.)
+        if (url) this.syncServedRows(collection.id);
+        // (ADR-315 Phase 5 증분 5g — the same request, and a Table that now reads every row: a
+        //  grouping · a totals row · a tree turned on. The pages not loaded yet load.)
+        if (
+          url &&
+          this.loadArguments.get(collection.id)?.cursor !== undefined &&
+          this.collectionTablesReadWhole(collection.id)
+        )
+          this.loadAll(collection.id).catch((error: unknown) =>
+            console.warn(
+              `[CatalogPreview] ${collection.name ?? collection.id} 의 모든 행을 읽지 못했다:`,
+              error,
+            ),
+          );
+        continue;
+      }
       this.loadedUrls.set(collection.id, url);
       this.reload(collection.id, state).catch((error: unknown) =>
         console.warn(
@@ -2308,6 +2936,97 @@ export class CatalogPreviewSession {
       search: this.tableSliceServable(tableId, "search").accepts === "whole",
       filters: (op) =>
         this.tableSliceServable(tableId, { filter: op }).accepts === "whole",
+      // (ADR-315 Phase 5 증분 5g — pinned rows only where a pinned row of another page can be
+      //  asked for by its key.)
+      rowPins: !this.rowPinsRefused(
+        this.tableCollectionOf(tableId),
+        this.currentRoot?.domInputs.get(tableId)?.sourceId,
+      ),
+    };
+  }
+  /** The collection a Table record's node is bound to (its id without the prefix). */
+  private tableCollectionOf(tableId: string): string | undefined {
+    const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
+    const entry = source ? this.graph?.getEntry(source as never) : undefined;
+    return entry?.kind === "node"
+      ? entry.binding?.collectionId.replace(/^data:collection:/, "")
+      : undefined;
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — the key field a collection's rows are asked for by (`keys` — the
+   * binding's value field, the collection's key field, else `id` · `key` · `value` as the lists
+   * key them). Undefined = the rows are keyed by their place (`row-N`): no request names them.
+   */
+  private rowKeyFieldOf(
+    collectionId: string,
+    nodeId: string | undefined,
+  ): string | undefined {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const entry = nodeId ? this.graph?.getEntry(nodeId as never) : undefined;
+    const binding = entry?.kind === "node" ? entry.binding : undefined;
+    const schema = collection?.schema ?? [];
+    const roles = resolveFieldRoles(
+      binding,
+      schema.flatMap((field) =>
+        field.key ? [{ id: field.id, key: field.key }] : [],
+      ),
+      collection?.keyField,
+    );
+    if (roles?.value) return roles.value;
+    return ["id", "key", "value"].find((key) =>
+      schema.some((field) => field.key === key),
+    );
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — a list of a collection whose server pages its rows pins none: the
+   * endpoint names no request for rows by key (`catalogTableSliceServable` 「pins」), the rows have
+   * no key field, or the list is a server's 「Pages」 (a page's request carries no view).
+   */
+  private rowPinsRefused(
+    collectionId: string | undefined,
+    nodeId: string | undefined,
+  ): boolean {
+    const service = this.collectionRowService(collectionId);
+    if (!service.remote || !collectionId) return false;
+    if (catalogTableSliceServable(service, "pins").accepts !== "whole")
+      return true;
+    if (!this.rowKeyFieldOf(collectionId, nodeId)) return true;
+    const entry = nodeId ? this.graph?.getEntry(nodeId as never) : undefined;
+    return (
+      entry?.kind === "node" &&
+      entry.rowDisplay?.mode === "pages" &&
+      this.remotePages(collectionId)
+    );
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — a Table record's pinned rows as its rows' requests name them: the
+   * key field, the keys, and whether they show past the search · filters (`keepPinnedRows`).
+   * Undefined = none, or rows that are all here (local — read out of them).
+   */
+  private tablePinRequest(tableId: string):
+    | {
+        field: string;
+        keys: readonly string[];
+        keep: boolean;
+      }
+    | undefined {
+    const pinned = this.tableStates.get(tableId)?.pinnedRows;
+    if (!pinned || (!pinned.top.length && !pinned.bottom.length))
+      return undefined;
+    const collectionId = this.tableCollectionOf(tableId);
+    const nodeId = this.currentRoot?.domInputs.get(tableId)?.sourceId;
+    if (!collectionId || !this.collectionRowService(collectionId).remote)
+      return undefined;
+    if (this.rowPinsRefused(collectionId, nodeId)) return undefined;
+    const field = this.rowKeyFieldOf(collectionId, nodeId);
+    if (!field) return undefined;
+    return {
+      field,
+      keys: [...pinned.top, ...pinned.bottom],
+      keep:
+        this.currentRoot?.domInputs.get(tableId)?.props.keepPinnedRows === true,
     };
   }
   /**
@@ -2389,6 +3108,9 @@ export class CatalogPreviewSession {
     const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
     const entry = source ? this.graph?.getEntry(source as never) : undefined;
     if (entry?.kind !== "node" || !entry.binding) return;
+    // (ADR-315 Phase 5 증분 5g — a server's pages: the page leaves the pinned rows out — another
+    //  request — and they are asked for by key.)
+    if (this.tableService(tableId).remote) this.loadRouted("filtering");
     const errors = this.currentRoot!.refreshNodes(new Set([entry.id]));
     if (errors.length)
       console.error("[CatalogPreview] pinned rows:", ...errors);
@@ -2398,6 +3120,39 @@ export class CatalogPreviewSession {
     return (
       catalogTableGrouping(this.tableState(tableId), this.tableColumns(tableId))
         .length > 0
+    );
+  }
+  /**
+   * ADR-315 Phase 5 증분 5g — a Table record that reads every row of a collection its server
+   * pages: a grouping · a totals row · a tree its rows' request does not carry (breakdown §4.3.1
+   * — `catalogTableSliceServable` `loaded`). Its collection loads whole and the slices run here —
+   * never over the pages loaded so far (a quiet part of the groups · the totals · the tree).
+   */
+  private tableReadsWhole(tableId: string): boolean {
+    const root = this.currentRoot;
+    const table = root?.domInputs.get(tableId);
+    if (!root || table?.ruleId !== "Table") return false;
+    const service = this.tableService(tableId);
+    if (!service.remote) return false;
+    const source = this.graph?.getEntry(table.sourceId as never);
+    const fieldMap =
+      source?.kind === "node" ? source.binding?.fieldMap : undefined;
+    const slices: CatalogTableServedSlice[] = [
+      ...(this.tableGroupedNow(tableId) ? ["grouping" as const] : []),
+      ...(this.tableHasTotalsRow(tableId) ? ["totals" as const] : []),
+      ...(fieldMap?.children || fieldMap?.parentId ? ["tree" as const] : []),
+    ];
+    const aggregates = this.tableAggregates(tableId);
+    return slices.some(
+      (slice) =>
+        catalogTableSliceServable(service, slice, aggregates).accepts ===
+        "loaded",
+    );
+  }
+  /** ADR-315 Phase 5 증분 5g — a Table bound to the collection reads every row (`tableReadsWhole`). */
+  private collectionTablesReadWhole(collectionId: string): boolean {
+    return this.boundTableRecords(collectionId).some(({ recordId }) =>
+      this.tableReadsWhole(recordId),
     );
   }
   /** A Table record resolved again for its column slices — its rows as they were read. */
@@ -3152,7 +3907,12 @@ export class CatalogPreviewSession {
     const table = this.currentRoot?.domInputs.get(tableId);
     const source = table && this.graph?.getEntry(table.sourceId as never);
     const binding = source?.kind === "node" ? source.binding : undefined;
-    const collectionId = binding?.collectionId.replace(/^data:collection:/, "");
+    return this.collectionRowService(
+      binding?.collectionId.replace(/^data:collection:/, ""),
+    );
+  }
+  /** How a collection's rows are served (`CatalogTableRowService`). */
+  private collectionRowService(collectionId: string | undefined) {
     const collection = collectionId
       ? this.collections.find((item) => item.id === collectionId)
       : undefined;
@@ -3171,7 +3931,11 @@ export class CatalogPreviewSession {
   }
   /** What of a slice a Table record accepts into its state (`catalogTableSliceServable`). */
   tableSliceServable(tableId: string, slice: CatalogTableServedSlice) {
-    return catalogTableSliceServable(this.tableService(tableId), slice);
+    return catalogTableSliceServable(
+      this.tableService(tableId),
+      slice,
+      this.tableAggregates(tableId),
+    );
   }
   /**
    * The data field a bound Table's Column names (its key among the fields its rows have — the
@@ -3752,7 +4516,10 @@ export class CatalogPreviewSession {
     return (
       !!collection &&
       !collection.useMockData &&
-      !!this.endpointFilling(collection)
+      !!this.endpointFilling(collection) &&
+      // (ADR-315 Phase 5 증분 5g — a Table reading every row pages the whole rows here: a group
+      //  · a total over one server page is not the data's.)
+      !this.collectionTablesReadWhole(collectionId)
     );
   }
   /** A paged list's rows: its page of the collection (local), or its unit's loaded page (remote). */

@@ -5,6 +5,8 @@ import {
   CatalogTableDetailSwitch,
   CatalogTableSearchSwitch,
   CatalogTableSortNotice,
+  CatalogTableWholeRowsNotice,
+  CatalogTableRowPinsNotice,
 } from "./CatalogFilterSection";
 import { Settings2 } from "lucide-react";
 
@@ -695,12 +697,16 @@ function withFilterSections(
       <>
         {sectionExtras?.state}
         <CatalogTableSortNotice key={`sort:${nodeId}`} listId={nodeId} />
+        {/* (ADR-315 Phase 5 증분 5g — why 「Row pinning」 pins no row on its endpoint.) */}
+        <CatalogTableRowPinsNotice key={`pins:${nodeId}`} listId={nodeId} />
         {/* (ADR-315 Phase 3 — the Table's 「Search」: a SearchField wired to its search text.) */}
         <CatalogTableSearchSwitch key={`search:${nodeId}`} listId={nodeId} />
         {/* (ADR-315 Phase 5 증분 5c — the Table's 「Totals row」: its footer's row of aggregates.) */}
         <CatalogTableTotalsSwitch key={`totals:${nodeId}`} listId={nodeId} />
         {/* (ADR-315 Phase 5 증분 5e — the Table's 「Detail row」: a row each data row expands to.) */}
         <CatalogTableDetailSwitch key={`detail:${nodeId}`} listId={nodeId} />
+        {/* (ADR-315 Phase 5 증분 5g — a paged endpoint's grouping · totals · tree load every row.) */}
+        <CatalogTableWholeRowsNotice key={`whole:${nodeId}`} listId={nodeId} />
         {columns}
       </>
     ),

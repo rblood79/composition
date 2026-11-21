@@ -2399,6 +2399,10 @@ const catalog: TranslationKeys = {
     apiQuery_sortParam: "Sort field",
     apiQuery_orderParam: "Sort direction",
     apiQuery_searchParam: "Table search text",
+    apiQuery_keyOnlyParam: "Pinned rows (keys)",
+    apiQuery_keyExceptParam: "Rows without (keys)",
+    apiQueryKeyRows: "Rows by key (keys.only · keys.except)",
+    apiQueryGroupRows: "Rows of a group (groupOf)",
     apiQueryMultiSort: "Several sorts (comma lists)",
     apiQueryExtendedAggregates:
       "Median · unique · extent · first · last aggregates",
@@ -2417,6 +2421,8 @@ const catalog: TranslationKeys = {
     apiQueryWarnMULTI_VIEW: "Several different views — not put in the request",
     apiQueryWarnMULTI_SORT:
       "Several sorts — this endpoint takes one; only the first is sent",
+    apiQueryWarnKEYS:
+      "Rows by key — this endpoint names no request for them; not sent",
     apiQueryWarnGROUP:
       "Grouping · aggregates cannot be parameters — every row is loaded (up to {cap}) and grouped here",
     apiQueryWarnAGGREGATE:
@@ -2681,6 +2687,8 @@ const catalog: TranslationKeys = {
     tableColumnChooserLabel: "Columns",
     tableTotalsRow: "Totals row",
     tableDetailRow: "Detail row",
+    tableRowPinsRefused:
+      "This endpoint pages its rows and names no request for rows by key — the Table pins no row. Turn on 「Rows by key」 (or name the key parameters) in the endpoint's query format.",
     tableSearchRefused_suffixNoSearch:
       "This endpoint takes no search text — the Table's search does not run. Name a parameter under 「Table search text」 in the endpoint's query format.",
     tableSearchFuzzyServed:
@@ -3789,6 +3797,8 @@ const formattedMessages: Record<
   "datatable.fieldTypeChangeInvalid": (args) =>
     `${String(args?.count ?? 0)} of ${String(args?.total ?? 0)} rows are not valid ${String(args?.type ?? "")}.`,
   "datatable.fieldAdded": (args) => `Added field "${String(args?.key ?? "")}".`,
+  "dataView.tableWholeRows": (args) =>
+    `This endpoint splits its rows into pages — to group, total or nest them the Table loads every row (up to ${String(args?.cap ?? "")}) and runs them here. Past that it shows no rows.`,
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,

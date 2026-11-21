@@ -11,7 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-315 Phase 5 증분 5a ~ 5f — 집계 6 종 · Table 묶음 행 (가상 스크롤 · Canvas 포함) · 합계 행 · 계층 데이터 · 상세 행 · 행 고정] - 2026-11-21
+## [ADR-315 Phase 5 — 집계 6 종 · Table 묶음 행 (가상 스크롤 · Canvas 포함) · 합계 행 · 계층 데이터 · 상세 행 · 행 고정 · 서버가 쪽을 나누는 표] - 2026-11-21
+
+### Changed
+
+- **문서 contract 75 → 76** (ADR-315 Phase 5 — 집계 이름 6 종 · `TableFooter` 타입 · Table 원본의 「Totals」 slot): 75 로 저장한 프로젝트는 열리지 않는다 (「This project uses the previous format」). 변환은 없다 (ADR-315 R5 — entry 형 변경을 Phase 2 · 4 · 5 에 모은다).
 
 ### Added
 
@@ -22,14 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 묶음 · 집계는 검색 · 열 필터 · 정렬 뒤의 **모든** 행으로 계산하고, 「더 보기」 · 쪽은 묶음 행으로 센다. 접힌 묶음은 행을 그리지 않는다.
   - 「Allow grouping」 을 켠 열은 열 메뉴에 「Group by column」 · 「Ungroup」 이 생긴다 (표 상태 `grouping` — 문서는 바뀌지 않는다).
   - 위치: `packages/shared/src/catalog/runtime/tableGroupRows.ts` (묶음 행) · `dataBinding.ts` (`boundRowsOf`) · `tableRowSlices.ts` (`catalogTableGrouping`) · `resolution/resolver.ts` (`nestTableRows`) · `resolution/tableColumns.ts` (묶은 열 앞 · `_treeColumn`) · `domRegistry.components.tsx` (`CatalogTableCell` — 펼침 버튼) · `domBinding.runtime.ts` (`treeColumn` · `expandedKeys`) · `catalogPreviewSession.ts` (`expandTableRows`) · `tableColumnMenu.ts` · `Table.css`. 회귀 `tableGroupRows.test.ts` · `adr315GroupRows.test.tsx`. live: production · headed Chrome · 1,000 행 — Dept 메뉴 「Group by column」 → 묶음 12 개의 개수 · Amount 합계가 행 생성기로 따로 센 값과 같음 · 첫 묶음 펼침 101 행 (aria-level 2) · 「Ungroup」 (`--check-group`).
-  - **가상 스크롤 Table 의 묶음 (5b-2)** — 펼친 묶음의 행이 수천이어도 화면에 보이는 행 근처 60 행만 내용을 만든다: 행 창을 「묶음, 열린 묶음이면 그 행들」 의 보이는 순서 위에서 자르고, DOM 이 각 행을 그 묶음 안에 넣는다 (창 밖 행은 내용 없는 행 — 스크롤 높이 · 키보드 순서는 그대로). 위치: `resolution/resolver.ts` (`catalogShownGroupRows` · `windowedGroupRows` · `CatalogRowWindowKeys.depths`) · `runtime/domBinding.runtime.ts` (`CatalogWindowRowNest`). 회귀 `adr315GroupWindow.test.tsx`. live: production · headed Chrome · 1,000 행 가상 표 — 「Dept 9 (101)」 펼침 → 끝까지 스크롤하며 101 행 모두 Dept 9 · 보이는 빈 행 0 · DOM 행 최대 18.
+  - **가상 스크롤 Table 의 묶음 (5b-2)** — 펼친 묶음의 행이 수천이어도 화면에 보이는 행 근처 60 행만 내용을 만든다: 행 창을 「묶음, 열린 묶음이면 그 행들」 의 보이는 순서 위에서 자르고, DOM 이 각 행을 그 묶음 안에 넣는다 (창 밖 행은 내용 없는 행 — 스크롤 높이 · 키보드 순서는 그대로). 위치: `resolution/resolver.ts` (`catalogShownGroupRows` · `windowedGroupRows` · `CatalogRowWindowKeys.depths`) · `runtime/domBinding.runtime.ts` (`CatalogWindowRowNest`). 회귀 `adr315GroupWindow.test.tsx`. live: production · headed Chrome · 1,000 행 가상 표 — 「Dept 9 (101)」 펼침 → 끝까지 스크롤하며 101 행 모두 Dept 9 · 보이는 빈 행 0 · DOM 행 최대 18. Phase 5 종결 때 10,000 행으로 다시: 묶음 12 의 개수 · 합 일치 · 「Dept 4 (836)」 펼쳐 끝까지 (스크롤 79 번) 836 행 모두 Dept 4 · 보이는 빈 행 0 · DOM 행 최대 18.
   - **Builder Canvas 의 「Grouped」 (5b-3)** — Canvas 도 작성한 묶음을 Preview 첫 화면처럼 그린다: 묶음마다 접힌 행 하나, 묶은 열이 맨 앞, 그 칸 시작에 펼침 표시 (Canvas 에서는 펼치지 않는다). 위치: `apps/builder/src/builder/catalogRuntime/catalogDataRead.ts` (`catalogBuilderBoundRows` 의 묶음 조각) · `packages/shared/src/catalog/runtime/tableTreeCell.ts` · `boxModel.ts` · `apps/builder/src/builder/catalogRuntime/ruleShapes.ts` (`treeCellChevronShapes`) · `resolution/resolver.ts`. 회귀 `adr315CanvasGroups.test.ts`. live: production · headed Chrome · 1,000 행 — Builder Canvas 묶음 12 행 · Publish 첫 화면 묶음 12 의 개수 · 합계가 따로 센 값과 같고 두 화면이 같은 모양 (`--check-authored-group`).
 
 - **Table 「Totals row」 (Design 패널 Property 탭 Behavior, 연결된 Table) — 합계 행 (5c)**
   - 켜면 표 바닥 (RAC `TableFooter`) 에 행 하나가 생기고, 칸마다 그 열의 「Group · totals aggregate」 (예전 이름 「Group aggregate」 — 묶음 행과 같은 설정) 를 **검색 · 열 필터 뒤의 모든 행** 위에서 보인다 — 「더 보기」 · 쪽 · 가상 스크롤로 일부만 보일 때도 합계는 전체의 것. 집계를 고르지 않은 열은 비어 있다. 끄면 사라진다. Builder Canvas 도 그린다.
   - 열을 더하거나 지우거나 옮기면 합계 행의 칸도 같이 맞춰진다. 합계 행은 선택 · 정렬되지 않고 표의 끝에 선다 (고정되지 않는다).
   - 위치: `packages/shared/src/catalog/bindings/TableFooter.binding.ts` · `document/generated/reusableOriginLibrary.ts` (Table 원본의 「Totals」 slot) · `commands/collections.ts` (`setTableTotalsRow` · `tableRowGroupsOf`) · `runtime/dataBinding.ts` (`catalogRowTotals`) · `runtime/tableRowSlices.ts` (`totals`) · `runtime/tableTracks.ts` · `resolution/resolver.ts` · `apps/builder/src/builder/catalogRuntime/tableTotals.ts` · `panels/properties/catalog/CatalogFilterSection.tsx` (`CatalogTableTotalsSwitch`). 회귀 `adr315TotalsRow.test.tsx` · `adr315CanvasGroups.test.ts`. live: production · headed Chrome · 1,000 행 — Canvas · Publish (가상 · 「더 보기」) 합계가 행 생성기로 따로 센 값과 같음 (`--check-totals`).
-  - 아직: 서버가 쪽을 나누는 표 · 컴포넌트 안의 Table 의 합계.
+  - 아직: 컴포넌트 안의 Table 의 합계.
 
 - **Table 계층 데이터 — 연결의 「Parent ID field」 · 「Children field」 (Design 패널 Collection, 5d)**
   - Tree 처럼 연결된 Table 도 행의 부모 필드 (평평한 행의 부모 key) 또는 자식 배열 필드를 고를 수 있다. 고르면 Preview · Publish 의 표가 부모 · 자식 행이 된다 — 첫 데이터 열 (작성 순서, 숨긴 열 제외) 칸에 펼침 버튼, 처음엔 모두 접힘, 펼친 행의 자식 행은 한 단계 들여 써져 그 아래 나온다 (← → 키 · 「Expand」 · 「Collapse」 — RAC 의 것).
@@ -46,11 +50,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 「Row pinning」 을 켜면 Preview · Publish 에서 행마다 마지막 칸 끝에 행 메뉴가 생긴다 (행에 마우스를 올리거나 focus 하면 보인다 — Builder Canvas 는 그리지 않는다). 「Pin to top」 · 「Pin to bottom」 · 「Unpin」 으로 고정한 행은 표의 맨 위 · 맨 아래에 서서 표를 스크롤해도 머리글 바로 아래 · 표 바닥에 머문다 (가상 스크롤 · 「더 보기」 · 쪽 모두). 고정한 행은 고정 표시 (핀) 를 늘 보인다.
   - 고정한 행은 나머지 행의 정렬 · 쪽 · 「더 보기」 밖이다 — 쪽마다 고정 행이 같이 보이고, 쪽 수 · 「더 보기」 는 나머지 행으로 센다. 검색 · 열 필터에 맞지 않는 고정 행은 보이지 않는다 (고정은 남는다). 「Keep pinned rows」 를 켜면 검색과 무관하게 남는다.
   - Do: Row 의 「Pin row to top」 · 「Pin row to bottom」 · 「Unpin row」 (그 규칙이 실행된 행에). 고정은 표 상태 (`pinnedRows`) 라 문서는 바뀌지 않는다.
-  - 묶은 표 · 계층 표 · 서버가 쪽을 나누는 표에서는 아직 고정하지 않는다 (행 메뉴가 없다). 상세 행이 있는 표에서 고정한 행은 펼치지 않는다.
+  - 묶은 표 · 계층 표에서는 아직 고정하지 않는다 (행 메뉴가 없다). 서버가 쪽을 나누는 표는 아래 5g. 상세 행이 있는 표에서 고정한 행은 펼치지 않는다.
   - 위치: `packages/shared/src/catalog/runtime/tableRowSlices.ts` (`CatalogRowPins`) · `runtime/dataBinding.ts` (`catalogPinnedRowOrder`) · `resolution/resolver.ts` (`withPinnedRow` · `withRowPinning` · 행 창 · `rowIndexOf`) · `runtime/domBinding.runtime.ts` (`data-pinned-row` · 행 메뉴 칸) · `runtime/tableOperationsDom.components.tsx` (`CatalogRowPinMenu` · `CatalogTableRowPinMeasure`) · `runtime/catalogVirtualizer.components.tsx` (`CatalogTableLayout` — 고정 행을 늘 만들고 sticky) · `catalogPreviewSession.ts` (`pinTableRow`) · `interactions/concepts/tableColumns.ts` (`rowPinning`) · `Table.css`. 회귀 `adr315RowPinning.test.tsx`. live: production · headed Chrome · 1,000 행 — r3 「Pin to top」 · r5 「Pin to bottom」 → 위 · 가운데 · 끝까지 스크롤하는 동안 r3 은 머리글 바로 아래, r5 는 표 바닥 (1 px 안), 그 자리를 누르면 그 행 (`--check-rowpin`, 가상 · 「더 보기」).
+
+- **서버가 쪽을 나누는 표 (5g) — 묶기 · 합계 · 계층 · 행 고정이 전체 데이터의 것**
+  - 쪽 · cursor 로 나눠 주는 endpoint 에 연결한 Table 의 묶기 · 합계 행 · 계층은 이제 받은 쪽이 아니라 **모든 행** 의 것이다. endpoint 가 그 계산을 받지 않으면 모든 쪽을 불러와 (최대 10,000 행 — 넘으면 행 없음 + 경고) 여기서 계산하고, Design 패널이 그 사실을 알린다.
+  - Data 패널 API 조회 형식 (body) 의 「묶음의 행 조회 받기 (groupOf)」 를 켠 endpoint 는 서버가 묶는다: 묶음 행은 서버의 묶음 조회 (count · 집계), 묶음을 펼치면 그 묶음의 행만 따로 조회 (`groupOf` — 값 비교 조건이 아니라 식별: `"A"` 와 `"a"`, 빈 값과 `""` 는 다른 묶음), 두 단계 묶기도 단계마다 서버 값, 합계 행은 필드 없는 묶음 조회 하나. 서버가 준 행 수가 묶음 개수와 다르면 한 번 다시 묻고, 그래도 다르면 묶음 행에 「B (2 ≠ 5)」 로 보인다.
+  - 「key 로 행 조회 받기 (keys.only · keys.except)」 (body) 또는 「고정 행 (key)」 · 「뺄 행 (key)」 파라미터 (suffix) 를 정한 endpoint 의 표는 다른 쪽에 있는 행도 고정할 수 있다 — 고정 행은 그 key 로 따로 조회하고 쪽 요청은 그 행을 뺀다 (「더 보기」 로 쪽을 더 불러와도 한 번만). key 는 필드 타입대로 보낸다 (숫자 key 5 ≠ 글자 「5」). 선언하지 않은 endpoint 의 표는 행을 고정하지 않고 Design 패널이 이유를 알린다.
+  - 위치: `packages/shared/src/catalog/runtime/tableStateQuery.ts` (`catalogTableSliceServable` 의 `grouping` · `totals` · `tree` · `pins`) · `runtime/tableGroupQuery.ts` (묶음 · 합계 조회 번역) · `runtime/catalogPreviewSession.ts` (`loadsWhole` · `syncPinnedRows` · `syncGroupRows` · `syncTotals`) · `runtime/dataBinding.ts` (`CatalogRowPins.rows` · `servedTotals` · `servedSlicesOf`) · `runtime/tableGroupRows.ts` (`catalogServedGroupBoundRows`) · `collections/view/serialize.ts` (`keys` · `groupOf` · `keyRows` · `groupRows`) · `apps/builder/src/builder/panels/datatable/editors/QueryFormatSection.tsx` · `panels/properties/catalog/CatalogFilterSection.tsx` (`CatalogTableWholeRowsNotice` · `CatalogTableRowPinsNotice`) · `apps/builder/scripts/mock-query-server.mjs` (`keys` · `groupOf`).
+  - 아직: 서버 묶음 · 합계 값의 소수 잡음 정리 (서버 값 그대로) · 서버 「쪽」 목록 위의 고정 · 서버 묶음.
 
 ### Fixed
 
+- **서버가 쪽을 나누는 표의 묶기 · 합계 · 계층 (5g)** — 보기 없이 연결된 표는 불러온 첫 쪽만으로 묶음 · 합계를 보였고 (전체처럼), 정렬 · 검색을 서버에 보내는 표는 묶기 · 합계 · 고정을 통째로 잃었다.
 - **집계 값의 부동소수 잡음** — 소수 값의 합 · 평균이 `453013.2899999999` 처럼 보였다 (live 에서 찾음). 합은 입력의 가장 긴 소수 자릿수로 반올림하고, 평균 · 중앙값은 그 합을 한 번 나눈 뒤 마지막 자리의 잡음만 맞춘다 (0.6 / 3 → 0.2 · 400 / 15 는 전체 자릿수 그대로 — 서버의 평균과 같다) (`viewAggregateOf`). 데이터 보기의 sum · mean · median 도 같다.
 - **가상 스크롤 Table 의 펼침 표시** — 펼친 묶음의 펼침 버튼이 돌지 않았다 (가상 표는 칸을 한 겹 더 감싸 `Table.css` 의 자식 결합자가 닿지 않았다) — 자손 결합자로.
 - **중첩 Row 의 선택 칸** — Table 의 Row 안 Row (묶음의 행) 가 선택 checkbox 칸을 숨기지 않아 RAC 가 예외를 냈다 — Table 찾기가 부모 Row 를 건너 올라간다 (`tableTracks.ts` `catalogTrackTableOf`).
