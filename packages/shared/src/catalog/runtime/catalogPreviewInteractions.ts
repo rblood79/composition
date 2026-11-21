@@ -427,6 +427,12 @@ export interface CatalogPreviewInteractionsOptions {
   pressTableSort?: (tableId: string, column: string, add: boolean) => void;
   /** ADR-315 Phase 5 — the group rows RAC opened · closed (their row keys): the session's. */
   expandTableRows?: (tableId: string, keys: readonly string[]) => void;
+  /** ADR-315 Phase 5 증분 5f — a viewer's row menu pin (`CatalogDomRuntime.pinTableRow`). */
+  pinTableRow?: (
+    tableId: string,
+    rowKey: string,
+    side: "top" | "bottom" | "none",
+  ) => void;
   /** ADR-315 Phase 4 — the widths RAC's column resize left (RAC keys, px): the session's. */
   resizeTableColumns?: (
     tableId: string,
@@ -572,6 +578,8 @@ const LOADED_MULTIPLE_SELECTION_TYPES: ReadonlySet<string> = new Set([
 const TABLE_COLUMN_STATE_PROPS = {
   Table: ["visibleColumns"],
   Column: ["pinned", "filterValue"],
+  // (ADR-315 Phase 5 증분 5f — a data row's pinned side: the Table state's `pinnedRows`.)
+  Row: ["pinned"],
 } as const satisfies Record<string, readonly string[]>;
 const TABLE_COLUMN_STATE_KEYS: readonly string[] = [
   ...TABLE_COLUMN_STATE_PROPS.Table,
@@ -1323,6 +1331,13 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   pressTableSort(tableId: string, column: string, add: boolean): void {
     this.options.pressTableSort?.(tableId, column, add);
   }
+  pinTableRow(
+    tableId: string,
+    rowKey: string,
+    side: "top" | "bottom" | "none",
+  ): void {
+    this.options.pinTableRow?.(tableId, rowKey, side);
+  }
   expandTableRows(tableId: string, keys: readonly string[]): void {
     this.options.expandTableRows?.(tableId, keys);
   }
@@ -1421,7 +1436,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       ? TABLE_COLUMN_STATE_PROPS.Table
       : type === "Column"
         ? TABLE_COLUMN_STATE_PROPS.Column
-        : [];
+        : type === "Row"
+          ? TABLE_COLUMN_STATE_PROPS.Row
+          : [];
   }
   /**
    * 2026-11-19 — a pick in a connected Pagination's 「Rows per page」 Select: its list's page size (the

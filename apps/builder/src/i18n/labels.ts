@@ -510,6 +510,8 @@ export const semanticLabelKeys: Record<string, string> = {
   "Allow pinning": "properties.columnAllowsPinning",
   "Allow filtering": "properties.columnAllowsFiltering",
   "Reorder columns": "properties.tableReorderColumns",
+  "Row pinning": "properties.tableRowPinning",
+  "Keep pinned rows": "properties.tableKeepPinnedRows",
   // ADR-315 Phase 5 — a Column's grouping · its group rows' aggregate.
   Grouped: "properties.columnGrouped",
   "Allow grouping": "properties.columnAllowsGrouping",

@@ -112,6 +112,11 @@ const CHECK_TREE = process.argv.includes("--check-tree");
 //   모두 접힘 → r0 펼침 → 바로 아래 `r0/detail` 단계 2 · 칸 하나 · `aria-colspan` = 열 6 · 글자 = r0 의
 //   Name) 를 행 생성기로 따로 센 값과 대조한다.
 const CHECK_DETAIL = process.argv.includes("--check-detail");
+// `--check-rowpin` (ADR-315 Phase 5 증분 5f — 행 고정): Table 「Row pinning」 을 켠다. Builder Canvas record
+//   (Table 의 `_rowPinnable` · 고정 행 0) 와 Publish (행마다 마지막 칸의 행 메뉴 — 쉴 때 그리지 않음 → r3
+//   「Pin to top」 · r5 「Pin to bottom」 → 위 · 가운데 · 끝까지 스크롤하며 r3 은 머리글 바로 아래, r5 는
+//   스크롤 상자 바닥에 1 px 안에서 붙고 그 자리의 hit test 가 그 행) 를 잰다.
+const CHECK_ROWPIN = process.argv.includes("--check-rowpin");
 // ADR-315 Phase 4 증분 6 — the Table's view sorts Dept ↑ then Amount ↓ (authored): the Builder's
 // Column records carry the marks (`_sortMark` · the mark part), the Publish header shows them, a
 // press on Amount starts from its authored direction.
@@ -236,7 +241,8 @@ const context = await browser.newContext({
   CHECK_AUTHORED_GROUP ||
   CHECK_TOTALS ||
   CHECK_TREE ||
-  CHECK_DETAIL
+  CHECK_DETAIL ||
+  CHECK_ROWPIN
     ? { locale: "en-US" }
     : {}),
 });
@@ -403,6 +409,7 @@ try {
         CHECK_TOTALS,
         CHECK_TREE,
         CHECK_DETAIL,
+        CHECK_ROWPIN,
         CHECK_DRAG,
         CHECK_AUTHORED,
         PROFILE_COLUMNS,
@@ -704,6 +711,16 @@ try {
               }),
             ),
           );
+        if (CHECK_ROWPIN)
+          step("row pinning", () =>
+            ws.execute(
+              C.setFields({
+                targets: [{ kind: "node", id }],
+                props: { allowsRowPinning: set(true) },
+                label: "row pinning",
+              }),
+            ),
+          );
         if (CHECK_AUTHORED)
           step("authored sort", () =>
             ws.execute(
@@ -777,6 +794,7 @@ try {
         CHECK_TOTALS,
         CHECK_TREE,
         CHECK_DETAIL,
+        CHECK_ROWPIN,
         CHECK_DRAG,
         CHECK_AUTHORED,
         PROFILE_COLUMNS,
@@ -2087,6 +2105,138 @@ try {
         !deptItems.includes("Clear filter") &&
         deptAgain.includes("Clear filter");
       log(`check-filter ${JSON.stringify(results.checkFilter)}`);
+      throw new Error("load only");
+    }
+
+    if (CHECK_ROWPIN) {
+      // (The Builder's Canvas: its Table pinnable, no row pinned — a viewer pins rows.)
+      const builder = await page.evaluate(() => {
+        const root = window.__COMPOSITION_CATALOG__.workspace.root;
+        const records = [...root.canvasInputs.values()];
+        return {
+          pinnable: records.some(
+            (r) => r.ruleId === "Table" && r.props._rowPinnable === true,
+          ),
+          pinned: records.filter((r) => r.props?._pinnedRow !== undefined)
+            .length,
+        };
+      });
+      const measure = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          const scroller =
+            [table, ...table.querySelectorAll("*")].find(
+              (el) => el.scrollHeight > el.clientHeight + 1,
+            ) ?? table;
+          const box = scroller.getBoundingClientRect();
+          // (A virtual Table's header row has no height of its own — its cells do.)
+          const header = table
+            .querySelector("[role=columnheader]")
+            .getBoundingClientRect();
+          const rows = [
+            ...table.querySelectorAll("[role=row][data-key]"),
+          ].filter((row) => row.querySelector("[role=gridcell]"));
+          const pinned = rows
+            .filter((row) => row.hasAttribute("data-pinned-row"))
+            .map((row) => {
+              const r = row.getBoundingClientRect();
+              const hit = document.elementFromPoint(
+                r.left + r.width / 2,
+                r.top + r.height / 2,
+              );
+              return {
+                key: row.getAttribute("data-key"),
+                side: row.getAttribute("data-pinned-row"),
+                top: Math.round((r.top - box.top) * 10) / 10,
+                bottom:
+                  Math.round((box.top + scroller.clientHeight - r.bottom) * 10) /
+                  10,
+                hit: hit?.closest("[role=row]")?.getAttribute("data-key") ?? null,
+                wrap: row.parentElement?.getAttribute("role") === "presentation"
+                  ? `${getComputedStyle(row.parentElement).position} t:${row.parentElement.style.top} b:${getComputedStyle(row.parentElement).bottom} parent:${row.parentElement.parentElement?.getAttribute("role")}/${row.parentElement.parentElement?.className}/${getComputedStyle(row.parentElement.parentElement).display}/h${Math.round(row.parentElement.parentElement.getBoundingClientRect().height)} gp:${row.parentElement.parentElement?.parentElement?.getAttribute("role")}/h${Math.round(row.parentElement.parentElement?.parentElement?.getBoundingClientRect().height ?? 0)}/${getComputedStyle(row.parentElement.parentElement.parentElement).overflow}`
+                  : `${getComputedStyle(row).position} top:${getComputedStyle(row).top} var:${row.style.getPropertyValue("--table-row-pin-at")} measure:${!!row.querySelector("span[hidden]")}`,
+              };
+            });
+          const pinnedAll = [
+            ...table.querySelectorAll("[role=row][data-pinned-row]"),
+          ].map(
+            (row) =>
+              `${row.getAttribute("data-key")}:${row.querySelectorAll("[role=gridcell]").length}`,
+          );
+          const button = rows[8]?.querySelector(".table-row-pin-button");
+          return {
+            scrollTop: Math.round(scroller.scrollTop),
+            scrollHeight: scroller.scrollHeight,
+            clientHeight: scroller.clientHeight,
+            headerBottom: Math.round((header.bottom - box.top) * 10) / 10,
+            first: rows[0]?.getAttribute("data-key") ?? null,
+            last: rows.at(-1)?.getAttribute("data-key") ?? null,
+            menus: table.querySelectorAll(".table-row-pin-button").length,
+            pinnedAll,
+            restOpacity: button ? getComputedStyle(button).opacity : null,
+            pinned,
+          };
+        }, OURS);
+      const scrollTo = (top) =>
+        pub.evaluate(
+          ({ OURS, top }) => {
+            const table = document.querySelector(OURS);
+            const scroller =
+              [table, ...table.querySelectorAll("*")].find(
+                (el) => el.scrollHeight > el.clientHeight + 1,
+              ) ?? table;
+            scroller.scrollTop = top === "end" ? scroller.scrollHeight : top;
+          },
+          { OURS, top },
+        );
+      const pin = async (key, item) => {
+        const row = pub.locator(`${OURS} [role=row][data-key="${key}"]`);
+        await row.hover();
+        await row.locator(".table-row-pin-button").click();
+        await pub.getByRole("menuitem", { name: item }).click();
+        await pub.waitForTimeout(1200);
+      };
+      await pub.waitForTimeout(1000);
+      await pub.mouse.move(5, 5);
+      const rest = await measure();
+      await pin("r3", "Pin to top");
+      await pin("r5", "Pin to bottom");
+      await pub.mouse.move(5, 5);
+      const at = [await measure()];
+      for (const top of [3000, "end"]) {
+        await scrollTo(top);
+        await pub.waitForTimeout(1200);
+        at.push(await measure());
+      }
+      await pub.screenshot({ path: `${OUT}/check-rowpin.png` });
+      const near = (value, want) =>
+        typeof value === "number" && Math.abs(value - want) <= 1;
+      const stuck = (m) => {
+        const top = m.pinned.find((row) => row.key === "r3");
+        const bottom = m.pinned.find((row) => row.key === "r5");
+        return (
+          m.pinned.length === 2 &&
+          top?.side === "top" &&
+          near(top.top, m.headerBottom) &&
+          top.hit === "r3" &&
+          bottom?.side === "bottom" &&
+          near(bottom.bottom, 0) &&
+          bottom.hit === "r5"
+        );
+      };
+      results.checkRowPin = { display: DISPLAY, builder, rest, at };
+      results.checkRowPin.pass =
+        builder.pinnable &&
+        builder.pinned === 0 &&
+        rest.menus > 5 &&
+        rest.restOpacity === "0" &&
+        rest.pinned.length === 0 &&
+        at[0].first === "r3" &&
+        at[0].last === "r5" &&
+        at[1].scrollTop > 1000 &&
+        at[2].scrollTop > at[1].scrollTop &&
+        at.every(stuck);
+      log(`check-rowpin ${JSON.stringify(results.checkRowPin)}`);
       throw new Error("load only");
     }
 

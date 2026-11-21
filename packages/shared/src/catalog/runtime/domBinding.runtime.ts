@@ -64,7 +64,10 @@ import {
   useSyncExternalStore,
 } from "react";
 import { CatalogRowWindowMode } from "./rowWindowContext";
-import { CATALOG_GROUP_PLACEHOLDER_SUFFIX } from "./tableRowSlices";
+import {
+  CATALOG_DETAIL_ROW_SUFFIX,
+  CATALOG_GROUP_PLACEHOLDER_SUFFIX,
+} from "./tableRowSlices";
 
 import {
   cloneElement,
@@ -152,7 +155,10 @@ import {
   CATALOG_COLOR_WHEEL_TRACK,
   catalogColorWheelDiameter,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
-import { copyResolvedTokenRefs } from "../resolution/resolver";
+import {
+  copyResolvedTokenRefs,
+  type CatalogRowWindowKeys,
+} from "../resolution/resolver";
 
 import {
   CATALOG_AUTHORED_PAINT_KEYS,
@@ -341,6 +347,8 @@ import {
 
 import {
   CATALOG_DRAG_COLUMN_WIDTH,
+  CATALOG_PINNED_ROW_PROP,
+  CATALOG_ROW_PINNABLE_PROP,
   catalogCellSpan,
   catalogTableSelectionColumn,
   catalogTableRowTracks,
@@ -401,6 +409,15 @@ export interface CatalogDomRuntime {
    * the Table's state (`expandedKeys`); the rows are read again.
    */
   expandTableRows?(tableId: string, keys: readonly string[]): void;
+  /**
+   * ADR-315 Phase 5 증분 5f — a viewer's pin from a row's menu: the row (its key) to the top, the
+   * bottom, or back among the rows (`none`) — the Table's state (`pinnedRows`).
+   */
+  pinTableRow?(
+    tableId: string,
+    rowKey: string,
+    side: "top" | "bottom" | "none",
+  ): void;
   /**
    * ADR-315 Phase 4 — the widths RAC's column resize left (its `onResizeEnd` — RAC keys, px): the
    * Table's state (`columnWidths`), remembered with it.
@@ -802,6 +819,48 @@ function catalogTablePinnedStyle(node: CatalogConsumerNode): CSSProperties {
   return {
     "--table-pin-at": `var(--table-pin-${side}-${at}, 0px)`,
   } as CSSProperties;
+}
+/**
+ * ADR-315 Phase 5 증분 5f — a pinned row's · a pinnable row's Cell (`CatalogTableCell`): the last
+ * Cell of a pinned row measures where the Table's pinned rows stand (`measuresRowPin`), and the
+ * last Cell of a data row of a Table its viewers pin rows in (`CATALOG_ROW_PINNABLE_PROP`) holds
+ * the row's menu (`rowPin` — its side now and the pin).
+ */
+function catalogTableRowPinProps(
+  node: CatalogConsumerNode,
+  domGet: (id: string) => CatalogConsumerNode | undefined,
+  domType: (entry: CatalogConsumerNode) => string,
+  context: CatalogDomContext,
+): Record<string, unknown> {
+  const row = domGet(node.parentId);
+  if (!row || row.rowIndex === undefined || domType(row) !== "Row") return {};
+  const mark = row.props[CATALOG_PINNED_ROW_PROP];
+  const side = mark === "top" || mark === "bottom" ? mark : undefined;
+  const cells = row.children.filter((id) => {
+    const child = domGet(id);
+    return !!child && domType(child) === "Cell";
+  });
+  const out: Record<string, unknown> = {};
+  // (The last Cell: the first may be the selection column's — not drawn in a Table that selects
+  //  by highlight, `catalogTableSelectionPartHidden`; live 2026-11-21, nothing was measured.)
+  if (side && cells.at(-1) === node.id) out.measuresRowPin = true;
+  const table = catalogTrackTableOf(row, domGet, domType);
+  const runtime = context.runtime;
+  if (
+    table?.props[CATALOG_ROW_PINNABLE_PROP] === true &&
+    runtime?.pinTableRow &&
+    cells.at(-1) === node.id
+  ) {
+    const key = String(row.props.id ?? row.id);
+    // (A detail row is its row's — no row of its own to pin.)
+    if (key.endsWith(CATALOG_DETAIL_ROW_SUFFIX)) return out;
+    out.rowPin = {
+      side: side ?? "none",
+      pin: (to: "top" | "bottom" | "none") =>
+        runtime.pinTableRow!(table.id, key, to),
+    };
+  }
+  return out;
 }
 /** The `data-pinned` attributes of a pinned column's Column · Cell (`Table.css`). */
 function catalogTablePinnedProps(
@@ -3715,6 +3774,9 @@ function ruleDom(
       ...(lower === "column" || lower === "cell"
         ? catalogTablePinnedProps(node)
         : {}),
+      ...(lower === "cell"
+        ? catalogTableRowPinProps(node, domGet, domType, context)
+        : {}),
       ...(lower === "column"
         ? {
             isRowHeader: columnIsRowHeader(root, node),
@@ -3796,6 +3858,11 @@ function ruleDom(
               node.props as Record<string, unknown>,
               node.id,
             ),
+            // (ADR-315 Phase 5 증분 5f — a pinned row stays in view: `Table.css`.)
+            ...(node.props[CATALOG_PINNED_ROW_PROP] === "top" ||
+            node.props[CATALOG_PINNED_ROW_PROP] === "bottom"
+              ? { "data-pinned-row": node.props[CATALOG_PINNED_ROW_PROP] }
+              : {}),
           }
         : {}),
       ...(STATIC_ITEM_TYPES.has(type)
@@ -4703,6 +4770,8 @@ const CatalogWindowRows = memo(function CatalogWindowRows({
   owner,
   depths,
   closed,
+  base = 0,
+  count,
 }: {
   root: CatalogCompositionRoot;
   context: CatalogDomContext;
@@ -4714,13 +4783,22 @@ const CatalogWindowRows = memo(function CatalogWindowRows({
   owner: string;
   depths?: readonly number[];
   closed?: ReadonlySet<string>;
+  /** ADR-315 Phase 5 증분 5f — the first of `keys` in the whole run (after its pinned rows). */
+  base?: number;
+  /** The whole run's rows (`keys` and the pinned rows). */
+  count?: number;
 }): ReactElement {
   const mode = useContext(CatalogRowWindowMode);
   const runtime = context.runtime;
   useLayoutEffect(() => {
     if (mode === "refused")
-      runtime?.showRows?.(owner, 0, keys.length - 1, keys.length);
-  }, [mode, runtime, owner, keys]);
+      runtime?.showRows?.(
+        owner,
+        base,
+        base + keys.length - 1,
+        count ?? keys.length,
+      );
+  }, [mode, runtime, owner, keys, base, count]);
   const shape = useMemo(() => ({ cells, spans }), [cells, spans]);
   // ADR-315 Phase 5 — a grouped Table's rows nest by depth (`CatalogRowWindowKeys.depths`). In
   // the `Virtualizer` every row is drawn (empty outside the window); before it, the window's rows
@@ -4884,7 +4962,8 @@ const CatalogWindowRowNest = memo(
     if (siblings.length > WINDOW_ROW_CHUNK) {
       for (let at = 0; at < siblings.length; at += WINDOW_ROW_CHUNK) {
         const first = siblings[at]!;
-        const last = siblings[Math.min(siblings.length, at + WINDOW_ROW_CHUNK) - 1]!;
+        const last =
+          siblings[Math.min(siblings.length, at + WINDOW_ROW_CHUNK) - 1]!;
         rows.push(
           createElement(CatalogWindowRowNest, {
             ...props,
@@ -4980,6 +5059,52 @@ function windowRowNestKey(
   return `catalog:nest|${at}:${(hash >>> 0).toString(36)}`;
 }
 
+/** The key lists of a window's rows between its pinned rows (a run's key lists are cached by list). */
+const BETWEEN_PINS = new WeakMap<
+  readonly string[],
+  { pinned: string; keys: readonly string[]; depths?: readonly number[] }
+>();
+/**
+ * ADR-315 Phase 5 증분 5f — a windowed body's rows between its pinned rows (`CatalogWindowRows`):
+ * their keys · depths and the window's start among them, and where they sit in the whole run
+ * (`base` · `count` — the rows in view the session is told are the whole run's places).
+ */
+function catalogWindowBetweenPins(window: CatalogRowWindowKeys): {
+  keys: readonly string[];
+  start: number;
+  depths?: readonly number[];
+  base?: number;
+  count?: number;
+} {
+  const pinned = window.pinned;
+  if (!pinned)
+    return {
+      keys: window.keys,
+      start: window.start,
+      ...(window.depths ? { depths: window.depths } : {}),
+    };
+  const end = window.keys.length - pinned.bottom;
+  const name = `${pinned.top}:${pinned.bottom}`;
+  let held = BETWEEN_PINS.get(window.keys);
+  if (held?.pinned !== name || !held.depths !== !window.depths) {
+    held = {
+      pinned: name,
+      keys: window.keys.slice(pinned.top, end),
+      ...(window.depths
+        ? { depths: window.depths.slice(pinned.top, end) }
+        : {}),
+    };
+    BETWEEN_PINS.set(window.keys, held);
+  }
+  return {
+    keys: held.keys,
+    start: window.start - pinned.top,
+    ...(held.depths ? { depths: held.depths } : {}),
+    base: pinned.top,
+    count: window.keys.length,
+  };
+}
+
 /**
  * A windowed TableBody's children: its other children as they are, its data rows as one
  * `CatalogWindowRows` (the records' rows are one run — the resolver's window).
@@ -4993,7 +5118,15 @@ function windowRowChildren(
 ): ReactElement[] | undefined {
   const window = node.rowWindow;
   if (!window) return undefined;
-  const data = ids.map((id) => root.domInputs.get(id)?.rowIndex !== undefined);
+  // (ADR-315 Phase 5 증분 5f — the pinned rows are records first · last, drawn as they are: the
+  //  window's rows are the ones between them, `CatalogRowWindowKeys.pinned`.)
+  const data = ids.map((id) => {
+    const record = root.domInputs.get(id);
+    return (
+      record?.rowIndex !== undefined &&
+      record.props[CATALOG_PINNED_ROW_PROP] === undefined
+    );
+  });
   const first = data.indexOf(true);
   const last = data.lastIndexOf(true);
   if (first < 0) return undefined;
@@ -5010,15 +5143,12 @@ function windowRowChildren(
       key: "catalog:window-rows",
       root,
       context,
-      keys: window.keys,
-      start: window.start,
+      ...catalogWindowBetweenPins(window),
       ids: ids.slice(first, last + 1),
       cells,
       spans: catalogRowSpans(root, row),
       owner: window.owner,
-      ...(window.depths
-        ? { depths: window.depths, closed: window.closed }
-        : {}),
+      ...(window.closed ? { closed: window.closed } : {}),
     }),
     ...ids.slice(last + 1).flatMap(childElement),
   ];

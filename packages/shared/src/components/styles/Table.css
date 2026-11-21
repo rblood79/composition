@@ -855,3 +855,95 @@
     rotate: -90deg;
   }
 }
+
+/* ADR-315 Phase 5 증분 5f — pinned rows (the Table state's `pinnedRows` — the Row record's
+   `data-pinned-row`): each stays in view while the Table scrolls — a top one under the sticky header
+   and the top rows before it, a bottom one over the bottom rows after it (`--table-row-pin-at` —
+   the pinned rows measure it, `CatalogTableRowPinMeasure`). It covers the rows scrolling under it
+   with its row's background (a row that draws none takes the Table's). */
+@layer components {
+  .react-aria-Table[data-node-table] {
+    .react-aria-TableBody > .react-aria-Row[data-pinned-row] {
+      position: sticky;
+      z-index: 1;
+    }
+    .react-aria-TableBody > .react-aria-Row[data-pinned-row="top"] {
+      top: var(--table-row-pin-at, 0px);
+    }
+    .react-aria-TableBody > .react-aria-Row[data-pinned-row="bottom"] {
+      bottom: var(--table-row-pin-at, 0px);
+    }
+    :where(&:has([data-pinned-row]))
+      :where(
+        .react-aria-TableBody,
+        .react-aria-Row,
+        [role="presentation"],
+        [role="rowgroup"],
+        [role="row"]
+      ) {
+      background-color: inherit;
+    }
+
+    /* In the `Virtualizer` RAC's `TableLayout` makes a pinned row's wrapper sticky at its own
+       place (`CatalogTableLayout` — Phase 0 S3): the body is a column whose blank (`::before`)
+       stands between the top rows and the bottom ones, so a bottom row stands at the body's end —
+       a sticky box is pulled from where it stands — and sticks to the scroll box's bottom. */
+    [role="rowgroup"]:has(> [role="presentation"] > [data-pinned-row]) {
+      display: flex;
+      flex-direction: column;
+      /* (A sticky box moves inside its parent only: the body fills RAC's row group box — every
+         row's height — where it was as tall as its in-flow rows, the pinned ones: live, 2026-11-21.) */
+      block-size: 100%;
+    }
+    [role="rowgroup"]:has(
+        > [role="presentation"] > [data-pinned-row="bottom"]
+      )::before {
+      content: "";
+      flex: 1 1 auto;
+      order: 1;
+    }
+    [role="rowgroup"]
+      > [role="presentation"]:has(> [data-pinned-row="bottom"]) {
+      order: 2;
+      top: auto !important;
+      bottom: var(--table-row-pin-at, 0px);
+    }
+  }
+
+  /* A pinnable row's menu at its last cell's end (`CatalogRowPinMenu`): drawn on the row's hover ·
+     focus and on a pinned row (its pin mark) — at rest not drawn, as the Builder's Canvas. */
+  .react-aria-Cell:has(> .table-row-pin-button):not([data-pinned]) {
+    position: relative;
+  }
+  .react-aria-Cell .table-row-pin-button {
+    position: absolute;
+    inset-inline-end: 4px;
+    top: 50%;
+    translate: 0 -50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 24px;
+    block-size: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: var(--bg-inset);
+    color: inherit;
+    opacity: 0;
+    outline: none;
+    &[data-pinned-side="top"],
+    &[data-pinned-side="bottom"],
+    &[aria-expanded="true"],
+    &[data-focus-visible] {
+      opacity: 1;
+    }
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
+  }
+  .react-aria-Row:is(:hover, :focus-within) .table-row-pin-button {
+    opacity: 1;
+  }
+}

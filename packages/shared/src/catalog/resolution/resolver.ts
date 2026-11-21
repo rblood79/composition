@@ -100,6 +100,12 @@ import {
 } from "../runtime/tableSort";
 import { CATALOG_TREE_CELL_PROP } from "../runtime/tableTreeCell";
 import {
+  CATALOG_PINNED_ROW_PROP,
+  CATALOG_ROW_PINNABLE_PROP,
+  CATALOG_TABLE_PINNED_ROWS_PROP,
+} from "../runtime/tableTracks";
+import {
+  CATALOG_DETAIL_ROW_SUFFIX,
   CATALOG_GROUP_PLACEHOLDER_SUFFIX,
   catalogTableStateRowSlices,
   type CatalogRowGroups,
@@ -235,6 +241,12 @@ export interface CatalogBoundRow {
    * the Row template's detail Row, reading the row's values.
    */
   detail?: true;
+  /**
+   * ADR-315 Phase 5 증분 5f — a pinned row (the Table state's `pinnedRows` — `CatalogRowPins`): it
+   * stands at the top or the bottom of the rows, out of their sort, page and window, and stays in
+   * view while the Table scrolls (`position: sticky`).
+   */
+  pinned?: "top" | "bottom";
 }
 /**
  * The rows of a binding; `undefined` = unknown (not loaded) — the template items stay. `kind`
@@ -597,6 +609,12 @@ export interface CatalogRowWindowKeys {
   readonly depths?: readonly number[];
   /** With `depths`: the closed groups' keys — each holds one empty child row (RAC opens it). */
   readonly closed?: ReadonlySet<string>;
+  /**
+   * ADR-315 Phase 5 증분 5f — the pinned rows at the start (`top`) and the end (`bottom`) of
+   * `keys`: records whatever the window (they stay in view — `position: sticky`); the window
+   * (`start`) is cut from the rows between them.
+   */
+  readonly pinned?: { readonly top: number; readonly bottom: number };
 }
 const ROW_KEYS = new WeakMap<object, readonly string[]>();
 /** A row set as a Table's runtime sort last ordered it (`boundTableRows`). */
@@ -678,7 +696,9 @@ function catalogDetailRows(
     depth: number,
   ): CatalogBoundRow[] =>
     rows.map((row) => {
-      if (row.placeholder) return row;
+      // (ADR-315 Phase 5 증분 5f — a pinned row is no expandable row: its detail would scroll
+      //  away under it.)
+      if (row.placeholder || row.pinned) return row;
       if (row.group || row.tree?.parent)
         return row.children
           ? { ...row, children: visit(row.children, depth + 1) }
@@ -687,7 +707,7 @@ function catalogDetailRows(
       const children = open
         ? [
             {
-              key: `${row.key}/detail`,
+              key: `${row.key}${CATALOG_DETAIL_ROW_SUFFIX}`,
               values: row.values,
               detail: true as const,
             },
@@ -749,9 +769,25 @@ const catalogTotalsRow = (
   key: "totals",
   values: (rowSet as CatalogBoundRows).totals ?? {},
 });
-/** A windowed run's first row's place in the whole run (0 = not windowed). */
-const rowBaseOf = (rowSet: readonly CatalogBoundRow[] | undefined) =>
-  rowWindowOf(rowSet)?.start ?? 0;
+/**
+ * A run's row at `place` (in the run as resolved) — its place in the whole run: a windowed run's
+ * rows start at the window's (`start`), its pinned rows (ADR-315 Phase 5 증분 5f) are the whole
+ * run's first · last.
+ */
+const rowIndexOf = (
+  rowSet: readonly CatalogBoundRow[] | undefined,
+  place: number,
+): number => {
+  const window = rowWindowOf(rowSet);
+  if (!window) return place;
+  const pinned = window.pinned;
+  if (!pinned) return window.start + place;
+  if (place < pinned.top) return place;
+  const length = rowSet!.length;
+  if (place >= length - pinned.bottom)
+    return window.keys.length - (length - place);
+  return window.start + (place - pinned.top);
+};
 /** What the Builder's row sample counts with (`resolveCatalogNode`'s `rowSample`). */
 export interface CatalogRowSampleBasis {
   /** The page height when the resolved root authors none (the breakpoint's screen). */
@@ -1003,7 +1039,11 @@ function nestTableRows(
         }
       : node;
   }
-  const own = withoutRowDetail(node, isTableRow);
+  const own = withPinnedRow(
+    withoutRowDetail(node, isTableRow),
+    data.pinned,
+    isTableRow,
+  );
   if (!data.children?.length) return own;
   const nested = data.children.flatMap((child) => {
     const projected = project(child);
@@ -1019,6 +1059,42 @@ function nestTableRows(
       : [];
   });
   return { ...own, children: [...own.children, ...nested] };
+}
+/** A Row with its pinned side on every layer (a Row instance's record reads its innermost one). */
+function withPinnedRow(
+  row: ResolvedCatalogNode,
+  side: CatalogBoundRow["pinned"],
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  if (!side) return row;
+  const marked = (node: ResolvedCatalogNode): ResolvedCatalogNode => ({
+    ...node,
+    props: { ...node.props, [CATALOG_PINNED_ROW_PROP]: side },
+  });
+  return {
+    ...marked(row),
+    children: row.children.map((child, index) =>
+      isTableRow(child)
+        ? // (A Row instance's first child is its template root — a layer of the same record.)
+          index === 0
+          ? withPinnedRow(child, side, isTableRow)
+          : child
+        : // (Its Cells too, with their first layer — a Cell instance's record reads its innermost
+          //  one: a Cell drawn again when its row is pinned · unpinned measures · offers the side
+          //  it is at now — its record was unchanged, live 2026-11-21.)
+          {
+            ...marked(child),
+            ...(child.children[0]
+              ? {
+                  children: [
+                    marked(child.children[0]),
+                    ...child.children.slice(1),
+                  ],
+                }
+              : {}),
+          },
+    ),
+  };
 }
 /**
  * ADR-315 Phase 5 증분 5e — a resolved Row's detail Row: a Row among its children but the first —
@@ -1275,25 +1351,54 @@ export function resolveCatalogNode(
     owner: string,
   ): readonly CatalogBoundRow[] => {
     const window = rowWindow?.(owner);
-    if (!window || rowSet.length <= window.limit) return rowSet;
-    const start = Math.max(
-      0,
-      Math.min(Math.floor(window.start), rowSet.length - window.limit),
-    );
+    if (!window) return rowSet;
+    // (ADR-315 Phase 5 증분 5f — the pinned rows first · last stay records; the window is cut
+    //  from the rows between them.)
+    let top = 0;
+    while (top < rowSet.length && rowSet[top]!.pinned === "top") top += 1;
+    let bottom = 0;
+    while (
+      bottom < rowSet.length - top &&
+      rowSet[rowSet.length - 1 - bottom]!.pinned === "bottom"
+    )
+      bottom += 1;
+    const middle = rowSet.length - top - bottom;
+    if (middle <= window.limit) return rowSet;
+    const start =
+      top +
+      Math.max(
+        0,
+        Math.min(Math.floor(window.start) - top, middle - window.limit),
+      );
     let keys = ROW_KEYS.get(rowSet);
     if (!keys) ROW_KEYS.set(rowSet, (keys = rowSet.map((row) => row.key)));
     const meta = rowSet as CatalogBoundRows;
-    return Object.assign(rowSet.slice(start, start + window.limit), {
-      total: rowCountOf(rowSet),
-      delivered: rowSet.length,
-      ...(meta.totals ? { totals: meta.totals } : {}),
-      window: { owner, start, keys },
-      ...(window.kept ? { kept: window.kept } : {}),
-      ...(meta.loadingState !== undefined
-        ? { loadingState: meta.loadingState }
-        : {}),
-      ...(meta.view ? { view: meta.view } : {}),
-    });
+    const cut = rowSet.slice(start, start + window.limit);
+    return Object.assign(
+      top || bottom
+        ? [
+            ...rowSet.slice(0, top),
+            ...cut,
+            ...rowSet.slice(rowSet.length - bottom),
+          ]
+        : cut,
+      {
+        total: rowCountOf(rowSet),
+        delivered: rowSet.length,
+        ...(meta.totals ? { totals: meta.totals } : {}),
+        window: {
+          owner,
+          start,
+          keys,
+          ...(top || bottom ? { pinned: { top, bottom } } : {}),
+        },
+        ...(window.kept ? { kept: window.kept } : {}),
+        ...(meta.loadingState !== undefined
+          ? { loadingState: meta.loadingState }
+          : {}),
+        ...(meta.view ? { view: meta.view } : {}),
+      },
+    );
   };
   /**
    * ADR-315 Phase 5 — a windowed owner's group rows (breakdown §5.4 「행 창과 펼침」): the window
@@ -2846,7 +2951,8 @@ export function resolveCatalogNode(
       !!headerState?.sort?.length ||
       !!headerState?.search ||
       !!headerState?.columnFilters?.length ||
-      !!headerState?.grouping?.length;
+      !!headerState?.grouping?.length ||
+      !!headerState?.pinnedRows;
     let rowSet =
       nodeBinding && rows && !charted
         ? (keyedRows ??
@@ -2977,18 +3083,26 @@ export function resolveCatalogNode(
             ? rowSlices.groups.keys
             : undefined;
         nestedNow = !!rowSet?.[0]?.tree;
-        return withTableGroups(
-          withAuthoredSort(
-            finishBoundTable(project(table?.shown ?? shownSet), table),
-            // (ADR-315 Phase 4 증분 6 — its view's sort, by field key: the header shows it. Not a
-            //  Table its view's variable sorts — the variable's, ADR-284 Decision 5.)
-            nodeBinding &&
-              !table?.sortedByView &&
-              !viewSortsByVariable(node.binding, lookupEntry)
-              ? viewAuthoredSort(node.binding, lookupEntry)
-              : undefined,
+        return withRowPinning(
+          withTableGroups(
+            withAuthoredSort(
+              finishBoundTable(project(table?.shown ?? shownSet), table),
+              // (ADR-315 Phase 4 증분 6 — its view's sort, by field key: the header shows it. Not a
+              //  Table its view's variable sorts — the variable's, ADR-284 Decision 5.)
+              nodeBinding &&
+                !table?.sortedByView &&
+                !viewSortsByVariable(node.binding, lookupEntry)
+                ? viewAuthoredSort(node.binding, lookupEntry)
+                : undefined,
+            ),
+            rowSlices?.groups,
+            shownSet,
           ),
-          rowSlices?.groups,
+          // (Rows a server answered with the Table state are its page — a pinned row of another
+          //  page is a second query, 5g: no row menu yet.)
+          !!groupedBy ||
+            nestedNow ||
+            !!(rowSet as CatalogBoundRows | undefined)?.view?.served,
           shownSet,
         );
       };
@@ -3125,7 +3239,7 @@ export function resolveCatalogNode(
       if (segment) {
         segment.forEach((data, place) => {
           // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
-          const index = rowBaseOf(segment) + place;
+          const index = rowIndexOf(segment, place);
           const kept = keptRowOf(segment, index, data.key);
           if (kept) return void children.push(kept);
           const projectRow = (row: CatalogBoundRow) =>
@@ -3367,7 +3481,8 @@ export function resolveCatalogNode(
         ? sampledRows(ordered, `${instancePath}::${bodyId}`)
         : // (The window is the bound node's — its `rowDisplay` says whether it has one. ADR-315
           //  Phase 5: a grouped run's, over the rows its open groups show.)
-          ordered[0]?.group || ordered[0]?.tree
+          ordered.find((row) => !row.pinned)?.group ||
+            ordered.find((row) => !row.pinned)?.tree
           ? windowedGroupRows(ordered, tableId)
           : windowedRows(ordered, tableId);
     // (ADR-315 Phase 5 증분 5c — the totals are over every row: the rows shown carry them — a
@@ -3414,6 +3529,38 @@ export function resolveCatalogNode(
    * — RAC `expandedKeys`, their row keys). Its `treeColumn` is marked by the column projection
    * (`catalogProjectTableColumns` — the outer grouped Column, on every layer of its record).
    */
+  /**
+   * ADR-315 Phase 5 증분 5f — a Table whose viewers pin rows (「Row pinning」 — `allowsRowPinning`):
+   * its record says whether its rows are pinnable now (`_rowPinnable` — a flat Table's: a group ·
+   * a tree row holds rows). The DOM gives each data row its row menu then.
+   */
+  const withRowPinning = (
+    table: ResolvedCatalogNode | undefined,
+    nested: boolean,
+    rowSet: readonly CatalogBoundRow[] | undefined,
+  ): ResolvedCatalogNode | undefined => {
+    if (!table) return table;
+    const pinnable = table.props.allowsRowPinning === true && !nested;
+    // (Its pinned rows' keys: the rows first · last — `CATALOG_TABLE_PINNED_ROWS_PROP`.)
+    const top: string[] = [];
+    const bottom: string[] = [];
+    for (const row of rowSet ?? [])
+      if (row.pinned === "top") top.push(row.key);
+      else if (row.pinned === "bottom") bottom.push(row.key);
+    if (!pinnable && !top.length && !bottom.length) return table;
+    return {
+      ...table,
+      props: {
+        ...table.props,
+        ...(pinnable ? { [CATALOG_ROW_PINNABLE_PROP]: true } : {}),
+        ...(top.length || bottom.length
+          ? {
+              [CATALOG_TABLE_PINNED_ROWS_PROP]: `${top.join("\n")}\u0000${bottom.join("\n")}`,
+            }
+          : {}),
+      } as typeof table.props,
+    };
+  };
   const withTableGroups = (
     table: ResolvedCatalogNode | undefined,
     groups: CatalogRowGroups | undefined,
@@ -3422,7 +3569,11 @@ export function resolveCatalogNode(
     // (ADR-315 Phase 5 증분 5d — a tree's rows too: its open rows.)
     if (
       !table ||
-      !((groups?.keys.length && rowSet?.[0]?.group) || rowSet?.[0]?.tree)
+      !(
+        (groups?.keys.length && rowSet?.[0]?.group) ||
+        // (ADR-315 Phase 5 증분 5f — a pinned row first is no expandable row.)
+        rowSet?.find((row) => !row.pinned)?.tree
+      )
     )
       return table;
     const expanded: string[] = [];
@@ -3997,7 +4148,7 @@ export function resolveCatalogNode(
             );
           segment.forEach((data, place) => {
             // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
-            const index = rowBaseOf(segment) + place;
+            const index = rowIndexOf(segment, place);
             const kept = keptRowOf(segment, index, data.key);
             if (kept) return void out.push(kept);
             const projected = projectRow(data);
@@ -4238,7 +4389,7 @@ export function resolveCatalogNode(
             );
           segment.forEach((data, place) => {
             // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
-            const index = rowBaseOf(segment) + place;
+            const index = rowIndexOf(segment, place);
             const kept = keptRowOf(segment, index, data.key);
             if (kept) return void children.push(kept);
             const projected = projectRow(data);
@@ -4309,7 +4460,7 @@ export function resolveCatalogNode(
             });
           segment.forEach((data, place) => {
             // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
-            const index = rowBaseOf(segment) + place;
+            const index = rowIndexOf(segment, place);
             const kept = keptRowOf(segment, index, data.key);
             if (kept) return void children.push(kept);
             const projected = projectRow(data);

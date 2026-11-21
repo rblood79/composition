@@ -103,6 +103,7 @@ import {
   columnFilter,
   columnPinning,
   columnVisibility,
+  rowPinning,
 } from "./concepts/tableColumns";
 import { remove } from "./concepts/remove";
 import { search } from "./concepts/search";
@@ -390,7 +391,8 @@ export const COMPONENT_INTERACTION_SPECS = {
   ListBoxItem: { concepts: ITEM_KEYBOARD },
   GridListItem: { concepts: ITEM },
   TreeItem: { concepts: ITEM },
-  Row: { concepts: ITEM },
+  // (ADR-315 Phase 5 증분 5f — a Table data row's pinned side: the Table state's row slice.)
+  Row: { concepts: [...ITEM, { concept: rowPinning }] },
   Tag: { concepts: ITEM_FOCUS },
   MenuItem: { concepts: ITEM_FOCUS },
   // (A Tab · Radio has no action — its press selects; press · hover · focus are the item's.)
@@ -435,6 +437,10 @@ type PageRootProps = Pick<ButtonProps, "isDisabled"> &
  */
 interface TableColumnStateProps {
   visibleColumns?: Iterable<string>;
+}
+/** ADR-315 Phase 5 증분 5f — a Table row's pinned side (`concepts/tableColumns.ts` `rowPinning`). */
+interface RowStateProps {
+  pinned?: "none" | "top" | "bottom";
 }
 interface ColumnStateProps {
   pinned?: "none" | "start" | "end";
@@ -506,7 +512,7 @@ interface RacPropsOf {
   ListBoxItem: ListBoxItemProps;
   GridListItem: GridListItemProps;
   TreeItem: TreeItemProps;
-  Row: RowProps<object>;
+  Row: RowProps<object> & RowStateProps;
   Tag: TagProps;
   MenuItem: MenuItemProps;
   Tab: TabProps;

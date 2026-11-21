@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactElement } from "react";
 import { CATALOG_COLUMN_PINNED_PROP } from "../resolution/tableColumns";
+import { CATALOG_TABLE_PINNED_ROWS_PROP } from "./tableTracks";
 import { catalogTableColumnKey } from "./tableSort";
 import { cloneElement, createElement, useRef } from "react";
 import {
@@ -103,6 +104,8 @@ export class CatalogListLayout extends ListLayout<unknown> {
 type RowsInView = {
   keys: readonly string[];
   owner: string;
+  /** ADR-315 Phase 5 증분 5f — the pinned rows first · last of `keys` (always in view). */
+  pinned?: { readonly top: number; readonly bottom: number };
   show: (owner: string, first: number, last: number, total: number) => void;
 };
 const KEY_INDEX = new WeakMap<readonly string[], Map<string, number>>();
@@ -124,6 +127,13 @@ type TableInput = {
    */
   pinnedStart?: string;
   pinnedEnd?: string;
+  /**
+   * ADR-315 Phase 5 증분 5f — the pinned rows' keys, a side each joined by `\n`
+   * (`catalogTablePinnedRowKeys`): the `Layout` builds them wherever the view is and makes them
+   * sticky (Phase 0 S3).
+   */
+  pinnedTop?: string;
+  pinnedBottom?: string;
 };
 type TableContext = Parameters<TableLayout<unknown>["update"]>[0];
 type RowNode = ReturnType<TableLayout<unknown>["buildRow"]>;
@@ -143,6 +153,8 @@ class CatalogTableLayout extends TableLayout<unknown> {
   /** ADR-315 Phase 4 — the pinned columns' RAC keys (`TableInput.pinnedStart` · `pinnedEnd`). */
   private pinned = new Set<string>();
   private pinnedAtEnd = false;
+  /** ADR-315 Phase 5 증분 5f — the pinned rows' sides by RAC key (`TableInput.pinnedTop` · `Bottom`). */
+  private pinnedRows = new Map<string, "top" | "bottom">();
   /**
    * The last measured row's cell height — the next estimate (`CatalogListLayout`'s rule, for a
    * Table). A windowed Table's rows outside its window are never measured: at the first estimate
@@ -192,17 +204,64 @@ class CatalogTableLayout extends TableLayout<unknown> {
       const index = keyIndexOf(rows.keys);
       let first = Infinity;
       let last = -1;
+      const top = rows.pinned?.top ?? 0;
+      const end = rows.keys.length - (rows.pinned?.bottom ?? 0);
       for (const info of infos) {
         if (info.type !== "row") continue;
         if (info.rect.maxY <= rect.y || info.rect.y >= rect.maxY) continue;
         const at = index.get(String(info.key));
-        if (at === undefined) continue;
+        // (A pinned row is in view wherever the Table is scrolled — not a row the window follows.)
+        if (at === undefined || at < top || at >= end) continue;
         if (at < first) first = at;
         if (at > last) last = at;
       }
       if (last >= 0) rows.show(rows.owner, first, last, rows.keys.length);
     }
-    return infos;
+    return this.pinnedRows.size ? this.withPinnedRows(infos, rect) : infos;
+  }
+  /**
+   * ADR-315 Phase 5 증분 5f (Phase 0 S3) — the pinned rows are drawn wherever the view is: each
+   * one with its cells in view, the top ones first among the rows (in their order — a sticky box
+   * stands where it is in the flow), the bottom ones last.
+   */
+  private withPinnedRows(
+    infos: ReturnType<TableLayout<unknown>["getVisibleLayoutInfos"]>,
+    rect: Parameters<TableLayout<unknown>["getVisibleLayoutInfos"]>[0],
+  ): ReturnType<TableLayout<unknown>["getVisibleLayoutInfos"]> {
+    const owned = new Set<unknown>();
+    for (const key of this.pinnedRows.keys()) {
+      owned.add(key);
+      for (const child of this.layoutNodes.get(key)?.children ?? [])
+        owned.add(child.layoutInfo.key);
+    }
+    const rest = infos.filter((info) => !owned.has(info.key));
+    const side = (which: "top" | "bottom") => {
+      const out: typeof infos = [];
+      for (const [key, at] of this.pinnedRows) {
+        if (at !== which) continue;
+        const node = this.layoutNodes.get(key);
+        if (!node) continue;
+        out.push(node.layoutInfo);
+        (
+          this as unknown as {
+            addVisibleLayoutInfos(
+              res: typeof infos,
+              node: unknown,
+              rect: unknown,
+            ): void;
+          }
+        ).addVisibleLayoutInfos(out, node, rect);
+      }
+      return out;
+    };
+    const group = rest.findIndex((info) => info.type === "rowgroup");
+    if (group < 0) return infos;
+    return [
+      ...rest.slice(0, group + 1),
+      ...side("top"),
+      ...rest.slice(group + 1),
+      ...side("bottom"),
+    ];
   }
   override shouldInvalidateLayoutOptions(
     next: object,
@@ -216,6 +275,8 @@ class CatalogTableLayout extends TableLayout<unknown> {
       a.rowEdge?.bottom !== b.rowEdge?.bottom ||
       a.pinnedStart !== b.pinnedStart ||
       a.pinnedEnd !== b.pinnedEnd ||
+      a.pinnedTop !== b.pinnedTop ||
+      a.pinnedBottom !== b.pinnedBottom ||
       super.shouldInvalidateLayoutOptions(next as never, previous as never)
     );
   }
@@ -229,6 +290,16 @@ class CatalogTableLayout extends TableLayout<unknown> {
       ),
     );
     this.pinnedAtEnd = !!options.pinnedEnd;
+    this.pinnedRows = new Map([
+      ...(options.pinnedTop ?? "")
+        .split("\n")
+        .filter(Boolean)
+        .map((key) => [key, "top"] as const),
+      ...(options.pinnedBottom ?? "")
+        .split("\n")
+        .filter(Boolean)
+        .map((key) => [key, "bottom"] as const),
+    ]);
     const columns = this.virtualizer?.collection
       ? (
           this.virtualizer.collection as unknown as {
@@ -313,7 +384,39 @@ class CatalogTableLayout extends TableLayout<unknown> {
     ...args: Parameters<TableLayout<unknown>["buildRowGroup"]>
   ): ReturnType<TableLayout<unknown>["buildRowGroup"]> {
     const group = super.buildRowGroup(...args);
-    if (this.pinned.size) group.layoutInfo.allowOverflow = true;
+    if (this.pinned.size || this.pinnedRows.size)
+      group.layoutInfo.allowOverflow = true;
+    if (!this.pinnedRows.size) return group;
+    // (ADR-315 Phase 5 증분 5f — Phase 0 S3: a pinned row out of the rect asked for is built too —
+    //  RAC skips the rows outside it. Where it stands: the rows before it at their height.)
+    const collection = this.virtualizer!.collection as unknown as {
+      getChildren(key: unknown): Iterable<{ key: string; type: string }>;
+    };
+    const built = new Map(
+      (group.children ?? []).map((child) => [child.layoutInfo.key, child]),
+    );
+    const pitch = this.getEstimatedRowHeight() + this.gap;
+    const children: typeof group.children = [];
+    let y = group.layoutInfo.rect.y;
+    for (const node of collection.getChildren(group.layoutInfo.key)) {
+      const own = built.get(node.key);
+      if (own) {
+        children.push(own);
+        y = own.layoutInfo.rect.maxY + this.gap;
+      } else if (this.pinnedRows.has(String(node.key))) {
+        const child = this.buildChild(
+          node as never,
+          this.padding,
+          y,
+          group.layoutInfo.key,
+        );
+        child.layoutInfo.parentKey = group.layoutInfo.key;
+        children.push(child);
+        y = child.layoutInfo.rect.maxY + this.gap;
+      } else y += pitch;
+    }
+    children.forEach((child, index) => (child.index = index));
+    group.children = children;
     return group;
   }
   protected override getEstimatedRowHeight(): number {
@@ -339,6 +442,11 @@ class CatalogTableLayout extends TableLayout<unknown> {
       }
       node.validRect = node.layoutInfo.rect.intersection(requested);
     } else node = super.buildRow(...args);
+    // (ADR-315 Phase 5 증분 5f — a pinned row stays in view: sticky, over the rows under it.)
+    if (this.pinnedRows.has(String(node.layoutInfo.key))) {
+      node.layoutInfo.isSticky = true;
+      node.layoutInfo.zIndex = 3;
+    }
     // (A windowed Table's row outside its record window has no cells — `catalogWindowRowPending`:
     //  RAC sizes a row by its cells, so it is given a row's height.)
     if (!node.children?.length) {
@@ -393,7 +501,12 @@ function CatalogVirtualTable(props: VirtualizerProps): ReactElement {
     .find((found) => !!found);
   rowsInView.current =
     window && props.showRows
-      ? { keys: window.keys, owner: window.owner, show: props.showRows }
+      ? {
+          keys: window.keys,
+          owner: window.owner,
+          show: props.showRows,
+          ...(window.pinned ? { pinned: window.pinned } : {}),
+        }
       : undefined;
   return virtualized(props, props.readers.deviceColumns(), rowsInView);
 }
@@ -426,6 +539,23 @@ function catalogTablePinnedKeys(
   return {
     ...(sides.start.length ? { pinnedStart: sides.start.join("\n") } : {}),
     ...(sides.end.length ? { pinnedEnd: sides.end.join("\n") } : {}),
+  };
+}
+
+/**
+ * ADR-315 Phase 5 증분 5f — a Table record's pinned rows by RAC key (a Row's `id`), a side each
+ * joined by `\n` — the Table record's (`CATALOG_TABLE_PINNED_ROWS_PROP`).
+ */
+export function catalogTablePinnedRowKeys(
+  root: VirtualizerProps["root"],
+  table: VirtualizerProps["record"],
+): Pick<TableInput, "pinnedTop" | "pinnedBottom"> {
+  const pinned = table.props[CATALOG_TABLE_PINNED_ROWS_PROP];
+  if (typeof pinned !== "string") return {};
+  const [top = "", bottom = ""] = pinned.split("\u0000");
+  return {
+    ...(top ? { pinnedTop: top } : {}),
+    ...(bottom ? { pinnedBottom: bottom } : {}),
   };
 }
 
@@ -477,6 +607,7 @@ function virtualized(
               ...layout.options,
               ...(rowsInView ? { rowsInView } : {}),
               ...catalogTablePinnedKeys(root, record),
+              ...catalogTablePinnedRowKeys(root, record),
             }
           : layout.options,
       children: element,

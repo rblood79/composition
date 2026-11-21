@@ -2360,6 +2360,10 @@ export class CatalogPreviewSession {
         ) !== undefined)
     )
       this.readTableRows(tableId, next, "filtering", false);
+    // (ADR-315 Phase 5 증분 5f — the pinned rows: which rows stand first · last, and each one's
+    //  record says so — read again with no row kept at its place.)
+    else if (before.pinnedRows !== next.pinnedRows)
+      this.readPinnedRows(tableId);
     // (ADR-315 Phase 4 — a column slice: the Table's columns are projected again. Its rows are
     //  not read — the ones its records were resolved from, HC4.)
     else if (
@@ -2379,6 +2383,15 @@ export class CatalogPreviewSession {
       this.echoTableSort(tableId);
     if (before.columnWidths !== next.columnWidths && !this.resizing)
       this.echoTableWidths(tableId);
+  }
+  /** ADR-315 Phase 5 증분 5f — a Table record's rows read again for its pinned rows. */
+  private readPinnedRows(tableId: string): void {
+    const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
+    const entry = source ? this.graph?.getEntry(source as never) : undefined;
+    if (entry?.kind !== "node" || !entry.binding) return;
+    const errors = this.currentRoot!.refreshNodes(new Set([entry.id]));
+    if (errors.length)
+      console.error("[CatalogPreview] pinned rows:", ...errors);
   }
   /** ADR-315 Phase 5 — whether a Table record is grouped now (its state's · its author's grouping). */
   private tableGroupedNow(tableId: string): boolean {
@@ -2546,6 +2559,52 @@ export class CatalogPreviewSession {
     if (now === (side === "start" || side === "end" ? side : "none")) return;
     const patch = catalogColumnMenuPatch(id, ...input);
     if (patch) this.setTableState(place.tableId, patch);
+  }
+  /** ADR-315 Phase 5 증분 5f — a drawn data row's Table record and its row key. */
+  private rowRecordPlace(
+    rowId: string,
+  ): { tableId: string; key: string } | undefined {
+    const root = this.currentRoot;
+    const row = root?.domInputs.get(rowId);
+    if (!root || row?.ruleId !== "Row" || row.rowIndex === undefined)
+      return undefined;
+    let table = row.parentId ? root.domInputs.get(row.parentId) : undefined;
+    while (table && table.ruleId !== "Table")
+      table = table.parentId ? root.domInputs.get(table.parentId) : undefined;
+    return table
+      ? { tableId: table.id, key: String(row.props.id ?? row.id) }
+      : undefined;
+  }
+  /** ADR-315 Phase 5 증분 5f — a drawn data row's pinned side now (`none` · `top` · `bottom`). */
+  tableRowPinned(rowId: string): "none" | "top" | "bottom" | undefined {
+    const place = this.rowRecordPlace(rowId);
+    if (!place) return undefined;
+    const pinned = this.tableState(place.tableId).pinnedRows;
+    return pinned?.top.includes(place.key)
+      ? "top"
+      : pinned?.bottom.includes(place.key)
+        ? "bottom"
+        : "none";
+  }
+  /**
+   * ADR-315 Phase 5 증분 5f — a row to the top · the bottom (after the rows pinned there — TanStack
+   * `row.pin`) or back among the rows (`none`): the Table's `pinnedRows`. A viewer's row menu.
+   */
+  pinTableRow(tableId: string, key: string, side: unknown): void {
+    const now = this.tableState(tableId).pinnedRows;
+    const top = (now?.top ?? []).filter((item) => item !== key);
+    const bottom = (now?.bottom ?? []).filter((item) => item !== key);
+    this.setTableState(tableId, {
+      pinnedRows: {
+        top: side === "top" ? [...top, key] : top,
+        bottom: side === "bottom" ? [...bottom, key] : bottom,
+      },
+    });
+  }
+  /** ADR-315 Phase 5 증분 5f — a rule's 「Pin row to top · bottom」 · 「Unpin row」 on a drawn row. */
+  pinTableRowRecord(rowId: string, side: unknown): void {
+    const place = this.rowRecordPlace(rowId);
+    if (place) this.pinTableRow(place.tableId, place.key, side);
   }
   /** ADR-315 증분 4d — a drawn Column's filter value now (`""` = none — `filterValue`). */
   tableColumnFilterValue(columnId: string): string | undefined {

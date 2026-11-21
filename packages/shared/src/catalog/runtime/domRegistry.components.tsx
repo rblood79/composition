@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import {
   createElement,
+  Fragment,
   useEffect,
   type CSSProperties,
   type ElementType,
@@ -22,6 +23,11 @@ import {
 import { resolveSelectionBehavior } from "../../components/selectionStyle";
 
 import { RESIZABLE_TABLE_STYLE } from "./domRegistry.runtime";
+import {
+  type CatalogRowPin,
+  CatalogRowPinMenu,
+  CatalogTableRowPinMeasure,
+} from "./tableOperationsDom.components";
 
 /**
  * ADR-315 Phase 2 — whether Shift was held at the last pointer · key event of the document. RAC's
@@ -164,9 +170,31 @@ export function CatalogKeyboard(
  * Cell of a Table without `treeColumn` renders as before.
  */
 export function CatalogTableCell({
-  children,
+  children: own,
+  rowPin,
+  measuresRowPin,
   ...props
-}: Record<string, unknown> & { children?: ReactNode }): ReactElement {
+}: Record<string, unknown> & {
+  children?: ReactNode;
+  rowPin?: CatalogRowPin;
+  measuresRowPin?: boolean;
+}): ReactElement {
+  // (ADR-315 Phase 5 증분 5f — a pinned row's last Cell measures where the pinned rows stand; a
+  //  pinnable row's last Cell holds its row menu, after its content.)
+  const children =
+    rowPin || measuresRowPin
+      ? createElement(
+          Fragment,
+          null,
+          own,
+          measuresRowPin
+            ? createElement(CatalogTableRowPinMeasure, { key: "pin-measure" })
+            : null,
+          rowPin
+            ? createElement(CatalogRowPinMenu, { key: "pin-menu", pin: rowPin })
+            : null,
+        )
+      : own;
   return createElement(RacCell, {
     ...(props as CellProps),
     children: (cell: CellRenderProps) =>

@@ -40,6 +40,7 @@ import {
 import type { CatalogRowSorts } from "./tableSort";
 import {
   CATALOG_GROUP_PLACEHOLDER_SUFFIX,
+  type CatalogRowPins,
   type CatalogRowSlices,
   type CatalogRowTree,
 } from "./tableRowSlices";
@@ -869,6 +870,53 @@ function treeBoundRows(
   return Object.assign(out, meta) as CatalogBoundRows;
 }
 
+/**
+ * ADR-315 Phase 5 증분 5f — a flat Table's pinned rows (`CatalogRowPins`) out of its rows: the
+ * source row numbers of the pinned keys in their pinned order — each key's first row among the
+ * rows the search · filters keep (`order` — sorted, kept; none = every row in source order) or,
+ * with `keep`, among every row — and the other rows of `order` in theirs. A key with no row (left
+ * out, gone) is not shown; the state keeps it (breakdown §4.4).
+ */
+export function catalogPinnedRowOrder(
+  sourceRows: readonly unknown[],
+  order: ArrayLike<number> | undefined,
+  pins: CatalogRowPins,
+  roles: Parameters<typeof toItemProjectionRow>[2],
+): { top: number[]; bottom: number[]; rest: number[] } {
+  const wanted = new Set([...pins.top, ...pins.bottom]);
+  const found = new Map<string, number>();
+  const look = (index: number) => {
+    const key = String(
+      toItemProjectionRow(sourceRows[index], index, roles).itemKey,
+    );
+    if (wanted.has(key) && !found.has(key)) found.set(key, index);
+  };
+  const pool = pins.keep ? undefined : order;
+  const count = pool ? pool.length : sourceRows.length;
+  for (let at = 0; at < count && found.size < wanted.size; at += 1)
+    look(pool ? pool[at]! : at);
+  const at = (keys: readonly string[]) =>
+    keys.flatMap((key) => (found.has(key) ? [found.get(key)!] : []));
+  const top = at(pins.top);
+  const bottom = at(pins.bottom);
+  const out = new Set([...top, ...bottom]);
+  const rest: number[] = [];
+  const length = order ? order.length : sourceRows.length;
+  for (let place = 0; place < length; place += 1) {
+    const index = order ? order[place]! : place;
+    if (!out.has(index)) rest.push(index);
+  }
+  return { top, bottom, rest };
+}
+/** A row list's meta (its counts · totals · sort — the keys that are no row's place). */
+function rowListMeta(rows: readonly unknown[]): Record<string, unknown> {
+  const meta: Record<string, unknown> = {};
+  for (const key of Object.keys(rows))
+    if (!/^\d+$/.test(key))
+      meta[key] = (rows as unknown as Record<string, unknown>)[key];
+  return meta;
+}
+
 function boundRowsOf(
   ref: DataBindingRef,
   dataBinding: DataBindingValue,
@@ -945,8 +993,18 @@ function boundRowsOf(
     slices?.totals && !parentKey && ref.key === undefined
       ? slices.totals
       : undefined;
+  // (ADR-315 Phase 5 증분 5f — a flat Table's pinned rows: read out of every row, first · last.)
+  const pins =
+    slices?.pins &&
+    (slices.pins.top.length || slices.pins.bottom.length) &&
+    !groups &&
+    !childrenKey &&
+    !parentKey &&
+    ref.key === undefined
+      ? slices.pins
+      : undefined;
   const sourceRows =
-    (sort || tested || groups || totalsOf) &&
+    (sort || tested || groups || totalsOf || pins) &&
     !parentKey &&
     ref.key === undefined
       ? readDataBindingRows(dataBinding, collections)
@@ -1002,11 +1060,18 @@ function boundRowsOf(
     if (totals) Object.assign(out, { totals });
     return sort && sortOrder ? Object.assign(out, { sorted: sort }) : out;
   }
-  const taken = order ? Math.min(Math.max(0, limit), order.length) : 0;
+  // (ADR-315 Phase 5 증분 5f — the pinned rows out of the others: the rest is cut — a page · the
+  //  window · 「더 보기」 count it — and the pinned rows stand before · after it.)
+  const pinned =
+    pins && sourceRows
+      ? catalogPinnedRowOrder(sourceRows, order, pins, roles)
+      : undefined;
+  const rest = pinned ? pinned.rest : order;
+  const taken = rest ? Math.min(Math.max(0, limit), rest.length) : 0;
   const projected =
-    sourceRows && order
+    sourceRows && rest
       ? Array.from({ length: taken }, (_, place) =>
-          toItemProjectionRow(sourceRows[order[place]!], order[place]!, roles),
+          toItemProjectionRow(sourceRows[rest[place]!], rest[place]!, roles),
         )
       : getFlatProjectionRows(
           { dataBinding, collections },
@@ -1025,6 +1090,14 @@ function boundRowsOf(
       ...(children ? { children } : {}),
     };
   };
+  // (The pinned rows take their keys first — a duplicate key's mark goes to another row.)
+  const pinnedOf = (indices: readonly number[], side: "top" | "bottom") =>
+    indices.map((index): CatalogBoundRow => ({
+      ...boundRow(toItemProjectionRow(sourceRows![index], index, roles)),
+      pinned: side,
+    }));
+  const top = pinned ? pinnedOf(pinned.top, "top") : [];
+  const bottom = pinned ? pinnedOf(pinned.bottom, "bottom") : [];
   const flatRoots = parentKey
     ? parentRowsToTree(projected, parentKey)
     : undefined;
@@ -1036,7 +1109,7 @@ function boundRowsOf(
           const children = node.children.map(visit);
           return children.length ? { ...row, children } : row;
         })
-    : sourceRows && order && taken === order.length
+    : sourceRows && rest && taken === rest.length
       ? // (Every row is shown: a duplicate key's index mark goes by the source order — the same
         //  row keeps the same key under every sort.)
         (() => {
@@ -1053,7 +1126,11 @@ function boundRowsOf(
     if (totals) Object.assign(out, { totals });
     // (ADR-315 Phase 5 증분 5d — a Table reads them again as a tree: `CatalogRowSlices.tree`.)
     if (childrenKey || parentKey) Object.assign(out, { nested: true });
-    return sort && sortOrder ? Object.assign(out, { sorted: sort }) : out;
+    if (sort && sortOrder) Object.assign(out, { sorted: sort });
+    // (ADR-315 Phase 5 증분 5f — the pinned rows around the rows cut; the counts are the rest's.)
+    return top.length || bottom.length
+      ? Object.assign([...top, ...out, ...bottom], rowListMeta(out))
+      : out;
   };
   if (ref.key !== undefined) {
     const item = rows.find((row) => row.key === ref.key);
@@ -1064,7 +1141,7 @@ function boundRowsOf(
     rows.length < limit
       ? rows.length
       : (flatRoots?.length ??
-        order?.length ??
+        rest?.length ??
         readDataBindingRows(dataBinding, collections).length);
   // (A page: its rows, with the collection's count — the Pagination's page count.)
   if (start > 0)

@@ -463,3 +463,160 @@ export function CatalogColumnMenuButton({
       : null,
   );
 }
+
+/** ADR-315 Phase 5 증분 5f — a data row's pin (`catalogTableRowPinProps`): its side now and the pin. */
+export interface CatalogRowPin {
+  readonly side: "top" | "bottom" | "none";
+  pin(to: "top" | "bottom" | "none"): void;
+}
+/** The row menu's words (S2 has no row menu — composition's, breakdown §5.4 「행 고정」). */
+const ROW_PIN_STRINGS: Readonly<
+  Record<string, { menu: string; top: string; bottom: string; none: string }>
+> = {
+  en: {
+    menu: "Row actions",
+    top: "Pin to top",
+    bottom: "Pin to bottom",
+    none: "Unpin",
+  },
+  ko: {
+    menu: "행 동작",
+    top: "위에 고정",
+    bottom: "아래에 고정",
+    none: "고정 해제",
+  },
+  ja: {
+    menu: "行の操作",
+    top: "上に固定",
+    bottom: "下に固定",
+    none: "固定を解除",
+  },
+  zh: {
+    menu: "行操作",
+    top: "固定到顶部",
+    bottom: "固定到底部",
+    none: "取消固定",
+  },
+};
+/** A lucide glyph as the reference's `1em` icon (the row menu's · its pinned mark). */
+function rowPinGlyph(name: string): ReactElement {
+  const glyph = getIconData(name);
+  return createElement(
+    "svg",
+    {
+      "aria-hidden": true,
+      width: "1em",
+      height: "1em",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+    },
+    ...(glyph?.paths ?? []).map((d: string, i: number) =>
+      createElement("path", { key: `p${i}`, d }),
+    ),
+    ...(glyph?.circles ?? []).map(
+      (circle: { cx: number; cy: number; r: number }, i: number) =>
+        createElement("circle", { key: `c${i}`, ...circle }),
+    ),
+  );
+}
+/**
+ * ADR-315 Phase 5 증분 5f — a pinnable row's menu, at its last cell's end (a RAC `MenuTrigger`: the
+ * Button · its Menu — 「Pin to top」 · 「Pin to bottom」 · 「Unpin」, the side the row is at left
+ * out). `Table.css` shows it on the row's hover · focus and always on a pinned row (its pin mark);
+ * at rest it is not drawn — as the Builder's Canvas, which has no viewer to pin rows.
+ */
+export function CatalogRowPinMenu({ pin }: { pin: CatalogRowPin }): ReactNode {
+  const { locale } = useLocale();
+  const strings =
+    ROW_PIN_STRINGS[locale.split("-")[0] ?? "en"] ?? ROW_PIN_STRINGS.en!;
+  const items = (["top", "bottom", "none"] as const).filter(
+    (side) => side !== pin.side,
+  );
+  return createElement(
+    MenuTrigger,
+    null,
+    createElement(
+      Button,
+      {
+        className: "table-row-pin-button",
+        "aria-label": strings.menu,
+        ...({ "data-pinned-side": pin.side } as object),
+      },
+      rowPinGlyph(pin.side === "none" ? "ellipsis" : "pin"),
+    ),
+    createElement(
+      Popover,
+      {
+        placement: "bottom end",
+        style: { padding: 0, width: "auto", minWidth: 0 },
+      },
+      createElement(
+        Menu,
+        {
+          style: { minWidth: 128, border: "none" },
+          onAction: (key) => pin.pin(key as "top" | "bottom" | "none"),
+        },
+        ...items.map((side) =>
+          createElement(MenuItem, { key: side, id: side }, strings[side]),
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * ADR-315 Phase 5 증분 5f — inside a pinned row's last Cell: where its Table's pinned rows stand
+ * while the Table scrolls. A top one stands under the sticky header and the top rows before it, a
+ * bottom one over the bottom rows after it — each row's `--table-row-pin-at` (`Table.css`). In
+ * the `Virtualizer` RAC's `TableLayout` places the top rows itself (`isSticky` at their place);
+ * a bottom one's wrapper takes the inset (it is the sticky box there).
+ */
+export function CatalogTableRowPinMeasure(): ReactNode {
+  const probe = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const row = probe.current?.closest<HTMLElement>('[role="row"]');
+    const table = row?.closest<HTMLElement>("[data-node-table]");
+    if (!row || !table) return;
+    const write = () => catalogWriteTableRowPins(table);
+    write();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(write);
+    observer.observe(row);
+    return () => observer.disconnect();
+  });
+  return createElement("span", { ref: probe, hidden: true });
+}
+/** A Table's pinned rows' insets, written on each (`CatalogTableRowPinMeasure`). */
+function catalogWriteTableRowPins(table: HTMLElement): void {
+  const rows = [
+    ...table.querySelectorAll<HTMLElement>('[role="row"][data-pinned-row]'),
+  ];
+  const header = table.querySelector<HTMLElement>(".react-aria-TableHeader");
+  const set = (element: HTMLElement, inset: number) => {
+    const value = `${inset}px`;
+    if (element.style.getPropertyValue("--table-row-pin-at") !== value)
+      element.style.setProperty("--table-row-pin-at", value);
+  };
+  const wrapperOf = (row: HTMLElement) =>
+    row.parentElement?.getAttribute("role") === "presentation"
+      ? row.parentElement
+      : undefined;
+  let inset = header?.getBoundingClientRect().height ?? 0;
+  for (const row of rows) {
+    if (row.dataset.pinnedRow !== "top") continue;
+    set(row, inset);
+    inset += row.getBoundingClientRect().height;
+  }
+  inset = 0;
+  for (const row of rows.reverse()) {
+    if (row.dataset.pinnedRow !== "bottom") continue;
+    set(row, inset);
+    const wrapper = wrapperOf(row);
+    if (wrapper) set(wrapper, inset);
+    inset += row.getBoundingClientRect().height;
+  }
+}

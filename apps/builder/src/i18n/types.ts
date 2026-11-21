@@ -760,6 +760,9 @@ export interface TranslationKeys {
     pinColumnStart: string;
     pinColumnEnd: string;
     unpinColumn: string;
+    pinRowTop: string;
+    pinRowBottom: string;
+    unpinRow: string;
     setColumnFilter: string;
     clearColumnFilter: string;
     paramColumnKey: string;

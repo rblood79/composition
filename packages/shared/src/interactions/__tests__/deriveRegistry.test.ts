@@ -309,6 +309,11 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
       // (RAC restricts a calendar's focused date with nothing — `focusedValue` moves when disabled.)
       "Calendar.focusDate",
       "RangeCalendar.focusDate",
+      // (ADR-315 Phase 5 증분 5f — a data row's pin: the Table state's row slice; a viewer's row
+      //  menu is the Table's 「Row pinning」, an author's Do is not.)
+      "Row.pinRowTop",
+      "Row.pinRowBottom",
+      "Row.unpinRow",
     ]);
   });
 

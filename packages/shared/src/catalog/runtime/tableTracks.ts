@@ -44,6 +44,19 @@ export const CATALOG_COLUMN_HIDDEN_PROP = "_columnHidden";
 /** A Column · Cell record's side when its column is pinned (`start` · `end`) — `tableColumns.ts`. */
 export const CATALOG_COLUMN_PINNED_PROP = "_pinned";
 /**
+ * ADR-315 Phase 5 증분 5f — a pinned row's Row record: its side (`top` · `bottom` — the resolver's
+ * `withPinnedRow`, never authored). The DOM keeps it in view (`data-pinned-row` · `Table.css`).
+ */
+export const CATALOG_PINNED_ROW_PROP = "_pinnedRow";
+/** ADR-315 Phase 5 증분 5f — a Table record whose rows its viewers pin now (the resolver's mark). */
+export const CATALOG_ROW_PINNABLE_PROP = "_rowPinnable";
+/**
+ * ADR-315 Phase 5 증분 5f — a Table record's pinned rows (their keys, a side each joined by `\n`:
+ * `top\u0000bottom`): the virtual `Layout` builds them wherever the view is — the Table's own
+ * value, so a pin is a change of the Table record (its `Virtualizer` takes new options).
+ */
+export const CATALOG_TABLE_PINNED_ROWS_PROP = "_pinnedRows";
+/**
  * A pinned Column · Cell record at its side's edge — the start side's last column, the end side's
  * first: the line between the pinned columns and the ones scrolling under them (the Column · Cell
  * rule's `pinned-edge` block, through the derived `pinnedEdge` — `presence.ts`).

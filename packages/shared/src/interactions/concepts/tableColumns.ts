@@ -77,3 +77,22 @@ export const columnFilter = {
     },
   },
 } as const satisfies InteractionConcept;
+
+/**
+ * ADR-315 Phase 5 증분 5f — a Table data row's pinned side (`none` · `top` · `bottom`) — TanStack
+ * rowPinning (`row.pin`): the Table state's `pinnedRows`. Written on the row a rule runs in (a
+ * Row template's record is its data row's).
+ */
+export const rowPinning = {
+  id: "rowPinning",
+  racDoc: "ADR-315 — Table state `pinnedRows` (TanStack rowPinning)",
+  racType: "composition Row extension",
+  events: [],
+  state: { prop: "pinned", callback: "", valueType: "string" },
+  conditions: [],
+  capabilities: {
+    pinRowTop: { labelKey: "capabilities.pinRowTop", value: "top" },
+    pinRowBottom: { labelKey: "capabilities.pinRowBottom", value: "bottom" },
+    unpinRow: { labelKey: "capabilities.unpinRow", value: "none" },
+  },
+} as const satisfies InteractionConcept;

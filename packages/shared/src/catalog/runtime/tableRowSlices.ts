@@ -19,6 +19,8 @@ import type { CatalogTableState } from "./tableState";
  * (never drawn — the group is closed; `catalogGroupBoundRows` · a windowed Table's DOM).
  */
 export const CATALOG_GROUP_PLACEHOLDER_SUFFIX = "/collapsed";
+/** ADR-315 Phase 5 증분 5e — the key suffix of an open row's detail row (`catalogDetailRows`). */
+export const CATALOG_DETAIL_ROW_SUFFIX = "/detail";
 
 /**
  * A Table's Column as its state's data slices read it: its Column key, where its sort puts its
@@ -83,8 +85,21 @@ export interface CatalogRowTree {
   readonly expanded: "all" | readonly string[];
   readonly closedChild?: false;
 }
+/**
+ * ADR-315 Phase 5 증분 5f — a bound Table's pinned rows (the state's `pinnedRows`, item keys in
+ * order): the rows source puts them first · last, out of the other rows' sort and cut. A pinned row
+ * the search · filters leave out is not shown (TanStack `keepPinnedRows: false` — the Table's
+ * default) unless `keep` (the Table's 「Keep pinned rows」). Not under a grouping or a tree.
+ */
+export interface CatalogRowPins {
+  readonly top: readonly string[];
+  readonly bottom: readonly string[];
+  readonly keep?: true;
+}
 /** A bound Table's data slices as its rows read them (each Column as its field). */
 export interface CatalogRowSlices {
+  /** ADR-315 Phase 5 증분 5f — its pinned rows. */
+  readonly pins?: CatalogRowPins;
   readonly sorts?: CatalogRowSorts;
   readonly search?: CatalogRowSearch;
   readonly filters?: readonly CatalogRowFilter[];
@@ -164,6 +179,8 @@ export function catalogTableStateRowSlices(
     readonly totals?: boolean;
     /** ADR-315 Phase 5 증분 5d — its binding names its rows' child rows (`CatalogRowTree`). */
     readonly nested?: boolean;
+    /** ADR-315 Phase 5 증분 5f — the Table's 「Keep pinned rows」 (`CatalogRowPins.keep`). */
+    readonly keepPinnedRows?: unknown;
   },
 ): CatalogRowSlices | undefined {
   if (!state) return undefined;
@@ -223,16 +240,30 @@ export function catalogTableStateRowSlices(
         ...(aggregates.find((entry) => entry.key === column.key) ?? {}),
       }))
     : undefined;
+  // (ADR-315 Phase 5 증분 5f — pinned rows: a flat Table's — a group · a tree row holds rows.)
+  const pins: CatalogRowPins | undefined =
+    state.pinnedRows &&
+    !groups &&
+    !tree &&
+    (state.pinnedRows.top.length || state.pinnedRows.bottom.length)
+      ? {
+          top: state.pinnedRows.top,
+          bottom: state.pinnedRows.bottom,
+          ...(table?.keepPinnedRows === true ? { keep: true as const } : {}),
+        }
+      : undefined;
   if (
     !ordered.length &&
     !search &&
     !filters.length &&
     !groups &&
     !tree &&
-    !totals
+    !totals &&
+    !pins
   )
     return undefined;
   return {
+    ...(pins ? { pins } : {}),
     ...(ordered.length ? { sorts: ordered } : {}),
     ...(search ? { search } : {}),
     ...(filters.length ? { filters } : {}),

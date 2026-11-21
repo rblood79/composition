@@ -144,6 +144,23 @@ export const tableBinding: PrimitiveBinding = {
         label: "Reorder columns",
         section: "state",
       },
+      // ADR-315 Phase 5 증분 5f — the end user may pin rows (breakdown §6 「Rows」 — 「Row
+      //   pinning」, TanStack `enableRowPinning`, a composition extension, default off): each data
+      //   row's menu pins it to the top · the bottom, where it stays while the Table scrolls. The
+      //   pinned rows are the Table state's `pinnedRows`, never the document. `keepPinnedRows`: a
+      //   pinned row the search · filters leave out stays (TanStack `keepPinnedRows` — off here,
+      //   breakdown §4.4).
+      allowsRowPinning: {
+        kind: "boolean",
+        label: "Row pinning",
+        section: "state",
+      },
+      keepPinnedRows: {
+        kind: "boolean",
+        label: "Keep pinned rows",
+        section: "state",
+        visibleWhen: { key: "allowsRowPinning", equals: true },
+      },
       // ADR-315 Phase 4 증분 4d — the columns the Table shows (Column keys) as a rule's Do writes
       //   them (「Show column」 · 「Hide column」 · 「Set shown columns」 — `concepts/tableColumns.ts`):
       //   the Preview's Table state `hiddenColumns`, never the document. Do-only (`editorHidden`) —

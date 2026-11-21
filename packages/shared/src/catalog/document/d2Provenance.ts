@@ -143,6 +143,9 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     searchMatch: "composition",
     // ADR-315 Phase 4 — the end user may move its columns.
     allowsColumnReordering: "composition",
+    // ADR-315 Phase 5 증분 5f — the end user may pin rows · a pinned row stays out of a search.
+    allowsRowPinning: "composition",
+    keepPinnedRows: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },
   TextArea: { isQuiet: "v3", rows: "composition" },

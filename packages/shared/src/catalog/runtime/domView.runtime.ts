@@ -85,6 +85,8 @@ export function catalogPreviewRuntime(
     pressTableSort: (tableId, column, add) =>
       session.pressTableSort(tableId, column, add),
     expandTableRows: (tableId, keys) => session.expandTableRows(tableId, keys),
+    pinTableRow: (tableId, key, side) =>
+      session.pinTableRow(tableId, key, side),
     resizeTableColumns: (tableId, widths) =>
       session.resizeTableColumns(tableId, widths),
     tableColumnWidths: (tableId) => session.tableColumnWidths(tableId),
@@ -106,12 +108,15 @@ export function catalogPreviewRuntime(
         prop === "visibleColumns"
           ? session.tableVisibleColumns(id)
           : prop === "pinned"
-            ? session.tableColumnPinned(id)
+            ? // (A Column's side · ADR-315 Phase 5 증분 5f — a Row's.)
+              (session.tableColumnPinned(id) ?? session.tableRowPinned(id))
             : session.tableColumnFilterValue(id),
       write: (id, prop, value) => {
         if (prop === "visibleColumns") session.showTableColumns(id, value);
-        else if (prop === "pinned") session.pinTableColumn(id, value);
-        else session.filterTableColumn(id, value);
+        else if (prop === "pinned") {
+          session.pinTableColumn(id, value);
+          session.pinTableRowRecord(id, value);
+        } else session.filterTableColumn(id, value);
       },
     },
     colorScheme: (mode) => session.setColorScheme(mode),

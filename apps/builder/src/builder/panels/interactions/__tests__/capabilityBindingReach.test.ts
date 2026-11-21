@@ -27,6 +27,8 @@ const TESTS = [
   // ADR-315 Phase 4 — the Table state's column Do (a Table's shown columns · a Column's pin ·
   // filter): the rendered header and rows, through the session (no record override).
   "../../../../preview/catalog/__tests__/adr315ColumnChooser.test.tsx",
+  // ADR-315 Phase 5 증분 5f — a Row's pin Do: the pinned row drawn first · last, through the session.
+  "../../../../preview/catalog/__tests__/adr315RowPinning.test.tsx",
 ].map((path) => readFileSync(resolve(import.meta.dirname, path), "utf8"));
 
 /**

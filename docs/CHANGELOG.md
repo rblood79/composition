@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-315 Phase 5 증분 5a ~ 5e — 집계 6 종 · Table 묶음 행 (가상 스크롤 · Canvas 포함) · 합계 행 · 계층 데이터 · 상세 행] - 2026-11-21
+## [ADR-315 Phase 5 증분 5a ~ 5f — 집계 6 종 · Table 묶음 행 (가상 스크롤 · Canvas 포함) · 합계 행 · 계층 데이터 · 상세 행 · 행 고정] - 2026-11-21
 
 ### Added
 
@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 가상 스크롤 · 「더 보기」 · 쪽 모두 같고, 접힌 행의 상세는 그리지 않는다. Builder Canvas 는 모든 행을 접힌 채 (펼침 표시와 함께) 그린다.
   - 위치: `packages/shared/src/catalog/commands/collections.ts` (`setTableDetailRow` · `rowCells`) · `resolution/resolver.ts` (`catalogDetailRows` · `nestTableRows` · `tableHasDetailRow`) · `resolution/tableColumns.ts` (상세 칸 `colSpan`) · `runtime/compositionRoot.ts` (본문 구조 변경의 갱신 영역) · `domain/componentTraits.ts` (Row 안 Row) · `apps/builder/src/builder/catalogRuntime/tableDetail.ts` · `panels/properties/catalog/CatalogFilterSection.tsx` (`CatalogTableDetailSwitch`). 회귀 `adr315DetailRow.test.tsx` · `adr315CanvasGroups.test.ts`. live: production · headed Chrome · 1,000 행 — Canvas 모든 행 접힘 표시 · Publish r0 펼침 → 상세 행 칸 하나 · 열 6 을 덮음 · r0 의 이름 (`--check-detail`, 가상 · 「더 보기」).
   - 아직: 선택 가능한 표에서 상세 행도 선택된다.
+- **Table 「Row pinning」 · 「Keep pinned rows」 (Design 패널 Property 탭 Behavior) — 행 고정 (5f)**
+  - 「Row pinning」 을 켜면 Preview · Publish 에서 행마다 마지막 칸 끝에 행 메뉴가 생긴다 (행에 마우스를 올리거나 focus 하면 보인다 — Builder Canvas 는 그리지 않는다). 「Pin to top」 · 「Pin to bottom」 · 「Unpin」 으로 고정한 행은 표의 맨 위 · 맨 아래에 서서 표를 스크롤해도 머리글 바로 아래 · 표 바닥에 머문다 (가상 스크롤 · 「더 보기」 · 쪽 모두). 고정한 행은 고정 표시 (핀) 를 늘 보인다.
+  - 고정한 행은 나머지 행의 정렬 · 쪽 · 「더 보기」 밖이다 — 쪽마다 고정 행이 같이 보이고, 쪽 수 · 「더 보기」 는 나머지 행으로 센다. 검색 · 열 필터에 맞지 않는 고정 행은 보이지 않는다 (고정은 남는다). 「Keep pinned rows」 를 켜면 검색과 무관하게 남는다.
+  - Do: Row 의 「Pin row to top」 · 「Pin row to bottom」 · 「Unpin row」 (그 규칙이 실행된 행에). 고정은 표 상태 (`pinnedRows`) 라 문서는 바뀌지 않는다.
+  - 묶은 표 · 계층 표 · 서버가 쪽을 나누는 표에서는 아직 고정하지 않는다 (행 메뉴가 없다). 상세 행이 있는 표에서 고정한 행은 펼치지 않는다.
+  - 위치: `packages/shared/src/catalog/runtime/tableRowSlices.ts` (`CatalogRowPins`) · `runtime/dataBinding.ts` (`catalogPinnedRowOrder`) · `resolution/resolver.ts` (`withPinnedRow` · `withRowPinning` · 행 창 · `rowIndexOf`) · `runtime/domBinding.runtime.ts` (`data-pinned-row` · 행 메뉴 칸) · `runtime/tableOperationsDom.components.tsx` (`CatalogRowPinMenu` · `CatalogTableRowPinMeasure`) · `runtime/catalogVirtualizer.components.tsx` (`CatalogTableLayout` — 고정 행을 늘 만들고 sticky) · `catalogPreviewSession.ts` (`pinTableRow`) · `interactions/concepts/tableColumns.ts` (`rowPinning`) · `Table.css`. 회귀 `adr315RowPinning.test.tsx`. live: production · headed Chrome · 1,000 행 — r3 「Pin to top」 · r5 「Pin to bottom」 → 위 · 가운데 · 끝까지 스크롤하는 동안 r3 은 머리글 바로 아래, r5 는 표 바닥 (1 px 안), 그 자리를 누르면 그 행 (`--check-rowpin`, 가상 · 「더 보기」).
 
 ### Fixed
 
