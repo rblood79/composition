@@ -565,14 +565,50 @@
           "dom": 1
         },
         "canvas": {
-          "status": "rebind-required",
-          "id": "project:node:frame::project:node:frame",
-          "reason": "geometry-reaches-scene-root"
+          "status": "patched",
+          "rebound": [
+            "project:node:frame/project:node:group/project:node:t1::project:node:t1",
+            "project:node:frame/project:node:group::project:node:group",
+            "project:node:frame/project:node:group/project:node:t2::project:node:t2",
+            "project:node:frame/project:node:group/project:node:t3::project:node:t3",
+            "project:node:frame::project:node:frame"
+          ],
+          "geometryChanged": [
+            "project:node:frame/project:node:group/project:node:t1::project:node:t1",
+            "project:node:frame/project:node:group::project:node:group",
+            "project:node:frame/project:node:group/project:node:t2::project:node:t2",
+            "project:node:frame/project:node:group/project:node:t3::project:node:t3",
+            "project:node:frame::project:node:frame"
+          ],
+          "geometryQueries": 7,
+          "patchRoots": [
+            "project:node:frame::project:node:frame"
+          ],
+          "subtreeBuilds": 1,
+          "translated": [
+            "project:node:frame/project:node:group/project:node:t2::project:node:t2",
+            "project:node:frame/project:node:group/project:node:t3::project:node:t3"
+          ],
+          "propertyChanged": [],
+          "subtreeNodeVisits": 1,
+          "commandWrites": 12,
+          "damage": {
+            "x": 0,
+            "y": 0,
+            "width": 296,
+            "height": 900
+          }
         },
         "domNodeRenders": [
           "project:node:frame/project:node:group/project:node:t1::project:node:t1"
         ],
-        "moved": []
+        "moved": [
+          "frame",
+          "group",
+          "t1",
+          "t2",
+          "t3"
+        ]
       },
       "before": {
         "frame": {
@@ -622,7 +658,7 @@
         "frame": {
           "x": 0,
           "y": 0,
-          "width": 256,
+          "width": 296,
           "height": 900
         },
         "a": {
@@ -640,23 +676,23 @@
         "group": {
           "x": 0,
           "y": 40,
-          "width": 256,
+          "width": 296,
           "height": 20
         },
         "t1": {
           "x": 0,
           "y": 40,
-          "width": 80,
+          "width": 120,
           "height": 20
         },
         "t2": {
-          "x": 88,
+          "x": 128,
           "y": 40,
           "width": 80,
           "height": 20
         },
         "t3": {
-          "x": 176,
+          "x": 216,
           "y": 40,
           "width": 80,
           "height": 20
