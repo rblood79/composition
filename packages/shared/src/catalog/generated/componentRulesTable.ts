@@ -13552,6 +13552,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "row",
     },
+    // ADR-315 Phase 6 — a Table with a merged Column (「Merge same values」): its body rows' line is
+    //   their Cells' (the Cell rule's `merge-line`), so a merged cell runs into the row below with
+    //   no line under it (composition 확장 — S2 TableView has no merge; its line is the row's).
+    containerVariants: {
+      "cell-lines": {
+        cells: { styles: { "border-bottom-width": "0px" } },
+      },
+    },
     // A disabled row (S2 Row `isDisabled`) — the DOM's is `Table.css` `.react-aria-Row[data-disabled]`
     // (the sheet owns the row, so no generated CSS — ADR-223: a new entry names its archetype).
     structure: {
@@ -13763,6 +13771,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-257 Phase 3: the cell's own S2 `align` · `showDivider` (S2 Cell reads neither from its
     //   Column — 사용자 결정 7) and the Table's `overflowMode`.
     containerVariants: {
+      // ADR-315 Phase 6 — the row's line drawn by its Cell (a Table with a merged Column — the Row
+      //   rule's `cell-lines`): the Table's body row line (1px `--border`), but under a merged cell
+      //   that runs into the row below. Every side's width is stated (an inline `border-style`
+      //   alone would give the others the medium width); `pinned-edge` · `show-divider` after it
+      //   draw their end lines over it.
+      "merge-line": {
+        bottom: {
+          styles: {
+            "border-top-width": "0px",
+            "border-right-width": "0px",
+            "border-bottom-width": "1px",
+            "border-left-width": "0px",
+            "border-style": "solid",
+            "border-color": "var(--border)",
+          },
+        },
+        // (No line: every side 0 and no line style — a `pinned-edge` · `show-divider` end line after
+        //  it brings its own.)
+        none: {
+          styles: {
+            "border-top-width": "0px",
+            "border-right-width": "0px",
+            "border-bottom-width": "0px",
+            "border-left-width": "0px",
+          },
+        },
+      },
       // ADR-257 Phase 3 — S2 `align` (start · center · end — S2 `cellContent` textAlign; start is
       //   the variant's left). S2 TableView (2026-11-19): the content is the Cell's Text (S2
       //   `cellContent` span) — the alignment is its own; a Cell holding its text directly keeps
@@ -13953,6 +13988,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         {
           "--row-highlight-top": { isSelected: "0 0 transparent" },
         },
+      // ADR-315 Phase 6 — a Table 「Cell selection」 (`tableCellSelection.ts` marks it and its cells):
+      //   a selected cell is the highlight wash of a selected row (S2 `highlight` — there is no S2
+      //   cell selection); a drag over the cells selects them, not their text. Preview runtime
+      //   state — the Canvas draws none.
+      "&[data-cell-selection]%": {
+        userSelect: { default: "none" },
+      },
+      "&[data-cell-selection] .react-aria-Cell%": {
+        background: {
+          isSelected: "color-mix(in srgb, var(--accent) 10%, var(--bg))",
+        },
+      },
     },
     defaultVariant: "default",
     defaultSize: "M",

@@ -164,6 +164,15 @@ export const columnBinding: PrimitiveBinding = {
         label: "Allow grouping",
         section: "state",
       },
+      // ADR-315 Phase 6 — the rows' same values run together in this Column (AG Grid `spanRows`; a
+      //   composition extension, default off): in the order shown, a cell whose value is its row
+      //   above's draws no value and no line between them — one cell to the eye. The DOM keeps every
+      //   row's Cell (its text stays for a screen reader); never a real `rowSpan` (RAC has none).
+      mergeSameValues: {
+        kind: "boolean",
+        label: "Merge same values",
+        section: "state",
+      },
       // ADR-315 Phase 5 · 사용자 결정 4 — what a group row shows in this Column: an aggregate of
       //   the group's rows (TanStack `aggregationFn`; a composition extension, default none).
       aggregate: {

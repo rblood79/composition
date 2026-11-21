@@ -89,6 +89,8 @@ export function catalogPreviewRuntime(
       session.pinTableRow(tableId, key, side),
     resizeTableColumns: (tableId, widths) =>
       session.resizeTableColumns(tableId, widths),
+    tableCellText: (tableId, rows, columns) =>
+      session.tableCellText(tableId, rows, columns),
     tableColumnWidths: (tableId) => session.tableColumnWidths(tableId),
     tableColumnMenu: (tableId, racKey) =>
       session.tableColumnMenu(tableId, racKey),

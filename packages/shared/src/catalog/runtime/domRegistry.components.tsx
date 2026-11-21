@@ -1,9 +1,13 @@
 import type { ReactElement, ReactNode } from "react";
 
 import {
+  createContext,
   createElement,
   Fragment,
+  useContext,
   useEffect,
+  useRef,
+  useState,
   type CSSProperties,
   type ElementType,
   type HTMLAttributes,
@@ -23,6 +27,10 @@ import {
 import { resolveSelectionBehavior } from "../../components/selectionStyle";
 
 import { RESIZABLE_TABLE_STYLE } from "./domRegistry.runtime";
+import type {
+  CatalogCellSelection,
+  CatalogCellSelectionSource,
+} from "./tableCellSelection";
 import {
   type CatalogRowPin,
   CatalogRowPinMenu,
@@ -75,11 +83,64 @@ function useShiftMemory(enabled: boolean): () => boolean {
     shiftMemories.get(document)?.held === true;
 }
 
+/** ADR-315 Phase 6 — the cell ranges of the Table a Cell is in (`CatalogTable`'s `cellSelection`). */
+const CatalogCellSelectionContext = createContext<
+  CatalogCellSelection | undefined
+>(undefined);
+
+/** A ref that sets ours and the one the props carry (if any). */
+function withOwnRef(
+  mine: { current: HTMLElement | null },
+  own: unknown,
+): (element: HTMLElement | null) => void {
+  return (element) => {
+    mine.current = element;
+    if (typeof own === "function") own(element);
+    else if (own && typeof own === "object")
+      (own as { current: unknown }).current = element;
+  };
+}
+
+/**
+ * ADR-315 Phase 6 — a Table 「Cell selection」: its ranges (`tableCellSelection.ts` — a lazy chunk,
+ * read by a Table that has it) on the RAC table element, given to its Cells.
+ */
+function useCatalogCellSelection(
+  source: CatalogCellSelectionSource | undefined,
+  table: { readonly current: HTMLElement | null },
+): CatalogCellSelection | undefined {
+  const latest = useRef(source);
+  useEffect(() => {
+    latest.current = source;
+  });
+  const [selection, setSelection] = useState<CatalogCellSelection>();
+  const on = !!source;
+  useEffect(() => {
+    if (!on) return;
+    let live = true;
+    let attached: CatalogCellSelection | undefined;
+    void import("./tableCellSelection").then(
+      ({ attachCatalogCellSelection }) => {
+        if (!live || !table.current) return;
+        attached = attachCatalogCellSelection(table.current, latest);
+        setSelection(attached);
+      },
+    );
+    return () => {
+      live = false;
+      attached?.detach();
+      setSelection(undefined);
+    };
+  }, [on, table]);
+  return selection;
+}
+
 export function CatalogTable({
   selectionStyle,
   tableResizable,
   onSortPress,
   onColumnsResized,
+  cellSelection,
   style,
   ...props
 }: Record<string, unknown> & {
@@ -87,8 +148,12 @@ export function CatalogTable({
   onSortPress?: (column: string, add: boolean) => void;
   /** ADR-315 Phase 4 — RAC's `onResizeEnd`: the px widths it left, by RAC key. */
   onColumnsResized?: (widths: Record<string, number>) => void;
+  /** ADR-315 Phase 6 — a Table 「Cell selection」: its rows · Columns and their text. */
+  cellSelection?: CatalogCellSelectionSource;
 }) {
   const shift = useShiftMemory(!!onSortPress);
+  const tableElement = useRef<HTMLElement | null>(null);
+  const selection = useCatalogCellSelection(cellSelection, tableElement);
   // S2 `isQuiet` — square corners: the rule's radius rides the inline style, which would beat
   // the `[data-quiet]` sheet block (the Canvas reads the rule's containerVariants.quiet).
   const quiet =
@@ -121,7 +186,17 @@ export function CatalogTable({
     // (Its height is the record's box height — the Styles height, as on the Canvas.)
     style: tableResizable ? RESIZABLE_TABLE_STYLE : boxStyle,
     "data-node-table": "",
+    ...(cellSelection
+      ? { ref: withOwnRef(tableElement, (props as { ref?: unknown }).ref) }
+      : {}),
   });
+  const provided = cellSelection
+    ? createElement(
+        CatalogCellSelectionContext.Provider,
+        { value: selection },
+        table,
+      )
+    : table;
   return tableResizable
     ? createElement(
         ResizableTableContainer as ElementType,
@@ -149,9 +224,9 @@ export function CatalogTable({
               }
             : {}),
         },
-        table,
+        provided,
       )
-    : table;
+    : provided;
 }
 
 export function CatalogKeyboard(
@@ -179,6 +254,11 @@ export function CatalogTableCell({
   rowPin?: CatalogRowPin;
   measuresRowPin?: boolean;
 }): ReactElement {
+  // (ADR-315 Phase 6 — a Cell of a Table 「Cell selection」: its `aria-selected` follows the ranges
+  //  from when RAC puts its element in the DOM — RAC renders this in its collection, the element
+  //  apart, so the ref is where the two meet.)
+  const selection = useContext(CatalogCellSelectionContext);
+  const columnKey = props["data-column-key"];
   // (ADR-315 Phase 5 증분 5f — a pinned row's last Cell measures where the pinned rows stand; a
   //  pinnable row's last Cell holds its row menu, after its content.)
   const children =
@@ -197,6 +277,17 @@ export function CatalogTableCell({
       : own;
   return createElement(RacCell, {
     ...(props as CellProps),
+    ...(selection && typeof columnKey === "string"
+      ? {
+          ref: (element: HTMLElement | null) => {
+            const own = (props as { ref?: unknown }).ref;
+            if (typeof own === "function") own(element);
+            else if (own && typeof own === "object")
+              (own as { current: unknown }).current = element;
+            return element ? selection.mark(element, columnKey) : undefined;
+          },
+        }
+      : {}),
     children: (cell: CellRenderProps) =>
       cell.isTreeColumn
         ? createElement(

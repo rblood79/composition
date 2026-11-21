@@ -433,6 +433,12 @@ export interface CatalogPreviewInteractionsOptions {
     rowKey: string,
     side: "top" | "bottom" | "none",
   ) => void;
+  /** ADR-315 Phase 6 — a cell range as tab-separated text (`CatalogDomRuntime.tableCellText`). */
+  tableCellText?: (
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ) => string;
   /** ADR-315 Phase 4 — the widths RAC's column resize left (RAC keys, px): the session's. */
   resizeTableColumns?: (
     tableId: string,
@@ -1346,6 +1352,13 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     widths: Readonly<Record<string, number>>,
   ): void {
     this.options.resizeTableColumns?.(tableId, widths);
+  }
+  tableCellText(
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ): string {
+    return this.options.tableCellText?.(tableId, rows, columns) ?? "";
   }
   tableColumnWidths(
     tableId: string,

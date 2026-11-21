@@ -103,6 +103,7 @@ import type {
   StateName,
 } from "../document/types";
 import type {
+  CatalogBoundRow,
   CatalogRowPitch,
   CatalogRowSampleBasis,
   CatalogRowWindowKeys,
@@ -134,6 +135,7 @@ import {
 } from "./localeTypography";
 import {
   catalogAuthoredVisual,
+  catalogDerivedRestVisual,
   catalogHasAuthoredColor,
   catalogHasAuthoredVisual,
   catalogHasExplicitTemplateSizing,
@@ -3026,6 +3028,30 @@ export class CatalogCompositionRoot {
    * last — the row source is not called (HC4: a column slice never reads rows). Every row in the
    * record window is resolved again: its cells are other cells.
    */
+  /**
+   * ADR-315 Phase 6 — a bound list record's rows as last read (`rowsRead` — every row, a window's
+   * outside too, their child rows with them), by row key: a cell range's copy reads its values
+   * (breakdown §5.6 — the data's, not the cells drawn).
+   */
+  rowValuesOf(
+    recordId: string,
+  ): ReadonlyMap<string, Readonly<Record<string, unknown>>> | undefined {
+    const record = this.domInputs.get(recordId) ?? this.records.get(recordId);
+    if (!record) return undefined;
+    const read = this.rowsRead.get(
+      `${record.sourceId}|items|${record.instancePath?.join("/")}`,
+    );
+    if (!read) return undefined;
+    const out = new Map<string, Readonly<Record<string, unknown>>>();
+    const visit = (rows: readonly CatalogBoundRow[]) => {
+      for (const row of rows) {
+        out.set(row.key, row.values);
+        if (row.children) visit(row.children);
+      }
+    };
+    visit(read);
+    return out;
+  }
   reprojectColumns(ids: ReadonlySet<string>): unknown[] {
     if (!ids.size) return [];
     this.rowsReused = true;
@@ -5517,8 +5543,20 @@ export class CatalogCompositionRoot {
     if (catalogEmptySkeleton(this.typeOf(record), record.children.length))
       return { ...CATALOG_EMPTY_SKELETON_STYLE };
     const frame = this.pageFrameStyle(record);
+    // (ADR-315 Phase 6 — a merged Table's body Row · Cell: the row line its Cells draw is in their
+    //  box, as the DOM's border — the rule's derived `cell-lines` · `merge-line` widths, laid out.)
+    const lined =
+      record.derivedProps?.cellLines || record.derivedProps?.mergeLine
+        ? ({
+            ...record,
+            visual: {
+              ...record.visual,
+              ...catalogDerivedRestVisual(this, record),
+            },
+          } as CatalogConsumerNode)
+        : record;
     const style = styleOf(
-      record,
+      lined,
       this.textMeasure,
       this.typeOf(record),
       this.wrapHeights.get(record.id),

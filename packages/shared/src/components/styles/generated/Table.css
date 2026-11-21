@@ -140,4 +140,12 @@
   --row-highlight-top: 0 0 transparent;
 }
 
+.react-aria-Table.react-aria-Table[data-cell-selection] {
+  user-select: none;
+}
+
+.react-aria-Table.react-aria-Table[data-cell-selection] .react-aria-Cell:where([data-selected]) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+
 } /* @layer components */

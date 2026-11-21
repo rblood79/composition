@@ -112,6 +112,12 @@ import {
   type CatalogRowSlices,
 } from "../runtime/tableRowSlices";
 import {
+  CATALOG_ROW_MERGE_DOWN_PROP,
+  CATALOG_ROW_MERGE_UP_PROP,
+  catalogMergeEdges,
+  catalogMergedRows,
+} from "../runtime/tableCellMerge";
+import {
   CATALOG_COLUMN_MENU_PROP,
   CATALOG_TABLE_AUTHORED_SORT_PROP,
   CATALOG_TABLE_EXPANDED_PROP,
@@ -252,6 +258,15 @@ export interface CatalogBoundRow {
    * view while the Table scrolls (`position: sticky`).
    */
   pinned?: "top" | "bottom";
+  /**
+   * ADR-315 Phase 6 — the Columns (「Merge same values」 — their keys) in which this row runs into
+   * the row above (`up` — its value is not drawn) · the row below (`down` — no line under it):
+   * `catalogMergedRows`, over the rows shown.
+   */
+  merge?: {
+    readonly up?: readonly string[];
+    readonly down?: readonly string[];
+  };
 }
 /**
  * The rows of a binding; `undefined` = unknown (not loaded) — the template items stay. `kind`
@@ -800,6 +815,31 @@ const rowIndexOf = (
     return window.keys.length - (length - place);
   return window.start + (place - pinned.top);
 };
+/**
+ * ADR-315 Phase 6 — a run's rows as the resolver draws them: a merged Column's runs cut at the run's
+ * ends (`catalogMergeEdges` — its first row shows its value, its last draws its line) and, with
+ * merged rows, a kept row (`CatalogRowWindow.kept`) beside a row resolved now is resolved again —
+ * its neighbour may run into it now, the window having moved.
+ */
+function runRowsOf(segment: readonly CatalogBoundRow[]): {
+  data: (place: number) => CatalogBoundRow;
+  kept: (place: number) => ResolvedCatalogNode | undefined;
+} {
+  const edges = catalogMergeEdges(segment);
+  const keptAt = (place: number) =>
+    place >= 0 && place < segment.length
+      ? keptRowOf(segment, rowIndexOf(segment, place), segment[place]!.key)
+      : undefined;
+  return {
+    data: (place) => edges?.get(place) ?? segment[place]!,
+    kept: (place) => {
+      const kept = keptAt(place);
+      return kept && edges && !(keptAt(place - 1) && keptAt(place + 1))
+        ? undefined
+        : kept;
+    },
+  };
+}
 /** What the Builder's row sample counts with (`resolveCatalogNode`'s `rowSample`). */
 export interface CatalogRowSampleBasis {
   /** The page height when the resolved root authors none (the breakpoint's screen). */
@@ -1051,9 +1091,9 @@ function nestTableRows(
         }
       : node;
   }
-  const own = withPinnedRow(
-    withoutRowDetail(node, isTableRow),
-    data.pinned,
+  const own = withMergedRow(
+    withPinnedRow(withoutRowDetail(node, isTableRow), data.pinned, isTableRow),
+    data.merge,
     isTableRow,
   );
   if (!data.children?.length) return own;
@@ -1106,6 +1146,29 @@ function withPinnedRow(
               : {}),
           },
     ),
+  };
+}
+/**
+ * ADR-315 Phase 6 — a Row with its merge on every layer (a Row instance's record reads its innermost
+ * one): the column projection marks its Cells by Column key (`catalogProjectTableColumns`).
+ */
+function withMergedRow(
+  row: ResolvedCatalogNode,
+  merge: CatalogBoundRow["merge"],
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  if (!merge) return row;
+  const [first, ...rest] = row.children;
+  return {
+    ...row,
+    props: {
+      ...row.props,
+      ...(merge.up ? { [CATALOG_ROW_MERGE_UP_PROP]: merge.up } : {}),
+      ...(merge.down ? { [CATALOG_ROW_MERGE_DOWN_PROP]: merge.down } : {}),
+    },
+    ...(first && isTableRow(first)
+      ? { children: [withMergedRow(first, merge, isTableRow), ...rest] }
+      : {}),
   };
 }
 /**
@@ -3063,12 +3126,17 @@ export function resolveCatalogNode(
        */
       const detailNow =
         templateTypeName(templateRootId) === "Table" && tableHasDetailRow(node);
+      /**
+       * ADR-315 Phase 6 — the Columns whose same values run together (「Merge same values」): read
+       * from the Table as first resolved; its rows are then projected again with their merge.
+       */
+      let mergeKeys: readonly string[] = [];
       const finishTable = (rowSlices: CatalogRowSlices | undefined) => {
         if (!rowsRead && nodeBinding && rows) {
           rowSet = rows(nodeBinding, "items", node.id, instancePath, rowSlices);
           rowsRead = true;
         }
-        const shownSet =
+        const detailed =
           rowSet && detailNow
             ? catalogDetailRows(
                 rowSet,
@@ -3076,6 +3144,7 @@ export function resolveCatalogNode(
                 !!tableState,
               )
             : rowSet;
+        const shownSet = detailed;
         const table =
           shownSet && templateTypeName(templateRootId) === "Table"
             ? boundTableRows(
@@ -3093,6 +3162,7 @@ export function resolveCatalogNode(
                 tableId,
                 viewSortsByVariable(node.binding, lookupEntry),
                 rowSlices?.sorts,
+                mergeKeys,
               )
             : undefined;
         groupedBy =
@@ -3138,9 +3208,17 @@ export function resolveCatalogNode(
             )?.key
           : undefined;
       }
-      let finished = finishTable(
-        stated ? tableRowSlices(headerState!, project(undefined)) : undefined,
-      );
+      const firstSlices = stated
+        ? tableRowSlices(headerState!, project(undefined))
+        : undefined;
+      let finished = finishTable(firstSlices);
+      // (ADR-315 Phase 6 — a Table with a merged Column: its rows again, with their merge.)
+      if (finished && templateTypeName(templateRootId) === "Table") {
+        mergeKeys = headerColumnsOf(finished)
+          .filter(({ column }) => column.props.mergeSameValues === true)
+          .map(({ key }) => key);
+        if (mergeKeys.length && rowSet) finished = finishTable(firstSlices);
+      }
       // (ADR-315 Phase 5 — a Table its author groups (a Column's 「Grouped」) and whose state does
       //  not say otherwise: its rows are read again, grouped. The Builder's Canvas too (no Table
       //  state — the author's default, closed groups without a child row: `closedChild`).)
@@ -3254,10 +3332,12 @@ export function resolveCatalogNode(
         ? repeatRows(childId, childPath, childRows, ownedRow)
         : undefined;
       if (segment) {
-        segment.forEach((data, place) => {
+        const run = runRowsOf(segment);
+        segment.forEach((_, place) => {
           // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+          const data = run.data(place);
           const index = rowIndexOf(segment, place);
-          const kept = keptRowOf(segment, index, data.key);
+          const kept = run.kept(place);
           if (kept) return void children.push(kept);
           const projectRow = (row: CatalogBoundRow) =>
             resolveOwned(child, childPath, undefined, self, {
@@ -3447,6 +3527,8 @@ export function resolveCatalogNode(
     sortedByVariable: boolean,
     /** The Table's header sort as its rows read it (`tableRowSlices`). */
     rowSort: CatalogRowSorts | undefined,
+    /** ADR-315 Phase 6 — the Columns whose same values run together, in the order shown. */
+    mergeKeys: readonly string[] = [],
   ): BoundTableRows => {
     const variableSort = (rowSet as { view?: CatalogViewResultMeta }).view
       ?.sort;
@@ -3485,6 +3567,8 @@ export function resolveCatalogNode(
     //  height: a page of 20 in a 400 Table showed 14, 2026-11-19 사용자 보고 「Rows per page 동작이
     //  되지않는다」.)
     const fixed = typeof height === "number" && !!rowSample;
+    // (ADR-315 Phase 6 — over every row in the order shown: before a box height · a window cuts.)
+    ordered = catalogMergedRows(ordered, mergeKeys);
     const bodyId = (
       template && "children" in template ? template.children : []
     ).find(
@@ -4163,10 +4247,12 @@ export function resolveCatalogNode(
               patches,
               { row: data, rowStart: true },
             );
-          segment.forEach((data, place) => {
+          const run = runRowsOf(segment);
+          segment.forEach((_, place) => {
             // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+            const data = run.data(place);
             const index = rowIndexOf(segment, place);
-            const kept = keptRowOf(segment, index, data.key);
+            const kept = run.kept(place);
             if (kept) return void out.push(kept);
             const projected = projectRow(data);
             if (projected)
@@ -4404,10 +4490,12 @@ export function resolveCatalogNode(
               undefined,
               { row: data, rowStart: true, sampleOwner: childId as NodeId },
             );
-          segment.forEach((data, place) => {
+          const run = runRowsOf(segment);
+          segment.forEach((_, place) => {
             // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+            const data = run.data(place);
             const index = rowIndexOf(segment, place);
-            const kept = keptRowOf(segment, index, data.key);
+            const kept = run.kept(place);
             if (kept) return void children.push(kept);
             const projected = projectRow(data);
             if (projected)
@@ -4475,10 +4563,12 @@ export function resolveCatalogNode(
               row: data,
               rowStart: true,
             });
-          segment.forEach((data, place) => {
+          const run = runRowsOf(segment);
+          segment.forEach((_, place) => {
             // (A windowed run's rows keep their place in the whole run — identity and `rowIndex`.)
+            const data = run.data(place);
             const index = rowIndexOf(segment, place);
-            const kept = keptRowOf(segment, index, data.key);
+            const kept = run.kept(place);
             if (kept) return void children.push(kept);
             const projected = projectRow(data);
             if (projected)

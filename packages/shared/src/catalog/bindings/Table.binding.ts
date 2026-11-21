@@ -155,6 +155,23 @@ export const tableBinding: PrimitiveBinding = {
         label: "Row pinning",
         section: "state",
       },
+      // ADR-315 Phase 6 — the end user selects ranges of cells (breakdown §5.6 — a spreadsheet's
+      //   selection: drag · Shift · Ctrl/Cmd, Shift + arrow keys, Ctrl/Cmd + A, Esc) and copies them
+      //   (Ctrl/Cmd + C — tab-separated text); a composition extension (S2 TableView selects rows
+      //   only), default off. Not with row selection (사용자 결정 5 — `aria-selected` · Shift mean
+      //   one thing): only while 「Selection Mode」 is None — a row selection turns it off and hides
+      //   it. The ranges are the Preview's runtime state, never the document.
+      allowsCellSelection: {
+        kind: "boolean",
+        label: "Cell selection",
+        section: "state",
+        visibleWhen: {
+          any: [
+            { key: "selectionMode", equals: "none" },
+            { key: "selectionMode", truthy: false },
+          ],
+        },
+      },
       keepPinnedRows: {
         kind: "boolean",
         label: "Keep pinned rows",

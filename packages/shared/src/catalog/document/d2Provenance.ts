@@ -97,6 +97,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     defaultGrouped: "composition",
     allowsGrouping: "composition",
     aggregate: "composition",
+    // ADR-315 Phase 6 — its same values run together in the order shown (a visual merge).
+    mergeSameValues: "composition",
   },
   // RAC ComboBoxState.open/close에 연결하는 저작 상태. RAC ComboBox props에는 없다.
   ComboBox: {
@@ -145,6 +147,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     allowsColumnReordering: "composition",
     // ADR-315 Phase 5 증분 5f — the end user may pin rows · a pinned row stays out of a search.
     allowsRowPinning: "composition",
+    // ADR-315 Phase 6 — the viewer selects · copies cell ranges.
+    allowsCellSelection: "composition",
     keepPinnedRows: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },

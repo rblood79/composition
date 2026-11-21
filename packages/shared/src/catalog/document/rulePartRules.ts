@@ -1654,7 +1654,11 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
     // (ADR-315 Phase 4 — the derived `pinnedEdge`, `derivedVariantProps.ts`.)
     "pinned-edge": "pinnedEdge",
   },
+  // ADR-315 Phase 6 — a merged Table's body row line is its cells' (derived `cellLines` ·
+  //   `mergeLine` — `derivedVariantProps.ts`). The line axis first: the end lines after it win.
+  Row: { "cell-lines": "cellLines" },
   Cell: {
+    "merge-line": "mergeLine",
     align: "align",
     "show-divider": "showDivider",
     "overflow-mode": "overflowMode",
@@ -1744,13 +1748,16 @@ function blockVariables(
  * ADR-257 Phase 3 — the rules whose root variant blocks also set their own text box: S2 Table's
  * cell content (`text-align` · `white-space` · truncation — S2 `cellContent`) and a Cell's divider
  * (`border-right-width`, its color the rule's border) · a pinned column's edge (`border-left-width`
- * too — ADR-315 Phase 4); S2 Badge's text (ADR-257 후속). Only these:
+ * too — ADR-315 Phase 4) · a merged Table's row line (top · bottom widths, the Row's and its Cells'
+ * — Phase 6); S2 Badge's text (ADR-257 후속). Only these:
  * the other rules' blocks do not reach the Canvas text through here.
  */
 const TEXT_VARIANT_RULES: ReadonlySet<string> = new Set([
   "Column",
   "Cell",
   "Badge",
+  // (ADR-315 Phase 6 — a merged Table's body Row: its line is its Cells' — `cell-lines`.)
+  "Row",
 ]);
 /**
  * ADR-257 후속 — the axis whose nested blocks set their child text's box (S2 ListView `overflowMode`
@@ -1775,6 +1782,12 @@ function cellTextVisual(
       // (ADR-315 Phase 4 — a pinned column's edge at the end side: the line at its start.)
       const px = lengthPx(value);
       if (px !== undefined) out.borderLeftWidth = px;
+    } else if (key === "border-top-width" || key === "border-bottom-width") {
+      // (ADR-315 Phase 6 — a merged Table's row line: its Cells' own, none under a merged cell.)
+      const px = lengthPx(value);
+      if (px !== undefined)
+        out[key === "border-top-width" ? "borderTopWidth" : "borderBottomWidth"] =
+          px;
     }
   }
   return out;

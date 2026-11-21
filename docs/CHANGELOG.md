@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-315 Phase 6 — Table 같은 값 합치기 · 칸 범위 선택 · 복사] - 2026-11-21
+
+### Added
+
+- **Column 「Merge same values」 (Design 패널 Property 탭 Behavior) — 시각 병합**
+  - 켠 열에서 보이는 순서로 이어지는 같은 값의 칸을 한 칸처럼 보인다: 첫 칸만 값을 보이고, 이어지는 칸은 값과 그 사이 선을 그리지 않는다. 정렬 · 검색 · 필터 · 묶기가 바뀌면 병합도 따라 바뀐다. 묶음 행 · 상세 행 · 고정 행 · 빈 값은 합치지 않는다. 열을 옮기거나 고정해도 따라간다. Builder Canvas 도 같게 그린다.
+  - Preview · Publish 의 DOM 은 행마다 칸을 그대로 두고 글자도 남긴다 (화면 낭독기가 읽는다 — 보이지만 않게). 가상 스크롤 표는 창 안 첫 행이 값을 보인다.
+  - 위치: `packages/shared/src/catalog/runtime/tableCellMerge.ts` · `resolution/resolver.ts` (`boundTableRows` · `runRowsOf` · `withMergedRow`) · `resolution/tableColumns.ts` · `runtime/presence.ts` · `generated/componentRulesTable.ts` (Row `cell-lines` · Cell `merge-line`) · `runtime/compositionRoot.ts` (배치 입력) · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`. 회귀 `adr315CellMerge.test.tsx` · `adr315CanvasGroups.test.ts`.
+- **Table 「Cell selection」 (Design 패널 Property 탭 Behavior) — 칸 범위 선택 · 복사**
+  - Preview · Publish 에서 칸을 끌어 범위를 고르고, Shift 클릭으로 늘리고, Ctrl / Cmd 클릭으로 범위를 더한다. Shift + 화살표 · Ctrl / Cmd + A (전체) · Esc (해제). Ctrl / Cmd + C 는 범위를 탭으로 나눈 글자로 복사한다 — 스프레드시트에 붙여 넣을 수 있다. 가상 스크롤 표는 화면 밖 행까지 복사한다.
+  - 행 선택 (Selection mode Single · Multiple) 과 같이 켜지 않는다 — 행 선택을 켜면 이 스위치가 숨고 꺼진다.
+  - 위치: `packages/shared/src/catalog/runtime/tableCellSelection.ts` (이 스위치를 켠 표만 읽는 lazy chunk) · `domRegistry.components.tsx` (`CatalogTable` · `CatalogTableCell`) · `domBinding.runtime.ts` · `catalogPreviewSession.ts` (`tableCellText`) · `compositionRoot.ts` (`rowValuesOf`) · `bindings/Table.binding.ts`. 회귀 `adr315CellSelection.test.tsx`. 접근성 예외 범위: `.claude/rules/ssot-hierarchy.md` §1 D1.
+
+### Fixed
+
+- **Canvas 가 네 변이 모두 0 인 테두리를 1px 상자로 그림** — `border-style` 이 있고 네 변이 0 인 노드 (병합 표의 행) 를 rule 칠의 균일 선으로 그렸다. CSS 처럼 아무것도 그리지 않는다 (`authoredPaintCanvas.ts`).
+
 ## [ADR-315 Phase 5 — 집계 6 종 · Table 묶음 행 (가상 스크롤 · Canvas 포함) · 합계 행 · 계층 데이터 · 상세 행 · 행 고정 · 서버가 쪽을 나누는 표] - 2026-11-21
 
 ### Changed

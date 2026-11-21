@@ -30,6 +30,14 @@ import {
   CATALOG_COLUMN_PINNED_EDGE_PROP,
   CATALOG_COLUMN_PINNED_PROP,
 } from "../runtime/tableTracks";
+import {
+  CATALOG_CELL_COLUMN_PROP,
+  CATALOG_CELL_LINE_PROP,
+  CATALOG_CELL_MERGED_PROP,
+  CATALOG_ROW_CELL_LINES_PROP,
+  CATALOG_ROW_MERGE_DOWN_PROP,
+  CATALOG_ROW_MERGE_UP_PROP,
+} from "../runtime/tableCellMerge";
 
 export {
   CATALOG_COLUMN_HIDDEN_PROP,
@@ -622,16 +630,72 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
         return rebuilt(cell, { colSpan: drawnCount });
       });
     });
+  // (ADR-315 Phase 6 — a Column's same values run together: the rows say in which Columns
+  //  (`CATALOG_ROW_MERGE_UP_PROP` · `…DOWN…`, by key); each body Row's line is then its Cells'.)
+  const merging = columns.some(
+    (column, place) =>
+      !selection[place] && propsOf(column).mergeSameValues === true,
+  );
+  // (ADR-315 Phase 6 — a Table its viewers select cell ranges in (not rows — 사용자 결정 5): each
+  //  body Cell names its Column (`CATALOG_CELL_COLUMN_PROP`), the DOM's range by Column key.)
+  const tableOwnProps = propsOf(table);
+  const keyed =
+    tableOwnProps.allowsCellSelection === true &&
+    tableOwnProps.selectionMode !== "single" &&
+    tableOwnProps.selectionMode !== "multiple";
+  const keyList = (value: unknown): ReadonlySet<string> =>
+    new Set(Array.isArray(value) ? (value as string[]) : []);
+  /**
+   * A body row with its cells' lines · merge and Column keys, by the Column each starts at
+   * (authored places).
+   */
+  const markedRow = (row: T): T => {
+    const props = propsOf(row);
+    const up = keyList(props[CATALOG_ROW_MERGE_UP_PROP]);
+    const down = keyList(props[CATALOG_ROW_MERGE_DOWN_PROP]);
+    return rebuilt(
+      row,
+      merging ? { [CATALOG_ROW_CELL_LINES_PROP]: true } : undefined,
+      (held) => {
+        let place = 0;
+        return held.map((cell) => {
+          if (typeOf(cell) !== "Cell") return cell;
+          const span = spanOf(propsOf(cell));
+          const column = !selection[place] ? keys[place] : undefined;
+          const key = span === 1 ? column : undefined;
+          place += span;
+          return rebuilt(cell, {
+            ...(merging
+              ? {
+                  [CATALOG_CELL_LINE_PROP]:
+                    key !== undefined && down.has(key) ? "none" : "bottom",
+                  ...(key !== undefined && up.has(key)
+                    ? { [CATALOG_CELL_MERGED_PROP]: true }
+                    : {}),
+                }
+              : {}),
+            ...(keyed && column !== undefined
+              ? { [CATALOG_CELL_COLUMN_PROP]: column }
+              : {}),
+          });
+        });
+      },
+    );
+  };
   /** A body row as drawn: projected (the columns moved · pinned · hidden), its detail rows spanning. */
-  const settleRow = (row: T): T =>
-    row.rowDetail
+  const settleRow = (shown: T, body = true): T => {
+    const row = (merging || keyed) && body ? markedRow(shown) : shown;
+    return row.rowDetail
       ? detailRow(row)
       : projecting
-        ? projectRow(row)
+        ? projectRow(row, body)
         : rebuilt(row, undefined, (held) =>
-            held.map((child) => (isRow(child) ? settleRow(child) : child)),
+            held.map((child) =>
+              isRow(child) ? settleRow(child, body) : child,
+            ),
           );
-  const projectRow = (row: T): T =>
+  };
+  const projectRow = (row: T, body: boolean): T =>
     rebuilt(row, undefined, (held) => {
       // (The row's cells by the group of the column place each starts at.)
       const at = new Map<number, T[]>();
@@ -640,7 +704,7 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
       for (const cell of held) {
         if (typeOf(cell) !== "Cell") {
           // (ADR-315 Phase 5 — a row's child rows (a group's · a data row's) follow the columns too.)
-          rest.push(isRow(cell) ? settleRow(cell) : cell);
+          rest.push(isRow(cell) ? settleRow(cell, body) : cell);
           continue;
         }
         const root = find(Math.min(place, columns.length - 1));
@@ -675,9 +739,16 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
       held.map((child) =>
         child === header
           ? nextHeader
-          : (projecting || state?.detail) && bodies.includes(child)
+          : (projecting || state?.detail || merging || keyed) &&
+              bodies.includes(child)
             ? rebuilt(child, undefined, (bodyRows) =>
-                bodyRows.map((row) => (isRow(row) ? settleRow(row) : row)),
+                bodyRows.map((row) =>
+                  isRow(row)
+                    ? // (A footer's totals row keeps its own line — the Table's part value is a
+                      //  body Row's.)
+                      settleRow(row, typeOf(child) === "TableBody")
+                    : row,
+                ),
               )
             : child,
       ),

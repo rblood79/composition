@@ -961,4 +961,42 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **live**: 증분마다 한 것으로 닫는다 (위 증분 기록 — 묶음 · 가상 묶음 · Canvas 묶음 · 합계 · 계층 · 상세 · 고정 · 서버 묶음 · 서버 고정 · 패널 안내). 재확인 묶음과 Canvas 작성 기본값 (「Grouped」 · 합계 · 상세 · 계층의 접힌 표시) 의 `/cross-check` 은 사용자 결정으로 Phase 7.
 - **남은 한계 (기록)**: 서버 묶음 · 합계 값의 float 잡음 (서버 값 그대로) · 묶은 표 · 계층 표의 행 고정 · 서버 「쪽」 목록 위의 고정 · 서버 묶음 · 계산 필드만 집계 입력인 열의 서버 합계 · 컴포넌트 안 Table 의 합계 · 선택 가능한 표에서 상세 행도 선택됨 · Canvas 에서 묶음을 펼친 작성 상태.
 
+### Phase 6 (2026-11-21 — G6: VoiceOver 청취만 사용자 확인 대기)
+
+**사용자 결정 5 확정 (2026-11-21, 착수 때)**: 「표마다 하나」 — 칸 범위 선택과 행 선택은 한 표에서 같이 켜지 않는다.
+
+**증분 6a — 시각 병합 (§5.5)**:
+
+- **작성** — Column 「Merge same values」 (`mergeSameValues`, composition 확장 — AG Grid `spanRows`). Design 패널 Property 탭 Behavior.
+- **판정 한 곳** — `runtime/tableCellMerge.ts` `catalogMergedRows`: 보이는 순서의 형제 행끼리 (정렬 · 거르기 · 묶기 · 상세 뒤, 창 · 높이 자르기 전 — resolver `boundTableRows` 의 `ordered`), 둘 다 데이터 행이고 (묶음 행 · 상세 행 · 고정 행 · 자리 행 아님) 앞 행 아래에 열린 행이 없을 때, 그 열 값이 정확히 같으면 (`JSON` — 묶기와 같은 동등성, 빈 값은 합치지 않음) 뒤 행 `merge.up` · 앞 행 `merge.down` 에 그 열 key. resolver 가 Row record 에 싣고 (`_mergeUp` · `_mergeDown`), 열 투영 (`tableColumns.ts`) 이 작성 자리로 칸을 맞춰 Cell 에 `_cellLine` (`bottom` · `none`) · `_cellMerged` 를 단다 — Column key 로 맞추므로 열을 옮기거나 고정해도 따라간다.
+- **창 · 쪽의 끝** — `runRowsOf` (resolver 의 행 반복 네 자리가 같이 쓴다): 그리는 행의 첫 행은 값을 보이고 마지막 행은 선을 그린다 (§5.5 「창 안 첫 행이 값을 보인다」). 병합 행이 있는 창이 움직이면 남는 행 (`kept`) 중 새로 해석한 행 옆의 것은 다시 해석한다 — 이웃이 바뀌었을 수 있다 (테스트: 옛 창 끝 p60 이 p61 로 이어짐).
+- **선** — 행 구분선은 Row 의 아래 테두리 (Table 의 part 값 — S2 도 행의 선) 라 칸 하나만 뺄 수 없다. 병합 열이 있는 표의 body 행만 선을 칸으로 옮긴다: Row rule `cell-lines` (아래 0) · Cell rule `merge-line` (`bottom` = 아래 1px `--border` · `none` = 네 변 0). 파생 prop (`cellLines` · `mergeLine` — `derivedVariantProps.ts`) → `catalogDerivedRestVisual` 를 DOM inline · Canvas 칠 · **엔진 배치 입력** (`compositionRoot.recordStyle`) 이 같이 읽는다. 합계 행 (footer) 은 그대로.
+- **내용** — 이어지는 칸 안의 노드는 파생 `_cellMergedContent` → DOM `opacity: 0` (글자는 남아 화면 낭독기가 읽는다 — `visibility` 가 아님) · Canvas 는 그리지 않음 (`hiddenNode`, 상자는 그대로).
+- **구현 중 찾은 것 셋**: (1) rule 의 칸 선 변환 (`cellTextVisual`) 이 좌우 너비만 읽어 위 · 아래 너비가 Canvas 에 닿지 않았다 → 위 · 아래 너비와 Row 를 더함. (2) `border-style` 만 있고 네 변이 0 인 칸을 Canvas 가 균일 1px 상자로 그렸다 → `none` 은 너비만 적는다. (3) 엔진은 record `visual` 의 변 너비만 배치에 넣어 Canvas 행은 41 그대로 (Row 1 + 칸 40) 인데 DOM 은 칸이 41 이 되어 선 위치가 1px 갈렸다 → 병합 표의 Row · Cell 은 파생 선 너비를 배치 입력에 넣는다.
+- **검사**: `adr315CellMerge.test.tsx` 6 (B · A · B · A · A — p5 의 Type 만 숨김 · 글자 남음 · 선은 칸의 것 / 정렬 · 검색이 병합을 바꿈 / 끄면 Row 선 복귀 · 열 이동 · 고정이 따라감 · 빈 값 둘은 합치지 않음 · 묶음 안의 행끼리만 · 닫힌 묶음 둘의 같은 집계는 합치지 않음 · 열린 상세 행 뒤는 이어지지 않음 · 가상 250 행: 창 첫 행 · 창 끝 · 창 이동 뒤 옛 끝 행) · `adr315CanvasGroups.test.ts` +1 (Canvas record · 칠 — Row 선 0, 칸 아래 1, 이어지는 칸 선 없음, 숨긴 내용 `visible: false` · 엔진 입력 · 합계 행 그대로). 변이 RED 26/26 (처음 GREEN 셋: 묶음 행 합침 · 열린 행 뒤 · DOM opacity 두 자리 중 하나 — 앞 둘은 반례를 더해 RED, 셋째는 중복이라 지움). 회귀 새 실패 0 (shared 7 · builder 12 — 착수 전 목록). type-check PASS.
+
+**증분 6b — 칸 범위 선택 · 복사 (§5.6, D1 예외)**:
+
+- **작성** — Table 「Cell selection」 (`allowsCellSelection`, composition 확장 — S2 TableView 는 행만 고른다). 행 선택 (`selectionMode` single · multiple) 이 켜지면 스위치가 숨고 칸 선택은 꺼진다 (사용자 결정 5 — resolver 투영 · DOM 이 같은 판정). 처음엔 Selection mode 도 반대로 숨겼으나 AI 로컬 제안이 `visibleWhen` 칸을 빼서 Table 의 「selectionMode → multiple」 제안이 사라졌다 (회귀 2 건 — `localSuggestions.test.ts`) → 한 방향만.
+- **칸의 열** — 열 투영이 이 표의 body 칸에 Column key 를 단다 (`_columnKey` → DOM `data-column-key`, 작성 자리로 맞춤 — 열을 옮겨도 따라간다). 범위는 (행 key · Column key) 두 점이고, 칸의 소속은 지금의 순서로 읽는다 — 정렬이 바뀌면 같은 두 점이 다른 행들을 덮는다 (스프레드시트처럼).
+- **DOM** — `runtime/tableCellSelection.ts` (lazy chunk 1,458 B gzip — 이 스위치를 켠 표만 읽는다): grid 에 `aria-multiselectable` · `data-cell-selection`, 칸에 `aria-selected` · `data-selected`. 이벤트는 grid 요소의 capture (pointer · key · focus) 와 `copy`. 칸 속성은 ref 로 붙인다 — RAC Cell 은 우리 컴포넌트를 collection 단계에서 실행하고 DOM 은 따로 그려 layout effect 가 DOM 칸을 못 본다 (구현 중 실측), RAC `render` prop 은 원래 태그 (가상 표 div · 아니면 td) 를 넘기지 않는다. 정렬 · 창 이동으로 칸이 남은 채 행이 바뀌면 MutationObserver 가 한 번 다시 칠한다.
+- **키 · 포인터** — 끌기 · Shift 클릭 (확장) · Ctrl/Cmd 클릭 (범위 추가) · Shift + 화살표 (focus 는 RAC 가 옮기고 범위가 따라간다) · Ctrl/Cmd + A · Esc. 복사는 브라우저의 `copy` 이벤트에서 `clipboardData` 에 쓴다 (권한 없이 — 칸에 focus 가 있으면 글자 선택이 없어도 불린다, live 확인).
+- **복사 값** — 데이터 층: root 가 마지막으로 읽은 행 (`rowValuesOf` — `rowsRead`, 창 밖 · 자식 행 포함) 에서 범위의 행 key × Column key 의 값을 탭 · 줄로 (`session.tableCellText`). 빈 값은 빈 칸, 값 안의 탭 · 줄바꿈은 공백. 마지막 범위만.
+- **칠** — Table rule `partStateStyles` 「`&[data-cell-selection] .react-aria-Cell%`」 `isSelected` = 행 highlight 선택과 같은 연한 accent (`color-mix(accent 10%, bg)`), `&[data-cell-selection]` 은 `user-select: none` (끌기가 글자를 고르지 않게). Canvas 는 실행 상태가 없어 그리지 않는다.
+- **규칙 문서** — `.claude/rules/ssot-hierarchy.md` §1 D1 에 예외 목록 (§5.6 그대로) · §6 금지 패턴 주석.
+- **검사**: `adr315CellSelection.test.tsx` 4 (클릭 · Shift 클릭 6 칸 · `data-selected` · 복사 「A\t1\nB\t3\nA\t5」 · 기본 복사 막음 · Ctrl 클릭 추가 · 마지막 범위 복사 · Esc · 범위 없는 복사는 손대지 않음 · Ctrl+A 15 칸 · 빈 값 / 끌기 · 정렬 뒤 같은 두 점이 덮는 행 · Shift + → 로 RAC focus 이동과 범위 / 행 선택 multiple 이면 없음 · 기본 꺼짐 / 가상 250 행 Ctrl+A 복사 250 줄 — 창 밖 포함). 변이 RED 20/20 (투영 · DOM prop · 열 속성 · lazy 연결 · 칸 ref · Shift · Ctrl · Esc · Ctrl+A · 마지막 범위 · 기본 막기 · 다시 칠하기 · 키 확장 · 창 key · 빈 값 · 행 선택 배제 둘 · `aria-multiselectable` · `data-selected` · 끌기).
+
+**Phase 6 검증 (2026-11-21)**:
+
+- **contract** — 76 그대로. 이 Phase 의 새 것은 prop 둘 (`mergeSameValues` · `allowsCellSelection` — 노드 props 는 형이 정해지지 않은 레코드) 이라 entry 형이 바뀌지 않았다.
+- **회귀**: 새 실패 0 (shared 7 · builder 12 — 착수 전 목록). 중간에 찾은 새 실패 2 (`localSuggestions` — 위 6b) 는 고쳤다. type-check PASS.
+- **변이 RED**: 6a 26 + Canvas 칠 1 · 6b 20 = 47, 전부 RED.
+- **번들** (Phase 5 커밋 `f57343d8a` 빌드 대비, 일반 `vite build`): Builder initial JS 1,608,356 → 1,609,986 B (+1,630) · Preview 171,809 → 171,811 B (+2). 칸 선택은 lazy chunk 1,458 B.
+- **live (dev 서버 · Chrome MCP · 새 프로젝트 「adr315-p6-check」 — contract 76 이라 옛 확인용 프로젝트는 「previous format」 으로 열리지 않았다)**: 6 행 collection (A A A · B B · C) 에 Table 연결, Type 「Merge same values」 · Table 「Cell selection」.
+  - Builder Canvas: Type 열에 A · B · C 만, 이어지는 칸 사이 선 없음. **여기서 찾은 결함 1**: 처음엔 Type 열에도 행 선이 그대로 보였다 — Canvas 는 네 변이 모두 0 인 상자를 `strokeWidths` 없이 두고 rule 칠의 균일 stroke 를 남겼다 (Row). 네 변이 모두 0 이면 stroke 0 (`authoredPaintCanvas.ts`, 변이 RED) — 테스트의 Row 단언이 「`strokeWidths` 없음 = 0」 으로 약했던 것도 고쳤다.
+  - Publish: 행 높이 43 = Canvas 43, 선 위치 일치 (Type 의 A · B 이어짐 아래 0px · 나머지 1px · Row 0px), 이어지는 칸 글자는 DOM 에 남고 opacity 0. 실제 마우스 · 키: Chan Name 클릭 → Eun Status Shift 클릭 → 12 칸 `aria-selected` · 연한 accent → Cmd+C → 「Chan\tA\t1 … Eun\tB\t4」 (브라우저 기본 복사 막음) → Shift + ↓ → RAC focus 가 Gim Status 로, 범위 15 칸 → Esc → 0 칸. 콘솔 오류 0.
+  - Design 패널: Behavior 에 「Cell selection」 칩, 켜면 Overrides 에 `allowsCellSelection`.
+- **Gate G6**: 시각 병합 · 칸 범위 선택 · 복사 · 키보드 전 경로 (Shift + 화살표 · Ctrl/Cmd + A · Ctrl/Cmd + C · Esc) · 규칙 문서의 예외 범위와 구현의 속성 목록 일치 (`aria-selected` · `aria-multiselectable` 둘 — `tableCellSelection.ts` 가 쓰는 ARIA 는 그 둘뿐) — 통과. **VoiceOver 청취는 사용자와 확인 대기** (S6 · 본문 G6 — 자동 확인 수단 없음, 실패하면 대안은 「칸 선택을 빼고 병합만」).
+- **남은 한계 (기록)**: 가상 표의 병합 첫 행은 창 안 첫 행이 값을 보인다 (창 시작은 보통 화면 위 — 긴 병합을 스크롤하면 값이 화면 밖일 수 있다) · 복사는 마지막 범위만 · 칸 범위는 Do · 변수로 읽지 않는다 · 묶음 표에서 묶음 행 칸도 범위에 든다 (값 = 묶음 값 · 집계).
+
 (다음 Phase 의 기록은 여기에 이어 적는다)

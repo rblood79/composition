@@ -23,6 +23,7 @@ import { catalogTableDetailCommand } from "../tableDetail";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { catalogRuleShapes } from "../ruleShapes";
+import { catalogCanvasNodeData } from "../canvasBinding";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
@@ -185,6 +186,98 @@ async function open(tree = false) {
 }
 
 describe("ADR-315 Phase 5 — the Canvas draws a Column 「Grouped」 (5b-3)", () => {
+  it("ADR-315 Phase 6 — the Canvas draws a Column 「Merge same values」: no value, no line between, the line in the cells' box", async () => {
+    const t = await open();
+    const heights = () =>
+      t
+        .rows()
+        .map(({ row }) =>
+          Math.round(
+            t.workspace.root.getGeometry([row.id]).get(row.id)!.height,
+          ),
+        );
+    const before = heights();
+    t.workspace.execute(
+      setFields({
+        targets: [t.workspace.positionOfRecord(t.column("type").id)!.target],
+        props: { mergeSameValues: { kind: "set", value: true } },
+      }),
+    );
+    await settle();
+    const drawn = t.rows();
+    const get = (id: string) => t.workspace.root.canvasInputs.get(id)!;
+    const typeCell = (index: number) =>
+      drawn[index]!.row.children.map(get).filter(
+        (record) => t.typeOf(record.definitionId) === "Cell",
+      )[2]!;
+    // B · A · B · A · A — p5's Type runs into p4's: its content not drawn, no line under p4's.
+    expect(
+      drawn.map((_, index) => typeCell(index).props._cellMerged === true),
+    ).toEqual([false, false, false, false, true]);
+    expect(drawn.map((_, index) => typeCell(index).props._cellLine)).toEqual([
+      "bottom",
+      "bottom",
+      "bottom",
+      "none",
+      "bottom",
+    ]);
+    expect(
+      typeCell(4).children.map(
+        (id) => get(id).derivedProps?._cellMergedContent,
+      ),
+    ).toEqual([true]);
+    expect(
+      typeCell(3).children.map(
+        (id) => get(id).derivedProps?._cellMergedContent,
+      ),
+    ).toEqual([undefined]);
+    // The row's line is its cells' — the same 1px, so a row is as tall as before.
+    expect(
+      drawn.every(({ row }) => row.derivedProps?.cellLines === "cells"),
+    ).toBe(true);
+    // The engine lays the line out where the DOM has it: in the Cell's box, none in the Row's (so
+    //  a row is as tall as before — cell + 1; this harness measures no text, so its cells are their
+    //  min height).
+    const engine = (id: string) => t.workspace.root.getDrawnLayoutStyle(id);
+    expect(engine(drawn[3]!.row.id)?.borderBottom).toBe("0px");
+    expect(engine(typeCell(2).id)?.borderBottom).toBe("1px");
+    expect(engine(typeCell(3).id)?.borderBottom).toBe("0px");
+    // A totals row keeps its own (none — the Table's part value is a body row's): its Row is not
+    //  a merged one's, nor its Cells.
+    t.workspace.execute(
+      catalogTableTotalsCommand(
+        t.workspace.runtime.graph,
+        TABLE,
+        true,
+        t.workspace.newId,
+      ),
+    );
+    await settle();
+    const footer = t
+      .records()
+      .find((record) => t.typeOf(record.definitionId) === "TableFooter")!;
+    const totals = footer.children
+      .map(get)
+      .find((record) => t.typeOf(record.definitionId) === "Row")!;
+    expect(totals.props._cellLines).toBeUndefined();
+    expect(
+      totals.children
+        .map(get)
+        .filter((record) => t.typeOf(record.definitionId) === "Cell")
+        .map((cell) => cell.props._cellLine),
+    ).toEqual([undefined, undefined, undefined, undefined]);
+    // The Canvas paints it the DOM's way: the Row's line off, each cell's own under it (none under
+    //  p4's Type), p5's Type text not drawn.
+    const paint = (id: string) => catalogCanvasNodeData(t.workspace.root, id);
+    // (No stroke at all — every side 0: a uniform width would draw a box.)
+    expect(paint(drawn[3]!.row.id).box?.strokeWidths).toBeUndefined();
+    expect(paint(drawn[3]!.row.id).box?.strokeWidth ?? 0).toBe(0);
+    expect(paint(typeCell(2).id).box?.strokeWidths).toEqual([0, 0, 1, 0]);
+    expect(paint(typeCell(3).id).box?.strokeWidth ?? 0).toBe(0);
+    expect(paint(typeCell(4).children[0]!).visible).toBe(false);
+    expect(paint(typeCell(3).children[0]!).visible).toBe(true);
+  }, 120_000);
+
   it("one closed row per group, the grouped Column first, its cell holding the expand button", async () => {
     const t = await open();
     t.workspace.execute(

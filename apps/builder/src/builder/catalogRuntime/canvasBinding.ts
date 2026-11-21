@@ -1301,6 +1301,10 @@ function paintedNodeData(
   //   S2 `visibility: hidden` — the box stays laid out, nothing drawn.
   if (input.derivedProps?._skeletonHidden === true)
     return hiddenNode(input, rect);
+  // ADR-315 Phase 6 — inside a Cell its row above runs into (a merged Column): the box stays, nothing
+  //   drawn (the DOM's `opacity: 0` — its text stays for a screen reader).
+  if (input.derivedProps?._cellMergedContent === true)
+    return hiddenNode(input, rect);
   return withSkeletonLook(
     root,
     input,

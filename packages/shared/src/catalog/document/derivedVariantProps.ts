@@ -19,6 +19,11 @@ export const CATALOG_DERIVED_VARIANT_PROPS: ReadonlySet<string> = new Set([
   // (ADR-315 Phase 4) a pinned Column · Cell at its side's edge — `start` · `end` (`presence.ts`,
   //   from the column projection's `_pinnedEdge`).
   "pinnedEdge",
+  // (ADR-315 Phase 6) a merged Table's body Row (`cells` — its line is its Cells') and each Cell's
+  //   line (`bottom`; none under a merged cell) — `presence.ts`, from the column projection's
+  //   `_cellLines` · `_cellLine`.
+  "cellLines",
+  "mergeLine",
 ]);
 
 /** 저장하지 않는 RAC 상태를 part rule 조건과 증분 invalidation에서 동일하게 읽는다. */

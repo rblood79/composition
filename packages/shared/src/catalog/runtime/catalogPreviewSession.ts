@@ -2894,6 +2894,30 @@ export class CatalogPreviewSession {
     }));
   }
   /**
+   * ADR-315 Phase 6 — a cell range as text (breakdown §5.6 — Ctrl/Cmd + C): its rows (keys, in the
+   * order shown) by its Columns (keys, in the order drawn), tab-separated lines. The values are the
+   * rows' data as read last — a virtual Table's rows outside its window too; a row of no data (a
+   * detail row) is an empty line.
+   */
+  tableCellText(
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ): string {
+    const values = this.root?.rowValuesOf(tableId);
+    const text = (value: unknown): string =>
+      value === undefined || value === null
+        ? ""
+        : (typeof value === "object" ? JSON.stringify(value) : String(value))
+            // (A tab · a line break in a value would split it into other cells.)
+            .replace(/[\t\r\n]+/g, " ");
+    return rows
+      .map((key) =>
+        columns.map((column) => text(values?.get(key)?.[column])).join("\t"),
+      )
+      .join("\n");
+  }
+  /**
    * ADR-315 Phase 4 — a Table record's columns as shown now: the hidden ones and the pinned ones —
    * the state's lists, else the authored defaults (a Column's `defaultHidden` · `defaultPinned`).
    */

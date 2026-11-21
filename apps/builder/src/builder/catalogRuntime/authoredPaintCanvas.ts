@@ -181,6 +181,15 @@ function authoredPaint(
       box.strokeColor ??= built.box.strokeColor;
       box.strokeWidth ??= built.box.strokeWidth;
     }
+    // (Every side 0 — a merged Table's body Row, ADR-315 Phase 6: CSS draws no line. The uniform
+    //  widths leave no side list, so the stroke the definition gave would stay — none.)
+    if (
+      CATALOG_SIDE_WIDTH_KEYS.every((key) => Number(visual[key]) === 0) &&
+      Number(visual.borderWidth ?? 0) === 0
+    ) {
+      delete box.strokeWidths;
+      box.strokeWidth = 0;
+    }
     next.box = box;
   }
   return next;

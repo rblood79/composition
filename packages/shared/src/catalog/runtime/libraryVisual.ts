@@ -124,12 +124,16 @@ export function catalogDerivedRestVisual(
   //  rule gives a header cell: a part value reads as authored here, `manualBoxRules` Table —
   //  「bottom only」.)
   const edge = node.derivedProps.pinnedEdge !== undefined;
+  // (ADR-315 Phase 6 — a merged Table's body Row: its line is its Cells', over the Table's part
+  //  value for a body row's bottom line.)
+  const cellLines = node.derivedProps.cellLines !== undefined;
   return Object.fromEntries(
     keys
       .filter(
         (key) =>
           authored[key] === undefined ||
-          (edge && PINNED_EDGE_WIDTH_KEYS.has(key)),
+          (edge && PINNED_EDGE_WIDTH_KEYS.has(key)) ||
+          (cellLines && key === "borderBottomWidth"),
       )
       .map((key) => [key, derived[key]]),
   );

@@ -357,6 +357,11 @@ import {
   CATALOG_SELECTION_COLUMN_VAR,
   CATALOG_SELECTION_COLUMN_WIDTH,
 } from "./tableTracks";
+import { CATALOG_CELL_COLUMN_PROP } from "./tableCellMerge";
+import {
+  CATALOG_COLUMN_PLACE_PROP,
+  resolveTableColumnKey,
+} from "../../collections/resolveCollectionItems";
 
 import {
   CatalogAutocomplete,
@@ -418,6 +423,15 @@ export interface CatalogDomRuntime {
     rowKey: string,
     side: "top" | "bottom" | "none",
   ): void;
+  /**
+   * ADR-315 Phase 6 — a cell range of a Table its viewers select cells in, as tab-separated text:
+   * its rows (keys, in the order shown) by its Columns (keys) — the rows' data (breakdown §5.6).
+   */
+  tableCellText?(
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ): string;
   /**
    * ADR-315 Phase 4 — the widths RAC's column resize left (its `onResizeEnd` — RAC keys, px): the
    * Table's state (`columnWidths`), remembered with it.
@@ -862,6 +876,55 @@ function catalogTableRowPinProps(
   }
   return out;
 }
+/**
+ * ADR-315 Phase 6 — a Table 「Cell selection」's rows and Columns, as its cell ranges read them
+ * (`CatalogCellSelectionSource.order`): every row key in the order shown — a virtual Table's window
+ * keys (its rows outside the window too), else its Row records, a row's nested rows after it — and
+ * the drawn Columns' keys (not the selection column). Read when used: the order is the rows' now.
+ */
+function catalogTableCellOrder(
+  tableId: string,
+  domGet: (id: string) => CatalogConsumerNode | undefined,
+  domType: (entry: CatalogConsumerNode) => string,
+): { rows: readonly string[]; columns: readonly string[] } {
+  const table = domGet(tableId);
+  const parts = (table?.children ?? []).flatMap((id) => {
+    const part = domGet(id);
+    return part ? [part] : [];
+  });
+  const header = parts.find((part) => domType(part) === "TableHeader");
+  const body = parts.find((part) => domType(part) === "TableBody");
+  const columns = (header?.children ?? []).flatMap((id, index) => {
+    const column = domGet(id);
+    if (!column || domType(column) !== "Column" || column.hidden) return [];
+    const selection = column.children.some(
+      (part) => domGet(part)?.props.slot === "selection",
+    );
+    if (selection) return [];
+    const place = column.props[CATALOG_COLUMN_PLACE_PROP];
+    return [
+      resolveTableColumnKey(
+        column.props as Record<string, unknown>,
+        typeof place === "number" ? place : index,
+      ),
+    ];
+  });
+  const windowed = body?.rowWindow?.keys;
+  if (windowed) return { rows: windowed, columns };
+  const rows: string[] = [];
+  const visit = (ids: readonly string[]) => {
+    for (const id of ids) {
+      const row = domGet(id);
+      if (!row || domType(row) !== "Row") continue;
+      rows.push(
+        resolveStaticItemKey(row.props as Record<string, unknown>, row.id),
+      );
+      visit(row.children);
+    }
+  };
+  visit(body?.children ?? []);
+  return { rows, columns };
+}
 /** The `data-pinned` attributes of a pinned column's Column · Cell (`Table.css`). */
 function catalogTablePinnedProps(
   node: CatalogConsumerNode,
@@ -931,6 +994,8 @@ export function catalogDomStyle(
     ...(visual.opacity !== undefined
       ? { opacity: Number(visual.opacity) }
       : {}),
+    // (ADR-315 Phase 6 — inside a Cell its row above runs into: not seen, still read.)
+    ...(node.derivedProps?._cellMergedContent ? { opacity: 0 } : {}),
     ...(box.minWidth !== undefined
       ? { minWidth: cssLength(box.minWidth) }
       : {}),
@@ -3151,15 +3216,20 @@ function ruleDom(
   // (ADR-315 Phase 4 — a pinned column's edge line is the Column · Cell rule's derived
   //  `pinned-edge` block: Column · Cell have no sheet of their own, so it goes inline as their
   //  other rule values do — the same rest values the Canvas paints, `catalogDerivedRestVisual`.)
-  const edged: CatalogConsumerNode = node.derivedProps?.pinnedEdge
-    ? {
-        ...node,
-        visual: {
-          ...node.visual,
-          ...catalogDerivedRestVisual(root, node),
-        } as CatalogConsumerNode["visual"],
-      }
-    : node;
+  // (ADR-315 Phase 6 — a merged Table's body Row · Cell line is the Row · Cell rule's derived
+  //  `cell-lines` · `merge-line` block, inline the same way.)
+  const edged: CatalogConsumerNode =
+    node.derivedProps?.pinnedEdge ||
+    node.derivedProps?.cellLines ||
+    node.derivedProps?.mergeLine
+      ? {
+          ...node,
+          visual: {
+            ...node.visual,
+            ...catalogDerivedRestVisual(root, node),
+          } as CatalogConsumerNode["visual"],
+        }
+      : node;
   let style = {
     ...authoredStyle(root, edged),
     ...catalogTableTrackStyle(node, resizable),
@@ -3777,6 +3847,11 @@ function ruleDom(
       ...(lower === "cell"
         ? catalogTableRowPinProps(node, domGet, domType, context)
         : {}),
+      // ADR-315 Phase 6 — a Cell of a Table 「Cell selection」 names its Column (its range's point).
+      ...(lower === "cell" &&
+      typeof node.props[CATALOG_CELL_COLUMN_PROP] === "string"
+        ? { "data-column-key": node.props[CATALOG_CELL_COLUMN_PROP] }
+        : {}),
       ...(lower === "column"
         ? {
             isRowHeader: columnIsRowHeader(root, node),
@@ -3834,6 +3909,23 @@ function ruleDom(
                 : {};
             })(),
             tableResizable: resizable,
+            // (ADR-315 Phase 6 — 「Cell selection」, never with row selection: 사용자 결정 5.)
+            ...(node.props.allowsCellSelection === true &&
+            node.props.selectionMode !== "single" &&
+            node.props.selectionMode !== "multiple" &&
+            context.runtime?.tableCellText
+              ? {
+                  cellSelection: {
+                    order: () =>
+                      catalogTableCellOrder(node.id, domGet, domType),
+                    text: (
+                      rows: readonly string[],
+                      columns: readonly string[],
+                    ) =>
+                      context.runtime!.tableCellText!(node.id, rows, columns),
+                  },
+                }
+              : {}),
             ...(resizable && context.runtime?.resizeTableColumns
               ? {
                   onColumnsResized: (widths: Record<string, number>) =>

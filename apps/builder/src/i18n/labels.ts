@@ -511,10 +511,13 @@ export const semanticLabelKeys: Record<string, string> = {
   "Allow filtering": "properties.columnAllowsFiltering",
   "Reorder columns": "properties.tableReorderColumns",
   "Row pinning": "properties.tableRowPinning",
+  "Cell selection": "properties.tableCellSelection",
   "Keep pinned rows": "properties.tableKeepPinnedRows",
   // ADR-315 Phase 5 — a Column's grouping · its group rows' aggregate.
   Grouped: "properties.columnGrouped",
   "Allow grouping": "properties.columnAllowsGrouping",
+  // ADR-315 Phase 6 — a Column's visual merge.
+  "Merge same values": "properties.columnMergeSameValues",
   "Group aggregate": "properties.columnAggregate",
   Count: "properties.aggregateCount",
   Median: "properties.aggregateMedian",

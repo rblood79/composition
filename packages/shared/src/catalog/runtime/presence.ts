@@ -76,6 +76,11 @@ import {
   catalogTableSelectionParts,
   catalogTableTrackDependents,
 } from "./tableTracks";
+import {
+  CATALOG_CELL_LINE_PROP,
+  CATALOG_CELL_MERGED_PROP,
+  CATALOG_ROW_CELL_LINES_PROP,
+} from "./tableCellMerge";
 import { isDisclosureExpandedByIntent } from "../../utils/accordionExpansion";
 import { resolveStaticItemKey } from "../slotRoles";
 import {
@@ -2092,7 +2097,9 @@ export function catalogTableAuthoredSortShown(
   table: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
-): readonly { column: string; direction: "ascending" | "descending" }[] | undefined {
+):
+  | readonly { column: string; direction: "ascending" | "descending" }[]
+  | undefined {
   const sort = catalogTableAuthoredSort(table.props);
   if (!sort) return undefined;
   const authored = catalogTableColumnEntries(table.props);
@@ -2897,6 +2904,27 @@ export function catalogDerivedProps(
     : derived;
 }
 
+/**
+ * ADR-315 Phase 6 — a node inside a Cell its row above runs into (`CATALOG_CELL_MERGED_PROP`): not
+ * drawn (its box stays laid out; the DOM keeps the text for a screen reader — opacity, not
+ * `visibility`). The nearest Cell decides; a Row · Table above ends the walk.
+ */
+export function catalogCellMergedContent(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  let parent = get(node.parentId);
+  for (let depth = 0; parent && depth < 8; depth += 1) {
+    const type = typeOf(parent);
+    if (type === "Cell") return parent.props[CATALOG_CELL_MERGED_PROP] === true;
+    if (type === "Row" || type === "Table" || type === "TableBody")
+      return false;
+    parent = get(parent.parentId);
+  }
+  return false;
+}
+
 function derivedPropsBeforeSkeleton(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -3130,6 +3158,19 @@ function derivedPropsBeforeSkeleton(
     (node.props[CATALOG_COLUMN_PINNED_PROP] === "start" ||
       node.props[CATALOG_COLUMN_PINNED_PROP] === "end")
       ? { pinnedEdge: node.props[CATALOG_COLUMN_PINNED_PROP] as string }
+      : {}),
+    // (ADR-315 Phase 6 — a merged Table's body Row draws its line by its Cells, each its own unless
+    //  it runs into the row below; a Cell its row above runs into hides its content. The column
+    //  projection marks the records, `tableColumns.ts`.)
+    ...(node.props[CATALOG_ROW_CELL_LINES_PROP] === true
+      ? { cellLines: "cells" }
+      : {}),
+    ...(node.props[CATALOG_CELL_LINE_PROP] === "bottom" ||
+    node.props[CATALOG_CELL_LINE_PROP] === "none"
+      ? { mergeLine: node.props[CATALOG_CELL_LINE_PROP] as string }
+      : {}),
+    ...(catalogCellMergedContent(node, get, typeOf)
+      ? { _cellMergedContent: true }
       : {}),
     // (ADR-315 Phase 4 증분 6 — a sorted Column's content wrapper holds its sort mark: the Canvas
     //  lays it out as a part (`compositionRoot.partsFor`) and draws it there.)
