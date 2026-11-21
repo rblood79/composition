@@ -27,9 +27,13 @@ describe("ADR-272 Phase 0 — 공간 질의 작업량 카운터", () => {
   it("snapshot 이 Rust 누적을 읽어 spatial* 에 더하고, reset 은 읽고 버린다", async () => {
     vi.stubEnv("NODE_ENV", "development");
     const counters = await import("../skia/renderCounters");
-    const { initSpatialIndex } = await import("./spatialIndex");
+    const { initSpatialIndex, queryRect } = await import("./spatialIndex");
     initSpatialIndex();
     expect(stats.taken).toBe(0);
+    // 2026-11-22: a query reads one grid per page — `spatialQueries` counts calls (TS), the rest is
+    // the grids' Rust work. (Rust's own query count is read and dropped.)
+    queryRect(0, 0, 10, 10);
+    queryRect(0, 0, 10, 10);
 
     const snap = counters.snapshotRenderCounters();
     expect(stats.taken).toBe(1);

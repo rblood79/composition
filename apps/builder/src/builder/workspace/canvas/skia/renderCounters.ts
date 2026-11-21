@@ -158,6 +158,8 @@ export interface RenderCounters {
   rebindSpliceRejectedOther: number;
   /** 옮기기가 쓴 맵 항목 수 (bounds · clipContext · buildContext · hit — 요소당 3 ~ 4) + root 명령 1. */
   translateMapWrites: number;
+  /** 2026-11-22 — page 원점만 옮긴 page 이동 수 (`movePage` — 요소 항목 쓰기 0). */
+  pageShiftCalls: number;
   /** 실행기 · damage · 검사가 property node 테이블을 읽은 횟수 (ADR-269 Phase 1 부터 — HC4). */
   propertyNodeReads: number;
   /**
@@ -331,6 +333,7 @@ const counters: RenderCounters = {
   rebindSpliceRejectedScrollContext: 0,
   rebindSpliceRejectedOther: 0,
   translateMapWrites: 0,
+  pageShiftCalls: 0,
   propertyNodeReads: 0,
   scrollDeltaCalls: 0,
   scrollDeltaNodes: 0,

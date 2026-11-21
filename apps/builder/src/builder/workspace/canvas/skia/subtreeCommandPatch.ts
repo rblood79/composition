@@ -248,6 +248,7 @@ export function dropSubtreeEntries(
     stream.childElementIds.delete(id);
     stream.boundsMap.delete(id);
     stream.hitBoundsMap.delete(id);
+    stream.pages.forget(id);
   }
 }
 
@@ -258,7 +259,23 @@ export function adoptSubtreeEntries(
   ids: Iterable<string>,
   offset: number,
 ): void {
-  for (const id of ids) {
+  const list = [...ids];
+  // Each entry's page first (its scene values are stored relative to that page's origin): up its
+  // recorded parents to one the stream holds, or to a scene root.
+  const resolve = (id: string): string | undefined => {
+    const known = stream.pages.pageOf(id);
+    if (known !== undefined) return known;
+    const context =
+      replacement.subtreeBuildContextByElement.get(id) ??
+      stream.subtreeBuildContextByElement.get(id);
+    if (!context) return undefined;
+    const page =
+      context.parentElementId === null ? id : resolve(context.parentElementId);
+    if (page !== undefined) stream.pages.assign(id, page);
+    return page;
+  };
+  for (const id of list) resolve(id);
+  for (const id of list) {
     const self = replacement.selfSpans.get(id);
     if (self) stream.selfSpans.set(id, copySpanWithOffset(self, offset));
     const subtree = replacement.subtreeSpans.get(id);

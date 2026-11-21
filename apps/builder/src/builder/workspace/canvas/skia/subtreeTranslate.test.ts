@@ -42,6 +42,8 @@ const {
   placeRegion,
   applyScrollDelta,
   planSubtreeTranslate,
+  planPageMove,
+  applyPageMove,
 } = await import("./subtreeTranslate");
 const { applyCommitSubtreeCommandPatch } =
   await import("./subtreeCommandPatch");
@@ -976,5 +978,160 @@ describe("ADR-269 Phase 1 — 스크롤 (applyScrollDelta) 뒤 결과가 같은 
       );
       clearSkiaRegistry();
     }
+  });
+});
+
+describe("2026-11-22 page 원점 이동 (planPageMove · applyPageMove) — 요소 항목을 쓰지 않고 처음부터 기록한 것과 같다", () => {
+  const PAGES = ["p0", "p1", "p2"];
+  /** page 세 장 — 각 page 는 무작위 트리 (clip · scroll · 숨김 · fixed 상자), 세로로 쌓는다. */
+  const pagesTree = (seed: number): Spec[] =>
+    PAGES.flatMap((page, index) =>
+      randomTree(seed * 31 + index).map((spec, at) => {
+        const rename = (id: string) => id.replace(/^body/, page);
+        const fixed = at > 0 && (seed + at) % 11 === 0;
+        return {
+          ...spec,
+          id: rename(spec.id),
+          parent: spec.parent ? rename(spec.parent) : null,
+          layout:
+            spec.parent === null
+              ? { ...spec.layout, x: index * 40, y: index * 900 }
+              : spec.layout,
+          ...(fixed ? { data: { ...spec.data, isFixed: true } } : {}),
+        };
+      }),
+    );
+  const buildPages = (specs: readonly Spec[]): Stream => {
+    const children = new Map<string, CanvasSceneNode[]>();
+    const layout = new Map<string, ComputedLayout>();
+    for (const spec of specs) {
+      register(spec);
+      layout.set(spec.id, { ...spec.layout } as ComputedLayout);
+      if (spec.parent)
+        children.set(spec.parent, [
+          ...(children.get(spec.parent) ?? []),
+          { id: spec.id, type: "Box", props: {} } as unknown as CanvasSceneNode,
+        ]);
+    }
+    return buildRenderCommandStream(
+      PAGES,
+      children,
+      layout,
+      Object.fromEntries(PAGES.map((page) => [page, { x: 0, y: 0 }])),
+    );
+  };
+  const movePage = (stream: Stream, page: string, x: number, y: number) => {
+    const context = stream.subtreeBuildContextByElement.get(page)!;
+    const plan = planPageMove(stream, page, context);
+    expect(plan.reason).toBeUndefined();
+    if (plan.reason) return;
+    applyPageMove({ stream, rootId: page, x, y, context }, plan);
+  };
+
+  it("무작위 page 300 벌: page 둘을 옮기고 → 옮긴 page 안을 patch 하고 → 다시 옮겨도 명령 · span · 맵이 같다", () => {
+    let patched = 0;
+    for (let seed = 1; seed <= 300; seed += 1) {
+      let specs = pagesTree(seed);
+      const stream = buildPages(specs);
+      const writes = (stream.commands as unknown as { length: number }).length;
+      // 위 page 가 자라 아래 두 장이 내려간다.
+      const dy = 37 + (seed % 5) * 113;
+      for (const page of ["p1", "p2"]) {
+        const root = specs.find((spec) => spec.id === page)!;
+        movePage(stream, page, root.layout.x, root.layout.y + dy);
+        specs = moveTo(specs, page, root.layout.x, root.layout.y + dy);
+      }
+      expect(stream.commands.length).toBe(writes);
+      clearSkiaRegistry();
+      expectSameAsRebuild(stream, buildPages(specs));
+
+      // 옮긴 page 안 요소 하나의 크기를 바꿔 그 서브트리를 다시 기록한다 (저장 문맥 = 장면 값).
+      const inside = specs.filter(
+        (spec) =>
+          spec.parent && spec.id.startsWith("p2.") && !spec.data?.isFixed,
+      );
+      if (inside.length) {
+        const target = inside[seed % inside.length]!;
+        const unchanged = specs;
+        specs = specs.map((spec) =>
+          spec.id === target.id
+            ? {
+                ...spec,
+                layout: { ...spec.layout, width: spec.layout.width + 7 },
+              }
+            : spec,
+        );
+        clearSkiaRegistry();
+        for (const spec of specs) register(spec);
+        const children = new Map<string, CanvasSceneNode[]>();
+        const layout = new Map<string, ComputedLayout>();
+        for (const spec of specs) {
+          layout.set(spec.id, { ...spec.layout } as ComputedLayout);
+          if (spec.parent)
+            children.set(spec.parent, [
+              ...(children.get(spec.parent) ?? []),
+              {
+                id: spec.id,
+                type: "Box",
+                props: {},
+              } as unknown as CanvasSceneNode,
+            ]);
+        }
+        const context = stream.subtreeBuildContextByElement.get(target.id);
+        if (context && !stream.topLayerElementIds.has(target.id)) {
+          const replacement = buildSubtreeCommandStream({
+            rootId: target.id,
+            childrenMap: children,
+            layoutMap: layout,
+            context,
+            revision: { presentationRevision: 1, baseCanonicalRevision: 0 },
+          });
+          const outcome = applyCommitSubtreeCommandPatch({
+            current: stream,
+            replacement,
+            rootId: target.id,
+            revision: 1,
+            canonicalRevision: 0,
+          });
+          if (outcome.applied) patched += 1;
+          // (A subtree holding a fixed box is refused — the stream keeps the old width.)
+          else specs = unchanged;
+        } else specs = unchanged;
+      }
+      // 한 번 더 — 저장된 값이 원점 기준이라 patch 한 항목도 같이 옮겨진다.
+      for (const page of ["p2"]) {
+        const root = specs.find((spec) => spec.id === page)!;
+        movePage(stream, page, root.layout.x + 25, root.layout.y - 60);
+        specs = moveTo(specs, page, root.layout.x + 25, root.layout.y - 60);
+      }
+      clearSkiaRegistry();
+      const rebuilt = buildPages(specs);
+      expectSameAsRebuild(stream, rebuilt, [...rebuilt.boundsMap.keys()]);
+      expect(plain(stream.boundsMap), `seed ${seed}`).toEqual(
+        plain(rebuilt.boundsMap),
+      );
+      clearSkiaRegistry();
+    }
+    expect(patched).toBeGreaterThan(150);
+  });
+
+  it("drag top layer 에 기록된 요소가 있는 page 는 거절한다 (장면 좌표라 원점을 따르지 않는다)", () => {
+    const stream = buildPages(pagesTree(3));
+    const id = [...stream.boundsMap.keys()].find(
+      (key) => key.startsWith("p1.") && stream.pages.pageOf(key) === "p1",
+    )!;
+    stream.topLayerElementIds.add(id);
+    stream.subtreeBuildContextByElement.set(id, {
+      ...stream.subtreeBuildContextByElement.get(id)!,
+      topLayerSubtree: true,
+    });
+    expect(
+      planPageMove(stream, "p1", stream.subtreeBuildContextByElement.get("p1")!)
+        .reason,
+    ).toBe("top-layer");
+    expect(
+      planPageMove(stream, id, stream.subtreeBuildContextByElement.get(id)!)
+        .reason,
+    ).toBe("subtree-context");
   });
 });

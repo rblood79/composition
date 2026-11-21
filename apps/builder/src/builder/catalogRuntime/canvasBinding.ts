@@ -39,13 +39,13 @@ import {
 } from "../workspace/canvas/skia/dragLayerSplice";
 import { getDragVisualOffset } from "../workspace/canvas/skia/nodeRendererTree";
 import {
+  applyPageMove,
   applyScrollDelta,
-  applySubtreeTranslate,
   placeRegion,
-  planSubtreeTranslate,
+  planPageMove,
+  type PageMovePlan,
   type PlaceRegionResult,
   type SubtreePatchOutcome,
-  type SubtreeTranslatePlan,
   type SubtreeTranslateRejectReason,
 } from "../workspace/canvas/skia/subtreeTranslate";
 import {
@@ -2857,15 +2857,17 @@ function bindInColorMode(
     };
     /**
      * ADR-264 Phase 3: the page grid moved page frames (auto columns at a zoom, a page grid edit)
-     * and their contents kept their layout — place each moved root's subtree instead of binding
-     * again. A page's fixed boxes and open overlays are drawn in its layer relative to the page, so
-     * they move with it (`checkTranslate`). A root drawn in a drag's top layer cannot be placed: that
+     * and their contents kept their layout — move each moved page by its origin offset instead of
+     * binding again (`planPageMove` — the stream stores each page's geometry page-local, so no
+     * element entry is written). A page's fixed boxes and open overlays are drawn in its layer
+     * relative to the page and move with it. A page with an element in a drag's top layer cannot: that
      * page is recorded again at its new place (as `update` does for such a region — ADR-307). Null
      * when it cannot: a pending record delta, a frame that resized, or a root that can be neither
      * placed nor recorded (the caller binds again).
      * **Why (2026-11-19)**: a page as tall as its content moves the pages below whenever it grows —
      * one page with a fixed bar bound all 22 pages again on each such edit. (2026-11-22: the pages
-     * with a closed Select's Popover — fixed — were recorded again on each such edit.)
+     * with a closed Select's Popover — fixed — were recorded again on each such edit, and every
+     * moved page rewrote each element's bounds · hit · clip · context · index cell.)
      */
     const movePageRoots = (): string[] | null => {
       hiddenMemo.clear();
@@ -2891,9 +2893,10 @@ function bindInColorMode(
         stream.subtreeBuildContextByElement.get(id),
       );
       // ADR-266 Phase 4: check every root once before writing any, then apply those checks.
+      // (2026-11-22: a page moves by its origin offset — `planPageMove`, O(1) per page.)
       const plans = moves.map(([id], index) =>
         contexts[index]
-          ? planSubtreeTranslate(stream, id, contexts[index]!)
+          ? planPageMove(stream, id, contexts[index]!)
           : ({ reason: "subtree-context" } as const),
       );
       // (A drag's top layer rejects a page-layer splice — as in `update`.)
@@ -2917,7 +2920,7 @@ function bindInColorMode(
             return nullBecause("pageGridMoveNullTopLayer");
           continue;
         }
-        applySubtreeTranslate(
+        applyPageMove(
           {
             stream,
             rootId: id,
@@ -2926,7 +2929,7 @@ function bindInColorMode(
             context: contexts[index]!,
             publish: false,
           },
-          plans[index] as SubtreeTranslatePlan,
+          plans[index] as PageMovePlan,
         );
         layoutMap.set(id, { ...rect, elementId: id });
         registerNode(id, true);

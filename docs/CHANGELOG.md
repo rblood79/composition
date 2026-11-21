@@ -11,13 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas page 이동을 page 원점 하나로 — 옮긴 page 의 요소마다 위치 정보를 다시 쓰던 것] - 2026-11-22
+
+### Changed
+
+- **page 높이가 바뀌는 편집 뒤 아래 page 를 옮기는 비용이 page 안 요소 수에 비례하던 것 → page 수에만** — Canvas 명령 stream 의 장면 기하 (상자 · hit 영역 · 조상 clip · 기록 문맥) 를 page 원점 기준으로 저장하고, 공간 색인 (포인터 판정 · 화면 후보) 을 page 마다 grid 하나로 나눠 질의가 그 page 원점을 더한다. page 를 옮기면 그 page 의 원점 하나와 page root 명령 하나만 바뀐다 (요소 항목 쓰기 0). 읽는 쪽은 그대로 `Map` 으로 장면 좌표를 받는다. ratchet: app-pages edit `translateNodes` 61,599 → 3,009 · `spatialUpsertCells` 367,573 → 23,307 · V8 호출 1,325,570 → 477,022 / many-pages100 edit `translateNodes` 272,874 → 3,009 · `spatialUpsertCells` 1,616,299 → 23,307 / 확대 · 축소 `spatialCellsVisited` 56,995 → 5,004 (page grid 가 내용 범위만 본다). dev headless 편집 뒤 2 프레임: page 를 옮기는 편집 ~37 → ~30 ms (옮기지 않는 편집 ~26 ms). 확대 · 끌기의 V8 호출은 +3 ~ 6 % (기하 맵 읽기가 함수 하나를 지난다).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/pageSpace.ts` (새 — `PageSpace` · `PageLocalMap`) · `renderCommands.ts` (stream `pages`) · `subtreeCommandPatch.ts` (splice 가 page 를 먼저 정함) · `subtreeTranslate.ts` (`planPageMove` · `applyPageMove`) · `wasm-bindings/spatialIndex.ts` (page 별 grid) · `catalogRuntime/canvasBinding.ts` (`movePageRoots`) · 시험 `subtreeTranslate.test.ts` (page 300 벌: 옮김 → 옮긴 page 안 patch → 다시 옮김 = 처음부터 기록, 원점 이동 · page 지정을 빼면 RED) · `spatialIndexPages.test.ts` (page 이동 · 갱신 · 삭제 뒤 질의 = 장면 상자 전수 대조, 원점을 빼면 RED)
+
 ## [Canvas page 이동 비용 수리 — Select 가 있는 page 를 옮길 때마다 통째로 다시 기록하던 것] - 2026-11-22
 
 ### Fixed
 
 - **page 높이가 바뀌는 편집마다 아래 page 중 Select (· Popover 를 여는 컴포넌트) 가 있는 page 를 통째로 다시 기록함** — 닫힌 Popover 는 `position: fixed` 라 「옮길 수 없는 상자」 로 분류됐고, 그 page 는 옮기기 대신 새 자리에서 다시 기록됐다. fixed 상자는 page 층에 page 기준으로 기록되므로 page root 를 옮기면 같이 옮겨진다 — 이제 page root 를 옮길 때는 fixed 자손을 거절하지 않는다 (page 안 상자를 옮길 때와 drag top layer 는 그대로 거절). app-pages (22 page) 의 높이를 바꾸는 편집 1회에 다시 기록한 명령 9,630 → 14 (편집 · 되돌리기 15회 합 57,906 → 210 — 회귀 전 기준 210), dev headless 편집 뒤 2 프레임 ~48 → ~37 ms. 옮긴 뒤 명령 · 기록 문맥 · clip · 상자 · hit 영역 · 화면이 다시 묶은 결과와 같다.
   - 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeTranslate.ts` (`checkTranslate`) · 시험 `subtreeTranslate.test.ts` (fixed 자손 · page scroll 을 가진 page root 옮기기 = 처음부터 기록 — 수정 전 RED `top-layer`)
-- 남은 것: 옮겨진 page 는 요소마다 상자 · hit · 색인을 고쳐 쓴다 (편집 1회 요소 ~6,800 — page 수 비례). page 를 옮기면 그 아래 화면 전체가 바뀌므로 화면 전체를 다시 그리는 것은 그대로다.
+- 남은 것: 옮겨진 page 는 요소마다 상자 · hit · 색인을 고쳐 쓴다 (편집 1회 요소 ~6,800 — page 수 비례 — 같은 날 수리, 위 엔트리). page 를 옮기면 그 아래 화면 전체가 바뀌므로 화면 전체를 다시 그리는 것은 그대로다.
 
 ## [Canvas 편집 다시 그리기 회귀 수리 — page 프레임 높이가 바뀌는 편집이 page 전체를 다시 기록 · 화면 전체를 다시 그리던 것] - 2026-11-22
 

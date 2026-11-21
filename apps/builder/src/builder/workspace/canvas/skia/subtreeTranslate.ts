@@ -175,24 +175,13 @@ export type SubtreeTranslatePlan = Exclude<
   { reason: SubtreeTranslateRejectReason }
 >;
 
-/**
- * ADR-266 Phase 4: check once, then apply — a caller placing many roots (`movePageRoots`) checks
- * them all before writing any and hands each check to `applySubtreeTranslate` (it scanned every
- * root twice: once to decide, once inside `translateSubtree`).
- */
+/** The check `translateSubtree` makes before writing (the element walk — tests compare it). */
 export function planSubtreeTranslate(
   stream: RenderCommandStream,
   rootId: string,
   context: SubtreeBuildContext,
 ): TranslateCheck {
   return checkTranslate(stream, rootId, context);
-}
-
-export function applySubtreeTranslate(
-  input: TranslateSubtreeInput,
-  plan: SubtreeTranslatePlan,
-): TranslateSubtreeResult {
-  return applyTranslate(input, plan);
 }
 
 export function translateSubtree(
@@ -306,6 +295,80 @@ function applyTranslate(
     nodes,
     indexUpserts,
   };
+}
+
+export interface PageMovePlan {
+  readonly reason?: undefined;
+  readonly span: { start: number; end: number };
+  readonly first: Extract<RenderCommand, { type: 0 }>;
+}
+
+/**
+ * 2026-11-22 — whether a page root (a scene root the page grid moves) can move by its page's origin
+ * offset (`pageSpace.ts`): its elements' scene geometry is stored page-local and its commands are
+ * page-relative (children parent-relative, fixed boxes in the page's layer — ADR-275 Phase 7), so
+ * the root's own command and its page's offset are all that change. A drag in progress, or an
+ * element of the page recorded in a drag's top layer (scene coordinates, not the page's), cannot.
+ */
+export function planPageMove(
+  stream: RenderCommandStream,
+  rootId: string,
+  context: SubtreeBuildContext,
+): PageMovePlan | { readonly reason: SubtreeTranslateRejectReason } {
+  const oldContext = stream.subtreeBuildContextByElement.get(rootId);
+  if (!oldContext || oldContext.parentElementId !== null)
+    return { reason: "subtree-context" };
+  if (context.topLayerSubtree || oldContext.topLayerSubtree)
+    return { reason: "top-layer" };
+  if (getDragVisualOffset() || hasDragSiblingOffsets())
+    return { reason: "drag-offset" };
+  const span = stream.subtreeSpans.get(rootId);
+  if (!span) return { reason: "missing-span" };
+  const at = createCommandReader(stream.commands);
+  const first = at(span.start);
+  if (
+    !first ||
+    first.type !== CMD_ELEMENT_BEGIN ||
+    first.elementId !== rootId ||
+    at(span.end - 1)?.type !== CMD_ELEMENT_END ||
+    !stream.boundsMap.has(rootId)
+  )
+    return { reason: "invalid-span" };
+  for (const id of stream.topLayerElementIds)
+    if (
+      stream.pages.pageOf(id) === rootId &&
+      stream.subtreeBuildContextByElement.get(id)?.topLayerSubtree
+    )
+      return { reason: "top-layer" };
+  return { span, first };
+}
+
+/** Moves a checked page root to (x, y) (its layout rect) under `context` — O(1), not O(page). */
+export function applyPageMove(
+  input: Omit<TranslateSubtreeInput, "keepCommand">,
+  plan: PageMovePlan,
+): void {
+  const { stream, rootId, context } = input;
+  const span = stream.subtreeSpans.get(rootId) ?? plan.span;
+  const oldRoot = stream.boundsMap.get(rootId)!;
+  writeCommandAt(stream.commands, span.start, {
+    ...plan.first,
+    x: input.x + context.cmdOffsetX,
+    y: input.y + context.cmdOffsetY,
+  });
+  // (A page root's own context is the scene's — it does not move with its page.)
+  stream.subtreeBuildContextByElement.set(rootId, {
+    ...context,
+    clipRect: cloneClip(context.clipRect),
+  });
+  stream.pages.movePage(
+    rootId,
+    context.parentAbsX + input.x - oldRoot.x,
+    context.parentAbsY + input.y - oldRoot.y,
+  );
+  if (input.publish !== false) publishPatchedCommandStreamSnapshot(stream);
+  if (process.env.NODE_ENV === "development")
+    renderCounters.pageShiftCalls += 1;
 }
 
 export interface ScrollDeltaInput {
