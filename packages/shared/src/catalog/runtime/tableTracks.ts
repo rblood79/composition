@@ -51,6 +51,13 @@ export const CATALOG_PINNED_ROW_PROP = "_pinnedRow";
 /** ADR-315 Phase 5 증분 5f — a Table record whose rows its viewers pin now (the resolver's mark). */
 export const CATALOG_ROW_PINNABLE_PROP = "_rowPinnable";
 /**
+ * ADR-315 Phase 7 — a Table record with a column pinned now (the column projection's mark —
+ * `tableColumns.ts`). The DOM gives the Table `data-pinned-columns`, which the sheet's pinned-column
+ * rules are scoped to (`Table.css`): their `:has()` cost every Table's scroll · sort the style
+ * work of a pinned one (HC4 A/B, breakdown §9 Phase 7).
+ */
+export const CATALOG_TABLE_PINNED_COLUMNS_PROP = "_pinnedColumns";
+/**
  * ADR-315 Phase 5 증분 5f — a Table record's pinned rows (their keys, a side each joined by `\n`:
  * `top\u0000bottom`): the virtual `Layout` builds them wherever the view is — the Table's own
  * value, so a pin is a change of the Table record (its `Virtualizer` takes new options).

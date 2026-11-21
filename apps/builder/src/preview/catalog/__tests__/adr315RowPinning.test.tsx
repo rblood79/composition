@@ -138,7 +138,13 @@ describe("a Table's pinned rows (ADR-315 Phase 5 증분 5f)", () => {
 
   it("the state's pinned rows: first · last, out of the sort · the page; a search leaves an unkept one out", async () => {
     const t = await openTable();
+    // (ADR-315 Phase 7 — the Table says it has pinned rows: the sheet's pinned-row rules are
+    //  scoped to it.)
+    const grid = () =>
+      t.h.view.container.querySelector("[data-node-table]")!;
+    expect(grid().hasAttribute("data-pinned-rows")).toBe(false);
     await t.set({ pinnedRows: { top: ["p3"], bottom: ["p1"] } });
+    expect(grid().hasAttribute("data-pinned-rows")).toBe(true);
     expect(t.rows()).toEqual([
       ["p3", "top"],
       ["p2", null],
@@ -199,7 +205,13 @@ describe("a Table's pinned rows (ADR-315 Phase 5 증분 5f)", () => {
     expect(
       t.h.view.container.querySelectorAll(".table-row-pin-button").length,
     ).toBe(0);
+    const pinning = () =>
+      t.h.view.container
+        .querySelector("[data-node-table]")!
+        .hasAttribute("data-row-pinning");
+    expect(pinning()).toBe(false);
     await t.declare({ allowsRowPinning: true });
+    expect(pinning()).toBe(true);
     const buttons = [
       ...t.h.view.container.querySelectorAll(".table-row-pin-button"),
     ];

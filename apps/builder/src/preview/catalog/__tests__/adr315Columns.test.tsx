@@ -392,6 +392,13 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
   }, 120_000);
   it("pins Columns: the pinned ones first · last, marked for the sheet — by the state or by default", async () => {
     const t = await openTable();
+    // (ADR-315 Phase 7 — the Table says it pins columns: the sheet's pinned-column rules are
+    //  scoped to it, so a Table without one pays none of their `:has()` style work.)
+    const pinsColumns = () =>
+      t.h.view.container
+        .querySelector("[data-node-table]")!
+        .hasAttribute("data-pinned-columns");
+    expect(pinsColumns()).toBe(false);
     const marks = () =>
       [...t.h.view.container.querySelectorAll('[role="columnheader"]')].map(
         (cell) => [
@@ -406,6 +413,7 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
       ["Type", null, null],
       ["Name", "end", "0"],
     ]);
+    expect(pinsColumns()).toBe(true);
     // (Each Row's cells stand with their columns, marked the same.)
     const first = [...t.h.view.container.querySelectorAll('[role="row"]')]
       .map((row) => [

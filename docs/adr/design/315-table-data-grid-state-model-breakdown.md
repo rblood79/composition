@@ -999,4 +999,49 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **Gate G6**: 시각 병합 · 칸 범위 선택 · 복사 · 키보드 전 경로 (Shift + 화살표 · Ctrl/Cmd + A · Ctrl/Cmd + C · Esc) · 규칙 문서의 예외 범위와 구현의 속성 목록 일치 (`aria-selected` · `aria-multiselectable` 둘 — `tableCellSelection.ts` 가 쓰는 ARIA 는 그 둘뿐) — 통과. **VoiceOver 청취는 사용자와 확인 대기** (S6 · 본문 G6 — 자동 확인 수단 없음, 실패하면 대안은 「칸 선택을 빼고 병합만」).
 - **남은 한계 (기록)**: 가상 표의 병합 첫 행은 창 안 첫 행이 값을 보인다 (창 시작은 보통 화면 위 — 긴 병합을 스크롤하면 값이 화면 밖일 수 있다) · 복사는 마지막 범위만 · 칸 범위는 Do · 변수로 읽지 않는다 · 묶음 표에서 묶음 행 칸도 범위에 든다 (값 = 묶음 값 · 집계).
 
+### Phase 7 (2026-11-21 — G7: Worker 필요 없음 · HC4 통과, VoiceOver · 사용자 확인 대기)
+
+**Worker 조건 판정 (본문 Decision 8)**: 10 만 행에서 검색 입력의 화면 스레드 계산이 HC4 의 검색 입력 상한 (사용자 결정 2026-11-20 — 정렬 클릭 기준선, 1x 154 ~ 169 · 4x 556 ~ 589 ms) 을 넘을 때만 구현한다. `adr315MainThreadBench.mjs` (production 함수를 묶어 headed Chrome main thread 에서, 7 회의 p95 — 계산만) 에 Phase 3 의 실제 입력 방식 셋을 더했다 — 키마다 새 행 배열 위에서 정렬된 순서를 유지한 채 거르는 「이어 치기」 (`viewRowsPassing`):
+
+| 계산 (ms, p95)                                         | 10,000 행 1x | 10,000 행 4x | 100,000 행 1x | 100,000 행 4x |
+| ------------------------------------------------------ | -----------: | -----------: | ------------: | ------------: |
+| 표 검색 이어 치기 「Person 12」 (키마다) · 정렬된 순서 |          2.3 |          9.6 |          23.9 |          92.4 |
+| 표 검색 이어 치기 「김민서」 (한글 — 매번 비교)        |          5.5 |         21.7 |          52.3 |         201.2 |
+| 표 유사 검색 이어 치기 「Prsn 12」                     |         13.3 |         55.4 |         137.6 |         531.5 |
+| 검색 「김민」 (한글 · 처음 한 번 전체 비교)            |          5.9 |         24.1 |          59.9 |         243.7 |
+| 검색 「1」 · 열 7 전부                                 |          3.6 |         12.5 |          28.1 |           117 |
+| 묶기 dept + 합계                                       |          2.4 |          9.0 |          24.4 |          94.8 |
+| 정렬 — 글자 열 (값이 모두 다름)                        |         19.6 |         79.9 |         277.6 |       1,426.6 |
+| 정렬 — 두 열 (dept 오름 · amount 내림)                 |          7.4 |         30.3 |          87.8 |         339.6 |
+
+- 검색 입력의 가장 무거운 경우 (유사 검색 이어 치기) 가 10 만 행에서 1x 137.6 ≤ 154 · 4x 531.5 ≤ 556 ms — 조건을 넘지 않는다. **Worker 는 구현하지 않는다** (R9 — 측정 표와 함께 「필요 없음」 으로 닫는 것이 정상 종결).
+- 넘는 것은 10 만 행 글자 열 정렬 클릭 (1x 278 ms · 4x 1.4 s) 이지만 Decision 8 의 조건이 아니고, 지금의 로컬 상한은 10,000 행이라 그 표가 열리지 않는다.
+- **사용자 결정 7 (2026-11-21, 이 Phase 착수 때)**: 「10,000 그대로」 — Worker 를 구현하지 않으므로 로컬 조회 상한 (`VIEW_LOCAL_LOAD_CAP`) 은 그대로 둔다. 선택하지 않은 안: 100,000 으로 올림 (10 만 행 정렬 클릭이 4x 1.4 s — 화면 스레드).
+
+**HC4 A/B (Phase 0 기준선 빌드 `0bbf051db` 대 최종 빌드, production 하니스 · 10,000 행 · 가상 · 열 6 · headed Chrome · 교대 3 쌍 — 결정 「검증 묶음은 Phase 7 에서 한 번에」 의 측정, Phase 4 의 미해결 1 건과 같은 긴 순서)**:
+
+- **첫 측정 — 실패**: 로드 1.02 · 힙 1.02 · 정렬 클릭 1x 1.07 / 1.09 · 4x 1.07 / **1.13** · 스크롤 task / frame 1x **1.11** · 4x 1.10 (스크롤 p95 1x 16.7 → 24.7 ms) — 스크롤이 매 frame 약 0.8 ms (1x) 비싸졌다.
+- **원인 — Phase 4 · 5 의 고정 `:has` 규칙**: 고정 열 · 고정 행 · 행 고정 메뉴의 CSS 가 `.react-aria-Table:has([data-pinned])` · `[role="row"] > [role="presentation"]:has(> [data-pinned])` 처럼 **모든 Table** 에 걸려 있었다. 고정이 없는 표에서도 Blink 는 창이 움직여 행이 들고 날 때마다 그 `:has` 를 다시 판정한다. 하니스에 `--strip-has [text]` (CSSOM 에서 `:has(` 규칙을 지우고 잰다) 를 더해 확인 — 고정 규칙 14 개를 모두 지우면 스크롤 task / frame 이 기준선으로 돌아오고 (7.25 vs 7.2 ms), 일부만 지우면 돌아오지 않는다.
+- **수리**: 고정 규칙을 표 root 의 표시 아래로 옮겼다 — 열 투영이 고정 열이 있는 표에 `_pinnedColumns` (`CATALOG_TABLE_PINNED_COLUMNS_PROP`) 를 달고 DOM 이 `data-pinned-columns` 로, 고정 행이 있으면 `data-pinned-rows`, 행 고정 메뉴가 켜진 표는 `data-row-pinning` (`domBinding.runtime.ts`). Table.css 의 해당 규칙은 모두 `&[data-pinned-columns] …` · `&[data-pinned-rows] …` · `.react-aria-Table[data-row-pinning] …` — 고정이 없는 표에서는 조상 표시가 맞지 않아 `:has` 를 판정하기 전에 규칙이 빠진다. 고정 동작 자체는 그대로다 (live 재확인 묶음 — 아래).
+- **두 번째 측정 (수리 빌드) — 통과**: 로드 0.97 · 힙 1.01 · 스크롤 p95 1x 0.99 · 4x 1.01 · 스크롤 task / frame 1x 0.98 · 4x 1.00 · 정렬 클릭 1x 숫자 열 1.097 (163.7 → 179.6 ms) · 글자 열 1.07 · 4x 숫자 열 1.08 · 글자 열 1.04 — 전부 ≤ 1.10 (정렬 1x 숫자 열이 상한에 가깝다 — 쌍별 0.96 · 1.16 · 1.10, 기준선 arm 안에서도 162 ~ 184 ms 로 흔들린다).
+- **Phase 4 의 미해결 1 건 (긴 순서 뒤의 정렬 클릭 4x 1.18 / 1.11) 은 닫힌다** — 같은 순서에서 4x 1.08 / 1.04. 쌓이는 것은 창 이동이 늘린 고정 `:has` 의 재판정이었던 것으로 읽는다 (수리 전후 외에 다른 변경이 없다).
+- **새 조작은 정렬 클릭 기준선 안** — 이 Phase 는 새 조작을 더하지 않았다. 앞 Phase 의 열 변경 (Phase 4 — 1x 66 ~ 84 ms) · 검색 입력 (Phase 3 — 136 ~ 152 ms) 은 각 Phase 기록 그대로.
+- **변이 RED 8/8** (`tablePinnedHasScope.static.test.ts` 새 정적 검사 — 고정 표시를 말하는 `:has(` 규칙은 root 표시를 품어야 한다 · 규칙 10 개 이상 · `&:has([data-pinned` 금지, 그리고 `adr315Columns` · `adr315RowPinning` 의 표시 토글 단언): Table.css 규칙 하나를 옛 모양으로 되돌림 · 열 투영 표시 · DOM 세 표시 · 행 고정 메뉴 규칙 — 전부 RED.
+
+**live 재확인 묶음 (최종 빌드 · production · headed Chrome / WebKit — 하니스 `--check-*` 23 모드)**: 고정 열 (Chrome · WebKit × 가상 · 비가상) · 행 고정 (Chrome 가상 · 비가상 · WebKit 가상) · 작성 정렬 · 작성 묶음 · 묶음 (10,000 행) · 합계 · 계층 · 상세 · 열 필터 · 끌기 · 폭 조절 · 상태 기억 · 여러 열 정렬 · 검색 (포함 · 유사) · 후보 값 · 서버 묶음 · 서버 고정 — 전부 PASS.
+
+- **하니스 결함 1 (제품 아님)**: `--check-rowpin` 이 처음엔 3 모드 모두 행 메뉴 0 으로 실패했다. 하니스가 원격 cursor endpoint (key 조회 선언 없음) 를 썼고, Phase 5g 부터 그런 표는 행 고정을 받지 않는다 (`pinsRefused` — 설계대로). 로컬 행 (mock) 으로 바꿔 통과 — 서버 쪽 고정은 `--check-server pin` 이 덮는다.
+- 본 것 (이 ADR 밖): WebKit 의 콘솔 오류 2 ~ 4 건 「Invalid value for `<circle>` attribute r="calc(50% - 1px)"」 — `ProgressCircle.tsx` 의 SVG 반지름을 속성으로 `calc()` 로 적는다 (WebKit 은 SVG 속성의 `calc` 를 받지 않는다). 표 동작과 무관, 고치지 않았다.
+
+**Canvas 작성 기본값 `/cross-check` (G4 · R8, Builder Canvas 와 Publish 스크린샷 · record)**: 묶음 (순서 · 개수 · 합 · 펼침 표시 · 열 자리) · 합계 행 (1000 / 4930124.66 / 247.844) · 계층 · 상세 (접힌 표시) · 작성 정렬 (순번 표시 · 자리) — 같음. 고정 열 — Canvas 는 고정 순서대로 열을 세우고 표 상자 밖을 자른다 (DOM 은 가로 스크롤) — 설계된 차이 (Canvas 는 실행 상태가 없다). 병합은 Phase 6 live 에서 확인했다.
+
+**규칙 문서**: `data-interaction.md` 의 Table 실행 절을 ADR-315 의 사실로 갈았다 (Worker 없음 · 상한 10,000 · 열 투영 · `tableCellMerge` · `tableCellSelection` · `catalogTableSliceServable`). 규칙 문서 크기 상한 (`pnpm docs:rule-size`) 때문에 `data-interaction.md` 의 반복 표시 · Code 보기 절과 `catalog-subparts.md` 의 picker 절 · Table 열 트랙 절은 요약만 남기고 원문을 `composition-patterns/reference/` 의 `row-repeat.md` · `table-data-grid.md` · `catalog-subparts-details.md` 로 옮겼다 (내용 그대로).
+
+**Phase 7 검증 (2026-11-21)**:
+
+- **회귀**: shared 실패 7 · 통과 2,742, builder 실패 12 (7 파일) · 통과 9,482 — 실패는 Phase 6 종결 때와 같은 목록. 전체 실행에서 `adr284Authoring.test.tsx` 3 건이 더 실패했는데 첫 테스트의 시간 초과 (5 s) 에서 이어진 것이고 그 파일만 다시 돌리면 19/19 통과 — 부하 때의 시간 초과로 읽는다. type-check PASS.
+- **번들** (일반 `vite build` + closure): Phase 6 커밋 `dd05b990b` 대비 Builder initial JS 1,609,986 → 1,610,063 B (+77) · Preview 171,811 → 171,810 B (−1) — 사용자 결정 6 안. ADR 전체 (Phase 0 기준선 대비): Builder 1,586,066 → 1,610,063 B (+23,997 — Phase 별 Δ 는 모두 결정 6 안, Phase 4 만 +17 B 초과로 보고) · Preview 171,811 → 171,810 B (−1). 열 메뉴 · 필터 대화상자 · 끌기 · 칸 선택은 쓰는 표에서만 읽는 lazy chunk 다.
+- **Gate G7**: Worker 조건 판정 (위 측정 표 — 필요 없음) · 번들 · 문서 · 종결 live (위 재확인 묶음 · `/cross-check`) — 통과. **사용자 확인 대기**: G6 의 VoiceOver 청취와 G7 의 사용자 확인. 둘이 끝나면 Implemented 로 올린다.
+- **남은 한계 (기록)**: 10 만 행 로컬 표 (상한 그대로) · 정렬 클릭 1x 숫자 열 비율이 상한 가까이 (1.097) · 앞 Phase 의 남은 한계는 각 Phase 기록 그대로.
+
 (다음 Phase 의 기록은 여기에 이어 적는다)

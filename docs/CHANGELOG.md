@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-315 Phase 7 — 고정 기능이 없는 Table 의 스크롤 속도 회복 · Worker 필요 없음 판정] - 2026-11-21
+
+### Fixed
+
+- **Table 스크롤이 고정 기능을 쓰지 않아도 느려짐 (ADR-315 Phase 4 · 5 회귀)** — 고정 열 · 고정 행 · 행 고정 메뉴의 CSS 가 `:has(...)` 로 모든 Table 에 걸려, 고정이 없는 표에서도 가상 스크롤의 창이 움직일 때마다 브라우저가 그 조건을 다시 판정했다 (10,000 행 표의 스크롤 frame 당 일 +11 % · 긴 조작 뒤 정렬 클릭 CPU 4x +13 ~ 18 %). 그 규칙을 고정이 있는 표에만 붙는 표시 (`data-pinned-columns` · `data-pinned-rows` · `data-row-pinning`) 아래로 옮겼다 — Phase 0 빌드 대비 스크롤 · 정렬 · 로드 · 힙이 모두 1.10 배 안 (스크롤 0.98 ~ 1.01). 고정 동작은 그대로다.
+  - 위치: `packages/shared/src/components/styles/Table.css` · `catalog/resolution/tableColumns.ts` (`_pinnedColumns`) · `catalog/runtime/domBinding.runtime.ts` · `catalog/runtime/tableTracks.ts` (`CATALOG_TABLE_PINNED_COLUMNS_PROP`) · 검사 `components/styles/__tests__/tablePinnedHasScope.static.test.ts`
+
+### Changed
+
+- **Worker 계산은 넣지 않는다 · 로컬 조회 상한은 10,000 행 그대로** (ADR-315 Decision 8 · 사용자 결정 7) — 10 만 행에서도 검색 입력의 계산 (가장 무거운 유사 검색 이어 치기 1x 138 ms · CPU 4x 532 ms) 이 정렬 클릭 기준선 안이라 조건을 넘지 않는다.
+- 규칙 문서: `.claude/rules/data-interaction.md` 의 Table 실행 절을 ADR-315 의 사실로 갈았고, 문서 크기 상한 때문에 긴 절 셋 (반복 표시 · picker · Table 열 트랙) 의 원문을 `.claude/skills/composition-patterns/reference/` (`row-repeat.md` · `catalog-subparts-details.md` · `table-data-grid.md`) 로 옮겼다.
+
 ## [ADR-315 Phase 6 — Table 같은 값 합치기 · 칸 범위 선택 · 복사] - 2026-11-21
 
 ### Added

@@ -349,6 +349,8 @@ import {
   CATALOG_DRAG_COLUMN_WIDTH,
   CATALOG_PINNED_ROW_PROP,
   CATALOG_ROW_PINNABLE_PROP,
+  CATALOG_TABLE_PINNED_COLUMNS_PROP,
+  CATALOG_TABLE_PINNED_ROWS_PROP,
   catalogCellSpan,
   catalogTableSelectionColumn,
   catalogTableRowTracks,
@@ -3909,6 +3911,18 @@ function ruleDom(
                 : {};
             })(),
             tableResizable: resizable,
+            // (ADR-315 Phase 7 — the Table's pinned columns · pinned rows · row pinning: the sheet's
+            //  rules for them are scoped to these, so a Table without them pays none of their
+            //  `:has()` style work — `Table.css`.)
+            ...(node.props[CATALOG_TABLE_PINNED_COLUMNS_PROP] === true
+              ? { "data-pinned-columns": "" }
+              : {}),
+            ...(node.props[CATALOG_TABLE_PINNED_ROWS_PROP]
+              ? { "data-pinned-rows": "" }
+              : {}),
+            ...(node.props[CATALOG_ROW_PINNABLE_PROP] === true
+              ? { "data-row-pinning": "" }
+              : {}),
             // (ADR-315 Phase 6 — 「Cell selection」, never with row selection: 사용자 결정 5.)
             ...(node.props.allowsCellSelection === true &&
             node.props.selectionMode !== "single" &&

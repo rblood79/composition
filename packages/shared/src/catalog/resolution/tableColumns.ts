@@ -29,6 +29,7 @@ import {
   CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_EDGE_PROP,
   CATALOG_COLUMN_PINNED_PROP,
+  CATALOG_TABLE_PINNED_COLUMNS_PROP,
 } from "../runtime/tableTracks";
 import {
   CATALOG_CELL_COLUMN_PROP,
@@ -734,7 +735,10 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
     aligned && (moved || sideOf.size > 0 || keptPlaces.size > 0);
   return rebuilt(
     table,
-    { [CATALOG_TABLE_COLUMNS_PROP]: JSON.stringify(entries) },
+    {
+      [CATALOG_TABLE_COLUMNS_PROP]: JSON.stringify(entries),
+      ...(sideOf.size ? { [CATALOG_TABLE_PINNED_COLUMNS_PROP]: true } : {}),
+    },
     (held) =>
       held.map((child) =>
         child === header

@@ -6,6 +6,7 @@
 // 경로) · 한 글자 검색 (결과가 거의 전부) · 열 6 개 전부 검색.
 import { runViewQueries } from "../../../packages/shared/src/collections/view/evaluate";
 import { viewSortOrder } from "../../../packages/shared/src/collections/view/sortOrder";
+import { viewRowsPassing } from "../../../packages/shared/src/collections/view/rowFilter";
 
 /** One sort entry over `rows` by a field (no ranks kept — every run reads the values again). */
 const by = (rows, key, direction, type) => ({
@@ -134,5 +135,57 @@ export function bench(count, reps = 7) {
   };
   const out = {};
   for (const [name, fn] of Object.entries(cases)) out[name] = time(fn, reps);
+  // ADR-315 Phase 7 — the Table's own search (Phase 3 on): a search typed on, key by key, over the
+  // rows its sort ordered (`viewRowsPassing` + the kept order — `dataBinding.ts` `keptRowOrder`).
+  // Each key's ms across `reps` fresh runs (a fresh rows array — no misses kept from a run before).
+  const order = viewSortOrder(rows.length, [
+    by(rows, "name", "ascending", "string"),
+  ]);
+  const typed = (text, match) => {
+    const ms = [];
+    let size = 0;
+    for (let rep = 0; rep <= reps; rep += 1) {
+      const source = rows.slice();
+      const fields = TEXT.map((id) => {
+        const key = id.slice(2);
+        return { valueAt: (i) => source[i][key], type: "string", name: key };
+      });
+      for (let end = 1; end <= text.length; end += 1) {
+        const start = performance.now();
+        const { pass, rank } = viewRowsPassing(
+          source.length,
+          [
+            {
+              fields,
+              op: "contains",
+              value: text.slice(0, end),
+              search: match,
+            },
+          ],
+          { rows: source },
+        );
+        let count = 0;
+        for (let i = 0; i < pass.length; i += 1) count += pass[i];
+        const kept = new Uint32Array(count);
+        let at = 0;
+        for (let place = 0; place < order.length; place += 1)
+          if (pass[order[place]]) kept[at++] = order[place];
+        void rank;
+        if (rep > 0) ms.push(performance.now() - start);
+        size = count;
+      }
+    }
+    return { ms, size };
+  };
+  out["표 검색 이어 치기 「Person 12」 (키마다) · 정렬된 순서"] = typed(
+    "Person 12",
+    "contains",
+  );
+  out["표 검색 이어 치기 「김민서」 (한글 — 매번 비교) · 정렬된 순서"] =
+    typed("김민서", "contains");
+  out["표 유사 검색 이어 치기 「Prsn 12」 · 정렬된 순서"] = typed(
+    "Prsn 12",
+    "fuzzy",
+  );
   return out;
 }

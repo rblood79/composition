@@ -436,8 +436,14 @@ try {
       {
         REMOTE_BASE,
         COLUMNS,
+        // (`--check-rowpin`: local rows — since ADR-315 5g a Table on a server's cursor pages pins
+        //  no row unless its request asks for rows by key: `--check-server pin` covers that.)
         MOCK:
-          CHECK_AUTHORED_GROUP || CHECK_TOTALS || CHECK_TREE || CHECK_DETAIL
+          CHECK_AUTHORED_GROUP ||
+          CHECK_TOTALS ||
+          CHECK_TREE ||
+          CHECK_DETAIL ||
+          (CHECK_ROWPIN && !SERVER_PIN)
             ? makeRows(ROWS)
             : null,
         CHECK_TREE,
@@ -3832,6 +3838,61 @@ try {
       async () => `sort click ${await sortOnce("ours", "Amount")} ms`,
     );
     throw new Error("load only");
+  }
+  // `--strip-has [text]` (ADR-315 Phase 7 — HC4 원인 실험): Publish 의 스타일 규칙 중 선택자에 `:has(`
+  //   (와 `text` 가 있으면 그 글자도) 가 든 것을 지우고 잰다 — `:has` 무효화가 스크롤 · 정렬의 스타일
+  //   재계산을 키우는지 본다. 제품 동작이 아니라 측정용이다.
+  if (process.argv.includes("--strip-has")) {
+    const next = process.argv[process.argv.indexOf("--strip-has") + 1];
+    const text = next && !next.startsWith("--") ? next : "";
+    results.strippedHas = await pub.evaluate((text) => {
+      const removed = [];
+      const visit = (list) => {
+        for (let i = list.length - 1; i >= 0; i -= 1) {
+          const rule = list[i];
+          if (
+            rule.selectorText?.includes(":has(") &&
+            (!text || rule.selectorText.includes(text))
+          ) {
+            removed.push(rule.selectorText.slice(0, 120));
+            list.deleteRule ? list.deleteRule(i) : rule.parentRule.deleteRule(i);
+            continue;
+          }
+          if (rule.cssRules) visit(rule.cssRules);
+        }
+      };
+      for (const sheet of document.styleSheets) {
+        try {
+          const rules = sheet.cssRules;
+          for (let i = rules.length - 1; i >= 0; i -= 1) {
+            const rule = rules[i];
+            if (
+              rule.selectorText?.includes(":has(") &&
+              (!text || rule.selectorText.includes(text))
+            ) {
+              removed.push(rule.selectorText.slice(0, 120));
+              sheet.deleteRule(i);
+            } else if (rule.cssRules) {
+              const inner = rule.cssRules;
+              for (let j = inner.length - 1; j >= 0; j -= 1) {
+                const r = inner[j];
+                if (
+                  r.selectorText?.includes(":has(") &&
+                  (!text || r.selectorText.includes(text))
+                ) {
+                  removed.push(r.selectorText.slice(0, 120));
+                  rule.deleteRule(j);
+                } else if (r.cssRules) visit(r.cssRules);
+              }
+            }
+          }
+        } catch {
+          /* cross-origin sheet */
+        }
+      }
+      return removed;
+    }, text);
+    log(`strip-has: ${results.strippedHas.length} rules`);
   }
   if (process.argv.includes("--profile-scroll")) {
     await sweep("ours");
