@@ -30,12 +30,7 @@ import {
 } from "./nodeRendererMask";
 import { getSkImage, loadSkImage } from "./imageCache";
 import { getSkiaNode } from "./useSkiaNode";
-import {
-  PageLocalMap,
-  PageSpace,
-  shiftClip,
-  shiftRect,
-} from "./pageSpace";
+import { PageLocalMap, PageSpace, shiftClip, shiftRect } from "./pageSpace";
 import { scrollNodeOf, scrollOffsetOf } from "./propertyNodes";
 import { linkParagraphOwner } from "./retainedParagraph";
 import {
