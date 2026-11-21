@@ -5,6 +5,7 @@ import {
   hitTestSpacingHandles,
   resolveSpacingHandleRect,
   spacingDeltaFromPointer,
+  spacingHandleInView,
   spacingHandlesVisible,
 } from "./spacingGeometry";
 
@@ -234,7 +235,9 @@ describe("hitTestSpacingBands", () => {
     expect(hitTestSpacingHandles({ x: cx + 5, y: cy + 5 }, bands, 1)).toBe(top);
     // 띠 영역 (핸들 밖) · 코너 · content → 드래그 대상 아님
     expect(hitTestSpacingHandles({ x: 110, y: 300 }, bands, 1)).toBeNull();
-    expect(hitTestSpacingHandles({ x: 102 + 5, y: 202 + 5 }, bands, 1)).toBeNull();
+    expect(
+      hitTestSpacingHandles({ x: 102 + 5, y: 202 + 5 }, bands, 1),
+    ).toBeNull();
     expect(hitTestSpacingHandles({ x: 250, y: 280 }, bands, 1)).toBeNull();
     // zoom 2 → 화면 12px = scene 6px
     expect(hitTestSpacingHandles({ x: cx + 5, y: cy }, bands, 2)).toBeNull();
@@ -276,5 +279,77 @@ describe("spacingHandlesVisible — 드래그 중 핸들 숨김 (2026-09-26, Fig
     expect(spacingHandlesVisible("press")).toBe(true);
     expect(spacingHandlesVisible("input")).toBe(true);
     expect(spacingHandlesVisible("drag")).toBe(false);
+  });
+});
+
+describe("가시 영역 밖 핸들 (2026-11-22 — 스크롤 상자의 넘친 gap)", () => {
+  // 240×300 ListBox (overflow auto · padding 4) 의 항목 300 (높이 20 · gap 0) — 내용은 상자 밖으로 넘친다.
+  const items = Array.from({ length: 300 }, (_, i) => ({
+    x: 4,
+    y: 4 + i * 20,
+    width: 232,
+    height: 20,
+  }));
+  const ownerBounds = { x: 0, y: 0, width: 240, height: 300 };
+  const bands = buildSpacingBands({
+    ownerBounds,
+    border: { top: 0, right: 0, bottom: 0, left: 0 },
+    padding: { top: 4, right: 4, bottom: 4, left: 4 },
+    gap: { axis: "vertical", value: 0, reverse: false, childBounds: items },
+  });
+  // owner 의 hitBounds = 자기 상자 ∩ 조상 clip — 여기선 상자 그대로.
+  const visible = ownerBounds;
+
+  it("보이는 영역에 걸친 핸들만 남는다 (303 → padding 4 + gap 15)", () => {
+    const inView = bands.filter((band) =>
+      spacingHandleInView(band, 1, visible),
+    );
+    expect(bands).toHaveLength(303);
+    // gap:i 핸들 중심 y = 24 + 20i, 히트 정사각 ±6 — i ≤ 14 (y 304 − 6 < 300) 까지 걸친다.
+    expect(inView.map((band) => band.id)).toEqual([
+      "padding:top",
+      "padding:bottom",
+      "padding:left",
+      "padding:right",
+      ...Array.from({ length: 15 }, (_, i) => `gap:${i}`),
+    ]);
+    expect(bands.every((band) => spacingHandleInView(band, 1, null))).toBe(
+      true,
+    );
+  });
+
+  it("가시 영역 밖 핸들 · 띠는 잡히지 않는다 — 안은 그대로", () => {
+    // gap:20 의 핸들 중심 (120, 424) — 상자 아래 (보이지 않음).
+    expect(hitTestSpacingBands({ x: 120, y: 424 }, bands, 1)).toEqual({
+      band: expect.objectContaining({ id: "gap:20" }),
+      onHandle: true,
+    });
+    expect(hitTestSpacingBands({ x: 120, y: 424 }, bands, 1, visible)).toBe(
+      null,
+    );
+    expect(hitTestSpacingHandles({ x: 120, y: 424 }, bands, 1, visible)).toBe(
+      null,
+    );
+    // 같은 띠의 핸들 밖 구간 (hover 사선) 도.
+    expect(hitTestSpacingBands({ x: 50, y: 424 }, bands, 1)).toEqual({
+      band: expect.objectContaining({ id: "gap:20" }),
+      onHandle: false,
+    });
+    expect(hitTestSpacingBands({ x: 50, y: 424 }, bands, 1, visible)).toBe(
+      null,
+    );
+    // 보이는 gap:5 핸들 (120, 124) · 띠 (50, 124) 는 그대로.
+    expect(hitTestSpacingBands({ x: 120, y: 124 }, bands, 1, visible)).toEqual({
+      band: expect.objectContaining({ id: "gap:5" }),
+      onHandle: true,
+    });
+    expect(hitTestSpacingBands({ x: 50, y: 124 }, bands, 1, visible)).toEqual({
+      band: expect.objectContaining({ id: "gap:5" }),
+      onHandle: false,
+    });
+    // 상자 가장자리에 걸친 padding 핸들은 히트 정사각 전체가 잡힌다 (상자 밖 2px 포함 — 전과 같다).
+    expect(
+      hitTestSpacingBands({ x: 120, y: -2 }, bands, 1, visible)?.band.id,
+    ).toBe("padding:top");
   });
 });

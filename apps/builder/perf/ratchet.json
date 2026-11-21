@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
   "generatedAt": "2026-11-21",
-  "head": "ba03990d3f926e7ca5d25bfc310221d57ea673bf",
+  "head": "89608a46d9a2e4d305d7fbb6bacbba9448fe4e84",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -27,12 +27,7 @@
       ]
     },
     "600": {
-      "classes": [
-        "select",
-        "edit",
-        "zoom",
-        "select-spread"
-      ],
+      "classes": ["select", "edit", "zoom", "select-spread"],
       "args": [
         "--lane",
         "frame",
@@ -44,12 +39,7 @@
       ]
     },
     "60:app-pages": {
-      "classes": [
-        "zoom",
-        "edit",
-        "pan",
-        "page-switch"
-      ],
+      "classes": ["zoom", "edit", "pan", "page-switch"],
       "args": [
         "--lane",
         "frame",
@@ -63,10 +53,7 @@
       ]
     },
     "60:app-pages@dpr2": {
-      "classes": [
-        "pan",
-        "zoom"
-      ],
+      "classes": ["pan", "zoom"],
       "args": [
         "--lane",
         "frame",
@@ -82,13 +69,7 @@
       ]
     },
     "60:app-pages-images": {
-      "classes": [
-        "load-edit",
-        "load-same-frame",
-        "load-zoom",
-        "zoom",
-        "edit"
-      ],
+      "classes": ["load-edit", "load-same-frame", "load-zoom", "zoom", "edit"],
       "args": [
         "--lane",
         "frame",
@@ -103,9 +84,7 @@
       ]
     },
     "60:app-pages-images-asset": {
-      "classes": [
-        "load-edit"
-      ],
+      "classes": ["load-edit"],
       "args": [
         "--lane",
         "frame",
@@ -120,10 +99,7 @@
       ]
     },
     "60:app-pages@zoom0.1": {
-      "classes": [
-        "zoom",
-        "zoom-ladder"
-      ],
+      "classes": ["zoom", "zoom-ladder"],
       "args": [
         "--lane",
         "frame",
@@ -139,9 +115,7 @@
       ]
     },
     "60:app-pages@zoom0.25": {
-      "classes": [
-        "zoom"
-      ],
+      "classes": ["zoom"],
       "args": [
         "--lane",
         "frame",
@@ -157,12 +131,7 @@
       ]
     },
     "60:many-pages100@zoom0.1": {
-      "classes": [
-        "zoom",
-        "pan",
-        "page-jump",
-        "edit"
-      ],
+      "classes": ["zoom", "pan", "page-jump", "edit"],
       "args": [
         "--lane",
         "frame",
@@ -180,10 +149,7 @@
       ]
     },
     "60:sticky-lists": {
-      "classes": [
-        "edit",
-        "select"
-      ],
+      "classes": ["edit", "select"],
       "args": [
         "--lane",
         "frame",
@@ -197,9 +163,7 @@
       ]
     },
     "600:nested-flex": {
-      "classes": [
-        "edit"
-      ],
+      "classes": ["edit"],
       "args": [
         "--lane",
         "frame",
@@ -213,9 +177,7 @@
       ]
     },
     "600:scroll-boxes": {
-      "classes": [
-        "scroll"
-      ],
+      "classes": ["scroll"],
       "args": [
         "--lane",
         "frame",
@@ -229,9 +191,7 @@
       ]
     },
     "600@zoom1": {
-      "classes": [
-        "theme-switch"
-      ],
+      "classes": ["theme-switch"],
       "args": [
         "--lane",
         "frame",
@@ -6840,7 +6800,7 @@
           "caches.dragSubtreePicture.misses": 0,
           "caches.nodePicture.hits": 6330,
           "caches.nodePicture.misses": 0,
-          "caches.paintPool.hits": 65168,
+          "caches.paintPool.hits": 4882,
           "caches.paintPool.missReasons.grow": 1,
           "caches.paintPool.misses": 1,
           "caches.paragraph.hits": 0,

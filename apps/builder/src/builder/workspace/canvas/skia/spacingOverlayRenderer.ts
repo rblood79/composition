@@ -28,6 +28,7 @@ import { OVERLAY_BLUE_RGB, OVERLAY_PINK_RGB } from "./semanticOverlayColors";
 import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import {
   resolveSpacingHandleRect,
+  spacingHandleInView,
   spacingHandlesVisible,
   type SpacingBand,
 } from "../interaction/spacingGeometry";
@@ -206,8 +207,10 @@ export function renderSpacingOverlay(
 
   // 2) 상시 핸들 — 활성/hover 는 두껍게. drag 중에는 숨긴다 (값 1:1 · 핸들 = 값/2 라 포인터와
   //    어긋난다 — Figma 어법, `spacingHandlesVisible`). 값 배지는 아래에서 계속 그린다.
+  //    clip 밖 핸들은 건너뛴다 (`spacingHandleInView` — 스크롤 상자의 넘친 gap 핸들, 히트와 같은 판정).
   if (spacingHandlesVisible(active?.mode ?? null)) {
     for (const band of bands) {
+      if (!spacingHandleInView(band, zoom, clipRect)) continue;
       const emphasized =
         activeIds.has(band.id) || (!active && band.id === hoveredBandId);
       drawHandle(ck, canvas, band, zoom, emphasized);

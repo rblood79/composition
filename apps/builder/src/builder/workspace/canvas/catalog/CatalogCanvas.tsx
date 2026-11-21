@@ -863,6 +863,7 @@ export function CatalogCanvas({
       },
       graph: workspace.runtime.graph,
       bounds: (id) => scene.stream.boundsMap.get(id),
+      hitBounds: (id) => scene.stream.hitBoundsMap.get(id),
       selectionTarget: (id) => scene.selectionTarget(id),
       pick: (x, y) => picking.pick(x, y),
       selection: () => workspace.session.getSnapshot().selection,

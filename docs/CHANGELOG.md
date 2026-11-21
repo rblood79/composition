@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 간격 손잡이 — 스크롤 상자 밖으로 넘친 gap 손잡이를 그리지도 잡지도 않는다] - 2026-11-22
+
+### Fixed
+
+- **항목이 많은 ListBox 를 선택하면 프레임마다 gap 손잡이를 항목 수만큼 그리던 것** — `33b1133b8` (11-13, 자식을 배치하는 모든 요소에 간격 손잡이) 뒤 ListBox 도 손잡이를 갖게 되어, 항목 300 이면 padding 4 + gap 299 를 매 프레임 그리고 (paint 606 대여) 상자 clip 이 거의 전부를 버렸다. 손잡이는 owner 의 가시 영역 (`hitBoundsMap` — 조상 clip 반영) 에 걸칠 때만 그리고 잡는다 — 그리는 판정과 히트 판정이 한 함수 (`spacingHandleInView`). 넘친 gap 손잡이 자리 (상자 아래) 를 누르면 보이지 않는 손잡이가 잡히던 것도 함께 막힌다 (canvas-interaction §8.5 — 보이는 것만 히트). ratchet scroll-boxes scroll `caches.paintPool.hits` 65,168 → 4,882 (상한 하향).
+  - 위치: `apps/builder/src/builder/workspace/canvas/interaction/spacingGeometry.ts` (`spacingHandleInView` · hit test 의 `visible`) · `skia/spacingOverlayRenderer.ts` · `catalogRuntime/canvasGesture.ts` (host `hitBounds`) · `catalog/CatalogCanvas.tsx` · `apps/builder/perf/ratchet.json`.
+  - 확인: Playwright (dev) scroll-boxes ListBox — 보이는 gap 손잡이 커서 · 넘친 gap 자리 커서 없음 · 휠 240 뒤 새로 보인 손잡이 잡힘 · 끌기로 항목 gap 0 → 16 · console 오류 0.
+
 ## [성능 ratchet 기준 재설정 — 11-22 회귀 수리 4 건 뒤 코드] - 2026-11-22
 
 ### Changed
