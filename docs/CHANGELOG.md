@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [성능 ratchet 기준 재설정 — 11-22 회귀 수리 4 건 뒤 코드] - 2026-11-22
+
+### Changed
+
+- 성능 ratchet 기준을 `ba03990d3` 로 다시 잡았다 (사용자 지시 2026-11-22) — 13 run 을 세 번 재어 `--init` (세 번 같은 값만 A), 새 기준으로 세 측정 + 따로 한 번 더 잰 측정 모두 A · B 초과 0 (`decision=pass`). 이전 기준 (2026-11-12 `f8098fcf3`) 대비 A 키 같음 5,917 · 내려감 155 · 오름 391 · 새 68. 오른 것은 page 프레임 「내용만큼」 (`8ec1eed18`) 이후 남은 비용이다 — page 를 옮기는 편집의 화면 전체 다시 그리기 (app-pages · many-pages100 edit `contentFullRenders` 0 → 9 · nested-flex 0 → 6), page 이동의 옮기기 · 색인 (app-pages edit `translateNodes` 2,568 → 3,009 · `spatialUpsertCells` 2,936 → 23,307), sticky-lists edit (`patchCalls` 15 → 195 · `paragraph.misses` 105 → 225), scroll-boxes scroll `paintPool.hits` 7,598 → 65,168, many-pages100 page-jump `panDeviceMax` 460,895 → 1,480,707, select 함수 호출 +3 ~ 16 %. 이 값들이 새 상한이다. 위치: `apps/builder/perf/ratchet.json`.
+
 ## [Canvas page 이동을 page 원점 하나로 — 옮긴 page 의 요소마다 위치 정보를 다시 쓰던 것] - 2026-11-22
 
 ### Changed
