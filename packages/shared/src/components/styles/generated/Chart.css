@@ -72,6 +72,10 @@
   --chart-tooltip-bg: var(--bg-muted);
   --chart-tooltip-border: var(--border);
   --chart-tooltip-text: var(--fg);
+  --chart-tooltip-radius: var(--catalog-token-radius-md);
+  --chart-tooltip-padding: calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2) calc(var(--catalog-token-size-height-S) * 3 / 8);
+  --chart-tooltip-font-size: var(--catalog-token-text-xs);
+  --chart-tooltip-line-height: var(--catalog-token-text-xs--line-height);
 }
 
 .react-aria-Chart[data-palette="mono"] {

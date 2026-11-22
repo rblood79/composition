@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart — 툴팁 모양 = S2 Tooltip · 축 글자 = 글자 토큰] - 2026-11-22
+
+### Changed
+
+- **Chart hover 툴팁의 모서리 · 여백 · 글자가 S2 Tooltip 값** — S2 에 Chart 가 없어 Tooltip (`Tooltip.tsx` — 모서리 `default` · 좌우 `edge-to-text` · 위아래 `centerPadding()` · 글자 `ui-sm`) 값을 따른다: 모서리 6 → 8, 여백 6 / 8 → 4 / 9, 글자 12 그대로 + 행간 16. 막대 · scatter · family 툴팁 셋이 같은 표면 style (`CHART_TOOLTIP_SURFACE`) 을 읽고, 값은 rule `chart` 채널 (`tooltipRadius` · `tooltipPaddingX` · `tooltipPaddingY` · `tooltipFontSize` · `tooltipLineHeight`) 에서 생성 CSS 변수 (`--chart-tooltip-radius` · `-padding` · `-font-size` · `-line-height`) 로 온다 — 기기 두 벌 토큰이라 터치 기기에서는 S2 처럼 커진다.
+- **Chart 축 글자 11 이 글자 토큰** — rule `chart.metrics.fontSize` 가 리터럴 11 에서 `{typography.text-2xs}` (S2 `ui-xs` — desktop 11 · 터치 13) 로. 장면 계산이 숫자 하나를 쓰므로 `resolveChartMetrics` 가 설치된 글자 맵에서 px 로 풀어 Canvas · DOM 에 같이 준다 (`chartMetricFontSize`). 테마가 글자 단계를 바꾸면 축 글자도 따른다.
+  - **Why**: 툴팁 모양이 DOM 세 곳에 숫자로 적혀 (rule 밖 — D3 위반) S2 Tooltip 과 달랐고, 축 글자는 S2 단계 밖의 고정 px 였다 (S2 체크리스트 §4.1).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Chart `chart` 채널) · `types/catalog-style.types.ts` · `packages/rendering/src/renderers/CSSGenerator.ts` (`generateChartVariables`) · `packages/rendering/src/chart/computeChartScene.ts` (`chartMetricFontSize`) · `packages/shared/src/components/chart/{chartInteraction,RechartsChart,FamilySceneHost}.tsx` · `components/Chart.components.tsx` (metrics memo 키에 풀린 글자 px).
+  - 확인: 테스트 `s2Chart` 5 (S2 원본 식 · rule 값 · 생성 CSS 변수 · 툴팁 셋의 공용 style · 축 글자 토큰 → 11), 원복 RED 4 (rule · 생성 CSS · RechartsChart · 토큰 풀기). 기대값 갱신 2 (`adr306ChartSize` metrics, 리터럴 분류에서 Chart 11 삭제). live (`apps/builder/scripts/s2-chart-live.mjs`, headed Chrome, dev 5173): Canvas 에 Chart 를 놓고 툴팁을 켬 → 축 글자 그려짐 · page error 0, Publish 축 글자 13 개 모두 11px, 막대 hover 툴팁 모서리 8 · 여백 4 / 9 · 글자 12 · 행간 16.
+
 ## [FileTrigger — S2 처럼 `FileTrigger > Button` (자기 상자 없음)] - 2026-11-22
 
 ### Breaking Changes

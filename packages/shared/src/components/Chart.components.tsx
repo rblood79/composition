@@ -16,6 +16,7 @@ import {
   getChartFamily,
   loadChartFamily,
   pickChartFamilyProps,
+  chartMetricFontSize,
   resolveChartMetrics,
   subscribeChartFamilies,
 } from "@composition/rendering";
@@ -248,6 +249,8 @@ export function Chart({
   // metrics 해석은 두 consumer 공용 (resolveChartMetrics) — 각자 풀면 좌표가 갈린다.
   const { padding, paddingTop, paddingRight, paddingBottom, paddingLeft } =
     style ?? {};
+  // 축 글자는 토큰 — 테마 · 기기 벌이 바꾸는 px 를 memo 키에 (rule 객체는 그대로라서).
+  const axisFontSize = chartMetricFontSize(rule?.chart?.metrics?.fontSize);
   const metrics = React.useMemo(
     () =>
       resolveChartMetrics(rule?.chart, {
@@ -257,7 +260,16 @@ export function Chart({
         paddingBottom,
         paddingLeft,
       }),
-    [rule, padding, paddingTop, paddingRight, paddingBottom, paddingLeft],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- axisFontSize: 설치된 글자 맵이 바뀌면 다시 푼다
+    [
+      rule,
+      axisFontSize,
+      padding,
+      paddingTop,
+      paddingRight,
+      paddingBottom,
+      paddingLeft,
+    ],
   );
 
   const {

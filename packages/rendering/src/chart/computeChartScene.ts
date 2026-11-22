@@ -9,6 +9,8 @@ import { buildSeriesDecor } from "./marks/seriesDecor";
 import type { SeriesPaths } from "./marks/seriesDecor";
 import { buildAxes } from "./axes";
 import { parsePadding4Way } from "../primitives/cssValueParser";
+import { resolveToken } from "../renderers/utils/tokenResolver";
+import type { TokenRef } from "../types/token.types";
 import { buildPolarAxes } from "./polarAxes";
 import { angleScale, radiusScale } from "./polar";
 import { toScreen } from "./curves";
@@ -787,10 +789,16 @@ export interface ChartRuleChannel {
   grid: string;
   strokeWidth?: number;
   /** ADR-306 — 기하 px 한 벌 (공개 size 축 삭제 — S/M/L 별 값 없음). */
-  metrics?: Readonly<{ padding: number; fontSize: number }>;
+  metrics?: Readonly<{ padding: number; fontSize: number | string }>;
   tooltipBackground?: string;
   tooltipBorder?: string;
   tooltipText?: string;
+  /** S2 §4.1 — 툴팁 모양 (S2 Tooltip 값 — `--chart-tooltip-radius` · `-padding` · `-font-size` · `-line-height`) */
+  tooltipRadius?: string;
+  tooltipPaddingX?: string;
+  tooltipPaddingY?: string;
+  tooltipFontSize?: string;
+  tooltipLineHeight?: string;
   /** ADR-211 — others 범주 토큰 */
   others?: string;
   /** ADR-217 — 기준선 토큰 (`--chart-reference`) */
@@ -799,6 +807,21 @@ export interface ChartRuleChannel {
   paint?: Readonly<Partial<Record<ChartPaintRole, string>>>;
   /** ADR-211 — 표시 예산 (최소 단위 5종 · `M` · `P` · `R` · 창 트랙 높이). 없는 키는 P0 확정값. */
   budget?: Partial<ChartBudgetMetrics>;
+}
+
+/**
+ * S2 §4.1 (2026-11-22) — 축 글자는 글자 토큰 (`{typography.text-2xs}` — S2 `ui-xs`). 장면 기하는 숫자 하나를
+ * 쓰므로 설치된 글자 맵 (테마 · 기기 벌) 에서 px 로 푼다 — 두 consumer 가 이 함수 하나를 지난다.
+ */
+export function chartMetricFontSize(
+  value: number | string | undefined,
+): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const px = resolveToken(value as TokenRef);
+    if (typeof px === "number" && Number.isFinite(px)) return px;
+  }
+  return CHART_DEFAULT_METRICS.fontSize;
 }
 
 /**
@@ -819,7 +842,7 @@ export function resolveChartMetrics(
     padding: style
       ? parsePadding4Way({ ...style, padding: style.padding ?? padding })
       : padding,
-    fontSize: entry?.fontSize ?? CHART_DEFAULT_METRICS.fontSize,
+    fontSize: chartMetricFontSize(entry?.fontSize),
     strokeWidth: channel?.strokeWidth ?? CHART_DEFAULT_METRICS.strokeWidth,
     seriesCount: channel?.series.length ?? CHART_DEFAULT_METRICS.seriesCount,
     ...mergeBudgetMetrics(channel?.budget),

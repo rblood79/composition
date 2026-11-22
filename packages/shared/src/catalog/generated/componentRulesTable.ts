@@ -14196,6 +14196,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       tooltipBackground: "{color.neutral-subtle}",
       tooltipBorder: "{color.border}",
       tooltipText: "{color.neutral}",
+      // S2 체크리스트 §4.1 (2026-11-22) — 툴팁 모양 = S2 Tooltip (`Tooltip.tsx`): 모서리 `default` 8 ·
+      //   좌우 `edge-to-text` (control S 높이 × 3/8) · 위아래 centerPadding ((24 − 1lh) / 2) · 글자 `ui-sm`.
+      tooltipRadius: "{radius.md}",
+      tooltipPaddingX: "{length.size.height.S*3/8}",
+      tooltipPaddingY:
+        "{length.size.height.S*1/2+typography.text-xs--line-height*-1/2}",
+      tooltipFontSize: "{typography.text-xs}",
+      tooltipLineHeight: "{typography.text-xs--line-height}",
       // ADR-211 others ("기타") 범주 — 시리즈 팔레트 밖의 중립 면 (light/dark 는 토큰이 푼다).
       others: "{color.neutral-subdued}",
       // ADR-217 기준선 — 강한 중립 (RSC gray-800 상당), 라벨도 같은 토큰.
@@ -14216,9 +14224,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-306 Phase 5 — 칸 안 글자 (treemap · sunburst). accent-1 · neutral-subdued 위 대비 짝.
         "on-fill": "{color.on-neutral}",
       },
-      // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
-      //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
-      metrics: { padding: 12, fontSize: 11 },
+      // 기하가 쓰는 값 — sizes[*].fontSize 와 별개 채널이다. 두 consumer 가 같은 숫자로 축 여백·레이블
+      //   솎아내기를 판정해야 좌표가 갈리지 않는다 — 글자는 토큰 (S2 `ui-xs` 11 · 터치 13) 이고
+      //   `resolveChartMetrics` 가 한 곳에서 px 로 푼다 (S2 체크리스트 §4.1, 2026-11-22).
+      metrics: { padding: 12, fontSize: "{typography.text-2xs}" },
       // ADR-211 표시 예산 — P0 실측 확정값 (docs/adr/evidence/211-p0-spike.md). light/dark 동일.
       budget: {
         minSlot: 8,

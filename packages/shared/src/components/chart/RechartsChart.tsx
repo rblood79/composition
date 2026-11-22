@@ -76,6 +76,7 @@ import { FamilySceneHost } from "./FamilySceneHost";
 import { renderMark, renderText, seriesVar } from "./svgDecorations";
 import {
   brushMarks,
+  CHART_TOOLTIP_SURFACE,
   ChartZoomReset,
   syncCursorMarks,
   useChartBrush,
@@ -628,12 +629,7 @@ function SeriesRechartsChart({
               className="react-aria-Chart-tooltip"
               role="status"
               style={{
-                background: "var(--chart-tooltip-bg, Canvas)",
-                color: "var(--chart-tooltip-text, inherit)",
-                border: "1px solid var(--chart-tooltip-border, currentColor)",
-                borderRadius: 6,
-                padding: "6px 8px",
-                fontSize: 12,
+                ...CHART_TOOLTIP_SURFACE,
               }}
             >
               <div>
@@ -1620,12 +1616,7 @@ function SeriesRechartsChart({
               left: scatterHover.x + 12,
               top: scatterHover.y - 8,
               pointerEvents: "none",
-              background: "var(--chart-tooltip-bg, Canvas)",
-              color: "var(--chart-tooltip-text, inherit)",
-              border: "1px solid var(--chart-tooltip-border, currentColor)",
-              borderRadius: 6,
-              padding: "6px 8px",
-              fontSize: 12,
+              ...CHART_TOOLTIP_SURFACE,
               whiteSpace: "nowrap",
             }}
           >

@@ -231,13 +231,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     reason:
       "S2 값 그대로 — `Tabs.tsx` `tabPanel` 의 `flexGrow: 1` · `minHeight: 0` (세로 flex 에서 패널이 줄어들 수 있게 하는 값, 치수 단이 아님)",
   },
-  {
-    component: "Chart",
-    key: "fontSize",
-    values: { "chart.metrics": 11 },
-    reason:
-      "차트 축 글자 — S2 컴포넌트 없음 · 장면 계산 (`computeChartScene`) 입력은 px 숫자",
-  },
   sizes(
     "Keyboard",
     "height",

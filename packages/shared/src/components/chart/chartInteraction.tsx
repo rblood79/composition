@@ -12,7 +12,7 @@
  *   값 글자 — 차트 종류 (Recharts · family host) 와 무관하게 같은 표시).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent, PointerEvent } from "react";
+import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 import { Button as AriaButton } from "react-aria-components";
 import { plotLine, rowCategoryLabel } from "@composition/rendering";
 import type {
@@ -424,6 +424,20 @@ export function useChartZoom(
     reset: () => setZoom(null),
   };
 }
+
+/**
+ * hover 툴팁 표면 — 막대 · scatter · family 툴팁 셋이 같이 읽는다. 색 · 모서리 · 여백 · 글자는 rule `chart`
+ * 채널이 정본이고 생성 CSS 변수로 온다 (모양 = S2 Tooltip 값, S2 체크리스트 §4.1 2026-11-22).
+ */
+export const CHART_TOOLTIP_SURFACE = {
+  background: "var(--chart-tooltip-bg, Canvas)",
+  color: "var(--chart-tooltip-text, inherit)",
+  border: "1px solid var(--chart-tooltip-border, currentColor)",
+  borderRadius: "var(--chart-tooltip-radius)",
+  padding: "var(--chart-tooltip-padding)",
+  fontSize: "var(--chart-tooltip-font-size)",
+  lineHeight: "var(--chart-tooltip-line-height)",
+} as const satisfies CSSProperties;
 
 /** 확대 중일 때 오른쪽 위 「Show all」 — 누르면 전체 보기. */
 export function ChartZoomReset({ onPress }: { onPress: () => void }) {
