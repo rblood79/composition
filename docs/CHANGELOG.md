@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [성능 계측 — 카메라 순간 이동을 팬 이동 거리 분포에서 뺀다] - 2026-11-22
+
+### Fixed
+
+- **many-pages100 page-jump `panDeviceMax` 460,895 → 1,480,707** — 실행 비용이 늘어난 것이 아니었다. 하니스의 page-jump 는 앞 부류 (zoom) 가 남긴 줌 4.0 에서 홈과 가장 먼 page 로 카메라를 한 프레임에 옮기고, ADR-273 의 팬 이동 거리 분포가 그 순간 이동을 팬 프레임으로 셌다. page 프레임이 내용만큼 자란 뒤 (`8ec1eed18`, 11-13) 100 page 가 약 3.2 배 길어져 (마지막 page y 369,150) 그 거리가 그대로 늘었다. 분포의 목적은 content 여백 크기 판단인데, 한 축이라도 화면 크기 이상 옮긴 프레임은 이전 화면과 겹치는 곳이 없어 어떤 여백으로도 덮을 수 없다 — 그런 프레임은 분포 · 최대에 넣지 않고 `cameraJumpFrames` 로 따로 센다 (`countPanMove`). 여백 이탈 재기록 (`contentRedrawsOutOfPad`) 은 그대로 센다. dev 계측만 바뀌고 렌더 동작은 같다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCounters.ts` (`countPanMove` · `cameraJumpFrames`) · `skia/SkiaRenderer.ts` · `apps/builder/perf/ratchet.json`.
+  - 확인: ratchet many-pages100 두 번 측정이 같은 값 — page-jump `panDeviceMax` 1,480,707 → 96 (휠 팬 96 CSS px) · `panDeviceGt128` 2 → 0 · `panFrames` 140 → 138 · `cameraJumpFrames` 2, 다른 키 변화 0. Playwright (dev) 같은 문서에서 pan 부류는 180 프레임 · 최대 24 그대로.
+
 ## [Canvas 간격 손잡이 — 스크롤 상자 밖으로 넘친 gap 손잡이를 그리지도 잡지도 않는다] - 2026-11-22
 
 ### Fixed

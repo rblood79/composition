@@ -1,8 +1,8 @@
 {
   "version": 1,
   "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
-  "generatedAt": "2026-11-21",
-  "head": "89608a46d9a2e4d305d7fbb6bacbba9448fe4e84",
+  "generatedAt": "2026-11-22",
+  "head": "a9000803a718219e6bedc572daf7fa023cc52c30",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -5895,13 +5895,13 @@
           "render.pageGridMovedRoots": 0,
           "render.pageGridResized": 0,
           "render.pageShiftCalls": 0,
-          "render.panDeviceGt128": 2,
+          "render.panDeviceGt128": 0,
           "render.panDeviceLe128": 138,
           "render.panDeviceLe16": 0,
           "render.panDeviceLe32": 0,
           "render.panDeviceLe64": 0,
-          "render.panDeviceMax": 1480707,
-          "render.panFrames": 140,
+          "render.panDeviceMax": 96,
+          "render.panFrames": 138,
           "render.paragraphMissFirst": 4,
           "render.paragraphMissFontMgr": 0,
           "render.paragraphMissKey": 0,
@@ -5987,7 +5987,8 @@
           "cdp.LayoutCount": 9,
           "cdp.RecalcStyleCount": 482,
           "domMutations.childList": 10,
-          "reactRenderMeasures": 405
+          "reactRenderMeasures": 405,
+          "render.cameraJumpFrames": 2
         }
       },
       "edit": {
