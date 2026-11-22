@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ListBox 항목 색 — 선택 항목 아이콘 · picker check 를 S2 색으로] - 2026-11-22
+
+### Fixed
+
+- **단독 ListBox 선택 항목의 아이콘이 accent 바탕 위에 어두운 색 · Select · ComboBox 팝오버의 선택 check 가 accent 가 아닌 어두운 색** — S2 Picker 항목 (`Menu.tsx` `icon` — `--iconPrimary: currentColor`, `checkmark` — `baseColor('accent')`) 대로: 항목 아이콘 (`Icon[slot=icon]`) 은 항목 글자색을 따른다 (선택 항목은 label · 설명과 같은 흰색), check 는 accent.
+  - **Why**: 항목 색을 물려받는 부품 목록 (`catalogItemLabels`) 이 Text 만 담아 아이콘은 자기 휴지 색에 남았고, DOM 도 그 색을 inline 으로 박아 RAC 선택이 바꾼 항목 색을 받지 못했다. check 는 template 이 색을 토큰 참조 (`{kind:"token"}`) 가 아니라 `"{color.accent}"` 글자로 들고 있어 (8560fece5 부터, 파일 안 유일한 형태) Canvas · DOM 둘 다 읽지 못했다.
+  - 위치: `packages/shared/src/catalog/document/manualBoxRules.ts` (`MANUAL_ITEM_LABEL_COLORS.ListBoxItem.iconSlots`) · `catalog/runtime/presence.ts` (`catalogItemLabels` 가 그 slot 의 Icon 도 담음 — Canvas 파생 색 · 갱신 의존) · `runtime/domBinding.runtime.ts` (그 Icon 은 작성 색이 없으면 `color: inherit`) · `document/generated/reusableOriginLibrary.ts` (check 색 = `lib:token:color_accent` 참조).
+  - 확인: 테스트 `s2ListBoxItemDetails` +2 (Canvas 파생 색 · DOM `inherit` · check Canvas · DOM accent), 원복 RED 3 (토큰 글자 · `iconSlots` · DOM inherit — 모두 실패 · 복원). live (`s2-listbox-details-live.mjs` ⑤ ⑥, 새 프로젝트): 항목 아이콘 #ffffff (선택) · #292929 · #292929 가 Canvas = Publish, Select 팝오버 check #3b63fb 가 Canvas = Publish, 페이지 오류 0.
+
 ## [ListBox 항목 세부 — S2 Picker 의 설명 색 · 간격 · section 구분선 · 선택 check 크기] - 2026-11-22
 
 ### Fixed

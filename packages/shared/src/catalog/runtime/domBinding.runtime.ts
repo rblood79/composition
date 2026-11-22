@@ -6092,7 +6092,10 @@ export function renderNode(
       (!glyphColorWritten(node) &&
         (glyphOwner ||
           // (A SideNav row's icon: the row's color, current included.)
-          catalogSideNavRowItemOf(node, domGet, domType))))
+          catalogSideNavRowItemOf(node, domGet, domType) ||
+          // (A ListBox item's icon: the item's color — RAC's selection recolors the item, S2
+          //  `currentColor`; `catalogItemLabels`.)
+          itemOfLabel())))
       ? withInheritedIconColor(node)
       : undefined;
   const rendered = helpOwner

@@ -1156,12 +1156,20 @@ function listBoxItemParts(): CompiledPartRule[] {
  * variant colors: `TabsIndicator.css` `.react-aria-Tab[data-selected] { color: var(--fg) }`.
  */
 export const MANUAL_ITEM_LABEL_COLORS: Readonly<
-  Record<string, { readonly selectedText?: string }>
+  Record<
+    string,
+    {
+      readonly selectedText?: string;
+      /** The Icon slots that take the item's color too (S2 `--iconPrimary: currentColor`). */
+      readonly iconSlots?: readonly string[];
+    }
+  >
 > = {
   Tab: { selectedText: "{color.neutral}" },
   Tag: {},
-  // The reference ListBox item's label · description inherit its color (the selected white).
-  ListBoxItem: {},
+  // The reference ListBox item's label · description inherit its color (the selected white), and so
+  // does its icon (S2 `Menu.tsx` `icon` — `currentColor`); its check mark stays accent (`checkmark`).
+  ListBoxItem: { iconSlots: ["icon"] },
   // The reference GridList card's label · description inherit its color.
   GridListItem: {},
 };

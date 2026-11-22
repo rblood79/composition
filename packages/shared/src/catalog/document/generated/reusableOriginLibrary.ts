@@ -2162,7 +2162,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "insetTop": "50%"
     },
     "visual": {
-      "color": "{color.accent}"
+      "color": {
+        "kind": "token",
+        "tokenId": "lib:token:color_accent"
+      }
     }
   },
   {

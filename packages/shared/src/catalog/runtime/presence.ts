@@ -4563,17 +4563,22 @@ function derivedDependents(
 
 /**
  * A Tab/Tag's label Text children: `.react-aria-Tab/Tag .react-aria-Text { color: inherit }`
- * (`MANUAL_ITEM_LABEL_COLORS`) — they take the item's variant/state/selection color.
+ * (`MANUAL_ITEM_LABEL_COLORS`) — they take the item's variant/state/selection color. A ListBox
+ * item's icon too (`iconSlots` — S2 `currentColor`, 2026-11-22).
  */
 export function catalogItemLabels(
   item: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  const colors = MANUAL_ITEM_LABEL_COLORS[typeOf(item)];
   // (Through layout frames — a Tag's texts sit in its content `div`, S2 `TagWrapper`, 2026-11-18.)
-  return MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
+  return colors
     ? partChildrenOf(item, get, typeOf).filter(
-        (child) => typeOf(child) === "Text",
+        (child) =>
+          typeOf(child) === "Text" ||
+          (typeOf(child) === "Icon" &&
+            !!colors.iconSlots?.includes(String(child.props.slot))),
       )
     : [];
 }

@@ -7,7 +7,9 @@
  *   - the label ↔ description gap `space(1)` = 1;
  *   - a section brings S2's Divider (the Menu's way — 「+ Section」 adds a Separator, hidden first, last
  *     or before another; its place `5px` × the item's `edge-to-text`), which replaces the standalone
- *     section header's own lines.
+ *     section header's own lines;
+ *   - the item's icon is S2's `currentColor` (`Menu.tsx` `icon` — a standalone list's selected item turns
+ *     it on-accent with its label), and a picker's check mark is `baseColor('accent')` (`checkmark`).
  */
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
@@ -280,5 +282,60 @@ describe("S2 ListBox item details — description color · gap · section Divide
       (part) => root.typeOf(part) === "Icon" && part.props.iconName === "check",
     );
     expect(check?.visual).toMatchObject({ width: 16, height: 16 });
+  });
+
+  it("the item's icon takes the item's color — on-accent when selected (Canvas · DOM, S2 `icon` currentColor)", async () => {
+    const first = await open({ selectionMode: "single" });
+    const key = first.of("ListBoxItem")[0]!.props.id as string;
+    const { root, of, kids, render } = await open({
+      selectionMode: "single",
+      defaultSelectedKeys: [key],
+    });
+    const iconOf = (item: { id: string }) =>
+      kids(item.id).find(
+        (part) => root.typeOf(part) === "Icon" && part.props.slot === "icon",
+      )!;
+    const [selected, ...rest] = of("ListBoxItem");
+    expect(iconOf(selected!).derivedProps?.color).toBe(
+      color("{color.on-accent}"),
+    );
+    for (const item of rest)
+      expect(iconOf(item).derivedProps?.color).toBe(color("{color.neutral}"));
+    // The DOM glyph inherits the item's color (the sheet's selected item is on-accent) — no resting
+    // color inline.
+    const done = await render(of("ListBox")[0]!.id);
+    const glyphs = [
+      ...document.querySelectorAll<HTMLElement>(
+        '.react-aria-ListBoxItem .react-aria-Icon[slot="icon"]',
+      ),
+    ];
+    expect(glyphs.length).toBe(3);
+    for (const glyph of glyphs) expect(glyph.style.color).toBe("inherit");
+    await done();
+  });
+
+  it("a picker's check mark is accent (Canvas · DOM, S2 `checkmark` baseColor('accent'))", async () => {
+    const probe = await open({ isOpen: true }, "Select");
+    const key = probe.of("ListBoxItem")[0]!.props.id as string;
+    const { root, of, kids, render } = await open(
+      { isOpen: true, value: key },
+      "Select",
+    );
+    const check = kids(of("ListBoxItem")[0]!.id).find(
+      (part) => root.typeOf(part) === "Icon" && part.props.iconName === "check",
+    )!;
+    const accent = color("{color.accent}").toLowerCase();
+    const drawn = String(check.derivedProps?.color ?? check.visual.color);
+    expect(drawn.toLowerCase().startsWith(accent.slice(0, 7))).toBe(true);
+    const done = await render(of("Select")[0]!.id);
+    const glyph = document.querySelector<HTMLElement>(
+      '.react-aria-ListBoxItem .react-aria-Icon[slot="selection"]',
+    );
+    // (A template's token goes inline as its value in the root's mode — `catalogNodeTokenCss` turns
+    //  only the document's own tokens into variables.)
+    const rgb = (hex: string) =>
+      `rgb(${[1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16)).join(", ")})`;
+    expect(glyph?.style.color).toBe(rgb(accent));
+    await done();
   });
 });

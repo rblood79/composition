@@ -8,6 +8,8 @@
 //   ① Canvas — description 색 · 간격 · Divider 자리 (section 기준 x 12 · 아래 5 · 높이 2) · Header 선 0
 //   ② Publish DOM — 같은 값 (computed color · rect)
 //   ④ Select L 팝오버 선택 항목의 check 19.2 (S2 Checkmark L 12 × 16/10) — Canvas 상자 · 글리프 = Publish 상자 · svg
+//   ⑤ 항목 아이콘 = 항목 글자색 (S2 `icon` currentColor — 선택 항목 on-accent) — Canvas = Publish
+//   ⑥ Select 팝오버의 check = accent (S2 `checkmark` baseColor('accent')) — Canvas = Publish
 //   ③ 끝 section 의 Divider 숨김 — 마지막 항목을 지우면 Divider 가 숨고 Undo 로 돌아온다 (Canvas)
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/s2-listbox-details-live.mjs <out-dir>
@@ -149,9 +151,11 @@ try {
             ]),
           };
         const lg = geo(label.id);
+        const icon = part("icon");
         return {
           key: item.props.id,
           selected: item.derivedProps?._isSelected === true,
+          iconColor: icon?.derivedProps?.color ?? icon?.visual.color,
           descriptionColor:
             description.derivedProps?.color ?? description.visual.color,
           gap: geo(description.id).y - (lg.y + lg.height),
@@ -209,6 +213,14 @@ try {
       canvas.header.bottom === 0,
     canvas,
   );
+  record(
+    "⑤ Canvas — item icon takes the item color (selected on-accent · rest neutral)",
+    canvas.items[0].iconColor?.toLowerCase() === "#ffffff" &&
+      canvas.items
+        .slice(1)
+        .every((i) => i.iconColor?.toLowerCase() === "#292929"),
+    canvas.items.map((i) => [i.selected, i.iconColor]),
+  );
   await page.screenshot({ path: `${OUT}/1-canvas.png` });
 
   // ④ a Select L — its option's selection check at the S2 step (사용자 결정 「크기별로 키움」 — L 19.2).
@@ -260,6 +272,7 @@ try {
     const g = ws.root.getGeometry([check.id]).get(check.id);
     const out = {
       key,
+      color: String(check.derivedProps?.color ?? check.visual.color),
       hidden: !!check.hidden,
       glyph: check.visual.fontSize,
       width: g.width,
@@ -274,6 +287,11 @@ try {
     );
     return out;
   });
+  record(
+    "⑥ Canvas — Select option check is accent",
+    /^#3b63fb/i.test(select.color),
+    select.color,
+  );
   record(
     "④ Canvas — Select L option check 19.2 (box · glyph)",
     !select.hidden &&
@@ -339,8 +357,10 @@ try {
           .querySelector('[slot="label"]')
           .getBoundingClientRect();
         const description = item.querySelector('[slot="description"]');
+        const icon = item.querySelector('.react-aria-Icon[slot="icon"]');
         return {
           selected: item.hasAttribute("data-selected"),
+          iconColor: icon && getComputedStyle(icon).color,
           descriptionColor: getComputedStyle(description).color,
           gap:
             Math.round(
@@ -376,7 +396,15 @@ try {
   dom.items = dom.items.map((i) => ({
     ...i,
     descriptionColor: hex(i.descriptionColor),
+    iconColor: hex(i.iconColor),
   }));
+  record(
+    "⑤ Publish — item icon color = Canvas",
+    dom.items.every(
+      (d, i) => d.iconColor === canvas.items[i].iconColor?.toLowerCase(),
+    ),
+    { dom: dom.items.map((i) => i.iconColor), canvas: canvas.items.map((i) => i.iconColor) },
+  );
   record(
     "② Publish DOM = Canvas (description color · gap · Divider place · header)",
     dom.items.every(
@@ -409,6 +437,7 @@ try {
     const svg = icon.querySelector("svg").getBoundingClientRect();
     const box = icon.getBoundingClientRect();
     return {
+      color: getComputedStyle(icon).color,
       size: item.getAttribute("data-size"),
       box: [box.width, box.height],
       svg: [svg.width, svg.height],
@@ -420,6 +449,11 @@ try {
       domCheck.box.every((v) => Math.abs(v - 19.2) < 0.05) &&
       domCheck.svg.every((v) => Math.abs(v - 19.2) < 0.05),
     { domCheck, canvas: select },
+  );
+  record(
+    "⑥ Publish — the check is accent = Canvas",
+    hex(domCheck.color) === select.color.slice(0, 7).toLowerCase(),
+    { dom: hex(domCheck.color), canvas: select.color },
   );
   await pub.screenshot({ path: `${OUT}/3-select-check.png` });
   record("no page errors", errors.length === 0, errors);
