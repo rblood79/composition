@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ListBox 항목 세부 — S2 Picker 의 설명 색 · 간격 · section 구분선 · 선택 check 크기] - 2026-11-22
+
+### Fixed
+
+- **ListBox 항목 설명이 label 과 같은 색 · 간격 2 · section 사이 구분선 없음 · picker 선택 check 가 모든 크기에서 16** — S2 Picker 항목 (`ComboBox.tsx` `listboxItem` · Menu.tsx `description` · `PickerSection`) 대로: 설명 = `neutral-subdued` (단독 목록의 선택 항목은 accent 바탕의 흰 글자 그대로 — 선택 채움 유지 결정 2026-11-14, 팝오버 목록은 선택 채움이 없어 늘), label ↔ 설명 간격 = `space(1)` 1, 「+ Section」 이 S2 Divider (Separator — 12 상자 · 2px · 좌우 edge-to-text) 를 함께 넣고 그 구분선은 목록 끝 · 연속이면 숨김 (Menu 의 11-18 방식을 ListBox 로 일반화 — `catalogCollectionSeparatorHidden`). 구분선이 section 을 나누므로 단독 목록 section 머리의 위아래 선은 지웠다 (바탕 · 글자는 그대로). picker 항목의 선택 check 는 크기를 따른다 (사용자 결정 「크기별로 키움」 — S2 `checkmarkIconSize` 10 · 10 · 12 · 14 를 우리 M 16 기준으로 × 16/10: XS · S · M 16 · L 19.2 · XL 22.4, 상자와 글리프 모두). 같은 template 을 복사하는 Menu 의 check 는 16 그대로.
+  - **Why**: Canvas 는 항목 글자 색을 항목 칠 하나로 물려받고 DOM 은 ListBox rule 의 `color: inherit` 를 써, 설명만 다른 색을 줄 자리가 없었다. 구분선은 ListBox 가 Separator 를 자식으로 받지 않았고 (허용 목록 · DOM 자식 거르기 둘 다), 항목 넣기의 section 경로가 Menu 만 알았다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ListBox 설명 색 선택자 · `.react-aria-Separator` 자리 · Header 선 삭제, ListBoxItem `gap` 1) · `catalog/runtime/presence.ts` (`catalogListBoxDescriptionColor` — Canvas 가 같은 선택자 값을 읽음 · `catalogCollectionSeparatorHidden`) · `runtime/compositionRoot.ts` · `runtime/delegatedDom.runtime.ts` (`LISTBOX_CHILD_TYPES`) · `commands/collections.ts` (`insertCollectionItem` `after`) · `apps/builder/src/builder/catalogRuntime/itemInsert.ts` (`SECTION_DIVIDER_HOSTS`) · `domain/componentTraits.ts` · `document/manualBoxRules.ts` · `document/selectionItemTemplates.ts` (picker 항목 rowGap 1 · Menu check 16 유지) · `document/generated/reusableOriginLibrary.ts` (ListBoxItem check 의 16 고정 삭제 — 작성값이 크기별 rule 값을 덮었다).
+  - 확인: 테스트 `s2ListBoxItemDetails` 6 (Canvas 색 · 생성 CSS · 간격 · 구분선 넣기 · 숨김 · 자리 · DOM `role=separator` · Header 선), 기대값 갱신 6 파일 (gap 1 · ListBox 자식 Separator · S2 값 리터럴 등재), 원복 RED 11 (Canvas 색 · 시트 색 · 간격 · DOM 자식 · 넣기 · 숨김 · Header 선 · 구분선 자리 · check 크기 표 · template 16 · Menu 16 — 모두 실패 · 복원). live (`s2-listbox-details-live.mjs`, 새 프로젝트 · Builder 의 「+ Section」 · 「+ Item」): 설명 색 #ffffff (선택) · #505050 · 간격 1 · 구분선 section 기준 x 12 · 아래 5 · 높이 2 · 남는 폭 24 · Header 선 0 · 높이 32 가 Canvas = Publish, 끝 항목을 지우면 구분선 숨김 → Undo 로 다시 보임, Select L 팝오버 선택 항목 check Canvas 상자 · 글리프 19.2 = Publish 상자 · svg 19.2, 페이지 오류 0.
+
 ## [ListBox 항목 글자 단계 — S2 Picker 항목처럼 크기를 따른다] - 2026-11-22
 
 ### Fixed

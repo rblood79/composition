@@ -222,8 +222,13 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
         definitionTypeName(graph, option.definitionId),
       ),
       // (No deprecated `Section` · list-level `Header` — 2026-10-22. Its empty state beside the
-      // items — RAC `renderEmptyState`, 2026-10-23.)
-    ).toEqual(["ListBoxItem", "ListBoxSection", "IllustratedMessage"]);
+      // items — RAC `renderEmptyState`, 2026-10-23. A section's S2 Divider — 2026-11-22.)
+    ).toEqual([
+      "ListBoxItem",
+      "ListBoxSection",
+      "Separator",
+      "IllustratedMessage",
+    ]);
     // A group's root slot takes its items (`GROUP_ITEM_TYPES`), not the ~70 Library origins
     // (2026-10-22 user 「buttonGroup slot 추가에 왜 이렇게 많은 컴퍼넌트」) — and of the project's
     // components, the ones drawn by an item type.

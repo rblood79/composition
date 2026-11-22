@@ -212,6 +212,13 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "목록 항목 icon slot (`--lb-icon-size` 16) — 수동 ListBox.css 와 같은 값",
   },
   {
+    component: "ListBoxItem",
+    key: "gap",
+    values: { XS: 1, S: 1, M: 1, L: 1, XL: 1 },
+    reason:
+      "S2 값 그대로 — `ComboBox.tsx` `listboxItem` 의 `rowGap: space(1)` (label ↔ description, spacing 단 밖의 1px)",
+  },
+  {
     component: "Slot",
     key: "minHeight",
     values: { S: 40, M: 60, L: 80 },

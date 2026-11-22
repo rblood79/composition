@@ -16,7 +16,8 @@ export function selectionItemTemplates(
     display: "grid" as const,
     gridTemplateColumns: "auto auto minmax(0, 1fr) auto auto",
     alignItems: "center" as const,
-    rowGap: "2px",
+    // (S2 `listboxItem` `rowGap: space(1)` — the label over its description, 2026-11-22.)
+    rowGap: "1px",
     columnGap: "0px",
   };
   const partLayout = (column: string, row = "1") => ({
@@ -90,9 +91,11 @@ export function selectionItemTemplates(
     }
     // (S2 draws the check mark in every item of a single-selection Menu, hidden until selected —
     // `catalogMenuCheckUnselected`.)
+    // (Its box stays 16 — the size steps of the check are the ListBox item's, S2 picker sizes
+    //  (`LISTBOX_CHECK_PX`, 2026-11-22); the Menu's own steps were not asked for.)
     if (node.id === menu + "__check") {
       const { showWhen: _showWhen, layout: _layout, ...rest } = node;
-      return rest;
+      return { ...rest, visual: { ...rest.visual, width: 16, height: 16 } };
     }
     if (node.id === menu + "__selection") {
       const { layout: _layout, ...rest } = node;

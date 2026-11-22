@@ -1237,6 +1237,13 @@ const MENU_TRIGGER_TYPES: ReadonlySet<string> = new Set([
   "SubmenuTrigger",
 ]);
 
+/** A ListBox's RAC collection children (+ a section's S2 Divider — a Separator, 2026-11-22). */
+const LISTBOX_CHILD_TYPES: ReadonlySet<string> = new Set([
+  "ListBoxItem",
+  "ListBoxSection",
+  "Separator",
+]);
+
 const MENU_CHILD_TYPES: ReadonlySet<string> = new Set([
   "MenuItem",
   "SubmenuTrigger",
@@ -2256,9 +2263,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   listbox: {
     ownsChild: (child, _parent, root) =>
-      !["ListBoxItem", "ListBoxSection"].includes(
-        catalogTypeName(root, child),
-      ) && !isEmptyStateChild(child, root),
+      !LISTBOX_CHILD_TYPES.has(catalogTypeName(root, child)) &&
+      !isEmptyStateChild(child, root),
     render: (input) => {
       const props = input.node.props;
       // A picker's list (ADR-253 Phase 4): RAC's Select · ComboBox own its name, selection and
@@ -2332,9 +2338,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...catalogRenderRuns(
           input,
           children(input).filter((child) =>
-            ["ListBoxItem", "ListBoxSection"].includes(
-              catalogTypeName(input.root, child),
-            ),
+            LISTBOX_CHILD_TYPES.has(catalogTypeName(input.root, child)),
           ),
           ListBoxLoadMoreItem,
         ),

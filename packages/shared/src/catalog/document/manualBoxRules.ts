@@ -368,10 +368,12 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」) — the ListBox rule's item
   // selectors (`rootSelectors["&:not(.react-aria-Popover *)"]`, the reference `ListBox.css`) over
   // the generated Header · Text sheets:
-  // - a section header: sticky, `--text-xs` 600, `padding: 4 16`, the overlay surface between two
-  //   0.5px lines (line-height inherited from the Preview body, 1.5);
-  // - the label: the item's text (14 · its line height · its color — `MANUAL_ITEM_LABEL_COLORS`),
-  //   weight 500; the description `--text-xs` / `--text-xs--line-height` in the item's color.
+  // - a section header: sticky, `--text-xs` 600, `padding: 4 16`, the overlay surface (line-height
+  //   inherited from the Preview body, 1.5) — no lines since 2026-11-22: S2's Divider after a section
+  //   separates them (the ListBox rule's `.react-aria-Separator` place);
+  // - the label: weight 500 in the item's color (`MANUAL_ITEM_LABEL_COLORS`); the label · description
+  //   text steps the ListBoxItem rule's `sizeSelectors`, the description's color
+  //   `catalogListBoxDescriptionColor`.
   // Item slot roles: the Preview puts `slot` on an item child only inside a ListBox
   // (`itemSlotAttr`), hence the owner is the ListBox, through the item. The icon (`ListBox.css`
   // `[slot="icon"]`) absolutely placed at `left: --spacing-md`, vertically centred (`top: 50%;
@@ -379,9 +381,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // (`:has([slot=icon])`) is the presence value `catalogItemSlotInset`.
   ListBox: () => {
     const descSize = textPx("text-xs");
-    const hairline = Number(
-      resolveToken("{border.width.hairline}" as TokenRef),
-    );
     const parts: CompiledPartRule[] = [
       ...(descSize
         ? [
@@ -397,12 +396,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
                 paddingY: 4,
                 fill: "var(--bg-overlay)",
                 color: "{color.neutral}",
-                borderStyle: "solid",
-                borderColor: "var(--border)",
-                borderTopWidth: hairline,
-                borderRightWidth: 0,
-                borderLeftWidth: 0,
-                borderBottomWidth: hairline,
               } as CompiledPartRule["visual"],
             },
           ]

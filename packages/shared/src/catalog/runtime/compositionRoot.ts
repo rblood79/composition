@@ -259,6 +259,7 @@ import {
   catalogItemSlotInset,
   catalogFieldLabelPart,
   catalogFieldLabelRowColor,
+  catalogListBoxDescriptionColor,
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
   catalogProgressFillLayout,
@@ -5020,26 +5021,37 @@ export class CatalogCompositionRoot {
             ),
           }
         : ownItemDerived;
-    const color = catalogRuleTextColor({
-      node: itemDerived
-        ? {
-            ...item,
-            props: { ...item.props, ...itemDerived },
-            derivedProps: itemDerived,
-          }
-        : item,
-      rule,
-      type:
-        inheritedColorOwner || ruleByType
-          ? this.typeOf(item)
-          : pickerPartOwner
-            ? "Button"
-            : item.ruleId!,
-      authoredVisual: catalogAuthoredVisual(this, item),
-      state: catalogNodeState(item.displayState, this.state),
-      // The item color in this root's color mode (its tokens differ in dark).
-      theme: this.colorMode,
-    });
+    // (S2 체크리스트 §4.1, 2026-11-22: a ListBox item's description is `neutral-subdued` — the ListBox
+    //  rule's description selectors, the same states as its sheet.)
+    const descriptionColor =
+      this.typeOf(item) === "ListBoxItem" && record.props.slot === "description"
+        ? catalogListBoxDescriptionColor(
+            itemDerived?._inPopover === true,
+            itemDerived?._isSelected === true,
+          )
+        : undefined;
+    const color = descriptionColor
+      ? String(resolveToken(descriptionColor as TokenRef, this.colorMode))
+      : catalogRuleTextColor({
+          node: itemDerived
+            ? {
+                ...item,
+                props: { ...item.props, ...itemDerived },
+                derivedProps: itemDerived,
+              }
+            : item,
+          rule,
+          type:
+            inheritedColorOwner || ruleByType
+              ? this.typeOf(item)
+              : pickerPartOwner
+                ? "Button"
+                : item.ruleId!,
+          authoredVisual: catalogAuthoredVisual(this, item),
+          state: catalogNodeState(item.displayState, this.state),
+          // The item color in this root's color mode (its tokens differ in dark).
+          theme: this.colorMode,
+        });
     // (A SideNav row's · header's Text takes its owner's type — S2 `font: ui` / `ui-sm`, the current
     //  row bold: the DOM's `inherit`; a value the Text writes stays its own.)
     const typographyOwner =

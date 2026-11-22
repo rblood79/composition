@@ -33,7 +33,7 @@
   font-weight: 400;
   border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-M);
-  gap: 2px;
+  gap: 1px;
   --icon-size: 16px;
 }
 
@@ -78,7 +78,7 @@
   font-weight: 400;
   border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-XS);
-  gap: 2px;
+  gap: 1px;
   --icon-size: 16px;
 }
 
@@ -91,7 +91,7 @@
   font-weight: 400;
   border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-S);
-  gap: 2px;
+  gap: 1px;
   --icon-size: 16px;
 }
 
@@ -104,7 +104,7 @@
   font-weight: 400;
   border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-M);
-  gap: 2px;
+  gap: 1px;
   --icon-size: 16px;
 }
 
@@ -117,7 +117,7 @@
   font-weight: 400;
   border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-L);
-  gap: 2px;
+  gap: 1px;
   --icon-size: 16px;
 }
 
@@ -130,7 +130,7 @@
   font-weight: 400;
   border-width: var(--border-width-none);
   min-height: var(--catalog-token-size-height-XL);
-  gap: 2px;
+  gap: 1px;
   --icon-size: 16px;
 }
 
@@ -197,6 +197,12 @@
 }
 
 
+  .react-aria-ListBoxItem[data-size="XS"] .react-aria-Icon[slot="selection"] {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+
   .react-aria-ListBoxItem[data-size="XS"] .react-aria-Text[slot="label"] {
     font-size: var(--catalog-token-text-2xs);
     line-height: var(--catalog-token-text-2xs--line-height);
@@ -206,6 +212,12 @@
   .react-aria-ListBoxItem[data-size="XS"] .react-aria-Text[slot="description"] {
     font-size: var(--catalog-token-text-2xs);
     line-height: var(--catalog-token-text-2xs--line-height);
+  }
+
+  .react-aria-ListBoxItem[data-size="S"] .react-aria-Icon[slot="selection"] {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
   }
 
   .react-aria-ListBoxItem[data-size="S"] .react-aria-Text[slot="label"] {
@@ -219,6 +231,12 @@
     line-height: var(--catalog-token-text-2xs--line-height);
   }
 
+  .react-aria-ListBoxItem[data-size="M"] .react-aria-Icon[slot="selection"] {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+
   .react-aria-ListBoxItem[data-size="M"] .react-aria-Text[slot="label"] {
     font-size: var(--catalog-token-text-sm);
     line-height: var(--catalog-token-text-sm--line-height);
@@ -230,6 +248,12 @@
     line-height: var(--catalog-token-text-xs--line-height);
   }
 
+  .react-aria-ListBoxItem[data-size="L"] .react-aria-Icon[slot="selection"] {
+    width: 19.2px;
+    height: 19.2px;
+    font-size: 19.2px;
+  }
+
   .react-aria-ListBoxItem[data-size="L"] .react-aria-Text[slot="label"] {
     font-size: var(--catalog-token-text-base);
     line-height: var(--catalog-token-text-base--line-height);
@@ -239,6 +263,12 @@
   .react-aria-ListBoxItem[data-size="L"] .react-aria-Text[slot="description"] {
     font-size: var(--catalog-token-text-sm);
     line-height: var(--catalog-token-text-sm--line-height);
+  }
+
+  .react-aria-ListBoxItem[data-size="XL"] .react-aria-Icon[slot="selection"] {
+    width: 22.4px;
+    height: 22.4px;
+    font-size: 22.4px;
   }
 
   .react-aria-ListBoxItem[data-size="XL"] .react-aria-Text[slot="label"] {

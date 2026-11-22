@@ -245,7 +245,7 @@ import {
   catalogFieldLabelRowAbsent,
   catalogPickerTimeAbsent,
   catalogSelectionCheckboxHidden,
-  catalogMenuSeparatorHidden,
+  catalogCollectionSeparatorHidden,
   catalogPaginationPartHidden,
   catalogColumnMenuIconHidden,
 } from "./presence";
@@ -5401,8 +5401,8 @@ export function renderNode(
       (id) => root.domInputs.get(id),
       root.typeOf,
     ) ||
-    // (S2 Menu Divider: none first, last or before another.)
-    catalogMenuSeparatorHidden(
+    // (S2 Menu · ListBox Divider: none first, last or before another.)
+    catalogCollectionSeparatorHidden(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,

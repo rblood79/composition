@@ -23,13 +23,13 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(rule).toBeDefined();
     });
 
-    it("sizes.M — paddingX 12 / paddingY 7 / gap 2 / minHeight {size.height.M} / 테두리 0 / fontWeight 400 (S2 menuitem)", () => {
+    it("sizes.M — paddingX 12 / paddingY 7 / gap 1 (S2 listboxItem rowGap space(1)) / minHeight {size.height.M} / 테두리 0 / fontWeight 400 (S2 menuitem)", () => {
       const md = rule?.sizes?.M as Record<string, unknown> | undefined;
       expect(md).toBeDefined();
       expect(md?.paddingX).toBe(12);
       // ADR-295 Phase 3c-2 — S2 `menuitem` (`control({wrap, icon})`, 테두리 없음): (32 − 18) / 2.
       expect(md?.paddingY).toBe(7);
-      expect(md?.gap).toBe(2);
+      expect(md?.gap).toBe(1);
       // The ListBox rule's item selector keeps items from shrinking under the minimum (`flex-shrink:
       //   0` — 9c2142e04's scroll note).
       expect(md?.minHeight).toBe("{size.height.M}");

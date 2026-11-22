@@ -8262,6 +8262,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   the old starter's.)
       composition: {
         delegation: [],
+        // S2 체크리스트 §4.1 (2026-11-22): S2 `PickerSection` puts a Divider after itself
+        //   (`ComboBox.tsx` `separatorWrapper` — 12 high around the 2px line, `edge-to-text` = the item
+        //   height × 3/8 at the sides): the Separator a section brings (「+ Section」 — the Menu's way).
+        //   XS (not in S2) at its own height 20.
+        sizeSelectors: {
+          XS: { ".react-aria-Separator": { margin: "5px 7.5px" } },
+          S: { ".react-aria-Separator": { margin: "5px 9px" } },
+          M: { ".react-aria-Separator": { margin: "5px 12px" } },
+          L: { ".react-aria-Separator": { margin: "5px 15px" } },
+          XL: { ".react-aria-Separator": { margin: "5px 18px" } },
+        },
         rootSelectors: {
           "&:not(.react-aria-Popover *)": {
             nested: {
@@ -8316,6 +8327,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               '.react-aria-ListBoxItem [slot="description"]': {
                 color: "inherit",
               },
+              // S2 체크리스트 §4.1 (2026-11-22): S2 `description` `neutral-subdued` — a selected item keeps
+              //   its on-accent text (the list's selection fill stays, 사용자 결정 2026-11-14). The Canvas
+              //   reads this value (`catalogListBoxDescriptionColor`).
+              '.react-aria-ListBoxItem:not([data-selected]) [slot="description"]':
+                {
+                  color: "var(--fg-muted)",
+                },
+              // (No lines of its own since 2026-11-22 — S2's Divider after a section separates them,
+              //   the ListBox rule's `.react-aria-Separator` place.)
               ".react-aria-ListBoxSection .react-aria-Header": {
                 display: "block",
                 position: "sticky",
@@ -8327,8 +8347,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 color: "var(--fg)",
                 padding: "var(--spacing-xs) var(--spacing-lg)",
                 background: "var(--bg-overlay)",
-                "border-block":
-                  "var(--border-width-hairline) solid var(--border)",
               },
             },
           },
@@ -8396,9 +8414,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "font-weight": "500",
                 color: "inherit",
               },
-              // (Its text step is the item's size — the ListBoxItem rule's `sizeSelectors`.)
+              // (Its text step is the item's size — the ListBoxItem rule's `sizeSelectors`; S2 `description`
+              //   `neutral-subdued` — a picker's list draws no selection fill, so always.)
               '.react-aria-ListBoxItem [slot="description"]': {
-                color: "inherit",
+                color: "var(--fg-muted)",
               },
               // (The item's icon after the check's 24 — the sheet's general icon is 12 in.)
               '.react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"]':
@@ -8487,7 +8506,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 3,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
       S: {
@@ -8500,7 +8519,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 4,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
       M: {
@@ -8525,8 +8544,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   (desktop result).
         paddingX: ofHeight(3, 8),
         paddingY: 7,
-        // label↔description 수직 간격 (S2 menuitem description 2).
-        gap: 2,
+        // label↔description 수직 간격 = S2 `listboxItem` `rowGap: space(1)` (2026-11-22 — 전 2).
+        gap: 1,
         // selection indicator / icon glyph 크기 (spec iconSize 16).
         iconSize: 16,
       },
@@ -8540,7 +8559,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 10,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
       XL: {
@@ -8553,7 +8572,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 13,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
     },
@@ -8598,9 +8617,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   generated sheet and the Canvas part rules (`compileRulePartRules`) — before, the Canvas drew
       //   the label 14 · the description 12 at every size and the sheet the description 12. A standalone
       //   list keeps its box and selection fill (사용자 결정 2026-11-14) — only the text steps.
+      // The selection check (a picker's option — 사용자 결정 2026-11-22 「크기별로 키움」): S2 `PickerItem`
+      //   draws `CheckmarkIcon` at `checkmarkIconSize[size]` — the ui-icon box S 10 (XS) · M 10 · L 12 ·
+      //   XL 14. Our lucide check keeps its 16 at M (its strokes span 2/3 of the box — about S2's 10), the
+      //   steps scale from there (× 16 / 10 — L 19.2 · XL 22.4); XS (not in S2) takes S's. Box and glyph
+      //   (the Icon's font size — `catalogGlyphSize` · `Icon.tsx`).
       composition: {
         sizeSelectors: {
           XS: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "16px",
+              height: "16px",
+              "font-size": "16px",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-2xs)",
               "line-height": "var(--text-2xs--line-height)",
@@ -8612,6 +8641,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           S: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "16px",
+              height: "16px",
+              "font-size": "16px",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-xs)",
               "line-height": "var(--text-xs--line-height)",
@@ -8623,6 +8657,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           M: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "16px",
+              height: "16px",
+              "font-size": "16px",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-sm)",
               "line-height": "var(--text-sm--line-height)",
@@ -8634,6 +8673,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           L: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "19.2px",
+              height: "19.2px",
+              "font-size": "19.2px",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-base)",
               "line-height": "var(--text-base--line-height)",
@@ -8645,6 +8689,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           XL: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "22.4px",
+              height: "22.4px",
+              "font-size": "22.4px",
+            },
             '.react-aria-Text[slot="label"]': {
               "font-size": "var(--text-lg)",
               "line-height": "var(--text-lg--line-height)",

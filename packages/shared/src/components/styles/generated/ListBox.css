@@ -108,6 +108,27 @@
 }
 
 
+  .react-aria-ListBox[data-size="XS"] .react-aria-Separator {
+    margin: 5px 7.5px;
+  }
+
+  .react-aria-ListBox[data-size="S"] .react-aria-Separator {
+    margin: 5px 9px;
+  }
+
+  .react-aria-ListBox[data-size="M"] .react-aria-Separator {
+    margin: 5px 12px;
+  }
+
+  .react-aria-ListBox[data-size="L"] .react-aria-Separator {
+    margin: 5px 15px;
+  }
+
+  .react-aria-ListBox[data-size="XL"] .react-aria-Separator {
+    margin: 5px 18px;
+  }
+
+
   .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem {
     flex-shrink: 0;
     --listbox-separator: var(--border);
@@ -161,6 +182,10 @@
     color: inherit;
   }
 
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selected]) [slot="description"] {
+    color: var(--fg-muted);
+  }
+
   .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxSection .react-aria-Header {
     display: block;
     position: sticky;
@@ -172,7 +197,6 @@
     color: var(--fg);
     padding: var(--spacing-xs) var(--spacing-lg);
     background: var(--bg-overlay);
-    border-block: var(--border-width-hairline) solid var(--border);
   }
 
   .react-aria-ListBox[data-catalog-id]:is(.react-aria-Popover *) .react-aria-ListBoxItem {
@@ -227,7 +251,7 @@
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="description"] {
-    color: inherit;
+    color: var(--fg-muted);
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"] {

@@ -2162,8 +2162,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "insetTop": "50%"
     },
     "visual": {
-      "width": 16,
-      "height": 16,
       "color": "{color.accent}"
     }
   },
