@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [MenuTrigger — Trigger 에 Context menu (S2) · ColorArea alpha 축은 채택하지 않음] - 2026-11-22
+
+### Added
+
+- **MenuTrigger `trigger` 에 `contextMenu`** — S2 · RAC 설치 타입의 값. 우클릭 · 터치 길게 누르기 · OS 키로 메뉴를 열고, 메뉴는 누른 자리에 선다 (RAC `useMenuTrigger` 의 `useContextMenu`). 왼쪽 클릭으로는 열리지 않고 trigger 에 `aria-haspopup` 이 붙지 않는다 (RAC). 열어 둔 (`isOpen`) context 메뉴의 Popover 는 S2 · RAC 처럼 offset 0 — Canvas 배치가 Popover 의 기본 offset 8 을 그대로 써서 Publish (버튼 바로 아래) 보다 8 아래에 그리던 것을 맞췄다 (`catalogOverlayPopoverOffset` — 작성한 offset 은 그대로 이긴다).
+  - **Why**: S2 체크리스트 부록 C.1 — 설치 타입이 받는 값이 Design 패널 선택지에 없었다.
+  - 위치: `packages/shared/src/catalog/bindings/MenuTrigger.binding.ts` · `catalog/runtime/overlayLayout.ts` (`catalogOverlayPopoverOffset` → `catalogOverlayPlacement`).
+  - 확인: 테스트 `s2C1EnumValues` 6 (S2 설치본 offset 식 · 선택지 · offset 판정 · Canvas 배치 context 132 / press 140 / 작성 20 은 152 · ColorArea alpha oracle 2), 원복 RED 3 (선택지 · 판정 · Canvas 연결). live (`apps/builder/scripts/s2-menu-context-live.mjs`, headed Chrome, dev 5173): Publish 왼쪽 클릭 = 안 열림 · 우클릭 = 누른 자리 (44, 16) 에 메뉴 · press 메뉴는 버튼 아래 8 그대로 · 열어 둔 context 메뉴 Canvas (12, 32) = Publish (12, 32) · page error 0.
+
+### Notes
+
+- **ColorArea `xChannel` · `yChannel` 의 `alpha` 는 넣지 않았다** — 설치 타입 (`ColorChannel`) 은 받지만 RAC 의 면 그라데이션 (`useColorAreaGradient`) 이 alpha 축을 그리지 못하고 (rgb 는 alpha 0 · 255 가 같은 색, hsl · hsb 는 축 표에 없음) S2 ColorArea 도 다루지 않는다. 설치본이 바뀌면 `s2C1EnumValues` 의 oracle 이 실패해 다시 판정하게 한다.
+
 ## [Chart — 툴팁 모양 = S2 Tooltip · 축 글자 = 글자 토큰] - 2026-11-22
 
 ### Changed

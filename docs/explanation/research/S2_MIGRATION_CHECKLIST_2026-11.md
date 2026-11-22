@@ -420,8 +420,8 @@ binding과 `RULE_TYPE_PROP_CONTRACTS`를 함께 확인했다. 아래는 **편집
 
 ### C.1 선언된 enum의 빠진 값
 
-- [ ] MenuTrigger `trigger`: S2 설치 타입의 `contextMenu`가 현재 press·longPress 목록에 없음. `Menu.md` Context menu 예제 기준으로 마우스/키보드 경로를 확인해야 함.
-- [ ] ColorArea `xChannel`·`yChannel`: 설치 타입의 `alpha`가 현재 옵션에 없음. 상속 타입 허용과 실제 S2 source/Canvas 축 구현을 대조한 뒤 지원 범위를 정해야 함.
+- [x] MenuTrigger `trigger`: S2 설치 타입의 `contextMenu`가 현재 press·longPress 목록에 없음. `Menu.md` Context menu 예제 기준으로 마우스/키보드 경로를 확인해야 함. — 11-22 선택지 추가, 열어 둔 context 메뉴의 Canvas offset 0 (S2 · RAC `PopoverContext`). live `s2-menu-context-live.mjs` PASS (우클릭 = 누른 자리 · 왼쪽 클릭 안 열림 · Canvas = Publish).
+- [x] ColorArea `xChannel`·`yChannel`: 설치 타입의 `alpha`가 현재 옵션에 없음. 상속 타입 허용과 실제 S2 source/Canvas 축 구현을 대조한 뒤 지원 범위를 정해야 함. — 11-22 판정: 채택하지 않음. RAC `useColorAreaGradient` 가 alpha 축을 그리지 못하고 S2 ColorArea 도 다루지 않는다 (RAC 로 구현 불가). oracle `s2C1EnumValues` 가 설치본 변화를 잡는다.
 - Link·LinkButton `referrerPolicy`의 빈 문자열은 미지정 값으로 분리했으며 기능 누락으로 세지 않았다.
 - 위 결과는 **명시적인 options가 있는 계약만** 비교했다. size preset, 자유 문자열·숫자 범위, 합성 prop 값의 전체 조합은 별도 검증이다.
 

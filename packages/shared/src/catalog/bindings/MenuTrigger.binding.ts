@@ -24,6 +24,9 @@ export const menuTriggerBinding: PrimitiveBinding = {
         options: [
           { value: "press", label: "Press" },
           { value: "longPress", label: "Long press" },
+          // S2 · RAC — right click · touch long press · OS keys open the menu at the pointer (its
+          //   Popover offset 0 — `catalogOverlayPopoverOffset`).
+          { value: "contextMenu", label: "Context menu" },
         ],
       },
       // S2 1.8.0 MenuTrigger — where the menu opens: `direction` + `align` are its Popover's
