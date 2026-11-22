@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [성능 ratchet — sticky-lists fixture 가 다시 스크롤 목록을 잰다] - 2026-11-22
+
+### Fixed
+
+- **sticky-lists edit `patchCalls` 15 → 195** — 11-22 기준 재설정 (`89608a46d`) 이 「남은 비용」 으로 적었던 값은 fixture 가 바뀐 장면이었다. ListBox 의 기본 overflow 가 빠진 뒤 (`268503f1a`, 11-13) fixture 의 목록 (높이 200) 이 스크롤 상자가 아니게 되어 ADR-267 의 장면 (넘쳐 스크롤하는 목록 + sticky 섹션 머리) 을 재지 않았다 (15 → 75). 그 장면에서 `4a79c6185` 가 큰 fallback patch 하나를 옮겨진 자리마다 작은 patch 로 나눴다 (75 → 195 — 쓰기는 15,225 → 4,125 로 줄었다). fixture 가 ListBox 에 overflow auto 를 직접 준다 (scroll-boxes 와 같다).
+  - 위치: `apps/builder/scripts/perf-baseline.mjs` (sticky-lists fixture) · `apps/builder/perf/ratchet.json`.
+  - 확인: HEAD 에서 두 번 같은 등급 A 값 — `patchCalls` 15 · `bufferSegmentsPeak` 27 → 3 · `spanCursorSteps` 71,265 → 14,414 · `paragraph.misses` 225 → 45 (11-12 기준 105). 스크롤 상자 몫 8 키는 11-12 기준과 같은 값으로, 저장 바이트는 overflow 값만큼 (5,445 → 6,045) 상한을 올렸다 (사용자 승인 · 만료 2027-05-22). B 경고 `cdp.LayoutCount` · `RecalcStyleCount` 23 → 29~30 (한도 25).
+
 ## [성능 계측 — 카메라 순간 이동을 팬 이동 거리 분포에서 뺀다] - 2026-11-22
 
 ### Fixed

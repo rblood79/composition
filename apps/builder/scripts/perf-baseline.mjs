@@ -661,6 +661,9 @@ export async function seedDocument(
                 track: true,
                 children: [0, 1, 2].map((k) => `${listIds[i]}-s${k}`),
                 sizing: { width: 220, height: 200 },
+                // ListBox 의 기본 overflow 는 2026-11-13 (`268503f1a`) 에 빠졌다 — 넘쳐 스크롤하는
+                // 목록 (sticky 섹션 머리의 스크롤 상자) 은 fixture 가 직접 준다 (scroll-boxes 와 같다).
+                visual: { overflow: "auto" },
               },
               ...[0, 1, 2].map((k) => ({
                 id: `${listIds[i]}-s${k}`,
