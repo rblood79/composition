@@ -963,6 +963,10 @@ const TABLE_CELL_CARRIED_TEXT = new Set([
 ]);
 const RULE_CARRIED_TEXT_KEYS: Readonly<Record<string, ReadonlySet<string>>> = {
   Input: new Set(["whiteSpace"]),
+  // (S2 체크리스트 §4.1: a TokenInput's `pre-wrap` keeps its `\n` lines, a Token's `nowrap` its run —
+  //  the measure and the paragraph read them, as the DOM.)
+  TokenInput: new Set(["whiteSpace"]),
+  Token: new Set(["whiteSpace"]),
   ProgressBarValue: new Set(["whiteSpace"]),
   MeterValue: new Set(["whiteSpace"]),
   Cell: TABLE_CELL_CARRIED_TEXT,

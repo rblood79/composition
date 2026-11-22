@@ -93,6 +93,8 @@ export const FIELD_CONTROL_GROUP_HOSTS: ReadonlySet<string> = new Set([
   //  DateInput — always, 2026-11-14; before, a TextField's only while it held a prefix, ADR-259 Phase 2.)
   "TextField",
   "TextArea",
+  // (TokenField: no S2 counterpart — S2 TextArea's `FieldGroup`, S2 체크리스트 §4.1 2026-11-22.)
+  "TokenField",
   "ColorField",
   "DateField",
   "TimeField",
@@ -121,6 +123,7 @@ export const CATALOG_BOXED_FIELDS: ReadonlySet<string> = new Set([
   "SearchField",
   "TextField",
   "TextArea",
+  "TokenField",
   "ColorField",
   "DateField",
   "TimeField",

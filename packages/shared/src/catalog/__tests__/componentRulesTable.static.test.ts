@@ -121,26 +121,20 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   sizes(
     "TokenField",
     "borderRadius",
-    { M: 0 },
-    "S2 에 TokenField 가 없다 (RAC 전용 · d2Provenance composition) — 바깥 묶음은 상자 모양이 없고 TokenInput 이 상자다 (bbca53c78)",
+    { S: 0, M: 0, L: 0, XL: 0 },
+    "S2 에 TokenField 가 없다 (RAC 전용 · d2Provenance composition) — S2 TextArea 처럼 바깥 묶음은 상자 모양이 없고 control Group (S2 `FieldGroup`) 이 Input rule 의 상자를 그린다 (S2 체크리스트 §4.1, 2026-11-22)",
   ),
   sizes(
     "TokenInput",
     "borderRadius",
-    { M: 8 },
-    `S2 에 TokenField 가 없다 (RAC 전용) — 입력 상자는 field control 모서리 M 8 (${"`controlBorderRadius`"}, bbca53c78)`,
+    { S: 0, M: 0, L: 0, XL: 0 },
+    "S2 에 TokenField 가 없다 (RAC 전용) — TokenInput 은 상자 Group 안에서 자기 상자를 내려놓는다 (S2 TextArea 의 `<textarea>` 처럼, S2 체크리스트 §4.1, 2026-11-22)",
   ),
   sizes(
     "Token",
     "borderRadius",
-    { M: 0 },
+    { S: 0, M: 0, L: 0, XL: 0 },
     "S2 에 TokenField 가 없다 (RAC 전용) — 입력 안 token 글자 조각은 상자 모양이 없다 (bbca53c78)",
-  ),
-  sizes(
-    "TokenField",
-    "gap",
-    { M: 6 },
-    "S2 에 TokenField 가 없다 (RAC 전용 · d2Provenance composition) — 라벨 · 입력 · 설명 세로 간격 composition 값 (bbca53c78)",
   ),
   sizes(
     "Label",

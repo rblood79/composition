@@ -14936,16 +14936,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // S2 체크리스트 §4.1 (2026-11-22): S2 에 TokenField 가 없어 TextArea 를 따른다 (`TextField.tsx` — FieldLabel +
+  //   FieldGroup + HelpText). 상자는 control Group (S2 `FieldGroup`, `CATALOG_BOXED_FIELDS`) 이 Input rule 의 크기별
+  //   값 · 상태 트리로 그리고, TokenInput 은 상자를 내려놓는다 (`CATALOG_FIELD_BOX_INPUT_STYLE`). 크기는 TextArea 의
+  //   S · M · L · XL (글자 단계 = Input rule), 부품 사이 간격은 TextArea 와 같은 `centerPadding`.
   TokenField: {
     defaultSize: "M",
-    variants: {},
+    defaultVariant: "default",
+    // (라벨 · 설명 글자색 = TextArea · TextField 의 상태 트리 — S2 `fieldLabel()` neutral-subdued, disabled.)
+    variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     sizes: {
+      S: {
+        height: 0,
+        fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        borderRadius: 0,
+        gap: centerPadding("S"),
+      },
       M: {
         height: 0,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: 0,
-        gap: 6,
+        gap: centerPadding("M"),
+      },
+      L: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
+        borderRadius: 0,
+        gap: centerPadding("L"),
+      },
+      XL: {
+        height: 0,
+        fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
+        borderRadius: 0,
+        gap: centerPadding("XL"),
       },
     },
     structure: {
@@ -14956,35 +14983,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "column",
         width: "100%",
       },
+      stateStyles: {
+        color: TOGGLE_GROUP_LABEL,
+        cursor: { isDisabled: "default" },
+      },
     },
   },
   TokenInput: {
     defaultSize: "M",
     defaultVariant: "default",
+    // (글자색 = Input rule 의 글자 상태 트리 — 바탕 · 테두리는 상자 Group 의 것이라 투명.)
     variants: {
       default: {
         paint: {
-          backgroundColor: {
-            default: "{color.layer-1}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
-          },
+          backgroundColor: "{color.transparent}",
+          color: FIELD_INPUT_CONTENT,
         },
       },
     },
     sizes: {
+      S: {
+        height: 0,
+        fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        borderRadius: 0,
+      },
       M: {
         height: 0,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: 8,
-        paddingX: 12,
-        paddingY: 8,
-        borderWidth: "{border.width.thin}", // (theme axis — ADR-227)
+        borderRadius: 0,
+      },
+      L: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
+        borderRadius: 0,
+      },
+      XL: {
+        height: 0,
+        fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
+        borderRadius: 0,
       },
     },
     structure: {
@@ -14993,11 +15033,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "block",
         width: "100%",
-        minHeight: "36px",
         whiteSpace: "pre-wrap",
         overflowWrap: "anywhere",
       },
-      stateStyles: { ...FOCUS_RING_STATE, ...DISABLED_STATE },
       composition: {
         delegation: [],
         rootSelectors: {
@@ -15016,10 +15054,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {},
     sizes: {
+      S: {
+        height: 0,
+        fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        fontWeight: 600,
+        borderRadius: 0,
+      },
       M: {
         height: 0,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
+        fontWeight: 600,
+        borderRadius: 0,
+      },
+      L: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
+        fontWeight: 600,
+        borderRadius: 0,
+      },
+      XL: {
+        height: 0,
+        fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 600,
         borderRadius: 0,
       },

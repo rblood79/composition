@@ -71,6 +71,9 @@ export const CATALOG_CANVAS_BOX_KEYS = [
   "marginRight",
   "marginBottom",
   "marginLeft",
+  // A text root's line breaking (TokenInput `pre-wrap` · Token `nowrap`) — the Canvas measure and
+  //   paragraph read it as the DOM does (S2 체크리스트 §4.1, 2026-11-22: two-line values measured one).
+  "whiteSpace",
 ] as const;
 
 /**

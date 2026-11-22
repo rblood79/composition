@@ -17,15 +17,72 @@
   display: flex;
   flex-direction: column;
 
+  /* Default variant */
+  background: undefined;
+  color: var(--fg-muted);
+  border: none;
+
   /* Default size */
   height: auto;
   padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: 0;
   line-height: var(--catalog-token-text-sm--line-height);
-  gap: 6px;
+  gap: var(--catalog-token-token-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
+.react-aria-TokenField:where([data-variant="default"]) {
+  color: var(--fg-muted);
+}
+
+.react-aria-TokenField:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-TokenField[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-xs--line-height);
+  gap: var(--catalog-token-token-field-gap-S, calc(var(--catalog-token-size-height-S) * 1 / 2 + calc(var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height)) * -1 / 2));
+}
+
+.react-aria-TokenField[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-sm--line-height);
+  gap: var(--catalog-token-token-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
+}
+
+.react-aria-TokenField[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-base--line-height);
+  gap: var(--catalog-token-token-field-gap-L, calc(var(--catalog-token-size-height-L) * 1 / 2 + calc(var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height)) * -1 / 2));
+}
+
+.react-aria-TokenField[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-lg--line-height);
+  gap: var(--catalog-token-token-field-gap-XL, calc(var(--catalog-token-size-height-XL) * 1 / 2 + calc(var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height)) * -1 / 2));
+}
+
+.react-aria-TokenField.react-aria-TokenField {
+  color: var(--fg-muted);
+}
+
+.react-aria-TokenField.react-aria-TokenField:where([data-disabled]) {
+  color: var(--fg-disabled);
+  cursor: default;
+}
 
 @media (forced-colors: active) {
   .react-aria-TokenField {

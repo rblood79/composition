@@ -254,6 +254,7 @@ export function typedCanvasBox(
     } else if (key === "width") visual.width = value;
     else if (key === "height") visual.height = boxPixels(value) ?? value;
     else if (key === "overflow") visual.overflow = String(value);
+    else if (key === "whiteSpace") visual.whiteSpace = String(value);
     else if (key === "aspectRatio") visual.aspectRatio = String(value);
     else if (key === "minWidth") visual.minWidth = boxPixels(value) ?? value;
     else if (key === "minHeight" || key === "padding") {

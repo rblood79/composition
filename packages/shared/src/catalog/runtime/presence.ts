@@ -366,6 +366,8 @@ export function catalogToggleButtonGlyphOwner(
       "RadioGroup",
       "TextField",
       "TextArea",
+      // (S2 체크리스트 §4.1, 2026-11-22: TokenField — S2 TextArea's pattern.)
+      "TokenField",
       "SearchField",
       "NumberField",
       "ColorField",

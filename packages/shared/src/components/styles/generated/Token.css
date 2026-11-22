@@ -26,6 +26,42 @@
   font-weight: 600;
 }
 
+.react-aria-Token[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-xs--line-height);
+  font-weight: 600;
+}
+
+.react-aria-Token[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-sm--line-height);
+  font-weight: 600;
+}
+
+.react-aria-Token[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-base--line-height);
+  font-weight: 600;
+}
+
+.react-aria-Token[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-lg--line-height);
+  font-weight: 600;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-Token {

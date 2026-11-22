@@ -9,6 +9,13 @@ export const tokenFieldBinding: PrimitiveBinding = {
       // 문서는 문자열, 실행 중에는 RAC TokenFieldValue. 구간은 공통 tokenizer에서 파생한다.
       value: { kind: "string", label: "Value", section: "value" },
       placeholder: { kind: "string", label: "Placeholder", section: "content" },
+      // S2 체크리스트 §4.1 (2026-11-22): S2 에 TokenField 가 없어 TextArea 의 크기 단계 (S · M · L · XL).
+      size: {
+        kind: "size",
+        label: "Size",
+        section: "appearance",
+        default: "M",
+      },
       allowsNewlines: {
         kind: "boolean",
         label: "Allows newlines",
@@ -34,6 +41,13 @@ export const tokenInputBinding: PrimitiveBinding = {
     accepts: {
       children: { kind: "string", label: "Text", section: "content" },
       placeholder: { kind: "string", label: "Placeholder", section: "content" },
+      // (the TokenField's size reaches it through the box Group — `CATALOG_SIZE_PROPAGATION`, as an Input)
+      size: {
+        kind: "size",
+        label: "Size",
+        section: "appearance",
+        default: "M",
+      },
     },
     toRacProps: "default",
   },
@@ -49,6 +63,13 @@ export const tokenBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Text", section: "content" },
+      // (its TokenInput's size — `CATALOG_SIZE_PROPAGATION.TokenInput`)
+      size: {
+        kind: "size",
+        label: "Size",
+        section: "appearance",
+        default: "M",
+      },
     },
     toRacProps: "default",
   },

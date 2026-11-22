@@ -10206,7 +10206,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-TokenField",
     "children": [
       "lib:template:component-tokenfield__label-row",
-      "lib:template:component-tokenfield__input",
+      "lib:template:component-tokenfield__group",
       "lib:template:component-tokenfield__description"
     ],
     "props": {
@@ -10232,6 +10232,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "presentWhen": "nonEmptyText"
+  },
+  {
+    "id": "lib:template:component-tokenfield__group",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-tokenfield__input"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-tokenfield__input",

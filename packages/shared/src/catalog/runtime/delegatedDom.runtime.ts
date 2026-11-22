@@ -21,6 +21,7 @@ import {
 } from "./pickerSelection";
 import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
 import { CatalogTokenField, CatalogTokenInput } from "./tokenField.components";
+import { catalogFieldBoxInputDomStyle } from "./fieldPrefix";
 import { isPropVar } from "../document/valueType";
 import {
   CATALOG_COLOR_SWATCH_SELECTION,
@@ -2023,7 +2024,16 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       createElement(CatalogTokenInput, {
         ...marker(input),
         ...chrome(input, "TokenInput"),
-        style: input.style,
+        // (S2 체크리스트 §4.1: the box Group draws the box — the TokenInput lays its own down; what the
+        //  author wrote on it wins.)
+        style: {
+          ...catalogFieldBoxInputDomStyle(
+            input.node,
+            (id) => input.root.domInputs.get(id),
+            (entry) => catalogTypeName(input.root, entry),
+          ),
+          ...input.style,
+        },
         "data-placeholder": str(input.node.props.placeholder),
         renderToken: (text: string) =>
           catalogStateFrame(

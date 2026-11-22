@@ -130,12 +130,11 @@ import { CatalogColorHandle } from "./colorHandleDom.runtime";
 import {
   CATALOG_FIELD_BOX_CLASS,
   CATALOG_PREFIX_UNNAMED_FIELDS,
-  catalogFieldBoxInputStyle,
+  catalogFieldBoxInputDomStyle,
   catalogFieldBox,
   catalogFieldBoxInputEnd,
   CATALOG_FIELD_ERROR_ICON,
   catalogFieldBoxInputStart,
-  catalogFieldBoxOfInput,
   catalogFieldBoxStyle,
   catalogIsFieldPrefix,
 } from "./fieldPrefix";
@@ -2225,6 +2224,8 @@ const NODE_TREE_CONTROL_CLASSES: Readonly<Record<string, string | undefined>> =
     //  TimeField's DateInput — 2026-11-14.)
     textfield: undefined,
     textarea: undefined,
+    // (S2 체크리스트 §4.1: a TokenField's box around its TokenInput — S2 TextArea's `FieldGroup`.)
+    tokenfield: undefined,
     colorfield: undefined,
     datefield: undefined,
     timefield: undefined,
@@ -2245,6 +2246,8 @@ const DATE_BOX_GROUP_BINDINGS: ReadonlySet<string> = new Set([
 const PREFIX_GROUP_BINDINGS: ReadonlySet<string> = new Set([
   "textfield",
   "textarea",
+  // (RAC's TokenField gives no `GroupContext` either.)
+  "tokenfield",
   "colorfield",
   "searchfield",
   "datefield",
@@ -2274,8 +2277,9 @@ function forwardFocus(event: {
   )
     return;
   event.preventDefault();
+  // (A TokenField's TokenInput is RAC's contenteditable `div`.)
   (event.currentTarget as Element)
-    .querySelector<HTMLElement>("input, textarea")
+    .querySelector<HTMLElement>('input, textarea, [contenteditable="true"]')
     ?.focus();
 }
 
@@ -2629,29 +2633,13 @@ function laidFieldBoxInput(
   end: number | undefined,
   start: number | undefined,
 ): CSSProperties {
-  if (
-    !catalogFieldBoxOfInput(
-      node,
-      (id) => root.domInputs.get(id),
-      (entry) => catalogTypeName(root, entry),
-    )
-  )
-    return {};
-  return {
-    ...catalogFieldBoxInputStyle(
-      node,
-      (id) => root.domInputs.get(id),
-      (entry) => catalogTypeName(root, entry),
-    ),
-    // (before a NumberField's steppers: `text-to-control` less the box's gap — S2)
-    ...(end !== undefined ? { paddingRight: end } : {}),
-    // (after a SearchField's glyph: S2 `text-to-visual`)
-    ...(start !== undefined ? { paddingLeft: start } : {}),
-    background: "transparent",
-    borderRadius: 0,
-    boxShadow: "none",
-    outline: "none",
-  };
+  return catalogFieldBoxInputDomStyle(
+    node,
+    (id) => root.domInputs.get(id),
+    (entry) => catalogTypeName(root, entry),
+    end,
+    start,
+  );
 }
 
 function fieldDateInputBinding(

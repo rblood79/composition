@@ -90,6 +90,10 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // ADR-253: a field's parts (`FIELD_PARTS`).
   TextField: INPUT_FIELD_PARTS,
   TextArea: INPUT_FIELD_PARTS,
+  // (S2 체크리스트 §4.1, 2026-11-22: TokenField = S2 TextArea 패턴 — its TokenInput in the box Group,
+  //  the Token runs in it.)
+  TokenField: [...FIELD_PARTS, "TokenInput"],
+  TokenInput: ["Token"],
   NumberField: WRAPPED_FIELD_PARTS,
   SearchField: WRAPPED_FIELD_PARTS,
   ColorField: INPUT_FIELD_PARTS,

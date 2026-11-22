@@ -63,8 +63,12 @@ export function catalogIsFieldPrefix(
   return node.props.slot === "prefix" && PREFIX_TYPES.has(typeOf(node));
 }
 
-/** The box parts a field box lays down: an Input, or a DatePicker's DateInput. */
-const BOX_INPUT_TYPES: ReadonlySet<string> = new Set(["Input", "DateInput"]);
+/** The box parts a field box lays down: an Input, a DatePicker's DateInput, a TokenField's TokenInput. */
+const BOX_INPUT_TYPES: ReadonlySet<string> = new Set([
+  "Input",
+  "DateInput",
+  "TokenInput",
+]);
 
 /**
  * A field's box Group and its parts: the field's control Group (layout frames skipped) that holds a
@@ -175,6 +179,7 @@ const STEPPER_END_PX: Readonly<Record<string, number>> = {
 const PLAIN_BOXED_FIELDS: ReadonlySet<string> = new Set([
   "TextField",
   "TextArea",
+  "TokenField",
   "ColorField",
   "DateField",
   "TimeField",
@@ -276,7 +281,8 @@ export function catalogFieldBoxStyle(
   gap?: number;
 } {
   const box = inputBox(size);
-  const multiline = fieldType === "TextArea";
+  // (A TokenField's TokenInput wraps its tokens over lines like a `<textarea>` — no fixed height.)
+  const multiline = fieldType === "TextArea" || fieldType === "TokenField";
   const { end, gap, start } = boxEnd(fieldType, size, buttoned);
   return {
     display: "flex",
@@ -333,6 +339,32 @@ export function catalogFieldBoxInputStyle(
     input.props.slot === "start"
     ? { ...CATALOG_FIELD_BOX_INPUT_STYLE, flexGrow: 0, flexBasis: "auto" }
     : CATALOG_FIELD_BOX_INPUT_STYLE;
+}
+/**
+ * ADR-259 Phase 2 — an Input (DateInput · TokenInput) in a field box (S2 `FieldGroup`), as DOM style: the
+ * Group draws the box, the input lays its own down (`CATALOG_FIELD_BOX_INPUT_STYLE` — the Canvas layout ·
+ * paint read the same). These are its defaults there: what the author wrote on it comes after and wins.
+ * Empty elsewhere.
+ */
+export function catalogFieldBoxInputDomStyle(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  end?: number,
+  start?: number,
+): Record<string, string | number> {
+  if (!catalogFieldBoxOfInput(node, get, typeOf)) return {};
+  return {
+    ...catalogFieldBoxInputStyle(node, get, typeOf),
+    // (before a NumberField's steppers: `text-to-control` less the box's gap — S2)
+    ...(end !== undefined ? { paddingRight: end } : {}),
+    // (after a SearchField's glyph: S2 `text-to-visual`)
+    ...(start !== undefined ? { paddingLeft: start } : {}),
+    background: "transparent",
+    borderRadius: 0,
+    boxShadow: "none",
+    outline: "none",
+  };
 }
 type CatalogFieldBoxInputContentStyle = Omit<
   typeof CATALOG_FIELD_BOX_INPUT_STYLE,

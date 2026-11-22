@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TokenField — S2 TextArea 패턴: 상자 = control Group · 크기 S ~ XL · 상태 트리] - 2026-11-23
+
+### Changed
+
+- **TokenField 상자를 control Group (S2 `FieldGroup`) 이 그린다** — S2 에 TokenField 가 없어 S2 TextArea 를 따른다: 원본이 `TokenField > FieldLabel + Group > TokenInput + Description` 이 되고, 상자는 Group 이 Input rule 의 크기별 값 · 상태 트리 (hover · focus-within · disabled 테두리) 로 그린다. TokenInput 은 상자 (바탕 · 테두리 1 · 모서리 8 · 여백 12 / 8 · 최소 높이 36) 를 내려놓고 글자색만 Input 의 상태 트리. 상자 여백을 누르면 TokenInput 에 focus 가 간다 (S2 `FieldGroup`).
+- **크기 S · M · L · XL** — TokenField 에 `size` (TextArea 와 같은 단계). 크기가 Group 을 건너 TokenInput · Token 의 글자 단계로 간다. 상자 높이는 한 줄이면 control 높이 (S 24 · M 32 · L 40 · XL 48), 모서리 7 · 8 · 9 · 10.
+- **라벨 글자색 = field 상태 트리** — TextArea 처럼 disabled 면 S2 disabled 글자색 (전에는 disabled 에서도 휴지 색).
+
+### Fixed
+
+- **Canvas 가 TokenInput 의 두 줄 값을 한 줄로 쟀다** — rule 의 `white-space: pre-wrap` (TokenInput) · `nowrap` (Token) 이 Canvas 상자 키에 없어 버려졌다. 이제 측정 · 그리기가 DOM 처럼 읽는다 (Canvas 36 = Publish 36).
+  - **Why**: S2 체크리스트 §4.1 TokenField — 「상자 값 · 상태 트리 · size 4단 · control Group 구조」. 남은 것: labelPosition · labelAlign · Form 상속 · invalid (RAC TokenField 에 validation 이 없어 결정 필요) · Token 모양.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (`component-tokenfield__group`) · `catalog/generated/componentRulesTable.ts` (TokenField · TokenInput · Token) · `bindings/TokenField.binding.ts` (`size`) · `document/sizePropagation.ts` · `domain/componentTraits.ts` (`FIELD_CONTROL_GROUP_HOSTS` · `CATALOG_BOXED_FIELDS`) · `runtime/fieldPrefix.ts` (`BOX_INPUT_TYPES` · 여러 줄 상자 · `catalogFieldBoxInputDomStyle` — domBinding 에서 옮김) · `runtime/domBinding.runtime.ts` · `runtime/delegatedDom.runtime.ts` · `runtime/presence.ts` · `resolvers/resolveCatalogRuleCanvasBox.ts` · `document/ruleDefinition.ts` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` (`RULE_CARRIED_TEXT_KEYS`).
+  - 확인: 테스트 `s2TokenFieldBox` 9 (구조 · rule 단계 · Canvas S ~ XL 상자 4 · 두 줄 높이 + Canvas 그리기 · 라벨 disabled 색 · DOM FieldBox), 원복 RED 8 (template · 상자 집합 · 상자 부품 · size 전달 · DOM 내려놓기 · whiteSpace 운반 · Canvas 허용 · 라벨 트리). 분류 목록 갱신 (`componentRulesTable.static` TokenField 계열 모서리, gap 리터럴 6 삭제). live (`apps/builder/scripts/s2-tokenfield-live.mjs`, 7/7): 여섯 TokenField 의 Group · TokenInput 상자가 Canvas = Publish (두 줄 값 포함), Publish 상자 테두리 2 · 모서리 7 / 8 / 9 / 10 · TokenInput 테두리 0 · 투명, hover 테두리 색 변화 · 상자 여백 누름 → TokenInput focus, disabled Group `data-disabled`, disabled 라벨 Canvas `#c6c6c6` = Publish `rgb(198, 198, 198)`, page error 0.
+
+### Notes
+
+- **disabled field 의 입력 글자가 Canvas 에서 휴지 색** — TextField 도 같다 (Canvas 의 Input · TokenInput record 가 field 의 disabled 를 받지 않음, Publish 는 회색). 이번 변경 전부터 있던 것이라 그대로 두었다.
+
 ## [MenuTrigger — Trigger 에 Context menu (S2) · ColorArea alpha 축은 채택하지 않음] - 2026-11-22
 
 ### Added

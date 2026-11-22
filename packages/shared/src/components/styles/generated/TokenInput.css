@@ -14,41 +14,76 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: 100%;
-  min-height: 36px;
   display: block;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 
   /* Default variant */
-  background: var(--bg-overlay);
-  color: var(--fg);
-  border: var(--border-width-thin) solid var(--border);
+  background: transparent;
+  color: var(--neutral-content);
+  border: none;
 
   /* Default size */
   height: auto;
-  padding: 8px 12px;
+  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
-  border-radius: 8px;
+  border-radius: 0;
   line-height: var(--catalog-token-text-sm--line-height);
-  border-width: var(--border-width-thin);
 }
 
 .react-aria-TokenInput:where([data-variant="default"]) {
-  background: var(--bg-overlay);
-  color: var(--fg);
-  border-color: var(--border);
+  background: transparent;
+  color: var(--neutral-content);
 }
 
-.react-aria-TokenInput.react-aria-TokenInput:where([data-focus-visible]) {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+.react-aria-TokenInput:where([data-variant="default"][data-hovered]) {
+  color: var(--neutral-content-hover);
 }
 
-.react-aria-TokenInput.react-aria-TokenInput:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
+.react-aria-TokenInput:where([data-variant="default"][data-pressed]) {
+  color: var(--neutral-content-hover);
 }
+
+.react-aria-TokenInput:where([data-variant="default"][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-TokenInput:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-TokenInput[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-xs--line-height);
+}
+
+.react-aria-TokenInput[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-TokenInput[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-TokenInput[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: 0;
+  line-height: var(--catalog-token-text-lg--line-height);
+}
+
 
 /* ── Tier 2: Composite Delegation ── */
 
