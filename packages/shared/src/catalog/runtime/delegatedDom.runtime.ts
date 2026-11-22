@@ -2960,6 +2960,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     maxLength: num(props.maxLength),
     minLength: num(props.minLength),
     pattern: opt(props.pattern),
+    // (Its name with no visible label — an Autocomplete's search, S2 `aria-label`; RAC gives it to
+    //  its input.)
+    "aria-label": opt(props["aria-label"]),
   })),
   datefield: nodeTreeField(
     AriaDateField,

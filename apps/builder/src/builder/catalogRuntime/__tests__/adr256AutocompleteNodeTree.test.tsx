@@ -246,11 +246,16 @@ describe("ADR-256 Phase 6g — Autocomplete", () => {
     ]);
     const flat = await open([
       row([SEARCH, LIST]),
+      // (The origin's search and list — S2: no visible label, the list 8 below — S2 체크리스트 §4.1.)
       entry(SEARCH, "lib:definition:origin-component-searchfield", {
-        label: "Search",
+        label: "",
+        "aria-label": "Search items",
         placeholder: "Search items",
       }),
-      entry(LIST, "lib:definition:origin-component-listbox"),
+      {
+        ...entry(LIST, "lib:definition:origin-component-listbox"),
+        layout: { marginTop: set("8px") },
+      } as NodeEntry,
     ]);
     const autocomplete = nested.recordOf(nested.root.canvasInputs, ROOT);
     expect(nested.root.typeOf(autocomplete)).toBe("Autocomplete");

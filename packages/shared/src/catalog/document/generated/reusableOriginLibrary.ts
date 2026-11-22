@@ -4747,7 +4747,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-searchfield",
     "children": [],
     "props": {
-      "label": "Search",
+      "label": "",
+      "aria-label": "Search items",
       "placeholder": "Search items"
     },
     "visual": {}
@@ -4757,6 +4758,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox",
     "children": [],
     "props": {},
+    "layout": {
+      "marginTop": "8px"
+    },
     "visual": {}
   },
   {

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Autocomplete — S2 예제처럼 라벨 없는 검색 · 목록 위 간격 8] - 2026-11-22
+
+### Changed
+
+- **Autocomplete 원본의 검색 칸에 보이는 라벨 「Search」 가 있고 목록이 검색 칸에 붙어 있음** — S2 Autocomplete 예제 (`Menu.md` — `<SearchField aria-label="Search tags" />` + `<Menu styles={style({marginTop: 8})}>`) 대로: 검색 칸은 보이는 라벨 없이 `aria-label` 「Search items」 로 이름을 갖고, 목록은 검색 칸 아래 8 에 놓인다.
+  - **Why**: S2 의 Autocomplete 는 RAC 것을 다시 내보낼 뿐이라 고유 구조가 없고, 공식 예제의 검색은 라벨 행 없이 목록과 8 간격이다. SearchField 는 `aria-label` 을 받지 않아 라벨을 비우면 이름이 없어졌다.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (`component-autocomplete__search` 의 `label` 비움 · `aria-label`, `__listbox` `marginTop: 8px`) · `catalog/bindings/SearchField.binding.ts` (`aria-label` — 패널에는 숨김, 다른 binding 과 같은 `ARIA_LABELING_PROPS`) · `catalog/runtime/delegatedDom.runtime.ts` (RAC SearchField 에 `aria-label`).
+  - 확인: 테스트 `s2Autocomplete` 2 (Canvas 라벨 행 숨김 · 검색 32 · 목록 8 아래, DOM label 요소 없음 · input `aria-label` · ListBox `margin-top` 8), `adr256AutocompleteNodeTree` 의 비교 문서를 새 원본에 맞춤, 원복 RED 3 (라벨 · 간격 · DOM `aria-label` — 모두 실패 · 복원). live (`s2-autocomplete-live.mjs`, 새 프로젝트 · 팔레트 Autocomplete): Canvas 라벨 행 숨김 · 검색 32 · 간격 8 = Publish label 요소 없음 · `aria-label` 「Search items」 · 검색 32 · 간격 8, Publish 에서 「ar」 입력 → Starred · Archive 로 걸러짐, 페이지 오류 0.
+
 ## [ListBox 항목 색 — 선택 항목 아이콘 · picker check 를 S2 색으로] - 2026-11-22
 
 ### Fixed
