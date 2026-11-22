@@ -2527,6 +2527,20 @@ export function buildDamageRenderCommandSequence(
     }
   }
 
+  // 원래 paint order (stream 안 시작 자리) 로 — 자리는 요소마다 한 번 찾는다. 비교마다 찾으면 span
+  // 조회 (piece table 이진 탐색) 수가 정렬의 비교 수, 곧 후보의 입력 순서 (공간 색인 결과 순서) 를
+  // 따라 흔들린다 (2026-11-22 ratchet sticky-lists edit `spanCursorSteps` 14,414 ↔ 14,424).
+  const byStreamOrder = (ids: ReadonlySet<string> | undefined): string[] => {
+    if (!ids || ids.size < 2) return ids ? [...ids] : [];
+    const keyed: Array<{ id: string; start: number }> = [];
+    for (const id of ids)
+      keyed.push({
+        id,
+        start: stream.subtreeSpans.get(id)?.start ?? Number.MAX_SAFE_INTEGER,
+      });
+    keyed.sort((a, b) => a.start - b.start);
+    return keyed.map((entry) => entry.id);
+  };
   const commands: RenderCommand[] = [];
   const ranges: CopiedCommandRange[] = [];
   const appendElement = (elementId: string): boolean => {
@@ -2563,15 +2577,7 @@ export function buildDamageRenderCommandSequence(
       return false;
     }
 
-    const relevantChildren = [...(childrenByParent.get(elementId) ?? [])];
-    relevantChildren.sort((a, b) => {
-      const aStart =
-        stream.subtreeSpans.get(a)?.start ?? Number.MAX_SAFE_INTEGER;
-      const bStart =
-        stream.subtreeSpans.get(b)?.start ?? Number.MAX_SAFE_INTEGER;
-      return aStart - bStart;
-    });
-    for (const childId of relevantChildren) {
+    for (const childId of byStreamOrder(childrenByParent.get(elementId))) {
       if (!appendElement(childId)) return false;
     }
 
@@ -2585,13 +2591,7 @@ export function buildDamageRenderCommandSequence(
     );
   };
 
-  const orderedRoots = [...roots];
-  orderedRoots.sort((a, b) => {
-    const aStart = stream.subtreeSpans.get(a)?.start ?? Number.MAX_SAFE_INTEGER;
-    const bStart = stream.subtreeSpans.get(b)?.start ?? Number.MAX_SAFE_INTEGER;
-    return aStart - bStart;
-  });
-  for (const rootId of orderedRoots) {
+  for (const rootId of byStreamOrder(roots)) {
     if (!appendElement(rootId)) return null;
   }
 

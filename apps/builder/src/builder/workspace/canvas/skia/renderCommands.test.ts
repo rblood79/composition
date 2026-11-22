@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Canvas, CanvasKit } from "canvaskit-wasm";
 import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
@@ -579,6 +579,35 @@ describe("ADR-189 damage command selection", () => {
       expect(sequence!.commands.length).toBeLessThan(stream.commands.length);
     },
   );
+
+  // 2026-11-22 — 형제 정렬이 비교마다 span 을 두 번 찾아 (piece table 이진 탐색) 찾는 수가 후보 순서
+  // (공간 색인 결과 순서 — 처음 빌드 시각에 따라 다르다) 를 따라 흔들렸다: ratchet sticky-lists edit
+  // `spanCursorSteps` 14,414 ↔ 14,424. 요소마다 한 번 찾고 정렬한다.
+  it("형제 정렬의 span 조회 수는 후보 순서와 무관하다 (요소마다 한 번)", () => {
+    const { body, stream } = buildWideSiblingStream(50);
+    const ids = Array.from(
+      { length: 12 },
+      (_, index) => `damage-child-50-${index * 4}`,
+    );
+    const shuffled = [7, 2, 11, 0, 9, 4, 1, 10, 5, 3, 8, 6].map((i) => ids[i]!);
+    const run = (order: string[]) => {
+      const get = vi.spyOn(stream.subtreeSpans, "get");
+      const sequence = buildDamageRenderCommandSequence(stream, [
+        body.id,
+        ...order,
+      ]);
+      const calls = get.mock.calls.length;
+      get.mockRestore();
+      return { calls, ids: elementCommandIds(sequence!.commands) };
+    };
+    const sorted = run(ids);
+    const mixed = run(shuffled);
+    const reversed = run([...ids].reverse());
+    expect(mixed.ids).toEqual([body.id, ...ids]);
+    expect(reversed.ids).toEqual([body.id, ...ids]);
+    expect(mixed.calls).toBe(sorted.calls);
+    expect(reversed.calls).toBe(sorted.calls);
+  });
 
   it("hit bounds 밖 paint contributor가 있으면 full fallback을 요구한다", () => {
     const body = makeElement("damage-unsafe-body", { type: "body" });
