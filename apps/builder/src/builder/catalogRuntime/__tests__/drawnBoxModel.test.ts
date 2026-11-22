@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   insertNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -930,37 +931,9 @@ describe("a SideNav section's top margin — the same distance on both consumers
   });
 });
 
-describe("a FileTrigger with children has no box — RAC renders only them", () => {
-  const withButton = async () => {
+describe("a FileTrigger has no box — RAC renders only its children (S2 `FileTrigger > Button`)", () => {
+  it("with its Button: the Canvas lays the Button in the parent's flow (`display: contents`) and paints no box", async () => {
     const workspace = await open("filetrigger");
-    workspace.selectRecords([recordOf(workspace, "FileTrigger").id]);
-    const target = workspace.session.getSnapshot().selection[0]!.target;
-    act(() => {
-      workspace.execute(
-        insertNodes({
-          parent: { kind: "node", id: (target as { id: NodeId }).id },
-          entries: [
-            {
-              kind: "node",
-              id: "project:node:drawn-kid" as NodeId,
-              definitionId: "lib:definition:origin-component-button",
-              children: [],
-              props: {},
-              visual: {},
-              sizing: {},
-              descendantOverrides: [],
-            } as NodeEntry,
-          ],
-          rootIds: ["project:node:drawn-kid" as NodeId],
-          newId: workspace.newId,
-        }),
-      );
-    });
-    return workspace;
-  };
-
-  it("with a Button in it: the Canvas lays the Button in the parent's flow (`display: contents`) and paints no box", async () => {
-    const workspace = await withButton();
     const trigger = recordOf(workspace, "FileTrigger");
     expect(trigger.children.length).toBe(1);
     expect(
@@ -976,24 +949,36 @@ describe("a FileTrigger with children has no box — RAC renders only them", () 
     ) as HTMLElement;
     expect(marker.getAttribute("style")).toBe("display:contents");
     expect(marker.querySelector(".react-aria-FileTrigger")).toBeNull();
+    expect(marker.querySelector("button.react-aria-Button")).not.toBeNull();
     // (No spacing handles — a write reaches no box.)
     workspace.selectRecords([trigger.id]);
     expect(gesturesOf(workspace).spacingOwner()).toBeUndefined();
-    // (The Canvas paints no rule box — a container, as the DOM draws nothing of its own.)
     const scene = new CatalogCanvasScene(workspace.root);
     scene.sync();
-    expect(getSkiaNode(trigger.id)?.type).toBe("container");
+    // (The Canvas paints nothing of its own — no fill, no stroke: the rule has no paint.)
+    const painted = getSkiaNode(trigger.id)?.box;
+    expect(painted?.fillColor?.[3] ?? 0).toBe(0);
+    expect(painted?.strokeColor).toBeUndefined();
     scene.dispose();
   });
 
-  it("alone (no children) it keeps the rule's button box", async () => {
+  it("with its Button removed it still has no box (RAC draws nothing; S2 FileTrigger has no look)", async () => {
     const workspace = await open("filetrigger");
     const trigger = recordOf(workspace, "FileTrigger");
-    expect(trigger.children.length).toBe(0);
+    const button = workspace.root.domInputs.get(trigger.children[0]!)!;
+    act(() => {
+      workspace.execute(
+        removeTargets({
+          targets: [workspace.positionOfRecord(button.id)!.target],
+        }),
+      );
+    });
+    const after = recordOf(workspace, "FileTrigger");
+    expect(after.children.length).toBe(0);
     expect(
-      (workspace.root.getLayoutInput(trigger.id) as Record<string, unknown>)
+      (workspace.root.getLayoutInput(after.id) as Record<string, unknown>)
         .display,
-    ).not.toBe("contents");
+    ).toBe("contents");
   });
 });
 

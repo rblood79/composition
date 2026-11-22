@@ -6280,104 +6280,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // S2 체크리스트 §4.1 (2026-11-22): RAC FileTrigger has no element (a hidden file input and a
+  //   `PressResponder` around its children) and S2 re-exports it as is — the origin is `FileTrigger >
+  //   Button` (S2 `<FileTrigger><Button>…</Button></FileTrigger>`). Its children stand in its parent's
+  //   flow (`display: contents`, as Autocomplete); what shows is the Button's own rule.
   FileTrigger: {
-    defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.layer-1}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
-          },
-        },
-      },
-    },
-    // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 에서 이 자리는 Button: 아이콘 `size: '1lh'`).
+    variants: {},
     sizes: {
-      // 2026-10-25 사용자 요청 「FILETRIGGER 의 size(s,m,l) 모두 button 컴퍼넌트 size(s,m,l) 의 정보와
-      //   동일하게」 — Button rule 의 S · M · L 과 같은 값 (height 0 = 내용 + paddingY). 전에는 고정
-      //   height 32 · 40 · 48 · paddingX 12 · 24 · 32 였다.
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.sm}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        iconSize: "{typography.text-xs--line-height}",
-        paddingX: 8,
-        paddingY: 2,
-        gap: 6,
-        iconGap: 6,
-      },
       M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.md}",
-        borderWidth: "{border.width.thin}",
         height: 0,
-        iconSize: "{typography.text-sm--line-height}",
-        paddingX: 12,
-        paddingY: 4,
-        gap: 8,
-        iconGap: 8,
-      },
-      L: {
         fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.lg}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        iconSize: "{typography.text-base--line-height}",
-        paddingX: 16,
-        paddingY: 8,
-        gap: 10,
-        iconGap: 10,
+        borderRadius: "{radius.none}",
       },
     },
     structure: {
-      archetype: "button",
-      element: "button",
+      archetype: "container",
+      element: "div",
       containerStyles: {
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "fit-content",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        boxShadow: { isPressed: "inset 0 1px 2px rgba(0,0,0,0.1)" },
-        ...DISABLED_STATE,
-      },
-      // ADR-248 4e-10 (2026-10-02): no `composition.containerStyles` — the root is the
-      //   self-composed `.react-aria-FileTrigger` button (renderFileTrigger, 2026-09-10), not a
-      //   wrapper around one, so the size box (height · paddingX) and the variant paint belong to it
-      //   in both consumers (an owned container box drops them from generated CSS and the Canvas).
-      composition: {
-        staticSelectors: {
-          "input[type='file']": {
-            position: "absolute",
-            width: "1px",
-            height: "1px",
-            padding: "0",
-            margin: "-1px",
-            overflow: "hidden",
-            clip: "rect(0, 0, 0, 0)",
-            "white-space": "nowrap",
-            border: "0",
-          },
-        },
-        delegation: [],
+        display: "contents",
       },
     },
   },

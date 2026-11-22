@@ -1526,13 +1526,7 @@ export function createCatalogStylesHost(
     },
     elementlessOf: (id) => {
       const record = id ? workspace.root.domInputs.get(id) : undefined;
-      return (
-        !!record &&
-        catalogElementlessType(
-          workspace.root.typeOf(record),
-          record.children.length > 0,
-        )
-      );
+      return !!record && catalogElementlessType(workspace.root.typeOf(record));
     },
     subpartStyleOwnerOf: (id) =>
       catalogSubpartOwnerType(

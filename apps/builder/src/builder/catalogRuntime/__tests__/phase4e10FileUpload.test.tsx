@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
- * ADR-248 4e-10 G3 FileUpload: the file trigger is the self-composed `.react-aria-FileTrigger`
- * button (the root, no wrapper since 2026-09-10), so the rule's box — size height/padding, variant
- * fill/border — is that button's box in both consumers (generated CSS and the Canvas layout input).
+ * ADR-248 4e-10 G3 FileUpload: the file trigger. Since S2 체크리스트 §4.1 (2026-11-22) it is S2's
+ * `FileTrigger > Button` — RAC FileTrigger has no element, so its rule has no box (`display:
+ * contents`, no paint) in both consumers; the box is its Button's own rule (`s2FileTrigger.test.tsx`).
  */
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
@@ -34,35 +34,21 @@ const blockOf = (css: string, selector: string) => {
   return start < 0 ? "" : css.slice(start, css.indexOf("}", start));
 };
 
-describe("FileTrigger — rule box on the trigger button", () => {
-  it("generated CSS carries the size box and the variant paint", () => {
+describe("FileTrigger — no box of its own (S2 `FileTrigger > Button`)", () => {
+  it("generated CSS: `display: contents`, no variant paint", () => {
     const css = readFileSync(`${GENERATED}/FileTrigger.css`, "utf8");
-    const md = blockOf(css, '.react-aria-FileTrigger[data-size="M"]');
-    // (The Button's M box — user 2026-10-25 「FILETRIGGER 의 size 모두 button 의 size 와 동일하게」.)
-    expect(md).toContain("padding: 4px 12px;");
-    expect(md).not.toContain("height: 40px;");
-    // (ADR-297 Phase 3: the variant paint is the tree's `:where` block)
-    expect(css).toContain(
-      '.react-aria-FileTrigger:where([data-variant="default"])',
+    expect(blockOf(css, ".react-aria-FileTrigger")).toContain(
+      "display: contents;",
     );
-    expect(blockOf(css, ".react-aria-FileTrigger")).not.toContain(
-      "display: inline-block;",
-    );
+    expect(css).not.toContain('.react-aria-FileTrigger:where([data-variant=');
   });
 
-  it("the Canvas layout input carries the same box", async () => {
+  it("the Canvas layout input is the same `display: contents`", async () => {
     const fixture = await openStylesFixture([
       { id: "ft", type: "FileTrigger" },
     ]);
     const input = fixture.workspace.root.getLayoutInput(fixture.recordOf("ft"));
-    expect(input).toMatchObject({
-      display: "inline-flex",
-      paddingLeft: "12px",
-      paddingRight: "12px",
-      paddingTop: "4px",
-      paddingBottom: "4px",
-    });
-    expect(input).not.toHaveProperty("height");
+    expect(input).toMatchObject({ display: "contents" });
   });
 });
 
@@ -106,7 +92,10 @@ describe("rule-backed text — the layout's wrap decision", () => {
           {
             kind: "node",
             id: "project:node:ft",
-            definitionId: catalogPaletteDefinitionId(library, "FileTrigger"),
+            // (A rule-backed text leaf — the Link's rule paints its `children`. The FileTrigger was
+            //  the example until it became S2's `FileTrigger > Button`, 2026-11-22; a Badge keeps
+            //  its own S2 wrap, so it is not one.)
+            definitionId: catalogPaletteDefinitionId(library, "Link"),
             children: [],
             props: { children: { kind: "set", value: "Select files" } },
             visual: {},
@@ -141,7 +130,8 @@ describe("rule-backed text — the layout's wrap decision", () => {
   });
 
   it("wrapped by the layout → painted wrapped", async () => {
-    const workspace = await open({ width: { kind: "set", value: 90 } });
+    // (Narrower than the 85.56 max-content — a Link has no padding.)
+    const workspace = await open({ width: { kind: "set", value: 60 } });
     const record = workspace.root.recordsOfSource("project:node:ft")[0]!;
     expect(workspace.root.textWraps(record)).toBe(true);
     const canvas = bindCatalogCanvas(

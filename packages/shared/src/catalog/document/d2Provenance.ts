@@ -117,7 +117,6 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     description: "composition",
     isDisabled: "rac",
   },
-  FileTrigger: { isDisabled: "composition" },
   GridList: { layout: "rac" },
   Link: { isDisabled: "rac" },
   NumberField: { isQuiet: "v3" },

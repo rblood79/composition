@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [FileTrigger — S2 처럼 `FileTrigger > Button` (자기 상자 없음)] - 2026-11-22
+
+### Breaking Changes
+
+- **FileTrigger 가 `children` (글자) · `size` · `isDisabled` 를 받지 않는다** — RAC `FileTriggerProps` 에 없는 축이라 자식 Button 노드로 옮겼다. 옛 문서의 FileTrigger 에 적힌 이 세 값은 검증에서 거절된다 (개발 단계 — 문서 마이그레이션 없음, 사용자 원칙 11-18). 버튼 글자 · 크기 · 비활성은 FileTrigger 안 Button 에서 고친다.
+
+### Changed
+
+- **FileTrigger 원본이 자기 칠 · 크기를 가진 버튼 하나** — S2 (RAC FileTrigger 를 그대로 내보내고 그 안에 S2 Button — `<FileTrigger><Button>Select files</Button></FileTrigger>`) 대로 원본을 `FileTrigger > Button` 으로: FileTrigger 는 요소가 없어 (`display: contents` · 칠 없음 — 자식이 있든 없든) Button 이 부모 흐름에 서고, 보이는 모양은 Button rule 의 것 (전의 밝은 바탕 · 테두리 상자 → S2 Button 기본 모양). FileUpload 안의 trigger 도 같은 원본이라 같은 구조.
+  - **Why**: FileTrigger 가 Button rule 을 흉내 낸 자기 rule (크기 · 칠 · 숨은 input 선택자) 로 버튼을 그려, S2 · RAC 에 없는 prop 세 개와 「자식이 있을 때만 요소 없음」 분기 (Canvas · DOM 두 곳) 가 따로 있었다.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (`component-filetrigger__button`, FileUpload trigger 의 `children` · `size` 삭제) · `catalog/bindings/FileTrigger.binding.ts` · `catalog/document/d2Provenance.ts` · `catalog/generated/componentRulesTable.ts` (FileTrigger rule) · `catalog/runtime/delegatedDom.runtime.ts` (자체 버튼 경로 삭제) · `catalog/runtime/elementless.ts` (`catalogElementlessWithChildren` 삭제 — rule 의 `display: contents` 하나로) · `catalog/runtime/compositionRoot.ts` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` · `canvasGesture.ts` · `panels/styles/catalog/catalogStylesHost.ts`.
+  - 확인: 테스트 `s2FileTrigger` 6 (원본 트리 · 받는 prop · rule · Canvas 상자 = Button 상자 · DOM 요소 없음 + file input · FileUpload 트리), 기대값 갱신 5 파일 (`drawnBoxModel` — 자식을 지워도 상자 없음, `adr276ButtonOrigin` Button 자리 30, `phase4e10FileUpload` — rule 글자 한 줄 판정의 예를 Link 로, `s2VariantRemoval` · `componentRulesTable.static` 의 낡은 FileTrigger 값), 원복 RED 4 (Button 자식 · `size` 받기 · rule 상자 · DOM 자체 버튼 — 모두 실패 · 복원). live (`s2-filetrigger-live.mjs`, 새 프로젝트): Canvas FileTrigger > Button · 상자 100.21 × 32 = Publish Button 100.21 × 32, Publish 에 `.react-aria-FileTrigger` 요소 0 · file input 있음, Button 을 누르면 파일 선택 창이 열림, FileUpload 안 trigger 도 Button, 페이지 오류 0.
+
 ## [Sheet — S2 Modal · Dialog 값으로 (폭 480 · 여백 32 · 끝 정렬 닫기 · 여닫힘 fade)] - 2026-11-22
 
 ### Changed

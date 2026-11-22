@@ -6297,9 +6297,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-filetrigger",
     "definitionId": "lib:definition:type-FileTrigger",
+    "children": [
+      "lib:template:component-filetrigger__button"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-filetrigger__button",
+    "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Select files"
+      "label": "Select files"
     },
     "visual": {}
   },
@@ -6343,13 +6352,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-filetrigger",
     "children": [],
     "props": {
-      "children": "Select files",
-      "size": "M",
       "allowsMultiple": true
     },
-    "visual": {
-      "width": "fit-content"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-fileupload__3",

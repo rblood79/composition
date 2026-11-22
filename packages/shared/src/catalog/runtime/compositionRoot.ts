@@ -276,7 +276,6 @@ import {
 } from "./presence";
 import {
   CATALOG_EMPTY_SKELETON_STYLE,
-  catalogElementlessWithChildren,
   catalogEmptySkeleton,
 } from "./elementless";
 import {
@@ -5544,13 +5543,6 @@ export class CatalogCompositionRoot {
       return { display: "none" };
     // (A crumb in its Breadcrumbs' folder menu leaves the flow — `settleBreadcrumbs`.)
     if (this.breadcrumbCollapsed(record.id)) return { display: "none" };
-    // (A node RAC gives no element only with children — a FileTrigger around its Button: its
-    //  children stand in its parent's flow, as the DOM draws them — `catalogElementlessType`.)
-    if (
-      record.children.length > 0 &&
-      catalogElementlessWithChildren(this.typeOf(record))
-    )
-      return { display: "contents" };
     // (An empty Skeleton — ADR-314 결정 3: the Canvas's edit-only placeholder box; the DOM has none.)
     if (catalogEmptySkeleton(this.typeOf(record), record.children.length))
       return { ...CATALOG_EMPTY_SKELETON_STYLE };

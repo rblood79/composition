@@ -2734,10 +2734,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // S2 체크리스트 §4.1 (2026-11-22): RAC FileTrigger around its own children — the origin's S2
+  //   Button (`FileTrigger > Button`); it draws nothing of its own.
   filetrigger: {
     render: (input) => {
       const props = input.node.props;
-      const list = children(input);
       return markerWrap(
         input,
         createElement(
@@ -2748,25 +2749,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             defaultCamera: props.defaultCamera,
             acceptedFileTypes: fileTypes(props.acceptedFileTypes),
           },
-          ...(list.length
-            ? renderAll(input, list)
-            : [
-                createElement(
-                  AriaButton as ElementType,
-                  {
-                    key: "trigger",
-                    className: "react-aria-FileTrigger",
-                    "data-variant": str(props.variant || "default"),
-                    "data-size": str(props.size || "M"),
-                    isDisabled: bool(props.isDisabled),
-                    style: input.style,
-                  },
-                  resolveTextSourceText(
-                    "FileTrigger",
-                    props as Record<string, unknown>,
-                  ),
-                ),
-              ]),
+          ...renderAll(input),
         ),
       );
     },

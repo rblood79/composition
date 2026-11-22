@@ -344,18 +344,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   ),
   sizes("Field", "height", { M: 32 }, "S2 대응 없음 — composition 묶음 상자"),
   sizes(
-    "FileTrigger",
-    "gap",
-    { S: 6, L: 10 },
-    "S2 에 FileTrigger 스타일 없음 (RAC 전용) — composition 버튼 묶음",
-  ),
-  sizes(
-    "FileTrigger",
-    "iconGap",
-    { S: 6, L: 10 },
-    "S2 에 FileTrigger 스타일 없음 (RAC 전용) — composition 버튼 묶음",
-  ),
-  sizes(
     "Image",
     "height",
     { S: 120, M: 200, L: 320 },

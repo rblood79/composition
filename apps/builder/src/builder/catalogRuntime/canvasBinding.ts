@@ -1,9 +1,6 @@
 import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
-import {
-  catalogElementlessWithChildren,
-  catalogEmptySkeleton,
-} from "../../../../../packages/shared/src/catalog/runtime/elementless";
+import { catalogEmptySkeleton } from "../../../../../packages/shared/src/catalog/runtime/elementless";
 import {
   CATALOG_SKELETON_LOOK,
   CATALOG_SKELETON_LOOK_OF,
@@ -1321,13 +1318,6 @@ function paintedNodeDataAtRest(
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
-  // (A node RAC gives no element once it has children — a FileTrigger around its Button — paints
-  //  nothing of its own: the DOM draws only the children.)
-  if (
-    input.children.length > 0 &&
-    catalogElementlessWithChildren(root.typeOf(input))
-  )
-    return container(input, rect);
   // (A value the generated sheet's `[data-*]` block draws for an owner-derived prop — a field's own
   //  Button at its size's corner over the S2 pill — under the authored writes:
   //  `catalogDerivedRestVisual`.)
