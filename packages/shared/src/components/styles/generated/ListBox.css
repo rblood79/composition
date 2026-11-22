@@ -153,15 +153,11 @@
   }
 
   .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem [slot="label"] {
-    font-size: inherit;
-    line-height: inherit;
     font-weight: 500;
     color: inherit;
   }
 
   .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem [slot="description"] {
-    font-size: var(--catalog-token-text-xs);
-    line-height: var(--catalog-token-text-xs--line-height);
     color: inherit;
   }
 
@@ -226,15 +222,11 @@
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="label"] {
-    font-size: inherit;
-    line-height: inherit;
     font-weight: 500;
     color: inherit;
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="description"] {
-    font-size: var(--catalog-token-text-xs);
-    line-height: var(--catalog-token-text-xs--line-height);
     color: inherit;
   }
 

@@ -8256,7 +8256,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //     draws it, `listBoxItem` `_lastItem`), hidden on a selected item, light between two;
       //   - adjacent selected items join: the touching corners square (multiple selection —
       //     사용자 2026-10-13 「인접한 두개를 선택시 border radius 가 인접한부분은 제외」);
-      //   - the label 500, the description 12 in the item's color, the section header.
+      //   - the label 500 and the description in the item's color (their sizes — the ListBoxItem rule's
+      //     `sizeSelectors`), the section header.
       //   (No margin between sections — the reference has none; G5 example 1's `--spacing-md` was
       //   the old starter's.)
       composition: {
@@ -8305,17 +8306,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               ".react-aria-ListBoxItem[data-selected][data-pressed]": {
                 background: "var(--accent-pressed)",
               },
-              // (The label is the item's text — `.react-aria-Text` declares its own size and
-              //   color, the reference's label inherits them: 14, the selected white.)
+              // (The label is the item's text — its color the item's (the selected white); its size the
+              //   item's step, the ListBoxItem rule's `sizeSelectors`.)
               '.react-aria-ListBoxItem [slot="label"]': {
-                "font-size": "inherit",
-                "line-height": "inherit",
                 "font-weight": "500",
                 color: "inherit",
               },
+              // (Its text step is the item's size — the ListBoxItem rule's `sizeSelectors`.)
               '.react-aria-ListBoxItem [slot="description"]': {
-                "font-size": "var(--text-xs)",
-                "line-height": "var(--text-xs--line-height)",
                 color: "inherit",
               },
               ".react-aria-ListBoxSection .react-aria-Header": {
@@ -8395,14 +8393,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   height: "var(--spacing-lg)",
                 },
               '.react-aria-ListBoxItem [slot="label"]': {
-                "font-size": "inherit",
-                "line-height": "inherit",
                 "font-weight": "500",
                 color: "inherit",
               },
+              // (Its text step is the item's size — the ListBoxItem rule's `sizeSelectors`.)
               '.react-aria-ListBoxItem [slot="description"]': {
-                "font-size": "var(--text-xs)",
-                "line-height": "var(--text-xs--line-height)",
                 color: "inherit",
               },
               // (The item's icon after the check's 24 — the sheet's general icon is 12 in.)
@@ -8596,6 +8591,73 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         willChange: { inPopover: CATALOG_PRESS_WILL_CHANGE },
         transform: { isPressed: { inPopover: catalogPressTransform() } },
         transition: { inPopover: CATALOG_PRESS_TRANSITION },
+      },
+      // S2 체크리스트 §4.1 (2026-11-22): S2 `PickerItem` (`Picker.tsx` — Menu.tsx `label({size})` ·
+      //   `description({size})`) — the label is the item's control font, medium; the description one
+      //   step down (S ui-xs · M ui-sm · L ui · XL ui-lg; XS, not in S2, takes S's). One table for the
+      //   generated sheet and the Canvas part rules (`compileRulePartRules`) — before, the Canvas drew
+      //   the label 14 · the description 12 at every size and the sheet the description 12. A standalone
+      //   list keeps its box and selection fill (사용자 결정 2026-11-14) — only the text steps.
+      composition: {
+        sizeSelectors: {
+          XS: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-2xs)",
+              "line-height": "var(--text-2xs--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-2xs)",
+              "line-height": "var(--text-2xs--line-height)",
+            },
+          },
+          S: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-xs)",
+              "line-height": "var(--text-xs--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-2xs)",
+              "line-height": "var(--text-2xs--line-height)",
+            },
+          },
+          M: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-sm)",
+              "line-height": "var(--text-sm--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-xs)",
+              "line-height": "var(--text-xs--line-height)",
+            },
+          },
+          L: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-base)",
+              "line-height": "var(--text-base--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-sm)",
+              "line-height": "var(--text-sm--line-height)",
+            },
+          },
+          XL: {
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-lg)",
+              "line-height": "var(--text-lg--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-base)",
+              "line-height": "var(--text-base--line-height)",
+            },
+          },
+        },
+        rootSelectors: {},
+        delegation: [],
       },
     },
   },

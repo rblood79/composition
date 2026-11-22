@@ -44,7 +44,6 @@ export interface ManualBoxRule {
   parts?: CompiledPartRule[];
 }
 
-
 /** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
 const TAB_INDICATOR = 2;
 /** `TagGroup.css` `.react-aria-Tag[data-allows-removing] { padding-right: var(--spacing-xs) }`. */
@@ -753,31 +752,29 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           childProps: { slot: "separator" },
           layout: {},
           // (S2 Chevron M = `10 × --s2-scale`: a length ref — the Canvas reads 10, the DOM the device
-            //   formula — `catalogDeviceGlyphSize`.)
-            visual: {
-              width: scaledLengthRef(iconSize),
-              height: scaledLengthRef(iconSize),
-              iconSize: scaledLengthRef(iconSize),
-            },
+          //   formula — `catalogDeviceGlyphSize`.)
+          visual: {
+            width: scaledLengthRef(iconSize),
+            height: scaledLengthRef(iconSize),
+            iconSize: scaledLengthRef(iconSize),
+          },
         },
         // The label Text (and an authored Link label) takes the crumb's font and color — inside
         // Breadcrumbs the owner's per-size parts take over.
-        ...(["Text", "Link"] as const).map(
-          (childType): CompiledPartRule => ({
-            childType,
-            layout: {},
-            visual: {
-              ...(px(base?.fontSize)
-                ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
-                : {}),
-              ...(ratio ? { lineHeight: ratio } : {}),
-              fontWeight: 400,
-              ...(paintAt(rule?.variants.default?.paint.color)
-                ? { color: paintAt(rule?.variants.default?.paint.color) }
-                : {}),
-            } as CompiledPartRule["visual"],
-          }),
-        ),
+        ...(["Text", "Link"] as const).map((childType): CompiledPartRule => ({
+          childType,
+          layout: {},
+          visual: {
+            ...(px(base?.fontSize)
+              ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
+              : {}),
+            ...(ratio ? { lineHeight: ratio } : {}),
+            fontWeight: 400,
+            ...(paintAt(rule?.variants.default?.paint.color)
+              ? { color: paintAt(rule?.variants.default?.paint.color) }
+              : {}),
+          } as CompiledPartRule["visual"],
+        })),
       ],
     };
   },
@@ -1129,46 +1126,21 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
 
 /**
  * A ListBox item's slot children (the ListBox rule's item selectors — the RAC reference): the label
- * is the item's text (14 · its line height — `MANUAL_ITEM_LABEL_COLORS` its color), weight 500; the
- * description `--text-xs` / `--text-xs--line-height`; the icon absolutely placed at `left:
+ * weight 500 (`MANUAL_ITEM_LABEL_COLORS` its color); the icon absolutely placed at `left:
  * --spacing-md`, vertically centred, 16 square (`ListBox.css` `[slot="icon"]`). Reached through the
- * item from the list and from a section.
+ * item from the list and from a section. The label · description text steps are the item's size —
+ * the ListBoxItem rule's `sizeSelectors` (S2 체크리스트 §4.1, 2026-11-22; before, 14 · 12 here at
+ * every size).
  */
 function listBoxItemParts(): CompiledPartRule[] {
-  const fontSize = textPx("text-sm");
-  const lineHeight = textPx("text-sm--line-height");
-  const descSize = textPx("text-xs");
-  const descLine = textPx("text-xs--line-height");
   return [
-    ...(fontSize && lineHeight
-      ? [
-          {
-            childType: "Text",
-            via: "ListBoxItem",
-            childProps: { slot: "label" },
-            layout: {},
-            visual: {
-              fontSize: textFont("text-sm"),
-              lineHeight: lineHeight / fontSize,
-              fontWeight: 500,
-            },
-          },
-        ]
-      : []),
-    ...(descSize && descLine
-      ? [
-          {
-            childType: "Text",
-            via: "ListBoxItem",
-            childProps: { slot: "description" },
-            layout: {},
-            visual: {
-              fontSize: textFont("text-xs"),
-              lineHeight: descLine / descSize,
-            },
-          },
-        ]
-      : []),
+    {
+      childType: "Text",
+      via: "ListBoxItem",
+      childProps: { slot: "label" },
+      layout: {},
+      visual: { fontWeight: 500 },
+    },
     {
       childType: "Icon",
       via: "ListBoxItem",

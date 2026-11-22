@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ListBox 항목 글자 단계 — S2 Picker 항목처럼 크기를 따른다] - 2026-11-22
+
+### Fixed
+
+- **ListBox 항목의 label · description 글자가 크기와 무관하던 것** — Canvas 는 label 14 · description 12 를 모든 크기에 그렸고 (`manualBoxRules.ts` `listBoxItemParts`), DOM 은 label 만 항목 크기를 따르고 description 은 12 고정이었다 (ListBox rule 의 item 선택자). 이제 S2 `PickerItem` (Menu.tsx `label({size})` · `description({size})`) 대로 label = 항목의 control 글자 · 500, description = 한 단계 아래 (S 11 · M 12 · L 14 · XL 16, XS 는 S2 에 없어 S 값) — 단독 ListBox 와 Select · ComboBox 팝오버 안 목록 모두. 값은 ListBoxItem rule 의 `sizeSelectors` 표 하나를 생성 CSS 와 Canvas part rule 이 같이 읽는다 (MenuItem 과 같은 방식). 단독 목록의 상자 · 선택 채움은 그대로 (사용자 결정 2026-11-14).
+  - **Why**: 글자 크기를 두 consumer 가 따로 들고 있었다 — Canvas 는 RAC 레퍼런스 시절의 14 · 12 고정값 (manual part rule), DOM 은 ListBox rule 의 `inherit` · `--text-xs`. 크기별 값의 출처가 없어 M 만 우연히 맞았다. 고정 part rule 은 항목 rule 의 크기별 part rule 을 이기므로 (원복 RED 5) 지워야 표 하나로 모인다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ListBoxItem `sizeSelectors` · ListBox item 선택자의 고정 크기 삭제) · `catalog/document/manualBoxRules.ts` (`listBoxItemParts`) · 생성 `ListBox.css` · `ListBoxItem.css`.
+  - 확인: 테스트 `s2ListBoxItemText` (5 크기 × Canvas · DOM · 생성 CSS) · `d3S2Alignment` (S2 설치본 대조 2), 원복 RED 3 (크기 표 6 · Canvas 고정 5 · ListBox 고정 2 실패). live (`s2-listbox-text-live.mjs`, 새 프로젝트): ListBox S · M · XL 의 label 12 · 14 · 18 / description 11 · 12 · 16 과 항목 높이 40 · 50 · 70 이 Canvas = Publish, 크기 S → L → Undo 가 Canvas 에 바로 반영, Select L 팝오버 항목 label 16. Publish 에 HTTP 응답에 잡히지 않는 404 콘솔 1 건 (브라우저 자체 요청 — 이번 변경과 무관).
+
 ## [성능 ratchet — sticky-lists fixture 가 다시 스크롤 목록을 잰다] - 2026-11-22
 
 ### Fixed

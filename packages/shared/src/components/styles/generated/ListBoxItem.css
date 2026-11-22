@@ -187,11 +187,70 @@
   transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-ListBoxItem {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-ListBoxItem[data-size="XS"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-ListBoxItem[data-size="XS"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
+  }
+
+  .react-aria-ListBoxItem[data-size="S"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-ListBoxItem[data-size="S"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
+  }
+
+  .react-aria-ListBoxItem[data-size="M"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-ListBoxItem[data-size="M"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+  }
+
+  .react-aria-ListBoxItem[data-size="L"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-ListBoxItem[data-size="L"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+  }
+
+  .react-aria-ListBoxItem[data-size="XL"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-ListBoxItem[data-size="XL"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+  }
 
 
 } /* @layer components */
