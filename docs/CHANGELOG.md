@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Sheet — S2 Modal · Dialog 값으로 (폭 480 · 여백 32 · 끝 정렬 닫기 · 여닫힘 fade)] - 2026-11-22
+
+### Changed
+
+- **Sheet 가 폭 360 · 안쪽 여백 24 · 본문 끝의 Close · 즉시 나타나고 사라짐** — 사용자 결정 「S2 값 그대로」 (S2 에 Sheet 가 없어 같은 계열의 `Modal.tsx` · `Dialog.tsx`): 폭 480 (Modal `size` M), 안쪽 여백 32 (Dialog header · content · footer), Close 는 끝 정렬 ButtonGroup 안 · 본문과 32 (footer `paddingTop`), backdrop 이 250ms 동안 나타나고 (ModalOverlay fade) 닫힐 때 Sheet 전체가 130ms 동안 사라진다 (ModalOverlay · Modal 둘 다 `isExiting` 130).
+  - **Why**: S2 대응 값과 다르게 RAC starter 값 (360 · 24 · 본문 안 Close) 이 남아 있었다. 닫힘 fade 를 backdrop 에 걸면 RAC 가 overlay 요소 자신의 애니메이션만 기다려 (`useExitAnimation` — `ref.current.getAnimations()`) fade 가 시작되기 전에 지워져 (live 실측), 닫힘 fade 는 SheetOverlay 에 둔다 — S2 도 닫힐 때 바탕과 본체가 함께 사라진다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Sheet `width` 480 · SheetContent padding 32 · SheetBackdrop `&[data-entering]` · SheetOverlay `&[data-exiting]` — `skipCSSGeneration` 해제) · `catalog/document/generated/reusableOriginLibrary.ts` (`component-sheet__actions` ButtonGroup `align: end` · `marginTop` 16 > Close) · `components/styles/index.css` (생성 `SheetOverlay.css` 로드) · 게이트 `componentRulesTable.static.test.ts` (여닫힘 표시는 상태 어휘 밖 — 사유와 함께 등재) · `generatedCssLoadInventory.static.test.ts` (136 · index 118).
+  - 확인: 테스트 `s2Sheet` 3 (Canvas 480 · 제목 (32, 32) · Close 가 ButtonGroup 안 · 오른쪽 · 아래 32 · 본문과 32, 생성 CSS 폭 · 여백 · fade, DOM `role=group` 끝 정렬), 기대값 갱신 2 (`racNewComponents` 폭 480 · 높이 144, `adr301Expansion` 구조), 원복 RED 6 (폭 · 여백 · footer 간격 · 정렬 · 닫힘 fade 두 자리 — 모두 실패 · 복원). live (`s2-sheet-live.mjs`, 새 프로젝트): Canvas 와 Publish 가 폭 480 · 제목 (32, 32) · Close 끝 · 아래 32 · 본문과 32 로 같음, Publish 에서 열면 backdrop 투명도 0 → 1 (약 250ms), Close 가 닫고 (ButtonGroup 너머 RAC close slot) 닫히는 동안 overlay 투명도 1 → 0.06 (약 100ms) 뒤 제거, 페이지 오류 0.
+
 ## [Autocomplete — S2 예제처럼 라벨 없는 검색 · 목록 위 간격 8] - 2026-11-22
 
 ### Changed

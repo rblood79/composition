@@ -10126,7 +10126,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-sheet__title",
       "lib:template:component-sheet__body",
-      "lib:template:component-sheet__close"
+      "lib:template:component-sheet__actions"
     ],
     "props": {
       "aria-label": "Sheet"
@@ -10168,6 +10168,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "Sheet content goes here.",
       "size": "S"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__actions",
+    "definitionId": "lib:definition:type-ButtonGroup",
+    "children": [
+      "lib:template:component-sheet__close"
+    ],
+    "props": {
+      "align": "end"
+    },
+    "layout": {
+      "marginTop": "16px"
     },
     "visual": {}
   },

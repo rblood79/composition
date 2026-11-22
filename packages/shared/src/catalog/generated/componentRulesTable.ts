@@ -5273,11 +5273,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      // S2 체크리스트 §4.1 (2026-11-22, 사용자 결정 「S2 값 그대로」): 닫힐 때 S2 Modal · ModalOverlay 처럼
+      //   130ms 동안 투명해진다 (`Modal.tsx` — 둘 다 `isExiting` opacity 0 · 130). RAC 는 닫을 때 overlay
+      //   요소 자신의 애니메이션만 기다려 (`useExitAnimation` — `ref.current.getAnimations()`) 자식
+      //   backdrop 의 fade 는 시작 전에 지워지므로, 닫힘 fade 는 overlay 에 둔다. DOM 전환이라 Canvas 는
+      //   읽지 않는다 (열린 상태만 그림). 열린 overlay 의 배치는 inline (`sheetLayout.ts`).
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": { styles: { transition: "opacity 130ms" } },
+          "&[data-exiting]": { styles: { opacity: "0" } },
+        },
+      },
       containerStyles: {
         display: "flex",
         flexDirection: "column",
       },
-      skipCSSGeneration: true,
     },
   },
   SheetBackdrop: {
@@ -5299,6 +5310,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      // S2 체크리스트 §4.1 (2026-11-22, 사용자 결정 「S2 값 그대로」): S2 `ModalOverlay` 의 fade in —
+      //   `opacity` 250ms (`Modal.tsx` `modalOverlayStyles`), RAC 가 여는 동안 주는 `data-entering` 에서.
+      //   닫힘 130 은 SheetOverlay 가 맡는다 (RAC 가 자식의 닫힘 애니메이션을 기다리지 않음). DOM 전환이라
+      //   Canvas 는 읽지 않는다 (열린 상태만 그림).
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": { styles: { transition: "opacity 250ms" } },
+          "&[data-entering]": { styles: { opacity: "0" } },
+        },
+      },
       containerStyles: {
         display: "flex",
         flexDirection: "column",
@@ -5339,7 +5361,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // Sheet 본체가 Dialog의 Modal과 같은 elevation을 소유한다.
         display: "flex",
         flexDirection: "column",
-        width: "360px",
+        // S2 Modal `size` M (기본) 480 — S 400 · M 480 (`Modal.tsx`, 사용자 결정 2026-11-22 「S2 값 그대로」).
+        width: "480px",
         maxWidth: "100%",
         maxHeight: "90%",
         overflow: "hidden",
@@ -5356,8 +5379,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
-        paddingX: 24,
-        paddingY: 24,
+        // S2 Dialog 의 안쪽 여백 32 (header · content · footer 의 paddingX · 위 · 아래 — `Dialog.tsx`),
+        //   제목 ↔ 본문 16 (header `marginBottom`) — 사용자 결정 2026-11-22 「S2 값 그대로」.
+        paddingX: 32,
+        paddingY: 32,
         gap: 16,
       },
     },

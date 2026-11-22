@@ -34,11 +34,23 @@
 }
 
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-SheetBackdrop {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-SheetBackdrop {
+    transition: opacity 250ms;
+  }
+
+  .react-aria-SheetBackdrop[data-entering] {
+    opacity: 0;
+  }
 
 
 } /* @layer components */

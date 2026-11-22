@@ -1,0 +1,47 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SheetOverlay — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SheetOverlay {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: column;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-SheetOverlay {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-SheetOverlay {
+    transition: opacity 130ms;
+  }
+
+  .react-aria-SheetOverlay[data-exiting] {
+    opacity: 0;
+  }
+
+
+} /* @layer components */

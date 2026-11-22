@@ -103,9 +103,11 @@ describe("RAC TokenField / PreviewTrigger / Sheet registration", () => {
               ? 900 - sheet.height
               : (900 - sheet.height) / 2,
         );
-        expect(sheet.width).toBe(360);
-        // 텍스트 측정 fixture의 내용 64 + padding 48. 재배치에서 padding을 중복 더하지 않는다.
-        expect(sheet.height).toBe(112);
+        // (S2 Modal M — 사용자 결정 2026-11-22 「S2 값 그대로」.)
+        expect(sheet.width).toBe(480);
+        // 텍스트 측정 fixture의 내용 64 + 닫기 줄 위 16 (S2 footer 32 = gap 16 + 16) + padding 64 (S2 Dialog
+        // 32 × 2). 재배치에서 padding을 중복 더하지 않는다.
+        expect(sheet.height).toBe(144);
         expect(
           scene.stream.boundsMap.get(of("SheetContent").id)!.height,
         ).toBeCloseTo(sheet.height, 3);

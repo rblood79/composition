@@ -632,6 +632,20 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
         },
       ]),
     ),
+    ...Object.fromEntries(
+      (
+        [
+          ["SheetBackdrop", "&[data-entering]", "열 때 250"],
+          ["SheetOverlay", "&[data-exiting]", "닫을 때 130 — RAC 는 overlay 자신의 애니메이션만 기다린다"],
+        ] as const
+      ).map(([type, key, what]) => [
+        type,
+        {
+          keys: [key],
+          reason: `S2 Modal · ModalOverlay fade, ${what} (사용자 결정 2026-11-22 「S2 값 그대로」) — RAC 여닫힘 표시 \`data-entering\` · \`data-exiting\` 은 상태 어휘 밖이고 Canvas 에 대응 없는 DOM 전환 (ADR-223 의 transition 과 같은 부류, Canvas 는 열린 상태만 그린다)`,
+        },
+      ]),
+    ),
     SegmentedControlItem: {
       keys: ["&[data-selected]"],
       reason:

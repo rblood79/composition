@@ -13,7 +13,7 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: 360px;
+  width: 480px;
   max-width: 100%;
   max-height: 90%;
   overflow: hidden;
