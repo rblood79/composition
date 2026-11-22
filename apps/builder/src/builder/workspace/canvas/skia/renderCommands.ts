@@ -30,6 +30,7 @@ import {
 } from "./nodeRendererMask";
 import { getSkImage, loadSkImage } from "./imageCache";
 import { getSkiaNode } from "./useSkiaNode";
+import { PageLocalMap, PageSpace, shiftClip, shiftRect } from "./pageSpace";
 import { scrollNodeOf, scrollOffsetOf } from "./propertyNodes";
 import { linkParagraphOwner } from "./retainedParagraph";
 import {
@@ -957,6 +958,11 @@ export interface RenderCommandStream {
    * 교차 결과가 비면 아예 등재하지 않는다 = 히트 불가.
    */
   hitBoundsMap: Map<string, BoundingBox>;
+  /**
+   * 2026-11-22: element → page and each page's origin offset — the four geometry maps above store
+   * page-local values (`pageSpace.ts`), so moving a page frame changes one offset.
+   */
+  pages: PageSpace;
   /** draw/hit snapshot이 함께 소비하는 presentation revision */
   presentationRevision: number;
   /** rootKey별 targeted presentation revision */
@@ -1455,14 +1461,24 @@ export function buildRenderCommandStream(
   const subtreeSpans = new Map<string, SubtreeSpan>();
   const childrenSpans = new Map<string, SubtreeSpan>();
   const damageUnsafeElementIds = new Set<string>();
-  const clipContextByElement = new Map<string, ClipRect>();
+  // Scene geometry is stored page-local (`pageSpace.ts`): a page frame moves by one offset.
+  const pages = new PageSpace();
+  const clipContextByElement = new PageLocalMap<ClipRect>(
+    pages,
+    shiftClip,
+    true,
+  );
   const zOrderKeyByElement = new Map<string, string>();
   const scrollContextKeyByElement = new Map<string, string>();
-  const subtreeBuildContextByElement = new Map<string, SubtreeBuildContext>();
+  const subtreeBuildContextByElement = new PageLocalMap<SubtreeBuildContext>(
+    pages,
+    shiftBuildContext,
+    true,
+  );
   const topLayerElementIds = new Set<string>();
   const childElementIds = new Map<string, readonly string[]>();
-  const boundsMap = new Map<string, BoundingBox>();
-  const hitBoundsMap = new Map<string, BoundingBox>();
+  const boundsMap = new PageLocalMap<BoundingBox>(pages, shiftRect, false);
+  const hitBoundsMap = new PageLocalMap<BoundingBox>(pages, shiftRect, false);
   const presentationRevisionByRootKey = new Map(
     revision.presentationRevisionByRootKey ?? [],
   );
@@ -1556,10 +1572,12 @@ export function buildRenderCommandStream(
     );
   }
 
+  assignPages(pages, subtreeBuildContextByElement);
+
   // SpatialIndex 동기화: 클립 인지 히트 영역을 반영 (화면에 없는 영역은 히트 불가)
   if (options.syncSpatialIndexSnapshot !== false && WASM_FLAGS.SPATIAL_INDEX) {
     const spatialIndexStart = adr189MetricsEnabled ? performance.now() : 0;
-    syncSpatialIndex(hitBoundsMap);
+    syncSpatialIndex(hitBoundsMap, pages);
     if (adr189MetricsEnabled) recordCommitLaneSpatialIndex(spatialIndexStart);
   }
 
@@ -1600,6 +1618,7 @@ export function buildRenderCommandStream(
     childElementIds,
     boundsMap,
     hitBoundsMap,
+    pages,
     presentationRevision: revision.presentationRevision,
     presentationRevisionByRootKey,
     baseCanonicalRevision: revision.baseCanonicalRevision,
@@ -1740,7 +1759,10 @@ if (
  * 항상 최신 씬 좌표 기반 SpatialIndex를 유지한다.
  * elementRegistry.updateElementBounds()의 스크린 좌표 동기화를 대체.
  */
-function syncSpatialIndex(boundsMap: Map<string, BoundingBox>): void {
+function syncSpatialIndex(
+  boundsMap: Map<string, BoundingBox>,
+  pages: PageSpace,
+): void {
   const items: Array<{
     id: string;
     x: number;
@@ -1761,7 +1783,43 @@ function syncSpatialIndex(boundsMap: Map<string, BoundingBox>): void {
   }
   // batchUpdate는 full snapshot 계약이므로, 이전 frame에만 존재하던 clip-out/삭제
   // 요소도 wrapper가 diff를 계산해 SpatialIndex에서 제거한다.
-  spatialIndex.batchUpdate(items);
+  spatialIndex.batchUpdate(items, pages);
+}
+
+/** A build context moved with its page: the parent's place and clip (the command offset is local). */
+export function shiftBuildContext(
+  context: SubtreeBuildContext,
+  dx: number,
+  dy: number,
+): SubtreeBuildContext {
+  return {
+    ...context,
+    parentAbsX: context.parentAbsX + dx,
+    parentAbsY: context.parentAbsY + dy,
+    clipRect: shiftClip(context.clipRect, dx, dy),
+  };
+}
+
+/**
+ * Each recorded element's page — its scene root, up its recorded parents (a drag's top layer is
+ * recorded under its page too). A subtree build's root has no parent in it: unassigned there (the
+ * splice assigns the stream's page — `adoptSubtreeEntries`).
+ */
+function assignPages(
+  pages: PageSpace,
+  contexts: ReadonlyMap<string, SubtreeBuildContext>,
+): void {
+  const resolve = (id: string): string | undefined => {
+    const known = pages.pageOf(id);
+    if (known !== undefined) return known;
+    const context = contexts.get(id);
+    if (!context) return undefined;
+    const page =
+      context.parentElementId === null ? id : resolve(context.parentElementId);
+    if (page !== undefined) pages.assign(id, page);
+    return page;
+  };
+  for (const id of contexts.keys()) resolve(id);
 }
 
 /**
@@ -2469,6 +2527,20 @@ export function buildDamageRenderCommandSequence(
     }
   }
 
+  // 원래 paint order (stream 안 시작 자리) 로 — 자리는 요소마다 한 번 찾는다. 비교마다 찾으면 span
+  // 조회 (piece table 이진 탐색) 수가 정렬의 비교 수, 곧 후보의 입력 순서 (공간 색인 결과 순서) 를
+  // 따라 흔들린다 (2026-11-22 ratchet sticky-lists edit `spanCursorSteps` 14,414 ↔ 14,424).
+  const byStreamOrder = (ids: ReadonlySet<string> | undefined): string[] => {
+    if (!ids || ids.size < 2) return ids ? [...ids] : [];
+    const keyed: Array<{ id: string; start: number }> = [];
+    for (const id of ids)
+      keyed.push({
+        id,
+        start: stream.subtreeSpans.get(id)?.start ?? Number.MAX_SAFE_INTEGER,
+      });
+    keyed.sort((a, b) => a.start - b.start);
+    return keyed.map((entry) => entry.id);
+  };
   const commands: RenderCommand[] = [];
   const ranges: CopiedCommandRange[] = [];
   const appendElement = (elementId: string): boolean => {
@@ -2505,15 +2577,7 @@ export function buildDamageRenderCommandSequence(
       return false;
     }
 
-    const relevantChildren = [...(childrenByParent.get(elementId) ?? [])];
-    relevantChildren.sort((a, b) => {
-      const aStart =
-        stream.subtreeSpans.get(a)?.start ?? Number.MAX_SAFE_INTEGER;
-      const bStart =
-        stream.subtreeSpans.get(b)?.start ?? Number.MAX_SAFE_INTEGER;
-      return aStart - bStart;
-    });
-    for (const childId of relevantChildren) {
+    for (const childId of byStreamOrder(childrenByParent.get(elementId))) {
       if (!appendElement(childId)) return false;
     }
 
@@ -2527,13 +2591,7 @@ export function buildDamageRenderCommandSequence(
     );
   };
 
-  const orderedRoots = [...roots];
-  orderedRoots.sort((a, b) => {
-    const aStart = stream.subtreeSpans.get(a)?.start ?? Number.MAX_SAFE_INTEGER;
-    const bStart = stream.subtreeSpans.get(b)?.start ?? Number.MAX_SAFE_INTEGER;
-    return aStart - bStart;
-  });
-  for (const rootId of orderedRoots) {
+  for (const rootId of byStreamOrder(roots)) {
     if (!appendElement(rootId)) return null;
   }
 

@@ -77,6 +77,12 @@ export interface ApplyCommitSubtreeCommandPatchInput {
    * are not refused. Never while a drag layer is up (its subtree is drawn outside the page).
    */
   readonly pageLayer?: boolean;
+  /**
+   * `replacement` was recorded under a new context its parent gave it (`placeRegion` — moved, or
+   * under another clip): its root clip may differ from the stream's. The caller places the rest of
+   * that clip's subtree in the same region.
+   */
+  readonly placedContext?: boolean;
 }
 
 export interface CommitSubtreeCommandPatchResult {
@@ -242,6 +248,7 @@ export function dropSubtreeEntries(
     stream.childElementIds.delete(id);
     stream.boundsMap.delete(id);
     stream.hitBoundsMap.delete(id);
+    stream.pages.forget(id);
   }
 }
 
@@ -252,7 +259,23 @@ export function adoptSubtreeEntries(
   ids: Iterable<string>,
   offset: number,
 ): void {
-  for (const id of ids) {
+  const list = [...ids];
+  // Each entry's page first (its scene values are stored relative to that page's origin): up its
+  // recorded parents to one the stream holds, or to a scene root.
+  const resolve = (id: string): string | undefined => {
+    const known = stream.pages.pageOf(id);
+    if (known !== undefined) return known;
+    const context =
+      replacement.subtreeBuildContextByElement.get(id) ??
+      stream.subtreeBuildContextByElement.get(id);
+    if (!context) return undefined;
+    const page =
+      context.parentElementId === null ? id : resolve(context.parentElementId);
+    if (page !== undefined) stream.pages.assign(id, page);
+    return page;
+  };
+  for (const id of list) resolve(id);
+  for (const id of list) {
     const self = replacement.selfSpans.get(id);
     if (self) stream.selfSpans.set(id, copySpanWithOffset(self, offset));
     const subtree = replacement.subtreeSpans.get(id);
@@ -558,6 +581,7 @@ export function applyCommitSubtreeCommandPatch(
   const currentRootClip = current.clipContextByElement.get(rootId);
   const replacementRootClip = replacement.clipContextByElement.get(rootId);
   if (
+    !input.placedContext &&
     (currentRootClip !== undefined || replacementRootClip !== undefined) &&
     !sameClipRect(currentRootClip, replacementRootClip)
   ) {

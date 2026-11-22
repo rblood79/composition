@@ -245,7 +245,7 @@ import {
   catalogFieldLabelRowAbsent,
   catalogPickerTimeAbsent,
   catalogSelectionCheckboxHidden,
-  catalogMenuSeparatorHidden,
+  catalogCollectionSeparatorHidden,
   catalogPaginationPartHidden,
   catalogColumnMenuIconHidden,
 } from "./presence";
@@ -5401,8 +5401,8 @@ export function renderNode(
       (id) => root.domInputs.get(id),
       root.typeOf,
     ) ||
-    // (S2 Menu Divider: none first, last or before another.)
-    catalogMenuSeparatorHidden(
+    // (S2 Menu · ListBox Divider: none first, last or before another.)
+    catalogCollectionSeparatorHidden(
       node,
       (id) => root.domInputs.get(id),
       root.typeOf,
@@ -6092,7 +6092,10 @@ export function renderNode(
       (!glyphColorWritten(node) &&
         (glyphOwner ||
           // (A SideNav row's icon: the row's color, current included.)
-          catalogSideNavRowItemOf(node, domGet, domType))))
+          catalogSideNavRowItemOf(node, domGet, domType) ||
+          // (A ListBox item's icon: the item's color — RAC's selection recolors the item, S2
+          //  `currentColor`; `catalogItemLabels`.)
+          itemOfLabel())))
       ? withInheritedIconColor(node)
       : undefined;
   const rendered = helpOwner

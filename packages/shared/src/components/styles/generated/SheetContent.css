@@ -20,7 +20,7 @@
 
   /* Default size */
   height: auto;
-  padding: 24px 24px;
+  padding: 32px 32px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
   line-height: var(--catalog-token-text-sm--line-height);

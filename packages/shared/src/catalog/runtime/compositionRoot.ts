@@ -259,6 +259,7 @@ import {
   catalogItemSlotInset,
   catalogFieldLabelPart,
   catalogFieldLabelRowColor,
+  catalogListBoxDescriptionColor,
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
   catalogProgressFillLayout,
@@ -275,7 +276,6 @@ import {
 } from "./presence";
 import {
   CATALOG_EMPTY_SKELETON_STYLE,
-  catalogElementlessWithChildren,
   catalogEmptySkeleton,
 } from "./elementless";
 import {
@@ -5020,26 +5020,37 @@ export class CatalogCompositionRoot {
             ),
           }
         : ownItemDerived;
-    const color = catalogRuleTextColor({
-      node: itemDerived
-        ? {
-            ...item,
-            props: { ...item.props, ...itemDerived },
-            derivedProps: itemDerived,
-          }
-        : item,
-      rule,
-      type:
-        inheritedColorOwner || ruleByType
-          ? this.typeOf(item)
-          : pickerPartOwner
-            ? "Button"
-            : item.ruleId!,
-      authoredVisual: catalogAuthoredVisual(this, item),
-      state: catalogNodeState(item.displayState, this.state),
-      // The item color in this root's color mode (its tokens differ in dark).
-      theme: this.colorMode,
-    });
+    // (S2 체크리스트 §4.1, 2026-11-22: a ListBox item's description is `neutral-subdued` — the ListBox
+    //  rule's description selectors, the same states as its sheet.)
+    const descriptionColor =
+      this.typeOf(item) === "ListBoxItem" && record.props.slot === "description"
+        ? catalogListBoxDescriptionColor(
+            itemDerived?._inPopover === true,
+            itemDerived?._isSelected === true,
+          )
+        : undefined;
+    const color = descriptionColor
+      ? String(resolveToken(descriptionColor as TokenRef, this.colorMode))
+      : catalogRuleTextColor({
+          node: itemDerived
+            ? {
+                ...item,
+                props: { ...item.props, ...itemDerived },
+                derivedProps: itemDerived,
+              }
+            : item,
+          rule,
+          type:
+            inheritedColorOwner || ruleByType
+              ? this.typeOf(item)
+              : pickerPartOwner
+                ? "Button"
+                : item.ruleId!,
+          authoredVisual: catalogAuthoredVisual(this, item),
+          state: catalogNodeState(item.displayState, this.state),
+          // The item color in this root's color mode (its tokens differ in dark).
+          theme: this.colorMode,
+        });
     // (A SideNav row's · header's Text takes its owner's type — S2 `font: ui` / `ui-sm`, the current
     //  row bold: the DOM's `inherit`; a value the Text writes stays its own.)
     const typographyOwner =
@@ -5532,13 +5543,6 @@ export class CatalogCompositionRoot {
       return { display: "none" };
     // (A crumb in its Breadcrumbs' folder menu leaves the flow — `settleBreadcrumbs`.)
     if (this.breadcrumbCollapsed(record.id)) return { display: "none" };
-    // (A node RAC gives no element only with children — a FileTrigger around its Button: its
-    //  children stand in its parent's flow, as the DOM draws them — `catalogElementlessType`.)
-    if (
-      record.children.length > 0 &&
-      catalogElementlessWithChildren(this.typeOf(record))
-    )
-      return { display: "contents" };
     // (An empty Skeleton — ADR-314 결정 3: the Canvas's edit-only placeholder box; the DOM has none.)
     if (catalogEmptySkeleton(this.typeOf(record), record.children.length))
       return { ...CATALOG_EMPTY_SKELETON_STYLE };

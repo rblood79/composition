@@ -352,7 +352,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["itemSlotCollection", "disablingGroup", "emptyStateCollection"],
     // (RAC 1.22.1: `Section` is @deprecated — ListBoxSection replaces it — and `Header` is a
     //  section's heading, in the section's children. Neither sits right under the list, 2026-10-22.)
-    children: ["ListBoxItem", "ListBoxSection"],
+    // (2026-11-22: a section's S2 Divider — `PickerSection` — is a Separator among the items, the Menu's way.)
+    children: ["ListBoxItem", "ListBoxSection", "Separator"],
   },
   // (ADR-256 Phase 6c · 6d: a Select's · ComboBox's items are in its ListBox — the reference's
   // `Popover > ListBox` — not the picker's own children.)

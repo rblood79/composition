@@ -11,6 +11,149 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [MenuTrigger — Trigger 에 Context menu (S2) · ColorArea alpha 축은 채택하지 않음] - 2026-11-22
+
+### Added
+
+- **MenuTrigger `trigger` 에 `contextMenu`** — S2 · RAC 설치 타입의 값. 우클릭 · 터치 길게 누르기 · OS 키로 메뉴를 열고, 메뉴는 누른 자리에 선다 (RAC `useMenuTrigger` 의 `useContextMenu`). 왼쪽 클릭으로는 열리지 않고 trigger 에 `aria-haspopup` 이 붙지 않는다 (RAC). 열어 둔 (`isOpen`) context 메뉴의 Popover 는 S2 · RAC 처럼 offset 0 — Canvas 배치가 Popover 의 기본 offset 8 을 그대로 써서 Publish (버튼 바로 아래) 보다 8 아래에 그리던 것을 맞췄다 (`catalogOverlayPopoverOffset` — 작성한 offset 은 그대로 이긴다).
+  - **Why**: S2 체크리스트 부록 C.1 — 설치 타입이 받는 값이 Design 패널 선택지에 없었다.
+  - 위치: `packages/shared/src/catalog/bindings/MenuTrigger.binding.ts` · `catalog/runtime/overlayLayout.ts` (`catalogOverlayPopoverOffset` → `catalogOverlayPlacement`).
+  - 확인: 테스트 `s2C1EnumValues` 6 (S2 설치본 offset 식 · 선택지 · offset 판정 · Canvas 배치 context 132 / press 140 / 작성 20 은 152 · ColorArea alpha oracle 2), 원복 RED 3 (선택지 · 판정 · Canvas 연결). live (`apps/builder/scripts/s2-menu-context-live.mjs`, headed Chrome, dev 5173): Publish 왼쪽 클릭 = 안 열림 · 우클릭 = 누른 자리 (44, 16) 에 메뉴 · press 메뉴는 버튼 아래 8 그대로 · 열어 둔 context 메뉴 Canvas (12, 32) = Publish (12, 32) · page error 0.
+
+### Notes
+
+- **ColorArea `xChannel` · `yChannel` 의 `alpha` 는 넣지 않았다** — 설치 타입 (`ColorChannel`) 은 받지만 RAC 의 면 그라데이션 (`useColorAreaGradient`) 이 alpha 축을 그리지 못하고 (rgb 는 alpha 0 · 255 가 같은 색, hsl · hsb 는 축 표에 없음) S2 ColorArea 도 다루지 않는다. 설치본이 바뀌면 `s2C1EnumValues` 의 oracle 이 실패해 다시 판정하게 한다.
+
+## [Chart — 툴팁 모양 = S2 Tooltip · 축 글자 = 글자 토큰] - 2026-11-22
+
+### Changed
+
+- **Chart hover 툴팁의 모서리 · 여백 · 글자가 S2 Tooltip 값** — S2 에 Chart 가 없어 Tooltip (`Tooltip.tsx` — 모서리 `default` · 좌우 `edge-to-text` · 위아래 `centerPadding()` · 글자 `ui-sm`) 값을 따른다: 모서리 6 → 8, 여백 6 / 8 → 4 / 9, 글자 12 그대로 + 행간 16. 막대 · scatter · family 툴팁 셋이 같은 표면 style (`CHART_TOOLTIP_SURFACE`) 을 읽고, 값은 rule `chart` 채널 (`tooltipRadius` · `tooltipPaddingX` · `tooltipPaddingY` · `tooltipFontSize` · `tooltipLineHeight`) 에서 생성 CSS 변수 (`--chart-tooltip-radius` · `-padding` · `-font-size` · `-line-height`) 로 온다 — 기기 두 벌 토큰이라 터치 기기에서는 S2 처럼 커진다.
+- **Chart 축 글자 11 이 글자 토큰** — rule `chart.metrics.fontSize` 가 리터럴 11 에서 `{typography.text-2xs}` (S2 `ui-xs` — desktop 11 · 터치 13) 로. 장면 계산이 숫자 하나를 쓰므로 `resolveChartMetrics` 가 설치된 글자 맵에서 px 로 풀어 Canvas · DOM 에 같이 준다 (`chartMetricFontSize`). 테마가 글자 단계를 바꾸면 축 글자도 따른다.
+  - **Why**: 툴팁 모양이 DOM 세 곳에 숫자로 적혀 (rule 밖 — D3 위반) S2 Tooltip 과 달랐고, 축 글자는 S2 단계 밖의 고정 px 였다 (S2 체크리스트 §4.1).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Chart `chart` 채널) · `types/catalog-style.types.ts` · `packages/rendering/src/renderers/CSSGenerator.ts` (`generateChartVariables`) · `packages/rendering/src/chart/computeChartScene.ts` (`chartMetricFontSize`) · `packages/shared/src/components/chart/{chartInteraction,RechartsChart,FamilySceneHost}.tsx` · `components/Chart.components.tsx` (metrics memo 키에 풀린 글자 px).
+  - 확인: 테스트 `s2Chart` 5 (S2 원본 식 · rule 값 · 생성 CSS 변수 · 툴팁 셋의 공용 style · 축 글자 토큰 → 11), 원복 RED 4 (rule · 생성 CSS · RechartsChart · 토큰 풀기). 기대값 갱신 2 (`adr306ChartSize` metrics, 리터럴 분류에서 Chart 11 삭제). live (`apps/builder/scripts/s2-chart-live.mjs`, headed Chrome, dev 5173): Canvas 에 Chart 를 놓고 툴팁을 켬 → 축 글자 그려짐 · page error 0, Publish 축 글자 13 개 모두 11px, 막대 hover 툴팁 모서리 8 · 여백 4 / 9 · 글자 12 · 행간 16.
+
+## [FileTrigger — S2 처럼 `FileTrigger > Button` (자기 상자 없음)] - 2026-11-22
+
+### Breaking Changes
+
+- **FileTrigger 가 `children` (글자) · `size` · `isDisabled` 를 받지 않는다** — RAC `FileTriggerProps` 에 없는 축이라 자식 Button 노드로 옮겼다. 옛 문서의 FileTrigger 에 적힌 이 세 값은 검증에서 거절된다 (개발 단계 — 문서 마이그레이션 없음, 사용자 원칙 11-18). 버튼 글자 · 크기 · 비활성은 FileTrigger 안 Button 에서 고친다.
+
+### Changed
+
+- **FileTrigger 원본이 자기 칠 · 크기를 가진 버튼 하나** — S2 (RAC FileTrigger 를 그대로 내보내고 그 안에 S2 Button — `<FileTrigger><Button>Select files</Button></FileTrigger>`) 대로 원본을 `FileTrigger > Button` 으로: FileTrigger 는 요소가 없어 (`display: contents` · 칠 없음 — 자식이 있든 없든) Button 이 부모 흐름에 서고, 보이는 모양은 Button rule 의 것 (전의 밝은 바탕 · 테두리 상자 → S2 Button 기본 모양). FileUpload 안의 trigger 도 같은 원본이라 같은 구조.
+  - **Why**: FileTrigger 가 Button rule 을 흉내 낸 자기 rule (크기 · 칠 · 숨은 input 선택자) 로 버튼을 그려, S2 · RAC 에 없는 prop 세 개와 「자식이 있을 때만 요소 없음」 분기 (Canvas · DOM 두 곳) 가 따로 있었다.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (`component-filetrigger__button`, FileUpload trigger 의 `children` · `size` 삭제) · `catalog/bindings/FileTrigger.binding.ts` · `catalog/document/d2Provenance.ts` · `catalog/generated/componentRulesTable.ts` (FileTrigger rule) · `catalog/runtime/delegatedDom.runtime.ts` (자체 버튼 경로 삭제) · `catalog/runtime/elementless.ts` (`catalogElementlessWithChildren` 삭제 — rule 의 `display: contents` 하나로) · `catalog/runtime/compositionRoot.ts` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` · `canvasGesture.ts` · `panels/styles/catalog/catalogStylesHost.ts`.
+  - 확인: 테스트 `s2FileTrigger` 6 (원본 트리 · 받는 prop · rule · Canvas 상자 = Button 상자 · DOM 요소 없음 + file input · FileUpload 트리), 기대값 갱신 5 파일 (`drawnBoxModel` — 자식을 지워도 상자 없음, `adr276ButtonOrigin` Button 자리 30, `phase4e10FileUpload` — rule 글자 한 줄 판정의 예를 Link 로, `s2VariantRemoval` · `componentRulesTable.static` 의 낡은 FileTrigger 값), 원복 RED 4 (Button 자식 · `size` 받기 · rule 상자 · DOM 자체 버튼 — 모두 실패 · 복원). live (`s2-filetrigger-live.mjs`, 새 프로젝트): Canvas FileTrigger > Button · 상자 100.21 × 32 = Publish Button 100.21 × 32, Publish 에 `.react-aria-FileTrigger` 요소 0 · file input 있음, Button 을 누르면 파일 선택 창이 열림, FileUpload 안 trigger 도 Button, 페이지 오류 0.
+
+## [Sheet — S2 Modal · Dialog 값으로 (폭 480 · 여백 32 · 끝 정렬 닫기 · 여닫힘 fade)] - 2026-11-22
+
+### Changed
+
+- **Sheet 가 폭 360 · 안쪽 여백 24 · 본문 끝의 Close · 즉시 나타나고 사라짐** — 사용자 결정 「S2 값 그대로」 (S2 에 Sheet 가 없어 같은 계열의 `Modal.tsx` · `Dialog.tsx`): 폭 480 (Modal `size` M), 안쪽 여백 32 (Dialog header · content · footer), Close 는 끝 정렬 ButtonGroup 안 · 본문과 32 (footer `paddingTop`), backdrop 이 250ms 동안 나타나고 (ModalOverlay fade) 닫힐 때 Sheet 전체가 130ms 동안 사라진다 (ModalOverlay · Modal 둘 다 `isExiting` 130).
+  - **Why**: S2 대응 값과 다르게 RAC starter 값 (360 · 24 · 본문 안 Close) 이 남아 있었다. 닫힘 fade 를 backdrop 에 걸면 RAC 가 overlay 요소 자신의 애니메이션만 기다려 (`useExitAnimation` — `ref.current.getAnimations()`) fade 가 시작되기 전에 지워져 (live 실측), 닫힘 fade 는 SheetOverlay 에 둔다 — S2 도 닫힐 때 바탕과 본체가 함께 사라진다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Sheet `width` 480 · SheetContent padding 32 · SheetBackdrop `&[data-entering]` · SheetOverlay `&[data-exiting]` — `skipCSSGeneration` 해제) · `catalog/document/generated/reusableOriginLibrary.ts` (`component-sheet__actions` ButtonGroup `align: end` · `marginTop` 16 > Close) · `components/styles/index.css` (생성 `SheetOverlay.css` 로드) · 게이트 `componentRulesTable.static.test.ts` (여닫힘 표시는 상태 어휘 밖 — 사유와 함께 등재) · `generatedCssLoadInventory.static.test.ts` (136 · index 118).
+  - 확인: 테스트 `s2Sheet` 3 (Canvas 480 · 제목 (32, 32) · Close 가 ButtonGroup 안 · 오른쪽 · 아래 32 · 본문과 32, 생성 CSS 폭 · 여백 · fade, DOM `role=group` 끝 정렬), 기대값 갱신 2 (`racNewComponents` 폭 480 · 높이 144, `adr301Expansion` 구조), 원복 RED 6 (폭 · 여백 · footer 간격 · 정렬 · 닫힘 fade 두 자리 — 모두 실패 · 복원). live (`s2-sheet-live.mjs`, 새 프로젝트): Canvas 와 Publish 가 폭 480 · 제목 (32, 32) · Close 끝 · 아래 32 · 본문과 32 로 같음, Publish 에서 열면 backdrop 투명도 0 → 1 (약 250ms), Close 가 닫고 (ButtonGroup 너머 RAC close slot) 닫히는 동안 overlay 투명도 1 → 0.06 (약 100ms) 뒤 제거, 페이지 오류 0.
+
+## [Autocomplete — S2 예제처럼 라벨 없는 검색 · 목록 위 간격 8] - 2026-11-22
+
+### Changed
+
+- **Autocomplete 원본의 검색 칸에 보이는 라벨 「Search」 가 있고 목록이 검색 칸에 붙어 있음** — S2 Autocomplete 예제 (`Menu.md` — `<SearchField aria-label="Search tags" />` + `<Menu styles={style({marginTop: 8})}>`) 대로: 검색 칸은 보이는 라벨 없이 `aria-label` 「Search items」 로 이름을 갖고, 목록은 검색 칸 아래 8 에 놓인다.
+  - **Why**: S2 의 Autocomplete 는 RAC 것을 다시 내보낼 뿐이라 고유 구조가 없고, 공식 예제의 검색은 라벨 행 없이 목록과 8 간격이다. SearchField 는 `aria-label` 을 받지 않아 라벨을 비우면 이름이 없어졌다.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (`component-autocomplete__search` 의 `label` 비움 · `aria-label`, `__listbox` `marginTop: 8px`) · `catalog/bindings/SearchField.binding.ts` (`aria-label` — 패널에는 숨김, 다른 binding 과 같은 `ARIA_LABELING_PROPS`) · `catalog/runtime/delegatedDom.runtime.ts` (RAC SearchField 에 `aria-label`).
+  - 확인: 테스트 `s2Autocomplete` 2 (Canvas 라벨 행 숨김 · 검색 32 · 목록 8 아래, DOM label 요소 없음 · input `aria-label` · ListBox `margin-top` 8), `adr256AutocompleteNodeTree` 의 비교 문서를 새 원본에 맞춤, 원복 RED 3 (라벨 · 간격 · DOM `aria-label` — 모두 실패 · 복원). live (`s2-autocomplete-live.mjs`, 새 프로젝트 · 팔레트 Autocomplete): Canvas 라벨 행 숨김 · 검색 32 · 간격 8 = Publish label 요소 없음 · `aria-label` 「Search items」 · 검색 32 · 간격 8, Publish 에서 「ar」 입력 → Starred · Archive 로 걸러짐, 페이지 오류 0.
+
+## [ListBox 항목 색 — 선택 항목 아이콘 · picker check 를 S2 색으로] - 2026-11-22
+
+### Fixed
+
+- **단독 ListBox 선택 항목의 아이콘이 accent 바탕 위에 어두운 색 · Select · ComboBox 팝오버의 선택 check 가 accent 가 아닌 어두운 색** — S2 Picker 항목 (`Menu.tsx` `icon` — `--iconPrimary: currentColor`, `checkmark` — `baseColor('accent')`) 대로: 항목 아이콘 (`Icon[slot=icon]`) 은 항목 글자색을 따른다 (선택 항목은 label · 설명과 같은 흰색), check 는 accent.
+  - **Why**: 항목 색을 물려받는 부품 목록 (`catalogItemLabels`) 이 Text 만 담아 아이콘은 자기 휴지 색에 남았고, DOM 도 그 색을 inline 으로 박아 RAC 선택이 바꾼 항목 색을 받지 못했다. check 는 template 이 색을 토큰 참조 (`{kind:"token"}`) 가 아니라 `"{color.accent}"` 글자로 들고 있어 (8560fece5 부터, 파일 안 유일한 형태) Canvas · DOM 둘 다 읽지 못했다.
+  - 위치: `packages/shared/src/catalog/document/manualBoxRules.ts` (`MANUAL_ITEM_LABEL_COLORS.ListBoxItem.iconSlots`) · `catalog/runtime/presence.ts` (`catalogItemLabels` 가 그 slot 의 Icon 도 담음 — Canvas 파생 색 · 갱신 의존) · `runtime/domBinding.runtime.ts` (그 Icon 은 작성 색이 없으면 `color: inherit`) · `document/generated/reusableOriginLibrary.ts` (check 색 = `lib:token:color_accent` 참조).
+  - 확인: 테스트 `s2ListBoxItemDetails` +2 (Canvas 파생 색 · DOM `inherit` · check Canvas · DOM accent), 원복 RED 3 (토큰 글자 · `iconSlots` · DOM inherit — 모두 실패 · 복원). live (`s2-listbox-details-live.mjs` ⑤ ⑥, 새 프로젝트): 항목 아이콘 #ffffff (선택) · #292929 · #292929 가 Canvas = Publish, Select 팝오버 check #3b63fb 가 Canvas = Publish, 페이지 오류 0.
+
+## [ListBox 항목 세부 — S2 Picker 의 설명 색 · 간격 · section 구분선 · 선택 check 크기] - 2026-11-22
+
+### Fixed
+
+- **ListBox 항목 설명이 label 과 같은 색 · 간격 2 · section 사이 구분선 없음 · picker 선택 check 가 모든 크기에서 16** — S2 Picker 항목 (`ComboBox.tsx` `listboxItem` · Menu.tsx `description` · `PickerSection`) 대로: 설명 = `neutral-subdued` (단독 목록의 선택 항목은 accent 바탕의 흰 글자 그대로 — 선택 채움 유지 결정 2026-11-14, 팝오버 목록은 선택 채움이 없어 늘), label ↔ 설명 간격 = `space(1)` 1, 「+ Section」 이 S2 Divider (Separator — 12 상자 · 2px · 좌우 edge-to-text) 를 함께 넣고 그 구분선은 목록 끝 · 연속이면 숨김 (Menu 의 11-18 방식을 ListBox 로 일반화 — `catalogCollectionSeparatorHidden`). 구분선이 section 을 나누므로 단독 목록 section 머리의 위아래 선은 지웠다 (바탕 · 글자는 그대로). picker 항목의 선택 check 는 크기를 따른다 (사용자 결정 「크기별로 키움」 — S2 `checkmarkIconSize` 10 · 10 · 12 · 14 를 우리 M 16 기준으로 × 16/10: XS · S · M 16 · L 19.2 · XL 22.4, 상자와 글리프 모두). 같은 template 을 복사하는 Menu 의 check 는 16 그대로.
+  - **Why**: Canvas 는 항목 글자 색을 항목 칠 하나로 물려받고 DOM 은 ListBox rule 의 `color: inherit` 를 써, 설명만 다른 색을 줄 자리가 없었다. 구분선은 ListBox 가 Separator 를 자식으로 받지 않았고 (허용 목록 · DOM 자식 거르기 둘 다), 항목 넣기의 section 경로가 Menu 만 알았다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ListBox 설명 색 선택자 · `.react-aria-Separator` 자리 · Header 선 삭제, ListBoxItem `gap` 1) · `catalog/runtime/presence.ts` (`catalogListBoxDescriptionColor` — Canvas 가 같은 선택자 값을 읽음 · `catalogCollectionSeparatorHidden`) · `runtime/compositionRoot.ts` · `runtime/delegatedDom.runtime.ts` (`LISTBOX_CHILD_TYPES`) · `commands/collections.ts` (`insertCollectionItem` `after`) · `apps/builder/src/builder/catalogRuntime/itemInsert.ts` (`SECTION_DIVIDER_HOSTS`) · `domain/componentTraits.ts` · `document/manualBoxRules.ts` · `document/selectionItemTemplates.ts` (picker 항목 rowGap 1 · Menu check 16 유지) · `document/generated/reusableOriginLibrary.ts` (ListBoxItem check 의 16 고정 삭제 — 작성값이 크기별 rule 값을 덮었다).
+  - 확인: 테스트 `s2ListBoxItemDetails` 6 (Canvas 색 · 생성 CSS · 간격 · 구분선 넣기 · 숨김 · 자리 · DOM `role=separator` · Header 선), 기대값 갱신 6 파일 (gap 1 · ListBox 자식 Separator · S2 값 리터럴 등재), 원복 RED 11 (Canvas 색 · 시트 색 · 간격 · DOM 자식 · 넣기 · 숨김 · Header 선 · 구분선 자리 · check 크기 표 · template 16 · Menu 16 — 모두 실패 · 복원). live (`s2-listbox-details-live.mjs`, 새 프로젝트 · Builder 의 「+ Section」 · 「+ Item」): 설명 색 #ffffff (선택) · #505050 · 간격 1 · 구분선 section 기준 x 12 · 아래 5 · 높이 2 · 남는 폭 24 · Header 선 0 · 높이 32 가 Canvas = Publish, 끝 항목을 지우면 구분선 숨김 → Undo 로 다시 보임, Select L 팝오버 선택 항목 check Canvas 상자 · 글리프 19.2 = Publish 상자 · svg 19.2, 페이지 오류 0.
+
+## [ListBox 항목 글자 단계 — S2 Picker 항목처럼 크기를 따른다] - 2026-11-22
+
+### Fixed
+
+- **ListBox 항목의 label · description 글자가 크기와 무관하던 것** — Canvas 는 label 14 · description 12 를 모든 크기에 그렸고 (`manualBoxRules.ts` `listBoxItemParts`), DOM 은 label 만 항목 크기를 따르고 description 은 12 고정이었다 (ListBox rule 의 item 선택자). 이제 S2 `PickerItem` (Menu.tsx `label({size})` · `description({size})`) 대로 label = 항목의 control 글자 · 500, description = 한 단계 아래 (S 11 · M 12 · L 14 · XL 16, XS 는 S2 에 없어 S 값) — 단독 ListBox 와 Select · ComboBox 팝오버 안 목록 모두. 값은 ListBoxItem rule 의 `sizeSelectors` 표 하나를 생성 CSS 와 Canvas part rule 이 같이 읽는다 (MenuItem 과 같은 방식). 단독 목록의 상자 · 선택 채움은 그대로 (사용자 결정 2026-11-14).
+  - **Why**: 글자 크기를 두 consumer 가 따로 들고 있었다 — Canvas 는 RAC 레퍼런스 시절의 14 · 12 고정값 (manual part rule), DOM 은 ListBox rule 의 `inherit` · `--text-xs`. 크기별 값의 출처가 없어 M 만 우연히 맞았다. 고정 part rule 은 항목 rule 의 크기별 part rule 을 이기므로 (원복 RED 5) 지워야 표 하나로 모인다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ListBoxItem `sizeSelectors` · ListBox item 선택자의 고정 크기 삭제) · `catalog/document/manualBoxRules.ts` (`listBoxItemParts`) · 생성 `ListBox.css` · `ListBoxItem.css`.
+  - 확인: 테스트 `s2ListBoxItemText` (5 크기 × Canvas · DOM · 생성 CSS) · `d3S2Alignment` (S2 설치본 대조 2), 원복 RED 3 (크기 표 6 · Canvas 고정 5 · ListBox 고정 2 실패). live (`s2-listbox-text-live.mjs`, 새 프로젝트): ListBox S · M · XL 의 label 12 · 14 · 18 / description 11 · 12 · 16 과 항목 높이 40 · 50 · 70 이 Canvas = Publish, 크기 S → L → Undo 가 Canvas 에 바로 반영, Select L 팝오버 항목 label 16. Publish 에 HTTP 응답에 잡히지 않는 404 콘솔 1 건 (브라우저 자체 요청 — 이번 변경과 무관).
+
+## [성능 ratchet — sticky-lists fixture 가 다시 스크롤 목록을 잰다] - 2026-11-22
+
+### Fixed
+
+- **sticky-lists edit `patchCalls` 15 → 195** — 11-22 기준 재설정 (`89608a46d`) 이 「남은 비용」 으로 적었던 값은 fixture 가 바뀐 장면이었다. ListBox 의 기본 overflow 가 빠진 뒤 (`268503f1a`, 11-13) fixture 의 목록 (높이 200) 이 스크롤 상자가 아니게 되어 ADR-267 의 장면 (넘쳐 스크롤하는 목록 + sticky 섹션 머리) 을 재지 않았다 (15 → 75). 그 장면에서 `4a79c6185` 가 큰 fallback patch 하나를 옮겨진 자리마다 작은 patch 로 나눴다 (75 → 195 — 쓰기는 15,225 → 4,125 로 줄었다). fixture 가 ListBox 에 overflow auto 를 직접 준다 (scroll-boxes 와 같다).
+  - 위치: `apps/builder/scripts/perf-baseline.mjs` (sticky-lists fixture) · `apps/builder/perf/ratchet.json`.
+  - 확인: HEAD 에서 두 번 같은 등급 A 값 — `patchCalls` 15 · `bufferSegmentsPeak` 27 → 3 · `spanCursorSteps` 71,265 → 14,414 · `paragraph.misses` 225 → 45 (11-12 기준 105). 스크롤 상자 몫 8 키는 11-12 기준과 같은 값으로, 저장 바이트는 overflow 값만큼 (5,445 → 6,045) 상한을 올렸다 (사용자 승인 · 만료 2027-05-22). B 경고 `cdp.LayoutCount` · `RecalcStyleCount` 23 → 29~30 (한도 25).
+
+## [성능 계측 — 카메라 순간 이동을 팬 이동 거리 분포에서 뺀다] - 2026-11-22
+
+### Fixed
+
+- **many-pages100 page-jump `panDeviceMax` 460,895 → 1,480,707** — 실행 비용이 늘어난 것이 아니었다. 하니스의 page-jump 는 앞 부류 (zoom) 가 남긴 줌 4.0 에서 홈과 가장 먼 page 로 카메라를 한 프레임에 옮기고, ADR-273 의 팬 이동 거리 분포가 그 순간 이동을 팬 프레임으로 셌다. page 프레임이 내용만큼 자란 뒤 (`8ec1eed18`, 11-13) 100 page 가 약 3.2 배 길어져 (마지막 page y 369,150) 그 거리가 그대로 늘었다. 분포의 목적은 content 여백 크기 판단인데, 한 축이라도 화면 크기 이상 옮긴 프레임은 이전 화면과 겹치는 곳이 없어 어떤 여백으로도 덮을 수 없다 — 그런 프레임은 분포 · 최대에 넣지 않고 `cameraJumpFrames` 로 따로 센다 (`countPanMove`). 여백 이탈 재기록 (`contentRedrawsOutOfPad`) 은 그대로 센다. dev 계측만 바뀌고 렌더 동작은 같다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCounters.ts` (`countPanMove` · `cameraJumpFrames`) · `skia/SkiaRenderer.ts` · `apps/builder/perf/ratchet.json`.
+  - 확인: ratchet many-pages100 두 번 측정이 같은 값 — page-jump `panDeviceMax` 1,480,707 → 96 (휠 팬 96 CSS px) · `panDeviceGt128` 2 → 0 · `panFrames` 140 → 138 · `cameraJumpFrames` 2, 다른 키 변화 0. Playwright (dev) 같은 문서에서 pan 부류는 180 프레임 · 최대 24 그대로.
+
+## [Canvas 간격 손잡이 — 스크롤 상자 밖으로 넘친 gap 손잡이를 그리지도 잡지도 않는다] - 2026-11-22
+
+### Fixed
+
+- **항목이 많은 ListBox 를 선택하면 프레임마다 gap 손잡이를 항목 수만큼 그리던 것** — `33b1133b8` (11-13, 자식을 배치하는 모든 요소에 간격 손잡이) 뒤 ListBox 도 손잡이를 갖게 되어, 항목 300 이면 padding 4 + gap 299 를 매 프레임 그리고 (paint 606 대여) 상자 clip 이 거의 전부를 버렸다. 손잡이는 owner 의 가시 영역 (`hitBoundsMap` — 조상 clip 반영) 에 걸칠 때만 그리고 잡는다 — 그리는 판정과 히트 판정이 한 함수 (`spacingHandleInView`). 넘친 gap 손잡이 자리 (상자 아래) 를 누르면 보이지 않는 손잡이가 잡히던 것도 함께 막힌다 (canvas-interaction §8.5 — 보이는 것만 히트). ratchet scroll-boxes scroll `caches.paintPool.hits` 65,168 → 4,882 (상한 하향).
+  - 위치: `apps/builder/src/builder/workspace/canvas/interaction/spacingGeometry.ts` (`spacingHandleInView` · hit test 의 `visible`) · `skia/spacingOverlayRenderer.ts` · `catalogRuntime/canvasGesture.ts` (host `hitBounds`) · `catalog/CatalogCanvas.tsx` · `apps/builder/perf/ratchet.json`.
+  - 확인: Playwright (dev) scroll-boxes ListBox — 보이는 gap 손잡이 커서 · 넘친 gap 자리 커서 없음 · 휠 240 뒤 새로 보인 손잡이 잡힘 · 끌기로 항목 gap 0 → 16 · console 오류 0.
+
+## [성능 ratchet 기준 재설정 — 11-22 회귀 수리 4 건 뒤 코드] - 2026-11-22
+
+### Changed
+
+- 성능 ratchet 기준을 `ba03990d3` 로 다시 잡았다 (사용자 지시 2026-11-22) — 13 run 을 세 번 재어 `--init` (세 번 같은 값만 A), 새 기준으로 세 측정 + 따로 한 번 더 잰 측정 모두 A · B 초과 0 (`decision=pass`). 이전 기준 (2026-11-12 `f8098fcf3`) 대비 A 키 같음 5,917 · 내려감 155 · 오름 391 · 새 68. 오른 것은 page 프레임 「내용만큼」 (`8ec1eed18`) 이후 남은 비용이다 — page 를 옮기는 편집의 화면 전체 다시 그리기 (app-pages · many-pages100 edit `contentFullRenders` 0 → 9 · nested-flex 0 → 6), page 이동의 옮기기 · 색인 (app-pages edit `translateNodes` 2,568 → 3,009 · `spatialUpsertCells` 2,936 → 23,307), sticky-lists edit (`patchCalls` 15 → 195 · `paragraph.misses` 105 → 225), scroll-boxes scroll `paintPool.hits` 7,598 → 65,168, many-pages100 page-jump `panDeviceMax` 460,895 → 1,480,707, select 함수 호출 +3 ~ 16 %. 이 값들이 새 상한이다. 위치: `apps/builder/perf/ratchet.json`.
+
+## [Canvas page 이동을 page 원점 하나로 — 옮긴 page 의 요소마다 위치 정보를 다시 쓰던 것] - 2026-11-22
+
+### Changed
+
+- **page 높이가 바뀌는 편집 뒤 아래 page 를 옮기는 비용이 page 안 요소 수에 비례하던 것 → page 수에만** — Canvas 명령 stream 의 장면 기하 (상자 · hit 영역 · 조상 clip · 기록 문맥) 를 page 원점 기준으로 저장하고, 공간 색인 (포인터 판정 · 화면 후보) 을 page 마다 grid 하나로 나눠 질의가 그 page 원점을 더한다. page 를 옮기면 그 page 의 원점 하나와 page root 명령 하나만 바뀐다 (요소 항목 쓰기 0). 읽는 쪽은 그대로 `Map` 으로 장면 좌표를 받는다. ratchet: app-pages edit `translateNodes` 61,599 → 3,009 · `spatialUpsertCells` 367,573 → 23,307 · V8 호출 1,325,570 → 477,022 / many-pages100 edit `translateNodes` 272,874 → 3,009 · `spatialUpsertCells` 1,616,299 → 23,307 / 확대 · 축소 `spatialCellsVisited` 56,995 → 5,004 (page grid 가 내용 범위만 본다). dev headless 편집 뒤 2 프레임: page 를 옮기는 편집 ~37 → ~30 ms (옮기지 않는 편집 ~26 ms). 확대 · 끌기의 V8 호출은 +3 ~ 6 % (기하 맵 읽기가 함수 하나를 지난다).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/pageSpace.ts` (새 — `PageSpace` · `PageLocalMap`) · `renderCommands.ts` (stream `pages`) · `subtreeCommandPatch.ts` (splice 가 page 를 먼저 정함) · `subtreeTranslate.ts` (`planPageMove` · `applyPageMove`) · `wasm-bindings/spatialIndex.ts` (page 별 grid) · `catalogRuntime/canvasBinding.ts` (`movePageRoots`) · 시험 `subtreeTranslate.test.ts` (page 300 벌: 옮김 → 옮긴 page 안 patch → 다시 옮김 = 처음부터 기록, 원점 이동 · page 지정을 빼면 RED) · `spatialIndexPages.test.ts` (page 이동 · 갱신 · 삭제 뒤 질의 = 장면 상자 전수 대조, 원점을 빼면 RED)
+
+## [Canvas page 이동 비용 수리 — Select 가 있는 page 를 옮길 때마다 통째로 다시 기록하던 것] - 2026-11-22
+
+### Fixed
+
+- **page 높이가 바뀌는 편집마다 아래 page 중 Select (· Popover 를 여는 컴포넌트) 가 있는 page 를 통째로 다시 기록함** — 닫힌 Popover 는 `position: fixed` 라 「옮길 수 없는 상자」 로 분류됐고, 그 page 는 옮기기 대신 새 자리에서 다시 기록됐다. fixed 상자는 page 층에 page 기준으로 기록되므로 page root 를 옮기면 같이 옮겨진다 — 이제 page root 를 옮길 때는 fixed 자손을 거절하지 않는다 (page 안 상자를 옮길 때와 drag top layer 는 그대로 거절). app-pages (22 page) 의 높이를 바꾸는 편집 1회에 다시 기록한 명령 9,630 → 14 (편집 · 되돌리기 15회 합 57,906 → 210 — 회귀 전 기준 210), dev headless 편집 뒤 2 프레임 ~48 → ~37 ms. 옮긴 뒤 명령 · 기록 문맥 · clip · 상자 · hit 영역 · 화면이 다시 묶은 결과와 같다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeTranslate.ts` (`checkTranslate`) · 시험 `subtreeTranslate.test.ts` (fixed 자손 · page scroll 을 가진 page root 옮기기 = 처음부터 기록 — 수정 전 RED `top-layer`)
+- 남은 것: 옮겨진 page 는 요소마다 상자 · hit · 색인을 고쳐 쓴다 (편집 1회 요소 ~6,800 — page 수 비례 — 같은 날 수리, 위 엔트리). page 를 옮기면 그 아래 화면 전체가 바뀌므로 화면 전체를 다시 그리는 것은 그대로다.
+
+## [Canvas 편집 다시 그리기 회귀 수리 — page 프레임 높이가 바뀌는 편집이 page 전체를 다시 기록 · 화면 전체를 다시 그리던 것] - 2026-11-22
+
+### Fixed
+
+- **page 높이가 바뀌는 편집마다 Canvas 가 그 page 를 통째로 다시 기록하고 화면 전체를 다시 그림 (8ec1eed18 「page 프레임 = 내용만큼」 회귀)** — 프레임 높이가 바뀌면 프레임의 clip 이 바뀌어 모든 자손의 기록 문맥이 달라졌고, 바뀐 요소 (seed) 는 문맥이 같을 때만 자기만 다시 기록할 수 있어 page root 까지 물러났다. 이제 부모 · 그리기 순서가 같고 자리와 clip 만 바뀐 seed 는 새 문맥으로 자기만 다시 기록한다. 그리고 page 를 옮기지 않은 프레임 크기 변화는 화면 전체 대신 patch 의 영역만 다시 그린다. ratchet `render.patchWrites` nested-flex edit 14,679 → 1,155 (기준 1,155) · sticky-lists 15,225 → 4,125 · `placeFallbackSeedContext` 6 · 9 · 60 → 0. 프레임만 자라는 편집 5 회가 전부 부분 다시 그리기 (전 5/5 full), 화면 픽셀은 전체 다시 그린 것과 같다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeTranslate.ts` (`placeRegion` · `placementOnlyChange`) · `subtreeCommandPatch.ts` (`placedContext`) · `catalogRuntime/canvasBinding.ts` · `workspace/canvas/catalog/CatalogCanvas.tsx` · 시험 `subtreeTranslate.test.ts` (무작위 트리 1,000 — 다시 기록은 seed 뿐, 수정 전 273 건이 조상으로 물러남)
+- 남은 것: 옮겨진 서브트리에 상자 밖으로 넘친 글자가 있으면 다시 그릴 영역을 모르므로 화면 전체를 그린다 (ADR-263 H1 계약 — nested-flex edit `contentFullRenders` 6 · app-pages 9). app-pages 의 page 이동 비용 (`patchWrites` 86,808) 은 11-19 기록의 「page root 이동」 과제다 (같은 날 수리 — 위 엔트리).
+
+## [Canvas 편집 성능 회귀 수리 — page 프레임 두 상자 · 내용만큼 높이 뒤 엔진이 page 전체를 다시 풀던 것] - 2026-11-21
+
+### Fixed
+
+- **page 안 요소 하나를 고칠 때 엔진이 그 page 전체를 다시 계산함 (8ec1eed18 「page 프레임 = body 그대로」 회귀)** — page 프레임 높이가 내용만큼 (`fit-content`) 이 된 뒤 page 격자의 셀 높이가 컨테이너 높이와 늘 달라, 셀 배치가 프레임 서브트리 전체를 dirty 로 되살렸다 (2026-07-27 처방 — 그때는 증분 skip 키가 dirty 뿐이었다). 되살리기를 지우고 available 키에 맡긴다. 600 요소 nested-flex 편집 1회 1,734 → 74 solve (회귀 전 73) · 하니스 ratchet `engine.solveVisits` nested-flex edit 36,258 → 1,254 · app-pages edit 34,920 → 15,696 (기준 1,284 · 15,576).
+- **absolute 자식이 많은 page 의 편집 · 끌기 · 테마 전환이 엔진 계산을 두 번 함 (5f0335963 page body 두 상자 회귀)** — 내용 상자 (명시 `position: static`) 가 absolute 자식을 자기 상자로 먼저 풀고 프레임 (containing block) 이 다시 풀어, 한 칸 skip 캐시가 번갈아 덮였다. 그 자식을 놓을 positioned 조상이 있으면 내용 상자는 풀지 않는다. ratchet `engine.solveVisits` 600 edit 18,076 → 9,076 · 60 drag 125 → 65 · theme-switch 16,899 → 8,499.
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid` 셀 배치 · `col_contribution` · `absolutes_placed_by_ancestor`) · 회귀 시험 4 (방문 수 2 — 수정 전 RED 146/398 · 43/163, 증분 = 처음부터 지은 결과 2) · 하니스 `perf-baseline.mjs` scroll-boxes fixture 가 ListBox 에 `overflow: auto` 를 직접 준다 (268503f1a 로 기본 overflow 가 빠져 ratchet 이 시작도 못 했다)
+- 남은 것: 편집으로 page 프레임 높이가 바뀌면 프레임 clip 이 바뀌어 page 전체를 다시 기록하고 화면 전체를 다시 그린다 (ratchet `contentFullRenders` 0 → 6 ~ 9 · `patchMovedOnlyCommands`) — 별도 작업.
+
 ## [ADR-313 Implemented — 외부 데이터 가져오기 표준] - 2026-11-21
 
 ### Changed

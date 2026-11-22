@@ -120,7 +120,10 @@ describe("ADR-306 G1 — Chart 공개 size 삭제", () => {
     expect(chartBinding.props.propPassthrough ?? []).not.toContain("size");
     const rule = COMPONENT_RULES_TABLE.Chart;
     expect(Object.keys(rule.sizes ?? {})).toEqual(["M"]);
-    expect(rule.chart?.metrics).toEqual({ padding: 12, fontSize: 11 });
+    expect(rule.chart?.metrics).toEqual({
+      padding: 12,
+      fontSize: "{typography.text-2xs}",
+    });
     const css = readFileSync(
       new URL(
         "../../../components/styles/generated/Chart.css",

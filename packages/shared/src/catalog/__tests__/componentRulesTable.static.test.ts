@@ -212,6 +212,13 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
       "목록 항목 icon slot (`--lb-icon-size` 16) — 수동 ListBox.css 와 같은 값",
   },
   {
+    component: "ListBoxItem",
+    key: "gap",
+    values: { XS: 1, S: 1, M: 1, L: 1, XL: 1 },
+    reason:
+      "S2 값 그대로 — `ComboBox.tsx` `listboxItem` 의 `rowGap: space(1)` (label ↔ description, spacing 단 밖의 1px)",
+  },
+  {
     component: "Slot",
     key: "minHeight",
     values: { S: 40, M: 60, L: 80 },
@@ -223,13 +230,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     values: { "structure.containerStyles": 0 },
     reason:
       "S2 값 그대로 — `Tabs.tsx` `tabPanel` 의 `flexGrow: 1` · `minHeight: 0` (세로 flex 에서 패널이 줄어들 수 있게 하는 값, 치수 단이 아님)",
-  },
-  {
-    component: "Chart",
-    key: "fontSize",
-    values: { "chart.metrics": 11 },
-    reason:
-      "차트 축 글자 — S2 컴포넌트 없음 · 장면 계산 (`computeChartScene`) 입력은 px 숫자",
   },
   sizes(
     "Keyboard",
@@ -336,18 +336,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "S2 대응 없음 — composition 코드 글자 상자",
   ),
   sizes("Field", "height", { M: 32 }, "S2 대응 없음 — composition 묶음 상자"),
-  sizes(
-    "FileTrigger",
-    "gap",
-    { S: 6, L: 10 },
-    "S2 에 FileTrigger 스타일 없음 (RAC 전용) — composition 버튼 묶음",
-  ),
-  sizes(
-    "FileTrigger",
-    "iconGap",
-    { S: 6, L: 10 },
-    "S2 에 FileTrigger 스타일 없음 (RAC 전용) — composition 버튼 묶음",
-  ),
   sizes(
     "Image",
     "height",
@@ -622,6 +610,20 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
           keys: ACTION_GROUP_CHILD_SELF_KEYS,
           reason:
             "S2 1.8.2 ActionButton · ToggleButton 의 그룹 배치 · compact 연결 모서리 (`ACTION_GROUP_BUTTON_COMPOSITION`, 3ca03f661) — 그룹 context · 위치 · CSS 변수라 어휘 밖 (`&[data-size]` 는 `size` 값 조건이 있으나 값이 CSS 변수)",
+        },
+      ]),
+    ),
+    ...Object.fromEntries(
+      (
+        [
+          ["SheetBackdrop", "&[data-entering]", "열 때 250"],
+          ["SheetOverlay", "&[data-exiting]", "닫을 때 130 — RAC 는 overlay 자신의 애니메이션만 기다린다"],
+        ] as const
+      ).map(([type, key, what]) => [
+        type,
+        {
+          keys: [key],
+          reason: `S2 Modal · ModalOverlay fade, ${what} (사용자 결정 2026-11-22 「S2 값 그대로」) — RAC 여닫힘 표시 \`data-entering\` · \`data-exiting\` 은 상태 어휘 밖이고 Canvas 에 대응 없는 DOM 전환 (ADR-223 의 transition 과 같은 부류, Canvas 는 열린 상태만 그린다)`,
         },
       ]),
     ),

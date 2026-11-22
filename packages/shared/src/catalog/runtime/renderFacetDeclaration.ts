@@ -382,7 +382,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     key: "FileTrigger",
     kind: "delegating-rac",
     reason:
-      "renderFileTrigger 가 RAC FileTrigger(DOM 없음 — hidden input + PressResponder) 안에 `.react-aria-FileTrigger` Button 을 self-compose 한다. generic 경로는 raw RAC.FileTrigger 에 문자열 자식만 들어가 pressable 이 없었고 className/data-*/isDisabled 가 전부 버려져 Skia(catalog rule box) 와 비대칭이었다.",
+      "renderFileTrigger 가 RAC FileTrigger(DOM 없음 — hidden input + PressResponder) 를 FileUpload 큐 유입 어댑터 (`FileTriggerIntake`) 로 감싸 자식 (원본의 S2 Button — `FileTrigger > Button`, S2 체크리스트 §4.1 2026-11-22) 을 그린다. generic 경로는 그 어댑터 · 파일 옵션 변환 (`acceptedFileTypes` 글자 → 배열) 을 거치지 않는다.",
   },
 ];
 

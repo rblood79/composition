@@ -7,9 +7,10 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
   it("RAC collection 은 항목 목록이다 (설치 RAC 가 자유 내용을 버린다 — G0 ②)", () => {
     // 2026-10-22 사용자 지시: 설치 RAC 1.22.1 의 `Section` 은 @deprecated (ListBoxSection · MenuSection
     // 이 대체), `Header` 는 섹션의 머리글 (섹션 children 에 있다) — 목록 바로 아래 자식이 아니다.
+    // (2026-11-22: + a section's S2 Divider — `PickerSection` — as the Menu's.)
     expect(catalogChildKind("ListBox")).toEqual({
       kind: "items",
-      items: ["ListBoxItem", "ListBoxSection"],
+      items: ["ListBoxItem", "ListBoxSection", "Separator"],
     });
     expect(catalogChildKind("Menu")).toEqual({
       kind: "items",

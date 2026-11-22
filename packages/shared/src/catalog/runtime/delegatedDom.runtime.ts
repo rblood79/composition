@@ -1237,6 +1237,13 @@ const MENU_TRIGGER_TYPES: ReadonlySet<string> = new Set([
   "SubmenuTrigger",
 ]);
 
+/** A ListBox's RAC collection children (+ a section's S2 Divider — a Separator, 2026-11-22). */
+const LISTBOX_CHILD_TYPES: ReadonlySet<string> = new Set([
+  "ListBoxItem",
+  "ListBoxSection",
+  "Separator",
+]);
+
 const MENU_CHILD_TYPES: ReadonlySet<string> = new Set([
   "MenuItem",
   "SubmenuTrigger",
@@ -2256,9 +2263,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   listbox: {
     ownsChild: (child, _parent, root) =>
-      !["ListBoxItem", "ListBoxSection"].includes(
-        catalogTypeName(root, child),
-      ) && !isEmptyStateChild(child, root),
+      !LISTBOX_CHILD_TYPES.has(catalogTypeName(root, child)) &&
+      !isEmptyStateChild(child, root),
     render: (input) => {
       const props = input.node.props;
       // A picker's list (ADR-253 Phase 4): RAC's Select · ComboBox own its name, selection and
@@ -2332,9 +2338,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...catalogRenderRuns(
           input,
           children(input).filter((child) =>
-            ["ListBoxItem", "ListBoxSection"].includes(
-              catalogTypeName(input.root, child),
-            ),
+            LISTBOX_CHILD_TYPES.has(catalogTypeName(input.root, child)),
           ),
           ListBoxLoadMoreItem,
         ),
@@ -2730,10 +2734,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // S2 체크리스트 §4.1 (2026-11-22): RAC FileTrigger around its own children — the origin's S2
+  //   Button (`FileTrigger > Button`); it draws nothing of its own.
   filetrigger: {
     render: (input) => {
       const props = input.node.props;
-      const list = children(input);
       return markerWrap(
         input,
         createElement(
@@ -2744,25 +2749,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             defaultCamera: props.defaultCamera,
             acceptedFileTypes: fileTypes(props.acceptedFileTypes),
           },
-          ...(list.length
-            ? renderAll(input, list)
-            : [
-                createElement(
-                  AriaButton as ElementType,
-                  {
-                    key: "trigger",
-                    className: "react-aria-FileTrigger",
-                    "data-variant": str(props.variant || "default"),
-                    "data-size": str(props.size || "M"),
-                    isDisabled: bool(props.isDisabled),
-                    style: input.style,
-                  },
-                  resolveTextSourceText(
-                    "FileTrigger",
-                    props as Record<string, unknown>,
-                  ),
-                ),
-              ]),
+          ...renderAll(input),
         ),
       );
     },
@@ -2956,6 +2943,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     maxLength: num(props.maxLength),
     minLength: num(props.minLength),
     pattern: opt(props.pattern),
+    // (Its name with no visible label — an Autocomplete's search, S2 `aria-label`; RAC gives it to
+    //  its input.)
+    "aria-label": opt(props["aria-label"]),
   })),
   datefield: nodeTreeField(
     AriaDateField,

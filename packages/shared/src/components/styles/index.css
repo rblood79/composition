@@ -185,6 +185,7 @@
 @import "./generated/Token.css";
 @import "./generated/Sheet.css";
 @import "./generated/SheetBackdrop.css";
+@import "./generated/SheetOverlay.css";
 @import "./generated/SheetContent.css";
 /* TextArea.css 는 생성하지 않는다 (2026-08-21) — canonical `TextArea` 는 DOM 에서 RAC
    `TextField` 컨테이너로 렌더되므로(`binding.source.component = "TextField"`)

@@ -60,7 +60,7 @@ const EXPANDED: Record<string, string> = {
     "DialogTrigger(Button Modal(Dialog(Heading Content(Text) ButtonGroup(div Button))))",
   // (No RAC Sheet page — Modal's shape: the trigger, then the overlay holding the dialog.)
   Sheet:
-    "SheetTrigger(Button SheetOverlay(SheetBackdrop Sheet(SheetContent(Heading div(Description) Button))))",
+    "SheetTrigger(Button SheetOverlay(SheetBackdrop Sheet(SheetContent(Heading div(Description) ButtonGroup(Button)))))",
   // Menu.md — `<MenuTrigger><Button/><Menu>…` (ADR-256 — the Popover is a node of the tree).
   Menu: "MenuTrigger(ActionButton Popover(Menu(MenuItem MenuItem MenuItem Text)))",
   // S2 Tabs.md — `<Tabs><TabList><Tab/>…</TabList><TabPanel/>…` (contract 65 — no TabPanels).

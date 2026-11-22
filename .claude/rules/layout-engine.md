@@ -28,6 +28,7 @@ paths:
 - flex item 재배치의 used 크기는 백분율 min/max 의 새 containing block 이 아니다 — 원래 부모 문맥에서 해소한 제약을 임시 적용하고 저작 값을 복원한다. 미해소 `%` 를 px 로 치환한 반환도 content 슬롯으로 되돌릴 때 padding 을 뺀다.
 - 숨김 처리로 서브트리 layout 을 0 으로 덮어쓸 때 (`zero_subtree_layout`) 기존 solve 결과 · available 키 · 최종 fixed 크기 캐시도 함께 무효화한다 — 재표시 첫 solve 는 다시 실행돼야 한다.
 - grid item 의 행 기여 측정 (1차 solve) 결과는 `grid_row_measure` 에 `subtree_gen` 키로 기억한다 — 1차 (컨테이너 available) 와 셀 배치 2차가 `last_avail` 한 칸을 번갈아 덮지 않게. 바뀌지 않은 item 은 1차를 건너뛰고 2차는 HIT (원장 §증분 skip — page 격자, 2026-11-19).
+- grid 셀 배치 2차는 1차 (열 기여 · 행 높이 — 컨테이너 크기) 가 푼 서브트리를 `mark_subtree_dirty` 로 되살리지 않는다 — skip 키 (dirty · available · definite 높이) 가 셀 크기 차이를 잡는다. **Why (2026-11-21)**: 07-27 의 되살리기는 키가 dirty 뿐이던 때의 처방이었고, page 프레임이 내용만큼이 된 뒤 셀 높이 ≠ 컨테이너 높이가 늘 성립해 page 안 편집 하나가 page 전체를 다시 풀었다 (nested-flex 600 편집 1회 73 → 1,734 solve). 게이트 `page_frame_edit_leaves_other_sections_unsolved` · `grid_cell_percent_child_resolves_against_the_cell`.
 - 접힘 재측정 (`settleTagRows` · `settleBreadcrumbs`) 은 그 step 이 바꾼 root 의 목록만 (`inRoots`) — page 의 안쪽 배치는 다른 page 를 읽지 않는다.
 - fixed 배치는 viewport 단계에서 수행하고 부모 기준 임시 배치로 최종 제약 캐시를 덮어쓰지 않는다. 크기 재사용은 subtree/environment 세대와 containing block 제약이 같을 때만.
 
@@ -77,7 +78,7 @@ paths:
 - out-of-flow 배치는 **엔진 구현** (`tree.rs::place_absolute_children` + `resolve_abs_axis`). TS 에서 absolute 배치 보정 재도입 금지.
 - 양측 inset 으로 늘어난 auto 크기 absolute 상자는 **늘어난 상자로** 자기 absolute 자식을 다시 놓는다 (CSS 2 §10.1).
 - **양쪽 inset + 자기 정렬 (ADR-275)**: `justify-self` · `align-self` 가 stretch · normal · auto 가 아니면 auto 크기는 fit-content 로 두고 inset 영역 안에 정렬한다. `unsafe` 만 넘칠 때 그대로, 접두 없음 · `safe` 는 containing block 안으로 당긴다. 늘이기 제외 판정 (`size_fixed_*`) 과 padding · border 가산 판정 (`has_*`) 을 합치지 않는다.
-- **containing block 조상 체인**: 부모가 `position: static` 을 **명시**할 때만 가장 가까운 positioned 조상의 padding box 기준 (`place_static_descendant_absolutes`). `static` 은 catalog 가 positioned 부품 상자 안의 layout frame 에만 싣는다 (`catalogStaticPartFrame`) — 위치 미지정 부모는 직계 부모 기준.
+- **containing block 조상 체인**: 부모가 `position: static` 을 **명시**할 때만 가장 가까운 positioned 조상의 padding box 기준 (`place_static_descendant_absolutes`). `static` 은 catalog 가 positioned 부품 상자 안의 layout frame 과 page body 의 내용 상자에 싣는다 (`catalogStaticPartFrame` · `pageBodySplit`) — 위치 미지정 부모는 직계 부모 기준. 그 조상이 놓을 자식은 명시 static 부모가 자기 상자로 먼저 풀지 않는다 (`absolutes_placed_by_ancestor`). **Why (2026-11-21)**: 두 번 다른 available 로 풀려 한 칸 skip 캐시를 번갈아 덮었다 — page body 의 absolute 자식 600 개가 편집마다 두 번씩 (9,076 → 18,076 solve).
 - **`position: fixed` (ADR-275 Phase 7)**: viewport = page root 의 border-box 원점 + `set_viewport` 크기. 엔진은 정상 배치 뒤 `place_fixed_boxes` 가 다시 놓고, Canvas 는 page 층 (`FixedLayer`) 에서 그린다 — 부분 재기록 거부 → 다시 묶음. 미지원: transform · filter 조상.
 - **`position: sticky` (ADR-267 · ADR-275 Phase 6)**: in-flow 그대로 배치 + 엔진 constraints (`getStickyConstraints`, owner = 가장 가까운 `is_scroll_container`) + Canvas `resolveStickyOffset`. TS 에서 sticky 위치를 재계산하지 않는다. 그리기 층 (z-index · sticky) 이 바뀐 record 는 장면을 다시 묶는다 (`canvasBinding.ts` `paint-order`).
 - 전문 (실측 · oracle · Rust 시험 이름): [정합 원장](../skills/composition-patterns/reference/layout-css-parity-ledger.md) §부록 C.

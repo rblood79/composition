@@ -2162,9 +2162,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "insetTop": "50%"
     },
     "visual": {
-      "width": 16,
-      "height": 16,
-      "color": "{color.accent}"
+      "color": {
+        "kind": "token",
+        "tokenId": "lib:token:color_accent"
+      }
     }
   },
   {
@@ -4746,7 +4747,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-searchfield",
     "children": [],
     "props": {
-      "label": "Search",
+      "label": "",
+      "aria-label": "Search items",
       "placeholder": "Search items"
     },
     "visual": {}
@@ -4756,6 +4758,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-listbox",
     "children": [],
     "props": {},
+    "layout": {
+      "marginTop": "8px"
+    },
     "visual": {}
   },
   {
@@ -6292,9 +6297,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-filetrigger",
     "definitionId": "lib:definition:type-FileTrigger",
+    "children": [
+      "lib:template:component-filetrigger__button"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-filetrigger__button",
+    "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Select files"
+      "label": "Select files"
     },
     "visual": {}
   },
@@ -6338,13 +6352,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-filetrigger",
     "children": [],
     "props": {
-      "children": "Select files",
-      "size": "M",
       "allowsMultiple": true
     },
-    "visual": {
-      "width": "fit-content"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-fileupload__3",
@@ -10121,7 +10131,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-sheet__title",
       "lib:template:component-sheet__body",
-      "lib:template:component-sheet__close"
+      "lib:template:component-sheet__actions"
     ],
     "props": {
       "aria-label": "Sheet"
@@ -10163,6 +10173,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "Sheet content goes here.",
       "size": "S"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-sheet__actions",
+    "definitionId": "lib:definition:type-ButtonGroup",
+    "children": [
+      "lib:template:component-sheet__close"
+    ],
+    "props": {
+      "align": "end"
+    },
+    "layout": {
+      "marginTop": "16px"
     },
     "visual": {}
   },

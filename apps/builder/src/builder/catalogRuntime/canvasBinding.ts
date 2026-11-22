@@ -1,9 +1,6 @@
 import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
-import {
-  catalogElementlessWithChildren,
-  catalogEmptySkeleton,
-} from "../../../../../packages/shared/src/catalog/runtime/elementless";
+import { catalogEmptySkeleton } from "../../../../../packages/shared/src/catalog/runtime/elementless";
 import {
   CATALOG_SKELETON_LOOK,
   CATALOG_SKELETON_LOOK_OF,
@@ -29,6 +26,7 @@ import {
   buildSubtreeCommandStream,
   createCommandReader,
   publishPatchedCommandStreamSnapshot,
+  type SubtreeBuildContext,
 } from "../workspace/canvas/skia/renderCommands";
 import { applyCommitSubtreeCommandPatch } from "../workspace/canvas/skia/subtreeCommandPatch";
 import {
@@ -38,13 +36,13 @@ import {
 } from "../workspace/canvas/skia/dragLayerSplice";
 import { getDragVisualOffset } from "../workspace/canvas/skia/nodeRendererTree";
 import {
+  applyPageMove,
   applyScrollDelta,
-  applySubtreeTranslate,
   placeRegion,
-  planSubtreeTranslate,
+  planPageMove,
+  type PageMovePlan,
   type PlaceRegionResult,
   type SubtreePatchOutcome,
-  type SubtreeTranslatePlan,
   type SubtreeTranslateRejectReason,
 } from "../workspace/canvas/skia/subtreeTranslate";
 import {
@@ -1320,13 +1318,6 @@ function paintedNodeDataAtRest(
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
-  // (A node RAC gives no element once it has children — a FileTrigger around its Button — paints
-  //  nothing of its own: the DOM draws only the children.)
-  if (
-    input.children.length > 0 &&
-    catalogElementlessWithChildren(root.typeOf(input))
-  )
-    return container(input, rect);
   // (A value the generated sheet's `[data-*]` block draws for an owner-derived prop — a field's own
   //  Button at its size's corner over the S2 pill — under the authored writes:
   //  `catalogDerivedRestVisual`.)
@@ -2822,11 +2813,12 @@ function bindInColorMode(
     const recordSubtree = (
       id: string,
       pageLayer = false,
+      placed?: SubtreeBuildContext,
     ): {
       patch: SubtreePatchOutcome;
       replacement?: ReturnType<typeof buildSubtreeCommandStream>;
     } => {
-      const context = stream.subtreeBuildContextByElement.get(id);
+      const context = placed ?? stream.subtreeBuildContextByElement.get(id);
       if (!context)
         return { patch: { applied: false, reason: "subtree-context" } };
       revision += 1;
@@ -2848,19 +2840,24 @@ function bindInColorMode(
           revision,
           canonicalRevision: stream.baseCanonicalRevision,
           pageLayer,
+          placedContext: placed !== undefined,
         }),
         replacement,
       };
     };
     /**
      * ADR-264 Phase 3: the page grid moved page frames (auto columns at a zoom, a page grid edit)
-     * and their contents kept their layout — place each moved root's subtree instead of binding
-     * again. A page that holds a fixed box or an open overlay is drawn partly in its page's layer,
-     * so its subtree cannot be placed: that page is recorded again at its new place (as `update`
-     * does for such a region — ADR-307). Null when it cannot: a pending record delta, a frame that
-     * resized, or a root that can be neither placed nor recorded (the caller binds again).
+     * and their contents kept their layout — move each moved page by its origin offset instead of
+     * binding again (`planPageMove` — the stream stores each page's geometry page-local, so no
+     * element entry is written). A page's fixed boxes and open overlays are drawn in its layer
+     * relative to the page and move with it. A page with an element in a drag's top layer cannot: that
+     * page is recorded again at its new place (as `update` does for such a region — ADR-307). Null
+     * when it cannot: a pending record delta, a frame that resized, or a root that can be neither
+     * placed nor recorded (the caller binds again).
      * **Why (2026-11-19)**: a page as tall as its content moves the pages below whenever it grows —
-     * one page with a fixed bar bound all 22 pages again on each such edit.
+     * one page with a fixed bar bound all 22 pages again on each such edit. (2026-11-22: the pages
+     * with a closed Select's Popover — fixed — were recorded again on each such edit, and every
+     * moved page rewrote each element's bounds · hit · clip · context · index cell.)
      */
     const movePageRoots = (): string[] | null => {
       hiddenMemo.clear();
@@ -2886,9 +2883,10 @@ function bindInColorMode(
         stream.subtreeBuildContextByElement.get(id),
       );
       // ADR-266 Phase 4: check every root once before writing any, then apply those checks.
+      // (2026-11-22: a page moves by its origin offset — `planPageMove`, O(1) per page.)
       const plans = moves.map(([id], index) =>
         contexts[index]
-          ? planSubtreeTranslate(stream, id, contexts[index]!)
+          ? planPageMove(stream, id, contexts[index]!)
           : ({ reason: "subtree-context" } as const),
       );
       // (A drag's top layer rejects a page-layer splice — as in `update`.)
@@ -2912,7 +2910,7 @@ function bindInColorMode(
             return nullBecause("pageGridMoveNullTopLayer");
           continue;
         }
-        applySubtreeTranslate(
+        applyPageMove(
           {
             stream,
             rootId: id,
@@ -2921,7 +2919,7 @@ function bindInColorMode(
             context: contexts[index]!,
             publish: false,
           },
-          plans[index] as SubtreeTranslatePlan,
+          plans[index] as PageMovePlan,
         );
         layoutMap.set(id, { ...rect, elementId: id });
         registerNode(id, true);
@@ -3411,8 +3409,9 @@ function bindInColorMode(
       const patchSubtree = (
         id: string,
         pageLayer = false,
+        placed?: SubtreeBuildContext,
       ): SubtreePatchOutcome => {
-        const { patch, replacement } = recordSubtree(id, pageLayer);
+        const { patch, replacement } = recordSubtree(id, pageLayer, placed);
         if (!replacement) return patch;
         subtreeNodeVisits += replacement.subtreeSpans.size;
         if (!patch.applied) return patch;
@@ -3512,7 +3511,7 @@ function bindInColorMode(
                 isSeed: (node) => seeds.has(node),
                 onPath: (node) => onPath.has(node),
                 movedOnly,
-                patchSubtree,
+                patchSubtree: (id, placed) => patchSubtree(id, false, placed),
               })
             : patchSubtree(id);
         if (

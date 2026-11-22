@@ -31,6 +31,7 @@ import {
 } from "./svgDecorations";
 import {
   brushMarks,
+  CHART_TOOLTIP_SURFACE,
   ChartZoomReset,
   syncCursorMarks,
   useChartBrush,
@@ -315,12 +316,7 @@ export function FamilySceneHost({
             left: Math.min(target.x + 12, Math.max(0, size.width - 160)),
             top: Math.max(0, target.y - 8),
             pointerEvents: "none",
-            background: "var(--chart-tooltip-bg, Canvas)",
-            color: "var(--chart-tooltip-text, inherit)",
-            border: "1px solid var(--chart-tooltip-border, currentColor)",
-            borderRadius: 6,
-            padding: "6px 8px",
-            fontSize: 12,
+            ...CHART_TOOLTIP_SURFACE,
             whiteSpace: "nowrap",
           }}
         >

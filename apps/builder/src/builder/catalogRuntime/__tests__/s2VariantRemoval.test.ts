@@ -107,6 +107,14 @@ describe("S2 정렬 F — the variant axis no reference has is gone", () => {
       expect(definition.accepts.variant, type).toBeUndefined();
       const rule =
         COMPONENT_RULES_TABLE[type as keyof typeof COMPONENT_RULES_TABLE];
+      // (A rule with no box has no paint to vary — FileTrigger, S2 `FileTrigger > Button` 2026-11-22.)
+      if (
+        rule.structure?.containerStyles?.display === "contents" &&
+        !rule.defaultVariant
+      ) {
+        expect(Object.keys(rule.variants ?? {}), type).toEqual([]);
+        continue;
+      }
       expect(Object.keys(rule.variants ?? {}), type).toEqual(["default"]);
       expect(rule.defaultVariant, type).toBe("default");
     }

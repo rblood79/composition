@@ -148,6 +148,8 @@ describe("ADR-276 Button origin template", () => {
       "lib:template:component-previewtrigger__trigger": "Preview",
       "lib:template:component-sheet__trigger": "Open Sheet",
       "lib:template:component-sheet__close": "Close",
+      // (S2 체크리스트 §4.1 2026-11-22 — FileTrigger > Button: the label was FileTrigger's `children`.)
+      "lib:template:component-filetrigger__button": "Select files",
     };
     const nested = REUSABLE_ORIGIN_TEMPLATES.filter(
       (template) =>
@@ -155,12 +157,12 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 22 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
+    // 23 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
     // (2026-11-14: the Toolbar's three and a Pagination's step buttons are ActionButtons — S2's action
     //  group. 2026-11-18: a ContextualHelp's trigger is S2's quiet ActionButton. 2026-11-19: a
     //  Pagination's pages are ActionButtons too — page navigation, not a toggle; its 「Rows per page」 is a
-    //  Select origin instance.)
-    expect(nested).toHaveLength(29);
+    //  Select origin instance. 2026-11-22: a FileTrigger's Button — S2 `FileTrigger > Button`.)
+    expect(nested).toHaveLength(30);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)

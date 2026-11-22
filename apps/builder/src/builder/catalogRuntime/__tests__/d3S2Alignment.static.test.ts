@@ -268,20 +268,22 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
     const glyphRef = (size: string) =>
       type === "SearchField"
         ? (
-            (
-              rules.SearchField as unknown as {
-                structure: {
-                  composition: {
-                    delegation: Array<{
-                      prefix?: string;
-                      variables?: Record<string, Record<string, string>>;
-                    }>;
-                  };
+            rules.SearchField as unknown as {
+              structure: {
+                composition: {
+                  delegation: Array<{
+                    prefix?: string;
+                    variables?: Record<string, Record<string, string>>;
+                  }>;
                 };
-              }
-            ).structure.composition.delegation.find((entry) => entry.prefix === "sf-icon")!
-              .variables![size]!["--sf-icon-size"]!
-          ).replace(/^\{length\.(typography\.[\w-]+)\*1\/1\}$/, "{$1}")
+              };
+            }
+          ).structure.composition.delegation
+            .find((entry) => entry.prefix === "sf-icon")!
+            .variables![size]!["--sf-icon-size"]!.replace(
+              /^\{length\.(typography\.[\w-]+)\*1\/1\}$/,
+              "{$1}",
+            )
         : rules[type]!.sizes[size]!.iconSize;
     for (const [size, devices] of Object.entries(icons[family]!)) {
       const font = /^\{typography\.(text-[\w-]+)\}$/.exec(
@@ -583,7 +585,11 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
           // (사용자 2026-11-13 「combobox-group 에 gap 4px」 — every size.)
           expect(combo.gap, `ComboBox gap ${at}`).toBe(4);
           const dp = catalogFieldBoxStyle(size, "DatePicker", true);
-          near(dp.paddingRight, DATE_PICKER_END[size], `DatePicker inset ${at}`);
+          near(
+            dp.paddingRight,
+            DATE_PICKER_END[size],
+            `DatePicker inset ${at}`,
+          );
           // (The room before the button is the box's gap alone — the DateInput has no end padding,
           //  사용자 2026-11-13: not S2's `text-to-control`.)
           expect(dp.gap, `DatePicker gap ${at}`).toBeGreaterThan(0);
@@ -1143,7 +1149,10 @@ describe("ADR-295 G4 — 3c-3c ③ MenuItem = S2 menuitem (control 형 · label 
       const font = String(block.fontSize).slice(1, -1);
       const selectors = (
         rule.structure?.composition as {
-          sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
+          sizeSelectors?: Record<
+            string,
+            Record<string, Record<string, string>>
+          >;
         }
       ).sizeSelectors?.[size];
       expect(
@@ -1155,7 +1164,9 @@ describe("ADR-295 G4 — 3c-3c ③ MenuItem = S2 menuitem (control 형 · label 
         size,
       ).toBe(`{length.${font}*6/14~8/17}`);
     }
-    expect(menu).toMatch(/\.\.\.control\(\{shape: 'default', wrap: true, icon: true\}\),\s*columnGap: 0/);
+    expect(menu).toMatch(
+      /\.\.\.control\(\{shape: 'default', wrap: true, icon: true\}\),\s*columnGap: 0/,
+    );
     expect(
       (
         COMPONENT_RULES_TABLE.MenuItem as unknown as {
@@ -1196,6 +1207,95 @@ describe("ADR-295 G4 — 3c-3c ③ MenuItem = S2 menuitem (control 형 · label 
         size,
       ).toBe(s2Description[size as keyof typeof s2Description]);
     }
+  });
+});
+
+describe("S2 체크리스트 §4.1 — ListBoxItem 글자 단계 = S2 Picker 항목 (label · description)", () => {
+  const menu = readFileSync(
+    resolve(
+      __dirname,
+      "../../../../node_modules/@react-spectrum/s2/src/Menu.tsx",
+    ),
+    "utf8",
+  );
+  const rule = COMPONENT_RULES_TABLE.ListBoxItem as unknown as {
+    sizes: Record<string, Record<string, unknown>>;
+    structure: {
+      composition?: {
+        sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
+      };
+    };
+  };
+  const fontName = (css: string | undefined) =>
+    css === undefined
+      ? undefined
+      : FONT_NAME[/var\(--(text-[\w-]+)\)/.exec(css)?.[1] ?? ""];
+
+  it("label = 항목의 control 글자 · 500, description = S ui-xs · M ui-sm · L ui · XL ui-lg (XS 는 S2 에 없어 S 값)", () => {
+    // (S2 `PickerItem` — `Picker.tsx` — uses Menu.tsx's `label({size})` · `description({size})`.)
+    const description =
+      /export let description = style<[\s\S]*?size: \{\s*S: '([\w-]+)',\s*M: '([\w-]+)',\s*L: '([\w-]+)',\s*XL: '([\w-]+)'/.exec(
+        menu,
+      )!;
+    const s2Description: Record<string, string> = {
+      XS: description[1]!,
+      S: description[1]!,
+      M: description[2]!,
+      L: description[3]!,
+      XL: description[4]!,
+    };
+    expect(menu).toMatch(
+      /export let label = style<\{size: string\}>\(\{\s*gridArea: 'label',\s*font: controlFont\(\),[\s\S]*?fontWeight: 'medium'/,
+    );
+    for (const [size, block] of Object.entries(rule.sizes)) {
+      const selectors = rule.structure.composition?.sizeSelectors?.[size];
+      const label = selectors?.['.react-aria-Text[slot="label"]'];
+      // The label is the item's control font (its size block — S2 `controlFont()`).
+      expect(fontName(label?.["font-size"]), size).toBe(
+        FONT_NAME[String(block.fontSize).slice(12, -1)],
+      );
+      expect(label?.["font-weight"], size).toBe("500");
+      expect(
+        fontName(
+          selectors?.['.react-aria-Text[slot="description"]']?.["font-size"],
+        ),
+        size,
+      ).toBe(s2Description[size]);
+    }
+  });
+
+  it("ListBox rule · Canvas 의 목록 part rule 은 글자 크기를 고정하지 않는다 (크기별 값은 ListBoxItem 한 곳)", () => {
+    const rootSelectors = (
+      COMPONENT_RULES_TABLE.ListBox as unknown as {
+        structure: {
+          composition: {
+            rootSelectors: Record<
+              string,
+              { nested?: Record<string, Record<string, string>> }
+            >;
+          };
+        };
+      }
+    ).structure.composition.rootSelectors;
+    for (const [scope, block] of Object.entries(rootSelectors))
+      for (const [selector, declarations] of Object.entries(block.nested ?? {}))
+        if (/\[slot="(label|description)"\]/.test(selector)) {
+          expect(declarations["font-size"], `${scope} ${selector}`).toBe(
+            undefined,
+          );
+          expect(declarations["line-height"], `${scope} ${selector}`).toBe(
+            undefined,
+          );
+        }
+    for (const part of manualBoxRule("ListBox")?.parts ?? [])
+      if (part.childType === "Text") {
+        expect(part.visual.fontSize, String(part.childProps?.slot)).toBe(
+          undefined,
+        );
+        expect(part.visual.lineHeight, String(part.childProps?.slot)).toBe(
+          undefined,
+        );
+      }
   });
 });
 
@@ -1904,7 +2004,11 @@ describe("ADR-295 후속 — S2 와 다르게 남은 고정 치수 (S2 1.8.1 소
 describe("ADR-314 Skeleton loading look = S2 1.8.2", () => {
   const s2 = (file: string) =>
     readFileSync(
-      resolve(__dirname, "../../../../node_modules/@react-spectrum/s2/src", file),
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src",
+        file,
+      ),
       "utf8",
     ).replace(/\s+/g, " ");
 
@@ -1926,7 +2030,11 @@ describe("ADR-314 Skeleton loading look = S2 1.8.2", () => {
   });
 
   it("the colors are the gray steps S2 names", () => {
-    expect(COLOR_ALIASES.skeleton).toMatchObject({ axis: "tone", light: 100, dark: 100 });
+    expect(COLOR_ALIASES.skeleton).toMatchObject({
+      axis: "tone",
+      light: 100,
+      dark: 100,
+    });
     expect(COLOR_ALIASES["skeleton-highlight"]).toMatchObject({
       axis: "tone",
       light: 25,
@@ -1939,6 +2047,8 @@ describe("ADR-314 Skeleton loading look = S2 1.8.2", () => {
     });
     expect(CATALOG_SKELETON_LOOK.fill).toBe("{color.skeleton}");
     expect(CATALOG_SKELETON_LOOK.highlight).toBe("{color.skeleton-highlight}");
-    expect(CATALOG_SKELETON_LOOK.statusLight).toBe("{color.skeleton-status-light}");
+    expect(CATALOG_SKELETON_LOOK.statusLight).toBe(
+      "{color.skeleton-status-light}",
+    );
   });
 });

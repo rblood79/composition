@@ -151,6 +151,11 @@ export interface CatalogGestureHost {
   readonly graph: CatalogReader;
   /** Scene box of a drawn record (the bound stream's `boundsMap`). */
   bounds(id: string): BoundingBox | undefined;
+  /**
+   * The visible part of a drawn record (the stream's `hitBoundsMap` — its box ∩ ancestor clips).
+   * The spacing overlay is clipped to it, so handles outside it are not grabbed.
+   */
+  hitBounds?(id: string): BoundingBox | undefined;
   /** Topmost drawn record under a scene point. */
   pick(x: number, y: number): string | undefined;
   selection(): readonly CatalogSelectionItem[];
@@ -648,13 +653,7 @@ export class CatalogCanvasGestures {
     const record = item && this.host.records.get(item.identity);
     if (!record) return undefined;
     // (No element of its own — MenuTrigger · TreeItemContent …: a write reaches no box.)
-    if (
-      catalogElementlessType(
-        this.typeOf(record.id),
-        record.children.length > 0,
-      )
-    )
-      return undefined;
+    if (catalogElementlessType(this.typeOf(record.id))) return undefined;
     if (this.structural(record)) return record;
     return record.children.some((id) => {
       const child = this.host.records.get(id);
@@ -677,7 +676,15 @@ export class CatalogCanvasGestures {
   }
   /** The spacing band under the point (`onHandle`: its handle, which starts a drag). */
   spacingAt(x: number, y: number, zoom: number) {
-    return hitTestSpacingBands({ x, y }, this.spacingBands(), zoom);
+    const owner = this.spacingOwner();
+    return owner
+      ? hitTestSpacingBands(
+          { x, y },
+          this.spacingBands(),
+          zoom,
+          this.host.hitBounds?.(owner.id) ?? null,
+        )
+      : null;
   }
   /** A press on a spacing handle of the selected container. */
   beginSpacing(

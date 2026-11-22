@@ -1076,6 +1076,24 @@ function generateChartVariables<Props>(spec: ComponentSpec<Props>): string[] {
       `  --chart-tooltip-text: ${tokenToCSSVar(chart.tooltipText as TokenRef)};`,
     );
   }
+  // S2 §4.1 — 툴팁 모양 (S2 Tooltip 값). length ref 는 시트 끝의 `ruleLengthCss` 치환이, `--radius-*` ·
+  //   `--text-*` 는 `withCatalogTokenVars` 가 사용자 컴포넌트 변수로 바꾼다.
+  if (chart.tooltipRadius)
+    lines.push(
+      `  --chart-tooltip-radius: ${tokenToCSSVar(chart.tooltipRadius as TokenRef)};`,
+    );
+  if (chart.tooltipPaddingX && chart.tooltipPaddingY)
+    lines.push(
+      `  --chart-tooltip-padding: ${chart.tooltipPaddingY} ${chart.tooltipPaddingX};`,
+    );
+  if (chart.tooltipFontSize)
+    lines.push(
+      `  --chart-tooltip-font-size: ${tokenToCSSVar(chart.tooltipFontSize as TokenRef)};`,
+    );
+  if (chart.tooltipLineHeight)
+    lines.push(
+      `  --chart-tooltip-line-height: ${tokenToCSSVar(chart.tooltipLineHeight as TokenRef)};`,
+    );
   lines.push("}");
   lines.push("", ...paletteBlocks);
   return lines;

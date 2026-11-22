@@ -126,6 +126,9 @@ function checkTranslate(
   )
     return { reason: "invalid-span" };
   let unsafePaint = false;
+  // A page root is the viewport of its fixed boxes: they are recorded in its layer relative to it
+  // (ADR-275 Phase 7) and move with it. Placed below a page, a fixed box keeps the viewport's place.
+  const pageRoot = oldContext.parentElementId === null;
   /** Elements met so far — a sticky box's scroll container comes before it (pre-order). */
   const inside = new Set<string>();
   // ADR-269 Phase 1: walk the subtree's elements by the stream's child index, not its commands
@@ -135,10 +138,16 @@ function checkTranslate(
   while (pending.length) {
     const id = pending.pop()!;
     visited += 1;
-    if (stream.topLayerElementIds.has(id)) return { reason: "top-layer" };
+    // (A drag's top layer is recorded at the stream's top level in scene coordinates.)
+    if (
+      stream.topLayerElementIds.has(id) &&
+      (!pageRoot ||
+        stream.subtreeBuildContextByElement.get(id)?.topLayerSubtree !== false)
+    )
+      return { reason: "top-layer" };
     const node = getSkiaNode(id);
     const scrollKey = stream.scrollContextKeyByElement.get(id) ?? "";
-    if (node?.isFixed || scrollKey.includes("|self:fixed"))
+    if (!pageRoot && (node?.isFixed || scrollKey.includes("|self:fixed")))
       return { reason: "fixed-or-sticky" };
     // ADR-267 (user decision 3 (c)): a sticky box moves with the subtree when its scroll container
     // moves with it (its offset is relative to that container); placed alone — its container
@@ -166,24 +175,13 @@ export type SubtreeTranslatePlan = Exclude<
   { reason: SubtreeTranslateRejectReason }
 >;
 
-/**
- * ADR-266 Phase 4: check once, then apply — a caller placing many roots (`movePageRoots`) checks
- * them all before writing any and hands each check to `applySubtreeTranslate` (it scanned every
- * root twice: once to decide, once inside `translateSubtree`).
- */
+/** The check `translateSubtree` makes before writing (the element walk — tests compare it). */
 export function planSubtreeTranslate(
   stream: RenderCommandStream,
   rootId: string,
   context: SubtreeBuildContext,
 ): TranslateCheck {
   return checkTranslate(stream, rootId, context);
-}
-
-export function applySubtreeTranslate(
-  input: TranslateSubtreeInput,
-  plan: SubtreeTranslatePlan,
-): TranslateSubtreeResult {
-  return applyTranslate(input, plan);
 }
 
 export function translateSubtree(
@@ -297,6 +295,80 @@ function applyTranslate(
     nodes,
     indexUpserts,
   };
+}
+
+export interface PageMovePlan {
+  readonly reason?: undefined;
+  readonly span: { start: number; end: number };
+  readonly first: Extract<RenderCommand, { type: 0 }>;
+}
+
+/**
+ * 2026-11-22 — whether a page root (a scene root the page grid moves) can move by its page's origin
+ * offset (`pageSpace.ts`): its elements' scene geometry is stored page-local and its commands are
+ * page-relative (children parent-relative, fixed boxes in the page's layer — ADR-275 Phase 7), so
+ * the root's own command and its page's offset are all that change. A drag in progress, or an
+ * element of the page recorded in a drag's top layer (scene coordinates, not the page's), cannot.
+ */
+export function planPageMove(
+  stream: RenderCommandStream,
+  rootId: string,
+  context: SubtreeBuildContext,
+): PageMovePlan | { readonly reason: SubtreeTranslateRejectReason } {
+  const oldContext = stream.subtreeBuildContextByElement.get(rootId);
+  if (!oldContext || oldContext.parentElementId !== null)
+    return { reason: "subtree-context" };
+  if (context.topLayerSubtree || oldContext.topLayerSubtree)
+    return { reason: "top-layer" };
+  if (getDragVisualOffset() || hasDragSiblingOffsets())
+    return { reason: "drag-offset" };
+  const span = stream.subtreeSpans.get(rootId);
+  if (!span) return { reason: "missing-span" };
+  const at = createCommandReader(stream.commands);
+  const first = at(span.start);
+  if (
+    !first ||
+    first.type !== CMD_ELEMENT_BEGIN ||
+    first.elementId !== rootId ||
+    at(span.end - 1)?.type !== CMD_ELEMENT_END ||
+    !stream.boundsMap.has(rootId)
+  )
+    return { reason: "invalid-span" };
+  for (const id of stream.topLayerElementIds)
+    if (
+      stream.pages.pageOf(id) === rootId &&
+      stream.subtreeBuildContextByElement.get(id)?.topLayerSubtree
+    )
+      return { reason: "top-layer" };
+  return { span, first };
+}
+
+/** Moves a checked page root to (x, y) (its layout rect) under `context` — O(1), not O(page). */
+export function applyPageMove(
+  input: Omit<TranslateSubtreeInput, "keepCommand">,
+  plan: PageMovePlan,
+): void {
+  const { stream, rootId, context } = input;
+  const span = stream.subtreeSpans.get(rootId) ?? plan.span;
+  const oldRoot = stream.boundsMap.get(rootId)!;
+  writeCommandAt(stream.commands, span.start, {
+    ...plan.first,
+    x: input.x + context.cmdOffsetX,
+    y: input.y + context.cmdOffsetY,
+  });
+  // (A page root's own context is the scene's — it does not move with its page.)
+  stream.subtreeBuildContextByElement.set(rootId, {
+    ...context,
+    clipRect: cloneClip(context.clipRect),
+  });
+  stream.pages.movePage(
+    rootId,
+    context.parentAbsX + input.x - oldRoot.x,
+    context.parentAbsY + input.y - oldRoot.y,
+  );
+  if (input.publish !== false) publishPatchedCommandStreamSnapshot(stream);
+  if (process.env.NODE_ENV === "development")
+    renderCounters.pageShiftCalls += 1;
 }
 
 export interface ScrollDeltaInput {
@@ -416,6 +488,24 @@ export function sameBuildContext(
   );
 }
 
+/**
+ * Two contexts that differ only in where the parent puts the subtree (its position, command
+ * offset) and the clip it is under — the same parent, paint order, scroll owner and layer. A
+ * subtree recorded under the new one is a plain splice (`applyCommitSubtreeCommandPatch`
+ * `placedContext`).
+ */
+export function placementOnlyChange(
+  a: SubtreeBuildContext,
+  b: SubtreeBuildContext,
+): boolean {
+  return (
+    a.parentElementId === b.parentElementId &&
+    a.zOrderKey === b.zOrderKey &&
+    a.scrollContextKey === b.scrollContextKey &&
+    a.topLayerSubtree === b.topLayerSubtree
+  );
+}
+
 export interface SubtreePatchOutcome {
   readonly applied: boolean;
   readonly reason?: string;
@@ -438,8 +528,14 @@ export interface PlaceRegionInput {
   readonly onPath: (id: string) => boolean;
   /** Its rect changed in x · y only (size · engine input same, no descendant changed). */
   readonly movedOnly: (id: string) => boolean;
-  /** Record `id`'s subtree again under its stored context (the commit-lane splice). */
-  readonly patchSubtree: (id: string) => SubtreePatchOutcome;
+  /**
+   * Record `id`'s subtree again (the commit-lane splice) — under its stored context, or under
+   * `context` when its parent moved it or clips it differently (`placementOnlyChange`).
+   */
+  readonly patchSubtree: (
+    id: string,
+    context?: SubtreeBuildContext,
+  ) => SubtreePatchOutcome;
 }
 
 export interface PlaceRegionResult {
@@ -456,7 +552,12 @@ export interface PlaceRegionResult {
 
 type Plan =
   | { readonly kind: "none" }
-  | { readonly kind: "patch"; readonly id: string }
+  | {
+      readonly kind: "patch";
+      readonly id: string;
+      /** The new context a seed is recorded under (its parent moved it or clips it differently). */
+      readonly context?: SubtreeBuildContext;
+    }
   | {
       readonly kind: "translate";
       readonly id: string;
@@ -499,8 +600,16 @@ export function placeRegion(input: PlaceRegionInput): PlaceRegionResult {
       if (process.env.NODE_ENV === "development") renderCounters[reason] += 1;
       return patch;
     };
-    if (input.isSeed(id))
-      return same ? patch : fallback("placeFallbackSeedContext");
+    // A seed whose parent moved it or clips it differently is recorded under that new context —
+    // not at the nearest unchanged ancestor (its siblings are placed under the same context).
+    // **Why (2026-11-22)**: a page frame as tall as its content clips its children; a height
+    // change moved every clip, so an edit recorded the whole page again and drew the screen in full.
+    if (input.isSeed(id)) {
+      if (same) return patch;
+      return own && placementOnlyChange(own, context)
+        ? { kind: "patch", id, context }
+        : fallback("placeFallbackSeedContext");
+    }
     const layout = input.layoutMap.get(id);
     const translate = (): Plan | null => {
       if (!layout) return patch;
@@ -577,7 +686,7 @@ export function placeRegion(input: PlaceRegionInput): PlaceRegionResult {
   const apply = (step: Plan) => {
     if (failure || step.kind === "none") return;
     if (step.kind === "patch") {
-      const result = input.patchSubtree(step.id);
+      const result = input.patchSubtree(step.id, step.context);
       if (!result.applied) {
         failure = result.reason ?? "patch-rejected";
         return;

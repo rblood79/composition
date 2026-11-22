@@ -366,11 +366,16 @@ function place(
   entries: readonly NodeEntry[],
   rootId: NodeId,
   newId: NewId,
+  /** Nodes placed right after the root in the same list (a section's S2 Divider). */
+  after: readonly NodeEntry[] = [],
 ): void {
   const root = entries.find((entry) => entry.id === rootId);
   if (!root) return void fail("ROOT_NOT_IN_ENTRIES", rootId);
-  assertNestable(draft, parent, [root.definitionId]);
-  for (const entry of entries) draft.create(entry);
+  assertNestable(draft, parent, [
+    root.definitionId,
+    ...after.map((entry) => entry.definitionId),
+  ]);
+  for (const entry of [...entries, ...after]) draft.create(entry);
   const list = ensureChildList(draft, parent, newId);
   const at = catalogAppendIndex(
     draft,
@@ -381,6 +386,7 @@ function place(
   setChildList(draft, parent, [
     ...list.slice(0, at),
     rootId,
+    ...after.map((entry) => entry.id),
     ...list.slice(at),
   ]);
   ownSlotContents(draft, [rootId], newId);
@@ -477,6 +483,8 @@ export const insertCollectionItem =
     selectItem?: boolean;
     /** Tabs: the paired TabPanel record (placed directly in Tabs, or an authored TabPanels host). */
     panel?: NodeEntry;
+    /** Nodes right after the item in its list — a section's S2 Divider (a Separator). */
+    after?: readonly NodeEntry[];
     newId: NewId;
     label?: string;
   }): CatalogCommand =>
@@ -512,6 +520,7 @@ export const insertCollectionItem =
       input.entries,
       input.rootId,
       input.newId,
+      input.after,
     );
     if (family.panels) {
       const owner = parentOf(draft, input.host);

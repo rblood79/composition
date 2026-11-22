@@ -1,5 +1,5 @@
 import { getTextPaintOverflowEvents } from "./renderCommands";
-import { renderCounters } from "./renderCounters";
+import { countPanMove, renderCounters } from "./renderCounters";
 import { setNodePictureWarmupZoom } from "./nodePictureWarmup";
 import { requestCanvasFrame } from "./frameScheduler";
 /**
@@ -580,23 +580,13 @@ export class SkiaRenderer {
   ): void {
     if (reason === "coverage-refresh")
       renderCounters.contentRedrawsOutOfPad += 1;
-    if (camera.zoom === this.lastCamera.zoom) {
-      const moved =
-        Math.max(
-          Math.abs(camera.panX - this.lastCamera.panX),
-          Math.abs(camera.panY - this.lastCamera.panY),
-        ) * this.dpr;
-      if (moved > 0) {
-        renderCounters.panFrames += 1;
-        if (moved <= 16) renderCounters.panDeviceLe16 += 1;
-        else if (moved <= 32) renderCounters.panDeviceLe32 += 1;
-        else if (moved <= 64) renderCounters.panDeviceLe64 += 1;
-        else if (moved <= 128) renderCounters.panDeviceLe128 += 1;
-        else renderCounters.panDeviceGt128 += 1;
-        if (moved > renderCounters.panDeviceMax)
-          renderCounters.panDeviceMax = Math.round(moved);
-      }
-    }
+    if (camera.zoom === this.lastCamera.zoom)
+      countPanMove(
+        (camera.panX - this.lastCamera.panX) * this.dpr,
+        (camera.panY - this.lastCamera.panY) * this.dpr,
+        this.mainSurface.width(),
+        this.mainSurface.height(),
+      );
     const bytes = this.surfaceBytes();
     if (bytes > renderCounters.surfaceBytesMax)
       renderCounters.surfaceBytesMax = bytes;

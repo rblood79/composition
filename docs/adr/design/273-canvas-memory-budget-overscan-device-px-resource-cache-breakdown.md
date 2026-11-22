@@ -121,7 +121,7 @@
 | paragraph                  | 없음 (수명 = 노드, ADR-174)            | `retainedParagraph.ts:194`                     | `getRetainedParagraphCount`                                                           |
 | wasm 힙                    | —                                      | —                                              | `HEAPU8.byteLength` (예약 고수위 — 보유량 아님)                                       |
 
-**계측 (dev 전용 · 기본 동작 변경 0)**: `renderCounters` 에 `contentRedrawsOutOfPad` (분류 사유 `coverage-refresh` — 팬이 스냅샷 밖으로 나가 그 프레임에서 다시 기록) · `panFrames` 와 프레임당 이동 거리 (device px, 축별 큰 쪽) 분포 `panDeviceLe16 · Le32 · Le64 · Le128 · Gt128 · Max` · `surfaceBytesMax`. dev 스위치 `__composition_RENDER_PATH_DEBUG__.setContentPadDeviceMax(n | null)` · `contentPadDevicePx()`. 하니스 `perf-baseline.mjs` `--dpr` · `--viewport WxH` · `--pan-speed fast` (휠 24 → 96 CSS px) · `--content-pad-max` (dev 스위치를 부른다).
+**계측 (dev 전용 · 기본 동작 변경 0)**: `renderCounters` 에 `contentRedrawsOutOfPad` (분류 사유 `coverage-refresh` — 팬이 스냅샷 밖으로 나가 그 프레임에서 다시 기록) · `panFrames` 와 프레임당 이동 거리 (device px, 축별 큰 쪽) 분포 `panDeviceLe16 · Le32 · Le64 · Le128 · Gt128 · Max` · `surfaceBytesMax`. (2026-11-22: 한 축이라도 화면 크기 이상 옮긴 프레임 — page 점프 · 카메라 직접 지정 — 은 분포 · 최대에서 빼고 `cameraJumpFrames` 로 센다. 어떤 여백으로도 덮을 수 없는 이동이라 여백 판단에 쓰지 않는다.) dev 스위치 `__composition_RENDER_PATH_DEBUG__.setContentPadDeviceMax(n | null)` · `contentPadDevicePx()`. 하니스 `perf-baseline.mjs` `--dpr` · `--viewport WxH` · `--pan-speed fast` (휠 24 → 96 CSS px) · `--content-pad-max` (dev 스위치를 부른다).
 
 **측정 (headless Chrome · `--fixed-inputs` · 팬 부류 = 좌우 왕복 960 CSS px · 휠 1 회 / 2 프레임)**:
 
@@ -199,13 +199,12 @@
 
 한도 384 MiB 는 이미지가 CPU raster 일 때 정했고, 그 뒤 ADR-270 Phase 3a 가 이미지를 GPU texture 로 올렸다. 그래서 이미지 fixture 를 가장 큰 조건에서 다시 쟀다 (dev · headless · `--fixed-inputs` · DPR 2 · 2560 × 1440 · HEAD `87294fcc3`):
 
-| run                                  | GPU 캐시 사용 고수위 | 90 % 근처 프레임 | 비고                                                     |
-| ------------------------------------ | -------------------- | ---------------- | -------------------------------------------------------- |
-| `app-pages-images` load-zoom · 줌 · 팬 | 306.9 MiB (80 %)     | 0                | 이미지 44 장 · 이미지 캐시 추정 136 MB (예산 128 MiB 초과) · surface 280.5 MiB |
-| `app-pages-images` 줌 0.1 (전부 화면 안) | 287.5 MiB (75 %)     | 0                |                                                          |
-| `app-pages-images` 빠른 팬             | 302.6 MiB (79 %)     | 0                |                                                          |
-| `app-pages` (이미지 없음)              | 302.7 MiB (79 %)     | 0                | 대조                                                     |
+| run                                      | GPU 캐시 사용 고수위 | 90 % 근처 프레임 | 비고                                                                           |
+| ---------------------------------------- | -------------------- | ---------------- | ------------------------------------------------------------------------------ |
+| `app-pages-images` load-zoom · 줌 · 팬   | 306.9 MiB (80 %)     | 0                | 이미지 44 장 · 이미지 캐시 추정 136 MB (예산 128 MiB 초과) · surface 280.5 MiB |
+| `app-pages-images` 줌 0.1 (전부 화면 안) | 287.5 MiB (75 %)     | 0                |                                                                                |
+| `app-pages-images` 빠른 팬               | 302.6 MiB (79 %)     | 0                |                                                                                |
+| `app-pages` (이미지 없음)                | 302.7 MiB (79 %)     | 0                | 대조                                                                           |
 
 - 결론: 이미지 texture 가 더한 몫은 고수위 기준 ~4 MiB — 한도는 충분하다. 우려 (90 % 초과) 는 나타나지 않았다.
 - ratchet: `60:app-pages-images` 5 부류에 `render.grCacheNearLimitFrames` · `render.gpuContextsCreated` · `render.gpuContextsDeleted` A 등록 (값 0). 등록을 막던 흔들림 지표 (`load-zoom` `caches.contentSurface.hits`) 는 B 로 옮겼다 (`ratchet.json` `regrades`).
-

@@ -5273,11 +5273,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      // S2 체크리스트 §4.1 (2026-11-22, 사용자 결정 「S2 값 그대로」): 닫힐 때 S2 Modal · ModalOverlay 처럼
+      //   130ms 동안 투명해진다 (`Modal.tsx` — 둘 다 `isExiting` opacity 0 · 130). RAC 는 닫을 때 overlay
+      //   요소 자신의 애니메이션만 기다려 (`useExitAnimation` — `ref.current.getAnimations()`) 자식
+      //   backdrop 의 fade 는 시작 전에 지워지므로, 닫힘 fade 는 overlay 에 둔다. DOM 전환이라 Canvas 는
+      //   읽지 않는다 (열린 상태만 그림). 열린 overlay 의 배치는 inline (`sheetLayout.ts`).
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": { styles: { transition: "opacity 130ms" } },
+          "&[data-exiting]": { styles: { opacity: "0" } },
+        },
+      },
       containerStyles: {
         display: "flex",
         flexDirection: "column",
       },
-      skipCSSGeneration: true,
     },
   },
   SheetBackdrop: {
@@ -5299,6 +5310,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      // S2 체크리스트 §4.1 (2026-11-22, 사용자 결정 「S2 값 그대로」): S2 `ModalOverlay` 의 fade in —
+      //   `opacity` 250ms (`Modal.tsx` `modalOverlayStyles`), RAC 가 여는 동안 주는 `data-entering` 에서.
+      //   닫힘 130 은 SheetOverlay 가 맡는다 (RAC 가 자식의 닫힘 애니메이션을 기다리지 않음). DOM 전환이라
+      //   Canvas 는 읽지 않는다 (열린 상태만 그림).
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": { styles: { transition: "opacity 250ms" } },
+          "&[data-entering]": { styles: { opacity: "0" } },
+        },
+      },
       containerStyles: {
         display: "flex",
         flexDirection: "column",
@@ -5339,7 +5361,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // Sheet 본체가 Dialog의 Modal과 같은 elevation을 소유한다.
         display: "flex",
         flexDirection: "column",
-        width: "360px",
+        // S2 Modal `size` M (기본) 480 — S 400 · M 480 (`Modal.tsx`, 사용자 결정 2026-11-22 「S2 값 그대로」).
+        width: "480px",
         maxWidth: "100%",
         maxHeight: "90%",
         overflow: "hidden",
@@ -5356,8 +5379,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
-        paddingX: 24,
-        paddingY: 24,
+        // S2 Dialog 의 안쪽 여백 32 (header · content · footer 의 paddingX · 위 · 아래 — `Dialog.tsx`),
+        //   제목 ↔ 본문 16 (header `marginBottom`) — 사용자 결정 2026-11-22 「S2 값 그대로」.
+        paddingX: 32,
+        paddingY: 32,
         gap: 16,
       },
     },
@@ -6255,104 +6280,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // S2 체크리스트 §4.1 (2026-11-22): RAC FileTrigger has no element (a hidden file input and a
+  //   `PressResponder` around its children) and S2 re-exports it as is — the origin is `FileTrigger >
+  //   Button` (S2 `<FileTrigger><Button>…</Button></FileTrigger>`). Its children stand in its parent's
+  //   flow (`display: contents`, as Autocomplete); what shows is the Button's own rule.
   FileTrigger: {
-    defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.layer-1}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
-          },
-        },
-      },
-    },
-    // iconSize = 그 크기 글자의 행간 (ADR-295 Phase 3c — S2 에서 이 자리는 Button: 아이콘 `size: '1lh'`).
+    variants: {},
     sizes: {
-      // 2026-10-25 사용자 요청 「FILETRIGGER 의 size(s,m,l) 모두 button 컴퍼넌트 size(s,m,l) 의 정보와
-      //   동일하게」 — Button rule 의 S · M · L 과 같은 값 (height 0 = 내용 + paddingY). 전에는 고정
-      //   height 32 · 40 · 48 · paddingX 12 · 24 · 32 였다.
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.sm}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        iconSize: "{typography.text-xs--line-height}",
-        paddingX: 8,
-        paddingY: 2,
-        gap: 6,
-        iconGap: 6,
-      },
       M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.md}",
-        borderWidth: "{border.width.thin}",
         height: 0,
-        iconSize: "{typography.text-sm--line-height}",
-        paddingX: 12,
-        paddingY: 4,
-        gap: 8,
-        iconGap: 8,
-      },
-      L: {
         fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        fontWeight: 500,
-        borderRadius: "{radius.lg}",
-        borderWidth: "{border.width.thin}",
-        height: 0,
-        iconSize: "{typography.text-base--line-height}",
-        paddingX: 16,
-        paddingY: 8,
-        gap: 10,
-        iconGap: 10,
+        borderRadius: "{radius.none}",
       },
     },
     structure: {
-      archetype: "button",
-      element: "button",
+      archetype: "container",
+      element: "div",
       containerStyles: {
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "fit-content",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        boxShadow: { isPressed: "inset 0 1px 2px rgba(0,0,0,0.1)" },
-        ...DISABLED_STATE,
-      },
-      // ADR-248 4e-10 (2026-10-02): no `composition.containerStyles` — the root is the
-      //   self-composed `.react-aria-FileTrigger` button (renderFileTrigger, 2026-09-10), not a
-      //   wrapper around one, so the size box (height · paddingX) and the variant paint belong to it
-      //   in both consumers (an owned container box drops them from generated CSS and the Canvas).
-      composition: {
-        staticSelectors: {
-          "input[type='file']": {
-            position: "absolute",
-            width: "1px",
-            height: "1px",
-            padding: "0",
-            margin: "-1px",
-            overflow: "hidden",
-            clip: "rect(0, 0, 0, 0)",
-            "white-space": "nowrap",
-            border: "0",
-          },
-        },
-        delegation: [],
+        display: "contents",
       },
     },
   },
@@ -8256,11 +8202,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //     draws it, `listBoxItem` `_lastItem`), hidden on a selected item, light between two;
       //   - adjacent selected items join: the touching corners square (multiple selection —
       //     사용자 2026-10-13 「인접한 두개를 선택시 border radius 가 인접한부분은 제외」);
-      //   - the label 500, the description 12 in the item's color, the section header.
+      //   - the label 500 and the description in the item's color (their sizes — the ListBoxItem rule's
+      //     `sizeSelectors`), the section header.
       //   (No margin between sections — the reference has none; G5 example 1's `--spacing-md` was
       //   the old starter's.)
       composition: {
         delegation: [],
+        // S2 체크리스트 §4.1 (2026-11-22): S2 `PickerSection` puts a Divider after itself
+        //   (`ComboBox.tsx` `separatorWrapper` — 12 high around the 2px line, `edge-to-text` = the item
+        //   height × 3/8 at the sides): the Separator a section brings (「+ Section」 — the Menu's way).
+        //   XS (not in S2) at its own height 20.
+        sizeSelectors: {
+          XS: { ".react-aria-Separator": { margin: "5px 7.5px" } },
+          S: { ".react-aria-Separator": { margin: "5px 9px" } },
+          M: { ".react-aria-Separator": { margin: "5px 12px" } },
+          L: { ".react-aria-Separator": { margin: "5px 15px" } },
+          XL: { ".react-aria-Separator": { margin: "5px 18px" } },
+        },
         rootSelectors: {
           "&:not(.react-aria-Popover *)": {
             nested: {
@@ -8305,19 +8263,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               ".react-aria-ListBoxItem[data-selected][data-pressed]": {
                 background: "var(--accent-pressed)",
               },
-              // (The label is the item's text — `.react-aria-Text` declares its own size and
-              //   color, the reference's label inherits them: 14, the selected white.)
+              // (The label is the item's text — its color the item's (the selected white); its size the
+              //   item's step, the ListBoxItem rule's `sizeSelectors`.)
               '.react-aria-ListBoxItem [slot="label"]': {
-                "font-size": "inherit",
-                "line-height": "inherit",
                 "font-weight": "500",
                 color: "inherit",
               },
+              // (Its text step is the item's size — the ListBoxItem rule's `sizeSelectors`.)
               '.react-aria-ListBoxItem [slot="description"]': {
-                "font-size": "var(--text-xs)",
-                "line-height": "var(--text-xs--line-height)",
                 color: "inherit",
               },
+              // S2 체크리스트 §4.1 (2026-11-22): S2 `description` `neutral-subdued` — a selected item keeps
+              //   its on-accent text (the list's selection fill stays, 사용자 결정 2026-11-14). The Canvas
+              //   reads this value (`catalogListBoxDescriptionColor`).
+              '.react-aria-ListBoxItem:not([data-selected]) [slot="description"]':
+                {
+                  color: "var(--fg-muted)",
+                },
+              // (No lines of its own since 2026-11-22 — S2's Divider after a section separates them,
+              //   the ListBox rule's `.react-aria-Separator` place.)
               ".react-aria-ListBoxSection .react-aria-Header": {
                 display: "block",
                 position: "sticky",
@@ -8329,8 +8293,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 color: "var(--fg)",
                 padding: "var(--spacing-xs) var(--spacing-lg)",
                 background: "var(--bg-overlay)",
-                "border-block":
-                  "var(--border-width-hairline) solid var(--border)",
               },
             },
           },
@@ -8395,15 +8357,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   height: "var(--spacing-lg)",
                 },
               '.react-aria-ListBoxItem [slot="label"]': {
-                "font-size": "inherit",
-                "line-height": "inherit",
                 "font-weight": "500",
                 color: "inherit",
               },
+              // (Its text step is the item's size — the ListBoxItem rule's `sizeSelectors`; S2 `description`
+              //   `neutral-subdued` — a picker's list draws no selection fill, so always.)
               '.react-aria-ListBoxItem [slot="description"]': {
-                "font-size": "var(--text-xs)",
-                "line-height": "var(--text-xs--line-height)",
-                color: "inherit",
+                color: "var(--fg-muted)",
               },
               // (The item's icon after the check's 24 — the sheet's general icon is 12 in.)
               '.react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"]':
@@ -8492,7 +8452,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 3,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
       S: {
@@ -8505,7 +8465,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 4,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
       M: {
@@ -8530,8 +8490,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   (desktop result).
         paddingX: ofHeight(3, 8),
         paddingY: 7,
-        // label↔description 수직 간격 (S2 menuitem description 2).
-        gap: 2,
+        // label↔description 수직 간격 = S2 `listboxItem` `rowGap: space(1)` (2026-11-22 — 전 2).
+        gap: 1,
         // selection indicator / icon glyph 크기 (spec iconSize 16).
         iconSize: 16,
       },
@@ -8545,7 +8505,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 10,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
       XL: {
@@ -8558,7 +8518,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontWeight: 400,
         paddingX: ofHeight(3, 8),
         paddingY: 13,
-        gap: 2,
+        gap: 1,
         iconSize: 16,
       },
     },
@@ -8596,6 +8556,103 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         willChange: { inPopover: CATALOG_PRESS_WILL_CHANGE },
         transform: { isPressed: { inPopover: catalogPressTransform() } },
         transition: { inPopover: CATALOG_PRESS_TRANSITION },
+      },
+      // S2 체크리스트 §4.1 (2026-11-22): S2 `PickerItem` (`Picker.tsx` — Menu.tsx `label({size})` ·
+      //   `description({size})`) — the label is the item's control font, medium; the description one
+      //   step down (S ui-xs · M ui-sm · L ui · XL ui-lg; XS, not in S2, takes S's). One table for the
+      //   generated sheet and the Canvas part rules (`compileRulePartRules`) — before, the Canvas drew
+      //   the label 14 · the description 12 at every size and the sheet the description 12. A standalone
+      //   list keeps its box and selection fill (사용자 결정 2026-11-14) — only the text steps.
+      // The selection check (a picker's option — 사용자 결정 2026-11-22 「크기별로 키움」): S2 `PickerItem`
+      //   draws `CheckmarkIcon` at `checkmarkIconSize[size]` — the ui-icon box S 10 (XS) · M 10 · L 12 ·
+      //   XL 14. Our lucide check keeps its 16 at M (its strokes span 2/3 of the box — about S2's 10), the
+      //   steps scale from there (× 16 / 10 — L 19.2 · XL 22.4); XS (not in S2) takes S's. Box and glyph
+      //   (the Icon's font size — `catalogGlyphSize` · `Icon.tsx`).
+      composition: {
+        sizeSelectors: {
+          XS: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "16px",
+              height: "16px",
+              "font-size": "16px",
+            },
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-2xs)",
+              "line-height": "var(--text-2xs--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-2xs)",
+              "line-height": "var(--text-2xs--line-height)",
+            },
+          },
+          S: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "16px",
+              height: "16px",
+              "font-size": "16px",
+            },
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-xs)",
+              "line-height": "var(--text-xs--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-2xs)",
+              "line-height": "var(--text-2xs--line-height)",
+            },
+          },
+          M: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "16px",
+              height: "16px",
+              "font-size": "16px",
+            },
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-sm)",
+              "line-height": "var(--text-sm--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-xs)",
+              "line-height": "var(--text-xs--line-height)",
+            },
+          },
+          L: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "19.2px",
+              height: "19.2px",
+              "font-size": "19.2px",
+            },
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-base)",
+              "line-height": "var(--text-base--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-sm)",
+              "line-height": "var(--text-sm--line-height)",
+            },
+          },
+          XL: {
+            '.react-aria-Icon[slot="selection"]': {
+              width: "22.4px",
+              height: "22.4px",
+              "font-size": "22.4px",
+            },
+            '.react-aria-Text[slot="label"]': {
+              "font-size": "var(--text-lg)",
+              "line-height": "var(--text-lg--line-height)",
+              "font-weight": "500",
+            },
+            '.react-aria-Text[slot="description"]': {
+              "font-size": "var(--text-base)",
+              "line-height": "var(--text-base--line-height)",
+            },
+          },
+        },
+        rootSelectors: {},
+        delegation: [],
       },
     },
   },
@@ -14139,6 +14196,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       tooltipBackground: "{color.neutral-subtle}",
       tooltipBorder: "{color.border}",
       tooltipText: "{color.neutral}",
+      // S2 체크리스트 §4.1 (2026-11-22) — 툴팁 모양 = S2 Tooltip (`Tooltip.tsx`): 모서리 `default` 8 ·
+      //   좌우 `edge-to-text` (control S 높이 × 3/8) · 위아래 centerPadding ((24 − 1lh) / 2) · 글자 `ui-sm`.
+      tooltipRadius: "{radius.md}",
+      tooltipPaddingX: "{length.size.height.S*3/8}",
+      tooltipPaddingY:
+        "{length.size.height.S*1/2+typography.text-xs--line-height*-1/2}",
+      tooltipFontSize: "{typography.text-xs}",
+      tooltipLineHeight: "{typography.text-xs--line-height}",
       // ADR-211 others ("기타") 범주 — 시리즈 팔레트 밖의 중립 면 (light/dark 는 토큰이 푼다).
       others: "{color.neutral-subdued}",
       // ADR-217 기준선 — 강한 중립 (RSC gray-800 상당), 라벨도 같은 토큰.
@@ -14159,9 +14224,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-306 Phase 5 — 칸 안 글자 (treemap · sunburst). accent-1 · neutral-subdued 위 대비 짝.
         "on-fill": "{color.on-neutral}",
       },
-      // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
-      //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
-      metrics: { padding: 12, fontSize: 11 },
+      // 기하가 쓰는 값 — sizes[*].fontSize 와 별개 채널이다. 두 consumer 가 같은 숫자로 축 여백·레이블
+      //   솎아내기를 판정해야 좌표가 갈리지 않는다 — 글자는 토큰 (S2 `ui-xs` 11 · 터치 13) 이고
+      //   `resolveChartMetrics` 가 한 곳에서 px 로 푼다 (S2 체크리스트 §4.1, 2026-11-22).
+      metrics: { padding: 12, fontSize: "{typography.text-2xs}" },
       // ADR-211 표시 예산 — P0 실측 확정값 (docs/adr/evidence/211-p0-spike.md). light/dark 동일.
       budget: {
         minSlot: 8,

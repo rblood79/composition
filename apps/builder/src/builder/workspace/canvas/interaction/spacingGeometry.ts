@@ -7,7 +7,11 @@
  * 핸들이다 — 사선으로 부풀리지 않는다. 히트와 그리기가 같은 결과를 읽는다.
  */
 
-import { pointInBox, type BoundingBox } from "../selection/types";
+import {
+  intersectBoxes,
+  pointInBox,
+  type BoundingBox,
+} from "../selection/types";
 import {
   PADDING_PROPERTY_BY_SIDE,
   type SpacingBoxMetrics,
@@ -238,29 +242,51 @@ export interface SpacingHit {
   readonly onHandle: boolean;
 }
 
+/** 핸들의 히트 정사각 (scene, 화면 12×12 px) — 그린 핸들 (12 × 2~3) 을 담는다. */
+function spacingHandleHitBox(band: SpacingBand, zoom: number): BoundingBox {
+  const hit = SPACING_HANDLE_HIT / zoom;
+  return {
+    x: band.rect.x + band.rect.width / 2 - hit / 2,
+    y: band.rect.y + band.rect.height / 2 - hit / 2,
+    width: hit,
+    height: hit,
+  };
+}
+
+/**
+ * 핸들이 owner 의 가시 영역 (`hitBoundsMap` — 조상 clip 반영) 에 걸치는가 (2026-11-22). 오버레이는
+ * 그 영역으로 clip 되므로 밖의 핸들은 보이지 않는다 — 그리지도 잡히지도 않는다 (canvas-interaction
+ * §8.5 — 보이는 것만 히트). 스크롤 상자의 넘친 자식 사이 gap 핸들이 그 예다 (항목 300 인 ListBox =
+ * 핸들 303, 보이는 것은 몇 개). `visible` null = 가시 영역 정보 없음 (모두).
+ */
+export function spacingHandleInView(
+  band: SpacingBand,
+  zoom: number,
+  visible: BoundingBox | null,
+): boolean {
+  return (
+    !visible ||
+    intersectBoxes(spacingHandleHitBox(band, zoom), visible) !== null
+  );
+}
+
 /**
  * 드래그 대상 판정 — 핸들 (화면 12×12 px 정사각) 만 잡힌다 (2026-09-26 사용자 지시: 띠 영역
  * 전체가 드래그 영역이던 것을 핸들로 한정). 겹치면 먼저 만난 것 — 띠 배열 순서는 padding 4변 → gap.
+ * 가시 영역 밖 핸들은 잡히지 않는다 (`spacingHandleInView`).
  */
 export function hitTestSpacingHandles(
   point: { x: number; y: number },
   bands: readonly SpacingBand[],
   zoom: number,
+  visible: BoundingBox | null = null,
 ): SpacingBand | null {
-  const hit = SPACING_HANDLE_HIT / zoom;
   for (const band of bands) {
-    const cx = band.rect.x + band.rect.width / 2;
-    const cy = band.rect.y + band.rect.height / 2;
     if (
-      pointInBox(point, {
-        x: cx - hit / 2,
-        y: cy - hit / 2,
-        width: hit,
-        height: hit,
-      })
-    ) {
+      spacingHandleInView(band, zoom, visible) &&
+      pointInBox(point, spacingHandleHitBox(band, zoom))
+    )
       return band;
-    }
   }
   return null;
 }
@@ -273,9 +299,12 @@ export function hitTestSpacingBands(
   point: { x: number; y: number },
   bands: readonly SpacingBand[],
   zoom: number,
+  /** owner 의 가시 영역 — 밖의 핸들 · 띠 구간은 보이지 않아 잡히지 않는다. */
+  visible: BoundingBox | null = null,
 ): SpacingHit | null {
-  const handleBand = hitTestSpacingHandles(point, bands, zoom);
+  const handleBand = hitTestSpacingHandles(point, bands, zoom, visible);
   if (handleBand) return { band: handleBand, onHandle: true };
+  if (visible && !pointInBox(point, visible)) return null;
   const minHit = SPACING_BAND_MIN_HIT / zoom;
   for (const band of bands) {
     const rect = band.rect;

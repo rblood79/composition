@@ -114,7 +114,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   갖고 있었는데 L1 게이트(composition 부재)와 L3(sizes 축 미조회)에 막혀 있었다.
   //   Phase 3 이 세 층을 열면서 값이 도달한다. 새 기대값은 **실효 DOM 과 대조해 확정**했다
   //   (번들 CSS iframe 주입 후 getComputedStyle, 2026-07-29):
-  //     listboxitem  DOM = flex column · flex-start · center · gap 2 · pad 4/12 · relative
+  //     listboxitem  DOM = flex column · flex-start · center · gap 1 · pad 4/12 · relative
   //     gridlistitem DOM = flex column · center · gap 2 · pad 12/16 (align-items 는 normal)
   //   즉 `{}` → 아래 값은 비대칭 해소이지 회귀가 아니다. Skia escape 는 이 값을 받은
   //   컨테이너 안에서 그대로 그린다.
@@ -132,8 +132,9 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         paddingBottom: 7,
         paddingLeft: 12,
         paddingRight: 12,
-        rowGap: 2,
-        columnGap: 2,
+        // (S2 `listboxItem` `rowGap: space(1)`, 2026-11-22.)
+        rowGap: 1,
+        columnGap: 1,
       });
     });
   });

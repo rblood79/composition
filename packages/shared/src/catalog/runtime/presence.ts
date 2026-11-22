@@ -750,21 +750,27 @@ function catalogSelectionCheckboxes(
 }
 
 /**
- * S2 Menu's Divider (`separator-utils.ts` `isSeparatorHidden`, 2026-11-18): a Separator among a
- * Menu's items is not drawn first, last or right before another Separator — the one S2 puts after a
- * MenuSection (the Menu's 「+ Section」 adds it) disappears when the section ends the menu. The
- * Menu's empty-state Text is not an item.
+ * S2's Divider among a collection's items (`separator-utils.ts` `isSeparatorHidden`): a Separator in
+ * a Menu (2026-11-18) or a ListBox (2026-11-22 — S2 `PickerSection`) is not drawn first, last or
+ * right before another Separator — the one a section brings (「+ Section」) disappears when the
+ * section ends the list. The list's empty state (the Menu's Text · a ListBox's IllustratedMessage)
+ * is not an item.
  */
-export function catalogMenuSeparatorHidden(
+const SEPARATOR_COLLECTIONS: Readonly<Record<string, string>> = {
+  Menu: "Text",
+  ListBox: "IllustratedMessage",
+};
+export function catalogCollectionSeparatorHidden(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
   if (typeOf(node) !== "Separator") return false;
-  const menu = get(node.parentId);
-  if (!menu || typeOf(menu) !== "Menu") return false;
-  const items = childrenOf(menu, get).filter(
-    (child) => typeOf(child) !== "Text",
+  const list = get(node.parentId);
+  const emptyState = list && SEPARATOR_COLLECTIONS[typeOf(list)];
+  if (!list || !emptyState) return false;
+  const items = childrenOf(list, get).filter(
+    (child) => typeOf(child) !== emptyState,
   );
   const at = items.findIndex((child) => child.id === node.id);
   const next = items[at + 1];
@@ -1276,7 +1282,7 @@ export function catalogHiddenAtRest(
   // S2 Dialog `isDismissible`: its close button replaces its ButtonGroup (2026-11-18).
   if (catalogDismissibleDialogOf(node, get, typeOf)) return true;
   // S2 Menu Divider: none first, last or before another (2026-11-18).
-  if (catalogMenuSeparatorHidden(node, get, typeOf)) return true;
+  if (catalogCollectionSeparatorHidden(node, get, typeOf)) return true;
   // A Pagination's first · last page and gaps: around its page window (2026-11-19).
   if (catalogPaginationPartHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
@@ -4557,17 +4563,22 @@ function derivedDependents(
 
 /**
  * A Tab/Tag's label Text children: `.react-aria-Tab/Tag .react-aria-Text { color: inherit }`
- * (`MANUAL_ITEM_LABEL_COLORS`) — they take the item's variant/state/selection color.
+ * (`MANUAL_ITEM_LABEL_COLORS`) — they take the item's variant/state/selection color. A ListBox
+ * item's icon too (`iconSlots` — S2 `currentColor`, 2026-11-22).
  */
 export function catalogItemLabels(
   item: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  const colors = MANUAL_ITEM_LABEL_COLORS[typeOf(item)];
   // (Through layout frames — a Tag's texts sit in its content `div`, S2 `TagWrapper`, 2026-11-18.)
-  return MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
+  return colors
     ? partChildrenOf(item, get, typeOf).filter(
-        (child) => typeOf(child) === "Text",
+        (child) =>
+          typeOf(child) === "Text" ||
+          (typeOf(child) === "Icon" &&
+            !!colors.iconSlots?.includes(String(child.props.slot))),
       )
     : [];
 }
@@ -4824,6 +4835,40 @@ export function catalogFieldLabelRowColor(
       { staticSelectors?: Record<string, Record<string, string>> } | undefined
   )?.staticSelectors?.[".react-aria-Label"]?.color;
   return color ? (cssVarToTokenRef(color) ?? color) : undefined;
+}
+
+/**
+ * S2 체크리스트 §4.1 (2026-11-22) — the color a ListBox item's description takes (S2 `description`
+ * `neutral-subdued`): the ListBox rule's description selectors — in a picker's list always (no
+ * selection fill), in a standalone list while its item is not selected (a selected one keeps the
+ * item's on-accent text). Undefined where the item's color holds.
+ */
+export function catalogListBoxDescriptionColor(
+  inPopover: boolean,
+  selected: boolean,
+): string | undefined {
+  const scopes = (
+    COMPONENT_RULES_TABLE.ListBox?.structure?.composition as
+      | {
+          rootSelectors?: Record<
+            string,
+            { nested?: Record<string, Record<string, string>> }
+          >;
+        }
+      | undefined
+  )?.rootSelectors;
+  const color = inPopover
+    ? scopes?.["&:is(.react-aria-Popover *)"]?.nested?.[
+        '.react-aria-ListBoxItem [slot="description"]'
+      ]?.color
+    : selected
+      ? undefined
+      : scopes?.["&:not(.react-aria-Popover *)"]?.nested?.[
+          '.react-aria-ListBoxItem:not([data-selected]) [slot="description"]'
+        ]?.color;
+  return color && color !== "inherit"
+    ? (cssVarToTokenRef(color) ?? color)
+    : undefined;
 }
 
 export function catalogFieldLabelPartsDependents(

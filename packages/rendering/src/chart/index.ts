@@ -180,6 +180,7 @@ export {
   computeChartScene,
   resolveCategoryBand,
   resolveChartLayout,
+  chartMetricFontSize,
   resolveChartMetrics,
   skiaTextAnchorX,
   toSkiaTextGeometry,

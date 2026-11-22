@@ -8,6 +8,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { ARIA_LABELING_PROPS } from "./accessibilityProps";
 
 export const searchFieldBinding: PrimitiveBinding = {
   source: {
@@ -39,6 +40,9 @@ export const searchFieldBinding: PrimitiveBinding = {
   props: {
     accepts: {
       label: { kind: "string", label: "Label", section: "content" },
+      // (S2 — a SearchField with no visible label names itself: an Autocomplete's search
+      //  `aria-label="Search tags"`, S2 Menu docs.)
+      "aria-label": ARIA_LABELING_PROPS["aria-label"],
       description: {
         kind: "string",
         label: "Description",

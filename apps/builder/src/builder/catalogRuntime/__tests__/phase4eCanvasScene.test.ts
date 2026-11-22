@@ -104,7 +104,8 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
         scene.refreshPresentation();
         expect(scene.stream.topLayerElementIds.has(id)).toBe(false);
         expect(getSkiaNode(id)).toBe(data);
-        expect(scene.stream.hitBoundsMap).toEqual(baseline);
+        // (The stream map stores page-local values — compare its scene entries.)
+        expect(new Map(scene.stream.hitBoundsMap)).toEqual(baseline);
         expect(geometry).not.toHaveBeenCalled();
         expect(subscribe).not.toHaveBeenCalled();
         expect(workspace.runtime.graph.exportDocument()).toEqual(document);

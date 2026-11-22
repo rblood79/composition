@@ -44,7 +44,6 @@ export interface ManualBoxRule {
   parts?: CompiledPartRule[];
 }
 
-
 /** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
 const TAB_INDICATOR = 2;
 /** `TagGroup.css` `.react-aria-Tag[data-allows-removing] { padding-right: var(--spacing-xs) }`. */
@@ -369,10 +368,12 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」) — the ListBox rule's item
   // selectors (`rootSelectors["&:not(.react-aria-Popover *)"]`, the reference `ListBox.css`) over
   // the generated Header · Text sheets:
-  // - a section header: sticky, `--text-xs` 600, `padding: 4 16`, the overlay surface between two
-  //   0.5px lines (line-height inherited from the Preview body, 1.5);
-  // - the label: the item's text (14 · its line height · its color — `MANUAL_ITEM_LABEL_COLORS`),
-  //   weight 500; the description `--text-xs` / `--text-xs--line-height` in the item's color.
+  // - a section header: sticky, `--text-xs` 600, `padding: 4 16`, the overlay surface (line-height
+  //   inherited from the Preview body, 1.5) — no lines since 2026-11-22: S2's Divider after a section
+  //   separates them (the ListBox rule's `.react-aria-Separator` place);
+  // - the label: weight 500 in the item's color (`MANUAL_ITEM_LABEL_COLORS`); the label · description
+  //   text steps the ListBoxItem rule's `sizeSelectors`, the description's color
+  //   `catalogListBoxDescriptionColor`.
   // Item slot roles: the Preview puts `slot` on an item child only inside a ListBox
   // (`itemSlotAttr`), hence the owner is the ListBox, through the item. The icon (`ListBox.css`
   // `[slot="icon"]`) absolutely placed at `left: --spacing-md`, vertically centred (`top: 50%;
@@ -380,9 +381,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // (`:has([slot=icon])`) is the presence value `catalogItemSlotInset`.
   ListBox: () => {
     const descSize = textPx("text-xs");
-    const hairline = Number(
-      resolveToken("{border.width.hairline}" as TokenRef),
-    );
     const parts: CompiledPartRule[] = [
       ...(descSize
         ? [
@@ -398,12 +396,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
                 paddingY: 4,
                 fill: "var(--bg-overlay)",
                 color: "{color.neutral}",
-                borderStyle: "solid",
-                borderColor: "var(--border)",
-                borderTopWidth: hairline,
-                borderRightWidth: 0,
-                borderLeftWidth: 0,
-                borderBottomWidth: hairline,
               } as CompiledPartRule["visual"],
             },
           ]
@@ -753,31 +745,29 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           childProps: { slot: "separator" },
           layout: {},
           // (S2 Chevron M = `10 × --s2-scale`: a length ref — the Canvas reads 10, the DOM the device
-            //   formula — `catalogDeviceGlyphSize`.)
-            visual: {
-              width: scaledLengthRef(iconSize),
-              height: scaledLengthRef(iconSize),
-              iconSize: scaledLengthRef(iconSize),
-            },
+          //   formula — `catalogDeviceGlyphSize`.)
+          visual: {
+            width: scaledLengthRef(iconSize),
+            height: scaledLengthRef(iconSize),
+            iconSize: scaledLengthRef(iconSize),
+          },
         },
         // The label Text (and an authored Link label) takes the crumb's font and color — inside
         // Breadcrumbs the owner's per-size parts take over.
-        ...(["Text", "Link"] as const).map(
-          (childType): CompiledPartRule => ({
-            childType,
-            layout: {},
-            visual: {
-              ...(px(base?.fontSize)
-                ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
-                : {}),
-              ...(ratio ? { lineHeight: ratio } : {}),
-              fontWeight: 400,
-              ...(paintAt(rule?.variants.default?.paint.color)
-                ? { color: paintAt(rule?.variants.default?.paint.color) }
-                : {}),
-            } as CompiledPartRule["visual"],
-          }),
-        ),
+        ...(["Text", "Link"] as const).map((childType): CompiledPartRule => ({
+          childType,
+          layout: {},
+          visual: {
+            ...(px(base?.fontSize)
+              ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
+              : {}),
+            ...(ratio ? { lineHeight: ratio } : {}),
+            fontWeight: 400,
+            ...(paintAt(rule?.variants.default?.paint.color)
+              ? { color: paintAt(rule?.variants.default?.paint.color) }
+              : {}),
+          } as CompiledPartRule["visual"],
+        })),
       ],
     };
   },
@@ -1129,46 +1119,21 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
 
 /**
  * A ListBox item's slot children (the ListBox rule's item selectors — the RAC reference): the label
- * is the item's text (14 · its line height — `MANUAL_ITEM_LABEL_COLORS` its color), weight 500; the
- * description `--text-xs` / `--text-xs--line-height`; the icon absolutely placed at `left:
+ * weight 500 (`MANUAL_ITEM_LABEL_COLORS` its color); the icon absolutely placed at `left:
  * --spacing-md`, vertically centred, 16 square (`ListBox.css` `[slot="icon"]`). Reached through the
- * item from the list and from a section.
+ * item from the list and from a section. The label · description text steps are the item's size —
+ * the ListBoxItem rule's `sizeSelectors` (S2 체크리스트 §4.1, 2026-11-22; before, 14 · 12 here at
+ * every size).
  */
 function listBoxItemParts(): CompiledPartRule[] {
-  const fontSize = textPx("text-sm");
-  const lineHeight = textPx("text-sm--line-height");
-  const descSize = textPx("text-xs");
-  const descLine = textPx("text-xs--line-height");
   return [
-    ...(fontSize && lineHeight
-      ? [
-          {
-            childType: "Text",
-            via: "ListBoxItem",
-            childProps: { slot: "label" },
-            layout: {},
-            visual: {
-              fontSize: textFont("text-sm"),
-              lineHeight: lineHeight / fontSize,
-              fontWeight: 500,
-            },
-          },
-        ]
-      : []),
-    ...(descSize && descLine
-      ? [
-          {
-            childType: "Text",
-            via: "ListBoxItem",
-            childProps: { slot: "description" },
-            layout: {},
-            visual: {
-              fontSize: textFont("text-xs"),
-              lineHeight: descLine / descSize,
-            },
-          },
-        ]
-      : []),
+    {
+      childType: "Text",
+      via: "ListBoxItem",
+      childProps: { slot: "label" },
+      layout: {},
+      visual: { fontWeight: 500 },
+    },
     {
       childType: "Icon",
       via: "ListBoxItem",
@@ -1191,12 +1156,20 @@ function listBoxItemParts(): CompiledPartRule[] {
  * variant colors: `TabsIndicator.css` `.react-aria-Tab[data-selected] { color: var(--fg) }`.
  */
 export const MANUAL_ITEM_LABEL_COLORS: Readonly<
-  Record<string, { readonly selectedText?: string }>
+  Record<
+    string,
+    {
+      readonly selectedText?: string;
+      /** The Icon slots that take the item's color too (S2 `--iconPrimary: currentColor`). */
+      readonly iconSlots?: readonly string[];
+    }
+  >
 > = {
   Tab: { selectedText: "{color.neutral}" },
   Tag: {},
-  // The reference ListBox item's label · description inherit its color (the selected white).
-  ListBoxItem: {},
+  // The reference ListBox item's label · description inherit its color (the selected white), and so
+  // does its icon (S2 `Menu.tsx` `icon` — `currentColor`); its check mark stays accent (`checkmark`).
+  ListBoxItem: { iconSlots: ["icon"] },
   // The reference GridList card's label · description inherit its color.
   GridListItem: {},
 };

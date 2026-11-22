@@ -158,6 +158,8 @@ export interface RenderCounters {
   rebindSpliceRejectedOther: number;
   /** 옮기기가 쓴 맵 항목 수 (bounds · clipContext · buildContext · hit — 요소당 3 ~ 4) + root 명령 1. */
   translateMapWrites: number;
+  /** 2026-11-22 — page 원점만 옮긴 page 이동 수 (`movePage` — 요소 항목 쓰기 0). */
+  pageShiftCalls: number;
   /** 실행기 · damage · 검사가 property node 테이블을 읽은 횟수 (ADR-269 Phase 1 부터 — HC4). */
   propertyNodeReads: number;
   /**
@@ -209,8 +211,11 @@ export interface RenderCounters {
    * ADR-273 Phase 0 — content 여백. 팬이 스냅샷 (main + 여백 × 2) 밖으로 나가 content 를 다시 기록한 수
    * (`coverage-refresh`) · 줌을 바꾸지 않은 카메라 이동 프레임 수와 그 프레임의 이동 거리 (device px, 축별
    * 큰 쪽) 분포 · 최대 · 프레임 끝 화면 · content surface 바이트 고수위 (규격 × 4 B — GPU 실사용량이 아니다).
+   * 화면 크기 이상 옮긴 프레임 (page 점프 · 카메라 직접 지정) 은 이전 화면과 겹치는 곳이 없어 어떤 여백으로도
+   * 덮을 수 없다 — 팬 분포에 넣지 않고 `cameraJumpFrames` 로 센다 (`countPanMove`, 2026-11-22).
    */
   contentRedrawsOutOfPad: number;
+  cameraJumpFrames: number;
   panFrames: number;
   panDeviceLe16: number;
   panDeviceLe32: number;
@@ -331,6 +336,7 @@ const counters: RenderCounters = {
   rebindSpliceRejectedScrollContext: 0,
   rebindSpliceRejectedOther: 0,
   translateMapWrites: 0,
+  pageShiftCalls: 0,
   propertyNodeReads: 0,
   scrollDeltaCalls: 0,
   scrollDeltaNodes: 0,
@@ -354,6 +360,7 @@ const counters: RenderCounters = {
   grCacheUsageMax: 0,
   grCacheNearLimitFrames: 0,
   contentRedrawsOutOfPad: 0,
+  cameraJumpFrames: 0,
   panFrames: 0,
   panDeviceLe16: 0,
   panDeviceLe32: 0,
@@ -410,6 +417,35 @@ export function endContentScope(): void {
 
 /** 카운터 객체 — 호출부가 필드를 직접 더한다 (dev 게이트 안에서만). */
 export const renderCounters: RenderCounters = counters;
+
+/**
+ * 줌을 바꾸지 않은 카메라 이동 한 프레임 (device px, 화면 = main surface 크기) — ADR-273 팬 분포.
+ * 한 축이라도 화면 크기 이상 옮기면 순간 이동이다: 팬 분포 · 최대에 넣지 않는다. **Why (2026-11-22):**
+ * many-pages100 page-jump 가 줌 4.0 에서 먼 page 로 한 번에 옮긴 거리 (하니스의 page 배치 × 줌) 가
+ * `panDeviceMax` 가 되어, page 프레임이 내용만큼 자란 뒤 (`8ec1eed18`) 460,895 → 1,480,707 로 올랐다.
+ */
+export function countPanMove(
+  dxDevice: number,
+  dyDevice: number,
+  viewWidthDevice: number,
+  viewHeightDevice: number,
+): void {
+  const dx = Math.abs(dxDevice);
+  const dy = Math.abs(dyDevice);
+  if (dx === 0 && dy === 0) return;
+  if (dx >= viewWidthDevice || dy >= viewHeightDevice) {
+    counters.cameraJumpFrames += 1;
+    return;
+  }
+  const moved = Math.max(dx, dy);
+  counters.panFrames += 1;
+  if (moved <= 16) counters.panDeviceLe16 += 1;
+  else if (moved <= 32) counters.panDeviceLe32 += 1;
+  else if (moved <= 64) counters.panDeviceLe64 += 1;
+  else if (moved <= 128) counters.panDeviceLe128 += 1;
+  else counters.panDeviceGt128 += 1;
+  if (moved > counters.panDeviceMax) counters.panDeviceMax = Math.round(moved);
+}
 
 export function snapshotRenderCounters(): RenderCounters {
   for (const drain of counterSources) drain();

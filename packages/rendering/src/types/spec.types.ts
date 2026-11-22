@@ -236,10 +236,16 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     grid: string;
     strokeWidth?: number;
     /** ADR-306 — 기하 px 한 벌 (공개 size 축 삭제). */
-    metrics?: { padding: number; fontSize: number };
+    metrics?: { padding: number; fontSize: number | string };
     tooltipBackground?: string;
     tooltipBorder?: string;
     tooltipText?: string;
+    /** S2 §4.1 — 툴팁 모양 (S2 Tooltip 값 — `--chart-tooltip-radius` · `-padding` · `-font-size` · `-line-height`) */
+    tooltipRadius?: string;
+    tooltipPaddingX?: string;
+    tooltipPaddingY?: string;
+    tooltipFontSize?: string;
+    tooltipLineHeight?: string;
     /** ADR-211 — others 범주 토큰 (`--chart-others`) */
     others?: string;
     /** ADR-217 — 기준선 토큰 (`--chart-reference`) */

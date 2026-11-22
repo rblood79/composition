@@ -123,6 +123,29 @@ export function catalogS2OverlayPlacement(
   return `${direction === "top" ? "top" : "bottom"} ${align}`;
 }
 
+/**
+ * The offset of a trigger's Popover on the Canvas. S2 · RAC MenuTrigger give a context menu's Popover
+ * offset 0 (`PopoverContext` — `trigger === 'contextMenu' ? 0 : 8`): the DOM's open context menu sits
+ * right under its trigger (live 2026-11-22 — 32 under a 32 button, the press menu 40). The Popover
+ * record always carries its binding default 8, so an unauthored offset (the default) is the owner's;
+ * an authored offset wins.
+ */
+export const CATALOG_POPOVER_DEFAULT_OFFSET = 8;
+export function catalogOverlayPopoverOffset(
+  ownerType: string | undefined,
+  ownerProps: Readonly<Record<string, unknown>> | undefined,
+  offset: unknown,
+): number | undefined {
+  const authored =
+    typeof offset === "number" && offset !== CATALOG_POPOVER_DEFAULT_OFFSET
+      ? offset
+      : undefined;
+  if (authored !== undefined) return authored;
+  if (ownerType === "MenuTrigger" && ownerProps?.trigger === "contextMenu")
+    return 0;
+  return typeof offset === "number" ? offset : undefined;
+}
+
 /** RAC의 viewport 경계·반전·cross-axis 제한을 엔진에 줄 fixed 입력으로 해소한다. */
 export function catalogOverlayPlacement(
   node: CatalogConsumerNode,
@@ -180,8 +203,10 @@ export function catalogOverlayPlacement(
       )
     : requestedPad;
   const offset =
-    Number(p.offset ?? (ownerType === "TooltipTrigger" ? 0 : 8)) +
-    (ownerType === "TooltipTrigger" ? 8 : (descriptor.arrowSize ?? 0) / 2);
+    Number(
+      catalogOverlayPopoverOffset(ownerType, owner?.props, p.offset) ??
+        (ownerType === "TooltipTrigger" ? 0 : CATALOG_POPOVER_DEFAULT_OFFSET),
+    ) + (ownerType === "TooltipTrigger" ? 8 : (descriptor.arrowSize ?? 0) / 2);
   const cross = Number(p.crossOffset ?? 0);
   const spaces: Record<string, number> = {
     top: target.y - pad - offset,

@@ -417,7 +417,7 @@ export interface ComponentRuleChart {
    * 를 써야 하고, 두 consumer 가 서로 다른 숫자를 쓰면 좌표가 갈린다. 그래서 기하가
    * 쓰는 값만 여기에 px 로 못 박고 두 consumer 가 그대로 읽는다.
    */
-  metrics?: { padding: number; fontSize: number };
+  metrics?: { padding: number; fontSize: number | string };
   /**
    * hover 툴팁 표면 토큰 (Preview/Publish 전용 — Skia 는 툴팁을 그리지 않는다).
    * DOM 이 색을 직접 고르면 수동 CSS 가 SSOT 파생이 아니게 된다 (D3 위반) —
@@ -426,6 +426,16 @@ export interface ComponentRuleChart {
   tooltipBackground?: string;
   tooltipBorder?: string;
   tooltipText?: string;
+  /**
+   * S2 체크리스트 §4.1 (2026-11-22) — 툴팁 모양 = S2 Tooltip 값 (Preview/Publish 전용 — 생성 CSS
+   * `--chart-tooltip-radius` · `-padding` · `-font-size` · `-line-height`). 모서리 · 글자는 TokenRef, 여백은
+   * length ref (`{length.size.height.S*3/8}` — S2 `edge-to-text`).
+   */
+  tooltipRadius?: string;
+  tooltipPaddingX?: string;
+  tooltipPaddingY?: string;
+  tooltipFontSize?: string;
+  tooltipLineHeight?: string;
   /** ADR-211 — others ("기타") 범주의 색 토큰. DOM `--chart-others` · Skia `chart.others`. */
   others?: string;
   /** ADR-217 — 기준선 토큰 (`--chart-reference`) */

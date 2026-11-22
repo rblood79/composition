@@ -1,16 +1,13 @@
 /**
- * ADR-142 family ①(primitives/actions) — FileTrigger leaf RAC primitive 의 `PrimitiveBinding`.
- * (ADR-912 단계 5 선행-1: catalog 미등록 leaf 등록 — RAC source, generic box+text 커버.)
+ * ADR-142 family ①(primitives/actions) — FileTrigger RAC primitive 의 `PrimitiveBinding`.
  *
- * RAC `<FileTrigger>` 는 파일 선택 trigger wrapper(숨은 `<input type=file>` + 자식 Button).
- * composition 에서는 button-like leaf 로 렌더 — 자식 노드가 없으면 delegatedDom `filetrigger` 가
- * RAC Button 하나를 그리고, Canvas 는 rule 로 roundRect+border+text (Button 동형 box+text leaf,
- * value-dependent 시각 없음 → skiaPrimitive 불필요).
+ * RAC `<FileTrigger>` 는 요소가 없는 파일 선택 trigger (숨은 `<input type=file>` + 자식 pressable).
+ * S2 는 그것을 그대로 내보내고 S2 Button 을 자식으로 둔다 — 원본 = `FileTrigger > Button`
+ * (S2 체크리스트 §4.1, 2026-11-22). 글자 · 크기 · 비활성은 Button 노드의 것이다.
  *
  * D1: RAC `FileTrigger` → 파일 입력 trigger. RAC 가 파일 선택/접근성 권위.
- * D2: children(label text)/size + acceptedFileTypes/allowsMultiple/acceptDirectory +
- *     defaultCamera + isDisabled.
- * D3: 시각(배경/테두리/텍스트)은 theme/tokens data-* rules. Skia 는 buildCatalogShapes box+text.
+ * D2: RAC `FileTriggerProps` 그대로 — acceptedFileTypes/allowsMultiple/acceptDirectory/defaultCamera.
+ * D3: 상자 없음 (rule `display: contents`) — 보이는 것은 자식 Button 의 rule.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -32,13 +29,6 @@ export const fileTriggerBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Label", section: "content" },
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-      },
       // live consumer: delegatedDom `filetrigger` (`fileTypes`)
       acceptedFileTypes: {
         kind: "string",
@@ -65,7 +55,6 @@ export const fileTriggerBinding: PrimitiveBinding = {
           { value: "environment", label: "Environment (Rear)" },
         ],
       },
-      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
   },

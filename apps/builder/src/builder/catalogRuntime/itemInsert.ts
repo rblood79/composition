@@ -56,6 +56,11 @@ export interface CatalogItemInsertChoice {
  * it takes its own value: a Radio's value is RAC's group value (each its own); a Checkbox in a group
  * is keyed by its node (`delegatedDom` `checkbox`), as the template's own options are.
  */
+/** A collection whose new section brings S2's Divider (its section type). */
+const SECTION_DIVIDER_HOSTS: Readonly<Record<string, string>> = {
+  Menu: "MenuSection",
+  ListBox: "ListBoxSection",
+};
 const GROUP_OPTION_VALUE: Readonly<Record<string, boolean>> = {
   Radio: true,
   Checkbox: false,
@@ -481,18 +486,6 @@ export function catalogItemInsertChoices(
         newId,
       });
     }
-    // S2 `MenuSection` draws a Divider after itself (2026-11-18): a Menu's new section comes with
-    // its Separator (hidden while it ends the menu — `catalogMenuSeparatorHidden`).
-    if (itemType === "MenuSection" && type === "Menu") {
-      const section = entry(definitionFor(itemType), itemType);
-      const divider = entry(catalogTypeDefinitionId("Separator"), "Separator");
-      return insertNodes({
-        parent,
-        entries: [section, divider],
-        rootIds: [section.id, divider.id],
-        newId,
-      });
-    }
     // A collection item: a new key (Tab ↔ TabPanel pairing, selection); a section has none.
     const key = crypto.randomUUID();
     const section = COLLECTION_FAMILIES.some(
@@ -512,11 +505,19 @@ export function catalogItemInsertChoices(
       descendantOverrides: fill.patches(created.id),
     };
     const panels = itemType === "Tab";
+    // S2 `MenuSection` (2026-11-18) · `PickerSection` (a ListBox's, 2026-11-22) draws a Divider after
+    // itself: a new section comes with its Separator, in the same list (hidden while it ends the
+    // list — `catalogCollectionSeparatorHidden`).
+    const divider =
+      SECTION_DIVIDER_HOSTS[type] === itemType
+        ? entry(catalogTypeDefinitionId("Separator"), "Separator")
+        : undefined;
     return insertCollectionItem({
       host: parent,
       entries: [item],
       rootId: item.id,
       key,
+      ...(divider ? { after: [divider] } : {}),
       ...(panels
         ? {
             panel: entry(
