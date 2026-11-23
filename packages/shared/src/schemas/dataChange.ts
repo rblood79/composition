@@ -164,6 +164,8 @@ export const ApiEndpointDraftSchema = z.object({
   selectedKeysPath: z.string().optional(),
   /** ADR-284 — the query's whole count in the response (`responseMapping.totalPath`; `""` clears it). */
   totalPath: z.string().optional(),
+  /** S2 Form `validationErrors` — a submit response's field errors (`responseMapping.errorsPath`; `""` clears it). */
+  errorsPath: z.string().optional(),
   /** ADR-284 Decision 6 — the views' query format (`null` clears it — local only). */
   querySerialization: z
     .object({

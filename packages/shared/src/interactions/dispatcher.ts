@@ -117,7 +117,17 @@ export interface DispatchDeps {
   callEndpoint?: (
     endpointId: string,
     body: unknown,
-  ) => { ok: boolean; reason?: string };
+    /** The record whose rule sent it — its Form takes the response's field errors. */
+    elementId?: string,
+  ) => {
+    ok: boolean;
+    reason?: string;
+    /**
+     * S2 체크리스트 부록 D.3 2단계 (2026-11-23, 사용자 결정 1) — the response: the Dos after this one
+     * wait for it and stop when it failed (a server's field errors included).
+     */
+    settled?: Promise<{ ok: boolean; reason?: string }>;
+  };
   /**
    * ADR-281 user decision 3, second step — append a record to a collection (`useListData.append` —
    * the session holds it).
@@ -206,6 +216,8 @@ export interface DispatchContext {
   itemsOf?: RuleValueEnv["itemsOf"];
   /** The owner's `selectionMode` is `single` (`!item.keys` is one item). */
   singleSelection?: boolean;
+  /** The record whose rule runs (a `callEndpoint`'s Form is its own or its nearest). */
+  elementId?: string;
 }
 
 /**
@@ -513,6 +525,11 @@ export type DispatchOutcome =
         | "emit";
       /** ADR-294 — `emit`: how many rules received it (0 = none — still a success). */
       listeners?: number;
+      /**
+       * A Do that settles later (`callEndpoint` — S2 체크리스트 부록 D.3 2단계): the outcome of the
+       * rest of the list, run after it settles (a failure stops it, as a Do's does).
+       */
+      settled?: Promise<DispatchOutcome>;
     }
   | { ok: false; reason: string };
 
@@ -618,25 +635,60 @@ export function executeInteractionRule(
   deps: DispatchDeps,
   context?: DispatchContext,
 ): DispatchOutcome {
-  return executeActionList(rule.actions, deps, context);
+  return executeActionList(rule.actions, deps, {
+    ...context,
+    elementId: context?.elementId ?? rule.elementId,
+  });
 }
 
-/** A Do list in order, stopping at the first failure (a rule's · a toast action's). */
+/**
+ * The outcome a rule ends with: a Do that settles later (`settled`) is followed to the end of the
+ * list (the rest runs after it).
+ */
+export async function catalogFinalOutcome(
+  outcome: DispatchOutcome,
+): Promise<DispatchOutcome> {
+  let current = outcome;
+  while (current.ok && current.settled) current = await current.settled;
+  return current;
+}
+
+/**
+ * A Do list in order, stopping at the first failure (a rule's · a toast action's). A Do that
+ * settles later (`callEndpoint`) holds the rest until it settles — the list goes on only when it
+ * succeeded (S2 체크리스트 부록 D.3 2단계, 사용자 결정 1: a server's 「저장됨」 toast never shows
+ * over its field errors).
+ */
 function executeActionList(
   actions: readonly InteractionAction[],
   deps: DispatchDeps,
   context?: DispatchContext,
+  start = 0,
 ): DispatchOutcome {
+  const numbered = (outcome: DispatchOutcome, index: number): DispatchOutcome =>
+    !outcome.ok && actions.length > 1
+      ? { ...outcome, reason: `Do ${index + 1}: ${outcome.reason}` }
+      : outcome;
   let outcome: DispatchOutcome = {
     ok: false,
     reason: "규칙에 Do 가 없다",
   };
-  for (const [index, action] of actions.entries()) {
-    outcome = executeInteractionAction(action, deps, context);
-    if (!outcome.ok)
-      return actions.length > 1
-        ? { ...outcome, reason: `Do ${index + 1}: ${outcome.reason}` }
-        : outcome;
+  for (let index = start; index < actions.length; index++) {
+    outcome = executeInteractionAction(actions[index]!, deps, context);
+    if (!outcome.ok) return numbered(outcome, index);
+    if (outcome.settled) {
+      const rest = index + 1;
+      return {
+        ...outcome,
+        settled: outcome.settled.then((settled) =>
+          !settled.ok
+            ? numbered(settled, index)
+            : rest < actions.length
+              ? executeActionList(actions, deps, context, rest)
+              : settled,
+        ),
+      };
+    }
   }
   return outcome;
 }
@@ -678,10 +730,27 @@ function executeInteractionAction(
     // ADR-280 Decision 8 ① — the value resolves as a capability's does (`!event.<arg>` · literal).
     const body = resolveEventValue(action.body, context, deps);
     if (!body.ok) return body;
-    const result = deps.callEndpoint(action.endpointId, body.value);
-    return result.ok
-      ? { ok: true, kind: "callEndpoint" }
-      : { ok: false, reason: result.reason ?? "callEndpoint 실패" };
+    const result = deps.callEndpoint(
+      action.endpointId,
+      body.value,
+      context?.elementId,
+    );
+    if (!result.ok)
+      return { ok: false, reason: result.reason ?? "callEndpoint 실패" };
+    return {
+      ok: true,
+      kind: "callEndpoint",
+      ...(result.settled
+        ? {
+            settled: result.settled.then(
+              (settled): DispatchOutcome =>
+                settled.ok
+                  ? { ok: true, kind: "callEndpoint" }
+                  : { ok: false, reason: settled.reason ?? "callEndpoint 실패" },
+            ),
+          }
+        : {}),
+    };
   }
 
   if (
@@ -788,11 +857,14 @@ function executeInteractionAction(
             // reported here — no caller is waiting for it.
             onAction: () => {
               if (!nested.length) return;
-              const outcome = executeActionList(nested, deps, context);
-              if (!outcome.ok)
-                console.warn(
-                  `[interactions] toast action 실행 실패 — ${outcome.reason}`,
-                );
+              void catalogFinalOutcome(
+                executeActionList(nested, deps, context),
+              ).then((outcome) => {
+                if (!outcome.ok)
+                  console.warn(
+                    `[interactions] toast action 실행 실패 — ${outcome.reason}`,
+                  );
+              });
             },
           }
         : {}),

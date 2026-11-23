@@ -20,6 +20,7 @@ import { isRichText } from "./textRuns";
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogNumberRangeFits } from "./numberRangeValue";
+import { catalogValidationRulesFit } from "./validationRules";
 import type { CalendarDuration, PropVar, PropWhen, ValueType } from "./types";
 
 /**
@@ -42,7 +43,7 @@ export function scalarFitsType(
   if (type === "labeledValue") return catalogLabeledValueFits(value);
   if (type === "labeledFormat") return catalogLabeledFormatFits(value);
   if (type === "slot") return typeof value === "string" || value === false;
-  if (type === "numberRange") return false;
+  if (type === "numberRange" || type === "validationRules") return false;
   if (type === "columnSize") return catalogColumnSizeFits(value, false);
   if (type === "columnStaticSize") return catalogColumnSizeFits(value, true);
   if (type === "calendarDuration" || type === "numberFormat") return false;
@@ -66,6 +67,7 @@ export function catalogPropValueFits(value: unknown, type: string): boolean {
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "numberFormat") return catalogNumberFormatFits(value);
   if (type === "numberRange") return catalogNumberRangeFits(value);
+  if (type === "validationRules") return catalogValidationRulesFit(value);
   if (type === "selectionKeys") return catalogSelectionKeysFits(value);
   if (type === "selectionValue") return catalogSelectionValueFits(value);
   if (type === "dateRange") return catalogDateRangeFits(value);

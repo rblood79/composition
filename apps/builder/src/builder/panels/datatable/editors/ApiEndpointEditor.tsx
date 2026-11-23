@@ -315,6 +315,13 @@ export function ApiEndpointEditor({
               field="totalPath"
               placeholder="total"
             />
+            <ResponsePathRow
+              endpoint={endpoint}
+              save={save}
+              dt={dt}
+              field="errorsPath"
+              placeholder="errors"
+            />
           </Section>
           <QueryFormatSection endpoint={endpoint} save={save} dt={dt} />
           <Section title={dt("apiUploadSection")} collapsible={false}>
@@ -373,7 +380,8 @@ function UploadTransportRow({
 /**
  * A path in the query response the Preview session's `useAsyncList` load reads: the next `cursor`
  * (`responseMapping.cursorPath`) · the keys to select (`responseMapping.selectedKeysPath`) · the
- * query's whole count (`responseMapping.totalPath` — ADR-284).
+ * query's whole count (`responseMapping.totalPath` — ADR-284) · a submit's field errors
+ * (`responseMapping.errorsPath` — S2 Form `validationErrors`).
  */
 function ResponsePathRow({
   endpoint,
@@ -385,7 +393,7 @@ function ResponsePathRow({
   endpoint: ApiEndpoint;
   save: SaveFn;
   dt: DtFn;
-  field: "cursorPath" | "selectedKeysPath" | "totalPath";
+  field: "cursorPath" | "selectedKeysPath" | "totalPath" | "errorsPath";
   placeholder: string;
 }) {
   const saved = endpoint.responseMapping?.[field] ?? "";
@@ -394,7 +402,9 @@ function ResponsePathRow({
       ? "apiCursorPath"
       : field === "selectedKeysPath"
         ? "apiSelectedKeysPath"
-        : "apiTotalPath";
+        : field === "totalPath"
+          ? "apiTotalPath"
+          : "apiErrorsPath";
   const commit = (text: string) => {
     const path = text.trim();
     if (path === saved) return;

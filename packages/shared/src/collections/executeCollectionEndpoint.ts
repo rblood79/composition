@@ -185,19 +185,40 @@ export async function executeCollectionEndpoint(endpoint: ApiEndpointDefinition,
 }
 
 /**
- * ADR-281 Decision 5 — a Form's submit to an endpoint: one fetch per call (never shared — two Forms
- * submitting different bodies to one endpoint send both), the body as JSON. Success is
- * `response.ok`: `204`, an empty body or a non-JSON `Content-Type` resolve `undefined`, JSON its
- * value (a body that does not parse resolves `undefined` too — the server took the request). A
- * `GET` · `HEAD` endpoint cannot carry a body: refused. `responseMapping` is the query's, not used.
+ * S2 `Form` `validationErrors` (S2 체크리스트 부록 D.3 2단계, 2026-11-23) — a submit the endpoint
+ * refused: its HTTP status (absent = the request went through but its response held field errors) and
+ * the field errors the response held at `responseMapping.errorsPath` (each field `name` → its
+ * messages). The Form shows them on its fields (S2: until the user changes each field).
  */
-export async function submitCollectionEndpoint(endpoint: ApiEndpointDefinition, body: unknown, signal: AbortSignal): Promise<unknown> {
-  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal);
-  if (method === "GET" || method === "HEAD") throw new Error(`${method} endpoint 는 body 를 보낼 수 없습니다`);
-  if (!Object.keys(headers).some((key) => key.toLowerCase() === "content-type")) headers["Content-Type"] = "application/json";
-  const { stringifyJsonLossless } = await intake();
-  const response = await fetch(url, {method, headers, signal: requestSignal, body: body === undefined ? undefined : stringifyJsonLossless(body)});
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+export class EndpointSubmitError extends Error {
+  readonly status: number | undefined;
+  readonly validationErrors: Readonly<Record<string, readonly string[]>> | undefined;
+  constructor(message: string, status: number | undefined, validationErrors?: Readonly<Record<string, readonly string[]>>) {
+    super(message);
+    this.name = "EndpointSubmitError";
+    this.status = status;
+    this.validationErrors = validationErrors;
+  }
+}
+
+/**
+ * The field errors a response holds at `path` (S2 `validationErrors` — a field `name` → a message
+ * or messages, as Zod's `flatten().fieldErrors`): only text messages; none = undefined.
+ */
+export function endpointFieldErrors(body: unknown, path: string | undefined): Record<string, string[]> | undefined {
+  if (!path?.trim()) return undefined;
+  const value = readPath(body, path.trim());
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const errors: Record<string, string[]> = {};
+  for (const [name, messages] of Object.entries(value as Record<string, unknown>)) {
+    const texts = (Array.isArray(messages) ? messages : [messages]).filter((message): message is string => typeof message === "string" && message.trim() !== "");
+    if (texts.length) errors[name] = texts;
+  }
+  return Object.keys(errors).length ? errors : undefined;
+}
+
+/** A submit response's JSON body (none · not JSON · not parsed = undefined). */
+async function submitResponseBody(response: Response): Promise<unknown> {
   if (response.status === 204 || response.headers.get("content-length") === "0") return undefined;
   if (!/json/i.test(response.headers.get("content-type") ?? "")) return undefined;
   const text = await response.text();
@@ -208,6 +229,32 @@ export async function submitCollectionEndpoint(endpoint: ApiEndpointDefinition, 
   } catch {
     return undefined;
   }
+}
+
+/**
+ * ADR-281 Decision 5 — a Form's submit to an endpoint: one fetch per call (never shared — two Forms
+ * submitting different bodies to one endpoint send both), the body as JSON. Success is
+ * `response.ok`: `204`, an empty body or a non-JSON `Content-Type` resolve `undefined`, JSON its
+ * value (a body that does not parse resolves `undefined` too — the server took the request). A
+ * `GET` · `HEAD` endpoint cannot carry a body: refused. `responseMapping` is the query's, not used —
+ * but its `errorsPath`: a refused response (or an ok one holding field errors) rejects with
+ * `EndpointSubmitError` carrying them (S2 `validationErrors`).
+ */
+export async function submitCollectionEndpoint(endpoint: ApiEndpointDefinition, body: unknown, signal: AbortSignal): Promise<unknown> {
+  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal);
+  if (method === "GET" || method === "HEAD") throw new Error(`${method} endpoint 는 body 를 보낼 수 없습니다`);
+  if (!Object.keys(headers).some((key) => key.toLowerCase() === "content-type")) headers["Content-Type"] = "application/json";
+  const { stringifyJsonLossless } = await intake();
+  const response = await fetch(url, {method, headers, signal: requestSignal, body: body === undefined ? undefined : stringifyJsonLossless(body)});
+  const errorsPath = endpoint.responseMapping?.errorsPath;
+  if (!response.ok) {
+    const errors = errorsPath ? endpointFieldErrors(await submitResponseBody(response), errorsPath) : undefined;
+    throw new EndpointSubmitError(`HTTP ${response.status}: ${response.statusText}`, response.status, errors);
+  }
+  const result = await submitResponseBody(response);
+  const errors = endpointFieldErrors(result, errorsPath);
+  if (errors) throw new EndpointSubmitError("입력 값 오류", undefined, errors);
+  return result;
 }
 
 /**

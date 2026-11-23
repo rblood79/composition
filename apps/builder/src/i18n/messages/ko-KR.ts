@@ -2372,6 +2372,9 @@ const catalog: TranslationKeys = {
     apiTotalPath: "전체 개수 경로",
     apiTotalPathHint:
       "응답에서 이 조회에 맞는 전체 개수가 있는 곳 (예: total · meta.total). 데이터 보기가 「총 N 개」 를 보이고, 없으면 불러온 행까지만 센다.",
+    apiErrorsPath: "필드 오류 경로",
+    apiErrorsPathHint:
+      "제출 응답에서 필드 오류가 있는 곳 (예: errors · fieldErrors — 필드 이름마다 문구 하나 또는 여러 개). Form 이 그 필드에 오류를 보이고 사용자가 고치면 지운다. 거절된 제출 뒤의 Do 는 실행하지 않는다 (S2 Form validationErrors).",
     apiResponsePaths: "응답 경로",
     apiQuerySection: "조회",
     apiUploadSection: "업로드",
@@ -2664,6 +2667,24 @@ const catalog: TranslationKeys = {
     addFile: "추가",
     libraryReadOnly:
       "Library 컴포넌트 — 읽기 전용. 잠금을 해제하면 프로젝트 컴포넌트로 고칠 수 있습니다.",
+  },
+  validationRules: {
+    self: "이 필드",
+    end: "끝 날짜",
+    or: "또는",
+    noMessage: "(문구 없음)",
+    edit: "편집",
+    orAdd: "「또는」 조건 추가",
+    remove: "규칙 삭제",
+    subject: "필드",
+    comparison: "비교",
+    compareWith: "비교 대상",
+    fixed: "고정 값",
+    value: "값",
+    removeCondition: "이 조건 삭제",
+    message: "오류 메시지",
+    messagePlaceholder: "조건이 맞지 않을 때 보이는 메시지",
+    add: "규칙 추가",
   },
   dataView: {
     multiSortRefused_suffixSingle:
@@ -3257,6 +3278,7 @@ const semanticLabels: Record<string, string> = {
   "properties.last": "뒤",
   "properties.first": "앞",
   "properties.disabledKeys": "비활성 항목",
+  "properties.validationRules": "검증 규칙",
   "properties.selectionBehavior": "선택 방식",
   "properties.toggle": "토글",
   "properties.replace": "덮어쓰기",
@@ -3794,6 +3816,7 @@ const formattedMessages: Record<
     `이 endpoint 는 행을 쪽으로 나눠 줍니다 — 묶기 · 합계 · 계층은 표가 모든 행 (최대 ${String(args?.cap ?? "")} 행) 을 불러와 여기서 계산합니다. 넘으면 행을 보이지 않습니다.`,
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
+  "validationRules.actions": (args) => `${String(args?.name ?? "")} 동작`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
   "dataView.existingControl": (args) => `기존 · ${String(args?.control ?? "")}`,
   "dataView.follow_remove": (args) =>

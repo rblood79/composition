@@ -11,6 +11,7 @@
 
 import type { PrimitiveBinding } from "../types";
 import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const numberFieldBinding: PrimitiveBinding = {
   source: {
@@ -106,6 +107,8 @@ export const numberFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC NumberField 공식 prop —
       //   delegatedDom `numberfield` (`nodeTreeField` · `fieldBase`) 가 RAC NumberField 로 전달.
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

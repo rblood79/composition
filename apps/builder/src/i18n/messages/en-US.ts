@@ -2382,6 +2382,9 @@ const catalog: TranslationKeys = {
     apiTotalPath: "Total count path",
     apiTotalPathHint:
       'Where the response holds how many items the query matches in all (e.g. total · meta.total). A data view shows "N in total"; without it only the loaded rows are counted.',
+    apiErrorsPath: "Field errors path",
+    apiErrorsPathHint:
+      "Where a submit's response holds its field errors (e.g. errors · fieldErrors — each field name to a message or messages). The Form shows them on its fields until each is changed; a refused submit's later actions do not run (S2 Form validationErrors).",
     apiResponsePaths: "Response paths",
     apiQuerySection: "Querying",
     apiUploadSection: "Upload",
@@ -2677,6 +2680,24 @@ const catalog: TranslationKeys = {
     addFile: "Add",
     libraryReadOnly:
       "Library component — read only. Unlock it to edit it as a project component.",
+  },
+  validationRules: {
+    self: "This field",
+    end: "End date",
+    or: "or",
+    noMessage: "(no message)",
+    edit: "Edit",
+    orAdd: "Add an 「or」 condition",
+    remove: "Remove rule",
+    subject: "Field",
+    comparison: "Comparison",
+    compareWith: "Compare with",
+    fixed: "A fixed value",
+    value: "Value",
+    removeCondition: "Remove this condition",
+    message: "Error message",
+    messagePlaceholder: "Shown when the condition is not met",
+    add: "Add rule",
   },
   dataView: {
     multiSortRefused_suffixSingle:
@@ -3264,6 +3285,7 @@ const semanticLabels: Record<string, string> = {
   "properties.last": "Last",
   "properties.first": "First",
   "properties.disabledKeys": "Disabled items",
+  "properties.validationRules": "Validation rules",
   "properties.selectionBehavior": "Selection behavior",
   "properties.toggle": "Toggle",
   "properties.replace": "Replace",
@@ -3805,6 +3827,7 @@ const formattedMessages: Record<
     `This endpoint splits its rows into pages — to group, total or nest them the Table loads every row (up to ${String(args?.cap ?? "")}) and runs them here. Past that it shows no rows.`,
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
+  "validationRules.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.existingControl": (args) =>
     `Existing · ${String(args?.control ?? "")}`,

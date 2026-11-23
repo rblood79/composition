@@ -2769,6 +2769,15 @@ class Planner {
       }
       return { kind: "token", tokenId };
     }
+    // S2 체크리스트 부록 D.3 — a field's validation rules (`validationRules([...])`) — the graph
+    // checks them.
+    const rules = /^validationRules\((\[[\s\S]*\])\)$/.exec(text);
+    if (rules) {
+      const list = structuredLiteralOf(rules[1]!)?.value;
+      if (Array.isArray(list)) return list;
+      this.reject(value.from, "outsideVocabulary");
+      return undefined;
+    }
     // ADR-296 — a prop's typed object (a calendar duration · a number format) — the graph checks it.
     if (text.startsWith("{") && !text.startsWith("{`")) {
       const object = structuredLiteralOf(text)?.value;

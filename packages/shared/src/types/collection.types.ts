@@ -136,6 +136,12 @@ export interface ApiEndpointDefinition {
      * (`meta.total`): the whole count for that query; none = the total is not known.
      */
     totalPath?: string;
+    /**
+     * S2 `Form` `validationErrors` (S2 체크리스트 부록 D.3 2단계) — where a submit's response holds
+     * its field errors (`errors` · `fieldErrors`): each field `name` → a message or messages. Read
+     * on a refused response (400 · 422) and an ok one; none = a refused submit is a toast only.
+     */
+    errorsPath?: string;
   };
   /**
    * ADR-284 Decision 6 — how the views reading this endpoint's collection go into its request

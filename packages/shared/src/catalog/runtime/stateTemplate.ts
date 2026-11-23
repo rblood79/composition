@@ -116,6 +116,8 @@ function variableType(
   // (ADR-309: a Calendar's value is a date variable's ISO text; a range is an object of two.)
   if (type === "calendarValue") return "date";
   if (type === "dateRange") return "object";
+  // (S2 체크리스트 부록 D.3 — a field's validation rules: a list of its own.)
+  if (type === "validationRules") return "array";
   return type === "string[]" || type === "items"
     ? "array"
     : type === "slot"

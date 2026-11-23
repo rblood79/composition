@@ -14,6 +14,7 @@ import {
   DATE_LOCALE_PROP,
   FIRST_DAY_OF_WEEK_PROP,
 } from "./dateLocaleProps";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const dateRangePickerBinding: PrimitiveBinding = {
   source: {
@@ -121,6 +122,8 @@ export const dateRangePickerBinding: PrimitiveBinding = {
       endName: { kind: "string", label: "End name", section: "forms" },
       isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       necessityIndicator: {
         kind: "enum",

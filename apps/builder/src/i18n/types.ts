@@ -1932,6 +1932,8 @@ export interface TranslationKeys {
   };
   datatable: Record<string, string>;
   /** ADR-284 — 「검색 · 필터」 (data view authoring). */
+  /** S2 체크리스트 부록 D.3 — a field's validation rules editor (`ValidationRulesField`). */
+  validationRules: Record<string, string>;
   dataView: Record<string, string>;
   codeView: Record<string, string>;
   debugger: Record<string, string>;

@@ -10,6 +10,7 @@ import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
 import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const selectBinding: PrimitiveBinding = {
   source: {
@@ -105,6 +106,8 @@ export const selectBinding: PrimitiveBinding = {
       //   `delegatedDom.tsx` `select` (`fieldBase`) 가 RAC Select 로 전달.
       isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // S2 1.8.0 Picker · ComboBox — where the menu opens: `direction` + `align` are its Popover's
       //   placement (`domBinding.tsx` `catalogS2OverlayPlacement`; a placement chosen on the Popover

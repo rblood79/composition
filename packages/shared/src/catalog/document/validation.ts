@@ -41,6 +41,7 @@ import { catalogCalendarDurationFits } from "./valueType";
 import { isDateValueText } from "../../state/dateValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogNumberRangeFits } from "./numberRangeValue";
+import { catalogValidationRulesFit } from "./validationRules";
 import { catalogDateRangeFits } from "./dateRangeValue";
 import type { ComputedSchemaField } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
@@ -304,6 +305,7 @@ const valueTypes = new Set<ValueType>([
   "calendarValue",
   "autoFocus",
   "numberRange",
+  "validationRules",
   "labeledValue",
   "labeledFormat",
 ]);
@@ -737,6 +739,9 @@ function authoredValue(
   if (value === null && allowNull) return;
   if (Array.isArray(value)) {
     if (!allowStructured) invalid("SCALAR_REQUIRED", at);
+    // (S2 체크리스트 부록 D.3 — a field's validation rules: their conditions nest; the accepts
+    //  check — `validationRules` only on `validate` — is the graph's.)
+    if (value.length && catalogValidationRulesFit(value)) return;
     return structuredValue(value, at);
   }
   if (typeof value !== "object" || value === null) return scalar(value, at);

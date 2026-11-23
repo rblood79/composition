@@ -9,6 +9,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const switchBinding: PrimitiveBinding = {
   source: {
@@ -75,6 +76,8 @@ export const switchBinding: PrimitiveBinding = {
       //   FieldError (S2 leaves the track as it is), required is the input's (RAC form validation).
       isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       name: { kind: "string", label: "Name", section: "forms" },
       value: { kind: "string", label: "Submit value", section: "forms" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

@@ -330,7 +330,7 @@ function findEndpointById(
 
 /** 저장된 `ApiEndpoint` → op 의 `endpoint` draft (inverse 에 싣는 형태 — 전체 정의). */
 /**
- * The response paths a draft gives (`cursorPath` · `selectedKeysPath` · `totalPath` — the Preview
+ * The response paths a draft gives (`cursorPath` · `selectedKeysPath` · `totalPath` · `errorsPath` — the Preview
  * session's `useAsyncList` load): a value sets one, `""` clears it, none keeps it.
  */
 function withResponsePaths(
@@ -338,7 +338,12 @@ function withResponsePaths(
   draft: ApiEndpointDraft,
 ): ApiEndpoint["responseMapping"] {
   const next = { ...mapping };
-  for (const key of ["cursorPath", "selectedKeysPath", "totalPath"] as const) {
+  for (const key of [
+    "cursorPath",
+    "selectedKeysPath",
+    "totalPath",
+    "errorsPath",
+  ] as const) {
     const value = draft[key];
     if (value === undefined) continue;
     if (value) next[key] = value;
@@ -382,6 +387,7 @@ export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
     cursorPath: endpoint.responseMapping?.cursorPath ?? "",
     selectedKeysPath: endpoint.responseMapping?.selectedKeysPath ?? "",
     totalPath: endpoint.responseMapping?.totalPath ?? "",
+    errorsPath: endpoint.responseMapping?.errorsPath ?? "",
     querySerialization: endpoint.querySerialization ?? null,
     ...(endpoint.targetCollectionId !== undefined
       ? { targetCollectionId: endpoint.targetCollectionId }

@@ -9,6 +9,7 @@
 
 import type { PrimitiveBinding } from "../types";
 import { DATE_LOCALE_PROP } from "./dateLocaleProps";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const timeFieldBinding: PrimitiveBinding = {
   source: {
@@ -123,6 +124,8 @@ export const timeFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       errorMessage: {
         kind: "string",
         label: "Error Message",

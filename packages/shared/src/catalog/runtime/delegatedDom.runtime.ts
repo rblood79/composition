@@ -129,6 +129,14 @@ import { parseColor } from "react-aria-components/ColorPicker";
 import { ColorSwatchPickerItem as AriaColorSwatchPickerItem } from "react-aria-components/ColorSwatchPicker";
 
 import { CatalogComboBox } from "./comboBoxSelectionText";
+import {
+  catalogFormFieldsOf,
+  catalogFormOf,
+  catalogValidationErrors,
+  catalogValidationReads,
+  catalogValidationRulesOf,
+  catalogValidationStateProp,
+} from "./fieldValidation";
 
 import { DateField as AriaDateField } from "react-aria-components/DateField";
 
@@ -1548,6 +1556,71 @@ export const authoredInvalid = (
   props: CatalogConsumerNode["props"],
 ): true | undefined => (props.isInvalid === true ? true : undefined);
 
+/**
+ * S2 `validate` from the field's condition rules (S2 체크리스트 부록 D.3 2단계): a function RAC runs on
+ * the committed value — the rules judged with the same Form's named fields' current values (their
+ * runtime values in a running Preview). None without rules.
+ */
+function catalogDomFieldValidate(
+  input: DelegatedDomInput,
+): ((value: unknown) => string[] | null) | undefined {
+  const props = input.node.props;
+  const rules = catalogValidationRulesOf(props);
+  if (!rules) return undefined;
+  const lookup = domLookup(input);
+  const type = lookup.typeOf(input.node);
+  const reads = catalogValidationReads(rules);
+  const form = reads.size ? catalogFormOf(input.node, lookup) : undefined;
+  const formFields = form
+    ? catalogFormFieldsOf(form, lookup)
+        .filter(
+          (field) =>
+            reads.has(field.name) && field.record.id !== input.node.id,
+        )
+        .map((field) => ({
+          name: field.name,
+          type: field.type,
+          props: field.record.props,
+          value: catalogRuntimeStateOf(
+            input.root,
+            field.record,
+            input.runtimeProps?.(field.record.id),
+            catalogValidationStateProp(field.type),
+            input.runtimeProps,
+          ),
+        }))
+    : [];
+  return (value) => {
+    const messages = catalogValidationErrors(rules, value, {
+      type,
+      props,
+      formFields,
+    });
+    return messages.length ? messages : null;
+  };
+}
+
+/** The same Form's fields a field's rules read (it renders again when one changes). */
+function catalogDomValidationWatched(
+  node: CatalogConsumerNode,
+  root: CatalogCompositionRoot,
+): readonly string[] {
+  const rules = catalogValidationRulesOf(node.props);
+  if (!rules) return [];
+  const reads = catalogValidationReads(rules);
+  if (!reads.size) return [];
+  const lookup = {
+    get: (id: string) => root.domInputs.get(id),
+    typeOf: (entry: CatalogConsumerNode) => catalogTypeName(root, entry),
+  };
+  const form = catalogFormOf(node, lookup);
+  return form
+    ? catalogFormFieldsOf(form, lookup)
+        .filter((field) => reads.has(field.name) && field.record.id !== node.id)
+        .map((field) => field.record.id)
+    : [];
+}
+
 function fieldBase(input: DelegatedDomInput) {
   const props = input.node.props;
   const form = inheritedForm(input);
@@ -1558,6 +1631,7 @@ function fieldBase(input: DelegatedDomInput) {
     isRequired: bool(props.isRequired),
     isReadOnly: bool(props.isReadOnly),
     isInvalid: authoredInvalid(props),
+    validate: catalogDomFieldValidate(input),
     isQuiet: bool(props.isQuiet),
     necessityIndicator: props.necessityIndicator ?? form.necessityIndicator,
     labelPosition: props.labelPosition ?? form.labelPosition ?? "top",
@@ -1805,6 +1879,8 @@ function nodeTreeField(
   states?: (input: DelegatedDomInput) => Record<string, unknown>,
 ): DelegatedDomBinding {
   return {
+    // (S2 체크리스트 부록 D.3 — a rule reading another field of its Form judges again when it changes.)
+    watchesChildren: (node, root) => catalogDomValidationWatched(node, root),
     render: (input) => {
       const props = input.node.props;
       const {
@@ -3380,6 +3456,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-256 Phase 3: the Switch is RAC `SwitchField` — its children in order (the SwitchButton, a
   // Description, a FieldError, anything the author put in).
   switch: {
+    watchesChildren: (node, root) => catalogDomValidationWatched(node, root),
     render: (input) => {
       const props = input.node.props;
       return createElement(AriaSwitchField as ElementType, {
@@ -3399,6 +3476,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         isReadOnly: bool(props.isReadOnly),
         isRequired: bool(props.isRequired),
         isInvalid: authoredInvalid(props),
+        validate: catalogDomFieldValidate(input),
         name: opt(props.name),
         value: opt(props.value),
         autoFocus: bool(props.autoFocus),
@@ -3549,6 +3627,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                         ),
                         name: opt(props.name),
                         value: opt(props.value),
+                        // (A grouped item has none — the group validates, as RAC's does.)
+                        validate: catalogDomFieldValidate(input),
                       }),
                   isIndeterminate: bool(props.isIndeterminate),
                   isDisabled: bool(props.isDisabled),
@@ -3592,7 +3672,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   checkboxgroup: {
     // (Its items — through any element between: Codex Round 20 H2 — give its RAC children; its value
     //  is its own, ADR-308.)
-    watchesChildren: (node, root) => groupWatched(node, root, "Checkbox"),
+    watchesChildren: (node, root) => [
+      ...groupWatched(node, root, "Checkbox"),
+      ...catalogDomValidationWatched(node, root),
+    ],
     render: (input) => {
       const props = input.node.props;
       // (A `value` that reads a variable (「검색 추가」 — ADR-284 Phase 6) is that variable's value:
@@ -3616,6 +3699,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ...controlled(input, VALUE, selected),
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
+          validate: catalogDomFieldValidate(input),
           isReadOnly: bool(props.isReadOnly),
           isRequired: bool(props.isRequired),
           name: opt(props.name),
@@ -3648,7 +3732,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-256 Phase 3: a RadioGroup is RAC `RadioGroup` — its children in order. Its value is the
   // first selected item's (each item is a `RadioField` with its `value` — `radio`), else its own.
   radiogroup: {
-    watchesChildren: (node, root) => groupWatched(node, root, "Radio"),
+    watchesChildren: (node, root) => [
+      ...groupWatched(node, root, "Radio"),
+      ...catalogDomValidationWatched(node, root),
+    ],
     render: (input) => {
       const props = input.node.props;
       const value = str(runtimeState(input, "value"));
@@ -3671,6 +3758,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           orientation: str(props.orientation) || "vertical",
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
+          validate: catalogDomFieldValidate(input),
           isReadOnly: bool(props.isReadOnly),
           isRequired: bool(props.isRequired),
           name: opt(props.name),
@@ -4522,6 +4610,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           encType: props.encType || undefined,
           target: props.target || undefined,
           validationBehavior: props.validationBehavior || undefined,
+          // S2 `validationErrors` (S2 체크리스트 부록 D.3 2단계): a submit's field errors (the runtime
+          // value `callEndpoint` writes from the endpoint's `errorsPath`) — RAC shows each on the field
+          // of that `name` until the user changes it.
+          validationErrors:
+            props.validationErrors && typeof props.validationErrors === "object"
+              ? props.validationErrors
+              : undefined,
           labelPosition: props.labelPosition || undefined,
           labelAlign: props.labelAlign || undefined,
           necessityIndicator: props.necessityIndicator || undefined,

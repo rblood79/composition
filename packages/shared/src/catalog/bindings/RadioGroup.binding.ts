@@ -10,6 +10,7 @@
 
 import type { PrimitiveBinding } from "../types";
 import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const radioGroupBinding: PrimitiveBinding = {
   source: {
@@ -102,6 +103,8 @@ export const radioGroupBinding: PrimitiveBinding = {
       isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly 는 delegatedDom `radiogroup` 이
       //   RAC RadioGroup 에 넘기고, necessityIndicator 는 Label 노드에 덧붙는다
       //   (`catalogFieldNecessityIndicator`). errorMessage 는 FieldError 노드의 `{errorMessage}` 바인딩.

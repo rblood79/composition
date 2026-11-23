@@ -170,7 +170,9 @@ export type InspectorFieldKind =
   // S2 · RAC `formatOptions` — Intl number format options as one object (`numberFormat`).
   | "number-format"
   | "labeled-value"
-  | "labeled-format";
+  | "labeled-format"
+  // S2 `validate` as condition rules (S2 체크리스트 부록 D.3 2단계 — `validationRules.ts`).
+  | "validation-rules";
 
 /**
  * `kind:"items-manager"` 의 개별 항목 인라인 편집 스키마.

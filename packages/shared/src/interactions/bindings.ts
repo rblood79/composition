@@ -20,6 +20,7 @@ import {
 } from "./interactionRule.types";
 import { eventArgNames, eventArgsAreFields } from "./capabilityRegistry";
 import {
+  catalogFinalOutcome,
   executeInteractionRule,
   type DispatchContext,
   type DispatchDeps,
@@ -101,6 +102,12 @@ export function createElementHandlers(
           event,
         });
         onOutcome?.(rule, outcome);
+        // (A Do that settles later — `callEndpoint`: the rest of the list's failure is reported
+        //  when it comes.)
+        if (outcome.ok && outcome.settled)
+          void catalogFinalOutcome(outcome).then((final) => {
+            if (!final.ok) onOutcome?.(rule, final);
+          });
       }
     };
   }

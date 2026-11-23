@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Form 서버 오류 · 검증 규칙 — S2 validationErrors · validate] - 2026-11-23
+
+### Added
+
+- **제출 응답의 필드 오류가 그 필드에 보인다** (S2 Form `validationErrors`, S2 체크리스트 부록 D.3 2단계):
+  - endpoint 편집기 Params 탭의 「응답 경로」 에 「필드 오류 경로」 (`responseMapping.errorsPath` — 예: `errors` · `data.fieldErrors`) 가 생겼다. 필드 이름 (`name`) 마다 문구 하나 또는 여러 개 (Zod `flatten().fieldErrors` 모양).
+  - Form 의 `callEndpoint` 응답 (400 · 422 거절, 또는 오류를 담은 정상 응답) 의 필드 오류가 그 Form 의 같은 `name` 필드에 오류로 보인다. 사용자가 그 칸을 고쳐 확정하면 (칸을 떠날 때) 지워지고, 성공 응답은 남은 오류를 비운다. 필드 오류가 오면 실패 toast 는 띄우지 않는다.
+  - 받는 Form 은 규칙 주인 자신 또는 주인을 감싼 가장 가까운 Form 이다. 문서에는 저장하지 않는다 (실행 중 값).
+- **필드의 「검증 규칙」** (S2 `validate` — 함수가 아니라 데이터 보기의 조건 트리, 사용자 결정):
+  - 15종 (TextField · TextArea · SearchField · NumberField · ComboBox · Select · Checkbox · CheckboxGroup · RadioGroup · DateField · DatePicker · DateRangePicker · TimeField · ColorField · Switch) 의 Design 패널 Behavior 구획에 「검증 규칙」 목록이 생겼다. 규칙 하나 = 맞아야 하는 조건 (필드 · 비교 · 값) + 맞지 않을 때의 메시지. 「또는」 조건을 더할 수 있다.
+  - 조건은 이 필드의 값 (DateRangePicker 는 시작 · 끝) 또는 같은 Form 의 다른 필드 (`name`) 를 읽고, 값은 고정 값 또는 다른 필드의 값 (`!form.<name>` — 비밀번호 확인) 이다. 비교 종류는 값 종류 (글자 · 숫자 · 날짜 · 여러 값 · 켜고 끔) 를 따른다.
+  - Preview · Publish 에서 칸을 떠날 때와 제출할 때 검사한다 (S2 와 같은 시점). 맞지 않는 규칙의 메시지를 모두 보이고, native 검증 방식이면 제출을 막는다. 다른 필드를 읽는 규칙은 그 필드가 바뀌면 다시 판정한다. Canvas 는 바뀌지 않는다.
+  - Code 보기는 `validate={validationRules([...])}` 로 쓰고 그대로 되읽는다.
+
+### Changed
+
+- **`callEndpoint` 뒤의 Do 는 응답을 기다린다** (사용자 결정 1): 전에는 응답 전에 다음 Do (예: 「저장됨」 toast · 페이지 이동) 가 실행돼 400 이 와도 「저장됨」 이 떴다. 이제 응답이 실패 (필드 오류 포함) 면 거기서 멈춘다 — Do 목록의 「실패한 Do 에서 멈춘다」 계약.
+  - 위치: `packages/shared/src/interactions/{dispatcher.ts,bindings.ts}` · `collections/executeCollectionEndpoint.ts` · `catalog/runtime/{catalogPreviewInteractions.ts,delegatedDom.runtime.ts,fieldValidation.ts}` · `catalog/document/{validationRules.ts,validation.ts,valueType.ts,ruleDefinition.ts}` · `catalog/bindings/validateProp.ts` (+ 15 binding) · `codeView/generate.ts` · `apps/builder/src/builder/{panels/properties/generic/ValidationRulesField.tsx,panels/datatable/editors/ApiEndpointEditor.tsx,stores/utils/dataChange.ts,catalogRuntime/codeViewEdit.ts}`
+
+### Tests
+
+- `s2D3FormServerErrors.test.tsx` 8 (422 · 목록 문구 · 성공 · 오류 없는 거절 · 오류를 담은 정상 응답 · aria 에서 성공이 오류를 비움 · Do 대기 2) · `s2D3FieldValidate.test.tsx` 6 (거절 · 문구 여럿 · 「또는」 · 다른 필드 참조 · 저장 모양 검사 · Code 보기 왕복) · `dataChange.endpoints.test.ts` errorsPath draft 1, 원복 RED 19/19, live `apps/builder/scripts/s2-form-validation-live.mjs` 7/7.
+
 ## [목록 선택 막대 — S2 renderActionBar (CardView · Table · Tree)] - 2026-11-23
 
 ### Added

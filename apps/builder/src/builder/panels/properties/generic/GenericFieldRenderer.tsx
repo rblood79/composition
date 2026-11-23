@@ -54,6 +54,7 @@ import { PropertyFieldset } from "../../../components/property/PropertyFieldset"
 import { isRacColorString } from "../../../../../../../packages/shared/src/catalog/document/colorValue";
 import { NumberFormatField } from "./NumberFormatField";
 import { NumberRangeField } from "./NumberRangeField";
+import { ValidationRulesField } from "./ValidationRulesField";
 import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
@@ -1142,6 +1143,16 @@ const GenericField = memo(function GenericField({
     case "number-range":
       return (
         <NumberRangeField label={field.label} value={value} onChange={update} />
+      );
+    // S2 `validate` as condition rules (S2 체크리스트 부록 D.3 2단계).
+    case "validation-rules":
+      return (
+        <ValidationRulesField
+          label={field.label}
+          value={value}
+          elementId={elementId}
+          onChange={update}
+        />
       );
 
     // ADR-309 Decision 5 — the date family's value · bounds · placeholder (`DateValueInput`).

@@ -11,6 +11,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const colorFieldBinding: PrimitiveBinding = {
   source: {
@@ -81,6 +82,8 @@ export const colorFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.colorfield 가 소비 —
       //   RAC ColorField 공식 prop (channel/colorSpace 는 hex 외 채널 편집 모드).
       errorMessage: {

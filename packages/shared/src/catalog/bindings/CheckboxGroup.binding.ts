@@ -10,6 +10,7 @@
 
 import type { PrimitiveBinding } from "../types";
 import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const checkboxGroupBinding: PrimitiveBinding = {
   source: {
@@ -103,6 +104,8 @@ export const checkboxGroupBinding: PrimitiveBinding = {
       isRequired: { kind: "boolean", label: "Required", section: "validation" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly 는 CATALOG_DELEGATED_DOM.checkboxgroup
       //   이 RAC CheckboxGroup 에 넘긴다. necessityIndicator 는 Label 노드의 필수 표시, errorMessage 는
       //   FieldError 노드가 그린다 (presence.ts).

@@ -19,6 +19,7 @@
  * Markup is the document's node tree (types as RAC components, scalar props); styles are not code.
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
+import { catalogValidationRulesFit } from "../catalog/document/validationRules";
 import {
   CODE_VIEW_ITEM_TYPES,
   COLLECTION_TYPE_TABLE,
@@ -4038,6 +4039,12 @@ class Generator {
       this.tokenNames[name] = tokenId;
       this.import(CODE_VIEW_HELPERS_MODULE, "token");
       return `{token(${literal(name)})}`;
+    }
+    // S2 체크리스트 부록 D.3 — a field's validation rules: S2's `validate` function made from them
+    // (`validationRules([...])` — the rules as data, read back as they are).
+    if (prop === "validate" && catalogValidationRulesFit(value)) {
+      this.import(CODE_VIEW_HELPERS_MODULE, "validationRules");
+      return `{validationRules(${literal(value)})}`;
     }
     return `{${literal(value)}}`;
   }

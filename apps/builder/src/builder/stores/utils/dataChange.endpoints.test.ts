@@ -585,6 +585,60 @@ describe("define_endpoint — the response paths the Preview session's load read
     });
   });
 
+  it("S2 D.3 — errorsPath (a submit's field errors) rides the draft: set, kept by other edits, cleared by an empty value", async () => {
+    const { toEndpointDraft } = await import("./dataChange");
+    const set = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: toEndpointDraft(
+            endpoint({
+              responseMapping: { dataPath: "", errorsPath: "errors" },
+            }),
+          ),
+        },
+      ],
+      ctx(),
+    );
+    expect(set.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
+      dataPath: "",
+      errorsPath: "errors",
+    });
+    const other = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: toEndpointDraft({
+            ...set.apiEndpoints.get("getUsers")!,
+            path: "/people",
+          }),
+        },
+      ],
+      { projectId: "p", apiEndpoints: set.apiEndpoints },
+    );
+    expect(other.apiEndpoints.get("getUsers")!.responseMapping.errorsPath).toBe(
+      "errors",
+    );
+    const cleared = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: {
+            ...toEndpointDraft(other.apiEndpoints.get("getUsers")!),
+            errorsPath: "",
+          },
+        },
+      ],
+      { projectId: "p", apiEndpoints: other.apiEndpoints },
+    );
+    expect(cleared.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
+      dataPath: "",
+    });
+  });
+
   it("ADR-284 — totalPath and the query format ride the draft: set, kept by other edits, cleared by null, undone", async () => {
     const { toEndpointDraft } = await import("./dataChange");
     const set = reduceDataOps(

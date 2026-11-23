@@ -345,6 +345,7 @@ export type AuthoredValue =
   | StructuredValue
   | CalendarDuration
   | NumberFormatValue
+  | readonly import("./validationRules").CatalogValidationRule[]
   | PropWhen
   | PropVar
   | RichText;
@@ -382,7 +383,9 @@ export type ValueType =
   | "autoFocus"
   | "numberRange"
   // S2 · RAC `formatOptions` — `catalogNumberFormatFits` (사용자 결정 2026-10-12).
-  | "numberFormat";
+  | "numberFormat"
+  // S2 `validate` as condition rules — `catalogValidationRulesFit` (S2 체크리스트 부록 D.3 2단계).
+  | "validationRules";
 export type NumberRangeValue = CatalogNumberRange;
 /** Resolved prop value: a scalar, a structured value, a calendar duration or a number format. */
 export type PropValue =
@@ -393,6 +396,7 @@ export type PropValue =
   | CalendarDuration
   | NumberFormatValue
   | NumberRangeValue
+  | readonly import("./validationRules").CatalogValidationRule[]
   | PropWhen
   | PropVar
   | RichText;

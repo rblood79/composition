@@ -13,6 +13,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { VALIDATE_PROP } from "./validateProp";
 
 export const textFieldBinding: PrimitiveBinding = {
   source: {
@@ -170,6 +171,8 @@ export const textFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      // S2 `validate` as condition rules (부록 D.3 2단계).
+      validate: VALIDATE_PROP,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 길이/패턴 검증 + 포커스 —
       //   RAC TextField 공식 prop. `delegatedDom.tsx` `textfield` 가 RAC TextField 로 전달.
       maxLength: { kind: "number", label: "Max Length", section: "validation" },

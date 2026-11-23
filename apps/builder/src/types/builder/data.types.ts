@@ -205,6 +205,12 @@ export interface ResponseMapping {
    * `pagination.totalPath` is read when this is absent.
    */
   totalPath?: string;
+
+  /**
+   * S2 Form `validationErrors` — where a submit's response holds its field errors (each field
+   * `name` → a message or messages); the Preview session's `callEndpoint`.
+   */
+  errorsPath?: string;
 }
 
 /**

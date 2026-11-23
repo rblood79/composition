@@ -7,6 +7,7 @@ import {
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogNumberRangeFits } from "./numberRangeValue";
+import { catalogValidationRulesFit } from "./validationRules";
 import { catalogCalendarDurationFits, scalarFitsType } from "./valueType";
 import {
   resolveToken,
@@ -94,6 +95,7 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "date-list": "calendarValue",
   "auto-focus": "autoFocus",
   "number-range": "numberRange",
+  "validation-rules": "validationRules",
 };
 
 /** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
@@ -105,6 +107,7 @@ function propDefaultMatches(value: unknown, type: ValueType): boolean {
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "numberFormat") return catalogNumberFormatFits(value);
   if (type === "numberRange") return catalogNumberRangeFits(value);
+  if (type === "validationRules") return catalogValidationRulesFit(value);
   if (type === "racColor") return isRacColorString(value);
   if (type === "string[]")
     return (

@@ -1,5 +1,6 @@
 import {
   buildInteractionIndex,
+  catalogFinalOutcome,
   createElementHandlers,
   executeInteractionRule,
   type DispatchContext,
@@ -592,6 +593,24 @@ const TABLE_COLUMN_STATE_KEYS: readonly string[] = [
   ...TABLE_COLUMN_STATE_PROPS.Column,
 ];
 
+/**
+ * A refused submit's field errors (`EndpointSubmitError.validationErrors` — the endpoint's
+ * `errorsPath`): read by shape, so this module does not load the submit executor.
+ */
+function endpointValidationErrors(
+  error: unknown,
+): Record<string, readonly string[]> | undefined {
+  const errors =
+    error !== null && typeof error === "object"
+      ? (error as { validationErrors?: unknown }).validationErrors
+      : undefined;
+  return errors !== null &&
+    typeof errors === "object" &&
+    Object.keys(errors).length
+    ? (errors as Record<string, readonly string[]>)
+    : undefined;
+}
+
 export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private index: InteractionIndex = buildInteractionIndex([]);
   /** ADR-294 — the `property:<key>` rules by the instance occurrence that receives them. */
@@ -647,18 +666,38 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         };
       },
       updateElementProps: (id, patch) => this.setRuntimeProps(id, patch),
-      callEndpoint: (endpointId, body) => {
+      callEndpoint: (endpointId, body, elementId) => {
         const submit = options.submitEndpoint;
         if (!submit) return { ok: false, reason: "endpoint 제출 서비스 없음" };
-        submit(endpointId, body).catch((error: unknown) => {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          console.warn(
-            `[interactions] endpoint ${endpointId} 제출 실패 — ${message}`,
-          );
-          options.showToast(message, FAILURE_TOAST);
-        });
-        return { ok: true };
+        // S2 Form `validationErrors` (S2 체크리스트 부록 D.3 2단계): the response's field errors go
+        // on the Form that sent it (the rule's owner, or the nearest Form around it) — a success
+        // clears them. The Dos after it wait for the response and stop when it failed.
+        const form = elementId ? this.formOf(elementId) : undefined;
+        const settled = submit(endpointId, body).then(
+          () => {
+            if (form && this.overrideOf(form)?.validationErrors !== undefined)
+              this.setRuntimeProps(form, { validationErrors: {} });
+            return { ok: true };
+          },
+          (error: unknown) => {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            const fieldErrors = endpointValidationErrors(error);
+            if (form && fieldErrors) {
+              this.setRuntimeProps(form, { validationErrors: fieldErrors });
+              return {
+                ok: false,
+                reason: `endpoint ${endpointId} 입력 오류 — ${Object.keys(fieldErrors).join(", ")}`,
+              };
+            }
+            options.showToast(message, FAILURE_TOAST);
+            return {
+              ok: false,
+              reason: `endpoint ${endpointId} 제출 실패 — ${message}`,
+            };
+          },
+        );
+        return { ok: true, settled };
       },
       ...(options.append ? { append: options.append } : {}),
       ...(options.update ? { update: options.update } : {}),
@@ -992,6 +1031,13 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             ok: false,
             reason: `${rule.trigger}: ${outcome.reason ?? "failed"}`,
           };
+        // (A Do that settles later — `callEndpoint`: the rest of its list runs after it; that
+        //  failure has no caller waiting, so it is reported here.)
+        if (outcome.settled)
+          void catalogFinalOutcome(outcome).then((final) => {
+            if (!final.ok)
+              (this.options.report ?? warn)(rule, final.reason ?? "failed");
+          });
       }
     } finally {
       this.emitting.delete(running);
@@ -1400,6 +1446,18 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     condition: CatalogTableColumnFilter["condition"] | undefined,
   ): void {
     this.options.setTableColumnFilter?.(tableId, racKey, condition);
+  }
+  /** The Form a record's submit belongs to: itself, or the nearest Form around it. */
+  private formOf(id: string): string | undefined {
+    const root = this.options.root();
+    if (!root) return undefined;
+    for (
+      let record = root.domInputs.get(id);
+      record;
+      record = record.parentId ? root.domInputs.get(record.parentId) : undefined
+    )
+      if (catalogTypeName(root, record) === "Form") return record.id;
+    return undefined;
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
     // (A record is looked up only for a patch naming one of those props — ADR-287 R1's lookups.)
