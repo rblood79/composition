@@ -57,9 +57,14 @@ export type ComponentTraitFamily =
   | "tableItemHost"
   /**
    * RAC `renderEmptyState` 를 받는 컬렉션 — 직계 자식 IllustratedMessage 가 그 내용이고, 항목이
-   * 없을 때만 그려진다 (2026-10-23 사용자 결정 — `children` 열 밖의 유일한 직계 자식).
+   * 없을 때만 그려진다 (2026-10-23 사용자 결정 — `children` 열 밖의 직계 자식).
    */
-  | "emptyStateCollection";
+  | "emptyStateCollection"
+  /**
+   * S2 `renderActionBar` 를 받는 컬렉션 (CardView · TableView · TreeView) — 직계 자식 ActionBar 가 그
+   * 막대이고, 개수 · 지우기는 컬렉션의 선택이다 (S2 체크리스트 부록 D.3 2단계, 2026-11-23).
+   */
+  | "actionBarCollection";
 
 export interface ComponentTraits {
   readonly container?: ComponentContainerKind;
@@ -430,7 +435,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     // (S2 TableView `TableBody` `renderEmptyState` — 부록 D.3 2단계, 2026-11-23: the IllustratedMessage
     //   is the Table's child — the body's children are its rows (every table command reads them so);
     //   the DOM gives it to RAC's TableBody.)
-    families: ["emptyStateCollection"],
+    families: ["emptyStateCollection", "actionBarCollection"],
     children: ["TableHeader", "TableBody"],
   },
   TableHeader: {
@@ -451,7 +456,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   },
   Tree: {
     container: "collection",
-    families: ["emptyStateCollection"],
+    families: ["emptyStateCollection", "actionBarCollection"],
     children: ["TreeItem"],
   },
   // ADR-300: S2 SideNav = RAC NavigationTree — its items and sections are its collection; an item's
@@ -479,8 +484,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   //   (`@react-spectrum/s2/src/CardView.tsx`).
   CardView: {
     container: "collection",
-    // (S2 CardView `renderEmptyState` — 부록 D.3 2단계, 2026-11-23.)
-    families: ["emptyStateCollection"],
+    // (S2 CardView `renderEmptyState` · `renderActionBar` — 부록 D.3 2단계, 2026-11-23.)
+    families: ["emptyStateCollection", "actionBarCollection"],
     // ADR-314 Phase 4: S2 `SkeletonCollection` — the loading items after the cards.
     children: ["Card", "SkeletonCollection"],
   },

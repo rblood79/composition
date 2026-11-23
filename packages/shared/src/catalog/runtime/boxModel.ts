@@ -273,7 +273,11 @@ export function catalogBoxModel(
       (node.derivedProps?._tableSelectionPart === true
         ? CATALOG_SELECTION_PART_PADDING_END
         : (length(node.derivedProps?._toastPaddingRight) ?? paddingX)),
-    bottom: side("paddingBottom", paddingY),
+    // (S2 `renderActionBar`: while a CardView's · Table's · Tree's action bar shows, its bottom
+    //  padding is the bar's room — `catalogActionBarSpace`, S2's inline `paddingBottom`.)
+    bottom:
+      length(node.derivedProps?._actionBarSpace) ??
+      side("paddingBottom", paddingY),
     // (295 후속 C9: S2 Toast's start · end hold its icon · close — `catalogToastEdges`.
     //  ADR-315 Phase 5: a group's tree cell keeps its expand button's room after its start —
     //  `catalogTreeCellGlyph`.)

@@ -8,6 +8,7 @@ import {
 import { catalogInlineSizeContainment } from "./inlineSizeContainment";
 import { catalogPartConditionProps } from "../document/derivedVariantProps";
 import { catalogActionBarForeground } from "./actionBarForeground";
+import { catalogActionBarPlacement } from "./actionBarContainer";
 import { catalogTokenValue } from "../document/themedToken";
 import {
   catalogOverlayArrowLayout,
@@ -1917,6 +1918,11 @@ function styleOf(
     // (A standalone list's section header — the ListBox rule's sticky block, ADR-267; authored
     // insets win.)
     ...stickyInsets(node),
+    // (S2 `renderActionBar` — a CardView's · Table's · Tree's ActionBar floats over its bottom edge;
+    //  the DOM's same inline place, `CatalogActionBarHost`.)
+    ...(node.derivedProps?._actionBarInContainer === true
+      ? catalogActionBarPlacement(Number(node.derivedProps._actionBarBorder ?? 0))
+      : {}),
     // (2026-11-14: an ActionButton's count badge — over its icon's corner, the DOM's same inline place.)
     ...(catalogIsAuthoredPlaced(node)
       ? {}

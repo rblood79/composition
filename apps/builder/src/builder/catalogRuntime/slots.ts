@@ -19,6 +19,8 @@ import {
   templateDefinitionId,
 } from "../../../../../packages/shared/src/catalog/commands/context";
 import {
+  CATALOG_ACTION_BAR_COLLECTIONS,
+  CATALOG_ACTION_BAR_TYPE,
   CATALOG_EMPTY_STATE_COLLECTIONS,
   catalogEmptyStateType,
   catalogChildKind,
@@ -461,6 +463,11 @@ export function catalogSlotInsertOptions(
     // Its empty state (RAC `renderEmptyState`, 2026-10-23): an IllustratedMessage beside the items.
     if (CATALOG_EMPTY_STATE_COLLECTIONS.has(type)) {
       const option = ofType(catalogEmptyStateType(type));
+      if (option) candidates.push(option);
+    }
+    // Its action bar (S2 `renderActionBar` — CardView · Table · Tree, 부록 D.3 2단계 2026-11-23).
+    if (CATALOG_ACTION_BAR_COLLECTIONS.has(type)) {
+      const option = ofType(CATALOG_ACTION_BAR_TYPE);
       if (option) candidates.push(option);
     }
     // (A collection's nesting check keeps only item-rooted components; a group's nesting is open,

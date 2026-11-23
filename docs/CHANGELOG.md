@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [목록 선택 막대 — S2 renderActionBar (CardView · Table · Tree)] - 2026-11-23
+
+### Added
+
+- **CardView · Table · Tree 에 ActionBar 를 직계 자식으로 넣으면 그 목록의 선택 막대가 된다** (S2 `renderActionBar`, S2 체크리스트 부록 D.3 2단계):
+  - 넣는 법: Layers 「+」 · slot 넣기 목록에 ActionBar 가 나온다 (Table 은 Table 자리에), 나중에 넣은 항목은 막대 앞에 선다.
+  - 개수 · 지우기: 막대의 개수는 목록의 선택 수 (모두 고르면 「All selected」), 선택이 없으면 막대가 보이지 않는다. 지우기 버튼 · Escape 는 목록의 선택을 비우고 목록의 `onSelectionChange` 규칙이 실행된다. Design 패널은 막대의 「Selected item count」 칸을 목록이 정한다고 안내한다.
+  - 자리: 목록 아래쪽에 겹쳐 뜬다 — 좌우 · 아래 8 안, 최대 960 · 가운데 (S2 `isInContainer`). 막대가 보이는 동안 목록의 아래 여백이 막대 자리 (막대 높이 + 8 + 목록 가장자리 — CardView 는 S2 `minSpace`) 가 된다. Canvas · Preview · Publish 같은 자리.
+  - DOM 은 S2 처럼 목록과 막대를 감싸개 `div` 로 묶는다 (막대는 RAC GridList · Tree · Table 안에 들어갈 수 없다 — ARIA · focus). 감싸개가 상자의 크기 · 여백 · 자리를 갖고 목록이 그 안을 채운다. 막대는 아래에서 미끄러져 들어오고 나가며 (200ms), 나타날 때 「Actions available」 을 읽어 준다 (S2 intl — 한 · 일 · 중 포함).
+  - 위치: `packages/shared/src/catalog/runtime/{actionBarContainer.ts,actionBarHost.components.tsx,presence.ts,valueBindings.ts,boxModel.ts,compositionRoot.ts,delegatedDom.runtime.ts,domBinding.runtime.ts,ownerDecidedProps.ts}` · `catalog/nesting/nestingRules.ts` · `domain/componentTraits.ts` · `apps/builder/src/builder/catalogRuntime/slots.ts`
+
+### Fixed
+
+- **ActionBar 개수 글자가 Canvas 에서 개수를 바꿔도 그대로이던 것**:
+  - **Why**: 값 글자를 다시 계산할 소유자 목록이 RAC 값 키만 보고, ActionBar 의 개수 글자 (composition 값 키) 를 빠뜨렸다.
+
+### Tests
+
+- `s2D3ActionBar.test.tsx` 13 (3종 Canvas 자리 · 개수 · 여백 · Preview 감싸개 · 지우기 · 넣기 순서 · 패널), 원복 RED 17/17, live `apps/builder/scripts/s2-action-bar-live.mjs` 8/8.
+
 ## [목록 비활성 항목 — S2 disabledKeys 8종 · 데이터 필드] - 2026-11-23
 
 ### Added

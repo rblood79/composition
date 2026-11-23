@@ -82,6 +82,16 @@ import {
   type ReactNode,
 } from "react";
 import { CatalogToastShapeContext } from "./toastShapeContext";
+import {
+  catalogActionBarCollectionOf,
+  catalogActionBarSpace,
+  catalogLinkedActionBarOf,
+  catalogSelectionCountOf,
+} from "./actionBarContainer";
+import {
+  CatalogActionBarHost,
+  CatalogLinkedActionBar,
+} from "./actionBarHost.components";
 import { mergeProps } from "react-aria/mergeProps";
 import { CATALOG_BUTTON_GROUP_GAP } from "../document/manualBoxRules";
 
@@ -821,6 +831,63 @@ const controlled = (
     value,
     toOverride,
   );
+
+/** A record's DOM lookup · type name (the shared runtime functions' `get` · `typeOf`). */
+const domLookup = (input: DelegatedDomInput) => ({
+  get: (id: string) => input.root.domInputs.get(id),
+  typeOf: (entry: CatalogConsumerNode) => catalogTypeName(input.root, entry),
+});
+
+/**
+ * S2 `useActionBarContainer` — a collection's selection count in the DOM: its running Preview's
+ * selection (the record's runtime value), else the declared one.
+ */
+function catalogDomSelectionCount(
+  input: DelegatedDomInput,
+  collection: CatalogConsumerNode,
+): number | "all" {
+  const keys = catalogRuntimeStateOf(
+    input.root,
+    input.root.domInputs.get(collection.id) ?? collection,
+    input.runtimeProps?.(collection.id),
+    "selectedKeys",
+    input.runtimeProps,
+  );
+  if (keys === "all") return "all";
+  return catalogSelectionCountOf(
+    Array.isArray(keys) || keys instanceof Set ? [...keys].map(String) : [],
+  );
+}
+
+/**
+ * S2 `renderActionBar` (CardView · TableView · TreeView — 부록 D.3 2단계, 2026-11-23): a collection
+ * with an ActionBar child is drawn in S2's wrapper with its bar (`CatalogActionBarHost`) — `element`
+ * keeps its props (rule handlers reach the collection through it).
+ */
+export function catalogWithActionBar(
+  input: DelegatedDomInput,
+  host: ElementType,
+  props: Record<string, unknown>,
+  ...content: ReactNode[]
+): ReactElement {
+  const { get, typeOf } = domLookup(input);
+  const bar = catalogLinkedActionBarOf(input.node, get, typeOf);
+  if (!bar) return createElement(host, props, ...content);
+  const count = catalogDomSelectionCount(input, input.node);
+  return createElement(
+    CatalogActionBarHost,
+    {
+      ...props,
+      host,
+      actionBar: input.renderChild(bar.id),
+      actionBarSpace:
+        count === 0
+          ? undefined
+          : catalogActionBarSpace(typeOf(input.node), input.node.props),
+    },
+    ...content,
+  );
+}
 
 /**
  * A field an Autocomplete drives (its SearchField · TextField): RAC gives it the text through the
@@ -2194,7 +2261,51 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => createElement(TagListRun, { input }),
   },
   actionbar: {
+    // (A collection's action bar shows its selection — it renders again when that changes.)
+    watchesChildren: (node, root) => {
+      const parent = root.domInputs.get(node.parentId);
+      return parent &&
+        catalogActionBarCollectionOf(
+          node,
+          (id) => root.domInputs.get(id),
+          (entry) => catalogTypeName(root, entry),
+        )
+        ? [parent.id]
+        : [];
+    },
     render: (input) => {
+      const { get, typeOf } = domLookup(input);
+      const collection = catalogActionBarCollectionOf(input.node, get, typeOf);
+      if (collection) {
+        // S2 `renderActionBar`: its count is the collection's selection, its clear button empties it
+        //   (the collection's `onSelectionChange` — its rules run).
+        const count = catalogDomSelectionCount(input, collection);
+        const clear = () => {
+          input.setRuntimeProps?.(collection.id, { selectedKeys: [] });
+          input.handlersOf?.(collection.id)?.onSelectionChange?.(new Set());
+        };
+        return catalogStateFrame(
+          input.node.id,
+          input.node.id,
+          {
+            selectedCountText: catalogSelectionCountText(
+              count,
+              input.root.environmentLocale,
+            ),
+          },
+          createElement(
+            CatalogLinkedActionBar,
+            {
+              ...marker(input),
+              style: input.style,
+              count,
+              isEmphasized: input.node.props.isEmphasized === true,
+              onClearSelection: clear,
+            },
+            ...renderAll(input),
+          ),
+        );
+      }
       const rawCount =
         input.runtimeProps?.(input.node.id)?.selectedItemCount ??
         input.node.props.selectedItemCount ??
@@ -2628,7 +2739,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         treeItemElements(input, list);
       const treeSelected = runtimeState(input, "selectedKeys") as
         string[] | "all";
-      return createElement(
+      // (S2 TreeView `renderActionBar` — its ActionBar child, in S2's wrapper.)
+      return catalogWithActionBar(
+        input,
         Tree as ElementType,
         {
           ...marker(input),
@@ -3977,7 +4090,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ? input.renderChild(template!.id)
         : null;
       const grid = (count: number) =>
-        createElement(
+        // (S2 CardView `renderActionBar` — its ActionBar child, in S2's wrapper.)
+        catalogWithActionBar(
+          input,
           (waterfall ? CatalogWaterfallGrid : AriaGridList) as ElementType,
           {
             ...(waterfall ? { as: AriaGridList } : {}),

@@ -25,6 +25,7 @@ import {
   GROUP_REPEAT_ITEMS,
 } from "../catalog/document/collectionItems";
 import { catalogHasRowTemplate } from "../catalog/commands/rowTemplate";
+import { catalogIsLinkedActionBar } from "../catalog/nesting/nestingRules";
 import { isRichText } from "../catalog/document/textRuns";
 import type { RichText } from "../catalog/document/types";
 import { descendantPatchOf } from "../catalog/document/types";
@@ -3801,9 +3802,14 @@ class Generator {
       text
     )
       return undefined;
+    // (Not its empty state, nor a CardView's · Table's · Tree's ActionBar — S2 `renderActionBar`.)
     const items = children.filter((id) => {
       const child = this.doc.node(id);
-      return child && this.doc.typeOf(child) !== "IllustratedMessage";
+      return (
+        child &&
+        this.doc.typeOf(child) !== "IllustratedMessage" &&
+        !catalogIsLinkedActionBar(this.doc.typeOf(child), type)
+      );
     });
     if (items.length !== 1) return undefined;
     const item = this.doc.node(items[0]!);

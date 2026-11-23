@@ -6,6 +6,7 @@ import { colorSliderText } from "./colorControlGradient";
 import { RAC_VALUE_KEYS } from "../generated/racStateKeys";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogLabelNecessityText, catalogSliderRange } from "./presence";
+import { catalogActionBarCount } from "./actionBarContainer";
 
 /**
  * ADR-256 Decision 12 — a node's template binding to a value its RAC owner computes and passes its
@@ -301,6 +302,15 @@ export function catalogWithValues(
         linked: true,
         value: catalogLabelNecessityText(owner, get, typeOf, locale),
       };
+    // (An ActionBar's count — its collection's selection when it is one's — likewise.)
+    if (key === "selectedCountText")
+      return {
+        linked: true,
+        value: catalogSelectionCountText(
+          catalogActionBarCount(owner, get, typeOf),
+          locale,
+        ),
+      };
     return { linked: true, value: catalogRenderValue(owner, key, locale) };
   };
   return {
@@ -330,7 +340,9 @@ export function catalogValueDependents(
     owner.children.forEach(visit);
     return parts;
   }
-  if (!RAC_VALUE_KEYS[ownerType]) return [];
+  // (An ActionBar's count text — a composition value key, `COMPOSITION_VALUE_KEYS`: its count
+  //  changes with its own `selectedItemCount` and with its collection's selection.)
+  if (!RAC_VALUE_KEYS[ownerType] && ownerType !== "ActionBar") return [];
   const out: CatalogConsumerNode[] = [];
   const visit = (id: string) => {
     const node = get(id);

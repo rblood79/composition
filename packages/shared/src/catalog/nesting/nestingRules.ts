@@ -121,6 +121,27 @@ export function catalogIsEmptyState(
 }
 
 /**
+ * S2 `renderActionBar` (CardView · TableView · TreeView — S2 체크리스트 부록 D.3 2단계, 2026-11-23):
+ * 이 컬렉션들은 항목 밖에 ActionBar 하나를 직계 자식으로 받는다 — 그 막대의 개수 · 지우기는 컬렉션의
+ * 선택이고, 막대는 컬렉션 아래쪽에 겹쳐 뜬다 (S2 `useActionBarContainer`).
+ */
+export const CATALOG_ACTION_BAR_TYPE = "ActionBar";
+export const CATALOG_ACTION_BAR_COLLECTIONS: ReadonlySet<string> =
+  componentTypeSet("actionBarCollection");
+
+/** Whether a child of `parentType` is that collection's action bar (its direct ActionBar). */
+export function catalogIsLinkedActionBar(
+  childType: string,
+  parentType: string | null | undefined,
+): boolean {
+  return (
+    !!parentType &&
+    CATALOG_ACTION_BAR_COLLECTIONS.has(parentType) &&
+    childType === CATALOG_ACTION_BAR_TYPE
+  );
+}
+
+/**
  * 합성 부품이 뜻을 갖기 위해 조상 어딘가에 있어야 하는 소유자. 직계가 아니어도 된다
  * (Tab 은 TabList 안, TabList 는 Tabs 안 — 두 단계 모두 검사된다).
  */
@@ -544,7 +565,13 @@ export function resolveNestingViolation(
   if (parentType !== null && !isOpaque(parentType)) {
     const allowed = RAC_COLLECTION_CHILD_TYPES[parentType];
     const emptyState = catalogIsEmptyState(childType, parentType);
-    if (allowed && !allowed.includes(childType) && !emptyState) {
+    const actionBar = catalogIsLinkedActionBar(childType, parentType);
+    if (
+      allowed &&
+      !allowed.includes(childType) &&
+      !emptyState &&
+      !actionBar
+    ) {
       return {
         layer: "rac-composition",
         parentType,

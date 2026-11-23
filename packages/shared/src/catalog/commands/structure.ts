@@ -1,9 +1,11 @@
 import { componentTypeSet } from "../../domain/componentTraits";
 import {
+  CATALOG_ACTION_BAR_COLLECTIONS,
   CATALOG_EMPTY_STATE_COLLECTIONS,
   CATALOG_EMPTY_STATE_TYPE,
   catalogEmptyStateType,
   catalogIsEmptyState,
+  catalogIsLinkedActionBar,
 } from "../nesting/nestingRules";
 import {
   absoluteStart,
@@ -179,7 +181,22 @@ export function catalogAppendIndex(
       definitionTypeName(draft.reader, entry.definitionId) === emptyType
     );
   };
-  if (ids.some(emptyState)) return list.length;
+  // (A CardView's · Table's · Tree's ActionBar — S2 `renderActionBar`, 부록 D.3 2단계 — stays after
+  //  the items too.)
+  const actionBar = (id: string) => {
+    if (!parentType || !CATALOG_ACTION_BAR_COLLECTIONS.has(parentType))
+      return false;
+    const entry = draft.read(id);
+    return (
+      entry?.kind === "node" &&
+      catalogIsLinkedActionBar(
+        definitionTypeName(draft.reader, entry.definitionId),
+        parentType,
+      )
+    );
+  };
+  const trailing = (id: string) => emptyState(id) || actionBar(id);
+  if (ids.some(trailing)) return list.length;
   // S2 Tab (`Tabs.tsx` — `IconContext` `order: 0`, `TextContext` `order: 1`): an Icon put in a
   // Tab sits before its words — the engine and the DOM keep the child order (no CSS `order`), so
   // the place is the order (S2 마이그레이션 2026-11-18).
@@ -195,7 +212,7 @@ export function catalogAppendIndex(
       if (text >= 0) return text;
     }
   }
-  const at = list.findIndex(emptyState);
+  const at = list.findIndex(trailing);
   return at < 0 ? list.length : at;
 }
 

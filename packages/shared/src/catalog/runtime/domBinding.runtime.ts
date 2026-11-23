@@ -210,6 +210,13 @@ import {
 
 import { catalogIsEmptyState } from "../nesting/nestingRules";
 import {
+  catalogActionBarSpace,
+  catalogLinkedActionBarOf,
+  catalogSelectionCountOf,
+} from "./actionBarContainer";
+import { CatalogActionBarHost } from "./actionBarHost.components";
+import type { CatalogGroupKeys } from "./groupSelection";
+import {
   CATALOG_DATE_INPUT_NODE_FIELDS,
   CATALOG_DELEGATED_DOM,
   CATALOG_INPUT_NODE_FIELDS,
@@ -3604,12 +3611,25 @@ function ruleDom(
     }
   }
   // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
-  const ownChildren = ownEmptyStateId
-    ? children.filter(
-        (element) =>
-          (element.props as { id?: unknown }).id !== ownEmptyStateId,
-      )
-    : children;
+  // S2 TableView `renderActionBar` (부록 D.3 2단계, 2026-11-23): its ActionBar child is drawn beside
+  //   the table in S2's wrapper (`CatalogActionBarHost`), not inside it.
+  const tableActionBar =
+    lower === "table"
+      ? catalogLinkedActionBarOf(node, domGet, domType)
+      : undefined;
+  const childId = (element: ReactElement) =>
+    (element.props as { id?: unknown }).id;
+  const tableActionBarElement = tableActionBar
+    ? children.find((element) => childId(element) === tableActionBar.id)
+    : undefined;
+  const ownChildren =
+    ownEmptyStateId || tableActionBar
+      ? children.filter(
+          (element) =>
+            childId(element) !== ownEmptyStateId &&
+            childId(element) !== tableActionBar?.id,
+        )
+      : children;
   // ADR-259 Phase 1: S2 `hideLinkOutIcon` is an owner's context value (its items carry a copy) —
   // no RAC prop.
   delete rest.hideLinkOutIcon;
@@ -3832,14 +3852,30 @@ function ruleDom(
     node.props.width === undefined &&
     node.props.defaultWidth === undefined &&
     catalogTableSelectionColumn(node, domGet, domType);
+  const tableActionBarCount =
+    tableActionBarElement && tableSelected !== undefined
+      ? catalogSelectionCountOf(tableSelected as CatalogGroupKeys)
+      : 0;
   const element = createElement(
     lower === "link"
       ? // (In a Nav it is current at the Nav's route — `navRoute.components.tsx`.)
         CatalogNavLink
       : selectionColumn
         ? CatalogTableSelectionColumn
-        : Component,
+        : tableActionBarElement
+          ? CatalogActionBarHost
+          : Component,
     {
+      ...(tableActionBarElement
+        ? {
+            host: Component,
+            actionBar: tableActionBarElement,
+            actionBarSpace:
+              tableActionBarCount === 0
+                ? undefined
+                : catalogActionBarSpace("Table", node.props),
+          }
+        : {}),
       key:
         widthKey !== undefined
           ? `${ownKey}|${widthKey}`

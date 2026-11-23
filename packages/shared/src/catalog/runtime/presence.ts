@@ -60,6 +60,14 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { catalogToastIcon } from "../document/toastChrome";
+import {
+  catalogActionBarBorder,
+  catalogActionBarCollectionOf,
+  catalogActionBarCount,
+  catalogActionBarSpaceOf,
+  catalogLinkedActionBarOf,
+} from "./actionBarContainer";
+import { catalogValueDependents } from "./valueBindings";
 import { catalogButtonPending } from "../document/buttonPending";
 import { NumberFormatter } from "@internationalized/number";
 import { parseColor } from "react-stately";
@@ -1253,7 +1261,12 @@ export function catalogHiddenAtRest(
   typeOf: CatalogTypeOf,
   originBodyOpen?: CatalogOriginBodyOpen,
 ): boolean {
-  if (typeOf(node) === "ActionBar" && (node.props.selectedItemCount ?? 0) === 0)
+  // (A CardView's · Table's · Tree's ActionBar counts its collection's selection — S2
+  //  `renderActionBar`; `actionBarContainer.ts`.)
+  if (
+    typeOf(node) === "ActionBar" &&
+    catalogActionBarCount(node, get, typeOf) === 0
+  )
     return true;
   if (catalogSelectBoxDescriptionHidden(node, get, typeOf)) return true;
   // A glyph whose icon name has no path data (an origin's unfilled `{icon}` placeholder): the DOM
@@ -2925,6 +2938,24 @@ function fieldSubpartProps(
  * fill percentage from its own `value`/`minValue`/`maxValue` (`.fill` `width: pct%`) and the
  * track follows the owner's `isIndeterminate`/`variant`/`size`. Undefined for any other node.
  */
+/** The ActionBar derived values of a node (`catalogDerivedProps`) — undefined when none. */
+function catalogActionBarDerivedProps(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string | number | boolean> | undefined {
+  const collection = catalogActionBarCollectionOf(node, get, typeOf);
+  if (collection) {
+    const border = catalogActionBarBorder(collection);
+    return {
+      _actionBarInContainer: true,
+      ...(border > 0 ? { _actionBarBorder: border } : {}),
+    };
+  }
+  const space = catalogActionBarSpaceOf(node, get, typeOf);
+  return space === undefined ? undefined : { _actionBarSpace: space };
+}
+
 export function catalogDerivedProps(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -2933,13 +2964,12 @@ export function catalogDerivedProps(
   // (ADR-300 user decision 1: the shown page's route — a SideNav without `selectedRoute` marks it.)
   shownRoute?: CatalogSideNavShownRoute,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
-  const derived = derivedPropsBeforeSkeleton(
-    node,
-    get,
-    typeOf,
-    locale,
-    shownRoute,
-  );
+  const own = derivedPropsBeforeSkeleton(node, get, typeOf, locale, shownRoute);
+  // S2 `renderActionBar` (부록 D.3 2단계, 2026-11-23): a collection's ActionBar floats over its
+  //   bottom (`_actionBarInContainer` — its count is `catalogActionBarCount`); the collection
+  //   keeps room under its items while it shows (`_actionBarSpace` — its bottom padding).
+  const actionBar = catalogActionBarDerivedProps(node, get, typeOf);
+  const derived = actionBar ? { ...own, ...actionBar } : own;
   // ADR-314 Phase 2 — S2 `SkeletonContext`: a participant inside a loading Skeleton (the context not
   // cut between — `skeletonContext.ts`) draws its loading look (its rule's `isSkeleton` branch, Phase 3).
   // Phase 3 — below a loading wrapped participant (a Badge's words …) it is not drawn (S2
@@ -4365,8 +4395,13 @@ export function catalogDerivedPropsDependents(
   }
   // An item's label Text takes the item's color (`catalogItemLabels`): it follows the item's own
   // values and every item whose selection this record decides.
+  // (A CardView's · Table's · Tree's ActionBar counts its selection — and its count text.)
+  const linkedBar = catalogLinkedActionBarOf(owner, get, typeOf);
   const items = [
     ...comboInputs,
+    ...(linkedBar
+      ? [linkedBar, ...catalogValueDependents(linkedBar, get, typeOf)]
+      : []),
     ...catalogFieldLabelPartsDependents(owner, get, typeOf),
     ...(OVERLAY_OPEN_OWNERS.has(typeOf(owner))
       ? partChildrenOf(owner, get, typeOf).filter(

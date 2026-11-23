@@ -20,6 +20,7 @@ import {
   catalogTypeName,
 } from "./delegatedDom.runtime";
 import { catalogSelectionGroupOf } from "./groupSelection";
+import { catalogActionBarCollectionOf } from "./actionBarContainer";
 import { catalogPickerTimeFieldOf } from "./presence";
 
 const parentLookup =
@@ -92,6 +93,8 @@ export const CATALOG_OWNER_DECIDED_TYPES: ReadonlySet<string> = new Set([
   "Calendar",
   "RangeCalendar",
   "TimeField",
+  // (S2 `renderActionBar`: a CardView's · Table's · Tree's ActionBar counts its selection.)
+  "ActionBar",
   ...CATALOG_OPEN_BODY_TYPES,
 ]);
 
@@ -170,6 +173,16 @@ export function catalogOwnerDecidedProps(
       (record) => catalogTypeName(root, record),
     );
     if (selectionGroup) add(selectionGroup, ["isSelected"]);
+  }
+  // S2 `renderActionBar` (부록 D.3 2단계, 2026-11-23) — a collection's ActionBar: its count is the
+  //   collection's selection (S2's `ActionBarContext`), not a value of its own.
+  if (type === "ActionBar") {
+    const collection = catalogActionBarCollectionOf(
+      node,
+      (id) => root.domInputs.get(id),
+      (record) => catalogTypeName(root, record),
+    );
+    if (collection) add(collection, ["selectedItemCount"]);
   }
   if (CATALOG_OPEN_BODY_TYPES.has(type)) {
     const host = catalogOpenHostOf(root, node.id, (record) =>
