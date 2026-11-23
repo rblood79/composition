@@ -33,8 +33,10 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
   });
 
   it("Pen leaf · DOM void 는 자식이 없다", () => {
-    for (const type of ["Text", "Icon", "Image", "Input", "Separator"])
+    for (const type of ["Text", "Icon", "Input", "Separator"])
       expect(catalogChildKind(type), type).toEqual({ kind: "leaf" });
+    // (Image — S2 `renderError`, 2026-11-23: its nodes are what it shows without a picture.)
+    expect(catalogChildKind("Image")).toEqual({ kind: "free" });
   });
 
   it("전환된 family 는 RAC 의 종류다 (ADR-256 Phase 11 — 미전환 제한 표 삭제)", () => {

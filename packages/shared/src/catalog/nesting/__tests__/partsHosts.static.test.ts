@@ -27,8 +27,10 @@ describe("catalogPartsHostTypes — 원본 루트 (slot 아님 · 부품 있음)
       expect(catalogChildKind(type).kind, type).toBe("items");
     for (const type of ["ListBoxItem", "MenuItem", "GridListItem", "Tag", "Tab", "Breadcrumb", "SegmentedControlItem", "SelectBox"])
       expect(catalogChildKind(type).kind, type).toBe("free");
-    for (const type of ["Badge", "StatusLight", "Link", "Avatar", "Image"])
+    for (const type of ["Badge", "StatusLight", "Link", "Avatar"])
       expect(catalogChildKind(type).kind, type).toBe("leaf");
+    // (Image — S2 `renderError`, 2026-11-23: its nodes are its error content.)
+    expect(catalogChildKind("Image").kind).toBe("free");
   });
 
   it("TextField 의 부품 = 원본 루트 자식 + 필수 부품 + 감싸개", () => {

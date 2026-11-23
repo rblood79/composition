@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Image — S2 로딩 · 나타남 · 오류 대체 내용 · img 속성] - 2026-11-23
+
+### Added
+
+- **Image 안에 노드를 넣으면 그림이 없을 때 그것을 보인다 (S2 `renderError`)** — 사용자 결정 2026-11-23 「오류 대체 내용」. Image 가 자식을 받는다 (`DOM_LEAF_TYPES` 에서 뺌). source 가 있으면 숨고 없으면 보인다 (Canvas · DOM 같은 판정 `catalogImageFallbackHidden` — src 편집 때 다시 판정), DOM 은 받다가 오류가 나도 보인다 (Canvas 는 모르는 런타임 상태). 넣은 노드가 없으면 S2 처럼 `img` 그대로 (투명).
+- **Image 의 S2 img 속성 7** — `crossOrigin` · `decoding` · `fetchPriority` · `loading` · `referrerPolicy` · 고유 `width` · `height` (사용자 결정 「속성 · 런타임」). DOM `img` 가 받고, Design 패널에는 내지 않는다 (11-11 속성 감사 — 코드 보기 · 규칙 · AI 가 쓴다).
+
+### Changed
+
+- **Image 의 Preview · Publish 로딩 = S2** — 받는 동안 상자에 Skeleton 반짝임 (`data-skeleton-look="box"` — loading Skeleton 과 같은 모양 · 움직임), 받으면 `img` 가 보인다 (200ms 넘게 걸렸으면 500ms 동안 서서히 — S2 `imgStyles`). source 가 없는 빈 Image 는 반짝이지 않는다 (Card 미리보기 자리). 위치: 새 `catalog/runtime/imageBox.components.tsx` (`CatalogImageBox`) · `domBinding.runtime.ts` · `presence.ts` · `nesting/nestingRules.ts` · `document/itemLinks.ts`.
+  - 확인: 테스트 `catalogImageBox` 3 (로딩 → 나타남 · 오류 → 넣은 노드 · source 없음) · `s2ImageFallback` 2 (자식 허용 · Canvas 숨김 / 보임 / 다시 보임), 원복 RED (presence · nesting → 2 실패), S2 oracle (`adr256CardS2` — S2 mount 대조) 통과. live `apps/builder/scripts/s2-image-live.mjs` 5/5 — Canvas B (source 있음) 의 Text 숨김 · C (없음) 보임, Design 패널에 img 속성 칸 없음, Publish A 그림 (가운데 픽셀 255,0,0) · `loading="lazy"` · `fetchpriority="high"` · 4×4, B (받을 수 없는 URL) · C 「no picture」.
+  - 하지 않은 것 (사용자 결정 2026-11-23): `src` 의 조건부 source 목록 (`media` · `type` · `colorScheme`) · `ImageCoordinator` (`group`).
+
 ## [FileUpload — 비활성 전달 · 런타임 목록 행 · 썸네일 · 오류는 S2 InlineAlert] - 2026-11-23
 
 ### Fixed

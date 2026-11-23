@@ -62,6 +62,84 @@ export const CATALOG_LINK_OUT_OWNERS: Readonly<Record<string, string>> = {
   MenuItem: "Menu",
 };
 
+/** S2 `Image` `img` attributes (`Image.tsx` `ImageProps`) — `editorHidden`, read by `imageElementProps`. */
+export const IMAGE_ELEMENT_PROP_CONTRACTS: Readonly<
+  Record<string, PropContract>
+> = {
+  crossOrigin: {
+    kind: "enum",
+    label: "Cross origin",
+    section: "content",
+    editorHidden: true,
+    options: [
+      { value: "anonymous", label: "Anonymous" },
+      { value: "use-credentials", label: "Use credentials" },
+    ],
+  },
+  decoding: {
+    kind: "enum",
+    label: "Decoding",
+    section: "content",
+    editorHidden: true,
+    options: [
+      { value: "async", label: "Async" },
+      { value: "auto", label: "Auto" },
+      { value: "sync", label: "Sync" },
+    ],
+  },
+  fetchPriority: {
+    kind: "enum",
+    label: "Fetch priority",
+    section: "content",
+    editorHidden: true,
+    options: [
+      { value: "high", label: "High" },
+      { value: "low", label: "Low" },
+      { value: "auto", label: "Auto" },
+    ],
+  },
+  loading: {
+    kind: "enum",
+    label: "Loading",
+    section: "content",
+    editorHidden: true,
+    options: [
+      { value: "eager", label: "Eager" },
+      { value: "lazy", label: "Lazy" },
+    ],
+  },
+  referrerPolicy: {
+    kind: "enum",
+    label: "Referrer policy",
+    section: "content",
+    editorHidden: true,
+    options: [
+      "no-referrer",
+      "no-referrer-when-downgrade",
+      "origin",
+      "origin-when-cross-origin",
+      "same-origin",
+      "strict-origin",
+      "strict-origin-when-cross-origin",
+      "unsafe-url",
+    ].map((value) => ({ value, label: value })),
+  },
+  width: {
+    kind: "number",
+    label: "Intrinsic width",
+    section: "content",
+    editorHidden: true,
+    min: 0,
+  },
+  height: {
+    kind: "number",
+    label: "Intrinsic height",
+    section: "content",
+    editorHidden: true,
+    min: 0,
+  },
+};
+
 /**
  * Props a rule-only type (no primitive binding) accepts and edits: a MenuItem is RAC's collection
  * item drawn from its rule, so its link contracts live here (the Design panel and the definition's
@@ -99,6 +177,11 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
     slot: RAC_SLOT_PROP,
     src: { kind: "string", label: "Image URL", section: "content" },
     alt: { kind: "string", label: "Alt Text", section: "content" },
+    // S2 `ImageProps` — the `img`'s fetch attributes and intrinsic size (부록 D.2, 사용자 결정 2026-11-23).
+    // Developer HTML attributes: not in the Design panel (사용자 결정 2026-11-11 속성 감사) — the code view ·
+    // a rule's Do · AI write them; the DOM `img` takes them, the Canvas box is its layout's (the intrinsic
+    // size only reserves the `img`'s ratio before it loads).
+    ...IMAGE_ELEMENT_PROP_CONTRACTS,
   },
 };
 

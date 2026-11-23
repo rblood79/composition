@@ -187,6 +187,7 @@ Pagination 2단계 live 확인 (같은 프로젝트): Canvas 202×32 = Preview D
 - [x] ActionButton form · focus prop 10개 (`editorHidden`) + Type · Auto focus 패널 숨김 — `9ef5e0669`
 - [x] Text 기본 width · height fit-content — `9ef5e0669`
 - [x] Pagination width · height fit-content — `9ef5e0669`
+- [x] Image (부록 D.2) — 오류 대체 내용 (S2 `renderError` — Image 안 노드) · S2 로딩 (Skeleton box) · 나타남 (500ms) · img 속성 7 (`editorHidden`). source 목록 · `ImageCoordinator` 는 사용자 결정으로 하지 않음. live `apps/builder/scripts/s2-image-live.mjs` 5/5 (2026-11-23)
 - [x] FileUpload — 비활성 전달 (DropZone · FileTrigger Button 파생 `isDisabled`, 상자 opacity 0.38 삭제) · DOM DropZone 을 `DropZoneIntake` 로 (Publish 에서 떨어뜨린 파일이 큐에 들어가지 않던 것) · 런타임 행 (썸네일 40 + S2 ProgressBar) · 오류 = S2 InlineAlert negative + 문장 (en · ko · ja). live `apps/builder/scripts/s2-fileupload-live.mjs` 5/5 (2026-11-23)
 - [x] Pagination 이전 · 다음 아이콘 버튼의 이름 — `ff8e90a53` 의 Controls 「Icons only」 (글자 = `aria-label`, 이름 정본 = 버튼의 Label 칸). live `apps/builder/scripts/s2-pagination-icons-live.mjs` 3/3 (2026-11-23): Icons only + 이전 버튼 Label 「이전」 — Canvas 보이는 Text 0 · 아이콘 1, Publish 보이는 글자 없음 · 이름 「이전」 · 「Next」, page error 0
 - [x] Illustration strokeWidth 기본 1 — `9ef5e0669`
@@ -468,9 +469,10 @@ binding과 `RULE_TYPE_PROP_CONTRACTS`를 함께 확인했다. 아래는 **편집
 ### D.2 Image — “대조 불가”에서 기능별 잔여로 정정
 
 - [x] `src`·`alt`·`slot`: rule-only 계약과 문서 정의에서 확인. primitive binding 파일이 없다는 이유로 전부 미구현으로 판정하지 않는다.
-- [ ] `src`의 조건부 source 배열 (`media`·`type`·`colorScheme` 등): 현재 계약은 string.
-- [ ] 오류 fallback `renderError`, 로딩 skeleton, `ImageCoordinator`/`group`: 저작 조립 모델과 runtime 대응 확인.
-- [ ] `crossOrigin`·`decoding`·`fetchPriority`·`loading`·`referrerPolicy`, intrinsic `width`·`height`: binding/rule-only 계약에는 없음. Canvas layout 크기와 HTML intrinsic 치수를 구분해 확인.
+- [—] `src`의 조건부 source 배열 (`media`·`type`·`colorScheme` 등): 하지 않음 (사용자 결정 2026-11-23 — 범위 질문에서 고르지 않음). 계약은 string 그대로.
+- [x] 오류 fallback `renderError` · 로딩 skeleton (2026-11-23): Image 안의 노드 = 오류 대체 내용 (source 없으면 Canvas · DOM 모두 보임, DOM 은 로드 오류에도 — `catalogImageFallbackHidden` · `CatalogImageBox`), 받는 동안 Skeleton box 모양 · 받으면 S2 나타남 (200ms 넘으면 500ms). live `s2-image-live` 5/5 (§6).
+- [—] `ImageCoordinator`/`group`: 하지 않음 (사용자 결정 2026-11-23).
+- [x] `crossOrigin`·`decoding`·`fetchPriority`·`loading`·`referrerPolicy`, intrinsic `width`·`height` (2026-11-23): Image 계약에 `editorHidden` 으로 (11-11 속성 감사), DOM `img` 에 그대로. Canvas 상자는 레이아웃 크기 그대로 — intrinsic 치수는 `img` 속성일 뿐 (S2 도 `img` 가 상자를 채운다).
 
 ### D.3 공통 가이드·상태·동작의 완료 조건
 

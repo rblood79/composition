@@ -162,8 +162,10 @@ describe("nestingRules — 층 2 RAC 합성", () => {
 
   it("DOM void/self-contained 타입은 자식을 가질 수 없다", () => {
     expect(
-      resolveNestingViolation({ parentType: "Image", childType: "Text" }),
+      resolveNestingViolation({ parentType: "Badge", childType: "Text" }),
     ).toMatchObject({ layer: "html-content", leafParent: true });
+    // (Image takes nodes — its error content, S2 `renderError` 2026-11-23.)
+    expect(canNest("Image", "Text")).toBe(true);
     expect(canNest("Input", "Text")).toBe(false);
     expect(canNest("Chart", "frame")).toBe(false);
     expect(canNest("Avatar", "Icon")).toBe(false);

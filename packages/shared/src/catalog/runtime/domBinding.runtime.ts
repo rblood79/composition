@@ -105,6 +105,7 @@ import { Button } from "../../components/Button";
 import { ContextualHelpButton } from "../../components/ContextualHelp";
 import { InlineAlertIcon } from "../../components/InlineAlertIcon";
 import { catalogInlineAlertIcon } from "../document/inlineAlertIcon";
+import { CatalogImageBox } from "./imageBox.components";
 
 import { Group } from "../../components/Group";
 
@@ -145,6 +146,7 @@ import {
   catalogItemLinkProps,
   catalogLinkOutGlyph,
   catalogLinkOutPaddingRight,
+  IMAGE_ELEMENT_PROP_CONTRACTS,
 } from "../document/itemLinks";
 
 import { catalogTokenValue } from "../document/themedToken";
@@ -3170,16 +3172,23 @@ function imageInS2CardPreview(
  * text = decorative). The picture covers the box (S2 Card's image · `Avatar.tsx`), as the Canvas
  * image shape fits it (`ruleShapes` — cover).
  */
-function imageElementProps(props: Readonly<Record<string, unknown>>): {
-  src?: string;
-  alt: string;
-} {
+function imageElementProps(
+  props: Readonly<Record<string, unknown>>,
+): Record<string, string | number> & { alt: string; src?: string } {
   // ADR-235: an uploaded `asset:` ref resolves to its URL (`Avatar.tsx`); not ready yet = no src.
   const src =
     typeof props.src === "string" && props.src !== ""
       ? (resolveAssetUrl(props.src) ?? undefined)
       : undefined;
+  // (S2 `Image`'s `img` attributes — 부록 D.2: the fetch hints and the intrinsic size, as authored.)
+  const attributes: Record<string, string | number> = {};
+  for (const key of Object.keys(IMAGE_ELEMENT_PROP_CONTRACTS)) {
+    const value = props[key];
+    if (typeof value === "string" ? value !== "" : typeof value === "number")
+      attributes[key] = value as string | number;
+  }
   return {
+    ...attributes,
     ...(src ? { src } : {}),
     alt: typeof props.alt === "string" ? props.alt : "",
   };
@@ -3684,12 +3693,15 @@ function ruleDom(
       type === "InlineAlert" ? catalogInlineAlertIcon(node.props) : undefined;
     const alertPadding = alertIcon ? catalogBoxModel(node).padding : undefined;
     return createElement(
-      "div",
+      (type === "Image" ? CatalogImageBox : "div") as ElementType,
       {
         key: node.id,
         "data-catalog-id": node.id,
         slot: catalogDomSlot(node),
         className: `react-aria-${isBodyType(type) ? "Body" : type}`,
+        ...(type === "Image"
+          ? { imgProps: imageElementProps(node.props) }
+          : {}),
         ...dataAttrs,
         // The type's fixed ARIA (InlineAlert `role="alert"` — a plain box carries the D1 role).
         ...binding?.staticAttrs,
@@ -3715,22 +3727,9 @@ function ruleDom(
           ]
         : []),
       // The Image is S2's: a box around its `img` (`@react-spectrum/s2` 1.8.2 `Image.tsx`) — the `img`
-      // fills the box (S2 `imgStyles`, cover); with no source it paints nothing, the box keeps the
-      // placeholder fill.
-      ...(type === "Image"
-        ? [
-            createElement("img", {
-              key: "img",
-              ...imageElementProps(node.props),
-              style: {
-                display: "block",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              },
-            }),
-          ]
-        : content),
+      // fills the box (S2 `imgStyles`, cover); its nodes are what it shows without a picture (S2
+      // `renderError` — `CatalogImageBox` by load state). The box keeps the placeholder fill.
+      ...content,
     );
   }
   if (MARKER_WRAPPED_RULE_TYPES.has(type))
@@ -5437,11 +5436,8 @@ export function renderNode(
   if (
     partParent &&
     (hintHost === "TagGroup" || hintHost === "TokenField") &&
-    catalogFieldHintShown(
-      catalogTypeName(root, node),
-      partParent,
-      hintHost,
-    ) === false
+    catalogFieldHintShown(catalogTypeName(root, node), partParent, hintHost) ===
+      false
   )
     return null;
   // (A NumberField's stepper Buttons while `hideStepper` — the Canvas's predicate, S2.)

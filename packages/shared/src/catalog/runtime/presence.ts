@@ -1264,6 +1264,7 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogActionButtonPartAbsent(node, get, typeOf)) return true;
+  if (catalogImageFallbackHidden(node, get, typeOf)) return true;
   // 닫힌 overlay의 화살표만 숨긴다. 열린 portal에서는 부모 배치가 좌표를 제공한다.
   if (node.bindingId === "overlayarrow") {
     const parent = get(node.parentId);
@@ -3602,6 +3603,23 @@ function fileUploadInputs(
   return out;
 }
 
+/**
+ * S2 `Image` `renderError` (S2 체크리스트 부록 D.2, 사용자 결정 2026-11-23 「오류 대체 내용」): the nodes
+ * an author puts in an Image are what it shows when it has no picture. With a source they rest
+ * hidden (the picture covers the box); without one they show — on the Canvas and in the DOM, where a
+ * source that fails to load shows them too (`CatalogImageBox` — runtime only, the Canvas cannot know).
+ */
+export function catalogImageFallbackHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const image = get(node.parentId);
+  if (!image || typeOf(image) !== "Image") return false;
+  const src = image.props.src;
+  return typeof src === "string" && src !== "";
+}
+
 /** The nearest ButtonGroup above a Button (through any element — S2's `ButtonContext`). */
 export function catalogButtonGroupOf(
   node: CatalogConsumerNode,
@@ -5555,6 +5573,8 @@ export function catalogStateDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // (An Image's `src` shows or hides its error content — `catalogImageFallbackHidden`.)
+  if (typeOf(node) === "Image") return childrenOf(node, get);
   // Trigger의 prop만 바뀌어도 overlay의 hidden과 레이아웃을 증분 갱신한다.
   const out: CatalogConsumerNode[] = OVERLAY_OPEN_OWNERS.has(typeOf(node))
     ? partChildrenOf(node, get, typeOf).filter(

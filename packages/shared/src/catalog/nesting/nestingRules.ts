@@ -317,7 +317,7 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "Badge",
   "StatusLight",
   "Link",
-  "Image",
+  // (Image — S2 `renderError`, 2026-11-23: the nodes in it are its error content — `catalogImageFallbackHidden`.)
   "Avatar",
   "Chart",
   "ProgressCircle",
