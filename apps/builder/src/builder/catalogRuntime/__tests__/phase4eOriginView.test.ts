@@ -1249,29 +1249,34 @@ describe("ADR-248 4e library origin view", () => {
       slotMarks.filter((mark) =>
         inputOf(record).children.includes(mark.identity),
       );
+    // (ADR-310 Phase 2 `02eb776c5`: the Tabs' items are nodes in its root slot — the origin root is
+    //   the slot, hatched once, its TabList · TabPanels laid out but not drawn, like a ListBox's.)
     const tabsOrigin = recordOf(originSampleId(lib("tabs")));
-    expect(
-      marksUnder(tabsOrigin).map((mark) => [mark.empty, mark.role]),
-    ).toEqual([
-      [true, "origin"],
+    const tabsMarks = slotMarks.filter((mark) => mark.identity === tabsOrigin);
+    expect(tabsMarks.map((mark) => [mark.empty, mark.role])).toEqual([
       [true, "origin"],
     ]);
     expect(
-      marksUnder(tabsOrigin).every(
-        (mark) => mark.box.width > 0 && mark.box.height > 0,
-      ),
+      tabsMarks.every((mark) => mark.box.width > 0 && mark.box.height > 0),
     ).toBe(true);
+    expect(
+      inputOf(tabsOrigin).children.map(
+        (child) => inputOf(child).visual.opacity,
+      ),
+    ).toEqual(inputOf(tabsOrigin).children.map(() => 0));
     // A slot that has a box is hatched at that box at every zoom (a zoomed-out Components page
     // must not grow it over the row below); only one of no height gets the visible band, which
     // never exceeds 48 scene px.
-    for (const mark of marksUnder(tabsOrigin))
+    for (const mark of tabsMarks)
       for (const zoom of [0.1, 0.25, 1, 4])
         expect(catalogSlotBand(mark.box.height, zoom)).toBe(mark.box.height);
     expect([0.25, 1, 4].map((zoom) => catalogSlotBand(0, zoom))).toEqual([
       48, 48, 12,
     ]);
     const tableMarks = marksUnder(recordOf(originSampleId(lib("table"))));
+    // (ADR-315 Phase 5 `e266201f6`: + the TableFooter slot.)
     expect(tableMarks.map((mark) => [mark.empty, mark.role])).toEqual([
+      [true, "origin"],
       [true, "origin"],
       [true, "origin"],
     ]);

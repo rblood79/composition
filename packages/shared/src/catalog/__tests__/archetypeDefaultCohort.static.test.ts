@@ -17,6 +17,11 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  *   flex 상자는 `structure.containerStyles` (display flex · align-items center) 가 두 consumer 에 같이 준다.
  *   (`layout` 삭제 사유는 커밋에 없다.) 상자 기하가 명시돼 있어 중립 base 로 떨어지지 않는다 — 위 「containerStyles 만」 과
  *   같은 부류.
+ *
+ * Tabs · TabList · TabPanel · SelectionIndicator (7f76a6ee8, 2026-11-14 — S2 동적 Tabs 정렬): Tabs · TabList 의
+ *   `layout: "flex-column" · "flex-row"` 와 TabPanel 의 `collection` 을 걷고 방향 · 상자를 `structure.containerStyles`
+ *   (display flex · block) 로 옮겼다 — 위 ActionButtonGroup 과 같은 부류. SelectionIndicator (S2 Tabs 의 선택 막대 —
+ *   RAC `SelectionIndicator`) 는 중립 block 이 의도이고 자리 · 이동은 `TabsIndicator.css` 의 위치 선언이 준다.
  */
 const PINNED_DEFAULT_WITHOUT_LAYOUT = [
   "ActionButtonGroup",
@@ -28,7 +33,11 @@ const PINNED_DEFAULT_WITHOUT_LAYOUT = [
   "Disclosure",
   "GridListItem",
   "Pagination",
+  "SelectionIndicator",
   "Tab",
+  "TabList",
+  "TabPanel",
+  "Tabs",
   "ToggleButtonGroup",
   "Toolbar",
 ] as const;
@@ -64,12 +73,15 @@ describe("ADR-223 G4 — archetype 미지정 cohort ratchet", () => {
       ?.rootSelectors as RootSelectors | undefined;
     const tab = COMPONENT_RULES_TABLE.Tab.structure?.composition
       ?.rootSelectors as RootSelectors | undefined;
-    // (ADR-297 Phase 3b: the cursor is the state tree's — pointer at rest, not-allowed when disabled)
-    for (const key of ["Card", "Tab"])
-      expect(
-        COMPONENT_RULES_TABLE[key].structure?.stateStyles?.cursor,
-        key,
-      ).toEqual({ default: "pointer", isDisabled: "not-allowed" });
+    // (ADR-297 Phase 3b: the cursor is the state tree's — pointer at rest, not-allowed when disabled.
+    //   Tab 은 S2 `tab` style 의 `cursor: 'default'` — 7f76a6ee8 S2 Tabs 정렬.)
+    expect(COMPONENT_RULES_TABLE.Card.structure?.stateStyles?.cursor).toEqual({
+      default: "pointer",
+      isDisabled: "not-allowed",
+    });
+    expect(COMPONENT_RULES_TABLE.Tab.structure?.stateStyles?.cursor).toEqual({
+      default: "default",
+    });
     expect(card?.["&"]?.styles).toMatchObject({ "text-decoration": "none" });
     expect(tab?.["&"]?.styles).toMatchObject({ "user-select": "none" });
     for (const key of ["Card", "Tab", "Pagination", "Toolbar"]) {

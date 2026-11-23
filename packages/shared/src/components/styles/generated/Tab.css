@@ -32,11 +32,31 @@
 }
 
 .react-aria-Tab:where([data-hovered]) {
-  color: var(--neutral-content-hover);
+  color: var(--fg);
+}
+
+.react-aria-Tab:where([data-focus-visible]) {
+  color: var(--fg);
+}
+
+.react-aria-Tab:where([data-pressed]) {
+  color: var(--fg);
 }
 
 .react-aria-Tab:where([data-selected]) {
   color: var(--fg);
+}
+
+.react-aria-Tab:where([data-selected][data-hovered]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Tab:where([data-selected][data-focus-visible]) {
+  color: var(--neutral-content-hover);
+}
+
+.react-aria-Tab:where([data-selected][data-pressed]) {
+  color: var(--neutral-content-hover);
 }
 
 .react-aria-Tab:where([data-disabled]) {

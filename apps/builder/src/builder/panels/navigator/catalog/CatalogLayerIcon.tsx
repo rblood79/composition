@@ -1,6 +1,7 @@
-import { Component, Keyboard, RectangleEllipsis } from "lucide-react";
+import { Keyboard, RectangleEllipsis } from "lucide-react";
 import { getPanelMeta, getReusableEntry } from "@composition/shared";
 import { getChartDescriptor } from "@composition/rendering";
+import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
 import { useCatalogPropSource } from "../../../catalogRuntime/react";
 import { getPaletteItems, ICON_MAP } from "../../components/paletteItems";
@@ -23,7 +24,7 @@ export function layerComponentIcon(node: CatalogLayerNode) {
   if (!node.role) return undefined;
   const panel =
     getReusableEntry(node.typeName)?.panel ?? getPanelMeta(node.typeName);
-  return (panel && ICON_MAP[panel.icon]) ?? Component;
+  return (panel && ICON_MAP[panel.icon]) ?? ACTION_ICONS.component;
 }
 
 type NodeGlyph =

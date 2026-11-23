@@ -12,6 +12,7 @@ import type {
   TemplateId,
 } from "../../document/types";
 import { applyCatalogTransaction } from "../../transactions/transaction";
+import { CATALOG_COLUMN_PLACE_PROP } from "../../../collections/resolveCollectionItems";
 import { readPropSource } from "../fieldSource";
 import {
   childPositions,
@@ -108,6 +109,8 @@ describe("ADR-248 Phase 4c prop sources", () => {
       for (const [key, value] of Object.entries(record.props)) {
         if (!keep(key)) continue;
         if (key === "size" && ownerSized.has(identity(record))) continue;
+        // (ADR-315 Phase 4: a Column's place among its header — its Table's column projection writes it.)
+        if (key === CATALOG_COLUMN_PLACE_PROP) continue;
         // (A value its Table carries to it — `density` · `overflowMode`, no editor on the part.)
         const typeName = library.definitions.get(
           record.definitionId as never,
@@ -115,7 +118,12 @@ describe("ADR-248 Phase 4c prop sources", () => {
         if (
           typeName &&
           ((key === "density" && CATALOG_DENSITY_PROPAGATION_OWNER[typeName]) ||
-            (key === "overflowMode" && CATALOG_OVERFLOW_MODE_OWNERS[typeName]) ||
+            // (7f76a6ee8 S2 Tabs: a Tabs' orientation · labelBehavior reach its TabList · Tab · TabPanel the
+            //   same way — `applyOwnerDensity`.)
+            ((key === "orientation" || key === "labelBehavior") &&
+              CATALOG_DENSITY_PROPAGATION_OWNER[typeName] === "Tabs") ||
+            (key === "overflowMode" &&
+              CATALOG_OVERFLOW_MODE_OWNERS[typeName]) ||
             // (ADR-259 Phase 3: a ContextualHelp's glyph is its `variant`'s — S2 has no other.)
             (key === "iconName" &&
               typeName === "Icon" &&
@@ -293,8 +301,9 @@ describe("ADR-248 Phase 4c prop sources", () => {
     const drawn = (
       nodes: readonly ResolvedCatalogNode[],
     ): ResolvedCatalogNode | undefined =>
-      nodes.find((item) => item.sourceId === "lib:template:component-popover__overlay") ??
-      nodes.map((item) => drawn(item.children)).find(Boolean);
+      nodes.find(
+        (item) => item.sourceId === "lib:template:component-popover__overlay",
+      ) ?? nodes.map((item) => drawn(item.children)).find(Boolean);
     expect(drawn(resolved.children)?.props.offset).toBe(12);
     // A row template's `{label}` (ListBoxItem accepts no `label`) stays a binding.
     expect(
@@ -342,7 +351,10 @@ describe("ADR-248 Phase 4c prop sources", () => {
       ops: [
         {
           kind: "put",
-          entry: node("plain", "lib:definition:origin-component-button" as never),
+          entry: node(
+            "plain",
+            "lib:definition:origin-component-button" as never,
+          ),
         },
         {
           kind: "put",

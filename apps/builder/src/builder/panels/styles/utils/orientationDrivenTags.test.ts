@@ -17,6 +17,7 @@ describe("orientationDrivenTags", () => {
     //   along; the Direction toggle writes the S2 `orientation`.)
     // (2026-11-05 `8586c64bd` + ActionButtonGroup · 2026-11-07 `8ac17dc12` + SegmentedControl ·
     //   SelectBoxGroup — S2 `orientation` 을 받는 새 컴포넌트, rule 의 `orientation` 블록에서 유도.)
+    // (2026-11-23: Tabs · TabList · Tab 은 식에 걸리지만 뺀다 — Tabs 의 vertical = row, 둘은 Tabs 상속.)
     it("ORIENTATION_DRIVEN_TAGS = ActionButtonGroup / ColorSlider / IllustratedMessage / SegmentedControl / SelectBoxGroup / ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
       expect([...ORIENTATION_DRIVEN_TAGS].sort()).toEqual([
         "actionbuttongroup",

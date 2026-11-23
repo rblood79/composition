@@ -30,6 +30,11 @@ import { racDateSegmentParts } from "../../../../../../packages/shared/src/catal
  */
 const LIGHT_NEUTRAL = resolveToken("{color.neutral}", "light");
 const LIGHT_NEUTRAL_SUBDUED = resolveToken("{color.neutral-subdued}", "light");
+// (7f76a6ee8 — S2 `tab` `isDisabled: 'disabled'`: a disabled Tab's label is gray-400.)
+const LIGHT_DISABLED_CONTENT = resolveToken(
+  "{color.disabled-content}",
+  "light",
+);
 
 /** RAC's empty ko-KR date row (`연도. 월. 일.` placeholders around the locale's literals). */
 // (Each RAC segment is a flex item: its collapsible end spaces are not drawn — ADR-256 후속 8.)
@@ -241,7 +246,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     ]);
     expect(
       labels.map((id) => scene.root.canvasInputs.get(id)!.derivedProps?.color),
-    ).toEqual([LIGHT_NEUTRAL_SUBDUED, LIGHT_NEUTRAL]);
+    ).toEqual([LIGHT_DISABLED_CONTENT, LIGHT_NEUTRAL]);
     expect(new Set(notified)).toEqual(
       new Set([
         ...tabInputs.map((tab) => tab.id),
@@ -329,7 +334,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         write: { kind: "set", value: true },
       },
     ]);
-    expect(colors()).toEqual([LIGHT_NEUTRAL_SUBDUED, LIGHT_NEUTRAL]);
+    expect(colors()).toEqual([LIGHT_DISABLED_CONTENT, LIGHT_NEUTRAL]);
     expect(notified).toContain(input("two-label").id);
     expect(new Map(scene.root.canvasInputs)).toEqual(scene.fresh());
   });
@@ -393,7 +398,8 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       position: "absolute",
       insetBottom: "0px",
     });
-    expect(bar.visual).toMatchObject({ width: "100%", height: 3 });
+    // (S2 `selectedIndicator` horizontal height `[2px]` — 7f76a6ee8.)
+    expect(bar.visual).toMatchObject({ width: "100%", height: 2 });
     const tabHover = await open(
       "lib:definition:origin-component-tab-item-default--hover" as DefinitionId,
       "tab-hover",
@@ -462,10 +468,22 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       type: string,
     ) =>
       scene.byType(type).map((item) => {
-        const label = item.children
-          .map((id) => scene.root.canvasInputs.get(id)!)
-          .find((child) => scene.typeOf(child) === "Text")!;
-        return catalogTextMetrics(label, item).color;
+        // (A Tag's Text sits in its S2 `TagWrapper` frame — 74d31b094; the label's own parent is passed.)
+        const find = (
+          parent: typeof item,
+        ): { label: typeof item; parent: typeof item } | undefined => {
+          for (const id of parent.children) {
+            const child = scene.root.canvasInputs.get(id)!;
+            if (scene.typeOf(child) === "Text") return { label: child, parent };
+            if (scene.typeOf(child) === "frame") {
+              const hit = find(child);
+              if (hit) return hit;
+            }
+          }
+          return undefined;
+        };
+        const { label, parent } = find(item)!;
+        return catalogTextMetrics(label, parent).color;
       });
     const origin = async (suffix: string) => {
       const name = `origin-component-${suffix}`;

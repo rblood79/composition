@@ -82,9 +82,20 @@ function directionDrivenTypes(
   return types;
 }
 
+/**
+ * 식은 맞지만 Direction 축이 아닌 타입 — S2 Tabs 계열 (7f76a6ee8 이 `orientation` 블록을 더해 식에 걸렸다):
+ * Tabs 의 `vertical` 은 `flex-direction: row` (탭 목록이 내용 옆) 라 vertical → column 번역과 반대이고,
+ * TabList · Tab 의 `orientation` 은 Tabs 에서 물려받는 값이다 (자기 Direction 이 아니다).
+ */
+const ORIENTATION_NOT_DRIVEN: ReadonlySet<string> = new Set([
+  "tabs",
+  "tablist",
+  "tab",
+]);
+
 /** Direction 토글이 `props.orientation` 으로 번역되는 컨테이너. */
 export const ORIENTATION_DRIVEN_TAGS: ReadonlySet<string> =
-  directionDrivenTypes("orientation", "orientation");
+  directionDrivenTypes("orientation", "orientation", ORIENTATION_NOT_DRIVEN);
 
 /**
  * 식은 맞지만 현행 집합에 없는 타입 — Form 은 위 ⚠️ 제외 사유.

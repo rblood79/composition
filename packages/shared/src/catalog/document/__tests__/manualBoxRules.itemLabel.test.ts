@@ -13,11 +13,12 @@ const labelFont = (type: string, size: string) =>
   )?.visual;
 
 describe("item label font parts", () => {
-  it("Tab md: 14px · root 1.5 · 500", () => {
+  // (7f76a6ee8 S2 Tabs 정렬: S2 `tab` 의 `font: 'ui'` — 14 → 18 줄 · 400.)
+  it("Tab md: 14px · 18px 줄 · 400", () => {
     expect(labelFont("Tab", "M")).toEqual({
       fontSize: "{typography.text-sm}",
-      lineHeight: 1.5,
-      fontWeight: 500,
+      lineHeight: 18 / 14,
+      fontWeight: 400,
     });
   });
   // (ADR-295 Phase 3: the S2 line-height formula — 14 → 18.)

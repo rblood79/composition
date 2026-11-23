@@ -213,7 +213,11 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     //   SelectBoxGroup escapeKeyBehavior.)
     // (2026-11-14 사용자 「Type · Auto focus 숨겨」: +1 — ActionButton type hidden from the panel (S2 docs
     //   example controls hold neither); autoFocus is not a reference row.)
-    expect(deferred.size).toBe(426);
+    // (2026-11-23: +5 — Menu · SideNav · TagGroup `disabledKeys` joined accepts (74d31b094) as a string-array,
+    //   no Do input kind (as SelectBoxGroup's); ADR-315 TableFooter's RAC items · dependencies (e266201f6) —
+    //   accepts {} like TableBody. −3 — Dialog isDismissible · Tabs keyboardActivation · labelBehavior joined
+    //   their accepts and have a Do. HEAD held 418 rows under a stale 426 — the first assertion failed first.)
+    expect(deferred.size).toBe(420);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

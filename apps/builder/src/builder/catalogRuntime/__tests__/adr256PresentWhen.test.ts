@@ -186,6 +186,12 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
         // S2 SegmentedControl (2026-11-18): only a string child becomes its Text — an icon-only
         // item has none.
         expect(template.definitionId).toBe("lib:definition:text");
+      else if (
+        /^lib:template:component-tabs__2_\d+__content$/.test(template.id)
+      )
+        // ADR-310 Phase 2 (contract 67): a Tabs' TabPanel holds its content as a Text — an empty
+        // panel has none.
+        expect(template.definitionId).toBe("lib:definition:text");
       else if (template.definitionId === "lib:definition:text")
         // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).
         expect(template.props.slot).toBe("description");
@@ -225,9 +231,15 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
       detachInstances({ ids: [FIELD], newId: workspace.newId }),
     );
     const graph = workspace.runtime.graph;
-    const label = (graph.getEntry(FIELD) as NodeEntry).children
-      .map((id) => graph.getEntry(id) as NodeEntry)
-      .find((entry) => entry.definitionId.endsWith("origin-component-label"));
+    // (The Label sits in the field's FieldLabel row — S2 `FieldLabel`, 2026-11-18.)
+    const descendants = (id: string): NodeEntry[] =>
+      (graph.getEntry(id) as NodeEntry).children.flatMap((child) => [
+        graph.getEntry(child) as NodeEntry,
+        ...descendants(child),
+      ]);
+    const label = descendants(FIELD).find((entry) =>
+      entry.definitionId.endsWith("origin-component-label"),
+    );
     expect(label?.presentWhen).toBe("nonEmptyText");
     const record = [...workspace.root.canvasInputs.values()].find(
       (item) => item.sourceId === label?.id,

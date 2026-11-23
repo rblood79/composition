@@ -169,16 +169,18 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   { padding: 12px 12px }`). Phase 3 의 size 축 게이트가 "top-level containerStyles 보유"
   //   를 기준으로 삼아 그 값을 막고 있었다 — 실측 DOM 대비 자식 x/y 각 12, 컨테이너 24 발산
   //   (`catalogComponentBox.browser.test.ts`, 지금은 CASES 로 승격돼 GREEN).
-  describe("tabpanel — top-level containerStyles 승격 (자식 flex-column layout Skia 도달)", () => {
+  describe("tabpanel — top-level containerStyles 승격 (S2 tabPanel 상자 Skia 도달)", () => {
     it("empty parentStyle → top-level containerStyles + sizes padding 반환", () => {
       const fb = resolveContainerStylesFallback("tabpanel", {});
+      // (7f76a6ee8 S2 `tabPanel`: block · margin-top 4 · min-height 0, padding 0.)
       expect(fb).toEqual({
-        display: "flex",
-        flexDirection: "column",
-        paddingTop: 12,
-        paddingRight: 12,
-        paddingBottom: 12,
-        paddingLeft: 12,
+        display: "block",
+        marginTop: "4px",
+        minHeight: "0px",
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
       });
     });
 
@@ -188,11 +190,12 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
       expect(fb).not.toHaveProperty("display");
       expect(fb).toEqual({
-        flexDirection: "column",
-        paddingTop: 12,
-        paddingRight: 12,
-        paddingBottom: 12,
-        paddingLeft: 12,
+        marginTop: "4px",
+        minHeight: "0px",
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
       });
     });
   });

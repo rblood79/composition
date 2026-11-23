@@ -54,6 +54,16 @@ const LITERAL_BORDER_WIDTHS: Readonly<
       },
     ]),
   ),
+  ...Object.fromEntries(
+    ["S", "M", "L"].map((size) => [
+      `Separator.sizes.${size}`,
+      {
+        value: 0,
+        reason:
+          "S2 Divider 는 `borderStyle: 'none'` — 선은 바탕 칠 · 높이 1 · 2 · 4 (7f76a6ee8)",
+      },
+    ]),
+  ),
   "SegmentedControlItem.sizes.M": {
     value: 0,
     reason:
@@ -72,7 +82,10 @@ function walk(value: unknown, visit: (key: string, v: unknown) => void): void {
     if (k === "stateStyles" && v && typeof v === "object") {
       for (const [property, tree] of Object.entries(v as object))
         for (const leaf of leaves(tree))
-          visit(property.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`), leaf);
+          visit(
+            property.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`),
+            leaf,
+          );
       continue;
     }
     visit(k, v);
@@ -92,8 +105,8 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
     const literals: Record<string, unknown> = {};
     for (const [type, rule] of Object.entries(COMPONENT_RULES_TABLE))
       for (const [size, block] of Object.entries(
-        (rule as { sizes?: Record<string, { borderWidth?: unknown }> })
-          .sizes ?? {},
+        (rule as { sizes?: Record<string, { borderWidth?: unknown }> }).sizes ??
+          {},
       ))
         if (typeof block?.borderWidth === "number")
           literals[`${type}.sizes.${size}`] = block.borderWidth;
@@ -147,15 +160,12 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
         (/\bborder:\s*"\d+px\s+solid/.test(line) &&
           ![...HANDLE_RINGS].some((ring) => line.includes(`"${ring}"`))),
     );
-    // (확정 예외 중 이 파일에 문자로 적힌 것 — `ACTION_BUTTON_SIZES` 1 · Popover 3 · SegmentedControlItem 1.
+    // (확정 예외 중 이 파일에 문자로 적힌 것 — `ACTION_BUTTON_SIZES` 1 · Popover 3 · SegmentedControlItem 1 ·
+    //   Separator 3.
     //   TokenInput · SelectBox 는 2026-11-09 테마 폭 토큰 `{border.width.thin|thick}` 으로.)
-    expect(hits.map((line) => line.trim()).sort()).toEqual([
-      "borderWidth: 0,",
-      "borderWidth: 0,",
-      "borderWidth: 0,",
-      "borderWidth: 0,",
-      "borderWidth: 0,",
-    ]);
+    expect(hits.map((line) => line.trim()).sort()).toEqual(
+      Array.from({ length: 8 }, () => "borderWidth: 0,"),
+    );
   });
 
   // ADR-253 (2026-10-06): NumberField · ComboBox (4건씩) · SearchField (2건) 의 wrapper / 버튼 focus 표시

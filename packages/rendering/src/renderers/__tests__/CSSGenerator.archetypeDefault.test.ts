@@ -131,7 +131,10 @@ describe("ADR-223 archetype 미지정 base = 중립 상자", () => {
     const root = rootBlock(css, "Tab");
     expect(root).toMatch(/display:\s*inline-flex/); // structure.containerStyles 가 재선언
     for (const re of BUTTON_VOCABULARY) expect(root).not.toMatch(re);
-    expect(css).toMatch(/\.react-aria-Tab \{\s*cursor: pointer;\s*\}/);
+    // (7f76a6ee8 S2 Tabs: S2 `tab` 의 `cursor: 'default'` — 상태 트리 compile 은 class 를 두 번 쓴다.)
+    expect(css).toMatch(
+      /\.react-aria-Tab\.react-aria-Tab \{\s*cursor: default;\s*\}/,
+    );
     expect(css).toMatch(
       /\.react-aria-Tab \{\s*user-select: none;\s*transition: background 0\.15s ease, border-color 0\.15s ease, transform 0\.15s ease;\s*\}/,
     );

@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [원래 있던 테스트 실패 21 정리 — Tab hover 색 · TabPanel min-height · Tabs Direction 토글] - 2026-11-23
+
+### Fixed
+
+- **Tab 글자의 hover 색이 S2 와 달랐다** — S2 `tab` 은 `baseColor` 로 hover · focus-visible · press 때 한 단 오른다 (`nextColorStop`): 선택 안 된 탭 gray-700 → gray-800, 선택된 탭 gray-800 → gray-900. 7f76a6ee8 이 선택 안 된 탭에 gray-900 을 주고 선택된 탭은 오르지 않아 두 consumer 모두 달랐다.
+  - 수정: Tab rule 의 color 트리에 두 갈래 (`isHovered` · `isFocusVisible` · `isPressed` = `{color.neutral}`, 선택 안의 같은 셋 = `{color.neutral-content-hover}`) · 생성 `Tab.css`
+- **TabPanel 의 `min-height: 0` 이 DOM 에서만 빠졌다** — CSS 생성기가 `containerStyles.minHeight` 의 0 을 「값 없음」 으로 읽었다 (Canvas 는 읽음). 수정: `emitContainerStyles` 가 0 을 쓴다 · 생성 `TabPanel.css`
+- **Tabs 를 고르면 Layout 의 Display 토글이 `orientation` 으로 번역됐다** — 7f76a6ee8 이 Tabs 계열에 `orientation` 블록을 더해 자동 목록에 걸렸다. Tabs 의 vertical 은 `flex-direction: row` 라 번역이 반대였고 (Grid 도 꺼짐), TabList · Tab 의 `orientation` 은 Tabs 상속이다. 수정: `ORIENTATION_NOT_DRIVEN` (Tabs · TabList · Tab) — 토글은 style 에 쓴다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Tab) · `packages/rendering/src/renderers/CSSGenerator.ts` · `apps/builder/src/builder/panels/styles/utils/orientationDrivenTags.ts` · 생성 `Tab.css` · `TabPanel.css`
+  - 확인: 테스트 `s2TabLabelHover` 2 (Canvas 트리 · 생성 시트), 원복 RED (Tab rule 만 되돌림 → 새 테스트 2 · `phase3Presence` 1 실패). live `apps/builder/scripts/s2-tabs-live.mjs` 4/4 — Publish 탭 휴지 80 · 41, hover 선택 안 됨 41 · 선택 19, TabPanel `min-height: 0px`, Builder 에서 Tabs 의 Display 토글 Grid 켜짐 · Row 가 `orientation` 그대로 `flexDirection: row`.
+
+### Changed
+
+- 테스트 기대값만 낡았던 것 (S2 정렬 · ADR-310 · 315 뒤 갱신 안 됨): shared 7 · rendering 1 · builder 10 — Tab 커서 · 글자 값 · disabled 색 · 선택 막대 2px, Separator 테두리 0 예외, Tabs 계열 archetype 목록, API 표 보류 목록 (+5 −3, 개수 418 → 420 — 옛 기준 426 은 이미 틀렸다), resolver 가 주는 값 (Tabs 방향 · 라벨 표시 · Table 열 자리), FieldLabel 행 · Tag 감싸개 frame 을 건너는 조회, Tabs 루트 slot · TableFooter slot, Navigator 아이콘을 `ACTION_ICONS` 에서. 세 패키지 실패 0 (shared 2,755 · rendering 1,814 · builder unit 9,580).
+
 ## [disabled Tree 항목의 라벨 · chevron — S2 gray-400, Canvas = Publish] - 2026-11-23
 
 ### Fixed

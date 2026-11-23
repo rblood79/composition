@@ -13,6 +13,7 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  min-height: 0px;
   display: block;
   flex-grow: 1;
   margin-top: 4px;

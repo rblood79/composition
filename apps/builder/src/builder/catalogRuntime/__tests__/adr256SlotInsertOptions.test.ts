@@ -156,7 +156,9 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
         }
       }
     }
-    expect(positions).toBeGreaterThanOrEqual(10);
+    // (ADR-310 Phase 2 `02eb776c5`: the Tabs' TabList slot moved to the Tabs root slot — the root
+    //   slot is the next test's — so the template positions are 9.)
+    expect(positions).toBeGreaterThanOrEqual(9);
     expect(report).toEqual([]);
     // ADR-256 Phase 10: the Card takes the S2 structure — its Content holds its title · description
     // Text nodes (no binding to the card's props), so every slot position opens (F3 closed).
@@ -164,7 +166,12 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
     // fill of a Column or a Row would break the cell-per-column rule (ADR-256 Phase 5i), so its
     // header · body slots list nothing; the owner's Insert Column · Insert Row (`itemInsert`,
     // `ownerItemInsert.test.ts`) is their way in.
-    expect(empty).toEqual(["table TableHeader", "table TableBody"]);
+    // (ADR-315 Phase 5 `e266201f6`: the TableFooter's totals row follows the columns the same way.)
+    expect(empty).toEqual([
+      "table TableHeader",
+      "table TableBody",
+      "table TableFooter",
+    ]);
     // (Inserts every listed choice of every palette type: ~4s alone — over the 5s default when the
     // unit project runs in parallel.)
   }, 20_000);

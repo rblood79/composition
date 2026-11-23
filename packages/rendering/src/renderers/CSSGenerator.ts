@@ -713,7 +713,11 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
   if (c.maxWidth) lines.push(`  max-width: ${c.maxWidth};`);
   if (c.minWidth) lines.push(`  min-width: ${c.minWidth};`);
   if (c.aspectRatio) lines.push(`  aspect-ratio: ${c.aspectRatio};`);
-  if (c.minHeight) lines.push(`  min-height: ${c.minHeight};`);
+  // (`minHeight: 0` is a value — a flex child's `min-height: auto` floor off, TabPanel 7f76a6ee8.)
+  if (c.minHeight !== undefined && c.minHeight !== null && c.minHeight !== "")
+    lines.push(
+      `  min-height: ${typeof c.minHeight === "number" ? `${c.minHeight}px` : c.minHeight};`,
+    );
   if (c.maxHeight) lines.push(`  max-height: ${c.maxHeight};`);
   if (c.overflow) lines.push(`  overflow: ${c.overflow};`);
   if (c.outline) lines.push(`  outline: ${c.outline};`);

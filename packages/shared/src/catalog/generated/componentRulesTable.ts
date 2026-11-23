@@ -13191,11 +13191,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           // S2 `tab` color: neutral-subdued · selected neutral (stated — `null` inherited the Tabs root's,
           //   ADR-297 후속 ⑤).
+          //   S2 `baseColor` bumps one stop on hover · focus-visible · press (`nextColorStop`): neutral-subdued
+          //   gray-700 → gray-800 (= `{color.neutral}`), neutral gray-800 → gray-900 (2026-11-23 — 7f76a6ee8
+          //   gave the unselected tab gray-900 and the selected tab no hover stop).
           color: {
             default: "{color.neutral-subdued}",
-            isHovered: "{color.neutral-content-hover}",
+            isHovered: "{color.neutral}",
+            isFocusVisible: "{color.neutral}",
+            isPressed: "{color.neutral}",
             isSelected: {
               default: "{color.neutral}",
+              isHovered: "{color.neutral-content-hover}",
+              isFocusVisible: "{color.neutral-content-hover}",
+              isPressed: "{color.neutral-content-hover}",
             },
             isDisabled: "{color.disabled-content}",
           },
