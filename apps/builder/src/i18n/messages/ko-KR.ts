@@ -3291,6 +3291,8 @@ const semanticLabels: Record<string, string> = {
   "properties.validationRules": "검증 규칙",
   "properties.unavailableDates": "고를 수 없는 날짜",
   "properties.keyboardDismissDisabled": "Esc 로 닫지 않음",
+  "properties.unavailable": "사용할 수 없음",
+  "properties.valueShape": "값 모양",
   "properties.filterMode": "필터 방식",
   "properties.filterStartsWith": "으로 시작",
   "properties.selectionBehavior": "선택 방식",

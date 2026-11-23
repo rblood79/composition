@@ -14,7 +14,13 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
     });
     expect(catalogChildKind("Menu")).toEqual({
       kind: "items",
-      items: ["MenuItem", "SubmenuTrigger", "MenuSection", "Separator"],
+      items: [
+        "MenuItem",
+        "SubmenuTrigger",
+        "UnavailableMenuItemTrigger",
+        "MenuSection",
+        "Separator",
+      ],
     });
     for (const section of ["ListBoxSection", "MenuSection", "GridListSection"])
       expect(

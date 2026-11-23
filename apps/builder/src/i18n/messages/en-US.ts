@@ -3298,6 +3298,8 @@ const semanticLabels: Record<string, string> = {
   "properties.validationRules": "Validation rules",
   "properties.unavailableDates": "Unavailable dates",
   "properties.keyboardDismissDisabled": "Escape won't close",
+  "properties.unavailable": "Unavailable",
+  "properties.valueShape": "Value shape",
   "properties.filterMode": "Filter mode",
   "properties.filterStartsWith": "Starts with",
   "properties.selectionBehavior": "Selection behavior",

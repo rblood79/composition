@@ -162,6 +162,7 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   // ADR-295 Phase 3c-3c ③: a Menu's section and submenu trigger — the Menu's size reaches the items in them.
   "MenuSection",
   "SubmenuTrigger",
+  "UnavailableMenuItemTrigger",
   // ADR-295 후속: a picker's Popover (its own size is a standalone popover's) and a ListBox section —
   //   the picker's size reaches its ListBox, the ListBox's the items in a section.
   "Popover",

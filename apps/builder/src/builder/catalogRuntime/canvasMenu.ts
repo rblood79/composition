@@ -1,5 +1,6 @@
 import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
+import { catalogInSelectValue } from "../../../../../packages/shared/src/catalog/document/selectValueShape";
 import { LayoutPanelTop, Maximize, Percent, Repeat } from "lucide-react";
 import {
   componentOriginOf,
@@ -526,10 +527,34 @@ export function catalogCanvasMenuItems(
     } catch {
       type = "";
     }
+    // (S2 체크리스트 §9.3: a node of a Select's value shape repeats per item of the Select.)
+    const inValue =
+      entry?.kind === "node" &&
+      catalogInSelectValue(
+        entry.id,
+        (id) => host.graph.getEntry(id),
+        (id) => host.graph.ownerOf(id),
+        (definitionId) => {
+          try {
+            return definitionTypeName(host.graph, definitionId);
+          } catch {
+            return "";
+          }
+        },
+        (templateId) =>
+          templateId.startsWith("lib:")
+            ? host.graph.library.templates.get(templateId as never)
+                ?.definitionId
+            : (
+                host.graph.getEntry(templateId) as
+                  | { definitionId?: DefinitionId }
+                  | undefined
+              )?.definitionId,
+      );
     if (
       entry?.kind === "node" &&
       !entry.repeat &&
-      CATALOG_ROW_ITEM_TYPES.has(type)
+      (CATALOG_ROW_ITEM_TYPES.has(type) || inValue)
     )
       structure.push(
         ...action(

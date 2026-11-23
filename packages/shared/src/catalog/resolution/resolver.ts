@@ -1642,9 +1642,103 @@ export function resolveCatalogNode(
       const own = rows?.(entry.binding, "items", entry.id, instancePath);
       return own ? sampledRows(own, `${instancePath.join("/")}::${id}`) : own;
     }
+    // (A Select's value shape repeats per item of its Select — before the rows passed down to it.)
+    const valueRows = selectValueRows(id, instancePath);
+    if (valueRows) return valueRows;
     return (
       outerRow?.children ?? ownerRows ?? paginationRows(id) ?? chooserRows(id)
     );
+  };
+  /**
+   * S2 체크리스트 §9.3 (Picker `renderValue`, 사용자 결정 2026-11-23) — a node repeated in a Select's
+   * SelectValue (its value's shape) repeats per item of the Select: the Select's bound rows, else its
+   * own items (`id` · `label`). Every copy carries its row key (`selectValueRuns`) — the Canvas and the
+   * DOM show the selected ones (`selectValueTemplate.ts`).
+   */
+  const selectValueRuns = new Set<string>();
+  const selectValueRows = (
+    id: string,
+    instancePath: readonly (NodeId | TemplateId)[],
+  ): readonly CatalogBoundRow[] | undefined => {
+    let child = id;
+    let inValue = false;
+    for (
+      let owner = graph.ownerOf(id as NodeId);
+      owner;
+      owner = graph.ownerOf(owner as NodeId)
+    ) {
+      const entry = graph.getEntry(owner as NodeId);
+      if (entry?.kind !== "node") return undefined;
+      const type = ruleDefinitionOf(entry.definitionId).name;
+      if (type === "SelectValue") inValue = true;
+      if (type !== "Select") {
+        child = owner;
+        continue;
+      }
+      if (!inValue) {
+        // (A Select origin's SelectValue is a template position the author fills.)
+        const fill = entry.descendantOverrides.find(
+          (override) =>
+            override.kind === "fillSlot" &&
+            override.childIds.includes(child as NodeId),
+        );
+        const at =
+          fill?.kind === "fillSlot"
+            ? fill.address.templatePath[fill.address.templatePath.length - 1]
+            : undefined;
+        if (!at || templateTypeName(at) !== "SelectValue") return undefined;
+      }
+      selectValueRuns.add(id);
+      if (entry.binding && entry.binding.key === undefined)
+        return rows?.(entry.binding, "items", entry.id, instancePath);
+      return selectItemRows(entry);
+    }
+    return undefined;
+  };
+  /** A static Select's items as rows: its key and its label text (the item's `{label}` part). */
+  const selectItemRows = (select: NodeEntry): CatalogBoundRow[] => {
+    const out: CatalogBoundRow[] = [];
+    const labelOf = (item: NodeEntry): string | undefined => {
+      for (const override of item.descendantOverrides) {
+        if (override.kind !== "patch") continue;
+        const path = override.address.templatePath;
+        const at = path[path.length - 1];
+        const template = at?.startsWith("lib:")
+          ? library.templates.get(at as `lib:template:${string}`)
+          : undefined;
+        const text = override.props?.children;
+        if (
+          template?.props?.children === "{label}" &&
+          text?.kind === "set" &&
+          typeof text.value === "string"
+        )
+          return text.value;
+      }
+      const own = item.props.label ?? item.props.children;
+      return own?.kind === "set" && typeof own.value === "string"
+        ? own.value
+        : undefined;
+    };
+    const visit = (ids: readonly NodeId[]) => {
+      for (const itemId of ids) {
+        const item = graph.getEntry(itemId);
+        if (item?.kind !== "node") continue;
+        const type = ruleDefinitionOf(item.definitionId).name;
+        if (type === "ListBoxItem") {
+          const idProp = item.props.id;
+          const key =
+            idProp?.kind === "set" && idProp.value !== undefined
+              ? String(idProp.value)
+              : item.id;
+          out.push({ key, values: { id: key, label: labelOf(item) ?? key } });
+        } else if (type === "ListBox" || type === "ListBoxSection")
+          visit(item.children);
+      }
+    };
+    for (const override of select.descendantOverrides)
+      if (override.kind === "fillSlot") visit(override.childIds);
+    visit(select.children);
+    return out;
   };
   /**
    * ADR-315 Phase 4 — a column chooser's item repeats per data column of its Table: a row per
@@ -3395,6 +3489,7 @@ export function resolveCatalogNode(
               // (ADR-315 Phase 5 — a Table row's child rows nest in it: `nestTableRows`.)
               ...nestTreeRows(
                 index === 0 &&
+                  !selectValueRuns.has(childId) &&
                   !["Tab", "TabPanel"].includes(
                     ruleDefinitionOf(child.definitionId).name,
                   )
@@ -4306,6 +4401,7 @@ export function resolveCatalogNode(
               push(out, {
                 ...nestTreeRows(
                   index === 0 &&
+                    !selectValueRuns.has(childId) &&
                     !["Tab", "TabPanel"].includes(templateTypeName(childId))
                     ? projected
                     : withRowKey(projected, data.key),
@@ -4549,6 +4645,7 @@ export function resolveCatalogNode(
               push(children, {
                 ...nestTreeRows(
                   index === 0 &&
+                    !selectValueRuns.has(childId) &&
                     !["Tab", "TabPanel"].includes(templateTypeName(childId))
                     ? projected
                     : withRowKey(projected, data.key),
@@ -4622,6 +4719,7 @@ export function resolveCatalogNode(
               push(children, {
                 ...nestTreeRows(
                   index === 0 &&
+                    !selectValueRuns.has(childId) &&
                     !["Tab", "TabPanel"].includes(
                       ruleDefinitionOf(child.definitionId).name,
                     )

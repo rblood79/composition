@@ -1275,7 +1275,16 @@ function textLeaf(
     }
   | undefined {
   if (node.derivedProps?._fieldComposed === true) return undefined;
-  if (node.children.length > 0 && node.bindingId !== "tokeninput")
+  if (
+    node.children.length > 0 &&
+    node.bindingId !== "tokeninput" &&
+    // (S2 체크리스트 §9.3: a SelectValue's value shape is hidden while nothing is selected — it
+    //  measures its text then; shown, it is a box of its nodes.)
+    !(
+      node.bindingId === "selectvalue" &&
+      node.derivedProps?._valueTemplate !== true
+    )
+  )
     return undefined;
   const own = resolveTextSourceText(
     typeName,

@@ -32,9 +32,15 @@ export const CatalogStateFrameContext = createContext<StateFrame | null>(null);
 export function catalogStateChildren(
   ownerId: string,
   children: () => ReactNode[],
+  /** Composition state keys over RAC's render props (an unavailable MenuItem's — S2 §9.3). */
+  extra?: Readonly<Record<string, unknown>>,
 ): (values: Readonly<Record<string, unknown>>) => ReactElement {
   return (values) =>
-    createElement(CatalogStateFrame, { ownerId, values }, ...children());
+    createElement(
+      CatalogStateFrame,
+      { ownerId, values: extra ? { ...values, ...extra } : values },
+      ...children(),
+    );
 }
 
 /** One resolved condition of a node: its owner (absent = not linked), key, negation, record value. */

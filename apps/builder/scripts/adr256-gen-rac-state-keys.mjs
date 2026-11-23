@@ -28,6 +28,8 @@ export const STATE_KEYS = [
   // the run adds none; `catalogStateKeysOf` reads them from its own table).
   "isFirstMonth",
   "isLastMonth",
+  // S2 체크리스트 §9.3: an item its S2 UnavailableMenuItemTrigger marks unavailable (composition key).
+  "isUnavailable",
 ];
 
 /**

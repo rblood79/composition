@@ -60,6 +60,7 @@ import { catalogColumnKeyRenameCommands } from "../../../catalogRuntime/rowTempl
 import { targetKey } from "../../../catalogRuntime/session";
 
 import { EmptyState } from "../../../components/feedback/EmptyState";
+import { Section } from "../../../components/panel/Section";
 
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
@@ -162,7 +163,7 @@ export function CatalogPropertiesBody({
     const styleOwner = root
       ? catalogSubpartOwnerType(graph, root.domInputs, first.identity, "style")
       : subpartOwner;
-    return (
+    const notice = (
       <EmptyState
         icon={<Settings2 size={32} />}
         message={t("propertiesPanel.delegatedSubpartMessage")}
@@ -177,6 +178,24 @@ export function CatalogPropertiesBody({
         )}
       />
     );
+    // S2 체크리스트 §9.3 (S2 `renderValue`): a Select's SelectValue — its text is the Select's, its
+    // nodes are the value's shape (the slot's insert list; a node repeats per item through its
+    // 「Use as row template」).
+    if (contract.type === "SelectValue")
+      return (
+        <>
+          {notice}
+          <Section id="value-shape" title="Value shape">
+            <CatalogSlotSection
+              key={`slot:${targetKey(first.target)}`}
+              target={first.target}
+              type={contract.type}
+              identity={first.identity}
+            />
+          </Section>
+        </>
+      );
+    return notice;
   }
   const settingsPage =
     first.target.kind === "node"

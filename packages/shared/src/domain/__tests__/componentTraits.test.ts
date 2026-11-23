@@ -284,6 +284,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "MenuSection",
         // ADR-256 Phase 5g: RAC SubmenuTrigger reads its item and Popover (`children[0]` · `[1]`).
         "SubmenuTrigger",
+        // S2 체크리스트 §9.3: S2 UnavailableMenuItemTrigger — the same two (RAC SubmenuTrigger).
+        "UnavailableMenuItemTrigger",
         "GridList",
         "GridListSection",
         "Tree",
@@ -320,9 +322,21 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
     expect(componentContractMap("children")).toStrictEqual({
       ListBox: ["ListBoxItem", "ListBoxSection", "Separator"],
       ListBoxSection: ["Header", "ListBoxItem"],
-      Menu: ["MenuItem", "SubmenuTrigger", "MenuSection", "Separator"],
-      MenuSection: ["Header", "MenuItem", "SubmenuTrigger"],
+      Menu: [
+        "MenuItem",
+        "SubmenuTrigger",
+        "UnavailableMenuItemTrigger",
+        "MenuSection",
+        "Separator",
+      ],
+      MenuSection: [
+        "Header",
+        "MenuItem",
+        "SubmenuTrigger",
+        "UnavailableMenuItemTrigger",
+      ],
       SubmenuTrigger: ["MenuItem", "Popover"],
+      UnavailableMenuItemTrigger: ["MenuItem", "Popover"],
       GridList: ["GridListItem", "GridListSection"],
       GridListSection: ["Header", "GridListItem"],
       TagList: ["Tag"],
@@ -361,6 +375,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       ListBoxSection: ["ListBox"],
       MenuSection: ["Menu"],
       SubmenuTrigger: ["Menu"],
+      UnavailableMenuItemTrigger: ["Menu"],
       GridListSection: ["GridList"],
       Tag: ["TagList"],
       TagList: ["TagGroup"],

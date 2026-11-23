@@ -787,6 +787,8 @@ const bindings: Readonly<Record<string, Binding>> = {
   // ADR-256 Phase 5g: RAC SubmenuTrigger has no element of its own (a layout box only — in a Menu
   // it rests in the closed popover).
   submenutrigger: container,
+  // (S2 체크리스트 §9.3: S2 UnavailableMenuItemTrigger — the same: its help rests closed.)
+  unavailablemenuitemtrigger: container,
   switchbutton: containerWithAuthoredPaint,
   radiobutton: containerWithAuthoredPaint,
   // A part its owner draws (toggle indicator, Disclosure chevron): painted from its
@@ -943,8 +945,11 @@ const bindings: Readonly<Record<string, Binding>> = {
     bindings.text(node, rect, parent, wraps),
   fielderror: (node, rect, parent, wraps) =>
     bindings.text(node, rect, parent, wraps),
+  // (S2 체크리스트 §9.3: showing its value shape — S2 `renderValue` — it is the box of those nodes.)
   selectvalue: (node, rect, parent, wraps) =>
-    bindings.text(node, rect, parent, wraps),
+    node.derivedProps?._valueTemplate === true
+      ? container(node, rect)
+      : bindings.text(node, rect, parent, wraps),
 };
 
 /**

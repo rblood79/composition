@@ -2723,10 +2723,13 @@ class Planner {
       (anchor) => anchor.target.kind === "text" && anchor.target.nodeId === id,
     );
     const newText = element.text;
+    // (A repeated node written as its rows' render function — a group's `{rows.map(item => …)}`, a
+    //  Select's value shape — keeps its body read only: its text is not this element's.)
     if (
-      this.input.strict ||
-      (oldText ? codeViewNormalized(this.code(oldText)) : undefined) !==
-        (newText ? codeViewNormalized(newText.code) : undefined)
+      !element.rows &&
+      (this.input.strict ||
+        (oldText ? codeViewNormalized(this.code(oldText)) : undefined) !==
+          (newText ? codeViewNormalized(newText.code) : undefined))
     ) {
       if (!newText) props.children = { kind: "remove" };
       else {

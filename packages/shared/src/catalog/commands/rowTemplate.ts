@@ -19,6 +19,7 @@ import {
 } from "./context";
 import type { NewId } from "./materialize";
 import { duplicateNodes, removeTargets } from "./structure";
+import { catalogInSelectValue } from "../document/selectValueShape";
 
 /**
  * ADR-310 Decision 2 — how a list that already holds items takes its data: `template` = its first
@@ -261,6 +262,33 @@ export const setRowTemplate =
       type = definitionTypeName(reader, item.definitionId);
     } catch {
       type = "";
+    }
+    // S2 체크리스트 §9.3: a node of a Select's value shape repeats per item of the Select — its rows
+    // are the Select's (no bound owner of its own to find).
+    if (
+      catalogInSelectValue(
+        input.itemId,
+        (id) => reader.getEntry(id),
+        (id) => reader.ownerOf(id),
+        (definitionId) => {
+          try {
+            return definitionTypeName(reader, definitionId);
+          } catch {
+            return "";
+          }
+        },
+        (templateId) =>
+          templateId.startsWith("lib:")
+            ? reader.library.templates.get(templateId as never)?.definitionId
+            : (
+                reader.getEntry(templateId) as
+                  | { definitionId?: NodeEntry["definitionId"] }
+                  | undefined
+              )?.definitionId,
+      )
+    ) {
+      writeRepeat(draft, input.itemId, true);
+      return { label, ops: draft.ops() };
     }
     if (!CATALOG_REPEAT_TYPES.has(type))
       return fail("REPEAT_NOT_ITEM", input.itemId);

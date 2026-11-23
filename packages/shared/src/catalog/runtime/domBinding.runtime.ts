@@ -320,6 +320,25 @@ import {
 import { RacSlotScope } from "./racSlotScope";
 
 import {
+  catalogMenuItemUnavailable,
+  catalogUnavailableGlyphDomId,
+  catalogUnavailableGlyphItem,
+  catalogUnavailableGlyphOf,
+} from "./unavailableMenuItem";
+
+import { CatalogUnavailableGlyph } from "./unavailableMenuItem.components";
+
+import {
+  catalogValueRowKey,
+  catalogValueTemplateOwner,
+} from "./selectValueTemplate";
+
+import {
+  CatalogSelectValueRowGate,
+  CatalogSelectValueShape,
+} from "./selectValueTemplate.components";
+
+import {
   catalogValueGate,
   catalogStateChildren,
   type CatalogDomStateCondition,
@@ -1595,7 +1614,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     }),
   // RAC `SelectValue` inside a Select's trigger Button (ADR-253): RAC writes the selected item's
   // text, or the Select's placeholder.
-  selectvalue: (node, style) => {
+  selectvalue: (node, style, children) => {
     const invalid = node.derivedProps?._pickerInvalid === true;
     const glyph = pickerInvalidGlyph(node.props.size);
     return createElement(RAC.SelectValue, {
@@ -1609,18 +1628,36 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       children: ({
         defaultChildren,
         selectedItems,
+        state,
       }: {
         defaultChildren: ReactNode;
         selectedItems: unknown[];
+        state?: {
+          selectionManager?: { selectedKeys?: Iterable<unknown> };
+        };
       }) =>
         createElement(
           Fragment,
           null,
-          createElement(
-            CatalogPickerValueContent,
-            { count: selectedItems.length },
-            defaultChildren,
-          ),
+          // S2 체크리스트 §9.3 (S2 `renderValue`): its nodes are the value's shape while something is
+          // selected — the copies of the selected items (RAC's running keys); else S2's default.
+          children.length > 0 && selectedItems.length > 0
+            ? createElement(
+                CatalogSelectValueShape,
+                {
+                  keys: new Set(
+                    [...(state?.selectionManager?.selectedKeys ?? [])].map(
+                      String,
+                    ),
+                  ),
+                },
+                ...children,
+              )
+            : createElement(
+                CatalogPickerValueContent,
+                { count: selectedItems.length },
+                defaultChildren,
+              ),
           invalid
             ? createElement(Icon, {
                 "aria-hidden": true,
@@ -1688,6 +1725,17 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   submenutrigger: (node, _style, children) =>
     children.length < 2
       ? createElement(Fragment, { key: node.id }, ...children)
+      : createElement(
+          RAC.SubmenuTrigger as ElementType,
+          { key: node.id },
+          ...children,
+        ),
+  // S2 체크리스트 §9.3: S2 `UnavailableMenuItemTrigger` (`Menu.tsx:1074-1091`) — unavailable, RAC's
+  // `SubmenuTrigger` around the item and its help Popover (named by its title Heading — the Popover's
+  // own `aria-labelledby`, below); available, the item alone. No element of its own.
+  unavailablemenuitemtrigger: (node, _style, children) =>
+    node.props.isUnavailable !== true || children.length < 2
+      ? createElement(Fragment, { key: node.id }, children[0])
       : createElement(
           RAC.SubmenuTrigger as ElementType,
           { key: node.id },
@@ -3097,6 +3145,38 @@ function dialogTitleOf(
  * Popover by it). The closed Popover is a hidden record (the Canvas draws no closed overlay), so
  * the search goes in regardless — a Heading the document hides itself (`showWhen`) is not a title.
  */
+/** The title Heading id of an unavailable item's help Popover (its HTML id), when it has one. */
+function catalogUnavailableHelpTitle(
+  root: CatalogCompositionRoot,
+  popover: CatalogConsumerNode,
+): string | undefined {
+  const owner = root.domInputs.get(popover.parentId);
+  if (
+    !owner ||
+    owner.bindingId !== "unavailablemenuitemtrigger" ||
+    owner.props.isUnavailable !== true
+  )
+    return undefined;
+  const visit = (id: string): string | undefined => {
+    const record = root.domInputs.get(id);
+    if (!record) return undefined;
+    if (record.bindingId === "heading" && record.props.slot === "title")
+      return !record.showWhen && !catalogAbsentByValue(record)
+        ? record.htmlId
+        : undefined;
+    for (const child of record.children) {
+      const found = visit(child);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  for (const child of popover.children) {
+    const found = visit(child);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 function contextualHelpTitled(
   root: CatalogCompositionRoot,
   help: CatalogConsumerNode,
@@ -3115,6 +3195,7 @@ function contextualHelpTitled(
 const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
   "MenuTrigger",
   "SubmenuTrigger",
+  "UnavailableMenuItemTrigger",
   "Select",
   "ComboBox",
   "DatePicker",
@@ -3557,6 +3638,13 @@ function ruleDom(
     // shared wrapper는 size prop으로 data-size를 쓰므로 catalog 값을 함께 전달한다.
     rest.size = node.props.size;
   }
+  // S2 체크리스트 §9.3: an unavailable item's help Popover is named by its `slot="title"` Heading
+  // (S2 `ContextualHelpPopover` `aria-labelledby={titleId}` over the item RAC's SubmenuTrigger names
+  // it by) — the Heading's element id, which an automatic HTML id always gives.
+  if (lower === "popover") {
+    const title = catalogUnavailableHelpTitle(root, node);
+    if (title) rest["aria-labelledby"] = title;
+  }
   // ADR-259 Phase 3: S2 names a ContextualHelp's Popover by its `slot="title"` Heading (without
   // one RAC names it by the trigger).
   if (lower === "contextualhelp")
@@ -3901,6 +3989,12 @@ function ruleDom(
             // (Only a disabled item says so — an explicit `false` beats its Menu's `disabledKeys`
             //  in RAC, 2026-11-18.)
             ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
+            // S2 체크리스트 §9.3: an unavailable item is described by its info glyph (S2
+            //  `aria-describedby={infoIconId}`).
+            ...(catalogMenuItemUnavailable(node, domGet, domType) &&
+            catalogUnavailableGlyphOf(node, domGet)
+              ? { "aria-describedby": catalogUnavailableGlyphDomId(node.id) }
+              : {}),
             // ADR-295 Phase 3c-3c ③: its Menu's size (the resolver carries it) — the sheet's
             // `[data-size]` blocks (S2 control height · padding · label font).
             "data-size": String(node.props.size ?? "M"),
@@ -4084,7 +4178,16 @@ function ruleDom(
     ...(STATE_FRAME_ITEMS.has(lower)
       ? [
           // (RAC takes a render function as an item's children.)
-          catalogStateChildren(node.id, () => content) as unknown as ReactNode,
+          catalogStateChildren(
+            node.id,
+            () => content,
+            // (S2 체크리스트 §9.3: an unavailable item shows its info glyph, not the chevron RAC's
+            //  SubmenuTrigger would give it — S2 `UnavailableIconWrapper`.)
+            lower === "menuitem" &&
+              catalogMenuItemUnavailable(node, domGet, domType)
+              ? { isUnavailable: true, hasSubmenu: false }
+              : undefined,
+          ) as unknown as ReactNode,
         ]
       : columnOperations
         ? [
@@ -5559,7 +5662,8 @@ export function renderNode(
   )
     return null;
   const childIds =
-    node.bindingId === "submenutrigger"
+    node.bindingId === "submenutrigger" ||
+    node.bindingId === "unavailablemenuitemtrigger"
       ? submenuTriggerChildren(root, node)
       : node.ruleId === "TableBody"
         ? tableBodyOrder(root, node, context)
@@ -6230,6 +6334,30 @@ export function renderNode(
           ...(node.htmlId ? {} : { id: catalogFieldPrefixDomId(node) }),
         })
       : named;
+  // S2 체크리스트 §9.3: an unavailable item's info glyph — the item's description (its id, its
+  // localized name — S2 `UnavailableIconWrapper`).
+  const unavailableItem =
+    node.bindingId === "icon"
+      ? catalogUnavailableGlyphItem(node, domGet, domType)
+      : undefined;
+  // S2 체크리스트 §9.3: a copy of a SelectValue's repeated node shows while its row is selected.
+  const valueRow =
+    node.rowIndex !== undefined &&
+    catalogValueTemplateOwner(node, domGet, domType)
+      ? catalogValueRowKey(node)
+      : undefined;
+  if (valueRow !== undefined)
+    return createElement(CatalogSelectValueRowGate, {
+      key: node.id,
+      rowKey: valueRow,
+      element: element as ReactElement,
+    });
+  if (unavailableItem)
+    return createElement(CatalogUnavailableGlyph, {
+      key: node.id,
+      id: catalogUnavailableGlyphDomId(unavailableItem.id),
+      element: element as ReactElement,
+    });
   const selectionItem =
     node.bindingId === "icon"
       ? catalogPickerSelectionItem(node, domGet, domType)

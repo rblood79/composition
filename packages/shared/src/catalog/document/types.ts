@@ -1287,6 +1287,9 @@ export const CATALOG_STATE_KEYS = [
   // ADR-256 Phase 9 — a calendar month block's place (composition keys, `catalogStateKeysOf`).
   "isFirstMonth",
   "isLastMonth",
+  // S2 체크리스트 §9.3 — a MenuItem its UnavailableMenuItemTrigger marks unavailable (S2
+  //   `UnavailableContext` — the info glyph in the chevron's place).
+  "isUnavailable",
 ] as const;
 export type CatalogStateKey = (typeof CATALOG_STATE_KEYS)[number];
 /**

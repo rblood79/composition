@@ -28,7 +28,13 @@ export function catalogPickerOfOption(
       parent = get(parent.parentId)
     ) {
       if (typeOf(parent) === "Menu") return parent;
-      if (!["MenuSection", "SubmenuTrigger"].includes(typeOf(parent)))
+      if (
+        ![
+          "MenuSection",
+          "SubmenuTrigger",
+          "UnavailableMenuItemTrigger",
+        ].includes(typeOf(parent))
+      )
         return undefined;
     }
     return undefined;
@@ -134,6 +140,13 @@ export function catalogPickerSelectionHidden(
     return true;
   const parent = get(item.parentId);
   if (parent && typeOf(parent) === "SubmenuTrigger") return true;
+  // (S2 체크리스트 §9.3: an unavailable item opens its help, never its action — S2 drops `onAction`.)
+  if (
+    parent &&
+    typeOf(parent) === "UnavailableMenuItemTrigger" &&
+    parent.props.isUnavailable === true
+  )
+    return true;
   const mode =
     typeOf(picker) === "ComboBox"
       ? "single"

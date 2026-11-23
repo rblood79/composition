@@ -71,6 +71,7 @@ export { ListBox, ListBoxItem } from "./ListBox";
 export { GridList, GridListItem } from "./GridList";
 export { MenuButton, MenuItem } from "./Menu";
 export { Menu, MenuTrigger, SubmenuTrigger } from "react-aria-components/Menu";
+export { UnavailableMenuItemTrigger } from "./UnavailableMenuItemTrigger";
 export { TagGroup, Tag } from "./TagGroup";
 export { Tree, TreeItem } from "./Tree";
 export { default as Table } from "./Table";

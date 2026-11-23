@@ -208,6 +208,8 @@ describe("S2 Menu — item grid, section, divider, empty state", () => {
       "lib:template:component-menu-item-default__description",
       "lib:template:component-menu-item-default__shortcut",
       "lib:template:component-menu-item-default__chevron",
+      // (S2 체크리스트 §9.3: the info glyph in the chevron's place while the item is unavailable.)
+      "lib:template:component-menu-item-default__unavailable",
     ]);
   });
 

@@ -37,15 +37,15 @@ const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
  */
 const COMPOSITION_STATE_KEYS: Readonly<Record<string, readonly string[]>> = {
   CalendarMonth: ["isFirstMonth", "isLastMonth"],
+  // (S2 체크리스트 §9.3: an item its S2 UnavailableMenuItemTrigger marks unavailable.)
+  MenuItem: ["isUnavailable"],
 };
 
 /** The state keys a type gives its children (`RAC_STATE_KEYS` — the installed RAC's run). */
 export function catalogStateKeysOf(type: string): readonly string[] {
-  return (
-    COMPOSITION_STATE_KEYS[type] ??
-    RAC_STATE_KEYS[RAC_PART_OF_TYPE[type] ?? type] ??
-    []
-  );
+  const composition = COMPOSITION_STATE_KEYS[type] ?? [];
+  const rac = RAC_STATE_KEYS[RAC_PART_OF_TYPE[type] ?? type] ?? [];
+  return composition.length ? [...rac, ...composition] : rac;
 }
 
 /** Each condition's key and the owner reference it uses (its own `from`, else the whole `from`). */

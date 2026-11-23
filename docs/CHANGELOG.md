@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select 값 모양 — S2 renderValue (값 칸 template 노드)] - 2026-11-23
+
+### Added
+
+- **Select 의 「값 모양」** (S2 Picker `renderValue`, 저장 모양 사용자 확인): Select 의 값 칸 (SelectValue) 을 고르면 Design 패널에 「값 모양」 구획이 생기고, 거기서 넣은 노드가 고른 값을 보이는 모양이 된다. 노드를 Layers · Canvas 우클릭 「행 템플릿으로 사용」 으로 표시하면 Select 의 항목마다 반복되고 (`repeat`), 고른 항목의 것만 보인다 — 여럿을 고르면 S2 의 「N개 선택」 대신 고른 항목들이 나란히. 글자는 항목의 필드를 읽는다 — 표에 연결한 Select 는 `{#필드}`, 연결하지 않은 Select 는 `{label}` · `{id}`. 고른 것이 없거나 값 모양이 없으면 지금처럼 S2 기본 (placeholder · 항목 내용 · 「N개 선택」). Canvas 는 저장된 선택으로, Preview · Publish 는 실행 중 선택 (RAC) 으로 같은 사본을 보인다. 값 칸 안에 버튼 · 링크를 넣으면 S2 처럼 console 경고. Code 보기는 `<Slot name="value">{selectedItems.map(item => (…))}</Slot>` 로 쓰고 그 본문은 읽기 전용이다.
+  - 위치: `packages/shared/src/catalog/{runtime/selectValueTemplate.ts,runtime/selectValueTemplate.components.tsx,document/selectValueShape.ts,resolution/resolver.ts,runtime/presence.ts,runtime/domBinding.runtime.ts,runtime/rulePaint.ts,document/graph.ts,commands/rowTemplate.ts}` · `packages/shared/src/codeView/generate.ts` · `apps/builder/src/builder/{catalogRuntime/canvasMenu.ts,catalogRuntime/codeViewEdit.ts,catalogRuntime/codeViewViews.ts,panels/properties/catalog/CatalogPropertiesPanel.components.tsx}`
+
+### Tests
+
+- `s2SelectRenderValue.test.tsx` 5 (고른 것 없음 · 고름 — Canvas 사본 · placeholder 칠, Preview 실행 선택, 다중, 표 연결, Code 보기 왕복), 원복 RED, live `apps/builder/scripts/s2-select-render-value-live.mjs` 5/5 (Design 패널 넣기 · Layers 우클릭 반복 · Canvas 「[Cat]」 = Publish 「[Cat]」 → 「[Dog]」).
+
+## [사용할 수 없는 메뉴 항목 — S2 UnavailableMenuItemTrigger] - 2026-11-23
+
+### Added
+
+- **Menu 의 「사용할 수 없는 항목」** (S2 `UnavailableMenuItemTrigger`): Menu 를 고르고 Design 패널 「Fill slot」 에서 `UnavailableMenuItemTrigger` 를 넣으면 항목 하나 (「Unavailable」) 와 그 도움말 (S2 `ContextualHelpPopover` 모양 — 제목 「Permission required」 + 설명) 이 생긴다. 사용할 수 없는 동안 항목은 동작하지 않고, 누르거나 펼치면 오른쪽 위에 도움말이 열린다 (RAC `SubmenuTrigger` — S2 와 같은 offset −2 · cross offset −8). 항목 끝에는 하위 메뉴 꺾쇠 대신 정보 아이콘이 보이고, 항목의 설명 (`aria-describedby`) 은 그 아이콘의 이름 (S2 `menu.unavailable` — 「사용할 수 없음, 자세히 보려면 펼치기」) 이다. 도움말 Popover 의 이름은 제목 Heading. Design 패널 「사용할 수 없음」 (S2 `isUnavailable`) 을 끄면 평범한 항목이 된다. Canvas 는 같은 정보 아이콘을 같은 자리에 그린다 (MenuItem 원본의 아이콘 노드, 조건 `isUnavailable`). Code 보기는 `<UnavailableMenuItemTrigger isUnavailable={true}>` 로 쓰고 다시 읽는다.
+  - 위치: `packages/shared/src/catalog/{bindings/UnavailableMenuItemTrigger.binding.ts,runtime/unavailableMenuItem.ts,runtime/unavailableMenuItem.components.tsx,runtime/domBinding.runtime.ts,runtime/presence.ts,document/generated/reusableOriginLibrary.ts}` · `packages/shared/src/components/UnavailableMenuItemTrigger.tsx` · `apps/builder/src/builder/catalogRuntime/itemInsert.ts`
+
+### Tests
+
+- `s2UnavailableMenuItem.test.tsx` 3 (사용할 수 없음 — Canvas 아이콘 · 꺾쇠 숨김 · Preview 설명 · 도움말 이름, 끄기 — Canvas 가 편집을 따라감 · 평범한 항목, Code 보기 왕복), 원복 RED 8/8, live `apps/builder/scripts/s2-unavailable-menu-item-live.mjs` 6/6 (Canvas = Publish 아이콘 자리).
+
 ## [Dialog Esc 막기 · ComboBox 필터 방식 — S2 isKeyboardDismissDisabled · RAC defaultFilter] - 2026-11-23
 
 ### Added

@@ -365,7 +365,10 @@ export function catalogRulePaint(
   else if (
     type !== "TreeItem" &&
     !CHILD_PROP_MERGE_TYPES.has(type) &&
-    node.children.length > 0
+    node.children.length > 0 &&
+    // (S2 체크리스트 §9.3: a SelectValue's value shape is hidden while nothing is selected — its text
+    //  shows then; shown, its nodes are the value.)
+    !(type === "SelectValue" && node.derivedProps?._valueTemplate !== true)
   )
     props._hasChildren = true;
 

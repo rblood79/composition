@@ -165,7 +165,12 @@ function itemTypesOf(
     if (family.recursive && family.item === type) types.add(family.item);
   }
   // ADR-256 후속 6: a submenu (the reference's `SubmenuTrigger > MenuItem + Popover > Menu`).
-  if (type === "Menu" || type === "MenuSection") types.add("SubmenuTrigger");
+  if (type === "Menu" || type === "MenuSection") {
+    types.add("SubmenuTrigger");
+    // S2 체크리스트 §9.3: an unavailable item (S2 `UnavailableMenuItemTrigger > MenuItem +
+    //   ContextualHelpPopover`).
+    types.add("UnavailableMenuItemTrigger");
+  }
   return [...types];
 }
 
@@ -398,6 +403,72 @@ export function catalogItemInsertChoices(
       return insertNodes({
         parent,
         entries: [trigger, item, popover, menu, inner],
+        rootIds: [trigger.id],
+        newId,
+      });
+    }
+    if (itemType === "UnavailableMenuItemTrigger") {
+      // S2 체크리스트 §9.3: the item, then its help — S2 `ContextualHelpPopover` (the ContextualHelp
+      // origin's padded box: `Popover > frame (268 · 24) > Heading[slot=title] + Content > Text`),
+      // placed as S2 places it (offset −2 · cross offset −8 — `Menu.tsx:1081`).
+      const set = <T,>(value: T) => ({ kind: "set" as const, value });
+      const item = menuItem("Unavailable");
+      const text = entry("lib:definition:text" as NodeEntry["definitionId"], "Text", {
+        children: "Contact your administrator for permission to use this item.",
+        size: "S",
+      });
+      const content = entry(catalogTypeDefinitionId("Content"), "Content", undefined, [
+        text.id,
+      ]);
+      const title: NodeEntry = {
+        ...entry(
+          "lib:definition:origin-component-heading" as NodeEntry["definitionId"],
+          "Heading",
+          { slot: "title", children: "Permission required", size: "S", level: 2 },
+        ),
+        layout: { marginBottom: set("8px") },
+      };
+      const body: NodeEntry = {
+        ...entry(catalogTypeDefinitionId("frame"), "frame", undefined, [
+          title.id,
+          content.id,
+        ]),
+        visual: {
+          width: set("268px"),
+          paddingTop: set(24),
+          paddingRight: set(24),
+          paddingBottom: set(24),
+          paddingLeft: set(24),
+        },
+        layout: {
+          display: set("flex"),
+          flexDirection: set("column"),
+        },
+      };
+      const popover: NodeEntry = {
+        ...entry(
+          catalogTypeDefinitionId("Popover"),
+          "Popover",
+          { size: "S", offset: -2, crossOffset: -8 },
+          [body.id],
+        ),
+        visual: {
+          width: set("fit-content"),
+          paddingTop: set(0),
+          paddingRight: set(0),
+          paddingBottom: set(0),
+          paddingLeft: set(0),
+        },
+      };
+      const trigger = entry(
+        catalogTypeDefinitionId("UnavailableMenuItemTrigger"),
+        "UnavailableMenuItemTrigger",
+        { isUnavailable: true },
+        [item.id, popover.id],
+      );
+      return insertNodes({
+        parent,
+        entries: [trigger, item, popover, body, title, content, text],
         rootIds: [trigger.id],
         newId,
       });

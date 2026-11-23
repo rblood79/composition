@@ -150,6 +150,7 @@ const CATALOG_OPEN_PICKER_TYPES: ReadonlySet<string> = new Set([
 /** Triggers whose overlay's open state RAC does not let anyone control (no `isOpen` prop). */
 const CATALOG_UNCONTROLLED_OPEN_TYPES: ReadonlySet<string> = new Set([
   "SubmenuTrigger",
+  "UnavailableMenuItemTrigger",
 ]);
 
 /**

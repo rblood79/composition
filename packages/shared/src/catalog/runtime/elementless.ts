@@ -18,6 +18,7 @@ const DOM_ELEMENTLESS_TYPES: ReadonlySet<string> = new Set([
   "TreeItemContent",
   "SideNavItemContent",
   "SubmenuTrigger",
+  "UnavailableMenuItemTrigger",
   "CalendarMonthPicker",
   "CalendarYearPicker",
 ]);

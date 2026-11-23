@@ -578,6 +578,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + SliderLabelContainer · SliderFieldInput (2026-11-18 — S2 Slider `labelContainer` · `fieldInput()`).
     // + SkeletonCollection (2026-11-18 — ADR-314 Phase 4, S2's loading items in a CardView).
     // + TableFooter (2026-11-21 — ADR-315 Phase 5 증분 5c, a totals row's footer — RAC `TableFooter`).
-    expect(types.length).toBe(183);
+    // + UnavailableMenuItemTrigger (2026-11-23 — S2 체크리스트 §9.3, S2's unavailable menu item).
+    expect(types.length).toBe(184);
   }, 120_000);
 });

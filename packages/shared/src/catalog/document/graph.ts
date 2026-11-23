@@ -46,6 +46,7 @@ import {
 } from "./componentEvents";
 import { catalogChildKind } from "../nesting/nestingRules";
 import { CATALOG_REPEAT_TYPES } from "./collectionItems";
+import { catalogInSelectValue } from "./selectValueShape";
 import {
   catalogBaseLibrary,
   forkedCatalogLibrary,
@@ -1581,7 +1582,27 @@ export class CatalogGraph {
         } catch {
           type = "";
         }
-        if (!CATALOG_REPEAT_TYPES.has(type))
+        // (S2 체크리스트 §9.3: a node of a Select's value shape repeats per item, whatever its type.)
+        if (
+          !CATALOG_REPEAT_TYPES.has(type) &&
+          !catalogInSelectValue(
+            entry.id,
+            get,
+            ownerOf,
+            (definitionId) => {
+              try {
+                return definitionTypeName(this as never, definitionId);
+              } catch {
+                return "";
+              }
+            },
+            (templateId) =>
+              (templateId.startsWith("lib:")
+                ? library.templates.get(templateId as never)
+                : (get(templateId) as { definitionId?: DefinitionId }))
+                ?.definitionId,
+          )
+        )
           throw new CatalogValidationError("REPEAT_NOT_ITEM", entry.id);
         if (entry.binding?.key !== undefined)
           throw new CatalogValidationError("REPEAT_WITH_KEY", entry.id);

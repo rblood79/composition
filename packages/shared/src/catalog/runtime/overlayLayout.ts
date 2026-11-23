@@ -76,7 +76,7 @@ export function catalogOverlayDescriptor(
     typeOf(owner),
   )
     ? "Group"
-    : typeOf(owner) === "SubmenuTrigger"
+    : ["SubmenuTrigger", "UnavailableMenuItemTrigger"].includes(typeOf(owner))
       ? "MenuItem"
       : "Button";
   const find = (
@@ -176,12 +176,14 @@ export function catalogOverlayPlacement(
       "DatePicker",
       "DateRangePicker",
       "SubmenuTrigger",
+      "UnavailableMenuItemTrigger",
     ].includes(ownerType) && p.placement === "bottom";
   let placement = String(
     (contextPlacement ? undefined : p.placement) ??
       (["Select", "ComboBox", "MenuTrigger"].includes(ownerType)
         ? catalogS2OverlayPlacement(owner!.props)
-        : ownerType === "SubmenuTrigger"
+        : ownerType === "SubmenuTrigger" ||
+            ownerType === "UnavailableMenuItemTrigger"
           ? "end top"
           : ownerType === "TooltipTrigger"
             ? "top"

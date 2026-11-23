@@ -208,7 +208,9 @@ class ViewPlanner {
         const items = element.attributes.find((item) => item.name === "items");
         const name =
           items?.value?.kind === "expression" ? items.value.code.trim() : "";
-        if (items && id) {
+        // (S2 체크리스트 §9.3: a Select's value shape repeats over S2 `renderValue`'s `selectedItems` —
+        //  the Select's own rows, no data the code names.)
+        if (items && id && name !== "selectedItems") {
           if (!this.specs.has(name) && !this.rows.has(name))
             this.input.reject(items.from, "unknownReference", name);
           else lists.set(name, [...(lists.get(name) ?? []), { element, id }]);

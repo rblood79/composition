@@ -141,6 +141,16 @@ import {
 } from "./calendarModel";
 import { racFieldHourCycle } from "../document/dateSegments";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import {
+  catalogSelectValues,
+  catalogValueTemplateHidden,
+  catalogValueTemplateNodes,
+  catalogValueTemplateShown,
+} from "./selectValueTemplate";
+import {
+  CATALOG_UNAVAILABLE_MENU_TRIGGER,
+  catalogMenuItemUnavailable,
+} from "./unavailableMenuItem";
 import type {
   CatalogShowWhen,
   CatalogStateKey,
@@ -1287,6 +1297,8 @@ export function catalogHiddenAtRest(
     return true;
   if (catalogActionButtonPartAbsent(node, get, typeOf)) return true;
   if (catalogImageFallbackHidden(node, get, typeOf)) return true;
+  // (S2 체크리스트 §9.3 — a Select's value shape: nothing selected, or a copy of an item not selected.)
+  if (catalogValueTemplateHidden(node, get, typeOf)) return true;
   // 닫힌 overlay의 화살표만 숨긴다. 열린 portal에서는 부모 배치가 좌표를 제공한다.
   if (node.bindingId === "overlayarrow") {
     const parent = get(node.parentId);
@@ -1588,6 +1600,10 @@ export function catalogPresenceDependents(
       // (a picker's time fields follow its granularity — S2 `showTimeField`)
       ...(PICKER_TYPES.has(typeOf(scope))
         ? pickerTimeParts(scope, get, typeOf)
+        : []),
+      // (S2 체크리스트 §9.3: a Select's selection shows its value shape's nodes — its copies.)
+      ...(typeOf(scope) === "Select"
+        ? catalogValueTemplateNodes(scope, get, typeOf)
         : []),
       ...(typeOf(scope) === "SearchField"
         ? partChildrenOf(scope, get, typeOf)
@@ -3232,6 +3248,11 @@ function derivedPropsBeforeSkeleton(
       ? {
           ...(typeOf(node) === "Button" ? { _pickerTrigger: true } : {}),
           ...(typeOf(node) === "SelectValue" ? { _pickerValue: true } : {}),
+          // (S2 체크리스트 §9.3: it shows its value shape — S2 `renderValue` — in place of its text.)
+          ...(typeOf(node) === "SelectValue" &&
+          catalogValueTemplateShown(node, get, typeOf)
+            ? { _valueTemplate: true }
+            : {}),
           ...(typeOf(node) === "Icon" ? { _pickerIcon: true } : {}),
           _pickerInvalid: picker.props.isInvalid === true,
           _overlayOpen: catalogOverlayOpen(picker, get, typeOf),
@@ -4441,6 +4462,10 @@ export function catalogDerivedPropsDependents(
     ...(typeOf(owner) === "Select" || typeOf(owner) === "ComboBox"
       ? catalogPickerOptions(owner, get, typeOf)
       : []),
+    // (S2 체크리스트 §9.3: its SelectValue shows its value shape while something is selected.)
+    ...(typeOf(owner) === "Select"
+      ? catalogSelectValues(owner, get, typeOf)
+      : []),
     ...fieldSubparts(owner, get, typeOf),
     // (A Button's children follow its `isPending` — `_pendingHidden`, `buttonPending.ts`.)
     ...(["Button", "ActionButton"].includes(typeOf(owner))
@@ -5468,6 +5493,9 @@ export function catalogStateValue(
       const parent = get(owner.parentId);
       return !!parent && typeOf(parent) === "SubmenuTrigger";
     }
+    // S2 체크리스트 §9.3: its S2 UnavailableMenuItemTrigger's `isUnavailable`.
+    case "isUnavailable":
+      return catalogMenuItemUnavailable(owner, get, typeOf);
     // ADR-256 Phase 9: a month block's place among its calendar's shown months (its copy index).
     case "isFirstMonth":
       return catalogCalendarMonthIndex(owner) === 0;
@@ -5657,10 +5685,12 @@ export function catalogStateDependents(
         (child) => child.bindingId === "overlayarrow",
       ),
     );
-  // (A group whose items take its state — a TagGroup's `allowsRemoving` — gives no keys of its own.)
+  // (A group whose items take its state — a TagGroup's `allowsRemoving` — gives no keys of its own.
+  //  S2 체크리스트 §9.3: an UnavailableMenuItemTrigger's `isUnavailable` is its item's state too.)
   if (
     !catalogStateKeysOf(typeOf(node)).length &&
-    !ITEM_STATE_GROUPS.has(typeOf(node))
+    !ITEM_STATE_GROUPS.has(typeOf(node)) &&
+    typeOf(node) !== CATALOG_UNAVAILABLE_MENU_TRIGGER
   )
     return out;
   const visit = (record: CatalogConsumerNode) => {

@@ -2605,7 +2605,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-menu-item-default__label",
       "lib:template:component-menu-item-default__description",
       "lib:template:component-menu-item-default__shortcut",
-      "lib:template:component-menu-item-default__chevron"
+      "lib:template:component-menu-item-default__chevron",
+      "lib:template:component-menu-item-default__unavailable"
     ],
     "props": {},
     "visual": {}
@@ -2663,6 +2664,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "showWhen": {
       "all": [
         "hasSubmenu"
+      ]
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu-item-default__unavailable",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "slot": "descriptor",
+      "iconName": "info",
+      "size": "XS"
+    },
+    "showWhen": {
+      "all": [
+        "isUnavailable"
       ]
     },
     "visual": {}
@@ -5349,6 +5366,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-select__2_1",
     "definitionId": "lib:definition:type-SelectValue",
+    "slot": {
+      "name": "value",
+      "required": false
+    },
     "children": [],
     "props": {
       "children": "{placeholder}"

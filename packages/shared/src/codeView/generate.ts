@@ -122,6 +122,7 @@ import {
 } from "../collections/formula/engine";
 import { hasFormula } from "../collections/formula/compute";
 import { formulaShown } from "../collections/formula/names";
+import { catalogInSelectValue } from "../catalog/document/selectValueShape";
 import type {
   CodeViewAnchorTarget,
   CodeViewCollection,
@@ -145,6 +146,8 @@ const CODE_VIEW_SHARED_COMPONENTS = new Set([
   "ActionBar",
   "SelectBoxGroup",
   "SelectBox",
+  // S2 체크리스트 §9.3 — S2's, not RAC's.
+  "UnavailableMenuItemTrigger",
 ]);
 const FIELD = "data:field:";
 /** The drops that bring items from elsewhere — their keys are read from the drag data. */
@@ -3363,8 +3366,11 @@ class Generator {
         );
         attributes.unshift(attributes.pop()!);
       }
-      attribute(rowTemplate.prop, `{${rowTemplate.code}}`);
-      attributes.unshift(attributes.pop()!);
+      // (A Select's value shape is no item — only React's `key`: S2 `renderValue`.)
+      if (rowTemplate.prop) {
+        attribute(rowTemplate.prop, `{${rowTemplate.code}}`);
+        attributes.unshift(attributes.pop()!);
+      }
       // (An array's `map` keys its elements — React's `key`.)
       if (rowTemplate.mapped) {
         attribute("key", `{${rowTemplate.code}}`);
@@ -3820,6 +3826,41 @@ class Generator {
     return item.id;
   }
 
+  /** The Select whose value shape (its SelectValue's nodes — S2 `renderValue`) holds `id`. */
+  private valueShapeSelect(id: string): NodeEntry | undefined {
+    const reader = this.doc.input.reader as unknown as {
+      ownerOf?: (id: string) => string | undefined;
+      library?: { templates: ReadonlyMap<string, { definitionId: string }> };
+    };
+    if (!reader.ownerOf) return undefined;
+    const ownerOf = reader.ownerOf.bind(reader);
+    const typeName = (definitionId: string) => {
+      try {
+        return definitionTypeName(this.doc.input.reader as never, definitionId as never);
+      } catch {
+        return "";
+      }
+    };
+    if (
+      !catalogInSelectValue(
+        id,
+        (entry) => this.doc.get(entry),
+        ownerOf,
+        typeName as never,
+        (templateId) =>
+          (templateId.startsWith("lib:")
+            ? reader.library?.templates.get(templateId)?.definitionId
+            : this.doc.node(templateId)?.definitionId) as never,
+      )
+    )
+      return undefined;
+    for (let owner = ownerOf(id); owner; owner = ownerOf(owner)) {
+      const entry = this.doc.node(owner);
+      if (entry && this.doc.typeOf(entry) === "Select") return entry;
+    }
+    return undefined;
+  }
+
   /**
    * A child: a repeated item (`repeat`) is its rows' render function — `<Collection items={…}>`
    * (`{rows.map(item => …)}` in a RAC group, which is no collection); the rest are nodes.
@@ -3838,7 +3879,7 @@ class Generator {
     const type = this.doc.typeOf(node);
     out.start();
     const from = out.length;
-    if (GROUP_REPEAT_ITEMS[type]) {
+    if (GROUP_REPEAT_ITEMS[type] || frame.rows === "selectedItems") {
       out.write(`{${frame.rows}.map(`);
       this.writeRender(out, id, frame, id, true);
       out.write(")}");
@@ -3864,6 +3905,16 @@ class Generator {
   private repeatFrame(node: NodeEntry): RowFrame | undefined {
     if (node.binding && node.binding.key === undefined)
       return this.rowFrame(node.binding, this.boundRows(node, node.binding));
+    // S2 체크리스트 §9.3 — a Select's value shape repeats over S2 `renderValue`'s `selectedItems`:
+    // the Select's rows (its binding's fields), else its items (`id` · `label`).
+    const select = this.valueShapeSelect(node.id);
+    if (select)
+      return select.binding && select.binding.key === undefined
+        ? {
+            ...this.rowFrame(select.binding, "selectedItems"),
+            rows: "selectedItems",
+          }
+        : { rows: "selectedItems", key: "id", label: "label" };
     const outer = this.rowFrames.at(-1);
     if (outer?.row)
       return outer.children
@@ -3897,7 +3948,7 @@ class Generator {
     const saved = this.rowTemplate;
     this.rowTemplate = {
       nodeId: id,
-      prop: rowKeyProp(type),
+      prop: frame.rows === "selectedItems" ? "" : rowKeyProp(type),
       code: frame.tree ? "item.key" : `item.${frame.key}`,
       ...(inline ? { mapped: true } : {}),
     };

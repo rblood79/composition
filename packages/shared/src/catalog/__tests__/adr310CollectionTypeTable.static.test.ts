@@ -23,6 +23,8 @@ const EXCLUDED: Readonly<Record<string, string>> = {
   TableHeader: "a Table's columns are design nodes (ADR-241) — not data rows",
   Row: "a row's cells follow its columns",
   SubmenuTrigger: "a submenu (MenuItem + Popover) inside a Menu row",
+  UnavailableMenuItemTrigger:
+    "S2 §9.3 — an unavailable item (MenuItem + help Popover) inside a Menu row",
   TreeItem: "the Tree row's recursion (the table's `recursive`)",
   ColorSwatchPicker: "a group (`GROUP_ITEM_TYPES`) — ADR-310 Phase 5 groups",
   SideNav:
@@ -37,6 +39,7 @@ const NON_ITEM_CHILDREN = new Set([
   "Header",
   "Separator",
   "SubmenuTrigger",
+  "UnavailableMenuItemTrigger",
   "TreeItemContent",
   "Popover",
   // (ADR-314 — a CardView's loading items: drawn while its collection loads, not one of its rows.)

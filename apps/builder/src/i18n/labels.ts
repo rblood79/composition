@@ -446,6 +446,8 @@ export const semanticLabelKeys: Record<string, string> = {
   "Validation rules": "properties.validationRules",
   "Unavailable dates": "properties.unavailableDates",
   "Keyboard dismiss disabled": "properties.keyboardDismissDisabled",
+  Unavailable: "properties.unavailable",
+  "Value shape": "properties.valueShape",
   "Filter mode": "properties.filterMode",
   "Starts with": "properties.filterStartsWith",
   "Min Length": "datatable.fields.minLength",

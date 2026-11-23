@@ -348,7 +348,7 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "Input",
   // (DateInput — ADR-256 Phase 9: it holds its segment template.)
   "Illustration",
-  "SelectValue",
+  // (SelectValue — S2 체크리스트 §9.3: the nodes in it are its value's shape, S2 `renderValue`.)
   "ColorSwatch",
   // (ColorArea · ColorSlider · ColorWheel — ADR-258 Phase 2: they hold their thumb · track nodes.)
   "ColorThumb",

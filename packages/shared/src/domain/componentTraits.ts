@@ -380,11 +380,22 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     container: "collection",
     families: ["itemSlotCollection", "emptyStateCollection"],
     // (As ListBox: no deprecated `Section`, and `Header` is MenuSection's, 2026-10-22.)
-    children: ["MenuItem", "SubmenuTrigger", "MenuSection", "Separator"],
+    children: [
+      "MenuItem",
+      "SubmenuTrigger",
+      "UnavailableMenuItemTrigger",
+      "MenuSection",
+      "Separator",
+    ],
   },
   MenuSection: {
     container: "collection",
-    children: ["Header", "MenuItem", "SubmenuTrigger"],
+    children: [
+      "Header",
+      "MenuItem",
+      "SubmenuTrigger",
+      "UnavailableMenuItemTrigger",
+    ],
     owners: ["Menu"],
   },
   // ADR-256 후속 4 · 6: a static collection item — its `id` is RAC's key (selection, `onAction`).
@@ -392,6 +403,12 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ADR-256 Phase 5g: RAC SubmenuTrigger — its item (the first child) and the Popover holding the
   // submenu's Menu (RAC reads `children[0]` · `children[1]`).
   SubmenuTrigger: {
+    container: "collection",
+    children: ["MenuItem", "Popover"],
+    owners: ["Menu"],
+  },
+  // S2 체크리스트 §9.3: S2 UnavailableMenuItemTrigger — its item and the Popover holding the help.
+  UnavailableMenuItemTrigger: {
     container: "collection",
     children: ["MenuItem", "Popover"],
     owners: ["Menu"],

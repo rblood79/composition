@@ -1108,6 +1108,15 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     icon: "ChevronRight",
     placeable: false,
   }),
+  // UnavailableMenuItemTrigger — S2 체크리스트 §9.3: an unavailable menu item opening a help popover
+  //   (S2 UnavailableMenuItemTrigger > MenuItem + ContextualHelpPopover). Put into a Menu through its
+  //   insert list, not the palette.
+  primitiveEntry("UnavailableMenuItemTrigger", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "unavailable menu item",
+    icon: "Info",
+    placeable: false,
+  }),
 ];
 
 /**

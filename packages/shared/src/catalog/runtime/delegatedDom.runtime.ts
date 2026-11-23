@@ -1341,6 +1341,7 @@ const LISTBOX_CHILD_TYPES: ReadonlySet<string> = new Set([
 const MENU_CHILD_TYPES: ReadonlySet<string> = new Set([
   "MenuItem",
   "SubmenuTrigger",
+  "UnavailableMenuItemTrigger",
   "MenuSection",
   "Separator",
 ]);

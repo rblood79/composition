@@ -16,6 +16,7 @@ export const RAC_STATE_KEYS: Readonly<Record<string, readonly string[]>> = {
     "isPressed",
     "isHovered",
     "isFocusVisible",
+    "isUnavailable",
   ],
   Cell: [
     "isSelected",

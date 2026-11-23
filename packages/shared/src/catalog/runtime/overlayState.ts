@@ -31,7 +31,9 @@ export function catalogOverlayOwner(
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
     if (
       OVERLAY_OPEN_OWNERS.has(typeOf(parent)) ||
-      typeOf(parent) === "SubmenuTrigger"
+      typeOf(parent) === "SubmenuTrigger" ||
+      // (S2 체크리스트 §9.3: an unavailable item's help Popover — RAC's SubmenuTrigger too.)
+      typeOf(parent) === "UnavailableMenuItemTrigger"
     )
       return parent;
     if (OVERLAY_BODY_TYPES.has(typeOf(parent))) return undefined;
