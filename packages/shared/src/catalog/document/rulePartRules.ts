@@ -1670,8 +1670,9 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   },
   // ADR-315 Phase 6 — a merged Table's body row line is its cells' (derived `cellLines` ·
   //   `mergeLine` — `derivedVariantProps.ts`). The line axis first: the end lines after it win.
-  Row: { "cell-lines": "cellLines" },
+  Row: { "cell-lines": "cellLines", "in-footer": "inFooter" },
   Cell: {
+    "in-footer": "inFooter",
     "merge-line": "mergeLine",
     align: "align",
     "show-divider": "showDivider",
@@ -1791,6 +1792,8 @@ function cellTextVisual(
     else if (key === "overflow") out.overflow = value;
     else if (key === "border-style") out.borderStyle = value;
     else if (key === "border-color") out.borderColor = value;
+    // (S2 체크리스트 §9.3 — a footer Row's own background, S2 `isInFooter` gray-200.)
+    else if (key === "background-color") out.backgroundColor = value;
     else if (key === "border-right-width") {
       const px = lengthPx(value);
       if (px !== undefined) out.borderRightWidth = px;
@@ -1802,8 +1805,9 @@ function cellTextVisual(
       // (ADR-315 Phase 6 — a merged Table's row line: its Cells' own, none under a merged cell.)
       const px = lengthPx(value);
       if (px !== undefined)
-        out[key === "border-top-width" ? "borderTopWidth" : "borderBottomWidth"] =
-          px;
+        out[
+          key === "border-top-width" ? "borderTopWidth" : "borderBottomWidth"
+        ] = px;
     }
   }
   return out;

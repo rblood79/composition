@@ -304,6 +304,9 @@ export const COLOR_ALIASES: Readonly<Record<string, ColorAliasEntry>> = {
   "collection-item-focus": tone(200, 200, {
     source: "S2 Menu.tsx:265 baseColor('gray-100').isFocusVisible = gray-200",
   }),
+  "table-footer": tone(200, 200, {
+    source: "S2 TableView.tsx:1939 rowBackgroundColor isInFooter gray-200",
+  }),
 
   // ── ADR-314 S2 Skeleton — 로딩 모양 (`Skeleton.tsx` loadingStyle · `StatusLight.tsx:126`) ──
   skeleton: tone(100, 100, {

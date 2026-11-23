@@ -82,6 +82,7 @@ import {
   CATALOG_COLUMN_MENU_PROP,
   CATALOG_COLUMN_PINNED_EDGE_PROP,
   CATALOG_COLUMN_PINNED_PROP,
+  catalogTableFooterPart,
   catalogTableSelectionPartHidden,
   catalogTableSelectionParts,
   catalogTableTrackDependents,
@@ -1299,6 +1300,9 @@ export function catalogHiddenAtRest(
   if (catalogImageFallbackHidden(node, get, typeOf)) return true;
   // (S2 체크리스트 §9.3 — a Select's value shape: nothing selected, or a copy of an item not selected.)
   if (catalogValueTemplateHidden(node, get, typeOf)) return true;
+  // (S2 체크리스트 §9.3 — an editable cell's Form: S2 `EditableCell`'s popover, closed at rest — the
+  //  Canvas never opens it.)
+  if (catalogEditableCellForm(node, get, typeOf)) return true;
   // 닫힌 overlay의 화살표만 숨긴다. 열린 portal에서는 부모 배치가 좌표를 제공한다.
   if (node.bindingId === "overlayarrow") {
     const parent = get(node.parentId);
@@ -3286,6 +3290,14 @@ function derivedPropsBeforeSkeleton(
     //  projection marks the records, `tableColumns.ts`.)
     ...(node.props[CATALOG_ROW_CELL_LINES_PROP] === true
       ? { cellLines: "cells" }
+      : {}),
+    // (S2 체크리스트 §9.3 — a Row in its Table's footer (the totals row) and its Cells: S2
+    //  `TableFooter`'s row look, the Row · Cell rule's `in-footer` block.)
+    ...(catalogTableFooterPart(node, get, typeOf) ? { inFooter: "true" } : {}),
+    // (S2 체크리스트 §9.3 — S2 `EditableCell`'s edit button: `visibility: hidden` at rest (the row's
+    //  hover · focus shows it — the DOM's), its box laid out.)
+    ...(catalogEditableCellButton(node, get, typeOf)
+      ? { _editButtonHidden: true }
       : {}),
     ...(node.props[CATALOG_CELL_LINE_PROP] === "bottom" ||
     node.props[CATALOG_CELL_LINE_PROP] === "none"
@@ -5702,4 +5714,42 @@ export function catalogStateDependents(
   };
   visit(node);
   return out;
+}
+
+/**
+ * S2 체크리스트 §9.3 — S2 `EditableCell`: a Cell holding a Form (its `renderEditing` — the popover
+ * the edit button opens). The Form is that Form; the edit button is an `ActionButton[slot=edit]`
+ * in the cell's content frame.
+ */
+export function catalogEditableCellForm(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "Form") return false;
+  const cell = get(node.parentId);
+  return !!cell && typeOf(cell) === "Cell";
+}
+export function catalogEditableCell(
+  cell: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(cell) !== "Cell") return undefined;
+  for (const id of cell.children) {
+    const child = get(id);
+    if (child && typeOf(child) === "Form") return child;
+  }
+  return undefined;
+}
+export function catalogEditableCellButton(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "ActionButton" || node.props.slot !== "edit")
+    return false;
+  const frame = get(node.parentId);
+  const cell = frame ? get(frame.parentId) : undefined;
+  return !!cell && !!catalogEditableCell(cell, get, typeOf);
 }

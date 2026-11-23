@@ -308,6 +308,7 @@ import {
   catalogTreeChevronLevel,
   catalogTreeChevronGlyphItem,
   catalogToggleButtonGlyphOwner,
+  catalogEditableCell,
   FIELD_HINT_OWNERS,
 } from "./presence";
 
@@ -460,6 +461,11 @@ export interface CatalogDomRuntime {
     rowKey: string,
     side: "top" | "bottom" | "none",
   ): void;
+  /**
+   * S2 체크리스트 §9.3 — an S2 `EditableCell`'s save: the submitted fields (by name — the column
+   * keys) onto its drawn row's item (the session's `useListData.update`).
+   */
+  editTableRow?(rowId: string, values: Readonly<Record<string, unknown>>): void;
   /**
    * ADR-315 Phase 6 — a cell range of a Table its viewers select cells in, as tab-separated text:
    * its rows (keys, in the order shown) by its Columns (keys) — the rows' data (breakdown §5.6).
@@ -912,6 +918,27 @@ function catalogTableRowPinProps(
     };
   }
   return out;
+}
+/**
+ * S2 체크리스트 §9.3 — an S2 `EditableCell` (`CatalogTableCell` → `editableCell.components.tsx`): its
+ * editing Form's record (drawn in the popover) and the save onto its drawn row (`editTableRow`).
+ */
+function catalogEditableCellProps(
+  node: CatalogConsumerNode,
+  domGet: (id: string) => CatalogConsumerNode | undefined,
+  domType: (entry: CatalogConsumerNode) => string,
+  context: CatalogDomContext,
+): Record<string, unknown> {
+  const form = catalogEditableCell(node, domGet, domType);
+  const runtime = context.runtime;
+  if (!form) return {};
+  return {
+    editableCell: {
+      formId: form.id,
+      onSave: (values: Readonly<Record<string, unknown>>) =>
+        runtime?.editTableRow?.(node.parentId, values),
+    },
+  };
 }
 /**
  * ADR-315 Phase 6 — a Table 「Cell selection」's rows and Columns, as its cell ranges read them
@@ -3328,7 +3355,8 @@ function ruleDom(
   const edged: CatalogConsumerNode =
     node.derivedProps?.pinnedEdge ||
     node.derivedProps?.cellLines ||
-    node.derivedProps?.mergeLine
+    node.derivedProps?.mergeLine ||
+    node.derivedProps?.inFooter
       ? {
           ...node,
           visual: {
@@ -4021,6 +4049,10 @@ function ruleDom(
         : {}),
       ...(lower === "cell"
         ? catalogTableRowPinProps(node, domGet, domType, context)
+        : {}),
+      // (S2 체크리스트 §9.3 — S2 `EditableCell`: a Cell holding its editing Form.)
+      ...(lower === "cell"
+        ? catalogEditableCellProps(node, domGet, domType, context)
         : {}),
       // ADR-315 Phase 6 — a Cell of a Table 「Cell selection」 names its Column (its range's point).
       ...(lower === "cell" &&
@@ -6608,6 +6640,14 @@ function withHtmlId(
       patch.key = `${element.key ?? ""}#${node.htmlId}`;
   }
   if (node.ariaLabel) patch["aria-label"] = node.ariaLabel;
+  // (S2 체크리스트 §9.3 — S2 `TableFooter`'s row is out of the selection, not dimmed: S2 Row
+  //  `isDisabled` + `disabledBehavior: "selection"` (react-stately's per-item disabled behavior —
+  //  never selected, no `data-disabled`). The record keeps no `isDisabled`: the Canvas has nothing
+  //  to dim.)
+  if (type === "Row" && node.derivedProps?.inFooter) {
+    patch.isDisabled = true;
+    patch.disabledBehavior = "selection";
+  }
   const authored = node.className;
   if (authored) {
     const own = (element.props as { className?: ClassNameValue }).className;

@@ -264,6 +264,23 @@ function tableColumns<T extends TrackRecord>(
     );
 }
 
+/**
+ * A Row in its Table's footer (ADR-315 5c — the totals row) or one of its Cells: S2 `TableFooter`'s
+ * row (S2 체크리스트 §9.3 — the Row · Cell rule's `in-footer` block, out of the selection).
+ */
+export function catalogTableFooterPart<T extends TrackRecord>(
+  node: T,
+  get: TrackLookup<T>,
+  typeOf: TrackTypeOf<T>,
+): boolean {
+  const type = typeOf(node);
+  const row =
+    type === "Row" ? node : type === "Cell" ? get(node.parentId) : undefined;
+  if (!row || typeOf(row) !== "Row") return false;
+  const footer = get(row.parentId);
+  return !!footer && typeOf(footer) === "TableFooter";
+}
+
 /** A Column · Cell holding the selection checkbox (`Checkbox[slot=selection]`, in it or one frame down). */
 export function catalogTableSelectionColumn<T extends TrackRecord>(
   column: T,
@@ -279,11 +296,10 @@ export function catalogTableSelectionColumn<T extends TrackRecord>(
   if (within(column, 1)) return true;
   // (ADR-315 Phase 5 증분 5c — a totals row's cell holds no checkbox (the row is not selected):
   //  it is the selection cell by its place — the selection Column's among the header's.)
-  if (typeOf(column) !== "Cell") return false;
-  const row = get(column.parentId);
-  const footer = row ? get(row.parentId) : undefined;
-  if (!row || !footer || typeOf(footer) !== "TableFooter") return false;
-  const table = get(footer.parentId);
+  if (typeOf(column) !== "Cell" || !catalogTableFooterPart(column, get, typeOf))
+    return false;
+  const row = get(column.parentId)!;
+  const table = get(get(row.parentId)!.parentId);
   const header = table
     ? recordChildren(table, get).find((part) => typeOf(part) === "TableHeader")
     : undefined;

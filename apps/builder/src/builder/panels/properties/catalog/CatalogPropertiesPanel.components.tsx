@@ -2,6 +2,7 @@ import {
   CatalogListFilterSection,
   CatalogTableColumnsSwitch,
   CatalogTableTotalsSwitch,
+  CatalogColumnEditableSwitch,
   CatalogTableDetailSwitch,
   CatalogTableSearchSwitch,
   CatalogTableSortNotice,
@@ -697,7 +698,11 @@ function withFilterSections(
   // (ADR-315 Phase 4 — the Table's 「Column visibility menu」: a Menu of its columns — any Table,
   //  bound or not: the columns are its authored Columns.)
   const columns = (
-    <CatalogTableColumnsSwitch key={`columns:${nodeId}`} listId={nodeId} />
+    <>
+      <CatalogTableColumnsSwitch key={`columns:${nodeId}`} listId={nodeId} />
+      {/* (S2 체크리스트 §9.3 — a Column's 「Editable」: S2 `EditableCell` for its body cells.) */}
+      <CatalogColumnEditableSwitch key={`editable:${nodeId}`} nodeId={nodeId} />
+    </>
   );
   if (!isBound)
     return {

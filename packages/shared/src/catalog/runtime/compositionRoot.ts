@@ -1930,7 +1930,9 @@ function styleOf(
     // (S2 `renderActionBar` — a CardView's · Table's · Tree's ActionBar floats over its bottom edge;
     //  the DOM's same inline place, `CatalogActionBarHost`.)
     ...(node.derivedProps?._actionBarInContainer === true
-      ? catalogActionBarPlacement(Number(node.derivedProps._actionBarBorder ?? 0))
+      ? catalogActionBarPlacement(
+          Number(node.derivedProps._actionBarBorder ?? 0),
+        )
       : {}),
     // (2026-11-14: an ActionButton's count badge — over its icon's corner, the DOM's same inline place.)
     ...(catalogIsAuthoredPlaced(node)
@@ -5587,9 +5589,12 @@ export class CatalogCompositionRoot {
       return { ...CATALOG_EMPTY_SKELETON_STYLE };
     const frame = this.pageFrameStyle(record);
     // (ADR-315 Phase 6 — a merged Table's body Row · Cell: the row line its Cells draw is in their
-    //  box, as the DOM's border — the rule's derived `cell-lines` · `merge-line` widths, laid out.)
+    //  box, as the DOM's border — the rule's derived `cell-lines` · `merge-line` widths, laid out.
+    //  S2 체크리스트 §9.3 — a footer Cell's bold, measured.)
     const lined =
-      record.derivedProps?.cellLines || record.derivedProps?.mergeLine
+      record.derivedProps?.cellLines ||
+      record.derivedProps?.mergeLine ||
+      record.derivedProps?.inFooter
         ? ({
             ...record,
             visual: {
@@ -8790,8 +8795,7 @@ export class CatalogCompositionRoot {
       const stack = [definition.templateRootId as string];
       while (stack.length) {
         const template = this.templateNode(stack.pop()!) as
-          | { presentWith?: string; children?: readonly string[] }
-          | undefined;
+          { presentWith?: string; children?: readonly string[] } | undefined;
         if (!template) continue;
         if (template.presentWith) found.add(template.presentWith);
         stack.push(...(template.children ?? []));

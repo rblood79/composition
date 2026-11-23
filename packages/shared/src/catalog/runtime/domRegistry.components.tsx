@@ -27,6 +27,10 @@ import {
 import { resolveSelectionBehavior } from "../../components/selectionStyle";
 
 import { RESIZABLE_TABLE_STYLE } from "./domRegistry.runtime";
+import {
+  CatalogEditableCellContent,
+  type CatalogEditableCellProps,
+} from "./editableCell.components";
 import type {
   CatalogCellSelection,
   CatalogCellSelectionSource,
@@ -245,15 +249,32 @@ export function CatalogKeyboard(
  * Cell of a Table without `treeColumn` renders as before.
  */
 export function CatalogTableCell({
-  children: own,
+  children: drawn,
   rowPin,
   measuresRowPin,
+  editableCell,
   ...props
 }: Record<string, unknown> & {
   children?: ReactNode;
   rowPin?: CatalogRowPin;
   measuresRowPin?: boolean;
+  /** S2 체크리스트 §9.3 — S2 `EditableCell` (`editableCell.components.tsx`). */
+  editableCell?: CatalogEditableCellProps;
 }): ReactElement {
+  const cellRef = useRef<HTMLElement | null>(null);
+  const [editing, setEditing] = useState(false);
+  const own = editableCell
+    ? createElement(
+        CatalogEditableCellContent,
+        {
+          editable: editableCell,
+          cellRef,
+          isOpen: editing,
+          setOpen: setEditing,
+        },
+        drawn,
+      )
+    : drawn;
   // (ADR-315 Phase 6 — a Cell of a Table 「Cell selection」: its `aria-selected` follows the ranges
   //  from when RAC puts its element in the DOM — RAC renders this in its collection, the element
   //  apart, so the ref is where the two meet.)
@@ -277,14 +298,18 @@ export function CatalogTableCell({
       : own;
   return createElement(RacCell, {
     ...(props as CellProps),
-    ...(selection && typeof columnKey === "string"
+    ...(editableCell && editing ? { "data-editing": true } : {}),
+    ...((selection && typeof columnKey === "string") || editableCell
       ? {
           ref: (element: HTMLElement | null) => {
+            cellRef.current = element;
             const own = (props as { ref?: unknown }).ref;
             if (typeof own === "function") own(element);
             else if (own && typeof own === "object")
               (own as { current: unknown }).current = element;
-            return element ? selection.mark(element, columnKey) : undefined;
+            return element && selection && typeof columnKey === "string"
+              ? selection.mark(element, columnKey)
+              : undefined;
           },
         }
       : {}),

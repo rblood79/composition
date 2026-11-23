@@ -90,6 +90,10 @@ import {
   catalogTableTotalsOn,
 } from "../../../catalogRuntime/tableTotals";
 import {
+  catalogColumnEditableCommand,
+  catalogColumnEditableOn,
+} from "../../../catalogRuntime/tableEditableCell";
+import {
   catalogTableDetailCommand,
   catalogTableDetailOn,
 } from "../../../catalogRuntime/tableDetail";
@@ -357,6 +361,57 @@ export function CatalogTableColumnsSwitch({ listId }: { listId: NodeId }) {
             ).command
           : catalogRemoveTableColumnChoosersCommand(graph, listId);
         if (command) run(command);
+      }}
+    />
+  );
+}
+
+/**
+ * S2 체크리스트 §9.3 (6-6) — a Table Column's 「Editable」 (S2 `EditableCell`): on makes its body
+ * cells S2's editable cell (the value with its edit button, the Form its popover opens — a save
+ * updates the row, the Form's When `onSubmit` saves it with a `callEndpoint` Do); off undoes it.
+ */
+export function CatalogColumnEditableSwitch({ nodeId }: { nodeId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const graph = workspace.runtime.graph;
+  const column = useMemo(
+    () => ({ kind: "node", id: nodeId }) as const,
+    [nodeId],
+  );
+  const on = useMemo(() => {
+    void revision;
+    const node = graph.getEntry(nodeId);
+    if (node?.kind !== "node") return undefined;
+    try {
+      if (definitionTypeName(graph, node.definitionId) !== "Column")
+        return undefined;
+    } catch {
+      return undefined;
+    }
+    return catalogColumnEditableOn(graph, column);
+  }, [graph, nodeId, column, revision]);
+  if (on === undefined) return null;
+  return (
+    <PropertySwitch
+      label={t("dataView.tableColumnEditable")}
+      isSelected={on}
+      onChange={(selected) => {
+        if (selected === on) return;
+        run(
+          catalogColumnEditableCommand(
+            graph,
+            column,
+            selected,
+            workspace.newId,
+            {
+              edit: (label) =>
+                t("dataView.tableColumnEditLabel", { column: label }),
+            },
+          ),
+        );
       }}
     />
   );

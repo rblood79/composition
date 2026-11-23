@@ -434,6 +434,11 @@ export interface CatalogPreviewInteractionsOptions {
     rowKey: string,
     side: "top" | "bottom" | "none",
   ) => void;
+  /** S2 체크리스트 §9.3 — an S2 `EditableCell`'s save (`CatalogDomRuntime.editTableRow`). */
+  editTableRow?: (
+    rowId: string,
+    values: Readonly<Record<string, unknown>>,
+  ) => void;
   /** ADR-315 Phase 6 — a cell range as tab-separated text (`CatalogDomRuntime.tableCellText`). */
   tableCellText?: (
     tableId: string,
@@ -1392,6 +1397,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   }
   expandTableRows(tableId: string, keys: readonly string[]): void {
     this.options.expandTableRows?.(tableId, keys);
+  }
+  editTableRow(rowId: string, values: Readonly<Record<string, unknown>>): void {
+    this.options.editTableRow?.(rowId, values);
   }
   resizeTableColumns(
     tableId: string,

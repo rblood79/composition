@@ -87,6 +87,7 @@ export function catalogPreviewRuntime(
     expandTableRows: (tableId, keys) => session.expandTableRows(tableId, keys),
     pinTableRow: (tableId, key, side) =>
       session.pinTableRow(tableId, key, side),
+    editTableRow: (rowId, values) => session.editTableRow(rowId, values),
     resizeTableColumns: (tableId, widths) =>
       session.resizeTableColumns(tableId, widths),
     tableCellText: (tableId, rows, columns) =>

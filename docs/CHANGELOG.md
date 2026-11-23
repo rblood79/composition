@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Table 합계 행 · 편집 칸 — S2 TableFooter · EditableCell] - 2026-11-23
+
+### Added
+
+- **Column 의 「Editable」** (S2 `EditableCell`, 사용자 결정 「세션 update · 저장은 callEndpoint」): 데이터에 연결된 Table 의 Column 을 고르고 Design 패널 Behavior 에서 켜면 그 열의 칸이 S2 편집 칸이 된다 — 값 옆 연필 버튼 (평소에는 숨고 행에 마우스를 올리거나 focus 가 들어오면 보인다), 누르면 칸 아래 popover 에 입력칸 (이름 = 열 key, 처음 값 = 칸 값) 과 취소 · 저장 버튼. 저장하면 그 행의 값이 바뀌고 (Preview · Publish 세션의 목록 데이터) Form 의 When 「onSubmit」 이 실행된다 — 서버에 저장하려면 그 규칙에 callEndpoint Do 를 붙인다. 바깥을 누르면 저장, Escape · 취소는 그대로 둔다. 끄면 칸이 원래 글자로 돌아온다.
+  - 칸 구조는 S2 예제 그대로 노드다: `Cell > frame (값 Text + ActionButton[slot=edit]) + Form > TextField`. 입력칸을 바꾸거나 더 넣으려면 그 Form 을 고친다.
+  - Canvas 는 값과 연필 버튼의 자리만 그린다 (버튼 글리프 · 열리지 않은 Form 은 그리지 않는다 — S2 의 휴지 상태).
+- **색 토큰 `{color.table-footer}`** (`--table-footer`, S2 gray-200 — light `#e1e1e1` · dark `#323232`).
+
+### Changed
+
+- **Table 합계 행 (「Totals row」) 이 S2 모양이다** (S2 `TableFooter` 의 행): 바탕 gray-200 · 글자 굵게 (700). 행을 누르거나 전체 선택 (Ctrl/Cmd + A · 머리글 체크) 해도 선택되지 않는다 — 흐려지지도 않는다 (S2 `disabledBehavior: "selection"`).
+  - 위치: `packages/shared/src/catalog/{generated/componentRulesTable.ts (Row · Cell `in-footer` · Table edit 버튼 상태 · Popover 편집 칸 모양),document/rulePartRules.ts,document/derivedVariantProps.ts,commands/collections.ts (`setTableColumnEditable`),runtime/presence.ts,runtime/tableTracks.ts (`catalogTableFooterPart`),runtime/domBinding.runtime.ts,runtime/domRegistry.components.tsx,runtime/editableCell.components.tsx,runtime/catalogPreviewSession.ts (`editTableRow`),runtime/compositionRoot.ts}` · `packages/rendering/src/{primitives/colorAliases.ts,renderers/utils/tokenResolver.ts}` · `apps/builder/src/builder/{catalogRuntime/tableEditableCell.ts,catalogRuntime/canvasBinding.ts,panels/properties/catalog/CatalogFilterSection.tsx}`
+
+### Tests
+
+- `s2TableFooter.test.tsx` 2 (Canvas · DOM 바탕 · 굵기 · Skia 칠 #e1e1e1, 누르기 · 전체 선택에도 선택 안 됨), `s2EditableCell.test.tsx` 2 (켜기 · 끄기 구조 · Canvas 숨김, popover 저장 · 취소), `s2EditableCellCanvas.test.ts` 2 (팔레트 Table instance · Builder 행 · 연결 없는 Table 은 스위치 없음), live `apps/builder/scripts/s2-editable-cell-live.mjs` 6/6.
+
 ## [Custom · fullscreen dialog — S2 Modal size · CustomDialog · FullscreenDialog] - 2026-11-23
 
 ### Added

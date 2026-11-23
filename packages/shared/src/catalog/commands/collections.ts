@@ -1967,3 +1967,205 @@ export const insertTableRow =
       selectAfter: [built.rootId],
     };
   };
+
+// ── S2 EditableCell (S2 체크리스트 §9.3 — 6-6) ─────────────────────────────
+
+/**
+ * The editing Form of a cell (S2 `EditableCell`'s `renderEditing` — the Form S2 renders it in): a
+ * Cell holding a Form is an editable cell. Its content frame holds the cell's content and its
+ * `ActionButton[slot=edit]` (the S2 example's `div` — the button opens the Form's popover).
+ */
+function editableCellParts(
+  draft: CommandDraft,
+  cellId: NodeId,
+): { form: NodeId; content?: NodeId; button?: NodeId } | undefined {
+  const cell = draft.node(cellId);
+  const typeOfId = (id: NodeId) => positionType(draft, { kind: "node", id });
+  const form = cell.children.find((id) => typeOfId(id) === "Form");
+  if (!form) return undefined;
+  for (const id of cell.children) {
+    if (id === form || typeOfId(id) !== "frame") continue;
+    const button = draft.node(id).children.find(
+      (child) =>
+        typeOfId(child) === "ActionButton" &&
+        (() => {
+          const slot = draft.node(child).props.slot;
+          return slot?.kind === "set" && slot.value === "edit";
+        })(),
+    );
+    if (button) return { form, content: id, button };
+  }
+  return { form };
+}
+
+/** The body cells of a Table column (its data rows' — not a totals row's), each an owned Cell. */
+function editableColumnCells(
+  draft: CommandDraft,
+  column: NodeParent,
+): { cells: NodeId[]; key: string; label: string } | undefined {
+  const grid = tableColumnGrid(draft, column);
+  if (!grid) return undefined;
+  // (A Table with rows of data: a save writes its row's item — a static Table has none.)
+  // (A placed Table origin draws its header in its template's place — the instance holds the binding.)
+  const table = parentOf(draft, grid.header);
+  const tableNode =
+    table?.kind === "node"
+      ? table.id
+      : table?.kind === "descendant" && table.address.templatePath.length === 1
+        ? table.ownerId
+        : undefined;
+  if (!tableNode || !draft.node(tableNode).binding) return undefined;
+  const index = grid.columns.findIndex(
+    (position) => positionKey(position) === positionKey(column),
+  );
+  if (index < 0 || tableSelectionPart(draft, column)) return undefined;
+  const dataIndex = grid.columns
+    .slice(0, index)
+    .filter((each) => !tableSelectionPart(draft, each)).length;
+  const cells: NodeId[] = [];
+  for (const { row, cells: rowParts } of grid.rows) {
+    const group = parentOf(draft, row);
+    if (!group || positionType(draft, group) !== "TableBody") continue;
+    const at = cellAtColumn(draft, rowParts, index);
+    if (!at || at.span !== 1) continue;
+    if (at.cell.kind !== "node") return undefined;
+    cells.push(at.cell.id);
+  }
+  if (!cells.length) return undefined;
+  const label = readProp(draft.reader, column, "children");
+  const key = columnKey(draft.reader, column, dataIndex);
+  return { cells, key, label: typeof label === "string" ? label : key };
+}
+
+/**
+ * S2 체크리스트 §9.3 — whether a Table Column's cells are S2 `EditableCell`s (each body cell holds
+ * its editing Form). Undefined for a non-Column, a selection column, a Table not bound to data (no
+ * row to write) or one whose cells are not its own nodes.
+ */
+export function tableColumnEditable(
+  reader: CatalogReader,
+  column: NodeParent,
+): boolean | undefined {
+  const draft = new CommandDraft(reader);
+  const found = editableColumnCells(draft, column);
+  if (!found) return undefined;
+  return found.cells.every((id) => !!editableCellParts(draft, id));
+}
+
+/**
+ * S2 체크리스트 §9.3 — a Table Column's 「Editable」 (S2 `EditableCell`, 사용자 결정 2026-11-23 「세션
+ * update · 저장은 callEndpoint」): on, each body cell becomes S2's editable cell — its content in a
+ * frame (S2's example `div`) with an `ActionButton[slot=edit]`, and a Form (S2 `EditableCell`'s
+ * Form — its `renderEditing`) holding a field named by the column's key that starts with the cell's
+ * value. The DOM opens the Form in a popover from the button; a submit updates the row (the
+ * session's `useListData.update`) and runs the Form's own When `onSubmit` (a `callEndpoint` Do
+ * saves it). Off: the cells hold their content again. A no-op step is refused.
+ */
+export const setTableColumnEditable =
+  (input: {
+    column: NodeParent;
+    on: boolean;
+    /** The cell's text as a node (a Cell with text and no node — its text moves into it). */
+    buildText: (text: string) => { entries: NodeEntry[]; rootId: NodeId };
+    /** S2's edit button — `ActionButton[slot=edit]` (quiet, the edit glyph). */
+    buildEditButton: (label: string) => {
+      entries: NodeEntry[];
+      rootId: NodeId;
+    };
+    /** The content frame (S2's example `div` — a row, the button at the end). */
+    buildContent: (childIds: readonly NodeId[]) => NodeEntry;
+    /** The editing Form and its field (`name` = the column key, starting at `text`). */
+    buildForm: (field: { key: string; text: string; label: string }) => {
+      entries: NodeEntry[];
+      rootId: NodeId;
+    };
+    newId: NewId;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const found = editableColumnCells(draft, input.column);
+    if (!found) return fail("NOT_A_TABLE_VIEW", positionId(input.column));
+    let changed = 0;
+    for (const cellId of found.cells) {
+      const cell = draft.node(cellId);
+      const parts = editableCellParts(draft, cellId);
+      if (!input.on) {
+        if (!parts) continue;
+        changed += 1;
+        const content = parts.content ? draft.node(parts.content) : undefined;
+        const kept = (content?.children ?? []).filter(
+          (id) => id !== parts.button,
+        );
+        // (The text this command moved into a Text goes back to the cell.)
+        const only = kept.length === 1 ? draft.node(kept[0]!) : undefined;
+        const text =
+          only &&
+          positionType(draft, { kind: "node", id: only.id }) === "Text" &&
+          !only.children.length &&
+          only.props.children?.kind === "set" &&
+          typeof only.props.children.value === "string"
+            ? only.props.children.value
+            : undefined;
+        const children = cell.children.flatMap((id) =>
+          id === parts.form
+            ? []
+            : id === parts.content
+              ? text === undefined
+                ? kept
+                : []
+              : [id],
+        );
+        if (content) draft.write({ ...content, children: [] });
+        draft.write({
+          ...cell,
+          children,
+          props:
+            text === undefined
+              ? cell.props
+              : { ...cell.props, children: { kind: "set", value: text } },
+        });
+        removeWithReferrers(draft, [
+          ...subtree(draft, parts.form),
+          ...(parts.button ? subtree(draft, parts.button) : []),
+          ...(parts.content ? [parts.content] : []),
+          ...(text !== undefined ? [kept[0]!] : []),
+        ]);
+        continue;
+      }
+      if (parts) continue;
+      changed += 1;
+      const own = cell.props.children;
+      const text =
+        own?.kind === "set" && typeof own.value === "string" ? own.value : "";
+      const textNode = cell.children.length ? undefined : input.buildText(text);
+      const button = input.buildEditButton(found.label);
+      const content = input.buildContent([
+        ...(textNode ? [textNode.rootId] : cell.children),
+        button.rootId,
+      ]);
+      const form = input.buildForm({
+        key: found.key,
+        text,
+        label: found.label,
+      });
+      for (const entry of [
+        ...(textNode?.entries ?? []),
+        ...button.entries,
+        content,
+        ...form.entries,
+      ])
+        draft.create(entry);
+      const { children: _text, ...props } = cell.props;
+      draft.write({
+        ...cell,
+        children: [content.id, form.rootId],
+        props: textNode ? props : cell.props,
+      });
+    }
+    if (!changed) return fail("NO_CHANGE", positionId(input.column));
+    return {
+      label: input.on ? "Make column editable" : "Make column read-only",
+      ops: draft.ops(),
+      selectAfter: [],
+    };
+  };

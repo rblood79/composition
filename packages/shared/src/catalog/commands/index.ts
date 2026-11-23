@@ -153,6 +153,8 @@ export {
   tableBodyPosition,
   tableFooterPosition,
   setTableTotalsRow,
+  setTableColumnEditable,
+  tableColumnEditable,
   setTableDetailRow,
   tableHeaderPosition,
   type TableColumnSpec,

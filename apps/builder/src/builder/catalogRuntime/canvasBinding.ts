@@ -680,7 +680,10 @@ function tokenInputChips(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): ((start: number, end: number) => CatalogTokenChip | undefined) | undefined {
-  if (node.bindingId !== "tokeninput" || typeof node.props.children !== "string")
+  if (
+    node.bindingId !== "tokeninput" ||
+    typeof node.props.children !== "string"
+  )
     return undefined;
   const tokens = catalogTokenRanges(node.props.children);
   if (tokens.length === 0) return undefined;
@@ -1377,6 +1380,10 @@ function paintedNodeData(
   // ADR-315 Phase 6 — inside a Cell its row above runs into (a merged Column): the box stays, nothing
   //   drawn (the DOM's `opacity: 0` — its text stays for a screen reader).
   if (input.derivedProps?._cellMergedContent === true)
+    return hiddenNode(input, rect);
+  // S2 체크리스트 §9.3 — S2 `EditableCell`'s edit button at rest: `visibility: hidden` (the row's
+  //   hover · focus shows it in the DOM — the Canvas has no hover), its box laid out.
+  if (input.derivedProps?._editButtonHidden === true)
     return hiddenNode(input, rect);
   return withSkeletonLook(
     root,

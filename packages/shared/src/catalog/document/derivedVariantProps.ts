@@ -24,6 +24,9 @@ export const CATALOG_DERIVED_VARIANT_PROPS: ReadonlySet<string> = new Set([
   //   `_cellLines` · `_cellLine`.
   "cellLines",
   "mergeLine",
+  // (S2 체크리스트 §9.3) a Row in its Table's footer (the totals row) and its Cells — `true`
+  //   (`presence.ts`, `catalogTableFooterPart`): S2 `TableFooter`'s row look.
+  "inFooter",
 ]);
 
 /** 저장하지 않는 RAC 상태를 part rule 조건과 증분 invalidation에서 동일하게 읽는다. */

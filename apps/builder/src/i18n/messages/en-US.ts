@@ -2719,6 +2719,8 @@ const catalog: TranslationKeys = {
     tableColumnChooser: "Column visibility menu",
     tableColumnChooserLabel: "Columns",
     tableTotalsRow: "Totals row",
+    tableColumnEditable: "Editable",
+    tableColumnEditLabel: "Edit {column}",
     tableDetailRow: "Detail row",
     tableRowPinsRefused:
       "This endpoint pages its rows and names no request for rows by key — the Table pins no row. Turn on 「Rows by key」 (or name the key parameters) in the endpoint's query format.",
@@ -3986,6 +3988,8 @@ const formattedMessages: Record<
     `No results for "${String(args?.query ?? "")}"`,
   "commandPalette.executableCount": (args) =>
     `${String(args?.count ?? 0)} of ${String(args?.total ?? 0)} available`,
+  "dataView.tableColumnEditLabel": (args) =>
+    `Edit ${String(args?.column ?? "")}`,
   "history.confirmDeleteSnapshot": (args) =>
     `Delete the snapshot "${String(args?.name ?? "")}"?`,
   "history.snapshotDefaultName": (args) =>

@@ -87,18 +87,32 @@ describe("ADR-302 G2 — 두 축", () => {
         .filter((line) => !isComment(line))
         .join("\n");
     const hits: string[] = [];
-    if (/color-mix\(/.test(read("packages/rendering/src/renderers/utils/tokenResolver.ts")))
+    if (
+      /color-mix\(/.test(
+        read("packages/rendering/src/renderers/utils/tokenResolver.ts"),
+      )
+    )
       hits.push("tokenResolver.ts color-mix");
     const previewCss = readFileSync(
-      join(REPO, "packages/shared/src/components/styles/theme/preview-system.css"),
+      join(
+        REPO,
+        "packages/shared/src/components/styles/theme/preview-system.css",
+      ),
       "utf8",
     ).replace(/\/\*[\s\S]*?\*\//g, "");
-    if (/oklch\(\s*from\s+var\(--tint\)/.test(previewCss)) hits.push("preview-system.css --tint 상대색");
-    if (/--tint\s*:/.test(previewCss)) hits.push("preview-system.css --tint 선언");
-    if (/--(tint|tone)-\d+\s*:/.test(previewCss)) hits.push("preview-system.css 사다리 변수 선언 (resolver 값을 덮는다)");
-    const resolver = read("packages/shared/src/catalog/runtime/resolveThemeSnapshot.ts");
-    if (/(both|put)\(\s*["`]--tint["`]/.test(resolver)) hits.push("resolver --tint");
-    if (/--color-neutral-/.test(resolver)) hits.push("resolver --color-neutral-N");
+    if (/oklch\(\s*from\s+var\(--tint\)/.test(previewCss))
+      hits.push("preview-system.css --tint 상대색");
+    if (/--tint\s*:/.test(previewCss))
+      hits.push("preview-system.css --tint 선언");
+    if (/--(tint|tone)-\d+\s*:/.test(previewCss))
+      hits.push("preview-system.css 사다리 변수 선언 (resolver 값을 덮는다)");
+    const resolver = read(
+      "packages/shared/src/catalog/runtime/resolveThemeSnapshot.ts",
+    );
+    if (/(both|put)\(\s*["`]--tint["`]/.test(resolver))
+      hits.push("resolver --tint");
+    if (/--color-neutral-/.test(resolver))
+      hits.push("resolver --color-neutral-N");
     expect(hits).toEqual([]);
   });
 
@@ -184,6 +198,7 @@ describe("ADR-302 G2 — 두 축", () => {
           "picker-content-disabled",
           "popover-outline",
           "collection-item-focus",
+          "table-footer",
           "gray-subtle",
           "skeleton",
           "skeleton-status-light",

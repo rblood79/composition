@@ -2706,6 +2706,8 @@ const catalog: TranslationKeys = {
     tableColumnChooser: "열 선택 메뉴",
     tableColumnChooserLabel: "열",
     tableTotalsRow: "합계 행",
+    tableColumnEditable: "편집 가능",
+    tableColumnEditLabel: "{column} 편집",
     tableDetailRow: "상세 행",
     tableRowPinsRefused:
       "이 endpoint 는 행을 쪽으로 나눠 주고 key 로 행을 조회하는 요청을 받지 않습니다 — 표가 행을 고정하지 않습니다. endpoint 조회 형식에서 「key 로 행 조회 받기」 를 켜거나 key 파라미터를 적으세요.",
@@ -3972,6 +3974,8 @@ const formattedMessages: Record<
     `"${String(args?.query ?? "")}"에 대한 결과가 없습니다`,
   "commandPalette.executableCount": (args) =>
     `실행 가능 ${String(args?.count ?? 0)} / ${String(args?.total ?? 0)}`,
+  "dataView.tableColumnEditLabel": (args) =>
+    `${String(args?.column ?? "")} 편집`,
   "history.confirmDeleteSnapshot": (args) =>
     `스냅샷 "${String(args?.name ?? "")}"을(를) 삭제할까요?`,
   "history.snapshotDefaultName": (args) => `스냅샷 ${String(args?.index ?? 1)}`,

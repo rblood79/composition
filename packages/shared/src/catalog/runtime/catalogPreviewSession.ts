@@ -3380,6 +3380,19 @@ export class CatalogPreviewSession {
       },
     });
   }
+  /**
+   * S2 체크리스트 §9.3 — an S2 `EditableCell`'s save (사용자 결정 「세션 update · 저장은
+   * callEndpoint」): the submitted fields onto the drawn row's item of its Table's collection
+   * (`useListData.update` — the session's edit record, as a rule's `update` Do).
+   */
+  editTableRow(rowId: string, values: Readonly<Record<string, unknown>>): void {
+    const place = this.rowRecordPlace(rowId);
+    const collectionId = place && this.tableCollectionOf(place.tableId);
+    if (!place || !collectionId) return;
+    const result = this.update(collectionId, place.key, values);
+    if (!result.ok)
+      console.warn(`[interactions] Editable cell: ${result.reason ?? ""}`);
+  }
   /** ADR-315 Phase 5 증분 5f — a rule's 「Pin row to top · bottom」 · 「Unpin row」 on a drawn row. */
   pinTableRowRecord(rowId: string, side: unknown): void {
     const place = this.rowRecordPlace(rowId);

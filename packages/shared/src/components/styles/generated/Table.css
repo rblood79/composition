@@ -88,6 +88,18 @@
   --checkmark-color: var(--tbl-cb-checkmark-on);
 }
 
+.react-aria-Table.react-aria-Table .react-aria-Row .react-aria-Cell [slot="edit"] {
+  visibility: hidden;
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Row:is(:hover, [data-focus-visible-within]) .react-aria-Cell [slot="edit"] {
+  visibility: visible;
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-editing] [slot="edit"] {
+  visibility: visible;
+}
+
 .react-aria-Table.react-aria-Table .react-aria-Cell:where([data-focus-visible]) {
   outline: 2px solid var(--accent);
   outline-offset: -2px;

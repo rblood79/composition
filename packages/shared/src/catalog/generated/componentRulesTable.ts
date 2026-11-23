@@ -10617,6 +10617,50 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         delegation: [],
         rootSelectors: {
           "&": { styles: { "max-width": "calc(100vw - 24px)" } },
+          // S2 체크리스트 §9.3 (6-6) — S2 `EditableCell`'s popover (`TableView.tsx` `editPopover`
+          //   padding 8 · its Form `width: full` · `gap: 16` · the quiet cancel · save ActionButtons —
+          //   `editableCell.components.tsx`). Runtime chrome — not nodes (S2 draws them itself).
+          // (S2's padding 8 on the popover's body: `&` keys carry no styles — the root's are its
+          //  containerStyles · state tree, ADR-297 G3 (e).)
+          "& > .catalog-edit-cell-body": {
+            styles: {
+              padding: "8px",
+              "box-sizing": "border-box",
+              display: "flex",
+              "align-items": "center",
+              gap: "16px",
+              width: "100%",
+            },
+          },
+          "& > .catalog-edit-cell-body > .react-aria-Form": {
+            styles: { flex: "1 1 auto", "min-width": "0" },
+          },
+          "& .catalog-edit-cell-actions": {
+            styles: { display: "flex", "flex-shrink": "0" },
+          },
+          "& .catalog-edit-cell-button": {
+            styles: {
+              display: "inline-flex",
+              "align-items": "center",
+              "justify-content": "center",
+              width: "var(--catalog-token-size-height-M)",
+              height: "var(--catalog-token-size-height-M)",
+              padding: "0",
+              border: "none",
+              "border-radius": "8px",
+              background: "transparent",
+              color: "inherit",
+              outline: "none",
+            },
+          },
+          "& .catalog-edit-cell-button:is([data-hovered], [data-pressed], [data-focus-visible])":
+            { styles: { background: "var(--neutral-surface-hover)" } },
+          "& .catalog-edit-cell-button[data-focus-visible]": {
+            styles: {
+              outline: "2px solid var(--focus-ring)",
+              "outline-offset": "2px",
+            },
+          },
         },
       },
     },
@@ -13771,6 +13815,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "cell-lines": {
         cells: { styles: { "border-bottom-width": "0px" } },
       },
+      // S2 체크리스트 §9.3 (6-6) — S2 `TableFooter`'s row (`TableView.tsx` Row `isInFooter`):
+      //   `rowBackgroundColor` gray-200 (its bold — the Cells' `in-footer`; its text `neutral` — the
+      //   Cell's own). Derived for a Row in the Table's footer (`presence.ts` `inFooter` — the totals row).
+      "in-footer": {
+        true: { styles: { "background-color": "var(--table-footer)" } },
+      },
     },
     // A disabled row (S2 Row `isDisabled`) — the DOM's is `Table.css` `.react-aria-Row[data-disabled]`
     // (the sheet owns the row, so no generated CSS — ADR-223: a new entry names its archetype).
@@ -13988,6 +14038,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   that runs into the row below. Every side's width is stated (an inline `border-style`
       //   alone would give the others the medium width); `pinned-edge` · `show-divider` after it
       //   draw their end lines over it.
+      // S2 체크리스트 §9.3 (6-6) — a footer row's cell (S2 Row `isInFooter` `fontWeight: bold`, the
+      //   row's text the cell's — the Canvas text is the Cell's own). Derived (`presence.ts` `inFooter`).
+      "in-footer": {
+        true: { styles: { "font-weight": "700" } },
+      },
       "merge-line": {
         bottom: {
           styles: {
@@ -14152,6 +14207,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "& .react-aria-Row% .react-aria-Checkbox": {
         "--selected-color": { isSelected: "var(--tbl-cb-selected-on)" },
         "--checkmark-color": { isSelected: "var(--tbl-cb-checkmark-on)" },
+      },
+      // S2 체크리스트 §9.3 (6-6) — S2 `EditableCell`'s edit button: `visibility: hidden` at rest, the
+      //   row's hover · focus within shows it (S2 `:is([role="row"]:hover *)` ·
+      //   `[data-focus-visible-within]` — CSS `:hover`: a Row without selection · action has no
+      //   `data-hovered`); an open popover keeps it (`data-editing` — S2
+      //   `isForcedVisible`). The Canvas draws its box, not its glyph (`_editButtonHidden`).
+      '& .react-aria-Row .react-aria-Cell [slot="edit"]%': {
+        visibility: { default: "hidden" },
+      },
+      '& .react-aria-Row:is(:hover, [data-focus-visible-within]) .react-aria-Cell [slot="edit"]%':
+        { visibility: { default: "visible" } },
+      '& .react-aria-Cell[data-editing] [slot="edit"]%': {
+        visibility: { default: "visible" },
       },
       "& .react-aria-Cell%": {
         outline: { isFocusVisible: "2px solid var(--accent)" },
