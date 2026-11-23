@@ -3995,6 +3995,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             disabledKeys: cards
               .filter((card) => card.props.isDisabled === true)
               .map(key),
+            // S2 CardView `renderEmptyState` (부록 D.3 2단계, 2026-11-23): its IllustratedMessage
+            //   child while it has no cards — not while its skeleton items stand in (S2 wraps it so).
+            ...(skeletons ? {} : catalogEmptyState(input)),
             style: {
               display: "flex",
               flexWrap: "wrap",

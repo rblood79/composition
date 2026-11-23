@@ -54,6 +54,7 @@ import {
   codeViewExpandedBoundKeys,
   codeViewExpandedRoot,
   codeViewOwnerDrawnPosition,
+  codeViewEmptyStatePosition,
   codeViewPositionBindings,
   codeViewPositionUnit,
   codeViewRuleKeys,
@@ -3024,13 +3025,20 @@ class Generator {
     const classes = codeViewTreeClasses(this.doc.input.reader as never, [root]);
     for (const child of template?.children ?? [])
       // (not a Card's own drawn parts — S2's use code has no element for them)
-      if (!(
-        this.doc.typeOf(node) === "Card" &&
-        codeViewOwnerDrawnPosition(
+      if (
+        !(
+          this.doc.typeOf(node) === "Card" &&
+          codeViewOwnerDrawnPosition(
+            this.doc.input.reader as never,
+            child as string,
+          )
+        ) &&
+        !codeViewEmptyStatePosition(
           this.doc.input.reader as never,
+          template!.definitionId,
           child as string,
         )
-      ))
+      )
         this.writePosition(out, node, [root, child as string], row, classes);
   }
 

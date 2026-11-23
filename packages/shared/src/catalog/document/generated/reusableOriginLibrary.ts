@@ -3960,6 +3960,29 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "displayState": "collapsed"
   },
   {
+    "id": "lib:template:component-cardview__empty-state",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "gridColumnStart": "1",
+      "gridColumnEnd": "-1",
+      "justifySelf": "center"
+    },
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "folder-open"
+        }
+      }
+    ]
+  },
+  {
     "id": "lib:template:component-cardview",
     "definitionId": "lib:definition:type-CardView",
     "slot": {
@@ -3969,7 +3992,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-cardview__1",
       "lib:template:component-cardview__2",
-      "lib:template:component-cardview__3"
+      "lib:template:component-cardview__3",
+      "lib:template:component-cardview__empty-state"
     ],
     "props": {
       "size": "M"
@@ -6386,6 +6410,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-table__1",
       "lib:template:component-table__2",
+      "lib:template:component-table__empty-state",
       "lib:template:component-table__3"
     ],
     "props": {
@@ -6467,6 +6492,30 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__empty-state",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "marginTop": "40px",
+      "marginRight": "auto",
+      "marginBottom": "40px",
+      "marginLeft": "auto"
+    },
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "folder-open"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-table__2",

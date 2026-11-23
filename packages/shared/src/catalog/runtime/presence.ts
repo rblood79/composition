@@ -1219,12 +1219,25 @@ export function catalogCollectionHasItems(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
+  // (A Table's items are its body's rows — its empty state is the Table's child, S2 TableBody's.)
+  if (typeOf(collection) === "Table") {
+    const body = collection.children
+      .map(get)
+      .find((child) => child && typeOf(child) === "TableBody");
+    return !!body && catalogCollectionHasItems(body, get, typeOf);
+  }
   const items = RAC_COLLECTION_CHILD_TYPES[typeOf(collection)] ?? [];
   return collection.children.some((id) => {
     const child = get(id);
     if (!child) return false;
     const type = typeOf(child);
-    if (!items.includes(type) || type === "Separator" || type === "Header")
+    // (A CardView's SkeletonCollection is its loading items — RAC counts it only while loading.)
+    if (
+      !items.includes(type) ||
+      type === "Separator" ||
+      type === "Header" ||
+      type === "SkeletonCollection"
+    )
       return false;
     return type.endsWith("Section")
       ? catalogCollectionHasItems(child, get, typeOf)

@@ -502,7 +502,16 @@
   .react-aria-TableBody {
     position: relative;
 
-    &[data-empty] {
+    /* S2 TableView empty body (S2 체크리스트 부록 D.3 2단계, 2026-11-23): RAC's row · cell around
+       `renderEmptyState` are no boxes — the IllustratedMessage is the body's flex item, as on the
+       Canvas (its node is the TableBody's child). RAC does the same for a virtualized table. */
+    &[data-empty][data-catalog-id] > [role="row"],
+    &[data-empty][data-catalog-id] > [role="row"] > [role="rowheader"] {
+      display: contents;
+    }
+
+    /* (The Builder's own tables — a document Table's empty body is its IllustratedMessage, S2.) */
+    &[data-empty]:not([data-catalog-id]) {
       text-align: center;
       font-style: italic;
       color: var(--fg-muted);

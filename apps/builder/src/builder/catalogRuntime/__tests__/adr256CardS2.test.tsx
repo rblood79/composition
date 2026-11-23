@@ -551,10 +551,12 @@ describe("ADR-256 Phase 10b — CardView · ButtonGroup · AvatarGroup", () => {
       // (ADR-314 Phase 4: S2 `SkeletonCollection` — the loading items after the cards.)
       items: ["Card", "SkeletonCollection"],
     });
+    // (S2 체크리스트 부록 D.3 2단계: the origin holds its empty state — RAC `renderEmptyState`, not a row.)
     expect(kids(placed().id).map((record) => root.typeOf(record))).toEqual([
       "Card",
       "Card",
       "Card",
+      "IllustratedMessage",
     ]);
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     const grid = host.querySelector(".react-aria-CardView")!;

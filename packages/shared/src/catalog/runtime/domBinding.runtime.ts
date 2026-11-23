@@ -208,6 +208,7 @@ import {
   type CatalogConsumerNode,
 } from "./compositionRoot";
 
+import { catalogIsEmptyState } from "../nesting/nestingRules";
 import {
   CATALOG_DATE_INPUT_NODE_FIELDS,
   CATALOG_DELEGATED_DOM,
@@ -3314,11 +3315,36 @@ function ruleDom(
   if (lower === "table") delete rest.loadingState;
   // S2 TableView `loadingState: "loading"` — an empty body draws the progress circle (S2
   // `TableBody`'s `renderEmptyState`; rows keep showing while they reload).
+  // S2 TableView `TableBody` `renderEmptyState` (S2 체크리스트 부록 D.3 2단계, 2026-11-23): the
+  // Table's IllustratedMessage child (the body's children are its rows) is what RAC draws in the body
+  // while it has no rows — the Table does not draw it.
+  const tableEmptyStateId = (table: CatalogConsumerNode | undefined) =>
+    table?.children.find((id) => {
+      const child = root.domInputs.get(id);
+      return (
+        !!child && catalogIsEmptyState(catalogTypeName(root, child), "Table")
+      );
+    });
+  const emptyStateId =
+    lower === "tablebody"
+      ? tableEmptyStateId(root.domInputs.get(node.parentId))
+      : undefined;
+  const bodyEmptyState = emptyStateId
+    ? createElement(CatalogDomNode, {
+        key: catalogChildKey(node, emptyStateId),
+        root,
+        id: emptyStateId,
+        context,
+      })
+    : undefined;
+  const ownEmptyStateId =
+    lower === "table" ? tableEmptyStateId(node) : undefined;
   if (
     lower === "tablebody" &&
     root.domInputs.get(node.parentId)?.props.loadingState === "loading"
   )
     rest.renderEmptyState = catalogLoadingEmptyState;
+  else if (bodyEmptyState) rest.renderEmptyState = () => bodyEmptyState;
   // A resizable Column's document width is where its drag starts (S2 `width` is controlled — the
   // widths a drag leaves are the Preview's, 사용자 결정 5).
   if (lower === "column" && resizable) {
@@ -3578,7 +3604,12 @@ function ruleDom(
     }
   }
   // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
-  const ownChildren = children;
+  const ownChildren = ownEmptyStateId
+    ? children.filter(
+        (element) =>
+          (element.props as { id?: unknown }).id !== ownEmptyStateId,
+      )
+    : children;
   // ADR-259 Phase 1: S2 `hideLinkOutIcon` is an owner's context value (its items carry a copy) —
   // no RAC prop.
   delete rest.hideLinkOutIcon;

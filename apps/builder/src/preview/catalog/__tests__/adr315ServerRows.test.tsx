@@ -189,9 +189,13 @@ async function openTable(
       .map((child) => root().domInputs.get(child)!)
       .find((record) => record.props.key === key)!;
   };
-  /** The DOM's body · footer rows, each as its cell texts. */
+  /** The DOM's body · footer rows, each as its cell texts (not an empty body's empty-state row — S2). */
   const rows = (scope = "tbody") =>
-    [...h.view.container.querySelectorAll(`${scope} [role="row"]`)]
+    [
+      ...h.view.container.querySelectorAll(
+        `${scope}:not([data-empty]) [role="row"]`,
+      ),
+    ]
       .map((row) =>
         [...row.querySelectorAll('[role="rowheader"], [role="gridcell"]')].map(
           (cell) => (cell.textContent ?? "").trim(),

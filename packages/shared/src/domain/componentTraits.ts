@@ -425,7 +425,14 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // RAC TabPanels 는 TabPanel 이 아닌 자식도 그린다 (G0 ②) — 자유 내용.
   TabPanels: { owners: ["Tabs"] },
   TabPanel: { owners: ["Tabs"] },
-  Table: { container: "collection", children: ["TableHeader", "TableBody"] },
+  Table: {
+    container: "collection",
+    // (S2 TableView `TableBody` `renderEmptyState` — 부록 D.3 2단계, 2026-11-23: the IllustratedMessage
+    //   is the Table's child — the body's children are its rows (every table command reads them so);
+    //   the DOM gives it to RAC's TableBody.)
+    families: ["emptyStateCollection"],
+    children: ["TableHeader", "TableBody"],
+  },
   TableHeader: {
     container: "collection",
     families: ["tableItemHost"],
@@ -472,6 +479,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   //   (`@react-spectrum/s2/src/CardView.tsx`).
   CardView: {
     container: "collection",
+    // (S2 CardView `renderEmptyState` — 부록 D.3 2단계, 2026-11-23.)
+    families: ["emptyStateCollection"],
     // ADR-314 Phase 4: S2 `SkeletonCollection` — the loading items after the cards.
     children: ["Card", "SkeletonCollection"],
   },

@@ -94,7 +94,8 @@ describe("collection empty state (renderEmptyState)", () => {
         CATALOG_EMPTY_STATE_COLLECTIONS.has(typeOf(template.definitionId)),
     );
     expect(origins.map((origin) => typeOf(origin.definitionId)).sort()).toEqual(
-      ["GridList", "ListBox", "Menu", "TagList", "Tree"],
+      // (S2 체크리스트 부록 D.3 2단계 — CardView · TableBody, 2026-11-23.)
+      ["CardView", "GridList", "ListBox", "Menu", "Table", "TagList", "Tree"],
     );
     for (const origin of origins) {
       const children = origin.children.map((id) => templates.get(id as never));
@@ -114,7 +115,7 @@ describe("collection empty state (renderEmptyState)", () => {
     }
   });
 
-  it.each(["ListBox", "GridList", "Tree", "TagGroup"])(
+  it.each(["ListBox", "GridList", "Tree", "TagGroup", "CardView", "Table"])(
     "a bound %s draws its IllustratedMessage while its data is empty",
     async (type) => {
       const h = await emptyStatePreview(type, []);
@@ -184,48 +185,57 @@ describe("collection empty state (renderEmptyState)", () => {
     h.view.unmount();
   });
 
-  it("the EmptyState goes only with its collection: no delete, no move out", async () => {
-    const h = await emptyStatePreview("ListBox", []);
-    const graph = h.workspace.runtime.graph;
-    const list = graph.getEntry(h.collection) as { children?: string[] };
-    const record = [...h.workspace.root.domInputs.values()].find(
-      (r) => r.sourceId === h.collection,
-    )!;
-    const message = record.children
-      .map((id) => h.workspace.root.domInputs.get(id)!)
-      .find((child) => child.bindingId === "illustratedmessage")!;
-    const id = message.sourceId as NodeId;
-    expect(list).toBeTruthy();
-    expect(() =>
+  it.each(["ListBox", "CardView", "Table"])(
+    "the %s EmptyState goes only with its collection: no delete, no move out",
+    async (type) => {
+      const h = await emptyStatePreview(type, []);
+      const graph = h.workspace.runtime.graph;
+      const list = graph.getEntry(h.collection) as { children?: string[] };
+      const record = [...h.workspace.root.domInputs.values()].find(
+        (r) => r.sourceId === h.collection,
+      )!;
+      const message = record.children
+        .map((id) => h.workspace.root.domInputs.get(id)!)
+        .find((child) => child.bindingId === "illustratedmessage")!;
+      const id = message.sourceId as NodeId;
+      expect(list).toBeTruthy();
+      // (A Table's empty state is a template position of the placed Table — its origin root has no
+      //  slot, as its TableHeader · TableBody are positions; a list's is its own node.)
+      const own = graph.getEntry(id)?.kind === "node";
+      expect(own).toBe(type !== "Table");
+      const target = own
+        ? { kind: "node" as const, id }
+        : h.workspace.itemOfRecord(message.id)!.target;
+      expect(() =>
+        h.workspace.execute(
+          removeTargets({ targets: [target], newId: h.workspace.newId }),
+        ),
+      ).toThrow(new RegExp(`${type}>EmptyState`));
+      if (own)
+        expect(() =>
+          h.workspace.execute(
+            moveNodes({
+              ids: [id],
+              parent: { kind: "node", id: "project:node:home-body" as NodeId },
+              newId: h.workspace.newId,
+            }),
+          ),
+        ).toThrow(new RegExp(`${type}>EmptyState`));
+      // With its collection (both selected, or the collection alone) it goes.
       h.workspace.execute(
         removeTargets({
-          targets: [{ kind: "node", id }],
+          targets: [
+            ...(own ? [target] : []),
+            { kind: "node", id: h.collection },
+          ],
           newId: h.workspace.newId,
         }),
-      ),
-    ).toThrow(/ListBox>EmptyState/);
-    expect(() =>
-      h.workspace.execute(
-        moveNodes({
-          ids: [id],
-          parent: { kind: "node", id: "project:node:home-body" as NodeId },
-          newId: h.workspace.newId,
-        }),
-      ),
-    ).toThrow(/ListBox>EmptyState/);
-    // With its collection (both selected, or the collection alone) it goes.
-    h.workspace.execute(
-      removeTargets({
-        targets: [
-          { kind: "node", id },
-          { kind: "node", id: h.collection },
-        ],
-        newId: h.workspace.newId,
-      }),
-    );
-    expect(graph.getEntry(id)).toBeUndefined();
-    h.view.unmount();
-  });
+      );
+      if (own) expect(graph.getEntry(id)).toBeUndefined();
+      expect(graph.getEntry(h.collection)).toBeUndefined();
+      h.view.unmount();
+    },
+  );
 
   it("the Canvas hides it while the list has items and draws it once they are gone", async () => {
     const h = await emptyStatePreview("ListBox", []);

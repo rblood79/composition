@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [CardView · Table 빈 상태 — S2 renderEmptyState] - 2026-11-23
+
+### Added
+
+- **CardView · Table 원본이 빈 상태 (IllustratedMessage) 를 기본으로 갖는다** (S2 체크리스트 부록 D.3 2단계 — 사용자 결정 2026-11-23):
+  - 항목 · 연결 행이 0 이면 Canvas · Preview · Publish 가 그린다 (ListBox · GridList · Tree · TagGroup · Menu 와 같은 계약 — 놓고 데이터에 연결하면 끝, 따로 지울 수 없음 · 컬렉션과 함께만 지워짐).
+  - CardView: S2 `renderEmptyState` — 두 열을 걸쳐 가운데 (`gridColumnStart 1 / End -1`), Skeleton 항목이 대신 설 때는 그리지 않는다 (S2 와 같게).
+  - Table: S2 `TableBody` `renderEmptyState` — 저작 노드는 Table 의 직계 자식 (TableBody 의 자식은 늘 Row), DOM 은 RAC TableBody 의 빈 행으로 넘기고 그 `tr` · `td` 는 `display: contents` (가상 RAC 표와 같다). 위아래 40 (S2 빈 본문 inset) · 가운데.
+  - 위치: `packages/shared/src/domain/componentTraits.ts` · `catalog/document/generated/reusableOriginLibrary.ts` · `catalog/runtime/{presence,domBinding.runtime,delegatedDom.runtime}.ts` · `components/styles/Table.css`
+
+### Fixed
+
+- **사용자 Table 의 빈 본문 글자가 기울임 · 흐린 색으로 나오던 것** — 옛 `Table.css` `[data-empty]` 규칙을 Builder 자체 표로 좁힘 (`:not([data-catalog-id])`).
+  - **Why**: 사용자 컴포넌트에는 빈 본문 내용이 없던 시절의 규칙이 남아, 빈 상태의 제목 · 설명까지 기울였다.
+- **CardView 의 SkeletonCollection 을 항목으로 세던 판정** — Canvas 의 「항목 있음」 (`catalogCollectionHasItems`) 이 로딩 항목 감싸개를 세지 않는다 (RAC `collection.size` 처럼).
+
+### Tests
+
+- `emptyState.test.tsx` (CardView · Table 추가 — 원본 · 0행 표시 · 삭제 거절) · `s2EmptyStateCollections.test.ts` · live `apps/builder/scripts/s2-empty-state-live.mjs` 6/6 (Canvas = Publish 자리 · 크기, 기울임 없음, 행이 오면 사라짐).
+
 ## [Image — S2 로딩 · 나타남 · 오류 대체 내용 · img 속성] - 2026-11-23
 
 ### Added

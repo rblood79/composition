@@ -19,6 +19,7 @@ import type {
 } from "../../catalog/document/types";
 import { WHOLE_TEMPLATE_BINDING } from "../../catalog/document/templateBindingValue";
 import { isLibraryOrigin } from "../../catalog/runtime/originViewNode";
+import { catalogIsEmptyState } from "../../catalog/nesting/nestingRules";
 import { codeViewKebab, codeViewTypeName } from "./styles";
 
 type Reader = Pick<CatalogReader, "projectId" | "getEntry" | "library">;
@@ -379,6 +380,26 @@ export function codeViewOwnerDrawnPosition(
 }
 
 /**
+ * A collection origin's empty-state position (S2 체크리스트 부록 D.3 2단계 — a Table's IllustratedMessage):
+ * no position of the reference's use code — S2 writes it as TableBody's `renderEmptyState`, not an
+ * element of the structure.
+ */
+export function codeViewEmptyStatePosition(
+  reader: Reader,
+  ownerDefinitionId: string,
+  id: string,
+): boolean {
+  const node = treeNode(reader, id);
+  return (
+    !!node &&
+    catalogIsEmptyState(
+      typeOf(reader, node.definitionId),
+      typeOf(reader, ownerDefinitionId),
+    )
+  );
+}
+
+/**
  * ADR-301 — the Library template root a Library origin instance is written as (its template tree
  * in the page's code); undefined = written as one element (a field wrapper · an unlocked origin ·
  * the rest).
@@ -407,7 +428,7 @@ export function codeViewExpandedRoot(
       !(
         typeOf(reader, template.definitionId) === "Card" &&
         codeViewOwnerDrawnPosition(reader, id)
-      ),
+      ) && !codeViewEmptyStatePosition(reader, template.definitionId, id),
   );
   return positions.length > 0 &&
     positions.every((id) => {
