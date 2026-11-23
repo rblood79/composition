@@ -1204,6 +1204,8 @@ const catalog: TranslationKeys = {
     fieldMapChildren: "하위 항목 필드 (트리)",
     fieldMapParentId: "부모 ID 필드 (트리)",
     fieldMapAuto: "자동",
+    fieldMapDisabled: "비활성 필드",
+    fieldMapNone: "없음",
     rowTemplateItems: "기존 항목 {count}개",
     rowTemplateFirst: "첫 항목만 템플릿으로 — 나머지 지움",
     rowTemplateKeep: "모두 고정 항목으로 두고 데이터는 뒤에",

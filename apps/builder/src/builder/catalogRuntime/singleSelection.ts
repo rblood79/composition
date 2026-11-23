@@ -81,6 +81,11 @@ export interface CatalogGroupKeysField {
   readonly options: readonly { value: string; label: string }[];
   /** The keys it holds now (the group's RAC default when it stores none). */
   readonly value: string | readonly string[];
+  /**
+   * The field takes its items as choices only — its value is the authored one (`disabledKeys`:
+   * a bound collection's record also holds the rows its disabled field marks).
+   */
+  readonly choicesOnly?: true;
 }
 
 const optionsOf = (root: Root, group: CatalogConsumerNode) => {
@@ -93,6 +98,46 @@ const optionsOf = (root: Root, group: CatalogConsumerNode) => {
       return [{ value, label: itemText(root, item) || `Item ${index + 1}` }];
     },
   );
+};
+
+/** The groups whose binding takes S2 `disabledKeys`. */
+const DISABLED_KEY_GROUPS: ReadonlySet<string> = new Set([
+  "ListBox",
+  "GridList",
+  "Table",
+  "Tree",
+  "CardView",
+  "Select",
+  "ComboBox",
+  "Tabs",
+  "Menu",
+  "TagGroup",
+  "SideNav",
+]);
+
+/** A SideNav's items (its links, in document order — any depth). */
+const sideNavOptions = (root: Root, nav: CatalogConsumerNode) => {
+  const out: { value: string; label: string }[] = [];
+  const seen = new Set<string>();
+  const visit = (node: CatalogConsumerNode) => {
+    for (const id of node.children) {
+      const child = root.canvasInputs.get(id);
+      if (!child) continue;
+      if (root.typeOf(child) === "SideNavItem") {
+        const value = catalogItemKey(child, typeOf(root));
+        if (!seen.has(value)) {
+          seen.add(value);
+          out.push({
+            value,
+            label: itemText(root, child) || `Item ${out.length + 1}`,
+          });
+        }
+      }
+      visit(child);
+    }
+  };
+  visit(nav);
+  return out;
 };
 
 /** A group record's selection · expansion fields (none for another record). */
@@ -117,6 +162,19 @@ export function catalogGroupKeysFields(
       value: many ? list : (list[0] ?? ""),
     });
   }
+  // S2 `disabledKeys` (부록 D.3 2단계, 2026-11-23): the items the group names — a check list of its
+  // items (a SideNav's links), the authored keys shown.
+  if (group.props.disabledKeys !== undefined || DISABLED_KEY_GROUPS.has(type))
+    fields.push({
+      key: "disabledKeys",
+      many: true,
+      options:
+        type === "SideNav"
+          ? sideNavOptions(root, group)
+          : optionsOf(root, group),
+      value: [],
+      choicesOnly: true,
+    });
   if (CATALOG_EXPANSION_GROUP_TYPES.has(type)) {
     // (An Accordion that expands one holds one key — a dropdown; a Tree · a multiple Accordion
     //  a check list.)

@@ -8552,6 +8552,9 @@ export class CatalogCompositionRoot {
         const index = updates.findIndex((item) => item.id === thumb.id);
         if (index >= 0) updates[index] = next;
         else updates.push(next);
+        // (The dependents after it read the re-planned record — a TreeItem's selection Checkbox
+        //  reads the item's derived disabled, which its Tree's `disabledKeys` turns on and off.)
+        planned.set(thumb.id, next);
         roots.add(rootId);
       }
     return { ...counts, updates, roots };

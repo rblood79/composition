@@ -12,6 +12,7 @@
 
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 export const tableBinding: PrimitiveBinding = {
   source: {
@@ -60,6 +61,9 @@ export const tableBinding: PrimitiveBinding = {
           { value: "spacious", label: "Spacious" },
         ],
       },
+      // S2 `disabledKeys` (부록 D.3 2단계, 2026-11-23) — its items' keys, a check list; a bound one
+      //   also by a data field (the binding's `fieldMap.disabled`).
+      disabledKeys: DISABLED_KEYS_PROP,
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

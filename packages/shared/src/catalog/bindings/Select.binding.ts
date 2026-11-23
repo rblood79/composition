@@ -9,6 +9,7 @@ import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 export const selectBinding: PrimitiveBinding = {
   source: {
@@ -86,6 +87,9 @@ export const selectBinding: PrimitiveBinding = {
         // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
         visibleWhen: { key: "labelPosition", equals: "side" },
       },
+      // S2 `disabledKeys` (부록 D.3 2단계, 2026-11-23) — its items' keys, a check list; a bound one
+      //   also by a data field (the binding's `fieldMap.disabled`).
+      disabledKeys: DISABLED_KEYS_PROP,
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

@@ -1,5 +1,6 @@
 import type { PrimitiveBinding } from "../types";
 import { ITEM_LINK_PROP_CONTRACTS } from "../document/itemLinks";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 /**
  * ADR-300 — the SideNav family: S2 `SideNav` · `SideNavPanel` (`@react-spectrum/s2` 1.8.1) as RAC
@@ -58,11 +59,7 @@ export const sideNavBinding: PrimitiveBinding = {
       },
       // 2026-11-18 S2 `disabledKeys` — the items it names are disabled (RAC; the Canvas paints them
       //   disabled — `catalogItemKeyDisabled`).
-      disabledKeys: {
-        kind: "string-array",
-        label: "Disabled keys",
-        section: "state",
-      },
+      disabledKeys: DISABLED_KEYS_PROP,
 
       "aria-label": {
         kind: "string",

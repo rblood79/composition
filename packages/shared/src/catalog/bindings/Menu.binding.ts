@@ -8,6 +8,7 @@
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
 import { HIDE_LINK_OUT_ICON_CONTRACT } from "../document/itemLinks";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 export const menuBinding: PrimitiveBinding = {
   source: {
@@ -52,11 +53,7 @@ export const menuBinding: PrimitiveBinding = {
       hideLinkOutIcon: HIDE_LINK_OUT_ICON_CONTRACT,
       // 2026-11-18 S2 `disabledKeys` — the items it names are disabled (RAC; the Canvas paints them
       //   disabled — `catalogItemKeyDisabled`).
-      disabledKeys: {
-        kind: "string-array",
-        label: "Disabled keys",
-        section: "state",
-      },
+      disabledKeys: DISABLED_KEYS_PROP,
       // 2026-11-18 S2 `disallowEmptySelection` — RAC keeps one item selected.
       disallowEmptySelection: {
         kind: "boolean",

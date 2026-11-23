@@ -299,3 +299,19 @@ export function isInOwnGroup(
   for (const type of ancestorTypes) if (type === group) return true;
   return false;
 }
+
+/**
+ * Bound collections that take S2 `disabledKeys` from a data field — the binding's `fieldMap.disabled`
+ * (a boolean field: `true` disables the row's item). S2 체크리스트 부록 D.3 2단계, 2026-11-23.
+ */
+export const CATALOG_DATA_DISABLED_TYPES: ReadonlySet<string> = new Set([
+  "ListBox",
+  "GridList",
+  "Table",
+  "Tree",
+  "CardView",
+  "Select",
+  "ComboBox",
+  "Menu",
+  "TagGroup",
+]);

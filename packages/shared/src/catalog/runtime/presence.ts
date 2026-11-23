@@ -20,11 +20,12 @@ import {
 } from "./dateValueRead";
 import {
   catalogGroupExpansion,
+  catalogGroupDisabledKeys,
   catalogGroupSelection,
+  catalogItemDisabledByGroup,
   catalogItemKey,
   catalogItemSelected,
   catalogKeysHold,
-  catalogSelectionGroupOf,
 } from "./groupSelection";
 import { selectBoxDisabledKeys } from "./selectBoxSelection";
 import { catalogSegmentOwner, catalogSegmentItems } from "./segmentedSelection";
@@ -861,28 +862,22 @@ export function catalogPaginationPartHidden(
 }
 
 /**
- * An item its collection's `disabledKeys` names (S2 Menu · TagGroup · SideNav — RAC disables the
- * item: no press · selection, the disabled paint), 2026-11-18. The DOM's RAC reads the collection's
- * prop; the Canvas paints the item disabled.
+ * An item its collection's `disabledKeys` names (S2 · RAC disable the item: no press · selection,
+ * the disabled paint) — Menu · TagGroup · SideNav (2026-11-18), ListBox · GridList · Table · Tree ·
+ * CardView · Select · ComboBox · Tabs (부록 D.3 2단계, 2026-11-23). The DOM's RAC reads the
+ * collection's prop; the Canvas paints the item disabled.
  */
 export function catalogItemKeyDisabled(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
-  const type = typeOf(node);
-  const owner =
-    type === "MenuItem"
-      ? catalogPickerOfOption(node, get, typeOf)
-      : type === "Tag"
-        ? catalogSelectionGroupOf(node, get, typeOf)
-        : type === "SideNavItem"
-          ? catalogSideNavOf(node, get, typeOf)
-          : undefined;
-  const keys = owner?.props.disabledKeys;
+  if (typeOf(node) !== "SideNavItem")
+    return catalogItemDisabledByGroup(node, get, typeOf);
+  const nav = catalogSideNavOf(node, get, typeOf);
   return (
-    Array.isArray(keys) &&
-    keys.map(String).includes(catalogItemKey(node, typeOf))
+    !!nav &&
+    catalogGroupDisabledKeys(nav.props).includes(catalogItemKey(node, typeOf))
   );
 }
 
@@ -2071,7 +2066,11 @@ export function catalogDisabledTreeItemLabelItem(
   if (!content || typeOf(content) !== "TreeItemContent") return undefined;
   const item = get(content.parentId);
   if (!item || typeOf(item) !== "TreeItem") return undefined;
-  return item.props.isDisabled === true ? item : undefined;
+  // (Its own `isDisabled`, or its Tree's `disabledKeys` naming it — 부록 D.3 2단계.)
+  return item.props.isDisabled === true ||
+    catalogItemKeyDisabled(item, get, typeOf)
+    ? item
+    : undefined;
 }
 
 /**
@@ -4099,8 +4098,9 @@ function ownDerivedPropsBase(
       isDisabled:
         node.props.isDisabled === true ||
         tabsOwner.props.isDisabled === true ||
-        (Array.isArray(tabsOwner.props.disabledKeys) &&
-          tabsOwner.props.disabledKeys.includes(catalogItemKey(node, typeOf))),
+        catalogGroupDisabledKeys(tabsOwner.props).includes(
+          catalogItemKey(node, typeOf),
+        ),
     };
   // (its SelectionIndicator node — ADR-256 Phase 5e: `catalogSelectionIndicatorLayout`)
   if (node.bindingId === "segmentedcontrolitem") {
@@ -4133,8 +4133,9 @@ function ownDerivedPropsBase(
         isDisabled:
           tab.props.isDisabled === true ||
           tabs.props.isDisabled === true ||
-          (Array.isArray(tabs.props.disabledKeys) &&
-            tabs.props.disabledKeys.includes(catalogItemKey(tab, typeOf))),
+          catalogGroupDisabledKeys(tabs.props).includes(
+            catalogItemKey(tab, typeOf),
+          ),
       };
   }
   const crumb = get(node.parentId);
@@ -4458,6 +4459,9 @@ export function catalogDerivedPropsDependents(
       ...catalogSelectionIndicators(item, get, typeOf),
       // (its selection checkboxes — the item's selection and selectability, Phase 5f)
       ...catalogSelectionCheckboxes(item, get, typeOf),
+      // (a TreeItem's chevron and label — they take a disabled item's color, which its Tree's
+      //  `disabledKeys` can turn on: 부록 D.3 2단계)
+      ...(item !== owner ? catalogTreeChevrons(item, get, typeOf) : []),
       // (a Card's checkbox plate — its spacing follows the Card's size, S2 `CardCheckbox`)
       ...childrenOf(item, get).filter(
         (child) => !!catalogCardCheckboxCard(child, get, typeOf),

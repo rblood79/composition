@@ -206,6 +206,7 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
             { id: "f-id", key: "id", type: "string" },
             { id: "f-name", key: "name", type: "string" },
             { id: "f-avatar", key: "avatar", type: "image" },
+            { id: "f-off", key: "off", type: "boolean" },
           ],
         },
       ],
@@ -275,6 +276,52 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
     );
     // path 자유 입력은 노출하지 않는다 (2026-07-24 제거 유지 — "고급" 영역 없음)
     expect(container.querySelector(".binding-path-input")).toBeNull();
+  });
+
+  // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a collection that takes it offers
+  // 「Disabled field」 — boolean fields only, 「None」 clears it.
+  it("disabledKeys 를 받는 목록은 Disabled field 를 — boolean 필드만, 저장값은 fieldId", async () => {
+    ruleOf.set("gl-1", { ruleId: "GridList" });
+    const { Comp, renderFresh } = await withSchema();
+    const onChange = vi.fn();
+    const { container } = renderFresh(
+      <Comp
+        elementId="gl-1"
+        value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
+        onChange={onChange}
+      />,
+    );
+    const control = container.querySelector(
+      ".binding-fieldmap-select[data-role='disabled']",
+    )!;
+    expect(control).not.toBeNull();
+    fireEvent.click(control.querySelector("button")!);
+    expect(
+      [...document.querySelectorAll('[role="option"]')].map((o) =>
+        o.getAttribute("data-key"),
+      ),
+    ).toEqual(["__auto__", "f-off"]);
+    fireEvent.click(
+      document.querySelector('[role="option"][data-key="f-off"]')!,
+    );
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fieldMap: { disabled: "f-off" } }),
+    );
+    ruleOf.delete("gl-1");
+  });
+
+  it("Disabled field 는 disabledKeys 를 받지 않는 대상 (Form) 에는 없다", async () => {
+    const { Comp, renderFresh } = await withSchema();
+    const { container } = renderFresh(
+      <Comp
+        elementId="form-1"
+        value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
+        onChange={() => {}}
+      />,
+    );
+    expect(
+      container.querySelector(".binding-fieldmap-select[data-role='disabled']"),
+    ).toBeNull();
   });
 
   it("저장된 fieldMap (id · v1 key) 을 현재 선택으로 표시하고, 자동 선택은 키를 지운다", async () => {

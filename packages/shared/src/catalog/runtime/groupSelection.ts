@@ -326,7 +326,32 @@ export function catalogItemSelected(
 }
 
 /**
- * A Tree's · an Accordion's expanded keys: `expandedKeys`, else `defaultExpandedKeys` (absent = none,
+ * S2 체크리스트 부록 D.3 2단계 (2026-11-23) — a collection's `disabledKeys` (S2 · RAC: the items it
+ * names take no press · selection, the disabled paint): the keys its group stores — a bound one's
+ * with the rows its disabled field marks (`fieldMap.disabled`, merged into the record by the
+ * resolver). RAC takes a key list (no `"all"`).
+ */
+export function catalogGroupDisabledKeys(
+  props: Readonly<Record<string, unknown>>,
+): string[] {
+  return keyList(props.disabledKeys);
+}
+
+/** Whether an item's group names it in `disabledKeys` (the Canvas's disabled item — RAC's in the DOM). */
+export function catalogItemDisabledByGroup(
+  item: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean {
+  const group = catalogSelectionGroupOf(item, get, typeOf);
+  return (
+    !!group &&
+    catalogGroupDisabledKeys(group.props).includes(catalogItemKey(item, typeOf))
+  );
+}
+
+/**
+ * A Tree's · an Accordion's expanded keys:`expandedKeys`, else `defaultExpandedKeys` (absent = none,
  * RAC's default). An Accordion that expands one keeps the first (RAC `useDisclosureGroupState`).
  */
 export function catalogGroupExpansion(

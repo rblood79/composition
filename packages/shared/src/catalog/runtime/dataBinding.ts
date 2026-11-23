@@ -392,7 +392,44 @@ export function catalogBoundRows(
         ),
       },
     ];
+  // (S2 `disabledKeys` by a data field — 부록 D.3 2단계, 2026-11-23: the rows it marks, over every
+  //  row the binding reads, not only the window.)
+  const disabledKeys =
+    shown && kind === "items"
+      ? disabledRowKeys(dataBinding, collections)
+      : undefined;
+  if (shown && disabledKeys) Object.assign(shown, { disabledKeys });
   return shown && view ? Object.assign(shown, { view }) : shown;
+}
+
+/**
+ * S2 체크리스트 부록 D.3 2단계 (2026-11-23) — the keys of a bound collection's rows its disabled field
+ * marks (the binding's `fieldMap.disabled`, a boolean field — `true` disables the row's item): over
+ * every row the binding reads and every child level (`fieldMap.children`), keyed as its items are
+ * (`toItemProjectionRow` — `fieldMap.value` → the key field → `id` · `key` · `value` → `row-N`).
+ * The resolver adds them to the collection's `disabledKeys`; undefined = no disabled field.
+ */
+function disabledRowKeys(
+  dataBinding: DataBindingValue,
+  collections: readonly CollectionDataSource[],
+): string[] | undefined {
+  const ref = dataBinding.fieldMap?.disabled;
+  if (typeof ref !== "string" || !ref) return undefined;
+  const bound = resolveBoundCollection(dataBinding, collections);
+  const field = (bound?.schema ? resolveField(bound.schema, ref)?.key : undefined) ?? ref;
+  const roles = resolveFieldRoles(dataBinding, bound?.schema, bound?.keyField);
+  const keys: string[] = [];
+  const visit = (rows: readonly unknown[]) =>
+    rows.forEach((row, index) => {
+      if (row === null || typeof row !== "object") return;
+      const values = row as Record<string, unknown>;
+      if (values[field] === true)
+        keys.push(toItemProjectionRow(row, index, roles).itemKey);
+      const children = roles?.children ? values[roles.children] : undefined;
+      if (Array.isArray(children)) visit(children);
+    });
+  visit(readDataBindingRows(dataBinding, collections));
+  return keys;
 }
 
 /**

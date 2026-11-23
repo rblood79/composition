@@ -1,5 +1,6 @@
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 /**
  * CardView — Card 그리드/워터폴 컬렉션 레이아웃 컨테이너 (Card 자식 묶음). composition 자체 추상
@@ -81,6 +82,9 @@ export const cardViewBinding: PrimitiveBinding = {
           { value: "waterfall", label: "Waterfall" },
         ],
       },
+      // S2 `disabledKeys` (부록 D.3 2단계, 2026-11-23) — its items' keys, a check list; a bound one
+      //   also by a data field (the binding's `fieldMap.disabled`).
+      disabledKeys: DISABLED_KEYS_PROP,
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

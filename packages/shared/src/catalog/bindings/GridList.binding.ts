@@ -9,6 +9,7 @@
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
 import { HIDE_LINK_OUT_ICON_CONTRACT } from "../document/itemLinks";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 export const gridListBinding: PrimitiveBinding = {
   source: {
@@ -77,6 +78,9 @@ export const gridListBinding: PrimitiveBinding = {
       //   delegatedDom `gridlist` 도 `props.selectionMode ?? "none"` 로 렌더한다 (delegating 렌더러라
       //   toRacProps 를 거치지 않아 이 default 가 Preview 에 도달하지 않았다). Inspector 만
       //   contract.default 를 "현재값" 으로 보여 주어 패널 "Single" ↔ DOM none 이 갈렸다.
+      // S2 `disabledKeys` (부록 D.3 2단계, 2026-11-23) — its items' keys, a check list; a bound one
+      //   also by a data field (the binding's `fieldMap.disabled`).
+      disabledKeys: DISABLED_KEYS_PROP,
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

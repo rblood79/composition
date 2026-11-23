@@ -46,6 +46,7 @@ import { PropertyInput } from "./PropertyInput";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import { PanelSelect, PanelSelectItem } from "./PanelSelect";
 import {
+  CATALOG_DATA_DISABLED_TYPES,
   CATALOG_SECTION_TYPES,
   COLLECTION_TYPE_TABLE,
 } from "../../../../../../packages/shared/src/catalog/document/collectionItems";
@@ -87,7 +88,7 @@ interface CollectionBindingProps {
  * 바인딩이 고르는 열 역할 — 항목 key (`value`) 와 Tree 의 하위 관계. 글자 · 그림 칸은 항목 필드
  * 절이 행 template 의 `{field}` 로 연결한다 (icon 역할은 2026-10-24 삭제).
  */
-type FieldMapRole = "value" | "children" | "parentId";
+type FieldMapRole = "value" | "children" | "parentId" | "disabled";
 const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value"];
 /**
  * A Tree's binding also names its items' children (`useTreeData.getChildren`) — a Table's too
@@ -104,11 +105,15 @@ const SECTION_FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "children"];
 const FIELD_MAP_AUTO_KEY = "__auto__";
 const FIELD_MAP_ROLE_LABEL: Record<
   FieldMapRole,
-  "fieldMapValue" | "fieldMapChildren" | "fieldMapParentId"
+  | "fieldMapValue"
+  | "fieldMapChildren"
+  | "fieldMapParentId"
+  | "fieldMapDisabled"
 > = {
   value: "fieldMapValue",
   children: "fieldMapChildren",
   parentId: "fieldMapParentId",
+  disabled: "fieldMapDisabled",
 };
 
 /** 역할 1개 = Select 1행 — 옵션은 "자동" + schema 필드 (키 = fieldId, 표시 = key). */
@@ -155,7 +160,11 @@ function FieldMapSelect({
       >
         <PanelSelectItem
           id={FIELD_MAP_AUTO_KEY}
-          label={t("propertiesPanel.fieldMapAuto")}
+          label={
+            role === "disabled"
+              ? t("propertiesPanel.fieldMapNone")
+              : t("propertiesPanel.fieldMapAuto")
+          }
         />
         {fields.map((field) => (
           <PanelSelectItem
@@ -241,11 +250,18 @@ export const CollectionBinding = memo(function CollectionBinding({
   // `useListData.getItem(key)` — Form 이 한 항목을 읽어 필드를 채운다. 컬렉션 컴포넌트에 두면 목록이
   // 그 한 항목만 보여 입력을 두지 않는다 (2026-10-24 사용자 「Item key 를 Form 에만」).
   const readsOneItem = ruleId === "Form";
-  const fieldMapRoles = isTree
-    ? TREE_FIELD_MAP_ROLES
-    : isSection
-      ? SECTION_FIELD_MAP_ROLES
-      : FIELD_MAP_ROLES;
+  const fieldMapRoles: readonly FieldMapRole[] = [
+    ...(isTree
+      ? TREE_FIELD_MAP_ROLES
+      : isSection
+        ? SECTION_FIELD_MAP_ROLES
+        : FIELD_MAP_ROLES),
+    // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field whose `true`
+    // disables the row's item.
+    ...(ruleId && CATALOG_DATA_DISABLED_TYPES.has(ruleId)
+      ? (["disabled"] as const)
+      : []),
+  ];
   const [rowTemplateMode, setRowTemplateMode] = useState<"template" | "keep">(
     "template",
   );
@@ -421,7 +437,11 @@ export const CollectionBinding = memo(function CollectionBinding({
                         (field) =>
                           field.type === "string" || field.type === "number",
                       )
-                    : fieldOptions
+                    : role === "disabled"
+                      ? fieldOptions.filter(
+                          (field) => field.type === "boolean",
+                        )
+                      : fieldOptions
               }
               selectedFieldId={
                 resolveField(fieldOptions, value?.fieldMap?.[role])?.id ?? null

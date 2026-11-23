@@ -317,6 +317,13 @@ const CatalogFields = memo(function CatalogFields({
       .map((field) => {
         const group = groupFields.find((item) => item.key === field.key);
         if (!group) return field;
+        // (`disabledKeys` — its items as the check list's rows, the authored keys shown.)
+        if (group.choicesOnly)
+          return {
+            ...field,
+            kind: "selection-keys" as const,
+            options: [...group.options],
+          };
         return {
           ...field,
           // (One key or several — the group's mode decides the label too.)

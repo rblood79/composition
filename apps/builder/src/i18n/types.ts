@@ -875,6 +875,8 @@ export interface TranslationKeys {
     fieldMapChildren: string;
     fieldMapParentId: string;
     fieldMapAuto: string;
+    fieldMapDisabled: string;
+    fieldMapNone: string;
     rowTemplateItems: string;
     rowTemplateFirst: string;
     rowTemplateKeep: string;

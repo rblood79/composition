@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [목록 비활성 항목 — S2 disabledKeys 8종 · 데이터 필드] - 2026-11-23
+
+### Added
+
+- **ListBox · GridList · Table · Tree · CardView · Select · ComboBox · Tabs 의 「비활성 항목」** (S2 `disabledKeys`, S2 체크리스트 부록 D.3 2단계):
+  - Design 패널 Behavior 구획의 칸 하나 — 그 컴포넌트의 항목이 체크 목록으로 나오고, 고른 항목은 누를 수도 선택할 수도 없으며 비활성 색으로 그려진다 (Canvas · Preview · Publish 같음). 저장은 그룹이 항목 key 로 (ADR-308 의 선택과 같은 모양). Menu · TagGroup · SideNav 의 칸도 같은 체크 목록이 됐다 (전에는 key 를 쉼표로 입력).
+  - 데이터에 연결한 목록은 데이터 연결 칸의 「Disabled field」 로 boolean 필드 하나를 고른다 — 그 필드가 `true` 인 행이 비활성 (창 밖 행 · 하위 행 포함). 문서에는 그룹이 고른 key 만 저장되고, 필드가 정한 행은 실행 때 합쳐진다.
+  - 위치: `packages/shared/src/catalog/bindings/disabledKeysProp.ts` · `catalog/runtime/{groupSelection,presence,delegatedDom.runtime,dataBinding}.ts` · `catalog/resolution/resolver.ts` · `apps/builder/src/builder/catalogRuntime/singleSelection.ts` · `components/property/CollectionBinding.tsx`
+
+### Fixed
+
+- **Tree 가 비활성으로 만든 행의 라벨 · chevron 이 Canvas 에서만 평소 색** (live: Canvas 41 · Publish 198):
+  - **Why**: Canvas 의 라벨 판정이 항목 자기 `isDisabled` 만 읽었고, Tree 를 바꿀 때 행의 라벨 · chevron 을 다시 계산하지 않았다.
+- **Undo 로 비활성을 풀어도 Tree 행의 선택 Checkbox 가 비활성으로 남던 것**:
+  - **Why**: 한 편집의 파생 재계산에서 뒤의 레코드가 앞에서 다시 계산한 레코드를 읽지 못했다 (`compositionRoot.ts` 의 dependents 계획이 계획한 레코드를 다음 판정에 넘기지 않음).
+
+### Tests
+
+- `s2D3DisabledKeys.test.tsx` 18 (8종 Canvas · Publish · 패널 체크 목록 · 데이터 필드) · `s2TreeItemDisabledText` +1 · `CollectionBinding` +2, live `apps/builder/scripts/s2-disabled-keys-live.mjs` 8/8.
+
 ## [CardView · Table 빈 상태 — S2 renderEmptyState] - 2026-11-23
 
 ### Added

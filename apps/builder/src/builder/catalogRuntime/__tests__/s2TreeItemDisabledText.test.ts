@@ -95,7 +95,7 @@ async function treeFixture() {
   // (the chevron glyph's color — the item's text color, `catalogTreeChevronGlyphItem`)
   const glyph = () =>
     String(root.canvasInputs.get(inItem("Icon")[0] as never)?.derivedProps?.color);
-  const write = (id: string, props: Record<string, boolean>) =>
+  const write = (id: string, props: Record<string, boolean | string[]>) =>
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: id as NodeId }],
@@ -104,7 +104,13 @@ async function treeFixture() {
         ),
       }),
     );
-  return { item, of, labels, glyph, write };
+  // (the row's selection Checkbox record — its derived disabled, RAC's context value)
+  const checkboxDisabled = () =>
+    inItem("Checkbox").map(
+      (id) =>
+        root.canvasInputs.get(id as never)?.derivedProps?.isDisabled === true,
+    );
+  return { item, of, labels, glyph, write, checkboxDisabled };
 }
 
 const rgb = (ref: TokenRef) => {
@@ -127,6 +133,29 @@ describe("S2 TreeView — disabled 항목의 글자 = disabled-content (gray-400
     f.write(f.item().sourceId, { isDisabled: false });
     expect(f.labels()).toEqual(rest);
     expect(f.glyph()).toBe(restGlyph);
+  });
+
+  // 부록 D.3 2단계 (2026-11-23) — the Tree's `disabledKeys` naming the item: the same paint, on the
+  // edit of the Tree (its rows' label · chevron re-derived — live: Canvas 41 vs Publish 198 before).
+  it("Canvas: Tree 의 disabledKeys 가 이름 붙인 항목 — 라벨 · chevron · 선택 Checkbox 가 disabled, 지우면 휴지", async () => {
+    const f = await treeFixture();
+    const rest = f.labels();
+    const restGlyph = f.glyph();
+    const tree = f.of("Tree")[0]!;
+    const key = String(f.item().props.id);
+    f.write(tree.sourceId, { selectionMode: "multiple" } as never);
+    const restCheckbox = f.checkboxDisabled();
+    f.write(tree.sourceId, { disabledKeys: [key] });
+    expect(f.labels()).toEqual([rgb(DISABLED)]);
+    expect(f.glyph().toLowerCase()).toBe(
+      String(resolveToken(DISABLED, "light")).toLowerCase(),
+    );
+    expect(f.checkboxDisabled().length).toBeGreaterThan(0);
+    expect(f.checkboxDisabled().every(Boolean)).toBe(true);
+    f.write(tree.sourceId, { disabledKeys: [] });
+    expect(f.labels()).toEqual(rest);
+    expect(f.glyph()).toBe(restGlyph);
+    expect(f.checkboxDisabled()).toEqual(restCheckbox);
   });
 
   it("DOM: Tree sheet — disabled 행 · 라벨 Text · chevron Icon 이 같은 토큰 변수 (color-mix 파생식 아님)", () => {

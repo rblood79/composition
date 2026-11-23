@@ -9,6 +9,7 @@ import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 export const comboBoxBinding: PrimitiveBinding = {
   source: {
@@ -30,6 +31,9 @@ export const comboBoxBinding: PrimitiveBinding = {
         label: "Selected item",
         section: "value",
       },
+      // S2 `disabledKeys` (부록 D.3 2단계, 2026-11-23) — its options' keys, a check list; a bound one
+      //   also by a data field (the binding's `fieldMap.disabled`).
+      disabledKeys: DISABLED_KEYS_PROP,
       ...OVERLAY_OPEN_PROPS,
       dataBinding: {
         kind: "binding",

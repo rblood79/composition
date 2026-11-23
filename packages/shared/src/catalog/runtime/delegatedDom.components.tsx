@@ -11,6 +11,7 @@ import {
   type ReactElement,
 } from "react";
 
+import { catalogGroupDisabledKeys } from "./groupSelection";
 import { I18nProvider } from "react-aria-components";
 import { Breadcrumb as AriaBreadcrumb } from "react-aria-components/Breadcrumbs";
 import { Button as AriaButton } from "react-aria-components/Button";
@@ -348,8 +349,8 @@ export function TagGroupRun({
         selectionBehavior: props.selectionBehavior || "toggle",
         disallowEmptySelection: bool(props.disallowEmptySelection),
         // (S2 `disabledKeys`, 2026-11-18.)
-        ...(Array.isArray(props.disabledKeys)
-          ? { disabledKeys: props.disabledKeys.map(String) }
+        ...(catalogGroupDisabledKeys(props).length
+          ? { disabledKeys: catalogGroupDisabledKeys(props) }
           : {}),
         onRemove: bool(props.allowsRemoving)
           ? (keys: "all" | Iterable<Key>) =>

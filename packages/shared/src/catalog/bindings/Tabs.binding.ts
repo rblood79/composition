@@ -7,6 +7,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 export const tabsBinding: PrimitiveBinding = {
   source: {
@@ -75,11 +76,7 @@ export const tabsBinding: PrimitiveBinding = {
           { value: "manual", label: "Manual" },
         ],
       },
-      disabledKeys: {
-        kind: "string-array",
-        label: "Disabled keys",
-        section: "state",
-      },
+      disabledKeys: DISABLED_KEYS_PROP,
       // S2 Tabs `defaultSelectedKey` as the Design panel's Selected Tab (사용자 2026-10-13 「tabs컴퍼넌트의
       //   프러퍼티에 Selected Tab을 선택할수있게」): its choices are the Tabs' Tabs and it shows the
       //   selected one; choosing writes that Tab's Selected (`catalogSingleSelectionCommand` — a Tab's

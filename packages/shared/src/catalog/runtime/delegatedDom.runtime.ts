@@ -248,6 +248,7 @@ import {
 import { resolveStaticItemKey } from "../slotRoles";
 import {
   CATALOG_SELECTION_GROUP_TYPES,
+  catalogGroupDisabledKeys,
   catalogGroupExpansion,
   catalogGroupSelection,
   catalogItemKey,
@@ -777,6 +778,18 @@ export function catalogCollectionItemKeys(
 }
 
 /** RAC keeps its first `defaultSelectedKeys`: a changed authored set builds the collection again. */
+
+/**
+ * S2 · RAC `disabledKeys` of a collection (부록 D.3 2단계, 2026-11-23): the keys its group stores
+ * (a bound one's with its disabled field's rows — the resolver's). None = RAC's own (none).
+ */
+function disabledKeysProp(
+  props: Readonly<Record<string, unknown>>,
+): { disabledKeys?: string[] } {
+  const keys = catalogGroupDisabledKeys(props);
+  return keys.length ? { disabledKeys: keys } : {};
+}
+
 const selectionKey = (base: string, keys: readonly string[] | "all") =>
   keys.length ? `${base}|selected:${JSON.stringify(keys)}` : base;
 
@@ -2103,9 +2116,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ...controlled(input, SELECTED_KEY, selectedKey),
           labelBehavior: props.labelBehavior || "show",
           keyboardActivation: props.keyboardActivation || "automatic",
-          disabledKeys: Array.isArray(props.disabledKeys)
-            ? props.disabledKeys
-            : undefined,
+          ...disabledKeysProp(props),
           "aria-label": input.node.ariaLabel || "Tabs",
           density: props.density || "regular",
           orientation: props.orientation || "horizontal",
@@ -2363,6 +2374,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               orientation: props.orientation || "vertical",
               selectionMode: props.selectionMode ?? "none",
               disallowEmptySelection: bool(props.disallowEmptySelection),
+              ...disabledKeysProp(props),
               autoFocus: bool(props.autoFocus),
               // (Its items set Selected — the item's edit surface, 2026-10-13; in a running
               // Preview the selection is controlled — ADR-280.)
@@ -2417,6 +2429,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           selectionMode: props.selectionMode ?? "none",
           selectionStyle: props.selectionStyle || undefined,
           disallowEmptySelection: bool(props.disallowEmptySelection),
+          ...disabledKeysProp(props),
           ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
           ...catalogEmptyState(input),
         },
@@ -2557,9 +2570,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               : { "aria-label": "Menu" }),
           ...catalogEmptyState(input),
           // (S2 `disabledKeys` · `disallowEmptySelection`, 2026-11-18.)
-          ...(Array.isArray(props.disabledKeys)
-            ? { disabledKeys: props.disabledKeys.map(String) }
-            : {}),
+          ...disabledKeysProp(props),
           ...(props.disallowEmptySelection === true
             ? { disallowEmptySelection: true }
             : {}),
@@ -2626,6 +2637,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "aria-label": str(props["aria-label"] || props.label || "Tree"),
           selectionMode: props.selectionMode ?? "single",
           disallowEmptySelection: bool(props.disallowEmptySelection),
+          ...disabledKeysProp(props),
           // RSP `selectionStyle` (checkbox → RAC `toggle`, highlight → `replace`): the shared Tree
           // converts it (`resolveSelectionBehavior`, S2's checkbox when unset).
           selectionStyle: props.selectionStyle,
@@ -2751,9 +2763,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             label: str(props["aria-label"] || "Navigation"),
             selectedRoute: opt(props.selectedRoute),
             // (S2 `disabledKeys` — RAC NavigationTree's, 2026-11-18.)
-            ...(Array.isArray(props.disabledKeys)
-              ? { disabledKeys: props.disabledKeys.map(String) }
-              : {}),
+            ...disabledKeysProp(props),
             expandedKeys: treeKeys(runtimeState(input, "expandedKeys")),
             ...(input.setRuntimeProps
               ? {
@@ -2858,6 +2868,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         // Single (RAC's default) or Multiple — its ListBox and SelectValue follow RAC's state.
         selectionMode:
           props.selectionMode === "multiple" ? "multiple" : undefined,
+        ...disabledKeysProp(props),
         "aria-label": str(props.label).trim()
           ? undefined
           : (opt(props.placeholder) ?? "Select an option"),
@@ -2896,6 +2907,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       defaultOpen: props.defaultOpen,
       allowsCustomValue: bool(props.allowsCustomValue),
       menuTrigger: opt(props.menuTrigger),
+      ...disabledKeysProp(props),
       "aria-label": str(props.label).trim()
         ? undefined
         : (opt(props.placeholder) ?? "Select an option"),
@@ -3992,9 +4004,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               selected,
               catalogSelectionValue,
             ),
-            disabledKeys: cards
-              .filter((card) => card.props.isDisabled === true)
-              .map(key),
+            // (Its Cards' own `isDisabled` and the keys it names — S2 `disabledKeys`.)
+            disabledKeys: [
+              ...new Set([
+                ...cards
+                  .filter((card) => card.props.isDisabled === true)
+                  .map(key),
+                ...catalogGroupDisabledKeys(props),
+              ]),
+            ],
             // S2 CardView `renderEmptyState` (부록 D.3 2단계, 2026-11-23): its IllustratedMessage
             //   child while it has no cards — not while its skeleton items stand in (S2 wraps it so).
             ...(skeletons ? {} : catalogEmptyState(input)),

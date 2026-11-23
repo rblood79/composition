@@ -7,6 +7,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
 export const tagGroupBinding: PrimitiveBinding = {
   source: {
@@ -126,11 +127,7 @@ export const tagGroupBinding: PrimitiveBinding = {
       },
       // 2026-11-18 S2 `disabledKeys` — the items it names are disabled (RAC; the Canvas paints them
       //   disabled — `catalogItemKeyDisabled`).
-      disabledKeys: {
-        kind: "string-array",
-        label: "Disabled keys",
-        section: "state",
-      },
+      disabledKeys: DISABLED_KEYS_PROP,
       // 2026-11-18 S2 `selectionBehavior` — toggle (each press adds · removes) or replace (a press
       //   selects that tag alone); `TagGroupRun` hands it to RAC.
       selectionBehavior: {

@@ -1,4 +1,5 @@
 import {
+  CATALOG_DATA_DISABLED_TYPES,
   CATALOG_REPEAT_TYPES,
   CATALOG_ROW_ITEM_TYPES,
   CATALOG_SECTION_TYPES,
@@ -323,6 +324,11 @@ export type CatalogLoadingState =
 export type CatalogBoundRows = readonly CatalogBoundRow[] & {
   readonly total?: number;
   readonly loadingState?: CatalogLoadingState;
+  /**
+   * S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): the keys of the rows the
+   * binding's disabled field (`fieldMap.disabled`) marks — every row's, not the window's.
+   */
+  readonly disabledKeys?: readonly string[];
   /** ADR-284 — the binding's view result (absent = no view). */
   readonly view?: CatalogViewResultMeta;
   /** The Table sort the rows are already in (the row source ordered them before its window). */
@@ -2943,6 +2949,21 @@ export function resolveCatalogNode(
         if (state) props.loadingState = state;
       }
     }
+    // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a bound collection's rows its
+    // disabled field marks join the keys it names (Canvas · DOM · dispatcher read the one list).
+    const disabledRows =
+      rows && nodeBinding && CATALOG_DATA_DISABLED_TYPES.has(ownedType)
+        ? (keyedRows ?? rows(nodeBinding, "items", node.id))?.disabledKeys
+        : undefined;
+    if (disabledRows?.length)
+      props.disabledKeys = [
+        ...new Set([
+          ...(Array.isArray(props.disabledKeys)
+            ? props.disabledKeys.map(String)
+            : []),
+          ...disabledRows,
+        ]),
+      ];
     applyFormContext(
       node.definitionId,
       props,
@@ -3066,6 +3087,8 @@ export function resolveCatalogNode(
               ...(ownedRowing?.rowStart ? ["id"] : []),
               // (The collection's load reaches the template root — the Table record.)
               ...(props.loadingState !== undefined ? ["loadingState"] : []),
+              // (The rows a data field disables reach it too — S2 `disabledKeys`.)
+              ...(disabledRows?.length ? ["disabledKeys"] : []),
               // (ADR-315 Phase 5 — a group row's tree cell mark reaches the Cell's root.)
               ...(props[CATALOG_TREE_CELL_PROP] !== undefined
                 ? [CATALOG_TREE_CELL_PROP]
