@@ -269,6 +269,32 @@ export const MENU_PROPS_SCHEMA = overlayOriginSchema(
   { size: ["S", "M", "L", "XL"] },
 );
 
+/**
+ * S2 체크리스트 §9.3 — S2 ActionMenu: the button's `size` · `isQuiet` (S2 `ActionButtonProps`), the
+ * menu's `menuSize` (S2 — the Menu's size), its data binding, and the MenuTrigger's own props.
+ */
+export const ACTIONMENU_PROPS_SCHEMA: PropsSchema = (() => {
+  const button = (getPrimitiveBinding("ActionButton")?.props.accepts ??
+    {}) as PropsSchema;
+  const menu = MENU_PROPS_SCHEMA;
+  return {
+    // (The root is the MenuTrigger — no size scale of its own: S2 ActionButton's sizes.)
+    size: {
+      ...button.size!,
+      kind: "enum",
+      options: ["XS", "S", "M", "L", "XL"].map((value) => ({
+        value,
+        label: value,
+      })),
+    },
+    isQuiet: button.isQuiet!,
+    menuSize: { ...menu.size!, label: "Menu size" },
+    dataBinding: menu.dataBinding!,
+    ...((getPrimitiveBinding("MenuTrigger")?.props.accepts ??
+      {}) as PropsSchema),
+  } as PropsSchema;
+})();
+
 /** Reusable id → its declared edit contract. */
 export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-button": BUTTON_PROPS_SCHEMA,
@@ -293,4 +319,5 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-sheet": SHEET_PROPS_SCHEMA,
   "component-tooltip": TOOLTIP_PROPS_SCHEMA,
   "component-menu": MENU_PROPS_SCHEMA,
+  "component-actionmenu": ACTIONMENU_PROPS_SCHEMA,
 };

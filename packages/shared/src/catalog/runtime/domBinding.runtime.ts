@@ -326,7 +326,11 @@ import {
   catalogUnavailableGlyphOf,
 } from "./unavailableMenuItem";
 
-import { CatalogUnavailableGlyph } from "./unavailableMenuItem.components";
+import {
+  CatalogMoreActionsName,
+  CatalogUnavailableGlyph,
+} from "./unavailableMenuItem.components";
+import { catalogMoreActionsTrigger } from "./actionMenu";
 
 import {
   catalogValueRowKey,
@@ -6350,6 +6354,16 @@ export function renderNode(
     return createElement(CatalogSelectValueRowGate, {
       key: node.id,
       rowKey: valueRow,
+      element: element as ReactElement,
+    });
+  // S2 ActionMenu (§9.3): an unnamed icon-only menu trigger is named 「More actions」 in the site's
+  // language (S2 `menu.moreActions`).
+  if (
+    node.bindingId === "actionbutton" &&
+    catalogMoreActionsTrigger(node, domGet, domType)
+  )
+    return createElement(CatalogMoreActionsName, {
+      key: node.id,
       element: element as ReactElement,
     });
   if (unavailableItem)

@@ -242,6 +242,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "action button",
     icon: "MousePointer",
   },
+  // S2 체크리스트 §9.3 (2026-11-23): S2 ActionMenu.
+  {
+    type: "ActionMenu",
+    category: "buttons",
+    label: "action menu",
+    icon: "Ellipsis",
+  },
   {
     type: "ActionButtonGroup",
     category: "buttons",

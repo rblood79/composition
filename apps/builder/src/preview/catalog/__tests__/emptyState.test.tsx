@@ -95,7 +95,8 @@ describe("collection empty state (renderEmptyState)", () => {
     );
     expect(origins.map((origin) => typeOf(origin.definitionId)).sort()).toEqual(
       // (S2 체크리스트 부록 D.3 2단계 — CardView · TableBody, 2026-11-23.)
-      ["CardView", "GridList", "ListBox", "Menu", "Table", "TagList", "Tree"],
+      // (§9.3 — the ActionMenu origin's Menu, 2026-11-23.)
+      ["CardView", "GridList", "ListBox", "Menu", "Menu", "Table", "TagList", "Tree"],
     );
     for (const origin of origins) {
       const children = origin.children.map((id) => templates.get(id as never));

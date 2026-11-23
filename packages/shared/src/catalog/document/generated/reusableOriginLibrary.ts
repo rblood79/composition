@@ -723,6 +723,24 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-menu"
   },
   {
+    "id": "lib:definition:origin-component-actionmenu",
+    "name": "ActionMenu",
+    "mode": "composite",
+    "accepts": {
+      "size": "string",
+      "menuSize": "string",
+      "isQuiet": "boolean"
+    },
+    "defaults": {
+      "size": "M",
+      "menuSize": "M",
+      "isQuiet": false
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-actionmenu"
+  },
+  {
     "id": "lib:definition:origin-component-textfield",
     "name": "TextField",
     "mode": "composite",
@@ -4473,6 +4491,207 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
           "lib:template:component-menu-item-default__description"
         ],
         "enabled": false
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-actionmenu",
+    "definitionId": "lib:definition:type-MenuTrigger",
+    "children": [
+      "lib:template:component-actionmenu__trigger",
+      "lib:template:component-actionmenu__popover"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionmenu__trigger",
+    "definitionId": "lib:definition:origin-component-actionbutton",
+    "children": [],
+    "props": {
+      "label": "",
+      "icon": "ellipsis",
+      "size": "{size}",
+      "isQuiet": "{isQuiet}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionmenu__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-actionmenu__menu"
+    ],
+    "props": {
+      "size": "{menuSize}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionmenu__menu",
+    "definitionId": "lib:definition:type-Menu",
+    "slot": {
+      "name": "Items",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-actionmenu__copy",
+      "lib:template:component-actionmenu__cut",
+      "lib:template:component-actionmenu__paste",
+      "lib:template:component-actionmenu__menu__empty-state"
+    ],
+    "props": {
+      "size": "{menuSize}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionmenu__menu__empty-state",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "No results"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-actionmenu__copy",
+    "definitionId": "lib:definition:origin-component-menu-item-default",
+    "children": [],
+    "props": {
+      "id": "copy"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__icon"
+        ],
+        "props": {
+          "iconName": "copy"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__label"
+        ],
+        "props": {
+          "children": "Copy"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__description"
+        ],
+        "props": {
+          "children": "Copy the selected text"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__shortcut"
+        ],
+        "props": {
+          "children": "⌘C"
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-actionmenu__cut",
+    "definitionId": "lib:definition:origin-component-menu-item-default",
+    "children": [],
+    "props": {
+      "id": "cut"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__icon"
+        ],
+        "props": {
+          "iconName": "scissors"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__label"
+        ],
+        "props": {
+          "children": "Cut"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__description"
+        ],
+        "props": {
+          "children": "Cut the selected text"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__shortcut"
+        ],
+        "props": {
+          "children": "⌘X"
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-actionmenu__paste",
+    "definitionId": "lib:definition:origin-component-menu-item-default",
+    "children": [],
+    "props": {
+      "id": "paste"
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__icon"
+        ],
+        "props": {
+          "iconName": "clipboard-paste"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__label"
+        ],
+        "props": {
+          "children": "Paste"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__description"
+        ],
+        "props": {
+          "children": "Paste the copied text"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-menu-item-default",
+          "lib:template:component-menu-item-default__shortcut"
+        ],
+        "props": {
+          "children": "⌘V"
+        }
       }
     ]
   },

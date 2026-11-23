@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Action menu — S2 ActionMenu] - 2026-11-23
+
+### Added
+
+- **팔레트 「action menu」** (S2 `ActionMenu`): 「더 보기」 버튼 (icon-only ActionButton, 점 세 개) 과 그 Menu 를 한 번에 놓는다 — `MenuTrigger > ActionButton + Popover > Menu` 원본 (`component-actionmenu`, S2 와 같은 조합이라 새 type 없음). Design 패널은 S2 prop 그대로 Size (버튼 XS ~ XL) · Quiet · Menu size (S ~ XL) · 열리는 방향 · 정렬, 데이터 연결. 기본 항목은 S2 문서 예제 (Copy · Cut · Paste — 아이콘 · 설명 · 단축키).
+- **이름 없는 메뉴 버튼의 이름**: 글자 없는 icon-only menu trigger 버튼은 S2 `menu.moreActions` 를 사이트 언어로 받는다 (「More actions」 · 「기타 액션」 · 「その他のアクション」 · 「更多操作」). 작성한 `aria-label` 이 이긴다.
+  - 위치: `packages/shared/src/catalog/{document/generated/reusableOriginLibrary.ts,componentCatalog.ts,runtime/actionMenu.ts,runtime/unavailableMenuItem.components.tsx,runtime/domBinding.runtime.ts}` · `apps/builder/src/builder/{components/reusablePropsSchemas.ts,panels/components/paletteItems.ts,catalogRuntime/componentsPage.ts}`
+
+### Tests
+
+- `s2ActionMenu.test.tsx` 3 (팔레트 · prop 계약, icon-only 이름 · 항목 3, size · isQuiet · menuSize 전달 · 작성 이름 우선), live `apps/builder/scripts/s2-action-menu-live.mjs` 5/5 (Components 패널 클릭 → Canvas → Design 패널 → Publish).
+
 ## [Select 값 모양 — S2 renderValue (값 칸 template 노드)] - 2026-11-23
 
 ### Added

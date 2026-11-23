@@ -117,6 +117,7 @@ const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
   "Tooltip",
   "ContextualHelp",
   "Menu",
+  "ActionMenu",
 ]);
 /**
  * Origins whose card draws the origin alone — no filled instance beside it (user 2026-10-25
@@ -154,6 +155,7 @@ const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "TagGroup",
   // (User 2026-10-25 「menu - menu(instance) … 삭제」 · 「tooltip - tooltip(instance) … 삭제」.)
   "Menu",
+  "ActionMenu",
   "Tooltip",
 ]);
 /**
@@ -173,6 +175,9 @@ const NO_ITEMS_LINE: ReadonlySet<string> = new Set([
   "ToggleButtonGroup",
   "Toolbar",
   "ButtonGroup",
+  // (S2 체크리스트 §9.3: an ActionMenu's items are the Menu's — the MenuItem origin draws in the
+  //  Menu card.)
+  "ActionMenu",
 ]);
 /** Origins whose card draws no States line (user 2026-10-25 「DISCLOSURE - States … 삭제」). */
 const NO_STATES_LINE: ReadonlySet<string> = new Set(["Disclosure"]);

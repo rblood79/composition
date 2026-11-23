@@ -1540,6 +1540,14 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     label: "card",
     icon: "AppWindowMac",
   }),
+  // S2 체크리스트 §9.3 (2026-11-23): S2 ActionMenu — an icon-only ActionButton (More) and its
+  //   Menu, `MenuTrigger > ActionButton + Popover > Menu` (S2 `ActionMenu.tsx`). No type of its own
+  //   (S2's is that composition): the origin `component-actionmenu`.
+  reusableEntry("ActionMenu", "collections", "component-actionmenu", {
+    category: "buttons",
+    label: "action menu",
+    icon: "Ellipsis",
+  }),
 ];
 
 /**
