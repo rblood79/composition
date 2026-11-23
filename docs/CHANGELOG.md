@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Card density · 카드 원본 4종 — S2 Card spacing · AssetCard · UserCard · ProductCard · CollectionCardPreview] - 2026-11-24
+
+### Added
+
+- **Card 의 Density** (S2 Card `density`): Compact · Regular · Spacious — 카드 안쪽 여백 (S2 card spacing). 크기별 값은 S2 표 그대로 (Regular XS 8 · S 12 · M 16 · L 20 · XL 24, Compact 은 6 · 8 · 12 · 16 · 20, Spacious 는 12 · 16 · 20 · 24 · 28).
+- **팔레트 「asset card」 · 「user card」 · 「product card」 · 「collection card」** (S2 `Card.md` 예제 — 뿌리는 Card, 새 type 없음):
+  - asset card — 정사각 미리보기 · 제목 옆 ActionMenu (카드 크기에 맞는 버튼 크기) · 설명, density Regular 고정
+  - user card — 3:1 배너 · 배너 아래 끝에 반쯤 걸친 Avatar (크기 = 카드 크기: M 64 · XL 80) · 제목 · 설명 · Footer 의 StatusLight, density Spacious 고정, Variant 에 quiet 없음
+  - product card — 5:1 배너 · 배너에 반쯤 걸친 thumbnail (M 40 · XL 56) · 제목 · 설명 · Footer 의 Button (카드 크기를 따름), density Spacious 고정, quiet 없음
+  - collection card — 이미지 4 장 (첫 장이 3 칸 폭 3:2, 나머지 정사각) · 제목 · 폴더 아이콘 + 개수
+
+### Changed
+
+- **Card 바탕이 S2 와 같다** (사용자 결정 「포함」 · 「S2 크기별 폭」):
+  - 미리보기 (CardPreview) 가 카드의 위 · 좌우 가장자리까지 닿는다 (전에는 여백 안에 들어가 있었다). 카드는 내용을 모서리에 맞춰 자른다 (S2 `overflow: clip` — quiet 은 자르지 않고 미리보기가 카드 모서리를 가진다).
+  - 여백 값이 S2 표다 — M 은 그대로 16, XS 4 → 8 · S 8 → 12 · L 24 → 20 · XL 32 → 24. quiet Card 는 여백 0.
+  - 영역 간격이 S2 와 같다 — 미리보기 아래 Content 위 여백 = spacing, Content 아래 · Footer 위 = spacing 의 ¾ (전에는 Card gap 12).
+  - 혼자 선 Card 의 폭 = 크기별 S2 값 (XS 112 · S 192 · M 240 · L 320 · XL 400 — 전에는 부모 폭 100%). CardView 안 Card 는 칸을 채운다. 직접 준 폭이 이긴다.
+  - 위치: `packages/shared/src/catalog/{generated/componentRulesTable.ts (Card size · density · quiet · thumbnail, CardPreview card-radius),document/rulePartRules.ts (겹 선택자 `&[data-size]` → Canvas 조건),runtime/presence.ts (`catalogCardSpacing`·`catalogCardSection`),runtime/boxModel.ts,runtime/domBinding.runtime.ts,document/generated/reusableOriginLibrary.ts}` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
+
+### Tests
+
+- `s2CardDensity.test.tsx` 3 (density × size 여백 · 폭 · 미리보기 margin · Content · Footer 여백 · quiet 0 과 미리보기 모서리 — Canvas record · 기하 · Skia 상자와 DOM, CardView 안 칸 채움, detach 한 Card 의 영역 다시 계산), `s2CardPresets.test.tsx` 4 (원본 4종 — density · 정사각 · Avatar · thumbnail 겹침과 카드 크기 따라가기 · 첫 이미지 3 칸). live `s2-card-density-live` 5/5 (Components 패널 card → Design 패널 Density Compact → 원본 4종 → Publish 대조).
+
 ## [Table 합계 행 · 편집 칸 — S2 TableFooter · EditableCell] - 2026-11-23
 
 ### Added

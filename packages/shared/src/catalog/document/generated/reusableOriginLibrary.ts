@@ -314,11 +314,13 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "mode": "composite",
     "accepts": {
       "variant": "string",
-      "size": "string"
+      "size": "string",
+      "density": "string"
     },
     "defaults": {
       "variant": "primary",
-      "size": "M"
+      "size": "M",
+      "density": "regular"
     },
     "visual": {},
     "stateRules": {},
@@ -2172,7 +2174,112 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
   "stateRules": {},
   "templateRootId": "lib:template:component-labeledvalue"
 },
-  ...RANGE_SEGMENT_DEFINITIONS
+  ...RANGE_SEGMENT_DEFINITIONS,
+  {
+    "id": "lib:definition:origin-component-assetcard",
+    "name": "AssetCard",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string",
+      "size": "string"
+    },
+    "defaults": {
+      "variant": "primary",
+      "size": "M"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-assetcard",
+    "bindingMaps": {
+      "assetMenuSize": {
+        "from": "size",
+        "values": {
+          "XS": "XS",
+          "S": "XS",
+          "M": "S",
+          "L": "M",
+          "XL": "L"
+        },
+        "otherwise": "S"
+      }
+    }
+  },
+  {
+    "id": "lib:definition:origin-component-usercard",
+    "name": "UserCard",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string",
+      "size": "string"
+    },
+    "defaults": {
+      "variant": "primary",
+      "size": "M"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-usercard",
+    "bindingMaps": {
+      "userAvatarSize": {
+        "from": "size",
+        "values": {
+          "XS": 24,
+          "S": 48,
+          "M": 64,
+          "L": 64,
+          "XL": 80
+        },
+        "otherwise": 64
+      }
+    }
+  },
+  {
+    "id": "lib:definition:origin-component-productcard",
+    "name": "ProductCard",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string",
+      "size": "string"
+    },
+    "defaults": {
+      "variant": "primary",
+      "size": "M"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-productcard",
+    "bindingMaps": {
+      "productButtonSize": {
+        "from": "size",
+        "values": {
+          "XS": "S",
+          "S": "S",
+          "M": "M",
+          "L": "L",
+          "XL": "XL"
+        },
+        "otherwise": "M"
+      }
+    }
+  },
+  {
+    "id": "lib:definition:origin-component-collectioncard",
+    "name": "CollectionCard",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string",
+      "size": "string",
+      "density": "string"
+    },
+    "defaults": {
+      "variant": "primary",
+      "size": "M",
+      "density": "regular"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-collectioncard"
+  }
 ];
 
 export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
@@ -3326,6 +3433,779 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "label": "Action"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-assetcard",
+    "definitionId": "lib:definition:type-Card",
+    "children": [
+      "lib:template:component-assetcard__preview",
+      "lib:template:component-assetcard__content",
+      "lib:template:component-assetcard__selection-indicator",
+      "lib:template:component-assetcard__selection"
+    ],
+    "props": {
+      "variant": "primary",
+      "size": "M",
+      "density": "regular"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-assetcard__preview",
+    "definitionId": "lib:definition:type-CardPreview",
+    "slot": {
+      "name": "Preview",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-assetcard__preview-image"
+    ],
+    "props": {},
+    "visual": {
+      "height": "fit-content"
+    }
+  },
+  {
+    "id": "lib:template:component-assetcard__preview-image",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "visual": {
+      "width": "100%",
+      "height": "auto",
+      "aspectRatio": 1
+    }
+  },
+  {
+    "id": "lib:template:component-assetcard__content",
+    "definitionId": "lib:definition:type-Content",
+    "slot": {
+      "name": "Content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-assetcard__title",
+      "lib:template:component-assetcard__menu",
+      "lib:template:component-assetcard__description"
+    ],
+    "props": {},
+    "layout": {
+      "display": "grid",
+      "gridTemplateColumns": "minmax(0, 1fr) auto",
+      "columnGap": "4px",
+      "alignItems": "start"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-assetcard__title",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "title",
+      "children": "Desert Sunset"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-assetcard__menu",
+    "definitionId": "lib:definition:origin-component-actionmenu",
+    "children": [],
+    "props": {
+      "size": "{assetMenuSize}",
+      "isQuiet": true
+    },
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-actionmenu",
+          "lib:template:component-actionmenu__trigger"
+        ],
+        "layout": {
+          "alignSelf": "center",
+          "marginTop": "-12px",
+          "marginBottom": "-12px"
+        }
+      }
+    ]
+  },
+  {
+    "id": "lib:template:component-assetcard__description",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "description",
+      "children": "PNG • 2/3/2024"
+    },
+    "layout": {
+      "gridColumnStart": "1",
+      "gridColumnEnd": "3"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-assetcard__selection-indicator",
+    "definitionId": "lib:definition:type-SelectionIndicator",
+    "children": [],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "insetTop": "0px",
+      "insetLeft": "0px"
+    },
+    "visual": {
+      "width": "100%",
+      "height": "100%",
+      "zIndex": 2,
+      "borderWidth": 2,
+      "borderColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_gray-1000"
+      },
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_transparent"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_lg"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-assetcard__selection",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-assetcard__selection__checkbox"
+    ],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "display": "flex"
+    },
+    "visual": {
+      "zIndex": 2,
+      "paddingX": 4,
+      "paddingY": 4,
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_base"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_md"
+      },
+      "boxShadow": {
+        "kind": "token",
+        "tokenId": "lib:token:shadow_sm"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-assetcard__selection__checkbox",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard",
+    "definitionId": "lib:definition:type-Card",
+    "children": [
+      "lib:template:component-usercard__preview",
+      "lib:template:component-usercard__avatar",
+      "lib:template:component-usercard__content",
+      "lib:template:component-usercard__footer",
+      "lib:template:component-usercard__selection-indicator",
+      "lib:template:component-usercard__selection"
+    ],
+    "props": {
+      "variant": "primary",
+      "size": "M",
+      "density": "spacious"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard__preview",
+    "definitionId": "lib:definition:type-CardPreview",
+    "slot": {
+      "name": "Preview",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-usercard__preview-image"
+    ],
+    "props": {},
+    "visual": {
+      "height": "fit-content"
+    }
+  },
+  {
+    "id": "lib:template:component-usercard__preview-image",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "visual": {
+      "width": "100%",
+      "height": "auto",
+      "aspectRatio": 3
+    }
+  },
+  {
+    "id": "lib:template:component-usercard__avatar",
+    "definitionId": "lib:definition:origin-component-avatar",
+    "children": [],
+    "props": {
+      "size": "{userAvatarSize}",
+      "isOverBackground": true
+    },
+    "layout": {
+      "alignSelf": "flex-start"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard__content",
+    "definitionId": "lib:definition:type-Content",
+    "slot": {
+      "name": "Content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-usercard__title",
+      "lib:template:component-usercard__description"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard__title",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "title",
+      "children": "Simone Carter"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard__description",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "description",
+      "children": "Art Director at Luma Creative Studios. Visual storyteller and coffee enthusiast."
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard__footer",
+    "definitionId": "lib:definition:type-Footer",
+    "slot": {
+      "name": "Footer",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-usercard__status"
+    ],
+    "props": {},
+    "layout": {
+      "justifyContent": "space-between"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard__status",
+    "definitionId": "lib:definition:type-StatusLight",
+    "children": [],
+    "props": {
+      "size": "S",
+      "variant": "positive",
+      "children": "Available"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-usercard__selection-indicator",
+    "definitionId": "lib:definition:type-SelectionIndicator",
+    "children": [],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "insetTop": "0px",
+      "insetLeft": "0px"
+    },
+    "visual": {
+      "width": "100%",
+      "height": "100%",
+      "zIndex": 2,
+      "borderWidth": 2,
+      "borderColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_gray-1000"
+      },
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_transparent"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_lg"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-usercard__selection",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-usercard__selection__checkbox"
+    ],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "display": "flex"
+    },
+    "visual": {
+      "zIndex": 2,
+      "paddingX": 4,
+      "paddingY": 4,
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_base"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_md"
+      },
+      "boxShadow": {
+        "kind": "token",
+        "tokenId": "lib:token:shadow_sm"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-usercard__selection__checkbox",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard",
+    "definitionId": "lib:definition:type-Card",
+    "children": [
+      "lib:template:component-productcard__preview",
+      "lib:template:component-productcard__thumbnail",
+      "lib:template:component-productcard__content",
+      "lib:template:component-productcard__footer",
+      "lib:template:component-productcard__selection-indicator",
+      "lib:template:component-productcard__selection"
+    ],
+    "props": {
+      "variant": "primary",
+      "size": "M",
+      "density": "spacious"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard__preview",
+    "definitionId": "lib:definition:type-CardPreview",
+    "slot": {
+      "name": "Preview",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-productcard__preview-image"
+    ],
+    "props": {},
+    "visual": {
+      "height": "fit-content"
+    }
+  },
+  {
+    "id": "lib:template:component-productcard__preview-image",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {
+      "slot": "preview"
+    },
+    "visual": {
+      "width": "100%",
+      "height": "auto",
+      "aspectRatio": 5
+    }
+  },
+  {
+    "id": "lib:template:component-productcard__thumbnail",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {
+      "slot": "thumbnail"
+    },
+    "layout": {
+      "alignSelf": "flex-start"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard__content",
+    "definitionId": "lib:definition:type-Content",
+    "slot": {
+      "name": "Content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-productcard__title",
+      "lib:template:component-productcard__description"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard__title",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "title",
+      "children": "Command + R"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard__description",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "description",
+      "children": "Your all-in-one shortcut for apps, automations, and devices."
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard__footer",
+    "definitionId": "lib:definition:type-Footer",
+    "slot": {
+      "name": "Footer",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-productcard__button"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard__button",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Buy now",
+      "variant": "primary",
+      "size": "{productButtonSize}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-productcard__selection-indicator",
+    "definitionId": "lib:definition:type-SelectionIndicator",
+    "children": [],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "insetTop": "0px",
+      "insetLeft": "0px"
+    },
+    "visual": {
+      "width": "100%",
+      "height": "100%",
+      "zIndex": 2,
+      "borderWidth": 2,
+      "borderColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_gray-1000"
+      },
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_transparent"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_lg"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-productcard__selection",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-productcard__selection__checkbox"
+    ],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "display": "flex"
+    },
+    "visual": {
+      "zIndex": 2,
+      "paddingX": 4,
+      "paddingY": 4,
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_base"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_md"
+      },
+      "boxShadow": {
+        "kind": "token",
+        "tokenId": "lib:token:shadow_sm"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-productcard__selection__checkbox",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-collectioncard",
+    "definitionId": "lib:definition:type-Card",
+    "children": [
+      "lib:template:component-collectioncard__preview",
+      "lib:template:component-collectioncard__content",
+      "lib:template:component-collectioncard__selection-indicator",
+      "lib:template:component-collectioncard__selection"
+    ],
+    "props": {
+      "variant": "primary",
+      "size": "M",
+      "density": "regular"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-collectioncard__preview",
+    "definitionId": "lib:definition:type-CardPreview",
+    "slot": {
+      "name": "Preview",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-collectioncard__collection"
+    ],
+    "props": {},
+    "visual": {
+      "height": "fit-content"
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__collection",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-collectioncard__image-1",
+      "lib:template:component-collectioncard__image-2",
+      "lib:template:component-collectioncard__image-3",
+      "lib:template:component-collectioncard__image-4"
+    ],
+    "props": {},
+    "layout": {
+      "display": "grid",
+      "gridTemplateColumns": "repeat(3, 1fr)"
+    },
+    "visual": {
+      "gap": 4
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__image-1",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "layout": {
+      "gridColumnStart": "1",
+      "gridColumnEnd": "4"
+    },
+    "visual": {
+      "width": "100%",
+      "height": "auto",
+      "aspectRatio": 1.5
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__image-2",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "visual": {
+      "width": "100%",
+      "height": "auto",
+      "aspectRatio": 1
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__image-3",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "visual": {
+      "width": "100%",
+      "height": "auto",
+      "aspectRatio": 1
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__image-4",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "visual": {
+      "width": "100%",
+      "height": "auto",
+      "aspectRatio": 1
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__content",
+    "definitionId": "lib:definition:type-Content",
+    "slot": {
+      "name": "Content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-collectioncard__title",
+      "lib:template:component-collectioncard__meta"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-collectioncard__title",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "title",
+      "children": "Travel"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-collectioncard__meta",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-collectioncard__icon",
+      "lib:template:component-collectioncard__description"
+    ],
+    "props": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center"
+    },
+    "visual": {
+      "gap": 8
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "folder"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-collectioncard__description",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "description",
+      "children": "20 photos"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-collectioncard__selection-indicator",
+    "definitionId": "lib:definition:type-SelectionIndicator",
+    "children": [],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "insetTop": "0px",
+      "insetLeft": "0px"
+    },
+    "visual": {
+      "width": "100%",
+      "height": "100%",
+      "zIndex": 2,
+      "borderWidth": 2,
+      "borderColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_gray-1000"
+      },
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_transparent"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_lg"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__selection",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-collectioncard__selection__checkbox"
+    ],
+    "props": {},
+    "layout": {
+      "position": "absolute",
+      "display": "flex"
+    },
+    "visual": {
+      "zIndex": 2,
+      "paddingX": 4,
+      "paddingY": 4,
+      "backgroundColor": {
+        "kind": "token",
+        "tokenId": "lib:token:color_base"
+      },
+      "radius": {
+        "kind": "token",
+        "tokenId": "lib:token:radius_md"
+      },
+      "boxShadow": {
+        "kind": "token",
+        "tokenId": "lib:token:shadow_sm"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-collectioncard__selection__checkbox",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": ""
     },
     "visual": {}
   },

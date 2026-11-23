@@ -198,7 +198,12 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
     const definition = workspace.runtime.graph.library.definitions.get(
       "lib:definition:origin-component-card" as never,
     )!;
-    expect(Object.keys(definition.accepts).sort()).toEqual(["size", "variant"]);
+    // (S2 체크리스트 §9.3 6-7: S2 `density` — the card spacing.)
+    expect(Object.keys(definition.accepts).sort()).toEqual([
+      "density",
+      "size",
+      "variant",
+    ]);
   });
 
   it("the Preview DOM has the reference structure, the Text nodes in the Card's title · description slots", async () => {

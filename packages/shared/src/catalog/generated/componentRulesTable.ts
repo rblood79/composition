@@ -2695,23 +2695,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      // paddingX=paddingY 균일(구 Card.spec.sizes 보존). layout 실 SSOT 는 factory props.style
-      //   (ADR-907 Layer B) — rule padding 은 DOM base fallback + Skia shell 메트릭.
+      // S2 체크리스트 §9.3 (6-7, 사용자 결정 2026-11-24 「포함」): the padding is S2's `--card-spacing` at
+      //   `density: regular` (`Card.tsx` — XS 8 · S 12 · M 16 · L 20 · XL 24); compact · spacious are
+      //   `structure.composition.containerVariants.density`. No gap — S2 spaces the sections by their
+      //   own padding (Content · Footer, `catalogCardSections`) and the preview reaches the card's
+      //   edges (negative margins — `catalogCardPreviewLayout`).
       XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
-        paddingX: 4,
-        paddingY: 4,
-        gap: 4,
+        paddingX: 8,
+        paddingY: 8,
+        gap: 0,
         borderWidth: "{border.width.thin}",
         height: 0,
       },
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        paddingX: 8,
-        paddingY: 8,
-        gap: 8,
+        paddingX: 12,
+        paddingY: 12,
+        gap: 0,
         borderWidth: "{border.width.thin}",
         height: 0,
       },
@@ -2720,25 +2723,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         paddingX: 16,
         paddingY: 16,
-        gap: 12,
+        gap: 0,
         borderWidth: "{border.width.thin}",
         height: 0,
       },
       L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
-        paddingX: 24,
-        paddingY: 24,
-        gap: 16,
+        paddingX: 20,
+        paddingY: 20,
+        gap: 0,
         borderWidth: "{border.width.thin}",
         height: 0,
       },
       XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
-        paddingX: 32,
-        paddingY: 32,
-        gap: 20,
+        paddingX: 24,
+        paddingY: 24,
+        gap: 0,
         borderWidth: "{border.width.thin}",
         height: 0,
       },
@@ -2757,11 +2760,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
         flexDirection: "column",
-        width: "100%",
+        // (S2 체크리스트 §9.3 (6-7), 사용자 결정 2026-11-24 「S2 크기별 폭」: no `100%` — a standalone
+        //   card's width is its size's, `containerVariants.size`; a CardView's fills its cell.)
         // ADR-171 Phase 3 (2026-07-29): archetype base 가 생성 CSS 에만 emit 하던 값이라
         //   catalog 를 읽는 Skia 에는 안 갔다 (G2 잔존). 실효 DOM 값 그대로 이관 — 값 불변.
         alignItems: "center",
         justifyContent: "center",
+        // S2 `Card.tsx` `overflow: clip` (quiet `visible` — the variant block below): the preview's
+        //   corners follow the card's. `clip` is not a scroll container, so a flex item keeps its
+        //   content minimum (사용자 결정 2026-11-13 — `hidden` pressed the card below its content
+        //   in a Height 100% column body; the engine's `is_scrollable_overflow` agrees).
+        overflow: "clip",
       },
       // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 cursor:pointer 를 generator 전용
       //   rootSelectors 채널에 명시 (Card 는 onPress 를 받는 상호작용 컴포넌트). user-select/transition 은 제거.
@@ -2799,6 +2808,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             gap: "4px",
           },
           '.react-aria-Text[slot="title"]': { "font-weight": "700" },
+          // S2 체크리스트 §9.3 (6-7): S2 ProductCard's thumbnail (`Image slot="thumbnail"` — `Card.tsx`
+          //   `ProductCard` ImageContext): its corner, square at the card's size (below). Over the
+          //   preview it moves up half its height (`catalogCardSection`).
+          '> .react-aria-Image[slot="thumbnail"]': {
+            "border-radius": "var(--radius-md)",
+          },
           '.react-aria-Text[slot="description"]': { "font-weight": "400" },
         },
         sizeSelectors: {
@@ -2806,29 +2821,103 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "> .react-aria-Content": { gap: "4px" },
             '.react-aria-Text[slot="title"]': { "font-size": "12px" },
             '.react-aria-Text[slot="description"]': { "font-size": "11px" },
+            '> .react-aria-Image[slot="thumbnail"]': {
+              width: "24px",
+              height: "24px",
+              "border-radius": "var(--radius-sm)",
+            },
           },
           S: {
             "> .react-aria-Content": { gap: "4px" },
             '.react-aria-Text[slot="title"]': { "font-size": "12px" },
             '.react-aria-Text[slot="description"]': { "font-size": "11px" },
+            '> .react-aria-Image[slot="thumbnail"]': {
+              width: "36px",
+              height: "36px",
+              "border-radius": "var(--radius-sm)",
+            },
           },
           M: {
             "> .react-aria-Content": { gap: "6px" },
             '.react-aria-Text[slot="title"]': { "font-size": "14px" },
             '.react-aria-Text[slot="description"]': { "font-size": "12px" },
+            '> .react-aria-Image[slot="thumbnail"]': {
+              width: "40px",
+              height: "40px",
+            },
           },
           L: {
             "> .react-aria-Content": { gap: "6px" },
             '.react-aria-Text[slot="title"]': { "font-size": "16px" },
             '.react-aria-Text[slot="description"]': { "font-size": "14px" },
+            '> .react-aria-Image[slot="thumbnail"]': {
+              width: "44px",
+              height: "44px",
+            },
           },
           XL: {
             "> .react-aria-Content": { gap: "8px" },
             '.react-aria-Text[slot="title"]': { "font-size": "18px" },
             '.react-aria-Text[slot="description"]': { "font-size": "16px" },
+            '> .react-aria-Image[slot="thumbnail"]': {
+              width: "56px",
+              height: "56px",
+            },
           },
         },
         delegation: [],
+        // S2 체크리스트 §9.3 (6-7): S2 `density` — the card spacing per size (`Card.tsx`
+        //   `--card-spacing`: compact XS 6 · S 8 · M 12 · L 16 · XL 20, spacious 12 · 16 · 20 · 24 ·
+        //   28; regular is the size block). A quiet card has no padding (S2 `--card-padding-x/y`
+        //   quiet 0 — the spacing still places its sections · checkbox) and does not clip.
+        // (They override the card's own box — its size block stays on the Canvas.)
+        containerVariantsOverride: true,
+        containerVariants: {
+          // S2 `Card.tsx` `width` per size (a standalone card — XS 112 · S 192 · M 240 · L 320 ·
+          //   XL 400); in a CardView it fills its cell (`isCardView: 'full'` — `catalogCardSection`).
+          size: {
+            XS: { styles: { width: "112px" } },
+            S: { styles: { width: "192px" } },
+            M: { styles: { width: "240px" } },
+            L: { styles: { width: "320px" } },
+            XL: { styles: { width: "400px" } },
+          },
+          density: {
+            compact: {
+              nested: [
+                { selector: '&[data-size="XS"]', styles: { padding: "6px" } },
+                { selector: '&[data-size="S"]', styles: { padding: "8px" } },
+                { selector: '&[data-size="M"]', styles: { padding: "12px" } },
+                { selector: '&[data-size="L"]', styles: { padding: "16px" } },
+                { selector: '&[data-size="XL"]', styles: { padding: "20px" } },
+              ],
+            },
+            spacious: {
+              nested: [
+                { selector: '&[data-size="XS"]', styles: { padding: "12px" } },
+                { selector: '&[data-size="S"]', styles: { padding: "16px" } },
+                { selector: '&[data-size="M"]', styles: { padding: "20px" } },
+                { selector: '&[data-size="L"]', styles: { padding: "24px" } },
+                { selector: '&[data-size="XL"]', styles: { padding: "28px" } },
+              ],
+            },
+          },
+          variant: {
+            quiet: {
+              styles: { padding: "0px", overflow: "visible" },
+              nested: [
+                {
+                  selector: '&[data-density="compact"]',
+                  styles: { padding: "0px" },
+                },
+                {
+                  selector: '&[data-density="spacious"]',
+                  styles: { padding: "0px" },
+                },
+              ],
+            },
+          },
+        },
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
@@ -3000,6 +3089,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // height: "fit-content" 는 **이관 불가** — 생성기 `emitContainerStyles` allowlist 에
         //   `height` 키가 없어 DOM 에 안 실린다(ADR-171 은 Generator 스키마를 확장하지 않는다).
         //   catalog 에 두면 Skia 만 받아 역방향 발산이 되므로 인라인에 남긴다.
+      },
+      // S2 체크리스트 §9.3 (6-7): S2 `preview` `borderRadius: {isQuiet: borderRadius}` — a quiet
+      //   card does not clip, its preview takes the card's corner (the derived `cardRadius` — the
+      //   card's size radius, `presence.ts` `catalogCardSection`).
+      composition: {
+        containerVariantsOverride: true,
+        containerVariants: {
+          "card-radius": {
+            sm: { styles: { "border-radius": "var(--radius-sm)" } },
+            md: { styles: { "border-radius": "var(--radius-md)" } },
+            lg: { styles: { "border-radius": "var(--radius-lg)" } },
+            xl: { styles: { "border-radius": "var(--radius-xl)" } },
+          },
+        },
+        delegation: [],
       },
       stateStyles: {
         ...FOCUS_RING_STATE,

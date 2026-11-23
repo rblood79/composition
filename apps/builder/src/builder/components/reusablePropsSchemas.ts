@@ -96,9 +96,38 @@ export const CARD_PROPS_SCHEMA: PropsSchema = {
     default: "M",
     section: "appearance",
   },
+  // S2 체크리스트 §9.3 (6-7): S2 Card `density` — the card's spacing.
+  density: getPrimitiveBinding("Card")!.props.accepts!.density!,
   href: getPrimitiveBinding("Card")!.props.accepts!.href!,
   target: getPrimitiveBinding("Card")!.props.accepts!.target!,
   isDisabled: getPrimitiveBinding("Card")!.props.accepts!.isDisabled!,
+};
+
+/**
+ * S2 체크리스트 §9.3 (6-7) — S2 AssetCard (`Omit<CardProps, 'density'>` — its density is regular) and
+ * UserCard · ProductCard (also without `quiet` — S2: no indent between the preview and the avatar ·
+ * thumbnail; density spacious).
+ */
+export const ASSETCARD_PROPS_SCHEMA: PropsSchema = {
+  variant: CARD_PROPS_SCHEMA.variant!,
+  size: CARD_PROPS_SCHEMA.size!,
+  href: CARD_PROPS_SCHEMA.href!,
+  target: CARD_PROPS_SCHEMA.target!,
+  isDisabled: CARD_PROPS_SCHEMA.isDisabled!,
+};
+export const USERCARD_PROPS_SCHEMA: PropsSchema = {
+  ...ASSETCARD_PROPS_SCHEMA,
+  variant: {
+    kind: "enum",
+    label: "Variant",
+    section: "appearance",
+    default: "primary",
+    options: [
+      { value: "primary", label: "Primary" },
+      { value: "secondary", label: "Secondary" },
+      { value: "tertiary", label: "Tertiary" },
+    ],
+  },
 };
 
 /**
@@ -428,6 +457,10 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   },
   "component-labeledvalue": getPrimitiveBinding("LabeledValue")!.props.accepts,
   "component-card": CARD_PROPS_SCHEMA,
+  "component-assetcard": ASSETCARD_PROPS_SCHEMA,
+  "component-usercard": USERCARD_PROPS_SCHEMA,
+  "component-productcard": USERCARD_PROPS_SCHEMA,
+  "component-collectioncard": CARD_PROPS_SCHEMA,
   "component-inline-alert": INLINE_ALERT_PROPS_SCHEMA,
   "component-illustratedmessage": ILLUSTRATED_MESSAGE_PROPS_SCHEMA,
   "component-avatargroup": AVATAR_GROUP_PROPS_SCHEMA,

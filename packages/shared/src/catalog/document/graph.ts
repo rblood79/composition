@@ -412,6 +412,11 @@ function edgesOf(entry: CatalogEntry, withOwner = true): Edge[] {
   return edges;
 }
 /** A prop that is one template binding (`"{isDisabled}"` — the resolver's `WHOLE_TEMPLATE_BINDING`). */
+/**
+ * A fork copy's `bindingMaps` key (S2 체크리스트 §9.3): its values were checked against the template
+ * position's type when the library was built (`library.ts`) — the copy accepts the binding.
+ */
+const BINDING_MAP_TYPE = "\u0000bindingMap";
 const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
 /** A prop value against its declared type — the shared rule (`catalogPropValueFits`). */
 const propValueMatches = catalogPropValueFits;
@@ -1389,14 +1394,16 @@ export class CatalogGraph {
         if (owner?.kind === "definitionOverride") {
           const origin = library.definitions.get(owner.targetId);
           if (!origin?.bindingMaps) return origin?.accepts;
-          // (S2 체크리스트 §9.3, contract 77: the keys its `bindingMaps` derive, typed by their
-          //  values — an AlertDialog button's `autoFocus: "{cancelAutoFocus}"`.)
+          // (S2 체크리스트 §9.3, contract 77: the keys its `bindingMaps` derive — an AlertDialog
+          //  button's `autoFocus: "{cancelAutoFocus}"`, a UserCard Avatar's `size:
+          //  "{userAvatarSize}"`. The library build checked each map value against the position's
+          //  type (`library.ts`); the copy holds the same binding at the same position.)
           return {
             ...origin.accepts,
             ...Object.fromEntries(
-              Object.entries(origin.bindingMaps).map(([key, map]) => [
+              Object.keys(origin.bindingMaps).map((key) => [
                 key,
-                typeof (Object.values(map.values)[0] ?? map.otherwise),
+                BINDING_MAP_TYPE,
               ]),
             ),
           };
@@ -1612,8 +1619,8 @@ export class CatalogGraph {
             (templateId) =>
               (templateId.startsWith("lib:")
                 ? library.templates.get(templateId as never)
-                : (get(templateId) as { definitionId?: DefinitionId }))
-                ?.definitionId,
+                : (get(templateId) as { definitionId?: DefinitionId })
+              )?.definitionId,
           )
         )
           throw new CatalogValidationError("REPEAT_NOT_ITEM", entry.id);
@@ -1919,7 +1926,8 @@ export class CatalogGraph {
           typeof write.value === "string"
             ? WHOLE_TEMPLATE_BINDING.exec(write.value)
             : null;
-        if (bound && bindingAccepts?.()?.[bound[1]] === type) continue;
+        const boundType = bound ? bindingAccepts?.()?.[bound[1]] : undefined;
+        if (boundType === type || boundType === BINDING_MAP_TYPE) continue;
         throw new CatalogValidationError("PROP_TYPE_MISMATCH", `${at}.${key}`);
       }
     }
@@ -1940,7 +1948,12 @@ export class CatalogGraph {
       // (One binding of the origin's prop of the same type: the instance's value is checked there.)
       const bound =
         typeof raw === "string" ? WHOLE_TEMPLATE_BINDING.exec(raw) : null;
-      if (bound && bindingAccepts?.()?.[bound[1]] === definition.accepts[key])
+      const boundType = bound ? bindingAccepts?.()?.[bound[1]] : undefined;
+      if (
+        bound &&
+        (boundType === definition.accepts[key] ||
+          boundType === BINDING_MAP_TYPE)
+      )
         continue;
       // ADR-287 R7 — a whole text variable (「변수로 정하기」 on a choice prop): its value is known only at
       //   run time, which checks it (`withState` — outside the choices, the definition's value).

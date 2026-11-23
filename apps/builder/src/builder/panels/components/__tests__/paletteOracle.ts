@@ -139,6 +139,31 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "card",
     icon: "AppWindowMac",
   },
+  // S2 체크리스트 §9.3 (2026-11-24): S2 AssetCard · UserCard · ProductCard · CollectionCardPreview.
+  {
+    type: "AssetCard",
+    category: "layout",
+    label: "asset card",
+    icon: "FileImage",
+  },
+  {
+    type: "UserCard",
+    category: "layout",
+    label: "user card",
+    icon: "SquareUser",
+  },
+  {
+    type: "ProductCard",
+    category: "layout",
+    label: "product card",
+    icon: "ShoppingBag",
+  },
+  {
+    type: "CollectionCard",
+    category: "layout",
+    label: "collection card",
+    icon: "Images",
+  },
   {
     type: "frame",
     category: "layout",

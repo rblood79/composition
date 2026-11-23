@@ -783,9 +783,16 @@ const RADIUS_PART_OWNERS: ReadonlySet<string> = new Set([
   "ColorSlider",
   // S2 Modal `fullscreenTakeover`: the square Modal's Dialog is square too (S2 `borderRadius: inherit`).
   "Modal",
+  "CardPreview",
+  // (S2 ProductCard's thumbnail corner — the Card's `> .react-aria-Image[slot="thumbnail"]` block.)
+  "Card",
 ]);
 /** Rules whose root variant blocks' `border-radius` reaches their own Canvas box (S2 Modal takeover). */
-const RADIUS_ROOT_OWNERS: ReadonlySet<string> = new Set(["Modal"]);
+const RADIUS_ROOT_OWNERS: ReadonlySet<string> = new Set([
+  "Modal",
+  // (S2 체크리스트 §9.3 (6-7): a quiet Card's preview — its `card-radius` block.)
+  "CardPreview",
+]);
 /** `visual` with the block's `border-radius` (`RADIUS_PART_OWNERS`). */
 function withPartRadius(
   parentType: string,
@@ -1690,6 +1697,11 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   // S2 Button (2026-10-28): a pill, and a field's own button at its size's corner — the derived
   // `fieldButton` (`presence.ts` `catalogFieldButtonSize`, `derivedVariantProps.ts`).
   Button: { "field-button": "fieldButton" },
+  // S2 체크리스트 §9.3 (6-7): S2 Card `density` — its spacing per size (the block's
+  //   `&[data-size]` compounds) — and its quiet variant's padding · overflow.
+  Card: { size: "size", density: "density", variant: "variant" },
+  // (A quiet Card's CardPreview takes the card's corner — the derived `cardRadius`.)
+  CardPreview: { "card-radius": "cardRadius" },
 };
 
 export { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
@@ -1858,8 +1870,49 @@ export function catalogContainerVariantRootRules(type: string): Array<{
         Object.keys(compiled.visual).length
       )
         out.push({ when: { [prop]: value }, ...compiled });
+      // (A nested block on the root itself with more attributes — `&[data-size="M"]` — is the
+      //  value with those props too: S2 Card `density` × `size`. Descendant selectors are not the
+      //  root's.)
+      for (const nested of block.nested ?? []) {
+        const when = compoundRootWhen(type, nested.selector);
+        if (!when) continue;
+        const declared = compileDeclarations(
+          type,
+          nested.styles ?? {},
+          {},
+          undefined,
+        );
+        if (
+          Object.keys(declared.layout).length ||
+          Object.keys(declared.visual).length
+        )
+          out.push({ when: { [prop]: value, ...when }, ...declared });
+      }
     }
   return out;
+}
+
+/**
+ * A container variant's nested selector on the root itself — `&` and attributes only
+ * (`&[data-size="M"][data-density="compact"]`) — as the props it adds to the variant's condition
+ * (`data-size` the size prop, other attributes the type's variant axes). Undefined for any other
+ * selector (a descendant, a pseudo-class) or an attribute with no prop.
+ */
+function compoundRootWhen(
+  type: string,
+  selector: string,
+): Record<string, string> | undefined {
+  if (!/^&(\[data-[a-z-]+="[^"]+"\])+$/.test(selector)) return undefined;
+  const axes = containerVariantAxes(type);
+  const when: Record<string, string> = {};
+  for (const [, attribute, value] of selector.matchAll(
+    /\[data-([a-z-]+)="([^"]+)"\]/g,
+  )) {
+    const prop = attribute === "size" ? "size" : axes[attribute!];
+    if (!prop) return undefined;
+    when[prop] = value!;
+  }
+  return when;
 }
 
 /**

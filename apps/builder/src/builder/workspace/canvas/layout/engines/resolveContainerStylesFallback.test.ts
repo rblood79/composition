@@ -625,8 +625,10 @@ describe("resolveEffectiveOverflow — catalog containerStyles overflow 포괄",
     // (Tree 도 같은 결정으로 뺐다.) Menu 는 남아 있다.
     expect(resolveEffectiveOverflow("tree", {})).toBeUndefined();
     expect(resolveEffectiveOverflow("menu", {})).toBe("auto");
-    // structure.containerStyles 의 Card root clip 은 2026-11-13 사용자 결정으로 뺐다 (세로 flex 눌림).
-    expect(resolveEffectiveOverflow("card", {})).toBeUndefined();
+    // structure.containerStyles 의 Card root — `hidden` 은 2026-11-13 사용자 결정으로 뺐고 (세로 flex
+    //   눌림), S2 체크리스트 §9.3 (6-7, 2026-11-24) 에 S2 의 `clip` 으로 돌아왔다 (scroll container 가
+    //   아니라 flex 최소 크기가 남는다 — 미리보기 모서리를 카드 모서리로 자른다).
+    expect(resolveEffectiveOverflow("card", {})).toBe("clip");
     // structure.composition.containerStyles 에는 overflow 를 둔 rule 이 없다 — Accordion 의
     //   `hidden` 은 2026-11-13 사용자 결정으로 뺐다 (세로 flex 에서 0 까지 눌림, S2 도 자르지 않음).
     expect(resolveEffectiveOverflow("accordion", {})).toBeUndefined();

@@ -259,6 +259,7 @@ import {
   catalogDisabledTreeItemLabelItem,
   catalogTreeItemContent,
   catalogSelectionIndicatorLayout,
+  catalogCardPreviewLayout,
   catalogPresenceScope,
   catalogBreadcrumbItems,
   catalogBreadcrumbSeparator,
@@ -4667,9 +4668,11 @@ export class CatalogCompositionRoot {
       if (inheritedText) output.set(id, { ...record, inheritedText });
     }
     for (const [id, record] of output) {
-      const fillLayout =
+      const fillLayout = withCardPreviewLayout(
         catalogFillLayout(record, get, this.typeOf, this.authoredVisualOf) ??
-        catalogSelectionIndicatorLayout(record);
+          catalogSelectionIndicatorLayout(record),
+        record,
+      );
       if (fillLayout) output.set(id, { ...record, fillLayout });
     }
     return output;
@@ -8549,9 +8552,11 @@ export class CatalogCompositionRoot {
           get,
           this.environmentLocale,
         );
-        const fillLayout =
+        const fillLayout = withCardPreviewLayout(
           catalogFillLayout(current, get, this.typeOf, this.authoredVisualOf) ??
-          catalogSelectionIndicatorLayout({ ...current, derivedProps });
+            catalogSelectionIndicatorLayout({ ...current, derivedProps }),
+          { ...current, derivedProps },
+        );
         const {
           derivedProps: _previous,
           inheritedText: _previousText,
@@ -9231,4 +9236,16 @@ export class CatalogCompositionRoot {
     }
     return errors;
   }
+}
+
+/**
+ * S2 체크리스트 §9.3 (6-7) — a CardPreview's reach to its card's edges (`catalogCardPreviewLayout`)
+ * over its fill projection: the Rust input and the DOM both apply `fillLayout`.
+ */
+function withCardPreviewLayout(
+  fill: Readonly<Record<string, string | number>> | undefined,
+  record: CatalogConsumerNode,
+): Readonly<Record<string, string | number>> | undefined {
+  const preview = catalogCardPreviewLayout(record);
+  return preview ? { ...fill, ...preview } : fill;
 }

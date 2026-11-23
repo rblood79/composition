@@ -17,6 +17,8 @@ export interface CardProps {
   style?: React.CSSProperties;
   variant?: CardVariant | string;
   size?: ComponentSizeSubset;
+  /** S2 `density` — the card's spacing (`[data-density]`, the Card rule). */
+  density?: "compact" | "regular" | "spacious";
   isDisabled?: boolean;
   isSelected?: boolean;
   href?: string;
@@ -33,6 +35,7 @@ export function Card({
   style,
   variant: rawVariant = "primary",
   size = "M",
+  density = "regular",
   isDisabled = false,
   isSelected = false,
   href,
@@ -44,6 +47,7 @@ export function Card({
   const dataProps = {
     "data-variant": variant,
     "data-size": size,
+    "data-density": density,
     "data-selected": isSelected || undefined,
   };
   const classes = className

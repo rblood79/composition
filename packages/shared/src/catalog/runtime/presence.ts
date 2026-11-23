@@ -118,6 +118,8 @@ import {
 import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import type { ComponentRule } from "../../types/catalog-style.types";
+import { catalogBoxModel } from "./boxModel";
 import {
   catalogContainerLayerAbove,
   catalogContainerLayerOf,
@@ -665,16 +667,193 @@ function catalogCardCheckboxCard(
     : undefined;
 }
 
-/** A Card's padding at its size (its rule's `paddingX` — S2 `--card-spacing`). */
-function catalogCardSpacing(card: CatalogConsumerNode): number | undefined {
-  const sizes = (
-    COMPONENT_RULES_TABLE as Record<
-      string,
-      { sizes?: Record<string, { paddingX?: unknown }> }
-    >
-  ).Card?.sizes;
-  const value = sizes?.[String(card.props.size ?? "M")]?.paddingX;
+/**
+ * S2 `--card-spacing` (`Card.tsx`): the card's spacing at its size and `density` — the Card rule's
+ * size block (regular) or its `containerVariants.density` block's `&[data-size]` compound. The
+ * spacing places the sections and the checkbox; the card's padding is the same value but 0 on a
+ * quiet card (S2 `--card-padding-x/y`).
+ */
+export function catalogCardSpacing(
+  card: CatalogConsumerNode,
+): number | undefined {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Card;
+  const size = String(card.props.size ?? "M");
+  const density = String(card.props.density ?? "regular");
+  const variants = (
+    rule?.structure?.composition as
+      | {
+          containerVariants?: Record<
+            string,
+            Record<
+              string,
+              {
+                nested?: ReadonlyArray<{
+                  selector: string;
+                  styles: Record<string, string>;
+                }>;
+              }
+            >
+          >;
+        }
+      | undefined
+  )?.containerVariants;
+  const compound = variants?.density?.[density]?.nested?.find(
+    (nested) => nested.selector === `&[data-size="${size}"]`,
+  )?.styles.padding;
+  if (compound !== undefined) return Number.parseFloat(compound);
+  const value = (rule?.sizes as Record<string, { paddingX?: unknown }>)?.[size]
+    ?.paddingX;
   return typeof value === "number" ? value : undefined;
+}
+
+/** A Card's sections in its flow — not its absolute selection indicator · checkbox plate. */
+function catalogCardFlowChildren(
+  card: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return card.children
+    .map((id) => get(id))
+    .filter(
+      (child): child is CatalogConsumerNode =>
+        !!child &&
+        child.hidden !== true &&
+        typeOf(child) !== "SelectionIndicator" &&
+        !catalogCardCheckboxCard(child, get, typeOf),
+    );
+}
+
+/**
+ * S2 Card's sections (`Card.tsx` `preview` · `content` · `footer`): no gap — the CardPreview reaches
+ * the card's edges (`marginX: -padding-x`, `marginTop: -padding-y`, the bottom too when it is the
+ * last section — here only when it is the first, the margin is the card's padding: authored, the
+ * density's or a quiet card's 0), a Content is the spacing below what comes before it and ¾ of it
+ * above what follows (`paddingTop` · `paddingBottom: calc(var(--card-spacing) * 1.5 / 2)` — 0 at the
+ * first · last child), a Footer ¾ above it. Undefined for any other node.
+ */
+export function catalogCardSection(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, number | string> | undefined {
+  const type = typeOf(node);
+  // (S2 `isCardView: 'full'`: a Card in a CardView fills its cell — not its size's width.)
+  if (type === "Card") {
+    const view = get(node.parentId);
+    return view && typeOf(view) === "CardView" ? { _inCardView: 1 } : undefined;
+  }
+  if (!CARD_SECTION_TYPES.has(type)) return undefined;
+  const card = get(node.parentId);
+  if (!card || typeOf(card) !== "Card") return undefined;
+  const flow = catalogCardFlowChildren(card, get, typeOf);
+  if (type === "Avatar" || type === "Image") {
+    // (S2 UserCard's Avatar · ProductCard's thumbnail right after the preview: up half its height
+    //  over it — `:is([slot=preview] + *)` `marginTop: calc(var(--size) / -2)` · `calc(self(height)
+    //  / -2)`; a positioned box so it draws over the preview.)
+    const index = flow.findIndex((child) => child.id === node.id);
+    const before = index > 0 ? flow[index - 1] : undefined;
+    if (!before || typeOf(before) !== "CardPreview") return undefined;
+    const height =
+      type === "Avatar"
+        ? node.props.isOverBackground === true
+          ? Number(node.props.size)
+          : Number.NaN
+        : node.props.slot === "thumbnail"
+          ? catalogCardThumbnailSize(card)
+          : Number.NaN;
+    return Number.isFinite(height) && height > 0
+      ? { _cardOverlap: height / 2 }
+      : undefined;
+  }
+  const first = flow[0]?.id === node.id;
+  const last = flow[flow.length - 1]?.id === node.id;
+  if (type === "CardPreview") {
+    const padding = catalogBoxModel(card).padding;
+    const px = (value: unknown) =>
+      typeof value === "number" ? value : Number.parseFloat(String(value)) || 0;
+    const out: Record<string, number | string> = {
+      _cardBleedLeft: px(padding?.left),
+      _cardBleedRight: px(padding?.right),
+    };
+    if (first) out._cardBleedTop = px(padding?.top);
+    if (last) out._cardBleedBottom = px(padding?.bottom);
+    // (S2 quiet: the card does not clip — the preview takes the card's corner, its size's radius.)
+    if (card.props.variant === "quiet") {
+      const radius = (
+        (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Card?.sizes as
+          Record<string, { borderRadius?: unknown }> | undefined
+      )?.[String(card.props.size ?? "M")]?.borderRadius;
+      const name = /^\{radius\.([a-z]+)\}$/.exec(String(radius))?.[1];
+      if (name) return { ...out, cardRadius: name };
+    }
+    return out;
+  }
+  const spacing = catalogCardSpacing(card);
+  if (spacing === undefined) return undefined;
+  if (type === "Footer") return { _cardPadTop: spacing * 0.75 };
+  return {
+    _cardPadTop: first ? 0 : spacing,
+    _cardPadBottom: last ? 0 : spacing * 0.75,
+  };
+}
+
+const CARD_SECTION_TYPES: ReadonlySet<string> = new Set([
+  "CardPreview",
+  "Content",
+  "Footer",
+  "Avatar",
+  "Image",
+]);
+
+/** S2 ProductCard's thumbnail side at the card's size — the Card rule's `sizeSelectors`. */
+function catalogCardThumbnailSize(card: CatalogConsumerNode): number {
+  const composition = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .Card?.structure?.composition as
+    | { sizeSelectors?: Record<string, Record<string, Record<string, string>>> }
+    | undefined;
+  return Number.parseFloat(
+    composition?.sizeSelectors?.[String(card.props.size ?? "M")]?.[
+      '> .react-aria-Image[slot="thumbnail"]'
+    ]?.height ?? "",
+  );
+}
+
+/**
+ * A CardPreview's reach to its card's edges (`catalogCardSection` — S2 `preview` negative margins):
+ * it stretches across the card (no `100%` width — that would stop at the padding) with the margins
+ * the card's padding. An Avatar · thumbnail over the preview moves up (`_cardOverlap`). An authored
+ * margin wins on its side.
+ */
+export function catalogCardPreviewLayout(
+  node: CatalogConsumerNode,
+): Record<string, string> | undefined {
+  const derived = node.derivedProps;
+  if (derived?._inCardView === 1)
+    return node.sizing.width === undefined ? { width: "100%" } : undefined;
+  if (typeof derived?._cardOverlap === "number")
+    return {
+      position: "relative",
+      ...(node.layout.marginTop === undefined
+        ? { marginTop: `${-derived._cardOverlap}px` }
+        : {}),
+    };
+  if (typeof derived?._cardBleedLeft !== "number") return undefined;
+  const out: Record<string, string> = { width: "auto", alignSelf: "stretch" };
+  for (const [key, side] of [
+    ["_cardBleedTop", "marginTop"],
+    ["_cardBleedRight", "marginRight"],
+    ["_cardBleedBottom", "marginBottom"],
+    ["_cardBleedLeft", "marginLeft"],
+  ] as const) {
+    const value = derived[key];
+    if (
+      typeof value === "number" &&
+      value > 0 &&
+      node.layout[side] === undefined
+    )
+      out[side] = `${-value}px`;
+  }
+  return out;
 }
 
 /**
@@ -3142,10 +3321,13 @@ function derivedPropsBeforeSkeleton(
   const cardSpacing = checkboxCard
     ? catalogCardSpacing(checkboxCard)
     : undefined;
+  const cardSection = catalogCardSection(node, get, typeOf);
   const marked =
     cardSpacing !== undefined
       ? { ...checkboxMarked, _cardSpacing: cardSpacing }
-      : checkboxMarked;
+      : cardSection
+        ? { ...checkboxMarked, ...cardSection }
+        : checkboxMarked;
   // ADR-281 Decision 3 — a page root's · frame's isDisabled · isReadOnly reach the components whose
   // RAC context takes them (RAC `Provider` on the DOM side). An own `false` does not re-enable: a
   // record cannot tell an authored `false` from its origin's declared default (`catalogInheritedFlags`).
@@ -4550,10 +4732,18 @@ export function catalogDerivedPropsDependents(
       // (a TreeItem's chevron and label — they take a disabled item's color, which its Tree's
       //  `disabledKeys` can turn on: 부록 D.3 2단계)
       ...(item !== owner ? catalogTreeChevrons(item, get, typeOf) : []),
-      // (a Card's checkbox plate — its spacing follows the Card's size, S2 `CardCheckbox`)
-      ...childrenOf(item, get).filter(
-        (child) => !!catalogCardCheckboxCard(child, get, typeOf),
-      ),
+      // (a Card's checkbox plate — its spacing follows the Card's size, S2 `CardCheckbox` — and its
+      //  sections: the spacing · padding follow its size · density · variant, `catalogCardSection`)
+      ...(typeOf(item) === "Card" ? childrenOf(item, get) : []),
+      // (…and a section's siblings: which section is first · last — its own presence decides it)
+      ...(item === owner &&
+      CARD_SECTION_TYPES.has(typeOf(item)) &&
+      get(item.parentId) &&
+      typeOf(get(item.parentId)!) === "Card"
+        ? childrenOf(get(item.parentId)!, get).filter(
+            (sibling) => sibling.id !== item.id,
+          )
+        : []),
       ...partChildrenOf(item, get, typeOf).filter(
         (child) =>
           catalogPickerSelectionItem(child, get, typeOf)?.id === item.id,

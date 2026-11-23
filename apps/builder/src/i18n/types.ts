@@ -1959,6 +1959,10 @@ export interface TranslationKeys {
     // Layout
     panel: string;
     card: string;
+    assetCard: string;
+    userCard: string;
+    productCard: string;
+    collectionCard: string;
     tabs: string;
     breadcrumbs: string;
     link: string;

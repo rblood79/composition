@@ -63,6 +63,19 @@ export const cardBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 체크리스트 §9.3 (6-7): S2 Card `density` — the card's spacing (its padding, the preview's
+      //   reach to the edges, its sections' spacing — the rule's `containerVariants.density`).
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        default: "regular",
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+          { value: "spacious", label: "Spacious" },
+        ],
+      },
       // interactions / state
       href: { kind: "string", label: "Link", section: "content" },
       target: linkBinding.props.accepts.target,

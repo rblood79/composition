@@ -1414,6 +1414,22 @@ function paintedNodeDataAtRest(
     root,
     catalogVisualWithBackground(restored),
   );
+  const painted = paintedRestNode(root, node, input, rect, binding, parent);
+  // (A rule-drawn box takes its corner from the rule's size and the authored layer — a derived
+  //  block's corner reaches it here: a quiet Card's preview, S2 체크리스트 §9.3 (6-7).)
+  return typeof rest.radius === "number" && painted.box
+    ? { ...painted, box: { ...painted.box, borderRadius: rest.radius } }
+    : painted;
+}
+
+function paintedRestNode(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  input: CatalogConsumerNode,
+  rect: Rect,
+  binding: Binding | undefined,
+  parent: CatalogConsumerNode | undefined,
+): SkiaNodeData {
   return withOverflowClip(
     node,
     withOpacity(

@@ -4086,6 +4086,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             style: input.style,
             "data-variant": str(props.variant || "primary"),
             "data-size": str(props.size || "M"),
+            "data-density": str(props.density || "regular"),
             href: opt(props.href),
             target: opt(props.target),
           },
@@ -4098,6 +4099,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: input.style,
           variant: props.variant || undefined,
           size: props.size || "M",
+          density: props.density || undefined,
           isSelected: bool(props.isSelected),
           isDisabled: bool(props.isDisabled),
           // S2: a standalone Card with an `href` is a RAC Link (`Card.tsx`).

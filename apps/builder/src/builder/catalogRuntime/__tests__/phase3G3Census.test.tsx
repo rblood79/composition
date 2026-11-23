@@ -580,6 +580,8 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + TableFooter (2026-11-21 — ADR-315 Phase 5 증분 5c, a totals row's footer — RAC `TableFooter`).
     // + UnavailableMenuItemTrigger (2026-11-23 — S2 체크리스트 §9.3, S2's unavailable menu item).
     // + CustomDialog · FullscreenDialog (2026-11-23 — S2 체크리스트 §9.3, palette origins).
-    expect(types.length).toBe(188);
+    // + AssetCard · UserCard · ProductCard · CollectionCard (2026-11-24 — S2 체크리스트 §9.3 6-7, Card
+    //   presets).
+    expect(types.length).toBe(192);
   }, 120_000);
 });

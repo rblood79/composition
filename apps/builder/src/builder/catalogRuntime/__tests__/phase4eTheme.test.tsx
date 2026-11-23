@@ -489,7 +489,8 @@ describe("ADR-248 Phase 4e-4d-4 Themes", () => {
     // and the definition value the executor compares against reads it the same way.
     expect(record.visual.radius).toBe(20);
     expect(catalogLibraryVisual(workspace.root, record).radius).toBe(20);
-    expect(catalogAuthoredVisual(workspace.root, record)).toEqual({});
+    // (With its resting conditional rules — S2 체크리스트 §9.3 6-7: a Card's size width 240 is one.)
+    expect(catalogAuthoredVisual(workspace.root, record, true)).toEqual({});
   });
 
   it("a step that does not touch the theme keeps the root", async () => {

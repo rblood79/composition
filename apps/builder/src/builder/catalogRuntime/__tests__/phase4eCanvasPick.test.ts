@@ -232,8 +232,10 @@ describe("ADR-248 Phase 4e-3 Canvas picking", () => {
       scene.sync();
       const record = workspace.root.recordsOfSource(id("component"))[0];
       const box = scene.stream.boundsMap.get(record)!;
+      // (The card's bottom-end corner — its padding: S2's CardPreview reaches the card's top and
+      //  side edges, S2 체크리스트 §9.3 6-7.)
       const x = box.x + box.width - 2;
-      const y = box.y + box.height / 2;
+      const y = box.y + box.height - 2;
       expect(picking.pick(x, y)).toBe(record);
 
       const body = workspace.root.recordsOfSource(BODY)[0];

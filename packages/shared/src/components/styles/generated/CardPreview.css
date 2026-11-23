@@ -66,6 +66,25 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-CardPreview[data-card-radius="sm"] {
+  border-radius: var(--catalog-token-radius-sm);
+}
+
+.react-aria-CardPreview[data-card-radius="md"] {
+  border-radius: var(--catalog-token-radius-md);
+}
+
+.react-aria-CardPreview[data-card-radius="lg"] {
+  border-radius: var(--catalog-token-radius-lg);
+}
+
+.react-aria-CardPreview[data-card-radius="xl"] {
+  border-radius: var(--catalog-token-radius-xl);
+}
+
+
 @media (forced-colors: active) {
   .react-aria-CardPreview {
     forced-color-adjust: auto;

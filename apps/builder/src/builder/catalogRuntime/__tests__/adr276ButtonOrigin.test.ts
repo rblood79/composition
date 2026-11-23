@@ -161,6 +161,8 @@ describe("ADR-276 Button origin template", () => {
       "lib:template:component-fullscreendialog__trigger": "Open Fullscreen",
       "lib:template:component-fullscreendialog__cancel": "Cancel",
       "lib:template:component-fullscreendialog__save": "Save Changes",
+      // S2 체크리스트 §9.3 (6-7): S2 ProductCard's Footer Button.
+      "lib:template:component-productcard__button": "Buy now",
     };
     const nested = REUSABLE_ORIGIN_TEMPLATES.filter(
       (template) =>
@@ -168,13 +170,14 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 31 Button + 7 ToggleButton positions (§9.3 AlertDialog's four, Custom · FullscreenDialog's four); the 9 state
+    // 32 Button + 7 ToggleButton positions (§9.3 AlertDialog's four, Custom · FullscreenDialog's four,
+    // ProductCard's 「Buy now」); the 9 state
     // variants carry no text of their own.
     // (2026-11-14: the Toolbar's three and a Pagination's step buttons are ActionButtons — S2's action
     //  group. 2026-11-18: a ContextualHelp's trigger is S2's quiet ActionButton. 2026-11-19: a
     //  Pagination's pages are ActionButtons too — page navigation, not a toggle; its 「Rows per page」 is a
     //  Select origin instance. 2026-11-22: a FileTrigger's Button — S2 `FileTrigger > Button`.)
-    expect(nested).toHaveLength(38);
+    expect(nested).toHaveLength(39);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)

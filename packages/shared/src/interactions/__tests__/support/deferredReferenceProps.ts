@@ -61,7 +61,6 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "CalendarHeading.offset": NOT_IN_ACCEPTS,
   "CalendarYearPicker.format": NOT_IN_ACCEPTS,
   "Card.allowsArrowNavigation": NOT_IN_ACCEPTS,
-  "Card.density": NOT_IN_ACCEPTS,
   "Card.download": NOT_IN_ACCEPTS,
   "Card.focusMode": NOT_IN_ACCEPTS,
   "Card.hrefLang": NOT_IN_ACCEPTS,

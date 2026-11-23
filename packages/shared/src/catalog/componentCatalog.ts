@@ -1540,6 +1540,29 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     label: "card",
     icon: "AppWindowMac",
   }),
+  // S2 체크리스트 §9.3 (6-7, 2026-11-24): S2 AssetCard · UserCard · ProductCard and a Card with S2's
+  //   CollectionCardPreview — Card presets (`Card.tsx` — each a Card with its density and its
+  //   images' · avatar's · thumbnail's look). No type of their own: the root is a Card.
+  reusableEntry("AssetCard", "primitives", "component-assetcard", {
+    category: "layout",
+    label: "asset card",
+    icon: "FileImage",
+  }),
+  reusableEntry("UserCard", "primitives", "component-usercard", {
+    category: "layout",
+    label: "user card",
+    icon: "SquareUser",
+  }),
+  reusableEntry("ProductCard", "primitives", "component-productcard", {
+    category: "layout",
+    label: "product card",
+    icon: "ShoppingBag",
+  }),
+  reusableEntry("CollectionCard", "primitives", "component-collectioncard", {
+    category: "layout",
+    label: "collection card",
+    icon: "Images",
+  }),
   // S2 체크리스트 §9.3 (2026-11-23): S2 ActionMenu — an icon-only ActionButton (More) and its
   //   Menu, `MenuTrigger > ActionButton + Popover > Menu` (S2 `ActionMenu.tsx`). No type of its own
   //   (S2's is that composition): the origin `component-actionmenu`.

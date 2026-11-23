@@ -3356,7 +3356,8 @@ function ruleDom(
     node.derivedProps?.pinnedEdge ||
     node.derivedProps?.cellLines ||
     node.derivedProps?.mergeLine ||
-    node.derivedProps?.inFooter
+    node.derivedProps?.inFooter ||
+    node.derivedProps?.cardRadius
       ? {
           ...node,
           visual: {
@@ -4674,6 +4675,9 @@ function authoredStyle(
   );
   catalogDeviceLayoutCss(style, node.layout);
   if (node.fillLayout) Object.assign(style, catalogLayoutCss(node.fillLayout));
+  // (S2 체크리스트 §9.3 (6-7): an S2 Card's Content · Footer spacing — `catalogCardSection`, the
+  //  Canvas's same `catalogBoxModel` value; an authored padding wins.)
+  Object.assign(style, catalogCardSectionStyle(root, node));
   const ratio = catalogAspectRatio(node.visual.aspectRatio);
   if (ratio !== undefined) style.aspectRatio = String(node.visual.aspectRatio);
   // Authored fill layers over the class CSS background.
@@ -6690,4 +6694,42 @@ export function useCatalogDomInput(
     [root, id],
   );
   return useSyncExternalStore(subscribe, read, read);
+}
+
+/**
+ * An S2 Card section's inline values: a Content's · Footer's spacing (`_cardPadTop` ·
+ * `_cardPadBottom`) as its padding, a quiet card's preview corner (`cardRadius`).
+ */
+function catalogCardSectionStyle(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): CSSProperties {
+  const derived = node.derivedProps;
+  // (A quiet Card's preview: the card's corner — the CardPreview rule's derived `card-radius`
+  //  block, the rest value the Canvas paints, `catalogDerivedRestVisual`.)
+  if (typeof derived?.cardRadius === "string") {
+    const radius = catalogDerivedRestVisual(root, node).radius;
+    return typeof radius === "number" ? { borderRadius: `${radius}px` } : {};
+  }
+  if (
+    typeof derived?._cardPadTop !== "number" &&
+    typeof derived?._cardPadBottom !== "number"
+  )
+    return {};
+  const authored = catalogAuthoredVisual(root, node);
+  if (authored.padding !== undefined || authored.paddingY !== undefined)
+    return {};
+  const padding = catalogBoxModel(node).padding;
+  const out: CSSProperties = {};
+  if (
+    typeof derived._cardPadTop === "number" &&
+    authored.paddingTop === undefined
+  )
+    out.paddingTop = cssLength(padding?.top ?? 0);
+  if (
+    typeof derived._cardPadBottom === "number" &&
+    authored.paddingBottom === undefined
+  )
+    out.paddingBottom = cssLength(padding?.bottom ?? 0);
+  return out;
 }

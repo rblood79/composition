@@ -221,7 +221,8 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     //   their accepts and have a Do. HEAD held 418 rows under a stale 426 — the first assertion failed first.)
     // (2026-11-23 S2 체크리스트 부록 D.3 2단계: −1 — Dialog isKeyboardDismissDisabled joined its accepts
     //   and has a Do.)
-    expect(deferred.size).toBe(419);
+    // (2026-11-24 S2 체크리스트 §9.3 6-7: −1 — Card density joined its accepts and has a Do.)
+    expect(deferred.size).toBe(418);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

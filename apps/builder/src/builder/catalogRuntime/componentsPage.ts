@@ -154,6 +154,11 @@ const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "Accordion",
   "Nav",
   "Card",
+  // (S2 체크리스트 §9.3 (6-7): the Card presets.)
+  "AssetCard",
+  "UserCard",
+  "ProductCard",
+  "CollectionCard",
   "Tabs",
   "Breadcrumbs",
   "AvatarGroup",
@@ -203,6 +208,10 @@ const NO_VARIANTS_LINE: ReadonlySet<string> = new Set([
   "StatusLight",
   "InlineAlert",
   "Card",
+  "AssetCard",
+  "UserCard",
+  "ProductCard",
+  "CollectionCard",
 ]);
 /**
  * The ◆ sample's own size on the page — the origin and its instances keep the rule's (user
