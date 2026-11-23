@@ -10,6 +10,7 @@
  *     자식 field 가 canonical children 트리. skiaPrimitive 불필요(보편 box frame).
  */
 
+import { S2_HIDDEN_AUTO_COMPLETE_ACCEPTS } from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 
 export const formBinding: PrimitiveBinding = {
@@ -29,6 +30,9 @@ export const formBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_AUTO_COMPLETE_ACCEPTS,
+
       // A keyed binding (`useListData.getItem`) — the Form's fields start from one item's
       // (`value="{name}"`): an edit Form (composition's data layer, `dataBinding`).
       dataBinding: { kind: "binding", label: "Data", section: "content" },

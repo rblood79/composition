@@ -128,6 +128,19 @@ const CASES: ReadonlyArray<[string, Record<string, unknown>]> = [
   ["Week 2 · 6 weeks", { visibleDuration: { weeks: 2 }, weeksInMonth: 6 }],
   ["default value", { defaultValue: "2024-02-29" }],
   ["min bound", { visibleDuration: { months: 3 }, minValue: "2026-10-01" }],
+  // (S2 체크리스트 §9.1 — S2 · RAC `selectionAlignment`, 2026-11-24.)
+  [
+    "Month 3 · align start",
+    { visibleDuration: { months: 3 }, selectionAlignment: "start" },
+  ],
+  [
+    "Month 3 · align end",
+    { visibleDuration: { months: 3 }, selectionAlignment: "end" },
+  ],
+  [
+    "Week 2 · align end",
+    { visibleDuration: { weeks: 2 }, selectionAlignment: "end" },
+  ],
 ];
 
 describe("ADR-256 Phase 9 — Canvas calendar model = installed RAC", () => {

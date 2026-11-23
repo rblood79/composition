@@ -1,3 +1,4 @@
+import { S2_HIDDEN_ITEM_FOCUS_ACCEPTS } from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -27,6 +28,9 @@ export const columnBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_ITEM_FOCUS_ACCEPTS,
+
       // S2 Table `density` 내부 운반 값 (2026-10-10): Table 에서 전파된다 (resolver) — 패널
       //   미노출. densities 채널 (paddingY 4 · 8 · 12) 이 propVisualRules 로 적용된다.
       density: {

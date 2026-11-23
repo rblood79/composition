@@ -1949,6 +1949,7 @@ export interface TranslationKeys {
     progressBar: string;
     meter: string;
     skeleton: string;
+    imageCoordinator: string;
     avatar: string;
     avatarGroup: string;
     statusLight: string;

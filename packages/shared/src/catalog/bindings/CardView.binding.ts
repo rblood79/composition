@@ -1,3 +1,9 @@
+import {
+  S2_HIDDEN_COLLECTION_ACCEPTS,
+  S2_HIDDEN_TYPE_AHEAD_ACCEPTS,
+  S2_HIDDEN_ORIENTATION_ACCEPTS,
+  S2_PANEL_DISALLOW_EMPTY_ACCEPTS,
+} from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
 import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
@@ -35,6 +41,27 @@ export const cardViewBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 패널 (2026-11-24) — RAC 로 (`s2RacProps.ts`).
+      ...S2_PANEL_DISALLOW_EMPTY_ACCEPTS,
+
+      // S2 체크리스트 §9.1 (2026-11-24): S2 CardView `density` — the space between its cards (the rule's
+      //   `containerVariants` — size × density).
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        default: "regular",
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+          { value: "spacious", label: "Spacious" },
+        ],
+      },
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_COLLECTION_ACCEPTS,
+      ...S2_HIDDEN_TYPE_AHEAD_ACCEPTS,
+      ...S2_HIDDEN_ORIENTATION_ACCEPTS,
+
       // S2 CardView `loadingState` (ADR-314 Phase 4) — derived from its collection's load: its
       //   SkeletonCollection's items while `loading` · `loadingMore`, the end sentinel's state.
       loadingState: LOADING_STATE_PROP,

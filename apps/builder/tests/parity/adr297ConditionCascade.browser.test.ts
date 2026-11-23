@@ -82,11 +82,18 @@ const ATTRIBUTES: Record<string, string> = {
   isInvalid: "data-invalid",
   isFocused: "data-focused",
   isFocusWithin: "data-focus-within",
+  // (the compiler's selectors — `conditionTree.ts` FLAG_SELECTORS: S2 Picker · SearchField
+  // states, 71922bd0f · 3ca03f661)
+  isExpanded: "aria-expanded",
+  isPicker: "data-picker",
+  isSearchFieldPart: "data-search-field-part",
 };
 const VALUE_ATTRIBUTES: Record<string, string> = {
   variant: "data-variant",
   size: "data-size",
   fillStyle: "data-fill-style",
+  staticColor: "data-static-color",
+  fieldButton: "data-field-button",
 };
 
 /** 트리의 boolean 조건 키 · 값 조건 → 값들. */
@@ -179,9 +186,14 @@ it("compiled :where() cascade == evaluator for every overlapping condition combi
       const element = document.createElement("div");
       element.className = `adr297-case-${i}`;
       for (const [key, value] of Object.entries(conditions)) {
-        if (value === true) element.setAttribute(ATTRIBUTES[key], "true");
-        else if (typeof value === "string")
+        // (an unmapped condition fails here — it used to set a junk attribute and pass unnoticed)
+        if (value === true) {
+          if (!ATTRIBUTES[key]) throw new Error(`no attribute for ${key}`);
+          element.setAttribute(ATTRIBUTES[key], "true");
+        } else if (typeof value === "string") {
+          if (!VALUE_ATTRIBUTES[key]) throw new Error(`no attribute for ${key}`);
           element.setAttribute(VALUE_ATTRIBUTES[key], value);
+        }
       }
       host.append(element);
       const computed = getComputedStyle(element).getPropertyValue(property);

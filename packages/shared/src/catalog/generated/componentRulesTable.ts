@@ -3199,6 +3199,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       stateStyles: {
         opacity: { isDisabled: 0.38 },
       },
+      // S2 체크리스트 §9.1 (2026-11-24) — S2 CardView's space between its cards: `layoutOptions`
+      //   `minSpace` per size × `density` (regular XS 8 · S 12 · M 16 · L 20 · XL 24, compact one step
+      //   less, spacious one more). The origin template no longer authors its gap.
+      composition: {
+        delegation: [],
+        containerVariants: {
+          size: {
+            XS: { styles: { gap: "8px" } },
+            S: { styles: { gap: "12px" } },
+            M: { styles: { gap: "16px" } },
+            L: { styles: { gap: "20px" } },
+            XL: { styles: { gap: "24px" } },
+          },
+          density: {
+            compact: {
+              nested: [
+                { selector: '&[data-size="XS"]', styles: { gap: "6px" } },
+                { selector: '&[data-size="S"]', styles: { gap: "8px" } },
+                { selector: '&[data-size="M"]', styles: { gap: "12px" } },
+                { selector: '&[data-size="L"]', styles: { gap: "16px" } },
+                { selector: '&[data-size="XL"]', styles: { gap: "20px" } },
+              ],
+            },
+            spacious: {
+              nested: [
+                { selector: '&[data-size="XS"]', styles: { gap: "12px" } },
+                { selector: '&[data-size="S"]', styles: { gap: "16px" } },
+                { selector: '&[data-size="M"]', styles: { gap: "20px" } },
+                { selector: '&[data-size="L"]', styles: { gap: "24px" } },
+                { selector: '&[data-size="XL"]', styles: { gap: "28px" } },
+              ],
+            },
+          },
+        },
+      },
     },
   },
   Checkbox: {
@@ -4057,6 +4092,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   ColorSwatchPicker: {
+    // S2 체크리스트 §9.1 (2026-11-24) — S2 `ColorSwatchPicker` box: `flex` · `wrap`, gap by `density`
+    //   (compact `space(2)` · regular 4 · spacious `space(6)`). The origin template no longer authors
+    //   its gap (an authored value would win over the rule — both consumers read these blocks).
+    containerStyles: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "4px",
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "4px",
+      },
+      composition: {
+        delegation: [],
+        containerVariants: {
+          density: {
+            compact: { styles: { gap: "2px" } },
+            spacious: { styles: { gap: "6px" } },
+          },
+        },
+      },
+    },
     // ADR-297 Phase 3g — the swatch items' focus ring (옛 수동 `ColorSwatchPicker.css` — 생성 sheet 가 없는
     //   rule 이라 상태 블록만 담은 `generated/ColorSwatchPicker.css`). The selected ring is S2's `div`
     //   (2026-11-18 — was this rule's `::after`): `delegatedDom` `swatchSelectionRing` · Canvas
@@ -9428,7 +9489,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           width: "100%",
           color: "var(--fg)",
           "font-size": "var(--text-sm)",
-          "--fill-color": "var(--informative)",
+          "--fill-color": "var(--informative-visual)",
         },
         staticSelectors: {
           ".react-aria-Label": {
@@ -9478,23 +9539,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           variant: {
             informative: {
               styles: {
-                "--fill-color": "var(--informative)",
+                "--fill-color": "var(--informative-visual)",
               },
             },
             positive: {
               styles: {
-                "--fill-color": "var(--positive)",
+                "--fill-color": "var(--positive-visual)",
               },
             },
             // S2 1.8.0 값 정렬 (2026-10-10): warning → notice, critical → negative.
             notice: {
               styles: {
-                "--fill-color": "var(--notice)",
+                "--fill-color": "var(--notice-visual)",
               },
             },
             negative: {
               styles: {
-                "--fill-color": "var(--negative)",
+                "--fill-color": "var(--negative-visual)",
               },
             },
           },
@@ -12417,9 +12478,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   `display: contents` (its children are its parent's items, its own box their union — selection
   //   only, as Autocomplete). No paint and no size of its own: the loading look is the wrapped
   //   components' (Phase 3). An empty Skeleton's edit-only placeholder is the Canvas's
-  //   (`catalogEmptySkeletonStyle`), not this rule's. The `default` variant stays empty (the
+  //   (`catalogEmptyDropSpot`), not this rule's. The `default` variant stays empty (the
   //   removed variant axis — `s2VariantRemoval`).
   Skeleton: {
+    defaultVariant: "default",
+    defaultSize: "M",
+    variants: { default: { paint: {} } },
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      containerStyles: {
+        display: "contents",
+      },
+    },
+  },
+  // S2 체크리스트 부록 D.2 (2026-11-24) — S2 `ImageCoordinator` has no element: a context around its Images
+  //   (`<group.Provider>{children}</…>`). The Canvas lays it out as `display: contents`, as Skeleton; no
+  //   paint and no size of its own. Empty, the Canvas alone shows the edit-only drop spot.
+  ImageCoordinator: {
     defaultVariant: "default",
     defaultSize: "M",
     variants: { default: { paint: {} } },

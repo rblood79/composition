@@ -222,7 +222,14 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     // (2026-11-23 S2 체크리스트 부록 D.3 2단계: −1 — Dialog isKeyboardDismissDisabled joined its accepts
     //   and has a Do.)
     // (2026-11-24 S2 체크리스트 §9.3 6-7: −1 — Card density joined its accepts and has a Do.)
-    expect(deferred.size).toBe(418);
+    // (2026-11-24 S2 체크리스트 §9 패널: −13 — CardView disallowEmptySelection · ComboBox formValue ·
+    //   ContextualHelp popover place 5 · Menu shouldCloseOnSelect · shouldFocusWrap · NumberField
+    //   commitBehavior · Popover isNonModal · Select shouldCloseOnSelect · TooltipTrigger
+    //   shouldCloseOnPress joined their accepts and have a Do. §9 숨김 50 joined hidden — still rows.
+    //   −3 — MenuSection disallowEmptySelection · selectionMode · shouldCloseOnSelect; its selectedKeys
+    //   joined as a string-array (no Do input kind). −7 — Calendar · RangeCalendar selectionAlignment,
+    //   CardView density, Accordion density · isQuiet, ColorSwatchPicker density · rounding (§9 패널).)
+    expect(deferred.size).toBe(395);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

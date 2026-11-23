@@ -105,6 +105,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         // ADR-912 단계 5 선행-1: loading placeholder internal leaf
         "Skeleton",
         "SkeletonCollection",
+        // S2 체크리스트 부록 D.2 (2026-11-24): S2 ImageCoordinator — element-less context
+        "ImageCoordinator",
         "ToggleButton",
         "ToggleButtonGroup",
         "Toolbar",

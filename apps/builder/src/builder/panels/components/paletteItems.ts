@@ -304,6 +304,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   // 2026-10-21: Meter 는 값 표시 — ProgressBar 옆 (content). forms 의 Slider 뒤에 있었다.
   { type: "Meter", source: "catalog" },
   { type: "Skeleton", source: "catalog" },
+  // S2 체크리스트 부록 D.2 (2026-11-24): S2 ImageCoordinator — beside Skeleton (both element-less contexts).
+  { type: "ImageCoordinator", source: "catalog" },
   { type: "Avatar", source: "catalog" },
   { type: "AvatarGroup", source: "catalog" },
   { type: "LabeledValue", source: "catalog" },

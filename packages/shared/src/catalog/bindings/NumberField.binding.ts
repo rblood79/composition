@@ -9,6 +9,10 @@
  * D3: 자식 Input 이 배경, 부모는 빈 box shell(`_hasChildren`). skiaPrimitive 불필요.
  */
 
+import {
+  S2_HIDDEN_STEPPER_LABEL_ACCEPTS,
+  S2_PANEL_NUMBER_COMMIT_ACCEPTS,
+} from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
 import { VALIDATE_PROP } from "./validateProp";
@@ -35,6 +39,12 @@ export const numberFieldBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 패널 (2026-11-24) — RAC 로 (`s2RacProps.ts`).
+      ...S2_PANEL_NUMBER_COMMIT_ACCEPTS,
+
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_STEPPER_LABEL_ACCEPTS,
+
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",

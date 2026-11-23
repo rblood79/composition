@@ -1,4 +1,5 @@
 import { CATALOG_SKELETON_INERT } from "./skeletonContext";
+import { CatalogImageCoordinator } from "./imageCoordinator.components";
 import {
   CATALOG_SKELETON_DOT_ATTR,
   CATALOG_SKELETON_LOOK_ATTR,
@@ -506,6 +507,24 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           props: inheritedProps,
         } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
+    imageCoordinated(
+      record,
+      drawElement(record),
+    );
+  // S2 `CardView.tsx`: its GridList inside an `ImageCoordinator` (부록 D.2, 2026-11-24) — around the
+  // finished element, so the rules' handlers · HTML id · state styles still reach the GridList.
+  const imageCoordinated = (
+    record: CatalogConsumerNode,
+    element: ReactElement | null,
+  ) =>
+    element && catalogTypeName(root, record) === "CardView"
+      ? createElement(
+          CatalogImageCoordinator,
+          { key: element.key ?? record.id },
+          element,
+        )
+      : element;
+  const drawElement = (record: CatalogConsumerNode) =>
     (windowRow === undefined || !rowShape
       ? catalogRowStableElement
       : (row: CatalogConsumerNode, element: ReactElement | null) =>

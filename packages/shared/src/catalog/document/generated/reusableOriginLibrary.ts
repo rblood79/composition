@@ -283,6 +283,22 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-skeleton"
   },
   {
+    "id": "lib:definition:origin-component-imagecoordinator",
+    "name": "ImageCoordinator",
+    "mode": "composite",
+    "accepts": {
+      "timeout": "number",
+      "group": "string"
+    },
+    "defaults": {
+      "timeout": 5000,
+      "group": ""
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-imagecoordinator"
+  },
+  {
     "id": "lib:definition:origin-component-skeletoncollection",
     "name": "SkeletonCollection",
     "mode": "composite",
@@ -3197,6 +3213,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     }
   },
   {
+    "id": "lib:template:component-imagecoordinator",
+    "definitionId": "lib:definition:type-ImageCoordinator",
+    "slot": {
+      "name": "Content",
+      "required": false
+    },
+    "children": [],
+    "props": {
+      "timeout": "{timeout}",
+      "group": "{group}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-skeleton",
     "definitionId": "lib:definition:type-Skeleton",
     "slot": {
@@ -5022,7 +5052,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "M"
     },
     "visual": {
-      "gap": 16,
       "width": "100%"
     },
     "layout": {
@@ -10088,9 +10117,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-colorswatchpicker__6"
     ],
     "props": {},
-    "visual": {
-      "gap": 4
-    },
+    "visual": {},
     "layout": {
       "display": "flex",
       "flexDirection": "row",
@@ -10112,9 +10139,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorswatchpicker__1__swatch",
     "definitionId": "lib:definition:origin-component-colorswatch",
     "children": [],
-    "props": {
-      "rounding": "none"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -10132,9 +10157,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorswatchpicker__2__swatch",
     "definitionId": "lib:definition:origin-component-colorswatch",
     "children": [],
-    "props": {
-      "rounding": "none"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -10152,9 +10175,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorswatchpicker__3__swatch",
     "definitionId": "lib:definition:origin-component-colorswatch",
     "children": [],
-    "props": {
-      "rounding": "none"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -10172,9 +10193,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorswatchpicker__4__swatch",
     "definitionId": "lib:definition:origin-component-colorswatch",
     "children": [],
-    "props": {
-      "rounding": "none"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -10192,9 +10211,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorswatchpicker__5__swatch",
     "definitionId": "lib:definition:origin-component-colorswatch",
     "children": [],
-    "props": {
-      "rounding": "none"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -10212,9 +10229,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-colorswatchpicker__6__swatch",
     "definitionId": "lib:definition:origin-component-colorswatch",
     "children": [],
-    "props": {
-      "rounding": "none"
-    },
+    "props": {},
     "visual": {}
   },
   {

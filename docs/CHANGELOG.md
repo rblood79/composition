@@ -11,6 +11,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ImageCoordinator — S2 이미지 묶음 공개] - 2026-11-24
+
+### Added
+
+- **ImageCoordinator** (S2 `ImageCoordinator`, 팔레트 content — Skeleton 옆): 안에 넣은 Image 들을 전부 받은 뒤 (또는 Timeout — 기본 5000 ms) 함께 보인다. 자기 상자가 없는 감싸개라 Canvas 에서 빈 것은 점선 자리, 내용을 넣으면 부모 흐름에 그대로 놓인다.
+  - **Image group** (Image · ImageCoordinator): 같은 이름끼리 한 묶음 (S2 `group` — 코드의 `createImageGroup()` 대신 이름). 이름이 다른 Image 는 기다리지 않는다.
+  - Card · CardView 는 S2 처럼 안의 그림을 늘 함께 보인다 (CardView 는 모든 카드를 한 묶음으로). 받지 못한 그림은 기다리지 않는다.
+  - **Why**: 사용자 결정 (2026-11-24 「S2 ImageCoordinator 부분이 S2 레퍼런스 대로 구현」) — 11-23 의 「하지 않음」 을 대체.
+  - 위치: `packages/shared/src/catalog/runtime/imageCoordinator.components.tsx` (S2 reducer) · `imageBox.components.tsx` (기다림 상태 `loaded`) · `bindings/ImageCoordinator.binding.ts` · `domBinding.components.tsx` (CardView) · `delegatedDom.runtime.ts` (Card)
+
+### Tests
+
+- `catalogImageBox.test.tsx` · `s2ImageCoordinator.test.tsx` (묶음 · 다른 group · timeout · 실패 그림 · Card · CardView) — 원복 RED 5 종. live `apps/builder/scripts/s2-image-coordinator-live.mjs` 5/5.
+
+## [S2 프로퍼티 후보 구현 — 숨은 RAC 동작 · 패널 칸 · Column 메뉴 항목] - 2026-11-24
+
+### Added
+
+- **Design 패널의 새 칸** (S2 · RAC prop): Focus wrap (Menu · GridList · Tree · TagGroup · Table) · Commit behavior (NumberField) · Form value (Select · ComboBox) · Non-modal (Popover) · Close on press (TooltipTrigger) · Close on select (MenuItem · MenuSection) · 도움말 Popover 배치 (Placement · Offset · Cross offset · Container padding · Should flip — ContextualHelp) · Selection alignment (Calendar · RangeCalendar) · Rounding · Density (ColorSwatchPicker) · Density · Quiet (Accordion — 안의 Disclosure 에 전달) · Density (CardView).
+- **MenuSection 선택** (S2 `selectionMode` · `selectedKeys`): 구역마다 단일 · 다중 선택 — 항목 체크는 구역이 저장한다 (ADR-308 모양).
+- **SideNav 펼친 항목** (Expanded keys): 하위 항목을 가진 항목만 고른다.
+- **LabeledValue · RangeSlider 의 도움말** (S2 `contextualHelp`): 라벨 행에 ContextualHelp — 이름은 라벨을 읽는다.
+- **Column 메뉴 항목** (S2 Column `menuItems`): Column 의 「+」 가 MenuItem 을 넣고, Preview · Publish 의 열 메뉴가 Table 항목 뒤에 보인다 (Canvas 는 닫힌 메뉴라 그리지 않음).
+- 숨은 RAC 동작 prop 50 (collection · 키보드 이동 · 글자 찾기 · 방향 · Esc · item link 등) 을 코드 보기 · 규칙 Do 로 쓸 수 있다 (패널에는 없음 — 11-11 속성 감사).
+
+### Fixed
+
+- **Publish 에서 CardView · ColorSwatchPicker 의 Density · Rounding 이 사라지지 않는다**: 불러올 때 쓰지 않는 prop 목록 (`UNUSED_PROPS`) 이 지웠다.
+- **LabeledValue 도움말 버튼의 이름이 라벨을 읽는다**: RAC field 밖이라 Label 에 id 가 없었다 — 도움말이 있으면 S2 `fallbackLabelPropsId` 처럼 Label 에 id 를 준다.
+
+### Tests
+
+- `s2RacProps.test.tsx` (65) · `s2MenuSectionSelection` · `s2ContainerDensity` · `s2ColumnMenuItems` 외. live `s2-hidden-props-live` 5/5 · `s2-panel-props-live` 5/5 · `s2-visual-props-live` 6/6 · `s2-column-menu-items-live` 3/3.
+
+## [parity 기존 실패 정리 — Meter 채움색 · 공개 컴포넌트 3종] - 2026-11-24
+
+### Fixed
+
+- **Preview · Publish 의 Meter 채움색이 Canvas 와 같다**: 채움이 상태색 본단 (`--informative` 등) 이라 Canvas 보다 어두웠다. S2 `Meter` 와 같은 `-visual` 단 (informative · positive · notice · negative) 으로 바꿨다.
+  - **Why**: Canvas 는 S2 `Meter.tsx` fillStyles 대로 `-visual` 단을 그렸고, rule 의 DOM `--fill-color` 만 본단을 가리켰다.
+  - 위치: `componentRulesTable.ts` Meter · 생성 `Meter.css`
+- **자식 없이 쓴 공개 `<RangeSlider/>` · `<ActionBar/>` 가 오류로 멈추지 않는다** (Code view 가 내보내는 라이브러리): 접힌 기본 자식에 FieldLabel 이 없었고, 값 없는 Avatar · Badge 를 그리려 했다.
+  - **Why**: 접힌 기본 자식을 그리는 components 표가 origin template 의 부품을 다 담지 않았다.
+  - 위치: `packages/shared/src/components/{RangeSlider,selectionCompositesDefaults}.tsx`
+- **공개 `<SelectBoxGroup/>` 이 원본의 기본 선택을 유지한다**: 자식 · 선택을 주지 않으면 원본 template 의 기본 선택을 쓴다.
+  - **Why**: 접힌 자식은 template 에서 왔지만 선택은 group 뿌리의 `defaultSelectedKeys` 에 있어 따라오지 않았다.
+  - 위치: `packages/shared/src/components/SelectBoxGroup.tsx`
+
+### Tests
+
+- parity 전체 88 파일 2168 건 통과 (두 번 연속). 의도된 변경 (ADR-308 그룹 선택 · SearchField S2 구조 · FieldBox · Pretendard · ADR-264 · 중첩 규칙) 뒤에 남은 기대값을 고쳤고, 앞 테스트의 포인터 · S2 서체 로드 시점에 따라 결과가 갈리던 3 곳을 고쳤다. live 스크립트 `s2-meter-fill-live.mjs`.
+
 ## [Card density · 카드 원본 4종 — S2 Card spacing · AssetCard · UserCard · ProductCard · CollectionCardPreview] - 2026-11-24
 
 ### Added

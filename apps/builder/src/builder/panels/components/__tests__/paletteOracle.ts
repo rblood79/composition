@@ -64,6 +64,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "skeleton",
     icon: "Loader",
   },
+  // S2 체크리스트 부록 D.2 (2026-11-24): S2 ImageCoordinator — beside Skeleton.
+  {
+    type: "ImageCoordinator",
+    category: "content",
+    label: "image coordinator",
+    icon: "Images",
+  },
   {
     type: "Avatar",
     category: "content",

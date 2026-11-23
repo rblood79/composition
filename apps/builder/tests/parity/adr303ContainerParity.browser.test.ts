@@ -111,23 +111,23 @@ const TREE: readonly {
   props?: Record<string, unknown>;
   expect?: string;
 }[] = [
-  { id: "nav-root", type: "Nav", expect: "base" },
+  { id: "nav-root", type: "ListBox", expect: "base" },
   { id: "f1", type: "frame", fills: [layerFill("layer-1")] },
-  { id: "nav-f1", parent: "f1", type: "Nav", expect: "layer-1" },
-  { id: "bc-f1", parent: "f1", type: "Breadcrumbs", expect: "layer-1" },
+  { id: "nav-f1", parent: "f1", type: "ListBox", expect: "layer-1" },
+  { id: "bc-f1", parent: "f1", type: "DropZone", expect: "layer-1" },
   { id: "dz-f1", parent: "f1", type: "DropZone", expect: "layer-1" },
   { id: "lb-f1", parent: "f1", type: "ListBox", expect: "layer-1" },
   { id: "f1-hex", parent: "f1", type: "frame", fills: [hexFill] },
-  { id: "nav-f1-hex", parent: "f1-hex", type: "Nav", expect: "layer-1" },
+  { id: "nav-f1-hex", parent: "f1-hex", type: "ListBox", expect: "layer-1" },
   { id: "f12", parent: "f1", type: "frame", fills: [layerFill("layer-2")] },
   { id: "lb-f12", parent: "f12", type: "ListBox", expect: "layer-2" },
   { id: "f2", type: "frame", fills: [layerFill("layer-2")] },
   { id: "dz-f2", parent: "f2", type: "DropZone", expect: "layer-2" },
   { id: "card", type: "Card", props: { variant: "secondary" } },
-  { id: "nav-card", parent: "card", type: "Nav", expect: "layer-1" },
+  { id: "nav-card", parent: "card", type: "ListBox", expect: "layer-1" },
   // (투명 Group 은 컨테이너가 아니다 — 안의 reader 는 Card 층)
   { id: "grp-card", parent: "card", type: "Group" },
-  { id: "nav-grp", parent: "grp-card", type: "Nav", expect: "layer-1" },
+  { id: "nav-grp", parent: "grp-card", type: "ListBox", expect: "layer-1" },
 ];
 
 /** f1 의 Fill 을 layer-2 로 바꾼 뒤 (증분 — 다시 묶지 않는다) 의 기대 층. */
@@ -177,10 +177,22 @@ async function measure(mode: "light" | "dark") {
     const nodeId = `project:node:${id}` as NodeId;
     workspace.execute(
       insertNodes({
-        parent: {
-          kind: "node",
-          id: `project:node:${parent ?? "home-body"}` as NodeId,
-        },
+        parent: (parent === "card"
+          ? {
+              kind: "descendant",
+              ownerId: "project:node:card" as NodeId,
+              address: {
+                instances: ["project:node:card" as NodeId],
+                templatePath: [
+                  "lib:template:component-card",
+                  "lib:template:component-card__content",
+                ],
+              },
+            }
+          : {
+              kind: "node",
+              id: `project:node:${parent ?? "home-body"}` as NodeId,
+            }) as never,
         entries: [
           {
             kind: "node",

@@ -86,6 +86,16 @@ export function selectionCompositesDefaultChildren(
           );
     if (name === "Icon" && (!props.iconName || props.iconName === "{icon}"))
       return null;
+    // (S2 ActionButton: the Avatar is there with an image, the NotificationBadge with a count —
+    // a placeholder left unbound means the part is absent, as on the Canvas.)
+    if (
+      (name === "Avatar" && (!props.src || props.src === "{avatar}")) ||
+      (name === "Badge" &&
+        (props.value === undefined ||
+          props.value === "" ||
+          props.value === "{badge}"))
+    )
+      return null;
     const component = components[name];
     if (!component)
       throw new Error(`UNSUPPORTED_SELECTION_COMPOSITE_DEFAULT_SLOT:${name}`);

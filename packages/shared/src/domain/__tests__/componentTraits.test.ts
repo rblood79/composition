@@ -370,7 +370,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       TabPanels: ["Tabs"],
       TabPanel: ["Tabs"],
       ListBoxItem: ["ListBox"],
-      MenuItem: ["Menu"],
+      // (S2 Column `menuItems`, §9.2 — a Column holds its menu's items.)
+      MenuItem: ["Menu", "Column"],
       GridListItem: ["GridList"],
       ListBoxSection: ["ListBox"],
       MenuSection: ["Menu"],
@@ -409,6 +410,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "RadioGroup",
         "Slider",
         "TagGroup",
+        "LabeledValue",
+        "RangeSlider",
       ],
       CheckboxItems: ["CheckboxGroup"],
       CheckboxButton: ["Checkbox"],

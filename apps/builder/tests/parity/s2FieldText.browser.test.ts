@@ -46,6 +46,7 @@ import { catalogRuleShapes } from "@/builder/catalogRuntime/ruleShapes";
 import { catalogCanvasNodeData } from "@/builder/catalogRuntime/canvasBinding";
 import { catalogTextMeasure } from "@/builder/catalogRuntime/textMeasure";
 import { getIconData } from "@composition/rendering";
+import { catalogItemKey } from "../../../../packages/shared/src/catalog/runtime/groupSelection";
 import {
   catalogRulePaint,
   catalogStateOutline,
@@ -228,6 +229,27 @@ function theme(mode: "light" | "dark") {
 function rgb(hex: string) {
   return `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
 }
+/**
+ * The Input's place inside its field Group (S2 `FieldGroup`) — start and end gaps on the Canvas
+ * (engine geometry) and in the DOM. The clear button and the box padding decide them.
+ */
+function inputGaps(
+  h: Awaited<ReturnType<typeof fixture>>,
+  root = h.root,
+) {
+  const input = root.domInputs.get(h.field().id)!;
+  const geometry = root.getGeometry([input.id, input.parentId!]);
+  const own = geometry.get(input.id)!;
+  const box = geometry.get(input.parentId!)!;
+  const el = h.host.querySelector("input")!;
+  const ownDom = el.getBoundingClientRect();
+  const boxDom = el.parentElement!.getBoundingClientRect();
+  return {
+    canvas: { start: own.x - box.x, end: box.x + box.width - (own.x + own.width) },
+    dom: { start: ownDom.left - boxDom.left, end: boxDom.right - ownDom.right },
+  };
+}
+
 function canvasText(
   h: Awaited<ReturnType<typeof fixture>>,
   type: string,
@@ -352,20 +374,40 @@ it.each(
         expect(getComputedStyle(clearSvg).color).toBe(
           getComputedStyle(referenceClear).color,
         );
+        // (2026-11-13 — S2 structure: the glyph and the clear button sit in the field Group (S2
+        // `FieldGroup`) beside the Input, so both sides measure from the Group.)
         const inputRect = h.host
           .querySelector("input")!
-          .getBoundingClientRect();
+          .parentElement!.getBoundingClientRect();
         const refRect = oracleHost
           .querySelector("input")!
           .parentElement!.getBoundingClientRect();
+        // Start edge = the Group's padding-start: the other fields' `edge-to-text`, not S2's
+        // `pill` (사용자 2026-11-13) — so the search glyph compares inside the content box, and
+        // the clear glyph from the end (S2 `paddingEnd: 0` on both).
+        const ownBox = h.host.querySelector("input")!.parentElement!;
+        const refBox = oracleHost.querySelector("input")!.parentElement!;
+        const startPad = (el: Element) =>
+          parseFloat(getComputedStyle(el).paddingLeft) +
+          parseFloat(getComputedStyle(el).borderLeftWidth);
+        // (S2 instead starts at `pill` and pulls the glyph back by `--iconMargin` (fontRelative(-2));
+        // here the glyph starts at the content edge — that pair is the user's start spacing.)
+        expect(
+          searchSvg.getBoundingClientRect().left - inputRect.left - startPad(ownBox),
+          "search glyph left",
+        ).toBeCloseTo(0, 0);
+        void refBox;
+        expect(
+          inputRect.right - clearSvg.getBoundingClientRect().right,
+          "clear glyph end",
+        ).toBeCloseTo(
+          refRect.right - referenceClear.getBoundingClientRect().right,
+          0,
+        );
         for (const [svg, ref] of [
           [searchSvg, referenceSearch],
           [clearSvg, referenceClear],
         ]) {
-          expect(
-            svg.getBoundingClientRect().left - inputRect.left,
-            "glyph left",
-          ).toBeCloseTo(ref.getBoundingClientRect().left - refRect.left, 0);
           expect(
             svg.getBoundingClientRect().top - inputRect.top,
             "glyph top",
@@ -603,7 +645,10 @@ it.each(["S", "M", "L", "XL"] as const)(
           const reference = oracleHost.querySelector("input")!;
           const ownCss = getComputedStyle(input);
           const refCss = getComputedStyle(reference);
+          // (2026-11-13 — S2 structure: measured from the field Group, as the reference.)
           const ownEnd =
+            input.parentElement!.getBoundingClientRect().right -
+            input.getBoundingClientRect().right +
             parseFloat(ownCss.paddingRight) +
             parseFloat(ownCss.borderRightWidth);
           const refEnd =
@@ -611,7 +656,14 @@ it.each(["S", "M", "L", "XL"] as const)(
             reference.getBoundingClientRect().right +
             parseFloat(refCss.paddingRight) +
             parseFloat(refCss.borderRightWidth);
-          expect(ownEnd).toBeCloseTo(refEnd, 1);
+          // The one intended difference: the box's gap 8 (사용자 2026-11-13 — S2 has none) sits
+          // between the Input and a shown clear button.
+          const shown = getComputedStyle(h.host.querySelector("button")!).display !== "none";
+          const gap = shown
+            ? parseFloat(getComputedStyle(input.parentElement!).columnGap) || 0
+            : 0;
+          expect(ownEnd - gap).toBeCloseTo(refEnd, 1);
+
         }
       }
     } finally {
@@ -653,14 +705,11 @@ it.each(
             expect(input.readOnly).toBe(isReadOnly);
             expect(input.disabled).toBe(isDisabled);
             expect(input.value).toBe(value);
-            const padding = hidden ? 0 : { S: 24, M: 32, L: 40, XL: 48 }[size]!;
-            expect(h.field().visual.paddingRight, "resolved part padding").toBe(
-              padding,
-            );
-            expect(parseFloat(getComputedStyle(input).paddingRight)).toBe(
-              padding,
-            );
-            expect(canvasText(h, "Input", mode).paddingRight).toBe(padding);
+            // (2026-11-13 S2 structure — the clear Button takes its own place in the field Group;
+            // the Input keeps S2 `paddingEnd: 0` and both consumers give it the same width.)
+            const gaps = inputGaps(h);
+            expect(gaps.canvas.start, "Input start").toBeCloseTo(gaps.dom.start, 0);
+            expect(gaps.canvas.end, "Input end").toBeCloseTo(gaps.dom.end, 0);
           }
         }
       }
@@ -683,12 +732,11 @@ it("SearchField: readonly Undo/Redo, save/load and reset restore clear presence"
       getComputedStyle(h.host.querySelector("button")!).display === "none",
     ).toBe(hidden);
     expect(h.host.querySelector("input")!.value).toBe("persisted query");
-    expect(
-      parseFloat(getComputedStyle(h.host.querySelector("input")!).paddingRight),
-    ).toBe(hidden ? 0 : 32);
-    expect(root.domInputs.get(h.field().id)!.visual.paddingRight).toBe(
-      hidden ? 0 : 32,
-    );
+    // (2026-11-13 S2 structure — the clear Button's place, not Input padding: same width.)
+    const gaps = inputGaps(h, root);
+    expect(gaps.canvas.end, "Input end").toBeCloseTo(gaps.dom.end, 0);
+    // A shown clear button takes its place (and the box gap) at the end; a hidden one none.
+    expect(gaps.dom.end > 2).toBe(!hidden);
   };
   try {
     await act(async () => h.write(h.group().id, { value: "persisted query" }));
@@ -749,7 +797,8 @@ it.each([0, 12, 32, 23])(
           },
         }),
       );
-    const check = async (expected: number, root = h.root) => {
+    // (2026-11-13 S2 structure — no derived Input end padding: removed = none authored, DOM 0.)
+    const check = async (expected: number | undefined, root = h.root) => {
       await h.render(root);
       expect(root.domInputs.get(h.field().id)!.visual.paddingRight).toBe(
         expected,
@@ -758,7 +807,7 @@ it.each([0, 12, 32, 23])(
         parseFloat(
           getComputedStyle(h.host.querySelector("input")!).paddingRight,
         ),
-      ).toBe(expected);
+      ).toBe(expected ?? 0);
     };
     try {
       await act(async () => edit());
@@ -770,11 +819,11 @@ it.each([0, 12, 32, 23])(
         }
       }
       await act(async () => edit(true));
-      await check(0);
+      await check(undefined);
       await act(async () => h.workspace.undo());
       await check(padding);
       await act(async () => h.workspace.redo());
-      await check(0);
+      await check(undefined);
       await act(async () => h.workspace.undo());
       await h.workspace.autosave.retry();
       loaded = new CatalogWorkspace(
@@ -818,13 +867,13 @@ it("SearchField: Input library padding remains editable across clear states", as
       for (const value of ["", "query"]) {
         await act(async () => h.write(h.group().id, { value }));
         await h.render();
-        const expected = padding ?? (value ? 32 : 0);
+        // (2026-11-13 S2 structure — the clear state adds no Input padding.)
         expect(
           parseFloat(
             getComputedStyle(h.host.querySelector("input")!).paddingRight,
           ),
-        ).toBe(expected);
-        expect(h.field().visual.paddingRight).toBe(expected);
+        ).toBe(padding ?? 0);
+        expect(h.field().visual.paddingRight).toBe(padding);
       }
     }
   } finally {
@@ -871,7 +920,7 @@ it("SearchField: typed value, readonly keyboard traversal and clear restore inpu
       await userEvent.keyboard("typed query");
     });
     expect(getComputedStyle(clear()).display).not.toBe("none");
-    expect(padding()).toBe(32);
+    expect(padding()).toBe(0);
     await act(async () => h.write(h.group().id, { isReadOnly: true }));
     await h.render();
     expect(getComputedStyle(clear()).display).toBe("none");
@@ -903,7 +952,7 @@ it("SearchField: typed value, readonly keyboard traversal and clear restore inpu
       await userEvent.keyboard("again");
     });
     expect(getComputedStyle(clear()).display).not.toBe("none");
-    expect(padding()).toBe(32);
+    expect(padding()).toBe(0);
     await act(async () => {
       await userEvent.keyboard("{Escape}");
     });
@@ -1267,8 +1316,11 @@ it("ComboBox authored selection text uses value paint", async () => {
     const option = [...h.root.domInputs.values()].find(
       (n) => h.root.typeOf(n) === "ListBoxItem",
     )!;
+    // ADR-308 — the selection is the ComboBox's `selectedKey`, not the option's `isSelected`.
     await act(async () => {
-      h.write(option.id, { isSelected: true });
+      h.write(h.group().id, {
+        selectedKey: catalogItemKey(option, (n) => h.root.typeOf(n)),
+      });
     });
     await h.render();
     const input = h.host.querySelector<HTMLInputElement>(
@@ -1289,7 +1341,12 @@ it("ComboBox authored selection text uses value paint", async () => {
       h.host.querySelector<HTMLInputElement>('input[role="combobox"]')!.value,
     ).toBe("Edited option");
     await act(async () => {
-      h.write(option.id, { isSelected: false });
+      h.workspace.execute(
+        setFields({
+          targets: [h.workspace.positionOfRecord(h.group().id)!.target],
+          props: { selectedKey: { kind: "remove" } },
+        }),
+      );
     });
     await h.render();
     expect(
@@ -1584,10 +1641,21 @@ it.each(["S", "M", "L", "XL"] as const)(
     const host = document.body.appendChild(document.createElement("div"));
     host.style.setProperty("--s2-scale", "1");
     host.style.setProperty("--s2-font-size-base", "14");
+    // The document font is Pretendard (사용자 결정 2026-11-07 — not S2's Adobe Clean), so the
+    // reference is drawn in the same font: this compares S2's label structure and spacing, not
+    // the font. (Without it the result changed with when S2's font finished loading.)
+    host.dataset.s2SameFont = "";
+    const sameFont = document.head.appendChild(document.createElement("style"));
     const oracle = createRoot(host);
     try {
       await act(async () => {
         h.write(h.group().id, { label: "Field title", isRequired: true });
+      });
+      await h.render();
+      sameFont.textContent = `[data-s2-same-font] * { font-family: ${
+        getComputedStyle(h.host.querySelector("label")!).fontFamily
+      } !important; }`;
+      await act(async () => {
         oracle.render(
           createElement(SpectrumSearchField, {
             label: "Field title",
@@ -1654,6 +1722,7 @@ it.each(["S", "M", "L", "XL"] as const)(
     } finally {
       await act(async () => oracle.unmount());
       host.remove();
+      sameFont.remove();
       await h.dispose();
     }
   },

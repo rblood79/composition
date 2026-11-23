@@ -250,6 +250,20 @@ export const CATALOG_SIZE_STEP: Readonly<
  * the resolver (`applyOwnerDensity`) so both consumers see one resolved value; the parts carry
  * no editable density of their own (`editorHidden`).
  */
+/**
+ * S2 체크리스트 §9.1 (2026-11-24) — an owner's props its parts take as S2 context does (S2
+ * `useSpectrumContextProps`: the part's own value wins): a ColorSwatchPicker's `rounding` reaches its
+ * swatches (`InternalColorSwatchContext`), an Accordion's `density` · `isQuiet` its Disclosures
+ * (`DisclosureContext`). Read by the resolver (`applyOwnerContext`); an owner edit resolves the parts
+ * again (`compositionRoot`).
+ */
+export const CATALOG_OWNER_CONTEXT_PROPS: Readonly<
+  Record<string, { readonly owner: string; readonly keys: readonly string[] }>
+> = {
+  ColorSwatch: { owner: "ColorSwatchPicker", keys: ["rounding"] },
+  Disclosure: { owner: "Accordion", keys: ["density", "isQuiet"] },
+};
+
 export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<
   Record<string, string>
 > = {

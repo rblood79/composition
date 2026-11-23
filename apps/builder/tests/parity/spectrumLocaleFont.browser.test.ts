@@ -11,8 +11,15 @@ beforeAll(async () => {
   injectBuiltinFontStyle();
 });
 
+// 80f7df6c0 (사용자 결정 2026-11-07): Korean is the default face's (Pretendard) — no locale font.
+it("ko-KR: no Spectrum locale font — the default face covers Hangul", async () => {
+  expect(spectrumLocaleFont("ko-KR")).toBeUndefined();
+  expect(
+    await loadSpectrumLocaleFont(document, "ko-KR", "한글 가나다", 400),
+  ).toBeUndefined();
+});
+
 it.each([
-  ["ko-KR", "한글 글꼴 가나다"],
   ["ja-JP", "日本語の文字あいうえお"],
   ["zh-Hans-CN", "简体中文字体测试"],
   ["zh-Hant-TW", "繁體中文字體測試"],

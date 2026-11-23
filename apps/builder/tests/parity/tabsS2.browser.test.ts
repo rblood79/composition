@@ -512,6 +512,9 @@ it.each(cases)(
         await act(async () => userEvent.keyboard(next));
         expect(selected()).toBe(0);
         expect(tabs()[1]!.getAttribute("aria-disabled")).toBe("true");
+        // (the pointer stays where the clicks left it — a later case's own tab mounted under it
+        // would read as hovered)
+        await act(async () => userEvent.unhover(tabs()[0]!));
       }
     } finally {
       canvas?.dispose();

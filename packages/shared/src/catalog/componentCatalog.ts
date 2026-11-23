@@ -244,6 +244,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "skeleton",
     icon: "Loader",
   }),
+  // S2 체크리스트 부록 D.2 (2026-11-24): S2 ImageCoordinator — an element-less context revealing the
+  //   Images in it together (origin: empty, content dropped in — as a placed Skeleton).
+  primitiveEntry("ImageCoordinator", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "image coordinator",
+    icon: "Images",
+  }),
   // ADR-314 Phase 4: S2 SkeletonCollection — a CardView's loading items (origin: a Card template).
   primitiveEntry("SkeletonCollection", "primitives", FAMILY_1_CUTOVER, {
     category: "collections",
@@ -1624,6 +1631,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "ProgressCircle",
   // ADR-314 결정 2 (2026-11-18): S2 Skeleton wraps sample content — Image + title + body Text.
   "Skeleton",
+  // S2 체크리스트 부록 D.2 (2026-11-24): S2 ImageCoordinator — a context around Images, as Skeleton.
+  "ImageCoordinator",
   // 295 후속 C9 — S2 Toast (InlineAlert 뒤에 놓인다 — `PALETTE_ORDER`).
   "Toast",
   // layout / navigation

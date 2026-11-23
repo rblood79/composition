@@ -34,6 +34,7 @@ export function TooltipTrigger({
   isDisabled,
   delay,
   trigger,
+  shouldCloseOnPress,
   placement,
   offset,
   crossOffset,
@@ -49,6 +50,7 @@ export function TooltipTrigger({
       isDisabled={isDisabled}
       delay={delay}
       trigger={trigger}
+      shouldCloseOnPress={shouldCloseOnPress}
     >
       <TooltipPlacementContext.Provider
         value={{ placement, offset, crossOffset, shouldFlip, containerPadding }}

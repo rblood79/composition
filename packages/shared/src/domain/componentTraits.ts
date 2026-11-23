@@ -164,6 +164,9 @@ export const CATALOG_CONTEXTUAL_HELP_FIELDS: ReadonlySet<string> = new Set([
   "RadioGroup",
   "Slider",
   "TagGroup",
+  // (S2 체크리스트 §9.1, 2026-11-24 — S2 LabeledValue · RangeSlider `contextualHelp`, the same row.)
+  "LabeledValue",
+  "RangeSlider",
 ]);
 
 /**
@@ -179,6 +182,8 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
   SegmentedControl: ["SegmentedControlItem"],
   ActionButtonGroup: ["ActionButton"],
   ActionBar: ["ActionButton"],
+  // (S2 Column `menuItems` — the 「+」 adds a menu item to the Column, §9.2.)
+  Column: ["MenuItem"],
   Accordion: ["Disclosure"],
   ButtonGroup: ["Button"],
   // (2026-11-14: S2 action group — its step buttons are ActionButtons; the pages are its ToggleButtonGroup's.)
@@ -399,7 +404,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     owners: ["Menu"],
   },
   // ADR-256 후속 4 · 6: a static collection item — its `id` is RAC's key (selection, `onAction`).
-  MenuItem: { families: ["staticCollectionItem"], owners: ["Menu"] },
+  // (S2 체크리스트 §9.2, 2026-11-24 — S2 Column `menuItems`: a Column's MenuItem children are its menu's
+  //  own items, after the Table's — `catalogColumnMenuItems`.)
+  MenuItem: { families: ["staticCollectionItem"], owners: ["Menu", "Column"] },
   // ADR-256 Phase 5g: RAC SubmenuTrigger — its item (the first child) and the Popover holding the
   // submenu's Menu (RAC reads `children[0]` · `children[1]`).
   SubmenuTrigger: {

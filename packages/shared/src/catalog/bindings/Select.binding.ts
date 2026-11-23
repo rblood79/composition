@@ -1,3 +1,7 @@
+import {
+  S2_HIDDEN_AUTO_COMPLETE_ACCEPTS,
+  S2_PANEL_CLOSE_ON_SELECT_ACCEPTS,
+} from "./s2RacProps";
 import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 /**
  * ADR-142 family ④(collections) — Select primitive 의 `PrimitiveBinding`.
@@ -19,6 +23,12 @@ export const selectBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 패널 (2026-11-24) — RAC 로 (`s2RacProps.ts`).
+      ...S2_PANEL_CLOSE_ON_SELECT_ACCEPTS,
+
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_AUTO_COMPLETE_ACCEPTS,
+
       // ADR-308 Phase 1: the group's selection (S2 Picker `value`) — accepted; the panel offers it in Phase 2.
       // ADR-308 Phase 2: the group's selection — a dropdown, a check list while it selects
       //   several (사용자 결정 3).

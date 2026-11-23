@@ -25,6 +25,7 @@ import { catalogPaletteDefinitionId } from "@/builder/catalogRuntime/paletteInse
 import { newCatalogProjectDocument } from "@/builder/catalogRuntime/project";
 import { CatalogStorage } from "@/builder/catalogRuntime/storage";
 import { CatalogWorkspace } from "@/builder/catalogRuntime/workspace";
+import { catalogItemKey } from "../../../../packages/shared/src/catalog/runtime/groupSelection";
 import {
   catalogRuleShapes,
   catalogRuleNodeData,
@@ -132,7 +133,10 @@ async function fixture(
     [...root.domInputs.values()].find((n) => root.typeOf(n) === type)!;
   const group = () =>
     [...root.domInputs.values()].find((n) => root.typeOf(n) === owner)!;
-  const write = (id: string, props: Record<string, string | boolean>) =>
+  const write = (
+    id: string,
+    props: Record<string, string | boolean | string[]>,
+  ) =>
     workspace.execute(
       setFields({
         targets: [workspace.positionOfRecord(id)!.target],
@@ -369,6 +373,8 @@ it.each(["Checkbox", "Radio", "Switch"] as const)(
       await act(async () => {
         await userEvent.click(before);
         await userEvent.tab();
+        // (move the pointer off — the next test's field mounts under where it was left)
+        await userEvent.unhover(before);
       });
       before.remove();
       expect(document.activeElement).toBe(input);
@@ -524,10 +530,15 @@ it.each(groupCases)(
         (node) => h.root.typeOf(node) === type,
       );
     try {
-      // 그룹 값 UI는 Checkbox 자식의 Selected로 조립된다. 자식 false도 그룹 disabled를 해제하지 않는다.
-      for (const [index, field] of fields().entries()) {
-        h.write(field.id, { isSelected: index === 0, isDisabled: false });
-      }
+      // ADR-308 — 그룹 안 선택은 그룹의 `value` (항목 key) 다. 자식 false 도 그룹 disabled 를 해제하지 않는다.
+      const keyOf = (index: number) =>
+        catalogItemKey(fields()[index]!, (n) => h.root.typeOf(n));
+      const selectOnly = (index: number) =>
+        h.write(h.group().id, {
+          value: type === "Radio" ? keyOf(index) : [keyOf(index)],
+        });
+      for (const field of fields()) h.write(field.id, { isDisabled: false });
+      selectOnly(0);
       for (const state of ["emphasized", "invalid", "disabled", "restored"]) {
         h.write(h.group().id, {
           isEmphasized: state === "emphasized",
@@ -605,8 +616,8 @@ it.each(groupCases)(
         }
       }
       // 그룹 상태를 해제한 뒤 자식의 개별 disabled와 선택 편집도 보존한다.
-      h.write(fields()[0]!.id, { isDisabled: true, isSelected: false });
-      h.write(fields()[1]!.id, { isSelected: true });
+      h.write(fields()[0]!.id, { isDisabled: true });
+      selectOnly(1);
       await h.render();
       const controls = h.host.querySelectorAll<HTMLInputElement>("input");
       expect(controls[0]!.disabled).toBe(true);
@@ -634,9 +645,12 @@ it.each(["Checkbox", "Radio"] as const)(
       install() {},
       snapshot: () => snapshot,
     });
-    const labelId = h
-      .group()
-      .children.find((id) => h.root.domInputs.get(id)?.bindingId === "label")!;
+    // (2026-11-18 라벨 묶음 — 그룹의 Label 은 라벨 행 FieldLabel 안에 있다.)
+    const labelId = [...h.root.domInputs.values()].find(
+      (node) =>
+        h.root.typeOf(node) === "Label" &&
+        h.root.domInputs.get(node.parentId!)?.parentId === h.group().id,
+    )!.id;
     try {
       for (const custom of [true, false]) {
         await act(async () => {

@@ -6,6 +6,10 @@
  * 반복한다 (resolver `CATALOG_ROW_ITEM_TYPES`). Canvas 시각은 catalog rule (`COMPONENT_RULES_TABLE.TagGroup`).
  */
 
+import {
+  S2_HIDDEN_ESCAPE_ACCEPTS,
+  S2_HIDDEN_PRESS_UP_ACCEPTS,
+} from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 import { DISABLED_KEYS_PROP } from "./disabledKeysProp";
 
@@ -16,6 +20,10 @@ export const tagGroupBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_ESCAPE_ACCEPTS,
+      ...S2_HIDDEN_PRESS_UP_ACCEPTS,
+
       // ADR-308 Phase 1: the group's selection (S2 · RAC) — accepted; the panel offers it in Phase 2.
       selectedKeys: {
         editorHidden: true,

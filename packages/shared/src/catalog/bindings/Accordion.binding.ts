@@ -26,6 +26,20 @@ export const accordionBinding: PrimitiveBinding = {
         label: "Expanded items",
         section: "value",
       },
+      // S2 체크리스트 §9.1 (2026-11-24): S2 Accordion `density` · `isQuiet` — its Disclosures' (S2
+      //   `DisclosureContext`; a Disclosure's own wins — `CATALOG_OWNER_CONTEXT_PROPS`). No default: unset
+      //   leaves each Disclosure its own.
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+          { value: "spacious", label: "Spacious" },
+        ],
+      },
+      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       allowsMultipleExpanded: {
         kind: "boolean",
         label: "Allow Multiple Expanded",

@@ -2,6 +2,7 @@ import { useId } from "@react-aria/utils";
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -23,7 +24,16 @@ import { ActionButton } from "./ActionButton";
  * ADR-259 Phase 3 — inside a field's label row (`FieldLabel`): the help's name joins the field's
  * label (S2 `FieldLabel` → `ContextualHelpContext`).
  */
-export const FieldLabelScope = createContext(false);
+/** A label row around the help: it gives its Label an id when no field does (`FieldLabel`). */
+export interface FieldLabelScopeValue {
+  /** The help is there — the row names its Label (S2 `FieldLabel` `fallbackLabelPropsId`). */
+  register: () => () => void;
+  /** Its Label's element id, when no field gives one. */
+  labelId?: string;
+}
+export const FieldLabelScope = createContext<FieldLabelScopeValue | false>(
+  false,
+);
 
 /** What the help gives its trigger Button (S2 `ContextualHelp` → its ActionButton). */
 interface ContextualHelpTriggerValue {
@@ -86,11 +96,14 @@ export function ContextualHelp({
   const id = useId();
   const titleId = useId();
   const inLabel = useContext(FieldLabelScope);
+  useEffect(() => (inLabel ? inLabel.register() : undefined), [inLabel]);
   const label = useSlottedContext(LabelContext) as { id?: string } | null;
   const trigger: ContextualHelpTriggerValue = {
     id,
     "aria-label": variant === "info" ? strings.info : strings.help,
-    ...(inLabel && label?.id ? { "aria-labelledby": `${label.id} ${id}` } : {}),
+    ...(inLabel && (inLabel.labelId ?? label?.id)
+      ? { "aria-labelledby": `${inLabel.labelId ?? label?.id} ${id}` }
+      : {}),
   };
   return (
     <RACDialogTrigger

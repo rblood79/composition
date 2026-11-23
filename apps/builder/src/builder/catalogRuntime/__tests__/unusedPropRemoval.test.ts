@@ -27,10 +27,10 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * them, the Canvas and the Preview did not change. They are gone from the bindings and the origins,
  * and an old document's write is dropped on load (`migrateCatalogEntriesS2`).
  */
+// (2026-11-24 S2 체크리스트 §9.1: CardView `density` · ColorSwatchPicker `density` · `rounding` came back —
+//  the space between the cards · swatches and the swatches' corner — `s2ContainerDensity.test.tsx` ·
+//  `s2ColorSwatchRounding.test.tsx`.)
 const REMOVED: ReadonlyArray<readonly [string, string, unknown]> = [
-  ["CardView", "density", "compact"],
-  ["ColorSwatchPicker", "density", "compact"],
-  ["ColorSwatchPicker", "rounding", "full"],
   ["ColorPicker", "defaultValue", "#ff0000"],
   ["GridListItem", "children", "Old"],
   ["Tag", "children", "Old"],
@@ -130,12 +130,7 @@ describe("props no consumer read are not registered", () => {
   });
 
   it("an old document with them opens — the write is dropped on load", async () => {
-    for (const type of [
-      "CardView",
-      "ColorSwatchPicker",
-      "ColorPicker",
-      "Card",
-    ]) {
+    for (const type of ["ColorPicker", "Card"]) {
       const { library, workspace } = await open(type);
       const document = workspace.root.runtime.graph.exportDocument();
       const entries = JSON.parse(JSON.stringify(document.entries)) as Record<

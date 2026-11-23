@@ -16,6 +16,10 @@ import { ListBoxContext, useSlottedContext } from "react-aria-components";
 import { selectBoxChildrenText } from "../catalog/runtime/selectBoxText";
 import { SelectBoxSelectionContext } from "./SelectBoxSelectionContext";
 import { selectionCompositesDefaultChildren } from "./selectionCompositesDefaults";
+import {
+  SELECTION_COMPOSITE_DEFINITIONS,
+  SELECTION_COMPOSITE_TEMPLATES,
+} from "../catalog/document/selectionCompositesOrigins";
 import { selectBoxVisibleChildren } from "./selectBoxVisibleChildren";
 import { Checkbox, CheckboxIndicatorBox } from "./Checkbox";
 import { Icon } from "./Icon";
@@ -31,6 +35,18 @@ function SelectionIndicator() {
     />
   );
 }
+/**
+ * The origin's own selection (ADR-308 — the group stores it, `defaultSelectedKeys`): what the
+ * folded `<SelectBoxGroup />` (its default options) starts with, as the placed origin does.
+ */
+const ORIGIN_DEFAULT_SELECTED = (SELECTION_COMPOSITE_TEMPLATES.find(
+  (item) =>
+    item.id ===
+    SELECTION_COMPOSITE_DEFINITIONS.find(
+      (definition) => definition.name === "SelectBoxGroup",
+    )?.templateRootId,
+)?.props.defaultSelectedKeys ?? []) as Iterable<string>;
+
 const defaultSlots: Readonly<Record<string, ElementType>> = {
   frame: "div",
   Text,
@@ -95,7 +111,9 @@ export function SelectBoxGroup<T extends object>({
           (props.selectedKeys ?? slotProps?.selectedKeys) === undefined
             ? (props.defaultSelectedKeys ??
               slotProps?.defaultSelectedKeys ??
-              authoredSelected)
+              (children === undefined && !authoredSelected.length
+                ? ORIGIN_DEFAULT_SELECTED
+                : authoredSelected))
             : undefined
         }
         layout="grid"

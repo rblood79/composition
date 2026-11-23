@@ -17,6 +17,7 @@ import {
 } from "react-aria-components/Slider";
 import { Label } from "react-aria-components/Label";
 import { useSlottedContext } from "react-aria-components";
+import { FieldLabel } from "./FieldLabel";
 import { rangeSegmentsDefaultChildren } from "./rangeSegmentsDefaults";
 import { RANGE_SEGMENT_DEFINITIONS } from "../catalog/document/rangeSegmentsOrigins";
 import {
@@ -117,6 +118,8 @@ export const RangeSlider = forwardRef<HTMLDivElement, RangeSliderProps>(
             rangeSegmentsDefaultChildren(
               "RangeSlider",
               {
+                // (2026-11-18 — the label row is S2's FieldLabel `div` around the Label.)
+                FieldLabel,
                 Label,
                 SliderOutput,
                 SliderTrack,

@@ -9,6 +9,7 @@
  * (S2 `calendarStyles`); an old document's `size` is dropped on load (`s2PropAlignment`).
  */
 
+import { S2_HIDDEN_COMMIT_BEHAVIOR_ACCEPTS } from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 import {
   UNAVAILABLE_DATA_PROP,
@@ -31,6 +32,22 @@ export const rangeCalendarBinding: PrimitiveBinding = {
   skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
+      // S2 체크리스트 §9.1 (2026-11-24): S2 · RAC `selectionAlignment` — where the selected (or today's)
+      //   date sits in the visible months. The Canvas model aligns the same (`calendarModel.ts`).
+      selectionAlignment: {
+        kind: "enum",
+        label: "Selection alignment",
+        section: "appearance",
+        default: "center",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "center", label: "Center" },
+          { value: "end", label: "End" },
+        ],
+      },
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_COMMIT_BEHAVIOR_ACCEPTS,
+
       // ADR-309 Decision 1 — the value the RangeCalendar starts from (ISO text — `dateValueRead.ts`).
       value: {
         kind: "date-range",

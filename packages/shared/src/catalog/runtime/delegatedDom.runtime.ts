@@ -1,4 +1,7 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
+import { CatalogImageCoordinator } from "./imageCoordinator.components";
+import { getPrimitiveBinding } from "../bindings";
+import { catalogS2RacProps } from "../bindings/s2RacProps";
 import { catalogUnavailableDateTest } from "./unavailableDates";
 import { catalogEffectiveStaticColor } from "./staticBackdrop";
 import { catalogSelectBoxText } from "./selectBoxText";
@@ -1283,6 +1286,10 @@ function treeItemElements(
           isDisabled: item.props.isDisabled === true,
           // ADR-259 Phase 1: RAC's item link (`data-href` · `data-target` · `data-rel`).
           ...catalogItemLinkProps(item.props),
+          ...catalogS2RacProps(
+            getPrimitiveBinding("TreeItem")?.props.accepts,
+            item.props,
+          ),
           // (The item's own rules — its `onAction` · press · hover.)
           ...input.handlersOf?.(item.id),
         },
@@ -1622,6 +1629,14 @@ function catalogDomValidationWatched(
     : [];
 }
 
+/** A record's authored S2 §9 hidden props (binding `editorHidden` — `s2RacProps.ts`), for RAC. */
+function hiddenRacProps(input: DelegatedDomInput): Record<string, unknown> {
+  return catalogS2RacProps(
+    getPrimitiveBinding(catalogTypeName(input.root, input.node))?.props.accepts,
+    input.node.props,
+  );
+}
+
 function fieldBase(input: DelegatedDomInput) {
   const props = input.node.props;
   const form = inheritedForm(input);
@@ -1902,6 +1917,7 @@ function nodeTreeField(
           "data-label-align": labelAlign ?? defaultLabelAlign,
           "data-quiet": isQuiet ? "true" : undefined,
           ...ownProps,
+          ...catalogS2RacProps(getPrimitiveBinding(type)?.props.accepts, props),
           // A static render: RAC's value is the run state — `defaultValue`; a document edit of the
           // value starts it again, as the Slider's does. A running Preview: controlled from the
           // first render (always a defined value — `null` for none) and the change goes to the
@@ -2608,6 +2624,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         {
           ...(waterfall ? { as: GridList } : {}),
           ...marker(input),
+          ...hiddenRacProps(input),
           key: stateKey(input, selectionKey(marker(input).key, selected)),
           style: input.style,
           "aria-label": str(props.label || "Grid List"),
@@ -2744,6 +2761,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return createElement(
         AriaMenu as ElementType,
         {
+          ...hiddenRacProps(input),
           key: input.setRuntimeProps
             ? input.node.id
             : selectionKey(input.node.id, selected),
@@ -2824,6 +2842,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         Tree as ElementType,
         {
           ...marker(input),
+          ...hiddenRacProps(input),
           key: stateKey(input, selectionKey(marker(input).key, treeSelected)),
           style: input.style,
           "aria-label": str(props["aria-label"] || props.label || "Tree"),
@@ -4066,10 +4085,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   card: {
     render: (input) => {
       const props = input.node.props;
+      // (S2 `Card.tsx`: its content inside an `ImageCoordinator` — the preview's pictures show together;
+      //  in a CardView the CardView's coordinates them all — S2's nested coordinator passes through.)
       const content = createElement(
         TextContext.Provider,
         { value: CARD_TEXT_SLOTS },
-        ...renderAll(input),
+        createElement(CatalogImageCoordinator, null, ...renderAll(input)),
       );
       const parent = input.root.domInputs.get(input.node.parentId);
       if (parent && catalogTypeName(input.root, parent) === "CardView")
@@ -4077,11 +4098,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           AriaGridListItem as ElementType,
           {
             ...marker(input),
+            ...hiddenRacProps(input),
             id: resolveStaticItemKey(
               props as Record<string, unknown>,
               input.node.id,
             ),
-            textValue: cardTitleText(input) || undefined,
+            textValue:
+              str(props.textValue) || cardTitleText(input) || undefined,
             className: "react-aria-Card",
             style: input.style,
             "data-variant": str(props.variant || "primary"),
@@ -4196,6 +4219,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           {
             ...(waterfall ? { as: AriaGridList } : {}),
             ...marker(input),
+            ...hiddenRacProps(input),
             // (A static render: a changed authored selection remounts RAC's uncontrolled state — as
             // a TagGroup's. A running Preview: controlled — ADR-280.)
             key: stateKey(
@@ -4206,6 +4230,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             "aria-label": str(props["aria-label"] || "Card view"),
             layout: "grid",
             "data-size": str(props.size || "M"),
+            // (S2 `density` — the sheet's gap between the cards, §9.1.)
+            "data-density": str(props.density || "regular"),
             "data-variant": str(props.variant || "primary"),
             selectionMode,
             // S2 CardView `selectionStyle` (2026-11-18): highlight = RAC `replace`, checkbox = `toggle`
@@ -4257,6 +4283,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             skeletons,
           ),
         );
+      // (S2 `CardView.tsx` puts the GridList inside an `ImageCoordinator` — `domBinding.components.tsx`
+      //  `draw` wraps the finished element, after the rules' handlers and the HTML id reach it.)
       if (!skeletons) return grid(0);
       if (virtual) return grid(1);
       return createElement(CatalogSkeletonFill, {
@@ -4506,6 +4534,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ColorSwatchPicker as ElementType,
         {
           ...marker(input),
+          // (S2 `density` — the sheet's `[data-density]` gap; §9.1, 2026-11-24.)
+          "data-density": str(props.density) || undefined,
           style: input.style,
           // (ADR-280 — a running Preview controls it from the record's runtime `value`.)
           ...(input.setRuntimeProps
@@ -4608,6 +4638,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         Form as ElementType,
         {
           ...marker(input),
+          ...hiddenRacProps(input),
           style: input.style,
           action: opt(props.action),
           method: props.method || undefined,
@@ -4770,6 +4801,7 @@ function calendarElement(
     Component,
     {
       ...marker(input),
+      ...hiddenRacProps(input),
       style: input.style,
       "data-variant": str(props.variant || "default"),
       // (No `data-size` — the calendar has no size, 2026-10-13: its month follows its width.)
@@ -4788,6 +4820,8 @@ function calendarElement(
       isDateUnavailable: own(catalogUnavailableDateTest(props)),
       defaultFocusedValue: own(dateValue(props.defaultFocusedValue)),
       autoFocus: own(bool(props.autoFocus)),
+      // (S2 · RAC `selectionAlignment` — the Canvas model aligns the same.)
+      selectionAlignment: str(props.selectionAlignment) || undefined,
       visibleDuration: catalogCalendarDurationFits(props.visibleDuration)
         ? props.visibleDuration
         : undefined,

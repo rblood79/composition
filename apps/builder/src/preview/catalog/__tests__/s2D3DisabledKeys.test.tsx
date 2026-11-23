@@ -9,7 +9,11 @@ import {
 import { catalogItemKeyDisabled } from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
-import { catalogGroupKeysFields } from "../../../builder/catalogRuntime/singleSelection";
+import {
+  catalogGroupKeysFields,
+  catalogGroupKeysWriteCommand,
+} from "../../../builder/catalogRuntime/singleSelection";
+import { catalogSideNavItemExpanded } from "../../../../../../packages/shared/src/catalog/runtime/sideNav";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -217,4 +221,48 @@ describe("S2 D.3 disabledKeys — by a data field (`fieldMap.disabled`)", () => 
       h.view.unmount();
     },
   );
+});
+
+describe("S2 체크리스트 §9.1 — SideNav expandedKeys in the Design panel", () => {
+  it("a check list of the items that hold items; a write opens one on the Canvas", async () => {
+    const { h } = await open("SideNav");
+    const root = h.workspace.root;
+    const get = (id: string) => root.canvasInputs.get(id);
+    const typeOf = (record: CatalogConsumerNode) => root.typeOf(record);
+    const nav = [...root.canvasInputs.values()].find(
+      (record) => typeOf(record) === "SideNav",
+    )!;
+    const field = catalogGroupKeysFields(root, nav.id).find(
+      (item) => item.key === "expandedKeys",
+    );
+    expect(field?.many).toBe(true);
+    const parents = [...root.canvasInputs.values()].filter(
+      (record) =>
+        typeOf(record) === "SideNavItem" &&
+        record.children.some((id) => typeOf(get(id)!) === "SideNavItem"),
+    );
+    expect(parents.length).toBeGreaterThan(0);
+    expect(field!.options.map((option) => option.value)).toEqual(
+      parents.map((item) => catalogItemKey(item, typeOf)),
+    );
+    const parent = parents[0]!;
+    const key = catalogItemKey(parent, typeOf);
+    const command = catalogGroupKeysWriteCommand(
+      h.workspace,
+      nav.id,
+      "expandedKeys",
+      [key],
+    )!;
+    act(() => h.workspace.execute(command));
+    const after = h.workspace.root;
+    expect(
+      catalogSideNavItemExpanded(
+        after.canvasInputs.get(parent.id)!,
+        (id) => after.canvasInputs.get(id),
+        (record) => after.typeOf(record),
+      ),
+    ).toBe(true);
+    // (This harness's Preview draws no SideNav items — the DOM is the live run's, `s2-panel-props-live.mjs`.)
+    h.view.unmount();
+  });
 });

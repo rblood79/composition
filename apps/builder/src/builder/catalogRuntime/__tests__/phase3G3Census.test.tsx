@@ -582,6 +582,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + CustomDialog · FullscreenDialog (2026-11-23 — S2 체크리스트 §9.3, palette origins).
     // + AssetCard · UserCard · ProductCard · CollectionCard (2026-11-24 — S2 체크리스트 §9.3 6-7, Card
     //   presets).
-    expect(types.length).toBe(192);
+    // + ImageCoordinator (2026-11-24 — S2 체크리스트 부록 D.2, S2's element-less image reveal context).
+    expect(types.length).toBe(193);
   }, 120_000);
 });

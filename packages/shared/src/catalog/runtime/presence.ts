@@ -1460,6 +1460,11 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogSelectBoxDescriptionHidden(node, get, typeOf)) return true;
+  // (S2 Column `menuItems` — a Column's MenuItem is its closed menu's item, §9.2.)
+  if (typeOf(node) === "MenuItem") {
+    const parent = get(node.parentId);
+    if (parent && typeOf(parent) === "Column") return true;
+  }
   // A glyph whose icon name has no path data (an origin's unfilled `{icon}` placeholder): the DOM
   // `Icon` renders nothing for it (as the old Skia icon shape drew nothing), so no box either.
   if (
@@ -2665,6 +2670,8 @@ function calendarModelInput(
       : !!catalogCalendarFirstDate(value);
   return {
     visibleDuration: calendar.props.visibleDuration,
+    // (S2 체크리스트 §9.1 — S2 · RAC `selectionAlignment`, the calendar's own.)
+    selectionAlignment: calendar.props.selectionAlignment,
     weeksInMonth: calendar.props.weeksInMonth,
     locale: calendar.props.locale,
     calendarSystem: calendar.props.calendarSystem,

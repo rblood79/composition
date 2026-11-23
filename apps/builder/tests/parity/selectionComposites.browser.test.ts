@@ -296,16 +296,18 @@ it("public SelectBox keeps selection Checkbox presentational and options keyboar
         createElement(
           SelectBox,
           { id, key: id },
-          createElement(Checkbox, { slot: "selection" }),
+          // (the origin's selection Checkbox: S2's corner, out of the item's grid)
+          createElement(Checkbox, {
+            slot: "selection",
+            style: { position: "absolute", top: 8, left: 8 },
+          }),
+          // (S2 SelectBox — label and description are the item's own children, its grid places
+          // them; no wrapper, 사용자 2026-11-08.)
+          createElement(Text, { slot: "label" }, id),
           createElement(
-            "div",
-            null,
-            createElement(Text, { slot: "label" }, id),
-            createElement(
-              Text,
-              { slot: "description", style: { display: "block" } },
-              "Edited description",
-            ),
+            Text,
+            { slot: "description", style: { display: "block" } },
+            "Edited description",
           ),
         ),
       ),
@@ -319,7 +321,10 @@ it("public SelectBox keeps selection Checkbox presentational and options keyboar
     expect(h.host.querySelectorAll("input")).toHaveLength(0);
     expect(options[0].dataset.orientation).toBe("horizontal");
     expect(options[0].getBoundingClientRect().width).toBe(368);
-    expect(options[0].getBoundingClientRect().height).toBe(80);
+    // S2 rows `min-content 2 min-content` take 23 · 23 from the 48 illustration spanning them; the
+    // rule writes that as the rows' floor (the Canvas engine does not size rows from a spanning
+    // item), so a box without an illustration is 84 where S2 is 80 (checklist §6 — remaining).
+    expect(options[0].getBoundingClientRect().height).toBe(84);
     const unselectedBorder = getComputedStyle(options[1]).borderColor;
     options[1].focus();
     await act(async () => {

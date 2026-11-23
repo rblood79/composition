@@ -136,7 +136,9 @@ export function CatalogSortIndicator(): ReactNode {
         flexShrink: 0,
         // (In a sort of several columns the order mark follows the arrow and takes its gap.)
         marginInlineEnd:
-          order === undefined ? CATALOG_SORT_MARK.end : CATALOG_SORT_MARK.orderGap,
+          order === undefined
+            ? CATALOG_SORT_MARK.end
+            : CATALOG_SORT_MARK.orderGap,
       },
     },
     ...(glyph?.paths ?? []).map((d: string, i: number) =>
@@ -359,6 +361,8 @@ function CatalogColumnMenuItems({
         columnMenuLabel(item.id, strings, direction === "rtl"),
       ),
     ),
+    // (S2 `menuItems` — the Column's own items after the Table's, §9.2.)
+    ...(menu.authorItems ?? []),
   );
 }
 

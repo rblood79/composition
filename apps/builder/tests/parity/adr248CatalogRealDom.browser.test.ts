@@ -216,7 +216,10 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
         const geometry = root.getGeometry([trigger.id]).get(trigger.id)!;
         const domRect = domRegion.getBoundingClientRect();
         expect(domRegion).not.toBeNull();
-        expect(domRegion.className).toBe("react-aria-Group combobox-container");
+        // (2026-11-13 — every field Group is the S2 `FieldGroup` box: the Input rule's `FieldBox` alias.)
+        expect(domRegion.className).toBe(
+          "react-aria-Group combobox-container react-aria-FieldBox",
+        );
         expect(domRegion.getAttribute("role")).toBe("group");
         // (ADR-295 Phase 3: the S2 control height.)
         expect(geometry.height).toBe(32);
@@ -224,12 +227,12 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
           1,
         );
         expect(bound.stream.hitBoundsMap.has(trigger.id)).toBe(true);
-        // (The Group paints no box of its own on the Canvas — a ComboBox's box is its Input
-        // instance, ADR-253 · ADR-256 Phase 6b.)
-        // (The box border is the Input's — the container only places the parts.)
+        // (2026-11-13 — the box is the Group (S2 `FieldGroup`, the Input rule's `FieldBox` alias):
+        // its border is the Input rule's, the Input inside lays its own box down.)
         const input = domRegion.querySelector("input")!;
-        expect(getComputedStyle(input).borderTopWidth).toBe("1px");
-        expect(getComputedStyle(input).borderTopStyle).toBe("solid");
+        expect(getComputedStyle(domRegion).borderTopWidth).toBe("2px");
+        expect(getComputedStyle(domRegion).borderTopStyle).toBe("solid");
+        expect(getComputedStyle(input).borderTopWidth).toBe("0px");
         expect(domRegion.querySelector("input")?.getAttribute("role")).toBe(
           "combobox",
         );
@@ -411,7 +414,8 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
     // (ADR-295 Phase 3: the S2 line-height formula — 16 → 20.)
     expect(getComputedStyle(textElement).lineHeight).toBe("20px");
     expect(getComputedStyle(textElement).fontWeight).toBe("400");
-    expect(getComputedStyle(textElement).color).toBe("rgb(23, 23, 23)");
+    // (ADR-302 — `{color.neutral}` = the Spectrum gray-800 step, #292929.)
+    expect(getComputedStyle(textElement).color).toBe("rgb(41, 41, 41)");
     expect(textElement.getBoundingClientRect().width).toBeGreaterThan(0);
     const png = await browserPage
       .getByRole("group", { name: "Source Group" })

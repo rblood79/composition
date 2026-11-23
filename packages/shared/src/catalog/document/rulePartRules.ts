@@ -1646,6 +1646,10 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   ActionButtonGroup: { orientation: "orientation", density: "density" },
   // (A Toolbar is the same S2 action group — 2026-11-14.)
   Toolbar: { orientation: "orientation", density: "density" },
+  // (S2 체크리스트 §9.1 — S2 ColorSwatchPicker `density`: its swatches' gap, 2026-11-24.)
+  ColorSwatchPicker: { density: "density" },
+  // (S2 CardView `density` × size: the space between its cards, 2026-11-24.)
+  CardView: { size: "size", density: "density" },
   ToggleButtonGroup: { orientation: "orientation", density: "density" },
   SegmentedControl: { orientation: "orientation" },
   // (S2 SelectBoxGroup: its grid columns per orientation — RAC ListBox's `data-orientation`.)

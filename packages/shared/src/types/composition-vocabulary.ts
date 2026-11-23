@@ -118,6 +118,7 @@ export type ComponentTag =
   | "SelectValue"
   | "Separator"
   | "Skeleton"
+  | "ImageCoordinator"
   | "SubmenuTrigger"
   | "UnavailableMenuItemTrigger"
   | "Autocomplete"

@@ -24,21 +24,30 @@ const DOM_ELEMENTLESS_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * ADR-314 사용자 결정 3 (2026-11-18): an S2 Skeleton with nothing in it has no box (`display:
- * contents`, no children) — the Canvas alone gives it an edit-only placeholder, a dashed stand-in
- * the author can click and drop content into (the Preview · Publish DOM has nothing, as S2). The
- * engine input (`compositionRoot.ts` `recordStyle`) and the Canvas paint (`canvasBinding.ts`
- * `skeleton`) read this one predicate.
+ * The S2 contexts placed empty, their content dropped in: Skeleton (ADR-314) · ImageCoordinator (S2
+ * 체크리스트 부록 D.2, 2026-11-24).
  */
-export function catalogEmptySkeleton(
+const DROP_SPOT_TYPES: ReadonlySet<string> = new Set([
+  "Skeleton",
+  "ImageCoordinator",
+]);
+
+/**
+ * ADR-314 사용자 결정 3 (2026-11-18): an S2 Skeleton (· ImageCoordinator) with nothing in it has no box
+ * (`display: contents`, no children) — the Canvas alone gives it an edit-only placeholder, a dashed
+ * stand-in the author can click and drop content into (the Preview · Publish DOM has nothing, as S2).
+ * The engine input (`compositionRoot.ts` `recordStyle`) and the Canvas paint (`canvasBinding.ts`
+ * `skeleton` · `imagecoordinator`) read this one predicate.
+ */
+export function catalogEmptyDropSpot(
   type: string | null | undefined,
   childCount: number,
 ): boolean {
-  return type === "Skeleton" && childCount === 0;
+  return !!type && DROP_SPOT_TYPES.has(type) && childCount === 0;
 }
 
-/** The empty Skeleton's edit-only placeholder box (engine input — the Canvas only). */
-export const CATALOG_EMPTY_SKELETON_STYLE: Readonly<Record<string, string>> = {
+/** The empty context's edit-only placeholder box (engine input — the Canvas only). */
+export const CATALOG_EMPTY_DROP_SPOT_STYLE: Readonly<Record<string, string>> = {
   display: "block",
   width: "100%",
   height: "48px",

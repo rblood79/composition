@@ -57,6 +57,19 @@ export const sideNavBinding: PrimitiveBinding = {
         label: "Selected route",
         section: "value",
       },
+      // S2 체크리스트 §9.1 (2026-11-24): S2 SideNav `expandedKeys` — the items that hold items, a check
+      //   list (`catalogGroupKeysFields`); the Canvas · DOM read the stored keys (`catalogSideNavStoredKeys`).
+      expandedKeys: {
+        kind: "string-array",
+        label: "Expanded items",
+        section: "value",
+      },
+      defaultExpandedKeys: {
+        editorHidden: true,
+        kind: "string-array",
+        label: "Expanded items",
+        section: "value",
+      },
       // 2026-11-18 S2 `disabledKeys` — the items it names are disabled (RAC; the Canvas paints them
       //   disabled — `catalogItemKeyDisabled`).
       disabledKeys: DISABLED_KEYS_PROP,

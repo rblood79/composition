@@ -67,6 +67,7 @@ import {
   CATALOG_OVERFLOW_MODE_OWNERS,
   CATALOG_SIZE_STEP,
   CATALOG_SIZE_CONTEXT_OF,
+  CATALOG_OWNER_CONTEXT_PROPS,
 } from "../document/sizePropagation";
 import {
   CATALOG_BOOLEAN_VARIANTS,
@@ -2465,7 +2466,8 @@ export function resolveCatalogNode(
     }
     // (S2 체크리스트 §9.3 — the keys another prop's value picks: AlertDialog's button variant ·
     //  title glyph · auto-focus button.)
-    const maps = "bindingMaps" in definition ? definition.bindingMaps : undefined;
+    const maps =
+      "bindingMaps" in definition ? definition.bindingMaps : undefined;
     for (const [key, map] of Object.entries(maps ?? {})) {
       const chosen = bindings[map.from];
       const value =
@@ -2617,8 +2619,12 @@ export function resolveCatalogNode(
     let table = structuralParent(parent);
     while (table && lookupDefinition(table.definitionId).name !== "Table")
       table = structuralParent(table.parent);
+    // (S2 `isMenu` — `allowsResizing || !!menuItems`: a Column holding MenuItems has a menu, §9.2.)
+    const hasMenuItems = children.some(
+      (childId) => templateTypeName(childId as TemplateId) === "MenuItem",
+    );
     if (
-      catalogColumnHasMenu(props, table?.props) &&
+      (catalogColumnHasMenu(props, table?.props) || hasMenuItems) &&
       !children.some(
         (childId) =>
           templateTypeName(childId as TemplateId) === "Checkbox" &&
@@ -2687,6 +2693,26 @@ export function resolveCatalogNode(
    * key it did not author — S2 `useFormProps` fills only `undefined` keys. The Form reaches through
    * any element between (React context), the nearest Form wins.
    */
+  /** S2 context props (`CATALOG_OWNER_CONTEXT_PROPS`): the nearest owner's value, unless authored. */
+  const applyOwnerContext = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+    authored: ReadonlySet<string>,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    const context = CATALOG_OWNER_CONTEXT_PROPS[definition.name];
+    if (!context) return;
+    let owner = structuralParent(parent);
+    while (owner && lookupDefinition(owner.definitionId).name !== context.owner)
+      owner = structuralParent(owner.parent);
+    if (!owner) return;
+    for (const key of context.keys) {
+      if (authored.has(key) || !(key in definition.accepts)) continue;
+      const value = owner.props[key];
+      if (value !== undefined) props[key] = value;
+    }
+  };
   const applyFormContext = (
     definitionId: DefinitionId,
     props: Props,
@@ -3090,6 +3116,15 @@ export function resolveCatalogNode(
         ]),
       ];
     applyFormContext(
+      node.definitionId,
+      props,
+      parent,
+      new Set([
+        ...Object.keys(inherited?.props ?? {}),
+        ...Object.keys(node.props),
+      ]),
+    );
+    applyOwnerContext(
       node.definitionId,
       props,
       parent,
@@ -4250,6 +4285,7 @@ export function resolveCatalogNode(
         ),
       ]),
     );
+    applyOwnerContext(template.definitionId, props, parent, instanceAuthored);
     applyOwnerSize(template.definitionId, props, parent);
     // (A palette Table's Columns · Cells are its origin's template nodes — ADR-257 Phase 3: the
     // Table's `density` · `overflowMode` reach them here too.)
@@ -4259,7 +4295,12 @@ export function resolveCatalogNode(
       template.definitionId,
       props,
       parent,
-      "children" in template ? template.children : [],
+      // (At an instance's template root its own children follow the template's — a palette
+      //  Column's MenuItems, S2 `menuItems` §9.2.)
+      [
+        ...("children" in template ? template.children : []),
+        ...(root ? owner.children : []),
+      ],
     );
     applyOwnerHideLinkOut(template.definitionId, props, parent);
     applyContextualHelpGlyph(template.definitionId, props, parent);

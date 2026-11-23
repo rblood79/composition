@@ -1,7 +1,8 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CatalogImageBox } from "../../../../../../packages/shared/src/catalog/runtime/imageBox.components";
+import { CatalogImageCoordinator } from "../../../../../../packages/shared/src/catalog/runtime/imageCoordinator.components";
 
 /**
  * S2 `Image` load states (S2 체크리스트 부록 D.2, 사용자 결정 2026-11-23 「속성 · 런타임」 · 「오류 대체 내용」):
@@ -98,5 +99,84 @@ describe("CatalogImageBox — S2 Image load states", () => {
     );
     expect(box(container).getAttribute("data-image-state")).toBe("loading");
     expect(container.querySelector(".fallback")).toBeNull();
+  });
+});
+
+/**
+ * S2 `ImageCoordinator` (`ImageCoordinator.tsx`, 사용자 결정 2026-11-24 「S2 레퍼런스 대로」): the Images of
+ * a group are revealed together once all have loaded, or after the timeout; a nested coordinator of the
+ * same group passes through; an Image of another group is not held.
+ */
+describe("CatalogImageCoordinator — S2 ImageCoordinator", () => {
+  const state = (container: HTMLElement, alt: string) =>
+    container
+      .querySelector(`img[alt="${alt}"]`)!
+      .parentElement!.getAttribute("data-image-state");
+  const image = (alt: string, group?: string) => (
+    <CatalogImageBox
+      className="react-aria-Image"
+      group={group}
+      imgProps={{ src: `https://img.example.test/${alt}.png`, alt }}
+    />
+  );
+
+  it("holds a loaded Image until every Image of the group has loaded, then reveals them together", () => {
+    const { container } = render(
+      <CatalogImageCoordinator>
+        {image("a")}
+        <CatalogImageCoordinator>{image("b")}</CatalogImageCoordinator>
+        {image("c", "other")}
+      </CatalogImageCoordinator>,
+    );
+    act(() => {
+      fireEvent.load(container.querySelector('img[alt="a"]')!);
+    });
+    // (a waits for b — same default group through the nested coordinator)
+    expect(state(container, "a")).toBe("loaded");
+    expect(
+      container
+        .querySelector('img[alt="a"]')!
+        .parentElement!.getAttribute("data-skeleton-look"),
+    ).toBe("box");
+    act(() => {
+      fireEvent.load(container.querySelector('img[alt="c"]')!);
+    });
+    // (another group's Image is not held by this coordinator)
+    expect(state(container, "c")).toBe("shown");
+    act(() => {
+      fireEvent.load(container.querySelector('img[alt="b"]')!);
+    });
+    expect(state(container, "a")).toBe("shown");
+    expect(state(container, "b")).toBe("shown");
+  });
+
+  it("an Image that fails is not waited for; the timeout reveals the rest", () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(
+        <CatalogImageCoordinator timeout={1000}>
+          {image("a")}
+          {image("b")}
+          {image("c")}
+        </CatalogImageCoordinator>,
+      );
+      act(() => {
+        fireEvent.load(container.querySelector('img[alt="a"]')!);
+        fireEvent.error(container.querySelector('img[alt="b"]')!);
+      });
+      expect(state(container, "a")).toBe("loaded");
+      act(() => {
+        vi.advanceTimersByTime(1001);
+      });
+      expect(state(container, "a")).toBe("shown");
+      // (c has not loaded: revealed when it does, the group already timed out)
+      expect(state(container, "c")).toBe("loading");
+      act(() => {
+        fireEvent.load(container.querySelector('img[alt="c"]')!);
+      });
+      expect(state(container, "c")).toBe("shown");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

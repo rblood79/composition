@@ -432,6 +432,8 @@ const COLLECTION_KEY_ACCEPTS: Readonly<
   GridList: SELECTION_KEYS,
   TagGroup: SELECTION_KEYS,
   Menu: SELECTION_KEYS,
+  // (S2 체크리스트 §9.2 — a MenuSection with its own selection mode holds its items' keys.)
+  MenuSection: SELECTION_KEYS,
   Table: SELECTION_KEYS,
   Tree: {
     ...SELECTION_KEYS,

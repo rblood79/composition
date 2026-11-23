@@ -8,7 +8,10 @@
  */
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -77,7 +80,7 @@ async function open(definitionId: string, props: Record<string, unknown>) {
     ).borderRadius as number | undefined) ??
     record.visual.radius ??
     0;
-  return { root, swatches, box, corner };
+  return { root, swatches, box, corner, workspace };
 }
 
 describe("S2 ColorSwatch rounding · picker size", () => {
@@ -116,4 +119,67 @@ describe("S2 ColorSwatch rounding · picker size", () => {
       }
     },
   );
+});
+
+describe("S2 체크리스트 §9.1 — ColorSwatchPicker density · rounding (2026-11-24)", () => {
+  it.each([
+    [undefined, 4],
+    ["compact", 2],
+    ["regular", 4],
+    ["spacious", 6],
+  ])("density %s: the gap between its swatches is %d", async (density, gap) => {
+    const { root, box } = await open(
+      "lib:definition:origin-component-colorswatchpicker",
+      density ? { density } : {},
+    );
+    // (The picker's items — a swatch's box is its item's.)
+    const items = [...root.canvasInputs.values()].filter(
+      (r) => root.typeOf(r) === "ColorSwatchPickerItem",
+    );
+    const [a, b] = [box(items[0]!.id), box(items[1]!.id)];
+    expect(b.x - (a.x + a.width)).toBe(gap);
+  });
+
+  it.each([
+    [undefined, 0],
+    ["default", 4],
+    ["full", 9999],
+  ])("rounding %s: its swatches' corner is %d", async (rounding, radius) => {
+    const { swatches, corner } = await open(
+      "lib:definition:origin-component-colorswatchpicker",
+      rounding ? { rounding } : {},
+    );
+    for (const swatch of swatches) expect(corner(swatch)).toBe(radius);
+  });
+
+  it("a picker edit reaches its swatches; a swatch's own rounding wins", async () => {
+    const { workspace, corner } = await open(
+      "lib:definition:origin-component-colorswatchpicker",
+      {},
+    );
+    const swatchesOf = () =>
+      [...workspace.root.canvasInputs.values()].filter(
+        (r) => workspace.root.typeOf(r) === "ColorSwatch",
+      );
+    const picker = [...workspace.root.canvasInputs.values()].find(
+      (r) => workspace.root.typeOf(r) === "ColorSwatchPicker",
+    )!;
+    workspace.execute(
+      setFields({
+        targets: [workspace.itemOfRecord(picker.id)!.target],
+        props: { rounding: { kind: "set", value: "full" } },
+      }),
+    );
+    expect(swatchesOf().map(corner)).toEqual(swatchesOf().map(() => 9999));
+    const first = swatchesOf()[0]!;
+    workspace.execute(
+      setFields({
+        targets: [workspace.itemOfRecord(first.id)!.target],
+        props: { rounding: { kind: "set", value: "none" } },
+      }),
+    );
+    expect(swatchesOf().map(corner)).toEqual(
+      swatchesOf().map((_, index) => (index === 0 ? 0 : 9999)),
+    );
+  });
 });

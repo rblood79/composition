@@ -1,3 +1,4 @@
+import { catalogSideNavStoredKeys } from "../../../../../packages/shared/src/catalog/runtime/sideNav";
 import {
   setFields,
   type CatalogCommand,
@@ -116,14 +117,25 @@ const DISABLED_KEY_GROUPS: ReadonlySet<string> = new Set([
 ]);
 
 /** A SideNav's items (its links, in document order — any depth). */
-const sideNavOptions = (root: Root, nav: CatalogConsumerNode) => {
+const sideNavOptions = (
+  root: Root,
+  nav: CatalogConsumerNode,
+  /** Only the items holding items — the ones that expand. */
+  expandable = false,
+) => {
   const out: { value: string; label: string }[] = [];
   const seen = new Set<string>();
   const visit = (node: CatalogConsumerNode) => {
     for (const id of node.children) {
       const child = root.canvasInputs.get(id);
       if (!child) continue;
-      if (root.typeOf(child) === "SideNavItem") {
+      if (
+        root.typeOf(child) === "SideNavItem" &&
+        (!expandable ||
+          child.children.some(
+            (id) => root.typeOf(root.canvasInputs.get(id)!) === "SideNavItem",
+          ))
+      ) {
         const value = catalogItemKey(child, typeOf(root));
         if (!seen.has(value)) {
           seen.add(value);
@@ -188,6 +200,15 @@ export function catalogGroupKeysFields(
       value: many ? keys : (keys[0] ?? ""),
     });
   }
+  // S2 체크리스트 §9.1 (2026-11-24): S2 SideNav `expandedKeys` — the items that hold items, a check
+  // list (the Canvas · DOM already read the stored keys — `catalogSideNavStoredKeys`).
+  if (type === "SideNav")
+    fields.push({
+      key: "expandedKeys",
+      many: true,
+      options: sideNavOptions(root, group, true),
+      value: catalogSideNavStoredKeys(group),
+    });
   return fields;
 }
 

@@ -109,7 +109,7 @@
 }
 
 
-  .react-aria-RangeSlider[data-size="S"] .react-aria-Label {
+  .react-aria-RangeSlider[data-size="S"] :is(.react-aria-Label, .react-aria-FieldLabel) {
     font-size: var(--catalog-token-text-xs);
   }
 
@@ -117,7 +117,7 @@
     font-size: var(--catalog-token-text-xs);
   }
 
-  .react-aria-RangeSlider[data-size="M"] .react-aria-Label {
+  .react-aria-RangeSlider[data-size="M"] :is(.react-aria-Label, .react-aria-FieldLabel) {
     font-size: var(--catalog-token-text-sm);
   }
 
@@ -125,7 +125,7 @@
     font-size: var(--catalog-token-text-sm);
   }
 
-  .react-aria-RangeSlider[data-size="L"] .react-aria-Label {
+  .react-aria-RangeSlider[data-size="L"] :is(.react-aria-Label, .react-aria-FieldLabel) {
     font-size: var(--catalog-token-text-base);
   }
 
@@ -133,7 +133,7 @@
     font-size: var(--catalog-token-text-base);
   }
 
-  .react-aria-RangeSlider[data-size="XL"] .react-aria-Label {
+  .react-aria-RangeSlider[data-size="XL"] :is(.react-aria-Label, .react-aria-FieldLabel) {
     font-size: var(--catalog-token-text-lg);
   }
 

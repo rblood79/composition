@@ -14,6 +14,7 @@ import { CatalogGraph } from "../../../../packages/shared/src/catalog/document/g
 import { buildCodeCatalogLibrary } from "../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { setFields } from "../../../../packages/shared/src/catalog/commands";
 import type { CatalogLibrary } from "../../../../packages/shared/src/catalog/document/types";
+import { catalogItemKey } from "../../../../packages/shared/src/catalog/runtime/groupSelection";
 
 let library: CatalogLibrary;
 let css: HTMLStyleElement;
@@ -75,13 +76,24 @@ for (const mode of ["single", "multiple"]) {
           (n) => root.typeOf(n) === "ListBoxItem",
         );
         for (const count of mode === "single" ? [0, 1] : [0, 1, 2]) {
-          for (const [index, item] of items.entries())
-            workspace.execute(
-              setFields({
-                targets: [workspace.itemOfRecord(item.id)!.target],
-                props: { isSelected: { kind: "set", value: index < count } },
-              }),
-            );
+          // ADR-308 — the selection is the Select's `value` (its items' keys), not item `isSelected`.
+          const keys = items
+            .slice(0, count)
+            .map((item) => catalogItemKey(item, (n) => root.typeOf(n)));
+          workspace.execute(
+            setFields({
+              targets: [workspace.itemOfRecord(owner.id)!.target],
+              props: {
+                value:
+                  count === 0
+                    ? { kind: "remove" }
+                    : {
+                        kind: "set",
+                        value: mode === "single" ? keys[0]! : keys,
+                      },
+              },
+            }),
+          );
           await act(async () => {
             reactRoot.unmount();
             reactRoot = createRoot(host);

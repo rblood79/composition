@@ -1,3 +1,4 @@
+import { S2_HIDDEN_FLIP_ACCEPTS } from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -9,6 +10,9 @@ export const menuTriggerBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "menutrigger" },
   props: {
     accepts: {
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_FLIP_ACCEPTS,
+
       isOpen: { kind: "boolean", label: "Open", section: "value" },
       defaultOpen: {
         editorHidden: true,

@@ -6,6 +6,11 @@
  * ADR-912 단계 4 C1).
  */
 
+import {
+  S2_HIDDEN_COLLECTION_ACCEPTS,
+  S2_HIDDEN_KEYBOARD_NAVIGATION_ACCEPTS,
+  S2_HIDDEN_TYPE_AHEAD_ACCEPTS,
+} from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 import { LOADING_STATE_PROP } from "./loadingStateProps";
 import { HIDE_LINK_OUT_ICON_CONTRACT } from "../document/itemLinks";
@@ -18,6 +23,11 @@ export const gridListBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_COLLECTION_ACCEPTS,
+      ...S2_HIDDEN_KEYBOARD_NAVIGATION_ACCEPTS,
+      ...S2_HIDDEN_TYPE_AHEAD_ACCEPTS,
+
       // ADR-308 Phase 1: the group's selection (S2 · RAC) — accepted; the panel offers it in Phase 2.
       selectedKeys: {
         editorHidden: true,

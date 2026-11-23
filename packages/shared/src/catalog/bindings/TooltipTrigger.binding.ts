@@ -1,3 +1,4 @@
+import { S2_PANEL_CLOSE_ON_PRESS_ACCEPTS } from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -10,6 +11,9 @@ export const tooltipTriggerBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "tooltiptrigger" },
   props: {
     accepts: {
+      // S2 체크리스트 §9 패널 (2026-11-24) — RAC 로 (`s2RacProps.ts`).
+      ...S2_PANEL_CLOSE_ON_PRESS_ACCEPTS,
+
       isOpen: { kind: "boolean", label: "Open", section: "value" },
       defaultOpen: {
         editorHidden: true,

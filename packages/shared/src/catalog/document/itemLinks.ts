@@ -1,3 +1,4 @@
+import { S2_PANEL_CLOSE_ON_SELECT_ACCEPTS } from "../bindings/s2RacProps";
 import { RAC_SLOT_PROP } from "../bindings/accessibilityProps";
 import { linkBinding } from "../bindings/Link.binding";
 import { CATALOG_FRAME_INHERITED_PROP_CONTRACTS } from "../bindings/inheritedProps";
@@ -164,6 +165,8 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
     // 2026-11-18 S2 · RAC `MenuItemProps.isDisabled` — also what its Menu's `disabledKeys` turns on
     //   (`catalogItemKeyDisabled`): the rule's disabled dimming reaches the Canvas through it.
     isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+    // S2 체크리스트 §9.2 (2026-11-24): S2 · RAC `MenuItemProps.shouldCloseOnSelect` — RAC's.
+    ...S2_PANEL_CLOSE_ON_SELECT_ACCEPTS,
   },
   // ADR-281 Decision 3 (user decision 1) — a frame passes these down like the page root; a keyed
   // binding (`useListData.getItem`) gives its descendants one item's fields (a detail view).
@@ -182,6 +185,9 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
     // a rule's Do · AI write them; the DOM `img` takes them, the Canvas box is its layout's (the intrinsic
     // size only reserves the `img`'s ratio before it loads).
     ...IMAGE_ELEMENT_PROP_CONTRACTS,
+    // S2 `ImageProps.group` (부록 D.2, 사용자 결정 2026-11-24): the ImageCoordinator group it is revealed
+    //   with — S2's `createImageGroup()` context is a name here (the coordinator's `group` of the same name).
+    group: { kind: "string", label: "Image group", section: "content" },
   },
 };
 

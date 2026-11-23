@@ -1,3 +1,4 @@
+import { catalogS2RacProps } from "../bindings/s2RacProps";
 import { CatalogTokenFieldError } from "./tokenField.components";
 import { catalogSkeletonText } from "./skeletonAnimation";
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
@@ -106,6 +107,7 @@ import { ContextualHelpButton } from "../../components/ContextualHelp";
 import { InlineAlertIcon } from "../../components/InlineAlertIcon";
 import { catalogInlineAlertIcon } from "../document/inlineAlertIcon";
 import { CatalogImageBox } from "./imageBox.components";
+import { CatalogImageCoordinator } from "./imageCoordinator.components";
 
 import { Group } from "../../components/Group";
 
@@ -147,6 +149,7 @@ import {
   catalogLinkOutGlyph,
   catalogLinkOutPaddingRight,
   IMAGE_ELEMENT_PROP_CONTRACTS,
+  RULE_TYPE_PROP_CONTRACTS,
 } from "../document/itemLinks";
 
 import { catalogTokenValue } from "../document/themedToken";
@@ -259,7 +262,10 @@ import {
   catalogPaginationPartHidden,
   catalogColumnMenuIconHidden,
 } from "./presence";
-import { catalogSelectionGroupOf } from "./groupSelection";
+import {
+  catalogGroupSelection,
+  catalogSelectionGroupOf,
+} from "./groupSelection";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
 import { catalogLayoutTokenCss, catalogNodeTokenCss } from "./nodeTokenCss";
 import { catalogContainerCss } from "./containerLayer";
@@ -1782,6 +1788,19 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   skeletoncollection: (node) => createElement(Fragment, { key: node.id }),
   skeleton: (node, _style, children) =>
     createElement(Fragment, { key: node.id }, ...children),
+  // S2 체크리스트 부록 D.2 (2026-11-24): S2 `ImageCoordinator` — no element; the Images in it are
+  //   revealed together (`imageCoordinator.components.tsx`).
+  imagecoordinator: (node, _style, children) =>
+    createElement(
+      CatalogImageCoordinator,
+      {
+        key: node.id,
+        timeout:
+          typeof node.props.timeout === "number" ? node.props.timeout : undefined,
+        group: typeof node.props.group === "string" ? node.props.group : undefined,
+      },
+      ...children,
+    ),
   autocomplete: (node, _style, children, context) => {
     // (Its list filtered on the server — `inputValue={list.filterText}
     // onInputChange={list.setFilterText}`, no client filter.)
@@ -3435,6 +3454,15 @@ function ruleDom(
     delete rest.defaultOpen;
   }
   // `useAsyncList`'s load (resolver — a bound Table): S2's TableBody shows it, not RAC's Table.
+  // S2 체크리스트 §9.2 — a MenuSection with its own selection mode: its stored keys (ADR-308 — the
+  // Canvas reads the same, `catalogGroupSelection`); RAC runs the selection from them.
+  const sectionSelected =
+    lower === "menusection" &&
+    typeof rest.selectionMode === "string" &&
+    rest.selectionMode !== "none"
+      ? catalogGroupSelection(node, domGet, domType)
+      : undefined;
+  if (sectionSelected !== undefined) rest.defaultSelectedKeys = sectionSelected;
   if (lower === "table") delete rest.loadingState;
   // S2 TableView `loadingState: "loading"` — an empty body draws the progress circle (S2
   // `TableBody`'s `renderEmptyState`; rows keep showing while they reload).
@@ -3491,6 +3519,57 @@ function ruleDom(
     lower === "column" &&
     (node.props[CATALOG_COLUMN_PINNED_PROP] === "start" ||
       node.props[CATALOG_COLUMN_PINNED_PROP] === "end");
+  const childId = (element: ReactElement) =>
+    (element.props as { id?: unknown }).id;
+  // (S2 Column `menuItems` — a Column's MenuItem children go to its menu, after the Table's
+  //  items; RAC renders them there, each with its own rules, §9.2.)
+  const isColumnMenuItem = (element: ReactElement) => {
+    if (lower !== "column") return false;
+    const id = childId(element);
+    const record = typeof id === "string" ? domGet(id) : undefined;
+    return !!record && domType(record) === "MenuItem";
+  };
+  // (Made from the records — RAC items of the column menu's own collection, with each one's rules;
+  //  the elements drawn for the Column's children belong to the Table's collection.)
+  const columnMenuItems =
+    lower === "column"
+      ? node.children.flatMap((id) => {
+          const record = domGet(id);
+          if (!record || domType(record) !== "MenuItem") return [];
+          // (Its `label` Text, else its Text children's words.)
+          const label =
+            itemLabelText(root, record) ||
+            record.children
+              .map((id) => domGet(id))
+              .filter((child) => child && domType(child) === "Text")
+              .map((child) => String(child?.props.children ?? ""))
+              .join(" ");
+          const element = withRuntime(
+            createElement(
+              RAC.MenuItem as ElementType,
+              {
+                key: record.id,
+                id: resolveStaticItemKey(
+                  record.props as Record<string, unknown>,
+                  record.id,
+                ),
+                textValue: label,
+                "data-catalog-id": record.id,
+                ...(record.props.isDisabled === true
+                  ? { isDisabled: true }
+                  : {}),
+                ...catalogS2RacProps(
+                  RULE_TYPE_PROP_CONTRACTS.MenuItem,
+                  record.props,
+                ),
+              },
+              label,
+            ),
+            context.runtime?.handlersOf(record.id),
+          );
+          return element ? [element] : [];
+        })
+      : [];
   const columnOperations =
     lower === "column" &&
     (node.props.allowsSorting === true ||
@@ -3508,6 +3587,7 @@ function ruleDom(
           // (ADR-315 Phase 4 — S2 `isMenu`, the resolver's: the same value the rule's `is-menu`
           //  block and the Table's end line read.)
           menu: node.props[CATALOG_COLUMN_MENU_PROP] === true,
+          ...(columnMenuItems.length ? { authorItems: columnMenuItems } : {}),
           // (ADR-315 Phase 4 — its items and their writes are the session's, by the Column's RAC
           //  key: `tableColumnMenu.ts`.)
           ...(node.props[CATALOG_COLUMN_MENU_PROP] === true &&
@@ -3601,6 +3681,31 @@ function ruleDom(
       rest.placement = catalogS2OverlayPlacement(placementOwner.props);
     else delete rest.placement;
   }
+  // S2 MenuTrigger `shouldFlip` (§9 숨김, 2026-11-24 — S2 hands it to the menu's `PopoverContext`):
+  // the trigger's `false` stands where the Popover keeps its default.
+  if (
+    placementOwnerType === "MenuTrigger" &&
+    placementOwner?.props.shouldFlip === false &&
+    rest.shouldFlip === binding?.props.accepts.shouldFlip?.default
+  )
+    rest.shouldFlip = false;
+  // S2 ContextualHelp's popover place (§9 패널, 2026-11-24 — S2 hands them to its Popover): the
+  // help's value stands where the Popover keeps its default.
+  if (placementOwnerType === "ContextualHelp")
+    for (const key of [
+      "placement",
+      "offset",
+      "crossOffset",
+      "containerPadding",
+      "shouldFlip",
+    ]) {
+      const owned = placementOwner?.props[key];
+      if (
+        owned !== undefined &&
+        rest[key] === binding?.props.accepts[key]?.default
+      )
+        rest[key] = owned;
+    }
   // S2 `menuWidth` — the Popover's own authored width wins.
   const menuWidth =
     placementOwner &&
@@ -3746,17 +3851,16 @@ function ruleDom(
     lower === "table"
       ? catalogLinkedActionBarOf(node, domGet, domType)
       : undefined;
-  const childId = (element: ReactElement) =>
-    (element.props as { id?: unknown }).id;
   const tableActionBarElement = tableActionBar
     ? children.find((element) => childId(element) === tableActionBar.id)
     : undefined;
   const ownChildren =
-    ownEmptyStateId || tableActionBar
+    ownEmptyStateId || tableActionBar || columnMenuItems.length
       ? children.filter(
           (element) =>
             childId(element) !== ownEmptyStateId &&
-            childId(element) !== tableActionBar?.id,
+            childId(element) !== tableActionBar?.id &&
+            !isColumnMenuItem(element),
         )
       : children;
   // ADR-259 Phase 1: S2 `hideLinkOutIcon` is an owner's context value (its items carry a copy) —
@@ -3880,7 +3984,14 @@ function ruleDom(
         slot: catalogDomSlot(node),
         className: `react-aria-${isBodyType(type) ? "Body" : type}`,
         ...(type === "Image"
-          ? { imgProps: imageElementProps(node.props) }
+          ? {
+              imgProps: imageElementProps(node.props),
+              // (S2 `Image` `group` — its ImageCoordinator group, by name)
+              group:
+                typeof node.props.group === "string"
+                  ? node.props.group
+                  : undefined,
+            }
           : {}),
         ...dataAttrs,
         // The type's fixed ARIA (InlineAlert `role="alert"` — a plain box carries the D1 role).
@@ -3972,7 +4083,9 @@ function ruleDom(
         ? `${node.id}:${catalogColorKey(colorType, node.props.defaultValue)}`
         : tableSelected?.length && !context.runtime?.setRuntimeProps
           ? `${node.id}|selected:${tableSelected.join(",")}`
-          : node.id;
+          : sectionSelected !== undefined
+            ? `${node.id}|selected:${String(sectionSelected)}`
+            : node.id;
   // (ADR-295 후속: a resizable Table's selection Column without a width of its own is S2's
   //  fixed device-width column — `CatalogTableSelectionColumn`.)
   const selectionColumn =
@@ -4035,6 +4148,7 @@ function ruleDom(
             "data-size": String(node.props.size ?? "M"),
             // ADR-259 Phase 1: the MenuItem's link (RAC draws an `<a>`).
             ...catalogItemLinkProps(node.props),
+            ...catalogS2RacProps(RULE_TYPE_PROP_CONTRACTS.MenuItem, node.props),
             // The author's selection mark (a node shown while `isSelected` — the reference's
             // Check / Dot) stands in for the sheet's glyph (`Menu.css`).
             ...(hasSelectionMark(root, node)

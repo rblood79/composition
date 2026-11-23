@@ -147,6 +147,7 @@ import { listBoxSectionBinding } from "./ListBoxSection.binding";
 import { menuSectionBinding } from "./MenuSection.binding";
 import { gridListSectionBinding } from "./GridListSection.binding";
 import { skeletonBinding } from "./Skeleton.binding";
+import { imageCoordinatorBinding } from "./ImageCoordinator.binding";
 import { skeletonCollectionBinding } from "./SkeletonCollection.binding";
 import { sliderBinding } from "./Slider.binding";
 import { sliderOutputBinding } from "./SliderOutput.binding";
@@ -302,6 +303,7 @@ export * from "./ListBoxSection.binding";
 export * from "./MenuSection.binding";
 export * from "./GridListSection.binding";
 export * from "./Skeleton.binding";
+export * from "./ImageCoordinator.binding";
 export * from "./SkeletonCollection.binding";
 export * from "./Slider.binding";
 export * from "./SliderTrack.binding";
@@ -408,6 +410,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   FileUpload: fileUploadBinding,
   // ADR-314: S2 Skeleton — an element-less loading context; its content draws the loading look.
   Skeleton: skeletonBinding,
+  // S2 체크리스트 부록 D.2 (2026-11-24): S2 ImageCoordinator — an element-less context revealing its
+  //   Images together.
+  ImageCoordinator: imageCoordinatorBinding,
   // ADR-314 Phase 4: S2 SkeletonCollection — a CardView's loading placeholder items (Card template).
   SkeletonCollection: skeletonCollectionBinding,
   // ADR-912 진로 1번: 상태 표시 dot+label internal leaf (status_light escape, replace)

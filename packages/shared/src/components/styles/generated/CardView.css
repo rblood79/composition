@@ -12,101 +12,48 @@
     box-sizing: border-box;
     font-family: var(--font-sans);
 
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
   /* Default size */
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
 }
 
-.react-aria-CardView:where([data-variant="primary"]) {
-  background: transparent;
+.react-aria-CardView {
   color: var(--fg);
-}
-
-.react-aria-CardView:where([data-variant="primary"][data-hovered]) {
-  background: transparent;
-}
-
-.react-aria-CardView:where([data-variant="primary"][data-pressed]) {
-  background: transparent;
 }
 
 .react-aria-CardView:where([data-variant="secondary"]) {
-  background: transparent;
   color: var(--fg);
-}
-
-.react-aria-CardView:where([data-variant="secondary"][data-hovered]) {
-  background: transparent;
-}
-
-.react-aria-CardView:where([data-variant="secondary"][data-pressed]) {
-  background: transparent;
 }
 
 .react-aria-CardView:where([data-variant="tertiary"]) {
-  background: transparent;
   color: var(--fg);
-}
-
-.react-aria-CardView:where([data-variant="tertiary"][data-hovered]) {
-  background: transparent;
-}
-
-.react-aria-CardView:where([data-variant="tertiary"][data-pressed]) {
-  background: transparent;
 }
 
 .react-aria-CardView:where([data-variant="quiet"]) {
-  background: transparent;
   color: var(--fg);
 }
 
-.react-aria-CardView:where([data-variant="quiet"][data-hovered]) {
-  background: transparent;
-}
-
-.react-aria-CardView:where([data-variant="quiet"][data-pressed]) {
-  background: transparent;
-}
-
 .react-aria-CardView[data-size="XS"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-CardView[data-size="XL"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-lg);
   border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-CardView[data-size="S"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-CardView[data-size="M"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
 }
 
 .react-aria-CardView[data-size="L"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
 }
@@ -114,6 +61,69 @@
 .react-aria-CardView.react-aria-CardView:where([data-disabled]) {
   opacity: 0.38;
 }
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-CardView[data-size="XS"] {
+  gap: 8px;
+}
+
+.react-aria-CardView[data-size="S"] {
+  gap: 12px;
+}
+
+.react-aria-CardView[data-size="M"] {
+  gap: 16px;
+}
+
+.react-aria-CardView[data-size="L"] {
+  gap: 20px;
+}
+
+.react-aria-CardView[data-size="XL"] {
+  gap: 24px;
+}
+
+.react-aria-CardView[data-density="compact"][data-size="XS"] {
+  gap: 6px;
+}
+
+.react-aria-CardView[data-density="compact"][data-size="S"] {
+  gap: 8px;
+}
+
+.react-aria-CardView[data-density="compact"][data-size="M"] {
+  gap: 12px;
+}
+
+.react-aria-CardView[data-density="compact"][data-size="L"] {
+  gap: 16px;
+}
+
+.react-aria-CardView[data-density="compact"][data-size="XL"] {
+  gap: 20px;
+}
+
+.react-aria-CardView[data-density="spacious"][data-size="XS"] {
+  gap: 12px;
+}
+
+.react-aria-CardView[data-density="spacious"][data-size="S"] {
+  gap: 16px;
+}
+
+.react-aria-CardView[data-density="spacious"][data-size="M"] {
+  gap: 20px;
+}
+
+.react-aria-CardView[data-density="spacious"][data-size="L"] {
+  gap: 24px;
+}
+
+.react-aria-CardView[data-density="spacious"][data-size="XL"] {
+  gap: 28px;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-CardView {

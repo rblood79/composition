@@ -105,9 +105,10 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  * S2 에 있지만 구현이 없는 것은 「지금은 제거」): props no consumer read — the Canvas and the DOM
  * looked the same whatever the value. Their old writes are dropped on load.
  *
- * - CardView `density` · `selectionStyle` (S2 — no density sheet, no selection style; `layout` was
- *   dropped too until 2026-10-26, when `waterfall` came in — `runtime/waterfall.ts`), ColorSwatchPicker `density` · `rounding` (S2 — never passed to the
- *   swatches).
+ * - CardView `selectionStyle` (S2 — no selection style; `layout` was dropped too until 2026-10-26,
+ *   when `waterfall` came in — `runtime/waterfall.ts`). CardView `density` and ColorSwatchPicker
+ *   `density` · `rounding` were here until 2026-11-24 (S2 체크리스트 §9.1 — now the space between
+ *   the cards · swatches and the swatches' corner).
  * - ColorPicker `defaultValue` (its children hold their own values — the picker is a box).
  * - GridListItem · Tag `children`: the item's text is its Text node's (`itemTextChildren`).
  * - Card `accentColor` (composition 확장 — S2 Card 에 없음, 2026-10-14 「한쪽만 반영되는 칸 고쳐」 ·
@@ -117,8 +118,8 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  *   2026-11-11 사용자 결정 「삭제」): a display-only component has nothing to disable.
  */
 const UNUSED_PROPS = {
-  CardView: { density: dropOf },
-  ColorSwatchPicker: { density: dropOf, rounding: dropOf },
+  CardView: {},
+  ColorSwatchPicker: {},
   ColorPicker: { defaultValue: dropOf },
   GridListItem: { children: dropOf },
   Tag: { children: dropOf },

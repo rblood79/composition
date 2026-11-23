@@ -1,3 +1,7 @@
+import {
+  S2_HIDDEN_ITEM_FOCUS_ACCEPTS,
+  S2_HIDDEN_TEXT_VALUE_ACCEPTS,
+} from "../../../../../packages/shared/src/catalog/bindings/s2RacProps";
 import { getPrimitiveBinding, type PropsSchema } from "@composition/shared";
 
 /**
@@ -101,6 +105,9 @@ export const CARD_PROPS_SCHEMA: PropsSchema = {
   href: getPrimitiveBinding("Card")!.props.accepts!.href!,
   target: getPrimitiveBinding("Card")!.props.accepts!.target!,
   isDisabled: getPrimitiveBinding("Card")!.props.accepts!.isDisabled!,
+  // S2 체크리스트 §9 숨김 (2026-11-24): a Card's keyboard focus · name in a CardView — hidden.
+  ...S2_HIDDEN_ITEM_FOCUS_ACCEPTS,
+  ...S2_HIDDEN_TEXT_VALUE_ACCEPTS,
 };
 
 /**
@@ -114,6 +121,8 @@ export const ASSETCARD_PROPS_SCHEMA: PropsSchema = {
   href: CARD_PROPS_SCHEMA.href!,
   target: CARD_PROPS_SCHEMA.target!,
   isDisabled: CARD_PROPS_SCHEMA.isDisabled!,
+  ...S2_HIDDEN_ITEM_FOCUS_ACCEPTS,
+  ...S2_HIDDEN_TEXT_VALUE_ACCEPTS,
 };
 export const USERCARD_PROPS_SCHEMA: PropsSchema = {
   ...ASSETCARD_PROPS_SCHEMA,

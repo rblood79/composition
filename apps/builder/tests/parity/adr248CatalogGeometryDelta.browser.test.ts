@@ -326,7 +326,9 @@ describe("ADR-248 Phase 3 layout edit geometry delta", () => {
       geometryQueries: 4,
       patchRoots: [ids.group],
       subtreeBuilds: 1,
-      subtreeNodeVisits: 4,
+      // ADR-264 (02f6cec67): siblings that only moved are translated, not rewritten.
+      subtreeNodeVisits: 1,
+      translated: [ids.t2, ids.t3],
     });
     // Moved siblings are re-registered for Canvas, but get no React notification: the browser
     // moves them by layout.
@@ -374,12 +376,18 @@ describe("ADR-248 Phase 3 layout edit geometry delta", () => {
     expect(patched).toEqual(rebuilt);
   });
 
-  it("an auto-size scene root that grows returns rebind-required", async () => {
-    const { result, ids } = await runCase("scene-root", "t1", false);
-    expect(result.edit.canvas).toEqual({
-      status: "rebind-required",
-      id: ids.frame,
-      reason: "geometry-reaches-scene-root",
+  // bcec6de8c (2026-11-19): a page root whose box changes is its own patch region — no rebind.
+  it("an auto-size scene root that grows is patched at the page root", async () => {
+    const { result, ids, patched, rebuilt } = await runCase(
+      "scene-root",
+      "t1",
+      false,
+    );
+    expect(result.edit.canvas).toMatchObject({
+      status: "patched",
+      patchRoots: [ids.frame],
+      geometryChanged: [ids.t1, ids.group, ids.t2, ids.t3, ids.frame],
     });
+    expect(patched).toEqual(rebuilt);
   });
 });

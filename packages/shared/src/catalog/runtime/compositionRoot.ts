@@ -71,6 +71,7 @@ import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_SIZE_CONTEXT_OF,
+  CATALOG_OWNER_CONTEXT_PROPS,
 } from "../document/sizePropagation";
 import {
   CATALOG_EMPHASIS_FROM_GROUP,
@@ -283,8 +284,8 @@ import {
   catalogTagGroupActionLabel,
 } from "./presence";
 import {
-  CATALOG_EMPTY_SKELETON_STYLE,
-  catalogEmptySkeleton,
+  CATALOG_EMPTY_DROP_SPOT_STYLE,
+  catalogEmptyDropSpot,
 } from "./elementless";
 import {
   catalogSideNavChevronGlyphItem,
@@ -5588,8 +5589,8 @@ export class CatalogCompositionRoot {
     // (A crumb in its Breadcrumbs' folder menu leaves the flow — `settleBreadcrumbs`.)
     if (this.breadcrumbCollapsed(record.id)) return { display: "none" };
     // (An empty Skeleton — ADR-314 결정 3: the Canvas's edit-only placeholder box; the DOM has none.)
-    if (catalogEmptySkeleton(this.typeOf(record), record.children.length))
-      return { ...CATALOG_EMPTY_SKELETON_STYLE };
+    if (catalogEmptyDropSpot(this.typeOf(record), record.children.length))
+      return { ...CATALOG_EMPTY_DROP_SPOT_STYLE };
     const frame = this.pageFrameStyle(record);
     // (ADR-315 Phase 6 — a merged Table's body Row · Cell: the row line its Cells draw is in their
     //  box, as the DOM's border — the rule's derived `cell-lines` · `merge-line` widths, laid out.
@@ -8260,6 +8261,31 @@ export class CatalogCompositionRoot {
         };
         visit(record.children);
       }
+      // S2 context props (`CATALOG_OWNER_CONTEXT_PROPS` — the resolver's `applyOwnerContext`): an
+      // owner's edit resolves its parts again.
+      {
+        const ownerType = this.typeOf(record);
+        const parts = Object.entries(CATALOG_OWNER_CONTEXT_PROPS).filter(
+          ([, context]) =>
+            context.owner === ownerType &&
+            context.keys.some((key) => before.props[key] !== record.props[key]),
+        );
+        if (parts.length) {
+          const partTypes = new Set(parts.map(([type]) => type));
+          const visit = (ids: readonly string[]) => {
+            for (const childId of ids) {
+              const child = this.records.get(childId);
+              if (!child) continue;
+              if (partTypes.has(this.typeOf(child)) && !queued.has(childId)) {
+                queued.add(childId);
+                queue.push(childId);
+              }
+              visit(child.children);
+            }
+          };
+          visit(record.children);
+        }
+      }
       // ADR-257 Phase 3 — a Table's `overflowMode` reaches the Columns · Cells in
       // it, a GridList's its items (`CATALOG_OVERFLOW_MODE_OWNERS` — the resolver's
       // `applyOwnerOverflowMode`): they resolve again with it.
@@ -8617,6 +8643,20 @@ export class CatalogCompositionRoot {
       ) {
         const entry = graph.getEntry(op.id);
         if (entry?.kind === "node" && entry.binding) return true;
+      }
+    // S2 체크리스트 §9.2 — a Column's MenuItems (S2 `menuItems`) make it a menu Column (`isMenu`,
+    // the resolver's `applyColumnMenu` reads its children): a change of a Column's children — a menu
+    // item in or out — resolves its Table again, as the column menu switches do.
+    for (const op of [...result.forward, ...result.inverse])
+      if (op.kind === "put") {
+        const entry = op.entry;
+        if (entry.kind !== "node") continue;
+        try {
+          if (definitionTypeName(graph, entry.definitionId) === "Column")
+            return true;
+        } catch {
+          continue;
+        }
       }
     // ADR-256 Phase 9: a calendar's shown months decide how many month blocks it repeats (the
     // resolver's copies — a structure change of its subtree).

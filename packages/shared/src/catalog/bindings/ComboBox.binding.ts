@@ -1,3 +1,7 @@
+import {
+  S2_HIDDEN_FOCUS_WRAP_ACCEPTS,
+  S2_PANEL_FORM_VALUE_ACCEPTS,
+} from "./s2RacProps";
 import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 /**
  * ADR-142 family ④(collections) — ComboBox primitive 의 `PrimitiveBinding`.
@@ -19,6 +23,12 @@ export const comboBoxBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 패널 (2026-11-24) — RAC 로 (`s2RacProps.ts`).
+      ...S2_PANEL_FORM_VALUE_ACCEPTS,
+
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_FOCUS_WRAP_ACCEPTS,
+
       // ADR-308 Phase 1: the group's selection (S2 ComboBox) — accepted; the panel offers it in Phase 2.
       selectedKey: {
         editorHidden: true,

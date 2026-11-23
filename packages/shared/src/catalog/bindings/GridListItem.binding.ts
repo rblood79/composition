@@ -1,3 +1,7 @@
+import {
+  S2_HIDDEN_ITEM_FOCUS_ACCEPTS,
+  S2_HIDDEN_ITEM_LINK_ACCEPTS,
+} from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 import {
   ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
@@ -36,6 +40,10 @@ export const gridListItemBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_ITEM_FOCUS_ACCEPTS,
+      ...S2_HIDDEN_ITEM_LINK_ACCEPTS,
+
       // ADR-310 ①: the item's own data — it repeats over those rows (a run of its own).
       dataBinding: ITEM_DATA_BINDING_PROP,
       // ADR-308 사용자 결정 2: its RAC key — the name its group's selection uses.

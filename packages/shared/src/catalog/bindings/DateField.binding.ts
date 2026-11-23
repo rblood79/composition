@@ -9,6 +9,7 @@
  * D3: 자식 DateInput 이 배경/세그먼트, 부모는 빈 box shell(`_hasChildren`). skiaPrimitive 불필요.
  */
 
+import { S2_HIDDEN_AUTO_COMPLETE_ACCEPTS } from "./s2RacProps";
 import type { PrimitiveBinding } from "../types";
 import {
   UNAVAILABLE_DATA_PROP,
@@ -39,6 +40,9 @@ export const dateFieldBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 숨김 (2026-11-24) — 받기만, RAC 로 (`s2RacProps.ts`).
+      ...S2_HIDDEN_AUTO_COMPLETE_ACCEPTS,
+
       // ADR-309 Decision 1 — the value the DateField starts from (ISO text — `dateValueRead.ts`).
       value: {
         kind: "date",

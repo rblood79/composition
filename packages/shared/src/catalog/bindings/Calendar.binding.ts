@@ -36,6 +36,19 @@ export const calendarBinding: PrimitiveBinding = {
   skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
+      // S2 체크리스트 §9.1 (2026-11-24): S2 · RAC `selectionAlignment` — where the selected (or today's)
+      //   date sits in the visible months. The Canvas model aligns the same (`calendarModel.ts`).
+      selectionAlignment: {
+        kind: "enum",
+        label: "Selection alignment",
+        section: "appearance",
+        default: "center",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "center", label: "Center" },
+          { value: "end", label: "End" },
+        ],
+      },
       // ADR-309 Decision 1 — the value the Calendar starts from (ISO text — `dateValueRead.ts`).
       value: {
         kind: "date-list",

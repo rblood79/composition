@@ -167,7 +167,8 @@ describe("ADR-248 4e item insert ('+')", () => {
 
   it.each([
     ...new Set([
-      ...Object.keys(GROUP_ITEM_TYPES),
+      // (A Column's items are its menu's — S2 `menuItems`, never drawn: no slot shows them; below.)
+      ...Object.keys(GROUP_ITEM_TYPES).filter((type) => type !== "Column"),
       "SelectBoxGroup",
       "ActionButtonGroup",
       "ActionBar",
@@ -211,6 +212,33 @@ describe("ADR-248 4e item insert ('+')", () => {
         ),
       );
       expect(childTypes(workspace, hostType)).toEqual(before);
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  it("Column 의 「+」 는 메뉴 항목 (S2 menuItems) 을 Column 자식으로 한 단계에 넣는다", async () => {
+    const workspace = await open("Table");
+    try {
+      expect(choicesOf(workspace, "Column").map((choice) => choice.type)).toEqual(
+        ["MenuItem"],
+      );
+      const column = recordOf(workspace, "Column");
+      const own = () =>
+        workspace.runtime.graph.getEntry(column.sourceId as NodeId);
+      const before = (own() as NodeEntry).children.length;
+      add(workspace, "Column", "MenuItem");
+      const children = (own() as NodeEntry).children;
+      expect(children).toHaveLength(before + 1);
+      expect(
+        definitionTypeName(
+          workspace.runtime.graph,
+          (workspace.runtime.graph.getEntry(children.at(-1)!) as NodeEntry)
+            .definitionId,
+        ),
+      ).toBe("MenuItem");
+      workspace.undo();
+      expect((own() as NodeEntry).children).toHaveLength(before);
     } finally {
       workspace.dispose();
     }

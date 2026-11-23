@@ -4,6 +4,7 @@ import {
   lazy,
   Suspense,
   type ReactNode,
+  type ReactElement,
 } from "react";
 
 import { ColumnResizer } from "react-aria-components/Table";
@@ -80,6 +81,8 @@ export interface CatalogColumnMenu {
   readonly run?: (id: CatalogColumnMenuItemId) => void;
   /** ADR-315 Phase 4 증분 4c — 「Filter…」 opens the dialog on this (absent: no session). */
   readonly filter?: CatalogColumnFilterAccess;
+  /** S2 `menuItems` (§9.2) — the Column's own MenuItem elements, after the Table's items. */
+  readonly authorItems?: readonly ReactElement[];
 }
 export const CatalogColumnMenuContext = createContext<CatalogColumnMenu | null>(
   null,
@@ -124,6 +127,8 @@ export function catalogColumnChildren(
     readonly runMenu?: (id: CatalogColumnMenuItemId) => void;
     /** ADR-315 Phase 4 증분 4c — the session's filter dialog access (`CatalogColumnMenu.filter`). */
     readonly filter?: CatalogColumnFilterAccess;
+    /** S2 `menuItems` (§9.2) — the Column's own MenuItem elements (`CatalogColumnMenu.authorItems`). */
+    readonly authorItems?: readonly ReactElement[];
     readonly writesTracks: boolean;
     /** ADR-315 Phase 4 — a pinned Column: its header's width is measured for the pinned ones after it. */
     readonly measuresPin?: boolean;
@@ -171,6 +176,9 @@ export function catalogColumnChildren(
                   ? { items: options.menuItems, run: options.runMenu }
                   : {}),
                 ...(options.filter ? { filter: options.filter } : {}),
+                ...(options.authorItems
+                  ? { authorItems: options.authorItems }
+                  : {}),
               },
             },
             sorted,

@@ -1,6 +1,6 @@
 import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
-import { catalogEmptySkeleton } from "../../../../../packages/shared/src/catalog/runtime/elementless";
+import { catalogEmptyDropSpot } from "../../../../../packages/shared/src/catalog/runtime/elementless";
 import {
   CATALOG_SKELETON_LOOK,
   CATALOG_SKELETON_LOOK_OF,
@@ -443,8 +443,8 @@ function container(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
   };
 }
 
-/** ADR-314 결정 3: an empty Skeleton's edit-only stand-in — a dashed outline, no fill. */
-function emptySkeletonPlaceholder(
+/** ADR-314 결정 3: an empty Skeleton's (· ImageCoordinator's) edit-only stand-in — a dashed outline, no fill. */
+function emptyDropSpot(
   node: CatalogConsumerNode,
   rect: Rect,
 ): SkiaNodeData {
@@ -805,10 +805,16 @@ const bindings: Readonly<Record<string, Binding>> = {
   autocomplete: container,
   // ADR-314: S2 Skeleton has no element either (its rule's `display: contents`) — nothing to paint
   //   around its content. Empty, the Canvas alone shows its edit-only placeholder (사용자 결정 3 —
-  //   `catalogEmptySkeleton`; the DOM draws nothing).
+  //   `catalogEmptyDropSpot`; the DOM draws nothing).
   skeleton: (node, rect) =>
-    catalogEmptySkeleton("Skeleton", node.children.length)
-      ? emptySkeletonPlaceholder(node, rect)
+    catalogEmptyDropSpot("Skeleton", node.children.length)
+      ? emptyDropSpot(node, rect)
+      : container(node, rect),
+  // S2 체크리스트 부록 D.2 (2026-11-24): S2 ImageCoordinator — no element either; the same drop spot
+  //   empty. When its pictures show is the DOM's load behavior — the Canvas draws each as it has it.
+  imagecoordinator: (node, rect) =>
+    catalogEmptyDropSpot("ImageCoordinator", node.children.length)
+      ? emptyDropSpot(node, rect)
       : container(node, rect),
   // ADR-314 Phase 4: S2 SkeletonCollection has no element (`display: contents`) — its Card template
   //   is the CardView's item, drawn once on the Canvas (the edit target; the Preview repeats it).

@@ -14,6 +14,7 @@ import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { COMPONENT_RULES_TABLE } from "../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { CATALOG_CONTAINER_TOKEN } from "../../../../packages/shared/src/catalog/runtime/containerLayer";
 import { applyCatalogPreviewTheme } from "../../../../packages/shared/src/catalog/runtime/domView.runtime";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../packages/shared/src/catalog/runtime/fontDefaults";
 import { NEUTRAL_PRESETS } from "../../../../packages/shared/src/catalog/runtime/neutralToSkiaColors";
@@ -41,7 +42,11 @@ afterAll(() => {
   document.documentElement.removeAttribute("data-theme");
 });
 
-/** catalog rule 이 참조하는 색 토큰 (CSS 키워드 `transparent` 제외). */
+/**
+ * catalog rule 이 참조하는 색 토큰 (CSS 키워드 `transparent` 제외). `{color.container}` (ADR-303) 도
+ * 뺀다 — 테마 색이 아니라 가장 가까운 컨테이너의 배경 층을 가리키는 참조라 snapshot 에 없다 (값은
+ * 그 층의 토큰 — `layer-1` · `layer-2` · `base` 가 여기서 따로 대조된다).
+ */
 const CATALOG_COLOR_KEYS = [
   ...new Set(
     [
@@ -51,7 +56,10 @@ const CATALOG_COLOR_KEYS = [
     ].map((m) => m[1]!),
   ),
 ]
-  .filter((key) => key !== "transparent")
+  .filter(
+    (key) =>
+      key !== "transparent" && `{color.${key}}` !== CATALOG_CONTAINER_TOKEN,
+  )
   .sort();
 
 const canvas = document.createElement("canvas");
@@ -141,9 +149,14 @@ describe("ADR-293 G3 — 테마 색 DOM 계산값 = Skia hex", () => {
           // ADR-302 G4 — 두 축 사다리 변수의 DOM 계산값 = snapshot 사다리 (Preview CSS 가 덮지 않는다)
           const ladderOff: string[] = [];
           for (const v of snapshot.cssVars)
-            if (v.isDark === (mode === "dark") && /^--(tint|tone)-\d+$/.test(v.name))
+            if (
+              v.isDark === (mode === "dark") &&
+              /^--(tint|tone)-\d+$/.test(v.name)
+            )
               if (domColor(`var(${v.name})`) !== `${v.value.toLowerCase()}ff`)
-                ladderOff.push(`${v.name}: ${v.value} · DOM ${domColor(`var(${v.name})`)}`);
+                ladderOff.push(
+                  `${v.name}: ${v.value} · DOM ${domColor(`var(${v.name})`)}`,
+                );
           expect(ladderOff).toEqual([]);
         });
 

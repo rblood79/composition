@@ -1,3 +1,4 @@
+import { S2_PANEL_NON_MODAL_ACCEPTS } from "./s2RacProps";
 import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 /**
  * ADR-142 family ⑥(overlays) — Popover primitive 의 `PrimitiveBinding`.
@@ -25,6 +26,9 @@ export const popoverBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 체크리스트 §9 패널 (2026-11-24) — RAC 로 (`s2RacProps.ts`).
+      ...S2_PANEL_NON_MODAL_ACCEPTS,
+
       ...OVERLAY_OPEN_PROPS,
       size: {
         kind: "size",

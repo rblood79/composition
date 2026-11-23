@@ -25,6 +25,7 @@ import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_OVERFLOW_MODE_OWNERS,
+  CATALOG_OWNER_CONTEXT_PROPS,
 } from "../../document/sizePropagation";
 
 /**
@@ -124,6 +125,9 @@ describe("ADR-248 Phase 4c prop sources", () => {
               CATALOG_DENSITY_PROPAGATION_OWNER[typeName] === "Tabs") ||
             (key === "overflowMode" &&
               CATALOG_OVERFLOW_MODE_OWNERS[typeName]) ||
+            // (S2 체크리스트 §9.1 — S2 context props: a ColorSwatchPicker's `rounding`, an Accordion's
+            //   `density` · `isQuiet` reach their parts — `applyOwnerContext`.)
+            CATALOG_OWNER_CONTEXT_PROPS[typeName]?.keys.includes(key) ||
             // (ADR-259 Phase 3: a ContextualHelp's glyph is its `variant`'s — S2 has no other.)
             (key === "iconName" &&
               typeName === "Icon" &&

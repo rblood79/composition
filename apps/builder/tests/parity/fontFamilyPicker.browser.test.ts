@@ -7,6 +7,9 @@ import { loadAllLocaleMessages } from "@/i18n/loadMessages";
 import { FontFamilyPicker } from "@/builder/panels/fonts/FontFamilyPicker";
 import "@/builder/components/styles/index.css";
 import "@/builder/panels/themes/ThemesPanel.css";
+// (the item row's flex lives in the chrome popup-list sheet since 33b96ae05 — production loads it
+// through `builder/styles/index.css`)
+import "@/builder/styles/modules/builder-popup-list.css";
 
 it.each(["theme", "element"] as const)(
   "%s 긴 서체명을 줄이고 전체 값·선택 이름은 보존한다",

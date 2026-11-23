@@ -5,7 +5,8 @@
  * does it without a user's focus change:
  *
  * - visible range: `useCalendarState` — focused = `defaultFocusedValue` ?? `defaultValue` ?? today
- *   (constrained to min/max), start = `alignCenter` (the `selectionAlignment` default), end = start
+ *   (constrained to min/max), start = `selectionAlignment` (`alignCenter` by default · `alignStart` ·
+ *   `alignEnd`), end = start
  *   + `visibleDuration` − 1 day (`react-stately/.../calendar/useCalendarState.mjs` · `utils.mjs`);
  * - a grid at month offset `i`: rows = `getWeeksInMonth` (`weeksInMonth` · the locale's count, or
  *   the weeks/days the duration shows), each row `getDatesInWeek` — a full week from
@@ -74,6 +75,8 @@ export function catalogCalendarMonthCount(value: unknown): number {
 /** The props the model reads (the calendar node's, its picker's `firstDayOfWeek` folded in). */
 export interface CatalogCalendarModelInput {
   readonly visibleDuration?: unknown;
+  /** S2 · RAC `selectionAlignment` — where the focused date sits in the visible months (center). */
+  readonly selectionAlignment?: unknown;
   readonly weeksInMonth?: unknown;
   readonly firstDayOfWeek?: unknown;
   readonly locale?: unknown;
@@ -316,7 +319,14 @@ function context(
     inCalendar(max),
   );
   const duration = catalogCalendarDuration(input.visibleDuration);
-  const start = alignCenter(
+  // (RAC `useCalendarState`: `start` → `alignStart`, `end` → `alignEnd`, else `alignCenter`.)
+  const align =
+    input.selectionAlignment === "start"
+      ? alignStart
+      : input.selectionAlignment === "end"
+        ? alignEnd
+        : alignCenter;
+  const start = align(
     focused,
     duration,
     locale,

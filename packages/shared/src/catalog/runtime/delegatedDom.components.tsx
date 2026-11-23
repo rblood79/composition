@@ -1,3 +1,5 @@
+import { getPrimitiveBinding } from "../bindings";
+import { catalogS2RacProps } from "../bindings/s2RacProps";
 import {
   cloneElement,
   createElement,
@@ -324,6 +326,10 @@ export function TagGroupRun({
       AriaTagGroup as ElementType,
       {
         ...marker(input),
+        ...catalogS2RacProps(
+          getPrimitiveBinding("TagGroup")?.props.accepts,
+          props,
+        ),
         style: input.style,
         className: "react-aria-TagGroup",
         "data-tag-variant": str(props.variant) || "default",

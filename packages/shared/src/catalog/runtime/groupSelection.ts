@@ -36,6 +36,8 @@ const SELECTION_SHAPES: Readonly<Record<string, SelectionShape>> = {
   Tree: "keys",
   TagGroup: "keys",
   Menu: "keys",
+  // (S2 체크리스트 §9.2 — S2 · RAC MenuSection `selectionMode`: its items' own group.)
+  MenuSection: "keys",
   CardView: "keys",
   ToggleButtonGroup: "keys",
   SelectBoxGroup: "keys",
@@ -108,6 +110,7 @@ const GROUP_ITEM_TYPES_OF: Readonly<Record<string, readonly string[]>> = {
   Tree: ["TreeItem"],
   TagGroup: ["Tag"],
   Menu: ["MenuItem"],
+  MenuSection: ["MenuItem"],
   CardView: ["Card"],
   ToggleButtonGroup: ["ToggleButton"],
   SelectBoxGroup: ["SelectBox"],
@@ -169,6 +172,16 @@ export function catalogSelectionGroupOf(
   }
   if (type === "SegmentedControlItem")
     return nearestOfType(item, "SegmentedControl", get, typeOf);
+  // (S2 · RAC MenuSection with a selection mode of its own — its items select in it, not the Menu.)
+  if (type === "MenuItem") {
+    const section = nearestOfType(item, "MenuSection", get, typeOf);
+    if (
+      section &&
+      typeof section.props.selectionMode === "string" &&
+      section.props.selectionMode !== "none"
+    )
+      return section;
+  }
   if (type === "ListBoxItem" || type === "MenuItem" || type === "SelectBox") {
     const picker = catalogPickerOfOption(item, get, typeOf);
     if (picker) return picker;
