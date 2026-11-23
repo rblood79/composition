@@ -8774,6 +8774,33 @@ export class CatalogCompositionRoot {
     };
   }
 
+  /**
+   * S2 체크리스트 §9.3 (contract 77): whether a prop write decides which positions of the instance's
+   * template exist (a template node's `presentWith` — S2 AlertDialog's button labels).
+   */
+  private writesPresentWith(op: { id: string; key: string }): boolean {
+    const node = this.runtime.graph.getEntry(op.id);
+    if (node?.kind !== "node") return false;
+    const definition = this.runtime.graph.getDefinition(node.definitionId);
+    if (definition?.mode !== "composite" || !definition.templateRootId)
+      return false;
+    let keys = this.presentWithKeys.get(definition.templateRootId);
+    if (!keys) {
+      const found = new Set<string>();
+      const stack = [definition.templateRootId as string];
+      while (stack.length) {
+        const template = this.templateNode(stack.pop()!) as
+          | { presentWith?: string; children?: readonly string[] }
+          | undefined;
+        if (!template) continue;
+        if (template.presentWith) found.add(template.presentWith);
+        stack.push(...(template.children ?? []));
+      }
+      this.presentWithKeys.set(definition.templateRootId, (keys = found));
+    }
+    return keys.has(op.key);
+  }
+  private readonly presentWithKeys = new Map<string, ReadonlySet<string>>();
   /** ADR-261 Decision 4: whether a prop write is a project component property's value. */
   private writesComponentProperty(op: { id: string; key: string }): boolean {
     const node = this.runtime.graph.getEntry(op.id);
@@ -8809,7 +8836,9 @@ export class CatalogCompositionRoot {
         (op.kind === "setNodeField" && op.field !== "visibility") ||
         // (ADR-261 Decision 4: a component property's value draws on the instance's driven
         // positions — their text, or whether they exist — not on the instance's own record.)
-        (op.kind === "patchNodeProp" && !this.writesComponentProperty(op)) ||
+        (op.kind === "patchNodeProp" &&
+          !this.writesComponentProperty(op) &&
+          !this.writesPresentWith(op)) ||
         [
           "patchNodeVisual",
           "patchNodeSizing",

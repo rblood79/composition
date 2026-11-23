@@ -15,7 +15,7 @@ import { CatalogValidationError, validateCatalogEntry } from "../validation";
  */
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 76,
+    contractVersion: 77,
     revision: "phase4b-schema",
     bindingIds: ["listbox", "item", "text"],
     actionOpCodes: [],
@@ -85,7 +85,7 @@ function graph(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 76,
+    libraryContractVersion: 77,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",

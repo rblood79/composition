@@ -1386,8 +1386,21 @@ export class CatalogGraph {
       ) {
         seen.add(cursor);
         const owner = get(cursor);
-        if (owner?.kind === "definitionOverride")
-          return library.definitions.get(owner.targetId)?.accepts;
+        if (owner?.kind === "definitionOverride") {
+          const origin = library.definitions.get(owner.targetId);
+          if (!origin?.bindingMaps) return origin?.accepts;
+          // (S2 체크리스트 §9.3, contract 77: the keys its `bindingMaps` derive, typed by their
+          //  values — an AlertDialog button's `autoFocus: "{cancelAutoFocus}"`.)
+          return {
+            ...origin.accepts,
+            ...Object.fromEntries(
+              Object.entries(origin.bindingMaps).map(([key, map]) => [
+                key,
+                typeof (Object.values(map.values)[0] ?? map.otherwise),
+              ]),
+            ),
+          };
+        }
         if (owner?.kind !== "node") return undefined;
       }
       return undefined;

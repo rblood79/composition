@@ -150,6 +150,12 @@ describe("ADR-276 Button origin template", () => {
       "lib:template:component-sheet__close": "Close",
       // (S2 체크리스트 §4.1 2026-11-22 — FileTrigger > Button: the label was FileTrigger's `children`.)
       "lib:template:component-filetrigger__button": "Select files",
+      // (S2 체크리스트 §9.3 2026-11-23 — S2 AlertDialog: its trigger and its three buttons, their words
+      //  the origin's props.)
+      "lib:template:component-alertdialog__trigger": "Publish",
+      "lib:template:component-alertdialog__cancel": "{cancelLabel}",
+      "lib:template:component-alertdialog__secondary": "{secondaryActionLabel}",
+      "lib:template:component-alertdialog__primary": "{primaryActionLabel}",
     };
     const nested = REUSABLE_ORIGIN_TEMPLATES.filter(
       (template) =>
@@ -157,12 +163,12 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 23 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
+    // 27 Button + 7 ToggleButton positions (§9.3 AlertDialog's four); the 9 state variants carry no text of their own.
     // (2026-11-14: the Toolbar's three and a Pagination's step buttons are ActionButtons — S2's action
     //  group. 2026-11-18: a ContextualHelp's trigger is S2's quiet ActionButton. 2026-11-19: a
     //  Pagination's pages are ActionButtons too — page navigation, not a toggle; its 「Rows per page」 is a
     //  Select origin instance. 2026-11-22: a FileTrigger's Button — S2 `FileTrigger > Button`.)
-    expect(nested).toHaveLength(30);
+    expect(nested).toHaveLength(34);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)

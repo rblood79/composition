@@ -720,6 +720,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "dialog",
     icon: "AppWindowMac",
   },
+  // S2 체크리스트 §9.3 (2026-11-23): S2 AlertDialog.
+  {
+    type: "AlertDialog",
+    category: "overlays",
+    label: "alert dialog",
+    icon: "MessageSquareWarning",
+  },
   {
     type: "Sheet",
     category: "overlays",

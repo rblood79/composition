@@ -510,6 +510,10 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
     "template node commands",
     5,
   ),
+  presentWith: {
+    notInCode:
+      "an unlocked origin copy's position condition on its origin prop (S2 AlertDialog's `{cancelLabel && …}`) — the origin template's, edited there (§9.3, contract 77)",
+  },
   showWhen: at(
     "src/components/<Name>.tsx",
     "composition={{showWhen: {all: […]}}}",

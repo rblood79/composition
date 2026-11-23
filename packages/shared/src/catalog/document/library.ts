@@ -376,6 +376,21 @@ export function buildCatalogLibrary(
           );
         continue;
       }
+      // (S2 체크리스트 §9.3, contract 77: a binding its origin derives — `bindingMaps` — gives the
+      //  map's values, each of this position's type.)
+      const map = bound ? origin?.bindingMaps?.[bound[1]] : undefined;
+      if (map) {
+        for (const given of [
+          ...Object.values(map.values),
+          ...(map.otherwise === undefined ? [] : [map.otherwise]),
+        ])
+          if (!catalogPropValueFits(given, expected))
+            throw new CatalogValidationError(
+              "PROP_TYPE_MISMATCH",
+              `${node.id}.${key}`,
+            );
+        continue;
+      }
       if (!catalogPropValueFits(value, expected))
         throw new CatalogValidationError(
           "PROP_TYPE_MISMATCH",

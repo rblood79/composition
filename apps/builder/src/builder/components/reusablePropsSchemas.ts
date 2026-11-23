@@ -295,6 +295,68 @@ export const ACTIONMENU_PROPS_SCHEMA: PropsSchema = (() => {
   } as PropsSchema;
 })();
 
+/**
+ * S2 체크리스트 §9.3 — S2 AlertDialog's props (`AlertDialogProps` — the callbacks are When rules),
+ * and the DialogTrigger's own.
+ */
+const option = (value: string, label: string) => ({ value, label });
+export const ALERTDIALOG_PROPS_SCHEMA: PropsSchema = {
+  variant: {
+    kind: "enum",
+    label: "Variant",
+    section: "appearance",
+    default: "confirmation",
+    options: [
+      option("confirmation", "Confirmation"),
+      option("information", "Information"),
+      option("destructive", "Destructive"),
+      option("error", "Error"),
+      option("warning", "Warning"),
+    ],
+  },
+  size: {
+    kind: "enum",
+    label: "Size",
+    section: "appearance",
+    default: "M",
+    options: ["S", "M", "L"].map((value) => option(value, value)),
+  },
+  title: { kind: "string", label: "Title", section: "content" },
+  primaryActionLabel: {
+    kind: "string",
+    label: "Primary action label",
+    section: "content",
+  },
+  secondaryActionLabel: {
+    kind: "string",
+    label: "Secondary action label",
+    section: "content",
+  },
+  cancelLabel: { kind: "string", label: "Cancel label", section: "content" },
+  isPrimaryActionDisabled: {
+    kind: "boolean",
+    label: "Primary action disabled",
+    section: "state",
+  },
+  isSecondaryActionDisabled: {
+    kind: "boolean",
+    label: "Secondary action disabled",
+    section: "state",
+  },
+  autoFocusButton: {
+    kind: "enum",
+    label: "Auto focus button",
+    section: "state",
+    options: [
+      option("cancel", "Cancel"),
+      option("primary", "Primary"),
+      option("secondary", "Secondary"),
+    ],
+  },
+  ...((getPrimitiveBinding("DialogTrigger")?.props.accepts ??
+    {}) as PropsSchema),
+} as PropsSchema;
+
 /** Reusable id → its declared edit contract. */
 export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-button": BUTTON_PROPS_SCHEMA,
@@ -320,4 +382,5 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-tooltip": TOOLTIP_PROPS_SCHEMA,
   "component-menu": MENU_PROPS_SCHEMA,
   "component-actionmenu": ACTIONMENU_PROPS_SCHEMA,
+  "component-alertdialog": ALERTDIALOG_PROPS_SCHEMA,
 };

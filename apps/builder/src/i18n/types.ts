@@ -2009,6 +2009,7 @@ export interface TranslationKeys {
     rangeCalendar: string;
     // Overlays
     dialog: string;
+    alertDialog: string;
     modal: string;
     popover: string;
     tooltip: string;

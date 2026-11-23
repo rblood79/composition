@@ -188,9 +188,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      번호는 Phase 4 의 entry 형 변경과 함께 올린다 — ADR-315 R5 「세 번으로 모은다」.)
  * 75 — ADR-315 Phase 4: 노드의 `columnsOf` (열 선택 메뉴가 열을 나열하는 Table — Pagination 의
  *      `pagesOf` 와 같은 연결). 옛 74 문서도 모양은 그대로지만 번호를 올린 계약이라 열리지 않는다.
+ * 77 — S2 체크리스트 §9.3 AlertDialog (사용자 결정 2026-11-23 「노드 + 2 필드」): composite 정의의
+ *      `bindingMaps` (다른 origin prop 이 고르는 template `{key}` 값) · template 노드와 그 사본 노드의
+ *      `presentWith` (그 origin prop 이 비면 자리가 없다).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 76 as const;
+export const LIBRARY_CONTRACT_VERSION = 77 as const;
 
 export type EntryKind =
   | "project"
@@ -1394,6 +1397,12 @@ export interface NodeEntry {
    * node is always there (a binding never removes a node by itself).
    */
   presentWhen?: CatalogPresentWhen;
+  /**
+   * S2 체크리스트 §9.3 (contract 77) — the position is there only while the origin prop it names
+   * is given (not empty): S2 AlertDialog's cancel · secondary buttons (`{cancelLabel && <Button>}`).
+   * The resolver drops it where its template's bindings have no such value.
+   */
+  presentWith?: string;
   /** ADR-256 Decision 7 — the states in which the node is there (`CatalogShowWhen`). */
   showWhen?: CatalogShowWhen;
   /**
@@ -1845,6 +1854,13 @@ export interface LibraryDefinition {
   conditionalRules?: readonly ConditionalRule[];
   partRules?: readonly PartRule[];
   bindingId?: string;
+  /**
+   * S2 체크리스트 §9.3 (contract 77) — a composite's derived template bindings: `{key}` reads
+   * `values[<the origin's \`from\` prop>]`, else `otherwise` (absent = no value — the binding stays
+   * unfilled). S2 components that pick a part's value from their own prop (AlertDialog's `variant`
+   * → its primary button variant · title glyph, `autoFocusButton` → each button's `autoFocus`).
+   */
+  bindingMaps?: Readonly<Record<string, LibraryBindingMap>>;
   /** A library template id; an unlocked origin's copy (ADR-282) through the graph's library view. */
   templateRootId?: TemplateId;
   /**
@@ -1878,6 +1894,12 @@ export interface LibrarySlotFill {
   templatePath: readonly TemplateId[];
   childIds: readonly LibraryTemplateId[];
 }
+/** One derived template binding of a composite (`LibraryDefinition.bindingMaps`). */
+export interface LibraryBindingMap {
+  readonly from: string;
+  readonly values: Readonly<Record<string, Scalar>>;
+  readonly otherwise?: Scalar;
+}
 export interface LibraryTemplateNode {
   id: LibraryTemplateId;
   definitionId: DefinitionId;
@@ -1896,6 +1918,12 @@ export interface LibraryTemplateNode {
    * node is always there (a binding never removes a node by itself).
    */
   presentWhen?: CatalogPresentWhen;
+  /**
+   * S2 체크리스트 §9.3 (contract 77) — the position is there only while the origin prop it names
+   * is given (not empty): S2 AlertDialog's cancel · secondary buttons (`{cancelLabel && <Button>}`).
+   * The resolver drops it where its template's bindings have no such value.
+   */
+  presentWith?: string;
   /** ADR-256 Decision 7 — the states in which the node is there (`CatalogShowWhen`). */
   showWhen?: CatalogShowWhen;
   descendantPatches?: readonly LibraryDescendantPatch[];

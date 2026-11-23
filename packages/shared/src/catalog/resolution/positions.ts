@@ -73,7 +73,9 @@ interface PositionScope {
 type TemplateRecord = {
   definitionId: DefinitionId;
   children: readonly TemplateId[];
+  props?: Readonly<Record<string, unknown>>;
   enabled?: boolean;
+  presentWith?: string;
   descendantPatches?: readonly LibraryDescendantPatch[];
   slotFills?: readonly LibrarySlotFill[];
 };
@@ -173,6 +175,47 @@ function positionOverride(
   };
 }
 
+/**
+ * S2 체크리스트 §9.3 (contract 77) — whether the origin prop a position's `presentWith` names is
+ * given, as the resolver reads it (its template's bindings): the composite whose template holds the
+ * position — the owner instance, or the last composite position on the path — its prop, else its
+ * definition's default.
+ */
+function presentWithGiven(
+  reader: CatalogReader,
+  owner: NodeEntry,
+  path: readonly TemplateId[],
+  key: string,
+): boolean {
+  let definitionId: DefinitionId = owner.definitionId;
+  let own: unknown = owner.props[key];
+  let written = own !== undefined;
+  if (written) {
+    const write = own as { kind?: string; value?: unknown };
+    own = write.kind === "set" ? write.value : undefined;
+  }
+  for (let index = 0; index + 1 < path.length; index++) {
+    const position = readTemplate(reader, path[index]!);
+    if (templateRootOf(reader, position.definitionId) !== path[index + 1])
+      continue;
+    definitionId = position.definitionId;
+    const value = position.props?.[key];
+    const write = value as { kind?: string; value?: unknown } | undefined;
+    own =
+      write && typeof write === "object" && "kind" in write
+        ? write.kind === "set"
+          ? write.value
+          : undefined
+        : value;
+    written = own !== undefined;
+  }
+  const definition = definitionId.startsWith("lib:")
+    ? reader.library.definitions.get(definitionId as `lib:definition:${string}`)
+    : undefined;
+  const value = written ? own : definition?.defaults[key];
+  return String(value ?? "") !== "";
+}
+
 /** Options of a child listing. */
 export interface ChildPositionOptions {
   /** List switched-off template positions too (`disabled: true`), so they can be switched on. */
@@ -223,6 +266,11 @@ function templatePosition(
   const inheritedEnabled = libraryPatch?.enabled ?? template.enabled ?? true;
   const enabled = patch?.enabled ?? inheritedEnabled;
   if (!enabled && !options.includeDisabled) return undefined;
+  if (
+    template.presentWith &&
+    !presentWithGiven(reader, owner, scope.path, template.presentWith)
+  )
+    return undefined;
   return {
     target: {
       kind: "descendant",

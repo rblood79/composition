@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Alert dialog — S2 AlertDialog] - 2026-11-23
+
+### Added
+
+- **팔레트 「alert dialog」** (S2 `AlertDialog`, 사용자 결정 「노드 + 2 필드」): 확인 · 오류 · 경고용 대화상자를 한 번에 놓는다 — `Dialog role=alertdialog` 와 제목 · 본문 · 버튼이 모두 노드라 Dialog 처럼 하나씩 고칠 수 있다. Design 패널은 S2 prop 그대로: Variant (Confirmation · Information · Destructive · Error · Warning), Title, 주 · 보조 동작 글자, 취소 글자, 주 · 보조 동작 비활성, 처음 focus 버튼, Size.
+  - Variant 가 주 버튼 색 (확인 = accent · 삭제 = negative · 그 밖 = primary) 과 제목 앞 아이콘 (오류 · 경고) 을 고른다. 아이콘 이름은 S2 `dialog.alert` 를 사이트 언어로 (「Alert」 · 「경고」).
+  - 취소 · 보조 버튼은 글자를 적었을 때만 있다 (S2 `{cancelLabel && …}`). 모든 버튼은 누르면 대화상자를 닫는다.
+- **원본 template 의 두 표현 (contract 77)**: composite 정의의 `bindingMaps` (한 prop 의 값이 고르는 template 값) · template 노드의 `presentWith` (그 prop 이 비면 자리가 없다). resolver · Layers 위치 · 원본 잠금 해제 사본 · 증분 다시 그리기가 같은 판정을 읽는다. 옛 76 문서는 열리지 않는다 (변환 없음).
+- **Heading 안 Text 의 글자 단계**: Heading 의 Text 자식이 Heading 의 크기 · 굵기를 받는다 (아이콘 + 제목 한 줄 — S2 `CenterBaseline`).
+  - 위치: `packages/shared/src/catalog/{document/generated/reusableOriginLibrary.ts,document/types.ts,document/validation.ts,document/library.ts,document/graph.ts,document/codeCatalogLibrary.ts,resolution/resolver.ts,resolution/positions.ts,commands/originFork.ts,runtime/compositionRoot.ts,runtime/alertDialog.ts,runtime/domBinding.runtime.ts}` · `apps/builder/src/builder/{components/reusablePropsSchemas.ts,panels/components/paletteItems.ts,catalogRuntime/componentsPage.ts}`
+
+### Tests
+
+- `s2AlertDialog.test.tsx` 3 (팔레트 · prop · map 검증, 기본 confirmation — 이름 · 버튼 · 닫힘 · 제목 굵기, destructive · error · warning · 버튼 글자 · autoFocus · 비활성), 원복 RED, live `apps/builder/scripts/s2-alert-dialog-live.mjs` 6/6. contract 76 → 77 fixture 32 곳.
+
 ## [Action menu — S2 ActionMenu] - 2026-11-23
 
 ### Added

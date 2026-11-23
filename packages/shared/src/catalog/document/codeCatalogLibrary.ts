@@ -223,6 +223,23 @@ function textDefinition(
     },
     propVisualRules: { size: sizes },
     stateRules: {},
+    // S2 체크리스트 §9.3: a Heading's words may be a Text child beside a glyph (an AlertDialog's title
+    //   — S2 `CenterBaseline`); the Text takes the Heading's type, as a Button's label takes its scale.
+    ...(type === "Heading"
+      ? {
+          partRules: Object.entries(sizes).map(
+            ([size, values]): PartRule => ({
+              child: { definitionId: catalogTypeDefinitionId("Text") },
+              when: { size },
+              visual: {
+                fontSize: values.fontSize!,
+                lineHeight: values.lineHeight!,
+                fontWeight: variant.textWeight,
+              },
+            }),
+          ),
+        }
+      : {}),
   };
 }
 

@@ -327,10 +327,12 @@ import {
 } from "./unavailableMenuItem";
 
 import {
+  CatalogAlertGlyph,
   CatalogMoreActionsName,
   CatalogUnavailableGlyph,
 } from "./unavailableMenuItem.components";
 import { catalogMoreActionsTrigger } from "./actionMenu";
+import { catalogAlertDialogGlyph } from "./alertDialog";
 
 import {
   catalogValueRowKey,
@@ -6363,6 +6365,15 @@ export function renderNode(
     catalogMoreActionsTrigger(node, domGet, domType)
   )
     return createElement(CatalogMoreActionsName, {
+      key: node.id,
+      element: element as ReactElement,
+    });
+  // S2 AlertDialog (§9.3): its title glyph is named 「Alert」 in the site's language.
+  if (
+    node.bindingId === "icon" &&
+    catalogAlertDialogGlyph(node, domGet, domType)
+  )
+    return createElement(CatalogAlertGlyph, {
       key: node.id,
       element: element as ReactElement,
     });

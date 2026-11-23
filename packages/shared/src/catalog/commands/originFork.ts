@@ -231,6 +231,7 @@ function symbolicCopy(
       ...(template.enabled !== undefined ? { enabled: template.enabled } : {}),
       ...(template.stateRules ? { stateRules: template.stateRules } : {}),
       ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
+      ...(template.presentWith ? { presentWith: template.presentWith } : {}),
       ...(template.showWhen ? { showWhen: template.showWhen } : {}),
       ...(template.displayState ? { displayState: template.displayState } : {}),
     });

@@ -2463,6 +2463,17 @@ export function resolveCatalogNode(
         (fallback === undefined ? undefined : tokenValue(fallback));
       if (value !== undefined) bindings[key] = value;
     }
+    // (S2 체크리스트 §9.3 — the keys another prop's value picks: AlertDialog's button variant ·
+    //  title glyph · auto-focus button.)
+    const maps = "bindingMaps" in definition ? definition.bindingMaps : undefined;
+    for (const [key, map] of Object.entries(maps ?? {})) {
+      const chosen = bindings[map.from];
+      const value =
+        chosen !== undefined && Object.hasOwn(map.values, String(chosen))
+          ? map.values[String(chosen)]
+          : map.otherwise;
+      if (value !== undefined) bindings[key] = value;
+    }
     return bindings;
   };
   /**
@@ -4073,6 +4084,13 @@ export function resolveCatalogNode(
       template.enabled ??
       true;
     if (!enabled) return undefined;
+    // S2 체크리스트 §9.3: a position there only while its origin prop is given (S2 AlertDialog's
+    // `{cancelLabel && <Button>}`).
+    if (
+      template.presentWith &&
+      String(bindings?.[template.presentWith] ?? "") === ""
+    )
+      return undefined;
     // A path patch's authoring fields (Phase 4b) layer over the template node's own.
     // (A position holding the instance's own child list carries its field writes too.)
     const patch = layeredPatch;

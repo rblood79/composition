@@ -1949,6 +1949,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "themeOverride",
           "metadata",
           "presentWhen",
+          "presentWith",
           "showWhen",
           "displayState",
           "originOf",
@@ -1956,6 +1957,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         "entry",
       );
       presentWhen(item.presentWhen, "entry.presentWhen");
+      presentWith(item.presentWith, "entry.presentWith");
       if (item.repeat !== undefined && item.repeat !== true)
         invalid("REPEAT_TRUE", "entry.repeat");
       if (item.rowDisplay !== undefined) {
@@ -2710,9 +2712,11 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
       "bindingId",
       "templateRootId",
       "ruleId",
+      "bindingMaps",
     ],
     "library.definition",
   );
+  bindingMaps(item, "library.definition.bindingMaps");
   id(item.id, "lib:definition:", "library.definition.id");
   string(item.name, "library.definition.name");
   if (!["primitive", "composite", "native"].includes(item.mode as string))
@@ -2928,6 +2932,35 @@ function nodeRef(
     if (ref.unset !== true) invalid(code, `${at}.unset`);
   } else invalid(code, at);
 }
+/** S2 체크리스트 §9.3 (contract 77) — `presentWith` names an origin prop (a binding key). */
+function presentWith(value: unknown, at: string): void {
+  if (
+    value !== undefined &&
+    (typeof value !== "string" || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(value))
+  )
+    invalid("PRESENT_WITH_KEY", at);
+}
+/**
+ * S2 체크리스트 §9.3 (contract 77) — a composite's `bindingMaps`: each reads an accepted prop and
+ * gives scalar values.
+ */
+function bindingMaps(item: Record<string, unknown>, at: string): void {
+  if (item.bindingMaps === undefined) return;
+  if (item.mode !== "composite") invalid("BINDING_MAPS_COMPOSITE", at);
+  const accepted = object(item.accepts, "library.definition.accepts");
+  for (const [key, raw] of Object.entries(object(item.bindingMaps, at))) {
+    const map = object(raw, `${at}.${key}`);
+    exact(map, ["from", "values", "otherwise"], `${at}.${key}`);
+    if (typeof map.from !== "string" || !accepted[map.from] || accepted[key])
+      invalid("BINDING_MAP_FROM", `${at}.${key}`);
+    for (const [choice, value] of Object.entries(
+      object(map.values, `${at}.${key}.values`),
+    ))
+      scalar(value, `${at}.${key}.values.${choice}`);
+    if (map.otherwise !== undefined)
+      scalar(map.otherwise, `${at}.${key}.otherwise`);
+  }
+}
 /** ADR-256 Decision 7 — `presentWhen` is one of the fixed value conditions. */
 function presentWhen(value: unknown, at: string): void {
   if (
@@ -2954,11 +2987,13 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       "displayState",
       "stateRules",
       "presentWhen",
+      "presentWith",
       "showWhen",
     ],
     "library.template",
   );
   presentWhen(item.presentWhen, "library.template.presentWhen");
+  presentWith(item.presentWith, "library.template.presentWith");
   showWhen(item.showWhen, "library.template.showWhen");
   if (item.layout !== undefined)
     layoutValues(item.layout, "library.template.layout");

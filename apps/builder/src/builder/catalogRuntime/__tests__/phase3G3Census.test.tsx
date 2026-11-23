@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 76,
+    libraryContractVersion: 77,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -579,6 +579,6 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + SkeletonCollection (2026-11-18 — ADR-314 Phase 4, S2's loading items in a CardView).
     // + TableFooter (2026-11-21 — ADR-315 Phase 5 증분 5c, a totals row's footer — RAC `TableFooter`).
     // + UnavailableMenuItemTrigger (2026-11-23 — S2 체크리스트 §9.3, S2's unavailable menu item).
-    expect(types.length).toBe(185);
+    expect(types.length).toBe(186);
   }, 120_000);
 });

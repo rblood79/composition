@@ -1292,6 +1292,78 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-dialog"
   },
   {
+    "id": "lib:definition:origin-component-alertdialog",
+    "name": "AlertDialog",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string",
+      "title": "string",
+      "cancelLabel": "string",
+      "primaryActionLabel": "string",
+      "secondaryActionLabel": "string",
+      "isPrimaryActionDisabled": "boolean",
+      "isSecondaryActionDisabled": "boolean",
+      "autoFocusButton": "string",
+      "size": "string"
+    },
+    "defaults": {
+      "variant": "confirmation",
+      "title": "Publish documents",
+      "cancelLabel": "Cancel",
+      "primaryActionLabel": "Publish",
+      "secondaryActionLabel": "",
+      "isPrimaryActionDisabled": false,
+      "isSecondaryActionDisabled": false,
+      "size": "M"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-alertdialog",
+    "bindingMaps": {
+      "alertActionVariant": {
+        "from": "variant",
+        "values": {
+          "confirmation": "accent",
+          "destructive": "negative"
+        },
+        "otherwise": "primary"
+      },
+      "alertErrorIcon": {
+        "from": "variant",
+        "values": {
+          "error": "triangle-alert"
+        }
+      },
+      "alertWarningIcon": {
+        "from": "variant",
+        "values": {
+          "warning": "octagon-alert"
+        }
+      },
+      "cancelAutoFocus": {
+        "from": "autoFocusButton",
+        "values": {
+          "cancel": true
+        },
+        "otherwise": false
+      },
+      "secondaryAutoFocus": {
+        "from": "autoFocusButton",
+        "values": {
+          "secondary": true
+        },
+        "otherwise": false
+      },
+      "primaryAutoFocus": {
+        "from": "autoFocusButton",
+        "values": {
+          "primary": true
+        },
+        "otherwise": false
+      }
+    }
+  },
+  {
     "id": "lib:definition:origin-component-popover",
     "name": "Popover",
     "mode": "composite",
@@ -8062,6 +8134,190 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Close",
       "slot": "close",
       "variant": "secondary"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog",
+    "definitionId": "lib:definition:type-DialogTrigger",
+    "children": [
+      "lib:template:component-alertdialog__trigger",
+      "lib:template:component-alertdialog__modal"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Publish"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__modal",
+    "definitionId": "lib:definition:type-Modal",
+    "children": [
+      "lib:template:component-alertdialog__dialog"
+    ],
+    "props": {
+      "isDismissable": false
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__dialog",
+    "definitionId": "lib:definition:type-Dialog",
+    "children": [
+      "lib:template:component-alertdialog__title",
+      "lib:template:component-alertdialog__content-region",
+      "lib:template:component-alertdialog__buttons"
+    ],
+    "props": {
+      "role": "alertdialog",
+      "size": "{size}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__title",
+    "definitionId": "lib:definition:heading",
+    "children": [
+      "lib:template:component-alertdialog__error-icon",
+      "lib:template:component-alertdialog__warning-icon",
+      "lib:template:component-alertdialog__title-text"
+    ],
+    "props": {
+      "slot": "title",
+      "size": "L"
+    },
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "alignItems": "center"
+    }
+  },
+  {
+    "id": "lib:template:component-alertdialog__error-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "{alertErrorIcon}",
+      "size": "M"
+    },
+    "visual": {
+      "color": {
+        "kind": "token",
+        "tokenId": "lib:token:color_negative"
+      }
+    },
+    "layout": {
+      "marginRight": "8px"
+    }
+  },
+  {
+    "id": "lib:template:component-alertdialog__warning-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "{alertWarningIcon}",
+      "size": "M"
+    },
+    "visual": {
+      "color": {
+        "kind": "token",
+        "tokenId": "lib:token:color_notice"
+      }
+    },
+    "layout": {
+      "marginRight": "8px"
+    }
+  },
+  {
+    "id": "lib:template:component-alertdialog__title-text",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{title}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__content-region",
+    "definitionId": "lib:definition:type-Content",
+    "slot": {
+      "name": "content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-alertdialog__content-text"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__content-text",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "Are you sure you want to publish 3 documents?"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__buttons",
+    "definitionId": "lib:definition:type-ButtonGroup",
+    "children": [
+      "lib:template:component-alertdialog__cancel",
+      "lib:template:component-alertdialog__secondary",
+      "lib:template:component-alertdialog__primary"
+    ],
+    "props": {
+      "align": "end"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-alertdialog__cancel",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "{cancelLabel}",
+      "slot": "close",
+      "variant": "secondary",
+      "fillStyle": "outline",
+      "autoFocus": "{cancelAutoFocus}"
+    },
+    "visual": {},
+    "presentWith": "cancelLabel"
+  },
+  {
+    "id": "lib:template:component-alertdialog__secondary",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "{secondaryActionLabel}",
+      "slot": "close",
+      "variant": "secondary",
+      "fillStyle": "outline",
+      "isDisabled": "{isSecondaryActionDisabled}",
+      "autoFocus": "{secondaryAutoFocus}"
+    },
+    "visual": {},
+    "presentWith": "secondaryActionLabel"
+  },
+  {
+    "id": "lib:template:component-alertdialog__primary",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "{primaryActionLabel}",
+      "slot": "close",
+      "variant": "{alertActionVariant}",
+      "isDisabled": "{isPrimaryActionDisabled}",
+      "autoFocus": "{primaryAutoFocus}"
     },
     "visual": {}
   },

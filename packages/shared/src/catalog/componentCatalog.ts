@@ -1548,6 +1548,14 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     label: "action menu",
     icon: "Ellipsis",
   }),
+  // S2 체크리스트 §9.3 (사용자 결정 2026-11-23 「노드 + 2 필드」): S2 AlertDialog — a Dialog with
+  //   `role="alertdialog"`, its title · glyph · buttons from S2's props (`bindingMaps` · `presentWith`,
+  //   contract 77). No type of its own: the origin `component-alertdialog`.
+  reusableEntry("AlertDialog", "overlays", "component-alertdialog", {
+    category: "overlays",
+    label: "alert dialog",
+    icon: "MessageSquareWarning",
+  }),
 ];
 
 /**
