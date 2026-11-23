@@ -105,6 +105,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     isQuiet: "v3",
     isOpen: "composition",
     defaultOpen: "composition",
+    // (S2 체크리스트 부록 D.3 — RAC's filter function as its two `useFilter` matches.)
+    defaultFilter: "rac",
   },
   DateField: { isQuiet: "v3" },
   DatePicker: { isQuiet: "v3" },

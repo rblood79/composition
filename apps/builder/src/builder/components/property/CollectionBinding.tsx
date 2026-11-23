@@ -50,6 +50,11 @@ import {
   CATALOG_SECTION_TYPES,
   COLLECTION_TYPE_TABLE,
 } from "../../../../../../packages/shared/src/catalog/document/collectionItems";
+import {
+  CATALOG_UNAVAILABLE_DATE_TYPES,
+  CATALOG_UNAVAILABLE_END_FIELD,
+  CATALOG_UNAVAILABLE_FIELD,
+} from "../../../../../../packages/shared/src/catalog/document/unavailableDates";
 
 // ============================================
 // Types
@@ -88,7 +93,13 @@ interface CollectionBindingProps {
  * 바인딩이 고르는 열 역할 — 항목 key (`value`) 와 Tree 의 하위 관계. 글자 · 그림 칸은 항목 필드
  * 절이 행 template 의 `{field}` 로 연결한다 (icon 역할은 2026-10-24 삭제).
  */
-type FieldMapRole = "value" | "children" | "parentId" | "disabled";
+type FieldMapRole =
+  | "value"
+  | "children"
+  | "parentId"
+  | "disabled"
+  | "unavailable"
+  | "unavailableEnd";
 const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value"];
 /**
  * A Tree's binding also names its items' children (`useTreeData.getChildren`) — a Table's too
@@ -101,6 +112,14 @@ const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
 ];
 /** ADR-310 ② — a section's binding names its groups' child rows (its items repeat over them). */
 const SECTION_FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "children"];
+/**
+ * S2 `isDateUnavailable` from data (부록 D.3 2단계, 2026-11-23): a date component's binding names
+ * the dates no one may pick — each row's date (to its end date, a period).
+ */
+const UNAVAILABLE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
+  CATALOG_UNAVAILABLE_FIELD,
+  CATALOG_UNAVAILABLE_END_FIELD,
+];
 /** "자동" 옵션 키 — 선택 시 fieldMap 에서 그 역할을 지운다 (기존 휴리스틱). */
 const FIELD_MAP_AUTO_KEY = "__auto__";
 const FIELD_MAP_ROLE_LABEL: Record<
@@ -109,11 +128,15 @@ const FIELD_MAP_ROLE_LABEL: Record<
   | "fieldMapChildren"
   | "fieldMapParentId"
   | "fieldMapDisabled"
+  | "fieldMapUnavailable"
+  | "fieldMapUnavailableEnd"
 > = {
   value: "fieldMapValue",
   children: "fieldMapChildren",
   parentId: "fieldMapParentId",
   disabled: "fieldMapDisabled",
+  unavailable: "fieldMapUnavailable",
+  unavailableEnd: "fieldMapUnavailableEnd",
 };
 
 /** 역할 1개 = Select 1행 — 옵션은 "자동" + schema 필드 (키 = fieldId, 표시 = key). */
@@ -161,7 +184,9 @@ function FieldMapSelect({
         <PanelSelectItem
           id={FIELD_MAP_AUTO_KEY}
           label={
-            role === "disabled"
+            role === "disabled" ||
+            role === "unavailable" ||
+            role === "unavailableEnd"
               ? t("propertiesPanel.fieldMapNone")
               : t("propertiesPanel.fieldMapAuto")
           }
@@ -250,18 +275,22 @@ export const CollectionBinding = memo(function CollectionBinding({
   // `useListData.getItem(key)` — Form 이 한 항목을 읽어 필드를 채운다. 컬렉션 컴포넌트에 두면 목록이
   // 그 한 항목만 보여 입력을 두지 않는다 (2026-10-24 사용자 「Item key 를 Form 에만」).
   const readsOneItem = ruleId === "Form";
-  const fieldMapRoles: readonly FieldMapRole[] = [
-    ...(isTree
-      ? TREE_FIELD_MAP_ROLES
-      : isSection
-        ? SECTION_FIELD_MAP_ROLES
-        : FIELD_MAP_ROLES),
-    // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field whose `true`
-    // disables the row's item.
-    ...(ruleId && CATALOG_DATA_DISABLED_TYPES.has(ruleId)
-      ? (["disabled"] as const)
-      : []),
-  ];
+  // (S2 `isDateUnavailable` from data — a date component's binding is its unavailable dates.)
+  const namesDates = !!ruleId && CATALOG_UNAVAILABLE_DATE_TYPES.has(ruleId);
+  const fieldMapRoles: readonly FieldMapRole[] = namesDates
+    ? UNAVAILABLE_FIELD_MAP_ROLES
+    : [
+        ...(isTree
+          ? TREE_FIELD_MAP_ROLES
+          : isSection
+            ? SECTION_FIELD_MAP_ROLES
+            : FIELD_MAP_ROLES),
+        // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field whose `true`
+        // disables the row's item.
+        ...(ruleId && CATALOG_DATA_DISABLED_TYPES.has(ruleId)
+          ? (["disabled"] as const)
+          : []),
+      ];
   const [rowTemplateMode, setRowTemplateMode] = useState<"template" | "keep">(
     "template",
   );
@@ -415,7 +444,7 @@ export const CollectionBinding = memo(function CollectionBinding({
           )}
         </div>
 
-        {!selectedCollectionId && workspace && elementId && (
+        {!selectedCollectionId && !namesDates && workspace && elementId && (
           <RowTemplateModeChoice
             workspace={workspace}
             elementId={elementId}
@@ -438,10 +467,13 @@ export const CollectionBinding = memo(function CollectionBinding({
                           field.type === "string" || field.type === "number",
                       )
                     : role === "disabled"
-                      ? fieldOptions.filter(
-                          (field) => field.type === "boolean",
-                        )
-                      : fieldOptions
+                      ? fieldOptions.filter((field) => field.type === "boolean")
+                      : role === "unavailable" || role === "unavailableEnd"
+                        ? fieldOptions.filter(
+                            (field) =>
+                              field.type === "date" || field.type === "string",
+                          )
+                        : fieldOptions
               }
               selectedFieldId={
                 resolveField(fieldOptions, value?.fieldMap?.[role])?.id ?? null

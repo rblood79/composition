@@ -227,19 +227,8 @@
 
   /* (Disabled — a day outside Min · Max: the catalog rule's `color.isDisabled`, ADR-309.) */
 
-  /* Unavailable state */
-  .react-aria-Calendar .react-aria-CalendarCell[data-unavailable],
-  .react-aria-RangeCalendar .react-aria-CalendarCell[data-unavailable] {
-    text-decoration: line-through;
-    color: var(--negative);
-  }
-
-  /* Invalid state */
-  .react-aria-Calendar .react-aria-CalendarCell[data-invalid],
-  .react-aria-RangeCalendar .react-aria-CalendarCell[data-invalid] {
-    background: var(--negative);
-    color: var(--color-white);
-  }
+  /* (Unavailable · invalid — the catalog rules' trees: S2 `unavailableStyles` bar · the invalid
+     selected fill, Canvas the same — 2026-11-23, S2 체크리스트 부록 D.3 2단계.) */
 
   /* ========== Error Message ========== */
   .react-aria-Calendar [slot="errorMessage"],

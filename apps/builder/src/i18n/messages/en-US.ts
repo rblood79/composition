@@ -1205,6 +1205,8 @@ const catalog: TranslationKeys = {
     fieldMapParentId: "Parent ID field (tree)",
     fieldMapAuto: "Auto",
     fieldMapDisabled: "Disabled field",
+    fieldMapUnavailable: "Unavailable date",
+    fieldMapUnavailableEnd: "Unavailable until",
     fieldMapNone: "None",
     rowTemplateItems: "{count} existing items",
     rowTemplateFirst: "First item as the template — remove the rest",
@@ -2681,6 +2683,14 @@ const catalog: TranslationKeys = {
     libraryReadOnly:
       "Library component — read only. Unlock it to edit it as a project component.",
   },
+  unavailableDates: {
+    weekdays: "Weekdays",
+    date: "Date",
+    period: "Period",
+    remove: "Remove",
+    addDate: "Add date",
+    addPeriod: "Add period",
+  },
   validationRules: {
     self: "This field",
     end: "End date",
@@ -3286,6 +3296,10 @@ const semanticLabels: Record<string, string> = {
   "properties.first": "First",
   "properties.disabledKeys": "Disabled items",
   "properties.validationRules": "Validation rules",
+  "properties.unavailableDates": "Unavailable dates",
+  "properties.keyboardDismissDisabled": "Escape won't close",
+  "properties.filterMode": "Filter mode",
+  "properties.filterStartsWith": "Starts with",
   "properties.selectionBehavior": "Selection behavior",
   "properties.toggle": "Toggle",
   "properties.replace": "Replace",
@@ -3827,6 +3841,7 @@ const formattedMessages: Record<
     `This endpoint splits its rows into pages — to group, total or nest them the Table loads every row (up to ${String(args?.cap ?? "")}) and runs them here. Past that it shows no rows.`,
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
+  "unavailableDates.actions": (args) => `${String(args?.name ?? "")} actions`,
   "validationRules.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.existingControl": (args) =>

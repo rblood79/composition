@@ -129,9 +129,17 @@
   background: transparent;
 }
 
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-unavailable][data-hovered]) {
+  background: transparent;
+}
+
 .react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-disabled]) {
   color: var(--fg-disabled);
   cursor: not-allowed;
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-unavailable]) {
+  cursor: default;
 }
 
 .react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-focus-visible]) {
@@ -154,6 +162,19 @@
 
 .react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-pressed]) {
   transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-unavailable])::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 1px);
+  left: calc(25% - 1px);
+  right: calc(25% - 1px);
+  height: 2px;
+  transform: rotate(-16deg);
+  border-radius: 9999px;
+  background: currentColor;
+  pointer-events: none;
 }
 
 .react-aria-RangeCalendar.react-aria-RangeCalendar .react-aria-CalendarCell:where([data-today][data-selected])::after {

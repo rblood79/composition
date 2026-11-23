@@ -359,7 +359,13 @@ const CALENDAR_CELL_STATE = {
     isSelected: {
       default: "var(--accent)",
       isHovered: "color-mix(in srgb, var(--accent) 85%, black)",
+      // S2 `cellInnerStyles` `isSelected.selectionMode.single.isInvalid` — RAC's invalid value (an
+      // unavailable day · past Min · Max · `isInvalid`) — was the manual `CalendarCommon.css`
+      // `[data-invalid]` (2026-11-23, S2 체크리스트 부록 D.3 2단계).
+      isInvalid: "var(--negative)",
     },
+    // S2 `cellInnerStyles` `isHovered.isUnavailable: transparent` — an unavailable day takes no hover.
+    isUnavailable: { isHovered: "transparent" },
   },
   // S2 `Calendar.tsx` cell `color.isDisabled: 'disabled'` — a day outside Min · Max (ADR-309; was the
   // manual `CalendarCommon.css` `[data-disabled]` color-mix).
@@ -367,10 +373,27 @@ const CALENDAR_CELL_STATE = {
     isSelected: "var(--fg-on-accent)",
     isDisabled: "var(--fg-disabled)",
   },
-  cursor: { isDisabled: "not-allowed" },
+  cursor: { isDisabled: "not-allowed", isUnavailable: "default" },
   outline: { isFocusVisible: "2px solid var(--accent)" },
   outlineOffset: { isFocusVisible: "2px" },
   ...CALENDAR_CELL_PRESS,
+} as const;
+/**
+ * S2 `isDateUnavailable` (부록 D.3 2단계, 2026-11-23) — RAC 의 `[data-unavailable]` 날짜: S2 `Calendar.tsx`
+ * `unavailableStyles` — 칸 가운데 2px 둥근 막대 (칸 폭의 절반 + 양끝 1), −16° 기울기, 글자색. Canvas 는 같은 막대를
+ * `calendar_month_grid` 가 그린다 (calendar model `unavailable`).
+ */
+const CALENDAR_CELL_UNAVAILABLE = {
+  content: { isUnavailable: '""' },
+  position: { isUnavailable: "absolute" },
+  top: { isUnavailable: "calc(50% - 1px)" },
+  left: { isUnavailable: "calc(25% - 1px)" },
+  right: { isUnavailable: "calc(25% - 1px)" },
+  height: { isUnavailable: "2px" },
+  transform: { isUnavailable: "rotate(-16deg)" },
+  borderRadius: { isUnavailable: "9999px" },
+  background: { isUnavailable: "currentColor" },
+  pointerEvents: { isUnavailable: "none" },
 } as const;
 const RANGE_CALENDAR_CELL_STATE = {
   background: {
@@ -379,9 +402,10 @@ const RANGE_CALENDAR_CELL_STATE = {
       isHovered: "color-mix(in srgb, var(--accent-subtle) 50%, var(--accent))",
       isInvalid: "transparent",
     },
+    isUnavailable: { isHovered: "transparent" },
   },
   color: { isSelected: "var(--fg)", isDisabled: "var(--fg-disabled)" },
-  cursor: { isDisabled: "not-allowed" },
+  cursor: { isDisabled: "not-allowed", isUnavailable: "default" },
   outline: { isFocusVisible: "2px solid var(--focus-ring)" },
   outlineOffset: {
     isFocusVisible: {
@@ -2397,6 +2421,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-297 Phase 3g — the day cells' selected · focus (옛 수동 `Calendar.css` · `CalendarCommon.css`).
     partStateStyles: {
       "& .react-aria-CalendarCell%": CALENDAR_CELL_STATE,
+      "& .react-aria-CalendarCell%::before": CALENDAR_CELL_UNAVAILABLE,
       "& .react-aria-CalendarCell%::after": {
         background: { isToday: { isSelected: "var(--fg-on-accent)" } },
       },
@@ -11389,6 +11414,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       [`${RANGE_BAND}:has(+ td > [data-outside-month])::before`]:
         RANGE_BAND_END,
       "& .react-aria-CalendarCell%": RANGE_CALENDAR_CELL_STATE,
+      "& .react-aria-CalendarCell%::before": CALENDAR_CELL_UNAVAILABLE,
       "& .react-aria-CalendarCell%::after": {
         background: {
           isToday: {

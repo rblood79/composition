@@ -310,6 +310,42 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
     ruleOf.delete("gl-1");
   });
 
+  // S2 `isDateUnavailable` from data (부록 D.3 2단계, 2026-11-23): a date component's binding is its
+  // unavailable dates — 「Unavailable date」 · 「Unavailable until」 (date · text fields), no item key.
+  it("날짜 컴포넌트의 연결은 Unavailable date · until 역할만 — 날짜 · 글자 필드, 저장값은 fieldId", async () => {
+    ruleOf.set("cal-1", { ruleId: "Calendar" });
+    const { Comp, renderFresh } = await withSchema();
+    const onChange = vi.fn();
+    const { container } = renderFresh(
+      <Comp
+        elementId="cal-1"
+        value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
+        onChange={onChange}
+      />,
+    );
+    expect(
+      [...container.querySelectorAll(".binding-fieldmap-select")].map((node) =>
+        node.getAttribute("data-role"),
+      ),
+    ).toEqual(["unavailable", "unavailableEnd"]);
+    const control = container.querySelector(
+      ".binding-fieldmap-select[data-role='unavailable']",
+    )!;
+    fireEvent.click(control.querySelector("button")!);
+    expect(
+      [...document.querySelectorAll('[role="option"]')].map((o) =>
+        o.getAttribute("data-key"),
+      ),
+    ).toEqual(["__auto__", "f-id", "f-name"]);
+    fireEvent.click(
+      document.querySelector('[role="option"][data-key="f-name"]')!,
+    );
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fieldMap: { unavailable: "f-name" } }),
+    );
+    ruleOf.delete("cal-1");
+  });
+
   it("Disabled field 는 disabledKeys 를 받지 않는 대상 (Form) 에는 없다", async () => {
     const { Comp, renderFresh } = await withSchema();
     const { container } = renderFresh(

@@ -11,6 +11,11 @@ import {
   type CollectionDataSource,
   type DataBindingValue,
 } from "@composition/shared";
+import {
+  CATALOG_UNAVAILABLE_END_FIELD,
+  CATALOG_UNAVAILABLE_FIELD,
+  catalogUnavailableRowDates,
+} from "../document/unavailableDates";
 import type {
   CatalogBoundRow,
   CatalogBoundRows,
@@ -399,6 +404,12 @@ export function catalogBoundRows(
       ? disabledRowKeys(dataBinding, collections)
       : undefined;
   if (shown && disabledKeys) Object.assign(shown, { disabledKeys });
+  // (S2 `isDateUnavailable` from data — 부록 D.3 2단계: the dates its rows name, every row.)
+  const unavailableDates =
+    shown && kind === "items"
+      ? unavailableRowDates(dataBinding, collections)
+      : undefined;
+  if (shown && unavailableDates) Object.assign(shown, { unavailableDates });
   return shown && view ? Object.assign(shown, { view }) : shown;
 }
 
@@ -416,7 +427,8 @@ function disabledRowKeys(
   const ref = dataBinding.fieldMap?.disabled;
   if (typeof ref !== "string" || !ref) return undefined;
   const bound = resolveBoundCollection(dataBinding, collections);
-  const field = (bound?.schema ? resolveField(bound.schema, ref)?.key : undefined) ?? ref;
+  const field =
+    (bound?.schema ? resolveField(bound.schema, ref)?.key : undefined) ?? ref;
   const roles = resolveFieldRoles(dataBinding, bound?.schema, bound?.keyField);
   const keys: string[] = [];
   const visit = (rows: readonly unknown[]) =>
@@ -430,6 +442,35 @@ function disabledRowKeys(
     });
   visit(readDataBindingRows(dataBinding, collections));
   return keys;
+}
+
+/**
+ * S2 체크리스트 부록 D.3 2단계 (2026-11-23) — the dates a date component's binding names: each row's
+ * 「Unavailable date」 field (`fieldMap.unavailable`, a field id) and, with `unavailableEnd`, the
+ * period up to it (an ISO interval `start/end`) — over every row the binding reads (its view's
+ * result). Undefined = no such field.
+ */
+function unavailableRowDates(
+  dataBinding: DataBindingValue,
+  collections: readonly CollectionDataSource[],
+): string[] | undefined {
+  const map = dataBinding.fieldMap as
+    Record<string, string | undefined> | undefined;
+  const ref = map?.[CATALOG_UNAVAILABLE_FIELD];
+  if (typeof ref !== "string" || !ref) return undefined;
+  const bound = resolveBoundCollection(dataBinding, collections);
+  const keyOf = (id: string | undefined) =>
+    id
+      ? ((bound?.schema ? resolveField(bound.schema, id)?.key : undefined) ??
+        id)
+      : undefined;
+  return catalogUnavailableRowDates(
+    readDataBindingRows(dataBinding, collections),
+    keyOf(ref)!,
+    keyOf(map?.[CATALOG_UNAVAILABLE_END_FIELD]),
+  ).map((entry) =>
+    typeof entry === "string" ? entry : `${entry.start}/${entry.end}`,
+  );
 }
 
 /**

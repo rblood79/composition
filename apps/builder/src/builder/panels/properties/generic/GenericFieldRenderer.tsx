@@ -55,6 +55,7 @@ import { isRacColorString } from "../../../../../../../packages/shared/src/catal
 import { NumberFormatField } from "./NumberFormatField";
 import { NumberRangeField } from "./NumberRangeField";
 import { ValidationRulesField } from "./ValidationRulesField";
+import { UnavailableDatesField } from "./UnavailableDatesField";
 import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
@@ -1151,6 +1152,16 @@ const GenericField = memo(function GenericField({
           label={field.label}
           value={value}
           elementId={elementId}
+          onChange={update}
+        />
+      );
+
+    // S2 `isDateUnavailable` as data (S2 체크리스트 부록 D.3 2단계).
+    case "unavailable-dates":
+      return (
+        <UnavailableDatesField
+          label={field.label}
+          value={value}
           onChange={update}
         />
       );

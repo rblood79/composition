@@ -1,4 +1,5 @@
 import { catalogSkeletonState } from "./skeletonContext";
+import { catalogUnavailableDateTest } from "./unavailableDates";
 import {
   CATALOG_COLUMN_PLACE_PROP,
   resolveTableColumnKey,
@@ -2473,6 +2474,11 @@ function calendarModelInput(
     maxValue: own.maxValue,
     value,
     range,
+    isInvalid: own.isInvalid,
+    // (S2 체크리스트 부록 D.3 — the unavailable dates; a picker's calendar the picker's, as RAC.)
+    ...(catalogUnavailableDateTest(own)
+      ? { isDateUnavailable: catalogUnavailableDateTest(own) }
+      : {}),
     ...(picker
       ? hasValue
         ? {}
@@ -3321,15 +3327,25 @@ function derivedPropsBeforeSkeleton(
         _containerLayer: catalogContainerLayerAbove(node, get),
       }
     : withSideNav;
-  // (S2 Dialog `isDismissible` gives its Modal RAC's `isDismissable` — an outside press closes it.)
-  if (
-    typeOf(node) === "Modal" &&
-    partChildrenOf(node, get, typeOf).some(
-      (child) =>
-        typeOf(child) === "Dialog" && child.props.isDismissible === true,
-    )
-  )
-    return { ...withContainer, _dialogDismissible: true };
+  // (S2 Dialog `isDismissible` gives its Modal RAC's `isDismissable` — an outside press closes it;
+  //  `isKeyboardDismissDisabled` its RAC `isKeyboardDismissDisabled` — Escape does not.)
+  if (typeOf(node) === "Modal") {
+    const dialogs = partChildrenOf(node, get, typeOf).filter(
+      (child) => typeOf(child) === "Dialog",
+    );
+    const dismissible = dialogs.some(
+      (child) => child.props.isDismissible === true,
+    );
+    const keyboardLocked = dialogs.some(
+      (child) => child.props.isKeyboardDismissDisabled === true,
+    );
+    if (dismissible || keyboardLocked)
+      return {
+        ...withContainer,
+        ...(dismissible ? { _dialogDismissible: true } : {}),
+        ...(keyboardLocked ? { _dialogKeyboardDismissDisabled: true } : {}),
+      };
+  }
   if (typeOf(node) === "Sheet") {
     const overlay = catalogPartParent(node, get, typeOf);
     if (overlay && typeOf(overlay) === "SheetOverlay") {

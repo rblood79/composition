@@ -3537,6 +3537,12 @@ function ruleDom(
   // S2 Dialog `isDismissible` gives its Modal RAC's `isDismissable` (`_dialogDismissible`).
   if (lower === "modal" && node.derivedProps?._dialogDismissible === true)
     rest.isDismissable = true;
+  // S2 Dialog `isKeyboardDismissDisabled` gives its Modal RAC's (`_dialogKeyboardDismissDisabled`).
+  if (
+    lower === "modal" &&
+    node.derivedProps?._dialogKeyboardDismissDisabled === true
+  )
+    rest.isKeyboardDismissDisabled = true;
   // An open modal's underlay is the Modal rule's (`_modalUnderlay` — the Canvas backdrop paints the
   // same): the shared Modal · a Dialog opening its own modal put it on their `ModalOverlay`.
   const underlay = node.derivedProps?._modalUnderlay;

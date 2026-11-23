@@ -346,6 +346,7 @@ export type AuthoredValue =
   | CalendarDuration
   | NumberFormatValue
   | readonly import("./validationRules").CatalogValidationRule[]
+  | import("./unavailableDates").CatalogUnavailableDates
   | PropWhen
   | PropVar
   | RichText;
@@ -385,7 +386,9 @@ export type ValueType =
   // S2 · RAC `formatOptions` — `catalogNumberFormatFits` (사용자 결정 2026-10-12).
   | "numberFormat"
   // S2 `validate` as condition rules — `catalogValidationRulesFit` (S2 체크리스트 부록 D.3 2단계).
-  | "validationRules";
+  | "validationRules"
+  // S2 `isDateUnavailable` as data — `catalogUnavailableDatesFit` (S2 체크리스트 부록 D.3 2단계).
+  | "unavailableDates";
 export type NumberRangeValue = CatalogNumberRange;
 /** Resolved prop value: a scalar, a structured value, a calendar duration or a number format. */
 export type PropValue =
@@ -397,6 +400,7 @@ export type PropValue =
   | NumberFormatValue
   | NumberRangeValue
   | readonly import("./validationRules").CatalogValidationRule[]
+  | import("./unavailableDates").CatalogUnavailableDates
   | PropWhen
   | PropVar
   | RichText;

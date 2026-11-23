@@ -1,0 +1,19 @@
+/* S2 체크리스트 부록 D.3 2단계 — a date component's unavailable weekdays · dates. */
+.unavailable-dates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.unavailable-date-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--control-size);
+  align-items: center;
+}
+
+.unavailable-dates-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xs);
+}

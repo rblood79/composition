@@ -57,6 +57,7 @@ export const DOM_CONDITIONS = [
   // ADR-297 Phase 3g — 수동 sheet 의 부품 상태:
   "isIndeterminate", // RAC Checkbox 의 반쯤 선택 (`[data-indeterminate]` — Canvas 는 selected 로 그린다)
   "isToday", // RAC CalendarCell 의 오늘 (`[data-today]`)
+  "isUnavailable", // RAC CalendarCell 의 고를 수 없는 날짜 (`[data-unavailable]` — S2 `isDateUnavailable`)
   "isSelectionStart", // RAC RangeCalendar 셀의 기간 시작 · 끝 (`[data-selection-start]` · `-end`)
   "isSelectionEnd",
   "isDragging", // RAC SliderThumb 를 끄는 중 (`[data-dragging]` — S2 Slider 의 press)
@@ -230,6 +231,7 @@ const FLAG_SELECTORS: Readonly<Record<Condition | DomCondition, string>> = {
   isLink: "[href]",
   isIndeterminate: "[data-indeterminate]",
   isToday: "[data-today]",
+  isUnavailable: "[data-unavailable]",
   isSelectionStart: "[data-selection-start]",
   isSelectionEnd: "[data-selection-end]",
   isDragging: "[data-dragging]",

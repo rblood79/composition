@@ -4,6 +4,11 @@ import {
   CATALOG_ROW_ITEM_TYPES,
   CATALOG_SECTION_TYPES,
 } from "../document/collectionItems";
+import {
+  CATALOG_UNAVAILABLE_DATE_TYPES,
+  CATALOG_UNAVAILABLE_FIELD,
+} from "../document/unavailableDates";
+import { CATALOG_UNAVAILABLE_DATA_PROP } from "../runtime/unavailableDates";
 import { catalogAvatarCssSize } from "../document/avatarSizeValue";
 import { bindTemplateValue } from "../document/templateBindingValue";
 import { catalogLabeledValueFits } from "../document/labeledValue";
@@ -329,6 +334,12 @@ export type CatalogBoundRows = readonly CatalogBoundRow[] & {
    * binding's disabled field (`fieldMap.disabled`) marks — every row's, not the window's.
    */
   readonly disabledKeys?: readonly string[];
+  /**
+   * S2 `isDateUnavailable` from data (부록 D.3 2단계, 2026-11-23): the dates the binding's
+   * 「Unavailable date」 field (`fieldMap.unavailable`, to `unavailableEnd`) names — every row the
+   * view passes, not the window's — a day as ISO text, a period as an ISO interval (`start/end`).
+   */
+  readonly unavailableDates?: readonly string[];
   /** ADR-284 — the binding's view result (absent = no view). */
   readonly view?: CatalogViewResultMeta;
   /** The Table sort the rows are already in (the row source ordered them before its window). */
@@ -2955,6 +2966,15 @@ export function resolveCatalogNode(
       rows && nodeBinding && CATALOG_DATA_DISABLED_TYPES.has(ownedType)
         ? (keyedRows ?? rows(nodeBinding, "items", node.id))?.disabledKeys
         : undefined;
+    // S2 `isDateUnavailable` from data (부록 D.3 2단계): the dates a date component's binding names
+    // (its 「Unavailable date」 field, over the rows its conditions pass) — Canvas · DOM read them.
+    const unavailableRows =
+      rows &&
+      nodeBinding?.fieldMap?.[CATALOG_UNAVAILABLE_FIELD] &&
+      CATALOG_UNAVAILABLE_DATE_TYPES.has(ownedType)
+        ? (keyedRows ?? rows(nodeBinding, "items", node.id))?.unavailableDates
+        : undefined;
+    if (unavailableRows) props[CATALOG_UNAVAILABLE_DATA_PROP] = unavailableRows;
     if (disabledRows?.length)
       props.disabledKeys = [
         ...new Set([
@@ -3089,6 +3109,8 @@ export function resolveCatalogNode(
               ...(props.loadingState !== undefined ? ["loadingState"] : []),
               // (The rows a data field disables reach it too — S2 `disabledKeys`.)
               ...(disabledRows?.length ? ["disabledKeys"] : []),
+              // (The dates its data names too — S2 `isDateUnavailable`.)
+              ...(unavailableRows ? [CATALOG_UNAVAILABLE_DATA_PROP] : []),
               // (ADR-315 Phase 5 — a group row's tree cell mark reaches the Cell's root.)
               ...(props[CATALOG_TREE_CELL_PROP] !== undefined
                 ? [CATALOG_TREE_CELL_PROP]
@@ -4006,7 +4028,9 @@ export function resolveCatalogNode(
           key in definition.accepts ||
           definition.mode === "composite" ||
           // (ADR-315 Phase 5 — the resolver's own mark, no authored prop: a group's tree cell.)
-          key === CATALOG_TREE_CELL_PROP
+          key === CATALOG_TREE_CELL_PROP ||
+          // (S2 `isDateUnavailable` from data — the dates the instance's binding names.)
+          key === CATALOG_UNAVAILABLE_DATA_PROP
         )
           props[key] = value;
     // The template node's px size, then the instance's (as visual · layout: the instance wins —

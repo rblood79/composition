@@ -129,6 +129,19 @@ export const comboBoxBinding: PrimitiveBinding = {
         label: "Allow Custom Value",
         section: "state",
       },
+      // RAC ComboBox `defaultFilter` as data (S2 체크리스트 부록 D.3 2단계, 2026-11-23 — S2 omits it and
+      //   always uses RAC's default, a language-aware 「contains」): which items the typed text keeps —
+      //   `contains` (RAC's · S2's) or `startsWith`, both `useFilter({sensitivity: "base"})`.
+      defaultFilter: {
+        kind: "enum",
+        label: "Filter mode",
+        section: "state",
+        default: "contains",
+        options: [
+          { value: "contains", label: "Contains" },
+          { value: "startsWith", label: "Starts with" },
+        ],
+      },
       menuTrigger: {
         kind: "enum",
         label: "Menu Trigger",

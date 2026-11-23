@@ -1,4 +1,5 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
+import { catalogUnavailableDateTest } from "./unavailableDates";
 import { catalogEffectiveStaticColor } from "./staticBackdrop";
 import { catalogSelectBoxText } from "./selectBoxText";
 import { selectBoxDisabledKeys } from "./selectBoxSelection";
@@ -801,9 +802,9 @@ export function catalogCollectionItemKeys(
  * S2 · RAC `disabledKeys` of a collection (부록 D.3 2단계, 2026-11-23): the keys its group stores
  * (a bound one's with its disabled field's rows — the resolver's). None = RAC's own (none).
  */
-function disabledKeysProp(
-  props: Readonly<Record<string, unknown>>,
-): { disabledKeys?: string[] } {
+function disabledKeysProp(props: Readonly<Record<string, unknown>>): {
+  disabledKeys?: string[];
+} {
   const keys = catalogGroupDisabledKeys(props);
   return keys.length ? { disabledKeys: keys } : {};
 }
@@ -1574,8 +1575,7 @@ function catalogDomFieldValidate(
   const formFields = form
     ? catalogFormFieldsOf(form, lookup)
         .filter(
-          (field) =>
-            reads.has(field.name) && field.record.id !== input.node.id,
+          (field) => reads.has(field.name) && field.record.id !== input.node.id,
         )
         .map((field) => ({
           name: field.name,
@@ -2043,6 +2043,8 @@ const datePickerProps = (props: CatalogConsumerNode["props"]) => ({
   pageBehavior: props.pageBehavior === "single" ? "single" : undefined,
   // (RAC hands it to the picker's calendar — `calendarProps`.)
   firstDayOfWeek: firstDayOfWeek(props.firstDayOfWeek),
+  // S2 `isDateUnavailable` from data (S2 체크리스트 부록 D.3 2단계): its calendar's too.
+  isDateUnavailable: catalogUnavailableDateTest(props),
   // No value of its own: the date its calendar opens on (as DateField's).
   placeholderValue: placeholderDate(props.placeholderValue, props.granularity),
   validationBehavior: props.validationBehavior || undefined,
@@ -3096,6 +3098,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       defaultOpen: props.defaultOpen,
       allowsCustomValue: bool(props.allowsCustomValue),
       menuTrigger: opt(props.menuTrigger),
+      // RAC `defaultFilter` as data (S2 체크리스트 부록 D.3 2단계) — `CatalogComboBox` makes the
+      // function (`useFilter`); a server-filtered list's keeps every item (`serverFiltered`).
+      filterMode:
+        props.defaultFilter === "startsWith" ? "startsWith" : undefined,
       ...disabledKeysProp(props),
       "aria-label": str(props.label).trim()
         ? undefined
@@ -3197,6 +3203,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
       minValue: dateValue(props.minValue),
       maxValue: dateValue(props.maxValue),
+      // S2 `isDateUnavailable` from data — an unavailable date typed in is invalid (RAC).
+      isDateUnavailable: catalogUnavailableDateTest(props),
       // No value of its own: the empty segments (RAC · RSP — the Canvas draws the same).
       placeholderValue: placeholderDate(
         props.placeholderValue,
@@ -4705,6 +4713,9 @@ export const CATALOG_PICKER_CALENDAR_PROPS: ReadonlySet<string> = new Set([
   "maxValue",
   "errorMessage",
   "selectionMode",
+  // (S2 체크리스트 부록 D.3 — the picker's unavailable dates and the data that names them.)
+  "isDateUnavailable",
+  "dataBinding",
 ]);
 
 /** A DateRangePicker's RangeCalendar: those, and the picker's non-contiguous ranges. */
@@ -4770,6 +4781,8 @@ function calendarElement(
       firstDayOfWeek: own(firstDayOfWeek(props.firstDayOfWeek)),
       minValue: own(dateValue(props.minValue)),
       maxValue: own(dateValue(props.maxValue)),
+      // S2 `isDateUnavailable` from data (S2 체크리스트 부록 D.3 2단계) — a picker's comes from it.
+      isDateUnavailable: own(catalogUnavailableDateTest(props)),
       defaultFocusedValue: own(dateValue(props.defaultFocusedValue)),
       autoFocus: own(bool(props.autoFocus)),
       visibleDuration: catalogCalendarDurationFits(props.visibleDuration)

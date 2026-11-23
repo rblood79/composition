@@ -118,6 +118,8 @@ function variableType(
   if (type === "dateRange") return "object";
   // (S2 체크리스트 부록 D.3 — a field's validation rules: a list of its own.)
   if (type === "validationRules") return "array";
+  // (S2 체크리스트 부록 D.3 — a date component's unavailable weekdays · dates.)
+  if (type === "unavailableDates") return "object";
   return type === "string[]" || type === "items"
     ? "array"
     : type === "slot"

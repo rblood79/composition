@@ -1205,6 +1205,8 @@ const catalog: TranslationKeys = {
     fieldMapParentId: "부모 ID 필드 (트리)",
     fieldMapAuto: "자동",
     fieldMapDisabled: "비활성 필드",
+    fieldMapUnavailable: "고를 수 없는 날짜",
+    fieldMapUnavailableEnd: "고를 수 없는 끝 날짜",
     fieldMapNone: "없음",
     rowTemplateItems: "기존 항목 {count}개",
     rowTemplateFirst: "첫 항목만 템플릿으로 — 나머지 지움",
@@ -2668,6 +2670,14 @@ const catalog: TranslationKeys = {
     libraryReadOnly:
       "Library 컴포넌트 — 읽기 전용. 잠금을 해제하면 프로젝트 컴포넌트로 고칠 수 있습니다.",
   },
+  unavailableDates: {
+    weekdays: "요일",
+    date: "날짜",
+    period: "기간",
+    remove: "제거",
+    addDate: "날짜 추가",
+    addPeriod: "기간 추가",
+  },
   validationRules: {
     self: "이 필드",
     end: "끝 날짜",
@@ -3279,6 +3289,10 @@ const semanticLabels: Record<string, string> = {
   "properties.first": "앞",
   "properties.disabledKeys": "비활성 항목",
   "properties.validationRules": "검증 규칙",
+  "properties.unavailableDates": "고를 수 없는 날짜",
+  "properties.keyboardDismissDisabled": "Esc 로 닫지 않음",
+  "properties.filterMode": "필터 방식",
+  "properties.filterStartsWith": "으로 시작",
   "properties.selectionBehavior": "선택 방식",
   "properties.toggle": "토글",
   "properties.replace": "덮어쓰기",
@@ -3816,6 +3830,7 @@ const formattedMessages: Record<
     `이 endpoint 는 행을 쪽으로 나눠 줍니다 — 묶기 · 합계 · 계층은 표가 모든 행 (최대 ${String(args?.cap ?? "")} 행) 을 불러와 여기서 계산합니다. 넘으면 행을 보이지 않습니다.`,
   "dataView.summary": (args) =>
     `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
+  "unavailableDates.actions": (args) => `${String(args?.name ?? "")} 동작`,
   "validationRules.actions": (args) => `${String(args?.name ?? "")} 동작`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
   "dataView.existingControl": (args) => `기존 · ${String(args?.control ?? "")}`,

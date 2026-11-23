@@ -42,6 +42,7 @@ import { isDateValueText } from "../../state/dateValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogNumberRangeFits } from "./numberRangeValue";
 import { catalogValidationRulesFit } from "./validationRules";
+import { catalogUnavailableDatesFit } from "./unavailableDates";
 import { catalogDateRangeFits } from "./dateRangeValue";
 import type { ComputedSchemaField } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
@@ -306,6 +307,7 @@ const valueTypes = new Set<ValueType>([
   "autoFocus",
   "numberRange",
   "validationRules",
+  "unavailableDates",
   "labeledValue",
   "labeledFormat",
 ]);
@@ -758,7 +760,9 @@ function authoredValue(
       !catalogNumberFormatFits(value) &&
       !catalogNumberRangeFits(value) &&
       // ADR-309 — a date range's `{start, end}` ISO texts.
-      !catalogDateRangeFits(value)
+      !catalogDateRangeFits(value) &&
+      // S2 체크리스트 부록 D.3 — a date component's unavailable weekdays · dates.
+      !catalogUnavailableDatesFit(value)
     )
       invalid("INVALID_OBJECT_VALUE", at);
     return;

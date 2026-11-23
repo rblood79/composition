@@ -372,6 +372,12 @@ export interface PropertyDataBinding {
      * disables the row's item (`CATALOG_DATA_DISABLED_TYPES`).
      */
     disabled?: string;
+    /**
+     * S2 `isDateUnavailable` from data (부록 D.3 2단계, 2026-11-23): a date component's 「Unavailable
+     * date」 field — each row's date (`unavailableEnd`: to the period's end) can't be picked.
+     */
+    unavailable?: string;
+    unavailableEnd?: string;
   };
   /**
    * 데이터 경로 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.

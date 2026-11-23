@@ -92,6 +92,13 @@ export interface CatalogCalendarModelInput {
   readonly selectionMode?: unknown;
   /** A RangeCalendar's (`{start, end}` — its ends and the days between). */
   readonly range?: boolean;
+  /**
+   * S2 `isDateUnavailable` from data (부록 D.3 2단계) — the calendar's (a picker's: the picker's)
+   * test (`catalogUnavailableDateTest`): RAC's `data-unavailable` cells, never selected.
+   */
+  readonly isDateUnavailable?: (date: CalendarDate) => boolean;
+  /** The calendar's authored `isInvalid` (a picker's: the picker's). */
+  readonly isInvalid?: unknown;
 }
 
 /** ADR-309 — a selected cell as RAC marks it (`data-selected` · `-selection-start` · `-end`). */
@@ -112,6 +119,13 @@ export interface CatalogCalendarGridModel {
   ])[];
   /** ADR-309 — the cells RAC disables (outside Min · Max — `data-disabled`): `[row, column]`. */
   readonly disabled?: readonly (readonly [number, number])[];
+  /** S2 `isDateUnavailable` — the cells RAC marks unavailable (`data-unavailable`): `[row, column]`. */
+  readonly unavailable?: readonly (readonly [number, number])[];
+  /**
+   * RAC's invalid value (`isValueInvalid` — `isInvalid`, or the value on an unavailable day · past
+   * Min · Max; a range's start · end): its selected cells are invalid (`data-invalid`).
+   */
+  readonly invalid?: true;
 }
 
 interface CalendarContext {
@@ -130,6 +144,9 @@ interface CalendarContext {
   range?: { start: CalendarDate; end: CalendarDate };
   min?: CalendarDate;
   max?: CalendarDate;
+  unavailable?: (date: CalendarDate) => boolean;
+  /** RAC `isValueInvalid` — the value's cells show selected · invalid, unavailable or not. */
+  valueInvalid: boolean;
 }
 
 /** The locale RAC formats in: the calendar's own (+ its calendar system), else the environment's. */
@@ -329,12 +346,26 @@ function context(
     ...(range ? { range } : {}),
     ...(min ? { min: inCalendar(min) } : {}),
     ...(max ? { max: inCalendar(max) } : {}),
+    ...(input.isDateUnavailable
+      ? { unavailable: input.isDateUnavailable }
+      : {}),
+    // RAC `useCalendarState` · `useRangeCalendarState` `isValueInvalid`: the authored flag, or a
+    // value day (a range's start · end) unavailable or past Min · Max.
+    valueInvalid:
+      input.isInvalid === true ||
+      (range ? [range.start, range.end] : values).some(
+        (day) =>
+          !!input.isDateUnavailable?.(day) ||
+          (!!min && day.compare(inCalendar(min)!) < 0) ||
+          (!!max && day.compare(inCalendar(max)!) > 0),
+      ),
   };
 }
 
 /**
  * ADR-309 — how RAC marks a shown cell's day (`useCalendarCell`): selected when the value holds it
- * and the cell is not disabled (outside Min · Max); a range's start · end · days between.
+ * and the cell is neither disabled (outside Min · Max) nor unavailable (`useCalendarState`
+ * `isSelected`); a range's start · end · days between.
  */
 function cellDisabled(ctx: CalendarContext, date: CalendarDate): boolean {
   return !!(
@@ -348,6 +379,8 @@ function cellSelection(
   date: CalendarDate,
 ): CatalogCalendarCellSelection | undefined {
   if (cellDisabled(ctx, date)) return undefined;
+  // (RAC `useCalendarCell`: an invalid value's cells are selected — an unavailable one too.)
+  if (!ctx.valueInvalid && ctx.unavailable?.(date)) return undefined;
   if (ctx.range) {
     const { start, end } = ctx.range;
     if (date.compare(start) < 0 || date.compare(end) > 0) return undefined;
@@ -472,6 +505,7 @@ export function catalogCalendarGrid(
   let todayCell: [number, number] | undefined;
   const selected: [number, number, CatalogCalendarCellSelection][] = [];
   const disabled: [number, number][] = [];
+  const unavailable: [number, number][] = [];
   for (let week = 0; week < weeks; week++) {
     let date: CalendarDate | null = start.add({ weeks: week });
     const days = isDayView ? duration.days! : 7;
@@ -495,6 +529,8 @@ export function catalogCalendarGrid(
         const how = cellSelection(ctx, cell);
         if (how) selected.push([week, column, how]);
         if (cellDisabled(ctx, cell)) disabled.push([week, column]);
+        // (RAC `useCalendarCell`: `isCellUnavailable` whether or not the cell is disabled.)
+        if (ctx.unavailable?.(cell)) unavailable.push([week, column]);
         return String(cell.day);
       }),
     );
@@ -505,6 +541,8 @@ export function catalogCalendarGrid(
     today: todayCell,
     ...(selected.length ? { selected } : {}),
     ...(disabled.length ? { disabled } : {}),
+    ...(unavailable.length ? { unavailable } : {}),
+    ...(ctx.valueInvalid && selected.length ? { invalid: true as const } : {}),
   };
 }
 

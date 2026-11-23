@@ -29,6 +29,14 @@ export const dialogBinding: PrimitiveBinding = {
         label: "Dismissible",
         section: "overlay",
       },
+      // S2 Dialog `isKeyboardDismissDisabled` (S2 체크리스트 부록 D.3 2단계, 2026-11-23): Escape does not
+      //   close it — its Modal's RAC `isKeyboardDismissDisabled` (파생 `_dialogKeyboardDismissDisabled`),
+      //   or the modal it opens itself. (S2 Popover drops the prop — `Omit<AriaPopoverProps, …>`.)
+      isKeyboardDismissDisabled: {
+        kind: "boolean",
+        label: "Keyboard dismiss disabled",
+        section: "overlay",
+      },
       role: {
         kind: "enum",
         label: "Role",

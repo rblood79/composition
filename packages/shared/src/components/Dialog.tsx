@@ -33,6 +33,11 @@ export interface DialogExtendedProps extends DialogProps {
    */
   isDismissible?: boolean;
   /**
+   * S2 `isKeyboardDismissDisabled` (2026-11-23): Escape does not close the modal it opens itself
+   * (in a Modal, the Modal's — the catalog's `_dialogKeyboardDismissDisabled`).
+   */
+  isKeyboardDismissDisabled?: boolean;
+  /**
    * The scrim under the modal this Dialog opens (a CSS color — the catalog Modal rule's underlay,
    * given by the catalog DOM binding). Only read when it opens its own modal.
    */
@@ -73,6 +78,7 @@ export function Dialog({
   size = "M",
   isDismissable,
   isDismissible,
+  isKeyboardDismissDisabled,
   underlay,
   ...props
 }: DialogExtendedProps) {
@@ -107,6 +113,7 @@ export function Dialog({
     <ModalOverlay
       className="react-aria-ModalOverlay"
       isDismissable={isDismissable || isDismissible}
+      isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       style={underlay ? { backgroundColor: underlay } : undefined}
     >
       <Modal

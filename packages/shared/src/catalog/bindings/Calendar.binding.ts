@@ -15,6 +15,10 @@
 
 import type { PrimitiveBinding } from "../types";
 import {
+  UNAVAILABLE_DATA_PROP,
+  UNAVAILABLE_DATES_PROP,
+} from "./unavailableDatesProp";
+import {
   DATE_CALENDAR_SYSTEM_PROP,
   DATE_LOCALE_PROP,
   FIRST_DAY_OF_WEEK_PROP,
@@ -77,6 +81,10 @@ export const calendarBinding: PrimitiveBinding = {
       },
       minValue: { kind: "date", label: "Min Value", section: "value" },
       maxValue: { kind: "date", label: "Max Value", section: "value" },
+      // S2 `isDateUnavailable` as data (S2 체크리스트 부록 D.3 2단계) — weekdays · dates, and the
+      //   dates its data source names.
+      isDateUnavailable: UNAVAILABLE_DATES_PROP,
+      dataBinding: UNAVAILABLE_DATA_PROP,
       errorMessage: {
         kind: "string",
         label: "Error Message",

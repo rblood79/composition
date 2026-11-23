@@ -2030,6 +2030,8 @@ function calendarGridModel(value: unknown):
       today?: [number, number];
       selected?: [number, number, string][];
       disabled?: [number, number][];
+      unavailable?: [number, number][];
+      invalid?: true;
     }
   | undefined {
   if (typeof value !== "string" || !value) return undefined;
@@ -2047,6 +2049,8 @@ function calendarGridModel(value: unknown):
       today?: [number, number];
       selected?: [number, number, string][];
       disabled?: [number, number][];
+      unavailable?: [number, number][];
+      invalid?: true;
     };
   } catch {
     return undefined;
@@ -2109,15 +2113,32 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
     const selection = new Map<string, string>();
     for (const [row, col, how] of model.selected ?? [])
       selection.set(`${row}:${col}`, how);
-    const selectedFill = props._selectedFill as ColorValue | undefined;
     const selectedText = props._selectedText as ColorValue | undefined;
-    const bandFill = props._bandFill as ColorValue | undefined;
-    const bandBorder = props._bandBorder as ColorValue | undefined;
+    // (RAC's invalid value — `model.invalid`: its selected cells in the rule's invalid paint.)
+    const invalid = model.invalid === true;
+    const selectedFill = invalid
+      ? ((props._invalidFill as ColorValue | undefined) ??
+        ("{color.negative}" as TokenRef))
+      : (props._selectedFill as ColorValue | undefined);
+    const bandFill = invalid
+      ? ((props._bandInvalidFill as ColorValue | undefined) ??
+        ("{color.negative-subtle}" as TokenRef))
+      : (props._bandFill as ColorValue | undefined);
+    const bandBorder = invalid
+      ? ((props._bandInvalidBorder as ColorValue | undefined) ??
+        ("{color.negative}" as TokenRef))
+      : (props._bandBorder as ColorValue | undefined);
     // ADR-309 — a day RAC disables (outside Min · Max) in the rule's disabled text color.
     const disabled = new Set(
       (model.disabled ?? []).map(([row, col]) => `${row}:${col}`),
     );
     const disabledText = props._disabledText as ColorValue | undefined;
+    // S2 `isDateUnavailable` (부록 D.3 2단계) — RAC's `data-unavailable` days: S2 `Calendar.tsx`
+    // `unavailableStyles` — a 2px round bar over half the cell (+1 each end), turned −16°, in the
+    // day's text color.
+    const unavailable = new Set(
+      (model.unavailable ?? []).map(([row, col]) => `${row}:${col}`),
+    );
     model.rows.forEach((cells, row) => {
       let runStart = -1;
       const inBand = (col: number) => {
@@ -2171,6 +2192,26 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
             radius: cellSize / 2,
             fill: selectedFill ?? ("{color.accent}" as TokenRef),
           });
+        const dayFill = filled
+          ? (selectedText ?? ("{color.on-accent}" as TokenRef))
+          : disabled.has(`${row}:${col}`)
+            ? (disabledText ?? ("{color.disabled-content}" as TokenRef))
+            : textColor;
+        if (unavailable.has(`${row}:${col}`)) {
+          const half = cellSize / 4;
+          const angle = (16 * Math.PI) / 180;
+          const cx = cellLeft + cellSize / 2;
+          shapes.push({
+            type: "line" as const,
+            x1: cx - half * Math.cos(angle),
+            y1: cy + half * Math.sin(angle),
+            x2: cx + half * Math.cos(angle),
+            y2: cy - half * Math.sin(angle),
+            stroke: dayFill,
+            strokeWidth: 2,
+            strokeCap: "round" as const,
+          });
+        }
         shapes.push({
           type: "text" as const,
           x: cellLeft,
@@ -2179,11 +2220,7 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
           fontSize,
           fontFamily: ff,
           fontWeight: isToday ? 700 : 400,
-          fill: filled
-            ? (selectedText ?? ("{color.on-accent}" as TokenRef))
-            : disabled.has(`${row}:${col}`)
-              ? (disabledText ?? ("{color.disabled-content}" as TokenRef))
-              : textColor,
+          fill: dayFill,
           align: "center" as const,
           baseline: "middle" as const,
           maxWidth: cellSize,

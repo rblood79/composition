@@ -83,7 +83,14 @@ async function place() {
     [...root.canvasInputs.values()].find(
       (record) => record.sourceId === PLACED,
     )!;
-  return { workspace, root, part, placed, setDismissible };
+  const setKeyboardLocked = (value: boolean) =>
+    workspace.execute(
+      setFields({
+        targets: [workspace.positionOfRecord(part("Dialog")!.id)!.target],
+        props: { isKeyboardDismissDisabled: { kind: "set", value } },
+      }),
+    );
+  return { workspace, root, part, placed, setDismissible, setKeyboardLocked };
 }
 
 let unmount: (() => Promise<void>) | undefined;
@@ -190,4 +197,37 @@ describe("S2 Dialog isDismissible (2026-11-18)", () => {
       document.body.innerHTML = "";
     }
   });
+});
+
+// S2 Dialog `isKeyboardDismissDisabled` (S2 체크리스트 부록 D.3 2단계, 2026-11-23): Escape does not close
+// it — its Modal's RAC `isKeyboardDismissDisabled` (derived `_dialogKeyboardDismissDisabled`).
+describe("S2 Dialog isKeyboardDismissDisabled (2026-11-23)", () => {
+  it.each([
+    [false, false],
+    [true, true],
+  ] as const)(
+    "isKeyboardDismissDisabled %s: the Modal's derived value, and after Escape the dialog is open = %s",
+    async (locked, stillOpen) => {
+      const { workspace, part, placed, setKeyboardLocked } = await place();
+      setKeyboardLocked(locked);
+      expect(
+        part("Modal")!.derivedProps?._dialogKeyboardDismissDisabled === true,
+      ).toBe(locked);
+      const host = await mount(renderCatalogDom(workspace.root, placed().id));
+      await press(host.querySelector("button")!);
+      const dialog = document.querySelector(
+        ".react-aria-Dialog",
+      ) as HTMLElement;
+      expect(dialog).not.toBeNull();
+      await act(async () => {
+        dialog.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+      });
+      await settle();
+      expect(!!document.querySelector(".react-aria-ModalOverlay")).toBe(
+        stillOpen,
+      );
+    },
+  );
 });

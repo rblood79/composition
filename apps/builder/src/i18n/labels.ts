@@ -442,6 +442,12 @@ export const semanticLabelKeys: Record<string, string> = {
   "Default Value": "datatable.fields.defaultValue",
   "Persist to localStorage": "datatable.fields.persistToLocalStorage",
   "Validation Rules": "datatable.fields.validationRules",
+  // S2 체크리스트 부록 D.3 2단계 — the field's validation rules · a date component's unavailable dates.
+  "Validation rules": "properties.validationRules",
+  "Unavailable dates": "properties.unavailableDates",
+  "Keyboard dismiss disabled": "properties.keyboardDismissDisabled",
+  "Filter mode": "properties.filterMode",
+  "Starts with": "properties.filterStartsWith",
   "Min Length": "datatable.fields.minLength",
   "Max Length": "datatable.fields.maxLength",
   "Pattern (Regex)": "datatable.fields.pattern",

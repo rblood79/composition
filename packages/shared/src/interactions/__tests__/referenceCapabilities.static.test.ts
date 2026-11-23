@@ -217,7 +217,9 @@ describe("ADR-287 G1 — derived Do vs the reference API tables", () => {
     //   no Do input kind (as SelectBoxGroup's); ADR-315 TableFooter's RAC items · dependencies (e266201f6) —
     //   accepts {} like TableBody. −3 — Dialog isDismissible · Tabs keyboardActivation · labelBehavior joined
     //   their accepts and have a Do. HEAD held 418 rows under a stale 426 — the first assertion failed first.)
-    expect(deferred.size).toBe(420);
+    // (2026-11-23 S2 체크리스트 부록 D.3 2단계: −1 — Dialog isKeyboardDismissDisabled joined its accepts
+    //   and has a Do.)
+    expect(deferred.size).toBe(419);
   });
 
   it("(b) a derived Do's prop is a row of its type's tables, or a d2Provenance extension", () => {

@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Dialog Esc 막기 · ComboBox 필터 방식 — S2 isKeyboardDismissDisabled · RAC defaultFilter] - 2026-11-23
+
+### Added
+
+- **Dialog 「Esc 로 닫지 않음」** (S2 Dialog `isKeyboardDismissDisabled`): Design 패널 Behavior 구획의 칩. 켜면 Preview · Publish 에서 Esc 로 Dialog 가 닫히지 않는다 (RAC Modal 의 `isKeyboardDismissDisabled` — Dialog 를 담은 Modal 의 파생 값, Dialog 가 직접 여는 modal 도). S2 Popover 는 이 prop 을 빼서 Popover 에는 두지 않았다.
+- **ComboBox 「필터 방식」** — 포함 (기본, S2 · RAC 와 같음) · 으로 시작. 입력한 글자가 항목 이름의 어디든 있으면 남기거나, 이름의 처음과 맞을 때만 남긴다. 판정은 RAC `useFilter({sensitivity: "base"})` (언어 규칙 — 대소문자 · 악센트 무시). 서버가 거르는 목록 (`{{ filterText }}` endpoint) 은 서버가 준 그대로다. S2 ComboBox 에는 없는 선택이라 RAC `defaultFilter` 를 데이터로 저장한다 (`d2Provenance` `rac`). Code 보기는 `defaultFilter={filter('startsWith')}`.
+  - 위치: `packages/shared/src/catalog/{bindings/Dialog.binding.ts,bindings/ComboBox.binding.ts,document/d2Provenance.ts,runtime/presence.ts,runtime/domBinding.runtime.ts,runtime/delegatedDom.runtime.ts,runtime/comboBoxSelectionText.tsx}` · `packages/shared/src/components/Dialog.tsx` · `packages/shared/src/codeView/generate.ts` · `apps/builder/src/builder/catalogRuntime/codeViewEdit.ts` · `apps/builder/src/i18n/{labels.ts,messages/*}`
+
+### Fixed
+
+- **Design 패널의 「Validation rules」 · 「Unavailable dates」 라벨이 한국어 화면에서도 영어였다**: binding 라벨은 번역 키 표 (`i18n/labels.ts`) 에 있어야 번역된다 — 두 라벨을 표에 넣었다 (「검증 규칙」 · 「고를 수 없는 날짜」).
+
+### Tests
+
+- `s2DialogDismissible.test.tsx` +2 (Esc 꺼짐 · 켜짐 — Modal 파생 값과 Preview) · `s2D3ComboBoxFilter.test.tsx` 3 (포함 · 시작 · Code 보기 왕복), 원복 RED 6/6 · builder 9,669 · shared 2,761, live `apps/builder/scripts/s2-dialog-esc-combobox-filter-live.mjs` 6/6.
+
+## [고를 수 없는 날짜 — S2 isDateUnavailable (요일 · 날짜 목록 · 데이터 표)] - 2026-11-23
+
+### Added
+
+- **날짜 컴포넌트의 「고를 수 없는 날짜」** (S2 `isDateUnavailable` — 함수가 아니라 데이터, 사용자 결정):
+  - Calendar · RangeCalendar · DateField · DatePicker · DateRangePicker 의 Design 패널 Value 구획에 「고를 수 없는 날짜」 가 생겼다: 요일 단추 7개, 날짜 · 기간 목록 (「날짜 추가」 · 「기간 추가」, 줄마다 제거 메뉴). 문서에는 `isDateUnavailable: { weekdays: [0 ~ 6], dates: ["YYYY-MM-DD" | {start, end}] }` 로 저장한다 (0 = 일요일).
+  - 데이터 표의 날짜도 쓸 수 있다: Collection 구획의 데이터 연결에서 표를 고르고 「고를 수 없는 날짜」 필드 (기간이면 「고를 수 없는 끝 날짜」 필드도) 를 고른다. 「검색 · 필터」 의 조건 (예: 상태 = 확정) 을 통과한 행만 날짜를 막는다. 연결은 노드의 데이터 연결 (`binding.fieldMap.unavailable` · `unavailableEnd` · `view`) 에 저장하고, 행의 날짜는 문서에 복사하지 않는다.
+  - DatePicker · DateRangePicker 는 picker 의 값이 달력까지 간다 (RAC 달력 context). DateField · DatePicker 는 고를 수 없는 날짜를 값으로 받으면 오류다 (RAC 검증).
+  - 그림: S2 처럼 날짜 위에 비스듬한 2px 막대 (칸 폭의 절반, -16°, 글자색). Canvas (`calendar_month_grid`) 와 생성 CSS (`[data-unavailable]::before`) 가 같은 값을 그린다. 고를 수 없는 날짜는 hover 칠이 없다.
+  - RangeCalendar · DateRangePicker 의 「비연속 범위」 를 끄면 고를 수 없는 날짜를 넘어 기간을 고를 수 없고, 켜면 넘어 고를 수 있다 (RAC).
+  - Code 보기는 `isDateUnavailable={unavailableDates({...})}` 로 쓰고 그대로 되읽는다.
+
+### Fixed
+
+- **달력의 오류 값이 Canvas 에도 보인다**: RAC 는 값이 Min · Max 밖이거나 고를 수 없는 날짜이거나 `isInvalid` 이면 그 칸을 「선택 + 오류」 로 그리는데, Canvas 달력은 선택 원을 그리지 않거나 파란 원으로 그렸다. 이제 Canvas 도 빨간 원 (범위는 빨간 띠) 이다 — 오류 칠은 수동 시트 `CalendarCommon.css` 에서 Calendar rule 로 옮겼다.
+- **Preview · Publish 달력의 고를 수 없는 날짜가 빨간 글자 · 가로줄이었다**: 수동 시트에 남은 RAC starter 규칙 (`[data-unavailable]` line-through + negative 색) 을 지웠다 — S2 는 글자색 그대로에 막대.
+  - 위치: `packages/shared/src/catalog/{document/unavailableDates.ts,runtime/unavailableDates.ts,runtime/calendarModel.ts,runtime/presence.ts,runtime/delegatedDom.runtime.ts,runtime/dataBinding.ts,resolution/resolver.ts,bindings/unavailableDatesProp.ts,generated/componentRulesTable.ts,rule/conditionTree.ts}` (+ 5 binding) · `packages/rendering/src/renderers/skiaPrimitives.ts` · `packages/shared/src/components/styles/CalendarCommon.css` · `apps/builder/src/builder/{panels/properties/generic/UnavailableDatesField.tsx,components/property/CollectionBinding.tsx,catalogRuntime/ruleShapes.ts,catalogRuntime/codeViewEdit.ts}` · `packages/shared/src/codeView/generate.ts`
+
+### Tests
+
+- `s2D3UnavailableDates.test.tsx` 10 (Calendar DOM · Canvas 같은 날짜 · 오류 값 · 작성한 isInvalid · DatePicker · DateField · 저장 모양 검사 · 비연속 범위 2 · 데이터 표 + 조건 · Code 보기 왕복) · `UnavailableDatesField.test.tsx` 3 · `CollectionBinding.test.tsx` +1, 원복 RED 13/13 · builder 9,663 · shared 2,761, live `apps/builder/scripts/s2-unavailable-dates-live.mjs` 9/9.
+
 ## [Form 서버 오류 · 검증 규칙 — S2 validationErrors · validate] - 2026-11-23
 
 ### Added

@@ -20,6 +20,7 @@
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
 import { catalogValidationRulesFit } from "../catalog/document/validationRules";
+import { catalogUnavailableDatesFit } from "../catalog/document/unavailableDates";
 import {
   CODE_VIEW_ITEM_TYPES,
   COLLECTION_TYPE_TABLE,
@@ -4017,6 +4018,15 @@ class Generator {
             variable.entry.valueType === "selectionKeys"));
       return /Keys$/.test(prop) && !keyList ? `{[${read}]}` : `{${read}}`;
     }
+    // S2 체크리스트 부록 D.3 — a ComboBox's filter as data: RAC's `defaultFilter` function made from it
+    // (`filter("startsWith")` — `useFilter({sensitivity: "base"})`).
+    if (
+      prop === "defaultFilter" &&
+      (value === "contains" || value === "startsWith")
+    ) {
+      this.import(CODE_VIEW_HELPERS_MODULE, "filter");
+      return `{filter(${literal(value)})}`;
+    }
     if (typeof value === "string") {
       const whole = /^\{\{\s*([A-Za-z_$][\w$]*)\s*\}\}$/.exec(value);
       if (whole) {
@@ -4045,6 +4055,12 @@ class Generator {
     if (prop === "validate" && catalogValidationRulesFit(value)) {
       this.import(CODE_VIEW_HELPERS_MODULE, "validationRules");
       return `{validationRules(${literal(value)})}`;
+    }
+    // S2 체크리스트 부록 D.3 — a date component's unavailable weekdays · dates: S2's
+    // `isDateUnavailable` function made from them (`unavailableDates({...})`).
+    if (prop === "isDateUnavailable" && catalogUnavailableDatesFit(value)) {
+      this.import(CODE_VIEW_HELPERS_MODULE, "unavailableDates");
+      return `{unavailableDates(${literal(value)})}`;
     }
     return `{${literal(value)}}`;
   }

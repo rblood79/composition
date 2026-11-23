@@ -927,12 +927,22 @@ export function catalogCalendarGridPaintProps(
     _selectedFill: hex(at(cell.background, selected)),
     _selectedText: hex(at(cell.color, selected)),
     _disabledText: hex(at(cell.color, { isDisabled: true })),
+    // (RAC's invalid value — its selected cells: the rule's invalid fill · the band's.)
+    _invalidFill: hex(
+      at(cell.background, { isSelected: true, isInvalid: true }),
+    ),
     _selectedTodayDot: hex(
       at(after.background, { isToday: true, isSelected: true }),
     ),
     _bandFill: hex(at(band?.background, selected)),
     _bandBorder: hex(
       String(at(band?.border, selected) ?? "").replace(/^\S+\s+\S+\s+/, ""),
+    ),
+    _bandInvalidFill: hex(
+      at(band?.background, { isSelected: true, isInvalid: true }),
+    ),
+    _bandInvalidBorder: hex(
+      at(band?.borderColor, { isSelected: true, isInvalid: true }),
     ),
   };
   void node;

@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   ComboBoxStateContext,
+  useFilter,
   type ComboBoxProps,
   type ComboBoxState,
   type Key,
@@ -142,13 +143,24 @@ export function CatalogComboBox({
   children,
   isOpen,
   defaultOpen,
-  ...props
+  filterMode,
+  ...rest
 }: ComboBoxProps<object> & {
   isOpen?: boolean;
   defaultOpen?: boolean;
   onSelectionText?: SelectionTextWrite;
+  /**
+   * RAC `defaultFilter` as data (S2 체크리스트 부록 D.3 2단계): `startsWith` — RAC's default
+   * (`contains`) otherwise; a filter given (a server-filtered list's) wins.
+   */
+  filterMode?: "startsWith";
   children?: ReactNode;
 }): ReactElement {
+  const { startsWith } = useFilter({ sensitivity: "base" });
+  const props =
+    filterMode === "startsWith" && !rest.defaultFilter
+      ? { ...rest, defaultFilter: startsWith }
+      : rest;
   const stateRef = useRef<ComboBoxState1 | null>(null);
   const seenRef = useRef<Seen | null>(null);
   const [quietText, setQuietText] = useState<string | null>(null);

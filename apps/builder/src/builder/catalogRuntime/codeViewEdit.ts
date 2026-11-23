@@ -2778,6 +2778,19 @@ class Planner {
       this.reject(value.from, "outsideVocabulary");
       return undefined;
     }
+    // S2 체크리스트 부록 D.3 — a date component's unavailable dates (`unavailableDates({...})`) — the
+    // graph checks them.
+    // (A ComboBox's filter — `filter("startsWith")`.)
+    const filter = /^filter\((["'])(contains|startsWith)\1\)$/.exec(text);
+    if (filter) return filter[2];
+    const unavailable = /^unavailableDates\((\{[\s\S]*\})\)$/.exec(text);
+    if (unavailable) {
+      const object = structuredLiteralOf(unavailable[1]!)?.value;
+      if (object && typeof object === "object" && !Array.isArray(object))
+        return object;
+      this.reject(value.from, "outsideVocabulary");
+      return undefined;
+    }
     // ADR-296 — a prop's typed object (a calendar duration · a number format) — the graph checks it.
     if (text.startsWith("{") && !text.startsWith("{`")) {
       const object = structuredLiteralOf(text)?.value;

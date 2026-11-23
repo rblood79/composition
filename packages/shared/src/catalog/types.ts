@@ -172,7 +172,9 @@ export type InspectorFieldKind =
   | "labeled-value"
   | "labeled-format"
   // S2 `validate` as condition rules (S2 체크리스트 부록 D.3 2단계 — `validationRules.ts`).
-  | "validation-rules";
+  | "validation-rules"
+  // S2 `isDateUnavailable` as data (S2 체크리스트 부록 D.3 2단계 — `unavailableDates.ts`).
+  | "unavailable-dates";
 
 /**
  * `kind:"items-manager"` 의 개별 항목 인라인 편집 스키마.
