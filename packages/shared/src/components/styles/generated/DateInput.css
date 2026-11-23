@@ -451,7 +451,7 @@
 }
 
 .react-aria-DateInput .react-aria-DateSegment:where([data-disabled]) {
-  color: color-mix(in srgb, var(--fg) 38%, transparent);
+  color: var(--fg-disabled);
   cursor: not-allowed;
 }
 

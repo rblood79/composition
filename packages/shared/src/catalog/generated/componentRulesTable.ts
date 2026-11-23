@@ -4652,8 +4652,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 background: "var(--negative)",
                 color: "var(--color-white)",
               },
+              // (2026-11-23: the DateInput rule's `isDisabled` text — `{color.disabled-content}`, the
+              //  Canvas's color; a `color-mix` of `--fg` drew it darker on the DOM only — 174 vs 198.)
               "[data-disabled]": {
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                color: "var(--fg-disabled)",
                 cursor: "not-allowed",
               },
             },

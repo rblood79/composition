@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [disabled field 의 입력 글자 — Canvas 도 disabled 색] - 2026-11-23
+
+### Fixed
+
+- **Canvas 의 disabled field 입력 글자가 휴지 색 (#292929) 이었다** — control Group 상자 안 입력 (Input · DateInput · TokenInput) 을 가진 field 전부 (TextField · TokenField · DateField 로 확인). Publish 는 `{color.disabled-content}` (#c6c6c6).
+  - **Why**: 2026-11-14 부터 모든 field 의 control Group 이 상자인데, field 상태를 상자 부품에 넘기는 `fieldOfBox` 가 상자 안 입력을 건너뛰어 입력 record 에 field 의 disabled 가 닿지 않았다 (상자 Group 은 받아 테두리만 disabled 였다). 상자 안 입력 (Input · DateInput · TokenInput) 이 field 의 disabled 를 받아 자기 rule 의 `isDisabled` 글자 색으로 그린다 — DOM 의 RAC `data-disabled` 와 같다.
+- **Publish 의 disabled 날짜 조각 색** — DateSegment 의 disabled 색이 `color-mix(--fg 38%)` 파생식이라 (ADR-297 금지 패턴) Canvas 의 `disabled-content` 보다 진했다 (174 · 198). Input rule 과 같은 `var(--fg-disabled)` 로.
+  - 위치: `packages/shared/src/catalog/runtime/presence.ts` (`derivedPropsBeforeSkeleton` — 상자 안 입력의 `_fieldDisabled`) · `catalog/generated/componentRulesTable.ts` (DateInput 조각 delegation) · 생성 `DateInput.css`
+  - 확인: 테스트 `s2DisabledFieldText` 4 (TextField · TokenField · DateField 의 Canvas 글자 = disabled-content · DateSegment 변수), 원복 RED 3 + 1. live `apps/builder/scripts/s2-disabled-field-text-live.mjs` 3/3 — 세 field 휴지 · disabled 의 입력 글자 픽셀이 Canvas 와 Publish 에서 같다 (disabled 191 · 198 / 198 · 198 / 198 · 198, 전에는 Canvas 41).
+
 ## [TokenField — 필수 표시 · 오류 상태 + 스크린 리더 전달 (4단계, D1 예외)] - 2026-11-23
 
 ### Added

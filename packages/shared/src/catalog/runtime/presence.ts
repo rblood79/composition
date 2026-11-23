@@ -2973,6 +2973,16 @@ function derivedPropsBeforeSkeleton(
   // (Any field's box shows its field's invalid state — the Input rule's `&[data-invalid]` border,
   // RAC's `data-invalid` on the DOM side.)
   const invalidField = quiet ? undefined : fieldOfBox(node, get, typeOf);
+  // (The input in a field's box — Input · DateInput · TokenInput in the control Group, every field
+  //  since 2026-11-14 — paints its text from its own rule's `isDisabled` branch: RAC's `data-disabled`
+  //  on the DOM side. `fieldOfBox` skips it, so the Canvas text kept its resting color.)
+  const boxGroup =
+    quiet || invalidField
+      ? undefined
+      : catalogFieldBoxOfInput(node, get, typeOf);
+  const boxedDisabled =
+    !!boxGroup &&
+    catalogFieldBox(boxGroup, get, typeOf)?.field.props.isDisabled === true;
   const own = quiet
     ? {
         ...control,
@@ -2990,7 +3000,9 @@ function derivedPropsBeforeSkeleton(
           _fieldInvalid: invalidField.props.isInvalid === true,
           _fieldDisabled: invalidField.props.isDisabled === true,
         }
-      : control;
+      : boxedDisabled
+        ? { ...control, _fieldDisabled: true }
+        : control;
   const selected = catalogCollectionItemSelected(node, get, typeOf);
   // (S2 TagGroup `isEmphasized`: its selected Tags paint the accent pair — `rulePaint.ts`.)
   const emphasized =
