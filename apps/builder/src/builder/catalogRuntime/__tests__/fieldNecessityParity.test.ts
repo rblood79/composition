@@ -43,6 +43,8 @@ const FIELDS = [
   "combobox",
   "checkboxgroup",
   "radiogroup",
+  // (S2 체크리스트 §4.1 TokenField Phase 4, 2026-11-23 — S2 TextArea's FieldLabel)
+  "tokenfield",
 ];
 const set = <T>(value: T) => ({ kind: "set" as const, value });
 

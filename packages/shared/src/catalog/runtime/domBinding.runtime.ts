@@ -1,3 +1,4 @@
+import { CatalogTokenFieldError } from "./tokenField.components";
 import { catalogSkeletonText } from "./skeletonAnimation";
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
 import { catalogToggleItemHelpRefs } from "../rule/toggleLayout";
@@ -2519,6 +2520,18 @@ const fieldErrorBinding: DomBinding = (node, style) =>
       style,
     } as Parameters<typeof RAC.FieldError>[0],
     String(node.props.children ?? "") || undefined,
+  );
+
+/**
+ * S2 체크리스트 §4.1 TokenField Phase 4 — a TokenField's error part: RAC TokenField has no FieldError
+ * context, so its text at the id the field's `aria-describedby` names (`CatalogTokenFieldError`). It
+ * shows while the field is invalid with a message (`catalogFieldHintShown`).
+ */
+const tokenFieldErrorBinding: DomBinding = (node, style) =>
+  createElement(
+    CatalogTokenFieldError,
+    { key: node.id, "data-catalog-id": node.id, style },
+    String(node.props.children ?? ""),
   );
 
 /**
@@ -5417,14 +5430,17 @@ export function renderNode(
     )
   )
     return null;
-  // (A TagGroup's error text while the group is not invalid — the Canvas's predicate, S2.)
+  // (A TagGroup's error text while the group is not invalid — the Canvas's predicate, S2. A
+  //  TokenField's hint parts too (S2 체크리스트 §4.1 Phase 4): RAC TokenField has no validation to
+  //  swap its Description for the error — S2 HelpText shows one of them.)
+  const hintHost = partParent && catalogTypeName(root, partParent);
   if (
     partParent &&
-    catalogTypeName(root, partParent) === "TagGroup" &&
+    (hintHost === "TagGroup" || hintHost === "TokenField") &&
     catalogFieldHintShown(
       catalogTypeName(root, node),
       partParent,
-      "TagGroup",
+      hintHost,
     ) === false
   )
     return null;
@@ -5734,20 +5750,24 @@ export function renderNode(
   const binding =
     node.bindingId === "fielderror" &&
     partParent &&
-    FIELD_HINT_OWNERS.has(catalogTypeName(root, partParent))
-      ? fieldErrorBinding
+    catalogTypeName(root, partParent) === "TokenField"
+      ? tokenFieldErrorBinding
       : node.bindingId === "fielderror" &&
           partParent &&
-          catalogTypeName(root, partParent) === "TagGroup"
-        ? tagGroupErrorBinding
-        : // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
-          // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
-          // would take the group's label context).
-          node.bindingId === "label" &&
+          FIELD_HINT_OWNERS.has(catalogTypeName(root, partParent))
+        ? fieldErrorBinding
+        : node.bindingId === "fielderror" &&
             partParent &&
-            OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, partParent)]
-          ? toggleTextBinding
-          : bindingOf(node);
+            catalogTypeName(root, partParent) === "TagGroup"
+          ? tagGroupErrorBinding
+          : // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
+            // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
+            // would take the group's label context).
+            node.bindingId === "label" &&
+              partParent &&
+              OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, partParent)]
+            ? toggleTextBinding
+            : bindingOf(node);
   // A Slider's thumb (ADR-256 Phase 7c): RAC's thumb of its place among the track's thumbs; its
   // ring is the slider sheet's (`.react-aria-SliderThumb` border — its color is the sheet's), not
   // inline — unless the author wrote one (2026-11-14 감사: the written width was dropped).

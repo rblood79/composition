@@ -8,6 +8,7 @@
 //   ⑤ Publish — disabled field 의 Group 에 data-disabled
 //   ⑥ page error 0
 //   Phase 2 ⑦ side · ⑧ labelAlign end · Phase 3 ⑨ Token chip style (Publish) · ⑩ chips drawn (Canvas)
+//   Phase 4 ⑪ D1 exception ARIA · invalid box · ⑫ necessity indicator
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/s2-tokenfield-live.mjs <out-dir>
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -43,6 +44,21 @@ const CASES = [
       size: "L",
       value: "Ping @sam and @robin about #release-notes for #v2 now ",
     },
+  },
+  // Phase 4 — necessity · error (S2 TextArea's) + the D1 exception's ARIA on the textbox
+  {
+    key: "invalid",
+    props: {
+      size: "M",
+      isRequired: true,
+      isInvalid: true,
+      description: "Mention a teammate",
+      errorMessage: "Pick at least one person",
+    },
+  },
+  {
+    key: "required-label",
+    props: { size: "M", isRequired: true, necessityIndicator: "label" },
   },
   { key: "S", props: { size: "S" } },
   { key: "M", props: { size: "M" } },
@@ -175,6 +191,7 @@ try {
       let group = null;
       let input = null;
       let row = null;
+      let error = null;
       const walk = (id, ox, oy) => {
         const node = r.canvasInputs.get(id);
         const rect = g(id);
@@ -182,7 +199,13 @@ try {
         const x = ox + rect.x;
         const y = oy + rect.y;
         const box = { id, x, y, w: rect.width, h: rect.height };
-        if (r.typeOf(node) === "Group" && !group) group = box;
+        if (r.typeOf(node) === "Group" && !group)
+          group = { ...box, invalid: node.derivedProps?.isInvalid === true };
+        if (
+          r.typeOf(node) === "FieldError" &&
+          r.layoutInputs.get(id)?.hidden !== true
+        )
+          error = box;
         if (r.typeOf(node) === "FieldLabel" && !row) row = box;
         if (r.typeOf(node) === "TokenInput") {
           input = { ...box, size: node.props.size };
@@ -203,6 +226,7 @@ try {
         group,
         input,
         row,
+        error,
         labelPosition: field.props.labelPosition,
         labelColor: label?.derivedProps?.color,
         // (the Canvas aligns the label row — `justify-content`, as the sheet's on the row)
@@ -272,6 +296,22 @@ try {
           row: field.querySelector(".react-aria-FieldLabel")
             ? rel(field.querySelector(".react-aria-FieldLabel"))
             : null,
+          error: field.querySelector(".react-aria-FieldError")
+            ? rel(field.querySelector(".react-aria-FieldError"))
+            : null,
+          errorId: field.querySelector(".react-aria-FieldError")?.id ?? null,
+          errorText:
+            field.querySelector(".react-aria-FieldError")?.textContent ?? null,
+          aria: ((t) =>
+            t && {
+              role: t.getAttribute("role"),
+              required: t.getAttribute("aria-required"),
+              invalid: t.getAttribute("aria-invalid"),
+              describedby: t.getAttribute("aria-describedby"),
+            })(input),
+          labelText: field.querySelector(".react-aria-Label")?.textContent ?? null,
+          labelHasSvg: !!field.querySelector(".react-aria-Label svg"),
+          errorIcon: !!group.querySelector("[data-field-error-icon]"),
           dataLabelPosition: field.getAttribute("data-label-position"),
           labelTextAlign: getComputedStyle(
             field.querySelector(".react-aria-Label"),
@@ -303,12 +343,13 @@ try {
       ({ c, d }) =>
         !same(c.group, d.group) ||
         !same(c.input, d.input) ||
-        !same(c.row, d.row),
+        !same(c.row, d.row) ||
+        (c.error || d.error ? !same(c.error, d.error) : false),
     )
     .map(({ c, d }) => ({
       key: c.key,
-      canvas: { group: c.group, input: c.input, row: c.row },
-      dom: { group: d.group, input: d.input, row: d.row },
+      canvas: { group: c.group, input: c.input, row: c.row, error: c.error },
+      dom: { group: d.group, input: d.input, row: d.row, error: d.error },
     }));
   record("② Publish — Group and TokenInput boxes = Canvas (±0.5)", diffs.length === 0, {
     diffs,
@@ -553,6 +594,44 @@ try {
         Math.abs(p.canvasPixels - p.pubPixels) <= p.pubPixels * 0.1,
     ),
     { target, pixels },
+  );
+  // ⑪ Phase 4 — the D1 exception: the textbox carries the field's necessity · error, its
+  //   aria-describedby names the error text; the box is invalid (and shows the S2 error icon) on both
+  //   consumers; a valid · optional field carries none
+  const inv = side("invalid");
+  const req = side("required-label");
+  const plainAria = dom.find((d) => d.key === "M")?.aria;
+  const described = (inv.dom?.aria?.describedby ?? "").split(" ");
+  record(
+    "⑪ D1 exception — textbox aria-required · aria-invalid · aria-describedby → the error text (Publish); invalid box on both",
+    inv.dom?.aria?.role === "textbox" &&
+      inv.dom.aria.required === "true" &&
+      inv.dom.aria.invalid === "true" &&
+      !!inv.dom.errorId &&
+      described.includes(inv.dom.errorId) &&
+      inv.dom.errorText === "Pick at least one person" &&
+      inv.dom.groupAttrs.includes("data-invalid") &&
+      inv.dom.errorIcon &&
+      inv.canvas?.group?.invalid === true &&
+      !!inv.canvas?.error &&
+      req.dom?.aria?.required === "true" &&
+      req.dom.aria.invalid === null &&
+      plainAria?.required === null &&
+      plainAria?.invalid === null,
+    {
+      invalid: { aria: inv.dom?.aria, errorId: inv.dom?.errorId, errorText: inv.dom?.errorText, groupAttrs: inv.dom?.groupAttrs, errorIcon: inv.dom?.errorIcon, canvasInvalid: inv.canvas?.group?.invalid, canvasError: inv.canvas?.error, domError: inv.dom?.error },
+      requiredLabel: req.dom?.aria,
+      plain: plainAria,
+    },
+  );
+  record(
+    "⑫ necessity — the icon (*) and the (required) label on the Publish; the label rows = Canvas (②)",
+    inv.dom?.labelHasSvg === true &&
+      // (the page locale's necessity text — "(required)" · "(필수 사항)")
+      /\(.+\)/.test(req.dom?.labelText ?? "") &&
+      !req.dom?.labelHasSvg &&
+      dom.find((d) => d.key === "M")?.labelHasSvg === false,
+    { invalid: [inv.dom?.labelText, inv.dom?.labelHasSvg], requiredLabel: req.dom?.labelText },
   );
   record("⑥ no page errors", errors.length === 0, errors);
 } finally {

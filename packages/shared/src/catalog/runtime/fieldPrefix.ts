@@ -408,6 +408,8 @@ export const CATALOG_FIELD_ERROR_ICON_FIELDS: ReadonlySet<string> = new Set([
   "TimeField",
   "DatePicker",
   "DateRangePicker",
+  // (S2 체크리스트 §4.1 TokenField Phase 4 — S2 TextArea's, at the first line)
+  "TokenField",
 ]);
 /** The glyph Select already draws for its invalid state (`pickerTrigger.ts`) — the icon set stays ours. */
 export const CATALOG_FIELD_ERROR_ICON = PICKER_INVALID_ICON;
@@ -458,7 +460,7 @@ export function catalogFieldErrorIcon(
     reserve: round(start + lineHeight + end),
     offsetEnd: round(own + end),
     inputEnd: round(own + start + lineHeight + end),
-    top: typeOf(box.field) === "TextArea",
+    top: typeOf(box.field) === "TextArea" || typeOf(box.field) === "TokenField",
   };
 }
 

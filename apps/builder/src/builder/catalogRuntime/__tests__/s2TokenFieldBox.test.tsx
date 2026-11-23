@@ -5,6 +5,8 @@
  * TextArea 처럼 S · M · L · XL 이고 field 의 size 가 Group 을 건너 TokenInput · Token 에 닿는다.
  */
 import "fake-indexeddb/auto";
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -354,6 +356,80 @@ describe("S2 §4.1 TokenField — 상자 = control Group (S2 TextArea 의 FieldG
     expect(Array.from(chipRuns(off).find((run) => run.chip)!.color!)).not.toEqual(
       Array.from(on),
     );
+  });
+
+  it("binding: isRequired · necessityIndicator · isInvalid · errorMessage — S2 TextArea 와 같은 선택지", () => {
+    const accepts = (
+      tokenFieldBinding.props as {
+        accepts: Record<string, { kind?: string; options?: { value: string }[] }>;
+      }
+    ).accepts;
+    expect(accepts.isRequired?.kind).toBe("boolean");
+    expect(accepts.isInvalid?.kind).toBe("boolean");
+    expect(accepts.errorMessage?.kind).toBe("string");
+    expect(accepts.necessityIndicator?.options?.map((o) => o.value)).toEqual([
+      "icon",
+      "label",
+    ]);
+  });
+
+  it("invalid — Canvas: 상자 Group 이 invalid 칠 · 입력 끝 오류 아이콘 · FieldError 가 보이고 Description 은 숨는다", async () => {
+    const valid = await fixture({ description: "Help", errorMessage: "Bad" });
+    const invalid = await fixture({
+      description: "Help",
+      errorMessage: "Bad",
+      isInvalid: true,
+    });
+    const shown = (f: Awaited<ReturnType<typeof fixture>>, type: string) =>
+      f.root.layoutInputs.get(f.of(type).id)?.hidden !== true;
+    expect(shown(valid, "FieldError")).toBe(false);
+    expect(shown(valid, "Description")).toBe(true);
+    expect(shown(invalid, "FieldError")).toBe(true);
+    expect(shown(invalid, "Description")).toBe(false);
+    expect(invalid.of("Group").derivedProps?.isInvalid).toBe(true);
+    expect(valid.of("Group").derivedProps?.isInvalid).not.toBe(true);
+    expect(invalid.of("TokenInput").derivedProps?._fieldErrorIcon).toBeDefined();
+    expect(valid.of("TokenInput").derivedProps?._fieldErrorIcon).toBeUndefined();
+  });
+
+  it("D1 예외 — DOM: TokenInput (role=textbox) 이 aria-required · aria-invalid 를, aria-describedby 로 오류 문구를 가리킨다", async () => {
+    const { root, of } = await fixture({
+      isRequired: true,
+      isInvalid: true,
+      errorMessage: "Pick a person",
+      description: "Help",
+    });
+    const host = document.createElement("div");
+    document.body.append(host);
+    const renderer = createRoot(host);
+    await act(async () =>
+      renderer.render(renderCatalogDom(root, of("TokenField").id)),
+    );
+    const input = host.querySelector('[role="textbox"]')!;
+    expect(input.getAttribute("aria-required")).toBe("true");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    const error = host.querySelector(".react-aria-FieldError")!;
+    expect(error.textContent).toBe("Pick a person");
+    expect(error.id).not.toBe("");
+    expect(
+      (input.getAttribute("aria-describedby") ?? "").split(" "),
+    ).toContain(error.id);
+    expect(host.querySelector(".react-aria-FieldBox")?.hasAttribute("data-invalid")).toBe(true);
+    // S2 HelpText: the error replaces the Description (the Canvas's predicate)
+    expect(host.querySelector('[slot="description"]')).toBeNull();
+    // S2 FieldErrorIcon in the box, after the input
+    expect(host.querySelector(".react-aria-FieldBox [data-field-error-icon]")).not.toBeNull();
+    // a valid · optional field writes none of the three
+    const plain = await fixture({ errorMessage: "Pick a person" });
+    await act(async () =>
+      renderer.render(renderCatalogDom(plain.root, plain.of("TokenField").id)),
+    );
+    const plainInput = host.querySelector('[role="textbox"]')!;
+    expect(plainInput.hasAttribute("aria-required")).toBe(false);
+    expect(plainInput.hasAttribute("aria-invalid")).toBe(false);
+    expect(host.querySelector(".react-aria-FieldError")).toBeNull();
+    await act(async () => renderer.unmount());
+    host.remove();
   });
 
   it("DOM — Group 이 S2 FieldGroup (`react-aria-FieldBox` · presentation · size), 필드의 disabled 를 받는다", async () => {

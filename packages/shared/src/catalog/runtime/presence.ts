@@ -507,6 +507,8 @@ const NODE_TREE_FIELDS: ReadonlySet<string> = new Set([
   "Radio",
   "CheckboxGroup",
   "RadioGroup",
+  // (S2 체크리스트 §4.1 TokenField Phase 4)
+  "TokenField",
 ]);
 
 /**
@@ -1108,6 +1110,9 @@ export const FIELD_HINT_OWNERS: ReadonlySet<string> = new Set([
   "Switch",
   // RAC `RadioField` (+ Description — the reference Radio has no FieldError).
   "Radio",
+  // (S2 체크리스트 §4.1 TokenField Phase 4: S2 TextArea's HelpText — RAC TokenField has no FieldError
+  //  context, so the DOM draws the error text itself, `CatalogTokenFieldError`.)
+  "TokenField",
 ]);
 /**
  * Owners whose error part follows their `isInvalid` — the fields, and the S2 TagGroup (its error
@@ -4689,6 +4694,8 @@ export const CATALOG_LABEL_NODE_FIELDS: Readonly<
   radiogroup: "necessity",
   select: "necessity",
   combobox: "necessity",
+  // (S2 체크리스트 §4.1 TokenField Phase 4 — S2 TextArea's FieldLabel)
+  tokenfield: "necessity",
   meter: "none",
   progressbar: "none",
   slider: "none",

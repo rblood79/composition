@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TokenField — 필수 표시 · 오류 상태 + 스크린 리더 전달 (4단계, D1 예외)] - 2026-11-23
+
+### Added
+
+- **TokenField `isRequired` · `necessityIndicator` (icon · label) · `isInvalid` · `errorMessage`** — S2 TextArea 와 같다: 라벨 행 Label 안 필수 표시 (별표 · 「(required)」 — 사이트 언어), invalid 면 상자 Group 이 invalid 테두리 · 상자 안 첫 줄 끝 S2 오류 아이콘, 설명 자리에 오류 문구 (S2 HelpText — 둘 중 하나). Form 의 `isRequired` · `necessityIndicator` 도 받는다.
+- **스크린 리더 전달 — D1 예외 (사용자 결정)** — 설치본 RAC TokenField 에 required · validation 이 없고 TokenInput 이 `aria-*` prop 을 DOM 에 넘기지 않아, TokenInput (`role="textbox"`) 에 `aria-required` · `aria-invalid` 를 ref 로 붙인다 (꺼지면 지운다). 오류 문구는 RAC 의 `aria-describedby` prop 이 가리킨다 (RAC `useField` 가 설명 id 와 합친다). 예외 범위는 `.claude/rules/ssot-hierarchy.md` §1 의 목록으로 닫았다 — RAC 가 지원하면 지운다.
+  - **Why**: S2 체크리스트 §4.1 TokenField 4단계. 화면 표시만 넣으면 스크린 리더에 「필수」 · 「오류」 가 가지 않는다 (사용자 「스크린 리더에 전달되도록」).
+  - 위치: `packages/shared/src/catalog/bindings/TokenField.binding.ts` · `document/d2Provenance.ts` · `document/generated/reusableOriginLibrary.ts` (Label 필수 부품 4 · FieldError · 원본 `errorMessage`) · `runtime/presence.ts` (`FIELD_HINT_OWNERS` · `NODE_TREE_FIELDS` · `CATALOG_LABEL_NODE_FIELDS`) · `runtime/fieldPrefix.ts` (`CATALOG_FIELD_ERROR_ICON_FIELDS` — 첫 줄) · `runtime/tokenField.components.tsx` (`CatalogTokenField` 의 context · `CatalogTokenFieldError` · TokenInput ARIA) · `runtime/delegatedDom.runtime.ts` · `runtime/domBinding.runtime.ts` (오류 부품 · 설명 / 오류 표시 판정) · `.claude/rules/ssot-hierarchy.md`.
+  - 확인: 테스트 `s2TokenFieldBox` +3 (binding · Canvas invalid 상자 · 오류 아이콘 · 오류 / 설명 표시 · DOM ARIA 3 · FieldBox `data-invalid` · 오류 아이콘), `fieldNecessityParity` 에 tokenfield (자기 label · Form label · 기본 icon — Canvas = DOM). 원복 RED 8 (binding · 힌트 소유 · 오류 아이콘 · 라벨 필수 · aria-required · aria-describedby · DOM 설명 판정 · 원본 accepts). live (`s2-tokenfield-live.mjs`, 13/13): invalid TokenField 의 textbox `aria-required="true"` · `aria-invalid="true"` · `aria-describedby` = 오류 문구 id, 오류 문구 상자 Canvas (0, 67, 150.9 × 18) = Publish, Group `data-invalid` · 상자 안 오류 아이콘 · Canvas Group invalid, 필수만 켠 field 는 `aria-required` 만, 둘 다 끈 field 는 셋 다 없음, Label 별표 · 「(필수 사항)」, 두 화면 캡처 같음.
+
 ## [TokenField — Token 모양 = 줄 안 S2 Tag 칩 · 긴 값 줄바꿈 (3단계)] - 2026-11-23
 
 ### Changed

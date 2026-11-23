@@ -2022,6 +2022,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         value: str(input.node.props.value),
         isDisabled: bool(input.node.props.isDisabled),
         isReadOnly: bool(input.node.props.isReadOnly),
+        // (Phase 4 — the D1 exception's inputs: `CatalogTokenField`)
+        isRequired: bool(input.node.props.isRequired),
+        isInvalid: bool(input.node.props.isInvalid),
+        hasErrorMessage:
+          bool(input.node.props.isInvalid) &&
+          !!str(input.node.props.errorMessage),
         autoFocus: bool(input.node.props.autoFocus),
         allowsNewlines: bool(input.node.props.allowsNewlines),
         "aria-label": opt(input.node.props["aria-label"]),

@@ -46,6 +46,26 @@ export const tokenFieldBinding: PrimitiveBinding = {
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
+      // (Phase 4, 2026-11-23: S2 TextArea's necessity · error — RAC TokenField has no validation, so
+      //  the screen reader gets them from the D1 exception (`tokenField.components.tsx`): its
+      //  TokenInput's `aria-required` · `aria-invalid`, the error text by RAC `aria-describedby`.)
+      isRequired: { kind: "boolean", label: "Required", section: "validation" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "validation" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "validation",
+      },
+      necessityIndicator: {
+        kind: "enum",
+        label: "Necessity Indicator",
+        section: "appearance",
+        default: "icon",
+        options: [
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
+        ],
+      },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       "aria-label": {
         kind: "string",

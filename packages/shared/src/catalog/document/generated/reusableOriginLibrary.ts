@@ -1980,12 +1980,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "label": "string",
       "description": "string",
+      "errorMessage": "string",
       "value": "string",
       "placeholder": "string"
     },
     "defaults": {
       "label": "Message",
       "description": "",
+      "errorMessage": "",
       "value": "Hello @person ",
       "placeholder": "Enter text, @mentions, or #tags"
     },
@@ -10207,7 +10209,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-tokenfield__label-row",
       "lib:template:component-tokenfield__group",
-      "lib:template:component-tokenfield__description"
+      "lib:template:component-tokenfield__description",
+      "lib:template:component-tokenfield__error"
     ],
     "props": {
       "value": "{value}"
@@ -10226,7 +10229,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tokenfield__label",
     "definitionId": "lib:definition:origin-component-label",
-    "children": [],
+    "children": [
+      "lib:template:component-tokenfield__label__label-content",
+      "lib:template:component-tokenfield__label__necessity-space",
+      "lib:template:component-tokenfield__label__necessity-icon",
+      "lib:template:component-tokenfield__label__necessity-label"
+    ],
     "props": {
       "children": "{label}"
     },
@@ -10273,6 +10281,55 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "presentWhen": "nonEmptyText"
+  },
+  {
+    "id": "lib:template:component-tokenfield__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__label__label-content",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{fieldLabel}",
+      "slot": "label-content"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__label__necessity-space",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": " ",
+      "slot": "necessity-space"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__label__necessity-icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "s2-asterisk",
+      "slot": "necessity-icon"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tokenfield__label__necessity-label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{necessityLabel}",
+      "slot": "necessity-label"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-colorfield__1__label-content",
