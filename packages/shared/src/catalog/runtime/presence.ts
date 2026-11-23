@@ -2042,6 +2042,25 @@ export function catalogTreeChevronButtonItem(
 }
 
 /**
+ * The disabled TreeItem whose row label `node` is (a Text in its `TreeItemContent`, through frames) —
+ * S2 TreeView `treeRow` `isDisabled: gray-400`: the label takes the row's disabled color (the TreeItem
+ * rule's `isDisabled` paint), as the `Tree` sheet's `[data-disabled] .react-aria-Text`. Undefined for
+ * an enabled row — the label keeps its own color there.
+ */
+export function catalogDisabledTreeItemLabelItem(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Text") return undefined;
+  const content = catalogPartParent(node, get, typeOf);
+  if (!content || typeOf(content) !== "TreeItemContent") return undefined;
+  const item = get(content.parentId);
+  if (!item || typeOf(item) !== "TreeItem") return undefined;
+  return item.props.isDisabled === true ? item : undefined;
+}
+
+/**
  * ADR-256 Phase 5h — the TreeItem whose chevron glyph `node` is (an Icon in its chevron button):
  * `Tree.css` hides the button of an item without child items (`visibility: hidden` — the glyph is
  * not drawn, its box stays) and turns the svg 90° on an expanded item.
@@ -2303,7 +2322,8 @@ function treeItemHasChildItems(
 /**
  * A TreeItem's chevron button records — the `Button[slot=chevron]` in its `TreeItemContent`
  * (ADR-256 Phase 5h) — and their glyphs: the re-plan dependents of the item (level indent, child
- * items, expansion).
+ * items, expansion). The row's label Texts too — they take a disabled item's color
+ * (`catalogDisabledTreeItemLabelItem`, 2026-11-23).
  */
 export function catalogTreeChevrons(
   node: CatalogConsumerNode,
@@ -2313,14 +2333,18 @@ export function catalogTreeChevrons(
   if (typeOf(node) !== "TreeItem") return [];
   const content = catalogTreeItemContent(node, get, typeOf);
   if (!content) return [];
-  return partChildrenOf(content, get, typeOf)
-    .filter((child) => catalogTreeChevronButtonItem(child, get, typeOf))
-    .flatMap((button) => [
-      button,
-      ...partChildrenOf(button, get, typeOf).filter((glyph) =>
-        catalogTreeChevronGlyphItem(glyph, get, typeOf),
-      ),
-    ]);
+  const row = partChildrenOf(content, get, typeOf);
+  return [
+    ...row
+      .filter((child) => catalogTreeChevronButtonItem(child, get, typeOf))
+      .flatMap((button) => [
+        button,
+        ...partChildrenOf(button, get, typeOf).filter((glyph) =>
+          catalogTreeChevronGlyphItem(glyph, get, typeOf),
+        ),
+      ]),
+    ...row.filter((child) => typeOf(child) === "Text"),
+  ];
 }
 
 /** A chevron button record's TreeItem level; undefined for any other node. */

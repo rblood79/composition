@@ -16273,7 +16273,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         color: {
           isSelected: "var(--fg-on-accent)",
-          isDisabled: "color-mix(in srgb, var(--fg) 38%, transparent)",
+          // (2026-11-23: S2 `gray-400` = `{color.disabled-content}` — the TreeItem rule's, the Canvas's;
+          //  a `color-mix` of `--fg` drew the DOM chevron 38% `--fg`.)
+          isDisabled: "var(--fg-disabled)",
           forcedColors: { isSelected: "HighlightText" },
         },
         cursor: { isDisabled: "not-allowed" },
@@ -16290,6 +16292,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "& .react-aria-TreeItem% .react-aria-Button": {
         color: { isSelected: "var(--fg-on-accent)" },
       },
+      // (2026-11-23: a disabled row's label — S2 `gray-400` reaches the row's text; the Text keeps
+      //  its own `--fg` otherwise. The Canvas: `catalogDisabledTreeItemLabelItem`.)
+      "& .react-aria-TreeItem% .react-aria-Text": {
+        color: { isDisabled: "var(--fg-disabled)" },
+      },
+      // (S2 `expandButton` `isDisabled: disabled` — the chevron glyph; its Icon keeps its own `--fg`
+      //  otherwise. The Canvas: the TreeItem rule's `isDisabled` paint, `catalogTreeChevronGlyphItem`.)
+      '& .react-aria-TreeItem% .react-aria-Button[slot="chevron"] .react-aria-Icon':
+        {
+          color: { isDisabled: "var(--fg-disabled)" },
+        },
       '& .react-aria-TreeItem [slot="drag"]%': {
         borderRadius: { isFocusVisible: "var(--radius-xs)" },
         outline: { isFocusVisible: "2px solid var(--accent)" },
@@ -16416,6 +16429,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             isSelected: {
               default: null,
             },
+            // (2026-11-23: S2 TreeView `treeRow` `isDisabled: gray-400` — the row's chevron glyph ·
+            //  label take it, `Tree` sheet's `[data-disabled]` the same variable.)
+            isDisabled: "{color.disabled-content}",
           },
           borderColor: {
             isSelected: {

@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [disabled Tree 항목의 라벨 · chevron — S2 gray-400, Canvas = Publish] - 2026-11-23
+
+### Fixed
+
+- **disabled TreeItem 의 라벨 · chevron 이 평소 색 (#292929) 이었다** — S2 TreeView 는 disabled 행을 `gray-400` (= `{color.disabled-content}` #c6c6c6) 으로 그린다 (`treeRow` · `expandButton`). Canvas 는 라벨 · chevron 모두, Publish 는 라벨 · chevron 글리프가 평소 색이었다 (행 자신만 `color-mix(--fg 38%)`).
+  - **Why**: TreeItem 칠 트리에 `isDisabled` 가지가 없었고, 라벨 Text · chevron Icon 은 두 consumer 모두 자기 색을 가져 행의 disabled 색이 닿지 않았다. Tree sheet 의 행 색은 ADR-297 이 금지한 `color-mix` 파생식이었다.
+  - 수정: TreeItem rule `isDisabled: {color.disabled-content}` (Canvas chevron 은 이 칠을 읽는다) · Tree sheet 의 행 · 라벨 Text · chevron Icon 의 disabled = `var(--fg-disabled)` · Canvas 라벨은 disabled 항목의 칠을 받는다 (`catalogDisabledTreeItemLabelItem`, 항목 변경 때 다시 계산 — `catalogTreeChevrons` 가 행 라벨도 낸다)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (TreeItem · Tree) · `runtime/presence.ts` · `runtime/compositionRoot.ts` · 생성 `Tree.css`
+  - 확인: 테스트 `s2TreeItemDisabledText` 2 (Canvas 라벨 · 글리프 disabled → 다시 켜면 휴지 색 · DOM 세 선택자), 원복 RED (전체 2 · rule 만 2 · compositionRoot 만 1). live `apps/builder/scripts/s2-tree-disabled-live.mjs` 3/3 — disabled 행 라벨 · chevron Canvas 198 · 198 = Publish 198 · 198, 평소 행 라벨 41 = 41 (전에는 Publish chevron 41 · Canvas 라벨 · chevron 41).
+
 ## [disabled field 의 입력 글자 — Canvas 도 disabled 색] - 2026-11-23
 
 ### Fixed

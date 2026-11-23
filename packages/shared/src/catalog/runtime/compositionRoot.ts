@@ -255,6 +255,7 @@ import {
   catalogItemRemoveGlyphItem,
   catalogToggleButtonGlyphOwner,
   catalogTreeChevronGlyphItem,
+  catalogDisabledTreeItemLabelItem,
   catalogTreeItemContent,
   catalogSelectionIndicatorLayout,
   catalogPresenceScope,
@@ -4990,6 +4991,9 @@ export class CatalogCompositionRoot {
         : undefined) ??
       catalogItemRemoveGlyphItem(record, get, this.typeOf) ??
       catalogTreeChevronGlyphItem(record, get, this.typeOf) ??
+      (catalogHasAuthoredColor(this, record)
+        ? undefined
+        : catalogDisabledTreeItemLabelItem(record, get, this.typeOf)) ??
       sideNavOwner;
     // (A label in a layout frame — a Tag's content `div` — takes its item's color too.)
     const item = glyphItem ?? catalogPartParent(record, get, this.typeOf);

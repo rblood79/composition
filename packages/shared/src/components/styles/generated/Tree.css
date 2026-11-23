@@ -38,7 +38,7 @@
 }
 
 .react-aria-Tree.react-aria-Tree .react-aria-TreeItem:where([data-disabled]) {
-  color: color-mix(in srgb, var(--fg) 38%, transparent);
+  color: var(--fg-disabled);
 }
 
 @media (forced-colors: active) {
@@ -79,6 +79,14 @@
 
 .react-aria-Tree.react-aria-Tree .react-aria-TreeItem:where([data-selected]) .react-aria-Button {
   color: var(--fg-on-accent);
+}
+
+.react-aria-Tree.react-aria-Tree .react-aria-TreeItem:where([data-disabled]) .react-aria-Text {
+  color: var(--fg-disabled);
+}
+
+.react-aria-Tree.react-aria-Tree .react-aria-TreeItem:where([data-disabled]) .react-aria-Button[slot="chevron"] .react-aria-Icon {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Tree.react-aria-Tree .react-aria-TreeItem [slot="drag"]:where([data-focus-visible]) {
