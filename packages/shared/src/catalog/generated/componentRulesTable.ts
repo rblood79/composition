@@ -6276,9 +6276,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "column",
         width: "100%",
       },
+      // (S2 체크리스트 §4.1, 2026-11-23: disabled is its DropZone's and Button's own S2 color — derived
+      //   `isDisabled`, `presence.ts` `catalogFileUploadOf` — not an opacity over the whole: ADR-297 no
+      //   second formula, and the Canvas never drew one.)
       stateStyles: {
         ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
+      },
+      composition: {
+        // The runtime file list (Preview · Publish after a file comes in — `FileUploadActive`): rows
+        // stacked at the FileUpload's own gap like the sample rows, each a thumbnail beside the S2
+        // ProgressBar and, when the file failed, the S2 InlineAlert under it (`FileUploadAlert`).
+        // Runtime-only — the Canvas draws the sample rows (the template's ProgressBars).
+        delegation: [],
+        staticSelectors: {
+          "> .react-aria-FileUpload-list": {
+            display: "flex",
+            "flex-direction": "column",
+            gap: "12px",
+            width: "100%",
+          },
+          ".react-aria-FileUpload-item": {
+            display: "flex",
+            "flex-direction": "column",
+            gap: "8px",
+            "border-radius": "var(--catalog-token-radius-sm)",
+            outline: "none",
+          },
+          ".react-aria-FileUpload-item[data-focus-visible]": {
+            outline: "var(--focus-ring-width) solid var(--focus-ring)",
+            "outline-offset": "var(--focus-ring-offset)",
+          },
+          ".react-aria-FileUpload-row": {
+            display: "flex",
+            "align-items": "center",
+            gap: "12px",
+          },
+          ".react-aria-FileUpload-row > .react-aria-ProgressBar": {
+            flex: "1 1 0",
+            "min-width": "0px",
+          },
+          ".react-aria-FileUpload-thumb": {
+            width: "40px",
+            height: "40px",
+            "flex-shrink": "0",
+            "object-fit": "cover",
+            "border-radius": "var(--catalog-token-radius-sm)",
+          },
+        },
       },
     },
   },

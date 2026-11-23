@@ -16,7 +16,10 @@ import { ContextualHelp } from "@composition/shared/components/ContextualHelp";
 
 import { FieldLabel } from "@composition/shared/components/FieldLabel";
 
-import { DropZone } from "@composition/shared/components/DropZone";
+// (S2 체크리스트 §4.1, 2026-11-23: the DropZone through its FileUpload intake — a drop goes to the
+//  nearest FileUpload's queue and its `isDisabled` disables the zone, as `FileTriggerIntake` does for the
+//  FileTrigger. Outside a FileUpload it is the plain DropZone.)
+import { DropZoneIntake } from "../../upload/intakeAdapters";
 
 import { FileUpload } from "@composition/shared/components/FileUpload";
 
@@ -145,7 +148,7 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-255: the Tooltip origin's root.
   tooltiptrigger: TooltipTrigger,
   menutrigger: MenuTrigger,
-  dropzone: DropZone,
+  dropzone: DropZoneIntake,
   fileupload: FileUpload,
 };
 

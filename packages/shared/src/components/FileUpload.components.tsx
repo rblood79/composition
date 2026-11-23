@@ -25,6 +25,8 @@ import {
  * CSRF: 서버 계약 §5 — `XSRF-TOKEN` 쿠키 (HttpOnly 아님) 가 있으면 요청마다 `X-CSRF-TOKEN` 헤더로 되돌린다.
  */
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -45,6 +47,33 @@ import {
   loadActiveModule,
   partitionChildren,
 } from "./FileUpload.runtime";
+
+/**
+ * The uploader's blocked state as the S2 InlineAlert (`FileUploadAlert`) — lazy, as the state only
+ * comes after a file came in (HC1: the idle shell stays as small as it was). Until it loads, or if
+ * it cannot (offline — `E_ENGINE_UNAVAILABLE`), the code shows as before.
+ */
+const LazyFileUploadAlert = lazy(() =>
+  import("./FileUploadAlert").then(
+    (module) => ({ default: module.FileUploadAlert }),
+    // (a chunk that cannot load must not throw to the page — the code stays)
+    () => ({
+      default: ({ code }: { code: string }) => <StatusCode code={code} />,
+    }),
+  ),
+);
+
+function StatusCode({ code }: { code: string }) {
+  return (
+    <span
+      className="react-aria-FileUpload-status"
+      role="status"
+      data-code={code}
+    >
+      {code}
+    </span>
+  );
+}
 
 export function FileUpload({
   endpoint,
@@ -215,13 +244,13 @@ export function FileUpload({
           partitioned.rows
         )}
         {hasIntake && statusCode ? (
-          <span
-            className="react-aria-FileUpload-status"
-            role="status"
-            data-code={statusCode}
-          >
-            {statusCode}
-          </span>
+          <Suspense fallback={<StatusCode code={statusCode} />}>
+            <LazyFileUploadAlert
+              className="react-aria-FileUpload-status"
+              code={statusCode}
+              blocked
+            />
+          </Suspense>
         ) : null}
       </div>
     </FileUploadContext.Provider>

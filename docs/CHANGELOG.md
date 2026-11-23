@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [FileUpload — 비활성 전달 · 런타임 목록 행 · 썸네일 · 오류는 S2 InlineAlert] - 2026-11-23
+
+### Fixed
+
+- **비활성 FileUpload 의 「Select files」 Button 이 눌렸고 Canvas 는 입력 표면을 켜진 채 그렸다** — ADR-201 D2 는 `isDisabled` 가 DropZone · FileTrigger Button 양쪽을 끈다고 정했지만, DOM 은 FileUpload 상자 전체를 `opacity: 0.38` 으로 흐리게만 하고 (Canvas 에는 없는 칠 — ADR-297 이 금지한 파생식) Button 은 그대로 눌렸다.
+  - 수정: presence 가 FileUpload 안 DropZone · Button 에 파생 `isDisabled` (`catalogFileUploadOf` — 두 consumer 가 같은 값, 편집 때 다시 계산) · FileUpload rule 의 `DISABLED_STATE` 삭제 (자식의 S2 disabled 색이 표시)
+- **Publish 의 DropZone 에 파일을 떨어뜨려도 업로드 목록에 들어가지 않았다** — DOM 등록표가 FileUpload 큐로 넘기는 `DropZoneIntake` 대신 그냥 `DropZone` 을 썼다 (FileTrigger 는 이미 `FileTriggerIntake`). 수정: `dropzone: DropZoneIntake` — FileUpload 밖에서는 그대로 DropZone.
+- **파일이 들어온 뒤 목록 행에 모양이 없었고 오류는 코드 글자 (`E_TOO_LARGE`) 그대로였다** — 행 · 썸네일 class 에 생성 CSS 가 없었다.
+  - 수정: FileUpload rule `composition.staticSelectors` — 목록은 샘플 행과 같은 간격 12, 행 = 썸네일 40 (모서리 sm) 옆 S2 ProgressBar. 실패한 파일 (`status: error`) 만 그 아래 S2 InlineAlert (negative · border) 에 제목 + 이유 문장 (en · ko · ja, `uploadErrorMessages.ts`), 재시도 중인 오류는 표시하지 않는다. 보낼 수 없는 uploader 상태도 같은 InlineAlert (lazy — idle 껍데기 무게 그대로, 불러오지 못하면 예전처럼 코드). 코드는 `data-code` 로 남는다.
+  - 위치: `packages/shared/src/catalog/runtime/presence.ts` · `catalog/generated/componentRulesTable.ts` (FileUpload) · `catalog/runtime/domRegistry.runtime.ts` · `components/FileUpload.components.tsx` · `FileUploadActive.components.tsx` · 새 `FileUploadAlert.tsx` · `upload/uploadErrorMessages.ts` · 생성 `FileUpload.css`
+  - 확인: 테스트 `fileUploadDisabled` 1 · `fileUploadComponent` +1 (행 · 경고 단언 보강), 원복 RED (소스 되돌림 → 3 실패 · 등록표만 → 1 실패). live `apps/builder/scripts/s2-fileupload-live.mjs` 5/5 — Canvas · Publish 비활성 (Button · DropZone `data-disabled` · opacity 1 · Button 글자 Canvas 221 ≈ Publish 233), Publish 행 (썸네일 40×40 옆 ProgressBar · 큰 파일만 InlineAlert 「업로드 실패 · 허용된 크기보다 큰 파일입니다.」 `E_TOO_LARGE`), endpoint 없는 Preview dry run 은 경고 없음. 번들: `FileUploadAlert` 는 Builder · Preview initial 밖 (vite build closure).
+
 ## [원래 있던 테스트 실패 21 정리 — Tab hover 색 · TabPanel min-height · Tabs Direction 토글] - 2026-11-23
 
 ### Fixed

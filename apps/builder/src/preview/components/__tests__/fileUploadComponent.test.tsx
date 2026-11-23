@@ -14,7 +14,7 @@
  *      initial 에는 idle 껍데기만 (ADR-201 후속 번들 축소). 정적 import 0 을 소스로 확인한다.
  */
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -45,6 +45,7 @@ function makeFakeEngine(): UploadReactModule {
           offset: index === 0 ? Math.floor(file.size / 2) : 0,
           status: index === 1 ? "error" : "uploading",
           attempt: 1,
+          // (the first is retrying a dropped connection — still uploading; the second failed)
           lastError:
             index === 1
               ? {
@@ -53,7 +54,12 @@ function makeFakeEngine(): UploadReactModule {
                   message: "blocked",
                   retryable: false,
                 }
-              : undefined,
+              : {
+                  code: "E_NETWORK",
+                  status: 0,
+                  message: "offline",
+                  retryable: true,
+                },
         }));
         setItems((prev) => [...prev, ...created]);
         return created;
@@ -199,8 +205,31 @@ describe("FileUpload — DOM consumer", () => {
     expect(container.textContent).toContain("<img onerror=x>.png");
     // 진행률 50% 라벨 · 오류 코드
     expect(container.textContent).toContain("50%");
-    const error = container.querySelector(".react-aria-FileUpload-error");
-    expect(error?.getAttribute("data-code")).toBe("E_PATCH_BLOCKED");
+    // (S2 체크리스트 §4.1, 2026-11-23) each row = thumbnail slot + S2 ProgressBar; only the failed file
+    //   shows the S2 InlineAlert (negative · border) with a sentence — a retried error does not, and no
+    //   raw code is shown (it stays in `data-code`).
+    for (const item of container.querySelectorAll(
+      ".react-aria-FileUpload-item",
+    ))
+      expect(
+        item.querySelector(
+          ".react-aria-FileUpload-row .react-aria-ProgressBar",
+        ),
+      ).toBeTruthy();
+    const alerts = container.querySelectorAll(".react-aria-FileUpload-error");
+    expect(alerts).toHaveLength(1);
+    const error = alerts[0]!;
+    expect(error.getAttribute("data-code")).toBe("E_PATCH_BLOCKED");
+    expect(error.classList.contains("react-aria-InlineAlert")).toBe(true);
+    expect(error.getAttribute("data-variant")).toBe("negative");
+    expect(error.getAttribute("data-fill-style")).toBe("border");
+    expect(error.getAttribute("role")).toBe("alert");
+    expect(error.textContent).toContain("Upload failed");
+    expect(error.textContent).toContain(
+      "The server does not allow resumable uploads.",
+    );
+    expect(container.textContent).not.toContain("E_PATCH_BLOCKED");
+    expect(container.textContent).not.toContain("E_NETWORK");
     // preview 안전 — 옵션이 dryRun 으로 갔다
     expect(
       (globalThis as { __lastUploadOptions?: { dryRun?: boolean } })
@@ -223,6 +252,10 @@ describe("FileUpload — DOM consumer", () => {
           ?.getAttribute("data-code"),
       ).toBe("E_ENGINE_UNAVAILABLE"),
     );
+    // (the uploader's own state — the same S2 InlineAlert, a sentence instead of the code)
+    expect(
+      container.querySelector(".react-aria-FileUpload-status")?.textContent,
+    ).toBe("Uploads unavailableThe uploader could not load.");
     expect(container.querySelectorAll(".sample-row")).toHaveLength(2);
     expect(
       container
@@ -338,5 +371,38 @@ describe("FileUpload — DOM consumer", () => {
       false,
     );
     expect(src).toMatch(/import\("\.\/FileUploadActive"\)/);
+  });
+});
+
+// S2 체크리스트 §4.1 (2026-11-23): the catalog DOM's DropZone goes through the FileUpload intake (as the
+//   FileTrigger did) — inside a disabled FileUpload it is disabled, and a drop goes to the queue.
+describe("catalog DOM DropZone = DropZoneIntake", () => {
+  afterEach(cleanup);
+  it("is disabled by its FileUpload and plain outside one", async () => {
+    const { INTERNAL_RENDERERS } =
+      await import("../../../../../../packages/shared/src/catalog/runtime/domRegistry.runtime");
+    const { FileUploadContext } = await import("@composition/shared");
+    const Zone = INTERNAL_RENDERERS.dropzone as unknown as (
+      props: Record<string, unknown>,
+    ) => ReactElement;
+    const inside = render(
+      <FileUploadContext.Provider
+        value={{ addFiles: () => {}, isDisabled: true }}
+      >
+        <Zone>zone</Zone>
+      </FileUploadContext.Provider>,
+    );
+    expect(
+      inside.container
+        .querySelector(".react-aria-DropZone")
+        ?.hasAttribute("data-disabled"),
+    ).toBe(true);
+    cleanup();
+    const outside = render(<Zone>zone</Zone>);
+    expect(
+      outside.container
+        .querySelector(".react-aria-DropZone")
+        ?.hasAttribute("data-disabled"),
+    ).toBe(false);
   });
 });

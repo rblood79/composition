@@ -40,17 +40,54 @@
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-FileUpload.react-aria-FileUpload:where([data-disabled]) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
+/* ── Tier 2: Composite Delegation ── */
+
 
 @media (forced-colors: active) {
   .react-aria-FileUpload {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-FileUpload > .react-aria-FileUpload-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .react-aria-FileUpload .react-aria-FileUpload-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-radius: var(--catalog-token-radius-sm);
+    outline: none;
+  }
+
+  .react-aria-FileUpload .react-aria-FileUpload-item[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-FileUpload .react-aria-FileUpload-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .react-aria-FileUpload .react-aria-FileUpload-row > .react-aria-ProgressBar {
+    flex: 1 1 0;
+    min-width: 0px;
+  }
+
+  .react-aria-FileUpload .react-aria-FileUpload-thumb {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: var(--catalog-token-radius-sm);
+  }
 
 
 } /* @layer components */

@@ -25,6 +25,7 @@ import {
   formatFileSize,
   itemPercent,
 } from "./FileUploadActive.runtime";
+import { FileUploadAlert } from "./FileUploadAlert";
 import { ProgressBar } from "./ProgressBar";
 
 /**
@@ -86,32 +87,32 @@ export function FileUploadActive({
             className="react-aria-FileUpload-item"
             data-status={item.status}
           >
-            {preview ? (
-              <img
-                className="react-aria-FileUpload-thumb"
-                src={preview}
-                alt=""
-                width={40}
-                height={40}
+            {/* (the row: thumbnail + the S2 ProgressBar — FileUpload rule `staticSelectors`) */}
+            <div className="react-aria-FileUpload-row">
+              {preview ? (
+                <img
+                  className="react-aria-FileUpload-thumb"
+                  src={preview}
+                  alt=""
+                  width={40}
+                  height={40}
+                />
+              ) : null}
+              <ProgressBar
+                label={item.name}
+                value={pct}
+                valueLabel={`${formatFileSize(item.size)} · ${pct}%`}
+                showValueLabel
+                isIndeterminate={item.status === "creating"}
+                size="M"
               />
-            ) : null}
-            <ProgressBar
-              label={item.name}
-              value={pct}
-              valueLabel={`${formatFileSize(item.size)} · ${pct}%`}
-              showValueLabel
-              isIndeterminate={item.status === "creating"}
-              size="M"
-              style={{ width: "100%" }}
-            />
-            {item.lastError ? (
-              <span
+            </div>
+            {/* (only a failed file — a retried error is the engine's, not the viewer's) */}
+            {item.status === "error" && item.lastError ? (
+              <FileUploadAlert
                 className="react-aria-FileUpload-error"
-                role="status"
-                data-code={item.lastError.code}
-              >
-                {item.lastError.code}
-              </span>
+                code={item.lastError.code}
+              />
             ) : null}
           </AriaGridListItem>
         );

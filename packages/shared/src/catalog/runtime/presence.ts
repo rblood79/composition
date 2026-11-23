@@ -3051,6 +3051,9 @@ function derivedPropsBeforeSkeleton(
       node.props.isDisabled !== false &&
       catalogActionButtonGroupOf(node, get, typeOf)?.props.isDisabled ===
         true) ||
+    // (A disabled FileUpload's DropZone and FileTrigger Button — ADR-201 D2 `isDisabled`, 2026-11-23.)
+    (FILE_UPLOAD_INPUT_TYPES.has(typeOf(node)) &&
+      catalogFileUploadOf(node, get, typeOf)?.props.isDisabled === true) ||
     catalogItemKeyDisabled(node, get, typeOf);
   // (A select-all checkbox while some rows — not all — are selected: RAC's indeterminate dash.)
   const selectAll =
@@ -3557,6 +3560,46 @@ function actionGroupButtons(
           ...actionGroupButtons(child, get, typeOf),
         ],
   );
+}
+
+/**
+ * ADR-201 D2 — a FileUpload's `isDisabled` disables its input surfaces: the DropZone and the
+ * FileTrigger's Button (S2 `<FileTrigger><Button>`, 11-22). One derived value the Canvas paints
+ * and the DOM passes to RAC (`buttonDisabled` · the DropZone intake).
+ */
+const FILE_UPLOAD_INPUT_TYPES: ReadonlySet<string> = new Set([
+  "DropZone",
+  "Button",
+]);
+
+/** The nearest FileUpload above `node` (through any element). */
+export function catalogFileUploadOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (let parent = get(node.parentId); parent; parent = get(parent.parentId))
+    if (typeOf(parent) === "FileUpload") return parent;
+  return undefined;
+}
+
+/** A FileUpload's input surfaces and their parts (its `isDisabled` repaints them). */
+function fileUploadInputs(
+  owner: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  const out: CatalogConsumerNode[] = [];
+  const visit = (record: CatalogConsumerNode, inside: boolean) => {
+    for (const child of childrenOf(record, get)) {
+      if (typeOf(child) === "FileUpload") continue;
+      const input = FILE_UPLOAD_INPUT_TYPES.has(typeOf(child));
+      if (input || inside) out.push(child);
+      visit(child, inside || input);
+    }
+  };
+  visit(owner, false);
+  return out;
 }
 
 /** The nearest ButtonGroup above a Button (through any element — S2's `ButtonContext`). */
@@ -4500,6 +4543,7 @@ function derivedDependents(
   // (A Nav's `selectedRoute` moves the current mark among its Links.)
   if (type === "Nav") return catalogNavLinks(owner, get, typeOf);
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
+  if (type === "FileUpload") return fileUploadInputs(owner, get, typeOf);
   if (ACTION_GROUP_TYPES.has(type))
     return actionGroupButtons(owner, get, typeOf).flatMap((button) => [
       button,
