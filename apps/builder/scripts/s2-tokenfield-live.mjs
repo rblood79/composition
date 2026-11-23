@@ -7,6 +7,7 @@
 //   ④ Publish — hover 하면 Group 테두리 색이 바뀌고, 상자 여백을 누르면 TokenInput 에 focus
 //   ⑤ Publish — disabled field 의 Group 에 data-disabled
 //   ⑥ page error 0
+//   Phase 2 ⑦ side · ⑧ labelAlign end · Phase 3 ⑨ Token chip style (Publish) · ⑩ chips drawn (Canvas)
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/s2-tokenfield-live.mjs <out-dir>
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -17,6 +18,32 @@ mkdirSync(OUT, { recursive: true });
 const REPO = process.cwd();
 const BASE = process.env.BUILDER_URL ?? "http://localhost:5173";
 const CASES = [
+  // Phase 3 (first — the Canvas clip of ⑩ needs them on screen) — Token = S2 Tag paint in the line (a wrapping value: the chips' inline insets move the wrap)
+  {
+    key: "tokens",
+    props: {
+      size: "M",
+      value:
+        "Ask @alexandra about #design-system and @morgan with #frontend-tokens and #a11y today ",
+    },
+  },
+  // (a narrow field: the value wraps — where depends on the chips' inline insets, ② compares the height)
+  {
+    key: "tokens-narrow",
+    width: 300,
+    props: {
+      size: "M",
+      value:
+        "Ask @alexandra about #design-system and @morgan with #frontend-tokens and #a11y today ",
+    },
+  },
+  {
+    key: "tokens-L",
+    props: {
+      size: "L",
+      value: "Ping @sam and @robin about #release-notes for #v2 now ",
+    },
+  },
   { key: "S", props: { size: "S" } },
   { key: "M", props: { size: "M" } },
   { key: "L", props: { size: "L" } },
@@ -30,6 +57,11 @@ const CASES = [
     },
   },
   { key: "disabled", props: { size: "M", isDisabled: true } },
+  // Phase 2 — S2 TextArea's label layout
+  { key: "side", props: { size: "M", labelPosition: "side" } },
+  { key: "side-end-L", props: { size: "L", labelPosition: "side", labelAlign: "end" } },
+  // (in a side Form: its labelPosition · labelAlign · size reach the field — the field sets none)
+  { key: "form-side", props: {}, form: { labelPosition: "side", size: "M" }, size: "M" },
 ];
 
 const results = [];
@@ -74,40 +106,75 @@ try {
     const h = window.__COMPOSITION_CATALOG__;
     const ws = h.workspace;
     const r = ws.root;
-    const ctx = () => ({
+    const ctx = (at = "project:node:home-body") => ({
       graph: ws.runtime.graph,
       records: ws.root.domInputs,
       selection: () => ws.session.getSnapshot().selection,
       itemOfRecord: (i) => ws.itemOfRecord(i),
-      pageContent: () => ({ kind: "node", id: "project:node:home-body" }),
+      pageContent: () => ({ kind: "node", id: at }),
       newId: ws.newId,
     });
     const set = (value) => ({ kind: "set", value });
+    const newOf = (type, before) =>
+      [...r.canvasInputs.values()].find(
+        (x) => r.typeOf(x) === type && !before.has(x.id),
+      );
+    const sources = [];
     for (const c of cases) {
       ws.selectRecords([]);
-      ws.execute(h.palette.catalogPaletteInsertPlan(ctx(), "TokenField").command);
-      const fields = [...r.canvasInputs.values()].filter(
-        (x) => r.typeOf(x) === "TokenField",
-      );
-      const field = fields[fields.length - 1];
+      let at;
+      if (c.form) {
+        const before = new Set(r.canvasInputs.keys());
+        ws.execute(h.palette.catalogPaletteInsertPlan(ctx(), "Form").command);
+        const form = newOf("Form", before);
+        ws.execute(
+          h.commands.setFields({
+            targets: [{ kind: "node", id: form.sourceId }],
+            props: Object.fromEntries(
+              Object.entries(c.form).map(([k, v]) => [k, set(v)]),
+            ),
+          }),
+        );
+        at = form.sourceId;
+        // (the Form's own sample fields stay — the TokenField goes after them)
+      }
+      ws.selectRecords([]);
+      const before = new Set(r.canvasInputs.keys());
       ws.execute(
-        h.commands.setFields({
-          targets: [{ kind: "node", id: field.sourceId }],
-          props: Object.fromEntries(
-            Object.entries(c.props).map(([k, v]) => [k, set(v)]),
-          ),
-        }),
+        h.palette.catalogPaletteInsertPlan(ctx(at), "TokenField").command,
       );
+      const field = newOf("TokenField", before);
+      sources.push(field.sourceId);
+      if (Object.keys(c.props).length)
+        ws.execute(
+          h.commands.setFields({
+            targets: [{ kind: "node", id: field.sourceId }],
+            props: Object.fromEntries(
+              Object.entries(c.props).map(([k, v]) => [k, set(v)]),
+            ),
+          }),
+        );
+      if (c.width)
+        ws.execute(
+          h.commands.setFields({
+            targets: [{ kind: "node", id: field.sourceId }],
+            sizing: { width: set(c.width) },
+          }),
+        );
     }
     ws.selectRecords([]);
     const g = (id) => r.getGeometry([id]).get(id);
-    const fields = [...r.canvasInputs.values()].filter(
-      (x) => r.typeOf(x) === "TokenField",
+    const fields = sources.map(
+      (source) =>
+        [...r.canvasInputs.values()].find(
+          (x) => x.sourceId === source && r.typeOf(x) === "TokenField",
+        ),
     );
     return fields.map((field, i) => {
       // geometry is parent-relative — walk down from the field
       let group = null;
       let input = null;
+      let row = null;
       const walk = (id, ox, oy) => {
         const node = r.canvasInputs.get(id);
         const rect = g(id);
@@ -116,6 +183,7 @@ try {
         const y = oy + rect.y;
         const box = { id, x, y, w: rect.width, h: rect.height };
         if (r.typeOf(node) === "Group" && !group) group = box;
+        if (r.typeOf(node) === "FieldLabel" && !row) row = box;
         if (r.typeOf(node) === "TokenInput") {
           input = { ...box, size: node.props.size };
           return;
@@ -134,7 +202,13 @@ try {
         fieldId: field.id,
         group,
         input,
+        row,
+        labelPosition: field.props.labelPosition,
         labelColor: label?.derivedProps?.color,
+        // (the Canvas aligns the label row — `justify-content`, as the sheet's on the row)
+        labelTextAlign: [...r.canvasInputs.values()].find(
+          (x) => r.typeOf(x) === "FieldLabel" && x.parentId === field.id,
+        )?.layout?.justifyContent,
       };
     });
   }, CASES);
@@ -152,7 +226,7 @@ try {
         (c, i) =>
           c.group &&
           c.input &&
-          c.input.size === CASES[i].props.size &&
+          c.input.size === (CASES[i].props.size ?? CASES[i].size) &&
           c.input.x > c.group.x &&
           c.input.y > c.group.y,
       ),
@@ -195,6 +269,13 @@ try {
           key: c.key,
           group: rel(group),
           input: rel(input),
+          row: field.querySelector(".react-aria-FieldLabel")
+            ? rel(field.querySelector(".react-aria-FieldLabel"))
+            : null,
+          dataLabelPosition: field.getAttribute("data-label-position"),
+          labelTextAlign: getComputedStyle(
+            field.querySelector(".react-aria-Label"),
+          ).textAlign,
           groupBorder: gs.borderTopWidth,
           groupBorderColor: gs.borderTopColor,
           groupRadius: gs.borderTopLeftRadius,
@@ -218,14 +299,23 @@ try {
     a && b && near(a.x, b.x) && near(a.y, b.y) && near(a.w, b.w) && near(a.h, b.h);
   const diffs = canvas
     .map((c, i) => ({ c, d: dom[i] }))
-    .filter(({ c, d }) => !same(c.group, d.group) || !same(c.input, d.input))
+    .filter(
+      ({ c, d }) =>
+        !same(c.group, d.group) ||
+        !same(c.input, d.input) ||
+        !same(c.row, d.row),
+    )
     .map(({ c, d }) => ({
       key: c.key,
-      canvas: { group: c.group, input: c.input },
-      dom: { group: d.group, input: d.input },
+      canvas: { group: c.group, input: c.input, row: c.row },
+      dom: { group: d.group, input: d.input, row: d.row },
     }));
   record("② Publish — Group and TokenInput boxes = Canvas (±0.5)", diffs.length === 0, {
     diffs,
+    narrow: {
+      canvas: canvas.find((c) => c.key === "tokens-narrow")?.input?.h,
+      dom: dom.find((d) => d.key === "tokens-narrow")?.input?.h,
+    },
     twoLines: {
       canvas: canvas.find((c) => c.key === "two-lines")?.input?.h,
       dom: dom.find((d) => d.key === "two-lines")?.input?.h,
@@ -233,7 +323,7 @@ try {
   });
   const radius = { S: "7px", M: "8px", L: "9px", XL: "10px" };
   const shapeBad = dom.filter((d, i) => {
-    const size = CASES[i].props.size;
+    const size = CASES[i].props.size ?? CASES[i].size;
     return !(
       d.groupBorder === "2px" &&
       d.groupRadius === radius[size] &&
@@ -300,6 +390,169 @@ try {
       labels.canvas[0] !== labels.canvas[1] &&
       labels.dom[0] !== labels.dom[1],
     labels,
+  );
+  // ⑦ Phase 2 — side: label row in column 1 at the input's first line, the box in column 2 at the top;
+  //   a side Form's layout reaches a field that set none; labelAlign end right-aligns the label
+  const side = (key) => ({
+    canvas: canvas.find((c) => c.key === key),
+    dom: dom.find((d) => d.key === key),
+  });
+  const sideBad = ["side", "side-end-L", "form-side"].filter((key) => {
+    const { canvas: c, dom: d } = side(key);
+    return !(
+      d?.dataLabelPosition === "side" &&
+      c?.labelPosition === "side" &&
+      c.row &&
+      c.row.x === 0 &&
+      c.group.x >= c.row.w &&
+      c.group.y === 0 &&
+      c.row.y > 0
+    );
+  });
+  record(
+    "⑦ side — label row in column 1 at the first line, box in column 2 (Canvas · Publish; a side Form's too)",
+    sideBad.length === 0,
+    {
+      bad: sideBad,
+      side: ["side", "side-end-L", "form-side"].map((key) => {
+        const { canvas: c, dom: d } = side(key);
+        return { key, canvas: { row: c?.row, group: c?.group, pos: c?.labelPosition }, dom: { row: d?.row, group: d?.group, pos: d?.dataLabelPosition } };
+      }),
+    },
+  );
+  record(
+    "⑧ labelAlign end — the side label's text is end-aligned on both consumers (start elsewhere)",
+    side("side-end-L").dom?.labelTextAlign === "end" &&
+      side("side").dom?.labelTextAlign === "start" &&
+      side("side-end-L").canvas?.labelTextAlign === "end" &&
+      side("side").canvas?.labelTextAlign === "start",
+    {
+      dom: [side("side").dom?.labelTextAlign, side("side-end-L").dom?.labelTextAlign],
+      canvas: [side("side").canvas?.labelTextAlign, side("side-end-L").canvas?.labelTextAlign],
+    },
+  );
+  // ⑨ Phase 3 — the Token chip: the rule's inline box on the Publish (display inline · border 1 · radius sm ·
+  //   padding text-to-visual · the Tag fill), drawn on the Canvas too (the chip border's pixels in the
+  //   TokenInput, both consumers — a wrapping value's height is ② already)
+  const chipStyle = await pub.evaluate((ids) =>
+    ids.map(({ key, fieldId }) => {
+      const token = document
+        .querySelector(`[data-catalog-id="${CSS.escape(fieldId)}"]`)
+        ?.querySelector(".react-aria-Token");
+      if (!token) return { key, missing: true };
+      const cs = getComputedStyle(token);
+      return {
+        key,
+        count: token
+          .closest(".react-aria-TokenInput")
+          .querySelectorAll(".react-aria-Token").length,
+        variant: token.getAttribute("data-variant"),
+        display: cs.display,
+        border: cs.borderTopWidth,
+        borderColor: cs.borderTopColor,
+        radius: cs.borderTopLeftRadius,
+        padding: [cs.paddingLeft, cs.paddingTop],
+        background: cs.backgroundColor,
+        color: cs.color,
+        weight: cs.fontWeight,
+      };
+    }),
+  canvas.filter((c) => c.key.startsWith("tokens")).map((c) => ({ key: c.key, fieldId: c.fieldId })));
+  const chipM = chipStyle.find((c) => c.key === "tokens");
+  const chipL = chipStyle.find((c) => c.key === "tokens-L");
+  record(
+    "⑨ Publish — a Token is the rule's inline chip (inline · border 1 · radius 4 · padding 6 / 7 · Tag fill)",
+    chipM?.count >= 4 &&
+      chipM.variant === "default" &&
+      chipM.display === "inline" &&
+      chipM.border === "1px" &&
+      chipM.radius === "4px" &&
+      chipM.padding[0] === "6px" &&
+      chipM.padding[1] === "0px" &&
+      chipL?.padding[0] === "7px" &&
+      chipM.background !== "rgba(0, 0, 0, 0)",
+    chipStyle,
+  );
+  // pixels of the chip border color inside each consumer's TokenInput (a clip of the screenshot)
+  const parseRgb = (css) => css.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
+  const target = parseRgb(chipM.borderColor);
+  const countIn = async (where, clip) => {
+    const png = await where.screenshot({ clip });
+    return where.evaluate(
+      async ({ b64, rgb }) => {
+        const img = new Image();
+        img.src = `data:image/png;base64,${b64}`;
+        await img.decode();
+        const c = document.createElement("canvas");
+        c.width = img.width;
+        c.height = img.height;
+        const g = c.getContext("2d");
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4)
+          if (
+            Math.abs(d[i] - rgb[0]) <= 6 &&
+            Math.abs(d[i + 1] - rgb[1]) <= 6 &&
+            Math.abs(d[i + 2] - rgb[2]) <= 6
+          )
+            n++;
+        return n;
+      },
+      { b64: png.toString("base64"), rgb: target },
+    );
+  };
+  const pixelsOf = async (key) => {
+    const tokensCanvas = canvas.find((c) => c.key === key);
+    // (zoom 1 · the field on screen: the chip border's 1px stays whole pixels on both)
+    await page.bringToFront();
+    await page.evaluate((id) => {
+      const h = window.__COMPOSITION_CATALOG__;
+      const b = h.canvas.boundsOf(id);
+      h.canvas.setCamera({ scale: 1, x: 40 - b.x, y: 120 - b.y });
+    }, tokensCanvas.input.id);
+    await page.waitForTimeout(800);
+    const canvasClip = await page.evaluate((id) => {
+      const h = window.__COMPOSITION_CATALOG__;
+      const b = h.canvas.boundsOf(id);
+      const cam = h.canvas.camera();
+      const el =
+        document.querySelector('[data-canvas-container="true"]') ??
+        document.querySelector('[data-catalog-canvas="true"]');
+      const r = el.getBoundingClientRect();
+      return {
+        x: r.left + b.x * cam.zoom + cam.x,
+        y: r.top + b.y * cam.zoom + cam.y - 3,
+        width: b.width * cam.zoom,
+        height: b.height * cam.zoom + 6,
+        zoom: cam.zoom,
+      };
+    }, tokensCanvas.input.id);
+    const pubClip = await pub.evaluate((fieldId) => {
+      const b = document
+        .querySelector(`[data-catalog-id="${CSS.escape(fieldId)}"]`)
+        .querySelector(".react-aria-TokenInput")
+        .getBoundingClientRect();
+      return { x: b.x, y: b.y - 3, width: b.width, height: b.height + 6 };
+    }, tokensCanvas.fieldId);
+    await page.screenshot({ path: `${OUT}/4-canvas-${key}.png`, clip: canvasClip });
+    const canvasPixels = await countIn(page, canvasClip);
+    await pub.bringToFront();
+    await pub.screenshot({ path: `${OUT}/4-publish-${key}.png`, clip: pubClip });
+    const pubPixels = await countIn(pub, pubClip);
+    return { key, canvasPixels, pubPixels, zoom: canvasClip.zoom };
+  };
+  // (the narrow case: a chip's edge left at the end of the previous line adds border pixels — 11-23)
+  const pixels = [await pixelsOf("tokens"), await pixelsOf("tokens-narrow")];
+  record(
+    "⑩ Canvas — the chips are drawn: their border color in the TokenInput, as many as the Publish's (±10%, one line · wrapped)",
+    pixels.every(
+      (p) =>
+        p.zoom === 1 &&
+        p.pubPixels > 50 &&
+        Math.abs(p.canvasPixels - p.pubPixels) <= p.pubPixels * 0.1,
+    ),
+    { target, pixels },
   );
   record("⑥ no page errors", errors.length === 0, errors);
 } finally {

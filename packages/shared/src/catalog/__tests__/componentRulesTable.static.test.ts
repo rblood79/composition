@@ -132,9 +132,9 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   ),
   sizes(
     "Token",
-    "borderRadius",
-    { S: 0, M: 0, L: 0, XL: 0 },
-    "S2 에 TokenField 가 없다 (RAC 전용) — 입력 안 token 글자 조각은 상자 모양이 없다 (bbca53c78)",
+    "paddingX",
+    { S: 5, M: 6, L: 7 },
+    "S2 에 TokenField 가 없다 — design-data `tag-field` 의 토큰 = S2 Tag 를 줄 안 inline 칩으로 (사용자 결정 2026-11-23): 좌우 여백 = S2 `text-to-visual` (글자 × 6/14 — 12 · 14 · 16px 글자에서 5.1 · 6 · 6.9 를 px 로 반올림, XL 8 은 spacing 단) · Canvas 측정 · 칩이 같은 값 (`runtime/tokenChip.ts`)",
   ),
   sizes(
     "Label",

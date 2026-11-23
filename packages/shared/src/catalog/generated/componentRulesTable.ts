@@ -14945,6 +14945,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     // (라벨 · 설명 글자색 = TextArea · TextField 의 상태 트리 — S2 `fieldLabel()` neutral-subdued, disabled.)
     variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
+    // (the side grid's mirror — the Style panel's preset reads it; the canonical block is below)
+    containerVariants: {
+      "label-position": {
+        side: {
+          styles: {
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
+          },
+        },
+      },
+    },
     sizes: {
       S: {
         height: 0,
@@ -14986,6 +14998,100 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       stateStyles: {
         color: TOGGLE_GROUP_LABEL,
         cursor: { isDisabled: "default" },
+      },
+      // Phase 2 (2026-11-23): S2 TextArea 의 라벨 배치 — side 는 S2 `field()` grid (`auto 1fr`), 라벨은 입력
+      //   첫 줄에 (TextField rule 의 TextArea 블록과 같은 `--tf-side-label-offset`), 정렬은 `--form-label-align`.
+      composition: {
+        layout: "flex-column",
+        containerStyles: {
+          width: "100%",
+        },
+        containerVariants: {
+          size: {
+            S: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-S, 4px)",
+              },
+            },
+            M: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-M, 7px)",
+              },
+            },
+            L: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-L, 10px)",
+              },
+            },
+            XL: {
+              styles: {
+                "--tf-side-label-offset":
+                  "var(--catalog-token-field-side-label-offset-XL, 13px)",
+              },
+            },
+          },
+          "label-position": {
+            side: {
+              styles: {
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
+              },
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
+                    "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // (the label at the TokenInput's first line, not its middle — a TextArea's)
+                  selector:
+                    "> .react-aria-Label:has(~ .react-aria-FieldBox > .react-aria-TokenInput)",
+                  styles: {
+                    "align-self": "start",
+                    "margin-top": "var(--tf-side-label-offset)",
+                  },
+                },
+                {
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    "grid-column": "2",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "grid-column": "2",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "grid-column": "2",
+                  },
+                },
+              ],
+            },
+          },
+          "label-align": {
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
+            },
+          },
+        },
+        delegation: [],
       },
     },
   },
@@ -15050,45 +15156,82 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // S2 체크리스트 §4.1 TokenField Phase 3 (사용자 결정 2026-11-23 「Tag 칠을 줄 안에」): design-data
+  //   `tag-field` 의 토큰은 S2 Tag 다 — 칠 · 글자색 · 테두리 · 선택 상태는 Tag rule 의 트리 그대로, 모서리는
+  //   Tag 의 `{radius.sm}`. 상자는 줄 높이를 바꾸지 않는 CSS inline 상자 (RAC TokenInput 은 글자 줄 안의
+  //   구간이다 — Tag 의 control 높이를 두지 않는다): 좌우 여백 = S2 `text-to-visual` (글자 × 6/14 — 5 · 6 ·
+  //   7 · 8), 위아래 여백 0. Canvas 는 TokenInput 문단 안 토큰 구간 앞뒤에 같은 폭의 자리를 두고 그 뒤에
+  //   칩을 그린다 (`runtime/tokenChip.ts` — 측정 · 그리기가 이 값을 읽는다).
   Token: {
+    defaultVariant: "default",
     defaultSize: "M",
-    variants: {},
+    variants: {
+      default: {
+        paint: {
+          backgroundColor: {
+            default: "{color.layer-1}",
+            isSelected: "{color.neutral}",
+          },
+          color: {
+            default: "{color.neutral}",
+            isSelected: "{color.base}",
+            isDisabled: "{color.disabled-content}",
+          },
+          borderColor: {
+            default: "{color.border}",
+            isSelected: "{color.neutral}",
+          },
+        },
+      },
+    },
     sizes: {
       S: {
         height: 0,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 600,
-        borderRadius: 0,
+        paddingX: 5,
+        paddingY: 0,
+        borderWidth: "{border.width.thin}",
+        borderRadius: "{radius.sm}",
       },
       M: {
         height: 0,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         fontWeight: 600,
-        borderRadius: 0,
+        paddingX: 6,
+        paddingY: 0,
+        borderWidth: "{border.width.thin}",
+        borderRadius: "{radius.sm}",
       },
       L: {
         height: 0,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         fontWeight: 600,
-        borderRadius: 0,
+        paddingX: 7,
+        paddingY: 0,
+        borderWidth: "{border.width.thin}",
+        borderRadius: "{radius.sm}",
       },
       XL: {
         height: 0,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 600,
-        borderRadius: 0,
+        paddingX: 8,
+        paddingY: 0,
+        borderWidth: "{border.width.thin}",
+        borderRadius: "{radius.sm}",
       },
     },
     structure: {
       archetype: "text",
       element: "span",
       containerStyles: {
-        display: "inline-block",
-        width: "fit-content",
+        display: "inline",
+        borderStyle: "solid",
         whiteSpace: "nowrap",
       },
     },

@@ -90,7 +90,7 @@ function runsKey(text: NonNullable<SkiaNodeData["text"]>): string {
   const runs = (text.runs ?? [])
     .map(
       (run) =>
-        `${run.start}-${run.end}:${run.fontWeight ?? ""}:${run.fontStyle ?? ""}:${run.fontSize ?? ""}:${colorKey(run.color)}:${run.decoration ?? ""}`,
+        `${run.start}-${run.end}:${run.fontWeight ?? ""}:${run.fontStyle ?? ""}:${run.fontSize ?? ""}:${colorKey(run.color)}:${run.decoration ?? ""}:${run.chip ? `${run.chip.inset}/${run.chip.borderWidth}/${run.chip.radius}/${colorKey(run.chip.fill)}/${colorKey(run.chip.stroke)}` : ""}`,
     )
     .join(";");
   const ancestor = text.ancestorDecoration;

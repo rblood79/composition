@@ -20,7 +20,11 @@ import {
   LISTBOX_PICKER_TYPES,
 } from "./pickerSelection";
 import { CatalogPickerSelectionSlot } from "./pickerSelection.components";
-import { CatalogTokenField, CatalogTokenInput } from "./tokenField.components";
+import {
+  CatalogToken,
+  CatalogTokenField,
+  CatalogTokenInput,
+} from "./tokenField.components";
 import { catalogFieldBoxInputDomStyle } from "./fieldPrefix";
 import { isPropVar } from "../document/valueType";
 import {
@@ -2006,6 +2010,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       createElement(CatalogTokenField, {
         ...marker(input),
         ...chrome(input, "TokenField"),
+        // (Phase 2: the side label column — the rule's `[data-label-position]` · `[data-label-align]`
+        //  blocks; a Form's values when the field set none, as the other fields' `fieldBase`.)
+        ...((form) => ({
+          "data-label-position":
+            str(input.node.props.labelPosition ?? form.labelPosition) || "top",
+          "data-label-align":
+            str(input.node.props.labelAlign ?? form.labelAlign) || "start",
+        }))(inheritedForm(input)),
         style: input.style,
         value: str(input.node.props.value),
         isDisabled: bool(input.node.props.isDisabled),
@@ -2046,6 +2058,17 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ...input.node.children.map(input.renderChild),
             ),
           ),
+      }),
+  },
+  // S2 체크리스트 §4.1 TokenField Phase 3: the Token chip's paint tree is the rule's `[data-variant]`
+  // blocks (the selected · disabled branches) — RAC's Token with the rule's `data-variant` · `data-size`.
+  token: {
+    render: (input) =>
+      createElement(CatalogToken, {
+        ...marker(input),
+        ...chrome(input, "Token"),
+        style: input.style,
+        children: str(input.node.props.children),
       }),
   },
   // ADR-256 Phase 5e-2: Tabs draws its node tree — the reference `Tabs > (… TabList …) + TabPanels >

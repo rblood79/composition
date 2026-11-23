@@ -159,6 +159,9 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     label: "composition",
     description: "composition",
     placeholder: "composition",
+    // (S2 체크리스트 §4.1 Phase 2, 2026-11-23: no S2 TokenField — S2 TextArea's label layout.)
+    labelPosition: "composition",
+    labelAlign: "composition",
   },
   TokenInput: { placeholder: "composition" },
   // (2026-11-14, 사용자 「Toolbar 묶음 prop 5개」: S2 `Toolbar.tsx` is an unstyled RAC wrapper — the styled

@@ -16,6 +16,29 @@ export const tokenFieldBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // (Phase 2, 2026-11-23: S2 TextArea's label layout — the side column and its alignment; a Form's
+      //  values reach it too, `CATALOG_FORM_FIELDS`.)
+      labelPosition: {
+        kind: "enum",
+        label: "Label Position",
+        section: "appearance",
+        default: "top",
+        options: [
+          { value: "top", label: "Top" },
+          { value: "side", label: "Side" },
+        ],
+      },
+      labelAlign: {
+        kind: "enum",
+        label: "Label align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+        visibleWhen: { key: "labelPosition", equals: "side" },
+      },
       allowsNewlines: {
         kind: "boolean",
         label: "Allows newlines",

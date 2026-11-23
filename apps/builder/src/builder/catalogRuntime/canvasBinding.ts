@@ -62,7 +62,15 @@ import {
   registerSkiaNode,
   unregisterSkiaNode,
 } from "../workspace/canvas/skia/useSkiaNode";
-import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
+import type {
+  SkiaNodeData,
+  SkiaTextRun,
+} from "../workspace/canvas/skia/nodeRendererTypes";
+import {
+  catalogTokenChip,
+  catalogTokenRanges,
+  type CatalogTokenChip,
+} from "../../../../../packages/shared/src/catalog/runtime/tokenChip";
 import type {
   StickyConstraints,
   LayoutResult,
@@ -603,6 +611,7 @@ const glyph: Binding = (node, rect) => {
 function canvasTextRuns(
   node: CatalogConsumerNode,
   textTransform: string | undefined,
+  chipOf?: (start: number, end: number) => CatalogTokenChip | undefined,
 ):
   | Pick<NonNullable<SkiaNodeData["text"]>, "runs" | "ancestorDecoration">
   | undefined {
@@ -621,6 +630,7 @@ function canvasTextRuns(
       : undefined;
   return {
     runs: styles.map((style) => ({
+      ...canvasRunChip(chipOf?.(style.start, style.end)),
       start: style.start,
       end: style.end,
       ...(style.fontWeight !== undefined
@@ -645,6 +655,53 @@ function canvasTextRuns(
   };
 }
 
+/** A token chip as the paint's run fields — the chip box and the token's text color · weight. */
+function canvasRunChip(
+  chip: CatalogTokenChip | undefined,
+): Partial<SkiaTextRun> {
+  if (!chip) return {};
+  return {
+    chip: {
+      inset: chip.inset,
+      borderWidth: chip.borderWidth,
+      radius: chip.radius,
+      ...(chip.background ? { fill: rgba(chip.background) } : {}),
+      ...(chip.borderColor ? { stroke: rgba(chip.borderColor) } : {}),
+    },
+    ...(chip.color ? { color: rgba(chip.color) } : {}),
+  };
+}
+
+/**
+ * S2 체크리스트 §4.1 TokenField Phase 3 — a TokenInput's token runs → their chip (`catalogTokenChip`): the
+ * TokenInput's size, its TokenField's disabled (the RAC Token's `data-disabled`), the color mode.
+ */
+function tokenInputChips(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): ((start: number, end: number) => CatalogTokenChip | undefined) | undefined {
+  if (node.bindingId !== "tokeninput" || typeof node.props.children !== "string")
+    return undefined;
+  const tokens = catalogTokenRanges(node.props.children);
+  if (tokens.length === 0) return undefined;
+  let field = root.canvasInputs.get(node.parentId);
+  while (field && root.typeOf(field) !== "TokenField")
+    field = root.canvasInputs.get(field.parentId);
+  const chip = catalogTokenChip(
+    node.props.size,
+    {
+      isDisabled:
+        field?.props.isDisabled === true ||
+        field?.derivedProps?.isDisabled === true,
+    },
+    root.colorMode,
+  );
+  return (start, end) =>
+    tokens.some((token) => token.start === start && token.end === end)
+      ? chip
+      : undefined;
+}
+
 /**
  * ADR-299 — a rule-drawn text (a Link) of range-formatted text: its runs on the rule's text node.
  * The rule's own line (the class CSS on the element — a span cannot remove it) draws under every run
@@ -654,11 +711,16 @@ function canvasTextRuns(
 function withRuleTextRuns(
   data: SkiaNodeData,
   node: CatalogConsumerNode,
+  chipOf?: (start: number, end: number) => CatalogTokenChip | undefined,
 ): SkiaNodeData {
   if (!node.textRuns) return data;
   const attach = (item: SkiaNodeData): SkiaNodeData => {
     if (item.text) {
-      const runs = canvasTextRuns(node, node.visual.textTransform as string);
+      const runs = canvasTextRuns(
+        node,
+        node.visual.textTransform as string,
+        chipOf,
+      );
       if (!runs) return item;
       const { decoration, ...text } = item.text;
       const ownOff = /^none\b/.test(String(node.visual.textDecoration ?? ""));
@@ -1186,7 +1248,11 @@ function ruleNodeData(
     )
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
   const input = fieldBoxShapeInput(root, node, rect);
-  const data = withRuleTextRuns(catalogRuleNodeData(input), node);
+  const data = withRuleTextRuns(
+    catalogRuleNodeData(input),
+    node,
+    tokenInputChips(root, node),
+  );
   const content: SkiaNodeData[] = [];
   if (catalogButtonPending(root.typeOf(node), node.props))
     content.push(

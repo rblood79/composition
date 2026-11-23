@@ -1706,6 +1706,8 @@ function compositionVariables(
 const SIBLING_CONTROL_TYPES: Readonly<Record<string, string>> = {
   ".react-aria-TextArea": "TextArea",
   ".react-aria-FieldBox > .react-aria-TextArea": "TextArea",
+  // (a TokenField's TokenInput in its box — the same first-line label, 2026-11-23)
+  ".react-aria-FieldBox > .react-aria-TokenInput": "TokenField",
 };
 /** The side label column's alignment axis: its blocks only declare `--form-label-align`. */
 const LABEL_ALIGN_AXIS = {

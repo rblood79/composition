@@ -21,6 +21,11 @@ import { catalogSheetPartLayout, catalogSheetViewport } from "./sheetLayout";
 import { catalogCollectionId, dataCollectionIdOf } from "./dataBinding";
 import { catalogTokenSegments } from "../document/tokenFieldValue";
 import {
+  catalogTokenFontWeight,
+  catalogTokenInset,
+  catalogTokenRanges,
+} from "./tokenChip";
+import {
   isRichText,
   resolvedTextRuns,
   richTextPlain,
@@ -963,6 +968,13 @@ const heightOnlyTextTypes = new Set([
   "TextArea",
   "TokenInput",
 ]);
+/**
+ * Height-only field text that wraps at its width (S2 체크리스트 §4.1 TokenField Phase 3): RAC's TokenInput
+ * is a `pre-wrap` contenteditable whose height follows its lines — a long value wraps on the Publish, so
+ * the Canvas re-measures it at the box width (`rewrap`), as a Text. (An Input is one line; a TextArea's
+ * height is its rows.)
+ */
+const wrappingFieldTextTypes = new Set(["TokenInput"]);
 /** Icon-font glyph bindings (Skia `icon_font`). */
 const glyphBindings = new Set(["icon", "illustration"]);
 
@@ -1010,6 +1022,8 @@ export interface CatalogTextRunFont {
   readonly fontSize?: number;
   readonly fontWeight?: number;
   readonly fontStyle?: string;
+  /** An inline box's start · end beyond the glyphs (padding + border, each side — a token chip), px. */
+  readonly inset?: number;
 }
 /** The text font with a run's own size · weight · style over it. */
 export function catalogRunFont(
@@ -1282,6 +1296,8 @@ function textLeaf(
       inheritedLineHeight ??
       0,
   );
+  const tokens =
+    node.bindingId === "tokeninput" ? catalogTokenRanges(text) : undefined;
   const runs = catalogTextRunStyles(
     node.textRuns,
     typography.textTransform,
@@ -1292,6 +1308,10 @@ function textLeaf(
     ...(fontSize !== undefined ? { fontSize } : {}),
     ...(fontWeight !== undefined ? { fontWeight } : {}),
     ...(fontStyle !== undefined ? { fontStyle } : {}),
+    // (S2 체크리스트 §4.1 TokenField Phase 3: a token's chip — its inline start · end, the paint's.)
+    ...(tokens?.some((token) => token.start === start && token.end === end)
+      ? { inset: catalogTokenInset(node.props.size) }
+      : {}),
   }));
   const required = requiredTextBindings.has(node.bindingId ?? "");
   if (!(fontSize > 0) || (required && !(lineHeight > 0))) {
@@ -2106,7 +2126,7 @@ function withTextRuns(record: CatalogConsumerNode): CatalogConsumerNode {
             ...(segment.type === "token"
               ? {
                   marks: {
-                    fontWeight: COMPONENT_RULES_TABLE.Token.sizes.M.fontWeight,
+                    fontWeight: catalogTokenFontWeight(record.props.size),
                   },
                 }
               : {}),
@@ -6749,7 +6769,8 @@ export class CatalogCompositionRoot {
         !(
           catalogBindingKeepsOneLine(record) ||
           ("singleLine" in leaf && leaf.singleLine) ||
-          heightOnlyTextTypes.has(this.typeOf(record))
+          (heightOnlyTextTypes.has(this.typeOf(record)) &&
+            !wrappingFieldTextTypes.has(this.typeOf(record)))
         )
       ) {
         const rect = this.layout.getLayoutsForIds([id]).get(id);

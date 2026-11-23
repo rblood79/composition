@@ -43,6 +43,7 @@ import { renderCounters, renderScope } from "./renderCounters";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import type { SkiaNodeData, SkiaTextRun } from "./nodeRendererTypes";
 import { alignTextRuns } from "../utils/textRunAlign";
+import { addChipPlaceholder, chipParagraphIndices } from "./inlineEdge";
 import {
   getTextParagraphCacheKey,
   textNeedsEllipsis,
@@ -244,6 +245,54 @@ export function renderText(
   const alignedRuns = richRuns
     ? alignTextRuns(node.text.content, richRuns, richText)
     : undefined;
+  // A run index in the paragraph's text — a chip run's edges and joiners (`addChipRun`) take places.
+  const chipIndices = alignedRuns?.some((run) => run.chip)
+    ? chipParagraphIndices(richText, alignedRuns)
+    : undefined;
+  const toParagraph = chipIndices
+    ? (index: number) => chipIndices[index]!
+    : undefined;
+  // A chip run's text on its own (its width is the placeholder's · drawn at it — `addChipPlaceholder`):
+  //   the main paragraph's text style with the run's weight · size · color. Laid out; the caller deletes.
+  const chipTextParagraph = (run: SkiaTextRun, text: string): Paragraph => {
+    const families = node.text!.fontFamilies.map((family) =>
+      skiaFontManager.resolveFamily(family),
+    );
+    const features = [
+      ...DEFAULT_FONT_FEATURES,
+      ...resolveFontVariantFeatures(node.text!.fontVariant ?? "normal"),
+    ];
+    const fontSize = run.fontSize ?? node.text!.fontSize;
+    const weight = run.fontWeight ?? node.text!.fontWeight ?? 400;
+    const style = {
+      fontFamilies: families,
+      locale: node.text!.locale,
+      fontSize,
+      fontStyle: {
+        weight:
+          (Object.values(ck.FontWeight) as EmbindEnumEntity[]).find(
+            (entry) => entry?.value === weight,
+          ) ?? ck.FontWeight.Normal,
+        slant: ck.FontSlant.Upright,
+        width: ck.FontWidth.Normal,
+      },
+      color: run.color ?? node.text!.color,
+      letterSpacing: node.text!.letterSpacing ?? 0,
+      ...(heightMultiplier > 0 ? { heightMultiplier, halfLeading: true } : {}),
+      ...(features.length > 0 ? { fontFeatures: features } : {}),
+      fontVariations: cssFontVariations(weight, 100, fontSize),
+    };
+    const builder = ck.ParagraphBuilder.MakeFromFontCollection(
+      new ck.ParagraphStyle({ textStyle: style }),
+      skiaFontManager.getFontCollection(),
+    );
+    builder.pushStyle(new ck.TextStyle(style));
+    builder.addText(text);
+    const paragraph = builder.build();
+    builder.delete();
+    paragraph.layout(100000);
+    return paragraph;
+  };
 
   // The painted baseline at the CSS line box's (`resolveCssBaselineCorrection`): SkParagraph rounds
   // it to whole px, Chrome rounds the font's ascent · descent instead.
@@ -458,6 +507,7 @@ export function renderText(
         alignedRuns,
         drawX,
         drawY,
+        toParagraph,
       );
       return;
     }
@@ -540,6 +590,18 @@ export function renderText(
       if (shouldClip) canvas.restore();
       return;
     }
+    if (toParagraph && alignedRuns)
+      drawRunChips(
+        ck,
+        canvas,
+        paragraph,
+        node.text!,
+        alignedRuns,
+        (run) =>
+          chipTextParagraph(run, richText.slice(run.start, run.end)),
+        glyphX,
+        drawY,
+      );
     renderTextShadows(paragraph, glyphX, drawY);
     drawTextWithPresentationColor(paragraph, glyphX, drawY);
     // Decorations from the same origin: SkParagraph's line `left` already holds the leading half
@@ -824,7 +886,18 @@ export function renderText(
         builder.pushStyle(
           runTextStyle(run.fontSize ?? node.text.fontSize, run),
         );
-        addPart(renderableText.slice(run.start, run.end), run);
+        if (run.chip) {
+          const chipText = chipTextParagraph(
+            run,
+            renderableText.slice(run.start, run.end),
+          );
+          addChipPlaceholder(
+            ck,
+            builder,
+            chipText.getMaxIntrinsicWidth() + 2 * run.chip.inset,
+          );
+          chipText.delete();
+        } else addPart(renderableText.slice(run.start, run.end), run);
         builder.pop();
         at = run.end;
       }
@@ -966,6 +1039,7 @@ function drawRunDecorations(
   runs: readonly SkiaTextRun[],
   drawX: number,
   drawY: number,
+  toParagraph: (index: number) => number = (index) => index,
 ): void {
   const ancestor = text.ancestorDecoration;
   if (!ancestor && !runs.some((run) => run.decoration)) return;
@@ -1002,8 +1076,8 @@ function drawRunDecorations(
       const font = measureFontBox(families, fontSize, fontWeight, text.locale);
       paint.setColor(color);
       for (const box of paragraph.getRectsForRange(
-        start,
-        end,
+        toParagraph(start),
+        toParagraph(end - 1) + 1,
         ck.RectHeightStyle.Tight,
         ck.RectWidthStyle.Tight,
       )) {
@@ -1109,4 +1183,101 @@ function drawDecorationLine(
   canvas.drawLine(x0, y, x1, y, paint);
   paint.setPathEffect(null);
   effect?.delete();
+}
+
+/**
+ * S2 체크리스트 §4.1 TokenField Phase 3 — each chip run at its placeholder (`addChipPlaceholder`), as the
+ * Preview draws `.react-aria-Token` (`display: inline`): the box across the placeholder (text + the
+ * inline padding + border each side) from the font's content area (ascent · descent — CSS paints an
+ * inline box's background there, the line height aside) out by the border, then the token's text inside
+ * the start inset on the line's baseline.
+ */
+function drawRunChips(
+  ck: CanvasKit,
+  canvas: Canvas,
+  paragraph: Paragraph,
+  text: NonNullable<SkiaNodeData["text"]>,
+  runs: readonly SkiaTextRun[],
+  chipText: (run: SkiaTextRun) => Paragraph,
+  drawX: number,
+  drawY: number,
+): void {
+  const lines = paragraph.getLineMetrics();
+  if (lines.length === 0) return;
+  const boxes = paragraph.getRectsForPlaceholders();
+  const families = cssFontFamilyList(text.fontFamilies);
+  const lineAt = (y: number) => {
+    let best = 0;
+    lines.forEach((line, index) => {
+      if (y >= line.baseline - line.ascent - 0.5) best = index;
+    });
+    return best;
+  };
+  const paint = acquirePooledPaint(ck);
+  try {
+    paint.setAntiAlias(true);
+    let index = 0;
+    for (const run of runs) {
+      const chip = run.chip;
+      if (!chip || run.end <= run.start) continue;
+      const box = boxes[index++];
+      if (!box) break;
+      const [left, top] = box.rect;
+      const right = box.rect[2]!;
+      const line = lines[lineAt(top!)]!;
+      const baseline = drawY + Math.round(line.baseline);
+      const font = measureFontBox(
+        families,
+        run.fontSize ?? text.fontSize,
+        run.fontWeight ?? text.fontWeight ?? 400,
+        text.locale,
+      );
+      const border = chip.borderWidth;
+      const boxTop = baseline - (font?.ascent ?? line.ascent) - border;
+      const boxBottom = baseline + (font?.descent ?? line.descent) + border;
+      if (chip.fill) {
+        paint.setStyle(ck.PaintStyle.Fill);
+        paint.setColor(chip.fill);
+        canvas.drawRRect(
+          ck.RRectXY(
+            ck.LTRBRect(drawX + left!, boxTop, drawX + right, boxBottom),
+            chip.radius,
+            chip.radius,
+          ),
+          paint,
+        );
+      }
+      if (chip.stroke && border > 0) {
+        const half = border / 2;
+        paint.setStyle(ck.PaintStyle.Stroke);
+        paint.setStrokeWidth(border);
+        paint.setColor(chip.stroke);
+        canvas.drawRRect(
+          ck.RRectXY(
+            ck.LTRBRect(
+              drawX + left! + half,
+              boxTop + half,
+              drawX + right - half,
+              boxBottom - half,
+            ),
+            Math.max(0, chip.radius - half),
+            Math.max(0, chip.radius - half),
+          ),
+          paint,
+        );
+      }
+      const glyphs = chipText(run);
+      const own = glyphs.getLineMetrics()[0];
+      canvas.drawParagraph(
+        glyphs,
+        drawX + left! + chip.inset,
+        baseline - Math.round(own?.baseline ?? 0),
+      );
+      glyphs.delete();
+    }
+  } finally {
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setStrokeWidth(1);
+    releasePooledPaint(paint);
+  }
 }

@@ -51,6 +51,8 @@ describe("orientationDrivenTags", () => {
         "textarea",
         "textfield",
         "timefield",
+        // (S2 체크리스트 §4.1 TokenField Phase 2 — S2 TextArea's label layout, 2026-11-23)
+        "tokenfield",
       ]);
     });
 

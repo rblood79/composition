@@ -31,6 +31,8 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 const SIDE_LABEL_COLUMN_FAMILIES = [
   "TextField",
   "TextArea",
+  // (S2 체크리스트 §4.1 TokenField Phase 2 — S2 TextArea 패턴, 2026-11-23)
+  "TokenField",
   "NumberField",
   "SearchField",
   "Select",

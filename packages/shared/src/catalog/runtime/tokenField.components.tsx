@@ -4,7 +4,11 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { TokenField, TokenInput } from "react-aria-components/TokenField";
+import {
+  Token,
+  TokenField,
+  TokenInput,
+} from "react-aria-components/TokenField";
 import {
   TokenFieldValue,
   type TokenFieldSegment,
@@ -70,4 +74,9 @@ export function CatalogTokenInput({
     ...props,
     children: (segment) => renderToken(segment.text),
   });
+}
+
+/** RAC's Token (a TokenInput segment's chip — the rule's paint tree by `data-variant`). */
+export function CatalogToken(props: Record<string, unknown>) {
+  return createElement(Token, props);
 }

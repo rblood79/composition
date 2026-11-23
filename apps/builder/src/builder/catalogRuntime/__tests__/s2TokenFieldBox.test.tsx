@@ -11,22 +11,51 @@ import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/docu
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { setFields } from "../../../../../../packages/shared/src/catalog/commands";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { tokenFieldBinding } from "../../../../../../packages/shared/src/catalog/bindings/TokenField.binding";
 import { catalogFieldBoxStyle } from "../../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import type {
   EntryId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { renderCatalogDom } from "../domBinding";
-import { bindCatalogCanvas } from "../canvasBinding";
+import { bindCatalogCanvas, catalogCanvasNodeData } from "../canvasBinding";
 import { catalogPaletteInsertCommand } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import type {
+  SkiaNodeData,
+  SkiaTextRun,
+} from "../../workspace/canvas/skia/nodeRendererTypes";
+import type { CatalogTextMeasure } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
 
 const BODY = "project:node:home-body" as NodeId;
 
-async function fixture(props: Record<string, unknown> = {}) {
+/**
+ * A measure with width (0.5 em a character, a run's chip `inset` at each end) and lines (the width over
+ * `maxWidth`, rounded up) — the jsdom default measures no text.
+ */
+const wrapMeasure: CatalogTextMeasure = (text, font, maxWidth, runs) => {
+  const width =
+    text.length * font.fontSize * 0.5 +
+    (runs ?? []).reduce((sum, run) => sum + 2 * (run.inset ?? 0), 0);
+  const line = font.fontSize * (font.lineHeight || 1.2);
+  const lines =
+    maxWidth === undefined ? 1 : Math.max(1, Math.ceil(width / maxWidth));
+  return {
+    width: maxWidth ?? width,
+    exactWidth: width,
+    minWidth: font.fontSize * 0.5 * 8,
+    height: lines * line,
+  };
+};
+
+async function fixture(
+  props: Record<string, unknown> = {},
+  inForm?: Record<string, unknown>,
+  textMeasure?: CatalogTextMeasure,
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -41,21 +70,33 @@ async function fixture(props: Record<string, unknown> = {}) {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1200, height: 900 },
       autosaveSchedule: () => {},
+      ...(textMeasure ? { textMeasure } : {}),
     },
   );
-  const command = catalogPaletteInsertCommand(
-    {
-      graph: workspace.runtime.graph,
-      records: workspace.root.domInputs,
-      selection: () => [],
-      itemOfRecord: (id) => workspace.itemOfRecord(id),
-      pageContent: () => ({ kind: "node", id: BODY }),
-      newId: workspace.newId,
-    },
-    "TokenField",
-    { value: "", ...props },
-  );
-  workspace.execute(command!);
+  const insert = (type: string, at: NodeId, p: Record<string, unknown>) =>
+    workspace.execute(
+      catalogPaletteInsertCommand(
+        {
+          graph: workspace.runtime.graph,
+          records: workspace.root.domInputs,
+          selection: () => [],
+          itemOfRecord: (id) => workspace.itemOfRecord(id),
+          pageContent: () => ({ kind: "node", id: at }),
+          newId: workspace.newId,
+        },
+        type,
+        p,
+      )!,
+    );
+  let at = BODY;
+  if (inForm) {
+    insert("Form", BODY, inForm);
+    const form = [...workspace.root.canvasInputs.values()].find(
+      (r) => workspace.root.typeOf(r) === "Form",
+    )!;
+    at = form.sourceId as NodeId;
+  }
+  insert("TokenField", at, { value: "", ...props });
   const root = workspace.root;
   const of = (type: string) =>
     [...root.canvasInputs.values()].find((r) => root.typeOf(r) === type)!;
@@ -144,6 +185,36 @@ describe("S2 §4.1 TokenField — 상자 = control Group (S2 TextArea 의 FieldG
     }
   });
 
+  it("Canvas — 긴 값은 칸 폭에서 줄바꿈하고 TokenInput · Group 이 그만큼 자란다 (RAC contenteditable `pre-wrap`)", async () => {
+    const value = "Ask @alexandra about #design-system and @morgan with #frontend-tokens today ";
+    const wide = await fixture({ value }, undefined, wrapMeasure);
+    const narrow = await fixture({ value }, undefined, wrapMeasure);
+    narrow.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: narrow.of("TokenField").sourceId as NodeId }],
+        sizing: { width: { kind: "set", value: 200 } },
+      }),
+    );
+    const line = wide.rect("TokenInput").height;
+    expect(narrow.rect("TokenInput").height).toBeGreaterThan(1.5 * line);
+    expect(narrow.rect("Group").height - wide.rect("Group").height).toBeCloseTo(
+      narrow.rect("TokenInput").height - line,
+      1,
+    );
+  });
+
+  it("Canvas 측정 — 토큰 구간이 칩의 좌우 자리 (padding + 테두리) 를 측정에 넣는다 (Publish inline 상자의 폭)", async () => {
+    const calls: { runs?: readonly { inset?: number }[] }[] = [];
+    const spy: CatalogTextMeasure = (text, font, maxWidth, runs) => {
+      calls.push({ runs });
+      return wrapMeasure(text, font, maxWidth, runs);
+    };
+    await fixture({ value: "Hi @person and #tag " }, undefined, spy);
+    const measured = calls.find((call) => call.runs?.some((run) => run.inset));
+    // M: padding 6 + border 1, the two tokens only
+    expect(measured?.runs?.map((run) => run.inset ?? 0)).toEqual([0, 7, 0, 7, 0]);
+  });
+
   it("라벨 색 = S2 TextArea 처럼 field 의 상태 트리 — disabled 면 disabled 글자색 (Canvas 파생 · 생성 CSS)", async () => {
     const enabled = await fixture();
     const disabled = await fixture({ isDisabled: true });
@@ -154,6 +225,134 @@ describe("S2 §4.1 TokenField — 상자 = control Group (S2 TextArea 의 FieldG
     const rules = COMPONENT_RULES_TABLE as Record<string, unknown>;
     expect(JSON.stringify(rules.TokenField)).toContain(
       '"isDisabled":"{color.disabled-content}"',
+    );
+  });
+
+  it("binding: labelPosition (top · side) · labelAlign (side 에서만) — S2 TextArea 와 같은 선택지", () => {
+    const accepts = (
+      tokenFieldBinding.props as {
+        accepts: Record<string, { options?: { value: string }[]; visibleWhen?: unknown }>;
+      }
+    ).accepts;
+    expect(accepts.labelPosition?.options?.map((o) => o.value)).toEqual([
+      "top",
+      "side",
+    ]);
+    expect(accepts.labelAlign?.options?.map((o) => o.value)).toEqual([
+      "start",
+      "end",
+    ]);
+    expect(accepts.labelAlign?.visibleWhen).toEqual({
+      key: "labelPosition",
+      equals: "side",
+    });
+  });
+
+  it("side: 라벨 행은 1열, 상자 Group 은 2열 맨 위 — 라벨은 입력 첫 줄에 (Canvas), DOM 에 data-label-position", async () => {
+    const { root, of, rect } = await fixture({ labelPosition: "side" });
+    const row = rect("FieldLabel");
+    const group = rect("Group");
+    expect(row.x).toBe(0);
+    expect(group.x).toBeGreaterThanOrEqual(row.width);
+    expect(group.y).toBe(0);
+    // (the label at the TokenInput's first line — `--tf-side-label-offset` M 7)
+    expect(row.y).toBeCloseTo(7, 0);
+    const html = renderToStaticMarkup(
+      renderCatalogDom(root, of("TokenField").id),
+    );
+    expect(html).toMatch(/class="react-aria-TokenField[^"]*"[^>]*data-label-position="side"|data-label-position="side"[^>]*class="react-aria-TokenField/);
+  });
+
+  it("labelAlign end: Canvas 라벨 행이 끝 정렬, DOM 에 data-label-align", async () => {
+    const start = await fixture({ labelPosition: "side" });
+    const end = await fixture({ labelPosition: "side", labelAlign: "end" });
+    expect(start.of("FieldLabel").layout?.justifyContent).toBe("start");
+    expect(end.of("FieldLabel").layout?.justifyContent).toBe("end");
+    expect(
+      renderToStaticMarkup(renderCatalogDom(end.root, end.of("TokenField").id)),
+    ).toContain('data-label-align="end"');
+  });
+
+  it("Form 상속: side Form 안의 TokenField 는 Form 의 labelPosition · labelAlign · size · isDisabled 를 받는다", async () => {
+    const { of } = await fixture(
+      {},
+      { labelPosition: "side", labelAlign: "end", size: "L", isDisabled: true },
+    );
+    const field = of("TokenField");
+    expect(field.props.labelPosition).toBe("side");
+    expect(field.props.labelAlign).toBe("end");
+    expect(field.props.size).toBe("L");
+    expect(field.props.isDisabled).toBe(true);
+    expect(of("TokenInput").props.size).toBe("L");
+  });
+
+  it("Token 모양 = design-data tag-field 의 S2 Tag 칠 — 줄 안 inline 칩 (rule · 생성 CSS · DOM data-variant)", async () => {
+    type Tree = Record<string, unknown>;
+    type Rule = {
+      variants: { default: { paint: Record<string, Tree> } };
+      sizes: Record<string, Record<string, unknown>>;
+      structure: { containerStyles: Record<string, unknown> };
+    };
+    const rules = COMPONENT_RULES_TABLE as unknown as Record<string, Rule>;
+    const token = rules.Token!;
+    expect(token.variants.default.paint).toEqual({
+      backgroundColor: { default: "{color.layer-1}", isSelected: "{color.neutral}" },
+      color: {
+        default: "{color.neutral}",
+        isSelected: "{color.base}",
+        isDisabled: "{color.disabled-content}",
+      },
+      borderColor: { default: "{color.border}", isSelected: "{color.neutral}" },
+    });
+    // (the Tag's own tree — the same rest · selected values)
+    const tag = rules.Tag!.variants.default.paint;
+    expect(token.variants.default.paint.backgroundColor!.default).toBe(tag.backgroundColor!.default);
+    expect(token.variants.default.paint.borderColor!.isSelected).toBe(
+      (tag.borderColor!.isSelected as Tree).default,
+    );
+    expect(
+      Object.fromEntries(Object.entries(token.sizes).map(([k, v]) => [k, [v.paddingX, v.paddingY, v.borderRadius, v.borderWidth]])),
+    ).toEqual({
+      S: [5, 0, "{radius.sm}", "{border.width.thin}"],
+      M: [6, 0, "{radius.sm}", "{border.width.thin}"],
+      L: [7, 0, "{radius.sm}", "{border.width.thin}"],
+      XL: [8, 0, "{radius.sm}", "{border.width.thin}"],
+    });
+    // an inline box — the line height stays the TokenInput's
+    expect(token.structure.containerStyles.display).toBe("inline");
+    const { root, of } = await fixture({ value: "Hi @person " });
+    const html = renderToStaticMarkup(renderCatalogDom(root, of("TokenField").id));
+    const span = html.match(/<span[^>]*react-aria-Token[^>]*>/)?.[0] ?? "";
+    expect(span).toContain('data-variant="default"');
+    expect(span).toContain('data-size="M"');
+  });
+
+  it("Canvas — 토큰 구간이 Token rule 의 칩 (좌우 여백 + 테두리 · 모서리 · 칠) 을 든다, 크기 · disabled 를 따른다", async () => {
+    const chipRuns = (f: Awaited<ReturnType<typeof fixture>>) => {
+      const find = (d: SkiaNodeData): SkiaTextRun[] | undefined =>
+        d.text?.runs
+          ? [...d.text.runs]
+          : (d.children ?? []).map(find).find(Boolean);
+      return find(catalogCanvasNodeData(f.root, f.of("TokenInput").id))!;
+    };
+    const m = await fixture({ value: "Hi @person and #tag " });
+    const runs = chipRuns(m);
+    const chips = runs.filter((run) => run.chip);
+    expect(chips.map((run) => [run.start, run.end])).toEqual([
+      [3, 10],
+      [15, 19],
+    ]);
+    // M: padding 6 + border 1 · radius sm 4
+    expect(chips[0]!.chip).toMatchObject({ inset: 7, borderWidth: 1, radius: 4 });
+    expect(chips[0]!.chip!.fill).toBeDefined();
+    expect(chips[0]!.chip!.stroke).toBeDefined();
+    expect(runs.filter((run) => !run.chip)).toHaveLength(runs.length - 2);
+    const l = await fixture({ value: "Hi @person ", size: "L" });
+    expect(chipRuns(l).find((run) => run.chip)!.chip!.inset).toBe(8);
+    const off = await fixture({ value: "Hi @person ", isDisabled: true });
+    const on = chipRuns(m).find((run) => run.chip)!.color!;
+    expect(Array.from(chipRuns(off).find((run) => run.chip)!.color!)).not.toEqual(
+      Array.from(on),
     );
   });
 

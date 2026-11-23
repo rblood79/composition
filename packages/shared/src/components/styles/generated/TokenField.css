@@ -8,40 +8,33 @@
 
 .react-aria-TokenField {
   /* Base styles — archetype: container */
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     box-sizing: border-box;
-    font-family: var(--font-sans);
+    width: 100%;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: 100%;
   display: flex;
   flex-direction: column;
 
-  /* Default variant */
-  background: undefined;
-  color: var(--fg-muted);
-  border: none;
-
   /* Default size */
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: 0;
   line-height: var(--catalog-token-text-sm--line-height);
   gap: var(--catalog-token-token-field-gap-M, calc(var(--catalog-token-size-height-M) * 1 / 2 + calc(var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height)) * -1 / 2));
 }
 
-.react-aria-TokenField:where([data-variant="default"]) {
+.react-aria-TokenField {
   color: var(--fg-muted);
 }
 
-.react-aria-TokenField:where([data-variant="default"][data-disabled]) {
+.react-aria-TokenField:where([data-disabled]) {
   color: var(--fg-disabled);
 }
 
 .react-aria-TokenField[data-size="S"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-xs);
   border-radius: 0;
   line-height: var(--catalog-token-text-xs--line-height);
@@ -49,8 +42,6 @@
 }
 
 .react-aria-TokenField[data-size="M"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-sm);
   border-radius: 0;
   line-height: var(--catalog-token-text-sm--line-height);
@@ -58,8 +49,6 @@
 }
 
 .react-aria-TokenField[data-size="L"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-base);
   border-radius: 0;
   line-height: var(--catalog-token-text-base--line-height);
@@ -67,8 +56,6 @@
 }
 
 .react-aria-TokenField[data-size="XL"] {
-  height: auto;
-  padding: 0px 0px;
   font-size: var(--catalog-token-text-lg);
   border-radius: 0;
   line-height: var(--catalog-token-text-lg--line-height);
@@ -83,6 +70,61 @@
   color: var(--fg-disabled);
   cursor: default;
 }
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-TokenField[data-size="S"] {
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-S, 4px);
+}
+
+.react-aria-TokenField[data-size="M"] {
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-M, 7px);
+}
+
+.react-aria-TokenField[data-size="L"] {
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-L, 10px);
+}
+
+.react-aria-TokenField[data-size="XL"] {
+  --tf-side-label-offset: var(--catalog-token-field-side-label-offset-XL, 13px);
+}
+
+.react-aria-TokenField[data-label-position="side"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.react-aria-TokenField[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
+  grid-column: 1;
+  width: var(--form-label-width);
+  align-self: center;
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
+.react-aria-TokenField[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel):has(~ .react-aria-FieldBox > .react-aria-TokenInput) {
+  align-self: start;
+  margin-top: var(--tf-side-label-offset);
+}
+
+.react-aria-TokenField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldLabel, .react-aria-FieldError, [slot="description"]) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.react-aria-TokenField[data-label-position="side"] > .react-aria-FieldError {
+  grid-column: 2;
+}
+
+.react-aria-TokenField[data-label-position="side"] > [slot="description"] {
+  grid-column: 2;
+}
+
+.react-aria-TokenField[data-label-align="end"] {
+  --form-label-align: end;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-TokenField {

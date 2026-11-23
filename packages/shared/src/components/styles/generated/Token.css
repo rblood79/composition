@@ -13,53 +13,79 @@
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: fit-content;
-  display: inline-block;
+  display: inline;
+  border-style: solid;
   white-space: nowrap;
+
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: var(--border-width-thin) solid var(--border);
 
   /* Default size */
   height: auto;
-  padding: 0px 0px;
+  padding: 0px 6px;
   font-size: var(--catalog-token-text-sm);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 600;
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-Token:where([data-variant="default"]) {
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.react-aria-Token:where([data-variant="default"][data-selected]) {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+.react-aria-Token:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
 }
 
 .react-aria-Token[data-size="S"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 0px 5px;
   font-size: var(--catalog-token-text-xs);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-xs--line-height);
   font-weight: 600;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Token[data-size="M"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 0px 6px;
   font-size: var(--catalog-token-text-sm);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 600;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Token[data-size="L"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 0px 7px;
   font-size: var(--catalog-token-text-base);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-base--line-height);
   font-weight: 600;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Token[data-size="XL"] {
   height: auto;
-  padding: 0px 0px;
+  padding: 0px 8px;
   font-size: var(--catalog-token-text-lg);
-  border-radius: 0;
+  border-radius: var(--catalog-token-radius-sm);
   line-height: var(--catalog-token-text-lg--line-height);
   font-weight: 600;
+  border-width: var(--border-width-thin);
 }
 
 

@@ -10,6 +10,7 @@ import {
   measureTextWithWhiteSpace,
 } from "../workspace/canvas/layout/engines/utils";
 import { skiaFontManager } from "../workspace/canvas/skia/fontManager";
+import { addChipPlaceholder } from "../workspace/canvas/skia/inlineEdge";
 import {
   getCanvasKit,
   isCanvasKitInitialized,
@@ -124,28 +125,47 @@ function paragraphMetrics(
         (Object.values(ck.FontWeight) as EmbindEnumEntity[]).find(
           (entry) => entry?.value === runFont.fontWeight,
         ) ?? ck.FontWeight.Normal;
-      builder.pushStyle(
-        new ck.TextStyle({
-          ...textStyle,
-          fontSize: runFont.fontSize,
-          fontStyle: {
-            weight: runWeight,
-            slant:
-              runFont.fontStyle === "italic"
-                ? ck.FontSlant.Italic
-                : runFont.fontStyle === "oblique"
-                  ? ck.FontSlant.Oblique
-                  : ck.FontSlant.Upright,
-          },
-          fontVariations: cssFontVariations(
-            runFont.fontWeight,
-            100,
-            runFont.fontSize,
-          ),
-        }),
-      );
-      builder.addText(text.slice(run.start, run.end));
-      builder.pop();
+      const runStyle = new ck.TextStyle({
+        ...textStyle,
+        fontSize: runFont.fontSize,
+        fontStyle: {
+          weight: runWeight,
+          slant:
+            runFont.fontStyle === "italic"
+              ? ck.FontSlant.Italic
+              : runFont.fontStyle === "oblique"
+                ? ck.FontSlant.Oblique
+                : ck.FontSlant.Upright,
+        },
+        fontVariations: cssFontVariations(
+          runFont.fontWeight,
+          100,
+          runFont.fontSize,
+        ),
+      });
+      if (run.inset) {
+        // (A token chip — S2 체크리스트 §4.1 TokenField Phase 3: one placeholder as wide as its text +
+        //  both insets, as the paint builds it, `addChipPlaceholder`.)
+        const chip = ck.ParagraphBuilder.MakeFromFontCollection(
+          new ck.ParagraphStyle({ textStyle }),
+          skiaFontManager.getFontCollection(),
+        );
+        chip.pushStyle(runStyle);
+        chip.addText(text.slice(run.start, run.end));
+        const chipText = chip.build();
+        chipText.layout(100000);
+        addChipPlaceholder(
+          ck,
+          builder,
+          chipText.getMaxIntrinsicWidth() + 2 * run.inset,
+        );
+        chipText.delete();
+        chip.delete();
+      } else {
+        builder.pushStyle(runStyle);
+        builder.addText(text.slice(run.start, run.end));
+        builder.pop();
+      }
       at = run.end;
     }
     if (at < text.length) builder.addText(text.slice(at));

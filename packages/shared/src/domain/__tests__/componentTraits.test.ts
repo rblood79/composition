@@ -374,10 +374,12 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       DisclosureHeader: ["Disclosure"],
       Radio: ["RadioGroup"],
       RadioItems: ["RadioGroup"],
-      // ADR-259 Phase 3: a field's label row — the 16 S2 fields with `contextualHelp`.
+      // ADR-259 Phase 3: a field's label row — the 16 S2 fields with `contextualHelp`, and TokenField
+      //   (S2 TextArea's pattern — S2 체크리스트 §4.1 Phase 2, 2026-11-23).
       FieldLabel: [
         "TextField",
         "TextArea",
+        "TokenField",
         "NumberField",
         "ComboBox",
         "Select",

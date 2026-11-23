@@ -33,6 +33,8 @@ export const CATALOG_FORM_FIELDS: ReadonlySet<string> = new Set([
   "ToggleButton",
   "TextField",
   "TextArea",
+  // (S2 체크리스트 §4.1 TokenField Phase 2 — S2 TextArea's Form props, 2026-11-23.)
+  "TokenField",
   "NumberField",
   "SearchField",
   "ColorField",

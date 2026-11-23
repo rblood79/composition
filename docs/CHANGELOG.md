@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TokenField — Token 모양 = 줄 안 S2 Tag 칩 · 긴 값 줄바꿈 (3단계)] - 2026-11-23
+
+### Changed
+
+- **Token = S2 Tag 칠의 줄 안 칩** — design-data `tag-field` 의 토큰은 S2 Tag 다 (사용자 결정 「Tag 칠을 줄 안에」). Token rule 이 Tag 의 칠 트리 (바탕 `layer-1` · 글자 `neutral` · 테두리 `border`, 선택 = `neutral` 바탕 · `base` 글자, disabled 글자) 와 `{radius.sm}` 모서리 · 테두리 1 · 좌우 여백 S2 `text-to-visual` (S 5 · M 6 · L 7 · XL 8) 을 갖는다. RAC TokenInput 은 글자 줄 안의 구간이라 상자는 CSS inline 상자 — 줄 높이는 그대로다. DOM 은 RAC Token 에 rule 의 `data-variant` · `data-size` 를 실어 선택 · disabled 칠이 생성 CSS 에서 걸린다.
+- **Canvas 가 칩을 그린다** — 토큰 구간을 「글자 폭 + 좌우 여백」 의 placeholder 하나로 재고 (`catalogTextMeasure`) 그린다 (`nodeRendererText` — 칩 상자는 글꼴 content area + 테두리, 글자는 그 안). 칩 안에서 줄이 나뉘지 않는다 (Publish `white-space: nowrap`).
+
+### Fixed
+
+- **Canvas 가 TokenInput 의 긴 값을 줄바꿈하지 않았다** — TokenInput 이 「높이만 재는 글자」 라 폭 줄바꿈 재측정에서 빠져, 좁은 칸에서도 Canvas 는 한 줄 (18) · Publish 는 세 줄 (54) 이었다. RAC TokenInput 은 줄만큼 자라는 `pre-wrap` contenteditable 이라 이제 칸 폭에서 다시 잰다 (Canvas 54 = Publish 54).
+  - **Why**: S2 체크리스트 §4.1 TokenField 3단계 「Token 모양」. 두 placeholder (칩 앞 · 뒤) 로 만들자 SkParagraph 가 placeholder 옆에서 줄을 나눠 칩 앞 여백이 앞 줄 끝에 남았다 (live 화면) — 그래서 칩 하나 = placeholder 하나.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Token) · `runtime/tokenChip.ts` (새 — 토큰 구간 · 여백 · 칩 칠) · `runtime/compositionRoot.ts` (측정 run 의 `inset` · `wrappingFieldTextTypes`) · `runtime/delegatedDom.runtime.ts` · `runtime/tokenField.components.tsx` (`CatalogToken`) · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` (`tokenInputChips`) · `catalogRuntime/textMeasure.ts` · `workspace/canvas/skia/inlineEdge.ts` (새) · `skia/nodeRendererText.ts` (`drawRunChips`) · `skia/nodeRendererTypes.ts` · `skia/textParagraphKey.ts`.
+  - 확인: 테스트 `s2TokenFieldBox` +4 (rule · DOM `data-variant` · Canvas 칩 run 크기 · disabled · 긴 값 줄바꿈 · 측정 여백), 분류 목록 (`componentRulesTable.static` Token 여백 등재 · 옛 모서리 0 삭제). 원복 RED 6 (rule 칠 · DOM data-variant · Canvas 칩 · Canvas disabled · 줄바꿈 재측정 · 측정 여백). live (`s2-tokenfield-live.mjs`, 11/11): Publish Token `display: inline` · 테두리 1 · 모서리 4 · 여백 6 / 7 · 바탕 `rgb(248, 248, 248)`, 칩 테두리 색 픽셀 Canvas 1201 / Publish 1220 (한 줄) · 1241 / 1202 (300px 칸, 세 줄), 300px 칸 TokenInput 높이 Canvas 54 = Publish 54, 두 화면 캡처의 줄바꿈 위치 같음, 1 · 2단계 항목 그대로 PASS.
+
+## [TokenField — 라벨 위치 · 라벨 정렬 · Form 상속 (S2 TextArea 패턴 2단계)] - 2026-11-23
+
+### Added
+
+- **TokenField `labelPosition` (top · side) · `labelAlign` (start · end, side 에서만)** — S2 TextArea 의 라벨 배치. side 는 S2 `field()` grid (`auto 1fr`) — 라벨 행은 1열 · TokenInput 첫 줄 높이에 (`--tf-side-label-offset` M 7 · L 10), 상자 Group 은 2열 맨 위, 도움말은 2열 아래. 끝 정렬은 DOM 이 라벨 글자 `text-align: end`, Canvas 가 라벨 행 `justify-content: end`.
+- **Form 상속** — TokenField 가 Form 의 `labelPosition` · `labelAlign` · `size` · `isDisabled` 를 받고 (`CATALOG_FORM_FIELDS`), side Form 의 라벨 열 폭 (11rem = 176) 을 다른 field 와 같이 쓴다.
+- **라벨 행 도움말 (ContextualHelp)** — S2 TextArea 처럼 TokenField 라벨 행에도 넣을 수 있다 (`CATALOG_CONTEXTUAL_HELP_FIELDS` — 같은 목록이 라벨 행의 side 선택자 별칭도 켠다).
+  - **Why**: S2 체크리스트 §4.1 TokenField 2단계. 필수 표시 (`isRequired` · `necessityIndicator`) 는 넣지 않았다 — RAC TokenField 에 required · validation prop 이 없어 (`AriaTokenFieldProps` — `isDisabled` · `isReadOnly` 만) 표시만 넣으면 `aria-required` 없는 「필수」 가 된다. invalid 와 함께 결정 대기.
+  - 위치: `packages/shared/src/catalog/bindings/TokenField.binding.ts` · `generated/componentRulesTable.ts` (TokenField `containerVariants` · `composition`) · `runtime/delegatedDom.runtime.ts` (`data-label-position` · `data-label-align`) · `document/formContext.ts` · `domain/componentTraits.ts` · `document/rulePartRules.ts` (`SIBLING_CONTROL_TYPES`) · `document/d2Provenance.ts`.
+  - 확인: 테스트 `s2TokenFieldBox` +4 (binding 선택지 · side Canvas 위치 + DOM 속성 · 끝 정렬 · Form 상속), `fieldLabelPositionSide` · `sideLabelColumnContract` 에 TokenField, 기대값 갱신 2 (FieldLabel 소유자 · 라벨 위치 대상 목록). 원복 RED 6 (binding · 첫 줄 선택자 · DOM 속성 · Form · 라벨 행 별칭 · 첫 줄 대응표). live (`s2-tokenfield-live.mjs`, 9/9): side 라벨 행 · 상자 Canvas = Publish (M 행 0,7 · 상자 x 64.68, L 끝 정렬 행 0,10), side Form 안 TokenField 라벨 열 176 · 상자 x 183 양쪽 같음, 끝 정렬 Canvas `end` = Publish `end`, 1단계 항목 그대로 PASS.
+
 ## [TokenField — S2 TextArea 패턴: 상자 = control Group · 크기 S ~ XL · 상태 트리] - 2026-11-23
 
 ### Changed

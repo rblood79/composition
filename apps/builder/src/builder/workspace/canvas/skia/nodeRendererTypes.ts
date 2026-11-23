@@ -32,6 +32,18 @@ export interface SkiaTextRun {
   color?: Float32Array;
   /** The run's own decoration bits (`parseTextDecoration`); 0 = none. */
   decoration?: number;
+  /**
+   * An inline box behind the run (a TokenInput's token chip — S2 체크리스트 §4.1 TokenField Phase 3):
+   * `inset` (padding + border, each side) is a zero-height placeholder at each end (`addInlineEdge`, as
+   * the layout measure), the box spans the font's content area + the border.
+   */
+  chip?: {
+    inset: number;
+    borderWidth: number;
+    radius: number;
+    fill?: Float32Array;
+    stroke?: Float32Array;
+  };
 }
 
 export interface SkiaNodeData {
