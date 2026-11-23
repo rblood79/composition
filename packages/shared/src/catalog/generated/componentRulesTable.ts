@@ -5583,6 +5583,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   `ruleShapes.ts` `catalogDialogChromeShapes` (the resting glyph), DOM = `components/Dialog.tsx`.
       composition: {
         delegation: [],
+        // S2 CustomDialog `padding: none` (S2 체크리스트 §9.3, 2026-11-23) — `dialogStyle` padding 0.
+        containerVariantsOverride: true,
+        containerVariants: {
+          padding: { none: { styles: { padding: "0" } } },
+        },
         rootSelectors: {
           "& > .dialog-close-button": {
             styles: {
@@ -10063,6 +10068,76 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         rootSelectors: {},
         delegation: [],
+        // S2 체크리스트 §9.3 (2026-11-23): S2 `Modal.tsx` `size` — the box's width per size (S 400 · M 480 ·
+        //   L 640 · XL 960, at most 90vw · 90vh), `fullscreen` 20 in from every viewport edge,
+        //   `fullscreenTakeover` the whole viewport, square. No size = no width: the Dialog's own
+        //   (S2 `CustomDialog` passes an unset size through). The Dialog in a sized Modal fills it
+        //   (S2 dialog `size: full`). Canvas: `catalogContainerVariantRootRules` · part rules.
+        containerVariantsOverride: true,
+        containerVariants: {
+          size: {
+            ...Object.fromEntries(
+              (
+                [
+                  ["S", 400],
+                  ["M", 480],
+                  ["L", 640],
+                  ["XL", 960],
+                ] as const
+              ).map(([size, width]) => [
+                size,
+                {
+                  styles: {
+                    width: `${width}px`,
+                    "max-width": "90vw",
+                    // (S2 `90%` of its wrapper — the viewport's height; a fixed box's `%` is not the
+                    //  Canvas engine's viewport, so the unit says it.)
+                    "max-height": "90vh",
+                  },
+                  nested: [
+                    {
+                      selector: "> .react-aria-Dialog",
+                      styles: { width: "100%" },
+                    },
+                  ],
+                },
+              ]),
+            ),
+            fullscreen: {
+              styles: {
+                width: "calc(100% - 40px)",
+                height: "calc(100% - 40px)",
+                "max-width": "none",
+                "max-height": "none",
+              },
+              nested: [
+                {
+                  selector: "> .react-aria-Dialog",
+                  styles: { width: "100%", height: "100%" },
+                },
+              ],
+            },
+            fullscreenTakeover: {
+              styles: {
+                width: "100%",
+                height: "100%",
+                "max-width": "none",
+                "max-height": "none",
+                "border-radius": "0",
+              },
+              nested: [
+                {
+                  selector: "> .react-aria-Dialog",
+                  styles: {
+                    width: "100%",
+                    height: "100%",
+                    "border-radius": "0",
+                  },
+                },
+              ],
+            },
+          },
+        },
       },
       stateStyles: {
         ...FOCUS_RING_STATE,

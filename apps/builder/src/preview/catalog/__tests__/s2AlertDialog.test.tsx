@@ -122,6 +122,8 @@ describe("S2 §9.3 AlertDialog", () => {
       },
     ]);
     expect(glyphs()).toEqual([]);
+    // (S2 AlertDialog `size` is its Modal's — S2 `Modal` M 480, 6-5.)
+    expect(of("Modal")[0]!.props.size).toBe("M");
     // (The title is the Heading's Text — it takes the Heading's type, S2 `CenterBaseline` title.)
     const titleText = of("Text").find(
       (text) => root.typeOf(root.canvasInputs.get(text.parentId)!) === "Heading",

@@ -37,6 +37,18 @@ export const dialogBinding: PrimitiveBinding = {
         label: "Keyboard dismiss disabled",
         section: "overlay",
       },
+      // S2 CustomDialog `padding` (S2 체크리스트 §9.3, 2026-11-23): `none` drops the Dialog's padding
+      //   (the rule's `containerVariants.padding`) — a custom layout's edge-to-edge content.
+      padding: {
+        kind: "enum",
+        label: "Padding",
+        section: "appearance",
+        default: "default",
+        options: [
+          { value: "default", label: "Default" },
+          { value: "none", label: "None" },
+        ],
+      },
       role: {
         kind: "enum",
         label: "Role",

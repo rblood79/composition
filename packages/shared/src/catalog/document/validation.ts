@@ -261,12 +261,15 @@ const layoutValueChoices: Readonly<
   gridTemplateRows: gridTracks,
   gridTemplateAreas: (value) => /^("[\w. ]+"\s*)+$/.test(value.trim()),
   order: (value) => /^-?\d+$/.test(value),
+  // (S2 Modal: at most 90vw · 90% — viewport units the engine resolves.)
   maxWidth: (value) =>
     value === "none" ||
     cssLength(value) ||
-    /^\d+(?:\.\d+)?(?:%|ch)$/.test(value),
+    /^\d+(?:\.\d+)?(?:%|ch|vw|vh)$/.test(value),
   maxHeight: (value) =>
-    value === "none" || cssLength(value) || /^\d+(?:\.\d+)?%$/.test(value),
+    value === "none" ||
+    cssLength(value) ||
+    /^\d+(?:\.\d+)?(?:%|vw|vh)$/.test(value),
 };
 const sizingFields = new Set([
   "width",

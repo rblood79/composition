@@ -651,7 +651,12 @@ function compileDeclarations(
         // (ADR-295 후속: any other length ref — `scaled(n)` — keeps its ref, the DOM writes its formula.)
         (/^\{length\.[^{}]+\}$/.test(value.trim()) ? value.trim() : null);
       if (px !== undefined) visual[key] = sizeRef ?? px;
-      else if (/^(\d+(?:\.\d+)?%|fit-content|auto)$/.test(value))
+      // (S2 Modal: a viewport-relative box — `calc(100% - 40px)` · `vw` — the engine resolves it.)
+      else if (
+        /^(\d+(?:\.\d+)?(?:%|vw|vh)|fit-content|auto|calc\([^;{}]+\))$/.test(
+          value,
+        )
+      )
         visual[key] = value;
     } else if (key === "min-width" || key === "min-height") {
       // `unset`/`auto` = the initial automatic minimum: a flex item's min-content (CSS-FLEXBOX-1
@@ -669,7 +674,8 @@ function compileDeclarations(
       const px = lengthPx(value);
       const field = key === "max-width" ? "maxWidth" : "maxHeight";
       if (px !== undefined) layoutLength(field, value, px);
-      else if (/^\d+(?:\.\d+)?(?:%|ch)$/.test(value)) layout[field] = value;
+      else if (/^\d+(?:\.\d+)?(?:%|ch|vw|vh)$/.test(value))
+        layout[field] = value;
     } else if (key === "padding") {
       const [t, r = t, b = t, l = r] = spacing(value) ?? [];
       if (t !== undefined && t === b && r === l) {
@@ -775,7 +781,11 @@ const RADIUS_PART_OWNERS: ReadonlySet<string> = new Set([
   // S2 ColorSlider: the track is S2 `borderRadius: default` (8 — its `orientation` blocks), not the
   // SliderTrack rule's pill (2026-11-18).
   "ColorSlider",
+  // S2 Modal `fullscreenTakeover`: the square Modal's Dialog is square too (S2 `borderRadius: inherit`).
+  "Modal",
 ]);
+/** Rules whose root variant blocks' `border-radius` reaches their own Canvas box (S2 Modal takeover). */
+const RADIUS_ROOT_OWNERS: ReadonlySet<string> = new Set(["Modal"]);
 /** `visual` with the block's `border-radius` (`RADIUS_PART_OWNERS`). */
 function withPartRadius(
   parentType: string,
@@ -1635,6 +1645,10 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   SelectBoxGroup: { orientation: "orientation" },
   // ADR-258 Phase 2: a ColorSlider's grid · track box per orientation (RAC's `data-orientation`).
   ColorSlider: { orientation: "orientation" },
+  // (S2 Modal: its box per `size` — S2 `Modal.tsx`.)
+  Modal: { size: "size" },
+  // (S2 CustomDialog `padding`: `none` drops the Dialog's padding.)
+  Dialog: { padding: "padding" },
   // (S2 AvatarGroup: the avatar overlap is a quarter of the group size.)
   AvatarGroup: { size: "size" },
   // (S2 Breadcrumbs: its start margin per size — the wrapper's `marginStart`.)
@@ -1828,6 +1842,13 @@ export function catalogContainerVariantRootRules(type: string): Array<{
             },
           }
         : declared;
+      if (RADIUS_ROOT_OWNERS.has(type))
+        compiled.visual = withPartRadius(
+          type,
+          block.styles ?? {},
+          {},
+          compiled.visual,
+        );
       if (
         Object.keys(compiled.layout).length ||
         Object.keys(compiled.visual).length

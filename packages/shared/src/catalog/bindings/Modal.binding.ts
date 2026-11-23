@@ -30,6 +30,22 @@ export const modalBinding: PrimitiveBinding = {
        * 하지 않는 현행 동작을 그대로 보존한다.
        */
       isOpen: { kind: "boolean", label: "Open", section: "value" },
+      // S2 체크리스트 §9.3 (2026-11-23): S2 `Modal` `size` (the Dialog's · CustomDialog's · FullscreenDialog's
+      //   size reaches it) — the box per size (the rule's `containerVariants.size`). No default: an
+      //   unset size keeps the Dialog's own width (S2 CustomDialog without a size).
+      size: {
+        kind: "enum",
+        label: "Size",
+        section: "appearance",
+        options: [
+          { value: "S", label: "S" },
+          { value: "M", label: "M" },
+          { value: "L", label: "L" },
+          { value: "XL", label: "XL" },
+          { value: "fullscreen", label: "Fullscreen" },
+          { value: "fullscreenTakeover", label: "Fullscreen takeover" },
+        ],
+      },
       defaultOpen: {
         editorHidden: true,
         kind: "boolean",

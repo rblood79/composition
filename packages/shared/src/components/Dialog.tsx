@@ -42,6 +42,8 @@ export interface DialogExtendedProps extends DialogProps {
    * given by the catalog DOM binding). Only read when it opens its own modal.
    */
   underlay?: string;
+  /** S2 CustomDialog `padding` — `none` drops the padding (`data-padding`, catalog Dialog rule). */
+  padding?: "default" | "none";
 }
 
 /** S2 `CloseButton` of a dismissible Dialog (its name in the locale — en · ko). */
@@ -80,6 +82,7 @@ export function Dialog({
   isDismissible,
   isKeyboardDismissDisabled,
   underlay,
+  padding,
   ...props
 }: DialogExtendedProps) {
   const hasTrigger = useContext(DialogTriggerScope);
@@ -103,6 +106,7 @@ export function Dialog({
       {...props}
       className={dialogClassName}
       data-size={size}
+      data-padding={padding === "none" ? "none" : undefined}
       data-dismissible={isDismissable || isDismissible || undefined}
     >
       {children}
@@ -116,11 +120,8 @@ export function Dialog({
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       style={underlay ? { backgroundColor: underlay } : undefined}
     >
-      <Modal
-        className="react-aria-Modal"
-        data-size={size}
-        data-dialog-trigger=""
-      >
+      {/* (No `data-size`: the Modal's S2 size blocks are a Modal node's own `size`.) */}
+      <Modal className="react-aria-Modal" data-dialog-trigger="">
         <DialogTriggerScope.Provider value={false}>
           {content}
         </DialogTriggerScope.Provider>

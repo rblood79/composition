@@ -41,6 +41,14 @@ const S2_ALIAS: Readonly<Record<string, string>> = {
   Table: "TableView",
 };
 
+/**
+ * composition types that also stand for another S2 export: their oracle is the union. S2 체크리스트 §9.3
+ * (2026-11-23): the Dialog node is S2 `Dialog` and `CustomDialog` (a custom layout — its `padding`).
+ */
+const S2_ALSO: Readonly<Record<string, readonly string[]>> = {
+  Dialog: ["CustomDialog"],
+};
+
 type PropsOracle = {
   readonly keys: ReadonlySet<string>;
   readonly literals: ReadonlyMap<string, ReadonlySet<string>>;
@@ -156,6 +164,22 @@ function buildOracles(): {
 }
 
 const { s2, rac } = buildOracles();
+for (const [type, others] of Object.entries(S2_ALSO)) {
+  const own = s2.get(S2_ALIAS[type] ?? type);
+  if (!own) continue;
+  const keys = new Set(own.keys);
+  const literals = new Map(
+    [...own.literals].map(([key, values]) => [key, new Set(values)]),
+  );
+  for (const other of others) {
+    const oracle = s2.get(other);
+    for (const key of oracle?.keys ?? []) keys.add(key);
+    for (const [key, values] of oracle?.literals ?? [])
+      for (const value of values)
+        literals.set(key, (literals.get(key) ?? new Set()).add(value));
+  }
+  s2.set(S2_ALIAS[type] ?? type, { keys, literals });
+}
 
 type Row = {
   type: string;

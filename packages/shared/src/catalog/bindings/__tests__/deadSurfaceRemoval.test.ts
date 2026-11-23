@@ -50,7 +50,7 @@ const REMOVED: Record<string, readonly string[]> = {
   Toast: ["defaultTitle", "defaultDescription", "timeout"],
   IllustratedMessage: ["variant"],
   Icon: ["variant"],
-  Modal: ["size"],
+  // (Modal `size` came back 2026-11-23 — S2 `Modal` size, its box per size: S2 체크리스트 §9.3.)
   // (2026-10-13 — a calendar has no size, RAC · S2 take none: its parts take none either.)
   CalendarHeader: ["children", "locale", "calendarSystem", "size"],
   CalendarGrid: ["locale", "calendarSystem", "size"],

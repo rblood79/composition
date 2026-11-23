@@ -1556,6 +1556,19 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     label: "alert dialog",
     icon: "MessageSquareWarning",
   }),
+  // S2 체크리스트 §9.3 (2026-11-23): S2 CustomDialog (a Dialog with a custom layout — `size` the
+  //   Modal's, `padding`) and FullscreenDialog (`variant` = the Modal's fullscreen size). No type of
+  //   their own: the origins `component-customdialog` · `component-fullscreendialog`.
+  reusableEntry("CustomDialog", "overlays", "component-customdialog", {
+    category: "overlays",
+    label: "custom dialog",
+    icon: "AppWindow",
+  }),
+  reusableEntry("FullscreenDialog", "overlays", "component-fullscreendialog", {
+    category: "overlays",
+    label: "fullscreen dialog",
+    icon: "Fullscreen",
+  }),
 ];
 
 /**

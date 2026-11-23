@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Custom · fullscreen dialog — S2 Modal size · CustomDialog · FullscreenDialog] - 2026-11-23
+
+### Added
+
+- **Modal 의 Size** (S2 `Modal` `size`): S 400 · M 480 · L 640 · XL 960 (화면의 90% 까지), Fullscreen (화면 사방 20 안쪽), Fullscreen takeover (화면 전체 · 모서리 없음). 크기가 있으면 안의 Dialog 가 Modal 을 채운다. 크기를 안 주면 지금처럼 Dialog 자기 폭 (S2 CustomDialog 의 크기 없음과 같다).
+- **Dialog 의 Padding** (S2 CustomDialog `padding`): None 이면 Dialog 여백이 0 — 내용을 가장자리까지 채운다.
+- **팔레트 「custom dialog」 · 「fullscreen dialog」** (S2 `CustomDialog` · `FullscreenDialog` 문서 예제): custom = 체크 아이콘 · 제목 · 글이 가운데 놓인 대화상자 (Size · Padding · Dismissible · Escape 막기), fullscreen = 제목 · 부제 · 버튼 머리 줄 + 내용 (Variant = Fullscreen · Fullscreen takeover).
+
+### Changed
+
+- **alert dialog 의 Size 는 Modal 폭이다** (S2 `AlertDialog` 의 `size` 가 Modal 로 간다): 기본 M = 480. 전에는 Dialog 의 여백 크기를 바꿨다.
+
+### Fixed
+
+- **Canvas 에서 overlay 의 높이 상한이 단위를 잃던 것**: 열린 Modal · Popover 의 자기 `max-height` 가 px 가 아니면 (`90vh`) 숫자만 읽어 90px 로 잘렸다. px 가 아닌 값은 엔진에 `min()` 으로 넘긴다 (`overlayLayout.ts`).
+  - 위치: `packages/shared/src/catalog/{generated/componentRulesTable.ts,bindings/Modal.binding.ts,bindings/Dialog.binding.ts,document/ruleDefinition.ts,document/rulePartRules.ts,document/validation.ts,resolvers/resolveCatalogRuleCanvasBox.ts,runtime/overlayLayout.ts,document/generated/reusableOriginLibrary.ts}` · `packages/shared/src/components/{Modal,Dialog}.tsx` · `packages/rendering/src/renderers/CSSGenerator.ts` (`containerVariantsOverride` — 크기별 블록이 rule 의 상자를 덮어쓰기만 함)
+
+### Tests
+
+- `s2CustomDialog.test.tsx` 4 (팔레트 · prop, custom M 480 · S 400 + padding 0 · 높이 = Dialog, fullscreen 사방 20 · takeover 화면 전체 · 모서리 0, 크기 없음 310 · DOM `data-size` 없음), `s2AlertDialog` Modal 크기 단언, 원복 RED 13/13, live `apps/builder/scripts/s2-custom-dialog-live.mjs` 5/5.
+
 ## [Alert dialog — S2 AlertDialog] - 2026-11-23
 
 ### Added

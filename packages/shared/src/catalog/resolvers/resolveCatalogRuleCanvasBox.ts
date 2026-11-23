@@ -117,11 +117,14 @@ export function catalogCompositionOwnsContainerBox(
         layout?: unknown;
         containerStyles?: unknown;
         containerVariants?: unknown;
+        containerVariantsOverride?: unknown;
       }
     | undefined,
 ): boolean {
   if (!composition) return false;
   if (composition.layout || composition.containerStyles) return true;
+  // (Blocks that only override the rule's own box — S2 Modal `size` · Dialog `padding`.)
+  if (composition.containerVariantsOverride === true) return false;
   const variants = composition.containerVariants;
   if (!variants || typeof variants !== "object") return false;
   return Object.values(variants as Record<string, unknown>).some(

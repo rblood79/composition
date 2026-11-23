@@ -553,7 +553,10 @@ export function ruleTypeDefinition(
     choices[prop] = keys;
   };
   choose("variant", Object.keys(rule.variants), rule.defaultVariant);
-  choose("size", Object.keys(rule.sizes), rule.defaultSize);
+  // (S2 Modal: `size` is its box per S2 size — a container variant, unset by default — not the rule's
+  //   size axis, whose one block is the Modal's base.)
+  if (!CONTAINER_VARIANT_SIZE_TYPES.has(type))
+    choose("size", Object.keys(rule.sizes), rule.defaultSize);
   // Density axis (`[data-density]` in the generated CSS): item spacing without a font change.
   const densities: Record<string, VisualValues> = {};
   for (const [name, values] of Object.entries(rule.densities ?? {}))
@@ -784,6 +787,9 @@ export function disabledStateRules(
     { when: {}, state: "disabled" as const, visual: { opacity } },
   ];
 }
+
+/** Types whose `size` prop picks a container variant (`[data-size]`) with no default — S2 Modal. */
+const CONTAINER_VARIANT_SIZE_TYPES: ReadonlySet<string> = new Set(["Modal"]);
 
 const BOX_VISUAL_KEYS = [
   "width",

@@ -357,6 +357,60 @@ export const ALERTDIALOG_PROPS_SCHEMA: PropsSchema = {
     {}) as PropsSchema),
 } as PropsSchema;
 
+/**
+ * S2 체크리스트 §9.3 — S2 CustomDialog's props (`size` reaches the Modal — S2 `Modal` size, `padding` ·
+ * `isDismissible` · `isKeyboardDismissDisabled` the Dialog's) and the DialogTrigger's own.
+ */
+export const CUSTOMDIALOG_PROPS_SCHEMA: PropsSchema = {
+  size: {
+    kind: "enum",
+    label: "Size",
+    section: "appearance",
+    default: "M",
+    options: [
+      ...["S", "M", "L"].map((value) => option(value, value)),
+      option("fullscreen", "Fullscreen"),
+      option("fullscreenTakeover", "Fullscreen takeover"),
+    ],
+  },
+  padding: {
+    kind: "enum",
+    label: "Padding",
+    section: "appearance",
+    default: "default",
+    options: [option("default", "Default"), option("none", "None")],
+  },
+  isDismissible: { kind: "boolean", label: "Dismissible", section: "overlay" },
+  isKeyboardDismissDisabled: {
+    kind: "boolean",
+    label: "Keyboard dismiss disabled",
+    section: "overlay",
+  },
+  ...((getPrimitiveBinding("DialogTrigger")?.props.accepts ??
+    {}) as PropsSchema),
+} as PropsSchema;
+
+/** S2 체크리스트 §9.3 — S2 FullscreenDialog's props (`variant` = the Modal's fullscreen size). */
+export const FULLSCREENDIALOG_PROPS_SCHEMA: PropsSchema = {
+  variant: {
+    kind: "enum",
+    label: "Variant",
+    section: "appearance",
+    default: "fullscreen",
+    options: [
+      option("fullscreen", "Fullscreen"),
+      option("fullscreenTakeover", "Fullscreen takeover"),
+    ],
+  },
+  isKeyboardDismissDisabled: {
+    kind: "boolean",
+    label: "Keyboard dismiss disabled",
+    section: "overlay",
+  },
+  ...((getPrimitiveBinding("DialogTrigger")?.props.accepts ??
+    {}) as PropsSchema),
+} as PropsSchema;
+
 /** Reusable id → its declared edit contract. */
 export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-button": BUTTON_PROPS_SCHEMA,
@@ -383,4 +437,6 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-menu": MENU_PROPS_SCHEMA,
   "component-actionmenu": ACTIONMENU_PROPS_SCHEMA,
   "component-alertdialog": ALERTDIALOG_PROPS_SCHEMA,
+  "component-customdialog": CUSTOMDIALOG_PROPS_SCHEMA,
+  "component-fullscreendialog": FULLSCREENDIALOG_PROPS_SCHEMA,
 };

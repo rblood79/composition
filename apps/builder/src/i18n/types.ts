@@ -2010,6 +2010,8 @@ export interface TranslationKeys {
     // Overlays
     dialog: string;
     alertDialog: string;
+    customDialog: string;
+    fullscreenDialog: string;
     modal: string;
     popover: string;
     tooltip: string;

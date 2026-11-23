@@ -41,6 +41,72 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
+.react-aria-Modal[data-size="S"] {
+  width: 400px;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.react-aria-Modal[data-size="S"] > .react-aria-Dialog {
+  width: 100%;
+}
+
+.react-aria-Modal[data-size="M"] {
+  width: 480px;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.react-aria-Modal[data-size="M"] > .react-aria-Dialog {
+  width: 100%;
+}
+
+.react-aria-Modal[data-size="L"] {
+  width: 640px;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.react-aria-Modal[data-size="L"] > .react-aria-Dialog {
+  width: 100%;
+}
+
+.react-aria-Modal[data-size="XL"] {
+  width: 960px;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.react-aria-Modal[data-size="XL"] > .react-aria-Dialog {
+  width: 100%;
+}
+
+.react-aria-Modal[data-size="fullscreen"] {
+  width: calc(100% - 40px);
+  height: calc(100% - 40px);
+  max-width: none;
+  max-height: none;
+}
+
+.react-aria-Modal[data-size="fullscreen"] > .react-aria-Dialog {
+  width: 100%;
+  height: 100%;
+}
+
+.react-aria-Modal[data-size="fullscreenTakeover"] {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+}
+
+.react-aria-Modal[data-size="fullscreenTakeover"] > .react-aria-Dialog {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-Modal {

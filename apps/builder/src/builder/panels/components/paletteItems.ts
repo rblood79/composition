@@ -72,6 +72,7 @@ import {
   FileUp,
   CloudUpload,
   Frame,
+  Fullscreen,
   Gauge,
   ScatterChart,
   Grid,
@@ -218,6 +219,7 @@ export const ICON_MAP: Record<
   FileUp,
   CloudUpload,
   Frame,
+  Fullscreen,
   Gauge,
   ScatterChart,
   Grid,
@@ -395,6 +397,9 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Dialog", source: "catalog" },
   // S2 체크리스트 §9.3: S2 AlertDialog — the Dialog for confirmations · errors.
   { type: "AlertDialog", source: "catalog" },
+  // S2 체크리스트 §9.3: S2 CustomDialog · FullscreenDialog.
+  { type: "CustomDialog", source: "catalog" },
+  { type: "FullscreenDialog", source: "catalog" },
   { type: "Sheet", source: "catalog" },
   { type: "Popover", source: "catalog" },
   { type: "PreviewTrigger", source: "catalog" },

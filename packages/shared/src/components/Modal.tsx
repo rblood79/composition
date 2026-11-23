@@ -11,10 +11,10 @@ import type { ComponentSize } from "../types";
 
 export interface ModalProps extends ModalOverlayProps {
   /**
-   * Size variant
-   * @default 'M'
+   * S2 `Modal` size — the box per size (catalog Modal rule `containerVariants.size`). Unset: the
+   * content's width (S2 CustomDialog without a size).
    */
-  size?: ComponentSize;
+  size?: ComponentSize | "fullscreen" | "fullscreenTakeover";
   /**
    * 포커스 트랩 활성화
    * 모달 내부에서만 포커스 이동 가능
@@ -49,7 +49,7 @@ export interface ModalProps extends ModalOverlayProps {
  * and ARIA from RAC.
  */
 export function Modal({
-  size = "M",
+  size,
   trapFocus = true,
   autoFocus = true,
   restoreFocus = true,

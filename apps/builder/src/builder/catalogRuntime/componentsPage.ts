@@ -112,6 +112,8 @@ const CONTROL_GROUP = "lib:definition:type-Group";
 const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
   "Dialog",
   "AlertDialog",
+  "CustomDialog",
+  "FullscreenDialog",
   "PreviewTrigger",
   "Sheet",
   "Popover",
@@ -128,6 +130,8 @@ const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
 const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "Dialog",
   "AlertDialog",
+  "CustomDialog",
+  "FullscreenDialog",
   "PreviewTrigger",
   "Sheet",
   "Popover",

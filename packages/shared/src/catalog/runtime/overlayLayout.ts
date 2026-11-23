@@ -328,15 +328,25 @@ export function catalogOverlayLayout(
     insetLeft: `${placement?.x ?? 0}px`,
     insetTop: `${placement?.y ?? 0}px`,
     ...(placement
-      ? {
-          maxHeight: `${Math.min(placement.maxHeight, Number.parseFloat(String(node.layout.maxHeight ?? "")) || Infinity)}px`,
-        }
+      ? { maxHeight: overlayMaxHeight(placement.maxHeight, node.layout.maxHeight) }
       : {}),
     ...(minWidth !== undefined ? { minWidth: capped(minWidth) } : {}),
     ...(placement?.width !== undefined
       ? { width: capped(placement.width) }
       : {}),
   };
+}
+
+/**
+ * The overlay's height cap: the placement's room, under the box's own cap. A px cap is the smaller
+ * number; another unit (S2 Modal `90vh`) goes to the engine as `min()` — read as a number, `90vh`
+ * capped the Modal at 90px (2026-11-23).
+ */
+function overlayMaxHeight(room: number, own: unknown): string {
+  const text = typeof own === "number" ? `${own}px` : String(own ?? "");
+  if (/^\d+(?:\.\d+)?px$/.test(text))
+    return `${Math.min(room, Number.parseFloat(text))}px`;
+  return text && text !== "none" ? `min(${room}px, ${text})` : `${room}px`;
 }
 
 export function catalogOverlayArrowLayout(

@@ -85,6 +85,10 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
+.react-aria-Dialog[data-padding="none"] {
+  padding: 0;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-Dialog {

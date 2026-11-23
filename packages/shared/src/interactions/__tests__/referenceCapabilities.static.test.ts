@@ -157,10 +157,12 @@ const S2 = tablesByName(REFERENCE_DIRS.s2);
 /** A type's oracle rows: its RAC table ∪ its S2 table (RAC is behavior · state, S2 the visual axes). */
 function oracleOf(type: string): Map<string, ReferenceRow> | undefined {
   const rac = RAC.get(type === "Accordion" ? "DisclosureGroup" : type);
-  const s2 = S2.get(S2_NAME[type] ?? type);
-  if (!rac && !s2) return undefined;
+  // (S2 체크리스트 §9.3: the Dialog node is also S2 CustomDialog — its `padding`.)
+  const s2 = [S2_NAME[type] ?? type, ...(type === "Dialog" ? ["CustomDialog"] : [])]
+    .flatMap((name) => S2.get(name) ?? []);
+  if (!rac && !s2.length) return undefined;
   const rows = new Map<string, ReferenceRow>();
-  for (const row of [...(s2 ?? []), ...(rac ?? [])])
+  for (const row of [...s2, ...(rac ?? [])])
     if (!rows.has(row.prop)) rows.set(row.prop, row);
   return rows;
 }

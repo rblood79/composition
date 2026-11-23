@@ -727,6 +727,19 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "alert dialog",
     icon: "MessageSquareWarning",
   },
+  // S2 체크리스트 §9.3 (2026-11-23): S2 CustomDialog · FullscreenDialog.
+  {
+    type: "CustomDialog",
+    category: "overlays",
+    label: "custom dialog",
+    icon: "AppWindow",
+  },
+  {
+    type: "FullscreenDialog",
+    category: "overlays",
+    label: "fullscreen dialog",
+    icon: "Fullscreen",
+  },
   {
     type: "Sheet",
     category: "overlays",

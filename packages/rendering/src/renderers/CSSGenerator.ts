@@ -195,7 +195,8 @@ function compositionOwnsContainerBox<Props>(
     !!spec.composition &&
     (!!spec.composition.layout ||
       !!spec.composition.containerStyles ||
-      containerVariantsStyleRoot(spec.composition.containerVariants))
+      (!spec.composition.containerVariantsOverride &&
+        containerVariantsStyleRoot(spec.composition.containerVariants)))
   );
 }
 

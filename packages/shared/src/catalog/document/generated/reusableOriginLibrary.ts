@@ -1364,6 +1364,42 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     }
   },
   {
+    "id": "lib:definition:origin-component-customdialog",
+    "name": "CustomDialog",
+    "mode": "composite",
+    "accepts": {
+      "size": "string",
+      "padding": "string",
+      "isDismissible": "boolean",
+      "isKeyboardDismissDisabled": "boolean"
+    },
+    "defaults": {
+      "size": "M",
+      "padding": "default",
+      "isDismissible": true,
+      "isKeyboardDismissDisabled": false
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-customdialog"
+  },
+  {
+    "id": "lib:definition:origin-component-fullscreendialog",
+    "name": "FullscreenDialog",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string",
+      "isKeyboardDismissDisabled": "boolean"
+    },
+    "defaults": {
+      "variant": "fullscreen",
+      "isKeyboardDismissDisabled": false
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-fullscreendialog"
+  },
+  {
     "id": "lib:definition:origin-component-popover",
     "name": "Popover",
     "mode": "composite",
@@ -8163,7 +8199,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-alertdialog__dialog"
     ],
     "props": {
-      "isDismissable": false
+      "isDismissable": false,
+      "size": "{size}"
     },
     "visual": {}
   },
@@ -8176,8 +8213,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-alertdialog__buttons"
     ],
     "props": {
-      "role": "alertdialog",
-      "size": "{size}"
+      "role": "alertdialog"
     },
     "visual": {}
   },
@@ -8318,6 +8354,283 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "variant": "{alertActionVariant}",
       "isDisabled": "{isPrimaryActionDisabled}",
       "autoFocus": "{primaryAutoFocus}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-customdialog",
+    "definitionId": "lib:definition:type-DialogTrigger",
+    "children": [
+      "lib:template:component-customdialog__trigger",
+      "lib:template:component-customdialog__modal"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-customdialog__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Open dialog"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-customdialog__modal",
+    "definitionId": "lib:definition:type-Modal",
+    "children": [
+      "lib:template:component-customdialog__dialog"
+    ],
+    "props": {
+      "size": "{size}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-customdialog__dialog",
+    "definitionId": "lib:definition:type-Dialog",
+    "children": [
+      "lib:template:component-customdialog__body"
+    ],
+    "props": {
+      "padding": "{padding}",
+      "isDismissible": "{isDismissible}",
+      "isKeyboardDismissDisabled": "{isKeyboardDismissDisabled}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-customdialog__body",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-customdialog__icon",
+      "lib:template:component-customdialog__title",
+      "lib:template:component-customdialog__text"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "rowGap": "8px",
+      "columnGap": "0"
+    }
+  },
+  {
+    "id": "lib:template:component-customdialog__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "circle-check",
+      "size": "XL"
+    },
+    "visual": {
+      "color": {
+        "kind": "token",
+        "tokenId": "lib:token:color_positive"
+      }
+    }
+  },
+  {
+    "id": "lib:template:component-customdialog__title",
+    "definitionId": "lib:definition:origin-component-heading",
+    "children": [],
+    "props": {
+      "children": "Thank you!",
+      "size": "L",
+      "slot": "title"
+    },
+    "visual": {
+      "textAlign": "center"
+    },
+    "layout": {
+      "display": "block"
+    }
+  },
+  {
+    "id": "lib:template:component-customdialog__text",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    },
+    "visual": {
+      "textAlign": "center"
+    }
+  },
+  {
+    "id": "lib:template:component-fullscreendialog",
+    "definitionId": "lib:definition:type-DialogTrigger",
+    "children": [
+      "lib:template:component-fullscreendialog__trigger",
+      "lib:template:component-fullscreendialog__modal"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Open Fullscreen"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__modal",
+    "definitionId": "lib:definition:type-Modal",
+    "children": [
+      "lib:template:component-fullscreendialog__dialog"
+    ],
+    "props": {
+      "size": "{variant}",
+      "isDismissable": false
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__dialog",
+    "definitionId": "lib:definition:type-Dialog",
+    "children": [
+      "lib:template:component-fullscreendialog__header",
+      "lib:template:component-fullscreendialog__content-region"
+    ],
+    "props": {
+      "isKeyboardDismissDisabled": "{isKeyboardDismissDisabled}"
+    },
+    "visual": {
+      "paddingTop": 32,
+      "paddingRight": 32,
+      "paddingBottom": 32,
+      "paddingLeft": 32,
+      "gap": 32
+    }
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__header",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-fullscreendialog__title",
+      "lib:template:component-fullscreendialog__subtitle",
+      "lib:template:component-fullscreendialog__buttons"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "rowGap": "8px",
+      "columnGap": "24px"
+    }
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__title",
+    "definitionId": "lib:definition:origin-component-heading",
+    "children": [],
+    "props": {
+      "children": "Advanced Settings",
+      "size": "XL",
+      "slot": "title"
+    },
+    "visual": {
+      "width": "fit-content"
+    },
+    "layout": {
+      "display": "block",
+      "flexShrink": "0"
+    }
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__subtitle",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "Configure your application preferences"
+    },
+    "visual": {
+      "textAlign": "center"
+    },
+    "layout": {
+      "flexGrow": "1"
+    }
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__buttons",
+    "definitionId": "lib:definition:type-ButtonGroup",
+    "children": [
+      "lib:template:component-fullscreendialog__cancel",
+      "lib:template:component-fullscreendialog__save"
+    ],
+    "props": {
+      "align": "end"
+    },
+    "visual": {
+      "width": "fit-content"
+    },
+    "layout": {
+      "flexShrink": "0"
+    }
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__cancel",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Cancel",
+      "slot": "close",
+      "variant": "secondary"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__save",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Save Changes",
+      "slot": "close",
+      "variant": "accent"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__content-region",
+    "definitionId": "lib:definition:type-Content",
+    "slot": {
+      "name": "content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-fullscreendialog__p1",
+      "lib:template:component-fullscreendialog__p2"
+    ],
+    "props": {},
+    "visual": {
+      "overflow": "auto"
+    },
+    "layout": {
+      "flexGrow": "1"
+    }
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__p1",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "This fullscreen dialog provides ample space for complex forms, detailed content, or multi-step workflows."
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fullscreendialog__p2",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "The content area can scroll if needed, making it perfect for lengthy forms or comprehensive settings panels."
     },
     "visual": {}
   },

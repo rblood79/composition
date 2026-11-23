@@ -461,6 +461,9 @@ export const semanticLabelKeys: Record<string, string> = {
   Destructive: "properties.variantDestructive",
   Error: "properties.variantError",
   Cancel: "properties.buttonCancel",
+  // S2 체크리스트 §9.3 — S2 Modal size · CustomDialog padding.
+  Fullscreen: "properties.modalFullscreen",
+  "Fullscreen takeover": "properties.modalFullscreenTakeover",
   "Filter mode": "properties.filterMode",
   "Starts with": "properties.filterStartsWith",
   "Min Length": "datatable.fields.minLength",

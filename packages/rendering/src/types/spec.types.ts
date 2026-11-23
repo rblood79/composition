@@ -540,6 +540,11 @@ export interface CompositionSpec {
    * 중첩: 해당 selector 뒤에 `nested.selector` 그대로 append (예: `> .react-aria-Label`).
    */
   containerVariants?: Record<string, Record<string, ContainerVariantStyles>>;
+  /**
+   * The container variant blocks only override the box the rule's own size · variant blocks paint
+   * (S2 Modal `size` · Dialog `padding`, 2026-11-23) — they do not make the rule layout-composite.
+   */
+  containerVariantsOverride?: boolean;
 
   /**
    * 외부 selector 스타일 (ADR-059 v2 Pre-Phase 0-D.6)
