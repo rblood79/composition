@@ -396,6 +396,23 @@ export const ALERTDIALOG_PROPS_SCHEMA: PropsSchema = {
 } as PropsSchema;
 
 /**
+ * S2 Dialog `size` (S · M · L · XL — the Modal's width, S2 `Modal.tsx`; 2026-11-24 사용자 「S2 와 다른 곳
+ * 셋도 맞춰」 — before, the palette Dialog had no size: its Modal took the Dialog's own 310) and the
+ * DialogTrigger's own props.
+ */
+export const DIALOG_PROPS_SCHEMA: PropsSchema = {
+  size: {
+    kind: "enum",
+    label: "Size",
+    section: "appearance",
+    default: "M",
+    options: ["S", "M", "L", "XL"].map((value) => option(value, value)),
+  },
+  ...((getPrimitiveBinding("DialogTrigger")?.props.accepts ??
+    {}) as PropsSchema),
+} as PropsSchema;
+
+/**
  * S2 체크리스트 §9.3 — S2 CustomDialog's props (`size` reaches the Modal — S2 `Modal` size, `padding` ·
  * `isDismissible` · `isKeyboardDismissDisabled` the Dialog's) and the DialogTrigger's own.
  */
@@ -478,6 +495,7 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-tooltip": TOOLTIP_PROPS_SCHEMA,
   "component-menu": MENU_PROPS_SCHEMA,
   "component-actionmenu": ACTIONMENU_PROPS_SCHEMA,
+  "component-dialog": DIALOG_PROPS_SCHEMA,
   "component-alertdialog": ALERTDIALOG_PROPS_SCHEMA,
   "component-customdialog": CUSTOMDIALOG_PROPS_SCHEMA,
   "component-fullscreendialog": FULLSCREENDIALOG_PROPS_SCHEMA,

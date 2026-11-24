@@ -21,6 +21,7 @@ import type { CatalogCommand } from "./compose";
 import { catalogBaseLibrary } from "../document/originFork";
 import { CommandDraft, fail } from "./context";
 import type { NewId } from "./materialize";
+import { libraryResponsiveWrites } from "./materialize";
 import { removeWithReferrers, subtree } from "./structure";
 
 /**
@@ -226,6 +227,9 @@ function symbolicCopy(
       descendantOverrides: overrides,
       ...(template.layout
         ? { layout: sets(template.layout) as LayoutWrites }
+        : {}),
+      ...(template.responsive
+        ? { responsive: libraryResponsiveWrites(template.responsive) }
         : {}),
       ...(template.slot ? { slot: template.slot } : {}),
       ...(template.enabled !== undefined ? { enabled: template.enabled } : {}),

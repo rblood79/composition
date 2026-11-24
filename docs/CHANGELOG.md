@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [overlay 여백 S2 대조 — Dialog 32 · picker 목록 8] - 2026-11-24
+
+사용자 「overlays - popover들의 padding 값들이 모두 각각 다른데 레퍼런스와 비교해봐」. S2 는 Popover 의 `padding` (`default` 8 · `none` 0) 과 안쪽 상자의 여백으로 정한다 — Popover 8 · 자유 내용, ContextualHelp none · 24 (폭 268), Menu none · 8, Picker · ComboBox none · 목록 8, DatePicker 달력 none · 24 / 16 (바깥 `div` 의 `gap: 16` 은 자식이 RAC Dialog 하나라 달력 ↔ 시간 칸에 닿지 않는다). Popover 쪽 대조 결과 다른 곳은 picker 목록 하나였다. 이어서 사용자 「dialog, alert dialog, custom dialog, fullscreen dialog, sheet, popover, PreviewTrigger, ContextualHelp 모두 padding 값이 일정하지가 않다」 — S2 의 Dialog 여백은 `size` 와 무관하게 32 (`Dialog.tsx` header · content · footer, `CustomDialog.tsx` · `FullscreenDialog.tsx` 의 `sm` 이상) 이고 제목 ↔ 본문 16 (header `marginBottom`) 이다. S2 에서도 종류별 값은 다르다: 모달 Dialog 32 · Popover 8 · ContextualHelp 24.
+
+### Fixed
+
+- **Dialog · AlertDialog · CustomDialog 여백 40 → 32, 제목 ↔ 본문 12 → 16**: Dialog rule 의 크기별 여백 (16 · 24 · 40 · 48 · 56 — 옛 RAC starter `Dialog.css` 40 기준) 을 모든 크기 32 · gap 16 으로. FullscreenDialog template 의 여백 작성값 (32) 은 rule 과 같아져 뺐다 (gap 32 = S2 grid 행 32 는 유지).
+- **Dialog · AlertDialog 본문 ↔ 버튼 16 → 32** (사용자 「S2 와 다른 곳 셋도 맞춰」): S2 footer 행의 `paddingTop: 32` — Dialog 의 gap 16 에 자기 ButtonGroup 의 위 여백 16 (Dialog rule `staticSelectors` `> .react-aria-ButtonGroup` — 생성 CSS 와 Canvas part rule 이 같이 읽는다). Sheet 는 template 의 `marginTop: 16` 으로 이미 32 였다.
+- **FullscreenDialog 제목 줄 — 모바일에서 세로** (사용자 「모바일에서는 column 이 되어야 짤리지 않는다」): 제목 · 부제 · 버튼의 가로 줄이 좁은 화면에서 Dialog 밖으로 넘쳤다. 기본 원본 (library) template 노드도 이제 breakpoint 층 (`responsive` — tablet · mobile 의 layout · visual) 을 갖는다 — resolver 가 project 노드와 같은 순서로 적용하고, 자식 복사 (`materialize`) · 잠금 해제 사본 (`originFork`) 이 노드의 `responsive` 로 옮긴다. FullscreenDialog 의 mobile 층: 줄 `column` · 왼쪽 정렬, 부제 왼쪽, 버튼 오른쪽 (S2 `sm` 미만 배치 — 경계는 우리 mobile 768). Design 패널 Mobile 에서 보이고 고칠 수 있다.
+- **팔레트 Dialog 폭 310 → 480**: S2 Dialog 의 `size` (S · M · L · XL) 는 Modal 폭이다. Dialog 원본에 `size` (기본 M) 를 두고 Modal 에 묶었다 (AlertDialog · CustomDialog 와 같은 모양, 패널 schema `component-dialog`). 전에는 Modal 에 size 가 없어 Dialog 자기 폭 310 이었다.
+
+- **Select · ComboBox 목록 여백의 기록값 4 → 8**: DOM 은 ListBox rule 의 `inPopover` 상태 (S2 목록 `padding: 8`) 로 8 이었는데, 기록 (Design 패널 · Canvas 상자) 은 독립 목록의 4 였다.
+  - **Why**: `_inPopover` 파생이 목록 항목에만 있고 목록 자체에는 없었다.
+  - 수정: Popover 안 ListBox 에 `_pickerList` 파생 (`presence.ts`), `catalogBoxModel` 이 rule 의 `inPopover` padding 을 읽는다 (작성값이 이긴다).
+
+### Tests
+
+- `s2PopoverPadding` 14 (Popover · ContextualHelp · ActionMenu · Select · ComboBox · DatePicker · DateRangePicker 의 Popover · 안쪽 여백, Dialog · AlertDialog · CustomDialog · FullscreenDialog · Sheet 의 여백 · gap · 버튼 위 여백 = S2, 팔레트 Dialog 의 Modal size M, FullscreenDialog 제목 줄 desktop row · mobile column). live: ComboBox 목록 — Canvas 그리는 여백 8 = Publish 8 · Popover 0. `apps/builder/scripts/s2-overlay-padding-live.mjs` — 여덟 overlay 를 Publish 에서 열어 Canvas record 와 대조 8/8 (여백 · gap · 버튼 위 여백 · Modal 폭 480). `s2-fullscreen-dialog-mobile-live.mjs` — Canvas desktop row · Mobile column, Publish 창 1400 row · 390 column, 넘침 0.
+
 ## [Popover 글자 — S2 `Popover` 처럼 글자 값 없음] - 2026-11-24
 
 사용자 「s2 레퍼런스에 맞춰」 (Popover 제목). S2 `Popover.tsx` 는 RAC Popover 안에 `div` (padding 8) 만 두고 글자 값을 주지 않는다 — Dialog 를 넣는 구성도 아니다 (앞선 「Popover 안 Dialog 의 `title-2xl`」 설명은 틀렸다).

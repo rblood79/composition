@@ -97,6 +97,24 @@ const sets = <T>(
       { kind: "set" as const, value },
     ]),
   );
+/** A library template node's breakpoint layers as a node's `responsive` writes. */
+export function libraryResponsiveWrites(
+  responsive: NonNullable<LibraryTemplateNode["responsive"]>,
+): NonNullable<NodeEntry["responsive"]> {
+  return Object.fromEntries(
+    Object.entries(responsive).map(([breakpoint, layer]) => [
+      breakpoint,
+      {
+        ...(layer?.layout
+          ? { layout: sets(layer.layout) as LayoutWrites }
+          : {}),
+        ...(layer?.visual
+          ? { visual: sets(layer.visual) as VisualWrites }
+          : {}),
+      },
+    ]),
+  );
+}
 const startsWith = (
   list: readonly string[],
   prefix: readonly string[],
@@ -150,6 +168,10 @@ export function readTemplate(
       props: sets(node.props) as PropWrites,
       visual: sets(node.visual) as VisualWrites,
       ...(node.layout ? { layout: sets(node.layout) as LayoutWrites } : {}),
+      // (Its breakpoint layers — an owned copy's `responsive`.)
+      ...(node.responsive
+        ? { extra: { responsive: libraryResponsiveWrites(node.responsive) } }
+        : {}),
       descendantPatches: node.descendantPatches,
       slotFills: node.slotFills,
       hasBinding: Object.values(node.props).some(

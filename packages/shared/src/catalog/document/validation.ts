@@ -2983,6 +2983,7 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       "props",
       "visual",
       "layout",
+      "responsive",
       "slot",
       "enabled",
       "descendantPatches",
@@ -2995,6 +2996,19 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
     ],
     "library.template",
   );
+  if (item.responsive !== undefined)
+    for (const [breakpoint, raw] of Object.entries(
+      object(item.responsive, "library.template.responsive"),
+    )) {
+      const at = `library.template.responsive.${breakpoint}`;
+      if (breakpoint !== "tablet" && breakpoint !== "mobile")
+        invalid("RESPONSIVE_BREAKPOINT", at);
+      const layer = object(raw, at);
+      exact(layer, ["visual", "layout"], at);
+      if (layer.visual !== undefined)
+        values(layer.visual, `${at}.visual`, visualFields);
+      if (layer.layout !== undefined) layoutValues(layer.layout, `${at}.layout`);
+    }
   presentWhen(item.presentWhen, "library.template.presentWhen");
   presentWith(item.presentWith, "library.template.presentWith");
   showWhen(item.showWhen, "library.template.showWhen");

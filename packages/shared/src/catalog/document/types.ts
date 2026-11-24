@@ -1900,6 +1900,15 @@ export interface LibraryBindingMap {
   readonly values: Readonly<Record<string, Scalar>>;
   readonly otherwise?: Scalar;
 }
+/**
+ * A library template node's values at a breakpoint below desktop (2026-11-24 사용자 「모바일에서는
+ * column 이 되어야 짤리지 않는다」 — the project node's `responsive` layer, the library's plain-value
+ * form). Mobile applies tablet then mobile over the base (`NodeResponsiveLayer`).
+ */
+export interface LibraryTemplateResponsiveLayer {
+  layout?: LayoutValues;
+  visual?: VisualValues;
+}
 export interface LibraryTemplateNode {
   id: LibraryTemplateId;
   definitionId: DefinitionId;
@@ -1909,6 +1918,10 @@ export interface LibraryTemplateNode {
   slot?: { name: string; required: boolean };
   /** Authored box/item layout of this template node (origin `style`), over definition rules. */
   layout?: LayoutValues;
+  /** Its layout · visual at tablet · mobile (the breakpoint cascade — desktop is the base). */
+  responsive?: Partial<
+    Record<ResponsiveBreakpointName, LibraryTemplateResponsiveLayer>
+  >;
   /** `false` hides this template node (and subtree) unless an instance enables it. */
   enabled?: boolean;
   /**

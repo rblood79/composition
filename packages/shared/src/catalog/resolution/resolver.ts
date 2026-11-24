@@ -4351,8 +4351,17 @@ export function resolveCatalogNode(
     );
     // Authored template layout (origin style) is the node's own declaration, like inline style
     // over the rule and parent delegation; an instance position's layout reaches its root.
+    // (A library template node's breakpoint layers — its plain values, the same cascade.)
+    const libraryLayers =
+      !("kind" in template) && template.responsive
+        ? CASCADE[breakpoint].flatMap((name) => {
+            const layer = template.responsive?.[name];
+            return layer ? [layer] : [];
+          })
+        : [];
     const authoredLayout: Record<string, string> = {
       ...(!("kind" in template) ? template.layout : undefined),
+      ...Object.assign({}, ...libraryLayers.map((layer) => layer.layout)),
       ...libraryPatch?.layout,
     };
     if ("kind" in template) {
@@ -4378,7 +4387,11 @@ export function resolveCatalogNode(
       applyWrites(visual, template.visual);
       for (const layer of templateLayers)
         if (layer.visual) applyWrites(visual, layer.visual);
-    } else applyValues(visual, template.visual);
+    } else {
+      applyValues(visual, template.visual);
+      for (const layer of libraryLayers)
+        if (layer.visual) applyValues(visual, layer.visual);
+    }
     if (originOverride) applyWrites(visual, originOverride.visual);
     if (libraryPatch?.visual) applyValues(visual, libraryPatch.visual);
     if (root) Object.assign(visual, root.visual);

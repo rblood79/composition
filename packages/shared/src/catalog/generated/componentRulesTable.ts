@@ -5672,48 +5672,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // 모서리 16px — size 무관 (2026-10-30 사용자 「dialog · popover 의 border-radius: size 상관없이 16px」).
     sizes: {
-      // ADR-912 단계5 step4 (2026-06-16): paddingY/gap 보강 — generated CSS 의 `padding: {Y}px {X}px`
-      //   + `gap: {gap}px` 가 rule 에서 emit 되도록(DialogSpec.sizes 미러, paddingX==paddingY).
-      //   spec 삭제 후 STRUCTURE_META virtual override 가 동일 padding/gap 재생성 → diff 0.
-      // 2026-06-22 reference 정합(ADR-914 Tier1): reference Dialog.css:8 `padding: var(--spacing-10)`
-      //   = 40px(단일). composition size variant 체계는 보존하되 md(default)를 reference 40px 에 정합,
-      //   xs~xl 을 비례 재설정(16/24/40/48/56). 기존 2~16px 은 dialog content inset 이 5배 부족했음.
+      // S2 대조 (2026-11-24 사용자 「dialog · alert dialog · custom dialog · fullscreen dialog … padding 값이
+      //   일정하지가 않다」): S2 의 Dialog 여백은 size 와 무관하다 — `Dialog.tsx` header · content · footer 의
+      //   시작 · 끝 32 · 위 12 + 20 · 아래 32, `CustomDialog.tsx` · `FullscreenDialog.tsx` padding 32 (`sm` 이상 —
+      //   S2 의 좁은 화면 24 는 두지 않는다: 사용자 결정 2026-11-24 「breakpoint 방식으로 충분」 — mobile 층에
+      //   작성). size 는 Modal 폭만 고른다 (`Modal.tsx`). 제목 ↔ 본문 16 = header `marginBottom`.
+      //   전에는 옛 RAC starter `Dialog.css` 40 을 기준으로 크기마다 16 ~ 56 이었다.
       XS: {
-        paddingX: 16,
-        paddingY: 16,
-        gap: 4,
+        paddingX: 32,
+        paddingY: 32,
+        gap: 16,
         fontSize: "{typography.text-sm}",
         borderRadius: 16,
         height: 0,
       },
       S: {
-        paddingX: 24,
-        paddingY: 24,
-        gap: 8,
+        paddingX: 32,
+        paddingY: 32,
+        gap: 16,
         fontSize: "{typography.text-base}",
         borderRadius: 16,
         height: 0,
       },
       M: {
-        paddingX: 40,
-        paddingY: 40,
-        gap: 12,
+        paddingX: 32,
+        paddingY: 32,
+        gap: 16,
         fontSize: "{typography.text-base}",
         borderRadius: 16,
         height: 0,
       },
       L: {
-        paddingX: 48,
-        paddingY: 48,
+        paddingX: 32,
+        paddingY: 32,
         gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: 16,
         height: 0,
       },
       XL: {
-        paddingX: 56,
-        paddingY: 56,
-        gap: 20,
+        paddingX: 32,
+        paddingY: 32,
+        gap: 16,
         fontSize: "{typography.text-xl}",
         borderRadius: 16,
         height: 0,
@@ -5748,6 +5748,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   `ruleShapes.ts` `catalogDialogChromeShapes` (the resting glyph), DOM = `components/Dialog.tsx`.
       composition: {
         delegation: [],
+        // S2 Dialog footer row (`Dialog.tsx` — `paddingTop: 32` over the ButtonGroup): content → buttons
+        //   32 = the Dialog's gap 16 + this 16. Its own ButtonGroup only (`>` — a FullscreenDialog's sits in
+        //   its header row; a dismissible Dialog hides it).
+        staticSelectors: {
+          "> .react-aria-ButtonGroup": { "margin-top": "16px" },
+        },
         // S2 CustomDialog `padding: none` (S2 체크리스트 §9.3, 2026-11-23) — `dialogStyle` padding 0.
         containerVariantsOverride: true,
         containerVariants: {

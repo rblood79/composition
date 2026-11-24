@@ -1303,8 +1303,12 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-dialog",
     "name": "Dialog",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "size": "string"
+    },
+    "defaults": {
+      "size": "M"
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-dialog"
@@ -8979,7 +8983,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-dialog__2"
     ],
     "props": {
-      "isDismissable": false
+      "isDismissable": false,
+      "size": "{size}"
     },
     "visual": {}
   },
@@ -9413,10 +9418,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "isKeyboardDismissDisabled": "{isKeyboardDismissDisabled}"
     },
     "visual": {
-      "paddingTop": 32,
-      "paddingRight": 32,
-      "paddingBottom": 32,
-      "paddingLeft": 32,
       "gap": 32
     }
   },
@@ -9436,6 +9437,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "alignItems": "center",
       "rowGap": "8px",
       "columnGap": "24px"
+    },
+    // 2026-11-24 사용자 「모바일에서는 column 이 되어야 짤리지 않는다」 — S2 `FullscreenDialog.tsx`
+    //   `sm` 미만의 세로 쌓기 (제목 · 부제 왼쪽, 버튼 오른쪽 — S2 `marginStart: auto`). 경계는 우리
+    //   mobile (768 미만), S2 는 640.
+    "responsive": {
+      "mobile": {
+        "layout": {
+          "flexDirection": "column",
+          "alignItems": "flex-start"
+        }
+      }
     }
   },
   {
@@ -9468,6 +9480,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "layout": {
       "flexGrow": "1"
+    },
+    "responsive": {
+      "mobile": {
+        "visual": {
+          "textAlign": "left"
+        }
+      }
     }
   },
   {
@@ -9485,6 +9504,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "layout": {
       "flexShrink": "0"
+    },
+    "responsive": {
+      "mobile": {
+        "layout": {
+          "alignSelf": "flex-end"
+        }
+      }
     }
   },
   {

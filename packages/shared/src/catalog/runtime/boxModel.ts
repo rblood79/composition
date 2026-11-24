@@ -1,4 +1,8 @@
-import { BUTTON_ICON_ONLY_STYLES } from "@composition/rendering";
+import {
+  BUTTON_ICON_ONLY_STYLES,
+  resolveToken,
+  type TokenRef,
+} from "@composition/rendering";
 import { pickerInvalidGlyph } from "../document/pickerTrigger";
 import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
@@ -6,6 +10,27 @@ import { catalogTreeCellGlyph } from "./tableTreeCell";
 import { catalogCurrentTextWeight } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { installedBaseFontFamily } from "./themeMaps";
 import { DEFAULT_FONT_FAMILY, GENERIC_FONT_FAMILIES } from "./fontDefaults";
+import { evaluateConditionTree } from "../rule/conditionTree";
+import { resolveComponentRule } from "../resolvers/resolveComponentRule";
+
+/**
+ * A picker's list padding in its Popover — the ListBox rule's `stateStyles.padding.inPopover` (S2
+ * Picker · ComboBox `padding: 8`), the value the DOM's sheet draws (2026-11-24 — the record kept the
+ * standalone list's 4).
+ */
+function pickerListPadding(): number | undefined {
+  const value = evaluateConditionTree(
+    resolveComponentRule("ListBox")?.structure?.stateStyles?.padding,
+    { inPopover: true },
+  );
+  const step =
+    typeof value === "string" &&
+    /^var\(--spacing-([a-z0-9]+)\)$/.exec(value.trim())?.[1];
+  const resolved = step
+    ? resolveToken(`{spacing.${step}}` as TokenRef, "light")
+    : value;
+  return typeof resolved === "number" ? resolved : undefined;
+}
 
 /**
  * ADR-248 — one box model per resolved catalog node. The Rust layout input (`compositionRoot`)
@@ -188,6 +213,16 @@ export function catalogBoxModel(
         paddingLeft: side("paddingLeft", "paddingX"),
       },
     };
+  }
+  if (
+    node.derivedProps?._pickerList === true &&
+    !["padding", "paddingX", "paddingY", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"].some(
+      (key) => authoredVisual[key] !== undefined,
+    )
+  ) {
+    const padding = pickerListPadding();
+    if (padding !== undefined)
+      node = { ...node, visual: { ...node.visual, padding } };
   }
   if (
     node.derivedProps?._pickerTrigger === true &&

@@ -3726,9 +3726,17 @@ function catalogListItemEdges(
       _itemShrink?: number;
       _lastItem?: boolean;
       _inPopover?: true;
+      _pickerList?: true;
     }
   | undefined {
   const type = typeOf(node);
+  // (A picker's list in its Popover — the ListBox rule's `inPopover` state: S2 Picker · ComboBox's
+  //  list `padding: 8`, read by `catalogBoxModel`; 2026-11-24.)
+  if (type === "ListBox") {
+    for (let up = get(node.parentId); up; up = get(up.parentId))
+      if (typeOf(up) === "Popover") return { _pickerList: true };
+    return undefined;
+  }
   if (type !== "ListBoxItem") return undefined;
   const parent = get(node.parentId);
   if (!parent) return undefined;

@@ -85,8 +85,8 @@ describe("S2 §9.3 Modal size · CustomDialog · FullscreenDialog", () => {
     // (S2's 90% cap is the viewport's height — not the trigger's: the Modal is as tall as its Dialog.)
     expect(m.modal?.height).toBe(m.dialog?.height);
     expect(custom.one("Modal").props.size).toBe("M");
-    // (The Modal's size blocks only override: the Dialog keeps its own padding — the rule's M.)
-    expect(m.dialogPadding).toBe(40);
+    // (The Modal's size blocks only override: the Dialog keeps its own padding — S2 `CustomDialog` 32.)
+    expect(m.dialogPadding).toBe(32);
     const dom = await custom.open();
     expect(dom.modal.getAttribute("data-size")).toBe("M");
     expect(dom.dialog.getAttribute("data-padding")).toBeNull();
@@ -125,14 +125,17 @@ describe("S2 §9.3 Modal size · CustomDialog · FullscreenDialog", () => {
     takeover.h.view.unmount();
   });
 
-  it("a Modal without a size keeps the Dialog's own width (S2 CustomDialog without a size)", async () => {
+  it("the palette Dialog is S2's Dialog: `size` M — its Modal 480, the Dialog fills it (2026-11-24)", async () => {
+    expect(Object.keys(REUSABLE_PROPS_SCHEMAS["component-dialog"]!)).toContain(
+      "size",
+    );
     const plain = await openDialog("Dialog");
     const p = plain.boxes();
-    expect(plain.one("Modal").props.size).toBeUndefined();
-    expect(p.dialog?.width).toBe(310);
-    expect(p.modal?.width).toBe(310);
+    expect(plain.one("Modal").props.size).toBe("M");
+    expect(p.modal?.width).toBe(480);
+    expect(p.dialog?.width).toBe(480);
     const dom = await plain.open();
-    expect(dom.modal.getAttribute("data-size")).toBeNull();
+    expect(dom.modal.getAttribute("data-size")).toBe("M");
     plain.h.view.unmount();
   });
 });
