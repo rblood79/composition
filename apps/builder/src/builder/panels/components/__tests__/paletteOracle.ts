@@ -178,12 +178,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "GroupIcon",
   },
   {
-    type: "Section",
-    category: "layout",
-    label: "section",
-    icon: "Square",
-  },
-  {
     type: "Tabs",
     category: "layout",
     label: "tabs",

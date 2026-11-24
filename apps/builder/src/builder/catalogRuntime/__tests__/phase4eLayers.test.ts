@@ -163,7 +163,7 @@ describe("ADR-248 Phase 4e-4 Layers tree", () => {
 
     tree.setExpanded(new Set([record("home-body")]));
     const expandedBody = tree.getSnapshot()[0];
-    expect(names(expandedBody.children)).toEqual(["frame", "frame"]);
+    expect(names(expandedBody.children)).toEqual(["Frame", "Frame"]);
     const list = expandedBody.children![0];
     expect(list).toMatchObject({
       id: record("list"),

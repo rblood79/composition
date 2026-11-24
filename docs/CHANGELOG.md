@@ -27,6 +27,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `s2TextInheritsFont` Popover 제목 18.72 · `adr254ContainerParts` popover 제목 (자기 글자 없음).
 - live: Publish 에서 Popover 를 열어 제목 h3 18.72 · 700 · 설명 12 = Canvas. 팔레트 sweep 그려지는 Text 149 · h 12 모두 Canvas = Publish.
 
+## [frame HTML 태그 칸 · Layers 이름 · 그룹 이름 · Section 컴포넌트 삭제] - 2026-11-24
+
+사용자 「section 컴포넌트는 … html tag 용이다. 필요한지 판단해」 → 「frame 프로퍼티 옵션으로 div · section · header · footer · nav · article · aside」 · 「Layers 트리에도 변경된 tag 로」 · 그룹은 이름으로 구분 · 명칭 정리 「넣어」.
+
+[ADR-316](adr/completed/316-frame-element-type-section-removal.md) Implemented 2026-11-24 (G4 — 사용자가 본인 Builder 에서 확인: 「확인했다. 커밋해」).
+
+### Added
+
+- **frame 의 「HTML tag」 칸** (Design 패널 Behavior): `div` (기본) · `main` · `section` · `header` · `footer` · `nav` · `article` · `aside`. 상자의 모양 · 배치는 그대로이고 Preview · Publish 의 요소만 바뀐다 (role 은 쓰지 않는다 — ADR-130). Code 보기는 그 태그로 쓴다 (`<section>` — `elementType` 속성 · import 없음). 목록 밖 값은 `div`.
+  - D2: S2 · RAC 에 없는 composition 확장 (`d2Provenance.ts` — 이름은 RAC `Text` 의 `elementType`).
+  - 위치: `catalog/document/frameElementType.ts` (신규) · `itemLinks.ts` `RULE_TYPE_PROP_CONTRACTS.frame` · `domBinding.runtime.ts` frame binding · `codeView/generate.ts`
+
+### Changed
+
+- **페이지 본문이 `<main>`** (사용자 결정 「페이지 본문 = main」): 레이아웃이 없는 페이지는 Preview · Publish 에서 본문 상자가 `<main>` 이다 (전에는 `div`). 본문 안 frame 을 `main` 으로 고르면 그 frame 이 main 이고 본문은 `div` 로 물러난다 (`main` 중첩 없음). 레이아웃을 쓴 페이지의 본문은 `div` 그대로 — content 자리의 main 은 ADR-304.
+  - 위치: `catalog/runtime/pageMain.components.tsx` (신규) · `domBinding.runtime.ts`
+- **Layers 의 frame 행 이름**: 사용자 이름 → 태그 (`div` 가 아닐 때 — 「section」 · 「nav」 …) → 「Frame」. 전에는 타입 이름 「frame」 (소문자) 그대로였다.
+  - 위치: `catalogRuntime/layerTree.ts` `nameOf`
+- **Design 패널 제목도 같은 이름**: frame 을 고르면 패널 제목이 Layers 와 같은 이름 (「section」 · 「Frame」) 이다. 태그는 그 위치에서 유효한 값이다 — 컴포넌트 instance 안 frame 의 태그를 바꿔도 Layers · 제목이 따라오고, slot 인 frame 은 둘 다 slot 이름을 먼저 보인다 (`catalogRuntime/frameName.ts`, ADR-316 리뷰 round 1 · 2). 제목은 step 마다 다시 읽는다 — 전에는 선택이 바뀔 때만 읽어 이름 변경이 바로 보이지 않았다.
+  - 위치: `panels/properties/catalog/CatalogPropertiesPanel.runtime.ts`
+- **그룹화한 상자의 이름 「Group」**: 그룹 명령이 만드는 frame 에 노드 이름 「Group」 을 붙인다 (Layers 에 「Group」 — 이름을 바꾸거나 지울 수 있고, 요소 · role 은 frame 그대로). 그룹에 HTML 태그를 정하면 Layers · 패널 제목이 그 태그를 보인다 (`div` 로 되돌리면 다시 「Group」, 직접 적은 이름은 그대로 — 사용자 보고 「group화 후 tag를 nav로 변경시 … group로 유지된다」 수리).
+  - 위치: `catalogRuntime/canvasMenu.ts`
+- **그룹 명령 이름 통일**: 단축키 목록 「프레임 / 프레임 해제」 (`Frame` / `Unframe`) · 메뉴 「그룹 만들기」 (`Group selection`) → 「그룹화 / 그룹 해제」 (`Group` / `Ungroup`).
+  - 위치: `i18n/messages/{ko-KR,en-US}.ts` · `config/keyboardShortcuts.ts`
+
+### Removed
+
+- **Section 컴포넌트** (사용자 「삭제」 2026-11-24): 팔레트 · catalog 등록 · binding · rule · 생성 CSS · AI catalog 에서 지웠다. 이름과 달리 `<section>` 이 아니라 `div.react-aria-Section` 이었고 (renderer 미등록) frame 과 padding 기본값만 달랐다 — 시맨틱 요소는 frame 의 HTML tag 칸으로 정한다. **Breaking**: 마이그레이션 코드가 없어 Section 노드를 가진 옛 프로젝트는 열리지 않는다 (개발 단계 방침). Nav 는 실제 `<nav>` · 현재 경로 표시가 있어 그대로다.
+  - 위치: `bindings/Section.binding.ts` · `styles/generated/Section.css` (삭제) · `componentCatalog.ts` · `componentRulesTable.ts` · `rulePaint.ts` · `componentTraits.ts` · `s2PropAlignment.ts` · `paletteItems.ts`
+
+### Verified
+
+- 단위 `frameElementType.test.ts` · `frameElementType.test.tsx` (원복 RED 4/4), live `apps/builder/scripts/frame-element-type-live.mjs` 14/14 (리뷰 round 1 · 2 수리 · 페이지 main 추가 뒤 — instance 안 frame 의 이름 · slot frame 의 패널 제목 · 패널 선택 실패를 통과시키던 스크립트 · 일곱 태그 상자 대조 추가) — 팔레트에 section 항목 없음, Design 패널에서 section 선택 → Layers 「section」, 액션 바 Group → Layers 「Group」, Publish `<section>` · `<div>`, section 안 h1 글자 Canvas = Publish (32 · 700, Chromium · WebKit 모두 section 안 h1 축소 없음).
+
 ## [Text · Heading 글자 규칙 확정 — 브라우저 h 기본값 바닥 · Heading 700 · S2 대조 3건] - 2026-11-24
 
 사용자 「TEXT size 에 대한 rule 을 정해야한다」 → 「700 으로 규칙 확정하고 세 가지 진행해」. 글자 값의 층 (문서 기본 → 브라우저 기본 → 상속 → owner → 작성값) 과 구현 계약을 규칙 파일로 정하고, 팔레트 전체 대조 (Canvas ↔ Publish) 에서 나온 세 가지를 S2 대로 고쳤다.

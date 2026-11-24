@@ -140,7 +140,6 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Input",
         // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source)
         "body",
-        "Section",
         "Nav",
         // ADR-912 (B+icon) (2026-06-08): Calendar 헤더 leaf (leading/inline icon escape). (옛 Disclosure 헤더 ·
         //   chevron 은 ADR-256 Phase 8e 에서 삭제.)

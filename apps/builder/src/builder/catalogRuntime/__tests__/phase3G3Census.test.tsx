@@ -583,6 +583,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + AssetCard · UserCard · ProductCard · CollectionCard (2026-11-24 — S2 체크리스트 §9.3 6-7, Card
     //   presets).
     // + ImageCoordinator (2026-11-24 — S2 체크리스트 부록 D.2, S2's element-less image reveal context).
-    expect(types.length).toBe(193);
+    // − Section (2026-11-24 — a `div` box; a frame's HTML tag is the semantic element, 사용자 삭제).
+    expect(types.length).toBe(192);
   }, 120_000);
 });

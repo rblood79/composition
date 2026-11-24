@@ -203,7 +203,6 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
       "Skeleton",
       "Pagination",
       "Nav",
-      "Section",
       "Chart",
       // (Tabs: one `default` variant, no axis — S2 · v3 Tabs have none either.)
       "Tabs",

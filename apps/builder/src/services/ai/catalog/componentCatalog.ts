@@ -63,7 +63,6 @@ export interface AiCatalogEntry {
 export const CONTAINER_TYPES: ReadonlySet<string> = new Set([
   "frame",
   "Slot",
-  "Section",
   "Nav",
 ]);
 

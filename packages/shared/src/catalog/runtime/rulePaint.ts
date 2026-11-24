@@ -28,7 +28,6 @@ const SHELL_ONLY_TYPES: ReadonlySet<string> = new Set([
   "RangeCalendar",
   "Card",
   "Dialog",
-  "Section",
   "Accordion",
   "ButtonGroup",
   "ActionButtonGroup",

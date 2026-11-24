@@ -56,6 +56,7 @@ paths:
 - canonical `frame` = D3 layout container — catalog frame definition (skipCSSGeneration:true, ARIA role 없음)
 - 진입점 단일화: builder palette / multi-select grouping / pencil import 모두 `type: "frame"`. RAC ARIA Group 으로 layout 의도 흡수 금지 (D1 침범)
 - canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 와 catalog `frame` entry 1:1 정합. `frame` 을 Group 의 alias 로 두는 패턴 금지 — ARIA role emit 으로 D1 침범 (옛 `BASE_TAG_SPEC_MAP` 은 ADR-248 에서 삭제)
+- **frame 의 HTML 요소 = `elementType` (사용자 결정 2026-11-24)**: frame 은 `div` · `main` · `section` · `header` · `footer` · `nav` · `article` · `aside` 중 하나로 그려진다 (`catalog/document/frameElementType.ts` — Design 패널 「HTML tag」, D2 는 composition 확장). 바뀌는 것은 DOM 요소뿐이다 — role 은 쓰지 않고 Canvas 는 읽지 않는다. Layers 행 이름은 사용자 이름 → 태그 (`div` 아닐 때) → 「Frame」, 그룹 명령이 만든 frame 은 노드 이름 「Group」 (태그 목록에 group 을 넣지 않는다 — HTML 요소가 아니고 `role="group"` 은 RAC Group 의 것). 태그별 컴포넌트를 새로 만들지 않는다 (옛 Section 은 `div` 였다). **페이지의 main**: 레이아웃 없는 페이지의 본문은 `<main>` 이고, 본문 안 `main` frame 이 있으면 본문이 `div` 로 물러난다 (`runtime/pageMain.components.tsx` — DOM 층에서만 정한다, 그려진 `main` frame 이 context 로 본문에 알린다). 레이아웃 페이지의 content 자리는 ADR-304.
 - legacy `type: "Group" + customId="group_N"` 은 `isLegacyGroupForFrameMigration()` 으로 1회 hydration migration 대상. ARIA Group (customId 없음 또는 다른 prefix) 보존
 
 ### 생성 CSS archetype 미지정 = 중립 상자

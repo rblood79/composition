@@ -327,8 +327,6 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "ProductCard", source: "catalog" },
   { type: "CollectionCard", source: "catalog" },
   { type: "frame", source: "catalog" },
-  // 2026-10-21: Section 은 컨테이너 — frame 옆 (layout). collections 의 TagGroup 뒤에 있었다.
-  { type: "Section", source: "catalog" },
   { type: "Tabs", source: "catalog" },
   { type: "Breadcrumbs", source: "catalog" },
   { type: "Link", source: "catalog" },

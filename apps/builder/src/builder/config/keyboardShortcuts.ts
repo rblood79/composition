@@ -485,7 +485,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
-    description: "Frame",
+    description: "Group",
   },
 
   ungroup: {
@@ -494,7 +494,7 @@ export const SHORTCUT_DEFINITIONS = {
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
-    description: "Unframe",
+    description: "Ungroup",
   },
 
   // ⌥ 계열은 macOS 에서 문자를 바꾼다 (⌥A→å, ⌥S→ß, ⌥⇧V→◊). `key` 로 맞추면

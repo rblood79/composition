@@ -10,6 +10,8 @@ Proposed — 2026-11-08
 - 리뷰 · 착수는 사용자 요청 때 (`/review-adr 304` → `/execute-adr 304`).
 - 리뷰 round 1 (codex, 2026-11-08 — [reviews/304.md](reviews/304.md)): HIGH 2 · MEDIUM 1 → 설계 수리. h1 사이드 열을 고정 폭 트랙에서 `auto` 로 (Decision 1 · 4, R8) · h2 적용 판정 서명에 슬롯 `definitionId` 포함 (Decision 3) · m1 preset 소유 키에서 item 축 분리 (Decision 7, R2). 수리 검증 round 2 는 codex.
 
+> **2026-11-24 — [ADR-316](completed/316-frame-element-type-section-removal.md) (Implemented 2026-11-24) 과의 관계**: frame 에 노드별 HTML 요소 칸 `elementType` (`div` · `main` · `section` · `header` · `footer` · `nav` · `article` · `aside`) 이 생기고 Section 컴포넌트가 삭제된다. 그래서 아래 실측의 「노드별 덮어쓰기 필드가 없다」 · 「Frame · Section 은 `div`」 두 문장은 낡았고, 사용자 결정 3 (랜드마크 방식) 에 선택지 「frame 의 태그로 랜드마크를 푼다」 가 는다 — `main` · `aside` 는 이미 그 목록에 있다 (2026-11-24 추가, ADR-316 사용자 결정 1). 이 문서의 본문은 고치지 않았다 — 리뷰 때 반영한다.
+
 ## Context
 
 ### 도메인

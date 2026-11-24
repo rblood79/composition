@@ -54,6 +54,7 @@ import {
   promptCatalogComponentName,
 } from "./componentConfirm";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { CATALOG_GROUP_FRAME_NAME } from "./frameName";
 import { catalogParentOfNode } from "./insertParent";
 import {
   catalogMoveToSlotItems,
@@ -490,6 +491,10 @@ export function catalogCanvasMenuItems(
           kind: "node",
           id: host.newId("node"),
           definitionId: "lib:definition:type-frame",
+          // 사용자 결정 2026-11-24 — a group is a frame the Layers tree calls 「Group」 (its own name:
+          //   renamed or cleared like any node's, no element or role of its own — ADR-130). An HTML
+          //   element set on it shows instead (`catalogFrameShownName`).
+          name: CATALOG_GROUP_FRAME_NAME,
           children: [],
           props: {},
           visual: {},

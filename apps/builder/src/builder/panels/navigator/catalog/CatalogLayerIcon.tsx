@@ -35,7 +35,6 @@ export function layerNodeGlyph(typeName: string): NodeGlyph {
     case "Body":
     case "body":
     case "Frame":
-    case "Section":
       return "frame";
     case "Text":
     case "Label":

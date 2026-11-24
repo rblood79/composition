@@ -5,10 +5,12 @@ import { catalogTargetDefinitionId } from "../../../catalogRuntime/editContract"
 import {
   useCatalogEditContract,
   useCatalogSession,
+  useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
+import { catalogFrameShownName } from "../../../catalogRuntime/frameName";
 
 /**
  * ADR-248 Phase 4e-4: Properties of the open catalog project — the selection's edit contract
@@ -44,14 +46,21 @@ export function useCatalogPropertiesSelection() {
       return [];
     }
   }, [first, graph, selection]);
-  const title = useMemo(() => {
+  // (Read on each step: a rename · the frame's element changes the title without the selection
+  //  changing — the memo over the selection kept the old one.)
+  const title = useCatalogStepReading(workspace, () => {
     if (!first) return undefined;
+    // (A frame reads as it does in Layers — its own name → its slot's role → its HTML element in
+    //  effect at the selected position (an instance's patch included) → 「Frame」: ADR-316
+    //  Decision 2 · 리뷰 round 1 m1 · round 2 m3.)
+    if (contract.type === "frame")
+      return catalogFrameShownName(graph, first.target);
     const entry =
       first.target.kind === "node"
         ? graph.getEntry(first.target.id)
         : undefined;
     return (entry?.kind === "node" && entry.name) || contract.type;
-  }, [contract.type, first, graph]);
+  });
   // A delegated sub-part (a field's Label · Input · FieldError …): its parent composes it, so its
   // own fields reach nothing — the owner notice instead (ADR-923, the old panel's).
   // (One root read shared by the panel's parts — ADR-246 count.)

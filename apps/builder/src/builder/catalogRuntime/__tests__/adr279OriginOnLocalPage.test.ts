@@ -590,7 +590,7 @@ describe("ADR-279 — Delete component while the Local page Layers list the card
     workspace.undo();
     expand();
     const back = find(layers.getSnapshot());
-    expect([back?.name, back?.role]).toEqual(["frame", "origin"]);
+    expect([back?.name, back?.role]).toEqual(["Frame", "origin"]);
     expect(back?.children?.map((row) => row.name)).toEqual(["Text"]);
     layers.dispose();
     workspace.dispose();

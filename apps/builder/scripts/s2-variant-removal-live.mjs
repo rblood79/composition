@@ -1,5 +1,6 @@
 // S2 정렬 F live (사용자 2026-10-12 「S2 · RAC · v3 어디에도 없으면 지워」): real Builder (headed
-// Chrome, Compare Mode). A Separator · Section · Toolbar · ProgressBar from the palette: the Design
+// Chrome, Compare Mode). A Separator · Toolbar · ProgressBar from the palette (Section 은 2026-11-24
+// 컴포넌트 삭제로 뺐다): the Design
 // panel offers no Variant (a Button still does), the Preview and the Canvas paint the default each
 // had. An old document whose stored entries still carry a variant on them (written straight into
 // IndexedDB — the editor refuses one now) opens on reload with the variant dropped once, and the
@@ -139,7 +140,6 @@ await page.waitForTimeout(1500);
 const nodes = {};
 for (const [label, type] of [
   ["separator", "Separator"],
-  ["section", "Section"],
   ["toolbar", "Toolbar"],
   ["progress bar", "ProgressBar"],
   ["button", "Button"],
@@ -157,12 +157,6 @@ for (const [label, type] of [
 }
 await page.screenshot({ path: `${OUT}/palette-defaults.png` });
 
-const section = await paint(nodes.Section.id);
-record(
-  "Section paints transparent on both (Preview bg · Canvas fill alpha 0 or none)",
-  section.bg === "rgba(0, 0, 0, 0)" && (!section.fill || section.fill[3] === 0),
-  section,
-);
 const fillId = await page.evaluate((owner) => {
   const root = window.__COMPOSITION_CATALOG__.workspace.root;
   return [...root.canvasInputs.values()].find(
@@ -212,13 +206,12 @@ const written = await page.evaluate(
     projectId,
     targets: [
       [nodes.Separator.source, "dashed"],
-      [nodes.Section.source, "purple"],
       [nodes.Toolbar.source, "accent"],
       [nodes.ProgressBar.source, "neutral"],
     ],
   },
 );
-record("old variants written into the stored entries", written.length === 4, written);
+record("old variants written into the stored entries", written.length === 3, written);
 await page.reload();
 await page.waitForSelector(".app:not(.builder-booting)", { timeout: 30000 });
 await page.waitForFunction(
@@ -243,13 +236,12 @@ record(
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForSelector("#previewFrame", { timeout: 30000 });
 await page.waitForTimeout(2500);
-const sectionAfter = await paint(nodes.Section.id);
 const barAfter = await paint(nodes.ProgressBar.id, ".fill");
 await page.screenshot({ path: `${OUT}/after-reload.png` });
 record(
-  "after reload the defaults paint as before (Section transparent, ProgressBar accent fill)",
-  sectionAfter.bg === section.bg && barAfter.bg === barBefore.bg,
-  { sectionAfter, barAfter },
+  "after reload the defaults paint as before (ProgressBar accent fill)",
+  barAfter.bg === barBefore.bg,
+  { barAfter },
 );
 
 record("no page or console errors", errors.length === 0, { errors });

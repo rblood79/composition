@@ -561,6 +561,7 @@ export const semanticLabelKeys: Record<string, string> = {
   // S2 ImageCoordinator · Image `group` (부록 D.2, 2026-11-24)
   Timeout: "properties.imageRevealTimeout",
   "Image group": "properties.imageGroup",
+  "HTML tag": "properties.htmlTag",
   "Commit behavior": "properties.commitBehavior",
   "Snap": "properties.commitSnap",
   "Validate": "properties.commitValidate",

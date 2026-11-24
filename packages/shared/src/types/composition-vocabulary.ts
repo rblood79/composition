@@ -113,7 +113,6 @@ export type ComponentTag =
   | "RadioItems"
   | "RangeCalendar"
   | "SearchField"
-  | "Section"
   | "Select"
   | "SelectValue"
   | "Separator"

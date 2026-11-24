@@ -5848,54 +5848,6 @@
       ]
     },
     {
-      "type": "Section",
-      "frozenPngMatch": true,
-      "pngSha256": "3865b1b58a7d2d987ffbe05833cca186936982d01a6054fae94fb8e5b650fdcf",
-      "frozenPngSha256": "3865b1b58a7d2d987ffbe05833cca186936982d01a6054fae94fb8e5b650fdcf",
-      "elementType": "Section",
-      "componentName": null,
-      "ref": null,
-      "camera": {
-        "zoom": 0.675,
-        "pan": {
-          "x": 72,
-          "y": 85.5
-        },
-        "canvasRect": {
-          "x": 0,
-          "y": 0,
-          "width": 1440,
-          "height": 900
-        }
-      },
-      "nodes": [
-        {
-          "path": "",
-          "parent": null,
-          "rect": {
-            "x": 30,
-            "y": 30,
-            "width": 220,
-            "height": 130
-          },
-          "engineInput": {
-            "display": "block",
-            "position": "absolute",
-            "width": "220px",
-            "height": "130px",
-            "paddingTop": "16px",
-            "paddingRight": "16px",
-            "paddingBottom": "16px",
-            "paddingLeft": "16px",
-            "insetTop": "30px",
-            "insetLeft": "30px",
-            "columnGap": "12px",
-            "rowGap": "12px"
-          }
-        }
-      ]
-    },
-    {
       "type": "Chart",
       "frozenPngMatch": true,
       "pngSha256": "82fe9d09fc3528f54c8fe986151587ac2470fb57a14ebed87bc12166f020d25d",

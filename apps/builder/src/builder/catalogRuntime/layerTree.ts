@@ -10,6 +10,11 @@ import {
   catalogComponentPageStored,
   catalogComponentsPageRows,
 } from "./componentsPage";
+import {
+  catalogDeclaredAt,
+  catalogFrameShownName,
+  catalogNamedAt,
+} from "./frameName";
 import { catalogInsertParent } from "./insertParent";
 import {
   componentsViewRoot,
@@ -143,40 +148,23 @@ const typeNameOf = (graph: CatalogReader, position: CatalogPosition) => {
     return position.definitionId;
   }
 };
-/** The node or template node at a position (a layout slot under a page body is a template node). */
-const declaredAt = (graph: CatalogReader, position: CatalogPosition) => {
-  const id =
-    position.target.kind === "node"
-      ? position.target.id
-      : position.target.address.templatePath.at(-1);
-  if (!id) return undefined;
-  const node = id.startsWith("lib:")
-    ? graph.library.templates.get(id as `lib:template:${string}`)
-    : graph.getEntry(id);
-  return node && "children" in node
-    ? (node as { name?: string; slot?: { name: string } })
-    : undefined;
-};
 const slotOf = (graph: CatalogReader, position: CatalogPosition) =>
-  declaredAt(graph, position)?.slot?.name;
+  catalogDeclaredAt(graph, position.target)?.slot?.name;
 /**
- * A row's name: the node's own name, a slot's role, a collection's empty state (its
- * IllustratedMessage — RAC `renderEmptyState`, 2026-10-23), else its type.
+ * A row's name: the node's own name, a slot's role (`catalogNamedAt`), a collection's empty state
+ * (its IllustratedMessage — RAC `renderEmptyState`, 2026-10-23), else its type. A frame's name is
+ * `catalogFrameShownName` — the one the Design panel title reads (ADR-316).
  */
 const nameOf = (
   graph: CatalogReader,
   position: CatalogPosition,
   typeName: string,
   parentType: string | undefined,
-) => {
-  const node = declaredAt(graph, position);
-  const own = position.target.kind === "node" || node?.slot ? node?.name : "";
-  return (
-    own ||
-    node?.slot?.name ||
-    (isEmptyState(typeName, parentType) ? "EmptyState" : typeName)
-  );
-};
+) =>
+  typeName === "frame"
+    ? catalogFrameShownName(graph, position.target)
+    : (catalogNamedAt(graph, position.target) ??
+      (isEmptyState(typeName, parentType) ? "EmptyState" : typeName));
 /** A collection's direct IllustratedMessage — its EmptyState (RAC `renderEmptyState`). */
 /** The rows a Table's hidden column marks (ADR-315 Phase 4). */
 const COLUMN_TYPES: ReadonlySet<string> = new Set(["Column", "Cell"]);
@@ -254,6 +242,12 @@ export class CatalogLayerTreeStore {
   private readonly rowSubscriptions = new Map<string, () => void>();
   /** Visible owned node rows: node id → its row identities. */
   private visibleNodes = new Map<string, string[]>();
+  /**
+   * ADR-316: the frame rows inside instances by the ids their element comes from (the owning
+   * instance · the instances and template positions of its address) — a patch on the instance
+   * renames the row without the row list changing.
+   */
+  private frameRows = new Map<string, string[]>();
   /** Template rows judged by `absentByValue` and the judgment (a prop edit can flip it). */
   private valueGated: readonly {
     position: CatalogPosition;
@@ -312,7 +306,10 @@ export class CatalogLayerTreeStore {
     const unsubscribeSteps = host.subscribeSteps(({ result }) => {
       const counting = process.env.NODE_ENV === "development";
       const renamed = [...result.changedIds].some((id) =>
-        (this.visibleNodes.get(id) ?? []).some((identity) => {
+        [
+          ...(this.visibleNodes.get(id) ?? []),
+          ...(this.frameRows.get(id) ?? []),
+        ].some((identity) => {
           if (counting) docCounters.layersRenameChecked += 1;
           const node = this.nodes.get(identity);
           return (
@@ -442,6 +439,7 @@ export class CatalogLayerTreeStore {
     const previous = this.nodes;
     const nodes = new Map<string, CatalogLayerNode>();
     const visibleNodes = new Map<string, string[]>();
+    const frameRows = new Map<string, string[]>();
     const valueGated: { position: CatalogPosition; absent: boolean }[] = [];
     const repeatGated: { parent: CatalogPosition; conflicts: string }[] = [];
     const collectionGated: {
@@ -577,6 +575,17 @@ export class CatalogLayerTreeStore {
         const list = visibleNodes.get(position.target.id) ?? [];
         list.push(node.id);
         visibleNodes.set(position.target.id, list);
+      } else if (typeName === "frame") {
+        const { ownerId, address } = position.target;
+        for (const id of new Set<string>([
+          ownerId,
+          ...address.instances,
+          ...address.templatePath,
+        ])) {
+          const list = frameRows.get(id) ?? [];
+          list.push(node.id);
+          frameRows.set(id, list);
+        }
       }
       return node;
     };
@@ -642,6 +651,7 @@ export class CatalogLayerTreeStore {
     const top = rows.map((row) => build(row, null, 0));
     this.nodes = nodes;
     this.visibleNodes = visibleNodes;
+    this.frameRows = frameRows;
     this.valueGated = valueGated;
     this.collectionGated = collectionGated;
     this.columnGated = columnGated;

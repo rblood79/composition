@@ -48,7 +48,6 @@ const REMOVED = [
   "Pagination",
   "Nav",
   "ColorSwatchPicker",
-  "Section",
   "ColorPicker",
   "Chart",
   "Tabs",
@@ -134,7 +133,7 @@ describe("S2 정렬 F — the variant axis no reference has is gone", () => {
   });
 
   it("a variant write is refused now — revision unchanged", async () => {
-    for (const type of ["Separator", "Section", "ProgressBar", "Toolbar"]) {
+    for (const type of ["Separator", "Nav", "ProgressBar", "Toolbar"]) {
       const { workspace } = await open(type);
       const revision = workspace.runtime.graph.revision;
       expect(
@@ -178,7 +177,7 @@ describe("S2 정렬 F — the variant axis no reference has is gone", () => {
     entries["project:definitionOverride:section"] = {
       kind: "definitionOverride",
       id: "project:definitionOverride:section",
-      targetId: "lib:definition:type-Section",
+      targetId: "lib:definition:type-Nav",
       defaults: { variant: set("purple") },
     } as unknown as CatalogEntry;
     expect(migrateCatalogEntriesS2(entries, library)).toBe(true);
@@ -203,7 +202,7 @@ describe("S2 정렬 F — the variant axis no reference has is gone", () => {
   it("an old document with a variant on these types opens (createCatalogGraph runs the migration)", async () => {
     for (const type of [
       "Separator",
-      "Section",
+      "Nav",
       "ProgressBar",
       "Calendar",
       "Chart",

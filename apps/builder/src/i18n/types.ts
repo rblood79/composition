@@ -2004,7 +2004,6 @@ export interface TranslationKeys {
     tree: string;
     tagGroup: string;
     menu: string;
-    section: string;
     // Date & Time
     calendar: string;
     datePicker: string;

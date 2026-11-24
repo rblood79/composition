@@ -215,7 +215,6 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ListBox · GridList · TagGroup · Table · Menu, or a wrapper around them: RAC gives its contexts
   // to the descendants).
   Autocomplete: { families: ["freeContentHost"] },
-  Section: { container: "structural", families: ["freeContentHost"] },
   Card: { container: "structural" },
   // ADR-256 Phase 10: S2 `Content` · `Footer` — free content in their owner (S2 gives them their
   //   owner's context: a Card's body · action row, an InlineAlert's body).

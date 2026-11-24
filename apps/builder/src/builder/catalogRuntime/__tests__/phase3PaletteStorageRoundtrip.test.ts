@@ -50,8 +50,9 @@ it("roundtrips every palette type through IDB, JSON and folder", async () => {
     else unrouted.push(row.type);
   }
   expect(unrouted).toEqual([]);
-  // (63 — ADR-276: IconButton merged into Button. 62 — ADR-277: TableView merged into Table.)
-  expect(routed).toHaveLength(62);
+  // (63 — ADR-276: IconButton merged into Button. 62 — ADR-277: TableView merged into Table.
+  //  61 — 2026-11-24: Section deleted, a frame's HTML tag instead.)
+  expect(routed).toHaveLength(61);
 
   for (const [index, { type, definitionId }] of routed.entries()) {
     const projectId = `project:project:palette-${index}` as const;

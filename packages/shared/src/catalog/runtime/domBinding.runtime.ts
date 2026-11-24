@@ -153,6 +153,8 @@ import {
 } from "../document/itemLinks";
 
 import { catalogTokenValue } from "../document/themedToken";
+import { catalogFrameElementType } from "../document/frameElementType";
+import { CatalogMainFrame, CatalogPageBody } from "./pageMain.components";
 
 import type { DefinitionId, StateName, TokenId } from "../document/types";
 
@@ -1348,8 +1350,27 @@ function withTokenRefs<T extends object>(copy: T, source: object): T {
 
 const bindings: Readonly<Record<string, DomBinding>> = {
   composite: element("div"),
-  // Frame is a neutral layout container: no ARIA role (ADR-130).
-  frame: element("div"),
+  // Frame is a neutral layout container: no ARIA role (ADR-130). Its element is its `elementType`
+  // (사용자 결정 2026-11-24 — `section` · `nav` …, a `div` by default).
+  // (A frame set as `main` is the page's main — it tells the page body, which steps back: ADR-316.)
+  frame: (node, style, children, context) =>
+    catalogFrameElementType(node.props) === "main"
+      ? createElement(
+          CatalogMainFrame,
+          {
+            key: node.id,
+            recordId: node.id,
+            "data-catalog-id": node.id,
+            style,
+          },
+          ...children,
+        )
+      : element(catalogFrameElementType(node.props))(
+          node,
+          style,
+          children,
+          context,
+        ),
   rectangle: element("div"),
   box: element("div"),
   group: (node, style, children) => {
@@ -3335,6 +3356,38 @@ function imageElementProps(
   };
 }
 
+/** ADR-316 — the page body is a layout's instance (its content slot is the layout's — ADR-304). */
+function catalogPageBodyIsLayout(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  const graph = root.runtime.graph;
+  const entry = graph.getEntry(node.sourceId);
+  if (entry?.kind !== "node" || entry.definitionId.startsWith("lib:"))
+    return false;
+  const definition = graph.getEntry(entry.definitionId);
+  return definition?.kind === "definition" && definition.usage === "layout";
+}
+
+/** ADR-316 — a frame set as `main` is among the page body's records (the first render's answer). */
+function catalogPageHasMainFrame(
+  root: CatalogCompositionRoot,
+  body: CatalogConsumerNode,
+): boolean {
+  const pending = [...body.children];
+  while (pending.length) {
+    const record = root.domInputs.get(pending.pop()!);
+    if (!record) continue;
+    if (
+      record.bindingId === "frame" &&
+      catalogFrameElementType(record.props) === "main"
+    )
+      return true;
+    pending.push(...record.children);
+  }
+  return false;
+}
+
 function ruleDom(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -3976,13 +4029,25 @@ function ruleDom(
     const alertIcon =
       type === "InlineAlert" ? catalogInlineAlertIcon(node.props) : undefined;
     const alertPadding = alertIcon ? catalogBoxModel(node).padding : undefined;
+    // ADR-316 — the page's body is its `<main>` unless a layout owns it or a frame inside is the main.
+    const pageBody = isBodyType(type) && node.parentId === "catalog:root";
     return createElement(
-      (type === "Image" ? CatalogImageBox : "div") as ElementType,
+      (type === "Image"
+        ? CatalogImageBox
+        : pageBody
+          ? CatalogPageBody
+          : "div") as ElementType,
       {
         key: node.id,
         "data-catalog-id": node.id,
         slot: catalogDomSlot(node),
         className: `react-aria-${isBodyType(type) ? "Body" : type}`,
+        ...(pageBody
+          ? {
+              layoutBody: catalogPageBodyIsLayout(root, node),
+              explicitMain: catalogPageHasMainFrame(root, node),
+            }
+          : {}),
         ...(type === "Image"
           ? {
               imgProps: imageElementProps(node.props),

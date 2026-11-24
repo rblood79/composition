@@ -39,6 +39,10 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
   "Chart",
   "FileUpload",
   "Field",
+  // (The builder's layout box — ADR-130, a rule-only type with no binding: its `elementType` is the
+  //  HTML element it is, named after RAC `Text`'s prop (사용자 결정 2026-11-24 — `frameElementType.ts`);
+  //  its inherited flags are v3 `Provider`'s cascade, as `body`'s below.)
+  "frame",
   "Icon",
   "Illustration",
   "Nav",

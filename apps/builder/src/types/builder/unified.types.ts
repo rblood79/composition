@@ -806,10 +806,6 @@ export interface DivElementProps extends BaseElementProps {
   children?: React.ReactNode;
 }
 
-export interface SectionElementProps extends BaseElementProps {
-  children?: React.ReactNode;
-}
-
 export interface NavElementProps extends BaseElementProps {
   children?: React.ReactNode;
 }
@@ -1137,7 +1133,6 @@ export type ComponentElementProps =
   | GridListItemElementProps
   | TextElementProps
   | DivElementProps
-  | SectionElementProps
   | NavElementProps
   | IconElementProps
   | SlotElementProps
@@ -1666,14 +1661,6 @@ export function createDefaultBodyProps(): DivElementProps {
   // overflow:auto는 Canvas 스크롤 동작이 raw props를 읽으므로 runtime 계약으로 보존하되,
   // Preview/Publish DOM에서는 generated Body CSS가 적용하도록 inline 투영에서 제거한다.
   return { style: { overflow: "auto" } };
-}
-
-export function createDefaultSectionProps(): SectionElementProps {
-  return {
-    style: {
-      display: "block",
-    },
-  };
 }
 
 export function createDefaultNavProps(): NavElementProps {
@@ -2216,7 +2203,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   GridList: createDefaultGridListProps,
   GridListItem: createDefaultGridListItemProps,
   Div: createDefaultDivProps,
-  Section: createDefaultSectionProps,
   Nav: createDefaultNavProps,
   Slot: createDefaultSlotProps,
   body: createDefaultBodyProps,

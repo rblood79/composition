@@ -29,6 +29,10 @@ import {
 import { catalogHasRowTemplate } from "../catalog/commands/rowTemplate";
 import { catalogIsLinkedActionBar } from "../catalog/nesting/nestingRules";
 import { isRichText } from "../catalog/document/textRuns";
+import {
+  CATALOG_FRAME_ELEMENT_TYPES,
+  catalogFrameElementType,
+} from "../catalog/document/frameElementType";
 import type { RichText } from "../catalog/document/types";
 import { descendantPatchOf } from "../catalog/document/types";
 import { catalogActionsDeep } from "../catalog/document/interactionActions";
@@ -133,6 +137,17 @@ import type {
 
 const COLLECTION = "data:collection:";
 /** The S2 components the shared package carries (not in `react-aria-components`). */
+/** The HTML elements the code writes as they are — a frame's (`frameElementType.ts`); no import. */
+const HTML_ELEMENT_TAGS: ReadonlySet<string> = new Set(
+  CATALOG_FRAME_ELEMENT_TYPES,
+);
+/** A prop write's value when it sets one. */
+const writtenValue = (write: unknown): unknown =>
+  write &&
+  typeof write === "object" &&
+  (write as { kind?: string }).kind === "set"
+    ? (write as { value?: unknown }).value
+    : undefined;
 const CODE_VIEW_SHARED_COMPONENTS = new Set([
   "ActionButton",
   "ActionButtonGroup",
@@ -2975,11 +2990,12 @@ class Generator {
       : undefined;
   }
 
-  /** A tag's import (the shared S2 components' module · RAC; a `div` is none). */
+  /** A tag's import (the shared S2 components' module · RAC; an HTML element — a frame's — is none). */
   private importType(type: string): void {
     if (CODE_VIEW_SHARED_COMPONENTS.has(type))
       this.import("@composition/shared/components", type);
-    else if (type !== "div") this.import("react-aria-components", type);
+    else if (!HTML_ELEMENT_TAGS.has(type))
+      this.import("react-aria-components", type);
   }
 
   /**
@@ -3081,7 +3097,12 @@ class Generator {
     const patch = descendantPatchOf(override);
     const nested = isLibraryOrigin(template.definitionId);
     let type = codeViewTypeName(reader, template.definitionId);
-    if (type === "frame") type = "div";
+    // (A frame is its HTML element — the instance's patch may name it, 사용자 결정 2026-11-24.)
+    const framePosition = type === "frame";
+    if (framePosition)
+      type = catalogFrameElementType({
+        elementType: writtenValue(patch?.props?.elementType),
+      });
     const tag = (nested ? this.originTag(template, type) : undefined) ?? type;
     this.importType(tag);
     const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
@@ -3106,6 +3127,8 @@ class Generator {
       else values.delete(prop);
     let text: string | RichText | undefined;
     for (const [prop, value] of values) {
+      // (The frame's element is its tag, not an attribute.)
+      if (framePosition && prop === "elementType") continue;
       if (
         prop === "children" &&
         (typeof value === "string" || isRichText(value))
@@ -3267,8 +3290,12 @@ class Generator {
     const node = this.rowView(this.doc.node(id));
     if (!node) return;
     let type = this.doc.typeOf(node);
-    if (type === "frame" || (type === "Group" && !node.props["aria-label"]))
-      type = type === "frame" ? "div" : type;
+    // (A frame is its HTML element — `<section>` · `<nav>` …, a `<div>` by default: 사용자 결정 2026-11-24.)
+    const frameNode = type === "frame";
+    if (frameNode)
+      type = catalogFrameElementType({
+        elementType: writtenValue(node.props.elementType),
+      });
     // ADR-296 Phase 5 — an instance of a user component is its component (`<Picker …/>`).
     const component = as ? undefined : this.componentTag(node);
     // ADR-301 — a trigger · structure Library instance is its template tree (its root's RAC type).
@@ -3307,6 +3334,8 @@ class Generator {
     );
     for (const [prop, write] of Object.entries(node.props)) {
       if (write.kind !== "set") continue;
+      // (The frame's element is its tag, not an attribute.)
+      if (frameNode && prop === "elementType") continue;
       // (ADR-287 — a prop a rule's implicit state holds is that state: its start is this value.)
       if (this.ruleStates.has(`${node.id}\u0000${prop}`)) continue;
       const value = write.value as AuthoredValue;

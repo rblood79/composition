@@ -12097,64 +12097,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  Section: {
-    defaultVariant: "default",
-    defaultSize: "M",
-    variants: {
-      // (2026-10-12 — the variant axis is gone, so the DOM writes no `data-variant`: transparent is
-      //   the base color itself, not `alpha: 0` over `base` — the generated base block then
-      //   carries it.)
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
-    sizes: {
-      // ADR-912 단계5 step4 small-B (2026-06-16): paddingY/gap 보강 — spec 삭제 후 generated CSS
-      //   `padding: Ypx Xpx` + `gap: Npx` 재생성용 (Section.spec.sizes 미러, Nav/DropZone 선례).
-      S: {
-        paddingX: 12,
-        paddingY: 12,
-        gap: 8,
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.sm}",
-        height: 0,
-      },
-      M: {
-        paddingX: 16,
-        paddingY: 16,
-        gap: 12,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 0,
-      },
-      L: {
-        paddingX: 24,
-        paddingY: 24,
-        gap: 16,
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.lg}",
-        height: 0,
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "section",
-      containerStyles: undefined,
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
-      },
-    },
-  },
   Select: {
     defaultSize: "M",
     variants: {},

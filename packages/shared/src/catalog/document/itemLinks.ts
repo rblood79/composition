@@ -3,6 +3,7 @@ import { RAC_SLOT_PROP } from "../bindings/accessibilityProps";
 import { linkBinding } from "../bindings/Link.binding";
 import { CATALOG_FRAME_INHERITED_PROP_CONTRACTS } from "../bindings/inheritedProps";
 import type { PropContract } from "../types";
+import { FRAME_ELEMENT_TYPE_PROP } from "./frameElementType";
 
 /**
  * ADR-259 Phase 1 — collection item links (S2 1.8.0 · RAC `LinkDOMProps`). An item with an `href`
@@ -173,6 +174,8 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
   frame: {
     ...CATALOG_FRAME_INHERITED_PROP_CONTRACTS,
     dataBinding: { kind: "binding", label: "Data", section: "content" },
+    // 사용자 결정 2026-11-24 — the HTML element the frame is (`frameElementType.ts`).
+    elementType: FRAME_ELEMENT_TYPE_PROP,
   },
   // S2 `Image` `src` · `alt` (2026-10-24 — the picture it shows and its accessible text; the DOM
   //   `img` and the Canvas image shape read the same props).

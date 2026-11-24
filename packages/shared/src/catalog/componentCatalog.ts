@@ -266,12 +266,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "body",
     icon: "Layout",
   }),
-  // 2026-10-21 (Library 감사 · Framer 「넣으려는 것」 기준): 컨테이너 — collections 가 아니라 layout.
-  primitiveEntry("Section", "primitives", FAMILY_1_CUTOVER, {
-    category: "layout",
-    label: "section",
-    icon: "Square",
-  }),
+  // (Section 은 2026-11-24 삭제 — `div` 상자였다. 시맨틱 요소는 frame 의 `elementType` 이 정한다.)
   primitiveEntry("Nav", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
     label: "navigation",
@@ -1605,7 +1600,7 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
  * ADR-228 (2026-09-21) — 팔레트의 RAC 컴포넌트 전 항목을 reusable origin 으로.
  *
  * 사용자 결정 ② "origin 범위 = RAC 컴포넌트만": `PALETTE_ORDER` 66 − 내용/레이아웃 primitive 8
- * (Text · Icon · Separator · Skeleton · Image · frame · Section · Slot) − IllustratedMessage
+ * (Text · Icon · Separator · Skeleton · Image · frame · Section · Slot — Section 은 2026-11-24 삭제) − IllustratedMessage
  * (Skeleton 은 ADR-314 결정 2 로 2026-11-18 origin 을 받았다 — 표본 내용을 감싼 래퍼)
  * (148 Phase 3 부적격) = 56 = 아래 52 + 위 손 seed 4 (Toolbar · Form · InlineAlert · Card — IconButton 은 ADR-276 에서 Button 에 통합).
  * builder `adr228Inventory.test.ts` 가 이 목록 ↔ PALETTE_ORDER − 제외 9 − 기존 5 의 일치를 강제한다.

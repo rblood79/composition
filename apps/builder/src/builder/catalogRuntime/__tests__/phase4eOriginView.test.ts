@@ -1472,13 +1472,13 @@ describe("ADR-248 4e library origin view", () => {
     expect(titleOf("Label")).toBe("LABEL · PART");
     expect(titleOf("Button")).toBe("BUTTON");
     // Categories (2026-10-21, Framer's "what you are adding" grouping): value displays with
-    // ProgressBar, Menu and Section with the layout · navigation group, AvatarGroup with Avatar.
+    // ProgressBar, Menu with the layout · navigation group, AvatarGroup with Avatar.
     const palette = getPaletteItems();
     const categoryOf = (name: string) =>
       palette.find((item) => item.type === name)!.category;
     expect(
-      ["Meter", "Menu", "Section", "AvatarGroup", "CardView"].map(categoryOf),
-    ).toEqual(["content", "layout", "layout", "content", "layout"]);
+      ["Meter", "Menu", "AvatarGroup", "CardView"].map(categoryOf),
+    ).toEqual(["content", "layout", "content", "layout"]);
     // ADR-278 (user decision 2): an overlay origin's card draws its body open beside the
     // trigger — the Origin line's ◆ trigger, then the Modal · Popover · Tooltip to its right,
     // with a size; a picker's Popover (a Select's list) stays closed. The page's own instances

@@ -138,7 +138,6 @@ import { switchIndicatorBinding } from "./SwitchIndicator.binding";
 import { treeItemContentBinding } from "./TreeItemContent.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
-import { sectionBinding } from "./Section.binding";
 import { selectBinding } from "./Select.binding";
 import { selectValueBinding } from "./SelectValue.binding";
 import { separatorBinding } from "./Separator.binding";
@@ -294,7 +293,6 @@ export * from "./SwitchIndicator.binding";
 export * from "./TreeItemContent.binding";
 export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
-export * from "./Section.binding";
 export * from "./Select.binding";
 export * from "./SelectValue.binding";
 export * from "./Separator.binding";
@@ -423,10 +421,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   Avatar/Card/Table self-draw). spec.render.shapes Skia fallback 제거 → buildCatalogShapes.
   AvatarGroup: avatarGroupBinding,
   // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source, generic
-  //   box 시각). spec.render.shapes Skia fallback 제거. SHELL_ONLY(Body/Section) 또는 자식 무관
+  //   box 시각). spec.render.shapes Skia fallback 제거. SHELL_ONLY(Body) 또는 자식 무관
   //   bg(Nav) → buildCatalogShapes box 만으로 spec parity. List 는 샘플 text 때문에 별도 보류.
   body: bodyBinding,
-  Section: sectionBinding,
   Nav: navBinding,
   // ADR-912 R7 G1-c (2026-06-15): 페이지네이션 컨테이너 (internal source, generic box shell). origin
   //   template 의 자식 Button×5 노드 → 런타임 항상 _hasChildren=true → standalone 버튼군 dead, 컨테이너

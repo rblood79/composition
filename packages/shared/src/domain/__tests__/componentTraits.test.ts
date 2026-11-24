@@ -29,7 +29,6 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "footer",
         "frame",
         "group",
-        "section",
       ]),
     );
   });
@@ -49,7 +48,6 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "footer",
         "frame",
         "group",
-        "section",
       ]),
     );
   });
@@ -115,7 +113,6 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "frame",
         "group",
         "popover",
-        "section",
         "tooltip",
         // RAC Sheet family · PreviewTrigger (bbca53c78) — free content, no named slot.
         "previewtrigger",
