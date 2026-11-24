@@ -171,7 +171,7 @@ G1 · G2 는 2026-11-24 통과 기록이 있다 ([breakdown §4](../design/316-f
   11. 페이지의 main (Publish) — `main` frame 이 있으면 본문 `div` · `<main>` 1 개, 그 frame 을 `div` 로 되돌리고 Publish 를 다시 열면 본문이 `<main>` · 1 개. 두 경우 모두 `main` 안 `main` 0.
   12. 그룹 frame 을 패널에서 nav 로 고름 → Layers 행 · 패널 제목 「nav」, div 로 되돌리면 둘 다 「Group」 (사용자 보고 수리).
 - 반례 재현 (리뷰 m2): 고를 선택지를 없는 이름으로 바꾼 실행용 사본 → 2a FAIL · 10/11 (뒤 항목은 각자 판정).
-- exercise 하지 않은 것: ⌘G 단축키 (스크립트의 키가 캔버스 scope 에 닿지 않아 같은 명령의 액션 바 버튼으로 대신했다) · 메뉴 · 단축키 목록의 한국어 문구 표시 · WebKit 에서의 전체 실행.
+- 커밋 뒤 추가 (2026-11-24): ⌘G · ⌘⇧G · Layers 우클릭 메뉴 · 머리 메뉴의 한국어 문구 — `frame-group-shortcut-ko-live.mjs` Chrome 6/6 · WebKit 6/6. WebKit 전체 — `BROWSER=webkit` 로 `frame-element-type-live.mjs` 14/14. 번들 Δ Builder +206 · Preview −3 B. 상세 [breakdown §4.7](../design/316-frame-element-type-section-removal-breakdown.md).
 - 사용자 confirm (G4, 2026-11-24): 본인 Builder 에서 확인 — 「확인했다」 → 그룹 이름 보고 → 수리 뒤 「확인했다. 커밋해」.
 
 ## Consequences

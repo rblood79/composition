@@ -105,7 +105,7 @@
 - 설계: 본문 요소는 DOM 층에서 정한다 (Canvas · 문서 · 엔진 무변경). `main` frame 이 자기 존재를 본문에 알리는 방식 (그려진 동안 context 에 등록) 이라 compositionRoot 의 파생 값 · 의존 갱신을 건드리지 않는다. 첫 render 는 본문 아래 record 를 한 번 훑은 답 (`explicitMain`) 으로 정해 페이지를 두 번 그리지 않는다. 등록 알림은 microtask 로 모은다 — 본문 요소가 바뀌면 하위가 다시 mount 되며 frame 이 빠졌다 들어오는데, 본문은 정리된 집합을 읽는다.
 - 기각한 방식: 본문 record 의 파생 값 (`presence.ts` · `compositionRoot.ts` 의 의존 갱신 — 구조 변경까지 덮어야 하고 다른 세션이 고치는 파일) · 본문에 `div role="main"` (태그가 아니다 · 수동 ARIA) · 본문에 자기 태그 칸만 두기 (frame 을 main 으로 고르면 중첩).
 - 검사: 단위 `frameElementType.test.tsx` 「the page body is <main>」 — 기본 `MAIN` · frame 을 main 으로 → 본문 `DIV` · main 1 · frame 을 section 으로 → 본문 `MAIN` · 레이아웃 적용 → 본문 `DIV` · main 0. live 11 (Publish 두 번 열기 — main frame 있음: 본문 div · main 1 / 없음: 본문 main · main 1, 중첩 0). live 전체 13/13. 원복 RED 3/3 (본문을 늘 `div` · main frame 에 양보 안 함 · 레이아웃 무시). 구현 뒤 builder 단위 전체 1,173 파일 9,848 통과 · shared 통과 · type-check 통과.
-- 하지 않은 것: 번들 재측정 (새 파일 `pageMain.components.tsx` 는 Preview · Publish 첫 화면 경로다 — Δ 는 재지 않았다) · 레이아웃 페이지의 content 자리 main (ADR-304) · Code 보기 (본문은 `<Page>` 표기 그대로).
+- 하지 않은 것: 레이아웃 페이지의 content 자리 main (ADR-304) · Code 보기 (본문은 `<Page>` 표기 그대로). 번들은 §4.7 에서 쟀다.
 
 ### 4.6 그룹 기본 이름은 태그에 양보 (2026-11-24 — 사용자 보고 수리)
 
@@ -113,13 +113,14 @@
 - 수리: `catalogFrameShownName` — 노드 자기 이름이 그룹 기본 이름 (`CATALOG_GROUP_FRAME_NAME`) 이고 그 위치의 태그가 `div` 가 아니면 태그를 보인다. 노드 이름은 쓰지 않는다 (문서 무변경 — `div` 로 되돌리면 다시 「Group」). Layers `nameOf` 도 frame 은 이 함수 하나를 읽는다 (패널 제목과 두 벌이던 순서를 합침). 사용자가 「Group」 을 직접 적은 경우도 같은 규칙이다 — 구분할 표시를 문서에 두지 않았다.
 - 검사: 단위 `frameElementType.test.ts` 「a group set to an element is named by the element」 (수정 전 RED — `['Group']` ≠ `['nav']`, 수정 뒤 통과: nav → 「nav」 · div → 「Group」 · 직접 적은 이름은 태그보다 앞). live 12 (그룹을 패널에서 nav → Layers 행 · 패널 제목 「nav」, div → 「Group」). live 전체 14/14 · type-check 통과.
 
-### 4.7 아직 하지 않은 것
+### 4.7 커밋 뒤 확인 (2026-11-24 — 사용자 「ADR-316 에서 하지 않은 것 시작해」)
 
-- (G4 는 닫힘 — 2026-11-24 사용자 「확인했다. 커밋해」.) 배포 workflow 의 절대 상한 결과 (push 뒤).
-- (m3 는 수리함 — §4.3. 리뷰는 실행자 선언으로 닫았다.)
-- ⌘G 단축키 · 메뉴 · 단축키 목록의 한국어 문구 표시 확인.
-- 유도 Do · AI catalog 에 `elementType` 이 어떻게 나오는지.
-- WebKit 에서의 live 전체 (UA 값만 확인).
+- **번들 Δ**: 기준 `aa182a2ac` · 이후 `66416a794` 를 같은 worktree (의존성 차이 0 · 엔진 소스 차이 0 — 엔진 wasm 은 복사) 에서 일반 `vite build` (`VITE_USE_WEBGL_CANVAS=true` · `VITE_FEATURE_FILL_V2=true`) → `adr209-bundle-closure.mjs`. initial JS gzip — Builder 1,643,131 → 1,643,337 (**+206**) · Preview 172,215 → 172,212 (**−3**) · Publish 277,987 → 277,989 (+2). CSS Builder 0 · Preview −93. ADR-201 Δ 상한 (+4,096 · +3,584) 안.
+- **배포 workflow 의 절대 상한**: CI 결과는 보지 못했다 (`gh` 미인증). 로컬 같은 빌드의 Builder 1,643,337 은 `deploy.yml` 상한 1,435,351 을 넘는다 — ADR-316 이전부터의 상태다 (ADR-309 기준선 11-12 1,524,395 · ADR-315 기준선 11-20 1,586,066, CHANGELOG 「원인 미조사」). 이 ADR 의 몫은 +206 B.
+- **유도 Do · AI catalog**: AI catalog 의 `frame` 항목 = `elementType: div|main|section|header|footer|nav|article|aside` · 기본 `div` (`formatCatalogEntry` 실행) · `Section` 항목 없음. 유도 Do 층 (`deriveReferenceCapabilities`) 은 primitive binding 만 읽고 (`catalogAccepts`) `frame` 은 native 라 `setElementType` 같은 Do 가 없다 — frame 의 Do 는 개념 파일 것 (상속 flag · locale) 그대로다. 태그를 실행 중에 바꿀 이유가 없어 그대로 둔다.
+- **⌘G · 한국어 문구** (`apps/builder/scripts/frame-group-shortcut-ko-live.mjs`, `composition-locale` ko-KR): 캔버스 focus 뒤 ⌘G → frame 「Group」 이 둘을 품음 · Layers 행 「Group」 · Layers 우클릭 메뉴 「그룹화 ⌘G」 · ⌘⇧G 그룹 해제 · 머리 메뉴 검색 「그룹」 → 「그룹화 ⌘G」 · 「그룹 해제 ⌘⇧G」 · page error 0. Chrome 6/6 · WebKit 6/6. (앞 스크립트의 키가 캔버스에 닿지 않았던 것은 캔버스 컨테이너에 focus 를 주지 않아서였다 — `canvas-focused` scope.)
+- **WebKit 전체**: `frame-element-type-live.mjs` 에 `BROWSER=webkit` 선택을 넣어 14/14 (Chrome 과 같은 판정 — 9 번 여덟 태그 상자 · 3 번 `section` 안 h1 32 · 700 포함).
+- 남은 것 없음 (ADR-304 의 레이아웃 페이지 content main · Code 보기의 `<Page>` 표기는 이 ADR 범위 밖).
 
 ## 5. 범위 밖
 

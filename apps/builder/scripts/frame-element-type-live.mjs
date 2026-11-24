@@ -15,8 +15,9 @@
 //   12. 그룹 frame 을 패널에서 nav 로 → Layers 행 · 패널 제목 「nav」, div 로 되돌리면 「Group」
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/frame-element-type-live.mjs <out-dir>
+//   BROWSER=webkit 이면 Playwright WebKit 으로
 import { mkdirSync, readFileSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 import { railButton } from "./railButton.mjs";
 
 const OUT = process.argv[2] ?? "/private/tmp/frame-element-type-live";
@@ -36,7 +37,10 @@ const state = JSON.parse(
   readFileSync(`${REPO}/apps/builder/scripts/.auth-session.json`, "utf8"),
 );
 state.origins = (state.origins ?? []).map((o) => ({ ...o, origin: BASE }));
-const browser = await chromium.launch({ headless: false, channel: "chrome" });
+const browser =
+  process.env.BROWSER === "webkit"
+    ? await webkit.launch({ headless: false })
+    : await chromium.launch({ headless: false, channel: "chrome" });
 const context = await browser.newContext({
   storageState: state,
   viewport: { width: 1920, height: 1100 },
