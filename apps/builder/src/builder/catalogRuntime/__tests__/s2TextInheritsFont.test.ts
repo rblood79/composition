@@ -422,6 +422,9 @@ describe("text-font rule — S2 reference cases", () => {
     // S2 `CustomDialog.tsx` gives its Heading nothing: RAC Dialog's title slot is an h2
     //   (`Dialog.mjs:136` level 2) — 1.5 × its parent's 16.
     expect((await fontOf("CustomDialog")).size).toBe(24);
+    // S2 `Popover.tsx:338-358` gives its content nothing (a `div`, padding 8): the title is RAC's
+    //   bare h3 — 1.17 × its parent's 16.
+    expect((await fontOf("Popover")).size).toBeCloseTo(18.72);
   });
 
   it("no app reset or sheet takes the browser's h font away", () => {

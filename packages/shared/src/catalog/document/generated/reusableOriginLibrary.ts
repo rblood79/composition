@@ -9616,8 +9616,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-heading",
     "children": [],
     "props": {
-      "children": "Popover Title",
-      "size": "S"
+      // (No size: S2 `Popover` gives its content nothing — RAC's bare h3, `.claude/rules/text-font.md`.)
+      "children": "Popover Title"
     },
     "visual": {},
     "layout": {

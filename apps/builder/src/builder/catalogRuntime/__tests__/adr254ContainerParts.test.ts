@@ -268,6 +268,9 @@ const fontSizeNow = (
     : // (S2 `Dialog.tsx:58-61` `title-2xl` 22 — `.claude/rules/text-font.md`, 2026-11-24.)
       type === "dialog" && binding === "heading"
       ? 22
+      : // (S2 `Popover` gives its title nothing — RAC's h3 of the page font, derived not its own.)
+        type === "popover" && binding === "heading"
+        ? undefined
       : type === "inline-alert" && binding === "heading"
       ? INLINE_ALERT_HEADING_FONT[alertSize]
       : fontSize;
@@ -372,7 +375,9 @@ function expectSinceConversion(
         ? (DESCRIPTION_SIZE_NOW[type] ?? was.size)
         : type === "dialog" && part.binding === "heading"
           ? "XXL"
-          : was.size,
+          : type === "popover" && part.binding === "heading"
+            ? undefined
+            : was.size,
     );
     expect(part.slot).toBe(
       type === "dialog" && part.binding === "heading" ? "title" : was.slot,
@@ -384,11 +389,16 @@ function expectSinceConversion(
     );
     // ADR-295 Phase 3: the line is the S2 formula of the same font size (사용자 결정 2) — the oracle's
     //   build had the old fixed ladder (14 → 20).
-    const fontSize = Number(part.visual.fontSize);
-    expect(Number(part.visual.lineHeight) * fontSize).toBeCloseTo(
-      s2LineHeight(fontSize),
-      6,
-    );
+    // (A part without a font of its own — the Popover's title — inherits its line too.)
+    if (part.visual.fontSize === undefined)
+      expect(part.visual.lineHeight).toBeUndefined();
+    else {
+      const fontSize = Number(part.visual.fontSize);
+      expect(Number(part.visual.lineHeight) * fontSize).toBeCloseTo(
+        s2LineHeight(fontSize),
+        6,
+      );
+    }
     expect(part.layout).toEqual(was.layout);
   }
   if (before.dom === undefined) {

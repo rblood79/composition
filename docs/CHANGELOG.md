@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Popover 글자 — S2 `Popover` 처럼 글자 값 없음] - 2026-11-24
+
+사용자 「s2 레퍼런스에 맞춰」 (Popover 제목). S2 `Popover.tsx` 는 RAC Popover 안에 `div` (padding 8) 만 두고 글자 값을 주지 않는다 — Dialog 를 넣는 구성도 아니다 (앞선 「Popover 안 Dialog 의 `title-2xl`」 설명은 틀렸다).
+
+### Changed
+
+- **Popover 의 크기별 글자 14 제거**: 안 글자는 페이지 글자를 받는다. 자기 값이 있는 글자 (설명 12 · 목록 항목 · 메뉴 항목) 는 그대로.
+- **Popover 제목**: 크기 단계 S (14) 를 빼고 브라우저 h3 (페이지 16 × 1.17 = 18.72, bold) 를 따른다.
+  - **Why**: `.claude/rules/text-font.md` — S2 에 없는 owner 글자 값은 두지 않는다.
+  - 위치: `componentRulesTable.ts` Popover `sizes` · `reusableOriginLibrary.ts` Popover 제목 template · 생성 `Popover.css`
+
+### Tests
+
+- `s2TextInheritsFont` Popover 제목 18.72 · `adr254ContainerParts` popover 제목 (자기 글자 없음).
+- live: Publish 에서 Popover 를 열어 제목 h3 18.72 · 700 · 설명 12 = Canvas. 팔레트 sweep 그려지는 Text 149 · h 12 모두 Canvas = Publish.
+
 ## [Text · Heading 글자 규칙 확정 — 브라우저 h 기본값 바닥 · Heading 700 · S2 대조 3건] - 2026-11-24
 
 사용자 「TEXT size 에 대한 rule 을 정해야한다」 → 「700 으로 규칙 확정하고 세 가지 진행해」. 글자 값의 층 (문서 기본 → 브라우저 기본 → 상속 → owner → 작성값) 과 구현 계약을 규칙 파일로 정하고, 팔레트 전체 대조 (Canvas ↔ Publish) 에서 나온 세 가지를 S2 대로 고쳤다.

@@ -10803,13 +10803,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // S2 Popover.tsx: 고정 size 폭, 8px 기본 content inset, size 무관 10px 모서리.
+    // (No font — S2 `Popover` declares none: its content takes the page's, `.claude/rules/text-font.md`
+    //  2026-11-24; was text-sm 14.)
     sizes: {
       S: {
         width: 336,
         paddingX: 8,
         paddingY: 8,
         gap: 0,
-        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         borderWidth: 0,
         height: 0,
@@ -10819,7 +10820,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         paddingY: 8,
         gap: 0,
-        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         borderWidth: 0,
         height: 0,
@@ -10829,7 +10829,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         paddingY: 8,
         gap: 0,
-        fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         borderWidth: 0,
         height: 0,
