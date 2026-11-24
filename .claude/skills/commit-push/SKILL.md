@@ -1,6 +1,6 @@
 ---
-name: ship
-description: 사용자가 「커밋하고 push」 · 「커밋해」 · 「ship」 을 요청할 때 사용. 병렬 세션이 같은 checkout 을 쓰는 상태에서 이 세션의 변경만 가려 확인 · 커밋 · main push 하고, 남은 미커밋 파일을 출처별로 보고한다. 요청이 없으면 커밋하지 않는다.
+name: commit-push
+description: 사용자가 「커밋하고 push」 · 「커밋해」 를 요청할 때 사용. 병렬 세션이 같은 checkout 을 쓰는 상태에서 이 세션의 변경만 가려 확인 · 커밋 · main push 하고, 남은 미커밋 파일을 출처별로 보고한다. 요청이 없으면 커밋하지 않는다.
 argument-hint: [all — 남의 변경까지 묶어 커밋할지 물음 · 생략 시 이 세션 변경만]
 ---
 

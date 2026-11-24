@@ -20,7 +20,7 @@
 | [fix](fix/SKILL.md)                                   | 버그 수정 파이프라인 — root cause 추적 → 수정 → 회귀 검증 (시각 변경은 cross-check)                                                     | "버그", "고쳐", "fix"                    | 버그 보고 시                         | 모델·사용자 / Codex 동일                                                                          |
 | [evaluate](evaluate/SKILL.md)                         | 런타임 검증 — 실제 브라우저 PASS/FAIL, 메인 세션 실행                                                                                   | "실제로 되는지", "live 검증", "evaluate" | 사용자-가시 변경 완료 전             | 모델·사용자 / Codex 동일                                                                          |
 | [verify](verify/SKILL.md)                             | 커밋 전 동작 확인 — type-check → 영향 영역 live 1회 (cross-check · evaluate 로 분기). 번들 `/verify` 대체, 2.1.286+ 커밋 직전 자동 안내 | "커밋 전 확인", "verify"                 | 커밋 직전 (docs · tests 만이면 생략) | 모델·사용자 / Codex 동일                                                                          |
-| [ship](ship/SKILL.md)                                 | 커밋 · push — 이 세션 변경만 가려 확인 · 커밋 · main push, 번호 충돌 확인, 남은 파일 출처별 보고 (git-workflow.md §1 절차화)            | "커밋하고 push", "ship"                  | 사용자가 커밋을 요청할 때            | 모델·사용자 / Codex 동일                                                                          |
+| [commit-push](commit-push/SKILL.md)                   | 커밋 · push — 이 세션 변경만 가려 확인 · 커밋 · main push, 번호 충돌 확인, 남은 파일 출처별 보고 (git-workflow.md §1 절차화)            | "커밋하고 push", "커밋해"                | 사용자가 커밋을 요청할 때            | 모델·사용자 / Codex 동일                                                                          |
 
 ## 프로세스 규율 (프로젝트 정본)
 

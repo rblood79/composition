@@ -14,7 +14,7 @@ Codex에는 각 skill의 이름과 description이 제공됩니다. 이 파일은
 - [review](review/SKILL.md): 코드 리뷰
 - [evaluate](evaluate/SKILL.md): 실행 중인 Builder 검증
 - [verify](verify/SKILL.md): 커밋 전 동작 확인 — type-check 뒤 영향 영역 live 1회 (cross-check · evaluate 로 분기)
-- [ship](ship/SKILL.md): 커밋 · push — 이 세션 변경만 커밋, push 전 번호 충돌 확인, 남은 파일 출처별 보고
+- [commit-push](commit-push/SKILL.md): 커밋 · push — 이 세션 변경만 커밋, push 전 번호 충돌 확인, 남은 파일 출처별 보고
 - [review-adr](review-adr/SKILL.md): ADR 문서 리뷰
 - [create-adr](create-adr/SKILL.md): user-only, 사용자가 새 ADR 작성을 요청할 때
 - [execute-adr](execute-adr/SKILL.md): user-only, 사용자가 ADR 실행 범위를 지정할 때

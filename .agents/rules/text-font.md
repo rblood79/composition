@@ -1,0 +1,1 @@
+../../.claude/rules/text-font.md
