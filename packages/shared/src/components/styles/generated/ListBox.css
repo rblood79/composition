@@ -186,6 +186,10 @@
     color: var(--fg-muted);
   }
 
+  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem[data-disabled] [slot="description"] {
+    color: var(--fg-disabled);
+  }
+
   .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxSection .react-aria-Header {
     display: block;
     position: sticky;
@@ -252,6 +256,10 @@
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem [slot="description"] {
     color: var(--fg-muted);
+  }
+
+  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-disabled] [slot="description"] {
+    color: var(--fg-disabled);
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"] {

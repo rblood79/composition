@@ -24,8 +24,8 @@ export function catalogToastIcon(
   return CATALOG_TOAST_ICONS[String(props.variant ?? "info")];
 }
 
-/** The close button's name (S2 `CloseButton` — `closebutton.close`), en · ko. */
+/** The close button's name (S2 `CloseButton` — `dialog.dismiss`), en · ko. */
 export const CATALOG_TOAST_CLOSE_LABELS: Readonly<Record<string, string>> = {
-  en: "Close",
-  ko: "닫기",
+  en: "Dismiss",
+  ko: "무시",
 };

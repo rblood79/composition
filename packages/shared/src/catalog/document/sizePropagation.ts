@@ -125,6 +125,10 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // S2 마이그레이션 (2026-11-18): S2 DropZone gives its IllustratedMessage its size
   //   (`IllustratedMessageContext` — `size` S · M · L).
   DropZone: ["IllustratedMessage"],
+  // 2026-11-24 S2 대조 — S2 `DisclosureHeader` (`ActionButtonContext`): the ActionButtons beside the title
+  //   (one size below — `CATALOG_SIZE_STEP`); the title row passes the size (`CATALOG_SIZE_PASS_THROUGH`),
+  //   the panel does not.
+  Disclosure: ["ActionButton"],
   // 2026-11-24 (사용자 「5곳 전부 S2 기준으로」): the words in an S2 control row take the control
   //   font (`CATALOG_SIZE_STEP` — `CONTROL_TEXT_STEP`), not a Text's own M 16 — a Table's cells and
   //   column headers (S2 `TableView.tsx` `controlFont()`), a Tree's rows (S2 `TreeView.tsx` `ui`).
@@ -179,6 +183,8 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   //   Slider's size reaches its Label and track in them (the field input takes it too — its gap).
   "SliderLabelContainer",
   "SliderFieldInput",
+  // (2026-11-24) S2 `DisclosureHeader` — the title row: the Disclosure's size reaches the ActionButtons in it.
+  "DisclosureHeader",
   // (2026-11-24) A TreeItem's content row (RAC `TreeItemContent` — no size): the item's size reaches
   //   the words in it.
   "TreeItemContent",
@@ -261,6 +267,9 @@ export const CATALOG_SIZE_STEP: Readonly<
     Heading: { S: "XS", M: "S", L: "M" },
     Text: { S: "XS", M: "S", L: "M" },
   },
+  // 2026-11-24 S2 대조 — S2 `DisclosureHeader`: the ActionButtons beside the title are one size below the
+  //   Disclosure's (S2 shifts two for `compact` — not followed: the step reads the size only).
+  Disclosure: { ActionButton: { S: "XS", M: "S", L: "M", XL: "L" } },
   // 2026-11-24: a Table's cell · column words and a Tree row's words take S2 `controlFont()`.
   Cell: { Text: CONTROL_TEXT_STEP },
   Column: { Text: CONTROL_TEXT_STEP },
@@ -281,10 +290,20 @@ export const CATALOG_SIZE_STEP: Readonly<
  * again (`compositionRoot`).
  */
 export const CATALOG_OWNER_CONTEXT_PROPS: Readonly<
-  Record<string, { readonly owner: string; readonly keys: readonly string[] }>
+  Record<
+    string,
+    {
+      readonly owner: string;
+      readonly keys: readonly string[];
+      /** The owner gives its context only to a part inside this type of it (a context scoped to a row). */
+      readonly within?: string;
+    }
+  >
 > = {
   ColorSwatch: { owner: "ColorSwatchPicker", keys: ["rounding"] },
   Disclosure: { owner: "Accordion", keys: ["density", "isQuiet"] },
+  // (2026-11-24 S2 대조) S2 `DisclosureHeader`'s `ActionButtonContext` — only the title row's buttons.
+  ActionButton: { owner: "Disclosure", keys: ["isQuiet"], within: "DisclosureHeader" },
 };
 
 export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<

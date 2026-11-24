@@ -160,3 +160,26 @@ describe("the app's toast shape — a project component whose root is a Toast", 
     h.view.unmount();
   });
 });
+
+describe("S2 대조 (2026-11-24) — a shape's collapsed stack", () => {
+  it("the collapsed stack's slivers behind the top toast are the shape's own box, not the theme's variant color", async () => {
+    const { h, region } = await openShaped();
+    const doc = document;
+    const r = region([
+      { title: "One", variant: "positive" },
+      { title: "Two", variant: "positive" },
+    ]);
+    await waitFor(() =>
+      expect(doc.querySelectorAll(".catalog-toast-behind")).toHaveLength(1),
+    );
+    const sliver = doc.querySelector<HTMLElement>(".catalog-toast-behind")!;
+    // (Not the S2 skin's variant background — the shape's Toast element draws the sliver.)
+    expect(sliver.style.backgroundColor).toBe("");
+    const box = sliver.querySelector<HTMLElement>(".react-aria-Toast");
+    expect(box).not.toBeNull();
+    expect(sliver.getAttribute("aria-hidden")).toBe("true");
+    expect(box!.textContent).toContain("One");
+    r.view.unmount();
+    h.view.unmount();
+  });
+});

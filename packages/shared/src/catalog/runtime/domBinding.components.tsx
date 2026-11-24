@@ -662,14 +662,22 @@ export const CatalogDomNode = memo(function CatalogDomNode({
     : drawWithSlot(shown);
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names — its owners'
   // RAC state where they pass it down (`stateFrames.tsx`), else their records.
-  const gated =
-    shown.showWhen && element
-      ? catalogShowWhenGate(id, catalogDomStateConditions(root, shown), element)
-      : element;
   const inherited = catalogHostInherited(
     catalogTypeName(root, shown),
     shown.props,
   );
+  // (S2 `Provider` `locale` sets its element's `lang` — a frame of another language is read,
+  //  shaped and given its fonts in that language, not only formatted by RAC. 2026-11-24 S2 대조.)
+  const spoken =
+    inherited?.locale && element
+      ? cloneElement(element as ReactElement<Record<string, unknown>>, {
+          lang: inherited.locale,
+        })
+      : element;
+  const gated =
+    shown.showWhen && spoken
+      ? catalogShowWhenGate(id, catalogDomStateConditions(root, shown), spoken)
+      : spoken;
   return gated && inherited
     ? catalogInheritanceProvider(
         catalogMergeInherited(outerInherited, inherited),

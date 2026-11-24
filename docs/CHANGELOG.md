@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 대조 — Provider · Disclosure · Toast · 목록 로딩 · 목록 항목 (부록 D.1 「대응 있음」 5줄)] - 2026-11-24
+
+사용자 「S2 와 대조 진행해」 → 「권장대로 세가지 진행해」 (결함 먼저 · 값 차이 · 새 기능 3건 제외). 설치 S2 1.8.2 소스와 대조한 차이를 고쳤다.
+
+### Fixed
+
+- **Publish 링크 주소**: Publish 는 `#/about` 경로인데 링크의 `href` 가 `/about` 이라 휠 클릭 · 새 탭 · 주소 복사가 빈 페이지였다. RAC `RouterProvider` `useHref` 로 `#/about` 을 쓴다 (`CatalogPreviewView` `hrefOf` · `catalogHashHref`).
+- **Publish ⌘ · Ctrl 클릭**: 클릭을 먼저 가로채 같은 탭에서 이동했다. Publish 에서는 브라우저에 맡긴다 (새 탭). Builder Preview 는 그대로 (⌘ 클릭 = Compare Mode 선택).
+- **OS 다크 모드 따라가기**: system 테마가 페이지를 열 때 한 번만 OS 모드를 읽었다. Preview · Publish 세션이 OS 전환을 구독해 새로고침 없이 바뀐다 (Builder 와 같은 `onSystemColorSchemeChange` 하나).
+- **`color-scheme`**: 문서에 없어 다크 테마에서 스크롤바 · 자동완성 바탕이 밝게 남았다. 테마 적용이 `<html>` 에 그 모드를 쓴다.
+- **frame 언어**: frame `locale` 이 날짜 형식만 바꾸고 요소에 `lang` 이 없었다. 요소에 `lang` 을 붙이고, 문서가 기본 서체면 그 frame 이 S2 의 그 언어 서체 (일본어 · 중국어) 를 쓴다. 서체 내려받기도 글자마다 가장 가까운 `lang` 을 읽는다.
+- **Toast 모양의 쌓인 뒤 조각**: 앱 Toast 모양을 골라도 2 개 이상 쌓이면 뒤 조각이 테마 variant 색이었다. 모양 상자를 그 자리에 (내용은 숨김) 그린다.
+- **Toast 닫기 버튼 이름**: 「Close」 · 「닫기」 → S2 `dialog.dismiss` 「Dismiss」 · 「무시」 (앱 region · Toast 노드).
+- **Tree 항목 자기 데이터 구간의 load-more**: Tree 의 항목이 자기 데이터로 반복될 때 load-more 항목이 없어 첫 페이지 (100 행) 에서 멈췄다 (ADR-310 Decision 11 구간 sentinel 이 Tree 에만 빠져 있었다).
+
+### Changed
+
+- **Disclosure 제목 · 패널 (S2 `DisclosureTitle` · `DisclosurePanel`)**: 제목 글자 12 · 14 · 16 (600) → 14 · 16 · 18 · 20 bold (title 단계, 줄 높이 `ui`), trigger 좌우 여백 · chevron 간격 = 높이 × 3/8 − 1 (M 11 — 전 12 · 4), 패널 글자 = body 16 (size 와 무관), 패널 여백 위 8 · 아래 16 · 좌우 8 · 9 · 12 · 15, 펼칠 때 높이 전환 150ms (모션 줄이기면 없음). 제목 줄의 ActionButton 은 Disclosure 보다 한 단계 작고 quiet 를 받는다 (패널 안 버튼은 그대로).
+- **목록 더 불러오기 스피너**: 모두 S (16) · 영어 고정 이름 → S2 대로 Tree · ListView (GridList) · Table 은 M (32) 가운데, ComboBox · Picker · Menu 는 S, CardView 는 없음. 이름은 S2 `*.loadingMore` 현지화 문구 (「추가 로드 중…」 등).
+- **비활성 목록 항목**: 행 전체 opacity 0.38 → S2 대로 글자 (라벨 · 설명) 만 비활성 색.
+
+검증: unit — `s2ProviderParity` 2 · `routeParams` 2 · `adr281Inheritance` (frame lang) · `s2ToastShape` 1 · `s2DisclosureHeaderAction` 1 · `adr256DisclosureNodeTree` · `disclosureQuietDensity` 갱신 · `adr310Runs` (Tree 구간 · 스피너) · `s2LoadMoreSpinner` 4 · `s2ListBoxItemDetails` 1. 원복 RED — 결함 7/7, 값 13 행 (중복 1 행은 지움). live — `s2-provider-toast-live` 7/7 (Publish `#/about` · Ctrl 클릭 새 탭 · OS 다크 즉시 · frame `lang` · Toast 쌓인 조각 · 닫기 이름) · `s2-disclosure-listbox-values-live` 6/6 (Canvas = Preview 제목 16 · 700 · 여백 11 · 높이 32, 패널 16 · 8 9 16, 제목 줄 ActionButton S, 비활성 항목 opacity 1). 남은 것: 항목 아이콘 `1lh` (손 `ListBox.css` 경로와 같이 고쳐야 함) · compact 밀도의 제목 줄 버튼 두 단계 · 새 기능 3 (영역별 색 모드 · toast `onClose` · ComboBox avatar 자리). 「버튼 없는 Toast 모양의 자동 닫힘」 은 재현 경로가 없다 (toast Do 검증이 동작 글자와 timeout 을 함께 받지 않는다).
+
 ## [Text · Heading 글자 상속 — S2 `Text` · `Heading` 처럼 자기 글자 없음] - 2026-11-24
 
 ### Breaking Changes

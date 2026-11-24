@@ -93,12 +93,12 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
     expect(rule.structure?.composition?.staticSelectors).toBeDefined();
   });
 
-  it("Disclosure CSS: 헤더 trigger 버튼이 flex + font-weight 600 (레퍼런스 정합)", () => {
+  it("Disclosure CSS: 헤더 trigger 버튼이 flex + font-weight 700 (S2 `buttonStyles` bold, 2026-11-24)", () => {
     const { spec } = virtualSpecFor("Disclosure");
     const css = generateCSS(spec);
-    // 헤더 버튼 selector + 굵기 600 (DOM 헤더가 normal weight 로 발산하던 것 방지)
+    // 헤더 버튼 selector + 굵기 700 (S2 bold — DOM 헤더가 normal weight 로 발산하던 것 방지)
     expect(css).toContain(".react-aria-Button[slot='trigger']");
-    expect(css).toMatch(/font-weight:\s*600/);
+    expect(css).toMatch(/font-weight:\s*700/);
     // justify-content: flex-start — RAC Button 기본 center override (헤더 chevron+title 좌측 정렬).
     //   누락 시 헤더가 width:100% 안에서 중앙 정렬로 발산(레퍼런스/사용자 요구 = flex-start).
     expect(css).toMatch(/justify-content:\s*flex-start/);

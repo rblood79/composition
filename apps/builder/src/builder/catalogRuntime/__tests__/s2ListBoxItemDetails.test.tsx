@@ -166,6 +166,30 @@ describe("S2 ListBox item details — description color · gap · section Divide
     }
   });
 
+  it("S2 대조 (2026-11-24): a disabled item's words are the disabled color — the row is not faded (Canvas · sheet)", async () => {
+    const first = await open({ selectionMode: "single" });
+    const key = first.of("ListBoxItem")[0]!.props.id as string;
+    const { of, kids } = await open({
+      selectionMode: "single",
+      disabledKeys: [key],
+    });
+    const colorOf = (item: { id: string }, slot: string) => {
+      const part = kids(item.id).find((child) => child.props.slot === slot)!;
+      return part.derivedProps?.color ?? part.visual.color;
+    };
+    const [disabled, enabled] = of("ListBoxItem");
+    expect(colorOf(disabled!, "label")).toBe(color("{color.disabled-content}"));
+    expect(colorOf(disabled!, "description")).toBe(
+      color("{color.disabled-content}"),
+    );
+    expect(colorOf(enabled!, "label")).toBe(color("{color.neutral}"));
+    const sheet = generated("ListBoxItem.css");
+    expect(sheet).toMatch(
+      /\.react-aria-ListBoxItem:where\(\[data-variant="default"\]\[data-disabled\]\) \{\s*color: var\(--fg-disabled\);/,
+    );
+    expect(sheet).not.toMatch(/\[data-disabled\]\) \{[^}]*opacity/);
+  });
+
   it("the sheet colors the description the same way (standalone unselected · in a picker always)", () => {
     const sheet = generated("ListBox.css");
     expect(sheet).toMatch(

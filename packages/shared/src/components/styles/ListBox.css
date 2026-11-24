@@ -60,7 +60,7 @@
    * Generator emit 위임:
    *   - padding / border-radius / min-height / font-size / line-height / font-weight / gap
    *   - display / flex-direction / align-items / justify-content (ADR-079 containerStyles 리프팅)
-   *   - &[data-hovered] / &[data-disabled] opacity+cursor / @media forced-colors
+   *   - &[data-hovered] / @media forced-colors (disabled = ListBoxItem rule 의 칠 트리, 2026-11-24)
    * 아래는 Generator 가 emit 하지 않는 잔존 고유 속성만 수동 유지.
    */
   .react-aria-ListBoxItem {
@@ -78,14 +78,6 @@
        Builder widgets' (the light `--lb-accent-container` fill stays theirs). */
 
     &[data-selected] {
-    }
-
-    &[data-disabled] {
-      /* (ADR-105-d — formerly @sync F4-2 annotation)
-       * Generator 가 [data-disabled] state selector emit 을 미지원하여 수동 CSS 유지.
-       * opacity:0.38 (Generator emit 예정) 와 text color 38% (수동) 가 곱해져 ~14% 투명도.
-       * Generator 에 state selector 지원 추가 시 이 수동 CSS 를 제거하고 Spec 로 이관. */
-      color: color-mix(in srgb, var(--fg) 38%, transparent);
     }
 
     &[href] {

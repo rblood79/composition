@@ -18,6 +18,7 @@ import type { CatalogPreviewSession } from "../../../packages/shared/src/catalog
 import { useCatalogDocumentHead } from "../../../packages/shared/src/catalog/runtime/documentHead";
 import {
   CatalogPreviewDataProvider,
+  catalogHashHref,
   catalogPreviewLinkClick,
   catalogPreviewRuntime,
   CatalogPreviewToasts,
@@ -86,7 +87,7 @@ function PublishedView({
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = host.current;
-    const click = catalogPreviewLinkClick(session);
+    const click = catalogPreviewLinkClick(session, { hashRoutes: true });
     element?.addEventListener("click", click, true);
     const route = () => {
       if (location.hash.startsWith("#/"))
@@ -150,7 +151,11 @@ function PublishedView({
             <p>{t("noPages")}</p>
           ) : (
             <CatalogPreviewDataProvider session={session}>
-              <CatalogPreviewView session={session} runtime={runtime} />
+              <CatalogPreviewView
+                session={session}
+                runtime={runtime}
+                hrefOf={catalogHashHref}
+              />
             </CatalogPreviewDataProvider>
           )}
         </div>

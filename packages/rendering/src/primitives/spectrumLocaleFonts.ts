@@ -64,6 +64,9 @@ export const SPECTRUM_LOCALE_FONT_CSS = (
 )
   .map(
     ([lang, font]) =>
-      `:root:lang(${lang}) { --catalog-default-font-family: ${font.stack}; }`,
+      `:root:lang(${lang}) { --catalog-default-font-family: ${font.stack}; }\n` +
+      // (S2 `Provider` `locale` — a part of another language (a frame's `lang`) takes that
+      //  language's face while the document keeps the default font; an authored font wins inline.)
+      `:root[data-catalog-default-font] :where([lang]:lang(${lang})) { --catalog-default-font-family: ${font.stack}; --font-sans: ${font.stack}; font-family: ${font.stack}; }`,
   )
   .join("\n");

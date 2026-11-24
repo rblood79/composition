@@ -28,12 +28,19 @@ export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
     document.head.appendChild(style);
   }
   style.textContent = catalogThemeVarsCss(snapshot);
-  document.documentElement.setAttribute("data-theme", state.colorMode);
-  for (const element of [document.documentElement, document.body]) {
-    element.style.fontFamily =
-      snapshot.base.fontFamily === DEFAULT_BASE_TYPOGRAPHY.fontFamily
-        ? "var(--catalog-default-font-family)"
-        : catalogCssFontFamily(snapshot.base.fontFamily);
+  const root = document.documentElement;
+  root.setAttribute("data-theme", state.colorMode);
+  // (S2 `Provider` sets `color-scheme` — the browser's own parts (scrollbars · autofill · form
+  //  controls) follow the theme's mode. 2026-11-24 S2 대조.)
+  root.style.colorScheme = state.colorMode;
+  const defaultFont =
+    snapshot.base.fontFamily === DEFAULT_BASE_TYPOGRAPHY.fontFamily;
+  // (A frame of another language takes that language's default face — `SPECTRUM_LOCALE_FONT_CSS`.)
+  root.toggleAttribute("data-catalog-default-font", defaultFont);
+  for (const element of [root, document.body]) {
+    element.style.fontFamily = defaultFont
+      ? "var(--catalog-default-font-family)"
+      : catalogCssFontFamily(snapshot.base.fontFamily);
     element.style.fontSize = `${snapshot.base.fontSize}px`;
     element.style.lineHeight = String(snapshot.base.lineHeight);
     // Canvas paragraphs shape with the same list (`DEFAULT_FONT_FEATURES`).
@@ -164,18 +171,43 @@ export function catalogPreviewRuntime(
   return runtime;
 }
 
+/** Where a route is in a hash-routed (Publish) document: `/about` → `#/about`; others unchanged. */
+export function catalogHashHref(href: string): string {
+  return href.startsWith("/") && !href.startsWith("//") ? `#${href}` : href;
+}
+
 /**
  * An internal link (`/route`) moves the Preview to that page; an external one opens a new tab;
  * `#anchor` and `target="_blank"` keep the browser's behavior (the old Preview's rule).
  */
 export function catalogPreviewLinkClick(
   session: CatalogPreviewSession,
+  options: {
+    /**
+     * A Publish app (hash routes — `catalogHashHref`): a ⌘ / Ctrl · Shift click opens the link's
+     * page in a new tab · window as the browser does (RAC · S2 leave a modified click to it). The
+     * Builder's Preview keeps it here (⌘ / Ctrl click is Compare Mode's selection).
+     */
+    hashRoutes?: boolean;
+  } = {},
 ): (event: MouseEvent) => void {
   return (event) => {
     const anchor = (event.target as Element | null)?.closest?.("a");
     const href = anchor?.getAttribute("href");
     if (!anchor || !href || href.startsWith("#")) return;
     if (anchor.getAttribute("target") === "_blank") return;
+    if (
+      options.hashRoutes &&
+      (event.metaKey || event.ctrlKey || event.shiftKey)
+    ) {
+      // (An anchor RAC did not draw still says `/route`: open where that route is.)
+      if (href.startsWith("/") && !href.startsWith("//")) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.open(catalogHashHref(href), "_blank", "noopener");
+      }
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     if (/^(https?:\/\/|\/\/|mailto:|tel:|javascript:)/i.test(href)) {

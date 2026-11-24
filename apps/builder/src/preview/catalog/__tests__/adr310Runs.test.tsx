@@ -149,3 +149,179 @@ it("ADR-310 G5: two remote sources (2 pages each) in one list — each run's sen
   expect(at("Team1")).toBeLessThan(at("Team4"));
   h.view.unmount();
 });
+
+/**
+ * S2 대조 (2026-11-24) — S2 `TreeViewLoadMoreItem`: a TreeItem repeated over its own data (①) ends
+ * its run in its own load-more item, as a ListBox run does. The Tree drew its rows without the runs,
+ * so the run stopped at its first page.
+ */
+it("a Tree's own-data run (2 pages) loads its next page through its own load-more item", async () => {
+  seeEverySentinel();
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const urls: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    const url = new URL(String(input));
+    urls.push(`${url.pathname}${url.search}`);
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const items = (page === 1 ? [1, 2, 3] : [4]).map((n) => ({
+      id: `Person-${n}`,
+      label: `Person${n}`,
+    }));
+    return new Response(
+      JSON.stringify({ items, next: page === 1 ? "2" : null }),
+      { headers: { "content-type": "application/json" } },
+    );
+  });
+  const h = await openAdr280Preview(["Tree"]);
+  act(() => {
+    h.session.receive({
+      type: "CATALOG_DATA",
+      version: 1,
+      collections: [
+        {
+          id: "people",
+          name: "People",
+          schema: SCHEMA,
+          mockData: [],
+          runtimeData: [],
+          useMockData: false,
+        },
+      ],
+      variables: [],
+      apiEndpoints: [
+        {
+          id: "listPeople",
+          name: "listPeople",
+          baseUrl: "https://api.example.test",
+          method: "GET",
+          path: "/people",
+          queryParams: [{ key: "page", value: "{{ cursor }}" }],
+          targetCollection: "People",
+          responseMapping: { dataPath: "items", cursorPath: "next" },
+        },
+      ],
+    });
+  });
+  const tree = h.ids[0] as NodeId;
+  const graph = h.workspace.runtime.graph;
+  const fill = (
+    (graph.getEntry(tree) as NodeEntry).descendantOverrides.find(
+      (override) => override.kind === "fillSlot",
+    ) as { childIds: readonly NodeId[] }
+  ).childIds.filter(
+    (id) =>
+      definitionTypeName(
+        graph,
+        (graph.getEntry(id) as NodeEntry).definitionId,
+      ) === "TreeItem",
+  );
+  const item = fill.at(-1)!;
+  h.workspace.execute(
+    catalogBindingCommand(
+      [{ kind: "node", id: item }],
+      catalogBindingRef({
+        source: "dataTable",
+        collectionId: "people",
+        name: "People",
+      })!,
+    ),
+  );
+  h.flush();
+  await settle();
+  await settle();
+  expect(urls.filter((url) => url.startsWith("/people"))).toEqual([
+    "/people",
+    "/people?page=2",
+  ]);
+  const text = h.element(tree)?.textContent ?? "";
+  expect(text).toContain("Person4");
+  h.view.unmount();
+});
+
+it("S2 대조 — while a Tree run loads more, its load-more item shows S2's spinner: M, centered, named \"Loading more…\"", async () => {
+  seeEverySentinel();
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const urls: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    const url = new URL(String(input));
+    urls.push(`${url.pathname}${url.search}`);
+    const page = Number(url.searchParams.get("page") ?? 1);
+    // (The next page never answers — the run stays loading more.)
+    if (page === 2) return new Promise<Response>(() => {});
+    const items = (page === 1 ? [1, 2, 3] : [4]).map((n) => ({
+      id: `Person-${n}`,
+      label: `Person${n}`,
+    }));
+    return new Response(
+      JSON.stringify({ items, next: page === 1 ? "2" : null }),
+      { headers: { "content-type": "application/json" } },
+    );
+  });
+  const h = await openAdr280Preview(["Tree"]);
+  act(() => {
+    h.session.receive({
+      type: "CATALOG_DATA",
+      version: 1,
+      collections: [
+        {
+          id: "people",
+          name: "People",
+          schema: SCHEMA,
+          mockData: [],
+          runtimeData: [],
+          useMockData: false,
+        },
+      ],
+      variables: [],
+      apiEndpoints: [
+        {
+          id: "listPeople",
+          name: "listPeople",
+          baseUrl: "https://api.example.test",
+          method: "GET",
+          path: "/people",
+          queryParams: [{ key: "page", value: "{{ cursor }}" }],
+          targetCollection: "People",
+          responseMapping: { dataPath: "items", cursorPath: "next" },
+        },
+      ],
+    });
+  });
+  const tree = h.ids[0] as NodeId;
+  const graph = h.workspace.runtime.graph;
+  const fill = (
+    (graph.getEntry(tree) as NodeEntry).descendantOverrides.find(
+      (override) => override.kind === "fillSlot",
+    ) as { childIds: readonly NodeId[] }
+  ).childIds.filter(
+    (id) =>
+      definitionTypeName(
+        graph,
+        (graph.getEntry(id) as NodeEntry).definitionId,
+      ) === "TreeItem",
+  );
+  const item = fill.at(-1)!;
+  h.workspace.execute(
+    catalogBindingCommand(
+      [{ kind: "node", id: item }],
+      catalogBindingRef({
+        source: "dataTable",
+        collectionId: "people",
+        name: "People",
+      })!,
+    ),
+  );
+  h.flush();
+  await settle();
+  await settle();
+  const spinner = h
+    .element(tree)
+    ?.querySelector<HTMLElement>('[data-load-more="tree"] [role="progressbar"]');
+  expect(spinner).not.toBeNull();
+  expect(spinner!.getAttribute("aria-label")).toBe("Loading more…");
+  // (S2 TreeView: the default ProgressCircle size M — 32.)
+  expect(spinner!.style.width).toMatch(/\b32\b/);
+  h.view.unmount();
+});

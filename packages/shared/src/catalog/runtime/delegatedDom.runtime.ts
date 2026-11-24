@@ -211,6 +211,10 @@ import {
 import { TreeItem as AriaTreeItem } from "react-aria-components/Tree";
 
 import { ProgressCircle } from "../../components/ProgressCircle";
+import {
+  CatalogLoadMoreSpinner,
+  type CatalogLoadMoreLook,
+} from "./loadMoreSpinner.components";
 
 import { Card } from "../../components/Card";
 
@@ -566,6 +570,7 @@ export function catalogLoadMoreItem(
     (owner.rowCount ?? 0) > (owner.rowsShown ?? 0);
   if (!moreLoaded && !pages(collectionId)) return [];
   const isLoading = !quiet && owner.props.loadingState === "loadingMore";
+  const look = loadMoreLook(Item, catalogTypeName(root, node));
   return [
     createElement(
       Item,
@@ -574,15 +579,26 @@ export function catalogLoadMoreItem(
         onLoadMore: () => loadMore(collectionId, owner.sourceId, moreLoaded),
         isLoading,
       },
-      isLoading
-        ? createElement(ProgressCircle, {
-            isIndeterminate: true,
-            size: "S",
-            "aria-label": "Loading more…",
-          })
+      isLoading && look
+        ? createElement(CatalogLoadMoreSpinner, { look })
         : null,
     ),
   ];
+}
+
+/**
+ * The S2 spinner of a load-more item (`CatalogLoadMoreSpinner`): by RAC item kind; a CardView draws
+ * none (S2 `CardView` — an empty sentinel).
+ */
+function loadMoreLook(
+  Item: ElementType,
+  ownerType: string,
+): CatalogLoadMoreLook | undefined {
+  if (Item === TreeLoadMoreItem) return "tree";
+  if (Item === GridListLoadMoreItem)
+    return ownerType === "CardView" ? undefined : "list";
+  if (Item === ListBoxLoadMoreItem || Item === MenuLoadMoreItem) return "menu";
+  return "table";
 }
 
 /**
@@ -612,6 +628,7 @@ function runLoadMoreItem(
   const moreLoaded = input.moreLoaded?.(collectionId, source.id) ?? false;
   if (!moreLoaded && !(input.pages?.(collectionId) ?? false)) return undefined;
   const isLoading = input.loadingOf?.(collectionId) === "loadingMore";
+  const look = loadMoreLook(Item, catalogTypeName(input.root, input.node));
   return createElement(
     Item,
     {
@@ -619,13 +636,7 @@ function runLoadMoreItem(
       onLoadMore: () => loadMore(collectionId, source.id, moreLoaded),
       isLoading,
     },
-    isLoading
-      ? createElement(ProgressCircle, {
-          isIndeterminate: true,
-          size: "S",
-          "aria-label": "Loading more…",
-        })
-      : null,
+    isLoading && look ? createElement(CatalogLoadMoreSpinner, { look }) : null,
   );
 }
 
@@ -1248,7 +1259,25 @@ function treeItemElements(
   input: DelegatedDomInput,
   list: readonly CatalogConsumerNode[],
 ): ReactElement[] {
-  return list.map((item) => {
+  // (ADR-310 Decision 11 · S2 `TreeViewLoadMoreItem` — a run over an item's own data ends in its own
+  //  load-more item, at the run's level: the root's or inside the parent item's children, as S2
+  //  places it. 2026-11-24 S2 대조 — the Tree drew its rows without `catalogRenderRuns`, so a run
+  //  stopped at its first 100 rows.)
+  return list.flatMap((item, index) => {
+    const element = treeItemElement(input, item);
+    const end =
+      item.rowIndex !== undefined &&
+      list[index + 1]?.sourceId !== item.sourceId;
+    const sentinel = end && runLoadMoreItem(input, item, TreeLoadMoreItem);
+    return sentinel ? [element, sentinel] : [element];
+  });
+}
+
+function treeItemElement(
+  input: DelegatedDomInput,
+  item: CatalogConsumerNode,
+): ReactElement {
+  {
     const kids = childrenOf(input.root, item);
     const childItems = kids.filter(
       (kid) => catalogTypeName(input.root, kid) === "TreeItem",
@@ -1326,7 +1355,7 @@ function treeItemElements(
         ? treeItemElements(input, childItems)
         : undefined,
     });
-  });
+  }
 }
 
 const ownsAll = () => true;

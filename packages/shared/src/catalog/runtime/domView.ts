@@ -9,4 +9,5 @@ export {
   catalogToastPlacement,
   catalogPreviewRuntime,
   catalogPreviewLinkClick,
+  catalogHashHref,
 } from "./domView.runtime";

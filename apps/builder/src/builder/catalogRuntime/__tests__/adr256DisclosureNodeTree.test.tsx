@@ -256,37 +256,40 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
   });
 
   it.each([
-    ["S", 12],
-    ["M", 14],
-    ["L", 16],
+    // (2026-11-24 S2 대조 — S2 `DisclosureTitle`: title-sm · title · title-lg (14 · 16 · 18) bold, the
+    //  trigger's paddingX = gap = minHeight × 3/8 − 1 (8 · 11 · 14); S2 `panelInner` paddingX 8 · 9 · 12,
+    //  top 8, its words `body` 16 at every size.)
+    ["S", 14, 8, 8],
+    ["M", 16, 11, 9],
+    ["L", 18, 14, 12],
   ])(
-    "Canvas %s: the trigger's old geometry — chevron 18 at x 12, title at x 34 in the size font",
-    async (size, fontSize) => {
+    "Canvas %s: S2's trigger — chevron 18 at x paddingX, title after the gap in the title font",
+    async (size, fontSize, edge, panelX) => {
       const { root, part } = await place("disclosure", { size });
       const trigger = part("Button")!;
       const chevron = part("Icon")!;
       const title = root.canvasInputs.get(trigger.children[1]!)!;
       const geometry = root.getGeometry([trigger.id, chevron.id, title.id]);
       const box = geometry.get(chevron.id)!;
-      expect(box.x).toBe(12);
+      expect(box.x).toBe(edge);
       expect([box.width, box.height]).toEqual([18, 18]);
       expect(box.y).toBeCloseTo((geometry.get(trigger.id)!.height - 18) / 2, 1);
-      expect(geometry.get(title.id)!.x).toBe(34);
-      expect(title.visual).toMatchObject({ fontSize, fontWeight: 600 });
+      expect(geometry.get(title.id)!.x).toBe(edge + 18 + edge);
+      expect(title.visual).toMatchObject({ fontSize, fontWeight: 700 });
       // (S2's regular trigger height — 2026-10-10: the old header's was the chevron 18 or the line,
       // plus the 8px padding.)
       expect(geometry.get(trigger.id)!.height).toBeCloseTo(
         { S: 24, M: 32, L: 40 }[size]!,
         2,
       );
-      // The panel content takes the Disclosure's size font (the old DisclosureContent's).
+      // The panel content takes S2 `body` (16) whatever the size.
       const content = root.canvasInputs.get(
         part("DisclosurePanel")!.children[0]!,
       )!;
-      expect(content.visual).toMatchObject({ fontSize, fontWeight: 400 });
-      // The panel's box is the sheet's content div (`.react-aria-DisclosurePanel > div` padding 8 · 16).
+      expect(content.visual).toMatchObject({ fontSize: 16, fontWeight: 400 });
+      // The panel's box is the sheet's content div (`.react-aria-DisclosurePanel > div` — top 8, X by size).
       const inPanel = root.getGeometry([content.id]).get(content.id)!;
-      expect([inPanel.x, inPanel.y]).toEqual([16, 8]);
+      expect([inPanel.x, inPanel.y]).toEqual([panelX, 8]);
     },
   );
 

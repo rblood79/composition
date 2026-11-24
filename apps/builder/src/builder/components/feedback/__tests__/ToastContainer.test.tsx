@@ -87,6 +87,8 @@ describe("ToastContainer", () => {
     const close = screen
       .getByRole("alertdialog")
       .querySelector<HTMLButtonElement>(".builder-toast-close")!;
+    // (S2 `CloseButton` — `dialog.dismiss`, 2026-11-24 S2 대조: RAC's default 「Close」 is not S2's name.)
+    expect(close.getAttribute("aria-label")).toBe("Dismiss");
     fireEvent.click(close);
     await waitFor(() =>
       expect(useToastStore.getState().toasts).toHaveLength(0),

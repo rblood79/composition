@@ -11,6 +11,11 @@ import {
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
+import {
+  catalogHashHref,
+  catalogPreviewLinkClick,
+  CatalogPreviewView,
+} from "../../../../../../packages/shared/src/catalog/runtime/domView";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -153,6 +158,58 @@ describe("item links — RouterProvider", () => {
     expect(h.session.pageId).toBe(DETAIL);
     expect(h.session.path).toBe("/detail/u2");
     expect(h.detailText()).toBe("Detail u2");
+    h.view.unmount();
+  });
+});
+
+describe("S2 Provider 대조 — links in a hash-routed (Publish) document", () => {
+  it("a link's address is where the route is (RAC useHref) — a new tab · a copied link lands on it; a click still routes", async () => {
+    const h = await routedPreview();
+    h.view.rerender(
+      <CatalogPreviewView
+        session={h.session}
+        runtime={h.runtime}
+        hrefOf={catalogHashHref}
+      />,
+    );
+    const links = [
+      ...(h.element(h.list)?.querySelectorAll<HTMLElement>("[href]") ?? []),
+    ];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "#/detail/u1",
+      "#/detail/u2",
+    ]);
+    act(() => {
+      fireEvent.click(links[1]!);
+    });
+    expect(h.session.path).toBe("/detail/u2");
+    h.view.unmount();
+  });
+
+  it("a ⌘ / Ctrl click opens a new tab in a Publish app, and stays the Builder Preview's own", async () => {
+    const h = await routedPreview();
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    const anchor = document.createElement("a");
+    anchor.setAttribute("href", "/detail/u2");
+    document.body.append(anchor);
+    const ctrlClick = () =>
+      new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true });
+    const publish = catalogPreviewLinkClick(h.session, { hashRoutes: true });
+    document.addEventListener("click", publish, true);
+    act(() => {
+      anchor.dispatchEvent(ctrlClick());
+    });
+    document.removeEventListener("click", publish, true);
+    expect(open).toHaveBeenCalledWith("#/detail/u2", "_blank", "noopener");
+    expect(h.session.path).not.toBe("/detail/u2");
+    const builder = catalogPreviewLinkClick(h.session);
+    document.addEventListener("click", builder, true);
+    act(() => {
+      anchor.dispatchEvent(ctrlClick());
+    });
+    document.removeEventListener("click", builder, true);
+    expect(h.session.path).toBe("/detail/u2");
+    anchor.remove();
     h.view.unmount();
   });
 });

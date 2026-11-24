@@ -40,10 +40,4 @@ export function catalogBuilderThemeState(
 }
 
 /** Calls `listener` when the OS appearance changes (a `system` theme follows it). */
-export function subscribeSystemColorScheme(listener: () => void): () => void {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
-    return () => {};
-  const query = window.matchMedia("(prefers-color-scheme: dark)");
-  query.addEventListener("change", listener);
-  return () => query.removeEventListener("change", listener);
-}
+export { onSystemColorSchemeChange as subscribeSystemColorScheme } from "../../../../../packages/shared/src/catalog/runtime/theme";

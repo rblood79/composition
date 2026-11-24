@@ -154,12 +154,30 @@ export type CatalogToastQueue = ReturnType<typeof createToastQueue>;
 /** The app's (Preview · Publish) queue — the catalog skin. */
 export const createCatalogToastQueue = () => createToastQueue();
 
-/** S2 `intlMessages` (`toast.showAll` · `toast.clearAll` · `toast.collapse`) — en-US · ko-KR. */
+/**
+ * S2 `intlMessages` (`toast.showAll` · `toast.clearAll` · `toast.collapse` · the close button's
+ * `dialog.dismiss` — S2 `CloseButton`) — en-US · ko-KR.
+ */
 const MESSAGES = {
-  en: { showAll: "Show all", clearAll: "Clear all", collapse: "Collapse" },
-  ko: { showAll: "모두 표시", clearAll: "모두 지우기", collapse: "접기" },
+  en: {
+    showAll: "Show all",
+    clearAll: "Clear all",
+    collapse: "Collapse",
+    dismiss: "Dismiss",
+  },
+  ko: {
+    showAll: "모두 표시",
+    clearAll: "모두 지우기",
+    collapse: "접기",
+    dismiss: "무시",
+  },
 } as const;
-type ToastMessages = { showAll: string; clearAll: string; collapse: string };
+type ToastMessages = {
+  showAll: string;
+  clearAll: string;
+  collapse: string;
+  dismiss: string;
+};
 function useMessages(override?: ToastMessages): ToastMessages {
   const { locale } = useLocale();
   if (override) return override;
@@ -416,15 +434,18 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
   const index = useIndexOf(toast);
   const state = useContext(RACToastStateContext);
   const isMain = index <= 0;
-  // (S2: behind the top toast of a collapsed stack, only the color — a sliver pushed back in depth.)
+  // (S2: behind the top toast of a collapsed stack, only the color — a sliver pushed back in depth.
+  //  The app's shape: the shape's own box, its contents hidden — not the S2 skin's variant color.)
   if (!isMain && !expanded)
     return (
       <div
         role="presentation"
-        className={`${p} ${p}-behind`}
+        aria-hidden="true"
+        className={`${p} ${p}-behind${renderToast ? ` ${p}-behind-shaped` : ""}`}
         data-variant={variant}
+        {...(renderToast ? { inert: true } : {})}
         style={{
-          ...skin.boxStyle?.(variant),
+          ...(renderToast ? {} : skin.boxStyle?.(variant)),
           position: "absolute",
           [placement === "top" ? "bottom" : "top"]: 0,
           left: 0,
@@ -439,7 +460,14 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
             `${p}-bg`,
           ]),
         }}
-      />
+      >
+        {renderToast?.({
+          key: toast.key,
+          title: toast.content.title,
+          variant,
+          close: () => {},
+        })}
+      </div>
     );
   const Icon = ICONS[variant];
   const single = !isMain || count <= 1 || expanded;
@@ -567,6 +595,7 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastValue> }) {
       </div>
       <Button
         slot="close"
+        aria-label={messages.dismiss}
         className={`${p}-close${isMain ? ` ${p}-vt-close` : ""}`}
         style={skin.closeStyle}
       >

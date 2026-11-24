@@ -274,7 +274,8 @@ it("Disclosure XL title consumes its header typography on Canvas", async () => {
     expect(title.visual.fontWeight).toBe(700);
     expect(title.visual.lineHeight).toBe(1.2);
     act(() => h.workspace.undo());
-    expect(root.canvasInputs.get(title.id)!.visual.fontSize).toBe(14);
+    // (M = S2 `title` 16 — 2026-11-24 S2 대조.)
+    expect(root.canvasInputs.get(title.id)!.visual.fontSize).toBe(16);
     act(() => h.workspace.redo());
     expect(root.canvasInputs.get(title.id)!.visual.fontSize).toBe(20);
   } finally {

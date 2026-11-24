@@ -100,6 +100,20 @@
 .catalog-toast-shaped > .react-aria-Toast {
   box-shadow: var(--shadow-lg);
 }
+/* (Behind a collapsed stack: the shape's box is the sliver — its contents are not shown, S2 color only.) */
+.catalog-toast.catalog-toast-behind-shaped {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.catalog-toast-behind-shaped > * {
+  flex-grow: 1;
+}
+.catalog-toast-behind-shaped > * > * {
+  visibility: hidden;
+}
 .catalog-toast-shaped-expand {
   align-self: flex-start;
 }

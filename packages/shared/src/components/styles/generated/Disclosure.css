@@ -20,31 +20,33 @@
   display: block;
 
   /* Default size */
-  font-size: var(--catalog-token-text-sm);
-  border-radius: var(--catalog-token-radius-none);
-  line-height: var(--catalog-token-text-sm--line-height);
-}
-
-.react-aria-Disclosure[data-size="S"] {
-  font-size: var(--catalog-token-text-xs);
-  border-radius: var(--catalog-token-radius-none);
-  line-height: var(--catalog-token-text-xs--line-height);
-}
-
-.react-aria-Disclosure[data-size="M"] {
-  font-size: var(--catalog-token-text-sm);
-  border-radius: var(--catalog-token-radius-none);
-  line-height: var(--catalog-token-text-sm--line-height);
-}
-
-.react-aria-Disclosure[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
   line-height: var(--catalog-token-text-base--line-height);
 }
 
-.react-aria-Disclosure[data-size="XL"] {
+.react-aria-Disclosure[data-size="S"] {
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+}
+
+.react-aria-Disclosure[data-size="M"] {
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+}
+
+.react-aria-Disclosure[data-size="L"] {
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
+}
+
+.react-aria-Disclosure[data-size="XL"] {
+  font-size: var(--catalog-token-text-xl);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xl--line-height);
 }
 
 .react-aria-Disclosure.react-aria-Disclosure:where([data-focus-visible]) {
@@ -70,6 +72,9 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-Disclosure[data-size="S"] {
+  --disclosure-trigger-px: 8px;
+  --disclosure-trigger-px-compact: 5.75px;
+  --disclosure-trigger-px-spacious: 11px;
   --disclosure-trigger-h: 24px;
   --disclosure-trigger-py: 3px;
   --disclosure-trigger-h-compact: 18px;
@@ -79,6 +84,9 @@
 }
 
 .react-aria-Disclosure[data-size="M"] {
+  --disclosure-trigger-px: 11px;
+  --disclosure-trigger-px-compact: 8px;
+  --disclosure-trigger-px-spacious: 14px;
   --disclosure-trigger-h: 32px;
   --disclosure-trigger-py: 6px;
   --disclosure-trigger-h-compact: 24px;
@@ -88,12 +96,15 @@
 }
 
 .react-aria-Disclosure[data-size="L"] {
+  --disclosure-trigger-px: 14px;
+  --disclosure-trigger-px-compact: 11px;
+  --disclosure-trigger-px-spacious: 17px;
   --disclosure-trigger-h: 40px;
-  --disclosure-trigger-py: 8px;
+  --disclosure-trigger-py: 9px;
   --disclosure-trigger-h-compact: 32px;
-  --disclosure-trigger-py-compact: 4px;
+  --disclosure-trigger-py-compact: 5px;
   --disclosure-trigger-h-spacious: 48px;
-  --disclosure-trigger-py-spacious: 12px;
+  --disclosure-trigger-py-spacious: 13px;
 }
 
 .react-aria-Disclosure[data-size="XL"] {
@@ -155,12 +166,13 @@
     box-shadow: none;
     width: 100%;
     color: var(--fg);
-    font-weight: 600;
+    font-weight: 700;
     display: flex;
     align-items: center;
     text-align: start;
     justify-content: flex-start;
     font-size: inherit;
+    line-height: inherit;
     gap: var(--disclosure-trigger-px, var(--spacing-xs));
     min-height: var(--disclosure-trigger-h);
     padding: var(--disclosure-trigger-py) var(--disclosure-trigger-px, var(--spacing-md));
@@ -203,8 +215,10 @@
   }
 
   .react-aria-Disclosure .react-aria-DisclosurePanel > div {
-    padding: var(--spacing-sm) var(--spacing-lg);
+    padding: 8px 9px 16px;
     color: var(--fg);
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
   }
 
   .react-aria-Disclosure .react-aria-DisclosurePanel > div > .react-aria-Text {
@@ -214,15 +228,32 @@
   }
 
 
-  .react-aria-Disclosure[data-size="XL"] .react-aria-Button[slot='trigger'] {
-    font-size: 20px;
-    font-weight: 700;
-    line-height: 24px;
+  .react-aria-Disclosure[data-size="S"] .react-aria-DisclosurePanel > div {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .react-aria-Disclosure[data-size="L"] .react-aria-DisclosurePanel > div {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .react-aria-Disclosure[data-size="XL"] .react-aria-DisclosurePanel > div {
     padding-left: 15px;
     padding-right: 15px;
+  }
+
+
+  .react-aria-Disclosure .react-aria-DisclosurePanel {
+    height: var(--disclosure-panel-height, auto);
+    overflow: clip;
+    transition: height 150ms cubic-bezier(0.45, 0, 0.4, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .react-aria-Disclosure .react-aria-DisclosurePanel {
+      transition: none;
+    }
   }
 
 

@@ -5125,6 +5125,7 @@ export class CatalogCompositionRoot {
         ? catalogListBoxDescriptionColor(
             itemDerived?._inPopover === true,
             itemDerived?._isSelected === true,
+            itemDerived?.isDisabled === true || item.props.isDisabled === true,
           )
         : undefined;
     const color = descriptionColor

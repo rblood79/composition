@@ -191,7 +191,8 @@ describe("S2 Disclosure isQuiet · density", () => {
     const padding: Record<string, Record<string, number>> = {
       S: { compact: 0, regular: 3, spacious: 7 },
       M: { compact: 2, regular: 6, spacious: 10 },
-      L: { compact: 4, regular: 8, spacious: 12 },
+      // (2026-11-24: the L title is S2 `title-lg` 18 — its line 22, centered in 32 · 40 · 48.)
+      L: { compact: 5, regular: 9, spacious: 13 },
     };
     for (const [size, densities] of Object.entries(heights))
       for (const [density, height] of Object.entries(densities)) {
@@ -220,6 +221,16 @@ describe("S2 Disclosure isQuiet · density", () => {
     expect(read(first).tag).toContain('data-in-group="true"');
   });
 
+  it("S2 대조 (2026-11-24): the panel's height eases open and shut — none with reduced motion", () => {
+    const sheet = readFileSync(SHEET, "utf8");
+    expect(sheet).toMatch(
+      /\.react-aria-Disclosure \.react-aria-DisclosurePanel \{\s*height: var\(--disclosure-panel-height, auto\);\s*overflow: clip;\s*transition: height 150ms/,
+    );
+    expect(sheet).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{\s*\.react-aria-Disclosure \.react-aria-DisclosurePanel \{\s*transition: none;/,
+    );
+  });
+
   it("the sheet declares the same borders, trigger heights and quiet corners", () => {
     const sheet = readFileSync(SHEET, "utf8");
     expect(sheet).toMatch(
@@ -233,13 +244,13 @@ describe("S2 Disclosure isQuiet · density", () => {
       /\.react-aria-Disclosure\.react-aria-Disclosure:where\(\[data-in-group\]:not\(:last-child\)\) \{\s*border-bottom-width: 0;/,
     );
     expect(sheet).toMatch(
-      /\.react-aria-Disclosure\[data-size="M"\] \{\s*--disclosure-trigger-h: 32px;\s*--disclosure-trigger-py: 6px;\s*--disclosure-trigger-h-compact: 24px;\s*--disclosure-trigger-py-compact: 2px;\s*--disclosure-trigger-h-spacious: 40px;\s*--disclosure-trigger-py-spacious: 10px;/,
+      /\.react-aria-Disclosure\[data-size="M"\] \{\s*--disclosure-trigger-px: 11px;\s*--disclosure-trigger-px-compact: 8px;\s*--disclosure-trigger-px-spacious: 14px;\s*--disclosure-trigger-h: 32px;\s*--disclosure-trigger-py: 6px;\s*--disclosure-trigger-h-compact: 24px;\s*--disclosure-trigger-py-compact: 2px;\s*--disclosure-trigger-h-spacious: 40px;\s*--disclosure-trigger-py-spacious: 10px;/,
     );
     expect(sheet).toMatch(
       /\.react-aria-Disclosure\[data-quiet="true"\] \.react-aria-Button\[slot='trigger'\] \{\s*border-radius: var\(--catalog-token-radius-md\);/,
     );
-    // (`792815efc`: the inline padding is the size's `--disclosure-trigger-px` — S2 XL's own — falling back
-    //   to `--spacing-md` for the sizes that do not set it.)
+    // (The inline padding is the size's `--disclosure-trigger-px` — S2 `minHeight × 3/8 − 1` at every size
+    //   since 2026-11-24; the fallback is unused.)
     expect(sheet).toMatch(
       /\.react-aria-Disclosure \.react-aria-Button\[slot='trigger'\] \{[^}]*min-height: var\(--disclosure-trigger-h\);\s*padding: var\(--disclosure-trigger-py\) var\(--disclosure-trigger-px, var\(--spacing-md\)\);\s*border-radius: 0;/,
     );

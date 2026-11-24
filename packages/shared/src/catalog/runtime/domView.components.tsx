@@ -49,9 +49,15 @@ export function catalogPreviewNavigate(
 export function CatalogPreviewView({
   session,
   runtime,
+  hrefOf,
 }: {
   session: CatalogPreviewSession;
   runtime?: CatalogDomRuntime;
+  /**
+   * The address a route is at in this document (RAC `RouterProvider` `useHref` — a Publish app
+   * routes by hash: `/about` is at `#/about`), so a link opened in a new tab · copied lands on it.
+   */
+  hrefOf?: (href: string) => string;
 }) {
   useSyncExternalStore(session.subscribe, session.getVersion);
   // S2 press effect: the pressed element's size for the catalog's `perspective(…)` (Preview · Publish).
@@ -74,7 +80,10 @@ export function CatalogPreviewView({
   // (An `#anchor` stays on the page — RAC prevents the browser's jump, so it scrolls here; the
   // palette Link's `#` was a 404 — RAC event audit 2026-10-26.)
   return (
-    <RouterProvider navigate={catalogPreviewNavigate(session)}>
+    <RouterProvider
+      navigate={catalogPreviewNavigate(session)}
+      {...(hrefOf ? { useHref: hrefOf } : {})}
+    >
       {/* (ADR-300 user decision 1 — a SideNav without `selectedRoute` marks the shown path.) */}
       <CatalogCurrentRouteContext.Provider value={session.path}>
         <Fragment key={`${rootKey(root)}:${record}`}>

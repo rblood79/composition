@@ -246,6 +246,8 @@ describe("ADR-286 — the site's language is the page root's locale (user 2026-1
       .map((segment) => segment.dataset.type)
       .filter((type) => type !== "literal");
     expect(order).toEqual(["year", "month", "day"]);
+    // (S2 `Provider` `locale` — its element says the language: screen readers · glyphs · fonts.)
+    expect(h.element(frame)?.getAttribute("lang")).toBe("ko-KR");
     h.view.unmount();
   });
 });

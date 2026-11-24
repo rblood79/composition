@@ -2729,9 +2729,16 @@ export function resolveCatalogNode(
     const context = CATALOG_OWNER_CONTEXT_PROPS[definition.name];
     if (!context) return;
     let owner = structuralParent(parent);
-    while (owner && lookupDefinition(owner.definitionId).name !== context.owner)
+    let within = !context.within;
+    while (
+      owner &&
+      lookupDefinition(owner.definitionId).name !== context.owner
+    ) {
+      if (lookupDefinition(owner.definitionId).name === context.within)
+        within = true;
       owner = structuralParent(owner.parent);
-    if (!owner) return;
+    }
+    if (!owner || !within) return;
     for (const key of context.keys) {
       if (authored.has(key) || !(key in definition.accepts)) continue;
       const value = owner.props[key];

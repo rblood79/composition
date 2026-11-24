@@ -5803,26 +5803,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   않는다 — `[data-size]` 의 `border-width` 가 위아래 테두리를 덮는다. Canvas 는 같은 선언을
     //   `catalogDisclosureBorders` 로 읽어 레이아웃 (변별 border) 과 칠 (`strokeWidths`) 에 쓴다.
     //   루트 모서리는 없다 (S2 — 둥근 모서리면 위아래 선 양 끝이 휜다).
+    // 2026-11-24 S2 대조: the size font is the title's — S2 `DisclosureTitle` `title-sm` · `title` ·
+    //   `title-lg` · `title-xl` (14 · 16 · 18 · 20, line height `ui`), bold; the panel's words are S2
+    //   `body` (16) at every size (`.react-aria-DisclosurePanel > div`).
     sizes: {
       S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      L: {
+      M: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
+      L: {
+        fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
+        borderRadius: "{radius.none}",
+        height: 0,
+      },
       XL: {
+        fontSize: "{typography.text-xl}",
+        lineHeight: "{typography.text-xl--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -5859,9 +5864,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // S2 `isQuiet` 는 위아래 테두리를 없애고, Accordion 안에서는 마지막 항목만 아래 테두리를
         //   남긴다 (S2 `isInGroup` · `:last-child`). `data-in-group` 은 Accordion 안의 Disclosure 에
         //   DOM 이 붙인다 (RAC 그룹 context 가 닿는 깊이 — `catalogAccordionOf`).
-        rootSelectors: {},
+        rootSelectors: {
+          // S2 `panelStyles`: the panel's height eases between closed and open (RAC writes
+          //   `--disclosure-panel-height` while it moves); none with reduced motion. (Canvas draws
+          //   the settled state — no part reads this selector.)
+          "& .react-aria-DisclosurePanel": {
+            styles: {
+              height: "var(--disclosure-panel-height, auto)",
+              overflow: "clip",
+              transition: "height 150ms cubic-bezier(0.45, 0, 0.4, 1)",
+            },
+            reducedMotion: { transition: "none" },
+          },
+        },
         // S2 density · quiet (2026-10-10): trigger 높이 = S2 `minHeight` (size × density — S 18/24/32 ·
-        //   M 24/32/40 · L 32/40/48) — `min-height` 와, 한 줄 내용 (S chevron 18 · M 줄 20 · L 줄 22.857)
+        //   M 24/32/40 · L 32/40/48) — `min-height` 와, 한 줄 내용 (S chevron 18 · M 줄 20 · L 줄 22 ·
+        //   XL 줄 24 — 2026-11-24 제목 글자 title 단계)
         //   을 그 높이 안 가운데에 두는 세로 padding (S2 `centerPadding` — 내림, 남는 몫은 min-height).
         //   regular 는 static trigger 의 `--disclosure-trigger-*`, compact · spacious 는 아래 블록이
         //   바꾼다. quiet trigger 는 둥글다 (S2 `borderRadius.isQuiet`).
@@ -5869,6 +5887,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           size: {
             S: {
               styles: {
+                // (S2 `paddingX` · `gap`: `minHeight * 3/8 - 1px` per density.)
+                "--disclosure-trigger-px": "8px",
+                "--disclosure-trigger-px-compact": "5.75px",
+                "--disclosure-trigger-px-spacious": "11px",
                 "--disclosure-trigger-h": "24px",
                 "--disclosure-trigger-py": "3px",
                 "--disclosure-trigger-h-compact": "18px",
@@ -5879,6 +5901,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
             M: {
               styles: {
+                // (S2 `paddingX` · `gap`: `minHeight * 3/8 - 1px` per density.)
+                "--disclosure-trigger-px": "11px",
+                "--disclosure-trigger-px-compact": "8px",
+                "--disclosure-trigger-px-spacious": "14px",
                 "--disclosure-trigger-h": "32px",
                 "--disclosure-trigger-py": "6px",
                 "--disclosure-trigger-h-compact": "24px",
@@ -5889,12 +5915,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
             L: {
               styles: {
+                // (S2 `paddingX` · `gap`: `minHeight * 3/8 - 1px` per density.)
+                "--disclosure-trigger-px": "14px",
+                "--disclosure-trigger-px-compact": "11px",
+                "--disclosure-trigger-px-spacious": "17px",
                 "--disclosure-trigger-h": "40px",
-                "--disclosure-trigger-py": "8px",
+                "--disclosure-trigger-py": "9px",
                 "--disclosure-trigger-h-compact": "32px",
-                "--disclosure-trigger-py-compact": "4px",
+                "--disclosure-trigger-py-compact": "5px",
                 "--disclosure-trigger-h-spacious": "48px",
-                "--disclosure-trigger-py-spacious": "12px",
+                "--disclosure-trigger-py-spacious": "13px",
               },
             },
             XL: {
@@ -5960,13 +5990,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
+        // S2 `panelInner` `paddingX` by size: 8 · space(9) · 12 · space(15) — M's 9 is the static block's.
         sizeSelectors: {
-          XL: {
-            ".react-aria-Button[slot='trigger']": {
-              "font-size": "20px",
-              "font-weight": "700",
-              "line-height": "24px",
+          S: {
+            ".react-aria-DisclosurePanel > div": {
+              "padding-left": "8px",
+              "padding-right": "8px",
             },
+          },
+          L: {
+            ".react-aria-DisclosurePanel > div": {
+              "padding-left": "12px",
+              "padding-right": "12px",
+            },
+          },
+          XL: {
             ".react-aria-DisclosurePanel > div": {
               "padding-left": "15px",
               "padding-right": "15px",
@@ -6001,7 +6039,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "box-shadow": "none",
             width: "100%",
             color: "var(--fg)",
-            "font-weight": "600",
+            // S2 `buttonStyles` `fontWeight: 'bold'`.
+            "font-weight": "700",
             display: "flex",
             "align-items": "center",
             "text-align": "start",
@@ -6019,6 +6058,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   대칭 근거: `Disclosure.sizes.fontSize` = `DisclosureHeader.sizes.fontSize`
             //   (둘 다 text-xs/text-sm/text-base) → inherit 값이 Skia 가 읽는 값과 일치.
             "font-size": "inherit",
+            // S2 `lineHeight: 'ui'` — the title font's own line (the size's typography line, which the
+            //   Disclosure declares), not the Button base's ratio.
+            "line-height": "inherit",
             gap: "var(--disclosure-trigger-px, var(--spacing-xs))",
             // 높이 = size · density 별 S2 trigger 높이 (`containerVariants` 의 변수).
             "min-height": "var(--disclosure-trigger-h)",
@@ -6065,11 +6107,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             {
               rotate: "90deg",
             },
-          // 패널 콘텐츠 div — starter `.react-aria-DisclosurePanel div { padding }` 정합.
-          //   starter 8px 16px = composition --spacing-sm --spacing-lg.
+          // 패널 콘텐츠 div — S2 `panelInner`: 위 8 · 아래 16 (좌우는 size 별 `sizeSelectors`), 글자는
+          //   S2 `body` (16 — Disclosure size 와 무관, 2026-11-24 S2 대조).
           ".react-aria-DisclosurePanel > div": {
-            padding: "var(--spacing-sm) var(--spacing-lg)",
+            padding: "8px 9px 16px",
             color: "var(--fg)",
+            "font-size": "var(--text-base)",
+            "line-height": "var(--text-base--line-height)",
           },
           // ADR-256 Phase 8c: the panel's content Text takes the Disclosure's size font and the
           //   panel color, as the old content div did (`.react-aria-Text` declares its own).
@@ -8525,6 +8569,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 {
                   color: "var(--fg-muted)",
                 },
+              // (2026-11-24 S2 대조 — S2 `listboxItem` · `description` `isDisabled: 'disabled'`: a disabled
+              //   item's words are the disabled color, the row not faded.)
+              '.react-aria-ListBoxItem[data-disabled] [slot="description"]': {
+                color: "var(--fg-disabled)",
+              },
               // (No lines of its own since 2026-11-22 — S2's Divider after a section separates them,
               //   the ListBox rule's `.react-aria-Separator` place.)
               ".react-aria-ListBoxSection .react-aria-Header": {
@@ -8610,6 +8659,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               '.react-aria-ListBoxItem [slot="description"]': {
                 color: "var(--fg-muted)",
               },
+              '.react-aria-ListBoxItem[data-disabled] [slot="description"]': {
+                color: "var(--fg-disabled)",
+              },
               // (The item's icon after the check's 24 — the sheet's general icon is 12 in.)
               '.react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"]':
                 {
@@ -8669,6 +8721,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               default: "{color.on-accent}",
             },
             inPopover: "{color.neutral}",
+            // 2026-11-24 S2 대조 — S2 `listboxItem` `color.isDisabled: 'disabled'` (the row is not faded).
+            isDisabled: "{color.disabled-content}",
           },
           borderColor: {
             isSelected: {
@@ -8793,7 +8847,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             inPopover: "2px",
           },
         },
-        ...DISABLED_STATE,
+        // (S2: a disabled option is its words' disabled color — the paint tree — not an opacity.)
+        pointerEvents: { isDisabled: "none" },
         // (ADR-297 Phase 3b: the option's resting cursor — was the manual `ListBox.css` root)
         cursor: { default: "pointer", isDisabled: "not-allowed" },
         // S2 presses a picker's option (`Picker.tsx:783` · `ComboBox.tsx:467`) — not a standalone

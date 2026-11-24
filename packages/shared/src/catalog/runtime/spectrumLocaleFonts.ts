@@ -148,22 +148,32 @@ export function observeSpectrumLocaleFonts(
     queueMicrotask(() => {
       scheduled = false;
       if (disposed) return;
-      const locale = doc.documentElement.lang;
-      if (!spectrumLocaleFont(locale)) return;
-      const requests = new Map<number, string>();
+      // (Each text's language is its nearest `lang` — a frame's own (S2 `Provider` `locale`), else
+      //  the document's.)
+      const requests = new Map<string, { locale: string; weight: number; text: string }>();
       const walker = doc.createTreeWalker(doc.body, 4);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
         const parent = node.parentElement;
         const text = node.textContent;
         if (!parent || !text?.trim() || parent.closest("script,style"))
           continue;
+        const locale =
+          parent.closest("[lang]")?.getAttribute("lang") ||
+          doc.documentElement.lang;
+        const font = spectrumLocaleFont(locale);
+        if (!font) continue;
         const style = doc.defaultView!.getComputedStyle(parent);
-        if (!style.fontFamily.includes(spectrumLocaleFont(locale)!.family))
-          continue;
+        if (!style.fontFamily.includes(font.family)) continue;
         const weight = Number.parseInt(style.fontWeight) || 400;
-        requests.set(weight, (requests.get(weight) ?? "") + text);
+        const key = `${locale}\u0000${weight}`;
+        const prior = requests.get(key);
+        requests.set(key, {
+          locale,
+          weight,
+          text: (prior?.text ?? "") + text,
+        });
       }
-      for (const [weight, text] of requests)
+      for (const { locale, weight, text } of requests.values())
         void loadSpectrumLocaleFont(doc, locale, text, weight).catch(onError);
     });
   };
@@ -173,7 +183,7 @@ export function observeSpectrumLocaleFonts(
     childList: true,
     characterData: true,
     attributes: true,
-    attributeFilter: ["style", "class"],
+    attributeFilter: ["style", "class", "lang"],
   });
   observer.observe(doc.documentElement, {
     attributes: true,

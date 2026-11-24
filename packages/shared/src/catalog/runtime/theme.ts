@@ -143,6 +143,18 @@ function prefersDark(): boolean {
   );
 }
 
+/**
+ * `system` keeps following the OS appearance while the page is open (S2 `Provider` without a
+ * `colorScheme` is `light dark` — 2026-11-24 S2 대조): the listener reads the theme again.
+ */
+export function onSystemColorSchemeChange(listener: () => void): () => void {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
+    return () => {};
+  const query = window.matchMedia("(prefers-color-scheme: dark)");
+  query.addEventListener("change", listener);
+  return () => query.removeEventListener("change", listener);
+}
+
 /** What the workspace applies for the graph's theme (`CatalogWorkspaceOptions.theme`). */
 export interface CatalogThemeState {
   /** Changes when anything the theme reads changes (active theme, its preset and tokens). */

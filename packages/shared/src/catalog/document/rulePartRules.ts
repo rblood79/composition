@@ -1379,11 +1379,15 @@ function tokenRuleBasePartRules(parentType: string): CompiledPartRule[] {
  * base's (default size, a unitless ratio) while `font-size: inherit` takes the Disclosure's size
  * font. Its chevron is a fixed box of the trigger's `--icon-size` (the Button sheet's default size —
  * the element carries no `data-size`); its title Text takes the trigger's font, weight 600 and color
- * (`… > .react-aria-Text` inherits them). The panel's content Text takes the Disclosure's size font
- * and line height, weight 400, the panel color (`.react-aria-DisclosurePanel > div > .react-aria-Text`).
+ * (`… > .react-aria-Text` inherits them). The panel's content Text takes S2 `body` (16 at every size),
+ * weight 400, the panel color (`.react-aria-DisclosurePanel > div > .react-aria-Text`).
  * The chevron and title rules reach through the header (`via` the trigger Button — the resolver
  * passes a Disclosure's header Heading, `PART_RULE_PASS_HOSTS`).
  */
+/** S2 `DisclosurePanel` words: `body` (the `.react-aria-DisclosurePanel > div` font). */
+const PANEL_FONT = "{typography.text-base}";
+const PANEL_LINE = "{typography.text-base--line-height}";
+
 function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   if (parentType !== "Disclosure") return [];
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
@@ -1455,21 +1459,25 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
       /^\{typography\.[^{}]+\}$/.test(sizeFont)
         ? sizeFont
         : fontSize;
+    // (`line-height: inherit` — the Disclosure's size line, S2 `lineHeight: 'ui'`.)
+    const triggerLine =
+      sizeTrigger["line-height"] === "inherit"
+        ? px(rule.sizes[size]?.lineHeight)
+        : px(sizeTrigger["line-height"]);
     const font = {
       ...(fontValue !== undefined ? { fontSize: fontValue } : {}),
-      ...(fontSize && px(sizeTrigger["line-height"]) !== undefined
-        ? { lineHeight: px(sizeTrigger["line-height"])! / fontSize }
+      ...(fontSize && triggerLine !== undefined
+        ? { lineHeight: triggerLine / fontSize }
         : lineHeight !== undefined
           ? { lineHeight }
           : {}),
     };
-    const sizeLine = px(rule.sizes[size]?.lineHeight);
-    const panelSize = px(rule.sizes[size]?.fontSize);
+    // (S2 `panelStyles` `font: 'body'` — 16 at every size, not the title's size font; 2026-11-24.)
+    const panelSize = px(PANEL_FONT);
+    const panelLine = px(PANEL_LINE);
     const panelFont = {
-      ...(panelSize !== undefined
-        ? { fontSize: rule.sizes[size]?.fontSize }
-        : {}),
-      ...(panelSize && sizeLine ? { lineHeight: sizeLine / panelSize } : {}),
+      ...(panelSize !== undefined ? { fontSize: PANEL_FONT } : {}),
+      ...(panelSize && panelLine ? { lineHeight: panelLine / panelSize } : {}),
     };
     const weight = Number(sizeTrigger["font-weight"] ?? titleWeight);
     // (ADR-295 Phase 3b: an S2 icon step stays its ref — `withRuleParts` makes it a token value.)

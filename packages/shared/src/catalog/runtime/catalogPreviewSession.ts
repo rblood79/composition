@@ -55,6 +55,7 @@ import {
 } from "./viewQuery";
 import { onFormulaEngineLoaded } from "../../collections/formula/engine";
 import { onThemeLaddersLoaded } from "./themeLadders";
+import { onSystemColorSchemeChange } from "./theme";
 import {
   serializeViewQueries,
   VIEW_LOCAL_LOAD_CAP,
@@ -736,11 +737,14 @@ export class CatalogPreviewSession {
       this.changed();
     });
     // (ADR-302 — a non-default theme read before its ladder chunk loaded was the seed: apply it again.)
-    onThemeLaddersLoaded(() => {
+    const reapplyTheme = () => {
       if (!this.runtime || !this.applyTheme(false)) return;
       this.currentRoot = this.createRoot();
       this.changed();
-    });
+    };
+    onThemeLaddersLoaded(reapplyTheme);
+    // (A `system` theme follows the OS switching appearance while the page is open.)
+    onSystemColorSchemeChange(reapplyTheme);
     this.receiver.subscribe((update) => {
       this.syncServices();
       if (update.invalidatedIds === "all") {

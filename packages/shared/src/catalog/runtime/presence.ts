@@ -5255,6 +5255,8 @@ export function catalogFieldLabelRowColor(
 export function catalogListBoxDescriptionColor(
   inPopover: boolean,
   selected: boolean,
+  /** (S2: a disabled item's description is the disabled color — 2026-11-24.) */
+  disabled = false,
 ): string | undefined {
   const scopes = (
     COMPONENT_RULES_TABLE.ListBox?.structure?.composition as
@@ -5266,7 +5268,15 @@ export function catalogListBoxDescriptionColor(
         }
       | undefined
   )?.rootSelectors;
-  const color = inPopover
+  const disabledColor = disabled
+    ? scopes?.[
+        inPopover ? "&:is(.react-aria-Popover *)" : "&:not(.react-aria-Popover *)"
+      ]?.nested?.['.react-aria-ListBoxItem[data-disabled] [slot="description"]']
+        ?.color
+    : undefined;
+  const color = disabledColor
+    ? disabledColor
+    : inPopover
     ? scopes?.["&:is(.react-aria-Popover *)"]?.nested?.[
         '.react-aria-ListBoxItem [slot="description"]'
       ]?.color

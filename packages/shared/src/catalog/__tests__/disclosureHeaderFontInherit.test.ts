@@ -119,7 +119,8 @@ describe("Disclosure trigger 헤더 font-size 상속 체인", () => {
 
     // 현 상태를 **사실로 고정** — 갈려 있고, 그래도 무증상이다.
     expect(group.sizes.S?.fontSize).toBe(group.sizes.M?.fontSize);
-    expect(group.sizes.L?.fontSize).not.toBe(disclosure.sizes.L?.fontSize);
+    // (2026-11-24: Disclosure took S2's title sizes — L now meets the group's, M still differs.)
+    expect(group.sizes.M?.fontSize).not.toBe(disclosure.sizes.M?.fontSize);
 
     // 무증상의 근거: Skia 는 shell-only(텍스트 미emit), DOM 은 자식이 덮는다.
     //   그룹이 자기 텍스트를 갖게 되면 이 전제가 깨지므로 그때 스케일을 맞출 것.

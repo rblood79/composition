@@ -237,7 +237,8 @@ describe("S2 Toast node (palette 「toast」)", () => {
       element.querySelector(":scope > .toast-variant-icon svg"),
     ).not.toBeNull();
     const close = element.querySelector(":scope > button.toast-close-button");
-    expect(close?.getAttribute("aria-label")).toBe("Close");
+    // (S2 `CloseButton` — `dialog.dismiss`, 2026-11-24 대조)
+    expect(close?.getAttribute("aria-label")).toBe("Dismiss");
     expect(element.textContent).toContain("Toast message");
     expect(element.querySelector(".react-aria-Button")?.textContent).toBe(
       "Action",
