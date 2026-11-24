@@ -6,10 +6,10 @@
     margin: 0;
   }
 
-  /* Text component */
+  /* Text component — S2 `Text` has no font of its own: its size comes from a `[data-size]` block
+     (an owner's context) or its parent (2026-11-24). */
   .react-aria-Text {
     color: var(--fg);
-    font-size: var(--text-sm);
   }
 
   /* Description slot */

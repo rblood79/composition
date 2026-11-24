@@ -24,9 +24,7 @@
   /* Default size */
   height: auto;
   padding: 0px 0px;
-  font-size: var(--catalog-token-text-base);
   border-radius: var(--catalog-token-radius-none);
-  line-height: var(--catalog-token-text-base--line-height);
 }
 
 .react-aria-Heading:where([data-variant="default"]) {

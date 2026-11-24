@@ -125,6 +125,12 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // S2 마이그레이션 (2026-11-18): S2 DropZone gives its IllustratedMessage its size
   //   (`IllustratedMessageContext` — `size` S · M · L).
   DropZone: ["IllustratedMessage"],
+  // 2026-11-24 (사용자 「5곳 전부 S2 기준으로」): the words in an S2 control row take the control
+  //   font (`CATALOG_SIZE_STEP` — `CONTROL_TEXT_STEP`), not a Text's own M 16 — a Table's cells and
+  //   column headers (S2 `TableView.tsx` `controlFont()`), a Tree's rows (S2 `TreeView.tsx` `ui`).
+  Cell: ["Text"],
+  Column: ["Text"],
+  TreeItem: ["Text"],
 };
 
 /**
@@ -173,6 +179,9 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   //   Slider's size reaches its Label and track in them (the field input takes it too — its gap).
   "SliderLabelContainer",
   "SliderFieldInput",
+  // (2026-11-24) A TreeItem's content row (RAC `TreeItemContent` — no size): the item's size reaches
+  //   the words in it.
+  "TreeItemContent",
 ]);
 
 /** ADR-259 Phase 3: the fields whose label row holds a ContextualHelp (`CATALOG_CONTEXTUAL_HELP_FIELDS`). */
@@ -194,6 +203,13 @@ const CONTEXTUAL_HELP_SIZE_OWNERS = [
   "Slider",
   "TagGroup",
 ] as const;
+
+/**
+ * S2 `controlFont()` (`src/style-utils.ts`: XS `ui-xs` · S `ui-sm` · M `ui` · L `ui-lg` · XL
+ * `ui-xl` — 11 · 12 · 14 · 16 · 18) as the Text sizes (XS 12 · S 14 · M 16 · L 18): one step below
+ * the control's size (XS has no 11 — it stays XS).
+ */
+const CONTROL_TEXT_STEP = { XS: "XS", S: "XS", M: "S", L: "M", XL: "L" };
 
 /**
  * Owner type → child type → the child's size for each owner size, where the child's rule names
@@ -239,9 +255,16 @@ export const CATALOG_SIZE_STEP: Readonly<
   },
   // S2 InlineAlert (`InlineAlert.tsx` `content`): the words are `body-sm` — 12 · 14 · 16 at the
   //   alert's S · M · L as before (the Description ladder 12/14/16 = Text XS · S · M).
+  // (2026-11-24) Its heading is S2 `title-sm` (14) — the Heading one step below the alert's size,
+  //   as its words.
   InlineAlert: {
+    Heading: { S: "XS", M: "S", L: "M" },
     Text: { S: "XS", M: "S", L: "M" },
   },
+  // 2026-11-24: a Table's cell · column words and a Tree row's words take S2 `controlFont()`.
+  Cell: { Text: CONTROL_TEXT_STEP },
+  Column: { Text: CONTROL_TEXT_STEP },
+  TreeItem: { Text: CONTROL_TEXT_STEP },
 };
 
 /**

@@ -7067,6 +7067,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Heading: {
     defaultVariant: "default",
     defaultSize: "M",
+    // (2026-11-24, 사용자 「1과2 모두」 · 「0 으로 진행해」) S2 `Heading` has no font of its own: a size
+    //   step is an owner's context or a template's value; without one the browser's h rule scale of
+    //   the parent's font (`headingFont.ts`). Its weight 600 and margin 0 stay (`Content.css`).
+    inheritsFont: "size",
     // ADR-151 B22 잔여 (2026-07-16): Text 동형 — generated CSS base `width: 100%` 를
     //   layout 이 미소비 (flex 부모에서 Skia 80 vs CSS 350 실측). layout fallback
     //   채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
@@ -15123,6 +15127,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Text: {
     defaultVariant: "default",
     defaultSize: "M",
+    // (2026-11-24, 사용자 「B 로 진행해 — S2 레퍼런스 대로」) S2 `Text` has no font of its own: the size
+    //   blocks are the owners' context steps (`CATALOG_SIZE_PROPAGATION`); a Text without one takes its
+    //   parent's font. `defaultSize` stays the panel's reference block only.
+    inheritsFont: "font",
     // (2026-11-14, 사용자 「Text 기본값은 width · height fit-content」) 글자 상자는 글자 크기다 — 그전에는
     //   `width: 100%` (ADR-151 B22). layout fallback 채널 (top-level) 과 `structure.containerStyles`
     //   (생성 CSS) 가 같은 값을 든다.

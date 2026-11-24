@@ -261,15 +261,13 @@ function tagGroupMarkup(text: string): string {
   return text
     .replace(
       /<div aria-selected=(\w+) class=react-aria-Tag ([^>]*)><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=(\w+) slot=label>([^<]*)</g,
-      (_match, selected, rest, size, label) =>
+      (_match, selected, rest, _size, label) =>
         // (A Tag has no `variant` — RAC · S2 Tag has none; its selection is the group's, 2026-10-09.)
-        // (Its text in the Tag's content `div` — S2 `TagWrapper`, 2026-11-18.)
-        `<div aria-label=${label} aria-labelledby aria-selected=${selected} class=react-aria-Tag ${rest.replace(" data-variant=default", "")}><div aria-colindex=1 role=gridcell><div ><span class=react-aria-Text data-size=${size}>${label}</></><`,
+        // (Its text in the Tag's content `div` — S2 `TagWrapper`, 2026-11-18; no size of its own —
+        //  S2 `Text`, the Tag's font, 2026-11-24.)
+        `<div aria-label=${label} aria-labelledby aria-selected=${selected} class=react-aria-Tag ${rest.replace(" data-variant=default", "")}><div aria-colindex=1 role=gridcell><div ><span class=react-aria-Text>${label}</></><`,
     )
-    .replace(
-      /(<div ><span class=react-aria-Text data-size=\w+>[^<]*<\/><\/>)<\/>/g,
-      "$1",
-    );
+    .replace(/(<div ><span class=react-aria-Text>[^<]*<\/><\/>)<\/>/g, "$1");
 }
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
 /** Side label fields (their hints sit in the control's column — S2 `field()` grid, 2026-10-10). */
@@ -671,8 +669,10 @@ const fieldLabelRowMarkup = (markup: string) => {
 const labelInlineMarkup = (markup: string, type: string) => {
   if (PLAIN_LABEL_TYPES.includes(type)) return markup;
   const named = NECESSITY_NAMED_TYPES.includes(type);
+  // (2026-11-24 — S2 `Text` has no size of its own: the Label's words inherit the Label's font, no
+  //  `data-size`.)
   const text = (slot: string, content: string, hidden = false) =>
-    `<span ${hidden ? "aria-hidden=true " : ""}class=react-aria-Text data-size=M slot=${slot}>${content}</>`;
+    `<span ${hidden ? "aria-hidden=true " : ""}class=react-aria-Text slot=${slot}>${content}</>`;
   return markup.replace(
     /(<(?:label class=react-aria-Label for id|span class=react-aria-Label id)>)([^<]*)(?:<span ((?:aria-hidden=true )?)class=necessity-indicator (icon|label)>([^<]*)<\/>)?<\/>/g,
     (

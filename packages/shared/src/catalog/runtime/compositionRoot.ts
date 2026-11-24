@@ -49,6 +49,7 @@ import {
 } from "./inheritedProps";
 import { catalogWaterfallLayout } from "./waterfall";
 import { installedBaseText, installedBaseFontFamily } from "./themeMaps";
+import { catalogHeadingFontScale } from "./headingFont";
 import {
   DEFAULT_BASE_TYPOGRAPHY,
   catalogLocaleFontFamily,
@@ -1394,6 +1395,9 @@ interface CatalogInheritedFont {
   fontWeight?: number;
 }
 const INHERITED_FONT_KEYS = ["fontSize", "fontWeight"] as const;
+/** A rule without a font of its own (S2 `Text` · `Heading` — `ComponentRule.inheritsFont`). */
+const inheritsFont = (type: string): boolean =>
+  resolveComponentRule(type)?.inheritsFont !== undefined;
 /**
  * CSS `font-size` · `font-weight` are inherited: a box's value is its own declaration, else its
  * nearest declaring ancestor's. `declared` is what the DOM writes on a record (an authored value,
@@ -4710,9 +4714,58 @@ export class CatalogCompositionRoot {
     // (A Tree row box's written padding · gap — on the record, so an undo of the item's write
     //  compares against what the row had: `treeRowWrites`.)
     const treeRow = this.treeRowWrites(record, get);
-    return treeRow
-      ? { ...derived, _treeRow: JSON.stringify(treeRow) }
+    const font = this.inheritedFontOf(record, get, derived);
+    return treeRow || font
+      ? {
+          ...derived,
+          ...font,
+          ...(treeRow ? { _treeRow: JSON.stringify(treeRow) } : {}),
+        }
       : derived;
+  }
+  /**
+   * S2 `Text` · `Heading` (a rule's `inheritsFont`, 2026-11-24): the font the record has none of —
+   * no size step from an owner, none written — is its parent's DOM font (`domFont`), else the
+   * document's base text, as RAC's bare `span` · `h{level}` inherit it: a Heading's size at the
+   * browser's h rule scale (`catalogHeadingFontScale`), its weight its rule's.
+   */
+  private inheritedFontOf(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+    derived: Readonly<Record<string, unknown>> | undefined,
+  ): Record<string, number> | undefined {
+    const mode = resolveComponentRule(this.typeOf(record))?.inheritsFont;
+    if (!mode) return undefined;
+    const out: Record<string, number> = {};
+    const missing = INHERITED_FONT_KEYS.filter(
+      (key) =>
+        (key === "fontSize" || mode === "font") &&
+        !(Number(record.visual[key]) > 0) &&
+        derived?.[key] === undefined,
+    );
+    const parent = missing.length ? get(record.parentId) : undefined;
+    const font = parent
+      ? domFont(parent, get, (each) => this.declaredFont(each, get))
+      : undefined;
+    for (const key of missing)
+      out[key] =
+        key === "fontSize"
+          ? Math.round(
+              (font?.fontSize ?? installedBaseText().fontSize) *
+                (record.bindingId === "heading"
+                  ? catalogHeadingFontScale(record.props.level)
+                  : 1) *
+                1000,
+            ) / 1000
+          : (font?.fontWeight ?? 400);
+    // (No line height down the chain either: the DOM root's — `installedBaseText`, as `catalogStrut`.)
+    if (
+      !(Number(record.visual.lineHeight) > 0) &&
+      derived?.lineHeight === undefined &&
+      inheritedLineHeight(record, get) === undefined
+    )
+      out.lineHeight = installedBaseText().lineHeight;
+    return Object.keys(out).length ? out : undefined;
   }
   private ownDerivedOf(
     record: CatalogConsumerNode,
@@ -4737,7 +4790,7 @@ export class CatalogCompositionRoot {
       record.props.size.endsWith("lh")
     ) {
       const base = installedBaseText();
-      const font = domFont(record, get, (each) => this.declaredFont(each));
+      const font = domFont(record, get, (each) => this.declaredFont(each, get));
       const ratio =
         Number(record.visual.lineHeight) > 0
           ? Number(record.visual.lineHeight)
@@ -5390,7 +5443,24 @@ export class CatalogCompositionRoot {
    * The font size · weight the DOM writes on a record: the whole visual for a rule without a sheet
    * (`domBinding` writes it inline), else an authored value or a generated sheet's size value.
    */
-  private declaredFont(record: CatalogConsumerNode): CatalogInheritedFont {
+  private declaredFont(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+  ): CatalogInheritedFont {
+    // (A Text · Heading without a font of its own: its DOM font is what it inherits — a Heading's at
+    //  the browser's h rule scale, which its children inherit in turn.)
+    if (inheritsFont(this.typeOf(record))) {
+      const inherited = this.inheritedFontOf(record, get, undefined);
+      const font: CatalogInheritedFont = {};
+      for (const key of INHERITED_FONT_KEYS) {
+        const value =
+          Number(record.visual[key]) > 0
+            ? Number(record.visual[key])
+            : inherited?.[key];
+        if (value !== undefined && value > 0) font[key] = value;
+      }
+      return font;
+    }
     const rule = resolveComponentRule(this.typeOf(record));
     const structure = rule?.structure;
     const inline = !!rule && !structure;
@@ -5616,7 +5686,7 @@ export class CatalogCompositionRoot {
       "",
       inheritedLineHeight(record, get),
       record.children.length > 0
-        ? domFont(record, get, (each) => this.declaredFont(each))
+        ? domFont(record, get, (each) => this.declaredFont(each, get))
         : undefined,
       this.wrapBaselines.get(record.id),
       record.derivedProps?._actionIconOnly === true
@@ -8524,14 +8594,19 @@ export class CatalogCompositionRoot {
           : []),
         // A strut's font is the box's DOM font — inherited (`domFont`): its descendant boxes.
         ...(update.record.children.length > 0 &&
-        INHERITED_FONT_KEYS.some(
-          (key) =>
-            this.records.get(update.id)?.visual[key] !==
-            update.record.visual[key],
-        )
+        // (A Heading's own font is derived — `inheritedFontOf`, re-derived below — and changes with
+        //  its level: its words follow whenever it is re-planned.)
+        (inheritsFont(this.typeOf(update.record)) ||
+          INHERITED_FONT_KEYS.some(
+            (key) =>
+              this.records.get(update.id)?.visual[key] !==
+              update.record.visual[key],
+          ))
           ? textInheritors(update.record, get).filter(
               (record) =>
-                record.children.length > 0 || record.bindingId === "avatar",
+                record.children.length > 0 ||
+                record.bindingId === "avatar" ||
+                inheritsFont(this.typeOf(record)),
             )
           : []),
         ...(update.record.children.length > 0 &&

@@ -17,7 +17,7 @@ import type { PrimitiveBinding } from "../types";
  *   (2026-06-04)으로 catalog 측정 경로의 fontSize*1.5 fallback drift 해소.
  *
  * D1: RAC `Text` `<span>` (internal source — 전용 DomBinding).
- * D2: children/size 편집 surface.
+ * D2: children 편집 surface — `size` 는 owner context 전용 (S2 `Text` 에 없는 prop, 2026-11-24).
  * D3: 시각(텍스트 색/크기/lineHeight)은 theme rule(COMPONENT_RULES_TABLE.Text).
  */
 export const textBinding: PrimitiveBinding = {
@@ -28,11 +28,13 @@ export const textBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Text", section: "content" },
+      // (2026-11-24 — S2 `Text` has no `size`: an owner's context sets it, the author writes a font
+      //  size in Styles. No default — without one the words take the parent's font.)
       size: {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "M",
+        editorHidden: true,
       },
     },
     toRacProps: "default",

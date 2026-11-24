@@ -734,6 +734,7 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
         meta.containerStyles as ComponentSpec<unknown>["containerStyles"],
       defaultVariant: rule.defaultVariant,
       defaultSize: rule.defaultSize ?? "M",
+      ...(rule.inheritsFont ? { inheritsFont: true } : {}),
       variants,
       sizes,
       ...(meta.defaultBorder === "color"

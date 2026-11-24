@@ -70,8 +70,8 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
   },
   {
     type: "Text",
+    // (2026-11-24 — S2 `Text` has no size of its own: the parent's font reaches it.)
     props: {
-      size: "M",
       children: "Text",
     },
   },

@@ -15,7 +15,11 @@ import {
   REUSABLE_ORIGIN_TEMPLATES,
 } from "../generated/reusableOriginLibrary";
 import { CatalogGraph } from "../graph";
-import { LIBRARY_CONTRACT_VERSION, type CatalogEntry, type NodeEntry } from "../types";
+import {
+  LIBRARY_CONTRACT_VERSION,
+  type CatalogEntry,
+  type NodeEntry,
+} from "../types";
 import { paintAt } from "../../rule/rulePaintTree";
 
 const sourceValue = (value: string | number | undefined) => {
@@ -220,9 +224,15 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       )!;
       const source = COMPONENT_RULES_TABLE[type];
       expect(definition.bindingId).toBe(type.toLowerCase());
-      expect(definition.defaults.size).toBe(source.defaultSize);
+      // (S2 `Text` · `Heading` — `inheritsFont`: no default size; the parent's font reaches it.)
+      expect(definition.defaults.size).toBe(
+        source.inheritsFont ? undefined : source.defaultSize,
+      );
+      // (A Text's weight is inherited too — `"font"`; a Heading keeps its 600 — `"size"`.)
       expect(definition.visual.fontWeight).toBe(
-        source.variants.default.textWeight,
+        source.inheritsFont === "font"
+          ? undefined
+          : source.variants.default.textWeight,
       );
       expect(definition.propChoices?.size).toEqual(Object.keys(source.sizes));
       expect(definition.propVisualRules?.size?.M?.lineHeight).toBe(
@@ -378,9 +388,10 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       color: sourceValue(
         paintAt(COMPONENT_RULES_TABLE.Text.variants.default.paint.color),
       ),
-      fontSize: sourceValue(COMPONENT_RULES_TABLE.Text.sizes.M.fontSize),
-      fontWeight: COMPONENT_RULES_TABLE.Text.variants.default.textWeight,
     });
+    // (S2 `Text`: no size · weight of its own — the parent's font, 2026-11-24.)
+    expect(textResolved.visual.fontSize).toBeUndefined();
+    expect(textResolved.visual.fontWeight).toBeUndefined();
     expect(headingResolved.visual).toMatchObject({
       fontSize: sourceValue(COMPONENT_RULES_TABLE.Heading.sizes.L.fontSize),
       fontWeight: COMPONENT_RULES_TABLE.Heading.variants.default.textWeight,

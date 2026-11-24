@@ -185,6 +185,8 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
     children: [],
     props: {
       children: "{selectedCountText}",
+      // S2 `ActionBar.tsx` count `font: 'ui'` (14 — the Text's S; the bar has no size, 2026-11-24).
+      size: "S",
     },
     visual: {},
   },

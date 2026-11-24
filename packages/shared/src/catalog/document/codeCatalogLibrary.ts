@@ -215,11 +215,15 @@ function textDefinition(
       size: "string",
       ...(props.level ? { level: "number" as const } : {}),
     },
-    defaults: { size: rule.defaultSize },
+    // (S2 `Text` · `Heading` — `inheritsFont`: no size of its own (a Text no weight either); the
+    //  parent's font reaches it.)
+    defaults: rule.inheritsFont ? {} : { size: rule.defaultSize },
     propChoices: { size: Object.keys(sizes) },
     visual: {
       color: sourceToken(text, "color", theme, tokens),
-      fontWeight: variant.textWeight,
+      ...(rule.inheritsFont === "font"
+        ? {}
+        : { fontWeight: variant.textWeight }),
     },
     propVisualRules: { size: sizes },
     stateRules: {},
@@ -227,17 +231,15 @@ function textDefinition(
     //   — S2 `CenterBaseline`); the Text takes the Heading's type, as a Button's label takes its scale.
     ...(type === "Heading"
       ? {
-          partRules: Object.entries(sizes).map(
-            ([size, values]): PartRule => ({
-              child: { definitionId: catalogTypeDefinitionId("Text") },
-              when: { size },
-              visual: {
-                fontSize: values.fontSize!,
-                lineHeight: values.lineHeight!,
-                fontWeight: variant.textWeight,
-              },
-            }),
-          ),
+          partRules: Object.entries(sizes).map(([size, values]): PartRule => ({
+            child: { definitionId: catalogTypeDefinitionId("Text") },
+            when: { size },
+            visual: {
+              fontSize: values.fontSize!,
+              lineHeight: values.lineHeight!,
+              fontWeight: variant.textWeight,
+            },
+          })),
         }
       : {}),
   };

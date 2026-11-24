@@ -220,9 +220,23 @@ const INLINE_ALERT_LINE_HEIGHT: Record<
   string,
   { heading: number; description: number }
 > = {
-  S: { heading: 18 / 14, description: 16 / 12 },
-  M: { heading: 20 / 16, description: 18 / 14 },
-  L: { heading: 22 / 18, description: 20 / 16 },
+  S: { heading: 16 / 12, description: 16 / 12 },
+  M: { heading: 18 / 14, description: 18 / 14 },
+  L: { heading: 20 / 16, description: 20 / 16 },
+};
+/**
+ * 2026-11-24 (사용자 「5곳 전부 S2 기준으로」): the InlineAlert's heading is S2 `title-sm` (14) — the
+ * Heading one step below the alert's size (`CATALOG_SIZE_STEP.InlineAlert`).
+ */
+const INLINE_ALERT_HEADING_SIZE: Record<string, string> = {
+  S: "XS",
+  M: "S",
+  L: "M",
+};
+const INLINE_ALERT_HEADING_FONT: Record<string, number> = {
+  S: 12,
+  M: 14,
+  L: 16,
 };
 const MARGINS = ["marginTop", "marginRight", "marginBottom", "marginLeft"];
 /**
@@ -243,8 +257,17 @@ const colorNow = (color: unknown) =>
 const DESCRIPTION_SIZE_NOW: Record<string, string> = {
   popover: "S",
 };
-const fontSizeNow = (type: string, binding: string, fontSize: unknown) =>
-  type === "dialog" && binding === "description" ? 16 : fontSize;
+const fontSizeNow = (
+  type: string,
+  binding: string,
+  fontSize: unknown,
+  alertSize: string,
+) =>
+  type === "dialog" && binding === "description"
+    ? 16
+    : type === "inline-alert" && binding === "heading"
+      ? INLINE_ALERT_HEADING_FONT[alertSize]
+      : fontSize;
 /**
  * A markup without inline style (the structure — the values are asserted on their own). The style
  * ends at the next attribute (`normalize` sorts them, unquoted) — not at `>`: a style on the Dialog
@@ -308,14 +331,16 @@ function expectSinceConversion(
     expect(part.binding).toBe(was.binding);
     expect(part.text).toBe(was.text);
     expect(part.visual.fontSize).toBe(
-      fontSizeNow(type, was.binding, was.visual.fontSize),
+      fontSizeNow(type, was.binding, was.visual.fontSize, alertSize),
     );
     expect(part.visual.color).toBe(colorNow(was.visual.color));
     if (type === "inline-alert") {
       const heading = part.binding === "heading";
       // `9d68000e6`: the description is the alert's size (the one-step-up table is gone — the
       //   Description ladder itself moved up, the font sizes stay 12/14/16).
-      expect(part.size).toBe(alertSize);
+      expect(part.size).toBe(
+        heading ? INLINE_ALERT_HEADING_SIZE[alertSize] : alertSize,
+      );
       expect(Number(part.visual.fontWeight)).toBe(heading ? 600 : 400);
       expect(part.visual.lineHeight).toBeCloseTo(
         INLINE_ALERT_LINE_HEIGHT[alertSize]![
@@ -371,7 +396,8 @@ function expectSinceConversion(
           // ADR-276: a Button's words are its Text{label} child (`span.react-aria-Text`).
           .replace(
             /(slot=close[^>]*)>Close<\/>/,
-            "$1><span class=react-aria-Text data-size=M slot=label>Close</></>",
+            // (S2 `Text` has no size of its own — the Button's font, 2026-11-24.)
+            "$1><span class=react-aria-Text slot=label>Close</></>",
           )
           // ADR-278: the description is the `content` slot's default content — the placed
           // instance's own node (2026-10-14), which carries its DOM id like any owned node.
@@ -380,7 +406,8 @@ function expectSinceConversion(
           // words are the Content's Text (no description slot), the buttons a ButtonGroup.
           .replace(
             "<div><span class=react-aria-Text slot=description>Dialog content goes here.</>",
-            "<div class=react-aria-Content data-size=M data-variant=default><span class=react-aria-Text data-size=M id>Dialog content goes here.</>",
+            // (The words take the Content's font — S2 `Text`, 2026-11-24.)
+            "<div class=react-aria-Content data-size=M data-variant=default><span class=react-aria-Text id>Dialog content goes here.</>",
           )
           .replace(
             "<div class=react-aria-DialogFooter data-size=M>",

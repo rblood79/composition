@@ -241,6 +241,12 @@ const GRID_LIST_TRACKS = "repeat(2, minmax(0, 1fr))";
  * S2 sizing 숫자라 터치 × 1.25 (ADR-295 후속 — `scaledLengthRef`, 정의가 토큰 사용으로 바꾼다).
  */
 const TREE_ROW_HEIGHT = scaledLengthRef(40);
+/** A TreeItem's row words' line at the item's size (the Text one step below — S2 `controlFont()`). */
+const TREE_ROW_TEXT_LINE = {
+  S: "{typography.text-xs--line-height}",
+  M: "{typography.text-sm--line-height}",
+  L: "{typography.text-base--line-height}",
+} as const;
 
 const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // S2 Divider: one borderless rounded leaf, zero margin, stretches along its length.
@@ -877,30 +883,31 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       // out as the row itself — the `Tree.css` row box above, while the item is a column holding
       // the row and then its child items (`catalogTreeItemLayout` — RAC draws them as the next
       // rows, ADR-256 후속 14). The chevron's `height: 100%` reads an indefinite row height: its own.
-      {
-        childType: "TreeItemContent",
-        layout: {
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-        },
-        // (No minimum of its own — user 2026-10-25 「treeItemcontent 에 minWidth 0 → auto, minHeight
-        // auto」: the row's height is its item's.) The DOM row centres its line in that height
-        // (`align-items: center`), so the row content's paddingY is what centres the item's line
-        // (`Tree.css` row font `--text-base`) in `TREE_ROW_HEIGHT` — at least the sheet's 4. ADR-295 Phase 3: with the S2
-        // line-height formula (16 → 20) the old fixed 4 left the Canvas row 28 (it was 32 only
-        // because the old line was 24).
-        visual: {
-          gap: 2,
-          paddingY: Math.max(
-            4,
-            ((px(TREE_ROW_HEIGHT) ?? 40) -
-              (px("{typography.text-base--line-height}") ?? 24)) /
-              2,
-          ),
-          paddingX: 8,
-        },
-      },
+      // (No minimum of its own — user 2026-10-25 「treeItemcontent 에 minWidth 0 → auto, minHeight
+      // auto」: the row's height is its item's.) The DOM row centres its line in that height
+      // (`align-items: center`), so the row content's paddingY is what centres the item's line in
+      // `TREE_ROW_HEIGHT` — at least the sheet's 4. ADR-295 Phase 3: with the S2 line-height formula
+      // the old fixed 4 left the Canvas row 28. 2026-11-24: the line is the row's words at the item's
+      // size (`CATALOG_SIZE_STEP.TreeItem` — S2 `controlFont()`: S 12 · M 14 · L 16), one row per size.
+      ...Object.entries(TREE_ROW_TEXT_LINE).map(
+        ([size, line]): CompiledPartRule => ({
+          childType: "TreeItemContent",
+          size,
+          layout: {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+          },
+          visual: {
+            gap: 2,
+            paddingY: Math.max(
+              4,
+              ((px(TREE_ROW_HEIGHT) ?? 40) - (px(line) ?? 24)) / 2,
+            ),
+            paddingX: 8,
+          },
+        }),
+      ),
       {
         childType: "Checkbox",
         via: "TreeItemContent",

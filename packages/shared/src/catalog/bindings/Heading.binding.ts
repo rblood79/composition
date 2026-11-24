@@ -26,11 +26,14 @@ export const headingBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Text", section: "content" },
+      // (2026-11-24 — S2 `Heading` has no `size`: an owner's context or a template sets it, the
+      //  author writes a font size in Styles. No default — without one the browser's h rule scale of
+      //  the parent's font.)
       size: {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "M",
+        editorHidden: true,
       },
       level: {
         kind: "number",

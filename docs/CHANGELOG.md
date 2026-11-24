@@ -11,6 +11,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Text · Heading 글자 상속 — S2 `Text` · `Heading` 처럼 자기 글자 없음] - 2026-11-24
+
+### Breaking Changes
+
+- **Text · Heading 의 Size 칸 제거**: S2 `Text` · `Heading` 에는 `size` prop 이 없다. 크기 단계는 이제 owner (Table 칸 · Tree 행 · InlineAlert · Dialog …) 와 template 만 내려준다. 글자 크기를 직접 정하려면 Styles 의 Font size 를 쓴다. 문서에 이미 저장된 `size` 값은 그대로 적용된다 (마이그레이션 없음).
+
+### Changed
+
+- **크기 단계가 없는 Text 는 부모의 글자를 상속한다** (사용자 「B 로 진행해 — S2 레퍼런스 대로」):
+  - 상속하는 값은 글자 크기 · 굵기 · 줄 높이이고, 부모가 아무것도 정하지 않았으면 문서 기준값 (16 · 400 · 1.5) 이 쓰인다. 그전에는 늘 자기 M (16 / 20) 이었다.
+  - 자기 값이 이긴다: owner 가 준 크기 단계나 Styles 에서 쓴 Font size 가 있으면 상속하지 않는다.
+  - 화면이 달라지는 곳은 크기를 내려받지 않던 Text 다. 예를 들어 frame 이나 Body 에 Font size 를 주면 안의 Text 가 따라간다. Label · Tag · Button · Dialog Content 안의 Text 는 `data-size` 없이 그 부모의 글자를 받는다.
+  - **Why**: RAC `Text` 는 스타일 없는 `span` 이고, S2 `Text` 의 class 는 `styles` 뿐이다 (`src/Content.tsx`). 글자는 부모 상속이나 slot context 의 `styles` 로만 정해진다. composition 은 Text 마다 M 을 늘 써서 부모의 글자를 끊었다.
+- **크기 단계가 없는 Heading 은 브라우저의 h 태그 배수로 부모 글자를 받는다** (사용자 「1과2 모두」 · 「0 으로 진행해」):
+  - 크기 = 부모 글자 × level 배수 (h1 2 · h2 1.5 · h3 1.17 · h4 1 · h5 0.83 · h6 0.67 — HTML 렌더링 규칙, RAC 기본 level 3). 굵기 600 · margin 0 은 그대로다 (`Content.css`).
+  - owner 의 크기 단계 (Dialog · InlineAlert · Popover · Sheet …) · Menu 섹션 Header 의 글자 · 직접 쓴 값이 이긴다. Library 의 Heading 은 거의 모두 이쪽이라 화면 변화가 없다.
+  - Heading 안의 Text (AlertDialog 제목) 는 Heading 의 글자를 받는다.
+  - **Why**: RAC `Heading` 은 스타일 없는 `h{level}` 이고 S2 는 `styles` 만 더한다 — 혼자 놓인 S2 Heading 의 글자는 브라우저 h 규칙이다. S2 는 사용처마다 context 로 글자와 `margin: 0` 을 준다 (Dialog · InlineAlert · ContextualHelp · Menu 섹션 …).
+- 구현:
+  - rule 에 `inheritsFont` (`"font"` = Text · `"size"` = Heading) 를 추가했다.
+  - 생성 CSS 의 기본 블록과 `Content.css` 의 Text 는 이제 글자 크기 · 줄 높이를 쓰지 않는다.
+  - Canvas 는 부모의 DOM 글자를 읽는다 (`domFont` → `derivedProps`, Heading 은 `headingFont.ts` 배수). 부모 글자나 Heading level 이 바뀌면 다시 계산한다. DOM 은 글자 요소에 Canvas 가 계산한 크기를 inline 으로 쓴다 (기존 경로).
+- 위치:
+  - `packages/shared/src/types/catalog-style.types.ts` · `catalog/generated/componentRulesTable.ts` (Text · Heading) · `bindings/{Text,Heading}.binding.ts`
+  - `document/codeCatalogLibrary.ts` · `runtime/compositionRoot.ts` (`inheritedFontOf` · `declaredFont`) · `runtime/headingFont.ts`
+  - `packages/rendering/src/renderers/CSSGenerator.ts` (`skipFont`) · `packages/shared/src/components/styles/Content.css`
+
+### Tests
+
+- `s2TextInheritsFont.test.ts` 11개:
+  - Text: frame 20 · 700 상속, Body 기준 16 · 1.5, frame 편집 · Undo 추종, 자기 Font size 우선, Size 칸 없음, 생성 CSS 기본 블록.
+  - Heading: h3 = frame 20 × 1.17 · 600, level 편집 (h1 → h6) 과 안의 Text 추종, owner 크기 단계 우선, Menu 섹션 제목 14 · 700, Size 칸 없음, 생성 CSS 기본 블록.
+  - 원복 RED 10행 (Text 5 · Heading 5 — 배수 · 안의 글자 상속 · level 재계산 · binding 기본값 · rule 표시) 이 각각 반응했다.
+  - 기대값 갱신: `adr253FieldPartsDom` (Label · Tag 안 Text) · `adr254ContainerParts` (Dialog) · `rewrapUsedBorder` (줄 높이 1.5) · `codeCatalogLibrary` · `defaultPropsOracle` · `fieldEditor.static` (7단 예시 목록).
+- live (Chrome, Compare Mode):
+  - Body Font size 24 → 새 Text 의 Canvas 46×36 / 줄 높이 36, DOM 24px / 36px / `data-size` 없음.
+  - TagGroup 의 Tag 글자 DOM 14 / 18, Canvas 글자 위치 Mint 111.6 = DOM 111.6.
+  - Disclosure · InlineAlert 의 Heading DOM 14 · 600 · margin 0, Disclosure 제목은 비교 경계를 가로질러 어긋남 없음.
+  - Table · Tree · ActionBar · InlineAlert 글자는 14 그대로였다.
+
+## [M 크기 글자 S2 정렬 — Table · Tree · ActionBar · InlineAlert · CollectionCard] - 2026-11-24
+
+### Fixed
+
+- **M 크기 글자가 16 으로 그려지던 5곳을 S2 값으로** (사용자 「components library M size fontsize 전체 체크」 → 「5곳 전부 S2 기준으로」 — Library 글자 745개 전수 대조):
+  - Table 칸 · 열 제목 16 → 14 (S2 `TableView` `controlFont()`), Tree 행 16 → 14 (S2 `TreeView` `ui`) — 칸 · 열 · TreeItem 의 크기가 안의 Text 에 한 단계 아래로 닿는다 (S 12 · M 14 · L 16). Tree 행은 크기마다 40 을 유지한다 (S2 행 높이).
+  - ActionBar 선택 개수 16 → 14 (S2 `ui`), InlineAlert 제목 16 → 14 (S2 `title-sm` — 알림 크기 S 12 · L 16).
+  - CollectionCard 설명 (frame 안) Canvas 16 → 12 — Card 의 제목 · 설명 크기가 Content 안 frame 을 건너 닿는다 (DOM 은 이미 12 — Canvas 만 달랐다).
+  - **Why**: 글자는 `Text` 노드의 자기 크기 (M 16) 를 쓰는데, 이 owner 들이 S2 처럼 글자 크기를 내려주지 않았다.
+  - 위치: `packages/shared/src/catalog/document/sizePropagation.ts` (`CONTROL_TEXT_STEP` · InlineAlert Heading) · `manualBoxRules.ts` (Tree 행 padding 크기별) · `selectionCompositesOrigins.ts` (ActionBar 개수) · `resolution/resolver.ts` (`CATALOG_PART_RULE_FRAMED_WRAPPERS`)
+
+### Tests
+
+- `s2ControlTextFontSize.test.ts` 5 — 원복 RED: sizePropagation (Table · Tree · InlineAlert) · ActionBar template · resolver (CollectionCard) 각각. `adr254ContainerParts` InlineAlert 제목 기대값 갱신, Tree 행 40 은 `adr256Followups` 가 그대로 지킨다. live: 새 프로젝트 Library 와 Compare Mode — Canvas record · Preview DOM 계산값 둘 다 14 · 12, Tree 행 40 · 설명 높이 15 일치.
+
 ## [ImageCoordinator — S2 이미지 묶음 공개] - 2026-11-24
 
 ### Added

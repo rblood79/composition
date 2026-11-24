@@ -653,6 +653,8 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     lines.push("  /* Default size */");
     lines.push(
       ...generateSizeStyles(defaultSize, {
+        // (S2 `Text` — `inheritsFont`: no font of its own; a record without a size takes its parent's.)
+        skipFont: spec.inheritsFont,
         iconPin: iconPinVar(spec.name, spec.defaultSize),
         lengthPin: (key) => lengthPinVar(spec.name, key, spec.defaultSize!),
         skipHeight: skipDefaultHeight,
@@ -876,6 +878,8 @@ function generateSizeStyles(
     skipBorderRadius?: boolean;
     skipGap?: boolean;
     skipBorderWidth?: boolean;
+    /** No font size · line height (a rule's `inheritsFont` base block). */
+    skipFont?: boolean;
     /** ADR-295 Phase 3b: the per-component pin of a `{size.icon.<S>}` icon (`iconPinVar`). */
     iconPin?: string;
     /** ADR-295 Phase 3c-3: the per-component pin of a relative padding · gap (`lengthPinVar`). */
@@ -920,7 +924,7 @@ function generateSizeStyles(
 
   // font-size — a size without one (Avatar · Meter fill …) declares none, not an empty `font-size: ;`
   //   (2026-11-09 — `generate-css.ts` fills a missing field with "").
-  if (size.fontSize)
+  if (size.fontSize && !options?.skipFont)
     lines.push(`  font-size: ${tokenToCSSVar(size.fontSize)};`);
 
   // border-radius — ADR-071: containerStyles.borderRadius 존재 시 skip (이중 emit 방지)
@@ -936,7 +940,7 @@ function generateSizeStyles(
   // ─── Phase 2a Level 1 확장 필드 ───
 
   // line-height
-  if (size.lineHeight !== undefined) {
+  if (size.lineHeight !== undefined && !options?.skipFont) {
     if (typeof size.lineHeight === "number") {
       lines.push(`  line-height: ${size.lineHeight}px;`);
     } else {

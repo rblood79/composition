@@ -265,6 +265,11 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
 
   /** 기본 size */
   defaultSize: string;
+  /**
+   * The rule's `inheritsFont` (S2 `Text`, 2026-11-24): the base block writes no font size · line
+   * height — a `[data-size]` block applies only to a record that has a size; else the parent's font.
+   */
+  inheritsFont?: boolean;
 
   /**
    * ADR-096: 인트린직 폭 기본값 (px).

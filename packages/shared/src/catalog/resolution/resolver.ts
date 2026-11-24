@@ -1248,6 +1248,16 @@ export const CATALOG_PART_RULE_PASS_HOSTS: Readonly<
   CalendarYearPicker: new Set(["CalendarMonth"]),
 };
 /**
+ * `via` wrappers whose owner's rules reach the parts in a layout frame inside them (wrapper type →
+ * owner types): an S2 Card's `TextContext` reaches a title · description in a `div` in its Content —
+ * S2 CollectionCard's meta row (2026-11-24 — the DOM's Card sheet is a descendant selector).
+ */
+const CATALOG_PART_RULE_FRAMED_WRAPPERS: Readonly<
+  Record<string, ReadonlySet<string>>
+> = {
+  Content: new Set(["Card"]),
+};
+/**
  * Layout rows a part rule's owner reaches through like a `frame`: S2's `DisclosureHeader` (the
  * Disclosure title Heading's row, 2026-11-18 — the Disclosure sheet styles the Heading and trigger
  * in it).
@@ -2322,7 +2332,22 @@ export function resolveCatalogNode(
           name === "RangeSlider")
       );
     };
-    const owner = toggleFamily(pastFrames(near)) ? pastFrames(near)! : near;
+    // (A `via` wrapper whose owner's rules reach a frame in it — a Card's Content,
+    //  `CATALOG_PART_RULE_FRAMED_WRAPPERS`.)
+    const framedWrapper = (context: ParentContext | undefined) => {
+      const owners =
+        context &&
+        CATALOG_PART_RULE_FRAMED_WRAPPERS[
+          lookupDefinition(context.definitionId).name
+        ];
+      const above = owners && structuralParent(context.parent);
+      return !!above && owners.has(ruleDefinitionOf(above.definitionId).name);
+    };
+    const pastNear = pastFrames(near);
+    const owner =
+      toggleFamily(pastNear) || (pastNear !== near && framedWrapper(pastNear))
+        ? pastNear!
+        : near;
     const grandNear = structuralParent(owner.parent);
     const grandHost = toggleFamily(pastFrames(grandNear))
       ? pastFrames(grandNear)

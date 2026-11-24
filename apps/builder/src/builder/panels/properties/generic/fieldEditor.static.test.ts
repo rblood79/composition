@@ -149,10 +149,14 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
       type: "seg",
       span: "wide",
     }); // S~XL
-    const text = fields.find(
-      (f) => f.type === "Text" && f.field.key === "size",
-    )!.field;
-    expect(text.options?.length).toBe(7);
+    // (A seven-step size list — the Text · Heading rule's XS ~ XXXL; their Size editors are hidden
+    //  since 2026-11-24, S2 `Text` · `Heading` have no `size`, so the list is built here.)
+    const text = {
+      options: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"].map((step) => ({
+        value: step,
+        label: step,
+      })),
+    };
     expect(sizeSegOptions(text.options ?? []).map((o) => o.label)).toEqual([
       "XS",
       "S",

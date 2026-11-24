@@ -496,6 +496,16 @@ export interface ComponentRule {
   partStateStyles?: Readonly<Record<string, ComponentRuleStateStyles>>;
   defaultVariant?: string;
   defaultSize?: string;
+  /**
+   * S2 `Text` · `Heading` (`src/Content.tsx` — no font of its own, 2026-11-24 사용자 「B 로 진행해 — S2
+   * 레퍼런스 대로」): a size step applies only when the record has one (an owner's context —
+   * `CATALOG_SIZE_PROPAGATION`, a template's value); without one the words take the parent's font
+   * (CSS inheritance). The generated sheet's base block writes no font size · line height and the
+   * Canvas reads the inherited font (`domFont`). `"font"` = size, weight and line height (RAC's bare
+   * `span`); `"size"` = size and line height — the weight stays the rule's (a Heading's 600) and the
+   * size is the browser's h rule scale of the parent's (`headingFont.ts`).
+   */
+  inheritsFont?: "font" | "size";
   variants: Record<string, ComponentRuleVariant>;
   sizes: Record<string, ComponentRuleSize>;
   /** Locale별 텍스트 기본값. 저작·Library·Theme의 명시 값이 우선한다. 키는 BCP 47 언어다. */
