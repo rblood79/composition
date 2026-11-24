@@ -654,8 +654,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // `text-to-visual` — catalog `Breadcrumb.sizes[size].gap`) and the separator Icon S2's Chevron M box
   // (`Breadcrumb.sizes[size].iconSize` — 10, the desktop set: a part rule's `iconSize` is a number). A crumb's
   // label Text sits in its `.breadcrumb-link` (RAC Link) or `.breadcrumb-current` and inherits its font
-  // (`.react-aria-Text { inherit }`): the size font at the Link sheet's line-height ratio, regular
-  // weight (the current crumb's weight and color are `catalogTextMetrics`').
+  // (`.react-aria-Text { inherit }`): the size font at the Link sheet's line-height ratio and the
+  // crumb's weight (the current crumb's bold — `compositionRoot` `declaredFont`; its color is
+  // `catalogTextMetrics`').
   Breadcrumbs: () => ({
     parts: Object.entries(sizesOf("Breadcrumbs")).flatMap(
       ([name, values]): CompiledPartRule[] => {
@@ -685,7 +686,8 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
               ...(linkLineHeightRatio()
                 ? { lineHeight: linkLineHeightRatio()! }
                 : {}),
-              fontWeight: 400,
+              // (No weight of its own — the words inherit the crumb's: regular, or the current
+              //  crumb's S2 `currentStyles` bold — `declaredFont`, `.claude/rules/text-font.md`.)
               // The link's color (`.breadcrumb-link { color: var(--fg-muted) }`) = catalog
               // `Breadcrumb` paint color (S2 `neutral-subdued`); the current crumb's `neutral` bold is
               // `catalogTextMetrics`'.
@@ -768,7 +770,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
               ? { fontSize: fontOf(base?.fontSize, px(base?.fontSize)!) }
               : {}),
             ...(ratio ? { lineHeight: ratio } : {}),
-            fontWeight: 400,
+            // (A Link keeps its regular weight; a Text inherits the crumb's — the current crumb's
+            //  bold, `.claude/rules/text-font.md`.)
+            ...(childType === "Link" ? { fontWeight: 400 } : {}),
             ...(paintAt(rule?.variants.default?.paint.color)
               ? { color: paintAt(rule?.variants.default?.paint.color) }
               : {}),

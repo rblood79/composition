@@ -157,7 +157,6 @@
     margin: 0;
     flex-grow: 1;
     min-width: 0;
-    font-size: inherit;
   }
 
   .react-aria-Disclosure .react-aria-Button[slot='trigger'] {
@@ -171,8 +170,6 @@
     align-items: center;
     text-align: start;
     justify-content: flex-start;
-    font-size: inherit;
-    line-height: inherit;
     gap: var(--disclosure-trigger-px, var(--spacing-xs));
     min-height: var(--disclosure-trigger-h);
     padding: var(--disclosure-trigger-py) var(--disclosure-trigger-px, var(--spacing-md));
@@ -228,14 +225,34 @@
   }
 
 
+  .react-aria-Disclosure[data-size="S"] .react-aria-Button[slot='trigger'] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+  }
+
   .react-aria-Disclosure[data-size="S"] .react-aria-DisclosurePanel > div {
     padding-left: 8px;
     padding-right: 8px;
   }
 
+  .react-aria-Disclosure[data-size="M"] .react-aria-Button[slot='trigger'] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+  }
+
+  .react-aria-Disclosure[data-size="L"] .react-aria-Button[slot='trigger'] {
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
+  }
+
   .react-aria-Disclosure[data-size="L"] .react-aria-DisclosurePanel > div {
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .react-aria-Disclosure[data-size="XL"] .react-aria-Button[slot='trigger'] {
+    font-size: var(--catalog-token-text-xl);
+    line-height: var(--catalog-token-text-xl--line-height);
   }
 
   .react-aria-Disclosure[data-size="XL"] .react-aria-DisclosurePanel > div {

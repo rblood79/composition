@@ -128,7 +128,8 @@ describe("S2 §9.3 AlertDialog", () => {
     const titleText = of("Text").find(
       (text) => root.typeOf(root.canvasInputs.get(text.parentId)!) === "Heading",
     )!;
-    expect(titleText.visual.fontWeight).toBe(600);
+    // (The Heading's bold 700 — `.claude/rules/text-font.md` 2026-11-24.)
+    expect(titleText.visual.fontWeight).toBe(700);
     const dialog = await open();
     const title = dialog.querySelector("h2, h3, [slot='title']")!;
     expect(dialog.getAttribute("aria-labelledby")).toBe(title.id);

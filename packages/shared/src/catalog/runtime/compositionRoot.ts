@@ -49,7 +49,7 @@ import {
 } from "./inheritedProps";
 import { catalogWaterfallLayout } from "./waterfall";
 import { installedBaseText, installedBaseFontFamily } from "./themeMaps";
-import { catalogHeadingFontScale } from "./headingFont";
+import { catalogHeadingFontScale, catalogHeadingLevel } from "./headingFont";
 import {
   DEFAULT_BASE_TYPOGRAPHY,
   catalogLocaleFontFamily,
@@ -4753,7 +4753,11 @@ export class CatalogCompositionRoot {
           ? Math.round(
               (font?.fontSize ?? installedBaseText().fontSize) *
                 (record.bindingId === "heading"
-                  ? catalogHeadingFontScale(record.props.level)
+                  ? catalogHeadingFontScale(
+                      catalogHeadingLevel(record, get, (each) =>
+                        this.typeOf(each),
+                      ),
+                    )
                   : 1) *
                 1000,
             ) / 1000
@@ -5482,6 +5486,19 @@ export class CatalogCompositionRoot {
         (authored ??= catalogAuthoredVisual(this, record))[key] !== undefined
       )
         out[key] = value;
+    }
+    // (The current crumb's `div.breadcrumb-current` — S2 `currentStyles` `fontWeight: 'bold'`,
+    //  catalog `Breadcrumb.currentTextWeight` — is the weight its words inherit: `text-font.md`
+    //  §2 「record = 그려지는 값」.)
+    if (
+      out.fontWeight === undefined &&
+      this.typeOf(record) === "Breadcrumb" &&
+      // (By structure, as `presence` derives `_isLast` — the crumb's derived props may not be set
+      //  yet while its words are derived.)
+      !catalogBreadcrumbSeparator(record, get, (each) => this.typeOf(each))
+    ) {
+      const current = catalogCurrentTextWeight("Breadcrumb");
+      if (current !== undefined) out.fontWeight = current;
     }
     return out;
   }

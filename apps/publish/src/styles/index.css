@@ -65,15 +65,8 @@ h6 {
   overflow-wrap: break-word;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-size: inherit;
-  font-weight: inherit;
-}
+/* (No h font reset: S2 · RAC keep the browser's h rule — bold, the level's scale — as the floor of a
+   Heading's font; owners and authored values sit above it. `.claude/rules/text-font.md` 2026-11-24.) */
 
 /* ============================================
    Base Styles

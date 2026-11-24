@@ -5991,20 +5991,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         // S2 `panelInner` `paddingX` by size: 8 · space(9) · 12 · space(15) — M's 9 is the static block's.
+        // The trigger's title font by size — S2 `buttonStyles` `fontSize` title-sm · title · title-lg ·
+        //   title-xl (= the Disclosure's size font) · `lineHeight: 'ui'` (`.claude/rules/text-font.md`).
         sizeSelectors: {
           S: {
+            ".react-aria-Button[slot='trigger']": {
+              "font-size": "var(--text-sm)",
+              "line-height": "var(--text-sm--line-height)",
+            },
             ".react-aria-DisclosurePanel > div": {
               "padding-left": "8px",
               "padding-right": "8px",
             },
           },
+          M: {
+            ".react-aria-Button[slot='trigger']": {
+              "font-size": "var(--text-base)",
+              "line-height": "var(--text-base--line-height)",
+            },
+          },
           L: {
+            ".react-aria-Button[slot='trigger']": {
+              "font-size": "var(--text-lg)",
+              "line-height": "var(--text-lg--line-height)",
+            },
+
             ".react-aria-DisclosurePanel > div": {
               "padding-left": "12px",
               "padding-right": "12px",
             },
           },
           XL: {
+            ".react-aria-Button[slot='trigger']": {
+              "font-size": "var(--text-xl)",
+              "line-height": "var(--text-xl--line-height)",
+            },
             ".react-aria-DisclosurePanel > div": {
               "padding-left": "15px",
               "padding-right": "15px",
@@ -6024,12 +6045,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             // S2 `headingStyle`: the Heading fills its row (`flexGrow: 1 · minWidth: 0`).
             "flex-grow": "1",
             "min-width": "0",
-            // `<Heading>` 은 `<h3>` 로 렌더돼 **브라우저 기본 h3 font-size(16px)** 를 갖는다 →
-            //   `.react-aria-Disclosure[data-size]` 의 font-size 상속 체인을 여기서 끊는다.
-            //   아래 trigger 버튼의 `font-size: inherit` 는 **직계 부모**(= 이 Heading)를 따르므로,
-            //   Heading 이 먼저 inherit 하지 않으면 버튼이 h3 기본 16px 을 물려받는다
-            //   (sm 실측: Disclosure 12px → Heading 16px → Button 16px, 기대 12px).
-            "font-size": "inherit",
+            // (No font: S2 `headingStyle` declares none — the browser's h3 of its row, 2026-11-24
+            //   `.claude/rules/text-font.md`. The trigger has its own size font.)
           },
           // 헤더 trigger 버튼 — starter `.disclosure-button` 정합 (flex + font-weight 600 + hover bg).
           //   composition <Disclosure> 는 <Heading><Button slot="trigger"> 구조라 RAC 기본 .react-aria-Button.
@@ -6055,12 +6072,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   Skia 는 `DisclosureHeader.sizes.fontSize`(sm 12 / md 14 / lg 16)를 그리므로
             //   sm/lg 에서 DOM↔Skia 비대칭. `inherit` 로 부모 size 폰트를 받는다 — 위
             //   justify-content 와 **동일한 "Button base 가 부모를 덮는다"** 함정.
-            //   대칭 근거: `Disclosure.sizes.fontSize` = `DisclosureHeader.sizes.fontSize`
-            //   (둘 다 text-xs/text-sm/text-base) → inherit 값이 Skia 가 읽는 값과 일치.
-            "font-size": "inherit",
-            // S2 `lineHeight: 'ui'` — the title font's own line (the size's typography line, which the
-            //   Disclosure declares), not the Button base's ratio.
-            "line-height": "inherit",
+            //   2026-11-24 (`.claude/rules/text-font.md` §2): not `inherit` any more — its parent is
+            //   the Heading (the browser's h3, 1.17 ×). S2 `buttonStyles` gives the trigger its own
+            //   `fontSize` (`title-sm` · `title` · `title-lg` · `title-xl`) and `lineHeight: 'ui'`:
+            //   the size blocks below (`sizeSelectors`) — the Disclosure's size font.
             gap: "var(--disclosure-trigger-px, var(--spacing-xs))",
             // 높이 = size · density 별 S2 trigger 높이 (`containerVariants` 의 변수).
             "min-height": "var(--disclosure-trigger-h)",
@@ -7140,7 +7155,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   잡혀 false dirty. 600 흡수로 baseline=시각 정본. InlineAlert Heading 은 InlineAlert.sizes
         //   .headingFontWeight=700 별도 경로(당시 StoreRenderBridge/fullTreeLayout — 삭제됨)라 무영향.
         //   (이전: buildCatalogShapes fallback 500 drift 차단용 700 명시 — 정본 재판정으로 600)
-        textWeight: 600,
+        // 2026-11-24 (사용자 「700 으로 규칙 확정」 — `.claude/rules/text-font.md` §1): the browser's h
+        //   rule bold, as S2 `Heading` (no font of its own) draws without an owner's.
+        textWeight: 700,
       },
     },
     sizes: {

@@ -411,8 +411,9 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
     expect(getComputedStyle(groupElement).gap).toBe("8px");
     expect(textElement.textContent).toBe("저장");
     expect(getComputedStyle(textElement).fontSize).toBe("16px");
-    // (ADR-295 Phase 3: the S2 line-height formula — 16 → 20.)
-    expect(getComputedStyle(textElement).lineHeight).toBe("20px");
+    // (A Text without a size step takes the document's base text — 16 at 1.5 → 24:
+    //  `.claude/rules/text-font.md` §1, 2026-11-24. Was the Text's own M line 20.)
+    expect(getComputedStyle(textElement).lineHeight).toBe("24px");
     expect(getComputedStyle(textElement).fontWeight).toBe("400");
     // (ADR-302 — `{color.neutral}` = the Spectrum gray-800 step, #292929.)
     expect(getComputedStyle(textElement).color).toBe("rgb(41, 41, 41)");

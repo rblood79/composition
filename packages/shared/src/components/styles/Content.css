@@ -1,7 +1,8 @@
 @layer components {
   /* Heading component */
+  /* S2 `Heading` has no font of its own: the browser's h rule (bold · the level's scale) is the
+     floor (`.claude/rules/text-font.md`). */
   .react-aria-Heading {
-    font-weight: 600;
     color: var(--fg);
     margin: 0;
   }

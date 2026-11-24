@@ -1445,14 +1445,21 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
       ) ??
       buttonIcon ??
       rule.sizes[size]?.iconSize;
+    // (A `var(--text-*)` · `var(--text-*--line-height)` of the sheet is its typography token — the
+    //   trigger's own title font by size, S2 `buttonStyles`; 2026-11-24 `text-font.md`.)
+    const typographyRef = (css: string | undefined) => {
+      const step = css && /^var\(--(text-[a-z0-9-]+)\)$/.exec(css.trim())?.[1];
+      return step ? `{typography.${step}}` : undefined;
+    };
+    const triggerFontRef = typographyRef(sizeTrigger["font-size"]);
     const fontSize =
       sizeTrigger["font-size"] === "inherit"
         ? px(rule.sizes[size]?.fontSize)
-        : px(sizeTrigger["font-size"]);
+        : px(triggerFontRef ?? sizeTrigger["font-size"]);
     // ADR-295 Phase 3: the size's typography token keeps its ref (a token value in the library — the
     //   DOM writes its device variable, so the title follows the touch set as the inherited sheet font
     //   does; a px went inline and stayed desktop).
-    const sizeFont = rule.sizes[size]?.fontSize;
+    const sizeFont = triggerFontRef ?? rule.sizes[size]?.fontSize;
     const fontValue =
       fontSize !== undefined &&
       typeof sizeFont === "string" &&
@@ -1463,7 +1470,10 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
     const triggerLine =
       sizeTrigger["line-height"] === "inherit"
         ? px(rule.sizes[size]?.lineHeight)
-        : px(sizeTrigger["line-height"]);
+        : px(
+            typographyRef(sizeTrigger["line-height"]) ??
+              sizeTrigger["line-height"],
+          );
     const font = {
       ...(fontValue !== undefined ? { fontSize: fontValue } : {}),
       ...(fontSize && triggerLine !== undefined

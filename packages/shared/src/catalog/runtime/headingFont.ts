@@ -19,3 +19,26 @@ export const HTML_HEADING_FONT_SCALE: Readonly<Record<number, number>> = {
 export function catalogHeadingFontScale(level: unknown): number {
   return HTML_HEADING_FONT_SCALE[Number(level)] ?? HTML_HEADING_FONT_SCALE[3]!;
 }
+
+/**
+ * The level a Heading renders at: its own `level`, else the one a RAC context gives it — RAC
+ * `Dialog`'s `HeadingContext` makes its `slot="title"` Heading an `h2` (`private/Dialog.mjs`
+ * `slots.title.level: 2`) — else RAC's 3. The Canvas reads it for the h rule's scale, as the DOM's
+ * element is that tag (`.claude/rules/text-font.md` §1).
+ */
+export function catalogHeadingLevel<
+  T extends {
+    readonly props: Readonly<Record<string, unknown>>;
+    readonly parentId: string;
+  },
+>(
+  record: T,
+  get: (id: string) => T | undefined,
+  typeOf: (record: T) => string,
+): number | undefined {
+  if (record.props.level !== undefined) return Number(record.props.level);
+  if (record.props.slot !== "title") return undefined;
+  for (let parent = get(record.parentId); parent; parent = get(parent.parentId))
+    if (typeOf(parent) === "Dialog") return 2;
+  return undefined;
+}

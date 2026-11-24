@@ -9011,7 +9011,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Dialog Title",
-      "size": "L",
+      // S2 `Dialog.tsx:58-61` `title-2xl` (22 · 26) — `.claude/rules/text-font.md` §1, 2026-11-24.
+      "size": "XXL",
       "slot": "title"
     },
     "visual": {},
@@ -9136,7 +9137,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "slot": "title",
-      "size": "L"
+      // S2 `Dialog.tsx:58-61` `title-2xl` (22 · 26) — `.claude/rules/text-font.md` §1, 2026-11-24.
+      "size": "XXL"
     },
     "visual": {},
     "layout": {
@@ -9348,7 +9350,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Thank you!",
-      "size": "L",
+      // (No size: S2 `CustomDialog` gives its Heading nothing — RAC Dialog's title h2, `text-font.md`.)
       "slot": "title"
     },
     "visual": {
@@ -9442,7 +9444,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Advanced Settings",
-      "size": "XL",
+      // S2 `Dialog.tsx:58-61` `title-2xl` (22 · 26) — `.claude/rules/text-font.md` §1, 2026-11-24.
+      "size": "XXL",
       "slot": "title"
     },
     "visual": {
@@ -9709,10 +9712,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "title",
       "children": "Need help?",
-      "size": "S",
+      // S2 `ContextualHelp.tsx:44-48` `heading-xs` (18 · 22) — `.claude/rules/text-font.md`, 2026-11-24.
+      "size": "L",
       "level": 2
     },
-    "visual": {},
+    // S2 `ContextualHelp.tsx:44-48` `font: 'heading-xs'` — the `heading` weight, extra-bold 800
+    //   (`.claude/rules/text-font.md` §1 owner layer, 2026-11-24).
+    "visual": { "fontWeight": 800 },
     "layout": {
       "marginBottom": "8px"
     }

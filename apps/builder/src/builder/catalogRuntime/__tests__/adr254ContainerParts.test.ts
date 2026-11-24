@@ -265,7 +265,10 @@ const fontSizeNow = (
 ) =>
   type === "dialog" && binding === "description"
     ? 16
-    : type === "inline-alert" && binding === "heading"
+    : // (S2 `Dialog.tsx:58-61` `title-2xl` 22 — `.claude/rules/text-font.md`, 2026-11-24.)
+      type === "dialog" && binding === "heading"
+      ? 22
+      : type === "inline-alert" && binding === "heading"
       ? INLINE_ALERT_HEADING_FONT[alertSize]
       : fontSize;
 /**
@@ -341,7 +344,8 @@ function expectSinceConversion(
       expect(part.size).toBe(
         heading ? INLINE_ALERT_HEADING_SIZE[alertSize] : alertSize,
       );
-      expect(Number(part.visual.fontWeight)).toBe(heading ? 600 : 400);
+      // (A Heading is bold 700 — `.claude/rules/text-font.md`, 2026-11-24; S2 `title-sm` bold.)
+      expect(Number(part.visual.fontWeight)).toBe(heading ? 700 : 400);
       expect(part.visual.lineHeight).toBeCloseTo(
         INLINE_ALERT_LINE_HEIGHT[alertSize]![
           heading ? "heading" : "description"
@@ -366,12 +370,18 @@ function expectSinceConversion(
     expect(part.size).toBe(
       part.binding === "description"
         ? (DESCRIPTION_SIZE_NOW[type] ?? was.size)
-        : was.size,
+        : type === "dialog" && part.binding === "heading"
+          ? "XXL"
+          : was.size,
     );
     expect(part.slot).toBe(
       type === "dialog" && part.binding === "heading" ? "title" : was.slot,
     );
-    expect(Number(part.visual.fontWeight)).toBe(Number(was.visual.fontWeight));
+    // (A Heading's weight is the browser's h bold 700 since 2026-11-24 — `text-font.md`; the oracle
+    //  froze 600.)
+    expect(Number(part.visual.fontWeight)).toBe(
+      part.binding === "heading" ? 700 : Number(was.visual.fontWeight),
+    );
     // ADR-295 Phase 3: the line is the S2 formula of the same font size (사용자 결정 2) — the oracle's
     //   build had the old fixed ladder (14 → 20).
     const fontSize = Number(part.visual.fontSize);

@@ -217,7 +217,8 @@ describe("ADR-254 Phase 1 — the Heading origin", () => {
     expect(record().bindingId).toBe("heading");
     expect(record().props.children).toBe("Title");
     expect(record().visual.fontSize).toBe(18);
-    expect(Number(record().visual.fontWeight)).toBe(600);
+    // (Bold 700 — the browser's h rule, `.claude/rules/text-font.md` 2026-11-24.)
+    expect(Number(record().visual.fontWeight)).toBe(700);
   });
 
   it("follows an edit of the origin on the Canvas and in the DOM", async () => {

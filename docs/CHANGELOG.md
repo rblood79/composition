@@ -11,6 +11,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Text · Heading 글자 규칙 확정 — 브라우저 h 기본값 바닥 · Heading 700 · S2 대조 3건] - 2026-11-24
+
+사용자 「TEXT size 에 대한 rule 을 정해야한다」 → 「700 으로 규칙 확정하고 세 가지 진행해」. 글자 값의 층 (문서 기본 → 브라우저 기본 → 상속 → owner → 작성값) 과 구현 계약을 규칙 파일로 정하고, 팔레트 전체 대조 (Canvas ↔ Publish) 에서 나온 세 가지를 S2 대로 고쳤다.
+
+### Changed
+
+- **Heading 기본 굵기 600 → 700**: owner 가 굵기를 주지 않는 Heading 은 브라우저 h 기본 bold (S2 `Heading` 은 자기 글자가 없다). InlineAlert 제목 (S2 `title-sm` bold) 도 700.
+  - 위치: `componentRulesTable.ts` Heading `textWeight` · `Content.css` (Heading 글자 값 제거)
+- **Dialog 계열 제목 크기 (S2 `Dialog.tsx` `title-2xl` 22 · 행간 26)**: Dialog · AlertDialog 18 → 22, FullscreenDialog 20 → 22 (Heading XXL). CustomDialog 는 S2 가 제목에 값을 주지 않아 크기 단계를 빼고 RAC Dialog 의 title h2 (부모 × 1.5 = 24) 를 따른다 — Canvas 도 RAC Dialog 가 주는 level 2 를 읽는다 (`headingFont.ts` `catalogHeadingLevel`).
+- **ContextualHelp 제목 14 · 700 → 18 · 800**: S2 `ContextualHelp.tsx` 제목 글꼴 `heading-xs` (18 · 행간 22, extra-bold). 다른 owner 제목 (Dialog · FullscreenDialog · AlertDialog · IllustratedMessage · InlineAlert = S2 `title-*` bold 700, 메뉴 섹션 = `ui` bold) 은 대조 결과 그대로.
+  - 위치: `reusableOriginLibrary.ts` Dialog · AlertDialog · FullscreenDialog · CustomDialog · ContextualHelp 제목 template
+- **Disclosure 제목 줄**: Heading 의 `font-size: inherit` 를 지우고 (S2 `headingStyle` 은 글자 없음 — 줄 글자 × 1.17), trigger Button 이 크기별 자기 글자 (S2 `buttonStyles` `title-sm` · `title` · `title-lg` · `title-xl`, 줄 높이 `ui`) 를 갖는다. 보이는 제목은 그대로 14 · 16 · 18 · 20 bold.
+  - **Why**: Heading 이 부모 글자를 그대로 받아 DOM 은 16 · 400, Canvas 기록은 18.72 로 갈렸다 (Design 패널 숫자).
+  - 위치: Disclosure rule `staticSelectors` · `sizeSelectors` · `rulePartRules.ts` (trigger `var(--text-*)` → 토큰)
+
+### Fixed
+
+- **Breadcrumb 현재 조각의 글자 기록값**: 그리는 굵기는 700 인데 노드 기록 (Design 패널) 은 400 이었다. 조각 글자에 굵기를 박지 않고 (part rule), 현재 조각의 bold (S2 `currentStyles`) 를 상속받는다.
+  - **Why**: Breadcrumbs · Breadcrumb part rule 이 글자에 굵기 400 을 줘 상속을 막았다.
+  - 위치: `manualBoxRules.ts` · `compositionRoot.ts` `declaredFont`
+- **Publish 의 h 글자 reset 제거**: layer 밖 `h1~h6 { font-size: inherit; font-weight: inherit }` 가 브라우저 h 기본값과 Heading 굵기를 지웠다 (S2 · RAC 에 없음). Preview 에는 없던 reset 이라 두 화면이 갈렸다.
+  - 위치: `apps/publish/src/styles/index.css`
+
+### Documentation
+
+- **`.claude/rules/text-font.md`** (신규): Text · Heading 글자 값의 층 순서 · 구현 계약 (글자를 그리는 요소가 자기 글자 · 앱 reset 금지 · Size 칸 없음 · 기록 = 그리는 값 · 계산 한 곳) · 확인 방법.
+
+### Tests
+
+- `s2TextInheritsFont` +5 (Breadcrumb 현재 조각 · Disclosure 제목 줄 · owner 제목 굵기 · owner 제목 크기 S2 대조 · reset 금지 정적 검사), `adr254ContainerParts` Dialog 제목 22.
+- live (Publish 에서 열어 대조): Dialog · AlertDialog · FullscreenDialog 22 · 700 · 26, CustomDialog 24 · 700 · 36 (h2), ContextualHelp 18 · 800 · 22 — Canvas 기록과 같다., Heading 굵기 기대값 700 · `disclosureHeaderFontInherit` 새 계약.
+- live 하니스 `apps/builder/scripts/s2-text-inherit-sweep-live.mjs`: 팔레트 93종 + 단독 Heading — 그려지는 Text · Heading 149 개 · 보이는 h 요소 12 개의 Canvas 기록 = Publish DOM (크기 · 굵기 · 행간 · 상자 높이).
+
 ## [S2 대조 — Provider · Disclosure · Toast · 목록 로딩 · 목록 항목 (부록 D.1 「대응 있음」 5줄)] - 2026-11-24
 
 사용자 「S2 와 대조 진행해」 → 「권장대로 세가지 진행해」 (결함 먼저 · 값 차이 · 새 기능 3건 제외). 설치 S2 1.8.2 소스와 대조한 차이를 고쳤다.

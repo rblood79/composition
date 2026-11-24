@@ -20,11 +20,16 @@ import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/c
 import type {
   DefinitionId,
   EntryId,
+  LibraryDefinitionId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { headingBinding } from "../../../../../../packages/shared/src/catalog/bindings/Heading.binding";
 import { textBinding } from "../../../../../../packages/shared/src/catalog/bindings/Text.binding";
 import type { CatalogConsumerNode } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
+import {
+  catalogCreationProps,
+  catalogPaletteDefinitionId,
+} from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -208,12 +213,13 @@ describe("S2 Heading — the parent's font by the h rule's scale", () => {
     return { ...ctx, heading, headingFont };
   }
 
-  it("an h3 (RAC's default) is 1.17 × its frame's 20, weight 600, no size", async () => {
+  it("an h3 (RAC's default) is 1.17 × its frame's 20, bold 700, no size", async () => {
     const { headingFont, heading, fontOf } = await withHeading();
-    expect(headingFont()).toEqual({ size: 23.4, weight: 600 });
+    // (`text-font.md` §1 — the browser's h rule: bold, 2026-11-24 「700 으로 규칙 확정」.)
+    expect(headingFont()).toEqual({ size: 23.4, weight: 700 });
     expect(heading().props.size).toBeUndefined();
     // (A Text in it takes the heading's font — the DOM's inheritance.)
-    expect(fontOf("Heading words")).toEqual({ size: 23.4, weight: 600 });
+    expect(fontOf("Heading words")).toEqual({ size: 23.4, weight: 700 });
   });
 
   it("follows its level (h1 2 ×) and a level edit", async () => {
@@ -275,5 +281,157 @@ describe("S2 Heading — the parent's font by the h rule's scale", () => {
     expect(base.slice(0, base.indexOf("}"))).not.toMatch(
       /font-size|line-height/,
     );
+  });
+});
+
+const readRepo = (path: string) =>
+  readFileSync(resolve(process.cwd(), "../..", path), "utf8");
+
+/** Place a palette component on the page (as the palette does). */
+async function placedPalette(type: string) {
+  const { workspace, record } = await workspaceWithFrame();
+  const definitionId = catalogPaletteDefinitionId(
+    workspace.runtime.graph.library,
+    type,
+  ) as LibraryDefinitionId;
+  const id = `project:node:placed-${type}` as NodeId;
+  workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: BODY },
+      entries: [
+        {
+          kind: "node",
+          id,
+          definitionId,
+          children: [],
+          props: catalogCreationProps(
+            workspace.runtime.graph,
+            definitionId,
+            type,
+            {},
+          ),
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        },
+      ],
+      rootIds: [id],
+      newId: workspace.newId,
+    }),
+  );
+  return { workspace, record, id };
+}
+
+/** `text-font.md` (사용자 결정 2026-11-24) — the S2 reference cases the sweep found. */
+describe("text-font rule — S2 reference cases", () => {
+  it("the current Breadcrumb's words carry S2 `currentStyles` bold in the record", async () => {
+    const { record } = await placedPalette("Breadcrumbs");
+    const weight = (text: string) => {
+      const found = record(text);
+      return Number(found.derivedProps?.fontWeight ?? found.visual.fontWeight);
+    };
+    expect(weight("Page")).toBe(700);
+    expect(weight("Home")).toBe(400);
+  });
+
+  it("a Disclosure's Heading is the browser's h3 of its row; its trigger has its own title font", async () => {
+    const { workspace } = await placedPalette("Disclosure");
+    const heading = [...workspace.root.canvasInputs.values()].find(
+      (item) => workspace.root.typeOf(item) === "Heading",
+    )!;
+    // (S2 `headingStyle` declares no font: the row's 16 × 1.17, bold.)
+    expect(Number(heading.derivedProps?.fontSize)).toBeCloseTo(18.72);
+    expect(Number(heading.visual.fontWeight)).toBe(700);
+    // (S2 `buttonStyles` `fontSize: title` — the words stay 16 · bold.)
+    const inputs = [...workspace.root.canvasInputs.values()];
+    const trigger = inputs.find(
+      (item) =>
+        workspace.root.typeOf(item) === "Button" && item.parentId === heading.id,
+    )!;
+    const title = inputs.find(
+      (item) =>
+        workspace.root.typeOf(item) === "Text" && item.parentId === trigger.id,
+    )!;
+    expect(Number(title.derivedProps?.fontSize ?? title.visual.fontSize)).toBe(16);
+    expect(Number(title.visual.fontWeight)).toBe(700);
+    const css = readRepo(
+      "packages/shared/src/components/styles/generated/Disclosure.css",
+    );
+    const block = (selector: string) => {
+      const at = css.indexOf(`${selector} {`);
+      return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+    };
+    expect(block(".react-aria-Disclosure .react-aria-Heading")).not.toMatch(
+      /font-size/,
+    );
+    expect(
+      block(".react-aria-Disclosure .react-aria-Button[slot='trigger']"),
+    ).not.toMatch(/font-size:\s*inherit/);
+    for (const [size, step] of [
+      ["S", "sm"],
+      ["M", "base"],
+      ["L", "lg"],
+      ["XL", "xl"],
+    ])
+      expect(
+        block(
+          `.react-aria-Disclosure[data-size="${size}"] .react-aria-Button[slot='trigger']`,
+        ),
+      ).toMatch(new RegExp(`font-size: var\\(--catalog-token-text-${step}\\)`));
+  });
+
+  it("an owner's Heading weight is S2's: ContextualHelp `heading-xs` extra-bold 800, the `title-*` owners bold 700", async () => {
+    // (S2 `spectrum-theme` fontWeight: `heading` = extra-bold 800 · `title` = bold 700.)
+    const weightOf = async (type: string) => {
+      const { workspace } = await placedPalette(type);
+      const heading = [...workspace.root.canvasInputs.values()].find(
+        (item) => workspace.root.typeOf(item) === "Heading",
+      )!;
+      return Number(heading.derivedProps?.fontWeight ?? heading.visual.fontWeight);
+    };
+    // S2 `ContextualHelp.tsx:44-48` `font: 'heading-xs'`.
+    expect(await weightOf("ContextualHelp")).toBe(800);
+    // S2 `Dialog.tsx:58-61` `title-2xl` · `IllustratedMessage.tsx:126-134` `title-*` ·
+    //   `InlineAlert.tsx:171-173` `title-sm`.
+    expect(await weightOf("Dialog")).toBe(700);
+    expect(await weightOf("AlertDialog")).toBe(700);
+    expect(await weightOf("FullscreenDialog")).toBe(700);
+    expect(await weightOf("IllustratedMessage")).toBe(700);
+    expect(await weightOf("InlineAlert")).toBe(700);
+  });
+
+  it("an owner's Heading size is S2's: the Dialogs' `title-2xl` 22, ContextualHelp `heading-xs` 18, CustomDialog none (RAC's h2)", async () => {
+    const fontOf = async (type: string) => {
+      const { workspace } = await placedPalette(type);
+      const heading = [...workspace.root.canvasInputs.values()].find(
+        (item) => workspace.root.typeOf(item) === "Heading",
+      )!;
+      return {
+        size: Number(heading.derivedProps?.fontSize ?? heading.visual.fontSize),
+        line: Number(heading.visual.lineHeight) * Number(heading.derivedProps?.fontSize ?? heading.visual.fontSize),
+      };
+    };
+    // S2 `Dialog.tsx:58-61` (`HeadingContext` `:189`) — AlertDialog · FullscreenDialog are Dialogs.
+    for (const type of ["Dialog", "AlertDialog", "FullscreenDialog"]) {
+      const font = await fontOf(type);
+      expect(font.size, type).toBe(22);
+      expect(font.line, type).toBeCloseTo(26);
+    }
+    // S2 `ContextualHelp.tsx:44-48` `heading-xs` (18 · 22).
+    expect((await fontOf("ContextualHelp")).size).toBe(18);
+    // S2 `CustomDialog.tsx` gives its Heading nothing: RAC Dialog's title slot is an h2
+    //   (`Dialog.mjs:136` level 2) — 1.5 × its parent's 16.
+    expect((await fontOf("CustomDialog")).size).toBe(24);
+  });
+
+  it("no app reset or sheet takes the browser's h font away", () => {
+    const publish = readRepo("apps/publish/src/styles/index.css");
+    for (const block of publish.matchAll(/h6\s*\{([^}]*)\}/g))
+      expect(block[1]).not.toMatch(/font-size|font-weight/);
+    const content = readRepo(
+      "packages/shared/src/components/styles/Content.css",
+    );
+    const heading = content.slice(content.indexOf(".react-aria-Heading {"));
+    expect(heading.slice(0, heading.indexOf("}"))).not.toMatch(/font-/);
   });
 });

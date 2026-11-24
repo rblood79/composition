@@ -38,17 +38,37 @@ function disclosureStaticSelectors(): StaticSelectors {
 }
 
 describe("Disclosure trigger 헤더 font-size 상속 체인", () => {
-  it.each([
-    [".react-aria-Heading", "h3 기본 font-size(16px) 가 상속을 끊는다"],
-    [
-      ".react-aria-Button[slot='trigger']",
-      "Button base font-size(--text-sm=14px) 가 상속을 끊는다",
-    ],
-  ])("%s 는 font-size: inherit — %s", (selector) => {
-    const block = disclosureStaticSelectors()[selector];
-    expect(block, `${selector} 규칙 존재`).toBeDefined();
-    // 하나라도 빠지면 체인이 끊겨 헤더가 조상의 잘못된 폰트를 물려받는다.
-    expect(block["font-size"], `${selector} font-size`).toBe("inherit");
+  /**
+   * 2026-11-24 (`.claude/rules/text-font.md`, 사용자 「S2 레퍼런스대로」): the chain above is gone.
+   * S2 `Disclosure.tsx` — the Heading (`headingStyle`) declares no font (the browser's h3 of its
+   * row), and the trigger (`buttonStyles`) has its own `fontSize` title-sm · title · title-lg ·
+   * title-xl = the Disclosure's size font. So: no `inherit` on either, and the trigger's size blocks
+   * name the Disclosure's size token.
+   */
+  it("the Heading has no font; the trigger has its own size font (the Disclosure's)", () => {
+    const selectors = disclosureStaticSelectors();
+    expect(selectors[".react-aria-Heading"]?.["font-size"]).toBeUndefined();
+    expect(
+      selectors[".react-aria-Button[slot='trigger']"]?.["font-size"],
+    ).toBeUndefined();
+    const rule = COMPONENT_RULES_TABLE.Disclosure as unknown as {
+      sizes: Record<string, { fontSize?: string }>;
+      structure?: {
+        composition?: {
+          sizeSelectors?: Record<string, StaticSelectors>;
+        };
+      };
+    };
+    for (const size of ["S", "M", "L", "XL"]) {
+      const token = rule.sizes[size]!.fontSize!;
+      const step = /^\{typography\.(text-[a-z0-9-]+)\}$/.exec(token)?.[1];
+      expect(
+        rule.structure?.composition?.sizeSelectors?.[size]?.[
+          ".react-aria-Button[slot='trigger']"
+        ]?.["font-size"],
+        `trigger ${size}`,
+      ).toBe(`var(--${step})`);
+    }
   });
 
   /**
