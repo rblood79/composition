@@ -57,7 +57,9 @@ docs/
 ├── pencil-copy/                # Pencil 호환성 dossier (md 8 = README 1 + 문서 7) + fixtures/ JSON 1
 ├── pencil-extracted/           # Pencil Desktop 번들 역공학 추출물 (gitignore, 390 파일)
 │
-├── CHANGELOG.md                    # 현재 변경 이력 (2026-09-01 ~, 145KB)
+├── CHANGELOG.md                    # 현재 변경 이력 (2026-11-01 ~, 670KB)
+├── CHANGELOG-2026-10-archived.md   # 2026-10-03 ~ 10-31 (934KB, append-only)
+├── CHANGELOG-2026-09-archived.md   # 2026-09-01 ~ 09-30 (584KB, append-only)
 ├── CHANGELOG-2026-Q3-archived.md   # 2026-07-01 ~ 08-31 (967KB, append-only)
 ├── CHANGELOG-2026-H1-archived.md   # 2026-02-22 ~ 06-30 (868KB, append-only)
 ├── CHANGELOG-2025-archived.md      # 2025-10-27 ~ 2026-03-27 (251KB, append-only)
@@ -168,6 +170,8 @@ docs/
 | `CHANGELOG-2026-Q3-archived.md` | 2026-07-01 ~ 08-31      | 346      | 968KB |
 | `CHANGELOG-2026-H1-archived.md` | 2026-02-22 ~ 06-30      | 209      | 872KB |
 | `CHANGELOG-2025-archived.md`    | 2025-10-27 ~ 2026-03-27 | 124 항목 | 252KB |
+
+**2026-11-25 아카이빙 실행 결과**: 본문이 2,187KB / 1,219 엔트리였습니다. 9월 (373 엔트리, 584KB) 과 10월 (510 엔트리, 934KB) 을 월별 파일로 옮겼고, 본문에는 11월 336 엔트리 (670KB) 가 남았습니다 — 한 달 분량이 500KB 를 넘어 월을 쪼개지 않고는 기준 아래로 내려가지 않습니다.
 
 > 엔트리 수는 `## [제목] - YYYY-MM-DD` 표준 헤더 기준입니다. Q3 에 2건, H1 에 1건은 날짜를 대괄호 안에 넣은 구형 헤더라 위 집계 밖입니다. `CHANGELOG-2025-archived.md` 는 `## [Unreleased]` 아래 `### <구분> - <제목> (날짜)` 형식이라 항목 단위(124개)로 셌습니다.
 >

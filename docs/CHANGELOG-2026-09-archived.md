@@ -1,0 +1,4010 @@
+# Changelog — 2026-09 아카이브 (09-01 ~ 09-30)
+
+> `docs/CHANGELOG.md` 에서 옮긴 2026-09-01 ~ 2026-09-30 엔트리 373개. 본문이 아카이빙 기준
+> (500KB) 을 넘겨 분리했다 (2026-11-25). **append-only** — 재편집 금지, 내용은 옮긴
+> 그대로다. 현재 엔트리는 [CHANGELOG.md](./CHANGELOG.md).
+
+## [ADR-248 Phase 3 G3 판정에 따른 컴포넌트 시각 정정 · 새 runtime 소비자 수리] - 2026-09-30
+
+### Changed
+
+- **컴포넌트 기본 모양을 RAC 구조 + theme 선언값 기준으로 맞춤 (사용자 판정 2026-09-29).** Button · ToggleButton 글자 굵기 500, Link 400 · Label 높이 fit-content · Select 트리거 gap 4 · 빈 필수 표시는 아이콘 · Breadcrumb 현재 항목 굵기 700 · Disclosure md 아이콘 18 과 헤더 chevron 간격 4 · GridListItem 제목 600 제거. 보조 글자색 (neutral-subdued) light 를 S2 값에 가까운 neutral-600 으로 (`--fg-muted` 와 Canvas 동일).
+- **Breadcrumb 구분자가 편집 가능한 Icon 자식이 됨.** 데이터 행 Breadcrumb 도 origin 의 구분자 설정을 따른다 (Canvas · Preview 공용).
+
+### Fixed
+
+- **Canvas 에서 ComboBox · DatePicker 류 트리거 오른쪽 여백이 Preview 보다 넓던 것** (paddingRight 12 → 4).
+
+### Added
+
+- ADR-248 Phase 3 (제품에 연결하지 않은 새 runtime): Tab 선택 막대 · Tag 선택 모양 · collection 이 정하는 항목 선택 · ListBoxItem 선택 배경 · Tab·Tag label 이 항목 글자색을 따름. G3 판정기 픽셀 귀속을 상자 변화가 쓸고 간 영역으로 좁힘. G3: base 62/64 · axis 372/386 · state 75/75 PASS (남은 FAIL = FileUpload, Phase 4). G0 oracle 을 현재 소스로 재측정 (native-state byte 동일 · storage +519 B 일정).
+
+## [전체 메뉴 하위 메뉴 진입 시 상위 항목 활성 유지 — ADR-249 후속] - 2026-09-29
+
+### Fixed
+
+- **헤더 전체 메뉴에서 파일 · 편집 등 하위 메뉴 안으로 들어가면 상위 항목 (파일 · 편집) 의 강조가 사라지던 것.** 포커스가 하위 메뉴로 넘어가면 상위 항목의 `data-focused` · `data-hovered` 가 빠지는데, RAC 가 하위 메뉴가 열린 트리거 항목에 다는 `data-open` 에는 스타일이 없었다. `data-open` 도 hover 와 같은 배경을 받는다 (마우스 · 키보드 둘 다).
+
+## [전체 메뉴 첫 열림 지연 수정 — ADR-249 후속] - 2026-09-29
+
+### Fixed
+
+- **헤더 전체 메뉴를 처음 열 때 두 번째부터보다 ~300 ms 늦게 뜨던 것.** 메뉴 본문 chunk 는 트리거 hover · focus 때 미리 받지만, `React.lazy` 가 받은 뒤에도 첫 렌더에서 한 번 suspend 해 React 의 Suspense fallback throttle (~300 ms) 이 걸렸다 (fallback 이 비어 있어 화면에는 아무 표시 없이 늦게 뜬다). 미리 받은 본문은 Suspense 를 거치지 않고 바로 그린다 (`utils/ui/preloadableLazy.tsx`, ADR-242 lazy 패널과 같은 규칙). production · CPU 4x 첫 열림 중앙값 436 → 168 ms (5회씩 교대), 이후 열림 98 ms 그대로. 초기 번들 JS gzip +86 B.
+
+## [새로고침 부팅 화면에서 패널 골격 제거 — ADR-247 결정 변경] - 2026-09-29
+
+### Changed
+
+- **빌더를 새로고침하거나 주소로 곧장 들어올 때, 캔버스가 준비되기 전에 빈 dock 레일 · 헤더 섬 (Viewport controls 자리) 상자가 먼저 보이지 않는다.** 대시보드에서 프로젝트로 들어갈 때와 같이 점 배경 + 진행 막대만 보이고, 헤더 · 패널은 캔버스와 함께 한 번에 드러난다. ADR-247 의 패널 골격 (지난 presented chrome 사각형을 `localStorage` 에 기록해 다음 cold entry 에 그리던 것) 을 제거했다 — 사용자 결정 2026-09-29. W0 흰 화면 방지 (정적 셸의 캔버스 배경 · 진행 막대 · 테마) 는 그대로다. 이미 저장된 `composition-shell-snapshot` 값은 읽지 않는다.
+
+### Fixed
+
+- 부팅 중 캔버스 스크롤바 (오른쪽 · 아래 막대) 가 다른 chrome 보다 먼저 보이던 것을 숨겼다 — 대시보드 진입 · 새로고침 둘 다.
+
+## [빌더 전체 메뉴 개편 — ADR-249] - 2026-09-29
+
+### Changed
+
+- **헤더 왼쪽 전체 메뉴를 한 곳에서 빌더 기능을 훑어볼 수 있는 계층 메뉴로 바꿨다.** 맨 위 검색창 · 작업 공간 (레일 패널 10 개를 레일 순서대로, 레일과 같은 아이콘 — 열린 패널은 아이콘 칸이 채워진다 — · 단축키 — 레일 버튼이 없는 아래 dock 패널과 단축키 없는 데이터 편집기도 여기서 열린다 · 워크플로 오버레이) · 대시보드 · 파일 / 편집 / 보기 / 레이아웃 / 컴포넌트 하위 메뉴 · 명령 팔레트 열기 · 설정 열기 · 도움말. 패널 레일에서 테마 (왼쪽) · 작업 내역 (오른쪽) 버튼을 뺐다 — 두 패널은 전체 메뉴와 ⌥4 · ⌥8 로 연다. 명령 이름을 짧게 바꿨다 — "프로젝트 열기" → "대시보드" · "Workflow 오버레이 토글" → "Workflow" · "명령 팔레트 열기" → "명령 팔레트" · "설정 열기" → "설정" (명령 팔레트도 같다). 쓸 수 없는 항목은 숨기지 않고 흐리게 둔다 (선택 없음 → 복사 · 선택에 맞춤 비활성, 스타일 패널이 닫혀 있으면 스타일 복사 비활성). 켜고 끄는 항목 (눈금자 · 포커스 모드 · 객체에 스냅 · 모양) 은 체크 표시, "컴포넌트 만들기/분리" 는 선택에 따라 라벨이 바뀐다. 검색어를 넣으면 하위 메뉴 안 항목까지 "레이아웃 › 정렬" 경로와 함께 평면으로 보이고 Enter 로 실행한다. 새로 메뉴에서 쓸 수 있는 것: 스냅샷 만들기 · 모양 (시스템/밝게/어둡게). 도움말 ▸ 튜토리얼 · 버전은 자리만 있고 비활성이다.
+- 라벨 · 단축키 · 실행 · 활성 조건은 메뉴가 따로 적지 않고 기존 명령 정의 · 명령 레지스트리 · 명령 metadata · 패널 레지스트리에서 읽는다 — 메뉴 항목과 동작 분기가 어긋나던 결함 (바로 아래 엔트리) 이 구조적으로 생기지 않는다. 메뉴 본문은 처음 열 때 받는 별도 chunk 다 (초기 번들 JS gzip −50 B).
+
+### Fixed
+
+- **인터랙션 패널만 열린 상태에서 메뉴로 복사 · 붙여넣기 · 삭제를 고르면 선택 요소가 아니라 인터랙션 쪽 (빈 동작) 으로 가던 경로를 막았다.** 메뉴는 실행할 때 대상 (캔버스) 을 넘기고, 캔버스/인터랙션으로 갈리는 명령은 그 값을 포커스 추론보다 먼저 본다. 키보드 단축키 동작은 그대로다.
+
+## [AI 어시스턴트 대화 이력·도구 설명 정리] - 2026-09-29
+
+### Changed
+
+- **AI 어시스턴트가 이전 턴의 요청을 처음 보낸 모양 그대로 다시 보낸다.** 턴마다 붙이는 빌더 상태 컨텍스트가 다음 요청에서는 이전 user 메시지에서 빠져, 대화 이력의 앞부분이 매 턴 바뀌었다 — prompt cache 와 Claude 5 계열 preserved thinking 이 이어지지 않는 원인이다. 컨텍스트를 그 user 메시지 (`metadata.turnContext`) 에 저장하고 다음 요청에서 같은 자리에 다시 붙인다.
+- **데이터 바인딩 안내를 실제 도구 계약에 맞췄다 (ko/en).** 이미 있는 collection 에 `collectionId` / `collectionName` 으로 잇고, API 데이터는 `list_api_endpoints` 로 연결 테이블을 확인한 뒤 잇고, 새 데이터는 `propose_data_change` 로 제안한다.
+- `create_element` · `batch_design` 도구 설명에 type 제약, 결과의 `data.elementId`, 여러 요소를 다룰 때 `batch_design` 을 쓰는 이유 (실행 취소 한 번) 를 넣고, 같은 내용의 system prompt 규칙 5 를 뺐다. 실패 설명의 "1~2문장" 길이 지시와 one-shot 경로의 `max_tokens: 2048` 제한을 없앴다.
+
+## [빌더 헤더 메뉴의 동작하지 않던 항목 3개] - 2026-09-29
+
+### Fixed
+
+- **헤더 전체 메뉴의 "프로젝트 삭제" · "도움말" · "정보" 가 눌러도 메뉴만 닫히던 결함.** 2026-03 메뉴 도입 때 placeholder 로 들어간 뒤 분기가 연결되지 않았다. "프로젝트 삭제" 는 확인 대화상자를 거쳐 대시보드로 나간 뒤 대시보드의 기존 삭제 경로가 지운다 — 편집 저장이 fire-and-forget 이라 빌더가 열린 채로 지우면 삭제 뒤 편집이 문서를 되살릴 수 있다. "도움말" · "정보" 는 연결할 대상 (문서 URL · 버전 정보 화면) 이 없어 메뉴에서 뺐다. 메뉴 항목마다 `onAction` 분기가 있는지 정적 테스트가 검사한다.
+
+## [캔버스 왼쪽 트랙패드 팬이 뒤로가기로 새던 결함] - 2026-09-29
+
+### Fixed
+
+- **빌더 캔버스에서 트랙패드를 왼쪽으로 밀면 캔버스 대신 대시보드로 돌아가던 결함.** 위 · 아래 · 오른쪽은 팬이 됐다. macOS 브라우저의 좌우 스와이프 history 이동은 캔버스 휠 핸들러의 `preventDefault` 로 막히지 않고 root 의 `overscroll-behavior-x` 만 본다. 캔버스 휠 핸들러가 붙어 있는 동안 root 에 `none` 을 걸고 떼면 이전 값으로 되돌린다. 대시보드 · 로그인의 스와이프 뒤로가기는 그대로다.
+
+## [ADR-248 Phase 3 독립 소비자 조립 점검 — 미완료] - 2026-09-28
+
+### Added
+
+- 제품에 연결하지 않은 composition root의 transaction delta → layout 입력 및 Canvas/DOM 입력 descriptor 경로와 130 type·1,333 시각 축·14 slot role coverage manifest를 추가했다. 단일 root 60/600/5k에서 leaf 편집 시 resolver 조상+대상 2개·layout 입력 1개만 방문하도록 수리했고 무관 구독 0을 확인했다. read-only Pencil fixture library와 typed 이름·named region·placeholder를 추가해 G0 Pencil 3/5 의미 왕복을 검증했다. 실제 Canvas/DOM parity, 나머지 Pencil 2개, G5 예산은 미검증이며 Phase 4 제품 전환은 시작하지 않았다.
+- G0 공개 insert의 자식 absolute px 좌표를 typed node placement로 옮기고 transaction·resolver·실제 Rust layout에 연결했다. test entry에서 Frame/Group/Text 구 geometry 3건, Chromium RAC Group/Slot 동작, 격리 native DOM 정적 markup 4/4를 확인했지만 CanvasKit PNG는 구 정본과 3,387/248,000픽셀 달라 G3는 미통과다. Pencil 3개도 원본을 유지한 채 실제 layout·CanvasKit probe에 연결했으며 시각 정본은 없다.
+- 같은 G0 native-state 공개 입력에서 Frame 3건의 Rust geometry와 실제 `renderCommands` clip 표본 3픽셀과 격리 RAC DOM 바깥 hit 3건은 일치했다. Group은 catalog의 orientation·size gap을 Rust와 격리 RAC에 전달해 horizontal/sm `(58,2)`·vertical/lg `(2,54)`를 확인했다. 구 Canvas는 둘 다 `(2,42)`여서 알려진 결함 수정과 기존 수치 gate의 충돌을 G3 FAIL로 기록했다. G0 구조 장면의 실제 `renderCommands` Text paint·페이지 테두리 overlay PNG는 구 정본과 2,829/248,000픽셀 다르다. 구 Slot `null`은 `legacy-slot`의 props 없는 저장 노드가 scene과 refresh hydration에서 제외되는 경로로 좁혔다. 전체 G3/G4/G5와 Phase 4는 미완료다.
+- Frame은 RAC 역할 없는 block 컨테이너, Group은 기존 RAC Group의 접근성과 Rust row/column·size gap을 공유하는 투명 컨테이너로 독립 binding을 좁혔다. 구조 scene의 불필요한 Group/Slot 자체 DRAW를 없애 command 19개로 재실행했지만 G0 PNG 차이는 2,829/248,000픽셀이다. 기존 Slot 편집 overlay hatch와 채운 Text paint는 각각 확인했으나 typed Slot 시각 입력과 Canvas/DOM 표시 동형은 미완성이다. 제품 경로는 변경하지 않았고 G3 FAIL/G5 UNVERIFIED를 유지한다.
+- Slot의 크기별 minHeight·padding·gap·radius와 alpha fill·dashed border를 read-only typed definition 및 검증기에 추가하고, 독립 Rust/CanvasKit/RAC 소비 9건을 확인했다. 실제 DOM 높이는 4/9건이 Rust와 1px 넘게 다르고 Canvas placeholder icon/name/required/description paint도 없어 G3 FAIL이다. 새 Slot paint가 포함된 구조 scene은 old PNG와 11,191/248,000픽셀 다르며 old 결함 자동 면제는 하지 않았다. 제품 경로와 Phase 4는 변경하지 않았다.
+- 편집 모드 Slot의 icon·이름·필수·설명 자식을 graph 밖의 일시 Rust layout 입력으로 만들고, 실제 font 폭·줄 수와 catalog line-height로 내용 기반 높이를 계산했다. sm/md/lg × empty/filled/description 9건의 Rust–RAC 높이가 모두 일치하고 CanvasKit icon/text paint 명령을 확인했다. Vitest iframe의 0.8 화면 변환을 캡처 순간에만 해제해 1× PNG를 비교했으나 Canvas–RAC 픽셀 차이는 9건 모두 남아 G3 FAIL이며 Phase 4는 시작하지 않았다.
+- Slot 9건의 Canvas scene과 격리 RAC 원본 PNG를 같은 160px 격자에서 텍스트 마스크·테두리·아이콘·배경으로 분해하고 heatmap과 색쌍/좌표를 남겼다. filled Text의 Slot 글자 크기·줄높이 상속과 md description SVG 아이콘의 DPR1 픽셀 정렬을 test-entry binding에서 수리했다. 9/9 geometry는 유지됐지만 비텍스트 차이 0.024899–0.079750으로 HC6 0.001을 초과해 G3 FAIL을 유지한다. 제품 entry와 Phase 4는 변경하지 않았다.
+- 실제 코드 catalog의 184등록·125고유 type과 rule 129 type의 합집합 130 type, 요구 축 1,333개, role 14개의 source/binding inventory를 재현 가능하게 고정했다. Text·Heading 2개만 등록/규칙/theme token에서 read-only `lib:*` definition과 revision 지문을 파생해 독립 transaction·resolver·Rust/CanvasKit·격리 DOM 경로로 부분 검증했다. 등록 composite template와 전체 old/new parity는 미검증이며 Slot HC6 및 G3 FAIL·G4 부분검증·G5 UNVERIFIED는 유지한다.
+- 등록 type/state를 현재 제품 binding 경로로 재집계하고 composite 인스턴스의 공통 컨테이너 binding, Label·Description·Paragraph의 source-derived text binding을 추가했다. 기본 type 8/130은 실행되지만 composite 64종은 template 자식 binding이 남고 typed state rule은 0/468이다. code library의 Text 편집·composite 저장/재로딩·JSON/폴더 교환과 60/600/5k leaf 결정적 카운트를 확인했다. G3 FAIL, 전체 G4/G5 UNVERIFIED, Phase 3 미완료·Phase 4 미착수 상태를 유지한다.
+- Button·Icon·SelectIcon·FieldError를 등록 rule에서 파생한 제품 Canvas·DOM 공통 binding에 연결했다. 기본 실행 census 12/130, composite 완전 template 1/64, typed state rule 0/468이며, `IconButton` placeholder와 부모 RAC가 흡수하는 `SelectTrigger`의 투영 계약은 미해결이다. 격리 Chromium Button·Icon·FieldError 및 독립 code catalog IDB·JSON·폴더 왕복을 확인했다. HC6/G3 FAIL·전체 G4/G5 UNVERIFIED, Phase 4 미착수다.
+
+## [ADR-248 독립 편집·저장 경로와 G2] - 2026-09-28
+
+### Added
+
+- 제품에 연결하지 않은 catalog runtime·history·새 IDB namespace를 추가했다. transaction delta가 resolver cache·ID/필드 구독·변경 record 저장을 구동하고, Undo/Redo·저장 실패·탭 충돌·프로젝트 전환을 독립 harness 14개로 확인했다. JSON/folder 및 직접 Pencil frame/text 부분집합 교환을 추가했다. 전체 Pencil 및 제품 소비자/Preview/Publish 검증은 후속 gate다.
+
+## [ADR-248 독립 catalog graph 기반과 G1] - 2026-09-28
+
+### Added
+
+- 제품 경로에 연결하지 않은 typed catalog document·immutable library·transaction·중첩 ref resolver를 추가했다. 실패한 transaction은 graph·인덱스·history·revision·dirty-set을 바꾸지 않으며, leaf 편집과 inverse는 전체 graph 순회 없이 변경 record만 교체한다. G1 독립 테스트 29개와 Builder build·격리 WebKit smoke를 통과했다. Builder 전환과 저장·렌더 소비 연결은 후속 gate다.
+
+## [상호작용 응답성 기준선 — 측정 기록으로 종결] - 2026-09-28
+
+### Added
+
+- **편집 · 선택 · 페이지 전환의 입력 → 다음 화면 지연 기준선 (ADR-243).** production 빌드를 실제 마우스 · 키보드로 구동해 Event Timing 지연 · 완료 시간 · long task 귀속을 쟀다 (Chrome CPU 4x/1x · WebKit, 요소 600 / 5,000). 4x · 5,000 요소에서 Text · Width commit 이 p95 872 / 896 ms · undo 864 ms · 페이지 전환 664 ms 로 기준을 넘지만, 그 시간의 92 ~ 94% 가 다음 화면에 필요한 작업 (입력 처리 · 캔버스 장면 · 레이아웃 재구성) 이라 작업을 뒤로 미루는 분할은 하지 않고 측정 기록으로 종결했다. 동작 변경 없음.
+  - 하니스 `apps/builder/scripts/adr243-interaction.mjs` (setup · run · summarize) · 문서 저장 호출 추적 `__composition_PERF__.persistState()` (저장 호출 시작 ~ 종료, 동작 변경 0)
+
+## [빌더 직접 진입 정적 셸 · 패널 골격] - 2026-09-27
+
+### Added
+
+- **빌더 주소로 바로 들어오면 JS 가 오기 전부터 부팅 화면이 보인다 (ADR-247).** 종전에는 initial JS 실행 · 첫 React commit 까지 문서가 비어 있어 흰 화면이었고, 다크 테마면 흰색 → 어두운 화면으로 바뀌었다. `index.html` 이 사용자 테마의 캔버스 배경과 진행 막대를 CSS 도착 즉시 그리고, React 가 같은 자리에서 이어받는다. 셸은 앱과 같은 class 로 그려 색 · 크기 · UI 배율을 따로 적지 않는다. dashboard · signin · publish 에는 그리지 않는다.
+  - Chromium CPU 4x · 캐시 빔 첫 paint 72 ~ 80 ms (종전 496 ~ 500 ms) · 10 Mbps 380 ms (종전 2,244 ms) · 다크 흰 프레임 0/40 (종전 23/40). 부팅 완료 시각은 같다
+- **부팅 중에도 헤더 · 패널 · 레일 자리가 보인다.** 빌더가 화면을 드러낼 때 chrome 의 위치 · 색을 기억해 두고, 다음 진입의 창 크기 · UI 배율 · 테마 · 패널 배치 · 배포 버전이 같으면 그 골격 (상자만, 글자 · 버튼 없음) 을 부팅 내내 그린다. 실제 chrome 이 드러나는 프레임에 같은 자리에서 바뀐다. 하나라도 다르면 골격 없이 배경 · 진행 막대만 그린다.
+  - Chromium · WebKit 288 진입 (창 4 × 배율 3 × 테마 2 × 배치 3) 골격 ↔ 실제 최대 0.02 px · 부팅 layout shift 0
+
+### Changed
+
+- **부팅 오버레이의 라벨 · 퍼센트가 문구 · 자릿수가 바뀔 때 옆으로 움직이지 않는다.** 진행 막대가 화면 정중앙에 고정되고, 라벨 · 퍼센트는 막대 위아래에 가운데 정렬된다.
+- 부팅 경계 user timing `composition:builder.first-commit` · `composition:builder.presented` 를 항상 남긴다 (cold entry 하니스 `apps/builder/scripts/cold-entry-shell.mjs`).
+
+## [결정적 카운트 ratchet 게이트 · 선택 조회 인덱스] - 2026-09-27
+
+### Added
+
+- **pre-push 성능 게이트 (ADR-246).** 캔버스 · store · 패널 · shared · engine · specs · 하니스 경로에 닿은 push 는 고정 입력 하니스로 조작별 카운트 (파이프라인 label · 캐시 · React 렌더 · 레이아웃 · 함수별 V8 호출 수) 를 재어 `apps/builder/perf/ratchet.json` 상한과 비교한다. 매번 같은 값인 카운트 (등급 A) 가 상한을 넘고 재실행도 같은 값이면 push 를 막는다. 흔들리는 카운트 (등급 B) 는 경고만 한다. 1회 약 42초 · `pnpm gate:perf-ratchet` · 건너뛰기 `SKIP_PERF_RATCHET=1`. ADR-246 Implemented (begin-frame 하니스는 macOS 미지원으로 보류).
+  - live: 회귀 커밋 (선택 조회 최적화 되돌림) 실제 push → 등급 A 2 건 초과 · 재실행 같은 값 → 차단 92초 · 문서만 바꾼 push 는 게이트 없이 3초
+
+### Changed
+
+- **요소 선택 시 문서 전체를 반복 탐색하던 조회를 인덱스로 바꿨다.** Properties 편집 계약이 선택마다 canonical 노드를 3번 찾으며 매번 문서 (origin · 템플릿 포함 약 700 노드) 를 처음부터 훑었다. 문서 버전당 한 번 만든 id 인덱스를 쓴다 — 선택 60회 기준 탐색 함수 호출 62,910 → 0, 앱 함수 호출 −11.4%. 반환 노드는 종전과 같다 (같은 id 가 여럿이면 첫 일치).
+  - 선택 동작 main-thread 시간은 3쌍 중앙값 60 요소 −0.2% · 600 요소 −3.6% 로 방향만 줄었다 (측정 폭 안 — 크기는 주장하지 않음)
+
+## [Tree detach 이름 · 변형 instance detach] - 2026-09-27
+
+### Fixed
+
+- **팔레트 Tree 를 detach 하면 항목 이름 (Node 1 · Node 1.1 · Node 2) 이 전부 사라지던 문제.** 중첩 규칙이 TreeItem 의 자식으로 TreeItem 만 허용해, 기본 TreeItem 이 가진 이름 Text 를 저장 단계에서 뺐다. TreeItem 안에 Text 를 허용한다 (기본 TreeItem 모양 · Preview 가 행 글자로 그리는 자식). 사용자가 Text 를 TreeItem 안에 직접 넣는 것도 이제 허용된다.
+- **변형 (예: Hover 상태) 을 가리키는 instance 를 detach 하면 가리키는 대상이 없는 노드가 남고 변형 편집이 사라지던 문제.** detach 가 변형을 그대로 원본으로 썼다. 변형을 끝 origin 까지 따라가 변형 값을 아래에 깔고 instance 편집을 위에 얹는다 (중첩 instance 도 같음).
+- **origin 과 instance 가 서로 다른 축의 크기 채움 · breakpoint 스타일을 가진 instance 를 detach 하면 origin 쪽 값이 사라지던 문제.** 축 · breakpoint 단위로 합친다 (Preview 와 같은 규칙).
+  - live: 팔레트 Tree detach 뒤 이름 3 개 = detach 전 Preview · 중첩 규칙 거부 0 (종전 거부 3 · 이름 0)
+
+## [detach 편집값 · 템플릿 보존] - 2026-09-27
+
+### Fixed
+
+- **instance 안 요소의 색 (Fill) · 본문 · 숨김 · breakpoint별 편집 · 크기 채움 (sizing) 이 detach 뒤 사라지던 문제.** detach 가 이 편집들을 요소 필드가 아니라 props 안에 넣거나 (색 · 숨김 · breakpoint · 크기) 버렸다 (Text/Label 본문). Canvas 해석기와 같은 함수로 적용한다. 숨김 (`enabled`) 은 요소 ↔ canonical 변환에서도 이어지게 했다 (종전엔 요소를 다시 저장하면 사라졌다).
+- **Card 처럼 템플릿 (`{title}` · `{description}`) 을 쓰는 instance 를 detach 하면 입력한 제목 대신 `{title}` 원문이 보이던 문제.** detach 시점 instance 값으로 사본에 굳힌다 (중첩 instance 는 그 instance 값으로).
+  - live: 팔레트 GridList 항목 Label 색 + 본문 편집 → detach 뒤 재해석 = detach 전 Preview · Card 제목 `Live title` 유지 (원복 시 각각 색 · 본문 유실 · `{title}`)
+
+## [instance detach · 휴지 변형 편집 정합] - 2026-09-27
+
+### Fixed
+
+- **instance 를 detach 하면 사본이 origin 자식과 같은 ID (customId) 를 가져가던 문제.** 사용자 origin 의 자식 ID 를 그대로 복사해 Properties ID 행에 중복 오류가 뜨고 Preview · publish 에 같은 HTML `id` 가 두 번 나왔다. 같은 origin 을 가리키는 중첩 instance 형제 둘은 서로 같은 ID 가 됐다. detach 로 생긴 요소는 새 ID 를 받는다 (번호 규칙은 원래 ID 를 따른다 · 한 번에 여러 instance 를 detach 해도 겹치지 않음).
+- **이름이 같은 형제 둘을 따로 편집한 instance 를 detach 하면 두 번째 형제가 첫 형제 편집값을 받던 문제.** detach 가 편집기의 형제 구분 (`~2`) 을 몰랐다 — 편집기와 같은 규칙으로 읽는다.
+- **목록 항목의 선택 안 된 상태 (휴지 변형) 에 저장된 자식 편집이 Canvas 에만 빠지던 문제.** Canvas 가 id 경로만 읽고 편집기 · 변형 이관이 쓰는 이름 경로를 읽지 않아 Preview 와 갈렸다.
+- **instance 안 중첩 요소 (목록 항목의 Label 등) 를 Canvas 에서 편집한 뒤 detach 하면 편집이 사라지던 문제.** detach 가 중첩 instance 의 자기 편집만 읽고 바깥 instance 에 저장된 `<중첩 요소>/…` 편집을 버렸다. 반대로 중첩 instance 에 자기 편집이 없으면 바깥 편집 전체가 넘어가 같은 이름 자식에 잘못 적용됐다. Preview 와 같은 규칙 (바깥 편집을 그 중첩 요소 범위로 좁혀 합침) 으로 읽는다.
+  - live: 팔레트 GridList 첫 항목 Label 색 편집 → detach → 사본 Label 색 유지 · 다른 항목 무변경 (원복 시 색 유실)
+- **팔레트 TableView 를 detach 하면 행의 셀이 전부 사라지던 문제.** detach 가 origin 안 중첩 instance (Row) 의 origin 자식만 만들고 그 instance 에 붙은 셀 (자기 자식) 을 만들지 않았다. Preview 와 같이 origin 자식 뒤에 이어 만들고, 바깥 instance 의 셀 편집도 적용한다.
+- **영역을 채운 뒤 그 영역 스타일을 편집한 instance 를 detach 하면 영역 스타일이 사라지던 문제** (Card Content 등). 채움과 스타일이 한 편집 항목에 같이 저장되는데 detach 가 채움만 읽었다.
+  - live: Card Content 채움 + 색 → detach 뒤 색 유지 · TableView detach 뒤 셀 3 = Preview 셀 3 (원복 시 각각 색 유실 · 셀 0)
+- Preview 해석 비용 감소 — 쓰이지 않던 해석 노드 사본 메모 (WeakMap) 제거, 합성 문서 p50 0.75 → 0.56 ms.
+  - 검증: 원복 RED 5 · builder 7973 · live 6/6 (`adr150-low-detach-live.mjs` — 팔레트 GridList · 사용자 origin detach 뒤 ID 중복 0 · Undo/Redo · 휴지 변형 이름 경로 patch; 원복 시 사용자 origin 사본이 `text_low_a` · `text_low_b` 중복)
+
+## [Dialog 기본 폭 400 복원] - 2026-09-27
+
+### Fixed
+
+- **Canvas 에서 새 Dialog 본문이 가장 좁은 폭 (156) 으로 찌그러져 제목 · 설명이 여러 줄로 꺾이고 Close 가 오른쪽 끝에 서지 않던 문제** (`45bf29ae3` 회귀). 본문 기본 폭을 `width: 100%` 로 바꿨는데 Canvas 의 부모 DialogTrigger 는 `fit-content` 라 100% 가 풀리지 않았고, DOM 은 Modal shrink-to-fit 이라 두 렌더러 폭이 갈렸다. catalog 기본값을 `width: 400px` · `max-width: 100%` 로 복원 (사용자 판정) — `maxWidth` 는 container style 키로 추가 (스키마 · 생성 CSS · Canvas 두 목록).
+  - 검증: 실 브라우저 parity 를 실제 부모 (Canvas DialogTrigger · DOM Modal) 로 재작성 — 둘 다 400 (원복 시 Canvas 160) · builder 7969 · parity 1569 · live ADR-240 6/6 (Dialog Actions 채움 뒤 Close 오른쪽 끝 유지)
+
+## [GitHub Pages 주소창 직접 진입] - 2026-09-27
+
+### Fixed
+
+- **배포 사이트에서 `/composition/dashboard` · `/composition/builder/<id>` 로 바로 들어가거나 builder 를 새로고침하면 GitHub 404 페이지가 뜨던 문제.** GitHub Pages 는 없는 경로에 `404.html` 을 주는데 빌드에 그 파일이 없었다. 빌드가 `index.html` 을 `404.html` 로 복사해 내보낸다 (`vite.config.ts` `spaFallbackPlugin`) — SPA 가 부팅해 router 가 경로를 처리한다 (응답 상태는 404 그대로). 배포가 복구된 뒤부터 적용된다.
+  - live: production 빌드를 Pages 와 같은 방식 (없는 경로 → `404.html`, 404 상태) 으로 제공 — 대시보드 직접 진입 · builder 직접 진입 (캔버스 부팅) · builder 새로고침 Chromium · WebKit 4/4, 대조군 (404.html 없음) 1/3 (`apps/builder/scripts/spa-deep-link-live.mjs`)
+  - 관련: [ADR-244](adr/completed/244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) 옛 배포 복구가 이 동작 위에서 `location.reload()` 를 쓴다
+
+## [ADR-150 남은 후속 — 목록 카드 · 행 · instance 편집 정합] - 2026-09-27
+
+### Fixed
+
+- **Preview 에서 instance 안 목록 항목 · 중첩 요소의 편집 중 표시가 반영되지 않던 문제.** Preview 는 해석이 끝난 노드로 대상 경로를 다시 세어, 이름 없는 항목 instance 를 원본 origin 이름 (`Item/Default`, `~2`) 으로 등록하고 중첩 instance 에서 경로가 끊겼다 — 편집기는 id 경로로 찾아 못 맞췄다. 해석기가 원본 형제 목록 기준 경로를 노드에 싣고 Preview 는 그 값만 읽는다. 경로를 노드 하나로 구하던 13 곳도 형제 목록 기준으로 바꿨다 (같은 이름 형제 `~2` · slot 채우기 경로의 customId 누락).
+
+- **origin 에 추가한 자식을 instance 에서 편집하면 저장되지 않거나 Canvas 에만 보이던 문제.** 팔레트로 추가한 요소는 customId 를 받는데, Canvas 는 그 customId 로 자식 경로를 만들고 Properties · Styles 조회 · Preview 는 이름 ‖ id 로 찾았다 — 편집이 사라졌다. 경로 규칙을 하나 (customId ‖ 이름 ‖ id) 로 통일하고, 옛 규칙으로 저장된 키도 읽는다 (문서는 바꾸지 않음). 같은 이름 형제는 두 번째부터 `~2` 로 구분한다 (종전 Canvas 는 두 번째 형제를 잃었다).
+  - live: origin 에 Text 추가 → 팔레트 GridList 항목 안 그 자식 색 편집 → Preview 해석기 = Canvas (4/4, `adr150-f2-segment-rule-live.mjs`)
+- **GridList 한 줄에 설명 있는 카드와 없는 카드가 섞이면 Canvas 의 짧은 카드가 늘어나지 않던 문제** (Preview 는 행 높이로 늘림, 50 vs 76).
+- **Preview 의 데이터 ListBox · GridList 가 100 행에서 잘리던 문제** — Canvas · Table 처럼 전 행.
+- **팔레트 ListBox 에 데이터를 연결하면 Preview 가 설명 없는 한 줄 행만 그리던 문제** — Canvas 처럼 label · 설명 slot 행.
+  - 검증: 실 브라우저 DOM oracle 150 행 (anchor 있음 · 없음 ListBox · GridList) · live 카드 높이 = 행 높이 11/11
+  - 위치: [ADR-150](adr/completed/150-rac-pencil-residual-interaction-execution.md) breakdown §7
+
+## [Chrome case study 적용 — 소형 개선 6건] - 2026-09-27
+
+### Fixed
+
+- **AI 패널 프로파일의 추론 강도 (`reasoningEffort`) 가 어느 요청에도 실리지 않던 문제.** provider 를 만들 때 값이 버려져 Anthropic planner (high) · verifier (medium) 는 모델 기본값으로, Ollama 는 Qwen3 기본 thinking 으로 돌았다. 이제 호출 옵션이 없으면 프로파일 값을 보낸다. `local-ollama` 프리셋의 main · executor · fast 는 `none` (thinking off — 요청마다 약 8초 절감, 2026-09-01 실측) 이고 planner · verifier 는 모델 기본값이다. 이미 저장된 프로파일은 프리셋을 다시 적용해야 `none` 이 들어간다.
+  - live: AI 패널 모호 요청의 첫 요청 본문에 프로파일 값 확인 (`apps/builder/scripts/ai-reasoning-effort-live.mjs`)
+- **폴더 권한 창에서 거부하거나 닫으면 아무 변화가 없던 문제.** 거부 사실과 "편집은 이 브라우저에 저장됩니다" 를 알리고, 권한이 필요하면 헤더 경고 아이콘 옆에 허용 버튼 (거부 뒤는 "다시 허용") 을 바로 둔다 — 종전에는 아이콘 → 메뉴 → 항목을 거쳐야 했다.
+  - live: 권한 필요 · 거부 · 다시 허용 → 저장 4/4 (`folder-permission-denied-live.mjs`)
+- **패널을 최소 폭으로 줄이면 History 제목이 "Hist…" 로, 팔레트 이름 5개 ("illustrated message" 등) 가 말줄임으로 잘리던 문제.** History 는 290px 미만에서 제목을 시각만 숨기고 아이콘을 남기며 (container query), 팔레트 이름은 2줄까지 감싼다. 패널 10개 최소 폭 실측에서 나머지는 잘림 0.
+
+### Added
+
+- **로그인 → 프로젝트 목록 → 빌더 화면 전환에 View Transition (160ms crossfade).** 지원하지 않는 브라우저 · reduced motion 은 그냥 이동한다. `BrowserRouter` 가 경로 갱신을 React transition 으로 돌려, 전환 콜백이 라우트 commit 을 기다린다.
+  - live: Chromium · WebKit 각 3/3 — 전환 콜백 안에서 새 화면 (`view-transition-nav-live.mjs`)
+- **개발 도구**: 런타임 오류 목록 (dev `__composition_RUNTIME_ERRORS__`) · 팔레트 전체 오류 sweep `pnpm gate:catalog-errors` (live 70 컴포넌트 · 오류 0) · 하니스 대상 서버 `BUILDER_URL` · `dev:kill` 은 `DEV_PORTS` (기본 5173) 만 종료.
+  - **Why**: Chrome for Developers case study 30건 조사 (CyberAgent · P2ER · `<permission>` · container queries · View Transitions) 에서 ADR 없이 적용할 수 있는 항목.
+
+## [ADR-150 후속 R1 — 줄바꿈되는 목록 행의 스크롤 위치] - 2026-09-27
+
+### Fixed
+
+- **긴 label 이 줄바꿈되는 ListBox 행 · GridList 카드가 있는 스크롤 목록에서 행이 겹치거나 밀리고 끝 행까지 스크롤되지 않던 문제.** 행 위치 계산이 모든 행을 한 줄 높이로 보고 있었다. 이제 화면에 들어온 행의 실제 높이를 기억해 행 위치 · 스크롤 범위에 반영하고, 높이가 바뀌면 화면 첫 행이 제자리에 있도록 스크롤 위치를 보정한다 (ADR-162 펼친 카드와 같은 방식).
+  - live: 폭 200 ListBox 60 행 (3 행마다 4 줄) · 폭 320 2 열 GridList 40 장 — 맨 위 · 안 본 중간으로 점프 · 끝에서 행 위치 = 계산 (±1), 전 행 스크롤 뒤 스크롤 범위 = 실제 행 높이 합, 폭 변경 뒤 다시 정합 (11/11).
+  - 위치: [ADR-150](adr/completed/150-rac-pencil-residual-interaction-execution.md) breakdown §6 · `scene/expandedCardHeights.ts` · `apps/builder/scripts/adr150-r1-wrap-rows-live.mjs`
+
+## [ADR-150 Implemented — 데이터 바인딩 목록의 Canvas 정합] - 2026-09-27
+
+### Changed
+
+- **스크롤하는 데이터 목록 (ListBox · GridList · Table) 이 끝 행까지 닿고, 보이는 행 위치가 Preview 와 같다.** 행마다 높이가 다른 목록 (설명이 있는 행 · 없는 행), 행 간격, 요소 헤더가 있는 Table 을 한 계산 (행 위치 단일 소스) 이 처리한다 (Phase 1, 2026-09-27). 데이터 행 더블클릭 → 템플릿 origin 자식 선택 · 카메라 추종은 아래 Phase 2 엔트리.
+  - live: 실제 builder 에서 ListBox 1000 · GridList 2 열 400 · Table 500 · 요소 헤더 Table 을 top · mid · end 스크롤 — 15/15, 실 브라우저 DOM 대조 3/3. 더블클릭 진입 10/10.
+  - **Why**: 가상화 window 는 07-19 부터 가동했지만 window · spacer · 스크롤 범위 · 행 배치가 서로 다른 식을 써서 행 간격이 있거나 행 높이가 섞이면 끝 행에 닿지 못했고, 2 열 GridList 는 스크롤 중 카드 열이 뒤바뀌었다.
+  - 줄바꿈으로 높이가 바뀌는 행은 같은 날 후속 R1 (위 엔트리) 에서 반영.
+  - 위치: [ADR-150](adr/completed/150-rac-pencil-residual-interaction-execution.md) · `scene/collectionRowOffsets.ts` · `interaction/resolveDataRowOriginTarget.ts` · `apps/builder/scripts/adr150-*-live.mjs`
+
+## [ADR-150 Phase 2 — 데이터 행 더블클릭 → 템플릿 origin 편집] - 2026-09-27
+
+### Added
+
+- **데이터 목록 행 (GridList 카드 · 카드 안 요소 · ListBox 행 · Tag · Tab) 을 더블클릭하면 그 행을 만드는 템플릿 origin 으로 이동해 대응 요소를 선택한다.** 카드 안 제목을 더블클릭하면 Components 페이지 origin 의 제목 Text, 설명을 더블클릭하면 설명 Text 가 선택된다. 여기서 편집하면 그 origin 을 쓰는 모든 카드에 반영된다. 해석할 수 없는 행 (Table · Breadcrumbs 등) 은 지금처럼 목록 자체를 선택한다.
+- **더블클릭으로 origin 을 선택하면 카메라가 따라간다.** 선택 요소가 화면 밖이면 현재 배율 그대로 그 요소를 화면 중앙으로 300ms 이동한다 (이미 보이면 움직이지 않는다).
+- **Properties 「항목 원본」 절** — 목록 항목 origin (또는 그 안쪽) 을 선택하면 "이 원본을 쓰는 카드 전체에 적용됩니다." 를 보여준다.
+
+### Fixed
+
+- **서로 다른 카드를 연달아 한 번씩 누르면 더블클릭으로 판정되던 문제.** 더블클릭 판정이 목록 id 로 이어져 300ms 안의 두 카드 클릭이 더블클릭이 됐다. 이제 카드 · 카드 안 요소 단위로 잇는다.
+
+### Removed
+
+- 호출처가 없던 `resolveCollectionWriteTarget` (ADR-912 단계 4 의 3-route 변환) 과 그것만 쓰던 projection kind 판정 함수 3개.
+
+### Tests
+
+- 실제 Builder (`apps/builder/scripts/adr150-p2-origin-entry-live.mjs`, headed · 실제 마우스): 펼친 카드 제목 · 설명 더블클릭 (선택 경계 밖 · 안) → 서로 다른 origin 자식 선택 · Components 페이지 이동, 카드 두 장 150ms 연속 클릭 → 이동 0, origin 편집 → 모든 카드 반영, Properties 안내 표시, 진입 뒤 선택 요소가 화면 안 (카메라 추종 · 배율 유지). 10/10, 페이지 에러 0.
+
+## [ADR-162 Implemented — 데이터 GridList 카드 = 항목 origin instance] - 2026-09-27
+
+### Added
+
+- **데이터 바인딩 GridList 의 카드가 카드 템플릿 (항목 origin) 에 넣은 요소를 그대로 그린다.** Image · Button · Frame 등 label · 설명 밖 자식이 카드마다 나오고, 자식의 글자 · Image `src` · `alt` 등에 `{field}` 를 쓰면 행마다 그 열 값으로 바뀐다 (Canvas · Preview 같은 허용표). 정적 카드와 같은 접기/펼침 규칙 하나 · Properties "카드 필드" 절 (Phase 0 ~ 5, 2026-09-26) · 스크롤 행 높이 실측 (Phase 4, 아래 엔트리).
+  - live: 실제 builder 에서 Image (`{image}` · `{label}`) · Button (`{action}`) 카드 3 행이 행별 값 (5/5) · 가변 높이 스크롤 13/13 (스크롤 중 템플릿 편집 · 열 수 변경 포함). 성능 A/B — 카드 템플릿 편집 `scene.build` p95 +2.0 ms · 스크롤 +0.
+  - **Why**: ADR-234 가 정적 목록을 항목 instance 로 바꾼 뒤 데이터 목록만 label · 설명 두 칸 공식으로 남아, 템플릿에 넣은 요소가 데이터 카드에 나오지 않았다.
+  - 알려진 한계 (후속): 가상화 목록을 연속 스크롤하면 window 가 바뀌는 프레임마다 전체 layout (~12 ms, 펼친 카드 ~22 ms) 이 돌아 60Hz 를 못 지킨다 — 162 전부터 있던 비용 ([ADR README 보류 항목](adr/README.md#보류-항목)).
+  - 위치: [ADR-162](adr/completed/162-gridlist-template-subtree-projection.md) · `apps/builder/scripts/adr162-*-live.mjs` · `adr162-g4-perf-ab.mjs`
+
+## [ADR-162 Phase 4 — 펼친 GridList 카드의 스크롤 행 높이 실측] - 2026-09-27
+
+### Fixed
+
+- **스크롤되는 데이터 GridList 에서 카드 템플릿에 Image 등을 넣어 카드가 커지면 스크롤 범위 · 뒤쪽 카드 위치가 틀리던 문제.** 가상화가 펼친 카드 높이를 label · 설명 두 칸 공식 (76) 으로 셈해 실제 카드 (126 · 3 줄 제목이면 174) 보다 짧게 잡았다. 이제 화면에 그려진 카드의 실제 높이를 기억해 ADR-150 행 위치 함수에 넣고, 아직 안 본 카드는 첫 실측 높이로 추정한다. 실측이 들어와 위쪽 합이 바뀌면 보고 있던 행이 제자리에 머물게 스크롤 위치를 옮기고, 끝에 있었으면 새 끝에 붙인다. ADR-162 Phase 4.
+  - **Why**: 펼친 카드 높이는 자식 크기와 줄바꿈에 달려 layout 전에는 알 수 없다 — 공식 추정만 쓰던 가상화가 유일한 소스였다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/expandedCardHeights.ts` · `collectionVirtualization.ts` · `BuilderCanvas.tsx`
+- **팔레트에서 추가한 GridList 는 카드 템플릿에 Image 등을 넣어도 데이터 카드가 펼쳐지지 않던 문제 (Canvas).** 팔레트 GridList 의 카드 템플릿은 상태 변형 origin (`--unselected`, 기본 origin 을 참조) 인데 Canvas 가 참조를 펼치지 않은 노드를 읽어 "자식 없음" 으로 판정했다. ListBox · Tag · Tab 과 같은 변형 origin 해석을 쓴다. ADR-162 Phase 4 live 에서 발견.
+  - **Why**: ADR-234 Phase 2 가 행 template origin 조회를 변형 체인 해석으로 바꿀 때 GridList 카드 context 만 빠졌다.
+  - 위치: `canvasSceneNode.ts` `resolveGridListCardContext`
+- 검증: 실 브라우저 DOM (2 열 · 100 카드, 짧은 / 3 줄 제목 교대 — 카드 126 · 174, scrollHeight 8088) 과 실제 builder Canvas 가 전 행 실체화 · 끝으로 바로 이동 · 미방문 중간 이동 · 맨 위부터 순차 스크롤 네 경우 모두 행 y · 높이 ±1, 전 행을 본 뒤 총 높이 8088 = DOM (live 9/9). 중간 이동 때 보던 행의 화면 위치 변화 0 · 같은 위치 재계산 진동 0. 원복 RED 6 종.
+
+## [ADR-150 Phase 1 — 스크롤 데이터 목록의 행 위치 단일 소스] - 2026-09-27
+
+### Fixed
+
+- **높이 고정 + 스크롤인 데이터 ListBox · GridList · Table 이 Canvas 에서 끝까지 스크롤되지 않거나 행이 제자리를 벗어나던 문제.** 가상화 window · 앞뒤 spacer · 스크롤 범위를 한 함수 (`resolveCollectionRowOffsets`) 가 행마다의 높이 · 행 간격 · 목록 안쪽 여백으로 만든다. 이전에는 첫 행 높이 하나로 전 행을 셌고 행 간격과 padding · border 를 빼서, description 이 행마다 다른 ListBox 100 행은 끝 행이 900px 가까이 모자랐다.
+- **GridList 2 열 데이터 목록을 스크롤하면 카드 열이 뒤바뀌던 문제.** spacer 가 grid 한 칸만 차지해 첫 카드가 오른쪽 열에 붙었다. spacer 가 한 시각 행 전체를 차지한다.
+- **팔레트로 놓은 Table 의 스크롤 범위가 행 높이를 잘못 셌던 문제.** Table origin 의 size (sm, 행 36) 를 읽지 않고 md (44) 로 셌다. 목록 owner 는 origin props 위에 instance 값을 얹어 읽는다. quick connect 로 열을 만든 Table 은 헤더 (40) 를 행 높이로 잘못 읽어 마지막 행이 4px 잘렸다.
+- **GridList 카드 간격이 Styles 의 gap 을 따르지 않던 문제.** Canvas 가 DOM 이 읽지 않는 `props.gap` 을 읽었다. 이제 `style.gap` (rowGap · columnGap) 을 먼저 읽어 Preview 와 같은 간격이다.
+- **행 템플릿에 프로젝트 변수 (`{{ subtitle }}`) 를 쓴 목록과 mobile · tablet 에서만 padding 을 준 GridList · Table 의 스크롤 범위.** 변수 기본값으로 푼 뒤 description 유무를 판정하고, owner 여백은 현재 breakpoint 값으로 센다.
+
+### Performance
+
+- 가상화 목록의 행 높이 목록은 행 데이터 · 선택 · 템플릿 입력이 그대로면 다른 요소를 편집해도 다시 만들지 않는다 (10k 행 목록, 편집 1회 추가 비용 약 4ms → 0.1ms 미만, node 측정).
+
+### Tests
+
+- 실 브라우저 DOM oracle (`tests/parity/adr150RowPositionsDom.browser.test.ts`) 3건: ListBox 100 행 · GridList 100 카드 · GridList gap 20px 의 모든 행 y · 높이 · 스크롤 범위가 단일 소스와 ±1.
+- 실제 Builder (`apps/builder/scripts/adr150-p1-row-positions-live.mjs`, headed): 팔레트 ListBox 1000 · GridList 400 · Table 500 을 맨 위 · 중간 · 끝에서 layout 행 y · 스크롤 범위 오차 0, quick connect Table 끝 행 하단 = viewport 하단. 15/15, 페이지 에러 0.
+
+## [Canvas 크기 속성 정리 후속] - 2026-09-26
+
+### Fixed
+
+- **고정 height 컨테이너가 catalog 기본 height 에 intrinsic `min-height`/`max-height` 를 함께 가질 때 2-pass 가 그 catalog height 를 지우던 문제.** 이제 이런 컨테이너는 2-pass 후보에서 빠지고, 내용 높이 제약은 엔진이 확정 폭에서 다시 잰다. 앞 엔트리에서 생긴 경로로, 2026-09-17 의 "catalog height 보존" 계약과 맞춘 것이다. 실제 Builder 에서 row flex 안 폭 없는 Nav (md) 에 `minHeight: min-content` 를 주면 이전 코드는 엔진 입력의 `height: 56px` 을 지웠다. Nav 상자는 옆 요소에 맞춰 늘어나 56 으로 보였지만 안쪽 Text 는 32 → 24 로 줄었다. 수정 후에는 `height: 56px` 이 남고 Text 도 32 (minHeight 없는 대조군과 같음) 다.
+- **앞뒤 공백이 붙은 크기 값 (`" auto"` 등) 을 auto 로 판정.** Canvas 레이아웃의 auto·intrinsic 판정이 `@composition/shared` 의 `isAutoSizeValue` 를 함께 쓴다.
+
+### Changed
+
+- **엔진의 높이 intrinsic 제약 계산을 한 곳으로 모음.** 1차 계산과 폭 변경 뒤의 재계산이 같은 헬퍼를 쓰고, 폭·높이 측정의 스냅샷·복원 순서와 폭 min/max clamp 도 각각 공용 함수로 합쳤다. 2-pass 높이 patch 키는 손으로 쓴 목록 대신 측정 스칼라의 축 표 (`ENGINE_MEASURE_SCALAR_AXIS`) 에서 만든다.
+
+### Performance
+
+- **고정 height 컨테이너 때문에 켜지던 불필요한 레이아웃 재계산 1회를 없앰.** 2-pass 가 후보로 넣고 아무것도 바꾸지 않던 경우다.
+
+### Tests
+
+- 엔진 인접 Vitest 580건, Rust 전체, Chromium Canvas·DOM 대조 1,563건 통과 (기존 skip 2건). TypeScript 검사와 pre-push 시각 parity smoke 101건 통과.
+- 실제 Builder (`apps/builder/scripts/size-properties-followup-live.mjs`, headless Playwright): 위 Nav 사례 (가드를 되돌리면 RED) · Text `width:300px` + `maxWidth:100px` → 100×168 · Text 고정 `height:20px` + `minHeight:min-content` (flex:1) → 192×96 · 같은 조건의 frame 컨테이너 → 192×96 (자식 Text 와 같음) · `height:" auto"` = `auto` (150×96). 페이지 에러 0.
+
+## [Canvas 크기 속성 공통화와 측정 최적화] - 2026-09-26
+
+### Changed
+
+- **`width`·`height`·양 축의 `min/max` 선언을 `sizeProperties`로 공통화.** 단위 파싱, intrinsic 키워드 보존, 내용 변경에 따른 재측정 판정과 엔진 전달 키를 공유한다. 폭 intrinsic 계산과 폭에 따른 높이 측정은 축별 계약을 유지한다.
+
+### Fixed
+
+- **`min-height/max-height`의 intrinsic 키워드가 무시되던 문제.** 고정 높이에도 독립된 내용 높이 제약을 적용하고, Flex/Grid 분배로 폭이 바뀐 컨테이너는 확정 폭에서 높이를 측정한다. 저작 크기 선언은 보존한다.
+- **명시 폭에 min/max 폭 제약을 적용한 Text의 자동 높이가 원래 폭에 머물던 문제.** 높이 재측정용 임시 스타일은 항상 엔진의 확정 폭을 사용한다. 실제 Builder에서 300px 폭을 max-width 100px로 제한한 긴 글자의 높이가 48px에 머물던 조건을 재현했고, 수정 후 144px로 일치했다. Max W 200px 변경 시 200×72px, Undo 시 100×144px 복원과 숫자 Min H·Max H 적용도 확인했다.
+
+### Performance
+
+- **박스 여백 조회의 내용 측정과 후처리 임시 객체 생성을 제거.** 고정 폭·자동 높이 Text의 줄바꿈 측정은 2회에서 1회로 감소하고, 고정 크기 Text는 내용 크기를 재측정하지 않고 baseline만 공급한다. 전체 레이아웃 시간 개선율은 별도로 측정하지 않았다.
+
+### Tests
+
+- 엔진 인접 Vitest 563건, Rust 439건, Chromium Canvas·DOM 대조 1,563건 통과 (기존 skip 2건). `codex:preflight`와 TypeScript 검사 통과.
+
+## [데이터 GridList 카드 = 항목 origin 자식] - 2026-09-26
+
+### Added
+
+- **데이터 GridList Properties 에 「카드 필드」 절.** 데이터가 연결된 GridList 를 선택하면 카드 템플릿 (항목 origin) 자식의 글자 · 속성 (Text 글자 · Image src/alt · Link href 등) 마다 필드 입력이 서고, 필드 삽입 버튼이 그 GridList 의 데이터 컬럼을 보여 준다. 값은 카드 템플릿에 저장돼 모든 카드가 공유한다. 전에는 Components 페이지에서 템플릿 자식을 직접 고쳐야 했고, 거기서는 데이터 소유자를 못 찾아 컬럼 목록이 서지 않는 경우가 있었다. ADR-162 Phase 5.
+  - 검증: 원복 RED (쓰기 대상 · origin 해석) · 실제 builder 에서 설명 Text 를 `{tag}` 로 바꾸자 Canvas 행이 행마다 tag 값을 그림.
+
+### Changed
+
+- **데이터 바인딩 GridList 도 카드 템플릿 (항목 origin) 에 추가한 Image · Button 등을 카드마다 그린다.** 전에는 두 렌더러 모두 label · 설명 두 칸만 그려 템플릿의 다른 자식이 빠졌다. 이제 항목 origin 에 역할 없는 자식이 있으면 데이터 행 카드가 정적 카드와 같은 모양 (origin 의 가상 instance) 이 되고, 자식의 글자 · 속성 (children · src · alt · href 등) 의 `{field}` 는 행 데이터로 채운다. 자식이 전부 label · 설명 slot 이면 종전 그대로. ADR-162 Phase 2 · 3.
+  - 펼친 카드의 높이는 엔진이 자식으로 잰다 (컨테이너가 카드보다 작게 잘리지 않는다). 스크롤 가상화 행 간격의 실측은 후속 (Phase 4).
+  - 카드 안 자식을 클릭하면 GridList 가 선택된다 (행 projection 을 물려받음).
+  - 검증: 원복 RED (scene 펼침 · DOM 카드) · Preview DOM 상자 = 실제 builder Canvas 상자 ±1 (컨테이너 400×264 · 카드 194×126 · label · 설명 · Image) · canvas/preview unit 292 · shared 146 · parity 80.
+
+## [GridList 카드 — 소유자별 항목 origin · 섞인 자식 카드의 설명] - 2026-09-26
+
+### Fixed
+
+- **Slot 절로 다른 카드 origin 을 둔 데이터 GridList 가 Preview 에서 기본 카드 모양으로 그려지던 문제.** Canvas 는 GridList 마다 자기 slot 의 항목 origin 을 읽었지만 Preview 는 문서 전역 `component-gridlist` 의 slot 하나를 모든 GridList 에 넘겼고, 가상화 행 간격도 기본 origin 상수를 읽었다. 이제 세 곳이 같은 소유자별 해석을 쓴다 (Tabs 의 ADR-233 수리와 같은 형태). ADR-162 Phase 1.
+  - 검증: 자기 slot custom · slot 없음 · custom master instance 세 GridList 에서 Canvas `_slots` 와 Preview DOM 설명 스타일이 같다 (수정 전 DOM 실패) · custom origin (설명 slot 없음) 의 행 간격 86 → 60 (수정 전 실패).
+- **Image 처럼 역할 없는 자식이 섞인 항목 카드 (detach 한 GridList 카드 등) 에서 Canvas 설명이 사라지던 문제.** slot 자식을 자식마다 접어 escape 가 카드 틀만 그리는 동안 설명을 아무도 그리지 않았다. 이제 자식이 전부 slot 일 때만 접는다 — ListBoxItem · MenuItem 도 같은 규칙.
+  - 검증: scene unit (수정 전 실패) · 실제 builder 에서 detach 카드에 설명 · Image 를 넣어 label · 설명 · Image 가 모두 그려짐.
+
+## [InlineAlert 설명의 자동 높이] - 2026-09-26
+
+### Fixed
+
+- **InlineAlert 설명이 여러 줄이어도 Canvas의 설명 상자와 알림 높이가 한 줄 크기에 머물던 문제.** 부모가 글꼴 크기와 줄 높이를 주입한 뒤 기존 레이아웃이 측정된 텍스트 높이를 한 줄 높이로 덮어썼다. 이제 최종 텍스트 스타일로 내용 높이를 다시 측정해 `auto` 높이가 설명 길이에 따라 늘어난다. `100%` 높이를 지정한 기존 문서도 DOM과 같은 내용 높이를 사용한다.
+  - 검증: Chromium에서 생성 CSS와 Canvas 레이아웃을 비교하는 짧은 설명·긴 설명·`100%` 회귀 케이스가 수정 전 실패, 수정 후 통과.
+- **부모가 자식 텍스트를 측정한 뒤 바꾸는 경우의 Canvas 크기를 최종 내용에 맞춤.** 명시적 `height: auto`인 InlineAlert 설명, ProgressBar 값 표시, GridListItem 글꼴 굵기 주입을 최종 props로 다시 측정한다. 값 표시를 비우면 이전 높이 스칼라도 제거하며, 폭 확정 뒤 재측정할 때 부모의 텍스트 상속값을 유지한다.
+  - 검증: Chromium 회귀 테스트에서 명시적 `auto`의 Canvas 192px / DOM 252px 불일치를 수정 후 일치시킴. 최종 값 텍스트·빈 값·굵기 주입·상속 `whiteSpace` 경로 통과.
+
+## [Canvas intrinsic 폭 제약] - 2026-09-26
+
+### Fixed
+
+- **`min-width`·`max-width`의 `min-content`·`max-content`·`fit-content`가 Canvas에서 무시되던 문제.** Text와 자식이 있는 컨테이너 모두에서 원래 선언을 보존한 채 엔진이 내용 폭을 측정해 제약을 적용한다. `fit-content`는 중첩 부모의 사용 가능한 폭을 반영한다.
+- **고정 높이인 ProgressBar 값 표시의 내용이 부모에서 바뀌어도 폭 측정값이 이전 글자에 머물던 문제.** 최종 투영된 글자로 폭 스칼라를 다시 계산한다.
+  - 검증: Chromium Canvas·DOM 폭 대조 20건 및 기존 높이·intrinsic 크기 회귀 27건 통과. Rust 엔진의 내용 변경·반복 계산·원래 선언 복원 테스트 통과.
+
+## [텍스트 컴포넌트의 줄바꿈 높이] - 2026-09-26
+
+### Fixed
+
+- **Link·DisclosureContent의 긴 글자가 줄바꿈되어도 Canvas 높이가 한 줄에 머물던 문제.** 콘텐츠 박스 폭으로 실제 줄 수를 측정한다. DisclosureContent는 기존 block stretch를 유지하면서 명시 폭도 높이 측정에 사용한다.
+- **IllustratedMessage의 긴 설명·제목이 Canvas 상자 밖으로 넘치고 제목 아래 설명이 겹치던 문제.** catalog 치수와 실제 폭으로 두 텍스트의 높이를 측정하고 Skia 설명 위치에도 제목의 여러 줄 높이를 반영한다.
+- **flex 배치에서 `height:min-content`·`max-content`인 텍스트가 확정된 폭으로 다시 측정되지 않던 문제.** 고정 폭에서는 DOM과 일치했지만 flex 폭이 줄어들면 140px로 남아 DOM 300px과 달랐다. 폭 확정 후 재측정 후보에 두 키워드를 포함한다.
+  - 검증: Chromium Canvas·DOM 9개 parity 테스트 (수정 전 각 후보 실패, 수정 후 통과), Skia 설명 위치와 DOM 위치 대조.
+
+## [한 줄에 놓인 버튼 · 배지 · 링크의 세로 정렬] - 2026-09-26
+
+### Fixed
+
+- **display block 인 Frame 안에서 Button · ToggleButton · Badge · Link 가 라벨 · 다른 inline 요소와 한 줄에 놓일 때 캔버스에서만 아래 가장자리로 맞춰지던 문제** (Preview 는 글자 baseline 정렬). 줄이 부풀고 옆 요소가 최대 12 px 내려갔다 (Label + Button: 캔버스 줄 36.5 / Preview 30). 이제 두 렌더러가 글자 baseline 으로 맞춘다.
+  - 검증: 새 parity (Label + 4종, 캔버스 · DOM 대조) 수정 전 실패 → 통과 · 실제 builder 에서 block Frame > Button + Badge (Badge y 4.5, 줄 30) · 전체 parity · 캔버스 unit · 시각 smoke 통과.
+  - 후속 (같은 날): Badge · Link 처럼 부모 줄 높이보다 낮은 요소만 있는 줄도 Preview 와 같다 — 캔버스가 부모의 상속 줄 높이 (기본 24) 를 최소 줄 높이로 쓰고, 그 안의 글자 기준선을 글꼴로 잰다 (종전 줄 2~4 px 낮고 위로 붙음). 실제 builder: block Frame > Badge 줄 24.06 · y 2.06 (Preview 24 · 2).
+
+## [Select 도움말 줄 높이] - 2026-09-26
+
+### Fixed
+
+- **Select 의 도움말 (description) 줄 높이가 다른 field 보다 작던 문제** (Preview · publish, md 16 → 18 px). Select 만 단독 Description 요소의 클래스를 빌려 써 줄 높이가 달랐다 — 이제 TextField 등과 같다. 캔버스는 원래 18 이라 두 렌더러가 같아졌다.
+  - 검증: side 라벨 parity (10 field × 3 상태) 의 Select 허용 차이를 없애고 수정 전 실패 → 통과.
+
+## [ADR-236 후속 2 — side 라벨 오류 문구 · 값 표시 · ColorField] - 2026-09-26
+
+### Fixed
+
+- **라벨을 옆 (side) 에 둔 field 의 오류 문구 · 도움말이 입력칸 옆으로 붙어 입력칸을 줄이던 문제** (Preview · publish). 이제 입력칸 아래, 입력칸과 같은 x 에서 시작한다. 캔버스도 같은 규칙을 읽고, SearchField · Select · ComboBox · DatePicker · DateRangePicker 는 캔버스에 오류 문구가 아예 없던 것도 함께 고쳤다. 대상: TextField · TextArea · NumberField · DateField · TimeField · SearchField · Select · ComboBox · DatePicker · DateRangePicker.
+- **Slider · Meter · ProgressBar 의 값 글자가 캔버스에서 트랙 끝 밖으로 넘치던 문제.** 값 표시 상자의 폭이 0 이었다.
+- **ColorField 입력칸이 캔버스에서 부모 폭을 다 차지하던 문제** (Preview 는 12 글자 폭). 캔버스에만 보이던 색 견본 (swatch) 도 그리지 않는다.
+  - 검증: 실제 builder 에서 각 항목 live · 새 parity (10 field × 3 상태) 가 수정 전 실패 → 통과 · builder · shared 테스트 통과.
+
+## [ADR-236 후속 — 반응형 override · side 라벨 · Label 표시] - 2026-09-26
+
+### Fixed
+
+- **instance 안쪽 요소 (예: Form 안 TextField) 를 tablet · mobile 에서 고치면 desktop 값까지 바뀌던 문제.** override 켜기가 기록되지 않아 이후 편집이 전 breakpoint 로 갔다. 이제 그 tier 값만 instance 의 자식 patch 에 저장하고, origin 의 다른 tier 값은 그대로 상속한다.
+- **tablet · mobile 「+ override」 를 켜는 순간 모양이 바뀌던 문제.** 현재 값 대신 CSS 초기값 (가로 · 늘이기 · 0) 이 들어가 DisclosureGroup · Card · FileUpload 가 가로로 눕고 Button 여백이 0 이 됐다. 이제 그 요소의 catalog 기본값을 복사한다.
+- **ColorField 라벨을 옆 (side) 에 둘 때 캔버스에서 라벨이 세로 가운데로 내려가던 문제** (Preview 는 위 정렬).
+- **Slider · Meter · ProgressBar 에 display block 을 붙여넣으면 캔버스에서 라벨이 한 줄을 통째로 차지하던 문제** (Preview 는 라벨과 값이 한 줄). Label 의 표시 방식을 catalog 정본으로 두었다.
+  - 검증: 실제 builder 에서 각 경로 live (메뉴 클릭 · 헤더 breakpoint 토글) · 수정을 되돌리면 새 테스트 실패 · builder · shared 전체 통과.
+
+## [배포판 앱 아이콘 경로] - 2026-09-26
+
+### Fixed
+
+- **배포판 (production, `/composition/` 아래) 에서 빌더 헤더 · 대시보드 · 로그인 화면의 앱 로고가 깨지던 문제.** 세 화면이 아이콘을 사이트 루트 (`/appIcon.svg`) 에서 찾아 404 였다. 이제 배포 경로를 붙인 주소 하나 (`APP_ICON_URL`) 를 쓰고, 정적 테스트가 루트 절대 경로를 다시 쓰지 못하게 막는다. 파비콘은 원래 정상이었다.
+  - 검증: production 빌드에서 로그인 · 대시보드 · 빌더 로고 로드 · 4xx 0.
+
+## [Safari 패널 로드 복구 · 레이아웃 저장 유실 · production Pretendard 폰트] - 2026-09-26
+
+### Fixed
+
+- **Safari 에서 패널 코드를 한 번 불러오지 못하면 "다시 시도" · 새로고침으로도 그 패널이 열리지 않던 문제.** WebKit 은 실패한 미리 받기 (`modulepreload`) 를 기억해 같은 파일을 다시 요청하지 않는다. 이제 lazy 코드는 미리 받기 링크 없이 불러와 실패가 남지 않는다.
+  - 검증: WebKit · Chrome 에서 네트워크 실패 · 404 · 서버 파일 제거 세 방식 모두 다시 시도 → 복구. 첫 열림 지연은 그대로 (CPU 4배 감속 최대 98 ms).
+- **패널을 열거나 옮긴 직후 (0.3초 안) 새로고침하면 그 변경이 사라지던 문제.** 페이지를 떠날 때 대기 중인 레이아웃 저장을 바로 쓴다.
+- **배포판 (production) 빌더에서 Pretendard 폰트 파일이 404 로 받아지지 않아 UI 와 캔버스 텍스트 측정이 시스템 폰트로 돌던 문제** (브라우저 콘솔의 폰트 디코드 경고). 개발 서버는 정상이었다. 폰트 CSS 를 JS 에서 불러와 경로가 배포 자산으로 풀린다.
+  - 검증: production 빌드에서 폰트 응답 오류 0 · 경고 0 · 캔버스 측정 폭이 개발 서버와 같음.
+- 초기 번들 Builder 1,403,816 → 1,401,576 B · Preview 622,496 → 622,126 B (미리 받기 목록이 짧아짐).
+
+## [커맨드 팔레트 — 검색 입력에서 ↑↓ · Enter 로 실행] - 2026-09-26
+
+### Fixed
+
+- **커맨드 팔레트에서 검색어를 입력하고 Enter 를 눌러도 아무 명령도 실행되지 않고 팔레트가 열린 채 남던 문제.** 하단 안내 ("↑↓ 이동 · ↵ 실행") 와 달리 입력에 포커스가 있는 동안 방향키와 Enter 가 목록에 닿지 않았고, 마우스 클릭만 동작했다.
+  - 수리: 검색 입력과 목록을 RAC `Autocomplete` 로 잇는다. 타이핑하면 첫 결과가 강조되고 ↑↓ 로 옮기며 Enter 로 실행한 뒤 팔레트가 닫힌다. 위치: `apps/builder/src/builder/components/overlay/CommandPalette.tsx`.
+  - 검증: 실제 builder (dev) 에서 "history" 입력 뒤 Enter · ↓+Enter · 클릭 세 경로 모두 히스토리 패널이 열리고 팔레트가 닫힘. 초기 번들 +9 B.
+
+## [ADR-242 Implemented — 초기 화면 밖 패널은 필요할 때 불러온다] - 2026-09-26
+
+### Performance
+
+- **빌더 초기 로드가 가벼워졌다** (ADR-242 Phase 0~~4): 히스토리 · 설정 · 인터랙션 · 테마 · 데이터 목록 패널과 폰트 관리 대화상자를 처음 열 때 불러온다. 초기 JS (gzip) Builder 1,420,999 → **1,403,816 B (−17,183)**, Preview 622,556 → 622,496. 부팅 뒤 한가할 때 이 패널들을 미리 받아 두므로 처음 여는 체감은 그대로다 (실측 첫 열림 15~~40 ms, CPU 4배 감속에서도 ≤ 94 ms — 항상 실려 있던 속성 패널과 같은 급).
+  - **Why**: 새 사용자는 모든 패널이 닫힌 채 시작하는데 패널 12개 중 9개의 코드가 처음부터 실려 있었다. 초기 번들이 승인 상한까지 1 B 남아 다음 기능마다 재승인이 필요했다.
+
+### Added
+
+- **패널 코드를 불러오지 못하면 (배포 교체 · 오프라인) 그 패널 안에만 안내와 "다시 시도" 가 뜬다.** 캔버스와 다른 패널은 그대로 동작한다. Chrome 은 한 번 실패한 파일 요청을 기억해 다시 시도가 바로 실패하므로, 그때는 앱을 새로고침해 복구한다 (문서 · 레이아웃은 저장돼 있어 잃는 것이 없다).
+  - 검증: 실제 builder production 빌드 7/7 — 레일 · 단축키 (Alt+3/4/7/8 · Cmd+,) · 커맨드 팔레트 · 닫았다 다시 열어도 탭 유지 · 폰트 관리 대화상자 · 요청 차단 → 패널 안 오류 → 다시 시도 → 복구 · page error 0.
+
+## [로컬 저장 v2 — 폴더 연결 판독 수리 (다른 프로젝트 내용이 연결 폴더에 써짐)] - 2026-09-26
+
+### Fixed
+
+- **폴더에 연결한 프로젝트에서 대시보드를 거쳐 다른 프로젝트로 옮긴 뒤, 다른 프로젝트의 내용이 원래 프로젝트의 연결 폴더에 저장되던 문제** (ADR-235 Phase 6 부터).
+  - **Why**: 폴더 연결이 화면 이동 뒤에도 남아, 폰트 변경 같은 쓰기 계기에 "지금 열린 프로젝트" 의 내용을 모아 자기 폴더에 썼다.
+  - 수리: 폴더에 쓸 내용은 그 프로젝트가 지금 열려 있고 데이터까지 다 올라왔을 때만 모은다. 위치: `apps/builder/src/builder/main/BuilderCore.tsx` (`collectExportContent`).
+- 오래 열지 않은 연결 프로젝트 비우기를 더 보수적으로: 데이터 (collections · API · 변수) 가 있는 프로젝트는 비우지 않는다 (폴더 형식이 그 필드를 다 담지 않음) · 불러오기가 실패하면 비운 상태를 유지 · 여는 탭과 비우기가 겹칠 때 순서 보장 · 비우기 표식만 남은 경우 자동 해제.
+  - 검증: 실제 builder 7/7 (추가 V6 — 수리 전 실패 재현) · 폴더 연결 회귀 6/6.
+
+## [로컬 저장 v2 후속 — 오래 열지 않은 폴더 연결 프로젝트의 브라우저 사본 비우기] - 2026-09-26
+
+### Added
+
+- **폴더에 연결한 프로젝트를 30일 넘게 열지 않으면 브라우저 (IndexedDB) 사본을 비운다.** 원본은 연결 폴더이고, 비우기 전에 폴더의 현재 저장이 브라우저 사본을 다 담고 있는지 (마지막 폴더 저장 뒤 브라우저 쪽 변경 없음 · 폴더 파일을 해시까지 읽을 수 있음 · 다른 탭에서 열려 있지 않음 · 폴더 권한이 이미 있음) 를 모두 확인한다. 하나라도 확인할 수 없으면 비우지 않는다. 프로젝트 이름은 목록에 남는다.
+- 비운 프로젝트를 열면 헤더 폴더 버튼이 경고 상태 ("폴더에만 있음") 가 되고, 메뉴 "폴더 내용으로 열기" 로 폴더에서 불러온다. 불러오기 전에는 폴더에 쓰지 않는다 (빈 문서로 폴더를 덮지 않음).
+  - 검증: 실제 builder (Playwright Chrome 153 영속 프로필, OPFS 폴더) 6/6 — 편집 뒤 기록 · 열린 탭이 있으면 유지 · 닫힌 뒤 기간 경과 → 비움 (프로젝트 이름 유지) · 열기 → 폴더 내용으로 열기 → 복원 · 다시 폴더에 저장 · 폴더에 없는 변경이 있으면 유지. 실제 폴더 선택창 · 권한 창은 사용자 확인 대상.
+
+## [ADR-235 Implemented — 로컬 프로젝트 저장 v2] - 2026-09-26
+
+### Fixed
+
+- **Safari (WebKit) 에서 이미지 · 폰트가 든 프로젝트 가져오기가 "The operation was aborted" 로 실패하던 문제.** WebKit 비공개 저장소가 IndexedDB 에 Blob 을 넣지 못해, 자산 바이트를 ArrayBuffer 로 저장한다 (이미 Blob 으로 저장된 자산은 그대로 읽힌다).
+
+### Changed
+
+- 로컬 저장 v2 (Phase 1~6, 아래 엔트리) 전체 종결 — 업로드 이미지 · 폰트는 원본 바이트 한 벌을 IndexedDB 에 두고 문서는 참조만 든다 · 기존 인라인 데이터 이관 · 쓰지 않는 자산 정리 · 형식 v2 zip · publish v2 · 브라우저 저장소 보호 · Chromium 폴더 연결.
+  - 검증: 실제 builder 종합 시나리오 6/6 (Playwright Chrome 153 — 업로드 → 새로고침 · 삭제 → 정리 2회 → undo · v2 zip → 빈 프로필 가져오기 · publish Preview 버튼 · 두 탭 정리 / WebKit 26.5 — zip 가져오기 · Canvas 이미지 · 다시 내보낸 자산 해시 동일). 실제 폴더 선택창 · 권한 요청 · Preview · Safari · Firefox 는 사용자 확인 대상.
+
+## [로컬 저장 v2 Phase 6 — 프로젝트를 폴더에 연결 (Chrome · Edge)] - 2026-09-26
+
+### Added
+
+- **메뉴 "폴더에 연결…" 로 프로젝트를 내 컴퓨터 폴더에 연결할 수 있다 (Chrome · Edge 등 Chromium).** 연결하면 저장할 때마다 폴더에 v2 형식 (`manifest.json` · `parts/` · `assets/`) 으로 백그라운드 저장한다. 저장 중 끊겨도 폴더는 직전 저장 또는 새 저장 중 하나로 온전하고, `manifest.json` 이 손상되면 기록 (`manifests/`) 에서 복구한다. 직전 저장 1 세대를 남긴다.
+- 헤더에 폴더 상태 버튼이 생긴다 — 새로고침 뒤 폴더 권한이 필요하면 눌러서 허용하고, 폴더가 다른 곳에서 바뀌었으면 자동 저장을 멈추고 "폴더 내용으로 열기" / "내 변경으로 덮어쓰기" 를 고르게 한다. 연결 해제도 여기서 한다.
+  - 검증: 실제 builder (Playwright Chrome, 같은 File System Access API 의 OPFS 폴더) — 연결 · 편집 반영 · 외부 수정 충돌 · 손상 복구 · 권한 없음 · 브라우저 재시작 뒤 복원 6/6. 폴더 선택창 · 권한 창은 자동화할 수 없어 사용자 확인 대상.
+
+## [로컬 저장 v2 Phase 5 — 브라우저 저장소 보호] - 2026-09-26
+
+### Added
+
+- **헤더에 저장소 상태 버튼이 생겼다.** 처음 저장할 때 브라우저에 저장소 보호 (`persist`) 를 요청하고, 보호됨 · 사용량을 보여준다. 브라우저가 거부했거나 지원하지 않으면 "브라우저가 이 프로젝트를 지울 수 있습니다" 경고를 계속 표시하고, 누르면 파일로 내보낸다.
+- **저장 공간이 부족하면** 버려도 되는 캐시 (데이터 API 응답) 를 비우고 한 번 더 저장한다. 그래도 실패하면 알리고 내보내기를 권한다.
+
+### Changed
+
+- 데이터 API 응답 캐시는 Chrome 계열에서 원본과 다른 저장 구역 (Storage Bucket, 보호 안 함) 에 둔다 — 디스크가 부족하면 브라우저가 캐시를 먼저 비운다. 그 밖의 브라우저에서는 25 MB 상한을 두고 사용률이 80% 를 넘으면 먼저 비운다. 스냅샷은 프로젝트당 합계 50 MB 까지다.
+
+### Fixed
+
+- 프로젝트 가져오기 · 내보내기 실패 알림에 `{message}` 가 그대로 나오던 문제를 고쳤다.
+
+## [로컬 저장 v2 Phase 4 — 프로젝트 파일 형식 v2] - 2026-09-26
+
+### Changed
+
+- **"내보내기" 는 이제 `.composition.zip` 파일을 만든다 (형식 v2).** 안에 `manifest.json` · 문서 조각 (`parts/`) · 이미지 · 폰트 원본 파일 (`assets/`) 이 들어 있어 탐색기에서 자산을 알아볼 수 있다. 종전 JSON 은 메뉴의 "JSON 으로 내보내기 (v1)" 로 계속 만들 수 있다 (이미지 · 폰트 인라인).
+- **가져오기는 v1 JSON 과 v2 zip 을 모두 연다.** 저장된 현재 페이지로 열리고, 그 페이지가 문서에 없으면 첫 페이지를 열고 알린다. `manifest.json` 이 손상돼도 저장 기록 (`manifests/`) 이 있으면 직전 세대로 복구한다.
+
+### Added
+
+- **publish 가 v2 를 읽는다** — `?project=` 에 zip · `manifest.json` · 폴더 URL 을 주면 자산을 manifest 위치 기준 상대 경로로 읽는다. 기본 `/project.json` 이 없으면 `/manifest.json` 을 찾는다. 파일 드롭도 zip 을 받는다.
+- 정적 HTML 내보내기 (`exportProject`) 가 자산을 `assets/` 파일로 함께 쓰고 상대 경로로 가리킨다.
+  - 검증: 실제 builder · publish (Playwright Chrome) — 내보내기 → 빈 브라우저 가져오기 (문서 동일 · 현재 페이지) · publish v2 폴더 · zip · v1 · 정적 HTML 에서 이미지 · 사용자 폰트 로드 · 없는 현재 페이지 · 손상 파일 8/8.
+
+## [로컬 저장 v2 Phase 3 — 쓰지 않는 자산 정리] - 2026-09-26
+
+### Added
+
+- **어디에서도 참조하지 않는 이미지 · 폰트 자산을 정리한다 (하루 한 번, 빌더가 한가할 때).** 문서 · 백업 · 스냅샷 · undo 기록 · 폰트 목록 · 열린 탭의 메모리까지 전부 확인하고, 두 번 연속 참조가 없고 7 일이 지난 자산만 지운다. 정리와 동시에 다른 곳에서 다시 참조하면 삭제를 취소한다 (undo 로 되살린 이미지도 그대로 보인다).
+- 지워진 자산을 가리키는 붙여넣기 · 이미지 URL 입력은 적용하지 않는다 (깨진 이미지가 문서에 들어가지 않는다).
+
+## [로컬 저장 v2 Phase 2 — 업로드 자산 저장 · 기존 데이터 이관 · 폰트 한도 해소] - 2026-09-26
+
+### Fixed
+
+- **4MB 폰트를 올리면 저장되지 않던 문제를 고쳤다.** 폰트 바이트가 base64 로 브라우저 localStorage (약 5MB) 에 들어가 3.75MB 넘는 폰트 하나로 한도를 넘었다. 이제 폰트 바이트는 IndexedDB 자산 저장소에 두고 폰트 목록엔 참조만 둔다 (목록 수백 바이트).
+
+### Changed
+
+- **이미지 채우기 · 사용자 폰트 업로드는 원본 파일을 자산 저장소에 한 번만 저장한다.** 문서 · 백업 · 스냅샷 · undo 기록에는 `asset:sha256-…` 참조만 들어간다. 같은 파일을 다시 올리면 같은 자산을 쓴다. 저장이 실패하면 종전처럼 문서에 인라인한다 (`VITE_ASSET_WRITER=false` 로 끌 수 있다).
+- **기존 프로젝트의 인라인 이미지 · 폰트는 열 때 자동으로 자산으로 옮겨진다.** 옮기기 전 문서를 백업 목록에 먼저 남기고, 저장에 실패한 이미지는 인라인으로 둔다. 두 번 열어도 결과는 같다. 폰트 목록의 원본은 자산으로 백업해 둔다. JSON 파일 가져오기도 같은 방식으로 자산화한다.
+  - 측정 (이미지 5 · 폰트 2 · 스냅샷 1 샘플): 문서 1.33 MB → 0.14 MB · 스냅샷 1.27 MB → 0.08 MB · undo 기록 1.21 MB → 0.01 MB · 폰트 목록 1.64 MB → 0.8 KB, 합계 5.53 MB → 1.99 MB (원본 바이트는 자산으로 1벌).
+  - 검증: 실제 builder (Playwright Chrome) — Styles 패널 이미지 업로드 · 4MB 폰트 · 기존 문서 새로고침 이관 (백업 · 캔버스 동일 · 멱등) · 폰트 목록 이관 · JSON 가져오기 자산화 7/7. 이관 가드 3종 (저장 실패 · 백업 실패 · 저장 중 편집) 은 가드를 지우면 테스트가 실패하는 것을 확인했다.
+
+## [로컬 저장 v2 Phase 1 — 자산 참조 읽기 · 자립 내보내기 · 캔버스 이미지 채우기] - 2026-09-26
+
+### Fixed
+
+- **캔버스가 이미지 채우기 (Fill → Image) 를 그리지 않던 문제를 고쳤다.** Skia 노드 빌더 두 곳이 그라디언트 · 메시만 채우기 층에 실어 이미지가 버려졌다 (Preview 는 그렸다). 맨 위 채우기가 이미지면 그 층이 캔버스 채우기가 되고, 아래 색 · 그라디언트는 그 밑에 깔린다.
+- **이미지 채우기의 배치를 캔버스와 Preview 가 같게 맞췄다.** Preview 는 좌상단 정렬 + 반복이라 fit 에서 이미지가 타일로 반복됐고, 캔버스는 여백에 가장자리 픽셀이 번졌다. 두 경로 모두 중앙 정렬 · 반복 없음 · 여백 투명이다.
+
+### Added
+
+- **자산 참조 (`asset:sha256-…`) 읽기.** 이미지 · 폰트 바이트를 IndexedDB `assets` store (DB 버전 23) 에 원본 그대로 두고 문서는 참조만 드는 저장 방식의 읽기 쪽이다 — Canvas · Preview · publish · 폰트 CSS · Skia 폰트가 같은 해석 함수로 참조를 푼다. 쓰기 (업로드가 참조를 만드는 것) 는 다음 단계에서 켜진다 — 지금 업로드는 종전처럼 dataURL 이다 (ADR-235 Phase 1).
+- **프로젝트 내보내기 (JSON) 는 항상 자립 파일이다.** 문서 · 폰트 · 데이터에 자산 참조가 있으면 바이트를 dataURL 로 되살려 넣고, 바이트가 없는 참조가 하나라도 있으면 내보내기를 실패로 알린다 (참조만 든 파일을 만들지 않는다).
+
+### Changed
+
+- 다른 탭이 새 DB 버전으로 업그레이드를 기다리면 경고를 남긴다 (편집 중인 탭의 연결은 닫지 않는다 — 미저장 편집 보호).
+  - 검증: 실제 builder (Playwright Chrome) — `asset:` 이미지 채우기 캔버스 픽셀 (fit 2:1 중앙) · 같은 바이트 2회 = 자산 1 · 바이트 없는 참조 요청 0 · 사용자 폰트 (document.fonts · Skia · CSS `blob:`) · 내보내기 → 빈 브라우저 프로필 가져오기 픽셀 bbox 동일 (9/9). Preview 렌더러는 unit (fill · fit · stretch).
+
+## [캔버스 — instance 요소의 padding · gap 드래그] - 2026-09-26
+
+### Fixed
+
+- **팔레트로 넣은 Card · Form · Tabs · ListBox · TextField · Select 등에서 padding · gap 드래그 핸들이 나오지 않던 문제를 고쳤다.** 이 요소들은 origin instance 로 배치되는데 캔버스 spacing 판정이 instance 의 origin 타입과 엔진이 배치한 자식을 읽지 못했다. 드래그 값은 instance 자신의 style 에 저장되고 origin 은 바뀌지 않는다 (ADR-222 후속).
+- **padding 드래그 방향이 bottom 외 세 변에서 반대로 동작하던 문제를 고쳤다.** 이제 값이 커질 때 실제로 움직이는 띠 가장자리가 포인터를 따라간다 — top · left 는 안쪽으로 끌면 커지고, bottom · right 는 박스가 그 축으로 내용에 맞춰 늘어나면 바깥으로, 크기가 고정이면 안쪽으로 끌면 커진다.
+- **padding · gap 을 끄는 동안 핸들을 숨긴다 (Figma 와 같다).** 값은 마우스 이동과 1:1 로 바뀌고 핸들은 여백 값의 절반 위치에 있어, 드래그 중 핸들이 마우스와 어긋나 보였다. 드래그 중에는 값 배지만 보이고 끝나면 핸들이 다시 나온다. 놓은 자리가 여백 띠 위면 마우스를 움직이지 않아도 hover 사선이 바로 다시 보인다.
+
+### Changed
+
+- **padding · gap 은 핸들만 끌 수 있다.** 여백 띠 영역 전체가 드래그 대상이라 그 위에서 요소를 잡아 옮길 수 없었다. 띠 영역은 hover 사선 표시만 하고 누르면 일반 선택 · 이동으로 동작하며, resize 커서와 드래그 · 클릭 입력은 핸들에서만 열린다.
+
+## [컴포넌트 기본 스타일 — catalog 소비 통합] - 2026-09-26
+
+### Fixed
+
+- **Dialog 본문의 기본 너비를 100%로 복구했다.** column 배치와 너비를 catalog에서 공급하고 생성 코드·기본 props의 400px/최대 너비 미러를 제거했다. DialogTrigger 조합은 유지한다.
+- **필드의 크기를 바꿔도 간격이 md에 고정되던 생성값을 제거했다.** Select·ComboBox·NumberField·SearchField·ColorField는 size별 catalog gap을 읽는다. Canvas의 라벨 옆 배치에서도 생성 CSS와 같은 size 우선순위를 적용한다.
+- **새 Card의 테두리가 테마 thin을 따르게 했다.** origin의 1px 인라인을 제거했다. IllustratedMessage의 React 기본 배치도 catalog를 직접 읽도록 맞췄다.
+
+### Changed
+
+- TextField·TextArea·DateField·TimeField·ListBox·GridList·FileUpload·IllustratedMessage·ProgressBar·Meter 등의 공통 너비와 배치 미러, Card 부품의 중복 기본 배치, ProgressCircle의 32px 기본값 잔재를 정리했다. 템플릿별 설정과 기존 문서의 명시 스타일은 보존한다.
+  - 검증: 생성·기본값·origin·레이아웃 회귀 검사 및 headed Chromium의 CSS/Canvas 입력·Dialog WASM 배치 대조. 범위와 잔여 항목은 [전수 조사 후속 기록](explanation/audits/component-style-defaults-2026-09-26.md) 참조.
+
+## [캔버스 — 라벨 옆 필드에 인라인 배치가 있을 때의 자식 위치] - 2026-09-25
+
+### Fixed
+
+- **라벨을 옆에 둔 Slider · ProgressBar · Meter 에 인라인 `display: block` 이 있으면 캔버스만 값 표시를 막대 아래로 옮기던 문제** — 캔버스는 라벨 옆일 때 자식을 라벨 · 막대 · 값 순서로 바꾸는데, Preview 의 순서 변경 (`order`) 은 block 에서 효과가 없다. 이제 flex · grid 일 때만 순서를 바꾼다.
+- **라벨을 옆에 두고 인라인 세로 방향이 있는 TextField 등에서 캔버스만 오류 문구를 라벨 폭만큼 들여쓰던 문제** — 들여쓰기는 한 줄 배치 전제라, 세로로 쌓이면 Preview 처럼 왼쪽 끝에 놓는다.
+  - 위치: `workspace/canvas/layout/engines/implicitStyles.ts` (`sideReorderApplies` · `injectSideLabelLabelAndContentStyles`)
+
+## [Styles 패널 — tablet · mobile 에서 라벨 위치 요소의 Direction override] - 2026-09-25
+
+### Fixed
+
+- **tablet · mobile 에서 TextField 같은 라벨 위치 요소에 Direction override 를 켜는 순간 라벨이 옆으로 가던 문제** — override 는 현재 값을 복사해 켜는데, 이 요소들의 방향은 인라인이 아니라 라벨 위치 속성에 있어 기본값 row 가 들어갔다. 그 뒤 Direction 을 눌러도 기기 구분이 없는 라벨 위치만 바뀌어 desktop 이 바뀌고 tablet 은 그대로였다. 이제 이 요소들의 Responsive 「+」 메뉴에는 Direction 이 없다 (이미 있는 값은 목록에서 지울 수 있다).
+  - 위치: `panels/styles/sections/ResponsiveSection.tsx` (`addableOverrideKeys`)
+
+## [Styles 패널 — Button 등 inline-flex 요소의 정렬 편집] - 2026-09-25
+
+### Fixed
+
+- **Button 처럼 한 줄에 나란히 서는 요소에서 정렬 점 · Direction · Space · Wrap 을 누르면 그 요소만 다음 줄로 떨어지던 문제** — 토글이 `display: flex` 를 함께 써서 `inline-flex` (Button · Badge 등 catalog 기본, 또는 인라인) 가 block 수준으로 바뀌었다. 이제 이미 inline-flex 면 display 를 쓰지 않는다.
+  - 위치: `panels/styles/hooks/useStyleActions.ts` (`selectedFlexDisplayPatch`)
+
+## [Styles 패널 — Direction · Alignment 가 실제 배치 축을 표시] - 2026-09-25
+
+### Fixed
+
+- **ColorField 의 Direction 이 라벨 위 (top) 에서 Column 으로 표시되던 문제** — ColorField 는 라벨 · 입력 · 색 견본을 가로로 놓는 디자인이라 라벨 위에서도 실제로는 가로 배치인데, 패널은 "라벨 위 = 세로" 라는 고정 규칙으로 표시했다. 정렬 점도 세로 축으로 매핑돼 칸이 뒤바뀌었다. 이제 catalog 가 정한 실제 방향을 표시한다.
+- **TextField · RadioGroup 같은 라벨 위치 요소에 인라인 방향이 있으면 정렬 점의 가로 · 세로가 뒤바뀌던 문제** — 스타일 붙여넣기로 인라인 `flex-direction: row` 가 들어오면 화면은 가로인데, 패널은 라벨 위치로 세로 축을 가정해 "오른쪽 위" 를 누르면 왼쪽 아래 값이 저장됐다. 이제 Direction · Alignment 모두 화면이 따르는 인라인 축을 쓴다.
+  - 위치: `panels/styles/hooks/useLayoutAuxiliary.ts` (`useResolvedLayoutFields`)
+
+## [Styles 패널 — instance 안 요소의 스타일 편집 · 초기화] - 2026-09-25
+
+### Fixed
+
+- **Form 같은 컴포넌트 instance 안의 요소에서 스타일을 하나만 바꿔도 원본의 스타일 전체가 그 요소로 복사되던 문제** — padding 하나, Fill 하나를 바꾸면 원본 요소의 width 등 모든 인라인 값이 그 instance 의 override 로 저장돼, 이후 원본을 고쳐도 그 요소에는 반영되지 않았다. 이제 바꾼 값만 저장한다.
+- **instance 안 요소에서 절 헤더의 초기화 버튼이 아무 일도 하지 않던 문제** — 버튼은 보였지만 눌러도 변화가 없었다. 이제 그 요소에 덮어쓴 값을 지워 원본 값으로 돌아간다 (Fill 초기화도 같다). 원본 자체에 값이 있으면 초기화 뒤에도 그 값이 남는다.
+  - 위치: `stores/inspectorActions.ts` (`toWrittenStyle` · `dropUndefinedPatchKeys`) · `panels/styles/hooks/useResetStyles.ts` · `sections/FillSection.tsx` · `components/slotFillEdit.ts`
+
+## [라벨을 옆에 둔 필드 — 인라인 방향이 캔버스와 Preview 에서 갈리던 문제] - 2026-09-25
+
+### Fixed
+
+- **라벨 위치를 "옆 (side)" 으로 둔 TextField · NumberField · Select · ComboBox · DateField · DatePicker · ProgressBar · Meter · Slider 등에 인라인 `flex-direction` 이 있으면 캔버스와 Preview 가 다르게 그려지던 문제** — Preview (DOM) 는 요소의 인라인 스타일이 라벨 위치 규칙을 이겨 세로로 쌓였는데, 캔버스는 인라인을 무시하고 한 줄로 그렸다. 인라인 방향은 스타일 붙여넣기 · AI 스타일 편집 · 이전의 정렬 토글로 들어왔다. 이제 캔버스도 인라인을 따른다 (CheckboxGroup · RadioGroup · TagGroup 은 이미 그랬다). 새로 추가하는 요소에는 인라인 방향이 없어 모습이 바뀌지 않는다.
+  - 위치: `workspace/canvas/layout/engines/implicitStyles.ts` (`getSideLabelParentStyle` · `sideTrackRowStyle`)
+- **옛 문서의 DateField · TimeField · DatePicker · DateRangePicker · ProgressBar · Meter · Slider 에서 라벨 위치 "옆" 이 먹지 않던 문제** — 예전 버전이 이 요소들에 넣어 둔 인라인 배치 (날짜 필드의 세로 flex · 진행 막대의 grid) 가 라벨 위치 규칙을 이겼다. 프로젝트를 열 때 그 형태의 인라인을 지운다 (다른 값은 둔다).
+- **라벨을 옆에 두고 인라인 세로 방향이 있는 Select · ComboBox · NumberField · DatePicker 의 입력 상자가 캔버스에서만 내용 폭으로 줄던 문제** — Preview 처럼 전폭으로 그린다.
+  - 위치: `adapters/canonical/fieldInlineLayoutMigration.ts` · `implicitStyles.ts` (`isSideRowLayout`)
+
+## [Styles 패널 — grid 컨테이너의 정렬 · 간격 · 줄바꿈] - 2026-09-25
+
+### Fixed
+
+- **grid 로 배치되는 요소에서 Alignment 점 · Space · Wrap 을 누르면 grid 가 flex 로 바뀌던 문제** — 세 컨트롤이 `display: flex` 를 함께 썼다. ProgressBar · Meter · Slider 는 라벨 · 값 · 막대가 한 줄로 무너지고 (DOM 에서는 막대가 폭 0 으로 사라졌다), 레이아웃 프리셋으로 만든 grid 페이지 골격도 한 줄이 됐다. 패널은 선택 표시만 비워 두고 버튼은 눌리게 두었다. 이제 grid 컨테이너에서는 세 컨트롤이 비활성이다 (flex 로 바꾸려면 Direction 을 쓴다).
+- **라벨 위치로 방향이 정해지는 요소 (TextField · RadioGroup 등) 에서 정렬 · 간격 · 줄바꿈이 인라인 방향을 쓰던 문제** — 정렬 점을 누르면 `flex-direction` 이 인라인으로 남아, 뒤에 라벨을 옆으로 바꾸면 DOM 에서만 세로로 남았다. 이제 정렬 값만 쓰고, 축은 라벨 위치에서 읽는다.
+  - 위치: `panels/styles/hooks/useLayoutAuxiliary.ts` (`useLayoutAlignmentDisabled`) · `useStyleActions.ts` · `sections/LayoutSection.tsx`
+
+## [Styles 패널 — 컴포넌트 instance 안 요소 선택] - 2026-09-25
+
+### Fixed
+
+- **Form 같은 컴포넌트 instance 안의 요소 (Form 안 TextField 등) 를 선택하면 Styles 패널이 기본값만 보이던 문제** — 패널이 그 요소를 찾지 못해 Layout · Fill · Border 등 모든 절이 요소의 실제 값 대신 기본값을 표시했다 (Properties 패널은 제대로 읽었다). 편집은 요소에 쓰였기 때문에 표시와 결과가 갈렸다. Direction 은 비활성 Block 으로 보였고, Row 를 누르면 라벨 위치 대신 인라인 방향이 쓰였다. 이제 Properties 와 같은 해석 노드를 읽고, Direction 은 라벨 위치로 기록하며, 이전에 남은 인라인 방향은 지운다.
+  - 위치: `panels/styles/hooks/useElementStyleContext.ts` (`readStyleTargetNode`) · `useStyleActions.ts` · `sections/LayoutSection.tsx`
+
+## [Style 패널 Direction 토글 — instance · Meter · ProgressBar · Slider 의 라벨 위치] - 2026-09-25
+
+### Fixed
+
+- **팔레트로 추가한 요소에서 Direction 토글이 라벨 위치 (labelPosition) 를 바꾸지 않던 문제** — 팔레트는 Components 페이지 원본의 instance 를 만드는데, 토글은 instance 의 타입 ("ref") 으로 판정해 TextField · RadioGroup · Select 등 라벨 위치로 방향을 정하는 컴포넌트에서도 인라인 `display` · `flex-direction` 을 썼다. 패널 표시는 원본 타입으로 판정해 Column 으로 보이는데 캔버스는 Row 로 그려졌고, Column 을 다시 눌러도 바뀌지 않았다. 이제 instance 도 원본 타입으로 판정해 Row → 옆 (side) · Column → 위 (top) 로 기록하고, Block 은 비활성이다.
+- **Meter · ProgressBar · Slider 의 Direction 토글** — 라벨 위치를 따르는 컴포넌트인데 목록에서 빠져 인라인 방향을 썼다. 라벨이 옆일 때 Column 을 누르면 캔버스는 한 줄 그대로인데 DOM 은 인라인이 이겨 세로로 쌓였다. 이제 다른 필드와 같이 라벨 위치로 기록한다. 기본 (위) 은 격자라 패널이 비활성 Block 을 선택된 것처럼 보이던 것도 Column 으로 보인다.
+- **이전 토글이 남긴 인라인 방향 정리** — 위 두 경우로 이미 저장된 인라인 `display` (flex · block) · `flex-direction` 은 Direction 을 다시 누를 때 라벨 위치와 같은 쓰기에서 지운다.
+  - 위치: `panels/styles/hooks/useStyleActions.ts` · `sections/LayoutSection.tsx` · `hooks/useLayoutAuxiliary.ts` · `utils/orientationDrivenTags.ts`
+
+## [Components 페이지 상태 변형의 "인스턴스 분리" 차단] - 2026-09-25
+
+### Fixed
+
+- **Components 페이지 기본 컴포넌트의 상태 변형 (`Button/Hover` 등) 에 "인스턴스 분리" 가 서던 문제** — 분리하면 변형이 원본 참조 (`ref`) 와 `reusable` 을 잃은 원본 전체 복사본이 되어, 그 상태의 모습이 분리 시점 원본 값으로 굳었다 (이후 원본을 고쳐도 hover · pressed 등에는 옛 값이 덮였다). 삭제 · 해제 보호도 풀리고, 새로고침 때 Components 페이지 복구는 같은 id 를 건너뛰어 되돌리지 않았다. 이제 메뉴 · Layers · 단축키 · AI 모두 분리를 받지 않고 이유를 보인다 (삭제 · 해제와 같은 보호). 기본 컴포넌트 안의 instance 자식 (Form 의 필드 등) 은 원본 편집 범위라 그대로 분리할 수 있다.
+  - 위치: `builder/domain/canOperate.ts` (`detach` 판정) · 안내 문구 "삭제 · 풀기 · 분리할 수 없습니다"
+
+## [컴포넌트로 만든 frame 이 캔버스에서 사라지던 문제] - 2026-09-25
+
+### Fixed
+
+- **페이지의 frame 을 컴포넌트로 만들면 (메뉴 "Create component" · AI `canonical.reusable`) 캔버스와 Layers 에서 사라지던 문제** — 문서에는 남아 있었지만 페이지 요소로 투영되지 않았다. 원인은 투영 scope 규칙이 깊이와 상관없이 `reusable` frame 을 재사용 레이아웃으로 본 것. 레이아웃은 문서 최상위 reusable frame 뿐이므로 (레이아웃 조회는 전부 최상위만 본다) 페이지 · 레이아웃 안의 reusable frame 은 바깥 scope 를 잇게 했다. 새로고침 뒤에도 원본 · instance 가 같은 페이지에 그려진다.
+  - 위치: `stores/canonical/canonicalTraversalHelpers.ts` `getCanonicalProjectionScope` · `workspace/canvas/scene/canvasSceneNode.ts` (같은 규칙의 씬 사본)
+  - AI 도구 설명의 "frame 에 켜면 페이지에서 빠진다" 경고를 새 동작으로 바꿨다 (ADR-134 Phase 3 이 이 결함을 부작용으로 기록해 두었다)
+  - 범위 밖: HTML 내보내기 인라인 스크립트 (`export.utils.ts`) 는 여전히 reusable 자식을 건너뛴다 — publish 는 빌더 안정화 뒤 착수
+
+## [원본 안 드래그 · 패널 추가도 영향 확인 — ADR-236 E4 후속] - 2026-09-25
+
+### Changed
+
+- **캔버스 드래그 · Alt 드래그 복제 · Properties 패널의 추가/삭제도 원본 (컴포넌트) 영향 확인을 묻는다** — 원본 안에서 요소를 끌어 순서 · 부모를 바꾸거나, Alt 로 끌어 복제하거나, 패널의 "+" (Table 열 · 행, 목록 항목, slot 채우기), Button 아이콘, 항목 역할, 자식 항목 추가 · 삭제를 하면 그 원본의 instance 가 모두 바뀐다. 편집과 같은 확인 대화상자가 뜨고, 취소하면 아무것도 바뀌지 않는다. 한 번 확인한 원본은 다시 묻지 않는다.
+- **원본 자체를 옮기는 것은 묻지 않는다** — Components 페이지에서 원본 순서를 바꾸거나 Layers 로 원본을 다른 자리로 옮겨도 instance 모습은 그대로라 확인하지 않는다 (전에는 Layers 이동 · 묶기가 물었다). 같은 부모 안에서 좌표만 바꾸는 드래그도 묻지 않는다.
+  - 위치: `stores/utils/elementUpdate.ts` (`runAfterStructuralOriginImpact` · `structuralMoveImpactIds`) · `useDragBridge.ts` · `FrameSlotSection.tsx` · `ButtonChildSection.tsx` · `ItemSlotRolesSection.tsx` · `ChildItemManager.tsx` · `useCollectionItemManager.ts`
+  - 가드: `structuralStoreActionGuard.static.test.ts` (표면 구조 쓰기 12 파일)
+
+## [ADR-236 Implemented — 빌더 도메인 규칙 정리 종결] - 2026-09-25
+
+### Changed
+
+- **ADR-236 을 Implemented 로 닫았다** — 술어 (body · synthetic id · Components 페이지) 는 shared `domain/` 하나, 타입 멤버십 집합과 중첩 규칙 표는 shared 특성 표 `componentTraits.ts` 하나, 구조 변경 가능 여부와 생성 · 이동 대상은 `canOperate` · `resolveMoveTarget` 하나를 표면 (메뉴 · 액션 바 · 단축키 · Layers · 팔레트 · 붙여넣기 · 드래그 · AI) 과 store 액션이 같이 읽는다. 사용자-가시 변화는 아래 Phase 3 엔트리와 같다.
+  - 판정 근거 · ratchet 최종값 · live 표: `docs/adr/design/236-builder-domain-rules-consolidation-breakdown.md` §12
+  - 번들: Builder 1,411,505 · Preview 621,472 (ADR-201 재승인 상한 안)
+  - 남은 것: 캔버스 드래그 · 패널 안 추가 · Alt 드래그 복제의 원본 영향 확인, layout · skia 렌더 분기 27 (고치는 커밋이 표로 옮긴다)
+
+## [구조 변경 판정을 한 곳으로 — 메뉴 · 단축키 · Layers · AI 가 같은 규칙 (ADR-236 Phase 3)] - 2026-09-25
+
+### Changed
+
+- **삭제 · 복제 · 그룹 · 해제 · 컴포넌트 만들기/분리 · 이동의 가능 여부를 표면마다 따로 정하지 않는다** — 캔버스 메뉴 · 액션 바 · 단축키 · Layers · AI 도구 · store 액션이 같은 판정을 읽는다.
+  - Components 페이지의 기본 컴포넌트 (상태 변형 포함) 와 ListBox 항목 템플릿에는 메뉴 · Layers 의 삭제 · 컴포넌트 분리가 서지 않는다. 단축키 · AI 로 시도하면 조용히 무시되던 것이 이유를 토스트로 보인다.
+  - 페이지 body 는 단축키 (⌥⌘K) · agent 로도 컴포넌트가 되지 않는다 (메뉴에서만 막혀 있었다).
+  - Components 페이지 기본 frame 은 그룹 해제되지 않는다 (자식만 빠지고 빈 원본이 남았다).
+  - 그룹 · 정렬 · 분배는 선택 개수로만 판정한다 — 메뉴에 보이는데 눌러도 아무 일 없던 경우가 없어진다.
+- **원본 (컴포넌트) 안의 구조 변경도 영향 확인을 묻는다** — 원본의 자손을 삭제 · 묶기 · 묶기 해제하거나, 원본 안에 붙여넣기 · 복제 · 팔레트/AI 로 추가하거나, Layers 로 원본 안팎으로 옮기면 그 원본의 instance 가 모두 바뀐다. 편집과 같은 확인 대화상자가 뜨고, 취소하면 아무것도 바뀌지 않는다 (instance 가 없으면 묻지 않는다). 캔버스 드래그 · 패널 안 추가 (Table "+" · Button 아이콘 등) · Alt 드래그 복제는 아직 묻지 않는다.
+- **생성 · 붙여넣기 · 이동 대상을 한 규칙으로 정한다** — instance 부모는 원본 타입으로 읽는다. AI 가 Button instance 안에 Button 을 만들던 것 · 붙여넣기가 instance 안으로 들어가던 것이 팔레트처럼 가까운 유효 부모로 옮겨지거나 거부된다. Layers 드롭은 중첩 규칙에 어긋나면 드롭 자체가 서지 않는다. instance 안 요소 (원본에서 온 자식) 는 새 요소의 부모가 되지 않는다.
+- **AI 도구**: `update_element` 의 `canonical.reusable` 이 컴포넌트 만들기/분리와 같은 경로를 지난다 (기본 컴포넌트 보호 · 영향 확인 · instance 분리). 필드 컴포넌트의 Label 처럼 부모가 스타일을 정하는 요소에 styles 를 쓰면 무시된 채 성공으로 보고하던 것이 이유와 함께 실패한다.
+  - 위치: `apps/builder/src/builder/domain/{canOperate,resolveMoveTarget}.ts` · 표면 (`canvasActions.ts` · `canvasContextMenuProviders.ts` · `commandMeta.ts` · `componentSemanticsRunner.ts` · Layers · AI 도구) · store 진입부 (`elementRemoval.ts` · `elementCreation.ts` · `elements.ts` · `instanceActions.ts`)
+  - 가드: `structuralStoreActionGuard.static.test.ts` (구조 변경 store 액션 13 · store 우회 쓰기 2 경로의 진입부 판정) · `domainPredicateRatchet.static.test.ts`
+  - 성능: 판정 호출당 p95 ≈ 0.0003 ms · 전체 선택 600 의 선택 변경당 0.4 ms
+
+## [Preview 초기 번들 −29.8 KB — builder 저작 코드 분리] - 2026-09-25
+
+### Fixed
+
+- **Preview 초기 로딩 번들에 builder 전용 코드가 섞여 들어가던 회귀를 고쳤다** — Preview 가 읽는 슬롯 판정 · 상태 변형 모듈이 origin id 상수 하나씩을 origin 빌더 모듈에서 가져와, factory 정의 전체와 hydration 이관 코드가 Preview 초기 번들에 실렸다 (ADR-229 ~ 239 기간 누적). id 를 의존 없는 모듈로 옮겨 Preview initial JS gzip 649,439 → 619,679 B (**−29,760 B**). 동작 변경 없음.
+  - 위치: `apps/builder/src/builder/components/{templateItemOriginIds,catalogOriginMarker}.ts` (새 leaf) · `slotHostPolicy.ts` · `stateVariantOrigins.ts` · 항목 `*TemplateOrigins.ts` 7 (re-export)
+  - 가드: `apps/builder/src/preview/previewBuilderAuthoringImport.static.test.ts` — Preview entry 에서 factory · catalog origin · template origin · 이관 · `unified.types` 로 가는 정적 import 경로 0 (수리 한 줄 원복 시 5 RED).
+  - initial 번들 상한 재승인 (사용자 판정 2026-09-25): Builder ≤ 1,415,000 / Preview ≤ 622,000 B gzip, 만료 2026-10-25 (09-17 값 1,328,315 / 601,346 대체). 실측 Builder 1,408,688 · Preview 618,865. 초기 화면 밖 패널 lazy 분리 (~20 KB) 는 새 ADR 로 진행한다.
+
+## [프로젝트 진입 시 초기 페이지 표시 — viewport 저장 범위] - 2026-09-25
+
+### Fixed
+
+- **프로젝트를 열 때 Home 페이지가 화면 밖에 놓이던 문제**: breakpoint별 카메라 위치와 배율을 프로젝트별로 저장하고 복원한다. 새 프로젝트는 가운데 놓인 기본 viewport에서 시작하며, 같은 프로젝트를 다시 열면 그 프로젝트의 카메라가 복원된다.
+  - **Why:** 기존 viewport 저장 키가 모든 프로젝트에 공통이라 다른 프로젝트에서 이동한 카메라가 새 프로젝트에도 적용됐다.
+  - 위치: `apps/builder/src/builder/workspace/hooks/workspaceCanvasViewportPersistence.ts` · `useWorkspaceCanvasSizing.ts` · `Workspace.tsx` · `main/BuilderCore.tsx`
+
+## [Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin (ADR-239)] - 2026-09-25
+
+### Added
+
+- **Tree 항목 컴포넌트**: TreeItem 이 Components 페이지 origin (`component-tree-item-default` — 선택 · 비선택 · 접힘 · 비활성 · 상호작용 변형) 을 갖는다. Tree · TreeItem instance 를 선택하면 Slot 절의 "+" 로 항목 · 하위 항목을 넣는다 (접힌 항목에 넣으면 그 항목이 펼쳐진다). 항목 안 아이콘 · 글자 · 설명은 항목 slot 역할이다.
+- **Menu 하위 메뉴**: MenuItem instance 안에 MenuItem 을 넣으면 Preview 에서 하위 메뉴 (RAC `SubmenuTrigger`) 가 된다. 기존 문서의 정적 `items` 중 `children` 이 있는 행은 열 때 중첩 MenuItem instance 로 옮겨진다. Canvas 는 트리거만 그린다 (전과 같음).
+- **ColorSwatchPicker 항목 컴포넌트**: ColorSwatch · ColorSwatchPicker origin 이 생기고, picker 의 Slot "+" 는 형제와 겹치지 않는 색 (같은 크기) 의 swatch 를 넣는다. 기존 picker 의 swatch 는 같은 모양 그대로 origin instance 가 된다. Preview picker 에 `defaultValue` · `layout` · 항목 비활성이 닿고, swatch origin 모양 (모서리 등) 편집이 Canvas · Preview 둘 다에 반영된다.
+
+### Changed
+
+- **Canvas Tree 의 중첩 항목이 부모 행 아래에 쌓여 그려진다** — 239 전 Canvas 는 자식 항목을 부모 행 위에 겹쳐 그렸다. 펼침 정본은 Tree `expandedKeys` 이고 Canvas · Preview 가 같이 읽는다 (chevron 으로 접으면 저장 · Undo 됨). 기존 문서의 Tree 는 `expandedKeys` 가 없거나 비어 있으면 부모 항목 전부 펼침으로 한 번 채우고, 이미 값이 있으면 그대로 둔다 (그 값에서 접힌 항목의 자식 행은 이제 숨겨진다).
+- Tree 항목 글자는 Label Text (weight 400) 가 그린다 — 239 전 Canvas 의 500 이 DOM 과 달랐다. 항목 상자 크기는 같다.
+
+### Fixed
+
+- **깊은 Tree (5 단계 이상) 항목의 Canvas 선택 · 접힘 표시가 빠지던 문제** — 소속 Tree 를 조상 3 단계까지만 찾았다 (Preview 는 제한 없음).
+- **이관 전에 저장된 Components 편집 기록을 Undo 하면 새 항목 origin 이 사라지던 문제** — Undo · Redo 가 되살리는 스냅샷을 항목 origin 이관에 맞춘다 (ADR-240 영역 이관과 같은 방식).
+- **Preview 하위 메뉴 표식이 거대한 검정 삼각형으로 그려지던 문제** — 하위 메뉴가 있는 MenuItem 의 표식을 Tree 와 같은 선 아이콘 (항목 글자 크기) 으로 그린다. 라벨이 줄바꿈되지 않는다.
+- **Preview · Publish 메뉴 목록의 이중 테두리** — 메뉴 popover 가 일반 Popover 틀 (여백 16 · 테두리) 로 Menu 틀을 한 겹 더 감쌌다 (최상위 · 하위 메뉴 모두, 239 전부터). 이제 목록 틀 한 겹 (catalog Menu 규칙) 이고 그림자도 목록에. builder 크롬 메뉴는 대상 밖.
+- **Preview · Publish 에서 Menu 트리거가 놓은 자리에 그려지지 않던 문제** — Menu 에 준 위치 · 폭 (style) 이 트리거 버튼이 아니라 펼친 목록에 실려, 트리거는 문서 흐름 자리에 · 목록은 popover 밖에 따로 그려졌다 (Canvas 는 트리거를 그 자리에 그린다). 이제 style 은 트리거 버튼에 — Canvas 와 같은 자리 · 폭.
+  - 위치: `packages/shared/src/components/Menu.tsx` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (Menu `structure.composition.externalStyles`) · `styles/generated/Menu.css`
+- **Preview · Publish 에서 ColorSwatchPicker 가 줄바꿈하면 다음 줄이 Canvas 보다 아래에 그려지던 문제** — 항목 틀 (RAC `ColorSwatchPickerItem`) 이 swatch 28px 보다 큰 35px 이라 (줄 높이 여백) 2 행 y 가 7px 벌어지고 picker 높이도 13px 컸다 (239 전부터). 이제 항목 틀 = swatch 상자 — 크기 · 위치 · radius 가 Canvas 와 같다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ColorSwatch `structure.composition.externalStyles`) · `styles/generated/ColorSwatch.css`
+  - 위치: `apps/builder/src/builder/components/tree/` · `components/colorswatch/` · `components/itemOriginSnapshots.ts` · `adapters/canonical/canonicalRefResolution.ts` · `workspace/canvas/treeItemRow.ts` · `packages/shared/src/renderers/CollectionRenderers.tsx` · `LayoutRenderers.tsx` · `components/Menu.tsx`
+  - 성능: 중첩 Tree 편집의 `scene.build` p95 가 +1.3 ~ 3.5 ms (Tree 20 × 30 항목 fixture) — 항목 글자 노드만큼의 구조 비용, 사용자 판정으로 예외 (ADR-239 R4). Menu 는 +0.7 ms 이하. Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
+## [Table 열 · 행 origin (ADR-241)] - 2026-09-25
+
+### Added
+
+- **팔레트로 놓은 Table 에 열을 넣을 수 있다** — Table instance 를 선택하고 Properties Slot Fill 에서 Column 을 채우면 그 instance 자기 열이 생긴다 (Components 의 Table 원본은 그대로). Data 행 「New table」 (quick connect) 도 팔레트 Table 에 schema 열을 만든다 — 이전에는 바인딩만 걸리고 열이 없었다. 되돌리기 한 번에 열 · 바인딩이 같이 돌아간다.
+- **TableView 열 · 행 추가**: TableView instance 의 Slot Fill 에서 TableHeader (Column) 를 채우면 모든 행에 셀이 같이 생기고, TableBody (Row) 를 채우면 열 수만큼 셀을 가진 행이 생긴다. Components 페이지에 Column · Row 원본이 새로 생긴다.
+- **TableView 열 삭제 · 순서 변경이 행 셀을 따라간다** — 열을 지우면 모든 행의 같은 자리 셀이, 레이어에서 열 순서를 바꾸면 셀 순서가 같이 바뀐다 (되돌리기 포함). 행마다 셀 수가 열 수와 다른 TableView 는 그대로 둔다.
+
+### Fixed
+
+- **Canvas Table 에 데이터 셀이 비어 보이던 문제를 고쳤다** — Column 요소로 열을 가진 Table 은 Preview 에만 셀이 나오고 Canvas 에는 빈 행과 빈 헤더 줄이 그려졌다. 이제 Canvas 도 Column 요소에서 열 (key · 글자 · 폭) 을 읽고, 폭은 Preview 와 같이 min/max 로 제한한다 (예: 폭 80 · 최소 120 → 120). 헤더 열 폭이 셀 폭과 맞는다.
+- TableView instance 에 행을 더하면 Canvas 에서 새 행의 셀이 사라지던 문제 · 열을 지운 뒤 되돌리기에서 다른 행의 셀이 돌아오지 않던 문제를 고쳤다.
+  - 위치: `packages/shared/src/collections/resolveCollectionItems.ts` (`readTableColumnElements`) · `apps/builder/src/builder/components/tableOrigins.ts` · `tableColumnInsert.ts` · `packages/shared/src/utils/compositionDocumentOrder.ts` · `apps/builder/src/builder/stores/utils/elementRemoval.ts`
+
+### Changed
+
+- 기존 TableView 의 열 · 행은 열었을 때 Column · Row 원본의 instance 로 바뀐다 (같은 id · 셀 · 편집 유지 — Canvas 모습 동일). legacy `props.columns` 만 있는 Table 은 종전 그대로. Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
+## [새 Dialog 의 Styles "수정 2" · 정적 게이트 정비] - 2026-09-25
+
+### Fixed
+
+- **팔레트로 놓은 Dialog 가 아무것도 고치지 않았는데 Styles 에 "수정 2" 로 보이던 문제를 고쳤다** — Dialog 본문의 기본 너비 (400px · 최대 100%) 가 초기화 기준값에 빠져 있었다 (2026-09-23 DialogTrigger 도입 때 인라인만 다시 넣음). Components 페이지 origin 의 Dialog 와 instance 안 Dialog 모두 수정 0 이고, 초기화하면 400px 로 돌아간다. width 가 없는 기존 Dialog 는 영향 없음.
+  - 위치: `apps/builder/src/types/builder/unified.types.ts` (`createDefaultDialogProps`)
+  - 같이: 정적 게이트 4 개를 현재 계약에 맞춤 (ADR-113 descendants 게이트 allowlist · 공유 prop `isOpen` 아이콘 · ADR-232 `setPagePlacements` · AI 카탈로그 Modal 신규 삽입 제외) — 동작 변경 없음. `FrameSlotSection` 은 descendants 쓰기 필드를 adapter 상수로 (같은 값).
+
+## [origin 안 중첩 instance 의 자기 자식 (ADR-241 선행 수리)] - 2026-09-25
+
+### Fixed
+
+- **origin 안에 놓인 instance 에 넣은 자식이 Canvas 에서 사라지던 문제를 고쳤다** — 예: 컴포넌트 origin 안의 다른 컴포넌트 instance (TableView 안 Row 처럼) 에 자식을 넣으면, 그 origin 의 instance 에서 Canvas 는 그 자식을 그리지 않고 Preview 만 그렸다. 이제 Canvas 도 그 ref origin 의 자식 뒤에 그린다.
+- 같은 자식을 instance 에서 고치면 Preview 에 반영되지 않던 문제를 고쳤다 — Canvas · Preview 모두 instance 편집 (`descendants["<중첩 instance>/<자식>"]`) 을 적용한다. origin 원본은 그대로다.
+  - 위치: `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/resolvers/canonical/index.ts`
+  - 기본 Components origin 124 개 중 이 모양은 없다 (중첩 instance 70 개 모두 자기 자식 0) — 사용자가 만든 origin 에만 해당한다. Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
+## [Card · Dialog · Popover · Tooltip 영역 채우기 (ADR-240)] - 2026-09-24
+
+### Added
+
+- **Card · Dialog 영역 채우기**: Card instance 의 Preview · Header · Content · Footer 영역과 Dialog instance 의 Content · Actions 영역을 Properties 의 Slot 채우기 절에서 채운다. 추천 컴포넌트 (Button · Link · TagGroup · TextField 등) 뒤에 **자유 내용** (Text · Image · Icon · Separator · Frame) 도 넣을 수 있다. 채우면 그 영역의 상속 내용 (Card 설명 · Dialog 설명) 을 대신한다.
+- **Popover · Tooltip 자유 내용**: Popover · Tooltip instance 의 Slot 절에서 자유 내용을 넣고 (상속 제목 · 설명 뒤), Clear 로 instance 에 직접 넣은 자식만 지운다.
+- **영역에 바로 넣기**: Card Content 같은 영역이나 그 안의 노드를 선택하고 팔레트를 누르면 그 영역 끝에 들어간다 (이전에는 페이지 body 로 빠졌다). 캔버스의 요소를 instance 영역으로 끌어다 놓으면 그 영역으로 옮겨진다 — 목록 틀 · 상속 노드 · Dialog 제목 · Close 같은 고정 부품에는 놓이지 않는다.
+
+### Changed
+
+- Dialog origin 본문이 [제목, Content 영역 (설명), Footer (Actions 영역, Close)] 구조가 된다. 기존 프로젝트는 열 때 옮겨지고, instance 의 설명 편집 · 저장된 Undo/Redo 기록도 새 구조로 따라간다. Close 위치 · 편집은 그대로다.
+- 영역을 채운 instance 가 많은 문서에서 origin 편집 뒤 장면 빌드가 빨라졌다 (채운 영역을 새로 만들 때마다 문서 전체를 훑던 스캔 제거).
+
+### Fixed
+
+- **채운 노드 편집이 화면에 반영되지 않던 문제를 고쳤다** — 영역에 채운 노드 (ADR-234 Tab Slot "+" 항목 포함) 를 Properties · Styles · 배경으로 고치면 Canvas · Preview 모두 바뀌고 Undo/Redo 된다.
+- 요소를 영역으로 옮긴 뒤 Undo → Redo 하면 영역이 아니라 instance 직계 자식으로 되살아나던 문제를 고쳤다.
+- 채운 영역 자체에 준 스타일 (padding 등) 이 Canvas 에만 보이고 Preview 에는 없던 문제 · Slot 채우기가 영역 스타일을 지우던 문제 · 스타일만 준 영역에 끌어다 놓기가 무시되던 문제를 고쳤다.
+- 이관 뒤 Components 페이지에서 Undo 하면 저장된 옛 기록이 Dialog · Card origin 을 이관 전 구조로 되돌리던 문제를 고쳤다.
+  - 위치: `apps/builder/src/builder/components/{regionSlotOrigins,dialogRegionPaths,slotFillPath,slotFillEdit,slotFillNodes,slotRegionInsert,slotHostPolicy}.ts` · `apps/builder/src/builder/stores/{inspectorActions.ts,history/canonicalHistoryEvents.ts}` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/resolvers/canonical/index.ts` · `packages/shared/src/utils/compositionDocumentOrder.ts`
+  - 남은 것 (LOW): 채운 노드에는 캔버스 여백 · 크기 조절 핸들이 없다 (Properties · Styles 로 편집). Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
+## [목록 항목 역할 · Section · Select/ComboBox 항목 origin (ADR-238)] - 2026-09-24
+
+### Added
+
+- **Properties 패널 "항목 역할" 절**: ListBox · Menu · GridList · Tag 항목에서 아이콘 · 설명 · 단축키 같은 역할을 켜고 끈다 (항목 이름 Label 은 필수라 끌 수 없다). Components 페이지의 항목 origin 에서는 없는 역할을 추가한다 — 역할 순서대로 들어간다.
+- **목록 Section**: ListBox · Menu · GridList 에 Section (머리글 + 항목) 을 둘 수 있다. Components 페이지에 section origin 3 개가 생기고 목록의 Slot "+" 에서 넣는다. Menu section 은 section 마다 선택 방식을 가진다.
+- **Select · ComboBox 항목 = ListBoxItem origin 의 instance**: 항목 origin 을 고치면 Select · ComboBox 팝오버 항목에도 반영된다. Slot "+" 로 항목 · section 을 더한다.
+
+### Changed
+
+- 기존 프로젝트의 정적 목록 (section 이 섞인 ListBox · GridList · Menu, 정적 Select · ComboBox) 은 열 때 항목 instance 자식으로 옮겨진다. 선택 (선택 key · 업무 값) 과 ComboBox 검색어 (`textValue`) 는 그대로다. 데이터 바인딩 목록은 바뀌지 않는다.
+- **캔버스가 section 목록의 머리글 · 항목 글자를 그린다** — 이전에는 key 만 찍힌 빈 행이었다 (Preview 와 같은 구조).
+- 캔버스는 Select · ComboBox · Menu 의 팝오버 항목을 장면에 세우지 않는다 (트리거만 그린다 — 선택된 행만 트리거 글자에 쓴다). 항목이 많은 문서의 편집 비용이 줄었다.
+- origin 자식이 있는 항목 instance (ListBoxItem · Tag 등) 의 해석 결과를 편집 사이에 재사용한다.
+
+### Fixed
+
+- **Select · ComboBox 에서 항목을 골라도 캔버스 트리거가 placeholder 를 그리던 문제를 고쳤다** (Preview 는 고른 항목 글자). 2026-09-01 텍스트 원천 통합에서 SelectValue 를 placeholder 전용으로 분류해 고른 글자를 읽지 않았다.
+- ComboBox 에서 항목을 고른 뒤 선택이 풀리던 문제를 고쳤다 — 선택 뒤 입력 칸이 검색어 (`textValue`) 로 채워지는데 입력 일치를 라벨로만 비교했다.
+  - 위치: `packages/specs/src/renderers/utils/textSource.ts` · `packages/shared/src/renderers/SelectionRenderers.tsx` · `apps/builder/src/adapters/canonical/popoverContent.ts` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/builder/components/{staticCollectionMigration,collectionSectionOrigins,itemSlotRoles}.ts` · `packages/shared/src/catalog/slotRoles.ts`
+  - 남은 것: section 목록 편집 · 항목 origin 편집 시 장면 빌드가 이전보다 1~2 ms 늘었다 (ADR-238 R5, 사용자 판정 예외).
+
+## [그룹 항목 라벨 · DisclosureGroup 테두리가 Preview 와 캔버스에서 같다] - 2026-09-24
+
+### Fixed
+
+- **CheckboxGroup · RadioGroup origin 의 기본 항목이 Preview 에서 "Checkbox" / "Radio" (또는 두 항목 모두 "Option 2") 로 보이던 문제를 고쳤다.** 이제 Preview 와 캔버스 모두 "Option 1" · "Option 2" 다. 기존 프로젝트는 열 때 자동으로 고쳐진다 (Label 을 직접 바꾼 값은 그대로).
+  - **Why**: origin 자식을 instance 로 바꿀 때 항목 이름이 Label 로 전파된다고 보고 Label 값을 저장하지 않았는데, 해석 단계는 전파를 다시 걸지 않아 Label 이 origin 글자로 남았다. 또 Preview 의 그룹 렌더 경로가 해석 노드를 로컬 id 로 찾아, 같은 origin 의 instance 두 개가 마지막 Label 을 같이 그렸다.
+  - 위치: `apps/builder/src/builder/components/originChildRefs.ts` (`expectedSubtree` · `repairOriginChildPropagationPatches`) · `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx` (delegating 렌더의 요소 → 해석 노드 동일성 조회)
+- **캔버스에서만 DisclosureGroup 둘레에 1px 회색 테두리가 그려지던 문제를 고쳤다** (Preview 는 테두리 없음 — starter 와 같다).
+  - **Why**: catalog 에 테두리 폭이 없어 캔버스는 기본 1px 로 variant 테두리 색을 그렸고, 생성 CSS 는 border-style 이 없어 DOM 은 0 이었다 (Disclosure 2026-09-18 과 같은 원인).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (`DisclosureGroup.sizes.*.borderWidth`)
+
+## [폭을 지정하지 않은 absolute 요소가 캔버스에서 내용 폭으로 그려진다] - 2026-09-24
+
+### Fixed
+
+- **폭을 지정하지 않은 absolute 배치 컨테이너 (Disclosure · frame 등) 가 캔버스에서 페이지 폭 (1920) 까지 넓어지던 문제를 고쳤다.** 이제 Preview 처럼 내용 폭에 맞춰지고 (absolute Disclosure 1920 → 169, Preview 168), 가용 폭이 모자라면 최장 단어 폭까지 줄어든다. left · right 를 둘 다 지정한 요소는 종전대로 그 사이를 채운다.
+  - **Why**: 레이아웃 엔진이 absolute 자식을 containing block 폭으로 한 번 풀어, 자식의 `%` 폭과 block 흐름이 그 폭으로 퍼졌다. CSS 는 이 경우 shrink-to-fit (§10.3.7) 이다.
+  - 위치: `packages/engine/src/tree.rs` (`place_absolute_children` · `absolute_shrink_to_fit_width`)
+
+## [Disclosure · DisclosureGroup 캔버스 크기가 Preview 와 맞는다] - 2026-09-24
+
+### Fixed
+
+- **캔버스에서 Disclosure 와 DisclosureGroup 이 너무 좁게 (그룹 안 24px) 그려지고 본문이 한 글자씩 줄바꿈되던 문제를 고쳤다.** 폭을 지정하지 않은 Disclosure 는 이제 Preview 처럼 헤더 (chevron + 제목) 와 본문 글자 중 넓은 쪽에 맞춰진다 (Preview 대비 1px 이내).
+  - **Why**: 헤더는 `width:100%` 인 측정 요소라 부모 폭이 정해지지 않으면 레이아웃이 헤더 글자 폭을 몰랐다 (padding 만 남음). 헤더 측정값은 padding 을 두 번 셌고, 본문 글자 폭은 레이아웃에 전달되지 않았다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`enrichWithIntrinsicSize` · `calculateContentWidth` DisclosureHeader 분기)
+  - 남은 것: 폭을 지정하지 않은 absolute 배치 요소가 페이지 폭까지 넓어지던 엔진 공통 문제는 위 항목에서 고쳤다.
+
+## [ADR-237 — 그룹 · Breadcrumbs · 항목 상태도 origin · instance · slot 으로] - 2026-09-24
+
+### Added
+
+- **그룹 컨테이너에 Slot "+" 가 생겼다.** CheckboxGroup · RadioGroup · ToggleButtonGroup · DisclosureGroup · ButtonGroup · Pagination · AvatarGroup · Nav · Toolbar 의 Components origin 에 추천 항목 (slot) 이 실리고, 문서 instance 를 선택하면 Properties 의 Slot 절에서 항목을 넣을 수 있다. 넣은 항목은 가족 origin 의 instance 이고, 고른 후보의 상태를 기존 prop 으로 채운다 (선택 모양 → 선택됨 · 휴지 → 선택 안 됨 · 접힘 → `isExpanded:false`).
+  - Radio 는 그룹 안에서 겹치지 않는 `value` 를 받고, 선택된 Radio 가 있는 그룹에 선택 후보를 넣으면 기존 선택이 풀리고 그룹 값도 새 항목으로 바뀐다 (한 번의 되돌리기). 단일 선택 ToggleButtonGroup 도 기존 선택을 푼다.
+- **항목 템플릿 5종 (Tab · Tag · ListBoxItem · GridListItem · MenuItem) 의 hover · pressed · focus · disabled 변형 · Disclosure 접힘 변형 · IconButton 변형이 Components 페이지에 생겼다.** 변형을 고치면 그 상태의 항목에만 반영된다 (Preview 는 RAC 실행 중 상태, Canvas 는 선언적 상태). GridListItem 도 다른 목록 항목처럼 origin = 선택 모양 + 휴지 변형이 됐다.
+- **Breadcrumbs 가 항목 origin (`Breadcrumb/Default` + 현재 변형) 과 Slot "+" 를 갖는다.** 정적 목록은 항목 instance 자식으로 옮겨지고 (바인딩 목록은 그대로), 마지막 항목이 현재 항목으로 그려진다.
+
+### Fixed
+
+- **항목 (ListBoxItem · Tab · GridListItem) 의 Disabled 가 Preview 에 반영되지 않던 문제를 고쳤다.** Canvas 는 이미 흐리게 그렸는데 Preview 에는 값이 전달되지 않았다.
+- **Breadcrumb 을 자식으로 둔 Breadcrumbs 가 Preview 에서 항목을 그리지 못하던 문제를 고쳤다** (바인딩이 없어도 로딩 표시에 걸리거나 무한 갱신으로 멈췄다).
+- **instance 에 Slot "+" 로 넣은 항목이 Canvas 에서 상속 항목 앞에 놓이던 문제를 고쳤다** (Preview 는 뒤) — ListBox · GridList · Menu instance 도 같은 경로.
+  - 위치: `apps/builder/src/builder/components/slotHostPolicy.ts` · `groupItemInsert.ts` · `stateVariantOrigins.ts` · `breadcrumbs/` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`
+
+### Performance
+
+- 편집 뒤 scene 해석이 바뀌지 않은 자식 없는 instance (정적 목록 항목 등) 의 이전 결과를 재사용한다. Breadcrumbs 항목 500 개 문서의 owner 편집 비용이 237 전 대비 +1.5~2.0 ms, 항목 origin 편집은 +4.1 ms 로 남아 ADR-237 R5 에 예외로 기록했다.
+
+## [Styles 패널 · 여러 요소 편집도 컴포넌트 영향 확인을 거친다] - 2026-09-24
+
+### Fixed
+
+- **instance 가 있는 컴포넌트 (origin) 를 Styles 패널이나 Properties 일반 필드에서 고칠 때 영향 확인 대화상자 없이 바로 바뀌던 문제를 고쳤다.** 이제 Properties 의 일부 편집과 같이 "N개 instance 에 영향" 대화상자가 뜨고, 취소하면 origin 에 쓰지 않는다. 한 번 확인하면 같은 instance 구성에서는 다시 묻지 않는다.
+  - **Why**: 확인 게이트가 `updateElementProps` · `updateElement` · `ButtonChildSection` 세 곳에만 있었다. Styles 패널 · Properties 일반 필드 · 캔버스 크기 조절이 지나는 inspector 쓰기 (`updateAndSave`) 와, 자식 전파 · 정렬 · 분배가 지나는 `batchUpdateElementProps` 는 게이트 없이 origin 에 썼다.
+  - 드래그 · 입력 중 미리보기가 origin 에 반영된 뒤 취소하면 미리보기 전 값으로 되돌린다. 여러 요소를 한 되돌리기 단계로 묶는 편집 (크기 · 비율 · Absolute) 은 확인을 먼저 받고 묶는다.
+  - 범위 밖: 드래그로 옮기는 좌표 patch 는 이동과 한 몸이라 확인하지 않는다 (이동 뒤에 취소하면 이동만 남는다).
+  - 위치: `apps/builder/src/builder/stores/utils/elementUpdate.ts` (`confirmOriginImpactForIds`), `apps/builder/src/builder/stores/inspectorActions.ts`
+
+## [instance 복제 시 자식이 두 벌 그려지던 문제 · instance 안 요소 메뉴 정리] - 2026-09-24
+
+### Fixed
+
+- **팔레트로 놓은 컴포넌트 (instance) 를 우클릭 메뉴로 복제 · 복사하면 Label · Input 등 자식이 두 벌 그려지던 문제를 고쳤다.** 이제 복제본은 원본처럼 instance 하나이고 자식은 origin 에서 온다. (⌘D 는 원래 정상이었다.)
+  - **Why**: 캔버스 메뉴는 캔버스 대화형 맵을 읽는데, 여기에는 instance 의 자식 (`<instance>/<path>`) 도 들어 있다. 복사는 부모-자식 관계로 자손을 모으므로 이 자식들을 실제 노드로 복사해 새 instance 아래 붙였고, origin 자식과 합쳐 두 벌이 됐다. ⌘D 는 store 맵을 읽어 이 자식을 몰랐다.
+- **instance 안 요소 (더블클릭으로 고른 Label 등) 의 우클릭 메뉴에서 동작하지 않거나 문서를 깨는 항목을 뺐다.** 복제는 instance 아래에 실제 자식을 만들었고, 삭제 · 순서 · 컴포넌트 만들기는 아무 일도 하지 않았다. 이제 붙여넣기만 남는다 (instance 안이 아니라 페이지에 붙는다).
+  - 위치: `apps/builder/src/builder/workspace/canvas/actions/canvasActions.ts` (`buildCanvasActionElementsMap` · `selectableWithoutBody`), `apps/builder/src/builder/workspace/canvas/contextMenu/canvasContextMenuProviders.ts`
+  - 이미 두 벌이 된 문서는 자동으로 고치지 않는다 — 복제본 아래 실제 자식을 지우면 된다.
+
+## [Components 페이지의 기본 컴포넌트는 분리 · 삭제되지 않는다] - 2026-09-24
+
+### Fixed
+
+- **Components 페이지의 기본 컴포넌트 (팔레트 원본) 에 "컴포넌트 분리" 를 누르면 원본이 풀리던 문제를 고쳤다.** 이제 분리되지 않고 "Components 페이지의 기본 컴포넌트는 분리할 수 없습니다" 안내가 뜬다.
+  - **Why**: 삭제는 ADR-228 부터 막혀 있었지만 분리 (`toggleComponentOrigin`) 에는 같은 가드가 없었다. 분리되면 팔레트로 놓은 instance 와 상태 층이 원본을 잃는다.
+- **상태 변형 (`--hover` · `--unselected` 등) 이 삭제되던 문제를 고쳤다.** 삭제 가드가 `ref` 를 가진 노드를 instance 로 보고 건너뛰었는데, ADR-234 부터 상태 변형은 origin 의 `ref` 이면서 `reusable` 인 system origin 이다.
+  - 가드 술어는 `isSystemOwnedOrigin` 하나로 삭제 · 분리가 같이 읽는다.
+  - 위치: `apps/builder/src/adapters/canonical/editingSemantics.ts`, `apps/builder/src/builder/stores/utils/{elementRemoval,instanceActions}.ts`
+
+## [상태 변형 origin 편집에도 영향 확인 대화상자가 뜬다] - 2026-09-24
+
+### Fixed
+
+- **Components 페이지의 상태 변형 (`--hover` · `--unselected` 등) 을 편집하면 영향 확인 없이 바로 바뀌던 문제를 고쳤다.** 이제 base origin 의 instance 목록을 보여 주는 대화상자가 먼저 뜨고, 취소하면 편집되지 않는다.
+  - **Why**: ADR-234 부터 상태 변형은 origin 의 `ref` 이면서 `reusable` 이다. 영향 게이트는 역할 하나 (`getEditingSemanticsRole`) 로 판정했는데, 이 함수가 instance 를 먼저 골라 변형을 origin 에서 빼버렸다. 또 변형 층은 base origin 의 모든 instance 에 쌓이는데 영향 집계는 변형을 직접 ref 한 노드만 셌다.
+- **base origin 편집의 영향 instance 수에 자기 상태 변형이 섞여 부풀던 문제를 고쳤다** (ListBoxItem 기본 origin: 4 → 3). 변형 노드는 origin 의 ref 지만 사용자 instance 가 아니다.
+  - 위치: `apps/builder/src/builder/stores/utils/elementUpdate.ts` (`getOriginImpactContext`)
+
+## [캔버스에서 TagGroup Allows Removing 의 X 버튼이 다시 보인다] - 2026-09-24
+
+### Fixed
+
+- **TagGroup 의 Allows Removing 을 켜도 캔버스의 Tag 에 X 가 없던 문제를 고쳤다.** 이제 각 Tag 끝에 X 를 그린다 (Preview 의 remove 버튼과 같은 자리 · 크기). 선택된 Tag 의 X 는 흰색이다. Show all chip 에는 X 가 없다.
+  - **Why**: ADR-234 Phase 3b 부터 Tag 글자는 자식 Text 에 있다. 캔버스는 X 를 Tag 자기 글자 오른쪽에 덧그렸는데, 글자가 자식으로 옮겨가서 그 코드에 닿지 않았다. X 는 Tag 의 구성 자식이 아니다 — Preview 에서도 RAC 가 Allows Removing 을 보고 넣는 버튼이라, 캔버스도 같은 조건으로 Tag 끝에 붙인다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` (`appendStaticTagRemoveButtons`), `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` (Tag 분기), `apps/builder/src/builder/workspace/canvas/skia/itemLabelInheritance.ts`
+- **Allows Removing 을 켜면 Max Rows 의 "Show all" chip 에도 X 가 붙고 폭이 넓어지던 문제를 고쳤다.** Show all 은 Tag 모양의 펼침 버튼이라 X 도, 줄어든 오른쪽 여백도 없다 (Preview 의 Show all 버튼과 같다).
+  - **Why**: 정적 목록의 Show all chip 은 TagList 바로 아래 Tag 라서 TagGroup 의 allowsRemoving 이 그대로 전달됐다. 캔버스는 그 값을 보고 X 를 그리고 X 자리만큼 폭도 넓혔다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`isTagAllowsRemoving`)
+
+## [캔버스에서 TagGroup Max Rows 가 다시 동작한다] - 2026-09-24
+
+### Fixed
+
+- **캔버스가 TagGroup 의 Max Rows 를 무시하고 Tag 를 모두 그리던 문제를 고쳤다.** 이제 지정한 행 수를 넘는 Tag 는 접고 그 뒤에 "Show all (N)" chip 을 그린다. 접을 Tag 가 없으면 Show all 도 그리지 않는다. Max Rows 를 바꾸면 곧바로 다시 접는다.
+  - **Why**: ADR-234 Phase 3b 부터 TagGroup 목록은 TagList 의 Tag instance 자식이다. Preview 는 이 목록에도 접기를 그대로 적용했지만, 캔버스의 기존 접기 코드 (Show all chip · 엔진 행 위치 기준 접기) 는 옛 `items` 목록에만 걸려 있어 실행되지 않았다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` (`appendStaticTagShowAllChips`), `apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (Step 4.5b · Step 5)
+
+## [TagList 기본 크기 — Tag 가 없어도 chip 한 줄 높이] - 2026-09-24
+
+### Changed
+
+- **TagList 가 Tag 없이도 기본 높이를 가진다.** catalog 의 TagList 기본값은 `height: 100%` 와 TagGroup 의 Appearance size 에 맞춘 `minHeight` (sm 22 · md 30 · lg 42 px — chip 한 줄 높이) 다. Tag 를 모두 지운 TagGroup 도 목록 자리가 보이고, TagGroup 에 높이를 주면 TagList 가 남은 높이를 채운다. 작성자가 준 height · minHeight 가 우선한다.
+  - **Why**: 빈 목록 틀이 높이 0 으로 접혀 Slot "+" 로 채울 자리가 보이지 않았다 (사용자 지시).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (TagList), `packages/shared/src/components/styles/TagGroup.css` (`.tag-list-wrapper` — DOM 에서 TagList 는 display: contents), `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` · `utils.ts` (`resolveTagListMinHeight`)
+
+## [캔버스에서 선택된 Tag 를 선택 모양 (accent 배경) 으로 그린다] - 2026-09-24
+
+### Fixed
+
+- **캔버스가 선택된 Tag 를 선택 안 된 Tag 와 똑같이 그리던 문제를 고쳤다.** Components 페이지의 `Tag/Selected` 와 `Tag/Default` 가 같아 보였고, TagGroup 목록에서 선택한 Tag 도 구분되지 않았다. 이제 선택된 Tag 는 accent 배경 · 흰 글자 · accent 테두리로 그린다 (Preview 의 선택 Tag 와 같은 모양).
+  - **Why**: 선택 모양은 catalog 의 Tag `selected` 변형에 있는데, 캔버스는 변형을 `variant` 값으로만 골랐다. 선택 상태 origin 은 여기에 더해 없는 "변형 안 선택 색" 을 찾느라 배경 · 글자 색이 비어 chip 이 투명해졌다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts`, `apps/builder/src/builder/workspace/canvas/skia/itemLabelInheritance.ts`
+
+## [TagGroup · Tabs 의 Slot 은 TagList · TabList 에만 · Slot 항목 추가 결함 4건 수리] - 2026-09-24
+
+### Fixed
+
+- **TagGroup · Tabs origin 에 Slot 절이 뜨던 문제를 고쳤다.** slot 은 항목을 직접 담는 TagList · TabList 에 있는데, 패널이 root 도 slot 보유 노드로 봐 Enable · "+" 가 root 에 slot · `items` 를 썼다. 이제 Slot 절은 TagList · TabList 를 골랐을 때만 뜬다.
+- **TagGroup · Tabs instance 의 Slot Fill 이 이어받은 목록을 항목 1개로 바꾸던 문제를 고쳤다.** 이제 이어받은 항목 뒤에 새 항목 (새 id) 을 붙이고, Tabs 는 짝 TabPanel 도 만든다.
+- **Tag 를 모두 지운 TagGroup 에 "Add Tag" (items 편집기) 가 뜨던 문제를 고쳤다.** 항목이 0개여도 정적 목록이다 — 편집기는 데이터 바인딩 목록과 아직 옮겨지지 않은 `items` 가 남은 목록에만 뜬다.
+- **Slot 의 "Tag/Selected" · "Tag/Default" 가 같은 항목을 넣던 문제를 고쳤다.** 항목은 둘 다 origin 의 instance 이고, Selected 로 넣으면 새 항목 key 를 owner 의 선택 key (TagGroup · ListBox `selectedKeys`, Tabs `selectedKey`) 에 더해 선택 모양으로 그린다. Tab · ListBoxItem 도 같다.
+  - **Why**: ADR-234 가 slot 을 목록 틀로 옮기고 선택 모양을 origin 으로 바꿨는데, 패널 판정 (root host) · Fill 경로 · 항목 삽입 (ref 체인 끝만 보고 선택 key 를 안 씀) · 편집기 판정 (자식 수) 이 옛 규칙에 남아 있었다.
+  - 위치: `apps/builder/src/builder/components/slotHostPolicy.ts`, `apps/builder/src/builder/components/collectionItemInsert.ts`, `apps/builder/src/builder/components/staticCollectionMigration.ts`, `apps/builder/src/builder/panels/properties/FrameSlotSection.tsx`, `apps/builder/src/builder/panels/properties/ComponentSlotFillSection.tsx`
+
+## [ADR-234 Implemented — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 · 캔버스 scene 재구성 비용 절감] - 2026-09-23
+
+### Changed
+
+- **ADR-234 Implemented** — 상태 변형은 origin 의 instance (origin 을 고치면 모든 변형 · instance 가 같이 바뀐다), 정적 목록 (Tabs · TagGroup · ListBox · GridList · Menu) 은 목록 틀의 항목 instance 자식, instance 에서도 Slot "+" 로 항목을 추가한다. 기존 문서는 처음 열 때 모양 그대로 옮겨진다.
+- **캔버스 scene 재구성이 빨라졌다** — 편집 · breakpoint 전환마다 도는 ref 해석에서 없는 상태 변형 이름을 찾을 때 문서 전체를 훑던 것을 색인 하나로 바꾸고 (ref instance 가 많은 문서일수록 효과), breakpoint 처럼 문서가 그대로인 재구성은 직전 해석 결과를 그대로 쓴다. 옮기기 전 빌드 대비 breakpoint 전환 `scene.build` Tabs 100 × 5 문서 5.1 → 3.3 ms · TagGroup 100 × 5 문서 4.0 → 2.5 ms.
+  - **Why**: 항목을 실제 노드로 만든 ADR-234 의 비용 기준 (G4) 을 맞추다 두 모델 공통의 낭비를 찾았다.
+  - 남은 것: 항목 origin · 변형을 고쳐 항목 500 개가 한 번에 바뀌는 편집은 옮기기 전보다 Tabs +0.7 ~ +1.0 ms · TagGroup +2.3 ~ +2.6 ms (항목마다 노드를 만드는 비용) — ADR-234 R4 잔존 위험.
+
+## [팔레트로 놓은 필드의 Label · Input 등에 "부모에서 편집" 안내가 안 뜨던 문제 수리] - 2026-09-23
+
+### Fixed
+
+- **팔레트로 놓은 TextField 등에서 Label · Input · FieldError 를 고르면 Styles · Properties 패널이 편집 칸을 다 열던 문제를 고쳤다.** 이 자식들은 부모 필드가 그리는 요소라 여기서 바꾼 값은 캔버스에도 Preview 에도 나타나지 않는다 — 이제 예전 문서와 같이 "부모에서 편집하는 요소입니다" 안내가 뜬다.
+  - **Why**: 판정이 화면용 store 에서 자식과 부모를 찾았는데, 팔레트 배치는 instance 라 그 자식이 store 에 없다 (instance 를 펼쳐 만든 가상 자식). 판정이 항상 "sub-part 아님" 으로 끝났다.
+  - 캔버스 resize 핸들 · padding/gap 띠도 같은 판정으로 이런 자식에서는 세션을 열지 않는다.
+  - 위치: `apps/builder/src/builder/stores/canonical/subpartOwnerLookup.ts` (신규), `apps/builder/src/builder/panels/delegatedSubpart.ts`, `apps/builder/src/builder/workspace/canvas/hooks/useResizeInteraction.ts`, `apps/builder/src/builder/presentation/editorPresentationSpacingCapability.ts`
+
+## [ADR-234 Tabs · TagGroup · ListBox · GridList · Menu 목록 = 항목 instance 자식 (Phase 3a~3f)] - 2026-09-23
+
+### Changed
+
+- **Menu 의 항목도 Menu 안의 MenuItem 요소 (MenuItem origin 의 instance) 다** — 항목마다 label · icon · 단축키 · 설명을 고치고 Slot 절 "+" 로 추가한다. 캔버스에는 지금처럼 메뉴 버튼만 보인다 (항목은 열리는 목록 안). 구분선 · 하위 메뉴가 있는 메뉴와 데이터 바인딩 메뉴는 그대로 `items`.
+- **GridList 의 카드도 GridList 안의 GridListItem 요소 (GridListItem origin 의 instance) 다** — 카드마다 label · description 을 고치고 Slot 절 "+" 로 추가한다. 데이터 바인딩 GridList 는 그대로 `items`.
+- **ListBox 의 항목도 ListBox 안의 ListBoxItem 요소 (ListBoxItem origin 의 instance) 다** — 항목마다 icon · label · description 을 고치고 ListBox 를 선택해 Slot 절 "+" 로 추가한다 (instance 에서도 — origin 항목 뒤에 붙는다). 데이터 바인딩 ListBox 는 그대로 `items`.
+- **TagGroup 의 태그도 TagList 안의 Tag 요소 (Tag origin 의 instance) 다** — 태그마다 label · 아이콘을 고치고 TagList 의 Slot "+" 로 추가한다. 데이터 바인딩 TagGroup 은 그대로 `items`. 자식으로 옮겨진 목록에서는 Properties 의 items 편집기가 보이지 않는다 (두 목록이 겹치지 않게).
+- **Tabs 의 탭은 TabList 안의 Tab 요소 (Tab origin 의 instance) 다.** 전에는 Tabs 의 `items` 데이터에서 탭을 만들어 캔버스에서 탭 하나를 고를 수도, 탭마다 모양을 바꿀 수도 없었다. 이제 탭마다 label 을 고치고, TabList 를 선택해 Properties 의 Slot 절 "+" 로 탭을 추가한다 (짝 TabPanel 이 같이 생긴다 · instance 에서도 된다).
+  - 기존 문서는 처음 열 때 옮겨진다 — 데이터 바인딩한 Tabs 는 그대로 `items` 를 쓴다.
+  - slot (추천 항목) 은 Tabs 가 아니라 TabList 가 갖는다.
+
+### Fixed
+
+- **Canvas 레이아웃: `width: fit-content` 상자 안 `width: 100%` 글자가 최소 폭으로 접히던 결함** (레이아웃 엔진). 가장 긴 폭을 재는 중에 `100%` 를 측정용 표식 값으로 풀어 "Tab 1" 이 "Tab / 1" 두 줄이 됐다. 이제 기준 없는 백분율은 auto 로 본다 (CSS 와 같음).
+- **Canvas: 선택 안 된 Tab 도 선택 표시 (밑줄) 가 그려지던 결함** — 그리는 단계가 이미 해석한 요소를 origin 값으로 한 번 더 덮었다.
+- **데이터 바인딩한 ListBox · GridList · TagGroup 이 데이터 행과 origin 의 기본 항목을 함께 그리던 결함** — 바인딩 목록은 데이터 행만 그린다.
+- **Canvas: Tabs 탭 사이 간격이 Preview 와 같은 8px** (기본 density regular) — 전에는 캔버스만 0 이었다. Components 페이지의 항목 템플릿 (Tab · Tag · ListBoxItem · GridListItem) 도 Preview 와 같은 크기로 그린다.
+- **Canvas 레이아웃: `position: absolute` 요소가 부모 padding 만큼 밀려 놓이던 결함** (레이아웃 엔진). `left: 0` 이 padding 안쪽에서 시작했고, 높이가 자동인 부모에서는 `top: 50%` 가 위로 치우쳤다. 이제 CSS 처럼 padding box 기준이다.
+- **옮겨진 탭 · 태그의 label 글자가 항목 글자 (크기 · 굵기 · 선택 색) 를 따르지 않던 결함** — label 이 Text 기본 글자로 그려져 옮기기 전 행과 모양이 달랐다. Canvas · Preview 모두 항목 글자를 물려받는다 (label 에 직접 준 값이 있으면 그것).
+- **ListBox · GridList · Menu instance 를 선택하면 Properties 에 Slot 절이 없어 항목을 추가할 수 없던 결함** — 이제 origin 의 추천 항목이 보이고 "+" 로 instance 에 항목이 붙는다 (추천 목록 편집은 origin 에서).
+- **instance TabList 의 Slot "+" 로 탭을 추가하면 캔버스 갱신이 멈추던 결함**.
+- **태그의 아이콘 · 아바타가 크게 그려져 chip 이 넓어지던 결함** (Canvas) — 아이콘 14 · 아바타 16 으로 옮기기 전과 같다.
+
+## [ADR-234 상태 변형 = origin 의 instance (Phase 1·2)] - 2026-09-23
+
+### Changed
+
+- **상태 변형 (Hover · Pressed · Disabled · 선택 등) 이 origin 의 instance 가 됐다.** Components 페이지에서 origin 을 고치면 모든 변형과 문서의 instance 가 같이 바뀌고, 변형에서는 그 상태에서만 달라질 값만 고친다 (여백 · 자식 label 색 · 숨김까지 — 전에는 배경 · 글자색 · 테두리색 · 투명도 4 가지만 먹었다).
+  - 선택할 수 있는 요소 (Checkbox · Switch · Radio · ToggleButton · Tab · Tag · ListBoxItem) 는 origin 이 선택 상태이고, 선택 안 된 모양은 새 `…/Unselected` 변형이 갖는다. `…/Selected` 변형 노드는 origin 과 같은 상태라 없어졌다.
+  - 기존 문서는 처음 열 때 한 번 옮겨진다 (이관). 그려지는 모양은 그대로다 — 변형이 무시하던 값 (예: 변형에 넣어 둔 padding) 은 옮기지 않는다.
+  - Preview 는 문서 `<style>` 규칙 대신 React Aria 의 상태 정보 (render props) 로 변형을 겹친다. Canvas 는 선택 · 비활성만 겹친다 (Hover 등은 Preview 에서).
+  - **Why**: 변형이 origin 의 독립 복제본이라 origin 을 고쳐도 변형이 따라오지 않았고, 두 화면이 관리 키 4 개만 읽어 여백 · 자식 편집이 무시됐다 (ADR-234 — Pencil 의 origin/instance 규칙과 RAC 의 상태 모델에 맞춤).
+- **Preview 의 Checkbox 가 인스턴스 style 을 그린다.** 전에는 Checkbox 만 style 을 버려 Canvas 와 모양이 갈렸다 (Switch · ToggleButton 은 이미 그렸다).
+
+### Added
+
+- **ref 체인** — 변형의 instance (instance → 변형 → origin) 가 두 화면과 발행 결과에서 origin 구조와 변형 값을 함께 받는다 (전에는 Preview 에서 빈 요소, Canvas 에서 자식 없음).
+- **요소 숨김 필드 `enabled`** (문서 필드 — Pencil 과 같은 이름). 없음 = 상속 · `false` = 숨김 · `true` = 상속된 숨김 해제. 부모가 숨으면 자식도 숨는다. Canvas · Preview · 발행 결과가 모두 따른다 (편집 UI 는 이후 Phase).
+  - 위치: `apps/builder/src/builder/components/stateVariantLayers.ts` · `stateVariantMigration.ts` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/resolvers/canonical/index.ts` · `apps/builder/src/preview/utils/stateLayerRender.ts` · `packages/shared/src/utils/export.utils.ts`
+
+## [레이어 패널 이동 · 그룹 · 그룹 해제의 중첩 규칙 우회 수리] - 2026-09-23
+
+### Fixed
+
+- **레이어 패널에서 Button 을 ListBox 안으로 끌어 놓으면, 화면에는 옮겨진 것처럼 보였다가 새로고침하면 원래 자리로 돌아가던 문제를 고쳤다.** 이제 캔버스 drop 과 같이 중첩 규칙 토스트를 띄우고 이동하지 않는다.
+  - **Why**: 문서 (canonical) 가 중첩 위반으로 이동을 거부하면 `moveElementToContainer` 가 legacy fallback 으로 넘어가 화면용 store 의 `parent_id` 만 바꿨다 — 저장되는 문서와 화면이 어긋났다.
+- **그룹 · 그룹 해제가 중첩 규칙을 거치지 않던 문제를 고쳤다.** `parent_id` 만 바꾸는 편집 (그룹 · 그룹 해제가 쓰는 경로) 이 검사 없이 문서에 반영돼 규칙 위반 배치가 그대로 저장될 수 있었다. 이제 move 와 같은 검사를 받고, 거부되면 화면도 바꾸지 않는다.
+  - ListBox 같은 항목 전용 컬렉션 안 항목을 ⌘G 로 묶으면 frame 을 만들지 않고 토스트로 알린다 (전에는 frame 만 거부되고 항목이 없는 부모를 가리켰다).
+  - 그룹 해제는 자식 하나라도 frame 의 부모에 못 들어가면 전체를 거부한다 — 일부만 옮겨진 채 frame 삭제가 나머지 자식까지 지우지 않도록.
+  - 위치: `apps/builder/src/builder/stores/elements.ts`, `apps/builder/src/builder/stores/utils/elementUpdate.ts`, `apps/builder/src/adapters/canonical/canonicalMutations.ts`, `apps/builder/src/builder/workspace/canvas/actions/canvasActions.ts`
+
+## [AI 패널 Anthropic 프리셋 — planner 를 Opus 5.5 로] - 2026-09-23
+
+### Changed
+
+- **AI 설정의 Anthropic 프리셋에서 planner 기본 모델이 `claude-opus-5-5` 가 됐다** (이전 `claude-opus-5`). Opus 5.5 는 Opus 5 보다 입력·출력 단가가 20% 낮고 요청 계약 (thinking 필드 미전송 · `tool_choice` auto · 거절 시 서버 fallback) 이 같다. 기본 effort 가 `medium` 으로 내려간 모델이라 planner 의 `high` 는 명시값 그대로 유지한다. 이미 저장된 프로파일은 바뀌지 않는다 — 프리셋을 다시 고르거나 모델 칸을 직접 바꾸면 된다.
+  - 위치: `apps/builder/src/services/ai/providers/AgentProfileRegistry.ts`, `apps/builder/src/services/ai/providers/AnthropicProvider.ts` (계약 주석)
+
+## [ADR-233 Tabs 의 Tab 항목 템플릿 · Radio origin] - 2026-09-23
+
+### Added
+
+- **Components 페이지에 `Tab/Default` · `Tab/Selected` 가 생겼다.** Tab 의 여백 · 글자 · 배경을 여기서 한 번 바꾸면 문서의 모든 Tabs 가 따른다 (ListBox · TagGroup 항목과 같은 방식). 선택된 탭은 `Tab/Selected` 를 그 위에 겹친다. Tabs origin 의 Slot 절에서 어떤 항목 origin 을 쓸지 고를 수 있다.
+  - 여백을 키우면 탭이 커지고 탭 목록 · 패널도 그만큼 내려간다 (캔버스 · Preview 같은 규칙: 높이는 자라되 기본 높이 아래로는 줄지 않는다).
+  - Slot 절의 "+" 는 Tabs 에서는 보이지 않는다 — 탭 추가 (항목 + 패널 한 쌍) 는 아직 별도 UI 가 없다.
+- **Radio 도 Components 페이지 origin (`Radio`) 과 상태 변형 5 (`Radio/Selected` · `Disabled` · `Hover` · `Pressed` · `Focus visible`) 를 갖는다.** 새로 만드는 RadioGroup 의 Radio 는 이 origin 의 instance 라 `Radio` 편집이 그대로 전파된다. 팔레트에는 따로 나오지 않는다. 이미 있던 문서의 RadioGroup origin 안 Radio 는 그대로 둔다.
+
+### Fixed
+
+- Components 페이지의 단독 Radio (origin · 상태 변형) 가 Preview 를 통째로 멈추던 문제를 막았다 — RadioGroup 밖 Radio 는 화면용 그룹으로 감싸 그린다 (문서는 바뀌지 않는다). Disabled 변형이 Preview 에서 비활성으로 보이지 않던 것도 함께 고쳤다.
+- 캔버스에서 Tab 의 테두리를 1px 로 계산하던 것을 DOM 과 같은 0 으로 맞췄다 (단독 Tab 폭 61 → 59).
+- Radio 의 채움 색이 Preview 에서 행 전체 배경으로 칠해지던 것을 캔버스와 같이 선택 표시에만 칠하게 했다 (`Radio/Selected` 채움 포함). Checkbox 등 다른 선택 컨트롤은 그대로다.
+  - **Why**: catalog 는 Radio 채움을 선택 표시 색으로 정의하고 캔버스도 그렇게 그리는데, DOM 만 그 색을 행 `background-color` 로 보냈다 — 이제 `--radio-color` 로 간다 (리뷰 round 3 h1).
+- Tabs 마다 Slot 절에서 고른 Tab 항목 템플릿이 Preview 에서 무시되고 표준 `Tab/Default` 만 쓰이던 것을 고쳤다 — 캔버스와 같이 각 Tabs 가 자기 slot 을 따른다.
+  - **Why**: Preview 가 `component-tabs.slot` 하나로 문서 전역 템플릿 1개를 만들어 모든 Tabs 에 줬다 (리뷰 round 3 m2).
+  - 위치: `apps/builder/src/builder/components/tabs/tabsTemplateOrigins.ts`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`, `packages/shared/src/catalog/componentCatalog.ts`, `packages/shared/src/catalog/indicatorFill.ts`, `apps/builder/src/preview/utils/itemTemplates.ts`
+  - 결정: [ADR-233](adr/completed/233-tab-item-template-and-radio-origin.md)
+
+## [Dialog 트리거 연결 — Components 편집과 런타임 열림 분리] - 2026-09-23
+
+### Fixed
+
+- Dialog 삽입 구성을 `DialogTrigger → Button + Dialog`로 변경했다. 일반 Canvas는 기본 닫힘 상태의 버튼만 표시하고, Components는 버튼과 본문을 함께 펼쳐 편집한다. Preview와 publish는 React Aria 모달을 통해 열기·Close·Escape·포커스 복원을 처리한다.
+- 기존 Components Dialog 원본의 스타일과 자식 ID를 보존하고, 해당 인스턴스의 본문 props와 descendants override 경로를 이관한다. 편집용 열린 표시는 문서의 초기 열림 상태를 변경하지 않는다.
+- Dialog 본문에 적용되던 fixed 배치와 Canvas 전면 backdrop을 제거했다. 런타임 배경막과 중앙 배치는 ModalOverlay가 맡으며 모달 내부의 중복 패딩을 제거했다.
+
+## [Components 페이지의 선택 영역이 페이지 크기를 따른다] - 2026-09-23
+
+### Fixed
+
+- **Components 페이지에서 데스크톱이 아닌 breakpoint 일 때 페이지 오른쪽·아래쪽을 눌러도 선택되지 않던 문제를 고쳤다.** 그려진 페이지 안인데도 모바일에서는 390×844, 태블릿에서는 768×1024 안쪽만 눌렸다.
+  - **Why:** Components 페이지는 breakpoint 를 따르지 않고 고정 크기(1920 × 내용 높이)로 그려지는데, 빈 영역을 눌렀을 때 어느 페이지인지 판정하는 쪽만 그 규칙을 쓰지 않고 현재 breakpoint 크기를 썼다. 그려지는 상자와 누를 수 있는 상자가 달랐다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts`, `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`
+
+## [페이지 열 수 `auto` — 화면에 들어가는 만큼] - 2026-09-23
+
+### Added
+
+- **Settings 의 「열 수」에 `auto` 가 생겼고, 이제 기본값이다.** 페이지가 **지금 보이는 캔버스 폭에 들어가는 만큼**씩 한 줄에 놓인다 — 줌을 당기면 열이 줄고, 밀면 늘어난다. 숫자를 입력하면 줌과 무관하게 고정된다. 이미 열 수를 숫자로 지정해 둔 문서는 그대로다 (기본값 변경이 기존 설정을 덮지 않는다).
+  - 입력 칸에 `auto` 를 직접 쳐도 되고, 단위 목록에서 골라도 된다. breakpoint 별로 따로 둘 수도 있다 (「이 breakpoint 만」).
+  - 줌이 조금씩 흔들려도 열 수가 그대로면 배치를 다시 계산하지 않는다 — 계산의 입력이 줌 값이 아니라 거기서 나온 열 수(정수)이기 때문이다.
+  - 세는 폭은 캔버스 전폭이 아니라 **좌우 패널 버튼 띠를 뺀 폭**이다 — 전폭으로 세면 마지막 열이 그 띠 밑으로 들어간다. 여닫는 패널은 빼지 않는다 (열 수가 패널 상태를 따라 뛰지 않게).
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement.ts`, `apps/builder/src/builder/panels/settings/SettingsPanel.tsx`
+
+## [열 수 설정이 고정된 페이지 때문에 무시되던 문제] - 2026-09-23
+
+### Fixed
+
+- **페이지를 한 번이라도 격자 칸에 놓아 둔 문서에서 「열 수」를 바꿔도 배치가 그대로이던 문제를 고쳤다.** 예를 들어 3열일 때 세 번째 칸에 놓은 페이지가 하나 있으면, 열 수를 2로 줄여도 모든 페이지가 3열 그대로 남았다.
+  - **Why:** grid 는 명시된 열 밖의 칸 번호를 만나면 열을 하나 더 만들고, 나머지 페이지의 자동 배치도 그 늘어난 격자를 쓴다. 그래서 고정된 페이지 하나가 열 수 설정을 통째로 덮어썼다. 이제 파생 시점에 고정 칸을 설정된 열 안으로 접어 넣는다 — 문서에 저장된 칸은 그대로라 열 수를 다시 늘리면 원래 자리로 돌아온다. 접은 결과 두 페이지가 같은 칸이 되면 뒤 페이지는 흐름으로 돌아간다 (겹쳐 그리지 않는다).
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement.ts`
+
+## [페이지 헤더가 설정 변경을 따라가지 않던 문제] - 2026-09-22
+
+### Fixed
+
+- **Settings 에서 배치 방향·간격·열 수를 바꾸면 페이지 헤더 띠가 그 자리에 남아 있던 문제를 고쳤다.** 페이지 본문만 움직이고 헤더는 옛 위치에 있다가, 캔버스를 스크롤하면 그제서야 제자리로 왔다.
+  - **Why:** 헤더 배치가 페이지 위치를 scene 프레임이 아니라 store 미러 (`derivedPagePositions`) 에서 먼저 읽었다. 그 미러는 같은 파생값을 캔버스의 passive effect 가 싣는 사본이라 헤더의 layout effect 보다 항상 한 커밋 늦다 (자식 layout effect → 부모 passive effect). 이제 헤더는 Skia 가 그리는 프레임과 같은 값을 읽는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/overlay/pageHeader/usePageHeaderPlacement.ts`
+
+## [페이지 배치 = 컨테이너 레이아웃 파생값 (ADR-232)] - 2026-09-22
+
+### Changed
+
+- **페이지 캔버스 위치를 저장하지 않는다.** 페이지 frame 의 x·y 는 페이지 컨테이너 (합성 grid root) 에 페이지 frame 을 넣어 레이아웃 엔진이 낸 결과다. 문서에는 페이지 `placement` 만 남는다 — 없음 (흐름) · 칸 고정 (`gridColumnStart`/`gridRowStart`) · 격자 밖 (`position:absolute` + `left`/`top`), breakpoint 차이는 요소와 같은 responsive override.
+  - **Why:** 저장 좌표는 페이지 추가·삭제·breakpoint 전환·body 크기 변화·reload·align 여섯 사건마다 좌표를 맞춰 주는 코드를 요구했고, 그 정합이 깨질 때마다 사용자 가시 결함이 됐다 (60일 8 커밋). 요소는 같은 문제를 부모의 display 로 푼다 — 페이지만 다른 모델을 쓰고 있었다.
+  - 배치 방향·간격·**열 수** 는 localStorage 에서 **문서 데이터** 로 승격됐다 (Settings). 열 수·간격은 breakpoint 별 override 가 되고, 방향은 breakpoint 공통이다.
+  - 기존 문서는 로드 시 1회 이관된다 (Home 기준 상대 배치 불변 · 칸이면 고정 / 아니면 absolute / 검증 실패면 Home 제외 전부 absolute). 저장 좌표는 지우지 않고 휴면으로 남아 `"legacy"` 복귀에서 읽힌다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement*.ts`, `apps/builder/src/builder/stores/utils/pagePlacement*.ts`, `apps/builder/src/builder/stores/elements.ts`, `packages/shared/src/types/composition-document.types.ts`
+
+- **breakpoint 전환은 페이지가 많은 문서에서 조금 느려진다.** 페이지 30 개 문서에서 전환 한 번이 약 10 ms (+12.6%) 늘었다 — 전환할 때 그 tier 로 배치를 다시 내기 때문이고, 예전에는 저장해 둔 좌표 묶음을 바꿔 끼우기만 했다. 전환 뒤의 프레임 비용은 그대로다 (−0.2 ms). 같은 문서의 다른 조작은 같거나 빨라졌다 — body 높이 변경 −24.3 ms · 페이지 추가 −3.8 ms · 600 요소 편집 +0.2 ms.
+
+### Added
+
+- **페이지 칸 고정과 칸 교환.** 페이지를 격자 안에 놓으면 그 칸에 고정되고, 이미 고정된 페이지가 있는 칸에 놓으면 두 페이지가 자리를 맞바꾼다 (Cmd+Z 1회로 전체 복귀). 격자 밖에 놓으면 자유 배치다.
+- **Home 은 이동할 수 없다.** 흐름의 첫 칸이 Home 자리이며 드래그·X/Y 입력·방향키·칸 교환이 전부 거부된다.
+- **Settings 의 「열 수」** 와 비-desktop 의 「이 breakpoint 만」 토글 (ko/en).
+
+### Fixed
+
+- **body 높이를 바꿔도 뒤 페이지가 어긋나지 않는다.** 행 높이는 그 행 최대 frame 높이라 컨테이너 레이아웃이 다시 돌며 따라온다 — 이웃을 밀어 주던 reflow 계층이 없어졌다.
+- **breakpoint 를 오가도 페이지가 겹치지 않는다.** tier 별 좌표 스냅샷 3벌이 없어지고 차이는 placement override 하나로 표현된다.
+
+### Removed
+
+- 배치 함수 12 · breakpoint 좌표 스냅샷 · frame reflow · 페이지 추가의 다음 칸 계산 · hydration/스냅샷 복원의 위치 초기화 · 페이지 생성·삭제 이력의 좌표 스냅샷 (약 850 행).
+
+## [Components 페이지 — 미사용 Modal 원본 제거] - 2026-09-22
+
+### Fixed
+
+- **Components 페이지에서 Modal 자동 등록을 중단하고 기존 미사용 시스템 원본을 로드 시 정리한다.** 기존 인스턴스가 원본이나 자식을 참조하는 경우와 사용자 생성 Modal은 보존한다.
+  - **Why:** 팔레트 항목만 제거하여 Components 페이지 초기화가 Modal을 계속 시드했다.
+  - 위치: `apps/builder/src/builder/components/catalogOrigins.ts`, `packages/shared/src/catalog/componentCatalog.ts`
+
+## [Dialog 기본 너비 — 부모의 100%] - 2026-09-22
+
+### Changed
+
+- **Dialog 기본 너비를 400px에서 100%로 변경했다.** 생성 코드와 기본값의 고정 너비를 제거하고 catalog `containerStyles.width`를 두 렌더러의 정본으로 사용한다. 기존 문서에 명시된 너비는 보존한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `OverlayComponents.ts`, `unified.types.ts`
+
+## [Dialog Canvas 배경 덮임 수정 · Modal 팔레트 제거] - 2026-09-22
+
+### Fixed
+
+- **Dialog를 Canvas에 배치할 때 페이지 전체가 반투명하게 덮이던 문제를 수정했다.**
+  - **Why:** Dialog binding이 열림 상태와 무관하게 전체 화면 backdrop primitive를 합성했다. Dialog는 본체만 렌더하고 모달 배경의 역할은 분리한다.
+  - 위치: `packages/shared/src/catalog/bindings/Dialog.binding.ts`
+
+### Changed
+
+- **컴포넌트 패널에서 Modal 항목을 제거했다.** Dialog와 혼동되는 독립 삽입 항목을 숨기고, 기존 문서와 내부 조합에서 쓰는 Modal 구현은 유지한다.
+  - 위치: `apps/builder/src/builder/panels/components/paletteItems.ts`
+
+## [페이지 배치 — breakpoint 를 바꿔도 페이지가 겹치지 않는다] - 2026-09-22
+
+### Fixed
+
+- **새 프로젝트에서 페이지를 여럿 추가한 뒤 breakpoint 를 바꾸면 한 breakpoint 가 맞으면 다른 breakpoint 가 어긋나거나 겹쳤다** (사용자 보고). 원인 둘: (1) 새 페이지 위치는 추가한 breakpoint 에만 저장되는데, 전환 시 대상 breakpoint 에 없는 페이지를 **현재 breakpoint 좌표 그대로** 옮겨 1920 격자 값이 768/390 격자에 (또는 반대로) 섞였고, 그 값이 저장돼 다음 페이지 배치 (첫 행 열 수 · 충돌 판정) 까지 오염시켰다 — desktop 에 같은 좌표 쌍 5개까지 생겼다. (2) reload 시 hydration 이 "전체 격자 재계산 ⊕ 저장값" 을 병합해 저장값 없는 페이지 (다른 breakpoint 에서만 추가된 페이지 · 프로젝트 생성 경로의 Home · Components) 가 열 수·원점이 다른 칸에 놓였다. 수리: 대상 breakpoint 에 위치가 없는 사용자 페이지는 **그 breakpoint 격자에서 페이지 순서대로 다음 칸** 에 놓고 (`placeMissingUserPages` — 전환 · hydration 공용), 놓은 위치는 canonical `pagePositions` 에 그 breakpoint 로 저장한다 (최초 부팅의 Home · Components 포함). 게이트: unit 5 (`pagePositionsBreakpointGap.test.ts`, 원복 RED 3) · headed live `scripts/page-positions-breakpoint-live.mjs` 20/20 (desktop 3 추가 → tablet 전환·1 추가 → mobile → desktop 왕복 → reload: 중복 0 · 격자 stride 배수 · 겹침 0 · Δ0) · ADR-231 Phase 2 live 15/15 회귀 0. 이미 어긋난 문서는 breakpoint 마다 줌 메뉴 「페이지 정렬」 한 번으로 정리된다.
+
+## [ADR-231 Implemented — Components 페이지가 breakpoint 에 흔들리지 않는다] - 2026-09-22
+
+### Changed
+
+- **Components 페이지 frame 은 활성 breakpoint 를 읽지 않는다.** 폭은 desktop 1920 고정, 높이는 레이아웃이 보고한 내용 높이 (최소 1080 · body 에 height 를 저작하면 그 값). tablet/mobile 로 바꿔도 origin 이 한 열로 접히거나 body 안 스크롤에 갇히지 않고, 페이지 테두리가 내용 끝에 온다. origin 의 breakpoint override → instance 상속은 그대로다.
+- **Components 페이지는 사용자 페이지 격자 밖 왼쪽 열에 놓인다.** Home 이 (0,0) 을 지키고 Components 는 그 왼쪽 (`x = homeX − (1920 + gap)`). 페이지 추가 · 정렬 · breakpoint 전환이 Components 위치를 건드리지 않고 (세 breakpoint 공통값 하나), Components 높이가 바뀌어도 사용자 페이지를 밀지 않는다 (간격 반영은 열/격자 경계 안에서만). 드래그해 옮긴 위치는 전환 · reload 뒤에도 그대로다.
+
+### Internal
+
+- 레이아웃 발행 effect 에 `layout.publish` perf 라벨 (`__composition_PERF__`) · G3 단계 분해 A/B 하니스 `apps/builder/scripts/adr231-frame-decomp-ab.mjs` (headed/headless · Home 만 보이는 대조군).
+
+## [이미지 템플릿 경고 수정] - 2026-09-22
+
+### Fixed
+
+- Components 템플릿의 `{avatar}` 같은 치환 전 이미지 바인딩을 URL로 요청해 발생하던 `[imageCache] Decode failed` 경고를 수정했다. 실제 URL로 치환되면 기존 이미지 로딩을 수행한다.
+
+## [캔버스 — 페이지 테두리가 페이지 크기를 따른다] - 2026-09-22
+
+### Fixed
+
+- **페이지 body 의 Size (width/height) 를 바꾸면 페이지 구분선 (테두리) · 선택 outline · 크기 배지 · 빈 영역 클릭 범위 · 가이드 범위가 같이 바뀐다.** 종전에는 페이지 frame 이 breakpoint 크기 (1920×1080 …) 에 고정돼, body 높이를 1600 으로 늘려도 테두리는 1080 에 남아 실제 상자와 다른 선이 보였다 (사용자 보고). 페이지 frame 크기는 body 저작 값 (px · 숫자 · % — auto/calc 는 breakpoint) 을 읽는 `scene/pageFrameSize.ts` 하나가 정한다.
+  - 위치: `buildSceneIndex.buildPageFrames` · `selectionModel.computeSelectionBounds` · `selectionHitTest.findTopPageIdAtCanvasPoint` (`pageSizeReader`) · `useCentralCanvasPointerHandlers` · `useGuideDrag`. unit +5 · live (body 1600 → 테두리 1600 · 빈 영역 y 1400 클릭 → body 선택 · 배지 1920×1600).
+- **페이지 간격도 frame 크기를 따른다**: 한 페이지의 body 크기가 바뀌면 쌓는 축에서 그 뒤의 페이지만 Δ 만큼 밀려 간격 (Page Gap) 이 유지된다 — vertical 은 아래, horizontal 은 오른쪽, auto 격자는 아래 행 + 같은 행 오른쪽. 사용자가 끌어 놓은 상대 배치는 그대로고, 원인 편집의 Undo/Redo 를 따라 되돌아온다 (별도 History 없음). 새 페이지 추가 위치와 첫 배치 계산도 페이지별 frame 크기를 읽는다.
+  - 위치: `stores/utils/pageFrameReflow.ts` (순수) · `elements.applyPageFrameReflow` · `calculatePagePositions`/`calculateNextPagePosition` (`pageSizes`) · `BuilderCanvas` frame 크기 변화 effect (body 없는 페이지는 기준 제외) · `usePageManager`. unit +8 · live (Components 1600 → Home y 1160→1680 · Undo 1160 · Redo 1680 · reload 보존).
+
+## [ADR-227 Implemented — 다중 테마 (문서 소유 토큰 세트 컬렉션)] - 2026-09-22
+
+### Added
+
+- **여러 테마를 문서가 소유한다**: 프로젝트마다 이름 있는 테마 여러 개 (`themes: { active, items, order }`) 를 두고 Themes 패널에서 복제 · 활성 전환 · 이름 변경 · 삭제 · 토큰 재정의를 한다. 활성 테마는 캔버스 (Skia) · Preview · Publish 에 한 벌의 값으로 설치되고, 전환은 History 1 건 (Undo/Redo), 새로고침·IndexedDB 에 보존된다. border 폭이 테마 축에 들어와 (`{border.width.none|thin|thick}`) 테마가 색 · 서체 · 반경 · 테두리 폭을 함께 바꾼다. 기존 프로젝트의 localStorage 테마 설정은 처음 저장에 성공할 때 문서로 옮긴다 (백업 `.pre227`).
+  - Phase 0~~5 개별 엔트리는 아래 (같은 날). 정본: `docs/adr/completed/227-multi-theme-token-set-collection.md` (Live Exercise 절) · `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8~~9.
+  - 사용자 확인 대상: Preview iframe 의 테마 전환 · Styles 패널 base 값 (Compare Mode 는 열지 않았다).
+
+## [ADR-227 Phase 5 — Components 페이지 테마 표면 검증] - 2026-09-22
+
+### Verified
+
+- **테마 전환은 문서 구조를 건드리지 않는다**: Components 페이지의 origin 86 (팔레트 catalog 73 + Form/Toolbar/Card 등 template 13) 과 홈 페이지의 instance (Form instance 안 Button · Button instance) 가 테마 전환 한 번에 같이 바뀌고, canonical `children[]` · origin 기하 · 다른 페이지의 History 는 그대로다. 전환당 History 1 건, 같은 테마 재선택은 0 건, Undo/Redo 로 테마가 되돌아온다. 전환 비용은 origin 전집 페이지 최대 24.6 ms · 600 요소 페이지 최대 21.4 ms.
+  - 하니스: `apps/builder/scripts/adr227-components-theme-live.mjs` 7/7 · unit `themeHistoryRoundtrip.test.ts` +1 · dev 디버그 전역 `__composition_HISTORY_DEBUG__.getAllPageEntryCounts`.
+
+## [ADR-227 Phase 4 — Themes 패널: 테마 목록 · 토큰 재정의] - 2026-09-22
+
+### Added
+
+- **Themes 패널 「테마 목록」**: 문서의 테마를 행으로 보여 주고 (활성 표지 · 이름 · preset 요약), `+` 로 활성 테마를 복제해 추가, 표지 클릭으로 활성 전환, 연필로 이름 변경, `−` 로 삭제 (마지막 테마는 삭제 불가). 모든 동작이 History 1 건 (Undo/Redo) 이고 새로고침 뒤 보존된다.
+- **「토큰 재정의」**: 활성 테마의 색상 · 타이포그래피 · 반경 · 테두리 폭 · 그림자 · 포커스 토큰을 분류 → 키 → 값으로 덮어쓰고 (hex/숫자 검증, 프리셋 값과 같으면 자동 해제), 행의 `−` 로 초기화한다. 캔버스는 즉시 반영, Preview/Publish 는 같은 CSS 변수 한 벌을 받는다.
+  - 위치: `apps/builder/src/builder/panels/themes/{ThemeListSection,ThemeTokensSection}.tsx` · `themeTokenEditor.ts` · `ThemesPanel.tsx` · `ThemesPanel.css` · i18n `themes.*`.
+  - 하니스: `apps/builder/scripts/adr227-themes-panel-live.mjs` 10/10 (패널 UI 클릭 · 854 요소 전환 ≤ 16.4 ms).
+
+## [ADR-227 Phase 3 — border 폭이 테마 토큰이 된다] - 2026-09-22
+
+### Changed
+
+- **border 폭 토큰 `{border.width.none|thin|thick}`** (0 / 1 / 2 px): catalog rule 의 border 폭 63 곳 (숫자 47 · `"1px"` 6 · `border: "1px solid …"` 10) 이 이 토큰을 참조하고, 테마 델타 `border.width.thin = 3` 같은 값이 캔버스 (Skia stroke · 레이아웃 border-box) 와 Preview/Publish (`--border-width-*` · 생성 CSS `border-width: var(--border-width-thin)`) 에 같이 닿는다. rule 이 폭을 생략한 곳의 기본값도 thin 토큰 하나로 모였다 (종전 `?? 1` 리터럴). 미지정 · seed 상태의 시각은 그대로 (Δ0).
+- **수리**: DropZone 기본 스타일의 인라인 `borderWidth: 2px` 가 테마를 가리고 있었다 → 제거 (레이아웃은 catalog 값 주입, DOM 은 생성 CSS — 같은 2px).
+  - 위치: `packages/specs/src/primitives/border.ts` · `types/token.types.ts` · `renderers/utils/tokenResolver.ts` (`resolveBorderWidthPx` · `borderWidthToCSS`) · `renderers/CSSGenerator.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` · `components/styles/theme/shared-tokens.css` · `apps/builder/src/builder/workspace/canvas/layout/engines/{implicitStyles,utils}.ts` · `utils/theme/{resolveThemeSnapshot,installThemeSnapshot}.ts` · `types/builder/unified.types.ts`.
+  - 게이트: `packages/shared/src/catalog/__tests__/borderWidthLiteral.static.test.ts` (리터럴 0 ratchet) · 하니스 `apps/builder/scripts/adr227-border-token-live.mjs` 5/5 (Canvas). DOM 채널은 unit 고정, 사용자 확인 대상.
+
+## [ADR-227 Phase 2 — 활성 테마 snapshot 1회 설치 · Preview/Publish CSS 변수 배선] - 2026-09-22
+
+### Changed
+
+- **테마 토큰 델타가 실제로 그려진다**: 활성 테마의 `color.*` (hex — `color.accent` 는 tint 전체를 대체) · `typography.*` · `radius.*` · `shadow.*` · `focus.*` 델타를 preset seed 위에 얹어 한 snapshot 으로 풀고 (`resolveThemeSnapshot`), 캔버스 (specs 토큰 맵) · Preview (`THEME_VARS` 통째 교체) · Publish (`applyThemeVars`) 에 **한 번에** 설치한다 (`installThemeSnapshot` — themeVersion +1 · 레이아웃 알림 1 회, 종전 setter 4~5 회). 미명시 hover/pressed 는 base 에서 파생하고 명시가 우선하며, 생성 CSS 의 상태 배경은 `var(--X-hover, color-mix(...))` 슬롯을 통해 override 를 받는다 (미명시면 종전 색 그대로).
+- **수리**: 테마 typography/radius 변경이 페이지 레이아웃 캐시에 무시되던 결함 (시그니처가 요소 props 만 읽었다 — Button 라벨 hug 폭이 안 바뀜) → 시그니처에 테마 epoch 추가. Skia radius 배율이 xs/2xl 을 건너뛰어 DOM 과 갈리던 것 → `RADIUS_BASE_PX` 하나로 통일.
+  - 위치: `apps/builder/src/utils/theme/{resolveThemeSnapshot,installThemeSnapshot}.ts` · `stores/themeConfigStore.ts` (`applyResolvedTheme`) · `preview/store/runtimeStore.ts` (`setThemeVars(vars, replace)`) · `apps/publish/src/App.tsx` · `packages/specs/src/renderers/{CSSGenerator,utils/tokenResolver}.ts` · `packages/shared/src/catalog/resolvers/colorTokenToCss.ts` · `components/styles/utilities.css` · `workspace/canvas/scene/layoutCache.ts`.
+  - 하니스: `apps/builder/scripts/adr227-theme-snapshot-live.mjs` 8/8 (Canvas). Preview/Publish 채널은 unit 고정, 사용자 확인 대상.
+
+## [ADR-227 Phase 1 — 테마 컬렉션 스키마 · migration · 문서 우선 쓰기] - 2026-09-22
+
+### Changed
+
+- **테마 설정의 정본이 문서로**: `CompositionDocument.themes` 가 이름 있는 테마 컬렉션 (`{ active, items, order }` — 항목 = preset + seed 와 다른 델타) 이 됐다. 기존 프로젝트는 처음 열 때 localStorage 실효값 (tint · dark · neutral · radius · 기본 서체) 을 Default 테마로 1회 승계하고 (저장 성공 뒤 `.pre227` 백업 + 캐시 축소), 이후 Themes 패널 편집은 문서에 기록되며 **Undo/Redo 와 새로고침 보존** 이 된다 (history `테마 편집: Default`). 시각 변화 0 (같은 값 승계).
+  - 위치: `packages/shared/src/theme/themesCollection.ts` · `apps/builder/src/adapters/canonical/themesAdapter.ts` · `stores/canonical/canonicalDocumentStore.ts` (`setThemes`) · `stores/history/historyActions.ts` (`theme` entry) · `panels/themes/themeActions.ts` · `builder/main/BuilderCore.tsx` · `stores/themeConfigStore.ts`.
+  - 하니스: `apps/builder/scripts/adr227-themes-migration-live.mjs` 6/6.
+
+## [ADR-227 Accepted + Phase 0 — 다중 테마 inventory freeze] - 2026-09-22
+
+### Changed
+
+- **ADR-227 Accepted · Phase 0 (G0) 완료** (`/execute-adr 227`): 재실측 F13~~F18 — `doc.themes`/`doc.tokens` 는 production 에서 쓰인 적이 없어 기존 문서 100% 가 themes 부재 (실전 migration 경로 = localStorage `composition-theme-config-<projectId>` → 컬렉션) · write-through flag 는 어디에도 없음 · DOM 채널 = `THEME_VARS` postMessage · Skia 채널 = specs 토큰 맵 mutation (resolveToken 소비자 21 파일이 같은 맵) · focus 축은 DOM 만 (ADR-150) · border inventory 48+6+8+2 (outline 17 은 focus 예외) · Components 페이지는 228~~230 으로 이미 전집 · 변경 파일 39 확정. `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8.
+
+## [ADR-230 Implemented — 기본 요소의 상태별 origin 분해] - 2026-09-22
+
+### Changed
+
+- **ADR-230 Implemented** (Phase 0~~3 / G0~~G4, 사용자 배치 confirm): Components 페이지의 Button · ToggleButton · Link · Checkbox · Switch 가 `Selected → Disabled → Hover → Pressed → Focus` 변형 origin 을 default 오른쪽 같은 행에 두고, 편집이 `isSelected`/`isDisabled` instance (캔버스·Preview) 와 Preview 의 실제 hover/pressed/focus 에 반영된다. `docs/adr/completed/230-base-element-state-variant-origins.md` · 리뷰 종결 `docs/adr/reviews/230.md` round 3.
+
+## [ADR-230 Phase 3 — 상태 변형 origin BC · Properties 상태 배지] - 2026-09-22
+
+### Added
+
+- **Properties 패널 상태 배지**: 상태 변형 origin (`ToggleButton/Selected` 등) 을 선택하면 Component 정체 칩에 `SELECTED` · `DISABLED` · `HOVER` · `PRESSED` · `FOCUS` pill 이 선다 (툴팁: 어느 origin 의 상태 변형인지 · 이 상태에서 편집되는 키). `apps/builder/src/builder/panels/properties/ComponentSemanticsSection.tsx`.
+- **BC**: 기존 프로젝트를 열면 부족한 변형만 기존 변형 뒤에 보충된다 — 기존 노드 · 편집 · 순서 불변, 재로드 Δ0. unit `adr230BackwardCompat.test.ts` (Δnode 33 · Δbyte 9,793) · live `adr230-bc-live.mjs` 6/6.
+
+## [ADR-230 Phase 2 — 기본 요소의 hover/pressed/focus-visible 변형 origin] - 2026-09-22
+
+### Added
+
+- **Components 페이지 interaction 변형 origin**: 기본 요소 5 마다 `Button/Hover` · `/Pressed` · `/Focus` 가 선언적 변형 뒤에 시드된다 (15 root · style 비움 = 종전 시각 그대로). 변형의 Background/색/opacity 를 편집하면 Preview 의 instance 가 실제 hover/pressed/키보드 focus 에서 그 값을 쓴다 — 순서 selected → focus → hover → pressed → disabled, disabled 요소에는 hover/pressed 가 붙지 않고, instance 가 명시한 값은 그대로 우선. 캔버스는 변형 origin 자신만 catalog hover/pressed 토큰으로 정적 표시하고 instance 는 무변화 (캔버스에 interaction 재현 없음).
+  - 위치: `stateVariantOrigins.ts` (`INTERACTION_STATE_VARIANTS`) · `stateVariantResolution.ts` (`STATE_VARIANT_CSS_ORDER` · `:not([data-disabled])`) · `buildSpecNodeData.ts` (origin 자신 `racStateAttrs` hover/pressed).
+  - 성능: `perf-baseline.mjs` fixture `button-refs-stateful` (ref 600 · 상태 50%) — `scene.build` p95 Δ −1.4 ms.
+
+## [ADR-230 Phase 1 — 기본 요소의 selected/disabled 변형 origin] - 2026-09-22
+
+### Added
+
+- **Components 페이지 상태 변형 origin**: Button · ToggleButton · Link · Checkbox · Switch 의 origin 옆에 `Button/Disabled` · `ToggleButton/Selected` … 8 개가 시드된다 (`<origin>--<state>` · `metadata.variant/variantOf` · style 비움 = 종전 시각 그대로). 변형 origin 의 Background/색/opacity 를 편집하면 `isSelected`/`isDisabled` instance (Form 안 Button 같은 조합 instance 포함) 가 캔버스와 Preview 에서 같이 따른다. instance 가 명시한 값은 그대로 우선.
+  - 위치: `apps/builder/src/builder/components/stateVariantOrigins.ts` · `stateVariantResolution.ts` · `adapters/canonical/canonicalRefResolution.ts` · `resolvers/canonical/index.ts` · `workspace/canvas/skia/buildSpecNodeData.ts` · `preview/App.tsx` · `preview/components/CanonicalNodeRenderer.tsx`.
+  - 하니스: `apps/builder/scripts/adr230-state-origins-live.mjs` 8/8.
+
+### Fixed
+
+- **disabled 요소의 inline opacity 가 캔버스에서 두 번 곱해지던 것**: `style.opacity 0.5` + disabled 가 Skia 에서 0.5 × 0.38 = 0.19 로 그려졌다 (Preview 는 0.5). 명시 opacity 가 있으면 catalog disabled opacity 를 대체한다 (ADR-230 리뷰 h1 · F13).
+
+## [ADR-230 Accepted + Phase 0 — 기본 요소 상태별 origin inventory] - 2026-09-21
+
+### Documentation
+
+- **ADR-230 Accepted · Phase 0 (G0) 완료**: 기본 요소 집합 5 (Button · ToggleButton · Link · Checkbox · Switch — 상태 열은 타입별 계약) · Δnode 12 / ≈ 3.3 KB · Preview 문서별 CSS 채널은 ADR-154 `<style>` 패턴 재사용 · 두 leg 유효 상태 입력 지점 확정. 리뷰 반증 3건을 현재 코드에서 재현 (disabled Button + inline opacity 0.5 → Skia effect 2개 0.19, DOM 0.5 — plain 노드도 이미 발산).
+  - 위치: `docs/adr/230-base-element-state-variant-origins.md`, `docs/adr/design/230-base-element-state-variant-origins-breakdown.md` §2 F13~F21 · §7.
+  - 제품 코드 변경 0. Radio/Tab 은 base origin 부재로 후속 후보.
+
+## [ADR-230 설계 보완 — 상태 효과 소유권 · CSS cascade · 유효 상태] - 2026-09-21
+
+### Documentation
+
+- **ADR-230 Phase 0~3 설계 리뷰 3건 보완**: 상태 origin opacity의 catalog 효과 대체, Phase 1부터 CSS 변수/상태 selector 공통 채널, 조상·collection·RAC의 유효 상태 입력, 명시 instance override 우선순위와 반증 gate를 명시했다.
+  - Why: 단순 overlay는 Skia opacity 중복, inline 색의 hover 차단, 부모/RAC 상태 누락을 일으킨다.
+  - 위치: `docs/adr/230-base-element-state-variant-origins.md`, `docs/adr/design/230-base-element-state-variant-origins-breakdown.md`, `docs/adr/reviews/230.md`.
+  - Proposed 유지. 제품 구현·gate 완료가 아닌 설계 수리다.
+
+## [ADR-229 Implemented — TagGroup item template origin + 저작 조합층의 origin 안 instance] - 2026-09-21
+
+### Changed
+
+- ADR-229 Phase 4 종결 (G4 BC) → **Implemented** (`docs/adr/completed/229-…`). 기존 프로젝트를 열면 Tag chip item template origin 2 (`Tag/Default` · `Tag/Selected`) 와 `component-taggroup.slot` 만 보충되고 (Δnode 8 · Δbyte 1,959), 기존 origin 의 자식 · 사용자 저작 · 순서는 그대로다 (조합 origin 자식의 instance 화는 새 프로젝트의 seed 에만). 두 번째 열기부터 Δ0.
+  - Why: G4 — unit `adr229BackwardCompat.test.ts` 4 (기존 노드 직렬화 불변 · Δ 정확 · 재hydration Δ0 · 변환만 끈 롤백에서 해소기 유지) · headed live `adr229-bc-live.mjs` 7/7 (저장된 canonical 문서를 ADR-228 모양으로 재작성 → reload → plain 자식 유지 · Tag origin 보충 · 재reload Δ0 · TagGroup instance chip 두 leg 30). 전체 gate 결과 · Live Exercise · 후속 후보 (기본 요소의 상태별 별도 origin 분해 = 새 ADR) 는 ADR 본문.
+
+## [ADR-229 Phase 3 — 두 leg parity + 성능 (G2 · G3)] - 2026-09-21
+
+### Fixed
+
+- Components 페이지 (origin 을 테마처럼 손보는 자리) 의 Properties 에서 collection 의 외부 데이터 연결 (Data 절 · 「새 테이블」) 을 뺐다 — 데이터 연결은 사용자 페이지의 instance 가 자기 데이터로 정하는 축. 정적 items 편집 (chip/행 견본) 은 그대로.
+  - Why: 사용자 판정 (2026-09-21) — `omitDataBindingOnComponentsPage` (kind `binding` 필드, `page_id === page-components`) · unit 2 · live 프로브: TagGroup instance 「새 테이블」 1 / origin TagGroup·ListBox·Table·Select 0.
+- Components 페이지 TagGroup origin 의 Properties "Slot" 절에서 Tag/Default · Tag/Selected 의 "+" 를 눌러도 TagList 에 아무것도 생기지 않던 것 — chip 은 `items[]` 데이터라 ref 자식은 안 그려진다. 이제 "+" 가 item 을 등록한다 (Tag/Default → 'New Tag' chip, Tag/Selected → 선택된 'New Tag' chip); items 를 상속하는 instance 에 두 leg 모두 반영. Frame · ListBox · GridList 의 "+" 는 종전과 같다.
+  - Why: 사용자 지적 (2026-09-21) — 원복 RED 2 · headed live `adr229-slot-insert-live.mjs` 5/5 (Insert Default → items 5 · Insert Selected → items 6 + selectedKeys · Skia chip 6 · 상속 instance Preview chip 6 = Skia 6 · items 소유 instance 불변).
+- TagGroup chip 의 item template origin 에서 icon slot 크기 (`fontSize`) 나 label slot 굵기 (`fontWeight`) 를 바꾸면 Canvas 가 아이콘은 그 크기로 그리면서 chip 상자는 기본 크기로 재 Preview 보다 좁았고 (icon 20 → 6px 차), maxRows 접힘 판정도 굵기를 무시하던 것 — 상자 폭 · 접힘 측정 · 그리기가 같은 slot 크기 · fontWeight 를 읽는다.
+  - Why: ADR-229 Phase 3 (G2·G3) — 원복 RED 3 · builder layout/scene/taggroup 80 파일 719 PASS · headed live `adr229-two-leg-parity-live.mjs` 7/7 (Tag item origin icon `fontSize` 20 · label `fontWeight` 700 · root padding 24/8 → TagGroup instance Skia rect + 픽셀 Δ + Preview computed, 폭 113 = 113.12 · `component-button` `style.width` 200 → Form/Toolbar instance 안 Button 두 leg 200 · synthetic Save → 'Go' → reload 두 leg 보존 · Components body Δ0) · ADR-228 parity `adr228-instance-parity-live.mjs` 58/58 (Phase 2 직후 11 family FAIL 은 하니스 plain arm 이 ref 자식을 `type` 만 복제한 것 — `ref`/`descendants` 동반) · G3 `pnpm perf:baseline` 같은 세션 A/B — Form instance 100 (`forms`/`form-refs` fixture, 7회) `scene.build` p95 median 4.0 → 4.7 (+0.7 ≤ +1) · TagGroup 100×8 (`taggroups`/`taggroup-refs`, 2회) 7.3/7.1 → 7.1/5.9 · render.frame Δ ≈ 0.
+
+## [ADR-229 Phase 2 — 저작 조합층 자식의 origin instance 화 + synthetic 자식 Properties 표면] - 2026-09-21
+
+### Added
+
+- 새 프로젝트의 조합 origin (Form · Toolbar · ButtonGroup · Pagination · AvatarGroup · Nav · ToggleButtonGroup · CheckboxGroup · DisclosureGroup · FileUpload · DatePicker 의 Calendar …) 안에서 origin 이 있는 타입의 자식 (Button · TextField · Link · Avatar …) 이 그 origin 의 **instance** (`type:"ref"`) 로 시드된다 — props 는 origin 과 다른 키만 (ADR-228 계약), 자식 subtree 의 저작 차이는 `descendants` patch 로, 표현 못 하는 차이 (CardView 의 Card 3) · origin 부재 · 순환은 진단하고 plain 으로 둔다. `component-button` 을 바꾸면 Form/Toolbar/ButtonGroup instance 안의 Button 이 같이 따라간다. 기존 문서의 origin 자식은 그대로 (진입 시 없던 origin 만 변환) · 재hydration Δ0. 생성 경로 (Navigation 의 Link · ColorPicker 의 ColorField) 도 같은 규칙.
+- instance 안의 자식 (`<instance>/<path>` — 캔버스 더블클릭 · Navigator 선택) 을 고르면 Properties/Styles 패널이 plain 노드와 같은 필드를 보인다 (종전 "Select an element"). 편집은 바깥 instance 의 `descendants[path]` 하나로 저장되고 (origin 무오염) Undo/Redo · reload · 두 leg 에 반영된다.
+
+### Fixed
+
+- Preview 가 name 을 가진 조합 자식 (Form 의 ButtonGroup · Toolbar 의 "Button/Action 1") 의 instance patch 를 못 읽던 것 — descendants path 를 canonical id path (page-frame slot fill) 와 builder 축 segment path (name → id) 둘 다로 맞춘다.
+- TagGroup instance 의 Properties 에 "Slot Fill · Target slot: TagList" 가 뜨고 origin 에는 ListBox 의 "Slot" 절이 없던 것 (Phase 1 당일) — item template slot 을 TagGroup root 로 (ListBox/GridList 와 같은 자리), TagGroup 을 slot host 로 등록. 당일 시드된 문서의 TagList slot 은 자동으로 root 로 옮긴다.
+- instance `descendants` 만 바꾸는 편집 뒤 Canvas 가 stale rect/글자로 남던 것 — 재레이아웃 대상에 포함.
+- Styles 패널이 segment 에 `/` 가 든 자식 ("TextField/Name") 의 편집 target 을 못 찾던 것 — path 를 통째로 맞춘다.
+- TextField 의 `type` (email/password) 이 Input 자식에 전파되지 않던 것 (규칙 부재).
+  - Why: ADR-229 Phase 2 (G1) — 원복 RED 7 · builder 전체 864 파일 6,895 PASS · headed live `adr229-composite-children-live.mjs` 9/9 (seed 모양 · Form instance 3단 중첩 두 leg · synthetic Button/TextField 선택 → Properties 편집 → descendants 하나 · Undo/Redo · reload Δ0) + 캔버스 축 `adr229-canvas-origin-live.mjs` 9/9 (Components 페이지 origin 안 ref 자식 rect/글자 · origin 자식 편집 → instance 동반 · Button origin 편집 상속/patch 우선) + `adr229-tag-template-live.mjs` 8/8 재통과.
+
+## [ADR-229 Phase 1 — TagGroup chip item template origin] - 2026-09-21
+
+### Added
+
+- Components 페이지에 Tag chip 의 item template origin `component-tag-item-default` / `component-tag-item-selected` (slot 자식 Icon `{icon}` · Avatar `{avatar}` · Text `{label}`) — `component-taggroup` origin 의 TagList 자식이 `slot: [default, selected]` 로 등록하고 (기존 문서는 결손 보충), TagGroup instance 의 chip 이 두 leg 에서 그 origin 을 읽는다: root style (padding · radius · border …) + label slot typography (fontSize · weight · color) · fills 배경 · selected chip 은 selected origin overlay · leading slot 존재 gating (Avatar 자식을 지우면 avatar 데이터가 있어도 icon 으로) · slot 자식 크기 (icon fontSize · avatar width). Preview 는 `tagTemplate` renderContext → `TagGroup` rows 경로가 chip 마다 적용.
+- 공용 slot vocabulary 에 `avatar` (`SLOT_ROLES`) + item template chip style 규칙 (`resolveItemTemplateChipStyle` — 저작 layout 키 제외 + label typography fold, 두 leg 공용).
+
+### Fixed
+
+- TagGroup chip 의 template padding 을 키우면 Preview 는 자라는데 Canvas 는 rule 높이 30 에 갇히던 것 — layout 의 catalog size 축 fallback (`Tag.sizes[size].height`) 을 template 이 있을 때 `height: auto` 로 풀어 DOM 처럼 line-height + padding + border 로 잰다.
+- chip 글자 크기를 바꾸면 DOM 은 line-height 비율 토큰 (20/14) 으로 자라고 Canvas 는 px 20 고정이던 것 — rule 비율을 unitless 배율로 같이 싣는다 (컨테이너 높이 추정 `resolveTagWrapLayout` 도 같은 chip style 을 읽는다).
+- Preview TagGroup 이 items 를 `<Tag>` JSX 로 만들어 넘기던 경로가 chip 렌더러를 둘로 갈라 template 을 못 받던 것 — `items` prop 으로 rows 경로 하나에 합류 (maxRows 미러도 실제 chip 과 같은 leading 을 잰다).
+  - Why: ADR-229 Phase 1 (G1) — 원복 RED 17 + import 실패 2 파일 · shared 1,376 · specs 1,378 · builder 인접 3,005 PASS · headed live `adr229-tag-template-live.mjs` 8/8 (시드 · 기준 30=30 · padding 38=38 · Avatar slot 삭제 gating · fontSize 18 → 43.71=43.7 · Undo · reload Δ0).
+
+## [ADR-229 Phase 0 — 조합 origin 안 instance (일반 origin-child ref) 실체화] - 2026-09-21
+
+### Fixed
+
+- 조합 origin (Form/Toolbar 등) 의 자식이 다른 origin 의 `ref` 일 때 그 origin 의 instance 안에서 자식이 `type:"ref"` 미해소 노드로 남던 것 (리뷰 h1 · F5) — builder Skia 축 (`resolveCanonicalRefTree` 일반 source-child 경로) 이 nested master 를 해소해 자식 origin 의 자식까지 실체화하고 (master props → 조합 자식 patch → 바깥 instance patch, 바깥이 이김), nested master 의 propsSchema 로 재바인딩한다. 판정은 ref 대상 존재로 — scene 층이 ref 노드의 `type` 을 master type 으로 바꿔 두므로 type 판정이면 Form instance 안 TextField ref 가 자식 0 인 빈 상자였다 (live 실측).
+- Preview 축 (`resolveCanonicalDocument`) 이 바깥 instance 의 mode A patch 가 닿은 ref 자식을 `type:"ref"` 로 남기던 것 — patch 를 얹은 뒤 그 origin 으로 열고, 바깥 instance 의 깊은 path (`<자식 ref>/<nested 자식>`) 를 자식 ref 범위로 좁혀 적용한다.
+- descendants mode C 판정이 `children` 키 존재였던 것 → **배열** 만 mode C (Text/Label 의 `children` 문자열 patch 는 props patch) — 문자열이면 `.map` 크래시였다. Skia 축 판정과 일치.
+- Styles/캔버스 (presentation lane) 의 ref-descendant target 이 nested ref 를 거치는 깊은 path 를 찾지 못하던 것 — ref 자식을 origin 으로 열어 계속 걷고, 저장은 바깥 instance `descendants` 하나 (조합 origin · 자식 origin 무오염).
+  - Why: ADR-229 G0 — 공통 해소기 GREEN 전에는 Phase 2 의 ref seed 를 켜지 않는다. 원복 RED 11 (unit 3 파일) · 인접 179 파일 1,296 PASS · headed live `adr229-nested-origin-live.mjs` 12/12 (proposed Form nested-ref fixture: 두 leg 실체화 · 편집 → 바깥 instance descendants → Undo/Redo → reload Δ0).
+  - 발견: synthetic 자식 (`<instance>/<path>`) 은 1-level 부터 Properties/Styles 패널이 빈 상태 — nested 고유가 아닌 기존 표면 한계, ADR-229 Phase 2 범위로 기록 (breakdown F15).
+
+## [ADR-229 설계 리뷰 보완 — nested ref · avatar slot · seed 계약] - 2026-09-21
+
+### Documentation
+
+- **ADR-229 Phase 0~4 설계 보완**: 일반 origin-child ref 실체화와 소유권 검증을 seed 전환의 선행 조건으로 명시. Avatar slot vocabulary/양 consumer 계약, origin index 완성 후 신규 origin만 변환하는 2단 seed, 기존 저작 내용·최초 보충량·재hydration 증가량을 분리한 BC gate를 반영했다.
+  - Why: override.children 전용 해소를 일반 자식 ref 지원으로 오인했고, avatar role과 dependency seed 보장도 현행 코드에 없었다.
+  - 위치: `docs/adr/completed/229-collection-item-template-and-nested-origin-instances.md`, `docs/adr/design/229-collection-item-template-and-nested-origin-instances-breakdown.md`, `docs/adr/reviews/229.md`.
+  - 설계 수리이며 제품 구현·gate 통과·상태 승격은 아님. Proposed 유지.
+
+## [TagGroup chip — 공백 라벨 세로 중앙 · chip 상자 DOM 정합] - 2026-09-21
+
+### Fixed
+
+- TagGroup 에 추가한 tag 의 라벨에 공백이 있으면 ("Label A") 캔버스 글자가 6px 아래로 내려가던 것 (사용자 보고) — 두 원인이 겹쳤다: ① 레이아웃의 Tag 측정 표 키가 `tag` 가 아니라 `type` 이어서 (ADR-913 기계 rename 잔재 3번째) 측정이 null → weight 400 폴백으로 chip 이 글자보다 좁았고, ② Skia 가 chip 텍스트 상자 높이를 wrap 으로 재 (Tag 기본 nowrap 은 변환 **뒤**에만 붙었다) 공백 라벨을 2줄 (40) 로 잡은 뒤 한 줄을 그 상자 중앙에 두었다. 측정 표 키 `tag` (Tag rule 기반) · Tag/Badge nowrap 을 변환 전에 실음 · 측정기가 `nowrap` 을 1줄로 (원복 RED 3).
+- Tag chip 상자를 DOM `.react-aria-Tag` 실측에 맞춤 — rule `height` 를 border-box (md 28 → 30) 로, `borderWidth: 1` 추가 (엔진 폭에 border 가 빠져 2px 좁았다), `textWeight: 400` 명시 (DOM 은 font-weight 미선언 = 400, 캔버스만 500). Styles 패널 Tag 높이 28 → 30.
+
+### Added
+
+- `taggroup-chip-text-live.mjs` — TagGroup instance 에 items 추가 → Skia 텍스트 상자 (dev 훅 `__composition_RENDER_DEBUG__.resolveTextNodeDebug`) · 레이아웃 rect · Preview DOM chip 을 같이 판정 (6/6).
+
+## [TagGroup maxRows 두 leg 정합 · Skia 접힘 stale stream · 기존 실패 테스트 2 정리] - 2026-09-21
+
+### Fixed
+
+- Preview 의 TagGroup 이 `maxRows` 접힘에서 항상 maxRows 개만 보이던 것 (500px 에 4 chip 이 한 줄인데 2개 + 「Show all」) — 미러 DOM 이 정적 `<Tag>` 자식의 render function **소스 코드** (3,000px) 를 chip 글자로 실어 chip 마다 한 줄이 됐다 → 원본 자식에서 글자만 뽑는다 (원복 RED 1).
+- 캔버스가 접힘이 필요 없는데도 「Show all」 chip 을 그리던 것 — 레이아웃의 접힘 결과 (filtered children) 가 layoutVersion 없이 바뀌면 command stream 캐시가 옛 자식으로 만든 stream 을 돌려줬다 → 접힘 뒤 filtered map 재발행 + stream 캐시를 childrenMap identity 로도 가른다 (원복 RED 1). 실제 접힘 (maxRows 1 · 250px) 은 두 leg 3 chip + Show all 로 일치.
+- 기존 실패 테스트 2: `g5LegacyFieldGrepGate` — publish 런타임의 로컬 이름 `overrides` (legacy element 필드가 아님) 를 `patches` 로 · `instanceActions.static` — 삭제된 `builder/overlay` 참조 제거. builder 스위트 6846 / shared 1367 전부 PASS.
+- parity 하니스 Skia 캡처 전에 hover · 페이지 outline 크롬을 지운다 (Menu 1,381 px 오탐). 전수 56 pair 재실행 PASS.
+
+## [TagGroup instance 「Add Tag」 · Canvas chip 폭 · instance 의 자식 projection] - 2026-09-21
+
+### Fixed
+
+- Home 에 TagGroup 을 놓고 Properties 「Add Tag」 를 눌러도 아무것도 안 바뀌던 것 (사용자 보고) — 세 결함이 겹쳐 있었다: ① Properties 의 Tags 목록과 store `addItem` 이 instance 의 raw override (`{}`) 만 읽어 상속 항목 0 으로 보이고 「Add」 가 상속 4개를 1개로 갈아치웠다 → origin ⊕ override 의 유효 props 로 읽는다 (쓰기는 그대로 instance override). ② instance 의 자식 (TagList · TabList) 은 ref 실체화가 scene visit 뒤라 chip/tab projection 을 받지 못해 캔버스에 chip 이 0 이었다 → resolved instance 를 owner 로 projection 을 붙인다 (Preview 와 대칭 · override 없으면 origin 항목 상속). ③ 모든 TagGroup (plain 포함) 의 chip 이 캔버스에서 24px 로 접혀 글자가 잘리던 것 — 레이아웃 분류표의 키가 `tag` 가 아니라 `type` 이었고 (`Element.tag → type` 기계 rename 의 잔재) 09-19 「자식 0 컨테이너도 엔진 소유」 가 비측정 leaf 의 `width:fit-content` 를 content 0 으로 넘겼다 → 키 `tag` (측정 leaf).
+- ADR-228 parity 하니스의 Skia 픽셀 leg 가 stage 를 화면 밖에 둔 채 (Home 페이지 y=1160) 빈 캔버스를 찍어 공허했다 → stage 를 뷰포트로 옮기고 첫 target 에서 빈 캡처 가드.
+
+## [ADR-228 round 3 — Button 안 Button · origin 순서 보존 · 검증 보강] - 2026-09-21
+
+### Fixed
+
+- Button instance 를 **선택한 채** 팔레트에서 Button 을 다시 놓으면 그 instance 안에 들어가던 결함 (codex round 3 h1) — 생성 preflight 가 page-scoped 요소만 봐서 Components 페이지 origin 의 타입을 못 읽었고, canonical 삽입 guard 도 새 instance 를 `ref` 그대로 판정했다. 둘 다 origin 타입으로 판정한다 (가까운 유효 조상 = body 로 이동, RED→GREEN 5 · live 1).
+- Components 페이지에서 origin 순서를 바꾸거나 frame 에 넣어도 다음 열기에서 seed 순서로 되돌아가던 결함 (h2) — `ensureTemplateOrigins` 가 origin 을 전부 떼어 다시 붙이던 것을 제자리 보정 + 누락만 보충으로 (RED→GREEN 1 · live reload 2).
+- Skia 렌더 bridge 가 instance 마다 origin 을 요소 전체에서 선형 탐색하던 것을 id 조회로 (600 instance 편집 프로파일 1.9%).
+
+### Changed
+
+- 검증 보강 (m4 · m5): instance parity 하니스가 팔레트 진입점 전수 (generic 50 + Chart 7 = 56 pair) 를 한 arm 씩 같은 자리에 두고 **Skia 캔버스 실픽셀** 까지 비교한다 (57/57); origins live 에 Chart 7 왕복 (생성 → origin 변경 → Undo/Redo → persist → reload) · h1 · h2 (38/38); `perf-baseline.mjs` 에 `scene.build` 직접 계측 + `multi-select-edit` class. G4 재측정 (같은 세션 A/B): 캔버스 축 ≤ +0.7 ms, `scene.build` +0.5~+2.5 ms 는 유보 (ADR §Consequences), 다중 선택 편집 +16 ms 는 DOM 패널 비용.
+- 명시 initialProps 계약 문구를 정확히 했다 — instance 소유 = origin 유효값과 다른 키 (+chartType). 같은 값을 명시해도 소유하려면 스키마 확장 (별도 ADR, m3 LOW deferred).
+- 위치: `docs/adr/reviews/228.md` §Round 3 수리 검증 · `completed/228-*.md` Gate 표 G2~G4 · Live Exercise · `design/228-*-breakdown.md` §9.
+
+## [ADR-228 Implemented — 팔레트 전 항목이 Components 페이지 origin · 배치는 instance] - 2026-09-21
+
+### Added
+
+- 팔레트의 RAC 컴포넌트 57 종 전부가 Components 페이지에 origin 으로 시드되고 (기존 5 + 신규 52, `PALETTE_REUSABLE_ORIGIN_TYPES`), 팔레트에서 놓는 것은 그 origin 의 instance (`type:"ref"`) 다 — origin 을 고치면 instance 가 따라오고 (영향 대화상자 「Continue」), 같은 Button 을 두 번 놓아도 한 정의를 공유한다. Text · Icon · Separator · Skeleton · Image · frame · Section · Slot · IllustratedMessage 는 종전대로 plain.
+- origin 은 손 seed 없이 현행 factory 기본값·자식 definition 에서 파생된다 (`apps/builder/src/builder/components/catalogOrigins.ts`) — 새 origin 은 팔레트가 만들던 노드와 같은 트리 (단위 게이트 16 · live parity 50 type Skia rect + Preview 픽셀 Δ0). 기존 문서는 열 때 origin 만 추가되고 (57 root + 자손 135 · ≈38 KB) 기존 plain 노드는 그대로다.
+- instance 는 명시 initialProps 만 소유한다 — 「bar chart」 처럼 진입점이 고른 `chartType` 은 origin 과 같아도 보존 (canonical diff 예외), 그 외 공통 기본값은 origin 상속. Properties/Styles 패널은 origin type 의 편집 계약을 그대로 보인다 (schema 문서 복제 0).
+- Components 페이지 body 는 flex-wrap grid 흐름 (gap · padding 24) 으로 origin 전집을 보이고, 시스템 origin root 는 삭제되지 않는다 (이동·편집 가능).
+- 하니스: `adr228-reusable-origins-live.mjs` (G1~G3 24/24) · `adr228-instance-parity-live.mjs` (G2 instance arm 51/51) · `perf-baseline.mjs --fixture-kind buttons|button-refs` (G4 ref 0%/100% arm).
+
+### Fixed
+
+- Breadcrumbs 처럼 root 가 `props.items` 로 자식을 투영하는 컴포넌트의 instance 가 Canvas 에서 폭 0 이던 결함 — scene node 가 origin 기본 props 를 상속하지 않았다 (`canvasSceneNode.ts`, 원복 RED 2).
+- 600 instance 문서에서 page-switch p95 +4 ms — `resolveCanonicalRefTree` 가 instance 마다 노드 전체를 선형 탐색 (O(n²)) → id map 조회 (headed 3회: select +0.3 · edit +0.1 · page-switch +0.1 ms; zoom +4.5 는 유보).
+- origin 편집 뒤 Chart instance 의 `chartType` 이 사라지던 결함 (`diffRefPropsAgainstMaster` 가 master 와 같은 값을 지운다) — `chartType` 명시 보존.
+- Toolbar/Form instance 가 Properties 에 semantic 필드 0 이던 것 — origin type 의 accepts 를 읽는다 (ADR-148 Phase 2 "미선언 = 0" 을 ADR-228 이 대체).
+
+### Changed
+
+- `ComponentFactory` 의 컴포넌트당 private wrapper 55 개를 `componentDefinitions.ts` (store-free definition 맵) 파생으로 대체 — 등록 집합 (`getRegisteredTypes`) 은 동일. Table 순수 definition (`createTableDefinition`) 분리.
+- AI 카탈로그: 동명 primitive 가 있는 reusable entry 는 primitive 계약 (props · RAC 이름) 을 광고한다 — 57 종이 reusable 이 되면서 system prompt 의 prop 정보가 비는 것을 막는다.
+- 위치: `docs/adr/completed/228-palette-wide-reusable-origins.md` (Gate 결과 · Live Exercise) · `design/228-*-breakdown.md` §8~§9.
+
+## [ADR-227·228 설계 리뷰 보완 — 토큰 소비·기존 테마 승계·origin 생성 계약] - 2026-09-21
+
+### Documentation
+
+- ADR-227 Phase 0~5 설계: 카테고리별 runtime/CSS 소비와 파생값 우선순위, border 타입·generator·layout 확장, 프로젝트별 legacy 실효값·typography의 저장 성공 후 migration, 사용자 History 1건/파생 추가 0건을 명시했다.
+- ADR-228 Phase 0~4 설계: creationVariants/initialProps의 instance 소유권, 기존 factory 기본값 및 자식 definition 재사용, 대상 57 type과 palette entry/origin root/descendant/byte 집계를 분리했다.
+- 위치: `docs/adr/227-multi-theme-token-set-collection.md`, `docs/adr/228-palette-wide-reusable-origins.md` 및 각 `design/*-breakdown.md`, `reviews/227.md`, `reviews/228.md`. 리뷰 7건의 설계 보완이며 제품 구현·ADR 상태 승격은 포함하지 않는다.
+
+## [font-variant: small-caps 를 Canvas 도 그린다 — 합성 (대문자 × 0.7) · 측정 폭 Chrome 정합] - 2026-09-20
+
+### Fixed
+
+- 번들 폰트 (Pretendard · Inter Variable) 에 `smcp` OpenType feature 가 없어 Chrome 은 소문자를 **대문자 글리프 × 0.7** 로 합성하는데 (Blink `kSmallCapsFontSizeMultiplier`) CanvasKit 은 feature 태그만 받고 아무것도 안 해 소문자 그대로였다 (Preview "BYE BYE" ↔ Canvas "bye bye", 사용자 지시). 새 `utils/smallCapsSynthesis.ts`: (1) 렌더 — 텍스트를 run 으로 나눠 소문자 run 을 대문자 · fontSize × 0.7 TextStyle 로 push (`nodeRendererText`), 줄 높이는 strut 을 본문 크기로 고정; `all-small-caps` · `all-petite-caps` 는 Chrome 실측대로 `\n` 만 빼고 전부 축소 (숫자 · 한글 포함), `unicase` · `titling-caps` 는 Chrome 도 합성하지 않아 제외 · (2) 측정 — Canvas 2D `ctx.fontVariantCaps` 가 DOM `font-variant` 와 같은 합성 폭을 낸다 (실측 "bye bye" 16px 44.0625 == 44.0625 · all-small-caps "Bye 12345 가나" 76.05 / 76.06) → 세그먼트 파이프라인은 진입 시 style 의 caps 값을 잡아 `ctx.font =` 뒤마다 다시 싣고 (shorthand 가 normal 로 되돌린다), `buildFontString` 은 `small-caps` 접두어, `needsFallback` 에서 fontVariant 폴백 제거 (측정도 렌더도 Canvas 2D 힌트 경로) · (3) wrap leg (`measureWrappedTextHeight`) 에 fontVariant 전달 — 종전엔 미전달이라 letter-spacing 과 겹치면 줄 수가 달랐다 (60px · small-caps · letter-spacing 2: Chrome 240 / Canvas 264). 검증: 단위 (smallCapsSynthesis 6 · needsFallback/buildFontString 갱신) · parity 게이트 `textCjkLineBreak` 9 (small-caps + letter-spacing 원복 RED Δ24) · parity 1482 · canvas 1914 · live 하니스 (small-caps · all-small-caps · petite-caps · small-caps+letter-spacing) 상자 4/4 + 스크린샷 글리프 (BYE BYE 축소 · all-small-caps 전체 축소) Preview 와 동일 · type-check/lint PASS.
+
+## [텍스트 줄바꿈 sweep — CanvasKit 폴백 경로의 공백 split · break-word 줄 첫 단어 · wrap leg 의 word-spacing] - 2026-09-20
+
+### Fixed
+
+- 앞 항목 (한글 줄바꿈 단위) 과 같은 "단어 = 공백 사이" 전제가 남아 있던 곳 3 (사용자 지시 sweep): (1) CanvasKit 폴백 렌더 (`cssNormalBreakProcess` · `preprocessBreakWordText` — word-spacing · small-caps · letter-spacing 미지원 브라우저) 가 `split(/\s+/)` 로 나눠 한글 연속을 한 줄로 그렸다 → 힌트 경로와 같은 토큰화 (Intl.Segmenter · CJK 문자 사이 · 금칙) · 공백 hang · 공백 토큰에 word-spacing 직접 가산 (skparagraph 는 줄 첫 공백에 안 준다) · (2) 레이아웃 측정기의 word-spacing 경로도 같은 토큰화 · (3) `computeLines` 의 `overflow-wrap: break-word` 가 줄 첫 단어는 안 끊었다 (`lineW > 0` 안에만) → CSS Text 3 §5.5 대로 넘치면 줄 처음이어도 문자 분할, `anywhere` 도 같은 분기 (Chrome "ABCDEFG" 60px 2줄 / Canvas 1줄). 함께: 텍스트 leaf wrap leg 이 `word-spacing` 을 측정기에 안 넘겨 (폭 leg 만) Chrome 보다 줄이 적었다 (120px pad 30 · word-spacing 4: Chrome 302 / Canvas 278). 범위 밖으로 남긴 것: Skia 가 small-caps 글리프 자체를 안 그린다 (줄 수·상자는 일치). 검증: 단위 (cssNormalBreak 한글·구두점·word-spacing 3 · measurer TC11) · parity 게이트 `textCjkLineBreak` 8 (sweep 2 원복 RED) · parity 1479 · canvas 1907 · live 하니스 3/3 (word-spacing · small-caps · break-word) 상자 + 글리프 줄 나눔 일치 · type-check/lint PASS.
+
+## [한글·한자 텍스트의 줄바꿈 단위 — Canvas 상자·글리프가 Preview 보다 줄이 적던 결함] - 2026-09-20
+
+### Fixed
+
+- 한글·한자 연속 ("가나다라마바사") 은 Chrome 이 음절 사이에서 접는데 (UAX #14 · `word-break: normal`) Canvas 는 공백 사이만 단어로 봐 한 줄로 두었다 — 사용자 live (Compare Mode): body(pad 24) > Text `width: 30% · padding 30 · border 1` 상자가 Preview 350 / Canvas 278 이고 Skia 글리프는 상자 우측 padding 안까지 한 줄로 그려졌다. 세 층이 같은 전제였다: (1) 레이아웃 측정기 `Canvas2DTextMeasurer.measureWrapped` 의 공백 split → 렌더 힌트와 같은 파이프라인 (`measureWithCanvas2D` — Intl.Segmenter · CJK 문자 사이 break · 금칙 · keep-all) 으로 · (2) pre-wrap · pre-line 은 `needsFallback` 이 CanvasKit 경로 (`cssNormalBreakProcess`, 같은 공백 split) 로 보냈다 → 파이프라인이 `\n` 조각마다 돌아 힌트를 낸다 (nowrap · pre 만 종전 경로) · (3) `calculateMinContentWidth` 의 min-content 단위도 같은 토큰화. 함께: 텍스트 leaf 줄바꿈 폭이 border 를 안 뺐고 (120 − 60 = 60 vs Chrome 58), Skia 텍스트 shape 의 줄바꿈 폭이 좌측 padding 만 빼고 우측은 남겼다 (`TextShape.paddingRight` 신설 — converter 가 `W − x − paddingRight`). 검증: 단위 (measurer TC9/10 · needsFallback pre-wrap · `\n` 조각) 원복 RED 4 → GREEN · 새 parity 게이트 `tests/parity/textCjkLineBreak.browser.test.ts` 6 (원복 RED 5 — Δ24~72) · parity 1473 · canvas 단위 1203 · specs 1377 · live 하니스 `text-size-padding-live.mjs --cases-json` 7/7 (block/flex-column/`%`/px/normal/pre-wrap/keep-all) 상자 일치 + 스크린샷에서 글리프 줄 나눔이 Preview 와 같음 · type-check/lint PASS.
+
+## [저작 보조 사선 (hatch) 패턴 통일 — slot 마커 · padding/gap hover · overflow] - 2026-09-20
+
+### Changed
+
+- 빈 slot 마커 (layout preset 의 슬롯) · collection 나머지 (ADR-157) · padding/gap hover 띠 (ADR-222) · overflow 영역이 각각 자기 상수로 같은 45° 사선을 따로 그려 결이 달랐다 (사용자 지적 — slot 7 px/1.5 px/α 0.42 · padding 4/1/0.35 · overflow 6/1.5/0.35). `skia/hatchPattern.ts` 의 `drawDiagonalHatch` 하나로 통일 — 간격 **8** 화면 px (사용자 결정, 통일 시점 4 에서 조정) · 굵기 1 px · α 0.35 · 줄 상한 400. 색 (의미: role 색 · padding blue · gap pink · overflow blue) 만 호출부가 정한다. 검증: skia 단위 489 · live 스크린샷 (layout preset Left Sidebar 슬롯 vs padding hover 같은 결) · type-check/lint PASS.
+
+## [padding hover 사선 — 좌·우 띠가 상·하 padding 만큼 짧게 그려지던 것] - 2026-09-20
+
+### Fixed
+
+- 선택 요소 hover 시 padding 사선 (ADR-222) 이 상·하는 폭 전체인데 좌·우는 높이에서 상·하 padding 을 뺀 구간만 그려졌다 (사용자 지적 — Figma 는 네 변 모두 변 전체). `spacingGeometry.buildPaddingBands` 의 좌·우 띠 rect 를 padding-box 높이 전체로. 코너는 상·하와 겹치지만 히트는 배열 순서 (상·하 먼저) 라 코너 소유 (§3.2) 는 종전대로 — 단위 테스트에 코너 히트 케이스 추가. 검증: 단위 242 · ADR-222 live 27/27 · live 스크린샷 (left 40 hover 사선이 위·아래 변까지).
+
+## [캔버스 DOM 오버레이 카메라 추종 sweep — spacing 인라인 입력 · 컨텍스트 메뉴] - 2026-09-20
+
+### Fixed
+
+- 앞 항목 (텍스트 편집 오버레이) 의 유사 패턴을 캔버스 위 DOM 오버레이 전체에서 점검 (`scripts/dom-overlay-camera-sweep-live.mjs`, headed). page header · action bar · ruler · dot background · scrollbar · zoom 표시는 이미 프레임/presentation 채널이라 정상. 결함 2:
+  - **padding·gap 인라인 입력 (ADR-222)** — 휠 팬 중 캔버스 핸들은 움직이는데 입력은 옛 자리에 남았다가 제스처가 끝나야 (React mirror 동기화) 닫혔다. 취소 규칙 자체가 mirror 구독이라 늦게 동작했고, 숫자 입력은 카메라가 좌표계를 무효화하지 않는다 → 입력이 핸들을 **따라간다** (`subscribeCanvasFramePresentation` 로 핸들 중심을 프레임마다 DOM style 에, setState 없음). mirror 기반 취소 제거. ADR-222 본문·breakdown §4.1 에 갱신 주석.
+  - **컨텍스트 메뉴** — 열린 채 휠 팬이 캔버스를 움직여 메뉴가 가리키던 자리와 어긋났다 → 메뉴 밖 휠에 닫는다 (Figma 와 같다, 메뉴 안 스크롤은 유지, 휠 자체는 막지 않아 캔버스는 정상 팬).
+- 검증: live 실제 빌더 — spacing 입력: 휠 첫 프레임에 핸들과 같이 이동 (Δy = mirror 총 Δ, mirror 미동기) · 종료 후 되돌림 0 · 핸들 중심과 일치 · 팬 뒤 24 Enter commit `24px` / 컨텍스트 메뉴: 휠 뒤 닫힘 + 캔버스 팬 정상. 수정 전 같은 하니스 RED 2. contextMenu·hooks·interaction 단위 263 · type-check PASS.
+
+## [텍스트 편집 중 팬·줌 시 편집 상자가 캔버스를 제스처 뒤에야 따라오던 결함] - 2026-09-20
+
+### Fixed
+
+- Text 편집 (Quill 오버레이) 상태에서 휠 팬 / Ctrl+휠 줌을 하면 캔버스는 프레임마다 움직이는데 편집 상자는 제자리에 남았다가 제스처가 끝나야 (휠 종료 150ms 디바운스 · `endPan`) 새 위치로 뛰던 결함 (사용자 보고 — Figma/Framer 는 같이 움직인다). 오버레이가 React mirror (`zoom`/`panOffset` prop, 제스처 종료에만 동기화) 를 읽고 있었다 → Skia 가 이 프레임에 실제로 그리는 카메라 채널 (`subscribeCanvasFramePresentation`, page header · action bar 와 같은 채널) 을 구독해 같은 paint 에 싣는다. 프레임마다 setState 하지 않는다 — 배치 (left/top/width/height/scale) 는 DOM style 에 직접 쓰고 (transform-only), 텍스트 성장 (`subscribeBounds`) 도 같은 경로. 배치용 React state 는 없어졌다 (`livePos`/`liveSize` 제거).
+- 검증: live 실제 빌더 (`scripts/text-edit-camera-follow-live.mjs`, headed) — 휠 팬 2 프레임 뒤 (mirror 미동기) 오버레이 Δy = 총 Δ 의 절반 · 누적 · 제스처 종료 후 되돌림 0 · 줌 중 scale 1.36 즉시 · 줌 종료 후 오버레이 = Skia 상자 (905, −686, 272×54.4) · 팬·줌 뒤 타이핑 정상 · 유휴 프레임 p50 8.3ms / p95 9.2ms. 수정 전 같은 하니스 RED 4 (제스처 중 Δ 0, 종료 후 −240 점프). 정적 게이트 `TextEditOverlay.viewportShift.static.test.ts` (프레임 채널 구독 · 배치 useState 없음).
+
+## [컨테이너 auto 크기가 자식 end margin 을 빼먹던 결함 — flex 양축 · block shrink-to-fit · grid 행 측정 폭] - 2026-09-20
+
+### Fixed
+
+- 앞 항목 (grid 행 margin) 의 유사 패턴을 양축 × 컨테이너 종류로 sweep (`tests/parity/marginBoxContributionAxes.browser.test.ts` 12 케이스 × engine/pipeline) → 수정 전 RED 6:
+  - **flex** — `height:auto` row 컨테이너 안의 자식 `marginBottom:30` 이 Canvas 높이에 빠짐 (Chrome 80 / Canvas 50), shrink-to-fit row/column 의 `marginRight:20` (65 / 45), wrap 2 라인 (140 / 120). `solve_flex` 가 컨테이너 content 크기를 자식 **border-box** bbox 로 잡아 end margin 이 사라졌다 → margin-box extent (`flex_margin_box_extent`, reverse 반사 뒤에는 물리 end 슬롯 선택). 반사 (3.9) 의 content extent 도 같은 값.
+  - **block** — flex item 블록 (shrink-to-fit) 안 자식 `marginRight:20` (65 / 45). `solve_block` `max_right` 가 border-box → margin-right 가산 (`%`/auto 는 intrinsic 기여 0, CSS-SIZING-3 §5.2.1).
+  - **grid 행 측정 폭** — 행을 열보다 먼저, 자식을 **컨테이너 폭**으로 solve 해 재고 있었다. 2열 grid 안의 wrap flex 자식이 컨테이너 400 에서 1줄 (Chrome 80 / Canvas 40 — 실제 빌더 3줄 122 / 1줄), 블록 축 `%` margin/padding 은 기준이 없어 0. 열을 먼저 확정 (§12.1 step 1) 하고 가배치 `grid_layout` 으로 각 자식의 area 폭을 얻어 행을 그 폭으로 잰다 (step 2) — `%` margin 도 area 폭 기준 (Chrome 2열 400 + `margin:5%` → 트랙 60). 최종 셀 solve 의 stale 캐시 판정은 측정 폭과 비교.
+- 검증: Rust 431 · parity 1473 (기존 1449 회귀 0 — grid 재정렬이 gridItemBox/gridContainer* 스냅샷을 건드리지 않음) · canvas 단위 · live 실제 빌더 (`scripts/grid-row-margin-live.mjs` 8 케이스 22 rect) Skia layout = Preview DOM, Compare Mode 시각 일치. wasm 재빌드 필요.
+
+## [auto 행 grid 의 자식 margin 이 Canvas 컨테이너 높이에 안 들어가던 결함] - 2026-09-20
+
+### Fixed
+
+- `display: grid` 컨테이너 (height auto · 행 트랙 auto) 안의 자식에 margin 을 주면 Preview 는 컨테이너가 margin 만큼 커지는데 (자식 `margin: 10px` · h40 → 60) Canvas 는 40 에 머물러 아래 형제가 겹치던 결함 (앞 항목의 후속). 엔진 `solve_grid` 의 행 기여 루프 (`row_intrinsic`) 가 border-box 만 더하고 세로 margin 을 빼먹었다 — CSS-GRID-1 §12.5 의 트랙 기여는 outer size (margin-box) 이고 인라인 축 (`col_contribution`) 은 이미 그렇게 하고 있었다. `child_block_margin_px` 로 clamp 뒤에 더한다 (`%` margin 은 인라인 축과 같이 0 — 기준인 grid area 폭이 열 sizing 뒤에야 정해져 순환). 고정 트랙 (`30px`) 은 종전대로 margin 을 안 늘린다. 게이트 `gridContainerBlockSize` A9~A11 (수정 전 3 RED: Chrome 60/40 · 60/40 · 62/28) · Rust 431 · parity 1449 · live 실제 빌더 (`scripts/grid-row-margin-live.mjs`, 2열 auto 행 · rows auto auto + rowGap · 대조군 30px 행) 8/8 Skia layout = Preview DOM, Compare Mode 시각 일치. wasm 재빌드 필요 (`pnpm wasm:build:engine`).
+
+### Removed
+
+- `layout/engines/resolveMarginAutoSides.ts` (+ 테스트) — 앞 항목에서 block/flex 어댑터가 `resolveEngineBoxEdges` 로 통일되며 소비처 0. auto 방향 케이스는 `resolveEngineBoxEdges.test.ts` 로 이관.
+
+## [`%` padding / margin 이 Canvas 에서 0 (레이아웃) · 10px (글리프) 로 떨어지던 결함] - 2026-09-20
+
+### Fixed
+
+- Frame `padding: 10%` 안의 Text 가 Preview x 39 / Canvas 0, Text `padding: 10%` 의 글리프가 Canvas 에서 11 (Preview 39) 에 그려지던 결함 (앞 항목의 LOW deferred 를 사용자 지시로 수리). 두 층 — (1) **레이아웃**: 세 직렬화 지점 (`applyCommonEngineStyle` padding · block/flex 어댑터 margin · grid branch margin) 이 `parsePadding(style)` / `parseMargin(style)` 을 containerWidth 없이 불러 `%` 를 0 으로 떨어뜨렸다 → `resolveEngineBoxEdges` 하나로 px 는 숫자 · `%` 는 문자열 그대로 · margin `auto` 는 "auto" (엔진은 `%` 를 containing block 폭으로 네 변 모두 푼다, CSS-BOX-4 §3.1/§4.1). overlay 의 margin 띠도 부모 content 폭 기준. (2) **Skia 글리프**: shape 합성 (`buildCatalogShapes` text x/y · image inset) 은 px 만 읽으므로 bridge 가 layout map 의 부모 상자로 `%` 를 px 로 풀어 넘긴다 (`resolvePercentBoxEdgesForRender` — 부모의 `%` padding 은 조부모 기준 사슬, `%` 없으면 같은 참조). 게이트 `tests/parity/percentPaddingMargin.browser.test.ts` 9 (Chrome 오라클: block/flex/grid · longhand/shorthand · 세로 변 폭 기준 · auto 보존) + 단위 7 · parity 1446 · canvas 단위 1896 · live Compare Mode (Frame pad 10% · Text pad 10% · margin 20%/5% · flex row pad 5% gap 4% · Button margin/padding 10%) 상자·글리프 일치. **범위 밖 (후속)**: grid **행 트랙 기여가 item margin 을 안 더한다** — px 도 같다 (grid 2열 > 자식 `margin:10px` Chrome 60 / Canvas 40), `%` 와 무관한 엔진 gap.
+
+## [definite 부모 안의 Text `%` 높이를 Canvas 가 측정 px 로 치환하던 결함 — 유사 패턴 sweep] - 2026-09-20
+
+### Fixed
+
+- 앞 항목의 유사 패턴 sweep (block/flex 부모 × `%` 높이 × `%` padding 6 프로브) 에서 나온 1건: block 부모 (Frame `height:300px · padding 20`) 안의 Text `height:100%` 가 Preview 260 / Canvas 100 (`50%` 는 130 / 100). block 자식 텍스트만 1-pass 가 `%` 높이를 측정 px 로 **치환**해 엔진이 `%` 를 못 봤다 (flex/grid 자식은 `contentHeight` 스칼라 + `%` 유지). 부모 display 와 무관하게 스칼라 경로로 — 엔진 leaf 는 `%` 해소 실패 (미결정 부모) 일 때만 스칼라를 쓴다. 게이트 `bodyPaddingRootAvail` +2 (7) · parity 1437 · live 9/9. **범위 밖 (LOW deferred)**: `%` padding/margin 은 `applyCommonEngineStyle` 이 `parsePadding(style)` (containerWidth 없음) 로 0 으로 떨어뜨린다 — Styles 패널 spacing 단위는 px 뿐 (`UNIT_OPTIONS.spacing`) 이라 저작 경로 없음, import/AI 데이터 한정.
+
+## [padding 있는 페이지의 Text 가 `%` 크기 + padding 조건에서 Canvas 만 줄이 늘던 결함] - 2026-09-20
+
+### Fixed
+
+- body (padding 24) 안의 Text `width: 50% · height: 100% · padding 24 · pre-wrap` 이 Preview 218 / Canvas 242 로 갈리던 결함 (Compare Mode 에서 한 줄 차이). 원인 둘 — (1) layout 진입 (`layoutCache`) 이 root padding/border 를 뺀 content-box 를 넘기는데 DFS 가 그 값을 "root 가 놓인 containing block" 으로 읽어 root padding 을 **한 번 더** 빼고 (390: 342 → 294) 그 폭으로 1-pass 텍스트를 쟀다 → root 는 자기 상자 (content + padding + border) 를 containing block 으로 받는다 (`resolveRootContainingBlock`). (2) `height: 100%` 텍스트는 Step 4.5 height-for-width 재측정 후보에서 빠져 (명시 높이로 판정) 1-pass 높이가 남았다 → 부모 블록 축이 미결정이면 CSS 도 auto 라 TS 측정값이 곧 높이이므로, TS 가 잰 `%` 높이 leaf (flex/grid 자식 `contentHeight` 스칼라 · block 자식 px 치환) 는 후보에 넣는다 (flex row `flex: 1` 텍스트 Chrome 120 / 종전 100 도 같이 닫힘). 게이트 `tests/parity/bodyPaddingRootAvail.browser.test.ts` 5 (Chrome 오라클) · parity 1435/1435 · live `apps/builder/scripts/text-size-padding-live.mjs --mobile --body-pad --reload` 9/9 (종전 8 DIFF) · 사용자 문서 3 요소 218/218/198 (종전 218/242/222).
+
+## [publish /simplify 정리 — 렌더 fan-out 구조 + Avatar 4종 shared 컴포넌트] - 2026-09-20
+
+### Changed
+
+- **게시본 (publish) 내부 정리 (`/simplify`, `apps/publish/src` 22 파일 4 각도 판독)** — 시각 결과 무변경: `ComponentRegistry` 등록 블록 60 → 표 하나 (dead API 6 · `displayName`/`category` 필드 · RangeCalendar 이중 등록 · `registry/index.ts` 삭제, 커버리지 테스트는 표 키를 읽는다) · 자식 찾기를 요소마다 `filter` (O(n²)) → `PageRenderer` 가 부모별 자식 표 한 번 · 인터랙션 override 층을 context 값에서 **요소별 `useSyncExternalStore`** 로 (patch 1회 = 페이지의 모든 ElementRenderer 재렌더 + 핸들러 전부 재생성이던 것 → patch 된 요소만) · 런타임 상태 context 는 값 revision 대신 **정의 시점만** 싣고 (값 갱신은 변수별 구독) 정의는 렌더 중 동기로 세운다 (첫 env 가 정의 0 으로 만들어지던 stale) · App 의 sessionStorage 경로가 `setProject` 를 타고 (조립 사본 12줄 · 경고 버림 제거) 로더 결과 처리 3벌 → 1 · `<style>` 교체 3벌 → 1 · 오류 상태 2개 → 1 · `useBodyElement` 의 no-op 머리 블록 + ref 2 제거 · `PageNav` 트리→평탄화 2단계 → DFS 1 · `usePageRouting` 초기 페이지 선택 2벌 → 1 · 미등록 타입 경고 타입당 1회 · `writeState` 스코프는 shared `write()` 유도. eslint 오류 2 → 0.
+
+### Fixed
+
+- 게시본에서 **Avatar · StatusLight · ProgressCircle · IllustratedMessage** 가 ADR-030 placeholder (맨 `<div>`, props 는 DOM 미지 attribute) 로 남아 있던 것 → preview 와 같은 shared 컴포넌트. live 9/9 (요소 5종 렌더 · Avatar 원형 상자 · Slider thumb · onPress → hide/toast/setState `{{greet}}` hello→world · pageerror 0).
+
+## [게시본 navigate 규칙이 중첩 페이지 URL 을 preview 와 다르게 해석하던 결함] - 2026-09-20
+
+### Fixed
+
+- 인터랙션 **navigate** 의 path 가 preview 에서는 통하고 게시본 (publish) 에서는 무동작이던 결함 — preview 는 `generatePageUrl` 로 만든 **계층 URL** (`/products/shoes`, parent_id · 동적 세그먼트) 을 라우트로 쓰는데, publish 는 페이지 자체 slug (`/shoes`) 만 표로 갖고 있었다. `generatePageUrl` 을 `@composition/shared` (`utils/pageUrl.ts`) 로 올리고 publish 가 `resolvePageIdByPath` 로 같은 표를 읽는다 — trailing slash · 대소문자 (`/Products/`) 도 react-router 기본값과 같이 허용. builder 의 `utils/urlGenerator.ts` 는 재수출 shim. 게시 페이로드에 layout 이 없어 layout slug 규칙은 publish 에서 생략 (기존과 같음). shared 9/9 · publish live: `/products/shoes` → shoes · `/Products/` → products · `/shoes` → 매칭 없음 (preview 404 와 같은 결과).
+
+## [canvas /simplify 정리 + HEAD 에서 실패하던 테스트 9건 정합] - 2026-09-20
+
+### Changed
+
+- Styles 패널 Size 모드의 `vw` / `vh` 한국어 라벨을 "화면 기준" → **"뷰포트"** 로 — Properties 패널의 Viewport 와 같은 영어에 같은 한국어 (어휘 정합 게이트 `sharedActionVocabulary.static`).
+- Components 패널 rail 아이콘을 정본 `ACTION_ICONS.component` 경유로 (그림은 같은 lucide `Component`) — 낱개 lucide import 금지 게이트 `actionIcons.static` 정합.
+- 헤더 선택 ToggleButton 글리프 색은 `--focus-ring` (09-19) 을 유지하고 소비처 없던 `--button-text` 선언을 삭제.
+- **canvas 내부 정리 (`/simplify`, 09-17 이후 변경 58 파일 판독)** — 동작 변경 0: resize·spacing 드래그의 window pointer lifecycle (move/up/cancel/blur/unmount/Escape · 3px 임계값) 을 `usePointerDragLifecycle` 하나로 · `containsPoint`/px 파서/엔진 JSON 파싱/scene→screen 변환/intrinsic 키워드 판정 등 중복 8종을 기존 helper 로 · dead export 4 삭제 · 엔진 측정 스칼라 키 목록을 `ENGINE_MEASURE_SCALAR_KEYS` 하나로 (enrich 등식에 빠져 있던 `contentMinHeight` 포함 — 09-19 `contentHeight` 무음 drop 과 같은 종류의 잠재 결함) · 텍스트 렌더 per-draw 공백 접기 2회 → 1회 + fast path · spacing hover 는 owner 없으면 rAF·할당 0 · `textDrawOrigins` 수명을 Skia registry 와 같이.
+
+### Fixed
+
+- `pnpm -F builder test` 가 HEAD 에서 9건 실패하던 것 — 09-16 ~ 09-19 커밋 6개가 제품은 바꾸고 짝 테스트를 안 바꾼 것 5 (flex 주축 Fixed 의 `flexShrink: 0` 동반 · body 기본 props 의 className 제거), 게이트 false positive 1 (`ComponentFactory` 지역 변수 `overrides` 가 legacy 필드 패턴에 걸림 → `initial`), 게이트가 잡은 실제 위반 3 (위 Changed). 856/856.
+
+## [Styles 패널 Size — Width/Height 에 값을 치고 Enter 하면 요소를 바꾼 뒤 첫 번엔 반영되지 않던 결함] - 2026-09-20
+
+### Fixed
+
+- Width/Height 입력에 값을 치고 **Enter** 하면 (Tab 은 정상) 요소를 바꾼 뒤 첫 번마다 값이 되돌아가던 결함 — RAC ComboBox 가 숫자 input 의 Enter 에서도 같은 단위 key 로 `onSelectionChange` 를 다시 내고 (allowDuplicateSelectionEvents), 그것이 Size 모드 변경 ("px") 으로 흘러 stale 측정값을 다시 commit 해 방금 친 값을 덮었다 (200 → 250 Enter 가 200). 닫힌 메뉴에서 온 선택은 무시한다 (사용자가 고른 선택은 항상 열린 메뉴에서 온다). live: 250 Enter → 250 · 메뉴에서 Fit content 선택 정상.
+
+### Fixed
+
+- `white-space: normal` (또는 nowrap) Text 에 `\n` 이 든 경우 (import · AI 생성 데이터) Skia 가 줄마다 그려 8줄이 상자 밖으로 넘치던 결함 — Preview DOM 과 레이아웃 상자는 CSS segment break 규칙대로 공백으로 접어 2줄이었다. Skia 렌더 · retained paragraph 키 · 레이아웃 측정기가 한 함수 (`collapseTextWhiteSpace`) 로 CSS Text 3 §4.1.1 공백 처리를 읽는다 (Chrome 실측: segment break 는 문자 종류와 무관하게 공백 1개). 편집 진입 시 Quill 이 `\n` 을 문단 경계로 그려 8줄이 되던 것도 초기값의 segment break 를 접어 종결 (pre 계열은 그대로). 하니스 `text-normal-newline` + "paragraph fits box" 게이트 36/36 · 사용자 프로젝트 live 1.
+- `width: 50%` 같은 `%` 폭 Text 의 상자 높이가 부모 폭 기준 줄 수로 굳어 Skia 줄이 상자 밖으로 넘치던 결함 — enrich 가 `%` 를 Step 4.5 재측정 추정식과 같은 식 (availableWidth × %) 으로 풀어 자기 폭에서 잰다 (live 58 → 82).
+- **새 Text 는 줄바꿈 보존이 기본** (`whiteSpace: pre-wrap`, Figma · Framer 규약) — Styles 패널 Wrap 의 "Preserve" 가 **"Auto"** (첫 항목) 로 바뀌고 새 Text 가 그 값으로 만들어진다. 기존 Text (미지정 = normal) 는 편집에서 줄바꿈을 넣어 커밋하면 Auto 로 올라간다.
+- pre-wrap Text 에서 폭을 넘는 조각이 있으면 Skia 가 `\n` 을 잃고 다시 접던 결함 (Skia 5줄 ↔ 상자·Preview 8줄) · `%` 폭 Text 의 2-pass 재측정이 건너뛰어 상자가 한 줄 크던 결함 (226 ↔ 192) 수리.
+- `verticalAlign: top` (또는 inline Text) 에 padding-top 을 줘도 Skia 텍스트가 내려가지 않던 결함 — 위 기준 텍스트의 y 가 catalog paddingY 만 읽었다. 이제 사용자 padding-top 이 우선.
+- Text 에 border 1px 만 주면 (padding 0) 텍스트가 상자 밖으로 나가던 결함 — 사용자 인라인 border 가 inline Text 를 box archetype (중앙 배치) 로 바꾸고, padding 0 이면 여러 줄 높이를 재지 않아 1줄 기준 중앙에 놓였다. 이제 DOM 처럼 좌상단 (border 안쪽) 에 그린다.
+- Wrap "Truncate" (nowrap + ellipsis + overflow hidden) 가 Canvas 에서 "…" 없이 전문을 그리던 결함 — nowrap 의 intrinsic 폭 재layout 이 ellipsis 문단을 덮어썼다. Preview 와 같이 "ABCDEFG AB…".
+- 텍스트 편집에서 **Enter 가 항상 줄바꿈** (Figma · Framer 규약, 사용자 판정) — 종전엔 normal · nowrap 에서 Enter = 완료, Shift+Enter 만 줄바꿈. 완료는 Cmd/Ctrl+Enter · **Esc** · 바깥 클릭 — Esc 도 취소가 아니라 완료 (Figma 규약, 사용자 판정; 되돌리기는 Undo).
+- normal Text 에서 Shift+Enter 줄바꿈이 저장만 되고 보이지 않던 것 — 커밋 텍스트에 `\n` 이 남으면 같은 커밋에 `whiteSpace` 를 `pre-wrap` (nowrap 은 `pre`) 으로 승격해 CSS · Skia 가 같이 그린다.
+
+## [ADR-027 Implemented — 텍스트 편집 전환 픽셀 게이트 16/16 + 사용자 참관 live + 게이트가 잡은 Canvas 텍스트 결함] - 2026-09-20
+
+### Changed
+
+- **ADR-027 Canvas 인라인 텍스트 편집 Implemented** (Phase A~~C + Phase D 전환 무결성 D0~~D3). 사용자 참관 live (Chrome MCP foreground, 100/200%): pre-wrap Text 진입·Enter·타이핑·Cmd+Enter 커밋 (상자 58 → 82 라이브) · Button "저장하기 Save" · Link · 한글 단일행 — 편집기와 Skia 가 같은 자리 (nudge ≤ 0.4px), pan/scroll 불변. Esc 는 취소 (Pencil 규약; ADR D1 표의 "Esc = 완료" 표기 정정).
+
+### Fixed
+
+- pre-wrap 텍스트를 편집·커밋하면 Canvas 가 줄 수를 하나 적게 세서 (baseline middle 상자, 테두리·padding 있는 Text) 텍스트를 12px 아래 중앙에 두던 결함 (live 에서 발견) — shape 변환기의 textBlockHeight 측정에도 white-space 를 넘긴다 (`buildSpecNodeData` 가 `style.whiteSpace` 를 text shape 에 싣는다).
+
+- **한글 (CJK) 이 들어간 단일행 텍스트가 Canvas 에서 descent 만큼 (16px 에서 ≈6px) 위에 그려지던 결함** (2026-04-08 부터) — Skia 단일행 글리프 중앙 배치가 CJK 포함 텍스트에 ideographic baseline (줄 아래 변) 을 원점으로 쓰면서 ink ascent 는 alphabetic 기준이었다. Text "가운데 정렬" y −6.32 · Button "저장" 라벨 y −0.05 (Latin "Save" 4.96) → Preview 와 같은 line box 자리로. `textGlyphCentering.ts`.
+- 고정 px 폭 Text/Heading 에 긴 문장을 넣으면 상자는 1줄 높이로 남고 글이 상자 밖으로 넘치던 결함 — 엔진 1차 측정이 부모 content 폭 (body 1920) 으로 줄바꿈을 재고 2-pass 가 px 폭을 "이미 쓴 폭" 으로 가정해 재측정을 건너뛰었다. 텍스트 leaf 도 자기 px 폭으로 잰다 (Button 계열과 같이).
+- `white-space: pre / pre-wrap / pre-line` 텍스트의 줄바꿈 문자 (`\n`, 편집 중 Enter) 가 상자 높이에 반영되지 않던 결함 — 레이아웃 측정기가 `\n` 을 공백으로 봤다. 줄마다 재서 더한다 (`pre` 는 폭 무한).
+- 편집 진입 시 (a) Link "Learn more 자세히" 처럼 fit-content 라벨의 마지막 단어가 둘째 줄로 떨어지고 (b) Latin 글리프 폭이 Skia 와 미세하게 달라 (Heading 28px 에서 1.5px) 200% 에서 우측 3px 갈리고 (c) 200% 줌에서 첫 줄 보정이 반 크기 컨테이너에서 측정돼 6px 틀리고 (d) 같은 line box 안에서 글리프가 1px 위였던 잔여 — 오버레이가 Skia 와 같은 OpenType feature (Pretendard cv02·03·04·11) 를 싣고, Skia 가 layout 한 폭 여유 (+1px) 만큼 wrap 폭을 넓히고, 첫 렌더부터 카메라를 적용하고, 세로 보정을 baseline 끼리 한다.
+
+### Added
+
+- `apps/builder/scripts/adr027-text-edit-parity.mjs` — 타입 8 × 줌 100/200% 의 Skia 캡처 ↔ 편집 진입 캡처 게이트 (텍스트 지도 shift + 반치 bbox, ≤ 1 CSS px). 16/16 PASS.
+
+## [ADR-027 Phase D0~D2 — 텍스트 편집 진입이 캔버스를 밀지 않고, 줄바꿈·정렬·첫 줄 자리가 Skia 와 같다] - 2026-09-20
+
+### Fixed
+
+- 편집 진입 시 첫 줄이 Skia 가 그린 자리와 1px 안팎 어긋나던 잔여 (ADR-027 G1 "2px") — Skia 가 마지막 프레임에 텍스트를 그린 element-local 원점 (paragraph 원점 + 첫 줄 left) 을 기록하고 편집기가 DOM 첫 글리프·첫 line box 와의 차를 relative 오프셋으로 둔다 (한도 8px). live: 일반 Text 0/0 · center+border+padding Text 0/0 · Button 라벨 −0.52/−0.1.
+
+- 여러 줄로 그려진 텍스트 (390px Text 에 긴 문장 = Skia 3줄) 를 더블클릭하면 편집기가 한 줄로 펴져 페이지 밖으로 넘치던 결함 — 편집기 white-space 를 Skia 가 paragraph 에 넘긴 입력 (`whiteSpace` · `wordBreak` · `overflowWrap`) 에서 파생 (`overlayWrap.ts`), 편집기 폭 = 요소 폭. live: 같은 자리에서 3줄, 줄 pitch 24 == 24, 높이 72 == 72.
+- 가운데 정렬 라벨 (Button "Save") 이 편집 진입 시 왼쪽으로 ≈5.5px 이동하던 결함 — 편집기 폭 auto → 100%. live: 텍스트 중심 Δx 0, fit-content 라벨 타이핑 시 상자 68 → 150 한 줄.
+
+- 캔버스 텍스트 더블클릭 편집에 들어가거나 타이핑하면 캔버스 전체가 옆으로 밀리고 편집을 끝내도 돌아오지 않던 결함 (200% 줌 긴 문장에서 `main.workspace` `scrollLeft` 1091 → 잔존 127.5) — `.workspace` 를 `overflow: hidden` 에서 `clip` 으로 (스크롤 컨테이너가 아니라 브라우저 focus / caret scrollIntoView 가 밀 수 없다) + Quill focus `preventScroll`. live 확인: 진입 · 캐럿이 뷰포트 밖 (x 2084 > 1797) 인 타이핑 · Escape 뒤 모두 scroll 0/0.
+
+### Changed
+
+- 편집 중 Enter: Skia 와 CSS 가 `\n` 을 같이 그리는 `pre` / `pre-wrap` / `pre-line` 텍스트에서는 줄바꿈 (Cmd+Enter · Esc · 외부 클릭 = 완료), `normal` / `nowrap` 은 종전대로 완료.
+- ADR-027 Phase D 를 "리치 텍스트 / 툴바" 에서 **"전환 무결성"** (D0 캔버스 변위 · D1 wrap 파리티 · D2 정렬 파리티 · D3 타입별 × 줌 픽셀 게이트) 으로 재정의. 리치 텍스트 · 툴바는 canonical 텍스트 모델 ADR 선행 조건으로 보류.
+
+## [ADR-226 — 페이지 헤더 DOM 층 줌 LOD: 제스처 중 프레임 집합 동결 + 헤더 폭 티어] - 2026-09-19
+
+### Added
+
+- 페이지 헤더 폭 티어 — 헤더 화면 폭 (페이지 폭 × settle zoom) 이 96 px 미만이면 (tablet 768 · mobile 390 을 줌 0.1 부근에서 볼 때) 액션 버튼 2개를 렌더하지 않고 타이틀 띠만 남긴다 (`data-lod="compact"` · gap 0 · padding 은 full 과 같다). 종전에는 39 px 폭에 버튼 2개가 들어가 타이틀이 0 글자였다. drag · shift-클릭 body 토글 · dblclick 이름 편집은 compact 에서도 같고, 이름 편집 중인 헤더는 항상 full 이다.
+- 하니스: `pnpm perf:baseline -- --lane frame` 이 휠 pan/zoom 부류에서 gate-off (+150 ms) + 2 rAF 까지 기록하고 `windows.gesture / windows.settle` (callback gap · RAF gap · longtask) 과 `environment.refreshHz / dpr` 를 따로 낸다 · `apps/builder/scripts/page-header-scaling-probe.mjs` (gesture / settle / post 창 childList · reveal 순서) · `adr226-page-header-lod-live.mjs` (G3 14 항목). DEV 전역 `__composition_VIEWPORT_SYNC__` · `__composition_VISIBLE_PAGE_IDS__`.
+
+### Changed
+
+- 카메라 제스처 (휠 pan/zoom · 스페이스/중클릭 pan) 중 페이지 헤더 층은 마지막 settle 시점의 프레임 집합을 유지한다 — 뷰포트 마진을 넘나드는 페이지마다 헤더 항목을 mount/unmount 하던 것 (200 페이지 · 줌 0.1 · 3 s pan 에 childList 440) 이 0 이 된다. 층은 그동안 `data-hidden` 이라 보이는 결과는 같다.
+- 제스처 종료 시 헤더 층은 최신 집합을 React 가 커밋한 뒤 새 노드까지 1회 배치하고 나서 나타난다 (commit-before-reveal) — 종전 gate-off 구독 콜백의 즉시 reveal 은 커밋 전 한 paint 동안 구 집합·무배치 새 노드를 보일 수 있었다. 측정 (120 Hz · 200 페이지 · 줌 0.1, identity A/B 각 3회): 제스처 창 callback gap p95 pan 10.3 → 10.2 · zoom 12.0 → 10.0 ms, settle 창 max ≤ 18.9 ms · longtask 0.
+
+### Fixed
+
+- 스페이스 pan 도중 창 blur / 탭 hidden 으로 끊기면 pan 을 잡은 pointer 가 gesture session 에 남아 다음 좌클릭이 pan 으로 판정되고 페이지 헤더 drag 가 되지 않던 결함 (ADR-221 잔존, G3 live 에서 발견) — interrupt 3경로 (blur · visibility · control unmount) 가 session pointer 를 놓는다. control unmount 도 `onInteractionEnd` 로 게이트를 끈다.
+
+### Validation
+
+- G1 probe (fixed inputs): 200p · 줌 0.1 pan-h/pan-v/zoom · 50p · 줌 1 pan-h 제스처 창 childList 0 · identity 원복 389 · reveal 시 표시 헤더 transform 누락 0 · settle 집합 = 뷰포트 집합. G2 A/B 3회 교차 (22p 대조 |Δp95| ≤ 0.2). G3 headed Playwright 14/14 (사용자 참관 없음). G4 14 파일 120 PASS · type-check PASS · 원복 RED 7/7.
+
+## [ADR-224 — 의도 기반 크기 편집 Implemented (G5 소유자 확인)] - 2026-09-19
+
+### Changed
+
+- ADR-224 를 Implemented 로 승격했다. 남아 있던 마지막 gate G5 (소유자 foreground 관찰) 를 사용자 참관 아래 Chrome MCP 로 닫았다 — 프로젝트 `new` Home (mobile 390) 에서 실제 Styles 패널 컨트롤로 ① ButtonGroup·Cancel Fill → 남은 공간 채움 ② Save `2 fr` → Cancel 120 / Save 214, CSS Preview 와 Canvas 동일 ③ Chart Ratio 잠금 `320/240` → 16:9 → 320×180 양 leg → 3 breakpoint 순회 뒤 해제 → `height 180px` 고정 ④ Min W 350 → 양 leg 350, Max W 300 → 저장 0 + "Minimum size cannot exceed maximum size.". 제품 코드 변경 0 (Accepted 09-18 시점의 구현 그대로).
+
+### Validation
+
+- 자동 gate 는 09-18 기록 유지: 통합 headed Builder 41/41 · parity 69/69 · Rust 427 · G6 A/B (`e8987c394` vs HEAD) 4/4. 이번 승격은 G5 관찰 기록만 추가 (ADR `### Live Exercise`).
+
+## [ADR-225 — 재사용 레이아웃 어휘 정렬: Frames 기능 표면을 Layouts 로 통일] - 2026-09-19
+
+### Changed
+
+- Properties 의 page 레이아웃 연결 절이 `Frame / Apply Frame / No Frame / Remove Frame` 대신 `Layout / Apply Layout / No Layout / Remove Layout` 을 쓴다 (ko: 레이아웃 적용 · 레이아웃 없음 · 레이아웃 제거 · 이 페이지에서 레이아웃 제거). 신규 key `properties.noLayout` · `properties.selectReusableLayout` · formatted `properties.usingLayout` (이름 인자) 를 ko/en 에 등록했다.
+- Navigator 의 재사용 레이아웃 기능이 소유한 내부 명칭을 Layout 계열로 정렬했다 — `panels/navigator/LayoutsTab/` (`LayoutsTab` · `LayoutList` · `LayoutElementTree`), `stores/canonical/reusableLayoutStore.ts` (`ReusableLayoutSummary` · `useReusableLayoutSelectionStore` · `selectedReusableLayoutId` · `useCanonicalReusableLayouts`), `stores/utils/reusableLayoutActions.ts` (`create/delete/update/selectReusableLayout` · `getNextLayoutName`), `LayoutPresetSelector/LayoutSlotsSection.tsx`, i18n `navigator.layouts/addLayout/noLayouts/selectLayout`, CSS `.layout-tree`, section id `navigator-layouts` / `navigator-layout-layers`.
+- 저장된 접힘 상태의 구 section id (`navigator-frames` / `navigator-frame-layers`) 는 부팅 시 새 id 로 승계하고 제거한다 (`activeFocusSection` 포함) — 승계 뒤 펼친 섹션이 새로고침마다 다시 접히지 않는다.
+- 보존: canonical `FrameNode` · `type: "frame"` · Pencil import/export · `applyPageFrameBinding*` · Canvas `visibleFrameRoots`/`frameAreas` · catalog `Frame`/`MaskedFrame` · 사용자가 지은 이름 (`Frame 1` 등) 은 바뀌지 않는다. 문서/DB schema 변경 0.
+
+### Validation
+
+- Phase 0 인벤토리 49 파일 분류 (rename 48 · canonical 1, [evidence](adr/design/225-reusable-layout-vocabulary-alignment-inventory.md)) · 정적 ratchet `adr225VocabularyRatchet.static.test.ts` (구 feature 명칭 0 · 사용자 문구 Frame 0 · ko/en key 3) · `useSectionCollapse` 승계 test 5 (old/new/both/none · 승계→펼침→persist→reload) · 인접 Vitest 88 파일 636 PASS · builder 전체 6699 PASS (선재 실패 8 은 clean HEAD 재현) · `type-check` PASS.
+- live (headed Playwright, `apps/builder/scripts/adr225-layouts-live.mjs`) 16/16: 구 collapse id 승계 · Add Layout → canonical `{type:"frame", reusable:true, name:"Layout 1"}` · `.layout-tree`/`.frame-tree` 0 · Apply Layout → binding · Remove Layout → 해제 · 내부 Layers 트리 (2-Row → Slot 2 · 선택 · 접기/펼치기) · 분할 핸들 → `navigator-split:layouts` · Layout 적용 page Canvas↔Preview geometry Δ≤1 · Delete → reload 0 · Navigator/Properties 문자열 Frame 0 · ko-KR 동일 흐름 · pageerror/console error·warning 0. foreground Chrome MCP 재확인 (사용자 참관).
+- review round 2 (codex) MEDIUM 3 수리: 주석·테스트 제목의 `Frames tab / Navigator Frames / Frame Preset` 어법 13곳 → Layouts + ratchet 문구 패턴 · 인벤토리를 gitignore 밖 `docs/adr/design/…-inventory.md` 로 · Phase 4 계획에서 이름 변경 UI (production caller 0) · Undo (canonical 직접 갱신) 를 범위 밖으로 명시.
+
+## [Canvas 텍스트 줄바꿈 높이 — 확정 폭 재측정 복구 · parity 하니스 폰트 문맥] - 2026-09-19
+
+### Fixed
+
+- Canvas 에서 텍스트의 실제 배치 폭이 1-pass 추정 폭과 다를 때 (grid 비균등 트랙 `1fr auto`·`min-content`, flex 실배치 등) 줄 수가 DOM 과 달리 1-pass 추정 그대로 남던 문제를 수리했다. ADR-224 (09-18) 가 leaf 높이를 `height` px 에서 `contentHeight` 스칼라로 옮긴 뒤 Step 4.5 2-pass 의 batch 패치가 숫자 스칼라를 지원 타입 밖으로 버려 재측정 결과가 엔진에 닿지 않았다 — 숫자 측정 스칼라 5종 (`contentMinWidth`·`contentMaxWidth`·`contentMinHeight`·`contentHeight`·`leafBaseline`) 을 패치 대상에 넣었다.
+- browser parity 하니스 (`vitest.browser.config.ts`) 가 DOM leg 페이지의 root 폰트 문맥을 스스로 고정한다 (`tests/parity/harness/setupThemeFont.ts` — theme `shared-tokens.css`). 09-16 CSS 단일 채널 뒤 `@composition/shared/components` 배럴의 CSS 부작용이 사라져 DOM leg 만 Times 로 떨어졌고 텍스트 폭 케이스 3 (containerAlign 2 · CapabilityMatrixSeed 오라클) 이 갈렸다. 분류표 drift 2 (GeneratedCssReach 의 `Body` — 09-18 부터 import 됨 · OverflowCapInventory 의 FileUpload + chart 7) 갱신.
+
+### Validation
+
+- browser parity 1430/1430 (직전 11 실패 → 0). 원복 RED: 스칼라 패치 분기 제거 시 gridTrackContribution 6 (`rewrap:` 4 · `pipeline: min-content`·`fit-content(60px)`) 이 `txt.h` Δ20 으로 실패. live (headed Playwright, 새 프로젝트): grid `1fr auto` 400px 안 긴 Text 가 Skia 280×40 = Preview DOM 280×40 (2줄).
+
+## [Navigator — Frames 사용자 용어를 Layouts로 통일] - 2026-09-19
+
+### Changed
+
+- Navigator의 `Pages / Frames` 탭을 `Pages / Layouts`로 바꾸고, 목록 제목·추가 버튼·빈 상태·선택 안내와 Properties의 `Frame Preset` 섹션을 `Layout Preset`으로 통일했다. 새 canonical reusable FrameNode의 사용자 노출 기본 이름도 `Layout N`으로 생성한다.
+- canonical `FrameNode`, reusable frame selector/action, 탭 ID `layouts`, EditMode `layout` 계약은 변경하지 않는다.
+
+### Validation
+
+- Navigator 탭, Layout 목록/요소 빈 상태, Layout 생성 기본 이름, Properties `Layout Preset`의 인접 Vitest 9파일 54개와 Builder type-check·preflight를 통과했다. 실행 중인 Builder에서 `Pages / Layouts`, `Layouts`, `Add Layout`, `Layout Preset`을 확인했고 console warning/error는 0건이었다.
+
+## [Canvas 빈 공간 — 선택 문맥 패널 닫기] - 2026-09-19
+
+### Changed
+
+- Canvas의 page 밖 빈 공간을 클릭하면 요소 선택 해제와 함께 Left/Right rail에서 열린 page/selection 문맥 패널 (Navigator·Components·AI·Properties·Styles·Interactions·History)을 닫고 토글을 비활성화한다. Theme·Data 계열·Settings 패널과 Workflow·Shortcut overlay는 project/app 문맥이라 유지한다.
+
+### Validation
+
+- panel visibility 정책 테스트에서 닫힘 7종·유지 5종을 고정하고, 중앙 Canvas 포인터 처리의 page 밖 클릭이 선택 해제와 패널 닫기를 함께 수행하는지 검증했다.
+
+## [Styles Size — Fit content 선택 표시] - 2026-09-19
+
+### Fixed
+
+- Layout > Size의 Width/Height에서 `Fit content`를 선택해도 suffix 버튼이 Fixed와 같은 `px`로 보이던 문제를 수리했다. 저장값 `fit-content`와 계산된 px 크기는 그대로 유지하고, 모드 버튼은 Fill=`fr`, Parent=`%`, Viewport=`vh`/`vw`, Fixed=`px`, Fit content=`fit`의 소문자를 그대로 표시한다.
+
+### Validation
+
+- `TransformSection.test.tsx`에서 Fill=`fr`, Parent=`%`, Viewport=`vh`/`vw`, Fixed=`px`, Fit content=`fit` suffix 매핑을, `PropertyUnitInput.test.tsx`에서 Size 모드의 uppercase 미적용 계약을 고정했다.
+
+## [Canvas — 자식 있는 컨테이너의 height fit-content · 100%] - 2026-09-19
+
+### Fixed
+
+- body (`flex row · minHeight 844`) 안의 두 frame 그룹 — `height: fit-content` 와 `height: 100%` — 가 Canvas 에서만 794 (stretch) · 70 (근사) 이던 문제를 수리했다 (Chrome 80 · 100). 원인 둘: (1) TS 1-pass 가 자식 있는 컨테이너에 `calculateContentHeight` 근사 px 를 넣고 (block 안 block-level Button 2 를 30 으로) 엔진 경계가 높이 키워드를 drop — `fit-content` 는 2-pass 가 px 를 지운 뒤 auto 가 되어 stretch, `100%` 는 2-pass 후보에서 빠져 근사가 남았다. (2) 엔진 `resolve_cross_dimension_opt` 가 미해소 `%` cross 를 AUTO 로 접어 커널이 stretch 했다 — computed 값이 auto 가 아니라 §9.4 step 11 stretch 조건 밖 (Chrome 100). 수리: 자식 있는 비-측정 컨테이너의 키워드·`%` 높이는 주입 없이 통과 (`engineOwnsContainerHeight`) · `applyCommonEngineStyle` 이 높이 키워드도 통과 · 2-pass 는 근사 px 만 지움 · 엔진은 미해소 `%` cross 를 CONTENT 센티넬로 (definite 부모면 종전대로 해소).
+
+### Validation
+
+- Rust `unresolved_percent_cross_is_content_not_stretch` (minHeight 부모 100 · definite 부모 400) · 엔진 431 · TS `emptyContainerIntrinsicKeyword.test.ts` +3 · canvas 스위트 1846 · type-check. live (사용자 프로젝트, 새로고침): frame 1 Skia 194×80 = DOM 193×80 · frame 2 **109×100** = DOM 108×100 (종전 794 / 70). 브라우저 parity 1432 — 실패 11 은 세션 시작 커밋과 동일 (신규 0).
+
+## [Canvas — 커널 뒤 확정된 높이를 받은 컨테이너의 자기 정렬] - 2026-09-19
+
+### Fixed
+
+- body (`flex row · height auto · minHeight 844`) 안의 frame (`flex row · align-items: center · height 미지정`) 에서 Alignment 가운데/하단이 Canvas 에서만 안 먹던 문제를 수리했다 (Button y: Skia 20 / Chrome 382). 컨테이너 cross 가 커널 **뒤에야** (min-height 클램프 · multi-line) 확정되는 경우 엔진이 stretch item 을 used cross 로 다시 푸는데 (ADR-206 (b)/(c)), 그 게이트 `definite_consumer_flags` 가 **자손** 의 `%` 블록 크기·중첩 컨테이너만 소비자로 세고 item **자신의 정렬** (row 의 `align-items` — 기본 stretch 포함 · wrap 의 `align-content` · column 의 `justify-content` · grid `align-content` · block `align-content`) 은 빠뜨려 재-solve 를 건너뛰었다. `container_places_children_by_block_size` 술어를 (b)·(c) 게이트에 OR 로 추가.
+
+### Validation
+
+- Rust `post_kernel_definite_cross_reaches_items_own_alignment` (min-height row 안 center → y 185 · 기본 stretch → leaf 360 · column definite main → row item center), 게이트 원복 시 RED (y 20) · 엔진 430. live (사용자 프로젝트): Button y 20 → **382** = DOM. 브라우저 parity 1432 중 실패 11 은 세션 시작 커밋 `ce21bf9a1` 에서도 같은 항목이 실패한다 (텍스트 측정 Δ · 팔레트 facet 인벤토리 · Body CSS 분류 — 별도).
+
+## [빈 fit-content 컨테이너 — Canvas 폭이 DOM 과 갈리던 문제] - 2026-09-19
+
+### Fixed
+
+- `width: fit-content` frame (padding 20) 이 자식이 없으면 Canvas 120 / Preview 40 으로 갈리던 문제를 수리했다 (자식이 있으면 정상). 자식 0 이면 `enrichWithIntrinsicSize` 가 `calculateContentWidth` 를 불러 §6 `DEFAULT_WIDTH` 80 ("알 수 없는 태그" 추정값) 에 padding 을 더한 width 120 + minWidth 120 을 주입했다. TS 가 측정하는 leaf (INTRINSIC_MEASURE / CIRCLE / IMAGE / TEXT_LEAF) 가 아니면 자식 수와 무관하게 키워드를 엔진에 통과시킨다 (content 0 + padding = DOM 과 같은 40). 자식 있는 컨테이너는 종전과 같다.
+
+### Validation
+
+- `emptyContainerIntrinsicKeyword.test.ts` 3 (빈 frame flex/block 자식 · Button 대조군) · `adr923IntrinsicMeasureBaseline.json` 대조군 3 키 (`div`·`taglist`·`tagview @fit-content`) 갱신, 측정 24 항목 무변경 · layout 스위트 507. live (사용자 프로젝트, compare): 빈 frame Skia 40×40 = DOM 40×40 · 자식 있는 frame 109×70 vs 108×70 (종전과 같음).
+
+## [Canvas vw/vh — breakpoint page 크기 기준] - 2026-09-19
+
+### Fixed
+
+- Size width/height 등의 `vw`/`vh`/`vmin`/`vmax` 값을 Canvas 가 상수 1920×1080 기준으로 풀어 Preview (iframe viewport = breakpoint) 와 갈리던 문제를 수리했다 — 390 breakpoint 에서 `50vw` 가 Canvas 960 / Preview 195. 기준은 **breakpoint page 크기 (border-box)** 로 통일: `calculateFullTreeLayout` 이 run 시작 시 `setLayoutViewport` (TS 선해석 폴백 — viewport 인자를 안 넘기는 parse 호출처 14곳) 와 엔진 `setViewport` (wasm 경계 입력 1, `LayoutTree.viewport` → `ctx_for`) 에 같은 값을 넣는다. viewport 만 바뀌어도 엔진 증분 skip 이 무효화된다.
+
+### Validation
+
+- Rust `compute_leaf_viewport_units_follow_set_viewport` (960×270 → 195×211) · TS `viewportUnitsLayoutViewport.test.ts` 4 · engines 스위트 487 · type-check. live `viewport-units-live.mjs` (headed Playwright, compare 모드): Skia 50vw×25vh = desktop 960×270 / tablet 384×256 / mobile 195×211 (3/3).
+- Preview 쪽도 같은 기준으로: compare 모드에서 `.workSpace > .canvas` 가 flex item 이라 pane 폭으로 수축해 desktop/tablet 의 iframe viewport 가 720 (≠ 1920/768) 이었다 — `flex: 0 0 auto` + `margin: auto` 로 breakpoint 상자를 유지하고 pane (`overflow: auto`) 이 스크롤한다. live 12/12 (Skia = breakpoint · Preview = iframe viewport · iframe viewport = breakpoint, 3 breakpoint).
+
+## [Button — display block 에서 Preview 높이만 줄어들던 문제] - 2026-09-19
+
+### Fixed
+
+- Button (ButtonGroup 안의 Button 포함) 을 Layout Direction 에서 `block` 으로 바꾸면 Compare 모드의 Preview 쪽 높이만 27→18 로 줄어들던 문제를 수리했다. 원인은 수동 `Button.css` 의 `text-box: trim-both cap alphabetic` — `text-box-trim` 은 block container 에만 적용되어 `inline-flex` 일 때는 잠들어 있다가 `block` 에서만 살아났고, Skia 는 이 채널을 모른다 (catalog 정본에도 없는 DOM 전용 선언). ToggleButton 에는 없어 대칭이었다. 선언 삭제.
+
+### Validation
+
+- live 실측 (md): Button inline-flex 27.14 / block 18.48 → 삭제 후 block 27.14 · ButtonGroup 안 Button block 30 · ToggleButton block 30 (변화 없음). `text-box: normal` 로 덮어도 같은 값이라 다른 요인 없음.
+
+## [생성 CSS — 단일 size 의 `[data-size]` 블록·빈 state 블록 생략] - 2026-09-18
+
+### Changed
+
+- CSSGenerator 가 `sizes` 가 defaultSize 하나뿐인 rule 의 `.react-aria-X[data-size="md"]` 블록 (base `/* Default size */` 와 선언이 같다 — Body·FileUpload·GridListItem·ListBox·ListBoxItem·Modal·TableView·TailSwatch 8) 과 선언 0 인 `[data-hovered]`/`[data-pressed]` 빈 블록 117 을 내지 않는다. 생성 파일 67 개 −414 줄, 시각 결과 무변경.
+
+### Validation
+
+- 새 오라클 `generatedCssComputedDigest.browser.test.ts` — 팔레트 전수 538 요소를 production `styles/index.css` 로 마운트한 computed style digest 가 변경 전후 동일 (Icon 은 무작위 아이콘이라 제외, 후 arm 3 run 일치). specs 1373 · shared 884 · type-check · pre-push 시각 파리티 smoke PASS.
+
+## [Canvas 스크롤 범위 — 끝쪽 padding·border 포함] - 2026-09-18
+
+### Fixed
+
+- `overflow:auto` 컨테이너(body 포함)를 Canvas에서 끝까지 스크롤하면 콘텐츠가 오른쪽·아래 가장자리에 붙고 padding이 사라지던 문제를 수리했다. Chrome은 scrollable overflow에 끝쪽 padding·border를 넣으므로(`scrollWidth = padL + content + padR`) Skia 스크롤 범위도 엔진이 소비한 `paddingRight/Bottom`·`borderRight/Bottom`을 더한다. Compare 모드에서 body padding 24가 오른쪽에서만 없어지던 사용자 보고.
+
+### Validation
+
+- 사용자 문서 `df522f3a` body(390 폭, padding 24, flex row, 마지막 Button right 412): maxScrollLeft 22 → 46. 새 프로젝트 live(`scroll-end-padding-live.mjs`, body padding 24 + 2000×2000 자식): Skia scrollable overflow 끝 2048/2048 = Compare Preview `.react-aria-Body` scrollWidth/scrollHeight 2048/2048. Chrome 153 블록 실측 `scrollWidth 448 = 24 + 400 + 24`. focused Vitest 10/10, type-check PASS.
+
+## [ADR-224 — Compare 페이지·Size·intrinsic 정합 수리] - 2026-09-18
+
+### Fixed
+
+- Compare의 CSS Preview는 현재 페이지만 그리는데 Canvas camera가 전체 document 원점을 그대로 써 현재 페이지끼리 정렬되지 않던 문제를 수리했다. Canvas의 기존 다중 페이지 표시는 기본값으로 유지하고, 현재 페이지의 document position을 상쇄해 CSS leg와 같은 viewport에 맞춘다. 현재 페이지만 보고 싶을 때는 헤더의 `현재 페이지만 비교` 필터를 명시적으로 켤 수 있다.
+- canonical Page의 `FrameNode`/frame-bound `RefNode`가 Preview에서 실제 `.react-aria-frame`/`.react-aria-ref` 박스로 렌더되어 `document.body`와 authored body 사이에 불필요한 containing block을 만들던 문제를 수리했다. Page shell은 canonical·state scope 경계로만 유지하고 DOM에서는 투명하게 렌더하며, 사용자 Frame과 reusable Frame은 실제 layout container로 그대로 보존한다.
+- Canvas root가 authored body `width`/`height`를 breakpoint viewport로 덮어 Styles Size 편집이 Preview에만 반영되던 문제를 수리했다. authored 크기가 없을 때만 viewport fallback을 주입한다.
+- auto-height flex 부모의 `height:100%` leaf가 Canvas에서 intrinsic text height를 잃던 문제를 수리했다. percentage는 authored 값으로 보존하고 containing block 높이가 미정일 때만 측정 content scalar로 fallback한다.
+- Preview `renderButtonGroup`의 prop 기본 `gap`이 Canvas projection에 없던 문제를 수리했다. size/orientation/align 기본값을 read-time에 동일하게 투영하며 authored style이 우선한다.
+- Preview Body가 lowercase canonical type으로 `react-aria-body`를 자동 생성한 뒤 저장된 `react-aria-Body`와 중복 병합하고, display/font/overflow/min-height 기본값을 inline으로 덮던 문제를 수리했다. renderer가 case-correct class 하나만 방출하고 기존 문서의 infrastructure 기본값은 DOM 투영에서 제거한다. Body generated CSS를 실제 preview/publish 번들에 연결해 `width:100%`, `overflow:auto`, 조건부 `min-height:100%`를 담당하게 했다.
+- Size 메뉴의 관계 이름과 선택 후 단위 표시가 중복되던 부분을 정리했다. 목록은 `Parent`·`Viewport`로 표시하고, 선택 뒤 필드는 `%`·`vw/vh`를 표시한다. Fill은 `fr`, Fixed와 Fit content는 `px` suffix를 사용한다.
+- Size의 `Parent`/`Fixed`가 값만 저장되고 실제 박스에는 반영되지 않던 세 경로를 수리했다. viewport-fill Body를 definite `100vh`로 만들어 자식 `height:%`의 기준을 만들고 (처음엔 inline 투영 → 같은 날 사용자 지적으로 generated CSS 채널 → 최종적으로 사용자 결정에 따라 조건부 `[data-body-viewport-fill]` 규칙과 data attribute 를 없애고 Body CSS base `min-height: 100%` 하나로 — Preview/Publish `div.react-aria-Body` inline 은 authored style 만. 이 상태에서 자식 `height:100%` 는 DOM·Skia 모두 콘텐츠 높이 30 으로 일치), flex 주축의 px/%/viewport 크기는 `flex-shrink:0`으로 authored used size를 지킨다. 열린 단위 메뉴에서 Enter가 현재 mode를 재선택해 숫자 commit을 덮던 ComboBox 순서도 차단했다.
+
+### Validation
+
+- 지정 프로젝트 `974c0363-fa08-49db-a7bc-f006fb66a1ec`, Mobile foreground Compare: 기본 Canvas에 Components+Home 다중 페이지가 보이고 현재 Home은 CSS leg와 같은 viewport에 정렬된다. `현재 페이지만 비교` on에서는 Home만, off에서는 즉시 두 페이지가 다시 보인다. body 양쪽 390×844, ButtonGroup 양쪽 342×96 (`x=24`, `y=374`), Button 높이 30과 gap 8 일치.
+- Styles Width 390→400 입력 시 canonical/Preview/Canvas 모두 400, 새로고침 뒤 보존. 검증 후 390으로 복원하고 다시 새로고침해 보존을 확인했다.
+- Chrome parity 37/37, 기존 신규·인접 Vitest 8/8와 Compare 옵션 focused Vitest 20/20, Rust 전체 467/467, type-check PASS. G5 소유자 확인 전 ADR은 Accepted 유지한다.
+- 지정 프로젝트 foreground Compare 재검증: Body DOM은 `class="react-aria-Body"` 하나, inline style 없음, `data-body-viewport-fill` 조건부 속성. computed 값은 width 390px(100%), height 844px, min-height 100%, overflow auto, background rgb(255,255,255). focused shared/builder/publish 42/42와 root type-check PASS.
+- 실행 중인 Builder에서 Size 목록이 `Fixed / Fill / Fit content / Parent / Viewport`로 표시되고 Parent 선택 상태의 suffix가 `%`로 분리됨을 확인했다. 전체 suffix mapping focused 36/36과 Builder type-check가 통과했다.
+
+## [ADR-224 — Fill wrap·Min/Max 입력 정합과 통합 검증] - 2026-09-18
+
+### Fixed
+
+- **`flex-wrap` 부모에서 Fill 자식의 `min-width`가 Canvas 줄바꿈에 반영되지 않았다.** 300px Row 안의 Fill 자식 두 개에 `min-width:200px`를 주면 Preview는 300×20 두 줄인데 Canvas는 200×20 한 줄이었다. Rust flex가 line collection과 grow/shrink 판정에서 min/max가 반영된 hypothetical main size 대신 raw flex basis(0)를 사용한 것이 원인이다. `FlexItem::hypothetical_main`으로 세 경로를 통일했다.
+- **Size 패널이 `min > max`인 신규 값을 그대로 저장했다.** 현재 canonical active-breakpoint 값과 비교 가능한 동일 단위에서만 역전을 차단하고 오류를 표시한다. 서로 다른 단위·`calc()`·키워드·reset은 `parseFloat`로 억지 비교하지 않으며 기존 충돌값도 자동 수정하지 않는다.
+- ADR-224 통합 browser harness가 Ratio refresh 뒤 Preview/probe를 복구하지 않았고, 긴 실행에서 history 50-entry 상한과 다중 선택 상태를 실패로 오판했다. reload 복구·상한 인식 transaction/Undo 판정·roundtrip 단일 선택 격리를 추가했다.
+
+### Validation
+
+- Headed Builder 통합 41/41, pageerror 0. wrap fixture는 Canvas/Preview 모두 300×20 두 줄(y=0/20), Min W 200 → Max W 100은 authored write/history 0 + alert, Max W 300은 정상 저장.
+- Rust lib 427/427, Chrome parity 4파일 69/69, Min/Max 인접 Vitest 21/21, type-check PASS.
+- G6 fresh A/B (`e8987c394` baseline vs 현재, N=100/1,000, warmup 5 + 30회): parent resize p95 16.5→17.3ms / 53.2→52.5ms, factor edit 20.5→22.0ms / 62.7→63.2ms, 4/4 허용 범위 안 PASS.
+
+## [Settings — Page layout · Page gap 이 새로고침 후에도 유지된다] - 2026-09-18
+
+### Added
+
+- **Settings 의 Page layout (Auto/Horizontal/Vertical) 과 Page gap 을 localStorage 에 저장한다** (`composition.pageLayout.v1`, 액션바 설정 `composition.actionBar.v1` 과 같은 채널). 종전에는 세션 전용이라 새로고침마다 auto/80 으로 돌아가 문서에 persist 된 페이지 배치와 Settings 표시값이 어긋났다. 페이지 위치 자체는 그대로 문서 (canonical `pagePositions`) 소유 — 이 값은 정렬·페이지 추가의 입력. 구 `zigzag` 는 auto 로, 잘못된 값은 필드 단위 기본값. 위치: `apps/builder/src/builder/stores/utils/pageLayoutStorage.ts` · `canvasSettings.ts` (초기값 read · setter write). 게이트: `pageLayoutStorage.test.ts` 4 · `SettingsPanel.pageLayout.test.tsx` 영속 단언 2 (원복 RED) · headless Playwright (UI 로 Vertical·150 → 새로고침 후 150/vertical 유지 → 추가 페이지 y=2460).
+
+## [부팅 — 페이지 헤더 DOM 층이 캔버스 페이지보다 먼저 보이던 것 수리] - 2026-09-18
+
+### Fixed
+
+- **프로젝트를 열면 캔버스 페이지가 그려지기 전에 페이지 헤더 (타이틀 칩) 가 먼저 나타났다.** 09-02 부팅 게이트 (`.app.builder-booting` 이 header · 패널 · 액션바 · Skia 캔버스 · 눈금자를 `visibility: hidden`) 뒤에 추가된 ADR-221 `.page-header-layer` 가 목록에 없었다 — 액션바가 같은 원인으로 고쳐졌던 것과 동일. 선택자 1줄 추가로 헤더도 첫 완료 paint 뒤 같은 프레임에 캔버스·액션바와 함께 나타난다. 게이트: `BuilderCore.static.test.ts` 선택자 단언 · headless Playwright rAF 샘플링 (부팅 중 헤더 존재 32 프레임 — 원복 visible 32 → 수리 0, presented 프레임에서 액션바와 같이 visible).
+
+## [페이지 추가 — auto 배치가 기존 페이지 격자를 따르고 새 위치가 persist 된다] - 2026-09-18
+
+### Fixed
+
+- **페이지를 추가하면 설정의 Page layout·Page gap 과 어긋난 자리에 놓였다.** `auto` 배치의 새 페이지 위치가 기존 페이지 배치가 아니라 _추가 시점의 뷰포트_ (panel 폭 · zoom) 로 격자를 다시 만들었다 — 부팅 때 panel metrics 0 으로 `x=0` 에 놓인 페이지 옆에 새 페이지만 `x=317` (leftInset) 로, zoom 0.3 에서는 열 수가 2 로 바뀌어 1열 세로 페이지들과 무관한 칸에 놓였다. 새 페이지 위치는 canonical `pagePositions` 에 기록되지 않아 새로고침 시 그 페이지만 재계산 폴백 (gap 80 · metrics 0) 을 타 persist 된 페이지들과 겹쳤다. 수리: `calculateNextPagePosition` auto 분기가 격자 원점 (min x) 과 열 수 (첫 행 페이지 수) 를 기존 배치에서 읽고 (배치된 페이지 0 일 때만 뷰포트 bounds), `appendPageShell` 이 같은 microtask persist 배치에 canonical 위치를 싣는다 (별도 I/O 0). horizontal · vertical 은 종전 정상. 게이트: `pageLayoutActions.test.ts` 2 (원점 · 열 수, 원복 RED) · `pageActivation.test.ts` 1 (canonical 기록) · headless Playwright 실측 3 케이스 (부팅 후 추가 x=0 · zoom 0.3 추가 y=3840 1열 끝 · 새로고침 후 위치 유지). 설정값 (direction · gap) 자체는 세션 전용으로 그대로 — persist 는 별도 판정.
+
+## [ADR-224 — Fill 가중치 편집 부분 구현, 레이아웃 오류로 중단] - 2026-09-18
+
+### Fixed / blocked follow-up
+
+- CSS 크기 선언과 intrinsic 측정을 분리했다. catalog 기본 `fit-content`를 보존하고 `contentHeight`는 콘텐츠 제안값으로만 전달하며, height-for-width 재측정이 Width를 고정하지 않게 했다. Canvas Fill projection도 shared catalog Min을 읽는다. 실제 Builder에서 Row 높이 240/240px, Column Width Fill 900/900px, 기본 Button 69/68px, Column Height Fill 포함 13/13 확인. 인접 브라우저 56건·Rust lib 416건 PASS.
+- Ratio 후보에서는 Width Fill + 2:1의 높이 Canvas 30px / Preview 154.328~295.664px 발산을 발견했다. 중단 조건에 따라 후보 UI·명령은 로컬 복구 패치로 분리하고 Fill 수리만 유지했다. ADR 전체 완료·전체 G3/G4 통과가 아니며 Absolute/resize·G5/G6 등은 남아 있다.
+- **aspect-ratio 를 가진 flex item 이 Canvas 에서 Preview 와 다른 크기로 그려졌다** (`width:200px + 2:1` Button 높이 110 vs 100 · Width Fill + 2:1 높이 30 vs 154~296). 엔진 flex 커널이 ratio 를 받지 않아 grow 로 정해진 폭에서 높이를 파생하지 못했고, leaf 가 ratio 로 파생한 border-box 값을 content 로 보고해 padding 이 두 번 더해졌다. flex 입력에 ratio 슬롯 (`FLEX_FIELD_COUNT` 23) 을 추가하고 used main → cross · definite/stretched cross → basis · column 양축 auto 의 inline 우선 전송 (CSS-FLEXBOX §9.2.3 B/E · §9.4 step 7 · CSS-SIZING-4 §5) 을 구현했다. 실제 Builder 17/17 · Chrome oracle 브라우저 fixture 20/20 · Rust 425.
+- **Ratio 잠금이 한 번의 복합 명령이 됐다** (Size 절 Ratio Select · lock 버튼): 잠금은 현재 used 크기 (또는 preset) 를 `aspectRatio` 로 쓰고 Height 를 auto 로 정규화하되 Width 의 Fill 가중치·CSS 는 보존한다. 해제는 각 tier 의 직전 used Height 를 px 로 고정한다 (자기 상태가 있는 tier 만 — 나머지는 base 상속). 한 transaction·Undo 1회, stale geometry 는 오류 문구 (ko/en) 로 거부. Size 메뉴 항목 (고정 · 채우기 · 내용 맞춤 · 부모 비율 · 화면 기준) 과 트리거·오류 문구가 translations 를 탄다. 실제 Builder 22/22.
+- **Absolute 토글이 Fill 을 그대로 두던 것을 고쳤다.** 절대 위치에서 Fill 은 성립하지 않는데 marker 가 남아 Flow 로 돌아오면 Fill 이 되살아났다. 이제 Position 토글 활성화는 한 명령 (Undo 1회) 으로 position/left/top 을 쓰고 무효가 되는 Fill 축만 직전 크기의 px 로 고정한다. Absolute→Flow 는 그 px 를 유지한다.
+- **절대 위치 leaf (Button 등) 의 auto 높이가 Canvas 에서 padding·border 만큼 낮게 그려졌다** (Canvas 20 / Preview 30). 엔진 absolute 배치가 leaf 의 content-box 보고에 pad/border 를 더하지 않던 결함 — leaf 의 border-box layout 을 읽도록 수리.
+- **선택 박스 핸들로 크기를 바꿀 수 있다.** 2026-03 정리 이후 핸들은 표시만 됐고 커서만 바뀌었다. 이제 단일 선택의 엣지·코너 핸들을 끌면 드래그 중 캔버스가 바로 그 크기로 놓이고 (Preview 와 같은 레이아웃 lane), 놓으면 한 번에 저장된다 (Undo 1회). 잡은 축이 Fill 이면 그 축만 고정 px 로 바뀌고 다른 축의 Fill 은 그대로다. Ratio 가 잠겨 있으면 기준 축 하나만 바뀌고 (세로로 끌면 목표 높이 × ratio 로 Width), 종속 축은 auto 로 남는다. 3px 미만은 클릭 (저장 0). 다중 선택 핸들과 absolute 요소의 위치 이동 (left/top 핸들) 은 아직이다.
+- **여러 요소를 선택한 채 Absolute 를 켜면 형제가 첫 요소 위로 겹쳤다.** 첫 요소의 left/top 을 전부에 쓰던 것을 요소마다 자기 자리로 계산하게 고쳤다 — 각자 제자리에서 절대 위치가 된다 (Undo 1회).
+- **절대 위치 요소는 왼쪽·위 핸들로도 크기를 바꿀 수 있다.** 잡은 변이 움직이고 반대 변은 고정된다 (left/top 이 같이 바뀐다). Ratio 가 잠겨 있어도 같다. 자식이 있는 절대 위치 컨테이너의 핸들은 아직 동작하지 않는다.
+- **React DevTools 가 설치된 Chrome 에서 패널 편집이 캔버스에 반영되지 않고 콘솔에 `Uncaught Error: childNodes is not supported` 가 떴다** (사용자 보고). React 19.2 개발 빌드의 렌더 로거 (`logComponentRender` → `addObjectDiffToProperties`, DevTools 가 있으면 ProfileMode 로 항상 실행) 가 props 의 모든 getter 를 읽는데 react-aria `CollectionNode.childNodes` getter 가 throw 해 passive effect commit 이 중단됐다 (React #35126 / #36430). `patches/react-dom@19.2.8.patch` — getter 읽기를 try/catch 로 감싸 그 키만 건너뛴다 (개발 빌드 전용, production 무관). 같은 문서에서 DevTools 있는 탭으로 재확인: 오류 0 · 편집 반영.
+- **높이 (또는 폭) 가 정해지지 않은 컨테이너 안에서 Fill 을 고르면 요소가 padding·border 만 남기고 무너졌다** (Button 30 → 10px, 부모도 줄어듦 — 팔레트 Frame 은 세로·높이 없음이라 Height Fill 이 항상 이랬다). 이제 부모가 그 축에 크기가 없으면 (hug) Fill 은 콘텐츠 크기로 놓이고, 부모가 크기를 얻으면 그때 남은 공간을 가중치로 나눈다 (Figma 의 hug 부모 안 fill 과 같다). Canvas 와 Preview/publish 가 같은 판정.
+- Fill 가중치·tier 해제가 복제 (⌘C/⌘V) · breakpoint 전환 · 새로고침 · 정적 export 를 그대로 지난다 (실제 Builder 18/18 · export 단위 3). 도입 전후 성능 A/B (자식 100/1,000 의 부모 resize · 가중치 편집, p95) 는 허용 범위 안 — 느려진 곳 없음.
+- **Ratio 잠금 요소를 resize 한 뒤 Canvas 가 부모 높이로 늘어나고 Preview 는 비율대로였다** (240 / 210). Canvas 의 Fill projection 이 "Fill 축이 명시 null 뿐인 요소" 를 건너뛰어 Ratio 종속 축의 stretch 보호를 빠뜨렸다 — Preview 와 같은 판정으로 수리.
+
+### In progress
+
+- 기존 Size의 Width/Height 한 상자 패턴에서 Fill 선택 후 숫자로 가중치를 조정하는 입력과 Fill 전용 canonical 필드·왕복·문맥별 투영을 부분 구현했다. 실제 입력과 refresh에서 factor2 보존을 확인했다.
+- Canvas/Preview 교차축 크기 불일치(Row 높이 30/240px, Column 폭 69/900px)를 발견해 사용자 지시에 따라 실행을 중단했다. ADR은 Accepted이며 완성 기능이 아니다. Ratio·Absolute·resize와 전체 저장/출력·과업/성능 검증이 남았다. [중단 근거](adr/evidence/224-fill-layout-blocker.md).
+- 재개 조사에서 intrinsic 측정값의 고정 치수 주입을 최종 엔진 입력으로 확정했다. 스칼라 분리 후보는 기존 Fill 오류를 해소했으나 기본 Button Column 폭 900/68px의 신규 크리티컬 회귀로 중단·철회했다. 진단 채널과 회귀 fixture를 남겼으며 기존 Fill 오류는 미해결이다.
+
+## [Toolbar — vertical Separator 의 margin 축 · Toolbar staticSelectors 를 캔버스 layout 이 읽는다 (Toolbar 29 → 22 = Preview)] - 2026-09-18
+
+### Fixed
+
+- **캔버스의 Toolbar 가 Preview 보다 7px 높고 (29 / 22) Separator 좌우 간격이 좁았다 (8 / 18).** 두 원인: (a) implicitStyles 의 Separator size→margin 주입이 orientation 과 무관하게 **상하** 에만 실려 (수동 Separator.css 는 horizontal `margin: {spacing} 0` · vertical `margin: 0 {spacing}`) vertical separator 가 row 의 cross 축을 키웠다 — 방향별 축으로 수정. (b) catalog `Toolbar.composition.staticSelectors` (`.react-aria-Toolbar .react-aria-Separator` — `align-self: stretch` · vertical `margin: 0 10px` · horizontal `margin: 10px 0` + height 1 + width 100%) 는 DOM 전용 채널이라 Skia 에 닿지 않았다 — Toolbar 분기가 같은 선택자 값을 읽어 Separator 자식 layout 에 싣는다 (인라인 우선). 남는 차이는 버튼 텍스트 측정 (CanvasKit vs DOM, ≤ 2.5/버튼) 뿐. 게이트: `toolbarSeparator.browser.test.ts` (팔레트 Toolbar 실렌더 vs production layout — 높이 · separator y · 좌우 간격, 원복 3/3 RED) · live `apps/builder/scripts/toolbar-separator-live.mjs` (22 = 22 · separator (152,0) vs (148.9,0) · 간격 18 = 18) · `adr223-archetype-live.mjs` known 목록에서 후속 1·3·4 제거 → ALL PASS.
+
+## [Tabs — 캔버스만 갖던 TabPanels 래퍼 padding 12 제거 (Tabs 높이 77 → 53 = Preview)] - 2026-09-18
+
+### Fixed
+
+- **캔버스의 Tabs 가 Preview 보다 24px 높고 TabPanel 이 (12,12) 만큼 안쪽에 놓였다.** Preview `renderTabs` 는 RAC `<Tabs>` 안에 TabList 와 TabPanel 을 직계로 그리고 canonical `TabPanels` 상자를 그리지 않는데 (`renderTabPanels` → null, `.react-aria-TabPanels` 는 어느 DOM 에도 없다), 캔버스는 그 래퍼에 padding 12 (catalog `TabPanels.sizes` + implicitStyles 주입 + `calculateContentHeight` 의 `tabPanelPadding × 2`) 를 실었다 — DOM 에 상자가 없는 래퍼의 padding 은 Skia 전용 채널. 세 곳을 같이 걷어내고 catalog `TabPanels.sizes.*.padding` 을 0 으로 (패널 padding 12 는 TabPanel 자기 sizes 가 양쪽에 같이 준다). 게이트: `tabsPanelWrapper.browser.test.ts` (팔레트 Tabs 실렌더 vs production layout — 53/77 · y 29/41 RED → GREEN) · `adr923EmptyStructureBox` 기대값 79 (= 29 + panel 50) · live `apps/builder/scripts/tabs-panel-wrapper-live.mjs` (Tabs 53 = 53 · TabPanel (0,29,24,24) 양쪽 동일).
+
+## [Disclosure — catalog `borderWidth 1` (테두리 없음) 이 캔버스 상자만 2px 키우던 것 수리] - 2026-09-18
+
+### Fixed
+
+- **Disclosure 가 캔버스에서 Preview 보다 상하좌우 1px 컸다 (root h 58 / DOM 56).** catalog `sizes.*.borderWidth: 1` 인데 variant 가 없어 생성 CSS 는 `border-width: 1px` 만 emit (border-style/color 없음 → DOM 테두리 0) 하고 Skia layout 은 그 1 을 그대로 읽었다. starter 레퍼런스 (`react-aria-starter/src/Disclosure.css`) 도 루트 테두리가 없다 — `borderWidth 0` 으로 정정 (catalog 전수 sweep: 같은 형태는 Disclosure 하나). 게이트: `catalogComponentBox` Disclosure 케이스 (Δ2 RED → GREEN) · live `apps/builder/scripts/disclosure-border-live.mjs` (root 56 = 56, Δ ≤ 0.5).
+
+## [엔진 — intrinsic 키워드 폭 (`fit-content` 등) 컨테이너의 padding 이중 가산·누락 수리] - 2026-09-18
+
+### Fixed
+
+- **캔버스에서 `width: min-content / max-content / fit-content` 인 padded 상자가 flex 부모 안에서는 padding 만큼 넓고 (Tooltip 89 / Chrome 60+9), grid 부모 안에서는 좁고 (−20), block 부모 안에서는 폭은 맞되 안쪽 content 가 padding 만큼 모자랐다 (Tooltip 의 Description 29 / 49).** 키워드 폭의 박스 계약이 소비처마다 달랐던 것 — `measure_intrinsic_width` 의 값은 content-box 인데 `solve_node` 키워드 블록이 border-box 로 읽었고, flex 3.5 재-solve 는 키워드 item 을 px 로 덮은 뒤 border-box 반환을 content 슬롯에 실었고, grid 기여/배치는 키워드를 명시 크기로 분류해 pad 를 뺐고, leaf 는 키워드를 border-box 로 보고했다. 계약을 하나로 — **키워드 폭도 auto 처럼 content-box 로 보고, 자기 layout 만 border-box** (ledger §31, `layout-engine.md` 색인). 사용자-가시: Tooltip (implicitStyles 가 `fit-content` 주입) 이 row 컨테이너 안에서 Preview 와 같은 폭이 되고, 어디서나 텍스트가 padding 안에 온전히 놓인다. 실측: Rust `padded_keyword_container_as_flex_and_grid_item` (3 키워드 × flex/grid/block × 컨테이너/leaf · column cross · grid 블록 축) · parity `catalogComponentBox` Tooltip Δ20 RED → GREEN (1395 → 1396, 기존 실패 4 동일) · R8-d (`fit-content` + grow + overflow hidden) 유지 · live `apps/builder/scripts/tooltip-keyword-width-live.mjs` (row frame 안 89×44 → 69×44 · body Description 29 → 49).
+
+## [Pagination preview — 생성 Pagination.css 가 preview `<nav>` 에 닿지 않던 것 수리] - 2026-09-18
+
+### Fixed
+
+- **preview `renderPagination` 이 `.react-aria-Pagination` 과 `data-size`/`data-variant` 를 안 붙여 생성 Pagination.css 전량 (catalog `containerStyles` — `display:flex · justify-content:space-between · gap 8 · align-items:center`) 이 preview 에 dead 였다.** Skia 는 같은 containerStyles 를 읽어 5 버튼을 폭 전체에 space-between 으로 놓고, preview 는 인라인 row 만 있어 붙어 나열됐다 (ADR-223 live G3 에서 발견). `catalogChrome("Pagination", …)` 배선 (Nav 09-18 동형) — 사용자-가시: preview 의 Pagination 이 Canvas 와 같은 간격이 된다. catalog `staticSelectors` 의 `.react-aria-Button[data-current]` 계열은 `@layer components` 라 `@layer utilities` 의 `.button-base` 배경을 못 이겨 canonical 자식 Button 색은 그대로다 (실측). 게이트: `paginationPreviewChrome.browser.test.ts` (class · computed · 마지막 버튼 오른쪽 = nav 오른쪽 · accent 자식 = 독립 accent Button, 배선 전 3/4 RED) · live `apps/builder/scripts/pagination-preview-chrome-live.mjs` (Skia↔DOM root + Button 5 rect 6/6 일치, pageerror 0).
+
+## [ADR-223 Implemented — 생성 CSS archetype 미지정 기본값 중립화] - 2026-09-18
+
+### Changed
+
+- **`archetype: "default"` (미지정) 의 생성 CSS base 가 버튼 어법 (`inline-flex · align-items/justify-content center · cursor pointer · user-select none · transition`) 에서 `container` 와 같은 중립 상자 (`block · box-sizing · font-family`) 로 바뀐다.** Skia 는 archetype base 를 읽지 않아 이 8 선언은 DOM 전용 채널이었고, Section (09-17) 과 같은 기제로 Toolbar (`width:100%` 면 자식이 DOM 만 가운데, Δ114) · TableView (고정 height 면 행이 DOM 만 세로 가운데, Δ79) · GridListItem (카드 텍스트가 DOM 만 가운데·수축, Δ18) 이 갈렸다. 바뀌는 생성물은 12 파일 (runtime 로드 8: Toolbar · TableView · Disclosure · Pagination · Card · GridListItem · Tab · Slot / 미로드 4) 이고 `composition.layout` 17 파일은 byte-identical.
+- 값을 지키는 이관 3건: Pagination `align-items:center` → `structure.containerStyles` (row 의도, Skia 도 같은 값) · Card `cursor:pointer` → `composition.rootSelectors["&"]` (onPress 상호작용) · Tab `cursor/user-select/transition` → `rootSelectors["&"]`. 비상호작용 컨테이너 (Toolbar · TableView · Disclosure · Pagination · Slot) 의 손가락 커서 · 텍스트 선택 차단 · root transition 은 사라진다 (사용자-가시). GridListItem 은 수동 GridList.css 의 cursor/transition 이 그대로다.
+- 신규 catalog entry 가 미지정으로 남지 못하게 정적 ratchet (`archetypeDefaultCohort.static.test.ts`, 미지정 11 pin). 실측: 생성기 5 (원복 4 RED) · `catalogComponentBox` Toolbar/TableView 불리 케이스 + GridListItem 기존 Δ18 GREEN (원복 RED) · 실제 Card·Tab·Toolbar before/after root Δ0 + computed interaction (`adr223ArchetypeRoot.browser.test.ts`, 원복 2 RED) · live 7종 headed Playwright (`apps/builder/scripts/adr223-archetype-live.mjs`, Skia↔DOM 부모 기준 rect Δ ≤ 2.5 · pageerror 0). 이 ADR 밖 기존 발산 5 는 evidence `223-phase2-g2.md` §후속 (Pagination preview 가 `.react-aria-Pagination` 을 안 붙여 생성 CSS 가 dead · Disclosure border-style 부재 · Tabs TabPanels padding · Toolbar Skia 높이 · Tooltip Δ20).
+
+## [캔버스 — 폭 없는 flex item 컨테이너의 catalog height 소실 · `size` prop 이 catalog 높이에 안 닿던 것 수리] - 2026-09-17
+
+### Fixed
+
+- **flex 부모 안에서 폭 미지정 (shrink-to-fit) 인 Nav 가 캔버스에서 48px** (Preview 56): 레이아웃 2-pass (height-for-width) 후보 선정이 store style 만 보고 "height 없음 = auto" 로 판정해, 실배치 폭이 가정 폭과 다르면 "컨테이너는 height 제거" 분기가 `buildNodeStyle` 이 실은 catalog `height 56` 을 지웠다 (엔진 소비 style 실측: block 부모 `height:"56px"` · flex 부모 폭 없음 → 키 부재). 가드가 batch 와 같은 catalog fallback 을 읽는다. 폭이 있거나 (factory `width:100%`) block 부모면 종전에도 56 이라 팔레트 기본 형태는 영향 없었고, Fit 전환 · 폭 삭제 뒤에 드러났다. catalog 전수 (height 보유 36종 × flex/block) 로 발산 0 확인.
+- **`size` prop 이 catalog `sizes[size]` 높이·padding·gap 에 안 닿음** (Nav `lg`: 캔버스 56 · Preview 64): `buildNodeStyle` 이 catalog fallback 을 size 없이 읽어 default size 값만 실렸다 — `applyImplicitStyles` 는 size 를 넘기지만 분기 없는 generic 컨테이너는 그 결과를 안 싣는다. 요소 `size` 를 같이 넘긴다. live (Compare Mode, Section row flex 안 폭 없는 Nav lg): DOM 181.6×64 · Skia 184×64, Link y 22 양쪽 일치. 오라클 `catalogComponentBox` Nav 폭 없음 · `lg` 케이스 (원복 시 h Δ8 · lg 는 padding/gap 도 Δ).
+
+## [Nav factory — gap·padding 인라인 미러 제거, catalog 단일 공급] - 2026-09-18
+
+### Changed
+
+- **새로 추가하는 Nav 의 `props.style` 에서 `rowGap/columnGap 12 · padding 12 16` 인라인을 뺀다** (ADR-171 Phase 3 Pagination 동형). catalog md 값을 Skia 는 implicitStyles L3 로, Preview 는 생성 `Nav.css` 로 같이 받으므로 인라인은 두 번째 공급원이었다 — catalog 가 바뀌면 인라인이 가린다 (`renderNav` 의 gap 16 / padding 8 16 하드코드가 그 사례). `display/flexDirection/alignItems/width` 는 catalog resolver 가 공급하지 않아 유지. live (`apps/builder/scripts/nav-factory-catalog-live.mjs`): 팔레트 Nav → Skia 56 / DOM computed `padding 12px 16px · gap 12px · height 56px` · Link 3 좌표 ±2.5. 기존 문서의 인라인 값은 그대로다.
+- 정리 (`/simplify`): `renderNav` 의 class·data-size/variant 를 Card 슬롯과 같은 `catalogChrome` 헬퍼로 (부재값은 catalog `defaultSize/defaultVariant`) · 생성기 `ARCHETYPE_IDS` 손 미러를 `ARCHETYPE_BASE_STYLES` 키 판정 (`isArchetypeId`) 으로.
+
+## [Preview — Nav 높이 · 레이아웃 컨테이너 CSS archetype `container` (Section · Nav)] - 2026-09-17
+
+### Fixed
+
+- **Nav 가 Preview 에서 44px, 캔버스에서 56px** — `renderNav` 가 class 없이 `gap 16 / padding 8 16` 을 인라인 하드코드하고 생성 `Nav.css` 는 번들 밖이라 catalog md `height 56` 이 DOM 에 안 실렸다. `react-aria-Nav` + `data-size`/`data-variant` 를 붙이고 Nav.css 를 preview/publish 번들에 싣는다. 하드코드는 제거 (catalog 값과 달랐고 factory 인라인이 가리고 있었다 — 인라인 없는 legacy 문서도 CSS 로 같은 값을 받는다). live: Nav 342×56 · Link y 18 양쪽 일치.
+- **생성 CSS archetype `container`** (Section · Nav): 종전 archetype `default` 는 버튼 어법 (`inline-flex · align-items/justify-content: center · cursor: pointer`) 을 base 로 내서, Section 을 `display:flex` 로 바꾸고 정렬을 안 만지면 DOM 만 자식을 가운데로 보냈다 (실측 x 104 vs Skia 16). 새 archetype 은 `display:block · box-sizing · font-family` 만 — 배치는 inline style 이 정하고 CSS 는 상자 (padding · gap · height · 색) 만 준다.
+- 미import 생성 CSS 24개 전수 판정 (팔레트 10종은 production 렌더러 DOM vs Skia rect 대조): import 로 고쳐지는 건 없다 — 23개는 DOM 이 그 class 를 방출하지 않아 selector 가 닿지 않고 (Avatar·AvatarGroup·CardView·IllustratedMessage·Image·Skeleton 은 rect 일치, ButtonGroup·StatusLight·ProgressCircle 은 텍스트 run Δ ≤ 3px), 결함은 Nav 1건이었다. 오라클 `catalogComponentBox` 에 Section (flex 무정렬) · Nav (높이) 케이스 추가, 로드 인벤토리 게이트 (`generatedCssLoadInventory`) 의 E 판정 뒤집음 기록.
+
+## [Preview — Section 컨테이너가 catalog padding·gap 없이 그려지던 것 수리] - 2026-09-17
+
+### Fixed
+
+- **Section 의 Preview/publish DOM 에 catalog md `padding 16` / `gap 12` 가 안 실렸다** — 생성 CSS `generated/Section.css` 가 ADR-912 cutover 때부터 있었지만 `styles/index.css` 번들에 import 되지 않았고, Skia 는 catalog 를 주입해 같은 Section 안 자식 폭이 28px 갈렸다 (실측 Preview 321 vs Skia 293). 이제 두 leg 가 같은 값 (2fr 자식 195.34 / 98.66 · 높이 760 일치).
+- **generic 렌더 경로의 `data-variant` 부재값**: variant prop 이 없으면 catalog `defaultVariant` 를 낸다 (`data-size` 의 부재 = defaultSize 와 같은 규칙). Section 은 default variant 가 fill alpha 0 (`background: transparent`) 인데 base 블록은 `var(--bg)` 라, attr 없이는 색 있는 부모 위에서 Skia 투명 / DOM 흰색으로 갈렸다. 다른 생성 CSS 는 base 와 default-variant 블록이 같아 (Separator 는 자체 렌더러) 시각 무변경.
+
+## [Styles 패널 — Fill 의 grow 비율 `fr` 단위 (Framer 어법)] - 2026-09-17
+
+### Added
+
+- **W/H 단위 메뉴에 `fr`** (flex 부모의 주축에서만 — row 의 Width · column 의 Height): `2fr` 을 치면 `flexGrow: 2` (basis `0%` 유지) 로 형제와 2:1 분배. `fill` 표기는 그대로 grow 1 이고, 1 이 아닌 grow 는 필드가 `Nfr` 로 보여준다 (`1fr` 을 쳐도 `fill`). 교차축 stretch · grid · block `100%` 는 비율 개념이 없어 메뉴에 나오지 않는다. Figma 는 Fill container 를 균등 분배만 두고 fr 는 grid 트랙 전용, Framer 는 Stack Fill 을 fr 로 연다 — 후자를 따랐다 (Figma 포럼의 fr/비율 요청이 반복되는 지점).
+- `PropertyUnitInput`: 친 글자에 단위가 붙어 있고 (`2fr` · `50%`) 그 단위가 메뉴에 있으면 그 단위로 commit 한다 (Enter · blur 공통) — 종전엔 현재 단위로 덮어 키워드 상태에서 `2fr` 이 `2px` 로 떨어졌다. 메뉴에서 `fr` 을 고르면 기본값 1.
+- Size Mode 역추론: `flexGrow` 가 1 이 아닌 양수여도 Fill 로 읽는다 (종전 `"1"` 문자열 일치만).
+
+## [엔진 — Fill 자식이 `align-items:center` 부모 · `min-height` body 아래에서 0 으로 붕괴하던 것 수리] - 2026-09-17
+
+### Fixed
+
+- **Size Mode Fill (`flex: 1 1 0%` · `align-self: stretch`) 자식이 캔버스에서 폭·높이 0** (border 만 2×2 로 보이던 것): body(column, `align-items: center`) > Section(Fill 폭·높이) > frame×2(Fill 폭·높이) 구성에서 Preview 는 채우는데 Skia 캔버스만 접혔다. 원인 2 (둘 다 `packages/engine/src/tree.rs`):
+  - 자식 cross available 판정이 컨테이너 `align-items` 만 보고 자식 `align-self: stretch` 를 무시 → Section 이 indefinite 폭을 받아 row main 이 미결정 → 손자 `flex-basis: 0%` 가 grow 없이 폭 0. 이제 stretch 판정은 자식별 (`align-self` 가 `align-items` 를 override, cross 축 auto margin 은 stretch 무효 — CSS §8.3 · §8.1). 역방향 (`align-items: stretch` 밑 `align-self: center`) 도 같이 shrink-to-fit 으로 정정.
+  - `column + min-height` (production body 가 정확히 이 형태) 컨테이너의 main 을 min/max 로 clamp 한 뒤 (3.6) 자식 컨테이너를 다시 풀지 않아 (3.5 가 그 앞에서만 돌았다) 손자 stretch 가 clamp 전 indefinite cross 로 굳었다 → 높이 0. 3.6 이 used main 을 바꾸면 3.5 를 한 번 더 돈다 (clamp 뒤 used main 은 definite — §9.8).
+  - 회귀 테스트 3 (Rust) · 브라우저 parity 스위트 무회귀 (기존 실패 6 은 수정 전과 동일 집합).
+
+## [ADR-222 캔버스 Padding·Gap 직접 편집 — 여백 위치에서 드래그·클릭으로 조절 (Implemented)] - 2026-09-17
+
+### Added
+
+- **캔버스 padding·gap 핸들** (ADR-222 Implemented): 컨테이너 (frame · Box · Card · Section 등 구조 컨테이너, 또는 자식이 있는 flex/block 컨테이너) 를 선택하면 padding 4변과 단일 행/열 flex 의 주축 gap 띠에 얇은 핸들이 상시 뜬다 (0값도). 띠에 마우스를 올리면 사선 + 현재 값 배지, 핸들/띠를 끌면 값이 실시간으로 바뀌고 (Skia 캔버스 · Preview · Styles 패널이 같은 확정값을 읽는다), 놓으면 되돌리기 1회. padding 은 파랑, gap 은 분홍. hug/auto 컨테이너면 부모·바깥 형제까지 함께 재배치된다.
+- **수정키**: Option/Alt 드래그 = 마주보는 두 변 · Option/Alt+Shift = 4변 · Shift = 10px 단위. 값이 0 에 닿으면 함께 멈춘다 (비대칭 차이 보존).
+- **핸들 클릭 → 인라인 숫자 입력** (RAC NumberField, 접근 이름 "Top padding" 등): Enter 로 반영 · Escape 취소 · 바뀐 값이 없으면 저장하지 않는다. 열려 있는 동안 Styles 패널의 같은 필드가 강조된다.
+- **padding 드래그 방향** (2026-09-17 사용자 지적): 4변 모두 **바깥쪽으로 끌면 커진다** — top 은 위로, right 는 오른쪽으로 (종전엔 안쪽이 +). gap 은 그대로 (주축 진행 방향이 +).
+- **드래그 값 배지 규격** (2026-09-17): 캔버스 padding·gap 드래그 중 값 배지가 선택 치수 레이블 (W × H) 과 같은 크기·폰트·여백 (12px Medium · 행 16 · 패딩 6/3 · 반경 4).
+- **padding link 와 캔버스 드래그 연동** (2026-09-17): Spacing 박스 모델의 link 가 ON 이면 캔버스에서 어느 변을 끌어도 4변이 잡은 변의 값으로 같아진다 (패널 입력과 같은 규칙, Option/Alt 수정키보다 우선). link 상태는 패널과 캔버스가 공유.
+- **Styles 패널 동기**: 캔버스에서 끄는 동안 Spacing 박스 모델의 해당 변이 강조 + 잠시 read-only, Layout 의 Gap 필드가 단일 행/열 flex 에서는 주축 longhand (row → columnGap · column → rowGap) 를 읽고 쓴다 — 종전 rowGap 우선 표시가 가로 레이아웃에서 다른 값을 보이던 것 정정.
+
+### Changed
+
+- **Escape 는 spacing 드래그 중이면 드래그만 취소** 하고 선택은 유지한다 (핸들 잔존 — Figma 어법). 드래그가 없을 때의 Escape (선택 해제) 는 그대로.
+- presentation layout lane: 자식 있는 컨테이너의 padding/gap 변경이 **외부 크기 불변이 증명될 때만** 자기 서브트리로 제한된다 (hug/auto · px 상자를 넘는 padding 은 부모로 승격). 종전에는 자식 존재만으로 승격을 막아 드래그 중 바깥 형제가 따라오지 않았다.
+- 스타일 commit 허용 목록: padding longhand 부분집합 (2변) 을 원자 patch 로 허용.
+- 캔버스 첫 범위 밖 (Grid · wrap · space-\* 정렬 · ref/projected · 회전 · %, rem, var 등 단위 보존 값) 은 핸들이 뜨지 않고 패널 편집만 — capability 표가 고정.
+- **tablet/mobile breakpoint 에서도 핸들이 뜬다** (2026-09-17 확장 — 처음엔 desktop 만이라 mobile 에서 padding 이 있어도 핸들이 없었다). 저장 위치는 Styles 패널과 같은 규칙: 해당 속성의 breakpoint override 토글이 ON 이면 그 breakpoint 값만, OFF 면 전역 (base). 토글 OFF 인데 상위 breakpoint override 가 덮고 있는 축은 핸들을 내지 않는다 (끌어도 화면이 안 바뀌는 상태 방지). 같은 수리로 Styles 패널 Spacing 의 padding 입력도 토글 ON 일 때 breakpoint override 에 저장된다 (종전에는 전역에 썼다).
+
+## [ADR-201 대용량 파일 업로드 — @composition/upload 전송 엔진 · FileUpload 컴포넌트 · TUS 서버 계약 (Implemented)] - 2026-09-17
+
+### Added
+
+- **`@composition/upload` 독립 전송 엔진** (`packages/upload-engine`, 런타임 의존 0, esm/cjs + JSP 용 IIFE `CompositionUpload`): TUS 1.0 (creation · expiration · checksum/termination 감지) sans-I/O 상태기계 + XHR driver — GB 파일을 `File.slice` 로 청크 전송 (4GB×3 힙 Δ 2.22MB), 네트워크 단절 · 새로고침 · 탭 종료 후 서버 `Upload-Offset` 기준 재개 (재전송 ≤ chunkSize), PATCH 차단 환경 `X-HTTP-Method-Override`, 에러 코드 11종 (`errors.json` 정본). tusd v2.10.1 대조군 8/8.
+- **`FileUpload` 컴포넌트** (팔레트 forms "file upload"): DropZone + FileTrigger + 진행 막대 샘플 행 2 로 합성, Preview/publish 에서 파일 선택 시 엔진을 lazy 로드해 런타임 목록 · 진행률 · 오류 코드를 표시 (preview 기본 dry-run, publish 실전송). Properties: 파일 형식 · 다중 · 폴더 · endpoint · chunk 크기 · 동시 수 · 재시도 · 최대 크기 · 자동 시작 · 미리보기.
+- **서버 계약 정본** `docs/reference/upload/server-contract.md` v1.0.0 (헤더 · 시퀀스 · 메타데이터 검증 12 규칙 · 인프라 knob · 보안 의무 · 공격 corpus) + **Spring MVC 5 / Java 8 참조 서버** `examples/upload-server-spring/` (웹루트 밖 저장 강제 · 소유자 · CSRF · TTL GC · Oracle/H2) + JSP 예제 `examples/upload-client-jsp/` + JDK 8 CI workflow.
+- `CAPABILITY_REGISTRY` 에 FileTrigger `onSelect` · DropZone `onDrop` 등재 — 두 컴포넌트가 interaction rule 트리거가 된다.
+- **미리보기 실전송 토글** — Data 패널 API 편집기 Params 탭 「미리보기에서 실제 업로드」 스위치 (endpoint 정의 `uploadDryRun`, 기본 dry-run). 참조 서버는 세션 CSRF 토큰을 `XSRF-TOKEN` 쿠키 (HttpOnly 아님, Path `/`) 로도 내보내고 composition 클라이언트가 이를 `X-CSRF-TOKEN` 헤더로 되돌린다 (계약 §5 "토큰 획득"). ADR-201 **Implemented 2026-09-17** — G5 live: preview 1GB 실파일 업로드 → 네트워크 단절 재개 → 새로고침 재개 → 완료 (서버 `Upload-Offset` oracle) 10/10 · JSP 예제 (IIFE, 일시정지/재개 · 단절) 7/7.
+
+### Fixed
+
+- **FileTrigger 가 선택한 파일명을 문서 prop (`selectedFiles`) 에 기록하던 잘못된 채널 제거** — 런타임 상태가 canonical document 에 남지 않는다 (정적 게이트 + live 확인).
+- **API 편집기가 업로드 endpoint 를 오류로 보이던 것** (후속 1) — Add API 직후 자동 Send (GET) 에 TUS 서버가 `405`/`412` + `Tus-Resumable` 로 답하면 Response 탭이 "실행 실패" 대신 **업로드 endpoint 안내** (TUS 버전 · 허용 메서드 · 데이터 소스 아님) 와 「미리보기에서 실제 업로드」 스위치를 그린다. 콘솔 `console.error`·오류 Map 기록도 없앰 (`info` 1줄).
+
+### Changed
+
+- `pnpm install` postinstall 이 `@composition/upload` 도 빌드한다 (`prepare:upload`).
+- **FileUpload active 분기 lazy 분리** (후속 2) — endpoint 해석 · CSRF 헤더 · 런타임 행은 `FileUploadActive` chunk 로 첫 파일 선택 때 로드 (initial 에는 idle 껍데기만). Preview initial −212 B gz (Builder 는 후속 1 추가분과 상계해 +266 B). 번들 게이트에 `uploadActiveLazy` 조건 추가. G5 live 12/12 재확인.
+- initial 번들: Builder +3,875 B · Preview +3,507 B gzip (등록 8지점 + 렌더러 shell, 엔진 chunk 는 lazy) — **initial 상한 재승인 2026-09-17: Builder ≤ 1,328,315 / Preview ≤ 601,346 B gzip (만료 2026-10-17, 202 재승인값 대체)**, 판정기 `adr201-bundle-gate.mjs` 11/11.
+
+## [ADR-013 Quick Connect — Data 행 「New table」 이 만든 테이블을 작업하던 컴포넌트에 자동 연결] - 2026-09-17
+
+### Added
+
+- **Properties Data 행의 「New table」 이 연결 모드로 Creator 를 연다** (ADR-013 Implemented). Creator 에 "The new table will be connected to {요소}" note 와 「Create & connect」 버튼이 서고, 빈 테이블 · preset · 붙여넣기 · CSV/JSON 으로 만든 테이블이 **누른 시점의 그 요소** 에 바로 연결된다 — 생성 중 다른 요소를 선택해도 대상은 바뀌지 않는다. 생성 + 연결은 되돌리기 1회 (⌘Z) 로 함께 원상. 일반 Data 패널 「Add Table」 은 종전 그대로.
+- **Table 대상**: Column 이 없으면 스키마로 Column 을 함께 만들고 (Preview 를 열어 두지 않아도 됨), 이미 Column 이 있으면 보존하며 새 스키마에 없는 컬럼 key 를 note 로 보인다. 「Replace columns with the new schema」 체크로만 전면 교체 — 되돌리기 1회로 이전 컬럼이 순서까지 복원된다.
+- API / AI 인계는 연결 모드에서 지원하지 않는다 — 사유 note 와 함께 「Continue without connecting」 로 일반 생성으로 넘어간다.
+
+### Fixed
+
+- **collection 에 연결된 ListBox · GridList · Select · ComboBox · Menu 가 행이 0 이면 factory 샘플 항목을 그대로 보이던 문제** (Preview/publish DOM). 연결된 0건은 빈 목록으로 그린다 — Canvas(Skia) 는 이미 그렇게 그리고 있었다 (`boundEmptyCollectionNoStaticFallback.test.tsx`).
+- 대상 요소가 삭제·이동됐거나 그 사이 데이터 연결이 바뀌면 아무것도 만들지 않고 안내한다 (저장 뒤 commit 경계에서도 같은 검사 — 어긋나면 collection 생성을 되돌린다).
+
+## [캔버스 페이지 헤더를 DOM 층으로 이관 — 제스처 중 숨김 (ADR-221)] - 2026-09-17
+
+### Changed
+
+- 캔버스 페이지 헤더 띠·타이틀·이름 편집을 Skia 렌더에서 **DOM 층** (`.canvas-container` 안, Skia 위 · 눈금자 아래) 으로 옮겼다 (ADR-221 Implemented). 보이는 결과는 같다 — 폭 = 페이지 폭, 높이 화면 28px, 배경 `--button-color`(없으면 `--fg`) 10% · 선택 페이지 `--focus-ring` 30%, 타이틀 700, 페이지 상단과 1px 간격. Framer 처럼 휠/스크롤/줌 등 카메라 제스처 중에는 헤더를 숨기고 제스처가 끝나면 다시 배치한다 (제스처 중 헤더 DOM 쓰기 0). 위 페이지 body 에 가려지는 아래 페이지 헤더 구간은 `clip-path` 로 잘려 보이지도 잡히지도 않는다.
+- 페이지 이동 drag · shift-클릭 body 다중선택 · 더블클릭 이름 편집은 종전과 같은 동작으로 헤더 띠 어디서나 되고, 스페이스 pan·헤더 위 휠은 카메라 조작으로 그대로 통과한다. 이름 편집기는 헤더 띠 자체가 필드가 되어 굵기 700 으로 헤더와 맞는다.
+
+## [캔버스 페이지 헤더 띠 — 타이틀 배경 28px · 선택 페이지 강조] - 2026-09-17
+
+### Added
+
+- 캔버스의 각 페이지 상단에 폭 = 페이지 폭, 높이 화면 28px (줌 무관) 인 헤더 띠를 추가했다. 배경은 `--button-color` (builder 스코프에 없으면 `--fg` — light gray-800 / dark zinc-100) 10% alpha, 현재 선택된 페이지는 `--focus-ring` 30% alpha. 띠와 페이지 상단 사이는 화면 1px 띄운다. 페이지 타이틀은 띠 안에 세로 중앙 + 좌측 8px 패딩, **wght 700 (실제 bold)** 로 조판한다 — direct Font 경로는 variable font 굵기를 반영하지 않아 (Bold 요청 = Regular 글리프 실측) 텍스트 노드와 같은 Paragraph + `fontVariations` 경로로 옮겼다 (paragraph 는 타이틀당 1개 보유, 글자 간격 흔들림도 함께 사라짐). 페이지 이동 drag 는 타이틀 글리프가 아니라 **헤더 띠 전체**에서 시작할 수 있다 (더블클릭 이름 편집도 같은 영역 · 편집기 자체는 글리프 box 에 놓임).
+
+### Fixed
+
+- 빌더 테마를 바꿔도 Skia 오버레이가 읽는 CSS 토큰 캐시 (`--border` 등) 가 부팅 시점 값에 머물던 것을 테마 변경 시 비우도록 했다. 헤더 띠 색은 `:root` (preview 팔레트) 가 아니라 `[data-context="builder"]` 스코프에서 읽는다.
+
+## [왼쪽 패널 컨트롤 — Components 아이콘 교체] - 2026-09-17
+
+### Changed
+
+- 왼쪽 패널 컨트롤 그룹의 Components 버튼을 Lucide `Blocks`에서 단일 컴포넌트 의미의 `Component` 아이콘으로 교체했다.
+
+## [Styles 패널 — Layout Direction 아이콘 교체] - 2026-09-17
+
+### Changed
+
+- `lucide-react`를 1.33.0에서 1.46.0으로 갱신하고, Layout 섹션 Direction의 row/column 표시를 늘이기 아이콘에서 흐름 방향을 직접 나타내는 공식 `LayoutArrowRight` / `LayoutArrowDown`으로 교체했다. 1.46의 `__iconData.node` 배포 형식도 아이콘 레지스트리 생성기가 읽도록 호환성을 확장했다.
+
+## [Rust 레이아웃 엔진 패키지 명칭 통일 — `packages/engine`] - 2026-09-17
+
+### Changed
+
+- 자체 Rust 레이아웃 엔진 경로와 crate 를 `packages/engine` / `engine` 으로 통일했다. WASM 산출물은 `engine-pkg/engine.js`, Builder wrapper 는 `engine.ts` · `engineWasm.ts`, 공개 식별자는 `EngineLayout` · `initEngineWasm` · `isEngineReady` 로 바꿨다. CI Cargo cache, agent 범위 검증, 문서와 테스트의 기존 명칭도 함께 갱신해 이전 패키지·crate·WASM·TypeScript 이름을 제거했다. 런타임 레이아웃 계약과 직렬화 형식은 바꾸지 않는다.
+
+## [샘플 데이터 생성기 패키지화 — `@composition/sample-data` · AI 테이블 규칙 kind `mock` → `generate` (ADR-220)] - 2026-09-16
+
+### Changed
+
+- **ADR-220 Implemented 2026-09-16** — Data 패널 preset 과 AI 「설명으로 테이블 만들기」 가 쓰던 샘플 행 생성기 (`services/mockData` 5 파일, 1,923 줄, 외부 import 0) 를 workspace 패키지 `packages/sample-data` (`@composition/sample-data`, src 직접 export · 의존 0) 로 옮겼다. builder 역참조는 tsconfig `rootDir` + `composite` (TS6059/TS6307) 와 `boundary.static.test` (제품 소스는 패키지 안만 · 테스트는 vitest/node: 만) 가 막고, 음성 검사 (Builder 상대 re-export 1 줄 주입 → 둘 다 실패 → 제거 → 통과) 로 매번 증명한다. 사용자-가시 동작 변경 0 — 고정 컨텍스트 스냅샷 (시계 2026-09-16T00Z · TZ UTC · ko/en · seed · preset 28 × 5 행 · 규칙 55 × 3 값) 이 이동·rename 전후 byte-identical. 번들 Builder initial **+230 B** (리팩터 자체 +1 B · R2 프롬프트 보강 +229 B) / Preview 0 (같은 lockfile 두 worktree A/B, 220 판정기 abs(Δ) ≤ 512 · `presetStrings` chunk initial 밖 · 202 lazy 보존).
+- 공개 심볼 이름 정리 — `MockRule/MockColumn/MockRowContext/MockLocale` → `Sample*` · `MockRandom` → `SeededRandom` · `Mock`/`createMock`/`CreateMockOptions` → `Generators`/`createGenerators`/`CreateGeneratorsOptions` · `resolveMockLocale` → `resolveSampleLocale` · `MOCK_RULE_TYPES`/`MockRuleType` → `GENERATE_RULE_TYPES`/`GenerateRuleType` · `GenerateRowsOptions.mock` → `generators`. collection 저장 필드 `mockData`/`useMockData` (79 지점) 와 workflow `sourceType "mock"` (3) 은 그대로 (데이터 계약은 별도 ADR).
+- AI tool `create_table_from_description` 의 사실적 값 규칙 kind 가 `{ kind: "mock", type }` → **`{ kind: "generate", type }`** (`fields[].generate` 와 같은 단어). 모델이 종류 이름 (phone · city) 을 `kind` 에 넣는 실측 결함 (Ollama qwen3:14b, zod 거부) → tool 설명 ko/en 과 JSON Schema `describe` 에 "종류는 `type` 에 (예: `{ kind: 'generate', type: 'phone' }`)" 를 보강.
+
+live (headed Playwright · Ollama qwen3:14b 32k ctx): preset `mock-preset-live.mjs` 8/8 (Profiles seed 재적용 동일 행 · Images picsum · page error 0) · AI `adr220-ai-live.mjs` 4/4 (`create_table_from_description` → 승인 다이얼로그 "Customers — 4 fields · 5 rows" → collection 5 행, phone "(455) 941-0639" · `"kind":"mock"` 0). 하니스: `adr220-snapshot.test.ts` (+ `vitest.adr220.config.ts`) · `adr220-bundle-gate.mjs` (`--self-test` 음성 fixture 3: delta · lazy · dirty patch).
+
+## [AI 패널 — Stop 직후 재전송이 버려지던 결함 수리 · ADR-202 승격 판정 live] - 2026-09-16
+
+### Fixed
+
+- AI 패널에서 Agent 를 Stop 한 직후 보낸 요청이 user 메시지도 없이 사라졌다 — abort 된 모델 스트림이 실제로 끝나 `finally` 가 돌 때까지 (Ollama 취소 28~240 초 실측) `useAgentLoop` 의 진행 중 요청 ref 가 남아 다음 제출을 막았고 입력창은 열려 있어 알 수 없었다 (ADR-202 `464a0769b` 유래). `stopAgent` 가 ref 를 바로 비운다; 늦게 도는 `finally` 는 자기 요청만 정리한다. 가드 `useAgentLoop.test.ts` 「Stop 뒤 재전송」. (live: Stop 직후 "버튼 생성해" → direct, Button +1)
+
+### Changed
+
+- **ADR-202 Implemented 2026-09-16** — 사용자 판정 (a) 저장소 initial 절대 상한을 202 재승인값 **Builder ≤ 1,319,829 / Preview ≤ 675,691 B gzip (만료 2026-10-16, 219 대체)** 으로 재승인해 G5 종결 (초과 +670 B 는 202 밖 Properties i18n 키 → Preview 공유 locale 청크) · (b) Preview locale 분리 후 재측정은 별도 후속. `docs/adr/completed/202-*.md` 이관 · README 권장 착수 순서 1위 → 013.
+- **Preview initial −89.7 KB gzip (−13.2%)** — Preview 런타임이 `i18n` barrel 을 통해 Builder 번역 표 (raw 245 KB) 와 Properties 라벨 표를 initial 에 싣고 있었다 (Preview 의 i18n 소비는 locale 판독 3개뿐, t() 호출 0). `PreviewLocale.tsx` 가 `i18n/locales` 를 직접 읽는다; 가드 `preview/previewI18nImport.static.test.ts` (barrel · translations/labels · t() 호출 금지). 같은 HEAD worktree A/B: Preview 681,726 → 592,000 B · Builder −28 B. Preview 절대 상한을 592,000 으로 조임 (ADR-202 후속 (b), 사용자 판정).
+- ADR-202 Implemented 승격 판정 live 2차 (`apps/builder/scripts/adr202-promotion-live.mjs`, 실제 Ollama qwen3:14b 설정 상태): direct 4 회 모델 호출 0 · 모호 요청은 Agent 로 실모델 호출 1 · rollback 키 on/off 경로 · page error 0. 번들 HEAD 재측정에서 Preview 절대 상한 (ADR-219) +670 B 초과는 202 밖 (Properties 패널 i18n 키가 Preview 공유 locale 청크를 키움) (같은 날 위 판정으로 Implemented).
+
+## [Data 패널 — preset 문자열 lazy 분리 · AI 테이블 생성이 Mock 모듈을 쓴다] - 2026-09-16
+
+### Changed
+
+- preset 문자열 (`presetData` 풀 · `presetField` 라벨 · `presetMeta` 설명, ko/en) 을 메인 i18n 카탈로그에서 `panels/datatable/presets/presetStrings.ts` (lazy 표) 로 — Add Table 은 lazy 표면인데 표가 initial 에 실려 Builder initial 상한을 +2,116 B 넘겼다. 결과 Builder initial 1,321,917 → **1,312,037 B gzip (−9,880, 상한 1,319,829 안)**. locale 은 provider `locale` (React) / `getStoredLocale` (AI tool) 로.
+- AI 「설명으로 테이블 만들기」 (`tableSpec.ts`) 가 자체 rng·이름 풀 대신 `services/mockData` 를 쓴다 — `{ kind: "mock", type }` 규칙 신설 (creditCardNumber · avatar · phone · address · sku … 54 종, tool JSON Schema 에 enum 으로 노출) · key 힌트 phone/city/address/sku 추가 · locale 은 preset 카탈로그 풀 (ko 면 한국어 이름·주소).
+
+live (`mock-preset-live.mjs` 8/8 · `--ko` 9/9): ko-KR 부팅 → Profiles 라벨 「이름」 · 「강서준」 · 02 전화 형식 · seed 재현 · page error 0.
+
+## [Data 패널 — Add Table preset 확장 (자체 Mock 데이터 모듈)] - 2026-09-16
+
+### Added
+
+- `services/mockData` — 라이브러리 설치 없이 mockaroo · faker.js · randomuser.me · dummyjson · picsum.photos 의 패턴만 이식한 자체 모듈. seed 결정성 (mulberry32 + FNV-1a) · locale 풀 (i18n `presetData.*` 가 정본, 미해소 시 영문 fallback) · faker 식 이름공간 (`person` · `internet` · `location` · `commerce` · `finance` · `date` · `image` · `lorem` · `helpers.fake` 템플릿) · mockaroo 식 컬럼 규칙 (`MockRule` 60여 종 + Blank % + Custom List random/sequential/weighted + Formula 파생) · Luhn 유효 카드 번호 · EAN-13 · randomuser 정적 초상 URL · picsum `/seed` `/id` `?grayscale` `?blur`. 외부 요청 0.
+- Add Table preset 카테고리 4 · preset 13 추가 — **People** (Profiles · Contacts · Employees: randomuser 어법, 성별 ↔ 이름 ↔ 초상 일관, 직급별 연봉 구간, 상급자 참조) · **Content** (Posts · Comments · Todos · Recipes · Quotes: dummyjson 스키마, 완료 여부에 따른 마감일) · **Finance** (Transactions 출금 음수·잔액 파생 · Payment Cards Luhn·마스킹 · Invoices 항목 합계·세금·결제일) · **Media** (Images: picsum id · 크기 · 흑백 · 블러 변형) · E-commerce 에 Carts (합계 파생) · Reviews (평점 5점 편중).
+- 생성 조건 — 스키마 미리보기에 **Seed** (같은 seed = 같은 행, 오늘 날짜 기준) · **Blank %** (required 아닌 컬럼을 그 비율로 비움) 입력 2개.
+
+### Changed
+
+- 기존 preset 15 를 규칙 기반 (`definePreset({ columns })`) 으로 옮겼다 — 스키마와 샘플 행이 한 정의에서 파생. Users 에 gender · avatar 컬럼, status 는 활성 70% 가중, Products 는 dummyjson 스키마 (brand · sku · discountPercentage · rating · dimensions · availabilityStatus 는 stock 에서 파생 · thumbnail/images picsum) 로. Audit Logs 에 userAgent.
+- i18n — `presetData` 풀 33 (성별 이름 · 주소 · 상품 형용사/소재/명사 · 브랜드 · 요리 · 가맹점 · 태그 · 할 일 · 인용문 · 색 이름 …) · `presetField` 라벨 105 · `presetMeta` 18 (ko/en). 어휘 충돌 3건 정리 (Default Card · Avatar/아바타 · Blur/흐림).
+
+live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카드 28 · Profiles 미리보기 22 필드 + Seed/Blank % 28 티어 · seed "live"·blank 20 → 행 10 · 성별↔초상 일관 · 비필수 null 21% · 같은 seed 재생성 = 같은 행 · Images picsum id URL · page error 0.
+
+## [Properties 패널 — 색 점 하나 (.property-swatch)] - 2026-09-16
+
+### Changed
+
+- Variant 셀렉트 트리거·목록의 색 점 (`.property-select__swatch`, 12) 과 Static Color seg 의 색 점 (`.property-seg__swatch`, 10) 이 크기가 달랐다 — `.property-swatch` (PropertySwatch.css, unlayered 라 팝오버 portal 에도 닿는다) 하나로: 12 (`--text-xs`) · 원 · 안쪽 테두리. 소비처 클래스는 여백만 (글자 앞 4 · 점만 있는 seg 는 `data-swatch-only` 로 0). Properties 안의 다른 색 표시 — 격자 팝오버 칸 (20 정사각, 선택 체크) · Color 필드 swatch (16 정사각, 실제 색 값) 는 점이 아니라 대상 밖. 가드 `PropertySegment.static.test` (크기·모양 정의는 PropertySwatch.css 한 곳). (live: 트리거·팝오버·seg 전부 12×12 · radius-full · 여백 4/0) (2026-09-16 사용자 지적)
+
+### Fixed
+
+- Variant 트리거 (`SelectValue`) 안의 색 점이 위로 2px 붙어 있던 것 — SelectValue 가 `display: flex` 인데 align-items 가 없어 inline-block 점이 flex-start 에 놓였다. `.property-swatch` 에 `align-self: center` + `vertical-align: middle` (부모가 flex 든 인라인 흐름이든). (live: 점 중심 630 → 632 = 값·버튼 중심) (2026-09-16 사용자 지적)
+
+## [빌더 패널 — Web Interface Guidelines 감사 (모션 · 포커스 · i18n · 문자열 26건)] - 2026-09-16
+
+### Changed
+
+- AI 패널 tool 호출 spinner 는 `prefers-reduced-motion: reduce` 에서 멈춘다. 페이지 선택기 삭제 버튼 · DataTable preset 카드의 `transition: all` 은 background / border-color (/ box-shadow) 명시로. 글꼴 피커 검색 입력의 포커스 테두리는 `:focus` → `:focus-visible`.
+- AI 메시지 시각을 `toLocaleTimeString("ko-KR")` 하드코딩에서 i18n `formatTime` (현재 locale · 12/24 시간 설정) 으로.
+- 팝오버·다이얼로그 안 스크롤 영역 (글꼴 피커 목록 · Fill 상세 · preset 모달 목록/스키마 · 글꼴 관리자 본문) 에 `overscroll-behavior: contain` — 끝에서 뒤 패널이 같이 밀리지 않게.
+- 잘라내기 (`text-overflow: ellipsis`) 가 실제로 걸리도록 flex/grid 자식에 `min-width: 0` — Interactions 규칙 요약 · Navigator 행 라벨 · DataTable preset 설명 · import 미리보기 열 이름.
+- UI 문자열의 `...` 를 `…` 로 — Text 섹션 「Truncate (…)」·「Custom…」, 컴포넌트/아이콘 검색 placeholder, 컬럼 샘플값 잘라내기, 「Importing…」 및 i18n ko/en 18 키 (Loading · Search commands/fonts · Choose a collection · Filter rows · Detecting · Loading data · GPU 복구/초기화). LLM 프롬프트 안의 JSON 예시 4곳은 제외. 예시 placeholder (`users_api…` · `currentUser…` · 엔드포인트/Ollama URL) 는 `…` 종결. 가드 `panels/wigA11y.static.test.ts` 확장 (transition all 0 · outline none 뒤 `:focus` 0 · infinite spinner 의 reduced-motion · `"..."` 0 · locale 하드코딩 0).
+
+## [빌더 패널 — Web Interface Guidelines 감사 (접근성 · 성능 12건)] - 2026-09-16
+
+### Changed
+
+- 아이콘 피커: Lucide 아이콘 1,776 개를 전부 `<button>` 으로 그리던 그리드를 RAC `Autocomplete` + `Virtualizer(GridLayout)` + `ListBox layout="grid"` 로 — 뷰포트 안 8행 (66 셀) 만 그리고, 검색 입력에서 ↑↓←→ · Home/End 로 그리드를 돌며 Enter 로 고른다 (live: 열 6 · 셀 28 · 방향키 가상 포커스 이동 · End 스크롤 273 · Enter/클릭 선택 후 닫힘).
+- 그래디언트 바 핸들: 드래그 전용이던 스톱 핸들에 `role="slider"` + 키보드 (←→ 1% · Shift 10% · Home/End · Delete 삭제) + 포커스 링. 스톱 목록의 색 스와치와 DataTable API import 의 컬럼 행은 `<div onClick>` 에서 `<button aria-pressed>` 로 (live: Shift+← 100→89 · Home 0 · Space 선택 · Delete 로 3→2).
+
+### Fixed
+
+- 아이콘 전용 버튼의 접근 이름: ChildItemManager 삭제 (i18n `common.delete`, Edit 도 `common.edit`) · DataTable Refresh · Variables 편집/삭제 (`title` 만 있던 것에 `aria-label`) · History 스냅샷 이름 변경 입력 (`common.rename`) · Variable 편집기 JSON textarea (`aria-labelledby` 로 제목 연결). 아이콘 피커 검색 입력 포커스는 `:focus` → `:focus-visible`. 가드 `panels/wigA11y.static.test.ts`.
+
+## [AI 패널 — 로컬 추천 작업의 완료 조건 실행] - 2026-09-16
+
+### Changed
+
+- 추천을 표시 당시 선택과 검증된 단일 IR에 연결했다. 클릭 때 자연어를 재해석하지 않고 기존 compiler validator/tool 경로로 실행하며, 선택 변경·검증 실패 시 모델 fallback 없이 중단한다.
+- 필수 입력·사용자 정의 값·선택 모드·숫자 step 설정은 필요한 경우 readonly/disabled도 같은 mutation과 history 1건으로 해제한다. 기존 tool의 모든 요청값 read-back이 성공한 경우에만 작업명과 검증 완료를 보고한다. 대화에는 내부 `set` 문법 대신 사용자가 누른 작업명을 남긴다.
+
+## [AI 패널 — RAC 주요 기능과 공통 편집 추천 분리] - 2026-09-16
+
+### Changed
+
+- 추천을 「컴포넌트 기능」(최대 3개)과 「공통 편집」(최대 2개)으로 분리했다. RAC 컴포넌트 레퍼런스 md와 현재 catalog 편집 계약을 대조한 40종의 기능 우선순위를 적용해 Button pending/submit, Checkbox 부분 선택, ComboBox 사용자 입력, Disclosure 펼침, NumberField step 등이 variant/size에 밀리지 않게 했다.
+- 우선순위 메타데이터는 허용 prop/value를 정의하지 않는다. 현재값·공통 compiler 검증을 재사용하며, callback·데이터 쓰기·미노출 API가 필요한 문서 기능은 자동 실행으로 제안하지 않는다. 실제 모델 호출 없이 실행되는 동작만 표시한다.
+
+## [AI 패널 — 선택 컴포넌트별 로컬 실행 추천] - 2026-09-16
+
+### Changed
+
+- AI suggestions를 고정된 디자인 요청 3종에서 선택 컴포넌트의 편집 계약·현재값 기반 명령으로 변경했다. 숨김/조건부 필드와 compiler 검증 실패 후보는 제외한다. 모델 미설정 및 대화 진행 후에도 추천을 표시하며 기존 실행 경로로 제출한다. 다중 선택에는 단일 요소 편집을 추천하지 않는다.
+
+## [Properties 패널 — RAC 기본값이 있는 입력의 계약 default 동기] - 2026-09-16
+
+### Fixed
+
+- ProgressBar · ProgressCircle · Meter · Slider(Track) 의 Min/Max (0/100) · Slider Step (1) · Popover/Tooltip 의 Placement (bottom/top) · Offset (8/0) · Cross Offset (0) · Container Padding (12) · DateField/DatePicker/DateRangePicker Granularity (day) · TimeField Granularity (minute) · Calendar 가족 Page Behavior (visible) · DatePicker 가족 Max Visible Months (1) — RAC 가 생략 시 쓰는 값이 있는데 계약에 `default` 가 없어 패널이 비어 보이던 13 타입 29 필드. 값은 react-aria/react-stately 소스에서 확인, 캔버스·Preview 는 이미 같은 값을 쓰므로 시각 무변경 (Popover 는 explicit `offset: 8` = RAC 기본). HTML 기본 (Link/Form `target` · `encType`) 은 RAC 가 정하지 않아 제외. 가드 `racDefaultSync.test.ts` (계약 default = RAC 표). (2026-09-16 사용자 지적)
+
+## [Properties 패널 — Label Position 은 글자 seg (Top · Side)] - 2026-09-16
+
+### Changed
+
+- 필드 가족·Form 의 「Label Position」 seg 가 아이콘 (PanelTop · PanelLeft) 대신 글자 「Top · Side」 (ko 「위쪽 · 옆」) 로 — 아이콘 두 개로는 위/옆 구분이 한눈에 안 읽힌다는 사용자 판정. 반폭 seg 그대로, Label Align 등 정렬 아이콘 seg 는 그대로. (2026-09-16)
+
+## [필드 가족 — Necessity Indicator 기본값 `icon`] - 2026-09-16
+
+### Changed
+
+- field 가족 13 타입 + Form 의 `necessityIndicator` 계약에 `default: "icon"` (RSP 기본과 같다). Properties 패널의 Necessity Indicator seg 가 선택 없이 시작해 첫 클릭이 슬라이드가 아니라 fade 로 나타나던 것이 사라진다 (live: Icon 선택 상태로 시작 · 첫 클릭 7 프레임 이동). DOM 은 `data-necessity-indicator="icon"` 이 추가로 emit 되지만 소비 CSS 가 없어 시각 무변경 — `*` 표시는 여전히 요소 props 에 값이 있을 때만 (Skia 도 같은 규칙). (2026-09-16 사용자 결정)
+
+## [Properties 패널 — 글자 seg 의 인디케이터가 잘려 「닦여 나오던」 것] - 2026-09-16
+
+### Fixed
+
+- 글자 seg (Size · Fill Style · Necessity Indicator 등 `.property-seg`) 의 선택 인디케이터가 Styles 처럼 이전 버튼에서 미끄러져 오지 않고 목표 버튼 안에서 닦여 나오듯 보이던 것 — 말줄임용 `overflow: hidden` 이 버튼에 걸려 있어 버튼 안의 absolute 자식인 인디케이터가 이동 중 버튼 상자 밖 부분이 잘렸다 (live 실측: 이동 8 프레임 중 앞 3 프레임은 겹침 0% = 보이지 않음). 아이콘 seg 는 이 규칙이 없어 정상이었다. 말줄임을 콘텐츠 span 으로 옮겨 인디케이터는 자르지 않는다 + CSS 정적 가드.
+
+## [Properties 패널 — 게이트 seg 의 인디케이터가 점프하던 것] - 2026-09-16
+
+### Fixed
+
+- Styles 와 같은 `ToggleButtonGroup` 인데 Properties 에서만 선택 인디케이터가 미끄러지지 않고 점프하던 경우 — 종속 필드를 드러내는 게이트 seg (TextField 「Label Position」 → 「Label Align」 등). 원인은 필드 행의 React key 가 행의 필드 키 전부를 이은 문자열이라 종속 필드가 옆 칸에 합류하는 순간 행이 remount 된 것 (live 실측: 같은 DOM 노드 false · translate 없음). key 를 행의 첫 필드로 바꿔 행과 게이트 seg 가 살아남는다 (7~9 프레임 이동). 게이트 없는 seg (Button Size · Fill Style · Static Color · Type) 는 원래 애니메이션됐다.
+
+## [Properties 패널 — 색 이름 variant 는 격자 팝오버 (Badge · StatusLight)] - 2026-09-16
+
+사용자 판정 「A 팝오버 grid」 (시안 `docs/design/properties-panel-inventory` 「12 Variant — 색 이름 grid」). catalog 무변경.
+
+### Changed
+
+- variant 옵션의 **절반 이상이 Spectrum 색 이름** (`--hue-*`) 이면 셀렉트 팝오버가 목록 대신 **6열 스와치 격자** (Theme 패널 tint-grid 어법 — 28 칸 · gap 8 · 선택 체크): 첫 구획 의미색 (accent · informative · neutral · positive · notice · negative), 구분선, 색 이름. 지금 걸리는 타입은 Badge (25) · StatusLight (19) 둘 — 나머지 49 타입의 variant 는 변화 0 (의미 variant 는 이름이 정보라 목록 유지). 트리거는 그대로 색 점 + 이름 (닫힌 행 46), 필드는 전폭. RAC ListBox `layout="grid"` 라 ←→↑↓ 2차원 이동 · 타이핑 검색 유지, 칸 이름은 hover title + 접근 이름.
+
+## [Properties 패널 — 필드 행 「기본값으로」 액션] - 2026-09-16
+
+### Added
+
+- catalog 필드 행 끝 28 열에 reset 아이콘 — 행의 필드 중 catalog 기본값이 있고 현재 값이 다른 것이 있을 때만 서고 (새 요소엔 0개), 툴팁 「Reset Variant to default / Variant 기본값으로」, 누르면 그 필드들을 기본값으로 되돌린다 (쓰기는 다른 편집과 같은 경로). 기본값이 없는 필드 (Text · Name) · boolean 칩 · binding · items 는 대상 밖.
+
+### Changed
+
+- 「원래대로」 아이콘 (`RotateCcw`) 을 `ACTION_ICONS.reset` 으로 등재 — 섹션 헤더 reset · 액션 바 reset · Chart 시리즈 reset · SelectionMemory 복원 · 필드 행 reset 이 같은 그림.
+
+## [Properties 패널 — Attributes ID 행에 중복 검사/제거 액션] - 2026-09-16
+
+### Added
+
+- ID 행 끝 28 열에 `Fingerprint` 아이콘 액션 (툴팁 「Check ID uniqueness / ID 중복 검사」, 사용자 지시). 다른 요소와 ID 가 겹치면 `base_N` 의 빈 번호로 옮기고 (`button_1` → `button_2`), 비어 있으면 `type_N` 을 지정하며, 고유하면 알림만. 변경은 history 1건이라 토스트의 Undo 로 되돌린다. 쓰기는 ID 입력과 같은 `updateElement` 경로.
+
+## [Properties 패널 — Data 바인딩 「새 테이블」 을 행 액션 열로] - 2026-09-16
+
+### Changed
+
+- Content 절 Data 폼 안의 「+ 새 테이블 만들기」 글자 버튼을 제거하고 행 끝 28 열의 `DatabasePlus` 아이콘 (aria-label + 툴팁 「New table」) 으로 옮겼다 (사용자 지시). 컬렉션이 0개인 빈 폼에서도 버튼 한 줄이 남지 않고, Attributes ID 행의 복사 아이콘과 같은 자리·크롬이다. 폼 안 동선은 열기 · 사용처 N 만 남는다.
+
+## [Properties 패널 — Component 절을 pencil 어법 두 줄로] - 2026-09-16
+
+사용자 판정 「제안 A」 (시안 `docs/design/properties-panel-inventory` Proposal 페이지 「11 Component 절」, Pen v1.2.8 번들 실측 배치). 크롬은 composition 정본 (28 티어 · 233 · 3열 격자) 그대로.
+
+### Changed
+
+- **정체 칩은 원본·인스턴스에만** — 표준 요소는 바로 아래 Attributes ID 와 같은 이름의 「button_1 · STANDARD」 칩을 세우지 않는다. 역할은 pencil 과 같은 축 — 원본 = 역할색 채움 · 인스턴스 = 역할색 점선 — 에 10 mono 역할 라벨 유지 (색은 캔버스 오버레이·Navigator 와 같은 `--editing-semantics-*`).
+- **액션은 한 줄** — 행마다 「라벨 + 28 열 아이콘」 이던 것을 pencil 처럼 한 스트립으로: Go to component · Detach instance 는 아이콘 전용 28 + 툴팁 (단축키 ⌘⌥X 는 `commandId` 에서 파생), Create ↔ Detach component 만 글자 (원본 해제는 인스턴스 전체 영향 — 이름이 보여야 한다), Select instances 는 「◇ N」 수 배지. 버튼은 전부 `.control-button` 하나 (아이콘 전용은 폭만 정사각). 높이 표준 112→76 · 원본 148→112 · 인스턴스 184→112 (Overrides 목록은 그대로). 레지스트리 `COMPONENT_SEMANTICS_ACTIONS` (ADR-199) 무변경.
+
+## [ADR-202 — 명시적 AI 요청의 모델 없는 실행] - 2026-09-16
+
+### Added
+
+- AI 입력창에서 정확히 일치하는 컴포넌트 생성·선택 요소 색상/명시 필드 편집·기존 명령을 typed IR로 검증한 뒤 실행한다. `확인 버튼` recipe를 등록했다. Anthropic one-shot IR adapter와 creative Agent를 구분하며, OpenAI-compatible은 기존 Agent fallback을 유지한다.
+- AI 패널 lazy 로딩과 offline direct 실행, session-local rollback, 입력 원문 없는 실행 계측을 추가했다. 실제 모델 응답 품질은 미검증이다.
+
+### Fixed
+
+- AI 복합 컴포넌트 생성에서 요청한 props/styles/fills를 factory/ref의 초기값으로 전달한다. canonical slot/clip/placeholder도 최초 삽입 history에 포함해 undo→redo 후 값이 사라지지 않게 했다. 무시된 opacity 등 style 반영도 read-back으로 확인한다. 색상도 legacy `props.fills` 대신 renderer가 읽는 canonical `fills`에 저장해 생성·수정·제거·undo/redo에 반영한다.
+- AI lazy 전환으로 공유 UI 청크가 재분할되는 비용을 제한했다. Builder·Preview의 initial 순증 및 ADR-219 절대 상한은 ADR-202 bundle gate로 검증한다.
+
+## [Properties 패널 — 컨트롤 어법: 필드 의미별 컨트롤 (seg · 칩 · 슬라이더 · 피커)] - 2026-09-15
+
+같은 날 오전의 「선택지는 전부 셀렉트」 규칙을 대체한다 (사용자 판정 2026-09-15 — 시안 `docs/design/properties-panel-inventory` Proposal 페이지, 레퍼런스: Primer segmented control 2~5 / NN·g·LukeW 「dropdowns last resort」 / Figma·Framer 인스펙터). 기준은 옵션 수·글자 폭도 「전부 셀렉트」 도 아닌 **필드의 의미** — 같은 키는 어느 컴포넌트에서든 같은 컨트롤 (`panels/properties/generic/fieldEditor.ts` 매핑표, catalog `PropContract` 무변경). 격자는 현행 3열 (1fr 1fr 28px) 유지 (2열 안은 보류).
+
+### Changed
+
+- **boolean 은 전부 칩 묶음 — 스위치 0** (`PropertyChipGroup`, RAC `ToggleButtonGroup selectionMode="multiple"` → 칩마다 `aria-pressed`). 같은 섹션의 boolean 이 한 묶음, legend 는 「Options」 (Chart 의 show-_/fill-_ 은 「Show」 · 「Fill」, 칩 글자는 접두 제거). 하나뿐이어도 칩. 부정형 `hideTimeZone` · `hideArrow` 는 긍정형 「Time Zone」 「Arrow」 (켜짐 = 보임). On/Off 값 enum (`autoCorrect` · `spellCheck`) 도 칩. 켜는 칩에 종속된 필드 (Show Value Label → Value Label · Legend → Legend Position) 는 묶음 바로 아래. TextField Behavior 3행 138px → 2행, Checkbox 4행 → 2행, DatePicker 6행 → 2 묶음.
+- **배타 2~4 짧은 값은 seg** (`PropertySegment` — Styles 정렬 seg 와 같은 indicator 그룹): labelPosition · necessityIndicator · selectionMode · density · hourCycle · fillStyle · Button type · pageBehavior · granularity · 이진 variant (Default/Accent ×15 등). 2~3 반폭, 4 이상 · 라벨이 칸에 안 들어가면 전폭.
+- **방향 · 정렬 · 모양은 아이콘 seg** — orientation (↔ ↕) · labelAlign/align (좌·중·우) · labelPosition (Top/Side 패널) · legendPosition (4방) · stackType · curve · gridType · layout. 이름은 `aria-label`.
+- **size 는 seg 최대 5단** — XS S M L XL. 7단 타입 (Text · Heading · Paragraph) 의 2XL · 3XL 은 Properties 에 없고 Styles 패널 font-size 로; 값이 범위 밖이면 seg 선택 없음 + legend 뒤 「3XL · set in Styles」.
+- **값이 색인 variant 는 색 점** — Meter (Informative/Positive/Warning/Critical) 같은 ≤4 는 seg + 점, Button (6) · Badge (25) · StatusLight (19) 같은 5+ 는 셀렉트 + 항목·값 점 (`PropertySelect swatches`, 색은 `--informative` 등 상태색과 `--hue-*` Spectrum 색 이름 토큰). `staticColor` 는 스와치 seg (Auto | ○ | ●).
+- **Popover · Tooltip `placement` 는 9-위치 피커** (`PropertyPlacementPicker` — Styles Layout 의 3×3 Align 격자 어법, 가운데 = 대상, 옆에 현재 값 이름).
+- **상한 있는 number 는 슬라이더 + 직접 입력 값 칸** — strokeWidth 0.5~~4 · innerRadius % · startAngle/endAngle 0~~360° · gridRings · maxVisibleMonths 1~~3 · animationBegin/Duration · timeout · gap · columns 1~~12. **Slider · Meter · ProgressBar · ProgressCircle 의 `value` 는 형제 minValue~maxValue 에 묶인 슬라이더** (양끝 = min/max, 눈금 = step). 상한 없는 정수 (min/max/step · length · offset · pages) 는 스텝퍼 (NumberField) 그대로.
+- **5+ · 긴 라벨 · 도메인 enum 은 셀렉트 유지** — inputMode · enterKeyHint · type · channel · animationEasing · target · encType. 옵션이 데이터에서 오는 필드 (Chart 컬럼 매핑, literal 모드) 도 셀렉트 고정.
+- catalog 라벨 정합: TimeField `hourCycle` (12/24) · Form `necessityIndicator` (Icon/Label) · Form `target` (Same Window …) 을 형제 타입과 같은 라벨로 — 같은 키·값이 다른 컨트롤로 갈리지 않게 (정적 가드 `fieldEditor.static.test.ts` 가 catalog 전수에서 「같은 키·값·kind = 같은 컨트롤」 을 집행).
+
+## [Properties 패널 — 필드 컨트롤 · 폭 · 순서를 한 규칙으로 (Styles 패널 기준)] - 2026-09-15
+
+### Changed
+
+- **선택지 필드 (variant · size · fillStyle · enum) 는 전부 셀렉트** — 종전엔 옵션 수·글자 폭에 따라 seg 와 셀렉트가 갈려 Size 가 S M L 은 seg, XS~XL 은 셀렉트, Label Position 은 seg 인데 Label Align 은 셀렉트였다. Styles 패널의 Ratio · Overflow 와 같은 어법 하나로 (아이콘 칩 seg 는 Styles 의 아이콘 글리프에만).
+- **반폭 짝 격자** — 셀렉트 · 숫자 · 스위치는 반폭 (87) 으로 두 개가 한 행 (「Max Length | Min Length」 「Disabled | Read Only」), 텍스트 · 아이콘 · 목록 (data · items) 은 전폭. legend 나 옵션 라벨이 반폭에 안 들어가면 (「Necessity Indicator」 · 「Bottom Start」) 그 필드만 전폭. 스위치가 전폭 빈 상자 하나를 차지하던 State 절이 절반으로 준다.
+- **섹션 순서 고정** Content → Appearance → Layout → State → Interaction → Locale — 계약 등장 순서에 따라 Pagination 은 Appearance 가 Content 앞, Disclosure 는 State 가 Appearance 앞이던 것.
+- **섹션 안 필드 순서는 kind 묶음** — Variant · Size (첫 행) → 텍스트 → 셀렉트 → 숫자 → 스위치 → 목록. TextField 의 Input Type 이 Label 과 Value 사이에 끼고 Popover 의 스위치가 숫자 사이에 끼던 것이 같은 컨트롤끼리 모인다.
+- **variant · size 가 한 단계뿐인 필드 (「Size: M」 「Variant: Default」) 는 숨김** — 고를 게 없다.
+- **목록 행 공용 구조 `.list-row`** (Styles 의 Fill · Shadow 레이어 행과 같음 — [본문 28: 토글/표지 20 · 라벨 · meta 10 mono][액션 그룹 28: 20×20]) 를 panel-system 으로 올리고 Properties 의 목록 셋이 쓴다: **ItemsManager** (ListBox · Menu · Select · Tabs · Chart 행 — 종전엔 CSS 정의가 0 이라 브라우저 기본 글자 크기로 그려졌다; 라벨 + 항목 수 legend, 펼친 필드는 인스펙터 격자, 목록은 전폭 217) · **State 절** (묶음은 fieldset + legend, 정적 설명 문단 제거, 이름 없는 암묵 상태는 [prop · type][이름 입력 20], 펼친 편집은 Name 전폭 + Type | Default 반폭) · **Frame Slot** (Status 읽기 전용 값 필드, 추천 추가는 셀렉트 행의 28 액션 열, 추천 목록 행 [삽입 20][제거 20]).
+- **계약 `state` 섹션 제목 「Behavior」** (ko 「동작」) — 같은 패널의 상태 변수 절 (ADR-214) 과 「State」 제목이 둘 겹쳤다.
+- **Chart 전용 컨트롤 (종류 · 프리셋 · 데이터 매핑 · 숫자 형식 · 표시 예산 · 시간축)** 도 인스펙터 격자 (전폭 181 + 28 열) 와 아이콘 prefix 0 — 종전엔 217 전폭에 아이콘 prefix. 기준선 추가 버튼은 다른 목록의 「추가」 와 같은 점선 전폭.
+- **Nested Routes (body)** — Parent Page · Slug 를 격자 행으로, 「Generate from Title」 은 Slug 행의 28 액션 (WandSparkles), Resolved URL 은 읽기 전용 값 필드. 아이콘 prefix 제거.
+- 계약이 빈 타입 (frame …) 의 「편집 가능한 속성이 없습니다」 빈 상태 제거 — Attributes · State 절이 항상 있어 모순된 안내였다.
+- `.fieldset-row` 의 28 액션 열은 legend 행에서 상자에 맞춰 아래 정렬 (Styles 의 Ratio 잠금과 같음).
+- **Variant | Size 는 언제나 한 행** — Card 처럼 옵션 글자가 길면 (「Secondary」) Variant 가 전폭으로 떨어져 2행이 되던 것. 셀렉트 값 ↔ chevron 상자 gap 0 (값 자리 55 → 59) + 값 글자 간격 −0.01em 으로 「Secondary」 「Informative」 「Chartreuse」 가 들어간다; 「Emphasized」 (Checkbox/Switch) 만 트리거에서 말줄임 (목록은 전체).
+- **조건부 필드는 켜는 필드 바로 뒤에** — ProgressBar/Meter 의 「Show Value Label」 스위치와 「Value Label」, 「Label Position」 과 「Label Align」 처럼 kind 묶음 정렬로 갈라지던 짝이 한 자리에.
+- **레퍼런스 (RAC/RSP) 가 자동으로 처리하는 옵션은 패널에서 뺐다** — Modal `Trap Focus` · `Auto Focus`, Popover `Contain Focus` (RAC FocusScope 담당, RSP 에 없는 prop) · field 6종의 `Validation Behavior` (RAC Form 이 FormContext 로 전파 — Form 하나만). accepts 엔 남겨 (`editorHidden`) 런타임 통과는 그대로.
+- **의미 없는 상태에서는 숨김** — `Label Align` 은 `Label Position = Side` 일 때만 (12 필드) · Meter/ProgressBar `Value Label` 은 `Show Value Label` 일 때만 · DateField/DatePicker/DateRangePicker 의 `Hour Cycle` · `Hide Time Zone` 은 시간 granularity 일 때만.
+- **섹션 소속 정규화** — Link/Card 의 `href` · `target` · `rel` 은 Content (종전 State), ProgressBar/ProgressCircle `Indeterminate` 는 Behavior (종전 Content), ProgressBar/Meter `Show Value Label` · `Value Label` 은 Appearance (Slider 와 같음).
+- **Nav 의 `aria-label` 이 Content 와 Attributes 두 곳에 뜨던 중복 제거** — 편집 surface 는 Attributes 절 하나 (계약 필드는 `editorHidden`). 전 계약 sweep: Attributes 축 key (id · className · aria-label) · 같은 key · 같은 라벨의 중복은 Nav 하나뿐이었고, 정적 가드 (`contractFieldDuplicates.static.test.ts`) 로 고정.
+
+## [Fill 다층 렌더 — 레이어 목록의 fill 을 전부 그린다 (Canvas · Preview 대칭)] - 2026-09-15
+
+### Fixed
+
+- **Fill 레이어를 여러 개 쌓아도 맨 위 하나만 보이던 결함** — 레이어 UI (「+」 · 눈 · 순서) 는 있었지만 DOM (`fillsToCssBackgroundStyle`) 과 Skia (`getTopEnabledFill`) 둘 다 맨 위 enabled fill 하나로 끝냈다. 이제 enabled fill 전부를 아래 → 위 순서로 겹쳐 그린다 (사용자 판정 2 안, 2026-09-15).
+  - DOM: 2층 이상이면 `background-image` 층 쌓기 (목록 첫 항목이 맨 위, 단색은 `linear-gradient(c, c)`, 이미지 층만 `background-size`) — 단층 출력은 종전 그대로.
+  - Skia: `box.fillLayers` (아래 → 위) 를 같은 기하로 층마다 칠한다 (box · catalog 경로 둘 다). 맨 위 층은 `box.fill` / `fillColor` 객체를 공유해 드래그 presentation 패치가 그대로 보인다. 이미지 fill 은 Skia box 경로가 shader 로 못 그리던 종전 제약 그대로 (DOM 만).
+  - live: Frame 빨강 + 파랑 50% → Canvas 픽셀 (127, 0, 128) · Preview `linear-gradient(rgba(0,0,255,.5) …), linear-gradient(rgb(255,0,0) …)` · 아래 층 끄면 (127, 127, 255) · 위 층 25% → (191, 0, 64) · Button (catalog 경로) 초록 + 파랑 50% → (0, 127, 128).
+
+## [Properties 패널 — Styles 와 같은 어법 (legend 라벨 · stepper 0 · 아이콘 prefix 0)] - 2026-09-15
+
+### Changed
+
+- **Properties 패널 필드 라벨을 전부 legend (상자 위) 로** — Styles 패널 판정을 그대로 적용. 전폭 행의 상자 안 suffix 라벨 (「button_1 ID」 「hero-title CLASS」 「None ICON ▾」 「… TEXT」 · GenericFieldRenderer 의 짧은 라벨 suffix) 과 스위치의 inline 행 (라벨 왼쪽 · 스위치 오른쪽, 상자 없음) 을 legend + 상자 28 로. 아이콘 prefix (# · 필드 종류 아이콘) 는 legend 가 정체를 말하므로 전부 제거.
+- **Attributes 「Aria Label」 은 RAC 가 접근 가능한 이름을 스스로 못 만드는 요소에만** — 시각 `label` 이 있는 타입 (field 가족 · Slider · Meter · ProgressBar …) 은 label 이 비었을 때, 컬렉션·그룹 (Tabs · Table · Tree · ListBox · Toolbar · Group …) 은 항상, Button · ToggleButton · Link 는 텍스트 없는 아이콘 전용일 때만. 텍스트 콘텐츠·장식·레이아웃 요소에는 안 보인다 (`ariaLabelNeed.ts`).
+- **숫자 필드의 − / + stepper 제거** (`PropertyNumberInput` — Styles 의 ⇕ 제거와 같은 판정, 화살표 키 그대로).
+- Button Icon · Text 필드가 3열 (217) 로 다른 전폭 필드 (181) 보다 넓던 것 → 같은 행 래퍼로 181.
+
+## [Styles 패널 — 필드 라벨을 Gap 과 같은 legend 로 (Size · Position · Typography · Shadow · 슬라이더 3, 필드 안 suffix/inline 되돌림)] - 2026-09-15
+
+### Fixed
+
+- **Border Radius 프리셋 메뉴 (XS~XL) 를 고르면 반경이 0 으로 저장되던 결함** — 프리셋 값이 토큰 `var(--radius-xl)` 인데 border 기하 배치 (ADR-219) 는 숫자만 읽는다 → 메뉴 글자 (「XL · 12」) 와 같은 px 로 풀어 저장.
+- Typography Line Height 가 px 단위인데 상한이 10 이라 「28」 같은 값이 입력 즉시 옛 값으로 되돌아가던 결함 (unitless 시절 범위 잔재) → 상한 999.
+
+### Changed
+
+- **Fill 레이어 행을 28 그룹 / 안쪽 20 규칙으로** — swatch 16 → 20×20 raised (팝오버 trigger), 불투명도 scrub 28 → 20, 삭제 버튼이 hover 전엔 안 보이던 것 → 눈 토글과 한 액션 그룹 (28 그룹 안 20×20 둘, 항상 보임). Effect 의 Box Shadows 레이어 행도 같은 구조 — swatch 20 raised · ⋮ 메뉴 (inset · remove) 를 액션 그룹 「[−][inset 토글]」 로, Blur 행은 scrub 20 + 「[−]」.
+- **Fill 의 불투명도는 한 숫자** — 종전엔 레이어 행 「%」 · 팝오버 Opacity 행 · 피커 알파 슬라이더/A (색 자체 알파) 세 곳이 각각이었다 (Effect 의 Opacity 는 요소 전체라 별개). 팝오버 Opacity 행은 제거, 단색 fill 의 피커 알파는 레이어 행 「%」 와 같은 `fill.opacity` 를 읽고 쓴다 (Figma 어법, 색은 …FF 로 저장). 종전 문서의 색 알파 (…80) 는 팝오버를 열 때 한 번 opacity 로 접는다 (알파 × opacity — 화면은 그대로). 그래디언트는 stop 마다 알파 (별개 축). 색 영역·색상 슬라이더의 키보드 입력이 알파를 1 로 되돌리던 RAC 결함도 같이 막음.
+- **그룹 (28) 안 버튼은 전부 20×20 — 티어 밖이던 4곳 정렬**: Border Style · Font Style · Decoration · Case 의 아이콘 칩이 행 폭을 나눠 갖던 것 (24 · 37) → 20×20 (Sides · Align 과 같음) · Border Color 「■ 2563EB」 의 swatch 16 → 20 · 색 피커 HEX/RGBA/CSS seg 버튼 24 → 20 (seg 28) · 데이터 바인딩 액션 버튼 22 → 20.
+- **Size 절 Width/Height 행의 28 열에 Min/Max 펼침 토글** — 켜면 Min W/H · Max W/H 4 필드, 끄면 숨김 (사용자 인라인 값이 하나라도 있으면 토글과 무관하게 보임 — spec 기본값은 제외). Ratio · Overflow 는 그대로.
+- **Border Radius 를 Gap 과 같은 「값 + ▾ 토큰 preset」 필드로** (종전 슬라이더 + ⋮ 프리셋 메뉴) — 메뉴 「Reset · XS · 2 · S · 4 · M · 6 · L · 8 · XL · 12」. 28 열은 **코너 4방향 펼침 토글** — 켜면 코너 필드 4, 끄면 숨김 (코너가 비균일이면 토글과 무관하게 보임).
+- **Gap 의 ▾ 메뉴를 spacing 토큰 preset 으로** — px 단위 하나뿐이던 메뉴 대신 「Reset · XS · 4 · S · 8 · M · 12 · L · 16 · XL · 24」 (토큰 이름 + 풀린 px, px 로 commit). 시안 반영 때 뺐던 preset 복귀 (2026-09-15 사용자 판정).
+- **단위 트리거를 버튼으로** — legend + 단위 필드 (Gap · Size · Position · Typography · Border 코너 · Shadow · Settings Page gap) 의 「PX」 가 글자만 있어 버튼으로 안 보였다 → Ratio 셀렉트의 ▾ 상자와 같은 raised 20 버튼에 단위 글자 (「—」 는 최소 20).
+- **절 헤더 액션 버튼 어법 통일** — Fill 「+」 · Spacing 펼침이 raised 상자 (SwatchIconButton 28) 라 reset 과 달랐다 → reset 을 기준으로 전부 투명 32 아이콘 버튼 (`ActionIconButton`, 모든 패널의 Section reset 포함).
+- **Spacing 절 헤더의 8-필드 펼침 토글 제거** — 박스 모델 다이어그램이 이미 4방향 변별 편집이라 중복 (FourWayGrid · 확장 CSS · i18n 키 삭제).
+- **단위 입력 필드의 ⇕ stepper 전부 제거** (Size · Position · Gap · Typography · Border 코너 · Shadow · Settings Page gap — `PropertyUnitInput` 에서 stepper 자체를 뺐다). 숫자 조정은 화살표 키 (⇧ = 10) 그대로.
+- **Border Width · Radius · Effect Opacity 슬라이더의 라벨도 legend 로** — 상자 안 왼쪽 글자 (「Width ──●── 2 PX」, inline) 를 상자 위 legend 로 (46). 코너 4 필드의 코너 글리프는 사용자 판정으로 유지 (2026-09-15 3차).
+- **Position 절 (X · Y · Left · Top) · Typography (Font Weight · Font Size · Line Height · Letter Spacing) · Shadow 편집기 (Offset X/Y · Blur · Spread) 도 같은 legend 어법으로** — 상자 안 suffix (「24 LEFT」 「16 SIZE」 「0 X」) · Font Weight inline 을 전부 상자 위 legend + 상자 안 단위 트리거로 (2026-09-15 사용자 판정 2차).
+- **Size 절 8 필드 (Width · Height · Min W/H · Max W/H · Ratio · Overflow) 의 라벨이 상자 안 suffix (「fit W」 「auto MIN W」) 에서 Gap 과 같은 legend (상자 위 라벨 18 + 상자 28 = 46) 로** — 2026-09-15 사용자 판정 (시안 panel-ui 01 의 suffix 어법은 확인 착오). 단위는 상자 안 트리거 (「400 PX ⇕」), 값이 키워드 (fill · fit · auto) 면 값 칸에 키워드 · 트리거는 「—」. 동작 (W/H 단위 메뉴의 fill · fit-content, 빈 min/max 의 단위 선택 보존, stepper) 은 그대로.
+
+## [Properties 패널 — 팔레트 70 컴포넌트 전수 대조 (잘림 · 눌림 · 티어 밖 높이 0)] - 2026-09-15
+
+### Fixed
+
+- **반폭 (87) 칸에 안 들어가는 값이 잘리던 결함 5종** (live 전수 대조 — 70 컴포넌트, 헤더·절 펼침 후 텍스트 clip · 칩 폭 · 상자 높이 · 행 넘침 · 겹침 자동 판정): ① 2옵션 seg 칩 37 에 「Compact | Regular」 · 「Polygon」 (Tabs · ToggleButtonGroup · Radar) → 라벨 폭을 재 (canvas measureText) 안 들어가면 전폭 seg, ② 셀렉트 값 자리 55 에 「Informative」 · 「Categorical」 (Meter · Chart palette) → 전폭, ③ legend 「Necessity Indicator」 · 「Animation Easing」 (field 가족 · Chart) 이 87 을 넘으면 전폭, ④ 값 없는 셀렉트의 RAC 기본 「Select an item」 이 「Select an」 으로 → 「—」 (이름은 legend 가 준다), ⑤ Icon 피커에 값이 있으면 (미리보기 20 + 이름 + 지우기 20) 반폭에 「calendar」 가 안 들어간다 → 전폭, 긴 라벨 (「Calendar Icon」) 은 legend.
+- **Chart Series 이름 상자 26** (아이콘 없는 Input 만 든 `.react-aria-Group` 이 줄 높이 18 + pad 8) → 상자 최소 28 (컨트롤 티어).
+- Pie·Radial 「Show Total (donut · radial)」 스위치 라벨이 133 에서 잘림 → 「Show Total」 (ko 「합계 표시」).
+
+## [Properties Appearance — Size 가 「XS S M L XL」 칸 13 으로 눌리던 결함 · Variant | Size 한 행] - 2026-09-15
+
+### Fixed
+
+- **Size 필드가 반폭 (87) 에 5옵션 seg 로 들어가 칸 13 씩 눌려 글자가 안 보이던 결함** — 옵션 4개 이상이면 셀렉트 (「M ▾」), 3개 이하 (S M L) 는 seg 그대로. Variant 도 반폭으로 내려 **「Variant | Size」 한 행** (panel-ui 07), 반폭은 legend 모드라 「Secondary ▾」 가 79 에 들어간다. 반폭 seg 칸 37 에 「Emphasized」 처럼 긴 2옵션 라벨은 셀렉트로 (라벨 7자 이하만 seg). live: Button 「Primary ▾ | M ▾」 · TextField 「M ▾ | Top·Side」 · Checkbox 「Default ▾ | M ▾」.
+
+## [패널 잔여 대조 5 — Modified 단위 · Icon/Blend prefix · Settings 절 이름 · Page gap · Data creator legend · Theme 6열 · 카드 아이콘 28] - 2026-09-15
+
+### Changed
+
+- **Screen › Modified 값 단위** (panel-ui 04 — 대조 B9) — store 가 숫자로 갖는 길이 (Width 160 · Border Radius 8 · Gap 8) 를 「160px」 로 (단위 없는 fontWeight · opacity · flexGrow · zIndex 는 그대로). 균일한 longhand 묶음은 shorthand 한 행 — 「Gap 8px」 (rowGap · columnGap), 「Padding 12px」 (4변), 「Border Radius 8px」 (4코너), 「Border Width」 (4변); 비균일이면 longhand 그대로 (ADR-219 4행). 카운트는 표시 행 수.
+- **Properties Button 「None ICON ▾」 · 「… TEXT」** (panel-ui 07 — 대조 B13) — Icon 피커 · Text 입력의 라벨이 상자 안 suffix (`PropertyIconPicker labelMode="suffix"`; catalog icon 필드도 라벨이 짧으면 같은 방식). **Fill 팝오버 Blend** 의 아이콘 prefix 제거 (legend 가 이름).
+- **Settings 절 이름 「Canvas」 · 「Appearance」** (panel-ui 20 — 대조 B11; 종전 Rulers & Guides · Theme & Appearance) · **Page gap 「80 PX」** — 아이콘 prefix · S/M/L preset ▾ 대신 단위 suffix + ▲▼ stepper.
+- **Data creator 「Start from」 legend** (panel-ui 19 — 대조 B12) — 방법 격자 위 legend 18 (종전 없음), 칸 안쪽 여백 4 로 233 폭에서 「Describe to AI」 가 들어간다.
+- **Theme 색 격자 6열 gap 8** (panel-ui 14 — 대조 B10; 종전 5열 1fr 라 실측 gap 17) · **Components 카드 아이콘 상자 28** (종전 34 — `.list-item-icon` 공용).
+
+## [색 피커 본체 — 색 영역 100 · 막대 12 · 「[HEX|RGBA|CSS] [623CEA hex] [스포이드]」 한 행 · Border 코너 글리프] - 2026-09-15
+
+### Changed
+
+- **색 피커 본체** (panel-ui 05 · 17 — 대조 B8; 기본형 · Fill · 스톱 · 점 피커 한 곳) — 색 영역 180 → **100** (3행 + gap 2), hue/alpha 막대 8 → **12**, 입력 첫 행이 「[HEX|RGBA|CSS 세그] [623CEA hex] [스포이드 28]」 (행 템플릿 1fr 1fr 28). HEX 필드는 모드와 무관하게 항상 보이는 정본 값 (`#` 없이 6자, alpha 가 있으면 8자, suffix 「hex」). 둘째 행은 모드별 — RGBA 는 「[R G B 한 상자] [A 28]」, CSS 는 문자열 (열 2), HEX 는 첫 행이 전부. 기본형 팝오버 233×410 (종전 518).
+- **Border 코너 2×2 라벨 → 코너 글리프** (panel-ui 02 — 대조 B5) — 「TL / TR / BL / BR」 글자 suffix 대신 코너 호 글리프가 필드 앞 라벨 (`CornerRadius` 아이콘, 접근 이름은 「Top left radius」 그대로), 단위 「PX」 suffix + stepper. `PropertyUnitInput labelMode="icon"`.
+
+## [Styles 패널 Layout 탭 — 절 순서 · Size 5행 (Hug · Fill 이 단위 메뉴 안) · Gap 「8 PX」] - 2026-09-15
+
+### Changed
+
+- **절 순서 Layout → Size → Spacing → Position** (panel-ui 01 — 대조 B1; 종전 Size → Position → Layout → Spacing). Position 은 접힌 채 마지막 — 펼침 상태 · reset 범위 · absolute 자동 펼침은 그대로.
+- **Size 절 5행 × 28** (대조 B3) — 「fit W | auto H」 · 「MIN W | MIN H」 · 「MAX W | MAX H」 · 「Auto RATIO (열 2) · 잠금 28」 · 「Visible OVERFLOW (열 2)」. Ratio · Overflow 도 라벨이 필드 안 suffix (legend 행 18 제거), 절 높이 7행 → 5행. **Fixed · Fill · Hug 토글 행 (46) 을 걷고 W/H 단위 메뉴에 `fit-content` (Hug) · `fill` (Fill) 로** — 부모 문맥별 CSS (flexGrow · alignSelf stretch · 100%) 는 종전 `sizeModeResolver` 그대로, Fill 상태에서 숫자를 치면 Fixed 로 (fill 속성 제거). Block 부모의 H 는 Fill 을 싣지 않는다 (종전 비활성 사유). Fill 상태는 필드에 「fill」 로 보인다. body 는 종전처럼 단위만.
+- **Gap 「12 PX」** (대조 B4) — 아이콘 prefix · 토큰 preset ▾ (XS~XL) 대신 legend 「Gap」 + 단위 suffix + ▲▼ stepper. store 가 gap 을 px 숫자로 강제하므로 단위는 px 뿐 (토큰 값은 저장 즉시 px 로 풀리던 상태).
+- 빈 값 (placeholder 「auto」) 필드에는 stepper 를 그리지 않는다 — 「a… MAX W」 잘림 해소.
+
+### Fixed
+
+- **단위 메뉴에서 키워드 (fill · fit-content · auto · reset) 를 고른 뒤 다른 곳을 클릭하면 옛 값이 다시 commit 되던 결함** — RAC ComboBox 가 메뉴를 닫으며 input 에 focus 를 돌려주는데 그 상태에서 value 동기화가 skip 돼 blur 가 이전 표시값을 commit 했다 (live: W 「fit」 → fill 선택 → 절 접기 클릭 → `fit-content` 로 되돌아감). 키워드 선택 시 표시값을 즉시 바꾸고 다음 동기화를 강제한다 (preset 경로와 같은 방식).
+
+## [색 피커 — Document · Theme 팔레트 행] - 2026-09-15
+
+### Added
+
+- **색 피커 본체 아래 「Document · Theme」 팔레트** (panel-ui 05 #1) — 기본형 (Border · Text · Shadow · Modified) · 확장형 (Fill) · 스톱/점 피커 전부 (본체 한 곳). **Document** = 이 문서에서 쓰인 색 자동 수집 (backgroundColor · color · borderColor · color fill, canonical 정본 · 빈도 순 · 12 상한, 저장소 없음). **Theme** = ADR-110 theme 모델 그대로 — 현재 accent tint 사다리 (theme 이 실제로 쓰는 lightness 6: subtle · 900 · highlight · 1000 · 1100 · 1200, `resolveAccentLadder`) + neutral tone 사다리 (Tailwind 50 · 200 · 400 · 600 · 800 · 950). 스와치 28 · 6열 gap 8 · 헤더 28 (접기) · 그룹 라벨 18. 클릭 = 그 색 commit (입력 필드와 같은 경로), 현재 색 스와치에 선택 링. i18n ko/en.
+
+## [Styles 패널 단위 필드 — suffix 가 단위 메뉴 트리거 · ▲▼ stepper · 「au… LEFT」 잘림 해소] - 2026-09-15
+
+### Changed
+
+- **suffix 모드 단위 필드 (Size · Position · Border 코너 · Text 크기/행간/자간 · Shadow)** — 종전 필드 우측 ▾ 20 상자 대신 suffix 글자 (「8 PX」 의 PX, 「fit W」 의 W) 가 단위 목록 트리거다 (panel-ui 05 #3 · 06). 접근 이름 「{label} Unit」. ▾ 상자를 걷어 값 폭이 20 늘어 「au… LEFT」 · 「n… SPACE」 잘림이 사라졌다.
+- **숫자 값에 ▲▼ stepper** — 화살표 키와 같은 계산 (1 · ⇧ 10, min/max 클램프), 클릭은 commit. 키워드 값 (auto · normal) 에는 그리지 않는다. preset 필드 (Gap · Padding 등) 는 종전 ▾ 그대로.
+
+## [패널 크롬 결함 3 — 슬라이더 트랙 · 행 메뉴 항목 눌림 · 액션바 간격] - 2026-09-15
+
+### Fixed
+
+- **슬라이더 트랙이 안 보이던 결함** — Border Width/Radius · Effect Opacity 슬라이더의 트랙 배경이 미정의 토큰 `--bg-emph` 를 읽어 투명했다 (채움만 보였다). 정본 `--bg-emphasis` 로 교체 (`form-controls.css`, Effect 레이어 행 hover 도 같은 토큰).
+- **행 메뉴 항목이 20 으로 눌리던 결함** — Screen › Overrides 「+」 처럼 항목이 많은 PropertyRowMenu 에서 생성 Menu.css 의 column flex + max-height 300 이 항목을 flex-shrink 로 눌렀다. 메뉴 항목에 `flex: none` — 항목은 28 그대로, 메뉴가 스크롤한다 (`builder-menu-row.css`).
+- **액션바 항목 간격** — toolbar 내부 gap 2 하드코드 → `--chrome-gap` 4 (panel-ui 10, 바 외곽과 같은 값).
+
+## [캔버스 — 기울임 (font-style) · 대소문자 (text-transform) 가 Skia 텍스트에 안 실리던 결함] - 2026-09-14
+
+### Fixed
+
+- **Compare 모드에서 web 은 기울임·대문자가 적용되는데 canvas 는 그대로였다** (catalog 컴포넌트 텍스트 — Button·Text 등): 레이아웃 측정은 둘 다 읽어 폭은 맞았지만 Skia 렌더 노드에 `fontStyle` (slant) 과 변환된 콘텐츠를 싣는 곳이 없었다 — inline 텍스트 override 13 필드 (ADR-057) 에 `fontStyle` (italic 1 · oblique 2) 과 `textTransform` (측정과 같은 `applyTextTransform`) 을 추가. 잔존 spec 텍스트 shape 는 원래 `shape.textTransform` 으로 변환됐다. live (Button): 기울임 → Skia `fontStyle 1` · 픽셀 변화 668 → 대문자 → `content "BUTTON"` → 굵게 → `fontWeight 700`, 캔버스가 굵은 기울임 대문자로 그려진다.
+- ADR-219 정적 가드 (`borderGeometry.static.test.ts`) 가 i18n 키 문자열 (`"styles.appearance.borderTopWidth"`) 을 longhand 판독으로 오인해 P4 이후 실패하고 있었다 — 문자열 리터럴 제외.
+
+## [Text 탭 Style · Decoration · Case · Border 선 스타일 — 토글은 다시 누르면 해제 (× 토글 제거)] - 2026-09-14
+
+### Changed
+
+- **Border 선 스타일 세그먼트** 도 같은 패턴: 「없음 (×)」 제거, solid · dashed · dotted 셋 (24×20 / 그룹 28), 활성 토글 재클릭 = `none` (companion 은 none 에 width/color 를 넣지 않는다 — 기존 규칙). live (frame, 4px navy): dashed 재클릭 → `none`, 상변 픽셀이 테두리색에서 배경색으로 · solid 재선택 → 복귀.
+- **Style 세그먼트 = Bold · Italic 다중 선택** (동시 활성, 재클릭 해제). 종전 「기본 (Tx) · 기울임 · 비스듬히」 단일 선택에는 굵게가 없어 굵기는 Weight 셀렉트로만 바꿀 수 있었다. Bold = `fontWeight ≥ 600` (Weight 셀렉트와 같은 값을 본다 — 켜면 700, 끄면 catalog base 가 굵지 않으면 inline 삭제 · 굵으면 400) · Italic = `fontStyle ≠ normal` (oblique 문서도 켜진 것으로 표시, 켜면 italic · 끄면 normal). 비스듬히 (oblique) 전용 토글은 없어졌다 — 값은 보존된다. live: 굵게 → 700 (Weight 셀렉트 「Bold」) → 기울임 함께 → 둘 다 활성 → 굵게 해제 → inline 삭제 (base 400) → 기울임 해제 → normal.
+- **Decoration (취소선·밑줄·윗줄) · Case (대문자·첫 글자·소문자)** 세그먼트에서 「없음 (×)」 토글을 뺐다. 활성 토글을 한 번 더 누르면 해제 = `none` — 다른 토글 그룹과 같은 패턴. 3 버튼이 행 폭을 나눈다 (flex 1). live: 밑줄 → `underline`, 다시 → `none` (선택 0) · 대문자 → 소문자 전환 → 다시 → `none`.
+
+## [Fill opacity — frame 에서 드래그 preview 가 캔버스에 안 보이던 결함 2겹] - 2026-09-14
+
+### Fixed
+
+- **Fill 팝오버 · 행의 opacity scrub 을 끌어도 캔버스는 놓을 때만 바뀌었다** (frame 등 잔존 spec 요소): ① `Frame.spec` 이 `render.presentation.fills = "background"` 계약을 선언하지 않아 editor presentation pilot 이 frame 을 소유하지 않았다 — 배경 shape 은 08-31 부터 `background-fill` 인데 pilot 도입 (08-22) 때의 제외가 그대로였다 (색 picker 드래그도 같은 이유로 commit-only). Slot 과 같이 선언. ② opacity(paint) preview 는 색 preview 와 달리 legacy `backgroundColor` 가상 fill 을 fallback 으로 넘기지 않아 canonical fills 가 없는 요소 (막 배경을 준 요소) 에서 pilot 이 null 이었다 — 색 경로와 같이 fallback + 커밋 시 새 fill id. 행 scrub 에도 `onScrub` (첫 fill = presentation 경로). live (실제 빌더, frame `#2F6FED`): 행 scrub 92→52 · 팝오버 scrub 60→100 동안 캔버스 픽셀이 매 샘플 따라옴 (alpha 0.92 → 0.52 → 1.0), 커밋 값 일치, 편집 모드 오진입 0.
+
+## [Styles 패널 — 슬라이더 · scrub 드래그 동기화 (Effect Opacity · Blur)] - 2026-09-14
+
+### Fixed
+
+- **Opacity 값 칸 (%) 이 드래그 중 안 바뀌고 놓을 때 갱신됐다**: thumb 만 로컬 드래그 값을 따르고 숫자는 `value` prop 을 읽었다. 값 칸도 드래그 값을 따른다 (live: 12 샘플 thumb 85→6 = 값 칸 85→6).
+- **Blur 반경 scrub 이 드래그 중 캔버스에 안 보였다** (놓을 때만 반영): `ScrubInput` 에 `onScrub` 이 없었다 — store preview (rAF, 히스토리 없음) 로 드래그 중 반영, 놓으면 commit. 그런데 `ScrubInput` 의 요소 전환 reset effect 가 `value` 도 deps 로 들어 preview 가 value 를 되돌리는 **첫 pointermove 에서 드래그 세션이 죽었다** (두 번째 move 부터 무시 · pointerup 은 클릭으로 오인해 편집 모드) — Fill 팝오버 opacity scrub (`onScrub` 있음) 도 같은 결함. reset 은 `selectedElementId` 에만 반응한다. live: blur 4 → 14 … 104 px 10 샘플 store·Skia `layer-blur sigma` 동행 · 커밋 104.
+
+- **Effect › Opacity 슬라이더가 드래그 중 끊겼다**: `PropertySlider` 는 RAC controlled 슬라이더인데, opacity preview 는 presentation 경로 (Skia 만 갈아끼우고 store 무변경) 라 드래그 내내 `value` 가 그대로였고 RAC 가 매 렌더 thumb 를 이전 값으로 되돌렸다. Border Width/Radius 는 store preview 경로 (rAF 마다 store 갱신) 라 따라오긴 했지만 한 프레임 늦었다. 슬라이더가 드래그 중 값을 로컬로 들고 (onChange → 로컬, onChangeEnd → controlled 복귀) 두 경로 모두 포인터를 즉시 따른다. 다른 preview 컨트롤 (ScrubInput · ColorPickerPanel · BoxShadowEditor) 은 이미 로컬 세션 값을 들고 있어 같은 문제 없음. live: 실제 빌더에서 opacity 드래그 12 샘플 85 → 6 단조 · store 는 드래그 중 불변 · 커밋 0.06.
+
+## [Border 기하 채널 — 코너별 반경 · 변별 폭 (ADR-219 Implemented)] - 2026-09-14
+
+### Added
+
+- **Styles › Border 절**: Width 아래 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (전체 = `borderWidth` 하나, 일부 = 변 longhand 4 — 폭 0 인 변은 없음), Radius 아래 코너 2×2 (TL/TR/BL/BR suffix 필드 28 — 칸 하나는 그 코너, 슬라이더는 넷 함께). 표시는 저장 형태와 무관한 유효값 (longhand ?? shorthand ?? catalog base). double/groove/ridge/inset/outset 에서는 세그먼트 비활성 (변별 폭 미지원), 그런 문서가 오면 「Skia 근사」 배지. Modified 탭에 코너·변 longhand 8 행 (ko/en).
+- **저장 규칙 (HC3)**: 코너/변은 균일이면 shorthand 하나, 비균일이면 longhand 4 — 둘이 함께 저장되지 않는다. 편집은 축별 배치 연산 (`applyBorderGeometryBatch`): shorthand 쓰기는 longhand 를 덮고, 코너 하나 쓰기는 나머지를 편집 전 유효값 (catalog base 포함) 으로 채우며, `{TL:12, borderRadius:4}` 는 순서와 무관하게 `[12,4,4,4]`. 절 reset 은 축 키 5 를 지운다 (base 를 다시 저장하지 않음). 색·스타일 편집의 companion 은 폭이 (shorthand 든 longhand 든, 0 이라도) 있으면 `borderWidth: 1` 을 넣지 않는다.
+- **코너별 반경 · 변별 폭이 Skia 에 도달한다** (`styleConversion/borderGeometry.ts` — `resolveBorderGeometry`: longhand ?? shorthand 다중값 ?? shorthand ?? catalog base). `borderTopLeftRadius`… 4 · `borderTopWidth`… 4 를 캔버스가 읽는다 (Preview/Publish 는 원래 그렸다). 비균일 폭 + solid 는 CSS 와 같은 기하 (바깥 rrect − 안쪽 타원 rrect, even-odd — 폭 0 변 쪽 코너 띠가 가늘어지고 반투명 겹침 없음), dashed/dotted 는 변마다 자기 폭의 stroke 를 변 wedge 로 clip (코너 호는 한 번만). 비균일 + double/groove/ridge/inset/outset 은 미지원 — solid 로 그린다 (Preview 와 다름, 기록).
+- 파리티 하니스 `tests/visual-parity/adr219/` — spike (기하 프로토타입) · G2 케이스 10 + 측정 2 (`evidence/219-p2-g2.md`, 전부 diffRatio ≤ 0.013). 성능 A/B `scripts/adr219-border-frame-ab.mjs` (frame 700 · 드래그 180 스텝 · 3쌍): render.frame p95 8.0~~8.3 → 3.3 ms — 이중 채널 제거 효과. 번들 Builder +4,012 B gzip · Preview +714 B (i18n 카탈로그 공유) — HC6 2 KiB 초과, initial 번들 상한 재승인 (사용자 판정 2026-09-14): Builder **1,319,829** / Preview **675,021** B gzip (만료 2026-10-14) — 218 상한 (1,281,643 / 666,309) 대체 (그 상한은 착수 전 panel-ui 반영 09-13~~14 이 이미 넘긴 상태였다). 순증 한도 3.5 / 6 KiB 유지.
+
+### Fixed
+
+- **다중값 `border-radius` 축소가 CSS 와 달랐다**: 코너별 `min(w,h)/2` clamp 를 CSS Backgrounds §4.5 비례 축소로 (`resolveCssCornerRadii` — 100×100 `80px 0 0 0` 은 80 유지, `80px 80px 0 0` 은 50). 균일 반경은 값이 같아 무변경. 그림자 · AI 효과 bounds · clip-path `inset(… round a b c d)` 도 첫 값이 아니라 4 코너.
+- **frame 테두리가 두 번 그려졌다**: 잔존 spec Frame 의 `border` shape (ADR-198) 과 inline overlay 가 같은 테두리를 겹쳐 그렸고 spec 색 파서는 `rgba(…, 0.5)` 를 검정 불투명으로 냈다. Frame.spec 은 배경 box 만 내고 테두리는 overlay 채널 하나 (알파 반영). 잔존 spec `sides` 의 `partial_border` 도 인접 변이 코너 호를 각각 전체로 그리던 겹침을 wedge 소유권으로 수리.
+- **dashed/dotted 패턴이 Chrome 과 달랐다** (`cssDashPattern`): dashed w<3 → 3w/2w · w≥3 → 2w/w, dotted `[0, 2w]` round cap, 둘레에 맞춰 gap 을 늘여 닫힌 경로에서 패턴이 닫힘 — 균일 dashed 대조군 diffRatio 0.040 → 0.0007. 균일 dashed/dotted 문서의 픽셀이 바뀐다.
+
+### Removed
+
+- `overlay/hooks/useBorderRadiusDrag.ts` — 코너 longhand 를 쓰던 iframe 시절 드래그 훅, 소비처 0 (사용자 승인 2026-09-14). 캔버스 반경 편집은 Styles › Border 절 코너 2×2 가 맡는다.
+
+## [빌더 크롬 — 인벤토리 잔여 5 (History 메뉴 · 바인딩 팝오버 · 에이전트 승인 다이얼로그 · 눈금자 · Compare 라벨) (panel-ui 21)] - 2026-09-14
+
+### Changed
+
+- **메뉴 항목 28 규격 적용처 추가** (`builder-menu-row.css`): History 패널 스냅샷 ⋯ 메뉴 (`.history-menu-item`, 종전 pad 8 → 34) · `{field}` 컬럼 피커 메뉴 (`.field-picker-menu`, 종전 height auto + pad 4/12). 두 파일은 색·hover·모서리만 남는다.
+- **목록 팝오버 항목 28**: `PropertySelect` · `PropertyUnitInput` · 데이터 바인딩 셀렉트의 ListBoxItem 은 생성 규칙 (pad 4/12 + 줄 18) 으로 **26** 이었다 — 05 아트보드 "26 → 28" 은 코드에 없었다 (실측). `min-block-size: --control-size` 하나로 전 팝오버 통일. 바인딩 옵션은 두 줄 (이름 14 + 설명 12, 46) → 한 줄 (이름 12 · 설명/타입 우측 10 mono caps, 말줄임).
+- **AgentCommandConfirmDialog**: ConfirmDialog 와 같은 13 규격 — 헤더 48 · 본문 12/18 · 푸터 44 · 버튼 28 · meta 10 mono · 경고 아이콘 `--notice` (하드코딩 #f59e0b 제거). RAC `Dialog` 에 `className` 이 없어 생성 Dialog.css overlay archetype (fixed · pad 30) 이 걸리던 결함도 ConfirmDialog 와 같이 수리. `DataChangeDiffView`: 헤더 28 · 항목 한 줄이면 28 (세부·표본 있으면 자람) · op/badge 태그 10 mono · 12/11/10px 리터럴 → 램프 토큰.
+- **RulerOverlay 라벨**: 9px → `--text-2xs` 10 mono (스트립 20 · top/left 3 그대로).
+- **캔버스 pill 28**: CompareMode 「CSS | Canvas」 라벨 (pad 4/12 → 26) 과 WorkspaceStatusIndicator (pad 8/16 · 14px · r8 → 30; 10 아트보드가 ✓ 로 표기했으나 코드에 없었다) 둘 다 `block-size: --control-size` · `--radius-md`.
+- live (`inv21-live.mjs`): History 메뉴 항목 190×28 · 아이콘 16 / 바인딩·fieldMap 팝오버 항목 258×28 (Auto 항목 26 → 28) / 에이전트 다이얼로그 (모듈 직접 요청 `data.propose` ops 3) 헤더 49 · 푸터 45 · 버튼 28 · diff 헤더 28 · 한 줄 항목 28 / 눈금자 라벨 fs 10 / Compare 라벨 48×28 · 65×28. 정적 가드 `builderMenuRow.static.test.ts`.
+
+## [Navigator — 들여쓰기 안내선 (depth × 16 · 조상 사슬 강조) (panel-ui 07 · 2/2)] - 2026-09-14
+
+### Changed
+
+- **Layers 트리 들여쓰기 안내선**: depth 마다 16 (종전 8), 선은 expand 상자 (16) 중앙 x = 16k − 4 에 1px `--border`, 행 높이 28 전체를 지나 위아래와 이어진다. 선택 항목의 조상 사슬에 속한 선은 `--fg-muted` 로 강조 (VS Code activeIndentGuide — "어느 frame 의 자식인가" 를 선이 준다). `LayerTree` 가 선택 사슬 (`selectedChain`) 로 행마다 `activeGuides[]` 를 계산, `LayerTreeItemContent` 의 `IndentGuides` 가 그린다. 종전 8 마다 gradient 선은 5단 이상에서 소속을 읽기 어려웠다.
+- Pages 검색 필드는 이미 28 ph 필드 (아이콘 + placeholder) — 변경 없음. hover 때만 보이기 (VS Code 기본) 는 설정 항목 후속.
+- live (`nav-live.mjs`): body › frame › [Button(선택) · Text · frame › [Button · Link]] · frame ×2 — 선 x 68/84 (행 좌 56 → 12/28) · 강조 `on,on,off` (선택 형제 frame 의 자식 3번째 선은 기본색).
+
+## [Properties 패널 — 같은 어법 (suffix 필드 · 2열 행 · 스위치 행 · Component lrow) (panel-ui 07 · 1/2)] - 2026-09-14
+
+### Changed
+
+- **Attributes**: ID / Class / Aria 를 suffix 라벨 필드 (「button_1 ID」 28) 로 — 종전 legend + 아이콘 상자 3 × 45. 아이콘 prefix (#, 중괄호, aria) 는 라벨이 있으면 중복이라 뺀다. `PropertyFieldset` · `PropertyInput` · `PropertyCustomId` 에 `labelMode="suffix"` (+ `suffixLabel`), `PropertySelect` 에 `labelMode="suffix"`.
+- **Component 절**: 정체는 lrow 「button_1 · STANDARD」 (10 mono caps 역할), 액션은 행마다 라벨 + 28 열 아이콘 (Create component / Go to component / Detach …). 종전 테두리 칩 + 한 줄 툴바 (라벨·아이콘 전용 혼합, 넘치면 라벨 축을 접는 분기) 제거.
+- **catalog 파생 필드 (GenericFieldRenderer)**: 행 격자 `1fr 1fr 28px` — 텍스트·variant·숫자·스위치는 전폭 (1·2열 합침, `.fieldset-row[data-wide]`), enum·size·icon 은 반폭으로 둘씩 한 행. 전폭 텍스트·variant 는 suffix 라벨 (≤ 14자), 반폭 셀렉트는 legend + 아이콘 없음 (87 칸에서 아이콘 + chevron 이 값 자리를 39 로 줄였다). 옵션 2개 enum (Fill/Outline · Quiet/Normal · On/Off) 은 seg (`PropertySizeToggle`, `.property-seg` flex:1). boolean 은 라벨 왼쪽 · 스위치 오른쪽 한 행 (`PropertySwitch labelMode="inline"`). 반폭 칸의 긴 legend 는 한 줄 말줄임 (두 줄 접힘 64 방지). 아이콘 필드 `.fieldset-row > .fieldset-actions` 는 3열 고정 (`grid-area: icon` 이 template 없는 행에서 새 행을 만들던 것).
+- live (`props-live.mjs`, Button · TextField): 필드 전부 181×28 / 87×46 · Class 입력 → `props.className` · 액션 행 28 + 28 열 버튼.
+
+## [Styles · Screen / Modified 탭 — Visibility seg 한 줄 · Overrides lrow 목록 · Modified key·value 목록 (panel-ui 04)] - 2026-09-14
+
+### Changed
+
+- **Responsive 절**: Visibility 는 「🖥 📱 📱」 다중 선택 seg 한 행 (28) — desktop 칸은 base 라 잠김 (base `display` 를 비춘다), tablet/mobile 은 토글. 종전 카드 3장 (각 60) + Show All / Hide All + 도움말 (`ResponsiveVisibilityEditor`) 이 5탭 중 가장 긴 탭 (794) 의 원인이었다. 편집기 파일은 남아 있으나 소비처 0.
+- **Overrides 절 (tablet/mobile 만 · 신설)**: 헤더 「tablet · 2」 카운트 + 「+」 메뉴 (추가할 속성 고르기 — `PropertyRowMenu icon` prop 신설), 행은 다른 절과 같은 lrow 「width · 200px」 + 28 열 × (override 해제). 종전 accent 테두리 chip + `<select>`. `useResponsiveOverrides` 가 `activeOverrideValues` 를 같이 낸다.
+- **Modified 탭 = key · value 목록 (읽기 전용)**: 행 하나 = 「Border Radius ··· 8px」 28, 색은 swatch 16 + HEX (배경은 fills 를 adapt 해 surface). 편집은 해당 탭에서, 여기서는 훑어보기 + 헤더 reset (dirty 전부 되돌림). 종전엔 항목마다 편집 컨트롤 (70) 을 다시 그렸다 — 5개 350 → 140. ADR-187 Modified 색 편집기 presentation 가드는 "편집 경로 없음" 가드로 교체.
+- 제목 「Modified Styles」 → 「Modified」 (수정됨). `.responsive-hint` 는 절 하단 페이드 (24) 가 글줄을 깎지 않게 아래 여백.
+- **가드 수리 (02·03 회귀)**: `EffectSection` · `BoxShadowLayerRow` 의 `Plus` / `Trash2` 직접 import → `ACTION_ICONS.add` / `.delete` (`actionIcons.static.test`) · 「Vertical」 ko 「수직 정렬」 → 「세로」 (`sharedActionVocabulary.static.test`).
+- live (`screentab-live.mjs`): seg 87 × 28 · 칸 20 · Tablet 클릭 → `visibility.tablet: false` · 「+」 → Width / Direction → 행 「width · 200px」 「flex-direction · row」 217 × 28 · × → override 제거 · Modified 4행 217 × 28 「Background Color 2563EB」 · 헤더 reset → 빈 상태.
+- 시안과 다르게 둔 것: 「Show all hidden」 스위치 — 캔버스가 `display:none` 요소를 그리는 채널이 없어 (엔진이 레이아웃에서 뺀다) 패널만 만들 수 없다. seg 옆 2열은 비워 둠.
+
+## [Styles · Text 탭 — Typography 12 컨트롤 → 6행 (panel-ui 03)] - 2026-09-14
+
+### Changed
+
+- **Typography 절 6행 × 28**: 글꼴 (이름이 곧 라벨 — legend·아이콘 없음) | 색 swatch 28 · 「Normal ▾」 Weight (`PropertySelect labelMode="inline"`) | 「18 SIZE」 · 「24 LINE」 | 「0 SPACE」 (`labelMode="suffix"`) · Align | Vertical · Style | Decoration · Case | Wrap. 종전엔 컨트롤 12개가 아이콘 + legend 두 줄 (46) 이라 Font Weight 「Norma…」 · Letter Spacing 「nor…」 로 잘렸다.
+- **Decoration · Case seg 에 「×」 (none) 칸** — 종전 3칸 재클릭 해제 대신 명시 선택 (Border Style seg 와 같은 어법). 순서 × S U O / × AB Aa ab.
+- `PropertyUnitInput labelMode="suffix"` 의 키워드 값 (`normal` · `auto`) 은 포커스 전 placeholder (muted) 로 — 87 열에서 글자가 "nor…" 로 잘리던 것. 포커스하면 편집 대상으로 들어온다.
+- live (`texttab-live.mjs`): 필드 181/87 × 28 · seg 버튼 4 × 17 · Size 18 Enter → `fontSize: 18` · Underline → × → `none` · Uppercase.
+
+## [Styles · Style 탭 (3/3) — Effect 절: Opacity 슬라이더 행 · Box Shadows 레이어 목록 · Filters blur (panel-ui 02)] - 2026-09-14
+
+### Changed
+
+- **Opacity** 는 「Opacity ──●── 60 %」 한 상자 28 (라벨 안쪽 · 값 칸 직접 입력) — 종전 legend + 아이콘 두 줄.
+- **Box Shadows 는 레이어 목록**: 「Box Shadows」 추가 행 (28 열 `⋮`: Add layer · Preset sm/md/lg) 아래 레이어마다 「■ 0 · 2 · 4 · 0 OUTER|INSET」 행 (Fill 레이어 행과 같은 lrow). 행 클릭 → 233 팝오버 편집기 (X · Y / Blur · Spread 2열 suffix 라벨 + 「■ HEX」 Color, ADR-187 presentation preview/commit 그대로), 행 `⋮` 로 inset/outer · 제거. 종전 「Box Shadow none ▾ + inset 토글 + 인라인 편집기 (Layer Select · 4 필드 · Color)」. 프리셋 (Spectrum elevation, theme 별 정규화) 은 3 레이어 문자열이라 목록 전체를 바꾼다 → 추가 행 메뉴에 두고, 목록에 inset 레이어가 있었으면 inset 으로. 마지막 레이어 제거 = inline `boxShadow` 키 삭제. 편집 팝오버는 행이 index key 라 커밋마다 닫히지 않는다 (편집기만 remount).
+- **Filters — blur 한 종** (`style.filter: blur(Npx)`, 신규 패널 채널 — Skia 는 `convertToEffects` 가 LayerBlurEffect 로, DOM 은 inline 그대로 이미 그린다): 「Filters」 추가 행 `+` → `blur(4px)`, 「Blur 8 px」 행 (scrub) + 삭제. 다른 filter 함수 (brightness 등 import 값) 는 보존. `filter` 를 `EFFECT_PROPS` / `APPEARANCE_PROPS` / `PANEL_STYLE_PROPS` 에 (modify · reset 대칭 가드 통과).
+
+### Added
+
+- `panels/styles/utils/filterValue.ts` (`parseFilterBlurPx` / `setFilterBlurPx`, 마지막 함수 제거는 "" — "none" 아님), `components/BoxShadowLayerRow.tsx`, `sections/EffectSection.css`.
+- live (`styletab-live.mjs`): Opacity 값 칸 60 → `0.6` · ⋮ Add ×2 → 행 217×28 ×2 · 2번째 inset → `…, inset 0px 2px 4px …` · 행 클릭 → 팝오버 233 (필드 112×28 ×4 · Color 231×28) · Blur 12 Enter → 첫 레이어만 12, 팝오버 유지 · 프리셋 md → 3 행 (inset 유지) · 전부 제거 → `boxShadow` undefined · Filters + → `blur(4px)` → scrub 8 → `blur(8px)` → 삭제 → undefined.
+
+## [Styles · Style 탭 (2/3) — Border 절 슬라이더 행 · 선 스타일 seg · 색 「■ HEX」 (panel-ui 02)] - 2026-09-14
+
+### Changed
+
+- **Border Width · Radius 는 슬라이더 행** (`PropertySlider labelMode="inline" editable unit="px"`): 「Width ──●── 3 PX」 한 상자 28 (라벨 안쪽 · legend 없음 · 값 칸 클릭으로 직접 입력, Enter/blur 커밋 · Escape 취소). 슬라이더 범위 0~~24 / 0~~64, 타이핑은 9999 까지. XS~XL 프리셋 (Width px 단계 · Radius `--radius-*` 토큰 그대로) 은 28 열 `⋮` 메뉴로. 종전 「Border Width ▾」 UnitInput 두 줄 46 ×2.
+- **Border Style 셀렉트 10항목 → seg 4** (× none · — solid · - - dashed · ··· dotted). double/groove/ridge/inset/outset 은 저장값이 있으면 양쪽 렌더는 그대로 (Skia 8종) 되나 seg 에 선택 표시가 없다 — Spectrum/Figma 어법에 맞춰 authoring 만 4종.
+- **Color 는 「■ D4D4D4」** (`PropertyColor showValue` — 16 swatch + HEX 글자, 03 Text 탭 Color 와 같은 조각). Style | Color 한 행 (1fr 1fr).
+- 슬라이더 공용 손질: 트랙 2 (`--bg-emph`) + 채움 (`--accent`) + 썸 12 (overlay 바탕 · accent 테두리) — 종전 트랙이 상자와 같은 `--bg-muted` 라 선이 안 보였다. 생성 Slider.css 의 grid gap 4 로 Group 이 32~40 이던 것을 28 로 (`.react-aria-Slider { display: block }` + 안쪽 20).
+- live (`styletab-live.mjs`): 슬라이더 Group 181×28 ×2 · 값 칸 3 Enter → `borderWidth: 3` · 프리셋 M → `var(--radius-md)` · 썸 → → 7 · seg Dashed → `dashed` · seg 버튼 4 × 17.
+
+## [Styles · Style 탭 (1/3) — Appearance 1절 → Fill · Border · Effect 3절 · Fill 레이어 행 통일 (panel-ui 02)] - 2026-09-14
+
+### Changed
+
+- **Appearance 절 → Fill · Border · Effect 세 절** (section id `fill` / `border` / `effect`, reset 범위 `FILL_PROPS` / `BORDER_PROPS` / `EFFECT_PROPS` — `APPEARANCE_PROPS` 는 탭 dot · modify 뱃지 범위로 그 합집합 유지, 정적 가드 `styleSectionProps.static.test`). ⌥S 전체 토글 대상도 Styles 절 전부로 (`STYLE_PANEL_SECTION_IDS`).
+- **Fill 은 레이어 목록 하나**: 첫 레이어도 같은 행 — 「swatch 16 · HEX (팝오버 trigger) · 불투명도 % · 제거 (hover)」 + 28 열 눈 토글 (표시/숨김). 종전엔 첫 배경만 Background fieldset 의 큰 swatch 버튼, 2번째부터 별도 행 (체크박스 + 24 swatch) 두 어법. 레이어 추가는 절 헤더 「+」. fills 가 없으면 backgroundColor 기반 가상 행 하나 (토글·제거 없음, 색 커밋 시 승격 — `ensureColorFill` 경로 그대로). 첫 레이어의 presentation (연속 preview) 경로는 `FillLayerRow popover` override 로 절이 계속 소유.
+- live (`styletab-live.mjs`): 절 헤더 233×32 ×3 · 행 217×28 (body 181 + 눈 28) · scrub 56×28 · 팝오버 233 · 눈 토글 → `enabled:false` · 헤더 + 두 번 → color + linear-gradient.
+
+## [Styles · Layout 탭 (3/3) — Spacing 절 = 박스 모델 다이어그램 (panel-ui 01)] - 2026-09-14
+
+### Added
+
+- **Spacing 절 (`BoxModelEditor`)**: 217 × 140 = 28 띠 × 5 (margin 점선 · padding 실선 · 중심) 에 4방향 margin/padding 값이 제자리에 놓이고 가운데 **link** 가 같은 고리 4값을 연동한다 (margin 은 음수 허용). 종전 Layout 절 끝의 「Padding ▾ · Margin ▾」 축약값 둘로는 상하/좌우가 다른 경우를 펼쳐야 알 수 있었다. 헤더 expand 로 8-필드 표 (FourWayGrid ×2) 폴백 — 그 칸도 23 → 28. 값 쓰기는 longhand · local draft → blur/Enter 커밋 (FourWayGrid 계약 그대로). reset 범위 `SPACING_PROPS` (Layout 절 reset 은 여전히 전부).
+- live: 박스 모델 padding 띠 159×84 · Top 12 → paddingTop 만 · link 후 Left 20 → 4방향 20 · margin −4 · expand → 4-way 28 칸.
+
+## [Styles · Layout 탭 (2/3) — Align 3×3 막대 모드 · dead 버튼 제거 (panel-ui 01)] - 2026-09-14
+
+### Changed
+
+- **Align 3×3 — Space 가 켜지면 (space-between/around/evenly) 점 → 막대**: 주축이 분산된 상태라 그리드는 교차축만 고른다 (`useFlexDistributionAxis`, `data-distributed="row|column"`; 클릭은 `handleFlexAlignment(..., { preserveMainAxis })` 로 `alignItems` 만 쓰고 `justifyContent` 의 space-* 를 남긴다). 종전엔 점 9개 고정이라 Space 를 켜도 주축 점이 살아 있어 두 컨트롤이 충돌했다 (그리드 클릭이 space-* 를 지웠다).
+- Layout 절 우측 **LayoutGrid 아이콘 버튼 제거** — onPress 없는 dead surface.
+- live: row + space-between → `data-distributed=row` · 점 12×4 막대 · Bottom center 클릭 → `justifyContent: space-between` 유지 + `alignItems: flex-end`.
+
+## [Styles · Layout 탭 (1/3) — 절 caret · Size / Position 분리 · 필드 안 suffix 라벨 (panel-ui 01)] - 2026-09-14
+
+### Changed
+
+- **절 헤더 caret 이 제목 왼쪽** (▸ 접힘 / ▾ 펼침, 전 패널 공용 `Section`) — 종전 우측 ∧ 는 접힘·펼침 무게가 같아 접힌 절이 목차로 읽히지 않았다. 높이 32 · 12 semibold 그대로.
+- **Transform 절 → Size + Position 두 절**: Size (W · H · MIN · MAX · Ratio · Overflow) / Position (Left · Top · absolute 토글) — Position 은 처음부터 접혀 있고 (static 요소에서 Left/Top 은 비활성) position 이 absolute 가 되면 자동으로 펼친다. 절 id "transform" 은 persist 키라 유지 (제목만 Size). reset 범위 `SIZE_PROPS` / `POSITION_PROPS`.
+- **라벨을 필드 안 suffix 로** (`PropertyUnitInput labelMode="suffix"` — 10 mono caps, 아이콘·legend 없음): 「Width / 240 ▾」 두 줄 46 → 「240 W ▾」 28. W · H · MIN · MAX · LEFT · TOP · X · Y (접근 이름은 그대로 "Width" 등). 제약 (Min/Max/Ratio) 은 토글 뒤 숨김 → 항상 보임.
+- **Overflow 를 Style 탭 Appearance 에서 Layout 탭 Size 절로** (크기의 일부). reset·modify 범위는 APPEARANCE_PROPS 에 그대로 (TRANSFORM_PROPS 에 넣으면 ADR-154 responsive 허용 목록이 넓어진다) — Size 절 reset 은 overflow 를 따로 더한다.
+- 값 없음 ("reset" 단위) 필드는 글자 "reset" 대신 placeholder (`auto`) — 86px 열에서 "r…" 로 잘렸다.
+- live (`layouttab-live.mjs`): 절 헤더 32 / caret 32 · 필드 87×28 · suffix 10px · Position 접힘 → absolute 로 자동 펼침 · W 240 / overflow hidden 커밋.
+
+## [Interactions · Settings · Font Manager · 글꼴 피커 — 28 격자 (panel-ui 20)] - 2026-09-14
+
+### Changed
+
+- **Interactions**: 규칙 요약 34 (14px 카드) → 행 28 (caret · 요약 12 · 삭제 28 hover/펼침 시). 펼친 편집기는 When | Do 두 열 (`fieldset-row`) + 액션별 param — 바깥 legend "Edit rule" 제거 (각 picker 가 legend 를 가진다).
+- **빈 상태 (전 패널 공용 `EmptyState`)**: 아이콘 28 · 글자 12/18 — 호출부가 32/48 을 넘겨도 한 크기 (14 는 다이얼로그 제목뿐).
+- **Settings**: 라벨이 두 번 (legend + Switch 안 글자) → legend 만, 접근 이름은 `aria-label` (`PropertySwitch` 공용 — Properties 의 boolean 필드도 같이). 2열 행 (Rulers | Action bar · Snap | Page gap) · 절 3 → 2 (Language 는 Appearance 의 한 필드).
+- **Font Manager**: 420 → 400 · 헤더 48 (제목 14 · 카운트 18 mono · 닫기 32) · 드롭 존 120 (Image fill · CSV 와 한 어법, 1px dashed inset) · 가족 = legend 18 + 글꼴 행 28 (이름은 자기 서체 · weight/format mono 10 · 삭제 28 hover) — 종전 절 32 + 46 행.
+- **글꼴 피커 팝오버**: 179 → 233 (색 · 아이콘 팝오버와 같은 폭, `widthMode: "min-width"`) · 그룹 헤더 19 (10px) → legend 18 · 항목 → 28 · pad 8.
+- live (`misc-live.mjs`): 규칙 행 28 · 삭제 28 · When|Do 96+96 · Settings 행 46 (legend 18 + 28) · 피커 233 / 항목 28 · Font Manager 400 / 헤더 49 / 드롭 존 120 / 닫기 32.
+
+## [Data Table Creator — 방법 28 셀 · Preset 카드 100 · CSV 드롭 존 · API 요청 한 행] - 2026-09-14
+
+### Changed
+
+- **시작 방법 6**: 카드 70×70 (아이콘 위 · 라벨 아래) → 28 셀 (아이콘 16 + 라벨 한 줄), 233 에서 2열 3행 · 560 에서 3열 2행.
+- **Preset**: 카테고리마다 절 헤더 32 → 절 하나 안의 그룹 (legend 18 + 카운트 mono 10) · 카드 130×144 → 100 (아이콘 28 행 우측 "N fields" mono 10 · 이름 18 · 설명 18 한 줄) — Components · Frame Preset 과 같은 세로 모듈.
+- **CSV / JSON**: 네이티브 `<input type=file>` (빌더의 유일한 브라우저 기본 컨트롤) → 드롭 존 120 (클릭 · 끌어다 놓기) + 파일 행 28 (이름 · 행 × 열 mono · ✕).
+- **Paste / AI textarea 96 → 120**. **API 생성기** Name / [Method 88 | URL 1fr] 두 행 (종전 URL / Method / Name 세 행). 새 문자열 `datatable.dropFileHint` · `clearFile` ko/en.
+- live (`creator-live.mjs`, 233): 방법 107×28 · 카드 105×100 · 드롭 존 217×120 · setInputFiles → 파일 행 28 → Create → 편집기 "orders-2026" · API 행 [80 | 113].
+
+## [Properties · Frame Preset — 카드 100 · 그룹 헤더 18 · Slots 절 · Frame 이름 헤더 · 슬롯 다이얼로그 8 격자] - 2026-09-14
+
+### Added
+
+- **Slots 절**: Frame 편집 (Navigator › Frames) 의 Properties 에 preset 적용 결과가 보인다 — 슬롯 행 28 (이름 · 놓인 요소 수 mono 10, 절 배지 = 슬롯 수), 행을 누르면 그 Slot 을 캔버스에서 선택. `ExistingSlotInfo.childCount` (직계 + `slot_name` 배정, id 중복 1회) 신설, `useExistingFrameSlots` 로 선택기와 같은 표.
+
+### Changed
+
+- **Properties 헤더 제목**: layout 모드의 body 는 "body" 가 아니라 Frame 이름 (Navigator Frames 목록과 같은 이름).
+- **Frame Preset 카드 105×103 → 100** (pad 8 + preview 77×58 + gap 8 + 이름 행 18 — Components 카드와 같은 세로 모듈) · 그룹 헤더 = legend 18 (아이콘 16 · 이름 · 우측 카운트 mono 10) · applied 배지 9px 절대 배치 → 이름 행 우측 체크 18 (글자 배지는 105 카드에서 이름을 잘랐다) · `.list-item.applied:hover` 가 연한 표면 + 흰 이름이라 마우스를 올리면 이름이 사라지던 것 → accent 85 %.
+- **Existing slots 다이얼로그**: ConfirmDialog 8 격자 (헤더 48 · 슬롯 행 28 · 푸터 44 · `.control-button` 28) — 종전 pad 14 18 · 버튼 32 · 문장 두 줄. 행마다 "무엇이 남는지" (요소 수).
+
+### Fixed
+
+- **ConfirmDialog / Existing slots 가 400 상자 밖에 떠 있던 것**: RAC `Dialog` 에 className 이 없으면 기본 `react-aria-Dialog` 에 생성 `Dialog.css` (overlay archetype — `position: fixed` · pad 30) 가 걸려 `.confirm-dialog-modal` 400 은 높이 2 로 접히고 Dialog 가 589 폭으로 따로 떴다. `className="confirm-dialog"` 로 escape — 크롬 12건 (a2e73d06f) 의 8 격자가 이제 실제로 보인다.
+
+## [Styles 패널 — 색 팝오버 가족을 한 규격으로 (기본형 233 · 28 티어 · Gradient seg · 순서)] - 2026-09-14
+
+### Changed
+
+- **기본형 색 팝오버 (Border · Text · Shadow · Modified) 폭 161 → 233**: 확장형 (Fill) 과 같은 폭 — 같은 피커가 소비처마다 다른 폭이었다 (`.property-color-popover`).
+- **피커 본체 28 티어**: HEX/RGBA/CSS 모드 seg 24 → 28 · HEX 입력 24 → 28 · RGBA 필드 24 + 9px 라벨 행 → 28 상자 안에 채널 이름 suffix (R · G · B · %) — 9px 은 토큰이 없다. `ScrubInput` 이 상자를 소유 (테두리 · 배경 · suffix 안쪽) 해서 Fill opacity 24 · 스톱 위치 22 · Mesh grid 24 · Fill 레이어 행 불투명도가 한 번에 28.
+- **확장형 푸터 한 행**: Opacity (legend + 28) · Blend (1fr 1.5fr) — 종전 라벨 없는 24 scrub + divider + Blend 세 줄.
+- **Gradient 하위형 Select → seg [Linear | Radial | Angular | Mesh]** (`GradientSubTypeSelector`, Type 행과 같은 어법, 메뉴 한 단계 삭제) · **순서 바 → 스톱 목록 → 기하 → 스톱 피커** (종전엔 스톱 목록이 바에서 400px 아래) · 스톱 행 28 · 삭제 20 → 28 · Add Stop 26 → 28.
+- **Image URL 26 → 28 · Mode 24 → seg 28** · Fill 레이어 행 28 (삭제 20 → 28).
+- 실측 (`colorpop2.mjs`): 기본형 233×310 · Color 427 · Linear 667 · Radial 719 · Mesh 739 · Image 327 (종전 322 / 471 / 701 / 753 / 771 / 355).
+
+## [Styles 패널 — 요소 Opacity 슬라이더 · Box Shadow 다중 레이어 편집] - 2026-09-14
+
+### Added
+
+- **Box Shadow 레이어 추가 · 제거 · inset (레이어 행 ⋮ 메뉴)**: 편집기의 Shadow Layer 행에 `PropertyRowMenu` (레이어 추가 / 안쪽·바깥 전환 / 제거 — 마지막 하나는 제거 불가). 새 레이어는 활성 레이어 뒤에 `0 2px 4px 0 rgba(0,0,0,.25)` 로 들어가 바로 활성이 된다. Skia 는 `parseAllBoxShadows` 로 다중 · inset 을 이미 그렸고 패널이 preset (sm~lg) × inset 한 줄이었다. topology 가 바뀌는 커밋은 presentation owner 가 거부하므로 canonical commit 으로 직행 (⌘Z 한 단계). live: Card 에 sm → 레이어 추가 → Offset Y 12 → Skia 아래 가장자리 픽셀 236.9 → 195.0 · inset · 제거 · ⌘Z 복귀 (`apps/builder/scripts/.tmp-panel-cap/shadow-live.mjs`, 로컬).
+
+- **Appearance › Opacity 슬라이더 (28px 행, 👁 아이콘 · % 출력)**: 요소 전체 `opacity` 채널을 Styles 패널에서 편집한다. 채널은 Skia (`buildSkiaEffects` → OpacityEffect) 와 DOM (inline) 양쪽에 이미 있었고 컨트롤만 없었다 — Fill 레이어 opacity 와 별개. 드래그 · 화살표 · PageUp/Down 은 preview (히스토리 0), 놓을 때 commit; 100 % 는 inline 키를 지워 baseline 복귀 (영구 dirty 방지). `PropertySlider` 에 `onChangeEnd` · `formatValue` 추가 (첫 사용처). live: Button 에서 100 % → 11 % Skia 픽셀 평균 64.5 → 234.4 · ⌘Z 복귀 (`apps/builder/scripts/.tmp-panel-cap/opacity-live.mjs`, 로컬).
+
+## [ADR-214 후속 — AI `list_variables` 읽기 tool · Variable 편집기 Validation/Transform 절 삭제] - 2026-09-14
+
+### Added
+
+- **AI 패널 `list_variables`**: 프로젝트 · 페이지 · 요소 변수 정의를 소유자 (project / page / element — 페이지 제목 · 요소 타입 · 속한 페이지) 와 사용처 수와 함께 읽는 tool. `format: "detailed"` 는 기본값 · persist · 암묵 상태 원천 prop · 사용처 (템플릿 노드 · setState 규칙) 까지. ADR-213 읽기 tool 4 와 같은 계약 — 정의만 싣고 런타임 값은 없으며 쓰기 0 (변수 정의 · 삭제는 UI 로만). 패널 기록 어휘 "변수 목록 읽기 · 읽음". live: Ollama qwen3:14b 로 AI 패널에서 호출 → 답변 (`apps/builder/scripts/adr214-followup-list-variables-live.mjs` 7/7).
+
+### Removed
+
+- **Variable 편집기 Validation / Transform 절 (원본 삭제, 사용자 승인)**: Phase 5 에서 숨겼던 두 절의 소스 · 탭 타입 · CSS · 고아 i18n 키를 지웠다 — 읽는 코드가 편집기 자신뿐이라 (런타임 · export · publish 0) 사용자-가시 변화는 없다. 저장된 변수의 `validation` · `transform` 필드는 그대로 두며 (legacy 호환) 편집 표면만 없다.
+
+## [ADR-214 Implemented — Variables 소유자 모델 · `{{ }}` 읽기 · `setState` 쓰기 · 관리 표면 3] - 2026-09-14
+
+### Added
+
+- **변수가 역할을 얻는다** (전에는 정의만 있고 읽는 곳 · 쓰는 액션이 0 이었다). 모델 하나 `VariableDef { id, name, type, defaultValue?, persist? }` + 소유자 **프로젝트 / 페이지 / 요소** — 프로젝트 변수는 Data 탭 (기존 store), 페이지 · 요소 변수는 문서 노드의 `state` 필드 (삭제 · 복제 · 붙여넣기가 노드와 함께 — 복제는 새 id). 이름은 가시성 사슬 (요소 → 조상 → 페이지 → 프로젝트) 안에서 고유 — 겹치면 만들 때 거부.
+- **읽기 `{{ name }}`**: 문자열 prop 어디서나 (`Hello {{ userName }}`, `{{ a.b }}` 경로, `\{{` 는 리터럴, `{{ env.X }}` 는 ADR-212 vault 그대로). 캔버스는 **기본값**, 미리보기 · 퍼블리시는 **런타임 값** — 같은 해석기, 같은 문자열 형식. collection 행 템플릿 (`{label} — {{ userName }}`) 은 상태 먼저 → 필드 나중. Properties 문자열 입력에서 `{{` 를 치면 보이는 변수 이름 자동완성.
+- **쓰기 — Interactions "상태 설정"**: 규칙의 Do 에 `Set state` — 변수 (프로젝트 / 이 페이지 / 이 컴포넌트와 조상 그룹) · 동작 (set / toggle / increment / reset, 타입별) · 값. 미리보기 · 퍼블리시에서 실행 (인스턴스마다 별도 값 · 페이지 진입 시 페이지 변수 리셋 · `persist` 프로젝트 변수는 새로고침 뒤 유지, 프로젝트별 localStorage 키).
+- **암묵 상태 이름 붙이기**: Checkbox/Switch/ToggleButton `isSelected` · RadioGroup/Slider `value` · Tabs `selectedKey` · ListBox/GridList/TagGroup/Tree `selectedKeys` · Tree/Disclosure `expandedKeys/isExpanded` 에 Properties **상태** 절에서 이름만 붙이면 `{{ }}` 로 읽힌다 (RAC prop 주입 0 — 관찰만).
+- **관리 표면 3 (새 패널 0)**: Properties **상태** 절 (암묵 상태 목록 + 명시 `추가` · 이름/타입/기본값 · 사용처 N 을 실은 삭제 확인 · 조상에서 보이는 상태), Navigator 페이지 항목 **gear** → 페이지 변수 (body 선택 → 같은 절), Data 탭 Variables = 프로젝트 변수 (편집 · 사용처 배지) + **페이지 · 컴포넌트 인덱스** (소유자 열, 행 클릭 → 소유자로 점프해 그 정의를 펼친다). 구 페이지 scope 변수는 인덱스에서 "페이지로 이관".
+- 페이지 변수 편집은 History `page-state`, 요소 변수 편집은 `update` (undo/redo). export/import envelope 에 `variables` (프로젝트 정의).
+
+### Changed
+
+- **Variable 생성은 프로젝트 전용** — Scope 선택 제거 (페이지 · 요소 변수는 소유자에서). Variable 편집기의 **Validation / Transform 탭 숨김** (읽는 곳이 편집기 자신뿐 — 소비처 0 실측).
+- Checkbox · RadioGroup · Switch · Tree · TagGroup · ToggleButton · Tabs · Disclosure · Slider 의 규칙 트리거 (ADR-158) 가 미리보기에서 실제로 실행된다 — 위임 렌더러가 규칙 핸들러를 호출한 적이 없었다.
+
+## [테이블 편집기 컬럼 정보 수정 3단 — 헤더 인라인 rename · 타입 아이콘 · ⌄] - 2026-09-13
+
+### Changed
+
+- **컬럼 정보 수정을 빈도별 3단으로**: 전에는 헤더 라벨 클릭 → 옆 필드 패널 하나뿐이었다. 이제 (1) **헤더 더블클릭 / 라벨 포커스 + F2 → 그 자리 인라인 rename** (Enter 저장 · Esc 취소 · blur 저장, 빈 값·중복은 경고만) — 이름 하나 바꾸는 데 패널을 안 연다. (2) **헤더 타입 아이콘 클릭 → 필드 패널이 타입 목록(검색 input)에 포커스된 채** 그 필드로 — 타입 변경은 미리보기("3행 중 1행이 Number 아님")가 있어 패널에 남는다. (3) 라벨 클릭 / Enter / hover 로 드러나는 **`⌄`** → 필드 패널 전체 (required · default · 설명 · 사용처 · 삭제). 헤더에 **타입 아이콘**이 항상 보인다 (패널 타입 목록과 같은 표). 근거: 인지 > 회상 · 행위의 자리 = 결과의 자리 · 가시성 (Airtable · Notion · Sheets 헤더 어법).
+- 쓰기 경로는 그대로 `update_field { key }` 하나 (`planFieldRename` 을 격자와 패널이 같이 쓴다) — 행 이전·바인딩 안정성(ADR-152 G4)·runtimeData 캐시 remap(ADR-218)은 변경 0. 타입 아이콘·`⌄` 는 tab 순서 밖이라 격자 tab stop 은 그대로 1.
+
+## [테이블 편집기 shell — 탭 제거 · 설정 gear 토글 · 제목 인라인 rename · 새 필드 `+` 붙박이] - 2026-09-13
+
+### Changed
+
+- **Table/Settings 탭 제거**: 테이블 편집기는 격자가 유일한 뷰다. 설정(이름 · 데이터 소스 · 실행 정책 · 샘플 토글)은 헤더 close 옆 **gear 토글**(`aria-pressed`)로 같은 자리에서 본문만 바뀐다 — History 패널과 같은 헤더 액션 어법. 리서치(Airtable · Notion · Webflow · Framer CMS 3.0 · Supabase 등 9종): 설정을 뷰 탭으로 가르는 제품은 없고 전부 이름 옆 아이콘·메뉴다.
+- **새 필드 `+` 는 격자 열이 아니라 붙박이 슬롯**: 열이 다 보이면 마지막 열 오른쪽에 붙고, 열이 패널 폭을 넘치면 오른쪽 가장자리에 고정돼 **항상 보인다** (전에는 387px 스냅 패널에서 3열만 넘어도 가로 스크롤 밖으로 사라졌다). 끝까지 스크롤하면 마지막 열 다음에 자리한다(스크롤러 padding). 인라인 이름 입력 → Enter 생성 · 연속 추가 · Esc 취소는 그대로. 격자 `aria-colcount` 는 실제 열만 센다.
+
+### Added
+
+- **패널 제목 인라인 rename** (`PanelHeader onTitleCommit`): 테이블 편집기 제목을 더블클릭 또는 포커스 후 Enter/F2 → 입력 → Enter/blur 로 이름 변경, Esc 취소, 빈 값 무시. 설정의 이름 필드는 그대로 남는다. `common.rename` ko/en.
+
+## [ADR-218 Implemented — collection 런타임 데이터 영속 · 실행 정책] - 2026-09-13
+
+### Added
+
+- **runtimeData 캐시 영속**: API 응답을 collection 정의와 분리된 `collection_runtime` store(IndexedDB, DB_VERSION 22)에 저장 — 다음 세션·오프라인에서도 마지막 성공 응답을 표시(빈 상자 아님). 정의 레코드 크기는 불변(대안 B).
+- **실행 정책 `executionPolicy`**: collection별 자동(auto — Preview 열기 전 1회) / 수동(manual — 기본, BC) / 주기(interval — N초). Settings "데이터 소스" 탭에서 엔드포인트 picker + 정책 컨트롤로 설정, 모두 `applyDataChange` 경유(`set_execution_policy`·`set_source{endpointId}` op) — Undo로 정책·연결 복원.
+- **캐시 유효성 지문(`sourceRev`)**: baseUrl·path·method·query/header 비민감 값·body·dataPath·schema(field id+type)로 캐시가 지금의 요청 정의로 재현 가능한지 판정 — 소스·인증·스키마 변경 시 hydration이 옛 캐시를 폐기, field rename은 값 보존 remap. secret은 원문 대신 vault revision만 지문에 담아 값 교체를 감지(원문 0건, HC6).
+
+### Changed
+
+- 요청 경쟁 single-flight(`runSeq`): 같은 collection의 늦은 응답이 더 최신 실행의 결과를 덮지 않는다.
+- interval 정책은 자기 재예약 스케줄러 — 응답시간이 주기보다 길어도 매 tick 취소 없이 성공 응답을 갱신하고, 진행 중이면 skip(coalesce), 정리 훅으로 타이머 leak 0.
+- 채널별 projection 분리: export JSON은 `executionPolicy` 포함·runtimeData 제외(import 보존), Preview postMessage는 runtimeData 포함·정책 제외. 어느 채널에도 원문 secret 0.
+- initial 번들 상한 재승인 (사용자 판정 2026-09-13): Builder **1,281,643** / Preview **666,309** B gzip (만료 2026-10-13) — 217 상한 (1,279,845 / 665,761) 대체. 본 ADR 순증 Builder +2,111 / Preview +449 (순증 한도 3.5 / 6 KiB 안). m5 실측: IDB 5,000행 p95 2.8/1.3 ms · 캐시 hydration 로드 Δp95 −23 ms · interval 60 tick JS 데이터 누적 0.
+
+## [Builder 초기 CSS 안정화 — 숨은 lazy 패널의 지연 마운트] - 2026-09-13
+
+### Fixed
+
+- 프로젝트 진입·새로고침 때 한 번도 열지 않은 Data Editor까지 `Activity hidden` 아래 마운트되어, `load` 뒤 편집기 CSS 7개가 추가 등록되던 경로를 차단했다. 패널은 처음 보일 때 lazy chunk를 받고, 한 번 연 뒤에는 기존 `Activity` 경계가 상태를 보존한다.
+
+## [ADR-212 Implemented — Data 패널 편집기 재설계 (스냅 패널 · role=grid 격자 · 요청 도구형 API 편집기)] - 2026-09-12
+
+### Added
+
+- **격자 편집기 (APG grid)**: 테이블 데이터를 RAC `Table`(`role=grid`) + 가상화로 편집 — 단일 tab stop, Arrow/Home/End 이동, Enter/F2/타이핑으로 셀 편집 진입, Esc 취소, 붙여넣기(`set_cell`/`insert_rows`/`add_field`), 행 추가/삭제, `⌘Z` 원상. 헤더 `+`/헤더 클릭이 옆에 스냅되는 **필드 패널**(이름·타입·required·default·label·사용처 N)을 열어 Schema 탭 왕복을 없앴다.
+- **요청 도구형 API 편집기**: `[Method][URL][Send]` 바 + Params/Headers/Body/Auth/Response. 응답 Schema 추천 → "테이블로 저장"이 collection 생성 + endpoint 연결 + 소스 지정을 한 DataChange로. Auth 값은 프로젝트 로컬 vault에 저장하고 문서엔 `{{secret.NAME}}`만 — 원문 secret은 export·postMessage·AI payload에 0건.
+- **CSV/JSON import 미리보기**: 타입 자동 감지 · 열 매핑 · 교체/추가를 격자 위 인라인 staging으로 (한 DataChange).
+- **캔버스 바인딩 배지**: data-bound 요소 위 Skia overlay 배지(테이블명 + 상태색 normal/empty/error), 클릭 시 해당 테이블 편집기 열림.
+- **상태 가시화**: 0행 · 오류 · 사용처를 목록 배지 · 편집기 상단 · 캔버스 배지 세 곳에 같은 값으로.
+
+### Accessibility
+
+- 성공/진행 알림은 `role=status`(polite) live region, 오류는 토스트 `role=alert`(assertive)로 분리.
+- 필드 패널·API Auth 탭·Settings·preset의 개별 입력에 접근 가능한 이름(`aria-label`) 부여 — fieldset+legend만으로 그룹만 잡던 axe `label` critical 해소. 아이콘 전용 버튼(모달 닫기·필터 지우기) 이름 추가. 하드코딩 영문 aria-label(Method/URL·preset category·response view)을 i18n 경유로 전환.
+- `prefers-reduced-motion` 전역 대응 · 목록 항목은 키보드로 열리는 RAC GridList 행. 전 표면 axe critical 0 (live `adr212-p7-a11y-live.mjs` 12/12).
+
+### Changed
+
+- 데이터 편집 표면의 모든 쓰기가 `applyDataChange`(ADR-152 적용기) 단일 경로 경유 — store 직접 mutate 신설 0.
+- 편집기 구현은 `React.lazy` 경계 뒤 — initial Builder chunk 포함 bytes 0 (initial gzip −15,859).
+- **범위 밖 (후속 ADR)**: runtimeData IndexedDB 영속 · 실행 정책 필드는 collection 저장 형식을 바꾸는 데이터-모델 변경(lock-in §2 밖)이라 별도 ADR로 분리. ADR-212는 저장 형식 무변경으로 종결.
+
+## [ADR-217 Implemented — Chart 기준선 (ReferenceLine) · 산점도 (Scatter) · 미지원 chartType 안전 경로] - 2026-09-12
+
+### Added
+
+- **값 축 기준선** (`referenceLines[]`, bar/line/area/scatter · ≤ 4): 값 · 레이블 · 선 모양 (실선/파선/점선) · 층 (뒤/앞). Properties Content 절의 **기준선** 목록 편집기 (추가/삭제/편집). 값 축 domain 이 기준선 값을 포함하도록 넓어져 (scene 이 정한다 — Recharts `ReferenceLine` 미사용) 두 화면 (Skia · Preview) 이 같은 눈금 위에 같은 선을 그린다. 색은 rule `chart.reference` 채널 (`--chart-reference`, 기본 `{color.neutral}`).
+- **산점도** (`chartType:"scatter"`, 팔레트 "Scatter Chart"): 행 하나 = 점 하나 (같은 x 합산 없음), x 는 숫자 (범주 간격 = "숫자") 또는 시간 (`dimensionScale:"time"`), 점은 불투명. 표시 예산은 실제 관측점 수로 재고 (P 5,000) 넘치면 원본 점만 남기는 희소 극값/솎기 — 집계로 원본에 없는 좌표를 만들지 않는다. 창 (window) · 넓힌 창 재추출은 216 그대로. Preview hover 는 가장 가까운 점의 툴팁.
+- **미지원 chartType 안전 경로**: 알 수 없는 종류 (다음 버전 문서) 는 예외 대신 "Check chart settings" (진단 `chartType.unsupported`) — 캔버스·Preview 가 멈추지 않는다 (rollback 경계 = 이 변경 이후; 그 이전 빌드는 산점도 문서에서 예외).
+
+### Changed
+
+- 산점도의 `dimensionScale` 미설정/`category` 는 **숫자 (linear)** 로 읽는다 (해석만 — 저장값은 그대로).
+- initial 번들 상한 재승인 (사용자 판정): Builder 1,279,845 / Preview 665,761 B gzip (만료 2026-10-12) · Builder 순증 한도 3 → 3.5 KiB. 본 ADR 순증 Builder +3,262 / Preview +2,249.
+- 알려진 한계 (후속): 산점도 진입 애니메이션 없음 · 툴팁 키보드 항목 탐색 없음 · 세로 (범주/시간 축) 기준선 · 버블 (`size`) 없음.
+
+## [구 클라우드 BaaS 이름 저장소 전체 소거 — 아카이브 · 재도입 가드 · SDK 잔재] - 2026-09-12
+
+> 아래 두 엔트리 뒤 "역사 기록" 으로 남겨 뒀던 언급까지 사용자 결정으로 전부 뺐다 ("아카이브와 재도입 가드 필요없다 sdk 와 모든것 제거"). 저장소 전체 (`node_modules` · `dist` 제외) 에서 그 이름은 0건.
+
+### Removed
+
+- **재도입 가드 3** (`elementLoader.static` · `panelWorkspaceLayoutV2Persistence` · `useColorStyleValues.readOnly.static` 의 `not.toContain`/정규식 항) — 코드 축이 사라졌으므로 가드도 뺀다. 3 파일 20 테스트 PASS.
+- **SDK 잔재**: `node_modules/.pnpm` 에 남아 있던 구 SDK 7 패키지 (`pnpm prune`) + 전역 store (`pnpm store prune`, 446 패키지). lockfile 은 이미 0.
+- **문서 138 파일 747 줄**: ADR 본문·design·reviews·CHANGELOG 아카이브 3·`docs/legacy/`·`docs/features/completed/`·research·audits 의 이름을 `Cloud`/`cloud` 로 치환 (식별자·경로·env 이름 포함 — 예 `CloudAdapter` · `cloud.types.ts` · `VITE_CLOUD_*`; 위 두 엔트리의 식별자 표기도 같이 바뀌었다). ADR-128 파일명 `128-cloud-backend-decommission(-breakdown).md` 로 rename. 외부 제품 비교 (`DATA_PANEL_EXTERNAL_SOURCES_2026-09.md` A10 절 · AI Assistant/MCP 항목 · 수렴 목록의 제품명) 와 외부 문서 링크는 항목 자체를 뺐다.
+- `arch-reference-impl.md` 의 "의존 0" 서술은 "외부 서비스 의존 0" 으로.
+
+## [Cloud 잔재 완전 제거 — 코드 · 규칙 · CI · 문서] - 2026-09-12
+
+> 인증 교체 (아래 엔트리) 뒤 남아 있던 이름·타입·설정·규칙 전부. ADR-128 (cloud decommission) 이후에도 남았던 것들이다.
+
+### Removed
+
+- **코드**: `types/integrations/cloud.types.ts` (→ `types/builder/elementProps.types.ts`, `ElementProps` 내용 무변경) · `utils/realtimeBatcher.ts` · `services/api/ErrorHandler.ts` (둘 다 소비처 0) · 데이터 바인딩 소스 축 `"cloud"` (inspector `Cloud*Config`, shared `DataBinding`, preview `DataSource`, workflow edge/색, `TableRenderer` cloud 분기, AI `bind_collection` enum·i18n `cloudNeedsTable`) · `VITE_CLOUD_*` env 타입 · vite optimizeDeps · vitest env stub.
+- **하니스**: `scripts/.auth-session.json` 을 추적 해제 (구 Cloud 세션 토큰이 커밋돼 있었다 — gitignore) · perf/A-B 하니스의 dev→prod 세션 미러 (storage key 가 하나가 됐다) 제거 · **`scripts/capture-auth-session.mjs <코드>`** 가 라이선스 로그인으로 세션 파일을 만든다.
+- **규칙·CI·문서**: `composition-patterns` 의 `cloud-*` 규칙 3 + 섹션 · `.github/instructions/cloud.instructions.md` · deploy.yml 의 `VITE_CLOUD_*` secrets · protect-files 의 `cloud/config.toml` · `docs/reference/schemas/CLOUD.md` · `docs/migrations/*.sql` (Cloud RLS 스키마) · AGENTS/CLAUDE/README/DOCUMENT_STRUCTURE/PAGE_TYPES/DRAG_DROP 의 Cloud 서술.
+
+## [Cloud 인증 제거 → 라이선스 파일 + 검증 코드 로컬 인증 (폐쇄망)] - 2026-09-12
+
+> 빌더가 인터넷 없는 사내망에서 동작해야 한다 (사용자 결정 2026-09-12). Cloud 는 실측상 **인증에만** 쓰였고 (프로젝트·문서는 이미 IndexedDB) 제거했다. 발급기 `/Users/admin/work/jwt` (`main.py` · `license_generator.html`, commit `8ff20bb`) 와 형식 계약 v1 (`docs/LICENSE_TOKEN_FORMAT.md`) 을 공유한다. live: `apps/builder/scripts/license-auth-live.mjs` 실제 빌더 10/10 (게이트 · 틀린 코드 · 통과 · 리로드/새 탭 · 만료 · 로그아웃 · 인증 중 외부 요청 0) + 서버 루트 `license.jwt` 자동 인식 1.
+
+### Added
+
+- **`/signin` 라이선스 활성화 화면** — 라이선스 토큰은 서버 루트 **`apps/builder/public/license`** (발급기 zip 의 `license` 파일을 그대로 복사) 에서 자동으로 읽고 (파일 선택 없음 — 사용자 결정), 사용자 입력은 6자리 검증 코드 하나. 검증은 `auth/license/licenseToken.ts` 가 WebCrypto 만으로 (네트워크 0): `alg=ES256` 확인 → 소스에 내장된 발급기 공개키 (`issuerPublicKey.ts` — 발급기 키 1개 고정, `.env` `VITE_LICENSE_PUBLIC_KEY` 는 선택 override) 로 서명 검증 → `exp` → 코드로 PBKDF2-SHA256(600k)→AES-GCM 복호화해 `license_key` 대조. 토큰에 코드 평문이 없어 파일만으로는 코드를 알 수 없다. 코드 5회 실패 시 60초 잠금 (서명·만료 오류는 잠금 대상 아님).
+- **로컬 인증 기록** (`auth/license/localAuth.ts`, localStorage `composition-license-auth` — `vc` 봉인은 저장하지 않음). `ProtectedRoute` 가 동기로 읽어 만료 전이면 즉시 통과, 없거나 만료면 `/signin`. 만료 = 라이선스 `exp` (Unlimited 는 무기한). 대시보드 헤더에 로그아웃 (기록 삭제).
+- i18n `auth.*` ko/en (`errorLocked` 는 `{seconds}` formatter 등록) · `dashboard.signOut`.
+- **사용자 절차 2단계** (2026-09-12 단순화): 발급기 HTML 에서 생성 (개인키는 한 번 읽으면 기억, 검증 코드는 License Key 에서 개인키로 결정적 유도라 재발급해도 불변) → zip 의 `license` 를 `apps/builder/public/license` 로 복사 → 코드 입력. 키 쌍·`.env` 를 사용자가 만지지 않는다.
+
+### Removed
+
+- `cloud SDK` 의존성 · `env/cloud.client.ts` · `auth/devAutoLogin.ts` (email/password 로그인, dev 자동 로그인) · `.env` 의 `VITE_CLOUD_*` / `VITE_DEV_EMAIL` / `VITE_DEV_PASSWORD`. 테스트 13개의 cloud mock 제거. `created_by` 는 라이선스 키.
+- `.gitignore`: `apps/builder/token` · `token.jwt` · `public/license` (코드가 평문이던 구형식 `apps/builder/token` 은 재발급 대상).
+
+## [ADR-216 Implemented — Chart 시간축 · 날짜 지시자 형식/파싱 · 가변 창 (thumb 2)] - 2026-09-12
+
+> 근거: `docs/adr/completed/216-chart-time-axis-format-window.md` (codex round 1 → claude round 2 승인 → `/execute-adr 216` Phase 0~7 하루, `### Live Exercise` 실제 빌더 9/9 + G5 성능 5-질문 + 번들 worktree 2). 이론 원천 [CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09](explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md) — d3-time · d3-time-format · d3-brush 의 **규칙만** 이식, 런타임 의존 0 (d3 는 specs devDependency 오라클, 눈금 12 span × 3 count · 지시자 15 × 100 날짜 동일).
+
+### Added
+
+- **Properties › Content › 범주 간격 (Category Spacing)** — `등간격` (현행) / **`시간 (날짜 간격)`** (`dimensionScale:"time"`, line/area 만): `dimension` 문자열을 UTC 날짜로 읽어 **시간 간격대로** 놓는다 (빈 날은 빈 자리, 순서는 시간 순), 눈금은 달력 경계 (자정 · 월초 · 연초, d3 18단 표) 에 붙고 라벨은 **2단** (눈금마다 작은 단위 + 경계마다 큰 단위 — `1 2 3 … / Jan`, `Jan Feb … / 2026`; react-spectrum-charts 와 같은 표). Builder Canvas · Preview · Publish 가 같은 모듈을 읽는다. 범주가 전부 날짜면 패널이 "시간축으로 볼 수 있습니다" 를 안내한다 (자동 전환 아님).
+- **날짜 입력 형식** (`dimensionFormat`, d3-time-format 지시자 부분집합 `%Y %y %m %d %e %H %I %M %S %L %p %a %A %b %B %j %q %Z %Q %s %%` + 패딩 `- _ 0`) — `2026/03/05` · `Mar 5, 2026` · `20260305` · epoch 초 같은 비-ISO 열을 받는다 (비우면 엄격 ISO). 날짜로 읽지 못한 행은 그려지지 않고 (`2026-02-30` 도 거부) 패널이 "N행은 날짜로 읽지 못해 제외됩니다" 로 알린다. **축 라벨 형식** (`dimensionLabelFormat`) 을 주면 한 줄 라벨. 로케일은 숫자 형식의 `valueLocale` 을 같이 쓴다 (`ko-KR` 이면 `1월 · 오후`).
+- Chart binding · Preview · Skia · Properties 패널 · i18n ko/en 결선 (`ChartTimeAxisControls`).
+
+### Changed
+
+- **창 트랙 (ADR-211) 이 손잡이 둘 `[start, end]`** 로 바뀐다 — 시작 손잡이 = 창 이동 (화살표 1 슬롯, 최소 창 = 한 화면), 끝 손잡이 = 창 넓히기/좁히기 (End 로 전체까지 — 넓힌 창은 극값/집계로 한 화면 예산에 다시 맞춘다), 손잡이 사이를 끌면 창이 통째로 이동 (길이 보존). **창이 있는 기존 차트 (범주가 화면보다 많은 bar/line/area) 도 Canvas 의 정적 트랙에 손잡이가 둘로 보인다** (데이터 마크·축·격자·범례는 byte 동일 — ADR-216 HC1 예외). 창 상태는 저장하지 않는다.
+- 시간 스케일에서 집계 (`aggregate`) 는 bucket 의 `[첫 epoch, 끝 epoch]` 을 보존해 대표 x = 첫 epoch 에 놓는다 (라벨은 `첫 ~ 끝` 그대로).
+- initial 번들 상한 재승인 (사용자 2026-09-12): Builder 1,322,929 / Preview 660,197 B gzip (만료 2026-10-12) — ADR-216 순증 Builder +5,636 · Preview +5,155 (Preview 순증 한도 3 → 6 KiB 개정).
+
+## [Chart 한국어 UI — "시리즈" → "계열"] - 2026-09-12
+
+### Changed
+
+- Properties 패널 Chart 의 한국어 라벨에서 "시리즈" 를 **"계열"** 로 바꿨다 (계열 · 계열 원천 · 계열 설정 · 숨은 계열 설정 · "막대 색은 계열별로 구분됩니다") — Excel · Google Sheets · Numbers 의 한국어 표기와 맞춘다. 영어 UI (Series) 와 저장 키 (`seriesConfig`, `--chart-series-N`) 는 그대로.
+- Properties 패널에서 **Palette 를 Color By 바로 앞**에 배치 — 색 관련 두 필드가 이웃한다 (`3ab6d66ce`).
+
+## [Chart 시리즈 팔레트 — Spectrum categorical 기본 + mono (accent) 선택 (ADR-215)] - 2026-09-11
+
+> 근거: 리서치 [CHART_PALETTE_RESEARCH_2026-09](explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) — Adobe react-spectrum-charts (Spectrum 2 theme 도 기본 category 는 Spectrum 1 categorical) · Pinterest Gestalt (`primary` = 단일 시리즈) · Apple (tint). 종전 시리즈 색은 named hue 8개를 Tailwind 600 으로 나열한 무지개였다 (청색 4개 · yellow 대비 부족). ADR-215 Phase 1~4 (`721fc8862` · `478108af6`).
+
+### Changed
+
+- **Chart 시리즈 색 8개가 Adobe Spectrum categorical 1~8 로 바뀐다** (`#0fb5ae #4046ca #f68511 #de3d82 #7e84fa #72e06a #147af3 #7326d3`, 라이트·다크 공용) — 기존 프로젝트의 모든 차트 색이 바뀐다 (저장 무변경, `seriesConfig.colorToken` 순번 `--chart-series-N` 그대로). Builder(Skia) 와 Preview/Publish 가 같은 표 (`chartPaletteMap.ts`) 를 읽는다.
+
+### Added
+
+- **Properties › Appearance › Palette** (`categorical` 기본 · `mono`): `mono` 는 테마 accent (`--tint`) 명도 사다리 4단 + neutral 4단 — Themes 패널에서 tint 를 바꾸면 차트도 따라간다 (CSS `oklch(from var(--tint) …)` ↔ Skia 같은 (L, chroma) 표). Series 섹션의 색 Select 는 선택된 팔레트의 순번을 보여 준다.
+- 토큰 `{color.chart-categorical-1..8}` · `{color.chart-accent-1..4}` (`--chart-categorical-N` 은 생성 `theme/generated/chart-palette.css`, `--chart-accent-N` 은 `preview-system.css`). rule `Chart.chart.palettes.{id}` → 생성 CSS `.react-aria-Chart[data-palette="id"]` 블록.
+
+## [ADR-213 Implemented — AI 데이터 tool 계약: 읽기 4 · "왜 실패했지?" · `propose_data_change` 승인 diff · bind_collection 정정 · agent `data.*` 명령 4 · 설명으로 테이블 · 붙여넣기 이해 · 반복 편집] - 2026-09-12
+
+> 근거: `docs/adr/completed/213-data-tool-contract-propose-review-apply.md` (리뷰 Round 2 승인 → **Implemented 2026-09-12**, `### Live Exercise` G1 · G4 · G3 · G2 · AX-4 · G5 전부 Chrome MCP + Ollama qwen3:14b) · evidence `docs/adr/evidence/213-p0-inventory.md` (로컬). 2026-09-11 Phase 1~6 을 하루에 진행하고 09-12 closure (AX-6 MCP 노출 원칙 · ADR-202 편입 어댑터 자리는 design breakdown §6 · §8).
+
+### Added
+
+- **AI 가 데이터를 읽는다**: `list_collections` · `get_collection` (스키마 + 샘플 ≤5행) · `list_api_endpoints` · `get_api_endpoint` (인증 header/query/기존 평문 토큰은 `{{secret.KEY}}` 로 가려짐) + 시스템 프롬프트에 collection 요약 절 (50개 · 이름 80자 · 8,192 B · 2,048 토큰 상한, 넘치면 "더 있음 N").
+- **AI 가 데이터를 바꾸려면 승인 diff 를 지난다**: 모델 대면 쓰기 tool 은 `propose_data_change` 하나 (스키마는 `dataChange.ts` 에서 파생 — 삭제 계열 op 없음 · origin 없음). 승인 다이얼로그가 테이블별 필드 추가/변경 · 행 수 + 샘플 3행 · 요소↔테이블 연결 · API 정의 (신규/변경, 헤더 키) · "사용처 N" 을 보여 주고, 승인하면 History 1건 (⌘Z 1회로 전체 원상). 거부하면 문서 무변경. `bind_collection` 도 같은 승인 경로 (종전 즉시 적용 · History 0 정정).
+- **"왜 실패했지?"** — AI 패널에서 "마지막 API 실행이 왜 실패했어?" 라고 물으면 `explain_request_failure` 가 정의 · 보낸 요청 · 응답 status/headers · 본문 앞 2KB · 대상 테이블 스키마를 (전부 가린 뒤) 모아 원인과 `define_endpoint` 패치 제안을 답한다. 제안은 `propose_data_change` 승인으로 적용 — 승인 시 `{{secret.KEY}}` 자리는 기존 값을 그대로 둔다 (AI 가 원문을 본 적이 없으므로).
+- **API 실행 스냅샷**: 실행 (성공/실패) 마다 endpoint 당 마지막 1건 (최종 URL · 헤더 · 응답 status/headers · 본문 앞 2KB) 을 세션에 남긴다. `list_api_endpoints` 의 `lastRun` 이 이것을 요약한다.
+- History 패널 라벨: "API 정의 — {name}" · "데이터 연결 — {name}".
+- **설명으로 테이블 만들기** (`create_table_from_description`): "블로그 글 테이블 만들어 — 제목 · 본문 · 작성자 · 게시일 · 상태" 라고 하면 AI 는 스키마와 **샘플 행 생성 규칙** (enum 값 · 숫자/날짜 범위 · 다른 테이블 참조 …) 만 정하고, 샘플 행은 빌더가 규칙대로 만들어 검증한다 (스키마에 없는 컬럼 · enum 밖 값 · 깨진 참조 0). 승인 다이얼로그가 스키마 표 (`Fields: title: string · …`) 와 샘플 행을 미리 보여 주고, 거부하면 AI 가 지적을 반영해 다시 제안한다.
+- **붙여넣기 이해** (`understand_paste`): cURL 명령 · JSON · 쉼표/탭 표를 AI 패널에 붙이면 규칙 파서가 먼저 해석해 API 정의 또는 테이블 (새로/기존에 추가) 을 제안한다. 파서가 못 읽는 텍스트만 AI 가 직접 구조를 뽑는다.
+- **반복 편집**: DataTable 편집기에 열어 둔 테이블/API 가 AI 턴에 자동으로 첨부된다 — "이 테이블에 tags 필드 추가해" 처럼 id 없이 말하면 그 테이블의 변경 제안 (승인 diff · "사용처 N") 이 뜬다. API 는 URL 을 가리고 헤더 키만 첨부.
+- **agent 명령 `data.*` 4** (`window.__compositionAgent` · AI 패널 `run_command`): `data.openTable {name|collectionId}` · `data.openEndpoint {name|endpointId, tab?}` · `data.runEndpoint {name|endpointId}` (GET 은 Test 버튼과 같이 바로, 그 밖의 method 는 승인) · `data.importPaste {text, name|collectionId}` (JSON 배열/객체 · 탭/쉼표 표 → 새 테이블 또는 기존 테이블에 행 추가 — 승인 diff 를 지나고 `⌘Z` 1회로 원상). `run_command` 에 `args` 파라미터.
+
+### Changed
+
+- `bind_collection` (AI tool): `{ elementId, collectionId | collectionName, fieldMap? }` 로 정정 — legacy `source:"static"` + 행은 새 테이블 생성 + 연결 한 묶음 (승인 1회), `source:"api"|"cloud"` 는 안내 오류.
+- `define_endpoint` 가 데이터 적용기에 들어왔다 (IndexedDB · 메모리 · History · rollback 이 collection · 바인딩과 한 트랜잭션). `delete_endpoint` 는 사람 전용 op (되돌리기 용).
+
+## [Variables — 페이지 변수는 소유 페이지를 갖는다 (ADR-214 판정 C + 생성 경로 차단)] - 2026-09-11
+
+> 근거: ADR-214 Phase 0 evidence §5 — 구 Variables UI 가 `page_id` 를 한 번도 채우지 않아 저장된 `scope:"page"` 변수가 전부 소유 페이지 없이 남아 있었다. 사용자 판정 (2026-09-11 "C + 2"): 이미 저장된 것은 프로젝트 페이지가 1개뿐일 때만 그 페이지로 귀속 (유일하게 결정적), 아니면 project + `owner-unresolved` 배지 유지 · 새로 만드는 경로는 지금부터 소유 페이지 필수. 단위 54 PASS (`variableOwnerMigration` · `dataActions.variables` · `dataChange*`) · 실제 빌더에서 exercise (page_id 없는 page 변수 로드 → Home 귀속 + write-back · Add Variable Page → page_id 저장 · 편집기 "Owner page: Home").
+
+### Fixed
+
+- **Data › Variables 에서 Page 범위 변수를 만들면 현재 페이지가 소유자로 저장된다** (`page_id`). 현재 페이지가 없으면 만들 수 없고 안내가 뜬다. 편집기에서 Global → Page 로 바꿔도 현재 페이지가 귀속되며, 소유 페이지가 없는 옛 page 변수에는 "현재 페이지에 귀속" 버튼이 보인다. `component` 범위는 새로 고를 수 없다 (소유 요소 id 가 없어 만들 수 없는 형태 — 이미 component 인 변수에만 표시).
+- **옛 page 변수 (page_id 없음) 의 로드 귀속**: 프로젝트 페이지가 1개뿐이면 그 페이지로 (콘솔 `[ADR-214] Variable page 귀속 N건` info 1회), 2개 이상이면 종전대로 project + `owner-unresolved` (warn 1회). 귀속된 변수만 `page_id` 를 1회 저장해 고정하므로 나중에 페이지를 추가해도 home 변수는 home 에 남는다 (그 외 변수는 재직렬화 0).
+
+## [Chart Properties 섹션 재배치 — Content(정체·데이터) · Series · Appearance(숫자 형식) · Interaction(표시 예산) + 패널 표준 어법] - 2026-09-11
+
+> 근거: Recharts API 층 (Chart / Series / Axis / General) 과 shadcn Chart 의 `data` ↔ `ChartConfig` 분리를 분류 축으로 삼았다. ADR-209/210/211 이 Content 한 슬롯에 append 한 커스텀 컨트롤 5개를 그 축으로 나눈다. 저장 키 · D2 타입 · 시각 SSOT 변경 0 — catalog `section` 문자열과 패널 주입 채널만 바뀐다. 실제 빌더에서 Bar Chart 선택 → Content 정체 줄 (읽기 전용 종류 + 변경 액션 · 프리셋) · Series 행 (이름 · 색 · 행 메뉴 Move Up/Down/Reset) · Appearance 말미 Number Format · Interaction 말미 예산 + 상태 문구 exercise.
+
+### Changed
+
+- **Chart Properties 섹션**: Content = 차트 종류 (일반 Select — 종전 "Change chart type" 2단계 제거, ADR-209 "선택 0개" 문구는 팔레트 결정의 부산물로 정정) · Preset · Series Source · Category/Value/Series · Data · Sample Rows. **Series 섹션 신설** = 시리즈별 이름 · 색 · 순서 (shadcn `ChartConfig` 대응 — 시리즈 설정이 적용되지 않는 pie/범주색 bar/단일 radial 에서는 섹션 자체가 열리지 않는다). Number Format 계열은 **Appearance 말미**, 표시 예산 4 키는 **Interaction 말미** 로 이동 (`Chart.binding.ts` `section` 변경).
+- **패널 표준 어법 (ADR-163) 적용**: `div[role=group][aria-label]` 4곳 → `fieldset.properties-aria` + legend · `ul/li` 목록 → `.fieldset-row` + `.fieldset-actions` 행 메뉴 (`PropertyRowMenu` 신규 공용 위젯 — `⋮` 트리거 + RAC Menu) · 유니코드 `↑↓×` → lucide (`ArrowUp`/`ArrowDown`/`ACTION_ICONS.delete`/`RotateCcw`) · Apply 는 `.control-button[data-variant="primary"]` · 폐기 토큰 `--inspector-control-size` 참조 제거.
+- **힌트 문단 정리**: 정적 설명 `<p>` 7곳 제거 (i18n 키는 legend help 후속을 위해 유지). 값·데이터에 반응하는 상태 6종 (예산 적용 모드 · 행 상한 초과 · 원본에 없는 필드 · disabled 사유 3) 은 해당 필드 안 `slot="description"` 으로 이동 (`PropertySelect.afterControl` 슬롯 신규).
+- `GenericFieldRenderer.sectionExtras` — section 별 말미 주입 채널. 섹션 순서는 `editorHidden` 필드를 포함한 계약의 section 첫 등장 순서 (catalog 가 배치를 소유).
+- 시리즈 색 라벨 "Palette Color" → "Color" (233px 패널의 2열 행에서 잘리지 않게).
+- **필드 아이콘**: `propertyFieldIcons.ts` 에 **컴포넌트 스코프 표** (`COMPONENT_KEY_ICONS.Chart`, 38 키) 신설 — 단일 컴포넌트 전용 key 가 한 섹션에 같은 kind 로 몰리면 kind 기본 (`ToggleLeft`/`List`/`Hash`) 이 같은 그림을 반복해 열의 정보가 0 이 되던 것 (Show Axis · Show Grid · Show Legend · Show Dots 가 전부 토글 아이콘). 축 `Axis3d` · 격자 `Grid2x2` · 범례 `LayoutList` · 점 `CircleDot` · 곡선 `Spline` · 라벨 `Tags` · 툴팁 `MessageSquare` · 애니메이션 `Play`/`Timer`/`Clock`/`Waves` · 예산 `Scissors`/`Sigma`/`Axis3d`. 정적 가드: 표의 key 는 binding 에 실재 · 같은 섹션 안 같은 그림 0. 시리즈 색 옵션은 `--chart-series-N` 대신 `Series N` 으로 표시 (저장값 무변경).
+
+## [ADR-152 — Data 패널 ↔ Collections ↔ 컴포넌트 Collection 바인딩 통합: `collectionId` · `fieldId` 안정 참조 · fieldMap · `DataChange` 적용기 + History · publish snapshot (Implemented)] - 2026-09-11
+
+> 근거: `docs/adr/completed/152-data-panel-collection-binding-integration.md` (리뷰 round 4 승인, Phase 0 ~ 7 같은 날 반영). 데이터 편집 4종 · rename · 바인딩 · publish 를 실제 빌더에서 headed Playwright 하니스 8종 (`apps/builder/scripts/adr152-p{1,1b,1c,2,3,4,5,6}-live.mjs`) 으로 exercise — 10/10 · 14/14 · 14/14 · 10/10 · 9/9 · 12/12 · 6/6 · 5/5. 코드 변경은 Phase 1 ~ 6 커밋, 이 엔트리는 closure.
+
+### Added
+
+- **Data 패널 편집이 `⌘Z` 로 돌아온다**: 셀 편집 · 행 삭제 · CSV import · 필드 rename · collection 생성/삭제/schema 변경이 History 패널에 data entry (`Edit cell` · `Delete rows (1)` · `Replace data (2 rows)` · `Rename field — name → fullName` …, Database 아이콘) 로 남고 `⌘Z` / `⌘⇧Z` 가 요소 편집 entry 와 섞여도 각자 되돌아간다. 모든 데이터 편집은 `DataChange` (13 op, zod 단일 소스 `packages/shared/src/schemas/dataChange.ts` — JSON Schema 도 같은 소스에서) 를 지나는 적용기 `applyDataChange` 하나로 들어가며 all-or-nothing + inverse 동시 산출 (`stores/utils/dataChange.ts`). ADR-213 의 AI `propose_data_change` 가 같은 진입점을 쓴다.
+- **Properties › Data 에 Value field · Icon field 선택**: collection 을 고르면 fieldMap 행 2개 (기본 `Auto`) 가 보이고, 고른 필드는 행 key (`data-key` · Select option value · Table 행 key) 와 아이콘 역할로 쓰인다 — Builder Skia 투영과 Preview DOM 이 같은 shared resolver (`resolveFieldRoles`) 를 지나 같은 key 를 낸다 (ListBox · Select · Table · Breadcrumbs · ComboBox · GridList · Menu · Tabs · TagGroup · Tree 10종).
+- **필드 key 를 바꿔도 바인딩 · 템플릿 · 차트가 살아 있다**: 필드마다 안정 id (`DataField.id`) 를 부여하고 (기존 프로젝트는 로드 직후 id 없는 collection 만 1회 write-back, 이후 write 0) fieldMap · `{field}` 템플릿 저장형 (`{#<fieldId>}`, 편집기는 이름 표시) · 차트 dimension/metric 이 id 를 참조한다. `name → fullName` rename 후 재로드해도 캔버스 · Preview · 차트 · Properties 표시가 유지된다.
+- **collection 이름을 바꿔도 바인딩이 유지**: `dataBinding.collectionId` (id 참조) 가 정본, `name` 은 legacy fallback. legacy `{ type:"collection", config:{…} }` 바인딩은 읽기 경계에서 v2 로 정규화 (문서 재직렬화 0).
+
+### Changed
+
+- **publish · export 의 collection snapshot**: 헤더 Preview payload 와 export JSON 이 `{ id, name, schema, mockData, useMockData }` 만 담는다 (runtimeData · 저장소 메타 제외). export schema 가 필드 `id` · `required` · `defaultValue` 를 strip 하던 결함 수리 — import 후에도 fieldId 참조가 유지된다.
+- **Table Preview 행 identity**: Table DOM wrapper 가 다른 9종과 같은 `useResolvedCollectionItems` 를 지나 행 id (`tr[data-key]` · 선택 key) 가 fieldMap value 역할 (없으면 `id` 컬럼) 을 따른다 — Builder Skia 행 key 와 동일. 셀 값은 그대로. 같이 수리: `useResolvedCollectionItems` 의 rows 가 렌더마다 새 배열이던 것 (reload identity 에 묶임) — rows 에 반응해 setState 하는 소비자가 "Maximum update depth exceeded" 로 돌 수 있었다 (Table 정렬 live 에서 실측, 회귀 테스트 추가).
+- **TagGroup Preview 행 key**: DOM 이 raw `id` 로 정규화 key 를 덮어 Skia (`U-1..3`) 와 달랐던 것 (`auto-1..3`) 을 spread 순서 수리로 대칭.
+
+### Architecture
+
+- collections read 경로 단일화: `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` (Tabs · Tree 도 정렬), `datatableId` · `elementId` 옵션과 `DataTableService.addConsumer/removeConsumer/loadDataTable` · cloud 분기 제거. `useDataStore.collections` Map 은 id 키, resolve 는 `resolveBoundCollection` 하나.
+- store 단일화: legacy `stores/datatable.ts` · `components/data/DataTable.tsx` · `hooks/useDataQueries.ts` 삭제 (사용자 승인) — `BuilderCore` 의 `LOAD_DATA_TABLE` / `SAVE_TO_DATA_TABLE` 과 `DataTablePanel` 이 `useDataStore` 만 읽는다 (React Query 병행 제거).
+- `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 · `DataChange` · publish snapshot 규칙 기재. 후속 정리 (같은 날): 고아 `types/datatable.types.ts` (import 0) 삭제 · `main.tsx` `QueryClientProvider` 와 `@tanstack/react-query` 의존 제거 (소비처 0). 잔여 (기록만): publish 의 ref ListBox master slot 템플릿 미보간 (publish App 이 ref 를 확장하지 않음 — ADR-162/159 publish leg, 범위 밖).
+
+## [데이터 패널 Track 0 결함 수리 — 응답 행 자동 감지 · 필드 key 변경 시 행 이전 · 편집기 첫 열림 폭 · prompt/confirm/alert 제거] - 2026-09-11
+
+> 근거: `docs/explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md` §2 (D1 · D2 · U1 · U2) · §5 Track 0. ADR 없이 `/fix` 로 처리한 동작 수리 4건. live 13/13 (headless 빌더 — API 생성 → Run 컬럼 8 감지 · 변수 생성/삭제 다이얼로그 · key 변경 후 값 유지 · 편집기 560px).
+
+### Fixed
+
+- **API 응답에서 행을 못 찾던 문제 (D1)**: 새 엔드포인트의 기본 `dataPath` 가 `"data"` 라 jsonplaceholder 처럼 최상위가 배열인 응답이 `undefined` 가 되어 Run 탭이 "Success" 인데 본문이 비고 컬럼 감지가 안 됐다. 기본값은 빈 경로 (응답 전체) 로 바꾸고, 실행기가 경로 결과가 배열이 아니면 응답 자체 → 관례 키 (`results` · `data` · `items` …) 순으로 행 배열을 찾는다 (`utils/data/responseData.ts`, 순수 함수 + 실행기 회귀 테스트). API 편집기의 중복 감지 블록 2개도 같은 함수를 쓴다.
+- **필드 key 를 바꾸면 그 컬럼 값이 사라지던 문제 (D2)**: Schema 탭에서 key 를 바꾸면 schema 만 갱신돼 `mockData` · `runtimeData` 의 값이 옛 key 아래 고아로 남았다. 이제 행 값을 새 key 로 옮기고 (열 순서 보존), 빈 key 나 이미 있는 key 로 바꾸려 하면 토스트로 거부한다. `updateCollection` 이 `runtimeData` 도 받는다.
+- **편집 패널이 233px 로 열리던 문제 (U1)**: `datatableEditor` 에 `defaultWidth: 560` 을 주고, workspace 가 패널을 overflow 로 새 column 에 놓을 때 원래 column 폭만 물려받던 것을 패널의 `defaultWidth` 하한으로 고쳤다 (`panelWorkspacePolicyV4.ts`). 리사이즈 · 폭 저장은 그대로.
+- **`window.prompt` · `confirm` · `alert` 6곳 제거 (U2)**: "Add API" · "Add Variable" 은 편집 패널 자리에 스냅되는 생성 패널 (`ApiEndpointCreator` — URL · 메서드 · URL 에서 자동 제안한 이름, 만들면 Run 탭으로 · `VariableCreator` — 이름 · 타입 · 범위, 중복 이름 거부) 로, 삭제 3곳은 RAC `ConfirmDialog` (항목 이름 표시 · Esc 닫기 · 확인 버튼 포커스) 로, Import 결과 2곳은 Toast 로 바꿨다. 자동화 (Playwright · Chrome MCP) 를 막던 native dialog 가 데이터 패널에서 0 이 됐다.
+
+## [ADR-211 — 차트 표시 예산: 슬롯 fit · 창 Slider · 행 상한 R · 집계/극값/others · 예산 설정 · 성능 (Implemented)] - 2026-09-11
+
+### Changed
+
+- (P5) **Implemented** — G5: preflight FAIL 0 · builder 5,710 · shared 1,175 · specs 1,233 · chart Chromium 214 · live P3 하니스 13/13 (최종 main) · 구버전 프로브. 사용자 승인: Builder 번들 순증 한도 7 KiB · 전체 initial Builder 1,304,030 B / Preview 636,268 B 한시 재승인 (Publish <500,000 B 유지 · 만료 2026-10-10 또는 initial 영향 변경 시) — ADR-210 상한 대체. **호환**: `budget*` 키는 선택적 (기존 문서 재직렬화 0) · 구버전은 키를 무시하고 예산 없이 전부 그린다 (Preview) / Canvas 는 200행 샘플로 (데이터 손실 0) · 창 위치는 저장하지 않는다 · 행 상한 20,000 은 두 화면 동일. 사용자-가시 변경 (A) 행 > 200 Canvas 합계 · (B) 범주 > fitEff 창/집계/극값/others · (C) 마크 > M fitEff 축소.
+
+### Performance
+
+- (P4) **Builder 캔버스 차트 프레임**: Skia `renderPath` 가 SVG path 문자열 파싱 결과 (`Path`) 를 LRU 캐시 (개수 4,096 · 4 MB, 퇴출 시 해제) — 행 상한 200 이 사라져 선/영역 차트 path 가 33~65 KB 가 되자 내용 재기록마다 재파싱해 `render.frame` p95 가 +8ms 났던 것을 되돌린다 (6 Chart 800행 문서 select→편집→resize→zoom p95 10 → 6–7.6ms · 200행 × 4필드 22.4 → 4.8–5.9ms). runtime static W800 4종 16.6–17.6ms (bar 63.7 → 16.7) · 5,000행 columns bar 1,446 → 15.5ms · 5,000행 × 4 시리즈 모델 계산 최대 4.9ms · 폭 2,000 × 8 시리즈 창 이동 20회 p95 33.6ms. 측정: `docs/adr/evidence/211-p4-perf-bundle.md` (before `53c761c8b` / after 별도 clean worktree).
+- (P4) **번들**: Preview 창 Slider 를 `Chart.tsx` (initial) 가 render prop 으로 넘겨 lazy Recharts 청크의 shared Slider import 가 만들던 청크 분리 (initial gzip +2.5 KiB) 제거. 순증 (gzip): Builder +6,762 B · Preview +5,653 · Publish +5,314 — Builder 는 ADR 한도 6 KiB 를 +618 B 넘고, Builder/Preview 전체 initial 은 ADR-210 승인 상한을 +6,719 / +5,643 B 넘는다 (사용자 결정 대기).
+
+### Added
+
+- (P3) **창 이동 Slider (Preview/Publish)**: 범주 축 차트의 범주가 예산을 넘치면 플롯 아래에 창 트랙이 생긴다 — thumb 하나로 창을 옮기고 (화살표 1 범주 · Home/End 끝 · PageUp/Down 1/10) 창 길이는 항상 같다. 창 위치는 저장하지 않는 뷰 상태 (문서 write 0) 라 데이터·차트 종류·overflow 가 바뀌면 처음으로, 크기가 바뀌면 자리에 맞춘다. Builder 캔버스는 같은 높이 (`windowTrackHeight 24`) 를 예약하고 비활성 트랙 (창 0) 을 그린다 — 두 화면의 플롯이 같다. 트랙 접근성 이름은 "Visible range".
+- (P3) Chart Properties **표시 예산 설정** 4종: `범주 초과 시` (자동 / 창 / 구간 집계 / 구간 극값 유지 / 나머지 묶음 — 차트 종류가 지원하지 않는 항목은 비활성 + 사유) · `집계 통계` (합계 / 평균 / 최대 / 최소) · `범주 축` (자동 · 범주 · 순서) · `묶음 라벨` (기본 "Other", 비우면 기본으로). 저장 키 `budgetOverflow` · `budgetAggregate` · `budgetAxis` · `budgetOthersLabel` 은 전부 선택적 (기존 문서 변경 0) 이고 Builder 캔버스 · Preview · 독립 publish 가 같은 값을 읽는다. 패널 안내 `표시 {fitEff} / {n} — 창 · 구간 집계 (sum) · 구간 극값 유지 · 나머지를 하나로 묶음` (캔버스 크기 기준) 이 예산 상태를 알린다.
+- (P3) 검증: specs 6 · Chromium Slider 2 · 패널 4 · 투영 1 · live 13/13 — Canvas 트랙 픽셀 · Preview/publish Slider End 로 마지막 창 (write 0) · 5,000일 line 극값 점 685 ≤ M · 누적 집계 접미 tooltip · pie 200 → "기타" · dark `--chart-others` 대비 3.42 · Properties → reload → 두 화면 → Export → publish (`docs/adr/evidence/211-p3-window-wiring.md`).
+
+### Changed
+
+- (P2) **사용자-가시 (B) 확장**: 범주가 예산을 넘칠 때 종류·축별로 다르게 처리한다 — 범주 축 (이름) 은 창 (P1), **기간 축** (범주가 전부 엄격 ISO-8601 날짜이고 순서가 단조일 때만 자동 판정, `budgetAxis` 로 강제 가능) 은 bar 와 누적 line/area 가 **bucket 집계** (`sum` 기본, `mean/max/min`; 범주 라벨 `첫 ~ 끝`, tooltip·값 라벨에 `sum` 접미), 비누적 line/area 는 **bucket 극값 선택** (시리즈별 최소·최대 원본 점을 보존, 결측 구간은 그대로 끊김, 점 수는 `P 5,000`/`M 800` 안으로 적응), pie/radar/radial 은 **others** (상위 범주 + "Other" 묶음, 색 `--chart-others`, 라벨 `budgetOthersLabel`). 값 축 범위는 변환 뒤 전체 데이터에서. Builder 캔버스와 Preview/Publish 가 같은 모델을 그린다.
+- (P2) rule chart 채널 `others` 토큰 (catalog Chart `{color.neutral-subdued}` → CSS `--chart-others`, Skia 같은 토큰) · 설정 검증 `budgetOverflow/budgetAggregate/budgetAxis/budgetOthersLabel` (지원되지 않는 조합은 설정 오류 안내). 검증: 원본 스캔 오라클 (집계 합·평균, 극값 index 보존, gap sentinel, 적응 B 단계, others ranking, `[60,60]` → 120 domain) 전부 PASS · live 400일 bar 집계 / 3,000일 line 극값 / pie 40 → Other 세 모드 두 화면 일치 (`docs/adr/evidence/211-p2-overflow.md`). 저장 키 4개의 Properties 컨트롤·창 이동 Slider 는 P3 (위 Added).
+
+- (P1) 차트가 **표시 예산**을 계산한다 (`packages/specs/src/chart/budget.ts` · `model.ts`, Builder Skia 와 Preview/Publish Recharts 가 같은 `resolveChartModel` 을 부른다): 플롯 픽셀 폭 / 최소 슬롯 간격 (`minSlot 8` · `minPointGap 3` · `minArc 5` · `minAxisGap 12` · `minRing 5`, P0 light/dark 실측) 으로 슬롯 수 `fit` 을 정하고 요소 마크 `M 800` · 경로 점 `P 5,000` 으로 깎는다. **사용자-가시 (B)**: bar/line/area 의 범주가 `fitEff` 를 넘으면 두 화면 모두 앞 `fitEff` 범주만 그린다 (창 0 — 창 이동 Slider 는 P3). 값 축은 전체 데이터 범위를 유지한다.
+- (P1) **사용자-가시 (A)**: Canvas 전용 200행 샘플 (`CHART_SAMPLE_ROWS`) 삭제 — Builder 캔버스도 Preview 와 같은 전체 행 합계를 그린다 (5,000행이면 5,000행 합). 행 상한은 두 화면 공통 `R 20,000` (초과 시 앞 20,000행 + 진단 `budget.rowsTruncated`, Properties 안내 `chart.rowCapHint`). 플롯이 한 슬롯보다 좁으면 마크 0 + 진단 `budget.plotTooSmall` (데이터 보존).
+- (P1) rule chart 채널 `budget` (catalog Chart 항목, `ComponentRuleChart.budget?`) 이 예산 상수의 정본 — `ChartMetrics` 9 필드. 검증: 손계산 오라클 18/18 · 같은 크기 두 leg visible 범주·값 byte 동일 · 행 ≤ 200 · 범주 ≤ fitEff 문서는 scene byte 동일 (스냅샷 4 · specs 315 · shared 668 · chart Chromium 212) · live 1,000 범주 bar → Canvas/Preview 41 막대, 5,000행 → 두 화면 같은 합 (`docs/adr/evidence/211-p1-budget-model.md`).
+- (P0, 2026-09-10) spike 만 (제품 코드 0): 하니스 `apps/builder/scripts/adr211-budget-{model,pixel}-spike.mjs` · `adr211-impact-inventory.mjs`.
+
+## [ADR-210 P1–P5 — 차트 다중 수치 컬럼 · 시리즈 표시 · 숫자 형식 (Implemented)] - 2026-09-10
+
+### Added
+
+- Chart Properties 에 **시리즈 원천** (그룹 필드 / 값 컬럼) 이 생겼다. 값 컬럼 모드는 `{month, desktop, mobile}` 같은 wide 표의 수치 컬럼을 골라 각 컬럼을 시리즈로 그린다 (Bar/Line/Area/Radar — Pie/Radial 은 비활성 + 사유). 원본 행은 변환·저장하지 않고, 같은 범주는 기존처럼 합산한다. 기존 그룹 모드 문서는 아무것도 바뀌지 않는다 (opt-in).
+- **시리즈 설정**: 시리즈 표시 이름 · 팔레트 색 (`--chart-series-1..8` 토큰) · 순서 (위/아래). 순서는 누적·묶음 배치·범례·툴팁에 같이 적용된다. 숨은 시리즈의 설정은 보존됐다가 재등장 시 회복된다. 범주별 색 모드 (Pie · 단일 시리즈 Radial · Bar Color By=Category) 에서는 사유만 보인다.
+- **숫자 형식**: Auto / 소수 / 통화 (ISO 코드) / 퍼센트 (비율·퍼센트 값 단위) + 숫자 로케일 (en-US/ko-KR) + 소수 자릿수. 값 라벨·축·툴팁·도넛 합계 문자열만 바뀌고 기하는 그대로다. 100% 누적 축은 형식을 켜면 항상 `%` 다. Auto 는 기존 문자열 그대로.
+- 잘못된 설정 (값 필드 없음 · Pie+값 컬럼 · 통화 코드 없음 등) 은 조용히 다른 뜻으로 그리지 않고 "Check chart settings" 안내로 멈춘다 (데이터 보존). Preview/Publish 도 같은 안내를 내고 (`role=status`, 진단 코드는 `data-chart-diagnostics`) 차트를 그리지 않는다.
+- (P3) Preview/Publish 의 Recharts 가 Canvas 와 **같은 문자열·색**을 낸다 — 축 눈금 (100% 누적은 `%`, 그 외 raw 형식) · 툴팁의 시리즈 표시 이름과 raw 값 형식 · 도넛/radial 합계 · 키보드 탐색 (Recharts accessibilityLayer) 툴팁도 표시 이름을 쓴다. 값 로케일은 문서 설정을 따르고 UI 언어와 무관하다 (`lang=ko` + en-US → `$`, `lang=en` + ko-KR → `US$`). 독립 publish 도 같은 결과다.
+
+### Validation
+
+- specs chart 274/274 · shared catalog 517/517 · builder unit 714 files/5,685 · chart Chromium 180/180 · type-check PASS. 실제 빌더 live (`apps/builder/scripts/adr210-chart-p2-live.mjs`) 6/6 — 패널 mount → 값 컬럼 적용 (canonical 단일 patch, Skia 픽셀 변화) → Undo 1회 복귀 → 통화 묶음 저장 → reload 보존.
+- 구버전 (`305e4c4f7`) 은 새 설정을 무시한다: 기존 문서는 byte 동일, 새 columns 문서는 빈 차트 또는 legacy 값 필드 단일 시리즈 (데이터 손실 0, 무손실 rollback 미지원 — 업데이트 전 백업 복원이 지원 경로).
+- (P5) 종결 검증: preflight FAIL 0 · builder unit 5,689 · shared 1,174 · specs 1,160 · chart Chromium 212+149 · live P2 6/6 · P3 7/7 · production network 9/9. 엔진 parity 4건 FAIL 은 기준선 `baf535258` 과 동일 (ADR-210 무관). **호환 제한**: 새 설정 (값 컬럼·시리즈 설정·숫자 형식) 문서를 구버전에 넣으면 빈 차트 또는 legacy 값 필드 단일 시리즈로 보인다 (데이터 손실 0) — 지원되는 rollback 은 업데이트 전 백업 복원. **Implemented (2026-09-10)**: 사용자가 Builder/Preview 전체 초기 번들 예외를 승인 — 상한 Builder ≤1,297,311 / Preview ≤630,625 B (최종 revision 실측값), 만료 2026-10-10 또는 initial 영향 변경 시, Publish 기본 500 KB 유지 (ADR-209 B 상한 대체). ADR-209 Series 하니스 재실행 17/18 — Export 단계 FAIL 1 은 타이밍 flake 로 분류하되 기록 유지. 후속 조사: Canvas columns 표시 셀 비용 (`CHART_SAMPLE_ROWS` 행 cap) · Chart 컨트롤 mount 비용.
+- (P4) 성능: Preview/Publish 의 Bar 차트가 막대를 단순 path 로 그려 800 막대 정적 렌더 p95 116 → 75ms (legacy 800행 bar 118 → 77ms, 5000행 625 → 323ms) — 기하는 그대로 (Chromium 212/212 ≤1px). Properties 의 Chart 컨트롤 3개가 값 필드·시리즈·형식 입력이 바뀔 때만 다시 그려 showGrid 편집·크기 변경 때 재렌더 0 (다른 차트로 전환하면 선택 화면·pending 통화는 여전히 초기화). 측정 (before `baf535258` / after 별도 worktree): columns W800 4종 static p95 41–75ms (≤100) · Builder W200 6-chart frame p95 Δ −0.5…−0.6ms (≤+1) · initial gzip 순증 Builder +7,473 / Preview +4,196 / Publish +2,820 B (≤10 KiB) · lazy +305 B · production network 9/9. 전체 initial 예산 (500 KB) 은 Publish 만 충족 — Builder/Preview 는 ADR-209 한시 상한도 넘어 재승인 대기.
+- (P3) chart Chromium 212/212 (신규 32: 4종 wide × 누적 방식 × 크기 × 긴 한글 이름/KRW 에서 DOM 축 눈금·범례·값 라벨의 문자열과 좌표 ≤1px, 마크 경계 ≤1px, 지정 팔레트 토큰 light/dark 실제 CSS ↔ Skia 토큰 일치, legacy 6종 문자열 보존) · dark/reduced-motion 대조군 149/149. 실제 빌더 live (`apps/builder/scripts/adr210-chart-p3-live.mjs`) 7/7 — 패널로 값 컬럼·표시 이름·`--chart-series-5`·USD 설정 → Skia 주색 변화 → Themes dark 스위치 → Compare Mode Preview 의 문자열/fill 이 Skia 픽셀과 일치 (light/dark) → hover·키보드 툴팁 canonical write 0 → 메뉴 Export → 독립 publish (3001) 같은 문자열·fill. 성능 (P4) · 문서 정합/rollback 제한 (P5) 미완.
+
+## [ADR-209 후속 완료 — B안 승인 및 G5/G6 종결] - 2026-09-10
+
+### Validation
+
+- clean `651c2a363`에서 Builder/Preview/Publish 초기 JS gzip **1,289,801 / 626,424 / 390,293 B**. 이전 확정 `24a33d157`보다 감소했고 차트 lazy graph는 동일하다. 기존 의존성 최적화의 결과이며 새 차트 기능 변경은 없다.
+- runtime 6종×200행 정적 p95 **40.5–43.5ms**, Builder 프레임 A/B 5쌍 최악 Δ **+0.8ms**. 실제 로그인된 production F4 **9/9**, 전이 의존성 요청 대조 **7/7**, T13 **13/13**, focused tests **43/43**, chart Chromium **170/170**, preflight PASS. Settings 실제 한국어 선택·reload·Export를 포함한 Series live **21/21** PASS.
+- 하니스의 측정 worktree/출력 경로를 지정할 수 있어 이전 증거를 보존한다. T13의 설정 600ms와 실제 관측 상한 1400ms를 구분하도록 결과 문구를 정정했다(검사 조건 유지).
+- 사용자 **“B 안으로 승인”**(2026-09-10)에 따라 Builder ≤1,289,801 B / Preview ≤626,424 B의 한시적 초기 gzip 상한을 확정했다. Publish <500,000 B와 차트 순증·lazy·성능 기준은 유지한다. 만료는 2026-10-10 또는 초기 closure 영향 변경 중 먼저 도래하는 시점이며, Composition 유지보수 담당이 재측정 및 축소 계획/재승인을 맡는다.
+- **G5/G6·F5 완료, ADR Implemented 승격 및 completed 이관.** 전체 500KB 목표 자체를 달성한 것은 아니며 예외 자동 연장은 없다. [승인 계약과 종결 근거](adr/design/209-chart-followup-repair-breakdown.md#108-b안-승인-및-g5g6f5-종결-2026-09-10).
+
+## [Properties 패널 — 동작하지 않던 항목 정리와 ColorField·FileTrigger Preview 복구] - 2026-09-10
+
+### Fixed
+
+- ColorField 의 **Description / Error Message** 가 Preview 에 반영된다. field 계열 중 ColorField 만 wrapper 위임이 빠져 있어 parent 값이 RAC 가 모르는 prop 으로 버려지고 있었다 (Label 은 propagation 다리로만 닿았다).
+- FileTrigger 가 Preview 에 실제 버튼 (`.react-aria-FileTrigger`, variant·size·**Disabled** 반영) 으로 그려진다. 종전에는 RAC FileTrigger 가 DOM 을 만들지 않아 글자만 남고 클릭할 요소도 없었다.
+
+### Removed
+
+- Properties 패널에서 켜도 아무 일도 없던 항목 12개를 뺐다 (DOM·Skia 어느 쪽도 읽지 않던 surface). 저장된 문서의 값은 무시된다.
+  - Link `External Link` · `Show External Icon` — 외부 링크는 `Target` · `Rel` 로 표현한다.
+  - Form `Auto Focus` · `Restore Focus` (RAC Form 에 없는 prop)
+  - Breadcrumbs `Show Root` · `Multiline` (RSP v3 개념, 미구현)
+  - TableView `Allow Resizing Columns` · CardView `Columns`
+  - ListBox · GridList · Tree · TagGroup 의 컬렉션 전체 `Disabled` — RAC/RSP 컬렉션은 항목별 Disabled (Items 편집) 와 `disabledKeys` 만 둔다.
+
+### Validation
+
+- 대조 자체: 팔레트 66 → Properties 항목 619 를 RAC 1.21.0 · RSP S2 1.7.1 타입과 대조 (RAC 275 · RSP 개념 249 · custom 84 · builder 11), custom 은 소비처 grep 으로 확인.
+- 새 회귀 게이트: 제거 항목 12 (`deadSurfaceRemoval.test.ts`) · 위임 등록 2 (`CanonicalNodeRenderer.colorFieldFileTrigger.test.tsx`) · 위임 선언 parity INVENTORY rac 13→15. 필드 아이콘 레지스트리에서 단일 사용이 된 `columns` 제거, ColorField wrapper 가 `data-label-align` 기본값 `start` 를 명시 emit (ADR-923 r24m1 기본값 계약 게이트).
+- shared 1,171 · builder 5,664 통과, type-check PASS. live (`apps/builder/scripts/panel-d2-audit-live.mjs`, headed Playwright): 제거 항목 11 타입 패널 부재 + ColorField Preview DOM 에 description/errorMessage 텍스트 + FileTrigger `button.react-aria-FileTrigger[data-disabled]`.
+- 남은 것 (별도): FileTrigger 의 catalog rule 크기 (md 높이 40 · paddingX 24) 가 생성 CSS 와 Skia 어느 쪽에도 실리지 않는다 — 두 leg 모두 ~24px 로 대칭이라 이번 범위 밖.
+
+## [Publish·Preview 번들 — RAC 로케일 축소와 서브패스 import] - 2026-09-10
+
+### Changed
+
+- Builder 와 Publish Vite 가 React Aria 번역 문자열을 `en-US`·`ko-KR` 만 남긴다. 앱 i18n (`SupportedLocale`) 과 같은 두 로케일이다.
+- shared 컴포넌트와 Builder chrome 이 `react-aria-components` barrel 대신 컴포넌트 서브패스 (`/Button`, `/Select` 등) 에서 가져온다. Preview 의 `CanonicalNodeRenderer` 만 catalog 이름이 런타임에 RAC 컴포넌트를 고르므로 barrel `import *` 을 유지한다.
+
+### Performance
+
+- 독립 Publish 프로덕션 빌드 `main` JS: 1,697 kB (gzip 431 kB) → 1,587 kB (gzip 396 kB). Recharts 청크(436 kB)와 CSS(636 kB)는 그대로다. 압축 전 500 kB 경고는 `main` 이 아직 그 위에 있어 남는다.
+
+## [차트 — 시리즈 연결을 해제할 수 있습니다] - 2026-09-09
+
+### Added
+
+- 차트 Properties 의 **Series** 목록 첫 자리에 `없음 / None` 이 항상 나온다. 고른 시리즈 컬럼을 다시 해제해 하나의 시리즈로 합칠 수 있다 (범주별 합계로 접힌다). 해제 상태는 저장·재열기·Undo/Redo 에서 유지된다.
+- 컬럼 이름이 화면의 `없음` 라벨과 같으면 데이터 항목 쪽에 `없음 (필드)` 처럼 보조 표시를 붙여 해제 항목과 구별한다. 저장되는 값은 원본 컬럼명 그대로다.
+
+### Fixed
+
+- `reset` 이라는 이름의 실제 데이터 컬럼을 Category/Value/Series 에서 고르면 빈 값으로 저장되던 문제를 수정했다. 속성 Select 에 값 그대로 다루는 모드를 두어 원본 문자열 (`reset`, 한글 컬럼명 등) 이 손실 없이 저장된다. 스타일 패널의 기존 "초기화" 항목 동작은 그대로다.
+- 데이터 연결이 `x-composition` 확장에만 저장된 요소에서 Properties 가 연결을 못 읽어, 스키마가 있는데도 차트 필드가 컬럼 목록 대신 문자열 입력으로 나오던 문제를 수정했다. 편집 계약이 공통 확장 읽기 계약을 함께 쓴다 (읽기 전용 — 화면을 위해 값을 다시 저장하지 않는다).
+
+### Validation
+
+- F0 실패 재현 → 수리: 확장에만 연결이 있는 canonical 문서로 실제 옵션 생산자를 통과시켜 문자열 입력 fallback 을 먼저 고정했다 (5건 RED → GREEN).
+- 신규/보강 테스트 29건 (패널 옵션 생산자 17 · PropertySelect 두 모드 5 · ref/Undo/Redo 실제 inspector store 3 · 문서 왕복 2 · 집계 손계산 2), builder 5,661 · shared 1,157 · specs 1,108 · chart browser 170 통과, type-check·preflight PASS.
+- 실제 Builder live 24건 통과 (F2 주요 구간) — 연결 전 문자열 입력 → 연결 후 컬럼 Select, 해제가 canonical `color: ""` 로 저장, Undo/Redo, 저장 후 reload, 실제 메뉴 Export, 독립 publish 런타임까지. 재현: `node apps/builder/scripts/adr209-series-release-live.mjs --headed` · `node apps/builder/scripts/adr209-publish-live.mjs --headed`.
+- F2 잔여 live 26건 통과 (2026-09-10) — 기본 행 편집·삭제·Undo/Redo·재선택과 중복/누락/숫자 id 행 (UI id 주입 0, key 경고 0) · 4방향 padding 이 Canvas 원 이동량 = Preview 원 이동량 = 손계산 기대값 · Themes 스위치 dark 에서 Preview/Skia 토큰 변경·라벨 유지 · 독립 publish 의 content box = 입력 padding. 재현: `node apps/builder/scripts/adr209-f2-residual-live.mjs --headed` · `node apps/builder/scripts/adr209-f2-residual-publish.mjs --headed`.
+- rollback 실측 (`apps/builder/scripts/adr209-rollback-probe.test.ts`, 과거 빌드 체크아웃): 직전 릴리스 `51184c8bd` 는 새 Export 를 그대로 받고, data-source envelope 이전 빌드 `31dff0c50` 은 JSON Import 만 `Unrecognized key: "collections"` 로 거부한다 — 두 빌드 모두 저장 문서의 `color: ""`·연결·미편집 노드를 편집/Undo/재저장에서 그대로 보존한다. Import 가 필요하면 `collections`/`apiEndpoints` 를 벗긴 파일을 쓰되, 구 빌드는 collection 을 복원하지 않으므로 같은 이름·컬럼의 collection 을 Data 패널에서 다시 만들기 전까지 차트가 비어 있습니다 (조건부 호환 — 상세는 breakdown §10.5).
+- F3 최종 revision 측정 (2026-09-10, `24a33d157`, 별도 clean worktree): 초기 번들 gzip Builder 1,351,547 B · Preview 696,363 B · Publish 425,953 B (ADR-209 전체 순증 -17,600 / +7,103 / -217 B, 이번 후속 국소 +342 / +191 / 0 B — 10 KiB 순증 조건 통과) · 차트 lazy graph 119–120 KB (200 KiB 통과) · runtime 6종 200행 정적 p95 ≤ 39.6 ms · Builder 프레임 A/B 5쌍 Δ p95 ≤ +0.2 ms · T13 live 13/13 (animation on/off·reduced-motion·tooltip·키보드·해제 후 데이터 교체, canonical write 0). 재현: `node apps/builder/scripts/adr209-bundle-closure.mjs` · `adr209-runtime-perf.mjs` · `adr209-builder-frame-ab.mjs` · `adr209-t13-live.mjs`.
+- F4 production 검증 9/9 (실제 세션 로그인, populated 프로젝트): cold boot·선택·편집 동안 차트 runtime chunk 요청 0, 차트 Preview 최초 진입 1회, 차트 없는 Preview/Publish 0. 재현: `node apps/builder/scripts/adr209-f4-production-network.mjs --headed`.
+- 상세 설계: `docs/adr/design/209-chart-followup-repair-breakdown.md` §10.4–10.6 (F2·F3·F4 닫힘). 전체 초기 500 KB 는 Builder/Preview 가 기준 revision 부터 초과라 §8.5 예산 결정 (A/B) 이 남아 ADR 은 In Progress 유지.
+
+## [AI 어시스턴트 — Claude 요청의 prompt caching · 구조화 출력 · 도구 계약 정합] - 2026-09-09
+
+### Changed
+
+- AI 패널이 Claude API 를 부를 때 system prompt 와 도구 정의를 prompt cache 에 올린다. 같은 세션의 두 번째 요청부터 이 부분은 캐시 read 로 청구된다 (입력가의 1/10, Fable 5.1 은 1/40). 응답의 토큰 사용량 (`cache_read_input_tokens` 포함) 을 provider 가 읽어 개발 빌드 콘솔에 표시한다.
+- planner·verifier 가 Anthropic provider 에서는 구조화 출력 (`output_config.format`) 으로 JSON 을 받는다. 프롬프트의 "JSON 만 출력" 강제와 코드 펜스 추출은 OpenAI 호환 (Ollama) 경로에만 남는다.
+- 안전 분류기가 붙는 모델 (Opus 5 · Fable) 에는 `fallbacks: "default"` 를 보내, 거절되면 같은 호출 안에서 권장 모델로 다시 돈다.
+
+### Fixed
+
+- `create_element` 도구의 type 목록이 손으로 적은 28개라 system prompt 의 카탈로그 (124) 와 어긋나던 문제를 수정했다. 골격 힌트가 만들라는 Heading·ProgressBar 가 스키마에 없었다. 이제 카탈로그의 placeable type 에서 파생한다.
+- 매 요청 전에 get_editor_state 호출을 강제하던 규칙을 뺐다. 요청 컨텍스트가 이미 페이지·선택 요소를 싣는다. update_element·get_selection 도구 설명에 병합/교체 의미와 호출 시점을 적었다.
+
+### Validation
+
+- 요청 본문 모양·usage 파싱·구조화 출력·enum 파생을 덮는 테스트 15개 추가, AI 서비스·i18n 스위트 281개 통과, type-check PASS. 실제 캐시 hit 는 `AnthropicProvider.live.test.ts` 의 키 게이트 케이스로 잰다 — 이 환경에 Anthropic 키가 없어 미실행.
+- 근거와 전체 감사 결과: `docs/explanation/research/PROMPT_AUDIT_2026-09.md` (Claude Platform 블로그 2026-09-08 권장 3축 적용).
+
+## [차트 속성의 종류 변경 버튼이 다른 패널 버튼과 같아집니다] - 2026-09-09
+
+### Fixed
+
+- 차트 Properties 패널의 "Change chart type" 버튼만 테두리도 배경도 없이 맨 버튼으로 보이던 문제를 수정했다. 패널 버튼 정본을 쓰게 해서 높이가 다른 패널 필드와 같은 격자에 맞고 hover·누름·포커스 표시도 같아진다.
+
+## [데이터 연결 — 연결한 데이터가 실제로 그려집니다] - 2026-09-09
+
+### Fixed
+
+- Data 패널에서 만든 DataTable이나 API를 컴포넌트에 연결해도 Preview가 연결을 무시하고 예시 항목만 그리던 문제를 수정했다. ListBox·TagGroup 등 컬렉션 컴포넌트가 연결한 데이터 행을 그린다. 연결 정보는 문서의 `x-composition` 자리에 저장되는데 Preview로 넘어가는 props에 실리지 않아, 화면을 그리는 쪽이 연결 자체를 보지 못했다.
+- Builder 캔버스에서 TagGroup만 연결을 놓치고 예시 태그를 그리던 문제를 함께 수정했다. 연결은 TagGroup이 갖는데 캔버스는 자식 태그 목록에서만 찾고 있었다. 이제 캔버스와 Preview가 같은 연결에서 같은 행을 그린다.
+
+### Validation
+
+- 실제 Builder에서 5행짜리 DataTable을 만들어 TagGroup과 ListBox에 연결하고, Preview DOM과 Skia 캔버스가 모두 같은 5행을 그리는 것을 확인했다. 연결 전 화면을 대조군으로 같이 캡처했다.
+- 읽기 우선순위 계약과 캔버스 투영 회귀를 덮는 테스트 11개를 추가했다. builder 5,620개와 shared 1,155개 통과.
+
+## [차트 생성과 실행 분리 — ADR-209 구현, 종결 검증 진행 중] - 2026-09-09
+
+### Added
+
+- Charts 섹션에서 Area·Bar·Line·Pie·Radar·Radial을 바로 추가하고 종류에 맞는 속성과 프리셋을 편집한다. 저장 타입은 기존 `Chart`를 유지한다.
+- Preview·Publish는 공통 lazy Recharts 3.10.1 runtime을 사용한다. 새 차트에는 애니메이션을 기본 활성화하며, 설정이 없는 기존 차트는 정적 기본값을 유지한다. reduced-motion을 존중한다.
+
+### Changed
+
+- Builder Canvas는 기존 기하와 원본 앞 200행 샘플을 유지한다. Preview·Publish는 전체 현재 collection rows를 사용하며 200행 이후 값도 합계에 반영한다.
+- Chart와 기존 데이터 컴포넌트가 같은 DataTable/API provider를 사용한다. Export/Import와 독립 Publish에 공통 데이터 소스를 전달한다. 새 데이터 envelope의 구 버전 strict Import와 메모리 전용 runtimeData의 리로드 한계는 ADR에 명시했다.
+
+### Fixed
+
+- 차트의 컬렉션 필드 선택과 기본 데이터 행 편집 명칭을 `Category / Value / Series`(한국어 `범주 / 값 / 시리즈`)로 통일했다. 실제 데이터 키와 저장 매핑은 유지하며, `Value`·`Series`처럼 번역어와 겹치는 컬렉션 키도 원문 그대로 표시한다.
+- Settings의 언어 변경이 차트 속성·프리셋·옵션·안내·행 편집과 차트 추가 목록·최근 사용 항목·검색 결과에 즉시 반영된다. 누락된 번역 키와 고정 문자열을 기존 번역 경로에 연결했다.
+- 기존 차트의 Styles → Layout padding이 그림에 적용되지 않던 오류를 수정했다. Canvas와 Preview·Publish의 공통 기하가 전체·방향별 여백을 읽으며, 미지정 방향은 기존 기본값을 유지한다.
+- ID 없는 차트 행을 선택할 때 발생하던 중복 key 콘솔 오류와 행 편집·삭제 실패를 수정했다. 원본 데이터에 ID를 강제로 추가하지 않는다.
+- API 정의가 늦게 도착하거나 재시도가 성공한 뒤 이전 오류가 남던 공통 collection 상태 판정을 수정했다. DataTable 오류에는 동작하지 않는 재시도 버튼을 표시하지 않는다.
+- 숨김/0 크기 차트의 가짜 기본 크기를 제거하고 실제 크기로 렌더한다. Publish의 페이지 body 레이아웃 중복 적용을 수정했다.
+
+### Validation
+
+- 필드 명칭·언어 전환·원본 키 보존·팔레트 생성 계약 관련 35개 테스트와 preflight를 통과했다. 전용 Builder에서 컬렉션 차트와 기본 행 편집의 한국어↔영어 전환, 한국어 검색, 검증용 차트 생성 Undo를 확인했다.
+- 실제 Recharts 기하·옵션, light/dark 토큰, DPR 1/2, reduced-motion 및 canonical/ref 보존을 검증했다. G5 전체 번들 기준 결정과 production Builder 로그인 후 부트 검증이 남아 ADR 상태는 In Progress다.
+
+## [차트 속성 — 고른 차트에 쓰이는 값만 보입니다] - 2026-09-09
+
+### Added
+
+- **radar/radial 제어 7종** (ADR-208). 격자 모양을 링만 남기거나 전부 끄고(`Show Spokes` · `Grid Rings` · `Fill Grid`), 다각형을 선만으로 그리고(`Fill Area`), 반원 게이지를 만들고(`Start Angle` · `End Angle`), 값 대신 범주 이름을 적을 수 있습니다(`Label Content`). shadcn/ui charts 예제 기준 커버리지가 33 → 45종(70 중), radar 는 5/14 → 11/14 입니다.
+
+### Changed
+
+- **속성 패널이 고른 차트 종류에 맞는 항목만 보여 줍니다.** 막대 차트를 편집하는데 `Grid Type`·`Inner Radius` 처럼 극좌표에서만 쓰이는 값이 함께 보이던 것을 없앴습니다. 값을 바꿔도 그림이 안 바뀌는 항목은 이제 화면에 나오지 않고, 종류를 바꿨다 되돌리면 숨어 있던 값은 그대로 돌아옵니다 — 숨김은 표시에만 적용되고 저장된 값은 지우지 않습니다.
+- 같은 규칙으로 `Label Content` 는 값 레이블을 켰을 때만, Card 의 `Selected` 는 선택 가능으로 둔 카드에서만 보입니다. Card 쪽은 조건이 예전부터 선언돼 있었으나 화면까지 이어져 있지 않아 동작하지 않던 것을 이번에 이었습니다.
+
+### Fixed
+
+- 차트 속성 3종의 노출 조건이 실제 동작과 어긋나 있던 것을 바로잡았습니다 — `Stack Type` 은 선·파이 차트에서도 쓰이고, `Inner Radius` 는 radar 도 씁니다.
+
+## [중첩 거부 — 부분 거부도 알리고 유령을 남기지 않습니다] - 2026-09-09
+
+### Fixed
+
+- **규칙에 걸려 들어가지 못한 요소가 조용히 유령으로 남던 결함** — 중첩 규칙 (Pen 구조 · RAC 합성 · HTML 의미) 은 배치의 **일부만** 어기면 나머지를 통과시킵니다. 그런데 통과가 있었다는 이유로 "변경됨" 이 되어, 전량 거부에만 있던 가드를 지나갔습니다. 생성 경로는 거부 사실을 아예 버리고 요소 전부를 빌더 배열에 넣었습니다. 그래서 거부된 요소가 canonical 에도 없고 저장도 안 되면서 배열에만 남았고, 사용자에게도 콘솔에도 아무 신호가 없었습니다 (새로고침하면 사라집니다). 이제 거부된 id 가 결과에 실리고, 요소 추가·복합 요소 추가·컴포넌트 팩토리·인스턴스 생성이 그 id 를 빼고 저장소·히스토리·커밋 기록에 씁니다. 거부되면 왜 못 놓였는지 토스트로 알립니다 (끌어놓기·붙여넣기가 이미 쓰던 문구 그대로).
+- **되돌리기가 거부된 요소를 되살릴 수 있던 자리** — 히스토리의 삽입 이벤트를 배치 전체로 만들고 있어, 거부된 요소의 이벤트까지 기록에 들어갔습니다. 이제 통과한 요소로만 만듭니다.
+- **미리보기에서 만들어진 요소가 규칙에 걸리면** 이유가 콘솔에 남습니다 (종전에는 무음 폐기).
+
+## [Monitor 패널 제거] - 2026-09-09
+
+### Removed
+
+- **Monitor 패널을 삭제했습니다** (단축키 ⌃⌥M · 헤더 메뉴 항목 · 하단 레일 등록 전부). 패널의 Optimize 버튼이 메모리를 실제로 회수하지 못했고, 회수할 것 자체가 없다는 것이 측정으로 확인됐습니다. 버튼이 부르던 정리는 **빈** 페이지 히스토리 Map 항목 삭제와 이미 DB 열 때마다 도는 90일 경과 IndexedDB 정리뿐이고, 가비지 컬렉션 힌트는 `--expose-gc` 로 띄운 브라우저에서만 존재합니다. 그런데도 누르면 차트가 0 으로 리셋돼 (`setMemoryHistory([])` + 값이 안 바뀌면 다시 안 채우는 수집 조건) "Current 0 B" 라는 근거 없는 표시가 남았습니다.
+- 측정 (같은 프로젝트 · 부팅 → ready → 2.5초 안정 → 강제 GC): 패널이 "Memory Usage" 로 보여주던 히스토리는 **10.6KB** 인데 렌더러 물리 메모리는 dev 415MB · production **206MB** 였습니다. 해제 가능한 Skia 캐시 (노드 픽처 · 이미지) 를 전량 비워도 렌더러 RSS 696MB → 696MB 로 변화가 측정 노이즈 이하였습니다 (LRU 상한 1024개 / 128MB 예산이 이미 스스로 관리하고, 이 문서는 그 근처에 가지 않습니다). CanvasKit WASM 은 예약 128MB 중 실제 상주가 **26.2MB** 라 (vmmap `[128.0M 26.2M 26.2M]`) 초기 메모리를 줄여도 회수량이 한 자릿수 MB 입니다. 즉 패널이 노출하던 축은 전체의 1~2% 이고 그마저 줄일 것이 없습니다.
+- 하단 레일 구조 자체는 남습니다 (등록 패널이 0 이 됐을 뿐입니다). 저장된 레이아웃에 남은 `monitor` 항목은 레지스트리 대조에서 자동으로 걸러집니다 — 별도 마이그레이션이 필요 없습니다.
+
+## [중첩 제약 — Pen 구조 · RAC 합성 · HTML 의미] - 2026-09-08
+
+### Changed
+
+- **토스트가 빌더 chrome 어법을 따릅니다** — 캔버스 위에 뜨는 알림이 rail · 뷰포트 컨트롤 · contextual action bar · 패널 프레임과 다른 자기만의 디자인이었습니다 (지면색 표면 · 1px 테두리 · 타입별 좌측 3px 스트라이프 · 14px 글자 · 채운 파란 액션 버튼). 이제 같은 chrome island 토큰을 씁니다. 테두리 없이 raised 표면 + 그림자 단계로 분리하고, 모서리·여백·간격은 chrome 토큰, 글자는 크롬 기준 12px, 되돌리기는 빌더 primary 컨트롤 어법 (accent 채움 + 역상 글자) 으로 도드라지게 두고, 닫기는 28px ghost 아이콘 버튼입니다. `--accent` 는 빌더에서 파랑이 아니라 중립이라 새 색상 축이 늘지 않습니다. 타입 구분은 아이콘 색이 합니다.
+- **되돌리기를 누를 시간이 생겼습니다** — 알림이 5초 만에 사라져 문구를 읽고 버튼까지 가기 어려웠습니다. 되돌리기가 달린 알림은 12초, 거부 안내는 8초로 늘리고, **포인터가 올라가 있거나 안에 포커스가 있는 동안 타이머가 멈춥니다** (벗어나면 남은 시간부터 재개 — hover 만으로 수명이 늘지 않습니다). 하단 액션 바를 덮지 않도록 알림 위치도 한 줄 위로 올렸고, 액션 바를 알림 자리로 끌어다 놓은 경우에는 겹치는 만큼만 더 띄웁니다 (바가 물러나면 원래 자리로 돌아옵니다).
+
+### Fixed
+
+- **RAC 가 그릴 수 없는 중첩을 빌더가 만들어 내던 결함** — Button 안에 Button, Link 안에 Checkbox, Form 안에 Form, Text 안에 무엇이든, Select 안에 Button, Tabs 밖의 TabPanel 이 끌어놓기·붙여넣기·AI 도구 어디서든 통과해 문서에 남았습니다. 캔버스는 RAC 를 그리는 도구라 세 층의 제약을 **상속**합니다. Pen 구조 (`Text`·`Icon` 은 잎 — `.pen` 으로 나갈 때 `text`/`icon_font` 라 자식을 가질 수 없음) · RAC 합성 (컬렉션 컨테이너는 자기 item 만 읽고, 합성 부품은 소유자 안에서만 뜻이 있음) · HTML 의미 (interactive 는 `<button>`/`<a>` 자손 금지, `<form>` 안 `<form>` 금지, `<p>`/`<h1-6>`/`<label>` 안 블록 금지). 규칙은 canonical 스키마가 아니라 catalog 층에 있어 canonical 은 Pen 형태를 그대로 유지합니다.
+- **알림 경로를 빌더 전역 하나로 통합** — 빌더 안에 알림 경로가 둘이었습니다 (전역 store · 컴포넌트별 로컬 훅). 렌더 컨테이너는 둘을 합쳐 그리는데 BuilderCore 와 Monitor 패널이 각자 컨테이너를 마운트해, Monitor 패널 (Ctrl+Alt+M) 을 열면 전역 알림이 **두 번씩** 떴습니다 (컨테이너 2 · 알림 4 · 같은 이름의 Notifications 랜드마크 2). 로컬 훅을 삭제하고 발신은 전역 store, 렌더는 BuilderCore 의 컨테이너 하나로 고정했습니다. 성능 복구 · 프로젝트 내보내기/가져오기 · 메모리 경고 알림도 이제 되돌리기 버튼 · hover 정지 같은 전역 기능을 같이 받습니다. 미리보기/publish 의 런타임 토스트는 사용자 사이트 표면이라 별개로 둡니다.
+- **알림의 되돌리기가 실제로 되돌립니다** — 버튼을 눌러도 옮겨 놓인 요소가 그대로 남았습니다. 히스토리 매니저의 `undo()` 는 엔트리를 꺼내 포인터만 옮기고 문서·스토어 역적용은 스토어 action 이 하는데, 알림이 매니저를 직접 불렀습니다. 되돌리는 것이 없으면서 히스토리 위치만 어긋나던 상태입니다. 자식이 딸린 복합 요소 (ButtonGroup · TextField) 도 한 번에 되돌아갑니다.
+- **끌어놓기·붙여넣기는 거부하지 않고 옮깁니다** — 넣을 수 없는 자리에 놓으면 가장 가까운 유효한 조상에 넣고 토스트로 알리며 **되돌리기** 를 줍니다. 조상 어디에도 못 두면 (예: Tabs 가 없는 곳의 TabPanel) 취소하고 이유를 알립니다.
+- **AI 도구** `create_element` · `batch_design` 은 잘못된 `parentId` 를 받으면 이유와 함께 실패를 돌려줍니다 (에이전트는 토스트를 못 봅니다).
+- **canonical 변이 경계가 fail-closed 백스톱** — preflight 를 거치지 않은 경로가 위반 이동·삽입을 요청하면 `changed: false` + `nestingViolation` 으로 거부합니다. 기존 노드의 제자리 prop 갱신은 검사하지 않아 옛 문서의 위반이 무관한 편집을 막지 않습니다.
+- **pencil export 경계에 가드** — `Text`·`Icon` 에 자식이 있는 옛 문서는 스키마 위반 `.pen` 이 되므로 export 함수가 어느 노드인지 말하며 거부합니다 (아직 UI 에 연결된 export 경로는 없어 지금은 코드 경계의 보호입니다).
+- **자기 자신을 다시 담던 컨테이너 (같은 날 후속)** — ButtonGroup 안에 ButtonGroup, TextField 안에 TextField 가 팔레트 추가·끌어놓기·붙여넣기로 들어갔습니다. RAC 컬렉션 표만 상속해 composition 자체 추상 (ButtonGroup · AvatarGroup · CardView · Pagination · Toast) 과 DOM 이 parent props 로만 self-compose 하는 field 가족 (TextField · TextArea · NumberField · SearchField · DateField · TimeField · ColorField · Select · ComboBox · DatePicker · DateRangePicker) 을 빠뜨린 것이 원인입니다. 이들은 인식하는 sub-part 밖의 자식을 Preview 에 그리지 않으므로 (Skia 만 그림 → 비대칭) 새 표 `SELF_COMPOSED_CONTAINER_CHILD_TYPES` 가 strict 로 막고, `<img>`·`<input>` 같은 void/self-contained 타입 (`DOM_LEAF_TYPES` — Image · Avatar · Chart · Input · DateInput · ColorSwatch 등 24종) 은 자식을 아예 받지 않습니다. Checkbox · Radio · Switch 는 label 슬롯 (Label · Text · Icon) 만, TableView → TableHeader/TableBody → Column/Row → Cell, Tree → TreeItem 도 같은 표에 있습니다. Card · Dialog · Popover · Disclosure 같은 열린 컨테이너는 그대로입니다.
+- 규칙 표 (`RAC_COLLECTION_CHILD_TYPES` · `RAC_SUBPART_OWNER_TYPES` · `SELF_COMPOSED_CONTAINER_CHILD_TYPES`) 는 손으로 썼지만 팩토리가 실제로 만드는 합성 트리 52개 전부가 통과하는지 오라클 테스트가 고정합니다 — 표가 틀리면 표를 고칩니다.
+
+## [차트 — radar · radial (극좌표 2종)] - 2026-09-08
+
+### Added
+
+- **Radar** — 범주가 원둘레에 놓이고 값이 중심에서의 거리가 됩니다. 시리즈마다 닫힌 다각형 하나로 그려져 여러 시리즈의 모양을 겹쳐 봅니다. **Grid Type** 으로 격자를 다각형/원 중에 고릅니다. 값이 없는 범주는 그 꼭짓점이 중심으로 접힙니다 (선 차트처럼 끊으면 닫힌 도형이 깨져 없는 면적이 생깁니다). 범주가 많으면 각도 레이블을 겹쳐 그리는 대신 일부만 그립니다.
+- **Radial** — 범주가 링이 되고 값이 호의 각도가 됩니다. 링마다 옅은 트랙(=100% 자리)과 값 호가 겹쳐 그려집니다. 누적을 켜면 한 링 안에서 시리즈가 각도로 이어 붙습니다. Inner Radius 로 가운데 구멍 크기를 조절합니다.
+- **툴팁** 은 radar 는 범주 부채꼴 (그 안의 시리즈 전부), radial 은 **링** 단위로 뜹니다 — 누적 radial 은 같은 각도에 시리즈가 쌓이므로 가리키는 대상을 반지름이 가릅니다.
+- radar 는 Orientation · Curve · Show Dots 외 · Color By · Stack Type 을, radial 은 Orientation · Curve · Show Dots · Grid Type 을 **무시합니다** (각 차트에 뜻이 없는 축). 무시한다는 사실 자체를 테스트로 고정했습니다.
+
+### Fixed
+
+- **저장된 문서를 다시 열면 차트의 새 설정이 기본값으로 돌아가던 결함**을 고쳤습니다. 2026-09-08 확장에서 추가한 Curve · Show Dots · Show Value Labels · Color By · Inner Radius · Show Total · Show Tooltip 이 문서 로드 경로를 지나지 않아, 팔레트에서 놓을 때는 되고 저장 후 Preview·배포본에서만 기본값 차트가 나왔습니다 (빌더 캔버스는 정상이라 눈에 안 띄었습니다).
+
+- 근거: ADR-207. 좌표 대칭 게이트 64 → **84** (radar polygon/circle · radial 단일/누적 4케이스, path `d` byte 동일) · 기하 단위 106 → **160** · 실제 CanvasKit 픽셀 8 · live 빌더 **17/17** (팔레트 전환이 캔버스 픽셀을 바꾸는지 → Preview DOM 의 격자·트랙 → 툴팁이 반지름으로 갈리는지). 번들 증가 builder +2.40KB gz · publish +2.11KB gz (한도 각 +5KB). 200행 × 4시리즈 프레임 p95 Δ radar −0.2ms / radial +0.3ms (대조군 = 같은 문서의 막대 차트, 재측정 편차 ±0.2ms, 한도 +1ms). live 1차가 잡은 결함 1건 — radial 트랙이 선으로만 그려져 고리가 동심원 2개로 읽히던 것 (좌표는 옳아서 단위·대칭 테스트는 통과했습니다).
+
+## [차트 — 누적·곡선·점·값 레이블·도넛·툴팁 (shadcn charts 대조 반영)] - 2026-09-08
+
+### Added
+
+- **누적 area** 가 됩니다. 종전엔 area 를 여러 시리즈로 그리면 누적 설정과 무관하게 겹쳐 그려져 뒤 시리즈가 앞을 가렸습니다. Stack Type 에 **Stacked 100%** 도 생겼습니다 — 범주별 합을 100 으로 맞춰 비중을 비교하고, 축 눈금도 0~100 으로 읽힙니다 (막대에도 적용됩니다).
+- **선 모양 (Curve)** 을 고릅니다 — Linear (직선) · Monotone (부드러운 곡선) · Step (계단). 곡선은 데이터에 없는 봉우리를 만들지 않는 단조 보간이라 값을 과장하지 않습니다. area 는 위·아래 경계가 같은 모양을 따릅니다.
+- **Show Dots** — line/area 의 각 데이터 지점에 점을 찍습니다.
+- **Show Value Labels** — 막대 끝 (누적이면 칸 안쪽 중앙) · 선의 점 위 · 파이 조각 안에 값을 적습니다. 칸이 글자보다 좁으면 겹쳐 못 읽는 대신 그 레이블만 생략합니다. 100% 누적이어도 **원래 값**을 적습니다.
+- **Color By** — 막대 색을 시리즈 대신 **범주별**로 가릅니다 (막대마다 다른 색).
+- **도넛** — Inner Radius (%) 를 올리면 파이가 도넛이 되고, **Show Total** 을 켜면 구멍 안에 합계와 값 필드 이름이 들어갑니다 (구멍이 글자보다 작으면 생략). 시리즈가 여러 개이고 누적을 켜면 **시리즈마다 링**이 하나씩 그려집니다.
+- **Show Tooltip** — Preview 와 배포본에서 차트 위에 마우스를 올리면 그 범주의 시리즈 값이 뜨고, 가리키는 구간이 옅게 강조됩니다. 막대 사이 여백에서도 끊기지 않습니다. 빌더 캔버스는 종전대로 정적으로 그립니다 (hover 는 실제 화면의 몫).
+
+### Fixed
+
+- **파이 범례가 조각과 무관한 이름을 나열하던 결함**을 고쳤습니다. 파이는 조각이 범주인데 범례는 시리즈를 세고 있어, 화면에 없는 이름과 색이 붙었습니다. 이제 범례 항목이 색을 가르는 축을 따라갑니다 (파이·막대 범주별 색 → 범주, 그 외 → 시리즈).
+
+- 근거: shadcn/ui charts 7개 범주 대조 (radar · radial 은 별도 ADR 로 남김). 기하 단위 106 · 좌표 대칭 게이트 64 (path `d` byte 동일 · 글자 배율 채널 대조 포함) · 실제 CanvasKit 픽셀 7 (3차 베지어 · 호 고리 구멍 신규) · live 빌더 20/20 (Skia 픽셀과 Preview DOM 을 축마다 따로 확인 — 도넛 구멍은 캔버스 잉크 15.5% 감소, 툴팁은 hover 로 "Tue A 30 B 8"). 외부 차트 라이브러리는 여전히 쓰지 않습니다.
+
+## [차트 컴포넌트 추가 — bar · line · area · pie] - 2026-09-08
+
+### Added
+
+- 컴포넌트 패널 Collections 에 **chart** 가 추가됐습니다. 끌어다 놓으면 샘플 데이터가 실린 막대 차트가 바로 보이고, Properties 에서 종류 (bar / line / area / pie) · 가로세로 · 누적/나란히 · 축 · 격자 · 범례 (위/아래/좌/우) · 크기 (sm/md/lg) 를 바꿉니다. 어느 필드를 범주로 쓰고 어느 필드를 값으로 쓸지도 지정합니다 (Dimension / Metric / Series Field).
+- DataTable 바인딩을 붙이면 그 데이터로 그립니다. 바인딩이 없거나 아직 0행이면 샘플 rows 로 보여 빈 상자가 되지 않습니다. 빌더 캔버스는 앞 200행까지 그리고, Preview 와 배포본은 전체를 그립니다.
+- **외부 차트 라이브러리를 쓰지 않습니다** (신규 런타임 의존 0). 축·눈금·범례·마크를 자체 기하 함수로 산출하고 Builder(캔버스)와 Preview/배포본(SVG)이 **같은 좌표를 복사**합니다 — 두 화면이 다르게 보일 여지를 구조로 없앴습니다. 시리즈 색은 테마 토큰이라 dark 모드에서 양쪽이 같이 바뀝니다.
+- 접근성: 차트 컨테이너에 `role="img"` 와 라벨이 붙습니다.
+- v1 에 없는 것: 곡선 보간 (직선만) · 축 레이블 회전 (겹치면 건너뛰어 그립니다) · 툴팁/hover.
+- 근거: ADR-194. live 빌더 11/11 (팔레트 노출 → 캔버스 픽셀 → 종류 전환 → Compare Mode 에서 Preview SVG 대조 → 팔레트 CSS 변수 도달 → role/aria) · 좌표 대칭 게이트 28 (path `d` byte 동일) · 기하 단위 43 · 실제 CanvasKit 픽셀 5 · 행 주입 6. 번들 증가 builder +6.71KB gz · publish +5.90KB gz (한도 +15KB). 200행 × 4시리즈에서 프레임 p95 Δ +0.2ms (3회 측정 +0.2 / +0.6 / −0.2, 한도 +1ms).
+
+## [캔버스 — 화면 밖 viewport 로 저장된 프로젝트가 95% 에서 멈추던 결함] - 2026-09-07
+
+### Fixed
+
+- 저장된 캔버스 위치가 화면 밖이면 (예: `{x: -2147, y: -340}`) 프로젝트를 다시 열 때 "Preparing the canvas… 95%" 에서 영원히 멈추던 결함을 고쳤습니다. 화면 밖 페이지는 컬링돼 레이아웃이 발행되지 않고, 그러면 빈 프레임만 나와 첫 프레임 확인이 오지 않았습니다. 이제 그릴 것이 이 문서 상태에 실제로 없으면 빈 화면 자체를 실제 surface 제출로 확정합니다 — 화면에 맞추기 (Cmd+0) 로 되돌아오면 내용이 정상으로 그려집니다. 레이아웃이 아직 준비되지 않은 상태 (그릴 root 는 있는데 레이아웃 결과가 없는 경우) 는 종전대로 계속 기다립니다. timeout 이나 가짜 진행률로 여는 경로는 없습니다.
+- 빈 화면이 계속되는 동안 매 프레임 GPU 제출이 돌던 것을 멈췄습니다 (실측 120회/초 → 입력이 바뀔 때 1회). 같은 분기가 매 프레임 `invalidateContent` 로 다음 프레임을 다시 예약하던 것이 원인입니다.
+- 근거: live Playwright 재현 — 수리 전 reload 2회 모두 95% 고정 (`clearSubmission` 3,060 · readiness 기록 없음), 수리 후 ready · `clearSubmission` 2 → 2 → 2 · Cmd+0 복귀 시 `renderBoundsCount` 57. 회귀 static 3 (원복 RED 3) · 캔버스 단위 516 · parity 1,380 · visual smoke 101.
+
+## [레이아웃 엔진 — flex baseline 정렬 · safe/unsafe · self-start/self-end] - 2026-09-07
+
+### Fixed
+
+- flex 컨테이너의 `align-items: baseline` / `align-self: baseline` 을 캔버스가 반영합니다 — 높이가 다른 상자·텍스트가 baseline 을 맞춰 놓이고 (h30 · h60 → 위 상자가 30 내려감, 텍스트는 글자 baseline), 그룹이 컨테이너 높이를 키웁니다. 종전엔 stretch 로 떨어졌습니다. `margin: auto` 가 있는 item 과 세로 (column) 컨테이너는 CSS 대로 start 입니다.
+- `justify-content` · `align-items` · `align-self` · `align-content` 의 `safe` 접두를 반영합니다 — 내용이 넘칠 때만 start 로 (`safe center` 여유 있으면 center 150, 넘치면 0). 접두 없는 `center` 는 종전대로 양쪽으로 넘칩니다 (`unsafe` 와 같음, Chrome 동일).
+- `self-start` / `self-end` 키워드가 무시되던 것을 start / end 로 반영합니다 (`align-items: self-end` 높이 200 안 50 → y 150).
+- 근거: Taffy 0.10→0.14 대조 §4 ⑦ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`, Taffy #1109 · #1127 · #952 · #1077). Chrome 실측 fixture 26 × 2 leg (baseline 34 RED) · 엔진 단위 2 · flex 커널 슬롯 계약 21 → 22 (golden 갱신) · live 빌더 4 케이스 Chrome 동일. 이로써 Taffy 대조 §4 의 ①~⑨ 가 전부 반영됐습니다. 상세 ledger §30.
+
+## [레이아웃 엔진 — grid 라인 이름 · auto-fill/auto-fit] - 2026-09-07
+
+### Fixed
+
+- `grid-template-columns: [a] 1fr [b] 1fr [c]` 처럼 대괄호 라인 이름이 있으면 캔버스가 이름을 트랙으로 세어 열이 늘어나던 결함을 고쳤습니다 (2열 150/150 이 5열 60 으로). `grid-column-start: b` · `x 2` 같은 이름 배치도 됩니다.
+- `repeat(auto-fill | auto-fit, …)` 의 반복 수가 Chrome 과 어긋나던 결함을 고쳤습니다 — `minmax(auto, 200px)` · `25%` 가 1 반복으로 접혀 세로로 쌓이던 것 (Chrome 3·4 반복), 반복 밖 고정 트랙이 있으면 한 반복 과다.
+- `auto-fit` 의 빈 트랙이 캔버스에 남아 item 이 좁게 그려지던 결함을 고쳤습니다 — 빈 트랙과 그 gutter 가 사라져 `repeat(auto-fit, minmax(100px,1fr))` 600 폭 2 item 이 300/300 (gap 20 이면 290/290) 이 됩니다. 명시 배치 앞의 빈 트랙도 사라집니다.
+- 근거: Taffy 0.10→0.14 대조 §4 ⑥ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`, Taffy #1138 · #946 · #1035). Chrome 실측 fixture 19 × 2 leg (baseline 22 RED) · 엔진 단위 3 · live 빌더 3 케이스 Chrome 동일. 레이아웃 preset 의 `repeat()` 회피 사유는 이제 없습니다 (명시 나열은 설계 선택). 상세 ledger §29.
+
+## [레이아웃 엔진 — flow-root · inline-block · absolute 상자의 margin 누출, block align-content] - 2026-09-07
+
+### Fixed
+
+- `display: flow-root` · `inline-block` · `position: absolute` 인 Frame 안 첫/마지막 자식의 `margin` 이 상자 밖으로 새어 캔버스에서 상자가 그만큼 낮게 잡히던 결함을 고쳤습니다 (자식 `marginTop: 40px` + 높이 10 — Preview/Chrome 상자 50 / 캔버스 10). 세 경우 모두 CSS 의 새 block formatting context 라 margin 이 상자 안에 남습니다. 빈 `flow-root` 상자도 위아래 margin 을 따로 유지합니다.
+- block Frame 의 `align-content` (Chrome 123+) 를 캔버스가 반영합니다 — `center` / `end` 는 내용 묶음을 여유 공간에 정렬 (높이 200 안 50 → y 75 / 150), `space-around`·`space-evenly` 는 center 로, `space-between` 은 start 로. 내용이 넘치면 기본은 start 에 고정하고 `unsafe center` 만 위로 넘칩니다. `min-height` 가 만든 여유도 정렬합니다. `normal` 이 아닌 값이면 (`start` 포함) 첫/마지막 자식 margin 이 상자 안에 남습니다 (Chrome 동일).
+- 근거: Taffy 0.10→0.14 대조 §4 ⑧ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`, Taffy #997 · #959). Chrome 실측 fixture 36 × 2 leg (baseline 48 RED) · 엔진 단위 4 · live 빌더 (Playwright) 에서 flow-root 상자 50 · center 자식 85 확인. 상세 `.claude/skills/composition-patterns/reference/layout-css-parity-ledger.md` §28.
+
+## [캔버스 텍스트 — 이모지 폭 과대 · 이모지 앞뒤 줄바꿈] - 2026-09-07
+
+### Fixed
+
+- 이모지가 들어간 텍스트가 캔버스에서 Preview 보다 이른 줄에서 접히던 결함을 고쳤습니다. Chrome (macOS · Retina) 의 canvas 측정이 이모지 하나당 3~~4px (12~~20px 글자 크기) 넓게 나오는 브라우저 버그 (Chromium #489494015) 가 원인 — 폰트당 1회 DOM 과 대조한 보정값을 이모지 개수만큼 차감합니다. Retina 가 아니거나 24px 이상이면 차이가 0 이라 보정도 0 입니다.
+- 이모지 앞에서 줄이 바뀌지 않고 이전 줄 끝에 붙어 넘치던 결함을 고쳤습니다 — Chrome 처럼 이모지 앞뒤가 모두 줄바꿈 기회입니다 (`Hello😀World` 좁은 폭 → 3줄). 국기·피부톤·가족(ZWJ) 이모지는 한 단위로 유지됩니다.
+- 근거: pretext 대조 §D 순서 5 (`docs/explanation/research/EXTERNAL_PATTERN_DELTA_2026-09.md`). 사용자 Chrome 152 / DPR 2 재현 확인 후 착수. 단위 7 (파일 78) · live 4 텍스트 × 3 경계 폭에서 Chrome 줄 위치와 12/12 일치, 폭 소수점 동일. evidence `docs/adr/evidence/051-emoji-canvas-width-correction.md`.
+
+## [캔버스 — 내용 크기 Frame 안 텍스트가 0 또는 전폭으로 접히던 결함] - 2026-09-07
+
+### Fixed
+
+- `width: max-content` / `min-content` / `fit-content` 인 block Frame 안의 텍스트가 캔버스에서 Frame 전폭 (400) 으로 늘어나거나, 좌우 padding 이 있으면 padding 폭만 (12) 남던 결함을 고쳤습니다. Preview/Chrome 처럼 텍스트 폭 (82.4 / 94.4 / 41.5) 이 됩니다.
+- 세로 flex 의 `align-items: center` 안 block Frame 의 텍스트 (Container Align) 가 캔버스에서 폭 0 으로 사라지던 결함도 같은 원인 — 이제 82.4 @ x 158.8 (Chrome 동일).
+- 원인은 엔진이 아니라 TS 공급: 텍스트 측정 스칼라가 flex/grid 자식에게만 공급돼 shrink-to-fit block 부모에서 엔진이 내용 폭을 몰랐습니다 (ledger §27). definite block 부모 (stretch) 와 `%` 폭은 종전과 같습니다. 게이트 `tests/parity/textLeafScalarBlockParent.browser.test.ts` 8 (baseline 4 RED), `containerIntrinsic` H 의 구 잔존 Δ1.5 (block 자식 텍스트 하한) 도 같은 원인이라 `[]` 로 닫힘, ADR-923 G5 fingerprint baseline 은 text/label @absent·@auto 스칼라만 의도 갱신, parity 1,218 PASS (기존 실패 2) · layout unit 475 · type-check 0.
+
+## [레이아웃 엔진 — padding 있는 텍스트의 폭 이중 가산 · grid 안 padded 컨테이너 크기] - 2026-09-07
+
+### Fixed
+
+- flex 컨테이너 안 Text 에 좌우 `padding` 을 주면 캔버스 폭이 padding 만큼 더 넓어지던 결함을 고쳤습니다 (`paddingLeft: 12px` "Hello World" — Preview/Chrome 94.4 / 캔버스 107, `12 + 8` — 102.4 / 123). 세로 padding 과 padding 없는 텍스트는 종전대로입니다.
+- grid 컨테이너 안에서 `padding` 이 있는 auto 크기 Frame 이 padding 만큼 작게 잡히던 결함을 고쳤습니다 — `auto` 트랙 폭 (50 → 70), `justify-items: start` 배치 폭, auto 행 높이 (20 → 40) 전부 Chrome 값.
+- 근거: Taffy 0.10→0.14 대조 §4 ⑨ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`) — "실측 전 판정 보류" 항목을 pipeline 실측으로 확정. 엔진의 auto 축 반환 계약 (content-box) 을 leaf 까지 통일하고 grid 소비처가 pad/border 를 더합니다 (ledger §26). Chrome 차등 게이트 `tests/parity/paddedLeafIntrinsic.browser.test.ts` 16 (baseline 13 RED → GREEN), `shrinkToFitInline` 구 [잔존] 132, unit 6 · cargo 400, parity 1,210 PASS (기존 실패 2 유지), type-check 0. live (Playwright 격리 프로젝트, `getSharedLayoutMap`): flex row Frame 안 `width:auto` Text 82 / padded Text **102** (= 82 + 20, Chrome 102.4 · 종전 122), grid `auto 1fr` 안 padded Frame 70 · 내부 x 10.
+
+## [ADR-206 Implemented — 엔진 늘어난 크기 definite 전파 + grid 암묵 트랙 준수] - 2026-09-07
+
+### Changed
+
+- ADR-206 을 Implemented 로 승격했습니다 (Phase 0~~3 / G0~~G5 당일 종결). 사용자-가시 변경은 아래 Phase 1 · Phase 2 엔트리 두 건이 전부이고, 이 엔트리는 종결 근거만 적습니다.
+- 제품 수준 프레임 영향 확인: `pnpm perf:baseline -- --lane frame` 600 요소 — idle / pan / zoom / panel-resize 의 callback gap p95 17.5~17.8 ms, >25 ms 0 %, `render.frame` p95 ≤ 5.4 ms. 엔진 재-solve 추가 (stretch 소비자 재-solve · grid 셀 definite) 가 프레임을 밀지 않습니다. `tree_solve` bench depth 12 는 Phase 0 baseline 과 같습니다 (27,666 ns).
+- 실제 빌더 exercise (Chrome MCP, 로컬 프로젝트): flex row 안 `height:100%` → `50%` 3단 전파 · 2열 grid 의 `span 3` 자식 제자리 (종전 y 100,000) · template 없는 grid 자식 폭 400 · ProgressBar Track 회귀 0.
+- 남은 기록: Chrome 의 grid line 상한은 10,000,000 이고 엔진은 10,000 을 유지합니다 (의도된 편차). 내용 0 인 grid auto item 이 셀을 채우는 폴백은 LOW deferred (ADR-206 리뷰 round 1). 문서: ADR `docs/adr/completed/206-…md`, 규칙 ledger §백분율 · §25.
+
+## [레이아웃 엔진 — grid 암묵 트랙 · 명시 grid 를 넘는 배치 (ADR-206 Phase 2)] - 2026-09-07
+
+### Fixed
+
+- grid 자식의 `grid-column` / `grid-row` 가 명시 트랙 수를 넘으면 (2열 grid 에 `span 3`, `grid-column-start: 4`, 1행 grid 에 `grid-row-start: 3`) 캔버스가 요소를 행 10,001 (y 100,000) 로 보내던 결함을 고쳤습니다. 이제 Preview/Chrome 처럼 그만큼 암묵 트랙이 생기고 (CSS-GRID-1 §7.6 · §8.5), 그 뒤 자동 배치는 넓어진 grid 를 씁니다. 자동 배치 자체는 종전대로 명시 열 한계를 지킵니다.
+- `display: grid` 에 `grid-template-columns` 가 없으면 자식 폭이 100px 로 굳던 결함을 고쳤습니다 — 암묵 `auto` 열 1개가 컨테이너를 채웁니다 (정폭 400 → 400).
+- `grid-auto-columns` / `grid-auto-rows` 목록이 첫 px 토큰만 읽히던 것을 순환 적용으로 고쳤습니다 (`1fr 2fr` → 133/267). `grid-auto-flow: column` 컨테이너의 높이가 0 이던 결함도 같이 (암묵 행이 flow 와 무관하게 섭니다).
+- `grid-template-rows: repeat(2, 40px)` 같은 정수 반복이 auto 높이 grid 에서 행 하나로 접히던 결함을 고쳤습니다 (두 행 40/40). `grid-column-end: span 2` 만 준 자식이 span 을 잃던 결함도 같이.
+- grid line 정수는 ±10,000 으로 clamp 합니다 (Chrome 은 10,000,000 — 실측, 의도된 편차: 백만 단위 암묵 트랙은 실사용 배치가 아니고 엔진 부담). 음수 라인은 명시 grid 끝에서 셉니다 (`-1` = 마지막 라인).
+- **기존 문서 영향**: catalog 의 template 없는 grid 6 규칙 (Meter · ProgressBar · Slider 의 Track/Value · ProgressCircle) 은 canonical 자식이 없어 배치가 바뀌지 않습니다 (ADR-206 Phase 0 live 판정). 사용자가 grid Frame 에 열 수를 넘는 span 을 줬던 문서는 요소가 제자리로 돌아옵니다.
+- 근거: Taffy 0.10→0.14 대조 §4 ② ④ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`). Chrome 차등 게이트 `tests/parity/gridImplicitTracks.browser.test.ts` (positive 11 · 대조군 4 · engine/pipeline 두 leg — baseline 9 × 2 RED → 30 GREEN), `shrinkToFitInline` 구 `[잔존] flow:column` 단언 0 → 20, grid unit 3 신규 · cargo 394 PASS · golden 28, parity 1,193 PASS (기존 실패 2 유지), `tree_solve` bench depth 12 27,666 ns (baseline 동일). 엔진 정합 규칙 ledger §25.
+
+## [레이아웃 엔진 — 늘어난 크기가 `%` 높이의 기준이 된다 (ADR-206 Phase 1)] - 2026-09-07
+
+### Fixed
+
+- 부모가 늘려 준 크기 안의 `height: %` 자식이 캔버스에서 0 으로 접히던 결함을 고쳤습니다. `display: flex` (row, 높이 지정) 의 늘어난 item 안 `height: 50%` 는 Preview/Chrome 처럼 item 높이의 절반이 되고 (종전 0), 늘어난 item 이 다시 flex 컨테이너면 그 자식도 같이 늘어납니다. `flex-wrap: wrap` 의 여러 줄 · `min-height` 로 커진 컨테이너 · 세로 flex 의 `flex-grow` 로 커진 item · grid 칸 · `aspect-ratio` 로 파생된 높이도 같은 기준입니다 (CSS-FLEXBOX-1 §9.8 · CSS-GRID-1 §6.6 · CSS-SIZING-4 §5.2.2).
+- 늘어난 item 에 `aspect-ratio` 만 있고 폭이 없으면 폭이 내용 크기로 남던 것을 늘어난 높이에서 파생하도록 고쳤습니다 (row 높이 200 안 `aspect-ratio: 1` → 200×200, Chrome 동일).
+- **기존 문서 영향**: 로컬 프로젝트 인벤토리에서 `%` 높이 요소 0 / 269 (ADR-206 Phase 0) — 배치가 바뀌는 기존 문서는 없고, 앞으로 `%` 높이를 넣을 때 Preview 와 같은 결과를 냅니다.
+- 근거: Taffy 0.10→0.14 대조 §4 ① (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`). Chrome 차등 게이트 `tests/parity/percentSize.browser.test.ts` §ADR-206 (positive 12 baseline 전부 RED → GREEN, 대조군 9 GREEN 유지), `containerIntrinsic` K 잔존 Δ40 → 0, unit 7 · golden N11/N12, cargo 393 PASS, parity 1,164 PASS (기존 실패 2 유지), `tree_solve` bench depth 12 +1.5 %. grid 암묵 트랙 (② ④) 은 Phase 2.
+
+## [레이아웃 엔진 — absolute 크기 min/max clamp · 빈 상자 aspect-ratio 높이] - 2026-09-07
+
+### Fixed
+
+- `position: absolute` 요소의 사용 크기가 `min-width`/`max-width`(세로축 동일)를 무시하던 결함을 고쳤습니다. 명시 `width: 300px` + `max-width: 100px` 은 캔버스에서 300 으로, 양측 inset 의 stretch 는 containing block 전체로 그려졌습니다 (Preview/Chrome 100). 이제 clamp 뒤 값이 사용 크기이고 `margin: auto` 는 그 값 기준으로 잉여를 나눕니다 (CSS §10.4/§10.7).
+- 자식이 없는 block 요소에 `aspect-ratio` 만 주면 캔버스 높이가 0 이던 결함을 고쳤습니다. stretch 된 폭에서 높이를 파생합니다 (`width: 300` 컨테이너 안 `aspect-ratio: 2` → 300×150, Chrome 동일).
+- 근거: Taffy 0.10→0.14 upstream 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md` §2 B4·B4c·B6). Chrome 차등 게이트 `tests/parity/absClampAspectLeaf.browser.test.ts` 12 케이스 (baseline 11 RED → 12 GREEN), cargo 421 PASS. 늘어난 flex item / grid area 의 `%` 높이 base (같은 문서 §4 ①) 는 별도 ADR 로 남깁니다.
+
+## [실제 Builder Worker 적용 검증 후 철회] - 2026-09-07
+
+- 실제 프로젝트에 Worker 소유 SkiaRenderer를 연결해 부트3쌍, 전체 화면 픽셀, 휠 입력6회씩을 비교했습니다. 메인 렌더 프레임 최대값은 약107→22ms로 감소했고 전체 화면 픽셀 차이는0이었습니다.
+- 그러나 준비 완료는 각쌍에서100~~128ms 늦어졌고, 휠 입력→제출은 메인40.5~~46.1ms 대비 Worker60.9~77.6ms로 악화됐습니다. Worker 응답 계측은 flush 후 메인 수신까지 포함합니다.
+- 사용자 유지 조건을 충족하지 못해 Worker 연결·전송 codec·runtime 주입·Worker 전용 폰트/환경 분리와 해당 테스트를 제거했습니다. 기존 main 렌더러, matching flush readiness, 폰트 파싱 최적화는 보존합니다. 초기 프로젝트 오픈 경고가 해결됐다는 판정은 하지 않습니다.
+
+## [프로젝트 부트 후속 작업 계측과 닫힌 팔레트 행 생성 제거] - 2026-09-07
+
+### Performance
+
+- DB 완료 이후 문서 정규화·투영·store 발행을 개별 계측합니다. 작은 프로젝트에서 이 경로는 각1회/합계3.9ms였으며 DB 완료 경고의 대부분은 후속 React 작업이었습니다.
+- 닫힌 CommandPalette에서 63개 행 JSX를 미리 만들던 `map`을 React Aria ListBox의 `items` 렌더링으로 변경했습니다. 기존 단축키·scope·열림/닫힘 수명은 유지합니다. 회귀 테스트에서 이전 코드의 닫힌 행 표시 계산63회와 수정 후0회를 확인했습니다.
+- 전체 DB 완료 경고 해결이나 production 개선율을 주장하지 않습니다. 후속 `useLayoutPublisher`의 전체 레이아웃 계산이 같은 이벤트 구간에 포함되는 현상이 남았습니다.
+
+## [Skia 폰트 이름 조회의 중복 파싱 제거] - 2026-09-07
+
+### Performance
+
+- 이미 생성한 Typeface의 내장 패밀리 이름을 직접 읽어, 이름 조회만을 위한 임시 `FontMgr.FromData` 재파싱을 제거했습니다. 동일 이름도 매핑에 저장해 추가 weight 로드에서 반복 조회하지 않습니다.
+- FontMgr의 variable weight 선택과 Paragraph의 공유 FontCollection 경로는 유지합니다. provider 통합은 실제 700/900 글리프 폭 대조에서 차이가 확인돼 적용하지 않았습니다.
+- 실제 프로젝트 부트와 관련 회귀 테스트를 검증했습니다. 전체 FontMgr 구축 및 단일 Paragraph layout의 긴 동기 호출은 남아 있으므로 프로젝트 오픈 경고의 완전한 해결은 아닙니다.
+
+## [Skia WOFF2 반복 파싱 제거와 임시 최적화 철회] - 2026-09-07
+
+### Performance
+
+- CanvasKit 빌트인 폰트는 원본 Variable WOFF2를 압축 해제한 TTF를 사용합니다. variation·글리프·이름 테이블을 유지하고 브라우저 CSS는 WOFF2를 유지합니다. URL 검증을 통해 이전 WOFF2 IndexedDB 항목은 새 TTF로 교체됩니다.
+- 동일 폰트 대조에서 Pretendard FontMgr 구축 531.1→1.0ms, 최초 Paragraph layout90.8→1.0ms를 관측했습니다. 작은 격리 실험 수치이며 전체 프로젝트 오픈 개선율이 아닙니다.
+- 근본 비용을 줄이지 못했던 Picture 타이머 분할·전용 준비 경로를 제거했습니다. 기존 Picture 캐시, 측정 라벨, matching surface flush readiness는 유지합니다. 미커밋 Styles/단축키/팔레트 추정 최적화도 철회했습니다.
+- 실제 부트에서 Paragraph max17.2ms, collection max1.0ms를 관측했지만 초기 content 기록/GPU flush를 포함한 RAF90.6ms는 남았습니다. 경고 전체 해결로 판정하지 않습니다. Worker는 제품에 추가하지 않았습니다.
+- TTF 원시 크기는 두 파일 합계 약7.62MB로 WOFF2 합계2.41MB보다 큽니다. 첫 다운로드와 배포 HTTP 압축 비용은 별도 확인 대상입니다. 재생성: `scripts/prepare-skia-fonts.py`.
+
+## [빌더 패널 접근성 — 토글 이름·트리 키보드·포커스 링·reduced motion] - 2026-09-07
+
+### Added
+
+- Styles 패널의 아이콘 전용 ToggleButton 33개에 접근 가능한 이름을 붙였습니다. Typography 15개(가로/세로 정렬·장식·글꼴 스타일·대소문자)와 Layout 18개(방향 3·9칸 정렬 그리드·주축 정렬 3·줄바꿈 3)이며 ko/en 라벨을 함께 추가했습니다. 그룹에만 이름이 있어 개별 옵션이 스크린리더에서 무명이던 상태를 해소합니다.
+- Layers 가상화 트리(`VirtualizedTree`)에 키보드 탐색을 추가했습니다. ArrowUp/Down·Home/End 이동, ArrowRight 펼침, ArrowLeft 접기 및 부모 이동, Enter/Space 선택을 지원하며 선택 규칙은 클릭 경로와 같습니다. `focusedKey` 가 없을 때 모든 행의 `tabIndex` 가 -1 이라 Tab 으로 진입조차 못 하던 것도 roving tabindex 로 고쳤습니다.
+- 전역 `prefers-reduced-motion` 대응을 추가했습니다. 빌더 CSS 43개 파일 중 3개만 개별 대응하던 것을 `utilities` 레이어의 규칙 하나가 덮습니다.
+
+### Fixed
+
+- Layers 트리의 가상화 전환 조건이 루트 배열 길이를 세어 단일 `body` 루트 문서에서는 값이 늘 1 이었습니다. 요소를 아무리 늘려도 가상화가 열리지 않아(행 18개에서도 비가상 트리) 전체 노드 수 기준으로 정정했습니다.
+- `outline: none` 뒤에 포커스 표시가 없던 곳을 정리했습니다. 대체 스타일이 있던 12곳은 `:focus-visible` 로 전환하고, 대체가 없던 6곳(필터·검색·스냅숏 이름·줌 입력·인스펙터 입력)에는 포커스 링을 넣었습니다.
+
+## [Builder 외부 레퍼런스 우선순위 1–5] - 2026-09-07
+
+- IndexedDB v21에서 변경된 canonical 노드만 저장하고 transaction 완료 후 성공 처리한다. 구 문서 전환·급감 가드·백업·복원 계약을 유지한다. 큰 저장 준비에는 transaction 밖의 task yield를 적용했다.
+- 카메라만 바뀌면 콘텐츠 준비를 재사용한다. 이미지 캐시는 RGBA 추정 128 MiB 예산을 적용하며 살아 있는 참조는 보호한다.
+- Monitor의 FID를 Google web-vitals INP로 교체하고 INP/LoAF·환경 정보를 로컬 JSON으로 내보낸다.
+- production 3쌍에서 edit CPU 중앙값 219.013→189.546ms/s(-13.45%). pan -0.77%, zoom +0.15%로 zoom CPU 개선은 확인하지 못했다. [구현·수치·저장 버전 호환성·한계](legacy/builder-performance-priorities-20260907.md).
+
+## [줌 표시의 React 갱신 제거] - 2026-09-07
+
+- 연속 줌에서 숫자 표시만 직접 갱신해 불필요한 React 렌더를 제거했다. 직접 입력은 유지하고 Escape 취소와 Enter 단일 확정을 검증했다.
+- 120회 입력 진단의 ZoomControls 실행 99→0회. 별도 production 3쌍 CPU 중앙값 291.094→271.559ms/s(-6.71%), p95 10.4→10.5ms, p99 17.7→16.8ms. [전후 비교·한계](adr/evidence/frame-performance-reference-zoom-20260907.md).
+
+## [React 진단 집계 정정] - 2026-09-06
+
+- 잔존 actualDuration을 실행 횟수로 세던 진단을 정정했다. dirty 구독 제거의 Canvas 실행은 22→11회이며 DataTablePanel은 편집 중 0회였다. 기존 fiber self 집계는 철회하고 별도 production CPU/frame 값은 유지한다. [정정 증거](adr/evidence/frame-performance-reference-profile-audit-20260906.md).
+
+## [Canvas 미사용 dirty Set 구독 제거] - 2026-09-06
+
+- Canvas가 읽지 않는 dirty Set 구독과 renderer 전달을 제거해 Set 정리 시 불필요한 React 갱신을 줄인다. 기존 레이아웃 무효화와 실제 제출 계약은 유지한다.
+- 10회 편집 진단에서 Canvas render 22→11회(기존 33→11은 bailout 포함 집계로 정정). 별도 production 3쌍 CPU 중앙값 227.579→225.727ms/s(-0.81%), p95 동일. [진단·측정·한계](adr/evidence/frame-performance-reference-dirty-20260906.md).
+
+## [Layout publisher 서명 재사용] - 2026-09-06
+
+- 동일 page/frame 입력의 재렌더에서 레이아웃 서명을 재사용한다. 입력 교체·layout revision·WASM ready 전환의 발행은 유지한다.
+- production 3쌍 CPU 중앙값 239.748→237.404ms/s(-0.98%), p95 동일. 한 쌍 CPU 증가를 포함한 제한적 결과다. [검증과 한계](adr/evidence/frame-performance-reference-publisher-20260906.md).
+
+## [Projection 중복 직렬화 재사용] - 2026-09-06
+
+- 같은 scene 서명 계산에서 공유 props/배열의 중복 직렬화를 재사용한다. 호출이 끝나면 캐시를 버려 후속 내부 편집을 계속 감지한다.
+- 현재 구현 대비 production 3쌍의 edit CPU 중앙값 238.904→236.226ms/s(-1.12%), frame p95 동일. [측정·검증·한계](adr/evidence/frame-performance-reference-projection-20260906.md).
+
+## [편집 시 레이아웃 서명 계산 축소] - 2026-09-06
+
+- 레이아웃 변경 감지 시 값이 없는 속성의 반복 문자열 할당을 줄였다. 같은 객체 내부 편집·삭제와 실제 렌더 제출/Undo 동작은 유지한다.
+- 일반 production 3쌍에서 edit CPU 중앙값 241.085→234.604ms/s(-2.69%), frame p95 동일. 첫 쌍은 악화돼 장비·반복 변동성을 포함한 제한적 결과로 기록한다. [측정과 검증](adr/evidence/frame-performance-reference-edit-20260906.md).
+
+## [CanvasKit 레퍼런스 기반 프레임 예약] - 2026-09-06
+
+- CanvasKit 공식 가이드의 이벤트 기반 RAF를 적용해 화면 변경이 없는 동안 Skia 렌더 callback을 중지한다. 카메라·드래그·hover·리소스·cleanup·복구가 단일 pending RAF를 깨우며 animation의 종료 프레임을 보존한다.
+- 현재 P1 대비 production 교차 3쌍에서 idle renderer RAF 1,202→0회/10초, main-thread task CPU 24.334→20.390ms/s(-16.209%). Chrome trace와 전체 frame interval을 함께 비교했으며 이 장비의 상대 효과로 한정한다.
+- 기존 retained content/overlay와 실제 matching submission readiness를 유지한다. GPU tail의 과거 실패는 해결로 바꾸지 않고, 상세 검증 및 한계는 [레퍼런스 적용 증거](adr/evidence/frame-performance-reference-scheduler-20260906.md)에 기록한다.
+
+## [프레임 성능 재검증·계측 경계 수리] - 2026-09-06
+
+### Fixed
+
+- GPU 측정 창을 초기화한 뒤 context loss가 발생하면 이전 창의 query를 새 창의 invalid에 더해 `started=0, invalid=1`이 되던 문제를 수정했습니다. 해당 순서를 회귀 테스트로 고정했습니다.
+- 실제 복원 검증 하니스가 clear와 main 제출 계수 분리 이후에도 2회 제출을 요구해 timeout이 나던 문제를 수정했습니다. 복원 요청 직전보다 새 실제 main flush가 증가했는지를 확인합니다.
+
+### Performance
+
+- 동일 소스 3개 대조 빌드 × GPU 계측 off/on을 각 5회 비교했습니다. 600요소에서 GPU off renderer main-thread task CPU는 31.376→20.639ms/s로 34.2% 감소했습니다. Map 재사용만의 감소는 25.4%, Map을 유지한 준비 생략의 추가 감소는 11.8%입니다. capture/perfMarks/recorder 비용은 포함하며, 이전 원본 artifact의 36.0%와 구분합니다.
+- pan/zoom 지연과 GPU 예산은 통과했지만, 10초 edit GPU p95는 0.327→0.944ms(+0.617ms)로 +0.5ms 예산을 넘었습니다. 동일 입력의 30초 추가 5쌍은 0.309→0.471ms(+0.161ms)였으나 원래 실패를 덮지 않고 전체 G5/설계 완료를 보류합니다. on-demand RAF도 저사양 재개 근거 미확보로 계속 보류합니다.
+- [재검증 근거·각 run·범위와 한계](adr/evidence/frame-performance-remeasurement-20260906.md). 부팅 시 공통 Pretendard 정적 폰트 404는 별도 잔여로 기록했습니다.
+
+## [패널 탭 전환 수리] - 2026-09-06
+
+### Fixed
+
+- 패널 탭을 바꿔도 이전 탭의 본문이 사라지지 않고 화면에 남아 두 탭이 겹쳐 보이던 문제를 수정했습니다. Navigator 의 Pages/Frames 가 함께 보였고, Styles·DataTable·Monitor 도 같은 원인이었습니다. `.panel-contents` 의 스크롤 힌트가 scroll-progress timeline 애니메이션이라 끝나지 않는데, React Aria Components 1.21+ 의 `TabPanel` 이 그 종료를 기다려 unmount 를 미룬 것이 원인입니다. 전환 중에만 힌트를 끄도록 했고, 정착한 패널의 스크롤 페이드는 그대로입니다.
+
+## [Builder 반복 구현 공통화] - 2026-09-06
+
+### Changed
+
+- 8개 컴포넌트의 template origin 수집·재배치·멱등 처리, flex/block의 `margin:auto` 해석, 패널 layout 복사, canonical 문서 저장, Layout/TextMetrics 편집 취소 생명주기, Canvas page projection 타입을 공통화했습니다.
+- 컴포넌트별 origin 보정, 사용자 responsive 설정, Undo/삭제 저장 옵션, Inspector 추가 저장, 편집 취소 후 재진입 정책은 유지합니다. 동작 변경과 성능 개선을 목적으로 한 변경은 아닙니다.
+
+## [프레임 계측 정확성 수리] - 2026-09-06
+
+### Fixed
+
+- 프레임 계측의 GPU 타이머가 EXT_disjoint_timer_query 플래그를 결과 준비 전에 조회해 유효 표본까지 버리던 문제를 수정했습니다. GPU throttling 구간에서 유효 표본이 0으로 무너지던 원인이며, 이 수정 이전에 수집한 GPU 지표는 재수집 대상입니다.
+- 측정 창을 초기화해도 이전 창의 readiness 기록과 gauge가 남아 새 창의 값으로 보고되던 문제를 수정했습니다.
+
+## [Builder 프레임 CPU 준비 재사용] - 2026-09-06
+
+### Performance
+
+- 동일 입력의 children Map을 renderer 수명 안에서 재사용하고, 유효한 retained frame의 settled idle에서는 content/plan 준비를 생략합니다. animation·resource·camera·readiness 변경은 기존 제출 경로로 처리하며 연속 RAF는 유지합니다.
+- 600요소 production 5쌍에서 renderer main-thread task CPU 중앙값이 32.96→21.09ms/s로 36.0% 감소했습니다. 이 값은 P1 변경 묶음 전체의 효과이며 준비 생략 단독 효과가 아닙니다. 입력 위상을 맞춘 pan/zoom 제출 지연은 회귀 예산 안입니다. 5,000요소 편집·zoom tail과 실제 저사양 검증은 남아 있으며, on-demand RAF는 조건부 보류합니다.
+- **2026-09-06 정정**: 앞서 기록한 33.47→19.65ms/s(41.3%)와 GPU p95 판정은 철회했습니다. 계측 opt-in이 출하 production에는 없는 GPU 타이머를 만들고 그 동기 GL 조회가 측정 구간 안에서 실행되어, 출하 경로가 아닌 빌드를 잰 값이었습니다. 위 수치는 GPU 조회가 없는 경로에서 다시 잰 것이고, GPU 지표는 타이머 결함 수정 후 재수집 대상입니다.
+- 근거·적용 범위: [프레임 성능 실행 설계 §9](adr/react-skia-zustand-frame-performance-design.md#9-실행-결과--2026-09-06).
+
+### Fixed
+
+- production에서 Rust engine의 동적 JS import가 404를 내며 Builder 부팅이 95%에 머무는 문제를 수정했습니다. Vite가 JS/WASM 경로를 번들링하도록 연결하고, matching document의 실제 Skia 제출 이후에만 ready가 되는 계약을 유지합니다.
+
+## [Navigator 선택 fan-out 제거 — ADR-203 Implemented] - 2026-09-06
+
+### Performance
+
+- **ADR-203 Implemented — LayerTree 창 렌더와 Properties 필드 구독**:
+  - Navigator에서 요소를 고를 때 문서 크기만큼 트리가 다시 그려지던 비용을 가시 행만 그리도록 바꿨습니다. 600요소 선택 p50은 약 240ms에서 16.6ms로 줄었고 longtask는 0입니다.
+  - **Why:** 가상화 분기가 root 개수(실문서는 body 1개)를 보고 한 번도 켜지지 않았고, RAC Tree는 선택마다 전체 행을 재렌더했습니다. 앱 행 memo로는 닿지 않아 LayerTree만 RAC `Virtualizer` + `ListLayout`으로 창을 그립니다.
+  - Properties는 선택 객체 전체가 아니라 id/type과 각 필드의 canonical 값만 구독합니다. 5k에서 G6가 켜져 Phase 4를 실행했습니다.
+  - persistent 5k headless p50 16.0/16.2/16.2ms, headed 8.2ms. 실제 Canvas pointer로 `perf-seed-1` 선택이 맞았습니다. p95·할당 tail은 남아 있어 제거 완료로 읽지 않습니다.
+  - 위치: `apps/builder/src/builder/panels/navigator/`, `apps/builder/src/builder/panels/properties/`
+  - Live Exercise: ADR 본문 `### Live Exercise` — Chrome 키보드/DnD/숨김복원, headed Playwright pointer.
+
+## [헤더 Compare·Preview 그룹 통합] - 2026-09-06
+
+### Changed
+
+- 헤더 오른쪽의 Compare와 Preview를 서로 다른 chrome island에서 하나의 보기 옵션 그룹으로 합쳤습니다. Compare는 토글, Preview는 실행 버튼으로 역할은 그대로입니다.
+
+## [Navigator 선택 성능 — ADR-203 Phase 1 스파이크] - 2026-09-05
+
+### Performance
+
+- ActionButton도 동일 item 참조에서 memo 처리했다. 50회 선택 실측 subtree 시간이 44.5→26.2ms로 줄었으며, 같은 action ID의 새 라벨·callback은 반영한다.
+- Action Bar 옵션 메뉴의 placement callback을 안정화하고 memo를 적용했다. 50회 선택 실측에서 OptionsMenu 렌더가 100→1회, Action Bar React 누적 시간이 117.0→81.3ms로 줄었다. registry 갱신 후 모델 반영 순서는 유지한다. [근거](adr/evidence/203-actionbar-rac-analysis.md).
+- 일반 LayerTree 행에 소비하는 선택·확장·focus 값만 전달하고 content를 memo 처리했다. 20개 가시 행/50회 선택의 개발 환경 실측에서 Navigator React 누적 시간이 524.1→376.9ms로 약 28% 감소했다. [전후 근거](adr/evidence/203-selection-residual-analysis.md).
+- LayerTree에만 RAC Virtualizer를 연결하고 행 높이·단일 스크롤 계약을 검증했다. 600 요소 개발 환경 선택 p50 226.3→16.6ms, longtask 12→0. 공용 TreeBase·Pages·Frames는 유지한다.
+- **검증 진행 중**: 600 요소 반복 3회는 p50·drop·longtask 조건을 통과했다. 60 요소는 drop 3.8/3.3/2.7%로 필수 0%를 모두 미달해 Phase 1과 ADR은 아직 완료하지 않았다. [반복 실측과 parity](adr/evidence/203-g1-revalidation.md).
+
+### Fixed
+
+- LayerTree에서 항목을 다른 컨테이너 안으로 옮긴 뒤 포커스가 이동 항목 대신 대상 컨테이너에 남던 문제를 고쳤다. 재부모화 DOM이 반영된 다음 frame에 이동 행 포커스를 재요청하며, 같은 행을 연속 이동해도 요청이 생략되지 않는다.
+
+## [캔버스 accent 색 정정 · Aria Label 편집 축] - 2026-09-05
+
+### Fixed
+
+- **기본 상태에서 캔버스의 accent 색이 Preview 와 달랐습니다**: 강조색 버튼 등이 캔버스에서만 다른 파랑(#155dfc)으로 그려지고 Preview 는 테마 파랑(#3660f0)이었습니다. 테마 선택값에서 캔버스 색을 파생하는 동기화가 **저장된 테마 설정이 있을 때만** 돌아서, 테마를 한 번도 바꾸지 않은 프로젝트가 전부 어긋나 있었습니다. 이제 기본값에서도 파생이 적용됩니다.
+  - 색을 직접 지정한 요소는 영향이 없습니다. 테마 강조색을 쓰는 요소만 Preview 와 같아집니다.
+
+### Added
+
+- **Aria Label 편집 축**: Properties 패널 Attributes 에 `Aria Label` 을 추가했습니다. ID·Class Name 과 같은 전 타입 공통 축이라 어떤 요소에나 지정할 수 있고, 지정하면 Preview·퍼블리시 DOM 에 그대로 실립니다.
+  - 필요했던 이유: 진행률 표시처럼 **읽어 줄 이름이 필수인** 컴포넌트를 빌더에서 만들면 이름을 넣을 수단이 없었습니다.
+  - 비워 두면 속성을 만들지 않습니다. 컴포넌트가 스스로 이름을 만드는 경우(예: 라벨 자식이 있는 필드)는 그쪽이 우선입니다.
+
+## [폰트 크기가 캔버스에 반영되고, 상속된 자간도 이어집니다] - 2026-09-05
+
+### Fixed
+
+- **폰트 크기를 바꿔도 캔버스 글자 크기가 그대로이던 것**: Styles 패널에서 Font Size 를 조절하면 Preview 는 바뀌는데 캔버스는 16px 에 머물렀습니다. 캔버스 쪽 해석기가 숫자와 디자인 토큰만 받아들여, 패널이 저장하는 `"23px"` 같은 **px 문자열을 통째로 버리고** 기본값으로 떨어뜨리고 있었습니다. 기본 크기가 마침 그 기본값(16)이라 기본 상태에서는 증상이 없었고, 크기를 바꿀 때만 갈렸습니다.
+  - 실제 빌더 확인: 저장 `"23px"` → 캔버스 16 / Preview 23px → 수리 후 양쪽 23.
+  - `em`·`rem`·`%` 같은 상대 단위는 이전과 같이 무시합니다 — 해석 지점이 부모 폰트 크기를 알지 못하며, 레이아웃 경로도 같은 이유로 받지 않습니다.
+- **부모에서 상속된 letter-spacing 이 캔버스 그리기에 빠지던 것**: 앞선 항목이 남긴 한계를 해소했습니다. 부모에 자간을 주고 자식 텍스트에는 주지 않은 경우, 이제 캔버스도 Preview 와 같은 위치에서 줄을 접습니다. 아무도 자간을 지정하지 않은 요소는 예전처럼 컴포넌트 기본값을 그대로 씁니다.
+
+### Changed
+
+- **레이아웃의 폰트 크기 해석 21곳이 한 규칙을 씁니다**: 지점마다 흩어져 있던 파싱을 하나로 모았습니다. 각 지점의 기본값 우선순위(컴포넌트 기본 / 디자인 토큰 / 고정값)는 그대로라 보이는 결과는 바뀌지 않습니다.
+- **자간 시각 파리티 케이스의 글꼴**: 시스템 글꼴로 바꿨습니다. 두 비교 대상이 서로 다른 글꼴 집합을 보고 있어 케이스가 자간이 아닌 것을 재고 있었습니다.
+
+## [Styles 패널의 letter-spacing 이 캔버스에도 반영됩니다] - 2026-09-05
+
+### Fixed
+
+- **letter-spacing 이 Preview 에만 반영되던 것**: Styles 패널 Typography 에서 자간을 조절하면 Preview 는 바뀌는데 캔버스는 그대로였습니다. 값이 Skia 텍스트 노드까지 가는 경로가 없었고, 줄 수를 만드는 레이아웃 측정 경로도 자간을 받지 않았습니다. 세 자리를 모두 이었습니다 — 캔버스 글자 간격과 **줄바꿈 위치**가 Preview 와 같아집니다.
+  - 영향 범위: 사용자가 자간을 직접 설정한 요소만 바뀝니다. 기본값·가져오기·테마 어디에도 자간을 넣는 곳이 없어(각 0건), 설정하지 않은 문서는 보이는 결과가 그대로입니다.
+  - 부모에서 **상속된** 자간은 아직 캔버스 그리기에 반영되지 않습니다 (레이아웃만 반영). 알려진 미지원이며 후속 작업입니다.
+  - 앞선 항목([letter-spacing 을 Canvas 2D 가…])의 "아직 결선되어 있지 않습니다" 한계를 이 변경이 해소합니다.
+
+### Added
+
+- **텍스트 시각 축 게이트**: 새 텍스트 CSS 속성이 Preview 에만 반영되고 캔버스에는 빠지는 일이 커밋 시점에 잡힙니다. 속성 목록을 손으로 적지 않고 코드에서 뽑아 두 소비자에 값이 실제로 실리는지까지 확인합니다 (`codex:preflight` · push 직전 · CI).
+- **자간 시각 파리티 케이스**: 캔버스와 Preview 가 같은 문단을 같은 줄 수로 접는지 보는 케이스를 추가했습니다. 결선이 끊기면 이 케이스가 먼저 깨집니다.
+
+## [letter-spacing 을 Canvas 2D 가 CSS 와 같은 규칙으로 잽니다] - 2026-09-05
+
+### Fixed
+
+- **letter-spacing 폭 공식**: CanvasKit 초기화 전에 쓰이는 기본 측정기가 `글자수 − 1` 로 간격을 세고 있었습니다. CSS 는 글자마다 (마지막 글자 뒤까지) 간격을 넣으므로 항상 한 칸 좁았고, 이모지 같은 서로게이트 페어를 2글자로 셌습니다. Chrome 실측 규칙으로 고쳤습니다.
+
+### Changed
+
+- **letter-spacing 측정 경로**: 값이 0이 아니면 CanvasKit 으로 우회하던 것을, 브라우저가 `ctx.letterSpacing` 을 지원하면 Canvas 2D 에서 직접 재도록 했습니다 (미지원 브라우저는 종전대로 우회). 폭 캐시는 letter-spacing 별로 분리됩니다.
+- 알려진 한계: 인라인 스타일의 letter-spacing 은 아직 Canvas(Skia) 렌더까지 결선되어 있지 않습니다 — Preview/CSS 에만 반영됩니다. 이번 변경은 측정 쪽 준비이며 사용자-가시 동작 변화는 없습니다. 근거·경로: [docs/adr/evidence/051-letterspacing-canvas2d.md](adr/evidence/051-letterspacing-canvas2d.md)
+
+## [엔진 입력·문서가 조용히 어긋나던 자리에 게이트를 세웠습니다] - 2026-09-05
+
+### Added
+
+- **wasm 입력 strict 모드**: 레이아웃 엔진은 자기가 모르는 스타일 키를 조용히 버립니다. 그 차이가 위치 어긋남으로만 나타나 엔진 결함으로 오판된 이력이 있어, 하니스에서 켜면 그 자리에서 실패하도록 했습니다. production 은 그대로 관대합니다 (미지 키 하나로 레이아웃 전체가 실패하면 안 됩니다).
+  - 켠 첫 실행이 인벤토리였습니다 — 파이프라인이 보내고 엔진이 버리는 키는 `whiteSpace` 와 `order` 둘뿐이고, 둘 다 TS 가 소유해 엔진이 안 읽어도 결과가 맞습니다 (사유와 함께 통과 목록에 등재).
+  - 위치: `packages/engine/src/{tree,wasm}.rs`, `canvas/wasm-bindings/{layoutBridge,engine}.ts`
+- **정적 게이트 2개**: 삭제된 의존성 이름 (Taffy) 의 현재형 서술 재유입 차단 · `CSS_SUPPORT_MATRIX.md` 엔진 절과 코드의 drift 검사 (`codex:preflight` 에 추가).
+
+### Fixed
+
+- **엔진 필드 수 상수 드리프트**: `NODESTYLE_FIELD_COUNT` 가 54 인데 구조체는 55 필드였습니다. 필드를 더한 커밋이 상수를 안 올렸고, 검사 단언이 상수끼리만 비교해 통과하고 있었습니다. 이제 serde 가 실제로 쓰는 키 집합과 기계 대조합니다.
+
+### Changed
+
+- **삭제된 레이아웃 엔진 이름 정리**: ADR-916 에서 제거된 Taffy 가 소스 35 파일 주석에 현재형으로 남아 없는 라이브러리의 능력이 엔진 제약처럼 읽히고 있었습니다. 현재형 서술만 바꾸고 제거·개명·계보를 밝힌 역사 서술은 남겼습니다.
+- **`docs/CSS_SUPPORT_MATRIX.md`**: 2026-04-06 에 멈춘 채 삭제된 파일을 71곳에서 인용하고 있었습니다. 엔진 capability 절 (§0) 은 이제 코드가 생성하고, 손 편집 본문은 스냅샷임을 머리말에 밝혔습니다.
+
+### Tests
+
+- Rust 417건 · builder `canvas/layout` 482건 · parity 1056건 통과 (parity 의 기존 실패 13 파일 + 2건은 이번 변경과 무관 — baseline 대조로 확인).
+- 근거: [docs/adr/evidence/external-pattern-delta-group-a.md](adr/evidence/external-pattern-delta-group-a.md) — 게이트 RED probe · strict 첫 run 인벤토리 · baseline 대조.
+
+## [텍스트 줄바꿈이 브라우저와 어긋나던 10가지를 고쳤습니다] - 2026-09-05
+
+### Fixed
+
+- **Canvas 2D 텍스트 측정 (Tier 3) 이 Chrome 과 다르게 끊던 위치 10종**: 캔버스에서만 단어가 잘못 쪼개지거나 구두점이 줄 끝에 홀로 남던 문제입니다.
+  - `$100` 의 `$` 가 앞 줄 끝에 남던 것 → 숫자에 붙습니다. `50%` 의 `%` 도 앞 숫자에 붙습니다.
+  - 여는 괄호·따옴표·아포스트로피 (`(` `"` `'` `「` `（`) 가 줄 끝에 홀로 남던 것 → 다음 줄로 함께 넘어갑니다. CJK 여는 괄호 규칙은 조건 오류로 실제로는 한 번도 동작하지 않는 상태였습니다.
+  - 이메일·파일 경로·URL·식별자 (`support@example.com`, `foo_bar/baz_qux`, `https://…`) 가 기호에서 쪼개지던 것 → 브라우저처럼 한 단위로 둡니다. 하이픈 뒤는 그대로 끊깁니다 (전화번호 유지).
+  - `word-break: keep-all` 에서 `한글abc123` · `価格1200円` 처럼 공백 없이 붙은 CJK 혼합 그룹이 쪼개지던 것 → 한 단위로 둡니다.
+  - 줄 폭 계산에서 구두점·기호가 공백처럼 취급돼 폭이 과소 측정되던 것 → 공백만 줄 끝에서 흘리고 기호는 폭에 포함합니다. `Save / Cancel` 류의 fit-content 폭과 줄 수가 맞아집니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/utils/canvas2dSegmentCache.ts`
+
+### Tests
+
+- Chrome 152 오라클 기대값 18 케이스를 `tokenize()` 실경로 fixture 로 고정했습니다 (수정 전 13 FAIL → 18 GREEN). 손으로 만든 fixture 가 동작하지 않는 규칙을 가리고 있던 기존 테스트 2건도 실경로로 교체했습니다.
+- 근거: [docs/adr/evidence/051-tier3-upstream-rules-live.md](adr/evidence/051-tier3-upstream-rules-live.md) — 원복 RED 표 · 회귀 538건 · 빌더 Skia ↔ Chrome DOM 줄 위치 대조.
+
+## [React Aria Components 1.21 — ColorArea 패치 재적용] - 2026-09-05
+
+### Changed
+
+- **RAC 1.20.0 → 1.21.0 묶음 업데이트**:
+  - `react-aria-components` catalog pin `^1.21.0`, `react-aria` 3.52.0, `react-stately` 3.50.0, `@internationalized/date` 3.12.4 / `number` 3.6.8
+  - ColorArea `aria-hidden` 가드는 upstream에 아직 없어 `patches/react-aria@3.52.0.patch`로 같은 `isActiveInput` 가드를 다시 맞췄다. 이전 `react-aria@3.51.0` 패치는 제거했다.
+  - 1.21의 TokenField `caretPosition` → `selectedRange` 변경은 사용처가 없다. Menu async loading / NavigationTree는 catalog에 넣지 않았다.
+  - 위치: `pnpm-workspace.yaml`, `apps/builder/package.json`, `packages/shared/package.json`, `patches/react-aria@3.52.0.patch`
+
+### Tests
+
+- ColorArea 포커스 전환 회귀 테스트와 shared 972건, Fill/Color 훅 테스트, publish 테스트를 1.21에서 다시 통과시켰다.
+
+## [Builder lint 경계를 정리했습니다] - 2026-09-04
+
+### Changed
+
+- Fast Refresh 경고를 없애기 위해 Context·panel helper·style props·Preview registry와 순수 presentation helper를 컴포넌트 모듈에서 분리했습니다. 기존 import·정적 parity 계약은 유지합니다.
+
+### Fixed
+
+- locale callback 의존성, drag/viewport 이벤트 수명주기, Ruler label pool cleanup의 stale closure 경고를 수정했습니다. P2 검토가 필요한 8개 경고(clipboard·shortcut registry·일부 memo dependency)는 동작 계약 확인 후 별도 처리 대상으로 남겼습니다.
+
+### Tests
+
+- Builder lint가 `0 errors / 8 review warnings`로 통과하고, type-check·registration·agent-catalog preflight와 관련 focused Vitest가 통과했습니다.
+- (2026-09-05 후속 4) 정적 소스 게이트 3종을 현재 코드에 맞췄습니다. 세 게이트가 지키려던 불변식은 모두 코드에 그대로 있고, 매처가 붙잡고 있던 문자열만 리팩터로 이름이 바뀌어 있었습니다. selection 게이트는 식별자 금지 대신 canonical 우선 순서를 잠그도록 다시 썼고, ADR-113 격리 게이트는 뒤늦게 생긴 canonical 경계 파일 2개를 허용 목록에 넣었으며, commit lane 순서 게이트는 개명된 canonical sync 호출을 가리키도록 고쳤습니다. 빌더 전체 스위트가 5,294건 전부 통과합니다.
+- (2026-09-05 후속 3) instance 편집 계약 테스트 13건을 canonical 실제 형태에 맞췄습니다. detach 와 origin 해제는 legacy mirror 필드를 `undefined` 로 남기지 않고 아예 제거하며, ref 인스턴스의 override 와 slot 배치를 실제로 운반하는 곳은 `props` 입니다. 동작은 모두 정상이고 낡아 있던 것은 단언 형태였습니다. 확인 다이얼로그 리스너가 없는 테스트에서 `window.confirm` 폴백이 jsdom 에서 취소로 읽히던 것도 함께 고쳤습니다. 빌더 전체 스위트 실패가 16 에서 3 으로 줄었고 남은 3건은 정적 소스 게이트입니다.
+- (2026-09-05 후속 2) 패널 테스트가 canonical document 를 시드하도록 공용 헬퍼 `src/builder/__tests__/panelFixture.ts` 로 통일하고, `PanelContents` 도입 (2026-09-04) 이 남긴 잔여를 닫았습니다. 배럴 전체를 교체하던 AIPanel·SettingsPanel 의 mock 은 실물을 깔고 필요한 것만 덮도록 바꿔 새 export 추가 때 다시 깨지지 않게 했고, TabPanel 본문 층을 검사하던 정적 게이트 3종은 `panelContents()` 헬퍼 경유를 정본으로 인정하도록 갱신했습니다. 빌더 전체 스위트 실패가 99 에서 16 으로 줄었습니다.
+- (2026-09-05 후속) memo dependency 경고 3건을 닫았습니다 — `PropertyUnitInput` sync effect 는 memo 된 `parsed` 를 그대로 의존하고, `useColorStyleValues` 의 `themeVersion` 은 tint/neutral 이 `lightColors` 를 제자리 mutation 하는 유일한 재계산 신호라 제거하지 않고 cache key 로 명시했으며, `ApiEndpointEditor` 의 `t` 는 `useCallback` 으로 고정했습니다. Styles 패널 color 테스트 fixture 를 canonical document 시드로 고쳐 16건 실패를 복구했고 tint 변경 재해석·부모 재렌더 draft 보존 테스트를 추가했습니다. 남은 경고 5건(clipboard 2·keyboard registry 3)은 계약 설계 후 별도 처리합니다.
+
+## [Legacy layout/history 경계를 canonical-only로 줄였습니다] - 2026-09-04
+
+### Changed
+
+- Builder 전역의 deprecated `layout.types.ts`를 제거했습니다. canonical adapter의 reusable frame 입력은 필요한 필드만 가진 `ReusableFrameLayoutInput`으로 축소하고, reusable frame 생성·수정과 UI 읽기는 `FrameNode` 기반 계약만 사용합니다.
+- 개발 단계에서 생성된 history IndexedDB v1 snapshot payload 변환을 중단했습니다. DB v4로 직접 올라오는 v1 history entry/meta만 초기화하며, v2/v3 canonical history와 v3 snapshot 및 프로젝트 문서는 보존합니다. 저장·복원 경계는 element history에 `canonicalEvents`가 없는 entry를 받지 않습니다.
+- AI read model, frame read, collection item 관리, Layout preset, history result의 aggregate document projection caller를 ADR-127 traversal lookup과 leaf projection으로 전환했습니다. `getCanonicalDocumentElementsView`/`visitCanonicalDocumentElements`는 외부 export가 아니며, 남은 full projection cache도 사용되지 않는 `byId` Map 없이 readonly 배열만 보관합니다.
+- Properties·Frames·LayerTree·Canvas와 element loader/selection/text/reset mutation 경로의 legacy `Element[]` fallback을 제거했습니다. matching canonical document 전에는 Canvas가 빈 scene을 유지하고 Builder chrome readiness가 노출을 막으며, frame body/slot은 canonical frame scope만 읽습니다.
+- production caller가 0인 Canvas legacy scene projection 파일과 frame hydration loader API, legacy property read index를 제거했습니다. page-frame binding은 canonical page lookup과 bootstrap body 한 건만 사용합니다.
+
+### Fixed
+
+- Builder bootstrap readiness가 false일 때 effect 안에서 동기 state reset을 일으키던 경로를 제거했습니다. paint 완료 상태를 project와 canonical document revision으로 식별해 새 target은 자동으로 미완료가 되며, matching renderer frame이 준비된 뒤의 paint 완료 계약을 유지합니다.
+
+### Performance
+
+- history load/upgrade 시 legacy payload를 순회·변환하는 adapter 비용을 제거했고, bootstrap effect의 불필요한 연쇄 render를 없앴습니다.
+- 같은 document를 반복 평탄화하던 5개 caller와 selection/page/frame hot path의 stale legacy subscription을 제거했습니다. 이 wave에서는 별도 성능 측정을 실행하지 않았습니다.
+
+### Tests
+
+- canonical projection·selection 즉시성·ref descendants·page/frame scope·preset removal·history result 회귀 32개 파일 339개 테스트와 Builder type-check를 통과했습니다.
+- 격리 Chromium에서 production module singleton으로 canonical update의 Undo/Redo·go-to-index, IndexedDB `canonicalEvents`-only 저장, user/system snapshot 복원과 복원 Undo/Redo를 실제 실행했습니다. console error/warning은 0건이었습니다.
+
+## [제약 flex 안의 collection 이 Preview 와 같은 높이를 지킵니다 (ADR-204)] - 2026-09-04
+
+### Fixed
+
+- **가상화 collection 의 min-content floor (ADR-204 Implemented)**: 높이가 제한된 flex column 안에서 `overflow: visible`/`clip` 인 ListBox·GridList 가 Canvas 에서만 부모 높이로 줄어들던 문제를 고쳤습니다. Preview 는 행이 실제 자식이라 CSS §4.5 자동 최소 크기 (행 수 × 행 높이) 를 지키는데, Canvas 는 행을 투영으로 그려 레이아웃 자식이 없고 엔진도 주축이 definite 인 item 에는 floor 를 두지 않았습니다.
+  - 엔진 `flex.rs` 에 §4.5 specified size suggestion 절 (`min(specified, content)`, 정확 스칼라를 가진 definite item 만) 을 두고, column definite 컨테이너는 자식 extent 를, 가상화 collection 은 `contentMinHeight` (행 수 × stride) 를 공급합니다. 같은 절이 collection 밖 일반 상자 (자식 실재, definite 높이) 의 발산도 닫습니다.
+  - **Table**: Canvas 만 `minHeight: 402` 를 주입해 제약 flex 에서 줄어들지 않던 것을 제거했습니다. DOM 외곽 `.react-aria-Table` 은 catalog `min-height: 40px` 이라 같이 줄어듭니다 (Canvas 402 → 80).
+  - **GridList**: Canvas 만 `overflow: hidden` 을 주입해 scroll container 로 판정되던 것을 제거했습니다. GridList.css 에 overflow 선언이 없어 Preview 는 non-scrollable 이고 min-content 164 를 지킵니다 (Canvas 80 → 164).
+  - 위치: `packages/engine/src/flex.rs` · `tree.rs` · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `implicitStyles.ts`. 게이트: `adr204ReachMatrix.browser.test.ts` (production 24 행 Chrome ≤1px) · `adr204MinContentFloorFirstNail.browser.test.ts`. 이연: row 축 definite 컨테이너 (ADR-188 방문 수 기준선과 충돌 — 사용자 판정 대기).
+
+## [요소 편집과 선택·스타일 읽기를 canonical 문서 기준으로 통일했습니다] - 2026-09-04
+
+### Changed
+
+- instance 생성·분리, 요소 update·remove가 활성 canonical 문서만 mutation source로 사용합니다. canonical 문서가 준비되지 않은 동안 오래된 legacy cache를 수정하거나 history로 기록하지 않습니다.
+- 중첩 요소의 editing context 진입·종료, Styles reset의 선택 요소·부모·조부모 조회, Fill 액션의 현재 값 조회를 ADR-127 canonical node helper로 옮겼습니다. page ref의 `descendants` replacement subtree도 같은 helper cache에서 탐색합니다.
+- 선택된 instance의 최신 override, Button/ListBoxItem 자식 생성용 customId 충돌 검사, Component Memory 분석도 canonical node index에서 직접 읽습니다. customId의 구 metadata 저장형식은 adapter 내부에서만 해소합니다.
+- Components 팔레트와 Navigator Layers/Frames가 legacy `Element[]` 전체 projection 대신 panel 전용 canonical node 구조를 읽습니다. page·reusable frame scope, structural parent lifting, page ref descendants를 유지하며 component factory 입력도 생성에 필요한 필드로 축소했습니다.
+- Page 삭제의 canonical topology 동기화는 `BuilderCore` page-shell bridge 한 곳이 담당합니다. Pages panel의 중복 full-document replacement를 제거해 부분 legacy cache가 canonical 문서를 덮는 경로를 닫았습니다.
+- Select·ListBox·Menu의 items 편집은 target을 찾기 위해 canonical 문서를 매번 legacy `Element[]`로 평탄화하지 않고, document revision별 canonical projectable first-match index를 사용합니다. 활성 canonical 문서에 target이 없으면 오래된 legacy cache로 되살리지 않으며, 중복 id가 있는 잘못된 기존 문서에서도 structural node를 건너뛰고 후속 mutation과 같은 첫 DFS Element node를 선택합니다.
+- 단일 요소 props 편집은 canonical 문서를 legacy `Element[]`로 전체 투영한 뒤 다시 merge하지 않습니다. revision별 target·descendant cache와 canonical tree structural sharing을 사용하고, UI용 derived array/map만 같은 순서로 증분 교체합니다. 잘못된 기존 duplicate id 문서는 구 adapter 복구 의미를 유지합니다.
+- 다중 요소 props 편집도 target마다 legacy `Element[]`를 투영·재인덱싱하지 않고 revision cache로 읽은 뒤 canonical tree를 한 번만 순회합니다. canonical 문서는 batch당 한 번 push하고 UI용 derived array/map은 대상 행만 교체해 다중 선택 편집·정렬·propagation의 hot path 비용을 줄였습니다.
+- production caller가 0인 `batchUpdateElements` store action과 legacy full-projection 구현을 제거했습니다. 실제 LayerTree·Canvas DnD는 canonical `children[]` 기반 `moveElementToContainer`/`moveElementToCanonicalTarget` 경로를 계속 사용합니다.
+- 전체 필드 `updateElement`도 canonical target 한 건을 직접 교체하고 UI용 derived array/map의 대상 행만 갱신합니다. 구조·소유권·component/variable index 필드와 잘못된 duplicate id 호환 경로에서만 전체 index를 재구축해 customId·responsive·slot·descendants 편집의 문서 전체 projection을 제거했습니다.
+- production caller가 0인 unified-store 전체 요소/current-page selector와 Canvas 요소 selector의 public export를 제거했습니다. 원본 모듈 파일은 삭제 승인 경계를 지켜 보존하고, canonical ref override helper 소유권은 ADR-127 traversal 모듈 한 곳으로 줄였습니다.
+
+### Fixed
+
+- 모바일·태블릿 style override를 reset할 때 선택 요소는 canonical 문서에서 읽으면서 responsive 값과 부모 baseline은 오래된 legacy map에서 읽어 reset이 누락될 수 있던 source 분리를 없앴습니다.
+- Fill 액션을 canonical node index로 옮기면서도, top-level `fills` 도입 전에 저장된 문서의 `metadata.legacyProps.fills`는 adapter 경계에서 복원해 첫 편집 때 기존 fill stack이 사라지지 않게 했습니다.
+- `updateElement`로 customId를 바꿀 때 이전 `metadata.customId`가 새 `metadata.legacyProps.customId`를 덮어 다음 canonical projection에서 값이 되돌아가던 adapter 우선순위를 현재 Element 값 기준으로 바로잡았습니다.
+- customId·Frame Slot·Element Slot·instance Slot Fill 변경을 full-node canonical history event로 기록해 props 밖 canonical 필드 편집 뒤 Undo/Redo가 동작하도록 복구했습니다.
+- ID 입력을 Enter로 확정할 때 keydown과 blur가 각각 저장해 동일한 no-op history entry를 하나 더 만들던 중복 commit을 제거했습니다.
+- **Button Icon origin impact 취소와 단일 Undo**:
+  - **Why**: Icon/Text 추가·제거가 먼저 실행된 뒤 마지막 Button props update에서 impact 확인을 기다려, Cancel 뒤에도 자식 mutation이 남고 history transaction이 둘로 갈렸습니다.
+  - 모든 자식 mutation 전에 impact 승인을 완료하고 selection·page·project·canonical revision을 재검증합니다. 승인된 instance ID 집합에 묶인 operation token으로 Continue 뒤 Icon/Text/Button 변경을 한 history entry에 기록하며, Cancel 또는 dialog 대기 중 target 변경은 no-op입니다.
+  - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`
+
+### Performance
+
+- Properties/Styles 패널의 단일 요소 조회를 전체 canonical `Element[]` projection과 선형 `find`에서 ADR-127 revision cache의 projectable node·parent·page/frame scope 조회로 전환했습니다. page ref descendants와 잘못된 duplicate ID의 첫-match 의미를 유지합니다.
+- 5,000-node 합성 규모 A/B에서 같은 문서의 warm selection p50/p95는 0.0300/0.0392ms → 0.00121/0.00358ms, canonical mutation 뒤 이미 갱신된 traversal cache의 leaf read는 0.7769/2.1724ms → 0.00117/0.00729ms였습니다. 최초 cold read도 0.8803/1.2420ms → 0.7239/1.1751ms로 악화되지 않았고, cache scope 확장 뒤 기존 `updateElement` action은 history 23건 포함 p50/p95 1.33/1.89ms로 직전 기준 범위에 머물렀습니다. 이 수치는 합성 문서의 규모 비용 비교이며 실제 문서 분포의 개선율로 해석하지 않습니다.
+- Properties/Styles의 aggregate elements/children 조회를 `getCanonicalDocumentElementsView`와 hook 인스턴스별 Map 재생성에서 ADR-127 occurrence cache 기반 문서별 공유 index로 전환했습니다. ref descendants의 parent·page/frame scope, DFS 순서, duplicate ID의 aggregate last-match 의미를 유지하면서 PanelNode adapter 경계 안에서 배열·ID Map·children Map을 한 번에 만듭니다.
+- 6,000-node 합성 문서에서 elements Map 8개·children Map 3개 consumer를 GC 전처리 후 old/new 교차 실행한 결과, canonical revision 재구축 p50/p95가 4.92/7.17ms → 3.46/4.84ms였습니다. 실제 문서 분포가 아닌 aggregate 중복 생성 비용의 합성 비교입니다.
+- Performance Monitor의 element count가 숫자 하나를 얻기 위해 매 수집마다 canonical 문서를 legacy `Element[]`로 두 번 투영하던 경로를 projectable canonical node 직접 count로 전환했습니다. clone-on-write document 참조별 WeakMap cache를 공유해 같은 collect 안의 store-memory 추정 재조회도 O(1)입니다.
+- 5,000-node 합성 문서에서 실제 collect와 같은 count 2회 교차 측정 p50/p95가 2.095/3.593ms → 0.033/0.332ms였습니다. 실제 문서 분포나 전체 collect 시간의 개선율로 해석하지 않습니다.
+- Inspector의 style·responsive·fill 편집은 선택 요소를 얻기 위해 매번 전체 `Element[]`를 만들고 Map을 재구축하지 않습니다. projectable leaf lookup과 기존 derived `elementsMap`·`childrenMap`을 재사용하며, ref master도 DFS-first ID/name/customId 호환 인덱스로 조회합니다. bootstrap 중 derived cache에서 target이 빠진 경우에만 cached canonical view 전체를 한 번 복구합니다. 5,000-node 합성 3-projection action shape에서 p50/p95가 1.766/8.972ms → 1.481/2.945ms였습니다.
+- 텍스트 편집은 key 입력마다 canonical 문서를 다시 투영하지 않고 편집 시작 때 얻은 leaf snapshot을 session 동안 유지합니다. 외부 document/layout revision이 바뀌면 최신 leaf를 다시 읽어 함께 변경된 props를 보존합니다. 5,000-node 합성 13-read 편집 session p50이 3.339ms → 0.706ms였습니다.
+- 텍스트 live input과 Inspector property/style preview의 canonical write를 단일 node structural-sharing helper로 전환했습니다. 선택 leaf를 이미 알고 있는 변경이 `BuilderCore.getCurrentLegacySnapshot()`을 거쳐 매 입력·preview마다 전체 document projection·ID Set·page shell filter를 생성하던 경로를 우회합니다. duplicate ID 문서는 기존 all-occurrence merge fallback을 유지합니다.
+- Preview의 selection echo는 leaf lookup을 사용하고, 생성된 column/field 중복 검사는 legacy `Element[]` 대신 document 참조별 projectable ID Set을 사용합니다. 5,000-node generated-ID cold p50/p95가 0.475/3.107ms → 0.143/0.475ms였습니다.
+- reusable frame 보강 로드는 frame마다 전체 문서를 투영·filter하지 않습니다. document별 frame scope와 DFS occurrence를 한 번 인덱싱해 frame 소유권과 duplicate 순서를 보존합니다. 60 frame·4,800-node 합성 전체 hydrate 재측정 p50/p95가 43.19/44.12ms → 2.14/3.58ms였습니다.
+- 선택/활성화 단일 요소 read는 전체 document visitor 대신 last-match canonical lookup과 해당 leaf만 project합니다. Properties의 ref instance는 selected leaf와 DFS-first master leaf만 조합하며, store 전체 요소 selector가 document 변경마다 만들던 full view 구독을 없앴습니다.
+- Navigator·Components가 공유하는 panel node projection은 clone-on-write document identity별 WeakMap cache를 사용하고, 공유 배열과 node를 readonly 경계에서 동결해 consumer 오염을 막습니다. 5,000-node 동일 프로세스 진단에서 100회 반복 cache miss 20.364ms, cache hit 0.011ms였으며 실제 UI latency 수치는 아닙니다.
+- Undo/Redo/go-to-index는 canonical event 적용 전에 legacy 전체 projection을 만들지 않고, 적용기가 반환한 배열을 store와 index rebuild가 함께 사용합니다. event 또는 active document가 없는 실패 경로는 기존 derived state를 유지합니다.
+- fill/style presentation commit의 정상 경로는 store mirror의 canonical document identity가 일치할 때 target 한 건만 교체하고 방금 만든 store 배열로 index를 재구축해 commit당 두 번이던 full projection을 0회로 줄였습니다. canonical revision 불일치·duplicate ID·mirror 누락·비-projectable target은 최신 문서 전체 projection으로 fail-safe 복구합니다.
+- lazy page load와 page-frame binding은 ADR-127의 page-scope lookup만 project합니다. Fill presentation의 materialization context도 selected/ancestor/children canonical index만 읽어 다른 page·document 요소 객체를 만들지 않습니다.
+- 연속 AI tool 호출이 같은 canonical 문서를 매번 visitor로 평탄화하고 ID/children Map을 다시 만들지 않도록 document identity별 read-model cache를 공유합니다. legacy bootstrap도 동일 elements 배열 동안 같은 index를 재사용합니다.
+- instance detach·origin impact·override reset은 한 action 안에서 같은 canonical `Element[]` 복사본을 반복 생성하지 않고 document-keyed readonly view를 공유합니다. ref origin 영향이 page 경계를 넘을 수 있어 전체 문서 범위는 유지하되, store에 쓸 때만 새 배열을 만듭니다.
+- 단일·다중 요소 삭제는 target/subtree를 수집할 때 읽은 readonly canonical snapshot을 동기 `executeRemoval` 구간에 그대로 전달합니다. 전체 문서의 ref/origin 영향 계산은 유지하면서 삭제 1회당 중복 `Element[]` 복사를 제거했습니다.
+
+### Tests
+
+- legacy-only instance/update/remove no-op, selection 즉시성·stale legacy 미복원, page ref descendants hierarchy, canonical responsive reset, 선택 노드가 사라진 Fill 액션의 stale legacy 미복원과 pre-cutover fill 보존, Button Icon impact Cancel·단일 Undo 회귀를 추가했습니다.
+- panel canonical node의 page/frame scope·Slot·ref descendants, frame-bound LayerTree 합성, page 삭제 뒤 인접 body 즉시 선택, structural component creation 입력 회귀를 추가했습니다.
+- items action에는 canonical 우선·stale legacy 차단·중복 id projectable first-match 회귀와 full projection 재도입 static gate를 추가했습니다. 5,000-node 합성 측정의 3회 median에서 target pre-read는 첫 조회 4.40ms → 0.96ms, 동일 revision 100회 66.09ms → 0.045ms였습니다. 격리된 551-element Builder의 12회 실제 편집은 p50 33.9ms/p95 40.4ms였고 Undo/Redo·Canvas·console을 함께 검증했습니다. 후자는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
+- 단일 props 편집에는 full `Element[]` projection·legacy merge 재도입 static gate와 structural parent lifting·page ref descendants·duplicate id·history roundtrip 회귀를 추가했습니다. 5,000-node 격리 action 20회 측정은 p50 10.08ms → 1.27–1.51ms였고, foreground synthetic Builder 1,000-node post-change 검증은 p50 0.3ms/p95 1.1ms였습니다. live 검증에서 canonical·derived selection·Undo/Redo가 일치했고 runtime error는 0이었습니다. live 수치는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
+- batch props 편집에는 full projection·legacy merge 재도입 static gate와 inherited dirty descendants, page ref descendants sibling order, duplicate id all-occurrence 호환, 동기 history/derived cache 회귀를 추가했습니다. 5,000-node 중 100개를 바꾸는 격리 action 20회 측정은 p50 17.11ms → 1.58–1.63ms였고, foreground browser post-change 검증은 p50 1.5ms/p95 2.0ms였습니다. canonical·derived selection·Undo/Redo가 일치했고 console/runtime error는 0이었습니다. live 수치는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
+- 전체 필드 편집에는 canonical target 재조회, full projection 재도입 방지, customId sibling order, duplicate id all-occurrence, structural rebuild, responsive history/layout 회귀를 추가했습니다. 5,000-node 실제 store action 20회 격리 측정은 변경 전 p50/p95 20.15/29.35ms에서 변경 후 3회 p50 1.11–1.44ms, p95 3.89–6.24ms였고, customId history 활성 최종 재측정도 p50/p95 1.17/6.52ms였습니다. foreground Builder에서는 ID 편집 1회가 history 1개만 만들고 Undo/Redo의 canonical ID가 왕복하며 console error 0임을 확인했습니다. selection 보존은 격리 store roundtrip으로 고정했습니다.
+- Performance Monitor count에는 structural wrapper 제외, page ref descendants 포함, hoisted slot 포함, 새 document 참조 재계산과 legacy projection 재도입 방지 static gate를 추가했습니다.
+- Inspector leaf/ref/history·cache-gap 복구·alias/ID 충돌 우선순위, text edit session revision·cancel·commit, Preview selection/generated-ID, frame scope cache·duplicate occurrence 소유권에 full projection 재도입 방지와 회귀 테스트를 추가했습니다.
+- selection leaf·page-scope loader/binding·panel cache·presentation store index source·history projection reuse에 focused regression과 full-projection 재도입 static gate를 추가했습니다. duplicate ID, ref descendants, page/frame scope, selection 즉시성, Undo/Redo/go-to-index 의미를 유지합니다.
+- 격리 Chromium에서 실제 IndexedDB v1 entry를 v3으로 올려 `canonicalEvents` 변환과 legacy payload strip을 확인했습니다. 같은 production history singleton으로 step2→step1 Undo, step1→step2 Redo, go-to-index 왕복을 실행했고, user/system snapshot 2개 영속과 step3→step2 복원·Undo/Redo 왕복도 확인했습니다 (console/page error 0).
+
+## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
+
+### Fixed
+
+- 텍스트 필드 · 숫자 필드 · 날짜/시간 필드 등에 "Description" 을 입력하면 미리보기에만 한 줄이 나오고 캔버스에는 없어 높이가 달랐습니다 (예: 텍스트 필드 미리보기 83px vs 캔버스 56px). 이제 캔버스도 같은 자리에 같은 크기로 그립니다. 문서를 고칠 필요는 없습니다 — 기존 화면도 그대로 반영됩니다.
+- 설명 문구의 글자 크기가 컴포넌트 크기 설정을 따르지 않고 주변 글자 크기를 물려받던 문제를 고쳤습니다 (날짜/시간/숫자 필드 md 기준 16px → 12px, 텍스트 필드 14px). 오류 메시지와 같은 기준입니다.
+
+## [슬롯 (Slot) 의 자리 표시 상자가 내용에 맞춰 늘어납니다] - 2026-09-04
+
+### Changed
+
+- 슬롯 크기 (sm 40 · md 60 · lg 80px) 는 이제 **고정 높이가 아니라 최소 높이**입니다. 내용이 그보다 크면 상자가 같이 늘어납니다 (캔버스는 전부터 이렇게 다뤄 왔고, 미리보기가 이제 같아집니다).
+
+### Fixed
+
+- 슬롯 자리 표시 안내 (아이콘 + 슬롯 이름) 가 상자보다 커서 밖으로 넘치던 것을 한 줄 배치로 정리했습니다.
+
+## [선택 상자의 값 텍스트에 준 스타일이 캔버스에서만 달라 보이던 문제를 정리했습니다] - 2026-09-04
+
+### Changed
+
+- 선택 상자 (Select · ComboBox · 검색 필드) 안의 값/안내 문구는 상위 컴포넌트의 디자인 규칙이 모양을 정합니다. 이제 캔버스도 그 규칙만 따르므로 캔버스에서만 글자가 커지거나 밀려 보이던 차이가 없어집니다. 스타일 패널은 어디서 편집해야 하는지 안내합니다.
+- 값과 안내 문구 (Placeholder) 텍스트 편집은 그대로 해당 요소에서 합니다.
+
+## [컴포넌트 팔레트에서 동작하지 않던 "color picker" 항목을 뺐습니다] - 2026-09-04
+
+### Removed
+
+- 팔레트의 "color picker" (TailSwatch) 는 클릭해도 요소가 추가되지 않던 항목입니다. 제공하지 않는 컴포넌트로 정리해 팔레트에서 제거했습니다. 속성 패널의 색상 선택 UI 는 그대로입니다.
+
+## [재사용 프레임 편집에서 새로 넣은 슬롯 (Slot) 이 캔버스에 보입니다] - 2026-09-04
+
+### Fixed
+
+- 프레임 편집 모드에서 팔레트로 추가한 슬롯이 높이 0 으로 그려져 보이지 않았습니다. 이제 슬롯 크기 (sm 40 · md 60 · lg 80px) 만큼의 자리 표시 상자로 보입니다. 템플릿으로 만든 슬롯의 배치는 그대로입니다.
+
+## [텍스트 영역 (TextArea) 의 높이가 캔버스와 미리보기에서 같습니다] - 2026-09-03
+
+### Fixed
+
+- 캔버스가 텍스트 영역을 한 줄 입력 상자 높이 (30px) 로 그려 미리보기 (3줄 = 70px) 와 달랐습니다. 이제 캔버스도 "Rows" 값과 크기 (size) 에 맞춰 줄을 쌓고 (기본 3줄 70px, 6줄 130px, lg 3줄 90px), 안내 문구 (placeholder) 도 미리보기처럼 상자 위쪽에 놓입니다.
+- 스타일 패널의 "Vertical Align: top" 이 실제로 글자를 위에 붙입니다 (이전에는 아무 변화가 없었습니다).
+
+## [History undo/redo 를 IDB-boundary migrate 전용으로 좁혔습니다] - 2026-09-03
+
+### Changed
+
+- undo/redo/go-to-index 는 `canonicalEvents` 만 적용합니다. `migrateV1EntryToV2` 는 IndexedDB upgrade/load 경계에만 남겼습니다.
+- IDB load/upgrade 에서 context 없이 변환할 수 없는 element-axis entry(`diff`/`diffs` only 등) 는 스택에서 제거해, 되돌리기 한 칸만 소모하고 문서가 그대로인 상태를 막습니다.
+- production 소비처가 없던 `undoBatchUpdate` / `redoBatchUpdate` / `undoGroupCreation` / `redoGroupCreation` 과 raw legacy read 계측 모듈을 제거했습니다.
+
+### Tests
+
+- historyActions migrate 부재·IDB adapter 유지 static gate, v1 fixture pre-migrate roundtrip 을 갱신했습니다.
+
+## [HistoryEntry 에서 legacy snapshot 타입 필드를 제거했습니다] - 2026-09-03
+
+### Changed
+
+- `HistoryEntry.data` 에서 `element` / `prevProps` / `batchUpdates` 등 v1 snapshot 필드를 제거했습니다. raw IndexedDB payload 는 `migrateV1EntryToV2` 의 `LegacyV1SnapshotData` 로만 읽습니다.
+- History 패널 라벨의 legacy snapshot 이름 분기를 제거했습니다. `canonicalEvents` 또는 truncated `elementId` 만 사용합니다. 변환에 실패한 구 IndexedDB entry 는 이름 대신 짧은 id 로 표시됩니다.
+
+### Tests
+
+- HistoryEntry 타입·migration LegacyV1 격리 static gate 와 label 회귀를 갱신했습니다.
+
+## [History v1 fallback 을 제거하고 canonical 전용으로 전환했습니다] - 2026-09-03
+
+### Changed
+
+- undo/redo/go-to-index 가 v1 entry 를 `migrateV1EntryToV2` 로 변환한 뒤 `canonicalEvents` 만 적용합니다. legacy snapshot fallback 분기를 제거했습니다.
+- migration 성공 entry 는 deprecated legacy snapshot payload 를 strip 합니다. raw legacy read 계측 경로도 소비처에서 제거됐습니다.
+
+### Tests
+
+- strip·fallback 제거 static gate, add/remove/batch migration, call-site roundtrip 을 갱신했습니다.
+
+## [Legacy model migration 저위험 이관을 진행했습니다] - 2026-09-03
+
+### Changed
+
+- deprecated instance resolver (`resolveInstanceProps` / `resolveInstanceElement`) 를 제거하고, legacy detach 는 `mergePropsWithStyleDeep` + override mirror 로 확정 props 를 만듭니다.
+- EditMode UI 타입을 `layout.types` 에서 `editMode` store 로 분리하고, Slot 소비·layout template 은 로컬 계약으로 좁혔습니다. reusable frame 목록 읽기는 `ReusableFrameLayoutSummary` 를 씁니다.
+- canonical elements view 의 id 조회·page filter 는 캐시된 `getCanonicalDocumentElementsView` 를 쓰고, ref override helper 소유권은 ADR-127 traversal 모듈로 옮겼습니다.
+- history v1 IndexedDB entry 의 structural add/remove 와 `prevElements`/`elements` batch 를 canonical events 로 변환합니다. legacy fallback 과 payload strip 은 raw legacy read 가 0 임을 확인하기 전까지 유지합니다.
+
+### Tests
+
+- leaf/static gate, history migration (add/remove/batch), IndexedDB adapter 계약, canvas/overlay/resetStyles view 경로 가드를 추가·갱신했습니다.
+
+## [사용되지 않는 호환·rollback 계약을 정리했습니다] - 2026-09-03
+
+### Removed
+
+- 프로젝트 JSON 가져오기/내보내기가 canonical document를 직접 사용함에 따라 production 호출이 없는 `exportLegacyDocument` 역변환 helper와 전용 테스트를 제거했습니다. 현행 파일 호환 경로와 `legacyToCanonical` 기존 데이터 변환 테스트는 유지합니다.
+- 현행 V4 panel workspace migration 체인에서 참조하지 않는 과거 V3→V2 operational rollback 구현과 전용 테스트를 제거했습니다. V3 record의 V4 승격과 exact V3 backup 기반 migration commit 검증·재개는 그대로 유지합니다.
+- test-only collection migration helper를 `@composition/shared`와 `@composition/shared/utils` 공개 barrel에서 제거했습니다. 변환 계약 단위 테스트는 내부 모듈을 직접 검증합니다.
+
+## [사용되지 않는 Builder 호환 API를 정리했습니다] - 2026-09-03
+
+### Removed
+
+- catalog 기본값 경로로 대체된 `createDefaultButtonProps`·`createDefaultLinkProps`·`createDefaultToggleButtonProps`·`createDefaultBadgeProps`·`createDefaultTextProps` export를 제거했습니다.
+- 호출자가 없는 `loadPretendardToSkia`, `isPropertyModified`, `getModifiedProperties`, `BuilderCanvasWithFlag`를 제거했습니다. Builder의 Skia/iframe 선택은 계속 `Workspace`가 담당합니다.
+- 주석만 남은 Electron 타입 stub과 제거된 style helper만 안내하던 미연결 Visual Feedback 가이드를 삭제했습니다.
+
+### Infrastructure
+
+- 어떤 package에서도 사용하지 않는 pnpm catalog의 `jotai` 항목을 제거했습니다.
+
+## [AI 패널에서 모델을 설정하면 새로고침 없이 바로 씁니다] - 2026-09-03
+
+### Fixed
+
+- AI 패널을 연 뒤 에이전트 설정에서 endpoint·모델을 채우면, 새로고침 전까지 모든 요청이 "요청을 이해하지 못했습니다" 로만 답하던 것을 고쳤습니다 (모델 호출 자체가 없었음). 실행기를 패널이 열릴 때 한 번 만들던 것을 매 요청 시점에 만들도록 바꿔, 설정 직후 요청부터 모델을 호출합니다. 패널의 "먼저 모델을 알려 주세요" 안내도 설정을 마치고 돌아오면 바로 사라집니다.
+- 모델 호출이 실패했을 때 오류 말풍선에 번역 키 이름 (`aiRuntime.providerError`) 이 그대로 보이던 것을 고쳤습니다 — 이제 "모델 호출에 실패했습니다. endpoint·모델·키 설정을 확인하세요." 로 표시됩니다.
+
+### Tests
+
+- `useAgentLoop.test.ts` — 미구성 상태로 연 패널이 설정 후 재렌더만으로 다음 턴부터 실행기를 쓰는지 (1건). `AnthropicProvider.live.test.ts` 신설 — `ANTHROPIC_API_KEY` (환경변수 또는 `apps/builder/.env`) 가 있을 때만 실제 Claude API 에 2턴 (도구 호출 → 원문 replay) 을 보내 400 없음을 확인하는 게이트, 키 없으면 skip.
+
+## [AI 어시스턴트가 Claude 5 계열 (Fable 5.1 · Opus 5 · Sonnet 5) 과 호환됩니다] - 2026-09-03
+
+### Fixed
+
+- 에이전트 프로파일에 Claude 5 계열 모델을 넣으면 첫 요청부터 400 이 나던 것을 고쳤습니다. 어댑터가 Fable 5 이전 Messages API 계약을 전제하고 있었습니다 — 추론 강도를 `thinking.budget_tokens` 로 보내고 (Fable 5.x 는 thinking 을 끌 수도 예산을 줄 수도 없음 → 400), `temperature 0.7` 을 항상 실었으며 (비기본값 400), 도구 호출 턴의 thinking 블록을 버리고 assistant 턴을 재조립해 도구 결과를 돌려보내는 두 번째 요청이 실패했습니다. 이제 강도는 `output_config.effort` 로 보내고, temperature 는 보내지 않으며, 응답 원문 (thinking 블록·signature 포함) 을 그대로 다음 요청에 되돌립니다. Fable 5.1 레퍼런스 (overview · what's new · migration guide) 대조 결과입니다.
+- 모델이 안전 분류기로 요청을 거절하면 (`stop_reason: "refusal"`) 빈 응답으로 끝나던 것을 고쳤습니다 — AI 패널에 거절 사유 (분류 카테고리) 를 표시하고 재시도하지 않습니다.
+
+### Changed
+
+- 시스템 프롬프트를 세션 동안 고정하고 (역할 · 전체 컴포넌트 목록 · 규칙), 페이지·선택 요소·관련 컴포넌트 상세는 이번 턴 사용자 메시지 앞에 붙입니다. Claude 5 계열은 요청 간에 system 이 바뀌면 prompt cache 가 깨지고 thinking 블록의 prefix binding 이 어긋나므로 (Fable 5.1 은 400), 이력을 append-only 로 유지합니다.
+- 추론 강도 선택지에 `xhigh` · `max` 가 추가됐고 (Claude 5 effort 5단계), Anthropic 어댑터의 기본 `max_tokens` 가 2048 → 16000 으로 올랐습니다 (adaptive thinking 이 이 한도 안에서 돌아감). OpenAI 호환 어댑터의 기본값은 그대로입니다.
+
+### Tests
+
+- `providers.test.ts` — 요청 본문에 `output_config.effort` 만 있고 `thinking` · `temperature` 가 없는지, thinking/redacted_thinking/text/tool_use 블록을 index 순으로 모아 signature 째 replay 하는지, `refusal` + `stop_details.category` 를 노출하는지 (6건). `AgentService.test.ts` — system 고정 + 턴 컨텍스트가 마지막 user 메시지에만 붙는지, provider 원문이 다음 요청에 실리는지, refusal 이 재시도 없이 끝나는지 (3건). `systemPrompt.test.ts` 를 분리 API 로 재작성.
+
+## [Skeleton · Avatar · TailSwatch · Slot 의 배치가 캔버스와 Preview 에서 같습니다] - 2026-09-03
+
+### Fixed
+
+- block 컨테이너 안에서 Skeleton 과 TailSwatch 가 캔버스에서는 내용 폭으로 줄고 (TailSwatch 는 폭 0) Preview 에서는 부모 폭을 채우던 것, Avatar 가 캔버스에서는 다음 요소와 같은 줄에 붙고 Preview 에서는 줄을 차지하던 것을 고쳤습니다. 컴포넌트 규칙 (catalog) 의 display 값을 Preview 가 실제로 쓰는 값 (Skeleton·TailSwatch block, Avatar flex) 으로 맞췄습니다.
+- 재사용 프레임의 Slot 자리가 Preview 에서 내용 폭 (73px) 으로 줄어들던 것을 고쳤습니다 — Slot 스펙에 display:block 을 명시해 캔버스와 같이 부모 폭을 채웁니다.
+
+### Tests
+
+- `adr923Hc2ConversionRect.browser.test.ts` (5 컴포넌트 Canvas ↔ Preview 실경로 outer 상자 대조) 신설, HC2 판정표 `전환필요(후속)` 5 → 0. StatusLight 는 Preview 실경로 (`renderStatusLight` 인라인 inline-flex) 를 재측정해 규칙 무변경으로 일치 확인.
+
+## [입력 상자 래퍼와 그룹 라벨도 부모에서 편집합니다] - 2026-09-03
+
+### Changed
+
+- NumberField · Select · ComboBox · SearchField · DatePicker · DateRangePicker 안의 입력 상자 래퍼 (SelectTrigger) 와 CheckboxGroup · RadioGroup · Meter · ProgressBar · Slider 안의 라벨 (Label), DatePicker · DateRangePicker 래퍼 안의 날짜 입력 (DateInput) 을 Layers 에서 선택하면 Properties 와 Styles 패널이 "부모에서 편집하는 요소" 안내를 띄웁니다. 이 요소들에 직접 준 스타일은 Preview/Publish 가 읽는 경로가 없어 캔버스에서만 달라 보였는데, 이제 캔버스도 무시합니다 — 부모의 속성으로 편집하세요. 안내의 부모 이름은 실제로 그리는 요소 (DatePicker 의 날짜 입력이면 DatePicker) 입니다.
+
+### Fixed
+
+- Meter · ProgressBar 의 라벨이 캔버스에서 부모의 Label 속성이 아니라 처음 만들 때의 글자 ("Storage" · "Progress") 폭으로 잡혀 Preview 보다 넓게 그려지던 것을 고쳤습니다 (400px 에서 54/61 → 40, Preview 39).
+
+### Tests
+
+- `adr923WrapperSubpartProjection.browser.test.ts` 3 (9 컴포넌트 — 래퍼·라벨에 아무 스타일을 얹어도 캔버스 상자가 깨끗한 상태와 같다 · Preview 상자 대조 · 래퍼 폭 = 부모 폭), bridge `read-only sub-part 확장 (후반)` 1 (owner 13 조합 + Skia). 원복 7종 재측정 — 6 은 게이트 반응, 1 (Label 숫자 grid line 주입) 은 무반응 기록.
+
+## [Preview 메시징을 canonical document 단일 채널로 정리했습니다] - 2026-09-03
+
+### Changed
+
+- Builder의 Preview 전체 동기화 계약을 `UPDATE_CANONICAL_DOCUMENT` 하나로 정리했습니다. 수신처가 이미 제거된 `UPDATE_ELEMENTS` 송신·대기열 분기와 ACK 상태를 없애고, 페이지·frame 선택은 기존 Builder store 선택과 `ELEMENT_SELECTED` 경로만 사용합니다.
+
+### Removed
+
+- Preview가 callback을 주입하지 않아 아무 동작도 하지 않던 `REQUEST_ELEMENT_SELECTION` 메시지와 Builder의 `requestAutoSelectAfterUpdate`·`requestElementSelection` API를 제거했습니다.
+- `UPDATE_ELEMENTS` 전용 page scope 확장 helper였던 `canonicalRefDependencies`와 전용 테스트를 제거했습니다. canonical document 전체 전송 경로에서는 사용되지 않습니다.
+
+### Tests
+
+- `useIframeMessenger.canonical.test.ts`가 제거된 bulk sync·ACK·선택 protocol과 호출자 재도입을 함께 차단합니다.
+
+## [입력 필드의 라벨·입력 상자·오류 메시지 요소는 부모에서 편집합니다] - 2026-09-03
+
+### Changed
+
+- TextField · TextArea · NumberField · DateField · TimeField 안의 오류 메시지 요소 (FieldError) 와 라벨·입력 상자 요소 (Label · Input · DateInput) 를 Layers 에서 선택하면 Properties 와 Styles 패널이 편집 컨트롤 대신 "부모에서 편집하는 요소" 안내를 띄웁니다. Select · ComboBox · SearchField · ColorField · DatePicker · DateRangePicker 의 Label 도 같습니다. 이 요소에 직접 준 글자색·간격·크기는 Preview 와 Publish 가 원래 읽지 않았고 (필드가 부모 속성으로 통째로 그립니다) 캔버스에서만 달라 보였습니다. 이제 캔버스도 같은 값을 무시하고 부모 필드의 디자인 규칙 (오류 메시지 글자 14/12px · 빨간 글자 · 줄 높이 1.5, 라벨 굵기 600, 입력 상자 폭 100%) 만 쓰므로 세 화면이 같습니다. 라벨·입력 상자에 직접 준 여백·크기 때문에 캔버스에서만 필드가 커 보이던 경우도 사라집니다. 예전 문서에 남아 있던 값은 지우지 않아도 되며 어디에도 반영되지 않습니다. 오류 메시지의 표시·문구는 종전대로 부모의 Invalid · Error Message 로 편집합니다. 실측: 실제 빌더에서 요소에 색·여백·크기를 준 뒤 캔버스 상자 (87×21) 와 필드 높이 (83) 가 그대로인 것을 확인, 자동 게이트 2종 (Skia 노드 동일성 · DOM 대조 5 종).
+
+## [Invalid 로 켠 입력 필드의 오류 메시지가 캔버스에도 보입니다] - 2026-09-03
+
+### Fixed
+
+- TextField · TextArea · NumberField · DateField · TimeField 를 Properties 패널에서 Invalid 로 켜고 오류 메시지를 적어도 캔버스에는 아무것도 나타나지 않고 Preview/Publish 에만 빨간 메시지가 붙던 것을 고쳤습니다. 이제 캔버스도 같은 조건에서 같은 자리에 같은 크기 (TextField·TextArea 14px · NumberField·DateField·TimeField 12px, 줄 높이 글자의 1.5배) 로 메시지를 그리고 필드 높이도 함께 늘어납니다 (TextField 56 → 83, Preview 84). 메시지를 비운 채 Invalid 만 켜면 Preview 와 같이 빈 줄 (높이 0) 과 간격만 생깁니다. 원인은 세 겹이었습니다 — 부모의 `isInvalid`/`errorMessage` 를 FieldError 자식으로 옮기는 규칙이 없었고 (label 만 있었음), 레이아웃이 부모→자식 값 전파를 부모 측정에만 쓰고 자식 자신의 엔진 입력에는 반영하지 않았으며, FieldError 글자 크기를 catalog 의 부모별 위임 값 (`.react-aria-FieldError` hint 변수) 이 아니라 기본 16px 로 재고 있었습니다. Inspector 가 아닌 경로 (AI · import) 로 부모만 바꿔도 캔버스가 다시 계산되도록 두 속성을 레이아웃 무효화 목록에 넣었습니다 (TagGroup 의 오류 메시지 편집도 같은 등재로 즉시 반영됩니다). 실측: `adr923FieldErrorStateProjection.browser.test` 5 종 × 4 상태 (DOM 과 높이·간격 1px 안), 실제 빌더에서 TextField 를 Invalid 로 켜고 끄며 Skia rect 와 publish DOM 대조.
+
+- 위 수리에 이어, 오류 메시지 글자가 캔버스에서만 작거나 줄 간격이 좁던 나머지 경우도 고쳤습니다. (1) 예전에 만든 문서의 오류 메시지는 캔버스에서 12px·18px 높이로, Preview 에서는 14px·21px 로 그려졌습니다 — 필드를 만들 때 글자 크기를 요소에 직접 박아 넣었는데 Preview 는 그 값을 읽는 경로가 없기 때문입니다. 이제 양쪽 모두 디자인 시스템의 필드별 값 (TextField·TextArea 14px, 나머지 12px) 을 쓰고, 새로 만드는 필드에는 크기를 박아 넣지 않습니다. 저장된 문서는 그대로 두고 표시할 때만 맞춥니다. (2) 캔버스의 줄 높이가 16px 로 고정돼 Preview (글자의 1.5배) 보다 좁던 것도 맞췄습니다. (3) 오류 메시지 요소에 줄 간격을 직접 준 문서도 캔버스에서만 그 값이 적용되던 것을 함께 고쳤습니다 (Preview 는 읽는 경로가 없어 21px, 캔버스는 10px 또는 140px 로 갈렸습니다). (4) Properties 에서 Invalid 를 켜고 끌 때 오류 메시지 요소에 직접 준 스타일 (글자색·글자 크기·줄 간격 등) 이 사라지던 것을 고쳤습니다 — 상태 전파가 스타일 묶음 전체를 갈아치우고 있었습니다. 실측: 실제 빌더에서 옛 문서 형태 (글자 크기 12 + 줄 간격 10 을 얹은 요소) 를 만들어 캔버스 21px ↔ publish 21px 일치 확인, Invalid 를 껐다 켠 뒤에도 그 요소의 글자색·크기·줄 간격 유지 확인, 자동 게이트 13종 신설 (그중 5종은 Properties 패널이 store 에 쓰는 실제 함수를 통째로 돌려 스타일 보존을 확인하고, 패널이 그 함수를 우회하지 못하게 소스 구조까지 검사합니다).
+
+## [렌더 계측이 개발 빌드의 프레임을 잡아먹지 않습니다] - 2026-09-02
+
+### Changed
+
+- 렌더 계측 (`perfMarks.observe`) 이 기본으로는 DevTools 용 User Timing (`performance.mark/measure`) 을 남기지 않습니다. 종전에는 프레임마다 라벨당 mark·measure·clear 여섯 번을 불렀고, 그중 `clearMeasures` 가 measure 버퍼 전체를 훑었습니다. 개발 빌드에서는 React 19.2 가 렌더마다 measure 를 그 버퍼에 쌓고 지우지 않으므로 세션이 길수록 매 프레임 계측 비용이 자랐습니다 (600 요소 유휴에서 JS busy 의 25.6% 가 계측 자체). 내부 통계 (`__composition_PERF__.snapshot`) 는 그대로이고, flame graph 에 보이게 하려면 콘솔에서 `__composition_PERF__.setUserTiming(true)` 를 켭니다. 배포 빌드에는 React 의 measure 가 없어 체감 변화는 개발 환경에 한정됩니다.
+
+## [편집을 반복해도 메모리가 쌓이지 않습니다] - 2026-09-02
+
+### Fixed
+
+- 스타일·속성을 편집할 때마다 그 시점의 요소 목록 사본이 메모리에 영구히 남던 것을 고쳤습니다 (요소 60개 문서에서 편집 1회당 약 14KB, 편집·undo·redo 를 계속하면 세션이 끝날 때까지 자랍니다). 원인은 캔버스 전역 단축키 host 였습니다. 편집마다 다시 렌더되면서 일부 핸들러만 새로 만들어졌고, 살아남은 이전 핸들러가 이전 렌더의 변수 전체 (그때의 요소 목록) 를 붙잡는 사슬이 렌더 수만큼 이어졌습니다. 이제 핸들러는 최신 값을 ref 로만 읽어 렌더 사이에 바뀌지 않습니다. 실측 (`pnpm perf:baseline --actions edit`, 강제 GC 후 힙 기울기): 사이클당 +0.28MB → +0.04MB.
+- 스타일 붙여넣기 핸들러도 렌더마다 새로 만들어져 같은 사슬의 한 링크였습니다. 함께 고정했습니다.
+
+### Added
+
+- `pnpm perf:baseline` — Builder 메모리 기준선 하니스 (`apps/builder/scripts/perf-baseline.mjs`). Playwright 로 dev 서버의 격리 프로젝트를 열어 패널 토글·페이지 전환·선택·편집(undo/redo)·줌 사이클을 돌리고, 사이클마다 강제 GC 후 JS 힙·Blink 힙·DOM 노드·리스너·ArrayBuffer·Skia 캐시 크기를 기록해 기울기로 누수를 판정합니다. `--mode attribute` (살아남은 할당의 스택 + 스냅샷 class diff) 와 `--mode retainers` (대상 객체의 최단 retainer 경로) 로 원인을 좁힙니다. React 19.2 dev 빌드가 렌더마다 남기는 `performance.measure` 항목은 앱 누수가 아니라 측정 전에 비웁니다.
+
+## [block 컨테이너 안의 Button·inline 요소가 Chrome 과 같은 자리에 놓입니다] - 2026-09-02
+
+### Fixed
+
+- 캔버스에서 block 컨테이너 안에 Button 두 개를 두면 세로로 쌓이거나 (폭을 지정한 형제 뒤에서) 같은 줄에 남던 것을 고쳤습니다. 이제 Preview 와 같이 폭을 지정한 block 형제는 줄을 차지하고 Button 들은 그 아래 줄에 나란히 놓입니다 (ADR-923 Phase 5 — 레이아웃 엔진이 CSS display 값을 그대로 받아 inline 요소의 줄 배치를 직접 계산합니다. 종전에는 TS 가 block 컨테이너를 flex 로 흉내 냈습니다). ADR-923 은 2026-09-03 Implemented 로 승격됐습니다 — 실제 빌더에서 같은 시나리오를 다시 확인했고, Phase 6 에서 레이아웃 어댑터의 옛 `Taffy*` 이름을 `Engine*` 로 바꾸고 (동작 무변경) 엔진이 아직 CSS 그대로 구현하지 않는 자리 (`display:inline` · `float` · grid `subgrid`·`dense`) 를 capability matrix 로 선언해 Chrome 과의 격차를 테스트로 고정했습니다.
+- catalog 의 Button · ToggleButton 기본 display 가 DOM 과 같은 `inline-flex` 가 됐습니다. Styles 패널 Layout 의 Direction 은 row 로 표시됩니다 (Phase 4 의 inline-flex 표시 정정과 함께).
+- overflow 가 `hidden`/`clip`/`auto` 인 요소의 자동 높이·폭이 부모 크기로 잘리던 것을 없앴습니다. block 문맥에서는 CSS 대로 콘텐츠 크기를 유지하고, flex 문맥의 scroll container 는 엔진이 최소 크기 0 으로 줄입니다.
+- CalendarGrid 의 기본 display 가 `block` 이 됐습니다 (Calendar 안에서는 변화 없음).
+
+### Changed
+
+- 레이아웃 엔진으로 보내는 display 값이 CSS 값 그대로 (`inline-flex` · `inline-grid` · `inline-block` 보존) 가 됐습니다. 대규모 문서 (약 5,000 노드) 의 레이아웃 p95 는 flex 위주 +4.9%, block 위주 +2.5% 로 예산 (5%) 안입니다.
+
+## [패널 크기 조절·이동 중 바뀐 패널만 다시 그립니다] - 2026-09-02
+
+### Changed
+
+- 패널 workspace 의 overlay 루트가 레이아웃 snapshot 전체를 구독하지 않습니다. 종전에는 resize·move 의 매 프레임마다 dock 과 패널 frame 12개가 통째로 다시 렌더됐습니다 (한 flush 에 컴포넌트 렌더 25개, 그중 frame 12 + frame 구독자 12). 이제 geometry 가 실제로 바뀐 frame 과 그 splitter 만 렌더됩니다 (Navigator 폭 조절: frame 1 + 구독자 1, 실제 빌더에서 확인). 화면 결과와 저장되는 레이아웃은 같습니다.
+  - frame 구독은 값 비교 캐시를 거칩니다. 좌표·크기·zone·cluster·resize edge 가 같으면 이전 객체를 그대로 돌려줘 렌더를 건너뜁니다. 포커스 순서 (z-index)·cluster 합류 표식·작업 영역 높이는 frame 과 따로 바뀔 수 있어 원시값으로 별도 구독합니다. 패널을 클릭해 앞으로 가져오는 동작은 그대로입니다 (실제 빌더에서 z-index 1001↔1002 전환 확인).
+  - 캔버스가 읽는 `data-page-layout-*-panel-width` 는 JSX 대신 coordinator 직접 구독으로 DOM 에 씁니다. snap guide 는 drop candidate 를 스스로 읽습니다. dock 의 `data-layout-version` 속성은 읽는 곳이 없어 제거했습니다.
+  - cluster 내부 splitter 와 column 경계선 (rail) 도 같은 구조입니다. 부모는 id 목록만 구독해 splitter·column 이 생기거나 없어질 때만 렌더되고, 각 splitter·rail 은 자기 geometry 를 값 비교 캐시로 읽습니다. splitter 의 aria-valuenow (앞 패널 크기)·상한 (작업 영역 높이)·z-index (cluster 포커스 순서)·anchor 방향은 원시값으로 따로 구독합니다. 이동 미리보기 flush 에서는 splitter 가 렌더되지 않습니다 (committed splitter 그대로).
+  - 회귀 게이트 `PanelWorkspace.renderFanout.test.tsx` 가 flush 당 렌더 컴포넌트 수를 fiber 순회로 고정합니다 (overlay 루트·dock·toggle rail·splitter 부모·rail 부모 0, frame·splitter·rail = inline style 이 바뀐 수).
+
+## [패널 크기 조절이 마우스를 따라옵니다] - 2026-09-02
+
+### Fixed
+
+- 패널 가장자리를 드래그할 때 패널이 마우스보다 늦게 따라오던 것을 고쳤습니다. 원인은 캔버스였습니다. 패널 폭이 바뀔 때마다 `BuilderCanvas` 전체가 다시 렌더돼 (페이지 재중앙 정렬용 패널 폭 값을 항상 구독) 매 프레임 수 MB 를 할당하고 GC 가 프레임을 멈췄습니다. 이 값은 frame 편집 모드에서만 쓰이므로 그때만 구독합니다. 실측 (Navigator 드래그, 50Hz 표시): 프레임 드롭 35% → 0%, 메인 스레드 차단 2초당 1.6초 → 3초당 0.06초, JS 할당 109 MB/s → 31 MB/s.
+- 패널 이동 (상단 손잡이 드래그) 도 같은 경로였습니다. 이동 중에도 매 프레임 같은 신호가 캔버스로 흘러 들어갔으므로 위 수정으로 함께 해소됐습니다 (이동 중 프레임 드롭 0%).
+- Action Bar 를 드래그하는 동안 바 전체가 매 move 마다 다시 렌더되고 크기를 다시 재던 것을 없앴습니다. 이제 이동 중에는 위치만 DOM 에 바로 쓰고, 놓을 때 한 번 저장합니다 (드래그 중 JS 할당 17 MB/s → idle 과 같은 1 MB/s).
+- 패널 workspace 루트가 레이아웃 버전 속성 하나를 쓰기 위해 매 flush 마다 통째로 다시 렌더되던 것을 없앴습니다. 화면 결과는 같습니다.
+
+## [크기 조절 손잡이가 드래그 중 깜박이지 않습니다] - 2026-09-02
+
+### Fixed
+
+- 패널·섹션·compare 구분선을 드래그하는 동안 손잡이 표시가 사라졌다 나타나던 것을 고쳤습니다. 표시가 마우스 hover 에만 묶여 있어, 패널이 한 프레임 뒤에 따라오는 사이 포인터가 10px 손잡이 영역을 벗어나면 꺼졌습니다. 이제 드래그가 진행되는 동안에는 포인터 위치와 무관하게 표시를 유지합니다.
+- 드래그 중에는 화면 전체에 투명 막을 덮어 resize 커서를 유지하고, 아래 패널·캔버스의 hover 반응과 텍스트 선택이 끼어들지 않게 했습니다. 키보드 조절 (화살표·Home·End) 은 막을 띄우지 않습니다.
+
+## [Layout 패널이 inline-flex 요소의 방향·정렬을 표시합니다] - 2026-09-02
+
+### Fixed
+
+- Styles 패널의 Layout 섹션에서 `display: inline-flex` 요소의 Direction (row / column) 과 Alignment 9-grid 가 비어 있던 것을 고쳤습니다. 종전에는 `flex` 만 flex 컨테이너로 보아 사용자가 지정한 `inline-flex` 요소를 block 으로 표시했습니다. 팔레트 컴포넌트 (Button 등) 의 표시는 변하지 않습니다. (ADR-923 Phase 4)
+
+## [Navigator 의 두 섹션 사이를 드래그해 높이를 나눌 수 있습니다] - 2026-09-02
+
+### Added
+
+- Navigator 의 Pages / Layers 사이 (Frames 탭은 Frames / Layers 사이) 에 드래그 구분선을 넣었습니다. 위 섹션은 내용 높이까지만 차지하고, 상한 (기본은 패널 높이의 절반) 을 넘으면 그 안에서 스크롤합니다. 아래 섹션은 남는 공간을 전부 씁니다. 구분선을 드래그하면 그 값이 상한으로 저장되어 새로고침 후에도 유지되고, 더블클릭하면 기본 상한으로 돌아옵니다. 키보드 (화살표·Home·End) 로도 조절할 수 있습니다.
+- Frames 탭의 Frames / Layers 섹션도 접을 수 있게 됐고, 헤더의 "모든 섹션 접기 / 펼치기" 토글이 Frames 탭에서도 동작합니다.
+- 구분선 손잡이는 마우스를 올리지 않아도 항상 보입니다 (마우스를 올려도 변하지 않음). 끌 수 있는 자리라는 단서를 기본으로 드러내기 위해서입니다.
+- 빌더의 크기 조절 손잡이 선을 한 규격으로 맞췄습니다. 가로형은 36×2px, 세로형은 2×36px, 보일 때 불투명도 1 이며 패널 가장자리·패널 묶음 사이·패널 안 섹션 사이가 모두 같은 토큰을 씁니다.
+- compare 모드 (CSS / Canvas 나란히 보기) 의 가운데 구분선도 같은 손잡이로 바꿨습니다. 분홍 막대 대신 공통 색·두께의 전체 높이 선을 쓰고 (Navigator 와 같이 항상 표시), 키보드 (화살표·Home·End) 와 접근성 이름 (`role="separator"`) 이 생겼습니다. 저장되는 분할 비율과 20~80% 범위는 그대로입니다.
+
+### Changed
+
+- Navigator 는 이제 탭 전체가 한 덩어리로 스크롤하지 않고 섹션마다 따로 스크롤합니다. 페이지가 많아도 Layers 섹션이 화면 아래로 밀리지 않습니다. 이 변경으로 Layers 트리의 대용량 가상 스크롤 (300개 이상) 이 실제로 동작합니다. 종전에는 트리 높이가 묶이지 않아 전부 그려졌습니다.
+
+## [Navigator 의 Pages·Layers 를 접을 수 있고, 페이지를 검색할 수 있습니다] - 2026-09-02
+
+### Added
+
+- Navigator 패널의 Pages / Layers 섹션에 접기·펼치기 chevron 을 넣었습니다. 접힘 상태는 다른 패널 섹션과 같은 방식으로 저장되어 새로고침 후에도 유지됩니다.
+- Navigator 헤더 (닫기 버튼 앞) 에 "모든 섹션 접기 / 펼치기" 토글을 추가했습니다. Components 패널 헤더와 같은 버튼이며, Layouts 탭에서는 아직 섹션이 없어 비활성입니다.
+- Pages 섹션에 검색을 추가했습니다 (페이지가 2개 이상일 때 돋보기 토글). 제목·slug 부분 일치로 거르고, 일치한 페이지의 상위 페이지는 계층을 유지하기 위해 함께 남기고 자동으로 펼칩니다. Escape 로 닫으면 전체 목록으로 돌아갑니다.
+
+### Changed
+
+- Layers 섹션과 Layouts 탭 요소 트리의 "모두 접기" 버튼 문구를 "트리 접기" 로 바꿨습니다. 헤더의 "모든 섹션 접기" 와 뜻이 겹치지 않게 하기 위해서입니다.
+
+## [패널 헤더의 "모든 섹션 접기" 가 펼치기와 왕복하고, Styles 단축키가 다른 패널을 건드리지 않습니다] - 2026-09-02
+
+### Fixed
+
+- Components 패널 헤더의 "모든 섹션 접기" 버튼이 접기만 되고 다시 펼칠 수 없던 문제를 고쳤습니다. 모든 섹션이 접히면 버튼이 "모든 섹션 펼치기" (아이콘·라벨 함께) 로 바뀌고, 섹션 chevron 으로 하나씩 접어 전부 접힌 경우에도 같은 상태를 반영합니다.
+- Styles 패널의 전체 접기/펼치기 단축키 (⌥S) 가 다른 패널 (Components·Monitor·History 등) 의 섹션이 하나라도 접혀 있으면 펼침이 동작하지 않던 문제와, 펼칠 때 다른 패널의 접힘 상태까지 지우던 문제를 고쳤습니다. 이제 Styles 의 섹션 4개만 판정·조작합니다.
+
+### Added
+
+- 패널 헤더용 공용 "모든 섹션 접기/펼치기" 토글 버튼 (`SectionGroupToggleButton`) 과 섹션 그룹 판정 helper (`useSectionGroupToggle`) 를 추가했습니다. Components 패널이 먼저 쓰며, Navigator 패널의 Pages/Layers 접기·헤더 토글·분할 조절은 후속 단계로 이어집니다.
+
+## [목록·격자 목록의 선택 방식 기본값이 속성 패널 표시와 실제 화면에서 같아졌습니다] - 2026-09-02
+
+### Fixed
+
+- GridList·ListBox 의 Selection Mode 를 지정하지 않았을 때, 속성 패널은 "Single" 로 보이는데 미리보기는 선택이 꺼진 상태로 그려지던 불일치를 고쳤습니다 — 지정하지 않았을 때의 기본값을 "None" 으로 바로잡아 패널 표시와 실제 화면이 같아집니다. 빌더 팔레트와 AI 로 만든 GridList·ListBox 는 값이 기록되어 영향이 없었고, 값을 기록하지 않은 문서 (파일로 가져온 canonical 문서 등) 에서 드러났습니다 (ADR-923 Codex round 24).
+- 선택 방식·선택 표시 (Selection Mode/Style) 를 지정하지 않았을 때 쓰이는 기본값을 캔버스·미리보기·가상 스크롤이 각자 따로 들고 있던 것을 한 곳에서 읽도록 통일했습니다 — 한쪽만 바뀌어 두 화면이 조용히 갈리던 여지를 없앱니다.
+
+### Added
+
+- `@composition/shared` 에 컴포넌트 기본값 조회 함수 (`resolveBindingPropDefault` · `resolveBindingSelectionMode` · `resolveBindingSelectionStyle` · `resolveComponentRuleByTag`) 를 추가했습니다. 지정하지 않은 prop 의 기본값을 캔버스·미리보기 어느 쪽에서도 같은 곳에서 읽기 위한 것으로, 컴포넌트 카탈로그 선언이 유일한 원천입니다 (ADR-923 round 22~24).
+
+## [캔버스가 준비된 뒤 패널이 열리고 프로젝트 로딩 진행률을 표시합니다] - 2026-09-02
+
+### Fixed
+
+- Builder에 들어갈 때 Header·패널·선택 Action Bar가 빈 캔버스보다 먼저 보이던 문제를 고쳤습니다. 프로젝트 데이터와 CanvasKit·폰트·Surface가 준비되고, 현재 프로젝트 문서가 실제 Skia 프레임으로 화면에 제출된 뒤에만 이 chrome이 나타납니다.
+- 기존 로딩 화면에 프로젝트 준비 단계를 반영한 진행률을 표시합니다. 시간에 따라 임의로 증가하거나 timeout으로 완료 처리하지 않으며, WebGL Canvas를 끈 경우에는 Preview iframe 준비 상태를 같은 완료 경계로 사용합니다. 진행 bar는 단계 사이를 부드럽게 채우고, 실제 첫 프레임이 제출된 뒤 100% transition까지 마친 다음 Builder chrome을 공개합니다. 별도 회전 아이콘이나 배경 패턴을 추가하지 않고 Builder 작업 영역의 dot background를 로딩 단계부터 그대로 보여줍니다.
+
+## [설정을 지정하지 않은 표·배지가 캔버스와 미리보기에서 같은 크기로 그려집니다] - 2026-09-02
+
+### Fixed
+
+- 높이 설정을 지정하지 않은 표가 캔버스에서만 100px 낮게 (302px vs 미리보기 402px) 그려지던 문제를 고쳤습니다 — 값을 지정하지 않았을 때 쓰이는 기본값을 두 화면이 같은 곳에서 읽습니다. 빌더에서 새로 만든 표는 높이가 기록되어 영향이 없었고, 파일 가져오기·AI 로 만든 표에서 드러났습니다 (ADR-923 Codex round 22).
+- 크기를 지정하지 않은 Badge 가 캔버스에서 한 단계 큰 크기 (보통 → 작음) 로 그려지던 문제를 고쳤습니다. Select 도 같은 축에서 반대로 어긋나 있었습니다.
+- Badge 처럼 테두리 두께가 크기 설정에 들어 있는 컴포넌트가 캔버스에서 테두리 두께 (상하좌우 2px) 만큼 작게 그려지던 문제를 고쳤습니다.
+
+## [비어 있는 목록·탭·표가 캔버스에서도 빈 만큼만 차지하고, 표 높이 설정이 미리보기에 반영됩니다] - 2026-09-02
+
+### Fixed
+
+- 항목이 하나도 없는 ToggleButtonGroup·Tabs·GridList·Tree·Table 이 캔버스에서 미리보기와 다른 크기로 그려지던 문제를 고쳤습니다 — 버튼이 없는 그룹은 자리를 차지하지 않고 (종전 80×30), 탭 항목이 없으면 탭 막대도 패널도 없으며 (종전 29px + 패널), 빈 목록·트리는 미리보기와 같은 빈 상태 여백 (16/24px) 을, 빈 표는 최소 높이 40px 을 따릅니다 (ADR-923 Codex round 21).
+- 라벨을 비운 TagGroup 이 캔버스에서만 라벨 자리만큼 (4px) 더 높던 문제를 고쳤습니다 — 미리보기는 라벨이 비면 아예 그리지 않습니다. 설명·오류 문구도 같습니다.
+- 표의 높이 모드 (고정/자동/화면 비율) 와 높이 값이 미리보기에 전혀 반영되지 않던 문제를 고쳤습니다 — 속성 패널이나 AI 로 바꾼 값이 이제 미리보기 표 높이에 그대로 적용되고 (자동 = 내용 높이), 캔버스와 같은 높이가 됩니다.
+- 여백이나 최소 폭을 직접 지정한 글자 없는 버튼이 캔버스에서 미리보기보다 넓던 문제를 고쳤습니다 (여백 20 → 84px vs 68px, 여백 0·최소 폭 0 → 44px vs 2px).
+
+## [빈 목록은 빈 만큼만 차지하고, 글자 없는 버튼·메뉴도 미리보기와 같은 상자를 가집니다] - 2026-09-02
+
+### Fixed
+
+- 항목을 모두 비운 ListBox/GridList 가 캔버스에서 예전 기본 항목 3개/4개 높이 (110/164px) 를 차지하던 문제를 고쳤습니다 — 미리보기처럼 여백과 테두리만 남습니다 (ADR-923 Codex round 20).
+- 글자를 비운 Menu 단추가 캔버스에서 미리보기보다 넓고 높게 (106×30 vs 68×10) 그려지던 문제를 고쳤습니다 — 버튼 계열은 글자가 없으면 최소 폭과 여백만 차지하고, 짧은 글자 버튼도 이제 미리보기와 같은 최소 폭 (md 68px) 을 따릅니다.
+- 글자 없는 Menu 단추가 스크린리더에 이름 없는 버튼으로 읽히던 문제를 고쳤습니다 — 사용자가 준 aria-label 이 단추에 닿고, 없으면 "Menu"/"메뉴" 를 이름으로 씁니다 (화면에는 표시되지 않음). 빌더가 만든 Menu 의 aria-label 과 legacy 미리보기 Button 의 aria-label 도 이제 전달됩니다.
+
+## [Breadcrumbs 상자 폭이 실제 항목에 맞고, IllustratedMessage·Menu 글자를 비우면 미리보기도 비웁니다] - 2026-09-01
+
+### Fixed
+
+- Breadcrumbs 를 내용 맞춤(fit) 폭으로 두면 상자가 실제 항목이 아니라 예전 기본 항목 ("Home › Products › Detail") 폭으로 잡히던 문제를 고쳤습니다 — 항목을 바꾸거나 비워도 상자가 실제 내용에 맞습니다 (ADR-923 Codex round 19).
+- IllustratedMessage 의 제목·설명을 비우면 캔버스는 그 줄을 접는데 미리보기는 "No content" 같은 기본 글자를 보이던 차이를 없앴습니다 — 두 화면 모두 그 줄을 접습니다 (값을 아예 넣지 않았을 때의 기본 글자는 그대로).
+- Menu 버튼 글자를 비우면 미리보기가 다시 "Menu" 를 보이던 문제를 고쳤습니다.
+- TagGroup 의 줄바꿈 계산이 라벨 없는 태그를 "Tag 1" 같은 글자 폭으로 재던 것을 화면에 실제로 보이는 글자 폭으로 바꿨습니다.
+
+## [헤더·표 머리글·메뉴 글자를 비우면 미리보기도 비고, 예전 스냅샷 복원과 파일 가져오기도 보정을 거칩니다] - 2026-09-01
+
+### Fixed
+
+- Disclosure 헤더 · 표(Table) 열 머리글 · 트리 항목 · 메뉴 버튼의 글자를 속성 패널에서 비우면 캔버스는 비는데 미리보기는 "Section" · "Column" · "Item …" · "Menu" 같은 기본 글자를 보이던 차이를 없앴습니다 — 미리보기도 캔버스처럼 빈 채로 둡니다.
+- Disclosure 의 속성 패널 Title 이 캔버스·미리보기 헤더에 반영되지 않던 문제를 고쳤습니다 (Card 의 Title 과 같은 방식으로 헤더 글자에 전달).
+- 예전 스냅샷을 복원하거나 프로젝트 JSON 파일을 불러올 때 옛 문서 형태 보정 (ColorField 라벨 등) 을 건너뛰던 문제를 고쳤습니다 — 새로고침으로 여는 것과 같은 보정을 거칩니다.
+
+## [라벨을 비우면 미리보기도 비고, 가져온 문서의 ColorField 도 라벨을 갖습니다] - 2026-09-01
+
+### Fixed
+
+- CheckboxGroup·RadioGroup·SearchField·ProgressBar·Meter·ComboBox·DatePicker 류의 Label 을 속성 패널에서 비우면 캔버스는 비는데 미리보기는 예전 글자 (또는 "Date Picker" 같은 기본 글자) 를 계속 보이던 문제를 고쳤습니다 — 미리보기가 캔버스와 같은 규칙 (값이 없을 때만 자식 라벨) 으로 읽습니다 (ADR-923 Codex round 17).
+- 외부에서 가져온 (import) 문서의 옛 ColorField 가 미리보기에서 라벨 없이 보이던 문제를 고쳤습니다 — 가져온 문서도 열 때 같은 보정을 거칩니다.
+- Disclosure 헤더 글자를 AI 가 `title` 속성에만 넣었을 때 미리보기만 그 글자를 보이던 차이를 없앴습니다 (캔버스와 같은 속성 `children` 을 읽습니다).
+
+## [ColorField 의 라벨을 바꾸면 캔버스와 미리보기가 같은 글자를 보입니다] - 2026-09-01
+
+### Fixed
+
+- ColorField 의 Label 을 속성 패널 (또는 AI) 에서 바꾸면 미리보기만 바뀌고 캔버스는 "Color" 그대로였던 문제를 고쳤습니다 — 다른 입력 필드 (TextField·Select 등) 가 쓰는 부모→자식 라벨 전달 규칙이 ColorField 에만 없었습니다 (ADR-923 Codex round 16).
+- 새로 추가한 ColorField 가 캔버스에는 "Color" 라벨을 보이면서 미리보기에는 라벨이 없던 문제를 고쳤습니다. 이미 만들어 둔 문서의 ColorField 도 열 때 자동으로 같은 라벨을 갖습니다.
+- CheckboxGroup·RadioGroup 의 Label 을 속성 패널에서 바꿔도 캔버스·미리보기 어느 쪽에도 반영되지 않던 문제를 고쳤습니다 — 같은 전달 규칙을 추가했고, 미리보기는 그룹 라벨을 부모 값에서 먼저 읽습니다.
+- 캔버스에서 요소를 더블클릭해 글자를 고칠 때, AI 가 표시되지 않는 속성 (`label` 등) 에만 글자를 넣어 둔 요소면 편집창에 캔버스·미리보기에 없는 글자가 뜨고 고쳐도 보이지 않던 문제를 고쳤습니다 — 편집창도 캔버스·미리보기와 같은 규칙으로 읽고 씁니다.
+
+## [AI 가 만든 텍스트가 캔버스·미리보기·크기 계산에서 같은 글자를 보입니다] - 2026-09-01
+
+### Fixed
+
+- AI 어시스턴트가 요소를 만들거나 고칠 때 `label` 같은 다른 속성에 글자를 넣으면 캔버스만 그 글자를 그리고 미리보기·크기 계산은 `children` 을 읽어 서로 달랐던 문제를 고쳤습니다. 이제 요소 종류마다 어떤 속성이 표시 텍스트인지 한 곳에서 정하고 (기본 `children`, Text 류는 `children` → `text`, ListBox/GridList 항목과 Menu 는 `label` → `children`, 입력 필드는 `placeholder`), 캔버스·미리보기·크기 계산이 모두 같은 규칙을 씁니다 (ADR-923 Codex round 15).
+- 미리보기의 FieldError 가 속성 패널에서 편집한 텍스트 (`children`) 를 무시하고 `text` 만 보이던 문제를 같은 규칙으로 고쳤습니다.
+- 미리보기의 Tree 항목·Table 열 머리글·Disclosure 헤더가 캔버스는 읽지 않는 `title`/`label` 을 대신 보이던 차이를 없앴습니다 (실제 편집 경로가 쓰지 않는 속성 — AI 가 넣은 경우에만 해당).
+
+### Changed
+
+- AI 도구 설명에 표시 텍스트를 넣을 속성 (`children`) 을 명시했습니다.
+
+## [Pencil 로 가져온 텍스트가 미리보기와 캔버스 양쪽에 보입니다] - 2026-09-01
+
+### Fixed
+
+- Pencil 에서 가져온 문서의 Text·Heading·Paragraph 가 미리보기에서 비어 있던 문제를 고쳤습니다 — Pencil 은 본문을 `text` 에 저장하는데 미리보기가 `children` 만 읽었습니다. 이제 캔버스·측정·미리보기가 같은 순서 (`children` → `text`) 로 읽습니다 (ADR-923 Codex round 14).
+- 같은 날 앞선 수정 (round 13) 이 Pencil 본문과 목록 항목 (ListBox/GridList/Tree/Column) 의 `label` 을 캔버스에서 지우던 회귀를 되돌렸습니다.
+- `white-space` 값에 앞뒤 공백이나 대문자가 있어도 (`" INHERIT "`) 키워드로 인식합니다.
+
+## [텍스트의 줄바꿈 키워드·본문 원천·페이지 폭 제한이 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- 텍스트 요소에 `white-space: inherit`/`unset` 을 직접 지정하면 부모의 줄바꿈 설정을 무시하고 `normal` 처럼 배치되던 문제를 고쳤습니다 — 미리보기(Chrome) 처럼 부모 값을 따릅니다 (ADR-923 Codex round 13).
+- Text·Heading·Paragraph·Description·Label·Kbd·Code 의 캔버스 폭·높이 측정과 Skia 렌더가 편집 표면에 없는 `label`/`text` prop 을 본문보다 먼저 읽어 미리보기와 다른 글자 폭이 실리던 문제를 고쳤습니다 — 본문 원천을 `children` 하나로 통일했고, 미리보기의 Description 도 같은 순서로 읽습니다.
+- 페이지(root) 폭이 `auto` 이고 `min-width`/`max-width` 로 제한될 때 자식이 제한 전 폭으로 배치되던 문제를 고쳤습니다.
+
+## [페이지 자동 배치가 화면 폭과 breakpoint를 반영합니다] - 2026-09-01
+
+### Changed
+
+- Settings의 Page Layout 선택지를 `Auto`·`Horizontal`·`Vertical`로 통일하고 기본값을 `Auto`로 설정했습니다. 기존 `zigzag` 값은 `Auto`로 읽습니다.
+- `Auto` 정렬은 Canvas-local 폭에 좌·우 panel 폭, shell 여백, 양쪽 `Page Gap`을 더해 browser 전체 폭을 계산하고, 두 panel 사이의 page 영역을 기준으로 현재 zoom과 선택된 breakpoint의 page 폭이 panel과 겹치지 않도록 최대 page 수를 한 줄에 배치한 뒤 이후 page를 다음 줄로 넘깁니다.
+- Settings의 Page Layout을 `Auto`·`Horizontal`·`Vertical` ToggleButtonGroup으로 바꾸고, Page Gap은 Transform의 Width와 같은 숫자 입력 셸 및 Layout Gap 아이콘을 재사용합니다. chevron 목록의 `S`·`M`·`L`은 입력값을 각각 `40`·`80`·`120`으로 교체하고 현재 값과 일치하는 항목만 check를 표시하며, preset 외 사용자값에는 check를 표시하지 않습니다. 기본값은 기존 `PAGE_STACK_GAP`과 같은 `80px`이며, 두 설정을 바꾸면 Canvas의 page 위치도 즉시 다시 정렬됩니다.
+- Settings의 Theme Mode도 ToggleButtonGroup으로 통일하고, `Auto (System)` 표기는 `Auto`(한국어 locale은 `자동`)로 한 줄 표시합니다. UI Scale은 실제 값 `80`·`100`·`120`을 유지하면서 표시를 `S`·`M`·`L`로 표준화했습니다.
+- Styles 패널의 Layout `Gap`·`Padding`·`Margin`과 Appearance `Border Width`·`Border Radius`를 같은 preset popover 패턴으로 통일했습니다. spacing은 `Reset`·`XS`·`S`·`M`·`L`·`XL`을 `--spacing-*` 토큰 기준으로, radius는 `--radius-*` 토큰 기준으로 제공하고 선택값은 `px`로 커밋하며 입력폼에는 숫자만 표시합니다. Reset과 대상 변경 시에도 현재 유효값으로 동기화하며, Border Width는 전용 토큰이 없어 `1px`·`2px`·`4px`·`8px`·`12px` 단계로 제공합니다. Page Gap을 포함한 preset 타입과 값 목록은 공용 property 계층의 단일 정본을 사용합니다.
+
+## [빌더 패널의 빈 상태가 공통 패턴을 사용합니다] - 2026-09-01
+
+### Fixed
+
+- **DataTable·Navigator·Components·Styles·Properties·Interactions 등에서 빈 화면의 표현이 제각각이던 문제**: DataTable empty의 icon–text 구조를 공통 `EmptyState`로 승격해 아이콘, 메시지, 설명의 배치와 색상 토큰을 통일했습니다.
+- **기존 패널별 empty CSS가 공통 컴포넌트와 분리되어 있던 문제**: 패널별 중복 스타일을 제거하고 도메인 아이콘만 각 화면이 주입하도록 정리했습니다. Canvas/Preview의 렌더링 empty 상태는 이번 범위에서 제외했습니다.
+
+## [상속된 줄바꿈 설정과 최소·최대 높이 경계가 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **부모에서 `white-space: pre` 를 물려받은, 공백만 있는 텍스트의 여백이 접히던 문제** (미리보기 60 / 캔버스 40): 줄 상자 신호가 요소 자신의 인라인 스타일만 보고 상속값을 버렸습니다. 이제 computed(상속) 값을 읽습니다. 배열·객체 children 이 쉼표나 `[object Object]` 로 바뀌어 줄 상자로 잡히던 것도 함께 고쳤습니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`resolveTextLeafContent`, `enrichWithIntrinsicSize`)
+- **높이가 자동인 상자의 `min-height: 50%` 가 폭 기준으로 풀려 아래 여백이 5px 어긋나던 문제** (미리보기 40 / 캔버스 35): CSS 에서 부모 높이가 정해지지 않은 percentage min-height 는 0 입니다. 세로 축 기준으로 풀도록 고쳤습니다.
+- **`min-height` 가 `max-height` 보다 클 때 작은 쪽이 이기던 문제** (미리보기 30 / 캔버스 10): CSS 는 max 를 먼저, 그다음 min 을 적용합니다 (min 이 우선). 블록 상자·최상위 상자·grid 트랙 기여값 세 곳이 같은 순서 오류였습니다. 최상위 상자가 높이를 직접 정했을 때 min/max 를 건너뛰던 것도 고쳤습니다.
+  - 위치: `packages/engine/src/block.rs` (`clamp_size`), `packages/engine/src/tree.rs` (`solve_block`, `fixup_root_self_size`, `track_contribution`)
+- 검증: Chrome 차등 87/87 (68 케이스 + 게이트 19) · 렌더 parity 1023 회귀 0 · ADR-923 Phase 3 round 12 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+
+## [공백만 있는 텍스트와 높이를 정한 상자의 아래 여백이 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **내용이 공백뿐인 텍스트 요소의 위·아래 여백이 접히지 않고 그대로 남던 문제** (미리보기 40 / 캔버스 60):
+  - **Why**: 엔진에 "줄 상자(line box) 가 있는가" 를 알려주는 신호를 원본 문자열이 비어 있는지로만 만들었습니다. CSS 는 `white-space: normal`/`nowrap` 에서 공백·탭·줄바꿈만 있는 내용을 줄 시작·끝에서 지우므로 줄 상자가 없고, 여백은 빈 상자처럼 접힙니다. `pre` 계열과 nbsp, `pre-line` 의 줄바꿈은 그대로 줄 상자가 됩니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`textLeafRendersContent`)
+- **높이를 직접 정한 상자 (`height: 50px`, `height: 0`) 안 마지막 자식의 아래 여백이 상자 밖으로 새어 다음 요소를 밀던 문제** (미리보기 50 / 캔버스 70): CSS 에서 부모와 마지막 자식의 아래 여백이 하나로 접히는 조건은 부모 높이가 `auto` 일 때뿐입니다. `min-height`/`max-height` 가 실제로 크기를 잡을 때도 (Chrome 기준) 여백은 상자 안에 남고, 잡지 않을 때는 종전처럼 접힙니다. `height: 0` 은 `auto` 가 아니므로 상자 높이도 0 (+`min-height`) 입니다.
+  - 위치: `packages/engine/src/tree.rs` (`solve_block`)
+- 검증: Chrome 차등 75/75 (61 케이스 + 게이트 14) · 렌더 parity 1009 회귀 0 · ADR-923 Phase 3 round 11 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+
+## [절대 위치 요소 드래그가 포인터를 즉시 따라갑니다] - 2026-09-01
+
+### Fixed
+
+- **Position을 Absolute로 바꾼 요소와 `Cmd + drag` 대상이 느리게 이동하던 문제**: 이전 retained drag 최적화가 같은 대상의 위치 변화에서 전체 command stream 재생성을 막았지만, 그 변화가 새 프레임을 표시해야 한다는 별도 신호도 없었습니다. 포인터 좌표는 정상 갱신되면서 Canvas는 대부분 idle frame으로 분류되어 화면만 드물게 표시됐습니다. drag offset 전용 presentation revision을 추가해 매 animation frame에 기존 retained picture의 translate만 다시 표시하고, registry와 content snapshot은 유지합니다.
+- **Absolute 요소를 드래그할 때 선택 박스가 시작 위치에 남던 문제**: 선택 chrome의 표시 여부가 실제 drag 상태가 아니라 drop indicator 존재 여부를 사용했습니다. Absolute/manual drag는 drop target이 없을 수 있으므로 box·handle·치수 레이블이 원래 좌표에 남았습니다. 이제 drag visual presentation 상태를 직접 사용해 이동 중에는 selection chrome을 숨기고 종료 시 다시 표시합니다.
+- **Absolute로 전환한 요소가 최상위 레이어로 이동하지 않던 문제**: Transform 패널에서 Absolute를 켜는 시점에 선택 요소를 canonical 형제 순서의 마지막으로 이동합니다. 스타일 변경과 레이어 순서 변경은 하나의 Undo 항목으로 기록하며, Absolute를 끌 때는 순서를 유지합니다.
+
+### Tests
+
+- 같은 delta 반복은 revision을 올리지 않고, 실제 target/delta 변화만 overlay frame을 갱신하며 registry/content invalidation으로 되돌아가지 않는 회귀 테스트를 추가했습니다. drop target이 없는 Absolute drag에서 selection chrome이 숨겨지는 계약과 Absolute 활성화 시 style·canonical front 이동이 단일 history transaction으로 실행되는 계약을 함께 고정했습니다.
+
+## [여백 접힘 경계 4가지가 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **높이를 `0` 으로 둔 텍스트 요소의 위·아래 여백이 하나로 접혀 다음 요소가 올라오던 문제** (미리보기 60 / 캔버스 40):
+  - **Why**: 엔진은 텍스트를 직접 보지 못해 "줄 상자(line box) 가 있는가" 를 텍스트 측정 스칼라(`leafBaseline`) 로만 알 수 있는데, 그 스칼라는 flex/grid 자식이거나 폭이 자동일 때만 공급되고 높이·폭이 명시된 텍스트는 공급 전에 반환됐습니다. CSS 에서 내용이 있는 요소는 높이가 0 이어도 여백이 접히지 않습니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`enrichWithIntrinsicSize`), `packages/engine/src/tree.rs` (leaf 경로)
+- **절대 위치(absolute) 자식만 가진 빈 상자의 여백이 접히지 않던 문제** (미리보기 40 / 캔버스 60): 흐름 밖 자식은 상자를 비우지 않는 것으로 잘못 세어졌습니다. 빈 상자 판정을 한 곳(자식 solve 플래그) 으로 모았습니다.
+- **양수·음수 여백이 세 개 이상 만나면 접힌 값이 달라지던 문제** (미리보기 20 / 캔버스 35): 두 개씩 차례로 접으면 "가장 큰 양수 + 가장 작은 음수" 라는 CSS 규칙과 어긋납니다. 여백을 값이 아니라 (양수 최대, 음수 최소) 쌍으로 형제·빈 상자·부모 경계 전부에 넘기도록 바꿨습니다 (`block.rs` `MarginSet`).
+- **음수 여백으로 상자 높이가 음수로 계산되던 문제** (미리보기 2 / 캔버스 −8): 자동 높이는 0 아래로 내려가지 않습니다. 같은 자리에서 "내용이 있어도 음수 여백 때문에 빈 상자로 오판" 하던 것도 함께 고쳤습니다 (미리보기 60 / 캔버스 40).
+- 검증: Chrome 차등 56/56 (51 케이스 + 게이트 5) · 렌더 parity 990 회귀 0 · ADR-923 Phase 3 round 10 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
+
+## [요소 사이 여백과 '넘침 잘라내기' 가 미리보기와 같아집니다] - 2026-09-01
+
+### Fixed
+
+- **Overflow 를 `Clip` 으로 둔 flex 항목이 캔버스에서 미리보기보다 좁게 그려지던 문제**:
+  - 스타일 패널에서 Overflow = Clip 을 고르면 캔버스의 항목이 내용 폭 아래로 줄어들었습니다 (미리보기는 내용 폭을 지킵니다).
+  - **Why**: 엔진이 `clip` 을 `hidden` 과 같은 "스크롤 컨테이너" 로 분류해 flex 항목의 자동 최소 폭(내용 기반)을 0 으로 내렸습니다. CSS 에서 스크롤 컨테이너는 `scroll` / `auto` / `hidden` 뿐이고 `clip` 은 아닙니다. 판정 3곳(BFC · baseline · flex 최소 폭)이 각자 문자열을 비교하고 있어 하나만 어긋나 있었고, 한 술어로 합쳤습니다.
+  - 위치: `packages/engine/src/tree.rs` (`is_scrollable_overflow`), `flex.rs`
+- **block 컨테이너 안 자식 여백(margin)이 캔버스에서 미리보기와 다르게 접히던 문제** (Chrome 실측 케이스 12건으로 확정):
+  - 안쪽 여백(padding)이 있는 부모의 마지막 자식 bottom margin 이 부모 높이에 빠져 있었습니다 (미리보기 31 / 캔버스 11).
+  - 내용이 없는 빈 block 의 위·아래 margin 이 하나로 접히지 않아 부모가 그만큼 더 높았습니다 (미리보기 10 / 캔버스 30).
+  - flex 컨테이너(그리고 overflow 가 scroll/hidden 인 상자)의 **자기** margin 이 형제·부모와 접히지 않고 더해졌습니다.
+  - block 요소 뒤에 오는 인라인 줄이 앞 요소의 bottom margin 을 무시하고 붙었습니다.
+  - 높이를 `0` 으로 둔 빈 요소의 위·아래 margin 이 접히지 않아 다음 요소가 더 아래에 놓였습니다 (미리보기 40 / 캔버스 60).
+  - **Why**: 엔진 block 솔버의 "빈 block" 분류를 만들어 내는 자리가 없어 (단위 테스트에서만 살아 있었음) 모든 자식이 일반 block 으로 흘렀고, 컨테이너 높이는 마지막 margin 이 부모 밖으로 빠지는지·안에 남는지를 구분하지 못한 채 자식 사각형의 합으로 계산됐습니다. BFC 상자의 margin 차단은 "자기 자식과" 만이어야 하는데 자기 margin 까지 막았습니다. CSS 2.1 §8.3.1 / §10.6.3 대로 정리했습니다.
+  - 위치: `packages/engine/src/block.rs`, `tree.rs` (`write_block_item` self-collapsing 분류, `solve_block` auto height)
+- 검증: Chrome 차등 44/44 · 렌더 parity 978 회귀 0 · ADR-923 Phase 3 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))

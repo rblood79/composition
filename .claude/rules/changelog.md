@@ -136,6 +136,8 @@ git log --since="<위 날짜>" --oneline | wc -l
 ## 관련 파일
 
 - `docs/CHANGELOG.md` — 현재 엔트리
+- `docs/CHANGELOG-2026-10-archived.md` — 2026-10-03 ~ 10-31 아카이브 (append-only)
+- `docs/CHANGELOG-2026-09-archived.md` — 2026-09-01 ~ 09-30 아카이브 (append-only)
 - `docs/CHANGELOG-2026-Q3-archived.md` — 2026-07-01 ~ 08-31 아카이브 (append-only)
 - `docs/CHANGELOG-2026-H1-archived.md` — 2026-02-22 ~ 06-30 아카이브 (append-only)
 - `docs/CHANGELOG-2025-archived.md` — 2025 년 아카이브 (append-only)

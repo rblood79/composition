@@ -27,7 +27,9 @@ docs/
 ├── legacy/                 # 폐기·역사 문서 (86 + README, 각 파일에 폐기 사유 배너)
 ├── migrations/             # 마이그레이션 기록 · frame-performance/ 분석 노트
 ├── pencil-copy/            # Pencil 호환성 dossier (clean-room)
-├── CHANGELOG.md            # 변경 이력 (2026-09~)
+├── CHANGELOG.md            # 변경 이력 (2026-11~)
+├── CHANGELOG-2026-10-archived.md   # 2026-10-03 ~ 10-31
+├── CHANGELOG-2026-09-archived.md   # 2026-09-01 ~ 09-30
 ├── CHANGELOG-2026-Q3-archived.md   # 2026-07-01 ~ 08-31
 ├── CHANGELOG-2026-H1-archived.md   # 2026-02-22 ~ 06-30
 └── CHANGELOG-2025-archived.md      # 2025년 이전
