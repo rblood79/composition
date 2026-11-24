@@ -13,13 +13,13 @@ pnpm dev                                            # builder dev 서버 (5173) 
 pnpm type-check                                     # Stop hook 이 같은 명령 실행
 pnpm -F @composition/builder exec vitest run <path> # 단일 테스트 (실패 count 는 per-package 만 정확)
 pnpm -F @composition/builder test:parity            # browser vitest (`vitest.config.ts` 의 parity project) · 시각 비교는 vitest.adr248-g3.browser.config.ts (G3 하니스)
-pnpm codex:preflight                                # guard + format + typecheck + registration gate
+pnpm codex:preflight                                # guard · format · typecheck · registration · css-boundary · chart-contract · agent-catalog · skills gate · rule-size
 pnpm docs:stale-symbols [--all]                     # 규칙·skill·agent 문서가 소스에 없는 심볼을 현재 것처럼 인용하면 exit 1 (--docs · --memory 는 보고만) — 삭제·개명 커밋 뒤 실행
-pnpm gate:perf-ratchet                              # 결정적 카운트 ratchet (ADR-246) — 수동 실행 (성능 작업 때). push 자동 실행은 2026-10-24 기본 끔 · 켜려면 PERF_RATCHET=1 git push
+pnpm gate:perf-ratchet                              # 결정적 카운트 ratchet (ADR-246) — 수동 실행 (성능 작업 때). push 때 같이 돌리려면 PERF_RATCHET=1 git push
 pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 · frame 은 --fixed-inputs [--call-counts] 로 결정적 카운트 (ratchet 후보, 문서 §8) · apps/builder/scripts 하니스는 BUILDER_URL=http://localhost:5174 로 대상 서버 지정 (기본 5173) · production 값은 `pnpm perf:build-dist` 뒤 `--serve-dist /private/tmp/perf-baseline-dist` (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
 ```
 
-env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로컬 라이선스: 발급기 공개키 소스 내장 · 토큰은 `apps/builder/public/license`). `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
+env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로컬 라이선스: 발급기 공개키 소스 내장 · 토큰은 `apps/builder/public/license`).
 
 **구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/rendering` (CSS 생성기·Skia primitive·아이콘) · `packages/sample-data` (seed 결정성 샘플 행 생성기, 의존 0 — ADR-220) · `packages/upload-engine` (`@composition/upload` TUS 전송 엔진, 의존 0, lazy 전용 — ADR-201, 규칙 `.claude/rules/upload-runtime.md`) · `packages/engine` (Rust 레이아웃) · `packages/config`
 
@@ -50,7 +50,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 ## 작업 워크플로
 
-- **복잡한 작업** (렌더링, drag-and-drop, 대규모 리팩토링): built-in `Plan` agent 로 접근 방식 탐색 후 선택 — 전제·관점 의문은 아래 §전제·관점 의문 처리 의 4개 결정 지점에서만 질문
+- **복잡한 작업** (렌더링, drag-and-drop, 대규모 리팩토링): 전제·관점 의문은 아래 §전제·관점 의문 처리 의 4개 결정 지점에서만 질문
 - **새 컴포넌트 · S2 기능 적용**: `/component-design` — RAC DOM · 동작은 `/react-aria`, S2 prop 표면은 `/react-spectrum` (로컬 공식 reference, 설치본이 정본) 으로 확인한 뒤 등록 경로 적용
 - **설계·수정 제안 전**: 그 영역을 다룬 기존 ADR (`docs/adr`) 결정부터 확인한다 — 무엇을 「제거 대상」 · 「정본」 이라 부르기 전에. 옛 ADR 과 새 결정이 겹치면 새 결정을 따른다. S2 정렬은 색이 아니라 S2 컴포넌트 동작까지 가져온다 (예: Toast → ToastRegion). 목업은 실제 컴포넌트 구조 (예: 필드 위 legend) 를 읽은 뒤 그린다
 - **버그 수정**: `/fix` → `/cross-check` — 증상 수정 금지, root cause 확정 후 수정. 수정을 되돌리면 실패하는 회귀 테스트를 같이 둔다. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
@@ -97,7 +97,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## 자동 품질 게이트 (Hooks)
 
-정의: `.claude/settings.json` `hooks` + `.claude/hooks/*.sh`. **block 하는 것 2가지** — Stop 시 `.ts/.tsx` 변경이 있으면 `pnpm type-check` 실패를 block · ADR Implemented 승격 시 README/CHANGELOG 갱신과 `### Live Exercise` 절 부재를 block (escape hatch 있음).
+정의: `.claude/settings.json` `hooks` + `.claude/hooks/*.sh`. **작업을 막는 hook** — Stop: `.ts/.tsx` 변경이 있으면 `pnpm type-check` 실패 · ADR Implemented 승격 시 README/CHANGELOG 갱신과 `### Live Exercise` 절 부재 (escape hatch 있음). PreToolUse: 보호 파일 편집 (`protect-files.sh`) · branch 분기 / PR 생성 (`protect-branch-pr.sh`) · 커밋 메시지 금지 어휘 (`protect-commit-vocabulary.sh`) · 사용자 요청 없는 새 ADR 파일 (`derived-adr-block.sh`). `git add -A` 류는 확인을 묻는다 (`protect-git-add-all.sh`).
 
 검증 도구: `pnpm codex:agent-catalog` (카탈로그 drift 게이트) · `pnpm hooks:selftest` · `pnpm agent:run` (run ledger).
 
@@ -124,7 +124,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## Git Push 정책 — 로컬 작업 환경
 
-**web PR 자체 금지. 예외 없음.** default = `git add` → `git commit` → `git push origin main`. 분기·PR·차단 시 대응·worktree 통합 절차는 상시 로드되는 `.claude/rules/git-workflow.md` 가 정본.
+**web PR · branch 분기는 스스로 하지 않는다 — 사용자가 명시적으로 요청했을 때만.** default = `git add` → `git commit` → `git push origin main`. 분기·PR·차단 시 대응·worktree 통합 절차는 상시 로드되는 `.claude/rules/git-workflow.md` 가 정본.
 
 ## 렌더링 버그 수정 원칙
 
@@ -132,11 +132,11 @@ CSS/Skia 두 타겟의 catalog 정의·origin template·CSS/DOM·Skia·editor �
 
 ## 병렬 워크플로
 
-- 대규모 리팩토링: `isolation: "worktree"` 격리 에이전트. 독립 작업 2+ 개: Agent tool 병렬 호출 (단일 응답에 복수 agent)
+- 대규모 리팩토링: `isolation: "worktree"` 격리 에이전트 — 새 worktree 에는 `.worktreeinclude` 의 gitignore 파일 (env · 라이선스 · 개인 지시 · 엔진 wasm) 이 복사된다. 독립 작업 2+ 개: Agent tool 병렬 호출 (단일 응답에 복수 agent)
 - 생성-평가 분리: 구현은 메인 세션, 검증은 `/review` (정적) · `/evaluate` (런타임)
 - 서브에이전트 보고는 받아들이기 전에 근거 (파일:라인 · 실행 출력) 를 직접 확인한다 — 결론만 옮겨 적지 않는다
 - worktree 통합은 main 직접 merge (PR 경유 금지) — 절차: `.claude/rules/git-workflow.md` §3
-- `/loop`: 렌더링 파리티 반복 검증에 적합
+- `/loop`: 렌더링 파리티 반복 검증에 적합 · 프롬프트 없이 실행하면 `.claude/loop.md` (task-state `next` 이어가기 — 기본 내장 프롬프트의 PR 살피기를 대체)
 
 ---
 

@@ -1,6 +1,6 @@
 # Git 작업 흐름 — web PR 자체 금지 정책
 
-> **2026-04-27 강화 (절대 정책)**. 로컬 작업 환경에서 web PR 자체 금지. 예외 없음. 사용자 자동화 흐름 차단 방지가 본질.
+> **2026-04-27 강화**. 로컬 작업 환경에서 모델이 스스로 PR · branch 를 만들지 않는다 — 어떤 사유 (안전 · CRITICAL · worktree · main 차단) 로도 예외 없음. 사용자가 명시적으로 요청했을 때만 한다 (§6). 사용자 자동화 흐름 차단 방지가 본질.
 
 ## 1. 정책
 
@@ -18,9 +18,9 @@ git push origin main
 - **범위 없는 「커밋하고 push」**: 자기 변경을 먼저 커밋·push 한 뒤, 남은 미커밋 파일을 출처 추정별로 묶어 보여 주고 별도 커밋으로 나눌지 묻는다. 말없이 남겨 두지 않는다.
 - **push 전 번호 충돌**: `git fetch` 후 origin/main 의 새 커밋과 contract 버전 · ADR 번호가 겹치지 않는지 확인한다 (병렬 세션이 같은 번호를 먼저 올린 사례 — contract 65 → 66).
 
-**금지 행위**:
+**금지 행위** (사용자 명시 요청이 없을 때 — §6):
 
-- ❌ `gh pr create` / GitHub web UI PR 생성 — 절대 금지
+- ❌ `gh pr create` / GitHub web UI PR 생성 — 사용자 명시 요청 시에만
 - ❌ `git checkout -b feature/...` 분기 후 push — 사용자 명시 요청 시에만
 - ❌ `git push -u origin <branch>` — 사용자 명시 요청 시에만
 - ❌ PR URL 출력 (`https://github.com/.../pull/new/...`) — 금지
@@ -79,9 +79,9 @@ PR/push 정책 의문 발생 시 **settings 4 파일 + protect-files hook 직접
 
 메모리 entry (특히 세션 인수인계 의 "main 차단" 류) 가 stale 일 수 있음. settings 가 우선.
 
-## 6. 사용자 명시 요청 시에만 분기
+## 6. 사용자 명시 요청 시에만 분기 · PR
 
-다음 표현 발견 시에만 branch + push 진행:
+다음 표현이 있을 때만 branch 분기 · branch push · PR 생성을 한다 (`protect-branch-pr.sh` 가 최근 사용자 메시지에 이런 표현이 없으면 막는다):
 
 - "PR 생성해줘" / "원격에 push 해" / "branch push 해라" / "feature branch 로 분리" 등 명시
 

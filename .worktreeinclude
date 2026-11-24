@@ -1,0 +1,13 @@
+# Claude Code 가 worktree 를 만들 때 (`--worktree` · EnterWorktree · subagent `isolation: worktree`)
+# main checkout 에서 복사할 gitignore 파일. `.gitignore` 문법 — 패턴에 맞고 gitignore 된 파일만 복사된다.
+# 의존성 (node_modules) 은 복사하지 않는다 — worktree 에서 `pnpm install`.
+
+# builder dev 서버 env · 로컬 라이선스 토큰 (없으면 인증 화면에서 멈춘다)
+apps/builder/.env
+apps/builder/public/license
+
+# 개인 지시 파일 (gitignore 라 만든 checkout 에만 있다)
+CLAUDE.local.md
+
+# Rust 엔진 wasm 빌드 산출물 — worktree 에서 엔진 소스를 고치면 `pnpm wasm:build:engine` 로 다시 빌드
+apps/builder/src/builder/workspace/canvas/wasm-bindings/engine-pkg/
