@@ -33,7 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - unit `tableCellSelectionPlaces` (칸 표시 150 번에 위치표 150 번 → 1 번 이하 · 정렬 · 열 이동 뒤 다시 읽음) · `adr315ServerRows` 「the open groups' rows are asked for at once」 (수정을 되돌리면 RED).
 - 측정 하니스 `datagrid-table-vs-tanstack-live.mjs`: `--with` (기능만 켜고 확인 생략) · `--profile-fns` · `--latency` · `--measure-group-sync` · `--check-cellsel`.
 
-검증: type-check · shared 2,767 · builder unit 9,868 통과. live (production 빌드 Publish) — `--check-cellsel` 10,000 행 범위 12 칸이 창 이동 뒤에도 같고 복사 4 행 × 3 열 PASS · `--check-totals` · `--check-authored-group` PASS. `--check-server group` · `--check-group` 은 HEAD 빌드에서도 같은 값으로 FAIL (기존 하니스 문제).
+검증: type-check · shared 2,767 · builder unit 9,868 통과. live (production 빌드 Publish) — `--check-cellsel` 10,000 행 범위 12 칸이 창 이동 뒤에도 같고 복사 4 행 × 3 열 PASS · `--check-totals` · `--check-authored-group` · `--check-group --column-origin` · `--check-server group|pin --display more` PASS (하니스 머리말의 조건대로 — 조건 없이 돌린 첫 실행의 FAIL 은 호출 잘못).
 
 ## [Table 고정 열 경계선 — Canvas 레이아웃에도 1px] - 2026-11-25
 

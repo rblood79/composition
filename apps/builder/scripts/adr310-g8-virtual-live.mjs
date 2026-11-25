@@ -423,11 +423,25 @@ try {
       }),
     );
     const placed = [];
+    // (2026-11-25: the palette Table holds its selection column itself — a Column and a Row
+    //  template Cell holding `Checkbox[slot=selection]`, hidden until the Table selects (ADR-257
+    //  Phase 3). A second one inserted there drew two checkboxes in both renderers: Canvas rows 59
+    //  · DOM 41. Insert only where none is.)
+    const holdsSelection = (rec) =>
+      (rec?.children ?? []).some((id) => {
+        const child = root.canvasInputs.get(id);
+        return (
+          !!child &&
+          root.typeOf(child) === "Checkbox" &&
+          child.props.slot === "selection"
+        );
+      });
+    const already = [column, cell].filter(holdsSelection).map(owned);
     // (머리글 Column 에 전체선택, 행 템플릿 Cell 에 행 선택 — 레퍼런스 그대로. 행 템플릿 안 편집이
     //  RESOLVED_INSTANCE_MISSING 으로 거부되고 비운 라벨이 「Checkbox」 로 돌아오던 결함은 2026-11-15
     //  수리 — `adr310TableTemplate.test.tsx`.)
     for (const parent of [owned(column), owned(cell)]) {
-      if (!parent || !g.getEntry(parent)) continue;
+      if (!parent || !g.getEntry(parent) || already.includes(parent)) continue;
       const id = ws.newId("node");
       ws.execute(
         C.insertNodes({
@@ -470,11 +484,11 @@ try {
         label: "selection",
       }),
     );
-    return placed;
+    return { placed, already };
   });
   record(
     "setup — Table 첫 열 = 선택 열 (Column · Row 템플릿 Cell 에 Checkbox[slot=selection] · 그 열 글자 비움)",
-    selection.length === 2,
+    selection.placed.length + selection.already.length === 2,
     selection,
   );
   await page.waitForTimeout(1500);

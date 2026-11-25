@@ -122,7 +122,8 @@ const CHECK_ROWPIN = process.argv.includes("--check-rowpin");
 //   group: Dept 「Grouped」 + 합계 행 — Publish 의 묶음 행 · 합계가 행 생성기로 따로 센 값과 같고, 묶음
 //   하나를 펼치면 `groupOf` 요청이 그 묶음의 행만 준다 (행 쪽 요청 없음). pin: 「Row pinning」 — r3 을 위에
 //   고정하면 본문 요청이 `keys.except` · 고정 요청이 `keys.only` 이고, 「더 보기」 로 다음 쪽을 불러도 r3 은
-//   한 번만.
+//   한 번만. `--display more` 와 같이 돌린다 — 가상 스크롤은 창 안의 행만 그려 펼친 묶음의 행 (101) 을
+//   다 셀 수 없다 (16 으로 FAIL — 2026-11-25 확인).
 const CHECK_SERVER = arg("--check-server", "");
 const SERVER_GROUP = CHECK_SERVER === "group";
 const SERVER_PIN = CHECK_SERVER === "pin";
@@ -2849,6 +2850,21 @@ try {
       throw new Error("load only");
     }
 
+    // `--probe-head`: the Publish Table's column headers as drawn (their HTML) — to read a check's
+    //   locator against the DOM, then stop.
+    if (process.argv.includes("--probe-head")) {
+      await pub.waitForTimeout(1500);
+      const heads = await pub.evaluate(
+        (OURS) =>
+          [...document.querySelectorAll(`${OURS} [role=columnheader]`)].map(
+            (el) => el.outerHTML.slice(0, 1500),
+          ),
+        OURS,
+      );
+      writeFileSync(`${OUT}/heads.json`, JSON.stringify(heads, null, 2));
+      log(`probe-head: ${heads.length} headers → ${OUT}/heads.json`);
+      throw new Error("load only");
+    }
     if (CHECK_GROUP) {
       const all = makeRows(ROWS);
       const headerNames = () =>

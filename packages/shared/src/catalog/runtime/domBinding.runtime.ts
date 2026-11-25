@@ -12,7 +12,6 @@ import {
 } from "../../components/RangeSlider";
 import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
 import { LinkButton } from "../../components/LinkButton";
-import { LinkPrimitive } from "../../components/LinkPrimitive";
 import { LabeledValue } from "../../components/LabeledValue";
 import {
   catalogPickerSelectionHidden,

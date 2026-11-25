@@ -108,7 +108,9 @@ const read = () =>
     return {
       preview: owner
         ? [...owner.querySelectorAll(":scope > li")].map((li) => {
-            const a = li.querySelector(".react-aria-Link");
+            // (S2 구조 — 2e5bbb9e7, 2026-11-13: a crumb's text is a Text node; the DOM wraps it in
+            //  RAC's Link `a.breadcrumb-link`, the current crumb in `div.breadcrumb-current`.)
+            const a = li.querySelector(".breadcrumb-link, .breadcrumb-current");
             const r = a?.getBoundingClientRect();
             return {
               text: a?.textContent,
@@ -122,7 +124,7 @@ const read = () =>
         : null,
       canvas: crumbs.map((crumb) => {
         const kids = crumb.children.map((c) => ws.root.canvasInputs.get(c));
-        const link = kids.find((k) => ws.root.typeOf(k) === "Link");
+        const link = kids.find((k) => k.props.slot !== "separator");
         const sep = kids.find((k) => k.props.slot === "separator");
         return {
           text: link?.props.children,
@@ -134,7 +136,7 @@ const read = () =>
   }, crumbsId);
 const r0 = await read();
 record(
-  "C-1 Preview: li > a.react-aria-Link (href) + separator, the last crumb current without one; Canvas the same order and separators",
+  "C-1 Preview: li > a.breadcrumb-link (href) + separator, the last crumb current without one; Canvas the same order and separators",
   !!r0.preview &&
     JSON.stringify(r0.preview.map((c) => [c.text, c.separator, c.current])) ===
       JSON.stringify([["Home", true, false], ["Category", true, false], ["Page", false, true]]) &&

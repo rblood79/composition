@@ -170,7 +170,9 @@ await page.waitForTimeout(1500);
 const valid = await read();
 record(
   "Invalid off: hidden on both again",
-  valid.isInvalid === false &&
+  // (Set back to the initial value, the own write is removed — b2e4789fe, 2026-10-12 — so the
+  //  record has no `isInvalid`, not `false`.)
+  valid.isInvalid !== true &&
     valid.canvasErrorHidden === true &&
     valid.previewErrorText === null,
   valid,
