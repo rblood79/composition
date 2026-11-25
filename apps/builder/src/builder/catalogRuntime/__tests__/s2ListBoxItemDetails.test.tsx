@@ -58,6 +58,13 @@ async function open(
       engine: await nodeLayoutEngine(),
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
+      // (A line per text — the rows are the parts' line heights.)
+      textMeasure: (value, font) => ({
+        width: value.length * font.fontSize * 0.5,
+        exactWidth: value.length * font.fontSize * 0.5,
+        minWidth: value.length * font.fontSize * 0.5,
+        height: font.fontSize * (font.lineHeight || 1.2),
+      }),
     },
   );
   workspace.execute(
@@ -336,6 +343,55 @@ describe("S2 ListBox item details — description color · gap · section Divide
     expect(glyphs.length).toBe(3);
     for (const glyph of glyphs) expect(glyph.style.color).toBe("inherit");
     await done();
+  });
+
+  it("S2 대조 (2026-11-25): an item's icon is `1lh`, in the label's row, `text-to-visual` before the text (Canvas · sheet)", async () => {
+    for (const [size, line, font] of [
+      ["M", 18, 14],
+      ["L", 20, 16],
+    ] as const) {
+      const { root, of, kids, box } = await open({ size });
+      for (const item of of("ListBoxItem")) {
+        const parts = kids(item.id);
+        const icon = parts.find((part) => part.props.slot === "icon")!;
+        const label = parts.find((part) => part.props.slot === "label")!;
+        const itemBox = box(item.id);
+        const iconBox = box(icon.id);
+        const labelBox = box(label.id);
+        // (`edge-to-text` — the item's start padding — then the icon's `1lh` square.)
+        expect(iconBox.x, size).toBe(
+          Number(item.visual.paddingLeft ?? item.visual.paddingX),
+        );
+        expect([iconBox.width, iconBox.height], size).toEqual([line, line]);
+        expect(labelBox.x - (iconBox.x + iconBox.width), size).toBeCloseTo(
+          (font * 6) / 14,
+          3,
+        );
+        // In the label's row — not centred on the whole item (its description below).
+        expect(iconBox.y + iconBox.height / 2, size).toBeCloseTo(
+          labelBox.y + labelBox.height / 2,
+          3,
+        );
+        expect(labelBox.height, size).toBe(line);
+        expect(itemBox.height, size).toBeGreaterThan(line);
+        expect(root.getAppliedLayoutInput(icon.id), size).not.toContain(
+          "absolute",
+        );
+      }
+    }
+    const sheet = readFileSync(
+      resolve(
+        process.cwd(),
+        "../../packages/shared/src/components/styles/ListBox.css",
+      ),
+      "utf8",
+    );
+    expect(sheet).toMatch(/--lb-item-line: 1lh;/);
+    expect(sheet).toMatch(/width: var\(--lb-icon-size, var\(--lb-item-line\)\);/);
+    expect(sheet).toMatch(
+      /&:not\(\[data-selection-mark\]\):has\(> \[slot="icon"\]\) \{\s*display: grid;\s*grid-template-columns: auto minmax\(0, 1fr\);/,
+    );
+    expect(sheet).not.toMatch(/translateY\(-50%\);\s*display: inline-flex;/);
   });
 
   it("a picker's check mark is accent (Canvas · DOM, S2 `checkmark` baseColor('accent'))", async () => {

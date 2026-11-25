@@ -12,7 +12,10 @@ import {
 import { catalogTableColumnKey } from "./tableSort";
 import type { CatalogActionBadgeContent } from "../rule/actionBadge";
 import { catalogStaticScheme } from "./staticBackdrop";
-import { catalogSelectBoxDescriptionHidden } from "./selectBoxPresence";
+import {
+  catalogSelectBoxDescriptionHidden,
+  catalogSelectBoxShown,
+} from "./selectBoxPresence";
 import {
   catalogCalendarFirstDate,
   catalogDateRange,
@@ -3483,6 +3486,9 @@ function derivedPropsBeforeSkeleton(
     // (S2 체크리스트 §9.3 — a Row in its Table's footer (the totals row) and its Cells: S2
     //  `TableFooter`'s row look, the Row · Cell rule's `in-footer` block.)
     ...(catalogTableFooterPart(node, get, typeOf) ? { inFooter: "true" } : {}),
+    // (S2 `selectBoxStyles`' `:has` blocks — the parts a SelectBox shows pick its grid; the box and
+    //  its slotted parts carry them for the Canvas, `catalogSelectBoxContentStyle`.)
+    ...selectBoxShownProps(node, get, typeOf),
     // (S2 체크리스트 §9.3 — S2 `EditableCell`'s edit button: `visibility: hidden` at rest (the row's
     //  hover · focus shows it — the DOM's), its box laid out.)
     ...(catalogEditableCellButton(node, get, typeOf)
@@ -5369,28 +5375,52 @@ export function catalogBreadcrumbSeparator(
 }
 
 /**
- * `ListBox.css` `.react-aria-ListBoxItem:has([slot="icon"]) { padding-left: calc(--spacing-md +
- * --lb-icon-size + 6px) }`: an item inside a ListBox (the Preview marks the slot there) whose
- * icon slot child renders. Returns that item's left padding; undefined for any other node.
+ * The author's selection mark on a collection item (a `slot=selection` part, or a node shown while
+ * `isSelected` — the reference's Check / Dot): it stands in for the sheet's glyph — the DOM's
+ * `data-selection-mark`.
  */
-export function catalogItemSlotInset(
+export function catalogItemHasSelectionMark(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
-): number | undefined {
-  if (typeOf(node) !== "ListBoxItem") return undefined;
+): boolean {
+  return node.children.some((id) => {
+    const child = get(id);
+    return (
+      !!child &&
+      !catalogPickerSelectionHidden(child, get, typeOf) &&
+      (child.props.slot === "selection" ||
+        (!!child.showWhen &&
+          catalogStateConditions(child.showWhen).some(
+            (condition) => condition.key === "isSelected" && !condition.not,
+          )))
+    );
+  });
+}
+
+/**
+ * `ListBox.css` `.react-aria-ListBoxItem:not([data-selection-mark]):has(> [slot="icon"])`: an item in a
+ * ListBox (the Preview marks the slot there) whose icon renders, with no selection mark (a picker's
+ * option is always marked) — S2's `listboxItem` grid (`CATALOG_LIST_BOX_ITEM_ICON_GRID`).
+ */
+export function catalogItemIconGrid(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "ListBoxItem") return false;
   let owner = get(node.parentId);
   while (owner && typeOf(owner) === "ListBoxSection")
     owner = get(owner.parentId);
-  if (!owner || typeOf(owner) !== "ListBox") return undefined;
-  return childrenOf(node, get).some(
-    (child) =>
-      child.props.slot === "icon" &&
-      child.layout.position === "absolute" &&
-      !child.hidden,
+  if (!owner || typeOf(owner) !== "ListBox") return false;
+  if (
+    node.derivedProps?._pickerOption === true ||
+    catalogItemHasSelectionMark(node, get, typeOf)
   )
-    ? 12 + 16 + 6
-    : undefined;
+    return false;
+  return childrenOf(node, get).some(
+    (child) => child.props.slot === "icon" && !child.hidden,
+  );
 }
 
 /** A crumb's label children (inside its RAC Link · current `div` — they take the current crumb's weight). */
@@ -5967,4 +5997,16 @@ export function catalogEditableCellButton(
   const frame = get(node.parentId);
   const cell = frame ? get(frame.parentId) : undefined;
   return !!cell && !!catalogEditableCell(cell, get, typeOf);
+}
+
+function selectBoxShownProps(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string> {
+  const shown = catalogSelectBoxShown(node, get, typeOf);
+  if (shown === undefined) return {};
+  return typeOf(node) === "SelectBox"
+    ? { _selectBoxShown: shown }
+    : { _selectBoxPartOf: shown };
 }

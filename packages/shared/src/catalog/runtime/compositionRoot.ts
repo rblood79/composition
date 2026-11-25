@@ -7,6 +7,7 @@ import {
 } from "./staticBackdrop";
 import { catalogInlineSizeContainment } from "./inlineSizeContainment";
 import { catalogPartConditionProps } from "../document/derivedVariantProps";
+import { CATALOG_LIST_BOX_ITEM_ICON_GRID } from "../document/manualBoxRules";
 import { catalogActionBarForeground } from "./actionBarForeground";
 import { catalogActionBarPlacement } from "./actionBarContainer";
 import { catalogTokenValue } from "../document/themedToken";
@@ -42,6 +43,7 @@ import {
   resolveInputVariableAt,
 } from "./inputVariable";
 import { isBodyType } from "../../domain/predicates";
+import { CATALOG_INHERITANCE_HOSTS } from "../bindings/inheritedProps";
 import { isPropVar } from "../document/valueType";
 import {
   catalogHostInheritedChanged,
@@ -72,6 +74,7 @@ import {
   CATALOG_OVERFLOW_MODE_OWNERS,
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
+  CATALOG_SIZE_STEP_COMPACT,
   CATALOG_SIZE_CONTEXT_OF,
   CATALOG_OWNER_CONTEXT_PROPS,
 } from "../document/sizePropagation";
@@ -171,6 +174,7 @@ import {
 import type { LayoutEngineAPI } from "./layoutEngine";
 import type { LayoutResult, StickyConstraints } from "./engineTypes";
 import { parseGridTemplate } from "./gridStyleAdapter";
+import { catalogSelectBoxContentStyle } from "./selectBoxPresence";
 import { catalogVirtualGridStyle } from "./virtualGrid";
 import {
   CATALOG_DRAG_COLUMN_WIDTH,
@@ -267,7 +271,7 @@ import {
   catalogBreadcrumbItems,
   catalogBreadcrumbSeparator,
   catalogItemLabels,
-  catalogItemSlotInset,
+  catalogItemIconGrid,
   catalogFieldLabelPart,
   catalogFieldLabelRowColor,
   catalogListBoxDescriptionColor,
@@ -1946,6 +1950,8 @@ function styleOf(
       ? {}
       : catalogActionBadgeNodeLayout(node.derivedProps)),
     ...itemLayout(node),
+    // (S2 `selectBoxStyles`' `:has` blocks — a SelectBox's grid by the parts it shows, the DOM's sheet.)
+    ...catalogSelectBoxContentStyle(node),
     // (2026-11-15: a grouped Checkbox's help text — S2 `isInCheckboxGroup`, over the item's own field
     //  margins (its part rule); the DOM's same inline margins, `toggleLayout.ts`.)
     ...catalogToggleItemHelpLayout(node.derivedProps),
@@ -4684,7 +4690,7 @@ export class CatalogCompositionRoot {
       const inheritedText = inheritedTextOf(
         record,
         get,
-        this.environmentLocale,
+        this.textLocaleOf(record, get),
       );
       if (inheritedText) output.set(id, { ...record, inheritedText });
     }
@@ -4795,6 +4801,32 @@ export class CatalogCompositionRoot {
     )
       out.lineHeight = installedBaseText().lineHeight;
     return Object.keys(out).length ? out : undefined;
+  }
+  /**
+   * The language a record's text is in: the nearest locale host's (a frame's `locale` — S2 `Provider`
+   * — or the page root's, the site's), else the root's (2026-11-25 — the inherited font family is that
+   * language's, `catalogLocaleFontFamily`, as the DOM's `:lang()` font).
+   */
+  private textLocaleOf(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+  ): string | undefined {
+    // (The nearest host declaring one — `catalogHostInherited`'s `locale`, without its allocations:
+    //  every record asks.)
+    for (
+      let node: CatalogConsumerNode | undefined = record, depth = 0;
+      node && depth < 256;
+      node = get(node.parentId), depth++
+    ) {
+      const locale = node.props.locale;
+      if (
+        typeof locale === "string" &&
+        locale &&
+        CATALOG_INHERITANCE_HOSTS[this.typeOf(node)]?.includes("locale")
+      )
+        return locale;
+    }
+    return this.environmentLocale;
   }
   private ownDerivedOf(
     record: CatalogConsumerNode,
@@ -5771,12 +5803,9 @@ export class CatalogCompositionRoot {
     const separator = record.hidden
       ? undefined
       : this.crumbSeparator(record, get);
-    // (`ListBox.css`'s icon inset is a sheet value — an authored start padding wins, inline.)
-    const slotInset =
-      record.hidden ||
-      Object.keys(this.withoutAuthored(record, { paddingLeft: 0 })).length === 0
-        ? undefined
-        : catalogItemSlotInset(record, get, this.typeOf);
+    // (`ListBox.css` — an item holding an icon is S2's grid, a sheet value.)
+    const iconGrid =
+      !record.hidden && catalogItemIconGrid(record, get, this.typeOf);
     const remainder = this.remainderAreas.get(record.id);
     return {
       ...style,
@@ -5814,7 +5843,14 @@ export class CatalogCompositionRoot {
       //  after the render, over the author's inset.)
       ...catalogOverlayLayout(record, this.overlayPlacements.get(record.id)),
       ...this.overlayArrowStyle(record),
-      ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
+      ...(iconGrid
+        ? {
+            ...CATALOG_LIST_BOX_ITEM_ICON_GRID,
+            gridTemplateColumns: parseGridTemplate(
+              CATALOG_LIST_BOX_ITEM_ICON_GRID.gridTemplateColumns,
+            ),
+          }
+        : {}),
       ...(record.hidden ? {} : this.fieldBoxLayout(record, get)),
       ...(!withoutAddedRoom &&
       !record.hidden &&
@@ -8241,7 +8277,12 @@ export class CatalogCompositionRoot {
         }
       // An owner's size reaches the children it propagates to (`CATALOG_SIZE_PROPAGATION`): they
       // resolve again with it (and their own children after them).
-      if (before.props.size !== record.props.size) {
+      // (A compact step reads the owner's density too — `CATALOG_SIZE_STEP_COMPACT`.)
+      if (
+        before.props.size !== record.props.size ||
+        (CATALOG_SIZE_STEP_COMPACT[this.typeOf(record)] &&
+          before.props.density !== record.props.density)
+      ) {
         const sized = CATALOG_SIZE_PROPAGATION[this.typeOf(record)];
         // (Through the Group · frame between, which take no size — `CATALOG_SIZE_PASS_THROUGH`:
         // a field's control Group, a Group around a group's item.)
@@ -8529,7 +8570,7 @@ export class CatalogCompositionRoot {
       const inheritedText = inheritedTextOf(
         record,
         get,
-        this.environmentLocale,
+        this.textLocaleOf(record, get),
       );
       const next = this.planRecord(
         update.id,
@@ -8694,7 +8735,7 @@ export class CatalogCompositionRoot {
         const inheritedText = inheritedTextOf(
           current,
           get,
-          this.environmentLocale,
+          this.textLocaleOf(current, get),
         );
         const fillLayout = withCardPreviewLayout(
           catalogFillLayout(current, get, this.typeOf, this.authoredVisualOf) ??

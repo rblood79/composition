@@ -641,6 +641,10 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ 트랙 기여를 content-box 로 산출 → margin 이 §12.8 여유로 흘러 절반씩 갈라진다
 - ❌ 기여 계산에서 `%` margin 을 해소 시도 → 순환 (0 이 정본)
 
+### 걸친 항목의 모자란 크기는 content 크기 트랙에만 — 고정 트랙은 자기 길이로 센다 (CSS-GRID-1 §12.5.1, 2026-11-25)
+
+S2 SelectBox 가로 (`min-content 2px min-content`, 48 그림이 1 · 2 행을 걸침 — Chromium): 행 = 46 · 2 · 0. 엔진은 모자란 만큼을 걸친 트랙 전부에 나눠 (고정 `2px` 트랙 포함) 24 · 2 였고, 높이가 확정된 두 번째 배치 (부모 grid 가 상자 높이를 준 뒤) 에서는 고정 트랙에 그 행 항목의 기여 (설명 18) 가 들어가 있어 30 · 2 였다. 거처: `tree.rs` `distribute_spanning_extra` (미결정 축 `grow_tracks_for_spanning_items` · 정해진 축 `spread_spanning_contributions` 공용) — 고정 트랙 (min 자리가 고정 길이) 은 받지 않고, 모자란 양을 셀 때는 자기 px 길이로 센다. 시험: `grid_spanning_item_skips_fixed_tracks` (두 경로), 원복 RED 2행.
+
 ## grid 자식의 TS 공급 3결함 — 스칼라 / 트랙 수 / 가정 폭 (2026-07-28)
 
 엔진이 트랙 content 기여를 소비할 준비가 돼도(§트랙 크기는 자식의 content 기여) TS 층이 셋을 잘못 넘기고 있었다. 셋 다 **grid 자식에서만** 드러나며, 증상이 서로 달라 따로 봐야 한다.

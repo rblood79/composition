@@ -19,10 +19,11 @@ import { absoluteLayout } from "./absoluteLayoutFixture";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * ADR-275 Decision 1 (리뷰 r1 M1) — one storage, two predicates: a ListBoxItem's icon is out of flow
- * by its owner's part rule (`position: absolute` · `insetLeft: 12px`) but not authored, so it is
- * not an authored absolute box (the Canvas move · Position section refuse it); a frame the author
- * made absolute is both.
+ * ADR-275 Decision 1 (리뷰 r1 M1) — one storage, two predicates: a Tab's selection indicator is out
+ * of flow by its owner's part rule (`position: absolute` · `insetLeft: 0px`) but not authored, so it
+ * is not an authored absolute box (the Canvas move · Position section refuse it); a frame the author
+ * made absolute is both. (A ListBoxItem's icon was the example until 2026-11-25 — S2's item grid puts
+ * it in flow.)
  */
 const node = (
   id: string,
@@ -44,15 +45,19 @@ async function open() {
   const library = await buildCodeCatalogLibrary();
   const projectId = "project:project:p275" as const;
   const pageId = "project:page:main" as const;
-  const list = node("project:node:list", "lib:definition:type-ListBox", {
+  const list = node("project:node:list", "lib:definition:type-Tabs", {
+    children: ["project:node:tablist" as NodeId],
+  });
+  const tabList = node("project:node:tablist", "lib:definition:type-TabList", {
     children: ["project:node:item" as NodeId],
   });
-  const item = node("project:node:item", "lib:definition:type-ListBoxItem", {
+  const item = node("project:node:item", "lib:definition:type-Tab", {
     children: ["project:node:icon" as NodeId],
   });
-  const icon = node("project:node:icon", "lib:definition:type-Icon", {
-    props: { slot: { kind: "set", value: "icon" } },
-  });
+  const icon = node(
+    "project:node:icon",
+    "lib:definition:type-SelectionIndicator",
+  );
   const frame = node("project:node:frame", "lib:definition:type-frame", {
     layout: absoluteLayout(20, 30),
     sizing: {
@@ -89,6 +94,7 @@ async function open() {
         children: [list.id, frame.id],
       },
       [list.id]: list,
+      [tabList.id]: tabList,
       [item.id]: item,
       [icon.id]: icon,
       [frame.id]: frame,

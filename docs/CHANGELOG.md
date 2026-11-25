@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 대조 남은 차이 4 — Disclosure compact · SelectBox 가로 · ListBox 아이콘 · frame 언어 서체] - 2026-11-25
+
+사용자 「알고 남겨 둔 차이 다시 체크해줘」 → 「모두 수정해」. 2026-11-24 S2 대조 뒤 남겨 둔 네 가지를 설치 S2 1.8.2 소스와 다시 대조해 고쳤다.
+
+### Fixed
+
+- **Disclosure compact 의 제목 줄 버튼**: compact 에서도 한 단계만 작아졌다. S2 (`Disclosure.tsx:273`) 대로 compact 는 두 단계 (M → XS · L → S), regular · spacious 는 한 단계 (`CATALOG_SIZE_STEP_COMPACT`, 밀도를 바꾸면 바로 따라감).
+- **SelectBox 가로 배치**: 행을 23 · 2 · 23 으로 적어 S2 와 달랐다 (라벨 · 설명 위치, 그림 없는 상자 높이 84). S2 대로 `min-content 2px min-content` · `grid-auto-rows: 1fr` — 그림이 첫 두 행을 걸쳐 라벨 행 46 · 설명은 2px 행 위 가운데, 설명이 없으면 그림 48 이 라벨 행, 그림이 없으면 라벨 맨 위 · 설명은 남는 행 (상자 80). DOM 은 S2 의 `:has` 블록 그대로, Canvas 는 같은 rule 항목을 상자가 보이는 부품으로 읽는다 (`catalogSelectBoxContentStyle`). 설명을 비우면 설명 요소가 없다 (S2 처럼).
+- **레이아웃 엔진 — 여러 행을 걸친 항목**: 모자란 크기를 고정 트랙 (`2px`) 에도 나눠, 걸친 그림이 있는 행이 작게 나왔다. CSS Grid §12.5.1 대로 content 크기 트랙에만 나누고, 고정 트랙은 자기 길이로 센다 (높이가 확정된 두 번째 배치도 같은 값).
+- **ListBox 항목 아이콘**: 16 고정 · 항목 가운데 · 간격 6 고정이었다. S2 `listboxItem` 대로 아이콘이 있는 항목은 grid — 아이콘 = 글자 줄 높이 (`1lh`, M 18 · L 20), 라벨 줄에 맞춤, 간격 `text-to-visual` (6/14 em), 좌측은 항목 여백 (`edge-to-text`).
+- **ja · zh frame 안 Text 서체**: frame `locale` 이 frame 서체만 바꾸고, 안의 Text 는 문서 서체를 inline 으로 써서 Pretendard 로 남았다. Text 의 상속 서체를 가장 가까운 언어 (frame · 사이트) 로 고른다 — Canvas 와 Preview 모두 S2 일본어 · 중국어 서체.
+
+검증: unit — `s2DisclosureHeaderAction` (compact) · `selectBoxGroupS2` 2 (가로 · 라벨만 · 그림 없음) · `s2ListBoxItemDetails` 1 · `s2FrameLocaleTextFont` 1 · 엔진 `grid_spanning_item_skips_fixed_tracks`, 갱신 `adr275PositionPredicates` · `drawnBoxModel` · parity `selectionComposites` (그림 없는 상자 84 → S2 80). 원복 RED — TS 8행 · 엔진 2행 모두 RED. 스위트 — builder · shared · rendering · parity 88 파일 · 엔진 528. live `s2-remaining-diffs-live` 6/6 (Canvas = Preview: compact 버튼 XS, SelectBox 라벨 y 32 · 설명 y 56 · 라벨만 상자 86, ListBox 아이콘 18 · 간격 6 · 라벨 줄, ja Text `adobe-clean-han-japanese`, page error 0).
+
 ## [Text 의 HTML tag — 제목은 Text 의 h 태그 · Font Size 의 Heading 묶음 = h1 ~ h6] - 2026-11-25
 
 사용자 「heading 은 XS ~ XL 사이즈 지정이 아닌 h 태그로 되는 것이 맞지 않나 · 퍼블리싱 때도 span 이 아닌 h 태그」 → 「컴포넌트를 추가하면 컴포넌트가 또 늘어난다 · Text 컴포넌트 프로퍼티에 Tag 옵션」 → 「진행해」 → 「tag 를 h 로 바꾸면 Font Size 의 heading 도 XS ~ XL 이 아니라 h tag 의 사이즈로」 → 「1번으로 진행」. Text 탭 Font Size 메뉴가 어떤 노드에나 「Heading XS ~ XL」 을 내놓아, Text 에 고르면 제목처럼 보여도 Publish 에서 `span` 이었다. Heading 컴포넌트는 팔레트에 없어 (템플릿 안 제목만) 사용자가 h 요소를 놓을 길이 없었다.

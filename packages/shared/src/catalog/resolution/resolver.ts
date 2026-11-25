@@ -66,6 +66,7 @@ import {
   CATALOG_SIZE_PROPAGATION,
   CATALOG_OVERFLOW_MODE_OWNERS,
   CATALOG_SIZE_STEP,
+  CATALOG_SIZE_STEP_COMPACT,
   CATALOG_SIZE_CONTEXT_OF,
   CATALOG_OWNER_CONTEXT_PROPS,
 } from "../document/sizePropagation";
@@ -2578,7 +2579,13 @@ export function resolveCatalogNode(
     )
       return;
     // (A child whose rule names the owner's look one step apart — `CATALOG_SIZE_STEP`.)
+    // (A compact owner may step further — `CATALOG_SIZE_STEP_COMPACT`.)
     const size =
+      (owner!.props.density === "compact"
+        ? CATALOG_SIZE_STEP_COMPACT[ownerName]?.[definition.name]?.[
+            String(ownerSize)
+          ]
+        : undefined) ??
       CATALOG_SIZE_STEP[ownerName]?.[definition.name]?.[String(ownerSize)] ??
       ownerSize;
     const choices =

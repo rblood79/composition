@@ -321,10 +321,9 @@ it("public SelectBox keeps selection Checkbox presentational and options keyboar
     expect(h.host.querySelectorAll("input")).toHaveLength(0);
     expect(options[0].dataset.orientation).toBe("horizontal");
     expect(options[0].getBoundingClientRect().width).toBe(368);
-    // S2 rows `min-content 2 min-content` take 23 · 23 from the 48 illustration spanning them; the
-    // rule writes that as the rows' floor (the Canvas engine does not size rows from a spanning
-    // item), so a box without an illustration is 84 where S2 is 80 (checklist §6 — remaining).
-    expect(options[0].getBoundingClientRect().height).toBe(84);
+    // S2 (2026-11-25 대조): a box without an illustration takes the tracks `min-content` — the
+    // description in an implicit `1fr` row — so it is the box's 80 minimum, as S2's.
+    expect(options[0].getBoundingClientRect().height).toBe(80);
     const unselectedBorder = getComputedStyle(options[1]).borderColor;
     options[1].focus();
     await act(async () => {

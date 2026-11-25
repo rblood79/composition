@@ -264,6 +264,7 @@ import {
   catalogCollectionSeparatorHidden,
   catalogPaginationPartHidden,
   catalogColumnMenuIconHidden,
+  catalogItemHasSelectionMark,
 } from "./presence";
 import {
   catalogGroupSelection,
@@ -4589,22 +4590,11 @@ function hasSelectionMark(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): boolean {
-  return node.children.some((id) => {
-    const child = root.domInputs.get(id);
-    return (
-      !!child &&
-      !catalogPickerSelectionHidden(
-        child,
-        (id) => root.domInputs.get(id),
-        root.typeOf,
-      ) &&
-      (child.props.slot === "selection" ||
-        (!!child?.showWhen &&
-          catalogStateConditions(child.showWhen).some(
-            (condition) => condition.key === "isSelected" && !condition.not,
-          )))
-    );
-  });
+  return catalogItemHasSelectionMark(
+    node,
+    (id) => root.domInputs.get(id),
+    root.typeOf,
+  );
 }
 
 /** An item's text: its Text children's without a slot name (a Tag's · GridListItem's label). */

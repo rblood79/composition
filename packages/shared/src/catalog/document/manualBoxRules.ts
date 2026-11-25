@@ -381,10 +381,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   //   text steps the ListBoxItem rule's `sizeSelectors`, the description's color
   //   `catalogListBoxDescriptionColor`.
   // Item slot roles: the Preview puts `slot` on an item child only inside a ListBox
-  // (`itemSlotAttr`), hence the owner is the ListBox, through the item. The icon (`ListBox.css`
-  // `[slot="icon"]`) absolutely placed at `left: --spacing-md`, vertically centred (`top: 50%;
-  // translateY(-50%)`), `--lb-icon-size` 16px square. The item's matching `padding-left`
-  // (`:has([slot=icon])`) is the presence value `catalogItemSlotInset`.
+  // (`itemSlotAttr`), hence the owner is the ListBox, through the item. An item with an icon is S2's
+  // grid (`ListBox.css` `:has(> [slot="icon"])` — `CATALOG_LIST_BOX_ITEM_ICON_GRID`, the presence value
+  // `catalogItemIconGrid`): the icon `1lh` in the label's row, `text-to-visual` before the text.
   ListBox: () => {
     const descSize = textPx("text-xs");
     const parts: CompiledPartRule[] = [
@@ -1142,23 +1141,63 @@ function listBoxItemParts(): CompiledPartRule[] {
       childType: "Text",
       via: "ListBoxItem",
       childProps: { slot: "label" },
-      layout: {},
+      // (An item with an icon is S2's grid — the text in the second column, `catalogListBoxItemIconGrid`.)
+      layout: { gridColumnStart: "2" },
       visual: { fontWeight: 500 },
     },
     {
-      childType: "Icon",
+      childType: "Text",
       via: "ListBoxItem",
-      childProps: { slot: "icon" },
-      layout: {
-        position: "absolute",
-        insetLeft: "12px",
-        insetTop: "50%",
-        marginTop: "-8px",
-      },
-      visual: { width: 16, height: 16, iconSize: 16 },
+      childProps: { slot: "description" },
+      layout: { gridColumnStart: "2" },
+      visual: {},
     },
+    // S2 `Menu.tsx` `icon` (Picker · ComboBox items — `listboxItem`'s `icon` area): `size: '1lh'` — the
+    //   item text's line — and `marginEnd: 'text-to-visual'` (6/14 em, touch 8/17), in the label's row
+    //   (`ListBox.css` — the item's grid when it holds an icon). Per item size: its text step's refs.
+    ...Object.entries(sizesOf("ListBoxItem")).flatMap(
+      ([size, values]): CompiledPartRule[] => {
+        const step = /^\{typography\.(text-[\w-]+)\}$/.exec(
+          String(values.fontSize ?? ""),
+        )?.[1];
+        if (!step) return [];
+        const line = `{length.typography.${step}--line-height*1/1}`;
+        const gap = `{length.typography.${step}*6/14~8/17}`;
+        const linePx = resolveToken(line as TokenRef);
+        const gapPx = resolveToken(gap as TokenRef);
+        if (typeof linePx !== "number" || typeof gapPx !== "number") return [];
+        return [
+          {
+            childType: "Icon",
+            via: "ListBoxItem",
+            viaProps: { size },
+            childProps: { slot: "icon" },
+            layout: {
+              gridColumnStart: "1",
+              gridRowStart: "1",
+              marginRight: `${gapPx}px`,
+            },
+            layoutRefs: { marginRight: gap },
+            visual: { width: line, height: line, iconSize: line },
+          },
+        ];
+      },
+    ),
   ];
 }
+
+/**
+ * `ListBox.css` — an item holding an icon (not a selection-mark row) is S2's `listboxItem` grid: the
+ * icon's column (`auto`) beside the text's (`minmax(0, 1fr)`), the rows centred in the item, no column
+ * gap (the icon's own `text-to-visual` margin). The Canvas's engine input for that item.
+ */
+export const CATALOG_LIST_BOX_ITEM_ICON_GRID = {
+  display: "grid",
+  gridTemplateColumns: "auto minmax(0, 1fr)",
+  alignContent: "center",
+  alignItems: "center",
+  columnGap: "0px",
+} as const;
 
 /**
  * Item types whose label Text takes the item's color: `TabsIndicator.css` / `TagGroup.css`

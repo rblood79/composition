@@ -114,14 +114,15 @@
   padding-right: 24px;
   display: grid;
   grid-template-columns: min-content 10px minmax(0, 1fr);
-  grid-template-rows: minmax(23px, auto) 2px minmax(23px, auto);
+  grid-template-rows: min-content 2px min-content;
+  grid-auto-rows: 1fr;
   gap: 0px;
   justify-content: flex-start;
 }
 
 .react-aria-SelectBox[data-orientation="horizontal"] > [slot="illustration"] {
   grid-column: 1;
-  grid-row: 1 / 4;
+  grid-row: 1 / 3;
   align-self: center;
   justify-self: center;
 }
@@ -137,9 +138,17 @@
 
 .react-aria-SelectBox[data-orientation="horizontal"] > [slot="description"] {
   grid-column: 3;
-  grid-row: 3;
+  grid-row: 2;
   align-self: center;
   text-align: start;
+}
+
+.react-aria-SelectBox[data-orientation="horizontal"]:has([slot="label"]):not(:has([slot="description"])) > [slot="illustration"] {
+  grid-row: 1 / 2;
+}
+
+.react-aria-SelectBox[data-orientation="horizontal"]:not(:has([slot="illustration"])) {
+  grid-template-rows: min-content;
 }
 
 

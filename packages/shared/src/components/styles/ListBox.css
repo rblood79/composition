@@ -21,6 +21,19 @@
  * data-empty / Header 는 `:empty` / 자식 selector 필요 → 수동 유지 (Section 사이 간격은 catalog
  * ListBox rule 의 `staticSelectors` — Canvas 도 같은 값을 읽는다, 2026-10-12)
  */
+/* The item's own font and line, as lengths (registered — computed on the item, inherited as px): its
+ * icon carries its glyph size as its font, so the icon's `1em` · `1lh` are not the item's. */
+@property --lb-item-font {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 16px;
+}
+@property --lb-item-line {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 20px;
+}
+
 @layer components {
   /* ========== ListBox :empty + Header (Generator 커버 불가 — 자식 selector) ========== */
   .react-aria-ListBox {
@@ -101,35 +114,50 @@
       color: var(--fg-muted);
     }
 
-    /* 실제 selection 부품 행의 icon은 저작 Layout에 따른다. 아래 absolute/gutter는
-     * 기존 icon 배치만 담당한다.
-     * ADR-147: icon slot — 좌측 절대 위치(Skia 절대 좌표 paint 와 D3 대칭).
-     * ADR-148: 크기는 --lb-icon-size — icon slot 자식 style.fontSize 가 있으면 렌더러가
-     * 행 스코프에 주입 (Skia iconSize 채널과 대칭), 기본 16px. */
-    &:not([data-selection-mark]) [slot="icon"] {
-      position: absolute;
-      left: var(--spacing-md);
-      top: 50%;
-      transform: translateY(-50%);
+    /* S2 `Menu.tsx` `icon` (Picker · ComboBox items — `listboxItem`): `size: '1lh'` — the item text's
+     * line (`--lb-item-line`) — and `marginEnd: 'text-to-visual'` (`--lb-item-font`)
+     * (6/14 em, touch 8/17). `--lb-icon-size` (ADR-148): an authored icon font size, the renderer's.
+     * Canvas: the ListBox part rules (`manualBoxRules.ts` `listBoxItemParts`). */
+    --lb-item-font: 1em;
+    --lb-item-line: 1lh;
+
+    [slot="icon"] {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: var(--lb-icon-size, 16px);
-      height: var(--lb-icon-size, 16px);
+      width: var(--lb-icon-size, var(--lb-item-line));
+      height: var(--lb-icon-size, var(--lb-item-line));
+      margin-inline-end: calc(
+        var(--lb-item-font) *
+          (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch, 0))
+      );
       color: inherit;
       pointer-events: none;
 
-      /* ADR-234 Phase 3d — 정적 항목의 icon 자식 (`.react-aria-Icon[slot="icon"]` 직계 svg) 은 상자를 채운다
-       * (이관 전 행은 `<Icon fontSize 16>` 로 같은 크기를 그렸다). */
+      /* ADR-234 Phase 3d — 정적 항목의 icon 자식 (`.react-aria-Icon[slot="icon"]` 직계 svg) 은 상자를 채운다. */
       & > svg {
         width: 100%;
         height: 100%;
       }
     }
 
-    /* icon 존재 시 텍스트 영역 좌측 여백 확보(Skia textX = paddingX + iconSize + 6 와 정합). */
-    &:not([data-selection-mark]):has([slot="icon"]) {
-      padding-left: calc(var(--spacing-md) + var(--lb-icon-size, 16px) + 6px);
+    /* An item holding an icon (no selection mark — a picker's option's parts are its own Layout) is S2's
+     * `listboxItem` grid: the icon's column beside the text's, the icon in the label's row, the rows
+     * centred (Canvas `CATALOG_LIST_BOX_ITEM_ICON_GRID` · `catalogItemIconGrid`). */
+    &:not([data-selection-mark]):has(> [slot="icon"]) {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-content: center;
+      align-items: center;
+      column-gap: 0;
+
+      & > [slot="icon"] {
+        grid-area: 1 / 1;
+      }
+
+      & > :not([slot="icon"]) {
+        grid-column: 2;
+      }
     }
 
     /* ADR-147: selection-indicator slot — 우측 체크마크(Skia check shape 와 대칭). */

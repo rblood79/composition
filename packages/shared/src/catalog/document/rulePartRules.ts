@@ -2237,6 +2237,53 @@ const SELECT_BOX_SLOT_TYPES: Readonly<Record<string, string>> = {
 };
 
 /**
+ * S2 `selectBoxStyles`' blocks keyed on the parts a box holds (`SelectBoxGroup.tsx:96-97` — `labelOnly`
+ * · `noIllustration`): the orientation block's `nested` entries `&:has([slot="a"]):not(:has([slot="b"]))`,
+ * on the box (`target` absent) or a slotted part (`> [slot="…"]`). The DOM sheet matches them as CSS;
+ * the Canvas evaluates the same entries by the slots the box shows (`catalogSelectBoxContentStyle`).
+ */
+export function catalogSelectBoxContentBlocks(orientation: string): Array<{
+  present: string[];
+  absent: string[];
+  target?: string;
+  styles: Readonly<Record<string, string>>;
+}> {
+  const block = containerVariantsOf(COMPONENT_RULES_TABLE.SelectBox)
+    ?.orientation?.[orientation];
+  return (block?.nested ?? []).flatMap((entry) => {
+    const match =
+      /^&((?::not\(:has\(\[slot="[\w-]+"\]\)\)|:has\(\[slot="[\w-]+"\]\))+)(?:\s*>\s*\[slot="([\w-]+)"\])?$/.exec(
+        entry.selector.trim(),
+      );
+    if (!match) return [];
+    const present: string[] = [];
+    const absent: string[] = [];
+    for (const [, not, slot] of match[1]!.matchAll(
+      /(:not\()?:has\(\[slot="([\w-]+)"\]\)\)?/g,
+    ))
+      (not ? absent : present).push(slot!);
+    return [
+      {
+        present,
+        absent,
+        ...(match[2] ? { target: match[2] } : {}),
+        styles: entry.styles ?? {},
+      },
+    ];
+  });
+}
+/** The orientation block's own declarations (the box's base grid — `grid-auto-rows` …). */
+export function catalogSelectBoxOrientationStyles(
+  orientation: string,
+): Readonly<Record<string, string>> {
+  return (
+    containerVariantsOf(COMPONENT_RULES_TABLE.SelectBox)?.orientation?.[
+      orientation
+    ]?.styles ?? {}
+  );
+}
+
+/**
  * The SelectBox's orientation blocks — the group's `orientation` (S2 `SelectBoxContext`): the box
  * itself, and through it (`via`) its slotted children's grid places (`nested` `> [slot="…"]`).
  */

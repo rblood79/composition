@@ -262,14 +262,6 @@
     color: var(--fg-disabled);
   }
 
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"] {
-    left: var(--spacing-xl);
-  }
-
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:not([data-selection-mark]):has([slot="icon"]) {
-    padding-left: calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px);
-  }
-
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-Header {
     display: block;
     margin: 0;

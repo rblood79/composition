@@ -218,6 +218,17 @@ const CONTEXTUAL_HELP_SIZE_OWNERS = [
 const CONTROL_TEXT_STEP = { XS: "XS", S: "XS", M: "S", L: "M", XL: "L" };
 
 /**
+ * Owner type → child type → the child's size when the owner's `density` is `compact` — read
+ * before `CATALOG_SIZE_STEP`. S2 `Disclosure.tsx:269-274`: the title row's ActionButtons shift two
+ * sizes down for compact (one for regular · spacious) so the button keeps space in the shorter row.
+ */
+export const CATALOG_SIZE_STEP_COMPACT: Readonly<
+  Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
+> = {
+  Disclosure: { ActionButton: { S: "XS", M: "XS", L: "S", XL: "M" } },
+};
+
+/**
  * Owner type → child type → the child's size for each owner size, where the child's rule names
  * the same look one step apart. An owner size missing here passes as is.
  */
@@ -268,7 +279,7 @@ export const CATALOG_SIZE_STEP: Readonly<
     Text: { S: "XS", M: "S", L: "M" },
   },
   // 2026-11-24 S2 대조 — S2 `DisclosureHeader`: the ActionButtons beside the title are one size below the
-  //   Disclosure's (S2 shifts two for `compact` — not followed: the step reads the size only).
+  //   Disclosure's (two for `compact` — `CATALOG_SIZE_STEP_COMPACT`).
   Disclosure: { ActionButton: { S: "XS", M: "S", L: "M", XL: "L" } },
   // 2026-11-24: a Table's cell · column words and a Tree row's words take S2 `controlFont()`.
   Cell: { Text: CONTROL_TEXT_STEP },

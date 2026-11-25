@@ -49,6 +49,13 @@ async function open() {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
+      // (Text boxes of a line each — the S2 grid's rows are the parts' heights.)
+      textMeasure: (value, font) => ({
+        width: value.length * font.fontSize * 0.5,
+        exactWidth: value.length * font.fontSize * 0.5,
+        minWidth: value.length * font.fontSize * 0.5,
+        height: font.fontSize * (font.lineHeight || 1.2),
+      }),
     },
   );
   workspace.execute(
@@ -203,12 +210,73 @@ describe("SelectBoxGroup — S2 grid and box elevation", () => {
       fontWeight: 700,
     });
     expect(textOf("description").visual.textAlign).toBe("start");
-    // The 48 illustration spans the rows (each 23 — the browser's share of it, the rows' floor):
-    // it starts at the content top; each text line is centred in its row.
+    // S2 1.8.2 (Chromium, 2026-11-25): the areas are two rows (`illustration . label` ·
+    // `illustration . description`) over the tracks `min-content 2px min-content` — the 48
+    // illustration spans the first two, so the label's row is 46 and the description sits centred on
+    // the 2px row (the third track is empty).
     expect(icon.y).toBe(18);
     expect(scene.rect(box.id).height).toBe(18 + 48 + 18);
-    expect(label.y + label.height / 2).toBe(18 + 23 / 2);
-    expect(description.y + description.height / 2).toBe(18 + 23 + 2 + 23 / 2);
+    expect(label.y + label.height / 2).toBe(18 + 46 / 2);
+    expect(description.y + description.height / 2).toBe(18 + 46 + 1);
+  });
+
+  it("horizontal: S2's label-only and no-illustration grids (`:has` — the parts the box shows)", async () => {
+    const scene = await open();
+    scene.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: GROUP }],
+        props: { orientation: { kind: "set", value: "horizontal" } },
+      }),
+    );
+    const box = () => scene.ofType("SelectBox")[0];
+    // (Every box alike — the group's row is the tallest box's.)
+    const write = (props: Record<string, string>) =>
+      scene.workspace.execute(
+        setFields({
+          targets: scene.ofType("SelectBox").map((each) => ({
+            kind: "node" as const,
+            id: each.sourceId as NodeId,
+          })),
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set" as const, value },
+            ]),
+          ),
+        }),
+      );
+    const part = (slot: string) =>
+      scene.rect(
+        box().children.find(
+          (child) =>
+            scene.workspace.root.canvasInputs.get(child)!.props.slot === slot,
+        )!,
+      );
+    const shown = (slot: string) =>
+      !scene.workspace.root.canvasInputs.get(
+        box().children.find(
+          (child) =>
+            scene.workspace.root.canvasInputs.get(child)!.props.slot === slot,
+        )!,
+      )!.hidden;
+    // Label only: the areas are one row — the illustration's 48 is the label's row.
+    write({ description: "" });
+    expect(shown("description")).toBe(false);
+    expect(part("label").y + part("label").height / 2).toBe(18 + 48 / 2);
+    expect(scene.rect(box().id).height).toBe(18 + 48 + 2 + 18);
+    // No illustration: the tracks are `min-content` — the label at the top, the description in an
+    // implicit `1fr` row that fills the box's 80 minimum (S2 `gridAutoRows: 1fr`).
+    write({ description: "Description", icon: "" });
+    expect(shown("illustration")).toBe(false);
+    expect(part("label")).toMatchObject({ x: 2 + 32 + 10, y: 18 });
+    expect(scene.rect(box().id).height).toBe(80);
+    expect(part("description").y + part("description").height / 2).toBe(
+      18 + 18 + (80 - 36 - 18) / 2,
+    );
+    // Neither: the label alone at the top.
+    write({ description: "" });
+    expect(part("label").y).toBe(18);
+    expect(scene.rect(box().id).height).toBe(80);
   });
 
   it("the Canvas draws the state-tree elevation: elevated selected, emphasized at rest", async () => {

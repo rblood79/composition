@@ -176,12 +176,14 @@ export const SELECT_BOX_RULE: ComponentRule = {
               },
             ],
           },
-          // S2 `selectBoxStyles` horizontal: a grid — the illustration in the first column across the
-          // rows, a 10px gutter, the label over the description (a 2px row between) in the last, each
-          // centred in its row (`labelText` · `descriptionText` `alignSelf: center`). S2's rows are
-          // `min-content 2 min-content`; the 48 illustration (`minSize: 48`) spanning them makes the
-          // browser give each text row (48 − 2) / 2 = 23 — written here as the rows' floor, which the
-          // Canvas engine does not derive from a spanning item.
+          // S2 `selectBoxStyles` horizontal (`SelectBoxGroup.tsx:164-185`): a grid — the areas
+          // `illustration . label` · `illustration . description` over the tracks
+          // `min-content 2 min-content` (`gridAutoRows: 1fr`), a 10px gutter. The areas are two rows,
+          // so the 48 illustration spans the first two tracks — the label's row is 46 and the
+          // description sits centred on the 2px row (Chromium, 2026-11-25). The `:has` blocks below are
+          // S2's: label only — one area row; no illustration — tracks `min-content`, the description
+          // in an implicit `1fr` row. The Canvas reads them by the parts the box shows
+          // (`catalogSelectBoxContentLayout`).
           horizontal: {
             styles: {
               width: "368px",
@@ -196,7 +198,8 @@ export const SELECT_BOX_RULE: ComponentRule = {
               "padding-right": "24px",
               display: "grid",
               "grid-template-columns": "min-content 10px minmax(0, 1fr)",
-              "grid-template-rows": "minmax(23px, auto) 2px minmax(23px, auto)",
+              "grid-template-rows": "min-content 2px min-content",
+              "grid-auto-rows": "1fr",
               gap: "0px",
               "justify-content": "flex-start",
             },
@@ -205,7 +208,7 @@ export const SELECT_BOX_RULE: ComponentRule = {
                 selector: '> [slot="illustration"]',
                 styles: {
                   "grid-column": "1",
-                  "grid-row": "1 / 4",
+                  "grid-row": "1 / 3",
                   "align-self": "center",
                   "justify-self": "center",
                 },
@@ -225,10 +228,19 @@ export const SELECT_BOX_RULE: ComponentRule = {
                 selector: '> [slot="description"]',
                 styles: {
                   "grid-column": "3",
-                  "grid-row": "3",
+                  "grid-row": "2",
                   "align-self": "center",
                   "text-align": "start",
                 },
+              },
+              {
+                selector:
+                  '&:has([slot="label"]):not(:has([slot="description"])) > [slot="illustration"]',
+                styles: { "grid-row": "1 / 2" },
+              },
+              {
+                selector: '&:not(:has([slot="illustration"]))',
+                styles: { "grid-template-rows": "min-content" },
               },
             ],
           },

@@ -80,5 +80,28 @@ it("an ActionButton beside the title is one size below the Disclosure and quiet 
   // (The Preview's RAC button carries the same.)
   const button = h.element(header);
   expect(button?.getAttribute("data-size")).toBe("M");
+  // S2 `Disclosure.tsx:273` — compact shifts the title row's buttons two sizes down (L → S, M → XS).
+  act(() => {
+    h.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: disclosure }],
+        props: { density: { kind: "set", value: "compact" } },
+      }),
+    );
+  });
+  h.flush();
+  expect(props(header)?.size).toBe("S");
+  expect(props(inPanel)?.size).toBe("M");
+  expect(h.element(header)?.getAttribute("data-size")).toBe("S");
+  act(() => {
+    h.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: disclosure }],
+        props: { size: { kind: "set", value: "M" } },
+      }),
+    );
+  });
+  h.flush();
+  expect(props(header)?.size).toBe("XS");
   h.view.unmount();
 });

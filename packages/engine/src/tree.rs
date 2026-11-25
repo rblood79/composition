@@ -7221,18 +7221,49 @@ fn spread_spanning_contributions(
         .collect();
     plain.sort_by_key(|(_, span, _)| *span);
     for &&(start, span, contribution) in &plain {
-        let range = start.min(n)..(start + span).min(n);
-        let count = range.len();
-        if count == 0 {
-            continue;
-        }
-        let have: f32 = sizes[range.clone()].iter().sum::<f32>() + gap * (count as f32 - 1.0);
-        let extra = contribution - have;
-        if extra > 0.0 {
-            for i in range {
-                sizes[i] += extra / count as f32;
+        distribute_spanning_extra(tokens, sizes, start.min(n)..(start + span).min(n), contribution, gap);
+    }
+}
+
+/// §12.5.1 — 걸친 트랙 + gap 보다 기여가 큰 만큼을 걸친 트랙 중 **content 크기 트랙** (min 자리가
+/// 고정 길이가 아닌 트랙) 에만 균등 분배한다. 고정 트랙 (`2px`) 은 늘지 않는다 — S2 SelectBox
+/// 가로 `min-content 2px min-content` 를 걸친 48 그림 → 46 · 2 (종전: 고정 행에도 나눠 24 · 2).
+fn distribute_spanning_extra(
+    tokens: &[String],
+    sizes: &mut [f32],
+    range: std::ops::Range<usize>,
+    contribution: f32,
+    gap: f32,
+) {
+    let count = range.len();
+    if count == 0 {
+        return;
+    }
+    let fixed = |i: usize| {
+        tokens
+            .get(i)
+            .is_some_and(|t| matches!(split_track_sizing(t).0, SizingFn::Definite(_)))
+    };
+    // (A fixed track counts at its length, not its items' contributions — the definite axis keeps
+    //  the contributions of a `2px` track's item in `sizes`.)
+    let have: f32 = range
+        .clone()
+        .map(|i| {
+            if fixed(i) {
+                tokens.get(i).and_then(|t| parse_px(t)).unwrap_or(sizes[i])
+            } else {
+                sizes[i]
             }
-        }
+        })
+        .sum::<f32>()
+        + gap * (count as f32 - 1.0);
+    let extra = contribution - have;
+    if extra <= 0.0 {
+        return;
+    }
+    let content: Vec<usize> = range.filter(|&i| !fixed(i)).collect();
+    for &i in &content {
+        sizes[i] += extra / content.len() as f32;
     }
 }
 
@@ -7266,18 +7297,7 @@ fn grow_tracks_for_spanning_items(
         .collect();
     plain.sort_by_key(|(_, span, _)| *span);
     for &&(start, span, contribution) in &plain {
-        let range = crossed(start, span);
-        let count = range.len();
-        if count == 0 {
-            continue;
-        }
-        let have: f32 = sizes[range.clone()].iter().sum::<f32>() + gap * (count as f32 - 1.0);
-        let extra = contribution - have;
-        if extra > 0.0 {
-            for i in range {
-                sizes[i] += extra / count as f32;
-            }
-        }
+        distribute_spanning_extra(tokens, sizes, crossed(start, span), contribution, gap);
     }
     // §12.7.1 — fr 를 지나는 아이템: 지금 fr 크기와 아이템 후보 중 큰 값으로 fr 트랙을 다시 세운다.
     let mut fraction: f32 = 0.0;
@@ -11394,6 +11414,37 @@ mod tests {
             assert_eq!(tree.get_layout(root).height, 96.0, "{rows}: container = the spanning item");
             assert_eq!(tree.get_layout(handles[2]).y, second_y, "{rows}: second row y");
         }
+    }
+
+    /// 걸친 아이템의 모자란 만큼은 **content 크기 트랙에만** 나눈다 (CSS-GRID-1 §12.5.1 — 고정 트랙
+    /// 은 늘지 않는다). S2 SelectBox 가로 (2026-11-25, Chromium): `min-content 2px min-content`
+    /// 에서 48 그림이 1 · 2 행을 걸치면 행 = 46 · 2 · 0 (종전: 고정 2px 행에도 나눠 24 · 2).
+    #[test]
+    fn grid_spanning_item_skips_fixed_tracks() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"48px","height":"48px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"3"},"children":[]},
+            {"style":{"height":"18px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2","alignSelf":"center"},"children":[]},
+            {"style":{"height":"18px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"2","gridRowEnd":"3","alignSelf":"center"},"children":[]},
+            {"style":{"display":"grid","width":"300px","gridTemplateColumns":["min-content","1fr"],"gridTemplateRows":["min-content","2px","min-content"]},"children":[0,1,2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        let root = handles[3];
+        tree.compute_layout(root, 300.0, -1.0);
+        assert_eq!(tree.get_layout(root).height, 48.0, "rows 46 + 2 + 0");
+        assert_eq!(tree.get_layout(handles[1]).y, 14.0, "label centred in the 46 row");
+        assert_eq!(tree.get_layout(handles[2]).y, 38.0, "description centred on the 2px row");
+        // The same box as a grid item: its height is definite (48) when its parent places it — the
+        // fixed 2px track counts at 2, not at the description's 18 (it was 30 · 2 · 16).
+        let mut tree = LayoutTree::new();
+        let nested = json.replace(
+            r#"{"style":{"display":"grid","width":"300px""#,
+            r#"{"style":{"display":"grid","height":"48px","width":"300px""#,
+        );
+        let handles = tree.build_tree_batch(&nested).unwrap();
+        tree.compute_layout(handles[3], 300.0, 48.0);
+        assert_eq!(tree.get_layout(handles[1]).y, 14.0, "definite: label centred in the 46 row");
+        assert_eq!(tree.get_layout(handles[2]).y, 38.0, "definite: description on the 2px row");
     }
 
     /// auto 트랙 기여값은 자식 **자신의 min/max** 로 clamp 된다 (CSS-GRID-1 §12.5).

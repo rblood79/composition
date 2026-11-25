@@ -184,7 +184,7 @@ describe("catalogDrawnBoxModel — the box the layout draws", () => {
 
 /**
  * Phase 2 (2026-11-13): a placement the Canvas lays over a record from its sheet — a Tree chevron's
- * level indent (`Tree.css`), a ListBox item's icon inset (`ListBox.css` `:has([slot=icon])`) — is a
+ * level indent (`Tree.css`), a ListBox item's icon grid (`ListBox.css` `:has(> [slot=icon])`) — is a
  * default; the DOM inlines what the author wrote over it, so the Canvas layout takes it too.
  */
 describe("a sheet placement yields to the authored value", () => {
@@ -215,15 +215,21 @@ describe("a sheet placement yields to the authored value", () => {
     expect(inputOf(workspace, chevron.id).paddingLeft).toBe("30px");
   });
 
-  it("a ListBox item's icon inset", async () => {
+  // (2026-11-25 S2 대조: an item with an icon is S2's grid — the icon in flow at the item's own start
+  //  padding, no inset added; the authored padding is the item's.)
+  it("a ListBox item with an icon (its grid)", async () => {
     const workspace = await open("listbox");
     const item = [...workspace.root.domInputs.values()].find(
       (record) =>
         workspace.root.typeOf(record) === "ListBoxItem" &&
-        inputOf(workspace, record.id).paddingLeft === "34px",
+        inputOf(workspace, record.id).display === "grid",
     )!;
+    expect(inputOf(workspace, item.id).paddingLeft).not.toBe("30px");
     writePaddingLeft(workspace, item.id);
-    expect(inputOf(workspace, item.id).paddingLeft).toBe("30px");
+    expect(inputOf(workspace, item.id)).toMatchObject({
+      display: "grid",
+      paddingLeft: "30px",
+    });
   });
 });
 

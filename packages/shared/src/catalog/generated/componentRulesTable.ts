@@ -8685,16 +8685,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               '.react-aria-ListBoxItem[data-disabled] [slot="description"]': {
                 color: "var(--fg-disabled)",
               },
-              // (The item's icon after the check's 24 — the sheet's general icon is 12 in.)
-              '.react-aria-ListBoxItem:not([data-selection-mark]) [slot="icon"]':
-                {
-                  left: "var(--spacing-xl)",
-                },
-              '.react-aria-ListBoxItem:not([data-selection-mark]):has([slot="icon"])':
-                {
-                  "padding-left":
-                    "calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px)",
-                },
+              // (An item's icon sits in its grid after the check's 24 — the item's start padding; `ListBox.css`.)
               ".react-aria-Header": {
                 display: "block",
                 margin: "0",

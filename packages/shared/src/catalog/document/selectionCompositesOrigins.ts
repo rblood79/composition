@@ -327,6 +327,8 @@ export const SELECTION_COMPOSITE_TEMPLATES: readonly LibraryTemplateNode[] = [
       children: "{description}",
     },
     visual: {},
+    // (S2: no `description` — no description element; the label-only grid follows.)
+    presentWhen: "nonEmptyText",
   },
   {
     id: "lib:template:component-actionbutton",
