@@ -11,6 +11,7 @@ import {
 import { numToPx, firstDefined } from "../utils/styleValueHelpers";
 import { useColorStyleValues } from "./useColorStyleValues";
 import { isTokenValue } from "../../../components/property/PropertyUnitInput.runtime";
+import { catalogTextHeadingLevel } from "../../../../../../../packages/shared/src/catalog/document/textElementType";
 
 export interface TypographyStyleValues {
   fontFamily: string;
@@ -42,6 +43,25 @@ export interface TypographyStyleValues {
   textBehaviorPreset: string;
   /** 글자 크기가 작성값이 아니라 record 의 실효값이다. */
   isFontSizeFromPreset?: boolean;
+  /**
+   * 제목 요소면 그 종류와 level (Heading 의 `level` — 없으면 RAC 의 3 · HTML tag `h1`~`h6` 인 Text) — Font
+   * Size 의 h 단계가 이때만 보이고, 고르면 이 종류의 prop 을 바꾼다 (2026-11-25).
+   */
+  headingTag?: { kind: "Heading" | "Text"; level: number };
+}
+
+/** The heading element a node is (Font Size h steps) — a Heading's level, a Text's h tag. */
+function headingTagOf(
+  type: string | undefined,
+  props: Readonly<Record<string, unknown>>,
+): TypographyStyleValues["headingTag"] {
+  if (type === "Heading")
+    return {
+      kind: "Heading",
+      level: typeof props.level === "number" ? props.level : 3,
+    };
+  const level = type === "Text" ? catalogTextHeadingLevel(props) : undefined;
+  return level === undefined ? undefined : { kind: "Text", level };
 }
 
 function deriveTextBehaviorPreset(
@@ -195,6 +215,10 @@ export function useTypographyValues(
         overflow,
       ),
       isFontSizeFromPreset,
+      headingTag: headingTagOf(
+        colorValues.context.type,
+        colorValues.context.props ?? {},
+      ),
     };
   }, [id, colorValues]);
 }

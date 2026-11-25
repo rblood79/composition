@@ -157,6 +157,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     keepPinnedRows: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },
+  // (사용자 결정 2026-11-25: RAC `Text`'s element — S2 `Text` omits it; `textElementType.ts`.)
+  Text: { elementType: "rac" },
   TextArea: { isQuiet: "v3", rows: "composition" },
   TextField: { isQuiet: "v3" },
   TimeField: { isQuiet: "v3" },

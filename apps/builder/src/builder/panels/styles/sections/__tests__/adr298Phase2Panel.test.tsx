@@ -204,37 +204,102 @@ describe("ADR-298 Phase 2 — Effect", () => {
   });
 });
 
+/** Opens the Font Size preset menu and reads its group names. */
+async function fontSizeGroups(container: HTMLElement): Promise<string[]> {
+  const size = field(container, "font-size");
+  const buttons = within(size).getAllByRole("button");
+  await act(async () => {
+    fireEvent.click(buttons[buttons.length - 1]!);
+  });
+  return Array.from(
+    document.querySelectorAll(".property-unit-input-popover [role='group']"),
+    (group) => group.getAttribute("aria-label") ?? "",
+  );
+}
+
 describe("ADR-298 Phase 2 — Text", () => {
-  it("Font Size offers Body and Heading groups; Heading M stores the token and Line Height is auto", async () => {
-    const { fixture, view } = await renderWith(TypographySection, [
+  // 2026-11-25 사용자 결정: a heading is the Heading component's `<h1>`~`<h6>` (its Level) — a
+  //   Heading size on a Text would look like a heading and stay a `span` in Publish.
+  it("Font Size on a Text offers the Body group only", async () => {
+    const { view } = await renderWith(TypographySection, [
       { id: "t", type: "Text", props: { children: "Hello" } },
     ]);
-    const size = field(view.container, "font-size");
-    const buttons = within(size).getAllByRole("button");
-    await act(async () => {
-      fireEvent.click(buttons[buttons.length - 1]!);
-    });
-    const groups = Array.from(
-      document.querySelectorAll(".property-unit-input-popover [role='group']"),
-      (group) => group.getAttribute("aria-label"),
+    expect(await fontSizeGroups(view.container)).toEqual(["Body"]);
+    expect(
+      document.querySelector('[role="option"][aria-label="Heading M"]'),
+    ).toBeNull();
+  });
+
+  // (2026-11-25 「Text 에 Tag 옵션」 → 「1번으로 진행」: a heading element's Heading steps are h1 ~ h6 at
+  //  its parent's font — 16 on the page — and picking one changes its tag, dropping a written size.)
+  const headingOptions = () =>
+    Array.from(
+      document.querySelectorAll(
+        ".property-unit-input-popover [role='group'][aria-label='Heading'] [role='option']",
+      ),
+      (option) => option.textContent,
     );
-    expect(groups).toEqual(["Body", "Heading"]);
+
+  it("Font Size on a Text tagged h2: the Heading steps are h1 ~ h6 at the parent's 16", async () => {
+    const { view } = await renderWith(TypographySection, [
+      {
+        id: "t",
+        type: "Text",
+        props: { children: "Hello", elementType: "h2" },
+      },
+    ]);
+    expect(await fontSizeGroups(view.container)).toEqual(["Body", "Heading"]);
+    expect(headingOptions()).toEqual([
+      "h1 · 32",
+      "h2 · 24",
+      "h3 · 18.72",
+      "h4 · 16",
+      "h5 · 13.28",
+      "h6 · 10.72",
+    ]);
+  });
+
+  it("picking h1 changes the Text's HTML tag and drops its written font size, one step", async () => {
+    const { fixture, view } = await renderWith(TypographySection, [
+      {
+        id: "t",
+        type: "Text",
+        props: { children: "Hello", elementType: "h2" },
+        style: { fontSize: "12px" },
+      },
+    ]);
+    await fontSizeGroups(view.container);
     await act(async () => {
       fireEvent.click(
-        document.querySelector('[role="option"][aria-label="Heading M"]')!,
+        document.querySelector('[role="option"][aria-label="Heading h1"]')!,
       );
     });
-    expect(visualOf(fixture, "t").fontSize).toEqual(
-      tokenSet("lib:token:typography_text-heading-md"),
-    );
-    expect((within(size).getByRole("combobox") as HTMLInputElement).value).toBe(
-      "H M",
-    );
-    // Phase 5: the field reads 「auto」 and the step's paired line height is its title
-    const line = field(view.container, "line-height");
-    const lineInput = within(line).getByRole("combobox") as HTMLInputElement;
-    expect(lineInput.value).toBe("auto");
-    expect(lineInput.title).toBe("auto · 26");
+    expect(fixture.nodeOf("t").props.elementType).toEqual({
+      kind: "set",
+      value: "h1",
+    });
+    expect(visualOf(fixture, "t").fontSize).toBeUndefined();
+    expect(
+      (
+        within(field(view.container, "font-size")).getByRole(
+          "combobox",
+        ) as HTMLInputElement
+      ).value,
+    ).toBe("32");
+  });
+
+  it("on a Heading, picking h4 changes its level", async () => {
+    const { fixture, view } = await renderWith(TypographySection, [
+      { id: "t", type: "Heading", props: { children: "Hello" } },
+    ]);
+    // (RAC's h3 by default — 16 × 1.17.)
+    expect(await fontSizeGroups(view.container)).toEqual(["Body", "Heading"]);
+    await act(async () => {
+      fireEvent.click(
+        document.querySelector('[role="option"][aria-label="Heading h4"]')!,
+      );
+    });
+    expect(fixture.nodeOf("t").props.level).toEqual({ kind: "set", value: 4 });
   });
 });
 

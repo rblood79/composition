@@ -154,6 +154,7 @@ import {
 
 import { catalogTokenValue } from "../document/themedToken";
 import { catalogFrameElementType } from "../document/frameElementType";
+import { catalogTextElementType } from "../document/textElementType";
 import { CatalogMainFrame, CatalogPageBody } from "./pageMain.components";
 
 import type { DefinitionId, StateName, TokenId } from "../document/types";
@@ -1457,6 +1458,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                 : {}),
               style,
             };
+            // (The author's HTML tag — RAC `Text` `elementType`, `textElementType.ts`.)
+            const element = catalogTextElementType(node.props);
             const text =
               catalogTextRunsContent(
                 node.textRuns,
@@ -1471,7 +1474,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                 : text;
             return detachedSlot(resolution)
               ? createElement(
-                  "span",
+                  element,
                   {
                     ...props,
                     ...(resolution.kind === "unconnected" && resolution.slot
@@ -1489,9 +1492,11 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                 )
               : createElement(
                   Text,
-                  { ...props, ...racSlotProps(resolution) } as Parameters<
-                    typeof Text
-                  >[0],
+                  {
+                    ...props,
+                    ...(element !== "span" ? { elementType: element } : {}),
+                    ...racSlotProps(resolution),
+                  } as Parameters<typeof Text>[0],
                   words,
                 );
           },

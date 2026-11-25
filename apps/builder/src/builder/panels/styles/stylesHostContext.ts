@@ -85,6 +85,11 @@ export interface StylesHost {
    * as 「Mixed」 when reading the node as a whole). Empty for a plain text.
    */
   useTextRunAxes?(id: string | null): readonly string[];
+  /**
+   * The font size a record's parent gives it (the DOM's inheritance) — the Font Size menu's h steps
+   * are this × the h rule's scale (2026-11-25). Follows layout.
+   */
+  useParentFontSize?(id: string | null): number | undefined;
   /** The parent record of a record (its layout decides the size modes on offer). */
   useParentId(id: string | null): string | null;
   /** A record's parent box layout: `display` and `flexDirection` (fill availability, size mode). */

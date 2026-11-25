@@ -199,7 +199,10 @@ export function tokenChipLabel(
   const step = /([a-z0-9]+)\)$/.exec(
     trimmed.replace(/--line-height\)$/, ")"),
   )?.[1];
-  return step ? (STEP_LABELS[step] ?? step) : undefined;
+  // (An S2 heading font token the menu no longer offers — 2026-11-25, h steps instead — keeps its
+  //  「H」 so it does not read as the Body step of the same name.)
+  const label = step ? (STEP_LABELS[step] ?? step) : undefined;
+  return label && /text-heading-/.test(trimmed) ? `H ${label}` : label;
 }
 
 function getCssVariableValue(value: string): string | undefined {

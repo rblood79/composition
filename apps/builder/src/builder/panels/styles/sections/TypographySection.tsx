@@ -11,7 +11,10 @@
 import { memo, useCallback, useMemo } from "react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
-import { FONT_SIZE_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
+import {
+  FONT_SIZE_PRESET_OPTIONS,
+  headingTagFontSizePresets,
+} from "../../../components/property/propertyUnitPresets";
 import { PropertyColor } from "../../../components/property/PropertyColor";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import {
@@ -120,6 +123,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   // a key some run sets reads 「Mixed」 and a write sets node + runs (사용자 결정 3).
   const editor = useTextEditorHandle(selectedId);
   const runAxes = host.useTextRunAxes?.(selectedId) ?? [];
+  const parentFontSize = host.useParentFontSize?.(selectedId);
   const styleValues = useMemo(() => {
     if (!nodeValues) return nodeValues;
     const range = editor?.marks();
@@ -217,6 +221,25 @@ const TypographySectionContent = memo(function TypographySectionContent() {
 
   if (!styleValues) return null;
 
+  // 2026-11-25 (사용자 「1번으로 진행」): a heading element's Heading steps are h1 ~ h6 at its parent's
+  //   font — picking one changes its tag (a Heading's `level` · a Text's HTML tag) and drops a written
+  //   font size, one step; Reset goes back to the tag's size.
+  const headingTag = styleValues.headingTag;
+  const fontSizePresets =
+    headingTag && parentFontSize !== undefined
+      ? [
+          ...FONT_SIZE_PRESET_OPTIONS,
+          ...headingTagFontSizePresets(parentFontSize, (level) =>
+            host.updatePropertiesWithStyles(
+              headingTag.kind === "Heading"
+                ? { level }
+                : { elementType: `h${level}` },
+              { fontSize: "" },
+            ),
+          ),
+        ]
+      : FONT_SIZE_PRESET_OPTIONS;
+
   const isBold = Number(styleValues.fontWeight) >= 600;
   // (A mixed range — 「Mixed」 — is neither on.)
   const isItalic =
@@ -267,7 +290,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         {...(sizeMixed ? { placeholder: localize("Mixed") } : {})}
         units={["reset", "px"]}
         defaultUnit="px"
-        presets={FONT_SIZE_PRESET_OPTIONS}
+        presets={fontSizePresets}
         presetAriaLabel={localize("Font size presets")}
         onChange={handleTextMetricCommit}
         onDragCancel={cancelStylePreview}

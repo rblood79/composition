@@ -50,6 +50,7 @@ import {
 import { catalogWaterfallLayout } from "./waterfall";
 import { installedBaseText, installedBaseFontFamily } from "./themeMaps";
 import { catalogHeadingFontScale, catalogHeadingLevel } from "./headingFont";
+import { catalogTextHeadingLevel } from "../document/textElementType";
 import {
   DEFAULT_BASE_TYPOGRAPHY,
   catalogLocaleFontFamily,
@@ -2844,6 +2845,21 @@ export class CatalogCompositionRoot {
       ? this.recordStyle(record, (key) => this.records.get(key), true)
       : undefined;
   }
+  /**
+   * The font size a record's parent gives it — the DOM's inheritance (`domFont`: the nearest declared
+   * size up the chain, else the document's base text). The Font Size menu's h steps read it: an `h`
+   * element is this × its scale (2026-11-25).
+   */
+  parentFontSize(id: string): number {
+    const get = (key: string) => this.records.get(key);
+    const parentId = this.records.get(id)?.parentId;
+    const parent = parentId ? get(parentId) : undefined;
+    return (
+      (parent
+        ? domFont(parent, get, (each) => this.declaredFont(each, get))?.fontSize
+        : undefined) ?? installedBaseText().fontSize
+    );
+  }
   /** Settled engine input for incremental consumers, including derived layout and rewrap. */
   getAppliedLayoutInput(id: string): string | undefined {
     return this.layout.getAppliedStyle(id);
@@ -4747,6 +4763,11 @@ export class CatalogCompositionRoot {
     const font = parent
       ? domFont(parent, get, (each) => this.declaredFont(each, get))
       : undefined;
+    // (A Text tagged `h1`~`h6` is the browser's h element — its scale and bold, `textElementType.ts`.)
+    const textHeadingLevel =
+      record.bindingId === "text"
+        ? catalogTextHeadingLevel(record.props)
+        : undefined;
     for (const key of missing)
       out[key] =
         key === "fontSize"
@@ -4758,10 +4779,14 @@ export class CatalogCompositionRoot {
                         this.typeOf(each),
                       ),
                     )
-                  : 1) *
+                  : textHeadingLevel !== undefined
+                    ? catalogHeadingFontScale(textHeadingLevel)
+                    : 1) *
                 1000,
             ) / 1000
-          : (font?.fontWeight ?? 400);
+          : textHeadingLevel !== undefined
+            ? 700
+            : (font?.fontWeight ?? 400);
     // (No line height down the chain either: the DOM root's — `installedBaseText`, as `catalogStrut`.)
     if (
       !(Number(record.visual.lineHeight) > 0) &&

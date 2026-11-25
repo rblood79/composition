@@ -17,7 +17,7 @@ import {
 import { BorderSection } from "../BorderSection";
 import { EffectSection } from "../EffectSection";
 import { TypographySection } from "../TypographySection";
-import { FONT_SIZE_PRESET_OPTIONS } from "../../../../components/property/propertyUnitPresets";
+import { tokenToCSSVar, type TokenRef } from "@composition/rendering";
 
 afterEach(cleanup);
 
@@ -59,7 +59,8 @@ describe("ADR-298 Phase 5 — mock rows", () => {
         props: { children: "Hello" },
         // the panel's token text (`panelTokens` writes the TokenUse)
         style: {
-          fontSize: FONT_SIZE_PRESET_OPTIONS.find((p) => p.id === "heading-lg")!.value,
+          // (An S2 heading font token — the menu offers h steps since 2026-11-25; a stored token stays.)
+          fontSize: tokenToCSSVar("{typography.text-heading-lg}" as TokenRef),
         },
       },
     ]);

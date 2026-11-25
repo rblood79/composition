@@ -1,3 +1,4 @@
+import { TEXT_ELEMENT_TYPE_PROP } from "../document/textElementType";
 import type { PrimitiveBinding } from "../types";
 
 /**
@@ -16,8 +17,10 @@ import type { PrimitiveBinding } from "../types";
  *   height=0 순수 텍스트라 lineHeight 가 측정 본질 → buildCatalogShapes lineHeight push 보강
  *   (2026-06-04)으로 catalog 측정 경로의 fontSize*1.5 fallback drift 해소.
  *
- * D1: RAC `Text` `<span>` (internal source — 전용 DomBinding).
+ * D1: RAC `Text` — `elementType` 이 요소를 고른다 (기본 `<span>`, internal source — 전용 DomBinding).
  * D2: children 편집 surface — `size` 는 owner context 전용 (S2 `Text` 에 없는 prop, 2026-11-24).
+ *   `elementType` (HTML tag — span · p · h1~h6) 은 RAC `Text` 의 prop (S2 에 없음, 사용자 결정 2026-11-25 —
+ *   제목은 컴포넌트를 늘리지 않고 Text 의 tag 로, `textElementType.ts`).
  * D3: 시각(텍스트 색/크기/lineHeight)은 theme rule(COMPONENT_RULES_TABLE.Text).
  */
 export const textBinding: PrimitiveBinding = {
@@ -36,6 +39,9 @@ export const textBinding: PrimitiveBinding = {
         section: "appearance",
         editorHidden: true,
       },
+      // 사용자 결정 2026-11-25 — the HTML element the Text is (RAC `Text` `elementType`,
+      //   `textElementType.ts`): a heading is a Text with an `h1`~`h6` tag.
+      elementType: TEXT_ELEMENT_TYPE_PROP,
     },
     toRacProps: "default",
   },

@@ -167,11 +167,13 @@ function textDefinition(
   if (!registration || registration.kind !== "primitive")
     throw new Error(`CODE_CATALOG_REGISTRATION_MISSING:${type}`);
   const props = registration.binding.props.accepts;
-  // A Heading also takes its S2 `level` (the heading element — `<h1>`~`<h6>`, no visual).
+  // A Heading also takes its S2 `level` (the heading element — `<h1>`~`<h6>`, no visual), a Text its
+  // RAC `elementType` (its HTML tag — `textElementType.ts`, 사용자 결정 2026-11-25).
   const keys = [
     "children",
     "size",
     ...(type === "Heading" ? ["level"] : []),
+    ...(type === "Text" ? ["elementType"] : []),
     ...(catalogHasSlotContract(type) ? ["slot"] : []),
   ]
     .sort()
@@ -182,7 +184,8 @@ function textDefinition(
     Object.keys(props).sort().join(",") !== keys ||
     props.children.kind !== "string" ||
     props.size.kind !== "size" ||
-    (type === "Heading" && props.level?.kind !== "number")
+    (type === "Heading" && props.level?.kind !== "number") ||
+    (type === "Text" && props.elementType?.kind !== "enum")
   )
     throw new Error(`CODE_CATALOG_BINDING_UNSUPPORTED:${type}`);
   const rule = COMPONENT_RULES_TABLE[type];
@@ -214,6 +217,7 @@ function textDefinition(
       children: props.children.kind,
       size: "string",
       ...(props.level ? { level: "number" as const } : {}),
+      ...(props.elementType ? { elementType: "string" as const } : {}),
     },
     // (S2 `Text` · `Heading` — `inheritsFont`: no size of its own (a Text no weight either); the
     //  parent's font reaches it.)

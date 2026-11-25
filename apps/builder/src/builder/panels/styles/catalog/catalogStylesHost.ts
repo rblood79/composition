@@ -1001,6 +1001,14 @@ export function createCatalogStylesHost(
         // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
       }, [id, version]);
     },
+    useParentFontSize(id) {
+      const version = useCatalogLayoutVersion(workspace);
+      return useMemo(
+        () => (id ? workspace.root.parentFontSize(id) : undefined),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
+        [id, version],
+      );
+    },
     useParentLayout(id) {
       const version = useCatalogLayoutVersion(workspace);
       return useMemo(() => {

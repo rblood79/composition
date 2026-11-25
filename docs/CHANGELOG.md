@@ -13,6 +13,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Text 의 HTML tag — 제목은 Text 의 h 태그 · Font Size 의 Heading 묶음 = h1 ~ h6] - 2026-11-25
+
+사용자 「heading 은 XS ~ XL 사이즈 지정이 아닌 h 태그로 되는 것이 맞지 않나 · 퍼블리싱 때도 span 이 아닌 h 태그」 → 「컴포넌트를 추가하면 컴포넌트가 또 늘어난다 · Text 컴포넌트 프로퍼티에 Tag 옵션」 → 「진행해」 → 「tag 를 h 로 바꾸면 Font Size 의 heading 도 XS ~ XL 이 아니라 h tag 의 사이즈로」 → 「1번으로 진행」. Text 탭 Font Size 메뉴가 어떤 노드에나 「Heading XS ~ XL」 을 내놓아, Text 에 고르면 제목처럼 보여도 Publish 에서 `span` 이었다. Heading 컴포넌트는 팔레트에 없어 (템플릿 안 제목만) 사용자가 h 요소를 놓을 길이 없었다.
+
+### Added
+
+- **Text 의 「HTML tag」 칸** (Property 탭 Behavior — `span` (기본) · `p` · `h1` ~ `h6`): RAC `Text` 의 `elementType` 으로 Preview · Publish 요소가 바뀐다. 컴포넌트를 늘리지 않는다 (frame 의 HTML tag 와 같은 방식 — 키 · 라벨 같음). slot 역할이 있는 부품 Text (라벨 · 설명) 에는 칸이 없다. 값이 없으면 칸에 `span` 이 보이고 문서 · 코드 보기에는 아무것도 쓰지 않는다 (`defaultWhen` — `default` 로 두면 모든 Text 의 해석 props 에 실려 코드 보기가 `<Text elementType="span">` 을 썼다, builder unit 23 실패로 확인).
+  - Canvas 는 브라우저와 같이 그린다 — `h1` ~ `h6` 은 부모 글자 × h 배수 (h1 2 · h2 1.5 …) · bold 700, `p` 는 부모 글자 (`compositionRoot.ts` `inheritedFontOf` — Heading 과 같은 `headingFont.ts`). 작성한 글자 크기 · 굵기가 이긴다.
+  - D2: S2 `Text` 에 없는 RAC prop — `d2Provenance.ts` `Text.elementType: "rac"`. 위치: `catalog/document/textElementType.ts` · `Text.binding.ts` · `domBinding.runtime.ts` · `codeCatalogLibrary.ts` (Text 정의가 받는 prop)
+  - Heading 컴포넌트는 그대로 — Dialog 제목처럼 RAC `Heading slot="title"` 이 대화상자 이름을 잇는 자리에 남는다.
+
+### Changed
+
+- **Font Size 메뉴의 Heading 묶음 = h1 ~ h6, 제목 요소에만** — Heading 노드와 HTML tag 가 `h1` ~ `h6` 인 Text 에서 「h1 · 32 · h2 · 24 …」 (부모 글자 × h 배율 — 부모 20 이면 h1 · 40) 를 보이고, 고르면 태그가 바뀐다 (Text 는 HTML tag, Heading 은 `level`) — 직접 쓴 글자 크기는 같은 편집에서 지운다 (Undo 한 번). 「Reset」 은 지금 태그의 크기. 그 밖의 노드는 Body XS ~ XL 만.
+  - **Why**: 메뉴의 옛 Heading XS ~ XL 은 S2 제목 글꼴 토큰 (18 · 20 · 22 · 28 · 36) 이라 태그와 따로 놀았다 — h2 인데 18 이 되거나, `span` 에 주면 제목처럼 보여도 화면 읽기 프로그램 · 검색엔진에 제목이 아니었다.
+  - 이미 저장된 제목 토큰은 그대로 그려지고 칸에는 「H L」 처럼 보인다 (마이그레이션 없음).
+  - 위치: `propertyUnitPresets.ts` `headingTagFontSizePresets` · 프리셋 `onSelect` (`PropertyUnitInput.components.tsx`) · `TypographySection.tsx` · 부모 글자 크기 `compositionRoot.ts` `parentFontSize` (host `useParentFontSize`)
+
+### Tests
+
+- `textElementType.test.tsx` — 칸 목록 · slot 숨김, DOM 태그 (span · h2 · p), Canvas h2 = 24 · 700, tag 편집 · Undo, 작성값 우선. 원복 RED 3 (DOM · Canvas 두 곳을 되돌림).
+- `adr298Phase2Panel.test.tsx` — Font Size 묶음: Text = Body, h2 Text = h1 · 32 … h6 · 10.72, h1 고름 = HTML tag h1 + 직접 쓴 크기 삭제, Heading 의 h4 = `level` 4. 원복 RED 2 (프리셋 `onSelect` 를 끔).
+- live (Playwright · 5173): Property 「HTML tag」 칸에서 h2 를 고름 → 문서 `elementType` h2 · Canvas 24 · 700 (상자 높이 36) · Font Size 메뉴 Body · Heading · slot Text 는 칸 없음 · Publish `<h2 class="react-aria-Text">` 24px · 700 (높이 36) · 기본 Text `<span>` · page error 0. h 단계: 글자 20 frame 안 h2 Text 의 메뉴 = h1 · 40 … h6 · 13.4 (현재 h2 체크) · 12 를 쓴 뒤 h1 → tag h1 · 직접 쓴 크기 없음 · Canvas 40 · 700 · 칸 40 · Undo 한 번에 h2 · 12 · Publish `<h1>` 40px · 700 · page error 0.
+
 ## [배포 재개 — Builder 번들 상한 재승인 · RAC 정적 조회] - 2026-11-25
 
 사용자 「번들 재측정 진행해」 → 「1안과 RAC 동적 조회 수정을 함께 진행해」. gh-pages 배포가 2026-11-03 `c826549b4` 뒤 멈춰 있었다 — 배포 workflow 의 「Initial bundle ceiling」 단계가 `bbca53c78` (Builder 1,421,465 > 그때 상한 1,414,000) 부터 실패했다. 11-16 의 상한 갱신 (1,435,351) 은 Phase 증가분만 더해 실제 값 (그때 이미 1,550,233) 보다 낮았다.

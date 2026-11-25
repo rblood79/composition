@@ -818,6 +818,12 @@ export const PropertyUnitInputControl = memo(
                   (candidate) => candidate.id === String(key),
                 );
                 if (!preset) return;
+                // (A preset that acts — a Font Size h step changes the heading element, not the value.)
+                if (preset.onSelect) {
+                  syncAfterPresetRef.current = true;
+                  preset.onSelect();
+                  return;
+                }
 
                 syncAfterPresetRef.current = true;
                 const newValue = getPresetCommitValue(preset);
