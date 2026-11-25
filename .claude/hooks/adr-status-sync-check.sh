@@ -145,7 +145,7 @@ $( [ -n "$LIVE_LIST" ] && printf 'Live Exercise 근거 없음 (CLAUDE.md §완�
    - 서브섹션 이름: Added / Changed / Removed / Fixed / Performance / Tests / Documentation / Infrastructure (Breaking Changes 는 있으면 최상단)
    - 'Why:' 한 줄 포함 (단순 'X가 Y로 변경됨' 금지)
 3. Live Exercise — 다음 중 하나로 실제 builder 에서 무엇을 exercise 했는지 기록:
-   - ADR 본문에 \`### Live Exercise\` 절 (시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분)
+   - ADR 본문에 \`### Live Exercise\` 절 (시나리오 · 결과 · 날짜 · 브라우저 도구 / 사용자 confirm 구분)
    - docs/adr/evidence/NNN-*live*.md 파일
    - run ledger: pnpm agent:run -- evidence live-exercise pass --detail "<무엇을 exercise 했는지>" --artifact artifacts/<증거 파일>  (run 폴더 artifacts/ 에 저장 → Read → 기록)
 

@@ -202,7 +202,7 @@ Proposed — YYYY-MM-DD
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분. Stop hook 은 작업 트리에 남은 미커밋 승격만 검사한다 — 승격과 커밋을 한 턴에 하면 검사가 돌지 않으므로 커밋 전에 이 절을 직접 확인한다)
+(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · 브라우저 도구 / 사용자 confirm 구분. Stop hook 은 작업 트리에 남은 미커밋 승격만 검사한다 — 승격과 커밋을 한 턴에 하면 검사가 돌지 않으므로 커밋 전에 이 절을 직접 확인한다)
 
 ## Consequences
 
@@ -222,7 +222,7 @@ ADR 작성 후 아래를 자가 검증한다. 하나라도 실패하면 해당 �
 - [ ] 구현 상세가 ADR 본문이 아닌 design 문서에 있는가? (또는 구현 상세가 불필요한 수준인가?)
 - [ ] **Risks 섹션이 Decision 뒤 / Gates 앞에 있고, ID 표 형식으로 잔존 운영 위험을 집약했는가?** (또는 "잔존 HIGH 위험 없음" 명시)
 - [ ] Gate가 있거나, "잔존 HIGH 위험 없음"이 명시되어 있는가?
-- [ ] (Implemented 승격 시) `### Live Exercise` 절에 시나리오 · 결과 · 날짜 · Chrome MCP/사용자 confirm 구분이 있는가? — 대안: `docs/adr/evidence/NNN-*live*.md` 또는 run ledger `live-exercise pass` 기록. 없으면 `adr-status-sync-check.sh` 가 block — 미커밋 승격에만 (같은 턴에 커밋하면 검사가 돌지 않는다)
+- [ ] (Implemented 승격 시) `### Live Exercise` 절에 시나리오 · 결과 · 날짜 · 브라우저 도구/사용자 confirm 구분이 있는가? — 대안: `docs/adr/evidence/NNN-*live*.md` 또는 run ledger `live-exercise pass` 기록. 없으면 `adr-status-sync-check.sh` 가 block — 미커밋 승격에만 (같은 턴에 커밋하면 검사가 돌지 않는다)
 
 ### 반복 패턴 선차단
 

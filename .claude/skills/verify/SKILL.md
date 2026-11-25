@@ -44,7 +44,8 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
   - 렌더 · catalog · 스타일 패널 변경 → [cross-check](../cross-check/SKILL.md) — 영향 컴포넌트마다 Canvas ↔ Preview 를 같은 상태에서 비교 (family 는 컴포넌트마다 반복).
   - 사용자 흐름 · 상태 · 패널 · 저장 변경 → [evaluate](../evaluate/SKILL.md) — 요소는 팔레트 클릭 · Properties 편집으로 심고, 저장 변경은 새로고침 hydration 까지.
   - 둘 다 닿으면 둘 다. 각 skill 의 관찰 규칙 (foreground RAF · 스크린샷 · Compare Mode 함정) 을 그대로 따릅니다.
-- **Chrome MCP 를 쓸 수 없으면** headed Playwright 하니스 (`apps/builder/scripts/<주제>-live.mjs`, `BUILDER_URL`) 또는 사용자 confirm 으로 대체하고, 어느 수단이었는지 적습니다. 둘 다 불가능하면 BLOCKED 로 적고 미검증 범위를 명시해 커밋 여부를 사용자에게 넘깁니다.
+- **브라우저 도구**는 [evaluate](../evaluate/SKILL.md) §브라우저 도구 — 기본 chrome-devtools-mcp, 사용자 Chrome 상태가 필요할 때만 Claude in Chrome.
+- **브라우저 도구를 쓸 수 없으면** headed Playwright 하니스 (`apps/builder/scripts/<주제>-live.mjs`, `BUILDER_URL`) 또는 사용자 confirm 으로 대체하고, 어느 수단이었는지 적습니다. 둘 다 불가능하면 BLOCKED 로 적고 미검증 범위를 명시해 커밋 여부를 사용자에게 넘깁니다.
 
 ### 판정 — PASS · FAIL · BLOCKED
 
@@ -57,15 +58,15 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
 ## 4. 보고와 커밋
 
 `### Live Exercise` 절에 그대로 옮길 수 있는 형태로 적습니다 — 날짜 · 시나리오 · 결과 (PASS/FAIL/BLOCKED 수) · 수단
-(Chrome MCP / Playwright / 사용자 confirm) · 콘솔 오류 수. "무엇을 실제로 exercise 했는지" 를 씁니다 (test 개수 나열 금지).
+(chrome-devtools-mcp / Claude in Chrome / Playwright / 사용자 confirm) · 콘솔 오류 수. "무엇을 실제로 exercise 했는지" 를 씁니다 (test 개수 나열 금지).
 
 - FAIL 이 있으면 커밋하지 않고 `/fix` 로 root cause 부터 — 증상 수정 금지.
 - BLOCKED 가 남으면 PASS 로 세지 않습니다. 미검증 범위를 적고 커밋 여부를 사용자에게 넘깁니다.
 - run 이 열려 있으면 ledger 에도 같은 판정을 남깁니다. 순서는 셋입니다:
   1. 관찰한 것을 run 폴더 `artifacts/` 에 파일로 저장합니다 (`.agent/runs/<현재 run>/artifacts/` — 스크린샷 ·
-     console 덤프 · 상태 JSON · 하니스 출력 중 아무거나). Chrome MCP 스크린샷은 `save_to_disk: true` 로 찍고
-     ([evaluate](../evaluate/SKILL.md) §관찰) 돌아온 임시 경로의 파일을 `artifacts/` 로 복사합니다. `scale` 을 주면
-     저장 파일도 그만큼 작아지니 증거용은 `scale` 없이 찍습니다.
+     console 덤프 · 상태 JSON · 하니스 출력 중 아무거나). devtools 스크린샷은 `filePath` 에 `artifacts/` 경로를
+     바로 줍니다. Claude in Chrome 스크린샷은 `save_to_disk: true` 로 찍고 ([evaluate](../evaluate/SKILL.md) §브라우저 도구)
+     돌아온 임시 경로의 파일을 `artifacts/` 로 복사합니다 — `scale` 을 주면 저장 파일도 그만큼 작아지니 증거용은 `scale` 없이 찍습니다.
   2. 그 파일을 Read 로 엽니다 — `track-evidence-read.sh` 가 읽은 사실을 run 에 남깁니다.
   3. `pnpm agent:run -- evidence live-exercise pass --detail "<무엇을>" --artifact artifacts/<파일>`.
 

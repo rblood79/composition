@@ -69,8 +69,8 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합한가" 만 확인한다 — live behavior 는 검증하지 않는다. ADR Implemented 승격 또는 task "완료" 선언 전:
 
-- 사용자-가시 동작 (registration / resolved-tree wiring / schema / 렌더) 을 **실제 builder 에서** Chrome MCP 또는 사용자 confirm 으로 1회 exercise.
-- Chrome MCP 가 연결되지 않으면 Playwright 로 exercise 한다 — live 확인 없이 「수정 완료」 로 보고하지 않는다.
+- 사용자-가시 동작 (registration / resolved-tree wiring / schema / 렌더) 을 **실제 builder 에서** 브라우저 도구 또는 사용자 confirm 으로 1회 exercise. 브라우저 도구 기본은 chrome-devtools-mcp, 사용자 Chrome 의 프로젝트 · 상태가 필요할 때만 Claude in Chrome — 선택 · 인증 · 스크린샷 규칙은 `.claude/skills/evaluate/SKILL.md` §브라우저 도구.
+- 브라우저 도구가 연결되지 않으면 Playwright 로 exercise 한다 — live 확인 없이 「수정 완료」 로 보고하지 않는다.
 - 완료 보고에 **무엇을 실제로 exercise 했는지** 명시 (test 개수만 나열 금지).
 - 테스트 실패가 보이면 원인을 내 변경에 돌리기 전에 HEAD 에서도 실패하는지 대조한다 (다단계 ADR 은 시작 전 커밋과도 — 메모리 `feedback-head-baseline-hides-earlier-phase-regression`).
 - 재확인 범위 = 바뀐 범위 — toolbar 만 바꿨으면 화면 전체를 다시 찍지 않는다 (메모리 `feedback-verification-scope-matches-change-scope`).

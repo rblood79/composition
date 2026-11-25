@@ -10,8 +10,27 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
 기준이 없으면 변경에서 영향을 받는 사용자 흐름을 도출합니다.
 
 현재 dev 서버와 대상 탭을 확인합니다. dev 서버는 5173 (병렬 worktree 는 `vite --port 5174` — [verify](../verify/SKILL.md) 의 서버 항목. `DEV_PORTS` 는 `pnpm dev:kill` 이 끌 포트만 정합니다),
-브라우저 도구는 세션에 있는 것을 씁니다. 로컬 실행이 요청 범위에
+브라우저 도구는 아래 §브라우저 도구 를 따릅니다. 로컬 실행이 요청 범위에
 포함되면 기존 설정으로 서버를 실행해 확인합니다. 실행할 수 없으면 이유와 미검증 범위를 남깁니다.
+
+## 브라우저 도구
+
+verify · cross-check 도 이 절을 따릅니다 (2026-11-25 사용자 결정).
+
+- **기본 = chrome-devtools-mcp** (`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`). 전용 프로필
+  (`~/.cache/chrome-devtools-mcp/chrome-profile`) 로 Chrome 창을 따로 띄우므로 사용자 탭을 건드리지 않고,
+  CPU throttle 없이 시작합니다. 성능 trace · heap snapshot · Lighthouse · source map 이 적용된 콘솔 stack 도 여기 있습니다.
+- **Claude in Chrome** (`mcp__claude-in-chrome__*`) 은 사용자 Chrome 의 프로젝트 · 상태를 그대로 봐야 할 때,
+  사용자가 자기 화면에서 지켜볼 때, 사용자가 이 도구를 지정할 때만 씁니다. `navigate` 에 tabId 를 빼면 사용자 탭이 이동합니다.
+- **인증**: 전용 프로필은 처음에 `/signin` 으로 돌아갑니다. 코드는 입력하지 않습니다.
+  `apps/builder/scripts/.auth-session.json` (하니스 storageState, gitignore) 의 `localStorage` 항목을 `evaluate_script` 로 넣은 뒤
+  `/dashboard` 로 이동합니다. 프로필이 다음 실행에도 남으므로 한 번이면 됩니다.
+- **스크린샷 · snapshot 파일**: devtools 의 `take_screenshot` · `take_snapshot` 은 `filePath` 를 줘야 파일로 남습니다.
+  경로는 저장소 안이어야 합니다 (예: `.agent/runs/<run>/artifacts/`) — scratchpad 는 workspace root 밖이라 거부됩니다.
+  Claude in Chrome 의 `screenshot` · `zoom` 은 `save_to_disk: true` 를 붙입니다 (빼면 hook 이 넣지만 auto mode 에서는 한 번 반려됩니다).
+- **throttle**: 사용자 체감과 맞춰야 하면 devtools `emulate` 의 `cpuThrottlingRate: 4` (사용자 Chrome 설정과 같음).
+- **병렬 세션**: 전용 프로필은 한 번에 브라우저 하나만 씁니다. 다른 세션이 쓰고 있어 열리지 않으면
+  Claude in Chrome 또는 Playwright 하니스로 바꾸고 수단에 적습니다.
 
 ## 진입과 입력
 
@@ -34,8 +53,7 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
 
 - Canvas·시각 결과는 foreground 또는 활성 RAF가 확인된 환경에서 측정합니다.
   hidden 탭의 stale overlay를 시각 근거로 사용하지 않습니다. Skia 캔버스 픽셀은 페이지 안에서
-  읽을 수 없으므로 스크린샷을 찍어 분석합니다. Chrome MCP 의 `screenshot` · `zoom` 은 `save_to_disk: true` 를
-  붙여 찍습니다 (파일로 남아 증거로 쓸 수 있습니다 — 빼면 hook 이 넣지만 auto mode 에서는 한 번 반려됩니다). Compare Mode 에서 한쪽 전체 픽셀이 필요하면 손잡이를
+  읽을 수 없으므로 스크린샷을 찍어 분석합니다. 스크린샷은 파일로 남깁니다 (§브라우저 도구 — 증거로 씁니다). Compare Mode 에서 한쪽 전체 픽셀이 필요하면 손잡이를
   끝으로 옮깁니다 (경계 위치가 보이는 영역을 정합니다).
 - 상태 변경은 Inspector·Canvas·Preview 반영과 Undo/Redo를 관련 범위에서 확인합니다.
 - 컴포넌트 자식·slot·조건부 표시가 바뀌면 [RAC 조립 계약](../composition-patterns/rules/domain-rac-composition.md)의
@@ -52,6 +70,6 @@ BLOCKED 는 결함도 통과도 아닙니다 — 막힌 이유와 풀 방법을 
 재시도는 실행별 증거 폴더를 사용해 첫 실패의 로그·결과·스크린샷을 덮어쓰지 않습니다.
 
 결과는 ADR 의 `### Live Exercise` 절에 그대로 옮길 수 있는 형태로 적습니다 — 날짜 · 시나리오 ·
-결과 (PASS/FAIL/BLOCKED 수) · 수단 (Chrome MCP / Playwright / 사용자 confirm) · 콘솔 오류 수 ·
-CPU throttle 상태 (사용자 Chrome 은 4x 가 걸려 있어 체감 수치가 하니스의 약 4배).
+결과 (PASS/FAIL/BLOCKED 수) · 수단 (chrome-devtools-mcp / Claude in Chrome / Playwright / 사용자 confirm) · 콘솔 오류 수 ·
+CPU throttle 상태 (devtools 는 `emulate` 로 건 값 — 없으면 1x. Claude in Chrome 은 사용자 설정 4x 라 체감 수치가 하니스의 약 4배).
 검증만 요청되면 보고하고, 수정까지 요청되면 발견한 범위의 문제도 해결합니다.
