@@ -187,7 +187,7 @@ describe("a Table's cell ranges (ADR-315 Phase 6)", () => {
 
     // The range is two points — rows by their place now: sorted by Type, p1 · p2 are far apart.
     act(() =>
-      t.h.session.setTableState(
+      t.h.session.tables.setTableState(
         [...t.h.session.root!.domInputs.values()].find(
           (record) => record.ruleId === "Table",
         )!.id,

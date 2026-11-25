@@ -110,7 +110,7 @@ async function openGroupedTable(types = 5, tree = false) {
         (child) => root().domInputs.get(child)?.bindingId === "row",
       );
   const set = async (patch: Record<string, unknown>) => {
-    act(() => h.session.setTableState(table().id, patch));
+    act(() => h.session.tables.setTableState(table().id, patch));
     await settle();
   };
   /** RAC's collection as the DOM holds it: each row's key and its depth (`aria-level`). */

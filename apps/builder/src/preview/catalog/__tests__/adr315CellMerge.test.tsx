@@ -144,7 +144,7 @@ async function openTable(users = USERS, virtual = false) {
         }),
       }));
   const set = async (patch: Record<string, unknown>) => {
-    act(() => h.session.setTableState(table().id, patch));
+    act(() => h.session.tables.setTableState(table().id, patch));
     await settle();
   };
   /** The body's row records by their place in the rows shown (a window's or all). */

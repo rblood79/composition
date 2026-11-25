@@ -125,7 +125,7 @@ async function openTable(
   await settle();
   const press = async (key: string, add = false) => {
     act(() => {
-      h.session.pressTableSort(
+      h.session.tables.pressTableSort(
         table().id,
         catalogTableColumnKey(column(key)),
         add,
@@ -133,7 +133,7 @@ async function openTable(
     });
     await settle();
   };
-  const state = () => h.session.tableState(table().id).sort;
+  const state = () => h.session.tables.tableState(table().id).sort;
   /** The headers RAC marks sorted, and the order marks drawn (`<column name>:<order>`). */
   const header = () => {
     const cells = [

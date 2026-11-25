@@ -109,7 +109,7 @@ describe("a virtual Table's search keeps the rows that stay (ADR-315 Phase 3)", 
     const bodyBefore = t.body();
 
     // 「Person」 is in every name: the same 250 rows in the same order.
-    act(() => t.h.session.searchTable(t.table().id, "Person"));
+    act(() => t.h.session.tables.searchTable(t.table().id, "Person"));
     await settle();
     expect(t.body().rowWindow?.keys.length).toBe(250);
     // (The same rows are the same collection to RAC: the body's record is the one it was — a new
@@ -120,7 +120,7 @@ describe("a virtual Table's search keeps the rows that stay (ADR-315 Phase 3)", 
     for (const [index, record] of before) expect(same.get(index)).toBe(record);
 
     // 「Person1」: p1 · p10 ~ p19 · p100 ~ p199 — 111 rows. p1 stays first; the row after it is p10.
-    act(() => t.h.session.searchTable(t.table().id, "Person1"));
+    act(() => t.h.session.tables.searchTable(t.table().id, "Person1"));
     await painted();
     expect(t.body().rowWindow?.keys.length).toBe(111);
     expect(t.body().rowWindow?.keys.slice(0, 3)).toEqual(["p1", "p10", "p11"]);
@@ -133,7 +133,7 @@ describe("a virtual Table's search keeps the rows that stay (ADR-315 Phase 3)", 
 
     // A sort: rows change places — only a row at its old place is kept (none here: descending).
     act(() =>
-      t.h.session.setTableState(t.table().id, {
+      t.h.session.tables.setTableState(t.table().id, {
         sort: [{ column: "name", direction: "descending" }],
       }),
     );
@@ -153,7 +153,7 @@ describe("a virtual Table's search keeps the rows that stay (ADR-315 Phase 3)", 
     expect(t.rows().size).toBe(CATALOG_VIRTUAL_ROW_WINDOW);
 
     // 「Person2」: p2 · p20 ~ p29 · p200 ~ p250 — 62 rows, none at its old place.
-    act(() => t.h.session.searchTable(t.table().id, "Person2"));
+    act(() => t.h.session.tables.searchTable(t.table().id, "Person2"));
     const staged = t.rows();
     expect(t.body().rowWindow?.keys.length).toBe(62);
     expect(staged.size).toBe(14 + 2 * CATALOG_STAGED_ROW_MARGIN);
@@ -173,8 +173,8 @@ describe("a virtual Table's search keeps the rows that stay (ADR-315 Phase 3)", 
     expect(full.get(59)?.props.id).toBe("p248");
 
     // A key typed before the frame paints: the rows in view again — the rest wait for that frame.
-    act(() => t.h.session.searchTable(t.table().id, "Person"));
-    act(() => t.h.session.searchTable(t.table().id, "Person1"));
+    act(() => t.h.session.tables.searchTable(t.table().id, "Person"));
+    act(() => t.h.session.tables.searchTable(t.table().id, "Person1"));
     expect(t.rows().size).toBe(14 + 2 * CATALOG_STAGED_ROW_MARGIN);
     await painted();
     expect(t.rows().size).toBe(CATALOG_VIRTUAL_ROW_WINDOW);
@@ -182,7 +182,7 @@ describe("a virtual Table's search keeps the rows that stay (ADR-315 Phase 3)", 
 
     // Rows in view outside the staged rows (the Table scrolled before the frame): the window moves
     // over them at once, whole.
-    act(() => t.h.session.searchTable(t.table().id, "Person"));
+    act(() => t.h.session.tables.searchTable(t.table().id, "Person"));
     act(() => t.showRows(owner, 100, 113, 250));
     await settle();
     expect(t.rows().size).toBe(CATALOG_VIRTUAL_ROW_WINDOW);

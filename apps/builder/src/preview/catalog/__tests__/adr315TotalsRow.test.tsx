@@ -144,7 +144,7 @@ describe("a Table's totals row (ADR-315 Phase 5 증분 5c)", () => {
     expect(t.dom().body).toBe(5);
     // (The Canvas's totals row: `adr315CanvasGroups.test.ts` — this harness's Builder reads no rows.)
     // A search keeps Bora · Ara (「ra」): the totals follow.
-    act(() => t.h.session.searchTable(t.table().id, "ra"));
+    act(() => t.h.session.tables.searchTable(t.table().id, "ra"));
     await settle();
     expect(t.dom().body).toBe(2);
     expect(t.dom().totals).toEqual(["2", "", "5"]);
@@ -210,7 +210,7 @@ describe("a Table's totals row (ADR-315 Phase 5 증분 5c)", () => {
     // (A reader hides Type — the Table state's column slice: the totals row's cells follow the
     //  columns, as every row's do — `catalogProjectTableColumns`.)
     act(() =>
-      t.h.session.setTableState(t.table().id, { hiddenColumns: ["type"] }),
+      t.h.session.tables.setTableState(t.table().id, { hiddenColumns: ["type"] }),
     );
     await settle();
     expect(t.dom().totals).toEqual(["2", "5", "2"]);

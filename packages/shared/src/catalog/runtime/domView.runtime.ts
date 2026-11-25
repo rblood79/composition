@@ -88,45 +88,48 @@ export function catalogPreviewRuntime(
     itemsByKeys: (collectionId, keys) =>
       session.itemsByKeys(collectionId, keys),
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
-    sortTable: (tableId, sort) => session.sortTable(tableId, sort),
+    sortTable: (tableId, sort) => session.tables.sortTable(tableId, sort),
     pressTableSort: (tableId, column, add) =>
-      session.pressTableSort(tableId, column, add),
-    expandTableRows: (tableId, keys) => session.expandTableRows(tableId, keys),
+      session.tables.pressTableSort(tableId, column, add),
+    expandTableRows: (tableId, keys) =>
+      session.tables.expandTableRows(tableId, keys),
     pinTableRow: (tableId, key, side) =>
-      session.pinTableRow(tableId, key, side),
-    editTableRow: (rowId, values) => session.editTableRow(rowId, values),
+      session.tables.pinTableRow(tableId, key, side),
+    editTableRow: (rowId, values) => session.tables.editTableRow(rowId, values),
     resizeTableColumns: (tableId, widths) =>
-      session.resizeTableColumns(tableId, widths),
+      session.tables.resizeTableColumns(tableId, widths),
     tableCellText: (tableId, rows, columns) =>
-      session.tableCellText(tableId, rows, columns),
-    tableColumnWidths: (tableId) => session.tableColumnWidths(tableId),
+      session.tables.tableCellText(tableId, rows, columns),
+    tableColumnWidths: (tableId) => session.tables.tableColumnWidths(tableId),
     tableColumnMenu: (tableId, racKey) =>
-      session.tableColumnMenu(tableId, racKey),
+      session.tables.tableColumnMenu(tableId, racKey),
     runTableColumnMenu: (tableId, racKey, id) =>
-      session.runTableColumnMenu(tableId, racKey, id),
+      session.tables.runTableColumnMenu(tableId, racKey, id),
     dropTableColumn: (tableId, fromKey, toKey, apply) =>
-      session.dropTableColumn(tableId, fromKey, toKey, apply),
+      session.tables.dropTableColumn(tableId, fromKey, toKey, apply),
     tableColumnFilter: (tableId, racKey) =>
-      session.tableColumnFilter(tableId, racKey),
+      session.tables.tableColumnFilter(tableId, racKey),
     setTableColumnFilter: (tableId, racKey, condition) =>
-      session.setTableColumnFilter(tableId, racKey, condition),
-    searchTable: (tableId, text) => session.searchTable(tableId, text),
+      session.tables.setTableColumnFilter(tableId, racKey, condition),
+    searchTable: (tableId, text) => session.tables.searchTable(tableId, text),
     chooseTableColumns: (menuId, keys) =>
-      session.chooseTableColumns(menuId, keys),
+      session.tables.chooseTableColumns(menuId, keys),
     tableColumnState: {
       read: (id, prop) =>
         prop === "visibleColumns"
-          ? session.tableVisibleColumns(id)
+          ? session.tables.tableVisibleColumns(id)
           : prop === "pinned"
             ? // (A Column's side · ADR-315 Phase 5 증분 5f — a Row's.)
-              (session.tableColumnPinned(id) ?? session.tableRowPinned(id))
-            : session.tableColumnFilterValue(id),
+              (session.tables.tableColumnPinned(id) ??
+              session.tables.tableRowPinned(id))
+            : session.tables.tableColumnFilterValue(id),
       write: (id, prop, value) => {
-        if (prop === "visibleColumns") session.showTableColumns(id, value);
+        if (prop === "visibleColumns")
+          session.tables.showTableColumns(id, value);
         else if (prop === "pinned") {
-          session.pinTableColumn(id, value);
-          session.pinTableRowRecord(id, value);
-        } else session.filterTableColumn(id, value);
+          session.tables.pinTableColumn(id, value);
+          session.tables.pinTableRowRecord(id, value);
+        } else session.tables.filterTableColumn(id, value);
       },
     },
     colorScheme: (mode) => session.setColorScheme(mode),

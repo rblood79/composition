@@ -121,7 +121,7 @@ async function openTable(
   await settle();
   const sortByName = (direction: "ascending" | "descending") =>
     act(() => {
-      h.session.sortTable(table().id, {
+      h.session.tables.sortTable(table().id, {
         column: catalogTableColumnKey(nameColumn()),
         direction,
       });
@@ -148,7 +148,7 @@ describe("a Table's 「Remember state」", () => {
 
     // The same app opened again (another session, the same browser): the kept sort.
     const second = await openTable(storage, true);
-    expect(second.h.session.tableState(second.table().id)).toEqual({
+    expect(second.h.session.tables.tableState(second.table().id)).toEqual({
       sort: [{ column: "name", direction: "ascending" }],
     });
     expect(second.rowKeys()).toEqual(["p3", "p1", "p2"]);
@@ -162,7 +162,7 @@ describe("a Table's 「Remember state」", () => {
     expect(sorted[0]!.textContent).toContain("Name");
 
     // The sort removed: nothing is kept.
-    act(() => second.h.session.sortTable(second.table().id, undefined));
+    act(() => second.h.session.tables.sortTable(second.table().id, undefined));
     await settle();
     expect(storage.items.has(KEY)).toBe(false);
     second.h.view.unmount();
@@ -179,7 +179,7 @@ describe("a Table's 「Remember state」", () => {
     const first = await openTable(storage, true);
     expect(headers(first.h)).toEqual(["Name", "Type", "Status"]);
     act(() =>
-      first.h.session.setTableState(first.table().id, {
+      first.h.session.tables.setTableState(first.table().id, {
         hiddenColumns: ["type"],
         columnOrder: ["status", "name"],
       }),
@@ -195,7 +195,7 @@ describe("a Table's 「Remember state」", () => {
     first.h.view.unmount();
 
     const second = await openTable(storage, true);
-    expect(second.h.session.tableState(second.table().id)).toEqual({
+    expect(second.h.session.tables.tableState(second.table().id)).toEqual({
       hiddenColumns: ["type"],
       columnOrder: ["status", "name"],
     });
@@ -204,14 +204,10 @@ describe("a Table's 「Remember state」", () => {
     // The restore itself draws them: a root built with nothing resolved after it (Publish opens a
     // finished document — no author's edit follows the restore). The session's own 「a root was
     // built」 mark is set by hand here: the harness has no second document to open.
-    const session = second.h.session as unknown as {
-      tableStates: Map<string, unknown>;
-      restoredTables: Set<string>;
-      restoreDue: boolean;
-      changed(): void;
-    };
+    const session = second.h.session as unknown as { changed(): void };
+    const tables = second.h.session.tables;
     act(() =>
-      second.h.session.setTableState(second.table().id, {
+      second.h.session.tables.setTableState(second.table().id, {
         hiddenColumns: [],
         columnOrder: [],
       }),
@@ -222,9 +218,9 @@ describe("a Table's 「Remember state」", () => {
       KEY,
       JSON.stringify({ [second.table().id]: { hiddenColumns: ["status"] } }),
     );
-    session.tableStates.clear();
-    session.restoredTables.clear();
-    session.restoreDue = true;
+    tables.tableStates.clear();
+    tables.restoredTables.clear();
+    tables.restoreDue = true;
     act(() => session.changed());
     await settle();
     expect(headers(second.h)).toEqual(["Name", "Type"]);
@@ -281,19 +277,19 @@ describe("a Table's 「Remember state」", () => {
     const firstEchoes = echoes(first);
     // (RAC's `onResizeEnd` — jsdom drags nothing: the widths it gives, by RAC key.)
     act(() =>
-      first.h.session.resizeTableColumns(first.table().id, {
+      first.h.session.tables.resizeTableColumns(first.table().id, {
         [racKey]: 260,
         "not-a-column": 90,
       }),
     );
     await settle();
-    expect(first.h.session.tableState(first.table().id)).toEqual({
+    expect(first.h.session.tables.tableState(first.table().id)).toEqual({
       columnWidths: { name: 260 },
     });
     expect(JSON.parse(storage.items.get(KEY)!)).toEqual({
       [first.table().id]: { columnWidths: { name: 260 } },
     });
-    expect(first.h.session.tableColumnWidths(first.table().id)).toEqual({
+    expect(first.h.session.tables.tableColumnWidths(first.table().id)).toEqual({
       [racKey]: 260,
     });
     // (They are RAC's already: the Table is not built again.)
@@ -303,14 +299,14 @@ describe("a Table's 「Remember state」", () => {
     // The next session: the Column's resize starts at the kept width.
     const second = await openTable(storage, true);
     await resizable(second);
-    expect(second.h.session.tableState(second.table().id)).toEqual({
+    expect(second.h.session.tables.tableState(second.table().id)).toEqual({
       columnWidths: { name: 260 },
     });
     expect(tracks(second)).toBe("260px");
     // A width set from outside the drag (a reset): the Table is built again from it.
     const secondEchoes = echoes(second);
     act(() =>
-      second.h.session.setTableState(second.table().id, { columnWidths: {} }),
+      second.h.session.tables.setTableState(second.table().id, { columnWidths: {} }),
     );
     await settle();
     expect(secondEchoes()).toBe(1);
@@ -339,7 +335,7 @@ describe("a Table's 「Remember state」", () => {
       }),
     );
     const again = await openTable(storage, false);
-    expect(again.h.session.tableState(again.table().id)).toEqual({});
+    expect(again.h.session.tables.tableState(again.table().id)).toEqual({});
     expect(again.rowKeys()).toEqual(["p1", "p2", "p3"]);
     again.h.view.unmount();
 
@@ -363,7 +359,7 @@ describe("a Table's 「Remember state」", () => {
     ]) {
       storage.setItem(KEY, JSON.stringify({ [tableId]: kept }));
       const opened = await openTable(storage, true);
-      expect(opened.h.session.tableState(tableId)).toEqual({});
+      expect(opened.h.session.tables.tableState(tableId)).toEqual({});
       expect(opened.rowKeys()).toEqual(["p1", "p2", "p3"]);
       opened.h.view.unmount();
     }

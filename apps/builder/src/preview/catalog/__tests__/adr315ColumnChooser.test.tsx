@@ -130,7 +130,7 @@ it("4d: the chooser lists Name · Type · Status checked — unchecking Type hid
   const tableId = [...h.session.root!.domInputs.values()].find(
     (record) => record.ruleId === "Table",
   )!.id;
-  expect(h.session.tableState(tableId).hiddenColumns).toEqual(["type"]);
+  expect(h.session.tables.tableState(tableId).hiddenColumns).toEqual(["type"]);
   if (!h.items().length) await h.open();
   expect(h.items().find((item) => item.text === "Type")?.checked).toBe(false);
   await h.press("Type");
@@ -241,7 +241,7 @@ it("4d: a rule's column Do — hide · show · set shown columns on the Table, p
   const tableRecord = [...h.session.root!.domInputs.values()].find(
     (record) => record.ruleId === "Table",
   )!.id;
-  expect(h.session.tableState(tableRecord).hiddenColumns ?? []).not.toContain(
+  expect(h.session.tables.tableState(tableRecord).hiddenColumns ?? []).not.toContain(
     "name",
   );
   await run(table, "setVisibleColumns", "name, status");

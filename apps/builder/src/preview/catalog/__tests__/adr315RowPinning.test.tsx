@@ -84,7 +84,7 @@ async function openTable(rows = 5) {
     ]);
   const keys = () => rows_().map((row) => row[0]);
   const set = async (patch: Record<string, unknown>) => {
-    act(() => h.session.setTableState(table().id, patch));
+    act(() => h.session.tables.setTableState(table().id, patch));
     await settle();
   };
   const declare = async (props: Record<string, unknown>) => {
@@ -169,7 +169,7 @@ describe("a Table's pinned rows (ADR-315 Phase 5 증분 5f)", () => {
     // holds them).
     await t.set({ sort: [], search: "n" });
     expect(t.keys()).toEqual(["p2", "p4", "p5"]);
-    expect(t.h.session.tableState(t.table().id).pinnedRows).toEqual({
+    expect(t.h.session.tables.tableState(t.table().id).pinnedRows).toEqual({
       top: ["p3"],
       bottom: ["p1"],
     });
@@ -283,7 +283,7 @@ describe("a Table's pinned rows (ADR-315 Phase 5 증분 5f)", () => {
     });
     await settle();
     expect(t.rows().at(-1)).toEqual(["p3", "bottom"]);
-    expect(t.h.session.tableState(t.table().id).pinnedRows).toEqual({
+    expect(t.h.session.tables.tableState(t.table().id).pinnedRows).toEqual({
       top: [],
       bottom: ["p3"],
     });

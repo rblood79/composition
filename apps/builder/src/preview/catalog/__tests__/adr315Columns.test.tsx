@@ -122,7 +122,7 @@ async function openTable(bound = true) {
       .filter((cells) => cells.length > 0),
   });
   const set = async (patch: Record<string, unknown>) => {
-    act(() => h.session.setTableState(table().id, patch));
+    act(() => h.session.tables.setTableState(table().id, patch));
     await settle();
   };
   return { h, id, table, columnKeys, column, dom, set, errors };
@@ -161,7 +161,7 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
     expect(t.dom().rows[3]).toEqual(["5", "Dana", "A"]);
     // (HC4 — the row source was not called for any of them.)
     expect(rowSource).toHaveBeenCalledTimes(0);
-    expect(t.h.session.tableColumnsNow(t.table().id)).toEqual({
+    expect(t.h.session.tables.tableColumnsNow(t.table().id)).toEqual({
       columns: ["name", "type", "status"],
       hidden: [],
       pinned: { start: [], end: [] },
@@ -197,7 +197,7 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
       "Bora",
       "Ara",
     ]);
-    expect(t.h.session.tableState(t.table().id)).toEqual({
+    expect(t.h.session.tables.tableState(t.table().id)).toEqual({
       hiddenColumns: ["type"],
       sort: [{ column: "type", direction: "ascending" }],
     });
@@ -245,7 +245,7 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
     );
     t.h.flush();
     await settle();
-    expect(t.h.session.tableColumnsNow(t.table().id).columns).toEqual([
+    expect(t.h.session.tables.tableColumnsNow(t.table().id).columns).toEqual([
       "name",
       "kind",
       "status",
@@ -254,7 +254,7 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
     expect(t.dom().headers).toEqual(["Name", "Status"]);
     // (The old name is no Column: the state does not hold it.)
     await t.set({ hiddenColumns: ["type"] });
-    expect(t.h.session.tableState(t.table().id)).toEqual({});
+    expect(t.h.session.tables.tableState(t.table().id)).toEqual({});
     expect(t.dom().headers).toEqual(["Name", "Type", "Status"]);
     t.h.view.unmount();
   }, 120_000);
@@ -276,7 +276,7 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
     ]);
     expect(t.columnKeys()).toEqual(["name", "status"]);
     expect(t.dom().headers).toEqual(["Name", "Status"]);
-    expect(t.h.session.tableColumnsNow(t.table().id).hidden).toEqual(["type"]);
+    expect(t.h.session.tables.tableColumnsNow(t.table().id).hidden).toEqual(["type"]);
     // (The Preview's user shows it: the state's list replaces the authored default.)
     await t.set({ hiddenColumns: [] });
     expect(t.dom().headers).toEqual(["Name", "Type", "Status"]);
@@ -378,7 +378,7 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
       );
       t.h.flush();
       await settle();
-      expect(t.h.session.tableColumnsNow(t.table().id)).toEqual({
+      expect(t.h.session.tables.tableColumnsNow(t.table().id)).toEqual({
         columns: ["name", "type", "status"],
         hidden: ["type"],
         pinned: { start: [], end: [] },
@@ -497,14 +497,14 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
       };
     expect(pinnedInput(t.column("type").id).borderRight).toBe("1px");
     expect(pinnedInput(t.column("name").id).borderRight).toBe("0px");
-    expect(t.h.session.tableColumnsNow(t.table().id).pinned).toEqual({
+    expect(t.h.session.tables.tableColumnsNow(t.table().id).pinned).toEqual({
       start: ["type"],
       end: [],
     });
     // (The author's default is no slice: pinning the same columns keeps the state empty — what the
     //  browser remembers is only what the reader changed.)
     await t.set({ pinnedColumns: { start: ["type"], end: [] } });
-    expect(t.h.session.tableState(t.table().id).pinnedColumns).toBeUndefined();
+    expect(t.h.session.tables.tableState(t.table().id).pinnedColumns).toBeUndefined();
     t.h.view.unmount();
   }, 120_000);
 });
@@ -600,7 +600,7 @@ describe("a Column's menu (ADR-315 Phase 4 — S2 `ColumnWithMenu`)", () => {
 
     await press("Type", "Pin to start");
     expect(t.columnKeys()).toEqual(["type", "name", "status"]);
-    expect(t.h.session.tableState(t.table().id).pinnedColumns).toEqual({
+    expect(t.h.session.tables.tableState(t.table().id).pinnedColumns).toEqual({
       start: ["type"],
       end: [],
     });
@@ -619,14 +619,14 @@ describe("a Column's menu (ADR-315 Phase 4 — S2 `ColumnWithMenu`)", () => {
     expect(t.columnKeys()).toEqual(["name", "status", "type"]);
 
     await press("Type", "Sort Descending");
-    expect(t.h.session.tableState(t.table().id).sort).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).sort).toEqual([
       { column: "type", direction: "descending" },
     ]);
     expect(header("Type").getAttribute("aria-sort")).toBe("descending");
 
     await press("Type", "Hide column");
     expect(t.columnKeys()).toEqual(["name", "status"]);
-    expect(t.h.session.tableState(t.table().id).hiddenColumns).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).hiddenColumns).toEqual([
       "type",
     ]);
     expect(t.errors).not.toHaveBeenCalled();
@@ -702,7 +702,7 @@ describe("a Column's filter (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터�
       fireEvent.change(value, { target: { value: "a" } });
     });
     await apply(box);
-    expect(t.h.session.tableState(t.table().id).columnFilters).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).columnFilters).toEqual([
       { column: "type", condition: { op: "contains", value: "a" } },
     ]);
     // (the comparison's default sensitivity: 「a」 finds the A rows)
@@ -727,7 +727,7 @@ describe("a Column's filter (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터�
     expect(box.querySelector<HTMLInputElement>("input")!.value).toBe("5");
     await apply(box);
     expect(names()).toEqual(["Dana"]);
-    expect(t.h.session.tableState(t.table().id).columnFilters?.[1]).toEqual({
+    expect(t.h.session.tables.tableState(t.table().id).columnFilters?.[1]).toEqual({
       column: "status",
       condition: { op: "equals", value: 5 },
     });
@@ -748,7 +748,7 @@ describe("a Column's filter (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터�
       fireEvent.click(clear);
     });
     await settle();
-    expect(t.h.session.tableState(t.table().id).columnFilters).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).columnFilters).toEqual([
       { column: "status", condition: { op: "equals", value: 5 } },
     ]);
     expect(names()).toEqual(["Dana"]);

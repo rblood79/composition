@@ -1,7 +1,7 @@
 /**
  * ADR-315 Phase 4 증분 4c — a Column's filter dialog (breakdown §5.2 「열 필터」, TanStack column
  * filter + faceting): the comparisons of the Column's field kind the Table takes, the value, and
- * the candidate values of the rows its other slices keep (`session.tableFacet` — the count each
+ * the candidate values of the rows its other slices keep (`session.tables.tableFacet` — the count each
  * would give). 「Apply」 writes the Column's filter, 「Clear」 drops it — both the session's one
  * write (`catalogColumnFilterPatch`). Loads with the first dialog opened (a lazy chunk — HC5).
  *

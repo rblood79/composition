@@ -57,6 +57,13 @@ export interface CatalogRowQuery {
   sort?: { column: string; direction: "ascending" | "descending" };
 }
 
+/** The query of a binding without a view (a Table's state — a sort · a search — gives it one). */
+export const CATALOG_NO_VIEW_QUERY: CatalogRowQuery = Object.freeze({
+  queries: [],
+  values: {},
+  names: [],
+});
+
 /**
  * ADR-284 G4 — a view that only counts its source's rows (「결과 수 표시」's derived view) or its
  * applied conditions (「적용 조건 수 표시」): no condition, grouping or sort. Over a view the server

@@ -94,7 +94,7 @@ describe("a bound Table's sort resolves that Table", () => {
         (record) => record.ruleId === "Column" && record.props.key === "name",
       )!;
     act(() => {
-      h.session.sortTable(sorted!.id, {
+      h.session.tables.sortTable(sorted!.id, {
         column: catalogTableColumnKey(name),
         direction: "descending",
       });
@@ -162,7 +162,7 @@ describe("a bound Table's sort runs before its display window", () => {
     };
     const sort = (direction: "ascending" | "descending") =>
       act(() => {
-        h.session.sortTable(table().id, {
+        h.session.tables.sortTable(table().id, {
           column: catalogTableColumnKey(nameColumn()),
           direction,
         });

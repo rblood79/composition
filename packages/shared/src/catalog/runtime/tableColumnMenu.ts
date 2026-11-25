@@ -8,7 +8,7 @@
  * do nothing now (the edge column's move, the last row header's hide, a filter on a column with no
  * comparison) is there and disabled.
  *
- * Every write goes through `session.setTableState` (the rules between slices). The resize item is
+ * Every write goes through `session.tables.setTableState` (the rules between slices). The resize item is
  * RAC's (`startResize` — the DOM's) and 「Filter…」 opens the Column's filter dialog (the DOM's — its
  * write is `catalogColumnFilterPatch`); the others write a slice here.
  */
@@ -71,7 +71,7 @@ export interface CatalogColumnMenuColumn {
 }
 
 /**
- * A Table Column's candidate values (TanStack faceting — `session.tableFacet`): each value of its
+ * A Table Column's candidate values (TanStack faceting — `session.tables.tableFacet`): each value of its
  * field among the rows the Table's other slices keep, with the rows it would give; the least ·
  * most (a number · a date field); `partial` = the candidates of the `loaded` rows only (an
  * endpoint's pages · a server's answer — 「불러온 N 행 기준」).
@@ -87,7 +87,7 @@ export interface CatalogTableFacet {
   readonly loaded: number;
 }
 
-/** ADR-315 Phase 4 증분 4c — what a Column's filter dialog shows (`session.tableColumnFilter`). */
+/** ADR-315 Phase 4 증분 4c — what a Column's filter dialog shows (`session.tables.tableColumnFilter`). */
 export interface CatalogColumnFilterView {
   /** The Column's field kind (the value input's). */
   readonly kind: ViewFieldKind;

@@ -152,7 +152,7 @@ async function openTable(
       .map((record) => record.props.id);
   const press = async (key: string, add = false) => {
     act(() => {
-      h.session.pressTableSort(
+      h.session.tables.pressTableSort(
         table().id,
         catalogTableColumnKey(column(key)),
         add,
@@ -199,7 +199,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
     );
     // A: 5 (p4) · 1 (p2) · none (p5) — B: 3 (p3) · 2 (p1)
     expect(t.rowKeys()).toEqual(["p4", "p2", "p5", "p3", "p1"]);
-    expect(t.h.session.tableState(t.table().id).sort).toBeUndefined();
+    expect(t.h.session.tables.tableState(t.table().id).sort).toBeUndefined();
     expect(t.header()).toEqual({
       ariaSort: ["Type:ascending"],
       arrows: ["Type:ascending:1", "Status:descending:2"],
@@ -216,7 +216,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
     const t = await openTable(BOTH, { allowsUnsorted: true });
     // (Type shows ascending — a press turns it.)
     await t.press("type");
-    expect(t.h.session.tableState(t.table().id).sort).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).sort).toEqual([
       { column: "type", direction: "descending" },
     ]);
     expect(t.header()).toEqual({
@@ -227,7 +227,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
     expect(t.rowKeys()).toEqual(["p3", "p1", "p4", "p2", "p5"]);
     // (「Allow unsorted」: the next press leaves no state sort — the authored sort again.)
     await t.press("type");
-    expect(t.h.session.tableState(t.table().id).sort).toBeUndefined();
+    expect(t.h.session.tables.tableState(t.table().id).sort).toBeUndefined();
     expect(t.header()).toEqual({
       ariaSort: ["Type:ascending"],
       arrows: ["Type:ascending:1", "Status:descending:2"],
@@ -245,7 +245,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
       arrows: ["Type:ascending"],
     });
     // (The menu reads the same sort: 「Add to sort」 on Status — the authored sort is one.)
-    const items = t.h.session.tableColumnMenu(
+    const items = t.h.session.tables.tableColumnMenu(
       t.table().id,
       catalogTableColumnKey(t.column("status")),
     );
@@ -253,7 +253,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
       id: "sort-add",
     });
     await t.press("status", true);
-    expect(t.h.session.tableState(t.table().id).sort).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).sort).toEqual([
       { column: "type", direction: "ascending" },
       { column: "status", direction: "ascending" },
     ]);
@@ -337,7 +337,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
   it("a hidden Column of the authored sort has no header to mark — the rest show without it", async () => {
     const t = await openTable(BOTH);
     act(() => {
-      t.h.session.setTableState(t.table().id, { hiddenColumns: ["type"] });
+      t.h.session.tables.setTableState(t.table().id, { hiddenColumns: ["type"] });
     });
     await settle();
     expect(t.header()).toEqual({
@@ -346,7 +346,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
     });
     // (Shown again: its mark again.)
     act(() => {
-      t.h.session.setTableState(t.table().id, { hiddenColumns: [] });
+      t.h.session.tables.setTableState(t.table().id, { hiddenColumns: [] });
     });
     await settle();
     expect(t.header().arrows).toEqual([
@@ -364,7 +364,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
       "Status:ascending:2",
     ]);
     act(() => {
-      t.h.session.setTableState(t.table().id, { hiddenColumns: ["type"] });
+      t.h.session.tables.setTableState(t.table().id, { hiddenColumns: ["type"] });
     });
     await settle();
     expect(t.header()).toEqual({
@@ -390,7 +390,7 @@ describe("a bound Table's authored sort in its header (ADR-315 Phase 4 증분 6)
     ]);
     expect(t.header()).toEqual({ ariaSort: [], arrows: [] });
     await t.press("type");
-    expect(t.h.session.tableState(t.table().id).sort).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).sort).toEqual([
       { column: "type", direction: "ascending" },
     ]);
   });

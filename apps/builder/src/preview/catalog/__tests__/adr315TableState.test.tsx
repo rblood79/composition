@@ -90,19 +90,19 @@ describe("the session's Table state", () => {
         )!;
     };
     // (No state written: the authored defaults — the data's order.)
-    expect(h.session.tableState(table().id)).toEqual({});
+    expect(h.session.tables.tableState(table().id)).toEqual({});
     expect(rowKeys()).toEqual(["p1", "p2", "p3"]);
 
     const racKey = catalogTableColumnKey(nameColumn());
     expect(racKey).not.toBe("name");
     act(() => {
-      h.session.sortTable(table().id, {
+      h.session.tables.sortTable(table().id, {
         column: racKey,
         direction: "ascending",
       });
     });
     await settle();
-    expect(h.session.tableState(table().id)).toEqual({
+    expect(h.session.tables.tableState(table().id)).toEqual({
       sort: [{ column: "name", direction: "ascending" }],
     });
     // Ara · Bora · Chan
@@ -110,17 +110,17 @@ describe("the session's Table state", () => {
 
     // (A column the Table does not have is not a sort: the state and the rows are the data's.)
     act(() => {
-      h.session.sortTable(table().id, {
+      h.session.tables.sortTable(table().id, {
         column: "no-such-column",
         direction: "descending",
       });
     });
     await settle();
-    expect(h.session.tableState(table().id)).toEqual({});
+    expect(h.session.tables.tableState(table().id)).toEqual({});
     expect(rowKeys()).toEqual(["p1", "p2", "p3"]);
 
     act(() => {
-      h.session.sortTable(table().id, {
+      h.session.tables.sortTable(table().id, {
         column: racKey,
         direction: "descending",
       });
@@ -128,10 +128,10 @@ describe("the session's Table state", () => {
     await settle();
     expect(rowKeys()).toEqual(["p2", "p1", "p3"]);
     act(() => {
-      h.session.sortTable(table().id, undefined);
+      h.session.tables.sortTable(table().id, undefined);
     });
     await settle();
-    expect(h.session.tableState(table().id)).toEqual({});
+    expect(h.session.tables.tableState(table().id)).toEqual({});
     expect(rowKeys()).toEqual(["p1", "p2", "p3"]);
 
     // HC4 — a column slice is not an input of the rows: writing one never calls the row source;
@@ -144,14 +144,14 @@ describe("the session's Table state", () => {
     //  header column — RAC throws without one, so it does not hide; the selection column is not
     //  a data column, so no slice names it — `column1` is its place's default key.)
     act(() => {
-      h.session.setTableState(table().id, {
+      h.session.tables.setTableState(table().id, {
         columnWidths: { type: 180, column1: 40 },
         hiddenColumns: ["name", "status"],
         pinnedColumns: { start: ["name"], end: ["column1"] },
       });
     });
     await settle();
-    expect(h.session.tableState(table().id)).toEqual({
+    expect(h.session.tables.tableState(table().id)).toEqual({
       columnWidths: { type: 180 },
       hiddenColumns: ["status"],
       pinnedColumns: { start: ["name"], end: [] },
@@ -159,7 +159,7 @@ describe("the session's Table state", () => {
     expect(rowSource).toHaveBeenCalledTimes(0);
     expect(rowKeys()).toEqual(["p1", "p2", "p3"]);
     act(() => {
-      h.session.setTableState(table().id, {
+      h.session.tables.setTableState(table().id, {
         sort: [{ column: "name", direction: "descending" }],
       });
     });
@@ -167,7 +167,7 @@ describe("the session's Table state", () => {
     expect(rowSource.mock.calls.length).toBeGreaterThan(0);
     expect(rowKeys()).toEqual(["p2", "p1", "p3"]);
     // (The column slices stay through a data slice's write.)
-    expect(h.session.tableState(table().id).hiddenColumns).toEqual(["status"]);
+    expect(h.session.tables.tableState(table().id).hiddenColumns).toEqual(["status"]);
     h.view.unmount();
   }, 90_000);
 });

@@ -123,7 +123,7 @@ async function openTable(bound = true) {
       .filter((cells) => cells.length > 0),
   });
   const set = async (patch: Record<string, unknown>) => {
-    act(() => h.session.setTableState(table().id, patch));
+    act(() => h.session.tables.setTableState(table().id, patch));
     await settle();
   };
   return { h, id, table, columnKeys, column, dom, set, errors };
@@ -170,7 +170,7 @@ describe("a Table's group rows (ADR-315 Phase 5)", () => {
       );
     });
     await settle();
-    expect(t.h.session.tableState(t.table().id).expandedKeys).toEqual([
+    expect(t.h.session.tables.tableState(t.table().id).expandedKeys).toEqual([
       'group:["B"]',
     ]);
     expect(t.dom().rows).toEqual([
@@ -220,7 +220,7 @@ describe("a Table's group rows (ADR-315 Phase 5)", () => {
     ]);
     // The reader's 「not grouped」 over the author's grouping.
     await t.set({ grouping: [] });
-    expect(t.h.session.tableState(t.table().id).grouping).toEqual([]);
+    expect(t.h.session.tables.tableState(t.table().id).grouping).toEqual([]);
     expect(t.dom().rows).toHaveLength(5);
     t.h.view.unmount();
   }, 120_000);

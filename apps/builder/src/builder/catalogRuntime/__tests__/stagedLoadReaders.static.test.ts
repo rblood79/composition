@@ -51,7 +51,7 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
     [3, "P", "Preview interaction index"],
   ],
   [
-    "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",
+    "packages/shared/src/catalog/runtime/catalogTableController.ts",
     [
       2,
       "P",
@@ -114,9 +114,17 @@ const KNOWN_BY_ID = new Map<string, readonly [number, string, string]>([
   [
     "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",
     [
-      6,
+      4,
       "P",
-      "Preview session (ADR-315 증분 4d — a column chooser's Table record · its Menu records; 증분 5g — a collection's Table records, `boundTableRecords`)",
+      "Preview session (ADR-315 증분 5g — a collection's Table records, `boundTableRecords`)",
+    ],
+  ],
+  [
+    "packages/shared/src/catalog/runtime/catalogTableController.ts",
+    [
+      2,
+      "P",
+      "Preview Tables (ADR-315 증분 4d — a column chooser's Table record · its Menu records)",
     ],
   ],
   [

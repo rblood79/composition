@@ -108,7 +108,7 @@ async function openTable(rows = 3) {
     await settle();
   };
   const set = async (patch: Record<string, unknown>) => {
-    act(() => h.session.setTableState(table().id, patch));
+    act(() => h.session.tables.setTableState(table().id, patch));
     await settle();
   };
   return { h, id, table, rows: rows_, detailSwitch, set, errors };
@@ -139,7 +139,7 @@ describe("a Table's detail row (ADR-315 Phase 5 증분 5e)", () => {
       );
     });
     await settle();
-    expect(t.h.session.tableState(t.table().id).expandedKeys).toEqual(["p2"]);
+    expect(t.h.session.tables.tableState(t.table().id).expandedKeys).toEqual(["p2"]);
     const drawn = t.rows();
     expect(drawn.map((row) => [row.key, row.level])).toEqual([
       ["p1", "1"],

@@ -94,7 +94,7 @@ async function openTable(data: Record<string, unknown>) {
   };
   const press = async (key: string, add = false) => {
     act(() => {
-      h.session.pressTableSort(
+      h.session.tables.pressTableSort(
         table().id,
         catalogTableColumnKey(column(key)),
         add,
@@ -102,7 +102,7 @@ async function openTable(data: Record<string, unknown>) {
     });
     await settle();
   };
-  const state = () => h.session.tableState(table().id).sort;
+  const state = () => h.session.tables.tableState(table().id).sort;
   return { h, id, table, body, rowKeys, press, state };
 }
 
@@ -234,7 +234,7 @@ describe("a sort of several columns on the server's pages (리뷰 round 1 H1)", 
     const t = await openTable(
       remote({ kind: "suffix", pageSize: 2, multiSort: true }),
     );
-    expect(t.h.session.tableSliceServable(t.table().id, "sort")).toEqual({
+    expect(t.h.session.tables.tableSliceServable(t.table().id, "sort")).toEqual({
       accepts: "whole",
     });
     await t.press("type");
@@ -255,7 +255,7 @@ describe("a sort of several columns on the server's pages (리뷰 round 1 H1)", 
   it("a format that takes one sort: the second never enters the state — one sort is sent whole", async () => {
     const requests = stubServer();
     const t = await openTable(remote({ kind: "suffix", pageSize: 2 }));
-    expect(t.h.session.tableSliceServable(t.table().id, "sort")).toEqual({
+    expect(t.h.session.tables.tableSliceServable(t.table().id, "sort")).toEqual({
       accepts: "one",
       reason: "suffixSingle",
     });
@@ -275,7 +275,7 @@ describe("a sort of several columns on the server's pages (리뷰 round 1 H1)", 
     // (A write of two sorts — a rule · the browser's memory — goes through the same judgment: the
     //  state holds one, the last written.)
     act(() => {
-      t.h.session.setTableState(t.table().id, {
+      t.h.session.tables.setTableState(t.table().id, {
         sort: [
           { column: "type", direction: "ascending" },
           { column: "status", direction: "descending" },

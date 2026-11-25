@@ -124,10 +124,10 @@ async function openTable(
       )!;
   };
   const search = async (text: string) => {
-    act(() => h.session.searchTable(table().id, text));
+    act(() => h.session.tables.searchTable(table().id, text));
     await settle();
   };
-  const state = () => h.session.tableState(table().id);
+  const state = () => h.session.tables.tableState(table().id);
   return { h, id, table, body, rowKeys, column, search, state };
 }
 
@@ -207,7 +207,7 @@ describe("a Table's search (ADR-315 Phase 3)", () => {
   it("filters the sorted rows, and a page · a virtual Table show their rows of the result", async () => {
     const t = await openTable();
     act(() => {
-      t.h.session.setTableState(t.table().id, {
+      t.h.session.tables.setTableState(t.table().id, {
         sort: [{ column: "name", direction: "descending" }],
       });
     });
@@ -273,7 +273,7 @@ describe("a Table's column filters (ADR-315 Phase 3)", () => {
     const t = await openTable();
     const filter = async (filters: readonly object[]) => {
       act(() => {
-        t.h.session.setTableState(t.table().id, { columnFilters: filters });
+        t.h.session.tables.setTableState(t.table().id, { columnFilters: filters });
       });
       await settle();
     };
@@ -372,7 +372,7 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
     const t = await openTable(
       remote({ kind: "suffix", pageSize: 2, searchParam: "q" }),
     );
-    expect(t.h.session.tableSliceServable(t.table().id, "search")).toEqual({
+    expect(t.h.session.tables.tableSliceServable(t.table().id, "search")).toEqual({
       accepts: "whole",
     });
     await t.search("need");
@@ -391,7 +391,7 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
   it("a suffix format without one: the Table holds no search — nothing is sent short", async () => {
     const requests = stubServer();
     const t = await openTable(remote({ kind: "suffix", pageSize: 2 }));
-    expect(t.h.session.tableSliceServable(t.table().id, "search")).toEqual({
+    expect(t.h.session.tables.tableSliceServable(t.table().id, "search")).toEqual({
       accepts: "none",
       reason: "suffixNoSearch",
     });
@@ -407,7 +407,7 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
     const requests = stubServer();
     const t = await openTable(remote({ kind: "suffix", pageSize: 2 }));
     act(() => {
-      t.h.session.setTableState(t.table().id, {
+      t.h.session.tables.setTableState(t.table().id, {
         columnFilters: [
           { column: "status", condition: { op: "gte", value: 3 } },
         ],
@@ -420,7 +420,7 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
     // (`startsWith` has no parameter suffix in this format: the state does not take it.)
     const before = requests.length;
     act(() => {
-      t.h.session.setTableState(t.table().id, {
+      t.h.session.tables.setTableState(t.table().id, {
         columnFilters: [
           { column: "name", condition: { op: "startsWith", value: "t" } },
         ],

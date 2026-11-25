@@ -14,7 +14,7 @@ import { openAdr280Preview } from "./support/adr280Harness";
  * ADR-315 Phase 3 (G3 · Decision 4) — a filter control's items are the field's candidate values,
  * read from the data as it is: every value (no 20-item sample), each among the rows the list's
  * other conditions keep — the control's own choice aside (TanStack faceting). And a Table Column's
- * candidates with the Table's state (`session.tableFacet`). Expected values are hard-coded.
+ * candidates with the Table's state (`session.tables.tableFacet`). Expected values are hard-coded.
  *
  * Fixture — 26 rows: u1 … u26, dept `D01` … `D25` (u26 is `d01` — the case folded with u1's),
  * gender: an odd row is `male`, an even one `female`.
@@ -202,7 +202,7 @@ describe("a Table Column's candidate values with the Table's state", () => {
     const table = [...h.session.root!.domInputs.values()].find(
       (record) => record.ruleId === "Table",
     )!;
-    const facet = (column: string) => h.session.tableFacet(table.id, column)!;
+    const facet = (column: string) => h.session.tables.tableFacet(table.id, column)!;
     // gender: 13 male · 13 female — in the rows' own order (u1 is male).
     expect(facet("status").values).toEqual([
       { value: "male", count: 13 },
@@ -216,7 +216,7 @@ describe("a Table Column's candidate values with the Table's state", () => {
     // The Table filtered to female and searched for 「User 2」 — the names holding it are
     // u20 … u26 (`User 02` does not): u20 f · u21 m · u22 f · u23 m · u24 f · u25 m · u26 f.
     act(() => {
-      h.session.setTableState(table.id, {
+      h.session.tables.setTableState(table.id, {
         search: "User 2",
         columnFilters: [
           { column: "status", condition: { op: "equals", value: "female" } },
@@ -237,7 +237,7 @@ describe("a Table Column's candidate values with the Table's state", () => {
       { value: "d01", count: 1 },
     ]);
     // (Not a Column of the Table.)
-    expect(h.session.tableFacet(table.id, "gone")).toBeUndefined();
+    expect(h.session.tables.tableFacet(table.id, "gone")).toBeUndefined();
     h.view.unmount();
   }, 120_000);
 
@@ -254,7 +254,7 @@ describe("a Table Column's candidate values with the Table's state", () => {
     const table = [...h.session.root!.domInputs.values()].find(
       (record) => record.ruleId === "Table",
     )!;
-    const facet = h.session.tableFacet(table.id, "status")!;
+    const facet = h.session.tables.tableFacet(table.id, "status")!;
     expect(facet.values).toEqual([
       { value: "male", count: 13 },
       { value: "female", count: 13 },

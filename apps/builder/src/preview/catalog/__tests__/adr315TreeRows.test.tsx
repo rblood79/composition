@@ -129,7 +129,7 @@ async function openTable(collection: "people" | "nested") {
       (row.querySelector('[role="rowheader"]')?.textContent ?? "").trim(),
     ]);
   const set = async (patch: Record<string, unknown>) => {
-    act(() => h.session.setTableState(table().id, patch));
+    act(() => h.session.tables.setTableState(table().id, patch));
     await settle();
   };
   return { h, id, table, column, rows, set, errors };
@@ -160,7 +160,7 @@ describe("a Table's tree rows (ADR-315 Phase 5 증분 5d)", () => {
         );
       });
       await settle();
-      expect(t.h.session.tableState(t.table().id).expandedKeys).toEqual(["p1"]);
+      expect(t.h.session.tables.tableState(t.table().id).expandedKeys).toEqual(["p1"]);
       expect(t.rows()).toEqual([
         ["1", "true", "Bora"],
         ["2", "false", "Chan"],

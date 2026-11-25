@@ -64,6 +64,9 @@ export interface CatalogTableState {
     readonly focus: CatalogTableCell;
   }[];
 }
+
+/** A Table record without state (every slice the authored default). */
+export const CATALOG_NO_TABLE_STATE: CatalogTableState = Object.freeze({});
 export type CatalogTableStateSlice = keyof CatalogTableState;
 /**
  * A Table record's state as its session holds it (absent = the authored defaults). The one reader

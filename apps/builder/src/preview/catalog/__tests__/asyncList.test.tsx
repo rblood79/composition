@@ -214,7 +214,7 @@ describe("useAsyncList — load arguments", () => {
           ),
       )!;
     act(() => {
-      h.session.sortTable(table.id, {
+      h.session.tables.sortTable(table.id, {
         column: catalogTableColumnKey(name),
         direction: "descending",
       });

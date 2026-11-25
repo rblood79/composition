@@ -183,7 +183,7 @@ it("5: pressing the handle does not sort the column", async () => {
     fireEvent.keyUp(handle, { key: " " });
   });
   await settle();
-  expect(h.session.tableState(h.tableRecord()).sort ?? []).toEqual([]);
+  expect(h.session.tables.tableState(h.tableRecord()).sort ?? []).toEqual([]);
 });
 
 it("5: a keyboard drag (Enter → Tab → Enter) moves Name after Status — the Table state's order, rows not read, the document unchanged", async () => {
@@ -221,7 +221,7 @@ it("5: a keyboard drag (Enter → Tab → Enter) moves Name after Status — the
   });
   await settle();
   await waitFor(() => expect(h.headers()).toEqual(["Type", "Status", "Name"]));
-  expect(h.session.tableState(h.tableRecord()).columnOrder).toEqual([
+  expect(h.session.tables.tableState(h.tableRecord()).columnOrder).toEqual([
     "type",
     "status",
     "name",
