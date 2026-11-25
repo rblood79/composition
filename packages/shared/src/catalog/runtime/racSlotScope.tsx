@@ -20,14 +20,70 @@ import {
 } from "../racSlotContract";
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
 
+/**
+ * The RAC consumer contexts, one static member each (`CATALOG_NATIVE_SLOT_CONTEXT_NAMES` names
+ * them — `racSlotStaticLookup.test.ts` keeps the two lists equal). Never a computed read of the
+ * namespace (by a name string): it keeps every RAC export in the shared chunk the Builder loads
+ * first (2026-11-25 — +34,637 B gzip in 792815efc).
+ */
+const RAC_NATIVE_SLOT_CONTEXTS = {
+  Text: RAC.TextContext,
+  Heading: RAC.HeadingContext,
+  Button: RAC.ButtonContext,
+  DateField: RAC.DateFieldContext,
+  Checkbox: RAC.CheckboxFieldContext,
+  ToggleButtonGroup: RAC.ToggleButtonGroupContext,
+  ToggleButton: RAC.ToggleButtonContext,
+  ListBox: RAC.ListBoxContext,
+  Link: RAC.LinkContext,
+  Slider: RAC.SliderContext,
+  Keyboard: RAC.KeyboardContext,
+  Separator: RAC.SeparatorContext,
+  ProgressBar: RAC.ProgressBarContext,
+  Meter: RAC.MeterContext,
+  Tabs: RAC.TabsContext,
+  Breadcrumbs: RAC.BreadcrumbsContext,
+  NavigationTree: RAC.NavigationTreeContext,
+  Menu: RAC.MenuContext,
+  Disclosure: RAC.DisclosureContext,
+  GridList: RAC.GridListContext,
+  Toolbar: RAC.ToolbarContext,
+  TextField: RAC.TextFieldContext,
+  NumberField: RAC.NumberFieldContext,
+  SearchField: RAC.SearchFieldContext,
+  Autocomplete: RAC.AutocompleteContext,
+  ColorField: RAC.ColorFieldContext,
+  ColorArea: RAC.ColorAreaContext,
+  ColorSlider: RAC.ColorSliderContext,
+  ColorWheel: RAC.ColorWheelContext,
+  ColorSwatch: RAC.ColorSwatchContext,
+  ColorSwatchPicker: RAC.ColorSwatchPickerContext,
+  CheckboxGroup: RAC.CheckboxGroupContext,
+  RadioGroup: RAC.RadioGroupContext,
+  Select: RAC.SelectContext,
+  ComboBox: RAC.ComboBoxContext,
+  Switch: RAC.SwitchContext,
+  DropZone: RAC.DropZoneContext,
+  Table: RAC.TableContext,
+  Tree: RAC.TreeContext,
+  TagGroup: RAC.TagGroupContext,
+  Calendar: RAC.CalendarContext,
+  DatePicker: RAC.DatePickerContext,
+  DateRangePicker: RAC.DateRangePickerContext,
+  TimeField: RAC.TimeFieldContext,
+  RangeCalendar: RAC.RangeCalendarContext,
+  Dialog: RAC.DialogContext,
+  Popover: RAC.PopoverContext,
+} as Readonly<Record<string, Context<unknown>>>;
+
 /** Native contexts and the catalog controllers that implement S2-only elements. */
 export const RAC_SLOT_CONTEXTS: Readonly<
   Record<CatalogSlotContextKey, Context<unknown>>
 > = {
   ...Object.fromEntries(
-    Object.entries(CATALOG_NATIVE_SLOT_CONTEXT_NAMES).map(([key, name]) => [
+    Object.keys(CATALOG_NATIVE_SLOT_CONTEXT_NAMES).map((key) => [
       key,
-      (RAC as unknown as Record<string, Context<unknown>>)[name],
+      RAC_NATIVE_SLOT_CONTEXTS[key],
     ]),
   ),
   ...CATALOG_COMPONENT_SLOT_CONTEXTS,

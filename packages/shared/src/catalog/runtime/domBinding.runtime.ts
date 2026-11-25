@@ -1817,8 +1817,11 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       {
         key: node.id,
         timeout:
-          typeof node.props.timeout === "number" ? node.props.timeout : undefined,
-        group: typeof node.props.group === "string" ? node.props.group : undefined,
+          typeof node.props.timeout === "number"
+            ? node.props.timeout
+            : undefined,
+        group:
+          typeof node.props.group === "string" ? node.props.group : undefined,
       },
       ...children,
     ),
@@ -3986,9 +3989,7 @@ function ruleDom(
         : type === "Header" && collection === "gridlist"
           ? (RAC.GridListHeader as ElementType)
           : binding.source.kind === "rac"
-            ? (RAC as unknown as Record<string, ElementType | undefined>)[
-                binding.source.component
-              ]
+            ? CATALOG_RAC_COMPONENTS[binding.source.component]
             : outsideCollection && lower === "tab"
               ? undefined
               : INTERNAL_RENDERERS[binding.source.renderer];
@@ -4454,9 +4455,7 @@ function ruleDom(
     );
   const host = ORPHAN_ITEM_HOST[lower];
   if (!host || collection === host.toLowerCase()) return element;
-  const Host = (RAC as unknown as Record<string, ElementType | undefined>)[
-    host
-  ];
+  const Host = CATALOG_RAC_COMPONENTS[host];
   if (!Host) return element;
   return createElement(
     Host,
@@ -4639,8 +4638,60 @@ function itemLabelText(
     .join("");
 }
 
+/**
+ * The RAC components a binding (`source.kind: "rac"`) or an orphan item host draws, one static
+ * member each — `racSlotStaticLookup.test.ts` checks every binding's and host's name is here.
+ * Never a computed read of the namespace (by a name string): it keeps every RAC export in the shared
+ * chunk the Builder loads first.
+ */
+export const CATALOG_RAC_COMPONENTS: Readonly<
+  Record<string, ElementType | undefined>
+> = {
+  Breadcrumbs: RAC.Breadcrumbs,
+  Button: RAC.Button,
+  Checkbox: RAC.Checkbox,
+  CheckboxGroup: RAC.CheckboxGroup,
+  ColorArea: RAC.ColorArea,
+  ColorField: RAC.ColorField,
+  ColorSlider: RAC.ColorSlider,
+  ColorSwatch: RAC.ColorSwatch,
+  ColorWheel: RAC.ColorWheel,
+  DateField: RAC.DateField,
+  FileTrigger: RAC.FileTrigger,
+  Form: RAC.Form,
+  GridList: RAC.GridList,
+  GridListSection: RAC.GridListSection,
+  Header: RAC.Header,
+  Input: RAC.Input,
+  Link: RAC.Link,
+  ListBox: RAC.ListBox,
+  ListBoxSection: RAC.ListBoxSection,
+  Menu: RAC.Menu,
+  MenuSection: RAC.MenuSection,
+  NumberField: RAC.NumberField,
+  PreviewTrigger: RAC.PreviewTrigger,
+  Radio: RAC.Radio,
+  RadioGroup: RAC.RadioGroup,
+  SearchField: RAC.SearchField,
+  Separator: RAC.Separator,
+  Sheet: RAC.Sheet,
+  SheetBackdrop: RAC.SheetBackdrop,
+  SheetContent: RAC.SheetContent,
+  SheetOverlay: RAC.SheetOverlay,
+  SheetTrigger: RAC.SheetTrigger,
+  Slider: RAC.Slider,
+  Switch: RAC.Switch,
+  TagGroup: RAC.TagGroup,
+  TextField: RAC.TextField,
+  TimeField: RAC.TimeField,
+  ToggleButton: RAC.ToggleButton,
+  ToggleButtonGroup: RAC.ToggleButtonGroup,
+  Token: RAC.Token,
+  Tree: RAC.Tree,
+} as Readonly<Record<string, ElementType | undefined>>;
+
 /** Preview `ORPHAN_ITEM_HOST`: RAC host of each collection item/section type (lower-case). */
-const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
+export const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
   listboxsection: "ListBox",
   gridlistsection: "GridList",
   menusection: "Menu",

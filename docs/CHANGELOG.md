@@ -2,8 +2,8 @@
 
 All notable changes to composition will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+엔트리는 버전이 아니라 주제 · 날짜 단위다 (SemVer 미적용 — `.claude/rules/changelog.md`).
 
 > 이전 기록 (전부 append-only):
 >
@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-Q3-archived.md](./CHANGELOG-2026-Q3-archived.md) — 2026-07-01 ~ 08-31 (346 엔트리)
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
+
+## [배포 재개 — Builder 번들 상한 재승인 · RAC 정적 조회] - 2026-11-25
+
+사용자 「번들 재측정 진행해」 → 「1안과 RAC 동적 조회 수정을 함께 진행해」. gh-pages 배포가 2026-11-03 `c826549b4` 뒤 멈춰 있었다 — 배포 workflow 의 「Initial bundle ceiling」 단계가 `bbca53c78` (Builder 1,421,465 > 그때 상한 1,414,000) 부터 실패했다. 11-16 의 상한 갱신 (1,435,351) 은 Phase 증가분만 더해 실제 값 (그때 이미 1,550,233) 보다 낮았다.
+
+### Fixed
+
+- **배포 재개 — Builder initial 상한 1,435,351 → 1,650,000 B gzip** (사용자 재승인, 절대값 기준): `deploy.yml` · `adr201-bundle-gate.mjs` · CLAUDE.md 성능 표 · ADR-201 재승인 절. Preview 327,000 · 만료 2026-12-25 는 그대로. 로컬에서 같은 단계를 돌려 통과 (1,629,237 · 172,215).
+- **Builder 첫 화면 번들 −14,487 B · Publish −15,182 B gzip**: Preview DOM 이 RAC 컴포넌트 · slot context 를 이름 글자로 꺼내 (`RAC[name]` 꼴 세 곳 — `racSlotScope.tsx` · `domBinding.runtime.ts` 바인딩 컴포넌트 · 고아 항목 host) 번들러가 RAC export 전체를 첫 화면 공용 chunk 에 남겼다 (`792815efc` 에서 +34,637 B). 정적 표 두 개로 바꿨다.
+  - **Why**: 계산된 이름으로 네임스페이스를 읽으면 어떤 export 가 쓰이는지 정할 수 없어 전부 남는다.
+  - 회귀 테스트 `racSlotStaticLookup.test.ts` — 표가 모든 바인딩 · host · slot context 이름을 덮는지 (Sheet 계열 5 개를 놓친 것을 이 테스트가 잡았다), 이름 글자 조회가 다시 생기지 않는지. 원복 RED 2/2.
+  - 확인: 팔레트 93 항목 Publish 스윕 (`s2-text-inherit-sweep-live.mjs`) — 글자 149 일치 · page error 0.
 
 ## [overlay 여백 S2 대조 — Dialog 32 · picker 목록 8] - 2026-11-24
 
