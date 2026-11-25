@@ -16,7 +16,7 @@
  * `endpoint` 는 `ApiEndpointDefinition.id` 참조다 — URL·헤더는 `CollectionDataContext` 의
  * endpoint 목록에서 런타임에 해석 (`resolveUploadEndpoint`). 문서에 정적 비밀 0 (HC7).
  * `dryRun` 은 바이트 미전송 진행률 시뮬레이션. 미지정이면 endpoint 정의의 `uploadDryRun` (Data 패널
- * 토글, 기본 true) 을 따르고, publish 는 `dryRun={false}` 를 명시해 항상 실전송한다 (ADR-201 Phase 4).
+ * 토글, 기본 true) 을 따른다 — Preview · Publish 같다 (실전송은 토글을 끌 때만, 사용자 결정 2026-11-25).
  * CSRF: 서버 계약 §5 — `XSRF-TOKEN` 쿠키 (HttpOnly 아님) 가 있으면 요청마다 `X-CSRF-TOKEN` 헤더로 되돌린다.
  */
 import React, { Children, isValidElement, type ReactNode } from "react";
