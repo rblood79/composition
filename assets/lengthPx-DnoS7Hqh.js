@@ -1,0 +1,1 @@
+function e(e){let t=typeof e==`number`?e:Number.parseFloat(String(e??0));return Number.isFinite(t)?t:0}export{e as t};
