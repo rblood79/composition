@@ -5579,21 +5579,21 @@ const CatalogWindowRowNest = memo(
       before.all !== after.all
     )
       return false;
-    // (The same records in `[from, to)`: the window's ids there.)
-    const idsIn = (props: WindowRowNestProps) => {
+    // (The same records in `[from, to)`: the window's ids there — read in place, no copy.)
+    const span = (props: WindowRowNestProps) => {
       const lo = Math.max(props.from, props.start);
       const hi = Math.min(props.to, props.start + props.ids.length);
-      return lo < hi
-        ? { lo, ids: props.ids.slice(lo - props.start, hi - props.start) }
-        : { lo: 0, ids: NO_ROW_IDS };
+      return lo < hi ? { lo, hi } : { lo: 0, hi: 0 };
     };
-    const a = idsIn(before);
-    const b = idsIn(after);
-    return (
-      a.lo === b.lo &&
-      a.ids.length === b.ids.length &&
-      a.ids.every((id, index) => id === b.ids[index])
-    );
+    const a = span(before);
+    const b = span(after);
+    if (a.lo !== b.lo || a.hi !== b.hi) return false;
+    for (let index = a.lo; index < a.hi; index += 1)
+      if (
+        before.ids[index - before.start] !== after.ids[index - after.start]
+      )
+        return false;
+    return true;
   },
 );
 /** A nest chunk's name: its first row's key and a hash of its siblings' keys (`windowRowChunkNames`). */

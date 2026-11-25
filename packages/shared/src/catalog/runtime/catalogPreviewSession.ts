@@ -483,6 +483,30 @@ const pinAnswerKey = (
   nodeId: string,
   pins: { readonly top: readonly string[]; readonly bottom: readonly string[] },
 ) => `${nodeId}\u0000${JSON.stringify([pins.top, pins.bottom])}`;
+/**
+ * How many open groups' rows are asked for at once (`syncGroupRows`) — a browser's HTTP/1.1
+ * connections to a host (6); more would only wait in its queue.
+ */
+const CATALOG_GROUP_REQUESTS_AT_ONCE = 6;
+/** Runs loads at most `size` at a time, the rest in the order asked. */
+function catalogRequestSlots(
+  size: number,
+): <T>(load: () => Promise<T>) => Promise<T> {
+  let running = 0;
+  const waiting: (() => void)[] = [];
+  return async (load) => {
+    if (running < size) running += 1;
+    else await new Promise<void>((resume) => waiting.push(resume));
+    try {
+      return await load();
+    } finally {
+      // (The slot passes to the next one waiting, else it frees.)
+      const next = waiting.shift();
+      if (next) next();
+      else running -= 1;
+    }
+  };
+}
 /** A Table state without its sort (a Table its server sorts — the rows keep the server's order). */
 function withoutSort(state: CatalogTableState): CatalogTableState | undefined {
   if (!state.sort) return state === CATALOG_NO_TABLE_STATE ? undefined : state;
@@ -2383,6 +2407,7 @@ export class CatalogPreviewSession {
    */
   private async syncGroupRows(collectionId: string): Promise<void> {
     let retry = false;
+    const requests = catalogRequestSlots(CATALOG_GROUP_REQUESTS_AT_ONCE);
     for (const { recordId, nodeId, authoredQuery } of this.boundTableRecords(
       collectionId,
     )) {
@@ -2398,74 +2423,86 @@ export class CatalogPreviewSession {
       const open = (key: string) =>
         groups.expanded === "all" || groups.expanded.includes(key);
       let changed = false;
+      // (The open groups of a level are asked for at once, a few at a time — each one's own pages
+      //  in turn, its next level once it has answered. One after another, 12 open groups at
+      //  100 ms an answer kept a sort's rows waiting 2.8 s, 2026-11-25.)
       const walk = async (
         rows: readonly Record<string, unknown>[],
         depth: number,
         outer: readonly unknown[],
       ): Promise<void> => {
-        for (const row of rows) {
-          const path = [...outer, row[groups.keys[depth]!] ?? null];
-          const groupKey = catalogTableGroupKey(path);
-          if (!open(groupKey)) continue;
-          const query =
-            this.stateRowQuery(collectionId, authored, slices, depth + 1) ??
-            authored;
-          const groupOf = { by: groups.keys.slice(0, depth + 1), values: path };
-          const first = this.requestOf(collectionId, query, undefined, {
-            groupOf,
-          });
-          if (!first) continue;
-          const key = `${nodeId}\u0000${groupKey}`;
-          let answer = this.groupAnswers.get(key);
-          if (answer?.url !== first.url || answer.queryKey !== queryKey) {
-            this.groupAnswers.set(key, (answer = { queryKey, url: first.url }));
-            const got = await this.loadEveryPage(
-              collectionId,
-              (cursor) =>
-                this.requestOf(
-                  collectionId,
-                  query,
-                  cursor === undefined ? undefined : { cursor },
-                  { groupOf },
-                )?.extra ?? first.extra,
-            );
-            if (this.groupAnswers.get(key) !== answer) return;
-            // (The rows the answer has: the next level's counts, else the server's total.)
-            const deeper = depth + 1 < groups.keys.length;
-            const count = Number(row[CATALOG_GROUP_ROW_COUNT]);
-            const rowsOf = deeper
-              ? got.rows.reduce(
-                  (sum, item) =>
-                    sum + (Number(item[CATALOG_GROUP_ROW_COUNT]) || 0),
-                  0,
-                )
-              : (got.total ?? got.rows.length);
-            const retryKey = `${queryKey}\u0000${key}`;
-            if (Number.isFinite(count) && rowsOf !== count) {
-              if (!this.groupRetries.has(retryKey)) {
-                this.groupRetries.add(retryKey);
-                this.groupAnswers.delete(key);
-                retry = true;
-                continue;
-              }
-              console.warn(
-                `[CatalogPreview] ${collectionId}: the group ${groupKey} counts ${count} rows, the server's answer to its rows has ${rowsOf} — said on its row.`,
-              );
-            }
-            answer = {
-              queryKey,
-              url: first.url,
-              rows: got.rows,
-              ...(Number.isFinite(count) && rowsOf !== count
-                ? { mismatch: rowsOf }
-                : {}),
+        const query =
+          this.stateRowQuery(collectionId, authored, slices, depth + 1) ??
+          authored;
+        const deeper = depth + 1 < groups.keys.length;
+        await Promise.all(
+          rows.map(async (row) => {
+            const path = [...outer, row[groups.keys[depth]!] ?? null];
+            const groupKey = catalogTableGroupKey(path);
+            if (!open(groupKey)) return;
+            const groupOf = {
+              by: groups.keys.slice(0, depth + 1),
+              values: path,
             };
-            this.groupAnswers.set(key, answer);
-            changed = true;
-          }
-          if (answer.rows && depth + 1 < groups.keys.length)
-            await walk(answer.rows, depth + 1, path);
-        }
+            const first = this.requestOf(collectionId, query, undefined, {
+              groupOf,
+            });
+            if (!first) return;
+            const key = `${nodeId}\u0000${groupKey}`;
+            let answer = this.groupAnswers.get(key);
+            if (answer?.url !== first.url || answer.queryKey !== queryKey) {
+              this.groupAnswers.set(
+                key,
+                (answer = { queryKey, url: first.url }),
+              );
+              const got = await requests(() =>
+                this.loadEveryPage(
+                  collectionId,
+                  (cursor) =>
+                    this.requestOf(
+                      collectionId,
+                      query,
+                      cursor === undefined ? undefined : { cursor },
+                      { groupOf },
+                    )?.extra ?? first.extra,
+                ),
+              );
+              if (this.groupAnswers.get(key) !== answer) return;
+              // (The rows the answer has: the next level's counts, else the server's total.)
+              const count = Number(row[CATALOG_GROUP_ROW_COUNT]);
+              const rowsOf = deeper
+                ? got.rows.reduce(
+                    (sum, item) =>
+                      sum + (Number(item[CATALOG_GROUP_ROW_COUNT]) || 0),
+                    0,
+                  )
+                : (got.total ?? got.rows.length);
+              const retryKey = `${queryKey}\u0000${key}`;
+              if (Number.isFinite(count) && rowsOf !== count) {
+                if (!this.groupRetries.has(retryKey)) {
+                  this.groupRetries.add(retryKey);
+                  this.groupAnswers.delete(key);
+                  retry = true;
+                  return;
+                }
+                console.warn(
+                  `[CatalogPreview] ${collectionId}: the group ${groupKey} counts ${count} rows, the server's answer to its rows has ${rowsOf} — said on its row.`,
+                );
+              }
+              answer = {
+                queryKey,
+                url: first.url,
+                rows: got.rows,
+                ...(Number.isFinite(count) && rowsOf !== count
+                  ? { mismatch: rowsOf }
+                  : {}),
+              };
+              this.groupAnswers.set(key, answer);
+              changed = true;
+            }
+            if (answer.rows && deeper) await walk(answer.rows, depth + 1, path);
+          }),
+        );
       };
       await walk(
         this.collectionItems(collectionId) as Record<string, unknown>[],

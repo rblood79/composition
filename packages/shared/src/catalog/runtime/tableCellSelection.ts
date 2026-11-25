@@ -51,14 +51,32 @@ export function attachCatalogCellSelection(
 ): CatalogCellSelection {
   let ranges: readonly CatalogCellRange[] = [];
   const marked = new Map<HTMLElement, string>();
-  /** The rows' · Columns' places now (the order may have changed since the ranges were made). */
+  /**
+   * The rows' · Columns' places now (the order may have changed since the ranges were made). Read
+   * again only for another order — a new row key list (a virtual Table holds its list while its
+   * rows are the same) or other Columns: every cell drawn under a range is marked, and a Map of
+   * every row key per cell cost 1,569 of 9,562 ms of a 10,000-row scroll (2026-11-25).
+   */
+  let held:
+    | {
+        order: ReturnType<CatalogCellSelectionSource["order"]>;
+        row: Map<string, number>;
+        column: Map<string, number>;
+      }
+    | undefined;
   const places = () => {
     const order = source.current?.order() ?? { rows: [], columns: [] };
-    return {
+    if (
+      held?.order.rows === order.rows &&
+      held.order.columns.length === order.columns.length &&
+      held.order.columns.every((key, index) => key === order.columns[index])
+    )
+      return held;
+    return (held = {
       order,
       row: new Map(order.rows.map((key, index) => [key, index])),
       column: new Map(order.columns.map((key, index) => [key, index])),
-    };
+    });
   };
   const inside = (
     at: ReturnType<typeof places>,

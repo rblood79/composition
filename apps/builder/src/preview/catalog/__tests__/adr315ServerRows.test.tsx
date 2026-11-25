@@ -251,7 +251,9 @@ describe("5g-1 — a grouping · a totals row · a tree on a server's pages load
     const t = await openTable(remote("template"));
     // (The first page only: the rows the server sent.)
     expect(t.rows().map((cells) => cells[0])).toEqual(["Bora", "Chan"]);
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "grouping")).toEqual({
+    expect(
+      t.h.session.tables.tableSliceServable(t.table().id, "grouping"),
+    ).toEqual({
       accepts: "loaded",
       reason: "rowsSplit",
     });
@@ -368,10 +370,12 @@ describe("5g-1 — a grouping · a totals row · a tree on a server's pages load
       }),
       { parentId: "f-parent" },
     );
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "tree")).toEqual({
-      accepts: "loaded",
-      reason: "treeIndex",
-    });
+    expect(t.h.session.tables.tableSliceServable(t.table().id, "tree")).toEqual(
+      {
+        accepts: "loaded",
+        reason: "treeIndex",
+      },
+    );
     await t.set({ expandedKeys: "all" });
     expect(t.rows().map((cells) => cells[0])).toEqual([
       "Root one",
@@ -429,9 +433,11 @@ describe("5g-2 — a server's pages and pinned rows: asked for by key (§4.3.3)"
       remote({ kind: "body", pageSize: 2, keyRows: true }, { method: "POST" }),
     );
     await t.declare(PINNABLE);
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "pins")).toEqual({
-      accepts: "whole",
-    });
+    expect(t.h.session.tables.tableSliceServable(t.table().id, "pins")).toEqual(
+      {
+        accepts: "whole",
+      },
+    );
     expect(t.table().props._rowPinnable).toBe(true);
     // Dana (s4) is on the second page.
     await t.pin("s4", "top");
@@ -567,13 +573,17 @@ describe("5g-2 — a server's pages and pinned rows: asked for by key (§4.3.3)"
       remote({ kind: "body", pageSize: 2 }, { method: "POST" }),
     );
     await t.declare(PINNABLE);
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "pins")).toEqual({
-      accepts: "none",
-      reason: "noKeyRows",
-    });
+    expect(t.h.session.tables.tableSliceServable(t.table().id, "pins")).toEqual(
+      {
+        accepts: "none",
+        reason: "noKeyRows",
+      },
+    );
     expect(t.table().props._rowPinnable).toBeUndefined();
     await t.pin("s4", "top");
-    expect(t.h.session.tables.tableState(t.table().id).pinnedRows).toBeUndefined();
+    expect(
+      t.h.session.tables.tableState(t.table().id).pinnedRows,
+    ).toBeUndefined();
     expect(t.pinnedRows().every((row) => row[1] === null)).toBe(true);
     t.h.view.unmount();
   }, 120_000);
@@ -590,7 +600,9 @@ describe("5g-2 — a server's pages and pinned rows: asked for by key (§4.3.3)"
     await settle();
     expect(t.table().props._rowPinnable).toBeUndefined();
     await t.pin("s4", "top");
-    expect(t.h.session.tables.tableState(t.table().id).pinnedRows).toBeUndefined();
+    expect(
+      t.h.session.tables.tableState(t.table().id).pinnedRows,
+    ).toBeUndefined();
     t.h.view.unmount();
   }, 120_000);
 
@@ -642,7 +654,9 @@ describe("5g-3 — a server's groups: the group query, an open group's rows, the
   it("the groups are the server's group query; opening one asks for its rows (`groupOf`) — not a page of rows grouped here", async () => {
     const requests = stubServer();
     const t = await openTable(remote(GROUPED, { method: "POST" }));
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "grouping")).toEqual({
+    expect(
+      t.h.session.tables.tableSliceServable(t.table().id, "grouping"),
+    ).toEqual({
       accepts: "whole",
     });
     aggregate(t, "status");
@@ -867,6 +881,38 @@ describe("5g-3 — a server's groups: the group query, an open group's rows, the
     t.h.view.unmount();
   }, 120_000);
 
+  it("the open groups' rows are asked for at once — not each after the one before has answered", async () => {
+    // (2026-11-25 효율 측정 5번: one after another, 12 open groups at 100 ms an answer kept a
+    //  sort's rows waiting 2.8 s.)
+    let holdChildren = false;
+    const server = gatedServer((body) => holdChildren && !!body.groupOf);
+    const t = await openTable(remote(GROUPED, { method: "POST" }));
+    holdChildren = true;
+    await t.set({
+      grouping: ["type"],
+      expandedKeys: ['group:["B"]', 'group:["A"]'],
+    });
+    // (Both groups' requests are out while neither has answered.)
+    expect(
+      childRequests(server.requests).map(
+        (request) => request.body!.groupOf!.values,
+      ),
+    ).toEqual([["B"], ["A"]]);
+    // (A's next page is not held — its rows are three, two a page.)
+    holdChildren = false;
+    await server.release();
+    expect(t.rows().map((cells) => cells[1])).toEqual([
+      "",
+      "Bora",
+      "Ara",
+      "",
+      "Chan",
+      "Dana",
+      "Eun",
+    ]);
+    t.h.view.unmount();
+  }, 120_000);
+
   it("an open group whose rows' answer is not its count: the group query once more, then its row says so", async () => {
     // (A server that ignores `groupOf`: B's rows are all five.)
     const requests: Request[] = [];
@@ -913,7 +959,9 @@ describe("5g-3 — a server's groups: the group query, an open group's rows, the
     );
     t.h.flush();
     await settle();
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "grouping")).toEqual({
+    expect(
+      t.h.session.tables.tableSliceServable(t.table().id, "grouping"),
+    ).toEqual({
       accepts: "loaded",
       reason: "aggregateNotRun",
     });

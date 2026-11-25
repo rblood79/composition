@@ -676,18 +676,15 @@ function catalogRowTotals(
   aggregates: NonNullable<CatalogRowSlices["totals"]>,
   roles: Parameters<typeof toItemProjectionRow>[2],
 ): Record<string, unknown> {
-  const values = Array.from(kept, (index) =>
-    buildCollectionRowTemplateItem(
-      toItemProjectionRow(sourceRows[index], index, roles),
-    ),
-  );
+  // (Each Column's cells read off the rows — `rowValueOf`, as the filters' — not a template row
+  //  made of every kept row first: 10,000 rows, 2 objects a row on every sort · keystroke.)
   const out: Record<string, unknown> = {};
   for (const aggregate of aggregates)
     out[aggregate.key] = aggregate.fn
       ? viewAggregateOf(
           aggregate.fn,
-          () => values.map((row) => row[aggregate.key]),
-          values.length,
+          () => Array.from(kept, rowValueOf(sourceRows, aggregate.key, roles)),
+          kept.length,
         )
       : null;
   return out;
@@ -1168,22 +1165,26 @@ function boundRowsOf(
   if (groups && sourceRows) {
     const kept =
       order ?? Array.from({ length: sourceRows.length }, (_, index) => index);
-    // (Each row's key by the source order — a duplicate key's mark is the same under every sort.)
-    const byIndex = new Map<number, CatalogBoundRow>();
-    for (const index of [...kept].sort((a, b) => a - b)) {
+    // (Each row's key by the source order — a duplicate key's mark is the same under every sort.
+    //  The kept rows marked by their source place, then read in that order — no sort.)
+    const byIndex = new Array<CatalogBoundRow | undefined>(sourceRows.length);
+    const isKept = new Uint8Array(sourceRows.length);
+    for (let at = 0; at < kept.length; at += 1) isKept[kept[at]!] = 1;
+    for (let index = 0; index < sourceRows.length; index += 1) {
+      if (!isKept[index]) continue;
       const row = toItemProjectionRow(sourceRows[index], index, roles);
       let key = String(row.itemKey);
       if (seen.has(key)) key = `${key}~${row.rowIndex}`;
       seen.add(key);
       // (ADR-315 Phase 5 증분 5d — under a grouping the rows' own child rows are not shown: a
       //  group's rows are its leaves, breakdown §5.4.)
-      byIndex.set(index, {
+      byIndex[index] = {
         key,
         values: buildCollectionRowTemplateItem(row),
-      });
+      };
     }
     const top = catalogGroupBoundRows(
-      Array.from(kept, (index) => byIndex.get(index)!),
+      Array.from(kept, (index) => byIndex[index]!),
       groups,
     );
     const cut = top.slice(0, Math.max(0, limit));
@@ -1256,12 +1257,17 @@ function boundRowsOf(
     : sourceRows && rest && taken === rest.length
       ? // (Every row is shown: a duplicate key's index mark goes by the source order — the same
         //  row keeps the same key under every sort.)
+        //  The rows placed by their source place, then bound in that order — no sort.
         (() => {
+          const at = new Array<(typeof projected)[number] | undefined>(
+            sourceRows.length,
+          );
+          for (const row of projected) at[row.rowIndex] = row;
           const bound = new Array<CatalogBoundRow>(sourceRows.length);
-          for (const row of [...projected].sort(
-            (a, b) => a.rowIndex - b.rowIndex,
-          ))
-            bound[row.rowIndex] = boundRow(row, childRows(row.item));
+          for (let index = 0; index < at.length; index += 1) {
+            const row = at[index];
+            if (row) bound[index] = boundRow(row, childRows(row.item));
+          }
           return projected.map((row) => bound[row.rowIndex]!);
         })()
       : projected.map((row) => boundRow(row, childRows(row.item)));

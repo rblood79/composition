@@ -139,6 +139,17 @@ const CHECK_AUTHORED = process.argv.includes("--check-authored-sort");
 //   `--column-origin` (the menu Button is the Column's content wrapper).
 const PROFILE_COLUMNS = process.argv.includes("--profile-columns");
 const BROWSER = arg("--browser", "chromium");
+// `--with a,b` (효율 측정 2026-11-25): Builder 에서 그 기능만 켜고 Publish 의 확인은 하지 않는다 —
+//   `--profile-scroll` · `--profile-sort` 와 같이 쓴다. totals · pin · rowpin · cellsel (「Cell
+//   selection」 — 프로필 전에 범위 하나) · disabled (행 10 개 중 하나가 `off` — `fieldMap.disabled`).
+//   `--profile-fns <regex>`: 프로필에서 이름이 맞는 함수의 inclusive 시간을 전부 적는다.
+const WITH = new Set(arg("--with", "").split(",").filter(Boolean));
+const PROFILE_FNS = arg("--profile-fns", null);
+// `--with server` : the rows from the query server (POST — `--check-server` 의 endpoint), `--latency <ms>`
+//   그 서버의 응답 지연. `--measure-group-sync`: 묶음을 모두 연 뒤 정렬 한 번 — 열린 묶음의 다시 요청이
+//   몇 개 · 동시에 몇 개 · 클릭부터 마지막 응답까지 몇 ms 인지.
+const SERVED = CHECK_SERVER || (WITH.has("server") ? "with" : "");
+const LATENCY = Number(arg("--latency", "0"));
 // `--column-origin` : 열을 제품의 Quick Connect · 「+ Column」 과 같은 원본 (내용 감싸개가 있는 Column)
 //   으로 만든다 — 기본은 Table 원본의 첫 열과 같은 정의 (감싸개 없는 Column, 글자는 `children`).
 const COLUMN_ORIGIN = process.argv.includes("--column-origin")
@@ -173,6 +184,7 @@ function makeRows(count) {
     amount: Math.floor(next() * 1_000_000) / 100,
     qty: Math.floor(next() * 500),
     date: `2026-${pad(Math.floor(next() * 12) + 1)}-${pad(Math.floor(next() * 28) + 1)}`,
+    ...(WITH.has("disabled") ? { off: i % 10 === 0 } : {}),
     ...(CHECK_TREE
       ? {
           parent:
@@ -203,9 +215,13 @@ const server = createServer((req, res) => {
     req.on("data", (chunk) => (text += chunk));
     req.on("end", () => {
       const body = text ? JSON.parse(text) : {};
-      requests.push({ url: req.url, body });
-      res.writeHead(200, { "content-type": "application/json", ...cors });
-      res.end(JSON.stringify(answerBody(SERVER_ROWS, body)));
+      const entry = { url: req.url, body, start: Date.now() };
+      requests.push(entry);
+      setTimeout(() => {
+        res.writeHead(200, { "content-type": "application/json", ...cors });
+        res.end(JSON.stringify(answerBody(SERVER_ROWS, body)));
+        entry.end = Date.now();
+      }, LATENCY);
     });
     return;
   }
@@ -266,7 +282,8 @@ const context = await browser.newContext({
   CHECK_TREE ||
   CHECK_DETAIL ||
   CHECK_ROWPIN ||
-  CHECK_SERVER
+  SERVED ||
+  WITH.size
     ? { locale: "en-US" }
     : {}),
 });
@@ -326,7 +343,7 @@ try {
 
     // ── 데이터 + Table ──
     await page.evaluate(
-      ({ REMOTE_BASE, COLUMNS, MOCK, CHECK_TREE, SERVER }) => {
+      ({ REMOTE_BASE, COLUMNS, MOCK, CHECK_TREE, SERVER, DISABLED }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
         const g = ws.root.runtime.graph;
@@ -348,6 +365,9 @@ try {
                   })),
                   ...(CHECK_TREE
                     ? [{ id: "f-parent", key: "parent", type: "string" }]
+                    : []),
+                  ...(DISABLED
+                    ? [{ id: "f-off", key: "off", type: "boolean" }]
                     : []),
                 ],
                 // (`--check-authored-group`: the Builder's Canvas draws its rows — the same rows
@@ -443,11 +463,14 @@ try {
           CHECK_TOTALS ||
           CHECK_TREE ||
           CHECK_DETAIL ||
-          (CHECK_ROWPIN && !SERVER_PIN)
+          (CHECK_ROWPIN && !SERVER_PIN) ||
+          WITH.has("rowpin") ||
+          (WITH.has("group") && !SERVED && ROWS <= 1000)
             ? makeRows(ROWS)
             : null,
         CHECK_TREE,
-        SERVER: !!CHECK_SERVER,
+        SERVER: !!SERVED,
+        DISABLED: WITH.has("disabled"),
       },
     );
     await page.waitForTimeout(2000);
@@ -470,6 +493,8 @@ try {
         CHECK_DRAG,
         CHECK_AUTHORED,
         PROFILE_COLUMNS,
+        DISABLED,
+        CELLSEL,
       }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
@@ -570,6 +595,7 @@ try {
                 collectionId: "grid",
                 name: "Grid",
                 ...(CHECK_TREE ? { fieldMap: { parentId: "f-parent" } } : {}),
+                ...(DISABLED ? { fieldMap: { disabled: "f-off" } } : {}),
               }),
             ),
           ),
@@ -589,6 +615,16 @@ try {
         if (DISPLAY === "virtual")
           step("virtual", () =>
             ws.execute(h.rowDisplay.setRowDisplay(id, { mode: "virtual" })),
+          );
+        if (CELLSEL)
+          step("cell selection", () =>
+            ws.execute(
+              C.setFields({
+                targets: [{ kind: "node", id }],
+                props: { allowsCellSelection: set(true) },
+                label: "cell selection",
+              }),
+            ),
           );
         if (CHECK_PIN)
           step("pin", () => {
@@ -843,16 +879,19 @@ try {
         COLUMNS,
         DISPLAY,
         COLUMN_ORIGIN,
-        CHECK_PIN,
+        CHECK_PIN: CHECK_PIN || WITH.has("pin"),
         CHECK_RESIZE,
         CHECK_FILTER,
         CHECK_GROUP,
+        DISABLED: WITH.has("disabled"),
+        CELLSEL: WITH.has("cellsel"),
         // (`--check-server group`: the authored grouping · the totals row; `pin`: row pinning.)
-        CHECK_AUTHORED_GROUP: CHECK_AUTHORED_GROUP || SERVER_GROUP,
-        CHECK_TOTALS: CHECK_TOTALS || SERVER_GROUP,
+        CHECK_AUTHORED_GROUP:
+          CHECK_AUTHORED_GROUP || SERVER_GROUP || WITH.has("group"),
+        CHECK_TOTALS: CHECK_TOTALS || SERVER_GROUP || WITH.has("totals"),
         CHECK_TREE,
         CHECK_DETAIL,
-        CHECK_ROWPIN: CHECK_ROWPIN || SERVER_PIN,
+        CHECK_ROWPIN: CHECK_ROWPIN || SERVER_PIN || WITH.has("rowpin"),
         CHECK_DRAG,
         CHECK_AUTHORED,
         PROFILE_COLUMNS,
@@ -1264,7 +1303,10 @@ try {
               row.textContent ?? "",
             ),
           ),
-        { OURS, GROUPED: CHECK_AUTHORED_GROUP || SERVER_GROUP },
+        {
+          OURS,
+          GROUPED: CHECK_AUTHORED_GROUP || SERVER_GROUP || WITH.has("group"),
+        },
         { timeout: 180000 },
       );
     } catch (error) {
@@ -3812,9 +3854,19 @@ try {
         list.length ? list[Math.floor(list.length / 2)].ms.toFixed(1) : "-";
       marked = `--- tasks with ${marker}: ${hits.length} · median ${mid(hits)} ms · max ${hits.at(-1)?.ms.toFixed(1)} ms · total ${hits.reduce((a, b) => a + b.ms, 0).toFixed(1)} ms | other tasks ${rest.length} · median ${mid(rest)} ms · max ${rest.at(-1)?.ms.toFixed(1)} ms\n    each: ${hits.map((b) => b.ms.toFixed(0)).join(" ")}\n--- the heaviest third (${heavy.length} tasks, ${heavy.reduce((a, b) => a + b.ms, 0).toFixed(1)} ms)\n${top(sum, (n) => / (src|nm)\//.test(n), 70).join("\n")}\n`;
     }
+    const targets = PROFILE_FNS
+      ? `--- targets /${PROFILE_FNS}/ (inclusive · self)\n${[...inclusive]
+          .filter(([n]) => new RegExp(PROFILE_FNS).test(n.split(" ")[0]))
+          .sort((a, b) => b[1] - a[1])
+          .map(
+            ([n, v]) =>
+              `${v.toFixed(1).padStart(8)} ms ${(self.get(n) ?? 0).toFixed(1).padStart(7)} ms  ${n}`,
+          )
+          .join("\n")}\n`
+      : "";
     writeFileSync(
       `${OUT}/${file}`,
-      `${title} · sampled ${total.toFixed(1)} ms\n${marked}--- self\n${top(self, () => true, 45).join("\n")}\n--- inclusive (src/ · nm/)\n${top(inclusive, (n) => / (src|nm)\//.test(n), 90).join("\n")}\n`,
+      `${title} · sampled ${total.toFixed(1)} ms\n${targets}${marked}--- self\n${top(self, () => true, 45).join("\n")}\n--- inclusive (src/ · nm/)\n${top(inclusive, (n) => / (src|nm)\//.test(n), 90).join("\n")}\n`,
     );
     log(`profile → ${OUT}/${file}`);
   };
@@ -3894,13 +3946,195 @@ try {
     }, text);
     log(`strip-has: ${results.strippedHas.length} rules`);
   }
+  const openAllGroups = async () => {
+      // (Every group opened — the closed group rows from the last shown up, so none moves.)
+      for (let guard = 0; guard < 40; guard += 1) {
+        const at = await pub.evaluate(({ a }) => {
+          const box = document.querySelector(a.scroll).getBoundingClientRect();
+          const closed = [
+            ...document.querySelectorAll(
+              `${a.hide} [role=row][aria-expanded=false] [slot=chevron]`,
+            ),
+          ]
+            .map((el) => el.getBoundingClientRect())
+            .filter((r) => r.top >= box.top + 30 && r.bottom <= box.bottom);
+          const r = closed.at(-1);
+          return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
+        }, { a: ARMS.ours });
+        if (!at) break;
+        await pub.mouse.click(at.x, at.y);
+        await pub.waitForTimeout(400);
+      }
+      results.groupRows = await pub.evaluate(
+        ({ a }) => ({
+          open: document.querySelectorAll(`${a.hide} [role=row][aria-expanded=true]`)
+            .length,
+          closed: document.querySelectorAll(
+            `${a.hide} [role=row][aria-expanded=false]`,
+          ).length,
+          scrollHeight: document.querySelector(a.scroll).scrollHeight,
+        }),
+        { a: ARMS.ours },
+      );
+      log(`groups: ${JSON.stringify(results.groupRows)}`);
+      };
+  const selectCellRange = async () => {
+      // (A range of cells — the 2nd row's 2nd cell to the 5th row's 4th — before the profiled sweep.)
+      const cellAt = (row, col) =>
+        pub.evaluate(
+          ({ a, row, col }) => {
+            const rows = [
+              ...document.querySelectorAll(`${a.hide} [role=row]`),
+            ].filter((r) => r.querySelector("[role=gridcell]"));
+            const cell = rows[row]?.querySelectorAll(
+              "[role=gridcell][data-column-key], [role=rowheader][data-column-key]",
+            )[col];
+            const r = cell?.getBoundingClientRect();
+            return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
+          },
+          { a: ARMS.ours, row, col },
+        );
+      const from = await cellAt(1, 1);
+      const to = await cellAt(4, 3);
+      if (!from || !to) throw new Error("cell selection: 칸을 찾지 못했다");
+      await pub.mouse.click(from.x, from.y);
+      await pub.keyboard.down("Shift");
+      await pub.mouse.click(to.x, to.y);
+      await pub.keyboard.up("Shift");
+      await pub.waitForTimeout(300);
+      results.cellRange = await pub.evaluate(
+        ({ a }) =>
+          document.querySelectorAll(`${a.hide} [data-selected][data-column-key]`)
+            .length,
+        { a: ARMS.ours },
+      );
+      log(`cell range: ${results.cellRange} cells selected`);
+      };
+  const selectedCells = () =>
+    pub.evaluate(
+      ({ a }) =>
+        [...document.querySelectorAll(`${a.hide} [data-selected][data-column-key]`)].map(
+          (cell) =>
+            `${cell.closest("[role=row]")?.getAttribute("data-key")}:${cell.getAttribute("data-column-key")}`,
+        ),
+      { a: ARMS.ours },
+    );
+  // `--check-cellsel`: a range (rows 2 … 5 × Columns 2 … 4), the window moved away and back — the
+  //   same cells selected; Ctrl/Cmd + C — the range's rows' data, tab-separated.
+  if (process.argv.includes("--check-cellsel")) {
+    await show("ours");
+    await selectCellRange();
+    const before = await selectedCells();
+    await pub.evaluate(
+      async ({ a }) => {
+        const list = document.querySelector(a.scroll);
+        for (const top of [4000, 12000, 0]) {
+          list.scrollTop = top;
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      },
+      { a: ARMS.ours },
+    );
+    const after = await selectedCells();
+    await pub.evaluate(() => {
+      window.__copied = null;
+      document.addEventListener("copy", (event) => {
+        window.__copied = event.clipboardData?.getData("text/plain") ?? null;
+      });
+    });
+    await pub.keyboard.press("ControlOrMeta+c");
+    await pub.waitForTimeout(200);
+    const copied = await pub.evaluate(() => window.__copied);
+    const lines = (copied ?? "").split("\n").filter(Boolean);
+    results.checkCellsel = {
+      before,
+      after,
+      copied: lines.slice(0, 6),
+      pass:
+        before.length === 12 &&
+        JSON.stringify(before) === JSON.stringify(after) &&
+        lines.length === 4 &&
+        lines.every((line) => line.split("\t").length === 3),
+    };
+    log(`check-cellsel ${JSON.stringify(results.checkCellsel)}`);
+    throw new Error("load only");
+  }
+  if (process.argv.includes("--measure-group-sync")) {
+    await show("ours");
+    await openAllGroups();
+    await pub.waitForTimeout(1500);
+    const from = requests.length;
+    const clicked = Date.now();
+    await sortOnce("ours", "Amount");
+    // (Until the server has been quiet for 1.5 s.)
+    for (let quiet = 0; quiet < 1500; ) {
+      const n = requests.length;
+      await pub.waitForTimeout(250);
+      quiet =
+        requests.length === n && requests.slice(from).every((r) => r.end)
+          ? quiet + 250
+          : 0;
+    }
+    const sent = requests.slice(from).filter((r) => typeof r === "object");
+    const groupOf = (r) => JSON.stringify(r.body?.groupOf ?? r.body?.group ?? null);
+    let peak = 0;
+    for (const r of sent)
+      peak = Math.max(
+        peak,
+        sent.filter((o) => o.start <= r.start && o.end > r.start).length,
+      );
+    results.groupSync = {
+      latency: LATENCY,
+      requests: sent.length,
+      peakConcurrent: peak,
+      lastResponseMs: sent.length ? Math.max(...sent.map((r) => r.end)) - clicked : null,
+      each: sent.map((r) => ({
+        at: r.start - clicked,
+        ms: r.end - r.start,
+        body: JSON.stringify(r.body).slice(0, 160),
+      })),
+      groups: groupOf(sent[0] ?? {}),
+    };
+    writeFileSync(`${OUT}/group-sync.json`, JSON.stringify(results.groupSync, null, 2));
+    log(
+      `group sync: ${sent.length} requests · peak ${peak} at once · last answer ${results.groupSync.lastResponseMs} ms after the click (latency ${LATENCY})`,
+    );
+    throw new Error("load only");
+  }
   if (process.argv.includes("--profile-scroll")) {
+    if (WITH.has("rowpin")) {
+      await show("ours");
+      await pub.waitForTimeout(1000);
+      await pub.mouse.move(5, 5);
+      // (Rows pinned by the viewer's row menu — two at the top, one at the bottom.)
+      for (const [key, item] of [
+        ["r3", "Pin to top"],
+        ["r4", "Pin to top"],
+        ["r6", "Pin to bottom"],
+      ]) {
+        const row = pub.locator(`${ARMS.ours.hide} [role=row][data-key="${key}"]`);
+        await row.hover();
+        await row.locator(".table-row-pin-button").click();
+        await pub.getByRole("menuitem", { name: item }).click();
+        await pub.waitForTimeout(800);
+      }
+      results.pinnedRows = await pub.evaluate(
+        ({ a }) =>
+          document.querySelectorAll(`${a.hide} [role=row][data-pinned-row]`)
+            .length,
+        { a: ARMS.ours },
+      );
+      log(`pinned rows: ${results.pinnedRows}`);
+      await pub.mouse.move(5, 5);
+    }
     await sweep("ours");
     await pub.evaluate(
       ({ a }) => (document.querySelector(a.scroll).scrollTop = 0),
       { a: ARMS.ours },
     );
     await pub.waitForTimeout(500);
+    if (WITH.has("group")) await openAllGroups();
+    if (WITH.has("cellsel")) await selectCellRange();
     await profiled(
       "scroll-profile.txt",
       async () => {

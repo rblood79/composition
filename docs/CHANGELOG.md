@@ -13,6 +13,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Table 효율 — 칸 선택 스크롤 · 서버 묶음 요청 동시 · 정렬 key · 합계] - 2026-11-25
+
+/simplify 효율 지적 8개를 production 빌드의 Publish 에서 CPU 프로필로 잰 뒤 (headed Chrome · CPU 1x), 비용이 보인 것만 고쳤다. 측정에서 이득이 없던 disabledKeys · 고정 측정기 · 글꼴 상속 (각 0.5% 이하) 과 묶음 표 nest hash (캐시를 넣어도 151 → 146 ms) 는 그대로 두었다.
+
+### Performance
+
+- **칸 범위가 있는 Table 의 스크롤**: 칸이 붙을 때마다 행 전체 (가상 Table 은 10,000 행) 로 위치표를 새로 만들던 것을, 행 목록이 같은 배열이면 다시 쓴다. 10,000 행 · 600 frame 스크롤에서 그 일이 1,582 → 24 ms, 전체 9,562 → 8,155 ms (frame 당 16.96 → 14.58 ms).
+  - **Why**: 위치표가 행 순서에만 달렸는데 칸마다 계산했다 — 가상 Table 은 행이 같으면 key 목록을 같은 배열로 유지한다 (`heldRowWindow`).
+  - 위치: `runtime/tableCellSelection.ts` `places`
+- **서버가 묶는 Table 의 열린 묶음 요청**: 같은 단계의 열린 묶음을 동시에 (한 번에 최대 6 — 브라우저의 host 당 연결 수) 요청하고, 하위 단계는 그 묶음 응답 직후 이어 간다. 열린 묶음 12 · 응답 100 ms 에서 정렬 뒤 마지막 응답이 2,755 → 860 ms.
+  - **Why**: 서로 무관한 요청을 for 루프에서 하나씩 기다렸다 — 표는 모든 묶음이 끝난 뒤에야 다시 그려진다.
+  - 위치: `runtime/catalogPreviewSession.ts` `syncGroupRows` · `catalogRequestSlots`
+- **정렬 · 검색의 행 key 매기기와 합계**: key 를 원본 순서로 매기려고 보이는 행 전체를 정렬하던 것을 원본 자리 표시로, 합계는 행마다 template 객체 2개를 만들던 것을 필드 직접 읽기 (`rowValueOf` — 필터와 같은 읽기) 로. 10,000 행 정렬 클릭 243 → 213 ms.
+  - 위치: `runtime/dataBinding.ts` `boundRowsOf` · `catalogRowTotals`
+
+### Tests
+
+- unit `tableCellSelectionPlaces` (칸 표시 150 번에 위치표 150 번 → 1 번 이하 · 정렬 · 열 이동 뒤 다시 읽음) · `adr315ServerRows` 「the open groups' rows are asked for at once」 (수정을 되돌리면 RED).
+- 측정 하니스 `datagrid-table-vs-tanstack-live.mjs`: `--with` (기능만 켜고 확인 생략) · `--profile-fns` · `--latency` · `--measure-group-sync` · `--check-cellsel`.
+
+검증: type-check · shared 2,767 · builder unit 9,868 통과. live (production 빌드 Publish) — `--check-cellsel` 10,000 행 범위 12 칸이 창 이동 뒤에도 같고 복사 4 행 × 3 열 PASS · `--check-totals` · `--check-authored-group` PASS. `--check-server group` · `--check-group` 은 HEAD 빌드에서도 같은 값으로 FAIL (기존 하니스 문제).
+
 ## [Table 고정 열 경계선 — Canvas 레이아웃에도 1px] - 2026-11-25
 
 /simplify 정리 (derived 값 허용 목록 통합) 중에 찾았다. 고정 열의 경계선 (Column · Cell rule 의 `pinned-edge` 1px) 을 DOM 은 테두리로 그려 내용 상자가 1px 좁아지는데, Canvas 레이아웃 엔진 입력에는 그 선이 없었다.
