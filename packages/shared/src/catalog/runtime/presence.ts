@@ -676,7 +676,7 @@ function catalogCardCheckboxCard(
  * spacing places the sections and the checkbox; the card's padding is the same value but 0 on a
  * quiet card (S2 `--card-padding-x/y`).
  */
-export function catalogCardSpacing(
+function catalogCardSpacing(
   card: CatalogConsumerNode,
 ): number | undefined {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Card;
@@ -1943,7 +1943,7 @@ export function catalogSliderRange(slider: CatalogConsumerNode): {
  * changes): the longer of the min and max formatted (a RangeSlider's: the ranges `[min, min + step]`
  * and `[max - step, max]`), counted in code points.
  */
-export function catalogSliderValueChars(
+function catalogSliderValueChars(
   slider: CatalogConsumerNode,
   range: boolean,
   locale?: string,
@@ -2351,12 +2351,7 @@ export function catalogTableTreeColumn(
         typeOf(child) === "Column" &&
         child.props[CATALOG_TREE_COLUMN_PROP] === true,
     );
-  return column
-    ? catalogTableColumnKey({
-        id: column.id,
-        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-      })
-    : undefined;
+  return column ? catalogTableColumnKey(column) : undefined;
 }
 
 export function catalogTableAuthoredSortShown(
@@ -2397,10 +2392,7 @@ export function catalogTableAuthoredSortShown(
       break;
     }
     out.push({
-      column: catalogTableColumnKey({
-        id: column.id,
-        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-      }),
+      column: catalogTableColumnKey(column),
       direction: entry.direction,
     });
   }
@@ -2411,7 +2403,7 @@ export function catalogTableAuthoredSortShown(
  * A Column's content wrapper — its first frame (S2 `ColumnContents`' `div`, flex · centered · the
  * column's `align` as `justifyContent`).
  */
-export function catalogColumnContent(
+function catalogColumnContent(
   column: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
@@ -2482,10 +2474,7 @@ export function catalogColumnAuthoredSortMark(
   const table = header && get(header.parentId);
   const shown = table && catalogTableAuthoredSortShown(table, get, typeOf);
   if (!shown) return undefined;
-  const key = catalogTableColumnKey({
-    id: column!.id,
-    ...(column!.htmlId ? { htmlId: column!.htmlId } : {}),
-  });
+  const key = catalogTableColumnKey(column!);
   const index = shown.findIndex((entry) => entry.column === key);
   return index < 0
     ? undefined
@@ -3204,7 +3193,7 @@ export function catalogDerivedProps(
  * drawn (its box stays laid out; the DOM keeps the text for a screen reader — opacity, not
  * `visibility`). The nearest Cell decides; a Row · Table above ends the walk.
  */
-export function catalogCellMergedContent(
+function catalogCellMergedContent(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
@@ -5284,21 +5273,23 @@ export function catalogListBoxDescriptionColor(
   )?.rootSelectors;
   const disabledColor = disabled
     ? scopes?.[
-        inPopover ? "&:is(.react-aria-Popover *)" : "&:not(.react-aria-Popover *)"
+        inPopover
+          ? "&:is(.react-aria-Popover *)"
+          : "&:not(.react-aria-Popover *)"
       ]?.nested?.['.react-aria-ListBoxItem[data-disabled] [slot="description"]']
         ?.color
     : undefined;
   const color = disabledColor
     ? disabledColor
     : inPopover
-    ? scopes?.["&:is(.react-aria-Popover *)"]?.nested?.[
-        '.react-aria-ListBoxItem [slot="description"]'
-      ]?.color
-    : selected
-      ? undefined
-      : scopes?.["&:not(.react-aria-Popover *)"]?.nested?.[
-          '.react-aria-ListBoxItem:not([data-selected]) [slot="description"]'
-        ]?.color;
+      ? scopes?.["&:is(.react-aria-Popover *)"]?.nested?.[
+          '.react-aria-ListBoxItem [slot="description"]'
+        ]?.color
+      : selected
+        ? undefined
+        : scopes?.["&:not(.react-aria-Popover *)"]?.nested?.[
+            '.react-aria-ListBoxItem:not([data-selected]) [slot="description"]'
+          ]?.color;
   return color && color !== "inherit"
     ? (cssVarToTokenRef(color) ?? color)
     : undefined;
@@ -5966,7 +5957,7 @@ export function catalogStateDependents(
  * the edit button opens). The Form is that Form; the edit button is an `ActionButton[slot=edit]`
  * in the cell's content frame.
  */
-export function catalogEditableCellForm(
+function catalogEditableCellForm(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
@@ -5987,7 +5978,7 @@ export function catalogEditableCell(
   }
   return undefined;
 }
-export function catalogEditableCellButton(
+function catalogEditableCellButton(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,

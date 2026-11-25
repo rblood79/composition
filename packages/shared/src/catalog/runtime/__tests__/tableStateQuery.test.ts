@@ -7,12 +7,16 @@ import {
 import { serializeViewQueries } from "../../../collections/view/serialize";
 import { catalogTableStateWith, type CatalogTableShape } from "../tableState";
 import {
-  catalogRowSortsView,
+  catalogRowSlicesView,
   catalogTableSliceServable,
   catalogTableStateQueries,
-  catalogTableStateRowSorts,
 } from "../tableStateQuery";
+import { catalogTableStateRowSorts } from "../tableRowSlices";
+import type { CatalogRowSorts } from "../tableSort";
 
+/** A Table state's sort alone as a view (`catalogRowSlicesView` of its sorts). */
+const sortsView = (sorts: CatalogRowSorts) =>
+  catalogRowSlicesView({ sorts }, SCHEMA);
 /**
  * ADR-315 Phase 2 (G2 · R2) — a Table state's sort as a view query: the same translation gives the
  * local order and the request, and both are the hand-written answer.
@@ -101,7 +105,7 @@ describe("a Table state's sort → the view query", () => {
       { key: "score", direction: "descending" },
       { key: "joined", direction: "ascending", empty: "first" },
     ]);
-    expect(catalogRowSortsView(sorts, SCHEMA)).toEqual([
+    expect(sortsView(sorts)?.sort).toEqual([
       { field: ["data:field:f-team"], direction: "ascending" },
       { field: ["data:field:f-score"], direction: "descending" },
       {
@@ -120,16 +124,14 @@ describe("a Table state's sort → the view query", () => {
       ),
     ).toEqual([{ key: "team", direction: "ascending" }]);
     expect(
-      catalogRowSortsView([{ key: "label", direction: "ascending" }], SCHEMA),
+      sortsView([{ key: "label", direction: "ascending" }]),
     ).toBeUndefined();
   });
 
   it("sorts the bound (last) view of the chain; a binding without a view gets one that only sorts", () => {
-    const sort = catalogRowSortsView(
-      catalogTableStateRowSorts(TWO, COLUMNS),
-      SCHEMA,
-    )!;
-    expect(catalogTableStateQueries(undefined, sort)).toEqual([
+    const view = sortsView(catalogTableStateRowSorts(TWO, COLUMNS))!;
+    const sort = view.sort!;
+    expect(catalogTableStateQueries(undefined, view)).toEqual([
       { where: { id: "table-state", op: "and", items: [] }, sort },
     ]);
     const source: ViewQuery = { where: { id: "a", op: "and", items: [] } };
@@ -138,13 +140,13 @@ describe("a Table state's sort → the view query", () => {
       sort: [{ field: ["data:field:f-id"], direction: "descending" }],
     };
     // (The state stands in for the authored sort — the run layer's value over the default.)
-    expect(catalogTableStateQueries([source, bound], sort)).toEqual([
+    expect(catalogTableStateQueries([source, bound], view)).toEqual([
       source,
       { ...bound, sort },
     ]);
     // (No state sort: the chain as authored — the same array.)
     const authored = [source, bound];
-    expect(catalogTableStateQueries(authored, [])).toBe(authored);
+    expect(catalogTableStateQueries(authored, { sort: [] })).toBe(authored);
     expect(catalogTableStateQueries(authored, undefined)).toBe(authored);
   });
 });
@@ -152,7 +154,7 @@ describe("a Table state's sort → the view query", () => {
 describe("the same translation — the local rows and the request (HC2)", () => {
   const queries = catalogTableStateQueries(
     undefined,
-    catalogRowSortsView(catalogTableStateRowSorts(TWO, COLUMNS), SCHEMA),
+    sortsView(catalogTableStateRowSorts(TWO, COLUMNS)),
   )!;
 
   it("orders the rows here: team ↑ then score ↓", () => {
@@ -199,10 +201,7 @@ describe("the same translation — the local rows and the request (HC2)", () => 
     expect(state.sort).toEqual([TWO[1]]);
     const one = catalogTableStateQueries(
       undefined,
-      catalogRowSortsView(
-        catalogTableStateRowSorts(state.sort, COLUMNS),
-        SCHEMA,
-      ),
+      sortsView(catalogTableStateRowSorts(state.sort, COLUMNS)),
     )!;
     const { params, warnings } = request(one, { kind: "suffix" });
     expect(warnings).toEqual([]);
@@ -224,10 +223,7 @@ describe("the same translation — the local rows and the request (HC2)", () => 
   it("one entry is the request's object it always was", () => {
     const single = catalogTableStateQueries(
       undefined,
-      catalogRowSortsView(
-        catalogTableStateRowSorts([TWO[1]!], COLUMNS),
-        SCHEMA,
-      ),
+      sortsView(catalogTableStateRowSorts([TWO[1]!], COLUMNS)),
     )!;
     expect(request(single, { kind: "body" }).body?.sort).toEqual({
       field: "score",
@@ -270,10 +266,7 @@ describe("the sort by the field's type (날짜 · 숫자 · 빈 값)", () => {
     local(
       catalogTableStateQueries(
         undefined,
-        catalogRowSortsView(
-          catalogTableStateRowSorts([{ column, direction }], COLUMNS),
-          SCHEMA,
-        ),
+        sortsView(catalogTableStateRowSorts([{ column, direction }], COLUMNS)),
       )!,
     );
 

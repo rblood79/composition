@@ -29,6 +29,7 @@ import type {
   CatalogColumnMenuItem,
   CatalogColumnMenuItemId,
 } from "./tableColumnMenu";
+import { catalogLocalized } from "./localizedStrings";
 
 /**
  * Inside a Column of a resizable Table: writes RAC's column widths (in collection order — the
@@ -327,9 +328,7 @@ function CatalogColumnMenuItems({
   const menu = useContext(CatalogColumnMenuContext);
   const { locale, direction } = useLocale();
   if (!menu) return null;
-  const strings =
-    COLUMN_MENU_STRINGS[locale.split("-")[0] ?? "en"] ??
-    COLUMN_MENU_STRINGS.en!;
+  const strings = catalogLocalized(COLUMN_MENU_STRINGS, locale);
   const items: readonly CatalogColumnMenuItem[] = menu.items
     ? menu.items()
     : [
@@ -535,8 +534,7 @@ function rowPinGlyph(name: string): ReactElement {
  */
 export function CatalogRowPinMenu({ pin }: { pin: CatalogRowPin }): ReactNode {
   const { locale } = useLocale();
-  const strings =
-    ROW_PIN_STRINGS[locale.split("-")[0] ?? "en"] ?? ROW_PIN_STRINGS.en!;
+  const strings = catalogLocalized(ROW_PIN_STRINGS, locale);
   const items = (["top", "bottom", "none"] as const).filter(
     (side) => side !== pin.side,
   );

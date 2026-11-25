@@ -1,4 +1,5 @@
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { CATALOG_SUBMENU_TRIGGER_TYPES } from "./overlayState";
 import { selectBoxDisabledKeys } from "./selectBoxSelection";
 import { resolveStaticItemKey } from "../slotRoles";
 
@@ -29,11 +30,8 @@ export function catalogPickerOfOption(
     ) {
       if (typeOf(parent) === "Menu") return parent;
       if (
-        ![
-          "MenuSection",
-          "SubmenuTrigger",
-          "UnavailableMenuItemTrigger",
-        ].includes(typeOf(parent))
+        typeOf(parent) !== "MenuSection" &&
+        !CATALOG_SUBMENU_TRIGGER_TYPES.has(typeOf(parent))
       )
         return undefined;
     }

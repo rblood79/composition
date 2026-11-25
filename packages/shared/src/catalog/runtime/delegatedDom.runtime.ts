@@ -318,7 +318,10 @@ import {
   catalogSelectionCheckboxHidden,
   FIELD_HINT_OWNERS,
 } from "./presence";
-import { catalogEmptyStateType } from "../nesting/nestingRules";
+import {
+  catalogEmptyStateType,
+  RAC_COLLECTION_CHILD_TYPES,
+} from "../nesting/nestingRules";
 
 import { catalogDomSlot, racSlotProps } from "./racSlot";
 
@@ -343,6 +346,7 @@ import {
   ToggleIndicatorPart,
 } from "./delegatedDom.components";
 import { catalogValueTemplateOf } from "./valueBindings";
+import { catalogLocalized } from "./localizedStrings";
 
 /**
  * ADR-248 DOM bindings for the types whose Preview renderer composes from an element context
@@ -887,7 +891,7 @@ function catalogDomSelectionCount(
  * with an ActionBar child is drawn in S2's wrapper with its bar (`CatalogActionBarHost`) — `element`
  * keeps its props (rule handlers reach the collection through it).
  */
-export function catalogWithActionBar(
+function catalogWithActionBar(
   input: DelegatedDomInput,
   host: ElementType,
   props: Record<string, unknown>,
@@ -1001,9 +1005,7 @@ function ToastNodeClose({ onClose }: { onClose?: () => void }): ReactElement {
     AriaButton,
     {
       className: "toast-close-button",
-      "aria-label":
-        CATALOG_TOAST_CLOSE_LABELS[locale.split("-")[0] ?? "en"] ??
-        CATALOG_TOAST_CLOSE_LABELS.en,
+      "aria-label": catalogLocalized(CATALOG_TOAST_CLOSE_LABELS, locale),
       ...(press ? { onPress: press } : {}),
     },
     toastGlyph(CATALOG_TOAST_CLOSE_ICON),
@@ -1367,20 +1369,13 @@ const MENU_TRIGGER_TYPES: ReadonlySet<string> = new Set([
   "SubmenuTrigger",
 ]);
 
-/** A ListBox's RAC collection children (+ a section's S2 Divider — a Separator, 2026-11-22). */
-const LISTBOX_CHILD_TYPES: ReadonlySet<string> = new Set([
-  "ListBoxItem",
-  "ListBoxSection",
-  "Separator",
-]);
-
-const MENU_CHILD_TYPES: ReadonlySet<string> = new Set([
-  "MenuItem",
-  "SubmenuTrigger",
-  "UnavailableMenuItemTrigger",
-  "MenuSection",
-  "Separator",
-]);
+/** A ListBox's · Menu's RAC collection children (the traits table's `children` column). */
+const LISTBOX_CHILD_TYPES: ReadonlySet<string> = new Set(
+  RAC_COLLECTION_CHILD_TYPES.ListBox,
+);
+const MENU_CHILD_TYPES: ReadonlySet<string> = new Set(
+  RAC_COLLECTION_CHILD_TYPES.Menu,
+);
 
 const container =
   (

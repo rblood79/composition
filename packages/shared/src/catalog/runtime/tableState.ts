@@ -137,6 +137,11 @@ const strings = (value: unknown): string[] | undefined =>
     : undefined;
 const same = (a: unknown, b: unknown) =>
   a === b || JSON.stringify(a) === JSON.stringify(b);
+/** The keys of the Columns authored with `authored` (the default a slice stands in for). */
+export const catalogTableAuthoredKeys = (
+  shape: CatalogTableShape,
+  authored: (column: CatalogTableShape["columns"][number]) => boolean,
+): string[] => shape.columns.filter(authored).map((column) => column.key);
 
 /** A sort list as the Table takes it: its own columns, one entry a column, within its limit. */
 function sortOf(
@@ -145,19 +150,17 @@ function sortOf(
   shape: CatalogTableShape,
 ): CatalogTableSortItem[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  const out: CatalogTableSortItem[] = [];
+  // (A column named again: its later entry, at its first place — a Map keeps the first place.)
+  const byColumn = new Map<string, CatalogTableSortItem>();
   for (const item of value) {
     if (!isRecord(item)) return undefined;
     const { column, direction } = item;
     if (typeof column !== "string") return undefined;
     if (direction !== "ascending" && direction !== "descending")
       return undefined;
-    if (!has(column)) continue;
-    const at = out.findIndex((entry) => entry.column === column);
-    // (A column named again: its later entry, at its first place.)
-    if (at >= 0) out[at] = { column, direction };
-    else out.push({ column, direction });
+    if (has(column)) byColumn.set(column, { column, direction });
   }
+  const out = [...byColumn.values()];
   // (One column: the last one written — a click on another header replaces the sort.)
   if (!shape.multiSort) return out.slice(-1);
   return shape.maxSortColumns && shape.maxSortColumns > 0
@@ -200,7 +203,8 @@ function sliceOf(
         : undefined;
     case "columnFilters": {
       if (!Array.isArray(value)) return undefined;
-      const out: CatalogTableColumnFilter[] = [];
+      // (A column filtered again: its later condition, at its first place.)
+      const byColumn = new Map<string, CatalogTableColumnFilter>();
       for (const item of value) {
         if (!isRecord(item) || !isRecord(item.condition)) return undefined;
         const { column } = item;
@@ -211,7 +215,7 @@ function sliceOf(
         if (!has(column)) continue;
         // (A comparison the Table's request cannot carry is not held.)
         if (shape.filters && !shape.filters(op as ViewComparison)) continue;
-        const entry: CatalogTableColumnFilter = {
+        byColumn.set(column, {
           column,
           condition: {
             op: op as ViewComparison,
@@ -225,27 +229,21 @@ function sliceOf(
               ? { unit: unit as ViewCondition["unit"] }
               : {}),
           },
-        };
-        // (A column filtered again: its later condition, at its first place.)
-        const at = out.findIndex((held) => held.column === column);
-        if (at >= 0) out[at] = entry;
-        else out.push(entry);
+        });
       }
-      return out.length ? out : null;
+      return byColumn.size ? [...byColumn.values()] : null;
     }
     case "grouping": {
       const list = columns(value);
       if (!list) return undefined;
       // (ADR-315 Phase 5 — the authored grouping is what no slice shows: the same list is no
       //  slice, and an empty list over an authored one is one — 「not grouped」.)
-      const authored = shape.columns
-        .filter((column) => column.grouped)
-        .map((column) => column.key);
-      return same(list, authored)
+      return same(
+        list,
+        catalogTableAuthoredKeys(shape, (column) => !!column.grouped),
+      )
         ? null
-        : list.length || authored.length
-          ? list
-          : null;
+        : list;
     }
     case "columnOrder": {
       const list = columns(value);
@@ -261,9 +259,10 @@ function sliceOf(
         hidden.delete(headers.at(-1)!.key);
       const out = list.filter((key) => hidden.has(key));
       // (The authored hidden Columns are what no slice shows: the same list is no slice.)
-      const authored = shape.columns
-        .filter((column) => column.hidden)
-        .map((column) => column.key);
+      const authored = catalogTableAuthoredKeys(
+        shape,
+        (column) => !!column.hidden,
+      );
       return authored.length === out.length &&
         authored.every((key) => hidden.has(key))
         ? null
@@ -278,12 +277,7 @@ function sliceOf(
       );
       // (The authored pinned Columns are what no slice shows: the same sides are no slice.)
       const authored = (side: "start" | "end") =>
-        shape.columns
-          .filter((column) => column.pinned === side)
-          .map((column) => column.key);
-      const same = (left: readonly string[], right: readonly string[]) =>
-        left.length === right.length &&
-        left.every((key, index) => key === right[index]);
+        catalogTableAuthoredKeys(shape, (column) => column.pinned === side);
       return same(start, authored("start")) && same(end, authored("end"))
         ? null
         : { start, end };

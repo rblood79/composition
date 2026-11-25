@@ -16,7 +16,7 @@ type Lookup = (id: string) => CatalogConsumerNode | undefined;
 type TypeOf = (node: CatalogConsumerNode) => string;
 
 /** The Select a SelectValue shows the value of (its trigger Button's owner). */
-export function catalogSelectOfValue(
+function catalogSelectOfValue(
   selectValue: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
@@ -55,7 +55,7 @@ export function catalogValueTemplateOwner(
 }
 
 /** The Select's stored selection (the Canvas — the Design panel's value). */
-export function catalogSelectStoredKeys(
+function catalogSelectStoredKeys(
   select: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,

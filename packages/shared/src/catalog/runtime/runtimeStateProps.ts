@@ -3,6 +3,7 @@ import type {
   CatalogConsumerNode,
 } from "./compositionRoot";
 import { catalogStateSourceValue } from "./delegatedDom.runtime";
+import { CATALOG_SUBMENU_TRIGGER_TYPES } from "./overlayState";
 
 /**
  * ADR-280 Decision 4 · 8 (user decision 1, 2026-10-22) — one function for a record's RAC state in
@@ -147,11 +148,6 @@ const CATALOG_OPEN_PICKER_TYPES: ReadonlySet<string> = new Set([
   "DatePicker",
   "DateRangePicker",
 ]);
-/** Triggers whose overlay's open state RAC does not let anyone control (no `isOpen` prop). */
-const CATALOG_UNCONTROLLED_OPEN_TYPES: ReadonlySet<string> = new Set([
-  "SubmenuTrigger",
-  "UnavailableMenuItemTrigger",
-]);
 
 /**
  * The trigger · picker · submenu ancestor an overlay body sits in, whatever the body itself
@@ -172,7 +168,7 @@ export function catalogOpenHostOf(
     if (
       CATALOG_OPEN_TRIGGER_TYPES.has(type) ||
       CATALOG_OPEN_PICKER_TYPES.has(type) ||
-      CATALOG_UNCONTROLLED_OPEN_TYPES.has(type)
+      CATALOG_SUBMENU_TRIGGER_TYPES.has(type)
     )
       return cursor;
   }
@@ -207,7 +203,8 @@ export function catalogOpenOwnerOf(
       CATALOG_OPEN_PICKER_TYPES.has(type)
     )
       return cursor.id;
-    if (CATALOG_UNCONTROLLED_OPEN_TYPES.has(type)) return null;
+    // (RAC's SubmenuTrigger has no `isOpen` prop — no one controls its open state.)
+    if (CATALOG_SUBMENU_TRIGGER_TYPES.has(type)) return null;
   }
   return undefined;
 }

@@ -32,6 +32,7 @@ import {
   type CatalogColumnFilterDraft,
   type CatalogFilterUnit,
 } from "./tableColumnFilterDraft";
+import { catalogLocalized } from "./localizedStrings";
 
 interface FilterStrings {
   readonly title: string;
@@ -324,11 +325,13 @@ function ValueField({
   );
 }
 
+/** A candidate value with nothing in it (no value · `""`). */
+const isEmptyValue = (value: unknown) =>
+  value === null || value === undefined || value === "";
+
 /** A candidate's text (the empty one named). */
 const candidateText = (value: unknown, strings: FilterStrings): string =>
-  value === null || value === undefined || value === ""
-    ? strings.empty
-    : String(value);
+  isEmptyValue(value) ? strings.empty : String(value);
 
 export default function CatalogColumnFilterDialog({
   access,
@@ -338,8 +341,7 @@ export default function CatalogColumnFilterDialog({
   onClose: () => void;
 }): ReactNode {
   const { locale } = useLocale();
-  const strings =
-    FILTER_STRINGS[locale.split("-")[0] ?? "en"] ?? FILTER_STRINGS.en!;
+  const strings = catalogLocalized(FILTER_STRINGS, locale);
   // (Read once when it opens — the Table's state then.)
   const [view] = useState(() => access.read());
   const [draft, setDraft] = useState<CatalogColumnFilterDraft | undefined>(
@@ -347,7 +349,8 @@ export default function CatalogColumnFilterDialog({
   );
   const [search, setSearch] = useState("");
   const facet = view?.facet;
-  const candidates = useMemo(() => {
+  // (In the values' order — numbers by value, the rest by the locale's; the empty one last.)
+  const sorted = useMemo(() => {
     const values =
       view?.kind === "boolean"
         ? [
@@ -355,28 +358,27 @@ export default function CatalogColumnFilterDialog({
             { value: false, count: NaN },
           ]
         : (facet?.values ?? []);
-    const needle = search.trim().toLocaleLowerCase(locale);
-    // (In the values' order — numbers by value, the rest by the locale's; the empty one last.)
-    const empty = (value: unknown) =>
-      value === null || value === undefined || value === "";
     const collator = new Intl.Collator(locale, { numeric: true });
     return values
       .map((item, index) => ({ ...item, id: String(index) }))
       .sort((a, b) =>
-        empty(a.value) || empty(b.value)
-          ? Number(empty(a.value)) - Number(empty(b.value))
+        isEmptyValue(a.value) || isEmptyValue(b.value)
+          ? Number(isEmptyValue(a.value)) - Number(isEmptyValue(b.value))
           : typeof a.value === "number" && typeof b.value === "number"
             ? a.value - b.value
             : collator.compare(String(a.value), String(b.value)),
-      )
-      .filter(
-        (item) =>
-          !needle ||
+      );
+  }, [view?.kind, facet, locale]);
+  const candidates = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase(locale);
+    return needle
+      ? sorted.filter((item) =>
           candidateText(item.value, strings)
             .toLocaleLowerCase(locale)
             .includes(needle),
-      );
-  }, [view?.kind, facet, search, locale, strings]);
+        )
+      : sorted;
+  }, [sorted, search, locale, strings]);
   if (!view || !draft) return null;
   const set = (patch: Partial<CatalogColumnFilterDraft>) =>
     setDraft({ ...draft, ...patch });
@@ -391,21 +393,15 @@ export default function CatalogColumnFilterDialog({
   // (A list of candidates: the many-value comparisons pick from it; `equals` · `notEquals` fill the
   //  value from it — a boolean's two values are the list.)
   const listed =
-    many ||
-    ((op === "equals" || op === "notEquals") && candidates.length > 0) ||
-    false;
+    many || ((op === "equals" || op === "notEquals") && candidates.length > 0);
   const shown = candidates.slice(0, CATALOG_FILTER_SHOWN_VALUES);
-  const selectedKeys = many
-    ? shown
-        .filter((item) =>
-          draft.picked.some((picked) => Object.is(picked, item.value)),
-        )
-        .map((item) => item.id)
-    : shown
-        .filter(
-          (item) => draft.text !== "" && String(item.value) === draft.text,
-        )
-        .map((item) => item.id);
+  const selectedKeys = shown
+    .filter((item) =>
+      many
+        ? draft.picked.some((picked) => Object.is(picked, item.value))
+        : draft.text !== "" && String(item.value) === draft.text,
+    )
+    .map((item) => item.id);
   const range =
     facet && facet.min !== undefined && facet.max !== undefined
       ? strings.range(String(facet.min), String(facet.max))

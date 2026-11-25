@@ -2,6 +2,8 @@ import {
   CATALOG_GROUP_ROW_COUNT,
   catalogTableGroupKey,
   catalogTableGrouping,
+  catalogTableStateRowSlices,
+  type CatalogRowSlices,
 } from "./tableRowSlices";
 import {
   catalogRowGroupLevelView,
@@ -43,7 +45,7 @@ import {
 } from "./compositionRoot";
 import { CatalogRuntime } from "./controller";
 import type { CatalogThemeState } from "./theme";
-import { catalogBoundRows } from "./dataBinding";
+import { catalogBoundRows, dataCollectionIdOf } from "./dataBinding";
 import { COLLECTION_ROW_PROJECTION_WINDOW_LIMIT } from "../../collections/resolveCollectionItems";
 import {
   catalogBindingQuery,
@@ -150,12 +152,11 @@ import {
 } from "./tableColumnFilterDraft";
 import {
   CATALOG_FACET_COUNT,
+  catalogFieldIdOf,
   catalogRowSlicesView,
   catalogTableFacetQueries,
   catalogTableSliceServable,
   catalogTableStateQueries,
-  catalogTableStateRowSlices,
-  type CatalogRowSlices,
   type CatalogTableServedSlice,
 } from "./tableStateQuery";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
@@ -1944,7 +1945,7 @@ export class CatalogPreviewSession {
   ): Promise<void> {
     if (!moreLoaded) {
       // (No next page — the last one came, or none pages: nothing to show; the window stays.)
-      const id = collectionId.replace(/^data:collection:/, "");
+      const id = dataCollectionIdOf(collectionId);
       if (!this.pages(id) || this.loadArguments.get(id)?.cursor === undefined)
         return;
       // (A page in flight, or one that brought nothing: the window stays — growing it re-draws
@@ -1961,9 +1962,7 @@ export class CatalogPreviewSession {
     );
     const errors =
       this.currentRoot?.refreshRows(
-        new Set([
-          `data:collection:${collectionId.replace(/^data:collection:/, "")}`,
-        ]),
+        new Set([`data:collection:${dataCollectionIdOf(collectionId)}`]),
       ) ?? [];
     if (errors.length) console.error("[CatalogPreview] show more:", ...errors);
     this.changed();
@@ -1973,10 +1972,7 @@ export class CatalogPreviewSession {
    * shows its own load-more spinner while it loads more.
    */
   loadingStateOf(collectionId: string): string {
-    return (
-      this.loadingStates.get(collectionId.replace(/^data:collection:/, "")) ??
-      "idle"
-    );
+    return this.loadingStates.get(dataCollectionIdOf(collectionId)) ?? "idle";
   }
   /** ADR-310 「더 보기」 — whether a bound list holds loaded rows past its display window. */
   moreLoaded(collectionId: string, ownerId: string): boolean {
@@ -2023,10 +2019,7 @@ export class CatalogPreviewSession {
       const source = graph.getEntry(record.sourceId as never);
       const binding = source?.kind === "node" ? source.binding : undefined;
       if (binding) {
-        const collectionId = binding.collectionId.replace(
-          /^data:collection:/,
-          "",
-        );
+        const collectionId = dataCollectionIdOf(binding.collectionId);
         const collection = this.collections.find(
           (item) => item.id === collectionId,
         );
@@ -2103,7 +2096,7 @@ export class CatalogPreviewSession {
     // ADR-284 Decision 6: rows the server answered for this binding's view are its result — the
     // view does not run on them again; the total is the server's for that query.
     let binding = authored;
-    const id = authored.collectionId.replace(/^data:collection:/, "");
+    const id = dataCollectionIdOf(authored.collectionId);
     // (ADR-315 Phase 2 · 3 — the Table's state is its bound view's: an answer to that query is
     //  those rows in that order, and is not filtered · sorted here again.)
     const stated = this.stateRowQuery(
@@ -2250,7 +2243,7 @@ export class CatalogPreviewSession {
         this.windowsCut.add(key);
       else this.windowsCut.delete(key);
     }
-    const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+    const collectionId = dataCollectionIdOf(binding.collectionId);
     return marked(
       Object.assign(rows, {
         loadingState: this.loadingStates.get(collectionId) ?? "idle",
@@ -2777,7 +2770,7 @@ export class CatalogPreviewSession {
     const source = graph.getEntry(table.sourceId as never);
     const binding = source?.kind === "node" ? source.binding : undefined;
     if (!binding) return undefined;
-    const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+    const collectionId = dataCollectionIdOf(binding.collectionId);
     const collection = this.collections.find(
       (item) => item.id === collectionId,
     );
@@ -2839,10 +2832,7 @@ export class CatalogPreviewSession {
     // (The selection column is not a data column: a state names none. The key's index is the
     //  Column's place among all of them — the resolver's, `tableRowSort`.)
     const drawnAll = columns.map((column, index) => ({
-      racKey: catalogTableColumnKey({
-        id: column.id,
-        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-      }),
+      racKey: catalogTableColumnKey(column),
       key: resolveTableColumnKey(column.props, index),
       rowHeader: roles[index]!.rowHeader,
       selection: roles[index]!.selection,
@@ -2968,17 +2958,20 @@ export class CatalogPreviewSession {
       //  asked for by its key.)
       rowPins: !this.rowPinsRefused(
         this.tableCollectionOf(tableId),
-        this.currentRoot?.domInputs.get(tableId)?.sourceId,
+        table?.sourceId,
       ),
     };
   }
-  /** The collection a Table record's node is bound to (its id without the prefix). */
-  private tableCollectionOf(tableId: string): string | undefined {
+  /** A Table record's document node (the record's source), if it is one. */
+  private tableNodeEntry(tableId: string) {
     const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
     const entry = source ? this.graph?.getEntry(source as never) : undefined;
-    return entry?.kind === "node"
-      ? entry.binding?.collectionId.replace(/^data:collection:/, "")
-      : undefined;
+    return entry?.kind === "node" ? entry : undefined;
+  }
+  /** The collection a Table record's node is bound to (its id without the prefix). */
+  private tableCollectionOf(tableId: string): string | undefined {
+    const binding = this.tableNodeEntry(tableId)?.binding;
+    return binding && dataCollectionIdOf(binding.collectionId);
   }
   /**
    * ADR-315 Phase 5 증분 5g — the key field a collection's rows are asked for by (`keys` — the
@@ -3133,9 +3126,8 @@ export class CatalogPreviewSession {
   }
   /** ADR-315 Phase 5 증분 5f — a Table record's rows read again for its pinned rows. */
   private readPinnedRows(tableId: string): void {
-    const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
-    const entry = source ? this.graph?.getEntry(source as never) : undefined;
-    if (entry?.kind !== "node" || !entry.binding) return;
+    const entry = this.tableNodeEntry(tableId);
+    if (!entry?.binding) return;
     // (ADR-315 Phase 5 증분 5g — a server's pages: the page leaves the pinned rows out — another
     //  request — and they are asked for by key.)
     if (this.tableService(tableId).remote) this.loadRouted("filtering");
@@ -3162,9 +3154,7 @@ export class CatalogPreviewSession {
     if (!root || table?.ruleId !== "Table") return false;
     const service = this.tableService(tableId);
     if (!service.remote) return false;
-    const source = this.graph?.getEntry(table.sourceId as never);
-    const fieldMap =
-      source?.kind === "node" ? source.binding?.fieldMap : undefined;
+    const fieldMap = this.tableNodeEntry(tableId)?.binding?.fieldMap;
     const slices: CatalogTableServedSlice[] = [
       ...(this.tableGroupedNow(tableId) ? ["grouping" as const] : []),
       ...(this.tableHasTotalsRow(tableId) ? ["totals" as const] : []),
@@ -3312,10 +3302,7 @@ export class CatalogPreviewSession {
     if (!table) return undefined;
     return {
       tableId: table.id,
-      racKey: catalogTableColumnKey({
-        id: column.id,
-        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-      }),
+      racKey: catalogTableColumnKey(column),
     };
   }
   /** ADR-315 증분 4d — a drawn Column's pinned side now (`none` · `start` · `end`). */
@@ -3458,7 +3445,7 @@ export class CatalogPreviewSession {
     if (patch) this.setTableState(place.tableId, patch);
   }
   /** The Table node a chooser's Menu record lists (the nearest record whose node has `columnsOf`). */
-  chooserTableOf(recordId: string): string | undefined {
+  private chooserTableOf(recordId: string): string | undefined {
     const root = this.currentRoot;
     const graph = this.graph;
     if (!root || !graph) return undefined;
@@ -3816,14 +3803,7 @@ export class CatalogPreviewSession {
       .filter((header) => header?.ruleId === "TableHeader")
       .flatMap((header) => header!.children)
       .map((id) => root.domInputs.get(id))
-      .find(
-        (item) =>
-          !!item &&
-          catalogTableColumnKey({
-            id: item.id,
-            ...(item.htmlId ? { htmlId: item.htmlId } : {}),
-          }) === racKey,
-      );
+      .find((item) => !!item && catalogTableColumnKey(item) === racKey);
     if (!record) return undefined;
     const shape = this.tableShape(tableId);
     const allowsFiltering = authored || record.props.allowsFiltering === true;
@@ -3945,12 +3925,7 @@ export class CatalogPreviewSession {
    * collection's endpoint, whether that reads `{{ sortDescriptor }}`, and its query format.
    */
   private tableService(tableId: string) {
-    const table = this.currentRoot?.domInputs.get(tableId);
-    const source = table && this.graph?.getEntry(table.sourceId as never);
-    const binding = source?.kind === "node" ? source.binding : undefined;
-    return this.collectionRowService(
-      binding?.collectionId.replace(/^data:collection:/, ""),
-    );
+    return this.collectionRowService(this.tableCollectionOf(tableId));
   }
   /** How a collection's rows are served (`CatalogTableRowService`). */
   private collectionRowService(collectionId: string | undefined) {
@@ -3991,7 +3966,7 @@ export class CatalogPreviewSession {
     if (!graph || !table || !source || !binding) return undefined;
     if (!this.tableColumns(tableId).some((column) => column.key === columnKey))
       return undefined;
-    const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+    const collectionId = dataCollectionIdOf(binding.collectionId);
     const collection = this.collections.find(
       (item) => item.id === collectionId,
     );
@@ -4037,9 +4012,8 @@ export class CatalogPreviewSession {
       remote &&
       (this.loadArguments.get(collectionId)?.cursor !== undefined ||
         !!this.serverView(collectionId));
-    const fieldId = (
-      field.id.startsWith("data:field:") ? field.id : `data:field:${field.id}`
-    ) as `data:field:${string}`;
+    const fieldId = catalogFieldIdOf(fields, columnKey);
+    if (!fieldId) return undefined;
     const rows = catalogBoundRows(
       {
         ...binding,
@@ -4134,13 +4108,12 @@ export class CatalogPreviewSession {
     }
     // (A local paged list in another order starts over at its first page; its Paginations follow —
     //  `pageRows` cannot tell: not every read of the list's rows carries its sort.)
-    const source = this.currentRoot?.domInputs.get(tableId)?.sourceId;
-    const entry = source ? this.graph?.getEntry(source as never) : undefined;
-    if (entry?.kind === "node" && entry.binding) {
+    const entry = this.tableNodeEntry(tableId);
+    if (entry?.binding) {
       const collectionId = entry.binding.collectionId;
       const unit =
         entry.rowDisplay?.mode === "pages" &&
-        !this.remotePages(collectionId.replace(/^data:collection:/, ""))
+        !this.remotePages(dataCollectionIdOf(collectionId))
           ? this.pageUnit(collectionId, entry.id)
           : undefined;
       if (unit && unit.page !== 1) {
@@ -4571,7 +4544,7 @@ export class CatalogPreviewSession {
     display: CatalogRowDisplay,
     slices?: CatalogRowSlices,
   ) {
-    const id = binding.collectionId.replace(/^data:collection:/, "");
+    const id = dataCollectionIdOf(binding.collectionId);
     const unit = this.pageUnit(binding.collectionId, ownerId);
     const size = unit.size ?? catalogRowDisplaySize(display);
     if (this.remotePages(id)) {
@@ -4636,7 +4609,7 @@ export class CatalogPreviewSession {
       return undefined;
     const binding = entry.binding;
     if (!binding) return undefined;
-    const id = binding.collectionId.replace(/^data:collection:/, "");
+    const id = dataCollectionIdOf(binding.collectionId);
     const unit = this.pageUnit(binding.collectionId, listId);
     const size = unit.size ?? catalogRowDisplaySize(entry.rowDisplay);
     const remote = this.remotePages(id);
@@ -4675,7 +4648,7 @@ export class CatalogPreviewSession {
     )
       return;
     const unit = this.pageUnit(binding.collectionId, listId);
-    const id = binding.collectionId.replace(/^data:collection:/, "");
+    const id = dataCollectionIdOf(binding.collectionId);
     if (this.remotePages(id))
       await this.loadPageUnit(binding.collectionId, listId, page);
     else {
@@ -4702,7 +4675,7 @@ export class CatalogPreviewSession {
     unit.size = size;
     unit.page = 1;
     unit.cursors = [];
-    const id = binding.collectionId.replace(/^data:collection:/, "");
+    const id = dataCollectionIdOf(binding.collectionId);
     if (this.remotePages(id))
       await this.loadPageUnit(binding.collectionId, listId, 1);
     else this.showPage(binding.collectionId, listId);
@@ -4713,7 +4686,7 @@ export class CatalogPreviewSession {
     listId: string,
     page: number,
   ): Promise<void> {
-    const id = collectionId.replace(/^data:collection:/, "");
+    const id = dataCollectionIdOf(collectionId);
     const unit = this.pageUnit(collectionId, listId);
     const entry = this.graph?.getEntry(listId as never);
     const size =
@@ -4775,7 +4748,7 @@ export class CatalogPreviewSession {
       unit.page = 1;
       unit.cursors = [];
       // (A reload is a remote collection's: a local list's sort · filter resets in `pageRows`.)
-      const id = collectionId.replace(/^data:collection:/, "");
+      const id = dataCollectionIdOf(collectionId);
       if (this.remotePages(id))
         void this.loadPageUnit(`data:collection:${id}`, listId, 1);
     }
@@ -4844,5 +4817,5 @@ function afterPaint(run: () => void): void {
   else setTimeout(run, 0);
 }
 function displayWindowKey(collectionId: string, ownerId: string): string {
-  return `${collectionId.replace(/^data:collection:/, "")}\u0001${ownerId}`;
+  return `${dataCollectionIdOf(collectionId)}\u0001${ownerId}`;
 }

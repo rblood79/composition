@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, Ref, RefCallback } from "react";
 
 import {
   createContext,
@@ -13,6 +13,7 @@ import {
   type HTMLAttributes,
 } from "react";
 
+import { mergeRefs } from "react-aria/mergeRefs";
 import { Button as RacButton } from "react-aria-components/Button";
 import { Keyboard } from "react-aria-components/Keyboard";
 
@@ -91,19 +92,6 @@ function useShiftMemory(enabled: boolean): () => boolean {
 const CatalogCellSelectionContext = createContext<
   CatalogCellSelection | undefined
 >(undefined);
-
-/** A ref that sets ours and the one the props carry (if any). */
-function withOwnRef(
-  mine: { current: HTMLElement | null },
-  own: unknown,
-): (element: HTMLElement | null) => void {
-  return (element) => {
-    mine.current = element;
-    if (typeof own === "function") own(element);
-    else if (own && typeof own === "object")
-      (own as { current: unknown }).current = element;
-  };
-}
 
 /**
  * ADR-315 Phase 6 — a Table 「Cell selection」: its ranges (`tableCellSelection.ts` — a lazy chunk,
@@ -191,7 +179,12 @@ export function CatalogTable({
     style: tableResizable ? RESIZABLE_TABLE_STYLE : boxStyle,
     "data-node-table": "",
     ...(cellSelection
-      ? { ref: withOwnRef(tableElement, (props as { ref?: unknown }).ref) }
+      ? {
+          ref: mergeRefs(
+            tableElement,
+            (props as { ref?: Ref<HTMLElement> }).ref,
+          ),
+        }
       : {}),
   });
   const provided = cellSelection
@@ -301,16 +294,14 @@ export function CatalogTableCell({
     ...(editableCell && editing ? { "data-editing": true } : {}),
     ...((selection && typeof columnKey === "string") || editableCell
       ? {
-          ref: (element: HTMLElement | null) => {
-            cellRef.current = element;
-            const own = (props as { ref?: unknown }).ref;
-            if (typeof own === "function") own(element);
-            else if (own && typeof own === "object")
-              (own as { current: unknown }).current = element;
-            return element && selection && typeof columnKey === "string"
-              ? selection.mark(element, columnKey)
-              : undefined;
-          },
+          ref: mergeRefs(
+            cellRef,
+            (props as { ref?: Ref<HTMLElement> }).ref,
+            (element: HTMLElement | null) =>
+              element && selection && typeof columnKey === "string"
+                ? selection.mark(element, columnKey)
+                : undefined,
+          ) as RefCallback<HTMLElement>,
         }
       : {}),
     children: (cell: CellRenderProps) =>

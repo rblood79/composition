@@ -4,6 +4,7 @@ import { DEFAULT_SLOT } from "react-aria-components";
 import { FocusScope } from "react-aria/FocusScope";
 import { useLocale } from "react-aria-components/I18nProvider";
 import { ToolbarContext } from "react-aria-components/Toolbar";
+import { catalogLocalized } from "./localizedStrings";
 
 /**
  * S2 1.8.2 `actionbar.actions` · `actionbar.clearSelection` (`@react-spectrum/s2` intl) — the
@@ -40,8 +41,7 @@ export function CatalogActionBar({
   style?: React.CSSProperties;
 }) {
   const { locale } = useLocale();
-  const strings =
-    ACTION_BAR_STRINGS[locale.split("-")[0] ?? "en"] ?? ACTION_BAR_STRINGS.en!;
+  const strings = catalogLocalized(ACTION_BAR_STRINGS, locale);
   return (
     <FocusScope restoreFocus>
       <div

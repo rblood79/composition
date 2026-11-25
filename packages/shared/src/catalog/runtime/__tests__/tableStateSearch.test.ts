@@ -12,8 +12,8 @@ import {
   catalogRowSlicesView,
   catalogTableSliceServable,
   catalogTableStateQueries,
-  catalogTableStateRowSlices,
 } from "../tableStateQuery";
+import { catalogTableStateRowSlices } from "../tableRowSlices";
 
 /**
  * ADR-315 Phase 3 (G3 · R2) — a Table state's search · column filters as a view query: the same

@@ -7,6 +7,9 @@
 import type { Scalar, ViewComparison, ViewCondition } from "../document/types";
 import type { ViewFieldKind } from "../../collections/view/comparison";
 import type { CatalogColumnFilterView } from "./tableColumnMenu";
+import { catalogFilterValueless } from "./tableColumnMenu";
+
+export { catalogFilterValueless };
 import type { CatalogTableColumnFilter } from "./tableState";
 
 export type CatalogFilterUnit = NonNullable<ViewCondition["unit"]>;
@@ -23,9 +26,6 @@ export interface CatalogColumnFilterDraft {
   readonly unit: CatalogFilterUnit;
 }
 
-/** The comparisons with no value. */
-export const catalogFilterValueless = (op: ViewComparison) =>
-  op === "exists" || op === "notExists";
 /** The comparisons whose value is a list of candidate values. */
 export const catalogFilterPicksMany = (op: ViewComparison) =>
   op === "oneOf" || op === "containsAny" || op === "containsAll";

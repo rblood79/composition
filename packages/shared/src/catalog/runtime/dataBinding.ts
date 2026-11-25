@@ -969,7 +969,7 @@ function treeBoundRows(
  * with `keep`, among every row — and the other rows of `order` in theirs. A key with no row (left
  * out, gone) is not shown; the state keeps it (breakdown §4.4).
  */
-export function catalogPinnedRowOrder(
+function catalogPinnedRowOrder(
   sourceRows: readonly unknown[],
   order: ArrayLike<number> | undefined,
   pins: CatalogRowPins,

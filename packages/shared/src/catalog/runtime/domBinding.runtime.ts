@@ -3273,11 +3273,16 @@ function contextualHelpTitled(
   return help.children.some(visit);
 }
 
+/** Menu item triggers RAC draws as a `SubmenuTrigger`, by binding id (the traits table's family). */
+const SUBMENU_TRIGGER_BINDINGS: ReadonlySet<string> = componentTypeSet(
+  "submenuTrigger",
+  { lowercase: true },
+);
+
 /** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c · 6d · 6e). */
 const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
   "MenuTrigger",
-  "SubmenuTrigger",
-  "UnavailableMenuItemTrigger",
+  ...componentTypeSet("submenuTrigger"),
   "Select",
   "ComboBox",
   "DatePicker",
@@ -3568,10 +3573,7 @@ function ruleDom(
     const kept =
       operationsTable &&
       context.runtime?.tableColumnWidths?.(operationsTable.id)?.[
-        catalogTableColumnKey({
-          id: node.id,
-          ...(node.htmlId ? { htmlId: node.htmlId } : {}),
-        })
+        catalogTableColumnKey(node)
       ];
     if (typeof kept === "number") rest.defaultWidth = kept;
   }
@@ -3657,10 +3659,7 @@ function ruleDom(
           context.runtime.runTableColumnMenu
             ? (() => {
                 const runtime = context.runtime!;
-                const racKey = catalogTableColumnKey({
-                  id: node.id,
-                  ...(node.htmlId ? { htmlId: node.htmlId } : {}),
-                });
+                const racKey = catalogTableColumnKey(node);
                 return {
                   // (ADR-315 Phase 4 증분 5 — a Table that reorders: each data Column's header
                   //  drags by its handle and takes a drop — the session's write.)
@@ -5154,7 +5153,7 @@ function tableColumnWidthKey(
  * A Row's cells as RAC keeps them (ADR-257 Phase 2): each cell's span, a selection cell left out
  * as `-`, the drag cell first — a row whose spans change is built again (the Row's key).
  */
-export function catalogRowSpans(
+function catalogRowSpans(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): string {
@@ -5740,10 +5739,7 @@ function columnSortEntry(
       (entry) => catalogTypeName(root, entry),
     );
   if (!entries || entries.length < 2) return undefined;
-  const key = catalogTableColumnKey({
-    id: node.id,
-    ...(node.htmlId ? { htmlId: node.htmlId } : {}),
-  });
+  const key = catalogTableColumnKey(node);
   const index = entries.findIndex((entry) => entry.column === key);
   return index < 0
     ? undefined
@@ -5928,14 +5924,12 @@ export function renderNode(
     )
   )
     return null;
-  const childIds =
-    node.bindingId === "submenutrigger" ||
-    node.bindingId === "unavailablemenuitemtrigger"
-      ? submenuTriggerChildren(root, node)
-      : node.ruleId === "TableBody"
-        ? tableBodyOrder(root, node, context)
-        : // A derived show order (a calendar header's pickers in its locale order).
-          (catalogChildOrder(node.derivedProps) ?? node.children);
+  const childIds = SUBMENU_TRIGGER_BINDINGS.has(node.bindingId ?? "")
+    ? submenuTriggerChildren(root, node)
+    : node.ruleId === "TableBody"
+      ? tableBodyOrder(root, node, context)
+      : // A derived show order (a calendar header's pickers in its locale order).
+        (catalogChildOrder(node.derivedProps) ?? node.children);
   const childElement = (childId: string): ReactElement[] => {
     const child = root.domInputs.get(childId);
     // A part its owner draws has no element of its own — but a toggle indicator in a layout

@@ -81,7 +81,7 @@ export function catalogActionBarCount(
  * The bar's height: S2 `actionBarStyles` `paddingY: 12` around its size-M controls (the
  * ActionButtonGroup · CloseButton — `{size.height.M}`, the device's).
  */
-export function catalogActionBarHeight(): number {
+function catalogActionBarHeight(): number {
   const control = resolveToken("{size.height.M}" as TokenRef);
   return 12 * 2 + (typeof control === "number" ? control : 32);
 }

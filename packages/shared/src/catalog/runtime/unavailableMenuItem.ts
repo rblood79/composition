@@ -13,7 +13,7 @@ type Lookup = (id: string) => CatalogConsumerNode | undefined;
 type TypeOf = (node: CatalogConsumerNode) => string;
 
 /** The trigger around a MenuItem, when it is an UnavailableMenuItemTrigger. */
-export function catalogUnavailableMenuTriggerOf(
+function catalogUnavailableMenuTriggerOf(
   item: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
@@ -38,7 +38,7 @@ export function catalogMenuItemUnavailable(
 }
 
 /** A node shown while its item is unavailable (the origin's info glyph). */
-export function catalogShownWhileUnavailable(
+function catalogShownWhileUnavailable(
   node: CatalogConsumerNode,
 ): boolean {
   // (A plain or `{ key }` condition — not a negated one.)

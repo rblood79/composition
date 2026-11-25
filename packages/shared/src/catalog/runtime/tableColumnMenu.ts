@@ -17,11 +17,12 @@ import {
   viewConditionSkips,
   type ViewFieldKind,
 } from "../../collections/view/comparison";
-import type {
-  CatalogTableColumnFilter,
-  CatalogTableShape,
-  CatalogTableSortItem,
-  CatalogTableState,
+import {
+  catalogTableAuthoredKeys,
+  type CatalogTableColumnFilter,
+  type CatalogTableShape,
+  type CatalogTableSortItem,
+  type CatalogTableState,
 } from "./tableState";
 
 export type CatalogColumnMenuItemId =
@@ -97,6 +98,10 @@ export interface CatalogColumnFilterView {
   readonly facet?: CatalogTableFacet;
 }
 
+/** The comparisons with no value. */
+export const catalogFilterValueless = (op: ViewComparison) =>
+  op === "exists" || op === "notExists";
+
 /** What the menu reads of its Table. */
 export interface CatalogColumnMenuTable {
   readonly shape: CatalogTableShape;
@@ -108,9 +113,7 @@ export interface CatalogColumnMenuTable {
 function groupingNow(table: CatalogColumnMenuTable): readonly string[] {
   return (
     table.state.grouping ??
-    table.shape.columns
-      .filter((column) => column.grouped)
-      .map((column) => column.key)
+    catalogTableAuthoredKeys(table.shape, (column) => !!column.grouped)
   );
 }
 
@@ -120,17 +123,14 @@ function columnsNow(table: CatalogColumnMenuTable) {
   return {
     hidden: new Set(
       state.hiddenColumns ??
-        shape.columns
-          .filter((column) => column.hidden)
-          .map((column) => column.key),
+        catalogTableAuthoredKeys(shape, (column) => !!column.hidden),
     ),
     pinned: state.pinnedColumns ?? {
-      start: shape.columns
-        .filter((column) => column.pinned === "start")
-        .map((column) => column.key),
-      end: shape.columns
-        .filter((column) => column.pinned === "end")
-        .map((column) => column.key),
+      start: catalogTableAuthoredKeys(
+        shape,
+        (column) => column.pinned === "start",
+      ),
+      end: catalogTableAuthoredKeys(shape, (column) => column.pinned === "end"),
     },
   };
 }
@@ -168,6 +168,22 @@ function moveList(
     .sort((a, b) => at(a.key) - at(b.key) || a.place - b.place)
     .map((column) => column.key);
   return { list, shown };
+}
+
+/** The slice a reordered `moveList` list writes: the unpinned order, else its pinned side. */
+function movedListPatch(
+  move: ReturnType<typeof moveList>,
+  list: readonly string[],
+  table: CatalogColumnMenuTable,
+): Partial<CatalogTableState> {
+  if (!move.side) return { columnOrder: list };
+  const { pinned } = columnsNow(table);
+  return {
+    pinnedColumns:
+      move.side === "start"
+        ? { start: list, end: pinned.end }
+        : { start: pinned.start, end: list },
+  };
 }
 
 /** The shown column next to `key` in its list (`step` −1 before, +1 after), if any. */
@@ -226,17 +242,14 @@ function withFilter(
   condition: CatalogTableColumnFilter["condition"] | undefined,
 ): Partial<CatalogTableState> {
   const held = table.state.columnFilters ?? [];
-  const at = held.findIndex((filter) => filter.column === key);
-  const entry = condition ? { column: key, condition } : undefined;
-  const next =
-    at < 0
-      ? entry
-        ? [...held, entry]
-        : held
-      : entry
-        ? held.map((filter, index) => (index === at ? entry : filter))
-        : held.filter((_, index) => index !== at);
-  return { columnFilters: next };
+  const entry = condition && { column: key, condition };
+  if (!held.some((filter) => filter.column === key))
+    return { columnFilters: entry ? [...held, entry] : held };
+  return {
+    columnFilters: held.flatMap((filter) =>
+      filter.column !== key ? [filter] : entry ? [entry] : [],
+    ),
+  };
 }
 
 /**
@@ -253,11 +266,10 @@ export function catalogColumnFilterPatch(
   if (!column.allowsFiltering) return undefined;
   if (!condition) return withFilter(column.key, table, undefined);
   if (!column.filterOps?.includes(condition.op)) return undefined;
-  const valueless = condition.op === "exists" || condition.op === "notExists";
   return withFilter(
     column.key,
     table,
-    valueless
+    catalogFilterValueless(condition.op)
       ? { op: condition.op }
       : viewConditionSkips(condition.op, condition.value)
         ? undefined
@@ -368,14 +380,7 @@ export function catalogColumnMenuPatch(
       const list = move.list.filter((other) => other !== key);
       const at = list.indexOf(next) + (id === "move-before" ? 0 : 1);
       list.splice(at, 0, key);
-      if (!move.side) return { columnOrder: list };
-      const { pinned } = columnsNow(table);
-      return {
-        pinnedColumns:
-          move.side === "start"
-            ? { start: list, end: pinned.end }
-            : { start: pinned.start, end: list },
-      };
+      return movedListPatch(move, list, table);
     }
     case "group":
       return { grouping: [...groupingNow(table), key] };
@@ -408,12 +413,5 @@ export function catalogColumnDropPatch(
   if (at < 0 || !move.list.includes(from)) return undefined;
   const list = move.list.filter((other) => other !== from);
   list.splice(at, 0, from);
-  if (!move.side) return { columnOrder: list };
-  const { pinned } = columnsNow(table);
-  return {
-    pinnedColumns:
-      move.side === "start"
-        ? { start: list, end: pinned.end }
-        : { start: pinned.start, end: list },
-  };
+  return movedListPatch(move, list, table);
 }

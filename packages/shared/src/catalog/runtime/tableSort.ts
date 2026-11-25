@@ -25,9 +25,9 @@ export interface CatalogTableSort {
  */
 export function catalogTableColumnKey(column: {
   readonly id: string;
-  readonly htmlId?: string;
+  readonly htmlId?: string | null;
 }): string {
-  return column.htmlId ?? column.id;
+  return column.htmlId || column.id;
 }
 
 /** A RAC `SortDescriptor` (`onSortChange`) as the record's sort, else undefined. */

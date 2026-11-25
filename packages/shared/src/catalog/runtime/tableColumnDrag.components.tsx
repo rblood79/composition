@@ -18,6 +18,7 @@ import { useDrag } from "react-aria/useDrag";
 import { useDrop } from "react-aria/useDrop";
 import { Icon } from "../../components/Icon";
 import type { CatalogColumnDragAccess } from "./tableOperationsDom.runtime";
+import { catalogLocalized } from "./localizedStrings";
 
 /**
  * ADR-315 Phase 4 증분 5 — a header drag (사용자 결정 3, breakdown §5.3 「끌기」 · Phase 0 S5): a
@@ -85,7 +86,7 @@ export default function CatalogColumnDrag({
 }): ReactNode {
   const dragging = useSyncExternalStore(subscribe, activeNow, activeNow);
   const { locale } = useLocale();
-  const strings = STRINGS[locale.split("-")[0] ?? "en"] ?? STRINGS.en!;
+  const strings = catalogLocalized(STRINGS, locale);
   const ref = useRef<HTMLSpanElement>(null);
   const [name, setName] = useState("");
   // (Every render: a renamed column renames its handle — an unchanged name sets nothing.)

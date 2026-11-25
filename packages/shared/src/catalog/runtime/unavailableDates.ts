@@ -24,12 +24,12 @@ export const CATALOG_UNAVAILABLE_DATA_PROP = "_unavailableDates";
 const gregorian = new GregorianCalendar();
 
 /** A day as its ISO Gregorian date (`YYYY-MM-DD`) — whatever the calendar it is in. */
-export function catalogIsoDay(date: DateValue): string {
+function catalogIsoDay(date: DateValue): string {
   return toCalendar(toCalendarDate(date), gregorian).toString();
 }
 
 /** A day's weekday — 0 = Sunday … 6 = Saturday (the stored weekdays' numbering). */
-export function catalogWeekday(date: DateValue): number {
+function catalogWeekday(date: DateValue): number {
   return getDayOfWeek(toCalendarDate(date), "en-US");
 }
 

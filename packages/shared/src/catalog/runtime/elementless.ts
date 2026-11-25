@@ -1,3 +1,4 @@
+import { componentTypeSet } from "../../domain/componentTraits";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 
 /**
@@ -17,8 +18,7 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 const DOM_ELEMENTLESS_TYPES: ReadonlySet<string> = new Set([
   "TreeItemContent",
   "SideNavItemContent",
-  "SubmenuTrigger",
-  "UnavailableMenuItemTrigger",
+  ...componentTypeSet("submenuTrigger"),
   "CalendarMonthPicker",
   "CalendarYearPicker",
 ]);

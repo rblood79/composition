@@ -64,7 +64,12 @@ export type ComponentTraitFamily =
    * S2 `renderActionBar` 를 받는 컬렉션 (CardView · TableView · TreeView) — 직계 자식 ActionBar 가 그
    * 막대이고, 개수 · 지우기는 컬렉션의 선택이다 (S2 체크리스트 부록 D.3 2단계, 2026-11-23).
    */
-  | "actionBarCollection";
+  | "actionBarCollection"
+  /**
+   * RAC `SubmenuTrigger` 로 그리는 메뉴 항목 트리거 — 항목 MenuItem 과 그 옆에 여는 Popover (하위 메뉴 ·
+   * S2 UnavailableMenuItemTrigger 의 도움말). 열림은 RAC 만 정하고, Popover 는 항목 끝에 붙는다.
+   */
+  | "submenuTrigger";
 
 export interface ComponentTraits {
   readonly container?: ComponentContainerKind;
@@ -410,12 +415,14 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // submenu's Menu (RAC reads `children[0]` · `children[1]`).
   SubmenuTrigger: {
     container: "collection",
+    families: ["submenuTrigger"],
     children: ["MenuItem", "Popover"],
     owners: ["Menu"],
   },
   // S2 체크리스트 §9.3: S2 UnavailableMenuItemTrigger — its item and the Popover holding the help.
   UnavailableMenuItemTrigger: {
     container: "collection",
+    families: ["submenuTrigger"],
     children: ["MenuItem", "Popover"],
     owners: ["Menu"],
   },

@@ -39,6 +39,7 @@ import {
   NavigationTreeSection,
 } from "react-aria-components/NavigationTree";
 import { CatalogCurrentRouteContext } from "./sideNavRoute";
+import { catalogLocalized } from "./localizedStrings";
 
 /** S2 `ANIMATION_DURATION` — the panel's width transition (the rule's `transition` 200 ms). */
 const PANEL_ANIMATION_MS = 200;
@@ -143,8 +144,7 @@ export function CatalogSideNavPanel({
     };
   }, [isCollapsed, contentCollapsed, reduceMotion]);
   const { locale } = useLocale();
-  const labels =
-    PANEL_BUTTON_LABELS[locale.split("-")[0] ?? "en"] ?? PANEL_BUTTON_LABELS.en;
+  const labels = catalogLocalized(PANEL_BUTTON_LABELS, locale);
   const toggle = useCallback(() => {
     setCollapsed(!isCollapsed);
     onCollapsedChange?.(!isCollapsed);

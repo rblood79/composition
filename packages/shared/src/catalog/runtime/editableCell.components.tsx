@@ -12,6 +12,7 @@ import { Button, ButtonContext } from "react-aria-components/Button";
 import { FormContext } from "react-aria-components/Form";
 import { useLocale } from "react-aria-components/I18nProvider";
 import { Popover } from "react-aria-components/Popover";
+import { catalogLocalized } from "./localizedStrings";
 
 /**
  * S2 체크리스트 §9.3 (6-6) — S2 `EditableCell` (`TableView.tsx` `EditableCellInner`): a Cell holding
@@ -56,7 +57,7 @@ export function CatalogEditableCellContent({
   children?: ReactNode;
 }): ReactElement {
   const { locale } = useLocale();
-  const labels = LABELS[locale.split("-")[0] ?? "en"] ?? LABELS.en!;
+  const labels = catalogLocalized(LABELS, locale);
   const formRef = useRef<HTMLFormElement | null>(null);
   const parts = Children.toArray(children);
   const isForm = (child: ReactNode) =>

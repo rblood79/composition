@@ -1,6 +1,7 @@
 import { isRTL } from "@react-aria/i18n";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import {
+  CATALOG_SUBMENU_TRIGGER_TYPES,
   catalogOverlayOwner,
   type OverlayLookup,
   type OverlayTypeOf,
@@ -76,7 +77,7 @@ export function catalogOverlayDescriptor(
     typeOf(owner),
   )
     ? "Group"
-    : ["SubmenuTrigger", "UnavailableMenuItemTrigger"].includes(typeOf(owner))
+    : CATALOG_SUBMENU_TRIGGER_TYPES.has(typeOf(owner))
       ? "MenuItem"
       : "Button";
   const find = (
@@ -169,21 +170,20 @@ export function catalogOverlayPlacement(
     ...node.props,
   };
   const contextPlacement =
-    [
+    ([
       "Select",
       "ComboBox",
       "MenuTrigger",
       "DatePicker",
       "DateRangePicker",
-      "SubmenuTrigger",
-      "UnavailableMenuItemTrigger",
-    ].includes(ownerType) && p.placement === "bottom";
+    ].includes(ownerType) ||
+      CATALOG_SUBMENU_TRIGGER_TYPES.has(ownerType)) &&
+    p.placement === "bottom";
   let placement = String(
     (contextPlacement ? undefined : p.placement) ??
       (["Select", "ComboBox", "MenuTrigger"].includes(ownerType)
         ? catalogS2OverlayPlacement(owner!.props)
-        : ownerType === "SubmenuTrigger" ||
-            ownerType === "UnavailableMenuItemTrigger"
+        : CATALOG_SUBMENU_TRIGGER_TYPES.has(ownerType)
           ? "end top"
           : ownerType === "TooltipTrigger"
             ? "top"
@@ -328,7 +328,12 @@ export function catalogOverlayLayout(
     insetLeft: `${placement?.x ?? 0}px`,
     insetTop: `${placement?.y ?? 0}px`,
     ...(placement
-      ? { maxHeight: overlayMaxHeight(placement.maxHeight, node.layout.maxHeight) }
+      ? {
+          maxHeight: overlayMaxHeight(
+            placement.maxHeight,
+            node.layout.maxHeight,
+          ),
+        }
       : {}),
     ...(minWidth !== undefined ? { minWidth: capped(minWidth) } : {}),
     ...(placement?.width !== undefined

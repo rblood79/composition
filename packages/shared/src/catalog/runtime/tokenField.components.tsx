@@ -147,6 +147,4 @@ export function CatalogTokenInput({
 }
 
 /** RAC's Token (a TokenInput segment's chip — the rule's paint tree by `data-variant`). */
-export function CatalogToken(props: Record<string, unknown>) {
-  return createElement(Token, props);
-}
+export { Token as CatalogToken };

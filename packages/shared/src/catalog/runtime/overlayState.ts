@@ -1,4 +1,9 @@
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { componentTypeSet } from "../../domain/componentTraits";
+
+/** Menu item triggers RAC draws as a `SubmenuTrigger` (the traits table's `submenuTrigger` family). */
+export const CATALOG_SUBMENU_TRIGGER_TYPES: ReadonlySet<string> =
+  componentTypeSet("submenuTrigger");
 
 export type OverlayLookup = (id: string) => CatalogConsumerNode | undefined;
 export type OverlayTypeOf = (node: CatalogConsumerNode) => string;
@@ -31,9 +36,8 @@ export function catalogOverlayOwner(
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
     if (
       OVERLAY_OPEN_OWNERS.has(typeOf(parent)) ||
-      typeOf(parent) === "SubmenuTrigger" ||
       // (S2 체크리스트 §9.3: an unavailable item's help Popover — RAC's SubmenuTrigger too.)
-      typeOf(parent) === "UnavailableMenuItemTrigger"
+      CATALOG_SUBMENU_TRIGGER_TYPES.has(typeOf(parent))
     )
       return parent;
     if (OVERLAY_BODY_TYPES.has(typeOf(parent))) return undefined;

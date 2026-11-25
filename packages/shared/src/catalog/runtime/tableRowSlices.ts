@@ -44,8 +44,6 @@ export interface CatalogTableStateColumn {
   /** ADR-315 Phase 5 — what its group rows show of it (`aggregate` — a `ViewAggregateFn`). */
   readonly aggregate?: unknown;
 }
-/** (Phase 2's name.) */
-export type CatalogTableSortColumn = CatalogTableStateColumn;
 
 /** A bound Table's search as its rows read it: the text over the searchable Columns' fields. */
 export interface CatalogRowSearch {
@@ -300,12 +298,4 @@ export function catalogTableStateRowSlices(
     ...(tree ? { tree } : {}),
     ...(totals ? { totals } : {}),
   };
-}
-
-/** Two row slices are the same slices (the rows they give are the same rows in the same order). */
-export function catalogRowSlicesEqual(
-  a: CatalogRowSlices | undefined,
-  b: CatalogRowSlices | undefined,
-): boolean {
-  return a === b || JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
 }

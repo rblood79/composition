@@ -147,12 +147,7 @@ export function catalogColumnChildren(
           {
             key: "content",
             // (RAC knows the first sort only: a Column sorted after it reads the state's entry.)
-            value: options.sortEntry
-              ? {
-                  direction: options.sortEntry.direction,
-                  order: options.sortEntry.order,
-                }
-              : { direction: sortDirection },
+            value: options.sortEntry ?? { direction: sortDirection },
           },
           options.sortsInline
             ? createElement(CatalogSortIndicator, { key: "sort-indicator" })

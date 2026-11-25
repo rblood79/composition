@@ -90,7 +90,7 @@ export function catalogValidationStateProp(type: string): string {
  * `Set` · a ComboBox's `{inputValue}`) or the document's runtime value (ISO texts · key lists) — a
  * text, a number, a list or a flag. A range is `{start, end}` (read as `$value` · `$end`).
  */
-export function catalogValidationValue(type: string, raw: unknown): unknown {
+function catalogValidationValue(type: string, raw: unknown): unknown {
   if (raw === null || raw === undefined) return undefined;
   if (typeof raw === "number") return Number.isNaN(raw) ? undefined : raw;
   if (typeof raw === "string" || typeof raw === "boolean") return raw;

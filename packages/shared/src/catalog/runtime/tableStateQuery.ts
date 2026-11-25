@@ -29,19 +29,7 @@ import {
 //  serializer brings the row intake with it — `tableStateQueryImports.static.test.ts`.)
 import { VIEW_SEARCH_CONDITION } from "../../collections/view/evaluate";
 import { DEFAULT_QUERY_SUFFIXES } from "../../collections/view/querySuffixes";
-import type { CatalogRowSorts } from "./tableSort";
 import type { CatalogRowSlices } from "./tableRowSlices";
-
-export {
-  catalogRowSlicesEqual,
-  catalogTableStateRowSlices,
-  catalogTableStateRowSorts,
-  type CatalogRowFilter,
-  type CatalogRowSearch,
-  type CatalogRowSlices,
-  type CatalogTableSortColumn,
-  type CatalogTableStateColumn,
-} from "./tableRowSlices";
 
 /** A Table state's sort · conditions as a view holds them. */
 export interface CatalogTableStateView {
@@ -50,7 +38,7 @@ export interface CatalogTableStateView {
 }
 
 /** The id of a column filter's condition in the view (`table-filter:<Column key>`). */
-export const catalogTableFilterConditionId = (column: string) =>
+const catalogTableFilterConditionId = (column: string) =>
   `table-filter:${column}`;
 
 /**
@@ -118,16 +106,6 @@ export function catalogFieldIdOf(
     : undefined;
 }
 
-/** (Phase 2's reading of the sort alone.) */
-export function catalogRowSortsView(
-  sorts: CatalogRowSorts,
-  schema: readonly { id?: string; key?: string }[],
-): ViewSort[] | undefined {
-  if (!sorts.length) return [];
-  const view = catalogRowSlicesView({ sorts }, schema);
-  return view ? [...(view.sort ?? [])] : undefined;
-}
-
 /** The id of the view a Table state adds to a binding that has none. */
 export const CATALOG_TABLE_STATE_VIEW_ID = "table-state";
 
@@ -139,14 +117,8 @@ export const CATALOG_TABLE_STATE_VIEW_ID = "table-state";
  */
 export function catalogTableStateQueries(
   authored: readonly ViewQuery[] | undefined,
-  state: CatalogTableStateView | readonly ViewSort[] | undefined,
+  view: CatalogTableStateView | undefined,
 ): readonly ViewQuery[] | undefined {
-  const view: CatalogTableStateView | undefined =
-    state && "length" in state
-      ? state.length
-        ? { sort: state }
-        : undefined
-      : (state as CatalogTableStateView | undefined);
   if (!view?.sort?.length && !view?.where?.length) return authored;
   const last = authored?.at(-1) ?? {
     where: { id: CATALOG_TABLE_STATE_VIEW_ID, op: "and" as const, items: [] },

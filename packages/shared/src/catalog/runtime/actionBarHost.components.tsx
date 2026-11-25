@@ -24,6 +24,7 @@ import {
   CATALOG_ACTION_BAR_INSET,
   catalogActionBarPlacement,
 } from "./actionBarContainer";
+import { catalogLocalized } from "./localizedStrings";
 
 /**
  * S2 `renderActionBar` (CardView · TableView · TreeView — S2 체크리스트 부록 D.3 2단계, 2026-11-23):
@@ -213,9 +214,7 @@ function LinkedActionBarInner({
   if (count !== 0 && count !== lastCount) setLastCount(count);
   // (S2: 「actions available」 once, when it comes.)
   useEffect(() => {
-    announce(
-      ACTIONS_AVAILABLE[locale.split("-")[0] ?? "en"] ?? ACTIONS_AVAILABLE.en!,
-    );
+    announce(catalogLocalized(ACTIONS_AVAILABLE, locale));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const placement = catalogActionBarPlacement();

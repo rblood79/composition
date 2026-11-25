@@ -528,12 +528,7 @@ function catalogTablePinnedKeys(
       const column = root.domInputs.get(columnId);
       const side = column?.props[CATALOG_COLUMN_PINNED_PROP];
       if (column && (side === "start" || side === "end"))
-        sides[side].push(
-          catalogTableColumnKey({
-            id: column.id,
-            ...(column.htmlId ? { htmlId: column.htmlId } : {}),
-          }),
-        );
+        sides[side].push(catalogTableColumnKey(column));
     }
   }
   return {
