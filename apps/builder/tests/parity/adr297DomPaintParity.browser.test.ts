@@ -224,6 +224,43 @@ function rowsFor(
   return rows;
 }
 
+/**
+ * The rows this synthetic element cannot judge, by type — each is judged where its real DOM is. A type that
+ * gains or loses rows fails the test: judge the new rows on the real tree (`adr297RealPaintParity` — add the
+ * owner there), then write the count here. (2026-11-25: unasserted, new rows since 11-02 went unjudged — a
+ * LinkButton's static fill was a real mismatch.)
+ */
+const SYNTHETIC_ONLY_ROWS: Readonly<Record<string, number>> = {
+  // The page's paint is the Preview document's `body` (`baseStyles.ts` `var(--bg)`), not this element's.
+  body: 3,
+  // Popover's variants are no binding prop (no `variant` in its accepts) — unreachable.
+  Popover: 6,
+  // `s2FieldText` 「FieldError」: the error text's Canvas color = its DOM color on the real field.
+  FieldError: 3,
+  // Judged on the real tree (`adr297RealPaintParity` owners): a part's paint comes from its owner's
+  // selectors · derived values, a static `auto` from the backdrop, a zero-width border is not drawn.
+  Button: 24,
+  LinkButton: 60,
+  GridList: 12,
+  Group: 3,
+  Image: 6,
+  Input: 1,
+  MeterFill: 12,
+  MeterTrack: 12,
+  MeterValue: 12,
+  ProgressBarFill: 3,
+  ProgressBarTrack: 3,
+  ProgressBarValue: 3,
+  Row: 6,
+  SelectValue: 2,
+  Table: 3,
+  TableHeader: 6,
+  TagGroup: 36,
+  TextArea: 9,
+  Toast: 12,
+  Tree: 12,
+};
+
 it("DOM computed paint == Canvas paint over the whole table (reach inputs)", async () => {
   const mismatches: Row[] = [];
   const skipped: string[] = [];
@@ -255,6 +292,9 @@ it("DOM computed paint == Canvas paint over the whole table (reach inputs)", asy
       .join("\n"),
   );
   expect(compared).toBeGreaterThan(1_000);
+  expect(Object.fromEntries([...byType].sort())).toEqual(
+    Object.fromEntries(Object.entries(SYNTHETIC_ONLY_ROWS).sort()),
+  );
   // (local evidence — `.agent/runs/` is gitignored)
   await commands.writeFile(
     "../../.agent/runs/adr297-dom-parity.json",

@@ -78,6 +78,14 @@ const OWNERS: readonly {
   { type: "Tabs" },
   { type: "TextField" },
   { type: "TextField", props: { isInvalid: true } },
+  // (2026-11-25 — 합성 대조에 11-02 뒤 새로 생긴 남은 행의 type: 테두리 색 입력만 있고 그리지 않는
+  //  `staticColor: auto` · 부품 글자색을 조상 선택자로 받는 TextArea · SelectValue)
+  { type: "Button", props: { staticColor: "auto" } },
+  { type: "LinkButton", props: { staticColor: "auto" } },
+  { type: "TextArea" },
+  { type: "TextArea", props: { isInvalid: true } },
+  { type: "Select" },
+  { type: "LinkButton", props: { fillStyle: "outline", staticColor: "white" } },
   { type: "Button", props: { variant: "genai" } },
   { type: "Button", props: { variant: "genai", staticColor: "white" } },
   { type: "Button", props: { variant: "genai", fillStyle: "outline" } },
@@ -264,6 +272,9 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
     return undefined;
   };
   const rows: Row[] = [];
+  // (2026-11-25: an inline declaration built from a value the binding never wrote — a LinkButton's
+  //  centring padding read `style.fontSize`, the sheet's, as `undefined`.)
+  const brokenInline: string[] = [];
   let compared = 0;
   let noDom = 0;
   let noCanvas = 0;
@@ -281,6 +292,8 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
       noCanvas += 1;
       continue;
     }
+    if (element.getAttribute("style")?.includes("undefined"))
+      brokenInline.push(`${owner} ${type}`);
     const computed = getComputedStyle(element);
     const pairs: [Row["channel"], string, string][] = [];
     if (data.box) {
@@ -351,8 +364,10 @@ it("Canvas node data == DOM computed paint per record on the real node tree (the
   //   gradient included (⑥ — the rule tree's `backgroundImage`).
   expect(
     rows.map(
-      (row) => `${row.owner} ${row.type} ${row.channel} ${row.canvas} / ${row.dom}`,
+      (row) =>
+        `${row.owner} ${row.type} ${row.channel} ${row.canvas} / ${row.dom}`,
     ),
   ).toEqual([]);
   expect(rows.length).toBe(0);
+  expect(brokenInline).toEqual([]);
 });

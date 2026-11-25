@@ -6406,7 +6406,11 @@ export function renderNode(
       : undefined;
   if (
     bound &&
-    (node.bindingId === "button" || node.bindingId === "actionbutton")
+    // (A LinkButton paints with the Button rule's tree — its generated sheet owns the same colors and
+    //  states. Left out, its resolved fill went inline over them: a static scheme's fill, 2026-11-25.)
+    (node.bindingId === "button" ||
+      node.bindingId === "actionbutton" ||
+      node.bindingId === "linkbutton")
   ) {
     const partField = catalogPartField(root, node);
     const declared = root.domInputs.get(node.id) ?? node;

@@ -166,9 +166,17 @@ export function catalogDeviceControlCss(
   const border = px(style.borderWidth) ?? 0;
   if (Math.abs((height - fontSize * lineHeight - border * 2) / 2 - top) > 1e-3)
     return;
+  // (A box whose words are its sheet's — a LinkButton — carries no inline font: the same device
+  //  variables from its resolved values. Read as `style.fontSize` the formula held `undefined` and the
+  //  padding fell to 0 at computed time, 2026-11-25.)
+  const text: CSSProperties = {
+    fontSize: style.fontSize ?? fontSize,
+    lineHeight: style.lineHeight ?? lineHeight,
+  };
+  if (style.fontSize === undefined) catalogDeviceTypographyCss(text, visual);
   const font =
-    typeof style.fontSize === "number" ? `${style.fontSize}px` : style.fontSize;
-  const line = String(style.lineHeight ?? lineHeight);
+    typeof text.fontSize === "number" ? `${text.fontSize}px` : text.fontSize;
+  const line = String(text.lineHeight);
   const block = `calc((${heightVar} - ${font} * ${line} - ${border * 2}px) / 2)`;
   style.paddingTop = block;
   style.paddingBottom = block;

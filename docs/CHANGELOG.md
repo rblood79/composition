@@ -13,6 +13,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [LinkButton — Static color 가 Preview 에서 칠해지지 않던 것 · 세로 여백 식] - 2026-11-25
+
+상태 칠 대조의 범위를 세다가 찾았다. 표 전수 합성 대조 (`adr297DomPaintParity`) 는 불일치 수를 단언하지 않고, 그 남은 행을 실제 노드 트리에서 다시 재는 대조 (`adr297RealPaintParity`) 의 대상 목록은 11-02 에 고정돼 있었다 — 그 뒤 합성 대조에 새로 생긴 LinkButton · TextArea · SelectValue · Button `staticColor: auto` 행은 어디서도 판정되지 않았다. 대상에 넣어 재니 넷 중 LinkButton 하나가 실제로 어긋났다.
+
+### Fixed
+
+- **LinkButton 의 Static color (Black · White · Auto) 가 Preview · Publish 에서 테마 칠 그대로**: Canvas 는 고정 흑백 (검정 85%) 을 칠하는데 DOM 은 `rgb(41, 41, 41)` 이었다.
+  - **Why**: LinkButton 은 Button rule 의 칠 트리로 그리고 생성 시트 (`generated/LinkButton.css`) 가 색과 상태를 가진다. DOM binding 이 시트 소유 색을 inline 에서 빼는 분기가 `button` · `actionbutton` 뿐이라, LinkButton 은 해석된 바탕색이 inline 으로 나가 시트의 static · 상태 규칙을 덮었다.
+  - 위치: `runtime/domBinding.runtime.ts` (시트 소유 색 분기에 `linkbutton`)
+- **LinkButton 의 세로 여백 inline 식에 `undefined`**: `calc((높이 − undefined × 1.2857 − 0px) / 2)` 가 inline 으로 나가 계산 시점에 무효 → 세로 여백 0 (최소 높이가 상자를 지켜 한 줄일 때는 보이지 않았다).
+  - **Why**: 가운데 맞춤 여백 식이 `style.fontSize` 를 읽는데, 글자가 시트 소유인 상자 (LinkButton) 는 inline 글자 크기가 없다. 없으면 해석값에서 같은 기기 변수를 만든다.
+  - 위치: `runtime/deviceTypography.ts` `catalogDeviceControlCss`
+
+### Tests
+
+- `adr297RealPaintParity`: 대상에 Button `staticColor: auto` · LinkButton `staticColor: auto` · TextArea · TextArea invalid · Select 추가, inline 선언에 `undefined` 가 있으면 실패 (두 수정을 각각 되돌리면 RED).
+- live 하니스 `linkbutton-static-color-live.mjs`.
+- `adr297DomPaintParity`: 합성 요소가 판정하지 못하는 행 수를 종별로 고정 (`SYNTHETIC_ONLY_ROWS` — 종마다 어디서 판정하는지) — 새 종이 생기거나 행 수가 바뀌면 실패한다 (목록에서 한 종을 빼면 RED). `adr297RealPaintParity` 대상에 LinkButton outline · `staticColor: white` 추가 (테두리 0 이라 그리지 않음 — 0 행).
+
+검증: type-check · shared 2,767 · builder unit 9,868 · parity 2,168 통과. live (dev Builder, headed Chrome, Compare Mode) — 팔레트에서 LinkButton 을 놓고 Design 패널 Static color 를 Black · White · Auto 로: Preview 칠 `rgba(0, 0, 0, 0.85)` · `rgba(255, 255, 255, 0.85)` · Auto 는 흰 바탕에서 검정 스킴, inline 바탕색 · `undefined` 없음, 세로 여백 7px, 높이 Canvas = Preview 32, 콘솔 오류 0 (5/5 PASS).
+
 ## [Table 효율 — 칸 선택 스크롤 · 서버 묶음 요청 동시 · 정렬 key · 합계] - 2026-11-25
 
 /simplify 효율 지적 8개를 production 빌드의 Publish 에서 CPU 프로필로 잰 뒤 (headed Chrome · CPU 1x), 비용이 보인 것만 고쳤다. 측정에서 이득이 없던 disabledKeys · 고정 측정기 · 글꼴 상속 (각 0.5% 이하) 과 묶음 표 nest hash (캐시를 넣어도 151 → 146 ms) 는 그대로 두었다.
