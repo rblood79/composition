@@ -27,7 +27,10 @@ import {
  * `resolveComponentRule`) / Properties·Style Panel — 모두 본 테이블 단일 source 파생(DOM/Skia 시각 대칭).
  * TokenRef(`{color.X}`)는 string 그대로 — runtime resolveCanonicalToken/resolveToken 이 변환.
  */
-import type { ComponentRulesTable } from "../../types/catalog-style.types";
+import type {
+  ComponentRule,
+  ComponentRulesTable,
+} from "../../types/catalog-style.types";
 import type { PaintImage } from "../rule/rulePaintTree";
 import {
   PICKER_BACKGROUND,
@@ -1129,6 +1132,482 @@ const ACTION_BUTTON_SIZES = Object.fromEntries(
   ]),
 );
 
+// ── 여러 rule 이 같이 쓰는 블록 (값이 통째로 같은 것 — 한 곳에서 고친다) ──
+/** 자기 상자가 없는 감싸개 · 구획 (trigger · section · Skeleton …) 의 크기 — 글자 기준만. */
+const NO_BOX_SIZES = {
+  M: {
+    height: 0,
+    fontSize: "{typography.text-base}",
+    borderRadius: "{radius.none}",
+  },
+} satisfies ComponentRule["sizes"];
+
+/** Heading · Paragraph · Text 의 글자 단계. */
+const TEXT_SIZES = {
+  XS: {
+    fontSize: "{typography.text-xs}",
+    lineHeight: "{typography.text-xs--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  S: {
+    fontSize: "{typography.text-sm}",
+    lineHeight: "{typography.text-sm--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  M: {
+    fontSize: "{typography.text-base}",
+    lineHeight: "{typography.text-base--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  L: {
+    fontSize: "{typography.text-lg}",
+    lineHeight: "{typography.text-lg--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  XL: {
+    fontSize: "{typography.text-xl}",
+    lineHeight: "{typography.text-xl--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  XXL: {
+    fontSize: "{typography.text-2xl}",
+    lineHeight: "{typography.text-2xl--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  XXXL: {
+    fontSize: "{typography.text-3xl}",
+    lineHeight: "{typography.text-3xl--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+} satisfies ComponentRule["sizes"];
+
+/** Content · Footer · CardPreview — 상자 없는 slot 구획의 글자 단계. */
+const SLOT_SECTION_SIZES = {
+  XS: {
+    fontSize: "{typography.text-xs}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  S: {
+    fontSize: "{typography.text-sm}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  M: {
+    fontSize: "{typography.text-base}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  L: {
+    fontSize: "{typography.text-lg}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  XL: {
+    fontSize: "{typography.text-lg}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+} satisfies ComponentRule["sizes"];
+
+/** 값 글자 (MeterValue · ProgressBarValue · SliderOutput). */
+const VALUE_LABEL_SIZES = {
+  S: {
+    fontSize: "{typography.text-xs}",
+    lineHeight: "{typography.text-xs--line-height}",
+    borderRadius: "{radius.none}",
+    height: 16,
+  },
+  M: {
+    fontSize: "{typography.text-sm}",
+    lineHeight: "{typography.text-sm--line-height}",
+    borderRadius: "{radius.none}",
+    height: 18,
+  },
+  L: {
+    fontSize: "{typography.text-base}",
+    lineHeight: "{typography.text-base--line-height}",
+    borderRadius: "{radius.none}",
+    height: 20,
+  },
+  XL: {
+    fontSize: "{typography.text-lg}",
+    lineHeight: "{typography.text-lg--line-height}",
+    borderRadius: "{radius.none}",
+    height: 22,
+  },
+} satisfies ComponentRule["sizes"];
+
+/** ComboBox · Select 의 루트 크기. */
+const PICKER_SIZES = {
+  XS: {
+    paddingX: 4,
+    fontSize: "{typography.text-2xs}",
+    borderRadius: "{radius.xs}",
+    height: 0,
+    gap: centerPadding("XS"),
+  },
+  S: {
+    paddingX: 8,
+    fontSize: "{typography.text-xs}",
+    borderRadius: 7,
+    height: 0,
+    gap: centerPadding("S"),
+  },
+  M: {
+    paddingX: 12,
+    fontSize: "{typography.text-sm}",
+    borderRadius: 8,
+    height: 0,
+    gap: centerPadding("M"),
+  },
+  L: {
+    paddingX: 16,
+    fontSize: "{typography.text-base}",
+    borderRadius: 9,
+    height: 0,
+    gap: centerPadding("L"),
+  },
+  XL: {
+    paddingX: 24,
+    fontSize: "{typography.text-lg}",
+    borderRadius: 10,
+    height: 0,
+    gap: centerPadding("XL"),
+  },
+} satisfies ComponentRule["sizes"];
+
+/** 도움말 글자 (Description · FieldError). */
+const HELP_TEXT_SIZES = {
+  // S2 HelpText uses controlFont: the same text size as its input.
+  XS: {
+    fontSize: "{typography.text-2xs}",
+    lineHeight: "{typography.text-2xs--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  S: {
+    fontSize: "{typography.text-xs}",
+    lineHeight: "{typography.text-xs--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  M: {
+    fontSize: "{typography.text-sm}",
+    lineHeight: "{typography.text-sm--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  L: {
+    fontSize: "{typography.text-base}",
+    lineHeight: "{typography.text-base--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+  XL: {
+    fontSize: "{typography.text-lg}",
+    lineHeight: "{typography.text-lg--line-height}",
+    borderRadius: "{radius.none}",
+    height: 0,
+  },
+} satisfies ComponentRule["sizes"];
+
+/** DatePicker · DateRangePicker 의 루트 크기. */
+const DATE_PICKER_SIZES = {
+  XS: {
+    fontSize: "{typography.text-2xs}",
+    borderRadius: "{radius.xs}",
+    gap: centerPadding("XS"),
+  },
+  S: {
+    fontSize: "{typography.text-xs}",
+    borderRadius: 7,
+    gap: centerPadding("S"),
+  },
+  M: {
+    fontSize: "{typography.text-sm}",
+    borderRadius: 8,
+    gap: centerPadding("M"),
+  },
+  L: {
+    fontSize: "{typography.text-base}",
+    borderRadius: 9,
+    gap: centerPadding("L"),
+  },
+  XL: {
+    fontSize: "{typography.text-lg}",
+    borderRadius: 10,
+    gap: centerPadding("XL"),
+  },
+} satisfies ComponentRule["sizes"];
+
+/** 막대 track (MeterTrack · ProgressBarTrack). */
+const PROGRESS_TRACK_SIZES = {
+  S: {
+    fontSize: "{typography.text-xs}",
+    borderRadius: "{radius.sm}",
+    height: scaled(4),
+  },
+  M: {
+    fontSize: "{typography.text-sm}",
+    borderRadius: "{radius.sm}",
+    height: scaled(6),
+  },
+  L: {
+    fontSize: "{typography.text-base}",
+    borderRadius: "{radius.lg}",
+    height: scaled(8),
+  },
+  XL: {
+    fontSize: "{typography.text-lg}",
+    borderRadius: "{radius.lg}",
+    height: scaled(10),
+  },
+} satisfies ComponentRule["sizes"];
+
+/** SheetOverlay · SheetBackdrop. */
+const SHEET_LAYER_SIZES = {
+  M: {
+    height: 0,
+    fontSize: "{typography.text-sm}",
+    lineHeight: "{typography.text-sm--line-height}",
+    borderRadius: "{radius.none}",
+  },
+} satisfies ComponentRule["sizes"];
+
+/** 상자를 칠하지 않는 rule 의 variant — 바탕은 hover · pressed 에도 투명, 글자는 neutral.
+ * 묶음 컨테이너 (Accordion · Form · Pagination · Toolbar): ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를
+ * 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이 상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은
+ * 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
+ * Calendar · RangeCalendar: 레퍼런스가 바탕을 칠하지 않는다 (사용자 2026-10-13 「같이 지워」). */
+const UNPAINTED_VARIANTS = {
+  default: {
+    paint: {
+      backgroundColor: {
+        default: "{color.transparent}",
+        isHovered: "{color.transparent}",
+        isPressed: "{color.transparent}",
+      },
+      color: {
+        default: "{color.neutral}",
+      },
+    },
+  },
+} satisfies ComponentRule["variants"];
+
+/** `UNPAINTED_VARIANTS` + `alpha: 0`. */
+const UNPAINTED_ALPHA0_VARIANTS = {
+  default: { ...UNPAINTED_VARIANTS.default, alpha: 0 },
+} satisfies ComponentRule["variants"];
+
+/** `UNPAINTED_VARIANTS` + 투명 테두리. */
+const UNPAINTED_TRANSPARENT_BORDER_VARIANTS = {
+  default: {
+    paint: {
+      ...UNPAINTED_VARIANTS.default.paint,
+      borderColor: { default: "{color.transparent}" },
+    },
+  },
+} satisfies ComponentRule["variants"];
+
+/** 입력 상자 (DateInput · Input) 의 variant 칠. */
+const FIELD_INPUT_VARIANTS = {
+  default: {
+    paint: {
+      backgroundColor: "{color.base}",
+      color: FIELD_INPUT_CONTENT,
+      borderColor: FIELD_INPUT_BORDER,
+    },
+  },
+  accent: {
+    paint: {
+      backgroundColor: "{color.base}",
+      color: FIELD_INPUT_CONTENT,
+      borderColor: {
+        ...FIELD_INPUT_BORDER,
+        default: "{color.accent-content}",
+      },
+    },
+  },
+  negative: {
+    paint: {
+      backgroundColor: "{color.base}",
+      color: FIELD_INPUT_CONTENT,
+      borderColor: {
+        ...FIELD_INPUT_BORDER,
+        default: "{color.selection-negative}",
+      },
+    },
+  },
+} satisfies ComponentRule["variants"];
+
+/** ListBox · Menu 의 바탕. */
+const MENU_SURFACE_VARIANTS = {
+  default: {
+    paint: {
+      backgroundColor: {
+        // ADR-303 (결정 4 a): S2 Menu · ListBox 는 자기 배경이 없고 컨테이너 (`--s2-container-bg`)
+        //   를 따른다 — Popover 안이면 layer-2, Autocomplete · 카드 안이면 그 층.
+        default: "{color.container}",
+      },
+      color: {
+        default: "{color.neutral}",
+      },
+      borderColor: {
+        default: "{color.border}",
+      },
+    },
+  },
+} satisfies ComponentRule["variants"];
+
+/** CheckboxGroup · RadioGroup. */
+const TOGGLE_GROUP_VARIANTS = {
+  default: {
+    // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
+    //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
+    paint: {
+      backgroundColor: {
+        default: "{color.transparent}",
+        isHovered: "{color.transparent}",
+        isPressed: "{color.transparent}",
+      },
+      color: TOGGLE_GROUP_LABEL,
+    },
+  },
+} satisfies ComponentRule["variants"];
+
+/** field 의 라벨 옆 배치 (`labelPosition: side`). */
+const FIELD_LABEL_SIDE_VARIANTS = {
+  "label-position": {
+    side: {
+      styles: {
+        display: "grid",
+        "grid-template-columns": "auto minmax(0, 1fr)",
+        "align-items": "start",
+      },
+    },
+  },
+} satisfies ComponentRule["containerVariants"];
+
+/** Meter · ProgressBar 의 라벨 옆 배치. */
+const PROGRESS_LABEL_SIDE_VARIANTS = {
+  "label-position": {
+    side: {
+      styles: {
+        display: "flex",
+        "flex-direction": "row",
+        "align-items": "center",
+      },
+    },
+  },
+} satisfies ComponentRule["containerVariants"];
+
+/** Slider 굵은 track 의 모서리 (SliderFill · SliderTrackBar). */
+const SLIDER_THICK_TRACK_VARIANTS = {
+  "track-style": {
+    thick: { styles: { "border-radius": "4px" } },
+  },
+} satisfies ComponentRule["containerVariants"];
+
+/** DOM 상자가 없는 감싸개 (`display: contents`, CSS 생성 없음). */
+const WRAPPER_STRUCTURE = {
+  archetype: "container",
+  element: "div",
+  skipCSSGeneration: true,
+  containerStyles: {
+    display: "contents",
+  },
+} satisfies ComponentRule["structure"];
+
+/** Calendar · RangeCalendar. */
+const CALENDAR_STRUCTURE = {
+  archetype: "calendar",
+  element: "div",
+  containerStyles: {
+    display: "flex",
+    flexDirection: "column",
+    width: "fit-content",
+    maxWidth: "100%",
+  },
+  stateStyles: {
+    ...FOCUS_RING_STATE,
+    ...DISABLED_STATE,
+  },
+} satisfies ComponentRule["structure"];
+
+/** Heading · Paragraph. */
+const TEXT_BLOCK_STRUCTURE = {
+  archetype: "text",
+  element: "p",
+  containerStyles: {
+    display: "block",
+    width: "100%",
+  },
+  stateStyles: {
+    ...FOCUS_RING_STATE,
+  },
+} satisfies ComponentRule["structure"];
+
+/** MeterTrack · ProgressBarTrack. */
+const PROGRESS_TRACK_STRUCTURE = {
+  archetype: "progress",
+  element: "div",
+  containerStyles: {
+    display: "grid",
+  },
+  stateStyles: {
+    opacity: { isDisabled: 0.38 },
+    pointerEvents: { isDisabled: "none" },
+  },
+} satisfies ComponentRule["structure"];
+
+/** MeterFill · ProgressBarFill. */
+const PROGRESS_FILL_STRUCTURE = {
+  archetype: "progress",
+  element: "div",
+  containerStyles: {
+    display: "block",
+  },
+} satisfies ComponentRule["structure"];
+
+/** MeterValue · ProgressBarValue. */
+const PROGRESS_VALUE_STRUCTURE = {
+  archetype: "progress",
+  element: "output",
+  containerStyles: {
+    display: "grid",
+  },
+} satisfies ComponentRule["structure"];
+
+/** ListBoxSection · MenuSection · GridListSection. */
+const COLLECTION_SECTION_STRUCTURE = {
+  archetype: "container",
+  element: "section",
+} satisfies ComponentRule["structure"];
+
+/** Calendar · RangeCalendar 의 루트 배치. */
+const CALENDAR_CONTAINER_STYLES = {
+  display: "flex",
+  flexDirection: "column",
+  width: "fit-content",
+  maxWidth: "100%",
+} satisfies ComponentRule["containerStyles"];
+
+/** ActionButtonGroup · ToggleButtonGroup 의 루트 배치. */
+const BUTTON_GROUP_CONTAINER_STYLES = {
+  display: "flex",
+  alignItems: "center",
+  width: "fit-content",
+  height: "fit-content",
+} satisfies ComponentRule["containerStyles"];
+
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ActionBar: ACTION_BAR_RULE,
   SelectBoxGroup: SELECT_BOX_GROUP_RULE,
@@ -1139,21 +1618,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Autocomplete: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   Avatar: {
     defaultVariant: "default",
@@ -1221,21 +1687,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   AvatarGroup: {
     defaultVariant: "default",
     defaultSize: "24",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-        alpha: 0,
-      },
-    },
+    variants: UNPAINTED_ALPHA0_VARIANTS,
     sizes: {
       ...Object.fromEntries(
         AVATAR_GROUP_SIZES.map((size) => [
@@ -2364,23 +2816,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ButtonGroup: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.transparent}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_TRANSPARENT_BORDER_VARIANTS,
     sizes: {
       XS: {
         fontSize: "{typography.text-xs}",
@@ -2428,22 +2864,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // (No background, hovered or pressed either — the references paint none, 사용자 2026-10-13
-        //   「같이 지워」.)
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     // 2026-07-07 전수조사 fix: top-level containerStyles 추가 — Calendar 는 spec 삭제(ADR-912
     //   cutover) + structure.composition 부재(archetype "calendar") 라, layout 이
     //   structure.containerStyles(아래)에만 있으면 resolveContainerStylesFallback("calendar") 이
@@ -2453,12 +2874,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   TabPanel/Tree 선례처럼 top-level containerStyles 로 승격해 경로 A 가 Skia layout 에 공급.
     //   structure.containerStyles(아래)는 dirty baseline(resolveCatalogContainerBase)용 유지 —
     //   동일값이라 baseline drift 0.
-    containerStyles: {
-      display: "flex",
-      flexDirection: "column",
-      width: "fit-content",
-      maxWidth: "100%",
-    },
+    containerStyles: CALENDAR_CONTAINER_STYLES,
     // 사용자 2026-10-13 「RAC, RSC 레퍼런스 모두 border 가 존재하지 않고 padding 도 없다」: RAC
     //   starter `.react-aria-Calendar` · S2 `calendarStyles` 둘 다 border · padding · 배경이 없다 —
     //   picker 안 달력의 여백은 Popover 의 padding (S2 `CalendarPopover` · Popover rule).
@@ -2476,41 +2892,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 26,
       },
     },
-    structure: {
-      archetype: "calendar",
-      element: "div",
-      containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-        width: "fit-content",
-        maxWidth: "100%",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
-      },
-    },
+    structure: CALENDAR_STRUCTURE,
   },
   CalendarGrid: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.transparent}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_TRANSPARENT_BORDER_VARIANTS,
     sizes: {
       M: {
         fontSize: "{typography.text-sm}",
@@ -2952,33 +3339,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Content: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
+    sizes: SLOT_SECTION_SIZES,
     structure: {
       archetype: "simple",
       element: "div",
@@ -2998,33 +3359,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Footer: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
+    sizes: SLOT_SECTION_SIZES,
     structure: {
       archetype: "simple",
       element: "div",
@@ -3045,33 +3380,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   CardPreview: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
+    sizes: SLOT_SECTION_SIZES,
     structure: {
       archetype: "simple",
       element: "div",
@@ -3383,20 +3692,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   CheckboxGroup: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
-        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: TOGGLE_GROUP_LABEL,
-        },
-      },
-    },
+    variants: TOGGLE_GROUP_VARIANTS,
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS root `gap: Npx`
       //   재생성용 (CheckboxGroup.spec.sizes 미러). 자식 .checkbox-items gap 은 composition
@@ -3433,17 +3729,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   test FAIL). catalog fallback 메커니즘 + 본 필드로 복구. CSS 변수(--cb-items-gap)/orientation
     //   nested 는 DOM generated CSS 전용(Skia 무관)이라 이관 제외 — Skia 가 읽는 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -3735,17 +4021,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   TimeField/TextField/NumberField/SearchField/TextArea 동형). field family side SSOT 일원화
     //   (generate-css.ts STRUCTURE_META 도 동시 flex-row 전환). Skia sideMode 트리거 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -3841,23 +4117,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   `background: none; border: none`). 종전 variant 칠 (바탕 base · layer-2 + 테두리) 은
     //   Canvas 만 그려 1px 테두리가 Preview 와 갈렸다 (2026-10-12) → 세 variant 모두 투명.
     //   variant 이름은 남긴다 — S2 · RAC 에 없는 `variant` 의 존폐는 조사 §4.2 F 묶음 결정.
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.transparent}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_TRANSPARENT_BORDER_VARIANTS,
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
@@ -4130,21 +4390,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-        alpha: 0,
-      },
-    },
+    variants: UNPAINTED_ALPHA0_VARIANTS,
     sizes: {
       XS: {
         fontSize: "{typography.text-xs}",
@@ -4288,58 +4534,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): ComboBoxSpec.spec 삭제 대비 — generate-css virtual emit 이
     //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(Select 동형). paddingY 는
     //   미보충 (2026-11-13 — padding · 배치는 상자 Group 의 기본값 `fieldPrefix.ts` `catalogFieldBoxStyle`).
-    sizes: {
-      XS: {
-        paddingX: 4,
-        fontSize: "{typography.text-2xs}",
-        borderRadius: "{radius.xs}",
-        height: 0,
-        gap: centerPadding("XS"),
-      },
-      S: {
-        paddingX: 8,
-        fontSize: "{typography.text-xs}",
-        borderRadius: 7,
-        height: 0,
-        gap: centerPadding("S"),
-      },
-      M: {
-        paddingX: 12,
-        fontSize: "{typography.text-sm}",
-        borderRadius: 8,
-        height: 0,
-        gap: centerPadding("M"),
-      },
-      L: {
-        paddingX: 16,
-        fontSize: "{typography.text-base}",
-        borderRadius: 9,
-        height: 0,
-        gap: centerPadding("L"),
-      },
-      XL: {
-        paddingX: 24,
-        fontSize: "{typography.text-lg}",
-        borderRadius: 10,
-        height: 0,
-        gap: centerPadding("XL"),
-      },
-    },
+    sizes: PICKER_SIZES,
     // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/TimeField 동형
     //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[4]). generated
     //   ComboBox.css:326-329 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -4555,17 +4755,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (flex-direction:row). resolveActiveContainerVariants 가 spec→catalog fallback 으로 읽음.
     //   Skia sideMode 트리거 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -4684,35 +4874,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     // (2026-11-09) S2 DateField draws its box with the same `FieldGroup` as TextField
     //   (`@react-spectrum/s2` src/DateField.tsx · Field.tsx `fieldGroupStyles`) — the Input rule's paint.
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: "{color.base}",
-          color: FIELD_INPUT_CONTENT,
-          borderColor: FIELD_INPUT_BORDER,
-        },
-      },
-      accent: {
-        paint: {
-          backgroundColor: "{color.base}",
-          color: FIELD_INPUT_CONTENT,
-          borderColor: {
-            ...FIELD_INPUT_BORDER,
-            default: "{color.accent-content}",
-          },
-        },
-      },
-      negative: {
-        paint: {
-          backgroundColor: "{color.base}",
-          color: FIELD_INPUT_CONTENT,
-          borderColor: {
-            ...FIELD_INPUT_BORDER,
-            default: "{color.selection-negative}",
-          },
-        },
-      },
-    },
+    variants: FIELD_INPUT_VARIANTS,
     // ADR-253: DateInput 은 날짜 field 의 입력 상자 부품이다 (DateField · TimeField · DatePicker 가 그 원본의
     //   instance 를 쓴다). 크기 단계는 Input rule 과 같다 — 한 form 안의 입력 상자가 같은 높이 · padding ·
     //   모서리를 갖는다. 높이는 내용 (줄 높이 + padding + border) 이다.
@@ -4866,48 +5028,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   + Calendar)라 height 는 자식 합산 auto(md=54) 여야 한다 — CSS preview 동일(.react-aria-DatePicker
     //   height 미지정 → 54). 기존 height(30) 는 입력 box height 인 척하던 잘못된 결합으로, 입력 box height 는
     //   입력 box (field 의 control Group, 옛 SelectTrigger — ADR-256 Phase 6b) 안 부품의 높이로 정해진다. Select/ComboBox/NumberField/SearchField 가 TRACK_HEIGHT_TYPES 로 패널 height 축 제외된 것과 동형.
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-2xs}",
-        borderRadius: "{radius.xs}",
-        gap: centerPadding("XS"),
-      },
-      S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: 7,
-        gap: centerPadding("S"),
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: 8,
-        gap: centerPadding("M"),
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        borderRadius: 9,
-        gap: centerPadding("L"),
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: 10,
-        gap: centerPadding("XL"),
-      },
-    },
+    sizes: DATE_PICKER_SIZES,
     // ADR-912 단계5 step4 (2026-06-17): DatePicker.spec.composition.containerVariants 의
     //   label-position:side Skia 복구 — spec 삭제(daaae6b82) 회귀. TagGroup/Checkbox 동형
     //   (flex-direction:row, Group 보정은 datepicker 분기 별도). Skia sideMode 트리거 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -5102,50 +5228,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES 공유) 의 gap 이관 (DatePicker 동일).
     // height 키 제거 (2026-06-23): DatePicker 동형 — 컨테이너 height 는 자식 합산 auto, 입력 box height 는
     //   control Group 안 부품의 높이. 상세는 DatePicker entry 주석 참조.
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-2xs}",
-        borderRadius: "{radius.xs}",
-        gap: centerPadding("XS"),
-      },
-      S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: 7,
-        gap: centerPadding("S"),
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: 8,
-        gap: centerPadding("M"),
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        borderRadius: 9,
-        gap: centerPadding("L"),
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: 10,
-        gap: centerPadding("XL"),
-      },
-    },
+    sizes: DATE_PICKER_SIZES,
     // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DatePicker 동형
     //   (flex-direction:row). DatePicker entry 는 containerVariants 보유하나 DateRangePicker 누락
     //   (measure gap[9]/gap[10] — 두 컴포넌트 rule 비대칭). generated DateRangePicker.css:370-373
     //   side 블록과 byte-identical. Skia sideMode 트리거 styles 만 — quiet nested(.react-aria-Group)
     //   는 DOM generated CSS 전용 제외.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -5386,39 +5476,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         textWeight: 400,
       },
     },
-    sizes: {
-      // S2 HelpText uses controlFont: the same text size as its input.
-      XS: {
-        fontSize: "{typography.text-2xs}",
-        lineHeight: "{typography.text-2xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
+    sizes: HELP_TEXT_SIZES,
     structure: {
       archetype: "text",
       element: "span",
@@ -5435,33 +5493,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   PreviewTrigger: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   SheetOverlay: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-      },
-    },
+    sizes: SHEET_LAYER_SIZES,
     structure: {
       archetype: "container",
       element: "div",
@@ -5491,14 +5529,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     defaultVariant: "default",
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-      },
-    },
+    sizes: SHEET_LAYER_SIZES,
     structure: {
       archetype: "container",
       element: "div",
@@ -5592,40 +5623,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   SheetTrigger: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   DialogTrigger: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   // ADR-259 Phase 3: S2 ContextualHelp is RAC DialogTrigger — no element (`display: contents`, as
   //   DialogTrigger). Its trigger is S2's quiet icon-only ActionButton (S2 마이그레이션 2026-11-18 —
@@ -5645,14 +5650,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
       },
     },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    structure: WRAPPER_STRUCTURE,
   },
   Dialog: {
     defaultVariant: "default",
@@ -6156,13 +6154,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   DisclosureHeader: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
+    sizes: NO_BOX_SIZES,
     structure: {
       archetype: "container",
       element: "div",
@@ -6177,22 +6169,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Accordion: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
-        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     // 테두리 없음 (starter Accordion.css 정합 · Disclosure 2026-09-18 동형). sizes 에 borderWidth 가
     //   없으면 Skia generic shell 이 기본 thin (1px) 로 variant border 색을 그렸고, 생성 CSS 는
     //   border-style 이 없어 DOM 은 `0px none` — Skia 에만 테두리가 보였다 (2026-09-24 Compare Mode 실측).
@@ -6368,20 +6345,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Field: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     sizes: {
       M: {
         fontSize: "{typography.text-sm}",
@@ -6397,13 +6361,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   FieldLabel: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
+    sizes: NO_BOX_SIZES,
     structure: {
       archetype: "container",
       element: "div",
@@ -6452,39 +6410,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         textWeight: 400,
       },
     },
-    sizes: {
-      // S2 HelpText uses controlFont: the same text size as its input.
-      XS: {
-        fontSize: "{typography.text-2xs}",
-        lineHeight: "{typography.text-2xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
+    sizes: HELP_TEXT_SIZES,
     structure: {
       archetype: "simple",
       element: "span",
@@ -6503,21 +6429,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   FileUpload: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-        alpha: 0,
-      },
-    },
+    variants: UNPAINTED_ALPHA0_VARIANTS,
     sizes: {
       M: {
         fontSize: "{typography.text-sm}",
@@ -6593,13 +6505,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   FileTrigger: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
+    sizes: NO_BOX_SIZES,
     structure: {
       archetype: "container",
       element: "div",
@@ -6611,22 +6517,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Form: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
-        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (Form.spec.sizes 미러). padding 은 composition.layout=flex-column + containerStyles
@@ -6754,20 +6645,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     sizes: {
       M: {
         fontSize: "{typography.text-sm}",
@@ -7001,51 +6879,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ListBoxSection: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "section",
-    },
+    sizes: NO_BOX_SIZES,
+    structure: COLLECTION_SECTION_STRUCTURE,
   },
   // ADR-238 Phase 2 — MenuSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
   //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
   MenuSection: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "section",
-    },
+    sizes: NO_BOX_SIZES,
+    structure: COLLECTION_SECTION_STRUCTURE,
   },
   // ADR-238 Phase 2 — GridListSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
   //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
   GridListSection: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "section",
-    },
+    sizes: NO_BOX_SIZES,
+    structure: COLLECTION_SECTION_STRUCTURE,
   },
   Header: {
     defaultSize: "M",
@@ -7166,61 +7017,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         textWeight: 700,
       },
     },
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-xl}",
-        lineHeight: "{typography.text-xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XXL: {
-        fontSize: "{typography.text-2xl}",
-        lineHeight: "{typography.text-2xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XXXL: {
-        fontSize: "{typography.text-3xl}",
-        lineHeight: "{typography.text-3xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
-    structure: {
-      archetype: "text",
-      element: "p",
-      containerStyles: {
-        display: "block",
-        width: "100%",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-      },
-    },
+    sizes: TEXT_SIZES,
+    structure: TEXT_BLOCK_STRUCTURE,
   },
   Icon: {
     defaultVariant: "default",
@@ -7288,20 +7086,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   IllustratedMessage: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로
     //   진행해, orientation 도 같이 넣어」): S2 `@react-spectrum/s2/src/IllustratedMessage.tsx` — no
     //   padding, no box; the picture · heading · content are child nodes (Illustration · Heading ·
@@ -7436,20 +7221,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Illustration: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     sizes: {
       S: {
         fontSize: "{typography.text-base}",
@@ -7788,35 +7560,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Input: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: "{color.base}",
-          color: FIELD_INPUT_CONTENT,
-          borderColor: FIELD_INPUT_BORDER,
-        },
-      },
-      accent: {
-        paint: {
-          backgroundColor: "{color.base}",
-          color: FIELD_INPUT_CONTENT,
-          borderColor: {
-            ...FIELD_INPUT_BORDER,
-            default: "{color.accent-content}",
-          },
-        },
-      },
-      negative: {
-        paint: {
-          backgroundColor: "{color.base}",
-          color: FIELD_INPUT_CONTENT,
-          borderColor: {
-            ...FIELD_INPUT_BORDER,
-            default: "{color.selection-negative}",
-          },
-        },
-      },
-    },
+    variants: FIELD_INPUT_VARIANTS,
     sizes: {
       // ADR-253 Phase 3: the Input rule is the one definition of a field's input box (the fields'
       //   rules declare none). Its height is its content — line height + paddingY×2 + border×2 —
@@ -8369,23 +8113,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ListBox: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            // ADR-303 (결정 4 a): S2 Menu · ListBox 는 자기 배경이 없고 컨테이너 (`--s2-container-bg`)
-            //   를 따른다 — Popover 안이면 layer-2, Autocomplete · 카드 안이면 그 층.
-            default: "{color.container}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
-          },
-        },
-      },
-    },
+    variants: MENU_SURFACE_VARIANTS,
     // ADR-912 단계5 step4 (2026-06-17): ListBox.spec.containerStyles 의 layout primitive 8필드 이관
     //   (Menu/TagGroup 선례). spec 삭제 후 builder resolveContainerStylesFallback 의 catalog 합성이
     //   본 필드를 읽어 Skia/Taffy layout(column-flex/gap/padding/maxHeight)을 보강 — 누락 시
@@ -8978,23 +8706,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   Button node (its look the Button's): the top level is the list panel, the same values as
     //   `structure` (ListBox 동형). 종전 (ADR-151 B7 · 2026-10-06) top level 은 trigger 버튼
     //   (variant 색 · Button padding) 이었다 — Menu 노드가 trigger 와 목록을 같이 맡던 때.
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            // ADR-303 (결정 4 a): S2 Menu · ListBox 는 자기 배경이 없고 컨테이너 (`--s2-container-bg`)
-            //   를 따른다 — Popover 안이면 layer-2, Autocomplete · 카드 안이면 그 층.
-            default: "{color.container}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
-          },
-        },
-      },
-    },
+    variants: MENU_SURFACE_VARIANTS,
     containerStyles: {
       display: "flex",
       flexDirection: "column",
@@ -9344,17 +9056,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     // ADR-913 동형: label-position:side (Skia resolveActiveContainerVariants 소비 — 부모 flex-row).
     //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 order 는 implicitStyles.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "flex",
-            "flex-direction": "row",
-            "align-items": "center",
-          },
-        },
-      },
-    },
+    containerVariants: PROGRESS_LABEL_SIDE_VARIANTS,
     variants: {
       informative: {
         paint: {
@@ -9860,13 +9562,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: { borderRadius: "{radius.lg}" },
       XL: { borderRadius: "{radius.lg}" },
     },
-    structure: {
-      archetype: "progress",
-      element: "div",
-      containerStyles: {
-        display: "block",
-      },
-    },
+    structure: PROGRESS_FILL_STRUCTURE,
   },
   MeterTrack: {
     defaultVariant: "informative",
@@ -10042,39 +9738,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
-    sizes: {
-      S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
-        height: scaled(4),
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.sm}",
-        height: scaled(6),
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
-        height: scaled(8),
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.lg}",
-        height: scaled(10),
-      },
-    },
-    structure: {
-      archetype: "progress",
-      element: "div",
-      containerStyles: {
-        display: "grid",
-      },
-      stateStyles: {
-        opacity: { isDisabled: 0.38 },
-        pointerEvents: { isDisabled: "none" },
-      },
-    },
+    sizes: PROGRESS_TRACK_SIZES,
+    structure: PROGRESS_TRACK_STRUCTURE,
   },
   MeterValue: {
     // S2 `valueStyles` = `fieldLabel()` — `neutral-subdued` (Meter.tsx · ProgressBar.tsx), the
@@ -10229,39 +9894,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    sizes: {
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 16,
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 18,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 20,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 22,
-      },
-    },
-    structure: {
-      archetype: "progress",
-      element: "output",
-      containerStyles: {
-        display: "grid",
-      },
-    },
+    sizes: VALUE_LABEL_SIZES,
+    structure: PROGRESS_VALUE_STRUCTURE,
   },
   Modal: {
     defaultVariant: "default",
@@ -10483,17 +10117,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   CSS = Skia(getSideLabelParentStyle) 대칭 + Label fit-content 옆 정렬. Skia 는 styles 만 사용
     //   (nested DOM selector 는 generated CSS 전용 제외).
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -10625,22 +10249,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Pagination: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
-        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     // 2026-11-14 (사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」): S2 · RAC 에 Pagination 이 없다 — 가장 가까운
     //   조립은 버튼 묶음 `ActionButtonGroup.tsx:64-89` (간격 XS · S 4, M ~ XL 8, 상자 칠 · 상태 칠 없음).
     //   묶음의 size 는 안의 버튼 것 (`CATALOG_SIZE_PROPAGATION.Pagination`).
@@ -10696,61 +10305,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         textWeight: 400,
       },
     },
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-xl}",
-        lineHeight: "{typography.text-xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XXL: {
-        fontSize: "{typography.text-2xl}",
-        lineHeight: "{typography.text-2xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XXXL: {
-        fontSize: "{typography.text-3xl}",
-        lineHeight: "{typography.text-3xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
-    structure: {
-      archetype: "text",
-      element: "p",
-      containerStyles: {
-        display: "block",
-        width: "100%",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-      },
-    },
+    sizes: TEXT_SIZES,
+    structure: TEXT_BLOCK_STRUCTURE,
   },
   Popover: {
     defaultVariant: "surface",
@@ -10907,17 +10463,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     // ADR-913 동형: label-position:side (Skia resolveActiveContainerVariants 소비 — 부모 flex-row).
     //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 order 는 implicitStyles.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "flex",
-            "flex-direction": "row",
-            "align-items": "center",
-          },
-        },
-      },
-    },
+    containerVariants: PROGRESS_LABEL_SIDE_VARIANTS,
     variants: {
       default: {
         paint: {
@@ -11210,39 +10756,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
-    sizes: {
-      S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
-        height: scaled(4),
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.sm}",
-        height: scaled(6),
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
-        height: scaled(8),
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.lg}",
-        height: scaled(10),
-      },
-    },
-    structure: {
-      archetype: "progress",
-      element: "div",
-      containerStyles: {
-        display: "grid",
-      },
-      stateStyles: {
-        opacity: { isDisabled: 0.38 },
-        pointerEvents: { isDisabled: "none" },
-      },
-    },
+    sizes: PROGRESS_TRACK_SIZES,
+    structure: PROGRESS_TRACK_STRUCTURE,
   },
   // ADR-256 Phase 7a: the filled part of a ProgressBar's track (reference `div.fill`). It takes its
   //   owner's variant (`catalogDerivedProps`); its color is the owner's DOM `--fill-color` (ProgressBar
@@ -11299,13 +10814,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: { borderRadius: "{radius.md}" },
       XL: { borderRadius: "{radius.lg}" },
     },
-    structure: {
-      archetype: "progress",
-      element: "div",
-      containerStyles: {
-        display: "block",
-      },
-    },
+    structure: PROGRESS_FILL_STRUCTURE,
   },
   ProgressBarValue: {
     // S2 `valueStyles` = `fieldLabel()` — `neutral-subdued` (Meter.tsx · ProgressBar.tsx), the
@@ -11350,39 +10859,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    sizes: {
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 16,
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 18,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 20,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 22,
-      },
-    },
-    structure: {
-      archetype: "progress",
-      element: "output",
-      containerStyles: {
-        display: "grid",
-      },
-    },
+    sizes: VALUE_LABEL_SIZES,
+    structure: PROGRESS_VALUE_STRUCTURE,
   },
   ProgressCircle: {
     defaultVariant: "default",
@@ -11576,20 +11054,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   RadioGroup: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
-        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: TOGGLE_GROUP_LABEL,
-        },
-      },
-    },
+    variants: TOGGLE_GROUP_VARIANTS,
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS root `gap: Npx`
       //   재생성용 (RadioGroup.spec.sizes 미러). 자식 .radio-items gap 은 composition
@@ -11623,17 +11088,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   label-position:side Skia 복구 — CheckboxGroup 동형(spec 삭제 91c2be0dd 로 side variant 회귀).
     //   catalog fallback 메커니즘 + 본 필드. CSS 변수/orientation nested 는 DOM generated CSS 전용.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -11785,32 +11240,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // (No background, hovered or pressed either — the references paint none, 사용자 2026-10-13
-        //   「같이 지워」.)
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     // 2026-07-07 전수조사 fix: top-level containerStyles 추가 — Calendar 동형(spec 삭제 +
     //   structure.composition 부재). structure.containerStyles(width:fit-content)가 layout
     //   fallback 경로 A·B 둘 다 미도달 → 부모 flex-column stretch 발산. top-level 승격으로 경로 A
     //   도달. 상세는 Calendar rule 주석 참조.
-    containerStyles: {
-      display: "flex",
-      flexDirection: "column",
-      width: "fit-content",
-      maxWidth: "100%",
-    },
+    containerStyles: CALENDAR_CONTAINER_STYLES,
     // 사용자 2026-10-13 「RAC, RSC 레퍼런스 모두 border 가 존재하지 않고 padding 도 없다」: RAC
     //   starter `.react-aria-Calendar` · S2 `calendarStyles` 둘 다 border · padding · 배경이 없다 —
     //   picker 안 달력의 여백은 Popover 의 padding (S2 `CalendarPopover` · Popover rule).
@@ -11829,20 +11264,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 26,
       },
     },
-    structure: {
-      archetype: "calendar",
-      element: "div",
-      containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-        width: "fit-content",
-        maxWidth: "100%",
-      },
-      stateStyles: {
-        ...FOCUS_RING_STATE,
-        ...DISABLED_STATE,
-      },
-    },
+    structure: CALENDAR_STRUCTURE,
   },
   SearchField: {
     defaultSize: "M",
@@ -11883,17 +11305,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   `Label + FieldGroup(SearchIcon + Input + ClearButton) + HelpText` — the field's column (side: S2
     //   `field()` grid `auto 1fr`), as NumberField. Was the RAC reference's flat grid (ADR-256 G5 example 5:
     //   the glyph over the Input's start, the clear button over its end by margins).
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -12102,43 +11514,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   → emit, composition.containerStyles.gap 미정의라 skipGap=false). paddingY 는 미보충(컨테이너
     //   box 가 ownsContainerBox=true → skipPadding, padding 은 composition.delegation --select-btn-padding
     //   가 담당, base block 미emit). Input 과 달리 padding 은 delegation 위임이라 paddingY 불요.
-    sizes: {
-      XS: {
-        paddingX: 4,
-        fontSize: "{typography.text-2xs}",
-        borderRadius: "{radius.xs}",
-        height: 0,
-        gap: centerPadding("XS"),
-      },
-      S: {
-        paddingX: 8,
-        fontSize: "{typography.text-xs}",
-        borderRadius: 7,
-        height: 0,
-        gap: centerPadding("S"),
-      },
-      M: {
-        paddingX: 12,
-        fontSize: "{typography.text-sm}",
-        borderRadius: 8,
-        height: 0,
-        gap: centerPadding("M"),
-      },
-      L: {
-        paddingX: 16,
-        fontSize: "{typography.text-base}",
-        borderRadius: 9,
-        height: 0,
-        gap: centerPadding("L"),
-      },
-      XL: {
-        paddingX: 24,
-        fontSize: "{typography.text-lg}",
-        borderRadius: 10,
-        height: 0,
-        gap: centerPadding("XL"),
-      },
-    },
+    sizes: PICKER_SIZES,
     structure: {
       archetype: "default",
       element: "div",
@@ -12498,21 +11874,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "M",
     variants: { default: { paint: {} } },
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   // S2 체크리스트 부록 D.2 (2026-11-24) — S2 `ImageCoordinator` has no element: a context around its Images
   //   (`<group.Provider>{children}</…>`). The Canvas lays it out as `display: contents`, as Skeleton; no
@@ -12521,42 +11884,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "M",
     variants: { default: { paint: {} } },
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   // ADR-314 Phase 4 — S2 SkeletonCollection: no element (its Card template is the CardView's item).
   SkeletonCollection: {
     defaultVariant: "default",
     defaultSize: "M",
     variants: { default: { paint: {} } },
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   // ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 삭제 대비 시각/layout 값 SSOT 보강.
   //   containerStyles(grid) → resolveContainerStylesFallback 경유 Skia/Taffy grid 배치 fallback
@@ -12731,11 +12068,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   SliderFill: {
     defaultVariant: "default",
     defaultSize: "M",
-    containerVariants: {
-      "track-style": {
-        thick: { styles: { "border-radius": "4px" } },
-      },
-    },
+    containerVariants: SLIDER_THICK_TRACK_VARIANTS,
     variants: {
       default: {
         paint: {
@@ -12804,32 +12137,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    sizes: {
-      S: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 16,
-      },
-      M: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 18,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 20,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 22,
-      },
-    },
+    sizes: VALUE_LABEL_SIZES,
     structure: {
       archetype: "simple",
       element: "output",
@@ -12965,11 +12273,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   SliderTrackBar: {
     defaultVariant: "default",
     defaultSize: "M",
-    containerVariants: {
-      "track-style": {
-        thick: { styles: { "border-radius": "4px" } },
-      },
-    },
+    containerVariants: SLIDER_THICK_TRACK_VARIANTS,
     variants: {
       default: {
         paint: {
@@ -13840,20 +13144,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   TabPanels: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     // padding 0 (2026-09-18): Preview 는 이 래퍼 상자를 그리지 않는다 (`renderTabs` 가 RAC Tabs 안에 TabPanel
     //   직계 — `.react-aria-TabPanels` 는 어느 DOM 에도 없다). 종전 12 는 Skia 만 읽어 TabPanel 이 (12,12) 에
     //   놓이고 Tabs 가 DOM 보다 24 컸다. 패널 padding 은 TabPanel 자기 sizes 가 정본.
@@ -13923,21 +13214,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   TableBody: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-        alpha: 0,
-      },
-    },
+    variants: UNPAINTED_ALPHA0_VARIANTS,
     sizes: {
       M: {},
     },
@@ -13950,21 +13227,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   TableFooter: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-        alpha: 0,
-      },
-    },
+    variants: UNPAINTED_ALPHA0_VARIANTS,
     sizes: {
       M: {},
     },
@@ -15167,50 +14430,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         textWeight: 400,
       },
     },
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-xl}",
-        lineHeight: "{typography.text-xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XXL: {
-        fontSize: "{typography.text-2xl}",
-        lineHeight: "{typography.text-2xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XXXL: {
-        fontSize: "{typography.text-3xl}",
-        lineHeight: "{typography.text-3xl--line-height}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
+    sizes: TEXT_SIZES,
     structure: {
       archetype: "text",
       element: "span",
@@ -15278,17 +14498,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   TimeField/TextField/NumberField/SearchField/ColorField 동형). field family side SSOT
     //   일원화 (generate-css.ts STRUCTURE_META 도 동시 flex-row). Skia sideMode 트리거 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "input-base",
       element: "div",
@@ -15375,17 +14585,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // (라벨 · 설명 글자색 = TextArea · TextField 의 상태 트리 — S2 `fieldLabel()` neutral-subdued, disabled.)
     variants: { default: { paint: { color: TOGGLE_GROUP_LABEL } } },
     // (the side grid's mirror — the Style panel's preset reads it; the canonical block is below)
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     sizes: {
       S: {
         height: 0,
@@ -15717,17 +14917,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (domRegistry DELEGATING_RAC_RENDERERS 등록). flex-row 통일로 emit 복원 후 generated
     //   CSS = Skia(getSideLabelParentStyle) 대칭. Skia sideMode 트리거 styles 만(nested DOM 제외).
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -15899,17 +15089,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[7], breakdown §5 lock-in).
     //   generated TimeField.css:237-240 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
-    containerVariants: {
-      "label-position": {
-        side: {
-          styles: {
-            display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
-          },
-        },
-      },
-    },
+    containerVariants: FIELD_LABEL_SIDE_VARIANTS,
     structure: {
       archetype: "default",
       element: "div",
@@ -16255,12 +15435,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ActionButtonGroup: {
     defaultVariant: "default",
     defaultSize: "M",
-    containerStyles: {
-      display: "flex",
-      alignItems: "center",
-      width: "fit-content",
-      height: "fit-content",
-    },
+    containerStyles: BUTTON_GROUP_CONTAINER_STYLES,
     variants: {
       default: {
         paint: {
@@ -16323,12 +15498,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   spec 삭제 후 Skia 가 display 미주입 → 자식 세로 배치 회귀(starter ToggleButtonGroup.css line 4
     //   `display:flex` 정본 미반영). flexDirection 은 orientation(row/column)이 따로 정한다
     //   (당시 implicitStyles 분기 — 2026-10-05 삭제) → base 는 display/alignItems 만(STRUCTURE_META 와 동일).
-    containerStyles: {
-      display: "flex",
-      alignItems: "center",
-      width: "fit-content",
-      height: "fit-content",
-    },
+    containerStyles: BUTTON_GROUP_CONTAINER_STYLES,
     variants: {
       default: {
         paint: {
@@ -16482,22 +15652,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Toolbar: {
     defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        // ADR-297 Phase 3 닫힘 — 묶음 컨테이너는 상자를 칠하지 않는다 (S2 그대로). 생성 CSS 는 composition 이
-        //   상자를 가진 rule 의 variant 칠을 내지 않아 DOM 은 투명이었고, Canvas 만 트리의 바탕 · 테두리를 그렸다.
-        paint: {
-          backgroundColor: {
-            default: "{color.transparent}",
-            isHovered: "{color.transparent}",
-            isPressed: "{color.transparent}",
-          },
-          color: {
-            default: "{color.neutral}",
-          },
-        },
-      },
-    },
+    variants: UNPAINTED_VARIANTS,
     // 2026-11-14 (사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」): S2 `Toolbar.tsx` 는 스타일 없는 RAC 래퍼이고
     //   스타일을 얹은 것이 `ActionButtonGroup.tsx:64-89` 다 — 간격만 (XS · S 4, M ~ XL 8), 상자 padding ·
     //   모서리 · 상태 칠 없음. 묶음의 size 는 안의 버튼 것 (`CATALOG_SIZE_PROPAGATION.Toolbar`).
@@ -16646,40 +15801,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   MenuTrigger: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   TooltipTrigger: {
     defaultSize: "M",
     variants: {},
-    sizes: {
-      M: {
-        height: 0,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-      },
-    },
-    structure: {
-      archetype: "container",
-      element: "div",
-      skipCSSGeneration: true,
-      containerStyles: {
-        display: "contents",
-      },
-    },
+    sizes: NO_BOX_SIZES,
+    structure: WRAPPER_STRUCTURE,
   },
   Tree: {
     // ADR-297 Phase 3g — the tree's and its items' states (옛 수동 `Tree.css` — 생성 sheet 가 없는 rule 이라

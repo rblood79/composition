@@ -188,6 +188,8 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      번호는 Phase 4 의 entry 형 변경과 함께 올린다 — ADR-315 R5 「세 번으로 모은다」.)
  * 75 — ADR-315 Phase 4: 노드의 `columnsOf` (열 선택 메뉴가 열을 나열하는 Table — Pagination 의
  *      `pagesOf` 와 같은 연결). 옛 74 문서도 모양은 그대로지만 번호를 올린 계약이라 열리지 않는다.
+ * 76 — ADR-315 Phase 5: 보기의 집계 이름 6 종 · `TableFooter` 타입 · Table 원본의 Totals slot
+ *      (합계 행). 옛 75 문서는 열리지 않는다.
  * 77 — S2 체크리스트 §9.3 AlertDialog (사용자 결정 2026-11-23 「노드 + 2 필드」): composite 정의의
  *      `bindingMaps` (다른 origin prop 이 고르는 template `{key}` 값) · template 노드와 그 사본 노드의
  *      `presentWith` (그 origin prop 이 비면 자리가 없다).
