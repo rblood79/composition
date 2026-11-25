@@ -28,6 +28,7 @@ import {
 import { resolveSelectionBehavior } from "../../components/selectionStyle";
 
 import { RESIZABLE_TABLE_STYLE } from "./domRegistry.runtime";
+import { CATALOG_GLYPH_1EM, catalogLucideGlyph } from "./lucideGlyph";
 import {
   CatalogEditableCellContent,
   type CatalogEditableCellProps,
@@ -316,21 +317,7 @@ export function CatalogTableCell({
               ? createElement(
                   RacButton,
                   { slot: "chevron", className: "table-tree-chevron" },
-                  createElement(
-                    "svg",
-                    {
-                      viewBox: "0 0 24 24",
-                      width: "1em",
-                      height: "1em",
-                      fill: "none",
-                      stroke: "currentColor",
-                      strokeWidth: 2,
-                      strokeLinecap: "round",
-                      strokeLinejoin: "round",
-                      "aria-hidden": true,
-                    },
-                    createElement("path", { d: "m9 18 6-6-6-6" }),
-                  ),
+                  catalogLucideGlyph("chevron-right", CATALOG_GLYPH_1EM),
                 )
               : createElement("span", {
                   className: "table-tree-chevron",

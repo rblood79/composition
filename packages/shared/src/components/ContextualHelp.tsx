@@ -9,7 +9,6 @@ import {
 } from "react";
 import { DialogTrigger as RACDialogTrigger } from "react-aria-components/Dialog";
 import { HeadingContext } from "react-aria-components/Heading";
-import { useLocale } from "react-aria-components/I18nProvider";
 import { LabelContext } from "react-aria-components/Label";
 import { PopoverContext } from "react-aria-components/Popover";
 import {
@@ -17,6 +16,7 @@ import {
   Provider,
   useSlottedContext,
 } from "react-aria-components/slots";
+import { useCatalogLocalized } from "../catalog/runtime/localizedStrings";
 import type { ComponentSize } from "../types";
 import { ActionButton } from "./ActionButton";
 
@@ -90,9 +90,7 @@ export function ContextualHelp({
     setPreviousOpen(isOpen);
     if (isOpen !== undefined) setOpen(isOpen);
   }
-  const { locale } = useLocale();
-  const strings =
-    HELP_STRINGS[locale.split("-")[0] ?? "en"] ?? HELP_STRINGS.en!;
+  const strings = useCatalogLocalized(HELP_STRINGS);
   const id = useId();
   const titleId = useId();
   const inLabel = useContext(FieldLabelScope);

@@ -1,7 +1,7 @@
 import { getIconData } from "@composition/rendering";
 import type { CSSProperties } from "react";
-import { useLocale } from "react-aria-components/I18nProvider";
 import { CATALOG_INLINE_ALERT_ICON_LABELS } from "../catalog/document/inlineAlertIcon";
+import { useCatalogLocalized } from "../catalog/runtime/localizedStrings";
 
 export interface InlineAlertIconProps {
   variant: string;
@@ -27,10 +27,7 @@ export function InlineAlertIcon({
   top,
   end,
 }: InlineAlertIconProps) {
-  const { locale } = useLocale();
-  const labels =
-    CATALOG_INLINE_ALERT_ICON_LABELS[locale.split("-")[0] ?? "en"] ??
-    CATALOG_INLINE_ALERT_ICON_LABELS.en!;
+  const labels = useCatalogLocalized(CATALOG_INLINE_ALERT_ICON_LABELS);
   const data = getIconData(iconName);
   const style: CSSProperties = {
     position: "absolute",

@@ -1,5 +1,4 @@
 import { CATALOG_SORT_MARK } from "./presence";
-import { getIconData } from "@composition/rendering";
 
 import {
   createElement,
@@ -30,6 +29,7 @@ import type {
   CatalogColumnMenuItemId,
 } from "./tableColumnMenu";
 import { catalogLocalized } from "./localizedStrings";
+import { CATALOG_GLYPH_1EM, catalogLucideGlyph } from "./lucideGlyph";
 
 /**
  * Inside a Column of a resizable Table: writes RAC's column widths (in collection order — the
@@ -112,25 +112,15 @@ export function CatalogSortIndicator(): ReactNode {
   const sort = useContext(CatalogColumnSortContext);
   const direction = sort?.direction;
   if (direction !== "ascending" && direction !== "descending") return null;
-  const glyph = getIconData(
-    direction === "ascending" ? "arrow-up" : "arrow-down",
-  );
   const order = sort?.order;
-  const arrow = createElement(
-    "svg",
+  const arrow = catalogLucideGlyph(
+    direction === "ascending" ? "arrow-up" : "arrow-down",
     {
       key: "arrow",
-      "aria-hidden": true,
       className: "sort-indicator",
       "data-sort-direction": direction,
       width: CATALOG_SORT_MARK.arrow,
       height: CATALOG_SORT_MARK.arrow,
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: 2,
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
       style: {
         display: "inline-block",
         verticalAlign: "middle",
@@ -142,9 +132,6 @@ export function CatalogSortIndicator(): ReactNode {
             : CATALOG_SORT_MARK.orderGap,
       },
     },
-    ...(glyph?.paths ?? []).map((d: string, i: number) =>
-      createElement("path", { key: i, d }),
-    ),
   );
   if (order === undefined) return arrow;
   // ADR-315 Phase 2 — a sort of several columns: this Column's place in it, after its arrow. RAC
@@ -501,31 +488,6 @@ const ROW_PIN_STRINGS: Readonly<
     none: "取消固定",
   },
 };
-/** A lucide glyph as the reference's `1em` icon (the row menu's · its pinned mark). */
-function rowPinGlyph(name: string): ReactElement {
-  const glyph = getIconData(name);
-  return createElement(
-    "svg",
-    {
-      "aria-hidden": true,
-      width: "1em",
-      height: "1em",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: 2,
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-    },
-    ...(glyph?.paths ?? []).map((d: string, i: number) =>
-      createElement("path", { key: `p${i}`, d }),
-    ),
-    ...(glyph?.circles ?? []).map(
-      (circle: { cx: number; cy: number; r: number }, i: number) =>
-        createElement("circle", { key: `c${i}`, ...circle }),
-    ),
-  );
-}
 /**
  * ADR-315 Phase 5 증분 5f — a pinnable row's menu, at its last cell's end (a RAC `MenuTrigger`: the
  * Button · its Menu — 「Pin to top」 · 「Pin to bottom」 · 「Unpin」, the side the row is at left
@@ -548,7 +510,10 @@ export function CatalogRowPinMenu({ pin }: { pin: CatalogRowPin }): ReactNode {
         "aria-label": strings.menu,
         ...({ "data-pinned-side": pin.side } as object),
       },
-      rowPinGlyph(pin.side === "none" ? "ellipsis" : "pin"),
+      catalogLucideGlyph(
+        pin.side === "none" ? "ellipsis" : "pin",
+        CATALOG_GLYPH_1EM,
+      ),
     ),
     createElement(
       Popover,

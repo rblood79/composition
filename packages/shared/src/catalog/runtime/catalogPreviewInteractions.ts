@@ -1510,14 +1510,10 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   /** ADR-315 증분 4d — the props of a record that are the Table state's (none = not a Table · Column). */
   private tableColumnPropsOf(id: string): readonly string[] {
     if (!this.options.tableColumnState) return [];
-    const type = this.options.root()?.domInputs.get(id)?.ruleId;
-    return type === "Table"
-      ? TABLE_COLUMN_STATE_PROPS.Table
-      : type === "Column"
-        ? TABLE_COLUMN_STATE_PROPS.Column
-        : type === "Row"
-          ? TABLE_COLUMN_STATE_PROPS.Row
-          : [];
+    const type = this.options.root()?.domInputs.get(id)?.ruleId ?? "";
+    return Object.hasOwn(TABLE_COLUMN_STATE_PROPS, type)
+      ? TABLE_COLUMN_STATE_PROPS[type as keyof typeof TABLE_COLUMN_STATE_PROPS]
+      : [];
   }
   /**
    * 2026-11-19 — a pick in a connected Pagination's 「Rows per page」 Select: its list's page size (the

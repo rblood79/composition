@@ -138,6 +138,31 @@ export function catalogDerivedRestVisual(
       .map((key) => [key, derived[key]]),
   );
 }
+/**
+ * Owner-derived props whose rule `containerVariants` block a node takes as its own rest value — no
+ * generated sheet draws it for the node (Column · Cell · Row · CardPreview): the DOM writes it
+ * inline (`domBinding.runtime.ts`), and the ones marked `true` are in the engine input too
+ * (`compositionRoot.ts` — a merged row's line widths · a footer cell's bold). (`pinnedEdge` ·
+ * `cardRadius` are not in the engine input.)
+ */
+const OWN_DERIVED_VARIANTS: Readonly<Record<string, boolean>> = {
+  pinnedEdge: false,
+  cellLines: true,
+  mergeLine: true,
+  inFooter: true,
+  cardRadius: false,
+};
+/** Whether `node` takes an own derived variant's rest value (`OWN_DERIVED_VARIANTS`) — for its DOM · its layout. */
+export function catalogTakesDerivedVariant(
+  node: CatalogConsumerNode,
+  use: "dom" | "layout",
+): boolean {
+  const derived = node.derivedProps;
+  if (!derived) return false;
+  for (const [key, layout] of Object.entries(OWN_DERIVED_VARIANTS))
+    if (derived[key] && (use === "dom" || layout)) return true;
+  return false;
+}
 const PINNED_EDGE_WIDTH_KEYS: ReadonlySet<string> = new Set([
   "borderRightWidth",
   "borderLeftWidth",

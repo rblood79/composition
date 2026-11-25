@@ -1,3 +1,5 @@
+import { catalogLengthPx } from "./lengthPx";
+
 /**
  * Waterfall (masonry) — RAC `WaterfallLayout` (react-aria.adobe.com/examples/photos) · S2 CardView
  * `layout="waterfall"`. The columns are the container's grid tracks; the row axis has none: each
@@ -45,12 +47,6 @@ export function catalogWaterfallLanes(
   });
 }
 
-/** A computed CSS length in px (0 when it is not a number). */
-export const catalogPx = (value: string): number => {
-  const n = parseFloat(value);
-  return Number.isFinite(n) ? n : 0;
-};
-
 /** `grid`'s laid-out item elements: shown, in flow. */
 export function catalogWaterfallItems(
   grid: HTMLElement,
@@ -93,9 +89,9 @@ export function catalogWaterfallExtents(
   return items.map((el) => {
     const ecs = view.getComputedStyle(el);
     return [
-      catalogPx(ecs.marginTop),
+      catalogLengthPx(ecs.marginTop),
       el.getBoundingClientRect().height / scale,
-      catalogPx(ecs.marginBottom),
+      catalogLengthPx(ecs.marginBottom),
     ];
   });
 }
@@ -107,7 +103,7 @@ export function catalogWaterfallPlace(grid: HTMLElement): void {
   const items = catalogWaterfallItems(grid, view);
   const cs = view.getComputedStyle(grid);
   const columns = Math.max(1, catalogGridTrackCount(cs));
-  const rowGap = catalogPx(cs.rowGap);
+  const rowGap = catalogLengthPx(cs.rowGap);
   const scale = catalogElementScale(grid);
   const place = (lanes: readonly number[]) =>
     items.forEach((el, i) => {

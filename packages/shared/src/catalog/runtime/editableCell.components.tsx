@@ -13,6 +13,7 @@ import { FormContext } from "react-aria-components/Form";
 import { useLocale } from "react-aria-components/I18nProvider";
 import { Popover } from "react-aria-components/Popover";
 import { catalogLocalized } from "./localizedStrings";
+import { CATALOG_GLYPH_1EM, catalogLucideGlyph } from "./lucideGlyph";
 
 /**
  * S2 체크리스트 §9.3 (6-6) — S2 `EditableCell` (`TableView.tsx` `EditableCellInner`): a Cell holding
@@ -130,7 +131,7 @@ export function CatalogEditableCellContent({
                   "aria-label": labels.cancel,
                   onPress: () => setOpen(false),
                 },
-                glyph("M18 6 6 18M6 6l12 12"),
+                catalogLucideGlyph("x", CATALOG_GLYPH_1EM),
               ),
               createElement(
                 Button,
@@ -139,30 +140,11 @@ export function CatalogEditableCellContent({
                   "aria-label": labels.save,
                   onPress: () => formRef.current?.requestSubmit(),
                 },
-                glyph("M20 6 9 17l-5-5"),
+                catalogLucideGlyph("check", CATALOG_GLYPH_1EM),
               ),
             ),
           ),
         )
       : null,
-  );
-}
-
-/** S2's `Close` · `Checkmark` glyphs (the lucide `x` · `check` paths — the Icon set here). */
-function glyph(d: string): ReactElement {
-  return createElement(
-    "svg",
-    {
-      viewBox: "0 0 24 24",
-      width: "1em",
-      height: "1em",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: 2,
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      "aria-hidden": true,
-    },
-    createElement("path", { d }),
   );
 }

@@ -7,6 +7,7 @@ import { catalogSelectionCountFits } from "../document/selectionCountValue";
 import { catalogBoxModel } from "./boxModel";
 import { catalogGroupSelection, type CatalogGroupKeys } from "./groupSelection";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { catalogLengthPx } from "./lengthPx";
 
 /**
  * S2 `renderActionBar` (CardView · TableView · TreeView — S2 체크리스트 부록 D.3 2단계, 2026-11-23):
@@ -162,9 +163,9 @@ export function catalogActionBarPlacement(border = 0): {
 }
 
 /** The collection's border width the Canvas placement steps back over (`catalogActionBarPlacement`). */
-export function catalogActionBarBorder(collection: CatalogConsumerNode): number {
+export function catalogActionBarBorder(
+  collection: CatalogConsumerNode,
+): number {
   const width = catalogBoxModel(collection).borderWidth;
-  const value =
-    typeof width === "number" ? width : Number.parseFloat(String(width ?? 0));
-  return Number.isFinite(value) && value > 0 ? value : 0;
+  return Math.max(catalogLengthPx(width), 0);
 }

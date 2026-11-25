@@ -10,6 +10,7 @@ import { resolveToken, type TokenRef } from "@composition/rendering";
 import { catalogTokenSegments } from "../document/tokenFieldValue";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { evaluateConditionTree } from "../rule/conditionTree";
+import { catalogLengthPx } from "./lengthPx";
 
 type TokenSize = keyof typeof COMPONENT_RULES_TABLE.Token.sizes;
 
@@ -36,9 +37,11 @@ function sizeOf(size: unknown) {
 }
 
 const px = (value: unknown): number =>
-  typeof value === "number"
-    ? value
-    : Number.parseFloat(String(resolveToken(value as TokenRef, "light"))) || 0;
+  catalogLengthPx(
+    typeof value === "number"
+      ? value
+      : resolveToken(value as TokenRef, "light"),
+  );
 
 /** A token's inline start · end beyond its glyphs (CSS inline padding + border, each side), px. */
 export function catalogTokenInset(size: unknown): number {

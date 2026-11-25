@@ -148,6 +148,7 @@ import {
 import {
   catalogAuthoredVisual,
   catalogDerivedRestVisual,
+  catalogTakesDerivedVariant,
   catalogHasAuthoredColor,
   catalogHasAuthoredVisual,
   catalogHasExplicitTemplateSizing,
@@ -189,7 +190,7 @@ import {
 import {
   catalogBreadcrumbSeparatorIcon,
   catalogColorWheelDiameter,
-  catalogCurrentTextWeight,
+  catalogBreadcrumbCurrentWeight,
   catalogCalendarGridSize,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
 import {
@@ -930,6 +931,8 @@ interface ConsumePlan {
   >;
 }
 type Notice = { readonly id: string; readonly record?: CatalogConsumerNode };
+/** What a refresh outside a step does with the rows read (`CatalogCompositionRoot.rowRefresh`). */
+type CatalogRowRefresh = "rows" | "window" | "reorder" | "columns";
 type PageFrameRect = {
   readonly x: number;
   readonly y: number;
@@ -1363,7 +1366,7 @@ function textLeaf(
     font: {
       fontSize,
       fontWeight: current
-        ? (catalogCurrentTextWeight("Breadcrumb") ?? 600)
+        ? catalogBreadcrumbCurrentWeight()
         : standaloneWeight && visualWeight === 400
           ? standaloneWeight
           : visualWeight,
@@ -2361,10 +2364,13 @@ export class CatalogCompositionRoot {
       >
     | undefined;
   private rowsKeptIds: Set<string> | undefined;
-  /** The rows being kept are read again (`reorderRows` — another order · other rows, the same data). */
-  private rowsReordered = false;
-  /** The rows are the ones read last (`reprojectColumns` — the columns changed, no row did). */
-  private rowsReused = false;
+  /**
+   * What a refresh outside a step (`refreshSources`) does with the rows: `rows` reads them again ·
+   * `window` (`moveRowWindow`) keeps the records of the rows that stay and reads nothing again ·
+   * `reorder` (`reorderRows` — another order · other rows, the same data) keeps them but reads
+   * again · `columns` (`reprojectColumns` — the columns changed, no row did) reads the rows read last.
+   */
+  private rowRefresh: CatalogRowRefresh = "rows";
   /** The rows each list binding read last (owner · kind · path) — a window move reads these. */
   private readonly rowsRead = new Map<
     string,
@@ -2555,7 +2561,8 @@ export class CatalogCompositionRoot {
             //  records were resolved from. Reading 10,000 rows took 2.6 ms of each move, live.)
             const read = `${ownerId}|${kind}|${instancePath?.join("/")}`;
             const held =
-              (this.rowsKept && !this.rowsReordered) || this.rowsReused
+              (this.rowsKept && this.rowRefresh === "window") ||
+              this.rowRefresh === "columns"
                 ? this.rowsRead.get(read)
                 : undefined;
             if (held) return held;
@@ -3069,7 +3076,7 @@ export class CatalogCompositionRoot {
    * rows a move — live, scrolling 1,000 rows p95 100 ms at 1x where RAC's own Table holds 8.4).
    */
   moveRowWindow(ids: ReadonlySet<string>): unknown[] {
-    return ids.size ? (this.refreshSources(ids, true) ?? []) : [];
+    return ids.size ? (this.refreshSources(ids, "window") ?? []) : [];
   }
   /**
    * ADR-315 Phase 3 — which rows of `ids` (document node ids) show and their order changed (a
@@ -3080,20 +3087,8 @@ export class CatalogCompositionRoot {
    * not this: `refreshRows` · `refreshNodes`.
    */
   reorderRows(ids: ReadonlySet<string>): unknown[] {
-    if (!ids.size) return [];
-    this.rowsReordered = true;
-    try {
-      return this.refreshSources(ids, true) ?? [];
-    } finally {
-      this.rowsReordered = false;
-    }
+    return ids.size ? (this.refreshSources(ids, "reorder") ?? []) : [];
   }
-  /**
-   * ADR-315 Phase 4 — the columns of `ids` (document node ids — Tables) changed (a Table state's
-   * hidden · order · pinned slices), no row did: the Tables resolve again over the rows they read
-   * last — the row source is not called (HC4: a column slice never reads rows). Every row in the
-   * record window is resolved again: its cells are other cells.
-   */
   /**
    * ADR-315 Phase 6 — a bound list record's rows as last read (`rowsRead` — every row, a window's
    * outside too, their child rows with them), by row key: a cell range's copy reads its values
@@ -3118,14 +3113,14 @@ export class CatalogCompositionRoot {
     visit(read);
     return out;
   }
+  /**
+   * ADR-315 Phase 4 — the columns of `ids` (document node ids — Tables) changed (a Table state's
+   * hidden · order · pinned slices), no row did: the Tables resolve again over the rows they read
+   * last — the row source is not called (HC4: a column slice never reads rows). Every row in the
+   * record window is resolved again: its cells are other cells.
+   */
   reprojectColumns(ids: ReadonlySet<string>): unknown[] {
-    if (!ids.size) return [];
-    this.rowsReused = true;
-    try {
-      return this.refreshSources(ids) ?? [];
-    } finally {
-      this.rowsReused = false;
-    }
+    return ids.size ? (this.refreshSources(ids, "columns") ?? []) : [];
   }
   /** The window of `owner` — in a window move, with the rows its body already holds (`kept`). */
   private readonly rowWindowOf: CatalogRowWindowSource = (owner) => {
@@ -3207,32 +3202,37 @@ export class CatalogCompositionRoot {
    */
   private refreshSources(
     sources: ReadonlySet<string>,
-    keepRows = false,
+    mode: CatalogRowRefresh = "rows",
   ): unknown[] | undefined {
-    if (keepRows) {
-      this.rowsKept = new Map();
-      this.rowsKeptIds = new Set();
-    }
-    let plan: ConsumePlan;
+    this.rowRefresh = mode;
     try {
-      plan = this.planBindingOwners(sources);
+      if (mode === "window" || mode === "reorder") {
+        this.rowsKept = new Map();
+        this.rowsKeptIds = new Set();
+      }
+      let plan: ConsumePlan;
+      try {
+        plan = this.planBindingOwners(sources);
+      } finally {
+        this.rowsKept = undefined;
+        this.rowsKeptIds = undefined;
+      }
+      if (!plan.roots.length) return undefined;
+      this.undoLog = [];
+      this.layoutTouched = false;
+      let notices: Notice[];
+      try {
+        notices = this.apply(plan);
+      } catch (cause) {
+        this.restore(cause);
+        throw cause;
+      } finally {
+        this.undoLog = undefined;
+      }
+      return this.deliver(plan, notices);
     } finally {
-      this.rowsKept = undefined;
-      this.rowsKeptIds = undefined;
+      this.rowRefresh = "rows";
     }
-    if (!plan.roots.length) return undefined;
-    this.undoLog = [];
-    this.layoutTouched = false;
-    let notices: Notice[];
-    try {
-      notices = this.apply(plan);
-    } catch (cause) {
-      this.restore(cause);
-      throw cause;
-    } finally {
-      this.undoLog = undefined;
-    }
-    return this.deliver(plan, notices);
   }
 
   /** The candidates no other candidate contains (their subtrees are disjoint). */
@@ -5553,10 +5553,8 @@ export class CatalogCompositionRoot {
       // (By structure, as `presence` derives `_isLast` — the crumb's derived props may not be set
       //  yet while its words are derived.)
       !catalogBreadcrumbSeparator(record, get, (each) => this.typeOf(each))
-    ) {
-      const current = catalogCurrentTextWeight("Breadcrumb");
-      if (current !== undefined) out.fontWeight = current;
-    }
+    )
+      out.fontWeight = catalogBreadcrumbCurrentWeight();
     return out;
   }
   /**
@@ -5740,18 +5738,15 @@ export class CatalogCompositionRoot {
     // (ADR-315 Phase 6 — a merged Table's body Row · Cell: the row line its Cells draw is in their
     //  box, as the DOM's border — the rule's derived `cell-lines` · `merge-line` widths, laid out.
     //  S2 체크리스트 §9.3 — a footer Cell's bold, measured.)
-    const lined =
-      record.derivedProps?.cellLines ||
-      record.derivedProps?.mergeLine ||
-      record.derivedProps?.inFooter
-        ? ({
-            ...record,
-            visual: {
-              ...record.visual,
-              ...catalogDerivedRestVisual(this, record),
-            },
-          } as CatalogConsumerNode)
-        : record;
+    const lined = catalogTakesDerivedVariant(record, "layout")
+      ? ({
+          ...record,
+          visual: {
+            ...record.visual,
+            ...catalogDerivedRestVisual(this, record),
+          },
+        } as CatalogConsumerNode)
+      : record;
     const style = styleOf(
       lined,
       this.textMeasure,

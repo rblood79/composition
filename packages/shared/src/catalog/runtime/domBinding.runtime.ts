@@ -252,6 +252,7 @@ import {
   catalogAuthoredLayout,
   catalogAuthoredVisual,
   catalogDerivedRestVisual,
+  catalogTakesDerivedVariant,
   catalogHasAuthoredColor,
   catalogHasAuthoredVisual,
   catalogHasExplicitVisual,
@@ -319,6 +320,7 @@ import {
   catalogTreeChevronGlyphItem,
   catalogToggleButtonGlyphOwner,
   catalogEditableCell,
+  catalogCardViewOf,
   FIELD_HINT_OWNERS,
 } from "./presence";
 
@@ -2693,6 +2695,15 @@ const tagGroupErrorBinding: DomBinding = (node, style) =>
   );
 
 /**
+ * Hint hosts RAC gives no validation (S2 HelpText — the DOM hides their hint parts by the Canvas
+ * predicate, `catalogFieldHintShown`) → their FieldError part's binding.
+ */
+const UNVALIDATED_HINT_ERROR_BINDINGS: Readonly<Record<string, DomBinding>> = {
+  TagGroup: tagGroupErrorBinding,
+  TokenField: tokenFieldErrorBinding,
+};
+
+/**
  * The quiet state of a field's box part (`data-quiet` — the part rule's `&[data-quiet]`): the
  * part of a quiet field (`derivedProps.isQuiet`, `presence.ts`).
  */
@@ -3438,20 +3449,15 @@ function ruleDom(
   //  other rule values do — the same rest values the Canvas paints, `catalogDerivedRestVisual`.)
   // (ADR-315 Phase 6 — a merged Table's body Row · Cell line is the Row · Cell rule's derived
   //  `cell-lines` · `merge-line` block, inline the same way.)
-  const edged: CatalogConsumerNode =
-    node.derivedProps?.pinnedEdge ||
-    node.derivedProps?.cellLines ||
-    node.derivedProps?.mergeLine ||
-    node.derivedProps?.inFooter ||
-    node.derivedProps?.cardRadius
-      ? {
-          ...node,
-          visual: {
-            ...node.visual,
-            ...catalogDerivedRestVisual(root, node),
-          } as CatalogConsumerNode["visual"],
-        }
-      : node;
+  const edged: CatalogConsumerNode = catalogTakesDerivedVariant(node, "dom")
+    ? {
+        ...node,
+        visual: {
+          ...node.visual,
+          ...catalogDerivedRestVisual(root, node),
+        } as CatalogConsumerNode["visual"],
+      }
+    : node;
   let style = {
     ...authoredStyle(root, edged),
     ...catalogTableTrackStyle(node, resizable),
@@ -5871,11 +5877,12 @@ export function renderNode(
   // (A TagGroup's error text while the group is not invalid — the Canvas's predicate, S2. A
   //  TokenField's hint parts too (S2 체크리스트 §4.1 Phase 4): RAC TokenField has no validation to
   //  swap its Description for the error — S2 HelpText shows one of them.)
-  const hintHost = partParent && catalogTypeName(root, partParent);
+  const partHost = partParent && catalogTypeName(root, partParent);
   if (
     partParent &&
-    (hintHost === "TagGroup" || hintHost === "TokenField") &&
-    catalogFieldHintShown(catalogTypeName(root, node), partParent, hintHost) ===
+    partHost &&
+    Object.hasOwn(UNVALIDATED_HINT_ERROR_BINDINGS, partHost) &&
+    catalogFieldHintShown(catalogTypeName(root, node), partParent, partHost) ===
       false
   )
     return null;
@@ -5999,12 +6006,9 @@ export function renderNode(
   // its spinner — in the Select's trigger before the chevron, in the ComboBox's Group before its
   // button (`catalogPickerSpinner`).
   const pickerType =
-    partParent &&
-    ((node.bindingId === "button" &&
-      catalogTypeName(root, partParent) === "Select") ||
-      (node.bindingId === "group" &&
-        catalogTypeName(root, partParent) === "ComboBox"))
-      ? catalogTypeName(root, partParent)
+    (node.bindingId === "button" && partHost === "Select") ||
+    (node.bindingId === "group" && partHost === "ComboBox")
+      ? partHost
       : undefined;
   const pickerSpinner = catalogPickerSpinner(pickerType, partParent?.props);
   if (pickerSpinner)
@@ -6181,27 +6185,20 @@ export function renderNode(
     );
   // A field's FieldError node is a RAC FieldError inside the field's context (ADR-253): RAC shows
   // it while the field is invalid — the authored message, else what its validation raised.
+  // (A host RAC gives no validation draws its own error text — `UNVALIDATED_HINT_ERROR_BINDINGS`.)
+  const errorBinding =
+    node.bindingId === "fielderror" && partHost
+      ? (UNVALIDATED_HINT_ERROR_BINDINGS[partHost] ??
+        (FIELD_HINT_OWNERS.has(partHost) ? fieldErrorBinding : undefined))
+      : undefined;
   const binding =
-    node.bindingId === "fielderror" &&
-    partParent &&
-    catalogTypeName(root, partParent) === "TokenField"
-      ? tokenFieldErrorBinding
-      : node.bindingId === "fielderror" &&
-          partParent &&
-          FIELD_HINT_OWNERS.has(catalogTypeName(root, partParent))
-        ? fieldErrorBinding
-        : node.bindingId === "fielderror" &&
-            partParent &&
-            catalogTypeName(root, partParent) === "TagGroup"
-          ? tagGroupErrorBinding
-          : // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
-            // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
-            // would take the group's label context).
-            node.bindingId === "label" &&
-              partParent &&
-              OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, partParent)]
-            ? toggleTextBinding
-            : bindingOf(node);
+    errorBinding ??
+    // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
+    // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
+    // would take the group's label context).
+    (node.bindingId === "label" && partHost && OWNER_DRAWN_PART_HOSTS[partHost]
+      ? toggleTextBinding
+      : bindingOf(node));
   // A Slider's thumb (ADR-256 Phase 7c): RAC's thumb of its place among the track's thumbs; its
   // ring is the slider sheet's (`.react-aria-SliderThumb` border — its color is the sheet's), not
   // inline — unless the author wrote one (2026-11-14 감사: the written width was dropped).
@@ -6824,10 +6821,11 @@ function withHtmlId(
   // (A Card in a CardView is the view's RAC GridListItem: its `id` is the item key the view's
   // selection names — `cardview` — so the author's HTML id would unselect it. A Card the view
   // starts with is an owned node with an automatic id since 2026-10-14.)
-  const cardViewItem =
-    type === "Card" &&
-    parent !== undefined &&
-    catalogTypeName(root, parent) === "CardView";
+  const cardViewItem = !!catalogCardViewOf(
+    node,
+    (id) => root.domInputs.get(id),
+    (record) => catalogTypeName(root, record),
+  );
   // (ADR-308 R9: a selection · expansion item's `id` is its RAC key — a Table's Row, a group's
   //  ToggleButton, an Accordion's Disclosure — as a CardView's Card above.)
   const selectionItem =

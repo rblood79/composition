@@ -9,6 +9,7 @@ import { PICKER_INVALID_ICON } from "../document/pickerTrigger";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { CATALOG_BOXED_FIELDS } from "../../domain/componentTraits";
+import { catalogLengthPx } from "./lengthPx";
 
 type CatalogRecordLookup = (id: string) => CatalogConsumerNode | undefined;
 type CatalogTypeOf = (node: CatalogConsumerNode) => string;
@@ -126,9 +127,7 @@ const px = (value: unknown, theme: "light" | "dark" = "light"): number => {
     typeof value === "string" && value.startsWith("{")
       ? resolveToken(value as TokenRef, theme)
       : value;
-  return typeof resolved === "number"
-    ? resolved
-    : Number.parseFloat(String(resolved ?? 0)) || 0;
+  return catalogLengthPx(resolved);
 };
 
 /** The Input rule's box values at a size (its sheet's `.react-aria-FieldBox[data-size]` too). */
@@ -518,12 +517,10 @@ export function catalogFieldBoxInputStart(
   const box = group && catalogFieldBox(group, get, typeOf);
   if (!box) return undefined;
   const at = group.children.indexOf(input.id);
-  const before = group.children
-    .slice(0, at)
-    .flatMap((id) => {
-      const child = get(id);
-      return child && !child.hidden ? [child] : [];
-    });
+  const before = group.children.slice(0, at).flatMap((id) => {
+    const child = get(id);
+    return child && !child.hidden ? [child] : [];
+  });
   const size = box.field.props.size;
   // (The box's own gap — a NumberField's stepper gap — lies between them too: the padding is the rest.)
   if (before.some((child) => catalogIsFieldPrefix(child, typeOf)))

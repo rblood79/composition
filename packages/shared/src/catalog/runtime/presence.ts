@@ -175,6 +175,7 @@ import {
   RAC_COLLECTION_CHILD_TYPES,
   catalogChildKind,
 } from "../nesting/nestingRules";
+import { catalogLengthPx } from "./lengthPx";
 export { catalogStateKeysOf };
 
 /**
@@ -676,9 +677,7 @@ function catalogCardCheckboxCard(
  * spacing places the sections and the checkbox; the card's padding is the same value but 0 on a
  * quiet card (S2 `--card-padding-x/y`).
  */
-function catalogCardSpacing(
-  card: CatalogConsumerNode,
-): number | undefined {
+function catalogCardSpacing(card: CatalogConsumerNode): number | undefined {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Card;
   const size = String(card.props.size ?? "M");
   const density = String(card.props.density ?? "regular");
@@ -741,10 +740,10 @@ export function catalogCardSection(
 ): Record<string, number | string> | undefined {
   const type = typeOf(node);
   // (S2 `isCardView: 'full'`: a Card in a CardView fills its cell — not its size's width.)
-  if (type === "Card") {
-    const view = get(node.parentId);
-    return view && typeOf(view) === "CardView" ? { _inCardView: 1 } : undefined;
-  }
+  if (type === "Card")
+    return catalogCardViewOf(node, get, typeOf)
+      ? { _inCardView: 1 }
+      : undefined;
   if (!CARD_SECTION_TYPES.has(type)) return undefined;
   const card = get(node.parentId);
   if (!card || typeOf(card) !== "Card") return undefined;
@@ -772,14 +771,12 @@ export function catalogCardSection(
   const last = flow[flow.length - 1]?.id === node.id;
   if (type === "CardPreview") {
     const padding = catalogBoxModel(card).padding;
-    const px = (value: unknown) =>
-      typeof value === "number" ? value : Number.parseFloat(String(value)) || 0;
     const out: Record<string, number | string> = {
-      _cardBleedLeft: px(padding?.left),
-      _cardBleedRight: px(padding?.right),
+      _cardBleedLeft: catalogLengthPx(padding?.left),
+      _cardBleedRight: catalogLengthPx(padding?.right),
     };
-    if (first) out._cardBleedTop = px(padding?.top);
-    if (last) out._cardBleedBottom = px(padding?.bottom);
+    if (first) out._cardBleedTop = catalogLengthPx(padding?.top);
+    if (last) out._cardBleedBottom = catalogLengthPx(padding?.bottom);
     // (S2 quiet: the card does not clip — the preview takes the card's corner, its size's radius.)
     if (card.props.variant === "quiet") {
       const radius = (
@@ -868,12 +865,10 @@ function racSlotProvision(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): (typeof RAC_SLOT_PROVIDERS)[string] | undefined {
-  if (typeOf(node) === "Card") {
-    const view = catalogCollectionOfItem(node, get, typeOf);
-    return view && typeOf(view) === "CardView"
+  if (typeOf(node) === "Card")
+    return catalogCardViewOf(node, get, typeOf)
       ? RAC_SLOT_PROVIDERS.GridListItem
       : undefined;
-  }
   return RAC_SLOT_PROVIDERS[typeOf(node)];
 }
 
@@ -1247,6 +1242,21 @@ function catalogCollectionOfItem(
   while (cursor && item.through.includes(typeOf(cursor)))
     cursor = get(cursor.parentId);
   return cursor && item.owners.includes(typeOf(cursor)) ? cursor : undefined;
+}
+
+/**
+ * The CardView a Card is an item of — S2 `InternalCardViewContext`: the view's RAC GridListItem —
+ * by the collection table (`COLLECTION_ITEM_OWNERS`). The Canvas (`_inCardView` · slot contexts)
+ * and the DOM (the GridListItem · its key) read this one predicate.
+ */
+export function catalogCardViewOf(
+  card: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(card) !== "Card") return undefined;
+  const view = catalogCollectionOfItem(card, get, typeOf);
+  return view && typeOf(view) === "CardView" ? view : undefined;
 }
 
 /** Items whose selection a collection record decides (`catalogCollectionItemSelected`). */

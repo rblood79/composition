@@ -1,13 +1,13 @@
 import { useContext, type ReactNode } from "react";
 import { Modal, ModalOverlay } from "react-aria-components/Modal";
 import { Button as RACButton } from "react-aria-components/Button";
-import { useLocale } from "react-aria-components/I18nProvider";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
-import { getIconData } from "@composition/rendering";
 import {
   CATALOG_DIALOG_CLOSE_ICON,
   CATALOG_DIALOG_CLOSE_LABELS,
 } from "../catalog/document/dialogChrome";
+import { useCatalogLocalized } from "../catalog/runtime/localizedStrings";
+import { catalogLucideGlyph } from "../catalog/runtime/lucideGlyph";
 import { DialogTriggerScope } from "./DialogTrigger";
 import { Dialog as RACDialog, DialogProps } from "react-aria-components/Dialog";
 import type { ComponentSize } from "../types";
@@ -48,30 +48,10 @@ export interface DialogExtendedProps extends DialogProps {
 
 /** S2 `CloseButton` of a dismissible Dialog (its name in the locale — en · ko). */
 function DialogCloseButton(): ReactNode {
-  const { locale } = useLocale();
-  const glyph = getIconData(CATALOG_DIALOG_CLOSE_ICON);
+  const label = useCatalogLocalized(CATALOG_DIALOG_CLOSE_LABELS);
   return (
-    <RACButton
-      slot="close"
-      className="dialog-close-button"
-      aria-label={
-        CATALOG_DIALOG_CLOSE_LABELS[locale.split("-")[0] ?? "en"] ??
-        CATALOG_DIALOG_CLOSE_LABELS.en
-      }
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        {(glyph?.paths ?? []).map((d, i) => (
-          <path key={i} d={d} />
-        ))}
-      </svg>
+    <RACButton slot="close" className="dialog-close-button" aria-label={label}>
+      {catalogLucideGlyph(CATALOG_DIALOG_CLOSE_ICON)}
     </RACButton>
   );
 }

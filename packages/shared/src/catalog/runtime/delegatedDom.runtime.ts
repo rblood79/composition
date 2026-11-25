@@ -30,10 +30,10 @@ import {
   CatalogTokenInput,
 } from "./tokenField.components";
 import { catalogFieldBoxInputDomStyle } from "./fieldPrefix";
+import { catalogLucideGlyph } from "./lucideGlyph";
 import { isPropVar } from "../document/valueType";
 import {
   CATALOG_COLOR_SWATCH_SELECTION,
-  getIconData,
   resolveTextSourceText,
   tokenToCSSVar,
   type TokenRef,
@@ -301,6 +301,7 @@ import {
 } from "./runtimeStateProps";
 
 import {
+  catalogCardViewOf,
   CATALOG_LABEL_NODE_FIELDS,
   catalogAbsentByValue,
   catalogDisclosureExpanded,
@@ -974,27 +975,6 @@ function inheritedForm(input: DelegatedDomInput) {
 }
 
 /** Common catalog chrome of composition-owned wrappers (`react-aria-{Type}` + data axes). */
-/** A Lucide glyph as the DOM draws icons here (`getIconData` — the Canvas `icon_font` reads the same). */
-function toastGlyph(iconName: string): ReactElement {
-  const data = getIconData(iconName);
-  return createElement(
-    "svg",
-    {
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: 2,
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      "aria-hidden": true,
-    },
-    ...(data?.paths ?? []).map((d, i) => createElement("path", { key: i, d })),
-    ...(data?.circles ?? []).map((c, i) =>
-      createElement("circle", { key: `c${i}`, cx: c.cx, cy: c.cy, r: c.r }),
-    ),
-  );
-}
-
 /** S2 `CloseButton staticColor="white"` of a placed Toast (its name in the locale — en · ko). */
 function ToastNodeClose({ onClose }: { onClose?: () => void }): ReactElement {
   const { locale } = useLocale();
@@ -1008,7 +988,7 @@ function ToastNodeClose({ onClose }: { onClose?: () => void }): ReactElement {
       "aria-label": catalogLocalized(CATALOG_TOAST_CLOSE_LABELS, locale),
       ...(press ? { onPress: press } : {}),
     },
-    toastGlyph(CATALOG_TOAST_CLOSE_ICON),
+    catalogLucideGlyph(CATALOG_TOAST_CLOSE_ICON),
   );
 }
 /**
@@ -4116,8 +4096,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         { value: CARD_TEXT_SLOTS },
         createElement(CatalogImageCoordinator, null, ...renderAll(input)),
       );
-      const parent = input.root.domInputs.get(input.node.parentId);
-      if (parent && catalogTypeName(input.root, parent) === "CardView")
+      if (
+        catalogCardViewOf(
+          input.node,
+          (id) => input.root.domInputs.get(id),
+          (record) => catalogTypeName(input.root, record),
+        )
+      )
         return createElement(
           AriaGridListItem as ElementType,
           {
@@ -4405,7 +4390,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                   className: "toast-variant-icon",
                   "aria-hidden": true,
                 },
-                toastGlyph(icon),
+                catalogLucideGlyph(icon),
               ),
             ]
           : []),

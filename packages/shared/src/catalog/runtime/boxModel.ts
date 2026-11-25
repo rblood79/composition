@@ -7,11 +7,12 @@ import { pickerInvalidGlyph } from "../document/pickerTrigger";
 import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogTreeCellGlyph } from "./tableTreeCell";
-import { catalogCurrentTextWeight } from "../resolvers/resolveCatalogRuleCanvasBox";
+import { catalogBreadcrumbCurrentWeight } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { installedBaseFontFamily } from "./themeMaps";
 import { DEFAULT_FONT_FAMILY, GENERIC_FONT_FAMILIES } from "./fontDefaults";
 import { evaluateConditionTree } from "../rule/conditionTree";
 import { resolveComponentRule } from "../resolvers/resolveComponentRule";
+import { catalogLengthPx } from "./lengthPx";
 
 /**
  * A picker's list padding in its Popover — the ListBox rule's `stateStyles.padding.inPopover` (S2
@@ -75,19 +76,20 @@ export function catalogGlyphBoxSize(
   )
     return undefined;
   const box = catalogBoxModel(node);
-  const px = (value: unknown) =>
-    typeof value === "number" ? value : Number.parseFloat(String(value)) || 0;
-  const border = px(box.borderWidth ?? 0) * 2;
+  const border = catalogLengthPx(box.borderWidth ?? 0) * 2;
   const sides: number[] = [];
   if (typeof width === "number" && width > 0)
     sides.push(
-      width - px(box.padding?.left ?? 0) - px(box.padding?.right ?? 0) - border,
+      width -
+        catalogLengthPx(box.padding?.left ?? 0) -
+        catalogLengthPx(box.padding?.right ?? 0) -
+        border,
     );
   if (typeof height === "number" && height > 0)
     sides.push(
       height -
-        px(box.padding?.top ?? 0) -
-        px(box.padding?.bottom ?? 0) -
+        catalogLengthPx(box.padding?.top ?? 0) -
+        catalogLengthPx(box.padding?.bottom ?? 0) -
         border,
     );
   const size = Math.min(...sides);
@@ -216,9 +218,15 @@ export function catalogBoxModel(
   }
   if (
     node.derivedProps?._pickerList === true &&
-    !["padding", "paddingX", "paddingY", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"].some(
-      (key) => authoredVisual[key] !== undefined,
-    )
+    ![
+      "padding",
+      "paddingX",
+      "paddingY",
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+    ].some((key) => authoredVisual[key] !== undefined)
   ) {
     const padding = pickerListPadding();
     if (padding !== undefined)
@@ -470,7 +478,7 @@ export function catalogTextMetrics(
     fontSize,
     ...(lineHeight !== undefined ? { lineHeight: Number(lineHeight) } : {}),
     ...(node.derivedProps?._isLast === true
-      ? { fontWeight: catalogCurrentTextWeight("Breadcrumb") ?? 600 }
+      ? { fontWeight: catalogBreadcrumbCurrentWeight() }
       : (node.derivedProps?.fontWeight ?? node.visual.fontWeight) !== undefined
         ? {
             // (An owner-derived weight — a current SideNav row's Text, ADR-300.)

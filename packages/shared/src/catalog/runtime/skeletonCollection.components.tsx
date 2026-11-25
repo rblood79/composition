@@ -19,11 +19,11 @@ import {
 import {
   catalogElementScale,
   catalogGridTrackCount,
-  catalogPx as px,
   catalogWaterfallExtents,
   catalogWaterfallItems,
   catalogWaterfallLanes,
 } from "./waterfall";
+import { catalogLengthPx as px } from "./lengthPx";
 
 /**
  * ADR-314 Phase 4 — S2 `SkeletonCollection` (`@react-spectrum/s2/src/SkeletonCollection.tsx`) on the

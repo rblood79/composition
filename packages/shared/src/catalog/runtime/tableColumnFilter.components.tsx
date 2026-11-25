@@ -8,7 +8,6 @@
  * RAC parts as they are (D1): `Dialog` · `Form` · `Select` · `TextField` · `ListBox`; their look is
  * the catalog's generated sheet for those classes (D3).
  */
-import { getIconData } from "@composition/rendering";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Button } from "react-aria-components/Button";
@@ -33,6 +32,7 @@ import {
   type CatalogFilterUnit,
 } from "./tableColumnFilterDraft";
 import { catalogLocalized } from "./localizedStrings";
+import { catalogLucideGlyph } from "./lucideGlyph";
 
 interface FilterStrings {
   readonly title: string;
@@ -234,27 +234,19 @@ const SEARCHED_VALUES = 20;
 const FIELD_STYLE: CSSProperties = { width: "100%" };
 const ROW_STYLE: CSSProperties = { display: "flex", gap: 8, width: "100%" };
 
+const CHEVRON_STYLE: CSSProperties = {
+  flexShrink: 0,
+  marginInlineStart: "auto",
+};
+
 /** The picker's chevron (S2 `Picker` — the catalog Select's glyph). */
 function Chevron(): ReactNode {
-  return (
-    <svg
-      aria-hidden
-      className="react-aria-Icon"
-      width={16}
-      height={16}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0, marginInlineStart: "auto" }}
-    >
-      {(getIconData("chevron-down")?.paths ?? []).map((d, i) => (
-        <path key={i} d={d} />
-      ))}
-    </svg>
-  );
+  return catalogLucideGlyph("chevron-down", {
+    className: "react-aria-Icon",
+    width: 16,
+    height: 16,
+    style: CHEVRON_STYLE,
+  });
 }
 
 /**

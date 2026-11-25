@@ -2,6 +2,7 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { evaluateConditionTree } from "../rule/conditionTree";
 import { resolveStaticItemKey } from "../slotRoles";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { catalogLengthPx as px } from "./lengthPx";
 
 /**
  * ADR-300 — the S2 SideNav family's place-derived state, one reading for the Canvas (presence ·
@@ -307,7 +308,6 @@ const RULES = COMPONENT_RULES_TABLE as unknown as Record<
     }
   | undefined
 >;
-const px = (value: unknown): number => Number.parseFloat(String(value)) || 0;
 
 /**
  * The Canvas layout a SideNav part takes from its place (the DOM's inline style · selectors): a

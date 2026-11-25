@@ -343,6 +343,15 @@ export function catalogCurrentTextWeight(type: string): number | undefined {
 }
 
 /**
+ * The current (last) crumb's weight — S2 `currentStyles` `fontWeight: 'bold'`, catalog
+ * `Breadcrumb.currentTextWeight` (600 without it, as the Skia crumb primitive): the crumb's record,
+ * its words' inherited font and the Canvas text leaf read this one value.
+ */
+export function catalogBreadcrumbCurrentWeight(): number {
+  return catalogCurrentTextWeight("Breadcrumb") ?? 600;
+}
+
+/**
  * Breadcrumb 조각 뒤 구분자 Icon (사용자 결정 2026-09-29 — 편집 가능한 Icon 자식, 종전 `::after` "›"):
  * 기본 이름 · 색 = `Breadcrumb.variants.default.trailingIcon`, 크기 · 간격 = `Breadcrumb.sizes[size]`
  * (`iconSize` · `gap` — label ↔ 구분자, 조각 사이는 `Breadcrumbs.sizes[size].gap` 같은 값). Canvas 두 경로

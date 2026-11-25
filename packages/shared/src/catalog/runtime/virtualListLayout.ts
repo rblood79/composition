@@ -11,18 +11,13 @@ import {
 import { catalogVirtualFlow } from "./virtualFlow";
 import type { catalogVirtualGridOptions } from "./virtualGrid";
 import type { catalogTableRowTracks } from "./tableTracks";
+import { catalogLengthPx as px } from "./lengthPx";
 
 /**
  * ADR-310 Phase 8 — a list's virtual layout read from its drawn records (the Canvas's geometry and
  * engine input — the same in the Preview's root): the Preview's `Virtualizer` and the panel's
  * 「가상 스크롤」 choice read it (no RAC import — the panel's chunk stays small).
  */
-const px = (value: unknown): number => {
-  const number =
-    typeof value === "number" ? value : Number.parseFloat(String(value ?? 0));
-  return Number.isFinite(number) ? number : 0;
-};
-
 /** What the reader needs from the DOM runtime (given — this module stays out of shared chunks). */
 export interface CatalogVirtualListReaders {
   readonly typeOf: (node: CatalogConsumerNode) => string;
