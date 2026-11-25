@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-DePvh3-m.js";var t=e();function n({reason:e,children:n}){return e?(0,t.jsx)(`span`,{className:`disabled-reason`,title:e,children:n}):n}export{n as t};

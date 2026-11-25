@@ -1,0 +1,1 @@
+function e(e){if(!e||typeof e!=`object`||Array.isArray(e))return!1;let t=Object.keys(e),{start:n,end:r}=e;return t.length===2&&typeof n==`string`&&typeof r==`string`}function t(e){return typeof e==`string`||Array.isArray(e)&&e.every(e=>typeof e==`string`)}export{e as n,t};

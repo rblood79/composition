@@ -1,0 +1,1 @@
+import{c as e}from"./assetStore-Blb6Sz37.js";import{r as t}from"./assetUrlResolver-Gj6maDjz.js";async function n(n){let r=new Uint8Array(await n.arrayBuffer()),i=await e({bytes:r,mime:n.type||`application/octet-stream`,name:n.name});return t().register(i.ref,i.blob),i}export{n as storeUploadedFile};

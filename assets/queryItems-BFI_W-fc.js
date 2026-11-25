@@ -1,0 +1,1 @@
+import{t as e}from"./normalizeRows-BtJSQgRt.js";function t(t,n){let r=n?.schema;return!r?.length||!Array.isArray(t)||!t.every(e=>typeof e==`object`&&!!e&&!Array.isArray(e))?t:e(t,r,`json`,{...n?.keyField?{keyField:n.keyField}:{}}).rows}export{t};
