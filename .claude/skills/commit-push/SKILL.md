@@ -15,7 +15,7 @@ git status --short
 cat .agent/session-edits/${CLAUDE_SESSION_ID}.txt 2>/dev/null   # track-session-edits.sh 가 기록한 이 세션의 Edit/Write 경로
 ```
 
-- **내 파일** = 위 기록 + 이 세션이 Bash (생성기 · 스크립트 · `git mv`) 로 바꾼 파일. 기록이 비어 있으면 대화에서 고친 파일 목록으로 판단한다.
+- **내 파일** = 위 기록 + 이 세션이 Bash (생성기 · 스크립트 · `git mv`) 로 바꾼 파일. 기록이 비어 있으면 대화에서 고친 파일 목록으로 판단한다 (기록은 Claude hook 이 만든다 — Codex 세션에는 없다).
 - **남의 파일** = 나머지. 스테이징하지 않는다. 이미 다른 세션이 스테이징한 경로가 있으면 `git commit -- <paths>` (pathspec 커밋) 로 그것을 건드리지 않는다.
 - 남의 세션도 고치는 파일에 내 hunk 만 커밋해야 하면 메모리 `reference-stage-own-hunks-of-shared-dirty-file` 절차를 따른다.
 - `.agent/task-state.json` 은 로컬 전용 — 커밋하지 않는다.
@@ -41,7 +41,7 @@ git commit -m "<type>(<scope>): <요약>
 Co-Authored-By: ..." -- "${files[@]}"
 ```
 
-- 메시지는 저장소 관례 (`feat(adr-NNN): …` · `fix(scope): …` · `docs: …`) 와 한국어 본문. 어휘 규칙은 `protect-commit-vocabulary.sh` 가 검사한다.
+- 메시지는 저장소 관례 (`feat(adr-NNN): …` · `fix(scope): …` · `docs: …`) 와 한국어 본문. `protect-commit-vocabulary.sh` 는 금지 어휘 중 한 단어만 막는다 — 나머지는 `~/.claude/CLAUDE.md` 의 어휘 표로 스스로 점검한다.
 - 서명 줄은 대화에 주어진 attribution 을 따른다.
 - `protect-git-add-all.sh` 가 확인을 물으면 목록을 읽고 남의 파일이 섞였는지 다시 본다.
 
@@ -52,7 +52,10 @@ git fetch origin && git log --oneline HEAD..origin/main
 ```
 
 - origin/main 에 새 커밋이 있으면 그 커밋이 같은 contract 버전 · ADR 번호 · 번들 상한 값을 올렸는지 본다. 겹치면 내 번호를 다음 값으로 고친 뒤 커밋을 고친다.
-- `git pull --rebase origin main` 뒤 `git push origin main`. 차단되면 우회하지 않고 사용자에게 `! git push origin main` 을 요청한다 (§4).
+- origin 이 앞서 있으면 합친 뒤 `git push origin main`. 합치는 방법은 작업 트리 상태로 고른다 (사용자 결정 2026-11-25):
+  - `git status --porcelain` 이 비어 있으면 `git pull --rebase origin main` (이력이 한 줄).
+  - 다른 세션의 미커밋 변경이 있으면 `git pull --no-rebase --ff origin main` (merge 커밋 — 이 저장소 설정 `pull.ff=only` 를 `--ff` 가 이 명령에서만 푼다). `--autostash` · `git stash` 는 쓰지 않는다 — 남의 WIP 를 stash 에 넣었다 되돌리다 충돌하면 작업 트리에서 사라진다 (2026-11-22 stash 사고). merge 는 origin 이 바꾼 파일이 로컬 미커밋 파일과 겹치면 시작 전에 거부하니, 그때는 멈추고 사용자에게 보고한다.
+- push 가 차단되면 우회하지 않고 사용자에게 `! git push origin main` 을 요청한다 (`.claude/rules/git-workflow.md` §4).
 
 ## 5. 보고
 

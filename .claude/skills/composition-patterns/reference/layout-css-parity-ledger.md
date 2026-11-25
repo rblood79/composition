@@ -941,6 +941,9 @@ flex.rs 에 `baseline` 코드가 없었고 (Taffy #1109 · #1127 의 전제 — 
   **Why (2026-11-04):** Select 50개 Open의 무관한 형제 편집에서 부모/viewport 이중 배치와 min-width 재solve가 반복됐다. 실제 WASM fixture 중앙값 17.57ms → 1.05ms; auto/%/inset·viewport·DPR·숨김 전환은 fresh layout과 대조했다.
 - `zero_subtree_layout`은 최종 fixed 크기 캐시도 무효화한다. intrinsic 측정 결과와 실제 자손 좌표를 보유한 최종 배치 캐시의 수명은 다르다.
   **Why (2026-11-04):** 부모 display:none → block에서 fixed 자손의 세대는 그대로인데 내부 좌표가 0으로 초기화돼, 크기 캐시만 재사용하면 자손이 0 좌표에 남았다. 부모 숨김 후 fresh layout 대조가 원복 RED를 확인했다.
+- rule §TS 잔존 계약 에서 옮긴 원문: **2026-07-28 제거 (ADR-170)**: 컨테이너의 **intrinsic 키워드** 선해석은 잔존 목록에서 빠졌다 — 엔진이 측정으로 정확값을 소유한다 (§컨테이너의 `width: min/max/fit-content`). 컴포넌트별 TS 주입 (`implicitStyles`) 은 2026-10-05 옛 파이프라인과 함께 삭제 — 컴포넌트 구조값은 catalog rule (containerStyles · part rules) 이 공급한다.
+- rule §기타 규칙 에서 옮긴 원문: Block-child normalization (구 fullTreeLayout §5.5 width:100% 보정) 은 ADR-923 Phase 5 에서 삭제 — block 컨테이너 안 block 자식의 auto→stretch 는 엔진 block.rs
+- rule §TS 잔존 계약 의 옛 `rewrap` 행 원문: `rewrap` — **height-for-width 1회 재측정** (`compositionRoot.ts`, 옛 Step 4.5 와 같은 축소 계약, ADR-165 Phase 2) — 폭 확정 후 높이 재줄바꿈 재측정만 담당 — 폭 재보정 확장 금지 (폭 축은 엔진 소유). 재계산 경로 표의 옛 서술: `rewrap` = height-for-width 1회 재측정 (텍스트 leaf 를 확정 폭으로 다시 재 `wrapHeights` → `updateNodeStyle` → `computeLayout` 한 번 더). 옛 Step 4.5 와 같은 축소 계약. 지금 `rewrap` 은 텍스트 leaf 외에 가상 grid 의 열 (ADR-310 Phase 8) 과 calendargrid 의 폭 기준 높이도 다시 낸다 — rule 의 `rewrap` 행이 현재 계약이다.
 
 ### C. position: absolute / fixed / sticky
 
@@ -994,3 +997,7 @@ flex.rs 에 `baseline` 코드가 없었고 (Taffy #1109 · #1127 의 전제 — 
 - **ADR-268 viewport 환경 의존성:** 위 표의 content intrinsic 서브트리 키는 `max(subtree_gen, viewport_gen)`으로 확장한다. `set_viewport`는 값이 바뀔 때만 환경 세대와 기존 intrinsic 측정 세대를 올린다. **Why:** viewport 300→600에서 `50vw` 자손의 item 폭이 150에 남고 fresh 계산은 200이었다. 동일 viewport 재설정과 형제 편집은 HIT를 유지한다.
 
 - **border 폭 = device pixel snap (2026-10-19)**: 엔진이 border 를 읽는 곳은 전부 `resolve_border` (→ `style.rs` `snap_line_width`, Blink `ClampLineWidth`: device px 로 0 < w < 1 → 1, 아니면 floor) 를 거친다. 기준 비율은 `set_device_pixel_ratio` (root 옵션 `devicePixelRatio` — Builder 창의 값, 바뀌면 `workspace.setDevicePixelRatio` 가 새 root) 이고 미설정이면 snap 없음 (하니스 · Preview root). Canvas 그리기는 같은 규칙의 `snapBorderWidth` (`packages/rendering` `primitives/border.ts`) — 새 border 소비자 (stroke · inset) 는 둘 중 하나를 거친다. **Why**: hairline 0.5px 를 DPR 1 Chrome 은 1px 로 배치·그리는데 엔진은 0.5 로 두어 ListBox Header 가 Canvas 27 / Preview 28. oracle `borderWidthSnap.browser.test.ts` · Rust `border_widths_snap_to_device_pixels`.
+
+- **삭제된 TS 전처리 규칙 (rule 색인에서 옮긴 원문)**: 삭제된 TS 전처리 규칙 (기록만 — production 코드 없음, 부활 금지): grid 자식 스칼라 게이트 `isGridChild` · `coerceGridTrack` · `enrichAvailWidth` (옛 행 22) · `needsWidth` TEXT_LEAF_TAGS 절 (옛 행 27) · root containing block 되돌림 `resolveRootContainingBlock` · `calculateFullTreeLayout` DFS (옛 행 34). 같은 원칙 (텍스트 leaf 스칼라는 부모 display 와 무관 · root 폭은 containing block) 은 `styleOf` 가 엔진에 넘기는 입력으로 유지된다.
+
+- **삭제된 fixture (2026-10-04 `78469745d` — 옛 pipeline leg 과 함께)**: rule 색인이 §1 · §2 에 적던 `bodyViewportBox`, §26 의 `paddedLeafIntrinsic`, §31 의 `catalogComponentBox` (Tooltip), §35 의 `percentPaddingMargin` 은 삭제된 parity 파일이다 (§2 의 `pageSlotStyle` 은 2026-10-02 `d58bb8b61` 에서 삭제). 기본 축 격자의 조합 수도 같은 커밋에서 pipeline leg 116 (20 + 60 + 36) 이 빠져 2,702 → 2,586 이 됐다.

@@ -44,7 +44,7 @@ Skill/rule 정본은 `.claude/`, `.agents/skills`·`.agents/rules`의 항목은 
 가정하지 않습니다.
 
 - 상태·레이아웃·렌더링 계약: `composition-patterns`의 해당 도메인 링크.
-- 새 컴포넌트·S2 전환: `component-design`. Canvas/Preview 시각 변경: `cross-check`.
+- 새 컴포넌트·S2 기능 적용: `component-design`. Canvas/Preview 시각 변경: `cross-check`.
 - ADR 작성·검토: 해당 skill과 대상 ADR. 실행은 사용자가 지정한 범위를 따릅니다.
 - Harness 운영·인수인계: `.agents/README.md`.
 
@@ -63,9 +63,9 @@ Node/Turbo/pnpm 명령은 repo root에서 `pnpm` 스크립트로 실행합니다
 - commit/push 요청이 있으면 명시한 파일·hunk만 stage하고 `type: summary`로 커밋한 뒤
   `git push origin main`으로 진행합니다. branch·PR은 명시 요청이 있을 때만 사용합니다.
   상세: `.agents/rules/git-workflow.md`.
-- 사용자 가시 변경·public API/spec 변경·성능 회귀 수리·ADR Implemented 승격·
+- 사용자 가시 변경·신규 컴포넌트/prop/public API·성능 회귀 수리·ADR Implemented 승격·
   다단계 Phase 완결·3개 이상 파일의 아키텍처 변경은 `docs/CHANGELOG.md`에 반영합니다.
   상세: `.agents/rules/changelog.md`.
-- `.env*`, credentials, 라이선스 개인키·토큰(`public/license`,
-  scripts/.auth-session.json)은 승인 없이 수정하지 않습니다.
+- `.env*`, credentials, 라이선스 개인키·토큰(`apps/builder/public/license`,
+  `apps/builder/scripts/.auth-session*.json`)은 승인 없이 수정하지 않습니다.
 - `dist/`와 생성물은 직접 편집하지 않고 필요한 source 변경에 맞는 생성 명령을 사용합니다.

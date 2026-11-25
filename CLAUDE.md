@@ -9,7 +9,7 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 ```bash
 pnpm install                                        # postinstall: prepare:specs (아이콘 + build:specs = 팔레트·CSS) + prepare:upload (업로드 엔진) — CanvasKit wasm 은 빌드 산출물 (ADR-244)
 pnpm wasm:build:engine                              # Rust 엔진 → wasm (산출물 gitignored, Rust+wasm-pack 필요 — fresh clone·엔진 변경 후 필수)
-pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (기본 5173 만 — 병렬 worktree 서버는 DEV_PORTS="5174" 로 지정)
+pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (끌 포트는 DEV_PORTS, 기본 5173) · 병렬 worktree 서버: pnpm -F @composition/builder exec vite --port 5174 + 하니스 BUILDER_URL=http://localhost:5174 (업로드 live 는 참조 서버 CORS 가 5173 이라 5173 에서만)
 pnpm type-check                                     # Stop hook 이 같은 명령 실행
 pnpm -F @composition/builder exec vitest run <path> # 단일 테스트 (실패 count 는 per-package 만 정확)
 pnpm -F @composition/builder test:parity            # browser vitest (`vitest.config.ts` 의 parity project) · 시각 비교는 vitest.adr248-g3.browser.config.ts (G3 하니스)
@@ -23,7 +23,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 **구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/rendering` (CSS 생성기·Skia primitive·아이콘) · `packages/sample-data` (seed 결정성 샘플 행 생성기, 의존 0 — ADR-220) · `packages/upload-engine` (`@composition/upload` TUS 전송 엔진, 의존 0, lazy 전용 — ADR-201, 규칙 `.claude/rules/upload-runtime.md`) · `packages/engine` (Rust 레이아웃) · `packages/config`
 
-**핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/catalogRuntime/` (편집 runtime — `workspace.ts` · `controller.ts` · `compositionRoot.ts`) · `packages/shared/src/catalog/{transactions,commands}/` (문서 변경 명령) · `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx` (Canvas) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
+**핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/catalogRuntime/` (편집 runtime — `workspace.ts`. `controller.ts` · `compositionRoot.ts` 는 재수출이고 구현은 `packages/shared/src/catalog/runtime/`) · `packages/shared/src/catalog/{transactions,commands}/` (문서 변경 명령) · `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx` (Canvas) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 
 **테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts` 의 `unit` project) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `parity` project) · 시각 비교는 ADR-248 G3 하니스 (`apps/builder/tests/adr248-g3/`, `vitest.adr248-g3.browser.config.ts`). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
 
@@ -59,7 +59,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 - **ADR 생성**: 사용자가 `/create-adr` 직접 입력 — create-adr / execute-adr 는 모델 자동 호출 비활성 (사용자 전용)
 - **다단계 계획**: ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 — 별도 계획 문서 계층 신설 금지
 - **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `/review` (정적) · 사용자-가시 변경은 `/evaluate` (실제 브라우저 PASS/FAIL)
-- **커밋 직전**: `/verify` — type-check 뒤 영향 영역을 builder 에서 1회 exercise (`/cross-check` · `/evaluate` 로 분기, docs · tests 만이면 생략). 프로젝트 skill 이라 Claude Code 2.1.286+ 가 커밋 전 자동 안내 — Stop hook 의 type-check 차단은 그대로
+- **커밋 직전**: `/verify` — type-check 뒤 영향 영역을 builder 에서 1회 exercise (`/cross-check` · `/evaluate` 로 분기, docs · tests 만이면 생략). 프로젝트 skill 이라 Claude Code 가 커밋 전 자동 안내 — Stop hook 의 type-check 검사는 그대로
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
 - CRITICAL/HIGH 이슈: 즉시 수정 (판정 기준은 `.claude/rules/review-loop-closure.md` §2 — MEDIUM 이하는 재현 여부로 가른다)
 - **판독 루프 종결**: phase 당 판독 1 + 수리 검증 1, HIGH 0 이면 실행자가 닫힘 선언 · production 재현 없는 커버리지 지적은 LOW deferred · 동작 변경 0 커밋은 축소 절차 — 정본 `.claude/rules/review-loop-closure.md` (상시 로드)
@@ -97,7 +97,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## 자동 품질 게이트 (Hooks)
 
-정의: `.claude/settings.json` `hooks` + `.claude/hooks/*.sh`. **작업을 막는 hook** — Stop: `.ts/.tsx` 변경이 있으면 `pnpm type-check` 실패 · ADR Implemented 승격 시 README/CHANGELOG 갱신과 `### Live Exercise` 절 부재 (escape hatch 있음). PreToolUse: 보호 파일 편집 (`protect-files.sh`) · branch 분기 / PR 생성 (`protect-branch-pr.sh`) · 커밋 메시지 금지 어휘 (`protect-commit-vocabulary.sh`) · 사용자 요청 없는 새 ADR 파일 (`derived-adr-block.sh`). `git add -A` 류는 확인을 묻는다 (`protect-git-add-all.sh`).
+정의: `.claude/settings.json` `hooks` + `.claude/hooks/*.sh`. **작업을 막는 hook** — Stop: `.ts/.tsx` 변경이 있으면 `pnpm type-check` 실패 · ADR Implemented 승격 시 README/CHANGELOG 갱신과 `### Live Exercise` 절 부재 (escape hatch 있음, 미커밋 승격만 본다 — 같은 턴에 커밋하면 검사되지 않는다). PreToolUse: 보호 파일 편집 (`protect-files.sh`) · branch 분기 / PR 생성 (`protect-branch-pr.sh`) · 커밋 메시지 금지 어휘 (`protect-commit-vocabulary.sh` — 표의 한 단어만, 나머지는 스스로 점검). 확인을 묻는 hook — 사용자 요청 없는 새 ADR 파일 (`derived-adr-block.sh`) · `git add -A` 류 (`protect-git-add-all.sh`).
 
 검증 도구: `pnpm codex:agent-catalog` (카탈로그 drift 게이트) · `pnpm hooks:selftest` · `pnpm agent:run` (run ledger).
 
@@ -113,7 +113,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 | 측정·검증 무결성 | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치 leakage 8-패턴 + 착수 전 5-질문 + 실패 record (`docs/adr/**`·performance 자동 로드)                           |
 | 판독 루프 종결   | [.claude/rules/review-loop-closure.md](.claude/rules/review-loop-closure.md)   | 라운드 상한 · 커버리지 지적 판정 (가설 1 + 반증 1) · 변경 종류별 절차 · 판독 프롬프트 필수 문구 (상시 로드)             |
 | CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                                          |
-| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 500KB 초과 시 구간 아카이브 (`CHANGELOG-2026-Q3-archived.md` 등) 로 이관                                  |
+| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 이번 달 엔트리 — 달이 바뀌면 지난달을 `CHANGELOG-YYYY-MM-archived.md` 로 옮긴다                                         |
 | 디자인 캔버스    | [docs/design/](docs/design/)                                                   | 디자인 산출물 — 새 캔버스는 `docs/design/<주제>/` 에만. 저장소 루트에 `design/`·`.design*/` 생성 금지                   |
 
 ## 마이그레이션/리네임/삭제 작업 원칙

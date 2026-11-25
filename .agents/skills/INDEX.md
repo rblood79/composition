@@ -6,7 +6,7 @@ Codex에는 각 skill의 이름과 description이 제공됩니다. 이 파일은
 ## 작업별 진입점
 
 - [composition-patterns](composition-patterns/SKILL.md): catalog runtime 상태·레이아웃·렌더링 계약
-- [component-design](component-design/SKILL.md): 새 컴포넌트·S2 전환
+- [component-design](component-design/SKILL.md): 새 컴포넌트·S2 기능 적용
 - [cross-check](cross-check/SKILL.md): Canvas·Preview 시각 정합성
 - [react-aria](react-aria/SKILL.md): 설치된 RAC API
 - [react-spectrum](react-spectrum/SKILL.md): Spectrum Props 참조
@@ -21,7 +21,7 @@ Codex에는 각 skill의 이름과 description이 제공됩니다. 이 파일은
 
 ## 추가 계약
 
-- page-bound selection 변경: [state-management.md](../rules/state-management.md)의
-  Selection Consumer Contract.
+- 선택 · hover · 편집 맥락 변경: [state-management.md](../rules/state-management.md) §1 표의
+  `CatalogSession` 행 (step 마다 `reconcile()` 로 사라진 대상을 뺀다).
 - 명시적 Goal의 재개·완료: [goal-lifecycle.md](../rules/goal-lifecycle.md).
 - skill 링크·호출 정책·심링크 정합성: `pnpm run codex:agent-catalog`.

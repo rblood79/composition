@@ -1,7 +1,6 @@
 ---
 name: execute-adr
 description: 사용자가 지정한 ADR의 미완료 Phase를 의존 순서대로 구현·검증할 때 사용.
-user-invocable: true
 disable-model-invocation: true
 ---
 

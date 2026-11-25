@@ -1,7 +1,6 @@
 ---
 name: composition-patterns
 description: Composition의 catalog runtime 상태, 레이아웃, catalog·Canvas·Preview 계약을 확인할 때 사용.
-user-invocable: true
 ---
 
 # Composition 코드 계약
@@ -37,7 +36,7 @@ Codex에서는 Claude의 glob 규칙 자동 로드를 전제하지 않습니다.
 - **zustand** (남은 UI · 데이터 store 만) — [factory-pattern](rules/zustand-factory-pattern.md) H · [modular-files](rules/zustand-modular-files.md) H
 - **postmessage** — [origin-verify](rules/postmessage-origin-verify.md) C · [buffer-ready](rules/postmessage-buffer-ready.md) H
 - **inspector** — [history-sync](rules/inspector-history-sync.md) H
-- **perf** — [checklist](rules/perf-checklist.md) M (범용 규칙 — barrel import 금지 · `Promise.all` 병렬 · lazy `import()` · Map/Set 조회 · `any` 금지 · 반환 타입 명시 — 은 lint/tsc 와 모델 기본 동작에 맡긴다. 2026-10-15 파일 삭제)
+- **perf** — [checklist](rules/perf-checklist.md) M (남은 것은 이 파일 하나. 범용 규칙 — barrel import 금지 · `Promise.all` 병렬 · lazy `import()` · Map/Set 조회 · `any` 금지 · 반환 타입 명시 — 의 규칙 파일들은 지웠고 lint/tsc 와 모델 기본 동작에 맡긴다)
 - **arch** — [reference-impl](rules/arch-reference-impl.md) H
 
 C = CRITICAL · H = HIGH · M = MEDIUM. 구현 레퍼런스는 `reference/` (canvas-details · child-composition ·

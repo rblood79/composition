@@ -11,7 +11,7 @@ paths:
 
 > **위상**: 빌더 시스템 UI (builder-system layer) 규칙. 사용자 캔버스 컴포넌트의 SSOT 3-domain (D1/D2/D3) 체인과 무관 — catalog/spec/Generator 확장 없음.
 >
-> **레퍼런스**: Design 패널 (id `properties` — Properties · Styles 를 한 패널의 탭 `Property | Layout | Style | Text | Screen` 으로 통합, ADR-252) 이 표준 정본. Components/DataTable/DataTableEditor 는 추종, **Navigator/Events 는 예외**(§예외), 나머지 미완 패널은 레퍼런스를 따라간다.
+> **레퍼런스**: Design 패널 (id `properties` — Properties · Styles 를 한 패널의 탭 `Property | Layout | Style | Text | Screen` 으로 통합, ADR-252) 이 표준 정본. Components/DataTable 은 추종, **Navigator 는 예외**(§예외), 나머지 미완 패널은 레퍼런스를 따라간다.
 >
 > **공식 결정**: [ADR-163](../../docs/adr/completed/163-builder-panel-structure-standardization.md) · 구현 상세: [design breakdown](../../docs/adr/design/163-builder-panel-structure-standardization-breakdown.md)
 
@@ -20,10 +20,10 @@ paths:
 ```
 .panel-wrapper[data-panel]              ← 시스템이 래핑 (layout/PanelWorkspace.tsx). 패널 식별자
 └ .panel                                 ← 패널 root (고정 클래스)
-  ├ PanelHeader → .panel-icon / .panel-title / .panel-actions
-  └ .panel-contents                      ← 스크롤 영역 (복수형)
+  ├ PanelHeader → .panel-header > h3.panel-title (.panel-icon + .panel-title-text) + .panel-actions
+  └ PanelContents → .panel-contents      ← 스크롤 영역 (복수형). TabPanel 이 겸하면 panelContents() 로 클래스만
     └ Section → .section[data-section-id] ← Section 컴포넌트 경유만
-      ├ .section-header → .section-title / .section-actions
+      ├ .section-header > h3.section-heading (> Button.section-trigger > .section-caret + .section-title) + .section-actions
       └ .section-content                  ← 항상 1열 세로 스택 (flex column + gap)
         ├ fieldset.properties-aria.{고유클래스}   ← 라벨 있는 필드 그룹 (세로 흐름)
         │ ├ legend.fieldset-legend
@@ -34,12 +34,12 @@ paths:
 ```
 
 - `.panel-wrapper` 는 패널 root(= `.section` 의 **조상**). 실제 DOM 은 `.panel-wrapper > .panel > .panel-contents > .section > .section-content` 순서다.
-- **아이콘은 패널 헤더 전용**: `.panel-icon` 만 아이콘을 갖고 `.section-title` 은 타이틀(+`.section-actions`)뿐이다 (§1 참조).
+- **아이콘은 패널 헤더 전용**: `.panel-icon` 만 아이콘을 갖고 `.section-title` 은 타이틀 (+ badge) 뿐이다 (§1 참조). 접힘 표시 `.section-caret` 은 식별 아이콘이 아니다.
 
 ## 1. DOM 계층 규칙
 
 - 패널 root 는 `.panel` **고정**. 패널별 root 클래스 신설 금지 — 패널 식별은 시스템이 래핑하는 `.panel-wrapper[data-panel]` 선택자 사용.
-- 스크롤 영역은 `.panel-contents` 단일. 변형(`*-content` 단수, `*-contents` 병기)은 보조 클래스로만 (`.panel-contents.history-contents` 형태).
+- 스크롤 영역은 `.panel-contents` 단일 — 클래스를 직접 적지 않고 `PanelContents` (자기 엘리먼트를 가진 `TabPanel` 은 `panelContents()`) 를 거친다. 변형은 보조 클래스로만 (`panelContents("datatable-surface")` 형태). 집행: `PanelContents.static.test.ts`.
 - 섹션은 `Section` 컴포넌트 경유만 (`.section` 직접 마크업 금지). collapse/reset/lazy/badge/actions 는 Section 이 담당.
 - `.section-content` 는 **항상 1열 세로 스택** (flex column + gap). 가로 배치는 `.fieldset-row` 한 겹 아래에서만 — `.section-content` 자체를 grid 로 잡는 패턴은 신규 금지.
 - **section header 에 아이콘 금지** — 아이콘은 패널 식별 장치(`.panel-icon`, 좌측 rail 아이콘과 짝)이고, 섹션 타이틀은 한 패널 안에서 이미 유일해 변별력이 없다. 두 층에 다 달면 계층 신호가 무너진다. `Section` 은 `icon` prop 자체를 갖지 않으며 `sectionHeaderIcon.static.test.ts` 가 집행한다.
@@ -50,24 +50,25 @@ paths:
 - **본문 안 양식 자리 — 격자 옆 두 번째 열, 좁으면 격자 대신** (ADR-289, 2026-10-29): 격자를 보며 채우는 레코드 양식 (데이터 격자의 Insert row · Update row) 은 팝오버 · 모달이 아니라 본문의 두 번째 열 (360 px, RAC 비모달 `Dialog`) 이다. 본문이 양식 + 본문 하한보다 좁으면 (`DATA_SURFACE_BODY_MIN` 320 + 360 = 680) CSS 컨테이너 쿼리로 양식이 격자 자리를 대신하고 헤더 ✕ 가 격자로 돌아온다 — ADR-288 의 좁은 폭 번갈아 보기와 같은 어법 (JS 측정 없음). 양식 안은 `Section` + `fieldset.properties-aria` 표준이고, 「비워 두면 기본값」 같은 모드 설명은 별도 문단이 아니라 절 제목에 둔다. 생성 Dialog sheet (overlay archetype) 가 모든 `.react-aria-Dialog` 에 닿으므로 본문 열 Dialog 는 모서리 · 폭 · 여백을 되돌린다 (`grid/RowForm.css`).
 - **패널 탭은 단일 패턴** — 마크업·클래스 조합이 하나다:
   `Tabs.panel-tabs` > `div.panel-header.panel-tabrow` > `TabList.panel-tablist` > `Tab.panel-tab` > `span.panel-tab-label`, 구현은 RAC `Tabs`/`TabList`/`Tab`.
-  바 크롬(32px·`--bg-raised`·하단 구분선)은 **`.panel-header` 가 이미 준다** — `.panel-tabrow` 는 헤더 패딩만 0 으로 되돌리는 modifier다. 래퍼를 빼고 같은 값을 tablist 에 다시 쓰면 크롬 정의가 두 곳이 되고 패널 골격도 갈린다.
-- **탭 패널의 본문은 `TabPanel` = `.panel-contents`** — 스크롤·패딩·배경을 갖는 본문은 탭 **안**이다. `.panel-contents` 가 `Tabs` 를 감싸면 탭 줄까지 본문 크롬을 받고, 실제 본문은 로컬 클래스로 스크롤을 다시 정의하게 된다 (2026-08-30 실측: Monitor 5곳이 `.monitor-tab-panel`, 나머지 6곳은 전부 `.panel-contents`). `Tabs` 가 탭 줄만 감싸고 본문을 형제 `.panel-contents` 에 두는 형태(DataTable 편집기)는 `TabPanel` 을 쓰지 않으므로 이 조항 밖이다. 집행: `panelTabs.static.test.ts`.
-- **읽기 전용 값 표시도 패널 필드 어법을 쓴다** — 라벨+값 한 칸은 `fieldset.properties-aria` + `legend.fieldset-legend` + `.react-aria-Group`(값 상자)다. 자체 카드(`--bg-raised` 상자 + 아이콘 박스)를 만들면 같은 화면의 Properties/Styles 필드와 라벨 위치·표면·아이콘 크기가 전부 갈린다 (2026-08-30 Monitor `StatCard` 7개). **차트·미터 같은 데이터 시각화는 대상이 아니다** — 값 한 칸이 아니라 그림이다.
-- **`.control-button` 은 unstyled RAC `Button` 위에 얹는다** — `@composition/shared/components` 의 스타일드 `Button` 을 쓰면 그쪽 variant 채움이 함께 걸려 같은 줄의 두 버튼이 서로 다른 표면이 된다 (Monitor 의 Optimize 만 어두운 채움이었다). 다수 호출부(AddPageDialog / DataTableCreator / ColumnSelector …)가 이미 RAC `Button` 이다.
-- **구조 클래스에 패널별 twin 을 만들지 않는다** — `{도메인}-panel-tabs/tabrow/tablist` 처럼 CSS 규칙 0건인 이름은 중복만 늘린다 (2026-08-30 실측: 20개 companion 중 11개가 규칙 0건). 오버라이드가 필요하면 조상 스코프로 건다 (`.monitor-panel .panel-tablist { display: grid; … }`). 실제 규칙이 붙는 companion 만 병기한다. 집행: `panelTabs.static.test.ts`.
-  - **Why (2026-08-30 통일)**: DataTable 4개 바가 `<div>`+`<button>`+`.active` 수동 구현이라 `role="tab"`·`aria-selected`·화살표 키·focus 링이 전부 없었고, 선택 상태를 `--accent` 채움으로 그려 뷰 전환 탭이 패널에서 가장 강한 요소가 됐다. hover 배경(`--bg-raised`)이 바 배경과 같아 보이지도 않았다. Monitor 는 마크업만 RAC 이고 CSS 가 자체 계열이었다. 셋 다 공용으로 흡수 — 선택은 표면(`--bg-overlay` + `--shadow-sm`), accent 채움은 primary 액션·값 선택 축에 남긴다.
+  바 크롬(32px·`--chrome-surface`·`inset` 그림자 하단 선, `styles/layout/canvas.css`)은 **`.panel-header` 가 이미 준다** — `.panel-tabrow` 는 헤더 패딩만 0 으로 되돌리는 modifier다. 래퍼를 빼고 같은 값을 tablist 에 다시 쓰면 크롬 정의가 두 곳이 되고 패널 골격도 갈린다.
+- **탭 패널의 본문은 `TabPanel` = `.panel-contents`** — 스크롤·패딩·배경을 갖는 본문은 탭 **안**이다. `.panel-contents` 가 `Tabs` 를 감싸면 탭 줄까지 본문 크롬을 받고, 실제 본문은 로컬 클래스로 스크롤을 다시 정의하게 된다 (2026-08-30 실측: 삭제된 Monitor 패널 5곳이 `.monitor-tab-panel`, 나머지 6곳은 전부 `.panel-contents`). `Tabs` 가 탭 줄만 감싸고 본문을 형제 `.panel-contents` 에 두는 형태(DataTable 편집기)는 `TabPanel` 을 쓰지 않으므로 이 조항 밖이다. 집행: `panelTabs.static.test.ts`.
+- **읽기 전용 값 표시도 패널 필드 어법을 쓴다** — 라벨+값 한 칸은 `fieldset.properties-aria` + `legend.fieldset-legend` + `.react-aria-Group`(값 상자)다. 자체 카드(`--bg-raised` 상자 + 아이콘 박스)를 만들면 같은 화면의 Properties/Styles 필드와 라벨 위치·표면·아이콘 크기가 전부 갈린다 (2026-08-30 삭제된 Monitor 패널의 `StatCard` 7개). **차트·미터 같은 데이터 시각화는 대상이 아니다** — 값 한 칸이 아니라 그림이다.
+- **`.control-button` 은 unstyled RAC `Button` 위에 얹는다** — `@composition/shared/components` 의 스타일드 `Button` 을 쓰면 그쪽 variant 채움이 함께 걸려 같은 줄의 두 버튼이 서로 다른 표면이 된다 (삭제된 Monitor 패널의 Optimize 만 어두운 채움이었다).
+- **구조 클래스에 패널별 twin 을 만들지 않는다** — `{도메인}-panel-tabs/tabrow/tablist` 처럼 CSS 규칙 0건인 이름은 중복만 늘린다 (2026-08-30 실측: 20개 companion 중 11개가 규칙 0건). 오버라이드가 필요하면 조상 스코프로 건다 (`.themes-panel .section-content { display: grid; … }`). 실제 규칙이 붙는 companion 만 병기한다. 집행: `panelTabs.static.test.ts`.
+  - **Why (2026-08-30 통일)**: DataTable 4개 바가 `<div>`+`<button>`+`.active` 수동 구현이라 `role="tab"`·`aria-selected`·화살표 키·focus 링이 전부 없었고, 선택 상태를 `--accent` 채움으로 그려 뷰 전환 탭이 패널에서 가장 강한 요소가 됐다. hover 배경(`--bg-raised`)이 바 배경과 같아 보이지도 않았다. Monitor (삭제됨) 는 마크업만 RAC 이고 CSS 가 자체 계열이었다. 셋 다 공용으로 흡수 — 선택 탭 모양은 아래 `PanelIconTabList` 항목, accent 채움은 primary 액션·값 선택 축에 남긴다.
 - **아이콘 탭 줄은 `PanelIconTabList` 하나** (`components/panel/`, 2026-11-10 사용자 결정 「Design 쪽 기준」) — 선택된 탭만 라벨을 달고 폭은 내용 (아이콘 + 라벨) 이 정한다 (남는 폭으로 늘이지 않는다 — 탭 수가 적은 패널만 넓어졌다). 비선택 탭은 아이콘 폭 + `aria-label` (hover 설명 `hint`, 표시 점 `marked`). Navigator · Design 이 같이 쓰고 모양은 panel-system.css `.panel-icon-tab*` 한 곳. 탭 줄 모양 (모든 `.panel-tablist`, 사용자 결정 2026-11-10 — 시안 C): 행 32 = 여백 4 + 탭 24 + 여백 4, 행 전체가 회색 띠 (`--bg-muted`), 선택 탭은 `--bg-overlay` pill (모서리 4). 둥근 트랙 (Theme mode 세그먼트) 은 쓰지 않는다 — 패널 안 값 고르기 컨트롤과 생김새가 같아진다. **Why**: Navigator 는 폭 320 이상이면 모든 탭에 라벨 (container query) · 같은 폭 · medium, Design 은 늘 선택 탭만 · 선택 탭이 늘어남 · regular 로 같은 모양을 두 벌로 구현해 넓은 폭에서 두 탭 줄이 달랐다.
-- **분류된 팔레트는 탭이 아니라 카테고리당 `Section`** — 고르는 대상이 카테고리로 묶여 있으면 `Section` 을 카테고리 수만큼 쌓는다 (ComponentList 가 정본, DataTableCreator preset 이 추종). 탭 줄로 만들면 패널 기본 폭(387px)에 라벨 5개가 안 들어가 가로 스크롤이 생기고 뒤쪽 카테고리가 상시 숨는다. 패널 탭 슬롯은 **패널 전체 뷰를 가르는 축 하나**만 차지한다 — 그 아래 필터·분류를 같은 모양의 두 번째 바로 쌓으면 두 축이 같은 무게로 읽힌다.
+- **분류된 팔레트는 탭이 아니라 카테고리당 `Section`** — 고르는 대상이 카테고리로 묶여 있으면 `Section` 을 카테고리 수만큼 쌓는다 (ComponentList 가 정본, DataTableCreator preset 이 추종). 탭 줄로 만들면 좁은 패널 폭에 라벨 5개가 안 들어가 가로 스크롤이 생기고 뒤쪽 카테고리가 상시 숨는다. 패널 탭 슬롯은 **패널 전체 뷰를 가르는 축 하나**만 차지한다 — 그 아래 필터·분류를 같은 모양의 두 번째 바로 쌓으면 두 축이 같은 무게로 읽힌다.
 
 - **라벨 액션 버튼은 `.control-button` 하나** — add / create / cancel / generate 처럼 **라벨을 가진 액션**은 전부 이 클래스이고 무게는 `data-variant` 로만 가른다: 무지정(중립 — 취소·보조 포함) / `primary`(accent 채움, 확정) / `add`(전폭 점선, 목록 끝 어포던스). 정의처는 panel-system.css 하나이며 높이는 `--control-size`(28px) — 패널의 필드·탭 줄과 같은 격자다. 축이 다른 것은 대상이 아니다: 아이콘 전용은 `.iconButton` / `ActionIconButton`, 패널 헤더 슬롯은 `.panel-actions`, 캔버스 오버레이는 `contextual-action-bar-*`, 여러 줄로 감기는 제안 카드(`.ai-suggestion`)는 빌더 chrome 이 아니다. 집행: `controlButton.static.test.ts`.
   - **Why (2026-08-30 통일)**: 라벨 액션 버튼이 25개 클래스 / 47개 호출부에서 각자 chrome 을 정의해 높이가 22·26·28·32·34·36·38px 로 갈렸다. 같은 "추가" 액션 6종의 배경 4·radius 2·글자 2·글자색 3이 전부 달랐고, `focus-visible` 은 29개 중 24개(83%)에 아예 없어 키보드로는 위치가 보이지 않았다. 어법(표면+테두리 / 점선 추가 / accent 확정) 자체는 이미 공유하고 있었으므로 새 언어를 만들지 않고, 유일하게 상태 4종을 갖췄던 `.control-button` 을 승격했다. 리터럴 이탈(`6px`/`13px`/`7px 12px`/`11px`/`white`)과 **정의된 적 없는 `--accent-fg`** 도 이때 정리했다 — `EditingSemanticsImpactDialog` 는 fallback 이 없어 `color` 선언 자체가 무효였다.
 
-  - **같은 액션 줄 안의 아이콘 전용 보조 버튼은 예외** — 라벨 버튼과 나란히 서는 보조 액션(Component 섹션의 Detach instance)은 `.iconButton` 이 아니라 같은 `.control-button` 에 조상 스코프 override 로 폭만 정사각(`--control-size`)으로 좁힌다. `.iconButton` 은 base 정의가 없고 맥락별로 chrome 을 각자 주는 클래스라, 한 줄 안에서 테두리·표면이 갈린다. `.iconButton` 이 맞는 자리는 축이 따로 있는 곳(패널 헤더, 섹션 헤더, 목록 행 액션)이다.
+  - **같은 액션 줄 안의 아이콘 전용 보조 버튼은 예외** — 라벨 버튼과 나란히 서는 보조 액션(Component 섹션의 Detach instance)은 `.iconButton` 이 아니라 같은 `.control-button` 에 조상 스코프 override 로 폭만 정사각(`--control-size`)으로 좁힌다. `.iconButton` 은 크기만 한 곳 (`styles/modules/builder-control-size.css`) 에서 정하고 chrome 은 맥락별로 각자 주는 클래스라, 한 줄 안에서 테두리·표면이 갈린다. `.iconButton` 이 맞는 자리는 축이 따로 있는 곳(패널 헤더, 섹션 헤더, 목록 행 액션)이다.
 
 - **팝업 목록 (Select · ComboBox · 고르기 팝오버) 은 정본 한 곳** — 행 모양 · hover · 선택 ✓ · 구역 머리글은 `styles/modules/builder-popup-list.css` 가 정한다. 목록 Popover 에는 `BUILDER_POPUP_LIST_CLASS` 를 붙이고, 패널 CSS 에 행 hover · focus 칠을 따로 쓰지 않는다. 목록 안쪽 여백은 모든 목록이 4 (`--spacing-xs` — 첫 행이 테두리에서 5) 이다 (`builderPopupList.static.test.ts`). 격자 목록 (아이콘 · 색 견본) 과 Menu 는 대상이 아니다. Select 는 `components/property/PanelSelect.tsx` (틀 — 트리거 내용만 호출부) 와 `PanelSelectItem` (이름 · 아래 설명 · 오른쪽 정보 · 색 점) 으로만 만든다 — RAC `Select` 직접 사용은 게이트 (c) 가 막는다. 검색되는 고르기 팝오버는 `components/property/SearchablePicker.tsx` (+ `SearchablePickerSection` · 선택 ✓ 는 `selectedKey` · 아래 관리 줄은 `footer`) 로만 만든다 — 글꼴 고르기 포함 — RAC `Autocomplete` 직접 사용은 게이트 (d) 의 허용 목록 (아이콘 격자 · 명령 팔레트 · 헤더 메뉴) 뿐. **Why (2026-11-09)**: 빌더 목록이 `--bg-raised` 위에 `--bg-overlay` 를 칠해 hover 가 거의 안 보였다 (catalog 목록은 gray-200 으로 뚜렷함). 파일 다섯이 같은 행 규칙을 따로 적어 값이 갈렸고, 구역 머리글은 다섯 벌이었다. PropertySelect 마크업 사본 넷 (바인딩 2 · 변수 유형 · CompactSelect) 은 PropertySelect 수정을 따라오지 않았다. 닫힌 `PanelSelect` 는 RAC 에 선택된 항목 하나만 준다 (`closedItems` — 항목은 `id` 로 찾으므로 감싸는 컴포넌트 없이 `PanelSelectItem` · `ListBoxItem` 을 직접 넘긴다) — 테스트는 숨은 `<select>` 를 조작하지 않고 열어서 항목을 누른다. **Why (2026-11-13)**: RAC `Select` 가 항목마다 숨은 `<option>` 을 만들어 (폼 제출 · 자동 완성용 — 패널은 안 씀) Locale 선택칸 하나가 선택마다 37 개를 DOM 에 넣었다.
 - **패널 날짜 칸은 `PanelDatePicker`** (`components/property/` — `PanelDatePicker` · `PanelDateRangePicker`, RAC DatePicker · DateRangePicker · TimeField + 달력 팝오버). 값은 저장 ISO 글자를 주고받고 시간대 · 소수 초는 `dateValueFromNativeInput` 이 지킨다. 키보드로 친 segment 는 칸을 떠날 때 (또는 Enter) 쓴다. **Why (2026-11-12 사용자 결정)**: 브라우저 날짜 입력은 select · combobox 와 모양 · 팝업이 달랐고 ISO 글자 전환은 비개발자에게 뜻이 없었다. RAC 는 연도를 한 자리씩 칠 때마다 온전한 날짜 (0002) 를 알려, 바로 쓰면 문서에 중간 값이 들어간다. 변수 표 · 데이터 격자 · 행 폼은 `DateValueInput` (`PanelDatePicker` 를 감싼 셀 편집기 — `deferTyping={false}` 로 바뀔 때마다 알리고, Enter · Tab · Esc · ⌘/Ctrl 키는 capture 로 호출부에 넘긴다 — DatePicker 의 Enter 는 RAC 가 `onKeyDown` 으로도 bubble 로도 내보내지 않는다, 2026-11-12 실측). 달력을 닫을 때 RAC 의 focus 복원 이벤트 (`react-aria-focus-scope-restore`) 는 `DateValueInput` 이 자기 안에서 멈춘다 — 둘레 RAC 표 (`useSelectableCollection`) 가 그 이벤트를 취소하고 자기 셀에 focus 를 주어, 편집이 열린 채 키를 못 받았다 (2026-11-12 live · 원복 RED `VariableTable.test.tsx` 「calendar keeps the edit」). 표 편집기의 셀 이동 잠금은 `hooks/useTableNavigationLock.ts` 하나.
 - **패널 컨트롤은 RAC** — 빌더 JSX 에 native `<button>` · `<input>` · `<textarea>` · `<select>` 를 쓰지 않는다: `Button` · `ToggleButton` (눌림 상태) · `Input` · `TextArea` · `FileTrigger` (+ `DropZone`) · 공용 `Checkbox` · `PanelSelect`. RAC `Button` 은 `title` 을 넘기지 않으니 풍선은 `ActionTooltipTrigger`, 비활성 이유는 `DisabledReason`. class 없는 RAC `Input` 에는 기본 class (`react-aria-Input`) 가 붙어 빌더 위젯 Input 모양이 걸리므로 class 를 직접 준다. 예외는 `nativeControls.static.test.ts` 허용 목록 (끌기 손잡이 · Canvas 위 편집기 · 메뉴가 여는 file input) 뿐. **Why (2026-11-10)**: native 컨트롤 약 100 곳이 hover · focus 를 `:hover` · `:focus` 로 따로 적었고, Image fill 미리보기 (`div onClick`) 는 키보드로 열 수 없었다.
-- **목록 행의 보조 액션 2개 이상은 `PropertyRowMenu`** (`components/property/`) — `.fieldset-row` 의 `.fieldset-actions` 칸에 `⋮` 트리거 하나 + RAC Menu (Move Up / Move Down / Reset / Remove …). 인스펙터 행 템플릿의 아이콘 칸은 `--control-size` 하나라 버튼을 나란히 두면 필드가 폭을 잃는다 (233px 패널: 필드 2 + 아이콘 3 = 필드당 49px). 유니코드 화살표·`×` 를 버튼 라벨로 쓰지 않는다 (Chart 시리즈·값 필드 행, 2026-09-11).
+- **목록 행의 보조 액션 2개 이상은 `PropertyRowMenu`** (`components/property/`) — `.fieldset-row` 의 `.fieldset-actions` 칸에 `⋮` 트리거 하나 + RAC Menu (Move Up / Move Down / Reset / Remove …). 인스펙터 행 템플릿의 아이콘 칸은 `--control-size` 하나라 버튼을 나란히 두면 필드가 폭을 잃는다 (233px 패널 실측: 필드 2 + 아이콘 3 = 필드당 49px). 유니코드 화살표·`×` 를 버튼 라벨로 쓰지 않는다 (Chart 시리즈·값 필드 행, 2026-09-11).
+- **입력 앞 표시는 Figma 방식** (사용자 결정 2026-11-10) — 숫자 칸은 칸 안에 표시, 셀렉트 · 스위치 앞에는 아이콘을 두지 않는다. 집행: `components/property/fieldPrefixIcon.static.test.ts`.
 - **필드 상태 문구는 필드 안 `slot="description"`** (`PropertySelect.afterControl`) — 값·데이터에 반응하는 메시지 (disabled 사유 · 초과 · 누락) 만. 정적 설명 문단 (`<p class="…-hint">`) 은 섹션에 두지 않는다 — legend 뒤 help 어포던스는 후속 (i18n 키는 유지).
 - **catalog 파생 섹션에 비-catalog 컨트롤을 넣는 채널은 `GenericFieldRenderer` 의 `contentExtras` (content 선두) · `sectionLeads` (section 별 앞머리 — 데이터 원천 행 바로 뒤) · `sectionExtras` (section 별 말미)** 셋뿐. Collection 은 Data source (`dataBinding`) 행이 늘 첫 행이다 — Chart 의 데이터 (원천 · 모드 · 값 필드 · 시간축 · 축 필드 · 표본 행) 도 목록과 같은 Collection 이고 (「Data」 섹션 없음, 2026-11-12 섹션 병합 5단계) 모드 · 값 필드 · 시간축은 축 필드보다 먼저 정하는 것이라 `sectionLeads` 로 선다. 섹션 순서 · 제목 · 분류 묶음은 `GenericFieldRenderer` 의 `DISPLAY_SECTIONS` 표 한 곳이다 — 순서 (Content → Value → Collection → Series → Layout → Behavior (계약 key `state`) → Locale — 2026-09-15 사용자 판정 `4eba1eabb`, Value 는 2026-11-12 사용자 결정 「재배치」: 레퍼런스 고유 state — 값 · 선택 · 열림 · 펼침 — 를 모은 구획, 같은 개념은 한 칸) 이고, 계약의 `section` 은 필드의 뜻 (분류) 이라 화면 섹션과 1:1 이 아니다 — 표의 `members` 가 분류를 화면 섹션에 모은다 (Content = `content` + `appearance`, Behavior = `state` · `validation` · `forms` · `overlay` · `interaction` · `accessibility` — 행은 이 분류 순서로 묶음마다 서고 칩은 섹션당 한 묶음. 2026-11-12 사용자 결정 「Property 탭 섹션 병합」: 컴포넌트마다 속성이 달라 분류마다 섹션을 세우면 필드 하나짜리 접기 헤더가 늘어난다. 섹션을 따로 세우는 기준은 필드 수가 아니라 작업 단위 — Collection · Series · State 는 독립, Validation · Forms · Overlay 는 Behavior 안 묶음. prop key 하나는 모든 컴포넌트에서 같은 분류다 — `propSectionConsistency.test.ts`), 표 밖 섹션은 그 뒤에 계약의 `section` 첫 등장 순서 (`editorHidden` 필드 포함) 로 선다. 섹션 구성은 catalog 계약이 소유한다 — 패널 코드에서 `PropertySection` 을 직접 쌓아 순서를 만들지 않는다. 계약 밖 컨트롤 (옛 고정 섹션 — Slot · Item roles · Item fields · 항목 「+」 · Show when · Accessibility) 도 자기 섹션을 세우지 않고 `CatalogFields` 가 `sectionExtras` 로 Content (`appearance` 끝) · Collection · Behavior (`accessibility` 끝) 에 넣는다 — 이름은 `CatalogPropertyGroup` 의 legend. Property 탭에서 계약 섹션 밖에 서는 것은 Component (맨 앞, Component properties 포함) · 페이지 설정 · State (맨 끝, Set by variable 포함) 뿐이다 (2026-11-12 섹션 병합 3단계). 주입 컨트롤만 든 섹션은 `section-when-filled` 라 그 컨트롤이 아무것도 그리지 않으면 제목째 숨는다. **Why**: 계약 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는 State 가 Appearance 앞) 같은 패널에서 섹션 자리가 바뀌었다.
 - **칸은 그 대상이 읽는 prop 만 — 「전 종류 공통」 이라 조건을 빼지 않는다**: 한 binding 이 여러 종류를 받으면 (Chart 36 종) 모든 종류가 읽는 칸만 조건 없이 두고 나머지는 `visibleWhen` 을 단다 — 종류 판정은 그리는 쪽의 소비 목록 (Chart descriptor `options` → `chartTypesReading`) 에서 읽는다. 다른 값에 달린 칸은 `all` · `any` 로 (구멍 없는 pie 의 Center Label). 검사는 값을 바꿔 그림이 달라지는지로 하고 조건 없는 칸도 본다 (`chartVisibleWhen.test.ts`). **Why (2026-11-16 /fix)**: 범례 · 값 이름표 · 범례 자리를 「공통」 으로 두어 family 21 · 12 · 6 종에서 패널에만 있는 칸이 됐고, 검사가 조건 없는 칸을 건너뛰어 잡지 못했다.
@@ -83,32 +84,34 @@ Design 패널 (id `properties`) 의 Property 탭은 `CatalogPropertiesBody`, Lay
 
 **Prefix 예약표** — 아래 prefix/클래스는 구조 예약어. 패널 로컬 CSS 에서 신규 정의/재정의 금지:
 
-| 예약                                                                     | 의미                                                             | 정의처 (유일)                      |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------- |
-| `panel`, `panel-*`                                                       | 패널 골격 (header/icon/title/actions/contents/tabs)              | panel-system.css                   |
-| `section`, `section-*`                                                   | 섹션 골격 (header/title/actions/content/divider)                 | panel-system.css                   |
-| `properties-aria`, `fieldset-legend`, `fieldset-actions`, `fieldset-row` | 필드 그룹 계층                                                   | panel-system.css                   |
-| `actions-*`                                                              | `.fieldset-actions` 병기 modifier (grid-area 지정)               | 섹션별 grid — inspector-layout.css |
-| `property-*`                                                             | `components/property/` 공용 위젯 전용                            | 위젯 co-located CSS                |
-| `react-aria-*`                                                           | RAC 네임스페이스 — 자작 클래스 신규 부여 금지 (기존 관례만 유지) | —                                  |
-| `iconButton`, `empty-state`, `tab(s)-*`                                  | 공용 위젯 — 단일 정의로 통합 (Phase 4-a)                         | panel-system.css                   |
+| 예약                                                                     | 의미                                                             | 정의처 (유일)                             |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------- | ----------------------------------------- |
+| `panel`, `panel-*`                                                       | 패널 골격 (header/icon/title/actions/contents/tabs)              | allowlist ¹                               |
+| `section`, `section-*`                                                   | 섹션 골격 (header/title/actions/content/divider)                 | allowlist ¹                               |
+| `properties-aria`, `fieldset-legend`, `fieldset-actions`, `fieldset-row` | 필드 그룹 계층                                                   | allowlist ¹                               |
+| `actions-*`                                                              | `.fieldset-actions` 병기 modifier (grid-area 지정)               | 섹션별 grid — inspector-layout.css        |
+| `property-*`                                                             | `components/property/` 공용 위젯 전용                            | 위젯 co-located CSS                       |
+| `react-aria-*`                                                           | RAC 네임스페이스 — 자작 클래스 신규 부여 금지 (기존 관례만 유지) | —                                         |
+| `iconButton`                                                             | 공용 위젯 — 크기 단일 정의                                       | `styles/modules/builder-control-size.css` |
+
+¹ `reservedPrefix.static.test.ts` 의 `INFRA_ALLOWLIST` (panel-system.css · `styles/layout/canvas.css` 등 8 파일).
 
 **base 정의 vs 인스턴스 override** — 예약 prefix 금지는 **base 정의**(조상 스코프 없이 예약 클래스 단독 선언)에만 걸린다. 같은 compound 에 고유 클래스·속성이 덧붙은 형태(`.section.block-view`, `.section[data-section-id="x"]`)나 조상 스코프 안의 규칙(`.navigator-panel-content .section .section-content`)은 **인스턴스 한정 override** 라 허용 — 구조 정본을 대체하는 두 번째 소스가 아니라 특정 인스턴스만 조정하기 때문. 판정은 `reservedPrefix.static.test.ts` 가 기계 집행한다.
 
-- 패널 고유 클래스는 `{도메인}-{역할}` kebab-case (`component-semantics-row`, `datatable-creator-tabs` 형태). camelCase 금지 (기존 `.iconButton`/`elementItem*` 는 rename 기각 — 참조 churn 대비 이득 없음, 예약어로 의미 고정).
+- 패널 고유 클래스는 `{도메인}-{역할}` kebab-case (`themes-panel`, `datatable-surface` 형태). camelCase 금지 (기존 `.iconButton`/`elementItem*` 는 rename 기각 — 참조 churn 대비 이득 없음, 예약어로 의미 고정).
 - **state 표현은 data-attribute 우선** (`data-active`/`data-status`/`data-drag-over` — RAC 관례 정합). 접두 없는 bare modifier 클래스 (`.add`/`.warning`/`.sm`) 신규 금지 — modifier 필요 시 `{고유클래스}--{state}` 또는 data-attr. **기존 compound**(`.list-item.selected` 등 20종, base 정의 0건)는 owner 종속 state 패턴이라 존치 — 소급 전환 안 함(ADR-163 Phase 4-c 판정).
 - 신규 `data-panel` id 는 kebab-case (기존 id 는 persist key 라 rename 안 함).
-- `properties-aria` 는 이름이 부정확해도 **rename 기각 확정** — 참조 26곳 churn 대비 이득 없음. 본 예약표의 의미 고정으로 갈음(재론 시 별도 ADR).
+- `properties-aria` 는 이름이 부정확해도 **rename 기각 확정** — 참조 48 파일 churn 대비 이득 없음. 본 예약표의 의미 고정으로 갈음(재론 시 별도 ADR).
 - 테스트 쿼리는 role 우선 (`getByRole("group", { name })` — getByLabelText 는 fieldset/legend 미인식, @testing-library/dom 10.4.1).
 
 ## 3. CSS 모듈화 규칙
 
-- **구조 정본**: panel-system.css 가 구조 클래스의 유일 정의처. **top-level 선택자만** — `.section` 블록 내부에 `.panel-wrapper` 중첩 금지 (조상-자손 순서가 실제 DOM 과 반대라 영구 무매칭 dead 블록이 된다. 정적 가드 `panel-system.static.test.ts` 로 차단).
+- **구조 정본**: 구조 클래스는 `reservedPrefix.static.test.ts` 의 `INFRA_ALLOWLIST` 파일에서만 정의한다 (중심은 panel-system.css). **top-level 선택자만** — `.section` 블록 내부에 `.panel-wrapper` 중첩 금지 (조상-자손 순서가 실제 DOM 과 반대라 영구 무매칭 dead 블록이 된다. 정적 가드 `panel-system.static.test.ts` 로 차단).
 - **패널 전용 CSS**: 해당 패널 디렉터리에 co-locate. 단 구조 클래스 **base 정의** 금지, 고유 클래스만 (정적 가드 `reservedPrefix.static.test.ts` — 인프라 allowlist 밖 CSS 에서 `panel-*`/`section-*`/`fieldset-*`/`tab-*` base 정의 0건 단언). 패널 밖 CSS(`Workspace.css` 등) 차용 금지.
-- **구조 클래스가 정말 공용이면 rename 이 아니라 승격**: 여러 패널이 같은 역할로 쓰면 panel-system.css top-level 로 올린다 (`.section-divider` 사례). 한 패널 전용이면 도메인 접두로 rename 한다 (`.panel-tabs` → `.datatable-tabs` 사례).
-- **Tailwind 유틸 인라인 금지** (기존 CRITICAL 규칙): 시맨틱 클래스 + 토큰으로 대체. builder 패널 컨텍스트에서 `--fg-muted`≡`--color-gray-500`, `--fg-disabled`≡`--color-gray-400`, `--negative`≡`--color-red-500`, `--informative`≡`--color-blue-500`, `--spacing-lg`≡16px(`p-4`), `--spacing-sm`≡8px(`ml-2`) 이므로 light mode diff 0 로 치환 가능하다. **`--spacing-{1..6}` / `--text-md` 는 미정의 토큰** — 쓰면 선언 자체가 무효가 된다 (구 `TableEditor.css` 의 `padding: var(--spacing-4)` 가 0 으로 죽어 있던 사례). 실존 스케일은 `xs/sm/md/lg/xl/2xl`.
+- **구조 클래스가 정말 공용이면 rename 이 아니라 승격**: 여러 패널이 같은 역할로 쓰면 panel-system.css top-level 로 올린다 (`.section-divider` 사례). 한 패널 전용이면 도메인 접두로 rename 한다.
+- **Tailwind 유틸 인라인 금지** (기존 CRITICAL 규칙): 시맨틱 클래스 + 토큰으로 대체. builder 패널 컨텍스트에서 `--fg-disabled`≡`--color-gray-400`, `--negative`≡`--color-red-500`, `--informative`≡`--color-blue-500`, `--spacing-lg`≡16px(`p-4`), `--spacing-sm`≡8px(`ml-2`) 이므로 light mode diff 0 로 치환 가능하다. **`--spacing-{1..6}` / `--text-md` / `--font-size-*` 는 미정의 토큰** — 쓰면 선언 자체가 무효가 된다 (구 `TableEditor.css` 의 `padding: var(--spacing-4)` 가 0 으로 죽어 있던 사례). 실존 스케일은 `0/3xs/2xs/xs/sm/md/lg/xl/2xl/3xl/4xl` (`shared-tokens.css`). 값 대응은 [css-tokens.md](css-tokens.md) 가 정본이다.
 - **섹션별 grid 배치**: inspector-layout.css 의 `.section { &[data-section-id="…"] .section-content {…} }` 패턴 (조상 `.section` 먼저 → live). 인스펙터 3열 컬럼 템플릿 SSOT 는 `--inspector-row-columns` 토큰 (`.section` 정의, ADR-163 Phase 4-b — 구 9회 재선언 단일화). 각 섹션 wrapper 는 `grid-template-columns: var(--inspector-row-columns)` + 고유 `grid-template-areas` 조합. 리터럴 `1fr 1fr var(--control-size)` 신규 재선언 금지. `.fieldset-row`(신규 패널 표준, §4)도 이 토큰 사용.
-- 공용 위젯(`.iconButton`, `.empty-state`, `.panel-tabs`)은 단일 파일 1회 정의로 통합.
+- 공용 위젯(`.iconButton`, `.panel-tabs`)은 단일 파일 1회 정의로 통합.
 
 ## 4. 상관관계 계약 (클래스 간 필수 쌍/위치)
 
@@ -123,8 +126,7 @@ Design 패널 (id `properties`) 의 Property 탭은 `CatalogPropertiesBody`, Lay
 
 ## 예외
 
-- **navigator**: 확정 예외 (사용자 지정 2026-07-24). 탭+가상화 트리가 Section 모델과 불일치. 단 시맨틱 토큰(`--editing-semantics-*`)은 공유, "구조 클래스 재정의 금지" 는 적용 (`elementItem*` camelCase 존치 허용).
-- **events**: 보류 (전면 재구성 대기). field 시스템(`.field/.field-label/…`) 포함 내부 구조 전체가 대상 외. 재구성 시 본 표준 적용이 전제.
+- **navigator**: 확정 예외 (사용자 지정 2026-07-24). 섹션 본문이 fieldset 이 아닌 가상화 트리라 §1 의 필드 계층을 따르지 않는다 (`Section` · `PanelIconTabList` · `panelContents()` 는 쓴다). 단 시맨틱 토큰(`--editing-semantics-*`)은 공유, "구조 클래스 재정의 금지" 는 적용 (`elementItem*` camelCase 존치 허용).
 - 예외/보류 패널도 §2 예약표 (구조 클래스 재정의 금지) 는 적용.
 
 ## 아이콘 — 여러 화면에 나오는 액션은 정본에서 고른다 (2026-08-16)
@@ -137,7 +139,7 @@ Design 패널 (id `properties`) 의 Property 탭은 `CatalogPropertiesBody`, Lay
 - **"추가" 어포던스는 `Plus` 하나** — 아이콘 단독 버튼이든 텍스트 동반 버튼이든 같다. 예외는 **같은 화면에서 두 종류를 더할 때의 구분 변종**뿐 (묶음 추가 `FolderPlus` ↔ 항목 추가 `Plus` — 2026-11-12 `ItemsManager` 의 묶음 추가를 걷어내 지금 쓰는 곳은 없다). 구분할 상대가 없으면 변종을 쓰지 않는다.
   - **Why (기각한 대안)**: 실측상 "아이콘 단독 = `CirclePlus` / 텍스트 동반 = `Plus`" 라는 잠재 규칙이 있었고 `CirclePlus` 6/6 이 일치했다. 채택하지 않은 이유 — ① 이미 새고 있었다(FillSection 2건은 아이콘 단독인데 `Plus`) ② **기계 집행이 불가능하다** (JSX 형제에 텍스트 노드가 있는지로 판정해야 해 정적 스캔이 취약) ③ `PanelHeader actions` 자리의 다른 아이콘(gear/trash)이 전부 선화 단독이라 거기서 원형 변종만 튄다.
 - **같은 화면 그룹 안에서 두 항목이 같은 그림이면 그 열은 정보가 0이다** — 한 토글 그룹 / 한 탭 줄 / 한 섹션의 필드들은 서로 다른 그림이어야 한다. 뜻이 맞아도 변별이 없으면 부적합이다 (2026-08-30 전수조사 실측: Typography 4필드 전부 `Type`, justify 3옵션 중 2개가 `AlignHorizontalSpaceAround`, API 탭 body/response 둘 다 `FileJson`, radial gradient 4필드가 `MoveHorizontal`/`MoveVertical` 2개). 반대로 **상호 배타적인 분기**(linear/radial gradient, 접힘/펼침 모드)나 **같은 뜻의 반복**(메모리 지표 4장)은 같은 그림이 맞다.
-- **패널 정체 아이콘은 rail ↔ 패널 헤더가 같아야 하고, 그 패널 안의 행 아이콘과 달라야 한다** — 옆 패널의 모든 행에 깔린 그림을 rail 에 쓰면 식별 장치가 아니다 (같은 실측: Navigator rail `File` = LayerTree 잎 노드, Components rail `Box` = LayerTree 요소 노드). 다른 패널의 정체 아이콘을 빌려 쓰는 것도 같은 이유로 금지 — 헤더 메뉴의 Monitor 항목이 `Monitor`(같은 헤더의 desktop breakpoint), Monitor 패널의 History 카드가 `Activity`(패널 자신) 였다.
+- **패널 정체 아이콘은 rail ↔ 패널 헤더가 같아야 하고, 그 패널 안의 행 아이콘과 달라야 한다** — 옆 패널의 모든 행에 깔린 그림을 rail 에 쓰면 식별 장치가 아니다 (같은 실측: Navigator rail `File` = LayerTree 잎 노드, Components rail `Box` = LayerTree 요소 노드). 다른 패널의 정체 아이콘을 빌려 쓰는 것도 같은 이유로 금지 — 삭제된 Monitor 패널 시절 헤더 메뉴의 Monitor 항목이 `Monitor`(같은 헤더의 desktop breakpoint), Monitor 패널의 History 카드가 `Activity`(패널 자신) 였다.
 
 - 판정 기준은 **"같은 그림" 이 아니라 "같은 액션"**. 심볼만 겹치는 것은 `INTENTIONAL_DIVERGENCE` 에 사유와 함께 등재한다 — TypographySection 의 정렬 6종은 `textAlign` **스타일 값**, `PropertyNumberInput` 의 `Plus` 는 `Minus` 와 짝인 **스테퍼 증가**, 랜딩(`App.tsx`)의 아이콘은 액션 없는 장식.
 
@@ -153,11 +155,10 @@ Design 패널 (id `properties`) 의 Property 탭은 `CatalogPropertiesBody`, Lay
 - ❌ `.section-content` 자체를 grid 로 (가로 배치는 `.fieldset-row` 한 겹)
 - ❌ `properties-aria` 를 `<div>`+`<legend>` 로 (invalid HTML). `<fieldset>` 전환 시 `min-inline-size: min-content` 기본값을 고유 클래스 `min-width: 0` 으로 해제하지 않으면 폭 거동이 달라진다
 - ❌ 구조 예약 prefix (`panel-*`/`section-*`/`fieldset-*`/`tab-*`) 를 패널 로컬 CSS 에서 **base 정의** (`reservedPrefix.static.test.ts` FAIL). 인스턴스 한정 override 는 허용
-- ❌ `tab-*` 를 탭 아닌 리스트/오버뷰에 사용 (properties editor 계열은 `editor-*` 사용)
 - ❌ 접두 없는 bare modifier 클래스 신규 (`.add`/`.warning`/`.sm`)
 - ❌ camelCase 고유 클래스 신규 (`{도메인}-{역할}` kebab-case)
 - ❌ Tailwind 인라인 클래스 (기존 CRITICAL 규칙 — style-no-inline-tailwind)
-- ❌ 미정의 토큰 사용 (`--spacing-{1..6}`, `--text-md`) — 선언이 통째로 무효화된다
+- ❌ 미정의 토큰 사용 (`--spacing-{1..6}`, `--text-md`, `--font-size-*`) — 선언이 통째로 무효화된다
 - ❌ `ACTION_ICONS` 등재 액션의 아이콘을 `lucide-react` 에서 직접 import (`actionIcons.static.test.ts` FAIL)
 - ❌ 금지 변종 사용 — `Trash`(→`delete`) / `Ruler`(→`toggleRulers`) / `CirclePlus`·`PlusCircle`(→`add`)
 - ❌ "추가" 버튼이 아이콘 단독이라고 원형 변종 사용 — 구분할 상대가 있을 때만 변종
@@ -168,5 +169,5 @@ Design 패널 (id `properties`) 의 Property 탭은 `CatalogPropertiesBody`, Lay
 
 - ADR-163 본문 / design breakdown
 - 정적 가드: `apps/builder/src/builder/components/styles/{panel-system,reservedPrefix}.static.test.ts`
-- 공용 부품: `apps/builder/src/builder/components/panel/{Section,PanelHeader}.tsx`
+- 공용 부품: `apps/builder/src/builder/components/panel/{Section,PanelHeader,PanelContents,PanelIconTabList,SectionSplitStack}.tsx`
 - memory: feedback-panel-field-group-fieldset-legend-pattern · project-properties-aria-nested-selector-dead

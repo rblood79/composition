@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Reviews code quality and checks convention compliance against SKILL.md rules for composition. Use when the user asks for a code review of a diff or commit, or for rule compliance checking.
+description: Reviews code quality and checks convention compliance against SKILL.md rules for composition. Use only when the user explicitly asks to delegate a code review to this agent — otherwise the main session runs the review skill.
 model: opus
 color: yellow
 tools:

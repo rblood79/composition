@@ -1,7 +1,6 @@
 ---
 name: cross-check
 description: Canvas와 Preview의 시각 차이를 조사하거나 catalog·렌더러 변경의 정합성을 검증할 때 사용.
-user-invocable: true
 ---
 
 # Canvas ↔ Preview 정합성

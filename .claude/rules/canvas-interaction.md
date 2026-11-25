@@ -15,12 +15,12 @@ paths:
 
 ## 8.5 Clip-Aware Hit Bounds — 원본 박스 ↔ 히트 영역 분리
 
-포인터 판정(클릭 선택 / 호버 아웃라인 / 휠 스크롤 타깃 / 드롭 타깃)은 **렌더러가 실제로 그린 영역만** 대상으로 해야 한다. `renderCommands.buildRenderCommandStream` (`canvasBinding.ts` 가 호출) 은 이를 위해 **두 맵**을 낸다.
+포인터 판정(클릭 선택 / 호버 아웃라인 / 드롭 타깃)은 **렌더러가 실제로 그린 영역만** 대상으로 해야 한다. `renderCommands.buildRenderCommandStream` (`canvasBinding.ts` 가 호출) 은 이를 위해 **두 맵**을 낸다.
 
-| 맵                                   | 내용                             | 소비자                                                                                       |
-| ------------------------------------ | -------------------------------- | -------------------------------------------------------------------------------------------- |
-| `boundsMap` (`getSceneBounds`)       | 요소 **원본 박스** (클립 미적용) | 선택 오버레이 / TextEditOverlay / AI 이펙트 / overflowInfoMap / 측정                         |
-| `hitBoundsMap` (`getSceneHitBounds`) | 원본 박스 ∩ **조상 clip rect**   | SpatialIndex(`syncSpatialIndex`) / 호버 AABB / 휠 스크롤 타깃 / **콘텐츠성 오버레이 chrome** |
+| 맵                                           | 내용                             | 소비자                                                                                                                    |
+| -------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `boundsMap` (`scene.stream.boundsMap`)       | 요소 **원본 박스** (클립 미적용) | 선택 오버레이 / 글자 편집 상자 (`CatalogTextEditor`) / AI 이펙트 / 측정                                                   |
+| `hitBoundsMap` (`scene.stream.hitBoundsMap`) | 원본 박스 ∩ **조상 clip rect**   | SpatialIndex (`syncSpatialIndex`) / 클릭 · 호버 판정 (`canvasPick.ts` `pickTopmostRecord`) / **콘텐츠성 오버레이 chrome** |
 
 `CatalogCanvas` 는 `scene.stream.hitBoundsMap` 을 쓴다.
 
@@ -28,10 +28,10 @@ paths:
 
 | chrome                                                                                                                                                                           | 맵             | 이유                                                                       |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------- |
-| 선택 박스 / 리사이즈 핸들 / 프레임 타이틀                                                                                                                                        | `boundsMap`    | 요소를 **가리키는** 표식 — 일부가 잘려도 전체 범위를 보여야 조작 가능      |
+| 선택 박스 / 리사이즈 핸들                                                                                                                                                        | `boundsMap`    | 요소를 **가리키는** 표식 — 일부가 잘려도 전체 범위를 보여야 조작 가능      |
 | slot 해치·테두리 (`catalogSlotMarks`), collection remainder (`catalogRowRemainders`), 호버 chrome **전체** — 자식 점선 가이드라인 + context 실선 아웃라인 (`catalogOverlayNode`) | `hitBoundsMap` | **내용이 놓일 자리**를 그리는 콘텐츠성 chrome — 실제 내용과 같이 잘려야 함 |
 
-(`catalogSlotMarks` · `catalogRowRemainders` 는 `workspace/canvas/catalog/catalogChrome.ts`, 페이지 가림 `createCatalogPageChrome` 은 `catalogChromeSpatial.ts`, `catalogOverlayNode` · `withOccluders` 는 `catalogOverlay.ts`.)
+(`catalogSlotMarks` 는 `workspace/canvas/catalog/catalogChrome.ts`, `catalogRowRemainders` 는 `catalogRuntime/rowSample.ts`, 페이지 가림 `createCatalogPageChrome` 은 `catalogChromeSpatial.ts`, `catalogOverlayNode` · `withOccluders` 는 `catalogOverlay.ts`.)
 
 - **콘텐츠성 chrome 의 목록은 scene 버전으로 보관한다** (2026-10-21, `catalogOverlayChrome.ts` — `CatalogCanvas` 의 `cellsVersion`): slot 표시 · 행 나머지 · 페이지 가림 상자는 record 전체를 훑어 만드는데 입력 (record · 상자) 은 scene 이 바뀔 때만 움직인다. camera-only 프레임마다 다시 만들지 않는다 — ratchet `render.overlayChromeBuilt` (pan 0). hover · 선택이 바뀌어도 다시 만들지 않는다 (overlay 버전 ≠ scene 버전). **Why**: 22 페이지 · record 11k 문서의 pan 에서 프레임당 ~~1 ms, 120 Hz 에서 busy 12~~18 % 였다.
 
@@ -40,13 +40,13 @@ paths:
 - 호버 아웃라인은 **선택 박스와 다르다**. 선택 박스는 핸들을 잡아야 하므로 부분 클립돼도 원본 박스를 유지하지만, 호버 아웃라인은 조작 대상이 없는 순간 피드백이라 가시 영역만 그린다. 전부 잘리면 아웃라인 자체를 생성하지 않는다. **Why (2026-07-24 사용자 보고)**: slot 컴포넌트에 마우스를 올린 채 스크롤해 컨테이너가 프레임 밖으로 밀리면, 자식 점선만 사라지고 **실선 아웃라인은 캔버스 배경에 그대로 남았다** (context 분기만 원본 박스 맵을 쓰고 있었음).
 - 단 **page body 는 예외** — 조상이 없어 clip 대상이 아니고 두 맵 모두에 없을 수 있다. 프레임 경계 폴백을 그대로 둔다.
 - **페이지끼리는 조상 관계가 아니라 `hitBoundsMap` 클립이 잡지 못한다** (2026-08-12). 겹친 페이지의 가림은 페인트 순서의 산물이다 — `CatalogCanvasScene` 의 `activeRoot` 가 활성 페이지 root 를 마지막에 그리고, 클릭 판정은 스트림 순서를 따라 같이 바뀐다. 콘텐츠성 chrome (슬롯 해치 · 행 생략 · hover 외곽선 · 점선 · overflow 해치) 은 `createCatalogPageChrome().occludersOf` → `withOccluders` 가 소유 페이지보다 페인트 순서가 뒤인 페이지 rect 를 `ClipOp.Difference` 로 제외하고 그린다. 바인딩 배지는 기준점이 가려지면 그리지도 누르지도 않는다. **Why (2026-08-12 사용자 보고)**: 아래 페이지의 빈 슬롯 해치가 위(활성) 페이지 body 위에 그대로 그려졌다. 2026-10-04 에는 catalog 전환 뒤 문서 순서로만 그려 활성 페이지 내용이 겹친 페이지 아래로 숨었다 — 같은 규칙으로 복구.
-- **페이지 헤더는 DOM 층이다** (ADR-221, 2026-09-17). 헤더 띠·타이틀·이름 편집은 `overlay/pageHeader/PageHeaderLayer` (`CatalogCanvas.tsx` 가 마운트) 가 `.canvas-container` 안에서 그리고, `usePageHeaderPlacement` 가 Skia 프레임 presentation 을 구독해 화면 px 로 배치한다. **페이지 간 occlusion 은 clip-path** — 위 (페인트 순서 뒤) 페이지의 body ∪ 헤더 rect 에 가려지는 구간을 `inset()` 하나로 잘라 보이지도 잡히지도 않게 한다 (clip 밖은 pointer 대상 아님). 히트는 헤더 노드 자체의 native pointerdown/dblclick (컨테이너 bubble pan·중앙 핸들러보다 먼저) 이고, 헤더 press 는 `headerPressRef` 로 Skia 선판정을 건너뛴다. 카메라 제스처 (휠 pan/zoom · 스페이스 pan) 중에는 `cameraGestureActive` 게이트로 층을 숨기고 배치를 멈추며 (제스처 중 DOM 쓰기 0), 층 컴포넌트는 `frames` 를 마지막 settle 스냅샷으로 **동결**해 mount/unmount 도 0 이다 — gate-off 커밋의 layoutEffect 가 최신 집합 배치 1회 뒤 `data-hidden` 을 뗀다 (commit-before-reveal, ADR-226). 헤더 화면 폭 (`frame.width × settle zoom`) 이 96 px 미만이면 `data-lod="compact"` — 액션 버튼 미렌더 · gap 0 (판정 입력은 settle 스냅샷뿐, 편집 중은 항상 full). 프레임 타이틀은 여전히 Skia `renderPageTitle` — 히트가 없어 이관 대상이 아니다.
+- **페이지 헤더는 DOM 층이다** (ADR-221, 2026-09-17). 헤더 띠·타이틀·이름 편집은 `overlay/pageHeader/PageHeaderLayer` (`CatalogCanvas.tsx` 가 마운트) 가 `.canvas-container` 안에서 그리고, `usePageHeaderPlacement` 가 Skia 프레임 presentation 을 구독해 화면 px 로 배치한다. **페이지 간 occlusion 은 clip-path** — 위 (페인트 순서 뒤) 페이지의 body ∪ 헤더 rect 에 가려지는 구간을 `inset()` 하나로 잘라 보이지도 잡히지도 않게 한다 (clip 밖은 pointer 대상 아님). 히트는 헤더 노드 자체의 native pointerdown/dblclick (컨테이너 bubble pan·중앙 핸들러보다 먼저) 이고, 헤더 press 는 `headerPressRef` 로 Skia 선판정을 건너뛴다. 카메라 제스처 (휠 pan/zoom · 스페이스 pan) 중에는 `cameraGestureActive` 게이트로 층을 숨기고 배치를 멈추며 (제스처 중 DOM 쓰기 0), 층 컴포넌트는 `frames` 를 마지막 settle 스냅샷으로 **동결**해 mount/unmount 도 0 이다 — gate-off 커밋의 layoutEffect 가 최신 집합 배치 1회 뒤 `data-hidden` 을 뗀다 (commit-before-reveal, ADR-226). 헤더 화면 폭 (`frame.width × settle zoom`) 이 96 px 미만이면 `data-lod="compact"` — 액션 버튼 미렌더 · gap 0 (판정 입력은 settle 스냅샷뿐, 편집 중은 항상 full).
 
 - 클립 교차는 `intersectBoxes()` (`selection/types.ts`) 단일 수식. 렌더 커맨드의 조상 clip 교차와 오버레이 가시 영역 산출이 같은 함수를 쓴다.
 - padding inset 같은 **요소 상대** 변환은 원본 박스 기준으로 먼저 하고, 가시 영역 클립은 **그 다음**이다. 순서를 바꾸면 잘린 요소의 inset 이 잘린 박스 기준이 돼 어긋난다.
 - **Why (2026-07-24 실측)**: slot 해치가 자기 bounds 로만 `clipRect` 를 걸어서 원본 박스를 넘기면 조상 클립을 전혀 받지 않았다. page body(`overflow:auto`, 390x844) 를 스크롤해 프레임 밖으로 나간 ListBox 해치가 프레임 상단 경계 **위로 66px** 캔버스 배경에 그려졌다. 같은 요소의 히트 영역은 이미 클립돼 있어 **"보이는데 클릭은 안 되는"** 비대칭이 됐다.
 
-- clip rect 계약은 렌더러와 **1:1 미러**: `CMD_CHILDREN_BEGIN` 이 `clipChildren` 일 때 `(0,0,clipWidth,clipHeight)` 로 클립하므로, 절대 좌표 clip rect = `(absX, absY, clipWidth, clipHeight)`. **자기 자신은 클립되지 않고 자식만** 클립된다.
+- clip rect 계약은 렌더러와 **1:1 미러**: `CMD_CHILDREN_BEGIN` 이 `clipChildren` 일 때 `(0,0,width,height)` 를 `clipBorderInset` (작성한 균일 테두리) 만큼 안으로 줄여 클립하므로, 절대 좌표 clip rect = `(absX + inset, absY + inset, width − 2·inset, height − 2·inset)` (`childClipRectOf`). **자기 자신은 클립되지 않고 자식만** 클립된다.
 - scroll translate 는 clip **뒤**에 적용되므로 clip rect 원점에는 스크롤 위치 (property node — `propertyNodes.ts`) 를 반영하지 않는다 (자식 절대 좌표에는 이미 차감돼 있음).
 - 교차 결과가 비면 `hitBoundsMap` 에 **미등재** = 히트 불가. 조상 clip 이 완전히 비면 서브트리에 `EMPTY_CLIP`(크기 0)을 전파한다 — `null`(=클립 없음)로 되돌리면 전부 잘린 서브트리가 오히려 무제한 히트 가능해진다.
 - drag top-layer 재방문(`renderAsTopLayer`)은 clip save/restore **밖**에서 그려지므로 clip 미적용(`clipRect = null`)으로 재방문한다.
@@ -54,8 +54,8 @@ paths:
 
 ### 금지 패턴
 
-- ❌ 포인터 판정에 `boundsMap` / `getSceneBounds` 사용 → `hitBoundsMap` / `getSceneHitBounds` 필수
-- ❌ **선택 박스·핸들·프레임 타이틀**·측정에 `hitBoundsMap` 사용 → 부분 클립 요소의 선택 박스·텍스트 편집 위치가 잘림
+- ❌ 포인터 판정에 `boundsMap` 사용 → `hitBoundsMap` 필수
+- ❌ **선택 박스·핸들**·측정에 `hitBoundsMap` 사용 → 부분 클립 요소의 선택 박스·텍스트 편집 위치가 잘림
 - ❌ **콘텐츠성 오버레이 chrome**(slot 해치/테두리, collection remainder, 자식 가이드라인)에 `boundsMap` 사용 → 오버레이 패스는 씬 clip 밖이라 프레임·overflow 컨테이너를 뚫고 그려진다
 - ❌ 콘텐츠성 chrome 을 `withOccluders` 없이 직접 render → 조상 clip(`hitBoundsMap`)은 페이지 간 가림을 모른다 — 아래 페이지 chrome 이 위 페이지 body 를 가로지른다
 - ❌ 오버레이 chrome 에서 요소 상대 변환(padding inset 등)을 클립 **뒤**에 적용 → 잘린 박스 기준 inset 으로 어긋남
@@ -93,29 +93,30 @@ paths:
 
 - **리사이즈 live reflow의 미리보기는 선택박스와 같은 scene bounds를 사용한다** (`canvasGesture.ts` `preview`). 일반 흐름 요소의 left/top 핸들은 크기만 기록하고 부모 레이아웃이 정한 좌상단을 유지한다. authored absolute 배치의 위치 제약과 Grid 셀 스냅은 별도 경로다. **Why (2026-10-21 실측)**: flow Section의 left/top을 40px 당기면 미리보기만 반대편 고정으로 이동하고 실제 요소는 부모 위치에서 늘어나 두 박스가 40px 어긋났다. ratio의 종속 크기도 요청값이 아니라 레이아웃 결과를 따른다.
 
-포인터 판정에 쓰이는 값은 **전부 scene 좌표**다. 클릭 좌표(`CatalogCanvas.tsx` `scenePoint` 결과 — `(client − rect − viewport) / zoom`), 히트 bounds(`getSceneHitBounds`), 선택 박스(`selectionBoxLeader`, `CatalogCanvas.tsx`) 셋이 같은 계여야 한다.
+포인터 판정에 쓰이는 값은 **전부 scene 좌표**다. 클릭 좌표(`CatalogCanvas.tsx` `scenePoint` 결과 — `(client − rect − viewport) / zoom`), 히트 bounds (`scene.stream.hitBoundsMap`), 선택 박스(`selectionBoxLeader`, `CatalogCanvas.tsx`) 셋이 같은 계여야 한다.
 
-- `getSceneBounds` 는 **이미 scene 좌표**를 반환한다. 여기에 `panOffset` 을 빼거나 `zoom` 으로 나누는 보정을 **추가하지 않는다**.
-- 선택 박스 계산의 body 분기는 raw 페이지 좌표를 쓴다. 요소 분기도 동일해야 하며, 한 함수 안에서 두 좌표계가 섞이면 안 된다.
+- stream 의 `boundsMap` 은 **이미 scene 좌표**를 반환한다. 여기에 `panOffset` 을 빼거나 `zoom` 으로 나누는 보정을 **추가하지 않는다**.
+- 선택 박스 계산 (`selectionBoxLeader`) 은 page body 를 빼고 요소의 scene 상자만 합친다. 한 함수 안에서 두 좌표계가 섞이면 안 된다.
 - **Why (2026-07-24, 40클릭 실측)**: 요소 분기만 `(bounds - panOffset) / zoom` 보정을 하고 있었다 (옛 PixiJS `getBounds()` 가 screen 좌표를 주던 시절의 잔재). zoom=1 에서도 선택 박스가 `panOffset` 만큼 통째로 이동 — 실측 `component-listbox` scene `20,188 350x110` → 계산값 `-195,-40 350x110`. 그 유령 박스에 걸린 클릭이 `inSelectionBounds` 로 판정돼 **선택이 통째로 무시**됐다(실패 10/40, 그 중 9건이 `inSelectionBounds=true`). 유령 박스 위치가 pan 과 선택 요소 위치의 조합에 좌우돼 **컴포넌트와 무관하게 불특정**하게 재현됐다. 노드 트리 선택은 이 경로를 안 거쳐 항상 정상 — 비대칭이 진단 단서였다.
 
 ### 금지 패턴
 
 - ❌ scene 좌표 bounds 에 `panOffset` 감산 / `zoom` 제산 추가
 - ❌ 한 bounds 계산 함수 안에서 body 분기와 요소 분기가 다른 좌표계 사용
-- ❌ 선택이 "가끔" 안 되는 증상을 히트 테스트 문제로 단정 — `inSelectionBounds` 가드가 먼저 삼키는지 확인 (히트는 성공하고 그 뒤 단계에서 버려질 수 있다)
+- ❌ 선택이 "가끔" 안 되는 증상을 히트 테스트 문제로 단정 — 선택 박스 가드 (`inSelectionBox`)가 먼저 삼키는지 확인 (히트는 성공하고 그 뒤 단계에서 버려질 수 있다)
 
 ## 8.8 드래그 의도 판정 — bbox 아닌 계층 정규화 타깃
 
-pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지의 판정은 **선택 박스 안인가**가 아니라 **커서 아래 요소를 현재 편집 맥락 깊이로 정규화한 결과가 지금 선택된 요소인가**로 한다. 단일 진입점은 `CatalogCanvas.tsx` pointerdown — `picking.target(x, y, deep)` (`canvasPick.ts`, 현재 맥락 깊이로 정규화) 이 선택돼 있으면 `beginMove`, 아니면 `picking.click`.
+pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지의 판정은 **선택 박스 안인가**가 아니라 **커서 아래 요소를 현재 편집 맥락 깊이로 정규화한 결과가 지금 선택된 요소인가**로 한다. 단일 진입점은 `CatalogCanvas.tsx` pointerdown — `picking.targetKeepingSelection(x, y, deep)` (`canvasPick.ts` — 현재 맥락 깊이로 정규화, 선택된 조상 유지) 의 결과가 선택돼 있으면 `beginMove`, 아니면 `picking.click`.
 
-| 클릭 대상                                  | 드래그 의도 | 결과                                                   |
-| ------------------------------------------ | :---------: | ------------------------------------------------------ |
-| 선택 요소 자신                             |     ✅      | 선택 유지 + `beginMove`                                |
-| 선택 요소의 자손 (정규화 결과가 선택 요소) |     ✅      | 선택 유지 + `beginMove`                                |
-| **선택 박스에 겹쳤을 뿐인 다른 요소**      |     ❌      | **그 요소를 새로 선택**                                |
-| body 선택 상태                             |     ❌      | 자식 클릭이 정상 선택                                  |
-| 히트 없음                                  |     ✅      | 기존 동작 보존 — 빈 영역이어도 박스 안이면 드래그 핸들 |
+| 클릭 대상                                            | 드래그 의도 | 결과                                                      |
+| ---------------------------------------------------- | :---------: | --------------------------------------------------------- |
+| 선택 요소 자신                                       |     ✅      | 선택 유지 + `beginMove`                                   |
+| 선택 요소의 자손 (정규화 결과가 선택 요소)           |     ✅      | 선택 유지 + `beginMove`                                   |
+| **선택 박스에 겹쳤을 뿐인 다른 요소**                |     ❌      | **그 요소를 새로 선택**                                   |
+| body 선택 상태                                       |     ❌      | 자식 클릭이 정상 선택                                     |
+| 히트 없음 또는 page body, 다중 선택의 합집합 박스 안 |     ✅      | 선택 유지 + `beginMove` (`selectionBoxLeader`)            |
+| 선택된 page body                                     |      —      | 페이지 프레임 이동 (`beginPageDrag`), 홈 페이지는 marquee |
 
 - 선택된 자손을 유지하는 `targetKeepingSelection`에서도 page body (`parentId === "catalog:root"`)를 제외한다. 더블클릭은 진입할 child가 없어도 클릭 대상을 선택한 뒤 텍스트 편집 판정을 허용한다. **Why (2026-10-21)**: pointerdown이 선택된 Body를 유지하고 더블클릭은 child 진입 때만 선택을 바꿔, Card의 빈 padding 영역에서는 Body 선택이 남았다 (실제 Builder 및 Frame·Card 회귀 테스트 재현).
 - 깊이 진입은 **더블클릭 + 편집 맥락** (`canvasPick.ts` `doubleClick` → `session.enterContext`) 가 전담한다. 드래그 의도 판정이 깊이 모델을 겸하면 안 된다 — 두 축이 섞이면 겹친 형제 클릭이 삼켜진다.

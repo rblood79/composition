@@ -28,13 +28,13 @@
 - `CalendarHeader` 는 `BOX_SIZE_TYPES` (`ruleShapes.ts`) — 우측 chevron / 가운데 text 좌표가 상자 폭 의존 (`_containerWidth` 주입).
 - `Calendar` / `RangeCalendar` 는 `SHELL_ONLY_TYPES` (`rulePaint.ts`) — 자식 수 무관 `_hasChildren=true` (ADR-072).
 
-## Overlay 자식 제외 (Popover 류)
+## Overlay 본체 숨김 (Popover 류)
 
-`TRIGGER_OVERLAY_CHILDREN` (`catalogRuntime/presence.ts`) — 트리거 컴포넌트가 닫힌 overlay 에 두는 자식 (DatePicker → Calendar/Popover, Select/ComboBox → ListBox 계열/Popover, DialogTrigger, Menu …). 레이아웃은 상자를 주지 않고 Canvas 는 그리지 않는다 — Preview 에서 overlay 로 열리는 것과 같은 결과.
+`catalogHiddenAtRest` (`packages/shared/src/catalog/runtime/presence.ts`) 의 `OVERLAY_BODY_TYPES` 분기 — 닫힌 overlay 본체 (Popover · Dialog · Menu …) 는 `displayState: "open"` · origin 카드 · 열림 상태가 아니면 숨는다. 숨긴 record 는 레이아웃에 참여하지 않고 (`layoutParticipation.ts`) Canvas 는 그리지 않는다 — Preview 에서 overlay 로 열리는 것과 같은 결과.
 
 ## Pointer → Move
 
-`CatalogCanvas.tsx` pointerdown → `picking.target(x, y, deep)` (현재 맥락 깊이로 정규화) → 선택돼 있으면 `gestures.beginMove` → `CatalogCanvasGestures.beginMove` (`catalogRuntime/canvasGesture.ts`) 가 `host.selection()` 을 읽어 이동 대상을 정한다. 히트한 원시 id 를 이동 대상으로 넘기지 않는다 — 위반 시 컴포넌트 반복 선택 · 더블클릭 때 내부 자식이 의도치 않게 이동한다. 판정 표는 [canvas-interaction.md](../../../rules/canvas-interaction.md) §8.8.
+`CatalogCanvas.tsx` pointerdown → `picking.targetKeepingSelection(x, y, deep)` (현재 맥락 깊이로 정규화 · 선택된 조상 유지) → 선택돼 있으면 `gestures.beginMove` → `CatalogCanvasGestures.beginMove` (`catalogRuntime/canvasGesture.ts`) 가 `host.selection()` 을 읽어 이동 대상을 정한다. 히트한 원시 id 를 이동 대상으로 넘기지 않는다 — 위반 시 컴포넌트 반복 선택 · 더블클릭 때 내부 자식이 의도치 않게 이동한다. 판정 표는 [canvas-interaction.md](../../../rules/canvas-interaction.md) §8.8.
 
 ## Arc Shape 렌더링 (ProgressCircle 등)
 
@@ -63,7 +63,7 @@ shape 생성기가 상자 크기를 필요로 할 때:
 
 - 렌더러: `nodeRendererText.ts` 가 CSS 체인 전체를 `resolveFamily()` 로 매핑 (Canvas 2D 문자열과 fallback Paragraph 둘 다 `resolvedFamilies` 에서).
 - CSS fontFamily 문자열을 단일 배열 요소로 넘기지 않는다 (CanvasKit 매칭 실패 → fallback 폰트 → 폭 차이). 첫 폰트만 추출 (`split(",")[0]`) 도 금지.
-- 기본 fallback 은 `CANVAS_FONT_FALLBACK_FAMILIES` (`fonts/customFonts.ts`), 텍스트 binding 은 `catalogFontFamilies` (`catalogRuntime/boxModel.ts`).
+- 기본 fallback 은 `CANVAS_FONT_FALLBACK_FAMILIES` (`fonts/customFonts.ts`), 텍스트 binding 은 `catalogFontFamilies` (`packages/shared/src/catalog/runtime/boxModel.ts`).
 - **FontMgr 교체 시 캐시 clear**: Paragraph 캐시 (`nodeRendererText.ts`) 와 Canvas 2D 세그먼트 캐시 (`utils/canvas2dSegmentCache.ts`) 는 별도 관리 (렌더 vs 측정).
 
 ## 텍스트 측정 ↔ 렌더 오차 처리
@@ -72,3 +72,13 @@ shape 생성기가 상자 크기를 필요로 할 때:
 - **Break Hint**: `nodeRendererText.ts` — Canvas 2D 가 줄바꿈을 정해 `\n` 으로 넣고 CanvasKit 에 강제 (ADR-051).
 - **post-layout 교정**: `paragraph.layout()` 뒤 `\n` 없는 단일줄이 줄바꿈되면 `getMaxIntrinsicWidth() + 1` 로 재layout. 상세는 [child-composition.md](child-composition.md) §4.
 - `getMaxIntrinsicWidth()` 는 반드시 `layout()` 이후에 부른다 (이전이면 0).
+
+## 옛 규칙 기록
+
+`.claude/rules/canvas-rendering.md` 에서 뺀 규칙의 원문이다. 가리키는 장치 (`scale: 1.2 1` thumb · `mixWithBlackSrgb` · `parseLineHeight`) 는 지금 코드에 없다 — Switch 는 S2 치수 (`SWITCH_INDICATOR_SELECTORS`, ADR-295), color-mix 헬퍼는 ADR-302 에서 삭제, Label lineHeight 는 비율 숫자 (`visual.lineHeight`).
+
+- Switch thumb의 의도된 눌림 확대 `scale: 1.2 1`은 유지하고 이동은 독립 `translate`로 분리한다. 확대 기준은 선택 시 오른쪽, 해제 시 왼쪽 끝이다. **Why (2026-10-19)**: `scale: 1.2 1`과 `transform: translateX(100%)`를 함께 쓰면 이동량까지 확대돼 M thumb가 오른쪽으로 2.8px 돌출했다 (실제 Preview 재현). 바깥 끝을 고정하면 트랙 안쪽으로만 늘어난다.
+- Switch indicator는 thumb를 세로 중앙에 배치한다. **Why (2026-10-19)**: XL 트랙 30px·thumb 24px에 border 2px만으로 배치하면 위 2px·아래 4px가 되어 Canvas의 중앙 배치보다 1px 위로 치우친다.
+- Switch XL의 좌우 끝 여백도 `(trackHeight - thumbSize) / 2`로 잡고 이동량은 `trackWidth - trackHeight`로 계산한다. **Why (2026-10-19)**: XL의 `translate: 100%`는 24px이어서 세로 중앙 정렬 뒤에도 오른쪽 여백이 2px로 남았다. Canvas의 offset 3px에 맞추려면 시작 여백 3px·이동량 22px이 필요하다.
+- Skia color-mix: `mixWithBlackSrgb()` 사용 (oklch 근사 금지). **Why**: srgb 혼합과 수학적으로 다른 결과
+- ❌ Label lineHeight를 숫자로 전달 (parseLineHeight가 배율로 해석 → `"20px"` 문자열 필수)

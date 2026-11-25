@@ -1,6 +1,6 @@
 ---
 name: evaluate
-description: 실행 중인 Builder의 사용자 흐름과 시각·상태 동기화를 브라우저로 검증할 때 사용.
+description: 실행 중인 Builder의 사용자 흐름과 시각·상태 동기화를 브라우저로 검증할 때 사용. Canvas↔Preview 시각 비교는 cross-check, 커밋 직전 확인은 verify.
 argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
 ---
 
@@ -9,7 +9,7 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
 요청한 완료 기준을 실제 브라우저에서 확인하고 PASS/FAIL/BLOCKED 와 재현 근거를 보고합니다.
 기준이 없으면 변경에서 영향을 받는 사용자 흐름을 도출합니다.
 
-현재 dev 서버와 대상 탭을 확인합니다. dev 서버는 기본 5173 (병렬 worktree 는 `DEV_PORTS`),
+현재 dev 서버와 대상 탭을 확인합니다. dev 서버는 5173 (병렬 worktree 는 `vite --port 5174` — [verify](../verify/SKILL.md) 의 서버 항목. `DEV_PORTS` 는 `pnpm dev:kill` 이 끌 포트만 정합니다),
 브라우저 도구는 세션에 있는 것을 씁니다. 로컬 실행이 요청 범위에
 포함되면 기존 설정으로 서버를 실행해 확인합니다. 실행할 수 없으면 이유와 미검증 범위를 남깁니다.
 

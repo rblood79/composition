@@ -1,6 +1,6 @@
 ---
 name: review
-description: Composition 코드 변경의 정확성·회귀·계약 위반을 리뷰할 때 사용. ADR 문서는 review-adr.
+description: Composition 코드 변경의 정확성·회귀·계약 위반을 프로젝트 계약 체크리스트로 리뷰할 때 사용 (이 저장소의 코드 리뷰 기본). ADR 문서는 review-adr.
 argument-hint: [검토 범위 — 생략 시 dirty 변경 + HEAD 커밋]
 ---
 

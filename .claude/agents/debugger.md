@@ -1,6 +1,6 @@
 ---
 name: debugger
-description: Debugs issues, tracks down bugs, analyzes performance problems, and investigates crashes in composition. Use when the user reports rendering bugs, FPS drops, state management errors, or communication failures.
+description: Debugs issues, tracks down bugs, analyzes performance problems, and investigates crashes in composition. Use only when the user explicitly asks to delegate a bug investigation (rendering bugs, FPS drops, state management errors, communication failures) to this agent — otherwise the main session runs the fix skill.
 model: opus
 color: red
 tools:

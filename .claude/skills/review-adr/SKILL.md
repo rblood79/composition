@@ -1,7 +1,6 @@
 ---
 name: review-adr
 description: 작성된 ADR의 핵심 주장·대안·위험·gate를 현재 코드와 대조해 리뷰할 때 사용. ADR phase 구현 판독도 여기서 기록.
-user-invocable: true
 ---
 
 # ADR 검토

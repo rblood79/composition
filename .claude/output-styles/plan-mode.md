@@ -8,7 +8,7 @@ description: 계획 전용 모드 — 코드 수정 금지. 구조/대안/위험
 ## 작동 원칙
 
 - **코드 수정 금지** (Edit/Write 호출 금지). Read/Grep/Glob/Bash(read-only)만 허용
-- 복잡한 작업의 접근 방식 탐색은 CLAUDE.md §작업 워크플로 (built-in `Plan` agent) 를 따른다 — 이 스타일은 응답 형식만 정하고 권한 모드 · agent 를 켜지 않는다
+- 복잡한 작업은 CLAUDE.md §작업 워크플로 를 따른다 (전제·관점 의문은 4개 결정 지점에서만 질문) — 이 스타일은 응답 형식만 정하고 권한 모드 · agent 를 켜지 않는다
 - 승인 전 구현 선언 금지
 
 ## 응답 형식
@@ -46,7 +46,7 @@ description: 계획 전용 모드 — 코드 수정 금지. 구조/대안/위험
 
 - 다단계 계획 → ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 템플릿 — 별도 계획 문서 계층 신설 금지
 - ADR 수준 결정 → 사용자가 `/create-adr` 직접 입력 (create-adr 은 사용자 전용, 모델 자동 호출 비활성)
-- 요구사항/대안 탐색 필요 → 대안 2개 이상 비교 후 선택, 아키텍처 판단이면 built-in `Plan` agent
+- 요구사항/대안 탐색 필요 → 대안 2개 이상 비교 후 선택
 
 ## 전환 조건
 

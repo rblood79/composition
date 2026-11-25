@@ -41,8 +41,9 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 ### 사용자 explicit confirm 의무 (M2 — 2026-05-11 추가)
 
 4 질문 통과 후 ADR 본문 작성 직전, **claude 가 AskUserQuestion 으로 사용자 명시 confirm 요청 의무**. ADR 본문에 4 질문 lock-in 만으로 confirm 자동 처리 금지 (ADR-127 우회 패턴: 본문 self-lock-in 으로 사용자 confirm 단계 skip). confirm 받은 적 없으면 fork 차단 — 현 ADR scope 안 흡수 (옵션 1) 또는 직후 phase 흡수 (옵션 2). 정본: [premise-decision-points.md](premise-decision-points.md).
+사용자가 이번 요청으로 직접 지시한 분리는 그 요청을 confirm 으로 본다 — 이 의무는 모델이 제안하는 분리에 적용한다 (사용자 결정 2026-11-25, `create-adr` skill 과 같다).
 
-**종결 계약 연계 (2026-07-11)**: 이미 사용자 confirm 기록이 있는 fork 결정 (CLAUDE.md §전제·관점 의문 처리 — 전제 확정 종결 계약 성립) 은 재질문 금지. 기록이 confirm 의 지속 형태이며, 세션 경계로 소멸하지 않는다.
+**종결 계약 연계 (2026-07-11)**: 이미 사용자 confirm 기록이 있는 fork 결정 ([premise-decision-points.md](premise-decision-points.md) 의 전제 확정 종결 계약 성립) 은 재질문 금지. 기록이 confirm 의 지속 형태이며, 세션 경계로 소멸하지 않는다.
 
 ### 4 질문 통과 절차 (사용자 1회 confirm 필수)
 
@@ -65,7 +66,7 @@ design breakdown 의 phase 실행 중 다음은 통상 구현 판단이다. 질�
 - **sub-group N≥3 분할**: 단일 phase 를 Phase 2-A/B/C/D/E 같이 3 개 이상 sub-group 으로 분할
 - **commit 단위 sliver 분해**: `narrow ADR-NNN ...` / `Phase X-α/β/γ` 형식 commit 이 5 개 이상 누적 예상 — 단일 commit 통합이 가능한지 먼저 본다
 
-사후 보고를 두는 이유: ADR-126 Phase 2 는 5 sub-group 분할 + 22+ "narrow ..." commit 이 쌓이는 동안 아무도 알아채지 못했다. 사용자가 승인한 scope 자체가 바뀌면 (방향 전환 / 대폭 확장·축소) 결정 지점 ④ 로 질문한다 — [premise-decision-points.md](premise-decision-points.md).
+사후 보고를 두는 이유: ADR-126 Phase 2 는 5 sub-group 분할 + 22+ "narrow ..." commit 이 쌓이는 동안 아무도 알아채지 못했다. 사용자가 승인한 scope 자체가 바뀌면 (방향 전환 / 대폭 확장·축소) 결정 지점 4번으로 질문한다 — [premise-decision-points.md](premise-decision-points.md).
 
 ### 금지 패턴
 
@@ -79,7 +80,7 @@ design breakdown 의 phase 실행 중 다음은 통상 구현 판단이다. 질�
 
 ### Context
 
-- **측정 가능한 제약** (hard constraints): 성능 수치(60fps, <3초, <500KB), API 계약, 하위 호환
+- **측정 가능한 제약** (hard constraints): 성능 수치 (CLAUDE.md §성능 기준 — frame time 60Hz floor · 초기 로드 <3초 · ADR-201 이 승인한 현재 번들 상한), API 계약, 하위 호환
 - **측정 불가능한 제약**: 팀 역량, 일정, 외부 의존성 성숙도
 - 제약이 없으면 결정의 자유도가 무한 → Context가 약하면 Decision도 약하다
 
@@ -144,7 +145,7 @@ design breakdown 의 phase 실행 중 다음은 통상 구현 판단이다. 질�
 
 ```
 Proposed → Accepted    : Decision 섹션이 Gate를 모두 통과, 또는 Gate 없이 합의 완료
-Accepted → Implemented : 코드가 main에 머지, 검증 통과, 본문에 `### Live Exercise` 절 (실제 builder 에서 무엇을 exercise 했는지 — Stop hook 이 승격 시 요구)
+Accepted → Implemented : 코드가 main에 머지, 검증 통과, 본문에 `### Live Exercise` 절 (실제 builder 에서 무엇을 exercise 했는지 — Stop hook 이 미커밋 승격에 요구)
 Any      → Deprecated  : 더 이상 유효하지 않으나 후속 ADR 없음
 Any      → Superseded  : 후속 ADR이 이 결정을 대체. 본문 상단에 "Superseded by ADR-NNN" 필수
 ```
@@ -201,7 +202,7 @@ Proposed — YYYY-MM-DD
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분. 미기재 시 Stop hook 이 승격을 block)
+(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분. Stop hook 은 작업 트리에 남은 미커밋 승격만 검사한다 — 승격과 커밋을 한 턴에 하면 검사가 돌지 않으므로 커밋 전에 이 절을 직접 확인한다)
 
 ## Consequences
 
@@ -221,19 +222,13 @@ ADR 작성 후 아래를 자가 검증한다. 하나라도 실패하면 해당 �
 - [ ] 구현 상세가 ADR 본문이 아닌 design 문서에 있는가? (또는 구현 상세가 불필요한 수준인가?)
 - [ ] **Risks 섹션이 Decision 뒤 / Gates 앞에 있고, ID 표 형식으로 잔존 운영 위험을 집약했는가?** (또는 "잔존 HIGH 위험 없음" 명시)
 - [ ] Gate가 있거나, "잔존 HIGH 위험 없음"이 명시되어 있는가?
-- [ ] (Implemented 승격 시) `### Live Exercise` 절에 시나리오 · 결과 · 날짜 · Chrome MCP/사용자 confirm 구분이 있는가? — 대안: `docs/adr/evidence/NNN-*live*.md` 또는 run ledger `live-exercise pass` 기록. 없으면 `adr-status-sync-check.sh` 가 block (2026-08-28)
+- [ ] (Implemented 승격 시) `### Live Exercise` 절에 시나리오 · 결과 · 날짜 · Chrome MCP/사용자 confirm 구분이 있는가? — 대안: `docs/adr/evidence/NNN-*live*.md` 또는 run ledger `live-exercise pass` 기록. 없으면 `adr-status-sync-check.sh` 가 block — 미커밋 승격에만 (같은 턴에 커밋하면 검사가 돌지 않는다)
 
-### 반복 패턴 선차단 (experimental seed — introduced: 2026-04-20, review: 2026-10-20)
+### 반복 패턴 선차단
 
-> 2026-04-19 최근 10-ADR(054/056/063/075/076/078/079/100/102) 메타 분석에서 추출한 review-adr CRITICAL/HIGH 반복 카테고리 Top 1~3을 설계 단계에서 선차단.
->
-> **Sunset 정책**: 각 항목은 6개월 후(2026-10-20) effectiveness 재평가 필수. 해당 카테고리 빈도가 10-ADR 샘플에서 **1/10 이하로 감소**하면 본 서브섹션에서 제거(demotion). 미감소 시 유지. 다른 카테고리가 3/10 이상으로 부상하면 교체. **파이프라인 자체(이 서브섹션의 존재 근거)도 같은 시점에 counterfactual 재평가** — 이 seed가 없었다면 리뷰 품질이 어땠을까를 점검, 효용 불명확 시 전체 해체 고려.
->
-> 근거: Top 1 = 5/10 (Proposed 단계 코드 경로 확증 부재), Top 2 = 3/10 (SSOT/Spec 확장 시 Generator 미지원), Top 3 = 3/10 (BC migration cost 미수식화), 부차 = 3/10 (HIGH 누적 후 Phase 분리 후행).
+> 2026-04-19 최근 10-ADR 메타 분석에서 뽑은 review-adr CRITICAL/HIGH 반복 카테고리를 설계 단계에서 막는다. 2026-11-25 재평가 (ADR-307 ~ 316 리뷰 9건, 키워드 근사): 생성기 selector 지원 선언 0/9 · 호환 비용 수식화 1/9 로 기준 (1/10 이하) 에 들어 두 항목을 뺐다 — 호환 비용 항목은 「개발 단계 마이그레이션 코드 금지」 사용자 결정과도 맞지 않는다.
 
 - [ ] HIGH+ 위험을 명시할 때 **해당 코드 경로 파일/함수 3곳 이상 구체 인용**했는가? (#1, 5/10 — 추상 서술 대신 grep 가능한 경로 요구)
-- [ ] Spec/Generator 확장 ADR이면 **"Generator가 자식 selector/variant emit을 지원하는가?"** 를 Context에 선언했는가? (#2, 3/10 — SSOT debt 영구화 선차단)
-- [ ] BC 훼손 가능성이 있으면 **"X% 사용자 영향 / 평균 Y 파일 재직렬화"** 같이 수식화했는가? (#3, 3/10 — "기존 프로젝트 호환" 암묵화 차단)
 - [ ] HIGH+ threshold 초과 시 **"이 Phase를 별도 ADR로 분리 가능한가?"** 질문을 거쳤는가? (부차, 누적 착시 방지)
 - [ ] **추정 vs 실측 gap** (예: 추정 28 file vs 실측 70 file, 2.5배) 이 ADR fork 정당화 사유로 인용되었는가? **gap 은 절차 결함 (Phase 0 inventory freeze 부실), 전제 재검토 trigger 아님**. 본 ADR 안 Phase 0 inventory 보강 commit 으로 흡수, 새 ADR fork 사유 금지 (M3 — 2026-05-11, ADR-127 우회 사례)
 

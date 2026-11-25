@@ -40,6 +40,14 @@ paths:
   자료이며 WCAG 적합성을 대체하지 않는다.
 - hit target 기준은 desktop `24px`, mobile `44px`이다. Builder의 28px dense
   control은 desktop 계약이며, publish/mobile surface에는 44px 기준을 적용한다.
+  필드 안쪽 20px 단 (`css-tokens.md` §컨트롤 크기) 과 24px 기준의 관계는
+  아직 정하지 않았다.
+- 아래 원문의 `truncate` · `min-w-0` 같은 이름은 CSS 동작을 가리킨다. 이
+  저장소는 Tailwind 유틸을 인라인으로 쓰지 않으므로 시맨틱 클래스 + CSS 로
+  같은 동작을 준다.
+- 「native semantics 우선」 은 RAC 가 native 요소 (`button` · `input` …) 를
+  그리는 것으로 충족한다 — 패널은 native 컨트롤을 직접 쓰지 않고 RAC 를
+  거친다 (`panel-structure.md`).
 
 ---
 

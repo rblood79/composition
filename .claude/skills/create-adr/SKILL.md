@@ -1,7 +1,6 @@
 ---
 name: create-adr
 description: 사용자가 새 ADR 작성을 요청할 때 문서와 ADR 인덱스를 작성.
-user-invocable: true
 disable-model-invocation: true
 ---
 
@@ -23,7 +22,7 @@ disable-model-invocation: true
   목록으로 모읍니다. execute-adr 가 그 항목에 닿을 때 묻습니다.
 - 다단계 구현·파일 변경표는 `docs/adr/design/` breakdown으로 분리하고 본문에 연결합니다.
   `docs/adr/evidence/` 는 gitignore 된 로컬 폴더이므로 인벤토리·실측의 결론은 breakdown 에 둡니다.
-- 기존 ADR 분리는 선행 결정·데이터 모델 경계를 확인합니다. 분리는 결정 지점 ①
+- 기존 ADR 분리는 선행 결정·데이터 모델 경계를 확인합니다. 분리는 결정 지점 1번
   ([premise-decision-points.md](../../rules/premise-decision-points.md))이므로, 사용자가 이번
   요청으로 지시한 분리만 그 요청을 confirm 으로 보고 진행합니다. 요청에 없던 분리·새로운
   저장 스키마·범위 변경은 사용자에게 묻습니다.

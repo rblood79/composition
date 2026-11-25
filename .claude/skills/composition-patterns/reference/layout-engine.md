@@ -27,33 +27,33 @@
 CatalogBuilderCore (apps/builder/src/builder/main/CatalogBuilderCore.tsx)
   ├─ await initAllWasm()                     — engine WASM + CanvasKit 병렬 로드
   └─ createLayoutEngine()                    — wasm-bindings/layoutBridge.ts (factory seam)
-       → CatalogWorkspace → CatalogCompositionRoot (catalogRuntime/compositionRoot.ts)
+       → CatalogWorkspace → CatalogCompositionRoot (shared runtime/compositionRoot.ts)
             └─ new PersistentLayoutTree(engine) — 단일 root "catalog:root"
                  ├─ bind: buildFull("catalog:root", batch, childIds) → rewrap
                  ├─ 편집: applyRecord → addNode / updateNodeStyle (증분)
-                 └─ apply: computeLayout → rewrap (height-for-width 1회 재측정)
+                 └─ apply: computeLayout → rewrap (확정 폭 기준 재측정 — 계약은 rule §TS 잔존 계약)
                       └─ EngineLayout (wasm-bindings/engine.ts — 동기 wrapper)
                            └─ wasm.rs LayoutEngine → tree::LayoutTree (flex/block/grid dispatch)
 ```
 
 편집 한 번이 레이아웃까지 가는 6단계 (transaction 판정 → plan → planRecord → 엔진 반영 → 계산·rewrap → Canvas 반영) 는 정본 [layout-engine.md](../../../rules/layout-engine.md) 「레이아웃 재계산 경로」 표.
 
-| 계층                | 위치                                                                | 역할                                                                                                                                        |
-| ------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rust 커널           | `packages/engine/src/{flex,block,grid}.rs`                          | CSS 명세 기반 단일 컨테이너 solver (flat f32 계약)                                                                                          |
-| Rust 오케스트레이션 | `packages/engine/src/tree.rs`                                       | batch 트리 빌드 → post-order solve → dirty 증분 재계산                                                                                      |
-| WASM wrapper        | `packages/engine/src/wasm.rs`                                       | `LayoutTree` 를 JS `LayoutEngineAPI` 로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트)                                                      |
-| JS 동기 wrapper     | `apps/builder/src/builder/workspace/canvas/wasm-bindings/engine.ts` | raw 반환 (Uint32Array/Float32Array) → number[]/Map 변환                                                                                     |
-| 엔진 factory        | `wasm-bindings/layoutBridge.ts`                                     | `createLayoutEngine()` — 자체 엔진 단독 반환                                                                                                |
-| Persistent 트리     | `layout/engines/persistentLayoutTree.ts`                            | elementId↔handle 매핑, JSON 비교 증분 갱신                                                                                                  |
-| 엔진 입력 직렬화    | `catalogRuntime/compositionRoot.ts` `styleOf`                       | **production 의 유일한 엔진 입력 직렬화기** — `px()` · `containerTracks` (`parseGridTemplate`) · 텍스트 측정 스칼라 · `inheritedLineHeight` |
-| 텍스트 측정         | `catalogRuntime/textMeasure.ts` `catalogTextMeasure`                | CanvasKit paragraph (준비 전 Canvas 2D) — `engines/utils.ts` 의 측정 함수를 fallback 으로 씀                                                |
+| 계층                | 위치                                                                                                                            | 역할                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rust 커널           | `packages/engine/src/{flex,block,grid}.rs`                                                                                      | CSS 명세 기반 단일 컨테이너 solver (flat f32 계약)                                                                                          |
+| Rust 오케스트레이션 | `packages/engine/src/tree.rs`                                                                                                   | batch 트리 빌드 → post-order solve → dirty 증분 재계산                                                                                      |
+| WASM wrapper        | `packages/engine/src/wasm.rs`                                                                                                   | `LayoutTree` 를 JS `LayoutEngineAPI` 로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트)                                                      |
+| JS 동기 wrapper     | `apps/builder/src/builder/workspace/canvas/wasm-bindings/engine.ts`                                                             | raw 반환 (Uint32Array/Float32Array) → number[]/Map 변환                                                                                     |
+| 엔진 factory        | `wasm-bindings/layoutBridge.ts`                                                                                                 | `createLayoutEngine()` — 자체 엔진 단독 반환                                                                                                |
+| Persistent 트리     | `packages/shared/src/catalog/runtime/persistentLayoutTree.ts` (builder `layout/engines/` 의 같은 이름은 엔진을 주입하는 감싸개) | elementId↔handle 매핑, JSON 비교 증분 갱신                                                                                                  |
+| 엔진 입력 직렬화    | shared `runtime/compositionRoot.ts` `styleOf` (builder `catalogRuntime/compositionRoot.ts` 는 재수출)                           | **production 의 유일한 엔진 입력 직렬화기** — `px()` · `containerTracks` (`parseGridTemplate`) · 텍스트 측정 스칼라 · `inheritedLineHeight` |
+| 텍스트 측정         | `catalogRuntime/textMeasure.ts` `catalogTextMeasure`                                                                            | CanvasKit paragraph (준비 전 Canvas 2D) — `engines/utils.ts` 의 측정 함수를 fallback 으로 씀                                                |
 
 ### 어댑터 명명 (ADR-923 Phase 6 개명, 2026-09-03)
 
 `gridStyleAdapter.ts` / `persistentLayoutTree.ts` / `EngineStyle` (layoutTypes.ts) 는 값 변환·정규화만 하는 TypeScript 코드다 — 계산은 Rust 엔진이 한다. 남아 있던 `Taffy*` 식별자는 ADR-923 Phase 6 (`7f1cf963d`) 에서 `Engine*` 로 개명됐다 ("Taffy 가 계산한다" 로 읽혀 분석을 잘못 이끌었기 때문, ADR-923 R10). 개명 지도: `docs/adr/evidence/923-phase6-naming-capability-seed.md` §1.
 
-production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (compositionRoot `containerTracks`) 와 `persistentLayoutTree.ts` 뿐이다. 옛 `displayAdapter.ts` · `flexStyleAdapter.ts` · `blockStyleAdapter.ts` 는 2026-10-05 `fullTreeLayout.ts` 와 함께 삭제됐다.
+production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (compositionRoot `containerTracks`) 와 `persistentLayoutTree.ts` 뿐이다 (둘 다 `packages/shared/src/catalog/runtime/`). 옛 `displayAdapter.ts` · `flexStyleAdapter.ts` · `blockStyleAdapter.ts` 는 2026-10-05 `fullTreeLayout.ts` 와 함께 삭제됐다. 옛 `Taffy*` 이름은 ADR · evidence 이력 문서에만 남는다.
 
 ---
 
@@ -68,7 +68,7 @@ production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (co
 - 계산/수집: `computeLayout(root, availW, availH)` / `getLayoutsBatch(handles)`
 - 상태: `isAvailable()` / `clear()` / `nodeCount()`
 
-`getLayoutsBatch` 는 WASM 이 flat `[x0,y0,w0,h0, x1,...]` Float32Array 를 반환하면 `flatToLayoutMap()` (engine.ts:113) 이 handle 순서로 4개씩 잘라 `Map<handle, LayoutResult>` 로 재구성한다. `EngineLayout` 클래스는 engine.ts:135. `wasm.rs` 의 `js_name` 노출은 20개 (2026-10-04).
+`getLayoutsBatch` 는 WASM 이 flat `[x0,y0,w0,h0,b0, x1,...]` Float32Array (b = baseline) 를 반환하면 `flatToLayoutMap()` (engine.ts) 이 handle 순서로 5개씩 잘라 `Map<handle, LayoutResult>` 로 재구성한다. `EngineLayout` 클래스는 engine.ts:135. `wasm.rs` 의 `js_name` 노출은 20개 (2026-10-04).
 
 ### batch JSON 계약
 
@@ -100,19 +100,22 @@ production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (co
 
 `fullTreeLayout.ts` (DFS enrichment · implicit style 주입 · Label DFS 주입 · 2-pass 폭 교정 · grid full rebuild 판정) 는 ADR-248 Phase 4 뒤 parity 하니스만 부르다가 2026-10-05 삭제됐다. 단계별 설명은 git 이력 (`a4641ac32` 까지) 에 있다.
 
-- 옛 경로의 grid full rebuild 가드 (신규 grid container · 자식 서브트리를 가진 신규 노드 · grid track 변경) 는 **catalog 경로에 없다** — 증상이 재현되면 엔진 `update_style` · `add_node` 부터 본다 (rules/layout-engine.md 「재확인 필요」).
+- 옛 경로의 grid full rebuild 가드 (신규 grid container · 자식 서브트리를 가진 신규 노드 · grid track 변경) 는 **catalog 경로에 없다** — 증상이 재현되면 엔진 `update_style` (grid 캐시 무효화) · `create_node` + `set_children` (증분 추가 — 엔진에 `add_node` 는 없다) 부터 본다 (rules/layout-engine.md 「재확인 필요」). catalog 경로에서 재현되는지 확인한 기록은 없다. TS 에 rebuild 가드를 되살리는 것은 엔진 수정이 막혔을 때만.
+  - 옛 가드의 근거 (rule 에서 옮긴 원문): 옛 `fullTreeLayout` 은 엔진 `updateStyleRaw` 가 grid track · placement 캐시를 못 무효화한다는 실측 (2026-06-16: 기존 grid 컨테이너의 padding · gap · gridTemplate · width/height/min·max 변경 → 1줄로 무너짐, 새로고침 뒤 정상) 과, 새 grid 컨테이너 · 자식을 가진 새 컨테이너를 `addNode` 로 넣으면 자식 배치가 비는 실측 때문에 그 경우들을 full rebuild 했다.
 - 옛 store 레벨 `layoutVersion` · 5-심볼 2계층 체인은 삭제됐다. 같은 이름 상수는 `presentation/invalidation/editorMutationEffectRegistry.ts` 에 테스트용 파생 view 로만 남는다. production 판정은 `PAINT_ONLY_VISUAL_KEYS` / `operationAffectsLayout` (`packages/shared/src/catalog/transactions/transaction.ts`) + `styleOf` diff.
+  - 삭제된 이름 (rule 에서 옮긴 원문): 옛 `layoutVersion` 카운터 · `fullTreeLayoutMap` useMemo · 5-심볼 2계층 체인 (`LAYOUT_AFFECTING_PROP_KEYS` · `NON_LAYOUT_PROPS_UPDATE` · `INHERITED_LAYOUT_PROPS_UPDATE` · `LAYOUT_STYLE_KEYS` · `LAYOUT_PROP_KEYS`) 은 대상 파일 (`stores/utils/layoutInvalidation.ts` · `elementUpdate.ts` · `scene/layoutCache.ts` · `BuilderCanvas.tsx`) 과 함께 삭제됐다.
+- 삭제된 TS 전처리 (rule 에서 옮긴 원문): 옛 `fullTreeLayout.ts` (`calculateFullTreeLayout`) 와 그것만 쓰던 TS 전처리 — DFS enrichment (`enrichWithIntrinsicSize` · `calculateContentWidth/Height`) · `applyImplicitStyles` 컴포넌트 주입 · `propagationRegistry` · display/flex/block 어댑터 · 2-pass · grid full rebuild 판정 · parity 하니스의 pipeline leg — 는 production 에서 닿지 않아 삭제했다 (사용자 판정 2026-10-05). production 은 rule 의 §레이아웃 재계산 경로 하나다. 옛 계약 · 실측 이력은 git 기록과 [정합 원장](layout-css-parity-ledger.md) 이 보존한다.
 
 ---
 
 ## 4. JS 측 측정 · 정규화 모듈
 
-| 모듈                        | production 사용                                                                                                                                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `engines/utils.ts`          | 텍스트 측정 (`measureTextWidth` · `measureTextWithWhiteSpace` · `calculateMin/MaxContentWidth`) — `catalogTextMeasure` 의 Canvas 2D fallback · `INLINE_BLOCK_TAG_CLASSIFICATION` (`defaultDisplay.ts`) |
-| `engines/cssResolver.ts`    | font feature · font stretch · `currentColor` · `preprocessStyle` (Skia 렌더 · textMeasure · styleConverter)                                                                                            |
-| `engines/implicitStyles.ts` | `resolveContainerStylesFallback` · `resolveEffectiveOverflow` · `resolveEffectiveBoxShadow` (Skia · tier seed)                                                                                         |
-| `engines/cssValueParser.ts` | `resolveCSSSizeValue` · `parseBorderShorthand` (styleConverter · borderGeometry). `packages/rendering/src/primitives/cssValueParser.ts` (ADR-907 Layer A) 와 별개 파일                                 |
+| 모듈                        | production 사용                                                                                                                                                                                                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engines/utils.ts`          | 텍스트 측정 (`measureTextWidth` · `measureTextWithWhiteSpace` · `calculateMin/MaxContentWidth`) — `catalogTextMeasure` 의 Canvas 2D fallback · `INLINE_BLOCK_TAG_CLASSIFICATION` (`defaultDisplay.ts` `resolveDefaultDisplay` — Styles 패널 tier seed 전용. 엔진 입력의 기본 display 는 `catalogBoxModel`) |
+| `engines/cssResolver.ts`    | font feature · font stretch · `currentColor` · `preprocessStyle` (Skia 렌더 · textMeasure · styleConverter)                                                                                                                                                                                                |
+| `engines/implicitStyles.ts` | `resolveContainerStylesFallback` · `resolveEffectiveOverflow` · `resolveEffectiveBoxShadow` (Skia · tier seed)                                                                                                                                                                                             |
+| `engines/cssValueParser.ts` | `resolveCSSSizeValue` · `parseBorderShorthand` (styleConverter · borderGeometry). `packages/rendering/src/primitives/cssValueParser.ts` (ADR-907 Layer A) 와 별개 파일                                                                                                                                     |
 
 production 에서 이 계층이 하던 일 (상속 텍스트 키, box model, 컨테이너 기본값, indicator 여백) 은 `compositionRoot.ts` (`CATALOG_INHERITED_TEXT_KEYS` · `styleOf`) · `catalogRuntime/boxModel.ts` · `document/rulePartRules.ts` 로 옮겨졌다.
 
@@ -173,7 +176,7 @@ Cargo.toml 에 **taffy dependency 부재가 crate 존재 이유** — 추가 금
 | 특정 노드 엔진 입력 확인                                      | `root.getLayoutInput(id)` (compositionRoot) — `styleOf` 가 엔진에 넘긴 값                                                                                 |
 | 특정 노드 계산 결과 확인                                      | `root.getGeometry(ids)` — Canvas 가 읽는 rect                                                                                                             |
 | 편집이 Canvas 상자에 미반영                                   | ① 새 키가 `styleOf` 엔진 입력에 없음 ② `PAINT_ONLY_VISUAL_KEYS` 에 잘못 등재 (transaction 이 layout 영향 0 으로 판정) — rules/layout-engine.md 체크리스트 |
-| 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | 증분 경로 엔진 결함 후보 (catalog 에는 full rebuild 가드 없음) — 엔진 `update_style` · `add_node`                                                         |
+| 등록 직후 겹침/1줄 degrade, 새로고침 후 정상                  | 증분 경로 엔진 결함 후보 (catalog 에는 full rebuild 가드 없음) — 엔진 `update_style` · `create_node` + `set_children`                                     |
 | Rust 커널 회귀 의심                                           | `cargo test` → `tests/tree_golden.rs` (Chrome 실측 대조) — 좌표는 부모 content-box 상대 계약 전제                                                         |
 
 레이어 판정 순서: **Canvas 좌표 이상 → `getGeometry` 값 확인** → 정상이면 렌더 경로 (canvas-rendering.md), 이상이면 `getLayoutInput` (엔진 입력) → `styleOf` · `catalogBoxModel` 순. 옛 `getSharedLayoutMap` 은 production 에서 비어 있다 (`publishLayoutMap(null, …)` 만 호출).

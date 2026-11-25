@@ -40,22 +40,22 @@ S2 + React Aria 혼합 패턴. 모든 컴포넌트 CSS에서 시맨틱 변수만
 
 ```
 --bg          앱 전체 배경 (가장 낮은 레벨)
-              ※ Spec TokenRef: {color.base}
---bg-raised   Builder chrome 전용 (패널 헤더 · section-header) — 테마 토큰 `{color.raised}` 는 ADR-302 에서
+              ※ 사용자 문서 대응 TokenRef: {color.base}
+--bg-raised   Builder chrome 전용 (section-header · 표 머리글 · 읽기 전용 칸 — 패널 머리글은 `--chrome-surface`) — 테마 토큰 `{color.raised}` 는 ADR-302 에서
               삭제 (사용자 컴포넌트는 `{color.layer-2}` · Popover 는 `--popover-background`)
---bg-overlay  section-content, 모달, 카드 (가장 밝은/높은 레벨)
-              ※ Spec TokenRef: {color.layer-1}
+--bg-overlay  모달, 카드, 선택 탭 pill (가장 밝은/높은 레벨)
+              ※ 사용자 문서 대응 TokenRef: {color.layer-1}
 --bg-muted    중립 강조 배경 (swatch, hover row, 구분선 배경)
-              ※ Spec TokenRef: {color.neutral-subtle}
+              ※ 사용자 문서 대응 TokenRef: {color.neutral-subtle}
 --bg-emphasis 컨트롤 fill (switch track, slider track, scrollbar thumb)
-              ※ Spec TokenRef: (미매핑)
---bg-inset    입력필드, 검색바, 모든 field 컨테이너 (안으로 들어간 영역)
+              ※ 사용자 문서 대응 TokenRef: (미매핑)
+--bg-inset    입력필드, 검색바, 모든 field 컨테이너, section-content (안으로 들어간 영역)
               ※ 모든 field 컴포넌트(TextField, NumberField, SearchField, DateField,
                  TimeField, ComboBox, Select) 입력/컨테이너 영역 통일 배경
-              ※ Spec TokenRef: {color.layer-2}
+              ※ 사용자 문서 대응 TokenRef: {color.layer-2}
 ```
 
-Light: `bg(gray-100) → raised(gray-100) → overlay(white) → muted(gray-200) → emphasis(gray-300) → inset(gray-50)`
+Light: `bg(neutral-200) → raised(gray-50) → overlay(white) → muted(rgb(0 0 0 / 0.05)) → emphasis(gray-300) → inset(gray-50)` — 값 정본은 `builder-system.css`. 사용자 문서 값은 아래 §S2 Spec TokenRef 체계의 tone 사다리
 Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-700) → emphasis(zinc-600) → inset(zinc-900)`
 
 ### 금지 패턴
@@ -89,14 +89,13 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 
 아래는 시각적/기술적 이유로 카테고리 교차 사용이 의도된 패턴:
 
-| 패턴                                       | 위치                  | 이유                                 |
-| ------------------------------------------ | --------------------- | ------------------------------------ |
-| `background: var(--fg-on-accent)`          | 정렬 dot (inspector)  | CSS로 렌더링하는 작은 시각 indicator |
-| `border-color: var(--bg-raised)`           | ColorPicker thumb     | 배경색과 동일한 cutout 효과          |
-| `border-color: var(--fg-on-accent)`        | Select checkmark      | CSS border로 체크 아이콘 렌더링      |
-| `background: var(--fg-muted)` (source dot) | `.source-dot.default` | 상태 표시 색상 indicator             |
+| 패턴                                       | 위치                                                              | 이유                                 |
+| ------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------ |
+| `background-color: var(--fg-on-accent)`    | 정렬 dot (`inspector-layout.css` · `PropertyPlacementPicker.css`) | CSS로 렌더링하는 작은 시각 indicator |
+| `border: … var(--bg-raised)`               | 그라데이션 스톱 thumb (`GradientBar.css`)                         | 배경색과 동일한 cutout 효과          |
+| `background: var(--fg-muted)` (source dot) | `.source-dot.default`                                             | 상태 표시 색상 indicator             |
 
-### builder 테마의 accent 는 무채색 — `--accent-subtle` 로 강조 금지 (CRITICAL, 2026-07-26)
+### builder 테마의 accent 는 무채색 (2026-07-26)
 
 `[data-context="builder"]` 스코프에서 accent 계열은 **둘 다 회색**이다 (`packages/shared/src/components/styles/theme/builder-system.css`). 이름만 보고 유채색 강조를 기대하면 어긋난다.
 
@@ -105,7 +104,7 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 | `--accent-subtle` | `rgba(107,114,128,.15)`      | `rgba(161,161,170,.2)`       |
 | `--accent`        | `--color-gray-700` (L 0.373) | `--color-zinc-200` (L 0.920) |
 
-- ❌ **`--accent-subtle` 을 강조 배경으로 사용** — `--bg-overlay` 위에 얹으면 `--bg-muted`(gray-200, L 0.928) **보다 밝아서** 강조하려던 대상이 오히려 뒤로 물러난다 (Frame Preset 썸네일에서 required 슬롯 강조가 이렇게 뒤집혔다). "아주 연한 중립 wash" 로만 기대할 것.
+- `--accent-subtle` 은 무채색 wash 다. 옛 금지 (「`--bg-muted` 보다 밝아서 강조가 뒤집힌다」) 는 2026-11-11 `--bg-muted` 변경 뒤 light 에서 성립하지 않아 해지했다 (사용자 결정 2026-11-25 — 금지의 근거였던 2026-07 Frame Preset 썸네일 사례는 옛 `--bg-muted` gray-200 기준) — 흰 면 위에서 `--accent-subtle` 약 #e9eaec 가 `--bg-muted` #f2f2f2 보다 어둡다.
 - ✅ 강조는 **`--accent` 테두리** 또는 `background: var(--accent)` + `color: var(--fg-on-accent)` (`.list-item.applied` 가 이 어법). 무채색 chrome 이라 강조는 채도가 아니라 **명도**로 준다 — 테마에 따라 대비 방향이 뒤집히며 양쪽 다 성립한다.
 - 카드 내부 도형/아이콘에 `currentColor` 를 쓰려면 **그 요소에 `color` 를 직접 선언**해야 한다. `.list-item.applied` / `.selected` 가 카드에 `color: var(--fg-on-accent)` 를 걸기 때문에, 상속에 맡기면 흰 선이 밝은 표면 위에 그려져 사라진다.
 
@@ -144,23 +143,25 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 - **모서리 단 = Hub rounding**: small 4 (`--radius-sm` — in-field 버튼 · 격자 칸) · medium 8 (`--radius-md` — 컨트롤 · 목록 행 · 메뉴 항목) · large 10 (`--radius-lg` — 패널 · Toast) · extra-large 16 (`--radius-2xl` — Dialog). 공유 토큰 (md 6 · lg 8) 을 `builder-system.css` 의 빌더 범위에서 다시 준다. ❌ 모서리 값 직접 쓰기 (`6px` · `8px`)
 - **팝오버 모서리 = 항목 모서리 + 목록 여백 (사용자 결정 2026-11-10)**: `--chrome-radius-popover: calc(var(--radius-md) + var(--chrome-padding))` = 12. 팝오버 안의 행 (Select · ComboBox · 고르기 목록 · 메뉴 · 제안 목록) 은 `--radius-md`, 목록 여백은 `--spacing-xs`. Hub 는 안쪽 + 여백으로 바깥을 정하지 않고 (S2 는 Popover 10 · 항목 8 · 여백 8) 12 는 Hub 단에 없는 값이라 숫자가 아니라 식으로 둔다. **Why**: 첫 · 끝 항목이 모서리에 바로 붙어 hover 때 채워지는데, 목록 항목은 4 · 메뉴 항목은 8 · 제안 목록과 행 메뉴는 2 로 갈려 있었고 팝오버는 패널과 같은 10 이라 모서리 간격이 변과 달랐다. toolbar (rail · 뷰포트 컨트롤 · action group · 액션바 — 여백 `--chrome-padding` 4 + 버튼 8) 도 같은 식의 `--chrome-radius-toolbar` 다. 패널은 10 그대로 — 모서리에 닿는 것이 머리글 · 탭 줄이고 16 은 Dialog 단이다. ❌ 팝오버 · toolbar 에 `--chrome-radius` · 팝오버 행에 `--radius-sm` · `--radius-xs` (게이트 `chromeIsland.static.test.ts`)
 - **소유 위치**: RAC 기본 class 를 바꾼 팝오버 (헤더 · 줌 · 컨텍스트 메뉴 · 액션바 · 기록 · 아이콘) 의 껍데기 (표면 · 테두리 · 모서리 · 그림자) 는 `styles/modules/builder-floating-surface.css` 목록 한 곳, 기본 class 를 남긴 팝오버는 `widgets/Popover.css`. 메뉴 항목 6종의 모서리는 `builder-menu-row.css`. ❌ 각자 시트에 껍데기 · 항목 모서리 재선언 — 새 팝오버는 그 목록에 더한다
-- **컨트롤에는 그림자 없음** (Hub drop shadow — 그림자는 떠 있는 표면과 강조한 container 의 것). 선택 · 칩은 채움으로 가른다 (track `--bg-muted` 위 `--bg-overlay` pill · 선택 탭 `--bg-muted`). ❌ 패널 안 컨트롤에 `--shadow-sm`. 예외: 손잡이 · 색 견본 · 썸네일, 대시보드 카드 hover (Hub emphasized hover)
+- **컨트롤에는 그림자 없음** (Hub drop shadow — 그림자는 떠 있는 표면과 강조한 container 의 것). 선택 · 칩은 채움으로 가른다 (track `--bg-muted` 위 `--bg-overlay` pill · 선택 탭은 [panel-structure.md](panel-structure.md) 의 `PanelIconTabList` 항목). ❌ 패널 안 컨트롤에 `--shadow-sm`. 예외: 손잡이 · 색 견본 · 썸네일, 대시보드 카드 hover (Hub emphasized hover)
 - **파랑은 역할 둘** (Hub attention hierarchy): `--focus-ring` = focus 표시 (인접 면 대비 3:1 — light blue-600 · dark blue-400), `--canvas-selection` / `-strong` = 캔버스 선택과 그것을 비추는 패널 표시 (page header · grid track · spacing 배지 — Skia 선택 테두리와 같은 파랑). **패널의 선택 표시는 무채** — `--accent` 테두리 + `--bg-muted` 채움, 진한 채움 위 글리프는 `--fg-on-accent`. ❌ 선택 · hover 에 `--color-primary-*` (light 고정 팔레트라 dark 에서 밝은 면이 뜬다) · `--focus-ring`
 - **보조 글자 대비**: `--fg-muted` 는 놓이는 면 전부에서 4.5:1 (light gray-600 · dark zinc-300)
 - **문구는 sentence case** (Hub grammar and mechanics): 표시 문구의 정본은 `apps/builder/src/i18n/messages/en-US.ts` 다. **binding 의 `label` 과 패널의 `label=` 문자열은 번역 조회 키** (`i18n/labels.ts` `semanticLabelKeys`) 라 고치면 번역이 끊긴다 — 키가 없는 라벨 (원문이 그대로 보인다) 만 원문을 sentence case 로 쓴다. 접두를 떼어 칩 글자를 만드는 라벨 (`Show …` · `Hide …`) 은 남은 글자가 키인지 본다 (`Show Value Label` → `Value Label`)
 
-### 컨트롤 크기 — 2티어뿐
+### 컨트롤 크기 — 2티어 + 안쪽 20px 단
 
 | 토큰                | 값   | 대상                                                                                           |
 | ------------------- | ---- | ---------------------------------------------------------------------------------------------- |
 | `--control-size`    | 28px | 필드 · 탭 · 라벨 액션(`.control-button`) · 목록/트리 행 · 인라인 아이콘 버튼 · action bar 항목 |
 | `--control-size-lg` | 32px | chrome island 버튼 · `panel-header` · `section-header` 행 · SearchField                        |
 
+**안쪽 20px 단**: 필드 · 행 안에 들어가는 작은 버튼 · 견본 (swatch, 목록 행 액션) 은 `var(--text-xl)` (20px) 상자다 (2026-09-15 사용자 판정 — `form-controls.css` 주석). 컨트롤 티어가 아니라 28 · 32 컨트롤 안쪽의 단이다.
+
 **아이콘 전용 정사각 컨트롤의 기하 정본은 `styles/modules/builder-control-size.css` 한 파일**이다. 자리마다 크기를 바꿀 때는 `--icon-control-size` 만 다시 준다.
 
 - ❌ **`padding × 2 + 아이콘` 으로 크기 만들기** — 크기가 규칙의 결과가 아니라 부작용이 된다. 실제로 같은 `.iconButton` 이 자리마다 20 / 24 / 32px 이었다
 - ❌ 개별 규칙에서 `width` / `height` / `padding` 재선언 — 소유자는 기하 정본 파일 하나
-- ❌ 세 번째 크기 도입 (`--text-xl` 같은 타이포 토큰을 상자 크기로 전용하는 것 포함)
+- ❌ 28 · 32 외의 컨트롤 크기 도입 (안쪽 20px 단은 위 예외)
 - ❌ 자리 이름 토큰 부활 (`--inspector-control-size` / `--header-height`) — 이름이 자리를 가리키면 다른 자리의 컨트롤이 소비할 근거를 잃고, 그게 파생 크기가 생긴 경로다
 - 게이트: `apps/builder/src/builder/styles/controlSize.static.test.ts`
 
@@ -259,28 +260,22 @@ catalog 가 `{color.X}` 로 읽는 테마 색은 `resolveThemeSnapshot` (`packag
 
 ## 두 축 사다리 변수 — `--tint-N` · `--tone-N` (ADR-302 Phase 3)
 
-resolver 가 accent 사다리 16 단 (`--tint-100` ~ `--tint-1600`) 과 tone 사다리 13 단 (`--tone-25` ~ `--tone-1000`) 을 모드별 값으로 싣는다 — Canvas 역할 색과 같은 사다리. Spectrum dark 사다리는 명도가 뒤집혀 있어 같은 단이 두 모드에서 같은 역할이다. DOM 전용 색 (`preview-system.css` — `--link` = tint-1200 · `--fg-base` = tone-800 · `--fg-disabled` = tone-400 · `--bg-emphasis` = tone-300 …) 이 이 변수를 읽는다.
+resolver 가 accent 사다리 16 단 (`--tint-100` ~ `--tint-1600`) 과 tone 사다리 13 단 (`--tone-25` ~ `--tone-1000`) 을 모드별 값으로 싣는다 — Canvas 역할 색과 같은 사다리. Spectrum dark 사다리는 명도가 뒤집혀 있어 같은 단이 두 모드에서 같은 역할이다. DOM 전용 색 (`preview-system.css` — `--link` = tint-1200 · `--fg-base` = tone-800 · `--bg-emphasis` = tone-300 …, `disabled-content` 는 alias 표의 tone 400) 이 이 변수를 읽는다.
 
 - ❌ `preview-system.css` 에 `--tint` · `--tint-N` · `--tone-N` 선언 · `oklch(from var(--tint) …)` 상대색 — resolver 값을 덮거나 둘째 파생이 된다 (G2 `2b`).
 - ❌ 테마 경로에서 Tailwind 단 (`--color-neutral-N`) 읽기 — 팔레트 (ADR-191) 와 테마 사다리가 섞인다 (ADR-302 R7).
 - Themes 패널 Tone 견본 · 미니 프리뷰도 같은 생성 사다리 (`useToneLadders` → `toneLadder`).
-- Skia 측 color-mix 처리: canvas-rendering.md의 color-mix 규칙 참조. `.button-base` 의 `color-mix` 는 `--button-color-hover` 가 없을 때만 (테마 색 변환표가 아니다).
+- `.button-base` 의 `color-mix` 는 `--button-color-hover` 가 없을 때만 (테마 색 변환표가 아니다).
 
 ## Utility 클래스 (ADR-018)
 
-컴포넌트에서 variant/state 색상 블록 대신 utility 클래스 사용 권장:
-
-- `.button-base` — `--button-color` 설정 시 hover/pressed/disabled 자동 파생
-- `.indicator` — `--indicator-color` 설정 시 selected/hover 자동 파생
-- `.inset` — `--inset-bg`/`--inset-border` 설정 시 focus/invalid 자동 파생
+사용자 컴포넌트 쪽 `utilities.css` (`packages/shared/src/components/styles/`) 의 상태 ramp 는 ADR-297 Phase 3 에서 없어졌다 — 상태 칠은 rule 의 `paint` 조건 트리 ([canvas-rendering.md](canvas-rendering.md) §2.5.5). `.inset` 은 bg · border · color · placeholder 만 준다. `--button-color` · `--indicator-color` 로 파생하는 ramp 는 빌더 위젯 사본 (`apps/builder/src/builder/styles/widgets/utilities.css`) 에만 있다.
 
 ## Dark Mode — Skia 적용 (ADR-021)
-
-Skia dark mode 적용 상세: canvas-rendering.md 참조.
 
 핵심 체크리스트:
 
 - `specShapesToSkia()` 두 번째 인자 `theme` 에 현재 테마 전달 (하드코딩 `"light"` 금지)
 - 다크 모드 · 테마 전환은 문서의 활성 테마가 정본이다 — `workspace.applyTheme` 이 테마 key 변화를 보고 `install()` (토큰 맵 `installThemeMaps` + 패널 store `applyResolvedTheme` 의 `themeVersion` +1) 뒤 Canvas root 를 다시 만든다. store 를 직접 바꾸는 setter 는 없다 (옛 `setTint` · `setDarkMode` 계열은 2026-10-27 삭제)
 
-- **Why (2026-11-05, Select)**: `/publish`도 Builder 번들을 읽으므로 `builder-system`의 전역 Select 상태 선택자는 catalog를 제외해야 한다. 누출 당시 Compare는 32px/0px border였지만 Preview는 34px/1px였고, Disabled 색상도 덮였다. 의미 토큰의 light/dark 값과 상태 트리를 두 소비자에 함께 연결한다. (2026-11-10 ADR-305 뒤: `/publish` 는 별도 문서라 빌더 번들을 싣지 않고, 빌더 문서의 `[data-catalog-id]` 요소는 0 이다 — 빌더 chrome 시트 · 위젯 사본의 `[data-catalog-id]` 제외는 전부 지웠다 — 특이도를 싣던 맨 `:not` 28 곳도 빌더 스냅샷 69 화면 × 4 변형 Δ 0 확인 뒤 삭제.)
+- **Why (2026-11-05, Select)**: 빌더 전역 Select 상태 선택자가 catalog 요소에 누출돼 Compare 32px/0px border · Preview 34px/1px 로 갈렸다. ADR-305 (2026-11-10) 뒤 `/publish` 는 빌더 번들을 싣지 않고 빌더 문서의 `[data-catalog-id]` 는 0 이라, 그때 넣은 제외 선택자는 전부 지웠다.

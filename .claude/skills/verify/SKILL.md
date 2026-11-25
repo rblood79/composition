@@ -6,13 +6,14 @@ argument-hint: [검증 범위 — 생략 시 staged + dirty 변경]
 
 # 커밋 전 동작 확인
 
-프로젝트 skill `verify` 는 Claude Code 번들 `/verify` 를 대체합니다 (2.1.286+: 프로젝트에 `verify` 가 있으면
+프로젝트 skill `verify` 는 Claude Code 번들 `/verify` 를 대체합니다 (프로젝트에 `verify` 가 있으면
 커밋 직전 자동으로 실행 안내 — docs · tests 만 바뀐 커밋 제외). 번들 `/verify` 의 launch 추론
 (README · package.json) 은 이 monorepo 에서 신뢰할 수 없어 절차를 여기 고정합니다.
 
 목적은 CLAUDE.md §완료 기준과 같습니다 — test · type-check 는 코드가 자기 자신과 정합한지만 보고
 live behavior 는 보지 않습니다. 이 skill 은 **변경이 닿는 사용자-가시 동작을 실제 builder 에서 1회 exercise** 합니다.
-Stop hook 의 `type-check-gate.sh` 는 그대로 결정적 차단이고, 이 skill 은 그 위의 live 층입니다.
+Stop hook 의 `type-check-gate.sh` 는 응답이 끝난 뒤 type-check 를 돌려 실패하면 모델을 다시 부릅니다 — 응답을 막지는 않고,
+추적 중인 `.ts` · `.tsx` 변경만 봅니다 (새로 만든 미추적 파일뿐이면 돌지 않습니다). 이 skill 은 그 위의 live 층입니다.
 
 ## 1. 범위
 
@@ -36,7 +37,7 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
 
 ## 3. live exercise (1회)
 
-- **서버**: 5173 에 dev 서버가 없으면 `pnpm dev` 로 띄웁니다 (충돌 시 `pnpm dev:kill`, 병렬 worktree 는 `DEV_PORTS="5174"`).
+- **서버**: 5173 에 dev 서버가 없으면 `pnpm dev` 로 띄웁니다 (포트는 `vite.config.ts` 가 5173 · `strictPort` 로 고정 — 충돌 시 `pnpm dev:kill`. `DEV_PORTS` 는 `dev:kill` 이 끌 포트만 정합니다). 병렬 worktree 는 `pnpm -F @composition/builder exec vite --port 5174` 로 띄우고 하니스에 `BUILDER_URL=http://localhost:5174` 를 줍니다 — 업로드 live 는 참조 서버 CORS 가 5173 이라 5173 에서만.
   catalog · theme 값이 바뀌었으면 먼저 `pnpm generate:css` (생성 CSS 는 build-time 주입).
 - **진입**: 저장된 인증 세션으로 `/dashboard` 직행. `/signin` 코드 입력은 하지 않습니다.
 - **분기**:
@@ -47,10 +48,10 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
 
 ### 판정 — PASS · FAIL · BLOCKED
 
-- **PASS**: 관찰했고 기대와 같다. 관찰한 것 (스크린샷 · console 덤프 · 상태 JSON · 하니스 출력) 을 파일로 남깁니다.
-- **FAIL**: 관찰했고 기대와 다르다. 결함입니다.
-- **BLOCKED**: 관찰 자체가 성립하지 않았다 — hidden 탭의 RAF 정지 · Skia 픽셀을 읽지 못함 · 서버 · 인증 · 도구 불가.
-  결함이 아니고 통과도 아닙니다. FAIL 로 적으면 없는 결함을 고치게 되고, PASS 로 적으면 미검증이 완료로 남습니다.
+세 판정의 정의는 [evaluate](../evaluate/SKILL.md) §보고 와 같습니다. 여기서 더하는 것:
+
+- **PASS**: 관찰한 것 (스크린샷 · console 덤프 · 상태 JSON · 하니스 출력) 을 파일로 남깁니다.
+- **BLOCKED**: FAIL 로 적으면 없는 결함을 고치게 되고, PASS 로 적으면 미검증이 완료로 남습니다.
   막힌 이유와 풀 방법 (foreground 로 전환 · 스크린샷으로 대체 · 사용자 확인) 을 적고, 풀 수 있으면 풀어서 다시 관찰합니다.
 
 ## 4. 보고와 커밋
@@ -62,10 +63,9 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
 - BLOCKED 가 남으면 PASS 로 세지 않습니다. 미검증 범위를 적고 커밋 여부를 사용자에게 넘깁니다.
 - run 이 열려 있으면 ledger 에도 같은 판정을 남깁니다. 순서는 셋입니다:
   1. 관찰한 것을 run 폴더 `artifacts/` 에 파일로 저장합니다 (`.agent/runs/<현재 run>/artifacts/` — 스크린샷 ·
-     console 덤프 · 상태 JSON · 하니스 출력 중 아무거나). Chrome MCP 의 `screenshot` · `zoom` 은 `save_to_disk: true` 를
-     붙여 찍습니다 — 임시 폴더에 저장되고 경로가 돌아오니 그 파일을 `artifacts/` 로 복사합니다. 옵션을 빼면
-     `chrome-screenshot-save.sh` 가 넣어 주지만 auto mode 에서는 그 호출이 한 번 반려되고 같은 입력으로 다시
-     불러야 합니다. `scale` 을 주면 저장 파일도 그만큼 작아지니 증거용은 `scale` 없이 찍습니다.
+     console 덤프 · 상태 JSON · 하니스 출력 중 아무거나). Chrome MCP 스크린샷은 `save_to_disk: true` 로 찍고
+     ([evaluate](../evaluate/SKILL.md) §관찰) 돌아온 임시 경로의 파일을 `artifacts/` 로 복사합니다. `scale` 을 주면
+     저장 파일도 그만큼 작아지니 증거용은 `scale` 없이 찍습니다.
   2. 그 파일을 Read 로 엽니다 — `track-evidence-read.sh` 가 읽은 사실을 run 에 남깁니다.
   3. `pnpm agent:run -- evidence live-exercise pass --detail "<무엇을>" --artifact artifacts/<파일>`.
 
@@ -73,4 +73,5 @@ pnpm -F @composition/builder exec vitest run <변경 모듈 옆 테스트>   # �
   파일이면 기록이 거부됩니다. 관찰하지 못했으면 `evidence live-exercise block --detail "<막힌 이유>"`.
 
 - PASS 면 커밋으로 진행합니다. ADR Implemented 승격 커밋이면 이 보고가 ADR 본문 `### Live Exercise` 절의 내용이 됩니다
-  (`adr-status-sync-check.sh` 가 절 부재를 block).
+  (`adr-status-sync-check.sh` 는 작업 트리에 남은 미커밋 승격의 절 부재만 block 합니다 — 승격과 커밋을 한 턴에 하면
+  검사가 돌지 않으니 커밋 전에 절을 직접 확인합니다).

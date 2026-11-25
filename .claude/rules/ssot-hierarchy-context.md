@@ -1,5 +1,5 @@
 ---
-description: SSOT 체인 배경 맥락 — 역사적 맥락(§0) · 용어 사전(§2) · 주요 ADR 관계(§5). ADR 작성·catalog 작업 시 자동 로드 (정본 ssot-hierarchy.md 에서 2026-08-31 분리)
+description: SSOT 체인 배경 맥락 — 역사적 맥락(§0) · 용어 사전(§2) · 주요 ADR 관계(§5) · 사례 · 집행 메커니즘 · 허용 패턴(§9). ADR 작성 · catalog · rendering · Canvas 작업 시 자동 로드 (정본 ssot-hierarchy.md 에서 2026-08-31 · 11-19 분리)
 paths:
   - "docs/adr/**"
   - "packages/shared/src/catalog/**"
@@ -9,14 +9,15 @@ paths:
 
 # SSOT 체인 — 배경 맥락 (역사 · 용어 · ADR 관계)
 
-> 정본 규칙은 [ssot-hierarchy.md](ssot-hierarchy.md) (상시 로드 — 3-Domain 분할 · 경계 판정 · 집행 · 금지/허용 패턴). 이 문서는 그 정본의 §0 · §2 · §5 를 원문 그대로 옮긴 것으로, 절 번호는 인용 안정성을 위해 정본 번호를 유지한다. 매 세션 상주할 필요가 없어 ADR·spec·catalog 작업 시에만 로드된다 (2026-08-31).
+> 정본 규칙은 [ssot-hierarchy.md](ssot-hierarchy.md) (상시 로드 — 3-Domain 분할 · 경계 판정 · 집행 · 금지/허용 패턴). 이 문서는 그 정본의 §0 · §2 · §5 (2026-08-31) 와 사례 · 집행 · 허용 패턴 (§9, 2026-11-19) 을 옮긴 것으로, 절 번호는 인용 안정성을 위해 정본 번호를 유지한다. 매 세션 상주할 필요가 없어 ADR · catalog · rendering · Canvas 작업 시에만 로드된다.
 
 ## 0. 역사적 맥락 (왜 이 구조인가)
 
 1. **Phase 1**: Builder와 Preview 모두 DOM/CSS — Spec 불필요, 정합성 문제 없음
 2. **Phase 2**: 대규모 프로젝트 한계 → Builder를 WebGL/Skia로 전환. Preview는 DOM/CSS(React Aria Components) 유지 → **두 화면 정합성 문제 발생**
 3. **Phase 3**: SSOT 원칙 + Spec 도입 (정합성 복구 목적)
-4. **현재**: 원칙 미준수로 정합성 재발 — 본 규칙은 그 재발 방지 명문화
+4. **ADR-063 charter 작성 시점 (2026-04-13)**: 원칙 미준수로 정합성 재발 — 본 규칙은 그 재발 방지 명문화
+5. **ADR-142 · ADR-248**: D3 SSOT 를 컴포넌트당 spec 에서 catalog + theme/tokens 로 재정의하고 spec 파일을 전부 삭제 (§5)
 
 ## 2. 용어 사전
 
@@ -55,13 +56,12 @@ paths:
 - RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — catalog Group definition/primitive binding
 - canonical `frame` = D3 layout container — catalog frame definition (skipCSSGeneration:true, ARIA role 없음)
 - 진입점 단일화: builder palette / multi-select grouping / pencil import 모두 `type: "frame"`. RAC ARIA Group 으로 layout 의도 흡수 금지 (D1 침범)
-- canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 와 catalog `frame` entry 1:1 정합. `frame` 을 Group 의 alias 로 두는 패턴 금지 — ARIA role emit 으로 D1 침범 (옛 `BASE_TAG_SPEC_MAP` 은 ADR-248 에서 삭제)
+- ADR-130 당시의 canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 타입은 지금 코드에 없다 — frame 은 catalog 문서의 `frame` 정의 노드다. `frame` 을 Group 의 alias 로 두는 패턴 금지 — ARIA role emit 으로 D1 침범 (옛 `BASE_TAG_SPEC_MAP` 은 ADR-248 에서 삭제)
 - **frame 의 HTML 요소 = `elementType` (사용자 결정 2026-11-24)**: frame 은 `div` · `main` · `section` · `header` · `footer` · `nav` · `article` · `aside` 중 하나로 그려진다 (`catalog/document/frameElementType.ts` — Design 패널 「HTML tag」, D2 는 composition 확장). 바뀌는 것은 DOM 요소뿐이다 — role 은 쓰지 않고 Canvas 는 읽지 않는다. Layers 행 이름은 사용자 이름 → 태그 (`div` 아닐 때) → 「Frame」, 그룹 명령이 만든 frame 은 노드 이름 「Group」 (태그 목록에 group 을 넣지 않는다 — HTML 요소가 아니고 `role="group"` 은 RAC Group 의 것). 태그별 컴포넌트를 새로 만들지 않는다 (옛 Section 은 `div` 였다). **페이지의 main**: 레이아웃 없는 페이지의 본문은 `<main>` 이고, 본문 안 `main` frame 이 있으면 본문이 `div` 로 물러난다 (`runtime/pageMain.components.tsx` — DOM 층에서만 정한다, 그려진 `main` frame 이 context 로 본문에 알린다). 레이아웃 페이지의 content 자리는 ADR-304.
-- legacy `type: "Group" + customId="group_N"` 은 `isLegacyGroupForFrameMigration()` 으로 1회 hydration migration 대상. ARIA Group (customId 없음 또는 다른 prefix) 보존
 
 ### 생성 CSS archetype 미지정 = 중립 상자
 
-**생성 CSS archetype 미지정 = 중립 상자 (ADR-223 Implemented 2026-09-18)**: catalog `structure.archetype: "default"` (와 잔존 spec 의 archetype 미선언) 의 생성 CSS base 는 `container` 와 같은 block · box-sizing · font-family 뿐이다 — Skia 가 읽지 않는 버튼 어법 (inline-flex · align/justify center · cursor · user-select · transition) 을 기본값으로 싣지 않는다. 정렬·크기 (geometry) 는 `structure.containerStyles` 로 두 consumer 가 같이 읽고, Canvas 저작 surface 에 대응이 없는 DOM interaction (cursor · user-select · transition) 은 `composition.rootSelectors["&"]` 가 catalog 정본이되 Canvas 는 소비하지 않는다 (Card · Tab). 신규 entry 는 archetype 또는 `composition.layout` 을 명시한다 (`archetypeDefaultCohort.static.test.ts` ratchet).
+**생성 CSS archetype 미지정 = 중립 상자 (ADR-223 Implemented 2026-09-18)**: catalog `structure.archetype: "default"` 의 생성 CSS base 는 `container` 와 같은 block · box-sizing · font-family 뿐이다 — Skia 가 읽지 않는 버튼 어법 (inline-flex · align/justify center · cursor · user-select · transition) 을 기본값으로 싣지 않는다. 정렬·크기 (geometry) 는 `structure.containerStyles` 로 두 consumer 가 같이 읽고, Canvas 저작 surface 에 대응이 없는 DOM interaction (cursor · user-select · transition) 은 `composition.rootSelectors["&"]` 가 catalog 정본이되 Canvas 는 소비하지 않는다 (Card · Tab). 신규 entry 는 archetype 또는 `composition.layout` 을 명시한다 (`archetypeDefaultCohort.static.test.ts` ratchet).
 
 ### §4 집행 메커니즘
 
@@ -71,17 +71,17 @@ paths:
 
 - **runtime**: `/cross-check` skill (단일 컴포넌트 · 패밀리는 영향 컴포넌트마다 반복)
 - **검증 대상**: 시각 결과 일치 — Builder Skia 렌더와 Preview DOM/CSS 렌더의 스크린샷 or 구조적 비교
-- **build-time 자동화**: 미완성. 향후 과제
+- **자동 게이트**: D2 prop 은 `d2S2Alignment.static.test.ts`, D3 값은 `d3S2Alignment.static.test.ts` · `componentRulesTable.static.test.ts`, Canvas ↔ DOM 은 `apps/builder/tests/parity/` (browser) 와 ADR-248 G3 하니스 (`vitest.adr248-g3.browser.config.ts`). 하니스 PASS 를 전체 시각 동일성으로 확대하지 않는다 (`/cross-check` skill)
 
 ##### 4-2. 위반 감지 및 대응
 
-| 위반 유형                     | 감지                                    | 대응                                    |
-| ----------------------------- | --------------------------------------- | --------------------------------------- |
-| 수동 CSS가 SSOT에서 파생 아님 | catalog rule 에 없는 값을 가진 수동 CSS | ADR 작성 → 해체 계획                    |
-| consumer-to-consumer 참조     | `@sync` 주석                            | catalog 경유로 재작성                   |
-| catalog 가 D1/D2 침범         | 코드 리뷰                               | 위반 코드 즉시 거부                     |
-| 시각 비대칭 (CSS≠Skia)        | `/cross-check` 실패                     | 어느 쪽이 SSOT 맞는지 조사 후 양쪽 정렬 |
-| RSP 미규정 prop 임의 도입     | 코드 리뷰                               | 거부, RSP 참조 요구                     |
+| 위반 유형                     | 감지                                                                        | 대응                                    |
+| ----------------------------- | --------------------------------------------------------------------------- | --------------------------------------- |
+| 수동 CSS가 SSOT에서 파생 아님 | catalog rule 에 없는 값을 가진 수동 CSS                                     | ADR 작성 → 해체 계획                    |
+| consumer-to-consumer 참조     | `@sync` 주석                                                                | catalog 경유로 재작성                   |
+| catalog 가 D1/D2 침범         | 코드 리뷰                                                                   | 위반 코드 즉시 거부                     |
+| 시각 비대칭 (CSS≠Skia)        | `/cross-check` 실패 · parity 테스트 · G3 하니스 실패                        | 어느 쪽이 SSOT 맞는지 조사 후 양쪽 정렬 |
+| RSP 미규정 prop 임의 도입     | `d2S2Alignment.static.test.ts` (S2 타입에도 `d2Provenance.ts` 에도 없는 키) | 거부, RSP 참조 요구                     |
 
 ##### 4-3. 문서 교차 참조 의무
 

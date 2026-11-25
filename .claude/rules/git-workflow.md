@@ -69,13 +69,13 @@ git branch -d <worktree-branch>  # 명시 승인 받은 후
 
 ## 5. settings 우선 — 메모리 entry stale 가능
 
-PR/push 정책 의문 발생 시 **settings 4 파일 + protect-files hook 직접 확인**:
+PR/push 정책 의문 발생 시 **settings 4 파일 + branch · PR 을 막는 hook 직접 확인**:
 
 - `/Users/admin/work/composition/.claude/settings.json`
 - `/Users/admin/work/composition/.claude/settings.local.json`
 - `~/.claude/settings.json`
 - `~/.claude/settings.local.json`
-- `.claude/hooks/protect-files.sh`
+- `.claude/hooks/protect-branch-pr.sh`
 
 메모리 entry (특히 세션 인수인계 의 "main 차단" 류) 가 stale 일 수 있음. settings 가 우선.
 

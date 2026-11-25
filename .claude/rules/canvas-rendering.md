@@ -51,7 +51,7 @@ paths:
 - catalog 색상 토큰은 hex뿐 아니라 CSS `rgba()`도 전달한다. shape 변환은 기존 공용 색상 파서로 채널과 alpha를 보존하고 fillAlpha는 한 번만 곱한다. **Why (2026-11-03)**: SheetBackdrop의 검정 50% 토큰이 Canvas에서 불투명 검정으로 그려졌다.
 - catalog 기본 `boxShadow`도 Canvas 효과 변환에 전달하고 저작 값(`none` 포함)을 우선한다. CSS box-shadow는 border box 외곽에 그리며 filter drop-shadow와 구분한다. **Why (2026-11-04)**: Sheet·Modal의 기본 3층 그림자가 저작 paint 변환에서 누락됐다. 전달 후에도 투명한 Modal의 내용 alpha에서 그림자를 만들어 실제 화면에는 보이지 않았다. 공용 resolver와 상자 외곽 렌더로 수정하고 투명 내부·외곽 픽셀을 검사한다.
 
-> **SSOT 체인 연계**: Skia 렌더는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer**. CSS/DOM consumer와 **대등(symmetric)** — 한쪽이 다른 쪽 기준 아님. 대칭 = "시각 결과의 동일성" (구현 방법 자유). catalog/spec 이 D1(DOM) 침범 금지.
+> **SSOT 체인 연계**: Skia 렌더는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer**. CSS/DOM consumer와 **대등(symmetric)** — 한쪽이 다른 쪽 기준 아님. 대칭 = "시각 결과의 동일성" (구현 방법 자유). catalog 가 D1(DOM) 침범 금지.
 >
 > **2026-07-08**: D3 SSOT 는 [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md)(Implemented) 로 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens 로 전환됨. 본 문서의 "Spec" 이라는 낱말은 옛 이름이다 — 컴포넌트당 spec 파일과 `packages/specs` 는 ADR-248 (2026-10-04) 에서 삭제됐고 Frame/Group/Slot 도 catalog 경로다 (ADR-036 은 Superseded by ADR-142).
 >
@@ -86,7 +86,7 @@ paths:
 
 - grid 안내선·셀 교환은 `hidden` 또는 `display: none`인 자식을 배치 항목에서 제외한다. **Why (2026-10-31):** Side 라벨의 CheckboxGroup·RadioGroup·SearchField에서 숨긴 Description·FieldError의 0 높이 상자를 포함해 실제 1행을 3행으로 계산하고 선택 영역 아래에 선 두 개를 그렸다.
 - 레이아웃 입력·편집 계산은 shared `layoutParticipation.ts`의 참여 판정을 사용한다. Grid·간격 표시는 조상의 표시 여부도 확인하고, 삭제·Hug 점유 계산과 숨긴 자식의 저작 Grid line 재매핑을 분리한다. **Why (2026-10-31):** 숨긴 flex 자식이 가짜 간격 두 개를 만들고, 상위가 숨겨진 Grid에 셀 네 개가 남았으며, A/B/C 중 B를 숨긴 2열 Grid에서 2열 내용 삭제가 C 대신 B를 지웠다 (실제 엔진 회귀 재현).
-- Skia 가 화면 + 이벤트 (EventBoundary) 를 통합 처리하고, 엔진 계산 결과 (x/y/w/h) 로 직접 배치한다. 다른 렌더러 · 레이아웃 층을 끼우지 않는다.
+- Skia 가 화면을 그리고, 포인터 판정은 같은 command stream 의 맵을 읽는다 (`CatalogCanvas.tsx` 핸들러 · `canvasPick.ts`). 엔진 계산 결과 (x/y/w/h) 로 직접 배치한다. 다른 렌더러 · 레이아웃 층을 끼우지 않는다.
 - 부분 갱신 영역은 device pixel 정수 경계로 바깥 정렬하고, clear·재렌더·standby 복사에 같은 AA 없는 clip을 쓴다. contributor 조회도 정렬된 영역을 scene 좌표로 역변환한다. **Why (2026-10-30)**: 소수점 AA clip에서 clear와 SrcOver를 반복하면 불투명 경계 alpha가 255→191→171로 줄어 어두운 배경에 선택선 같은 잔상이 남았다 (실제 CanvasKit 재현).
 
 ## 2. Component Spec 규칙
@@ -94,7 +94,7 @@ paths:
 - TokenRef 숫자 연산 시 `resolveToken()` 변환 필수. **Why**: 미변환 시 NaN 전파
 - `_hasChildren` 체크: 배경 shapes 직후, standalone shapes 직전 배치. **Why**: 자식 유무에 따라 shapes 분기
 - 신규 컴포넌트 (child 포함) 추가 → catalog 등록만 (`catalog/bindings/{Name}.binding.ts` + `componentCatalog.ts` entry + `COMPONENT_RULES_TABLE` rule + `pnpm generate:css`). spec 파일 · `TAG_SPEC_MAP` · `packages/specs` 는 ADR-248 (`ddc5fc603`) 에서 삭제됐다 — 어떤 컴포넌트에도 spec 경로를 새로 만들지 않는다 (Frame/Group/Slot 도 catalog 입력)
-- Spec fontSize 우선순위: `props.size` 명시 시 `size.fontSize` 우선. **Why**: Propagation은 size prop만 변경, style.fontSize 미갱신
+- 글자 크기 우선순위: 작성값 (`style.fontSize` — rule 실행기는 작성값만 싣는다) 다음 size 블록 `fontSize` (`buildCatalogShapes.ts`). **Why**: Propagation은 size prop만 변경, style.fontSize 미갱신
 - Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (`catalogRuntime/ruleShapes.ts`). `BOX_SIZE_TYPES` Set 등록 필수 (옛 `buildSpecNodeData.ts` `CONTAINER_DIMENSION_TAGS` — Phase 4e-9-8 삭제). **Why**: Spec shapes가 레이아웃 엔진 결과를 모르면 우측/중앙 배치 불가
 
 ## 2.5.5. 칠 계약 — variant 조건 트리 하나 (ADR-297, 2026-11-02 3i)
@@ -123,9 +123,8 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 - CSS 값 해석은 `packages/rendering/src/primitives/cssValueParser.ts`의 `parsePxValue` ·
   `parsePadding4Way` · `parseGapValue` · `parseBorderWidth`를 사용한다.
-- shape가 컨테이너 간격을 직접 소비하면 `primitives/containerSpacing.ts`의
-  `resolveContainerSpacing` 또는 해당 공용 metric resolver를 사용한다. root 간격과
-  item 내부 간격을 같은 속성으로 섞지 않는다.
+- shape 가 컨테이너 간격을 읽을 때는 `catalogBoxModel` ([style-ssot.md](style-ssot.md) §3) 을 거친다.
+  root 간격과 item 내부 간격을 같은 속성으로 섞지 않는다.
 - 신규 binding은 노드 style을 자기 DOM 요소에 전달한다. RAC가 요소를 만들지 않거나
   부모가 소유하는 부품은 해당 계약에 따라 처리하고, 별도 상자를 임의 생성하지 않는다.
 - TextArea의 Prefix는 공통 FieldBox에서 첫 입력 줄에 정렬하고, Side Label 선택자는 Prefix Group 안의 입력도 인식한다.
@@ -150,7 +149,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   빠지고, 크기 변경만 따라가면 margin·grid 배치 뒤 형제가 과거 좌표에 남는다 (9개 재현).
   입력 snapshot은 엔진의 기존 직렬화 결과를 재사용해 텍스트 재측정 없이 읽는다.
 
-- (ADR-276 전) 자식 노드와 자체 Label을 함께 그리는 버튼은 DOM의 익명 텍스트·group span도 엔진 부품으로 계산했다 — 2026-10-20 부터 Button · ToggleButton 에 자체 Label 이 없어 익명 글자 part 는 없다 (`partsFor` 는 그룹 ToggleButton 의 content span wrapper part 만 둔다).
+- Button · ToggleButton 에는 익명 글자 part 가 없다 — `partsFor` 는 그룹 ToggleButton 의 content span wrapper part 만 둔다 (ADR-276).
   **Why (2026-10-14)**: ToggleButton에 Icon을 추가하면 Label이 사라졌고, 고정 폭 버튼의 Label 편집은 Icon 좌표를 남겼다. 부품 입력도 증분 비교하며, 텍스트 부품은 자기 폭으로 줄바꿈하고 autoCenter로 부모 폭을 덮지 않는다.
 - 자기 타이포그래피를 Reset할 때도 현재 부모 체인에서 inheritedText를 다시 해석한다.
   **Why (2026-10-14)**: Body를 Inter→Arial로 바꾼 뒤 Text의 Menlo를 Reset하면 상속 값이 비었지만, 재로드는 Arial이었다. 일곱 상속 키의 Reset/Undo/Redo를 fresh root와 비교한다.
@@ -187,12 +186,12 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 3. 텍스트 측정 동기화
 
-측정은 두 곳이다 (2026-10-04 개정). **레이아웃 측정** (엔진에 주는 텍스트 크기) 은 `catalogRuntime/textMeasure.ts` `catalogTextMeasure` — CanvasKit 이 준비되면 페인트와 같은 paragraph 로 재고 (기본 font feature 가 advance 를 바꾸므로), 준비 전에만 Canvas 2D (`utils/textMeasure.ts`) 로 잰다. **페인트 줄바꿈 hint** 는 `nodeRendererText.ts` 가 Canvas 2D 로 정한 줄바꿈을 `\n` 으로 넣어 CanvasKit 렌더에 강제한다 (ADR-051) — `needsFallback` 분기 (letterSpacing · wordSpacing · white-space≠normal · break-all) 는 hint 없이 CanvasKit paragraph 그대로. 두 기준이 다르므로 줄 수 발산은 둘을 나란히 대조한다. ParagraphStyle 변경 시 **동시 업데이트**: nodeRendererText.ts · specShapeConverter.ts · TextMeasureStyle 인터페이스.
+측정은 두 곳이다 (2026-10-04 개정). **레이아웃 측정** (엔진에 주는 텍스트 크기) 은 `catalogRuntime/textMeasure.ts` `catalogTextMeasure` — CanvasKit 이 준비되면 페인트와 같은 paragraph 로 재고 (기본 font feature 가 advance 를 바꾸므로), 준비 전에만 Canvas 2D (`utils/textMeasure.ts`) 로 잰다. **페인트 줄바꿈 hint** 는 `nodeRendererText.ts` 가 Canvas 2D 로 정한 줄바꿈을 `\n` 으로 넣어 CanvasKit 렌더에 강제한다 (ADR-051) — `needsFallback` (`utils/canvas2dSegmentCache.ts` — `ctx.letterSpacing` 미지원 브라우저의 letterSpacing · wordSpacing · `nowrap` / `pre` 등) 은 Canvas 2D hint 대신 CanvasKit 쪽 줄바꿈 전처리로 간다. 두 기준이 다르므로 줄 수 발산은 둘을 나란히 대조한다. ParagraphStyle 변경 시 **동시 업데이트**: nodeRendererText.ts · `catalogRuntime/textMeasure.ts` · specShapeConverter.ts · TextMeasureStyle 인터페이스.
 
 - **구간 서식 글자 (ADR-299 — RichText)**: record 는 `props.children` 에 plain, `textRuns` 에 run 을 싣는다 (`compositionRoot.ts` `withState` · `previewRecord` · 증분 rebuild 가 `textRuns` 를 새 `children` 으로 다시 만든다). 측정 · Canvas · DOM 은 `runtime/textRunStyles.ts` 한 읽기로 run 마다 굵기 · 기울임 · 크기 · 색 · 장식선을 얻는다 — 측정 (`catalogTextMeasure` 4번째 인자) 과 Canvas paragraph 는 run 마다 `pushStyle`, 강제 strut 은 끈다 (큰 run 이 줄을 키운다 — CSS 줄 상자), Canvas 2D 줄바꿈 힌트를 넣지 않고 측정과 같은 폭 (`max(폭, min-content) + 0.5`) 으로 끊는다. 공백 접기 · 힌트가 바꾼 글자 위 run 구간은 `utils/textRunAlign.ts` `alignTextRuns` 로 옮긴다. 장식선: 노드 자신의 것은 run 으로 옮기고 (DOM span), 물려받은 것은 요소에 남아 모든 run 아래 글자 색으로 (frame 은 DOM 에 장식선을 쓰지 않는다 — 글자 요소가 inline 으로 받는다). **Why (2026-11-02)**: 증분 rebuild 의 「before 에서 버릴 필드」 목록에 `textRuns` 가 없어, ⌘Z 로 글자가 문자열로 돌아가도 Canvas 가 옛 run (마지막 글자 빨강 · 굵게) 을 그렸다 (live). 대칭 게이트 `tests/adr248-g3/adr299RichTextParity.browser.test.ts` (500 % raster ↔ DOM, fixture 8).
 - CanvasKit `heightMultiplier`에 `halfLeading: true` 필수. **Why**: CSS line-height 상하 균등 분배
 - fontFamilies: 측정기와 렌더러가 **동일한 배열** 사용. CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑. **Why**: font 설정 불일치 → 텍스트 줄바꿈 위치 어긋남
-- strutStyle: `heightMultiplier > 0` 시 `forceStrutHeight: true` — 측정기/렌더러 양쪽 동일 적용
+- strutStyle: 렌더러는 `heightMultiplier > 0` 이고 run 이 없을 때 `forceStrutHeight` (run 이 있으면 끈다 — ADR-299). 레이아웃 측정기는 strut 을 강제하지 않고 높이를 직접 낸다 — run 이 없으면 줄 수 × 줄 높이, 있으면 paragraph 높이 (`catalogRuntime/textMeasure.ts`)
 - 측정 font: 텍스트 leaf 의 text · font 는 `textLeaf` (`compositionRoot.ts`) 가 catalog resolved record (`node.visual` · `catalogTextTypography`) 에서 읽는다 — 렌더와 같은 값. 옛 `extractSpecTextStyle` 은 2026-10-05 삭제
 - Paragraph API: 콘텐츠 폭=`getLongestLine()`, max-content=`getMaxIntrinsicWidth()`. `getMaxWidth()` 사용 금지
 - WASM Paragraph 객체 캐싱 금지는 **측정 경로 한정** (Canvas 2D 세그먼트 캐시는 결과값 폭만 보관). 렌더 측 paragraph 는 **텍스트 노드 소유 retained + deferred 폐기** (ADR-174 — 전역 content-키 LRU/상한 재도입 금지: 상한→퇴거→프레임 중 폐기가 텍스트 소실의 병인. paragraph 생성은 `MakeFromFontCollection` + 공유 FontCollection 경유만 — per-call `ParagraphBuilder.Make` 는 paragraph 마다 ~5.78MB variable font 인스턴스를 복제 보유시킨다, 정적 가드 `nodeRendererText.static.test.ts`)
@@ -202,21 +201,17 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 4. Spec-CSS 경계
 
-- 모든 컴포넌트의 CSS 는 catalog rule → `packages/rendering/scripts/generate-css.ts` 가 `renderers/CSSGenerator.ts` 로 만든다 (Frame/Group/Slot 포함). 옛 spec 의 `skipCSSGeneration` 선언은 ADR-248 에서 삭제됐다
+- 컴포넌트의 CSS 는 catalog rule → `packages/rendering/scripts/generate-css.ts` 가 `renderers/CSSGenerator.ts` 로 만든다. rule 의 `structure.skipCSSGeneration` 이 켜진 것 (Label · frame · Group · trigger 류 등 — `componentRulesTable.ts` 에서 확인) 은 수동 sheet 가 DOM 시각을 갖고 생성기는 상태 블록만 낸다
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
-- Switch thumb의 의도된 눌림 확대 `scale: 1.2 1`은 유지하고 이동은 독립 `translate`로 분리한다. 확대 기준은 선택 시 오른쪽, 해제 시 왼쪽 끝이다. **Why (2026-10-19)**: `scale: 1.2 1`과 `transform: translateX(100%)`를 함께 쓰면 이동량까지 확대돼 M thumb가 오른쪽으로 2.8px 돌출했다 (실제 Preview 재현). 바깥 끝을 고정하면 트랙 안쪽으로만 늘어난다.
-- Switch indicator는 thumb를 세로 중앙에 배치한다. **Why (2026-10-19)**: XL 트랙 30px·thumb 24px에 border 2px만으로 배치하면 위 2px·아래 4px가 되어 Canvas의 중앙 배치보다 1px 위로 치우친다.
-- Switch XL의 좌우 끝 여백도 `(trackHeight - thumbSize) / 2`로 잡고 이동량은 `trackWidth - trackHeight`로 계산한다. **Why (2026-10-19)**: XL의 `translate: 100%`는 24px이어서 세로 중앙 정렬 뒤에도 오른쪽 여백이 2px로 남았다. Canvas의 offset 3px에 맞추려면 시작 여백 3px·이동량 22px이 필요하다.
+- Switch 의 thumb 치수 · 이동은 `SWITCH_INDICATOR_SELECTORS` (`componentRulesTable.ts`) 가 정본이다 (S2 치수). 옛 Switch 세 줄의 Why 는 [canvas-details.md](../skills/composition-patterns/reference/canvas-details.md) §옛 규칙 기록.
 - Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로 하나로 렌더링한다. **Why**: 중복 등록 시 이중 렌더링
-- Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
+- Label 기본 크기: fit-content (rule + 레이아웃 엔진)
 - Label size delegation: catalog `COMPONENT_RULES_TABLE.Label` 의 size 블록 + `CATALOG_SIZE_PROPAGATION` (부모 size → Label). 옛 레이아웃 경로의 `LABEL_SIZE_STYLE` DFS 주입은 2026-10-05 삭제
 
 ## 5. 토큰/테마 정합성
 
-- Field 컴포넌트 입력 영역 배경: CSS `--bg-inset` / Spec `{color.layer-2}` 통일. **Why**: 시각적 일관성
-- Select/ComboBox/SearchField gap: 모든 경로에서 고정 4px
+- Select/ComboBox/SearchField 의 root gap 은 크기별 `centerPadding` (rule `sizes[*].gap`), 값 ↔ chevron 간격만 4px
 - Dark Mode Token: adaptive 배경(`{color.neutral}`) → 텍스트에 `{color.base}` (not `{color.white}`). **Why**: dark mode에서 반전
-- Skia color-mix: `mixWithBlackSrgb()` 사용 (oklch 근사 금지). **Why**: srgb 혼합과 수학적으로 다른 결과
 - 노드에 저장된 그림자 preset 리터럴은 두 consumer 가 같은 판정 (`matchShadowPreset`) 으로 색 모드를 따른다 — Canvas `normalizeShadowForTheme(…, root.colorMode)` (`applyCatalogAuthoredPaint`) · DOM `shadowLiteralToCssVar` → `var(--shadow-*)` (`catalogAuthoredDomStyle`). Canvas 입력 (`catalogAuthoredPaintCss`) 에는 `var()` 를 넣지 않는다 (Skia 파서가 못 읽어 그림자가 사라진다). **Why (2026-11-01, ADR-298 결정 7)**: ADR-248 catalog DOM 경로가 옛 DOM 경로 (`fillAdapter.ts`, 호출 0 이라 298 Phase 5 에서 삭제) 의 변환 호출을 옮기지 않아 dark 에서 Canvas 알파 0.24 · Preview 0.08 (live 재현). 298 뒤 패널 preset 은 `{shadow.*}` 토큰을 저장해 이 판정을 거치지 않는다 — 판정은 298 전 리터럴 · 손으로 친 preset 리터럴 몫으로 남긴다 (inset 판은 토큰 · 변수가 없어 light 고정).
 - Necessity Indicator: CSS `renderNecessityIndicator` 와 catalog Canvas (`styleOf` 측정 `labelSuffix` · Skia 렌더) 가 같은 표시를 그린다
 - ToggleButton의 기본 Icon은 owner 텍스트 색상을 상속하고, owner 변경의 derived dependents에 포함한다. 명시한 Icon 색상은 보존한다.
@@ -226,7 +221,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 - Size Delegation: 부모 size → 자식 투영은 `CATALOG_SIZE_PROPAGATION` (`packages/shared/src/catalog/document/sizePropagation.ts`, catalog resolver 가 읽는다) 하나가 정본 — 옛 `propagationRegistry` 는 2026-10-05 삭제. catalog Canvas 대응: `rulePaint.ts` `SHELL_ONLY_TYPES` · `CHILD_PROP_MERGE_TYPES`, `ruleShapes.ts` `BOX_SIZE_TYPES`
 - Calendar 계열 (CalendarGrid/CalendarHeader): catalog 경로 렌더 — CalendarHeader 는 `BOX_SIZE_TYPES`, Calendar/RangeCalendar 는 Shell-only. 상세: canvas-details.md
-- Popover 자식(Calendar/RangeCalendar): 레이아웃 엔진 계산에서 제외. **Why**: Preview Popover 표시
+- 닫힌 overlay 본체 (picker 의 Popover · 달력 포함) 는 `catalogHiddenAtRest` (`presence.ts`) 가 숨기고, 숨긴 record 는 레이아웃에 참여하지 않는다 (`layoutParticipation.ts`)
 - Collection Item Font: catalog rule (GridListItem/ListBoxItem) 하나가 레이아웃 측정과 Skia 렌더에 같이 쓰인다 (옛 `injectCollectionItemFontStyles` 는 2026-10-05 삭제)
 - Arc Shape: `type: "box"` + `arc` 데이터로 변환. 트랙도 arc(360°)로 렌더링. **Why**: renderSolidBorder inset 차이
 - Pointer → Move: 이동 대상은 `CatalogSession` 의 selection (`canvasGesture.ts` `beginMove`) — 판정은 현재 맥락 깊이로 정규화된 `picking.target` (`CatalogCanvas.tsx`). 히트한 원시 id 를 직접 넘기지 않는다. **Why**: 내부 자식 의도치 않은 이동
@@ -236,31 +231,24 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - 시각적 offset 변경 금지 → **문서 명령** (`moveNodes` → `host.execute` → `workspace.execute`, `canvasGesture.ts`) 필수. **Why**: visual hack은 drop 시 원위치 + Skia 미동기화
 - 좌표 변환: DOM clientX/Y → canvas 좌표 시 viewport offset + zoom 반영 필수. **Why**: pan/zoom 적용된 canvas와 DOM은 1:1 아님
 - 이벤트 리스너: `useRef`로 핸들러 참조 유지. **Why**: 드래그 중 리렌더 → addEventListener 소실
-- 드래그 상태 변수에 `eslint-disable` 주석. **Why**: 이벤트 핸들러 내에서만 참조되어 linter가 미사용으로 오판
 
 ## 7. 금지 패턴 종합
 
-- ❌ Label factory에 `width/height: "fit-content"` 누락 (레이아웃 엔진 auto 와 다름)
 - ❌ Label generated CSS 부활 (부모 CSS 변수 상속 깨짐)
 - ❌ CSS `var(--text-md)` 사용 (미정의 → `var(--text-base)` 사용)
-- ❌ Label lineHeight를 숫자로 전달 (parseLineHeight가 배율로 해석 → `"20px"` 문자열 필수)
 - ❌ Label height에 `Math.ceil(fontSize * 1.5)` 같은 추정값 사용 (catalog `Label` size 블록 역참조 필수)
-- ❌ PARENT_VARIANT_TO_LABEL_TOKEN 방식 부활 (catalog `COMPONENT_RULES_TABLE.Label` variants 사용)
-- ❌ fontFamily 문자열을 단일 배열 요소로 전달 (`split(",")` 필수)
-- ❌ `getMaxWidth()`로 콘텐츠 폭 계산 (`getLongestLine()` 사용)
 - ❌ `type: "arc"` 별도 사용 (HMR 이슈 → box + arc 데이터)
 - ❌ 트랙에 circle + stroke (inset 차이 → arc 360° 사용)
 - ❌ `size.height/2`로 세로 중앙 (`containerHeight/2` 사용)
-- ❌ 레이아웃 타이밍을 우회하려는 publishLayoutMap 해킹 · notifyLayoutChange() 강제 호출 (테마 변경 뒤 1회 호출은 css-tokens.md §Dark Mode 의 계약)
+- ❌ 레이아웃 타이밍을 우회하려는 `notifyLayoutChange()` 강제 호출
 - ❌ parentElement를 useMemo 내 직접 참조 (stale closure)
 - ❌ 히트한 원시 id 를 이동 대상으로 직접 전달 (session selection · 정규화된 `picking.target` 사용)
-- ❌ `calculateContentWidth`에 측정기 종류별 `+N` 보정 추가 (CSS 정합 파괴 → nodeRendererText `+1` 마진 사용)
-- ❌ 텍스트 leaf 에 width/minWidth 주입 재도입 (ADR-165 스칼라 계약과 이중 적용 — `contentMinWidth`/`contentMaxWidth` 공급이 정본. 비텍스트 leaf 의 width 주입 시 minWidth 동시 주입은 잔존 계약 유지)
+- ❌ 텍스트 leaf 에 width/minWidth 주입 재도입 (ADR-165 스칼라 계약과 이중 적용 — `contentMinWidth`/`contentMaxWidth` 공급이 정본.)
 - ❌ overflow 기준 flexShrink 주입 보정 (구 Step 5.7) TS 재도입 (automatic minimum size 는 엔진 소속 — `flex.rs` §4.5, ADR-164. layout-engine.md §"TS 잔존 계약" 참조)
 
 ## 8. Overflow Scroll 가이드라인 동기화
 
-렌더/bounds 산출은 Command Stream 단일 경로다. 스크롤 무효화는 registryVersion 경유.
+렌더/bounds 산출은 Command Stream 단일 경로다.
 
 - `catalogScrollRange`는 overflow 표시와 같은 0.5px 허용 오차 이하를 0으로 정규화한다. **Why**: Side label grid의 f32 끝점이 390px에서 390.00002px가 되어 불필요한 가로 스크롤바를 생성했다. 표시만 숨기지 않고 휠 이동과 scrollbar가 소비하는 공통 범위를 정규화한다 (2026-10-31).
 
@@ -313,7 +301,6 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 ## 상세 레퍼런스
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)
-- [SPEC_CSS_BOUNDARY.md](../../docs/legacy/SPEC_CSS_BOUNDARY.md)
 
 - Canvas의 상속 가시성 판정은 bind/update 한 번 안에서 공유하되 다음 갱신으로 캐시를 넘기지 않는다. 부모 숨김·재부모화의 자손 갱신과 fixed/portal 구조는 유지한다.
   **Why (2026-11-04):** 626 records·깊이 20 fixture의 중복 가시성 검사 6,978회가 갱신 단위 memo로 620회가 됐다. 닫힌 portal을 구조에서 제거하면 재오픈·warmup의 span 경계가 깨질 수 있다.

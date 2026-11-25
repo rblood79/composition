@@ -58,13 +58,14 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 ### Canvas 렌더 분기 (`apps/builder/src/builder/catalogRuntime/`)
 
-| Set                        | 위치               | export | 제어 대상                                                                                                             |
-| -------------------------- | ------------------ | :----: | --------------------------------------------------------------------------------------------------------------------- |
-| `SHELL_ONLY_TYPES`         | `rulePaint.ts`     |   ❌   | 자식 수 무관 `_hasChildren=true` — standalone 복귀 차단. lowercase `"body"` 포함 주의 (Set.has 정확 매칭)             |
-| `CHILD_PROP_MERGE_TYPES`   | `rulePaint.ts`     |   ✅   | `_hasChildren` 주입 **차단** + `ruleShapes.ts` `shellProps` 가 컨테이너 text/label/placeholder 를 지워 이중 렌더 차단 |
-| `BOX_SIZE_TYPES`           | `ruleShapes.ts`    |   ❌   | `_containerWidth` / `_containerHeight` 주입 — shape 생성기가 상자 폭으로 우측/중앙 배치                               |
-| `bindings` 표              | `canvasBinding.ts` |   ❌   | rule 대신 전용 binding 으로 그리는 키 (composite · frame · group · slot · box · icon · selecttrigger · 텍스트 계열 …) |
-| `TRIGGER_OVERLAY_CHILDREN` | `presence.ts`      |   ❌   | 닫힌 overlay 의 자식 — 레이아웃 상자 0, Canvas 미렌더 (옛 `POPOVER_CHILDREN_TAGS`)                                    |
+| Set                      | 위치               | export | 제어 대상                                                                                                             |
+| ------------------------ | ------------------ | :----: | --------------------------------------------------------------------------------------------------------------------- |
+| `SHELL_ONLY_TYPES`       | `rulePaint.ts`     |   ❌   | 자식 수 무관 `_hasChildren=true` — standalone 복귀 차단. lowercase `"body"` 포함 주의 (Set.has 정확 매칭)             |
+| `CHILD_PROP_MERGE_TYPES` | `rulePaint.ts`     |   ✅   | `_hasChildren` 주입 **차단** + `ruleShapes.ts` `shellProps` 가 컨테이너 text/label/placeholder 를 지워 이중 렌더 차단 |
+| `BOX_SIZE_TYPES`         | `ruleShapes.ts`    |   ❌   | `_containerWidth` / `_containerHeight` 주입 — shape 생성기가 상자 폭으로 우측/중앙 배치                               |
+| `bindings` 표            | `canvasBinding.ts` |   ❌   | rule 대신 전용 binding 으로 그리는 키 (composite · frame · group · slot · box · icon · selecttrigger · 텍스트 계열 …) |
+
+닫힌 overlay 본체는 Set 이 아니라 함수가 정한다 — `catalogHiddenAtRest` (`presence.ts`) 의 `OVERLAY_BODY_TYPES` 분기. 숨긴 record 는 레이아웃 상자 0 · Canvas 미렌더.
 
 `_hasChildren` 3-branch 코드: `rulePaint.ts` — SHELL_ONLY → 항상 / TreeItem 명시 예외 / CHILD_PROP_MERGE → 차단 / 그 외 → `node.children.length > 0`. 판정 알고리즘은 정본 §2.5.
 
@@ -87,7 +88,7 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 정본 판정 (3분류 알고리즘·금지 패턴) 은 canvas-rendering.md §2.5/§2.6.
 
 1. **catalog entry** — `catalog/bindings/{Type}.binding.ts` + `componentCatalog.ts` entry (kind / family / cutover / panel meta). family 의 `cutover` 상태와 일치 (불변식 D).
-2. **시각 규칙** — `componentRulesTable.ts` 직접 편집 (ADR-908 `FillTokenSpec` 구조, 정본 canvas-rendering.md §2.5.5).
+2. **시각 규칙** — `componentRulesTable.ts` 직접 편집 (variant 칠은 `ComponentRuleVariant.paint` 조건 트리 — 정본 canvas-rendering.md §2.5.5).
 3. **합성 구조** — 자식 트리가 필요하면 reusable origin 정의 · 템플릿 (`reusableOriginLibrary.ts`) + 팔레트 노출이면 `PALETTE_REUSABLE_ORIGIN_TYPES`. 레이아웃 기본값은 템플릿 노드의 `layout` typed field (style-ssot.md).
 4. **조립 계약** — [RAC 조립 계약](../rules/domain-rac-composition.md)의 children · slot · 필수 부품 · 상태 주체.
 5. **`_hasChildren` 3분류** — SHELL_ONLY / CHILD_PROP_MERGE / Plain 판정 후 `rulePaint.ts` Set 등록 (Plain 은 무등록).

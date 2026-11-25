@@ -34,9 +34,10 @@ ADR-248 Phase 4 이전의 Zustand store · spec 경로 항목은 걷어냈습니
   `load` · `fixture` · `sync` 넷뿐 — 사용자 편집이 skip 으로 들어가면 결함입니다.
 - 요소 순서는 `NodeEntry.children` · `PageEntry.children` 배열이 정본이고 `order_num` 은
   없습니다. 순서를 바꾸는 명령이 배열을 보존하는지 봅니다.
-- 문서 밖 상태 (collections · 변수) 의 편집은 `useDataStore.applyDataChange` 하나이고 히스토리는
-  `recordExternal` 로 같은 스택에 들어갑니다. `set()` 직접 변경 · 히스토리 없는 데이터 편집 ·
-  `HUMAN_ONLY_DATA_OPS` 의 AI 노출은 결함입니다.
+- 데이터 (collections · 변수) 편집은 `useDataStore.applyDataChange` 하나이고, 그 결과는 sink
+  (`setDataDefinitionSink` — `catalogDataStore.ts` 의 `bindCatalogDataStore`) 가 `setDataEntries`
+  문서 명령으로 묶어 `workspace.execute` 한 step 으로 실행합니다 (ADR-286 — history · 저장이 문서와 하나).
+  store 의 정의 Map 을 `set()` 으로 직접 바꾸는 코드 · `HUMAN_ONLY_DATA_OPS` 의 AI 노출은 결함입니다.
 - 구독은 field 단위 (`subscribeEntryField` · `subscribeResolvedField` · `useCatalog*`).
   step 전체를 구독해 매번 다시 계산하는 패널은 성능 결함입니다.
 - Preview 동기화는 `CatalogPreviewChannel` 의 `CATALOG_DELTA` / `CATALOG_SNAPSHOT` 이며,
@@ -56,8 +57,9 @@ ADR-248 Phase 4 이전의 Zustand store · spec 경로 항목은 걷어냈습니
   않습니다 — `catalogDerivedPropsDependents` 만으로는 부족하고 `canvasBinding.update()` 의
   dirty 확장이 필요합니다. 그런 자식을 새로 만든 변경은 "owner 필드 변경 → `canvas.update()` →
   자식 칠 변경" 회귀 테스트를 요구합니다.
-- 닫힌 overlay 자식 (Popover 안 ListBox · 달력) 은 Canvas 가 그리지 않습니다
-  (`TRIGGER_OVERLAY_CHILDREN`). DOM 은 RAC Popover 안에 그립니다.
+- 닫힌 overlay 본문과 그 자식 (Popover 안 ListBox · 달력) 은 Canvas 가 그리지 않습니다
+  (`packages/shared/src/catalog/runtime/presence.ts` 의 `catalogHiddenAtRest` — 열림 판정은
+  `catalogOverlayOpen`). DOM 은 RAC Popover 안에 그립니다.
 - `TokenRef` 숫자 연산은 `resolveToken` 경유. variant 칠은 rule 의 조건 트리 하나 (Canvas
   `resolveCatalogPaint` · DOM `variantPaintCssFor` — ADR-297). gap/padding 은 longhand 우선과 shorthand fallback 을 함께 처리합니다.
 - Skia 전용 시각 효과 (DOM/CSS 로 재현 불가) 도입은 D3 대칭 위반입니다. 한쪽 소비자만 고친
