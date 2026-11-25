@@ -141,12 +141,13 @@ export function catalogDerivedRestVisual(
 /**
  * Owner-derived props whose rule `containerVariants` block a node takes as its own rest value — no
  * generated sheet draws it for the node (Column · Cell · Row · CardPreview): the DOM writes it
- * inline (`domBinding.runtime.ts`), and the ones marked `true` are in the engine input too
- * (`compositionRoot.ts` — a merged row's line widths · a footer cell's bold). (`pinnedEdge` ·
- * `cardRadius` are not in the engine input.)
+ * inline (`domBinding.runtime.ts`), and the ones marked `true` change the box the engine lays
+ * out (`compositionRoot.ts` — a pinned column's edge · a merged row's line widths · a footer cell's
+ * bold). (A card preview's corner is painted only.) **Why (2026-11-25)**: the pinned edge was
+ * DOM-only — its 1px narrowed the DOM content box, not the Canvas's.
  */
 const OWN_DERIVED_VARIANTS: Readonly<Record<string, boolean>> = {
-  pinnedEdge: false,
+  pinnedEdge: true,
   cellLines: true,
   mergeLine: true,
   inFooter: true,

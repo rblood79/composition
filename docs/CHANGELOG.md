@@ -13,6 +13,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Table 고정 열 경계선 — Canvas 레이아웃에도 1px] - 2026-11-25
+
+/simplify 정리 (derived 값 허용 목록 통합) 중에 찾았다. 고정 열의 경계선 (Column · Cell rule 의 `pinned-edge` 1px) 을 DOM 은 테두리로 그려 내용 상자가 1px 좁아지는데, Canvas 레이아웃 엔진 입력에는 그 선이 없었다.
+
+### Fixed
+
+- **end 쪽 고정 열의 머리글 내용이 Canvas 에서 1px 왼쪽 · 1px 넓게**: 메뉴 있는 열의 머리글 버튼이 DOM x 1 · 폭 637.33, Canvas x 0 · 폭 638.33 이었다. 이제 Canvas 엔진 입력에도 그 선의 폭이 들어간다 (두 쪽 모두 x 1 · 637.33).
+  - **Why**: 고정 열의 선 (ADR-315 Phase 4) 은 DOM 쪽 목록에만 있었고, 레이아웃 쪽 목록은 Phase 6 에서 병합 선 · 합계 행만으로 따로 만들어졌다. 두 목록을 표 하나로 합치면서 차이가 드러났다.
+  - 위치: `runtime/libraryVisual.ts` `OWN_DERIVED_VARIANTS` (`pinnedEdge` → 엔진 입력 포함)
+
+검증: unit `adr315Columns` — 고정 열 Column 의 엔진 입력 `borderRight` 1px (수정을 되돌리면 `0px` 로 RED). live `table-pinned-edge-live` 3/3 (start · end 고정 열 머리글 버튼 x · 폭 Canvas = DOM, page error 0) — 수정을 되돌리면 end 열 FAIL.
+
 ## [S2 대조 남은 차이 4 — Disclosure compact · SelectBox 가로 · ListBox 아이콘 · frame 언어 서체] - 2026-11-25
 
 사용자 「알고 남겨 둔 차이 다시 체크해줘」 → 「모두 수정해」. 2026-11-24 S2 대조 뒤 남겨 둔 네 가지를 설치 S2 1.8.2 소스와 다시 대조해 고쳤다.

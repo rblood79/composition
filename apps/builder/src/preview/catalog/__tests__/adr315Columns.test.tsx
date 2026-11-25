@@ -489,6 +489,14 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
       t.h.workspace.root.domInputs.get(t.column("type").id)?.derivedProps
         ?.pinnedEdge,
     ).toBe("start");
+    // (…and lays it out: the line's 1px is in the box the engine places the content in, as the
+    //  DOM's border — 2026-11-25, the engine input had `borderRight: 0px`.)
+    const pinnedInput = (id: string) =>
+      JSON.parse(t.h.workspace.root.getAppliedLayoutInput(id) ?? "{}") as {
+        borderRight?: string;
+      };
+    expect(pinnedInput(t.column("type").id).borderRight).toBe("1px");
+    expect(pinnedInput(t.column("name").id).borderRight).toBe("0px");
     expect(t.h.session.tableColumnsNow(t.table().id).pinned).toEqual({
       start: ["type"],
       end: [],
