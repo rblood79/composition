@@ -68,6 +68,7 @@ packages/shared/src/**/*.d.ts.map
 
 # Agent / worktree / local settings
 .worktrees/
+.claude/worktrees/
 .agent/runs/
 .agent/archives/
 .agent/session-edits/
