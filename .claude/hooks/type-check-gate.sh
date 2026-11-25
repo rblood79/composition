@@ -7,18 +7,14 @@
 # 아래 echo (stdout) 가 그대로 전달된다.
 # 재진입: 재호출 뒤의 Stop 에는 stdin `stop_hook_active: true` 가 오지만 일부러 보지 않는다 —
 # 수정 뒤 type-check 를 다시 재야 하기 때문. 무한 반복은 Claude Code 의 연속 8회 상한이 막는다.
+# (옛 `STOP_HOOK_ACTIVE` 환경 변수 검사는 2026-11-25 삭제 — hook 마다 새 프로세스라 그 값을
+#  세우는 곳이 없어 늘 false 였다.)
 #
 # 사전 단계: spec-rebuild-flag.sh 가 생성한 .claude/.spec-rebuild-pending flag 확인 →
 #   있으면 pnpm build:specs 1회 실행 후 flag 삭제. 다중 편집 debounce.
 set -euo pipefail
 
 INPUT=$(cat)
-
-# 재진입 방지
-STOP_HOOK_ACTIVE="${STOP_HOOK_ACTIVE:-false}"
-if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
-  exit 0
-fi
 
 cd "${CLAUDE_PROJECT_DIR:-.}"
 
@@ -108,14 +104,14 @@ if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && command -v jq >/dev/null 2>&1
   fi
 fi
 
-# .ts/.tsx 변경 감지
-CHANGED_TS=$(git diff --name-only HEAD 2>/dev/null | grep -E '\.(ts|tsx)$' || true)
+# .ts/.tsx 변경 감지 — 새로 만든 (아직 git 에 없는) 파일 포함. 위 교집합 가드와 같은 범위.
+# Why (2026-11-25): `git diff HEAD` 만 보면 새 .ts (예: 새 테스트 파일) 만 있는 턴은 type-check 없이 끝났다.
+CHANGED_TS=$({ git diff --name-only HEAD; git ls-files --others --exclude-standard; } 2>/dev/null | grep -E '\.(ts|tsx)$' || true)
 if [ -z "$CHANGED_TS" ]; then
   exit 0
 fi
 
 # type-check 실행
-export STOP_HOOK_ACTIVE=true
 if ! TYPE_CHECK_OUTPUT=$(pnpm type-check 2>&1); then
   # asyncRewake: exit 2 로 모델 재호출 (stderr 비어 있으므로 stdout 이 system-reminder 로 전달)
   echo "type-check 실패. 아래 에러를 수정하세요:

@@ -1,5 +1,5 @@
 #!/bin/bash
-# PreToolUse Hook: 사용자 명시 발의 없이 ADR 신규 파일 자동 생성 차단
+# PreToolUse Hook: 사용자 요청 없는 ADR 신규 파일 생성 시 확인을 묻는다 (ask — 2026-06-01 deny 에서 완화)
 #
 # Why: 60일 ADR 243건 중 84건 Proposed (35%) 일부 claude 주도 발의.
 #      `feedback-no-derived-adr-mid-execution.md` / `feedback-adr-dependency-direction-stale-baseline.md`
@@ -9,7 +9,7 @@
 #   1. tool_input.file_path 가 docs/adr/<숫자>-...md 신규 파일 패턴인지 확인
 #   2. transcript_path 에서 직전 사용자 메시지 (userType=external, content=string) 추출
 #   3. 직전 8개 사용자 메시지에 ADR 작성 의도 키워드 ("ADR" / "create-adr") 매칭
-#   4. evidence 없으면 permissionDecision: deny + 안내
+#   4. evidence 없으면 permissionDecision: ask + 안내
 #
 # 예외:
 #   - design/, reviews/, completed/ 하위 파일은 ADR 본문 아니므로 통과
@@ -73,11 +73,23 @@ fi
 #   통과시켜, 이것들이 tail 윈도우를 잠식 → 진짜 사용자 입력이 밀려남 → 사용자 명시 발의
 #   ("adr-910 생성해")가 윈도우 밖으로 사라져 deny. 동시 세션/자율 loop 환경에서 악화.
 #   → system 주입 패턴을 사용자 입력에서 제외한 뒤 tail -8 (마진 확대) 로 진짜 입력만 검사.
+# 2026-11-25 버그 수정 (두 방향):
+#   - 사용자가 입력한 slash command (`/create-adr …`) 는 transcript 에
+#     `<command-message>create-adr</command-message>\n<command-name>/create-adr</command-name>
+#     \n<command-args>…</command-args>` 로 남는다. 위 `<command-` 제외가 이것까지 버려 사용자
+#     요청인데도 확인을 물었다 → 명령 이름과 인자만 꺼내 검사 대상에 넣는다.
+#   - 압축 요약 (`isCompactSummary`, 「This session is being continued …」) 은 external 사용자
+#     메시지로 남고 지난 대화의 `create-adr` · 「새 ADR」 같은 말을 그대로 담는다 → 모델이 스스로
+#     만드는 ADR 도 묻지 않고 통과했다. 요약은 사용자 입력이 아니므로 뺀다.
 RECENT_USER_MSG=$(jq -r '
   select(.type == "user"
     and (.userType // "") == "external"
+    and (.isCompactSummary // false) != true
     and ((.message.content // "") | type) == "string")
   | .message.content
+  | if test("^<command-(message|name)>") then
+      ([capture("<command-name>(?<n>[^<]*)</command-name>").n] + [capture("<command-args>(?<a>[^<]*)</command-args>").a] | join(" "))
+    else . end
   | select(
       (startswith("<task-notification") | not)
       and (startswith("<command-") | not)
@@ -86,6 +98,7 @@ RECENT_USER_MSG=$(jq -r '
       and (startswith("<bash-stdout>") | not)
       and (startswith("<bash-stderr>") | not)
       and (startswith("Caveat:") | not)
+      and (startswith("This session is being continued") | not)
       and (contains("autonomous-loop") | not)
       and (startswith("# Autonomous loop") | not)
       and (startswith("You scheduled this tick") | not)

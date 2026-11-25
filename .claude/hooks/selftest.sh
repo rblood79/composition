@@ -84,6 +84,20 @@ case_start "보호 파일 .env → deny"
 run_hook protect-files.sh "$(tool_json Write '{"file_path":"/x/app/.env"}')"; assert_decision deny
 case_start "vite-env.d.ts 는 오탐 아님 (2026-07-17 회귀) → 통과"
 run_hook protect-files.sh "$(tool_json Edit '{"file_path":"/x/app/src/vite-env.d.ts"}')"; assert_allow
+case_start "secretVault.ts 는 소스 파일 — 이름 부분 문자열로 막지 않음 (2026-11-25 회귀) → 통과"
+run_hook protect-files.sh "$(tool_json Edit '{"file_path":"/x/app/src/secretVault.ts"}')"; assert_allow
+case_start ".env.example 은 템플릿 → 통과"
+run_hook protect-files.sh "$(tool_json Edit '{"file_path":"/x/app/.env.example"}')"; assert_allow
+case_start "credentials.json → deny"
+run_hook protect-files.sh "$(tool_json Write '{"file_path":"/x/app/credentials.json"}')"; assert_decision deny
+case_start "라이선스 토큰 apps/builder/public/license → deny"
+run_hook protect-files.sh "$(tool_json Write '{"file_path":"/x/app/apps/builder/public/license"}')"; assert_decision deny
+case_start "live 하니스 세션 .auth-session-4173.json → deny"
+run_hook protect-files.sh "$(tool_json Write '{"file_path":"/x/app/apps/builder/scripts/.auth-session-4173.json"}')"; assert_decision deny
+case_start "다른 경로의 LICENSE 는 보호 안 함 → 통과"
+run_hook protect-files.sh "$(tool_json Edit '{"file_path":"/x/app/packages/foo/LICENSE"}')"; assert_allow
+case_start ".claude/settings.json 은 보호 안 함 (사용자 결정 2026-05-31 · 11-25) → 통과"
+run_hook protect-files.sh "$(tool_json Edit '{"file_path":"/x/app/.claude/settings.json"}')"; assert_allow
 case_start "file_path 없음 → 통과"
 run_hook protect-files.sh "$(tool_json Bash '{"command":"ls"}')"; assert_allow
 
@@ -99,6 +113,13 @@ case_start "신규 ADR + 요청 없음 → ask"
 run_hook derived-adr-block.sh "$(tool_json Write "{\"file_path\":\"$NEW_ADR\"}" "$T_NO")"; assert_decision ask
 case_start "신규 ADR + transcript 없음 → ask"
 run_hook derived-adr-block.sh "$(tool_json Write "{\"file_path\":\"$NEW_ADR\"}")"; assert_decision ask
+T_CMD="$TMP/t-adr-cmd.jsonl"; transcript "$T_CMD" $'<command-message>create-adr</command-message>\n<command-name>/create-adr</command-name>\n<command-args>명령 팔레트</command-args>'
+case_start "신규 ADR + 사용자가 /create-adr 입력 (2026-11-25 회귀) → 통과"
+run_hook derived-adr-block.sh "$(tool_json Write "{\"file_path\":\"$NEW_ADR\"}" "$T_CMD")"; assert_allow
+T_SUM="$TMP/t-adr-summary.jsonl"; : > "$T_SUM"
+jq -nc '{type:"user",userType:"external",isCompactSummary:true,message:{content:"This session is being continued from a previous conversation. … create-adr · 새 ADR 생성 …"}}' >> "$T_SUM"
+case_start "신규 ADR + 압축 요약에만 키워드 (2026-11-25 회귀) → ask"
+run_hook derived-adr-block.sh "$(tool_json Write "{\"file_path\":\"$NEW_ADR\"}" "$T_SUM")"; assert_decision ask
 case_start "기존 ADR 수정 → 통과"
 printf '# ADR\n' > "$NEW_ADR"
 run_hook derived-adr-block.sh "$(tool_json Edit "{\"file_path\":\"$NEW_ADR\"}" "$T_NO")"; assert_allow
@@ -155,8 +176,6 @@ case_start "session-start → 세션 경고 블록 출력 (로스터는 2026-09-
 run_hook session-start.sh '{"hook_event_name":"SessionStart"}'; assert_contains '<composition-session-warnings>'
 case_start "precompact-snapshot (SessionStart compact) → 스냅샷 헤더 출력"
 run_hook precompact-snapshot.sh '{"hook_event_name":"SessionStart","source":"compact"}'; assert_contains '=== Compact Context Snapshot ==='
-case_start "type-check-gate 재진입 가드 (STOP_HOOK_ACTIVE=true) → 통과"
-run_hook type-check-gate.sh '{"hook_event_name":"Stop"}' STOP_HOOK_ACTIVE=true; assert_allow
 
 # type-check-gate 세션 소유 가드 — 임시 git repo + transcript(tool_use) fixture.
 # package.json 의 type-check 를 stub (exit 3) 으로 두어 "게이트가 검사 단계까지 갔는가" 만 본다.
@@ -191,6 +210,11 @@ run_gate "$T_AGENT"; assert_contains 'type-check 실패'
 case_start "dirty .ts 없음 → 통과"
 git -C "$GATE" checkout -q -- src/other.ts
 run_gate "$T_EDIT_A"; assert_allow
+case_start "세션이 새로 만든 (git 미추가) .ts 만 있음 (2026-11-25 회귀) → 검사 단계 진행"
+T_NEW="$TMP/t-gate-new.jsonl"; : > "$T_NEW"; assistant_tool "$T_NEW" Write "{\"file_path\":\"$GATE/src/new.ts\"}"
+printf 'export const n = 1;\n' > "$GATE/src/new.ts"
+run_gate "$T_NEW"; assert_contains 'type-check 실패'
+rm -f "$GATE/src/new.ts"
 
 # ---------- adr-status-sync-check.sh (Stop) — 임시 git repo ----------
 printf '\n== adr-status-sync-check.sh ==\n'

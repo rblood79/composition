@@ -23,24 +23,14 @@ if [ -z "$FILES" ]; then
   exit 0
 fi
 
-PROTECTED_PATTERNS=(
-  "^\\.env$"
-  "^\\.env\\..+"
-  "credentials"
-  "secret"
-  "^\\.claude/settings\\.json$"
-  "^\\.claude/settings\\.local\\.json$"
-)
+# 목록 · 판정은 scripts/protected-paths.sh (Claude · Codex hook 과 같은 정본).
+# shellcheck source=/dev/null
+source "$ROOT_DIR/scripts/protected-paths.sh"
 
 BLOCKED_FILES=()
 while IFS= read -r file; do
   [ -z "$file" ] && continue
-  for pattern in "${PROTECTED_PATTERNS[@]}"; do
-    if echo "$file" | grep -Eiq "$pattern"; then
-      BLOCKED_FILES+=("$file")
-      break
-    fi
-  done
+  if protected_path_reason "$file" >/dev/null; then BLOCKED_FILES+=("$file"); fi
 done <<< "$FILES"
 
 if [ "${#BLOCKED_FILES[@]}" -gt 0 ]; then

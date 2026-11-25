@@ -54,9 +54,7 @@ if [ -n "$CHANGED" ]; then
 else
   # 변경 파일 없으면 핵심 규칙만 간략 주입
   echo "## CRITICAL Rules (compact)"
-  echo "- No inline Tailwind → tv() + CSS files"
   echo "- No any type → explicit types"
-  echo "- DirectContainer → engine result x/y"
   echo "- ADR-248: CatalogGraph = 문서 SSOT, 변경은 catalog 명령 → workspace.execute 만"
   echo "- History 의도 필수 (record / skip 사유) — 데이터 store 변경도 recordExternal 로 같은 스택"
   echo "- 레이아웃 재계산 = transaction impact.layout (PAINT_ONLY_VISUAL_KEYS 제외 방식) + styleOf diff"

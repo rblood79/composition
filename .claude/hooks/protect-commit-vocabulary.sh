@@ -39,13 +39,6 @@ fi
 # 금지 어휘 정의 (확장 시 여기 + emit_deny reason 둘 다 갱신)
 FORBIDDEN='발효'
 
-# -F <file> / --file=<file> 로 메시지를 파일에서 읽는 경우 → 내용 검사 불가 → ask
-if echo "$COMMAND" | grep -qE '\bgit[[:space:]]+commit\b.*(-F[[:space:]=]|--file[[:space:]=])'; then
-  if echo "$COMMAND" | grep -qE "$FORBIDDEN"; then
-    : # 파일 경로 자체에 어휘가 있을 일은 없으나 fallthrough 하여 일반 검사로
-  fi
-fi
-
 # 커밋 명령 전체 문자열에서 금지 어휘 grep.
 # 메시지는 -m "..." / -m '...' / heredoc 안에 있고, git commit 명령에 어휘가 등장하는
 # 경우는 사실상 메시지뿐 (코드 식별자에 "발효" 없음) → 명령 전체 grep 으로 충분.
