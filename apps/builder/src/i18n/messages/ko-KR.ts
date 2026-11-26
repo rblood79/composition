@@ -1111,6 +1111,8 @@ const catalog: TranslationKeys = {
     toggleProp: "{prop} 전환",
   },
   propertiesPanel: {
+    // (A select that takes several — S2 Picker `picker.selectedCount`, shown from 2 picked items.)
+    selectedCount: "{count}개 항목 선택됨",
     overrideCleared: "'{label}' override 해제됨",
     itemsForkedLabel: "항목 (분기됨)",
     itemsForkedHint:
@@ -4163,6 +4165,8 @@ const formattedMessages: Record<
     `지금 이 instance 에서는 ${String(args?.value ?? "")}`,
   "propertiesPanel.componentPropertyReceivers": (args) =>
     `받는 instance ${String(args?.count ?? "")}`,
+  "propertiesPanel.selectedCount": (args) =>
+    `${String(args?.count ?? 0)}개 항목 선택됨`,
   "interactions.summaryToastWithMessage": (args) =>
     `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
   "interactions.summarySetState": (args) =>

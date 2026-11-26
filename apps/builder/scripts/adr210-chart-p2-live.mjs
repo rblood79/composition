@@ -158,15 +158,10 @@ async function main() {
     const picker = page.getByRole("group", { name: /Choose value fields|값 필드 선택/ }).first();
     await picker.waitFor({ state: "visible", timeout: 5_000 });
     // factory 샘플 행은 {category, value, series} — 수치 필드는 value 하나.
-    // RAC Checkbox 의 실제 input 은 시각 상자 뒤에 있다 — 라벨(legend) 텍스트를 클릭한다.
-    await picker.getByText(/^value ·/).first().click();
-    const checked = await picker
-      .getByRole("checkbox", { name: /^value ·/ })
-      .first()
-      .isChecked();
-    if (!checked) {
-      await picker.getByRole("checkbox", { name: /^value ·/ }).first().click({ force: true });
-    }
+    // (값 필드 고르기 = 다중 select — 열어서 항목을 누른다, 2026-11-26.)
+    await picker.locator("button.react-aria-Button").first().click();
+    await page.getByRole("listbox").last().getByRole("option", { name: /^value/ }).first().click();
+    await page.keyboard.press("Escape");
     await picker.getByRole("button", { name: /Apply|적용/ }).first().click();
     await page.waitForTimeout(1500);
     const afterApply = await chartProps(page, placed.id);

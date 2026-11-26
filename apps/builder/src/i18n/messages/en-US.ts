@@ -1112,6 +1112,8 @@ const catalog: TranslationKeys = {
     toggleProp: "Toggle {prop}",
   },
   propertiesPanel: {
+    // (A select that takes several — S2 Picker `picker.selectedCount`, shown from 2 picked items.)
+    selectedCount: "{count} items selected",
     overrideCleared: "'{label}' override cleared",
     itemsForkedLabel: "items (forked)",
     itemsForkedHint:
@@ -4179,6 +4181,8 @@ const formattedMessages: Record<
     `In this instance: ${String(args?.value ?? "")}`,
   "propertiesPanel.componentPropertyReceivers": (args) =>
     `Received by ${String(args?.count ?? "")}`,
+  "propertiesPanel.selectedCount": (args) =>
+    `${String(args?.count ?? 0)} items selected`,
   "interactions.summaryToastWithMessage": (args) =>
     `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
   "interactions.summarySetState": (args) =>

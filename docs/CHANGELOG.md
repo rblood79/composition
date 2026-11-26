@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - **`PanelSelect` 다중 선택** (`components/property/PanelSelect.tsx`): `selectionMode="multiple"` · `selectedKeys` · `onSelectionKeysChange` — RAC `Select` 의 multiple (`value` · `onChange`). 닫힌 동안 RAC 에는 고른 항목만 준다 (단일 선택과 같은 `closedItems`).
+- **닫힌 칸 글자 = S2 Picker**: 고른 항목이 하나면 그 이름, 둘 이상이면 개수 (「2 items selected」 · 「2개 항목 선택됨」 — S2 `picker.selectedCount`), 없으면 「—」.
+- **Chart 값 필드 고르기** (`ChartDataMappingControls.tsx` `ChartFieldPicker` — Series source → Value columns): 원천 열마다 Checkbox 를 그리던 목록도 같은 다중 select 로 (이름 + 오른쪽 유형). 고른 순서가 값 필드 순서다. 트리거 글자는 공용 `PanelMultiSelectValue`.
 - **`SelectionKeysField`**: 그룹 항목 칸이 이 select 를 쓴다. 300 항목 목록을 고를 때 패널에 Checkbox 300 개가 생기던 것이 없어졌다 — ratchet `600:scroll-boxes` scroll DOM 속성 변경 1,568 → 70 · `60:sticky-lists` select 1,328 → 430 (원인 `4ac2d5ec3`).
 - 조사: ratchet 등급 A 초과 99 건은 11-22 기준 (`cd9a9bca5`) 뒤 런타임 커밋 62 개가 쌓인 것 — 위 항목 말고는 기능 추가의 선택당 일정한 비용 (frame · Text HTML 태그 칸 · Resizable · S2 기능) 과 Text · Heading 글자 상속의 렌더 변경이다.
 

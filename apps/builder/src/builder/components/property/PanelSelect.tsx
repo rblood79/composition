@@ -26,9 +26,13 @@ import { Children, isValidElement, useCallback, useState } from "react";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
-import { Select as AriaSelect } from "react-aria-components/Select";
+import {
+  Select as AriaSelect,
+  SelectValue,
+} from "react-aria-components/Select";
 import { Text } from "react-aria-components/Text";
 
+import { useOptionalI18n } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
@@ -192,6 +196,29 @@ function closedItems(
   find(children);
   if (selected.length > 0) return selected;
   return readable ? first : children;
+}
+
+/**
+ * 여러 개 고르기 (`selectionMode="multiple"`) 의 트리거 글자 — S2 Picker 와 같다: 없으면 「—」, 하나면 그
+ * 항목 이름, 둘 이상이면 개수 (S2 `picker.selectedCount` — 「2 items selected」).
+ */
+export function PanelMultiSelectValue() {
+  const i18n = useOptionalI18n();
+  return (
+    <SelectValue>
+      {({ isPlaceholder, selectedItems, selectedText }) =>
+        isPlaceholder
+          ? "—"
+          : selectedItems.length > 1
+            ? i18n
+              ? i18n.t("propertiesPanel.selectedCount", {
+                  count: selectedItems.length,
+                })
+              : `${selectedItems.length} items selected`
+            : selectedText
+      }
+    </SelectValue>
+  );
 }
 
 /** ▾ 자리 — Select 와 팝오버 trigger 가 같은 상자 (`.select-chevron`, form-controls.css). 기본 그림 ChevronDown */

@@ -221,9 +221,10 @@ async function main() {
     await pickOption(page, /Series Source|시리즈 원천/, /Value Columns|값 컬럼/);
     const picker = page.getByRole("group", { name: /Choose value fields|값 필드 선택/ }).first();
     await picker.waitFor({ state: "visible", timeout: 5_000 });
-    await picker.getByText(/^value ·/).first().click();
-    if (!(await picker.getByRole("checkbox", { name: /^value ·/ }).first().isChecked()))
-      await picker.getByRole("checkbox", { name: /^value ·/ }).first().click({ force: true });
+    // (값 필드 고르기 = 다중 select — 열어서 항목을 누른다, 2026-11-26.)
+    await picker.locator("button.react-aria-Button").first().click();
+    await page.getByRole("listbox").last().getByRole("option", { name: /^value/ }).first().click();
+    await page.keyboard.press("Escape");
     await picker.getByRole("button", { name: /Apply|적용/ }).first().click();
     await page.waitForTimeout(1500);
     // 색 토큰을 바꾸기 전 Skia 주색 (series-1).

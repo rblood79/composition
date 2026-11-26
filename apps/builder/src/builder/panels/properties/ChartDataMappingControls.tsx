@@ -1,6 +1,5 @@
 import "./ChartAuthoringControls.css";
 import { Button } from "react-aria-components/Button";
-import { Checkbox } from "@composition/shared/components/list";
 import { memo } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useOwnedState } from "./useOwnedState";
@@ -11,8 +10,14 @@ import {
 } from "@composition/rendering";
 import type { ChartDataMode } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
+import {
+  PanelMultiSelectValue,
+  PanelSelect,
+  PanelSelectItem,
+} from "../../components/property/PanelSelect";
 import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../components/property/PropertySelect";
+import { useControlPopoverMetrics } from "../../components/property/useControlPopoverMetrics";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
 
@@ -146,27 +151,13 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
       {picking && (
         <fieldset className="properties-aria chart-field-picker">
           <legend className="fieldset-legend">{t("chart.chooseFields")}</legend>
-          {/* legend 가 그룹 이름을 공급한다 — RAC CheckboxGroup 을 겹치면 같은 이름의 group 이
-              둘이 된다. 각 Checkbox 는 자기 라벨로 독립 (controlled). */}
-          <div className="react-aria-control react-aria-Group chart-field-picker-list">
-            {(columns ?? []).map((column) => (
-              <Checkbox
-                key={column.key}
-                isSelected={picked.includes(column.key)}
-                onChange={(selected) =>
-                  setPicked((current) =>
-                    selected
-                      ? current.includes(column.key)
-                        ? current
-                        : [...current, column.key]
-                      : current.filter((key) => key !== column.key),
-                  )
-                }
-              >
-                {`${column.key} · ${typeLabel(column.type)}`}
-              </Checkbox>
-            ))}
-          </div>
+          <ChartFieldPicker
+            label={t("chart.chooseFields")}
+            columns={columns ?? []}
+            picked={picked}
+            onChange={setPicked}
+            typeLabel={typeLabel}
+          />
           <div className="chart-actions">
             <Button
               type="button"
@@ -276,3 +267,47 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
     </>
   );
 });
+
+/**
+ * The value-field picker (group → columns): the source's columns as a select that takes several —
+ * name + its type on the right, picked order = the order the fields join. Why (2026-11-26, 사용자
+ * 지시 — 같은 비용 문제): a check list drew one RAC Checkbox per column; a closed `PanelSelect` gives
+ * RAC the picked columns only and draws the whole list while open.
+ */
+function ChartFieldPicker({
+  label,
+  columns,
+  picked,
+  onChange,
+  typeLabel,
+}: {
+  label: string;
+  columns: readonly ChartColumnCandidate[];
+  picked: readonly string[];
+  onChange: (keys: string[]) => void;
+  typeLabel: (type: ChartColumnCandidate["type"]) => string;
+}) {
+  const { anchorRef, controlRef, popoverStyle } = useControlPopoverMetrics();
+  return (
+    <div className="react-aria-control react-aria-Group" ref={anchorRef}>
+      <PanelSelect
+        aria-label={label}
+        selectionMode="multiple"
+        selectedKeys={picked}
+        onSelectionKeysChange={(next) => onChange(next.map(String))}
+        selectRef={controlRef}
+        popoverStyle={popoverStyle}
+        trigger={<PanelMultiSelectValue />}
+      >
+        {columns.map((column) => (
+          <PanelSelectItem
+            key={column.key}
+            id={column.key}
+            label={column.key}
+            detail={typeLabel(column.type)}
+          />
+        ))}
+      </PanelSelect>
+    </div>
+  );
+}

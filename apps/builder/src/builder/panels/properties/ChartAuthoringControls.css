@@ -54,7 +54,7 @@
   color: var(--negative);
 }
 
-/* 값 필드 선택 — fieldset 안의 CheckboxGroup 과 확정/취소 줄. */
+/* 값 필드 선택 — fieldset 안의 다중 select 와 확정/취소 줄. */
 .chart-field-picker {
   display: flex;
   flex-direction: column;
@@ -67,16 +67,4 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);
-}
-
-.chart-field-picker-list {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-}
-
-/* 패널 CheckboxGroup 밀도 규약 (form-controls.css) 과 같은 상자 크기. */
-.chart-field-picker-list .react-aria-Checkbox .checkbox {
-  width: var(--spacing-lg);
-  height: var(--spacing-lg);
 }

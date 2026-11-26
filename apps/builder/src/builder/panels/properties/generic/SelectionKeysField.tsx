@@ -1,11 +1,10 @@
-import { SelectValue } from "react-aria-components/Select";
-
 import {
   semanticLabelKeys,
   translateKey,
   useOptionalI18n,
 } from "../../../../i18n";
 import {
+  PanelMultiSelectValue,
   PanelSelect,
   PanelSelectItem,
 } from "../../../components/property/PanelSelect";
@@ -71,7 +70,7 @@ export function SelectionKeysField({
 
 /**
  * The items as a select that takes several (RAC `Select` `selectionMode="multiple"` — the trigger
- * lists the picked items' text). Why (2026-11-26 ratchet 조사, 사용자 결정): a check list drew one
+ * shows the picked item's name, or the count from two on, as S2 Picker). Why (2026-11-26 ratchet 조사, 사용자 결정): a check list drew one
  * RAC Checkbox per item — a 300-item list put 300 controls in the panel on every selection
  * (`600:scroll-boxes` attribute mutations 65 → 1,568). A closed `PanelSelect` gives RAC the picked
  * items only; the whole list is drawn while it is open.
@@ -103,13 +102,7 @@ function SelectionKeysSelect({
           onSelectionKeysChange={(next) => onChange(next.map(String))}
           selectRef={controlRef}
           popoverStyle={popoverStyle}
-          trigger={
-            <SelectValue>
-              {({ isPlaceholder, selectedText }) =>
-                isPlaceholder ? "—" : selectedText
-              }
-            </SelectValue>
-          }
+          trigger={<PanelMultiSelectValue />}
         >
           {options.map((option) => (
             <PanelSelectItem

@@ -20,7 +20,7 @@ const hiddenOptions = (ui: ReturnType<typeof render>) =>
   [...ui.container.querySelectorAll("option")].map((option) => option.value);
 
 describe("SelectionKeysField — a group's items as a multiple select", () => {
-  it("closed: no control per item — the hidden select holds the picked keys, the trigger lists them", () => {
+  it("closed: no control per item — the hidden select holds the picked keys, the trigger counts them (S2 Picker)", () => {
     const ui = render(
       <SelectionKeysField
         label="Disabled keys"
@@ -33,9 +33,22 @@ describe("SelectionKeysField — a group's items as a multiple select", () => {
       0,
     );
     expect(hiddenOptions(ui).filter(Boolean).sort()).toEqual(["k3", "k7"]);
-    const trigger = ui.getByRole("button");
-    expect(trigger.textContent).toContain("Item 3");
-    expect(trigger.textContent).toContain("Item 7");
+    // (S2 Picker `picker.selectedCount` — two or more picked items show the count.)
+    expect(ui.getByRole("button").textContent).toContain("2 items selected");
+  });
+
+  it("one picked item shows its name", () => {
+    const ui = render(
+      <SelectionKeysField
+        label="Disabled keys"
+        value={["k3"]}
+        options={OPTIONS}
+        onChange={() => {}}
+      />,
+    );
+    const text = ui.getByRole("button").textContent ?? "";
+    expect(text).toContain("Item 3");
+    expect(text).not.toContain("selected");
   });
 
   it("nothing picked shows — ; open lists every item and a pick adds its key", () => {

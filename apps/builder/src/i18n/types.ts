@@ -781,6 +781,7 @@ export interface TranslationKeys {
     toggleProp: string;
   };
   propertiesPanel: {
+    selectedCount: string;
     overrideCleared: string;
     itemsForkedLabel: string;
     itemsForkedHint: string;
