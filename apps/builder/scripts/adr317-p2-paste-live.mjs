@@ -11,7 +11,10 @@
 //   6. Ctrl/Cmd + A → 「Z」 붙여넣기 (1,000 행 전체를 한 값으로) → 화면 반영 시간 · 알림 수
 //   7. page error 0
 //
-//   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr317-p2-paste-live.mjs <out-dir> [--browser webkit]
+//   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr317-p2-paste-live.mjs <out-dir> [--browser webkit] [--hold]
+//
+//   `--hold` (P5 — 사람이 VoiceOver 로 듣는 자리): 「Fill handle」 도 켜고 Publish 를 연 뒤 p1:name 에 focus 를
+//   두고 멈춘다 — 단계 3 ~ 7 은 하지 않고, 창을 닫으면 끝난다.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { chromium, webkit } from "playwright";
 import { railButton } from "./railButton.mjs";
@@ -33,6 +36,7 @@ const state = JSON.parse(
   readFileSync(`${REPO}/apps/builder/scripts/.auth-session.json`, "utf8"),
 );
 state.origins = (state.origins ?? []).map((o) => ({ ...o, origin: BASE }));
+const HOLD = process.argv.includes("--hold");
 const BROWSER = process.argv.includes("--browser")
   ? process.argv[process.argv.indexOf("--browser") + 1]
   : "chrome";
@@ -236,6 +240,7 @@ try {
       .count());
   await flip(/^Cell selection$|^칸 범위 선택$/, "cellsel");
   await flip(/^Paste$|^붙여넣기$/, "paste");
+  if (HOLD) await flip(/^Fill handle$|^채우기 손잡이$/, "fill");
   await page.screenshot({ path: `${OUT}/builder-switches.png` });
   const props = await page.evaluate((tableId) => {
     const ws = window.__COMPOSITION_CATALOG__.workspace;
@@ -304,6 +309,18 @@ try {
     const got = await statusText();
     return got === KO[want] ? want : got;
   };
+  if (HOLD) {
+    await pub.bringToFront();
+    await cell("p1", "name").click({ position: { x: 12, y: 10 } });
+    process.stdout.write(
+      "HOLD — Publish 창의 p1:name 에 focus. VoiceOver 로 들은 뒤 창을 닫으면 끝난다.\n",
+    );
+    await new Promise((resolve) => {
+      browser.on("disconnected", resolve);
+      pub.on("close", resolve);
+    });
+    throw new Error("hold ended");
+  }
   // (The cell's own text — not the edit button's — RAC focus on a click.)
   await cell("p1", "name").click({ position: { x: 12, y: 10 } });
   await cell("p2", "status").click({

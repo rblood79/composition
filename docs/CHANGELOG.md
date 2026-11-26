@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-317 Implemented — Table 편집 격자 (Phase 6 종결)] - 2026-11-26
+
+ADR-317 (Table 편집 격자 — 붙여넣기 · 채우기 손잡이 · 편집 상태 표시 · 줄무늬 행) Implemented. Phase 6 은 제품 동작 변경 없이 측정 · 검사 · 문서로 닫았다 — G6 사용자 답 「같은 표 기준으로 통과」, P5 VoiceOver 청취 「확인했다」 (붙여넣기 · 지우기 · 잘라내기 · 채우기 결과 알림을 focus 이동 없이 읽음).
+
+### Changed
+
+- **속도 (HC5, production · 10,000 행)**: 네 스위치를 켠 표와 끈 표의 로드 · 힙 · 정렬 클릭 · 스크롤 p95 중앙값 비율 0.91 ~ 1.09 (교대 3 쌍), Phase 0 빌드 대비 회귀 없음. 1,000 칸 붙여넣기 1x 240 ~ 275 · 4x 930 ~ 1,219 ms — 같은 표 (「Editable」 열) 의 정렬 클릭 이하 (같은 페이지 짝 3/3).
+- **번들**: Phase 0 대비 Builder +1,689 · Preview +61 B gzip (사용자 결정 7 범위 안).
+
+### Tests
+
+- `packages/shared/src/catalog/runtime/__tests__/adr317D1Exception.static.test.ts` (3) — Table 칸 선택 모듈이 듣는 이벤트 · 다루는 키 · 쓰는 ARIA 가 `.claude/rules/ssot-hierarchy.md` 의 D1 예외 목록과 같은지.
+- 하니스: `datagrid-table-vs-tanstack-live.mjs` `--with editable` · `--with adr317` · `--measure-paste` (붙여넣기 시간 + 같은 표 정렬 짝) · `--profile-paste` · `adr317-g6-crosscheck-live.mjs` (줄무늬 Canvas ↔ Publish 픽셀) · `adr317-p2-paste-live.mjs` 잘라내기 단계 · `--hold` (청취용).
+
 ## [ADR-317 Phase 5 — Table 「Striped rows」 줄무늬 행] - 2026-11-26
 
 ### Added

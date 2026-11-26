@@ -1,6 +1,6 @@
 # ADR-317 breakdown — Table 편집 격자 (붙여넣기 · 채우기 손잡이 · 편집 상태 표시 · 줄무늬 행)
 
-> 본문: [317-table-editing-grid-paste-fill-status.md](../317-table-editing-grid-paste-fill-status.md). 코드 인용은 2026-11-25 HEAD `56e769429` 실측이고 Phase 0 에서 다시 대조한다.
+> 본문: [317-table-editing-grid-paste-fill-status.md](../completed/317-table-editing-grid-paste-fill-status.md). 코드 인용은 2026-11-25 HEAD `56e769429` 실측이고 Phase 0 에서 다시 대조한다.
 
 ## 1. 범위 · 출처
 
@@ -202,7 +202,7 @@ ADR-315 breakdown §5.6 의 목록에 **더하는 것**이다. 구현이 이 목
 - **번들** (Phase 0 기준선 대비, 같은 방법): Builder initial JS 1,634,043 → 1,634,044 B (+1) · Preview 172,215 → 172,213 B (−2) — 사용자 결정 7 안.
 - **live** (`apps/builder/scripts/adr317-p1-editable-unread-live.mjs`, 5173 dev · headed Chrome): Builder 에 Table + Users (status = number) · status Column 「Editable」 → Publish 첫 행 status 2 에 「abc」 Save → 칸 2 유지 + `[interactions] Editable cell: 읽을 수 없는 값이라 쓰지 않음: status` · 「7」 → 7 · 빈 값 → 빈 칸 · page error 0. 묶음 쓰기 자체는 화면 길이 없어 (Phase 2 의 붙여넣기가 첫 길) 단위 테스트까지다.
 
-### Phase 2 (2026-11-26 — G2, VoiceOver 청취만 사용자 확인 대기)
+### Phase 2 (2026-11-26 — G2 통과 · VoiceOver 청취는 Phase 6 뒤 사용자 「확인했다」)
 
 - **사용자 답 (2026-11-26)**: 결정 3 「넣는다」 (Delete · Backspace · Ctrl / Cmd + X) · 결정 4 「버리고 알림」.
 - **구현**:
@@ -256,9 +256,10 @@ ADR-315 breakdown §5.6 의 목록에 **더하는 것**이다. 구현이 이 목
 - **번들** (Phase 4 대비, HEAD + 이 Phase 변경만 담은 worktree · 일반 `vite build` + closure): Builder 1,635,466 → 1,635,725 B (+259) · Preview 172,215 → 172,275 B (+60 — 테마 색 seed 에 `table-stripe` 두 벌). 상한 안.
 - **live** (`apps/builder/scripts/adr317-p5-striped-rows-live.mjs`, 5173 dev, Chrome · Playwright WebKit 각 8/8): Builder 에 Table + Users 1,000 행 (가상 · 행 선택 multiple · Type 「Merge same values」) → Design 패널 「Striped rows」 스위치 → Canvas 표본 둘째 행마다 `striped` · 병합 칸 `off` · `on` → Publish: 그려진 행이 `aria-rowindex` 짝수마다 `data-striped` · 계산된 바탕 `rgb(248, 248, 248)` · inline 0 → 둘째 행 클릭 = 선택 칠 (`rgb(59, 99, 251)`) → 병합 칸 p2 `off` 흰 바탕 · p5 `on` 줄무늬 → 중간 (500 행) 까지 스크롤 = 그려진 행이 자리마다 짝 · 홀 · page error 0. **live 가 잡은 결함 1**: 첫 실행에서 병합 표의 행이 줄무늬를 inline 으로 받아 선택한 행이 줄무늬로 남았다 (단위 테스트는 병합 표의 inline 을 보지 않았다 → DOM 테스트에 단언 추가, 위 「inline 금지」). 남은 것 (LOW): 가상 표가 창 밖에 남겨 두는 focus 행 (`keptRowOf` — 값 없는 자리 표시, 보이지 않는다) 에는 줄무늬 표시가 없다.
 
-### Phase 6 결과 (2026-11-26 — G6 통과, Implemented 는 P5 VoiceOver 청취 뒤)
+### Phase 6 결과 (2026-11-26 — G6 통과 · P5 청취 통과 → Implemented)
 
 - **사용자 답 (2026-11-26)**: HC5 붙여넣기 판정 「같은 표 기준으로 통과」 — 기준값은 같은 표 (Editable 열) 의 정렬 클릭. P5 (알림 영역 VoiceOver 청취) 가 끝나면 Implemented.
+- **P5 청취 (사용자, 2026-11-26 「확인했다」)**: `adr317-p2-paste-live.mjs --hold` (Phase 2 준비 + 「Fill handle」 을 켜고 Publish 의 p1:name 에 focus 를 둔 채 멈춤) 에서 VoiceOver 로 붙여넣기 · 지우기 · 잘라내기 · 채우기의 결과 알림 (`role="status"`) 을 들음 — focus 이동 없이 읽음. G2 의 마지막 조건 통과 → Implemented.
 
 - **측정 환경 (measurement-validity)**: production 하니스 빌드 (`perf-build-dist.mjs` — `dist-317-g6` = HEAD `63db458e6` + Phase 5 + 하니스 handle) · headed Chrome · 10,000 행 (`datagrid-table-vs-tanstack-live.mjs`). 측정 조건의 「120 Hz」 는 지키지 못했다 — 이날 headed 창이 외부 모니터 (50 Hz) 에 떠 rAF p50 이 20 ms 다 (Phase 0 은 8.4 ms). 그래서 절대값은 Phase 0 기준선과 바로 비교하지 않고, 판정은 전부 **같은 시점의 교대 · 짝 측정**으로 했다. 다른 세션의 WebKit Playwright 가 같은 시각에 CPU 를 쓴 구간이 있어 (첫 교대 묶음 — 기본 표 정렬 262 ms 로 높게 나온 구간) 그 구간의 절대값은 판정에 쓰지 않았다.
 - **HC5 — 기능을 끈 표 (끈 arm ↔ 켠 arm 교대 3 쌍)**: 같은 빌드 · 같은 문서, 끈 arm = 「Cell selection」 + Name · City 「Editable」, 켠 arm = 거기에 「Paste」 · 「Fill handle」 · 「Edit marks」 · 「Striped rows」. 중앙값 비율 (켠 / 끈): 로드 0.996 · 힙 0.911 · 스크롤 p95 1x 1.000 · 4x 1.087 · 4x frame 당 작업 1.091 · 정렬 클릭 1x Amount 0.980 · Name 1.069 · 4x Amount 1.030 · Name 1.082 — 전부 ≤ 1.10 (쌍 하나만 보면 4x Amount 1.147 · 4x frame 당 작업 1.135 가 있다 — 중앙값으로 판정). page error 0.
