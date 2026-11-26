@@ -1,4 +1,12 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
+import { catalogResizableGripGlyph } from "../document/resizableChrome";
+import {
+  catalogRegisterResizablePanelEvents,
+  catalogResizableStartCollapsed,
+  catalogResizableDisplay,
+  catalogResizablePanelDomId,
+  RESIZABLE_PANEL_TYPE,
+} from "./resizablePanels";
 import { CatalogImageCoordinator } from "./imageCoordinator.components";
 import { getPrimitiveBinding } from "../bindings";
 import { catalogS2RacProps } from "../bindings/s2RacProps";
@@ -77,8 +85,10 @@ import {
 
 import {
   Fragment,
+  Suspense,
   createContext,
   createElement,
+  lazy,
   useContext,
   type CSSProperties,
   type ElementType,
@@ -1356,6 +1366,211 @@ const LISTBOX_CHILD_TYPES: ReadonlySet<string> = new Set(
 const MENU_CHILD_TYPES: ReadonlySet<string> = new Set(
   RAC_COLLECTION_CHILD_TYPES.Menu,
 );
+
+/** ADR-318 Phase 2 — the Handle's interaction loads with the first Handle a running Preview draws. */
+const CatalogResizableHandle = lazy(() => import("./resizable.components"));
+
+/**
+ * ADR-318 — a Group's Panels as a running Preview draws them: each one's expanded share (its runtime
+ * `size`, else its derived share), its collapse (its runtime `isCollapsed`, else the start —
+ * `catalogRuntimeStateOf`, the dispatcher's same reading; only a collapsible Panel), and the drawn
+ * flex values (`catalogResizableDisplay` — the Canvas's formula over the authored values).
+ */
+function resizableRuntimePanels(
+  input: DelegatedDomInput,
+  group: CatalogConsumerNode,
+): {
+  readonly record: CatalogConsumerNode;
+  readonly share: number;
+  readonly collapsed: boolean;
+  readonly collapsedSize: string | undefined;
+  readonly display: { grow: number; basis?: string };
+}[] {
+  const records = group.children.flatMap((id) => {
+    const child = input.root.domInputs.get(id);
+    return child && catalogTypeName(input.root, child) === RESIZABLE_PANEL_TYPE
+      ? [child]
+      : [];
+  });
+  const shares = records.map((panel) => {
+    const size = input.runtimeProps?.(panel.id)?.size;
+    return typeof size === "number"
+      ? size
+      : Number(
+          panel.derivedProps?._panelShare ??
+            panel.derivedProps?._panelGrow ??
+            0,
+        );
+  });
+  const collapsedSizes = records.map((panel) =>
+    typeof panel.derivedProps?._panelCollapsedSize === "string"
+      ? panel.derivedProps._panelCollapsedSize
+      : undefined,
+  );
+  const collapsed = records.map(
+    (panel, i) =>
+      collapsedSizes[i] !== undefined &&
+      catalogRuntimeStateOf(
+        input.root,
+        panel,
+        input.runtimeProps?.(panel.id),
+        "isCollapsed",
+        input.runtimeProps,
+      ) === true,
+  );
+  const display = catalogResizableDisplay(shares, collapsed, collapsedSizes);
+  return records.map((record, i) => ({
+    record,
+    share: shares[i]!,
+    collapsed: collapsed[i]!,
+    collapsedSize: collapsedSizes[i],
+    display: display[i]!,
+  }));
+}
+
+/**
+ * ADR-318 — a Resizable Panel. In a running Preview its drawn flex values come from its Group's
+ * runtime state (a drag's · a key's `size`, a collapse) — a collapsed Panel's min gives way; a static
+ * render keeps the derived values (`authoredStyle`). Its DOM id is its Handles' `aria-controls`.
+ */
+function resizablePanel(input: DelegatedDomInput): ReactElement {
+  const group = input.root.domInputs.get(input.node.parentId);
+  const state =
+    input.setRuntimeProps && group
+      ? resizableRuntimePanels(input, group).find(
+          (panel) => panel.record.id === input.node.id,
+        )
+      : undefined;
+  const row = input.node.derivedProps?._panelAxis !== "column";
+  return createElement(
+    CatalogResizablePanelBox,
+    {
+      ...marker(input),
+      ...chrome(input, "ResizablePanel"),
+      id: catalogResizablePanelDomId(input.node),
+      ...(state?.collapsed ? { "data-collapsed": "" } : {}),
+      style: state
+        ? {
+            ...input.style,
+            flexGrow: state.display.grow,
+            flexBasis: state.display.basis ?? "0px",
+            ...(state.collapsed
+              ? { [row ? "minWidth" : "minHeight"]: "0px" }
+              : {}),
+          }
+        : input.style,
+    },
+    ...renderAll(input),
+  );
+}
+
+/**
+ * ADR-318 Phase 5 — a Panel's element: it takes its rules' 「Resize」 · 「Collapse change」 handlers
+ * (`withRuntime` puts them on its props) and registers them for the Handles that change it
+ * (`catalogRegisterResizablePanelEvents`); the rest goes on its `div`.
+ */
+function CatalogResizablePanelBox(
+  props: Record<string, unknown> & { children?: ReactNode },
+): ReactElement {
+  const { onSizeChange, onCollapsedChange, children, ...rest } = props;
+  return createElement(
+    "div",
+    {
+      ...rest,
+      ref: (element: Element | null) => {
+        if (element)
+          catalogRegisterResizablePanelEvents(element, {
+            ...(typeof onSizeChange === "function"
+              ? { onSizeChange: onSizeChange as (size: number) => void }
+              : {}),
+            ...(typeof onCollapsedChange === "function"
+              ? {
+                  onCollapsedChange: onCollapsedChange as (
+                    isCollapsed: boolean,
+                  ) => void,
+                }
+              : {}),
+          });
+      },
+    },
+    children,
+  );
+}
+
+/**
+ * ADR-318 — a Resizable Handle: a static line (its look and box — the Canvas's and a static
+ * render's), and in a running Preview the separator that drags, takes the keys and collapses (lazy —
+ * the line stands before it loads). Its front Panel is the Group's Panel before it.
+ */
+function resizableHandle(input: DelegatedDomInput): ReactElement {
+  const node = input.node;
+  const axis =
+    node.derivedProps?._resizableHandleAxis === "column" ? "column" : "row";
+  const attrs = {
+    ...marker(input),
+    ...chrome(input, "ResizableHandle"),
+    "data-orientation": axis === "row" ? "horizontal" : "vertical",
+    "data-resizable-handle": "",
+    ...(node.derivedProps?._resizableNested === true
+      ? { "data-nested": "" }
+      : {}),
+    style: input.style,
+  };
+  // (Phase 4 — `withHandle`: the grip box on the line's middle, its glyph turned with the line.)
+  const grip =
+    node.props.withHandle === true
+      ? createElement(
+          "span",
+          { className: "resizable-grip" },
+          catalogLucideGlyph(catalogResizableGripGlyph(axis)),
+        )
+      : null;
+  const group = input.root.domInputs.get(node.parentId);
+  if (!input.setRuntimeProps || !group)
+    return createElement("div", attrs, grip);
+  const runtimePanels = resizableRuntimePanels(input, group);
+  const siblings = group.children;
+  const index =
+    siblings
+      .slice(0, siblings.indexOf(node.id))
+      .filter((id) => runtimePanels.some((panel) => panel.record.id === id))
+      .length - 1;
+  const panels = runtimePanels.map((panel) => ({
+    recordId: panel.record.id,
+    domId: catalogResizablePanelDomId(panel.record),
+    derived: panel.record.derivedProps,
+    share: panel.share,
+    collapsed: panel.collapsed,
+    collapsedSize: panel.collapsedSize,
+    display: panel.display,
+  }));
+  const disabled =
+    node.props.isDisabled === true ||
+    group.props.isDisabled === true ||
+    index < 0 ||
+    [runtimePanels[index], runtimePanels[index + 1]].some(
+      (panel) => !panel || panel.record.props.isDisabled === true,
+    );
+  return createElement(
+    Suspense,
+    { key: node.id, fallback: createElement("div", attrs, grip) },
+    createElement(CatalogResizableHandle, {
+      // (The marker's `key` is the Suspense's; the separator takes the rest.)
+      attrs: Object.fromEntries(
+        Object.entries(attrs).filter(([name]) => name !== "key"),
+      ),
+      axis,
+      index: Math.max(0, index),
+      panels,
+      disabled,
+      ...(typeof node.props["aria-label"] === "string"
+        ? { label: node.props["aria-label"] }
+        : {}),
+      setRuntimeProps: input.setRuntimeProps,
+      children: grip,
+    }),
+  );
+}
 
 const container =
   (
@@ -4171,6 +4386,35 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   footer: {
     render: container("footer", (input) => chrome(input, "Footer")),
   },
+  // ADR-318: Resizable 분할창 — Group · Panel · Handle are plain `div`s (D1: no role on the Group ·
+  //   Panel; the Handle's separator semantics are Phase 2's closed exception). Their flex share and
+  //   size limits are the inline style (`catalogDomStyle` — `resizablePanels.ts`).
+  resizablepanelgroup: {
+    render: container("div", (input) => ({
+      ...chrome(input, "ResizablePanelGroup"),
+      "data-orientation":
+        input.node.props.orientation === "vertical" ? "vertical" : "horizontal",
+    })),
+  },
+  // (Phase 2: a running Preview's Panel takes its runtime `size` — the drag's and the keys' writes —
+  //  over its derived share; its DOM id is its Handles' `aria-controls` target.)
+  resizablepanel: {
+    render: resizablePanel,
+    // (It re-draws with its sibling Panels — a collapse or a size of one moves the others' shares.)
+    watchesChildren: (node, root) =>
+      (root.domInputs.get(node.parentId)?.children ?? []).filter(
+        (id) => id !== node.id,
+      ),
+  },
+  // (It re-renders with its Group's Panels — their runtime `size`, written by any Handle, is its
+  //  `aria-valuenow` · range and the start of its next move.)
+  resizablehandle: {
+    render: resizableHandle,
+    watchesChildren: (node, root) =>
+      (root.domInputs.get(node.parentId)?.children ?? []).filter(
+        (id) => id !== node.id,
+      ),
+  },
   // S2 CardView (ADR-256 Phase 10): a RAC GridList of its Cards (`@react-spectrum/s2/src/CardView.tsx`
   // — its cards are GridListItems). Its selection is RAC's: the Cards' `isSelected` start it while it
   // selects (`selectionMode` — as a TagGroup's Tags), their `isDisabled` disable the item.
@@ -4923,7 +5167,16 @@ export function catalogStateSourceValue(
     case "isCollapsed":
       return type === "SideNavPanel"
         ? catalogSideNavPanelCollapsed(node)
-        : props.isCollapsed;
+        : type === RESIZABLE_PANEL_TYPE
+          ? // (ADR-318 — a collapsible Panel's `isCollapsed ?? defaultCollapsed`, the Canvas's start.)
+            catalogResizableStartCollapsed(props)
+          : props.isCollapsed;
+    // ADR-318 Phase 5 — a Resizable Panel starts at its expanded share (its `defaultSize`, else an
+    //  equal part — the derived share the Canvas draws).
+    case "size":
+      return type === RESIZABLE_PANEL_TYPE
+        ? (node.derivedProps?._panelShare ?? props.size)
+        : props.size;
     case "isSelected":
       return Boolean(props.isSelected);
     case "value": {

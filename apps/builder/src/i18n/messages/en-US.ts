@@ -903,6 +903,10 @@ const catalog: TranslationKeys = {
       collapse: {
         onCollapsedChange: "On panel collapse or expand",
       },
+      // (ADR-318 Phase 5 — a Resizable Panel's size: a drag's end, a key's step.)
+      resize: {
+        onSizeChange: "On panel resize",
+      },
       groupAction: {
         onGroupAction: "On group action",
       },
@@ -942,6 +946,7 @@ const catalog: TranslationKeys = {
       sort: "Sort",
       expansion: "Expansion",
       collapse: "Panel collapse",
+      resize: "Panel size",
       groupAction: "Group action",
       remove: "Removal",
       focusedDate: "Focused date",
@@ -3273,6 +3278,13 @@ const semanticLabels: Record<string, string> = {
   "properties.emphasized": "Emphasized",
   "properties.disallowEmptySelection": "Disallow empty selection",
   "properties.rememberState": "Remember state",
+  "properties.defaultSize": "Default size",
+  "properties.collapsible": "Collapsible",
+  "properties.collapsedSize": "Collapsed size",
+  "properties.collapsed": "Collapsed",
+  "properties.withHandle": "With handle",
+  "properties.rememberSizes": "Remember sizes",
+  "properties.pill": "Pill",
   "properties.multiColumnSort": "Multi-column sort",
   "properties.maxSortColumns": "Max sort columns",
   "properties.allowUnsorted": "Allow unsorted",

@@ -196,9 +196,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 78 — ADR-317 Phase 4 (사용자 결정 1): Table 의 When 「Cells change」 (`onCellsChange` — 붙여넣기 ·
  *      채우기 · 지우기 한 번) 이 규칙 trigger 의 닫힌 목록 (`library.execution.triggerIds`) 에 더해진다.
  *      옛 77 문서는 열리지 않는다 (변환 없음).
+ * 79 — ADR-318 Phase 1 · 3: the Resizable split view (`ResizablePanelGroup` · `ResizablePanel` ·
+ *      `ResizableHandle`), its origin and the Panel's collapse Do (`collapse` concept). 옛 78 문서는
+ *      열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 78 as const;
+export const LIBRARY_CONTRACT_VERSION = 79 as const;
 
 export type EntryKind =
   | "project"

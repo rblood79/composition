@@ -197,6 +197,8 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
   Nav: ["Link"],
   // ADR-256 Phase 5b: the reference's items (each holds its ColorSwatch).
   ColorSwatchPicker: ["ColorSwatchPickerItem"],
+  // ADR-318 Phase 6 — 「Add panel」: a Panel (with a Handle before it — `insertGroupItem`).
+  ResizablePanelGroup: ["ResizablePanel"],
 };
 
 /**
@@ -234,6 +236,18 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["freeContentHost"],
     owners: ["Card", "Popover"],
   },
+  // ADR-318: Resizable 분할창 — the Group's direct children are its Panels and Handles only
+  //   (`Panel (Handle Panel)*`, the order the commands keep — Phase 6); a Panel holds free content.
+  ResizablePanelGroup: {
+    container: "collection",
+    children: ["ResizablePanel", "ResizableHandle"],
+  },
+  ResizablePanel: {
+    container: "structural",
+    families: ["freeContentHost"],
+    owners: ["ResizablePanelGroup"],
+  },
+  ResizableHandle: { owners: ["ResizablePanelGroup"] },
   // ADR-240 Phase 1 — Card preview 영역 · 자유 내용 컨테이너 (RAC Popover · Tooltip — 이름 있는 slot 없음).
   CardPreview: {
     container: "structural",

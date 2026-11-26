@@ -507,6 +507,11 @@ export interface CatalogPreviewInteractionsOptions {
    * columns, a Column's pinned side and filter value (`concepts/tableColumns.ts`). They are the
    * session's, never a record override.
    */
+  /** ADR-318 Phase 5 — a write the session may keep (a 「Remember sizes」 Panel's size · collapse). */
+  rememberRuntimeProps?: (
+    id: string,
+    patch: Readonly<Record<string, unknown>>,
+  ) => void;
   tableColumnState?: {
     read(recordId: string, prop: string): unknown;
     write(recordId: string, prop: string, value: unknown): void;
@@ -1527,6 +1532,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     }
     this.writeOverride(id, patch);
     this.forwardTemplateBound(id, patch);
+    this.options.rememberRuntimeProps?.(id, patch);
     if ("sortDescriptor" in patch)
       this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
     if ("searchText" in patch) this.options.searchTable?.(id, patch.searchText);

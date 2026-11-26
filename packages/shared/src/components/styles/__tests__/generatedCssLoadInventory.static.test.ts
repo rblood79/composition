@@ -188,12 +188,13 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   //   미로드 B · 수동 `Skeleton.css` 도 삭제, 사용자 결정 4) −1 · 미로드 −1.
   // 2026-11-22 — S2 체크리스트 §4.1 Sheet: SheetOverlay sheet (닫힘 fade 130 — RAC 는 overlay 자신의 애니메이션만
   //   기다린다, 배치는 inline) +1 · index +1.
-  it("인벤토리 집계 — 생성 135 · index 117 · 모듈 0 · 미로드 18 (Sheet 닫힘 fade 의 SheetOverlay 로드 · 새 컴포넌트 sheet 22 · FieldError 로드 · ADR-297 상태 sheet 6 · IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
+  // 2026-11-26 — ADR-318 Resizable 분할창 (Group · Panel · Handle, index 로드) +3 · index +3.
+  it("인벤토리 집계 — 생성 138 · index 120 · 모듈 0 · 미로드 18 (Sheet 닫힘 fade 의 SheetOverlay 로드 · 새 컴포넌트 sheet 22 · FieldError 로드 · ADR-297 상태 sheet 6 · IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
     //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
     // (ADR-259 Phase 3: + FieldLabel — a field's label row, loaded.)
-    expect(generated.length).toBe(135); // 2026-11-24: − Section (컴포넌트 삭제)
-    expect(indexImported.size).toBe(117);
+    expect(generated.length).toBe(138); // 2026-11-24: − Section (컴포넌트 삭제) · 11-26: + Resizable 3
+    expect(indexImported.size).toBe(120);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))

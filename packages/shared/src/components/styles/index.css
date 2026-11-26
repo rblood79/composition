@@ -107,6 +107,10 @@
 @import "./generated/CardPreview.css";
 @import "./generated/Content.css";
 @import "./generated/Footer.css";
+/* ADR-318 — Resizable 분할창. */
+@import "./generated/ResizablePanelGroup.css";
+@import "./generated/ResizablePanel.css";
+@import "./generated/ResizableHandle.css";
 @import "./generated/Card.css";
 /* Nav — 생성 시트가 번들에 실리지 않아 catalog height 가 DOM 에 닿지 않았다 (2026-09-17, CHANGELOG). */
 @import "./generated/Nav.css";

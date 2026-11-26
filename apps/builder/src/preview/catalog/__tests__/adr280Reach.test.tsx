@@ -30,7 +30,8 @@ async function pressRule(
   type: string,
   capabilityId: string,
   options: {
-    value?: string | number | readonly string[] | { start: number; end: number };
+    value?:
+      string | number | readonly string[] | { start: number; end: number };
     declare?: Record<string, unknown>;
     pickValue?: (harness: Harness) => string;
   } = {},
@@ -300,9 +301,38 @@ describe("ADR-280 G2 — collections", () => {
   it("SideNavPanel collapse (ADR-300)", async () => {
     const h = await pressRule("SideNavPanel", "collapse");
     h.press();
-    expect(
-      h.element(h.target)?.hasAttribute("data-side-panel-collapsed"),
-    ).toBe(true);
+    expect(h.element(h.target)?.hasAttribute("data-side-panel-collapsed")).toBe(
+      true,
+    );
+    h.view.unmount();
+  });
+
+  it("ResizablePanel collapse · expand (ADR-318 Phase 3)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = await openAdr280Preview(["ResizablePanelGroup", "Button"]);
+    const [, button] = h.ids as [NodeId, NodeId];
+    // (The origin's Panels are the Group's own nodes — its slot contents, `ownSlotContents`.)
+    const root = h.workspace.root;
+    const panel = [...root.canvasInputs.values()].find(
+      (record) => root.typeOf(record) === "ResizablePanel",
+    )!.sourceId as NodeId;
+    h.declare(panel, { collapsible: true, collapsedSize: "5%" });
+    const press = (capabilityId: string) => {
+      h.rule(button, "onPress", {
+        opcode: "capability",
+        target: { nodeId: panel },
+        capabilityId,
+      } as Action);
+      act(() => {
+        fireEvent.click(h.element(button)!);
+      });
+    };
+    press("collapse");
+    expect(h.element(panel)?.hasAttribute("data-collapsed")).toBe(true);
+    expect(h.element(panel)?.style.flexGrow).toBe("5");
+    press("expand");
+    expect(h.element(panel)?.hasAttribute("data-collapsed")).toBe(false);
+    expect(h.element(panel)?.style.flexGrow).toBe("50");
     h.view.unmount();
   });
 

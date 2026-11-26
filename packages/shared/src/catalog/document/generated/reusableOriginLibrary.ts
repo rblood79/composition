@@ -1,5 +1,6 @@
 import { SELECTION_COMPOSITE_DEFINITIONS, SELECTION_COMPOSITE_TEMPLATES } from "../selectionCompositesOrigins";
 import { RANGE_SEGMENT_DEFINITIONS, RANGE_SEGMENT_TEMPLATES } from "../rangeSegmentsOrigins";
+import { RESIZABLE_DEFINITIONS, RESIZABLE_TEMPLATES } from "../resizableOrigins";
 // ADR-248 Phase 3 — typed reusable origin library (code-catalog source of truth).
 // Converted once from the Builder origin seed (catalogOrigins.ts + template ensurers) by
 // apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts
@@ -10,6 +11,7 @@ import type { LibraryDefinition, LibraryTemplateNode } from "../types";
 
 export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
   ...SELECTION_COMPOSITE_DEFINITIONS,
+  ...RESIZABLE_DEFINITIONS,
 
 
 
@@ -2304,6 +2306,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
 
 export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   ...SELECTION_COMPOSITE_TEMPLATES,
+  ...RESIZABLE_TEMPLATES,
 
 
 

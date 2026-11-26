@@ -173,6 +173,10 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         // ADR-256 Phase 10: S2 Content · Footer (were CardContent · CardFooter; CardHeader removed).
         "Content",
         "Footer",
+        // ADR-318: the Resizable split view (Group · Panel · Handle).
+        "ResizablePanelGroup",
+        "ResizablePanel",
+        "ResizableHandle",
         // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover.
         "Card",
         // ADR-912 R7 G1-a/b (2026-06-15): container shell catalog cutover (AvatarGroup/

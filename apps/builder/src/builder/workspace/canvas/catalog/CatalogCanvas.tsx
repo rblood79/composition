@@ -1313,6 +1313,14 @@ export function CatalogCanvas({
         camera: () => ({ ...viewportState }),
         // The drag in progress as the overlay draws it (live drag-and-drop checks).
         drag: () => gestures.preview(),
+        // The resize handles the single selection takes (ADR-318 G6 — a Panel's main axis only).
+        handleAccepted: (
+          position: Parameters<typeof gestures.handleAccepted>[0],
+        ) => gestures.handleAccepted(position),
+        // (and the handle at a scene point — the one a press there would resize from)
+        handleAt: (x: number, y: number) => gestures.handleAt(x, y, zoomNow()),
+        spacingAt: (x: number, y: number) =>
+          gestures.spacingAt(x, y, zoomNow()),
         // A grid's cells as the overlay outlines them while selected (live checks).
         gridCells: (identity: string) => overlayGridCells(identity),
         // ADR-264 oracle: the stream's boxes now, and the same state bound again from the records.

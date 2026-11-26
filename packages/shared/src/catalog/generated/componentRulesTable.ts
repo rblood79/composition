@@ -13,6 +13,11 @@ import {
   SELECT_BOX_GROUP_RULE,
   SELECT_BOX_RULE,
 } from "../rule/selectionComposites";
+import {
+  RESIZABLE_HANDLE_RULE,
+  RESIZABLE_PANEL_GROUP_RULE,
+  RESIZABLE_PANEL_RULE,
+} from "../rule/resizable";
 /**
  * SSOT (직접 편집 정본) — theme rule base D3 시각 SSOT (ADR-912 ②-6-A).
  *
@@ -3356,6 +3361,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-318: Resizable 분할창 (`rule/resizable.ts`).
+  ResizablePanelGroup: RESIZABLE_PANEL_GROUP_RULE,
+  ResizablePanel: RESIZABLE_PANEL_RULE,
+  ResizableHandle: RESIZABLE_HANDLE_RULE,
   Footer: {
     defaultSize: "M",
     variants: {},

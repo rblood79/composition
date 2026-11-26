@@ -31,6 +31,9 @@ const EXCLUDED: Readonly<Record<string, string>> = {
     "S2 SideNav takes `items`, but it has no data binding contract yet — not in ADR-310's scope (reported 2026-11-15)",
   SideNavSection: "SideNav's section (see SideNav)",
   SideNavItem: "SideNav's item (see SideNav)",
+  // (ADR-318: its children are its Panels and Handles, not data items — no data binding.)
+  ResizablePanelGroup:
+    "a Resizable Group's children are its layout Panels and Handles, not items (ADR-318)",
   SkeletonCollection:
     "ADR-314 — a CardView's loading placeholder around its Card template, not a data list",
 };

@@ -1,3 +1,4 @@
+import { RESIZABLE_HANDLE_TYPE } from "../../../../../packages/shared/src/catalog/runtime/resizablePanels";
 import {
   COLLECTION_FAMILIES,
   GROUP_ITEM_TYPES,
@@ -444,10 +445,14 @@ export function catalogSlotInsertOptions(
   const wrapperGroup = Object.entries(GROUP_ITEMS_WRAPPER).find(
     ([, wrapper]) => wrapper === type,
   )?.[0];
-  const itemTypes =
+  const itemTypes = (
     kind.kind === "items"
       ? kind.items
-      : (GROUP_ITEM_TYPES[type] ?? GROUP_ITEM_TYPES[wrapperGroup ?? ""]);
+      : (GROUP_ITEM_TYPES[type] ?? GROUP_ITEM_TYPES[wrapperGroup ?? ""])
+  )?.filter(
+    // (ADR-318 Phase 6 — a Resizable Handle comes with its Panel, never alone.)
+    (itemType) => itemType !== RESIZABLE_HANDLE_TYPE,
+  );
   // A parts-only host (2026-11-09 — a field · Card · Tabs …: `catalogPartsHostTypes`) lists
   // nothing of its own: its parts come from their commands (prefix · contextual help · the origin
   // template), free content goes into its slots. A group still lists its items.

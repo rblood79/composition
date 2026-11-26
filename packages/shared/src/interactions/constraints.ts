@@ -85,6 +85,9 @@ export function declaredRefusal(
     return "isDisabled";
   if (guards.includes("inherited:isReadOnly") && inherited?.isReadOnly === true)
     return "isReadOnly";
+  // ADR-318 Phase 3 — a Resizable Panel's collapse Do on a Panel that does not collapse.
+  if (guards.includes("collapsible") && props.collapsible !== true)
+    return "collapsible: false";
   // A removal · clear still runs under `none` — RAC takes the reset (ios-list's Cancel turns the mode
   //   off, then clears). The panel hides all three (`exposedCapabilities` — ADR-287 decision 3).
   if (

@@ -1,4 +1,17 @@
 import { catalogSkeletonState } from "./skeletonContext";
+import {
+  catalogResizableCollapsedSize,
+  catalogResizableDisplay,
+  catalogResizableStartCollapsed,
+  catalogResizableGroupDerived,
+  catalogResizableHandleDerived,
+  catalogResizableOrientation,
+  catalogResizablePanelDerived,
+  catalogResizablePanelShares,
+  RESIZABLE_GROUP_TYPE,
+  RESIZABLE_HANDLE_TYPE,
+  RESIZABLE_PANEL_TYPE,
+} from "./resizablePanels";
 import { catalogUnavailableDateTest } from "./unavailableDates";
 import {
   CATALOG_COLUMN_PLACE_PROP,
@@ -4078,6 +4091,54 @@ function ownDerivedPropsBase(
         ),
       };
   }
+  // ADR-318: a Resizable Panel's share of its Group (the sibling Panels' `defaultSize` — one share
+  //   table per Group) and its min · max on the Group's axis; a Handle takes the Group's axis.
+  if (typeOf(node) === RESIZABLE_GROUP_TYPE)
+    return catalogResizableGroupDerived(
+      catalogResizableOrientation(node.props),
+    );
+  if (
+    typeOf(node) === RESIZABLE_PANEL_TYPE ||
+    typeOf(node) === RESIZABLE_HANDLE_TYPE
+  ) {
+    const group = get(node.parentId);
+    if (!group || typeOf(group) !== RESIZABLE_GROUP_TYPE) return undefined;
+    const orientation = catalogResizableOrientation(group.props);
+    if (typeOf(node) === RESIZABLE_HANDLE_TYPE) {
+      const host = get(group.parentId);
+      return catalogResizableHandleDerived(
+        orientation,
+        !!host && typeOf(host) === RESIZABLE_PANEL_TYPE,
+      );
+    }
+    const panels = childrenOf(group, get).filter(
+      (child) => !child.hidden && typeOf(child) === RESIZABLE_PANEL_TYPE,
+    );
+    const at = panels.findIndex((panel) => panel.id === node.id);
+    if (at < 0) return undefined;
+    const shares = catalogResizablePanelShares(
+      panels.map((panel) => panel.props),
+    );
+    // (Phase 3: a collapsible Panel that starts collapsed draws its collapsed size — the others share
+    //  the rest; the Canvas draws the start state only.)
+    const collapsed = panels.map((panel) =>
+      catalogResizableStartCollapsed(panel.props),
+    );
+    const display = catalogResizableDisplay(
+      shares,
+      collapsed,
+      panels.map((panel) => catalogResizableCollapsedSize(panel.props)),
+    );
+    return {
+      ...catalogResizablePanelDerived(
+        node.props,
+        shares[at]!,
+        orientation,
+        display[at],
+        collapsed[at],
+      ),
+    };
+  }
   if (typeOf(node) === "SelectBox") {
     const group = get(node.parentId);
     if (group && typeOf(group) === "SelectBoxGroup")
@@ -4672,6 +4733,20 @@ export function catalogDerivedPropsDependents(
         )
       : []),
     ...derivedDependents(owner, get, typeOf),
+    // (ADR-318: a Group's Panels · Handles take its axis; a Panel's size moves its sibling Panels'
+    //  shares. G1 live 2026-11-26: without it the Canvas kept the other Panel's 50 after a
+    //  `defaultSize` 30 and the Handle's row thickness after `orientation` vertical. The unit root
+    //  of `adr318ResizableWiring.test.tsx` did not show it — the live harness is its gate.)
+    ...(typeOf(owner) === RESIZABLE_GROUP_TYPE
+      ? childrenOf(owner, get)
+      : typeOf(owner) === RESIZABLE_PANEL_TYPE &&
+          get(owner.parentId) &&
+          typeOf(get(owner.parentId)!) === RESIZABLE_GROUP_TYPE
+        ? childrenOf(get(owner.parentId)!, get).filter(
+            (child) =>
+              child.id !== owner.id && typeOf(child) === RESIZABLE_PANEL_TYPE,
+          )
+        : []),
     // (ADR-308: a picker's options take its selection — their `_isSelected` · check marks.)
     ...(typeOf(owner) === "Select" || typeOf(owner) === "ComboBox"
       ? catalogPickerOptions(owner, get, typeOf)

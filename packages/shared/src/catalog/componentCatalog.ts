@@ -482,6 +482,22 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "footer",
     icon: "PanelBottom",
   }),
+  // ADR-318: Resizable 분할창 — the Group is placed (layout); its Panels · Handles live in it only.
+  primitiveEntry("ResizablePanelGroup", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "resizable panels",
+    icon: "Columns3",
+  }),
+  primitiveEntry("ResizablePanel", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "resizable panel",
+    icon: "PanelLeft",
+  }),
+  primitiveEntry("ResizableHandle", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "resizable handle",
+    icon: "GripHorizontal",
+  }),
   primitiveEntry("CardPreview", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",
     label: "card preview",
@@ -1637,6 +1653,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Nav",
   "Pagination",
   "Accordion",
+  // ADR-318: Resizable 분할창 — Panel · Handle · Panel (`resizableOrigins.ts`).
+  "ResizablePanelGroup",
   "Disclosure",
   "CardView",
   // ADR-314 Phase 4: S2 SkeletonCollection — goes into a CardView (a Card template inside).

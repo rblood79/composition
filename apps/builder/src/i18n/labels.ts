@@ -511,6 +511,14 @@ export const semanticLabelKeys: Record<string, string> = {
   "Disallow Empty Selection": "properties.disallowEmptySelection",
   // ADR-315 — a Table keeps its user's state in the browser.
   "Remember state": "properties.rememberState",
+  // ADR-318 — Resizable 분할창 (Panel 크기 · 접기 · 손잡이 · 크기 기억).
+  "Default size": "properties.defaultSize",
+  Collapsible: "properties.collapsible",
+  "Collapsed size": "properties.collapsedSize",
+  Collapsed: "properties.collapsed",
+  "With handle": "properties.withHandle",
+  "Remember sizes": "properties.rememberSizes",
+  Pill: "properties.pill",
   // ADR-315 Phase 2 — the Table's · a Column's sort options.
   "Multi-column sort": "properties.multiColumnSort",
   "Max sort columns": "properties.maxSortColumns",

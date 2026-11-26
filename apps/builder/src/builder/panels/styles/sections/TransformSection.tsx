@@ -286,6 +286,12 @@ const TransformSectionContent = memo(function TransformSectionContent({
         commitAxisValue(axis, unit === "reset" ? "" : unit);
         return;
       }
+      // (A Resizable Panel's % starts at the share it draws, not 100.)
+      const share = sizeContext.effective?.[axis];
+      if (sizeContext.resizableAxis === axis && typeof share === "string") {
+        commitAxisValue(axis, share);
+        return;
+      }
       const value = sizeModeStart(
         unit,
         axis === "width" ? bundle?.width.effective : bundle?.height.effective,
@@ -297,6 +303,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
       bundle?.width.effective,
       bundle?.height.effective,
       commitAxisValue,
+      sizeContext.effective,
+      sizeContext.resizableAxis,
     ],
   );
 
@@ -398,6 +406,16 @@ const TransformSectionContent = memo(function TransformSectionContent({
 
   if (!styleValues) return null;
 
+  // ADR-318 후속: a Resizable Panel sizes on its Group's axis only — its share props (% size ·
+  //   % or px min · max); the other axis is the Group's (off).
+  const panelAxis = sizeContext.resizableAxis;
+  const panelOff = (axis: "width" | "height") =>
+    panelAxis !== undefined && axis !== panelAxis;
+  const sizeUnits = (axis: "width" | "height", units: string[]) =>
+    panelAxis === axis ? ["reset", "%"] : units;
+  const constraintUnits = (axis: "width" | "height", units: string[]) =>
+    panelAxis === axis ? ["reset", "%", "px"] : units;
+
   const parentContext = {
     display: parentDisplay,
     flexDirection: parentFlexDirection,
@@ -412,7 +430,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const displaySize = (axis: "width" | "height") => {
     const mode = axis === "width" ? widthMode : heightMode;
     const factor = axis === "width" ? widthFillGrow : heightFillGrow;
-    if (!styleValues.isBody && mode === "fill")
+    if (!styleValues.isBody && mode === "fill" && panelAxis !== axis)
       return isFraction(axis) ? `${factor ?? 1}fill` : "fill";
     return styleValues[axis];
   };
@@ -423,16 +441,18 @@ const TransformSectionContent = memo(function TransformSectionContent({
     const kind =
       dependentAxis === axis
         ? ("ratio" as const)
-        : !styleValues.isBody && mode === "fill"
-          ? ("fill" as const)
-          : // (Authored, else the drawn value — a Button's rule is fit-content, and a Fit set back to
-            // it leaves no write: 2026-11-11. A page body's height fits its content unless authored.)
-            styleValues[axis] === "fit-content" ||
-              (!styleValues.isBody &&
-                (effectiveSizeStyle[axis] ?? sizeContext.effective?.[axis]) ===
-                  "fit-content")
-            ? ("fit" as const)
-            : ("css" as const);
+        : panelAxis === axis
+          ? ("css" as const)
+          : !styleValues.isBody && mode === "fill"
+            ? ("fill" as const)
+            : // (Authored, else the drawn value — a Button's rule is fit-content, and a Fit set back to
+              // it leaves no write: 2026-11-11. A page body's height fits its content unless authored.)
+              styleValues[axis] === "fit-content" ||
+                (!styleValues.isBody &&
+                  (effectiveSizeStyle[axis] ??
+                    sizeContext.effective?.[axis]) === "fit-content")
+              ? ("fit" as const)
+              : ("css" as const);
     return {
       kind,
       fraction: isFraction(axis),
@@ -444,6 +464,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
       // (A page body has no parent box to fill.)
       disabledModes:
         !styleValues.isBody &&
+        !panelAxis &&
         getFillBehavior(axis, effectiveSizeStyle, parentContext)
           ? []
           : ["fill"],
@@ -503,14 +524,15 @@ const TransformSectionContent = memo(function TransformSectionContent({
           key={`width:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
           value={displaySize("width")}
           sizeControl={sizeControl("width")}
-          units={[
+          units={sizeUnits("width", [
             "reset",
             "px",
             "%",
             "vw",
             "fill",
             "fit-content",
-          ]}
+          ])}
+          isDisabled={panelOff("width")}
           onChange={(value) => commitAxisValue("width", value)}
           onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("width", value)}
@@ -525,14 +547,15 @@ const TransformSectionContent = memo(function TransformSectionContent({
           key={`height:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
           value={displaySize("height")}
           sizeControl={sizeControl("height")}
-          units={[
+          units={sizeUnits("height", [
             "reset",
             "px",
             "%",
             "vh",
             "fill",
             "fit-content",
-          ]}
+          ])}
+          isDisabled={panelOff("height")}
           onChange={(value) => commitAxisValue("height", value)}
           onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("height", value)}
@@ -568,7 +591,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="min-width"
               value={styleValues.minWidth}
               sizeControl={constraintControl("minWidth")}
-              units={["reset", "px", "%", "vw"]}
+              units={constraintUnits("width", ["reset", "px", "%", "vw"])}
+              isDisabled={panelOff("width")}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("minWidth", value)}
               onDragCancel={cancelStylePreview}
@@ -584,7 +608,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="min-height"
               value={styleValues.minHeight}
               sizeControl={constraintControl("minHeight")}
-              units={["reset", "px", "%", "vh"]}
+              units={constraintUnits("height", ["reset", "px", "%", "vh"])}
+              isDisabled={panelOff("height")}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("minHeight", value)}
               onDragCancel={cancelStylePreview}
@@ -601,7 +626,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="max-width"
               value={styleValues.maxWidth}
               sizeControl={constraintControl("maxWidth")}
-              units={["reset", "px", "%", "vw"]}
+              units={constraintUnits("width", ["reset", "px", "%", "vw"])}
+              isDisabled={panelOff("width")}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("maxWidth", value)}
               onDragCancel={cancelStylePreview}
@@ -617,7 +643,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="max-height"
               value={styleValues.maxHeight}
               sizeControl={constraintControl("maxHeight")}
-              units={["reset", "px", "%", "vh"]}
+              units={constraintUnits("height", ["reset", "px", "%", "vh"])}
+              isDisabled={panelOff("height")}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("maxHeight", value)}
               onDragCancel={cancelStylePreview}

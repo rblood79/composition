@@ -75,6 +75,9 @@ import { action, itemAction, menuClose, rowAction } from "./concepts/action";
 import {
   sidePanelCollapse,
   type S2SideNavPanelCollapseProps,
+  resizablePanelCollapse,
+  resizablePanelSize,
+  type ResizablePanelCollapseProps,
 } from "./concepts/collapse";
 import {
   groupAction,
@@ -324,6 +327,14 @@ export const COMPONENT_INTERACTION_SPECS = {
   //   a row is a link) · S2 SideNavPanel's collapse.
   SideNav: { concepts: [{ concept: expansionKeys }] },
   SideNavPanel: { concepts: [{ concept: sidePanelCollapse }] },
+  // ADR-318 Phase 3: a Resizable Panel's collapse (Do 「Collapse · Expand · Toggle collapse」).
+  ResizablePanel: {
+    concepts: [
+      { concept: resizablePanelCollapse },
+      // (Phase 5 — 사용자 결정 1: a number per Panel.)
+      { concept: resizablePanelSize },
+    ],
+  },
   TagGroup: {
     concepts: [
       { concept: multiSelection },
@@ -498,6 +509,7 @@ interface RacPropsOf {
   Tree: TreeProps<object> & DragAndDropOptions;
   SideNav: NavigationTreeProps<object>;
   SideNavPanel: S2SideNavPanelCollapseProps;
+  ResizablePanel: ResizablePanelCollapseProps;
   TagGroup: TagGroupProps & S2TagGroupActionProps;
   Menu: MenuProps<object>;
   Breadcrumbs: BreadcrumbsProps<object>;

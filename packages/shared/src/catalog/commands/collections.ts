@@ -77,6 +77,11 @@ export const COLLECTION_FAMILIES: readonly CollectionFamily[] =
   }));
 
 import {
+  RESIZABLE_GROUP_TYPE,
+  RESIZABLE_HANDLE_TYPE,
+  RESIZABLE_PANEL_TYPE,
+} from "../runtime/resizablePanels";
+import {
   GROUP_ITEM_TYPES,
   GROUP_ITEMS_WRAPPER,
 } from "../../domain/componentTraits";
@@ -368,14 +373,17 @@ function place(
   newId: NewId,
   /** Nodes placed right after the root in the same list (a section's S2 Divider). */
   after: readonly NodeEntry[] = [],
+  /** Nodes placed right before the root (a Resizable Panel's Handle — ADR-318 Phase 6). */
+  before: readonly NodeEntry[] = [],
 ): void {
   const root = entries.find((entry) => entry.id === rootId);
   if (!root) return void fail("ROOT_NOT_IN_ENTRIES", rootId);
   assertNestable(draft, parent, [
+    ...before.map((entry) => entry.definitionId),
     root.definitionId,
     ...after.map((entry) => entry.definitionId),
   ]);
-  for (const entry of [...entries, ...after]) draft.create(entry);
+  for (const entry of [...before, ...entries, ...after]) draft.create(entry);
   const list = ensureChildList(draft, parent, newId);
   const at = catalogAppendIndex(
     draft,
@@ -385,6 +393,7 @@ function place(
   );
   setChildList(draft, parent, [
     ...list.slice(0, at),
+    ...before.map((entry) => entry.id),
     rootId,
     ...after.map((entry) => entry.id),
     ...list.slice(at),
@@ -855,7 +864,33 @@ export const insertGroupItem =
           return { ...entry, props };
         })
       : entries;
-    place(draft, container, placed, input.rootId, input.newId);
+    // ADR-318 Phase 6 — 「Add panel」: a Resizable Panel after another comes with a Handle before it
+    // (a copy of the Group's last Handle's own values — its look; else a plain Handle).
+    const pairHandle: NodeEntry[] = [];
+    if (
+      groupType === RESIZABLE_GROUP_TYPE &&
+      itemType === RESIZABLE_PANEL_TYPE &&
+      typed(RESIZABLE_PANEL_TYPE).length
+    ) {
+      const last = [...containerChildren]
+        .reverse()
+        .find((child) => positionType(draft, child) === RESIZABLE_HANDLE_TYPE);
+      const source = last?.kind === "node" ? draft.node(last.id) : undefined;
+      pairHandle.push({
+        kind: "node",
+        id: input.newId("node"),
+        definitionId:
+          // (the primitive the Group origin's Handle uses — `resizableOrigins.ts`)
+          source?.definitionId ??
+          `lib:definition:type-${RESIZABLE_HANDLE_TYPE}`,
+        children: [],
+        props: source ? { ...source.props } : {},
+        visual: source ? { ...source.visual } : {},
+        sizing: source ? { ...source.sizing } : {},
+        descendantOverrides: [],
+      });
+    }
+    place(draft, container, placed, input.rootId, input.newId, [], pairHandle);
     const extra: CatalogOperation[] = [];
     const store = catalogGroupSelectionStoreProp(groupType);
     const keyProp = keyPropOf(itemType);

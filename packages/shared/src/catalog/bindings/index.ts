@@ -194,6 +194,11 @@ import {
   sideNavPanelBinding,
   sideNavSectionBinding,
 } from "./SideNav.binding";
+import {
+  resizableHandleBinding,
+  resizablePanelBinding,
+  resizablePanelGroupBinding,
+} from "./Resizable.binding";
 
 export * from "./Avatar.binding";
 export * from "./AvatarGroup.binding";
@@ -329,6 +334,7 @@ export * from "./TextField.binding";
 export * from "./Tree.binding";
 export * from "./TreeItem.binding";
 export * from "./SideNav.binding";
+export * from "./Resizable.binding";
 export * from "./TimeField.binding";
 export * from "./Toast.binding";
 export * from "./ToggleButton.binding";
@@ -594,6 +600,10 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SideNavItemLink: sideNavItemLinkBinding,
   SideNavSection: sideNavSectionBinding,
   SideNavHeader: sideNavHeaderBinding,
+  // ADR-318: Resizable 분할창 (`Resizable.binding.ts`).
+  ResizablePanelGroup: resizablePanelGroupBinding,
+  ResizablePanel: resizablePanelBinding,
+  ResizableHandle: resizableHandleBinding,
   Table: tableBinding,
   // ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25): Table 가족의 자식 노드
   //   5종(Column/Cell=text leaf, TableHeader/TableBody/Row=container shell). Canvas 는 rule box+text.

@@ -120,6 +120,8 @@ export function catalogPreviewRuntime(
     searchTable: (tableId, text) => session.tables.searchTable(tableId, text),
     chooseTableColumns: (menuId, keys) =>
       session.tables.chooseTableColumns(menuId, keys),
+    rememberRuntimeProps: (id, patch) =>
+      session.rememberRuntimeProps(id, patch),
     tableColumnState: {
       read: (id, prop) =>
         prop === "visibleColumns"

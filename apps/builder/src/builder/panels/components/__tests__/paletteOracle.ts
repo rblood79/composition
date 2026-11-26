@@ -237,6 +237,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "disclosure",
     icon: "ChevronDown",
   },
+  // ADR-318: the Resizable split view's Group (its Panels · Handles are placed inside it only).
+  {
+    type: "ResizablePanelGroup",
+    category: "layout",
+    label: "resizable panels",
+    icon: "Columns3",
+  },
   {
     type: "CardView",
     category: "layout",

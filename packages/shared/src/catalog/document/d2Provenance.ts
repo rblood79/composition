@@ -47,6 +47,10 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
   "Illustration",
   "Nav",
   "Pagination",
+  // (ADR-318: RAC · S2 · design-data · v3 have no split view — reui / react-resizable-panels names.)
+  "ResizablePanelGroup",
+  "ResizablePanel",
+  "ResizableHandle",
   // (S2 toasts are queued (`ToastQueue`), not nodes — the placed Toast takes S2's `variant` values, no size.)
   "Toast",
   // (The Meter · ProgressBar parts the reference draws as elements — their own variant · size.)

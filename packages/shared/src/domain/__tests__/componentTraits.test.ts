@@ -29,6 +29,8 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "footer",
         "frame",
         "group",
+        // ADR-318: the Resizable split view's Panel (free content).
+        "resizablepanel",
       ]),
     );
   });
@@ -48,6 +50,8 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "footer",
         "frame",
         "group",
+        // ADR-318: the Resizable split view's Panel (free content).
+        "resizablepanel",
       ]),
     );
   });
@@ -113,6 +117,7 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "frame",
         "group",
         "popover",
+        "resizablepanel",
         "tooltip",
         // RAC Sheet family · PreviewTrigger (bbca53c78) — free content, no named slot.
         "previewtrigger",
@@ -310,6 +315,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "SideNavItem",
         // ADR-314 Phase 4: S2 SkeletonCollection — a CardView's Card template as `skeleton` items.
         "SkeletonCollection",
+        // ADR-318: a Resizable Group's direct children are its Panels and Handles only.
+        "ResizablePanelGroup",
       ]),
     );
   });
@@ -355,6 +362,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SideNavSection: ["SideNavHeader", "SideNavItem"],
       SkeletonCollection: ["Card"],
       SideNavItem: ["SideNavItem", "SideNavItemContent"],
+      ResizablePanelGroup: ["ResizablePanel", "ResizableHandle"],
     });
     for (const type of Object.keys(componentContractMap("children")))
       expect(containerTypeSet("collection").has(type), type).toBe(true);
@@ -488,6 +496,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SideNavItemContent: ["SideNavItem"],
       SideNavItemLink: ["SideNavItemContent"],
       SideNavHeader: ["SideNavSection"],
+      ResizablePanel: ["ResizablePanelGroup"],
+      ResizableHandle: ["ResizablePanelGroup"],
     });
   });
 });

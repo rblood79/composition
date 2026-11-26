@@ -1,4 +1,8 @@
 import {
+  RESIZABLE_HANDLE_TYPE,
+  RESIZABLE_PANEL_TYPE,
+} from "../../../../../packages/shared/src/catalog/runtime/resizablePanels";
+import {
   catalogIsAuthoredFixed,
   catalogIsAuthoredPlaced,
   catalogIsOutOfFlow,
@@ -533,11 +537,67 @@ export class CatalogCanvasGestures {
    */
   handleAccepted(position: HandlePosition): boolean {
     const element = this.resizable();
+    if (!element) return false;
+    // ADR-318 Phase 6 (사용자 결정 3): a Resizable Panel takes its main axis edges only — the drag
+    // writes its `defaultSize` (its Group sets the cross axis).
+    const axis = this.resizablePanelAxis(element.item.identity);
+    if (axis)
+      return axis === "row"
+        ? position === "middle-left" || position === "middle-right"
+        : position === "top-center" || position === "bottom-center";
     return (
-      !!element &&
-      (!element.pageBody ||
-        (!position.includes("left") && !position.includes("top")))
+      !element.pageBody ||
+      (!position.includes("left") && !position.includes("top"))
     );
+  }
+  /** A Resizable Panel's main axis (its derived `_panelAxis`); undefined for any other record. */
+  private resizablePanelAxis(identity: string): "row" | "column" | undefined {
+    if (this.typeOf(identity) !== RESIZABLE_PANEL_TYPE) return undefined;
+    return this.host.records.get(identity)?.derivedProps?._panelAxis ===
+      "column"
+      ? "column"
+      : "row";
+  }
+  /**
+   * A Resizable Panel resize as its share (% of its Group's Panels' main size — the Handles left
+   * out) and the grow that previews it (its siblings keep theirs: grow g over their sum O shows
+   * g / (g + O) = the share).
+   */
+  private resizablePanelShareOf(
+    gesture: Extract<Gesture, { kind: "resize" }>,
+  ): { share: number; grow: number } | undefined {
+    const identity = gesture.item.identity;
+    const axis = this.resizablePanelAxis(identity);
+    if (!axis) return undefined;
+    const size =
+      axis === "row" ? gesture.request.width : gesture.request.height;
+    const record = this.host.records.get(identity);
+    const group = record?.parentId
+      ? this.host.records.get(record.parentId)
+      : undefined;
+    if (size === undefined || !group) return undefined;
+    const main = (id: string) => {
+      const box = this.host.bounds(id);
+      return box ? (axis === "row" ? box.width : box.height) : 0;
+    };
+    const panels = group.children.filter(
+      (id) => this.typeOf(id) === RESIZABLE_PANEL_TYPE,
+    );
+    const space = panels.reduce((sum, id) => sum + main(id), 0);
+    if (space <= 0) return undefined;
+    const share = Math.min(100, Math.max(0, (size / space) * 100));
+    const others = panels
+      .filter((id) => id !== identity)
+      .reduce(
+        (sum, id) =>
+          sum +
+          Number(this.host.records.get(id)?.derivedProps?._panelGrow ?? 0),
+        0,
+      );
+    return {
+      share: Math.round(share * 10) / 10,
+      grow: share >= 100 ? 1e6 : (share * others) / (100 - share),
+    };
   }
 
   beginResize(x: number, y: number, zoom: number): boolean {
@@ -677,6 +737,10 @@ export class CatalogCanvasGestures {
   /** The spacing band under the point (`onHandle`: its handle, which starts a drag). */
   spacingAt(x: number, y: number, zoom: number) {
     const owner = this.spacingOwner();
+    // ADR-318 Phase 6: a Resizable Panel's main axis edge is its size handle — its padding handle
+    // on that edge (padding 0 sits on the edge) does not take the press.
+    if (owner && this.resizablePanelAxis(owner.id) && this.handleAt(x, y, zoom))
+      return null;
     return owner
       ? hitTestSpacingBands(
           { x, y },
@@ -1504,6 +1568,14 @@ export class CatalogCanvasGestures {
       });
       return;
     }
+    // ADR-318 Phase 6: a Resizable Panel previews its share as its grow (`resizablePanelShareOf`).
+    const panel = this.resizablePanelShareOf(gesture);
+    if (panel) {
+      this.host.reflow(this.reflowed, {
+        layout: { flexGrow: String(panel.grow) },
+      });
+      return;
+    }
     // A ColorWheel previews its diameter square (the release writes `size` — `commandOf`).
     const wheel = this.colorWheelSizeOf(gesture);
     const position = this.resizePositionWrites(gesture);
@@ -1585,6 +1657,8 @@ export class CatalogCanvasGestures {
         ? selection[0]
         : this.host.itemOfRecord(identity);
     const record = this.host.records.get(identity);
+    // (ADR-318 Phase 6 — a Resizable Handle is chosen, never resized.)
+    if (this.typeOf(identity) === RESIZABLE_HANDLE_TYPE) return undefined;
     return record && item
       ? { item, pageBody: record.parentId === PAGE_GRID }
       : undefined;
@@ -1655,6 +1729,15 @@ export class CatalogCanvasGestures {
       if (width === undefined && height === undefined) return undefined;
       if (gesture.pageBody)
         return this.pageBodyResizeCommand(gesture, breakpoint);
+      // ADR-318 Phase 6 (사용자 결정 3): a Resizable Panel's drag writes its `defaultSize` (%).
+      const panel = this.resizablePanelShareOf(gesture);
+      if (panel)
+        return setFields({
+          targets: [gesture.item.target],
+          breakpoint,
+          props: { defaultSize: { kind: "set", value: panel.share } },
+          label: "Resize",
+        });
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
       // style) — a handle drag edits the diameter, so the track and thumb follow the box.
       const wheel = this.colorWheelSizeOf(gesture);

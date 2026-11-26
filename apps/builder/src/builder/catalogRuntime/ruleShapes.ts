@@ -1,4 +1,11 @@
 import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import {
+  catalogResizableGripGlyph,
+  catalogResizableGripRect,
+  catalogResizablePillRect,
+  RESIZABLE_GRIP,
+  RESIZABLE_PILL,
+} from "../../../../../packages/shared/src/catalog/document/resizableChrome";
 import { CATALOG_FIELD_ERROR_ICON } from "../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import {
   PICKER_INVALID_ICON,
@@ -238,6 +245,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...catalogToastChromeShapes(input),
     ...catalogDialogChromeShapes(input),
     ...catalogSheetHandleShapes(input),
+    ...catalogResizableHandleShapes(input),
     ...pickerChromeShapes(input, base),
     ...fieldErrorIconShapes(input),
     ...sideNavIndicatorShapes(input),
@@ -448,6 +456,71 @@ export function catalogSheetHandleShapes(
       fill: cssVarColor(SHEET_HANDLE.color, input.theme ?? "light") as string,
     } as Shape,
   ];
+}
+
+/**
+ * ADR-318 Phase 4 — a Resizable Handle's pill (`variant: pill`) and grip (`withHandle`) on its line's
+ * middle (`resizableChrome.ts` — the DOM's `::before` and `.resizable-grip`, the same values). The
+ * Canvas draws a state's resting shape: rest, or the hover · pressed state card (R8).
+ */
+export function catalogResizableHandleShapes(
+  input: Pick<
+    CatalogRuleShapeInput,
+    "type" | "node" | "rect" | "theme" | "state"
+  >,
+): Shape[] {
+  if (input.type !== "ResizableHandle") return [];
+  const theme = input.theme ?? "light";
+  const axis =
+    input.node.derivedProps?._resizableHandleAxis === "column"
+      ? "column"
+      : "row";
+  const shapes: Shape[] = [];
+  if (input.node.props.variant === "pill") {
+    const state =
+      input.state === "pressed"
+        ? "pressed"
+        : input.state === "hover"
+          ? "hover"
+          : "rest";
+    const box = catalogResizablePillRect(
+      axis,
+      state,
+      input.rect.width,
+      input.rect.height,
+    );
+    shapes.push({
+      type: "roundRect",
+      ...box,
+      radius: Math.min(box.width, box.height) / 2,
+      fill: cssVarColor(RESIZABLE_PILL.states[state].color, theme) as string,
+    } as Shape);
+  }
+  if (input.node.props.withHandle === true) {
+    const box = catalogResizableGripRect(
+      axis,
+      input.rect.width,
+      input.rect.height,
+    );
+    shapes.push(
+      {
+        type: "roundRect",
+        ...box,
+        radius: RESIZABLE_GRIP.radius,
+        fill: cssVarColor(RESIZABLE_GRIP.color, theme) as string,
+      } as Shape,
+      {
+        type: "icon_font",
+        iconName: catalogResizableGripGlyph(axis),
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2,
+        fontSize: RESIZABLE_GRIP.glyphSize,
+        fill: cssVarColor(RESIZABLE_GRIP.glyphColor, theme) as string,
+        strokeWidth: 2,
+      } as Shape,
+    );
+  }
+  return shapes;
 }
 
 /**

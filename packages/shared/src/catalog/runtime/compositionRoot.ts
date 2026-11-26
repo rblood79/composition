@@ -1,4 +1,5 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
+import { catalogResizableLayout } from "./resizablePanels";
 import { catalogToggleItemHelpLayout } from "../rule/toggleLayout";
 import {
   catalogStaticAuto,
@@ -1952,6 +1953,9 @@ function styleOf(
     ...(catalogIsAuthoredPlaced(node)
       ? {}
       : catalogActionBadgeNodeLayout(node.derivedProps)),
+    // (ADR-318: a Resizable Group's direction · Handle's thickness · Panel's flex share and min · max
+    //  — the DOM's same inline values, `catalogDomStyle`. An authored item layout wins.)
+    ...catalogResizableLayout(node.derivedProps),
     ...itemLayout(node),
     // (S2 `selectBoxStyles`' `:has` blocks — a SelectBox's grid by the parts it shows, the DOM's sheet.)
     ...catalogSelectBoxContentStyle(node),

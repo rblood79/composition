@@ -902,6 +902,9 @@ const catalog: TranslationKeys = {
       collapse: {
         onCollapsedChange: "패널 접힘이 바뀔 때",
       },
+      resize: {
+        onSizeChange: "패널 크기가 바뀔 때",
+      },
       groupAction: {
         onGroupAction: "그룹 동작 버튼을 누를 때",
       },
@@ -941,6 +944,7 @@ const catalog: TranslationKeys = {
       sort: "정렬",
       expansion: "펼침",
       collapse: "패널 접힘",
+      resize: "패널 크기",
       groupAction: "그룹 동작",
       remove: "제거",
       focusedDate: "포커스 날짜",
@@ -3266,6 +3270,13 @@ const semanticLabels: Record<string, string> = {
   "properties.emphasized": "강조",
   "properties.disallowEmptySelection": "빈 선택 금지",
   "properties.rememberState": "상태 기억",
+  "properties.defaultSize": "기본 크기",
+  "properties.collapsible": "접기 가능",
+  "properties.collapsedSize": "접힌 크기",
+  "properties.collapsed": "접힘",
+  "properties.withHandle": "손잡이 표시",
+  "properties.rememberSizes": "크기 기억",
+  "properties.pill": "알약",
   "properties.multiColumnSort": "여러 열 정렬",
   "properties.maxSortColumns": "최대 정렬 열 수",
   "properties.allowUnsorted": "정렬 해제 허용",

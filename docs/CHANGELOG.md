@@ -13,6 +13,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-318 Phase 0 ~ 6 — Resizable 분할창 (끌어서 나누는 패널 묶음 · 접기 · pill 손잡이 · 상태 연동 · 편집)] - 2026-11-26
+
+### Breaking Changes
+
+- **문서 contract 78 → 79 (ADR-318)**: Resizable 세 type · 원본 · Panel 접힘 Do 가 라이브러리에 더해졌다. 옛 78 문서는 열리지 않는다 (변환 없음 — 개발 단계).
+  - 위치: `catalog/document/types.ts` `LIBRARY_CONTRACT_VERSION` · fixture 32 파일
+
+### Added
+
+- **Resizable 분할창** (팔레트 layout 「resizable panels」, composition 확장 — RAC · S2 · design-data · v3 에 없음): `ResizablePanelGroup > ResizablePanel (ResizableHandle ResizablePanel)*`. 원본은 Panel · Handle · Panel (50 / 50, 폭 100 % · 높이 200). Panel 은 아무 내용이나 담고, 기본 크기 % (`defaultSize` — 안 적으면 남은 비율을 고르게) · 최소 · 최대 (% 와 px — 사용자 결정 2) 를 받는다. Group 은 가로 · 세로 (`orientation`).
+  - 크기 식 하나: Panel 몫 = `flexGrow` · `flexBasis 0px` — Canvas 엔진과 DOM 이 같은 CSS flex 로 그린다 (Chrome · WebKit 에서 Canvas 상자 = Publish 상자 = 식이 뜻한 크기, ±1 px)
+  - 위치: `bindings/Resizable.binding.ts` · `rule/resizable.ts` · `document/resizableOrigins.ts` · `runtime/resizablePanels.ts` · `runtime/presence.ts` · `runtime/compositionRoot.ts` `styleOf` · `runtime/domBinding.runtime.ts` `authoredStyle` · `runtime/delegatedDom.runtime.ts`
+- **Preview · Publish 에서 경계를 끌어 크기 조절 · 키보드**: 손잡이는 WAI-ARIA separator (값 = 앞 Panel 의 %, 최소 · 최대 · 대상 Panel · 이름). 화살표 (Group 축 방향만 — 5 %) · Home · End, 끌기는 양옆 두 Panel 만 바꾸고 한쪽이 최소 · 최대에 닿으면 멈춘다 (사용자 결정 4). 중첩 Group 의 손잡이는 바깥에 번지지 않고, T 자로 만나는 자리에서는 바깥 선이 잡힌다. 끌기 동작은 처음 끌 수 있는 손잡이가 그려질 때 불러온다 (lazy).
+  - 끄는 동안에는 포인터가 손잡이를 벗어나도 축 커서 (col-resize · row-resize) 가 그대로다
+  - 위치: `runtime/resizable.components.tsx` · `.claude/rules/ssot-hierarchy.md` §1 D1 「Resizable 손잡이 예외」 (손잡이 요소 하나의 닫힌 목록)
+- **Panel 접기 · 펼치기** (`collapsible` · 접힌 크기 % · px · 「Collapsed」 시작 상태): Enter · 손잡이 더블클릭 · 끌어서 최소 크기와 접힌 크기의 가운데를 넘기면 접히고, 다시 넘기면 최소 크기로 펴진다. 펼치면 접기 전 배치로 돌아간다. 규칙 Do 「Collapse」 · 「Expand」 · 「Toggle collapse」 (접을 수 있는 Panel 에만). Canvas 는 시작 접힘을 같은 식으로 그린다.
+  - 위치: `runtime/resizablePanels.ts` (`catalogResizableDisplay` · `catalogResizableMoveCollapsing`) · `interactions/concepts/collapse.ts` · `interactions/constraints.ts`
+- **손잡이 모양**: 「Variant」 pill (선 가운데 캡슐 — 마우스를 올리면 길어지고 끄는 동안 더 길고 굵게 accent 색) · 「With handle」 grip (작은 상자와 점 glyph). Canvas 는 같은 값으로 그린다. 움직임 줄이기 설정이면 전환이 꺼진다.
+  - 위치: `document/resizableChrome.ts` · `rule/resizable.ts` · `catalogRuntime/ruleShapes.ts` `catalogResizableHandleShapes`
+- **상태 연동**: Panel 의 지금 크기 (%) · 접힘을 이름 붙인 상태 · 변수에 잇고, When 「Resize」 (놓을 때 · 키 한 단계마다) · 「Collapse change」 로 규칙을 실행한다. Group 「Remember sizes」 를 켜면 게시된 앱이 그 브라우저에서 크기 · 접힘을 기억한다 (Builder Preview 는 기억하지 않음).
+  - 위치: `interactions/concepts/collapse.ts` `resizablePanelSize` · `runtime/resizableStorage.ts` · `catalogPreviewSession.ts` `rememberRuntimeProps`
+- **편집**: Group 의 Panels 칸에서 Panel 을 더하면 손잡이가 같이 들어오고, Panel 을 지우면 붙은 손잡이도 같이 지워진다. 손잡이만 지우거나 옮기거나 복제할 수 없다. Group 안에서 Panel 을 옮기면 손잡이 자리는 그대로 Panel 끼리 자리를 바꾼다. Canvas 에서 Panel 을 고르면 주축 가장자리 손잡이 둘만 나오고, 끌면 「Default size」 가 바뀐다.
+  - Panel 크기는 Layout 탭 Size 에서 고친다 (사용자 2026-11-26): Group 축 방향 칸 (가로 Group = Width · Min W · Max W, 세로 Group = Height 줄) 이 곧 기본 크기 (%) · 최소 · 최대 (% · px) 이고, 값을 안 적은 Panel 의 Width 에는 지금 그려지는 몫 % 가 보인다. 다른 축 칸은 꺼진다 (Group 이 정한다). Property 탭의 같은 세 칸은 뺐다 — 크기 저장 위치가 하나라 Layout 탭에서 Fill · 고정 px 를 넣어 몫을 덮던 일이 없다
+  - 위치: `commands/resizablePairs.ts` · `catalogRuntime/canvasGesture.ts` (`resizablePanelShareOf`) · `panels/styles/catalog/catalogStylesHost.ts` (`catalogResizablePanelSizeAxis`) · `panels/styles/sections/TransformSection.tsx`
+
+### Notes
+
+- 끌기 중에는 화면 (flex 값) 만 따라가고 Panel 의 크기 상태 · 이름 붙인 상태 · When 「Resize」 는 놓을 때 바뀐다 — 그 크기를 읽는 글자가 있는 문서에서 매 프레임 쓰기가 CPU 4x p95 100.9 ms 였다 (끌기 끝 쓰기 20.9 ms = idle).
+- 번들 Δ (전 Phase): Builder 초기 JS gzip +5,183 B · Preview +3 B (CSS +551). VoiceOver 청취 · Implemented 승격은 남음.
+
 ## [ADR-317 Phase 4 — Table 「Edit marks」 편집 표시 · When 「Cells change」 (contract 78)] - 2026-11-26
 
 ### Breaking Changes

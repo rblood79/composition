@@ -194,17 +194,16 @@ describe("ADR-248 4e item insert ('+')", () => {
       );
       const before = childTypes(workspace, hostType);
       add(workspace, type, itemTypes[0]);
-      expect(childTypes(workspace, hostType)).toEqual([
-        ...before,
-        itemTypes[0],
-      ]);
+      // (ADR-318 Phase 6 — a Resizable Panel comes with its Handle.)
+      const added =
+        type === "ResizablePanelGroup"
+          ? ["ResizableHandle", itemTypes[0]]
+          : [itemTypes[0]];
+      expect(childTypes(workspace, hostType)).toEqual([...before, ...added]);
       workspace.undo();
       expect(childTypes(workspace, hostType)).toEqual(before);
       workspace.redo();
-      expect(childTypes(workspace, hostType)).toEqual([
-        ...before,
-        itemTypes[0],
-      ]);
+      expect(childTypes(workspace, hostType)).toEqual([...before, ...added]);
       workspace.execute(
         catalogSlotCommands.restore(
           catalogSlotTarget(graph, target)!,
@@ -220,9 +219,9 @@ describe("ADR-248 4e item insert ('+')", () => {
   it("Column 의 「+」 는 메뉴 항목 (S2 menuItems) 을 Column 자식으로 한 단계에 넣는다", async () => {
     const workspace = await open("Table");
     try {
-      expect(choicesOf(workspace, "Column").map((choice) => choice.type)).toEqual(
-        ["MenuItem"],
-      );
+      expect(
+        choicesOf(workspace, "Column").map((choice) => choice.type),
+      ).toEqual(["MenuItem"]);
       const column = recordOf(workspace, "Column");
       const own = () =>
         workspace.runtime.graph.getEntry(column.sourceId as NodeId);
@@ -578,7 +577,8 @@ describe("ADR-248 4e item insert ('+')", () => {
     const tabs = childTypes(workspace, "TabList").length;
     // (S2 Tabs: the panels sit directly in Tabs — contract 65; node-canonical, ADR-310 Phase 2.)
     const panelCount = () =>
-      childTypes(workspace, "Tabs").filter((type) => type === "TabPanel").length;
+      childTypes(workspace, "Tabs").filter((type) => type === "TabPanel")
+        .length;
     const panels = panelCount();
     add(workspace, "TabList", "Tab");
     expect(childTypes(workspace, "TabList")).toHaveLength(tabs + 1);

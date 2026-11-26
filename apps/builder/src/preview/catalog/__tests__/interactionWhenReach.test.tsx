@@ -122,7 +122,14 @@ function ruleAt(h: Harness, identity: string, row: Row, message: string) {
   h.workspace.execute(
     catalogInteractionsCommand(
       owner,
-      [catalogNewInteraction(owner, row.event, { opcode: "toast", message }, h.workspace.newId)],
+      [
+        catalogNewInteraction(
+          owner,
+          row.event,
+          { opcode: "toast", message },
+          h.workspace.newId,
+        ),
+      ],
       "Rules",
     ),
   );
@@ -131,7 +138,10 @@ function ruleAt(h: Harness, identity: string, row: Row, message: string) {
 
 let dragPoint = 1;
 /** A text drag over the DropZone (RAC `useDrop` reads `dataTransfer.items` · `types`). */
-function drag(zone: Element, ...events: ("dragEnter" | "dragOver" | "drop" | "dragLeave")[]) {
+function drag(
+  zone: Element,
+  ...events: ("dragEnter" | "dragOver" | "drop" | "dragLeave")[]
+) {
   const items = [
     {
       kind: "string",
@@ -189,16 +199,18 @@ async function collectionDrop(h: Harness, event: string) {
   h.workspace.execute(
     catalogBindingCommand(
       [own, other].map((id) => ({ kind: "node" as const, id })),
-      catalogBindingRef({ source: "dataTable", collectionId: "users", name: "Users" })!,
+      catalogBindingRef({
+        source: "dataTable",
+        collectionId: "users",
+        name: "Users",
+      })!,
     ),
   );
   h.flush();
   if (event !== "onDragEnd")
     h.rule(other, "onDragEnd", { opcode: "toast", message: "source" });
   await act(async () => {
-    await import(
-      "../../../../../../packages/shared/src/catalog/runtime/catalogDragAndDrop.components"
-    );
+    await import("../../../../../../packages/shared/src/catalog/runtime/catalogDragAndDrop.components");
   });
   await act(() => new Promise((done) => setTimeout(done, 20)));
   dropRects();
@@ -206,7 +218,12 @@ async function collectionDrop(h: Harness, event: string) {
   source!.setAttribute("data-drop-left", "300");
   const rows = (list: Element) => [...list.querySelectorAll(DROP_ITEM)];
   const transfer = dataTransfer();
-  const fire = (element: Element, name: keyof typeof createEvent, x: number, y: number) => {
+  const fire = (
+    element: Element,
+    name: keyof typeof createEvent,
+    x: number,
+    y: number,
+  ) => {
     const created = createEvent[name](element, { dataTransfer: transfer });
     Object.defineProperty(created, "clientX", { value: x });
     Object.defineProperty(created, "clientY", { value: y });
@@ -222,14 +239,17 @@ async function collectionDrop(h: Harness, event: string) {
     event === "onReorder"
       ? [rows(target!).at(-1)!, rows(target!).length * DROP_ROW - 2]
       : event === "onMove"
-        ? [rows(target!).at(-1)!, rows(target!).length * DROP_ROW - DROP_ROW / 2]
-      : event === "onDragEnd"
-        ? [source!, 2]
-        : event === "onItemDrop"
-          ? [rows(target!)[0]!, DROP_ROW / 2]
-          : event === "onInsert"
-            ? [target!, 2]
-            : [target!, DROP_ROW / 2];
+        ? [
+            rows(target!).at(-1)!,
+            rows(target!).length * DROP_ROW - DROP_ROW / 2,
+          ]
+        : event === "onDragEnd"
+          ? [source!, 2]
+          : event === "onItemDrop"
+            ? [rows(target!)[0]!, DROP_ROW / 2]
+            : event === "onInsert"
+              ? [target!, 2]
+              : [target!, DROP_ROW / 2];
   const x = event === "onDragEnd" ? 400 : 100;
   await act(async () => fire(from, "dragStart", 10, 10));
   await act(() => new Promise((done) => setTimeout(done, 20)));
@@ -285,14 +305,12 @@ const ROWS: Row[] = [
     act: (h, u) => press(u, root(h)),
   },
   // (8586c64bd · 8ac17dc12 — S2 ActionButton · LinkButton.)
-  ...(["ActionButton", "LinkButton"] as const).map(
-    (palette): Row => ({
-      palette,
-      type: palette,
-      event: "onPress",
-      act: (h, u) => press(u, root(h)),
-    }),
-  ),
+  ...(["ActionButton", "LinkButton"] as const).map((palette): Row => ({
+    palette,
+    type: palette,
+    event: "onPress",
+    act: (h, u) => press(u, root(h)),
+  })),
   {
     palette: "ToggleButton",
     type: "ToggleButton",
@@ -320,14 +338,12 @@ const ROWS: Row[] = [
       await act(async () => {});
     },
   },
-  ...(["onDropEnter", "onDropMove"] as const).map(
-    (event): Row => ({
-      palette: "DropZone",
-      type: "DropZone",
-      event,
-      act: async (h) => drag(root(h), "dragEnter", "dragOver", "dragOver"),
-    }),
-  ),
+  ...(["onDropEnter", "onDropMove"] as const).map((event): Row => ({
+    palette: "DropZone",
+    type: "DropZone",
+    event,
+    act: async (h) => drag(root(h), "dragEnter", "dragOver", "dragOver"),
+  })),
   {
     palette: "DropZone",
     type: "DropZone",
@@ -355,15 +371,13 @@ const ROWS: Row[] = [
         "onItemDrop",
         "onDragEnd",
       ] as const
-    ).map(
-      (event): Row => ({
-        palette: list,
-        type: list,
-        event,
-        with: [list],
-        act: (h) => collectionDrop(h, event),
-      }),
-    ),
+    ).map((event): Row => ({
+      palette: list,
+      type: list,
+      event,
+      with: [list],
+      act: (h) => collectionDrop(h, event),
+    })),
   ),
   // ── toggles ──
   {
@@ -372,14 +386,12 @@ const ROWS: Row[] = [
     event: "onChange",
     act: (h, u) => press(u, q(h, "input[type=checkbox]")),
   },
-  ...(["Checkbox", "Switch"] as const).map(
-    (palette): Row => ({
-      palette,
-      type: palette,
-      event: "onPress",
-      act: (h, u) => press(u, q(h, "input[type=checkbox]")),
-    }),
-  ),
+  ...(["Checkbox", "Switch"] as const).map((palette): Row => ({
+    palette,
+    type: palette,
+    event: "onPress",
+    act: (h, u) => press(u, q(h, "input[type=checkbox]")),
+  })),
   {
     palette: "Switch",
     type: "Switch",
@@ -474,18 +486,19 @@ const ROWS: Row[] = [
     },
   },
   // ── sliders · color controls (a thumb's arrow key — move start · move · end) ──
-  ...(["Slider", "RangeSlider", "ColorArea", "ColorSlider", "ColorWheel"] as const).flatMap(
-    (palette): Row[] =>
-      (["onChange", "onChangeEnd"] as const).map((event) => ({
-        palette,
-        type: palette,
-        event,
-        act: async (h, u) => {
-          const thumb = q<HTMLInputElement>(h, "input[type=range]")!;
-          act(() => thumb.focus());
-          await u.keyboard("{ArrowLeft}{ArrowRight}");
-        },
-      })),
+  ...(
+    ["Slider", "RangeSlider", "ColorArea", "ColorSlider", "ColorWheel"] as const
+  ).flatMap((palette): Row[] =>
+    (["onChange", "onChangeEnd"] as const).map((event) => ({
+      palette,
+      type: palette,
+      event,
+      act: async (h, u) => {
+        const thumb = q<HTMLInputElement>(h, "input[type=range]")!;
+        act(() => thumb.focus());
+        await u.keyboard("{ArrowLeft}{ArrowRight}");
+      },
+    })),
   ),
   {
     palette: "ColorSwatchPicker",
@@ -634,6 +647,37 @@ const ROWS: Row[] = [
     event: "onCollapsedChange",
     act: (h, u) => press(u, q(h, 'button[slot="collapse"]')),
   },
+  // ADR-318 Phase 5 — a Resizable Panel's When, run by its Handle (the Panel before it): a key's
+  //  step 「Resize」, Enter 「Collapse change」 (a collapsible Panel).
+  ...(
+    [
+      ["onSizeChange", undefined, "{ArrowRight}"],
+      [
+        "onCollapsedChange",
+        { collapsible: true, collapsedSize: "10%" },
+        "{Enter}",
+      ],
+    ] as const
+  ).map(([event, declare, key]): Row => ({
+    palette: "ResizablePanelGroup",
+    type: "ResizablePanel",
+    event,
+    ...(declare ? { declare } : {}),
+    ownerNode: (h) =>
+      nodeOf(
+        q(h, "[data-resizable-handle]")?.previousElementSibling ??
+          q(h, ".react-aria-ResizablePanel"),
+      ),
+    act: async (h, u) => {
+      const handle = await waitFor(() => {
+        const found = q(h, '[role="separator"]');
+        if (!found) throw new Error("the Handle's chunk");
+        return found;
+      });
+      act(() => handle.focus());
+      await u.keyboard(key);
+    },
+  })),
   // 2026-11-18 S2 `onGroupAction` — the `groupActionLabel` button in the 「Actions」 group.
   {
     palette: "TagGroup",
@@ -664,19 +708,17 @@ const ROWS: Row[] = [
       ["onAction", undefined],
       ["onSelectionChange", { selectionMode: "single" }],
     ] as const
-  ).map(
-    ([event, declare]): Row => ({
-      palette: "Menu",
-      type: "Menu",
-      event,
-      ownerRecord: "lib:template:component-menu__menu",
-      ...(declare ? { declare } : {}),
-      act: async (h, u) => {
-        await press(u, q(h, "button[aria-haspopup]"));
-        await chooseLast(u);
-      },
-    }),
-  ),
+  ).map(([event, declare]): Row => ({
+    palette: "Menu",
+    type: "Menu",
+    event,
+    ownerRecord: "lib:template:component-menu__menu",
+    ...(declare ? { declare } : {}),
+    act: async (h, u) => {
+      await press(u, q(h, "button[aria-haspopup]"));
+      await chooseLast(u);
+    },
+  })),
   {
     palette: "Menu",
     type: "MenuTrigger",
@@ -825,23 +867,21 @@ const ROWS: Row[] = [
       ["Table", "Row", "tbody [role=row]"],
       ["TagGroup", "Tag", "[role=row]"],
     ] as const
-  ).map(
-    ([palette, item, selector]): Row => ({
-      palette,
-      type: item,
-      event: "onAction",
-      // (A selectable collection presses to select — its items act on a press without selection.)
-      declareRoot: { selectionMode: "none" },
-      ownerNode: (h) => nodeOf(qa(h, selector).at(-1)),
-      act: (h, u) =>
-        press(
-          u,
-          palette === "Table"
-            ? qa(h, `${selector} [role=gridcell]`).at(-1)
-            : qa(h, selector).at(-1),
-        ),
-    }),
-  ),
+  ).map(([palette, item, selector]): Row => ({
+    palette,
+    type: item,
+    event: "onAction",
+    // (A selectable collection presses to select — its items act on a press without selection.)
+    declareRoot: { selectionMode: "none" },
+    ownerNode: (h) => nodeOf(qa(h, selector).at(-1)),
+    act: (h, u) =>
+      press(
+        u,
+        palette === "Table"
+          ? qa(h, `${selector} [role=gridcell]`).at(-1)
+          : qa(h, selector).at(-1),
+      ),
+  })),
   {
     palette: "Menu",
     type: "MenuItem",
@@ -954,15 +994,13 @@ const HIDDEN_ROWS: Row[] = Object.entries(CAPABILITY_REGISTRY).flatMap(
       .flatMap((group) =>
         group.hiddenEvents
           .filter((event) => !JSDOM_UNOBSERVABLE.has(`${type}.${event}`))
-          .map(
-          (event): Row => ({
+          .map((event): Row => ({
             palette: HIDDEN_HOST[type]?.palette ?? type,
             type,
             event,
             ownerNode: HIDDEN_HOST[type]?.ownerNode,
             act: (h, u) => pointerAct(h, u, type, event),
-          }),
-        ),
+          })),
       ),
 );
 
@@ -991,7 +1029,12 @@ describe("RAC event audit — every offered When runs its rule in the Preview", 
       h.declare(h.ids[0] as NodeId, row.declareRoot as Record<string, never>);
     row.setup?.(h);
     if (row.ownerRecord)
-      ruleAt(h, `project:node:home-body/${owner}::${row.ownerRecord}`, row, message);
+      ruleAt(
+        h,
+        `project:node:home-body/${owner}::${row.ownerRecord}`,
+        row,
+        message,
+      );
     else {
       if (row.declare) h.declare(owner, row.declare as Record<string, never>);
       h.rule(owner, row.event, { opcode: "toast", message });
@@ -1018,7 +1061,9 @@ describe("RAC event audit — every offered When runs its rule in the Preview", 
 
   it("every hidden press · hover · focus event has its target (static)", () => {
     expect(
-      HIDDEN_ROWS.map((row) => row.type).filter((type) => !POINTER_TARGET[type]),
+      HIDDEN_ROWS.map((row) => row.type).filter(
+        (type) => !POINTER_TARGET[type],
+      ),
     ).toEqual([]);
   });
 
@@ -1082,18 +1127,22 @@ async function doRule(
 
 /** The hidden native `<select>`'s chosen option texts (RAC's `HiddenSelect` mirrors the value). */
 const selectChosen = (h: Harness) =>
-  qa<HTMLOptionElement>(h, "select option").filter((option) => option.selected).map(
-    (option) => option.textContent,
-  );
+  qa<HTMLOptionElement>(h, "select option")
+    .filter((option) => option.selected)
+    .map((option) => option.textContent);
 
 describe("RAC event audit — the added Do capabilities reach RAC", () => {
   it("Select (multiple) selectItem adds, deselectItem removes, clearSelection empties", async () => {
-    const h = await doRule("Select", "selectItem", (harness) =>
-      qa<HTMLOptionElement>(harness, "select option")[1]!.value,
+    const h = await doRule(
+      "Select",
+      "selectItem",
+      (harness) => qa<HTMLOptionElement>(harness, "select option")[1]!.value,
       { selectionMode: "multiple" },
     );
     // (`rule` replaces the Button's rule — one capability per press.)
-    const values = qa<HTMLOptionElement>(h, "select option").map((o) => o.value);
+    const values = qa<HTMLOptionElement>(h, "select option").map(
+      (o) => o.value,
+    );
     await h.press();
     h.rule("selectItem", values[2]);
     await h.press();
@@ -1108,10 +1157,14 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
   });
 
   it("Select (single) selectItem replaces the selection", async () => {
-    const h = await doRule("Select", "selectItem", (harness) =>
-      qa<HTMLOptionElement>(harness, "select option")[1]!.value,
+    const h = await doRule(
+      "Select",
+      "selectItem",
+      (harness) => qa<HTMLOptionElement>(harness, "select option")[1]!.value,
     );
-    const values = qa<HTMLOptionElement>(h, "select option").map((o) => o.value);
+    const values = qa<HTMLOptionElement>(h, "select option").map(
+      (o) => o.value,
+    );
     await h.press();
     expect(selectChosen(h)).toEqual(["Aardvark"]);
     h.rule("selectItem", values[2]);
@@ -1124,14 +1177,19 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
     h.view.unmount();
   });
 
-  it.each(["Calendar", "RangeCalendar"])("%s focusDate shows that month", async (palette) => {
-    const h = await doRule(palette, "focusDate", "2030-01-15");
-    await h.press();
-    await waitFor(() =>
-      expect(h.element(h.target)!.getAttribute("aria-label")).toContain("January 2030"),
-    );
-    h.view.unmount();
-  });
+  it.each(["Calendar", "RangeCalendar"])(
+    "%s focusDate shows that month",
+    async (palette) => {
+      const h = await doRule(palette, "focusDate", "2030-01-15");
+      await h.press();
+      await waitFor(() =>
+        expect(h.element(h.target)!.getAttribute("aria-label")).toContain(
+          "January 2030",
+        ),
+      );
+      h.view.unmount();
+    },
+  );
 
   it("Tree collapseItem collapses that item only", async () => {
     // (Node 1 has child items — it expands; `collapseItem` takes it out of the expanded set.)
@@ -1184,23 +1242,33 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
       expandedKeys: ["section-1", "section-2"],
     });
     expect(
-      qa(h, "button[slot=trigger]").map((button) => button.getAttribute("aria-expanded")),
+      qa(h, "button[slot=trigger]").map((button) =>
+        button.getAttribute("aria-expanded"),
+      ),
     ).toEqual(["true", "true"]);
     await h.press();
     expect(
-      qa(h, "button[slot=trigger]").map((button) => button.getAttribute("aria-expanded")),
+      qa(h, "button[slot=trigger]").map((button) =>
+        button.getAttribute("aria-expanded"),
+      ),
     ).toEqual(["false", "true"]);
     h.view.unmount();
   });
 
   it("CheckboxGroup checkItem · uncheckItem", async () => {
-    const h = await doRule("CheckboxGroup", "checkItem", (harness) =>
-      qa<HTMLInputElement>(harness, "input[type=checkbox]").at(-1)!.value,
+    const h = await doRule(
+      "CheckboxGroup",
+      "checkItem",
+      (harness) =>
+        qa<HTMLInputElement>(harness, "input[type=checkbox]").at(-1)!.value,
     );
     const boxes = () => qa<HTMLInputElement>(h, "input[type=checkbox]");
     const before = boxes().map((box) => box.checked);
     await h.press();
-    expect(boxes().map((box) => box.checked)).toEqual([...before.slice(0, -1), true]);
+    expect(boxes().map((box) => box.checked)).toEqual([
+      ...before.slice(0, -1),
+      true,
+    ]);
     h.rule("uncheckItem", boxes().at(-1)!.value);
     await h.press();
     expect(boxes().at(-1)!.checked).toBe(false);
@@ -1209,7 +1277,8 @@ describe("RAC event audit — the added Do capabilities reach RAC", () => {
 
   it("Disclosure toggleExpand twice", async () => {
     const h = await doRule("Disclosure", "toggleExpand");
-    const expanded = () => q(h, "button[slot=trigger]")!.getAttribute("aria-expanded");
+    const expanded = () =>
+      q(h, "button[slot=trigger]")!.getAttribute("aria-expanded");
     const start = expanded();
     await h.press();
     expect(expanded()).not.toBe(start);

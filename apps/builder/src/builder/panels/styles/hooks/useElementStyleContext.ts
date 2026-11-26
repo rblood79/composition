@@ -16,6 +16,11 @@ export interface ElementStyleContext {
    * fields read it after the authored value and before the rule paint of `type`.
    */
   drawnPaint?: { backgroundColor?: string; borderColor?: string };
+  /**
+   * ADR-318 후속: a Resizable Panel's one size axis (its Group's) — the Size fields on it edit its
+   * share props (`defaultSize` · `minSize` · `maxSize`), the other axis is the Group's (off).
+   */
+  resizableAxis?: "width" | "height";
   type: string | undefined;
   size: string | undefined;
   fills: unknown[] | undefined;

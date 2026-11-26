@@ -1,4 +1,5 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
+import { catalogResizableLayout } from "./resizablePanels";
 import { CatalogTokenFieldError } from "./tokenField.components";
 import { catalogSkeletonText } from "./skeletonAnimation";
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
@@ -4877,7 +4878,11 @@ function authoredStyle(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): CSSProperties {
-  const style: CSSProperties = {};
+  // (ADR-318: a Resizable Group's direction · Handle's thickness · Panel's flex share · min · max —
+  //  derived values the Canvas writes in `styleOf` the same way; the authored values below win.)
+  const style: CSSProperties = {
+    ...(catalogResizableLayout(node.derivedProps) as CSSProperties),
+  };
   // A rule without `structure` has no generated sheet: its catalog values reach the DOM only
   // inline (the whole resolved box and layout, not just the authored layer).
   const rule = node.ruleId

@@ -344,6 +344,9 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Menu", source: "catalog" },
   { type: "Accordion", source: "catalog" },
   { type: "Disclosure", source: "catalog" },
+  // ADR-318: Resizable 분할창 — layout, after the Accordion · Disclosure group (its Panels · Handles
+  //   are placed inside it only — Phase 1 places it for the G1 Canvas ↔ Preview check).
+  { type: "ResizablePanelGroup", source: "catalog" },
   { type: "CardView", source: "catalog" },
   { type: "Slot", source: "catalog" },
   { type: "Button", source: "catalog" },

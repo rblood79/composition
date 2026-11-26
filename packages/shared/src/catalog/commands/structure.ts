@@ -85,6 +85,14 @@ import {
   RAC_REQUIRED_PARTS,
   requiredPartOwner,
 } from "../nesting/requiredParts";
+import {
+  assertResizableDuplicate,
+  assertResizableMove,
+  catalogResizableHandleOf,
+  catalogResizablePairedDeletes,
+  catalogResizablePanelInGroup,
+  reweaveResizableGroup,
+} from "./resizablePairs";
 
 /**
  * ADR-248 Phase 4b structure commands: insert, move/reorder, remove, duplicate, copy and paste.
@@ -993,6 +1001,8 @@ export const moveNodes =
       input.parent,
       roots.map((id) => draft.node(id).definitionId),
     );
+    // ADR-318 Phase 6: a Handle does not move alone; a Panel stays in its Group (reweaved below).
+    assertResizableMove(draft, roots, input.parent);
     const owners = new Map(roots.map((id) => [id, reader.ownerOf(id)]));
     // ADR-256 Phase 5i-3: a RAC Table column moved within its header takes its cells along.
     const columnOrders = roots.flatMap((id) => {
@@ -1012,6 +1022,7 @@ export const moveNodes =
       );
     }
     placeAt(draft, input.parent, input.index, roots, input.newId);
+    reweaveResizableGroup(draft, input.parent);
     for (const order of columnOrders) order.follow();
     pruneMovedPropertyTargets(draft, roots);
     dropAddressesLeftOrigin(draft, roots, owners);
@@ -1318,9 +1329,15 @@ export const removeTargets =
         listed.add(key);
         return true;
       });
-    const input = paired.length
-      ? { ...given, targets: [...given.targets, ...paired] }
-      : given;
+    // ADR-318 Phase 6: a deleted Resizable Panel takes its Handle (a Handle alone is refused).
+    const handles = catalogResizablePairedDeletes(draft, [
+      ...given.targets,
+      ...paired,
+    ]);
+    const input =
+      paired.length || handles.length
+        ? { ...given, targets: [...given.targets, ...paired, ...handles] }
+        : given;
     for (const target of input.targets) {
       const collection = emptyStateCollectionOf(draft, target);
       if (
@@ -1570,6 +1587,7 @@ export const duplicateNodes =
   (input: DuplicateNodesInput): CatalogCommand =>
   (reader) => {
     const draft = new CommandDraft(reader);
+    assertResizableDuplicate(draft, topLevel(reader, input.ids));
     const copies: NodeId[] = [];
     const roots: NodeEntry[] = [];
     const clones: {
@@ -1606,7 +1624,32 @@ export const duplicateNodes =
     clones.forEach(({ clone, parent, index }, at) => {
       for (const entry of clone.entries) draft.create(entry);
       addRelated(draft, clone.relatedEntries);
-      placeAt(draft, parent, index + 1, [clone.rootId], input.newId);
+      // ADR-318 Phase 6: a Resizable Panel's copy comes with a Handle before it (a copy of its
+      // Group's Handle) — the pair stays `Panel (Handle Panel)*`.
+      const pairHandle = catalogResizablePanelInGroup(draft, sources[at]!)
+        ? catalogResizableHandleOf(draft, childList(draft, parent) ?? [])
+        : undefined;
+      if (pairHandle) {
+        const handle = cloneNodeSubgraph(
+          {
+            getEntry: (entryId) => draft.read(entryId),
+            referrersOf: (entryId) => reader.referrersOf(entryId),
+          },
+          pairHandle,
+          () => input.newId("node"),
+          relatedId(input.newId),
+        );
+        for (const entry of handle.entries) draft.create(entry);
+        addRelated(draft, handle.relatedEntries);
+        placeAt(draft, parent, index + 1, [handle.rootId], input.newId);
+      }
+      placeAt(
+        draft,
+        parent,
+        index + (pairHandle ? 2 : 1),
+        [clone.rootId],
+        input.newId,
+      );
       copies.push(clone.rootId);
       duplicatePairedPanels(
         draft,

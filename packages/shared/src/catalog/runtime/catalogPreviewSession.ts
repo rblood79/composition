@@ -1,3 +1,9 @@
+import { RESIZABLE_PANEL_TYPE } from "./resizablePanels";
+import {
+  catalogResizableRemembered,
+  catalogStoreResizablePanels,
+  catalogStoredResizablePanels,
+} from "./resizableStorage";
 import {
   CatalogTableController,
   type CatalogTableHost,
@@ -758,6 +764,8 @@ export class CatalogPreviewSession {
   private runtimePropsWriter:
     | ((id: string, patch: Readonly<Record<string, unknown>>) => void)
     | undefined;
+  /** ADR-318 Phase 5 — the 「Remember sizes」 Panels given their kept state (once a record). */
+  private readonly restoredPanels = new Set<string>();
   /** The project variables (the document's — ADR-286). */
   private get variables(): readonly VariableDef[] {
     return this.data().variables;
@@ -3113,9 +3121,57 @@ export class CatalogPreviewSession {
     write: (id: string, patch: Readonly<Record<string, unknown>>) => void,
   ): void {
     this.runtimePropsWriter = write;
+    if (this.options.tableStateStorage) this.restoreResizablePanels();
     for (const tableId of [...this.tables.pendingSortEchoes])
       this.tables.echoTableSort(tableId);
     this.tables.echoColumnChoosers();
+  }
+  /**
+   * ADR-318 Phase 5 (사용자 결정 5) — a Panel of a 「Remember sizes」 Group: the browser keeps its share
+   * and collapse (the runtime props the view's rule runtime wrote). Publish only — the Builder's
+   * Preview has no storage.
+   */
+  rememberRuntimeProps(
+    id: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): void {
+    const storage = this.options.tableStateStorage;
+    const projectId = this.graph?.projectId;
+    if (!storage || !projectId) return;
+    const kept = catalogResizableRemembered(patch);
+    if (!Object.keys(kept).length || !this.remembersPanel(id)) return;
+    const all = catalogStoredResizablePanels(storage, projectId);
+    all[id] = { ...all[id], ...kept };
+    catalogStoreResizablePanels(storage, projectId, all);
+  }
+  /** A record is a Panel whose Group remembers its sizes. */
+  private remembersPanel(id: string): boolean {
+    const root = this.currentRoot;
+    const record = root?.domInputs.get(id);
+    if (!record || record.ruleId !== RESIZABLE_PANEL_TYPE || !record.parentId)
+      return false;
+    return root?.domInputs.get(record.parentId)?.props.rememberSizes === true;
+  }
+  /**
+   * Gives the 「Remember sizes」 Panels drawn now what the browser kept — once a record, through the
+   * rule runtime (its Handles · mirrors read the same runtime props). A state the session already
+   * holds wins (a restore runs before any write).
+   */
+  private restoreResizablePanels(): void {
+    const write = this.runtimePropsWriter;
+    const projectId = this.graph?.projectId;
+    const root = this.currentRoot;
+    if (!write || !projectId || !root) return;
+    const stored = catalogStoredResizablePanels(
+      this.options.tableStateStorage,
+      projectId,
+    );
+    for (const [id, kept] of Object.entries(stored)) {
+      if (this.restoredPanels.has(id) || !root.domInputs.has(id)) continue;
+      if (!this.remembersPanel(id)) continue;
+      this.restoredPanels.add(id);
+      write(id, kept);
+    }
   }
   /** How a collection's rows are served (`CatalogTableRowService`). */
   private collectionRowService(collectionId: string | undefined) {
@@ -3768,7 +3824,10 @@ export class CatalogPreviewSession {
     // (A root built · a page filled: its 「Remember state」 Tables take what the browser kept.)
     if (this.tables.restoreDue) {
       this.tables.restoreDue = false;
-      if (this.options.tableStateStorage) this.tables.restoreTableStates();
+      if (this.options.tableStateStorage) {
+        this.tables.restoreTableStates();
+        this.restoreResizablePanels();
+      }
       this.tables.startTableSearches();
     }
     this.tables.syncColumnChoosers();
