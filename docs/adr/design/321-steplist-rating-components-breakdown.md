@@ -45,7 +45,7 @@
 
 - RAC `Link` — `aria-current` prop (`'step'` 포함, `RA/dist/types/src/link/useLink.d.ts:9`) · `isDisabled` → `aria-disabled` · press.
 - RAC `Slider` — root `role="group"` + 숨은 `input[type=range]`, 화살표 ± step · PageUp · PageDown · Home · End, `aria-valuetext`. `isReadOnly` 없음.
-- RAC `Meter` — `role="meter"` · `aria-valuenow` · `aria-valuetext`.
+- RAC `Meter` — `role="meter"` · `aria-valuenow` · `aria-valuetext`. `valueLabel` 이 없으면 `aria-valuetext` 는 백분율이다 (0 ~ 5 의 2.5 = 「50%」).
 - v3 hook (대조 기준으로만 읽는다) — `RA/dist/private/steplist/useStepListItem.mjs:26-32` (role · `aria-current` · `aria-disabled` · tabIndex), `RS/dist/private/steplist/useStepListState.mjs:31-70` (완료 · 선택 가능 · 지나온 단계 완료 규칙).
 
 ## 4. D1 — 조립 표 (예외 0)
@@ -56,7 +56,7 @@
 | 단계      | `Link` (`aria-current` · `isDisabled` prop)   | link role · `aria-disabled` · press · focus | 어느 단계가 현재 · 갈 수 없는지 (상태 규칙) |
 | 상태 문구 | Link 안의 보이지 않는 글자 (`VisuallyHidden`) | 낭독되는 글자                               | 「현재 · 완료 · 남음」 문구 (i18n)          |
 | 별점 입력 | `Slider` > `SliderTrack` > `SliderThumb`      | range input · 키 · 값 낭독                  | track 안의 별 배치 · 채움                   |
-| 별점 표시 | `Meter`                                       | meter role · 값 낭독                        | 별 채움 (0.5 단위)                          |
+| 별점 표시 | `Meter` (`valueLabel` prop)                   | meter role · 값 낭독                        | 별 채움 (0.5 단위) · 낭독 문구 (i18n)       |
 
 - 예외 0 의 조건: 구현 파일에 `role=` · `aria-` 리터럴과 `onKeyDown` 이 없다 (RAC prop 으로 넘기는 `aria-current` · `aria-label` 제외) — G2 · G5 의 정적 검사가 본다.
 - 조립으로 낼 수 없어 넣지 않는 것: 단계 사이의 화살표 이동, 같은 별을 다시 눌러 지우기.
@@ -104,7 +104,10 @@
 
 - `Rating` (팔레트 inputs 범주). 부품: track (별 다섯) · thumb (focus 를 받는 숨은 조작자).
 - prop: `value` · `defaultValue` · `isEmphasized` · `isDisabled` · `isReadOnly` · `size` (S · M) · (결정 5) `label` · `name`.
-- `isReadOnly` 가 켜지면 Meter 로 그린다 (결정 7). 값은 0.5 단위로 반올림해 채운다.
+- `isReadOnly` 가 켜지면 Meter 로 그린다 (결정 7) — `minValue` 0 · `maxValue` 별 개수 · `valueLabel` = 「{별 개수}점 만점에 {값}점」 (i18n 문구, 값은 유효값).
+- **유효값** — 순수 함수 하나 (`runtime/rating.ts`). 입력 모드: 0 ~ 별 개수로 자르고 정수로 맞춘다 (RAC Slider 의 단계 맞춤과 같은 반올림). 표시 모드: 0 ~ 별 개수로 자르고 0.5 단위로 맞춘다. 숫자가 아닌 값 = 0.
+- 유효값을 읽는 곳: DOM renderer (Slider · Meter 의 `value`) · Canvas 의 별 채움 · 값 쓰기 (Do 「값 넣기」 와 이름 붙인 상태로의 미러 — `S/catalog/runtime/catalogPreviewInteractions.ts:1151` · `:1555`) · 폼 값. 넣은 수를 그대로 읽는 곳을 남기지 않는다.
+- 맞추는 자리는 `valueCommitNumber` 를 쓰는 type 의 공용 자리다 — type 이 맞춤 함수를 주면 미러와 값 쓰기가 그 함수를 지난다. Slider 는 자기 `minValue` · `maxValue` · `step` 으로 맞춘다.
 
 ### 5.6 Rating 의 모양 (design-data 토큰)
 
@@ -123,7 +126,7 @@
 - 별 누르기 = Slider 의 track 누르기. track 의 배치로 「누른 별 = 그 별의 값」 이 되게 한다 (Phase 0 시제품 P2).
 - 화살표 = 한 칸. 0 까지 내려가면 지워진 상태다.
 - hover 미리보기 = CSS 의 형제 선택자로 hover 한 별까지 채워 그린다 (값은 바뀌지 않는다).
-- 값 연동: Slider 의 concept (`valueCommitNumber` — When 「변경」 · 「변경 끝」, Do 「값 넣기」).
+- 값 연동: Slider 의 concept (`valueCommitNumber` — When 「변경」 · 「변경 끝」, Do 「값 넣기」). 값은 §5.5 의 유효값이다 — 「값 넣기 2.5」 는 입력 모드에서 3 을 쓴다.
 
 ### 5.8 Canvas
 
@@ -144,17 +147,17 @@
 
 ## 7. Phase 0 시제품
 
-| ID  | 확인할 것                                                                                                               | go 기준                                                      |
-| --- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| P1  | `ol > li > Link` 조립 — Chrome 접근성 트리에 list · listitem · link 와 `current: step` · disabled, Tab 순서, Enter 활성 | 트리의 속성이 v3 hook 이 내는 것과 같다. VoiceOver 는 사용자 |
-| P2  | Slider 위의 별 다섯 — 각 별의 왼쪽 · 가운데 · 오른쪽 15 점을 눌러 값이 그 별의 번호인지, 화살표로 0 까지, 낭독되는 값   | 15 점 전부 일치 · 0 도달 · 접근성 트리에 slider 와 값        |
+| ID  | 확인할 것                                                                                                               | go 기준                                                                                                                                                     |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | `ol > li > Link` 조립 — Chrome 접근성 트리에 list · listitem · link 와 `current: step` · disabled, Tab 순서, Enter 활성 | 트리의 속성이 v3 hook 이 내는 것과 같다. VoiceOver 는 사용자                                                                                                |
+| P2  | Slider 위의 별 다섯 — 각 별의 왼쪽 · 가운데 · 오른쪽 15 점을 눌러 값이 그 별의 번호인지, 화살표로 0 까지, 낭독되는 값   | 15 점 전부 일치 · 0 도달 · 접근성 트리에 slider 와 값. 같이 기록: 값 2.5 · 6 을 준 Slider 의 range input 값과 Meter 의 `aria-valuetext` (`valueLabel` 유무) |
 
 ## 8. 파일 추정 (Phase 0 에서 확정) · Phase 결과
 
 | 자리               | 파일                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 등록 (shared)      | 새 `bindings/StepList.binding.ts` · `Step.binding.ts` · `StepPanel.binding.ts` · `Rating.binding.ts` · `bindings/index.ts` · `componentCatalog.ts` · `generated/componentRulesTable.ts` · `document/generated/reusableOriginLibrary.ts` · `document/d2Provenance.ts` · `domain/componentTraits.ts` · `nesting/requiredParts.ts` · `document/types.ts` |
-| 실행 (shared)      | 새 `runtime/stepList.ts` (상태 규칙) · `runtime/stepList.components.tsx` · `runtime/rating.components.tsx` · `runtime/delegatedDom.runtime.ts`                                                                                                                                                                                                        |
+| 실행 (shared)      | 새 `runtime/stepList.ts` (상태 규칙) · `runtime/stepList.components.tsx` · `runtime/rating.ts` (유효값) · `runtime/rating.components.tsx` · `runtime/delegatedDom.runtime.ts` · `runtime/catalogPreviewInteractions.ts` (미러의 맞춤 자리)                                                                                                            |
 | 상태 연동 (shared) | 새 `interactions/concepts/stepList.ts` · `componentInteractionSpecs.ts` · `commands/collections.ts` (짝)                                                                                                                                                                                                                                              |
 | Canvas · 패널      | `packages/rendering/src/renderers/buildCatalogShapes.ts` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` · `paletteItems.ts` · i18n                                                                                                                                                                                                      |
 

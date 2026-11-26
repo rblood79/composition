@@ -835,22 +835,22 @@
 
 #### [320](320-filter-bar-runtime-condition-builder.md) — 필터 바 컴포넌트 — 보는 사람이 조건을 추가하고 「그리고 · 또는」 묶음으로 거르는 실행 중 필터 (조건 트리 하나 · RAC 조립)
 
-- **상태**: Proposed 2026-11-26 (사용자 `/create-adr` — ReUI 비교 보고의 차용 1 순위). 리뷰 전.
+- **상태**: Proposed 2026-11-26 (사용자 `/create-adr` — ReUI 비교 보고의 차용 1 순위). 리뷰 round 3 (2026-11-26) — 지적 6 건 반영, 마지막 1 건 (복원 트리의 지워진 필드) 수리 확인 대기.
 - **규모**: 필터 범위 상태 (표 상태의 열 필터 조각을 조건 트리로) · 「또는」 로컬 경로 · 서버 판정 표 · `FilterBar` 등록과 Canvas 정적 · 칩 줄 · 조건 빌더 (RAC `Tree` + 끌기) · 값 편집기 공유 · 기억 · 주소 · 이름 붙인 묶음 · 상대 날짜 · 서버 후보 값. contract +1 ~ +2 (문서 변환 없음). 추정 shared 18 ~ 24 · builder 8 ~ 12 파일 + 테스트, Phase 0–6, G0–G6. 사용자 결정 10. breakdown: [design/320](design/320-filter-bar-runtime-condition-builder-breakdown.md)
 
 #### [321](321-steplist-rating-components.md) — StepList · Rating 컴포넌트 — Spectrum 정의의 단계 표시와 별점을 RAC 조립으로 (D1 예외 0)
 
-- **상태**: Proposed 2026-11-26 (사용자 `/create-adr`). 리뷰 전.
+- **상태**: Proposed 2026-11-26 (사용자 `/create-adr`). 리뷰 round 2 (2026-11-26) 에서 설계 승인 가능 — 지적 2 건 반영.
 - **규모**: `StepList` · `Step` (· `StepPanel`) · `Rating` 등록 · 상태 규칙 순수 함수 (v3 hook 과 대조) · `Link` 조립 · `Slider` / `Meter` 조립 · 이름 붙인 상태 · When · Do · `d2Provenance` 의 `design-data` 출처 값. contract +1 ~ +2. 추정 shared 14 ~ 18 · builder 5 ~ 8 · rendering 1 ~ 2 파일 + 테스트, Phase 0–6, G0–G6. 사용자 결정 8. breakdown: [design/321](design/321-steplist-rating-components-breakdown.md)
 
-#### [322](322-cascader-hierarchical-picker.md) — Cascader 컴포넌트 — 여러 단계를 파고드는 선택 필드 (방식 셋 · RAC 조립 · D1 예외 0)
+#### [322](322-cascader-hierarchical-picker.md) — Cascader 컴포넌트 — 여러 단계를 파고드는 선택 필드 (방식 셋 · RAC 조립 · 닫힌 D1 예외 1 — 폼 값 input)
 
-- **상태**: Proposed 2026-11-26 (사용자 `/create-adr`). 리뷰 전.
+- **상태**: Proposed 2026-11-26 (사용자 `/create-adr`). 리뷰 round 3 (2026-11-26) — 지적 5 건 반영, 마지막 1 건 (이름 없는 필수 필드) 수리 확인 대기. 폼 값 input 은 닫힌 D1 예외 (사용자 답 2026-11-26).
 - **규모**: `Cascader` · `CascaderItem` 등록 · 닫힌 필드 (Select 부품 재사용) · 방식 셋 (`columns` · `tree` · `drill`) · 계층 데이터 연결 (중첩 · 평면 · 단계마다 다른 표) · 검색 · 다중 · 단계별 로드 · 폼. contract +1. 추정 shared 12 ~ 16 · builder 5 ~ 8 파일 + 테스트, Phase 0–6, G0–G6. 사용자 결정 8. breakdown: [design/322](design/322-cascader-hierarchical-picker-breakdown.md)
 
 #### [323](323-timeline-event-calendar-gantt.md) — Timeline · Event Calendar · Gantt — 날짜 축 컴포넌트 셋 (조작 정본은 RAC 목록 · 표, 시간 격자 · 막대는 공용 기하의 그림, 닫힌 D1 예외)
 
-- **상태**: Proposed 2026-11-26 (사용자 `/create-adr` + 같은 날 D1 처리 답 「목록 · 표가 조작 정본」). 리뷰 전.
+- **상태**: Proposed 2026-11-26 (사용자 `/create-adr` + 같은 날 D1 처리 답 「목록 · 표가 조작 정본」). 리뷰 round 3 (2026-11-26) 에서 설계 승인 가능 — 지적 5 건 반영.
 - **규모**: 날짜 축 역할 표 · 기하 모듈 둘 (시간 격자 · 날짜 축 막대, lazy) · `Timeline` · `EventCalendar` (월 · 주 · 일 · 일정 목록) · Table 의 시간축 열 (Gantt — 눈금 · 막대 · 요약 · 의존선 · 확대) · 포인터 끌기 · 쓰기 (`updateMany`) · 실행 상태 · 규칙 문서의 D1 목록. contract +2 ~ +3. 추정 shared 26 ~ 34 · rendering 4 ~ 6 · builder 8 ~ 12 파일 + 테스트, Phase 0–8, G0–G8 (컴포넌트 단위로 닫음). 사용자 결정 9. breakdown: [design/323](design/323-timeline-event-calendar-gantt-breakdown.md)
 
 #### [324](324-collection-manual-batch-save.md) — Collection에서 편집한 필드의 수동 서버 저장
