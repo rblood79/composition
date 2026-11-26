@@ -1,0 +1,1 @@
+export{t as VariableTable}from"./VariableTable-D_EGZWu4.js";
