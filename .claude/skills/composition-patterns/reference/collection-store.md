@@ -31,11 +31,13 @@
 - 저장소 key = collection key 필드 → `id` · `key` · `value` (`dataKeyOf`). 바인딩 `fieldMap.value` 는 컴포넌트의 항목 key 일 뿐 — 세션의 `shownIndex` 가 목록의 key ↔ 저장소 key 를 바꿔 준다 (R2 — G0 재현: 값 필드로 key 를 주는 목록의 편집이 「항목 없음」 이었다).
 - key 없는 행: 작성 행은 `row-N` (collection 안 자리), 원격 행은 `<요청 key> ␂ <세대> ␂ <자리>` — 그 응답 안에서만 뜻이 있다. 같은 요청을 다시 받으면 (세대 +1) 그 행과 변경이 함께 지워진다 (사용자 결정 1). Data 패널이 key 필드 없는 API 표에 알린다 (`DataTableEditor` `editorNoKey`).
 - 다른 목록에만 있는 행 (쪽 목록 2 쪽 · 고정 행) 도 key 로 고친다 (`knownRow`).
+- 「서버가 아는 key 인가」 (`isServerKey`) 는 key 의 출처로 판정한다 — 저장소가 만든 자리 key (`placeKeys` 의 `row-N`, 제어 문자 `␂` ~ `␅` 가 든 응답 자리 · 중복 · 부모 아래 자리 · 넣은 행) 가 아니면 서버 key 다. **Why (2026-11-27 판독 m15)**: 글자 모양 `row-N` 으로 판정해 서버 id 가 `row-1` 인 행의 저장이 요청 0 회였다.
 
 ## 4. 조회가 올 때 · 저장 판정
 
 - 요청은 출발 순번 (`startRequest`) 을 받는다. 결과의 키 목록은 더 이른 요청의 응답이 바꾸지 못하고, 행 값은 그 행을 마지막으로 쓴 순번보다 늦게 출발한 요청 · 저장 판정만 바꾼다. 확정한 지우기는 흔적 (`row: null`) 을 남기고, 먼저 출발한 요청이 모두 끝나면 지운다 (`endRequest` → `sweepTraces`).
 - 저장: 규칙이 `callEndpoint` 를 보내면 `DispatchDeps.beginSave(seqs)` 가 그 편집 번호의 변경을 `SendTicket` 으로 찍고, 응답이 오면 전부 확정 (실패면 전부 거절). 판정 표 · 확정 순서 (`5` · `8` 이 뒤집혀 와도 `8`) 는 breakdown 「판정」.
+- 넣기 확정 뒤 남는 변경은 「보낸 스냅샷과 다른 필드」 다 (지금 행 ↔ 서버 행의 차이가 아니다) — 서버가 바꾼 key · 다듬은 값은 편집이 아니다. `link` 는 대상 행의 변경과 필드별로 합친다 (같은 필드는 나중 편집 · 어느 쪽이든 지우기면 지우기). **Why (2026-11-27 판독 h10 · h11)**: `draft-42` → `u4` 뒤 다음 PATCH 본문에 `id: draft-42` 가 들어갔고, 연결이 대상 행의 메모 편집을 지웠다.
 - 서버가 받은 보기의 목록 (`served`): 고친 행은 다시 조회할 때까지 제자리, 넣은 행은 그 보기의 조건 (`catalogRowMatchesQuery` — 평가기 하나) 에 맞을 때만 끝에, 옮기기는 적용하지 않는다 (사용자 결정 3). 여기서 거르는 목록 (로컬) 은 보이는 행 위에서 다시 계산한다.
 
 ## 5. 완전성 · 보기마다 요청
@@ -50,6 +52,9 @@
 
 `sweepStores` (`loadRouted` 마다): 없어진 collection 의 저장소, 없어진 쪽 목록 · Table 의 목록을 지운다. 목록이 지워지면 다른 목록에 없고 변경 · 보낸 변경이 없는 행도 지운다 (`dropResult`).
 
+- 같은 요청의 새 응답 (`accept`) 도 지난 응답에만 있던 행을 지운다 — 다른 결과 · 변경 · 전송이 붙든 행과 확정한 지우기의 흔적은 남긴다. **Why (2026-11-27 판독 m12)**: 매번 다른 행을 주는 주기 조회 100 회 뒤 저장소에 100 행이 남았다.
+- 조회 결과의 `revision` 은 저장소 하나의 순번에서 낸다 (결과마다 1 부터 세지 않는다) — 세션의 화면 캐시 (`shownCache`) 가 목록 key + revision 으로 행을 기억한다. 세션은 목록을 지울 때 `dropStoreList` 로 그 캐시도 지운다. **Why (2026-11-27 판독 h9)**: 검색 a → b → a 에서 a 의 결과를 지웠다 다시 받으면 revision 이 다시 1 이라, 서버의 새 값이 왔는데 화면은 처음 a 의 행이었다.
+
 ## 7. Why (규칙 문서에서 옮김)
 
 - **serializer 를 `collections` barrel 로 내보내지 않는다 (ADR-284)**: barrel 로 내보내자 Preview initial 이 +3,685 B — 세션은 lazy chunk 인데 serializer 가 initial 공용 chunk 로 옮겨갔다.
@@ -61,5 +66,6 @@
 - 정본 결정 [ADR-324](../../../../docs/adr/completed/324-collection-manual-batch-save.md) · [breakdown](../../../../docs/adr/design/324-collection-manual-batch-save-breakdown.md). 문서는 `CollectionEntry.save` (contract 80), 켜기 · 끄기는 `catalogRuntime/collectionSaveCommand.ts` 한 명령 (규칙 지우기 · 저장 막대 · Edit marks).
 - 실행: 세션 `saveChanges` → `CollectionSaver.save` — (1) 판정을 기다리는 행 (`store.sends` 의 열린 ticket) 을 먼저 다시 읽음 (「결과 확인」) → (2) 보낼 행 = 변경 중 기다림 · `unlinked` · 충돌이 아닌 것 → (3) 기준 버전 대조 (`baseRow` ↔ 지금 행) → (4) 확인 조회 연결이면 key 로 읽어 대조 → `beginSend("all", keys)` → `planSave` → `sendSaveRequest` → `judgeSaveResponse` (유실이면 `judgeRecheck`, 409 · 412 뒤 다시 읽은 행이 내 값이면 확정) → `store.settle`.
 - 저장소에 더한 것: `beginSend` 의 key 고르기, 확정의 `extra` (새 버전 등 보낸 필드 밖의 서버 값), `writeServerRow` (다시 읽은 행 — 변경의 필드에 `server` 를 적는다).
+- 판독 round 3 (2026-11-27) 로 더한 것: 작업별 method 표 (`document/collectionSave.ts` `CATALOG_SAVE_METHODS` — 패널 선택지 · 문서 검증 · `saveMethod` 가 같이 읽는다, 고침 연결에 DELETE 를 고를 수 없다) · 기준 버전 없는 고침 · 지우기는 보내지 않는다 (`planSave` `noVersion`) · 넣기 유실은 보낸 key 의 행이 보낸 값일 때만 확정 · 그 밖은 기다림 (`judgeRecheck`) · 확인 조회가 여러 행을 주면 그 key 의 행이 하나일 때만 그 행 (`readSavedRow` `keyFieldKey`) · 기다리는 행을 닫는 선택 `scope: "pending"` (`saveChanges` = 「다시 저장」 · `discardChanges` = 「대기 취소」 — `closePending`) · 저장 결과의 「결과 확인 필요 N건」 = 열린 전송의 행 수 · 끄기 명령이 저장 막대 · 「변경 저장」 규칙을 같이 지운다 (`catalogSaveDependents`).
 - 다시 읽은 행 · `judgeRecheck` 의 행은 이미 저장 값이다 — `apply(…, stored = true)` 로 두 번 진입 변환하지 않는다.
 - 대역 서버 `collections/save/saveEndpointStub.ts` (import 없음) 를 단위 Gate (`adr324Save.test.ts` — `fetch` 로) 와 live (`apps/builder/scripts/save-endpoint-stub.mjs` — Node type stripping, `/__stub/state` · `reset` · `fault`) 가 같이 쓴다.

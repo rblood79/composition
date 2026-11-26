@@ -21,6 +21,8 @@ const LITERAL_OR_LOCAL = new Set([
   "dataView.countText",
   // (「적용 조건 수 표시」 — `{applied}` likewise.)
   "dataView.appliedText",
+  // (ADR-324 — the save bar's count Text: the command writes `{{ changes.<id>.count }}` in its place.)
+  "datatable.batchSave.barUnsaved",
 ]);
 
 describe("i18n placeholder messages", () => {

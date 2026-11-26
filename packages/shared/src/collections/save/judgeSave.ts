@@ -398,9 +398,26 @@ export function judgeRecheck(
   if (read.state === "unknown")
     return { key, result: "unknown", reason: "unreadable" };
   if (entry.kind === "insert") {
-    if (read.state === "found")
-      return { key, result: "confirmed", row: read.row, serverKey: key };
-    return { key, result: "rejected", reason: "반영 안 됨", notApplied: true };
+    // (The sent key is no evidence by itself — breakdown 「넣은 행의 서버 key」: the server may key
+    //  the row anew (draft-42 → u4). Only a row of that key holding the sent values is the create;
+    //  not finding it never means 「not applied」 — sending again would make a second row. It waits
+    //  for the viewer: 결과 확인 · 다시 저장 · 취소.)
+    const row = read.state === "found" ? read.row : undefined;
+    if (
+      row &&
+      Object.entries(entry.row).every(([field, value]) =>
+        sameValue(row[field], value),
+      )
+    )
+      return { key, result: "confirmed", row, serverKey: key };
+    return {
+      key,
+      result: "unknown",
+      reason: "unclear",
+      detail: row
+        ? "보낸 key 의 행이 다른 값"
+        : "보낸 key 로 찾지 못함 — 서버가 다른 key 로 만들었을 수 있음",
+    };
   }
   if (read.state === "absent")
     return entry.kind === "remove"

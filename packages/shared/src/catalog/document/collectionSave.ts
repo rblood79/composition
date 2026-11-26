@@ -120,6 +120,43 @@ export function catalogBatchSaveCollections(
   return out;
 }
 
+/**
+ * ADR-324 「요청 모양」 — the methods a write connection of each kind may use: an update is
+ * PATCH · PUT, a create POST, a remove DELETE, a batch POST. One table for the panel's choices, the
+ * document's validation and the send (round 3 h9 — an update connection on a DELETE endpoint
+ * removed the row a cell edit meant to change).
+ */
+export const CATALOG_SAVE_METHODS = {
+  update: ["PATCH", "PUT"],
+  create: ["POST"],
+  remove: ["DELETE"],
+  batch: ["POST"],
+} as const satisfies Record<string, readonly string[]>;
+export type CatalogSaveConnectionKind = keyof typeof CATALOG_SAVE_METHODS;
+
+export function catalogSaveMethodAllowed(
+  kind: CatalogSaveConnectionKind,
+  method: string | undefined,
+): boolean {
+  return (CATALOG_SAVE_METHODS[kind] as readonly string[]).includes(
+    (method ?? "").toUpperCase(),
+  );
+}
+
+/** The write connections a save setting names, each with its kind. */
+export function catalogSaveConnections(
+  save: NonNullable<CollectionEntry["save"]>,
+): { kind: CatalogSaveConnectionKind; endpointId: string }[] {
+  if (save.send.shape === "batch")
+    return [{ kind: "batch", endpointId: save.send.endpointId }];
+  const out: { kind: CatalogSaveConnectionKind; endpointId: string }[] = [];
+  for (const kind of ["update", "create", "remove"] as const) {
+    const connection = save.send[kind];
+    if (connection) out.push({ kind, endpointId: connection.endpointId });
+  }
+  return out;
+}
+
 /** The endpoints a save setting names (write connections and the recheck one). */
 export function catalogSaveEndpointIds(
   save: NonNullable<CollectionEntry["save"]>,

@@ -183,6 +183,43 @@ describe("useAsyncList — load arguments", () => {
     h.view.unmount();
   });
 
+  it("ADR-325 round 3 h9 — the same search again shows the server's rows of now (a → b → a), not the list remembered", async () => {
+    const urls = stubServer();
+    const h = await asyncPreview({
+      path: "/users",
+      queryParams: [{ key: "q", value: "{{ filterText }}" }],
+    });
+    const search = async (text: string) => {
+      await act(async () => {
+        await h.session.setFilterText("users", text);
+      });
+      await settle();
+    };
+    await search("K");
+    expect(h.shown()).toEqual(["Kim"]);
+    await search("P");
+    expect(h.shown()).toEqual(["Park"]);
+    // (Another user renames Kim on the server while the list shows the other search.)
+    const kim = ROWS[0]!;
+    const before = kim.name;
+    kim.name = "Kim Lee";
+    try {
+      await search("K");
+      expect(urls.at(-1)).toBe("/users?q=K");
+      expect(
+        (h.session.collectionItems("users") as { name: string }[]).map(
+          (item) => item.name,
+        ),
+      ).toEqual(["Kim Lee"]);
+      expect(
+        h.element(h.collection)?.querySelector('[role="option"]')?.textContent,
+      ).toContain("Kim Lee");
+    } finally {
+      kim.name = before;
+    }
+    h.view.unmount();
+  });
+
   it("sortDescriptor: a bound Table's sort loads again sorted by the server, and the client keeps that order", async () => {
     const urls = stubServer();
     const h = await asyncPreview(

@@ -249,11 +249,11 @@ try {
     };
   }, built.ids);
   record(
-    "1 Builder: 패널 「변경을 모아서 저장」 스위치 → 설정 (행별 PATCH · POST · DELETE) · Table 뒤 저장 막대 (6) · Edit marks",
+    "1 Builder: 패널 「변경을 모아서 저장」 스위치 → 설정 (행별 PATCH · POST · DELETE) · Table 뒤 저장 막대 (8) · Edit marks",
     turnedOn.save?.send?.shape === "rows" &&
       turnedOn.save.send.update?.endpointId === "data:endpoint:patch" &&
       turnedOn.bar === "Save bar" &&
-      turnedOn.barChildren === 6 &&
+      turnedOn.barChildren === 8 &&
       turnedOn.marks === true,
     turnedOn,
   );
@@ -312,7 +312,7 @@ try {
       };
     }, key);
   const saveName = (await pub.getByRole("button", { name: "저장", exact: true }).count()) ? "저장" : "Save";
-  const discardName = saveName === "저장" ? "취소" : "Discard";
+  const discardName = saveName === "저장" ? "취소" : "Cancel";
   const mineName = saveName === "저장" ? "내 값으로 다시 저장" : "Keep mine";
 
   const w0 = (await writes()).length;
@@ -432,6 +432,55 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 1000));
   record("7c 변경이 없으면 경고 없이 닫힘", !askedAgain && pub.isClosed(), { askedAgain, closed: pub.isClosed() });
 
+  // ── round 3 (판독 h9 · m14) — back in the Builder: the panel's choices and the same switch off ──
+  await page.bringToFront();
+  await page.waitForTimeout(500);
+  // (The settings view closed with the Escape above — open it again.)
+  if (!(await page.locator('[data-section-id="datatable-table-save"]').count())) {
+    await settings.first().click();
+    await page.waitForTimeout(600);
+  }
+  await page
+    .locator('[data-section-id="datatable-table-save"]')
+    .getByRole("button", { name: /Update|수정/ })
+    .first()
+    .click();
+  await page.waitForTimeout(400);
+  const updateOptions = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="option"]')].map((o) => o.textContent?.trim()),
+  );
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  record(
+    "9a 패널 「고침」 연결 선택지 = PATCH · PUT endpoint 만 (DELETE · POST 없음)",
+    updateOptions.some((text) => /PATCH|PUT/.test(text ?? "")) &&
+      !updateOptions.some((text) => /DELETE|POST/.test(text ?? "")),
+    { updateOptions },
+  );
+  await page
+    .locator('[data-section-id="datatable-table-save"] .indicator')
+    .first()
+    .click();
+  await page.waitForTimeout(800);
+  const turnedOff = await page.evaluate((ids) => {
+    const h = window.__COMPOSITION_CATALOG__;
+    const g = h.workspace.runtime.graph;
+    const body = g.getEntry(h.workspace.session.getSnapshot().pageId).children[0];
+    const kids = g.getEntry(body).children;
+    const project = g.getEntry(g.projectId);
+    return {
+      save: g.getEntry("data:collection:orders").save ?? null,
+      afterTable: g.getEntry(kids[kids.indexOf(ids.table) + 1])?.name ?? null,
+      saveRules: project.interactionIds.filter((id) =>
+        JSON.stringify(g.getEntry(id)?.actions ?? []).includes("saveChanges"),
+      ).length,
+    };
+  }, built.ids);
+  record(
+    "9b 같은 스위치로 끄기 → 설정 없음 · 저장 막대 없음 · 「변경 저장」 규칙 0",
+    turnedOff.save === null && turnedOff.afterTable !== "Save bar" && turnedOff.saveRules === 0,
+    turnedOff,
+  );
 
   record("8 page error 0", errors.length === 0, { errors });
 } catch (error) {

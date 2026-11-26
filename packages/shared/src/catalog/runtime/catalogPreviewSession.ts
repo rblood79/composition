@@ -151,7 +151,11 @@ import {
 } from "./collectionStore";
 import { intakeQueryItems } from "../../collections/intake/queryItems";
 import { coerceDateText } from "../../state/dateValueEditing";
-import { CollectionSaver, type SaveResult } from "./collectionSave";
+import {
+  CollectionSaver,
+  type SaveResult,
+  type SaveScope,
+} from "./collectionSave";
 import { CATALOG_CHANGES_ROOT } from "./stateTemplate";
 
 /**
@@ -2337,7 +2341,7 @@ export class CatalogPreviewSession {
     const drop = (key: string) => {
       const entry = held.get(key);
       entry?.controller.abort();
-      if (entry?.listKey) store.dropList(entry.listKey);
+      if (entry?.listKey) this.dropStoreList(collectionId, entry.listKey);
       held.delete(key);
     };
     for (const key of [...held.keys()])
@@ -2414,7 +2418,7 @@ export class CatalogPreviewSession {
           });
           const listKey: ListKey = `view\u0000${key}`;
           if (next.listKey && next.listKey !== listKey)
-            store.dropList(next.listKey);
+            this.dropStoreList(collectionId, next.listKey);
           store.startList(listKey, requestKey);
           next.listKey = listKey;
           next.cursor = page.cursor;
@@ -2547,7 +2551,7 @@ export class CatalogPreviewSession {
     if (join && held) store.appendPage(held, page.requestKey);
     else {
       const listKey: ListKey = `main\u0000${page.requestKey}`;
-      if (held && held !== listKey) store.dropList(held);
+      if (held && held !== listKey) this.dropStoreList(collectionId, held);
       store.startList(listKey, page.requestKey);
       this.mainLists.set(collectionId, listKey);
     }
@@ -2564,7 +2568,17 @@ export class CatalogPreviewSession {
     if (!held) return;
     this.mainLists.delete(collectionId);
     this.viewlessLoads.delete(collectionId);
-    this.stores.get(collectionId)?.dropList(held);
+    this.dropStoreList(collectionId, held);
+  }
+  /**
+   * A collection's list goes from its store, with the rows it showed remembered (`shownCache` — a
+   * list asked again under the same key is read anew: ADR-325 round 3 h9).
+   */
+  private dropStoreList(collectionId: string, listKey: ListKey): void {
+    this.stores.get(collectionId)?.dropList(listKey);
+    const prefix = `${collectionId}\u0000${listKey}\u0000`;
+    for (const key of [...this.shownCache.keys()])
+      if (key.startsWith(prefix)) this.shownCache.delete(key);
   }
   /** `useAsyncList.reload()` — the first page again (the cursor starts over). */
   async reload(
@@ -3242,7 +3256,7 @@ export class CatalogPreviewSession {
       keyless: "answer",
     });
     const listKey: ListKey = `answer\u0000${requestKey}`;
-    if (held && held !== listKey) store.dropList(held);
+    if (held && held !== listKey) this.dropStoreList(collectionId, held);
     store.startList(listKey, requestKey);
     return listKey;
   }
@@ -3693,7 +3707,7 @@ export class CatalogPreviewSession {
    */
   saveChanges(
     collectionId: string,
-    choice?: { scope: "conflicts" | "link"; keys?: readonly string[] },
+    choice?: { scope: SaveScope; keys?: readonly string[] },
   ): Promise<SaveResult> {
     return this.saver.save(collectionId, choice);
   }
@@ -3701,7 +3715,7 @@ export class CatalogPreviewSession {
   discardUnsaved(
     collectionId: string,
     keys?: readonly string[],
-    scope?: "conflicts",
+    scope?: "conflicts" | "pending",
   ): void {
     if (this.saveSettingsOf(collectionId))
       this.saver.discard(collectionId, keys, scope);
@@ -4633,7 +4647,8 @@ export class CatalogPreviewSession {
         keyless: "answer",
       });
       const listKey: ListKey = `unit\u0000${listId}\u0000${requestKey}`;
-      if (unit.list && unit.list !== listKey) store.dropList(unit.list);
+      if (unit.list && unit.list !== listKey)
+        this.dropStoreList(collectionId, unit.list);
       store.startList(listKey, requestKey);
       unit.list = listKey;
       unit.page = page;

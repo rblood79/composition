@@ -13,6 +13,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [「모아서 저장」 · 실행 저장소 판독 수리 — 잘못 지우기 · 덮어쓰기 · 중복 넣기 · 옛 값 표시] - 2026-11-27
+
+ADR-324 · ADR-325 구현 판독 (round 3) 이 재현한 HIGH 8 · MEDIUM 3 을 고쳤다.
+
+### Fixed
+
+- **칸을 고쳤는데 서버 행이 지워지던 것**: 「수정」 연결에 DELETE endpoint 를 고를 수 있었다 — 연결마다 method 가 정해진다 (수정 PATCH · PUT, 추가 POST, 삭제 DELETE, 묶음 POST). 패널 선택지 · 문서 검증 · 전송이 같은 표를 읽는다.
+- **버전 보호를 켰는데 다른 사람의 값을 덮던 것**: 조회 응답에 버전 값이 없는 행은 보내지 않는다 (「기준 버전 없음」) — 전에는 조건 없는 요청이 나갔다.
+- **응답을 잃은 추가가 다음 저장에서 한 번 더 만들어지던 것**: 보낸 key 로 찾지 못해도 「반영 안 됨」 으로 닫지 않는다 (서버가 key 를 새로 매겼을 수 있다) — 「결과 확인 필요」 로 남는다.
+- **지우지 않고 「저장됨」 을 알리던 것**: 저장 전 확인 조회가 여러 행을 주면 그 key 의 행이 있을 때만 그 행으로 읽는다 — 가리지 못하면 보내지 않고 「확인 조회 실패」.
+- **끝낼 수 없던 「처리 중」 · 「결과 확인 필요」**: 저장 막대에 「다시 저장」 · 「대기 취소」 (Do 의 `scope: "pending"`), 저장 결과가 기다리는 행 수를 말한다.
+- **같은 검색으로 돌아오면 옛 값이 보이던 것** (a → b → a): 서버가 준 새 값이 보인다.
+- **서버가 key 를 준 새 행의 다음 수정이 임시 key 를 다시 보내던 것** · **행을 연결하면 대상 행의 다른 미저장 편집이 사라지던 것**.
+- 「변경을 모아서 저장」 을 켠 직후 같은 스위치로 끌 수 없던 것 (저장 막대와 그 규칙을 같이 지운다 — 한 번의 undo) · 서버 id 가 `row-1` 같은 행이 저장되지 않던 것 · 주기 조회에서 지나간 행이 세션에 쌓이던 것.
+- **Why**: 판정이 「보낸 key = 서버 key」 · 「여러 행 = 없음」 · 「버전이 없으면 조건 없이」 처럼 근거 없는 쪽으로 기울어 있었고, 조회 결과의 revision 이 결과마다 1 부터라 화면 캐시와 겹쳤다.
+
+- 확인: 대역 서버 단위 반례 16 (수정 전 실패 확인) + 문서 검증 · 끄기 · 세션 회귀 3 (변이 RED), Builder → Publish live `adr324-g5-live.mjs` Chrome · WebKit 각 15/15 (패널 선택지 · 끄기 포함) · `adr325-g5-live.mjs` 각 9/9. 상세 [ADR-324 breakdown](adr/design/324-collection-manual-batch-save-breakdown.md) · [ADR-325 breakdown](adr/design/325-collection-runtime-store-three-layers-breakdown.md) 「Round 3 판독 수리」.
+
 ## [ADR-324 — Collection 「모아서 저장」: 편집을 모았다가 저장 버튼으로 변경분만 보낸다] - 2026-11-27
 
 실행 중 Table 에서 고친 값을 바로 서버에 쓰지 않고 모아 두었다가, 보는 사람이 「저장」 을 누를 때 바뀐 것만 보낸다 (ADR-324 Phase 0 ~ 5 → Implemented). 편집 상태는 ADR-325 의 미저장 변경 층 하나다.

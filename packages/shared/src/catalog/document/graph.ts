@@ -4,7 +4,9 @@ import { catalogActionsDeep } from "./interactionActions";
 import {
   catalogBatchSaveCollections,
   catalogImmediateSaveRules,
+  catalogSaveConnections,
   catalogSaveEndpointIds,
+  catalogSaveMethodAllowed,
 } from "./collectionSave";
 import { isDateValueText } from "../../state/dateValue";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
@@ -223,13 +225,20 @@ function validateBatchSave(
   }
   if (!saving.length) return;
   for (const collection of saving) {
-    const { write, read } = catalogSaveEndpointIds(collection.save!);
-    for (const endpointId of [...write, ...read]) {
+    const { read } = catalogSaveEndpointIds(collection.save!);
+    // (Each write connection's method is its kind's — an update never a DELETE; the recheck is GET.)
+    for (const { kind, endpointId } of [
+      ...catalogSaveConnections(collection.save!),
+      ...read.map((id) => ({ kind: "read" as const, endpointId: id })),
+    ]) {
       const endpoint = get(endpointId);
       if (endpoint?.kind !== "endpoint")
         throw new CatalogValidationError("DANGLING_ENDPOINT", endpointId);
-      const isRead = endpoint.method === "GET";
-      if (read.includes(endpointId) ? !isRead : isRead)
+      if (
+        kind === "read"
+          ? endpoint.method !== "GET"
+          : !catalogSaveMethodAllowed(kind, endpoint.method)
+      )
         throw new CatalogValidationError("SAVE_ENDPOINT_METHOD", endpointId);
     }
   }

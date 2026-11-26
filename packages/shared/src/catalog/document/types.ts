@@ -1617,9 +1617,11 @@ export type InteractionAction =
        * components showing the collection (none selected = every such row): `conflicts` 「내 값으로
        * 다시 저장」 (a conflicted row takes the server's row as its base, my values go again),
        * `link` 「이 행에 적용」 (one unlinked row and one server row selected — the edits after its
-       * create go to that row). Absent = a save of the changes.
+       * create go to that row), `pending` 「다시 저장」 (round 3 — the rows waiting for their
+       * result — a lost answer, a 202 — are closed as not applied and sent again; the server may
+       * have applied the first). Absent = a save of the changes.
        */
-      scope?: "conflicts" | "link";
+      scope?: "conflicts" | "link" | "pending";
     }
   | {
       /** ADR-324 · ADR-325 `discardChanges` — drop the unsaved changes not being sent. */
@@ -1627,8 +1629,11 @@ export type InteractionAction =
       collectionId: DataCollectionId;
       /** The rows' keys (`"!event.keys"` · a literal); absent = every change. */
       keys?: Scalar;
-      /** `conflicts` — 「서버 값 받기」: the conflicted rows (selected, else all) drop their change. */
-      scope?: "conflicts";
+      /**
+       * `conflicts` — 「서버 값 받기」: the conflicted rows (selected, else all) drop their change.
+       * `pending` — 「대기 취소」: the rows waiting for their result stop waiting and drop theirs.
+       */
+      scope?: "conflicts" | "pending";
     }
   | {
       /** `useAsyncList.loadMore()` — the next page (the cursor the last load gave). */

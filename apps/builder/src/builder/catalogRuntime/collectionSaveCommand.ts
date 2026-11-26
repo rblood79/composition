@@ -6,18 +6,25 @@
  *   「규칙을 지우고 켜기」; each Table bound to it gets a save bar after it (사용자 결정 5) — a frame
  *   (row) with the unsaved count (`{{ changes.<collection>.count }}`), 「Discard」 and 「Save」
  *   Buttons whose rules run the two Dos, disabled while nothing can be saved (`!var.changes:…`).
- * - an edit of the setting writes it alone; off takes the setting away (the bars stay — the author's
- *   nodes now, removable like any other).
+ * - an edit of the setting writes it alone.
+ * - off takes the setting away with what cannot stand without it (round 3 m14 — the document
+ *   refuses a 「변경 저장」 Do on a collection without `save`, so the switch that made a bar could
+ *   not be turned off): the save bars still as made (a frame holding only the collection's save ·
+ *   discard Buttons and its count Text) go whole; a save Do anywhere else loses its rule, the node
+ *   stays the author's.
  */
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { setDataEntries } from "../../../../../packages/shared/src/catalog/commands/data";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { removeRecords } from "../../../../../packages/shared/src/catalog/commands/project";
+import { removeTargets } from "../../../../../packages/shared/src/catalog/commands/structure";
+import { catalogActionsDeep } from "../../../../../packages/shared/src/catalog/document/interactionActions";
 import { setFields } from "../../../../../packages/shared/src/catalog/commands/fields";
 import { insertNodes } from "../../../../../packages/shared/src/catalog/commands/structure";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
+  CatalogReader,
   CollectionEntry,
   CollectionSaveSettings,
   DataCollectionId,
@@ -26,6 +33,7 @@ import type {
   LibraryDefinitionId,
   NodeEntry,
   NodeId,
+  ProjectEntry,
   PropWrites,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { CATALOG_CHANGES_ROOT } from "../../../../../packages/shared/src/catalog/runtime/stateTemplate";
@@ -48,6 +56,9 @@ export interface CatalogSaveBarLabels {
   takeServer: string;
   /** Decision 5 — an unlinked row put on the server row selected with it. */
   link: string;
+  /** 「결과 확인 필요」 — the rows waiting for their result sent again · no longer waited for. */
+  resend: string;
+  dropPending: string;
 }
 
 /** The collection's raw id (the `{{ changes.<id> }}` · `!var.changes:<id>` key). */
@@ -81,6 +92,8 @@ function saveBarEntries(
   const mineId = newId("node") as NodeId;
   const serverId = newId("node") as NodeId;
   const linkId = newId("node") as NodeId;
+  const resendId = newId("node") as NodeId;
+  const dropPendingId = newId("node") as NodeId;
   const discardId = newId("node") as NodeId;
   const saveId = newId("node") as NodeId;
   const textDef = catalogPaletteDefinitionId(
@@ -125,7 +138,16 @@ function saveBarEntries(
     id: frameId,
     name: "Save bar",
     definitionId: "lib:definition:type-frame",
-    children: [textId, mineId, serverId, linkId, discardId, saveId],
+    children: [
+      textId,
+      mineId,
+      serverId,
+      linkId,
+      resendId,
+      dropPendingId,
+      discardId,
+      saveId,
+    ],
     props: {},
     ...(catalogStyleWritesOf({
       display: "flex",
@@ -158,8 +180,8 @@ function saveBarEntries(
   const rule = (
     ownerId: NodeId,
     action:
-      | { opcode: "saveChanges"; scope?: "conflicts" | "link" }
-      | { opcode: "discardChanges"; scope?: "conflicts" },
+      | { opcode: "saveChanges"; scope?: "conflicts" | "link" | "pending" }
+      | { opcode: "discardChanges"; scope?: "conflicts" | "pending" },
   ): InteractionEntry => ({
     kind: "interaction",
     id: newId("interaction") as EntryId<"interaction">,
@@ -174,6 +196,8 @@ function saveBarEntries(
       button(mineId, labels.keepMine, "secondary", "hasConflicts"),
       button(serverId, labels.takeServer, "secondary", "hasConflicts"),
       button(linkId, labels.link, "secondary", "hasUnlinked"),
+      button(resendId, labels.resend, "secondary", "hasPending"),
+      button(dropPendingId, labels.dropPending, "secondary", "hasPending"),
       button(discardId, labels.discard, "secondary", "canDiscard"),
       button(saveId, labels.save, "accent", "canSave"),
     ],
@@ -184,13 +208,72 @@ function saveBarEntries(
       rule(mineId, { opcode: "saveChanges", scope: "conflicts" }),
       rule(serverId, { opcode: "discardChanges", scope: "conflicts" }),
       rule(linkId, { opcode: "saveChanges", scope: "link" }),
+      rule(resendId, { opcode: "saveChanges", scope: "pending" }),
+      rule(dropPendingId, { opcode: "discardChanges", scope: "pending" }),
     ],
   };
 }
 
 /**
- * The switch's command: the collection with `save` (undefined = off), the rules named go, and on
- * the first turn-on (`saveBars`) a bar after each bound Table.
+ * What turning the collection's 「모아서 저장」 off takes along: the rules holding a 「변경 저장」
+ * Do of it (refused without `save`), and the save bars still as made — a frame whose children are
+ * only that collection's save · discard rule owners and its count Text.
+ */
+export function catalogSaveDependents(
+  stage: CatalogReader,
+  collectionId: DataCollectionId,
+): { ruleIds: EntryId<"interaction">[]; barIds: NodeId[] } {
+  const project = stage.getEntry(stage.projectId) as ProjectEntry | undefined;
+  const raw = rawCollectionId(collectionId);
+  const names = (rule: InteractionEntry, opcodes: readonly string[]) =>
+    catalogActionsDeep(rule.actions).some(
+      (action) =>
+        opcodes.includes(action.opcode) &&
+        "collectionId" in action &&
+        action.collectionId === collectionId,
+    );
+  const saveRules: InteractionEntry[] = [];
+  const owners = new Set<string>();
+  for (const id of project?.interactionIds ?? []) {
+    const rule = stage.getEntry(id);
+    if (rule?.kind !== "interaction") continue;
+    if (names(rule, ["saveChanges"])) saveRules.push(rule);
+    if (names(rule, ["saveChanges", "discardChanges"])) owners.add(rule.ownerId);
+  }
+  const readsCount = (id: string) => {
+    const entry = stage.getEntry(id);
+    const text =
+      entry?.kind === "node" && entry.props.children?.kind === "set"
+        ? entry.props.children.value
+        : undefined;
+    return (
+      typeof text === "string" &&
+      text.includes(`${CATALOG_CHANGES_ROOT}.${raw}.`)
+    );
+  };
+  const bars = new Set<NodeId>();
+  for (const rule of saveRules) {
+    const parentId = stage.ownerOf(rule.ownerId);
+    const parent = parentId ? stage.getEntry(parentId) : undefined;
+    if (
+      parent?.kind === "node" &&
+      parent.definitionId === "lib:definition:type-frame" &&
+      parent.children.every((child) => owners.has(child) || readsCount(child))
+    )
+      bars.add(parent.id);
+  }
+  return {
+    ruleIds: saveRules
+      .filter((rule) => !bars.has(stage.ownerOf(rule.ownerId) as NodeId))
+      .map((rule) => rule.id),
+    barIds: [...bars],
+  };
+}
+
+/**
+ * The switch's command: the collection with `save` (undefined = off — with its dependents,
+ * `catalogSaveDependents`), the rules named go, and on the first turn-on (`saveBars`) a bar after
+ * each bound Table.
  */
 export function catalogCollectionSaveCommand(
   graph: CatalogGraph,
@@ -224,6 +307,22 @@ export function catalogCollectionSaveCommand(
           ? { ...rest, save: input.save }
           : rest;
         return setDataEntries({ puts: [next] });
+      },
+      (stage) => {
+        if (input.save) return undefined;
+        const { barIds } = catalogSaveDependents(stage, input.collectionId);
+        return barIds.length
+          ? removeTargets({
+              targets: barIds.map((id) => ({ kind: "node" as const, id })),
+              newId,
+            })
+          : undefined;
+      },
+      (stage) => {
+        if (input.save) return undefined;
+        // (Read again: the bars' own rules went with them.)
+        const { ruleIds } = catalogSaveDependents(stage, input.collectionId);
+        return ruleIds.length ? removeRecords({ ids: ruleIds }) : undefined;
       },
       // (Each bound Table shows the rows' edit · save marks — a refused · conflicted row is seen.)
     ...tables.map(

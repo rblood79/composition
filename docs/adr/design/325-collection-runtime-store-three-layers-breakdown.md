@@ -367,3 +367,15 @@ key 필드의 값이 없는 행은 둘로 갈린다.
   - 다시 불러오기 (규칙 · 주기 조회) 가 같은 요청 key 의 보기 목록을 건너뛰어 서버의 새 값이 보기 목록에 오지 않았다 → `reload` 는 보기 목록도 다시 받는다 (`syncViewLists(id, true)`). 테스트 1 · RED 1/1.
 - **즉시 저장 회귀** (`adr317-p4-edit-marks-live.mjs` — 「Cells change」 → callEndpoint, 붙여넣기 · 요청 성공 · 실패의 표시): Chrome · WebKit 전부 PASS.
 - **회귀 묶음 (마지막 수정 뒤)**: Builder Preview 1,377 · shared 2,847 (runtime 210 재실행) · publish 19 통과, `pnpm type-check` 0 오류, `docs:stale-symbols` 0.
+
+### Round 3 판독 수리 (codex 구현 판독 — HIGH 3 · MEDIUM 1) — 2026-11-27
+
+판독 기록 [reviews/325.md](../reviews/325.md) round 3.
+
+- **h9 같은 검색으로 돌아오면 옛 행**: 조회 결과의 `revision` 을 저장소 하나의 순번에서 낸다 (`nextRevision` — 결과마다 1 부터 세면, 지웠다 다시 받은 결과가 세션 화면 캐시의 키와 겹친다). 세션은 목록을 지울 때 그 캐시도 지운다 (`dropStoreList` — 검색어마다 캐시가 남던 것도 같이). 회귀 `asyncList.test.tsx` (K → P → K, 서버 이름 변경) + 저장소 단위.
+- **h10 서버가 준 key 를 임시 key 로 되돌림**: 넣기 확정 뒤 남는 변경 = 보낸 스냅샷 (`entry.row`) 과 다른 필드만. 서버가 바꾼 key · 다듬은 값은 변경이 아니다.
+- **h11 연결이 대상 행의 변경을 지움**: `link` 가 대상 행의 변경과 필드별로 합친다 — 같은 필드는 나중 편집, 어느 쪽이든 지우기면 지우기 (기준 행은 대상 행의 처음 것).
+- **m12 주기 조회의 행 누적**: `accept` 가 그 요청의 지난 응답에만 있던 행을 지운다 (다른 결과 · 변경 · 전송이 붙든 행 · 지우기 흔적 제외).
+- **key 의 출처** (324 m15 와 같이): `isServerKey` — 저장소가 만든 key (`placeKeys` 의 자리 key · 제어 문자 key) 가 아니면 서버 key. 글자 모양 `row-N` 으로 판정하지 않는다.
+- **G5 하니스** `adr325-g5-live.mjs` 4a: `page=2` 고정 대신 「Table 자기 목록의 지금 페이지 다음」 (첫 화면 sentinel 이 2 쪽을 먼저 받거나 주기 조회가 목록을 처음으로 돌리는 경우 포함).
+- **검사**: `collectionStore.test.ts` 28 (round 3 반례 7) — 6 은 수정 전 실패를 먼저 확인, 세션 회귀 1 은 변이 스크립트 RED (revision · 캐시 지우기 둘 다 되돌림 — 화면 `Kim`). live `adr325-g5-live.mjs` Chrome 9/9 · WebKit 9/9 (headed). shared 2,891 · builder Preview 묶음 통과.

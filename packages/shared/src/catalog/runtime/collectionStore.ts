@@ -196,6 +196,19 @@ export class CollectionStore {
   private readonly resultsOfKey = new Map<RowKey, Set<RequestKey>>();
   /** Keys made for rows without one, by the result that made them (dropped with its generation). */
   private readonly answerKeys = new Map<RequestKey, RowKey[]>();
+  /**
+   * Keys the store made from a row's place in the author's rows (`row-N`) — not a server identity.
+   * A key is judged by where it came from, never by how it reads: a server's own `row-1` is one.
+   */
+  private readonly placeKeys = new Set<RowKey>();
+  /**
+   * The results' revisions come from one count of the store: a result dropped and asked again never
+   * takes a revision it had (a list's shown rows remembered by revision would be the old ones).
+   */
+  private revisionSerial = 0;
+  private nextRevision(): number {
+    return (this.revisionSerial += 1);
+  }
 
   /**
    * A request's answer (breakdown 「조회가 올 때」): its key list replaces the result's — unless an
@@ -230,7 +243,8 @@ export class CollectionStore {
             ? `row-${index + 1}`
             : `${requestKey}\u0002${generation}\u0002${index}`;
         if (options.keyless === "answer") made.push(key);
-      }
+        else this.placeKeys.add(key);
+      } else this.placeKeys.delete(key);
       // (One key twice in one answer: the second is its own row — the lists warn of it.)
       if (seen.has(key)) {
         key = `${key}\u0003${index}`;
@@ -258,13 +272,25 @@ export class CollectionStore {
       this.index(key, requestKey);
     });
     if (made.length) this.answerKeys.set(requestKey, made);
+    // (A row this request held and its new answer lacks: it goes unless another result, a change
+    //  or a send holds it — a polled request's replaced rows do not pile up. A confirmed remove's
+    //  trace stays (`sweepTraces`).)
+    if (held)
+      for (const key of held.keys)
+        if (
+          !seen.has(key) &&
+          !this.resultsOfKey.has(key) &&
+          !this.pinned(key) &&
+          this.rows.get(key)?.row
+        )
+          this.rows.delete(key);
     this.results.set(requestKey, {
       keys,
       ...(options.cursor !== undefined ? { cursor: options.cursor } : {}),
       ...(options.total !== undefined ? { total: options.total } : {}),
       at: options.at,
       generation,
-      revision: (held?.revision ?? 0) + 1,
+      revision: this.nextRevision(),
       ...(pristine ? { source: items as readonly Row[] } : {}),
     });
     return true;
@@ -334,7 +360,8 @@ export class CollectionStore {
     const change = this.changes.get(key);
     if (change?.kind === "remove") return undefined;
     if (change?.kind === "insert") return change.row;
-    if (change?.kind === "unlinked") return change.removed ? undefined : change.row;
+    if (change?.kind === "unlinked")
+      return change.removed ? undefined : change.row;
     const stored = this.rows.get(key)?.row ?? undefined;
     if (!stored || change?.kind !== "update") return stored;
     const values: Record<string, unknown> = {};
@@ -475,8 +502,7 @@ export class CollectionStore {
     keys?: ReadonlySet<RowKey>,
   ): string | undefined {
     const entries: SentEntry[] = [];
-    const wanted =
-      seqs === "all" ? { has: (_seq: number) => true } : seqs;
+    const wanted = seqs === "all" ? { has: (_seq: number) => true } : seqs;
     for (const [key, change] of this.changes) {
       if (keys && !keys.has(key)) continue;
       if (change.kind === "update") {
@@ -569,7 +595,8 @@ export class CollectionStore {
       if (wrote || stored) {
         if (wrote) STORE_KEYS.set(row, entry.key);
         // (A row no result holds — a tree's nested row: the overlay writes its value under its parent.)
-        if (wrote && !this.resultsOfKey.has(entry.key)) this.nested.add(entry.key);
+        if (wrote && !this.resultsOfKey.has(entry.key))
+          this.nested.add(entry.key);
         if (wrote) this.diverged = true;
         this.rows.set(entry.key, {
           row,
@@ -651,8 +678,13 @@ export class CollectionStore {
       }
       if (change?.kind === "insert" && later) {
         const fields: Record<string, FieldChange> = {};
+        // (Only the fields written after the send — against the row as it was sent. A field the
+        //  server changed (its own key, a value it normalized) is the server's, not an edit.)
         for (const [field, value] of Object.entries(change.row))
-          if (!sameValue(value, row[field]))
+          if (
+            !sameValue(value, entry.row[field]) &&
+            !sameValue(value, row[field])
+          )
             fields[field] = { base: row[field], value, seq: change.last };
         if (Object.keys(fields).length)
           this.changes.set(key, { kind: "update", baseRow: row, fields });
@@ -677,7 +709,7 @@ export class CollectionStore {
       this.results.set(requestKey, {
         ...result,
         keys: result.keys.filter((key) => key !== entry.key),
-        revision: result.revision + 1,
+        revision: this.nextRevision(),
         source: undefined,
       });
     }
@@ -776,30 +808,47 @@ export class CollectionStore {
     this.touched();
   }
 
-  /** ADR-324 — an unlinked row linked by the user to a server row (`serverKey`). */
+  /**
+   * ADR-324 — an unlinked row linked by the user to a server row (`serverKey`): its edits after the
+   * send become that row's — over the unsaved changes the row already has (field by field; a field
+   * both wrote keeps the later edit, a remove of either is a remove).
+   */
   link(key: RowKey, serverKey: RowKey): void {
     const change = this.changes.get(key);
     const server = this.rows.get(serverKey)?.row;
     if (change?.kind !== "unlinked" || !server) return;
+    const held = this.changes.get(serverKey);
+    // (A row with no server identity of its own is no row to link to.)
+    if (held?.kind === "insert" || held?.kind === "unlinked") return;
     this.changes.delete(key);
     this.dropOrder(key);
-    if (change.removed)
+    const baseRow = held?.baseRow ?? server;
+    if (change.removed || held?.kind === "remove")
       this.changes.set(serverKey, {
         kind: "remove",
-        baseRow: server,
-        seq: change.seq,
+        baseRow,
+        seq: held?.kind === "remove" && !change.removed ? held.seq : change.seq,
       });
     else {
-      const fields: Record<string, FieldChange> = {};
-      for (const [field, value] of Object.entries(change.row))
-        if (!sameValue(value, change.sent[field]))
-          fields[field] = { base: server[field], value, seq: change.seq };
+      const fields: Record<string, FieldChange> = { ...held?.fields };
+      for (const [field, value] of Object.entries(change.row)) {
+        if (sameValue(value, change.sent[field])) continue;
+        const own = fields[field];
+        if (own && own.seq > change.seq) continue;
+        const base = own ? own.base : baseRow[field];
+        if (sameValue(value, base) && !this.sending(serverKey, field))
+          delete fields[field];
+        else
+          fields[field] = {
+            base,
+            value,
+            seq: change.seq,
+            ...(own && "server" in own ? { server: own.server } : {}),
+          };
+      }
       if (Object.keys(fields).length)
-        this.changes.set(serverKey, {
-          kind: "update",
-          baseRow: server,
-          fields,
-        });
+        this.changes.set(serverKey, { kind: "update", baseRow, fields });
+      else this.changes.delete(serverKey);
     }
     this.touched();
   }
@@ -811,9 +860,13 @@ export class CollectionStore {
         this.rows.delete(key);
   }
 
-  /** Whether a key is one the server knows the row by (its key field's value — not a place). */
+  /**
+   * Whether a key is one the server knows the row by (its key field's value). Not one: a key the
+   * store made — a place in the author's rows (`placeKeys`), in an answer (`\u0002`), a second row of
+   * one key (`\u0003`), a place under a parent (`\u0004`), an inserted row's (`\u0005`).
+   */
   isServerKey(key: RowKey): boolean {
-    return !key.includes("\u0002") && !/^row-\d+$/.test(key);
+    return !/[\u0002-\u0005]/.test(key) && !this.placeKeys.has(key);
   }
 
   // ─── indexes ────────────────────────────────────────────────────────────────────────────────
@@ -847,7 +900,7 @@ export class CollectionStore {
       if (result)
         this.results.set(requestKey, {
           ...result,
-          revision: result.revision + 1,
+          revision: this.nextRevision(),
           source: undefined,
         });
     }
@@ -868,7 +921,7 @@ export class CollectionStore {
       if (result)
         this.results.set(requestKey, {
           ...result,
-          revision: result.revision + 1,
+          revision: this.nextRevision(),
           source: undefined,
         });
     }
@@ -1004,7 +1057,11 @@ export function overlayRows(
     }
     if (edit.kind === "move") continue;
     const row = orderedRow(store, edit.key);
-    if (row && served.admit(row) && !containsKey(items, edit.key, childKey, shape))
+    if (
+      row &&
+      served.admit(row) &&
+      !containsKey(items, edit.key, childKey, shape)
+    )
       items = [...items, row];
   }
   return shape.parentField

@@ -7,6 +7,7 @@
  * when smaller (사용자 결정 1 — Phase 0: 2,048 B); a 415 to a compressed body is sent once more
  * plain and the caller turns compression off for the session.
  */
+import { catalogSaveMethodAllowed } from "../../catalog/document/collectionSave";
 import type { ApiEndpointDefinition } from "../../types/collection.types";
 import {
   buildEndpointRequest,
@@ -40,6 +41,8 @@ export interface SaveSendResult {
   gzipRefused?: true;
   /** The request could not be made (a template that does not resolve): nothing went out. */
   notSent?: string;
+  /** Not sent because the connection's method is not one its kind may use. */
+  wrongMethod?: true;
 }
 
 async function gzipBody(text: string): Promise<Uint8Array> {
@@ -64,18 +67,16 @@ async function readAnswer(
   return { status: response.status, headers: response.headers, body };
 }
 
-/** The method a request uses (the endpoint's; a remove · an update without one: DELETE · PATCH). */
+/**
+ * The method a request uses: its endpoint's, when that is one its kind may use (`CATALOG_SAVE_METHODS`
+ * — an update never goes as a DELETE). Undefined = the connection cannot carry it: nothing is sent.
+ */
 export function saveMethod(
   request: SaveRequest,
   endpoint: ApiEndpointDefinition,
-): string {
+): string | undefined {
   const method = (endpoint.method ?? "").toUpperCase();
-  if (method && method !== "GET") return method;
-  return request.kind === "remove"
-    ? "DELETE"
-    : request.kind === "update"
-      ? "PATCH"
-      : "POST";
+  return catalogSaveMethodAllowed(request.kind, method) ? method : undefined;
 }
 
 export async function sendSaveRequest(
@@ -109,6 +110,15 @@ export async function sendSaveRequest(
   }
   const headers: Record<string, string> = { ...parts.headers };
   const method = saveMethod(request, options.endpoint);
+  if (!method) {
+    const reason = `연결의 method (${options.endpoint.method || "없음"}) 가 이 변경을 보낼 수 없음`;
+    return {
+      answer: { lost: true, reason },
+      compressed: false,
+      notSent: reason,
+      wrongMethod: true,
+    };
+  }
   if (request.kind === "update" || request.kind === "remove")
     if (request.ifMatch) headers["If-Match"] = request.ifMatch;
   if (request.kind === "create" && request.idempotency?.in === "header")
@@ -160,11 +170,16 @@ export async function sendSaveRequest(
 /**
  * ADR-324 Decision 4 · 6 — a row read by key through a one-row endpoint (the recheck connection —
  * `{{ key }}` in its path): the row (`responseMapping.dataPath`), 「none」 on a 404 · an empty
- * answer, nothing to go by on any other failure.
+ * answer, nothing to go by on any other failure — and on an answer that does not tell which row it
+ * is (several rows without the one asked, a row of another key: round 3 h12 — 「none」 there
+ * reported a remove done that was never sent).
  */
 export async function readSavedRow(
   key: string,
-  options: Omit<SaveSendOptions, "gzip" | "stringify">,
+  options: Omit<SaveSendOptions, "gzip" | "stringify"> & {
+    /** The key field's key — a row answered is the one asked when its value is the key. */
+    keyFieldKey?: string;
+  },
 ): Promise<
   { state: "found"; row: unknown } | { state: "absent" } | { state: "unknown"; reason: string }
 > {
@@ -199,9 +214,27 @@ export async function readSavedRow(
             answer.body,
           )
       : answer.body;
-    // (A list answer is one row only when it holds exactly one — any other is no evidence.)
-    const one = Array.isArray(row) ? (row.length === 1 ? row[0] : undefined) : row;
-    return one && typeof one === "object" ? { state: "found", row: one } : { state: "absent" };
+    const answered = (Array.isArray(row) ? row : [row]).filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === "object" && !Array.isArray(item),
+    );
+    // (An empty answer: no such row.)
+    if (!answered.length) return { state: "absent" };
+    const keyOf = (item: Record<string, unknown>) => {
+      const value = options.keyFieldKey ? item[options.keyFieldKey] : undefined;
+      return typeof value === "string" || typeof value === "number"
+        ? String(value)
+        : undefined;
+    };
+    const mine = answered.filter((item) => keyOf(item) === key);
+    if (mine.length === 1) return { state: "found", row: mine[0] };
+    // (One row that does not tell its key is the row asked; any other answer names no row.)
+    if (answered.length === 1 && keyOf(answered[0]!) === undefined)
+      return { state: "found", row: answered[0] };
+    return {
+      state: "unknown",
+      reason: `확인 조회가 그 행을 가리지 못함 (${answered.length}행 응답)`,
+    };
   } catch (error) {
     return { state: "unknown", reason: error instanceof Error ? error.message : String(error) };
   }

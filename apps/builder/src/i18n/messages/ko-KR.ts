@@ -449,7 +449,7 @@ const catalog: TranslationKeys = {
     saveNotEnabled: "「변경 저장」 은 그 collection 의 「변경을 모아서 저장」 이 켜져 있어야 합니다.",
     saveKeyFieldRequired: "수정 · 삭제를 보내려면 key 필드 (id · key · value 또는 표의 key) 가 있어야 합니다.",
     saveBatchIfMatch: "묶음은 버전을 본문에 싣습니다 — If-Match 하나로는 행마다의 버전을 나타낼 수 없습니다.",
-    saveEndpointMethod: "쓰기 endpoint 는 POST · PATCH · PUT · DELETE, key 로 읽는 endpoint 는 GET 이어야 합니다.",
+    saveEndpointMethod: "연결마다 method 가 정해져 있습니다 — 고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST, key 로 읽는 endpoint 는 GET.",
     variableNameShadows:
       "그 이름을 이미 읽는 자리가 있어 다른 변수의 값을 가로채게 됩니다 — 다른 이름을 쓰세요",
     itemKeyTaken:
@@ -2226,6 +2226,8 @@ const catalog: TranslationKeys = {
     "batchSave.barKeepMine": "내 값으로 다시 저장",
     "batchSave.barTakeServer": "서버 값 받기",
     "batchSave.barLink": "이 행에 적용",
+    "batchSave.barResend": "다시 저장",
+    "batchSave.barDropPending": "대기 취소",
     tabs: "DataTable 탭",
     tableTabs: "테이블 탭",
     apiTabs: "API 탭",

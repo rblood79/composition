@@ -61,7 +61,7 @@ interface DiscardChangesAction {
 
 - 행별 요청의 주소는 endpoint 의 경로 템플릿이 행의 key 를 읽는다 (`/orders/{{ key }}`) — 서버 식별자가 있는 행만이다 (아래 「서버 식별자가 없는 행」). 묶음 본문 · 행별 본문은 저장 동작이 만든다 — `bodyTemplate` 은 쓰지 않는다.
 - 저장 · 취소 Do 는 RAC · S2 에 없는 이름이라 composition 확장으로 등록표에 출처를 적는다 (지금의 `Cells change` 와 같다). 미저장 건수 · 저장 상태 (대기 · 보내는 중 · 결과 확인 필요) 는 변수처럼 읽는 값이다 — 저장 막대의 글자와 비활성이 그 값을 읽는다.
-- 검증 — 아래는 오류다 (명령 · 로드 · Publish 가 거절한다): 가리킨 endpoint · 필드가 없다 · 고침 · 지우기를 보내는 연결 (행별 `update` · `remove`, 묶음) 을 둔 Collection 에 key 필드가 없다 (`keyField` 선언도 schema 의 `id` · `key` · `value` 도 없다) · 묶음에 `ifMatch` 버전 (`If-Match` 하나는 행마다의 조건을 나타내지 못한다) · 즉시 저장 규칙이 같이 있다 (다음 항목). 경고: 넣기 규칙이 있는데 넣기 연결이 없다.
+- 검증 — 아래는 오류다 (명령 · 로드 · Publish 가 거절한다): 가리킨 endpoint · 필드가 없다 · 고침 · 지우기를 보내는 연결 (행별 `update` · `remove`, 묶음) 을 둔 Collection 에 key 필드가 없다 (`keyField` 선언도 schema 의 `id` · `key` · `value` 도 없다) · 묶음에 `ifMatch` 버전 (`If-Match` 하나는 행마다의 조건을 나타내지 못한다) · 연결의 method 가 그 작업의 것이 아니다 (고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST — 아래 「요청 모양」. 패널 선택지 · 문서 검증 · 전송이 표 하나 `CATALOG_SAVE_METHODS` 를 읽는다, round 3 h9) · 즉시 저장 규칙이 같이 있다 (다음 항목). 경고: 넣기 규칙이 있는데 넣기 연결이 없다.
 - **즉시 저장 규칙과 같이 켤 수 없다.** 두 위치를 알리는 것만으로는 첫 편집에서 그 규칙이 실행돼 HC1 (편집 중 원격 쓰기 0 회) 이 깨진다. 「모아서 저장」 Collection 에서 아래 두 형태의 규칙은 검증 오류다 — 지금 runtime 이 「저장 규칙이 보낸 편집」 을 정하는 기준 ([이벤트가 실은 편집 · 규칙의 Do 가 만든 편집](../../../packages/shared/src/interactions/bindings.ts#L119)) 과 같은 둘이다.
   1. 그 Collection 에 연결된 컴포넌트의 편집 이벤트 (`Cells change` · 칸 Form 의 submit) 에 걸려 있고, Do 목록 (이어진 Do 포함) 에 쓰기 `callEndpoint` (GET · HEAD 가 아닌 endpoint) 가 있는 규칙.
   2. Do 목록에 그 Collection 을 편집하는 Do 와 쓰기 `callEndpoint` 가 같이 있는 규칙 — Form 의 submit 이 서버에 넣고 목록에도 더하는 흐름이다. 더한 행이 미저장 변경이 되어 저장 때 한 번 더 나간다.
@@ -183,9 +183,11 @@ interface DiscardChangesAction {
 | 「없다」 가 보증됨 (단건 조회의 404 · 빈 응답, `complete` 인 목록에 없음)        | `rejected` + 충돌 (서버에서 지워짐)        | `confirmed` — 목적 상태에 이르렀다                   |
 | 행을 찾지 못했지만 보증이 없다 (목록의 범위 밖일 수 있음) · 읽을 길이 없다       | `unknown` — 「결과 확인 필요」             | `unknown` — 「결과 확인 필요」                       |
 
-넣기는 넣은 행에 key 값이 있으면 고침처럼 다시 읽는다 (행이 있으면 `confirmed`, 「없다」 가 보증되면 미반영). 서버가 key 를 만드는 넣기는 대조할 행을 찾을 수 없다 — `unknown` 으로 남기고, 중복 방지 키가 있는 연결만 같은 키로 다시 보낸다.
+넣기는 넣은 행에 key 값이 있으면 그 key 로 다시 읽는다 — 그 key 의 행이 보낸 값을 그대로 들고 있을 때만 `confirmed` 다. 찾지 못했거나 값이 다르면 `unknown` 으로 남긴다: 서버가 key 를 새로 매겼을 수 있어 (위 「넣은 행의 서버 key」 — `draft-42` → `u4`) 「없다」 는 미반영의 근거가 아니고, 미반영으로 닫으면 다음 저장이 같은 행을 한 번 더 만든다 (round 3 h11 — 처음 설계의 「없다가 보증되면 미반영」 을 고쳤다). 서버가 key 를 만드는 넣기는 대조할 행을 찾을 수 없다 — `unknown` 으로 남기고, 중복 방지 키가 있는 연결만 같은 키로 다시 보낸다.
 
-`unknown` 인 행은 판정될 때까지 다음 저장에서 빠진다 — 그 행의 뒤 편집은 판정 뒤에 나간다 (ADR-325 판정 표). 다른 행의 저장은 막지 않는다. 「결과 확인 필요」 에서 사용자는 「결과 확인」 (다시 읽기) · 「다시 저장」 · 「취소」 를 고른다.
+단건 확인 조회의 응답이 어느 행인지 알려 주지 못하면 (여러 행인데 그 key 의 행이 없다 · 한 행인데 key 가 다르다) 「없다」 가 아니라 근거 없음이다 — 여러 행 중 그 key 의 행이 하나 있으면 그 행이다 (round 3 h12).
+
+`unknown` 인 행은 판정될 때까지 다음 저장에서 빠진다 — 그 행의 뒤 편집은 판정 뒤에 나간다 (ADR-325 판정 표). 다른 행의 저장은 막지 않는다. 「결과 확인 필요」 에서 사용자는 「결과 확인」 (다시 읽기 — 「저장」 이 먼저 한다) · 「다시 저장」 (`saveChanges` 의 `scope: "pending"` — 기다리던 전송을 미반영으로 닫고 다시 보낸다) · 「취소」 (`discardChanges` 의 `scope: "pending"` — 기다림을 끝내고 그 변경을 버린다) 를 고른다. 저장 결과 문구는 기다리는 행 수를 그대로 센다 (「결과 확인 필요 N건」 — round 3 h13).
 
 버전 조건이 붙은 고침은 같은 요청이 다시 도착해도 두 번 반영되지 않는다 (첫 반영이 버전을 올려 조건이 거짓이 된다 — RFC 9110 §13.1.1). 대신 응답을 잃은 뒤의 재시도는 「충돌」 로 돌아온다. 그래서 다시 읽어 「내 값이면 완료」 로 판정한다. 수정 전 값 대조만으로는 값이 A → B → A 로 돌아온 경우를 가리지 못하므로 다시 읽기 전에는 보내지 않는다. [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.1) · [Azure API 지침 — 버전 ETag 와 재시도](https://raw.githubusercontent.com/microsoft/api-guidelines/vNext/azure/Guidelines.md)
 
@@ -194,6 +196,7 @@ interface DiscardChangesAction {
 **기준 버전** — 버전 연결에서 고침 · 지우기가 싣는 버전은 ADR-325 변경의 `baseRow` (처음 고칠 때의 행) 에서 읽는다. 행 저장소의 지금 행에서 읽지 않는다 — v17 에서 지우기를 예약한 뒤 주기 조회가 다른 사람의 수정본 v18 로 행을 바꿨을 때, 지금 행의 버전으로 보내면 서버가 받아들여 그 수정본을 지운다. `beginSend` 가 `baseRow` 를 티켓에 복사하므로 보내는 요청의 버전도 처음 고칠 때의 것이다.
 
 - 보내기 직전에 행 저장소의 지금 버전이 `baseRow` 의 버전과 다르면 보내지 않고 충돌로 보인다 — 서버가 거절할 요청이다.
+- `baseRow` 에 버전 값이 없으면 (조회 응답이 버전 필드를 주지 않았다) 고침 · 지우기를 보내지 않는다 — 조건 없는 요청이 되어 다른 사람의 변경을 덮는다 (round 3 h10). 행은 「기준 버전 없음」 으로 남고, 버전이 든 행을 다시 읽으면 충돌로 바뀌어 「내 값으로 다시 저장」 이 그 버전으로 보낸다.
 - 묶음은 항목마다 본문의 `version`, 행별은 본문 필드 또는 그 요청의 `If-Match` 다. `If-Match` 하나는 묶음 안 행마다의 조건을 나타낼 수 없다 — 묶음 + `ifMatch` 는 검증이 거절한다.
 - `If-Match` 의 값은 버전 값이 따옴표로 싸여 있지 않으면 `"…"` 로 싼다 (entity-tag 문법 — RFC 9110 §8.8.3).
 - 기준이 바뀌는 길은 둘뿐이다 — 저장 확정 (`settleSend`), 그리고 아래 「내 값으로 다시 저장」 (`rebaseChange`).
@@ -215,7 +218,7 @@ interface DiscardChangesAction {
 
 ## 저장 막대와 상태
 
-- 저장 막대 = frame 안의 Text (미저장 N 건) · Button (저장) · Button (취소). 기존 원본을 놓고 Do 와 값 읽기를 연결한 것이다 — 새 컴포넌트가 아니다. 미저장 0 이면 숨는다 (기존 `showWhen`).
+- 저장 막대 = frame 안의 Text (미저장 N 건) · Button (저장) · Button (취소) — 그리고 행 선택용 「내 값으로 다시 저장」 · 「서버 값 받기」 · 「이 행에 적용」 · 「다시 저장」 · 「대기 취소」 (기다리는 행이 있을 때만 활성 — `hasPending`). 기존 원본을 놓고 Do 와 값 읽기를 연결한 것이다 — 새 컴포넌트가 아니다. 미저장 0 이면 숨는다 (기존 `showWhen`).
 - 저장 요청이 나가 있는 동안 저장 Button 은 비활성이다. 「처리 중」 · 「결과 확인 필요」 인 행이 있어도 다른 행의 변경은 저장할 수 있고, 그 행들은 다음 저장에서 빠진다. 취소는 「보내지 않은 변경만」 버린다.
 - 결과 알림은 Toast 다 (성공 · 실패 수 · 충돌 수). 실패 · 충돌 행은 Table 의 편집 표시 (ADR-317 `showEditMarks`) 에 상태를 더해 보인다 — 색만으로 알리지 않는다.
 - 닫기 경고는 실행 runtime 이 `beforeunload` 에 거는 것 하나다 (미저장 변경이 있는 Collection 이 하나라도 있을 때). Builder 의 Preview iframe 에는 걸지 않는다.
@@ -373,3 +376,18 @@ interface DiscardChangesAction {
 - 회귀: shared 2,868 통과 (Code 보기 coverage 스냅샷 3 항목 갱신) · builder `catalogRuntime` · `panels/interactions` · `panels/datatable` · `preview` 6,065 통과 (실행 어휘 목록 기대값에 두 opcode 를 더함). 즉시 저장 (`Cells change`) 회귀는 `adr317-p4-edit-marks-live.mjs` Chrome · WebKit.
 - 번들 (plain `vite build`, HEAD worktree 와 대조): Builder 첫 화면 JS gz 1,638,964 → 1,643,090 (+4,126 — 문서 검증 · 실행 어휘 · dispatcher, 상한 1,650,000 안), Preview 첫 화면 JS 172,282 → 172,276 (−6 — 변화 없음) · CSS +95 B (Table 저장 상태 표시 규칙). 세션 · 저장 모듈은 첫 화면 밖 (`documentHead` · `planSave` chunk). HC6 의 「증가 0」 은 JS 기준으로 지켰고 CSS 는 D3 표시 규칙만큼 늘었다.
 - 후속 (2026-11-27): 같은 칠의 규칙을 `:is()` 로 묶었다 (new + unlinked · conflict + failed · 두 거절 바탕) — 생성 규칙 7 → 4, Chrome · WebKit 계산 스타일 6 상태 전후 동일. Preview CSS +95 → +92 B (gzip 이 반복 선택자를 이미 압축하고 있었다). 남은 92 B 는 새 표시 자체라 HC6 을 실측값으로 고쳤다 (사용자 승인 「추천대로」).
+
+### Round 3 판독 수리 (codex 구현 판독 — HIGH 5 · MEDIUM 2) — 2026-11-27
+
+판독 기록 [reviews/324.md](../reviews/324.md) round 3. 건마다 반례 테스트를 먼저 실패로 재현하고 고쳤다 (대역 서버의 행 · 요청 기록이 oracle).
+
+- **h9 고침 연결에 DELETE**: 작업별 method 표 `CATALOG_SAVE_METHODS` (`document/collectionSave.ts` — 고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST) 를 패널 선택지 · 문서 검증 (`SAVE_ENDPOINT_METHOD`) · 전송 (`saveMethod` — 맞지 않으면 요청 0 · 행 「보낼 연결 없음」) 이 같이 읽는다. 전에는 검증이 「GET 이 아님」 만 봤다.
+- **h10 버전 값 없는 행**: `planSave` 가 기준 행에 버전 값이 없는 고침 · 지우기를 보내지 않는다 (`noVersion` — 행별 · 묶음 모두). 버전이 든 행을 다시 읽으면 기준 버전 대조가 충돌로 바꾸고 「내 값으로 다시 저장」 이 그 버전으로 보낸다.
+- **h11 넣기 유실 뒤 중복**: `judgeRecheck` 의 넣기는 보낸 key 의 행이 보낸 값일 때만 확정, 그 밖은 `unknown`. 설계의 「없다가 보증되면 미반영」 문장을 고쳤다 (위 「응답을 잃었을 때」).
+- **h12 확인 조회의 여러 행**: `readSavedRow` 가 key 필드로 그 행을 가린다 — 그 key 의 행이 하나면 그 행, 가리지 못하면 근거 없음 (보내지 않고 「확인 조회 실패」). 빈 응답 · 404 만 「없다」.
+- **h13 끝낼 수 없는 대기**: Do 의 `scope: "pending"` (문서 타입 · 검증 · dispatcher · Code 보기) — `saveChanges` = 「다시 저장」 (기다리던 전송을 미반영으로 닫고 다시 보냄), `discardChanges` = 「대기 취소」 (닫고 그 변경을 버림). 저장 막대에 두 버튼 (`hasPending`), 저장 결과는 열린 전송의 행 수를 센다 (「결과 확인 필요 N건」 — 전에는 「저장할 변경이 없습니다」). contract 는 올리지 않았다 — library 의 실행 어휘는 그대로이고 80 문서는 그대로 열린다.
+- **m14 끌 수 없는 스위치**: 끄기 명령이 만든 그대로인 저장 막대 (그 collection 의 저장 · 취소 규칙 주인과 건수 Text 만 든 frame) 와 다른 곳의 「변경 저장」 규칙을 같이 지운다 (`catalogSaveDependents` — 한 undo). 작성자가 고친 막대 (다른 노드가 든 frame) 는 규칙만 지우고 노드는 둔다.
+- **m15 서버 key `row-1`**: ADR-325 `isServerKey` 가 key 의 출처로 판정한다 (저장소가 만든 자리 key 목록).
+- **이 ADR 의 커밋이 남긴 정적 게이트 실패 3 (전체 스위트에서 확인 — HEAD 도 실패)**: `placeholderMessages` (`barUnsaved` 는 명령이 `{count}` 를 바꿔 쓰는 문구 — 허용 목록에), `sharedActionVocabulary` (영어 `Send` · `Create` · `Discard` 가 다른 한국어와 겹침 → `Send as` · `Add` · `Cancel`), `domainPredicateRatchet` (`planSave` 의 `=== "body"` 3 곳 → `versionAsHeader`).
+- **검사**: 단위 `adr324Save.test.ts` 29 (round 3 반례 9 — h9 · h10 · h11 2 · h12 2 · h13 2 · m15) · `adr324G1.test.ts` 6 (m14 · h9 검증 2 더함). 원복 RED — 반례 테스트는 수정 전 실패를 먼저 확인했고 (7), 수정 뒤에 쓴 2 (문서 검증 · 끄기 명령) 는 변이 스크립트로 (trap 복원 · 바이트 비교). 회귀: shared 2,891 · builder 전체 9,987 (위 3 건 수정 뒤 관련 묶음 1,657 재실행) · publish 19 통과, `pnpm type-check` 0.
+- **live** (`adr324-g5-live.mjs` + 대역 서버 HTTP, headed): Chrome 15/15 · WebKit 15/15 — 기존 13 단계 (저장 막대 8 로 갱신) 에 「고침」 연결 선택지 = PATCH · PUT 만 (9a) · 같은 스위치로 끄기 → 설정 · 막대 · 「변경 저장」 규칙 없음 (9b) 을 더했다. h10 ~ h13 · m15 는 브라우저에서 따로 돌리지 않았다 — 저장 실행기 단위 (대역 서버 `fetch`) 가 근거다.

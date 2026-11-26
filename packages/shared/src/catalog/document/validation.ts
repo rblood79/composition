@@ -2428,7 +2428,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           if (
             action.scope !== undefined &&
             action.scope !== "conflicts" &&
-            action.scope !== "link"
+            action.scope !== "link" &&
+            action.scope !== "pending"
           )
             invalid("INVALID_SAVE_SCOPE", `${at}.scope`);
         } else if (action.opcode === "discardChanges") {
@@ -2436,7 +2437,11 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           exact(action, ["opcode", "collectionId", "keys", "scope"], `${at}`);
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
-          if (action.scope !== undefined && action.scope !== "conflicts")
+          if (
+            action.scope !== undefined &&
+            action.scope !== "conflicts" &&
+            action.scope !== "pending"
+          )
             invalid("INVALID_SAVE_SCOPE", `${at}.scope`);
         } else if (action.opcode === "setFilterText") {
           exact(action, ["opcode", "collectionId", "value"], `${at}`);

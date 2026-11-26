@@ -67,7 +67,12 @@ const ROWS_SAVE: CollectionSaveSettings = {
 function harness(
   save: CollectionSaveSettings,
   stubOptions: SaveEndpointStubOptions = {},
-  options: { schema?: CatalogDataField[]; whole?: boolean } = {},
+  options: {
+    schema?: CatalogDataField[];
+    whole?: boolean;
+    /** Fields the collection's list answer leaves out (a list that does not give the version). */
+    listOmits?: readonly string[];
+  } = {},
 ) {
   const stub = createSaveEndpointStub({
     versionField: "version",
@@ -79,6 +84,11 @@ function harness(
   const store = new CollectionStore();
   /** Runs as each request reaches the server (an edit while a save is on its way). */
   const beforeFetch: ((method: string) => void)[] = [];
+  /** An answer given in place of the server's (a recheck endpoint that answers a list). */
+  const intercept: ((
+    method: string,
+    path: string,
+  ) => Response | undefined)[] = [];
   let at = 0;
   const keyOf = (row: Row) =>
     typeof row.id === "string" || typeof row.id === "number"
@@ -91,7 +101,13 @@ function harness(
   const load = () =>
     store.accept(
       "GET /orders",
-      intake([...stub.rows.values()].map((row) => ({ ...row }))),
+      intake(
+        [...stub.rows.values()].map((row) => {
+          const copy: Record<string, unknown> = { ...row };
+          for (const field of options.listOmits ?? []) delete copy[field];
+          return copy;
+        }),
+      ),
       { at: (at += 1), keyOf, keyless: "answer" },
     );
   load();
@@ -115,7 +131,12 @@ function harness(
     wholeComplete: () => options.whole ?? true,
     refresh: () => {},
     fetch: ((input: RequestInfo | URL, init?: RequestInit) => {
-      for (const hook of beforeFetch) hook(String(init?.method ?? "GET"));
+      const method = String(init?.method ?? "GET");
+      for (const hook of beforeFetch) hook(method);
+      for (const answer of intercept) {
+        const given = answer(method, new URL(String(input)).pathname);
+        if (given) return Promise.resolve(given);
+      }
       return stub.fetch(input as string, init);
     }) as typeof fetch,
   };
@@ -132,6 +153,7 @@ function harness(
     load,
     writes,
     beforeFetch,
+    intercept,
     nextSeq: () => (seq += 1),
   };
 }
@@ -596,5 +618,214 @@ describe("ADR-324 G4 — 충돌", () => {
     stub.write("o1", { quantity: 77, note: "다른 칸" });
     await saver.save("orders");
     expect(stub.rows.get("o1")).toMatchObject({ quantity: 2, note: "다른 칸" });
+  });
+});
+
+/**
+ * Round 3 (codex 판독 2026-11-27) — each case is the review's counter-example: the server's rows
+ * and request log are the oracle (`docs/adr/reviews/324.md` round 3).
+ */
+describe("ADR-324 round 3 — 판독 반례", () => {
+  it("h9 — an update connection pointing at a DELETE endpoint sends nothing: the row stays on the server", async () => {
+    const { stub, saver, edit, writes, store } = harness({
+      send: {
+        shape: "rows",
+        update: { endpointId: id("delete"), body: "changed" },
+      },
+    });
+    edit("o1", { quantity: 8 });
+    const result = await saver.save("orders");
+    expect(writes()).toHaveLength(0);
+    expect(stub.rows.has("o1")).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(store.changes.has("o1")).toBe(true);
+    expect(saver.rowState("orders", "o1")?.status).toBe("noConnection");
+  });
+
+  it("h10 — a versioned connection whose rows came without the version sends nothing (another user's cell is not overwritten)", async () => {
+    const save: CollectionSaveSettings = {
+      send: { shape: "rows", update: { endpointId: id("put"), body: "full" } },
+      conflict: { by: "version", fieldId: "f-ver", send: "ifMatch" },
+    };
+    const h = harness(save, {}, { listOmits: ["version"] });
+    h.edit("o2", { quantity: 1 });
+    h.stub.write("o2", { note: "B" });
+    const result = await h.saver.save("orders");
+    expect(h.writes()).toHaveLength(0);
+    expect(h.stub.rows.get("o2")).toMatchObject({ note: "B", quantity: 10 });
+    expect(result.ok).toBe(false);
+    expect(h.store.changes.has("o2")).toBe(true);
+    expect(h.saver.rowState("orders", "o2")?.status).toBe("noVersion");
+    // (A read that brings the version: the row is another user's now — a conflict the viewer
+    //  chooses for, and 「내 값으로 다시 저장」 sends over that row with its version.)
+    h.store.writeServerRow("o2", { ...h.stub.rows.get("o2")! }, 900);
+    await h.saver.save("orders");
+    expect(h.writes()).toHaveLength(0);
+    expect(h.saver.rowState("orders", "o2")?.status).toBe("conflict");
+    const mine = await h.saver.save("orders", { scope: "conflicts" });
+    expect(mine.ok).toBe(true);
+    expect(h.writes().map((entry) => entry.headers["if-match"])).toEqual([
+      '"v2"',
+    ]);
+    expect(h.stub.rows.get("o2")).toMatchObject({ note: "B", quantity: 1 });
+
+    // (A batch: `version: undefined` would drop out of the JSON — the item is not sent either.)
+    const batch = harness(
+      {
+        send: { shape: "batch", endpointId: id("batch"), atomic: true },
+        conflict: { by: "version", fieldId: "f-ver", send: "body" },
+      },
+      { atomic: true },
+      { listOmits: ["version"] },
+    );
+    batch.edit("o2", { quantity: 1 });
+    batch.store.remove("o3", 9, batch.store.knownRow("o3")!);
+    await batch.saver.save("orders");
+    expect(batch.writes()).toHaveLength(0);
+    expect(batch.stub.rows.has("o3")).toBe(true);
+  });
+
+  it("h11 — a lost create the server keyed otherwise (draft-42 → u4) is not sent again: it waits, one row on the server", async () => {
+    const { stub, saver, store, writes } = harness(ROWS_SAVE);
+    stub.inject({ method: "POST", kind: "lose" });
+    store.insert("draft-42", { id: "draft-42", name: "D", quantity: 1 }, 1, {
+      kind: "append",
+      key: "draft-42",
+    });
+    const first = await saver.save("orders");
+    expect(first.ok).toBe(false);
+    expect(saver.rowState("orders", "draft-42")?.status).toBe("pending");
+    expect(store.sends.size).toBe(1);
+    const second = await saver.save("orders");
+    expect(second.ok).toBe(false);
+    expect(second.message).toContain("결과 확인 필요 1건");
+    expect(writes().filter((entry) => entry.method === "POST")).toHaveLength(1);
+    expect(
+      [...stub.rows.values()].filter((row) => row.name === "D"),
+    ).toHaveLength(1);
+  });
+
+  it("h11 — a lost create whose sent key is on the server with the sent values is saved", async () => {
+    const { stub, saver, store, writes } = harness(ROWS_SAVE, {
+      createKey: "client",
+    });
+    stub.inject({ method: "POST", kind: "lose" });
+    store.insert("k9", { id: "k9", name: "D", quantity: 1 }, 1, {
+      kind: "append",
+      key: "k9",
+    });
+    const result = await saver.save("orders");
+    expect(result.ok).toBe(true);
+    expect(store.changes.size).toBe(0);
+    expect(store.sends.size).toBe(0);
+    expect(writes().filter((entry) => entry.method === "POST")).toHaveLength(1);
+  });
+
+  it("h12 — a recheck read that answers several rows is no evidence: the remove is neither sent nor reported saved", async () => {
+    const recheck: CollectionSaveSettings = {
+      ...ROWS_SAVE,
+      conflict: { by: "recheck", endpointId: id("one") },
+    };
+    const { stub, saver, store, writes, intercept } = harness(recheck);
+    // (The 「one row」 endpoint ignores the key and answers a list of rows not the one asked.)
+    intercept.push((method, path) =>
+      method === "GET" && path === "/orders/o1"
+        ? new Response(
+            JSON.stringify([stub.rows.get("o2"), stub.rows.get("o3")]),
+            { headers: { "Content-Type": "application/json" } },
+          )
+        : undefined,
+    );
+    store.remove("o1", 1, store.knownRow("o1")!);
+    const result = await saver.save("orders");
+    expect(writes()).toHaveLength(0);
+    expect(stub.rows.has("o1")).toBe(true);
+    expect(store.changes.get("o1")?.kind).toBe("remove");
+    expect(result.ok).toBe(false);
+    expect(result.message).not.toContain("저장 1건");
+  });
+
+  it("h12 — a list answer holding the row asked among others is that row: the remove goes once", async () => {
+    const recheck: CollectionSaveSettings = {
+      ...ROWS_SAVE,
+      conflict: { by: "recheck", endpointId: id("one") },
+    };
+    const { stub, saver, store, writes, intercept } = harness(recheck);
+    intercept.push((method, path) =>
+      method === "GET" && path === "/orders/o1"
+        ? new Response(
+            JSON.stringify([stub.rows.get("o1"), stub.rows.get("o2")]),
+            { headers: { "Content-Type": "application/json" } },
+          )
+        : undefined,
+    );
+    store.remove("o1", 1, store.knownRow("o1")!);
+    const result = await saver.save("orders");
+    expect(writes().map((entry) => `${entry.method} ${entry.path}`)).toEqual([
+      "DELETE /orders/o1",
+    ]);
+    expect(stub.rows.has("o1")).toBe(false);
+    expect(result.ok).toBe(true);
+  });
+
+  it("h13 — a keyless create answered 202: a save again says it waits; 「취소」 closes it; nothing stays open", async () => {
+    const { saver, store, writes } = harness(ROWS_SAVE, {
+      createAnswer: "accepted",
+    });
+    store.insert("n1", { name: "C", quantity: 1 }, 1, {
+      kind: "append",
+      key: "n1",
+    });
+    await saver.save("orders");
+    expect(saver.rowState("orders", "n1")?.status).toBe("processing");
+    const again = await saver.save("orders");
+    expect(again.ok).toBe(false);
+    expect(again.message).toContain("결과 확인 필요 1건");
+    expect(writes()).toHaveLength(1);
+    expect(saver.changes("orders")).toMatchObject({
+      count: 1,
+      pending: 1,
+      hasPending: true,
+    });
+    saver.discard("orders", undefined, "pending");
+    expect(store.sends.size).toBe(0);
+    expect(store.changes.size).toBe(0);
+    expect(saver.changes("orders")).toMatchObject({
+      count: 0,
+      pending: 0,
+      hasPending: false,
+    });
+  });
+
+  it("h13 — 「다시 저장」 closes a waiting create and sends it again (the viewer's choice — once more, no more)", async () => {
+    const { stub, saver, store, writes } = harness(ROWS_SAVE);
+    stub.inject({ method: "POST", kind: "drop" });
+    store.insert("n1", { name: "C", quantity: 1 }, 1, {
+      kind: "append",
+      key: "n1",
+    });
+    await saver.save("orders");
+    expect(store.sends.size).toBe(1);
+    const result = await saver.save("orders", { scope: "pending" });
+    expect(result.ok).toBe(true);
+    expect(writes().filter((entry) => entry.method === "POST")).toHaveLength(2);
+    expect(store.sends.size).toBe(0);
+    expect(store.changes.size).toBe(0);
+    expect(
+      [...stub.rows.values()].filter((row) => row.name === "C"),
+    ).toHaveLength(1);
+  });
+
+  it("m15 — a server row whose key reads `row-1` is saved to its address", async () => {
+    const { stub, saver, edit, writes } = harness(ROWS_SAVE, {
+      rows: [{ id: "row-1", name: "이전", quantity: 1, note: "", version: "v1" }],
+    });
+    edit("row-1", { name: "새 이름" });
+    const result = await saver.save("orders");
+    expect(result.ok).toBe(true);
+    expect(writes().map((entry) => `${entry.method} ${entry.path}`)).toEqual([
+      "PATCH /orders/row-1",
+    ]);
+    expect(stub.rows.get("row-1")!.name).toBe("새 이름");
   });
 });

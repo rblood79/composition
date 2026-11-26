@@ -18,7 +18,11 @@ import {
   useOptionalCatalogWorkspace,
 } from "../../../catalogRuntime/react.runtime";
 import { catalogCollectionSaveCommand } from "../../../catalogRuntime/collectionSaveCommand";
-import { catalogImmediateSaveRules } from "../../../../../../../packages/shared/src/catalog/document/collectionSave";
+import {
+  catalogImmediateSaveRules,
+  catalogSaveMethodAllowed,
+  type CatalogSaveConnectionKind,
+} from "../../../../../../../packages/shared/src/catalog/document/collectionSave";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import type {
   CollectionSaveSettings,
@@ -137,10 +141,12 @@ function SaveSection({
                   saveBars: {
                     unsaved: t("barUnsaved", "Unsaved changes: {count}"),
                     save: t("barSave", "Save"),
-                    discard: t("barDiscard", "Discard"),
+                    discard: t("barDiscard", "Cancel"),
                     keepMine: t("barKeepMine", "Keep mine"),
                     takeServer: t("barTakeServer", "Take server's"),
                     link: t("barLink", "Link row"),
+                    resend: t("barResend", "Send again"),
+                    dropPending: t("barDropPending", "Stop waiting"),
                   },
                 }
               : {}),
@@ -153,23 +159,22 @@ function SaveSection({
     [workspace, collectionId, rules],
   );
 
-  const writeEndpoints = useMemo(
-    () => endpoints.filter((endpoint) => endpoint.method !== "GET"),
-    [endpoints],
-  );
+  // (Each connection takes the endpoints of its own methods only — an update never a DELETE.)
+  const endpointsFor = (kind: CatalogSaveConnectionKind) =>
+    endpoints.filter((endpoint) =>
+      catalogSaveMethodAllowed(kind, endpoint.method),
+    );
   const readEndpoints = useMemo(
     () => endpoints.filter((endpoint) => endpoint.method === "GET"),
     [endpoints],
   );
   const first = useMemo(() => defaultSaveSettings(endpoints), [endpoints]);
   const none = { value: "", label: t("none", "None") };
-  const writeOptions = [
-    none,
-    ...writeEndpoints.map((endpoint) => ({
+  const optionsFor = (kind: CatalogSaveConnectionKind) =>
+    endpointsFor(kind).map((endpoint) => ({
       value: endpoint.id,
       label: `${endpoint.name} (${endpoint.method})`,
-    })),
-  ];
+    }));
   const fields = (table.schema ?? []).filter(
     (field) => field.id && !field.formula,
   );
@@ -336,7 +341,7 @@ function SaveSection({
       </div>
       <div className="fieldset-row" data-wide>
         <PropertySelect
-          label={t("shape", "Send")}
+          label={t("shape", "Send as")}
           value={send.shape}
           optionValueMode="literal"
           options={[
@@ -346,9 +351,7 @@ function SaveSection({
           onChange={(shape) => {
             if (shape === send.shape) return;
             if (shape === "batch") {
-              const target =
-                writeEndpoints.find((endpoint) => endpoint.method === "POST") ??
-                writeEndpoints[0];
+              const target = endpointsFor("batch")[0];
               if (target)
                 setSend({
                   shape: "batch",
@@ -373,7 +376,7 @@ function SaveSection({
               label={t("update", "Update")}
               value={send.update ? rawId(send.update.endpointId) : ""}
               optionValueMode="literal"
-              options={writeOptions}
+              options={[none, ...optionsFor("update")]}
               onChange={(value) => rowConnection("update", value)}
             />
             {send.update && (
@@ -402,17 +405,17 @@ function SaveSection({
           </div>
           <div className="fieldset-row">
             <PropertySelect
-              label={t("create", "Create")}
+              label={t("create", "Add")}
               value={send.create ? rawId(send.create.endpointId) : ""}
               optionValueMode="literal"
-              options={writeOptions}
+              options={[none, ...optionsFor("create")]}
               onChange={(value) => rowConnection("create", value)}
             />
             <PropertySelect
               label={t("remove", "Delete")}
               value={send.remove ? rawId(send.remove.endpointId) : ""}
               optionValueMode="literal"
-              options={writeOptions}
+              options={[none, ...optionsFor("remove")]}
               onChange={(value) => rowConnection("remove", value)}
             />
           </div>
@@ -424,7 +427,7 @@ function SaveSection({
               label={t("batchEndpoint", "Batch endpoint")}
               value={rawId(send.endpointId)}
               optionValueMode="literal"
-              options={writeOptions.slice(1)}
+              options={optionsFor("batch")}
               onChange={(value) =>
                 value && setSend({ ...send, endpointId: endpointId(value) })
               }

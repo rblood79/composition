@@ -130,8 +130,8 @@ export interface ReloadAction {
 export interface SaveChangesAction {
   kind: "saveChanges";
   collectionId: string;
-  /** The rows' choice on the selected rows (`conflicts` · `link`); absent = a save. */
-  scope?: "conflicts" | "link";
+  /** The rows' choice on the selected rows (`conflicts` · `link` · `pending`); absent = a save. */
+  scope?: "conflicts" | "link" | "pending";
 }
 
 /** ADR-324 — a collection's unsaved changes dropped (`keys` absent = every one not being sent). */
@@ -139,8 +139,8 @@ export interface DiscardChangesAction {
   kind: "discardChanges";
   collectionId: string;
   keys?: unknown;
-  /** `conflicts` — the conflicted rows take the server's values. */
-  scope?: "conflicts";
+  /** `conflicts` — the conflicted rows take the server's values; `pending` — the waiting rows go. */
+  scope?: "conflicts" | "pending";
 }
 
 /**

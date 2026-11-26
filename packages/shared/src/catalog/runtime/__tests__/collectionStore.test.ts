@@ -459,3 +459,158 @@ describe("ADR-325 store — 수명 (G4)", () => {
   });
 });
 
+
+describe("ADR-325 round 3 — 판독 반례", () => {
+  it("h9 — a result dropped and asked again is another revision (a list's shown rows are not the old ones)", () => {
+    const store = new CollectionStore();
+    store.accept("GET /users?q=a", [{ id: "u1", name: "Kim" }], remote(1));
+    store.startList("main a", "GET /users?q=a");
+    const first = store.listRevision("main a");
+    store.accept("GET /users?q=b", [{ id: "u2", name: "Park" }], remote(2));
+    store.dropList("main a");
+    store.startList("main b", "GET /users?q=b");
+    store.accept("GET /users?q=a", [{ id: "u1", name: "Edited" }], remote(3));
+    store.dropList("main b");
+    store.startList("main a", "GET /users?q=a");
+    expect(store.listRevision("main a")).not.toBe(first);
+    expect(store.listRows("main a")).toEqual([{ id: "u1", name: "Edited" }]);
+  });
+
+  it("h10 — an insert the server keyed (draft-42 → u4), renamed while it went: only the name is the later change", () => {
+    const { store, row } = seeded();
+    store.insert("draft-42", { id: "draft-42", name: "A" }, 1, {
+      kind: "append",
+      key: "draft-42",
+    });
+    const ticket = store.beginSend(new Set([1]))!;
+    store.update("draft-42", { name: "B" }, 2, row("draft-42"));
+    store.settle(
+      ticket,
+      [
+        {
+          key: "draft-42",
+          result: "confirmed",
+          row: { id: "u4", name: "A" },
+          serverKey: "u4",
+        },
+      ],
+      10,
+    );
+    expect(store.changes.has("draft-42")).toBe(false);
+    expect(store.changes.get("u4")).toEqual({
+      kind: "update",
+      baseRow: { id: "u4", name: "A" },
+      fields: { name: { base: "A", value: "B", seq: 2 } },
+    });
+  });
+
+  it("h10 — a field the server normalized (not edited after the send) is not a change either", () => {
+    const { store, row } = seeded();
+    store.insert("t", { id: "t", name: " A ", note: "x" }, 1, {
+      kind: "append",
+      key: "t",
+    });
+    const ticket = store.beginSend(new Set([1]))!;
+    store.update("t", { note: "y" }, 2, row("t"));
+    store.settle(
+      ticket,
+      [
+        {
+          key: "t",
+          result: "confirmed",
+          row: { id: "t", name: "A", note: "x" },
+          serverKey: "t",
+        },
+      ],
+      10,
+    );
+    expect(store.changes.get("t")).toEqual({
+      kind: "update",
+      baseRow: { id: "t", name: "A", note: "x" },
+      fields: { note: { base: "x", value: "y", seq: 2 } },
+    });
+  });
+
+  it("h11 — linking an unlinked row to a server row keeps that row's own unsaved fields (the later edit wins a field both wrote)", () => {
+    const { store, row } = seeded();
+    store.insert("t", { id: "t", name: "A", memo: "" }, 1, {
+      kind: "append",
+      key: "t",
+    });
+    const ticket = store.beginSend(new Set([1]))!;
+    store.update("t", { name: "B" }, 2, row("t"));
+    store.settle(
+      ticket,
+      [{ key: "t", result: "confirmed", serverKey: null }],
+      10,
+    );
+    store.accept(
+      "GET /x",
+      [{ id: "u4", name: "A", memo: "", tag: "" }],
+      remote(11),
+    );
+    // (The target row's own edits: a memo, and a name written before the unlinked row's last edit.)
+    store.update("u4", { memo: "메모" }, 3, store.knownRow("u4")!);
+    store.update("u4", { name: "C" }, 1, store.knownRow("u4")!);
+    store.link("t", "u4");
+    expect(store.changes.has("t")).toBe(false);
+    expect(store.changes.get("u4")).toEqual({
+      kind: "update",
+      baseRow: { id: "u4", name: "A", memo: "", tag: "" },
+      fields: {
+        memo: { base: "", value: "메모", seq: 3 },
+        name: { base: "A", value: "B", seq: 2 },
+      },
+    });
+  });
+
+  it("h11 — an unlinked row to be removed, linked to a row with edits: a remove of that row's first base", () => {
+    const { store, row } = seeded();
+    store.insert("t", { id: "t", name: "A" }, 1, { kind: "append", key: "t" });
+    const ticket = store.beginSend(new Set([1]))!;
+    store.remove("t", 2, row("t"));
+    store.settle(
+      ticket,
+      [{ key: "t", result: "confirmed", serverKey: null }],
+      10,
+    );
+    store.accept("GET /x", [{ id: "u4", name: "A" }], remote(11));
+    store.update("u4", { name: "Z" }, 3, store.knownRow("u4")!);
+    store.link("t", "u4");
+    expect(store.changes.get("u4")).toEqual({
+      kind: "remove",
+      baseRow: { id: "u4", name: "A" },
+      seq: 2,
+    });
+  });
+
+  it("m12 — a polled request that brings another row each time keeps only the rows something holds", () => {
+    const store = new CollectionStore();
+    store.startList("L", "GET /poll");
+    for (let i = 1; i <= 100; i += 1)
+      store.accept("GET /poll", [{ id: `p${i}` }], remote(i));
+    expect([...store.rows.keys()]).toEqual(["p100"]);
+    // (A row a change · another result holds stays.)
+    store.update("p100", { n: 1 }, 1, store.knownRow("p100")!);
+    store.accept("GET /other", [{ id: "p102" }], remote(101));
+    store.accept("GET /poll", [{ id: "p101" }, { id: "p102" }], remote(102));
+    store.accept("GET /poll", [{ id: "p103" }], remote(103));
+    expect([...store.rows.keys()].sort()).toEqual(["p100", "p102", "p103"]);
+  });
+
+  it("m15 — a key is a server identity by where it came from: the server's `row-1` is one, a keyless row's place is not", () => {
+    const store = new CollectionStore();
+    store.accept("GET /x", [{ id: "row-1", name: "real" }], remote(1));
+    expect(store.isServerKey("row-1")).toBe(true);
+    const authored = new CollectionStore();
+    authored.accept("authored", [{ name: "no key" }], {
+      at: 1,
+      keyOf: () => undefined,
+      keyless: "authored",
+    });
+    expect(authored.isServerKey("row-1")).toBe(false);
+    const answered = new CollectionStore();
+    answered.accept("GET /y", [{ name: "no key" }], remote(1));
+    expect(answered.isServerKey([...answered.rows.keys()][0]!)).toBe(false);
+  });
+});

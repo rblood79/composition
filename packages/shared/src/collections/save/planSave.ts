@@ -9,7 +9,9 @@
  *   fields sent — nothing the server did not get is added.
  * - The version a versioned connection carries is the base row's (the one the first edit saw).
  * - An update · a remove of a row with no server identity is not sent (`noKey`); a kind of change
- *   the connection has no endpoint for stays (`noConnection`).
+ *   the connection has no endpoint for stays (`noConnection`); on a versioned connection, one whose
+ *   base row holds no version is not sent (`noVersion` — it would go unconditioned and overwrite
+ *   another user's change).
  */
 import type {
   CollectionSaveSettings,
@@ -59,7 +61,7 @@ export interface BatchBody {
   deletes?: { id: unknown; version?: unknown }[];
 }
 
-export type SaveSkipReason = "noKey" | "noConnection";
+export type SaveSkipReason = "noKey" | "noConnection" | "noVersion";
 
 export interface SavePlan {
   requests: SaveRequest[];
@@ -108,14 +110,21 @@ export function planSave(input: SavePlanInput): SavePlan {
     save.conflict?.by === "version"
       ? fieldKey(save.conflict.fieldId)
       : undefined;
-  const versionSend =
-    save.conflict?.by === "version" ? save.conflict.send : undefined;
+  /** A versioned connection carries the version as `If-Match`, else in the body (a remove: the query). */
+  const versionAsHeader =
+    save.conflict?.by === "version" && save.conflict.send === "ifMatch";
   const skipped: SavePlan["skipped"] = [];
   const requests: SaveRequest[] = [];
   const outgoing = (record: Record<string, unknown>) =>
     only(input.outgoing(record), Object.keys(record));
   const versionOf = (row: Row) =>
     versionKey !== undefined ? row[versionKey] : undefined;
+  /** A versioned connection's update · remove whose base row came without its version. */
+  const lacksVersion = (row: Row) => {
+    if (versionKey === undefined) return false;
+    const version = row[versionKey];
+    return version === undefined || version === null || version === "";
+  };
 
   if (save.send.shape === "batch") {
     const body: BatchBody = {};
@@ -125,6 +134,10 @@ export function planSave(input: SavePlanInput): SavePlan {
     for (const entry of input.entries) {
       if (entry.kind !== "insert" && !input.isServerKey(entry.key)) {
         skipped.push({ key: entry.key, reason: "noKey" });
+        continue;
+      }
+      if (entry.kind !== "insert" && lacksVersion(entry.baseRow)) {
+        skipped.push({ key: entry.key, reason: "noVersion" });
         continue;
       }
       keys.push(entry.key);
@@ -184,7 +197,7 @@ export function planSave(input: SavePlanInput): SavePlan {
         save.idempotency && input.idempotencyKeyOf
           ? { ...save.idempotency, value: input.idempotencyKeyOf(entry.key) }
           : undefined;
-      if (idem?.in === "body") body[idem.name] = idem.value;
+      if (idem && idem.in !== "header") body[idem.name] = idem.value;
       requests.push({
         kind: "create",
         endpointId: send.create.endpointId,
@@ -204,18 +217,21 @@ export function planSave(input: SavePlanInput): SavePlan {
       skipped.push({ key: entry.key, reason: "noConnection" });
       continue;
     }
+    if (lacksVersion(entry.baseRow)) {
+      skipped.push({ key: entry.key, reason: "noVersion" });
+      continue;
+    }
     const version = versionOf(entry.baseRow);
-    const versioned =
-      versionKey !== undefined && version !== undefined && version !== null;
+    const versioned = versionKey !== undefined;
     if (entry.kind === "remove") {
       requests.push({
         kind: "remove",
         endpointId: connection.endpointId,
         key: entry.key,
-        ...(versioned && versionSend === "ifMatch"
+        ...(versioned && versionAsHeader
           ? { ifMatch: entityTag(version) }
           : {}),
-        ...(versioned && versionSend === "body"
+        ...(versioned && !versionAsHeader
           ? { versionQuery: { name: versionKey!, value: String(version) } }
           : {}),
         keys: [entry.key],
@@ -233,15 +249,13 @@ export function planSave(input: SavePlanInput): SavePlan {
       const whole = { ...ground, ...changed };
       body = { ...only(input.outgoing(whole), Object.keys(whole)) };
     } else body = outgoing(changed);
-    if (versioned && versionSend === "body") body[versionKey!] = version;
+    if (versioned && !versionAsHeader) body[versionKey!] = version;
     requests.push({
       kind: "update",
       endpointId: connection.endpointId,
       key: entry.key,
       body,
-      ...(versioned && versionSend === "ifMatch"
-        ? { ifMatch: entityTag(version) }
-        : {}),
+      ...(versioned && versionAsHeader ? { ifMatch: entityTag(version) } : {}),
       keys: [entry.key],
     });
   }

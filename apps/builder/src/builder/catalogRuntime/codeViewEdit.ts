@@ -3753,11 +3753,13 @@ class Planner {
         else if (
           (method === "saveChanges" || method === "discardChanges") &&
           parts.length === 1 &&
-          /^\{\s*scope\s*:\s*["'](conflicts|link)["']\s*\}$/.test(parts[0]!.trim())
+          /^\{\s*scope\s*:\s*["'](conflicts|link|pending)["']\s*\}$/.test(
+            parts[0]!.trim(),
+          )
         ) {
-          const scope = /["'](conflicts|link)["']/.exec(parts[0]!)![1]!;
+          const scope = /["'](conflicts|link|pending)["']/.exec(parts[0]!)![1]!;
           // (`discardChanges({ scope: "link" })` is no Do — left undefined: refused below.)
-          if (method === "saveChanges" || scope === "conflicts")
+          if (method === "saveChanges" || scope !== "link")
             action = { opcode: method, collectionId, scope } as never;
         } else if (method === "discardChanges" && parts.length === 1)
           action = one("keys", parts[0]!);

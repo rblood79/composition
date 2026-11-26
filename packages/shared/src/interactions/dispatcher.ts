@@ -205,7 +205,10 @@ export interface DispatchDeps {
   saveChanges?: (
     collectionId: string,
     /** A rows' choice (`scope`) on these rows (the selection — none = every such row). */
-    choice?: { scope: "conflicts" | "link"; keys?: readonly string[] },
+    choice?: {
+      scope: "conflicts" | "link" | "pending";
+      keys?: readonly string[];
+    },
   ) => {
     ok: boolean;
     reason?: string;
@@ -215,7 +218,7 @@ export interface DispatchDeps {
   discardChanges?: (
     collectionId: string,
     keys?: readonly string[],
-    scope?: "conflicts",
+    scope?: "conflicts" | "pending",
   ) => { ok: boolean; reason?: string };
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (

@@ -560,13 +560,16 @@ export interface CatalogPreviewInteractionsOptions {
    */
   saveChanges?: (
     collectionId: string,
-    choice?: { scope: "conflicts" | "link"; keys?: readonly string[] },
+    choice?: {
+      scope: "conflicts" | "link" | "pending";
+      keys?: readonly string[];
+    },
   ) => Promise<{ ok: boolean; message: string; reason?: string }>;
   /** ADR-324 — drop a collection's unsaved changes (`CatalogPreviewSession.discardChanges`). */
   discardChanges?: (
     collectionId: string,
     keys?: readonly string[],
-    scope?: "conflicts",
+    scope?: "conflicts" | "pending",
   ) => void;
   /** A windowed Table's rows drawn without records (`CatalogPreviewSession.showRows`). */
   showRows?: (

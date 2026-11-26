@@ -42,6 +42,8 @@ const LABELS = {
   keepMine: "내 값",
   takeServer: "서버 값",
   link: "연결",
+  resend: "다시 저장",
+  dropPending: "대기 취소",
 };
 
 const endpoint = (
@@ -219,7 +221,7 @@ const refusal = (run: () => unknown): string | undefined => {
 };
 
 describe("ADR-324 G1 — 「모아서 저장」 문서 계약", () => {
-  it("turning on: the setting, a save bar after the Table with its five rules, the Table's edit marks — one undo", async () => {
+  it("turning on: the setting, a save bar after the Table with its seven rules, the Table's edit marks — one undo", async () => {
     const { workspace, collection, rules, turnOn, bodyChildren, graphOf } =
       await open();
     turnOn(ROWS, { bars: true });
@@ -233,7 +235,7 @@ describe("ADR-324 G1 — 「모아서 저장」 문서 계약", () => {
     const bar = graphOf().getEntry(
       children[children.indexOf(TABLE) + 1]!,
     ) as NodeEntry;
-    expect(bar.children).toHaveLength(6);
+    expect(bar.children).toHaveLength(8);
     const order = (action: object) => JSON.stringify(Object.entries(action).sort());
     expect(rules().map((rule) => order(rule.actions[0]!)).sort()).toEqual(
       [
@@ -242,6 +244,8 @@ describe("ADR-324 G1 — 「모아서 저장」 문서 계약", () => {
         { opcode: "saveChanges", collectionId: COLLECTION, scope: "conflicts" },
         { opcode: "discardChanges", collectionId: COLLECTION, scope: "conflicts" },
         { opcode: "saveChanges", collectionId: COLLECTION, scope: "link" },
+        { opcode: "saveChanges", collectionId: COLLECTION, scope: "pending" },
+        { opcode: "discardChanges", collectionId: COLLECTION, scope: "pending" },
       ]
         .map(order)
         .sort(),
@@ -259,7 +263,57 @@ describe("ADR-324 G1 — 「모아서 저장」 문서 계약", () => {
     expect(rules()).toHaveLength(0);
     workspace.redo();
     expect(collection().save).toEqual(ROWS);
-    expect(rules()).toHaveLength(5);
+    expect(rules()).toHaveLength(7);
+  });
+
+  it("round 3 m14 — the switch that made the save bar turns it off: the bar and its rules go, a save Do elsewhere loses its rule only — one undo", async () => {
+    const { workspace, collection, rules, turnOn, rule, bodyChildren } =
+      await open();
+    turnOn(ROWS, { bars: true });
+    // (The author's own save Button, outside the bar.)
+    rule(BUTTON, "onPress", [
+      { opcode: "saveChanges", collectionId: COLLECTION },
+    ]);
+    expect(rules()).toHaveLength(8);
+    expect(refusal(() => turnOn(undefined))).toBeUndefined();
+    expect(collection().save).toBeUndefined();
+    expect(bodyChildren()).toEqual([TABLE, BUTTON]);
+    expect(rules()).toHaveLength(0);
+    workspace.undo();
+    expect(collection().save).toEqual(ROWS);
+    expect(bodyChildren()).toHaveLength(3);
+    expect(rules()).toHaveLength(8);
+  });
+
+  it("round 3 h9 — each write connection takes its own methods: an update is never a DELETE", async () => {
+    const { turnOn } = await open();
+    const rows = (send: object) =>
+      refusal(() =>
+        turnOn({ send: { shape: "rows", ...send } } as CollectionSaveSettings),
+      );
+    expect(
+      rows({ update: { endpointId: "data:endpoint:delete", body: "changed" } }),
+    ).toBe("SAVE_ENDPOINT_METHOD");
+    expect(
+      rows({ update: { endpointId: "data:endpoint:post", body: "changed" } }),
+    ).toBe("SAVE_ENDPOINT_METHOD");
+    expect(rows({ create: { endpointId: "data:endpoint:patch" } })).toBe(
+      "SAVE_ENDPOINT_METHOD",
+    );
+    expect(rows({ remove: { endpointId: "data:endpoint:post" } })).toBe(
+      "SAVE_ENDPOINT_METHOD",
+    );
+    expect(
+      refusal(() =>
+        turnOn({
+          send: {
+            shape: "batch",
+            endpointId: "data:endpoint:delete",
+            atomic: true,
+          },
+        }),
+      ),
+    ).toBe("SAVE_ENDPOINT_METHOD");
   });
 
   it("a rule that saves the edits at once — on the Table's 「Cells change」 or editing and posting in one — refuses it; 「규칙을 지우고 켜기」 is one command", async () => {

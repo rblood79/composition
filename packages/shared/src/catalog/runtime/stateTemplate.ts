@@ -73,6 +73,8 @@ export interface CatalogChangesState {
   /** A rows' choice has rows to act on (the save bar's conflict · link buttons). */
   hasConflicts: boolean;
   hasUnlinked: boolean;
+  /** Rows wait for their result and no save is on its way (「다시 저장」 · 「대기 취소」). */
+  hasPending: boolean;
 }
 export const CATALOG_NO_CHANGES: CatalogChangesState = Object.freeze({
   count: 0,
@@ -85,6 +87,7 @@ export const CATALOG_NO_CHANGES: CatalogChangesState = Object.freeze({
   unlinked: 0,
   hasConflicts: false,
   hasUnlinked: false,
+  hasPending: false,
 });
 
 /** One variable a record sees, with the scope its value lives in. */

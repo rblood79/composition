@@ -335,9 +335,24 @@ try {
   const n0 = urls.length;
   await press("Load more");
   const more = await u2();
+  // (The page after the one the Table's own list holds — not a fixed `page=2`: a short first
+  //  screen's sentinel may have asked for page 2 before the button (then the button asks for 3),
+  //  and an interval load starts the list over (then 2 again). Round 3 판독: the fixed `page=2`
+  //  failed Chrome's first run though the product asked rightly. The female view's list pages
+  //  apart.)
+  const own = urls.filter((u) => !u.includes("gender="));
+  const pageOf = (u) => Number(/[?&]page=(\d+)/.exec(u)?.[1] ?? 1);
+  const ownBefore = urls.slice(0, n0).filter((u) => !u.includes("gender=")).length;
+  const followed = own.findIndex(
+    (u, index) =>
+      index >= ownBefore &&
+      index > 0 &&
+      pageOf(u) > 1 &&
+      pageOf(u) === pageOf(own[index - 1]) + 1,
+  );
   record(
-    "4a 다음 페이지 (page=2) 뒤 값 · 표시 남음",
-    urls.slice(n0).some((u) => u.includes("page=2")) &&
+    "4a 다음 페이지 (지금 페이지의 다음) 뒤 값 · 표시 남음",
+    followed >= 0 &&
       more.table === true &&
       more.mark === "dirty",
     { requests: urls.slice(n0), ...more },

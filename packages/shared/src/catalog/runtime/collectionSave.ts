@@ -27,7 +27,30 @@ import type {
 import { CATALOG_NO_CHANGES, type CatalogChangesState } from "./stateTemplate";
 
 export type RowSaveStatus =
-  "conflict" | "failed" | "pending" | "processing" | "noKey" | "noConnection";
+  | "conflict"
+  | "failed"
+  | "pending"
+  | "processing"
+  | "noKey"
+  | "noConnection"
+  | "noVersion";
+
+/** A rows' choice a save · a discard runs on (the selected rows — none = every such row). */
+export type SaveScope = "conflicts" | "link" | "pending";
+
+const SKIP_REASONS: Record<"noKey" | "noConnection" | "noVersion", string> = {
+  noKey: "key 없음",
+  noConnection: "보낼 연결 없음",
+  noVersion: "기준 버전 없음 — 조회한 행에 버전 값이 없어 보내지 않음",
+};
+
+interface SaveCounts {
+  saved: number;
+  failed: number;
+  conflicts: number;
+  pending: number;
+  skipped: number;
+}
 
 export interface RowSaveState {
   status: RowSaveStatus;
@@ -154,12 +177,11 @@ export class CollectionSaver {
     const sending = this.sendingKeys(store);
     let conflicts = 0;
     let failed = 0;
-    let pending = 0;
     for (const row of state?.rows.values() ?? [])
       if (row.status === "conflict") conflicts += 1;
       else if (row.status === "failed") failed += 1;
-      else if (row.status === "pending" || row.status === "processing")
-        pending += 1;
+    // (The rows waiting for their result are the open sends' — whatever their status reads.)
+    const pending = sending.size;
     let sendable = false;
     let droppable = false;
     let unlinked = 0;
@@ -185,6 +207,7 @@ export class CollectionSaver {
       unlinked,
       hasConflicts: !saving && conflicts > 0,
       hasUnlinked: !saving && unlinked > 0,
+      hasPending: !saving && sending.size > 0,
     };
   }
 
@@ -234,6 +257,7 @@ export class CollectionSaver {
         resolve: this.host.templateFor(collectionId),
         fetch: this.host.fetch,
         parse: modules.parseJsonLossless,
+        keyFieldKey: this.keyFieldKey(this.host.collection(collectionId)),
       });
       if (read.state !== "found")
         return { state: read.state === "absent" ? "absent" : "unknown" };
@@ -357,17 +381,53 @@ export class CollectionSaver {
     };
   }
 
-  /** The 「변경 취소」 Do: the changes not being sent (the given rows · the conflicted ones). */
+  /**
+   * The rows waiting for their result (the given · all) leave their sends as not applied — the
+   * viewer's choice (breakdown 「결과 확인 필요」: 다시 저장 · 취소): their changes stay, to be sent
+   * again or dropped. Returns the rows closed.
+   */
+  private closePending(
+    collectionId: string,
+    store: CollectionStore,
+    keys?: readonly RowKey[],
+  ): RowKey[] {
+    const state = this.states.get(collectionId);
+    const closed: RowKey[] = [];
+    for (const ticket of [...store.sends.values()]) {
+      const outcomes: SendOutcome[] = [];
+      for (const entry of ticket.entries) {
+        if (keys && !keys.includes(entry.key)) continue;
+        outcomes.push({ key: entry.key, result: "rejected" });
+        closed.push(entry.key);
+        state?.rows.delete(entry.key);
+      }
+      if (outcomes.length)
+        store.settle(ticket.id, outcomes, this.host.nextAt());
+    }
+    return closed;
+  }
+
+  /**
+   * The 「변경 취소」 Do: the changes not being sent (the given rows · the conflicted ones) — or,
+   * `pending`, the rows waiting for their result: the wait ends and their changes go.
+   */
   discard(
     collectionId: string,
     shownKeys: readonly string[] | undefined,
-    scope?: "conflicts",
+    scope?: "conflicts" | "pending",
   ): void {
     const store = this.host.store(collectionId);
     if (!store) return;
     const keys = shownKeys
       ? this.host.storeKeys(collectionId, shownKeys)
       : undefined;
+    if (scope === "pending") {
+      if (this.states.get(collectionId)?.saving) return;
+      const closed = this.closePending(collectionId, store, keys);
+      if (closed.length) store.discard(closed);
+      this.host.refresh(collectionId);
+      return;
+    }
     const sending = this.sendingKeys(store);
     const state = this.states.get(collectionId);
     const drop = [...store.changes.keys()].filter(
@@ -395,7 +455,7 @@ export class CollectionSaver {
   /** The 「변경 저장」 Do. */
   async save(
     collectionId: string,
-    choice?: { scope: "conflicts" | "link"; keys?: readonly string[] },
+    choice?: { scope: SaveScope; keys?: readonly string[] },
   ): Promise<SaveResult> {
     const save = this.host.saveSettings(collectionId);
     if (!save)
@@ -416,10 +476,21 @@ export class CollectionSaver {
       only = new Set(this.rebaseConflicts(collectionId, chosen));
       if (!only.size) return { ok: true, message: "충돌한 행이 없습니다" };
     }
+    // (「다시 저장」 — the waiting rows are closed as not applied and go again: the server may
+    //  have applied the first one — a second create is the viewer's choice (a versioned update ·
+    //  an idempotency key is refused · answered as the first by the server).)
+    if (choice?.scope === "pending") {
+      only = new Set(this.closePending(collectionId, store, chosen));
+      if (!only.size)
+        return { ok: true, message: "결과를 기다리는 행이 없습니다" };
+    }
     state.saving = true;
     this.host.refresh(collectionId);
     try {
-      return await this.run(collectionId, save, store, state, only);
+      const counts = await this.run(collectionId, save, store, state, only);
+      // (The rows still waiting for their result — this save's and the ones it could not check.)
+      counts.pending = this.sendingKeys(store).size;
+      return this.summary(counts);
     } finally {
       state.saving = false;
       this.prune(collectionId, store);
@@ -433,7 +504,7 @@ export class CollectionSaver {
     store: CollectionStore,
     state: CollectionSaveState,
     only: ReadonlySet<RowKey> | undefined,
-  ): Promise<SaveResult> {
+  ): Promise<SaveCounts> {
     const modules = await loadModules();
     const collection = this.host.collection(collectionId);
     const keyFieldKey = this.keyFieldKey(collection);
@@ -444,7 +515,7 @@ export class CollectionSaver {
       entry.row[keyFieldKey] !== "";
     const versionKey = this.versionKey(save, collection);
     const reloaded = { done: false };
-    const counts = {
+    const counts: SaveCounts = {
       saved: 0,
       failed: 0,
       conflicts: 0,
@@ -480,6 +551,12 @@ export class CollectionSaver {
       if (outcomes.length)
         store.settle(ticket.id, outcomes, this.host.nextAt());
       this.writeServerRows(store, serverRows);
+      // (A row a check settled: saved, or a conflict to choose for — a row found not applied
+      //  goes again below.)
+      for (const outcome of outcomes)
+        if (outcome.result === "confirmed") counts.saved += 1;
+        else if (state.rows.get(outcome.key)?.status === "conflict")
+          counts.conflicts += 1;
     }
 
     // (2 — what goes: every change not waiting, not unlinked, not a conflict the viewer has not
@@ -531,6 +608,7 @@ export class CollectionSaver {
               resolve: this.host.templateFor(collectionId),
               fetch: this.host.fetch,
               parse: modules.parseJsonLossless,
+              keyFieldKey,
             })
           : ({ state: "unknown", reason: "확인 조회 연결 없음" } as const);
         if (read.state === "unknown") {
@@ -585,9 +663,9 @@ export class CollectionSaver {
         rechecked.set(key, read.row as Row);
       }
     }
-    if (!keys.size) return this.summary(counts);
+    if (!keys.size) return counts;
     const ticketId = store.beginSend("all", keys);
-    if (!ticketId) return this.summary(counts);
+    if (!ticketId) return counts;
     const entries = store.sends.get(ticketId)!.entries;
     const byKey = new Map(entries.map((entry) => [entry.key, entry] as const));
     const schema = (collection?.schema ?? []) as CatalogDataField[];
@@ -620,7 +698,7 @@ export class CollectionSaver {
       outcomes.push({ key: skipped.key, result: "rejected" });
       state.rows.set(skipped.key, {
         status: skipped.reason,
-        reason: skipped.reason === "noKey" ? "key 없음" : "보낼 연결 없음",
+        reason: SKIP_REASONS[skipped.reason],
       });
       counts.skipped += 1;
     }
@@ -660,7 +738,10 @@ export class CollectionSaver {
       if (sent.notSent) {
         for (const key of request.keys) {
           outcomes.push({ key, result: "rejected" });
-          state.rows.set(key, { status: "failed", reason: sent.notSent });
+          state.rows.set(key, {
+            status: sent.wrongMethod ? "noConnection" : "failed",
+            reason: sent.notSent,
+          });
         }
         return;
       }
@@ -779,11 +860,16 @@ export class CollectionSaver {
         counts.conflicts += 1;
       else if (state.rows.get(outcome.key)?.status === "failed")
         counts.failed += 1;
+      else if (
+        state.rows.get(outcome.key)?.status === "noConnection" &&
+        !plan.skipped.some((skipped) => skipped.key === outcome.key)
+      )
+        counts.skipped += 1;
     // (A create the server keyed without telling, a version the answer did not give: the
     //  collection's load brings the server's rows — the changes stay over them.)
     if (afterward && !reloaded.done)
       await this.host.reload(collectionId).catch(() => undefined);
-    return this.summary(counts);
+    return counts;
   }
 
   private writeServerRows(
@@ -794,13 +880,7 @@ export class CollectionSaver {
       store.writeServerRow(key, row, this.host.nextAt());
   }
 
-  private summary(counts: {
-    saved: number;
-    failed: number;
-    conflicts: number;
-    pending: number;
-    skipped: number;
-  }): SaveResult {
+  private summary(counts: SaveCounts): SaveResult {
     const parts: string[] = [];
     if (counts.saved) parts.push(`저장 ${counts.saved}건`);
     if (counts.failed) parts.push(`실패 ${counts.failed}건`);
