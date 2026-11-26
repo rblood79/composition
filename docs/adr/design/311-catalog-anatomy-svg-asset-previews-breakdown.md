@@ -79,6 +79,14 @@ Nexvyn 의 치수 표기는 도면을 275px 이상으로, 거의 실제 크기�
 
 현재 `LIBRARY_CONTRACT_VERSION=67`. 이 ADR로 증가시키지 않는다. RAC workspace 요구 범위는 `^1.22.1`; G0 manifest에는 lockfile로 해소된 실제 버전과 참조 문서 revision/hash를 기록한다. 범위 문자열이나 외부 `main` URL만으로 재현 가능하다고 하지 않는다.
 
+### 2.3 coss Particles의 부품 접합
+
+데스크톱 헤더의 coss 도면은 부품이 어디에서 맞닿는지 보여준다. 접촉 시 안쪽 모서리를 펴고 마주 보는 두 변 가운데 한쪽을 흐리거나 숨겨 이음새를 한 줄로 남긴다. 각 장면의 크기와 위치는 소스에 직접 정의되어 있다. Composition에서는 catalog가 그리는 구분선·모서리·간격을 기준으로 같은 관계를 설명한다. [페이지 원본](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/apps/ui/app/particles/page.tsx#L81-L85), [장면과 경계선](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/apps/ui/components/particles-assembly-drawing.tsx#L126-L211), [접합 기하](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/apps/ui/components/particles-assembly-geometry.ts#L105-L138)
+
+원본은 React가 SVG 속성값과 시간을 만들고 브라우저 SMIL이 세 장면을 각 5.4초씩 재생한다. 최초 화면 진입 전과 reduced motion에서는 정적 도면을 표시한다. 재생 중 화면을 벗어나거나 탭이 숨겨지면 SVG 시계를 멈추고 다시 보일 때 이어 간다. [SMIL 타임라인](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/apps/ui/components/particles-assembly-drawing.tsx#L81-L124), [정적·동적 도면 연결](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/apps/ui/components/particles-motion.tsx), [재생 제어](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/apps/ui/components/blueprint-motion.tsx), [레이어 CSS](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/apps/ui/components/blueprint-motion.module.css), [MIT 라이선스](https://github.com/cosscom/ui/blob/11f4620946e5fb0e2c12a815388ccdf5b3120dd0/LICENSE)
+
+고정 커밋의 두 도면을 각각 React의 `renderToStaticMarkup`으로 출력해 루트부터 XML 요소를 집계했다. 정적 SVG는 72개, 동적 SVG는 510개이며 후자에는 `animate` 121개와 `animateTransform` 12개가 포함된다. 동적 도면 하나로 §6의 카드당 제안 상한 250개를 넘는다. 따라서 목록에서는 기존 SVG 한 벌의 경계와 가이드만 CSS로 전환한다. 이 수치는 마크업 규모이며 실제 패널의 프레임 비용은 G6에서 측정한다.
+
 ## 3. 처리 흐름과 책임
 
 ```text
@@ -189,6 +197,8 @@ G0 에서 기본 규칙만으로 통과하는 항목 수와 예외 프로필이 
 상태 쌍은 동일 part key로 대응한다. part가 추가/제거되면 fade로 처리하며 무관한 path끼리 보간하지 않는다. `pending` 등 동작 예시는 지원 상태가 있는 일부 항목만 synthetic state로 보여준다. 이를 실제 저장·선택·네트워크 동작으로 연결하지 않는다.
 
 **전환 수단은 CSS 뿐이다** (Nexvyn 과 같은 방식). 카드 Button 의 `:hover` · `:focus-visible` (RAC `data-hovered` · `data-focus-visible`) 이 SVG 안 역할 class 의 fill · stroke · opacity 를 바꾼다. 내장 항목에는 상태 기계 · 타이머 · 재생 큐가 없으므로 pointer leave · blur · unmount 의 cancel 은 CSS 가 처리한다. 본체 도형은 한 벌이고 anatomy 에서는 `fill: none` + 경계선, rendered 에서는 역할별 칠이다. 가이드 묶음과 글자 층은 opacity 로만 물러난다.
+
+**접합부의 표현**은 catalog에 대응하는 복합 부품에 적용한다. 가이드는 같은 경계 구간에 한 번만 그리며, rendered 상태에서는 완성 도형의 stroke와 radius가 그대로 보인다. 위치가 가깝다는 이유로 두 부품을 병합하지 않는다. 실제 틈이 있거나 한쪽 part가 생략된 상태에서는 접합 가이드를 그리지 않는다. reduced motion에서도 같은 두 상태를 즉시 확인할 수 있다.
 
 글자 층 (치수 숫자 · 사양 메모) 은 SVG 밖의 HTML 층에 % 좌표로 놓는다 — SVG 가 줄어도 글자 크기가 화면 기준으로 고정된다. 좌표와 문자열은 생성 때 anchors 에서 만든 메타데이터다.
 
@@ -339,25 +349,28 @@ component 목록은 generator가 **실행된** `getPaletteItems()`와 category �
 
 228px 패널의 길이는 정사각 미리보기 (1차) 21,420px 에서 15,660px 로 줄었고, 현재 아이콘 카드의 3.2배다 (세로형 항목이 있으면 더 길다). 확인한 것: 윤곽 그리기 (`pathLength` + `non-scaling-stroke`), Button 의 pending 전환, dark, S 단계의 숫자. 실제 Builder 패널에 넣은 확인은 아니다 — G3 대상이다.
 
+**시안 3차 (2026-11-26)**. [Anatomy 카드 HTML 샘플](311-anatomy-cards-v3.html)을 브라우저에서 열면 6종 카드와 접합·간격·부품 생략 사례를 비교할 수 있다. 샘플 좌표로 부품 경계를 확인하는 G0 시안이며, 실제 catalog 출력 대조는 G2에서 수행한다.
+
 추정 영향 범위 20–30개 파일(신규 모듈/테스트 포함), 생성 SVG·manifest는 별도다. G0에서 확정하며 추정 초과를 이유로 별도 ADR로 자동 분리하지 않는다. Blocks/Templates 실제 제품 활성화는 해당 사용자 결정과 adapter 준비가 충족되어야 하며, fixture 통과만으로 완료 표시하지 않는다.
 
 ## 8. 검증 매트릭스
 
-| 대상       | 사례                                                                                          | 기대 / gate                                                                |
-| ---------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 목록       | 항목 추가·삭제·개명·section 이동/순서·종류 변경·layoutOnly/libraryOnly                        | inventory diff와 release 분류 정확, 누락 검출 / G0·G4                      |
-| 기하       | rect, 4-corner radius, arc, icon/path, border/shadow target, clip, nested transform, gradient | 해소 오류 0, source bounds 오차 ≤ 0.5px, paint 순서 일치 / G1              |
-| 상태       | rest/selected/disabled/invalid, optional label/icon, overlay open, repeated parts             | 동일 semantic part 대응, 없는 guide 없음 / G2                              |
-| 날짜       | DateField, TimeField, DatePicker, DateRangePicker, RangeCalendar                              | 본문 좌표 관계 전부, anatomy/rendered 양쪽 / G2                            |
-| 출력       | 300×300·흰/검은 배경·100%/작은 thumbnail·shadow 최대 경계                                     | 투명·gray·비율·no raster/external·clipping 0 / G1·G2                       |
-| 중복 mount | 같은 항목 recent/favorite/category 3곳                                                        | gradient/filter/clip/aria ID 충돌 0 / G3                                   |
-| panel      | 228/320/480/640px, 검색, 접기, resize, 한국어/영어 긴 이름                                    | Section 보존, label 읽기 가능, 실제 열/크기 기록 / G3                      |
-| 조작       | hover, focus, blur, Enter/Space, touch, reduced motion                                        | 삽입 1회·Undo 1회, hover 쓰기 0, idle 반복 0 / G3                          |
-| 문서 격리  | hover 전후 graph revision/history/autosave/network 비교                                       | 변화 0 / G3                                                                |
-| kinds      | component·block·layout·template, 중첩·cycle·삭제 dependency                                   | 일치하는 preview·명시적 실패, layout은 기존 apply/Undo / G5                |
-| 재현성     | clean 동일 입력 2회, section-only, theme-only, nested dependency 수정                         | byte 일치 또는 정확한 관련 digest 변경, stale 산출물 거부 / G4             |
-| 호환       | 옛 favorites/recent/section state, alias chain/cycle/tombstone                                | 지금 저장값 그대로 읽힘 · 모르는 ID 는 버림 · alias 검사, 문서 변경 0 / G4 |
-| 성능       | 90 기준+현재 inventory, 중복 recent/favorite, 복잡 template, hidden panel                     | warm/cold·frame·long task·heap·번들 및 상한 / G6                           |
+| 대상       | 사례                                                                                          | 기대 / gate                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 목록       | 항목 추가·삭제·개명·section 이동/순서·종류 변경·layoutOnly/libraryOnly                        | inventory diff와 release 분류 정확, 누락 검출 / G0·G4                                        |
+| 기하       | rect, 4-corner radius, arc, icon/path, border/shadow target, clip, nested transform, gradient | 해소 오류 0, source bounds 오차 ≤ 0.5px, paint 순서 일치 / G1                                |
+| 상태       | rest/selected/disabled/invalid, optional label/icon, overlay open, repeated parts             | 동일 semantic part 대응, 없는 guide 없음 / G2                                                |
+| 접합부     | 공유 경계가 있는 두 part, gap이 있는 두 part, 한쪽 part 생략                                  | 공유 가이드 1개, 나머지 두 사례 0개. 완성 상태의 경계·모서리·간격은 catalog 기준과 일치 / G2 |
+| 날짜       | DateField, TimeField, DatePicker, DateRangePicker, RangeCalendar                              | 본문 좌표 관계 전부, anatomy/rendered 양쪽 / G2                                              |
+| 출력       | 300×300·흰/검은 배경·100%/작은 thumbnail·shadow 최대 경계                                     | 투명·gray·비율·no raster/external·clipping 0 / G1·G2                                         |
+| 중복 mount | 같은 항목 recent/favorite/category 3곳                                                        | gradient/filter/clip/aria ID 충돌 0 / G3                                                     |
+| panel      | 228/320/480/640px, 검색, 접기, resize, 한국어/영어 긴 이름                                    | Section 보존, label 읽기 가능, 실제 열/크기 기록 / G3                                        |
+| 조작       | hover, focus, blur, Enter/Space, touch, reduced motion                                        | 삽입 1회·Undo 1회, hover 쓰기 0, idle 반복 0 / G3                                            |
+| 문서 격리  | hover 전후 graph revision/history/autosave/network 비교                                       | 변화 0 / G3                                                                                  |
+| kinds      | component·block·layout·template, 중첩·cycle·삭제 dependency                                   | 일치하는 preview·명시적 실패, layout은 기존 apply/Undo / G5                                  |
+| 재현성     | clean 동일 입력 2회, section-only, theme-only, nested dependency 수정                         | byte 일치 또는 정확한 관련 digest 변경, stale 산출물 거부 / G4                               |
+| 호환       | 옛 favorites/recent/section state, alias chain/cycle/tombstone                                | 지금 저장값 그대로 읽힘 · 모르는 ID 는 버림 · alias 검사, 문서 변경 0 / G4                   |
+| 성능       | 90 기준+현재 inventory, 중복 recent/favorite, 복잡 template, hidden panel                     | warm/cold·frame·long task·heap·번들 및 상한 / G6                                             |
 
 새 명령은 구현 시 root `pnpm` script로 등록할 계획이다: `illustrations:generate`, `illustrations:check`, `illustrations:release` (이름 제안, 현재 없음). `check`는 inventory·byte 재현성·manifest·coverage·출처 검사를 묶으며 실패 시 exit nonzero다. release 전에 검사하고 pre-push 또는 `push: main` workflow에 경로별 gate로 연결한다.
 

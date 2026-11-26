@@ -11,6 +11,7 @@ Proposed — 2026-11-15
 - 이번 산출물은 설계 문서다. 제품 구현·성능 통과·설계 리뷰 승인·commit/push를 뜻하지 않는다. 별도 판정이 필요한 향후 제품 동작은 Decision의 「사용자 결정」에 모았다.
 - 2026-11-15 목표와 판정: 사용자가 Nexvyn 구조 분석 (공유 대화, References) 을 목표 결과로 지정하고 시안을 판정했다 — 열 수 (가), 가이드는 본체와 구분되게, 치수선은 뜻이 전달되게. 이에 맞춰 진입 연출·hover 700ms·계층 6종·가로형 카드·컴포넌트 전용 연출을 채택했다 ([breakdown §2.2](design/311-catalog-anatomy-svg-asset-previews-breakdown.md)).
 - 2026-11-15 보완: Nexvyn 갤러리를 브라우저에서 실측하고 (Context §Nexvyn 실측 요약, [breakdown §2.1](design/311-catalog-anatomy-svg-asset-previews-breakdown.md)) 설계 공백을 채웠다 — 대안 B′, 가이드 어휘, 카드 폭 단계, 생성 실행 환경, 노드 안 부품 key, 외부 기준 gate, 버전 필드의 소비자.
+- 2026-11-26 착수 전 보완. coss Particles의 접합 표현을 Decision §1에 반영하고, G2에 공유 경계와 간격을 구별하는 검사를 추가했다.
 
 ## Context
 
@@ -107,6 +108,8 @@ RAC anatomy 역할은 현재 catalog의 template/slot/primitive identity에 연�
 
 **본체는 도형 한 벌이다.** anatomy 상태는 같은 도형을 칠 없이 윤곽선으로, rendered 상태는 해소된 칠로 그린다. 상태마다 도형을 복제하지 않는다. part가 생기거나 사라지는 경우만 그 part를 따로 둔다.
 
+**복합 부품의 접합부도 anatomy로 설명한다.** 두 part가 완성 상태에서 하나의 경계를 공유하면 anatomy에서 양쪽 역할을 식별할 수 있게 하고, hover/focus에서는 가이드가 물러나 catalog의 외곽과 구분선이 드러나게 한다. 같은 경계를 가이드가 덧그려 선이 두꺼워지지 않게 한다. 실제 gap이 있는 부품은 그 간격을 보존한다. 부품 대응은 semantic part key, 경계선과 모서리의 최종 모양은 해소된 layout·paint에서 가져온다. 목록 카드는 기존 CSS 전환으로 이를 표현한다. [coss 접합 표현과 적용 근거](design/311-catalog-anatomy-svg-asset-previews-breakdown.md#23-coss-particles의-부품-접합)
+
 **표시 밀도는 카드에 그려지는 폭으로 정한다.** 폭 단계 S는 외곽·손잡이와 핵심 치수 하나 (숫자 포함), M은 구조 점선과 치수 숫자, L은 사양 메모까지 보인다. 패널은 최소 카드 폭 160px로 배치한다 (사용자 판정 (가)) — 228px 패널은 1열·M이고 S는 Components 패널에 나오지 않는다.
 
 **카드는 가로형이고 컴포넌트를 실제 크기 근처로 그린다.** inline 미리보기는 같은 장면을 3:2 (overlay가 열린 세로로 긴 항목은 3:4) 로 잘라, 작은 항목은 실제 크기의 1.25–1.85배까지만 키우고 큰 항목은 줄인다. 내보내는 300×300은 같은 기하의 다른 틀이다. 단계 경계와 틀은 시안 2차로 정했고 ([breakdown §3.3·§7](design/311-catalog-anatomy-svg-asset-previews-breakdown.md)), 실제 패널에서의 확인은 G3에 남는다.
@@ -201,7 +204,7 @@ Nexvyn diagram/공통 drawing primitives는 CC BY-NC 4.0, 다른 소스는 MIT w
 | ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | G0   | 착수         | 실행되는 palette 목록/필터와 anatomy 출처 전수표, Shape·후처리·layout 경계 표, 기준 번들/성능, 라이선스 provenance 확정, 같은 fixture의 layout·글자 측정 결과 2회 실행 일치, 폭 단계 S·M·L 시안 3–5종을 실제 패널 폭에서 판독 확인 (사용자 confirm) | 지원 불명 항목을 식별하고 원인 해결 전 전면 전환 금지    |
 | G1   | SVG emitter  | 모든 대상 geometry/clip/paint 순서 지원, 미해소 값 0, 300×300·순수 벡터·무채색·instance ID 검증, 공통화된 Canvas 경로 회귀 0, 표현 변환 전 SVG를 래스터한 결과와 같은 fixture의 Canvas 렌더 픽셀 대조                                               | emitter 범위 보강 또는 추출 철회; raster fallback 금지   |
-| G2   | Anatomy·상태 | RAC 역할 연결 누락 0, 조건부 part 처리, 앵커 bounds를 같은 fixture의 Preview DOM `getBoundingClientRect`와 대조 (기존 parity 허용 오차), 가이드 좌표 오차 ≤ 0.5 source px, 날짜/시간 조건, 두 배경 필수 경계 대비 ≥ 3:1, 잘림 0                     | 가이드 밀도/표현 수정; 측정값 임의 보정 금지             |
+| G2   | Anatomy·상태 | RAC 역할 연결 누락 0, 조건부 part 처리, 앵커 bounds를 같은 fixture의 Preview DOM `getBoundingClientRect`와 대조 (기존 parity 허용 오차), 가이드 오차 ≤ 0.5 source px, 공유 경계·gap 보존, 날짜/시간 조건, 두 배경 필수 경계 대비 ≥ 3:1, 잘림 0      | 가이드 밀도/표현 수정; 측정값 임의 보정 금지             |
 | G3   | 실제 패널    | 검색·최근·즐겨찾기·Section·삽입/Undo 보존, hover/focus 중 문서 쓰기·외부 요청 0, 키보드/touch/reduced motion, 중복 SVG ID 0                                                                                                                         | 해당 UI 전환 보류; 기존 아이콘 유지                      |
 | G4   | 등록·릴리스  | 동일 입력 재생성 byte 일치, section-only·theme·nested dependency 변경 감지, alias/tombstone 검사, 원자적 manifest/artifact 일치, 사용자 데이터 유출 0                                                                                               | release 생성 실패; 직전 일치하는 release 유지            |
 | G5   | 종류 확장    | 네 kind adapter fixture 통과, Navigator Layouts와 apply/Undo 유지, 미지원 activation 비노출, 프로젝트 정의 편집/삭제 시 cache invalidation                                                                                                          | 해당 kind 비활성 유지; component/layout 완료와 분리 보고 |

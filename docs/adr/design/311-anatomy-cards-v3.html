@@ -1,0 +1,1301 @@
+<!doctype html>
+<html lang="ko" data-theme="light" data-force="off">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>ADR-311 · Anatomy 카드 시안 3차</title>
+    <style>
+      :root {
+        --page: #e5e5e5;
+        --panel: #f9fafb;
+        --card: #ffffff;
+        --card-hover: #f9fafb;
+        --border: #e5e7eb;
+        --border-hover: #d1d5db;
+        --fg: #1f2937;
+        --fg-muted: #4b5563;
+        --focus: #2563eb; /* --focus-ring */
+        --guide: #3b82f6; /* --canvas-selection-strong */
+        --guide-text: #2563eb; /* --focus-ring: 10px 글자 대비 4.5:1 */
+        --f-strong: #374151;
+        --on-strong: #ffffff;
+        --f0: #ffffff;
+        --f1: #f3f4f6;
+        --f2: #e5e7eb;
+        --f3: #9ca3af;
+        --bd: #d1d5db;
+        /* motion (자체 값) */
+        --m-fast: 120ms;
+        --m-base: 200ms;
+        --m-slow: 320ms;
+        --m-show: 700ms;
+        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      :root[data-theme="dark"] {
+        --page: #18181b;
+        --panel: #202023;
+        --card: #27272a;
+        --card-hover: #202023;
+        --border: #3f3f46;
+        --border-hover: #52525b;
+        --fg: #f4f4f5;
+        --fg-muted: #d4d4d8;
+        --focus: #60a5fa;
+        --guide: #93c5fd;
+        --guide-text: #93c5fd;
+        --f-strong: #e4e4e7;
+        --on-strong: #18181b;
+        --f0: #18181b;
+        --f1: #3f3f46;
+        --f2: #52525b;
+        --f3: #a1a1aa;
+        --bd: #52525b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--page);
+        color: var(--fg);
+        font:
+          12px/1.4 Pretendard,
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      header.top {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      header.top h1 {
+        font-size: 14px;
+        margin: 0 12px 0 0;
+      }
+      .ctl {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .ctl span {
+        color: var(--fg-muted);
+        margin-right: 4px;
+      }
+      .ctl button {
+        font: inherit;
+        color: var(--fg);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 3px 8px;
+        cursor: pointer;
+      }
+      .ctl button[aria-pressed="true"] {
+        border-color: var(--fg);
+        background: var(--f1);
+      }
+      .note {
+        color: var(--fg-muted);
+        max-width: 960px;
+        margin: 0 0 16px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        align-items: flex-start;
+      }
+      .col h3 {
+        font-size: 12px;
+        margin: 0 0 4px;
+      }
+      .col .meta {
+        color: var(--fg-muted);
+        margin: 6px 0 0;
+        max-width: 480px;
+        font-variant-numeric: tabular-nums;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px;
+      }
+      .panel .sec {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 600;
+        padding: 2px 2px 8px;
+      }
+      .panel .sec small {
+        font-weight: 400;
+        color: var(--fg-muted);
+      }
+      .grid {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      }
+      .grid.small {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      }
+
+      /* ── 카드 ── */
+      .card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px;
+        margin: 0;
+        font: inherit;
+        color: var(--fg);
+        text-align: center;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: crosshair;
+        transition:
+          background var(--m-base) ease,
+          border-color var(--m-base) ease;
+      }
+      .card.tall {
+        grid-row: span 2;
+      }
+      .card:hover {
+        background: var(--card-hover);
+        border-color: var(--border-hover);
+      }
+      .card:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: -2px;
+      }
+      .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        line-height: 14px;
+      }
+      .pv {
+        position: relative;
+        aspect-ratio: 3 / 2;
+        container-type: inline-size;
+      }
+      .card.tall .pv {
+        aspect-ratio: 3 / 4;
+      }
+      .pv svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      /* ── 계층: outline(.sh) · content(.ct) · structure(.st) · measurement(.ms) · handle(.hd) · interactive ── */
+      .pv svg * {
+        vector-effect: non-scaling-stroke;
+      }
+      .sh,
+      .ct,
+      .slot {
+        transition:
+          fill var(--m-show) var(--ease-out),
+          stroke var(--m-show) var(--ease-out),
+          fill-opacity var(--m-show) var(--ease-out),
+          stroke-opacity var(--m-show) var(--ease-out),
+          opacity var(--m-base) ease;
+      }
+      .sh {
+        fill: transparent;
+        stroke: var(--fg);
+        stroke-opacity: 0.85;
+        stroke-width: 1.25px;
+      }
+      .ln {
+        fill: none;
+        stroke: var(--fg);
+        stroke-opacity: 0.5;
+        stroke-width: 1px;
+      }
+      .bar {
+        fill: var(--fg);
+        fill-opacity: 0.35;
+        stroke: none;
+      }
+      .ic {
+        fill: none;
+        stroke: var(--fg);
+        stroke-opacity: 0.85;
+        stroke-width: 1.25px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .slot {
+        fill: transparent;
+        stroke: var(--fg);
+        stroke-opacity: 0.5;
+        stroke-width: 1px;
+        stroke-dasharray: 3 3;
+      }
+      .st,
+      .ms,
+      .hd,
+      .txt,
+      .memo {
+        transition: opacity var(--m-slow) ease;
+      }
+      .st {
+        fill: none;
+        stroke: var(--guide);
+        stroke-opacity: 0.6;
+        stroke-width: 0.75px;
+      }
+      .st.dash {
+        stroke-dasharray: 3 2;
+      }
+      .ms {
+        fill: none;
+        stroke: var(--guide);
+        stroke-width: 0.75px;
+      }
+      .hd {
+        fill: none;
+        stroke: var(--guide);
+        stroke-width: 4px;
+        stroke-linecap: square;
+      }
+      .txt {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .txt span {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        padding: 0 2px;
+        font:
+          500 10px/12px Pretendard,
+          ui-monospace,
+          monospace;
+        font-variant-numeric: tabular-nums;
+        color: var(--guide-text);
+        background: var(--card);
+        white-space: nowrap;
+      }
+      .memo {
+        font:
+          10px/13px Pretendard,
+          ui-monospace,
+          monospace;
+        color: var(--fg-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: none;
+      }
+      .grid.tier-l .memo {
+        display: block;
+      }
+      .b {
+        opacity: 0;
+      }
+      .chk {
+        fill: none;
+        stroke: var(--on-strong);
+        stroke-width: 1.5px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        transition: stroke-dashoffset var(--m-slow) var(--ease-out);
+      }
+      .press {
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      .spin {
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      /* ── 폭 단계 (미리보기 화면 폭): S <144 · M 144–260 · L ≥260. 치수선은 숫자와 함께만 나온다 ── */
+      @container (max-width: 143.98px) {
+        .t-m,
+        .t-l {
+          display: none;
+        }
+      }
+      @container (max-width: 259.98px) {
+        .t-l {
+          display: none;
+        }
+      }
+      @container (min-width: 260px) {
+        .txt span {
+          font-size: 11px;
+        }
+      }
+
+      /* ── rendered: 카드 :hover · :focus-visible (JS 상태 없음) ── */
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        :is(.st, .ms, .hd, .txt, .memo) {
+        opacity: 0;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card) .sh {
+        stroke: var(--bd);
+        stroke-opacity: 1;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .sh.fs {
+        fill: var(--f-strong);
+        stroke: var(--f-strong);
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .sh.f0 {
+        fill: var(--f0);
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .sh.f1 {
+        fill: var(--f1);
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .sh.f2 {
+        fill: var(--f2);
+        stroke: var(--f2);
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .sh.f3 {
+        fill: var(--f3);
+        stroke: var(--f3);
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .bar {
+        fill-opacity: 0.6;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .bar.on {
+        fill: var(--on-strong);
+        fill-opacity: 1;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .ic.on {
+        stroke: var(--on-strong);
+        stroke-opacity: 1;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card) .ln {
+        stroke: var(--bd);
+        stroke-opacity: 1;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .slot {
+        fill: var(--f1);
+        stroke: var(--bd);
+        stroke-opacity: 1;
+      }
+      /* 컴포넌트 전용 연출 — catalog 상태 쌍 (pressed → pending, selected) */
+      :is(.card:hover, .card:focus-visible) .press {
+        animation: press var(--m-slow) ease-out 550ms both;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card) .a {
+        opacity: 0;
+        transition: opacity var(--m-base) ease 700ms;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card) .b {
+        opacity: 1;
+        transition: opacity var(--m-base) ease 700ms;
+      }
+      :is(.card:hover, .card:focus-visible) .spin {
+        animation: spin 900ms linear 700ms 1;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .chk {
+        stroke-dashoffset: 0;
+        transition-delay: 350ms;
+      }
+      @keyframes press {
+        40% {
+          transform: scale(0.97);
+        }
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ── 진입 연출: 카드가 처음 그려질 때 한 번. idle 반복 없음 ── */
+      .enter .sh {
+        animation: ink 500ms var(--ease-out) var(--d, 0ms) backwards;
+      }
+      .enter .st {
+        animation: fade var(--m-slow) ease calc(var(--d, 0ms) + 200ms) backwards;
+      }
+      .enter :is(.ct, .slot) {
+        animation: fade var(--m-slow) ease calc(var(--d, 0ms) + 400ms) backwards;
+      }
+      .enter :is(.ms, .txt span) {
+        animation: fade var(--m-base) ease
+          calc(var(--d, 0ms) + 550ms + var(--i, 0) * 70ms) backwards;
+      }
+      .enter .hd {
+        animation: pop var(--m-base) var(--ease-out) calc(var(--d, 0ms) + 600ms)
+          backwards;
+      }
+      .enter .memo {
+        animation: fade var(--m-slow) ease calc(var(--d, 0ms) + 700ms) backwards;
+      }
+      @keyframes ink {
+        from {
+          stroke-dasharray: 1 1;
+          stroke-dashoffset: 1;
+        }
+        to {
+          stroke-dasharray: 1 1;
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+      }
+      @keyframes pop {
+        from {
+          stroke-width: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pv svg *,
+        .txt,
+        .txt span,
+        .memo,
+        .card {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+      body {
+        max-width: 1220px;
+        margin-inline: auto;
+        padding: clamp(16px, 3vw, 40px);
+      }
+      header.top {
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border-hover);
+      }
+      header.top h1 {
+        margin-right: auto;
+      }
+      .ctl button,
+      summary {
+        min-height: 32px;
+      }
+      .comparison {
+        padding-block: 18px 12px;
+      }
+      .comparison h2 {
+        font-size: clamp(22px, 3vw, 32px);
+        letter-spacing: -0.04em;
+        margin: 0 0 6px;
+      }
+      #cases {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 228px), 1fr));
+        gap: 14px;
+        max-width: 960px;
+      }
+      .case-card {
+        width: 100%;
+        min-width: 0;
+        border-radius: 12px;
+        text-align: left;
+        padding: 12px;
+        cursor: default;
+      }
+      .case-card .pv {
+        display: block;
+        width: 100%;
+        background: radial-gradient(
+            circle,
+            var(--border) 0.75px,
+            transparent 1px
+          )
+          50% 50% / 12px 12px;
+      }
+      .case-card .case-title {
+        font-size: 15px;
+        font-weight: 650;
+        margin-top: 4px;
+      }
+      .case-card .caption,
+      .source-note {
+        color: var(--fg-muted);
+        font-size: 12px;
+      }
+      .case-card .caption {
+        min-height: 2.8em;
+      }
+      .source-note {
+        margin: 12px 0;
+      }
+      .reference {
+        border-top: 1px solid var(--border-hover);
+        padding-top: 12px;
+      }
+      summary {
+        width: fit-content;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .col,
+      .panel {
+        max-width: 100%;
+      }
+      .case-card .region {
+        fill: var(--card);
+        stroke: none;
+      }
+      .case-card .edge {
+        fill: none;
+        stroke: var(--fg);
+        stroke-width: 1.25px;
+      }
+      .card .seam {
+        fill: none;
+        stroke: var(--guide-text);
+        stroke-width: 1px;
+        stroke-dasharray: 3 2;
+      }
+      :is(.card:hover, .card:focus-visible, [data-force="rendered"] .card)
+        .seam {
+        stroke: var(--fg-muted);
+        stroke-dasharray: none;
+      }
+      :is(
+          .case-card:hover,
+          .case-card:focus-visible,
+          [data-force="rendered"] .case-card
+        )
+        .region.side {
+        fill: var(--f2);
+      }
+      :is(
+          .case-card:hover,
+          .case-card:focus-visible,
+          [data-force="rendered"] .case-card
+        )
+        .region.content {
+        fill: var(--f1);
+      }
+      :is(
+          .case-card:hover,
+          .case-card:focus-visible,
+          [data-force="rendered"] .case-card
+        )
+        .edge {
+        stroke: var(--fg-muted);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .case-card :is(.region, .edge, .seam) {
+          transition:
+            fill 700ms var(--ease-out),
+            stroke 700ms var(--ease-out);
+        }
+        .enter .case-card .edge {
+          animation: ink 500ms var(--ease-out) var(--d) backwards;
+        }
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 238px), 1fr));
+        gap: 14px;
+        max-width: 960px;
+        align-items: stretch;
+        grid-auto-flow: dense;
+      }
+      .gallery .card {
+        justify-content: start;
+        text-align: start;
+        padding: 12px;
+        min-width: 0;
+        cursor: default;
+      }
+      .gallery .name {
+        font-size: 15px;
+        font-weight: 650;
+        line-height: 20px;
+      }
+      .gallery .pv {
+        background: radial-gradient(
+            circle,
+            var(--border) 0.75px,
+            transparent 1px
+          )
+          50% 50% / 12px 12px;
+      }
+      .gallery .relation {
+        color: var(--fg-muted);
+        line-height: 1.45;
+      }
+      .option {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 12px;
+      }
+      .gallery .card.tall {
+        justify-content: center;
+      }
+      .card .sh.paint {
+        stroke-width: 0;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .card .seam {
+          transition: stroke var(--m-show) var(--ease-out);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <h1>ADR-311 · Anatomy 카드 시안 3차</h1>
+      <div class="ctl" data-attr="theme">
+        <span>테마</span>
+        <button data-v="light">라이트</button>
+        <button data-v="dark">다크</button>
+      </div>
+      <div class="ctl" data-attr="force">
+        <span>상태</span>
+        <button data-v="off">개별 비교</button>
+        <button data-v="rendered">완성 상태 고정</button>
+      </div>
+      <div class="ctl"><button id="replay">진입 연출 다시 재생</button></div>
+    </header>
+    <main id="main" class="enter">
+      <section class="comparison" aria-labelledby="components-title">
+        <h2 id="components-title">컴포넌트 Anatomy</h2>
+        <p class="note">
+          파란 점선은 공유 경계, 숫자가 붙은 치수선은 실제 간격입니다. 카드에
+          포인터를 올리거나 Tab으로 이동해 완성 상태와 비교하세요.
+        </p>
+        <label class="option"
+          ><input id="button-icon" type="checkbox" checked /> Button 아이콘
+          표시</label
+        >
+        <div id="examples" class="gallery"></div>
+      </section>
+      <section class="comparison" aria-labelledby="comparison-title">
+        <h2 id="comparison-title">레이아웃의 접합부</h2>
+        <p class="note">
+          사이드바와 콘텐츠 슬롯의 경계를 비교하세요. 카드에 포인터를 올리거나
+          Tab으로 이동하면 완성 상태가 보입니다.
+        </p>
+        <div id="cases"></div>
+        <p class="source-note">
+          설계용 Layout 예시 · 치수는 샘플 좌표계의 px입니다.
+        </p>
+      </section>
+      <details class="reference">
+        <summary>6종 카드 · 패널 폭별 비교</summary>
+        <div id="panels"></div>
+      </details>
+    </main>
+
+    <script>
+      // ───────── helpers: 좌표 = 컴포넌트 실제 px, u = 가이드 간격 단위 (viewBox 폭 비례) ─────────
+      const T = (tier) => (tier === "s" ? "" : " t-" + tier);
+      const G = (u) => ({
+        handles: (x1, y1, x2, y2) =>
+          `<path class="hd" d="M${x1} ${y1}h.01M${x2} ${y1}h.01M${x1} ${y2}h.01M${x2} ${y2}h.01"/>`,
+        frame: (x1, y1, x2, y2) =>
+          `<rect class="st" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}"/>`,
+        dimH: (x1, x2, y, tier, i = 0) =>
+          `<path class="ms${T(tier)}" style="--i:${i}" d="M${x1} ${y}H${x2}M${x1} ${y - 3 * u}v${6 * u}M${x2} ${y - 3 * u}v${6 * u}"/>`,
+        dimV: (x, y1, y2, tier, i = 0) =>
+          `<path class="ms${T(tier)}" style="--i:${i}" d="M${x} ${y1}V${y2}M${x - 3 * u} ${y1}h${6 * u}M${x - 3 * u} ${y2}h${6 * u}"/>`,
+        dashV: (x, y1, y2, tier = "m") =>
+          `<path class="st dash${T(tier)}" d="M${x} ${y1}V${y2}"/>`,
+        dashRect: (x, y, w, h, tier = "m") =>
+          `<rect class="st dash${T(tier)}" x="${x}" y="${y}" width="${w}" height="${h}"/>`,
+      });
+      const bar = (x, y, w, h = 6, cls = "") =>
+        `<rect class="ct bar ${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}"/>`;
+
+      const sharedEdge = (parts, path) =>
+        `<path class="seam" data-shared-guide="${parts}" d="${path}"/>`;
+      const part = (key, shapes) => `<g data-part="${key}">${shapes}</g>`;
+      // 한 쌍의 실제 끝점에서 치수선과 수치를 함께 만든다.
+      function horizontalGap(g, parts, left, right, y, tier, labelOffset) {
+        return {
+          svg: `<g data-gap="${parts}">${g.dimH(left, right, y, tier)}</g>`,
+          label: {
+            x: (left + right) / 2,
+            y: y + labelOffset,
+            t: String(right - left),
+            tier,
+            i: 0,
+          },
+        };
+      }
+
+      // 1. Button 84×32
+      function buttonExample(showIcon) {
+        const g = G(1);
+        const icon = { x: 16, width: 12 };
+        const labelWidth = 34;
+        const labelX = showIcon ? 36 : (84 - labelWidth) / 2;
+        const gap = showIcon
+          ? horizontalGap(
+              g,
+              "icon label",
+              icon.x + icon.width,
+              labelX,
+              44,
+              "s",
+              9,
+            )
+          : null;
+        const iconShape = `<g transform="translate(${icon.x} 10)"><path class="ct ic on a" d="M6 0v12M0 6h12"/>
+          <path class="ct ic on b spin" d="M6 0a6 6 0 1 1-6 6"/></g>`;
+        return {
+          name: "Button",
+          relation: showIcon
+            ? "아이콘과 라벨 사이 8px을 표시합니다."
+            : "라벨을 가운데 놓고 아이콘 간격 가이드를 걷습니다.",
+          bounds: [-26, -22, 134, 84],
+          svg:
+            g.frame(0, 0, 84, 32) +
+            `<g class="press"><rect class="sh fs" pathLength="1" width="84" height="32" rx="16"/>` +
+            (showIcon ? part("icon", iconShape) : "") +
+            part("label", bar(labelX, 13, labelWidth, 6, "on")) +
+            "</g>" +
+            g.handles(0, 0, 84, 32) +
+            g.dimH(0, 84, -11, gap ? "m" : "s") +
+            (gap?.svg ?? ""),
+          labels: [
+            { x: 42, y: -11, t: "84", tier: gap ? "m" : "s", i: 0 },
+            ...(gap ? [gap.label] : []),
+          ],
+          memo: [showIcon ? "icon · label" : "label"],
+        };
+      }
+
+      // 2. Checkbox 88×16
+      const checkbox = (() => {
+        const g = G(1);
+        const boxSize = 16,
+          labelX = 24;
+        const gap = horizontalGap(g, "box label", boxSize, labelX, -9, "s", -9);
+        return {
+          name: "Checkbox",
+          relation: "체크 표시가 나타나도 상자와 라벨 사이의 8px은 유지됩니다.",
+          bounds: [-30, -26, 126, 60],
+          svg:
+            g.frame(0, 0, 88, 16) +
+            part(
+              "box",
+              `<rect class="sh fs" width="${boxSize}" height="${boxSize}" rx="4"/><path class="chk" d="M4 8.5l3 3l5-6"/>`,
+            ) +
+            part("label", bar(labelX, 5, 64, 6)) +
+            g.handles(0, 0, 88, 16) +
+            g.dimV(-9, 0, 16, "s", 0) +
+            gap.svg +
+            g.dimH(0, 88, 27, "l", 2),
+          labels: [
+            { x: -21, y: 8, t: "16", tier: "s", i: 0 },
+            gap.label,
+            { x: 44, y: 27, t: "88", tier: "l", i: 2 },
+          ],
+          memo: ["box 16 · gap 8", "{radius.sm}"],
+        };
+      })();
+
+      // 3. DatePicker (열림) 256×332
+      const datePicker = (() => {
+        const g = G(2);
+        const gx = 16,
+          gy = 112,
+          c = 32;
+        let dots = "",
+          wk = "";
+        for (let r = 0; r < 6; r++)
+          for (let k = 0; k < 7; k++) {
+            if (
+              (r === 0 && k < 2) ||
+              (r === 5 && k > 3) ||
+              (r === 2 && k === 3)
+            )
+              continue;
+            dots += `M${gx + k * c + 10} ${gy + r * c + 13}h12v6h-12z`;
+          }
+        for (let k = 0; k < 7; k++) wk += `M${gx + k * c + 11} 98h10v5h-10z`;
+        const sx = gx + 3 * c + 16,
+          sy = gy + 2 * c + 16;
+        return {
+          name: "DatePicker",
+          relation:
+            "입력과 트리거는 한 선을 공유합니다. 열린 달력은 입력에서 8px 떨어집니다.",
+          tall: true,
+          bounds: [-40, -30, 336, 372],
+          svg:
+            g.frame(0, 0, 256, 332) +
+            bar(0, 1, 74, 8) +
+            `<rect data-part="group" class="sh f0" x="0" y="16" width="256" height="32" rx="6"/>` +
+            part(
+              "date-input",
+              bar(12, 29, 18, 6) +
+                `<path class="ct ln" d="M36 26l-4 12M66 26l-4 12"/>` +
+                bar(42, 29, 18, 6) +
+                bar(72, 29, 32, 6),
+            ) +
+            sharedEdge("date-input trigger", "M224 16v32") +
+            part(
+              "trigger",
+              `<path class="ct ic" d="M233 26h14v13h-14zM233 30h14M237 23v4M243 23v4"/>`,
+            ) +
+            `<rect data-part="calendar" class="sh f0" x="0" y="56" width="256" height="276" rx="10"/>` +
+            `<path class="ct ic" d="M24 72l-6 6l6 6M232 72l6 6l-6 6"/>` +
+            bar(96, 74, 64, 8) +
+            `<path class="ct bar" d="${wk}"/>` +
+            `<path class="ct bar" d="${dots}"/>` +
+            `<circle class="sh fs" cx="${sx}" cy="${sy}" r="13"/>` +
+            bar(sx - 6, sy - 3, 12, 6, "on") +
+            `<circle class="ct ln" cx="${gx + 5 * c + 16}" cy="${gy + c + 16}" r="13"/>` +
+            g.handles(0, 0, 256, 332) +
+            g.dimH(0, 256, -14, "s", 0) +
+            g.dashV(0, -6, 340) +
+            g.dashV(256, -6, 340) +
+            g.dimV(-14, 16, 48, "m", 1) +
+            `<g data-gap="group calendar">${g.dimV(272, 48, 56, "m", 2)}</g>` +
+            g.dashRect(gx, gy, c, c, "l"),
+          labels: [
+            { x: 128, y: -14, t: "256", tier: "s", i: 0 },
+            { x: -30, y: 32, t: "32", tier: "m", i: 1 },
+            { x: 286, y: 52, t: "8", tier: "m", i: 2 },
+            { x: gx + 16, y: gy + 16, t: "32", tier: "l", i: 3 },
+          ],
+          memo: [
+            "field 256 = calendar 256 · offset 8",
+            "cell 32 · {radius.md}",
+          ],
+        };
+      })();
+
+      // 4. TableView 400×232
+      const tableView = (() => {
+        const g = G(3);
+        const X = [0, 40, 180, 300, 400];
+        const rows = [
+          ["design", 84, 64, 48],
+          ["library", 104, 46, 58],
+          ["assets", 64, 74, 40],
+          ["tokens", 94, 54, 52],
+          ["themes", 74, 68, 44],
+          ["fonts", 98, 48, 56],
+        ];
+        const rowShapes = rows
+          .map(([key, ...widths], index) => {
+            const y = 40 + index * 32;
+            const selected = key === "library";
+            const fill = selected
+              ? `<rect class="sh f2 paint" y="${y}" width="400" height="32"/>`
+              : "";
+            const box = `<rect class="${selected ? "sh fs" : "ct ln"}" x="13" y="${y + 9}" width="14" height="14" rx="3"/>`;
+            const cells = widths
+              .map((w, i) => bar(X[i + 1] + 12, y + 13, w, 6))
+              .join("");
+            return part(key, fill + box + cells);
+          })
+          .join("");
+        const rowEdges = rows
+          .map(([key], i) => {
+            const previous = i ? rows[i - 1][0] : "header";
+            return sharedEdge(`${previous} ${key}`, `M0 ${40 + i * 32}H400`);
+          })
+          .join("");
+        return {
+          name: "TableView",
+          relation:
+            "헤더와 첫 행, 이웃한 행은 경계를 하나씩 공유합니다. 선택 행의 칠도 선을 겹치지 않습니다.",
+          bounds: [-56, -34, 512, 318],
+          svg:
+            g.frame(0, 0, 400, 232) +
+            `<rect class="sh f0" x="0" y="0" width="400" height="232" rx="8"/>` +
+            `<path data-part="header" class="sh f1 paint" d="M0 8a8 8 0 0 1 8-8h384a8 8 0 0 1 8 8v32h-400z"/>` +
+            rowShapes +
+            rowEdges +
+            `<rect class="ct ln" x="13" y="13" width="14" height="14" rx="3"/>` +
+            bar(52, 16, 56, 8) +
+            bar(192, 16, 46, 8) +
+            bar(312, 16, 36, 8) +
+            g.handles(0, 0, 400, 232) +
+            g.dimV(-16, 40, 72, "s", 0) +
+            g.dimH(40, 180, -16, "m", 1) +
+            g.dashV(52, -8, 240) +
+            g.dimV(418, 0, 40, "l", 2) +
+            g.dimH(0, 40, 250, "l", 3),
+          labels: [
+            { x: -38, y: 56, t: "32", tier: "s", i: 0 },
+            { x: 110, y: -16, t: "140", tier: "m", i: 1 },
+            { x: 440, y: 20, t: "40", tier: "l", i: 2 },
+            { x: 20, y: 270, t: "40", tier: "l", i: 3 },
+          ],
+          memo: [
+            "row 32 · header 40 · cell px 12",
+            "{size.height.M} · {radius.md}",
+          ],
+        };
+      })();
+
+      // 5. Bar Chart 300×200
+      const chart = (() => {
+        const g = G(2.2);
+        const hs = [75, 119, 94, 148, 110, 62];
+        const barWidth = 28,
+          pitch = 42;
+        const barX = (i) => 46 + i * pitch;
+        const gap = horizontalGap(
+          g,
+          "bar-1 bar-2",
+          barX(0) + barWidth,
+          barX(1),
+          214,
+          "s",
+          16,
+        );
+        let bars = "",
+          xl = "",
+          grid = "",
+          yl = "";
+        hs.forEach((h, i) => {
+          const x = barX(i);
+          bars += `<rect data-part="bar-${i + 1}" class="sh f3" x="${x}" y="${170 - h}" width="${barWidth}" height="${h}" rx="3"/>`;
+          xl += `M${x + 5} 178h18v5h-18z`;
+        });
+        [132, 95, 57].forEach((y) => {
+          grid += `M32 ${y}H300`;
+          yl += `M6 ${y - 3}h18v5h-18z`;
+        });
+        return {
+          name: "Bar Chart",
+          relation:
+            "막대의 끝과 다음 막대의 시작 사이에 14px의 빈 공간을 둡니다.",
+          bounds: [-20, -30, 356, 268],
+          svg:
+            g.frame(0, 0, 300, 200) +
+            `<path class="ct ln" d="${grid}" style="stroke-opacity:.25"/>` +
+            `<path class="ct ln" d="M32 20V170H300"/>` +
+            bars +
+            `<path class="ct bar" d="${xl}${yl}M6 167h18v5h-18z"/>` +
+            `<rect class="sh f3" x="32" y="2" width="10" height="10" rx="2"/>` +
+            bar(48, 4, 38, 6) +
+            g.handles(0, 0, 300, 200) +
+            g.dimH(0, 300, -14, "s", 0) +
+            g.dashRect(32, 20, 268, 150) +
+            g.dimH(barX(2), barX(2) + barWidth, 214, "m", 1) +
+            gap.svg +
+            g.dimV(316, 20, 170, "l", 3),
+          labels: [
+            { x: 150, y: -14, t: "300", tier: "s", i: 0 },
+            {
+              x: barX(2) + barWidth / 2,
+              y: 230,
+              t: String(barWidth),
+              tier: "m",
+              i: 1,
+            },
+            gap.label,
+            { x: 316, y: 95, t: "150", tier: "l", i: 3 },
+          ],
+          memo: [
+            "plot 268×150 · bar 28 · gap 14",
+            "legend top-start · axis 32",
+          ],
+        };
+      })();
+
+      // 6. App Layout 1280×800
+      const layout = (() => {
+        const g = G(8.5);
+        let nav = "";
+        [150, 120, 170, 110, 140].forEach(
+          (w, i) => (nav += `M24 ${96 + i * 44}h${w}v16h-${w}z`),
+        );
+        return {
+          name: "App Layout",
+          relation:
+            "헤더·사이드바·본문이 맞닿는 변만 공유합니다. 슬롯과 본문 가장자리 사이에는 32px이 남습니다.",
+          bounds: [-130, -120, 1440, 1090],
+          svg:
+            g.frame(0, 0, 1280, 800) +
+            `<rect class="sh f0" x="0" y="0" width="1280" height="800" rx="12"/>` +
+            `<path data-part="header" class="sh f1 paint" d="M0 12a12 12 0 0 1 12-12h1256a12 12 0 0 1 12 12v44h-1280z"/>` +
+            `<path data-part="side" class="sh f1 paint" d="M0 56h240v744h-228a12 12 0 0 1-12-12z"/>` +
+            sharedEdge("header side", "M0 56H240") +
+            sharedEdge("header content", "M240 56H1280") +
+            sharedEdge("side content", "M240 56V800") +
+            bar(24, 20, 120, 16) +
+            bar(1030, 20, 70, 16) +
+            bar(1120, 20, 70, 16) +
+            `<circle class="ct ln" cx="1240" cy="28" r="12"/>` +
+            `<path class="ct bar" d="${nav}"/>` +
+            part(
+              "content",
+              `<rect data-part="content-slot" class="slot" x="272" y="88" width="976" height="680" rx="8"/>` +
+                `<path class="ct ln t-m" d="M272 88L1248 768M1248 88L272 768" style="stroke-opacity:.2"/>`,
+            ) +
+            g.handles(0, 0, 1280, 800) +
+            g.dimH(0, 240, 870, "s", 0) +
+            g.dimV(-64, 0, 56, "m", 1) +
+            `<g data-gap="content content-slot">${g.dimH(240, 272, 852, "m", 2)}</g>` +
+            g.dimH(0, 1280, -70, "l", 3),
+          labels: [
+            { x: 120, y: 870, t: "240", tier: "s", i: 0 },
+            { x: -64, y: -62, t: "56", tier: "m", i: 1 },
+            { x: 760, y: 428, t: "Slot", tier: "m", i: 1 },
+            { x: 280, y: 945, t: "32", tier: "m", i: 2 },
+            { x: 640, y: -70, t: "1280", tier: "l", i: 3 },
+          ],
+          memo: ["header 56 · side 240 · content p 32", "content = Slot"],
+        };
+      })();
+
+      const examples = () => [
+        buttonExample(document.querySelector("#button-icon").checked),
+        checkbox,
+        datePicker,
+        tableView,
+        chart,
+        layout,
+      ];
+      const TOTAL = 90;
+
+      // viewBox = 그려진 범위를 카드 비율 (3:2 · 세로형 3:4) 로 넓힌 것. 최소 폭 155 → M 에서 실제 크기의 1.25배가 상한
+      const fitVB = ([x, y, w, h], aspect) => {
+        const minW = 155;
+        let W = Math.max(w, minW, h * aspect);
+        let H = W / aspect;
+        return [x - (W - w) / 2, y - (H - h) / 2, W, H];
+      };
+      const cardHtml = (it, idx, gallery = false) => {
+        const vb = fitVB(it.bounds, it.tall ? 3 / 4 : 3 / 2);
+        const pct = (v, o, s) => (((v - o) / s) * 100).toFixed(2);
+        return `
+        <button data-example="${it.name}" aria-label="${it.name}. ${it.relation}" class="card${it.tall ? " tall" : ""}" type="button" style="--d:${Math.min(idx * 90, 450)}ms">
+          <div class="pv">
+            <svg viewBox="${vb.map((n) => +n.toFixed(2)).join(" ")}" aria-hidden="true">${it.svg}</svg>
+            <div class="txt">${it.labels
+              .map(
+                (l) =>
+                  `<span class="${l.tier === "s" ? "" : "t-" + l.tier}" style="--i:${l.i};left:${pct(l.x, vb[0], vb[2])}%;top:${pct(l.y, vb[1], vb[3])}%">${l.t}</span>`,
+              )
+              .join("")}</div>
+          </div>
+          <div class="memo">${it.memo.join("<br>")}</div>
+          <span class="name">${it.name}</span>
+          ${gallery ? `<span class="relation">${it.relation}</span>` : ""}
+        </button>`;
+      };
+
+      const main = document.getElementById("main");
+      // 같은 Layout의 세 fixture. 수평으로 맞닿는 영역은 외곽선을 열고 이음새 한 개를 공유한다.
+      function layoutCase({ key, title, description, sideWidth, gap }, index) {
+        const width = 156;
+        const height = 64;
+        const radius = 6;
+        const rightStart = sideWidth ? sideWidth + gap : 0;
+        const joined = sideWidth > 0 && rightStart === sideWidth;
+        const regionPath = (left, right, joinLeft, joinRight, fill = false) => {
+          const l = joinLeft ? 0 : radius;
+          const r = joinRight ? 0 : radius;
+          const top = `M${left + l} 0 H${right - r} Q${right} 0 ${right} ${r}`;
+          const outerRight =
+            joinRight && !fill
+              ? `M${right} ${height}`
+              : `V${height - r} Q${right} ${height} ${right - r} ${height}`;
+          const bottom = `H${left + l} Q${left} ${height} ${left} ${height - l}`;
+          const outerLeft =
+            joinLeft && !fill ? "" : `V${l} Q${left} 0 ${left + l} 0`;
+          return top + outerRight + bottom + outerLeft + (fill ? "Z" : "");
+        };
+        const region = (role, left, right, joinLeft, joinRight, details) => {
+          const outlinePath = regionPath(left, right, joinLeft, joinRight);
+          const fillPath = regionPath(left, right, joinLeft, joinRight, true);
+          return `<g data-part="${role}"><path class="region ${role}" d="${fillPath}"/>
+            <path class="edge" pathLength="1" d="${outlinePath}"/>${details}</g>`;
+        };
+        const art = [];
+        if (sideWidth) {
+          const nav = [22, 15, 19]
+            .map((line, row) => bar(9, 16 + row * 10, line, 3))
+            .join("");
+          art.push(region("side", 0, sideWidth, false, joined, nav));
+        }
+        const start = rightStart + 11;
+        const available = width - start - 11;
+        const body =
+          bar(start, 15, available * 0.56, 5) +
+          bar(start, 31, available, 3) +
+          bar(start, 40, available * 0.82, 3);
+        art.push(region("content", rightStart, width, joined, false, body));
+        if (joined)
+          art.push(
+            `<path class="seam" data-shared-guide="side content" d="M${sideWidth} 0V${height}"/>`,
+          );
+        const g = G(1);
+        art.push(g.handles(0, 0, width, height), g.dimH(0, width, -12, "s"));
+        const annotations = [];
+        const label = (x, y, text) =>
+          annotations.push(
+            `<span style="left:${((x + 30) / 216) * 100}%;top:${((y + 40) / 144) * 100}%">${text}</span>`,
+          );
+        label(width / 2, -12, width);
+        if (sideWidth) label(sideWidth / 2, height + 12, "Side");
+        label((rightStart + width) / 2, height + 12, "Slot");
+        if (gap) {
+          art.push(g.dimH(sideWidth, rightStart, height + 8, "s"));
+          label(sideWidth + gap / 2, height + 21, gap);
+        }
+        return `<button type="button" class="card case-card" data-case="${key}" aria-label="${title}. ${description}" style="--d:${index * 90}ms">
+          <span class="pv" aria-hidden="true"><svg viewBox="-30 -40 216 144">${art.join("")}</svg>
+            <span class="txt">${annotations.join("")}</span></span>
+          <span class="case-title">${title}</span><span class="caption">${description}</span></button>`;
+      }
+      const cases = [
+        {
+          key: "joined",
+          title: "공유 경계",
+          description:
+            "두 영역이 만나는 점선이 완성 상태에서 구분선 한 줄로 바뀝니다.",
+          sideWidth: 42,
+          gap: 0,
+        },
+        {
+          key: "gap",
+          title: "실제 간격",
+          description: "두 영역 사이의 12px 공간과 안쪽 모서리가 유지됩니다.",
+          sideWidth: 42,
+          gap: 12,
+        },
+        {
+          key: "single",
+          title: "사이드바 생략",
+          description:
+            "콘텐츠 슬롯이 전체 폭을 쓰고, 안쪽 구분선은 사라집니다.",
+          sideWidth: 0,
+          gap: 0,
+        },
+      ];
+      document.querySelector("#cases").innerHTML = cases
+        .map(layoutCase)
+        .join("");
+      const PANELS = [
+        { w: 228, title: "패널 228px — (가)" },
+        { w: 320, title: "패널 320px — (가)" },
+        { w: 480, title: "패널 480px — (가)" },
+        {
+          w: 228,
+          title: "참고: 80px 썸네일 (S 단계, 다른 소비자용)",
+          small: true,
+        },
+      ];
+      function renderExamples() {
+        const items = examples();
+        document.querySelector("#examples").innerHTML = items
+          .map((item, i) => cardHtml(item, i, true))
+          .join("");
+        document.getElementById("panels").innerHTML =
+          `<div class="row">` +
+          PANELS.map(
+            (p) => `
+        <div class="col">
+          <h3>${p.title}</h3>
+          <div class="panel" style="width:${p.w}px">
+            <div class="sec">Components <small>시안 6 / ${TOTAL}</small></div>
+            <div class="grid${p.small ? " small" : ""}">${items.map((item, i) => cardHtml(item, i)).join("")}</div>
+          </div>
+          <p class="meta"></p>
+        </div>`,
+          ).join("") +
+          `</div>`;
+        document
+          .querySelectorAll(".sh, .chk")
+          .forEach((el) => el.setAttribute("pathLength", "1"));
+      }
+      renderExamples();
+      const measure = () => {
+        if (!document.querySelector(".reference").open) return;
+        document.querySelectorAll(".col").forEach((col) => {
+          const grid = col.querySelector(".grid");
+          const pv = col
+            .querySelector(".card:not(.tall) .pv")
+            .getBoundingClientRect();
+          const tier = pv.width < 144 ? "S" : pv.width < 260 ? "M" : "L";
+          grid.classList.toggle("tier-l", tier === "L");
+          const cols =
+            getComputedStyle(grid).gridTemplateColumns.split(" ").length;
+          const n = grid
+            .querySelector(".card:not(.tall)")
+            .getBoundingClientRect();
+          const t = grid.querySelector(".card.tall").getBoundingClientRect();
+          const rows = Math.ceil(TOTAL / cols);
+          const scroll = Math.round(rows * (n.height + 8));
+          col.querySelector(".meta").textContent =
+            `${cols}열 · 카드 ${Math.round(n.width)}×${Math.round(n.height)} (세로형 ${Math.round(t.width)}×${Math.round(t.height)}) · 미리보기 ${Math.round(pv.width)}×${Math.round(pv.height)} · 단계 ${tier} · 일반 카드 ${TOTAL}개 스크롤 ≈ ${scroll.toLocaleString()}px`;
+        });
+      };
+      document.querySelector(".reference").addEventListener("toggle", measure);
+      window.addEventListener("resize", measure);
+      document
+        .querySelector("#button-icon")
+        .addEventListener("change", (event) => {
+          const sample = buttonExample(event.target.checked);
+          document
+            .querySelectorAll('[data-example="Button"]')
+            .forEach((card) => {
+              const template = document.createElement("template");
+              template.innerHTML = cardHtml(
+                sample,
+                0,
+                Boolean(card.closest("#examples")),
+              ).trim();
+              card.replaceWith(template.content);
+            });
+          measure();
+        });
+      measure();
+      requestAnimationFrame(measure);
+
+      const root = document.documentElement;
+      const sync = () =>
+        document.querySelectorAll(".ctl[data-attr]").forEach((c) =>
+          c.querySelectorAll("button").forEach((b) => {
+            b.setAttribute(
+              "aria-pressed",
+              String(root.dataset[c.dataset.attr] === b.dataset.v),
+            );
+          }),
+        );
+      document.querySelectorAll(".ctl[data-attr] button").forEach((b) =>
+        b.addEventListener("click", () => {
+          root.dataset[b.parentElement.dataset.attr] = b.dataset.v;
+          sync();
+        }),
+      );
+      sync();
+      document.getElementById("replay").addEventListener("click", () => {
+        main.classList.remove("enter");
+        void main.offsetWidth;
+        main.classList.add("enter");
+      });
+    </script>
+  </body>
+</html>
