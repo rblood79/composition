@@ -37,6 +37,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **편집**: Group 의 Panels 칸에서 Panel 을 더하면 손잡이가 같이 들어오고, Panel 을 지우면 붙은 손잡이도 같이 지워진다. 손잡이만 지우거나 옮기거나 복제할 수 없다. Group 안에서 Panel 을 옮기면 손잡이 자리는 그대로 Panel 끼리 자리를 바꾼다. Canvas 에서 Panel 을 고르면 주축 가장자리 손잡이 둘만 나오고, 끌면 「Default size」 가 바뀐다.
   - Panel 크기는 Layout 탭 Size 에서 고친다 (사용자 2026-11-26): Group 축 방향 칸 (가로 Group = Width · Min W · Max W, 세로 Group = Height 줄) 이 곧 기본 크기 (%) · 최소 · 최대 (% · px) 이고, 값을 안 적은 Panel 의 Width 에는 지금 그려지는 몫 % 가 보인다. 다른 축 칸은 꺼진다 (Group 이 정한다). Property 탭의 같은 세 칸은 뺐다 — 크기 저장 위치가 하나라 Layout 탭에서 Fill · 고정 px 를 넣어 몫을 덮던 일이 없다
   - 위치: `commands/resizablePairs.ts` · `catalogRuntime/canvasGesture.ts` (`resizablePanelShareOf`) · `panels/styles/catalog/catalogStylesHost.ts` (`catalogResizablePanelSizeAxis`) · `panels/styles/sections/TransformSection.tsx`
+  - Navigator Layers 아이콘이 방향을 따른다 — Group 은 가로 두 칸 (columns-2) · 세로 두 줄 (rows-2), Panel 은 세로로 긴 상자 · 가로로 긴 상자, Handle 은 Canvas 의 선과 같은 방향 (가로 Group = 세로선). 팔레트 「resizable panels」 도 두 칸 아이콘 (`navigator/catalog/CatalogLayerIcon.tsx`)
+
+### Fixed
+
+- **Navigator Layers 의 Separator 아이콘이 방향을 따른다**: vertical Separator 가 가로선 아이콘으로 보이던 것을 세로선 (palette 아이콘 · 컴포넌트 안 부품 glyph 둘 다) 으로
 
 ### Notes
 

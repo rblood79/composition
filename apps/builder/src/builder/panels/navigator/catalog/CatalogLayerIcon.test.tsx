@@ -2,7 +2,19 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
 import { getPaletteItems } from "../../components/paletteItems";
-import { CatalogLayerIcon, layerComponentIcon } from "./CatalogLayerIcon";
+import {
+  Columns2,
+  Rows2,
+  SeparatorHorizontal,
+  SeparatorVertical,
+} from "lucide-react";
+import {
+  CatalogLayerIcon,
+  layerComponentIcon,
+  layerOrientedGlyph,
+  layerResizableGroupIcon,
+  layerSeparatorIcon,
+} from "./CatalogLayerIcon";
 
 const row = (typeName: string, extra: Partial<CatalogLayerNode> = {}) =>
   ({ typeName, body: false, ...extra }) as CatalogLayerNode;
@@ -32,6 +44,30 @@ describe("Layers component and structural icons", () => {
     expect(layerComponentIcon(row("Frame", { body: true }))).toBeUndefined();
   });
 
+  it("a Resizable Group shows its orientation — columns side by side, rows stacked", () => {
+    expect(layerComponentIcon(row("ResizablePanelGroup"))).toBe(Columns2);
+    expect(layerResizableGroupIcon(undefined)).toBe(Columns2);
+    expect(layerResizableGroupIcon("horizontal")).toBe(Columns2);
+    expect(layerResizableGroupIcon("vertical")).toBe(Rows2);
+  });
+
+  it("line and part glyphs follow the axis the Canvas draws (Separator · Resizable Handle · Panel)", () => {
+    expect(layerOrientedGlyph("Separator", undefined)).toBe("line");
+    expect(layerOrientedGlyph("Separator", "vertical")).toBe("line-vertical");
+    // A horizontal Group's Handle is a vertical line between side-by-side Panels.
+    expect(layerOrientedGlyph("ResizableHandle", "horizontal")).toBe(
+      "line-vertical",
+    );
+    expect(layerOrientedGlyph("ResizableHandle", "vertical")).toBe("line");
+    expect(layerOrientedGlyph("ResizablePanel", undefined)).toBe(
+      "panel-column",
+    );
+    expect(layerOrientedGlyph("ResizablePanel", "vertical")).toBe("panel-row");
+    expect(layerOrientedGlyph("Button", "vertical")).toBeUndefined();
+    expect(layerSeparatorIcon("horizontal")).toBe(SeparatorHorizontal);
+    expect(layerSeparatorIcon("vertical")).toBe(SeparatorVertical);
+  });
+
   it.each([
     ["Body", "frame"],
     ["Content", "group"],
@@ -40,7 +76,6 @@ describe("Layers component and structural icons", () => {
     ["Input", "keyboard"],
     ["Icon", "vector"],
     ["Image", "image"],
-    ["Separator", "line"],
     ["Button", "shape"],
   ])("renders %s as a simple %s glyph", (typeName, glyph) => {
     const markup = renderToStaticMarkup(

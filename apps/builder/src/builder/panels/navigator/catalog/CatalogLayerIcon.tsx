@@ -1,9 +1,20 @@
-import { Keyboard, RectangleEllipsis } from "lucide-react";
+import {
+  Columns2,
+  Keyboard,
+  RectangleEllipsis,
+  Rows2,
+  SeparatorHorizontal,
+  SeparatorVertical,
+} from "lucide-react";
+import { useMemo } from "react";
 import { getPanelMeta, getReusableEntry } from "@composition/shared";
 import { getChartDescriptor } from "@composition/rendering";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
-import { useCatalogPropSource } from "../../../catalogRuntime/react";
+import {
+  useCatalogPropSource,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { getPaletteItems, ICON_MAP } from "../../components/paletteItems";
 import { ICON_EDIT_PROPS } from "../tree/helpers";
 
@@ -28,7 +39,17 @@ export function layerComponentIcon(node: CatalogLayerNode) {
 }
 
 type NodeGlyph =
-  "frame" | "group" | "text" | "input" | "vector" | "image" | "line" | "shape";
+  | "frame"
+  | "group"
+  | "text"
+  | "input"
+  | "vector"
+  | "image"
+  | "line"
+  | "line-vertical"
+  | "panel-column"
+  | "panel-row"
+  | "shape";
 
 export function layerNodeGlyph(typeName: string): NodeGlyph {
   switch (typeName) {
@@ -88,6 +109,10 @@ const NODE_PATHS: Record<NodeGlyph, string> = {
   vector: "M8 3l5 5-5 5-5-5Z M7 1h2v2H7ZM13 7h2v2h-2ZM7 13h2v2H7ZM1 7h2v2H1Z",
   image: "M2 3h12v10H2ZM2 11l4-4 3 3 2-2 3 3M10 5h.01",
   line: "M2 8h12",
+  "line-vertical": "M8 2v12",
+  // (A Resizable Panel: one part of its Group — a tall column side by side, a wide row stacked.)
+  "panel-column": "M5 2h6v12H5Z",
+  "panel-row": "M2 5h12v6H2Z",
   shape: "M3 4h10v8H3Z",
 };
 
@@ -97,6 +122,98 @@ const iconProps = {
   strokeWidth: ICON_EDIT_PROPS.stroke,
   "aria-hidden": true as const,
 };
+
+/**
+ * ADR-318 후속 (사용자 2026-11-26 「orientation 에 따라 layers 트리 icon 이 columns, rows」): a
+ * Resizable Group's row shows its axis — side by side (horizontal, the palette's) two columns,
+ * stacked (vertical) two rows (사용자 2026-11-26 「columns-2, rows-2」).
+ */
+export function layerResizableGroupIcon(orientation: unknown) {
+  return orientation === "vertical" ? Rows2 : Columns2;
+}
+
+function ResizableGroupLayerIcon({ node }: { node: CatalogLayerNode }) {
+  // Subscribe only to this row's orientation (as the Chart row does its chartType).
+  const orientation = useCatalogPropSource(node.position.target, "orientation");
+  const Icon = layerResizableGroupIcon(orientation.value);
+  return <Icon {...iconProps} data-layer-icon="component" />;
+}
+
+/**
+ * ADR-318 후속 (사용자 2026-11-26 「방향에 맞추기 — Handle · Panel · Separator 셋 다」): the line and
+ * part glyphs follow the axis the Canvas draws — a Separator its own `orientation`, a Resizable
+ * Handle the line between its Group's Panels (a horizontal Group's is vertical), a Panel its share
+ * (a column side by side, a row stacked). Undefined for any other type.
+ */
+export function layerOrientedGlyph(
+  typeName: string,
+  orientation: unknown,
+): NodeGlyph | undefined {
+  const vertical = orientation === "vertical";
+  switch (typeName) {
+    case "Separator":
+      return vertical ? "line-vertical" : "line";
+    case "ResizableHandle":
+      return vertical ? "line" : "line-vertical";
+    case "ResizablePanel":
+      return vertical ? "panel-row" : "panel-column";
+    default:
+      return undefined;
+  }
+}
+
+/** A top-level Separator's palette icon, on its axis. */
+export function layerSeparatorIcon(orientation: unknown) {
+  return orientation === "vertical" ? SeparatorVertical : SeparatorHorizontal;
+}
+
+type EditTarget = CatalogLayerNode["position"]["target"];
+
+function GlyphIcon({ glyph }: { glyph: NodeGlyph }) {
+  return (
+    <svg
+      {...iconProps}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      data-layer-icon={glyph}
+    >
+      <path d={NODE_PATHS[glyph]} />
+    </svg>
+  );
+}
+
+/** A row whose icon follows `orientation` — its own (Separator) or its Group's (Panel · Handle). */
+function OrientedLayerIcon({
+  node,
+  target,
+}: {
+  node: CatalogLayerNode;
+  target: EditTarget;
+}) {
+  // Subscribe only to that one prop (as the Chart row does its chartType).
+  const orientation = useCatalogPropSource(target, "orientation").value;
+  if (layerComponentIcon(node)) {
+    const Icon = layerSeparatorIcon(orientation);
+    return <Icon {...iconProps} data-layer-icon="component" />;
+  }
+  return <GlyphIcon glyph={layerOrientedGlyph(node.typeName, orientation)!} />;
+}
+
+/** A Resizable Panel · Handle row: its Group's orientation (the record's parent). */
+function ResizablePartLayerIcon({ node }: { node: CatalogLayerNode }) {
+  const workspace = useCatalogWorkspace();
+  const groupTarget = useMemo(() => {
+    const parent = workspace.root.domInputs.get(node.id)?.parentId;
+    return parent ? workspace.positionOfRecord(parent)?.target : undefined;
+  }, [workspace, node.id]);
+  if (!groupTarget)
+    return <GlyphIcon glyph={layerOrientedGlyph(node.typeName, undefined)!} />;
+  return <OrientedLayerIcon node={node} target={groupTarget} />;
+}
 
 function ChartLayerIcon({ node }: { node: CatalogLayerNode }) {
   // All seven palette variants are stored as Chart. Subscribe only to this row's
@@ -115,22 +232,14 @@ export function CatalogLayerIcon({ node }: { node: CatalogLayerNode }) {
       <RectangleEllipsis {...iconProps} data-layer-icon="rectangle-ellipsis" />
     );
   }
+  if (node.typeName === "Separator")
+    return <OrientedLayerIcon node={node} target={node.position.target} />;
+  if (node.typeName === "ResizablePanel" || node.typeName === "ResizableHandle")
+    return <ResizablePartLayerIcon node={node} />;
   const Icon = layerComponentIcon(node);
   if (Icon && node.typeName === "Chart") return <ChartLayerIcon node={node} />;
+  if (Icon && node.typeName === "ResizablePanelGroup")
+    return <ResizableGroupLayerIcon node={node} />;
   if (Icon) return <Icon {...iconProps} data-layer-icon="component" />;
-  const glyph = layerNodeGlyph(node.typeName);
-  return (
-    <svg
-      {...iconProps}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      data-layer-icon={glyph}
-    >
-      <path d={NODE_PATHS[glyph]} />
-    </svg>
-  );
+  return <GlyphIcon glyph={layerNodeGlyph(node.typeName)} />;
 }

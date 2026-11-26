@@ -242,7 +242,7 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     type: "ResizablePanelGroup",
     category: "layout",
     label: "resizable panels",
-    icon: "Columns3",
+    icon: "Columns2",
   },
   {
     type: "CardView",

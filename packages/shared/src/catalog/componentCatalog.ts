@@ -486,7 +486,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("ResizablePanelGroup", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
     label: "resizable panels",
-    icon: "Columns3",
+    icon: "Columns2",
   }),
   primitiveEntry("ResizablePanel", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",

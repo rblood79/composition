@@ -7,6 +7,10 @@
 //   5. Handle 을 고르면 크기 손잡이 없음 · Design 패널 라벨 (Collapsible · Remember sizes — 크기 셋은 Property 탭에 없다) · page error 0
 //   6. (후속 2026-11-26 「Layout 탭 size 와 동기화」) Layout 탭: Panel 의 Width = Default size (%) · Height 꺼짐 ·
 //      Width 40 → Default size 40 (box style 없음) · Canvas 40 % · Min W 120px → Min size 「120px」 · ⌘Z
+//   7. (후속 2026-11-26 「orientation 에 따라 layers 트리 icon 이 columns, rows」) Navigator Layers 의 Group 줄
+//      아이콘: 가로 = columns-2 → orientation vertical → rows-2 (다시 그리기 없이) → ⌘Z → columns-2 ·
+//      Panel · Handle 줄 glyph (가로 = panel-column · line-vertical → 세로 = panel-row · line) ·
+//      Separator 줄 (separator-horizontal → orientation vertical → separator-vertical)
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr318-g6-live.mjs <out-dir>
 //   BROWSER=webkit 이면 Playwright WebKit 으로
@@ -429,6 +433,102 @@ try {
       minSize: afterMin.props?.minSize,
       maxOff,
       undoMin: afterUndo.props?.minSize,
+      errors: errors.slice(0, 5),
+    },
+  );
+
+  // 7. The Layers row of the Group shows its orientation.
+  await openRail("navigator");
+  await selectRecord(g.id);
+  const groupIcon = () =>
+    page.evaluate(() => {
+      // (The Layers rows' icons — the Group's is the one row of that type, a columns · rows glyph.)
+      const icons = [
+        ...document.querySelectorAll('svg[data-layer-icon="component"]'),
+      ].map((svg) => String(svg.getAttribute("class") ?? ""));
+      return icons.find((c) => /columns-2|rows-2/.test(c)) ?? icons.join(" | ");
+    });
+  const glyphs = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("svg[data-layer-icon]")]
+        .map((svg) => svg.getAttribute("data-layer-icon"))
+        .filter((g) => /^(panel-|line)/.test(g)),
+    );
+  const separatorIcon = () =>
+    page.evaluate(
+      () =>
+        [...document.querySelectorAll('svg[data-layer-icon="component"]')]
+          .map((svg) => String(svg.getAttribute("class") ?? ""))
+          .find((c) => /separator-/.test(c)) ?? null,
+    );
+  const iconHorizontal = await groupIcon();
+  const partsHorizontal = await glyphs();
+  await write(g.id, { orientation: "vertical" });
+  await page.waitForTimeout(600);
+  const iconVertical = await groupIcon();
+  const partsVertical = await glyphs();
+  await page.screenshot({ path: `${OUT}/7-layers-icon.png` });
+  await undo();
+  await selectRecord(g.id);
+  const iconUndone = await groupIcon();
+  // A Separator on the page: its own orientation.
+  await openRail("components");
+  await page.evaluate(() =>
+    window.__COMPOSITION_CATALOG__.workspace.selectItems([]),
+  );
+  const separatorCard = page
+    .locator("button, [role='button'], [role='option'], [role='gridcell']")
+    .filter({ hasText: /^separator$/i })
+    .first();
+  await separatorCard.scrollIntoViewIfNeeded();
+  await separatorCard.click();
+  await page.waitForTimeout(800);
+  // (WebKit: a card scrolled into view may take the click as focus only — Enter places it.)
+  const placed = await exec(`(cat) => {
+    const r = cat.workspace.root;
+    return [...r.canvasInputs.values()].some((x) => r.typeOf(x) === "Separator");
+  }`);
+  if (!placed) await separatorCard.press("Enter");
+  await page.waitForFunction(
+    () => {
+      const r = window.__COMPOSITION_CATALOG__.workspace.root;
+      return [...r.canvasInputs.values()].some(
+        (x) => r.typeOf(x) === "Separator",
+      );
+    },
+    null,
+    { timeout: 15000 },
+  );
+  await page.waitForTimeout(600);
+  await openRail("navigator");
+  const separator = await exec(`(cat) => {
+    const r = cat.workspace.root;
+    return [...r.canvasInputs.values()].find((x) => r.typeOf(x) === "Separator")?.id;
+  }`);
+  const sepHorizontal = await separatorIcon();
+  await write(separator, { orientation: "vertical" });
+  await page.waitForTimeout(600);
+  const sepVertical = await separatorIcon();
+  record(
+    "7 Layers 아이콘 방향 — Group columns-2 ↔ rows-2 · Panel panel-column ↔ panel-row · Handle 세로선 ↔ 가로선 · Separator horizontal ↔ vertical · ⌘Z",
+    /columns-2/.test(iconHorizontal ?? "") &&
+      /rows-2/.test(iconVertical ?? "") &&
+      /columns-2/.test(iconUndone ?? "") &&
+      JSON.stringify(partsHorizontal) ===
+        JSON.stringify(["panel-column", "line-vertical", "panel-column"]) &&
+      JSON.stringify(partsVertical) ===
+        JSON.stringify(["panel-row", "line", "panel-row"]) &&
+      /separator-horizontal/.test(sepHorizontal ?? "") &&
+      /separator-vertical/.test(sepVertical ?? "") &&
+      errors.length === 0,
+    {
+      iconHorizontal,
+      iconVertical,
+      iconUndone,
+      partsHorizontal,
+      partsVertical,
+      sepHorizontal,
+      sepVertical,
       errors: errors.slice(0, 5),
     },
   );
