@@ -1,0 +1,207 @@
+# ADR-320: 필터 바 컴포넌트 — 보는 사람이 조건을 추가하고 「그리고 · 또는」 묶음으로 거르는 실행 중 필터 (조건 트리 하나 · RAC 조립)
+
+## Status
+
+Proposed — 2026-11-26
+
+- 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 (ReUI 가 앞서는 곳 = 실행 중 필터 바와 우리에게 없는 컴포넌트) 뒤 `/create-adr`.
+- 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2):
+  1. 범위 = 차용 후보 네 묶음 전부 — 「필터 바」 · 「Stepper · Rating」 · 「Cascader」 · 「Timeline · Event Calendar · Gantt」.
+  2. 문서 단위 = 「묶음마다 ADR 하나」. **결정 지점 1 (ADR 분리) 의 확정이다** — 320 (이 문서) · [321](321-steplist-rating-components.md) · [322](322-cascader-hierarchical-picker.md) · [323](323-timeline-event-calendar-gantt.md).
+- 분리 점검 (4 질문):
+  1. base / 응용 — 네 ADR 은 서로의 선행이 아니다 (독립 컴포넌트 계열). ReUI 는 Filters 가 Cascader 를 소비하지만, 이 ADR 의 필드 고르기는 RAC `Menu` · `SubmenuTrigger` 로 조립하므로 322 를 기다리지 않는다.
+  2. 저장 형식 — 320 은 실행 상태 조각과 `FilterBar` 노드, 321 ~ 323 은 각자의 노드 type 이다. 겹치는 형식이 없고 contract 번호만 착수 순서대로 받는다.
+  3. 선행 ADR 의 전제 — 이 ADR 은 [ADR-284](completed/284-data-view-filter-sort-group-query.md) (조건 트리) 와 [ADR-315](completed/315-table-data-grid-state-model.md) (표 상태) 위의 응용이고 방향은 그대로다. ADR-315 의 「열 필터는 열마다 조건 하나」 는 이 ADR 이 넓힌다 (겹치면 새 결정을 따른다).
+  4. 위 셋은 판독 전에 여기서 확인했다.
+- 리뷰 전. 착수는 사용자 `/execute-adr 320`.
+
+## Context
+
+### 도메인
+
+- **D1 (DOM · 접근성)**: 설치된 `react-aria-components` 1.22.1 의 부품만으로 조립한다 — `Toolbar` · `Group` · `Button` · `MenuTrigger` · `Menu` · `SubmenuTrigger` · `Autocomplete` · `DialogTrigger` · `Popover` · `Dialog` · `ListBox` · `Tree` 와 field 류. 알림은 react-aria 의 `announce` 다. **D1 예외를 만들지 않는 것이 제약이다** (HC2).
+- **D2 (Props)**: S2 1.8.2 에 필터 빌더가 없고 design-data 검색 「filter」 8 건에도 전용 컴포넌트가 없다 (combo-box · search-field · tag-group 등의 설명문). v3 는 Phase 0 에서 확인한다. 정본 순서의 4 번 — composition 확장으로 `d2Provenance.ts` 에 적는다.
+- **D3 (시각)**: 칩 · 버튼 · 조건 행의 모양은 catalog rule 이 정본이다. Canvas 는 작성 값 (시작 조건의 칩과 버튼) 을 그리고, 실행 중에 바뀐 조건은 Preview · Publish 에만 있다.
+- 데이터 계산 (조건 평가 · 요청 직렬화) 은 D1 ~ D3 밖의 데이터 층이다 (ADR-284 · 291 · 315).
+
+### 문제
+
+고객은 대량 데이터를 여러 조건으로 조회하는 화면을 만든다. 지금 만든 화면의 사용자가 실행 중에 할 수 있는 거르기는 셋이다 — 작성자가 놓은 컨트롤에 값 넣기 (ADR-284), 표 전체 검색, 열 메뉴의 열 필터 (열마다 조건 하나, ADR-315). 「부서가 영업 **또는** 지역이 서울」 처럼 열을 가로지르는 조건, 한 열에 조건 둘, 조건을 잠깐 끄기는 만들 수 없고, Table 이 아닌 목록 (GridList · CardView · Chart) 에는 실행 중 필터가 아예 없다. 2026-10-30 조사의 자유도 단계로 보면 지금은 2 단계 (값만) 와 3 단계의 일부 (열 필터) 이고, 고객이 익숙한 제품 (Airtable · Notion · Retool) 은 4 단계 (묶음 중첩) 다. ReUI 의 Filters 는 이것을 필드 스키마 하나와 조건 트리 하나로 푼다.
+
+### 코드 사실 (2026-11-26 실측, HEAD `0ea8c33d8`)
+
+- **F1** 조건 트리는 이미 있다 — `ViewCondition` · `ViewConditionGroup` (`packages/shared/src/catalog/document/types.ts:839-862`): 묶음은 `and` · `or`, 항목은 조건 또는 묶음, 조건에 `enabled` (끄기) 와 `skip` (빈 값이면 통과) 이 있다. 검증은 재귀이고 깊이 제한이 없다 (`catalog/document/validation.ts:1499-1513`).
+- **F2** 비교 21 종과 필드 종류별 허용 표는 한 곳이다 — `VIEW_COMPARISONS_BY_KIND` (`collections/view/comparison.ts:38-78`, text 11 · number 10 · boolean 4 · date 8 · list 4). 상대 날짜는 `withinLast` 하나이고 고정 일수로 환산한다 (`:647-657`).
+- **F3** 표 상태의 열 필터는 열마다 하나인 평평한 「그리고」 다 — `CatalogTableColumnFilter` 는 조건에서 `id` · `fields` 를 뺀 모양이고 (`catalog/runtime/tableState.ts:32-38`), 쓰기가 열 key 로 접는다 (`:207-237`). 보기와의 합성은 `catalogTableStateQueries` 가 마지막 보기의 `where` 에 항목을 「그리고」 로 붙인다 (`catalog/runtime/tableStateQuery.ts:118-139`).
+- **F4** 로컬의 빠른 경로 `viewRowsPassing` 은 「모든 test 통과」 목록이라 「또는」 을 표현하지 못한다 (`collections/view/rowFilter.ts:99-106`). 평가기 (`collections/view/evaluate.ts:361-395`) 는 트리 전체를 계산한다.
+- **F5** 서버 요청: `body` 형식은 트리 전체를 보낸다 (`collections/view/serialize.ts:361-390`). `suffix` 형식은 적용된 항목이 둘 이상인 `or` 를 `OR_GROUP` 경고와 함께 보내지 않는다 (`:455-466`). 표 상태는 요청이 담지 못하는 조각을 상태에 받지 않는다 (`catalogTableSliceServable` — `tableStateQuery.ts:244-305`).
+- **F6** 실행 상태의 자리는 Table 뿐이다 — 세션의 `tables.tableStates` 를 `recordRowSlices` 가 Table record 에서만 읽는다 (`catalog/runtime/catalogPreviewSession.ts:1786-1800`). 다른 목록의 실행 상태는 쪽 번호뿐이다 (`pageOf` — `:3656`). 행 계산 `catalogBoundRows` 는 목록 종류와 무관하게 조각을 받는다 (`:3640-3647`).
+- **F7** 브라우저 기억은 정렬과 열 조각만이다 (`REMEMBERED_SLICES` — `tableState.ts:94-97`), Publish 의 localStorage. 검색 · 필터는 기억하지 않고, 주소 (URL) 에 상태를 싣는 코드는 없다. Publish 의 주소는 hash 경로다 (`apps/publish/src/App.tsx:90-121`).
+- **F8** 열 필터 UI 는 lazy chunk 의 `Popover > Dialog` 다 (`catalog/runtime/tableOperationsDom.components.tsx:356-358`, `:432-453`). 값 편집기 (글자 · 숫자 · 날짜 · 범위 · 후보 값 목록), draft → 조건 변환 (`catalog/runtime/tableColumnFilterDraft.ts:91-105`), 비교 · 단위 문구 4 언어 표가 `tableColumnFilter.components.tsx` 에 있다.
+- **F9** 후보 값은 `tableFacet` 이 자기 조건을 뺀 보기로 계산한다 (`catalog/runtime/catalogTableController.ts:1556-1619`). 원격 부분 로드면 불러온 행에서만 내고 그 사실을 표시한다. 서버에 후보 값을 묻는 요청은 없다.
+- **F10** 다른 컴포넌트의 상태에 연결하는 형식 선례는 노드 필드다 — `pagesOf` · `columnsOf` (`types.ts:1376-1386`, 끊긴 id = 연결 안 됨).
+- **F11** 설치본에 조립 부품이 있다 — RAC 1.22.1 의 `Toolbar` · `Autocomplete` · `SubmenuTrigger` · `ListBoxLoadMoreItem` · `Tree` (`dragAndDropHooks` — `dist/types/src/Tree.d.ts:82`), react-aria 3.53.1 의 live announcer (private 경로 — 저장소는 private 경로를 이미 쓴다: `catalog/runtime/actionBarHost.components.tsx:16`).
+- **F12** `LIBRARY_CONTRACT_VERSION` 은 79 다 (`types.ts:204`). initial 번들 상한은 Builder 1,650,000 · Preview 327,000 B gzip (만료 2026-12-25, `apps/builder/scripts/adr201-bundle-gate.mjs:28-30`) 이고 ADR-318 Phase 6 뒤 Builder 는 약 1,639,400 B 다 (여유 약 10,600 B — Phase 0 재측정).
+
+### 레퍼런스
+
+- **ReUI Filters** (`reui.io/docs/components/base/filters`, registry 소스 14 파일 — 2026-11-26 읽음): 필수 prop 은 `fields` 하나, 상태는 항상 묶음인 `FilterQuery` (`combinator: and | or` 가 묶음마다 하나), 칩 줄 (`basic`) 과 조건 빌더 (`advanced`) 가 같은 query 를 읽고 쓴다. 칩은 네 조각 (필드 글자 · 연산자 · 값 · 메뉴) 이고 필드를 고르는 순간 미완성 조건이 생긴다. 후보 값은 `loadOptions(query, { signal, cursor })` 로 검색 · 이어 불러오기를 한다. 직렬화 · 저장된 보기 · 조건 끄기는 없다. DOM 은 Base UI 위이고 목록은 `aria-activedescendant`, 칩 줄은 `role="toolbar"` 의 roving tabindex 다.
+- **자유 필터 18 제품 조사 (2026-10-30)**: 묶음 안의 and/or 는 하나 (Airtable · NocoDB · Baserow · MUI), 중첩 깊이는 2 ~ 5 단 또는 무제한, 작성자 조건은 숨긴 채 먼저 적용, 「필터는 보안이 아님」, 지우지 않고 끄는 토글.
+- **react-querybuilder**: 묶음당 combinator 하나 (`RuleGroupType`) 와 행마다 독립 (`RuleGroupTypeIC`) 두 형식. 우리 형식은 앞의 것과 같다.
+- 대조 표 전문은 [breakdown §2](design/320-filter-bar-runtime-condition-builder-breakdown.md).
+
+### Hard constraints
+
+- **HC1** 새 런타임 의존성 0.
+- **HC2** D1 예외 0 — 구현이 쓰는 role · `aria-*` · 키 handler 는 RAC 컴포넌트와 react-aria 유틸이 내는 것뿐이다. 조립으로 풀리지 않는 것이 나오면 멈추고 사용자에게 보고한다 (결정 지점 3).
+- **HC3** 한 대상의 실행 중 필터 정본은 하나다 — 열 메뉴의 열 필터와 필터 바가 같은 조건 트리를 읽고 쓴다.
+- **HC4** 조용한 부분 결과 금지 — 요청 형식이 담지 못하는 조건은 상태에 받지 않고, 필터 바는 그 기능을 내지 않는다 (ADR-284 Decision 6 · ADR-315 Decision 3).
+- **HC5** 비교 어휘는 닫힌 채로 둔다 (ADR-284 Decision 2). 새 비교 · 자유 식을 만들지 않는다 — 상대 날짜만 사용자 결정 7.
+- **HC6** 성능: 로컬 10,000 행에서 조건 변경 → 결과 표시 p95 가 정렬 클릭 기준선 안 (ADR-315 G0 — CPU 1x 154 ~ 169 ms · 4x 556 ~ 589 ms). 「또는」 묶음 · 2 단 중첩을 포함한 조건에서.
+- **HC7** 번들: initial Δ 는 사용자 결정 10 안. 조건 편집 · 값 편집기 · 빌더는 lazy chunk 이고 로드 전에도 칩과 버튼의 배치가 선다.
+- **HC8** 대칭: 같은 작성 값에서 Canvas 와 Preview 첫 화면의 필터 바 · 칩 · 버튼 rect 가 ±1 px 로 같다. 기준값은 실제 Chrome 의 `getBoundingClientRect` 다.
+- **HC9** 문서 변환 코드 0 — contract 는 더하기만.
+- **HC10** 키보드만으로 조건 추가 · 수정 · 끄기 · 삭제 · 묶기 · 순서 바꾸기 전부.
+
+### Soft constraints
+
+- 사용자는 비개발자다 — 「필터 바 추가」 한 동작으로 연결된 채 놓이고, 화면 문구는 「그리고 · 또는 · 조건 · 묶음」 이다.
+- 필터는 접근 통제가 아니다 — 작성자 조건은 숨은 채 먼저 적용되지만 보안 경계는 서버다.
+- RTL 은 대상이 아니다 (사용자 결정 2026-11-24).
+
+## Alternatives Considered
+
+### 대안 A: 제3자 필터 빌더 도입 (ReUI Filters 소스 복사 또는 `react-querybuilder`)
+
+- 설명: ReUI 의 14 파일 (+ cascader 11 파일) 을 복사하거나 `react-querybuilder` 를 감싼다.
+- 근거: 기능 표면이 이미 완성되어 있다.
+- 위험: 기술 MEDIUM (query 형식이 둘 — `FilterQuery` ↔ `ViewConditionGroup` 변환과 연산자 대응표) / 성능 MEDIUM (Base UI · TanStack Virtual · date-fns 가 번들에 든다 — F12 의 여유 약 10 KB) / 유지보수 **HIGH** (DOM · focus 모델이 D1 정본 밖 · Tailwind 스타일은 Canvas 가 그릴 수 없어 D3 가 둘) / 마이그레이션 LOW.
+
+### 대안 B: 전용 `FilterBar` + 필터 범위마다 조건 트리 하나 + RAC 조립 (채택)
+
+- 설명: 실행 중 필터를 「필터 범위」 의 조건 트리 (`ViewConditionGroup` 그대로) 하나로 둔다. 표 상태의 열 필터 조각을 그 트리로 넓히고, 필터 바는 그 트리를 편집하는 표면이다. DOM 은 RAC 부품으로 조립한다.
+- 근거: F1 · F2 (트리 · 비교표 · 평가기 · body 직렬화가 이미 있다) · F8 · F9 (값 편집기 · 후보 값 재사용) · F10 (연결 형식 선례) · F11 (조립 부품).
+- 위험: 기술 MEDIUM (표 상태 조각의 모양을 바꾼다 · 로컬 「또는」 경로 · 서버 판정) / 성능 MEDIUM (HC6) / 유지보수 MEDIUM (조립한 표면을 우리가 유지) / 마이그레이션 LOW (실행 상태는 문서에 없다 — 더하기만).
+
+### 대안 C: 변수 경로 — 필터 바를 컨트롤로, 값 = 조건 트리 변수
+
+- 설명: ADR-284 의 배선 (컨트롤 → 페이지 변수 → 보기 조건) 그대로. 변수 값 형에 「조건 트리」 를 더하고 보기 `where` 가 그 변수를 묶음으로 읽는다.
+- 근거: 같은 변수를 읽는 보기가 모두 걸러진다 (표 + 차트). 변수의 `persist` 가 기억을 준다.
+- 위험: 기술 **HIGH** (새 값 형이 `ValueTypeId` · `VARIABLE_TYPE_OF` · 변수 편집기 · 검증 · 직렬화로 번진다 — ADR-318 R5 와 같은 부류) / 성능 MEDIUM (변수 쓰기마다 그 변수를 읽는 보기 전체를 다시 그린다 — ADR-318 HC5 에서 잰 경로) / 유지보수 **HIGH** (실행 중 필터의 자리가 변수와 표 상태 둘 — ADR-315 가 없앤 「기능마다 다른 상태 자리」 가 다시 생긴다) / 마이그레이션 LOW.
+
+### 대안 D: Table 열 메뉴만 넓히기 (새 컴포넌트 없음)
+
+- 설명: 열마다 조건을 여럿 받고 표 위에 적용된 조건 요약 줄을 둔다.
+- 위험: 기술 LOW / 성능 LOW / 유지보수 MEDIUM / 마이그레이션 LOW. 열을 가로지르는 「또는」 이 없고 Table 밖의 목록 · 차트는 거르지 못한다 — 사용자 범위를 채우지 못한다.
+
+### Risk Threshold Check
+
+| 대안 | HIGH 이상       | 판정                           |
+| ---- | --------------- | ------------------------------ |
+| A    | 유지보수        | 기각                           |
+| B    | 없음 (MEDIUM 3) | 채택 — 루프 불필요             |
+| C    | 기술 · 유지보수 | 기각                           |
+| D    | 없음            | 범위 미달로 기각 (묶음 · 목록) |
+
+## Decision
+
+**대안 B 를 채택한다.**
+
+1. **상태 — 필터 범위마다 조건 트리 하나.** 값은 `ViewConditionGroup` 그대로이고 루트는 「그리고」 다. 범위는 필터 바가 가리키는 대상들이고, 필터 바가 없는 Table 은 자기 자신이 범위다. 표 상태의 `columnFilters` 조각은 이 트리로 바뀐다 — 열 메뉴 「필터…」 는 루트의 그 열 조건 하나 (id 는 열 key 에서 유도) 를 읽고 쓰고, 같은 조건이 필터 바의 칩으로 보인다 (HC3).
+2. **합성** — 범위의 트리는 대상 binding 의 마지막 보기 `where` 에 「그리고」 로 붙는다 (지금 `catalogTableStateQueries` 의 자리). 작성자가 보기에 적은 조건은 그대로 먼저 적용되고 필터 바에 보이지 않는다.
+3. **로컬 실행** — 평평한 「그리고」 뿐이면 지금의 빠른 경로를 쓰고, 「또는」 · 중첩이 있으면 묶음을 평가하는 경로를 쓴다. 두 경로의 결과가 평가기와 같다는 것을 대조 테스트로 고정한다.
+4. **서버** — 요청 형식이 트리를 담을 때만 받는다: `body` 는 전부, `suffix` 는 「그리고」 와 접미사 표의 비교만. 담지 못하는 기능 (「또는」 · 묶음 · 그 비교) 은 그 범위의 필터 바가 내지 않는다. 전량을 불러온 collection 은 로컬에서 전부 한다.
+5. **컴포넌트** — `FilterBar` 하나. 연결은 노드 필드 `filtersOf` (대상 노드 id 목록 — 같은 collection 을 읽는 목록) 이고 끊긴 id 는 연결 안 됨이다. 부품은 노드다: 칩 (조건마다 반복되는 template) · 「필터 추가」 · 「조건 편집」 · 「지우기」 Button. 저작은 연결된 목록의 「필터 바 추가」 한 동작이다.
+6. **필드 목록** — 대상 collection 의 schema 에서 유도한다 (참조 필드는 경로로). 필드 종류별 비교는 F2 의 표 그대로다. 작성자가 내놓을 필드를 고르는 방식은 사용자 결정 8.
+7. **칩 줄** — RAC `Toolbar` 안에 조건마다 `Group` (이름 = 「필드 · 비교 · 값」) 을 두고, 그 안에 필드 글자 · 비교 `MenuTrigger` · 값 `DialogTrigger` · 조건 메뉴 (복제 · 끄기 · 삭제) 와 삭제 `Button` 을 둔다. 조건 추가는 필드 → 비교 → 값 순서이고 값이 비면 그 조건은 적용되지 않는다 (`skip`).
+8. **조건 빌더** — `Popover > Dialog` (또는 제자리) 안의 RAC `Tree`: 행이 조건, 자식을 가진 행이 묶음이다. 「그리고 · 또는」 은 묶음마다 하나이고, 순서 바꾸기 · 묶음으로 옮기기는 Tree 의 `useDragAndDrop` 이 맡는다 (키보드 끌기 포함). 중첩 깊이는 사용자 결정 3.
+9. **값 편집기 · 후보 값** — 열 필터 대화상자의 편집기 · draft 변환 · 문구 표를 한 lazy 모듈로 같이 쓴다. 후보 값은 자기 조건을 뺀 `facet` 보기이고, 서버에 후보 값을 묻는 계약은 사용자 결정 9.
+10. **끄기 · 지우기** — 끄기는 조건의 `enabled`. 「지우기」 는 범위의 트리를 시작 조건으로 되돌린다.
+11. **시작 조건** — `FilterBar` 의 작성 값 (문서에 저장) 이고 Canvas 가 그 칩을 그린다. 실행 중 변화는 Canvas 에 없다.
+12. **기억 · 주소 · 이름 붙인 묶음** — 사용자 결정 4 · 5 · 6.
+13. **상태 연동** — Do 「조건 넣기 · 조건 지우기 · 전부 지우기」 (기존 `setColumnFilter` · `clearColumnFilter` 는 같은 트리에 쓴다), When 「필터 변경」, 이름 붙인 상태 = 적용된 조건 수.
+14. **알림** — 조건이 바뀌면 react-aria `announce` 로 「조건 N 개 적용」 을 알린다.
+15. **하지 않는 것**
+    - 제3자 필터 빌더 도입 (대안 A) · 변수 경로 (대안 C).
+    - 자유 식 · SQL 입력 · 새 비교 (HC5). 조건의 부정 플래그 — `not*` 비교가 이미 있다.
+    - Backspace · Delete 키로 칩 삭제 — RAC `Toolbar` 가 주지 않는 키다. 삭제는 버튼과 메뉴로 한다.
+    - 저장값의 표시 복원 (ReUI `resolveValues`) — 우리는 id 가 아니라 필드 값으로 거르고, 참조는 경로 (`teamId.name`) 로 읽는다.
+    - 접근 통제. 문서 변환 코드 (HC9).
+
+위험 수용 근거: B 의 남는 위험은 표 상태 조각의 모양을 바꾼다는 것이다. 실행 상태는 문서에 저장되지 않아 옛 값이 없고, 열 필터의 테스트 (ADR-315 Phase 3 · 4) 가 그대로 회귀 기준이 된다. 트리 · 비교 · 평가 · 직렬화는 새로 만들지 않는다 (F1 · F2 · F5).
+
+기각 사유:
+
+- **A** — DOM 과 focus 모델이 RAC 가 아니고, 스타일을 Canvas 가 그릴 수 없으며, 조건 형식이 둘이 된다.
+- **C** — 새 값 형이 변수 기구 전체로 번지고, 실행 중 필터의 자리가 변수와 표 상태 둘이 된다 (HC3 위반).
+- **D** — 열을 가로지르는 「또는」 과 Table 밖의 목록을 다루지 못한다.
+
+> 구현 상세: [320-filter-bar-runtime-condition-builder-breakdown.md](design/320-filter-bar-runtime-condition-builder-breakdown.md)
+
+### 사용자 결정 (10 건 — 그 Phase 에 닿을 때 묻는다)
+
+|  #  | 항목                                                                                                                | 권고                                                                                                                           | 닿는 Phase |
+| :-: | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | :--------: |
+|  1  | 필터 바 하나가 목록 여러 개를 거르기 (표 + 차트) — 허용 / 대상 하나만                                               | 허용 — 같은 collection 을 읽는 목록만. 조회 화면의 표와 차트가 같이 걸러져야 한다                                              |     1      |
+|  2  | 열 메뉴 필터와의 관계 — 같은 트리 (열 조건이 칩으로 보임) / 따로 두고 「그리고」 로 합침                            | 같은 트리 (HC3). 따로 두면 화면에 안 보이는 조건이 결과를 줄인다                                                               |     1      |
+|  3  | 묶음 중첩 깊이 — 2 단 / 3 단 / 제한 없음                                                                            | 3 단 (Airtable · Notion). 저장 형식은 제한이 없고 (F1) 화면만 막는다                                                           |     4      |
+|  4  | 브라우저 기억 — `FilterBar` 「Remember filters」 스위치 (Publish 의 그 브라우저) / 하지 않음                        | 스위치 — Table 「Remember state」 와 같은 저장소                                                                               |     5      |
+|  5  | 주소 (URL) 에 조건 싣기 — 싣는다 (링크를 받은 사람이 같은 조건으로 본다) / 하지 않음                                | 싣는다 — hash 경로 뒤의 query 로 (F7). Phase 0 에서 Publish 주소 형식을 확인한 뒤 확정                                         |     5      |
+|  6  | 이름 붙인 필터 묶음 — 작성자가 만든 묶음을 고르는 메뉴 / 보는 사람이 저장 / 둘 다 / 없음                            | 작성자 묶음만 (문서 저장). 보는 사람의 저장은 4 번의 기억으로 충분하고, 서버 저장은 계약이 따로 필요하다                       |     5      |
+|  7  | 상대 날짜 — 닫힌 목록 추가 (오늘 · 어제 · 이번 주 · 지난 주 · 이번 달 · 지난 달 · 올해) / `withinLast` 만           | 추가 — 업무 조회에서 가장 흔한 날짜 조건이다. 값의 닫힌 토큰이고 새 비교는 아니다 (contract +1)                                |     5      |
+|  8  | 내놓을 필드 — 대상 collection 의 전부 (작성자가 끄기 · 순서) / 작성자가 고른 것만                                   | 전부를 기본으로, 작성자가 끄고 순서를 바꾼다. 새 필드가 생기면 자동으로 나온다                                                 |     2      |
+|  9  | 서버 후보 값 계약 — `body` 형식 endpoint 의 선택 항목 (값 검색 · 이어 불러오기) / 넣지 않음 (불러온 행 기준 그대로) | 넣는다 — 부분 로드 표에서 후보 값이 불러온 행에 갇히면 고를 수 없는 값이 생긴다. 선언한 endpoint 에만 보낸다 (ADR-313 과 대조) |     6      |
+| 10  | 번들 Δ 수용 범위                                                                                                    | initial Δ ≤ Builder +4,000 · Preview +2,000 B gzip (등록 · 정적 renderer · rule 의 몫). 넘으면 보고                            |  각 Phase  |
+
+## Risks
+
+| ID  | 위험                                                                                                                                                                                                                                                  | 심각도 | 대응                                                                                                                                                        |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 표 상태 조각을 트리로 바꾸며 열 필터가 회귀한다 — 열 key 로 접는 쓰기 (`tableState.ts:207-237`), 조각 → 보기 번역 (`tableStateQuery.ts:52-94`), 열 메뉴의 읽기 (`catalogTableController.ts:1393`), Do (`interactions/concepts/tableColumns.ts:60-80`) |  HIGH  | G1 — ADR-315 Phase 3 · 4 의 열 필터 테스트 전량 통과 · 열 메뉴 live · 수정을 되돌리면 실패 (원복 RED)                                                       |
+| R2  | 「또는」 묶음이 느리거나 빠른 경로와 결과가 어긋난다 — `rowFilter.ts:99-106` (평평한 test 목록), `catalog/runtime/dataBinding.ts:737-754` (호출), `evaluate.ts:361-395` (묶음 평가)                                                                   |  HIGH  | G0 시제품 P3 · G1 — 무작위 조건 트리에서 두 경로 = 평가기 (대조 테스트) · HC6 측정                                                                          |
+| R3  | 서버가 받지 못하는 조건이 조용히 빠진다 — `serialize.ts:455-466` (`OR_GROUP`), `tableStateQuery.ts:244-305` (판정 단위가 비교 하나), `catalogTableController.ts:381-383` (받지 않기)                                                                  |  HIGH  | G1 — 형식 (없음 · suffix · body) × 기능 (그리고 · 또는 · 중첩 · 비교 21) 판정 표 테스트. G6 — suffix endpoint live 에서 「또는」 이 화면에 나오지 않음      |
+| R4  | RAC 조립만으로 칩 줄 · 빌더의 키보드와 낭독이 서지 않는다 (Tree 행 안의 버튼 여럿 · 끌기 · 알림) — 새 `catalog/runtime/filterBar.components.tsx`, 선례 `tableOperationsDom.components.tsx:396-453` · `tableColumnFilter.components.tsx:13-23`         |  HIGH  | G0 시제품 P1 · P2 의 go / no-go. no-go 면 중첩 `Group` + 행마다 `Toolbar` 로 바꾸고, 그것도 안 되면 사용자에게 D1 예외를 묻는다 (결정 지점 3). G6 VoiceOver |
+| R5  | 여러 대상이 서로 다른 collection 을 읽거나 대상이 지워진다                                                                                                                                                                                            | MEDIUM | 검증이 같은 collection 만 받는다. 끊긴 id 는 연결 안 됨 (F10)                                                                                               |
+| R6  | initial 번들 — binding · rule · template 이 첫 화면 몫이다 (F12 여유 약 10 KB · 상한 만료 2026-12-25)                                                                                                                                                 | MEDIUM | G0 기준선 · Phase 마다 Δ (사용자 결정 10)                                                                                                                   |
+| R7  | 후보 값 계산이 큰 collection 에서 조건마다 돈다                                                                                                                                                                                                       | MEDIUM | 값 편집기를 열 때만 계산하고 표시 상한 200 · 검색을 그대로 쓴다 (F8)                                                                                        |
+| R8  | 상대 날짜 토큰이 검증 · 직렬화 · 코드 보기로 번진다 (사용자 결정 7)                                                                                                                                                                                   | MEDIUM | 읽는 순간 날짜 값으로 푸는 한 곳을 두고 요청에는 푼 값을 싣는다. Phase 5 inventory 로 자리를 센다                                                           |
+| R9  | Canvas 는 실행 중 조건을 보여 주지 않는다                                                                                                                                                                                                             |  LOW   | 대칭 기준을 「작성 값의 첫 화면」 으로 둔다 (HC8)                                                                                                           |
+
+HIGH 가 넷이지만 Phase 를 다른 ADR 로 나누지 않는다 — 상태 모델 (Phase 1) 만 떼면 사용자에게 보이는 것이 없고, 필터 바만 떼면 열 필터와 정본이 둘이 된다 (HC3).
+
+## Gates
+
+측정 조건 ([measurement-validity.md](../../.claude/rules/measurement-validity.md)): 속도 측정의 문서는 부하용 생성 문서 (규모 전용) 다. 불리한 경우 = 10,000 행 · 「또는」 묶음을 포함한 2 단 중첩 · 조건 6 개 · 결과 행 집합이 바뀌는 변경. 대조군 = 같은 문서에서 열 필터 하나 (지금 경로) 와 교대 3 쌍. 조건 = production 빌드 · headed Chrome · 보이는 탭 · CPU 1x 와 4x. 결과가 맞는지의 기준값은 따로 적은 정답표 (하드코딩한 행 key 목록) 이고 평가기 출력으로 채점하지 않는다. 배치 대조의 기준값은 실제 Chrome 의 rect 다.
+
+| Gate | 시점       | 통과 조건                                                                                                                                                                                                                    | 실패 시 대안                                                              |
+| ---- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| G0   | Phase 0 끝 | 코드 사실 F1 ~ F12 재대조 차이 0 · v3 확인 · 대상이 될 목록 종류 inventory (등록표에서 유도) · 시제품 4 (칩 줄 조립 · Tree 빌더와 끌기 · 「또는」 행 필터 속도 · `announce`) 의 go / no-go · Publish 주소 형식 · 번들 기준선 | no-go 항목은 방식을 바꾸거나 빼고 사용자에게 보고 (D1 은 결정 지점 3)     |
+| G1   | Phase 1 끝 | 열 필터 회귀 0 (ADR-315 Phase 3 · 4 테스트) · 두 로컬 경로 = 평가기 = 정답표 · 서버 판정 표 · HC6 · 필터 바 없는 Table 의 동작 무변경 · 원복 RED                                                                             | 「또는」 경로가 기준을 넘으면 묶음 평가를 보이는 행 먼저로 나눈다         |
+| G2   | Phase 2 끝 | 등록 게이트 (`pnpm codex:preflight` 의 registration · `d2S2Alignment.static.test.ts`) · contract · 시작 조건의 칩 · 버튼 rect 가 Canvas = Chrome ±1 px · 「필터 바 추가」 한 번에 연결 · 되돌리기 한 번에 복원               | 어긋나는 부품을 template 에서 빼고 보고                                   |
+| G3   | Phase 3 끝 | 조건 추가 · 비교 · 값 · 끄기 · 삭제 · 지우기가 정답표와 일치 · 열 메뉴에서 넣은 조건이 칩으로 보이고 그 반대도 · 키보드 전 경로 · 구현의 role · `aria-*` 가 RAC 가 낸 것뿐 (정적 검사) · Chrome 과 WebKit live               | 조립으로 안 되는 조작을 버튼 · 메뉴 경로로 바꾼다                         |
+| G4   | Phase 4 끝 | 묶음 추가 · 「그리고 · 또는」 전환 · 중첩 · 순서 바꾸기 (포인터와 키보드) 가 정답표와 일치 · 서버가 못 받는 범위에서 묶음 기능이 나오지 않음                                                                                 | Tree 끌기가 안 되면 순서 바꾸기를 행 메뉴 (위로 · 아래로 · 묶음으로) 로만 |
+| G5   | Phase 5 끝 | 기억 · 주소 · 이름 붙인 묶음이 사용자 결정대로 복원 · Builder Preview 에는 저장하지 않음 · 상대 날짜가 날짜 경계 (자정 · 주 시작 · 월말) 정답표와 일치                                                                       | 주소 싣기를 빼고 기억만                                                   |
+| G6   | Phase 6 끝 | 서버 후보 값 (결정 9) · 여러 대상 · 번들 (결정 10) · HC6 재측정 · `/evaluate` 종결 live (로컬 · suffix · body 세 collection) · VoiceOver 청취와 사용자 확인                                                                  | 넘는 항목을 수리하거나 그 기능을 빼고 보고                                |
+
+집행: 각 Gate 의 테스트는 unit · browser project 에 두고 Phase 끝에 실행자가 `pnpm -F @composition/shared test` · `pnpm -F @composition/builder test` (browser 는 `test:parity`) 와 `pnpm codex:preflight` 로 돌려 결과를 breakdown §9 에 적는다. 번들은 `adr201-bundle-gate.mjs` 와 배포 workflow (`push: main`) 의 상한 단계가 막는다.
+
+### Live Exercise
+
+(Implemented 승격 시 기재)
+
+## Consequences
+
+### Positive
+
+- 만든 화면의 사용자가 조건을 직접 추가하고 「그리고 · 또는」 묶음으로 거른다 — Table 뿐 아니라 연결된 목록과 차트도.
+- 실행 중 필터의 정본이 하나다 — 열 메뉴에서 건 조건이 필터 바에 보이고, 끄기 · 지우기가 한 곳에서 된다.
+- 조건 트리 · 비교 · 평가 · 요청 직렬화를 새로 만들지 않는다. 새 의존성과 D1 예외가 없다.
+- 키보드와 화면 낭독기로 같은 조작을 한다 (RAC 가 내는 계약 그대로).
+
+### Negative
+
+- 표 상태의 열 필터 조각 모양이 바뀐다 — ADR-315 Phase 3 · 4 의 코드와 테스트를 고친다.
+- RAC 조립이라 ReUI 의 일부 조작 (칩 줄의 Backspace 삭제 · 칸 단위 화살표 이동) 은 없다.
+- `suffix` 형식의 endpoint 에서는 「또는」 과 묶음이 나오지 않는다 — 같은 필터 바가 데이터에 따라 기능이 다르다.
+- contract 가 오르고 initial 번들에 등록 몫이 더해진다 (사용자 결정 10).
+- Canvas 는 실행 중 조건을 보여 주지 않는다 — 작성자는 Preview 에서 확인한다.
