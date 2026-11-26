@@ -5679,9 +5679,7 @@ const CatalogWindowRowNest = memo(
     const b = span(after);
     if (a.lo !== b.lo || a.hi !== b.hi) return false;
     for (let index = a.lo; index < a.hi; index += 1)
-      if (
-        before.ids[index - before.start] !== after.ids[index - after.start]
-      )
+      if (before.ids[index - before.start] !== after.ids[index - after.start])
         return false;
     return true;
   },
