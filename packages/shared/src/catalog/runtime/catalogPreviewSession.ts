@@ -31,6 +31,7 @@ import {
   type BreakpointName,
   type CatalogLibrary,
   type CatalogRowDisplay,
+  type CollectionEntry,
   type EntryId,
   type NodeEntry,
 } from "../document/types";
@@ -62,6 +63,7 @@ import {
   dataCollectionIdOf,
 } from "./dataBinding";
 import { COLLECTION_ROW_PROJECTION_WINDOW_LIMIT } from "../../collections/resolveCollectionItems";
+import { executionModeOf } from "../../collections/executionPolicy";
 import {
   catalogBindingQuery,
   catalogCountOnlyView,
@@ -584,6 +586,17 @@ export interface CatalogPreviewSessionOptions {
    * it (a design check does not start from an earlier session's sort).
    */
   tableStateStorage?: RuntimeKeyValueStorage | null;
+  /**
+   * A published app — no Builder sends API rows (`CATALOG_DATA`) or runs the collections' execution
+   * policy, so the session does both: every collection an endpoint fills loads by its policy (none ·
+   * `auto` = on open, `interval` = on open and each period, `manual` = a rule's `reload` only), and
+   * shows what was loaded — never its design sample rows (`catalogRuntimeData` `standalone`).
+   * Absent = the Builder's Preview: the Builder loads a plain endpoint, the session only the ones
+   * whose request is its own (a template · a cursor · a view).
+   * **Why (2026-11-26 live)**: Publish sent 0 requests for a plain endpoint (also with 「Auto」) and
+   * showed the sample rows.
+   */
+  standalone?: boolean;
 }
 /** ADR-315 Phase 5 증분 5g — a pinned rows' answer's key: the Table node and its pins. */
 const pinAnswerKey = (
@@ -655,7 +668,9 @@ export class CatalogPreviewSession {
   private data(): CatalogRuntimeData {
     const graph = this.receiver.graph;
     return graph
-      ? catalogRuntimeData(graph, this.runtimeRows)
+      ? catalogRuntimeData(graph, this.runtimeRows, {
+          standalone: this.options.standalone,
+        })
       : { collections: [], apiEndpoints: [], variables: [] };
   }
   /**
@@ -3010,25 +3025,92 @@ export class CatalogPreviewSession {
       return unresolved ? undefined : value;
     };
   }
+  /** A collection's execution policy (ADR-218) — the document entry's; the Builder's Preview never reads it. */
+  private executionPolicyOf(collectionId: string) {
+    const entry = this.graph?.getEntry(
+      `data:collection:${collectionId}` as never,
+    ) as CollectionEntry | undefined;
+    return entry?.kind === "collection" ? entry.executionPolicy : undefined;
+  }
+  /** A published app's `interval` collections: the timer of each one's next load, by collection id. */
+  private intervalLoads = new Map<
+    string,
+    { seconds: number; timer: ReturnType<typeof setTimeout> }
+  >();
+  /**
+   * A published app's `interval` policy (the Builder's `useExecutionPolicyScheduler`, here): each
+   * period the collection's first page loads again — the next period starts when that load ended
+   * (never two at once). A period is skipped while a load is in flight, and while the collection
+   * holds an edit not saved yet (a load drops the edit record — a timer never discards what the
+   * user wrote). The lists keep their rows meanwhile (`idle` — a refresh, not a first load).
+   */
+  private syncIntervalLoads(): void {
+    if (!this.options.standalone) return;
+    const wanted = new Map<string, number>();
+    for (const collection of this.collections) {
+      if (!collection.id || collection.useMockData) continue;
+      const policy = this.executionPolicyOf(collection.id);
+      if (policy?.mode !== "interval" || !this.endpointFilling(collection))
+        continue;
+      wanted.set(collection.id, policy.intervalSec ?? 30);
+    }
+    for (const [id, load] of this.intervalLoads)
+      if (wanted.get(id) !== load.seconds) {
+        clearTimeout(load.timer);
+        this.intervalLoads.delete(id);
+      }
+    const schedule = (id: string, seconds: number) => {
+      const timer = setTimeout(() => {
+        if (this.intervalLoads.get(id)?.timer !== timer) return;
+        const unsaved = (this.itemEdits.get(id) ?? []).some(
+          (edit) => !this.savedEdits.has(edit.seq),
+        );
+        const next = () => {
+          if (this.intervalLoads.get(id)?.timer === timer)
+            schedule(id, seconds);
+        };
+        if (unsaved || this.loadControllers.has(id)) return next();
+        this.reload(id, "idle")
+          .catch((error: unknown) =>
+            console.warn(`[CatalogPreview] ${id} 를 읽지 못했다:`, error),
+          )
+          .then(next);
+      }, seconds * 1000);
+      this.intervalLoads.set(id, { seconds, timer });
+    };
+    for (const [id, seconds] of wanted)
+      if (!this.intervalLoads.has(id)) schedule(id, seconds);
+  }
+  /** Let the session go: its timers stop (a published app replaced by another project). */
+  dispose(): void {
+    for (const load of this.intervalLoads.values()) clearTimeout(load.timer);
+    this.intervalLoads.clear();
+    clearTimeout(this.viewReloadTimer);
+  }
   /**
    * A router loader (`useAsyncList({ load })` fetching `/users/${id}`): each API collection whose
    * query endpoint reads a template loads when the shown path · data give another URL than its
    * last load — once per URL; a template that does not resolve (another page) loads nothing.
    */
   private loadRouted(state: CatalogLoadingState = "loading"): void {
+    this.syncIntervalLoads();
     for (const collection of this.collections) {
       if (!collection.id || collection.useMockData) continue;
       const endpoint = this.endpointFilling(collection);
       // (ADR-284: a view the request carries — a variable it reads gives another request. ADR-291:
       // a view that runs here over every row is the session's load too.)
       const viewed = !!this.uniqueView(collection.id);
-      // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its.)
+      // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its. A
+      //  published app's session loads the plain ones too — no Builder does — unless the author
+      //  left the load to a rule: `manual`.)
       if (
         !endpoint ||
         !(
           endpointReadsTemplate(endpoint) ||
           endpoint.responseMapping?.cursorPath ||
-          viewed
+          viewed ||
+          (this.options.standalone &&
+            executionModeOf(this.executionPolicyOf(collection.id)) !== "manual")
         )
       ) {
         // (Its view no longer goes with the request: the rows the server filtered for it go —

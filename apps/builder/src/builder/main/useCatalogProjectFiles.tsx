@@ -14,6 +14,7 @@ import { loadFontRegistry, saveRegistryAndNotify } from "../fonts/customFonts";
 import { useDataStore } from "../stores/data";
 import { useToastStore } from "../stores/toast";
 import DirectoryLinkButton from "./DirectoryLinkButton";
+import { withoutApiSampleRows } from "../../../../../packages/shared/src/catalog/document/apiSampleRows";
 import { withoutComponentPages } from "../../../../../packages/shared/src/catalog/document/componentPages";
 import type { CatalogDocument } from "../../../../../packages/shared/src/catalog/document/types";
 import { openCatalogPublish } from "./openCatalogPublish";
@@ -120,17 +121,22 @@ export function useCatalogProjectFiles(options: {
 
   const openPublish = useCallback(async () => {
     const collected = collectContent();
-    // (Publish runs the app: the Components tab's pages are not part of it — ADR-282 Phase 3.)
+    // (Publish runs the app: the Components tab's pages are not part of it — ADR-282 Phase 3 — nor
+    //  the design sample rows of the collections an API fills. An exported file keeps both.)
     const content = collected && {
       ...collected,
-      document: withoutComponentPages(collected.document as CatalogDocument),
+      document: withoutApiSampleRows(
+        withoutComponentPages(collected.document as CatalogDocument),
+      ),
     };
     if (!content) {
       toast("error", t("header.projectFileUnavailable"));
       return;
     }
     // ADR-283 R7: rules left without a target are reported, not blocking.
-    const unset = catalogUnsetTargetRuleCount(content.document as CatalogDocument);
+    const unset = catalogUnsetTargetRuleCount(
+      content.document as CatalogDocument,
+    );
     if (unset > 0)
       toast("warning", t("interactions.publishTargetsUnset", { count: unset }));
     try {

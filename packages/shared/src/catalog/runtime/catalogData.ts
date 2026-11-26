@@ -5,6 +5,7 @@
  * every consumer — the Builder's code view and its data store read the same entries.
  */
 import { toRuntimeApiEndpoint } from "../../collections/collectionSnapshot";
+import { catalogApiFilledCollectionIds } from "../document/apiSampleRows";
 import type { CollectionDataSource } from "../../collections/resolveCollectionItems";
 import type { VariableDef } from "../../state/variable.types";
 import type { ApiEndpointDefinition } from "../../types/collection.types";
@@ -27,6 +28,17 @@ export interface CatalogRuntimeData {
   readonly variables: readonly VariableDef[];
 }
 
+export interface CatalogRuntimeDataOptions {
+  /**
+   * A published app: no Builder sends API rows, the session loads them itself. A collection an
+   * endpoint fills then has no rows until that load answers — its `mockData` are the author's design
+   * sample rows (the Canvas · the Builder's Preview), never an app's data. A collection that uses
+   * its own data (`useMockData`) and one no endpoint fills keep their rows.
+   * **Why (2026-11-26 live)**: Publish showed `MOCK-*` rows for an API collection it had not loaded.
+   */
+  readonly standalone?: boolean;
+}
+const NO_ROWS: Row[] = [];
 const COLLECTION = "data:collection:";
 const raw = (id: string, prefix: string) =>
   id.startsWith(prefix) ? id.slice(prefix.length) : id;
@@ -53,24 +65,27 @@ function entriesOf<K extends DataEntry["kind"]>(
 
 const collectionCache = new WeakMap<
   CollectionEntry,
-  { rows: Row[] | undefined; source: CollectionDataSource }
+  { rows: Row[] | undefined; samples: boolean; source: CollectionDataSource }
 >();
 function collectionOf(
   entry: CollectionEntry,
   rows: Row[] | undefined,
+  /** False = the design sample rows are not this session's to show (`CatalogRuntimeDataOptions`). */
+  samples: boolean,
 ): CollectionDataSource {
   const cached = collectionCache.get(entry);
-  if (cached && cached.rows === rows) return cached.source;
+  if (cached && cached.rows === rows && cached.samples === samples)
+    return cached.source;
   const source: CollectionDataSource = {
     id: raw(entry.id, COLLECTION),
     name: entry.name,
     schema: entry.schema as CollectionDataSource["schema"],
-    mockData: entry.mockData as Row[],
+    mockData: samples ? (entry.mockData as Row[]) : NO_ROWS,
     ...(rows ? { runtimeData: rows } : {}),
     useMockData: entry.useMockData,
     ...(entry.keyField !== undefined ? { keyField: entry.keyField } : {}),
   };
-  collectionCache.set(entry, { rows, source });
+  collectionCache.set(entry, { rows, samples, source });
   return source;
 }
 
@@ -119,6 +134,7 @@ const resultCache = new WeakMap<
   {
     entries: readonly unknown[];
     rows: ReadonlyMap<string, Row[]> | undefined;
+    standalone: boolean;
     data: CatalogRuntimeData;
   }
 >();
@@ -129,7 +145,9 @@ const resultCache = new WeakMap<
 export function catalogRuntimeData(
   reader: Reader,
   runtimeRows?: ReadonlyMap<string, Row[]>,
+  options: CatalogRuntimeDataOptions = {},
 ): CatalogRuntimeData {
+  const standalone = options.standalone === true;
   const project = reader.getEntry(reader.projectId) as object | undefined;
   const collections = entriesOf(reader, "collection");
   const endpoints = entriesOf(reader, "endpoint");
@@ -139,13 +157,21 @@ export function catalogRuntimeData(
   if (
     cached &&
     cached.rows === runtimeRows &&
+    cached.standalone === standalone &&
     cached.entries.length === entries.length &&
     cached.entries.every((entry, index) => entry === entries[index])
   )
     return cached.data;
+  const apiFilled = standalone
+    ? catalogApiFilledCollectionIds(collections, endpoints)
+    : undefined;
   const data: CatalogRuntimeData = {
     collections: collections.map((entry) =>
-      collectionOf(entry, runtimeRows?.get(raw(entry.id, COLLECTION))),
+      collectionOf(
+        entry,
+        runtimeRows?.get(raw(entry.id, COLLECTION)),
+        !apiFilled?.has(entry.id),
+      ),
     ),
     apiEndpoints: endpoints.map((entry) =>
       endpointOf(
@@ -158,6 +184,7 @@ export function catalogRuntimeData(
     ),
     variables: variables.map(variableOf),
   };
-  if (project) resultCache.set(project, { entries, rows: runtimeRows, data });
+  if (project)
+    resultCache.set(project, { entries, rows: runtimeRows, standalone, data });
   return data;
 }

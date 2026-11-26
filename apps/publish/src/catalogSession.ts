@@ -29,6 +29,9 @@ export function createPublishedSession(
     applyTheme: applyCatalogPreviewTheme,
     // ADR-315 사용자 결정 1 — a Table with 「Remember state」 keeps its user's state in this browser.
     tableStateStorage: browserStorage(),
+    // No Builder loads this app's API collections or runs their execution policy: the session does,
+    // and shows what it loaded — never the design sample rows.
+    standalone: true,
   });
   // ADR-286: the data definitions (collections · endpoints · variables) are the document's — the
   // session reads them from the snapshot; a published app has no Builder API rows to receive.

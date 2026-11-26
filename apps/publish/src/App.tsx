@@ -227,6 +227,8 @@ export function App() {
             typeof source === "string" && !source.startsWith("blob:"),
           dispose: () => {
             runtime.dispose();
+            // (Its `interval` collections' timers.)
+            next.dispose();
             loaded.dispose();
           },
         };

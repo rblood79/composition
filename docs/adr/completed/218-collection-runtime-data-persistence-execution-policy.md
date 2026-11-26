@@ -4,6 +4,8 @@
 
 Implemented — 2026-09-13 (Phase 0~~3 완료, G0~~G3 PASS)
 
+> **사용자 결정으로 바뀜 (2026-11-26 — 「1~4 모두 권고대로 진행해」)**: 실행 정책이 없는 collection 은 `auto` 다 (그전: manual). Data 패널의 「Manual」 은 값을 지우지 않고 `manual` 을 저장한다 — 게시된 앱에서 규칙의 다시 불러오기를 누를 때만 조회한다. 정책을 실행하는 곳은 Builder (Preview 를 열 때 · 주기) 와 게시된 앱의 세션 둘이고 읽기는 `executionModeOf` (`packages/shared/src/collections/executionPolicy.ts`) 하나다. 아래 본문의 「미설정 = manual」 · 「실행 host = Builder」 는 이 안내로 대체된다.
+>
 > **ADR-286 이 바꿈 (2026-10-28)**: collection 정의 (schema · mock 행 · 실행 정책) 는 문서 entry 다. 이 ADR 의 `runtimeData` 캐시 (`collection_runtime`) 와 실행 정책 읽기는 그대로 — API 결과만 store (`runtimeRows`) 에 남는다.
 
 - Accepted — 2026-09-12 (Round 4 리뷰 이슈 0, 사용자 조건부 승격 지시 충족)

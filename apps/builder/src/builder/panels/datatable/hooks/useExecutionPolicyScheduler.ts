@@ -12,6 +12,7 @@
 import { useEffect, useMemo } from "react";
 import { useDataStore } from "../../../stores/data";
 import type { ApiEndpoint } from "../../../../types/builder/data.types";
+import { executionModeOf } from "../../../../../../../packages/shared/src/collections/executionPolicy";
 
 function findLinkedEndpoint(
   endpoints: ApiEndpoint[],
@@ -26,15 +27,19 @@ function findLinkedEndpoint(
 }
 
 /**
- * ADR-218 auto policy: run once the endpoint linked to each `executionPolicy.mode === "auto"`
- * collection (Preview opening — the host is the Builder). Failures are the endpoint's own state.
+ * ADR-218 auto policy: run once the endpoint linked to each `auto` collection — one with no policy
+ * too (`executionModeOf`) — when the Preview opens (the host is the Builder). Failures are the
+ * endpoint's own state.
  */
 export async function runAutoPolicyEndpoints(): Promise<void> {
   const dataState = useDataStore.getState();
   const endpoints = Array.from(dataState.apiEndpoints.values());
   const runs: Promise<unknown>[] = [];
   for (const collection of dataState.collections.values()) {
-    if (collection.executionPolicy?.mode !== "auto") continue;
+    // (사용자 결정 2026-11-26 — no policy is auto. A collection that uses its own data shows no
+    //  API rows: nothing to load.)
+    if (collection.useMockData) continue;
+    if (executionModeOf(collection.executionPolicy) !== "auto") continue;
     const endpoint = findLinkedEndpoint(
       endpoints,
       collection.id,

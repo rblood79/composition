@@ -36,9 +36,10 @@ export interface SchemaField {
 
 /**
  * collection 실행 정책 (ADR-218) — API endpoint 가 언제 실행되는지.
- * - `auto`: Builder 가 Preview 열기 전 1회 실행
- * - `manual`: Send/새로고침 버튼만 (미설정 = manual, BC)
- * - `interval`: N초마다 (진행 중이면 skip/coalesce — Phase 3)
+ * - `auto`: 열 때 1회 — Builder 는 Preview 를 열 때, 게시된 앱은 세션이 열릴 때
+ * - `manual`: 규칙의 다시 불러오기 (와 Builder 의 Send · 새로고침) 만 — 저장되는 선택이다
+ * - `interval`: 열 때 + N초마다 (진행 중이면 skip/coalesce)
+ * 정책 없음 = `auto` (사용자 결정 2026-11-26 — 그전에는 manual). 읽기는 `executionModeOf` 하나.
  */
 export interface ExecutionPolicy {
   mode: "auto" | "manual" | "interval";
@@ -58,7 +59,7 @@ export interface DataTableDefinition {
   mockData?: Record<string, unknown>[];
   runtimeData?: Record<string, unknown>[];
   useMockData?: boolean;
-  /** ADR-218 — 실행 정책. 미설정 = manual (BC read 호환). */
+  /** ADR-218 — 실행 정책. 미설정 = auto (`executionModeOf`). */
   executionPolicy?: ExecutionPolicy;
   /** ADR-313 Decision 6 — the key field's id (an item's key). */
   keyField?: string;

@@ -26,6 +26,10 @@ import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { Section } from "../../../components/panel/Section";
 import { findLinkedApi } from "../utils/collectionBadgeStatus";
+import {
+  executionModeOf,
+  executionPolicyOfChoice,
+} from "../../../../../../../packages/shared/src/collections/executionPolicy";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
 import "./TableSettingsPopover.css";
 
@@ -74,15 +78,11 @@ export function TableSettings({ table }: { table: DataTable }) {
     [apiEndpointsMap],
   );
 
-  // ADR-218 — 실행 정책 변경 (applyDataChange only, HC1). manual = 필드 제거(null).
+  // ADR-218 — 실행 정책 변경 (applyDataChange only, HC1). 고른 값은 늘 저장한다 — manual 도
+  // (사용자 결정 2026-11-26: 정책 없음 = auto, 「Manual」 은 「누를 때 조회」 로 저장되는 선택).
   const handlePolicyChange = useCallback(
     async (mode: "auto" | "manual" | "interval", intervalSec?: number) => {
-      const policy =
-        mode === "manual"
-          ? null
-          : mode === "interval"
-            ? { mode, intervalSec: intervalSec ?? 30 }
-            : { mode };
+      const policy = executionPolicyOfChoice(mode, intervalSec);
       try {
         await applyDataChange({
           ops: [{ op: "set_execution_policy", collectionId: table.id, policy }],
@@ -187,7 +187,7 @@ export function SettingsEditor({
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  const policyMode = executionPolicy?.mode ?? "manual";
+  const policyMode = executionModeOf(executionPolicy);
   // PropertyInput keeps its own draft and follows the value prop (undo · rename from the list),
   // committing on blur / Enter only when the text changed.
   const interval = executionPolicy?.intervalSec ?? 30;
@@ -196,9 +196,10 @@ export function SettingsEditor({
     { value: "", label: localize("endpointNone", "Not connected") },
     ...endpoints.map((ep) => ({ value: ep.id, label: ep.name })),
   ];
+  // (The default first — a collection with no policy is 「Auto」.)
   const policyOptions = [
-    { value: "manual", label: localize("policyManual", "Manual") },
     { value: "auto", label: localize("policyAuto", "Auto") },
+    { value: "manual", label: localize("policyManual", "Manual") },
     { value: "interval", label: localize("policyInterval", "Interval") },
   ];
 

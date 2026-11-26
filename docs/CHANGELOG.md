@@ -22,6 +22,23 @@ ADR-318 (Resizable 분할창 — react-aria 훅 + 닫힌 D1 예외) Implemented.
 - ADR 본문을 `docs/adr/completed/` 로 옮기고 `### Live Exercise` 절을 적었다 (G1 ~ G6 live · HC5 · VoiceOver).
 - 승격 직전 재확인: Phase 6 뒤 커밋 (`13def5364` · ADR-319 의 `canvasGesture.ts`) 을 지난 dev 서버에서 `adr318-g6-live.mjs` Chrome · WebKit 7/7 (짝 유지 명령 · Canvas 손잡이 = Default size · Layout 탭 크기 칸 · Layers 방향 아이콘 · page error 0).
 
+## [Publish — API 에 연결한 표가 샘플 행 대신 실제 데이터를 불러온다] - 2026-11-26
+
+Publish (헤더 Preview 탭) 에서 API endpoint 에 연결한 Collection 이 API 를 부르지 않고 Data 패널의 샘플 행을 보이던 결함을 고쳤다 (사용자 결정 2026-11-26 — 실행 정책을 따르고, 정하지 않았으면 열 때 조회).
+
+### Fixed
+
+- **Publish 가 API 연결 Collection 을 스스로 조회** (`catalogPreviewSession.ts` `standalone` · `apps/publish/src/catalogSession.ts`): 주소에 변수 · cursor · 보기가 없는 단순 endpoint 는 Publish 에서 요청이 0 건이었다 (실행 정책 「Auto」 여도). 이제 실행 정책대로 — 정하지 않음 · Auto = 열 때, Interval = 열 때 + 주기마다, `manual` (문서 값) = 규칙의 다시 불러오기 때만. 주기 조회는 진행 중인 조회나 저장되지 않은 편집이 있으면 그 주기를 건너뛴다.
+- **샘플 행으로 넘어가지 않음** (`catalogData.ts`): Publish 에서 API 연결 Collection 은 불러온 행만 보인다 — 아직 응답이 없으면 빈 목록 · 로딩 표시. 「샘플 사용」 을 켠 Collection 과 endpoint 가 없는 Collection 은 그대로.
+- **Publish 파일에 샘플 행을 싣지 않음** (`document/apiSampleRows.ts` `withoutApiSampleRows`): API 연결 Collection 의 샘플 행 (최대 1,000 행) 이 Publish 탭의 파일에서 빠진다. 프로젝트 내보내기 파일과 Builder 문서는 그대로.
+- 확인: 새 테스트 7 (Publish 세션 5 · 문서 투영 2) · 원복 RED 8/8 · Builder Preview 묶음 1,300 · shared 658 회귀 0 · live (headed Chrome, Builder → Publish — 단순 · Auto · cursor 가 각 1 요청과 API 행, 「샘플 사용」 표는 샘플 유지, Publish 파일의 샘플 행 0 · Builder 문서 1).
+
+### Changed
+
+- **실행 정책의 기본이 「Auto」** (사용자 결정 2026-11-26, ADR-218 의 「미설정 = 수동」 을 바꿈 — `collections/executionPolicy.ts`): 정책을 정하지 않은 Collection 은 열 때 조회한다 — Builder 의 Preview (Compare Mode) 를 열 때도 한 번. Data 패널은 그 Collection 을 「Auto」 로 보인다. 「샘플 사용」 을 켠 Collection 은 조회하지 않는다.
+- **「Manual」 은 저장되는 선택**: 고르면 `manual` 이 저장되고, Publish 에서는 규칙의 다시 불러오기 (조회 버튼) 를 누를 때만 조회한다 — 그전에는 빈 목록. Builder 의 Preview 는 「Manual」 Collection 을 조회하지 않고 샘플 행을 보인다.
+- 확인: 새 테스트 5 (정책 읽기 2 · 패널 표시 2 · 패널 저장 1) + Builder 자동 실행 테스트 갱신 · 원복 RED 6/6 · Builder 6,134 · shared 667 회귀 0 · live (Compare Mode 를 열면 정책 없는 Collection 만 1 요청 · Publish 에서 「Manual」 은 요청 0 과 빈 표).
+
 ## [Design 패널 — Selected · Disabled keys 를 다중 select 로 (perf ratchet 조사)] - 2026-11-26
 
 목록 그룹의 「Selected keys」 · 「Disabled items」 칸이 항목마다 체크박스를 그리던 체크 목록에서 여러 개를 고르는 select 로 바뀌었다 (사용자 결정). 닫힌 칸은 고른 항목 이름을 이어 보이고, 열면 항목 전부가 목록으로 나온다.
