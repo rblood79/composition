@@ -447,6 +447,12 @@ export interface CatalogPreviewInteractionsOptions {
     rows: readonly string[],
     columns: readonly string[],
   ) => string;
+  /** ADR-317 Phase 3 — the rows' values by the Columns (`CatalogDomRuntime.tableCellValues`). */
+  tableCellValues?: (
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ) => readonly (readonly unknown[])[];
   /** ADR-317 — a Table 「Paste」's cells written at once (`CatalogDomRuntime.editTableCells`). */
   editTableCells?: (
     tableId: string,
@@ -1420,6 +1426,13 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     columns: readonly string[],
   ): string {
     return this.options.tableCellText?.(tableId, rows, columns) ?? "";
+  }
+  tableCellValues(
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ): readonly (readonly unknown[])[] {
+    return this.options.tableCellValues?.(tableId, rows, columns) ?? [];
   }
   editTableCells(
     tableId: string,

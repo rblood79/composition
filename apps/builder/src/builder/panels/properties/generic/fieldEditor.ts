@@ -212,8 +212,14 @@ export function capitalize(s: string): string {
 }
 
 function chipLabel(key: string, label: string): string {
+  // (「Fill」 is the Fill group's word only for a fill key (`fillStyle` · `fillGrid` …) — ADR-317
+  //  Table 「Fill handle」 (`allowsFilling`) is no fill style.)
   const rest = label.replace(
-    NEGATED.has(key) ? /^Hide\s+/ : /^(Show|Fill|Is|Should)\s+/,
+    NEGATED.has(key)
+      ? /^Hide\s+/
+      : /^fill/.test(key)
+        ? /^(Show|Fill|Is|Should)\s+/
+        : /^(Show|Is|Should)\s+/,
     "",
   );
   // 라벨은 sentence case 다 (「Hide time zone」) — 접두를 떼면 남은 첫 글자를 다시 세운다 (「Time zone」).
@@ -222,7 +228,7 @@ function chipLabel(key: string, label: string): string {
 function chipGroup(key: string, label: string): ChipGroup {
   if (NEGATED.has(key)) return "Show";
   if (/^show/.test(key) || /^Show\s/.test(label)) return "Show";
-  if (/^fill/.test(key) || /^Fill\s/.test(label)) return "Fill";
+  if (/^fill/.test(key)) return "Fill";
   return "Options";
 }
 

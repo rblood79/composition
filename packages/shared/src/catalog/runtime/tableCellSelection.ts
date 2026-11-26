@@ -48,8 +48,9 @@ export interface CatalogCellSelectionSource {
   /** The rows by the Columns as tab-separated text (the rows' data). */
   text(rows: readonly string[], columns: readonly string[]): string;
   /**
-   * ADR-317 — the Table's 「Paste」: cells written to its data at once (absent = the Table writes
-   * nothing). `outside` = the cells that ran past the Table's end (not written).
+   * ADR-317 — cells written to the Table's data at once (absent = the Table writes nothing): its
+   * 「Paste」 (`pastes` — paste · cut · Delete) and its 「Fill handle」 (`fills` — the handle and
+   * Ctrl / Cmd + D).
    */
   write?(cells: readonly CatalogCellWrite[]): {
     readonly written: readonly unknown[];
@@ -59,14 +60,26 @@ export interface CatalogCellSelectionSource {
   announce?(text: string): void;
   /** The site's language (the status text's). */
   readonly locale?: string;
+  /** ADR-317 Phase 2 — 「Paste」 on. */
+  readonly pastes?: boolean;
+  /** ADR-317 Phase 3 — 「Fill handle」 on. */
+  readonly fills?: boolean;
+  /** ADR-317 Phase 3 — the rows' values by the Columns (the data — what a fill copies). */
+  values?(
+    rows: readonly string[],
+    columns: readonly string[],
+  ): readonly (readonly unknown[])[];
 }
-/** ADR-317 — a cell's new value (text — read by its field's type where it is written). */
+/**
+ * ADR-317 — a cell's new value: a paste's text (read by its field's type where it is written) or a
+ * fill's copied value (kept as it is — another type's value is not written).
+ */
 export interface CatalogCellWrite {
   readonly row: string;
   readonly column: string;
-  readonly value: string;
+  readonly value: unknown;
 }
-export type CatalogCellWriteAction = "paste" | "cut" | "clear";
+export type CatalogCellWriteAction = "paste" | "cut" | "clear" | "fill";
 
 /** ADR-317 — a write's status text (S2 intl's languages; English otherwise). */
 const WRITE_STRINGS: Readonly<
@@ -81,24 +94,28 @@ const WRITE_STRINGS: Readonly<
     paste: (n) => `Pasted into ${n} ${n === 1 ? "cell" : "cells"}`,
     cut: (n) => `Cut ${n} ${n === 1 ? "cell" : "cells"}`,
     clear: (n) => `Cleared ${n} ${n === 1 ? "cell" : "cells"}`,
+    fill: (n) => `Filled ${n} ${n === 1 ? "cell" : "cells"}`,
     skipped: (n) => `${n} skipped`,
   },
   ko: {
     paste: (n) => `칸 ${n}개에 붙여넣음`,
     cut: (n) => `칸 ${n}개 잘라냄`,
     clear: (n) => `칸 ${n}개 비움`,
+    fill: (n) => `칸 ${n}개 채움`,
     skipped: (n) => `${n}개 건너뜀`,
   },
   ja: {
     paste: (n) => `${n} 個のセルに貼り付けました`,
     cut: (n) => `${n} 個のセルを切り取りました`,
     clear: (n) => `${n} 個のセルをクリアしました`,
+    fill: (n) => `${n} 個のセルを埋めました`,
     skipped: (n) => `${n} 個をスキップ`,
   },
   zh: {
     paste: (n) => `已粘贴到 ${n} 个单元格`,
     cut: (n) => `已剪切 ${n} 个单元格`,
     clear: (n) => `已清除 ${n} 个单元格`,
+    fill: (n) => `已填充 ${n} 个单元格`,
     skipped: (n) => `已跳过 ${n} 个`,
   },
 };
@@ -250,6 +267,57 @@ export function attachCatalogCellSelection(
         )
       : [];
   };
+  // ADR-317 Phase 3 — the fill handle: one element of ours in the last range's bottom-right cell
+  // (breakdown §4 — `aria-hidden`: Ctrl / Cmd + D does the same by keys).
+  const handle = document.createElement("span");
+  handle.setAttribute("aria-hidden", "true");
+  handle.setAttribute("data-fill-handle", "");
+  handle.className = "table-fill-handle";
+  /** The last range's bottom-right cell (rows shown · Columns drawn) — a Table that fills. */
+  const cornerOf = (at: ReturnType<typeof places>) => {
+    const range = ranges.at(-1);
+    if (!range || !source.current?.fills) return undefined;
+    const r = Math.max(
+      at.row.get(range.anchor.row) ?? -1,
+      at.row.get(range.focus.row) ?? -1,
+    );
+    const c = Math.max(
+      at.column.get(range.anchor.column) ?? -1,
+      at.column.get(range.focus.column) ?? -1,
+    );
+    if (r < 0 || c < 0) return undefined;
+    return { row: at.order.rows[r]!, column: at.order.columns[c]! };
+  };
+  /** A drag of the fill handle: the range it started from (places) and where it reaches. */
+  let fill:
+    | {
+        r0: number;
+        r1: number;
+        c0: number;
+        c1: number;
+        /** The axis — the one the pointer left the range along first. */
+        axis?: "rows" | "columns";
+        to: number;
+        x: number;
+        y: number;
+        frame: number;
+      }
+    | undefined;
+  /** Whether a cell is in the fill's reach (outside the range, along its axis). */
+  const fillReaches = (
+    at: ReturnType<typeof places>,
+    row: string,
+    column: string,
+  ): boolean => {
+    if (!fill?.axis) return false;
+    const r = at.row.get(row);
+    const c = at.column.get(column);
+    if (r === undefined || c === undefined) return false;
+    const { r0, r1, c0, c1, to } = fill;
+    return fill.axis === "rows"
+      ? c >= c0 && c <= c1 && (to > r1 ? r > r1 && r <= to : r < r0 && r >= to)
+      : r >= r0 && r <= r1 && (to > c1 ? c > c1 && c <= to : c < c0 && c >= to);
+  };
   const rowOf = (element: HTMLElement) =>
     element.closest('[role="row"]')?.getAttribute("data-key") ?? undefined;
   const paint = (
@@ -262,10 +330,31 @@ export function attachCatalogCellSelection(
     element.setAttribute("aria-selected", on ? "true" : "false");
     if (on) element.setAttribute("data-selected", "");
     else element.removeAttribute("data-selected");
+    // ADR-317 Phase 3 — the fill handle's cell and, while it is dragged, the cells it reaches.
+    const corner = at && cornerOf(at);
+    const isCorner = !!corner && corner.row === row && corner.column === column;
+    if (isCorner) {
+      element.setAttribute("data-fill-corner", "");
+      if (handle.parentElement !== element) element.appendChild(handle);
+    } else element.removeAttribute("data-fill-corner");
+    const target =
+      !!fill && !!at && row !== undefined && fillReaches(at, row, column);
+    if (target) element.setAttribute("data-fill-target", "");
+    else element.removeAttribute("data-fill-target");
   };
   const repaint = () => {
     const at = ranges.length ? places() : undefined;
     for (const [element, column] of marked) paint(element, column, at);
+    // (The corner cell is not drawn — a virtual Table's window: no handle.)
+    const corner = at && cornerOf(at);
+    const holder = handle.parentElement;
+    if (
+      holder &&
+      (!corner ||
+        !holder.hasAttribute("data-fill-corner") ||
+        !marked.has(holder))
+    )
+      handle.remove();
   };
   const set = (next: readonly CatalogCellRange[]) => {
     ranges = next;
@@ -304,6 +393,16 @@ export function attachCatalogCellSelection(
     );
   let dragging = false;
   const onPointerDown = (event: PointerEvent) => {
+    if (
+      event.button === 0 &&
+      (event.target as Element | null)?.closest?.("[data-fill-handle]")
+    ) {
+      // (The handle's drag is not a range's — the range stays.)
+      event.preventDefault();
+      event.stopPropagation();
+      startFill(event);
+      return;
+    }
     const hit = pointAt(event.target);
     if (!hit || event.button !== 0) return;
     if (event.shiftKey) extend(hit.point);
@@ -319,13 +418,164 @@ export function attachCatalogCellSelection(
         ? document.elementFromPoint(event.clientX, event.clientY)
         : event.target,
     );
-    if (!hit) return;
+    // (ADR-317 Phase 3 — while RAC scrolls a virtual Table its content takes no pointer, so the
+    //  point finds no cell: the rows' boxes say where it is, as the fill handle's drag reads them.)
+    let point = hit?.point;
+    if (!point && typeof document.elementFromPoint === "function") {
+      const place = placeAt(event.clientX, event.clientY);
+      const at = places();
+      if (place.row !== undefined && place.column !== undefined)
+        point = {
+          row: at.order.rows[place.row]!,
+          column: at.order.columns[place.column]!,
+        };
+    }
+    if (!point) return;
     const last = ranges.at(-1)?.focus;
-    if (last?.row !== hit.point.row || last.column !== hit.point.column)
-      extend(hit.point);
+    if (last?.row !== point.row || last.column !== point.column) extend(point);
   };
   const onPointerUp = () => {
     dragging = false;
+  };
+  // ADR-317 Phase 3 — the fill handle's drag. The pointer is read against the rows drawn (their
+  // boxes — RAC turns the content's pointer events off while it scrolls, so `elementFromPoint`
+  // finds no row then: breakdown §9 Phase 0 (1)); the listeners are the document's (the handle's
+  // cell may leave a virtual Table's window). Near the Table's edge it scrolls.
+  /** The row (shown place) and Column (drawn place) under a point — clamped into the Table. */
+  const placeAt = (x: number, y: number) => {
+    const at = places();
+    const box = table.getBoundingClientRect();
+    const head = table
+      .querySelector('[role="rowgroup"]')
+      ?.getBoundingClientRect();
+    const top = head && head.bottom > box.top ? head.bottom : box.top;
+    const cy = Math.min(Math.max(y, top + 1), box.bottom - 1);
+    const cx = Math.min(Math.max(x, box.left + 1), box.right - 1);
+    let row: number | undefined;
+    let column: number | undefined;
+    for (const element of table.querySelectorAll<HTMLElement>(
+      '[role="row"][data-key]',
+    )) {
+      const frame = (
+        element.parentElement?.getAttribute("role") === "presentation"
+          ? element.parentElement
+          : element
+      ).getBoundingClientRect();
+      if (cy < frame.top || cy >= frame.bottom) continue;
+      const index = at.row.get(element.getAttribute("data-key") ?? "");
+      if (index === undefined) continue;
+      row = index;
+      for (const cell of element.querySelectorAll<HTMLElement>(
+        "[data-column-key]",
+      )) {
+        const rect = cell.getBoundingClientRect();
+        if (cx >= rect.left && cx < rect.right)
+          column = at.column.get(cell.getAttribute("data-column-key") ?? "");
+      }
+      break;
+    }
+    return { row, column };
+  };
+  const startFill = (event: PointerEvent) => {
+    const range = ranges.at(-1);
+    if (!range || !source.current?.fills) return;
+    const at = places();
+    const r = [at.row.get(range.anchor.row), at.row.get(range.focus.row)];
+    const c = [
+      at.column.get(range.anchor.column),
+      at.column.get(range.focus.column),
+    ];
+    if (r.includes(undefined) || c.includes(undefined)) return;
+    fill = {
+      r0: Math.min(r[0]!, r[1]!),
+      r1: Math.max(r[0]!, r[1]!),
+      c0: Math.min(c[0]!, c[1]!),
+      c1: Math.max(c[0]!, c[1]!),
+      to: 0,
+      x: event.clientX,
+      y: event.clientY,
+      frame: 0,
+    };
+    document.addEventListener("pointermove", onFillMove);
+    document.addEventListener("pointerup", onFillUp);
+    document.addEventListener("pointercancel", onFillCancel);
+    fill.frame = requestAnimationFrame(fillStep);
+  };
+  const fillStep = () => {
+    const now = fill;
+    if (!now) return;
+    // (Near the edge: scroll the Table — a virtual one draws the rows it reaches.)
+    const box = table.getBoundingClientRect();
+    const edge = 24;
+    let dy = 0;
+    if (now.y > box.bottom - edge)
+      dy = Math.min(40, (now.y - (box.bottom - edge)) / 2 + 4);
+    else if (now.y < box.top + edge)
+      dy = -Math.min(40, (box.top + edge - now.y) / 2 + 4);
+    if (dy && table.scrollHeight > table.clientHeight) table.scrollTop += dy;
+    const { row, column } = placeAt(now.x, now.y);
+    const outRows =
+      row === undefined
+        ? 0
+        : row > now.r1
+          ? row - now.r1
+          : row < now.r0
+            ? now.r0 - row
+            : 0;
+    const outColumns =
+      column === undefined
+        ? 0
+        : column > now.c1
+          ? column - now.c1
+          : column < now.c0
+            ? now.c0 - column
+            : 0;
+    if (!now.axis && (outRows || outColumns))
+      now.axis = outRows >= outColumns ? "rows" : "columns";
+    const to =
+      now.axis === "rows"
+        ? (row ?? now.to)
+        : now.axis === "columns"
+          ? (column ?? now.to)
+          : now.to;
+    if (to !== now.to) {
+      now.to = to;
+      repaint();
+    }
+    now.frame = requestAnimationFrame(fillStep);
+  };
+  const onFillMove = (event: PointerEvent) => {
+    if (!fill) return;
+    fill.x = event.clientX;
+    fill.y = event.clientY;
+  };
+  const endFill = () => {
+    const now = fill;
+    if (now) cancelAnimationFrame(now.frame);
+    fill = undefined;
+    document.removeEventListener("pointermove", onFillMove);
+    document.removeEventListener("pointerup", onFillUp);
+    document.removeEventListener("pointercancel", onFillCancel);
+    repaint();
+    return now;
+  };
+  const onFillCancel = () => {
+    endFill();
+  };
+  const onFillUp = () => {
+    const now = endFill();
+    if (!now?.axis) return;
+    const at = places();
+    const planned = catalogFillPlan(
+      at.order,
+      now,
+      now.axis,
+      now.to,
+      (rows, columns) => source.current?.values?.(rows, columns) ?? [],
+    );
+    if (!planned) return;
+    set([planned.range]);
+    write(planned.cells, "fill", 0);
   };
   // Keys: the focus moves are RAC's. An arrow key with Shift held extends the range to the cell the
   // focus moves to; without Shift, that cell alone.
@@ -343,7 +593,8 @@ export function attachCatalogCellSelection(
     if (
       (event.key === "Delete" || event.key === "Backspace") &&
       ranges.length &&
-      source.current?.write &&
+      source.current?.pastes &&
+      source.current.write &&
       !event.metaKey &&
       !event.ctrlKey &&
       !event.altKey &&
@@ -361,6 +612,37 @@ export function attachCatalogCellSelection(
           cells.push({ row, column, value: "" });
         }
       write(cells, "clear", 0);
+    }
+    // ADR-317 사용자 결정 2 — Ctrl / Cmd + D: the last range's first row down its rows (one row:
+    // the row above it into it).
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
+      event.key.toLowerCase() === "d" &&
+      ranges.length &&
+      source.current?.fills &&
+      !typing(event.target)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      const at = places();
+      const span = spanOf(at, ranges.at(-1)!);
+      if (!span) return;
+      const first = at.row.get(span.rows[0]!)!;
+      const from = span.rows.length > 1 ? first : first - 1;
+      if (from < 0) return;
+      const sourceRow = at.order.rows[from]!;
+      const values =
+        source.current.values?.([sourceRow], span.columns)[0] ?? [];
+      const cells: CatalogCellWrite[] = [];
+      for (const row of span.rows)
+        if (row !== sourceRow)
+          span.columns.forEach((column, j) =>
+            cells.push({ row, column, value: values[j] }),
+          );
+      write(cells, "fill", 0);
+      return;
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
       const { rows, columns } = source.current?.order() ?? {
@@ -401,7 +683,7 @@ export function attachCatalogCellSelection(
   // ADR-317 사용자 결정 3 — Ctrl / Cmd + X: the copy, then the last range emptied.
   const onCut = (event: ClipboardEvent) => {
     const range = ranges.at(-1);
-    if (!range || !source.current?.write || !event.clipboardData) return;
+    if (!range || !source.current?.pastes || !event.clipboardData) return;
     onCopy(event);
     write(
       cellsOf(places(), range).map(([row, column]) => ({
@@ -417,7 +699,7 @@ export function attachCatalogCellSelection(
   // prompt, HC8), from the last range's top-left cell (else the focused cell).
   const onPaste = (event: ClipboardEvent) => {
     const text = event.clipboardData?.getData("text/plain");
-    if (!source.current?.write || text === undefined) return;
+    if (!source.current?.pastes || text === undefined) return;
     const focused = pointAt(document.activeElement)?.point;
     const range =
       ranges.at(-1) ??
@@ -480,7 +762,7 @@ export function attachCatalogCellSelection(
       typing(document.activeElement)
     )
       return;
-    if (event.type === "beforecopy" ? ranges.length : source.current?.write)
+    if (event.type === "beforecopy" ? ranges.length : source.current?.pastes)
       event.preventDefault();
   };
   table.setAttribute("aria-multiselectable", "true");
@@ -519,11 +801,91 @@ export function attachCatalogCellSelection(
       table.removeEventListener("paste", onPaste);
       for (const type of BEFORE_CLIPBOARD)
         document.removeEventListener(type, onBefore);
+      endFill();
+      handle.remove();
       for (const element of marked.keys()) {
         element.removeAttribute("aria-selected");
         element.removeAttribute("data-selected");
+        element.removeAttribute("data-fill-corner");
+        element.removeAttribute("data-fill-target");
       }
       marked.clear();
+    },
+  };
+}
+
+/**
+ * ADR-317 Phase 3 — a fill: the range (`r0`..`r1` rows shown, `c0`..`c1` Columns drawn) carried
+ * along one axis to `to` (a row's place for `rows`, a Column's for `columns`; either side). The
+ * cells it reaches take the range's values repeated in order from the range's edge it leaves
+ * (사용자 결정 5 — a copy, no series); the range grows to them. Undefined = `to` is in the range.
+ */
+export function catalogFillPlan(
+  order: {
+    readonly rows: readonly string[];
+    readonly columns: readonly string[];
+  },
+  range: { r0: number; r1: number; c0: number; c1: number },
+  axis: "rows" | "columns",
+  to: number,
+  values: (
+    rows: readonly string[],
+    columns: readonly string[],
+  ) => readonly (readonly unknown[])[],
+): { cells: CatalogCellWrite[]; range: CatalogCellRange } | undefined {
+  const { r0, r1, c0, c1 } = range;
+  if (axis === "rows" ? to >= r0 && to <= r1 : to >= c0 && to <= c1)
+    return undefined;
+  const rows = order.rows.slice(r0, r1 + 1);
+  const columns = order.columns.slice(c0, c1 + 1);
+  const held = values(rows, columns);
+  const cells: CatalogCellWrite[] = [];
+  /** The range's index for a reached place `i` of `n` (from the edge left — going back, the last). */
+  const repeat = (i: number, n: number, size: number, forward: boolean) =>
+    forward ? i % size : (size - ((n - i) % size)) % size;
+  if (axis === "rows") {
+    const forward = to > r1;
+    const reached = forward
+      ? order.rows.slice(r1 + 1, to + 1)
+      : order.rows.slice(to, r0);
+    reached.forEach((row, i) => {
+      const from = repeat(i, reached.length, rows.length, forward);
+      columns.forEach((column, j) =>
+        cells.push({ row, column, value: held[from]?.[j] }),
+      );
+    });
+    return {
+      cells,
+      range: {
+        anchor: {
+          row: order.rows[Math.min(r0, to)]!,
+          column: order.columns[c0]!,
+        },
+        focus: {
+          row: order.rows[Math.max(r1, to)]!,
+          column: order.columns[c1]!,
+        },
+      },
+    };
+  }
+  const forward = to > c1;
+  const reached = forward
+    ? order.columns.slice(c1 + 1, to + 1)
+    : order.columns.slice(to, c0);
+  rows.forEach((row, i) =>
+    reached.forEach((column, j) => {
+      const from = repeat(j, reached.length, columns.length, forward);
+      cells.push({ row, column, value: held[i]?.[from] });
+    }),
+  );
+  return {
+    cells,
+    range: {
+      anchor: {
+        row: order.rows[r0]!,
+        column: order.columns[Math.min(c0, to)]!,
+      },
+      focus: { row: order.rows[r1]!, column: order.columns[Math.max(c1, to)]! },
     },
   };
 }

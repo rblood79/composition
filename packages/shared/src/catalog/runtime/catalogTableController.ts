@@ -315,6 +315,21 @@ export class CatalogTableController {
   }
 
   /**
+   * ADR-317 Phase 3 — a cell range's values (what a fill copies): its rows (keys) by its Columns
+   * (keys), the rows' data as read last — not text (another type's value is not written).
+   */
+  tableCellValues(
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ): readonly (readonly unknown[])[] {
+    const values = this.host.root?.rowValuesOf(tableId);
+    return rows.map((key) =>
+      columns.map((column) => values?.get(key)?.[column]),
+    );
+  }
+
+  /**
    * ADR-315 Phase 4 — a Table record's columns as shown now: the hidden ones and the pinned ones —
    * the state's lists, else the authored defaults (a Column's `defaultHidden` · `defaultPinned`).
    */

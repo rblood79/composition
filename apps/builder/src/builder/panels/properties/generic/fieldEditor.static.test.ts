@@ -75,6 +75,12 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
       group: "Options",
       label: "Disabled",
     });
+    // ADR-317 — 「Fill」 접두는 fill* key 만: Table 「Fill handle」 (allowsFilling) 은 fill 스타일이 아니다.
+    expect(editorOf("Table", "allowsFilling")).toMatchObject({
+      type: "chip",
+      group: "Options",
+      label: "Fill handle",
+    });
   });
 
   it("On/Off enum (autoCorrect · spellCheck) 은 칩", () => {

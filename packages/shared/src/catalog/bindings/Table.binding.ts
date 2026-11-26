@@ -195,6 +195,17 @@ export const tableBinding: PrimitiveBinding = {
         section: "state",
         visibleWhen: { key: "allowsCellSelection", equals: true },
       },
+      // ADR-317 Phase 3 — the end user drags the fill handle (the last range's bottom-right corner)
+      //   down · up · right · left, or presses Ctrl/Cmd + D (사용자 결정 2), to copy the range's
+      //   values into the cells it reaches (사용자 결정 5 — a copy, no series); the 「Editable」
+      //   Columns' data cells only, one several-cell write. A composition extension, default off;
+      //   shown with 「Cell selection」 on.
+      allowsFilling: {
+        kind: "boolean",
+        label: "Fill handle",
+        section: "state",
+        visibleWhen: { key: "allowsCellSelection", equals: true },
+      },
       keepPinnedRows: {
         kind: "boolean",
         label: "Keep pinned rows",

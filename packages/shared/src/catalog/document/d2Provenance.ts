@@ -156,6 +156,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     allowsCellSelection: "composition",
     // ADR-317 Phase 2 — the viewer pastes · cuts · clears the 「Editable」 Columns' cells.
     allowsPasting: "composition",
+    // ADR-317 Phase 3 — the viewer drags the fill handle · Ctrl/Cmd + D (a copy of the range's values).
+    allowsFilling: "composition",
     keepPinnedRows: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },

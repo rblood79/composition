@@ -496,6 +496,12 @@ export interface CatalogDomRuntime {
     tableId: string,
     cells: readonly CatalogCellWrite[],
   ): CatalogTableCellsWrite;
+  /** ADR-317 Phase 3 — the rows' values by the Columns (what a fill copies — the rows' data). */
+  tableCellValues?(
+    tableId: string,
+    rows: readonly string[],
+    columns: readonly string[],
+  ): readonly (readonly unknown[])[];
   /**
    * ADR-315 Phase 4 — the widths RAC's column resize left (its `onResizeEnd` — RAC keys, px): the
    * Table's state (`columnWidths`), remembered with it.
@@ -4343,13 +4349,25 @@ function ruleDom(
                       columns: readonly string[],
                     ) =>
                       context.runtime!.tableCellText!(node.id, rows, columns),
-                    // (ADR-317 — 「Paste」: the Table writes its cells; `CatalogTable` says the
-                    //  result in its status region.)
-                    ...(node.props.allowsPasting === true &&
+                    // (ADR-317 — 「Paste」 · 「Fill handle」: the Table writes its cells;
+                    //  `CatalogTable` says the result in its status region.)
+                    ...((node.props.allowsPasting === true ||
+                      node.props.allowsFilling === true) &&
                     context.runtime.editTableCells
                       ? {
+                          pastes: node.props.allowsPasting === true,
+                          fills: node.props.allowsFilling === true,
                           write: (cells: readonly CatalogCellWrite[]) =>
                             context.runtime!.editTableCells!(node.id, cells),
+                          values: (
+                            rows: readonly string[],
+                            columns: readonly string[],
+                          ) =>
+                            context.runtime!.tableCellValues?.(
+                              node.id,
+                              rows,
+                              columns,
+                            ) ?? [],
                         }
                       : {}),
                   },

@@ -13745,6 +13745,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           isSelected: "color-mix(in srgb, var(--accent) 10%, var(--bg))",
         },
       },
+      // ADR-317 Phase 3 — the fill handle (`tableCellSelection.ts` puts it in the last range's
+      //   bottom-right cell — `data-fill-corner`): a small accent square at the cell's corner, a
+      //   crosshair; the cells a drag reaches are outlined (`data-fill-target`). No S2 handle —
+      //   ReUI's `cellFillHandle` is the reference. Preview runtime state — the Canvas draws none.
+      "&[data-cell-selection] .react-aria-Cell[data-fill-corner]%": {
+        position: { default: "relative" },
+      },
+      "&[data-cell-selection] .table-fill-handle%": {
+        position: { default: "absolute" },
+        insetInlineEnd: { default: "0" },
+        insetBlockEnd: { default: "0" },
+        width: { default: "7px" },
+        height: { default: "7px" },
+        background: { default: "var(--accent)" },
+        boxShadow: { default: "0 0 0 1px var(--bg)" },
+        cursor: { default: "crosshair" },
+        touchAction: { default: "none" },
+        zIndex: { default: "1" },
+      },
+      "&[data-cell-selection] .react-aria-Cell[data-fill-target]%": {
+        outline: { default: "1px dashed var(--accent)" },
+        outlineOffset: { default: "-1px" },
+      },
     },
     defaultVariant: "default",
     defaultSize: "M",

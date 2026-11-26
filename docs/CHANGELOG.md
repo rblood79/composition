@@ -13,6 +13,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-317 Phase 3 — Table 「Fill handle」: 채우기 손잡이 · Ctrl/Cmd + D] - 2026-11-26
+
+### Added
+
+- **Table 「Fill handle」** (Design 패널 Behavior 칩 — 「Cell selection」 이 켜져야 보임, 기본 꺼짐, composition 확장): Preview · Publish 에서 칸 범위의 오른쪽 아래 모서리에 작은 손잡이가 생기고, 끌면 범위의 값이 그 방향 (아래 · 위 · 오른쪽 · 왼쪽 — 먼저 벗어난 축) 으로 되풀이돼 채워진다 (연속값 추론 없음 — 사용자 결정 5). 표 가장자리 근처로 끌면 자동 스크롤해 가상 표의 창 밖 행까지 닿는다. Ctrl / Cmd + D 는 범위의 첫 행을 아래 행들에 (한 행이면 위 행을 그 행에 — 사용자 결정 2). 「Editable」 열의 데이터 칸만 한 번에 쓰고 나머지는 알림에 센다.
+  - 위치: `runtime/tableCellSelection.ts` (`catalogFillPlan`) · `runtime/catalogTableController.ts` `tableCellValues` · `bindings/Table.binding.ts` `allowsFilling` · Table rule `rootSelectors` (손잡이 · 닿은 칸 모양 — 생성 `Table.css`)
+
+### Fixed
+
+- **패널 칩이 「Fill …」 라벨을 fill 스타일 묶음으로 오인**: 칩 묶음 · 라벨의 「Fill」 접두 판정을 `fill*` key 로 좁혔다 (「Fill handle」 이 Fill 묶음의 「Handle」 로 보였다). 기존 「Fill …」 칩 (`fillStyle` · `fillGrid` · `fillArea` · `fillOffset`) 은 그대로다.
+  - 위치: `panels/properties/generic/fieldEditor.ts`
+- **칸 범위 끌기가 가상 표의 스크롤 중 멈추던 것**: RAC 가 스크롤 중 내용의 pointer 를 꺼 `elementFromPoint` 가 칸을 못 찾으면, 그려진 행 상자로 자리를 읽는다.
+
+### Tests
+
+- `apps/builder/src/preview/catalog/__tests__/adr317Fill.test.tsx` (5) · `fieldEditor.static.test.ts` (+1) — 변이 RED 6/6 · live `apps/builder/scripts/adr317-p3-fill-live.mjs` (Chrome · WebKit)
+
 ## [ADR-317 Phase 2 — Table 「Paste」: 붙여넣기 · 잘라내기 · 지우기] - 2026-11-26
 
 칸 범위 선택 (ADR-315) 을 켠 Table 에 「Paste」 를 켜면 Preview · Publish 에서 여러 칸을 한 번에 고친다. Excel · Google Sheets · 표 자신에서 복사한 글자를 그대로 붙여넣는다.

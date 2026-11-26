@@ -537,6 +537,7 @@ export const semanticLabelKeys: Record<string, string> = {
   "Row pinning": "properties.tableRowPinning",
   "Cell selection": "properties.tableCellSelection",
   Paste: "properties.tablePaste",
+  "Fill handle": "properties.tableFillHandle",
   "Keep pinned rows": "properties.tableKeepPinnedRows",
   // ADR-315 Phase 5 — a Column's grouping · its group rows' aggregate.
   Grouped: "properties.columnGrouped",

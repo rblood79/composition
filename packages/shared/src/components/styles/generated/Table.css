@@ -160,4 +160,26 @@
   background: color-mix(in srgb, var(--accent) 10%, var(--bg));
 }
 
+.react-aria-Table.react-aria-Table[data-cell-selection] .react-aria-Cell[data-fill-corner] {
+  position: relative;
+}
+
+.react-aria-Table.react-aria-Table[data-cell-selection] .table-fill-handle {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--bg);
+  cursor: crosshair;
+  touch-action: none;
+  z-index: 1;
+}
+
+.react-aria-Table.react-aria-Table[data-cell-selection] .react-aria-Cell[data-fill-target] {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+}
+
 } /* @layer components */
