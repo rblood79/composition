@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-315 Implemented — Table 을 data grid 로] - 2026-11-26
+
+ADR-315 (표 상태 모델 하나로 TanStack Table 기능 표면 전부 — 정렬 · 검색 · 필터 · 열 · 행 · 칸) Implemented. 코드 변경 없이 남은 사용자 확인으로 닫았다 — G6 VoiceOver 청취 사용자 「voiceover는 했다」, G7 사용자 확인 「통과 — Implemented 로」. 종결 live 는 Phase 7 (2026-11-21) 의 재확인 묶음 23 모드 (Chrome · WebKit) · `/cross-check` · HC4 A/B (≤ 1.10) 그대로다. Worker 는 「필요 없음」, 로컬 조회 상한 10,000 그대로 (사용자 결정 7).
+
+### Changed
+
+- ADR 본문을 `docs/adr/completed/` 로 옮기고 `### Live Exercise` 절을 적었다.
+
 ## [ADR-317 Implemented — Table 편집 격자 (Phase 6 종결)] - 2026-11-26
 
 ADR-317 (Table 편집 격자 — 붙여넣기 · 채우기 손잡이 · 편집 상태 표시 · 줄무늬 행) Implemented. Phase 6 은 제품 동작 변경 없이 측정 · 검사 · 문서로 닫았다 — G6 사용자 답 「같은 표 기준으로 통과」, P5 VoiceOver 청취 「확인했다」 (붙여넣기 · 지우기 · 잘라내기 · 채우기 결과 알림을 focus 이동 없이 읽음).

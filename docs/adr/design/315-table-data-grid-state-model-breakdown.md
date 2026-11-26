@@ -1,6 +1,6 @@
 # ADR-315 breakdown — Table 을 data grid 로
 
-> 본문: [315-table-data-grid-state-model.md](../315-table-data-grid-state-model.md). 코드 인용은 main `23b1c802b` (2026-11-20) 기준이고, 새 이름은 전부 제안이다.
+> 본문: [315-table-data-grid-state-model.md](../completed/315-table-data-grid-state-model.md). 코드 인용은 main `23b1c802b` (2026-11-20) 기준이고, 새 이름은 전부 제안이다.
 
 ## 1. 전제
 
@@ -961,7 +961,7 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **live**: 증분마다 한 것으로 닫는다 (위 증분 기록 — 묶음 · 가상 묶음 · Canvas 묶음 · 합계 · 계층 · 상세 · 고정 · 서버 묶음 · 서버 고정 · 패널 안내). 재확인 묶음과 Canvas 작성 기본값 (「Grouped」 · 합계 · 상세 · 계층의 접힌 표시) 의 `/cross-check` 은 사용자 결정으로 Phase 7.
 - **남은 한계 (기록)**: 서버 묶음 · 합계 값의 float 잡음 (서버 값 그대로) · 묶은 표 · 계층 표의 행 고정 · 서버 「쪽」 목록 위의 고정 · 서버 묶음 · 계산 필드만 집계 입력인 열의 서버 합계 · 컴포넌트 안 Table 의 합계 · 선택 가능한 표에서 상세 행도 선택됨 · Canvas 에서 묶음을 펼친 작성 상태.
 
-### Phase 6 (2026-11-21 — G6: VoiceOver 청취만 사용자 확인 대기)
+### Phase 6 (2026-11-21 — G6: VoiceOver 청취 2026-11-26 사용자 확인 통과)
 
 **사용자 결정 5 확정 (2026-11-21, 착수 때)**: 「표마다 하나」 — 칸 범위 선택과 행 선택은 한 표에서 같이 켜지 않는다.
 
@@ -999,7 +999,7 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **Gate G6**: 시각 병합 · 칸 범위 선택 · 복사 · 키보드 전 경로 (Shift + 화살표 · Ctrl/Cmd + A · Ctrl/Cmd + C · Esc) · 규칙 문서의 예외 범위와 구현의 속성 목록 일치 (`aria-selected` · `aria-multiselectable` 둘 — `tableCellSelection.ts` 가 쓰는 ARIA 는 그 둘뿐) — 통과. **VoiceOver 청취는 사용자와 확인 대기** (S6 · 본문 G6 — 자동 확인 수단 없음, 실패하면 대안은 「칸 선택을 빼고 병합만」).
 - **남은 한계 (기록)**: 가상 표의 병합 첫 행은 창 안 첫 행이 값을 보인다 (창 시작은 보통 화면 위 — 긴 병합을 스크롤하면 값이 화면 밖일 수 있다) · 복사는 마지막 범위만 · 칸 범위는 Do · 변수로 읽지 않는다 · 묶음 표에서 묶음 행 칸도 범위에 든다 (값 = 묶음 값 · 집계).
 
-### Phase 7 (2026-11-21 — G7: Worker 필요 없음 · HC4 통과, VoiceOver · 사용자 확인 대기)
+### Phase 7 (2026-11-21 — G7: Worker 필요 없음 · HC4 통과, VoiceOver · 사용자 확인 2026-11-26 통과)
 
 **Worker 조건 판정 (본문 Decision 8)**: 10 만 행에서 검색 입력의 화면 스레드 계산이 HC4 의 검색 입력 상한 (사용자 결정 2026-11-20 — 정렬 클릭 기준선, 1x 154 ~ 169 · 4x 556 ~ 589 ms) 을 넘을 때만 구현한다. `adr315MainThreadBench.mjs` (production 함수를 묶어 headed Chrome main thread 에서, 7 회의 p95 — 계산만) 에 Phase 3 의 실제 입력 방식 셋을 더했다 — 키마다 새 행 배열 위에서 정렬된 순서를 유지한 채 거르는 「이어 치기」 (`viewRowsPassing`):
 
@@ -1044,4 +1044,8 @@ Property 탭 Collection 구획 아래 「Grid」 묶음 — 기능 단위로 접
 - **Gate G7**: Worker 조건 판정 (위 측정 표 — 필요 없음) · 번들 · 문서 · 종결 live (위 재확인 묶음 · `/cross-check`) — 통과. **사용자 확인 대기**: G6 의 VoiceOver 청취와 G7 의 사용자 확인. 둘이 끝나면 Implemented 로 올린다.
 - **남은 한계 (기록)**: 10 만 행 로컬 표 (상한 그대로) · 정렬 클릭 1x 숫자 열 비율이 상한 가까이 (1.097) · 앞 Phase 의 남은 한계는 각 Phase 기록 그대로.
 
-(다음 Phase 의 기록은 여기에 이어 적는다)
+### 종결 (2026-11-26 — Implemented)
+
+- **사용자 확인**: VoiceOver 청취 (G6 — 칸 범위 선택 · 시각 병합 · 복사) 사용자 「voiceover는 했다」, 결과 질문에 「통과 — Implemented 로」 (G7 사용자 확인을 겸함). 남은 Gate 없음.
+- Implemented 로 올리고 본문을 `completed/` 로 옮겼다 ([본문](../completed/315-table-data-grid-state-model.md) `### Live Exercise`). 코드 변경 없음 — 종결 live 는 Phase 7 의 재확인 묶음 23 모드 · `/cross-check` 그대로.
+- 남은 한계 (Phase 7 기록 그대로): 10 만 행 로컬 표 (상한 10,000) · 정렬 클릭 1x 숫자 열 비율 1.097.
