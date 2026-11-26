@@ -25,9 +25,9 @@ Canvas(Skia)와 Preview(DOM/CSS)는 catalog + theme/tokens의 대등한 소비�
 
 - `COMPONENT_RULES_TABLE` 의 variant 색상·CSS 에 닿는 값이 바뀌었으면 `pnpm generate:css` 후 확인합니다
   (generated CSS 는 build-time 주입). dist 는 없습니다 — `@composition/rendering` · `@composition/shared` 는 소스 직접 export.
-- 현재 dev 서버를 쓰고, 브라우저 도구는 [evaluate](../evaluate/SKILL.md) §브라우저 도구 를 따릅니다 (기본 chrome-devtools-mcp).
+- 현재 dev 서버를 쓰고, 브라우저 선택과 화면 캡처는 [evaluate의 브라우저 도구](../evaluate/SKILL.md#브라우저-도구)에서 현재 실행 환경의 규칙을 따릅니다.
   렌더 측정은 foreground나 활성 RAF 환경에서 수행합니다. 고정 포트·과거 store 조작 예제를 가정하지 않습니다.
-  비교한 화면은 파일로 남깁니다 (devtools `filePath` · Claude in Chrome `save_to_disk: true`).
+  비교한 화면은 파일로 남깁니다.
 - 같은 fixture·viewport·theme·상태에서 Canvas와 Preview를 비교하고 필요하면 패널 값도 대조합니다.
   판정표의 한 행은 양쪽을 **같은 production 상태**에서 잰 값이어야 합니다 — 상태가 다른 두 값을
   설명문으로 제외하면 검증이 빕니다.

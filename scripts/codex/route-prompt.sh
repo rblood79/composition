@@ -57,7 +57,7 @@ if echo "$PROMPT" | grep -qiE "리팩토링|refactor|재구조|migration|마이�
 fi
 
 if echo "$PROMPT" | grep -qiE "테스트|test|E2E|storybook|playwright|vitest"; then
-  add_hint "test: prefer focused Vitest near changed modules; use Playwright for user flow or visual behavior"
+  add_hint "test: 변경 모듈 옆 Vitest를 우선하고 실제 사용자 흐름·시각 검증은 evaluate의 Codex 브라우저 선택 기준을 따름"
 fi
 
 if echo "$PROMPT" | grep -qiE "레이아웃|layout|Taffy|flex|grid|align|정렬|Yoga"; then

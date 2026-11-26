@@ -15,7 +15,22 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
 
 ## 브라우저 도구
 
-verify · cross-check 도 이 절을 따릅니다 (2026-11-25 사용자 결정).
+verify · cross-check도 현재 실행 환경에 해당하는 절을 따릅니다.
+
+### Codex
+
+- **기본은 앱 내 브라우저(`iab`)**입니다. 현재 Builder 서버 주소를 확인하고 `cua_repl`에서
+  `cua.createBrowserTab("iab", url, { visible: true })`로 검증 탭을 엽니다.
+- **사용자 Chrome(`chrome`)**은 사용자의 로그인·프로젝트·열린 탭 상태가 필요하거나, 사용자가 자기 Chrome에서
+  진행을 지켜보려 하거나 Chrome을 지정했을 때 씁니다. 기존 상태를 확인할 때는 지정된 탭이나 확인한 Builder 탭에 연결합니다.
+  새 탭이 필요하면 Chrome에 검증용 탭을 엽니다.
+- 반복 검증, 저장된 인증 세션 또는 CDP 계측이 필요한 독립 시나리오는 해당 headed Playwright 하니스를 사용합니다.
+  브라우저 호스트 연결 실패 시에도 같은 조건을 재현할 수 있으면 하니스로 검증합니다. 사용자 탭에만 있는 상태는
+  그 탭에서 관찰하거나 사용자가 확인한 결과를 기록합니다. 확인할 수 없으면 해당 항목을 BLOCKED로 남깁니다.
+- 보고에는 실제 수단(`iab`, `chrome`, Playwright, 사용자 확인)과 관찰한 결과를 적습니다.
+  시각 비교에는 양쪽 스크린샷 파일을 남깁니다. 성능 측정에는 확인한 CPU 제한 값을 쓰고, 확인할 수 없으면 미확인으로 기록합니다.
+
+### Claude Code
 
 - **기본 = chrome-devtools-mcp** (`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`). 전용 프로필
   (`~/.cache/chrome-devtools-mcp/chrome-profile`) 로 Chrome 창을 따로 띄우므로 사용자 탭을 건드리지 않고,
@@ -70,6 +85,6 @@ BLOCKED 는 결함도 통과도 아닙니다 — 막힌 이유와 풀 방법을 
 재시도는 실행별 증거 폴더를 사용해 첫 실패의 로그·결과·스크린샷을 덮어쓰지 않습니다.
 
 결과는 ADR 의 `### Live Exercise` 절에 그대로 옮길 수 있는 형태로 적습니다 — 날짜 · 시나리오 ·
-결과 (PASS/FAIL/BLOCKED 수) · 수단 (chrome-devtools-mcp / Claude in Chrome / Playwright / 사용자 confirm) · 콘솔 오류 수 ·
-CPU throttle 상태 (devtools 는 `emulate` 로 건 값 — 없으면 1x. Claude in Chrome 은 사용자 설정 4x 라 체감 수치가 하니스의 약 4배).
+결과 (PASS/FAIL/BLOCKED 수) · 실제 사용한 브라우저 도구 또는 사용자 확인 · 콘솔 오류 수 · CPU throttle 상태.
+콘솔이나 throttle 값을 읽을 수 없으면 미확인으로 적습니다.
 검증만 요청되면 보고하고, 수정까지 요청되면 발견한 범위의 문제도 해결합니다.
