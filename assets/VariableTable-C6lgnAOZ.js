@@ -1,1 +1,0 @@
-export{t as VariableTable}from"./VariableTable-Dw0Niclg.js";
