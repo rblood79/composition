@@ -2502,6 +2502,8 @@ const catalog: TranslationKeys = {
     importParseFailed: "파일을 읽지 못했습니다.",
     editorEmpty: "행 없음",
     editorError: "마지막 실행 오류",
+    editorNoKey:
+      "key 필드가 없음 — 실행 중인 앱에서 고친 값이 다시 불러오면 사라진다. 열 설정에서 「key 필드」 를 켜면 남는다.",
     confirmDelete: "정말 삭제하시겠습니까?",
     promptVariableName: "Variable 이름을 입력하세요:",
     promptApiUrl:

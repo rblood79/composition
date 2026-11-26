@@ -192,10 +192,12 @@ export interface DispatchDeps {
    */
   editSeq?: () => number;
   /**
-   * ADR-317 Phase 4 (사용자 결정 6) — a rule that saves (`callEndpoint`) succeeded: the edits it sent
-   * (its event's — `CATALOG_EVENT_EDITS` — and its own Dos') are shown saved.
+   * ADR-325 Decision 3 (ADR-317 사용자 결정 6) — a rule that saves (`callEndpoint`) sent: the changes
+   * its edits wrote (its event's — `CATALOG_EVENT_EDITS` — and its own Dos') wait for the answer.
+   * The function returned takes it — the save went through (confirmed: only cells written after the
+   * send stay unsaved) or not (rejected: the changes stay). Undefined = nothing waits.
    */
-  markEditsSaved?: (seqs: readonly number[]) => void;
+  beginSave?: (seqs: readonly number[]) => ((ok: boolean) => void) | undefined;
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (
     collectionId: string,

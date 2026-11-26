@@ -86,10 +86,10 @@ async function openTable(props: Record<string, unknown> = {}) {
   const session = h.session;
   const internals = session as unknown as {
     currentRoot: { refreshRows: (...args: unknown[]) => unknown[] };
-    itemEdits: Map<string, unknown[]>;
   };
   const refreshes = vi.spyOn(internals.currentRoot, "refreshRows");
-  const edits = () => internals.itemEdits.get("users")?.length ?? 0;
+  // (ADR-325 — an edit is one numbered write into the store's changes: the session's edit number.)
+  const edits = () => session.editSeq();
   const item = (key: string) =>
     (session.collectionItems("users") as Record<string, unknown>[]).find(
       (each) => each.id === key,

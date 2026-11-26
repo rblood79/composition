@@ -532,7 +532,7 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
     h.view.unmount();
   });
 
-  it("two different views on one endpoint: none is sent — each runs on the Builder's loaded rows", async () => {
+  it("two different views on one endpoint: each asks for its own rows (ADR-325 Decision 6) — a write asks again for the view that reads it only", async () => {
     const server = stubServer();
     const h = await apiPreview(
       SUFFIX_VIEW,
@@ -542,10 +542,16 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
         second: { where: where([EITHER]) },
       },
     );
-    expect(server.urls()).toEqual([]);
+    // (ADR-284 G0 → ADR-325: none was sent and each ran on the Builder's rows. Now one request a
+    //  view — the `or` the suffix format cannot carry asks for every row, reported.)
+    expect(server.urls()).toEqual(["/users?_sort=age&_order=asc", "/users"]);
     h.write("g", "female");
     await settle();
-    expect(server.urls()).toEqual([]);
+    expect(server.urls()).toEqual([
+      "/users?_sort=age&_order=asc",
+      "/users",
+      "/users?gender=female&_sort=age&_order=asc",
+    ]);
     expect(h.shown()).toEqual(
       expected(SUFFIX_VIEW, {
         g: "female",
@@ -555,8 +561,8 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
         hide: false,
       }),
     );
-    expect(h.shown(h.button)).toEqual(expected({ where: where([EITHER]) }, {}));
-    expect(h.session.viewResult(h.list)?.served).toBeUndefined();
+    expect(h.shown(h.button)).toEqual(ROWS.map((row) => row.name));
+    expect(h.session.viewResult(h.list)?.served).toBe(true);
     h.view.unmount();
   });
 
@@ -810,7 +816,7 @@ describe("ADR-294 regression — component inputs in API views", () => {
     h.view.unmount();
   });
 
-  it("loads all unfiltered pages for different instance inputs and filters each occurrence independently", async () => {
+  it("different instance inputs: each occurrence asks for its own view's rows (ADR-325 Decision 6 — no unfiltered load)", async () => {
     const h = await component(
       {
         queryParams: [{ key: "page", value: "{{ cursor }}" }],
@@ -840,19 +846,19 @@ describe("ADR-294 regression — component inputs in API views", () => {
       }),
     );
     await pause();
-    expect(h.server.urls().slice(start)).toHaveLength(4);
-    expect(
-      h.server
-        .urls()
-        .slice(start)
-        .every((url) => !url.includes("gender=")),
-    ).toBe(true);
-    expect(h.shown(h.instance)).toEqual(
-      ROWS.filter((row) => row.gender === "female").map((row) => row.name),
-    );
-    expect(h.shown(second)).toEqual(
-      ROWS.filter((row) => row.gender === "male").map((row) => row.name),
-    );
+    // (ADR-284 G0 → ADR-325: every unfiltered page loaded and each occurrence filtered it here.
+    //  Now the collection's own first page — its endpoint reads a cursor, the session's to load —
+    //  never the rest of its pages; it is not the whole (2 of its total), so then one request a
+    //  view.)
+    expect(h.server.urls().slice(start)).toEqual([
+      "/users",
+      "/users?gender=female",
+      "/users?gender=male",
+    ]);
+    const of = (gender: string) =>
+      ROWS.filter((row) => row.gender === gender).map((row) => row.name);
+    expect(h.shown(h.instance)).toEqual(of("female").slice(0, 2));
+    expect(h.shown(second)).toEqual(of("male").slice(0, 2));
     h.view.unmount();
   });
 });

@@ -41,5 +41,5 @@ Codex에서는 Claude의 glob 규칙 자동 로드를 전제하지 않습니다.
 
 C = CRITICAL · H = HIGH · M = MEDIUM. 구현 레퍼런스는 `reference/` (canvas-details · child-composition ·
 component-registry · compositional-architecture · layout-engine · layout-css-parity-ledger · style-panel · text-wrapping ·
-rac-s2-integrations · table-data-grid · row-repeat · catalog-subparts-details — 마지막 셋은 규칙 문서 크기 상한으로 옮긴 원문). **데이터 · 라우팅 · 폼 · 비동기 연동을 만들기 전에 [rac-s2-integrations](reference/rac-s2-integrations.md)
+rac-s2-integrations · table-data-grid · row-repeat · catalog-subparts-details · collection-store (ADR-325 실행 저장소) — 마지막 셋은 규칙 문서 크기 상한으로 옮긴 원문). **데이터 · 라우팅 · 폼 · 비동기 연동을 만들기 전에 [rac-s2-integrations](reference/rac-s2-integrations.md)
 에서 레퍼런스 이름 · 모양과 빌더 현황을 먼저 찾는다.**

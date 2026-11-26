@@ -60,6 +60,7 @@ import type { CatalogThemeState } from "./theme";
 import {
   catalogBoundRows,
   catalogRowListMeta,
+  catalogRowMatchesQuery,
   dataCollectionIdOf,
 } from "./dataBinding";
 import { COLLECTION_ROW_PROJECTION_WINDOW_LIMIT } from "../../collections/resolveCollectionItems";
@@ -115,9 +116,9 @@ import {
   createCollectionEndpointSubmitter,
   ENDPOINT_LOAD_ARGUMENTS,
   endpointReadsTemplate,
+  endpointRequestKey,
   loadCollectionEndpoint,
   type IntakeCollections,
-  resolvedEndpointUrl,
 } from "../../collections/executeCollectionEndpoint";
 import {
   getItemKey,
@@ -138,6 +139,16 @@ import {
 import type { CatalogListPosition } from "../../interactions/dispatcher";
 import { catalogRuntimeData, type CatalogRuntimeData } from "./catalogData";
 import { normalizeRows } from "../../collections/intake/normalizeRows";
+import {
+  CollectionStore,
+  levelKey,
+  overlayRows,
+  type ListKey,
+  type OverlayShape,
+  type RequestKey,
+  type RowKey,
+  type StorePosition,
+} from "./collectionStore";
 import { intakeQueryItems } from "../../collections/intake/queryItems";
 import { coerceDateText } from "../../state/dateValueEditing";
 
@@ -194,61 +205,12 @@ type CatalogItemEdit =
       toParent?: string | null;
     };
 
-/** ADR-317 Phase 4 — an edit as the session records it: its number (`edit` — one per record, a
- * several-cell write too; the session's, rising). */
-type CatalogItemRecord = CatalogItemEdit & { readonly seq: number };
-
 type CatalogItems = readonly Record<string, unknown>[];
 
-/**
- * ADR-317 Phase 4 (breakdown §5.4) — what the edits made of an item, by the item object the replay
- * made (`replayItemEdits` — every copy the replay makes of a marked item — a tree's parent, a flat
- * tree's row — carries its mark, `carriedItem`): the edit that added it and, by field, the edit
- * that wrote it last. Read after the replay by the item's key now (`CatalogPreviewSession.editMarks`)
- * — never by the key an edit named (a positional key moves). A side table: the item's fields stay
- * the data's (a deep compare · a field read sees nothing new).
- */
-const ITEM_EDIT_MARKS = new WeakMap<object, CatalogItemEditMark>();
-interface CatalogItemEditMark {
-  readonly added?: number;
-  readonly fields?: Readonly<Record<string, number>>;
-}
 /** ADR-317 Phase 4 — a row's edit status shown (「Edit marks」): new or changed, its changed fields. */
 export interface CatalogRowEditMark {
   readonly status: "new" | "dirty";
   readonly fields: readonly string[];
-}
-/** A copy the replay made of an item: the item's mark goes with it. */
-function carriedItem<T extends Record<string, unknown>>(
-  from: Readonly<Record<string, unknown>>,
-  to: T,
-): T {
-  const mark = ITEM_EDIT_MARKS.get(from);
-  if (mark) ITEM_EDIT_MARKS.set(to, mark);
-  return to;
-}
-/** An item the edit wrote: its fields (the patch's) last written by edit `seq`. */
-function writtenItem(
-  item: Record<string, unknown>,
-  patch: Readonly<Record<string, unknown>>,
-  seq: number | undefined,
-): Record<string, unknown> {
-  const next = { ...item, ...patch };
-  const mark = ITEM_EDIT_MARKS.get(item);
-  if (seq === undefined) return mark ? carriedItem(item, next) : next;
-  const fields = { ...mark?.fields };
-  for (const field of Object.keys(patch)) fields[field] = seq;
-  ITEM_EDIT_MARKS.set(next, { ...mark, fields });
-  return next;
-}
-/** An item an edit added (`append` · `insert`) — marked with the edit (the record's own object). */
-function addedItem(
-  item: Record<string, unknown>,
-  seq: number | undefined,
-): Record<string, unknown> {
-  if (seq !== undefined && !ITEM_EDIT_MARKS.has(item))
-    ITEM_EDIT_MARKS.set(item, { added: seq });
-  return item;
 }
 
 /** ADR-317 — why a cell of a several-item write was not written (`updateMany`). */
@@ -260,7 +222,7 @@ export interface CatalogItemsWrite {
   readonly reason?: string;
   readonly written: readonly { readonly key: string; readonly field: string }[];
   readonly skipped: Partial<Record<CatalogItemsWriteSkip, number>>;
-  /** ADR-317 Phase 4 — the edit's number (none written = none): a save of it clears its marks. */
+  /** ADR-317 Phase 4 — the edit's number (none written = none): a save of it sends these cells. */
   readonly seq?: number;
 }
 
@@ -288,278 +250,15 @@ function childItemsOf(
     : undefined;
 }
 
-/** Every key in the items (the tree's, every level), as the bound components read them. */
-function itemKeysOf(
-  items: CatalogItems,
-  childrenKey?: string,
-  keyField?: string,
-): Set<string> {
-  const keys = new Set<string>();
-  const visit = (level: CatalogItems) =>
-    level.forEach((item, index) => {
-      keys.add(itemKey(item, index, keyField));
-      const children = childItemsOf(item, childrenKey);
-      if (children) visit(children);
-    });
-  visit(items);
-  return keys;
-}
-
-/** The parent of the level holding `key` (`null` = the top level), else undefined. */
-function levelOfKey(
-  items: CatalogItems,
-  key: string,
-  childrenKey?: string,
-  parent: string | null = null,
-  keyField?: string,
-): string | null | undefined {
-  for (const [index, item] of items.entries()) {
-    if (itemKey(item, index, keyField) === key) return parent;
-    const children = childItemsOf(item, childrenKey);
-    if (!children) continue;
-    const found = levelOfKey(
-      children,
-      key,
-      childrenKey,
-      itemKey(item, index, keyField),
-      keyField,
-    );
-    if (found !== undefined) return found;
-  }
-  return undefined;
-}
-
-/** The items with one level (`parent` — `null` the top) replaced; undefined when no such parent. */
-function withLevel(
-  items: CatalogItems,
-  parent: string | null,
-  childrenKey: string | undefined,
-  change: (level: CatalogItems) => CatalogItems,
-  keyField?: string,
-): CatalogItems | undefined {
-  if (parent === null) return change(items);
-  if (!childrenKey) return undefined;
-  let found = false;
-  const visit = (level: CatalogItems): CatalogItems =>
-    level.map((item, index) => {
-      if (found) return item;
-      if (itemKey(item, index, keyField) === parent) {
-        found = true;
-        return carriedItem(item, {
-          ...item,
-          [childrenKey]: change(childItemsOf(item, childrenKey) ?? []),
-        });
-      }
-      const children = childItemsOf(item, childrenKey);
-      return children
-        ? carriedItem(item, { ...item, [childrenKey]: visit(children) })
-        : item;
-    });
-  const next = visit(items);
-  return found ? next : undefined;
-}
-
-/** The items with `keep` applied at every level (the tree's — a key anywhere). */
-function mapItems(
-  items: CatalogItems,
-  childrenKey: string | undefined,
-  each: (
-    item: Record<string, unknown>,
-    index: number,
-  ) => Record<string, unknown> | null,
-): Record<string, unknown>[] {
-  return items.flatMap((item, index) => {
-    const kept = each(item, index);
-    if (!kept) return [];
-    const children = childItemsOf(kept, childrenKey);
-    return [
-      children
-        ? carriedItem(kept, {
-            ...kept,
-            [childrenKey!]: mapItems(children, childrenKey, each),
-          })
-        : kept,
-    ];
-  });
-}
-
-/** Where a position falls in a list of items (keys as `getItemKey` reads them), else -1. */
-function positionIndex(
-  items: CatalogItems,
-  at: CatalogListPosition,
-  keyField?: string,
-): number {
-  if (at === "start") return 0;
-  if ("index" in at) return Math.min(at.index, items.length);
-  const key = "before" in at ? at.before : at.after;
-  const found = items.findIndex(
-    (item, index) => itemKey(item, index, keyField) === key,
-  );
-  return found < 0 ? -1 : "before" in at ? found : found + 1;
-}
-
-/** The level a position names: a key's own level, else the given parent's (`null` the top). */
-function levelOfPosition(
-  items: CatalogItems,
-  at: CatalogListPosition,
-  parent: string | null | undefined,
-  childrenKey: string | undefined,
-  keyField?: string,
-): string | null | undefined {
-  if (at === "start" || "index" in at) return parent ?? null;
-  return levelOfKey(
-    items,
-    "before" in at ? at.before : at.after,
-    childrenKey,
-    null,
-    keyField,
-  );
-}
-
 /**
- * The edits over a list of items, in order — keys as the bound components read them (`getItemKey`);
- * with a children field (`useTreeData`) at every level of the tree.
+ * ADR-325 — a shown item as an edit finds it: its key as the bound components read it and its
+ * store key (the collection's key field's value, else its place), and the row itself.
  */
-function replayItemEdits(
-  base: CatalogItems,
-  edits: readonly (CatalogItemEdit & { readonly seq?: number })[],
-  childrenKey?: string,
-  keyField?: string,
-): Record<string, unknown>[] {
-  let items: CatalogItems = [...base];
-  const at = (
-    parent: string | null | undefined,
-    change: (level: CatalogItems) => CatalogItems,
-  ) => {
-    if (parent === undefined) return;
-    items = withLevel(items, parent, childrenKey, change, keyField) ?? items;
-  };
-  for (const edit of edits) {
-    if (edit.kind === "append")
-      at(edit.parent ?? null, (level) => [
-        ...level,
-        addedItem(edit.item, edit.seq),
-      ]);
-    else if (edit.kind === "insert")
-      at(
-        levelOfPosition(items, edit.at, edit.parent, childrenKey, keyField),
-        (level) => {
-          const index = positionIndex(level, edit.at, keyField);
-          return index < 0
-            ? level
-            : [
-                ...level.slice(0, index),
-                addedItem(edit.item, edit.seq),
-                ...level.slice(index),
-              ];
-        },
-      );
-    else if (edit.kind === "move") {
-      // (`move` · `moveBefore` · `moveAfter` — the moved items keep their order, from any level.)
-      const keys = new Set(edit.keys);
-      const moved: Record<string, unknown>[] = [];
-      const rest = mapItems(items, childrenKey, (item, index) => {
-        if (!keys.has(itemKey(item, index, keyField))) return item;
-        moved.push(item);
-        return null;
-      });
-      const level = levelOfPosition(
-        rest,
-        edit.to,
-        edit.toParent,
-        childrenKey,
-        keyField,
-      );
-      const next =
-        level === undefined
-          ? undefined
-          : withLevel(
-              rest,
-              level,
-              childrenKey,
-              (items) => {
-                const index = positionIndex(items, edit.to, keyField);
-                return index < 0
-                  ? items
-                  : [...items.slice(0, index), ...moved, ...items.slice(index)];
-              },
-              keyField,
-            );
-      if (next) items = next;
-    } else if (edit.kind === "update")
-      items = mapItems(items, childrenKey, (item, index) =>
-        itemKey(item, index, keyField) === edit.key
-          ? writtenItem(item, edit.patch, edit.seq)
-          : item,
-      );
-    else if (edit.kind === "updateMany") {
-      const patches = new Map(
-        edit.patches.map((each) => [each.key, each.patch]),
-      );
-      items = mapItems(items, childrenKey, (item, index) => {
-        const patch = patches.get(itemKey(item, index, keyField));
-        return patch ? writtenItem(item, patch, edit.seq) : item;
-      });
-    } else if (edit.keys === "all") items = [];
-    else {
-      const keys = new Set(edit.keys);
-      items = mapItems(items, childrenKey, (item, index) =>
-        keys.has(itemKey(item, index, keyField)) ? null : item,
-      );
-    }
-  }
-  return [...items];
-}
-
-/** Run the same Tree edit operations on flat rows, then persist the result as flat parent IDs. */
-function replayFlatTreeEdits(
-  base: CatalogItems,
-  edits: readonly (CatalogItemEdit & { readonly seq?: number })[],
-  parentField: string,
-  keyField?: string,
-): Record<string, unknown>[] {
-  const childField = "__compositionFlatTreeChildren__";
-  const nested = parentRowsToTree(
-    base.map((item, index) =>
-      toItemProjectionRow(
-        item,
-        index,
-        keyField ? { value: keyField } : undefined,
-      ),
-    ),
-    parentField,
-  );
-  const toItems = (nodes: typeof nested): Record<string, unknown>[] =>
-    nodes.map(({ row, children }) => ({
-      ...(row.item as Record<string, unknown>),
-      [childField]: toItems(children),
-    }));
-  const edited = replayItemEdits(toItems(nested), edits, childField, keyField);
-  const flat: Record<string, unknown>[] = [];
-  const rawKey = (
-    item: Record<string, unknown>,
-  ): string | number | undefined => {
-    for (const field of [keyField, "id", "key", "value"]) {
-      if (!field) continue;
-      const value = item[field];
-      if ((typeof value === "string" && value) || typeof value === "number")
-        return value;
-    }
-    return undefined;
-  };
-  const visit = (items: CatalogItems, parent: string | number | null) => {
-    items.forEach((item, index) => {
-      const { [childField]: children, ...rest } = item;
-      flat.push(carriedItem(item, { ...rest, [parentField]: parent }));
-      if (Array.isArray(children))
-        visit(
-          children as Record<string, unknown>[],
-          rawKey(item) ?? itemKey(item, index, keyField),
-        );
-    });
-  };
-  visit(edited, null);
-  return flat;
+interface CatalogShownItem {
+  readonly key: RowKey;
+  readonly row: Record<string, unknown>;
+  /** The store key of the level's parent (`null` = the top level). */
+  readonly parent: RowKey | null;
 }
 
 export interface CatalogPreviewSessionOptions {
@@ -674,25 +373,50 @@ export class CatalogPreviewSession {
       : { collections: [], apiEndpoints: [], variables: [] };
   }
   /**
-   * ADR-281 user decision 3, second step — what `append` · `update` · `remove` rules did, by
-   * collection id, in order (`useListData`'s operations): session state (a reload drops it, the
-   * author's data never sees it), replayed over the Builder's items each time they come
-   * (`itemSources`).
+   * ADR-325 — each collection's runtime store (`collectionStore.ts`): the rows the server · the
+   * Builder · the author gave, each request's key list, and the changes the rules made (ADR-281
+   * user decision 3 — session state, the author's data never sees it). What a list shows is its
+   * rows with the changes laid over them; a load never drops a change.
    */
-  private readonly itemEdits = new Map<string, CatalogItemRecord[]>();
-  /** ADR-317 Phase 4 — the last edit's number (`CatalogItemRecord.seq` — the session's, rising). */
+  private readonly stores = new Map<string, CollectionStore>();
+  /** ADR-325 — the session's request · save-answer sequence (a later one's values win). */
+  private requestSeq = 0;
+  /** ADR-325 — the requests in flight by their sequence (a remove's trace waits for the earlier ones). */
+  private readonly inFlight = new Set<number>();
+  /**
+   * ADR-325 — the list a collection's own load shows (`useAsyncList` — `reload` · `loadMore`), by
+   * collection id: it stands for the Builder's API rows until the Builder sends other ones.
+   */
+  private readonly mainLists = new Map<string, ListKey>();
+  /** The Builder's · the author's rows each store took last (another array is another answer). */
+  private readonly sourceRows = new Map<string, readonly unknown[]>();
+  /** The Builder's rows' text each store took last (the same text again is no newer answer). */
+  private readonly sourceSignatures = new Map<string, string | undefined>();
+  /** The rows a list showed last, by collection + list — again while its revision and shape hold. */
+  private readonly shownCache = new Map<
+    string,
+    {
+      revision: string;
+      shape: string;
+      rows: readonly Record<string, unknown>[];
+    }
+  >();
+  /**
+   * ADR-325 Decision 6 — a collection read by views of other conditions the server takes: each
+   * view's own request and list, by collection id and view key (`bindingViews`). None while the
+   * collection's whole rows are here (`wholeComplete` — the views run on them).
+   */
+  private readonly viewLists = new Map<string, Map<string, CatalogViewList>>();
+  /** ADR-325 — the views' requests, a few at a time (`CATALOG_GROUP_REQUESTS_AT_ONCE`). */
+  private readonly viewRequests = catalogRequestSlots(
+    CATALOG_GROUP_REQUESTS_AT_ONCE,
+  );
+  /** ADR-325 — the view list each bound list shows (by display window key — its 「더 보기」 pages it). */
+  private readonly ownerViews = new Map<string, string>();
+  /** ADR-325 — collections whose own list was loaded without a view (its rows are the whole query). */
+  private readonly viewlessLoads = new Set<string>();
+  /** ADR-317 Phase 4 — the last edit's number (the session's, rising — one per edit, a several-cell write too). */
   private editCount = 0;
-  /**
-   * ADR-317 Phase 4 (사용자 결정 6 「칸까지 · 저장 성공 때도 지움」) — the edits a save sent and the
-   * server took (`markEditsSaved`): a cell whose last edit is one of them is shown saved (no mark).
-   * The edits stay (the values are the edits'); a load that drops them drops these too.
-   */
-  private readonly savedEdits = new Set<number>();
-  /**
-   * `useAsyncList.reload()` — the items a `reload` rule loaded, by collection id: they replace the
-   * Builder's API items until the Builder sends other ones (`receive`).
-   */
-  private readonly reloadedItems = new Map<string, Record<string, unknown>[]>();
   /**
    * ADR-310 Decision 10 「더 보기」 — each bound list's display window (the rows its DOM lays out),
    * by collection id + the bound node: it starts at the projection window and grows by one window
@@ -976,7 +700,7 @@ export class CatalogPreviewSession {
           this.receivedItems.has(collection.id) &&
           this.receivedItems.get(collection.id) !== received
         ) {
-          this.reloadedItems.delete(collection.id);
+          this.dropMainList(collection.id);
           this.loadedViewQueries.delete(collection.id);
         }
         this.receivedItems.set(collection.id, received);
@@ -1193,39 +917,179 @@ export class CatalogPreviewSession {
     this.options.applyTheme?.({ ...state, colorMode: mode });
   }
 
-  /** The collections as the bound components read them: the Builder's items with the edits replayed. */
+  /** ADR-325 — a collection's store (made at its first read). */
+  private storeOf(collectionId: string): CollectionStore {
+    let store = this.stores.get(collectionId);
+    if (!store) this.stores.set(collectionId, (store = new CollectionStore()));
+    return store;
+  }
+  /**
+   * ADR-325 Decision 7 — a row's own key: the collection's key field, else `id` · `key` · `value`
+   * (the binding's value field is a component's item key, never the store's).
+   */
+  private dataKeyOf(
+    collectionId: string,
+  ): (row: Readonly<Record<string, unknown>>) => string | number | undefined {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const keyField = collection?.keyField
+      ? collection.schema?.find((field) => field.id === collection.keyField)
+          ?.key
+      : undefined;
+    const fields = keyField ? [keyField, ...ITEM_KEY_FIELDS] : ITEM_KEY_FIELDS;
+    return (row) => {
+      for (const field of fields) {
+        const value = row[field];
+        if ((typeof value === "string" && value) || typeof value === "number")
+          return value;
+      }
+      return undefined;
+    };
+  }
+  /** How a collection's rows nest (a Tree's children · parent field) for the overlay. */
+  private shapeOf(
+    collectionId: string,
+  ): OverlayShape & { readonly id: string } {
+    const childrenKey = this.childrenKeyOf(collectionId);
+    const parentField = this.parentIdKeyOf(collectionId);
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    return {
+      ...(parentField ? { parentField } : childrenKey ? { childrenKey } : {}),
+      dataKey: this.dataKeyOf(collectionId),
+      id: `${parentField ?? ""}\u0000${childrenKey ?? ""}\u0000${collection?.keyField ?? ""}`,
+    };
+  }
+  /** A request starts: its sequence (a later request's answer wins over an earlier one's). */
+  private startRequest(): number {
+    const at = (this.requestSeq += 1);
+    this.inFlight.add(at);
+    return at;
+  }
+  /** A request ended (answered, failed or dropped): a remove's trace older than every one left goes. */
+  private endRequest(at: number): void {
+    this.inFlight.delete(at);
+    const earliest = this.inFlight.size
+      ? Math.min(...this.inFlight)
+      : this.requestSeq + 1;
+    for (const store of this.stores.values()) store.sweepTraces(earliest - 1);
+  }
+  /**
+   * The list a collection shows without a load of its own: the Builder's API rows (an answer — a
+   * row without a key is of it) or the author's rows (a row without a key is its place).
+   */
+  private sourceList(
+    collectionId: string,
+    api: boolean,
+    rows: readonly unknown[],
+  ): ListKey {
+    const store = this.storeOf(collectionId);
+    const requestKey: RequestKey = api ? "builder" : "authored";
+    const held = `${collectionId}\u0000${requestKey}`;
+    // (The Builder sending the same rows again is not a newer answer — a save's values stay.)
+    const signature = api ? this.receivedItems.get(collectionId) : undefined;
+    if (
+      this.sourceRows.get(held) !== rows &&
+      store.lists.has(requestKey) &&
+      signature !== undefined &&
+      this.sourceSignatures.get(held) === signature
+    )
+      this.sourceRows.set(held, rows);
+    if (this.sourceRows.get(held) !== rows) {
+      this.sourceSignatures.set(held, signature);
+      const dataKey = this.dataKeyOf(collectionId);
+      store.accept(requestKey, rows, {
+        at: (this.requestSeq += 1),
+        keyOf: (row) => {
+          const key = dataKey(row);
+          return key === undefined ? undefined : String(key);
+        },
+        keyless: api ? "answer" : "authored",
+      });
+      store.startList(requestKey, requestKey);
+      this.sourceRows.set(held, rows);
+    }
+    return requestKey;
+  }
+  /**
+   * The store holds the rows a collection shows without a load of its own (the Builder's · the
+   * author's) — before an edit keys them (`itemSources` reads them as they are until a change).
+   */
+  private takeSource(collectionId: string): void {
+    if (this.mainLists.has(collectionId)) return;
+    const source = this.collections.find((item) => item.id === collectionId);
+    if (!source) return;
+    const api = !source.useMockData && !!source.runtimeData;
+    this.sourceList(
+      collectionId,
+      api,
+      (api ? source.runtimeData : source.mockData) ?? [],
+    );
+  }
+  /** The rows a list shows: its rows with the collection's changes over them (remembered by revision). */
+  private shownRows(
+    collectionId: string,
+    listKey: ListKey,
+    /** A list the server answered for a view (사용자 결정 3 — `overlayRows`' `served`). */
+    served?: CatalogServedList,
+  ): readonly Record<string, unknown>[] {
+    const store = this.storeOf(collectionId);
+    const shape = this.shapeOf(collectionId);
+    const cacheKey = `${collectionId}\u0000${listKey}\u0000${served?.key ?? ""}`;
+    const revision = store.listRevision(listKey);
+    const held = this.shownCache.get(cacheKey);
+    if (held && held.revision === revision && held.shape === shape.id)
+      return held.rows;
+    const rows = overlayRows(
+      store,
+      store.listRows(listKey),
+      shape,
+      served,
+    ) as readonly Record<string, unknown>[];
+    this.shownCache.set(cacheKey, { revision, shape: shape.id, rows });
+    return rows;
+  }
+  /**
+   * ADR-325 Decision 4 — the collections as the bound components read them: each one's rows (its
+   * own load's, else the Builder's API rows, else the author's) with its changes laid over them.
+   */
   private itemSources(
-    /** ADR-310 Phase 7 — a page list's own loaded items (its query unit), in place of the collection's. */
-    loaded?: ReadonlyMap<string, Record<string, unknown>[]>,
+    /** ADR-310 Phase 7 — a page list's own list (its query unit), in place of the collection's. */
+    loaded?: ReadonlyMap<string, ListKey>,
+    /** ADR-325 — the collection whose list the server answered for a view (inserts judged by it). */
+    served?: { readonly collectionId: string } & CatalogServedList,
   ): readonly CollectionDataSource[] {
-    if (!this.itemEdits.size && !this.reloadedItems.size && !loaded?.size)
+    if (
+      !this.mainLists.size &&
+      !loaded?.size &&
+      ![...this.stores.values()].some(
+        (store) =>
+          store.changes.size ||
+          store.order.length ||
+          store.nested.size ||
+          store.diverged,
+      )
+    )
       return this.collections;
     return this.collections.map((source) => {
-      const reloaded =
-        source.id &&
-        (loaded?.get(source.id) ?? this.reloadedItems.get(source.id));
-      const collection = reloaded
-        ? { ...source, runtimeData: reloaded }
-        : source;
-      const edits = collection.id && this.itemEdits.get(collection.id);
-      if (!edits) return collection;
+      if (!source.id) return source;
+      const own = loaded?.get(source.id) ?? this.mainLists.get(source.id);
       // (The items the snapshot shows — `resolveCollectionSnapshot`: mock when `useMockData`, else
       // the API's items, else mock.)
-      const api = !collection.useMockData && !!collection.runtimeData;
-      const base = (api ? collection.runtimeData : collection.mockData) ?? [];
-      const parentField = this.parentIdKeyOf(collection.id);
-      const keyField = this.treeFieldKeyOf(collection.id, "value");
-      const items = parentField
-        ? replayFlatTreeEdits(base, edits, parentField, keyField)
-        : replayItemEdits(
-            base,
-            edits,
-            this.childrenKeyOf(collection.id),
-            keyField,
-          );
+      const api = !source.useMockData && (!!own || !!source.runtimeData);
+      const base = (api ? source.runtimeData : source.mockData) ?? [];
+      const listKey = own ?? this.sourceList(source.id, api, base);
+      const rows = this.shownRows(
+        source.id,
+        listKey,
+        served?.collectionId === source.id ? served : undefined,
+      );
+      if (!own && rows === base) return source;
       return api
-        ? { ...collection, runtimeData: items }
-        : { ...collection, mockData: items };
+        ? { ...source, runtimeData: rows as Record<string, unknown>[] }
+        : { ...source, mockData: rows as Record<string, unknown>[] };
     });
   }
   /** A collection's items as the Preview shows them (the rules' edits included). */
@@ -1247,19 +1111,69 @@ export class CatalogPreviewSession {
     collectionId: string,
     keys: readonly string[] | "all",
   ): readonly unknown[] {
+    if (keys === "all") return this.collectionItems(collectionId);
+    const index = this.shownIndex(collectionId);
+    return keys.flatMap((key) => {
+      const shown = index.get(key);
+      return shown ? [shown.row] : [];
+    });
+  }
+  /**
+   * ADR-325 — a collection's shown items by the key a component gives them (`getItemKey` with the
+   * Tree's value field, else the collection's key field — every level of a tree), each with its
+   * store key. R2: a list keyed by another value field (a binding's `fieldMap.value`) finds its
+   * items by that field too.
+   */
+  private shownIndex(collectionId: string): Map<string, CatalogShownItem> {
+    this.takeSource(collectionId);
     const items = this.collectionItems(collectionId) as CatalogItems;
-    if (keys === "all") return items;
     const keyField = this.treeFieldKeyOf(collectionId, "value");
-    const childrenField = this.childrenKeyOf(collectionId);
-    const byKey = new Map<string, unknown>();
-    const visit = (level: CatalogItems) =>
-      level.forEach((item, index) => {
-        byKey.set(itemKey(item, index, keyField), item);
-        const children = childrenField ? item[childrenField] : undefined;
-        if (Array.isArray(children)) visit(children as CatalogItems);
+    const childrenKey = this.childrenKeyOf(collectionId);
+    const shape = this.shapeOf(collectionId);
+    const index = new Map<string, CatalogShownItem>();
+    const all: CatalogShownItem[] = [];
+    const visit = (level: CatalogItems, parent: RowKey | null) =>
+      level.forEach((row, at) => {
+        const key = levelKey(row, at, parent, shape);
+        const shown = { key, row, parent };
+        all.push(shown);
+        const own = itemKey(row, at, keyField);
+        if (!index.has(own)) index.set(own, shown);
+        const children = childItemsOf(row, childrenKey);
+        if (children) visit(children, key);
       });
-    visit(items);
-    return keys.flatMap((key) => (byKey.has(key) ? [byKey.get(key)] : []));
+    visit(items, null);
+    for (const field of this.listValueFields(collectionId)) {
+      if (field === keyField) continue;
+      for (const shown of all) {
+        const value = shown.row[field];
+        const text =
+          typeof value === "string" && value
+            ? value
+            : typeof value === "number"
+              ? String(value)
+              : undefined;
+        if (text !== undefined && !index.has(text)) index.set(text, shown);
+      }
+    }
+    return index;
+  }
+  /** The value fields (`fieldMap.value`) the lists bound to a collection key their items by. */
+  private listValueFields(collectionId: string): string[] {
+    const graph = this.graph;
+    if (!graph) return [];
+    const schema =
+      this.collections.find((item) => item.id === collectionId)?.schema ?? [];
+    const fields = new Set<string>();
+    for (const id of graph.bindingsOf(`data:collection:${collectionId}`)) {
+      const entry = graph.getEntry(id as never);
+      const field =
+        entry?.kind === "node" ? entry.binding?.fieldMap.value : undefined;
+      if (!field) continue;
+      const fieldId = field.replace(/^data:field:/, "");
+      fields.add(schema.find((item) => item.id === fieldId)?.key ?? fieldId);
+    }
+    return [...fields];
   }
   /**
    * The schema's fields of a new item's value (`append` · `insert`), in the collection's stored
@@ -1336,71 +1250,197 @@ export class CatalogPreviewSession {
     const edit = plan(collection, this.collectionItems(collectionId));
     if ("reason" in edit) return { ok: false, reason: edit.reason };
     const seq = (this.editCount += 1);
-    this.itemEdits.set(collectionId, [
-      ...(this.itemEdits.get(collectionId) ?? []),
-      { ...edit, seq },
-    ]);
+    this.writeChange(collectionId, edit, seq);
     const errors = this.currentRoot?.refreshRows() ?? [];
     if (errors.length)
       console.error(`[CatalogPreview] ${edit.kind}:`, ...errors);
     this.changed();
     return { ok: true, seq };
   }
+  /**
+   * ADR-325 Decision 3 — an edit into the collection's changes, by store key (the keys an edit names
+   * are the components' — `shownIndex` finds their rows). An inserted row's store key is its own key
+   * value, else the edit's (`insert · <seq>`).
+   */
+  private writeChange(
+    collectionId: string,
+    edit: CatalogItemEdit,
+    seq: number,
+  ): void {
+    const store = this.storeOf(collectionId);
+    const index = this.shownIndex(collectionId);
+    // (A row another list shows — a page list's, a pinned row — by its own key.)
+    const find = (key: string): CatalogShownItem | undefined => {
+      const shown = index.get(key);
+      if (shown) return shown;
+      const row = store.knownRow(key);
+      return row ? { key, row, parent: null } : undefined;
+    };
+    const parentOf = (key: string | null | undefined) =>
+      key == null ? key : (find(key)?.key ?? key);
+    const place = (at: CatalogListPosition): StorePosition =>
+      at === "start" || "index" in at
+        ? at
+        : "before" in at
+          ? { before: find(at.before)?.key ?? at.before }
+          : { after: find(at.after)?.key ?? at.after };
+    const dataKey = this.dataKeyOf(collectionId);
+    const newKey = (item: Readonly<Record<string, unknown>>) => {
+      const own = dataKey(item);
+      return own === undefined ? `insert\u0005${seq}` : String(own);
+    };
+    switch (edit.kind) {
+      case "append": {
+        const key = newKey(edit.item);
+        const parent = parentOf(edit.parent);
+        store.insert(key, edit.item, seq, {
+          kind: "append",
+          key,
+          ...(parent != null ? { parent } : {}),
+        });
+        return;
+      }
+      case "insert": {
+        const key = newKey(edit.item);
+        const parent = parentOf(edit.parent);
+        store.insert(key, edit.item, seq, {
+          kind: "insert",
+          key,
+          at: place(edit.at),
+          ...(parent != null ? { parent } : {}),
+        });
+        return;
+      }
+      case "update": {
+        const shown = find(edit.key);
+        if (shown) store.update(shown.key, edit.patch, seq, shown.row);
+        return;
+      }
+      case "updateMany":
+        for (const { key, patch } of edit.patches) {
+          const shown = find(key);
+          if (shown) store.update(shown.key, patch, seq, shown.row);
+        }
+        return;
+      case "remove": {
+        // (`"all"` — every row shown now, its subtree with it.)
+        const rows =
+          edit.keys === "all"
+            ? [...index.values()].filter((shown) => shown.parent === null)
+            : edit.keys.flatMap((key) => {
+                const shown = find(key);
+                return shown ? [shown] : [];
+              });
+        for (const shown of new Set(rows))
+          store.remove(shown.key, seq, shown.row);
+        return;
+      }
+      case "move": {
+        const toParent = parentOf(edit.toParent);
+        store.move({
+          kind: "move",
+          keys: edit.keys.map((key) => find(key)?.key ?? key),
+          to: place(edit.to) as Exclude<StorePosition, "start">,
+          ...(toParent !== undefined ? { toParent } : {}),
+        });
+      }
+    }
+  }
   /** ADR-317 Phase 4 — the last edit's number (a rule's edits are the ones after the number before it). */
   editSeq(): number {
     return this.editCount;
   }
   /**
-   * ADR-317 Phase 4 (사용자 결정 6) — a save the server took: the edits it sent (their numbers) are
-   * shown saved — a cell written again after it keeps its mark (its last edit is a later one). The
-   * values stay. The rows of the collections those edits wrote are read again (the marks are the
-   * rows' — nothing else changed).
+   * ADR-325 Decision 3 (ADR-317 사용자 결정 6) — a save is sent: the changes the given edits wrote,
+   * as they are now, wait for its answer (`beginSend`). The function returned takes the answer — the
+   * request went through (every row confirmed: its sent values become the server's, only cells
+   * written after the send stay unsaved) or not (every row rejected — its changes stay).
+   * Undefined = the edits changed nothing that waits.
    */
-  markEditsSaved(seqs: readonly number[]): void {
-    const touched = new Set<string>();
-    for (const [collectionId, edits] of this.itemEdits)
-      for (const edit of edits)
-        if (seqs.includes(edit.seq) && !this.savedEdits.has(edit.seq)) {
-          this.savedEdits.add(edit.seq);
-          touched.add(`data:collection:${collectionId}`);
-        }
-    if (!touched.size) return;
-    const errors = this.currentRoot?.refreshRows(touched) ?? [];
-    if (errors.length) console.error("[CatalogPreview] saved:", ...errors);
-    this.changed();
+  beginSave(seqs: readonly number[]): ((ok: boolean) => void) | undefined {
+    const wanted = new Set(seqs);
+    const tickets: { collectionId: string; ticket: string }[] = [];
+    for (const [collectionId, store] of this.stores) {
+      const ticket = store.beginSend(wanted);
+      if (ticket) tickets.push({ collectionId, ticket });
+    }
+    if (!tickets.length) return undefined;
+    return (ok) => {
+      const at = (this.requestSeq += 1);
+      const touched = new Set<string>();
+      for (const { collectionId, ticket } of tickets) {
+        const store = this.storeOf(collectionId);
+        const entries = store.sends.get(ticket)?.entries ?? [];
+        store.settle(
+          ticket,
+          entries.map((entry) => ({
+            key: entry.key,
+            result: ok ? ("confirmed" as const) : ("rejected" as const),
+          })),
+          at,
+        );
+        touched.add(`data:collection:${collectionId}`);
+      }
+      const errors = this.currentRoot?.refreshRows(touched) ?? [];
+      if (errors.length) console.error("[CatalogPreview] saved:", ...errors);
+      this.changed();
+    };
   }
   /**
-   * ADR-317 Phase 4 (breakdown §5.4) — a collection's rows with an edit not saved yet, by the key
+   * ADR-325 Decision 5 (사용자 결정 2) — drop a collection's unsaved changes: every one, or the rows
+   * of the given keys (the components' keys). Loaded rows stay; nothing is requested.
+   */
+  discardChanges(collectionId: string, keys?: readonly string[]): void {
+    const store = this.stores.get(collectionId);
+    if (!store) return;
+    if (keys) {
+      const index = this.shownIndex(collectionId);
+      store.discard(keys.map((key) => index.get(key)?.key ?? key));
+    } else store.discard();
+    const errors =
+      this.currentRoot?.refreshRows(
+        new Set([`data:collection:${collectionId}`]),
+      ) ?? [];
+    if (errors.length) console.error("[CatalogPreview] discard:", ...errors);
+    this.changed();
+  }
+  /** ADR-325 — how many rows of a collection hold an unsaved change (an unlinked row too). */
+  unsavedCount(collectionId: string): number {
+    return this.stores.get(collectionId)?.changes.size ?? 0;
+  }
+  /**
+   * ADR-317 Phase 4 (breakdown §5.4) — a collection's rows with a change not saved yet, by the key
    * the bound components read now (`getItemKey` with the binding's value field — a tree's children
-   * too): 「new」 (an edit added it, not saved) or 「dirty」 (fields whose last edit is not saved).
-   * Undefined = no edits.
+   * too): 「new」 (inserted, not saved) or 「dirty」 (its changed fields). A row whose save waits
+   * for its answer keeps its mark. Undefined = no changes.
    */
   editMarks(
     collectionId: string,
   ): ReadonlyMap<string, CatalogRowEditMark> | undefined {
-    if (!this.itemEdits.get(collectionId)?.length) return undefined;
+    const store = this.stores.get(collectionId);
+    if (!store?.changes.size) return undefined;
     const keyField = this.treeFieldKeyOf(collectionId, "value");
     const childrenKey = this.childrenKeyOf(collectionId);
+    const shape = this.shapeOf(collectionId);
     const marks = new Map<string, CatalogRowEditMark>();
-    const visit = (level: CatalogItems) =>
+    const visit = (level: CatalogItems, parent: RowKey | null) =>
       level.forEach((item, index) => {
-        const mark = ITEM_EDIT_MARKS.get(item);
-        if (mark) {
-          const fields = Object.entries(mark.fields ?? {})
-            .filter(([, seq]) => !this.savedEdits.has(seq))
-            .map(([field]) => field);
-          const added =
-            mark.added !== undefined && !this.savedEdits.has(mark.added);
-          if (added || fields.length)
-            marks.set(itemKey(item, index, keyField), {
-              status: added ? "new" : "dirty",
-              fields,
-            });
-        }
+        const key = levelKey(item, index, parent, shape);
+        const change = store.changes.get(key);
+        if (change?.kind === "insert" || change?.kind === "unlinked")
+          marks.set(itemKey(item, index, keyField), {
+            status: "new",
+            fields: [],
+          });
+        else if (change?.kind === "update")
+          marks.set(itemKey(item, index, keyField), {
+            status: "dirty",
+            fields: Object.keys(change.fields),
+          });
         const children = childItemsOf(item, childrenKey);
-        if (children) visit(children);
+        if (children) visit(children, key);
       });
-    visit(this.collectionItems(collectionId) as CatalogItems);
+    visit(this.collectionItems(collectionId) as CatalogItems, null);
     return marks;
   }
   /**
@@ -1655,12 +1695,13 @@ export class CatalogPreviewSession {
     return this.treeFieldKeyOf(collectionId, "parentId");
   }
   /** Every key in a collection's items — the tree's, every level. */
-  private keysOf(collectionId: string, items: readonly unknown[]): Set<string> {
-    return itemKeysOf(
-      items as CatalogItems,
-      this.childrenKeyOf(collectionId),
-      this.treeFieldKeyOf(collectionId, "value"),
-    );
+  private keysOf(
+    collectionId: string,
+    _items: readonly unknown[],
+  ): { has(key: string): boolean } {
+    const keys = this.shownIndex(collectionId);
+    const store = this.stores.get(collectionId);
+    return { has: (key) => keys.has(key) || !!store?.knownRow(key) };
   }
   /** A tree edit's parent that is not in the collection, else undefined. */
   private missingParent(
@@ -1725,10 +1766,7 @@ export class CatalogPreviewSession {
     collectionId: string,
     state: CatalogLoadingState,
     cursor?: string,
-  ): Promise<
-    | { items: Record<string, unknown>[]; selectedKeys?: string[] | "all" }
-    | undefined
-  > {
+  ): Promise<CatalogLoadedPage | undefined> {
     const endpoint = this.queryEndpoint(collectionId);
     const sequence = (this.loadSequence.get(collectionId) ?? 0) + 1;
     this.loadSequence.set(collectionId, sequence);
@@ -1743,13 +1781,18 @@ export class CatalogPreviewSession {
     // the page the format carries — ADR-291 Decision 6).
     const requestedView = this.uniqueView(collectionId, { cursor });
     const extra = this.viewRequest(collectionId, { cursor });
+    // (ADR-325 — the request's identity: the address · body it fetches and the page it asks for.)
+    const requestKey: RequestKey =
+      endpointRequestKey(endpoint, resolve, cursor, extra) ??
+      `${endpoint.id}\u0000${cursor ?? ""}`;
+    const at = this.startRequest();
     try {
       await Promise.allSettled([...this.pendingSubmits]);
       if (cursor === undefined) {
         // (Another query: its total is not the last query's.)
         this.loadTotals.delete(collectionId);
-        const url = resolvedEndpointUrl(endpoint, resolve, extra);
-        if (url) this.loadedUrls.set(collectionId, url);
+        // (ADR-325 — 「the same request」 is the request's key: the address · body it fetches.)
+        this.loadedUrls.set(collectionId, requestKey);
       }
       const page = await loadCollectionEndpoint(
         endpoint,
@@ -1781,14 +1824,23 @@ export class CatalogPreviewSession {
         (item): item is Record<string, unknown> =>
           !!item && typeof item === "object",
       );
-      return page.selectedKeys === undefined
-        ? { items }
-        : { items, selectedKeys: page.selectedKeys };
+      return {
+        items,
+        at,
+        requestKey,
+        viewless: !extra,
+        ...(page.cursor !== undefined ? { cursor: page.cursor } : {}),
+        ...(page.total !== undefined ? { total: page.total } : {}),
+        ...(page.selectedKeys !== undefined
+          ? { selectedKeys: page.selectedKeys }
+          : {}),
+      };
     } catch (error) {
       if (!latest()) return undefined;
       this.setLoadingState(collectionId, "error");
       throw error;
     } finally {
+      this.endRequest(at);
       if (this.loadControllers.get(collectionId) === controller)
         this.loadControllers.delete(collectionId);
     }
@@ -1924,14 +1976,21 @@ export class CatalogPreviewSession {
    * The one view (by its definition) the bindings of a collection read, in its endpoint's query
    * format — what the request carries of it and what it cannot (`warnings` · `load`).
    */
-  private uniqueView(
-    collectionId: string,
-    page?: { cursor?: string },
-  ):
+  /**
+   * The views (by their definition and values — the record's instance path resolved) the bindings
+   * of a collection read, when its query endpoint names a query format. Undefined = none.
+   */
+  private bindingViews(collectionId: string):
     | {
-        query: CatalogRowQuery;
-        serialized: SerializedViewQuery;
-        nodeId: string;
+        views: Map<
+          string,
+          { query: CatalogRowQuery; nodeId: string; keys?: SerializedKeyRows }
+        >;
+        collection: CollectionDataSource;
+        endpoint: ApiEndpointDefinition;
+        format: NonNullable<ApiEndpointDefinition["querySerialization"]>;
+        /** A drawn binding reads the collection with no view — its own load stays unfiltered. */
+        plain: boolean;
       }
     | undefined {
     const graph = this.graph;
@@ -1946,6 +2005,7 @@ export class CatalogPreviewSession {
       string,
       { query: CatalogRowQuery; nodeId: string; keys?: SerializedKeyRows }
     >();
+    let plain = false;
     for (const nodeId of graph.bindingsOf(`data:collection:${collectionId}`)) {
       const entry = graph.getEntry(nodeId as never);
       const binding = entry?.kind === "node" ? entry.binding : undefined;
@@ -1964,7 +2024,10 @@ export class CatalogPreviewSession {
         const slices = this.recordRowSlices(recordId);
         // (ADR-315 Phase 5 증분 5g — a Table's pinned rows: its page leaves them out.)
         const pinRequest = this.tables.tablePinRequest(recordId);
-        if (!viewed && !slices && !pinRequest) continue;
+        if (!viewed && !slices && !pinRequest) {
+          plain = true;
+          continue;
+        }
         const query = viewed
           ? catalogBindingQuery(
               graph,
@@ -1977,7 +2040,10 @@ export class CatalogPreviewSession {
           : CATALOG_NO_VIEW_QUERY;
         if (!query) continue;
         const stated = this.stateRowQuery(collectionId, query, slices);
-        if (!viewed && !stated && !pinRequest) continue;
+        if (!viewed && !stated && !pinRequest) {
+          plain = true;
+          continue;
+        }
         const base = {
           ...(stated ?? query),
           queries: catalogCountlessViews((stated ?? query).queries),
@@ -1995,43 +2061,22 @@ export class CatalogPreviewSession {
         );
       }
     }
-    if (!views.size) return undefined;
-    const [{ query, nodeId, keys }] = [...views.values()];
-    if (views.size > 1) {
-      // Preserve ADR-284's standalone MULTI_VIEW policy; instance-dependent inputs require
-      // the unfiltered local load because no one instance's filtered response can be shared.
-      const inputDependent = [...views.values()].some(({ query }) =>
-        Object.keys(query.values).some((ref) => {
-          const parsed = parseRuleValueRef(ref);
-          return (
-            parsed?.from === "var" &&
-            isInputVariable(graph.getEntry(parsed.variableId as never))
-          );
-        }),
-      );
-      if (!inputDependent) return undefined;
-      return {
-        query,
-        nodeId,
-        // One collection stores one answer. Different instance filters need unfiltered rows,
-        // loaded to the existing local-evaluation cap, then evaluated separately per instance.
-        serialized: {
-          ...serializeViewQueries(
-            format,
-            { queries: [], schema: [], resolve: () => undefined },
-            endpoint.method,
-            page,
-          ),
-          warnings: [{ code: "MULTI_VIEW" }],
-          load: "all",
-        },
-      };
-    }
+    return views.size
+      ? { views, collection, endpoint, format, plain }
+      : undefined;
+  }
+  /** A view in its endpoint's query format — what the request carries of it and what it cannot. */
+  private serializedView(
+    collectionId: string,
+    read: NonNullable<ReturnType<CatalogPreviewSession["bindingViews"]>>,
+    view: { query: CatalogRowQuery; keys?: SerializedKeyRows },
+    page?: { cursor?: string },
+  ): SerializedViewQuery {
     const serialized = serializeViewQueries(
-      format,
+      read.format,
       {
-        queries: query.queries,
-        schema: (collection.schema ?? []).flatMap((field) =>
+        queries: view.query.queries,
+        schema: (read.collection.schema ?? []).flatMap((field) =>
           field.id && field.key
             ? [
                 {
@@ -2045,23 +2090,70 @@ export class CatalogPreviewSession {
               ]
             : [],
         ),
-        resolve: catalogRowQueryResolve(query),
+        resolve: catalogRowQueryResolve(view.query),
       },
-      endpoint.method,
+      read.endpoint.method,
       page,
-      keys ? { keys } : undefined,
+      view.keys ? { keys: view.keys } : undefined,
     );
     // (ADR-315 Phase 5 증분 5g — a Table reading every row: what the format carries is sent, the
     //  answer is not the Table's rows — every page loads and its slices run here, §4.3.1.)
+    return serialized.load !== "all" &&
+      this.tables.collectionTablesReadWhole(collectionId)
+      ? { ...serialized, load: "all" }
+      : serialized;
+  }
+  /**
+   * The one view the bindings of a collection read, in its endpoint's query format. Views of other
+   * conditions are none here — each asks for its own rows (`syncViewLists`, ADR-325 Decision 6).
+   */
+  private uniqueView(
+    collectionId: string,
+    page?: { cursor?: string },
+  ):
+    | {
+        query: CatalogRowQuery;
+        serialized: SerializedViewQuery;
+        nodeId: string;
+      }
+    | undefined {
+    const read = this.bindingViews(collectionId);
+    // (A binding with no view beside it is another condition — the own load serves that one.)
+    if (!read || read.views.size !== 1 || read.plain) return undefined;
+    const [view] = [...read.views.values()];
     return {
-      query,
-      nodeId,
-      serialized:
-        serialized.load !== "all" &&
-        this.tables.collectionTablesReadWhole(collectionId)
-          ? { ...serialized, load: "all" }
-          : serialized,
+      query: view!.query,
+      nodeId: view!.nodeId,
+      serialized: this.serializedView(collectionId, read, view!, page),
     };
+  }
+  /**
+   * ADR-325 Decision 6 — the views of other conditions the bindings of a collection read, each in
+   * its endpoint's query format — a binding with no view counts as one more condition (the own
+   * load serves it). Undefined = one view or none (the collection's own load carries it).
+   */
+  private splitViews(collectionId: string):
+    | Map<
+        string,
+        {
+          query: CatalogRowQuery;
+          serialized: SerializedViewQuery;
+          nodeId: string;
+        }
+      >
+    | undefined {
+    const read = this.bindingViews(collectionId);
+    if (!read || read.views.size < (read.plain ? 1 : 2)) return undefined;
+    return new Map(
+      [...read.views].map(([key, view]) => [
+        key,
+        {
+          query: view.query,
+          nodeId: view.nodeId,
+          serialized: this.serializedView(collectionId, read, view),
+        },
+      ]),
+    );
   }
   /**
    * The request parts a collection's view adds (none = the endpoint as authored) — a view loaded
@@ -2076,7 +2168,205 @@ export class CatalogPreviewSession {
   }
   /** ADR-291 — whether a collection's view must see every row before it can be right. */
   private viewLoadsAll(collectionId: string): boolean {
-    return this.uniqueView(collectionId)?.serialized.load === "all";
+    if (this.uniqueView(collectionId)?.serialized.load === "all") return true;
+    const split = this.splitViews(collectionId);
+    return (
+      !!split &&
+      [...split.values()].some((view) => view.serialized.load === "all")
+    );
+  }
+  /**
+   * ADR-325 Decision 6 — whether an answer holds every row of its query: its total says so, or the
+   * endpoint declares its pages (a cursor · a page number) and the last page named no next one. An
+   * answer with neither is not known to be whole (a server may cut it at its default size).
+   */
+  private answerComplete(
+    collectionId: string,
+    cursor: string | undefined,
+    total: number | undefined,
+    count: number,
+  ): boolean {
+    if (total !== undefined) return count >= total;
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const endpoint = collection ? this.endpointFilling(collection) : undefined;
+    if (!endpoint) return true;
+    const format = endpoint.querySerialization;
+    // (A declaration that names the next page: the response's cursor, or a numbered page's size —
+    //  a template that reads a cursor no response gives says nothing of the end.)
+    const paged =
+      !!endpoint.responseMapping?.cursorPath ||
+      (format?.kind === "suffix" && format.pageSize !== undefined);
+    return paged && cursor === undefined;
+  }
+  /**
+   * ADR-325 Decision 6 — the collection's whole rows are here: its own rows (no endpoint fills it),
+   * or its own load carried no view and holds every row (`answerComplete`). Then a view of other
+   * conditions runs on them here — no request.
+   */
+  private wholeComplete(collectionId: string): boolean {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    if (
+      !collection ||
+      collection.useMockData ||
+      !this.endpointFilling(collection)
+    )
+      return true;
+    if (!this.viewlessLoads.has(collectionId)) return false;
+    return this.answerComplete(
+      collectionId,
+      this.loadArguments.get(collectionId)?.cursor,
+      this.loadTotals.get(collectionId),
+      this.collectionItems(collectionId).length,
+    );
+  }
+  /**
+   * ADR-325 Decision 6 — each view of other conditions asks for its own rows (its first page, the
+   * endpoint's format), a few requests at a time; a view whose request did not change is not asked
+   * again, a view gone takes its list with it. With the whole rows here none is asked (the views run
+   * on them). A late answer of a request another one replaced is dropped.
+   */
+  /** `again` — a reload: every view list asks again, its request unchanged or not. */
+  private syncViewLists(collectionId: string, again = false): void {
+    // (The collection's own load in flight may bring the whole rows: it asks again when it ends.)
+    if (this.loadControllers.has(collectionId)) return;
+    const held =
+      this.viewLists.get(collectionId) ?? new Map<string, CatalogViewList>();
+    const split = this.wholeComplete(collectionId)
+      ? undefined
+      : this.splitViews(collectionId);
+    const store = this.storeOf(collectionId);
+    const drop = (key: string) => {
+      const entry = held.get(key);
+      entry?.controller.abort();
+      if (entry?.listKey) store.dropList(entry.listKey);
+      held.delete(key);
+    };
+    for (const key of [...held.keys()])
+      if (!split?.has(key) || split.get(key)!.serialized.load === "all")
+        drop(key);
+    if (!split) {
+      this.viewLists.delete(collectionId);
+      return;
+    }
+    this.viewLists.set(collectionId, held);
+    const endpoint = this.queryEndpoint(collectionId);
+    for (const [key, view] of split) {
+      if (view.serialized.load === "all") continue;
+      const { params, body } = view.serialized;
+      const extra =
+        params.length || body
+          ? { query: params, ...(body ? { body } : {}) }
+          : undefined;
+      const resolve = this.endpointTemplateFor(collectionId);
+      const requestKey = endpointRequestKey(
+        endpoint,
+        resolve,
+        undefined,
+        extra,
+      );
+      if (!requestKey) continue;
+      const entry = held.get(key);
+      if (!again && entry?.requestKey === requestKey) continue;
+      entry?.controller.abort();
+      const next: CatalogViewList = {
+        key,
+        requestKey,
+        query: view.query,
+        mode: view.serialized.body?.group ? "aggregate" : "rows",
+        warnings: view.serialized.warnings.length,
+        controller: new AbortController(),
+        ...(entry?.listKey ? { listKey: entry.listKey } : {}),
+      };
+      held.set(key, next);
+      // (A view list dropped meanwhile — another sync, the whole rows here — takes no answer.)
+      const current = () =>
+        this.viewLists.get(collectionId) === held && held.get(key) === next;
+      void this.viewRequests(async () => {
+        if (!current()) return;
+        const at = this.startRequest();
+        try {
+          await Promise.allSettled([...this.pendingSubmits]);
+          const page = await loadCollectionEndpoint(
+            endpoint,
+            next.controller.signal,
+            resolve,
+            undefined,
+            extra,
+          );
+          if (!current()) return;
+          const intake = intakeQueryItems(
+            page.items,
+            this.collections.find((item) => item.id === collectionId),
+          );
+          const items = (Array.isArray(intake) ? intake : [intake]).filter(
+            (item): item is Record<string, unknown> =>
+              !!item && typeof item === "object",
+          );
+          const dataKey = this.dataKeyOf(collectionId);
+          store.accept(requestKey, items, {
+            at,
+            keyOf: (row) => {
+              const own = dataKey(row);
+              return own === undefined ? undefined : String(own);
+            },
+            keyless: "answer",
+            ...(page.cursor !== undefined ? { cursor: page.cursor } : {}),
+            ...(page.total !== undefined ? { total: page.total } : {}),
+          });
+          const listKey: ListKey = `view\u0000${key}`;
+          if (next.listKey && next.listKey !== listKey)
+            store.dropList(next.listKey);
+          store.startList(listKey, requestKey);
+          next.listKey = listKey;
+          next.cursor = page.cursor;
+          next.total = page.total;
+          next.count = items.length;
+          const errors =
+            this.currentRoot?.refreshRows(
+              new Set([`data:collection:${collectionId}`]),
+            ) ?? [];
+          if (errors.length)
+            console.error("[CatalogPreview] views:", ...errors);
+          this.changed();
+        } catch (error) {
+          if (current() && !next.controller.signal.aborted) {
+            console.warn(
+              `[CatalogPreview] ${collectionId} 의 보기 조회를 읽지 못했다:`,
+              error,
+            );
+            next.failed = true;
+            const errors =
+              this.currentRoot?.refreshRows(
+                new Set([`data:collection:${collectionId}`]),
+              ) ?? [];
+            if (errors.length)
+              console.error("[CatalogPreview] views:", ...errors);
+            this.changed();
+          }
+        } finally {
+          this.endRequest(at);
+        }
+      });
+    }
+  }
+  /** The view list (`syncViewLists`) that answers a binding's query, else undefined. */
+  private viewListOf(
+    collectionId: string,
+    asked: CatalogRowQuery,
+  ): CatalogViewList | undefined {
+    for (const entry of this.viewLists.get(collectionId)?.values() ?? []) {
+      const depth = entry.query.queries.length;
+      if (
+        catalogRowQueryKey(entry.query) === catalogRowQueryKey(asked, depth) &&
+        asked.queries.slice(depth).every(catalogCountOnlyView)
+      )
+        return entry;
+    }
+    return undefined;
   }
   /**
    * The collection's rows must all be here before its readers are right: its view runs here
@@ -2120,26 +2410,66 @@ export class CatalogPreviewSession {
     console.warn(
       `[CatalogPreview] ${collectionId}: the view runs here and needs every row — ${count} rows is past the ${VIEW_LOCAL_LOAD_CAP} cap; it shows nothing.`,
     );
-    this.showLoaded(collectionId, []);
+    this.showLoaded(collectionId, {
+      items: [],
+      at: (this.requestSeq += 1),
+      requestKey: "refused",
+    });
     this.setLoadingState(collectionId, "error");
   }
   /** ADR-291 — collections whose view was refused for the row cap, with the count that was too many. */
   readonly viewRefusals = new Map<string, number>();
-  /** Show a collection's loaded items (they replace the Builder's — the rules' edits go). */
+  /**
+   * ADR-325 Decision 5 — show a collection's loaded page: its rows go into the store (a later
+   * request's values win) and its list — a first page starts the list over, a next page joins it.
+   * The changes stay over whatever comes; the list stands for the Builder's API rows.
+   */
   private showLoaded(
     collectionId: string,
-    items: Record<string, unknown>[],
+    page: Pick<
+      CatalogLoadedPage,
+      "items" | "at" | "requestKey" | "cursor" | "total" | "viewless"
+    >,
+    join = false,
   ): void {
-    this.reloadedItems.set(collectionId, items);
-    for (const edit of this.itemEdits.get(collectionId) ?? [])
-      this.savedEdits.delete(edit.seq);
-    this.itemEdits.delete(collectionId);
+    const store = this.storeOf(collectionId);
+    const dataKey = this.dataKeyOf(collectionId);
+    store.accept(page.requestKey, page.items, {
+      at: page.at,
+      keyOf: (row) => {
+        const key = dataKey(row);
+        return key === undefined ? undefined : String(key);
+      },
+      keyless: "answer",
+      ...(page.cursor !== undefined ? { cursor: page.cursor } : {}),
+      ...(page.total !== undefined ? { total: page.total } : {}),
+    });
+    const held = this.mainLists.get(collectionId);
+    if (!join) {
+      if (page.viewless) this.viewlessLoads.add(collectionId);
+      else this.viewlessLoads.delete(collectionId);
+    }
+    if (join && held) store.appendPage(held, page.requestKey);
+    else {
+      const listKey: ListKey = `main\u0000${page.requestKey}`;
+      if (held && held !== listKey) store.dropList(held);
+      store.startList(listKey, page.requestKey);
+      this.mainLists.set(collectionId, listKey);
+    }
     const errors =
       this.currentRoot?.refreshRows(
         new Set([`data:collection:${collectionId}`]),
       ) ?? [];
     if (errors.length) console.error("[CatalogPreview] reload:", ...errors);
     this.changed();
+  }
+  /** The Builder's API rows show again: the collection's own load goes (its list and rows). */
+  private dropMainList(collectionId: string): void {
+    const held = this.mainLists.get(collectionId);
+    if (!held) return;
+    this.mainLists.delete(collectionId);
+    this.viewlessLoads.delete(collectionId);
+    this.stores.get(collectionId)?.dropList(held);
   }
   /** `useAsyncList.reload()` — the first page again (the cursor starts over). */
   async reload(
@@ -2154,7 +2484,10 @@ export class CatalogPreviewSession {
     for (const key of [...this.displayWindows.keys()])
       if (key.startsWith(prefix)) this.displayWindows.delete(key);
     this.resetPages(collectionId);
-    this.showLoaded(collectionId, page.items);
+    this.showLoaded(collectionId, page);
+    // (ADR-325 — the whole rows may be here now: the views of other conditions run on them; if
+    //  not, each view asks again — a reload is of every list.)
+    this.syncViewLists(collectionId, true);
     // (ADR-315 Phase 5 증분 5g — the Tables' pinned rows · open groups · totals: another query is
     //  their requests too.)
     this.syncServedRows(collectionId);
@@ -2208,13 +2541,9 @@ export class CatalogPreviewSession {
       (state && state !== "idle" && state !== "error")
     )
       return;
-    const shown = this.collectionItems(collectionId) as Record<
-      string,
-      unknown
-    >[];
     const page = await this.loadPage(collectionId, "loadingMore", cursor);
     if (!page) return;
-    this.showLoaded(collectionId, [...shown, ...page.items]);
+    this.showLoaded(collectionId, page, true);
     // (ADR-315 Phase 5 증분 5g — a server's next group rows: the open ones' rows.)
     void this.syncGroupRows(collectionId);
     if (page.selectedKeys !== undefined)
@@ -2230,7 +2559,17 @@ export class CatalogPreviewSession {
     ownerId: string,
     moreLoaded: boolean,
   ): Promise<void> {
-    if (!moreLoaded) {
+    // (ADR-325 Decision 6 — a list a view of its own answers: that view's next page.)
+    const viewKey = this.ownerViews.get(
+      displayWindowKey(collectionId, ownerId),
+    );
+    const view = viewKey
+      ? this.viewLists.get(dataCollectionIdOf(collectionId))?.get(viewKey)
+      : undefined;
+    if (!moreLoaded && view) {
+      if (!(await this.loadMoreView(dataCollectionIdOf(collectionId), view)))
+        return;
+    } else if (!moreLoaded) {
       // (No next page — the last one came, or none pages: nothing to show; the window stays.)
       const id = dataCollectionIdOf(collectionId);
       if (!this.pages(id) || this.loadArguments.get(id)?.cursor === undefined)
@@ -2260,6 +2599,85 @@ export class CatalogPreviewSession {
    */
   loadingStateOf(collectionId: string): string {
     return this.loadingStates.get(dataCollectionIdOf(collectionId)) ?? "idle";
+  }
+  /**
+   * ADR-325 Decision 6 — a view list's next page (its cursor, the view in the endpoint's format):
+   * its rows join the view's list. Returns whether rows came (none — the last page, a load in
+   * flight, or a request replaced meanwhile).
+   */
+  private async loadMoreView(
+    collectionId: string,
+    entry: CatalogViewList,
+  ): Promise<boolean> {
+    const cursor = entry.cursor;
+    if (cursor === undefined || !entry.listKey || entry.loadingMore)
+      return false;
+    const read = this.bindingViews(collectionId);
+    const view = read?.views.get(entry.key);
+    if (!read || !view) return false;
+    const serialized = this.serializedView(collectionId, read, view, {
+      cursor,
+    });
+    const extra =
+      serialized.params.length || serialized.body
+        ? {
+            query: serialized.params,
+            ...(serialized.body ? { body: serialized.body } : {}),
+          }
+        : undefined;
+    const resolve = this.endpointTemplateFor(collectionId, cursor);
+    const requestKey = endpointRequestKey(
+      read.endpoint,
+      resolve,
+      cursor,
+      extra,
+    );
+    if (!requestKey) return false;
+    entry.loadingMore = true;
+    const at = this.startRequest();
+    try {
+      const page = await this.viewRequests(() =>
+        loadCollectionEndpoint(
+          read.endpoint,
+          entry.controller.signal,
+          resolve,
+          cursor,
+          extra,
+        ),
+      );
+      if (this.viewLists.get(collectionId)?.get(entry.key) !== entry)
+        return false;
+      const intake = intakeQueryItems(page.items, read.collection);
+      const items = (Array.isArray(intake) ? intake : [intake]).filter(
+        (item): item is Record<string, unknown> =>
+          !!item && typeof item === "object",
+      );
+      const store = this.storeOf(collectionId);
+      const dataKey = this.dataKeyOf(collectionId);
+      store.accept(requestKey, items, {
+        at,
+        keyOf: (row) => {
+          const own = dataKey(row);
+          return own === undefined ? undefined : String(own);
+        },
+        keyless: "answer",
+      });
+      store.appendPage(entry.listKey, requestKey);
+      entry.cursor = page.cursor === cursor ? undefined : page.cursor;
+      if (page.total !== undefined) entry.total = page.total;
+      entry.count = (entry.count ?? 0) + items.length;
+      return items.length > 0;
+    } catch (error) {
+      if (!entry.controller.signal.aborted)
+        console.warn(
+          `[CatalogPreview] ${collectionId} 의 보기 다음 페이지를 읽지 못했다:`,
+          error,
+        );
+      return false;
+    } finally {
+      entry.loadingMore = false;
+      this.endRequest(at);
+    }
   }
   /** ADR-310 「더 보기」 — whether a bound list holds loaded rows past its display window. */
   moreLoaded(collectionId: string, ownerId: string): boolean {
@@ -2404,7 +2822,41 @@ export class CatalogPreviewSession {
       stated ??
       authored.query ??
       (servedPins ? CATALOG_NO_VIEW_QUERY : undefined);
-    if (asked) {
+    const split = asked ? this.viewListOf(id, asked) : undefined;
+    let servedList: ({ collectionId: string } & CatalogServedList) | undefined;
+    if (asked && split) {
+      // (ADR-325 Decision 6 — a view of other conditions: its own request's rows, not filtered again.)
+      if (!split.listKey)
+        return Object.assign([] as CatalogBoundRow[], {
+          loadingState: split.failed
+            ? ("error" as const)
+            : ("loading" as const),
+        }) as CatalogBoundRows;
+      const depth = split.query.queries.length;
+      binding = {
+        ...authored,
+        query: {
+          ...asked,
+          served: {
+            ...(split.total !== undefined ? { total: split.total } : {}),
+            complete: split.cursor === undefined,
+            warnings: split.warnings,
+            ...(depth < asked.queries.length ? { depth } : {}),
+            mode: split.mode,
+            ...(stated ? { state: true as const } : {}),
+          },
+        },
+      };
+      servedList = this.servedListOf(
+        id,
+        split.listKey,
+        authored,
+        asked,
+        split.mode,
+      );
+      if (ownerId !== undefined)
+        this.ownerViews.set(displayWindowKey(id, ownerId), split.key);
+    } else if (asked) {
       const view = this.serverView(id);
       const loaded = this.loadedViewQueries.get(id);
       const depth = loaded?.queries.length ?? 0;
@@ -2415,6 +2867,9 @@ export class CatalogPreviewSession {
         asked.queries.slice(depth).every(catalogCountOnlyView)
       ) {
         const total = this.loadTotals.get(id);
+        const main = this.mainLists.get(id);
+        if (main)
+          servedList = this.servedListOf(id, main, authored, asked, view.mode);
         binding = {
           ...authored,
           query: {
@@ -2440,7 +2895,7 @@ export class CatalogPreviewSession {
               served: (path) =>
                 owner === undefined
                   ? undefined
-                  : this.groupAnswerOf(owner, path, queryKey),
+                  : this.groupAnswerOf(id, owner, path, queryKey),
             },
           };
         }
@@ -2449,9 +2904,11 @@ export class CatalogPreviewSession {
             ...slices!,
             pins: {
               ...slices!.pins!,
-              rows:
+              rows: this.answerRows(
+                id,
                 this.pinAnswers.get(pinAnswerKey(ownerId!, slices!.pins!))
-                  ?.items ?? [],
+                  ?.list,
+              ),
             },
           };
       } else if (
@@ -2523,7 +2980,12 @@ export class CatalogPreviewSession {
             );
     const rows = catalogBoundRows(
       binding,
-      this.itemSources(),
+      servedList
+        ? this.itemSources(
+            new Map([[servedList.collectionId, servedList.listKey]]),
+            servedList,
+          )
+        : this.itemSources(),
       kind,
       window,
       0,
@@ -2542,6 +3004,27 @@ export class CatalogPreviewSession {
         loadingState: this.loadingStates.get(collectionId) ?? "idle",
       }),
     );
+  }
+  /**
+   * ADR-325 Decision 8 (사용자 결정 3) — a list the server answered for a view, as a binding reads
+   * it: a row the user changed stays where the server put it, an inserted row shows at the end when
+   * the view's conditions (judged here) keep it, no move applies. A grouped answer takes no insert.
+   */
+  private servedListOf(
+    collectionId: string,
+    listKey: ListKey,
+    authored: Parameters<typeof catalogBoundRows>[0],
+    asked: CatalogRowQuery,
+    mode: "rows" | "aggregate",
+  ): { collectionId: string } & CatalogServedList {
+    const ref = { ...authored, query: asked };
+    return {
+      collectionId,
+      listKey,
+      key: `${mode}\u0000${catalogRowQueryKey(asked)}`,
+      admit: (row) =>
+        mode === "rows" && catalogRowMatchesQuery(row, ref, this.collections),
+    };
   }
   /**
    * ADR-317 Phase 4 — a Table 「Edit marks」's rows with their edit status (`CatalogBoundRow.edit` —
@@ -2583,7 +3066,8 @@ export class CatalogPreviewSession {
    */
   private readonly pinAnswers = new Map<
     string,
-    { url: string; items: Record<string, unknown>[] }
+    /** ADR-325 — the rows are a list in the collection's store (one row, one value everywhere). */
+    { url: string; list?: ListKey }
   >();
   /**
    * ADR-315 Phase 5 증분 5g — the servers' answers to an open group's rows (`groupOf`), by the
@@ -2596,7 +3080,10 @@ export class CatalogPreviewSession {
     {
       queryKey: string;
       url: string;
+      /** A level's group rows (counts · aggregates — not the collection's rows). */
       rows?: readonly Record<string, unknown>[];
+      /** ADR-325 — the last level's rows: a list in the collection's store. */
+      list?: ListKey;
       mismatch?: number;
     }
   >();
@@ -2609,6 +3096,7 @@ export class CatalogPreviewSession {
   >();
   /** An open group's answer (`CatalogRowGroups.served`) — none while not answered. */
   private groupAnswerOf(
+    collectionId: string,
     nodeId: string,
     path: readonly unknown[],
     queryKey: string,
@@ -2616,14 +3104,52 @@ export class CatalogPreviewSession {
     const answer = this.groupAnswers.get(
       `${nodeId}\u0000${catalogTableGroupKey(path)}`,
     );
-    return answer?.queryKey === queryKey && answer.rows
+    const rows = answer?.list
+      ? this.answerRows(collectionId, answer.list)
+      : answer?.rows;
+    return answer?.queryKey === queryKey && rows
       ? {
-          rows: answer.rows,
+          rows,
           ...(answer.mismatch !== undefined
             ? { mismatch: answer.mismatch }
             : {}),
         }
       : undefined;
+  }
+  /** ADR-325 — a list's rows in the collection's store (none = no answer yet). */
+  private answerRows(
+    collectionId: string,
+    list: ListKey | undefined,
+  ): Record<string, unknown>[] {
+    return list
+      ? (this.shownRows(collectionId, list) as Record<string, unknown>[])
+      : [];
+  }
+  /**
+   * ADR-325 — an answer's rows into the collection's store as its own list (a pinned rows' · a
+   * group's request): a later request's values win, the changes lie over them.
+   */
+  private takeAnswer(
+    collectionId: string,
+    requestKey: RequestKey,
+    items: readonly Record<string, unknown>[],
+    at: number,
+    held?: ListKey,
+  ): ListKey {
+    const store = this.storeOf(collectionId);
+    const dataKey = this.dataKeyOf(collectionId);
+    store.accept(requestKey, items, {
+      at,
+      keyOf: (row) => {
+        const key = dataKey(row);
+        return key === undefined ? undefined : String(key);
+      },
+      keyless: "answer",
+    });
+    const listKey: ListKey = `answer\u0000${requestKey}`;
+    if (held && held !== listKey) store.dropList(held);
+    store.startList(listKey, requestKey);
+    return listKey;
   }
   /**
    * ADR-315 Phase 5 증분 5g — the requests a collection's Tables add to its page's (§4.3.2 ·
@@ -2735,9 +3261,10 @@ export class CatalogPreviewSession {
       query: serialized.params,
       ...(serialized.body ? { body: serialized.body } : {}),
     };
-    const url = resolvedEndpointUrl(
+    const url = endpointRequestKey(
       endpoint,
       this.endpointTemplateFor(collectionId, page?.cursor),
+      page?.cursor,
       extra,
     );
     return url ? { extra, url } : undefined;
@@ -2795,10 +3322,12 @@ export class CatalogPreviewSession {
             const key = `${nodeId}\u0000${groupKey}`;
             let answer = this.groupAnswers.get(key);
             if (answer?.url !== first.url || answer.queryKey !== queryKey) {
+              const heldList = answer?.list;
               this.groupAnswers.set(
                 key,
                 (answer = { queryKey, url: first.url }),
               );
+              const at = this.startRequest();
               const got = await requests(() =>
                 this.loadEveryPage(
                   collectionId,
@@ -2810,7 +3339,7 @@ export class CatalogPreviewSession {
                       { groupOf },
                     )?.extra ?? first.extra,
                 ),
-              );
+              ).finally(() => this.endRequest(at));
               if (this.groupAnswers.get(key) !== answer) return;
               // (The rows the answer has: the next level's counts, else the server's total.)
               const count = Number(row[CATALOG_GROUP_ROW_COUNT]);
@@ -2836,7 +3365,18 @@ export class CatalogPreviewSession {
               answer = {
                 queryKey,
                 url: first.url,
-                rows: got.rows,
+                // (The last level's rows are the collection's — the store's; a level's are groups.)
+                ...(deeper
+                  ? { rows: got.rows }
+                  : {
+                      list: this.takeAnswer(
+                        collectionId,
+                        `group ${first.url}`,
+                        got.rows,
+                        at,
+                        heldList,
+                      ),
+                    }),
                 ...(Number.isFinite(count) && rowsOf !== count
                   ? { mismatch: rowsOf }
                   : {}),
@@ -2954,19 +3494,32 @@ export class CatalogPreviewSession {
       const held = this.pinAnswers.get(key);
       if (!asked || held?.url === asked.url) continue;
       // (Asked: the answer this request brings replaces the one held — a later request wins.)
-      this.pinAnswers.set(key, { url: asked.url, items: held?.items ?? [] });
+      this.pinAnswers.set(key, {
+        url: asked.url,
+        ...(held?.list ? { list: held.list } : {}),
+      });
+      const at = this.startRequest();
       loads.push(
         (async () => {
           const { rows: items } = await this.loadEveryPage(
             collectionId,
             () => asked.extra,
-          );
+          ).finally(() => this.endRequest(at));
           if (this.pinAnswers.get(key)?.url !== asked.url) return;
           if (items.length > new Set(request.keys).size)
             console.warn(
               `[CatalogPreview] ${name}: the pinned rows' request (${request.keys.length} keys) was answered with ${items.length} rows — not a request by key; the rows of those keys are pinned.`,
             );
-          this.pinAnswers.set(key, { url: asked.url, items });
+          this.pinAnswers.set(key, {
+            url: asked.url,
+            list: this.takeAnswer(
+              collectionId,
+              `pins ${asked.url}`,
+              items,
+              at,
+              held?.list,
+            ),
+          });
           const errors = this.currentRoot?.refreshNodes(new Set([nodeId]));
           if (errors?.length)
             console.error("[CatalogPreview] pinned rows:", ...errors);
@@ -3040,9 +3593,9 @@ export class CatalogPreviewSession {
   /**
    * A published app's `interval` policy (the Builder's `useExecutionPolicyScheduler`, here): each
    * period the collection's first page loads again — the next period starts when that load ended
-   * (never two at once). A period is skipped while a load is in flight, and while the collection
-   * holds an edit not saved yet (a load drops the edit record — a timer never discards what the
-   * user wrote). The lists keep their rows meanwhile (`idle` — a refresh, not a first load).
+   * (never two at once). A period is skipped while a load is in flight. An unsaved change stays over
+   * the rows it brings (ADR-325 Decision 5 — the 2026-11-26 rule that skipped a period for one is
+   * gone). The lists keep their rows meanwhile (`idle` — a refresh, not a first load).
    */
   private syncIntervalLoads(): void {
     if (!this.options.standalone) return;
@@ -3062,14 +3615,13 @@ export class CatalogPreviewSession {
     const schedule = (id: string, seconds: number) => {
       const timer = setTimeout(() => {
         if (this.intervalLoads.get(id)?.timer !== timer) return;
-        const unsaved = (this.itemEdits.get(id) ?? []).some(
-          (edit) => !this.savedEdits.has(edit.seq),
-        );
         const next = () => {
           if (this.intervalLoads.get(id)?.timer === timer)
             schedule(id, seconds);
         };
-        if (unsaved || this.loadControllers.has(id)) return next();
+        // (ADR-325 Decision 5 — a load keeps the unsaved changes over its rows: no period is skipped
+        //  for them, only while a load is in flight.)
+        if (this.loadControllers.has(id)) return next();
         this.reload(id, "idle")
           .catch((error: unknown) =>
             console.warn(`[CatalogPreview] ${id} 를 읽지 못했다:`, error),
@@ -3094,73 +3646,139 @@ export class CatalogPreviewSession {
    */
   private loadRouted(state: CatalogLoadingState = "loading"): void {
     this.syncIntervalLoads();
+    this.sweepStores();
     for (const collection of this.collections) {
       if (!collection.id || collection.useMockData) continue;
-      const endpoint = this.endpointFilling(collection);
-      // (ADR-284: a view the request carries — a variable it reads gives another request. ADR-291:
-      // a view that runs here over every row is the session's load too.)
-      const viewed = !!this.uniqueView(collection.id);
-      // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its. A
-      //  published app's session loads the plain ones too — no Builder does — unless the author
-      //  left the load to a rule: `manual`.)
-      if (
-        !endpoint ||
-        !(
-          endpointReadsTemplate(endpoint) ||
-          endpoint.responseMapping?.cursorPath ||
-          viewed ||
-          (this.options.standalone &&
-            executionModeOf(this.executionPolicyOf(collection.id)) !== "manual")
-        )
-      ) {
-        // (Its view no longer goes with the request: the rows the server filtered for it go —
-        // the Builder's load shows again.)
-        if (this.viewLoaded.delete(collection.id)) {
-          this.loadedUrls.delete(collection.id);
-          this.loadTotals.delete(collection.id);
-          this.reloadedItems.delete(collection.id);
-          this.loadedViewQueries.delete(collection.id);
-          const errors =
-            this.currentRoot?.refreshRows(
-              new Set([`data:collection:${collection.id}`]),
-            ) ?? [];
-          if (errors.length) console.error("[CatalogPreview] view:", ...errors);
-        }
-        continue;
+      try {
+        this.loadRoutedOne(
+          collection as CollectionDataSource & { id: string },
+          state,
+        );
+      } finally {
+        // (ADR-325 Decision 6 — views of other conditions: each its own request, unless the
+        //  whole rows are here — or on their way: a load of the collection's own in flight asks
+        //  again when it ends.)
+        if (this.endpointFilling(collection)) this.syncViewLists(collection.id);
       }
-      if (viewed) this.viewLoaded.add(collection.id);
-      const url = resolvedEndpointUrl(
-        endpoint,
-        this.endpointTemplateFor(collection.id),
-        this.viewRequest(collection.id),
-      );
-      if (!url || this.loadedUrls.get(collection.id) === url) {
-        // (ADR-315 Phase 5 증분 5g — the page's request the same, a pinned rows' one may not be:
-        //  「Keep pinned rows」 turned on · off.)
-        if (url) this.syncServedRows(collection.id);
-        // (ADR-315 Phase 5 증분 5g — the same request, and a Table that now reads every row: a
-        //  grouping · a totals row · a tree turned on. The pages not loaded yet load.)
-        if (
-          url &&
-          this.loadArguments.get(collection.id)?.cursor !== undefined &&
-          this.tables.collectionTablesReadWhole(collection.id)
-        )
-          this.loadAll(collection.id).catch((error: unknown) =>
-            console.warn(
-              `[CatalogPreview] ${collection.name ?? collection.id} 의 모든 행을 읽지 못했다:`,
-              error,
-            ),
-          );
-        continue;
-      }
-      this.loadedUrls.set(collection.id, url);
-      this.reload(collection.id, state).catch((error: unknown) =>
-        console.warn(
-          `[CatalogPreview] ${collection.name ?? collection.id} 를 읽지 못했다:`,
-          error,
-        ),
-      );
     }
+  }
+  /**
+   * ADR-325 (수명 — G4) — what no reader reads goes: a collection gone takes its store; a paged
+   * list · a Table gone takes its list (and the rows no other list holds — a row with a change or a
+   * send stays, `dropResult`).
+   */
+  private sweepStores(): void {
+    const graph = this.graph;
+    if (!graph) return;
+    const live = new Set(this.collections.map((item) => item.id));
+    for (const id of [...this.stores.keys()])
+      if (!live.has(id)) {
+        this.stores.delete(id);
+        this.mainLists.delete(id);
+        this.viewLists.delete(id);
+        this.viewlessLoads.delete(id);
+        for (const key of [...this.sourceRows.keys()])
+          if (key.startsWith(`${id}\u0000`)) this.sourceRows.delete(key);
+        for (const key of [...this.shownCache.keys()])
+          if (key.startsWith(`${id}\u0000`)) this.shownCache.delete(key);
+      }
+    const gone = (nodeId: string) =>
+      graph.getEntry(nodeId as never)?.kind !== "node";
+    const drop = (list: ListKey | undefined) => {
+      if (!list) return;
+      for (const store of this.stores.values()) store.dropList(list);
+      for (const key of [...this.shownCache.keys()])
+        if (key.includes(`\u0000${list}\u0000`)) this.shownCache.delete(key);
+    };
+    for (const [key, unit] of [...this.pageUnits]) {
+      const owner = key.slice(key.indexOf("\u0001") + 1);
+      if (!gone(owner)) continue;
+      unit.request?.abort();
+      this.pageUnits.delete(key);
+      drop(unit.list);
+    }
+    for (const [key, answer] of [...this.pinAnswers])
+      if (gone(key.slice(0, key.indexOf("\u0000")))) {
+        this.pinAnswers.delete(key);
+        drop(answer.list);
+      }
+    for (const [key, answer] of [...this.groupAnswers])
+      if (gone(key.slice(0, key.indexOf("\u0000")))) {
+        this.groupAnswers.delete(key);
+        drop(answer.list);
+      }
+  }
+  /** `loadRouted` for one collection (its own load). */
+  private loadRoutedOne(
+    collection: CollectionDataSource & { id: string },
+    state: CatalogLoadingState,
+  ): void {
+    const endpoint = this.endpointFilling(collection);
+    // (ADR-284: a view the request carries — a variable it reads gives another request. ADR-291:
+    // a view that runs here over every row is the session's load too.)
+    const viewed =
+      !!this.uniqueView(collection.id) || this.viewLoadsAll(collection.id);
+    // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its. A
+    //  published app's session loads the plain ones too — no Builder does — unless the author
+    //  left the load to a rule: `manual`.)
+    if (
+      !endpoint ||
+      !(
+        endpointReadsTemplate(endpoint) ||
+        endpoint.responseMapping?.cursorPath ||
+        viewed ||
+        (this.options.standalone &&
+          executionModeOf(this.executionPolicyOf(collection.id)) !== "manual")
+      )
+    ) {
+      // (Its view no longer goes with the request: the rows the server filtered for it go —
+      // the Builder's load shows again.)
+      if (this.viewLoaded.delete(collection.id)) {
+        this.loadedUrls.delete(collection.id);
+        this.loadTotals.delete(collection.id);
+        this.dropMainList(collection.id);
+        this.loadedViewQueries.delete(collection.id);
+        const errors =
+          this.currentRoot?.refreshRows(
+            new Set([`data:collection:${collection.id}`]),
+          ) ?? [];
+        if (errors.length) console.error("[CatalogPreview] view:", ...errors);
+      }
+      return;
+    }
+    if (viewed) this.viewLoaded.add(collection.id);
+    const url = endpointRequestKey(
+      endpoint,
+      this.endpointTemplateFor(collection.id),
+      undefined,
+      this.viewRequest(collection.id),
+    );
+    if (!url || this.loadedUrls.get(collection.id) === url) {
+      // (ADR-315 Phase 5 증분 5g — the page's request the same, a pinned rows' one may not be:
+      //  「Keep pinned rows」 turned on · off.)
+      if (url) this.syncServedRows(collection.id);
+      // (ADR-315 Phase 5 증분 5g — the same request, and a Table that now reads every row: a
+      //  grouping · a totals row · a tree turned on. The pages not loaded yet load.)
+      if (
+        url &&
+        this.loadArguments.get(collection.id)?.cursor !== undefined &&
+        this.tables.collectionTablesReadWhole(collection.id)
+      )
+        this.loadAll(collection.id).catch((error: unknown) =>
+          console.warn(
+            `[CatalogPreview] ${collection.name ?? collection.id} 의 모든 행을 읽지 못했다:`,
+            error,
+          ),
+        );
+      return;
+    }
+    this.loadedUrls.set(collection.id, url);
+    this.reload(collection.id, state).catch((error: unknown) =>
+      console.warn(
+        `[CatalogPreview] ${collection.name ?? collection.id} 를 읽지 못했다:`,
+        error,
+      ),
+    );
   }
 
   /** A Table record's server sort: its bound collection and the sort by field, else undefined. */
@@ -3689,7 +4307,7 @@ export class CatalogPreviewSession {
     const unit = this.pageUnit(binding.collectionId, ownerId);
     const size = unit.size ?? catalogRowDisplaySize(display);
     if (this.remotePages(id)) {
-      if (!unit.items) {
+      if (!unit.list) {
         if (!unit.request)
           void this.loadPageUnit(binding.collectionId, ownerId, unit.page);
         return Object.assign([] as CatalogBoundRow[], {
@@ -3698,7 +4316,7 @@ export class CatalogPreviewSession {
       }
       const rows = catalogBoundRows(
         binding,
-        this.itemSources(new Map([[id, unit.items]])),
+        this.itemSources(new Map([[id, unit.list]])),
         kind,
         size,
         0,
@@ -3841,12 +4459,21 @@ export class CatalogPreviewSession {
     const endpoint = this.queryEndpoint(id);
     const numbered = endpointReadsTemplate(endpoint, "page");
     const cursor = numbered ? undefined : unit.cursors[page - 1];
+    const resolve = this.endpointTemplateFor(id, cursor, {
+      page,
+      pageSize: size,
+    });
+    // (ADR-325 — the page's request: its own result in the collection's store, its own list.)
+    const requestKey: RequestKey =
+      endpointRequestKey(endpoint, resolve, cursor) ??
+      `${endpoint.id}\u0000${page}`;
+    const at = this.startRequest();
     try {
       await Promise.allSettled([...this.pendingSubmits]);
       const answer = await loadCollectionEndpoint(
         endpoint,
         controller.signal,
-        this.endpointTemplateFor(id, cursor, { page, pageSize: size }),
+        resolve,
         cursor,
       );
       if (unit.request !== controller) return;
@@ -3854,10 +4481,24 @@ export class CatalogPreviewSession {
         answer.items,
         this.collections.find((item) => item.id === id),
       );
-      unit.items = (Array.isArray(intake) ? intake : [intake]).filter(
+      const items = (Array.isArray(intake) ? intake : [intake]).filter(
         (item): item is Record<string, unknown> =>
           !!item && typeof item === "object",
       );
+      const store = this.storeOf(id);
+      const dataKey = this.dataKeyOf(id);
+      store.accept(requestKey, items, {
+        at,
+        keyOf: (row) => {
+          const key = dataKey(row);
+          return key === undefined ? undefined : String(key);
+        },
+        keyless: "answer",
+      });
+      const listKey: ListKey = `unit\u0000${listId}\u0000${requestKey}`;
+      if (unit.list && unit.list !== listKey) store.dropList(unit.list);
+      store.startList(listKey, requestKey);
+      unit.list = listKey;
       unit.page = page;
       if (answer.total !== undefined) unit.total = answer.total;
       unit.cursors[page] = answer.cursor;
@@ -3865,6 +4506,7 @@ export class CatalogPreviewSession {
       if (unit.request !== controller) return;
       console.warn(`[CatalogPreview] ${id} page ${page}:`, error);
     } finally {
+      this.endRequest(at);
       if (unit.request === controller) unit.request = undefined;
     }
     this.showPage(collectionId, listId);
@@ -3919,11 +4561,54 @@ export class CatalogPreviewSession {
   }
 }
 
+/** ADR-325 — a list the server answered for a view (`overlayRows`' `served` — inserts judged by it). */
+interface CatalogServedList {
+  readonly listKey: ListKey;
+  /** The view's key — the shown rows are remembered by it. */
+  readonly key: string;
+  readonly admit: (row: Readonly<Record<string, unknown>>) => boolean;
+}
+
+/** ADR-325 Decision 6 — a view's own request and list (`syncViewLists`). */
+interface CatalogViewList {
+  /** The view's key (`bindingViews`). */
+  key: string;
+  requestKey: RequestKey;
+  query: CatalogRowQuery;
+  mode: "rows" | "aggregate";
+  warnings: number;
+  controller: AbortController;
+  listKey?: ListKey;
+  cursor?: string;
+  total?: number;
+  count?: number;
+  /** Its next page is in flight (`loadMoreView`). */
+  loadingMore?: boolean;
+  /** Its first request failed (the list shows the error, not a load). */
+  failed?: boolean;
+}
+
+/** ADR-325 — a page a collection's own load brought (`loadPage`). */
+interface CatalogLoadedPage {
+  items: Record<string, unknown>[];
+  /** The request carried no view (its rows are the endpoint's whole query). */
+  viewless?: boolean;
+  selectedKeys?: string[] | "all";
+  /** The request's sequence (when it started). */
+  at: number;
+  requestKey: RequestKey;
+  cursor?: string;
+  total?: number;
+}
+
 /** ADR-310 Phase 7 — a paged list's query unit (Decision 12). */
 interface CatalogPageUnit {
   page: number;
-  /** A remote page's loaded items (absent = not loaded — a local list's pages are the collection's). */
-  items?: Record<string, unknown>[];
+  /**
+   * A remote page's list in the collection's store (ADR-325 — absent = not loaded; a local list's
+   * pages are the collection's).
+   */
+  list?: ListKey;
   /** The rows in all (the collection's, or the endpoint's `totalPath`) — the page count. */
   total?: number;
   /** A cursor-only endpoint's cursor of each page (`cursors[n]` loads page n + 1). */

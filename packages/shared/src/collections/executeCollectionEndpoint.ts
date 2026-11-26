@@ -97,6 +97,28 @@ export function resolvedEndpointUrl(endpoint: ApiEndpointDefinition, resolve: En
   }
 }
 
+/**
+ * ADR-325 Decision 2 — a query request's identity, from the parts it is fetched with: the method,
+ * the address (a URL cursor followed as is — `loadCollectionEndpoint`'s target — or the page a
+ * template · a view parameter puts in it) and the view's body. Two requests with one key are the
+ * same request. `undefined` while a template does not resolve.
+ */
+export function endpointRequestKey(endpoint: ApiEndpointDefinition, resolve: EndpointTemplateResolver | undefined, cursor?: string, extra?: EndpointRequestExtra): string | undefined {
+  let parts: ReturnType<typeof resolvedEndpointParts>;
+  try {
+    parts = resolvedEndpointParts(endpoint, resolve);
+  } catch {
+    return undefined;
+  }
+  const params = new URLSearchParams([...parts.query, ...(extra?.query ?? [])].map(([key, value]) => [key, value])).toString();
+  const address = `${endpoint.baseUrl}${parts.path}${params ? `?${params}` : ""}`;
+  const followed = cursor && !endpointReadsTemplate(endpoint, "cursor") && /^(https?:)?\//.test(cursor);
+  const target = followed ? new URL(cursor, new URL(address, "http://localhost/")).href : address;
+  // (A cursor the request carries nowhere visible — a template's · a view's page is in the address.)
+  const page = cursor !== undefined && !followed && !address.includes(encodeURIComponent(cursor)) ? `#${cursor}` : "";
+  return `${(endpoint.method ?? "GET").toUpperCase()} ${target}${page}${extra?.body === undefined ? "" : ` ${JSON.stringify(extra.body)}`}`;
+}
+
 /** The request body: a view's JSON over the endpoint's body template object, else the template. */
 function requestBody(endpoint: ApiEndpointDefinition, extra: EndpointRequestExtra | undefined, stringifyJsonLossless: (value: unknown) => string): string | undefined {
   if (extra?.body === undefined) return endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined;

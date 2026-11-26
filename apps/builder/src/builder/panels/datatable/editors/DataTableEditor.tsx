@@ -48,6 +48,19 @@ export function DataTableEditor({ dataTable, onClose }: DataTableEditorProps) {
     return null;
   }, [dataTable, apiEndpointsMap, apiRuns]);
 
+  // (ADR-325 사용자 결정 1 — an API table without a key field: its rows are keyed by their place in
+  //  each answer, so an edit in the running app is lost when the rows load again. Said to the author.)
+  const noKey = useMemo(
+    () =>
+      !dataTable.useMockData &&
+      !dataTable.keyField &&
+      !dataTable.schema.some((field) =>
+        ["id", "key", "value"].includes(field.key),
+      ) &&
+      !!findLinkedApi(dataTable, Array.from(apiEndpointsMap.values())),
+    [dataTable, apiEndpointsMap],
+  );
+
   const localizeStatus = (key: string) =>
     rootI18nT ? rootI18nT(`datatable.${key}`) : key;
 
@@ -56,6 +69,11 @@ export function DataTableEditor({ dataTable, onClose }: DataTableEditorProps) {
       {editorStatus && (
         <div className="datatable-editor-status" data-tone={editorStatus.tone}>
           {localizeStatus(editorStatus.key)}
+        </div>
+      )}
+      {noKey && (
+        <div className="datatable-editor-status" data-tone="empty">
+          {localizeStatus("editorNoKey")}
         </div>
       )}
       <DataGrid table={dataTable} />

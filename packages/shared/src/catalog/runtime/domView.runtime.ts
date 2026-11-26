@@ -97,7 +97,7 @@ export function catalogPreviewRuntime(
       session.tables.pinTableRow(tableId, key, side),
     editTableRow: (rowId, values) => session.tables.editTableRow(rowId, values),
     editSeq: () => session.editSeq(),
-    markEditsSaved: (seqs) => session.markEditsSaved(seqs),
+    beginSave: (seqs) => session.beginSave(seqs),
     resizeTableColumns: (tableId, widths) =>
       session.tables.resizeTableColumns(tableId, widths),
     tableCellText: (tableId, rows, columns) =>

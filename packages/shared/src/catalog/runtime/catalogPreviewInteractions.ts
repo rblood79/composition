@@ -443,8 +443,8 @@ export interface CatalogPreviewInteractionsOptions {
   ) => number | undefined;
   /** ADR-317 Phase 4 — the session's last edit number (`CatalogPreviewSession.editSeq`). */
   editSeq?: () => number;
-  /** ADR-317 Phase 4 — edits a save sent, taken by the server (`CatalogPreviewSession.markEditsSaved`). */
-  markEditsSaved?: (seqs: readonly number[]) => void;
+  /** ADR-325 — a save sent: its edits' changes wait for its answer (`CatalogPreviewSession.beginSave`). */
+  beginSave?: (seqs: readonly number[]) => ((ok: boolean) => void) | undefined;
   /** ADR-315 Phase 6 — a cell range as tab-separated text (`CatalogDomRuntime.tableCellText`). */
   tableCellText?: (
     tableId: string,
@@ -726,8 +726,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         );
         return { ok: true, settled };
       },
-      ...(options.editSeq && options.markEditsSaved
-        ? { editSeq: options.editSeq, markEditsSaved: options.markEditsSaved }
+      ...(options.editSeq && options.beginSave
+        ? { editSeq: options.editSeq, beginSave: options.beginSave }
         : {}),
       ...(options.append ? { append: options.append } : {}),
       ...(options.update ? { update: options.update } : {}),

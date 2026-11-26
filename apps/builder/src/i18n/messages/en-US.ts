@@ -2514,6 +2514,8 @@ const catalog: TranslationKeys = {
     importParseFailed: "Could not read the file.",
     editorEmpty: "No rows",
     editorError: "Last run failed",
+    editorNoKey:
+      "No key field — edits made in the running app are lost when it loads again. Turn on 「Key field」 in a column's settings to keep them.",
     confirmDelete: "Are you sure you want to delete this?",
     promptVariableName: "Enter a variable name:",
     promptApiUrl: "Enter the API URL (e.g. https://pokeapi.co/api/v2/pokemon):",

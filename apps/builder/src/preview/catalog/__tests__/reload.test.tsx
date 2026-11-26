@@ -174,7 +174,7 @@ describe("reload — useAsyncList.reload", () => {
     h.view.unmount();
   });
 
-  it("a reload drops the rules' local edits; the Builder's next different items win over it", async () => {
+  it("a reload keeps the rules' local edits (ADR-325 사용자 결정 2); the Builder's next different items win over the reload's", async () => {
     stubServer([
       { id: "u1", name: "Kim" },
       { id: "u2", name: "Park" },
@@ -189,12 +189,22 @@ describe("reload — useAsyncList.reload", () => {
       fireEvent.click(h.element(h.button)!);
     });
     await settle();
+    // (ADR-325 — the added row stays over the server's rows until it is saved or dropped.)
     expect(h.options()).toEqual([
       expect.stringContaining("Kim"),
       expect.stringContaining("Park"),
+      expect.stringContaining("Local"),
     ]);
     act(() => {
       h.session.receive(data([{ id: "u9", name: "Choi" }]));
+    });
+    expect(h.options()).toEqual([
+      expect.stringContaining("Choi"),
+      expect.stringContaining("Local"),
+    ]);
+    // (Dropping the changes is its own act.)
+    act(() => {
+      h.session.discardChanges("users");
     });
     expect(h.options()).toEqual([expect.stringContaining("Choi")]);
     h.view.unmount();

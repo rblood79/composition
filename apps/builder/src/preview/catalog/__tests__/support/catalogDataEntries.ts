@@ -32,19 +32,17 @@ export function catalogDataMessageEntries(message: {
       schema: (item.schema ?? []) as CatalogDataField[],
       mockData: JSON.parse(JSON.stringify(item.mockData ?? [])),
       useMockData: item.useMockData !== false,
+      ...(typeof item.keyField === "string"
+        ? { keyField: item.keyField }
+        : {}),
     });
   for (const item of message.apiEndpoints ?? []) {
-    const {
-      id,
-      targetCollectionId,
-      targetCollection,
-      headers,
-      ...definition
-    } = item as Item & {
-      headers?: unknown;
-      targetCollectionId?: string;
-      targetCollection?: string;
-    };
+    const { id, targetCollectionId, targetCollection, headers, ...definition } =
+      item as Item & {
+        headers?: unknown;
+        targetCollectionId?: string;
+        targetCollection?: string;
+      };
     const target =
       targetCollectionId ??
       (targetCollection ? byName.get(targetCollection) : undefined);

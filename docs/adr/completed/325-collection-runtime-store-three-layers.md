@@ -2,7 +2,17 @@
 
 ## Status
 
-Proposed — 2026-11-26
+Implemented — 2026-11-27 (G5 — Builder → Publish live Chrome 9/9 · WebKit 9/9, 즉시 저장 회귀 Chrome · WebKit PASS, 아래 [Live Exercise](#live-exercise)). Accepted — 2026-11-27 (`/execute-adr 325` 호출 · [리뷰 기록](../reviews/325.md) pending 0, HIGH 전부 fixed · round 3 미개최는 사용자 결정 2026-11-27). Proposed — 2026-11-26
+
+> **Phase 0 종결 (2026-11-27 — G0)**: 행을 든 자리 8 (세션 필드) · 읽는 곳 (`itemSources` 7 · `collectionItems` 10 · `itemsByKeys` 2 · `boundRows` 3 — 세션 안) 을 다시 셌다. 바뀌는 동작을 단언하는 기존 테스트 4 (`reload.test.tsx` 「a reload drops the rules' local edits」 · `adr284ApiView.test.tsx` 「two different views on one endpoint」 · 「loads all unfiltered pages for different instance inputs」 · `publishedApiRows.test.ts` 「interval … not over an edit not saved」) 와 규칙 문서 줄 3 (`data-interaction.md` §6 `reload` · 「표시 방식 「페이지」 · 조회 단위」 · 「보기를 요청에 싣기」) 을 목록으로 고정했다 — breakdown 추정 안. 재현 2/2 (`adr325G0.test.tsx` — 다음 페이지 뒤 「저장 안 됨」 표시 사라짐 · 값 필드로 key 를 주는 목록의 편집이 「항목 없음」 — **R2 가 실재한다**), 두 보기 → 요청 없음 · 전체 불러오기는 기존 테스트 2 가 재현. HEAD `21eb42576` 기준선 (production · headed Chrome · 10,000 행 · 원격 collection — ADR-315 HC4 와 같은 하니스): 정렬 클릭 1x 184 · 183 ms · 4x 638 · 627 ms, 스크롤 p95 25 ms, 로드 443 ms, 힙 158 MB. **정정**: HC5 의 「10 만 행」 기준선 값 (154 ~ 169 ms) 은 ADR-315 의 **10,000 행** 측정이다 — Table 의 로컬 상한이 10,000 이라 10 만 행은 열리지 않는다. G4 는 10,000 행으로 잰다. 붙여넣기 (편집) 하니스는 HEAD 에서도 locator 시간 초과로 실패 (기존 하니스 결함) — G4 에서 고쳐 두 빌드를 같이 잰다. 상세 [breakdown §기록](../design/325-collection-runtime-store-three-layers-breakdown.md#기록).
+
+> **Phase 1 · 2 종결 (2026-11-27 — G1 · G2, 한 변경으로 묶음 — 사후 보고)**: 새 모듈 `runtime/collectionStore.ts` (`CollectionStore` — 행 · 조회 결과 · 목록 · 변경 · 보낸 변경 · 자리 편집, `overlayRows`) 를 세션이 collection 마다 든다. 보이는 행은 `shownRows` → `itemSources` 한 곳 (정적 게이트 `adr325OneRead.static.test.ts`), 옛 자리 (`itemEdits` · `savedEdits` · `reloadedItems` · `replay*`) 는 지웠다. 저장은 `markEditsSaved` → `DispatchDeps.beginSave(seqs)` (보낼 때 찍고 응답마다 확정 · 거절 — 늦게 온 앞선 확정은 필드를 쓰지 못한다). R2 수리 — 목록의 key (`fieldMap.value`) 로도 행을 찾는다. Publish 주기 조회의 「미저장 편집이면 건너뜀」 삭제. 사용자 결정 1 의 Data 패널 안내 (`editorNoKey`). 단위 21 (저장소) · 세션 6 · 정적 4 · 패널 2, 변이 RED 8/8. Phase 1 (옛 편집을 보이는 행에 다시 적용) 을 따로 두지 않은 이유는 breakdown §기록.
+>
+> **Phase 3 종결 (2026-11-27 — G3)**: 요청 key 는 fetch 하는 주소 · method · 본문에서 한 번 (`endpointRequestKey`). 조건이 다른 보기는 보기마다 자기 요청 · 목록 (`syncViewLists`, 동시 6) — instance 입력이 다른 보기의 전체 불러오기 (`MULTI_VIEW`) 삭제. 「끝까지 모았다」 는 전체 수 또는 `cursorPath` · suffix `pageSize` 선언이 있을 때만 (`answerComplete` · `wholeComplete`), 그때만 요청 없이 여기서 거른다. 서버가 거른 목록의 넣은 행은 그 보기의 조건에 맞을 때만 끝에 (사용자 결정 3 — `catalogRowMatchesQuery`). 테스트 5 · 변이 RED 7/7.
+>
+> **Phase 4 종결 (2026-11-27 — G4)**: 수명 — 없어진 collection · 쪽 목록 · Table 목록과 다른 목록에 없고 변경 없는 행을 지운다 (`sweepStores`). 보기 요청 실패는 빈 상태 (`loadingState` `error`). 10,000 행 production 교대: 로드 441 → 426 ms · 스크롤 p95 1.00 · 정렬 1x 0.99 · 1.02 (5 쌍), 4x 1.13 은 쌍마다 방향이 갈리고 HEAD 자체 폭 안 (1x 같음 → 노이즈). 붙여넣기 4x 1,039 ~ 1,293 → 962 ~ 998 ms. 번들 Preview 첫 화면 +0 · Builder +206 B. ratchet 등급 A 초과 5 는 Canvas `pageSpace.ts` — 내 파일을 HEAD 로 되돌려도 같은 값 (이 ADR 몫 0).
+>
+> **Phase 5 종결 (2026-11-27 — G5)**: Builder 에서 만든 프로젝트를 Publish 로 열어 Chrome · WebKit 각 9/9 (`adr325-g5-live.mjs`). live 가 찾은 결함 2 를 고쳤다 — 보기 없는 바인딩이 보기 하나와 같이 있으면 보기 없는 목록이 그 보기의 행을 보이던 것 (HEAD 부터) · 다시 불러오기가 보기 목록을 다시 받지 않던 것. 각각 회귀 테스트 + 변이 RED. 즉시 저장 (`Cells change`) 회귀 0.
 
 사용자 요청: /create-adr (2026-11-26)
 
@@ -10,23 +20,23 @@ Proposed — 2026-11-26
 >
 > 권장 방안대로 수정반영하고 adr분리도 승인
 
-사용자가 승인한 것은 [ADR-324](324-collection-manual-batch-save.md) 에서 **실행 중 저장소의 모양**을 떼어 먼저 정하는 분리다. 이 ADR 이 바탕이고 324 는 그 위의 응용 (저장 시점 · 전송 계약) 이다.
+사용자가 승인한 것은 [ADR-324](../324-collection-manual-batch-save.md) 에서 **실행 중 저장소의 모양**을 떼어 먼저 정하는 분리다. 이 ADR 이 바탕이고 324 는 그 위의 응용 (저장 시점 · 전송 계약) 이다.
 
 **분리 확인 4 항목** (사용자 confirm 2026-11-26 — 위 인용)
 
-1. 바탕 / 응용 — 325 는 실행 세션이 행과 편집을 어떻게 갖는가 (모델), 324 는 그 편집을 언제 · 어떤 요청으로 서버에 보내는가 (적용). 325 가 324 의 선행이다. [ADR-320](320-filter-bar-runtime-condition-builder.md) (필터 바) 도 이 ADR 위의 응용이다 (사용자 답 2026-11-27, 320 round 4 h8) — 같은 Collection 의 대상마다 다른 합성 조회 (작성자 조건 + 필터 범위) 의 요청 · 결과를 이 ADR 의 조회 결과와 Decision 6 이 든다. 320 이 325 의 범위를 넓히지는 않는다.
+1. 바탕 / 응용 — 325 는 실행 세션이 행과 편집을 어떻게 갖는가 (모델), 324 는 그 편집을 언제 · 어떤 요청으로 서버에 보내는가 (적용). 325 가 324 의 선행이다. [ADR-320](../320-filter-bar-runtime-condition-builder.md) (필터 바) 도 이 ADR 위의 응용이다 (사용자 답 2026-11-27, 320 round 4 h8) — 같은 Collection 의 대상마다 다른 합성 조회 (작성자 조건 + 필터 범위) 의 요청 · 결과를 이 ADR 의 조회 결과와 Decision 6 이 든다. 320 이 325 의 범위를 넓히지는 않는다.
 2. 스키마 — 325 는 문서 스키마를 바꾸지 않는다 (실행 상태만). 324 의 문서 설정 (쓰기 연결 · 저장 동작) 은 325 의 「미저장 변경」 을 읽는 쪽이다.
-3. 선행 전제 뒤집기 — 324 는 수동 저장 Collection 에만 초안 저장소를 따로 두고 기존 편집 기록과 나란히 두려 했다. 코드 대조 결과 편집 기록은 이미 모든 쓰기가 지나는 한 곳이고 ([ADR-317](completed/317-table-editing-grid-paste-fill-status.md) HC2), 문제는 그 기록이 조회 때 지워지는 것 하나다. 그래서 모델은 하나로 두고 저장 시점만 갈린다.
+3. 선행 전제 뒤집기 — 324 는 수동 저장 Collection 에만 초안 저장소를 따로 두고 기존 편집 기록과 나란히 두려 했다. 코드 대조 결과 편집 기록은 이미 모든 쓰기가 지나는 한 곳이고 ([ADR-317](317-table-editing-grid-paste-fill-status.md) HC2), 문제는 그 기록이 조회 때 지워지는 것 하나다. 그래서 모델은 하나로 두고 저장 시점만 갈린다.
 4. 전제 검증은 리뷰로 미루지 않았다 — 아래 Context 의 사실은 작업 트리 코드에서 직접 읽었다.
 
-> **리뷰 round 1 반영 (2026-11-27, codex — HIGH 6, [기록](reviews/325.md))** — 여섯 건 모두 코드로 재현을 확인하고 설계를 고쳤다. 대안 D 와 사용자 결정 3건은 그대로다.
+> **리뷰 round 1 반영 (2026-11-27, codex — HIGH 6, [기록](../reviews/325.md))** — 여섯 건 모두 코드로 재현을 확인하고 설계를 고쳤다. 대안 D 와 사용자 결정 3건은 그대로다.
 >
 > - h1 · h2 (저장 확인): 확정의 단위를 편집 번호에서 「행 key + 필드 + 보낸 편집 번호」 로 바꾸고, 보낸 변경을 판정이 끝날 때까지 스냅샷으로 따로 든다. 그 사이에는 변경을 상쇄하지 않는다 (Decision 3).
 > - h3 (같은 행을 주는 두 조회): 키 목록의 채택과 행 값의 교체를 나눠, 행 값은 더 늦게 출발한 요청 · 저장 판정의 것만 남긴다 (Decision 5).
 > - h4 (키 없는 원격 목록): 그 행의 키는 조회 결과 안에서만 뜻이 있다 — 목록끼리 섞이지 않는다 (Decision 7).
 > - h5 · h6 (페이지): 요청 키는 실제로 fetch 하는 주소 · 본문에서 한 번 만들고, 페이지를 잇는 목록과 「끝까지 모았다」 를 따로 든다 (Decision 2 · 6).
 >
-> **수리 검증 Round 2 (2026-11-27, Codex)** — h1~h5 설계 수리 확인. h6의 잔여 반례와 신규 h7·h8로 HIGH 3건이 남아 설계 승인을 보류한다. [판독 기록](reviews/325.md#round-2--2026-11-27-reviewer-codex)
+> **수리 검증 Round 2 (2026-11-27, Codex)** — h1~h5 설계 수리 확인. h6의 잔여 반례와 신규 h7·h8로 HIGH 3건이 남아 설계 승인을 보류한다. [판독 기록](../reviews/325.md#round-2--2026-11-27-reviewer-codex)
 >
 > **Round 2 반영 (2026-11-27)** — 남은 세 건도 반례를 확인하고 고쳤다.
 >
@@ -42,24 +52,24 @@ Proposed — 2026-11-26
 
 실행 세션 (Builder 의 Preview 와 Publish 가 같이 쓴다) 은 Collection 마다 **응답 하나**를 든다. 조회가 끝나면 그 배열이 통째로 바뀐다. 여기서 세 가지 한계가 나온다.
 
-- **재조회가 편집을 지운다.** 편집은 순서 있는 기록이고 불러온 행 위에 다시 적용된다. 그런데 행이 바뀌는 길 (`showLoaded`) 이 그 기록과 저장 표시를 지운다 — 다시 불러오기 · 검색 · 정렬 · 다음 페이지가 모두 이 길이다. 다음 페이지는 편집이 적용된 값을 읽어 새 바탕으로 굳히므로 값은 남고 「저장 안 됨」 표시만 사라진다. [편집 기록](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L681) · [행 교체](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2128) · [다음 페이지](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2201) · [ADR-317 F6 · R6](completed/317-table-editing-grid-paste-fill-status.md)
-- **조건이 다른 두 컴포넌트는 서버 조회를 못 쓴다.** 응답이 하나라서, 같은 Collection 을 서로 다른 보기로 읽으면 요청에 보기를 싣지 않거나 전체를 불러와 (상한 10,000 행, 넘으면 0 행) 화면에서 거른다. [여러 보기 처리](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2000) · [로컬 상한](../../packages/shared/src/collections/view/serialize.ts#L53)
-- **행을 든 자리가 다섯이다.** Collection 응답 외에 쪽 목록의 조회 단위, Table 의 고정 행 · 펼친 묶음 · 합계 응답이 각자 행을 든다. 넷은 이미 「요청 키 + 행」 모양이지만 서로 모른다 — 한 곳에서 고친 행이 다른 곳에 닿는지는 자리마다 다르다. [Collection 응답](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L694) · [쪽 단위](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L735) · [고정 행 · 묶음 · 합계](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2583)
+- **재조회가 편집을 지운다.** 편집은 순서 있는 기록이고 불러온 행 위에 다시 적용된다. 그런데 행이 바뀌는 길 (`showLoaded`) 이 그 기록과 저장 표시를 지운다 — 다시 불러오기 · 검색 · 정렬 · 다음 페이지가 모두 이 길이다. 다음 페이지는 편집이 적용된 값을 읽어 새 바탕으로 굳히므로 값은 남고 「저장 안 됨」 표시만 사라진다. [편집 기록](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L681) · [행 교체](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2128) · [다음 페이지](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2201) · [ADR-317 F6 · R6](317-table-editing-grid-paste-fill-status.md)
+- **조건이 다른 두 컴포넌트는 서버 조회를 못 쓴다.** 응답이 하나라서, 같은 Collection 을 서로 다른 보기로 읽으면 요청에 보기를 싣지 않거나 전체를 불러와 (상한 10,000 행, 넘으면 0 행) 화면에서 거른다. [여러 보기 처리](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2000) · [로컬 상한](../../../packages/shared/src/collections/view/serialize.ts#L53)
+- **행을 든 자리가 다섯이다.** Collection 응답 외에 쪽 목록의 조회 단위, Table 의 고정 행 · 펼친 묶음 · 합계 응답이 각자 행을 든다. 넷은 이미 「요청 키 + 행」 모양이지만 서로 모른다 — 한 곳에서 고친 행이 다른 곳에 닿는지는 자리마다 다르다. [Collection 응답](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L694) · [쪽 단위](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L735) · [고정 행 · 묶음 · 합계](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2583)
 
-2026-11-26 의 Publish 조회 수정은 이 한계를 한 번 더 드러냈다 — 주기 조회가 편집을 지우지 않도록 「저장 안 된 편집이 있으면 그 주기를 건너뛴다」 는 임시 규칙을 넣어야 했다. [주기 조회](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L3046)
+2026-11-26 의 Publish 조회 수정은 이 한계를 한 번 더 드러냈다 — 주기 조회가 편집을 지우지 않도록 「저장 안 된 편집이 있으면 그 주기를 건너뛴다」 는 임시 규칙을 넣어야 했다. [주기 조회](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L3046)
 
 **측정 가능한 제약**
 
-- HC1 번들 — Preview 첫 화면 gzip ≤ 327,000 B ([ADR-201](completed/201-large-file-upload-engine-component-server-contract.md) 재승인 값). 저장소는 세션 chunk (lazy) 에 두고 첫 화면 증가는 0 이다.
-- HC2 평가기 하나 — 보기의 조건 · 정렬 · 묶기 · 집계는 지금의 평가기와 직렬화기만 쓴다 ([ADR-284](completed/284-data-view-filter-sort-group-query.md) 결정 6). 두 번째 조회 엔진을 두지 않는다.
+- HC1 번들 — Preview 첫 화면 gzip ≤ 327,000 B ([ADR-201](201-large-file-upload-engine-component-server-contract.md) 재승인 값). 저장소는 세션 chunk (lazy) 에 두고 첫 화면 증가는 0 이다.
+- HC2 평가기 하나 — 보기의 조건 · 정렬 · 묶기 · 집계는 지금의 평가기와 직렬화기만 쓴다 ([ADR-284](284-data-view-filter-sort-group-query.md) 결정 6). 두 번째 조회 엔진을 두지 않는다.
 - HC3 쓰기 길 하나 — 편집은 세션의 `update` · `updateMany` · `append` · `insert` · `remove` · `move` 로만 들어온다 (ADR-317 HC2).
 - HC4 문서 무변경 — 문서 스키마 · contract 번호 · 마이그레이션 코드 0.
-- HC5 속도 — 10 만 행 로컬 조회의 정렬 클릭 기준선 (1x 154 ~ 169 ms · 4x 556 ~ 589 ms, [ADR-315](completed/315-table-data-grid-state-model.md) HC4) 과 perf ratchet 의 결정적 카운트를 넘지 않는다.
+- HC5 속도 — 10 만 행 로컬 조회의 정렬 클릭 기준선 (1x 154 ~ 169 ms · 4x 556 ~ 589 ms, [ADR-315](315-table-data-grid-state-model.md) HC4) 과 perf ratchet 의 결정적 카운트를 넘지 않는다.
 - HC6 회귀 — Builder Preview 테스트 묶음 (1,300 건) 은, 이 ADR 이 바꾸기로 한 동작을 단언하는 테스트 (G0 에서 목록으로 고정) 말고는 그대로 통과한다.
 
 **측정할 수 없는 제약** — 고객 API 는 대부분 Oracle · Java 이고 우리가 바꿀 수 없다. 사용자는 비개발자이고 기능 단위로 생각한다 — 「고친 값이 페이지를 넘겨도 남는다」 가 기대다.
 
-**Domain** — 데이터 모델 층 ([ADR-218](completed/218-collection-runtime-data-persistence-execution-policy.md) · [286](completed/286-catalog-single-source-data-site-settings.md) 계열) 이다. D1 (RAC DOM · ARIA) · D2 (prop) · D3 (시각 값) 어느 것도 바꾸지 않는다. 컴포넌트는 지금처럼 세션이 준 행을 읽고, Canvas 는 문서의 작성 행을 그린다 (설계된 비대칭 그대로). [계약 정본](completed/063-ssot-chain-charter.md)
+**Domain** — 데이터 모델 층 ([ADR-218](218-collection-runtime-data-persistence-execution-policy.md) · [286](286-catalog-single-source-data-site-settings.md) 계열) 이다. D1 (RAC DOM · ARIA) · D2 (prop) · D3 (시각 값) 어느 것도 바꾸지 않는다. 컴포넌트는 지금처럼 세션이 준 행을 읽고, Canvas 는 문서의 작성 행을 그린다 (설계된 비대칭 그대로). [계약 정본](063-ssot-chain-charter.md)
 
 ## Alternatives Considered
 
@@ -70,7 +80,7 @@ Proposed — 2026-11-26
 | C · 조회마다 행 사본 (TanStack Query 방식) | 조회 키마다 응답 사본을 둔다. 여러 보기는 풀린다. 같은 행이 사본마다 따로 있어 편집을 모든 사본에 반영해야 하고, TanStack Query · RTK Query 문서가 이 방식의 덮어쓰기 · 되돌리기 경합을 경고한다.      |  LOW   | MEDIUM |   HIGH   |    MEDIUM    |
 | D · 정규화한 세 층 (행 · 조회 결과 · 변경) | Collection 마다 키 → 행 저장소 하나, 조회는 키 목록, 편집은 그 위에 덧씌우는 층. 평가기 · 직렬화기 · 쓰기 길은 지금 것을 쓴다. 세션 안쪽을 크게 고쳐야 하고 읽는 곳을 한 함수로 모으는 일이 따른다.    | MEDIUM | MEDIUM |   LOW    |    MEDIUM    |
 
-조사한 사례는 한 구조로 모인다. TanStack DB 는 동기화된 값과 낙관적 변경을 따로 들고 화면 값을 「동기화 값 + 남은 변경」 으로 다시 계산한다. Relay 는 저장소가 바뀌면 낙관적 변경을 걷었다가 다시 적용하고, Replicache 는 서버 상태로 되감은 뒤 대기 중인 변경을 재실행한다. DevExtreme 은 미저장 변경을 `{type, key, data}` 목록으로 행 캐시 밖에 둔다. 반대로 행 캐시 안에 편집을 두는 그리드 (Kendo — 제작사의 포럼 답변) 는 서버 페이지 이동에서 미저장 변경을 지키지 못한다. [TanStack DB 변경 모델](https://tanstack.com/db/latest/docs/guides/mutations) · [Relay 변경](https://relay.dev/docs/guided-tour/updating-data/graphql-mutations/) · [Replicache 동작](https://doc.replicache.dev/concepts/how-it-works) · [DevExtreme 변경 목록](https://js.devexpress.com/jQuery/Demos/WidgetsGallery/Demo/DataGrid/EditStateManagement/) · [조사 요약](design/325-collection-runtime-store-three-layers-breakdown.md#외부-조사-요약)
+조사한 사례는 한 구조로 모인다. TanStack DB 는 동기화된 값과 낙관적 변경을 따로 들고 화면 값을 「동기화 값 + 남은 변경」 으로 다시 계산한다. Relay 는 저장소가 바뀌면 낙관적 변경을 걷었다가 다시 적용하고, Replicache 는 서버 상태로 되감은 뒤 대기 중인 변경을 재실행한다. DevExtreme 은 미저장 변경을 `{type, key, data}` 목록으로 행 캐시 밖에 둔다. 반대로 행 캐시 안에 편집을 두는 그리드 (Kendo — 제작사의 포럼 답변) 는 서버 페이지 이동에서 미저장 변경을 지키지 못한다. [TanStack DB 변경 모델](https://tanstack.com/db/latest/docs/guides/mutations) · [Relay 변경](https://relay.dev/docs/guided-tour/updating-data/graphql-mutations/) · [Replicache 동작](https://doc.replicache.dev/concepts/how-it-works) · [DevExtreme 변경 목록](https://js.devexpress.com/jQuery/Demos/WidgetsGallery/Demo/DataGrid/EditStateManagement/) · [조사 요약](../design/325-collection-runtime-store-three-layers-breakdown.md#외부-조사-요약)
 
 ### Risk Threshold Check
 
@@ -85,7 +95,7 @@ Proposed — 2026-11-26
 
 **D 를 제안한다. 실행 세션은 Collection 마다 세 층을 갖고, 화면에 보이는 행은 늘 「행 저장소 위에 미저장 변경을 덧씌운 결과」 다.** A 는 위치 편집과 다섯 자리를 그대로 남겨서, B 는 평가기가 둘이 되어서 (HC2), C 는 같은 행의 사본을 편집마다 맞춰야 해서 고르지 않는다.
 
-> 구현 상세: [325-collection-runtime-store-three-layers-breakdown.md](design/325-collection-runtime-store-three-layers-breakdown.md)
+> 구현 상세: [325-collection-runtime-store-three-layers-breakdown.md](../design/325-collection-runtime-store-three-layers-breakdown.md)
 
 1. **행 저장소.** Collection 마다 하나, 키 → 서버가 확인한 행. 응답이 오면 그 행들을 키로 넣거나 바꾼다. 편집은 여기 쓰지 않는다.
 2. **조회 결과.** 요청 하나 (실제로 보내는 주소 · 본문 — 주소 모양의 cursor 를 따라간 다음 페이지는 그 주소) 마다 키 목록 · 다음 cursor · 전체 수 · 로딩 상태. 이어 붙는 페이지는 목록 하나로 묶고, 그 목록을 끝까지 모았는지를 따로 든다 — cursor 가 없다는 것만으로 전체라고 보지 않는다. 지금의 다섯 자리 — Collection 응답 · 쪽 단위 · 고정 행 · 펼친 묶음 · 합계 — 가 모두 이 모양이 된다 (합계처럼 행이 아닌 응답은 값만 든다). Builder 가 Preview 에 보내는 행도 조회 결과 하나다.
@@ -97,7 +107,7 @@ Proposed — 2026-11-26
 8. **서버가 답한 목록 안의 자리.** 고친 행은 다시 조회할 때까지 제자리에 남는다. 넣은 행은 그 보기의 조건을 여기서 판정해 맞는 목록 끝에 보인다. 여기서 도는 보기 (로컬) 는 지금처럼 보이는 행 위에서 다시 계산한다 (사용자 결정 3).
 9. **하지 않는 것.** 문서 스키마 변경 · 서버 전송 계약과 충돌 화면 (324) · 새로고침 · 탭 닫기 뒤 변경 보존 (324 의 결정) · 시간 기준 자동 재조회 (신선도는 작성자의 실행 정책이 정한다 — ADR-218) · Canvas 의 행 · Worker (ADR-315 판정 유지).
 
-이 결정은 앞선 세 결정의 일부를 바꾼다 — [ADR-281](completed/281-interactions-panel-vocabulary-inheritance-form-destination.md) 의 「다시 불러오면 편집 기록을 지운다」, ADR-284 의 여러 보기 처리, [ADR-310](completed/310-collection-item-repeat-marker.md) 의 「쪽 단위 응답은 그 목록에만」. 겹치는 곳은 이 ADR 을 따른다.
+이 결정은 앞선 세 결정의 일부를 바꾼다 — [ADR-281](281-interactions-panel-vocabulary-inheritance-form-destination.md) 의 「다시 불러오면 편집 기록을 지운다」, ADR-284 의 여러 보기 처리, [ADR-310](310-collection-item-repeat-marker.md) 의 「쪽 단위 응답은 그 목록에만」. 겹치는 곳은 이 ADR 을 따른다.
 
 잔존 위험은 **읽는 곳을 한 함수로 모으는 것**과 **바뀌는 동작을 G0 에서 목록으로 고정하는 것**으로 관리한다. 임시 규칙 (주기 조회 건너뛰기) 은 Phase 2 에서 지운다.
 
@@ -115,13 +125,13 @@ Proposed — 2026-11-26
 
 | ID  | 위험                                                                                                                                    | 심각도 | 대응                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 읽는 곳 하나가 옛 자리를 직접 읽어 화면마다 값이 갈린다.                                                                                |  HIGH  | G1 의 정적 검사와 같은 행을 두 컴포넌트로 읽는 대조. [행 source](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1196) · [바운드 행](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2375) · [항목 읽기](../../packages/shared/src/catalog/runtime/catalogTableController.ts#L904) · [바운드 행 계산](../../packages/shared/src/catalog/runtime/dataBinding.ts#L202)                                                                                                |
-| R2  | 키가 어긋나 변경이 다른 행에 붙는다 — 바인딩 값 필드 · Collection key 필드 · 위치 키가 섞여 있다.                                       |  HIGH  | G1 · G2 에서 키 규칙 하나와 위치 키 Collection 의 넣기 · 지우기 뒤 대조, 키 없는 원격 목록 둘을 같이 연 격리. [항목 key](../../packages/shared/src/collections/resolveCollectionItems.ts#L340) · [세션의 key 필드](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1619) · [키 집합](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1657) · [다시 적용](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L422)                                   |
-| R3  | 덧씌우기가 편집마다 큰 배열을 다시 만들어 10 만 행 로컬 조회가 느려진다.                                                                |  HIGH  | G4 의 같은 문서 A/B 와 결정적 카운트. [보기 평가](../../packages/shared/src/collections/view/evaluate.ts#L838) · [로컬 상한](../../packages/shared/src/collections/view/serialize.ts#L53) · [전체 불러오기](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2095)                                                                                                                                                                                                                       |
-| R4  | 바뀌는 동작 (다시 불러오기 · 여러 보기 · 쪽 단위) 이 기존 프로젝트의 규칙과 어긋난다.                                                   |  HIGH  | G0 에서 그 동작을 단언하는 테스트와 규칙 문서를 목록으로 고정하고 G5 에서 실제 흐름으로 확인. [행 교체](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2128) · [여러 보기](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2000) · [쪽 단위 조회](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L3824)                                                                                                                                        |
+| R1  | 읽는 곳 하나가 옛 자리를 직접 읽어 화면마다 값이 갈린다.                                                                                |  HIGH  | G1 의 정적 검사와 같은 행을 두 컴포넌트로 읽는 대조. [행 source](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1196) · [바운드 행](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2375) · [항목 읽기](../../../packages/shared/src/catalog/runtime/catalogTableController.ts#L904) · [바운드 행 계산](../../../packages/shared/src/catalog/runtime/dataBinding.ts#L202)                                                                                                |
+| R2  | 키가 어긋나 변경이 다른 행에 붙는다 — 바인딩 값 필드 · Collection key 필드 · 위치 키가 섞여 있다.                                       |  HIGH  | G1 · G2 에서 키 규칙 하나와 위치 키 Collection 의 넣기 · 지우기 뒤 대조, 키 없는 원격 목록 둘을 같이 연 격리. [항목 key](../../../packages/shared/src/collections/resolveCollectionItems.ts#L340) · [세션의 key 필드](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1619) · [키 집합](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1657) · [다시 적용](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L422)                                   |
+| R3  | 덧씌우기가 편집마다 큰 배열을 다시 만들어 10 만 행 로컬 조회가 느려진다.                                                                |  HIGH  | G4 의 같은 문서 A/B 와 결정적 카운트. [보기 평가](../../../packages/shared/src/collections/view/evaluate.ts#L838) · [로컬 상한](../../../packages/shared/src/collections/view/serialize.ts#L53) · [전체 불러오기](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2095)                                                                                                                                                                                                                       |
+| R4  | 바뀌는 동작 (다시 불러오기 · 여러 보기 · 쪽 단위) 이 기존 프로젝트의 규칙과 어긋난다.                                                   |  HIGH  | G0 에서 그 동작을 단언하는 테스트와 규칙 문서를 목록으로 고정하고 G5 에서 실제 흐름으로 확인. [행 교체](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2128) · [여러 보기](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L2000) · [쪽 단위 조회](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L3824)                                                                                                                                        |
 | R5  | 보기마다 요청해 열 때 요청 수가 늘거나, 변경이 붙은 행이 쌓여 메모리가 는다.                                                            | MEDIUM | G3 에서 요청 수 (보기 수 이하 · 전체가 있으면 0) 와 동시 요청 상한, G4 에서 읽는 곳이 없는 조회 결과 · 행이 지워지는지 확인.                                                                                                                                                                                                                                                                                                                                                                                |
-| R6  | 보낸 변경과 그 뒤의 편집이 판정에서 섞인다 — 한 편집 번호가 여러 행에 걸려 일부 성공을 가리지 못하거나, 응답 전에 되돌린 칸이 사라진다. |  HIGH  | G2 의 판정 표 (확정 · 거절 · 모름 × 뒤 편집 있음 · 없음) 를 손으로 적은 값과 대조. [여러 행 쓰기의 편집 번호](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1587) · [저장 표시](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1359) · [즉시 저장의 판정](../../packages/shared/src/interactions/bindings.ts#L133)                                                                                                                                               |
-| R7  | 여러 조회의 응답이 엇갈려 행 값이 옛 값으로 돌아가거나, 페이지 하나를 다른 요청 · 전체 데이터로 잘못 본다.                              |  HIGH  | G3 에서 도착 순서를 뒤집은 두 조회, 주소 cursor 의 요청 2 건, 번호 페이지의 완전성을 요청 수와 손으로 적은 값으로 확인. [요청 키 글자](../../packages/shared/src/collections/executeCollectionEndpoint.ts#L90) · [주소 cursor 의 대상](../../packages/shared/src/collections/executeCollectionEndpoint.ts#L146) · [번호 페이지의 다음](../../packages/shared/src/collections/executeCollectionEndpoint.ts#L167) · [같은 요청 판정](../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L749) |
+| R6  | 보낸 변경과 그 뒤의 편집이 판정에서 섞인다 — 한 편집 번호가 여러 행에 걸려 일부 성공을 가리지 못하거나, 응답 전에 되돌린 칸이 사라진다. |  HIGH  | G2 의 판정 표 (확정 · 거절 · 모름 × 뒤 편집 있음 · 없음) 를 손으로 적은 값과 대조. [여러 행 쓰기의 편집 번호](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1587) · [저장 표시](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1359) · [즉시 저장의 판정](../../../packages/shared/src/interactions/bindings.ts#L133)                                                                                                                                               |
+| R7  | 여러 조회의 응답이 엇갈려 행 값이 옛 값으로 돌아가거나, 페이지 하나를 다른 요청 · 전체 데이터로 잘못 본다.                              |  HIGH  | G3 에서 도착 순서를 뒤집은 두 조회, 주소 cursor 의 요청 2 건, 번호 페이지의 완전성을 요청 수와 손으로 적은 값으로 확인. [요청 키 글자](../../../packages/shared/src/collections/executeCollectionEndpoint.ts#L90) · [주소 cursor 의 대상](../../../packages/shared/src/collections/executeCollectionEndpoint.ts#L146) · [번호 페이지의 다음](../../../packages/shared/src/collections/executeCollectionEndpoint.ts#L167) · [같은 요청 판정](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L749) |
 
 ## Gates
 
@@ -149,3 +159,12 @@ Proposed — 2026-11-26
 - 세션 안쪽 (`catalogPreviewSession.ts` 의 조회 · 편집 · 표 응답) 을 넓게 고친다. 회귀 그물은 기존 테스트 묶음이고, 바뀌는 동작의 테스트는 다시 쓴다.
 - 「다시 불러오기」 로 편집을 버리던 프로젝트는 동작이 바뀐다 (사용자 결정 2). 버리기를 원하면 취소 동작을 이어야 한다 — 그 Do 의 패널 노출은 324 다.
 - 보기마다 요청하므로 차트가 많은 화면은 열 때 요청 수가 는다. 전체를 한 번 불러와 여기서 거르던 작은 데이터는 요청이 하나에서 여럿이 될 수 있다.
+
+### Live Exercise
+
+2026-11-27 · 수단: Playwright (headed Chrome · WebKit, 5173 dev, API 는 `context.route` 가 대신) · page error 0.
+
+- **G5 하니스** `apps/builder/scripts/adr325-g5-live.mjs` (Chrome 9/9 · WebKit 9/9): Builder 에서 Users (원격 · key `id` · 주기 4 s) · 조회 endpoint (20 행 쪽 · 전체 수 · suffix 보기 · `{{ filterText }}` · 서버 정렬) · Table (Edit marks · Name 정렬) · female 보기 ListBox · 규칙 버튼 4 를 만들고 Publish 로 열었다. 두 목록의 요청이 각자 (`/users` · `/users?gender=female` — 모든 페이지 불러오기 없음), Rename → 두 목록 「Edited」 · Table 행 dirty, 이어서 다음 페이지 → 서버 정렬 → 검색 「a」 → 다시 불러오기 → 주기 조회 뒤마다 값과 표시가 남음. 검색 결과가 전체 수까지 모이자 보기 요청 없이 여기서 거름 (Decision 6).
+- **첫 실행이 찾은 결함** (보기 없는 Table 이 female 행만 · 다시 불러오기가 보기 목록을 다시 받지 않음) 을 고친 뒤 위 결과 — 회귀 테스트 `adr325Views.test.tsx` 2 · 변이 RED 3/3.
+- **즉시 저장 회귀** `adr317-p4-edit-marks-live.mjs` (Chrome · WebKit 전부 PASS): 「Cells change」 → callEndpoint 저장, 붙여넣기 뒤 표시 · 성공한 칸만 표시 사라짐 · 실패는 남음.
+

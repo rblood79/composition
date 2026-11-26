@@ -1,6 +1,6 @@
 # ADR-324 상세 설계 · Collection에서 편집한 필드의 수동 서버 저장
 
-[ADR 본문](../324-collection-manual-batch-save.md) · 바탕: [ADR-325](../325-collection-runtime-store-three-layers.md) ([상세](325-collection-runtime-store-three-layers-breakdown.md)) · [처음 조사 문서](../../explanation/research/COLLECTION_REMOTE_SAVE_2026-11.md)
+[ADR 본문](../324-collection-manual-batch-save.md) · 바탕: [ADR-325](../completed/325-collection-runtime-store-three-layers.md) ([상세](325-collection-runtime-store-three-layers-breakdown.md)) · [처음 조사 문서](../../explanation/research/COLLECTION_REMOTE_SAVE_2026-11.md)
 
 2026-11-26 개정. 편집 상태 · 조회와의 공존은 ADR-325 가 소유한다 — 이 문서는 그 위의 저장 설정 · 요청 · 결과 판정 · 작성 표면이다. 아래 형 · 표 · Phase 는 구현할 계약이고, 크기 기준선만 로컬에서 측정했다. 2026-11-27 에 리뷰 round 1 (HIGH 6 — [기록](../reviews/324.md)) 을 반영했다: 2xx 의 뜻과 넣은 행의 서버 key, 응답 유실 판정의 고침 · 지우기 분리, 기준 버전, 즉시 저장 규칙과의 동시 구성 거절, 서버 식별자 없는 행, 행 전체 전송.
 

@@ -1,6 +1,6 @@
 # ADR-325 상세 설계 · Collection 실행 저장소 — 행 · 조회 결과 · 미저장 변경
 
-[ADR 본문](../325-collection-runtime-store-three-layers.md) · 응용: [ADR-324](../324-collection-manual-batch-save.md)
+[ADR 본문](../completed/325-collection-runtime-store-three-layers.md) · 응용: [ADR-324](../324-collection-manual-batch-save.md)
 
 작성 기준은 2026-11-26, HEAD `62ae56e6c` 위의 작업 트리다 (Publish 조회 수정 포함 — 줄 번호는 그 상태). 아래 형 · 규칙 · Phase 는 구현할 계약이고, 측정값은 G0 에서 잰다. 2026-11-27 에 리뷰 round 1 (HIGH 6 — [기록](../reviews/325.md)) 을 반영했다: 보낸 변경의 스냅샷과 행 단위 판정, 행 값의 순번, 키 없는 원격 행의 격리, 요청 키 · 목록 · 완전성.
 
@@ -315,3 +315,55 @@ key 필드의 값이 없는 행은 둘로 갈린다.
 | `baseRow` (처음 고칠 때의 행) · `isServerKey` · 목록의 `complete`                           | 버전 필드를 `baseRow` 에서 읽어 보내기, 서버 식별자 없는 행의 원격 쓰기 막기, 응답 유실 뒤 「행 없음」 의 판정 |
 | 문서 스키마 무변경                                                                          | Collection 의 쓰기 연결 설정 · 연결이 선언하는 능력 · 요청 본문                                                |
 | 세션 메모리 안의 변경                                                                       | 새로고침 · 탭 닫기 뒤 보존 여부                                                                                |
+
+## 기록
+
+### Phase 0 — 기준선 (G0, 2026-11-27)
+
+- **자리 · 읽는 곳 재집계 (HEAD `21eb42576`)**: 세션 필드 중 행 · 편집을 든 자리 8 — `runtimeRows` · `reloadedItems` · `pageUnits` (그 `items`) · `pinAnswers` · `groupAnswers` · `totalsAnswers` · `itemEdits` · `savedEdits`. 읽는 곳 — 세션 안 `itemSources` 7 · `collectionItems` 10 · `itemsByKeys` 2 · `boundRows` 3, Table controller `itemSources` · `collectionItems` · `itemsByKeys` 각 1 ~ 2 (모두 host 경유). 위 표와 같다 (1.5 배 넘지 않음).
+- **바뀌는 동작을 단언하는 기존 테스트 (목록 고정)**: `reload.test.tsx` 「a reload drops the rules' local edits」 · `adr284ApiView.test.tsx` 「two different views on one endpoint: none is sent」 · 「loads all unfiltered pages for different instance inputs」 · `publishedApiRows.test.ts` 「interval … not over an edit not saved」. 규칙 문서 줄: `data-interaction.md` §6 `reload` (「편집 기록은 지운다」) · 「표시 방식 「페이지」 · 조회 단위」 (「collection 의 불러온 항목 · 편집 기록은 건드리지 않는다」) · 「보기를 요청에 싣기」 (`MULTI_VIEW`).
+- **재현** (`adr325G0.test.tsx`, HEAD 에서 그대로 통과 = 재현): 편집 → 다음 페이지 → 값은 남고 「저장 안 됨」 표시만 사라짐. 바인딩 값 필드 (`fieldMap.value`) 로 key 를 주는 목록 — 목록의 key `Kim` 으로 `update` 가 「항목 없음: Kim」, collection key 필드의 `u1` 로만 찾힌다 (**R2 실재**). 두 보기 → 요청 없음 · instance 입력 → 전체 불러오기는 위 기존 테스트 2 가 재현한다.
+- **속도 기준선** (`datagrid-table-vs-tanstack-live.mjs --rows 10000`, HEAD production 빌드 `/private/tmp/adr325-g0-dist-21eb42576` · headed Chrome · 원격 collection · 열 6 · 가상 스크롤, 1 실행): 로드 443 ms · 힙 158 MB · 스크롤 p95 25 ms (1x) · 정렬 클릭 중앙값 1x Amount 184.4 · Name 182.6 ms, 4x 637.9 · 626.9 ms.
+- **정정 — HC5 의 「10 만 행」**: ADR-315 HC4 의 정렬 클릭 기준선 (154 ~ 169 ms) 은 **10,000 행** 값이다. Table 의 로컬 조회 상한이 10,000 (사용자 결정 7) 이라 10 만 행 표는 열리지 않는다 — G4 는 10,000 행으로 잰다.
+- **붙여넣기 (편집) 시간**: `--measure-paste` 가 HEAD 빌드에서도 첫 행 Name 칸 locator 시간 초과로 실패한다 (`--with editable` 로도 같다 — 기존 하니스 결함). G4 에서 하니스를 고쳐 두 빌드를 교대로 잰다.
+- **ratchet**: 기준은 `apps/builder/perf/ratchet.json` (HEAD 값) — G4 에서 판정한다.
+
+### Phase 1 · 2 — 행 저장소 · 조회 결과 · 미저장 변경 (G1 · G2, 2026-11-27)
+
+- **한 변경으로 묶음 (사후 보고)**: 편집 층이 행 저장소의 키를 전제하므로 Phase 1 (옛 편집 기록을 보이는 행 위에 다시 적용) 을 따로 두지 않았다 — 그 단계는 「다음 페이지가 편집을 바탕으로 굳히는」 길을 새 구조에서 다시 만들어야 했다.
+- **모듈** `runtime/collectionStore.ts` — `CollectionStore` (행 · 결과 · 목록 · 변경 · 보낸 변경 · 자리 편집) 와 `overlayRows` (중첩 · 평면 트리 포함). 세션은 collection 마다 저장소 하나 (`stores`), 목록 다섯 종 (작성 · Builder · 자기 조회 · 쪽 목록 · 고정 행 / 묶음 끝 단계, Phase 3 에서 보기마다) — 표는 [reference/collection-store.md](../../../.claude/skills/composition-patterns/reference/collection-store.md) §2. 합계 행 · 묶음의 중간 단계는 행이 아니라 값이라 그대로 둔다.
+- **읽기 한 곳** `shownRows` → `itemSources` (정적 게이트 `adr325OneRead.static.test.ts` — `overlayRows` · `listRows` 1 회, 저장소 내부 직접 읽기 0, 옛 자리 이름 0).
+- **저장**: `markEditsSaved` → `DispatchDeps.beginSave(seqs)` (보낼 때 찍고, 응답이 오면 전부 확정 · 실패면 전부 거절). 판정 표 · 순서 · 흔적 · `unlinked` · `rebase` · `link` · `discard` 는 저장소 함수 (단위 테스트 21 — 값은 이 문서의 표에서 손으로).
+- **R2 (G0 재현) 수리**: 세션의 `shownIndex` 가 목록의 key (`fieldMap.value`) 로도 행을 찾는다. 다른 목록에만 있는 행 (쪽 목록 2 쪽 · 고정 행) 도 key 로 고친다 (`knownRow`).
+- **주기 조회 건너뛰기 규칙 삭제** (Publish `syncIntervalLoads`).
+- **사용자 결정 1 의 Data 패널 안내**: API 표가 key 필드도 `id` · `key` · `value` 열도 없으면 표 편집기 위에 한 줄 (`editorNoKey`, `DataTableEditor` — 테스트 `dataTableEditorNoKey.test.tsx`).
+- **바뀐 기존 테스트 (G0 목록 그대로)**: `reload.test.tsx` (다시 불러와도 넣은 행이 남고 Builder 의 새 행 위에도 남는다 · `discardChanges` 가 지운다) · `publishedApiRows.test.ts` (주기 조회가 미저장 편집이 있어도 돈다) · `adr317BatchWrite.test.tsx` (편집 기록 길이 대신 편집 번호) · `adr317SavedEdits.test.ts` (`beginSave`).
+- **검사**: 새 테스트 — 저장소 21 · 세션 (`adr325G0` 2 · `adr325Changes` 4) · 정적 4 · 패널 2. 변이 RED 8/8 (정적 직접 읽기 · 늦은 응답의 값 · 앞선 확정의 덮어쓰기 · 보낸 필드의 사라짐 · 지우기 흔적 · R2 · 다음 페이지가 목록을 새로 시작 · 조회가 변경을 지움 — 원복 바이트 확인). Builder Preview 묶음 회귀 0 (단독 실행 — 전체 묶음의 시간 초과 파일은 HEAD 도 같은 부류, 파일 단독 시간 HEAD 와 같음).
+
+### Phase 3 — 여러 조회 (G3, 2026-11-27)
+
+- **요청 키** `endpointRequestKey` (`executeCollectionEndpoint.ts`) — fetch 하는 주소 · method · 본문에서 한 번. 주소 cursor 를 따라간 다음 페이지는 그 주소다 (변이 RED: 첫 페이지 key 로 두면 `asyncList` 「a URL cursor is fetched as is」 가 3 행이 아니라 1 행). 세션의 「같은 요청」 (`loadedUrls`) · 묶음 · 고정 · 합계 요청도 이 key.
+- **보기마다 요청** (`bindingViews` → `uniqueView` · `splitViews` → `syncViewLists`): 보기가 둘 이상이면 보기마다 자기 첫 페이지 요청과 목록 (`view ␀ <보기 key>`), 동시 6, 같은 요청 key 는 다시 보내지 않는다, 늦은 응답은 버린다. instance 입력이 다른 보기도 같다 — `MULTI_VIEW` 전체 불러오기 분기 삭제. 보기의 「더 보기」 는 그 보기의 다음 페이지 (`loadMoreView`).
+- **완전성** (`answerComplete` · `wholeComplete`): 전체 수가 있으면 모은 수 ≥ 전체 수, 없으면 `cursorPath` · suffix `pageSize` 선언이 있고 다음이 없을 때만 — `{{ cursor }}` 를 읽기만 하는 endpoint 는 선언이 아니다. collection 자기 조회가 보기 없이 끝까지 모였을 때만 보기들이 요청 없이 여기서 돈다. 자기 조회가 진행 중이면 보기 요청을 미룬다 (끝나며 다시 판정 — 「전체가 있으면 추가 요청 0」).
+- **서버가 답한 목록 안의 자리** (사용자 결정 3): 넣은 행은 그 보기의 조건 (`catalogRowMatchesQuery` — 평가기 하나) 에 맞을 때만 끝에, 옮기기는 적용하지 않는다, 고친 행은 제자리.
+- **표시 meta 는 그대로**: `query.served.complete` · `query.loaded.complete` (「결과 수」 의 일부 표시) 는 지금처럼 cursor 로 판정한다 — 완전성의 엄격한 판정은 요청 결정 (`wholeComplete`) 에만 썼다.
+- **바뀐 기존 테스트 (G0 목록 그대로)**: `adr284ApiView.test.tsx` 「two different views」 (요청 2 → 한 보기의 변수 쓰기는 그 보기만 1 더) · 「different instance inputs」 (자기 첫 페이지 1 + 보기마다 1, 모든 페이지 없음).
+- **검사**: `adr325Views.test.tsx` 5 (전체가 있으면 요청 0 · 번호 페이지 한 장 전체 수 있음 / 없음 · 선언 없는 20 행 · 보기별 더 보기 · 목록 간 같은 값 + 넣은 행 판정). 변이 RED 7/7. Phase 5 에서 3 을 더했다 (실패한 보기 · 보기 없는 바인딩 · 다시 불러오기 — 아래).
+
+### Phase 4 — 속도 · 수명 (G4, 2026-11-27)
+
+- **수명** (`sweepStores`, `loadRouted` 마다): 없어진 collection 의 저장소, 없어진 쪽 목록 · Table 의 목록. 목록이 지워지면 다른 목록에 없고 변경이 없는 행도 지운다 (`dropResult`). 테스트 2 (저장소 · 세션) · 변이 RED 1/1.
+- **보기 요청의 실패 · 폐기**: 보기 목록의 첫 요청이 실패하면 그 목록은 `failed` → 바인딩의 `loadingState` `error` (끝없는 로딩이 아니라 빈 상태), 그 사이 다른 동기화가 목록을 바꿨으면 응답을 버린다 (`current()`). 테스트 1 (`adr325Views` 「a view whose request fails」) · 변이 RED 2/2.
+- **속도** (`datagrid-table-vs-tanstack-live.mjs --rows 10000`, production 빌드 · headed Chrome · 원격 collection · 열 6 · 가상 스크롤, HEAD `/private/tmp/adr325-g0-dist-21eb42576` 과 교대): 로드 441 → 426 ms (3 쌍 중앙값) · 스크롤 p95 비율 1.00. 정렬 클릭 중앙값 (5 쌍) 1x Amount · Name 187.6 · 188.1 → 184.9 · 191.8 ms (0.99 · 1.02), 4x 699 · 698 → 793 · 786 ms (1.13). 4x 는 쌍마다 방향이 갈렸고 (새 빌드가 빠른 쌍 2 · 느린 쌍 3) HEAD 자체 폭 (662 ~ 950 ms) 안이다. 같은 일을 느린 CPU 로 하는 4x 의 차이가 실제 비용이면 1x 에도 보여야 하는데 1x 는 같다 — 노이즈로 판정.
+- **편집 (붙여넣기) 시간**: 하니스를 고쳤다 (첫 행 = 이름 있는 첫 행, `--with editable,cellsel,adr317`). 4x HEAD 1,293 · 1,056 · 1,039 → 998 · 962 · 964 ms, 1x 같음, 정답 행 불일치 0.
+- **번들** (일반 `vite build` 두 벌 — 내 파일만 HEAD 로 바꾼 빌드와 대조, `adr209-bundle-closure.mjs`): Preview 첫 화면 JS gzip 172,277 → 172,277 (**+0**), Builder initial 1,638,316 → 1,638,522 (+206 — Data 패널 안내 · 문구, 상한 1,650,000 안).
+- **ratchet** (`pnpm gate:perf-ratchet`): 등급 A 초과 5 (모두 Canvas `pageSpace.ts#get` — `app-pages-images` 계열) 로 block. 내 파일을 HEAD 로 되돌려 같은 ratchet 을 돌려도 같은 값 (25,673 → 26,777 등) — 이 ADR 이 닿지 않는 Builder Canvas 경로이고 기준 HEAD `a992003d1` 쪽 변화다. ADR-325 몫의 카운트 증가 0.
+
+### Phase 5 — 실제 사용 경로 (G5, 2026-11-27)
+
+- **하니스** `apps/builder/scripts/adr325-g5-live.mjs` — Builder 에서 Users (원격 · key 필드 `id` · 주기 4 s) · 조회 endpoint (`page` = cursor 20 행 · `total` · suffix 보기 · `{{ filterText }}` · 서버 정렬) · Table (Edit marks, Name 정렬) · female 보기 ListBox · 규칙 버튼 4 (Rename · Load more · Search a · Reload) 를 만들고, Publish 를 열어 API 는 `context.route` 로 대신한다. **Chrome 9/9 · WebKit 9/9**: 두 목록이 각자 요청 (`/users` · `/users?gender=female`, 「더 보기」 sentinel 의 2 쪽만 — 모든 페이지 불러오기 없음) · Rename 뒤 두 목록 같은 값 + Table 행 dirty · 다음 페이지 · 서버 정렬 · 검색 · 다시 불러오기 · 주기 조회 뒤 값과 표시가 남음 · page error 0.
+- **live 가 찾은 결함 2 (수리 + 회귀 테스트 + 변이 RED)**:
+  - 보기 없는 바인딩과 보기 있는 바인딩이 같은 collection 을 읽으면 보기 없는 쪽을 세지 않아 보기 하나가 「유일한 보기」 로 자기 조회에 실렸다 — 보기 없는 Table 이 female 행만 보였다 (**HEAD 에서도 같다** — 기존 결함, Decision 6 범위). `bindingViews` 가 보기 없는 바인딩을 `plain` 으로 세고, 그때 자기 조회는 거르지 않으며 보기 목록이 따로 요청한다. 테스트 1 · RED 2/2 (`uniqueView` · `splitViews` 의 판정).
+  - 다시 불러오기 (규칙 · 주기 조회) 가 같은 요청 key 의 보기 목록을 건너뛰어 서버의 새 값이 보기 목록에 오지 않았다 → `reload` 는 보기 목록도 다시 받는다 (`syncViewLists(id, true)`). 테스트 1 · RED 1/1.
+- **즉시 저장 회귀** (`adr317-p4-edit-marks-live.mjs` — 「Cells change」 → callEndpoint, 붙여넣기 · 요청 성공 · 실패의 표시): Chrome · WebKit 전부 PASS.
+- **회귀 묶음 (마지막 수정 뒤)**: Builder Preview 1,377 · shared 2,847 (runtime 210 재실행) · publish 19 통과, `pnpm type-check` 0 오류, `docs:stale-symbols` 0.

@@ -1403,7 +1403,8 @@ try {
             }))
             .sort((a, b) => a.at - b.at);
         }, OURS);
-      const first = (await names())[0];
+      // (The first row drawn with its cells — a row outside the record window has none.)
+      const first = (await names()).find((row) => row.name);
       const target = () =>
         pub.locator(
           `${OURS} [role=row][data-key="${first.key}"] [data-column-key="name"]`,

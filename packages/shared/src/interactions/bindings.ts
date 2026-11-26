@@ -81,8 +81,8 @@ const NO_HANDLERS: Record<string, InteractionCallback> = Object.freeze({});
 /**
  * ADR-317 Phase 4 (사용자 결정 6) — the Preview session's edits an event carries (their numbers, on
  * the event object): a Table's 「Cells change」 write, an Editable cell's save (its Form submit). A
- * rule that saves (`callEndpoint`) and succeeds shows them saved (`DispatchDeps.markEditsSaved`),
- * with the edits its own Dos made before the save.
+ * rule that saves (`callEndpoint`) sends them (`DispatchDeps.beginSave` — ADR-325), with the edits
+ * its own Dos made before the save; its answer settles them.
  */
 export const CATALOG_EVENT_EDITS = Symbol.for("composition.eventEdits");
 
@@ -130,7 +130,7 @@ export function createElementHandlers(
         //  before it, numbered after `before`.)
         const after = deps.editSeq?.();
         const sent =
-          deps.markEditsSaved && savesRule(rule)
+          deps.beginSave && savesRule(rule)
             ? [
                 ...carried,
                 ...(before !== undefined && after !== undefined
@@ -142,12 +142,14 @@ export function createElementHandlers(
               ]
             : [];
         // (A Do that settles later — `callEndpoint`: the rest of the list's failure is reported
-        //  when it comes; its success shows the sent edits saved.)
-        if (outcome.ok && outcome.settled)
+        //  when it comes. ADR-325 — what it sent waits for that answer: confirmed or rejected.)
+        if (outcome.ok && outcome.settled) {
+          const settle = sent.length ? deps.beginSave!(sent) : undefined;
           void catalogFinalOutcome(outcome).then((final) => {
             if (!final.ok) onOutcome?.(rule, final);
-            else if (sent.length) deps.markEditsSaved!(sent);
+            settle?.(final.ok);
           });
+        }
       }
     };
   }

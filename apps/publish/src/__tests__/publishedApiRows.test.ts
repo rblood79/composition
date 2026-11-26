@@ -186,7 +186,7 @@ describe("published app — API collections", () => {
     session.dispose();
   });
 
-  it("an 「interval」 collection loads on open and again each period — not over an edit not saved", async () => {
+  it("an 「interval」 collection loads on open and again each period — an edit not saved stays over the rows it brings", async () => {
     // (The intake modules load before the clock is faked — a dynamic import is not a timer.)
     const requests = server();
     const { document, library } = await publication([
@@ -213,15 +213,14 @@ describe("published app — API collections", () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(requests).toEqual(["/live", "/live"]);
 
-    // (An edit the user has not saved: the period's load would drop it — the tick is skipped.)
+    // (ADR-325 Decision 5 — an edit the user has not saved: the period still loads, the edit stays
+    //  over the rows it brought. The 2026-11-26 rule that skipped the period is gone.)
     const edit = session.update("live", "live-1", { name: "EDITED" });
     expect(edit.ok).toBe(true);
     await vi.advanceTimersByTimeAsync(5000);
-    expect(requests).toEqual(["/live", "/live"]);
-    expect(names(session, "live")[0]).toBe("EDITED");
-    session.markEditsSaved([edit.seq!]);
-    await vi.advanceTimersByTimeAsync(5000);
     expect(requests).toEqual(["/live", "/live", "/live"]);
+    expect(names(session, "live")[0]).toBe("EDITED");
+    expect(session.unsavedCount("live")).toBe(1);
 
     // (A session let go stops asking.)
     session.dispose();

@@ -580,6 +580,33 @@ function runBindingView(
   return result;
 }
 
+/**
+ * ADR-325 Decision 8 (사용자 결정 3) — whether a row the user inserted belongs in a list the server
+ * answered for a view: the view's conditions (its `where`s, none of its groupings · sorts) judged
+ * here by the one evaluator. A row already in the server's answer is never judged (it stays where
+ * the server put it until the list loads again).
+ */
+export function catalogRowMatchesQuery(
+  row: unknown,
+  ref: CatalogRowBinding,
+  sources: readonly CollectionDataSource[],
+): boolean {
+  const dataBinding = catalogBindingValue(ref);
+  const table = dataBinding && resolveBoundCollection(dataBinding, sources);
+  if (!table || !ref.query) return true;
+  const queries = ref.query.queries
+    .filter((query) => !query.groupBy?.length && !query.aggregates?.length)
+    .map((query) => ({ ...query, sort: undefined }));
+  if (!queries.length) return true;
+  const rows = withComputedCells([row], viewRunSchema(table.schema), {
+    resolve: catalogRowQueryResolve(ref.query),
+  });
+  return (
+    runBindingView(rows, table, { ...ref.query, queries }, sources).rows
+      .length > 0
+  );
+}
+
 /** The role names a row's template values carry over its item's own fields (`buildCollectionRowTemplateItem`). */
 const ROW_ROLE_VALUES = new Set(["label", "description", "icon", "value"]);
 /** The source rows last ordered by a sort (`sortedRowOrder`) — a few sorts per rows. */
