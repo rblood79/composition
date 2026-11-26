@@ -16,6 +16,7 @@ import {
 import { mergeRefs } from "react-aria/mergeRefs";
 import { Button as RacButton } from "react-aria-components/Button";
 import { Keyboard } from "react-aria-components/Keyboard";
+import { useLocale } from "react-aria-components/I18nProvider";
 
 import {
   Cell as RacCell,
@@ -128,6 +129,20 @@ function useCatalogCellSelection(
   return selection;
 }
 
+/** Said, not shown (out of the layout — `position: absolute`). */
+const VISUALLY_HIDDEN: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  margin: -1,
+  padding: 0,
+  border: 0,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  whiteSpace: "nowrap",
+};
+
 export function CatalogTable({
   selectionStyle,
   tableResizable,
@@ -146,7 +161,23 @@ export function CatalogTable({
 }) {
   const shift = useShiftMemory(!!onSortPress);
   const tableElement = useRef<HTMLElement | null>(null);
-  const selection = useCatalogCellSelection(cellSelection, tableElement);
+  // ADR-317 — a Table that writes (「Paste」) says each write's result in a status region (the
+  // D1 exception's one element — breakdown §4): beside the RAC table, never inside it.
+  const { locale } = useLocale();
+  const [status, setStatus] = useState("");
+  const writes = !!cellSelection?.write;
+  const source = cellSelection
+    ? {
+        ...cellSelection,
+        locale,
+        announce: (text: string) => {
+          // (Cleared first: the same text twice is said twice.)
+          setStatus("");
+          requestAnimationFrame(() => setStatus(text));
+        },
+      }
+    : undefined;
+  const selection = useCatalogCellSelection(source, tableElement);
   // S2 `isQuiet` — square corners: the rule's radius rides the inline style, which would beat
   // the `[data-quiet]` sheet block (the Canvas reads the rule's containerVariants.quiet).
   const quiet =
@@ -193,6 +224,17 @@ export function CatalogTable({
         CatalogCellSelectionContext.Provider,
         { value: selection },
         table,
+        writes
+          ? createElement(
+              "span",
+              {
+                role: "status",
+                "data-table-write-status": "",
+                style: VISUALLY_HIDDEN,
+              },
+              status,
+            )
+          : null,
       )
     : table;
   return tableResizable

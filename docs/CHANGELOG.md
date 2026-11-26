@@ -13,6 +13,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-317 Phase 2 — Table 「Paste」: 붙여넣기 · 잘라내기 · 지우기] - 2026-11-26
+
+칸 범위 선택 (ADR-315) 을 켠 Table 에 「Paste」 를 켜면 Preview · Publish 에서 여러 칸을 한 번에 고친다. Excel · Google Sheets · 표 자신에서 복사한 글자를 그대로 붙여넣는다.
+
+### Added
+
+- **Table 「Paste」** (Design 패널 Behavior 칩 — 「Cell selection」 이 켜져야 보임, 기본 꺼짐, composition 확장): Ctrl / Cmd + V 는 마지막 범위의 왼쪽 위 칸부터 보이는 행 · 열 순서로 놓고 (값 하나면 범위 전체), Ctrl / Cmd + X 는 복사 뒤 비우고, Delete · Backspace 는 범위를 비운다. 쓰는 칸은 「Editable」 열의 데이터 칸뿐 — 편집 불가 열 · 읽을 수 없는 값 · 표 끝을 넘는 칸은 쓰지 않고 센다. 한 번의 붙여넣기는 행 다시 읽기 한 번이다.
+  - 결과는 표 옆의 화면 낭독용 알림 한 줄 (「칸 4개에 붙여넣음 · 2개 건너뜀」 — 한 · 영 · 일 · 중).
+  - 클립보드 글자는 따옴표 칸 (칸 안 탭 · 줄바꿈 · `""`) 을 지킨다 — `collections/intake/tabText.ts`.
+  - Safari 편집 메뉴: 표 안에 focus 가 있으면 `beforecopy` · `beforecut` · `beforepaste` 를 막아 복사 · 붙여넣기 메뉴를 켠다 (react-aria `useClipboard` 와 같은 방법).
+  - 위치: `runtime/tableCellSelection.ts` · `runtime/domRegistry.components.tsx` (`CatalogTable` 알림) · `runtime/domBinding.runtime.ts` · `bindings/Table.binding.ts` `allowsPasting` · `document/d2Provenance.ts`
+- D1 예외 (빌더 밖 사용자 컴포넌트의 직접 처리) 목록을 넓혔다 — `.claude/rules/ssot-hierarchy.md` §1 Table 칸 범위 선택 예외 (4) ~ (6).
+
+### Tests
+
+- `packages/shared/src/collections/intake/__tests__/tabText.test.ts` (5) · `apps/builder/src/preview/catalog/__tests__/adr317Paste.test.tsx` (8) — 변이 RED 7/7 · live `apps/builder/scripts/adr317-p2-paste-live.mjs` (Chrome · WebKit)
+
+## [ADR-317 Phase 0 · 1 — Table 묶음 쓰기 · EditableCell 이 읽지 못한 값으로 칸을 비우지 않음] - 2026-11-26
+
+ADR-317 (Table 편집 격자 — 붙여넣기 · 채우기 손잡이 · 편집 상태 표시 · 줄무늬 행) Accepted. Phase 0 은 시제품 (설치 RAC 1.22.1 위 제품의 칸 선택 모듈, Chrome · WebKit) 으로 붙여넣기 이벤트 · 가상 표 손잡이 끌기 · 줄무늬 짝 · 홀을 확인했고, Phase 1 은 여러 칸을 한 번에 쓰는 길을 세션에 더했다 (화면은 Phase 2 의 붙여넣기부터).
+
+### Changed
+
+- **EditableCell · 규칙 Do update 가 그 열 타입으로 읽을 수 없는 값을 저장하면 칸을 비우지 않고 원래 값을 남긴다** (사용자 결정 8): 숫자 열에 「abc」 를 저장하면 전에는 칸이 빈 값 (`null`) 이 됐다. 이제 그 필드는 쓰지 않고 사유를 돌려준다 (`[interactions] Editable cell: 읽을 수 없는 값이라 쓰지 않음: status`). 모든 필드가 그러면 실패라 뒤 Do (예: 저장 callEndpoint) 는 돌지 않는다. 빈 값은 그대로 빈 값으로 쓴다. 행 추가 (`append` · `insert`) 의 변환은 바뀌지 않았다.
+  - **Why**: 붙여넣기는 머리글 줄 · 다른 열 글자가 섞이기 쉬워 조용한 비움이 곧 값 손실이다. 묶음 쓰기와 한 칸 편집이 같은 판정 하나를 쓴다 (ADR-317 HC2).
+  - 위치: `runtime/catalogPreviewSession.ts` `itemFields` · `update`
+
+### Added
+
+- **세션 묶음 쓰기 `updateMany`** · **표 `editTableCells`**: 여러 행 · 여러 칸을 편집 기록 한 건 · 행 다시 읽기 1 번으로 쓴다. 「Editable」 열의 데이터 행 칸만 쓰고, 편집 불가 열 · 묶음 / 합계 / 상세 행 · key 필드 · 계산 필드 · 읽지 못한 값 · 없는 행은 사유별로 센다. 붙여넣기 · 채우기 손잡이 · 지우기 (ADR-317 Phase 2 · 3) 가 이 길을 쓴다.
+  - 위치: `runtime/catalogPreviewSession.ts` · `runtime/catalogTableController.ts`
+
+### Tests
+
+- `apps/builder/src/preview/catalog/__tests__/adr317BatchWrite.test.tsx` (6 — 변이 RED 6/6) · live `apps/builder/scripts/adr317-p1-editable-unread-live.mjs` · 시제품 `apps/builder/scripts/adr317-phase0-prototypes.mjs`
+
 ## [LinkButton — Static color 가 Preview 에서 칠해지지 않던 것 · 세로 여백 식] - 2026-11-25
 
 상태 칠 대조의 범위를 세다가 찾았다. 표 전수 합성 대조 (`adr297DomPaintParity`) 는 불일치 수를 단언하지 않고, 그 남은 행을 실제 노드 트리에서 다시 재는 대조 (`adr297RealPaintParity`) 의 대상 목록은 11-02 에 고정돼 있었다 — 그 뒤 합성 대조에 새로 생긴 LinkButton · TextArea · SelectValue · Button `staticColor: auto` 행은 어디서도 판정되지 않았다. 대상에 넣어 재니 넷 중 LinkButton 하나가 실제로 어긋났다.

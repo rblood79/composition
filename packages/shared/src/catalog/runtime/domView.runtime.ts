@@ -100,6 +100,8 @@ export function catalogPreviewRuntime(
       session.tables.resizeTableColumns(tableId, widths),
     tableCellText: (tableId, rows, columns) =>
       session.tables.tableCellText(tableId, rows, columns),
+    editTableCells: (tableId, cells) =>
+      session.tables.editTableCells(tableId, cells),
     tableColumnWidths: (tableId) => session.tables.tableColumnWidths(tableId),
     tableColumnMenu: (tableId, racKey) =>
       session.tables.tableColumnMenu(tableId, racKey),

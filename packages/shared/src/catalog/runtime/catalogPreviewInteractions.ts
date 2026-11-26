@@ -1,3 +1,5 @@
+import type { CatalogCellWrite } from "./tableCellSelection";
+import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
   buildInteractionIndex,
   catalogFinalOutcome,
@@ -445,6 +447,11 @@ export interface CatalogPreviewInteractionsOptions {
     rows: readonly string[],
     columns: readonly string[],
   ) => string;
+  /** ADR-317 — a Table 「Paste」's cells written at once (`CatalogDomRuntime.editTableCells`). */
+  editTableCells?: (
+    tableId: string,
+    cells: readonly CatalogCellWrite[],
+  ) => CatalogTableCellsWrite;
   /** ADR-315 Phase 4 — the widths RAC's column resize left (RAC keys, px): the session's. */
   resizeTableColumns?: (
     tableId: string,
@@ -1413,6 +1420,19 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     columns: readonly string[],
   ): string {
     return this.options.tableCellText?.(tableId, rows, columns) ?? "";
+  }
+  editTableCells(
+    tableId: string,
+    cells: readonly CatalogCellWrite[],
+  ): CatalogTableCellsWrite {
+    return (
+      this.options.editTableCells?.(tableId, cells) ?? {
+        ok: false,
+        reason: "쓰기 없음",
+        written: [],
+        skipped: {},
+      }
+    );
   }
   tableColumnWidths(
     tableId: string,

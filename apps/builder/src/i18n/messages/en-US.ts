@@ -3298,6 +3298,7 @@ const semanticLabels: Record<string, string> = {
   "properties.tableReorderColumns": "Reorder columns",
   "properties.tableRowPinning": "Row pinning",
   "properties.tableCellSelection": "Cell selection",
+  "properties.tablePaste": "Paste",
   "properties.tableKeepPinnedRows": "Keep pinned rows",
   "properties.ascending": "Ascending",
   "properties.descending": "Descending",

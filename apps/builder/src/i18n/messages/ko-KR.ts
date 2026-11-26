@@ -3291,6 +3291,7 @@ const semanticLabels: Record<string, string> = {
   "properties.tableReorderColumns": "열 순서 바꾸기",
   "properties.tableRowPinning": "행 고정",
   "properties.tableCellSelection": "칸 범위 선택",
+  "properties.tablePaste": "붙여넣기",
   "properties.tableKeepPinnedRows": "고정 행 유지",
   "properties.ascending": "오름차순",
   "properties.descending": "내림차순",

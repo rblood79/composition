@@ -52,7 +52,7 @@ ADR-315 breakdown §5.6 의 목록에 **더하는 것**이다. 구현이 이 목
 
 - **대상**: 「Cell selection」 과 「Paste」 (또는 「Fill handle」) 을 켠 사용자 컴포넌트 Table 의 body 칸. 머리글 · 바닥줄 · 다른 컴포넌트는 아니다.
 - **직접 다루는 것**
-  - 키: Ctrl / Cmd + V — 브라우저 `paste` 이벤트의 `text/plain` 을 읽는다 (키 자체를 가로채지 않는다).
+  - 키: Ctrl / Cmd + V — 브라우저 `paste` 이벤트의 `text/plain` 을 읽는다 (키 자체를 가로채지 않는다). 표 안에 focus 가 있을 때 `beforecopy` · `beforecut` · `beforepaste` 를 막아 Safari 의 편집 메뉴 (와 그 단축키) 를 켠다 — react-aria `useClipboard` 와 같은 방법 (Phase 0 시제품 (4)).
   - 키 (사용자 결정 3 이 「넣는다」 일 때): Delete · Backspace (범위의 편집 가능 칸 비움) · Ctrl / Cmd + X (브라우저 `cut` — 복사 + 비움).
   - 키 (사용자 결정 2): Ctrl / Cmd + D (범위의 첫 행 값을 아래로 채움).
   - 포인터: 채우기 손잡이 끌기 — 마지막 범위의 오른쪽 아래 칸에 우리가 그리는 요소 (`aria-hidden` — 같은 일을 키로 할 수 있다).
@@ -169,4 +169,51 @@ ADR-315 breakdown §5.6 의 목록에 **더하는 것**이다. 구현이 이 목
 
 ## 9. Phase 결과
 
-(실행 때 Phase 마다 적는다 — 검사 · 변이 RED · 번들 Δ · live · 사용자 결정 확정.)
+### Phase 0 (2026-11-26 — G0 통과)
+
+- **착수**: 사용자 `/execute-adr 317` (2026-11-26) + reviews/317.md round 2 pending 0 → Accepted. 착수 HEAD `e8c51fa2a` (코드는 실측 HEAD `56e769429` 과 같다 — 그 사이는 이 ADR 의 문서 커밋).
+- **코드 사실 재대조**: F1 ~ F8 차이 0 (`presence.ts` 의 `catalogEditableCellForm` 줄만 5979 → 5970). 추가로 본 것: `normalizeRows` 는 `formula` 필드를 건너뛰어 (`active` — `normalizeRows.ts`) 계산 필드 값이 변환 없이 쓰였다 — 묶음 쓰기의 「계산 필드는 쓰지 않음」 은 판정이 따로 막아야 한다 (Phase 1 반영).
+- **시제품** (`apps/builder/scripts/adr317Prototypes.mjs` + `adr317-phase0-prototypes.mjs` — 설치된 RAC 1.22.1 Table 위에 제품의 `attachCatalogCellSelection` 을 그대로 import, 판정값은 브라우저의 `paste` 이벤트 · 좌표 · 속성 · 계산된 색, 정답 값은 스크립트에 따로 적음). Chrome · Playwright WebKit 모두 통과:
+
+  | ID  | 결과                                                                                                                                                                                                                                |  판정   |
+  | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----: |
+  | P1  | gridcell 에 focus · Ctrl / Cmd + V → 표에 `paste` (`text/plain` 읽힘) · 우리 `copy` → 붙여넣기 값 = 정답 · `beforepaste` 막음 유 · 무 같음. Excel 형식 (따옴표 칸) 은 자동화가 클립보드에 직접 쓰지 못해 파서 단위 검사로 (Phase 2) |   go    |
+  | P2  | 가상 2,000 행 · 손잡이 끌기 → 자동 스크롤로 창 밖 151 행 (WebKit 77 행) 까지 · 손잡이 칸이 창 밖으로 나가 요소가 해제돼도 끌기 유지 · 값 복사 = 정답 · 범위 선택 그대로 · 칸에서 시작한 끌기는 범위 선택                            |   go    |
+  | P3  | 묶음 쓰기 위에서만 잴 수 있다 → Phase 2 live (10,000 행 · 1,000 칸 붙여넣기). Phase 1 은 행 다시 읽기 카운트 1 을 단위 테스트로 고정                                                                                                | Phase 2 |
+  | P4  | 데이터 층 순서의 짝 · 홀 = 화면 순서 (가상: 처음 · 1,234 행 스크롤 · 내림차순 정렬 · 정렬 뒤 위로 / 비가상 40 행) · 번갈아 · 칠                                                                                                     |   go    |
+  | P5  | 알림 영역 낭독 — Phase 2 live 에서 사용자와 (ADR-315 G6 은 통과 — 사용자 답 2026-11-26)                                                                                                                                             | Phase 2 |
+
+- **시제품이 설계에 더한 것**:
+  1. RAC `ScrollView` 는 스크롤 중 · 끝난 뒤 300 ms 까지 내용에 `pointer-events: none` 을 건다 (`react-aria/dist/private/virtualizer/ScrollView.mjs:267`). 자동 스크롤 중 `elementFromPoint` 는 행을 못 찾는다 (첫 측정: scrollTop 5,707 에서 끝 행 9 에 멈춤) — 손잡이 끌기는 그려진 행의 상자로 판정한다. ADR-315 의 범위 끌기 (`onPointerMove` 의 `elementFromPoint`) 도 휠 스크롤과 같이 하면 같은 일을 겪는다 — Phase 3 에서 같은 판정으로 맞춘다.
+  2. 손잡이의 `pointerdown` 은 표의 capture listener (범위 끌기) 보다 먼저 받아야 한다 — document capture 에서 잡고 멈춘다 (시제품). 제품에서는 `tableCellSelection.ts` 의 `onPointerDown` 이 손잡이를 건너뛰게 하는 쪽이 간단하다 (Phase 3).
+  3. RAC 는 focus 된 칸의 행을 창 밖에서도 남긴다 (persisted key) — focus 가 손잡이 칸이면 요소가 해제되지 않는다. 끌기는 손잡이 요소에 의존하지 않는다 (document listener).
+  4. 가상 표의 칸은 `role="presentation"` 감싸개 안이라 `[role=row] > *` 는 감싸개를 겨눈다 — 줄무늬 · 편집 상태 칠은 칸 (`gridcell` · `rowheader`) 을 겨눈다 (Phase 4 · 5).
+  5. Safari: react-aria `useClipboard` 는 `beforecopy` · `beforecut` · `beforepaste` 를 막아 편집 메뉴를 켠다 — 메뉴가 꺼져 있으면 Safari 는 단축키에도 이벤트를 보내지 않는다. Playwright WebKit 은 메뉴 판정을 지나지 않아 차이를 보지 못했다 — §4 목록에 더했다 (Phase 2).
+- **D2 이름 확인**: S2 1.8.2 (`TableView.tsx` — strip · zebra · paste 없음) · design-data `table` (옵션 size · density · isQuiet · isSortable · hideHeader · columns · rows) · v3 (설치본 없음 — v3 TableView 는 `density` · `overflowMode` · `isQuiet`) 어디에도 붙여넣기 · 채우기 · 행 상태 · 줄무늬 prop 이 없다 → composition 확장, `d2Provenance.ts` 에 그 Phase 에서. design-data Table 지침에 「Don't use zebra stripes」 (행 구분선 · hover · 선택으로 충분) 가 있어 사용자에게 물었다 → **「composition 확장으로 유지」** (기본 꺼짐).
+- **기준선** (`.agent/runs/2026-11-26-adr317-phase0/`): 번들 (일반 `vite build` + `adr209-bundle-closure.mjs`) Builder initial JS gzip **1,634,043 B** · Preview **172,215 B** (상한 1,650,000 · 327,000). 10,000 행 (`datagrid-table-vs-tanstack-live.mjs` · production · headed Chrome): 로드 401 ms · 힙 157 MB · 정렬 클릭 1x 161.4 ~ 169.1 · 4x 616.6 ~ 648.4 ms (중앙값, 글자 · 숫자 열) · 스크롤 p95 1x 24.7 ~ 25.1 · 4x 117.6 ~ 126.7 ms. (ADR-315 Phase 0 의 4x 정렬 556 ~ 589 ms 보다 높다 — 그 뒤 커밋들의 차이인지 측정 노이즈인지는 이 ADR 의 판정 대상이 아니다. HC5 는 같은 빌드의 끈 arm 과 켠 arm 교대로 잰다.)
+- **사용자 답 (2026-11-26)**: 결정 8 「맞춘다」 · 줄무늬 「composition 확장으로 유지」 · ADR-315 G6 「통과 확인함」.
+
+### Phase 1 (2026-11-26 — G1 통과)
+
+- **구현**:
+  - `runtime/catalogPreviewSession.ts` — 편집 기록 `updateMany` (항목 key → patch, replay 는 한 번 훑기 — 중첩 배열 · 평평한 트리 둘 다 `replayItemEdits` 를 지난다) · `updateMany(collectionId, writes)` (편집 기록 한 건 · `edit` 의 행 다시 읽기 1 번, 쓸 것이 없으면 기록도 다시 읽기도 없음) · 판정 하나 `itemFields` (→ `{ patch, refused }`): schema 밖 (`unknown`) · 계산 필드 (`computed`) · `normalizeRows` 의 `unread` · `precision` · `typeMismatch` (`unread`) 는 쓰지 않는다. `updateMany` 는 key 필드 (`keyField`) · 없는 항목 (`missing`) 도 센다. `update` 는 같은 판정 — 읽지 못한 필드는 쓰지 않고 사유 (`읽을 수 없는 값이라 쓰지 않음: …`) 를 돌려준다, 쓸 필드가 없으면 실패. `append` · `insert` 는 옛 변환 그대로 (`itemValues` — 판정을 그쪽에 걸면 문자열 id 열의 숫자 id 가 빠졌다: `treeData.test.tsx` 「numeric parent IDs」 가 잡았다).
+  - `runtime/catalogTableController.ts` — `editTableCells(tableId, cells)`: 표 record 의 그려진 body 칸 가운데 Form 을 가진 칸 (S2 `EditableCell`) 의 열 key (`CATALOG_CELL_COLUMN_PROP` — 「Cell selection」 표가 싣는다) 만 편집 가능 (`notEditable`), 읽은 데이터 행 (`rowValuesOf`) 만 (`notDataRow`), 행마다 모아 `updateMany` 한 번. `editTableRow` 는 부분 거절 (`ok` + 사유) 도 경고한다.
+- **검사**: 새 테스트 `apps/builder/src/preview/catalog/__tests__/adr317BatchWrite.test.tsx` 6 (정답 값은 손으로 적음 — 묶음 쓰기 값 · 사유별 수 · 행 다시 읽기 1 · 편집 기록 +1, 쓸 것 없음 = 기록 · 다시 읽기 0, `update` 와 같은 값, 결정 8 의 `update`, 표의 편집 가능 열 · 데이터 행). 변이 RED 6/6 (판정 건너뜀 · 결정 8 되돌림 · replay 빠짐 · 편집 가능 판정 빠짐 · 데이터 행 판정 빠짐 · 빈 쓰기 기록) — 원복 스크립트 + 바이트 복원 확인. type-check 통과. 회귀: builder `src/preview` · `src/builder/catalogRuntime` 5,627 통과 · shared 2,767 통과 (새 실패 0).
+- **번들** (Phase 0 기준선 대비, 같은 방법): Builder initial JS 1,634,043 → 1,634,044 B (+1) · Preview 172,215 → 172,213 B (−2) — 사용자 결정 7 안.
+- **live** (`apps/builder/scripts/adr317-p1-editable-unread-live.mjs`, 5173 dev · headed Chrome): Builder 에 Table + Users (status = number) · status Column 「Editable」 → Publish 첫 행 status 2 에 「abc」 Save → 칸 2 유지 + `[interactions] Editable cell: 읽을 수 없는 값이라 쓰지 않음: status` · 「7」 → 7 · 빈 값 → 빈 칸 · page error 0. 묶음 쓰기 자체는 화면 길이 없어 (Phase 2 의 붙여넣기가 첫 길) 단위 테스트까지다.
+
+### Phase 2 (2026-11-26 — G2, VoiceOver 청취만 사용자 확인 대기)
+
+- **사용자 답 (2026-11-26)**: 결정 3 「넣는다」 (Delete · Backspace · Ctrl / Cmd + X) · 결정 4 「버리고 알림」.
+- **구현**:
+  - `packages/shared/src/collections/intake/tabText.ts` `splitTabText` — 줄 (`\n` · `\r\n` · `\r`) · 탭, 따옴표 칸 (Excel · Sheets — 칸 안 탭 · 줄바꿈 · `""`), 끝 줄바꿈 하나 버림, 닫히지 않은 따옴표는 따옴표 없이 읽음. 타입 없음 — 쓰는 자리에서 `normalizeRows(…, "text")`.
+  - `runtime/tableCellSelection.ts` — source 의 `write` 가 있는 표만: `paste` (마지막 범위 → 없으면 focus 칸의 왼쪽 위부터, 1 × 1 은 범위 전체, 표 끝 밖은 `outside` 로 세고 버림, 붙인 뒤 범위 = 쓴 영역) · `cut` (복사 + 마지막 범위 비움) · Delete · Backspace (모든 범위 비움, 입력 요소의 키는 건드리지 않음) · document 의 `before*` 막기 (표 안 focus 일 때만). 결과 문구 `catalogCellWriteStatus` (en · ko · ja · zh) 를 `announce` 로.
+  - `runtime/domRegistry.components.tsx` `CatalogTable` — source 에 `locale` · `announce` 를 얹고, `write` 가 있으면 RAC Table 형제 `span[role=status][data-table-write-status]` (화면 낭독 전용 — 같은 글자도 다시 읽게 비운 뒤 다음 frame 에 씀).
+  - `runtime/domBinding.runtime.ts` (`allowsPasting` 인 표의 `cellSelection.write` → `runtime.editTableCells`) · `catalogPreviewInteractions.ts` · `domView.runtime.ts` (→ `session.tables.editTableCells`).
+  - `bindings/Table.binding.ts` `allowsPasting` (label 「Paste」, `section: "state"` — Behavior 칩, `visibleWhen allowsCellSelection`) · `d2Provenance.ts` (`composition`) · i18n `properties.tablePaste` (en-US 「Paste」 · ko-KR 「붙여넣기」). contract 그대로 (노드 props 는 형이 정해지지 않은 레코드 — ADR-315 Phase 6 과 같다).
+  - 규칙 문서: `.claude/rules/ssot-hierarchy.md` §1 D1 Table 예외에 (4) ~ (6) 옮김.
+- **검사**: 새 테스트 — shared `collections/intake/__tests__/tabText.test.ts` 5 · builder `preview/catalog/__tests__/adr317Paste.test.tsx` 8 (블록 붙여넣기 · 편집 불가 열 · 읽기 실패 · 행 다시 읽기 1 · 알림 · 범위 갱신, 표 끝 넘침 · 한 값 채우기, Delete · cut · Backspace, `beforepaste` (표 안 / 밖), 「Paste」 꺼진 표, Builder 파서와 같은 칸 3 fixture). 정답 값은 손으로 적음. 변이 RED 7/7 (한 값 채우기 · 넘침 세기 · Delete · cut 비우기 · `beforepaste` · 「Paste」 조건 · 따옴표 칸) — 원복 스크립트 + 바이트 복원 확인. type-check 통과. 회귀: builder `src/preview` · `src/builder/catalogRuntime` · `src/builder/panels` 7,060 · shared 2,772 통과 (새 실패 0).
+- **번들** (Phase 0 대비): Builder 1,634,043 → 1,634,069 B (+26) · Preview 172,215 → 172,214 B (−1). 파서 · 문구는 칸 선택 lazy chunk 안이다.
+- **live** (`apps/builder/scripts/adr317-p2-paste-live.mjs`, 5173 dev, Chrome · Playwright WebKit): Builder 에 Table + Users 1,000 행 (가상 표) → Design 패널 name · status 「Editable」 · Table 「Cell selection」 칩 → 「Paste」 칩 (Cell selection 전에는 없음) → Publish: p1:name ~ p2:status 를 Ctrl / Cmd + C → p5:name 에 Ctrl / Cmd + V → p5 · p6 name · status 바뀜 · type 그대로 · 알림 「칸 4개에 붙여넣음 · 2개 건너뜀」 / (Chrome) Excel 형식 `"Kim\nJr"\tX\t"7"` 붙여넣기 → 칸 안 줄바꿈 보존 / Delete → Editable 칸만 비움 / Ctrl / Cmd + A 뒤 한 값 → 1,000 행 · 「칸 1000개에 붙여넣음 · 2000개 건너뜀」 · 마지막 행까지, 화면 반영 Chrome 164 ~ 219 · WebKit 196 ms (dev · 1x — 10,000 행 production 은 Phase 6 HC5) · page error 0. 잘라내기는 단위 테스트까지 (live 는 Phase 6 재확인 묶음).
+- **live 가 찾은 하니스 함정**: 가상 표에서 Playwright 의 자동 스크롤 클릭은 RAC 가 스크롤 뒤 300 ms 동안 끈 pointer 때문에 칸에 닿지 않는다 — 먼저 스크롤하고 기다린다 (Phase 0 시제품 (1) 과 같은 원인).
+- **남은 것 (G2)**: P5 — VoiceOver 가 `role="status"` 알림을 읽는지 사용자 청취.

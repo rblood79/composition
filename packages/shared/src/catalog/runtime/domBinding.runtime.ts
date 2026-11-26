@@ -407,6 +407,8 @@ import {
   CATALOG_SELECTION_COLUMN_WIDTH,
 } from "./tableTracks";
 import { CATALOG_CELL_COLUMN_PROP } from "./tableCellMerge";
+import type { CatalogCellWrite } from "./tableCellSelection";
+import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
   CATALOG_COLUMN_PLACE_PROP,
   resolveTableColumnKey,
@@ -486,6 +488,14 @@ export interface CatalogDomRuntime {
     rows: readonly string[],
     columns: readonly string[],
   ): string;
+  /**
+   * ADR-317 — a Table 「Paste」's cells written at once (a paste · a cut · a clear — the session's
+   * several-cell write, `CatalogTableController.editTableCells`).
+   */
+  editTableCells?(
+    tableId: string,
+    cells: readonly CatalogCellWrite[],
+  ): CatalogTableCellsWrite;
   /**
    * ADR-315 Phase 4 — the widths RAC's column resize left (its `onResizeEnd` — RAC keys, px): the
    * Table's state (`columnWidths`), remembered with it.
@@ -4333,6 +4343,15 @@ function ruleDom(
                       columns: readonly string[],
                     ) =>
                       context.runtime!.tableCellText!(node.id, rows, columns),
+                    // (ADR-317 — 「Paste」: the Table writes its cells; `CatalogTable` says the
+                    //  result in its status region.)
+                    ...(node.props.allowsPasting === true &&
+                    context.runtime.editTableCells
+                      ? {
+                          write: (cells: readonly CatalogCellWrite[]) =>
+                            context.runtime!.editTableCells!(node.id, cells),
+                        }
+                      : {}),
                   },
                 }
               : {}),

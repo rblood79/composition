@@ -154,6 +154,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     allowsRowPinning: "composition",
     // ADR-315 Phase 6 — the viewer selects · copies cell ranges.
     allowsCellSelection: "composition",
+    // ADR-317 Phase 2 — the viewer pastes · cuts · clears the 「Editable」 Columns' cells.
+    allowsPasting: "composition",
     keepPinnedRows: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },

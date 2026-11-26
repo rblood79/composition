@@ -184,6 +184,17 @@ export const tableBinding: PrimitiveBinding = {
           ],
         },
       },
+      // ADR-317 Phase 2 — the end user pastes into the selected cells (Ctrl/Cmd + V — Excel ·
+      //   Sheets · the Table's own copy), cuts (Ctrl/Cmd + X) and clears them (Delete · Backspace —
+      //   사용자 결정 3); only the 「Editable」 Columns' data cells are written (the rest are
+      //   counted in its status region), through the session's several-cell write. A composition
+      //   extension (S2 TableView has none), default off; shown with 「Cell selection」 on.
+      allowsPasting: {
+        kind: "boolean",
+        label: "Paste",
+        section: "state",
+        visibleWhen: { key: "allowsCellSelection", equals: true },
+      },
       keepPinnedRows: {
         kind: "boolean",
         label: "Keep pinned rows",

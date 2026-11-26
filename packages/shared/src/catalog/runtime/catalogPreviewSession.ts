@@ -169,6 +169,11 @@ type CatalogItemEdit =
       parent?: string | null;
     }
   | { kind: "update"; key: string; patch: Record<string, unknown> }
+  /** ADR-317 — several items' fields at once (a paste · a fill): one record, one key each. */
+  | {
+      kind: "updateMany";
+      patches: readonly { key: string; patch: Record<string, unknown> }[];
+    }
   | { kind: "remove"; keys: readonly string[] | "all" }
   | {
       kind: "move";
@@ -178,6 +183,21 @@ type CatalogItemEdit =
     };
 
 type CatalogItems = readonly Record<string, unknown>[];
+
+/** ADR-317 — why a cell of a several-item write was not written (`updateMany`). */
+export type CatalogItemsWriteSkip =
+  "missing" | "keyField" | "unknown" | "computed" | "unread";
+/** ADR-317 — a several-item write's result: the cells written (by item key, field key) and the rest counted. */
+export interface CatalogItemsWrite {
+  readonly ok: boolean;
+  readonly reason?: string;
+  readonly written: readonly { readonly key: string; readonly field: string }[];
+  readonly skipped: Partial<Record<CatalogItemsWriteSkip, number>>;
+}
+
+/** ADR-317 사용자 결정 8 — the fields an `update` did not write: their values were not readable. */
+const catalogUnreadReason = (fields: readonly string[]) =>
+  `읽을 수 없는 값이라 쓰지 않음: ${fields.join(", ")}`;
 
 const itemKey = (
   item: Record<string, unknown>,
@@ -391,7 +411,15 @@ function replayItemEdits(
           ? { ...item, ...edit.patch }
           : item,
       );
-    else if (edit.keys === "all") items = [];
+    else if (edit.kind === "updateMany") {
+      const patches = new Map(
+        edit.patches.map((each) => [each.key, each.patch]),
+      );
+      items = mapItems(items, childrenKey, (item, index) => {
+        const patch = patches.get(itemKey(item, index, keyField));
+        return patch ? { ...item, ...patch } : item;
+      });
+    } else if (edit.keys === "all") items = [];
     else {
       const keys = new Set(edit.keys);
       items = mapItems(items, childrenKey, (item, index) =>
@@ -779,6 +807,7 @@ export class CatalogPreviewSession {
       stageRowWindows: (...args) => session.stageRowWindows(...args),
       stateSource: (...args) => session.stateSource(...args),
       update: (...args) => session.update(...args),
+      updateMany: (...args) => session.updateMany(...args),
       get viewReloadTimer() {
         return session.viewReloadTimer;
       },
@@ -1128,11 +1157,12 @@ export class CatalogPreviewSession {
     return keys.flatMap((key) => (byKey.has(key) ? [byKey.get(key)] : []));
   }
   /**
-   * The schema's fields of a rule's value, in the collection's stored values (ADR-313 Decision 4 — a
-   * Form's values are texts: the text rule reads them by the field's type and notation; values that
-   * already have a type are kept). A collection without a schema takes every field.
+   * The schema's fields of a new item's value (`append` · `insert`), in the collection's stored
+   * values (ADR-313 Decision 4 — a Form's values are texts: the text rule reads them by the field's
+   * type and notation; values that already have a type are kept). A collection without a schema
+   * takes every field.
    */
-  private itemFields(
+  private itemValues(
     collection: CollectionDataSource,
     value: Readonly<Record<string, unknown>>,
   ): Record<string, unknown> {
@@ -1145,6 +1175,46 @@ export class CatalogPreviewSession {
     return normalizeRows([next], schema, "text", {
       readDateText: coerceDateText,
     }).rows[0] as Record<string, unknown>;
+  }
+  /**
+   * The fields an item's write changes (`update` · `updateMany`), in the collection's stored values
+   * (as `itemValues`).
+   *
+   * ADR-317 사용자 결정 8 — one judgment for every write to an item: a field whose
+   * value its type cannot read (`normalizeRows`' `unread` · `precision` — the text would become
+   * `null` — and `typeMismatch` — a value of another type) is not written, the item keeps its value;
+   * a computed field (`formula` — its cells are computed when the rows are read) is not written
+   * either. They come back in `refused`, by field key. An empty text is not refused (the field's
+   * empty value).
+   */
+  private itemFields(
+    collection: CollectionDataSource,
+    value: Readonly<Record<string, unknown>>,
+  ): {
+    patch: Record<string, unknown>;
+    refused: Record<string, "unread" | "computed" | "unknown">;
+  } {
+    const schema = collection.schema ?? [];
+    const byKey = new Map(schema.map((field) => [field.key, field]));
+    const next: Record<string, unknown> = {};
+    const refused: Record<string, "unread" | "computed" | "unknown"> = {};
+    for (const [key, field] of Object.entries(value)) {
+      const declared = byKey.get(key);
+      if (schema.length && !declared) refused[key] = "unknown";
+      else if (declared?.formula) refused[key] = "computed";
+      else next[key] = field;
+    }
+    if (!schema.length) return { patch: next, refused };
+    const { rows, report } = normalizeRows([next], schema, "text", {
+      readDateText: coerceDateText,
+    });
+    const patch = { ...(rows[0] as Record<string, unknown>) };
+    for (const counts of [report.unread, report.precision, report.typeMismatch])
+      for (const key of Object.keys(counts ?? {})) {
+        delete patch[key];
+        refused[key] = "unread";
+      }
+    return { patch, refused };
   }
   private edit(
     collectionId: string,
@@ -1182,7 +1252,7 @@ export class CatalogPreviewSession {
     return this.edit(collectionId, (collection, items) => {
       const missing = this.missingParent(collectionId, items, parentKey);
       if (missing) return missing;
-      const item = this.itemFields(collection, value);
+      const item = this.itemValues(collection, value);
       if (
         (collection.schema ?? []).some((field) => field.key === "id") &&
         (item.id === undefined || item.id === "")
@@ -1217,7 +1287,7 @@ export class CatalogPreviewSession {
         return {
           reason: `항목 없음: ${"before" in at ? at.before : at.after}`,
         };
-      const item = this.itemFields(collection, value);
+      const item = this.itemValues(collection, value);
       if (
         (collection.schema ?? []).some((field) => field.key === "id") &&
         (item.id === undefined || item.id === "")
@@ -1274,7 +1344,8 @@ export class CatalogPreviewSession {
     value: Readonly<Record<string, unknown>>,
     fieldId?: string,
   ): { ok: boolean; reason?: string } {
-    return this.edit(collectionId, (collection, items) => {
+    let unread: string[] = [];
+    const result = this.edit(collectionId, (collection, items) => {
       const target =
         key ?? (value.id === undefined ? undefined : String(value.id));
       if (target === undefined) return { reason: "수정할 항목의 key 가 없다" };
@@ -1288,12 +1359,81 @@ export class CatalogPreviewSession {
         if (!field) return { reason: `필드 없음: ${fieldId}` };
         fields = { [field.key]: value[fieldId] };
       }
-      const patch = this.itemFields(collection, fields);
+      const { patch, refused } = this.itemFields(collection, fields);
       for (const field of ITEM_KEY_FIELDS) delete patch[field];
       const valueField = this.treeFieldKeyOf(collectionId, "value");
       if (valueField) delete patch[valueField];
+      // (ADR-317 사용자 결정 8 — a value its field's type cannot read is not written: the item keeps
+      //  its value and the reason comes back. Nothing left to write = refused.)
+      unread = Object.keys(refused).filter(
+        (name) => refused[name] === "unread",
+      );
+      if (unread.length && !Object.keys(patch).length)
+        return { reason: catalogUnreadReason(unread) };
       return { kind: "update", key: target, patch };
     });
+    return result.ok && unread.length
+      ? { ok: true, reason: catalogUnreadReason(unread) }
+      : result;
+  }
+  /**
+   * ADR-317 Decision 2 — `update` for several items at once (a paste · a fill · a clear): one edit
+   * record and one read of the rows again (`edit` — HC5), each item's fields by `update`'s judgment
+   * (`itemFields` — HC2). Not written, counted by reason: an item not there (`missing`), its key
+   * fields (`keyField`), a field not in the schema (`unknown`), a computed one (`computed`), a value
+   * its type cannot read (`unread` — the item keeps its value). The cells written come back.
+   */
+  updateMany(
+    collectionId: string,
+    writes: readonly {
+      readonly key: string;
+      readonly fields: Readonly<Record<string, unknown>>;
+    }[],
+  ): CatalogItemsWrite {
+    const skipped: Partial<Record<CatalogItemsWriteSkip, number>> = {};
+    const skip = (reason: CatalogItemsWriteSkip, count = 1) => {
+      if (count) skipped[reason] = (skipped[reason] ?? 0) + count;
+    };
+    const merged = new Map<string, Record<string, unknown>>();
+    let empty = false;
+    const result = this.edit(collectionId, (collection, items) => {
+      const keys = this.keysOf(collectionId, items);
+      const valueField = this.treeFieldKeyOf(collectionId, "value");
+      const keyFields = new Set<string>([
+        ...ITEM_KEY_FIELDS,
+        ...(valueField ? [valueField] : []),
+      ]);
+      for (const { key, fields } of writes) {
+        if (!keys.has(key)) {
+          skip("missing", Object.keys(fields).length);
+          continue;
+        }
+        const own: Record<string, unknown> = {};
+        for (const [name, field] of Object.entries(fields))
+          if (keyFields.has(name)) skip("keyField");
+          else own[name] = field;
+        const { patch, refused } = this.itemFields(collection, own);
+        for (const reason of Object.values(refused)) skip(reason);
+        if (Object.keys(patch).length)
+          merged.set(key, { ...merged.get(key), ...patch });
+      }
+      // (Nothing to write: no edit record, no read of the rows.)
+      empty = !merged.size;
+      if (empty) return { reason: "쓸 칸 없음" };
+      return {
+        kind: "updateMany",
+        patches: [...merged].map(([key, patch]) => ({ key, patch })),
+      };
+    });
+    if (!result.ok && !empty)
+      return { ok: false, reason: result.reason, written: [], skipped };
+    return {
+      ok: true,
+      written: [...merged].flatMap(([key, patch]) =>
+        Object.keys(patch).map((field) => ({ key, field })),
+      ),
+      skipped,
+    };
   }
   /** `useListData.remove(...keys)` — `"all"` removes every item; an unknown key is reported. */
   remove(

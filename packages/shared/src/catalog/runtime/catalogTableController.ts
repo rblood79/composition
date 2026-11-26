@@ -60,7 +60,23 @@ import {
 } from "./tableStateQuery";
 import { CATALOG_NO_TABLE_STATE } from "./tableState";
 import { CATALOG_NO_VIEW_QUERY } from "./viewQuery";
-import type { CatalogPreviewSession } from "./catalogPreviewSession";
+import type {
+  CatalogItemsWrite,
+  CatalogItemsWriteSkip,
+  CatalogPreviewSession,
+} from "./catalogPreviewSession";
+import { CATALOG_CELL_COLUMN_PROP } from "./tableCellMerge";
+
+/** ADR-317 — why a Table cell of a several-cell write was not written. */
+export type CatalogTableCellsWriteSkip =
+  CatalogItemsWriteSkip | "notEditable" | "notDataRow";
+/** ADR-317 — a several-cell write's result (`editTableCells`). */
+export interface CatalogTableCellsWrite extends Omit<
+  CatalogItemsWrite,
+  "skipped"
+> {
+  readonly skipped: Partial<Record<CatalogTableCellsWriteSkip, number>>;
+}
 
 /** What a Table controller reads and calls of its session (`CatalogPreviewSession.tableHost`). */
 export type CatalogTableHost = {
@@ -88,6 +104,7 @@ export type CatalogTableHost = {
   stageRowWindows: CatalogPreviewSession["stageRowWindows"];
   stateSource: CatalogPreviewSession["stateSource"];
   update: CatalogPreviewSession["update"];
+  updateMany: CatalogPreviewSession["updateMany"];
   viewReloadTimer: CatalogPreviewSession["viewReloadTimer"];
 };
 
@@ -802,8 +819,88 @@ export class CatalogTableController {
     const collectionId = place && this.tableCollectionOf(place.tableId);
     if (!place || !collectionId) return;
     const result = this.host.update(collectionId, place.key, values);
-    if (!result.ok)
+    // (ADR-317 사용자 결정 8 — a value its field cannot read is kept out: `ok` with a reason.)
+    if (!result.ok || result.reason)
       console.warn(`[interactions] Editable cell: ${result.reason ?? ""}`);
+  }
+
+  /**
+   * ADR-317 Decision 2 — cells of a Table record written at once (a paste · a fill · a clear): each
+   * (row key, Column key) through the session's `updateMany` — one edit record, one read of the
+   * rows (HC5), `update`'s judgment for each value (HC2). Written only (HC3): a data row's cell
+   * (`notDataRow` — a group · totals · detail row, or a row not read) of a Column whose body cells
+   * are S2 `EditableCell`s (`notEditable` — the Column's 「Editable」). A Column is known by its
+   * cells' Column key — a Table with 「Cell selection」 (the one that pastes · fills) names them.
+   */
+  editTableCells(
+    tableId: string,
+    cells: readonly {
+      readonly row: string;
+      readonly column: string;
+      readonly value: unknown;
+    }[],
+  ): CatalogTableCellsWrite {
+    const skipped: Partial<Record<CatalogTableCellsWriteSkip, number>> = {};
+    const skip = (reason: CatalogTableCellsWriteSkip) => {
+      skipped[reason] = (skipped[reason] ?? 0) + 1;
+    };
+    const collectionId = this.tableCollectionOf(tableId);
+    const rows = this.host.root?.rowValuesOf(tableId);
+    if (!collectionId || !rows)
+      return {
+        ok: false,
+        reason: "데이터에 연결되지 않은 표",
+        written: [],
+        skipped,
+      };
+    const editable = this.tableEditableColumns(tableId);
+    const byRow = new Map<string, Record<string, unknown>>();
+    for (const { row, column, value } of cells) {
+      if (!editable.has(column)) skip("notEditable");
+      else if (!rows.has(row)) skip("notDataRow");
+      else byRow.set(row, { ...byRow.get(row), [column]: value });
+    }
+    const result = byRow.size
+      ? this.host.updateMany(
+          collectionId,
+          [...byRow].map(([key, fields]) => ({ key, fields })),
+        )
+      : { ok: true, written: [], skipped: {} };
+    for (const [reason, count] of Object.entries(result.skipped))
+      skipped[reason as CatalogTableCellsWriteSkip] =
+        (skipped[reason as CatalogTableCellsWriteSkip] ?? 0) + (count ?? 0);
+    return { ...result, skipped };
+  }
+
+  /**
+   * ADR-317 — a Table record's Columns whose body cells are S2 `EditableCell`s (a Cell holding a
+   * Form — `catalogEditableCell`), by Column key (the cells' `CATALOG_CELL_COLUMN_PROP`). Every
+   * body cell of a Column is its template's, so the rows drawn now tell.
+   */
+  private tableEditableColumns(tableId: string): ReadonlySet<string> {
+    const root = this.host.currentRoot;
+    const out = new Set<string>();
+    if (!root) return out;
+    const visit = (id: string) => {
+      const record = root.domInputs.get(id);
+      if (!record) return;
+      if (record.ruleId === "TableHeader" || record.ruleId === "TableFooter")
+        return;
+      if (record.ruleId === "Cell") {
+        const column = record.props[CATALOG_CELL_COLUMN_PROP];
+        if (
+          typeof column === "string" &&
+          record.children.some(
+            (child) => root.domInputs.get(child)?.ruleId === "Form",
+          )
+        )
+          out.add(column);
+        return;
+      }
+      for (const child of record.children) visit(child);
+    };
+    visit(tableId);
+    return out;
   }
 
   /** ADR-315 Phase 5 증분 5f — a rule's 「Pin row to top · bottom」 · 「Unpin row」 on a drawn row. */
