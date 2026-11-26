@@ -193,7 +193,7 @@ type SendOutcome =
 - `linkUnlinked(collectionId, key, serverKey)` — 서버 행과 잇는다: `row` 와 `sent` 가 다른 필드는 그 서버 key 의 고침 (`base` = 서버 행의 값) 이 되고, `removed` 는 그 key 의 지우기 (`baseRow` = 서버 행) 가 된다.
 - `discardChanges` — 사용자가 버린다.
 
-누가 언제 잇는가 (자동 · 사용자가 고름) 는 324 가 정한다.
+잇는 것은 사용자의 선택이다 — 저장소도 세션도 스스로 `linkUnlinked` 를 부르지 않는다 (324, 사용자 결정 2026-11-27).
 
 지금의 즉시 저장 (`markEditsSaved`) 은 이 두 함수가 된다 — 규칙이 `callEndpoint` 를 보낼 때 그 편집 번호의 (key · 필드) 를 `beginSend` 하고, 요청 하나가 그 편집 전부를 실으므로 응답이 오면 전부 `confirmed` (실패면 전부 `rejected`) 로 판정한다. [지금의 판정](../../../packages/shared/src/interactions/bindings.ts#L133) · [`markEditsSaved`](../../../packages/shared/src/catalog/runtime/catalogPreviewSession.ts#L1359)
 

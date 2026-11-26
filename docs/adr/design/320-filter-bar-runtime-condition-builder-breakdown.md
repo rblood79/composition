@@ -6,6 +6,7 @@
 
 - 사용자 요청 2026-11-26 — ReUI 비교 보고 뒤 `/create-adr`, 범위 네 묶음 · 묶음마다 ADR 하나.
 - 이 ADR 의 범위: 실행 중 필터 상태 모델 (필터 범위의 조건 트리) · `FilterBar` 컴포넌트 (칩 줄 · 조건 빌더) · 값 편집기와 후보 값 · 기억 · 주소 · 이름 붙인 묶음 · 상대 날짜 · 서버 후보 값 계약 · 상태 연동.
+- 선행: [ADR-325](../325-collection-runtime-store-three-layers.md) (사용자 답 2026-11-27, round 4 h8) — 대상마다 다른 합성 조회의 요청 · 결과 분리는 325 의 조회 결과와 그 Decision 6 이 맡는다.
 - 범위 밖: 작성 때의 필터 저작 (ADR-284 「검색 · 필터」 구획 — 그대로) · 정렬 · 묶기의 실행 중 표면 (ADR-315 — 그대로) · 접근 통제.
 - 조사 근거: 코드 실측 (HEAD `0ea8c33d8`) · ReUI 문서와 registry 소스 (Filters 14 파일) · 2026-10-30 자유 필터 18 제품 조사.
 
@@ -106,21 +107,32 @@
 
 ### 5.3 서버 판정
 
-| 범위의 행                        | 그리고 | 또는 · 중첩 | 비교                  | 참조 경로 · 계산 필드 | 필터 바의 표시                                     |
-| -------------------------------- | :----: | :---------: | --------------------- | :-------------------: | -------------------------------------------------- |
-| 전량 (로컬 · 전량 로드하는 원격) |   ○    |      ○      | 21 전부 (로컬)        |           ○           | 전부                                               |
-| 쪽 단위 원격 · `body`            |   ○    |      ○      | 21 전부               |           ×           | 묶음 · 비교 전부, 필드 목록에 그 필드 없음         |
-| 쪽 단위 원격 · `suffix`          |   ○    |      ×      | 접미사 표에 있는 것만 |           ×           | 묶음 · 「또는」 없음, 비교 · 필드 목록은 받는 것만 |
-| 쪽 단위 원격 · 형식 선언 없음    |   ×    |      ×      | 없음                  |           ×           | 필터 추가가 꺼지고 사유를 알린다 (받지 않는다)     |
+| 범위의 행                                    |         그리고          | 또는 · 중첩 | 비교                  | 참조 경로 · 계산 필드 | 필터 바의 표시                                                                                         |
+| -------------------------------------------- | :---------------------: | :---------: | --------------------- | :-------------------: | ------------------------------------------------------------------------------------------------------ |
+| 전량 (로컬 · 전량 로드하는 원격)             |            ○            |      ○      | 21 전부 (로컬)        |           ○           | 전부                                                                                                   |
+| 쪽 단위 원격 · `body` (본문을 보내는 method) |            ○            |      ○      | 21 전부               |           ×           | 묶음 · 비교 전부, 필드 목록에 그 필드 없음                                                             |
+| 쪽 단위 원격 · `body` + GET · HEAD           |            ×            |      ×      | 없음                  |           ×           | 필터 추가가 꺼지고 사유를 알린다 (본문이 가지 않는다 — F14)                                            |
+| 쪽 단위 원격 · `suffix`                      | ○ (키가 겹치지 않을 때) |      ×      | 접미사 표에 있는 것만 |           ×           | 묶음 · 「또는」 없음, 비교 · 필드 목록은 받는 것만, 요청에 이미 있는 키를 내는 조건은 사유와 함께 꺼짐 |
+| 쪽 단위 원격 · 형식 선언 없음                |            ×            |      ×      | 없음                  |           ×           | 필터 추가가 꺼지고 사유를 알린다 (받지 않는다)                                                         |
 
 - 판정의 단위는 조건 하나 (비교 × 필드 경로) 다. 참조 경로 (`teamId.name`) 는 어느 형식도 담지 못하고 (`REFERENCE_PATH` — `serialize.ts:369` · `:722`), 계산 필드는 서버로 가지 않는다 (ADR-291). 그래서 쪽 단위 원격 범위의 필드 목록에는 두 종류가 없다 — 조건을 넣은 뒤 전량 로드로 넘어가 상한 (`VIEW_LOCAL_LOAD_CAP` 10,000) 에서 빈 화면이 되는 길을 만들지 않는다.
 - **판정의 자리는 하나** — 세션에서 범위 트리를 바꾸는 함수 (`filterScope.ts` 의 대입) 다. 트리를 바꾸는 모든 길이 그 함수를 지나고, 함수는 넣는 때의 공급 방식 (위 표의 행) 과 지금 스키마로 트리 전체를 판정한다. 길마다 따로 판정하지 않고, 넣는 쪽이 트리를 미리 다듬지도 않는다 — 원본을 그대로 넘긴다.
   - 받지 못하는 사유 (한 곳에서 판정): 요청이 싣지 못하는 조건 (위 표) · 스키마에 없는 필드의 조건 (지워진 필드 — `viewQueryLimits` 의 `BROKEN` 과 같은 판정).
+  - 판정의 입력 (round 4 · 5): 범위의 **각 대상** 의 합성 요청 — 실제로 나갈 URL (endpoint 경로 · 기본 query · 풀린 템플릿 · load 인자 + 작성자 조건 + 범위 트리의 키) 과 본문 — 과 endpoint 의 실제 method. 요청을 조립하는 함수 (`buildEndpointRequest` 의 URL 단계) 를 판정이 같이 부른다 — 키 목록을 따로 계산하지 않는다. 한 대상이라도 못 실으면 받지 않는다.
+    - 같은 키 (h6): `suffix` 의 한 요청에서 두 조건이 같은 키 (필드 key + 접미사 — `equals` · `oneOf` = `""`, `gt` · `after` = `_gt`, `lt` · `before` = `_lt`) 를 내거나 그 키가 endpoint 의 경로 · 기본 query · load 인자에 이미 있으면 (h9 — 기본 `status=open` 에 `status = closed`), 반복 키는 서버가 「또는」 으로 읽으므로 뒤에 넣는 쪽을 받지 않는다 (작성자 조건이 늘 앞 — 넣는 쪽은 범위의 조건). 한 조건의 `oneOf` 목록은 한 키의 반복이라 받는다. 통째로 넣는 트리는 겹치는 조건이 든 직계 항목을 뺀다.
+    - GET · HEAD 본문 (h7): `body` 형식 + GET · HEAD 는 표의 「`body` + GET · HEAD」 행이다 — 조건을 하나도 받지 않는다.
+    - 두 사유는 `viewQueryLimits` · `serializeViewQueries` 의 「보낼 수 없음」 (새 경고 코드 `DUPLICATE_KEY` · 지금의 `GET_BODY` 를 `load: "all"` 로 승격) 으로 둔다 — 작성자 보기도 같은 판정을 받아 서버에 맡기지 않고 평가기로 돈다. 판정 함수는 하나다 (대입 자리가 그것을 부른다).
+  - 여기서 도는 보기의 완전성 (h10): 평가는 끝까지 모은 것이 확인된 목록에서만 한다 — ADR-325 조회 결과의 「끝까지 모았다」 (전체 수 = 모은 수, 또는 쪽이 진전된 끝에 다음 cursor 없음). 확인할 수 없는 두 경우는 행 없이 「조회 실패」 사유 (상한 초과 거절 `refuseView` 와 같은 모양 — 사유만 다르다):
+    - cursor 를 보낼 길이 없음 — GET · HEAD 인데 cursor 가 본문에만 실리는 형식 (`pageBody` — `serialize.ts:515-522`) 이고 endpoint 가 `{{ cursor }}` 템플릿도 URL 모양 cursor 도 주지 않는다. 첫 요청 전에 판정한다.
+    - 진전 없음 — 다음 요청이 같은 cursor 를 돌려주거나 앞 쪽과 같은 행 key 만 준다. 지금의 `loadAll` · 전량 수집 (`catalogPreviewSession.ts:2096-2112` · `:2669`) 은 그때 말없이 멈춘다 — 그 멈춤을 실패로 바꾼다.
   - 조건 하나를 넣는 길: 칩 (UI 가 그 필드 · 비교를 내지 않는다) · 열 메뉴 (그 열의 「필터…」 가 꺼지고 사유) · Do (실패를 보고).
   - 트리를 통째로 넣는 길: 시작 조건 (`defaultQuery` — 첫 열기와 「지우기」) · 이름 붙인 묶음 · 주소와 기억의 복원. 루트 직계 항목 단위로 가른다 — 받지 못하는 것이 든 항목 (조건, 또는 묶음 통째) 은 넣지 않고 나머지를 넣는다. 필터 바가 「적용하지 못한 조건 N」 을 보이고 `announce` 로 알린다. 루트가 「그리고」 라 직계 항목을 빼면 결과가 넓어질 뿐 남은 조건의 뜻은 그대로다 (묶음 안의 조건 하나만 빼면 「또는」 묶음의 뜻이 바뀐다 — 그래서 묶음은 통째로 뺀다).
   - 공급 방식이 바뀔 때 (작성자가 collection 의 endpoint · 형식을 바꿈 — Builder Preview 는 문서 변경으로, Publish 는 다음 열기에) 지금 트리를 같은 함수로 다시 판정한다.
 - 반례 (리뷰 round 2): 로컬 데이터에서 `teamId.name = Red` 를 시작 조건으로 저장 → 같은 collection 을 쪽 단위 `body` 원격으로 바꿈 → 첫 열기. 대입 판정이 그 항목을 빼므로 요청에 그 조건이 없고 칩에도 없으며 「적용하지 못한 조건 1」 이 보인다 (판정이 없으면 칩은 적용으로 보이는데 요청의 `where` 가 빈다). 지금의 열 필터는 비교만 보고 받으므로 (`catalogTableController.ts:381-383`) 참조 열의 열 필터도 이 판정으로 닫힌다.
-- 판정은 범위 단위다 — 여러 대상이 한 collection 이므로 답이 하나다.
+- 판정은 범위 단위로 내지만 입력은 대상마다다 — 공급 방식 (위 표의 행) 은 한 collection 이라 하나이고, 키 겹침은 대상의 작성자 조건에 따라 다르므로 모든 대상의 요청을 본다.
+- 대상마다의 요청 (h8): 쪽 단위 원격 범위의 대상은 각자 합성 조회를 보낸다. 같은 collection 이라도 작성자 조건이 다르면 요청 · 결과가 둘이다 — ADR-325 의 조회 결과 (요청마다 키 목록 · cursor · 전체 수) 가 그것을 든다. 지금의 `uniqueView` (collection 마다 하나 — `catalogPreviewSession.ts:1927`) 위에는 짓지 않는다.
+- 반례 (리뷰 round 5): (h9) suffix endpoint 의 기본 query `status=open` 에 범위 `status = closed` 를 넣으려 하면 막히고 요청의 `status` 키는 하나 — 그대로 두면 `?status=open&status=closed` 로 두 행. 같은 조건의 작성자 보기는 끝까지 모아 0 행. (h10) 2 행을 1 행씩 주는 GET + `body` endpoint (open 이 둘째 쪽) 의 작성자 보기 `status = open` — 행 없이 「조회 실패」 (첫 쪽의 closed 를 보이면 실패). 같은 endpoint 가 `?cursor={{ cursor }}` 를 읽으면 끝까지 모아 open 한 행.
+- 반례 (리뷰 round 4): (h6) 쪽 단위 `suffix` 에 `status = open` 이 든 범위에 `status = closed` 를 넣으려 하면 그 비교 · 값이 사유와 함께 막히고 요청은 `status=open` (결과 open 행) — 그대로 두면 `status=open&status=closed` 로 두 행. (h7) 같은 범위를 `body` + GET 으로 두면 필터 추가가 꺼지고, 작성자 보기의 `status = open` 은 상한까지 불러와 open 한 행 — 그대로 두면 본문 없는 GET 이 두 행. (h8) 8 행을 3 행씩 주는 endpoint 에 ListBox · GridList (GridList 만 작성자 `status = open`) 와 같은 범위 조건 `name = Kang` — 두 요청이 각자의 조건을 싣고 둘째 쪽에만 있는 Kang 이 두 목록에 보인다.
 - 판정 결과는 필터 바의 실행 props 로 내려가 UI 가 그 기능을 그리지 않는다 — 넣은 뒤 빠지는 일이 없다 (HC4).
 
 ### 5.4 노드 · prop
@@ -198,15 +210,15 @@
 
 ## 6. Phase
 
-| Phase | 내용                                                                                                                                                                                                   | Gate |
-| :---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--: |
-|   0   | 코드 사실 재대조 · v3 확인 · 대상 종류 inventory · 시제품 4 · Publish 주소 형식 · 번들 · 속도 기준선                                                                                                   |  G0  |
-|   1   | 필터 범위 상태 — 표 상태 조각을 트리로 · 열 메뉴의 읽기 쓰기 · 합성 · 「또는」 로컬 경로 (건너뜀 규칙) · 서버 판정 (비교 × 필드 경로 · 네 길) · 한 대상 = 범위 하나 검증 · Do 의 대상 (화면 변화 없음) |  G1  |
-|   2   | `FilterBar` 등록 (binding · rule · template · traits · nesting · d2Provenance) · Canvas 정적 · 「필터 바 추가」 · 패널 · contract                                                                      |  G2  |
-|   3   | 칩 줄 (lazy) — 조건 추가 · 비교 · 값 · 끄기 · 삭제 · 지우기 · 편집기 모듈 공유 · 후보 값 (편집 중인 조건 id 만 제외) · 알림                                                                            |  G3  |
-|   4   | 조건 빌더 (lazy) — 묶음 · 전환 · 중첩 · 순서 바꾸기 · 제자리 배치                                                                                                                                      |  G4  |
-|   5   | 기억 · 주소 · 이름 붙인 묶음 · 상대 날짜 · When · Do · 이름 붙인 상태                                                                                                                                  |  G5  |
-|   6   | 서버 후보 값 · 여러 대상 · 번들 · 속도 재측정 · 종결 live · 문서 (규칙 · CHANGELOG)                                                                                                                    |  G6  |
+| Phase | 내용                                                                                                                                                                                                                                                                                                                                                                                                                   | Gate |
+| :---: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--: |
+|   0   | ADR-325 Implemented 확인 · 조회 결과 API 재대조 · 코드 사실 재대조 · v3 확인 · 대상 종류 inventory · 시제품 4 · Publish 주소 형식 · 번들 · 속도 기준선                                                                                                                                                                                                                                                                 |  G0  |
+|   1   | 필터 범위 상태 — 표 상태 조각을 트리로 · 열 메뉴의 읽기 쓰기 · 합성 · 「또는」 로컬 경로 (건너뜀 규칙) · 서버 판정 (비교 × 필드 경로 · 네 길 · 대상마다 합성 요청의 같은 키 · method) · `viewQueryLimits` 의 `DUPLICATE_KEY` (endpoint 기본 query 포함) · `GET_BODY` 를 보낼 수 없음으로 · 여기서 도는 보기의 완전성 (cursor 전송 길 · 진전 없음 = 조회 실패) · 한 대상 = 범위 하나 검증 · Do 의 대상 (화면 변화 없음) |  G1  |
+|   2   | `FilterBar` 등록 (binding · rule · template · traits · nesting · d2Provenance) · Canvas 정적 · 「필터 바 추가」 · 패널 · contract                                                                                                                                                                                                                                                                                      |  G2  |
+|   3   | 칩 줄 (lazy) — 조건 추가 · 비교 · 값 · 끄기 · 삭제 · 지우기 · 편집기 모듈 공유 · 후보 값 (편집 중인 조건 id 만 제외) · 알림                                                                                                                                                                                                                                                                                            |  G3  |
+|   4   | 조건 빌더 (lazy) — 묶음 · 전환 · 중첩 · 순서 바꾸기 · 제자리 배치                                                                                                                                                                                                                                                                                                                                                      |  G4  |
+|   5   | 기억 · 주소 · 이름 붙인 묶음 · 상대 날짜 · When · Do · 이름 붙인 상태                                                                                                                                                                                                                                                                                                                                                  |  G5  |
+|   6   | 서버 후보 값 · 여러 대상 (325 조회 결과 위 — 대상마다 요청) · 번들 · 속도 재측정 · 종결 live · 문서 (규칙 · CHANGELOG)                                                                                                                                                                                                                                                                                                 |  G6  |
 
 ## 7. Phase 0 시제품
 
@@ -219,15 +231,15 @@
 
 ## 8. 파일 추정 (Phase 0 에서 확정)
 
-| 자리                           | 파일                                                                                                                                                                                                                                               |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 상태 · 합성 (shared)           | `catalog/runtime/tableState.ts` · `tableStateQuery.ts` · `tableRowSlices.ts` · `catalogPreviewSession.ts` · `catalogTableController.ts` · 새 `filterScope.ts`                                                                                      |
-| 로컬 경로 (shared)             | `collections/view/rowFilter.ts` · `catalog/runtime/dataBinding.ts`                                                                                                                                                                                 |
-| 등록 (shared)                  | 새 `bindings/FilterBar.binding.ts` · `componentCatalog.ts` · `generated/componentRulesTable.ts` · `document/generated/reusableOriginLibrary.ts` · `document/types.ts` · `document/validation.ts` · `d2Provenance.ts` · `domain/componentTraits.ts` |
-| 실행 (shared, lazy)            | 새 `runtime/filterBar.components.tsx` · `filterBuilder.components.tsx` · `filterValueEditor.components.tsx` (열 필터에서 꺼냄)                                                                                                                     |
-| 상태 연동 (shared)             | `interactions/concepts/` 새 concept · `componentInteractionSpecs.ts` · `tableColumns.ts`                                                                                                                                                           |
-| Canvas · 패널 · 저작 (builder) | `catalogRuntime/canvasBinding.ts` · `viewAuthoring.ts` · `panels/properties/catalog/CatalogFilterSection.tsx` · 새 필터 바 패널 · `paletteItems.ts` · i18n                                                                                         |
-| 요청 (Phase 6)                 | `collections/view/serialize.ts` · endpoint 형식                                                                                                                                                                                                    |
+| 자리                           | 파일                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 상태 · 합성 (shared)           | `catalog/runtime/tableState.ts` · `tableStateQuery.ts` · `tableRowSlices.ts` · `catalogPreviewSession.ts` · `catalogTableController.ts` · 새 `filterScope.ts`                                                                                                                                                                                      |
+| 로컬 경로 (shared)             | `collections/view/rowFilter.ts` · `catalog/runtime/dataBinding.ts`                                                                                                                                                                                                                                                                                 |
+| 등록 (shared)                  | 새 `bindings/FilterBar.binding.ts` · `componentCatalog.ts` · `generated/componentRulesTable.ts` · `document/generated/reusableOriginLibrary.ts` · `document/types.ts` · `document/validation.ts` · `d2Provenance.ts` · `domain/componentTraits.ts`                                                                                                 |
+| 실행 (shared, lazy)            | 새 `runtime/filterBar.components.tsx` · `filterBuilder.components.tsx` · `filterValueEditor.components.tsx` (열 필터에서 꺼냄)                                                                                                                                                                                                                     |
+| 상태 연동 (shared)             | `interactions/concepts/` 새 concept · `componentInteractionSpecs.ts` · `tableColumns.ts`                                                                                                                                                                                                                                                           |
+| Canvas · 패널 · 저작 (builder) | `catalogRuntime/canvasBinding.ts` · `viewAuthoring.ts` · `panels/properties/catalog/CatalogFilterSection.tsx` · 새 필터 바 패널 · `paletteItems.ts` · i18n                                                                                                                                                                                         |
+| 요청                           | Phase 1: `collections/view/serialize.ts` (`viewQueryLimits` · `serializeViewQueries` — 같은 키 · GET 본문) · `querySuffixes.ts` 읽기만 · `collections/executeCollectionEndpoint.ts` (URL 조립을 판정이 같이 부름) · `catalogPreviewSession.ts` 의 전량 로드 (완전성 · 조회 실패). Phase 6: endpoint 형식 · 대상마다 요청 (ADR-325 의 조회 결과 위) |
 
 추정 shared 18 ~ 24 · builder 8 ~ 12 파일 + 테스트.
 
