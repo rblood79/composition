@@ -283,6 +283,8 @@ export class CatalogWorkspace {
     return this.currentRoot;
   }
   private createRoot(breakpoint: BreakpointName): CatalogCompositionRoot {
+    // (ADR-319 Decision 3 — a new root ends a size preview's held paragraphs.)
+    this.releaseMeasureHolds();
     const options = this.options;
     return new CatalogCompositionRoot(
       this.runtime,
@@ -670,6 +672,7 @@ export class CatalogWorkspace {
    * `syncCustomFontsWithSkia` + relayout).
    */
   refreshFonts(): void {
+    this.releaseMeasureHolds();
     this.textMetrics?.clear();
     this.replaceRoot(this.currentRoot.breakpoint);
   }
@@ -1345,7 +1348,34 @@ export class CatalogWorkspace {
     return () => this.previewValueListeners.delete(listener);
   }
 
+  /** The releases of the open size previews' paragraph holds (`holdMeasureParagraphs`). */
+  private readonly measureHolds = new Set<() => void>();
+  /**
+   * ADR-319 Phase 3 (Decision 3) — a size preview (the Canvas size · spacing handles, the Styles
+   * size · spacing fields) keeps the text measure's paragraphs while it lasts: one per text leaf,
+   * shaped once and laid out again at each width. The returned release ends it (more than once =
+   * once); a commit · cancel calls it, and a new root · a font change · `dispose` end every open
+   * one (a Canvas leaving mid-drag cancels its gesture too).
+   */
+  holdMeasureParagraphs(): () => void {
+    const hold = this.disposed ? undefined : this.textMetrics?.measure.hold?.();
+    if (!hold) return () => {};
+    let open = true;
+    const release = () => {
+      if (!open) return;
+      open = false;
+      this.measureHolds.delete(release);
+      hold();
+    };
+    this.measureHolds.add(release);
+    return release;
+  }
+  private releaseMeasureHolds(): void {
+    for (const release of [...this.measureHolds]) release();
+  }
+
   dispose(): void {
+    this.releaseMeasureHolds();
     this.disposed = true;
     this.fillScheduler?.stop();
     this.fillFailureListeners.clear();

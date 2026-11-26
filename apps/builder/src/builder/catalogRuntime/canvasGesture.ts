@@ -209,6 +209,12 @@ export interface CatalogGestureHost {
    */
   reflow?(record: string, patch?: CatalogRecordPreview): void;
   /**
+   * ADR-319 Phase 3 — a size preview keeps the text measure's paragraphs until the returned
+   * release (`workspace.holdMeasureParagraphs`): opened by a resize / spacing drag's first reflow,
+   * released when it ends (`finish` · `cancel`).
+   */
+  holdMeasure?(): () => void;
+  /**
    * A drag the nesting rules refused at the container under the pointer: committed to the nearest
    * ancestor that accepts it (`relocated`, after the step), or cancelled (`rejected`).
    */
@@ -1545,6 +1551,7 @@ export class CatalogCanvasGestures {
   ): void {
     if (!this.host.reflow) return;
     this.reflowed = gesture.item.identity;
+    this.releaseMeasure ??= this.host.holdMeasure?.();
     if (gesture.kind === "spacing") {
       this.host.reflow(this.reflowed, {
         visual: gesture.band.side
@@ -1596,10 +1603,18 @@ export class CatalogCanvasGestures {
         : {}),
     });
   }
+  /** The release of the drag's paragraph hold (`host.holdMeasure`). */
+  private releaseMeasure: (() => void) | undefined;
   private endReflow(): void {
     const record = this.reflowed;
     this.reflowed = undefined;
-    if (record) this.host.reflow?.(record);
+    const release = this.releaseMeasure;
+    this.releaseMeasure = undefined;
+    try {
+      if (record) this.host.reflow?.(record);
+    } finally {
+      release?.();
+    }
   }
 
   private spacingClick: CatalogSpacingClick | undefined;

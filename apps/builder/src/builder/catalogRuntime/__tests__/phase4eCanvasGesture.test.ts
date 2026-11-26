@@ -62,6 +62,8 @@ const allocator = () => {
     `project:${kind}:g${++next}` as EntryId<K>;
 };
 
+/** ADR-319 Phase 3 — the paragraph holds a gesture opened and released (`host.holdMeasure`). */
+const measureHolds = { opened: 0, released: 0 };
 async function open(options: { paddingLinked?: () => boolean } = {}) {
   const live: (CatalogSpacingLive | null)[] = [];
   const workspace = new CatalogWorkspace(
@@ -127,6 +129,12 @@ async function open(options: { paddingLinked?: () => boolean } = {}) {
     reflow: (target, patch) => {
       workspace.root.previewRecord(target, patch);
       sync();
+    },
+    holdMeasure: () => {
+      measureHolds.opened += 1;
+      return () => {
+        measureHolds.released += 1;
+      };
     },
     ...(options.paddingLinked ? { paddingLinked: options.paddingLinked } : {}),
     spacingLive: (next) => live.push(next),
@@ -476,8 +484,14 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     expect(gestures.handleAt(0, 0, 1)).toBeNull();
     workspace.selectRecords([record("a")]);
 
+    const holds = { ...measureHolds };
     expect(gestures.beginResize(corner.x, corner.y, 1)).toBe(true);
     gestures.update(corner.x - 40, corner.y + 20, 1);
+    gestures.update(corner.x - 41, corner.y + 21, 1);
+    gestures.update(corner.x - 40, corner.y + 20, 1);
+    // ADR-319 Phase 3: one paragraph hold per drag, open until the release.
+    expect(measureHolds.opened - holds.opened).toBe(1);
+    expect(measureHolds.released - holds.released).toBe(0);
     expect(gestures.preview()?.ghost).toEqual({
       x: start.x,
       y: start.y,
@@ -485,6 +499,19 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
       height: Math.round(start.height + 20),
     });
     gestures.finish();
+    expect(measureHolds.released - holds.released).toBe(1);
+    // A cancelled drag (the Canvas leaving mid-drag cancels it) releases its hold too.
+    const resized = box("a");
+    const again = {
+      x: resized.x + resized.width,
+      y: resized.y + resized.height,
+    };
+    expect(gestures.beginResize(again.x, again.y, 1)).toBe(true);
+    gestures.update(again.x - 10, again.y + 10, 1);
+    expect(measureHolds.opened - holds.opened).toBe(2);
+    gestures.cancel();
+    gestures.cancel();
+    expect(measureHolds.released - holds.released).toBe(2);
     const entry = workspace.runtime.graph.getEntry(id("a"));
     expect(entry?.kind === "node" && entry.sizing).toEqual({
       width: { kind: "set", value: Math.round(start.width - 40) },

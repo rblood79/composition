@@ -327,6 +327,11 @@ for (const count of COUNTS) {
     await cdp.send("Profiler.start");
     await zigzag(page, edge);
     const { profile } = await cdp.send("Profiler.stop");
+    // (The raw profile too — DevTools · a call-tree breakdown below the top-40 cut.)
+    writeFileSync(
+      `${OUT}/profile-${count}.cpuprofile`,
+      JSON.stringify(profile),
+    );
     const resolve = process.env.DEVBASE
       ? (label) => label.replace(/https?:\/\/[^ ]*?\/(src|packages)\//, "$1/")
       : createFrameResolver(opt("--dist"));

@@ -1,7 +1,8 @@
 import { cssFontVariations, fontFamily } from "@composition/rendering";
+import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import { inlineTextContent } from "../../../../../packages/shared/src/catalog/runtime/inlineText";
 import { measureCssLineBox } from "../workspace/canvas/utils/cssLineBoxMetrics";
-import type { EmbindEnumEntity, Typeface } from "canvaskit-wasm";
+import type { EmbindEnumEntity, Paragraph, Typeface } from "canvaskit-wasm";
 import { DEFAULT_FONT_FEATURES } from "../workspace/canvas/layout/engines/cssResolver";
 import {
   calculateMaxContentWidth,
@@ -44,6 +45,59 @@ type Cluster = ReturnType<
 >["clusters"][number];
 
 /**
+ * ADR-319 Phase 3 (Decision 3) — the paragraphs a size preview keeps: one per text leaf (the
+ * `leaf` a `rewrap` measure names), shaped once and laid out again at each width (SkParagraph
+ * keeps the shaping across `layout` — the result equals a new paragraph's, Phase 0 prototype). A
+ * leaf whose text · font · runs change replaces its paragraph (the old one deleted at once). The
+ * last release deletes all at once: a measured paragraph is never handed to a draw (the Canvas draws
+ * the paint's own — `nodeRendererText`), so no frame can hold it (ADR-174's loss was a drawn
+ * paragraph deleted mid-frame). Nothing else keeps a measured paragraph.
+ */
+type HeldParagraph = {
+  readonly text: string;
+  readonly font: Font;
+  readonly runs: string | undefined;
+  readonly paragraph: Paragraph;
+  readonly max: number;
+  readonly min: number;
+};
+let heldParagraphs: Map<string, HeldParagraph> | undefined;
+let paragraphHolds = 0;
+/** Dev · test: paragraphs held now · made for a hold · deleted from it (`made = deleted` once closed). */
+const holdStats = { made: 0, deleted: 0, peak: 0 };
+export function catalogMeasureParagraphHoldStats(): {
+  held: number;
+  made: number;
+  deleted: number;
+  peak: number;
+} {
+  return { held: heldParagraphs?.size ?? 0, ...holdStats };
+}
+export function resetCatalogMeasureParagraphHoldStats(): void {
+  holdStats.made = holdStats.deleted = holdStats.peak = 0;
+}
+function dropHeld(entry: HeldParagraph): void {
+  entry.paragraph.delete();
+  holdStats.deleted += 1;
+}
+function holdMeasureParagraphs(): () => void {
+  paragraphHolds += 1;
+  heldParagraphs ??= new Map();
+  let open = true;
+  return () => {
+    if (!open) return;
+    open = false;
+    paragraphHolds -= 1;
+    if (paragraphHolds > 0 || !heldParagraphs) return;
+    const held = heldParagraphs;
+    heldParagraphs = undefined;
+    for (const entry of held.values()) dropHeld(entry);
+  };
+}
+const runsKey = (runs: readonly CatalogTextRunFont[] | undefined) =>
+  runs?.length ? JSON.stringify(runs) : undefined;
+
+/**
  * The Canvas paint's own paragraph (`nodeRendererText`: shared font collection, Pretendard with
  * the default font features and the `wght` variation) measured without drawing: intrinsic widths
  * and, at `maxWidth`, the wrapped line count. Undefined before CanvasKit and the font are ready.
@@ -54,6 +108,7 @@ function paragraphMetrics(
   maxWidth?: number,
   runs?: readonly CatalogTextRunFont[],
   collectInline = false,
+  leaf?: string,
 ):
   | {
       max: number;
@@ -66,6 +121,35 @@ function paragraphMetrics(
   | undefined {
   if (!isCanvasKitInitialized() || !skiaFontManager.hasFont("Pretendard"))
     return undefined;
+  // (A size preview's paragraph for this leaf, shaped from the same text · font · runs.)
+  const held =
+    leaf !== undefined && !collectInline ? heldParagraphs : undefined;
+  if (held) {
+    const key = runsKey(runs);
+    const entry = held.get(leaf!);
+    if (
+      entry &&
+      entry.font === font &&
+      entry.text === text &&
+      entry.runs === key
+    ) {
+      if (maxWidth === undefined) entry.paragraph.layout(100000);
+      return paragraphResult(
+        entry.paragraph,
+        text,
+        font,
+        maxWidth,
+        runs,
+        entry.max,
+        entry.min,
+        undefined,
+      );
+    }
+    if (entry) {
+      held.delete(leaf!);
+      dropHeld(entry);
+    }
+  }
   const ck = getCanvasKit();
   const families = catalogFontFamilies(font.fontFamily).map((family) =>
     skiaFontManager.resolveFamily(family),
@@ -170,7 +254,9 @@ function paragraphMetrics(
     }
     if (at < text.length) builder.addText(text.slice(at));
   } else builder.addText(text);
+  if (process.env.NODE_ENV === "development") docCounters.paragraphBuilds += 1;
   const paragraph = builder.build();
+  builder.delete();
   paragraph.layout(100000);
   const max = paragraph.getMaxIntrinsicWidth();
   const min = paragraph.getMinIntrinsicWidth();
@@ -202,6 +288,48 @@ function paragraphMetrics(
       at = Math.max(at + 1, end);
     }
   }
+  if (held) {
+    held.set(leaf!, { text, font, runs: runsKey(runs), paragraph, max, min });
+    holdStats.made += 1;
+    holdStats.peak = Math.max(holdStats.peak, held.size);
+    return paragraphResult(
+      paragraph,
+      text,
+      font,
+      maxWidth,
+      runs,
+      max,
+      min,
+      clusters,
+    );
+  }
+  try {
+    return paragraphResult(
+      paragraph,
+      text,
+      font,
+      maxWidth,
+      runs,
+      max,
+      min,
+      clusters,
+    );
+  } finally {
+    paragraph.delete();
+  }
+}
+
+/** A shaped paragraph's metrics at `maxWidth` (laid out at 100000 when absent — the caller's). */
+function paragraphResult(
+  paragraph: Paragraph,
+  text: string,
+  font: Font,
+  maxWidth: number | undefined,
+  runs: readonly CatalogTextRunFont[] | undefined,
+  max: number,
+  min: number,
+  clusters: Cluster[] | undefined,
+) {
   // CSS `white-space: normal` breaks only at break opportunities: a word wider than the box
   // overflows on its own line (the paragraph would split it), so wrap at no less than min-content
   // — unless the text may break inside a word (`overflow-wrap` / `word-break`), as the paragraph
@@ -239,8 +367,6 @@ function paragraphMetrics(
     ...(firstBaseline !== undefined ? { firstBaseline } : {}),
     ...(clusters ? { clusters } : {}),
   };
-  paragraph.delete();
-  builder.delete();
   return metrics;
 }
 
@@ -257,6 +383,7 @@ export const catalogTextMeasure: CatalogTextMeasure = (
   font,
   maxWidth,
   runs,
+  leaf,
 ) => {
   // CSS white-space processing (the paint's paragraph follows the same rule, ADR-027): under
   // `normal` / `nowrap` a line break is one space; under the `pre` family it is a hard break, so
@@ -268,9 +395,12 @@ export const catalogTextMeasure: CatalogTextMeasure = (
       font,
       maxWidth,
       runs && alignTextRuns(raw, runs, block),
+      leaf,
     );
   }
-  if (!raw.includes("\n")) return measureOneBlock(raw, font, maxWidth, runs);
+  // (One paragraph per leaf is held — a text of hard-broken lines measures each line anew.)
+  if (!raw.includes("\n"))
+    return measureOneBlock(raw, font, maxWidth, runs, leaf);
   const lineHeight =
     font.lineHeight > 0 ? font.fontSize * font.lineHeight : undefined;
   const lines = raw.split("\n");
@@ -313,6 +443,8 @@ catalogTextMeasure.fontBox = (font) =>
     font.fontWeight,
     font.locale,
   );
+
+catalogTextMeasure.hold = holdMeasureParagraphs;
 
 catalogTextMeasure.lineMetrics = (font) =>
   measureCssLineBox(
@@ -372,10 +504,11 @@ const measureOneBlock = (
   font: Parameters<CatalogTextMeasure>[1],
   maxWidth: number | undefined,
   runs?: readonly CatalogTextRunFont[],
+  leaf?: string,
 ): ReturnType<CatalogTextMeasure> => {
   const lineHeight =
     font.lineHeight > 0 ? font.fontSize * font.lineHeight : undefined;
-  const paragraph = paragraphMetrics(text, font, maxWidth, runs);
+  const paragraph = paragraphMetrics(text, font, maxWidth, runs, false, leaf);
   if (paragraph) {
     // (Runs of other sizes make a line taller than the strut — the paragraph's own height, as the
     //  CSS line box grows with its tallest inline box.)

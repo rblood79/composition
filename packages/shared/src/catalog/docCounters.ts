@@ -64,6 +64,20 @@ export interface DocCounters {
   menuRefusals: number;
   /** `useCatalogEditContract` 의 `invalidatedIds.includes` 호출 수. (C9) */
   editContractIncludes: number;
+  /**
+   * ADR-319 Phase 0 — Canvas 크기 미리보기 비용 (끌기 한 번). 칠 해석: `catalogLibraryVisual` 호출 수 ·
+   * Canvas `paintedNodeData` 호출 수. 줄바꿈: 엔진 rect 조회 (`getLayoutsForIds`) 의 wasm 호출 수와
+   * 요청 handle 합 · applied style `JSON.parse` 수 (`usedBorder` · `rewrapScope`). 측정: 측정 캐시의
+   * 키 직렬화 수 · 그중 측정 원천까지 간 수 · CanvasKit 문단을 만든 수 (`paragraphMetrics`).
+   */
+  libraryVisualCalls: number;
+  paintedNodeCalls: number;
+  layoutQueryCalls: number;
+  layoutQueryHandles: number;
+  appliedStyleParses: number;
+  measureKeySerializations: number;
+  measureSourceCalls: number;
+  paragraphBuilds: number;
 }
 
 const counters: DocCounters = {
@@ -105,6 +119,14 @@ const counters: DocCounters = {
   menuDryRuns: 0,
   menuRefusals: 0,
   editContractIncludes: 0,
+  libraryVisualCalls: 0,
+  paintedNodeCalls: 0,
+  layoutQueryCalls: 0,
+  layoutQueryHandles: 0,
+  appliedStyleParses: 0,
+  measureKeySerializations: 0,
+  measureSourceCalls: 0,
+  paragraphBuilds: 0,
 };
 
 /** 카운터 객체 — 호출부가 필드를 직접 더한다 (dev 게이트 안에서만). */

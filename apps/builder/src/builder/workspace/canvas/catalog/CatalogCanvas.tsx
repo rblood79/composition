@@ -915,6 +915,7 @@ export function CatalogCanvas({
           callbacks.current.onError?.(error);
         reflowScene();
       },
+      holdMeasure: () => workspace.holdMeasureParagraphs(),
       // The Styles box model's padding link and the drag the panel follows (ADR-222).
       paddingLinked: getPaddingLinked,
       spacingLive: setCatalogSpacingLive,
@@ -2008,6 +2009,8 @@ export function CatalogCanvas({
 
     return () => {
       running = false;
+      // (A drag in progress ends with the Canvas — its preview and paragraph hold, ADR-319 R2 H5.)
+      gestures.cancel();
       resize.disconnect();
       themeWatcher.disconnect();
       dprQuery.removeEventListener("change", onDprChange);

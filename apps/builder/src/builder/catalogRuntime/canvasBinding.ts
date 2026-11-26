@@ -1,4 +1,5 @@
 import { COMPONENT_RULES_TABLE } from "../../../../../packages/shared/src/catalog/generated/componentRulesTable";
+import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
 import { catalogEmptyDropSpot } from "../../../../../packages/shared/src/catalog/runtime/elementless";
 import {
@@ -121,6 +122,7 @@ import {
   catalogAuthoredVisual,
   catalogDerivedConditionalVisual,
   catalogDerivedRestVisual,
+  catalogWithoutPaintMemo,
 } from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
@@ -444,10 +446,7 @@ function container(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
 }
 
 /** ADR-314 결정 3: an empty Skeleton's (· ImageCoordinator's) edit-only stand-in — a dashed outline, no fill. */
-function emptyDropSpot(
-  node: CatalogConsumerNode,
-  rect: Rect,
-): SkiaNodeData {
+function emptyDropSpot(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
   return {
     type: "box",
     elementId: node.id,
@@ -1379,6 +1378,7 @@ function paintedNodeData(
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
+  if (process.env.NODE_ENV === "development") docCounters.paintedNodeCalls += 1;
   // ADR-314 Phase 3 — below a loading wrapped participant (a Badge's words, a Meter track's fill):
   //   S2 `visibility: hidden` — the box stays laid out, nothing drawn.
   if (input.derivedProps?._skeletonHidden === true)
@@ -1789,7 +1789,8 @@ function catalogCanvasHidden(
  * A record's Canvas paint as the scene draws it at rest (`paintedNodeData` — its binding or its
  * rule), for the G3 harnesses that hold it against the Preview DOM (ADR-300): hidden (not drawn)
  * when it or an ancestor is hidden, as the scene skips that subtree. Unscrolled — no scrollbar
- * or sticky offset (the scene's scroll table adds those).
+ * or sticky offset (the scene's scroll table adds those). Computed without the paint memo
+ * (`catalogWithoutPaintMemo` — the independent oracle of ADR-319 G1).
  */
 export function catalogCanvasNodeData(
   root: CatalogCompositionRoot,
@@ -1800,12 +1801,14 @@ export function catalogCanvasNodeData(
   if (!node || !rect) throw new Error(`CATALOG_CANVAS_LAYOUT_REQUIRED:${id}`);
   if (catalogCanvasHidden(root, node)) return hiddenNode(node, rect);
   const bindingId = bindingKey(node);
-  return paintedNodeData(
-    root,
-    node,
-    rect,
-    bindingId ? bindings[bindingId] : undefined,
-    root.canvasInputs.get(node.parentId),
+  return catalogWithoutPaintMemo(() =>
+    paintedNodeData(
+      root,
+      node,
+      rect,
+      bindingId ? bindings[bindingId] : undefined,
+      root.canvasInputs.get(node.parentId),
+    ),
   );
 }
 

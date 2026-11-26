@@ -519,6 +519,44 @@ function fontSizeOf(workspace: CatalogWorkspace, identity: string | undefined) {
 }
 
 /**
+ * ADR-319 Phase 3 — the fields whose drag changes a box's size or its content's width (the text
+ * keeps its glyphs: the held paragraphs are laid out again at each width).
+ */
+const SIZE_PREVIEW_PROPERTIES: ReadonlySet<string> = new Set([
+  "width",
+  "height",
+  "minWidth",
+  "minHeight",
+  "maxWidth",
+  "maxHeight",
+  "flexBasis",
+  "flexGrow",
+  "flexShrink",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "borderWidth",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "left",
+  "top",
+  "right",
+  "bottom",
+]);
+
+/**
  * ADR-248 Phase 4e-4d: the Styles panel host over the catalog workspace — the selection and
  * breakpoint are the session's, a section reads the selected target's authored typed fields as
  * CSS (`catalogStyleView`, the breakpoint layer over the base), and every edit is one `setFields`
@@ -562,12 +600,23 @@ export function createCatalogStylesHost(
     workspace.root.previewing(id) ? previewed.get(id) : undefined;
   /** Counts the ends of drags (a commit, a cancel): a preview waiting for its frame is stale. */
   let previewEpoch = 0;
+  /**
+   * ADR-319 Phase 3 — a size · spacing field's drag keeps the text measure's paragraphs while it
+   * previews (`workspace.holdMeasureParagraphs`); released when its previews end (commit · cancel).
+   * A drag of another field (a font size — the glyphs change) does not hold.
+   */
+  let releaseMeasure: (() => void) | undefined;
   const endPreviews = (keep?: ReadonlySet<string>) => {
     for (const id of [...previewed.keys()]) {
       if (keep?.has(id)) continue;
       previewed.delete(id);
       // A commit that replaced the record already won; this restores one it did not touch.
       workspace.root.previewRecord(id);
+    }
+    if (!previewed.size) {
+      const release = releaseMeasure;
+      releaseMeasure = undefined;
+      release?.();
     }
   };
   const run = (
@@ -1043,6 +1092,8 @@ export function createCatalogStylesHost(
     previewStyle(property, value) {
       const items = selection();
       endPreviews(new Set(items.map((item) => item.identity)));
+      if (SIZE_PREVIEW_PROPERTIES.has(property))
+        releaseMeasure ??= workspace.holdMeasureParagraphs();
       for (const item of items) {
         const record = workspace.root.domInputs.get(item.identity);
         if (!record) continue;

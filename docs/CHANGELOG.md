@@ -13,6 +13,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-319 Implemented — Canvas 크기 미리보기 비용 (칠 메모 · 줄바꿈 묶기 · 측정 문단 재사용)] - 2026-11-26
+
+ADR-319 Implemented (Phase 0 ~ 4). 글자가 많은 상자의 Canvas 크기 끌기 (Resizable Panel · Frame 손잡이 · Styles 크기 · 여백 · 간격 칸 끌기 — 같은 미리보기 경로) 가 가벼워졌다. 그림은 같다. 절대 기준 (모든 칸 p95 ≤ max(16.7, idle + 1.7) · LoAF 0) 은 1,000 글자 · 4x CPU 에서 미달이라 사용자 결정 1 로 「한계로 기록하고 닫기」.
+
+### Changed
+
+- **칠 해석 메모** (`packages/shared/src/catalog/runtime/libraryVisual.ts`): `catalogLibraryVisual` · `catalogAuthoredVisual` · `catalogDerivedConditionalVisual` 결과를 root 마다 record 객체 단위로 기억한다 (키 = 그래프 revision + locale typography rule 의 조상 locale, 결과 freeze). 우회 `catalogWithoutPaintMemo` 를 테스트 oracle (`catalogCanvasNodeData`) 이 쓴다. 규칙 `canvas-rendering.md` 에 「새 record 밖 입력은 키에도」.
+- **`rewrap` 묶기** (`compositionRoot.ts`): 다음 가상 격자 전까지의 후보 rect 를 한 번에 읽는다 (wasm 조회 = 구간 수) · applied style 은 `PersistentLayoutTree.getAppliedStyleObject` (입력 JSON 이 바뀔 때 지움) · leaf 는 record 객체 + 상속 줄 높이 + revision 으로 기억 · 측정 캐시 키는 font 객체마다 폭 없는 부분을 한 번 직렬화.
+- **측정 문단 보유** (`textMeasure.ts` · `workspace.holdMeasureParagraphs`): 크기 미리보기 동안 글자 leaf 마다 CanvasKit 문단 하나를 두고 폭이 바뀌면 `layout(width)` 만 다시 부른다 (결과는 새 문단과 같음 — 26 fixture × 12 폭). 여는 곳 = Canvas 크기 · 여백 손잡이, Styles 크기 · 여백 · 간격 · 테두리 폭 · inset 칸 끌기. 닫는 곳 = commit · 취소 · root 교체 · 글꼴 모음 변경 · Canvas teardown (`gestures.cancel()`) · `workspace.dispose` — 즉시 `.delete()`. 규칙 `canvas-rendering.md` §3 의 측정 경로 금지를 이 조건으로 좁혔다.
+- **속도 (production A/B 교대 3 쌍 · headed Chrome)**: 다른 문장 1,000 · 1x p95 60 → 21 ms · LoAF 309 → 1 / 4x p95 320 → 81 ms · p99 359 → 81 ms. 같은 문장 1,000 · 4x p99 79 → 41 ms. CPU 프로필: `paintedNodeData` −53 % · 측정 원천 −86 % · `rewrap` 의 측정 · 엔진 밖 몫 −48 % (같은 문장) · −39 % (다른 문장 — 목표 40 % 미달 1 %p). 남은 것: 1,000 · 4x 는 엔진 · Skia · 줄 나누기 몫으로 여전히 두 프레임 이상 (한계로 기록).
+- 번들 Builder initial gzip +1,250 B (1,637,725 / 1,650,000). 하니스 `adr318-heavy-panel-frame.mjs` 의 `PROFILE=1` 이 원본 CPU 프로필도 저장한다.
+
 ## [ADR-315 Implemented — Table 을 data grid 로] - 2026-11-26
 
 ADR-315 (표 상태 모델 하나로 TanStack Table 기능 표면 전부 — 정렬 · 검색 · 필터 · 열 · 행 · 칸) Implemented. 코드 변경 없이 남은 사용자 확인으로 닫았다 — G6 VoiceOver 청취 사용자 「voiceover는 했다」, G7 사용자 확인 「통과 — Implemented 로」. 종결 live 는 Phase 7 (2026-11-21) 의 재확인 묶음 23 모드 (Chrome · WebKit) · `/cross-check` · HC4 A/B (≤ 1.10) 그대로다. Worker 는 「필요 없음」, 로컬 조회 상한 10,000 그대로 (사용자 결정 7).

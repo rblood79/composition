@@ -1,4 +1,5 @@
 import { catalogAvatarCssSize } from "../document/avatarSizeValue";
+import { docCounters } from "../docCounters";
 import type { DefinitionId, TokenId, VisualField } from "../document/types";
 import { catalogTokenValue } from "../document/themedToken";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -10,6 +11,74 @@ import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
 } from "./compositionRoot";
+
+/**
+ * ADR-319 Phase 1 — the definition values a record resolves to (`catalogLibraryVisual` · its
+ * authored difference · its owner-derived difference), kept per record object. They read the
+ * record, the definition · tokens (the document revision), the root's color mode (one per root —
+ * the memo is the root's) and, for a rule with locale typography (Label · SegmentedControlItem),
+ * the locale its ancestors give it (`catalogTypographyLocale` — an ancestor input the record does
+ * not carry: part of the key). The theme's installed values change with a new root. Nothing else
+ * — no rect, no other record: a size preview keeps every record but the dragged one, so their
+ * values are read once per drag. A new input to these functions goes into the key too
+ * (`.claude/rules/canvas-rendering.md`). Results are frozen — shared by every caller.
+ */
+type PaintMemo = {
+  readonly revision: number;
+  readonly locale: string | undefined;
+  library?: Readonly<Record<string, unknown>>;
+  conditionalLibrary?: Readonly<Record<string, unknown>>;
+  authored?: Readonly<Record<string, unknown>>;
+  conditionalAuthored?: Readonly<Record<string, unknown>>;
+  derived?: Readonly<Record<string, unknown>>;
+};
+const paintMemos = new WeakMap<
+  CatalogCompositionRoot,
+  WeakMap<CatalogConsumerNode, PaintMemo>
+>();
+let paintMemoBypass = 0;
+/**
+ * `read` with the memo off — every value computed again (the independent oracle of ADR-319 G1:
+ * `catalogCanvasNodeData`). Nests.
+ */
+export function catalogWithoutPaintMemo<T>(read: () => T): T {
+  paintMemoBypass += 1;
+  try {
+    return read();
+  } finally {
+    paintMemoBypass -= 1;
+  }
+}
+function paintMemoOf(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): PaintMemo | undefined {
+  if (paintMemoBypass > 0) return undefined;
+  let memos = paintMemos.get(root);
+  if (!memos) paintMemos.set(root, (memos = new WeakMap()));
+  const revision = root.runtime.graph.revision;
+  const locale = COMPONENT_RULES_TABLE[root.typeOf(node)]?.localeTypography
+    ? typographyLocaleOf(root, node)
+    : undefined;
+  let memo = memos.get(node);
+  if (!memo || memo.revision !== revision || memo.locale !== locale) {
+    memo = { revision, locale };
+    memos.set(node, memo);
+  }
+  return memo;
+}
+const typographyLocaleOf = (
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+) =>
+  catalogTypographyLocale(
+    node,
+    (id) => root.domInputs.get(id),
+    root.typeOf,
+    root.environmentLocale,
+  );
+const frozen = <T extends object>(value: T): Readonly<T> =>
+  Object.freeze(value);
 
 /**
  * Visual values a rule-backed node's definition declares for its current props (base visual and
@@ -24,7 +93,24 @@ export function catalogLibraryVisual(
    * `fillStyle: outline` paint): what the generated sheet draws from the same `data-*` values.
    */
   conditional = false,
+): Readonly<Record<string, unknown>> {
+  const memo = paintMemoOf(root, node);
+  const held = conditional ? memo?.conditionalLibrary : memo?.library;
+  if (held) return held;
+  const values = frozen(libraryVisualOf(root, node, conditional));
+  if (memo) {
+    if (conditional) memo.conditionalLibrary = values;
+    else memo.library = values;
+  }
+  return values;
+}
+function libraryVisualOf(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  conditional: boolean,
 ): Record<string, unknown> {
+  if (process.env.NODE_ENV === "development")
+    docCounters.libraryVisualCalls += 1;
   const graph = root.runtime.graph;
   const definition = graph.getDefinition(node.definitionId as DefinitionId);
   const values: Record<string, unknown> = {};
@@ -68,12 +154,7 @@ export function catalogLibraryVisual(
     const lineHeight = catalogLocaleLineHeight(
       typographyRule,
       node.props.size,
-      catalogTypographyLocale(
-        node,
-        (id) => root.domInputs.get(id),
-        root.typeOf,
-        root.environmentLocale,
-      ),
+      typographyLocaleOf(root, node),
       catalogHasExplicitVisual(root, node, "lineHeight"),
     );
     if (lineHeight !== undefined) values.lineHeight = lineHeight;
@@ -89,9 +170,21 @@ export function catalogLibraryVisual(
 export function catalogDerivedConditionalVisual(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
-): Record<string, unknown> {
+): Readonly<Record<string, unknown>> {
   const derived = node.derivedProps;
-  if (!derived) return {};
+  if (!derived) return EMPTY;
+  const memo = paintMemoOf(root, node);
+  if (memo?.derived) return memo.derived;
+  const out = frozen(derivedConditionalVisualOf(root, node, derived));
+  if (memo) memo.derived = out;
+  return out;
+}
+const EMPTY: Readonly<Record<string, unknown>> = Object.freeze({});
+function derivedConditionalVisualOf(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  derived: NonNullable<CatalogConsumerNode["derivedProps"]>,
+): Record<string, unknown> {
   const own = catalogLibraryVisual(root, node, true);
   const withDerived = catalogLibraryVisual(
     root,
@@ -214,12 +307,20 @@ export function catalogAuthoredVisual(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   conditional = false,
-): Record<string, unknown> {
+): Readonly<Record<string, unknown>> {
+  const memo = paintMemoOf(root, node);
+  const held = conditional ? memo?.conditionalAuthored : memo?.authored;
+  if (held) return held;
   const library = catalogLibraryVisual(root, node, conditional);
   const authored: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node.visual))
     if (!Object.is(library[key], value)) authored[key] = value;
-  return authored;
+  const out = frozen(authored);
+  if (memo) {
+    if (conditional) memo.conditionalAuthored = out;
+    else memo.authored = out;
+  }
+  return out;
 }
 
 /** A color write equal to the library default is still an explicit Icon color choice. */

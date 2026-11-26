@@ -1013,6 +1013,11 @@ export interface CatalogTextMeasure {
     maxWidth?: number,
     /** ADR-299 — a range-formatted text's runs over `text` (each run's own font over `font`). */
     runs?: readonly CatalogTextRunFont[],
+    /**
+     * ADR-319 Phase 3 — the text leaf record measured (`rewrap`): while a size preview holds the
+     * measure's paragraphs (`hold`), its shaped paragraph is kept and laid out again at a new width.
+     */
+    leaf?: string,
   ): {
     width: number;
     height: number;
@@ -1028,6 +1033,13 @@ export interface CatalogTextMeasure {
    * fallbacks (an atomic inline's baseline at its bottom edge).
    */
   fontBox?(font: CatalogTextFont): CatalogFontBox | undefined;
+  /**
+   * ADR-319 Phase 3 (Decision 3) — keep the paragraphs measured for a `leaf` until the returned
+   * release (a size preview: Canvas size · spacing handles, the Styles size · spacing fields):
+   * one per leaf, shaped once and laid out again per width. The release deletes them at once
+   * (they are never drawn). Absent = no paragraph to keep (Canvas 2D · a test measure).
+   */
+  hold?(): () => void;
 }
 /** ADR-299 — one run's font over the text's (`textLeaf` → measure): `[start, end)` in the text. */
 export interface CatalogTextRunFont {
@@ -5983,10 +5995,7 @@ export class CatalogCompositionRoot {
     bottom: number;
     left: number;
   } {
-    const applied = this.layout.getAppliedStyle(id);
-    const style = applied
-      ? (JSON.parse(applied) as Record<string, unknown>)
-      : {};
+    const style = this.layout.getAppliedStyleObject(id);
     const side = (key: string) =>
       snapBorderWidthAt(
         Number.parseFloat(String(style[key] ?? 0)) || 0,
@@ -6875,8 +6884,60 @@ export class CatalogCompositionRoot {
     this.staleSamples.clear();
     return this.refreshSources(sources);
   }
+  /**
+   * ADR-319 Phase 2 — a record's text leaf (`textLeaf`), kept per record object while its
+   * inherited line height (an ancestor's — F4a: a parent's previewed line height leaves the
+   * child's record the same object) and the document revision are the same. The leaf's font
+   * object stays the same with it, so the measure cache serializes its key once
+   * (`textMeasureCache`). The root lives for one theme · base font (a change makes a new root).
+   */
+  private readonly rewrapLeaves = new WeakMap<
+    CatalogConsumerNode,
+    {
+      lineHeight: number | undefined;
+      revision: number;
+      leaf: ReturnType<typeof textLeaf>;
+    }
+  >();
+  private rewrapLeaf(record: CatalogConsumerNode): ReturnType<typeof textLeaf> {
+    const lineHeight = inheritedLineHeight(record, (key) =>
+      this.records.get(key),
+    );
+    const revision = this.runtime.graph.revision;
+    const held = this.rewrapLeaves.get(record);
+    if (held && held.lineHeight === lineHeight && held.revision === revision)
+      return held.leaf;
+    const leaf = textLeaf(record, this.typeOf(record), "", lineHeight);
+    this.rewrapLeaves.set(record, { lineHeight, revision, leaf });
+    return leaf;
+  }
+  /**
+   * Re-measure `candidates` at their laid-out widths (text leaves · calendar day tables · virtual
+   * grids). The rects are read per segment (ADR-319 Phase 2): the candidates up to and with the
+   * next virtual grid — which lays out again mid-loop — in one engine read, each candidate once
+   * (a text leaf's new height waits for the closing layout, so the rects before it hold).
+   */
   private rewrap(candidates: Iterable<string>): void {
     let changed = false;
+    type Item = {
+      readonly id: string;
+      readonly record: CatalogConsumerNode;
+      readonly kind: "grid" | "calendar" | "text";
+      readonly leaf?: NonNullable<ReturnType<typeof textLeaf>>;
+      readonly calendar?: NonNullable<ReturnType<typeof calendarGridShape>>;
+      /** Whether it reads its laid-out rect. */
+      readonly rect: boolean;
+    };
+    let segment: Item[] = [];
+    const flush = () => {
+      if (!segment.length) return;
+      const rects = this.layout.getLayoutsForIds(
+        segment.flatMap((item) => (item.rect ? [item.id] : [])),
+      );
+      for (const item of segment)
+        if (this.rewrapItem(item, rects.get(item.id))) changed = true;
+      segment = [];
+    };
     for (const id of candidates) {
       const record = this.records.get(id);
       if (!record || record.hidden) continue;
@@ -6887,123 +6948,157 @@ export class CatalogCompositionRoot {
         record.derivedProps?._rowDisplay === "virtual" ||
         this.virtualGrids.has(id)
       ) {
-        const rect = this.layout.getLayoutsForIds([id]).get(id);
-        const border = this.usedBorder(id);
-        const next =
-          rect && record.derivedProps?._rowDisplay === "virtual"
-            ? catalogVirtualGridStyle(
-                this.typeOf(record),
-                record.props,
-                rect.width - border.left - border.right,
-              )
-            : undefined;
-        if (JSON.stringify(next) === JSON.stringify(this.virtualGrids.get(id)))
-          continue;
-        this.keep(this.virtualGrids, id);
-        if (next === undefined) this.virtualGrids.delete(id);
-        else this.virtualGrids.set(id, next);
-        this.layout.updateNodeStyle(id, this.styleFor(record));
-        this.layout.computeLayout(this.viewport.width, this.viewport.height);
+        segment.push({ id, record, kind: "grid", rect: true });
+        flush();
         continue;
       }
       // A calendar's day table: its cells follow its laid-out width (its month's), so its height.
       if (record.bindingId === "calendargrid") {
-        const grid = calendarGridShape(record.derivedProps?._calendarGrid);
-        const rect = grid && this.layout.getLayoutsForIds([id]).get(id);
-        const own = grid
-          ? catalogCalendarGridSize(grid.columns, grid.rows, grid.emptyRows)
-          : undefined;
-        const next =
-          grid && rect && own && Math.abs(rect.width - own.width) > 0.5
-            ? catalogCalendarGridSize(
-                grid.columns,
-                grid.rows,
-                grid.emptyRows,
-                rect.width,
-              )!.height
-            : undefined;
-        if (next === this.wrapHeights.get(id)) continue;
-        this.keep(this.wrapHeights, id);
-        if (next === undefined) this.wrapHeights.delete(id);
-        else this.wrapHeights.set(id, next);
-        this.layout.updateNodeStyle(id, this.styleFor(record));
-        changed = true;
+        const calendar = calendarGridShape(record.derivedProps?._calendarGrid);
+        segment.push({
+          id,
+          record,
+          kind: "calendar",
+          ...(calendar ? { calendar } : {}),
+          rect: !!calendar,
+        });
         continue;
       }
       if (!this.textMeasure) continue;
-      const leaf = textLeaf(
-        record,
-        this.typeOf(record),
-        "",
-        inheritedLineHeight(record, (key) => this.records.get(key)),
-      );
+      const leaf = this.rewrapLeaf(record);
       // A leaf that no longer wraps (now single-line, emptied …) drops its old wrapped height.
-      let next: number | undefined;
-      let nextBaseline: number | undefined;
-      if (
-        leaf?.text &&
+      const wraps =
+        !!leaf?.text &&
         !(
           catalogBindingKeepsOneLine(record) ||
           ("singleLine" in leaf && leaf.singleLine) ||
           (heightOnlyTextTypes.has(this.typeOf(record)) &&
             !wrappingFieldTextTypes.has(this.typeOf(record)))
-        )
-      ) {
-        const rect = this.layout.getLayoutsForIds([id]).get(id);
-        if (!rect) continue;
-        const box = catalogBoxModel(record);
-        const num = (value: CatalogLength | undefined) =>
-          typeof value === "number" ? value : 0;
-        const border = this.usedBorder(id);
-        const contentWidth =
-          rect.width -
-          num(box.padding?.left) -
-          num(box.padding?.right) -
-          border.left -
-          border.right;
-        const single = this.textMeasure(
-          leaf.text,
-          leaf.font,
-          undefined,
-          leaf.runs,
         );
-        // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
-        // overflows on its own line instead of splitting. Lines are broken at no less than the
-        // min-content width (the longest word), so a lone overflowing word stays one line — unless
-        // the text may break inside a word (`catalogTextBreaksWords`).
-        const breakWidth = catalogTextBreaksWords(leaf.font as CatalogTextFont)
-          ? contentWidth
-          : Math.max(contentWidth, single.minWidth ?? 0);
-        if (
-          contentWidth > 0 &&
-          breakWidth + 0.5 < (single.exactWidth ?? single.width)
-        ) {
-          const wrapped = this.textMeasure(
-            leaf.text,
-            leaf.font,
-            breakWidth,
-            leaf.runs,
-          );
-          next = wrapped.height;
-          nextBaseline = wrapped.firstBaseline;
-        }
-      }
-      if (
-        next === this.wrapHeights.get(id) &&
-        nextBaseline === this.wrapBaselines.get(id)
-      )
-        continue;
-      this.keep(this.wrapHeights, id);
-      this.keep(this.wrapBaselines, id);
-      if (next === undefined) this.wrapHeights.delete(id);
-      else this.wrapHeights.set(id, next);
-      if (nextBaseline === undefined) this.wrapBaselines.delete(id);
-      else this.wrapBaselines.set(id, nextBaseline);
-      this.layout.updateNodeStyle(id, this.styleFor(record));
-      changed = true;
+      segment.push({
+        id,
+        record,
+        kind: "text",
+        ...(wraps ? { leaf: leaf! } : {}),
+        rect: wraps,
+      });
     }
+    flush();
     if (changed)
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
+  }
+  /**
+   * One `rewrap` candidate at its rect (read with its segment). True when the wrap height changed
+   * (the closing layout runs); a virtual grid lays out itself.
+   */
+  private rewrapItem(
+    item: {
+      readonly id: string;
+      readonly record: CatalogConsumerNode;
+      readonly kind: "grid" | "calendar" | "text";
+      readonly leaf?: NonNullable<ReturnType<typeof textLeaf>>;
+      readonly calendar?: NonNullable<ReturnType<typeof calendarGridShape>>;
+    },
+    rect: LayoutResult | undefined,
+  ): boolean {
+    const { id, record } = item;
+    if (item.kind === "grid") {
+      const border = this.usedBorder(id);
+      const next =
+        rect && record.derivedProps?._rowDisplay === "virtual"
+          ? catalogVirtualGridStyle(
+              this.typeOf(record),
+              record.props,
+              rect.width - border.left - border.right,
+            )
+          : undefined;
+      if (JSON.stringify(next) === JSON.stringify(this.virtualGrids.get(id)))
+        return false;
+      this.keep(this.virtualGrids, id);
+      if (next === undefined) this.virtualGrids.delete(id);
+      else this.virtualGrids.set(id, next);
+      this.layout.updateNodeStyle(id, this.styleFor(record));
+      this.layout.computeLayout(this.viewport.width, this.viewport.height);
+      return false;
+    }
+    if (item.kind === "calendar") {
+      const grid = item.calendar;
+      const own = grid
+        ? catalogCalendarGridSize(grid.columns, grid.rows, grid.emptyRows)
+        : undefined;
+      const next =
+        grid && rect && own && Math.abs(rect.width - own.width) > 0.5
+          ? catalogCalendarGridSize(
+              grid.columns,
+              grid.rows,
+              grid.emptyRows,
+              rect.width,
+            )!.height
+          : undefined;
+      if (next === this.wrapHeights.get(id)) return false;
+      this.keep(this.wrapHeights, id);
+      if (next === undefined) this.wrapHeights.delete(id);
+      else this.wrapHeights.set(id, next);
+      this.layout.updateNodeStyle(id, this.styleFor(record));
+      return true;
+    }
+    let next: number | undefined;
+    let nextBaseline: number | undefined;
+    const leaf = item.leaf;
+    if (leaf) {
+      if (!rect) return false;
+      const box = catalogBoxModel(record);
+      const num = (value: CatalogLength | undefined) =>
+        typeof value === "number" ? value : 0;
+      const border = this.usedBorder(id);
+      const contentWidth =
+        rect.width -
+        num(box.padding?.left) -
+        num(box.padding?.right) -
+        border.left -
+        border.right;
+      const single = this.textMeasure!(
+        leaf.text,
+        leaf.font,
+        undefined,
+        leaf.runs,
+        id,
+      );
+      // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
+      // overflows on its own line instead of splitting. Lines are broken at no less than the
+      // min-content width (the longest word), so a lone overflowing word stays one line — unless
+      // the text may break inside a word (`catalogTextBreaksWords`).
+      const breakWidth = catalogTextBreaksWords(leaf.font as CatalogTextFont)
+        ? contentWidth
+        : Math.max(contentWidth, single.minWidth ?? 0);
+      if (
+        contentWidth > 0 &&
+        breakWidth + 0.5 < (single.exactWidth ?? single.width)
+      ) {
+        const wrapped = this.textMeasure!(
+          leaf.text,
+          leaf.font,
+          breakWidth,
+          leaf.runs,
+          id,
+        );
+        next = wrapped.height;
+        nextBaseline = wrapped.firstBaseline;
+      }
+    }
+    if (
+      next === this.wrapHeights.get(id) &&
+      nextBaseline === this.wrapBaselines.get(id)
+    )
+      return false;
+    this.keep(this.wrapHeights, id);
+    this.keep(this.wrapBaselines, id);
+    if (next === undefined) this.wrapHeights.delete(id);
+    else this.wrapHeights.set(id, next);
+    if (nextBaseline === undefined) this.wrapBaselines.delete(id);
+    else this.wrapBaselines.set(id, nextBaseline);
+    this.layout.updateNodeStyle(id, this.styleFor(record));
+    return true;
   }
   /**
    * Text leaves whose width an edit of `ids` can change: each record's subtree, and its parent's
@@ -7048,13 +7143,8 @@ export class CatalogCompositionRoot {
         !!after &&
         before.width === after.width &&
         before.height === after.height;
-      const box = JSON.parse(this.layout.getAppliedStyle(id) ?? "{}") as Record<
-        string,
-        unknown
-      >;
-      const parentStyle = JSON.parse(
-        this.layout.getAppliedStyle(parentId!) ?? "{}",
-      ) as Record<string, unknown>;
+      const box = this.layout.getAppliedStyleObject(id);
+      const parentStyle = this.layout.getAppliedStyleObject(parentId!);
       const siblingsFixed =
         parentFixed &&
         (box.position === "absolute" ||

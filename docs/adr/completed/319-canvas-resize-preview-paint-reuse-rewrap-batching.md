@@ -2,13 +2,17 @@
 
 ## Status
 
-Proposed — 2026-11-26
+Implemented — 2026-11-26 (Phase 0 ~ 4 · 사용자 결정 1 = 「한계로 기록하고 닫기」). 이전: Accepted — 2026-11-26 (사용자 `/execute-adr 319` + [reviews/319.md](../reviews/319.md) round 3 설계 승인 가능 · pending 0 · HIGH 전부 fixed) · Proposed — 2026-11-26.
+
+> **Phase 4 — 2026-11-26 (G4 · 사용자 결정 1)** ([breakdown §9](../design/319-canvas-resize-preview-paint-reuse-rewrap-batching-breakdown.md)): production A/B 교대 3 쌍 (dist `c0d76012d` ↔ 같은 HEAD + 이 변경, headed Chrome). **기술 판정**: 다른 문장 1,000 · 1x p95 60.1 ~ 75.1 → 17.1 ~ 21.1 ms · LoAF 309 → 1 (끌기 시작의 첫 측정 한 번 ≈ 100 ms) · 다른 문장 1,000 · 4x p95 300 ~ 321 → 81 ~ 84 · p99 359 → 81 ms (LoAF 309 그대로 — 매 프레임) · 같은 문장 1,000 · 4x p99 60 ~ 79 → 41 ~ 50 · LoAF 309 → 230 ~ 293 (pair 3 은 화면 cadence 가 8.3 ms 로 바뀐 뒤라 17) · 300 · 4x LoAF 3 ~ 4 → 0 ~ 2 (Publish DOM 쪽 4x 에도 ≈ 60 ms 한 번이 있다) · 0 글자 회귀 없음. CPU 프로필 (같은 dist, 교대 3 쌍): `paintedNodeData` 826 → 388 ms (G1 −53 %) · 측정 원천 17,500 → 2,450 ms (G3 −86 %) · `rewrap` 의 측정 · 엔진 밖 몫 같은 문장 771 → 404 (−48 %) · 다른 문장 1,412 → 862 ms (**G2 −39 % — 목표 40 % 미달 1 %p**, 남은 몫의 절반이 측정 캐시의 Map 연산 — 호출 60 만 번 × 약 0.6 µs, 키 문자열 재사용 시도는 브라우저에서 이득 0 이라 되돌림). Canvas 그림 = 같은 환경 base ↔ new 스크린샷 0 px. 번들 Builder initial gzip +1,250 B (1,637,725). **절대 기준 미달** — 1,000 · 4x (두 벌) 는 엔진 · Skia · 줄 나누기 몫이 남아 두 프레임 이상, 다른 문장 1,000 · 1x 는 첫 측정 LoAF 1. 사용자 결정 1 = **「한계로 기록하고 닫기」** (대안 C 는 열지 않음). 결정적 호출 수 ratchet 은 push 대상 커밋을 재므로 커밋 뒤 (R5).
+
+> **Phase 0 ~ 3 — 2026-11-26** ([breakdown §9](../design/319-canvas-resize-preview-paint-reuse-rewrap-batching-breakdown.md)): 문단 재사용 시제품 **go** (11,077 비교 불일치 0 · 폭 바뀜에 layout 만 = 새 문단의 13 ~ 15 %). 끌기 한 번 (글자 60 · 폭 10) 의 결정적 카운트 HEAD → 수정: 칠 해석 2,475 → 30 · wasm 조회 702 → 53 · applied style 파싱 682 → 190 · 측정 키 직렬화 1,440 → 120. 칠 oracle (등록 = 메모 우회 독립 계산) · 줄 oracle (HEAD 스냅샷 — 부모 줄 높이 미리보기 · 가상 격자 · 달력 · RichText) GREEN. 원복 RED 6/7 (메모 키 revision 은 재현 시나리오 없음 — 방어 키, LOW deferred). 측정 문단 보유: 글자 편집 512 회 보유 0 · 끌기 중 ≤ leaf 수 · 닫는 경우마다 보유 0 · 만든 = 지운.
 
 - 사용자 요청 (2026-11-26): 「권장하는 개선 방안으로 1 · 2 를 별도 새ADR로 작업으로 진행.」 — 같은 대화의 측정 보고에서 제안한 세 방안 중 1 (칠 결과 재사용) · 2 (줄바꿈 계산 정리) 를 이 ADR 로 묶는다. 3 (끄는 동안 줄바꿈 미루기) 은 범위 밖이다.
 - 방향을 정한 사용자 원문 (같은 날): 「내용이 많은 Panel 에서 끄는 느낌이 무거울지가 걱정이다. 측정후 문제가 된다면 개선 방안을 제시해줘」.
 - ADR-318 (Resizable) 에서 시작한 측정이지만 원인은 모든 Canvas 크기 조절 미리보기가 지나는 공용 경로다 — 318 범위에 넣지 않고 새 ADR 로 둔다 (사용자 지시한 분리).
 
-> **리뷰 round 1 반영 — 2026-11-26** ([reviews/319.md](reviews/319.md), HIGH 3 · MEDIUM 3 — 사용자가 판독을 붙여 넣음):
+> **리뷰 round 1 반영 — 2026-11-26** ([reviews/319.md](../reviews/319.md), HIGH 3 · MEDIUM 3 — 사용자가 판독을 붙여 넣음):
 > H1 줄 높이 상속 — leaf 기억의 키에 조상에서 온 계산된 줄 높이를 넣고, 칠 메모도 조상 입력을 키에 넣거나 record 고유 입력만 메모한다 · G2 에 부모 미리보기 · 원복 시나리오.
 > H2 칠 비교 — G1 oracle 을 「메모를 우회한 독립 계산의 실제 칠 값 (`SkiaNodeData` 전체) 비교」 로 바꾸고 세 조건 (정상 메모 = GREEN · 키 하나 누락 = RED · 메모 끔 = 호출 수 상한 RED) 을 구분. 같은 root 를 쓰는 `rebuild` 서명은 oracle 에서 뺌.
 > H3 Publish 표본 — 하니스가 매 표본 시작 크기를 되돌리고 (Canvas undo · Publish 다시 열기) 손잡이 좌표를 다시 구하며, 시작 크기가 다르거나 끝 크기가 같은 표본을 버린다. 기준선을 다시 쟀다 (아래 실측 — dist 식별자 포함).
@@ -18,12 +22,12 @@ Proposed — 2026-11-26
 
 > **범위 넓힘 — 2026-11-26 (사용자 답, 결정 지점 4)**: 기준선을 다시 재니 글자마다 문장이 다른 경우 비용의 약 85 % 가 측정 원천 (문단 shaping) 이었다 (아래 실측). 질문 「범위를 어떻게 할까요?」 에 사용자 답 = 「319 에 문단 재사용 추가 (Recommended)」 — 측정할 때마다 새로 만들던 CanvasKit 문단을 글자마다 기억해 두고, 폭이 바뀌면 줄 나누기만 다시 한다 (결과 동일). 이 결정은 `.claude/rules/canvas-rendering.md` §3 의 「WASM Paragraph 객체 캐싱 금지는 측정 경로 한정」 (ADR-174 가 남긴 측정 경로 「결과값만」 계약) 을 좁게 고친다 — 조건은 Decision 3.
 
-> **리뷰 round 2 반영 — 2026-11-26** ([reviews/319.md](reviews/319.md), round 1 여섯 건 해소 확인 · 문단 재사용에 HIGH 2 · MEDIUM 1 — 사용자가 판독을 붙여 넣음):
+> **리뷰 round 2 반영 — 2026-11-26** ([reviews/319.md](../reviews/319.md), round 1 여섯 건 해소 확인 · 문단 재사용에 HIGH 2 · MEDIUM 1 — 사용자가 판독을 붙여 넣음):
 > H4 편집 중 문단 누적 — `previewRecord` 는 글자 편집 (`CatalogTextEditor.tsx:253`) · Styles 칸 끌기 (`catalogStylesHost.ts:1065` 등) 도 부른다. 보유를 `previewRecord` 가 아니라 **크기 미리보기를 연 호출자**가 연다 (Canvas 크기 · 여백 손잡이 = `canvasGesture.showReflow`, Styles 의 크기 · 여백 · 간격 칸 끌기). 글자 편집 · 글꼴 크기 끌기 같은 다른 미리보기는 보유를 열지 않는다 (지금 그대로). 보유 표는 **글자 leaf 마다 한 칸** — 같은 leaf 의 글자 · 서체 · run 이 바뀌면 이전 문단을 그 자리에서 지운다. 그래서 보유 개수 ≤ 측정한 leaf 수이고, G3 이 끌기 중 최대 보유 개수를 기록한다.
 > H5 화면 이탈 — 닫는 곳에 Canvas teardown (`CatalogCanvas` cleanup 이 진행 중 끌기를 `cancel`) 과 `workspace.dispose` 를 더한다 (둘 다 여러 번 불러도 한 번만 닫힘). 폐기는 지연 큐 대신 **즉시 `.delete()`** 로 바꾼다 — 측정 문단은 그리기 호출에 넘어가지 않아 ADR-174 의 사고 (그린 뒤 flush 전 삭제) 가 생길 수 없고, 지금도 측정 문단은 만든 자리에서 바로 지운다 (`textMeasure.ts:242`). 다음 프레임이 없어도 해제가 끝난다. G3 = 끌기 중 라우트 이탈 뒤 보유 0 · 만든 수 = 지운 수.
 > M4 G3 원복 조건 — 문단 보유 키에는 폭이 없다 (폭마다 `layout(width)` 를 다시 부르면 결과가 맞다 — 리뷰 실측 95 → 400 → 95 px 에서 7 → 2 → 7 줄, 새 문단과 같음). 원복 RED 는 (i) 폭이 바뀌어도 `layout` 을 다시 부르지 않음 (ii) 수치 결과 캐시 (`textMeasureCache.ts:13`) 키에서 폭을 뺌 — 둘이다.
 
-> **리뷰 round 3 — 2026-11-26** ([reviews/319.md](reviews/319.md), 사용자가 결과를 전달): 설계 승인 가능. round 2 의 H4 · H5 · M4 fixed, 누적 9건 fixed · pending 0. M4 는 CanvasKit 0.42 · Pretendard 로 95 → 400 → 95 px 를 재어 정상 경로 7 → 2 → 7 줄 (새 문단과 같음), 두 원복 변형 (재배치 생략 · 수치 캐시 키에서 폭 뺌) 은 7 → 7 → 7 줄로 검출됨을 확인했다.
+> **리뷰 round 3 — 2026-11-26** ([reviews/319.md](../reviews/319.md), 사용자가 결과를 전달): 설계 승인 가능. round 2 의 H4 · H5 · M4 fixed, 누적 9건 fixed · pending 0. M4 는 CanvasKit 0.42 · Pretendard 로 95 → 400 → 95 px 를 재어 정상 경로 7 → 2 → 7 줄 (새 문단과 같음), 두 원복 변형 (재배치 생략 · 수치 캐시 키에서 폭 뺌) 은 7 → 7 → 7 줄로 검출됨을 확인했다.
 
 ## Context
 
@@ -148,7 +152,7 @@ HIGH 없는 대안 (A) 이 있어 루프는 한 번으로 끝난다.
 - **A′**: ADR-174 가 걷어낸 전역 LRU 를 측정 경로에 다시 들인다 — 미리보기 한 번으로 묶은 A-3 이 끌기 중 이득을 같이 얻는다.
 - **D**: 범위 · 위험이 이 문제에 비해 지나치게 크다.
 
-> 구현 상세: [319-canvas-resize-preview-paint-reuse-rewrap-batching-breakdown.md](design/319-canvas-resize-preview-paint-reuse-rewrap-batching-breakdown.md)
+> 구현 상세: [319-canvas-resize-preview-paint-reuse-rewrap-batching-breakdown.md](../design/319-canvas-resize-preview-paint-reuse-rewrap-batching-breakdown.md)
 
 ### 사용자 결정 (execute 중 해당 Phase 에서 묻는다)
 
@@ -182,7 +186,16 @@ HIGH 없는 대안 (A) 이 있어 루프는 한 번으로 끝난다.
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-26 — Playwright 로 headed Chrome 을 몰아 dev 서버 (5173 — 작업 트리) 에서 실행했다. 글자 300 개는 각기 다른 문장이고 한글이 섞여 있다. 보유 수는 앱과 같은 측정 모듈 인스턴스의 진단 카운터 (`catalogMeasureParagraphHoldStats`) 로 읽었다. 사용자 confirm 이 아니라 브라우저 도구로 확인했다.
+
+- **Resizable Panel 손잡이 끌기** (폭 599.5 → 559.9): 끌기 중 최대 보유 300 (= 글자 leaf 수) → 놓은 뒤 보유 0 · 만든 300 = 지운 300. GC 뒤 JS heap 125.7 → 128.7 MB · CanvasKit heap 128 MB 그대로.
+- **테마 전환 (다크) 뒤 같은 끌기**: 새 root (색 모드 dark) 에서도 보유 ≤ 300 → 0 · 만든 = 지운. 화면은 다크 바탕 · 흰 글자 · 520 폭 줄바꿈.
+- **끌기 중 글꼴 모음 변경** (`workspace.refreshFonts`): 그 자리에서 보유 300 → 0, 나머지 끌기는 보유 없이 진행되고 놓은 뒤에도 0 · 만든 = 지운.
+- **끌기 중 브라우저 뒤로가기** (→ 대시보드): 보유 300 → 0 · 만든 300 = 지운 300.
+- **Frame 폭 손잡이 끌기** (600 → 560): 보유 ≤ 300 → 0 · 만든 = 지운.
+- 다섯 경우 모두 page error · console error 0.
+
+production dist A/B (교대 3 쌍 · 대조군) 와 같은 환경 스크린샷 대조 (Canvas 그림 0 px 차이) 는 Phase 4 블록과 breakdown §9 에 있다.
 
 ## Consequences
 

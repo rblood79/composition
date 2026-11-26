@@ -32,6 +32,9 @@ import type {
 } from "./engineTypes";
 import type { EngineNodeHandle } from "./layoutTypes";
 import { encodeBatchBinary } from "./binaryProtocol";
+import { docCounters } from "../docCounters";
+
+const EMPTY_STYLE: Readonly<Record<string, unknown>> = Object.freeze({});
 import type { BinaryBatchInput } from "./binaryProtocol";
 
 // ─── 타입 정의 ────────────────────────────────────────────────────────
@@ -82,6 +85,14 @@ export class PersistentLayoutTree {
    * JSON 문자열 비교를 수행하며, 동일하면 WASM 호출을 스킵한다.
    */
   private _lastJsonMap = new Map<string, string>();
+  /**
+   * ADR-319 Phase 2 — `_lastJsonMap` 의 값을 읽은 객체 (`getAppliedStyleObject`). JSON 이 바뀌거나
+   * 지워지는 자리에서 같이 지운다 — 같은 입력이면 다시 parse 하지 않는다.
+   */
+  private _appliedStyleObjects = new Map<
+    string,
+    Readonly<Record<string, unknown>>
+  >();
 
   /**
    * elementId → childIds.join(',') 해시.
@@ -148,6 +159,23 @@ export class PersistentLayoutTree {
     return this._lastJsonMap.get(elementId);
   }
 
+  /**
+   * The applied input (`getAppliedStyle`) read as an object — parsed once per applied input, kept
+   * until the node's input changes (ADR-319 Phase 2: the text re-wrap read it per leaf per frame).
+   * Read-only: the same object is handed to every caller.
+   */
+  getAppliedStyleObject(elementId: string): Readonly<Record<string, unknown>> {
+    const held = this._appliedStyleObjects.get(elementId);
+    if (held) return held;
+    const json = this._lastJsonMap.get(elementId);
+    if (json === undefined) return EMPTY_STYLE;
+    if (process.env.NODE_ENV === "development")
+      docCounters.appliedStyleParses += 1;
+    const style = JSON.parse(json) as Record<string, unknown>;
+    this._appliedStyleObjects.set(elementId, style);
+    return style;
+  }
+
   // ─── 초기 트리 구축 ─────────────────────────────────────────────────
 
   /**
@@ -199,6 +227,7 @@ export class PersistentLayoutTree {
     this.handleMap.clear();
     this.childrenHashMap.clear();
     this._lastJsonMap.clear();
+    this._appliedStyleObjects.clear();
     this.stickyIds.clear();
     this.elementIdByHandle.clear();
 
@@ -207,6 +236,7 @@ export class PersistentLayoutTree {
       this.handleMap.set(node.elementId, handles[i]);
       this.elementIdByHandle.set(handles[i], node.elementId);
       this._lastJsonMap.set(node.elementId, JSON.stringify(node.style));
+      this._appliedStyleObjects.delete(node.elementId);
       this.trackSticky(node.elementId, node.style);
 
       // childrenHashMap: filteredChildIds 기준 (implicit style 적용 후 실제 자식)
@@ -273,6 +303,7 @@ export class PersistentLayoutTree {
     this._generation++;
     this.engine.updateStyleRaw(handle, json);
     this._lastJsonMap.set(elementId, json);
+    this._appliedStyleObjects.delete(elementId);
     this.trackSticky(elementId, styleRecord);
     return true;
   }
@@ -345,6 +376,7 @@ export class PersistentLayoutTree {
     this.handleMap.set(elementId, handle);
     this.elementIdByHandle.set(handle, elementId);
     this._lastJsonMap.set(elementId, json);
+    this._appliedStyleObjects.delete(elementId);
     this.trackSticky(elementId, styleRecord);
     // childrenHashMap은 updateChildren() 호출 시 설정
     return handle;
@@ -369,6 +401,7 @@ export class PersistentLayoutTree {
       // WASM 예외 시에도 내부 맵 정리 보장 — stale handle 방지
       this.handleMap.delete(elementId);
       this._lastJsonMap.delete(elementId);
+      this._appliedStyleObjects.delete(elementId);
       this.childrenHashMap.delete(elementId);
       this.stickyIds.delete(elementId);
       if (this.elementIdByHandle.get(handle) === elementId)
@@ -446,6 +479,10 @@ export class PersistentLayoutTree {
     }
 
     if (requestedHandles.length === 0) return new Map();
+    if (process.env.NODE_ENV === "development") {
+      docCounters.layoutQueryCalls += 1;
+      docCounters.layoutQueryHandles += requestedHandles.length;
+    }
 
     const layouts = this.engine.getLayoutsBatch(requestedHandles);
     const result = new Map<string, LayoutResult>();
@@ -528,6 +565,7 @@ export class PersistentLayoutTree {
     this.rootHandle = null;
     this.handleMap.clear();
     this._lastJsonMap.clear();
+    this._appliedStyleObjects.clear();
     this.childrenHashMap.clear();
     this.stickyIds.clear();
     this.elementIdByHandle.clear();
