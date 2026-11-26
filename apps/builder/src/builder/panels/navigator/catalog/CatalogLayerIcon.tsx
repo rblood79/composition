@@ -6,7 +6,7 @@ import {
   SeparatorHorizontal,
   SeparatorVertical,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, type ReactElement } from "react";
 import { getPanelMeta, getReusableEntry } from "@composition/shared";
 import { getChartDescriptor } from "@composition/rendering";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -15,6 +15,11 @@ import {
   useCatalogPropSource,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
+import {
+  RESIZABLE_GROUP_TYPE,
+  RESIZABLE_HANDLE_TYPE,
+  RESIZABLE_PANEL_TYPE,
+} from "../../../../../../../packages/shared/src/catalog/runtime/resizablePanels";
 import { getPaletteItems, ICON_MAP } from "../../components/paletteItems";
 import { ICON_EDIT_PROPS } from "../tree/helpers";
 
@@ -78,8 +83,6 @@ export function layerNodeGlyph(typeName: string): NodeGlyph {
       return "vector";
     case "Image":
       return "image";
-    case "Separator":
-      return "line";
     case "Group":
     case "Content":
     case "Header":
@@ -123,6 +126,9 @@ const iconProps = {
   "aria-hidden": true as const,
 };
 
+type EditTarget = CatalogLayerNode["position"]["target"];
+type LayerLucideIcon = (typeof ICON_MAP)[string];
+
 /**
  * ADR-318 후속 (사용자 2026-11-26 「orientation 에 따라 layers 트리 icon 이 columns, rows」): a
  * Resizable Group's row shows its axis — side by side (horizontal, the palette's) two columns,
@@ -132,34 +138,22 @@ export function layerResizableGroupIcon(orientation: unknown) {
   return orientation === "vertical" ? Rows2 : Columns2;
 }
 
-function ResizableGroupLayerIcon({ node }: { node: CatalogLayerNode }) {
-  // Subscribe only to this row's orientation (as the Chart row does its chartType).
-  const orientation = useCatalogPropSource(node.position.target, "orientation");
-  const Icon = layerResizableGroupIcon(orientation.value);
-  return <Icon {...iconProps} data-layer-icon="component" />;
-}
-
 /**
  * ADR-318 후속 (사용자 2026-11-26 「방향에 맞추기 — Handle · Panel · Separator 셋 다」): the line and
  * part glyphs follow the axis the Canvas draws — a Separator its own `orientation`, a Resizable
  * Handle the line between its Group's Panels (a horizontal Group's is vertical), a Panel its share
- * (a column side by side, a row stacked). Undefined for any other type.
+ * (a column side by side, a row stacked).
  */
 export function layerOrientedGlyph(
-  typeName: string,
+  typeName:
+    "Separator" | typeof RESIZABLE_HANDLE_TYPE | typeof RESIZABLE_PANEL_TYPE,
   orientation: unknown,
-): NodeGlyph | undefined {
+): NodeGlyph {
   const vertical = orientation === "vertical";
-  switch (typeName) {
-    case "Separator":
-      return vertical ? "line-vertical" : "line";
-    case "ResizableHandle":
-      return vertical ? "line" : "line-vertical";
-    case "ResizablePanel":
-      return vertical ? "panel-row" : "panel-column";
-    default:
-      return undefined;
-  }
+  if (typeName === RESIZABLE_PANEL_TYPE)
+    return vertical ? "panel-row" : "panel-column";
+  // (A Handle is the line across its Group's axis; a Separator lies on its own.)
+  return vertical === (typeName === "Separator") ? "line-vertical" : "line";
 }
 
 /** A top-level Separator's palette icon, on its axis. */
@@ -167,7 +161,9 @@ export function layerSeparatorIcon(orientation: unknown) {
   return orientation === "vertical" ? SeparatorVertical : SeparatorHorizontal;
 }
 
-type EditTarget = CatalogLayerNode["position"]["target"];
+function LucideLayerIcon({ Icon }: { Icon: LayerLucideIcon }) {
+  return <Icon {...iconProps} data-layer-icon="component" />;
+}
 
 function GlyphIcon({ glyph }: { glyph: NodeGlyph }) {
   return (
@@ -186,41 +182,47 @@ function GlyphIcon({ glyph }: { glyph: NodeGlyph }) {
   );
 }
 
-/** A row whose icon follows `orientation` — its own (Separator) or its Group's (Panel · Handle). */
-function OrientedLayerIcon({
-  node,
+/**
+ * A row's icon from one prop of `target` (Chart `chartType` · a Resizable Group's or a Separator's
+ * `orientation`): it subscribes to that prop only, so a change redraws the row without rebuilding
+ * the tree.
+ */
+function PropLayerIcon({
   target,
+  prop,
+  draw,
+}: {
+  target: EditTarget;
+  prop: string;
+  draw: (value: unknown) => ReactElement;
+}) {
+  return draw(useCatalogPropSource(target, prop).value);
+}
+
+/** A Resizable Panel · Handle row: its Group's (the parent row's) orientation. */
+function ResizablePartLayerIcon({
+  node,
+  part,
 }: {
   node: CatalogLayerNode;
-  target: EditTarget;
+  part: typeof RESIZABLE_HANDLE_TYPE | typeof RESIZABLE_PANEL_TYPE;
 }) {
-  // Subscribe only to that one prop (as the Chart row does its chartType).
-  const orientation = useCatalogPropSource(target, "orientation").value;
-  if (layerComponentIcon(node)) {
-    const Icon = layerSeparatorIcon(orientation);
-    return <Icon {...iconProps} data-layer-icon="component" />;
-  }
-  return <GlyphIcon glyph={layerOrientedGlyph(node.typeName, orientation)!} />;
-}
-
-/** A Resizable Panel · Handle row: its Group's orientation (the record's parent). */
-function ResizablePartLayerIcon({ node }: { node: CatalogLayerNode }) {
   const workspace = useCatalogWorkspace();
-  const groupTarget = useMemo(() => {
-    const parent = workspace.root.domInputs.get(node.id)?.parentId;
-    return parent ? workspace.positionOfRecord(parent)?.target : undefined;
-  }, [workspace, node.id]);
-  if (!groupTarget)
-    return <GlyphIcon glyph={layerOrientedGlyph(node.typeName, undefined)!} />;
-  return <OrientedLayerIcon node={node} target={groupTarget} />;
-}
-
-function ChartLayerIcon({ node }: { node: CatalogLayerNode }) {
-  // All seven palette variants are stored as Chart. Subscribe only to this row's
-  // chartType so changing its kind updates the icon without rebuilding the tree.
-  const chartType = useCatalogPropSource(node.position.target, "chartType");
-  const Icon = ICON_MAP[getChartDescriptor(chartType.value).icon];
-  return <Icon {...iconProps} data-layer-icon="component" />;
+  const group = useMemo(
+    () =>
+      node.parentId
+        ? workspace.positionOfRecord(node.parentId)?.target
+        : undefined,
+    [workspace, node.parentId],
+  );
+  const draw = (orientation: unknown) => (
+    <GlyphIcon glyph={layerOrientedGlyph(part, orientation)} />
+  );
+  return group ? (
+    <PropLayerIcon target={group} prop="orientation" draw={draw} />
+  ) : (
+    draw(undefined)
+  );
 }
 
 export function CatalogLayerIcon({ node }: { node: CatalogLayerNode }) {
@@ -232,14 +234,50 @@ export function CatalogLayerIcon({ node }: { node: CatalogLayerNode }) {
       <RectangleEllipsis {...iconProps} data-layer-icon="rectangle-ellipsis" />
     );
   }
-  if (node.typeName === "Separator")
-    return <OrientedLayerIcon node={node} target={node.position.target} />;
-  if (node.typeName === "ResizablePanel" || node.typeName === "ResizableHandle")
-    return <ResizablePartLayerIcon node={node} />;
+  if (
+    node.typeName === RESIZABLE_PANEL_TYPE ||
+    node.typeName === RESIZABLE_HANDLE_TYPE
+  )
+    return <ResizablePartLayerIcon node={node} part={node.typeName} />;
   const Icon = layerComponentIcon(node);
-  if (Icon && node.typeName === "Chart") return <ChartLayerIcon node={node} />;
-  if (Icon && node.typeName === "ResizablePanelGroup")
-    return <ResizableGroupLayerIcon node={node} />;
-  if (Icon) return <Icon {...iconProps} data-layer-icon="component" />;
+  if (node.typeName === "Separator")
+    // (A placed Separator draws its palette icon, one inside a component the line glyph.)
+    return (
+      <PropLayerIcon
+        target={node.position.target}
+        prop="orientation"
+        draw={(orientation) =>
+          Icon ? (
+            <LucideLayerIcon Icon={layerSeparatorIcon(orientation)} />
+          ) : (
+            <GlyphIcon glyph={layerOrientedGlyph("Separator", orientation)} />
+          )
+        }
+      />
+    );
+  if (Icon && node.typeName === "Chart")
+    // (All seven palette variants are stored as Chart.)
+    return (
+      <PropLayerIcon
+        target={node.position.target}
+        prop="chartType"
+        draw={(chartType) => (
+          <LucideLayerIcon
+            Icon={ICON_MAP[getChartDescriptor(chartType).icon]}
+          />
+        )}
+      />
+    );
+  if (Icon && node.typeName === RESIZABLE_GROUP_TYPE)
+    return (
+      <PropLayerIcon
+        target={node.position.target}
+        prop="orientation"
+        draw={(orientation) => (
+          <LucideLayerIcon Icon={layerResizableGroupIcon(orientation)} />
+        )}
+      />
+    );
+  if (Icon) return <LucideLayerIcon Icon={Icon} />;
   return <GlyphIcon glyph={layerNodeGlyph(node.typeName)} />;
 }

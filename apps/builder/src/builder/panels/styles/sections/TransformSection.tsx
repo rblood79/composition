@@ -409,12 +409,15 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // ADR-318 후속: a Resizable Panel sizes on its Group's axis only — its share props (% size ·
   //   % or px min · max); the other axis is the Group's (off).
   const panelAxis = sizeContext.resizableAxis;
-  const panelOff = (axis: "width" | "height") =>
-    panelAxis !== undefined && axis !== panelAxis;
-  const sizeUnits = (axis: "width" | "height", units: string[]) =>
-    panelAxis === axis ? ["reset", "%"] : units;
-  const constraintUnits = (axis: "width" | "height", units: string[]) =>
-    panelAxis === axis ? ["reset", "%", "px"] : units;
+  /** A size field's units and off state — a Panel's own axis takes its share units. */
+  const axisField = (
+    axis: "width" | "height",
+    units: string[],
+    panelUnits: string[],
+  ) => ({
+    units: panelAxis === axis ? panelUnits : units,
+    isDisabled: panelAxis !== undefined && axis !== panelAxis,
+  });
 
   const parentContext = {
     display: parentDisplay,
@@ -524,15 +527,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
           key={`width:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
           value={displaySize("width")}
           sizeControl={sizeControl("width")}
-          units={sizeUnits("width", [
-            "reset",
-            "px",
-            "%",
-            "vw",
-            "fill",
-            "fit-content",
-          ])}
-          isDisabled={panelOff("width")}
+          {...axisField(
+            "width",
+            ["reset", "px", "%", "vw", "fill", "fit-content"],
+            ["reset", "%"],
+          )}
           onChange={(value) => commitAxisValue("width", value)}
           onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("width", value)}
@@ -547,15 +546,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
           key={`height:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
           value={displaySize("height")}
           sizeControl={sizeControl("height")}
-          units={sizeUnits("height", [
-            "reset",
-            "px",
-            "%",
-            "vh",
-            "fill",
-            "fit-content",
-          ])}
-          isDisabled={panelOff("height")}
+          {...axisField(
+            "height",
+            ["reset", "px", "%", "vh", "fill", "fit-content"],
+            ["reset", "%"],
+          )}
           onChange={(value) => commitAxisValue("height", value)}
           onDragCancel={cancelStylePreview}
           onDrag={(value) => updateStylePreview("height", value)}
@@ -591,8 +586,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="min-width"
               value={styleValues.minWidth}
               sizeControl={constraintControl("minWidth")}
-              units={constraintUnits("width", ["reset", "px", "%", "vw"])}
-              isDisabled={panelOff("width")}
+              {...axisField(
+                "width",
+                ["reset", "px", "%", "vw"],
+                ["reset", "%", "px"],
+              )}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("minWidth", value)}
               onDragCancel={cancelStylePreview}
@@ -608,8 +606,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="min-height"
               value={styleValues.minHeight}
               sizeControl={constraintControl("minHeight")}
-              units={constraintUnits("height", ["reset", "px", "%", "vh"])}
-              isDisabled={panelOff("height")}
+              {...axisField(
+                "height",
+                ["reset", "px", "%", "vh"],
+                ["reset", "%", "px"],
+              )}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("minHeight", value)}
               onDragCancel={cancelStylePreview}
@@ -626,8 +627,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="max-width"
               value={styleValues.maxWidth}
               sizeControl={constraintControl("maxWidth")}
-              units={constraintUnits("width", ["reset", "px", "%", "vw"])}
-              isDisabled={panelOff("width")}
+              {...axisField(
+                "width",
+                ["reset", "px", "%", "vw"],
+                ["reset", "%", "px"],
+              )}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("maxWidth", value)}
               onDragCancel={cancelStylePreview}
@@ -643,8 +647,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
               className="max-height"
               value={styleValues.maxHeight}
               sizeControl={constraintControl("maxHeight")}
-              units={constraintUnits("height", ["reset", "px", "%", "vh"])}
-              isDisabled={panelOff("height")}
+              {...axisField(
+                "height",
+                ["reset", "px", "%", "vh"],
+                ["reset", "%", "px"],
+              )}
               preserveEmptyValueOnUnitChange
               onChange={(value) => commitConstraint("maxHeight", value)}
               onDragCancel={cancelStylePreview}

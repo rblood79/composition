@@ -1,4 +1,6 @@
 import {
+  catalogResizablePanelAxis,
+  catalogResizablePreviewGrow,
   RESIZABLE_HANDLE_TYPE,
   RESIZABLE_PANEL_TYPE,
 } from "../../../../../packages/shared/src/catalog/runtime/resizablePanels";
@@ -553,10 +555,9 @@ export class CatalogCanvasGestures {
   /** A Resizable Panel's main axis (its derived `_panelAxis`); undefined for any other record. */
   private resizablePanelAxis(identity: string): "row" | "column" | undefined {
     if (this.typeOf(identity) !== RESIZABLE_PANEL_TYPE) return undefined;
-    return this.host.records.get(identity)?.derivedProps?._panelAxis ===
-      "column"
-      ? "column"
-      : "row";
+    return catalogResizablePanelAxis(
+      this.host.records.get(identity)?.derivedProps,
+    );
   }
   /**
    * A Resizable Panel resize as its share (% of its Group's Panels' main size — the Handles left
@@ -586,17 +587,14 @@ export class CatalogCanvasGestures {
     const space = panels.reduce((sum, id) => sum + main(id), 0);
     if (space <= 0) return undefined;
     const share = Math.min(100, Math.max(0, (size / space) * 100));
-    const others = panels
-      .filter((id) => id !== identity)
-      .reduce(
-        (sum, id) =>
-          sum +
-          Number(this.host.records.get(id)?.derivedProps?._panelGrow ?? 0),
-        0,
-      );
     return {
       share: Math.round(share * 10) / 10,
-      grow: share >= 100 ? 1e6 : (share * others) / (100 - share),
+      grow: catalogResizablePreviewGrow(
+        share,
+        panels
+          .filter((id) => id !== identity)
+          .map((id) => this.host.records.get(id)?.derivedProps),
+      ),
     };
   }
 

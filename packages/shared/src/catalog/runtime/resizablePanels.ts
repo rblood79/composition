@@ -147,6 +147,30 @@ export function catalogResizablePanelDerived(
   };
 }
 
+/** A Panel record's main axis — its derived `_panelAxis` (its Group's flex direction). */
+export function catalogResizablePanelAxis(
+  derived: Readonly<Record<string, unknown>> | undefined,
+): "row" | "column" {
+  return derived?._panelAxis === "column" ? "column" : "row";
+}
+
+/**
+ * The grow that draws a Panel at `share` % while its Group's other Panels keep theirs — grow g over
+ * their grows' sum O draws g / (g + O) = the share. The Canvas size handle and the Styles size
+ * field preview a share with it (the release writes `defaultSize`).
+ */
+export function catalogResizablePreviewGrow(
+  share: number,
+  others: Iterable<Readonly<Record<string, unknown>> | undefined>,
+): number {
+  let sum = 0;
+  for (const derived of others) {
+    const grow = derived?._panelGrow;
+    if (typeof grow === "number") sum += grow;
+  }
+  return share >= 100 ? 1e6 : (share * sum) / (100 - share);
+}
+
 /** The Handle's line thickness (px) — reui `w-px` / `h-px`. */
 export const RESIZABLE_HANDLE_THICKNESS = 1;
 

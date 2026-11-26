@@ -114,6 +114,8 @@ import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import { catalogElementlessType } from "../../../../../../../packages/shared/src/catalog/runtime/elementless";
 import {
   catalogResizableLength,
+  catalogResizablePanelAxis,
+  catalogResizablePreviewGrow,
   RESIZABLE_PANEL_TYPE,
 } from "../../../../../../../packages/shared/src/catalog/runtime/resizablePanels";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -289,31 +291,37 @@ export function catalogColorWheelStyleValue(
  * ADR-318 후속 (사용자 2026-11-26 「Layout 탭 size 와 동기화」): a Resizable Panel's size along its
  * Group's axis is its share props, one store — the Styles Width (a vertical Group: Height) is
  * `defaultSize` (%), its Min · Max are `minSize` · `maxSize` (% or px). The other axis is the
- * Group's (the Panel stretches): the panel turns its fields off. Undefined for any other record.
+ * Group's (the Panel stretches): the panel turns its fields off.
  */
-export function catalogResizablePanelSizeAxis(
+type CatalogDomRecord = NonNullable<
+  ReturnType<CatalogWorkspace["root"]["domInputs"]["get"]>
+>;
+
+/** A Resizable Panel record's Styles size axis (its Group's); undefined for any other record. */
+function resizablePanelSizeAxis(
   workspace: CatalogWorkspace,
-  identity: string | null | undefined,
+  record: CatalogDomRecord | undefined,
 ): "width" | "height" | undefined {
-  const record = identity ? workspace.root.domInputs.get(identity) : undefined;
   if (!record || workspace.root.typeOf(record) !== RESIZABLE_PANEL_TYPE)
     return undefined;
-  return record.derivedProps?._panelAxis === "column" ? "height" : "width";
+  return catalogResizablePanelAxis(record.derivedProps) === "column"
+    ? "height"
+    : "width";
 }
 
 type ResizablePanelSizeProp = "defaultSize" | "minSize" | "maxSize";
 
-/** A Panel's Styles size keys on its axis → its share props. */
-function resizablePanelStyleProps(
-  axis: "width" | "height",
-): Readonly<Record<string, ResizablePanelSizeProp>> {
-  const name = axis === "width" ? "Width" : "Height";
-  return {
-    [axis]: "defaultSize",
-    [`min${name}`]: "minSize",
-    [`max${name}`]: "maxSize",
-  };
-}
+/** A Panel's Styles size keys on each axis → its share props. */
+const RESIZABLE_PANEL_STYLE_PROPS: Readonly<
+  Record<"width" | "height", Readonly<Record<string, ResizablePanelSizeProp>>>
+> = {
+  width: { width: "defaultSize", minWidth: "minSize", maxWidth: "maxSize" },
+  height: {
+    height: "defaultSize",
+    minHeight: "minSize",
+    maxHeight: "maxSize",
+  },
+};
 
 /**
  * A Styles length as a Panel size prop: "" · "auto" → none; `defaultSize` is a % number ("30" ·
@@ -334,50 +342,59 @@ export function catalogResizablePanelStyleValue(
 
 /**
  * What a Panel's size fields show: authored = its share props as lengths (no box style on its
- * axis), effective = its drawn share (`_panelShare` — an absent `defaultSize` shows the equal part
- * it gets).
+ * axis — an absent prop is an absent value), effective = its drawn share (`_panelShare` — an
+ * absent `defaultSize` shows the equal part it gets). Undefined for any other record.
  */
-function resizablePanelStyleView(
+function resizablePanelView(
   workspace: CatalogWorkspace,
-  identity: string | null | undefined,
+  record: CatalogDomRecord | undefined,
   props: Readonly<Record<string, unknown>>,
-  style: Record<string, unknown>,
-  effective: Record<string, string | number> | undefined,
-): void {
-  const axis = catalogResizablePanelSizeAxis(workspace, identity);
-  if (!axis) return;
-  for (const [key, prop] of Object.entries(resizablePanelStyleProps(axis))) {
-    const length = catalogResizableLength(props[prop]);
-    if (length) style[key] = length;
-    else delete style[key];
-  }
-  const share = workspace.root.domInputs.get(identity!)?.derivedProps
-    ?._panelShare;
-  if (effective && typeof share === "number")
-    effective[axis] = `${Math.round(share * 10) / 10}%`;
+):
+  | {
+      axis: "width" | "height";
+      style: Record<string, string | undefined>;
+      effective?: string;
+    }
+  | undefined {
+  const axis = resizablePanelSizeAxis(workspace, record);
+  if (!axis) return undefined;
+  const share = record!.derivedProps?._panelShare;
+  return {
+    axis,
+    style: Object.fromEntries(
+      Object.entries(RESIZABLE_PANEL_STYLE_PROPS[axis]).map(([key, prop]) => [
+        key,
+        catalogResizableLength(props[prop]),
+      ]),
+    ),
+    ...(typeof share === "number"
+      ? { effective: `${Math.round(share * 10) / 10}%` }
+      : {}),
+  };
 }
 
 /**
- * The grow that shows a Panel at a typed share while its siblings keep theirs: grow g over their
- * sum O draws g / (g + O) = the share. Undefined for a value that is not a share.
+ * Splits Styles fields into the prop writes of the keys `propOf` names (`parse` reads a value —
+ * null refuses it) and the rest (the Column · Resizable Panel · ColorWheel keys that are props).
  */
-function resizablePanelPreviewGrow(
-  workspace: CatalogWorkspace,
-  record: { id: string; parentId?: string | null },
-  text: string,
-): number | undefined {
-  const share = catalogResizablePanelStyleValue("defaultSize", text);
-  if (typeof share !== "number") return undefined;
-  const group = record.parentId
-    ? workspace.root.domInputs.get(record.parentId)
-    : undefined;
-  const others = (group?.children ?? [])
-    .filter((id) => id !== record.id)
-    .reduce((sum, id) => {
-      const grow = workspace.root.domInputs.get(id)?.derivedProps?._panelGrow;
-      return sum + (typeof grow === "number" ? grow : 0);
-    }, 0);
-  return share >= 100 ? 1e6 : (share * others) / (100 - share);
+function splitPropStyles(
+  fields: Record<string, string>,
+  propOf: (key: string) => string | undefined,
+  parse: (key: string, prop: string, text: string) => unknown,
+): { patch: Record<string, unknown>; others: Record<string, string> } {
+  const patch: Record<string, unknown> = {};
+  const others: Record<string, string> = {};
+  for (const [key, text] of Object.entries(fields)) {
+    const prop = propOf(key);
+    if (!prop) {
+      others[key] = text;
+      continue;
+    }
+    const value = parse(key, prop, text);
+    if (value === null) throw new CatalogStyleValueError(key, text);
+    patch[prop] = value;
+  }
+  return { patch, others };
 }
 
 /** ADR-258 후속: a ColorWheel's Styles keys that are its `size`. */
@@ -680,66 +697,48 @@ export function createCatalogStylesHost(
             throw new CatalogStyleValueError(key, value);
         }
       }
+      const patchProps = (patch: Record<string, unknown>) => {
+        if (!Object.keys(patch).length) return;
+        const command = catalogSemanticPatchCommand(
+          targets,
+          patch,
+          (key) => workspace.readModel.propSource(targets[0]!, key).value,
+        );
+        if (command) commands.push(command);
+      };
       // ADR-257 사용자 결정 2: a Column's Styles width · min · max is its S2 column width (the
       // column's track in every row of its Table), not its own box.
       if (
         items.every((item) => propsOf(workspace, item.target).type === "Column")
       ) {
-        const patch: Record<string, unknown> = {};
-        const others: Record<string, string> = {};
-        for (const [key, text] of Object.entries(fields)) {
-          if (!COLUMN_STYLE_PROPS.has(key)) {
-            others[key] = text;
-            continue;
-          }
-          const value = catalogColumnStyleValue(text, key !== "width");
-          if (value === null) throw new CatalogStyleValueError(key, text);
-          patch[key] = value;
-        }
-        if (Object.keys(patch).length) {
-          const command = catalogSemanticPatchCommand(
-            targets,
-            patch,
-            (key) => workspace.readModel.propSource(targets[0]!, key).value,
-          );
-          if (command) commands.push(command);
-        }
+        const { patch, others } = splitPropStyles(
+          fields,
+          (key) => (COLUMN_STYLE_PROPS.has(key) ? key : undefined),
+          (key, _prop, text) => catalogColumnStyleValue(text, key !== "width"),
+        );
+        patchProps(patch);
         fields = others;
       }
       // ADR-318 후속: a Resizable Panel's size · min · max on its Group's axis are its share props.
-      const panelAxis = catalogResizablePanelSizeAxis(
-        workspace,
-        items[0]!.identity,
+      const panelAxes = items.map((item) =>
+        resizablePanelSizeAxis(
+          workspace,
+          workspace.root.domInputs.get(item.identity),
+        ),
       );
-      if (
-        panelAxis &&
-        items.every(
-          (item) =>
-            catalogResizablePanelSizeAxis(workspace, item.identity) ===
-            panelAxis,
-        )
-      ) {
-        const keys = resizablePanelStyleProps(panelAxis);
-        const patch: Record<string, unknown> = {};
-        const others: Record<string, string> = {};
-        for (const [key, text] of Object.entries(fields)) {
-          const prop = keys[key];
-          if (!prop) {
-            others[key] = text;
-            continue;
-          }
-          const value = catalogResizablePanelStyleValue(prop, text);
-          if (value === null) throw new CatalogStyleValueError(key, text);
-          patch[prop] = value;
-        }
-        if (Object.keys(patch).length) {
-          const command = catalogSemanticPatchCommand(
-            targets,
-            patch,
-            (key) => workspace.readModel.propSource(targets[0]!, key).value,
-          );
-          if (command) commands.push(command);
-        }
+      const panelAxis = panelAxes[0];
+      if (panelAxis && panelAxes.every((axis) => axis === panelAxis)) {
+        const keys = RESIZABLE_PANEL_STYLE_PROPS[panelAxis];
+        const { patch, others } = splitPropStyles(
+          fields,
+          (key) => keys[key],
+          (_key, prop, text) =>
+            catalogResizablePanelStyleValue(
+              prop as ResizablePanelSizeProp,
+              text,
+            ),
+        );
+        patchProps(patch);
         fields = others;
       }
       // ADR-258 후속: a ColorWheel's Styles width · height is its S2 `size` (the diameter).
@@ -748,27 +747,18 @@ export function createCatalogStylesHost(
           (item) => propsOf(workspace, item.target).type === "ColorWheel",
         )
       ) {
-        const others: Record<string, string> = {};
-        const box: { width?: number; height?: number } = {};
-        let edited = false;
-        for (const [key, text] of Object.entries(fields)) {
-          if (!COLOR_WHEEL_STYLE_PROPS.has(key)) {
-            others[key] = text;
-            continue;
-          }
-          const value = catalogColorWheelStyleValue(text);
-          if (value === null) throw new CatalogStyleValueError(key, text);
-          box[key as "width" | "height"] = value;
-          edited = true;
-        }
-        if (edited) {
-          const command = catalogSemanticPatchCommand(
-            targets,
-            { size: catalogColorWheelSizeOfBox(box.width, box.height) },
-            (key) => workspace.readModel.propSource(targets[0]!, key).value,
-          );
-          if (command) commands.push(command);
-        }
+        const { patch: box, others } = splitPropStyles(
+          fields,
+          (key) => (COLOR_WHEEL_STYLE_PROPS.has(key) ? key : undefined),
+          (_key, _prop, text) => catalogColorWheelStyleValue(text),
+        );
+        if (Object.keys(box).length)
+          patchProps({
+            size: catalogColorWheelSizeOfBox(
+              box.width as number | undefined,
+              box.height as number | undefined,
+            ),
+          });
         fields = others;
       }
       if (Object.keys(fields).length) {
@@ -896,13 +886,15 @@ export function createCatalogStylesHost(
       ...(owned.type === "ColorWheel" ? colorWheelStyle(owned.props) : {}),
     };
     const effective = effectiveOf(workspace, first.identity);
-    resizablePanelStyleView(
+    const panel = resizablePanelView(
       workspace,
-      first.identity,
+      workspace.root.domInputs.get(first.identity),
       owned.props,
-      style,
-      effective,
     );
+    if (panel) {
+      Object.assign(style, panel.style);
+      if (effective && panel.effective) effective[panel.axis] = panel.effective;
+    }
     return {
       id: first.identity,
       type: owned.type,
@@ -976,15 +968,18 @@ export function createCatalogStylesHost(
               }
             : undefined;
         // ADR-318 후속: a Resizable Panel's size fields on its Group's axis are its share props.
-        const panelAxis = catalogResizablePanelSizeAxis(workspace, id);
-        const panelEffective =
-          panelAxis && effective ? { ...effective } : effective;
-        if (panelAxis && style)
-          resizablePanelStyleView(workspace, id, props, style, panelEffective);
+        const panel = resizablePanelView(
+          workspace,
+          id ? workspace.root.domInputs.get(id) : undefined,
+          props,
+        );
         return {
-          style,
-          effective: panelEffective,
-          ...(panelAxis ? { resizableAxis: panelAxis } : {}),
+          style: panel && style ? { ...style, ...panel.style } : style,
+          effective:
+            panel?.effective && effective
+              ? { ...effective, [panel.axis]: panel.effective }
+              : effective,
+          ...(panel ? { resizableAxis: panel.axis } : {}),
           ...(drawnPaint ? { drawnPaint } : {}),
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
@@ -1053,11 +1048,16 @@ export function createCatalogStylesHost(
         if (!record) continue;
         // ADR-318 후속: a Panel's size on its Group's axis previews its share as its grow (the
         // Canvas size handle's way — `canvasGesture` `resizablePanelShareOf`).
-        if (
-          catalogResizablePanelSizeAxis(workspace, item.identity) === property
-        ) {
-          const grow = resizablePanelPreviewGrow(workspace, record, value);
-          if (grow === undefined) continue;
+        if (resizablePanelSizeAxis(workspace, record) === property) {
+          const share = catalogResizablePanelStyleValue("defaultSize", value);
+          if (typeof share !== "number") continue;
+          const group = workspace.root.domInputs.get(record.parentId);
+          const grow = catalogResizablePreviewGrow(
+            share,
+            (group?.children ?? [])
+              .filter((id) => id !== record.id)
+              .map((id) => workspace.root.domInputs.get(id)?.derivedProps),
+          );
           const next: CatalogRecordPreview = {
             layout: { flexGrow: String(grow) },
           };
@@ -1201,67 +1201,54 @@ export function createCatalogStylesHost(
       run(() => {
         const items = selection();
         if (!items.length || items[0].identity !== selectedId) return undefined;
-        // ADR-258 후속: a ColorWheel's width · height is its `size` — a length or a reset writes
-        // it; Fill has no meaning for the diameter square (refused, as S2 sizes it from `size`).
-        if (
-          items.every(
-            (item) => propsOf(workspace, item.target).type === "ColorWheel",
-          )
-        ) {
+        const targets = items.map((item) => item.target);
+        /** A size edit that is one prop: a reset clears it, a length `parse`s (null refuses). */
+        const sizingProp = (prop: string, parse: (text: string) => unknown) => {
           const value =
             edit.mode === "reset"
               ? undefined
               : edit.mode === "css"
-                ? catalogColorWheelStyleValue(edit.value ?? "")
+                ? parse(edit.value ?? "")
                 : null;
           if (value === null)
             throw new CatalogStyleValueError(
               edit.axis,
               edit.value ?? edit.mode,
             );
-          const targets = items.map((item) => item.target);
           return (
             catalogSemanticPatchCommand(
               targets,
-              { size: value },
+              { [prop]: value },
               (key) => workspace.readModel.propSource(targets[0]!, key).value,
             ) ?? undefined
           );
-        }
+        };
+        // ADR-258 후속: a ColorWheel's width · height is its `size` — a length or a reset writes
+        // it; Fill has no meaning for the diameter square (refused, as S2 sizes it from `size`).
+        if (
+          items.every(
+            (item) => propsOf(workspace, item.target).type === "ColorWheel",
+          )
+        )
+          return sizingProp("size", catalogColorWheelStyleValue);
         // ADR-318 후속: a Resizable Panel's size on its Group's axis is its `defaultSize` (a % — Fill
         // has no meaning: the share is the fill); the other axis is the Group's (refused).
-        const panelAxis = catalogResizablePanelSizeAxis(
+        const panelAxis = resizablePanelSizeAxis(
           workspace,
-          items[0]!.identity,
+          workspace.root.domInputs.get(items[0]!.identity),
         );
         if (panelAxis) {
-          const value =
-            edit.axis !== panelAxis
-              ? null
-              : edit.mode === "reset"
-                ? undefined
-                : edit.mode === "css"
-                  ? catalogResizablePanelStyleValue(
-                      "defaultSize",
-                      edit.value ?? "",
-                    )
-                  : null;
-          if (value === null)
+          if (edit.axis !== panelAxis)
             throw new CatalogStyleValueError(
               edit.axis,
               edit.value ?? edit.mode,
             );
-          const targets = items.map((item) => item.target);
-          return (
-            catalogSemanticPatchCommand(
-              targets,
-              { defaultSize: value },
-              (key) => workspace.readModel.propSource(targets[0]!, key).value,
-            ) ?? undefined
+          return sizingProp("defaultSize", (text) =>
+            catalogResizablePanelStyleValue("defaultSize", text),
           );
         }
         return catalogSizingCommand({
-          targets: items.map((item) => item.target),
+          targets,
           own: (target) => workspace.readModel.ownFields(target),
           breakpoint: workspace.session.getSnapshot().breakpoint,
           edit,

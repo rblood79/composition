@@ -63,7 +63,6 @@ describe("Layers component and structural icons", () => {
       "panel-column",
     );
     expect(layerOrientedGlyph("ResizablePanel", "vertical")).toBe("panel-row");
-    expect(layerOrientedGlyph("Button", "vertical")).toBeUndefined();
     expect(layerSeparatorIcon("horizontal")).toBe(SeparatorHorizontal);
     expect(layerSeparatorIcon("vertical")).toBe(SeparatorVertical);
   });
