@@ -520,7 +520,9 @@ export function catalogSideNavHidden(
 /**
  * Decision 3 ⑤ — the records a change of `owner` re-derives (presence · derived props · paint): a
  * panel's every part below it (its collapse), a nav's items and their rows (its expanded keys and
- * route), an item's rows up and down its nav (its `href` · key move the current marks).
+ * route), an item's rows up and down its nav (its `href` · key move the current marks), a header's
+ * Text (it takes the header's type and color — `catalogSideNavTextOwner`; a color-only write moves
+ * no layout, so no font-inheritance pass re-plans it).
  */
 export function catalogSideNavDependents(
   owner: CatalogConsumerNode,
@@ -529,7 +531,7 @@ export function catalogSideNavDependents(
 ): CatalogConsumerNode[] {
   const type = typeOf(owner);
   const scope =
-    type === "SideNavPanel" || type === "SideNav"
+    type === "SideNavPanel" || type === "SideNav" || type === "SideNavHeader"
       ? owner
       : type === ITEM
         ? catalogSideNavOf(owner, get, typeOf)

@@ -76,6 +76,27 @@
 }
 
 
+  .react-aria-LabeledValue[data-size="S"] > .react-aria-Text[slot="value"] {
+    contain: inline-size;
+    contain-intrinsic-width: 192px;
+  }
+
+  .react-aria-LabeledValue[data-size="M"] > .react-aria-Text[slot="value"] {
+    contain: inline-size;
+    contain-intrinsic-width: 208px;
+  }
+
+  .react-aria-LabeledValue[data-size="L"] > .react-aria-Text[slot="value"] {
+    contain: inline-size;
+    contain-intrinsic-width: 224px;
+  }
+
+  .react-aria-LabeledValue[data-size="XL"] > .react-aria-Text[slot="value"] {
+    contain: inline-size;
+    contain-intrinsic-width: 240px;
+  }
+
+
   .react-aria-LabeledValue > .react-aria-Text {
     font-size: inherit;
     line-height: inherit;

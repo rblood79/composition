@@ -5855,11 +5855,10 @@ impl LayoutTree {
             //   값이 손자 `%` 의 base 다 (Chrome B1d 100 · auto row 50). 명시/키워드 높이는 stretch
             //   대상이 아니라 종전대로.
             let grid_definite_h = {
-                let (_, pre_eh) = self.resolve_self_size(c, w, h);
                 let pre = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
                 let stretch_h = !masonry
                     && grid_block_align(pre.align_self.as_deref(), grid_align_items) == 0
-                    && pre_eh <= 0.0
+                    && resolve_dimension_opt(pre.height.as_deref(), &self.ctx_for(h)).is_none()
                     && !size_is_intrinsic_keyword(pre.height.as_deref())
                     && !is_auto_margin(pre.margin_top.as_deref())
                     && !is_auto_margin(pre.margin_bottom.as_deref());
@@ -5871,11 +5870,18 @@ impl LayoutTree {
                 }
             };
             let (cw, ch) = self.solve_node_definite(c, w, h, grid_definite_h);
-            // 자식 **명시(definite) 크기** 여부 — auto/미설정/intrinsic 센티넬은 0.
-            //   stretch 하 explicit dimension respect 판정에 쓴다(아래 세로축). percentage/
-            //   calc 는 셀(w,h) 기준 resolve → definite 로 취급(CSS grid area 는 definite).
-            let (child_ew, child_eh) = self.resolve_self_size(c, w, h);
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+            // 자식 **명시(definite) 크기** 여부 — stretch 하 explicit dimension respect 판정에 쓴다.
+            //   auto · 미설정 · intrinsic 키워드는 아니다 (키워드는 아래 `*_is_keyword`). percentage ·
+            //   calc 는 셀 (w, h) 기준으로 풀리므로 명시다 (CSS grid area 는 definite).
+            //   명시 크기 여부는 「풀린 값이 있다」 로 가른다 — 0 (`0` · `0px` · `0%`) 도 명시다. 풀린
+            //   값 `> 0` 으로 가르면 0 이 auto 로 보여 셀까지 늘어난다. **Why (2026-11-27)**: value 0
+            //   (S2 기본) 인 ProgressBar · Meter 의 Fill (`width: 0%`, 트랙 grid) 이 Canvas 에서만 꽉 찼다
+            //   (parity `gridItemZeroSize`).
+            let child_ew_definite =
+                resolve_dimension_opt(cstyle.width.as_deref(), &self.ctx_for(w)).is_some();
+            let child_eh_definite =
+                resolve_dimension_opt(cstyle.height.as_deref(), &self.ctx_for(h)).is_some();
             // **intrinsic 키워드도 "크기가 auto 가 아니다"** — CSS-ALIGN-3 §4.1 은 stretch 를
             //   "the item's size in that axis is `auto`" 일 때로 한정한다. `fit-content` /
             //   `min-content` / `max-content` 는 auto 가 아니므로 stretch 대상이 아닌데,
@@ -5910,8 +5916,10 @@ impl LayoutTree {
             let margin = GridItemMargin::resolve(&cstyle, &mctx);
             // auto · intrinsic 키워드 높이의 solve 반환은 content-box — 배치 높이는 border-box (인라인
             // 축과 대칭). 키워드는 stretch 억제 (`explicit`) 에만 관여한다 (2026-09-18 박스 계약).
-            let ch_box = if child_eh > 0.0 {
-                ch
+            // 명시 크기는 border-box 라 padding + border 아래로 내려가지 않는다 (CSS box-sizing —
+            //   `height: 0` + border 2 는 2).
+            let ch_box = if child_eh_definite {
+                ch.max(axis_pad_border(&cstyle, &mctx, false))
             } else {
                 ch + axis_pad_border(&cstyle, &mctx, false)
             };
@@ -5919,7 +5927,7 @@ impl LayoutTree {
                 cell_pos: y,
                 cell_size: h,
                 real_size: ch_box,
-                explicit: child_eh > 0.0 || eh_is_keyword,
+                explicit: child_eh_definite || eh_is_keyword,
                 align,
                 m_start: margin.top,
                 m_end: margin.bottom,
@@ -5944,8 +5952,8 @@ impl LayoutTree {
             // auto · intrinsic 키워드 폭의 solve 반환은 content-box (leaf 스칼라 · 컨테이너 공통) —
             // 배치 폭은 border-box 라 pad/border 를 더한다 (종전: padded 컨테이너 `justify-items:start`
             // 가 padding 만큼 좁았다, 실측 50 / 70 · 키워드 컨테이너는 pad 가 빠져 40 / 60).
-            let cw_box = if child_ew > 0.0 {
-                cw
+            let cw_box = if child_ew_definite {
+                cw.max(axis_pad_border(&cstyle, &mctx, true))
             } else {
                 cw + axis_pad_border(&cstyle, &mctx, true)
             };
@@ -5953,7 +5961,7 @@ impl LayoutTree {
                 cell_pos: x,
                 cell_size: w,
                 real_size: cw_box,
-                explicit: child_ew > 0.0 || ew_is_keyword,
+                explicit: child_ew_definite || ew_is_keyword,
                 align: justify,
                 m_start: margin.left,
                 m_end: margin.right,
@@ -7821,8 +7829,10 @@ fn place_grid_axis(i: GridAxisInput) -> (f32, f32) {
     // `real_size <= 0` = auto 크기 자식의 intrinsic 이 0 (콘텐츠 폭 미지정). CSS 는
     //   shrink-to-fit 으로 0 이지만, 엔진은 **0 붕괴 방지**로 셀을 채운다 — intrinsic
     //   shrink-to-fit 은 JS 협업이 필요한 별도 영역(ADR-156 §Residual). 이 폴백을
-    //   빼면 빈 컨테이너가 캔버스에서 사라진다.
-    let stretch = (i.align == 0 && !i.explicit && auto_count == 0) || i.real_size <= 0.0;
+    //   빼면 빈 컨테이너가 캔버스에서 사라진다. 폴백은 auto 크기 자식만 — 명시 0 (`width: 0%`)
+    //   은 CSS 그대로 0 이다 (2026-11-27, parity `gridItemZeroSize`).
+    let stretch =
+        (i.align == 0 && !i.explicit && auto_count == 0) || (!i.explicit && i.real_size <= 0.0);
     // 자식 자신의 min/max clamp — **stretch 든 아니든** 적용된다 (CSS §10.1: 그리드
     //   영역은 containing block 일 뿐, 자식의 min/max 를 무효화하지 않는다). block/flex
     //   부모에서는 각 커널이 이미 적용하는데 grid 만 통째로 빠져 있었다 (실측: block·flex

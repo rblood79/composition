@@ -4,9 +4,9 @@ import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineW
 
 import { KNOWN_CHILD_SIZE } from "./basicAxis.known";
 import {
-  diffCase,
-  domLeg,
-  engineLeg,
+  describeFailures,
+  keysOf,
+  sweep,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -113,32 +113,6 @@ function makeCase(
   };
 }
 
-type Failure = { name: string; bad: string[] };
-
-function sweep(
-  cases: ParityCase[],
-  leg: (c: ParityCase) => ReturnType<typeof engineLeg> = (c) =>
-    engineLeg(c.nodes, c.availW, c.availH),
-): Failure[] {
-  const out: Failure[] = [];
-  for (const c of cases) {
-    const bad = diffCase(c.nodes, domLeg(c.nodes, c.availW), leg(c));
-    if (bad.length) out.push({ name: c.name, bad });
-  }
-  return out;
-}
-
-function detail(failures: Failure[], total: number): string {
-  return `발산 ${failures.length}/${total}:\n${failures
-    .slice(0, 20)
-    .map((f) => `${f.name}\n  ${f.bad.join("\n  ")}`)
-    .join("\n")}`;
-}
-
-function keysOf(failures: Failure[]): string[] {
-  return failures.map((f) => f.name).sort();
-}
-
 // ── 격자 2: 부모 display × width × height × margin × min/max (4×5×3×4×3 = 720) ──
 function childSizeCases(): ParityCase[] {
   const cases: ParityCase[] = [];
@@ -171,7 +145,7 @@ describe("ADR-170 부분 격자 2 — 자식 크기", () => {
     const cases = childSizeCases();
     expect(cases.length).toBe(720);
     const failures = sweep(cases);
-    expect(keysOf(failures), detail(failures, cases.length)).toEqual(
+    expect(keysOf(failures), describeFailures(failures, cases.length)).toEqual(
       KNOWN_CHILD_SIZE,
     );
   });

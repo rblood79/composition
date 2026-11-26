@@ -2463,10 +2463,8 @@ export function compileRulePartRules(
               childType: "Text",
               childProps: { slot: "value" },
               size,
-              layout: {
-                contain: "inline-size",
-                containIntrinsicWidth: `${{ S: 192, M: 208, L: 224, XL: 240 }[size] ?? 208}px`,
-              },
+              // (Its default width — contain + intrinsic width — is the rule's `sizeSelectors`.)
+              layout: {},
               visual: {
                 minWidth: COMPONENT_RULES_TABLE.Input.sizes[size].height ?? 0,
               },

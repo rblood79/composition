@@ -210,3 +210,161 @@ export function runParityCase(c: ParityCase): string[] {
   const eng = engineLeg(c.nodes, c.availW, c.availH);
   return diffCase(c.nodes, dom, eng);
 }
+
+// ── 격자 sweep + 발산을 종류로 묶은 보고 (2026-11-27) ──
+//
+// 격자는 수백 ~ 수천 조합을 돌려 발산이 한 번에 수백 건 나온다 (ADR-170 도입 때 727). 앞 20 건을
+// 나열하면 한 원인이 목록을 채워 다른 원인이 가려진다. 그래서 발산 케이스마다 지문을 만든다 —
+// 어긋난 (노드.축) 과 그 노드에서 엔진이 내린 판정의 종류 (trace, ADR-183). 같은 지문의 케이스는
+// 대개 한 원인이라 보고는 지문별 건수 + 예 하나다.
+
+export interface Failure {
+  name: string;
+  bad: string[];
+  case: ParityCase;
+  /** 노드 index 마다 TOL 을 넘게 어긋난 축 (sweep 이 쓴 leg 기준). */
+  axes: ("x" | "y" | "w" | "h")[][];
+}
+
+function divergentAxes(
+  nodes: CaseNode[],
+  dom: Bounds[],
+  eng: Bounds[],
+): ("x" | "y" | "w" | "h")[][] {
+  return nodes.map((node, i) =>
+    isDisplayNone(node)
+      ? []
+      : (["x", "y", "w", "h"] as const).filter(
+          (f) => Math.abs(dom[i][f] - eng[i][f]) > TOL,
+        ),
+  );
+}
+
+/** 케이스 전부를 두 leg 로 돌려 발산한 케이스만 돌려준다. `leg` 는 engine leg 대체용. */
+export function sweep(
+  cases: readonly ParityCase[],
+  leg: (c: ParityCase) => Bounds[] = (c) =>
+    engineLeg(c.nodes, c.availW, c.availH),
+): Failure[] {
+  const out: Failure[] = [];
+  for (const c of cases) {
+    const dom = domLeg(c.nodes, c.availW);
+    const eng = leg(c);
+    const bad = diffCase(c.nodes, dom, eng);
+    if (bad.length) {
+      out.push({
+        name: c.name,
+        bad,
+        case: c,
+        axes: divergentAxes(c.nodes, dom, eng),
+      });
+    }
+  }
+  return out;
+}
+
+/** 격자 잠금 키 — 발산 케이스 이름의 정렬 목록 (`*.known.ts` 와 정확 일치 비교). */
+export function keysOf(failures: readonly Failure[]): string[] {
+  return failures.map((f) => f.name).sort();
+}
+
+type TraceEvent = NonNullable<
+  ReturnType<EngineLayout["getLayoutTrace"]>
+>["events"][number];
+
+/**
+ * 판정 하나의 범주 — 숫자 (from · to · floor · tracks …) 는 케이스마다 달라 같은 원인을 갈라
+ * 놓으므로 버리고 enum 값만 남긴다. 측정 패스의 판정은 본 배치와 구분한다 (`trace.rs` R5).
+ */
+function traceCategory(e: TraceEvent): string {
+  const parts: string[] = [e.type];
+  for (const key of ["axis", "bound", "source", "stage"] as const) {
+    const value = (e as Record<string, unknown>)[key];
+    if (typeof value === "string") parts.push(value);
+  }
+  return `${parts.join(":")}${e.measure_pass ? "@measure" : ""}`;
+}
+
+/**
+ * 노드별 엔진 판정 범주. 발산한 케이스에서만 부른다 — trace 를 켠 엔진으로 같은 케이스를 한 번 더
+ * 푼다 (trace 는 관찰만 하고 배치를 바꾸지 않는다). 증분 skip 은 첫 배치에서 모든 노드가
+ * `NoPrev` 라 원인을 가르지 못해 뺀다.
+ */
+function traceCategories(c: ParityCase): string[][] {
+  const engine = new EngineLayout();
+  try {
+    if (!engine.enableLayoutTrace(true)) return c.nodes.map(() => []);
+    const handles = engine.buildTreeBatch(
+      JSON.stringify(
+        c.nodes.map((n) => ({ style: n.style, children: n.children ?? [] })),
+      ),
+    );
+    engine.computeLayout(handles[handles.length - 1], c.availW, c.availH);
+    return handles.map((h) => {
+      const events = engine.getLayoutTrace(h)?.events ?? [];
+      return [
+        ...new Set(
+          events.filter((e) => e.type !== "IncrementalSkip").map(traceCategory),
+        ),
+      ].sort();
+    });
+  } finally {
+    engine.dispose();
+  }
+}
+
+/**
+ * 발산 케이스의 지문 — 어긋난 노드마다 `label.축[판정 범주]` 를 정렬해 잇는다. 같은 노드의 축은
+ * 한 묶음으로 (`box.w,h[...]`).
+ */
+export function fingerprintOf(failure: Failure): string {
+  const traces = traceCategories(failure.case);
+  const parts: string[] = [];
+  failure.axes.forEach((axes, i) => {
+    if (axes.length === 0) return;
+    const label = failure.case.nodes[i].label;
+    parts.push(`${label}.${axes.join(",")}[${traces[i].join(" ")}]`);
+  });
+  return parts.sort().join(" + ");
+}
+
+/** 지문별 묶음 — 건수 내림차순, 같은 건수는 지문 순. */
+export function groupFailures(
+  failures: readonly Failure[],
+): { fingerprint: string; failures: Failure[] }[] {
+  const groups = new Map<string, Failure[]>();
+  for (const failure of failures) {
+    const key = fingerprintOf(failure);
+    const list = groups.get(key);
+    if (list) list.push(failure);
+    else groups.set(key, [failure]);
+  }
+  return [...groups]
+    .map(([fingerprint, list]) => ({ fingerprint, failures: list }))
+    .sort(
+      (a, b) =>
+        b.failures.length - a.failures.length ||
+        a.fingerprint.localeCompare(b.fingerprint),
+    );
+}
+
+/** 격자 단언의 실패 문구 — 발산 건수 · 종류 수 + 종류마다 건수 · 지문 · 예 하나. */
+export function describeFailures(
+  failures: readonly Failure[],
+  total: number,
+  maxKinds = 20,
+): string {
+  if (failures.length === 0) return `발산 0/${total}`;
+  const groups = groupFailures(failures);
+  const lines = [`발산 ${failures.length}/${total} · 종류 ${groups.length}`];
+  for (const group of groups.slice(0, maxKinds)) {
+    const example = group.failures[0];
+    lines.push(`[${group.failures.length}] ${group.fingerprint}`);
+    lines.push(`    예: ${example.name}`);
+    for (const line of example.bad) lines.push(`      ${line}`);
+  }
+  if (groups.length > maxKinds) {
+    lines.push(`… 종류 ${groups.length - maxKinds} 개 더`);
+  }
+  return lines.join("\n");
+}

@@ -82,8 +82,11 @@ let code: CatalogLibrary;
 type Spec = {
   name: string;
   type: string;
+  /** Another definition than the type's (a library origin instance). */
+  definitionId?: string;
   props?: Record<string, unknown>;
   visual?: Record<string, unknown>;
+  layout?: Record<string, unknown>;
   children?: Spec[];
 };
 const text = (name: string, label: string): Spec => ({
@@ -257,9 +260,10 @@ function documentFor(fixture: Fixture): CatalogDocument {
       kind: "node",
       id,
       definitionId:
-        spec.type === "Text"
+        spec.definitionId ??
+        (spec.type === "Text"
           ? "lib:definition:text"
-          : `lib:definition:type-${spec.type}`,
+          : `lib:definition:type-${spec.type}`),
       children: (spec.children ?? []).map(add),
       props: Object.fromEntries(
         Object.entries(spec.props ?? {}).map(([key, value]) => [
@@ -273,6 +277,16 @@ function documentFor(fixture: Fixture): CatalogDocument {
           set(value),
         ]),
       ),
+      ...(spec.layout
+        ? {
+            layout: Object.fromEntries(
+              Object.entries(spec.layout).map(([key, value]) => [
+                key,
+                set(value),
+              ]),
+            ),
+          }
+        : {}),
       sizing: {},
       descendantOverrides: [],
     } as NodeEntry;
@@ -284,6 +298,8 @@ function documentFor(fixture: Fixture): CatalogDocument {
     children: spec.children?.map(authoredSpec),
   });
   const items = (fixture.sections ? SECTIONS : ITEMS).map(authoredSpec);
+  // (The panel's origin structure — `component-sidenavpanel` in `reusableOriginLibrary.ts`: a content
+  //  frame holding the SideNav, a footer frame holding S2's quiet collapse ActionButton.)
   add({
     name: "panel",
     type: "SideNavPanel",
@@ -291,16 +307,48 @@ function documentFor(fixture: Fixture): CatalogDocument {
     visual: { width: "240px", height: "520px" },
     children: [
       {
-        name: "nav",
-        type: "SideNav",
-        props: { "aria-label": "Docs", ...fixture.nav },
-        children: items,
+        name: "content",
+        type: "frame",
+        visual: { minHeight: 0 },
+        layout: {
+          display: "flex",
+          flexDirection: "column",
+          flexGrow: "1",
+          flexShrink: "1",
+        },
+        children: [
+          {
+            name: "nav",
+            type: "SideNav",
+            props: { "aria-label": "Docs", ...fixture.nav },
+            children: items,
+          },
+        ],
       },
       {
-        name: "collapse",
-        type: "Button",
-        props: { slot: "collapse", size: "S", children: "" },
-        children: [icon("collapse-icon", "panel-left")],
+        name: "footer",
+        type: "frame",
+        layout: {
+          display: "flex",
+          flexGrow: "0",
+          flexShrink: "0",
+          marginTop: "4px",
+          marginBottom: "4px",
+          marginLeft: "4px",
+        },
+        children: [
+          {
+            name: "collapse",
+            type: "ActionButton",
+            definitionId: "lib:definition:origin-component-actionbutton",
+            props: {
+              slot: "collapse",
+              isQuiet: true,
+              icon: "panel-left",
+              label: "",
+            },
+          },
+        ],
       },
     ],
   });
@@ -729,7 +777,10 @@ async function compare(fixture: Fixture) {
     }
     // ADR-300 Phase 4 — the panel's collapse Button is S2's quiet icon-only ActionButton (M: 32 square,
     //  corner 8, no fill at rest): both sides draw that, against S2's values (an outside oracle).
-    if (type === "Button" && record.props.slot === "collapse") {
+    if (
+      (type === "ActionButton" || type === "Button") &&
+      record.props.slot === "collapse"
+    ) {
       const domButton = {
         width: Math.round(dom.width),
         height: Math.round(dom.height),

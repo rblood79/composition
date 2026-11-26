@@ -30,6 +30,7 @@
   min-width: var(--catalog-token-size-bar-min-width);
   max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
+  column-gap: 12px;
 }
 
 .react-aria-Meter {
@@ -151,6 +152,7 @@
   min-width: var(--catalog-token-size-bar-min-width);
   max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
+  column-gap: 12px;
 }
 
 .react-aria-Meter[data-size="M"] {
@@ -160,6 +162,7 @@
   min-width: var(--catalog-token-size-bar-min-width);
   max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
+  column-gap: 12px;
 }
 
 .react-aria-Meter[data-size="L"] {
@@ -169,6 +172,7 @@
   min-width: var(--catalog-token-size-bar-min-width);
   max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
+  column-gap: 12px;
 }
 
 .react-aria-Meter[data-size="XL"] {
@@ -178,6 +182,7 @@
   min-width: var(--catalog-token-size-bar-min-width);
   max-width: calc(var(--catalog-token-size-unit) * 768 / 1);
   gap: 4px;
+  column-gap: 12px;
 }
 
 .react-aria-Meter.react-aria-Meter:where([data-focus-visible]) {

@@ -13,6 +13,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas ↔ Preview 비대칭 4건 — G3 하니스 실패 조사에서 확인한 제품 결함] - 2026-11-27
+
+G3 하니스 (`vitest.adr248-g3.browser.config.ts`) 의 실패 133 건을 원인별로 나눈 결과 중 실제 제품 결함 4 종을 고쳤다. 나머지 (하니스 측정 · 낡은 fixture · 낡은 예외 목록) 는 별도 작업.
+
+### Fixed
+
+- **ProgressBar · Meter 의 값이 0 이면 Canvas 막대가 꽉 참**: 새로 놓은 ProgressBar · Meter (기본값 0 — 11-18 S2 기본값) 가 Canvas 에서는 꽉 찬 막대, Preview 에서는 빈 막대였다. 이제 Canvas 도 빈 막대다.
+  - **Why**: 엔진 grid item 배치가 「명시 크기 있음」 을 풀린 값 `> 0` 으로 갈라 `width: 0%` 를 auto 로 보고 셀까지 늘였다 (0 붕괴 폴백 포함). 이제 0 (`0` · `0px` · `0%`) 도 명시 크기이고, 명시 크기는 padding + border 아래로 내려가지 않는다 (CSS border-box). 엔진 wasm 재빌드 필요 (`pnpm wasm:build:engine`).
+  - 위치: `packages/engine/src/tree.rs` grid item 배치 · `place_grid_axis`
+- **LabeledValue 값 칸 폭이 Preview 에서만 글자 폭**: Canvas 는 S2 기본 폭 (S 192 · M 208 · L 224 · XL 240) 이었다. 이제 양쪽 같다.
+  - **Why**: S2 `fieldInput()` 의 기본 폭 (`contain: inline-size` + intrinsic width) 이 Canvas part rule 에만 있고 생성 CSS 에 없었다. 이제 rule 한 곳에 두고 생성 CSS 와 Canvas part rule 이 같이 읽는다.
+  - 위치: `componentRulesTable.ts` LabeledValue `sizeSelectors` · `rulePartRules.ts` · 생성 `LabeledValue.css`
+- **Meter · ProgressBar side 라벨의 간격이 Preview 에서 4px**: Canvas 는 12px 였다. 이제 양쪽 12px.
+  - **Why**: 크기 블록의 `gap: 4px` (shorthand) 가 S2 `bar-utils.ts` 의 `column-gap: 12` 를 덮었다.
+  - 위치: `componentRulesTable.ts` Meter · ProgressBar 크기 블록 `columnGap: 12` · 생성 `Meter.css` · `ProgressBar.css`
+- **SideNavHeader 에 쓴 글자 크기 · 굵기 · 색이 Preview 에 안 나옴**: Canvas 에는 보였다. 이제 Preview 에도 보인다.
+  - **Why**: header 요소의 DOM style 이 상자 값만 실어 (`catalogDomStyle`), 안 Text 가 상속할 값이 없었다 (Canvas Text 는 header 값을 읽는다). 이제 header 가 작성값을 inline 으로 싣는다.
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts`
+- **SideNavHeader 의 색만 바꾸면 Canvas 의 header 글자가 옛 색에 남음**: 크기를 같이 바꾸면 따라왔다. 이제 색만 바꿔도 따라온다 (위 DOM 수정 뒤 드러남 — 전에는 양쪽 다 안 바뀌어 하니스가 통과했다).
+  - **Why**: 색만 쓰면 레이아웃 패스가 없어 글꼴 상속 경로가 안 Text 를 다시 계산하지 않았고, SideNav 의존 목록 (`catalogSideNavDependents`) 에 header 가 없었다.
+  - 위치: `packages/shared/src/catalog/runtime/sideNav.ts`
+- 확인 (SideNav 추가분): G3 `adr300SideNavParity` fixture 를 원본 구조 (내용 frame > SideNav · 바닥 frame > quiet ActionButton) 로 갱신 → 12/12 (갱신 전 12 실패 — 접기 버튼 fixture 11 · header 색 1). Canvas node data 에 그리는 곳이 없는 엔진 상자 baseline 을 싣지 않는다 (`canvasBinding.ts` `paintedNodeData` — rect 비교 `sameRect` 가 일부러 빼는 값이라 patch 장면과 새 장면이 갈렸다, 화면 영향 없음). 원복 RED (header 의존 → `incremental-header-color` 실패 · baseline → `incremental-header-edit` 실패, 바이트 복원) · shared 2,847 · builder catalogRuntime 4,326 (시간 초과 9 는 단독 73 통과) · parity 2,196 (시간 초과 1 단독 통과) · G3 117 → 105 (새 실패 0) · live (새 프로젝트 · Compare Mode — header 색만 두 번 바꿈, Canvas Text `#0050c0` / DOM `rgb(0, 80, 192)` 같음).
+- 확인: 새 테스트 — parity `gridItemZeroSize` 9 (Chrome oracle, 수정 전 7 RED) · `g3SheetCanvasSameValue` 4 · `sideNavHeaderType` 2, 원복 RED (시트 · Meter · ProgressBar · header 각각 실패, 파일 6 개 바이트 복원) · Rust 569 · 엔진 leg parity 46 파일 868 · shared 2,847 · builder 관련 단위 7,780 (병렬 부하에서 시간 초과난 9 파일은 단독 재실행으로 통과) · G3 하니스 133 → 117 실패 (16 건 통과로, 새 실패 0) · live (chrome-devtools, 새 프로젝트 · 팔레트 삽입 · Compare Mode — ProgressBar · Meter Fill Canvas 0 / DOM 0 · 트랙 768, LabeledValue 값 칸 Canvas 208 / DOM 208, Meter side 트랙 x 48.99 · 폭 686.6 양쪽 같음 · DOM column-gap 12, SideNavHeader 16 · #c00000 Canvas / DOM 같음).
+
+### Changed
+
+- **엔진 변경 때 parity 를 자동 실행** (`scripts/agent/work.sh` 5b): `packages/engine/src` 가 바뀌면 wasm 이 소스보다 오래됐을 때 다시 빌드한 뒤 엔진 leg parity (45 파일 · 19 초) 를 돌린다.
+- **parity 격자의 실패 보고를 종류로 묶음** (`tests/parity/harness.ts` `describeFailures`): 발산 케이스마다 어긋난 노드 · 축과 엔진 판정 (trace) 으로 지문을 만들어 「발산 N · 종류 K」 와 종류별 예 하나로 보인다. 격자 세 파일의 중복 `sweep` · `detail` 을 하니스 하나로.
+
 ## [ADR-318 Implemented — Resizable 분할창 (끌어서 나누는 패널 묶음)] - 2026-11-26
 
 ADR-318 (Resizable 분할창 — react-aria 훅 + 닫힌 D1 예외) Implemented. 코드 변경 없이 남은 사용자 확인으로 닫았다 — VoiceOver 청취 사용자 「VoiceOver 청취 확인했다」 (손잡이 separator 의 이름 · 값), 사용자 확인 「adr-318 은 완료 된것 아닌가?」. 기능은 Phase 0 ~ 6 커밋 (`0048b7900` · `8143ccbe8` · `13def5364`) 그대로다.

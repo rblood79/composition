@@ -6439,6 +6439,17 @@ export function renderNode(
         if (authored[key] === undefined) bound[key] = "inherit";
     }
   }
+  // ADR-300 — a header's own written type goes on its element: its Text inherits it (below), as the
+  //   Canvas Text takes the header's (`compositionRoot.ts` `sideNavText` · owner color). A binding's
+  //   box style (`catalogDomStyle`) carries no type, so without this the DOM kept the rule's 12 · grey.
+  //   **Why (2026-11-27)**: a header written 16 · red was 16 · red on the Canvas, 12 · grey in the
+  //   Preview (G3 `incremental-header-edit`).
+  if (bound && node.bindingId === "sidenavheader") {
+    const authored = catalogAuthoredVisual(root, node);
+    for (const key of ["fontSize", "lineHeight", "fontWeight", "color"])
+      if (authored[key] !== undefined)
+        Object.assign(bound, AUTHORED_CSS[key](authored[key]));
+  }
   // ADR-300 — a SideNav row's · header's Text takes its owner's type and color (S2 `treeCellGrid`:
   // `font: ui`, `neutral-subdued`, the current row `neutral` bold — the rules' `& .react-aria-Text`):
   // RAC marks the current row at run time (`data-current` — a navigation moves it), so the Text's

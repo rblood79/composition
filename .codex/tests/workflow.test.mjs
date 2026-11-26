@@ -88,6 +88,16 @@ test("ADR248 G3 테스트는 전용 browser config에서만 실행한다", (t) =
   assert.match(out, /--config vitest\.adr248-g3\.browser\.config\.ts/);
   assert.doesNotMatch(out, /vitest run tests\/adr248-g3/);
 });
+test("엔진 소스 변경은 wasm 빌드와 engine leg parity 를 선택한다", (t) => {
+  const out = plan(t, "packages/engine/src/flex.rs");
+  assert.match(out, /cargo-test\s+plan/);
+  assert.match(out, /wasm-build\s+plan/);
+  assert.match(out, /parity\s+skip\s+engine leg parity 파일 없음/);
+  assert.match(
+    plan(t, "packages/shared/src/catalog/runtime/compositionRoot.ts"),
+    /parity\s+skip\s+engine 변경 없음/,
+  );
+});
 test("스킬과 tooling 변경에만 스킬 검증·회귀를 선택한다", (t) => {
   assert.match(
     plan(t, ".claude/skills/evaluate/SKILL.md"),

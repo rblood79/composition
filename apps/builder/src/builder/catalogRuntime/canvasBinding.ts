@@ -1374,11 +1374,15 @@ function pickerNodeData(
 function paintedNodeData(
   root: CatalogCompositionRoot,
   input: CatalogConsumerNode,
-  rect: Rect,
+  layout: Rect,
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
   if (process.env.NODE_ENV === "development") docCounters.paintedNodeCalls += 1;
+  // (The engine's box baseline is a layout output no painter reads — `sameRect` leaves it out, so a
+  //  patch keeps a box whose baseline moved while its rect did not. Kept out of the node data, the
+  //  patched scene is the fresh one: an ancestor of a header whose font size changed.)
+  const { baseline: _baseline, ...rect } = layout;
   // ADR-314 Phase 3 — below a loading wrapped participant (a Badge's words, a Meter track's fill):
   //   S2 `visibility: hidden` — the box stays laid out, nothing drawn.
   if (input.derivedProps?._skeletonHidden === true)

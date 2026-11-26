@@ -9230,6 +9230,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}", // S2 `bar-utils.ts` `bar()` — Meter 도 ProgressBar 와 같은 최소 · 최대 폭 (ADR-295 Phase 3c-2b)
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -9239,6 +9240,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}",
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -9248,6 +9250,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}",
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -9257,6 +9260,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}",
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
     },
     structure: {
@@ -10527,6 +10531,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}", // S2 `bar-utils.ts` `minWidth: 48` (`size()` — 터치 60, ADR-295 Phase 3c-2)
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
       M: {
         fontSize: "{typography.text-sm}",
@@ -10536,6 +10541,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}",
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
       L: {
         fontSize: "{typography.text-base}",
@@ -10545,6 +10551,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}",
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
       XL: {
         fontSize: "{typography.text-lg}",
@@ -10554,6 +10561,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: "{size.bar.min-width}",
         maxWidth: scaled(768),
         gap: 4,
+        columnGap: 12, // S2 `bar-utils.ts` `columnGap: 12` (side 라벨 ↔ 막대 ↔ 값) — `gap` 뒤에 나와 column 축만 덮는다
       },
     },
     structure: {
@@ -16597,6 +16605,24 @@ COMPONENT_RULES_TABLE.LabeledValue = {
           styles: { "font-size": "inherit", "line-height": "inherit" },
         },
       },
+      // S2 `fieldInput()` (`style-utils.ts`): the value's default width — size containment with an
+      //   intrinsic width of `--defaultWidth` (S 192 · M 208 · L 224 · XL 240). Compiled into the
+      //   value Text's part rule too, so the Canvas and the generated sheet read this one block.
+      //   **Why (2026-11-27)**: the part rule alone carried it — the Canvas drew 208 and the DOM the
+      //   value's text width (G3 palette LabeledValue@S · M · L · XL).
+      sizeSelectors: Object.fromEntries(
+        Object.entries({ S: 192, M: 208, L: 224, XL: 240 }).map(
+          ([size, width]) => [
+            size,
+            {
+              '> .react-aria-Text[slot="value"]': {
+                contain: "inline-size",
+                "contain-intrinsic-width": `${width}px`,
+              },
+            },
+          ],
+        ),
+      ),
       containerVariants: {
         "label-position": {
           side: {

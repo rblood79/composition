@@ -37,6 +37,7 @@ paths:
 - 숨김 처리로 서브트리 layout 을 0 으로 덮어쓸 때 (`zero_subtree_layout`) 기존 solve 결과 · available 키 · 최종 fixed 크기 캐시도 함께 무효화한다 — 재표시 첫 solve 는 다시 실행돼야 한다.
 - grid item 의 행 기여 측정 (1차 solve) 결과는 `grid_row_measure` 에 `subtree_gen` 키로 기억한다 — 1차 (컨테이너 available) 와 셀 배치 2차가 `last_avail` 한 칸을 번갈아 덮지 않게. 바뀌지 않은 item 은 1차를 건너뛰고 2차는 HIT (원장 §증분 skip — page 격자, 2026-11-19).
 - grid 셀 배치 2차는 1차 (열 기여 · 행 높이 — 컨테이너 크기) 가 푼 서브트리를 `mark_subtree_dirty` 로 되살리지 않는다 — skip 키 (dirty · available · definite 높이) 가 셀 크기 차이를 잡는다. **Why (2026-11-21)**: 07-27 의 되살리기는 키가 dirty 뿐이던 때의 처방이었고, page 프레임이 내용만큼이 된 뒤 셀 높이 ≠ 컨테이너 높이가 늘 성립해 page 안 편집 하나가 page 전체를 다시 풀었다 (nested-flex 600 편집 1회 73 → 1,734 solve). 게이트 `page_frame_edit_leaves_other_sections_unsolved` · `grid_cell_percent_child_resolves_against_the_cell`.
+- 「명시 크기 있음」 은 풀린 값이 있느냐로 가른다 (`resolve_dimension_opt(..).is_some()`) — 풀린 값 `> 0` 으로 가르면 `0` · `0px` · `0%` 가 auto 로 보여 stretch 된다. 명시 크기는 border-box 라 padding + border 가 바닥. **Why (2026-11-27)**: grid item 배치 (`place_grid_axis` 의 0 붕괴 폴백 포함) 가 그렇게 갈라 value 0 ProgressBar · Meter 의 Fill 이 Canvas 에서만 꽉 찼다 (parity `gridItemZeroSize`). 같은 `> 0.0` 판정이 엔진에 47 곳 더 있다 — 그 축을 고칠 때 같이 본다.
 - 접힘 재측정 (`settleTagRows` · `settleBreadcrumbs`) 은 그 step 이 바꾼 root 의 목록만 (`inRoots`) — page 의 안쪽 배치는 다른 page 를 읽지 않는다.
 - fixed 배치는 viewport 단계에서 수행하고 부모 기준 임시 배치로 최종 제약 캐시를 덮어쓰지 않는다. 크기 재사용은 subtree/environment 세대와 containing block 제약이 같을 때만.
 
