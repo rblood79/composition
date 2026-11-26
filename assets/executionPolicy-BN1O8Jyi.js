@@ -1,0 +1,1 @@
+function e(e){return e?.mode??`auto`}function t(e,t){return e===`interval`?{mode:e,intervalSec:t??30}:{mode:e}}export{t as n,e as t};
