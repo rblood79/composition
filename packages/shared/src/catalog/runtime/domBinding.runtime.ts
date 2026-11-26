@@ -252,8 +252,8 @@ import {
   catalogAuthoredLayout,
   catalogAuthoredVisual,
   catalogDerivedRestVisual,
+  catalogDerivedInlineVisual,
   catalogTakesDerivedVariant,
-  catalogWithoutSheetDerived,
   catalogHasAuthoredColor,
   catalogHasAuthoredVisual,
   catalogHasExplicitVisual,
@@ -3483,7 +3483,7 @@ function ruleDom(
           ...node.visual,
           // (ADR-317 Phase 5 — a stripe is the Table sheet's, never inline: the row's hover ·
           //  selection · a cell's own paint go over it.)
-          ...catalogDerivedRestVisual(root, catalogWithoutSheetDerived(node)),
+          ...catalogDerivedInlineVisual(root, node),
         } as CatalogConsumerNode["visual"],
       }
     : node;

@@ -139,52 +139,64 @@ export function catalogDerivedRestVisual(
   );
 }
 /**
- * Owner-derived props whose rule `containerVariants` block a node takes as its own rest value — no
- * generated sheet draws it for the node (Column · Cell · Row · CardPreview): the DOM writes it
- * inline (`domBinding.runtime.ts`), and the ones marked `true` change the box the engine lays
- * out (`compositionRoot.ts` — a pinned column's edge · a merged row's line widths · a footer cell's
- * bold). (A card preview's corner is painted only.) **Why (2026-11-25)**: the pinned edge was
- * DOM-only — its 1px narrowed the DOM content box, not the Canvas's.
+ * How an owner-derived prop's rule `containerVariants` block reaches a node no generated sheet
+ * draws for (Column · Cell · Row · CardPreview) — one place to classify a new one:
+ * - `layout` — the node takes it as its own rest value: the DOM writes it inline
+ *   (`domBinding.runtime.ts`) and it changes the box the engine lays out (`compositionRoot.ts` — a
+ *   pinned column's edge · a merged row's line widths · a footer cell's bold). **Why (2026-11-25)**:
+ *   the pinned edge was DOM-only — its 1px narrowed the DOM content box, not the Canvas's.
+ * - `paint` — inline on the DOM, painted only (a card preview's corner).
+ * - `sheet` — ADR-317 Phase 5: the Table sheet's `data-striped` · `data-stripe` blocks draw it,
+ *   under the row's states — never inline, even on a node that writes its other derived blocks
+ *   inline (a merged Table's Row · Cell). The Canvas paints it (`catalogDerivedRestVisual`).
  */
-const OWN_DERIVED_VARIANTS: Readonly<Record<string, boolean>> = {
-  pinnedEdge: true,
-  cellLines: true,
-  mergeLine: true,
-  inFooter: true,
-  cardRadius: false,
+const DERIVED_VARIANT_DRAW: Readonly<
+  Record<string, "layout" | "paint" | "sheet">
+> = {
+  pinnedEdge: "layout",
+  cellLines: "layout",
+  mergeLine: "layout",
+  inFooter: "layout",
+  cardRadius: "paint",
+  striped: "sheet",
+  cellStripe: "sheet",
 };
 /**
- * ADR-317 Phase 5 — owner-derived props whose block the DOM draws by its sheet (the Table rule's
- * `data-striped` · `data-stripe` blocks, under the row's states), never inline: a node that writes
- * its other derived blocks inline (a merged Table's Row · Cell — `OWN_DERIVED_VARIANTS`) leaves them
- * out. The Canvas paints them (`catalogDerivedRestVisual`).
+ * The rest values the DOM writes inline for `node`'s derived blocks (`catalogDerivedRestVisual`)
+ * — its sheet-drawn ones (`DERIVED_VARIANT_DRAW` `sheet`) left out.
  */
-const SHEET_DERIVED_VARIANTS: readonly string[] = ["striped", "cellStripe"];
-/** `node` without its sheet-drawn derived props (`SHEET_DERIVED_VARIANTS`) — for its DOM inline values. */
-export function catalogWithoutSheetDerived<N extends CatalogConsumerNode>(
-  node: N,
-): N {
+export function catalogDerivedInlineVisual(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): Record<string, unknown> {
   const derived = node.derivedProps;
-  if (!derived || !SHEET_DERIVED_VARIANTS.some((key) => key in derived))
-    return node;
-  return {
+  const sheet = (key: string) => DERIVED_VARIANT_DRAW[key] === "sheet";
+  if (!derived || !Object.keys(derived).some(sheet))
+    return catalogDerivedRestVisual(root, node);
+  return catalogDerivedRestVisual(root, {
     ...node,
     derivedProps: Object.fromEntries(
-      Object.entries(derived).filter(
-        ([key]) => !SHEET_DERIVED_VARIANTS.includes(key),
-      ),
+      Object.entries(derived).filter(([key]) => !sheet(key)),
     ),
-  };
+  });
 }
-/** Whether `node` takes an own derived variant's rest value (`OWN_DERIVED_VARIANTS`) — for its DOM · its layout. */
+/**
+ * Whether `node` takes an own derived variant's rest value (`DERIVED_VARIANT_DRAW` `layout` ·
+ * `paint`) — for its DOM · its layout (`layout` only).
+ */
 export function catalogTakesDerivedVariant(
   node: CatalogConsumerNode,
   use: "dom" | "layout",
 ): boolean {
   const derived = node.derivedProps;
   if (!derived) return false;
-  for (const [key, layout] of Object.entries(OWN_DERIVED_VARIANTS))
-    if (derived[key] && (use === "dom" || layout)) return true;
+  for (const [key, draw] of Object.entries(DERIVED_VARIANT_DRAW))
+    if (
+      derived[key] &&
+      draw !== "sheet" &&
+      (use === "dom" || draw === "layout")
+    )
+      return true;
   return false;
 }
 const PINNED_EDGE_WIDTH_KEYS: ReadonlySet<string> = new Set([
