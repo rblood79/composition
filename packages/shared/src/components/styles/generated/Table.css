@@ -164,7 +164,7 @@
   --row-highlight-top: 0 0 transparent;
 }
 
-.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="new"] {
+.react-aria-Table.react-aria-Table .react-aria-Cell:is([data-row-edit="new"], [data-row-edit="unlinked"]) {
   box-shadow: inset 3px 0 var(--positive-visual);
 }
 
@@ -176,11 +176,7 @@
   background: color-mix(in srgb, var(--notice-visual) 14%, transparent);
 }
 
-.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="conflict"] {
-  box-shadow: inset 3px 0 var(--negative-visual);
-}
-
-.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="failed"] {
+.react-aria-Table.react-aria-Table .react-aria-Cell:is([data-row-edit="conflict"], [data-row-edit="failed"]) {
   box-shadow: inset 3px 0 var(--negative-visual);
 }
 
@@ -188,15 +184,7 @@
   box-shadow: inset 3px 0 var(--informative-visual);
 }
 
-.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="unlinked"] {
-  box-shadow: inset 3px 0 var(--positive-visual);
-}
-
-.react-aria-Table.react-aria-Table .react-aria-Row[data-edit-status="conflict"] .react-aria-Cell[data-edited] {
-  background: color-mix(in srgb, var(--negative-visual) 14%, transparent);
-}
-
-.react-aria-Table.react-aria-Table .react-aria-Row[data-edit-status="failed"] .react-aria-Cell[data-edited] {
+.react-aria-Table.react-aria-Table .react-aria-Row:is([data-edit-status="conflict"], [data-edit-status="failed"]) .react-aria-Cell[data-edited] {
   background: color-mix(in srgb, var(--negative-visual) 14%, transparent);
 }
 

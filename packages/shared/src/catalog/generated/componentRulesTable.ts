@@ -13789,9 +13789,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   row notice — and says the status (a hidden text, never only a color); a changed cell has
       //   a notice wash. Before the cell selection's wash (a selected cell shows its selection). No
       //   S2 row status — Preview runtime state, the Canvas draws none.
-      '& .react-aria-Cell[data-row-edit="new"]%': {
-        boxShadow: { default: "inset 3px 0 var(--positive-visual)" },
-      },
+      // (ADR-324 — a create waiting for its server row (`unlinked`) draws the new row's line.)
+      '& .react-aria-Cell:is([data-row-edit="new"], [data-row-edit="unlinked"])%':
+        {
+          boxShadow: { default: "inset 3px 0 var(--positive-visual)" },
+        },
       '& .react-aria-Cell[data-row-edit="dirty"]%': {
         boxShadow: { default: "inset 3px 0 var(--notice-visual)" },
       },
@@ -13801,30 +13803,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       // ADR-324 — a 「모아서 저장」 row's save status on the same edge line: a conflict · a refused
-      //   save negative, a result to check informative, a create waiting for its server row
-      //   positive dashed; a refused row's changed cells a negative wash. The words under the
-      //   first cell (`data-edit-note` — the server's values, the fields' messages) are shown, a
-      //   smaller line in the status color. Preview runtime state — the Canvas draws none.
-      '& .react-aria-Cell[data-row-edit="conflict"]%': {
-        boxShadow: { default: "inset 3px 0 var(--negative-visual)" },
-      },
-      '& .react-aria-Cell[data-row-edit="failed"]%': {
-        boxShadow: { default: "inset 3px 0 var(--negative-visual)" },
-      },
+      //   save negative, a result to check informative; a conflict · refused row's changed cells a
+      //   negative wash. The words under the first cell (`data-edit-note` — the server's values,
+      //   the fields' messages) are shown, a smaller line in the negative color. Same values share
+      //   one rule (`:is`) — the Preview initial CSS. Preview runtime state — the Canvas draws none.
+      '& .react-aria-Cell:is([data-row-edit="conflict"], [data-row-edit="failed"])%':
+        {
+          boxShadow: { default: "inset 3px 0 var(--negative-visual)" },
+        },
       '& .react-aria-Cell[data-row-edit="pending"]%': {
         boxShadow: { default: "inset 3px 0 var(--informative-visual)" },
       },
-      '& .react-aria-Cell[data-row-edit="unlinked"]%': {
-        boxShadow: { default: "inset 3px 0 var(--positive-visual)" },
-      },
-      '& .react-aria-Row[data-edit-status="conflict"] .react-aria-Cell[data-edited]%':
-        {
-          background: {
-            default:
-              "color-mix(in srgb, var(--negative-visual) 14%, transparent)",
-          },
-        },
-      '& .react-aria-Row[data-edit-status="failed"] .react-aria-Cell[data-edited]%':
+      '& .react-aria-Row:is([data-edit-status="conflict"], [data-edit-status="failed"]) .react-aria-Cell[data-edited]%':
         {
           background: {
             default:

@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **응답을 잃으면 다시 읽어 판정**: 자동으로 다시 보내지 않는다. 내 값이면 저장됨, 수정 전 값이면 다음 저장에 다시, 그 밖이면 충돌. 브라우저가 끊긴 연결의 요청을 스스로 다시 보낸 경우 (버전 조건이 막아 412) 도 다시 읽어 저장됨으로 닫는다 (live 에서 발견).
 - **충돌**: 다른 사람이 먼저 바꾼 행은 「충돌」 표시와 서버 값이 같이 보이고 (사용자 결정 4), 버전은 처음 고칠 때의 것을 보낸다 — 그 사이 다시 불러온 새 버전으로 보내지 않는다.
 
-- 확인: 대역 서버 (`saveEndpointStub.ts` · `save-endpoint-stub.mjs`) 로 단위 24 · 원복 RED 7/7, Builder 에서 패널로 켠 프로젝트를 Publish 로 열어 Chrome · WebKit 각 13/13 (`adr324-g5-live.mjs` — 편집 쓰기 0 · 저장 PATCH 1 · 412 충돌 · 「내 값」 · 응답 유실 · 취소 · 키보드 · 닫기 경고), 즉시 저장 회귀 (`adr317-p4-edit-marks-live.mjs`) Chrome · WebKit PASS. 문서 계약 80 (옛 79 파일은 열리지 않는다 — 변환 없음). 번들 Builder 첫 화면 +4,126 B · Preview 첫 화면 JS 0 · CSS +95 B. 상세 [ADR-324](adr/completed/324-collection-manual-batch-save.md).
+- 확인: 대역 서버 (`saveEndpointStub.ts` · `save-endpoint-stub.mjs`) 로 단위 24 · 원복 RED 7/7, Builder 에서 패널로 켠 프로젝트를 Publish 로 열어 Chrome · WebKit 각 13/13 (`adr324-g5-live.mjs` — 편집 쓰기 0 · 저장 PATCH 1 · 412 충돌 · 「내 값」 · 응답 유실 · 취소 · 키보드 · 닫기 경고), 즉시 저장 회귀 (`adr317-p4-edit-marks-live.mjs`) Chrome · WebKit PASS. 문서 계약 80 (옛 79 파일은 열리지 않는다 — 변환 없음). 번들 Builder 첫 화면 +4,126 B · Preview 첫 화면 JS 0 · CSS +92 B. 상세 [ADR-324](adr/completed/324-collection-manual-batch-save.md).
 
 ## [ADR-325 — 실행 중 고친 값이 페이지 이동 · 정렬 · 다시 불러오기 뒤에도 남는다] - 2026-11-27
 
