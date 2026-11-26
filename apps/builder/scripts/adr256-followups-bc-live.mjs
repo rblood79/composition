@@ -88,45 +88,6 @@ async function newProject(name) {
     { timeout: 30000 },
   );
 }
-/** Run a catalog command in the page: `build(c, ws, find, arg)` returns the command. */
-async function run(build, arg) {
-  return page.evaluate(
-    async ({ commands, build, arg }) => {
-      const c = await import(commands);
-      const ws = window.__COMPOSITION_CATALOG__.workspace;
-      // `find(type, within)` — the first record of `type` (inside the first `within` record).
-      const find = (type, within) => {
-        const all = [...ws.root.canvasInputs.values()];
-        const scope = within
-          ? all.find((r) => ws.root.typeOf(r) === within)
-          : undefined;
-        const inScope = (r) => {
-          if (!scope) return true;
-          for (let c = r; c; c = ws.root.canvasInputs.get(c.parentId))
-            if (c.id === scope.id) return true;
-          return false;
-        };
-        return all.find((r) => ws.root.typeOf(r) === type && inScope(r));
-      };
-      try {
-        ws.execute(
-          new Function(
-            "c",
-            "ws",
-            "find",
-            "arg",
-            `return (${build})(c, ws, find, arg);`,
-          )(c, ws, find, arg),
-        );
-        await new Promise((r) => setTimeout(r, 500));
-        return { ok: true };
-      } catch (error) {
-        return { ok: false, code: error?.code ?? String(error) };
-      }
-    },
-    { commands, build: build.toString(), arg },
-  );
-}
 const preview = (fn, arg) =>
   page.evaluate(
     ({ fn, arg }) => {
@@ -135,19 +96,6 @@ const preview = (fn, arg) =>
     },
     { fn: fn.toString(), arg },
   );
-const press = async (selector) => {
-  await page
-    .frameLocator("#previewFrame")
-    .locator(selector)
-    .first()
-    // (Compare Mode shrinks the Preview under the Builder header — RAC's virtual press.)
-    .dispatchEvent("click");
-  await page.waitForTimeout(800);
-};
-const closeOverlay = async () => {
-  await page.frameLocator("#previewFrame").locator("body").press("Escape");
-  await page.waitForTimeout(500);
-};
 
 
 
@@ -163,28 +111,6 @@ const exec = (build, arg) =>
       return { ok: false, code: error?.code ?? String(error) };
     }
   }, { commands, build: build.toString(), arg });
-/** The first record of `type` (its source id, record id, props, visual, derived props, hidden). */
-const canvas = (type, title) =>
-  page.evaluate(({ type, title }) => {
-    const root = window.__COMPOSITION_CATALOG__.workspace.root;
-    const r = [...root.canvasInputs.values()].find(
-      (x) => root.typeOf(x) === type && (title === undefined || x.props.title === title),
-    );
-    return r && { id: r.id, sourceId: r.sourceId, props: r.props, visual: r.visual, derived: r.derivedProps ?? null, hidden: !!r.hidden };
-  }, { type, title });
-/** Each section's Canvas panel shown, by its Disclosure's title. */
-const canvasPanels = () =>
-  page.evaluate(() => {
-    const root = window.__COMPOSITION_CATALOG__.workspace.root;
-    return Object.fromEntries(
-      [...root.canvasInputs.values()]
-        .filter((r) => root.typeOf(r) === "DisclosurePanel")
-        .map((p) => [String(root.canvasInputs.get(p.parentId).props.title), !p.hidden]),
-    );
-  });
-const domExpanded = () =>
-  preview((doc) => [...doc.querySelectorAll(".react-aria-Disclosure")].map((d) => d.hasAttribute("data-expanded")));
-const frameEntry = (ws) => ({ kind: "node", id: ws.newId("node"), definitionId: "lib:definition:type-frame", children: [], props: {}, visual: {}, sizing: {}, descendantOverrides: [] });
 
 
 /** Canvas pixels of scene points (the camera maps scene → canvas element px). */

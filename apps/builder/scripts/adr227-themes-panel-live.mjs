@@ -29,37 +29,8 @@ const record = (name, pass, detail) => {
 mkdirSync(OUT_DIR, { recursive: true });
 
 const ACCENT = "adr227-accent";
-const PRIMARY = "adr227-primary";
 const state = (page, fn, arg) => page.evaluate(fn, arg);
 
-const token = (page, key, entry) =>
-  state(
-    page,
-    ({ key, entry }) => {
-      const a = window.__composition_THEME_ACTIONS__;
-      const c = a.readThemesCollection();
-      return a.setThemeToken(c.active, key, entry);
-    },
-    { key, entry },
-  );
-const preset = (page, patch) =>
-  state(
-    page,
-    (patch) => window.__composition_THEME_ACTIONS__.setActiveThemePreset(patch),
-    patch,
-  );
-const runtime = (page) =>
-  state(page, () => {
-    const t = window.__composition_THEME_CONFIG__.getState();
-    const c = window.__canonical_STORE__.getState();
-    const doc = c.documents.get(c.currentProjectId);
-    return {
-      themeVersion: t.themeVersion,
-      tint: t.tint,
-      darkMode: t.darkMode,
-      tokens: doc?.themes?.items?.[doc.themes.active]?.tokens,
-    };
-  });
 
 async function focusOn(page, id, at = { x: 700, y: 420 }) {
   await state(
@@ -138,10 +109,6 @@ async function pixels(page, id, name) {
 }
 const isGreenish = ([r, g, b]) => g > 110 && g - r > 40 && g - b > 40;
 const isBluish = ([r, g, b]) => b > 150 && b - r > 60 && b - g > 40;
-const isMagenta = ([r, g, b]) => r > 150 && b > 150 && g < 100;
-const isDarkish = ([r, g, b]) => r < 60 && g < 60 && b < 60;
-const isLight = ([r, g, b]) => r > 200 && g > 200 && b > 200;
-const close = (a, b, tol = 8) => a.every((v, i) => Math.abs(v - b[i]) <= tol);
 
 const isReddish = ([r, g, b]) => r > 150 && r - g > 60 && r - b > 60;
 const historyTotal = (page) =>

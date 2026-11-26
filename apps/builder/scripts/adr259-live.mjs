@@ -300,17 +300,6 @@ async function phase1() {
   // L1-6 — the glyph: Canvas leg = Preview leg — the item box (±1), the glyph's ink centre (±0.5 px)
   // and its pixels against the control arm (an Icon node of the same glyph and size, same
   // rasterizer pair): the glyph may differ by no more than the two rasterizers differ on their own.
-  const inkCentre = (png) => {
-    let sx = 0, sy = 0, sw = 0;
-    for (let y = 0; y < png.height; y++)
-      for (let x = 0; x < png.width; x++) {
-        const i = (y * png.width + x) * 4;
-        const w = 255 - (png.data[i] + png.data[i + 1] + png.data[i + 2]) / 3;
-        if (w <= 8) continue;
-        sx += x * w; sy += y * w; sw += w;
-      }
-    return sw ? { x: sx / sw, y: sy / sw } : null;
-  };
   const drawnGlyph = (id) =>
     page.evaluate((id) => {
       const node = window.__composition_SKIA_DEBUG__?.getSkiaNode?.(id);

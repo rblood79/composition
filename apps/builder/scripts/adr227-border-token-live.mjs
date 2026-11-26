@@ -26,8 +26,6 @@ const record = (name, pass, detail) => {
 };
 mkdirSync(OUT_DIR, { recursive: true });
 
-const ACCENT = "adr227-accent";
-const PRIMARY = "adr227-primary";
 const state = (page, fn, arg) => page.evaluate(fn, arg);
 
 const token = (page, key, entry) =>
@@ -40,8 +38,6 @@ const token = (page, key, entry) =>
     },
     { key, entry },
   );
-const preset = (page, patch) =>
-  state(page, (patch) => window.__composition_THEME_ACTIONS__.setActiveThemePreset(patch), patch);
 const runtime = (page) =>
   state(page, () => {
     const t = window.__composition_THEME_CONFIG__.getState();
@@ -101,11 +97,6 @@ async function pixels(page, id, name) {
   };
   return { fill: at(5, rect.h / 2), corner: at(1, 1), outside: at(-6, rect.h / 2), rect };
 }
-const isGreenish = ([r, g, b]) => g > 110 && g - r > 40 && g - b > 40;
-const isBluish = ([r, g, b]) => b > 150 && b - r > 60 && b - g > 40;
-const isMagenta = ([r, g, b]) => r > 150 && b > 150 && g < 100;
-const isDarkish = ([r, g, b]) => r < 60 && g < 60 && b < 60;
-const isLight = ([r, g, b]) => r > 200 && g > 200 && b > 200;
 const close = (a, b, tol = 8) => a.every((v, i) => Math.abs(v - b[i]) <= tol);
 
 

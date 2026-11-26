@@ -57,7 +57,6 @@ const EXPECTED_INTERACTION_ROOTS = [
   "component-switch",
 ].flatMap((o) => [`${o}--hover`, `${o}--pressed`, `${o}--focus-visible`]);
 const NESTED_SAVE_PATH = "ButtonGroup/component-buttongroup__2";
-const NESTED_SAVE = `${FORM}/${NESTED_SAVE_PATH}`;
 const EXPECTED_VARIANT_ROOTS = [
   "component-button--disabled",
   "component-togglebutton--selected",
@@ -88,19 +87,6 @@ const elementById = (page, id) =>
             name: e.name ?? null,
             metadata: e.metadata ?? null,
           }
-        : null;
-    },
-    id,
-  );
-const layoutRect = (page, id) =>
-  state(
-    page,
-    (id) => {
-      const l = window.__composition_LAYOUT_DEBUG__
-        ?.getSharedLayoutMap?.()
-        ?.get(id);
-      return l
-        ? { x: l.x, y: l.y, w: Math.round(l.width), h: Math.round(l.height) }
         : null;
     },
     id,
@@ -283,8 +269,6 @@ async function waitFor(read, predicate, ms = 12_000) {
   }
   return last;
 }
-const approx = (a, b, tol = 1) =>
-  typeof a === "number" && typeof b === "number" && Math.abs(a - b) <= tol;
 const closeRgb = (a, b, tol = 8) =>
   a && b && a.every((v, i) => Math.abs(v - b[i]) <= tol);
 async function ensureCompareMode(page) {

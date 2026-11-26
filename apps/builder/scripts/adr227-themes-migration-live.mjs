@@ -118,7 +118,6 @@ async function skiaPixel(page, id, name) {
   return { rgb: [p.data[i], p.data[i + 1], p.data[i + 2]], at: [sx, sy] };
 }
 const isReddish = ([r, g, b]) => r > 150 && r - g > 60 && r - b > 60;
-const isBluish = ([r, g, b]) => b > 150 && b - r > 60 && b - g > 40;
 
 async function openThemesPanel(page) {
   const btn = page.locator('button[aria-label="테마"], button[aria-label="Theme"]').first();
