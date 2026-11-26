@@ -152,6 +152,18 @@
   --row-highlight-top: 0 0 transparent;
 }
 
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="new"] {
+  box-shadow: inset 3px 0 var(--positive-visual);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="dirty"] {
+  box-shadow: inset 3px 0 var(--notice-visual);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-edited] {
+  background: color-mix(in srgb, var(--notice-visual) 14%, transparent);
+}
+
 .react-aria-Table.react-aria-Table[data-cell-selection] {
   user-select: none;
 }

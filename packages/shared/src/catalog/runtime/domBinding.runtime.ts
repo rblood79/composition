@@ -406,7 +406,12 @@ import {
   CATALOG_SELECTION_COLUMN_VAR,
   CATALOG_SELECTION_COLUMN_WIDTH,
 } from "./tableTracks";
-import { CATALOG_CELL_COLUMN_PROP } from "./tableCellMerge";
+import {
+  CATALOG_CELL_COLUMN_PROP,
+  CATALOG_CELL_EDITED_PROP,
+  CATALOG_CELL_ROW_EDIT_PROP,
+  CATALOG_ROW_EDIT_PROP,
+} from "./tableCellMerge";
 import type { CatalogCellWrite } from "./tableCellSelection";
 import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
@@ -478,7 +483,10 @@ export interface CatalogDomRuntime {
    * S2 체크리스트 §9.3 — an S2 `EditableCell`'s save: the submitted fields (by name — the column
    * keys) onto its drawn row's item (the session's `useListData.update`).
    */
-  editTableRow?(rowId: string, values: Readonly<Record<string, unknown>>): void;
+  editTableRow?(
+    rowId: string,
+    values: Readonly<Record<string, unknown>>,
+  ): number | undefined;
   /**
    * ADR-315 Phase 6 — a cell range of a Table its viewers select cells in, as tab-separated text:
    * its rows (keys, in the order shown) by its Columns (keys) — the rows' data (breakdown §5.6).
@@ -4266,6 +4274,19 @@ function ruleDom(
       typeof node.props[CATALOG_CELL_COLUMN_PROP] === "string"
         ? { "data-column-key": node.props[CATALOG_CELL_COLUMN_PROP] }
         : {}),
+      // ADR-317 Phase 4 — a Table 「Edit marks」's changed Cell (data, not ARIA — `Table.css`) and
+      // its row's status said in the row's first Cell (`CatalogTableCell` — a screen reader's text).
+      ...(lower === "cell" && node.props[CATALOG_CELL_EDITED_PROP] === true
+        ? { "data-edited": "" }
+        : {}),
+      ...(lower === "cell" &&
+      (node.props[CATALOG_CELL_ROW_EDIT_PROP] === "new" ||
+        node.props[CATALOG_CELL_ROW_EDIT_PROP] === "dirty")
+        ? {
+            rowEdit: node.props[CATALOG_CELL_ROW_EDIT_PROP],
+            "data-row-edit": node.props[CATALOG_CELL_ROW_EDIT_PROP],
+          }
+        : {}),
       ...(lower === "column"
         ? {
             isRowHeader: columnIsRowHeader(root, node),
@@ -4401,6 +4422,11 @@ function ruleDom(
             ...(node.props[CATALOG_PINNED_ROW_PROP] === "top" ||
             node.props[CATALOG_PINNED_ROW_PROP] === "bottom"
               ? { "data-pinned-row": node.props[CATALOG_PINNED_ROW_PROP] }
+              : {}),
+            // (ADR-317 Phase 4 — a Table 「Edit marks」's row with an edit not saved.)
+            ...(node.props[CATALOG_ROW_EDIT_PROP] === "new" ||
+            node.props[CATALOG_ROW_EDIT_PROP] === "dirty"
+              ? { "data-edit-status": node.props[CATALOG_ROW_EDIT_PROP] }
               : {}),
           }
         : {}),

@@ -193,9 +193,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 77 — S2 체크리스트 §9.3 AlertDialog (사용자 결정 2026-11-23 「노드 + 2 필드」): composite 정의의
  *      `bindingMaps` (다른 origin prop 이 고르는 template `{key}` 값) · template 노드와 그 사본 노드의
  *      `presentWith` (그 origin prop 이 비면 자리가 없다).
+ * 78 — ADR-317 Phase 4 (사용자 결정 1): Table 의 When 「Cells change」 (`onCellsChange` — 붙여넣기 ·
+ *      채우기 · 지우기 한 번) 이 규칙 trigger 의 닫힌 목록 (`library.execution.triggerIds`) 에 더해진다.
+ *      옛 77 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 77 as const;
+export const LIBRARY_CONTRACT_VERSION = 78 as const;
 
 export type EntryKind =
   | "project"

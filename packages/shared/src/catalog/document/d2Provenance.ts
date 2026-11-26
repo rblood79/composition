@@ -158,6 +158,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     allowsPasting: "composition",
     // ADR-317 Phase 3 — the viewer drags the fill handle · Ctrl/Cmd + D (a copy of the range's values).
     allowsFilling: "composition",
+    // ADR-317 Phase 4 — the rows · cells changed and not saved show a mark.
+    showEditMarks: "composition",
     keepPinnedRows: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },

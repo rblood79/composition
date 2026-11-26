@@ -186,6 +186,16 @@ export interface DispatchDeps {
    * components showing the collection select nothing.
    */
   clearSelectionOf?: (collectionId: string) => void;
+  /**
+   * ADR-317 Phase 4 — the Preview session's last edit number: a rule's edits are the ones after the
+   * number before it ran (`createElementHandlers`). Absent = no edit record (no marks).
+   */
+  editSeq?: () => number;
+  /**
+   * ADR-317 Phase 4 (사용자 결정 6) — a rule that saves (`callEndpoint`) succeeded: the edits it sent
+   * (its event's — `CATALOG_EVENT_EDITS` — and its own Dos') are shown saved.
+   */
+  markEditsSaved?: (seqs: readonly number[]) => void;
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (
     collectionId: string,

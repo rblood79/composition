@@ -856,6 +856,9 @@ const catalog: TranslationKeys = {
         onItemDrop: "On drop on an item",
         onDragEnd: "On drag end",
       },
+      cellsChange: {
+        onCellsChange: "On cells change (paste · fill · clear)",
+      },
       toggle: {
         onChange: "On check change",
       },
@@ -925,6 +928,7 @@ const catalog: TranslationKeys = {
       fileSelect: "File select",
       dragDrop: "Drag and drop",
       collectionDragDrop: "Item drag and drop",
+      cellsChange: "Cell editing",
       toggle: "Checked state",
       value: "Value",
       multiSelection: "Selection",
@@ -3300,6 +3304,7 @@ const semanticLabels: Record<string, string> = {
   "properties.tableCellSelection": "Cell selection",
   "properties.tablePaste": "Paste",
   "properties.tableFillHandle": "Fill handle",
+  "properties.tableEditMarks": "Edit marks",
   "properties.tableKeepPinnedRows": "Keep pinned rows",
   "properties.ascending": "Ascending",
   "properties.descending": "Descending",

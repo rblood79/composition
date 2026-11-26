@@ -122,6 +122,8 @@ import {
 import {
   CATALOG_ROW_MERGE_DOWN_PROP,
   CATALOG_ROW_MERGE_UP_PROP,
+  CATALOG_ROW_EDIT_PROP,
+  CATALOG_ROW_EDITED_FIELDS_PROP,
   catalogMergeEdges,
   catalogMergedRows,
 } from "../runtime/tableCellMerge";
@@ -274,6 +276,14 @@ export interface CatalogBoundRow {
   merge?: {
     readonly up?: readonly string[];
     readonly down?: readonly string[];
+  };
+  /**
+   * ADR-317 Phase 4 — a Table 「Edit marks」's data row with an edit not saved yet (the Preview
+   * session's — `CatalogRowEditMark`): new or changed, its changed fields.
+   */
+  edit?: {
+    readonly status: "new" | "dirty";
+    readonly fields: readonly string[];
   };
 }
 /**
@@ -1110,9 +1120,17 @@ function nestTableRows(
         }
       : node;
   }
-  const own = withMergedRow(
-    withPinnedRow(withoutRowDetail(node, isTableRow), data.pinned, isTableRow),
-    data.merge,
+  const own = withEditedRow(
+    withMergedRow(
+      withPinnedRow(
+        withoutRowDetail(node, isTableRow),
+        data.pinned,
+        isTableRow,
+      ),
+      data.merge,
+      isTableRow,
+    ),
+    data.edit,
     isTableRow,
   );
   if (!data.children?.length) return own;
@@ -1187,6 +1205,29 @@ function withMergedRow(
     },
     ...(first && isTableRow(first)
       ? { children: [withMergedRow(first, merge, isTableRow), ...rest] }
+      : {}),
+  };
+}
+/**
+ * ADR-317 Phase 4 — a Row with its edit status on every layer (a Row instance's record reads its
+ * innermost one): the column projection marks its Cells by Column key (`catalogProjectTableColumns`).
+ */
+function withEditedRow(
+  row: ResolvedCatalogNode,
+  edit: CatalogBoundRow["edit"],
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  if (!edit) return row;
+  const [first, ...rest] = row.children;
+  return {
+    ...row,
+    props: {
+      ...row.props,
+      [CATALOG_ROW_EDIT_PROP]: edit.status,
+      [CATALOG_ROW_EDITED_FIELDS_PROP]: edit.fields,
+    },
+    ...(first && isTableRow(first)
+      ? { children: [withEditedRow(first, edit, isTableRow), ...rest] }
       : {}),
   };
 }

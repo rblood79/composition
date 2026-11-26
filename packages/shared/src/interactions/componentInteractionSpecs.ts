@@ -106,6 +106,7 @@ import {
   rowPinning,
 } from "./concepts/tableColumns";
 import { remove } from "./concepts/remove";
+import { cellsChange } from "./concepts/tableEditing";
 import { search } from "./concepts/search";
 import {
   selectValue,
@@ -303,6 +304,8 @@ export const COMPONENT_INTERACTION_SPECS = {
       { concept: collectionDragDrop },
       // (ADR-315 Phase 4 — the columns it shows: the Table state's column slice.)
       { concept: columnVisibility },
+      // (ADR-317 Phase 4 — its viewer's several-cell write: 「Cells change」.)
+      { concept: cellsChange },
     ],
   },
   // ADR-315 Phase 4 — a Column's pinned side and filter (the Table state's column slices).
@@ -437,6 +440,12 @@ type PageRootProps = Pick<ButtonProps, "isDisabled"> &
  */
 interface TableColumnStateProps {
   visibleColumns?: Iterable<string>;
+  /** ADR-317 Phase 4 — the viewer's several-cell write (`concepts/tableEditing.ts`). */
+  onCellsChange?: (event: {
+    keys: readonly string[];
+    items: readonly unknown[];
+    cells: readonly { key: string; field: string }[];
+  }) => void;
 }
 /** ADR-315 Phase 5 증분 5f — a Table row's pinned side (`concepts/tableColumns.ts` `rowPinning`). */
 interface RowStateProps {

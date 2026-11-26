@@ -187,7 +187,7 @@ describe("ADR-317 Phase 1 — the session's several-item write", () => {
     const t = await openTable();
     expect(
       t.session.update("users", "p1", { amount: "42", name: "Ana" }),
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, seq: expect.any(Number) });
     t.session.updateMany("users", [
       { key: "p2", fields: { amount: "42", name: "Ana" } },
     ]);
@@ -212,6 +212,7 @@ describe("ADR-317 Phase 1 — the session's several-item write", () => {
     // (An empty text is the field's empty value — not refused.)
     expect(t.session.update("users", "p1", { amount: "" })).toEqual({
       ok: true,
+      seq: expect.any(Number),
     });
     expect(t.item("p1").amount).toBeNull();
     t.h.view.unmount();

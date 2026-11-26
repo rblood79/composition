@@ -76,12 +76,19 @@ export interface CatalogTableCellsWrite extends Omit<
   "skipped"
 > {
   readonly skipped: Partial<Record<CatalogTableCellsWriteSkip, number>>;
+  /**
+   * ADR-317 Phase 4 — the rows written (item keys, in write order) and their items now: the
+   * Table's 「Cells change」 event (what a save sends).
+   */
+  readonly keys?: readonly string[];
+  readonly items?: readonly unknown[];
 }
 
 /** What a Table controller reads and calls of its session (`CatalogPreviewSession.tableHost`). */
 export type CatalogTableHost = {
   boundTableRecords: CatalogPreviewSession["boundTableRecords"];
   collectionItems: CatalogPreviewSession["collectionItems"];
+  itemsByKeys: CatalogPreviewSession["itemsByKeys"];
   collectionRowService: CatalogPreviewSession["collectionRowService"];
   collections: CatalogPreviewSession["collections"];
   currentRoot: CatalogPreviewSession["currentRoot"];
@@ -829,14 +836,19 @@ export class CatalogTableController {
    * callEndpoint」): the submitted fields onto the drawn row's item of its Table's collection
    * (`useListData.update` — the session's edit record, as a rule's `update` Do).
    */
-  editTableRow(rowId: string, values: Readonly<Record<string, unknown>>): void {
+  editTableRow(
+    rowId: string,
+    values: Readonly<Record<string, unknown>>,
+  ): number | undefined {
     const place = this.rowRecordPlace(rowId);
     const collectionId = place && this.tableCollectionOf(place.tableId);
-    if (!place || !collectionId) return;
+    if (!place || !collectionId) return undefined;
     const result = this.host.update(collectionId, place.key, values);
     // (ADR-317 사용자 결정 8 — a value its field cannot read is kept out: `ok` with a reason.)
     if (!result.ok || result.reason)
       console.warn(`[interactions] Editable cell: ${result.reason ?? ""}`);
+    // (ADR-317 Phase 4 — the edit's number: the Form's save rule clears its mark when it succeeds.)
+    return result.seq;
   }
 
   /**
@@ -884,7 +896,14 @@ export class CatalogTableController {
     for (const [reason, count] of Object.entries(result.skipped))
       skipped[reason as CatalogTableCellsWriteSkip] =
         (skipped[reason as CatalogTableCellsWriteSkip] ?? 0) + (count ?? 0);
-    return { ...result, skipped };
+    const keys = [...new Set(result.written.map((cell) => cell.key))];
+    return {
+      ...result,
+      skipped,
+      ...(keys.length
+        ? { keys, items: this.host.itemsByKeys(collectionId, keys) }
+        : {}),
+    };
   }
 
   /**

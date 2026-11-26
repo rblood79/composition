@@ -855,6 +855,9 @@ const catalog: TranslationKeys = {
         onItemDrop: "항목 위에 놓을 때",
         onDragEnd: "끌기가 끝날 때",
       },
+      cellsChange: {
+        onCellsChange: "칸이 바뀔 때 (붙여넣기 · 채우기 · 지우기)",
+      },
       toggle: {
         onChange: "선택 상태가 바뀔 때",
       },
@@ -924,6 +927,7 @@ const catalog: TranslationKeys = {
       fileSelect: "파일 선택",
       dragDrop: "끌어 놓기",
       collectionDragDrop: "항목 끌어 놓기",
+      cellsChange: "칸 편집",
       toggle: "선택 상태",
       value: "값",
       multiSelection: "선택",
@@ -3293,6 +3297,7 @@ const semanticLabels: Record<string, string> = {
   "properties.tableCellSelection": "칸 범위 선택",
   "properties.tablePaste": "붙여넣기",
   "properties.tableFillHandle": "채우기 손잡이",
+  "properties.tableEditMarks": "편집 표시",
   "properties.tableKeepPinnedRows": "고정 행 유지",
   "properties.ascending": "오름차순",
   "properties.descending": "내림차순",

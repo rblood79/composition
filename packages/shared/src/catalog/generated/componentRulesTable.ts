@@ -13733,6 +13733,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         {
           "--row-highlight-top": { isSelected: "0 0 transparent" },
         },
+      // ADR-317 Phase 4 — a Table 「Edit marks」 (the Preview session's edits not saved yet): the
+      //   row's first data cell draws a line at the row's start edge — new row positive, changed
+      //   row notice — and says the status (a hidden text, never only a color); a changed cell has
+      //   a notice wash. Before the cell selection's wash (a selected cell shows its selection). No
+      //   S2 row status — Preview runtime state, the Canvas draws none.
+      '& .react-aria-Cell[data-row-edit="new"]%': {
+        boxShadow: { default: "inset 3px 0 var(--positive-visual)" },
+      },
+      '& .react-aria-Cell[data-row-edit="dirty"]%': {
+        boxShadow: { default: "inset 3px 0 var(--notice-visual)" },
+      },
+      "& .react-aria-Cell[data-edited]%": {
+        background: {
+          default: "color-mix(in srgb, var(--notice-visual) 14%, transparent)",
+        },
+      },
       // ADR-315 Phase 6 — a Table 「Cell selection」 (`tableCellSelection.ts` marks it and its cells):
       //   a selected cell is the highlight wash of a selected row (S2 `highlight` — there is no S2
       //   cell selection); a drag over the cells selects them, not their text. Preview runtime

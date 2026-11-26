@@ -182,7 +182,62 @@ type CatalogItemEdit =
       toParent?: string | null;
     };
 
+/** ADR-317 Phase 4 — an edit as the session records it: its number (`edit` — one per record, a
+ * several-cell write too; the session's, rising). */
+type CatalogItemRecord = CatalogItemEdit & { readonly seq: number };
+
 type CatalogItems = readonly Record<string, unknown>[];
+
+/**
+ * ADR-317 Phase 4 (breakdown §5.4) — what the edits made of an item, by the item object the replay
+ * made (`replayItemEdits` — every copy the replay makes of a marked item — a tree's parent, a flat
+ * tree's row — carries its mark, `carriedItem`): the edit that added it and, by field, the edit
+ * that wrote it last. Read after the replay by the item's key now (`CatalogPreviewSession.editMarks`)
+ * — never by the key an edit named (a positional key moves). A side table: the item's fields stay
+ * the data's (a deep compare · a field read sees nothing new).
+ */
+const ITEM_EDIT_MARKS = new WeakMap<object, CatalogItemEditMark>();
+interface CatalogItemEditMark {
+  readonly added?: number;
+  readonly fields?: Readonly<Record<string, number>>;
+}
+/** ADR-317 Phase 4 — a row's edit status shown (「Edit marks」): new or changed, its changed fields. */
+export interface CatalogRowEditMark {
+  readonly status: "new" | "dirty";
+  readonly fields: readonly string[];
+}
+/** A copy the replay made of an item: the item's mark goes with it. */
+function carriedItem<T extends Record<string, unknown>>(
+  from: Readonly<Record<string, unknown>>,
+  to: T,
+): T {
+  const mark = ITEM_EDIT_MARKS.get(from);
+  if (mark) ITEM_EDIT_MARKS.set(to, mark);
+  return to;
+}
+/** An item the edit wrote: its fields (the patch's) last written by edit `seq`. */
+function writtenItem(
+  item: Record<string, unknown>,
+  patch: Readonly<Record<string, unknown>>,
+  seq: number | undefined,
+): Record<string, unknown> {
+  const next = { ...item, ...patch };
+  const mark = ITEM_EDIT_MARKS.get(item);
+  if (seq === undefined) return mark ? carriedItem(item, next) : next;
+  const fields = { ...mark?.fields };
+  for (const field of Object.keys(patch)) fields[field] = seq;
+  ITEM_EDIT_MARKS.set(next, { ...mark, fields });
+  return next;
+}
+/** An item an edit added (`append` · `insert`) — marked with the edit (the record's own object). */
+function addedItem(
+  item: Record<string, unknown>,
+  seq: number | undefined,
+): Record<string, unknown> {
+  if (seq !== undefined && !ITEM_EDIT_MARKS.has(item))
+    ITEM_EDIT_MARKS.set(item, { added: seq });
+  return item;
+}
 
 /** ADR-317 — why a cell of a several-item write was not written (`updateMany`). */
 export type CatalogItemsWriteSkip =
@@ -193,6 +248,8 @@ export interface CatalogItemsWrite {
   readonly reason?: string;
   readonly written: readonly { readonly key: string; readonly field: string }[];
   readonly skipped: Partial<Record<CatalogItemsWriteSkip, number>>;
+  /** ADR-317 Phase 4 — the edit's number (none written = none): a save of it clears its marks. */
+  readonly seq?: number;
 }
 
 /** ADR-317 사용자 결정 8 — the fields an `update` did not write: their values were not readable. */
@@ -276,13 +333,15 @@ function withLevel(
       if (found) return item;
       if (itemKey(item, index, keyField) === parent) {
         found = true;
-        return {
+        return carriedItem(item, {
           ...item,
           [childrenKey]: change(childItemsOf(item, childrenKey) ?? []),
-        };
+        });
       }
       const children = childItemsOf(item, childrenKey);
-      return children ? { ...item, [childrenKey]: visit(children) } : item;
+      return children
+        ? carriedItem(item, { ...item, [childrenKey]: visit(children) })
+        : item;
     });
   const next = visit(items);
   return found ? next : undefined;
@@ -303,7 +362,10 @@ function mapItems(
     const children = childItemsOf(kept, childrenKey);
     return [
       children
-        ? { ...kept, [childrenKey!]: mapItems(children, childrenKey, each) }
+        ? carriedItem(kept, {
+            ...kept,
+            [childrenKey!]: mapItems(children, childrenKey, each),
+          })
         : kept,
     ];
   });
@@ -348,7 +410,7 @@ function levelOfPosition(
  */
 function replayItemEdits(
   base: CatalogItems,
-  edits: readonly CatalogItemEdit[],
+  edits: readonly (CatalogItemEdit & { readonly seq?: number })[],
   childrenKey?: string,
   keyField?: string,
 ): Record<string, unknown>[] {
@@ -362,7 +424,10 @@ function replayItemEdits(
   };
   for (const edit of edits) {
     if (edit.kind === "append")
-      at(edit.parent ?? null, (level) => [...level, edit.item]);
+      at(edit.parent ?? null, (level) => [
+        ...level,
+        addedItem(edit.item, edit.seq),
+      ]);
     else if (edit.kind === "insert")
       at(
         levelOfPosition(items, edit.at, edit.parent, childrenKey, keyField),
@@ -370,7 +435,11 @@ function replayItemEdits(
           const index = positionIndex(level, edit.at, keyField);
           return index < 0
             ? level
-            : [...level.slice(0, index), edit.item, ...level.slice(index)];
+            : [
+                ...level.slice(0, index),
+                addedItem(edit.item, edit.seq),
+                ...level.slice(index),
+              ];
         },
       );
     else if (edit.kind === "move") {
@@ -408,7 +477,7 @@ function replayItemEdits(
     } else if (edit.kind === "update")
       items = mapItems(items, childrenKey, (item, index) =>
         itemKey(item, index, keyField) === edit.key
-          ? { ...item, ...edit.patch }
+          ? writtenItem(item, edit.patch, edit.seq)
           : item,
       );
     else if (edit.kind === "updateMany") {
@@ -417,7 +486,7 @@ function replayItemEdits(
       );
       items = mapItems(items, childrenKey, (item, index) => {
         const patch = patches.get(itemKey(item, index, keyField));
-        return patch ? { ...item, ...patch } : item;
+        return patch ? writtenItem(item, patch, edit.seq) : item;
       });
     } else if (edit.keys === "all") items = [];
     else {
@@ -433,7 +502,7 @@ function replayItemEdits(
 /** Run the same Tree edit operations on flat rows, then persist the result as flat parent IDs. */
 function replayFlatTreeEdits(
   base: CatalogItems,
-  edits: readonly CatalogItemEdit[],
+  edits: readonly (CatalogItemEdit & { readonly seq?: number })[],
   parentField: string,
   keyField?: string,
 ): Record<string, unknown>[] {
@@ -469,7 +538,7 @@ function replayFlatTreeEdits(
   const visit = (items: CatalogItems, parent: string | number | null) => {
     items.forEach((item, index) => {
       const { [childField]: children, ...rest } = item;
-      flat.push({ ...rest, [parentField]: parent });
+      flat.push(carriedItem(item, { ...rest, [parentField]: parent }));
       if (Array.isArray(children))
         visit(
           children as Record<string, unknown>[],
@@ -585,7 +654,15 @@ export class CatalogPreviewSession {
    * author's data never sees it), replayed over the Builder's items each time they come
    * (`itemSources`).
    */
-  private readonly itemEdits = new Map<string, CatalogItemEdit[]>();
+  private readonly itemEdits = new Map<string, CatalogItemRecord[]>();
+  /** ADR-317 Phase 4 — the last edit's number (`CatalogItemRecord.seq` — the session's, rising). */
+  private editCount = 0;
+  /**
+   * ADR-317 Phase 4 (사용자 결정 6 「칸까지 · 저장 성공 때도 지움」) — the edits a save sent and the
+   * server took (`markEditsSaved`): a cell whose last edit is one of them is shown saved (no mark).
+   * The edits stay (the values are the edits'); a load that drops them drops these too.
+   */
+  private readonly savedEdits = new Set<number>();
   /**
    * `useAsyncList.reload()` — the items a `reload` rule loaded, by collection id: they replace the
    * Builder's API items until the Builder sends other ones (`receive`).
@@ -764,6 +841,7 @@ export class CatalogPreviewSession {
     return {
       boundTableRecords: (...args) => session.boundTableRecords(...args),
       collectionItems: (...args) => session.collectionItems(...args),
+      itemsByKeys: (...args) => session.itemsByKeys(...args),
       collectionRowService: (...args) => session.collectionRowService(...args),
       get collections() {
         return session.collections;
@@ -1222,7 +1300,7 @@ export class CatalogPreviewSession {
       collection: CollectionDataSource,
       items: readonly unknown[],
     ) => CatalogItemEdit | { reason: string },
-  ): { ok: boolean; reason?: string } {
+  ): { ok: boolean; reason?: string; seq?: number } {
     const collection = this.collections.find(
       (item) => item.id === collectionId,
     );
@@ -1230,15 +1308,73 @@ export class CatalogPreviewSession {
       return { ok: false, reason: `collection 없음: ${collectionId}` };
     const edit = plan(collection, this.collectionItems(collectionId));
     if ("reason" in edit) return { ok: false, reason: edit.reason };
+    const seq = (this.editCount += 1);
     this.itemEdits.set(collectionId, [
       ...(this.itemEdits.get(collectionId) ?? []),
-      edit,
+      { ...edit, seq },
     ]);
     const errors = this.currentRoot?.refreshRows() ?? [];
     if (errors.length)
       console.error(`[CatalogPreview] ${edit.kind}:`, ...errors);
     this.changed();
-    return { ok: true };
+    return { ok: true, seq };
+  }
+  /** ADR-317 Phase 4 — the last edit's number (a rule's edits are the ones after the number before it). */
+  editSeq(): number {
+    return this.editCount;
+  }
+  /**
+   * ADR-317 Phase 4 (사용자 결정 6) — a save the server took: the edits it sent (their numbers) are
+   * shown saved — a cell written again after it keeps its mark (its last edit is a later one). The
+   * values stay. The rows of the collections those edits wrote are read again (the marks are the
+   * rows' — nothing else changed).
+   */
+  markEditsSaved(seqs: readonly number[]): void {
+    const touched = new Set<string>();
+    for (const [collectionId, edits] of this.itemEdits)
+      for (const edit of edits)
+        if (seqs.includes(edit.seq) && !this.savedEdits.has(edit.seq)) {
+          this.savedEdits.add(edit.seq);
+          touched.add(`data:collection:${collectionId}`);
+        }
+    if (!touched.size) return;
+    const errors = this.currentRoot?.refreshRows(touched) ?? [];
+    if (errors.length) console.error("[CatalogPreview] saved:", ...errors);
+    this.changed();
+  }
+  /**
+   * ADR-317 Phase 4 (breakdown §5.4) — a collection's rows with an edit not saved yet, by the key
+   * the bound components read now (`getItemKey` with the binding's value field — a tree's children
+   * too): 「new」 (an edit added it, not saved) or 「dirty」 (fields whose last edit is not saved).
+   * Undefined = no edits.
+   */
+  editMarks(
+    collectionId: string,
+  ): ReadonlyMap<string, CatalogRowEditMark> | undefined {
+    if (!this.itemEdits.get(collectionId)?.length) return undefined;
+    const keyField = this.treeFieldKeyOf(collectionId, "value");
+    const childrenKey = this.childrenKeyOf(collectionId);
+    const marks = new Map<string, CatalogRowEditMark>();
+    const visit = (level: CatalogItems) =>
+      level.forEach((item, index) => {
+        const mark = ITEM_EDIT_MARKS.get(item);
+        if (mark) {
+          const fields = Object.entries(mark.fields ?? {})
+            .filter(([, seq]) => !this.savedEdits.has(seq))
+            .map(([field]) => field);
+          const added =
+            mark.added !== undefined && !this.savedEdits.has(mark.added);
+          if (added || fields.length)
+            marks.set(itemKey(item, index, keyField), {
+              status: added ? "new" : "dirty",
+              fields,
+            });
+        }
+        const children = childItemsOf(item, childrenKey);
+        if (children) visit(children);
+      });
+    visit(this.collectionItems(collectionId) as CatalogItems);
+    return marks;
   }
   /**
    * `useListData.append(value)` — the value's schema fields, with an `id` when the schema has one
@@ -1343,7 +1479,7 @@ export class CatalogPreviewSession {
     key: string | undefined,
     value: Readonly<Record<string, unknown>>,
     fieldId?: string,
-  ): { ok: boolean; reason?: string } {
+  ): { ok: boolean; reason?: string; seq?: number } {
     let unread: string[] = [];
     const result = this.edit(collectionId, (collection, items) => {
       const target =
@@ -1373,7 +1509,7 @@ export class CatalogPreviewSession {
       return { kind: "update", key: target, patch };
     });
     return result.ok && unread.length
-      ? { ok: true, reason: catalogUnreadReason(unread) }
+      ? { ...result, reason: catalogUnreadReason(unread) }
       : result;
   }
   /**
@@ -1429,6 +1565,7 @@ export class CatalogPreviewSession {
       return { ok: false, reason: result.reason, written: [], skipped };
     return {
       ok: true,
+      ...(result.seq !== undefined ? { seq: result.seq } : {}),
       written: [...merged].flatMap(([key, patch]) =>
         Object.keys(patch).map((field) => ({ key, field })),
       ),
@@ -1967,6 +2104,8 @@ export class CatalogPreviewSession {
     items: Record<string, unknown>[],
   ): void {
     this.reloadedItems.set(collectionId, items);
+    for (const edit of this.itemEdits.get(collectionId) ?? [])
+      this.savedEdits.delete(edit.seq);
     this.itemEdits.delete(collectionId);
     const errors =
       this.currentRoot?.refreshRows(
@@ -2335,10 +2474,14 @@ export class CatalogPreviewSession {
       }
     }
     // (ADR-315 Phase 5 증분 5g — rows a Table of pins none of: its record says so.)
-    const marked = <T extends object | undefined>(rows: T): T =>
-      rows && pinsRefused
-        ? (Object.assign(rows, { pinsRefused: true as const }) as T)
-        : rows;
+    const marked = <T extends CatalogBoundRows | undefined>(rows: T): T =>
+      this.withEditMarks(
+        rows && pinsRefused
+          ? (Object.assign(rows, { pinsRefused: true as const }) as T)
+          : rows,
+        id,
+        ownerId,
+      );
     if (ownerId !== undefined && display?.mode === "pages")
       return marked(this.pageRows(binding, kind, ownerId, display, slices));
     // (A virtual-scrolled list shows every loaded row — the `Virtualizer` puts the visible ones in
@@ -2372,6 +2515,43 @@ export class CatalogPreviewSession {
         loadingState: this.loadingStates.get(collectionId) ?? "idle",
       }),
     );
+  }
+  /**
+   * ADR-317 Phase 4 — a Table 「Edit marks」's rows with their edit status (`CatalogBoundRow.edit` —
+   * the resolver carries it on the Row and Cell records): its data rows by key (`editMarks`), not
+   * a group's · a detail · a placeholder. A list without the switch reads no marks (R3).
+   */
+  private withEditMarks<T extends CatalogBoundRows | undefined>(
+    rows: T,
+    collectionId: string,
+    ownerId: string | undefined,
+  ): T {
+    if (!rows?.length || ownerId === undefined) return rows;
+    const owner = this.graph?.getEntry(ownerId as never);
+    const on = owner?.kind === "node" ? owner.props.showEditMarks : undefined;
+    if (on?.kind !== "set" || on.value !== true) return rows;
+    const marks = this.editMarks(collectionId);
+    if (!marks?.size) return rows;
+    const visit = (list: readonly CatalogBoundRow[]): CatalogBoundRow[] =>
+      list.map((row) => {
+        const edit =
+          row.group || row.detail || row.placeholder
+            ? undefined
+            : marks.get(row.key);
+        const children = row.children && visit(row.children);
+        return edit || children
+          ? {
+              ...row,
+              ...(edit ? { edit } : {}),
+              ...(children ? { children } : {}),
+            }
+          : row;
+      });
+    // (The rows' own fields — total · load · view … — on the new list.)
+    const own = Object.fromEntries(
+      Object.entries(rows).filter(([key]) => !/^\d+$/.test(key)),
+    );
+    return Object.assign(visit(rows), own) as unknown as T;
   }
   /**
    * ADR-315 Phase 5 증분 5g — the servers' answers to the Tables' pinned rows' requests, by the

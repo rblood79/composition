@@ -12,6 +12,7 @@ import { Button, ButtonContext } from "react-aria-components/Button";
 import { FormContext } from "react-aria-components/Form";
 import { useLocale } from "react-aria-components/I18nProvider";
 import { Popover } from "react-aria-components/Popover";
+import { CATALOG_EVENT_EDITS } from "../../interactions/bindings";
 import { catalogLocalized } from "./localizedStrings";
 import { CATALOG_GLYPH_1EM, catalogLucideGlyph } from "./lucideGlyph";
 
@@ -30,7 +31,8 @@ export interface CatalogEditableCellProps {
   /** The editing Form's record id (the child drawn in the popover, not in the cell). */
   formId: string;
   /** The submitted fields (by `name` — the column key) onto the cell's row. */
-  onSave: (values: Record<string, unknown>) => void;
+  /** The save — the edit's number (ADR-317 Phase 4), absent when nothing was written. */
+  onSave: (values: Record<string, unknown>) => number | undefined;
 }
 
 /** S2 intl `table.editCell` · `table.cancel` · `table.save` (the languages the S2 package ships here). */
@@ -73,7 +75,13 @@ export function CatalogEditableCellContent({
       const values: Record<string, unknown> = {};
       for (const [key, value] of new FormData(event.currentTarget))
         values[key] = typeof value === "string" ? value : value.name;
-      onSave(values);
+      const seq = onSave(values);
+      // (ADR-317 Phase 4 — the Form's own submit rule runs after this with the same event (RAC
+      //  `mergeProps(contextProps, props)`): a save it sends clears this edit's marks.)
+      if (seq !== undefined)
+        (event as unknown as Record<symbol, unknown>)[CATALOG_EVENT_EDITS] = [
+          seq,
+        ];
       setOpen(false);
     },
     [onSave, setOpen],

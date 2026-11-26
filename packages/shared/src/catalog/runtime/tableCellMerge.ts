@@ -29,6 +29,17 @@ export const CATALOG_CELL_MERGED_PROP = "_cellMerged";
  * (the DOM's `data-column-key` — a range is two (row key, Column key) points, breakdown §5.6).
  */
 export const CATALOG_CELL_COLUMN_PROP = "_columnKey";
+/**
+ * ADR-317 Phase 4 — a Table 「Edit marks」's row edit status (`CatalogBoundRow.edit` — the
+ * Preview session's edits not saved yet): `new` · `dirty` on its Row record (the DOM's
+ * `data-edit-status`), its changed fields (Column keys) for the column projection to mark the
+ * Cells (`CATALOG_CELL_EDITED_PROP` — `data-edited`). The first data Cell says the status
+ * (`CATALOG_CELL_ROW_EDIT_PROP` — a text a screen reader reads, never only a color).
+ */
+export const CATALOG_ROW_EDIT_PROP = "_editStatus";
+export const CATALOG_ROW_EDITED_FIELDS_PROP = "_editedFields";
+export const CATALOG_CELL_EDITED_PROP = "_edited";
+export const CATALOG_CELL_ROW_EDIT_PROP = "_rowEdit";
 
 /** A cell value as merging compares it: exact (a grouping's equality), none for an empty one. */
 const mergeValue = (value: unknown): string | undefined =>

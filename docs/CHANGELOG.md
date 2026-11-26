@@ -13,6 +13,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-317 Phase 4 — Table 「Edit marks」 편집 표시 · When 「Cells change」 (contract 78)] - 2026-11-26
+
+### Breaking Changes
+
+- **문서 contract 77 → 78 (ADR-317 Phase 4)**: 규칙 When 에 Table 「Cells change」 (`onCellsChange`) 가 더해져 문서 검증의 trigger 목록이 넓어졌다. 옛 77 문서는 열리지 않는다 (변환 없음 — 개발 단계).
+  - 위치: `catalog/document/types.ts` `LIBRARY_CONTRACT_VERSION` · fixture 32 파일
+
+### Added
+
+- **Table 「Edit marks」** (Design 패널 Behavior 칩, 기본 꺼짐, composition 확장): Preview · Publish 에서 보는 사람이 고치고 아직 저장하지 않은 행을 표시한다 — 새 행 · 고친 행은 첫 칸 앞 가장자리 선 (초록 · 주황) 과 화면 낭독 글자 (「New row」 · 「Edited」 / 「새 행」 · 「수정됨」), 고친 칸은 옅은 주황 바탕. 붙여넣기 · 채우기 · 지우기 · EditableCell · 규칙의 append · update 가 모두 대상이다. 위치 key 로 읽는 collection (id 없음) 에서 앞에 넣거나 지워도 표시가 같은 항목을 따른다.
+  - 위치: `runtime/catalogPreviewSession.ts` (`editMarks` · 편집 번호) · `resolution/resolver.ts` `withEditedRow` · `resolution/tableColumns.ts` · `runtime/domBinding.runtime.ts` · `runtime/domRegistry.components.tsx` · Table rule `rootSelectors` (생성 `Table.css`)
+- **Table 규칙 When 「Cells change」** (사용자 결정 1 「Table When 하나」): 붙여넣기 · 채우기 · 지우기 한 번에 한 번 실행되고, `!event.keys` (쓴 행) · `!event.items` (그 행의 지금 값 — 저장에 보낼 것) · `!event.cells` 를 읽는다.
+  - 위치: `interactions/concepts/tableEditing.ts` · `componentInteractionSpecs.ts` Table
+- **저장이 성공하면 그 저장이 보낸 칸의 표시를 지운다** (사용자 결정 6 「칸까지 · 저장 성공 때도 지움」): `callEndpoint` 가 있는 규칙이 성공하면 그 규칙의 이벤트가 실은 편집과 규칙의 Do 가 저장 전에 만든 편집을 저장된 것으로 적는다. 보낸 뒤 다시 고친 칸은 남고, 실패하면 아무것도 지우지 않는다. EditableCell 의 Form 저장 규칙도 같다. 다시 불러오면 표시는 모두 사라진다.
+  - 위치: `interactions/bindings.ts` (`CATALOG_EVENT_EDITS`) · `interactions/dispatcher.ts` (`editSeq` · `markEditsSaved`) · `runtime/editableCell.components.tsx`
+
+### Tests
+
+- `apps/builder/src/preview/catalog/__tests__/adr317EditMarks.test.tsx` (4) · `packages/shared/src/interactions/__tests__/adr317SavedEdits.test.ts` (3) · `treeData.test.tsx` (+2 — 트리 사본에서 표시 유지) — 변이 RED 11/11 · live `apps/builder/scripts/adr317-p4-edit-marks-live.mjs` (Chrome · WebKit 7/7)
+
 ## [ADR-317 Phase 3 — Table 「Fill handle」: 채우기 손잡이 · Ctrl/Cmd + D] - 2026-11-26
 
 ### Added

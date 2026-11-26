@@ -78,6 +78,28 @@ export function buildInteractionIndex(
  */
 const NO_HANDLERS: Record<string, InteractionCallback> = Object.freeze({});
 
+/**
+ * ADR-317 Phase 4 (사용자 결정 6) — the Preview session's edits an event carries (their numbers, on
+ * the event object): a Table's 「Cells change」 write, an Editable cell's save (its Form submit). A
+ * rule that saves (`callEndpoint`) and succeeds shows them saved (`DispatchDeps.markEditsSaved`),
+ * with the edits its own Dos made before the save.
+ */
+export const CATALOG_EVENT_EDITS = Symbol.for("composition.eventEdits");
+
+const eventEditsOf = (value: unknown): readonly number[] => {
+  const carried =
+    value && typeof value === "object"
+      ? (value as Record<symbol, unknown>)[CATALOG_EVENT_EDITS]
+      : undefined;
+  return Array.isArray(carried)
+    ? carried.filter((seq): seq is number => typeof seq === "number")
+    : [];
+};
+
+/** A rule whose Do list sends to a server (a save). */
+const savesRule = (rule: InteractionRule) =>
+  rule.actions.some((action) => action.kind === "callEndpoint");
+
 export function createElementHandlers(
   elementId: string,
   index: InteractionIndex,
@@ -96,17 +118,35 @@ export function createElementHandlers(
   for (const [trigger, rules] of byTrigger) {
     handlers[trigger] = (...args: unknown[]) => {
       const event = eventArgs(trigger, args);
+      const carried = eventEditsOf(args[0]);
       for (const rule of rules) {
+        const before = deps.editSeq?.();
         const outcome = executeInteractionRule(rule, deps, {
           ...context,
           event,
         });
         onOutcome?.(rule, outcome);
+        // (ADR-317 Phase 4 — what a save sent: the event's edits and the ones this rule's Dos made
+        //  before it, numbered after `before`.)
+        const after = deps.editSeq?.();
+        const sent =
+          deps.markEditsSaved && savesRule(rule)
+            ? [
+                ...carried,
+                ...(before !== undefined && after !== undefined
+                  ? Array.from(
+                      { length: after - before },
+                      (_, index) => before + index + 1,
+                    )
+                  : []),
+              ]
+            : [];
         // (A Do that settles later — `callEndpoint`: the rest of the list's failure is reported
-        //  when it comes.)
+        //  when it comes; its success shows the sent edits saved.)
         if (outcome.ok && outcome.settled)
           void catalogFinalOutcome(outcome).then((final) => {
             if (!final.ok) onOutcome?.(rule, final);
+            else if (sent.length) deps.markEditsSaved!(sent);
           });
       }
     };

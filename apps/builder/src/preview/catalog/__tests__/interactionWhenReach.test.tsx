@@ -1029,6 +1029,9 @@ describe("RAC event audit — every offered When runs its rule in the Preview", 
     const exempt = new Set([
       "Popover.onOpenChange",
       "Tooltip.onOpenChange",
+      // (ADR-317 Phase 4 — a Table's several-cell write needs a bound Table, 「Editable」 Columns and
+      //  「Paste」: `adr317EditMarks.test.tsx` runs its rule from a paste.)
+      "Table.onCellsChange",
     ]);
     const offered = Object.entries(CAPABILITY_REGISTRY).flatMap(
       ([type, entry]) =>

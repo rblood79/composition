@@ -440,7 +440,11 @@ export interface CatalogPreviewInteractionsOptions {
   editTableRow?: (
     rowId: string,
     values: Readonly<Record<string, unknown>>,
-  ) => void;
+  ) => number | undefined;
+  /** ADR-317 Phase 4 — the session's last edit number (`CatalogPreviewSession.editSeq`). */
+  editSeq?: () => number;
+  /** ADR-317 Phase 4 — edits a save sent, taken by the server (`CatalogPreviewSession.markEditsSaved`). */
+  markEditsSaved?: (seqs: readonly number[]) => void;
   /** ADR-315 Phase 6 — a cell range as tab-separated text (`CatalogDomRuntime.tableCellText`). */
   tableCellText?: (
     tableId: string,
@@ -717,6 +721,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         );
         return { ok: true, settled };
       },
+      ...(options.editSeq && options.markEditsSaved
+        ? { editSeq: options.editSeq, markEditsSaved: options.markEditsSaved }
+        : {}),
       ...(options.append ? { append: options.append } : {}),
       ...(options.update ? { update: options.update } : {}),
       ...(options.remove ? { remove: options.remove } : {}),
@@ -1411,8 +1418,11 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   expandTableRows(tableId: string, keys: readonly string[]): void {
     this.options.expandTableRows?.(tableId, keys);
   }
-  editTableRow(rowId: string, values: Readonly<Record<string, unknown>>): void {
-    this.options.editTableRow?.(rowId, values);
+  editTableRow(
+    rowId: string,
+    values: Readonly<Record<string, unknown>>,
+  ): number | undefined {
+    return this.options.editTableRow?.(rowId, values);
   }
   resizeTableColumns(
     tableId: string,

@@ -61,7 +61,7 @@ it("roundtrips every palette type through IDB, JSON and folder", async () => {
     const document: CatalogDocument = {
       format: "composition-catalog",
       schemaVersion: 1,
-      libraryContractVersion: 77,
+      libraryContractVersion: 78,
       revision: 0,
       projectId,
       rootId: projectId,

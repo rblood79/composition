@@ -206,6 +206,15 @@ export const tableBinding: PrimitiveBinding = {
         section: "state",
         visibleWhen: { key: "allowsCellSelection", equals: true },
       },
+      // ADR-317 Phase 4 — the rows the viewer changed (paste · fill · an Editable cell · a rule's
+      //   append · update) and not saved yet show a mark: 「new」 · 「edited」 on the row, the changed
+      //   cells (사용자 결정 6 — gone when a save of them succeeds · a reload). The Preview's edit
+      //   record (never the document) — a composition extension (S2 TableView has none), default off.
+      showEditMarks: {
+        kind: "boolean",
+        label: "Edit marks",
+        section: "state",
+      },
       keepPinnedRows: {
         kind: "boolean",
         label: "Keep pinned rows",

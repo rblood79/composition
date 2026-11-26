@@ -30,6 +30,8 @@ import { resolveSelectionBehavior } from "../../components/selectionStyle";
 
 import { RESIZABLE_TABLE_STYLE } from "./domRegistry.runtime";
 import { CATALOG_GLYPH_1EM, catalogLucideGlyph } from "./lucideGlyph";
+import { catalogLocalized } from "./localizedStrings";
+import { CATALOG_EVENT_EDITS } from "../../interactions/bindings";
 import {
   CatalogEditableCellContent,
   type CatalogEditableCellProps,
@@ -129,6 +131,14 @@ function useCatalogCellSelection(
   return selection;
 }
 
+/** ADR-317 Phase 4 — a row's edit status as said (4 site languages). */
+const ROW_EDIT_LABELS = {
+  en: { new: "New row", dirty: "Edited" },
+  ko: { new: "새 행", dirty: "수정됨" },
+  ja: { new: "新しい行", dirty: "編集済み" },
+  zh: { new: "新行", dirty: "已编辑" },
+} as const;
+
 /** Said, not shown (out of the layout — `position: absolute`). */
 const VISUALLY_HIDDEN: CSSProperties = {
   position: "absolute",
@@ -149,10 +159,13 @@ export function CatalogTable({
   onSortPress,
   onColumnsResized,
   cellSelection,
+  onCellsChange,
   style,
   ...props
 }: Record<string, unknown> & {
   style?: CSSProperties;
+  /** ADR-317 Phase 4 — the Table's 「Cells change」 rules (a several-cell write's rows · items · cells). */
+  onCellsChange?: (event: Record<PropertyKey, unknown>) => void;
   onSortPress?: (column: string, add: boolean) => void;
   /** ADR-315 Phase 4 — RAC's `onResizeEnd`: the px widths it left, by RAC key. */
   onColumnsResized?: (widths: Record<string, number>) => void;
@@ -166,9 +179,33 @@ export function CatalogTable({
   const { locale } = useLocale();
   const [status, setStatus] = useState("");
   const writes = !!cellSelection?.write;
+  const write = cellSelection?.write;
   const source = cellSelection
     ? {
         ...cellSelection,
+        // (ADR-317 Phase 4 — a write that wrote cells is the Table's 「Cells change」: its rows, their
+        //  items now, the cells, and the edit's number a save of it clears — `CATALOG_EVENT_EDITS`.)
+        ...(write
+          ? {
+              write: (cells: Parameters<typeof write>[0]) => {
+                const result = write(cells) as ReturnType<typeof write> & {
+                  keys?: readonly string[];
+                  items?: readonly unknown[];
+                  seq?: number;
+                };
+                if (onCellsChange && result.written.length)
+                  onCellsChange({
+                    keys: result.keys ?? [],
+                    items: result.items ?? [],
+                    cells: result.written,
+                    ...(result.seq !== undefined
+                      ? { [CATALOG_EVENT_EDITS]: [result.seq] }
+                      : {}),
+                  });
+                return result;
+              },
+            }
+          : {}),
         locale,
         announce: (text: string) => {
           // (Cleared first: the same text twice is said twice.)
@@ -289,6 +326,7 @@ export function CatalogTableCell({
   rowPin,
   measuresRowPin,
   editableCell,
+  rowEdit,
   ...props
 }: Record<string, unknown> & {
   children?: ReactNode;
@@ -296,10 +334,13 @@ export function CatalogTableCell({
   measuresRowPin?: boolean;
   /** S2 체크리스트 §9.3 — S2 `EditableCell` (`editableCell.components.tsx`). */
   editableCell?: CatalogEditableCellProps;
+  /** ADR-317 Phase 4 — its row's edit status, said here (the row's first data Cell). */
+  rowEdit?: "new" | "dirty";
 }): ReactElement {
+  const { locale } = useLocale();
   const cellRef = useRef<HTMLElement | null>(null);
   const [editing, setEditing] = useState(false);
-  const own = editableCell
+  const content = editableCell
     ? createElement(
         CatalogEditableCellContent,
         {
@@ -311,6 +352,20 @@ export function CatalogTableCell({
         drawn,
       )
     : drawn;
+  // (ADR-317 Phase 4 — the row's status as text a screen reader reads with the cell — the color
+  //  and the edge line are not the only sign; our element inside RAC's cell, no attribute written.)
+  const own = rowEdit
+    ? createElement(
+        Fragment,
+        null,
+        content,
+        createElement(
+          "span",
+          { key: "edit-status", "data-edit-said": "", style: VISUALLY_HIDDEN },
+          ` ${catalogLocalized(ROW_EDIT_LABELS, locale)[rowEdit]}`,
+        ),
+      )
+    : content;
   // (ADR-315 Phase 6 — a Cell of a Table 「Cell selection」: its `aria-selected` follows the ranges
   //  from when RAC puts its element in the DOM — RAC renders this in its collection, the element
   //  apart, so the ref is where the two meet.)

@@ -171,6 +171,34 @@ describe("useTreeData — a row's text is its item's (`<Text>{item.name}</Text>`
   });
 });
 
+describe("ADR-317 Phase 4 — edit marks through a tree's copies", () => {
+  // (A tree edit copies the items on its way — a parent holding a changed child, a flat tree's
+  //  every row: the marks go with each copy.)
+  it.each([true, "flat"] as const)(
+    "%s: an edited parent keeps its mark after a child's edit",
+    async (mode) => {
+      const h = await treePreview(mode);
+      act(() => {
+        expect(h.session.update("files", "docs", { name: "Docs 2" }).ok).toBe(
+          true,
+        );
+        expect(h.session.update("files", "a", { name: "Alpha 2" }).ok).toBe(
+          true,
+        );
+        expect(
+          h.session.append("files", { id: "c", name: "Gamma" }, "docs").ok,
+        ).toBe(true);
+      });
+      expect(Object.fromEntries(h.session.editMarks("files") ?? [])).toEqual({
+        docs: { status: "dirty", fields: ["name"] },
+        a: { status: "dirty", fields: ["name"] },
+        c: { status: "new", fields: [] },
+      });
+      h.view.unmount();
+    },
+  );
+});
+
 describe("useTreeData — edits with a parent", () => {
   it("numeric parent IDs keep their field type after a flat Tree edit", async () => {
     const h = await treePreview("numeric");

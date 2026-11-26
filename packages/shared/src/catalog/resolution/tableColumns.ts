@@ -38,6 +38,10 @@ import {
   CATALOG_ROW_CELL_LINES_PROP,
   CATALOG_ROW_MERGE_DOWN_PROP,
   CATALOG_ROW_MERGE_UP_PROP,
+  CATALOG_CELL_EDITED_PROP,
+  CATALOG_CELL_ROW_EDIT_PROP,
+  CATALOG_ROW_EDIT_PROP,
+  CATALOG_ROW_EDITED_FIELDS_PROP,
 } from "../runtime/tableCellMerge";
 
 export {
@@ -654,6 +658,11 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
     const props = propsOf(row);
     const up = keyList(props[CATALOG_ROW_MERGE_UP_PROP]);
     const down = keyList(props[CATALOG_ROW_MERGE_DOWN_PROP]);
+    // (ADR-317 Phase 4 — a row with an edit not saved: its changed Cells by Column key, its
+    //  first data Cell says the status.)
+    const status = props[CATALOG_ROW_EDIT_PROP];
+    const edited = keyList(props[CATALOG_ROW_EDITED_FIELDS_PROP]);
+    let said = false;
     return rebuilt(
       row,
       merging ? { [CATALOG_ROW_CELL_LINES_PROP]: true } : undefined,
@@ -665,7 +674,13 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
           const column = !selection[place] ? keys[place] : undefined;
           const key = span === 1 ? column : undefined;
           place += span;
+          const says = typeof status === "string" && !said && !!column;
+          if (says) said = true;
           return rebuilt(cell, {
+            ...(key !== undefined && edited.has(key)
+              ? { [CATALOG_CELL_EDITED_PROP]: true }
+              : {}),
+            ...(says ? { [CATALOG_CELL_ROW_EDIT_PROP]: status } : {}),
             ...(merging
               ? {
                   [CATALOG_CELL_LINE_PROP]:
@@ -685,7 +700,13 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
   };
   /** A body row as drawn: projected (the columns moved · pinned · hidden), its detail rows spanning. */
   const settleRow = (shown: T, body = true): T => {
-    const row = (merging || keyed) && body ? markedRow(shown) : shown;
+    const row =
+      (merging ||
+        keyed ||
+        propsOf(shown)[CATALOG_ROW_EDIT_PROP] !== undefined) &&
+      body
+        ? markedRow(shown)
+        : shown;
     return row.rowDetail
       ? detailRow(row)
       : projecting
@@ -743,7 +764,11 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
       held.map((child) =>
         child === header
           ? nextHeader
-          : (projecting || state?.detail || merging || keyed) &&
+          : (projecting ||
+                state?.detail ||
+                merging ||
+                keyed ||
+                tableOwnProps.showEditMarks === true) &&
               bodies.includes(child)
             ? rebuilt(child, undefined, (bodyRows) =>
                 bodyRows.map((row) =>
