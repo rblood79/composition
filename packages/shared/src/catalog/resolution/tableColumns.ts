@@ -45,6 +45,7 @@ import {
 } from "../runtime/tableCellMerge";
 import {
   CATALOG_CELL_STRIPE_PROP,
+  CATALOG_ROW_STRIPED_PROP,
   CATALOG_ROW_STRIPE_RUNS_PROP,
 } from "../runtime/tableStripes";
 
@@ -654,14 +655,6 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
     tableOwnProps.selectionMode !== "multiple";
   const keyList = (value: unknown): ReadonlySet<string> =>
     new Set(Array.isArray(value) ? (value as string[]) : []);
-  const stripeRuns = (value: unknown): Readonly<Record<string, boolean>> => {
-    if (typeof value !== "string") return {};
-    try {
-      return JSON.parse(value) as Record<string, boolean>;
-    } catch {
-      return {};
-    }
-  };
   /**
    * A body row with its cells' lines · merge and Column keys, by the Column each starts at
    * (authored places).
@@ -675,8 +668,9 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
     const status = props[CATALOG_ROW_EDIT_PROP];
     const edited = keyList(props[CATALOG_ROW_EDITED_FIELDS_PROP]);
     // (ADR-317 Phase 5 — a striped row's Cells in a merged run whose stripe is not its own: the
-    //  run's — one cell to the eye.)
-    const runs = stripeRuns(props[CATALOG_ROW_STRIPE_RUNS_PROP]);
+    //  run's (the row's opposite) — one cell to the eye.)
+    const runs = keyList(props[CATALOG_ROW_STRIPE_RUNS_PROP]);
+    const runStripe = props[CATALOG_ROW_STRIPED_PROP] === true ? "off" : "on";
     let said = false;
     return rebuilt(
       row,
@@ -696,8 +690,8 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
               ? { [CATALOG_CELL_EDITED_PROP]: true }
               : {}),
             ...(says ? { [CATALOG_CELL_ROW_EDIT_PROP]: status } : {}),
-            ...(key !== undefined && runs[key] !== undefined
-              ? { [CATALOG_CELL_STRIPE_PROP]: runs[key] ? "on" : "off" }
+            ...(key !== undefined && runs.has(key)
+              ? { [CATALOG_CELL_STRIPE_PROP]: runStripe }
               : {}),
             ...(merging
               ? {

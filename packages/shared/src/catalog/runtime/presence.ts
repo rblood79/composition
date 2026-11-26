@@ -109,7 +109,7 @@ import {
   CATALOG_CELL_MERGED_PROP,
   CATALOG_ROW_CELL_LINES_PROP,
 } from "./tableCellMerge";
-import { CATALOG_CELL_STRIPE_PROP } from "./tableStripes";
+import { catalogCellStripe } from "./tableStripes";
 import { isDisclosureExpandedByIntent } from "../../utils/accordionExpansion";
 import { resolveStaticItemKey } from "../slotRoles";
 import {
@@ -3503,7 +3503,7 @@ function derivedPropsBeforeSkeleton(
     // (ADR-317 Phase 5 — a 「Striped rows」 Table's shaded Row and a merged run's Cell whose stripe
     //  is not its row's: the Row · Cell rule's `striped` · `stripe` block. A selected row shows its
     //  selection — the DOM's selected paint comes after the stripe.)
-    ...catalogStripeProps(node, get, typeOf),
+    ...catalogStripeProps(node, selected, get, typeOf),
     // (S2 `selectBoxStyles`' `:has` blocks — the parts a SelectBox shows pick its grid; the box and
     //  its slotted parts carry them for the Canvas, `catalogSelectBoxContentStyle`.)
     ...selectBoxShownProps(node, get, typeOf),
@@ -4683,31 +4683,35 @@ export function catalogContainerDependents(
 }
 
 /**
- * Records whose derived values read `owner`: a ProgressBar/Meter's track; a Tree's items (its
- * `expandedKeys`); a TreeItem's parent item (its child items); a Tabs' Tabs (its selected key) and
- * a Tab's sibling Tabs (its `isDisabled` moves the default selection); a ListBox/TagGroup/GridList/
- * Tree's items (its selection; a Tree's `expandedKeys` too).
+ * ADR-317 Phase 5 — a striped Table's Row (`striped`) · a merged run's Cell (`cellStripe`), not
+ * while the row is selected (`selected` — the Row's own, read once by the caller).
  */
-/** ADR-317 Phase 5 — a striped Table's Row (`striped`) · a merged run's Cell (`cellStripe`). */
 function catalogStripeProps(
   node: CatalogConsumerNode,
+  selected: boolean | undefined,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): Record<string, string> {
   const type = typeOf(node);
   if (type === "Row")
-    return catalogRowStriped(node, get, typeOf) &&
-      catalogCollectionItemSelected(node, get, typeOf) !== true
+    return selected !== true && catalogRowStriped(node, get, typeOf)
       ? { striped: "true" }
       : {};
   if (type !== "Cell") return {};
-  const stripe = node.props[CATALOG_CELL_STRIPE_PROP];
-  if (stripe !== "on" && stripe !== "off") return {};
+  const stripe = catalogCellStripe(node.props);
+  if (!stripe) return {};
   const row = get(node.parentId);
   return row && catalogCollectionItemSelected(row, get, typeOf) === true
     ? {}
     : { cellStripe: stripe };
 }
+
+/**
+ * Records whose derived values read `owner`: a ProgressBar/Meter's track; a Tree's items (its
+ * `expandedKeys`); a TreeItem's parent item (its child items); a Tabs' Tabs (its selected key) and
+ * a Tab's sibling Tabs (its `isDisabled` moves the default selection); a ListBox/TagGroup/GridList/
+ * Tree's items (its selection; a Tree's `expandedKeys` too).
+ */
 
 export function catalogDerivedPropsDependents(
   owner: CatalogConsumerNode,

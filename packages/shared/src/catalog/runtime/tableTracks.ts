@@ -282,17 +282,15 @@ export function catalogRowStriped<
   if (node.rowIndex !== undefined) return false;
   const body = get(node.parentId);
   if (!body || typeOf(body) !== "TableBody") return false;
-  const table = get(body.parentId);
-  if (
-    !table ||
-    !TRACK_TABLE_TYPES.has(typeOf(table)) ||
-    table.props.isStriped !== true
-  )
+  if (catalogTrackTableOf(node, get, typeOf)?.props.isStriped !== true)
     return false;
-  const place = recordChildren(body, get)
-    .filter((row) => typeOf(row) === "Row")
-    .findIndex((row) => row.id === node.id);
-  return place % 2 === 1;
+  let place = 0;
+  for (const id of body.children) {
+    if (id === node.id) return place % 2 === 1;
+    const row = get(id);
+    if (row && typeOf(row) === "Row") place += 1;
+  }
+  return false;
 }
 
 /**

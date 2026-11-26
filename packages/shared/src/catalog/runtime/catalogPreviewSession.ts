@@ -56,7 +56,11 @@ import {
 } from "./compositionRoot";
 import { CatalogRuntime } from "./controller";
 import type { CatalogThemeState } from "./theme";
-import { catalogBoundRows, dataCollectionIdOf } from "./dataBinding";
+import {
+  catalogBoundRows,
+  catalogRowListMeta,
+  dataCollectionIdOf,
+} from "./dataBinding";
 import { COLLECTION_ROW_PROJECTION_WINDOW_LIMIT } from "../../collections/resolveCollectionItems";
 import {
   catalogBindingQuery,
@@ -2556,10 +2560,7 @@ export class CatalogPreviewSession {
           : row;
       });
     // (The rows' own fields — total · load · view … — on the new list.)
-    const own = Object.fromEntries(
-      Object.entries(rows).filter(([key]) => !/^\d+$/.test(key)),
-    );
-    return Object.assign(visit(rows), own) as unknown as T;
+    return Object.assign(visit(rows), catalogRowListMeta(rows)) as unknown as T;
   }
   /**
    * ADR-315 Phase 5 증분 5g — the servers' answers to the Tables' pinned rows' requests, by the

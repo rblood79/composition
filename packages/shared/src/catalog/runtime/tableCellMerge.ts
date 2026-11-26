@@ -10,6 +10,7 @@
  * so it follows a moved · pinned column.
  */
 import type { CatalogBoundRow } from "../resolution/resolver";
+import { catalogRowListMeta } from "./dataBinding";
 
 /** A Row record's Column keys whose value its row above has (its cells there draw no value). */
 export const CATALOG_ROW_MERGE_UP_PROP = "_mergeUp";
@@ -47,12 +48,15 @@ const mergeValue = (value: unknown): string | undefined =>
     ? undefined
     : JSON.stringify(value);
 
-/** A row that runs into its neighbours: a data row — not a group's, a detail, a pinned one. */
-const mergeable = (row: CatalogBoundRow): boolean =>
+/**
+ * A data row — not a group's, a detail, a placeholder, a pinned one: it runs into its neighbours
+ * (a merge) and takes its turn in the stripes (`tableStripes.ts`).
+ */
+export const catalogDataRow = (row: CatalogBoundRow): boolean =>
   !row.placeholder && !row.group && !row.detail && !row.pinned;
 
 /** A row shown with rows under it (an open group · tree row · detail): it ends a run. */
-const opened = (row: CatalogBoundRow): boolean =>
+export const catalogRowOpened = (row: CatalogBoundRow): boolean =>
   !!row.children?.some((child) => !child.placeholder);
 
 const MERGED = new WeakMap<
@@ -79,7 +83,12 @@ export function catalogMergedRows(
     for (let index = 1; index < list.length; index += 1) {
       const above = list[index - 1]!;
       const row = list[index]!;
-      if (!mergeable(above) || !mergeable(row) || opened(above)) continue;
+      if (
+        !catalogDataRow(above) ||
+        !catalogDataRow(row) ||
+        catalogRowOpened(above)
+      )
+        continue;
       for (const key of keys) {
         const value = mergeValue(above.values[key]);
         if (value !== undefined && value === mergeValue(row.values[key])) {
@@ -106,12 +115,7 @@ export function catalogMergedRows(
         : row;
     });
   };
-  const out = visit(rows);
-  for (const key of Object.keys(rows))
-    if (!/^\d+$/.test(key))
-      (out as unknown as Record<string, unknown>)[key] = (
-        rows as unknown as Record<string, unknown>
-      )[key];
+  const out = Object.assign(visit(rows), catalogRowListMeta(rows));
   MERGED.set(rows, { signature, rows: out });
   return out;
 }

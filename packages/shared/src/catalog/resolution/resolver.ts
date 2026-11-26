@@ -127,6 +127,7 @@ import {
   catalogMergeEdges,
   catalogMergedRows,
 } from "../runtime/tableCellMerge";
+import { catalogRowListMeta } from "../runtime/dataBinding";
 import {
   CATALOG_ROW_STRIPED_PROP,
   CATALOG_ROW_STRIPE_RUNS_PROP,
@@ -293,11 +294,11 @@ export interface CatalogBoundRow {
   /**
    * ADR-317 Phase 5 — a striped Table's data row (`catalogStripedRows` — over every row shown, in
    * their order): `on` = shaded; `runs` = the merged Columns (by key) whose run's first row's stripe
-   * is not its own — the run is one cell to the eye.
+   * is not its own (the run's = `!on`) — the run is one cell to the eye.
    */
   stripe?: {
     readonly on: boolean;
-    readonly runs?: Readonly<Record<string, boolean>>;
+    readonly runs?: readonly string[];
   };
 }
 /**
@@ -797,12 +798,7 @@ function catalogDetailRows(
         tree: { depth: row.tree?.depth ?? depth, expanded: open, parent: true },
       };
     });
-  const out: CatalogBoundRow[] = visit(rowSet, 0);
-  for (const key of Object.keys(rowSet))
-    if (!/^\d+$/.test(key))
-      (out as unknown as Record<string, unknown>)[key] = (
-        rowSet as unknown as Record<string, unknown>
-      )[key];
+  const out = Object.assign(visit(rowSet, 0), catalogRowListMeta(rowSet));
   DETAIL_ROWS.set(rowSet, { signature, rows: out });
   return out;
 }
@@ -1114,42 +1110,27 @@ function nestTableRows(
   //  Row instance's first child is its template root — a layer of the same record, not a detail.)
   if (data.detail) {
     const detail = rowDetailOf(node, isTableRow);
-    // (Its key on every layer — a Row instance's record reads its innermost layer's props.)
-    const keyed = (row: ResolvedCatalogNode): ResolvedCatalogNode => {
-      const [first, ...rest] = row.children;
-      return {
-        ...row,
-        props: { ...row.props, id: data.key },
-        ...(first && isTableRow(first)
-          ? { children: [keyed(first), ...rest] }
-          : {}),
-      };
-    };
     return detail
       ? {
-          // (ADR-317 Phase 5 — a detail row is drawn with its row's stripe.)
-          ...withStripedRow(keyed(detail), data.stripe, isTableRow),
+          // (Its key on every layer; ADR-317 Phase 5 — drawn with its row's stripe.)
+          ...withRowLayerProps(
+            detail,
+            { id: data.key, ...stripedRowProps(data.stripe) },
+            isTableRow,
+          ),
           rowDetail: true,
           ...(node.rowIndex !== undefined ? { rowIndex: node.rowIndex } : {}),
           ...(node.rowWindow ? { rowWindow: node.rowWindow } : {}),
         }
       : node;
   }
-  const own = withStripedRow(
-    withEditedRow(
-      withMergedRow(
-        withPinnedRow(
-          withoutRowDetail(node, isTableRow),
-          data.pinned,
-          isTableRow,
-        ),
-        data.merge,
-        isTableRow,
-      ),
-      data.edit,
-      isTableRow,
-    ),
-    data.stripe,
+  const own = withRowLayerProps(
+    withPinnedRow(withoutRowDetail(node, isTableRow), data.pinned, isTableRow),
+    {
+      ...mergedRowProps(data.merge),
+      ...editedRowProps(data.edit),
+      ...stripedRowProps(data.stripe),
+    },
     isTableRow,
   );
   if (!data.children?.length) return own;
@@ -1205,77 +1186,52 @@ function withPinnedRow(
   };
 }
 /**
- * ADR-315 Phase 6 — a Row with its merge on every layer (a Row instance's record reads its innermost
- * one): the column projection marks its Cells by Column key (`catalogProjectTableColumns`).
+ * A bound Row with `props` on every layer — a Row instance's record reads its innermost one (its
+ * first child, a Row, is its template root): the column projection marks its Cells by Column key
+ * (`catalogProjectTableColumns`).
  */
-function withMergedRow(
+function withRowLayerProps(
   row: ResolvedCatalogNode,
+  props: Readonly<Record<string, PropValue>>,
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  if (!Object.keys(props).length) return row;
+  const [first, ...rest] = row.children;
+  return {
+    ...row,
+    props: { ...row.props, ...props },
+    ...(first && isTableRow(first)
+      ? { children: [withRowLayerProps(first, props, isTableRow), ...rest] }
+      : {}),
+  };
+}
+/** ADR-315 Phase 6 — a row's merge, by Column key. */
+const mergedRowProps = (
   merge: CatalogBoundRow["merge"],
-  isTableRow: (node: ResolvedCatalogNode) => boolean,
-): ResolvedCatalogNode {
-  if (!merge) return row;
-  const [first, ...rest] = row.children;
-  return {
-    ...row,
-    props: {
-      ...row.props,
-      ...(merge.up ? { [CATALOG_ROW_MERGE_UP_PROP]: merge.up } : {}),
-      ...(merge.down ? { [CATALOG_ROW_MERGE_DOWN_PROP]: merge.down } : {}),
-    },
-    ...(first && isTableRow(first)
-      ? { children: [withMergedRow(first, merge, isTableRow), ...rest] }
-      : {}),
-  };
-}
-/**
- * ADR-317 Phase 4 — a Row with its edit status on every layer (a Row instance's record reads its
- * innermost one): the column projection marks its Cells by Column key (`catalogProjectTableColumns`).
- */
-function withEditedRow(
-  row: ResolvedCatalogNode,
+): Record<string, PropValue> => ({
+  ...(merge?.up ? { [CATALOG_ROW_MERGE_UP_PROP]: merge.up } : {}),
+  ...(merge?.down ? { [CATALOG_ROW_MERGE_DOWN_PROP]: merge.down } : {}),
+});
+/** ADR-317 Phase 4 — a row's edit status and its changed fields. */
+const editedRowProps = (
   edit: CatalogBoundRow["edit"],
-  isTableRow: (node: ResolvedCatalogNode) => boolean,
-): ResolvedCatalogNode {
-  if (!edit) return row;
-  const [first, ...rest] = row.children;
-  return {
-    ...row,
-    props: {
-      ...row.props,
-      [CATALOG_ROW_EDIT_PROP]: edit.status,
-      [CATALOG_ROW_EDITED_FIELDS_PROP]: edit.fields,
-    },
-    ...(first && isTableRow(first)
-      ? { children: [withEditedRow(first, edit, isTableRow), ...rest] }
-      : {}),
-  };
-}
-/**
- * ADR-317 Phase 5 — a striped Table's Row with its stripe on every layer (a Row instance's record
- * reads its innermost one): the column projection marks its Cells of a merged run whose stripe is
- * not the row's (`catalogProjectTableColumns`).
- */
-function withStripedRow(
-  row: ResolvedCatalogNode,
+): Record<string, PropValue> =>
+  edit
+    ? {
+        [CATALOG_ROW_EDIT_PROP]: edit.status,
+        [CATALOG_ROW_EDITED_FIELDS_PROP]: edit.fields,
+      }
+    : {};
+/** ADR-317 Phase 5 — a striped Table's row stripe and its merged runs whose stripe is not its own. */
+const stripedRowProps = (
   stripe: CatalogBoundRow["stripe"],
-  isTableRow: (node: ResolvedCatalogNode) => boolean,
-): ResolvedCatalogNode {
-  if (!stripe) return row;
-  const [first, ...rest] = row.children;
-  return {
-    ...row,
-    props: {
-      ...row.props,
-      [CATALOG_ROW_STRIPED_PROP]: stripe.on,
-      ...(stripe.runs
-        ? { [CATALOG_ROW_STRIPE_RUNS_PROP]: JSON.stringify(stripe.runs) }
-        : {}),
-    },
-    ...(first && isTableRow(first)
-      ? { children: [withStripedRow(first, stripe, isTableRow), ...rest] }
-      : {}),
-  };
-}
+): Record<string, PropValue> =>
+  stripe
+    ? {
+        [CATALOG_ROW_STRIPED_PROP]: stripe.on,
+        ...(stripe.runs ? { [CATALOG_ROW_STRIPE_RUNS_PROP]: stripe.runs } : {}),
+      }
+    : {};
 /**
  * ADR-315 Phase 5 증분 5e — a resolved Row's detail Row: a Row among its children but the first —
  * a Row instance's first child is its template root (a layer of the same record); its own

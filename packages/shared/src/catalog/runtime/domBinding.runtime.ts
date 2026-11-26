@@ -415,7 +415,7 @@ import {
   CATALOG_CELL_ROW_EDIT_PROP,
   CATALOG_ROW_EDIT_PROP,
 } from "./tableCellMerge";
-import { CATALOG_CELL_STRIPE_PROP } from "./tableStripes";
+import { catalogCellStripe } from "./tableStripes";
 import type { CatalogCellWrite } from "./tableCellSelection";
 import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
@@ -4295,10 +4295,8 @@ function ruleDom(
         : {}),
       // ADR-317 Phase 5 — a striped Table's merged run's Cell whose stripe is not its row's (the
       // Table rule's `data-stripe` block — under its row's hover · selection).
-      ...(lower === "cell" &&
-      (node.props[CATALOG_CELL_STRIPE_PROP] === "on" ||
-        node.props[CATALOG_CELL_STRIPE_PROP] === "off")
-        ? { "data-stripe": node.props[CATALOG_CELL_STRIPE_PROP] }
+      ...(lower === "cell" && catalogCellStripe(node.props)
+        ? { "data-stripe": catalogCellStripe(node.props) }
         : {}),
       ...(lower === "column"
         ? {

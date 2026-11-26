@@ -1018,7 +1018,9 @@ function servedSlicesOf(
   return Object.keys(out).length ? out : undefined;
 }
 /** A row list's meta (its counts · totals · sort — the keys that are no row's place). */
-function rowListMeta(rows: readonly unknown[]): Record<string, unknown> {
+export function catalogRowListMeta(
+  rows: readonly unknown[],
+): Record<string, unknown> {
   const meta: Record<string, unknown> = {};
   for (const key of Object.keys(rows))
     if (!/^\d+$/.test(key))
@@ -1286,7 +1288,7 @@ function boundRowsOf(
       Object.assign(out, { pinMismatch: true });
     // (ADR-315 Phase 5 증분 5f — the pinned rows around the rows cut; the counts are the rest's.)
     return top.length || bottom.length
-      ? Object.assign([...top, ...out, ...bottom], rowListMeta(out))
+      ? Object.assign([...top, ...out, ...bottom], catalogRowListMeta(out))
       : out;
   };
   if (ref.key !== undefined) {

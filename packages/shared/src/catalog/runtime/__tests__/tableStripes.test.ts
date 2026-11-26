@@ -95,12 +95,13 @@ describe("ADR-317 Phase 5 — catalogStripedRows", () => {
       row("p5", { merge: { up: ["type"] } }),
     ]);
     expect(stripes(out)).toEqual(["p1:0", "p2:1", "p3:0", "p4:1", "p5:0"]);
+    // (p2 · p5 stand in a run whose stripe is not their own — p1's off, p4's on.)
     expect(out.map((item) => item.stripe?.runs)).toEqual([
       undefined,
-      { type: false },
+      ["type"],
       undefined,
       undefined,
-      { type: true },
+      ["type"],
     ]);
   });
 });
