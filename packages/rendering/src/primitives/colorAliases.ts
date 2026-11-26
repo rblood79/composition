@@ -307,6 +307,11 @@ export const COLOR_ALIASES: Readonly<Record<string, ColorAliasEntry>> = {
   "table-footer": tone(200, 200, {
     source: "S2 TableView.tsx:1939 rowBackgroundColor isInFooter gray-200",
   }),
+  // ADR-317 Phase 5 — a striped Table's shaded rows (composition 확장 — S2 TableView has no stripes):
+  //   one step over the base (`layer-1`'s gray-50), under the row hover's `neutral-subtle`.
+  "table-stripe": tone(50, 50, {
+    source: "composition 확장 (ADR-317) — S2 background-layer-1 단 gray-50",
+  }),
 
   // ── ADR-314 S2 Skeleton — 로딩 모양 (`Skeleton.tsx` loadingStyle · `StatusLight.tsx:126`) ──
   skeleton: tone(100, 100, {

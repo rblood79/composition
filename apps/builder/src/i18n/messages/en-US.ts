@@ -3317,6 +3317,7 @@ const semanticLabels: Record<string, string> = {
   "properties.tablePaste": "Paste",
   "properties.tableFillHandle": "Fill handle",
   "properties.tableEditMarks": "Edit marks",
+  "properties.tableStripedRows": "Striped rows",
   "properties.tableKeepPinnedRows": "Keep pinned rows",
   "properties.ascending": "Ascending",
   "properties.descending": "Descending",

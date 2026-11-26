@@ -1699,9 +1699,15 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   },
   // ADR-315 Phase 6 — a merged Table's body row line is its cells' (derived `cellLines` ·
   //   `mergeLine` — `derivedVariantProps.ts`). The line axis first: the end lines after it win.
-  Row: { "cell-lines": "cellLines", "in-footer": "inFooter" },
+  Row: {
+    "cell-lines": "cellLines",
+    "in-footer": "inFooter",
+    // (ADR-317 Phase 5 — the derived `striped` · `cellStripe`.)
+    striped: "striped",
+  },
   Cell: {
     "in-footer": "inFooter",
+    stripe: "cellStripe",
     "merge-line": "mergeLine",
     align: "align",
     "show-divider": "showDivider",

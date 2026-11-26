@@ -176,6 +176,8 @@ describe("ADR-302 G2 — 두 축", () => {
           "popover-background",
           "picker-checkbox-base",
           "on-neutral",
+          // (ADR-317 Phase 5 — a striped Table's shaded rows: a layer step over the base.)
+          "table-stripe",
         ],
       },
       surface: {

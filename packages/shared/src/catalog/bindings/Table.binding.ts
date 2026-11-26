@@ -256,6 +256,16 @@ export const tableBinding: PrimitiveBinding = {
           { value: "wrap", label: "Wrap" },
         ],
       },
+      // ADR-317 Phase 5 — striped rows (사용자 결정 2026-11-26 「composition 확장으로 유지」 — S2
+      //   TableView has none, its guideline says 「Don't use zebra stripes」; default off): every
+      //   second data row in the order shown (sorted · grouped · windowed — never `:nth-child`,
+      //   a virtual Table's DOM rows are a reused window) takes `{color.table-stripe}`. The Canvas
+      //   and the DOM read one derived mark (`CatalogBoundRow.stripe` — `catalogStripedRows`).
+      isStriped: {
+        kind: "boolean",
+        label: "Striped rows",
+        section: "appearance",
+      },
       // (No height props — 사용자 결정 2026-11-19: the Table's height is its Styles height, as S2
       //  takes it by `styles`. The `heightMode` · `height` props are gone: only "fixed" was ever
       //  read, and an authored Styles height already won over `height`. The origin template

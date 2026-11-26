@@ -239,6 +239,7 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   "popover-background": "var(--popover-background)",
   "collection-item-focus": "var(--collection-item-focus)",
   "table-footer": "var(--table-footer)",
+  "table-stripe": "var(--table-stripe)",
   "picker-background": "var(--bg-picker)",
   "picker-background-hover": "var(--bg-picker-hover)",
   "picker-content": "var(--fg-picker)",

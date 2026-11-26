@@ -153,6 +153,29 @@ const OWN_DERIVED_VARIANTS: Readonly<Record<string, boolean>> = {
   inFooter: true,
   cardRadius: false,
 };
+/**
+ * ADR-317 Phase 5 — owner-derived props whose block the DOM draws by its sheet (the Table rule's
+ * `data-striped` · `data-stripe` blocks, under the row's states), never inline: a node that writes
+ * its other derived blocks inline (a merged Table's Row · Cell — `OWN_DERIVED_VARIANTS`) leaves them
+ * out. The Canvas paints them (`catalogDerivedRestVisual`).
+ */
+const SHEET_DERIVED_VARIANTS: readonly string[] = ["striped", "cellStripe"];
+/** `node` without its sheet-drawn derived props (`SHEET_DERIVED_VARIANTS`) — for its DOM inline values. */
+export function catalogWithoutSheetDerived<N extends CatalogConsumerNode>(
+  node: N,
+): N {
+  const derived = node.derivedProps;
+  if (!derived || !SHEET_DERIVED_VARIANTS.some((key) => key in derived))
+    return node;
+  return {
+    ...node,
+    derivedProps: Object.fromEntries(
+      Object.entries(derived).filter(
+        ([key]) => !SHEET_DERIVED_VARIANTS.includes(key),
+      ),
+    ),
+  };
+}
 /** Whether `node` takes an own derived variant's rest value (`OWN_DERIVED_VARIANTS`) — for its DOM · its layout. */
 export function catalogTakesDerivedVariant(
   node: CatalogConsumerNode,

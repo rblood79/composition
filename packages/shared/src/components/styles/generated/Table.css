@@ -26,6 +26,18 @@
   outline-offset: -1px;
 }
 
+.react-aria-Table.react-aria-Table .react-aria-Row:where([data-striped]) {
+  background: var(--table-stripe);
+}
+
+.react-aria-Table.react-aria-Table :where(.react-aria-Row:not([data-hovered], [data-pressed], [data-selected], [data-drop-target])) .react-aria-Cell:where([data-stripe="on"]) {
+  background: var(--table-stripe);
+}
+
+.react-aria-Table.react-aria-Table :where(.react-aria-Row:not([data-hovered], [data-pressed], [data-selected], [data-drop-target])) .react-aria-Cell:where([data-stripe="off"]) {
+  background: var(--bg);
+}
+
 .react-aria-Table.react-aria-Table .react-aria-Row:where([data-hovered]) {
   background: var(--bg-muted);
 }

@@ -253,6 +253,7 @@ import {
   catalogAuthoredVisual,
   catalogDerivedRestVisual,
   catalogTakesDerivedVariant,
+  catalogWithoutSheetDerived,
   catalogHasAuthoredColor,
   catalogHasAuthoredVisual,
   catalogHasExplicitVisual,
@@ -400,6 +401,7 @@ import {
   CATALOG_TABLE_PINNED_COLUMNS_PROP,
   CATALOG_TABLE_PINNED_ROWS_PROP,
   catalogCellSpan,
+  catalogRowStriped,
   catalogTableSelectionColumn,
   catalogTableRowTracks,
   catalogTableSelectionPartHidden,
@@ -413,6 +415,7 @@ import {
   CATALOG_CELL_ROW_EDIT_PROP,
   CATALOG_ROW_EDIT_PROP,
 } from "./tableCellMerge";
+import { CATALOG_CELL_STRIPE_PROP } from "./tableStripes";
 import type { CatalogCellWrite } from "./tableCellSelection";
 import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
@@ -3478,7 +3481,9 @@ function ruleDom(
         ...node,
         visual: {
           ...node.visual,
-          ...catalogDerivedRestVisual(root, node),
+          // (ADR-317 Phase 5 — a stripe is the Table sheet's, never inline: the row's hover ·
+          //  selection · a cell's own paint go over it.)
+          ...catalogDerivedRestVisual(root, catalogWithoutSheetDerived(node)),
         } as CatalogConsumerNode["visual"],
       }
     : node;
@@ -4288,6 +4293,13 @@ function ruleDom(
             "data-row-edit": node.props[CATALOG_CELL_ROW_EDIT_PROP],
           }
         : {}),
+      // ADR-317 Phase 5 — a striped Table's merged run's Cell whose stripe is not its row's (the
+      // Table rule's `data-stripe` block — under its row's hover · selection).
+      ...(lower === "cell" &&
+      (node.props[CATALOG_CELL_STRIPE_PROP] === "on" ||
+        node.props[CATALOG_CELL_STRIPE_PROP] === "off")
+        ? { "data-stripe": node.props[CATALOG_CELL_STRIPE_PROP] }
+        : {}),
       ...(lower === "column"
         ? {
             isRowHeader: columnIsRowHeader(root, node),
@@ -4428,6 +4440,15 @@ function ruleDom(
             ...(node.props[CATALOG_ROW_EDIT_PROP] === "new" ||
             node.props[CATALOG_ROW_EDIT_PROP] === "dirty"
               ? { "data-edit-status": node.props[CATALOG_ROW_EDIT_PROP] }
+              : {}),
+            // (ADR-317 Phase 5 — a 「Striped rows」 Table's shaded row: the Table rule's
+            //  `data-striped` block, under the row's hover · selection — never inline.)
+            ...(catalogRowStriped(
+              node,
+              (id) => root.domInputs.get(id),
+              root.typeOf,
+            )
+              ? { "data-striped": "" }
               : {}),
           }
         : {}),

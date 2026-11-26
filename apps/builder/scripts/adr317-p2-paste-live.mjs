@@ -6,6 +6,8 @@
 //      바뀜 · type 그대로 · 알림 「Pasted into 4 cells · 2 skipped」
 //   4. (Chrome) Excel 형식 (따옴표 칸 안 줄바꿈) 을 클립보드에 쓰고 붙여넣기 → 칸 4 개
 //   5. Delete → 범위의 Editable 칸 비움 · 알림
+//   5b. (ADR-317 G6 재확인 묶음) Ctrl/Cmd + X → p3 의 Editable 칸 비움 · 알림 「Cut 2 cells · 1 skipped」 →
+//       p7:name 에 Ctrl/Cmd + V → 잘라낸 값 (Name 3 · 3) · type 그대로
 //   6. Ctrl/Cmd + A → 「Z」 붙여넣기 (1,000 행 전체를 한 값으로) → 화면 반영 시간 · 알림 수
 //   7. page error 0
 //
@@ -283,6 +285,7 @@ try {
   const KO = {
     "Pasted into 4 cells · 2 skipped": "칸 4개에 붙여넣음 · 2개 건너뜀",
     "Cleared 2 cells · 1 skipped": "칸 2개 비움 · 1개 건너뜀",
+    "Cut 2 cells · 1 skipped": "칸 2개 잘라냄 · 1개 건너뜀",
     "Pasted into 1000 cells · 2000 skipped":
       "칸 1000개에 붙여넣음 · 2000개 건너뜀",
   };
@@ -404,6 +407,44 @@ try {
     JSON.stringify(got5) === JSON.stringify(["", "B", ""]) &&
       said5 === "Cleared 2 cells · 1 skipped",
     { got5, said5 },
+  );
+
+  // 5b. Cut: p3:name ~ p3:status → the clipboard has the row (copy), the Editable cells empty.
+  await cell("p3", "name").click({ position: { x: 12, y: 10 } });
+  await cell("p3", "status").click({
+    position: { x: 12, y: 10 },
+    modifiers: ["Shift"],
+  });
+  await pub.keyboard.press(`${MOD}+KeyX`);
+  const said5b = await waitStatus("Cut 2 cells · 1 skipped");
+  const cut5b = [
+    await text("p3", "name"),
+    await text("p3", "type"),
+    await text("p3", "status"),
+  ];
+  await cell("p7", "name").click({ position: { x: 12, y: 10 } });
+  await pub.keyboard.press(`${MOD}+KeyV`);
+  await pub
+    .waitForFunction(
+      () =>
+        document
+          .querySelector('[role="row"][data-key="p7"] [data-column-key="name"]')
+          ?.textContent?.trim() === "Name 3",
+      null,
+      { timeout: 5000 },
+    )
+    .catch(() => {});
+  const pasted5b = [
+    await text("p7", "name"),
+    await text("p7", "type"),
+    await text("p7", "status"),
+  ];
+  record(
+    "5b 잘라내기: Editable 칸 비움 · 알림 · 잘라낸 값 붙여넣기",
+    JSON.stringify(cut5b) === JSON.stringify(["", "C", ""]) &&
+      said5b === "Cut 2 cells · 1 skipped" &&
+      JSON.stringify(pasted5b) === JSON.stringify(["Name 3", "A", "3"]),
+    { cut5b, said5b, pasted5b },
   );
 
   // 6. Ctrl/Cmd + A, then one value over 1,000 rows: Name ← Z (1,000) · Status ← Z (no number,

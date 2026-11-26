@@ -17,6 +17,8 @@
  * px max. Their ignored bound is reported in `ignored`.
  */
 
+import { CATALOG_ROW_STRIPED_PROP } from "./tableStripes";
+
 /** RAC `TableColumnLayout` default min width (`getDefaultMinWidth ?? 75`). */
 export const CATALOG_COLUMN_DEFAULT_MIN_WIDTH = 75;
 /** S2 TableView selection checkbox column (scale medium — `TableView.tsx` width/minWidth 40). */
@@ -262,6 +264,35 @@ function tableColumns<T extends TrackRecord>(
     .flatMap((header) =>
       recordChildren(header, get).filter((child) => typeOf(child) === "Column"),
     );
+}
+
+/**
+ * ADR-317 Phase 5 — whether a Row of a 「Striped rows」 Table is shaded: a bound row by the mark its
+ * rows carry (`CATALOG_ROW_STRIPED_PROP` — the order shown, `catalogStripedRows`); an authored row
+ * of the Table's body by its place among the body's Rows (the order the author wrote — every second
+ * one). A group · pinned row and a row nested in an authored one are not.
+ */
+export function catalogRowStriped<
+  T extends TrackRecord & { readonly rowIndex?: number },
+>(node: T, get: TrackLookup<T>, typeOf: TrackTypeOf<T>): boolean {
+  if (typeOf(node) !== "Row") return false;
+  const own = node.props[CATALOG_ROW_STRIPED_PROP];
+  if (typeof own === "boolean") return own;
+  // (A bound row without the mark — a group's, a pinned one — is not counted.)
+  if (node.rowIndex !== undefined) return false;
+  const body = get(node.parentId);
+  if (!body || typeOf(body) !== "TableBody") return false;
+  const table = get(body.parentId);
+  if (
+    !table ||
+    !TRACK_TABLE_TYPES.has(typeOf(table)) ||
+    table.props.isStriped !== true
+  )
+    return false;
+  const place = recordChildren(body, get)
+    .filter((row) => typeOf(row) === "Row")
+    .findIndex((row) => row.id === node.id);
+  return place % 2 === 1;
 }
 
 /**

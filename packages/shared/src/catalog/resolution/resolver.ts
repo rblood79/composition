@@ -128,6 +128,11 @@ import {
   catalogMergedRows,
 } from "../runtime/tableCellMerge";
 import {
+  CATALOG_ROW_STRIPED_PROP,
+  CATALOG_ROW_STRIPE_RUNS_PROP,
+  catalogStripedRows,
+} from "../runtime/tableStripes";
+import {
   CATALOG_COLUMN_MENU_PROP,
   CATALOG_TABLE_AUTHORED_SORT_PROP,
   CATALOG_TABLE_EXPANDED_PROP,
@@ -284,6 +289,15 @@ export interface CatalogBoundRow {
   edit?: {
     readonly status: "new" | "dirty";
     readonly fields: readonly string[];
+  };
+  /**
+   * ADR-317 Phase 5 — a striped Table's data row (`catalogStripedRows` — over every row shown, in
+   * their order): `on` = shaded; `runs` = the merged Columns (by key) whose run's first row's stripe
+   * is not its own — the run is one cell to the eye.
+   */
+  stripe?: {
+    readonly on: boolean;
+    readonly runs?: Readonly<Record<string, boolean>>;
   };
 }
 /**
@@ -1113,24 +1127,29 @@ function nestTableRows(
     };
     return detail
       ? {
-          ...keyed(detail),
+          // (ADR-317 Phase 5 — a detail row is drawn with its row's stripe.)
+          ...withStripedRow(keyed(detail), data.stripe, isTableRow),
           rowDetail: true,
           ...(node.rowIndex !== undefined ? { rowIndex: node.rowIndex } : {}),
           ...(node.rowWindow ? { rowWindow: node.rowWindow } : {}),
         }
       : node;
   }
-  const own = withEditedRow(
-    withMergedRow(
-      withPinnedRow(
-        withoutRowDetail(node, isTableRow),
-        data.pinned,
+  const own = withStripedRow(
+    withEditedRow(
+      withMergedRow(
+        withPinnedRow(
+          withoutRowDetail(node, isTableRow),
+          data.pinned,
+          isTableRow,
+        ),
+        data.merge,
         isTableRow,
       ),
-      data.merge,
+      data.edit,
       isTableRow,
     ),
-    data.edit,
+    data.stripe,
     isTableRow,
   );
   if (!data.children?.length) return own;
@@ -1228,6 +1247,32 @@ function withEditedRow(
     },
     ...(first && isTableRow(first)
       ? { children: [withEditedRow(first, edit, isTableRow), ...rest] }
+      : {}),
+  };
+}
+/**
+ * ADR-317 Phase 5 — a striped Table's Row with its stripe on every layer (a Row instance's record
+ * reads its innermost one): the column projection marks its Cells of a merged run whose stripe is
+ * not the row's (`catalogProjectTableColumns`).
+ */
+function withStripedRow(
+  row: ResolvedCatalogNode,
+  stripe: CatalogBoundRow["stripe"],
+  isTableRow: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  if (!stripe) return row;
+  const [first, ...rest] = row.children;
+  return {
+    ...row,
+    props: {
+      ...row.props,
+      [CATALOG_ROW_STRIPED_PROP]: stripe.on,
+      ...(stripe.runs
+        ? { [CATALOG_ROW_STRIPE_RUNS_PROP]: JSON.stringify(stripe.runs) }
+        : {}),
+    },
+    ...(first && isTableRow(first)
+      ? { children: [withStripedRow(first, stripe, isTableRow), ...rest] }
       : {}),
   };
 }
@@ -3428,6 +3473,7 @@ export function resolveCatalogNode(
                 viewSortsByVariable(node.binding, lookupEntry),
                 rowSlices?.sorts,
                 mergeKeys,
+                props.isStriped === true,
               )
             : undefined;
         groupedBy =
@@ -3795,6 +3841,8 @@ export function resolveCatalogNode(
     rowSort: CatalogRowSorts | undefined,
     /** ADR-315 Phase 6 — the Columns whose same values run together, in the order shown. */
     mergeKeys: readonly string[] = [],
+    /** ADR-317 Phase 5 — the Table's 「Striped rows」. */
+    striped = false,
   ): BoundTableRows => {
     const variableSort = (rowSet as { view?: CatalogViewResultMeta }).view
       ?.sort;
@@ -3835,6 +3883,8 @@ export function resolveCatalogNode(
     const fixed = typeof height === "number" && !!rowSample;
     // (ADR-315 Phase 6 — over every row in the order shown: before a box height · a window cuts.)
     ordered = catalogMergedRows(ordered, mergeKeys);
+    // (ADR-317 Phase 5 — over every row in the order shown too: a window keeps each row's.)
+    if (striped) ordered = catalogStripedRows(ordered);
     const bodyId = (
       template && "children" in template ? template.children : []
     ).find(

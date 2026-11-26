@@ -164,6 +164,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     allowsFilling: "composition",
     // ADR-317 Phase 4 — the rows · cells changed and not saved show a mark.
     showEditMarks: "composition",
+    // ADR-317 Phase 5 — every second data row shaded (S2 has no stripes).
+    isStriped: "composition",
     keepPinnedRows: "composition",
   },
   TagGroup: { allowsRemoving: "composition" },

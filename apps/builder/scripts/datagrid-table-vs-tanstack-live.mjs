@@ -145,6 +145,12 @@ const BROWSER = arg("--browser", "chromium");
 //   selection」 — 프로필 전에 범위 하나) · disabled (행 10 개 중 하나가 `off` — `fieldMap.disabled`).
 //   `--profile-fns <regex>`: 프로필에서 이름이 맞는 함수의 inclusive 시간을 전부 적는다.
 const WITH = new Set(arg("--with", "").split(",").filter(Boolean));
+// `--measure-paste` (ADR-317 G6 — HC5): Name · City 「Editable」 · 「Cell selection」 · 「Paste」 (with
+//   `--with cellsel,adr317`). Publish: Amount 머리글로 정렬한 뒤 첫 행의 Name 칸을 누르고 1,000 줄
+//   (값이 모두 다른 글자) 을 붙여넣는다 — `paste` 발생 → 그 칸이 새 값을 그린 다음 frame 까지 ms,
+//   CPU 1x · 4x 각 3 회. 보이는 행의 Name 이 따로 적은 정답 (그 회차의 1 ~ N 번째 값) 인지, 결과
+//   알림이 「1,000」 칸을 말하는지 본다. HC5: 붙여넣기 ≤ 같은 빌드의 정렬 클릭.
+const MEASURE_PASTE = process.argv.includes("--measure-paste");
 const PROFILE_FNS = arg("--profile-fns", null);
 // `--with server` : the rows from the query server (POST — `--check-server` 의 endpoint), `--latency <ms>`
 //   그 서버의 응답 지연. `--measure-group-sync`: 묶음을 모두 연 뒤 정렬 한 번 — 열린 묶음의 다시 요청이
@@ -496,6 +502,8 @@ try {
         PROFILE_COLUMNS,
         DISABLED,
         CELLSEL,
+        ADR317,
+        EDITABLE,
       }) => {
         const h = window.__COMPOSITION_CATALOG__;
         const ws = h.workspace;
@@ -627,6 +635,38 @@ try {
               }),
             ),
           );
+        if (ADR317)
+          step("adr317", () =>
+            ws.execute(
+              C.setFields({
+                targets: [{ kind: "node", id }],
+                props: {
+                  allowsPasting: set(true),
+                  allowsFilling: set(true),
+                  showEditMarks: set(true),
+                  isStriped: set(true),
+                },
+                label: "adr317",
+              }),
+            ),
+          );
+        if (EDITABLE)
+          step("editable", () => {
+            for (const key of ["name", "city"]) {
+              const column = all(table(), "Column")
+                .map(owned)
+                .find((x) => x && g.getEntry(x)?.props?.key?.value === key);
+              ws.execute(
+                h.table.catalogColumnEditableCommand(
+                  g,
+                  { kind: "node", id: column },
+                  true,
+                  ws.newId,
+                  { edit: (label) => `Edit ${label}` },
+                ),
+              );
+            }
+          });
         if (CHECK_PIN)
           step("pin", () => {
             const keyed = (key) =>
@@ -886,6 +926,10 @@ try {
         CHECK_GROUP,
         DISABLED: WITH.has("disabled"),
         CELLSEL: WITH.has("cellsel"),
+        // (ADR-317 G6: the Table's Paste · Fill handle · Edit marks · Striped rows; Name · City
+        //  「Editable」 — the paste writes them.)
+        ADR317: WITH.has("adr317"),
+        EDITABLE: WITH.has("editable") || MEASURE_PASTE,
         // (`--check-server group`: the authored grouping · the totals row; `pin`: row pinning.)
         CHECK_AUTHORED_GROUP:
           CHECK_AUTHORED_GROUP || SERVER_GROUP || WITH.has("group"),
@@ -1334,6 +1378,196 @@ try {
     log(
       `load (Preview 클릭 → 첫 데이터 행) ${results.loadMs} ms · heap ${results.heapMB} MB`,
     );
+
+    if (MEASURE_PASTE) {
+      // ADR-317 G6 — HC5: a 1,000-line paste into a sorted 10,000-row virtual Table.
+      const pcdp = await context.newCDPSession(pub);
+      const head = (label) =>
+        pub
+          .locator(`${OURS} [role=columnheader]`)
+          .filter({ hasText: new RegExp(`^${label}`) })
+          .first();
+      await head("Amount").click();
+      await pub.waitForTimeout(1500);
+      /** The visible data rows' Name cells, top first (`aria-rowindex` order). */
+      const names = () =>
+        pub.evaluate((OURS) => {
+          const table = document.querySelector(OURS);
+          return [...table.querySelectorAll("[role=row][data-key]")]
+            .map((row) => ({
+              at: Number(row.getAttribute("aria-rowindex")),
+              key: row.getAttribute("data-key"),
+              name: (
+                row.querySelector('[data-column-key="name"]')?.textContent ?? ""
+              ).trim(),
+            }))
+            .sort((a, b) => a.at - b.at);
+        }, OURS);
+      const first = (await names())[0];
+      const target = () =>
+        pub.locator(
+          `${OURS} [role=row][data-key="${first.key}"] [data-column-key="name"]`,
+        );
+      await target().click({ position: { x: 12, y: 10 } });
+      await pub.waitForTimeout(500);
+      results.measurePaste = { firstKey: first.key, runs: [], sorts: [] };
+      // (The same table's sort click, measured like `sortOnce` — pointerdown → the top row changes →
+      //  next frame — twice per round (Amount descending, then back ascending) right before each paste:
+      //  HC5 compares the paste with this, in the same page and minute.)
+      const sortClick = async () => {
+        const box = await head("Amount").boundingBox();
+        const probe = pub.evaluate(
+          (OURS) =>
+            new Promise((resolve) => {
+              const top = () => {
+                let best = null;
+                let y = Infinity;
+                for (const row of document.querySelectorAll(
+                  `${OURS} [role=row][data-key]`,
+                )) {
+                  const at = row.getBoundingClientRect().top;
+                  if (at < y) {
+                    y = at;
+                    best = row;
+                  }
+                }
+                return best?.textContent ?? "";
+              };
+              const before = top();
+              let t0 = 0;
+              document.addEventListener(
+                "pointerdown",
+                () => {
+                  t0 = performance.now();
+                },
+                { capture: true, once: true },
+              );
+              const started = performance.now();
+              const tick = () => {
+                if (t0 && top() !== before)
+                  return requestAnimationFrame(() =>
+                    resolve(Math.round((performance.now() - t0) * 10) / 10),
+                  );
+                if (performance.now() - started > 60000) return resolve(null);
+                requestAnimationFrame(tick);
+              };
+              requestAnimationFrame(tick);
+            }),
+          OURS,
+        );
+        await pub.waitForTimeout(100);
+        await pub.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        return probe;
+      };
+      let round = 0;
+      for (const rate of [1, 4]) {
+        await pcdp.send("Emulation.setCPUThrottlingRate", { rate });
+        for (let i = 0; i < 3; i += 1) {
+          for (let k = 0; k < 2; k += 1) {
+            const sortMs = await sortClick();
+            results.measurePaste.sorts.push({ rate, ms: sortMs });
+            log(`sort cpu${rate}x #${i + 1}.${k + 1} ${sortMs} ms`);
+            await pub.waitForTimeout(rate === 4 ? 2000 : 800);
+          }
+          await target().click({ position: { x: 12, y: 10 } });
+          await pub.waitForTimeout(500);
+          round += 1;
+          const lines = Array.from(
+            { length: 1000 },
+            (_, n) => `Paste ${round}-${n + 1}`,
+          );
+          const profiling =
+            process.argv.includes("--profile-paste") &&
+            rate === Number(arg("--profile-rate", "1")) &&
+            i === 0;
+          if (profiling) {
+            await pcdp.send("Profiler.enable");
+            await pcdp.send("Profiler.setSamplingInterval", { interval: 100 });
+            await pcdp.send("Profiler.start");
+          }
+          const ms = await target().evaluate(
+            (cell, { text, want }) =>
+              new Promise((resolve) => {
+                const data = new DataTransfer();
+                data.setData("text/plain", text);
+                const t0 = performance.now();
+                cell.dispatchEvent(
+                  new ClipboardEvent("paste", {
+                    clipboardData: data,
+                    bubbles: true,
+                    cancelable: true,
+                  }),
+                );
+                const row = cell.closest("[role=row]");
+                const key = row?.getAttribute("data-key");
+                const check = () => {
+                  const now = document.querySelector(
+                    `[role=row][data-key="${key}"] [data-column-key="name"]`,
+                  );
+                  if ((now?.textContent ?? "").includes(want))
+                    requestAnimationFrame(() =>
+                      resolve(Math.round((performance.now() - t0) * 10) / 10),
+                    );
+                  else if (performance.now() - t0 > 20000) resolve(null);
+                  else requestAnimationFrame(check);
+                };
+                check();
+              }),
+            { text: lines.join("\n"), want: lines[0] },
+          );
+          if (profiling) {
+            const { profile } = await pcdp.send("Profiler.stop");
+            writeFileSync(`${OUT}/paste-profile.json`, JSON.stringify(profile));
+            log(`paste profile → ${OUT}/paste-profile.json`);
+          }
+          await pub.waitForTimeout(rate === 4 ? 2500 : 1200);
+          const shown = await names();
+          // (The rows shown top first are the paste's 1st · 2nd · … line — the sort is Amount's.)
+          const expected = shown.map((_, n) => lines[n]);
+          const status = await pub.evaluate(() =>
+            [...document.querySelectorAll('[role="status"]')]
+              .map((el) => el.textContent ?? "")
+              .join(" | "),
+          );
+          results.measurePaste.runs.push({
+            rate,
+            ms,
+            rowsMatch:
+              JSON.stringify(
+                shown.map((r) => r.name.replace(/\s*Edit.*$/, "")),
+              ) === JSON.stringify(expected),
+            shown: shown.slice(0, 3).map((r) => r.name),
+            status,
+          });
+          log(
+            `paste cpu${rate}x #${i + 1} ${ms} ms · rows ${shown.length} · match ${results.measurePaste.runs.at(-1).rowsMatch} · status ${status.slice(0, 80)}`,
+          );
+        }
+      }
+      await pcdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+      const mid = (list) => {
+        const ok = list.filter((v) => v != null).sort((x, y) => x - y);
+        return ok.length ? ok[Math.floor(ok.length / 2)] : null;
+      };
+      for (const rate of [1, 4]) {
+        const paste = mid(
+          results.measurePaste.runs
+            .filter((r) => r.rate === rate)
+            .map((r) => r.ms),
+        );
+        const sort = mid(
+          results.measurePaste.sorts
+            .filter((r) => r.rate === rate)
+            .map((r) => r.ms),
+        );
+        log(
+          `HC5 cpu${rate}x paste median ${paste} ms · same-table sort median ${sort} ms · paste ≤ sort ${paste != null && sort != null && paste <= sort}`,
+        );
+      }
+      await pub.screenshot({ path: `${OUT}/measure-paste.png` });
+      writeFileSync(`${OUT}/results.json`, JSON.stringify(results, null, 2));
+      throw new Error("load only");
+    }
     await pub.waitForTimeout(3000);
     if (globalThis.__heapCdp) {
       const cdp = globalThis.__heapCdp;
@@ -2243,10 +2477,14 @@ try {
                 cells: cellsOf(row),
               }),
             ),
-            leaves: [...grid.querySelectorAll('[role=row][aria-level="2"]')].map(
-              cellsOf,
-            ),
-            footer: [...grid.querySelectorAll("tfoot [role=row], [role=rowgroup]:last-child [role=row]")]
+            leaves: [
+              ...grid.querySelectorAll('[role=row][aria-level="2"]'),
+            ].map(cellsOf),
+            footer: [
+              ...grid.querySelectorAll(
+                "tfoot [role=row], [role=rowgroup]:last-child [role=row]",
+              ),
+            ]
               .map(cellsOf)
               .at(-1),
           };
@@ -2289,8 +2527,10 @@ try {
         leaves: after.leaves.length,
         leavesDept: [...new Set(after.leaves.map((c) => c.Dept))],
         expected: groups.get(first)?.count,
-        groupRequests: bodies.filter((b) => b.group && b.group.by?.length).length,
-        totalsRequests: bodies.filter((b) => b.group && !b.group.by?.length).length,
+        groupRequests: bodies.filter((b) => b.group && b.group.by?.length)
+          .length,
+        totalsRequests: bodies.filter((b) => b.group && !b.group.by?.length)
+          .length,
         groupOf: groupOf.map((b) => b.groupOf),
         rowPages: bodies.filter((b) => !b.group && !b.groupOf).length,
         footer: before.footer,
@@ -2378,7 +2618,9 @@ try {
           JSON.stringify({ keys: { field: "id", only: ["r3"] }, page: null }) &&
         c.except.length >= 2 &&
         c.except.every(
-          (e) => JSON.stringify(e.keys) === JSON.stringify({ field: "id", except: ["r3"] }),
+          (e) =>
+            JSON.stringify(e.keys) ===
+            JSON.stringify({ field: "id", except: ["r3"] }),
         );
       log(`check-server pin ${JSON.stringify(c)}`);
       throw new Error("load only");
@@ -2424,12 +2666,15 @@ try {
                 side: row.getAttribute("data-pinned-row"),
                 top: Math.round((r.top - box.top) * 10) / 10,
                 bottom:
-                  Math.round((box.top + scroller.clientHeight - r.bottom) * 10) /
-                  10,
-                hit: hit?.closest("[role=row]")?.getAttribute("data-key") ?? null,
-                wrap: row.parentElement?.getAttribute("role") === "presentation"
-                  ? `${getComputedStyle(row.parentElement).position} t:${row.parentElement.style.top} b:${getComputedStyle(row.parentElement).bottom} parent:${row.parentElement.parentElement?.getAttribute("role")}/${row.parentElement.parentElement?.className}/${getComputedStyle(row.parentElement.parentElement).display}/h${Math.round(row.parentElement.parentElement.getBoundingClientRect().height)} gp:${row.parentElement.parentElement?.parentElement?.getAttribute("role")}/h${Math.round(row.parentElement.parentElement?.parentElement?.getBoundingClientRect().height ?? 0)}/${getComputedStyle(row.parentElement.parentElement.parentElement).overflow}`
-                  : `${getComputedStyle(row).position} top:${getComputedStyle(row).top} var:${row.style.getPropertyValue("--table-row-pin-at")} measure:${!!row.querySelector("span[hidden]")}`,
+                  Math.round(
+                    (box.top + scroller.clientHeight - r.bottom) * 10,
+                  ) / 10,
+                hit:
+                  hit?.closest("[role=row]")?.getAttribute("data-key") ?? null,
+                wrap:
+                  row.parentElement?.getAttribute("role") === "presentation"
+                    ? `${getComputedStyle(row.parentElement).position} t:${row.parentElement.style.top} b:${getComputedStyle(row.parentElement).bottom} parent:${row.parentElement.parentElement?.getAttribute("role")}/${row.parentElement.parentElement?.className}/${getComputedStyle(row.parentElement.parentElement).display}/h${Math.round(row.parentElement.parentElement.getBoundingClientRect().height)} gp:${row.parentElement.parentElement?.parentElement?.getAttribute("role")}/h${Math.round(row.parentElement.parentElement?.parentElement?.getBoundingClientRect().height ?? 0)}/${getComputedStyle(row.parentElement.parentElement.parentElement).overflow}`
+                    : `${getComputedStyle(row).position} top:${getComputedStyle(row).top} var:${row.style.getPropertyValue("--table-row-pin-at")} measure:${!!row.querySelector("span[hidden]")}`,
               };
             });
           const pinnedAll = [
@@ -3923,7 +4168,9 @@ try {
             (!text || rule.selectorText.includes(text))
           ) {
             removed.push(rule.selectorText.slice(0, 120));
-            list.deleteRule ? list.deleteRule(i) : rule.parentRule.deleteRule(i);
+            list.deleteRule
+              ? list.deleteRule(i)
+              : rule.parentRule.deleteRule(i);
             continue;
           }
           if (rule.cssRules) visit(rule.cssRules);
@@ -3963,9 +4210,10 @@ try {
     log(`strip-has: ${results.strippedHas.length} rules`);
   }
   const openAllGroups = async () => {
-      // (Every group opened — the closed group rows from the last shown up, so none moves.)
-      for (let guard = 0; guard < 40; guard += 1) {
-        const at = await pub.evaluate(({ a }) => {
+    // (Every group opened — the closed group rows from the last shown up, so none moves.)
+    for (let guard = 0; guard < 40; guard += 1) {
+      const at = await pub.evaluate(
+        ({ a }) => {
           const box = document.querySelector(a.scroll).getBoundingClientRect();
           const closed = [
             ...document.querySelectorAll(
@@ -3976,60 +4224,67 @@ try {
             .filter((r) => r.top >= box.top + 30 && r.bottom <= box.bottom);
           const r = closed.at(-1);
           return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
-        }, { a: ARMS.ours });
-        if (!at) break;
-        await pub.mouse.click(at.x, at.y);
-        await pub.waitForTimeout(400);
-      }
-      results.groupRows = await pub.evaluate(
-        ({ a }) => ({
-          open: document.querySelectorAll(`${a.hide} [role=row][aria-expanded=true]`)
-            .length,
-          closed: document.querySelectorAll(
-            `${a.hide} [role=row][aria-expanded=false]`,
-          ).length,
-          scrollHeight: document.querySelector(a.scroll).scrollHeight,
-        }),
+        },
         { a: ARMS.ours },
       );
-      log(`groups: ${JSON.stringify(results.groupRows)}`);
-      };
+      if (!at) break;
+      await pub.mouse.click(at.x, at.y);
+      await pub.waitForTimeout(400);
+    }
+    results.groupRows = await pub.evaluate(
+      ({ a }) => ({
+        open: document.querySelectorAll(
+          `${a.hide} [role=row][aria-expanded=true]`,
+        ).length,
+        closed: document.querySelectorAll(
+          `${a.hide} [role=row][aria-expanded=false]`,
+        ).length,
+        scrollHeight: document.querySelector(a.scroll).scrollHeight,
+      }),
+      { a: ARMS.ours },
+    );
+    log(`groups: ${JSON.stringify(results.groupRows)}`);
+  };
   const selectCellRange = async () => {
-      // (A range of cells — the 2nd row's 2nd cell to the 5th row's 4th — before the profiled sweep.)
-      const cellAt = (row, col) =>
-        pub.evaluate(
-          ({ a, row, col }) => {
-            const rows = [
-              ...document.querySelectorAll(`${a.hide} [role=row]`),
-            ].filter((r) => r.querySelector("[role=gridcell]"));
-            const cell = rows[row]?.querySelectorAll(
-              "[role=gridcell][data-column-key], [role=rowheader][data-column-key]",
-            )[col];
-            const r = cell?.getBoundingClientRect();
-            return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
-          },
-          { a: ARMS.ours, row, col },
-        );
-      const from = await cellAt(1, 1);
-      const to = await cellAt(4, 3);
-      if (!from || !to) throw new Error("cell selection: 칸을 찾지 못했다");
-      await pub.mouse.click(from.x, from.y);
-      await pub.keyboard.down("Shift");
-      await pub.mouse.click(to.x, to.y);
-      await pub.keyboard.up("Shift");
-      await pub.waitForTimeout(300);
-      results.cellRange = await pub.evaluate(
-        ({ a }) =>
-          document.querySelectorAll(`${a.hide} [data-selected][data-column-key]`)
-            .length,
-        { a: ARMS.ours },
+    // (A range of cells — the 2nd row's 2nd cell to the 5th row's 4th — before the profiled sweep.)
+    const cellAt = (row, col) =>
+      pub.evaluate(
+        ({ a, row, col }) => {
+          const rows = [
+            ...document.querySelectorAll(`${a.hide} [role=row]`),
+          ].filter((r) => r.querySelector("[role=gridcell]"));
+          const cell = rows[row]?.querySelectorAll(
+            "[role=gridcell][data-column-key], [role=rowheader][data-column-key]",
+          )[col];
+          const r = cell?.getBoundingClientRect();
+          return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
+        },
+        { a: ARMS.ours, row, col },
       );
-      log(`cell range: ${results.cellRange} cells selected`);
-      };
+    const from = await cellAt(1, 1);
+    const to = await cellAt(4, 3);
+    if (!from || !to) throw new Error("cell selection: 칸을 찾지 못했다");
+    await pub.mouse.click(from.x, from.y);
+    await pub.keyboard.down("Shift");
+    await pub.mouse.click(to.x, to.y);
+    await pub.keyboard.up("Shift");
+    await pub.waitForTimeout(300);
+    results.cellRange = await pub.evaluate(
+      ({ a }) =>
+        document.querySelectorAll(`${a.hide} [data-selected][data-column-key]`)
+          .length,
+      { a: ARMS.ours },
+    );
+    log(`cell range: ${results.cellRange} cells selected`);
+  };
   const selectedCells = () =>
     pub.evaluate(
       ({ a }) =>
-        [...document.querySelectorAll(`${a.hide} [data-selected][data-column-key]`)].map(
+        [
+          ...document.querySelectorAll(
+            `${a.hide} [data-selected][data-column-key]`,
+          ),
+        ].map(
           (cell) =>
             `${cell.closest("[role=row]")?.getAttribute("data-key")}:${cell.getAttribute("data-column-key")}`,
         ),
@@ -4083,7 +4338,7 @@ try {
     const clicked = Date.now();
     await sortOnce("ours", "Amount");
     // (Until the server has been quiet for 1.5 s.)
-    for (let quiet = 0; quiet < 1500; ) {
+    for (let quiet = 0; quiet < 1500;) {
       const n = requests.length;
       await pub.waitForTimeout(250);
       quiet =
@@ -4092,7 +4347,8 @@ try {
           : 0;
     }
     const sent = requests.slice(from).filter((r) => typeof r === "object");
-    const groupOf = (r) => JSON.stringify(r.body?.groupOf ?? r.body?.group ?? null);
+    const groupOf = (r) =>
+      JSON.stringify(r.body?.groupOf ?? r.body?.group ?? null);
     let peak = 0;
     for (const r of sent)
       peak = Math.max(
@@ -4103,7 +4359,9 @@ try {
       latency: LATENCY,
       requests: sent.length,
       peakConcurrent: peak,
-      lastResponseMs: sent.length ? Math.max(...sent.map((r) => r.end)) - clicked : null,
+      lastResponseMs: sent.length
+        ? Math.max(...sent.map((r) => r.end)) - clicked
+        : null,
       each: sent.map((r) => ({
         at: r.start - clicked,
         ms: r.end - r.start,
@@ -4111,7 +4369,10 @@ try {
       })),
       groups: groupOf(sent[0] ?? {}),
     };
-    writeFileSync(`${OUT}/group-sync.json`, JSON.stringify(results.groupSync, null, 2));
+    writeFileSync(
+      `${OUT}/group-sync.json`,
+      JSON.stringify(results.groupSync, null, 2),
+    );
     log(
       `group sync: ${sent.length} requests · peak ${peak} at once · last answer ${results.groupSync.lastResponseMs} ms after the click (latency ${LATENCY})`,
     );
@@ -4128,7 +4389,9 @@ try {
         ["r4", "Pin to top"],
         ["r6", "Pin to bottom"],
       ]) {
-        const row = pub.locator(`${ARMS.ours.hide} [role=row][data-key="${key}"]`);
+        const row = pub.locator(
+          `${ARMS.ours.hide} [role=row][data-key="${key}"]`,
+        );
         await row.hover();
         await row.locator(".table-row-pin-button").click();
         await pub.getByRole("menuitem", { name: item }).click();

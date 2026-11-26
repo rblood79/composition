@@ -13,6 +13,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-317 Phase 5 — Table 「Striped rows」 줄무늬 행] - 2026-11-26
+
+### Added
+
+- **Table 「Striped rows」** (Design 패널 모양 구획 스위치, 기본 꺼짐, composition 확장 — S2 TableView 에 없고 design-data 지침은 「Don't use zebra stripes」, 사용자 답 「composition 확장으로 유지」): 보이는 순서의 둘째 데이터 행마다 옅은 바탕 (`{color.table-stripe}` — light `#f8f8f8` · dark `#1b1b1b`). 정렬 · 거르기 · 묶기 뒤 순서로 세고 (CSS `:nth-child` 아님 — 가상 표가 스크롤해도 같은 행은 같은 줄무늬), 묶음마다 다시 세며 (각 묶음 첫 행은 칠하지 않음), 트리 하위 행은 이어 세고, 상세 행은 그 행을 따르고, 고정 행은 칠하지 않는다. 데이터에 연결하지 않은 Table 은 작성한 행 순서. 「Merge same values」 열의 묶음은 첫 행의 줄무늬를 따른다 (눈에 한 칸). Builder Canvas 와 Preview · Publish 가 같은 표시를 그리고, Preview · Publish 에서는 행 hover · 선택 · 편집 표시 · 칸 선택이 줄무늬 위에 보인다.
+  - 위치: `runtime/tableStripes.ts` (`catalogStripedRows`) · `resolution/resolver.ts` `boundTableRows` · `withStripedRow` · `resolution/tableColumns.ts` · `runtime/tableTracks.ts` `catalogRowStriped` · `runtime/presence.ts` · `runtime/domBinding.runtime.ts` · Row · Cell rule 파생 블록 · Table rule `partStateStyles` (생성 `Table.css`) · `bindings/Table.binding.ts` `isStriped`
+- **색 토큰 `{color.table-stripe}`** (`--table-stripe`, tone 50 — Table 바탕 한 단 위 · 행 hover 아래).
+
+### Fixed
+
+- **Canvas: rule 이 그리는 칸이 record 의 바탕을 투명하게 그리던 것** — variant `alpha: 0` 인 rule (Table Cell) 은 record 에 적힌 바탕 (`style.backgroundColor`) 도 그 alpha 를 곱해 보이지 않았다. 적힌 바탕은 DOM inline 처럼 그대로 그린다.
+  - 위치: `catalog/resolvers/resolveCatalogPaint.ts`
+
+### Tests
+
+- `packages/shared/src/catalog/runtime/__tests__/tableStripes.test.ts` (5) · `apps/builder/src/preview/catalog/__tests__/adr317StripedRows.test.tsx` (4) · `apps/builder/src/builder/catalogRuntime/__tests__/adr317StripedRowsCanvas.test.ts` (3) — 변이 RED 16/16 · live `apps/builder/scripts/adr317-p5-striped-rows-live.mjs` Chrome · WebKit 각 8/8.
+
 ## [ADR-318 Phase 0 ~ 6 — Resizable 분할창 (끌어서 나누는 패널 묶음 · 접기 · pill 손잡이 · 상태 연동 · 편집)] - 2026-11-26
 
 ### Breaking Changes

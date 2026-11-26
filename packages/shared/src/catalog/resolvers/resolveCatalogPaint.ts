@@ -172,9 +172,14 @@ export function resolveCatalogPaint({
     color,
     borderColor,
     // (a static paint at the rule's S2 overlay opacity — a value-fill track 0.17, its fill 0.94)
+    // (ADR-317 Phase 5 — a background the record states (`style.backgroundColor` — a derived block's
+    //  rest value: a striped Table's merged Cell) is drawn as it is, as the DOM's inline value: the
+    //  variant's own alpha (a Cell's transparent 0) is its own paint's, not the stated one's.)
     backgroundAlpha:
-      catalogAlpha *
-      (staticOnOpaqueBackground ? (variant?.staticAlpha ?? 1) : 1),
+      style?.backgroundColor != null
+        ? 1
+        : catalogAlpha *
+          (staticOnOpaqueBackground ? (variant?.staticAlpha ?? 1) : 1),
     staticTrackWash,
     hasVisibleBoxPaint,
     hasOpaqueCatalogBackground,

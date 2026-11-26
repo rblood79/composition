@@ -3309,6 +3309,7 @@ const semanticLabels: Record<string, string> = {
   "properties.tablePaste": "붙여넣기",
   "properties.tableFillHandle": "채우기 손잡이",
   "properties.tableEditMarks": "편집 표시",
+  "properties.tableStripedRows": "줄무늬 행",
   "properties.tableKeepPinnedRows": "고정 행 유지",
   "properties.ascending": "오름차순",
   "properties.descending": "내림차순",

@@ -316,6 +316,9 @@ export function CatalogBuilderCore() {
             },
             rowDisplay:
               await import("../../../../../packages/shared/src/catalog/commands/rowDisplay"),
+            // ADR-317 G6 harness (`datagrid-table-vs-tanstack-live.mjs --with editable`): a Column's
+            // 「Editable」 in a production build (the paste timing writes those cells).
+            table: await import("../catalogRuntime/tableEditableCell"),
           };
       // The cleanup may have disposed `opened` during the awaits above.
       if (cancelled) return;

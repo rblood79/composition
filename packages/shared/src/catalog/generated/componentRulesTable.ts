@@ -122,6 +122,13 @@ const FIELD_PREFIX_SIZES = {
 // dropped it by accident — `domBinding` wrapped every field button and its `stepper !== node`
 // identity test zeroed the inline border; now both read this block.)
 
+/**
+ * ADR-317 Phase 5 — a 「Striped rows」 Table's shaded row (`{color.table-stripe}`) and the base a
+ * merged run's Cell takes over a shaded row (the Table's own `{color.base}`): the Row · Cell rules'
+ * derived blocks (the Canvas) and the Table rule's `data-striped` · `data-stripe` blocks (the DOM).
+ */
+const STRIPE_PAINT = "var(--table-stripe)";
+const STRIPE_BASE = "var(--bg)";
 const FIELD_BUTTON_CORNERS = {
   XS: "var(--radius-sm)",
   S: "7px",
@@ -13295,6 +13302,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "in-footer": {
         true: { styles: { "background-color": "var(--table-footer)" } },
       },
+      // ADR-317 Phase 5 — a 「Striped rows」 Table's shaded row (derived `striped` — every second data
+      //   row in the order shown, `catalogStripedRows`; composition 확장 — S2 TableView has none). The
+      //   Canvas paints it; the DOM's is the Table rule's `data-striped` block (under the row's hover ·
+      //   selection — `STRIPE_PAINT` there: an inline value would cover them).
+      striped: {
+        true: { styles: { "background-color": STRIPE_PAINT } },
+      },
     },
     // A disabled row (S2 Row `isDisabled`) — the DOM's is `Table.css` `.react-aria-Row[data-disabled]`
     // (the sheet owns the row, so no generated CSS — ADR-223: a new entry names its archetype).
@@ -13517,6 +13531,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       "in-footer": {
         true: { styles: { "font-weight": "700" } },
       },
+      // ADR-317 Phase 5 — a striped Table's merged run (one cell to the eye over several rows):
+      //   its Cells take the run's first row's stripe where their row's differs (derived `cellStripe`
+      //   — the DOM's is the Table rule's `data-stripe` block).
+      stripe: {
+        on: { styles: { "background-color": STRIPE_PAINT } },
+        off: { styles: { "background-color": STRIPE_BASE } },
+      },
       "merge-line": {
         bottom: {
           styles: {
@@ -13645,6 +13666,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         outlineOffset: { isFocusVisible: "-1px", isDropTarget: "-1px" },
       },
+      // ADR-317 Phase 5 — a 「Striped rows」 Table (`data-striped` — every second data row in the
+      //   order shown, `catalogStripedRows`): before the row's states below, so its hover · press ·
+      //   selection · drop target win (the same `:where` weight — the later block); a cell's own
+      //   paint (an edit mark · a selected cell) is over the row. A merged run's Cell takes the run's
+      //   first row's (`data-stripe`) while its row shows no state. Canvas: the Row · Cell rules'
+      //   derived `striped` · `stripe` blocks, the same colors.
+      "& .react-aria-Row:where([data-striped])%": {
+        background: { default: STRIPE_PAINT },
+      },
+      '& :where(.react-aria-Row:not([data-hovered], [data-pressed], [data-selected], [data-drop-target])) .react-aria-Cell:where([data-stripe="on"])%':
+        { background: { default: STRIPE_PAINT } },
+      '& :where(.react-aria-Row:not([data-hovered], [data-pressed], [data-selected], [data-drop-target])) .react-aria-Cell:where([data-stripe="off"])%':
+        { background: { default: STRIPE_BASE } },
       "& .react-aria-Row%": {
         background: {
           isHovered: "var(--bg-muted)",
