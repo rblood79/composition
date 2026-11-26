@@ -13,6 +13,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-324 — Collection 「모아서 저장」: 편집을 모았다가 저장 버튼으로 변경분만 보낸다] - 2026-11-27
+
+실행 중 Table 에서 고친 값을 바로 서버에 쓰지 않고 모아 두었다가, 보는 사람이 「저장」 을 누를 때 바뀐 것만 보낸다 (ADR-324 Phase 0 ~ 5 → Implemented). 편집 상태는 ADR-325 의 미저장 변경 층 하나다.
+
+### Added
+
+- **Data 패널 표 설정의 「저장」 구획**: 「변경을 모아서 저장」 스위치 · 보내는 모양 (행마다 REST · 한 요청 묶음) · 수정 · 추가 · 삭제 endpoint · 본문 (바뀐 필드 · 행 전체) · 원자성 · 큰 저장 압축 · 충돌 감지 (없음 · 버전 필드 · 저장 전 확인 조회) · 중복 방지 키 헤더. 지금 연결이 보장하는 수준을 한 줄로 밝힌다 (연결이 선언한 수준).
+- **켜면 저장 막대가 들어간다** (사용자 결정 5): 연결된 Table 뒤에 「저장 안 된 변경 N건」 · 「저장」 · 「취소」 · 충돌용 「내 값으로 다시 저장」 · 「서버 값 받기」 · 「이 행에 적용」 — 보통 노드라 고치거나 지울 수 있다. Table 의 「Edit marks」 도 켠다. 편집마다 저장하던 규칙이 있으면 같이 켤 수 없어 그 규칙들을 보이고 「규칙을 지우고 켜기」 (한 번의 undo).
+- **Do 「Save a collection's changes」 · 「Discard a collection's changes」**: 직접 만든 버튼에 잇는다. 값 `{{ changes.<표>.count }}` 와 버튼 비활성 조건 `!var.changes:<표>.canSave` 로 막대를 직접 만들 수도 있다. Code 보기 `list.saveChanges()` · `list.discardChanges()`.
+- **닫기 경고**: 저장 안 된 변경이 있는 채 Publish 탭을 닫거나 새로 고치면 브라우저가 묻는다 (사용자 결정 2 — 변경을 브라우저에 보존하지는 않는다).
+
+### Changed
+
+- **저장 결과는 행마다 판정**: 202 (접수만) 는 「처리 중」 으로 남고, 200 이어도 필드 오류가 있으면 저장 안 됨 + 칸에 문구, 넣은 행은 응답의 key (본문 → `Location`) 를 받는다 — 응답이 key 를 알려 주지 않은 새 행을 다시 고쳤으면 「서버 행과 연결 필요」 로 두고 보는 사람이 행을 고른다 (자동으로 잇지 않음). 행마다 보내는 연결은 끝까지 보내고 실패한 행만 남는다 (사용자 결정 3).
+- **응답을 잃으면 다시 읽어 판정**: 자동으로 다시 보내지 않는다. 내 값이면 저장됨, 수정 전 값이면 다음 저장에 다시, 그 밖이면 충돌. 브라우저가 끊긴 연결의 요청을 스스로 다시 보낸 경우 (버전 조건이 막아 412) 도 다시 읽어 저장됨으로 닫는다 (live 에서 발견).
+- **충돌**: 다른 사람이 먼저 바꾼 행은 「충돌」 표시와 서버 값이 같이 보이고 (사용자 결정 4), 버전은 처음 고칠 때의 것을 보낸다 — 그 사이 다시 불러온 새 버전으로 보내지 않는다.
+
+- 확인: 대역 서버 (`saveEndpointStub.ts` · `save-endpoint-stub.mjs`) 로 단위 24 · 원복 RED 7/7, Builder 에서 패널로 켠 프로젝트를 Publish 로 열어 Chrome · WebKit 각 13/13 (`adr324-g5-live.mjs` — 편집 쓰기 0 · 저장 PATCH 1 · 412 충돌 · 「내 값」 · 응답 유실 · 취소 · 키보드 · 닫기 경고), 즉시 저장 회귀 (`adr317-p4-edit-marks-live.mjs`) Chrome · WebKit PASS. 문서 계약 80 (옛 79 파일은 열리지 않는다 — 변환 없음). 번들 Builder 첫 화면 +4,126 B · Preview 첫 화면 JS 0 · CSS +95 B. 상세 [ADR-324](adr/completed/324-collection-manual-batch-save.md).
+
 ## [ADR-325 — 실행 중 고친 값이 페이지 이동 · 정렬 · 다시 불러오기 뒤에도 남는다] - 2026-11-27
 
 Preview · Publish 의 실행 세션이 Collection 마다 응답 하나를 들던 것을 세 층 (행 · 조회 결과 · 미저장 변경) 의 저장소로 바꿨다 (ADR-325 Phase 0 ~ 5 → Implemented). 화면의 행은 늘 「서버가 준 행 + 아직 저장하지 않은 변경」 이다.

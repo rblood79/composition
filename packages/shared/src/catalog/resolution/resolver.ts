@@ -123,6 +123,7 @@ import {
   CATALOG_ROW_MERGE_DOWN_PROP,
   CATALOG_ROW_MERGE_UP_PROP,
   CATALOG_ROW_EDIT_PROP,
+  CATALOG_ROW_EDIT_NOTE_PROP,
   CATALOG_ROW_EDITED_FIELDS_PROP,
   catalogMergeEdges,
   catalogMergedRows,
@@ -288,8 +289,11 @@ export interface CatalogBoundRow {
    * session's — `CatalogRowEditMark`): new or changed, its changed fields.
    */
   edit?: {
-    readonly status: "new" | "dirty";
+    /** ADR-324 — a 「모아서 저장」 row's save status too (`conflict` · `failed` · `pending` · `unlinked`). */
+    readonly status:
+      "new" | "dirty" | "conflict" | "failed" | "pending" | "unlinked";
     readonly fields: readonly string[];
+    readonly note?: string;
   };
   /**
    * ADR-317 Phase 5 — a striped Table's data row (`catalogStripedRows` — over every row shown, in
@@ -1220,6 +1224,7 @@ const editedRowProps = (
     ? {
         [CATALOG_ROW_EDIT_PROP]: edit.status,
         [CATALOG_ROW_EDITED_FIELDS_PROP]: edit.fields,
+        ...(edit.note ? { [CATALOG_ROW_EDIT_NOTE_PROP]: edit.note } : {}),
       }
     : {};
 /** ADR-317 Phase 5 — a striped Table's row stripe and its merged runs whose stripe is not its own. */

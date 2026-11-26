@@ -55,3 +55,11 @@
 - **serializer 를 `collections` barrel 로 내보내지 않는다 (ADR-284)**: barrel 로 내보내자 Preview initial 이 +3,685 B — 세션은 lazy chunk 인데 serializer 가 initial 공용 chunk 로 옮겨갔다.
 - **입력 변수의 occurrence 값과 서버 응답 (ADR-294 수리, 2026-10-31)**: 중첩 role override 가 저장돼도 `admin` 으로 표시됐고, 기본값 `male` / instance `female` 에서 `/users?gender=male` 요청과 남성 행이 표시됐다 — 두 통합 반례와 경로별 원복 RED 로 확인했다. ADR-325 뒤로는 instance 마다 다른 보기가 각자 요청한다 (전체 불러오기 없음).
 - **2026-11-26 주기 조회 건너뛰기 (지움)**: Publish 주기 조회가 편집 기록을 지워, 저장 안 된 편집이 있으면 그 주기를 건너뛰었다. 저장소는 조회가 변경을 지우지 않으므로 이 규칙이 없어졌다.
+
+## 8. 「모아서 저장」 (ADR-324)
+
+- 정본 결정 [ADR-324](../../../../docs/adr/completed/324-collection-manual-batch-save.md) · [breakdown](../../../../docs/adr/design/324-collection-manual-batch-save-breakdown.md). 문서는 `CollectionEntry.save` (contract 80), 켜기 · 끄기는 `catalogRuntime/collectionSaveCommand.ts` 한 명령 (규칙 지우기 · 저장 막대 · Edit marks).
+- 실행: 세션 `saveChanges` → `CollectionSaver.save` — (1) 판정을 기다리는 행 (`store.sends` 의 열린 ticket) 을 먼저 다시 읽음 (「결과 확인」) → (2) 보낼 행 = 변경 중 기다림 · `unlinked` · 충돌이 아닌 것 → (3) 기준 버전 대조 (`baseRow` ↔ 지금 행) → (4) 확인 조회 연결이면 key 로 읽어 대조 → `beginSend("all", keys)` → `planSave` → `sendSaveRequest` → `judgeSaveResponse` (유실이면 `judgeRecheck`, 409 · 412 뒤 다시 읽은 행이 내 값이면 확정) → `store.settle`.
+- 저장소에 더한 것: `beginSend` 의 key 고르기, 확정의 `extra` (새 버전 등 보낸 필드 밖의 서버 값), `writeServerRow` (다시 읽은 행 — 변경의 필드에 `server` 를 적는다).
+- 다시 읽은 행 · `judgeRecheck` 의 행은 이미 저장 값이다 — `apply(…, stored = true)` 로 두 번 진입 변환하지 않는다.
+- 대역 서버 `collections/save/saveEndpointStub.ts` (import 없음) 를 단위 Gate (`adr324Save.test.ts` — `fetch` 로) 와 live (`apps/builder/scripts/save-endpoint-stub.mjs` — Node type stripping, `/__stub/state` · `reset` · `fault`) 가 같이 쓴다.

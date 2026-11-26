@@ -64,6 +64,9 @@ const LIST_DATA_FIELDS = {
   update: ["key", "value"],
   remove: ["keys"],
   reload: [],
+  // (ADR-324 — a 「모아서 저장」 collection's save · discard; discard's keys absent = all.)
+  saveChanges: [],
+  discardChanges: ["keys"],
   loadMore: [],
   setFilterText: ["value"],
   insert: ["parentKey", "index", "value"],
@@ -84,6 +87,8 @@ function listDataFieldLabelKey(opcode: ListDataOpcode, field: string): string {
   if (opcode === "setFilterText") return "interactions.filterText";
   if (field === "value") return "interactions.appendValue";
   if (field === "index" || field === "toIndex") return "interactions.listIndex";
+  if (field === "keys" && opcode === "discardChanges")
+    return "interactions.discardKeys";
   if (field === "keys") return "interactions.movedKeys";
   if (field === "parentKey") return "interactions.parentKey";
   if (field === "toParentKey") return "interactions.toParentKey";
@@ -101,6 +106,8 @@ const LIST_DATA_SUMMARY_KEYS = {
   update: "interactions.summaryUpdate",
   remove: "interactions.summaryRemove",
   reload: "interactions.summaryReload",
+  saveChanges: "interactions.summarySaveChanges",
+  discardChanges: "interactions.summaryDiscardChanges",
   loadMore: "interactions.summaryLoadMore",
   setFilterText: "interactions.summarySetFilterText",
   insert: "interactions.summaryInsert",

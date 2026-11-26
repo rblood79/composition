@@ -413,6 +413,8 @@ import {
   CATALOG_CELL_COLUMN_PROP,
   CATALOG_CELL_EDITED_PROP,
   CATALOG_CELL_ROW_EDIT_PROP,
+  CATALOG_CELL_ROW_EDIT_NOTE_PROP,
+  isCatalogRowEditStatus,
   CATALOG_ROW_EDIT_PROP,
 } from "./tableCellMerge";
 import { catalogCellStripe } from "./tableStripes";
@@ -4286,11 +4288,14 @@ function ruleDom(
         ? { "data-edited": "" }
         : {}),
       ...(lower === "cell" &&
-      (node.props[CATALOG_CELL_ROW_EDIT_PROP] === "new" ||
-        node.props[CATALOG_CELL_ROW_EDIT_PROP] === "dirty")
+      isCatalogRowEditStatus(node.props[CATALOG_CELL_ROW_EDIT_PROP])
         ? {
             rowEdit: node.props[CATALOG_CELL_ROW_EDIT_PROP],
             "data-row-edit": node.props[CATALOG_CELL_ROW_EDIT_PROP],
+            // (ADR-324 — a save status's words: the server's values · the fields' messages.)
+            ...(typeof node.props[CATALOG_CELL_ROW_EDIT_NOTE_PROP] === "string"
+              ? { rowEditNote: node.props[CATALOG_CELL_ROW_EDIT_NOTE_PROP] }
+              : {}),
           }
         : {}),
       // ADR-317 Phase 5 — a striped Table's merged run's Cell whose stripe is not its row's (the
@@ -4435,8 +4440,7 @@ function ruleDom(
               ? { "data-pinned-row": node.props[CATALOG_PINNED_ROW_PROP] }
               : {}),
             // (ADR-317 Phase 4 — a Table 「Edit marks」's row with an edit not saved.)
-            ...(node.props[CATALOG_ROW_EDIT_PROP] === "new" ||
-            node.props[CATALOG_ROW_EDIT_PROP] === "dirty"
+            ...(isCatalogRowEditStatus(node.props[CATALOG_ROW_EDIT_PROP])
               ? { "data-edit-status": node.props[CATALOG_ROW_EDIT_PROP] }
               : {}),
             // (ADR-317 Phase 5 — a 「Striped rows」 Table's shaded row: the Table rule's

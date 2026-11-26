@@ -844,6 +844,19 @@ export const ACTION_COVERAGE: Readonly<
     0,
   ),
   reload: at("src/pages/<Page>.tsx", "list.reload()", "setNodeInteractions", 0),
+  // ADR-324 — a 「모아서 저장」 collection's save · discard (composition extensions of the list).
+  saveChanges: at(
+    "src/pages/<Page>.tsx",
+    "list.saveChanges()",
+    "setNodeInteractions",
+    0,
+  ),
+  discardChanges: at(
+    "src/pages/<Page>.tsx",
+    "list.discardChanges() · list.discardChanges(keys)",
+    "setNodeInteractions",
+    0,
+  ),
   insert: at(
     "src/pages/<Page>.tsx",
     "list.insert(index, value) · (parentKey, index, value) (E10)",
@@ -1058,6 +1071,12 @@ export const COLLECTION_COVERAGE: CodeViewCoverage<CollectionEntry> = {
   executionPolicy: at(
     "src/data/<collection>.ts",
     "export const policy = {mode, intervalSec}",
+    "updateCollection",
+    3,
+  ),
+  save: at(
+    "src/data/<collection>.ts",
+    "export const save = {send, conflict, idempotency} (ADR-324)",
     "updateCollection",
     3,
   ),

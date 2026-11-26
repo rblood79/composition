@@ -13800,6 +13800,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           default: "color-mix(in srgb, var(--notice-visual) 14%, transparent)",
         },
       },
+      // ADR-324 — a 「모아서 저장」 row's save status on the same edge line: a conflict · a refused
+      //   save negative, a result to check informative, a create waiting for its server row
+      //   positive dashed; a refused row's changed cells a negative wash. The words under the
+      //   first cell (`data-edit-note` — the server's values, the fields' messages) are shown, a
+      //   smaller line in the status color. Preview runtime state — the Canvas draws none.
+      '& .react-aria-Cell[data-row-edit="conflict"]%': {
+        boxShadow: { default: "inset 3px 0 var(--negative-visual)" },
+      },
+      '& .react-aria-Cell[data-row-edit="failed"]%': {
+        boxShadow: { default: "inset 3px 0 var(--negative-visual)" },
+      },
+      '& .react-aria-Cell[data-row-edit="pending"]%': {
+        boxShadow: { default: "inset 3px 0 var(--informative-visual)" },
+      },
+      '& .react-aria-Cell[data-row-edit="unlinked"]%': {
+        boxShadow: { default: "inset 3px 0 var(--positive-visual)" },
+      },
+      '& .react-aria-Row[data-edit-status="conflict"] .react-aria-Cell[data-edited]%':
+        {
+          background: {
+            default:
+              "color-mix(in srgb, var(--negative-visual) 14%, transparent)",
+          },
+        },
+      '& .react-aria-Row[data-edit-status="failed"] .react-aria-Cell[data-edited]%':
+        {
+          background: {
+            default:
+              "color-mix(in srgb, var(--negative-visual) 14%, transparent)",
+          },
+        },
+      "& .react-aria-Cell [data-edit-note]%": {
+        display: { default: "block" },
+        fontSize: { default: "var(--text-xs)" },
+        color: { default: "var(--negative)" },
+      },
       // ADR-315 Phase 6 — a Table 「Cell selection」 (`tableCellSelection.ts` marks it and its cells):
       //   a selected cell is the highlight wash of a selected row (S2 `highlight` — there is no S2
       //   cell selection); a drag over the cells selects them, not their text. Preview runtime

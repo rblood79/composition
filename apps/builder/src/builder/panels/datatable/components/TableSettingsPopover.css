@@ -24,3 +24,20 @@
   background: transparent;
   border-radius: inherit;
 }
+
+/* ADR-324 — the 「저장」 section's notes · the rules that block 「모아서 저장」 (panel tokens). */
+.datatable-save-note {
+  display: block;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+.datatable-save-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.datatable-save-rule-list {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+  font-size: var(--text-xs);
+}

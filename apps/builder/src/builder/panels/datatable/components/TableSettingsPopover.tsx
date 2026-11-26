@@ -26,6 +26,7 @@ import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { Section } from "../../../components/panel/Section";
 import { findLinkedApi } from "../utils/collectionBadgeStatus";
+import { CollectionSaveSection } from "./CollectionSaveSection";
 import {
   executionModeOf,
   executionPolicyOfChoice,
@@ -140,6 +141,7 @@ export function TableSettings({ table }: { table: DataTable }) {
   );
 
   return (
+    <>
     <SettingsEditor
       name={table.name}
       useMockData={table.useMockData}
@@ -151,6 +153,9 @@ export function TableSettings({ table }: { table: DataTable }) {
       onEndpointChange={handleEndpointChange}
       onPolicyChange={handlePolicyChange}
     />
+    {/* ADR-324 — 「모아서 저장」 (the document's `save` — one command with its rules · save bars). */}
+    <CollectionSaveSection table={table} endpoints={endpoints} />
+    </>
   );
 }
 

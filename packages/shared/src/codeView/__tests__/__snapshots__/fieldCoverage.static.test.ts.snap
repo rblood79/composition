@@ -4,14 +4,14 @@ exports[`ADR-296 — every document field has a place in the code (G0) > the inv
 {
   "notInCode": 55,
   "phases": [
-    41,
+    43,
     7,
     18,
-    40,
+    41,
     25,
     30,
     14,
   ],
-  "total": 230,
+  "total": 233,
 }
 `;

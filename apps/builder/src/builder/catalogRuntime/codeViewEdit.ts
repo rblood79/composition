@@ -3186,7 +3186,8 @@ class Planner {
   /**
    * A handler's code → its Do list (`handlerCode` · `writeAction`'s inverse): Set state (a value ·
    * toggle · increment · an event's keys), toast, navigate, a list's commands (`update` · `move…` ·
-   * `remove…` · `insert…` · `append` · `prepend` · `reload` · `loadMore` · `setFilterText`) and an
+   * `remove…` · `insert…` · `append` · `prepend` · `reload` · `loadMore` · `setFilterText` ·
+   * `saveChanges` · `discardChanges`) and an
    * endpoint call (`await fetch`).
    */
   private actionsOf(
@@ -3737,10 +3738,29 @@ class Planner {
           ({ opcode: method, collectionId, [key]: valueOf(value) }) as never;
         let action: InteractionAction | undefined;
         if (
-          ["reload", "loadMore", "removeSelectedItems"].includes(method) &&
+          [
+            "reload",
+            "loadMore",
+            "removeSelectedItems",
+            "saveChanges",
+            "discardChanges",
+          ].includes(method) &&
           !parts.length
         )
           action = { opcode: method, collectionId } as never;
+        // (ADR-324 — `list.saveChanges({ scope })` · `list.discardChanges({ scope })` (a rows'
+        //  choice) · `list.discardChanges(keys)`.)
+        else if (
+          (method === "saveChanges" || method === "discardChanges") &&
+          parts.length === 1 &&
+          /^\{\s*scope\s*:\s*["'](conflicts|link)["']\s*\}$/.test(parts[0]!.trim())
+        ) {
+          const scope = /["'](conflicts|link)["']/.exec(parts[0]!)![1]!;
+          // (`discardChanges({ scope: "link" })` is no Do — left undefined: refused below.)
+          if (method === "saveChanges" || scope === "conflicts")
+            action = { opcode: method, collectionId, scope } as never;
+        } else if (method === "discardChanges" && parts.length === 1)
+          action = one("keys", parts[0]!);
         else if (
           ["append", "prepend", "setFilterText"].includes(method) &&
           parts.length === 1

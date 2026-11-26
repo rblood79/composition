@@ -246,6 +246,8 @@ export function buildCatalogLibrary(
         "update",
         "remove",
         "reload",
+        "saveChanges",
+        "discardChanges",
         "loadMore",
         "setFilterText",
         "insert",

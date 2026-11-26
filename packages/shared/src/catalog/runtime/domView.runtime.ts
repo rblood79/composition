@@ -98,6 +98,11 @@ export function catalogPreviewRuntime(
     editTableRow: (rowId, values) => session.tables.editTableRow(rowId, values),
     editSeq: () => session.editSeq(),
     beginSave: (seqs) => session.beginSave(seqs),
+    // ADR-324 — a 「모아서 저장」 collection's save · discard Dos.
+    saveChanges: (collectionId, choice) =>
+      session.saveChanges(collectionId, choice),
+    discardChanges: (collectionId, keys, scope) =>
+      session.discardUnsaved(collectionId, keys, scope),
     resizeTableColumns: (tableId, widths) =>
       session.tables.resizeTableColumns(tableId, widths),
     tableCellText: (tableId, rows, columns) =>

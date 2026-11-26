@@ -2567,6 +2567,21 @@ class Generator {
       case "reload":
       case "loadMore":
         return void out.line(`${listName}.${action.opcode}();`);
+      // (ADR-324 — a rows' choice is the call's `{ scope }`.)
+      case "saveChanges":
+        return void out.line(
+          `${listName}.saveChanges(${action.scope ? `{ scope: ${literal(action.scope)} }` : ""});`,
+        );
+      case "discardChanges":
+        return void out.line(
+          `${listName}.discardChanges(${
+            action.scope
+              ? `{ scope: ${literal(action.scope)} }`
+              : action.keys !== undefined
+                ? value(action.keys)
+                : ""
+          });`,
+        );
       case "setFilterText":
         return void out.line(
           `${listName}.setFilterText(${value(action.value)});`,

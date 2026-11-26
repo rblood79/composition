@@ -37,6 +37,8 @@ export const CATALOG_ACTION_OPCODES = [
   "moveAfter",
   "removeSelectedItems",
   // `useAsyncList.loadMore` · `setFilterText` — the next page · a server filter.
+  "saveChanges",
+  "discardChanges",
   "loadMore",
   "setFilterText",
   // ADR-294 — a component's event property sent to its instance.

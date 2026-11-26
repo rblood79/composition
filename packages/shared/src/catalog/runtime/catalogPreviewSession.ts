@@ -151,6 +151,8 @@ import {
 } from "./collectionStore";
 import { intakeQueryItems } from "../../collections/intake/queryItems";
 import { coerceDateText } from "../../state/dateValueEditing";
+import { CollectionSaver, type SaveResult } from "./collectionSave";
+import { CATALOG_CHANGES_ROOT } from "./stateTemplate";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -207,11 +209,37 @@ type CatalogItemEdit =
 
 type CatalogItems = readonly Record<string, unknown>[];
 
+/**
+ * ADR-324 — a save status's words for the row's mark: the reason, the fields' messages, and a
+ * conflict's server values of the changed fields (사용자 결정 4 — mine and the server's together).
+ */
+function saveNote(
+  saved: NonNullable<ReturnType<CollectionSaver["rowState"]>>,
+  fields: readonly string[],
+): string {
+  const parts = [saved.reason];
+  for (const [field, messages] of Object.entries(saved.errors ?? {}))
+    parts.push(`${field}: ${messages.join(", ")}`);
+  if (saved.status === "conflict" && saved.server)
+    for (const field of fields)
+      parts.push(`${field} = ${JSON.stringify(saved.server[field] ?? null)}`);
+  return parts.join(" · ");
+}
+
 /** ADR-317 Phase 4 — a row's edit status shown (「Edit marks」): new or changed, its changed fields. */
 export interface CatalogRowEditMark {
-  readonly status: "new" | "dirty";
+  /**
+   * ADR-324 — a 「모아서 저장」 row's save status too: `conflict` (another user changed it),
+   * `failed` (the save was refused · not sent), `pending` (its result is not known yet),
+   * `unlinked` (saved, its server row to be chosen).
+   */
+  readonly status: CatalogRowEditStatus;
   readonly fields: readonly string[];
+  /** ADR-324 — what the status says beyond its name (the server's values · the field messages). */
+  readonly note?: string;
 }
+export type CatalogRowEditStatus =
+  "new" | "dirty" | "conflict" | "failed" | "pending" | "unlinked";
 
 /** ADR-317 — why a cell of a several-item write was not written (`updateMany`). */
 export type CatalogItemsWriteSkip =
@@ -379,6 +407,50 @@ export class CatalogPreviewSession {
    * rows with the changes laid over them; a load never drops a change.
    */
   private readonly stores = new Map<string, CollectionStore>();
+  /**
+   * ADR-324 — the 「모아서 저장」 collections' saves (the requests, their answers judged row by
+   * row, each row's save status).
+   */
+  private readonly saver = new CollectionSaver({
+    saveSettings: (collectionId) => this.saveSettingsOf(collectionId),
+    collection: (collectionId) =>
+      this.collections.find((item) => item.id === collectionId) as never,
+    store: (collectionId) => this.stores.get(collectionId),
+    endpoint: (endpointId) => {
+      const raw = endpointId.startsWith("data:endpoint:")
+        ? endpointId.slice("data:endpoint:".length)
+        : endpointId;
+      return this.endpoints.find((item) => item.id === raw);
+    },
+    templateFor: (collectionId) => this.endpointTemplateFor(collectionId),
+    intake: (collectionId, items) => {
+      const intake = intakeQueryItems(
+        items,
+        this.collections.find((item) => item.id === collectionId),
+      );
+      return (Array.isArray(intake) ? intake : [intake]).filter(
+        (item): item is Record<string, unknown> =>
+          !!item && typeof item === "object",
+      );
+    },
+    storeKeys: (collectionId, keys) => {
+      const index = this.shownIndex(collectionId);
+      return keys.map((key) => index.get(key)?.key ?? key);
+    },
+    nextAt: () => (this.requestSeq += 1),
+    reload: (collectionId) => this.reload(collectionId, "idle"),
+    wholeComplete: (collectionId) => this.wholeComplete(collectionId),
+    refresh: (collectionId) => {
+      const errors = [
+        ...(this.currentRoot?.refreshRows(
+          new Set([`data:collection:${collectionId}`]),
+        ) ?? []),
+        ...this.refreshChangesReaders(collectionId),
+      ];
+      if (errors.length) console.error("[CatalogPreview] save:", ...errors);
+      this.changed();
+    },
+  });
   /** ADR-325 — the session's request · save-answer sequence (a later one's values win). */
   private requestSeq = 0;
   /** ADR-325 — the requests in flight by their sequence (a remove's trace waits for the earlier ones). */
@@ -1251,7 +1323,11 @@ export class CatalogPreviewSession {
     if ("reason" in edit) return { ok: false, reason: edit.reason };
     const seq = (this.editCount += 1);
     this.writeChange(collectionId, edit, seq);
-    const errors = this.currentRoot?.refreshRows() ?? [];
+    const errors = [
+      ...(this.currentRoot?.refreshRows() ?? []),
+      // (ADR-324 — the save bar's count reads the changes.)
+      ...this.refreshChangesReaders(collectionId),
+    ];
     if (errors.length)
       console.error(`[CatalogPreview] ${edit.kind}:`, ...errors);
     this.changed();
@@ -1427,7 +1503,26 @@ export class CatalogPreviewSession {
       level.forEach((item, index) => {
         const key = levelKey(item, index, parent, shape);
         const change = store.changes.get(key);
-        if (change?.kind === "insert" || change?.kind === "unlinked")
+        const saved = this.saver.rowState(collectionId, key);
+        const fields = change?.kind === "update" ? Object.keys(change.fields) : [];
+        if (saved && (change || saved.status === "pending" || saved.status === "processing"))
+          // (ADR-324 — a save's verdict on the row: its status, the cells it names.)
+          marks.set(itemKey(item, index, keyField), {
+            status:
+              saved.status === "conflict"
+                ? "conflict"
+                : saved.status === "pending" || saved.status === "processing"
+                  ? "pending"
+                  : "failed",
+            fields: [...new Set([...fields, ...Object.keys(saved.errors ?? {})])],
+            note: saveNote(saved, fields),
+          });
+        else if (change?.kind === "unlinked")
+          marks.set(itemKey(item, index, keyField), {
+            status: "unlinked",
+            fields: [],
+          });
+        else if (change?.kind === "insert")
           marks.set(itemKey(item, index, keyField), {
             status: "new",
             fields: [],
@@ -1435,7 +1530,7 @@ export class CatalogPreviewSession {
         else if (change?.kind === "update")
           marks.set(itemKey(item, index, keyField), {
             status: "dirty",
-            fields: Object.keys(change.fields),
+            fields,
           });
         const children = childItemsOf(item, childrenKey);
         if (children) visit(children, key);
@@ -3578,6 +3673,48 @@ export class CatalogPreviewSession {
       return unresolved ? undefined : value;
     };
   }
+  /** ADR-324 — a collection's 「모아서 저장」 setting (the document entry's). */
+  private saveSettingsOf(collectionId: string) {
+    const entry = this.graph?.getEntry(
+      `data:collection:${collectionId}` as never,
+    ) as CollectionEntry | undefined;
+    return entry?.kind === "collection" ? entry.save : undefined;
+  }
+  /** ADR-324 — the records reading a 「모아서 저장」 collection's `changes` values read again. */
+  private refreshChangesReaders(collectionId: string): unknown[] {
+    if (!this.saveSettingsOf(collectionId) || !this.currentRoot) return [];
+    return this.currentRoot.refreshState(
+      new Set([CATALOG_CHANGES_ROOT, `${CATALOG_CHANGES_ROOT}:${collectionId}`]),
+    );
+  }
+  /**
+   * ADR-324 — the 「변경 저장」 Do: a 「모아서 저장」 collection's changes sent as its `save`
+   * declares (or a rows' choice — 「내 값으로 다시 저장」 · 「이 행에 적용」).
+   */
+  saveChanges(
+    collectionId: string,
+    choice?: { scope: "conflicts" | "link"; keys?: readonly string[] },
+  ): Promise<SaveResult> {
+    return this.saver.save(collectionId, choice);
+  }
+  /** ADR-324 — the 「변경 취소」 Do: the changes not being sent (the given rows · the conflicted). */
+  discardUnsaved(
+    collectionId: string,
+    keys?: readonly string[],
+    scope?: "conflicts",
+  ): void {
+    if (this.saveSettingsOf(collectionId))
+      this.saver.discard(collectionId, keys, scope);
+    else this.discardChanges(collectionId, keys);
+  }
+  /** ADR-324 Decision 8 — some 「모아서 저장」 collection holds an unsaved change (leave warning). */
+  hasUnsavedChanges(): boolean {
+    return this.saver.anyUnsaved(this.stores.keys());
+  }
+  /** ADR-324 — a row's save status (its edit mark). */
+  rowSaveState(collectionId: string, key: string) {
+    return this.saver.rowState(collectionId, key);
+  }
   /** A collection's execution policy (ADR-218) — the document entry's; the Builder's Preview never reads it. */
   private executionPolicyOf(collectionId: string) {
     const entry = this.graph?.getEntry(
@@ -4543,6 +4680,8 @@ export class CatalogPreviewSession {
       projectVariables: () => this.variables,
       read: (variableId, scope) => this.readState(variableId, scope),
       params: () => this.params,
+      // ADR-324 — `{{ changes.<id> }}` · `!var.changes:<id>` (the save bar).
+      changes: (collectionId) => this.saver.changes(collectionId),
     };
   }
   private changed(): void {

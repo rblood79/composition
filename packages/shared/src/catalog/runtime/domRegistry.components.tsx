@@ -1,3 +1,4 @@
+import type { CatalogRowEditStatusValue } from "./tableCellMerge";
 import type { ReactElement, ReactNode, Ref, RefCallback } from "react";
 
 import {
@@ -133,10 +134,38 @@ function useCatalogCellSelection(
 
 /** ADR-317 Phase 4 — a row's edit status as said (4 site languages). */
 const ROW_EDIT_LABELS = {
-  en: { new: "New row", dirty: "Edited" },
-  ko: { new: "새 행", dirty: "수정됨" },
-  ja: { new: "新しい行", dirty: "編集済み" },
-  zh: { new: "新行", dirty: "已编辑" },
+  en: {
+    new: "New row",
+    dirty: "Edited",
+    conflict: "Conflict",
+    failed: "Not saved",
+    pending: "Result to check",
+    unlinked: "Saved — choose its row",
+  },
+  ko: {
+    new: "새 행",
+    dirty: "수정됨",
+    conflict: "충돌",
+    failed: "저장 안 됨",
+    pending: "결과 확인 필요",
+    unlinked: "저장됨 · 서버 행과 연결 필요",
+  },
+  ja: {
+    new: "新しい行",
+    dirty: "編集済み",
+    conflict: "競合",
+    failed: "未保存",
+    pending: "結果の確認が必要",
+    unlinked: "保存済み・行の選択が必要",
+  },
+  zh: {
+    new: "新行",
+    dirty: "已编辑",
+    conflict: "冲突",
+    failed: "未保存",
+    pending: "需确认结果",
+    unlinked: "已保存·需选择对应行",
+  },
 } as const;
 
 /** Said, not shown (out of the layout — `position: absolute`). */
@@ -327,6 +356,7 @@ export function CatalogTableCell({
   measuresRowPin,
   editableCell,
   rowEdit,
+  rowEditNote,
   ...props
 }: Record<string, unknown> & {
   children?: ReactNode;
@@ -335,7 +365,9 @@ export function CatalogTableCell({
   /** S2 체크리스트 §9.3 — S2 `EditableCell` (`editableCell.components.tsx`). */
   editableCell?: CatalogEditableCellProps;
   /** ADR-317 Phase 4 — its row's edit status, said here (the row's first data Cell). */
-  rowEdit?: "new" | "dirty";
+  rowEdit?: CatalogRowEditStatusValue;
+  /** ADR-324 — a save status's words (the server's values · the fields' messages). */
+  rowEditNote?: string;
 }): ReactElement {
   const { locale } = useLocale();
   const cellRef = useRef<HTMLElement | null>(null);
@@ -364,6 +396,15 @@ export function CatalogTableCell({
           { key: "edit-status", "data-edit-said": "", style: VISUALLY_HIDDEN },
           ` ${catalogLocalized(ROW_EDIT_LABELS, locale)[rowEdit]}`,
         ),
+        // (ADR-324 — a save's verdict is shown, not only said: the server's values next to mine
+        //  (사용자 결정 4), the fields' messages — a line under the cell's content.)
+        rowEditNote
+          ? createElement(
+              "span",
+              { key: "edit-note", "data-edit-note": "" },
+              rowEditNote,
+            )
+          : null,
       )
     : content;
   // (ADR-315 Phase 6 — a Cell of a Table 「Cell selection」: its `aria-selected` follows the ranges

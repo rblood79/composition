@@ -62,6 +62,8 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   update: "interactions.actionUpdate",
   remove: "interactions.actionRemove",
   reload: "interactions.actionReload",
+  saveChanges: "interactions.actionSaveChanges",
+  discardChanges: "interactions.actionDiscardChanges",
   loadMore: "interactions.actionLoadMore",
   setFilterText: "interactions.actionSetFilterText",
   insert: "interactions.actionInsert",

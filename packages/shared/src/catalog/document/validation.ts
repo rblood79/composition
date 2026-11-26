@@ -385,6 +385,82 @@ function id(value: unknown, prefix: string, at: string): string {
     invalid("INVALID_ID", at);
   return text;
 }
+/**
+ * ADR-324 Decision 1 · 2 · 4 — a collection's 「모아서 저장」 shape. A connection that sends updates
+ * or removes needs a key field (the collection's `keyField`, or a schema field `id` · `key` ·
+ * `value`); a batch cannot carry `If-Match` (one header cannot state each row's version). The
+ * endpoints' existence and methods are checked over the project (`validateDataReferences`).
+ */
+function collectionSave(
+  value: unknown,
+  schema: readonly Record<string, unknown>[],
+  keyField: unknown,
+): void {
+  const save = object(value, "entry.save");
+  exact(save, ["send", "conflict", "idempotency"], "entry.save");
+  const send = object(save.send, "entry.save.send");
+  let writesKeys = false;
+  if (send.shape === "batch") {
+    exact(send, ["shape", "endpointId", "atomic", "gzip"], "entry.save.send");
+    id(send.endpointId, "data:endpoint:", "entry.save.send.endpointId");
+    boolean(send.atomic, "entry.save.send.atomic");
+    if (send.gzip !== undefined) boolean(send.gzip, "entry.save.send.gzip");
+    writesKeys = true;
+  } else if (send.shape === "rows") {
+    exact(send, ["shape", "update", "create", "remove"], "entry.save.send");
+    if (
+      send.update === undefined &&
+      send.create === undefined &&
+      send.remove === undefined
+    )
+      invalid("SAVE_CONNECTION_REQUIRED", "entry.save.send");
+    for (const kind of ["update", "create", "remove"] as const) {
+      if (send[kind] === undefined) continue;
+      const at = `entry.save.send.${kind}`;
+      const connection = object(send[kind], at);
+      exact(
+        connection,
+        kind === "update" ? ["endpointId", "body"] : ["endpointId"],
+        at,
+      );
+      id(connection.endpointId, "data:endpoint:", `${at}.endpointId`);
+      if (kind === "update" && !["changed", "full"].includes(connection.body as string))
+        invalid("INVALID_SAVE_BODY", `${at}.body`);
+      if (kind !== "create") writesKeys = true;
+    }
+  } else invalid("INVALID_SAVE_SHAPE", "entry.save.send.shape");
+  if (save.conflict !== undefined) {
+    const conflict = object(save.conflict, "entry.save.conflict");
+    if (conflict.by === "version") {
+      exact(conflict, ["by", "fieldId", "send"], "entry.save.conflict");
+      string(conflict.fieldId, "entry.save.conflict.fieldId");
+      const field = schema.find((item) => item.id === conflict.fieldId);
+      if (!field || field.formula !== undefined)
+        invalid("SAVE_VERSION_FIELD_MISSING", "entry.save.conflict.fieldId");
+      if (!["body", "ifMatch"].includes(conflict.send as string))
+        invalid("INVALID_SAVE_CONFLICT", "entry.save.conflict.send");
+      if (send.shape === "batch" && conflict.send === "ifMatch")
+        invalid("SAVE_BATCH_IF_MATCH", "entry.save.conflict.send");
+    } else if (conflict.by === "recheck") {
+      exact(conflict, ["by", "endpointId"], "entry.save.conflict");
+      id(conflict.endpointId, "data:endpoint:", "entry.save.conflict.endpointId");
+    } else invalid("INVALID_SAVE_CONFLICT", "entry.save.conflict.by");
+  }
+  if (save.idempotency !== undefined) {
+    const key = object(save.idempotency, "entry.save.idempotency");
+    exact(key, ["in", "name"], "entry.save.idempotency");
+    if (!["header", "body"].includes(key.in as string))
+      invalid("INVALID_SAVE_IDEMPOTENCY", "entry.save.idempotency.in");
+    string(key.name, "entry.save.idempotency.name");
+  }
+  // (A server identity is what an update · a remove addresses — a place key `row-1` is none.)
+  if (
+    writesKeys &&
+    keyField === undefined &&
+    !schema.some((field) => ["id", "key", "value"].includes(field.key as string))
+  )
+    invalid("SAVE_KEY_FIELD_REQUIRED", "entry.save");
+}
 /** ADR-294 — the value types an event property may carry. */
 const EVENT_VALUE_TYPES = new Set([
   "string",
@@ -2345,6 +2421,23 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         ) {
           exact(action, ["opcode", "collectionId"], `${at}`);
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
+        } else if (action.opcode === "saveChanges") {
+          // ADR-324 — a save, or a rows' choice (`scope`).
+          exact(action, ["opcode", "collectionId", "scope"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (
+            action.scope !== undefined &&
+            action.scope !== "conflicts" &&
+            action.scope !== "link"
+          )
+            invalid("INVALID_SAVE_SCOPE", `${at}.scope`);
+        } else if (action.opcode === "discardChanges") {
+          // ADR-324 — the rows' keys (absent = every change) · the conflicted rows (`scope`).
+          exact(action, ["opcode", "collectionId", "keys", "scope"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
+          if (action.scope !== undefined && action.scope !== "conflicts")
+            invalid("INVALID_SAVE_SCOPE", `${at}.scope`);
         } else if (action.opcode === "setFilterText") {
           exact(action, ["opcode", "collectionId", "value"], `${at}`);
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
@@ -2447,6 +2540,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "useMockData",
           "keyField",
           "executionPolicy",
+          "save",
         ],
         "entry",
       );
@@ -2487,6 +2581,12 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
             "entry.executionPolicy.intervalSec",
           );
       }
+      if (item.save !== undefined)
+        collectionSave(
+          item.save,
+          item.schema as readonly Record<string, unknown>[],
+          item.keyField,
+        );
       break;
     }
     case "endpoint": {

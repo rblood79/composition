@@ -143,6 +143,8 @@ export function generateCollectionFile(input: {
     ...(entry.executionPolicy
       ? { executionPolicy: entry.executionPolicy }
       : {}),
+    // (ADR-324 — 「모아서 저장」: the connection the save sends by.)
+    ...(entry.save ? { save: entry.save } : {}),
   };
   out.start();
   from = out.length;

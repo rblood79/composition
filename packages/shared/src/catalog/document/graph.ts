@@ -1,6 +1,11 @@
 import { isRichText, RICH_TEXT_HOST_TYPES } from "./textRuns";
 import { catalogColorControlPropsError } from "./colorValue";
 import { catalogActionsDeep } from "./interactionActions";
+import {
+  catalogBatchSaveCollections,
+  catalogImmediateSaveRules,
+  catalogSaveEndpointIds,
+} from "./collectionSave";
 import { isDateValueText } from "../../state/dateValue";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { catalogPropValueFits, isPropVar } from "./valueType";
@@ -170,6 +175,82 @@ function validateDataReferences(
     for (const pageId of access.protectedPageIds)
       if (!root.pageIds.includes(pageId))
         throw new CatalogValidationError("DANGLING_PAGE", pageId);
+}
+/**
+ * ADR-324 Decision 1 · 3 — a 「모아서 저장」 collection's connections resolve (write endpoints are
+ * not GET, the recheck one is), and no rule saves its edits at once (`catalogImmediateSaveRules` —
+ * `IMMEDIATE_SAVE_RULE`, the rule's id). Checked when a step changes a collection, an endpoint, an
+ * interaction or a node (a binding · a parent), and only while some collection saves so.
+ */
+function validateBatchSave(
+  root: ProjectEntry,
+  staged: ReadonlyMap<string, CatalogEntry | null>,
+  get: (id: string) => CatalogEntry | undefined,
+  committedOwnerOf: (id: string) => string | undefined,
+): void {
+  let touched = false;
+  for (const entry of staged.values())
+    if (
+      entry === null ||
+      entry.kind === "collection" ||
+      entry.kind === "endpoint" ||
+      entry.kind === "interaction" ||
+      entry.kind === "node" ||
+      entry.kind === "project"
+    ) {
+      touched = true;
+      break;
+    }
+  if (!touched) return;
+  const saving = catalogBatchSaveCollections(root.collectionIds ?? [], get);
+  // (A 「변경 저장」 Do names a collection whose 「모아서 저장」 is on — checked when a rule or a
+  //  collection changes.)
+  let rulesOrCollections = false;
+  for (const entry of staged.values())
+    if (entry === null || entry.kind === "interaction" || entry.kind === "collection") {
+      rulesOrCollections = true;
+      break;
+    }
+  if (rulesOrCollections) {
+    const on = new Set(saving.map((collection) => collection.id as string));
+    for (const id of root.interactionIds) {
+      const rule = get(id);
+      if (rule?.kind !== "interaction") continue;
+      for (const action of catalogActionsDeep(rule.actions))
+        if (action.opcode === "saveChanges" && !on.has(action.collectionId))
+          throw new CatalogValidationError("SAVE_NOT_ENABLED", rule.id);
+    }
+  }
+  if (!saving.length) return;
+  for (const collection of saving) {
+    const { write, read } = catalogSaveEndpointIds(collection.save!);
+    for (const endpointId of [...write, ...read]) {
+      const endpoint = get(endpointId);
+      if (endpoint?.kind !== "endpoint")
+        throw new CatalogValidationError("DANGLING_ENDPOINT", endpointId);
+      const isRead = endpoint.method === "GET";
+      if (read.includes(endpointId) ? !isRead : isRead)
+        throw new CatalogValidationError("SAVE_ENDPOINT_METHOD", endpointId);
+    }
+  }
+  // (A node this step moved · inserted: its parent from the staged children lists first.)
+  const stagedParent = new Map<string, string>();
+  for (const [id, entry] of staged)
+    if (entry?.kind === "node")
+      for (const child of entry.children ?? []) stagedParent.set(child, id);
+  const parentOf = (id: string): string | undefined => {
+    const parent = stagedParent.get(id) ?? committedOwnerOf(id);
+    return parent && get(parent)?.kind === "node" ? parent : undefined;
+  };
+  for (const collection of saving) {
+    const rules = catalogImmediateSaveRules(collection.id, {
+      get,
+      interactionIds: root.interactionIds,
+      parentOf,
+    });
+    if (rules.length)
+      throw new CatalogValidationError("IMMEDIATE_SAVE_RULE", rules[0]!.id);
+  }
 }
 /** The app's toast shape is one of the project's components (its Toast root: `setToastShape`). */
 function validateToastShape(
@@ -1060,6 +1141,7 @@ export class CatalogGraph {
             if (!listed.has(id) && get(id) !== undefined)
               throw new CatalogValidationError("UNOWNED_ENTRY", id);
     }
+    validateBatchSave(root, staged, get, (id) => this.ownerOf(id));
     const isListed = (id: string): boolean => (listed ??= listedIds()).has(id);
     // Claims after the change: staged owners claim their owned children; an unstaged owner
     // keeps its committed claims.

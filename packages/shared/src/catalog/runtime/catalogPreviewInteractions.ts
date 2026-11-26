@@ -219,6 +219,19 @@ function actionOf(
         kind: action.opcode,
         collectionId: action.collectionId.slice("data:collection:".length),
       };
+    case "saveChanges":
+      return {
+        kind: "saveChanges",
+        collectionId: action.collectionId.slice("data:collection:".length),
+        ...(action.scope ? { scope: action.scope } : {}),
+      };
+    case "discardChanges":
+      return {
+        kind: "discardChanges",
+        collectionId: action.collectionId.slice("data:collection:".length),
+        ...(action.keys !== undefined ? { keys: action.keys } : {}),
+        ...(action.scope ? { scope: action.scope } : {}),
+      };
     case "setFilterText":
       return {
         kind: "setFilterText",
@@ -541,6 +554,20 @@ export interface CatalogPreviewInteractionsOptions {
   reloadCollection?: (collectionId: string) => Promise<unknown>;
   /** `useAsyncList.loadMore()` · `setFilterText(text)` (the session's) — reported like `reload`. */
   loadMore?: (collectionId: string) => Promise<unknown>;
+  /**
+   * ADR-324 — a 「모아서 저장」 collection's save (`CatalogPreviewSession.saveChanges`): its result
+   * is shown as a toast (Decision 7 — saved · failed · conflict counts); `ok` false = a row stays.
+   */
+  saveChanges?: (
+    collectionId: string,
+    choice?: { scope: "conflicts" | "link"; keys?: readonly string[] },
+  ) => Promise<{ ok: boolean; message: string; reason?: string }>;
+  /** ADR-324 — drop a collection's unsaved changes (`CatalogPreviewSession.discardChanges`). */
+  discardChanges?: (
+    collectionId: string,
+    keys?: readonly string[],
+    scope?: "conflicts",
+  ) => void;
   /** A windowed Table's rows drawn without records (`CatalogPreviewSession.showRows`). */
   showRows?: (
     owner: string,
@@ -784,6 +811,37 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         if (!reload)
           return { ok: false, reason: "collection 다시 읽기 서비스 없음" };
         settleLoad(reload(collectionId), collectionId, "다시 읽기");
+        return { ok: true };
+      },
+      saveChanges: (collectionId, choice) => {
+        const save = options.saveChanges;
+        if (!save) return { ok: false, reason: "collection 저장 서비스 없음" };
+        const settled = save(collectionId, choice).then(
+          (result) => {
+            options.showToast(
+              result.message,
+              result.ok ? { variant: "positive", timeout: 5000 } : FAILURE_TOAST,
+            );
+            return result.ok
+              ? { ok: true }
+              : { ok: false, reason: result.reason ?? result.message };
+          },
+          (error: unknown) => {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            console.warn(
+              `[interactions] collection ${collectionId} 저장 실패 — ${message}`,
+            );
+            options.showToast(message, FAILURE_TOAST);
+            return { ok: false, reason: message };
+          },
+        );
+        return { ok: true, settled };
+      },
+      discardChanges: (collectionId, keys, scope) => {
+        if (!options.discardChanges)
+          return { ok: false, reason: "collection 변경 취소 서비스 없음" };
+        options.discardChanges(collectionId, keys, scope);
         return { ok: true };
       },
       loadMore: (collectionId) => {

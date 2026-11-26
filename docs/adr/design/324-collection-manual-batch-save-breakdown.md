@@ -1,6 +1,6 @@
 # ADR-324 상세 설계 · Collection에서 편집한 필드의 수동 서버 저장
 
-[ADR 본문](../324-collection-manual-batch-save.md) · 바탕: [ADR-325](../completed/325-collection-runtime-store-three-layers.md) ([상세](325-collection-runtime-store-three-layers-breakdown.md)) · [처음 조사 문서](../../explanation/research/COLLECTION_REMOTE_SAVE_2026-11.md)
+[ADR 본문](../completed/324-collection-manual-batch-save.md) · 바탕: [ADR-325](../completed/325-collection-runtime-store-three-layers.md) ([상세](325-collection-runtime-store-three-layers-breakdown.md)) · [처음 조사 문서](../../explanation/research/COLLECTION_REMOTE_SAVE_2026-11.md)
 
 2026-11-26 개정. 편집 상태 · 조회와의 공존은 ADR-325 가 소유한다 — 이 문서는 그 위의 저장 설정 · 요청 · 결과 판정 · 작성 표면이다. 아래 형 · 표 · Phase 는 구현할 계약이고, 크기 기준선만 로컬에서 측정했다. 2026-11-27 에 리뷰 round 1 (HIGH 6 — [기록](../reviews/324.md)) 을 반영했다: 2xx 의 뜻과 넣은 행의 서버 key, 응답 유실 판정의 고침 · 지우기 분리, 기준 버전, 즉시 저장 규칙과의 동시 구성 거절, 서버 식별자 없는 행, 행 전체 전송.
 
@@ -324,3 +324,51 @@ interface DiscardChangesAction {
 | 미저장 변경이 있는 채 새로 고침                                                                        | 브라우저 경고. 변경이 없으면 경고 없음.                                                                                                                                                                           |
 
 기존 회귀 기준은 [묶음 쓰기](../../../apps/builder/src/preview/catalog/__tests__/adr317BatchWrite.test.tsx) · [편집 표시](../../../apps/builder/src/preview/catalog/__tests__/adr317EditMarks.test.tsx) · [이벤트별 저장 확인](../../../packages/shared/src/interactions/__tests__/adr317SavedEdits.test.ts) 이다. 정답 값은 손으로 적고, 요청과 서버 행은 대역 서버의 기록에서 따로 읽는다.
+
+## 기록
+
+### Phase 0 · 기준선 (G0) — 2026-11-27 닫힘
+
+- 선행: ADR-325 Implemented (5159a4879) — 변경 층 · `beginSend` · `settle` · `rebase` · `link` · `isServerKey` 가 있다.
+- 크기 표 재현 — [`adr324-save-body-size.mjs`](../../../apps/builder/scripts/adr324-save-body-size.mjs) (Node 24.22.1 · zlib 6). 기준선의 큰 두 값은 바이트까지 같다 (13,784,992 · 26,781 B, gzip 2,568,728 · 7,588 B). 작은 두 값은 요청 ID 글자가 달라 145 · 86 B (처음 173 · 114 B — 모양 차이, 경향 같음). 참조 모양의 압축 절감: 한 칸 66 → 85 B (−29 %) · 두 행 세 칸 133 → 121 B (9 %) · 20 행 1,871 → 407 B (78 %) · 1,000 행 85 · 92 % · 10,000 행 85 · 93 % (숫자 · 한글).
+- 브라우저 `CompressionStream` (Playwright, 7 회 중앙값): Chromium 1,000 행 0.9 ms · 10,000 행 7.8 ms, WebKit 1 · 6 ms.
+- **압축 임계값 = 2,048 B** — 그 아래는 줄어도 1.5 KB 미만이고 한두 칸 편집은 오히려 커진다.
+- 대역 서버 — [`saveEndpointStub.ts`](../../../packages/shared/src/collections/save/saveEndpointStub.ts) (import 없음 — 단위 Gate 는 `fetch` 로, live 는 [`save-endpoint-stub.mjs`](../../../apps/builder/scripts/save-endpoint-stub.mjs) 가 Node type stripping 으로 같은 파일을 HTTP 로 연다). 행별 PATCH · PUT · POST · DELETE, 묶음 `POST <base>/batch` (원자적 · 아님), 버전 필드 (`If-Match` · 본문 → 412), 중복 방지 키, gzip 본문 (안 받으면 415), 넣기 응답 (본문 · `Location` 만 · 없음 · 202), 주입 (`lose` 반영 후 응답 유실 · `drop` · status · 200 안 `errors` · 다른 사용자의 쓰기). 서버 상태 (`rows` · `writes` · `log`) 를 클라이언트와 따로 읽는다. live curl 확인: 412 · gzip 해제 후 415 · 유실 (반영 · 연결 끊김 · 다시 읽으면 반영된 값). `crud-endpoint-stub.mjs` 를 늘리는 대신 새 파일로 둔 것은 단위 Gate 와 같은 core 를 쓰기 위해서다.
+
+### Phase 1 · 작성 계약 (G1) — 2026-11-27 닫힘
+
+- 문서 계약 80 (`types.ts` `CollectionEntry.save` · `CollectionSaveSettings` · Do `saveChanges` · `discardChanges`). 옛 79 문서는 열리지 않는다 (변환 없음). 검증: 모양은 `validation.ts` `collectionSave` (key 필드 · 묶음 + `ifMatch` · 버전 필드), 프로젝트 단위는 `graph.ts` `validateBatchSave` (endpoint 존재 · 쓰기 = GET 아님 · 확인 조회 = GET · 즉시 저장 규칙 두 형태 · 꺼진 Collection 의 「변경 저장」). 즉시 저장 규칙 판정은 `document/collectionSave.ts` `catalogImmediateSaveRules` 하나를 검증과 패널이 같이 읽는다.
+- 거절 코드 5 (`IMMEDIATE_SAVE_RULE` · `SAVE_NOT_ENABLED` · `SAVE_KEY_FIELD_REQUIRED` · `SAVE_BATCH_IF_MATCH` · `SAVE_ENDPOINT_METHOD`) 를 `operationNotice.ts` 안내로.
+- 켜기 · 끄기 · 고치기는 한 명령 (`catalogRuntime/collectionSaveCommand.ts`) — 설정 쓰기, 「규칙을 지우고 켜기」 의 규칙 지우기, 처음 켤 때 바인딩된 Table 마다 그 뒤 저장 막대 넣기와 Table 의 「Edit marks」 켜기. undo 하나로 돌아간다. 데이터 store 는 문서의 투영이라 `save` 를 싣고 되쓴다 (`DataTable.save` — DataChange op 은 두지 않았다).
+- Data 패널 표 설정에 「저장」 구획 (`CollectionSaveSection.tsx`): 스위치 · 보내는 모양 (행마다 · 한 요청) · 수정 · 추가 · 삭제 연결 · 본문 (바뀐 필드 · 행 전체) · 묶음의 원자성 · 압축 · 충돌 감지 (없음 · 버전 필드 · 저장 전 확인 조회) · 중복 방지 키 헤더 · 보장 문구 한 줄 (선언 수준임을 밝힌다). 처음 켤 때는 endpoint 의 method 로 행별 연결을 고른다.
+- Code 보기: `src/data/<collection>.ts` 의 `settings.save`, 규칙의 `list.saveChanges()` · `list.saveChanges({ scope })` · `list.discardChanges(keys)` · `list.discardChanges({ scope })` — 생성 · 역편집 왕복. 역편집이 `keyField` 를 떨어뜨리던 것도 같이 고쳤다 (코드에 없는 값은 그대로 둔다).
+- **설계와 달라진 것 1 — 행 단위 선택 (사용자 결정 4) 의 화면**: 실행 앱에 따로 띄우는 충돌 화면 없이, 충돌 행은 Table 의 표시 (「충돌」 + 서버 값 문구) 로 보이고 행을 골라 (선택이 없으면 충돌한 행 전부) 저장 막대의 「내 값으로 다시 저장」 · 「서버 값 받기」 를 누른다. 같은 길로 「이 행에 적용」 (연결 필요 행 하나 + 서버 행 하나). Do 둘에 `scope` (`conflicts` · `link`) 를 더한 것이 그 표면이다 — 새 opcode 없이.
+- **설계와 달라진 것 2 — 저장 막대 숨김**: 「미저장 0 이면 숨는다 (기존 `showWhen`)」 는 할 수 없었다 — `showWhen` 은 RAC 상태 key 만 읽는다. 막대는 늘 보이고 버튼이 값 조건으로 비활성 (`!var.changes:<id>.canSave` · `canDiscard` · `hasConflicts` · `hasUnlinked`). 글자는 `{{ changes.<id>.count }}`. 두 값은 세션의 `changes` 근 (`stateTemplate.ts` `CATALOG_CHANGES_ROOT`) 이고 Canvas 에서는 0 이다.
+
+### Phase 2 · 전송 (G2) — 2026-11-27 닫힘
+
+- 저장 전용 실행기 `collections/save/sendSave.ts` (status · 헤더 · 본문, 응답 없음 = `lost`, 템플릿이 풀리지 않으면 보내지 않음 = `notSent`). 요청 만들기 `planSave.ts` — 묶음 참조 모양 · 행별 (지우기 → 고침 → 넣기, 동시 4), 바뀐 필드만 (`outgoingRecord` 뒤 보낸 키만 남김), 버전 = 기준 행의 것, `If-Match` 는 따옴표, 중복 방지 키는 그 넣기에 고정. 세션 쪽 묶음은 `catalog/runtime/collectionSave.ts` (`CollectionSaver` — 세션이 host 를 넘긴다, 저장 모듈은 첫 저장 때 lazy).
+- ADR-325 저장소에 넓힌 것: `beginSend` 가 key 로 고르기 (`"all"` + key 집합), 확정 판정의 `extra` (서버가 준 새 버전 · 정규화 값 — 보낸 필드는 덮지 않음), `writeServerRow` (다시 읽은 서버 행).
+- 정적 게이트 `adr313Wiring` 에 진입 2 · 출구 3 등재.
+- G2 단위 (`adr324Save.test.ts`): 편집 중 쓰기 0 · 두 행 = PATCH 2 (key · 바뀐 필드만) · 두 번째 저장 0 · 묶음 1 요청 (id · version · set) · `row-1` 요청 0 + 「key 없음」 · `null` · `false` · `0` · `""` · `9007199254740993` (원문 literal) · `Y`/`N` · 압축 (세 칸 평문 · 1,000 행 gzip · 415 → 평문 한 번 → 그 뒤 압축 0).
+
+### Phase 3 · 결과 판정 (G3) — 2026-11-27 닫힘
+
+- `judgeSave.ts` — 2xx 의 뜻 · `errorsPath` 먼저 · 409 · 412 · 404 · 401 · 403 · 429 · 5xx · 묶음 (원자적 일부 반영 = 전부 확인 필요) · 넣은 행 key (본문 → `Location` → 없음) · 유실의 다시 읽기 표 (`judgeRecheck`).
+- 구현 중 찾아 고친 것 (단위 테스트가 먼저 잡음): (1) 목록 재조회로 다시 읽을 때 저장소가 변경 때문에 붙들고 있는 행을 「있음」 으로 읽었다 — 이번 응답의 키 목록에 있을 때만 「있음」. (2) key 값이 없는 넣기를 다시 읽어 「미반영」 으로 닫았다 — 넣은 행에 key 값이 있을 때만 다시 읽고, 아니면 「결과 확인 필요」.
+- live 가 찾은 것 (Chrome): keep-alive 연결이 끊긴 PATCH 를 브라우저가 스스로 한 번 더 보냈고 (서버 로그 `lost` → `412`), 버전 조건이 두 번째 반영을 막았는데 판정이 「충돌」 로 남았다. 409 · 412 뒤 다시 읽은 서버 행이 보낸 값이면 확정 (breakdown 「응답을 잃었을 때」 의 「내 값이면 완료」 를 409 · 412 에도). 단위 사례를 더했다.
+- 결과 확인 (`unknown` · 202) 은 다음 저장이 먼저 다시 읽는다 — 별도 버튼 없이 「저장」 이 「결과 확인」 이다. 202 행은 수정 전 값으로 읽혀도 「처리 중」 그대로. 「취소」 는 보내지 않은 변경만 버리므로 판정을 기다리는 행은 판정 뒤에 버릴 수 있다.
+- 실패 · 충돌 · 확인 필요 · 연결 필요 행은 ADR-317 「Edit marks」 의 상태를 넓혀 보인다 (`CatalogRowEditMark.status` 6 · `note` — 사유 · 필드 문구 · 충돌의 서버 값을 첫 칸 아래 한 줄로, 4 개 언어 상태 이름), 시각은 Table rule (D3 — 줄 색 · 거절 칸 바탕 · 문구 줄).
+- G3 단위: A 204 · B 422 → A 확정 · B 남음 / 빈 202 처리 중 (서버가 버려도 남음) / 200 + `errors` → 확정 안 됨 · 칸 문구 / `Location` 만 201 → `u4` 로 다음 PATCH / `draft-42` → `u4` (요청 `draft-42` 0) / key 없는 201 + 보낸 뒤 고침 → `unlinked` · 고르기 전 PATCH · DELETE 0 · 고른 뒤 `u4` 에만 1 / 고침 유실 → 다시 읽어 확정 · 서버 쓰기 1 / 지우기 유실 → 단건 404 확정 · 다른 페이지 목록 = 확인 필요 / 넣기 유실 → 키 없음 재전송 0 · 키 있음 같은 키로 한 번 더 · 서버 행 1.
+
+### Phase 4 · 충돌 (G4) — 2026-11-27 닫힘
+
+- 보내기 전 기준 버전 대조 (변경의 `baseRow` ↔ 저장소의 지금 행 — 다르면 요청 0 · 충돌), 저장 전 확인 조회 (바뀐 필드 · 지우기는 행 전체가 수정 전과 다르면 보내지 않음 · 404 = 지우기 완료 · 고침은 「지워짐」), 「행 전체」 의 본문 = 방금 읽은 행 위에 바뀐 필드. 「내 값으로 다시 저장」 = 다시 읽은 서버 행으로 `rebase` 뒤 보냄, 「서버 값 받기」 = 그 행의 변경 버림.
+- G4 단위: 412 → 충돌 · 서버 값 그대로 → 「내 값」 이 새 버전으로 / v1 지우기 · 주기 조회가 v2 → 요청 0 · 충돌 · 서버 v2 그대로 / 「서버 값 받기」 / 「행 전체」 — 버전: 거절 (서버 메모 B 남음) · 확인 조회: PUT 본문의 메모 B · 서버 B / 감지 없음: 바뀐 필드만 덮음 / 버전 조건 재전송 412 + 내 값 → 확정.
+
+### Phase 5 · 실제 경로 · 문서 (G5) — 2026-11-27 닫힘
+
+- live [`adr324-g5-live.mjs`](../../../apps/builder/scripts/adr324-g5-live.mjs) (대역 서버 HTTP — `save-endpoint-stub.mjs`): Chrome 13/13 · WebKit 13/13 — 패널 스위치 (설정 · 막대 6 · Edit marks) · 패널 충돌 감지 = 버전 필드 · 편집 쓰기 0 · 저장 PATCH 1 (`If-Match "v1"`) · 412 충돌 표시 (서버 값 문구) · 「내 값」 (`If-Match "v2"` → v3) · 응답 유실 (Chrome 은 브라우저 재전송 412 → 확정, WebKit 은 목록 재조회 → 확정, 서버 쓰기 1) · 취소 (요청 0) · Tab focus · `beforeunload` 경고 (머무름) · Enter 저장 · 변경 없으면 경고 없음 · page error 0.
+- 원복 RED 7/7 (trap 복원 · 바이트 비교): 목록 다시 읽기 근거 · 409·412 뒤 내 값 · 기준 버전 대조 · key 없음 건너뛰기 · 202 · 2xx 안 `errorsPath` · 즉시 저장 규칙 거절.
+- 회귀: shared 2,868 통과 (Code 보기 coverage 스냅샷 3 항목 갱신) · builder `catalogRuntime` · `panels/interactions` · `panels/datatable` · `preview` 6,065 통과 (실행 어휘 목록 기대값에 두 opcode 를 더함). 즉시 저장 (`Cells change`) 회귀는 `adr317-p4-edit-marks-live.mjs` Chrome · WebKit.
+- 번들 (plain `vite build`, HEAD worktree 와 대조): Builder 첫 화면 JS gz 1,638,964 → 1,643,090 (+4,126 — 문서 검증 · 실행 어휘 · dispatcher, 상한 1,650,000 안), Preview 첫 화면 JS 172,282 → 172,276 (−6 — 변화 없음) · CSS +95 B (Table 저장 상태 표시 규칙). 세션 · 저장 모듈은 첫 화면 밖 (`documentHead` · `planSave` chunk). HC6 의 「증가 0」 은 JS 기준으로 지켰고 CSS 는 D3 표시 규칙만큼 늘었다.

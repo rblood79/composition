@@ -75,6 +75,7 @@ export function toCollectionEntry(table: DataTable): CollectionEntry {
     ...(table.executionPolicy
       ? { executionPolicy: table.executionPolicy }
       : {}),
+    ...(table.save ? { save: table.save } : {}),
   });
 }
 

@@ -126,6 +126,23 @@ export interface ReloadAction {
   collectionId: string;
 }
 
+/** ADR-324 — a 「모아서 저장」 collection's unsaved changes sent as its `save` declares. */
+export interface SaveChangesAction {
+  kind: "saveChanges";
+  collectionId: string;
+  /** The rows' choice on the selected rows (`conflicts` · `link`); absent = a save. */
+  scope?: "conflicts" | "link";
+}
+
+/** ADR-324 — a collection's unsaved changes dropped (`keys` absent = every one not being sent). */
+export interface DiscardChangesAction {
+  kind: "discardChanges";
+  collectionId: string;
+  keys?: unknown;
+  /** `conflicts` — the conflicted rows take the server's values. */
+  scope?: "conflicts";
+}
+
 /**
  * `useListData.insert(index, …)` · `insertBefore(key, …)` · `insertAfter(key, …)` · `prepend(…)` —
  * `value` resolves to a record (`"!event.formData"`), `index` · `key` to a scalar.
@@ -203,6 +220,8 @@ export type InteractionAction =
   | UpdateAction
   | RemoveAction
   | ReloadAction
+  | SaveChangesAction
+  | DiscardChangesAction
   | LoadMoreAction
   | SetFilterTextAction
   | InsertAction

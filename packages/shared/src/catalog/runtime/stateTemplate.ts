@@ -46,7 +46,46 @@ export interface CatalogStateSource {
     ownerId: string,
     instancePath: readonly string[],
   ): string | undefined;
+  /**
+   * ADR-324 Decision 7 — a 「모아서 저장」 collection's save state by its raw id (`{{ changes.<id>
+   * .count }}` · `!var.changes:<id>.canSave`). Absent (the Canvas) = nothing unsaved.
+   */
+  changes?(collectionId: string): CatalogChangesState | undefined;
 }
+
+/** ADR-324 — a collection's unsaved changes as a value the save bar reads. */
+export interface CatalogChangesState {
+  /** Rows holding an unsaved change (`unlinked` too). */
+  count: number;
+  /** A save of it is on its way. */
+  saving: boolean;
+  /** Rows waiting for 「결과 확인」 (unknown · 202 처리 중). */
+  pending: number;
+  conflicts: number;
+  /** Rows a save refused (field errors · 4xx) not changed since. */
+  failed: number;
+  /** A save would send something now (changes outside the pending rows, no save on its way). */
+  canSave: boolean;
+  /** Something can be dropped (a change not being sent). */
+  canDiscard: boolean;
+  /** Rows whose create the server keyed without telling — waiting for their row to be chosen. */
+  unlinked: number;
+  /** A rows' choice has rows to act on (the save bar's conflict · link buttons). */
+  hasConflicts: boolean;
+  hasUnlinked: boolean;
+}
+export const CATALOG_NO_CHANGES: CatalogChangesState = Object.freeze({
+  count: 0,
+  saving: false,
+  pending: 0,
+  conflicts: 0,
+  failed: 0,
+  canSave: false,
+  canDiscard: false,
+  unlinked: 0,
+  hasConflicts: false,
+  hasUnlinked: false,
+});
 
 /** One variable a record sees, with the scope its value lives in. */
 export interface CatalogVisibleState {
@@ -207,6 +246,26 @@ export function catalogRecordVariables(
 
 /** The template root of the shown path's route params (`{{ params.id }}`). */
 export const CATALOG_PARAMS_ROOT = "params";
+/**
+ * ADR-324 — the template root of the collections' save states (`{{ changes.<id>.count }}`) and the
+ * variable id prefix a value condition reads them by (`!var.changes:<id>.canSave`).
+ */
+export const CATALOG_CHANGES_ROOT = "changes";
+const CHANGES_ID = `${CATALOG_CHANGES_ROOT}:`;
+/** `{{ changes.<id>.… }}` — every collection's state (none = nothing unsaved). */
+function changesRoot(
+  changes: CatalogStateSource["changes"] | undefined,
+): Readonly<Record<string, CatalogChangesState>> {
+  return new Proxy(
+    {},
+    {
+      get: (_target, key) =>
+        typeof key === "string"
+          ? (changes?.(key) ?? CATALOG_NO_CHANGES)
+          : undefined,
+    },
+  );
+}
 
 /** A `{{ }}` environment that also reads a variable by id (a value condition's `!var.<id>`). */
 export interface CatalogStateEnv extends StateTemplateEnv {
@@ -221,6 +280,8 @@ export function catalogStateEnv(
   params?: CatalogStateSource["params"],
   /** ADR-294 — the input variable values (a record's — `resolveInputVariableAt`). */
   derive?: (entry: CatalogVisibleState) => { value: unknown } | undefined,
+  /** ADR-324 — the collections' save states (`changes`). */
+  changes?: CatalogStateSource["changes"],
 ): CatalogStateEnv {
   const valueOf = (entry: CatalogVisibleState) => {
     const derived = entry.derived?.() ?? derive?.(entry);
@@ -239,13 +300,24 @@ export function catalogStateEnv(
   return {
     byId(id) {
       const entry = byId.get(id);
-      if (!entry) return undefined;
+      if (!entry)
+        return id.startsWith(CHANGES_ID)
+          ? {
+              value:
+                changes?.(id.slice(CHANGES_ID.length)) ?? CATALOG_NO_CHANGES,
+            }
+          : undefined;
       return { value: valueOf(entry), type: entry.type };
     },
     get(name) {
       const entry = byName.get(name);
-      // (A variable named `params` wins — the route params are the root no variable took.)
-      if (!entry) return name === CATALOG_PARAMS_ROOT ? params?.() : undefined;
+      // (A variable named `params` · `changes` wins — the roots are the names no variable took.)
+      if (!entry)
+        return name === CATALOG_PARAMS_ROOT
+          ? params?.()
+          : name === CATALOG_CHANGES_ROOT
+            ? changesRoot(changes)
+            : undefined;
       return valueOf(entry);
     },
   };

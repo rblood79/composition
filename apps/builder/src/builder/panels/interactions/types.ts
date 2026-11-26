@@ -26,6 +26,9 @@ export type ActionChoice =
   | "remove"
   // `useAsyncList.reload` · `loadMore` · `setFilterText`.
   | "reload"
+  // ADR-324 — a 「모아서 저장」 collection's save · discard.
+  | "saveChanges"
+  | "discardChanges"
   | "loadMore"
   | "setFilterText"
   // `useListData`'s positions.

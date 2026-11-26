@@ -114,7 +114,17 @@ export interface SendTicket {
 
 export type SendOutcome =
   /** `serverKey: null` — the server made the row but its key is not known. */
-  | { key: RowKey; result: "confirmed"; row?: Row; serverKey?: RowKey | null }
+  | {
+      key: RowKey;
+      result: "confirmed";
+      row?: Row;
+      serverKey?: RowKey | null;
+      /**
+       * ADR-324 — values the server answered beyond the sent fields (an update's new version,
+       * a value it normalized): written into the row, never over a sent field.
+       */
+      extra?: Row;
+    }
   | { key: RowKey; result: "rejected" }
   | { key: RowKey; result: "unknown" };
 
@@ -459,13 +469,20 @@ export class CollectionStore {
    * A send: the changes the given edits wrote, as they are now (`SendTicket`). Edits go on after
    * it; its answer (`settle`) is judged against what was sent. Undefined = nothing to send.
    */
-  beginSend(seqs: ReadonlySet<number>): string | undefined {
+  beginSend(
+    seqs: ReadonlySet<number> | "all",
+    /** ADR-324 — only these rows' changes (a save of a collection's changes · some rows of it). */
+    keys?: ReadonlySet<RowKey>,
+  ): string | undefined {
     const entries: SentEntry[] = [];
+    const wanted =
+      seqs === "all" ? { has: (_seq: number) => true } : seqs;
     for (const [key, change] of this.changes) {
+      if (keys && !keys.has(key)) continue;
       if (change.kind === "update") {
         const fields: Record<string, { value: unknown; seq: number }> = {};
         for (const [field, held] of Object.entries(change.fields))
-          if (seqs.has(held.seq))
+          if (wanted.has(held.seq))
             fields[field] = { value: held.value, seq: held.seq };
         if (Object.keys(fields).length)
           entries.push({
@@ -475,7 +492,7 @@ export class CollectionStore {
             fields,
           });
       } else if (change.kind === "insert") {
-        if (seqs.has(change.seq) || seqs.has(change.last))
+        if (wanted.has(change.seq) || wanted.has(change.last))
           entries.push({
             key,
             kind: "insert",
@@ -483,7 +500,7 @@ export class CollectionStore {
             seq: change.last,
           });
       } else if (change.kind === "remove" && change.baseRow) {
-        if (seqs.has(change.seq))
+        if (wanted.has(change.seq))
           entries.push({
             key,
             kind: "remove",
@@ -541,8 +558,14 @@ export class CollectionStore {
         written[field] =
           outcome.row && field in outcome.row ? outcome.row[field] : sent.value;
       }
-      const wrote = Object.keys(written).length > 0;
-      const row = wrote ? { ...server, ...written } : server;
+      // (ADR-324 — the server's other values for the row: its new version, a normalized value.)
+      const extra: Record<string, unknown> = {};
+      for (const [field, value] of Object.entries(outcome.extra ?? {}))
+        if (!(field in entry.fields) && !sameValue(value, server[field]))
+          extra[field] = value;
+      const wrote =
+        Object.keys(written).length > 0 || Object.keys(extra).length > 0;
+      const row = wrote ? { ...server, ...extra, ...written } : server;
       if (wrote || stored) {
         if (wrote) STORE_KEYS.set(row, entry.key);
         // (A row no result holds — a tree's nested row: the overlay writes its value under its parent.)
@@ -730,6 +753,26 @@ export class CollectionStore {
     if (Object.keys(fields).length)
       this.changes.set(key, { kind: "update", baseRow: row, fields });
     else this.changes.delete(key);
+    this.touched();
+  }
+
+  /**
+   * ADR-324 Decision 4 · 6 — a row read again for a save's judgment (a conflict, a lost answer):
+   * the server's value now. An update's fields note it (`server`) — or go, when it is the value the
+   * user wrote; the lists showing it read it again.
+   */
+  writeServerRow(key: RowKey, row: Row, at: number): void {
+    const stored = this.rows.get(key);
+    const before = stored?.row ?? undefined;
+    STORE_KEYS.set(row, key);
+    this.rows.set(key, {
+      row,
+      at,
+      ...(stored?.confirmed ? { confirmed: stored.confirmed } : {}),
+    });
+    this.diverged = true;
+    if (before) this.rowChanged(key, before, row, "");
+    this.bumpResults(key);
     this.touched();
   }
 

@@ -3480,6 +3480,8 @@ export class CatalogCompositionRoot {
                 this.stateSource,
               )
             : undefined,
+        // ADR-324 — the collections' save states (`{{ changes.<id> }}`).
+        this.stateSource?.changes?.bind(this.stateSource),
       ),
     );
     // ADR-299 — range-formatted text: consumers read the plain text in `props.children` (every

@@ -65,6 +65,7 @@ export function fromCollectionEntry(
     ...(entry.executionPolicy
       ? { executionPolicy: { ...entry.executionPolicy } }
       : {}),
+    ...(entry.save ? { save: entry.save } : {}),
   };
   tableCache.set(entry, { projectId, runtime, table });
   return table;

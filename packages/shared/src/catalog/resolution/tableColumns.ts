@@ -41,6 +41,8 @@ import {
   CATALOG_CELL_EDITED_PROP,
   CATALOG_CELL_ROW_EDIT_PROP,
   CATALOG_ROW_EDIT_PROP,
+  CATALOG_ROW_EDIT_NOTE_PROP,
+  CATALOG_CELL_ROW_EDIT_NOTE_PROP,
   CATALOG_ROW_EDITED_FIELDS_PROP,
 } from "../runtime/tableCellMerge";
 import {
@@ -666,6 +668,7 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
     // (ADR-317 Phase 4 — a row with an edit not saved: its changed Cells by Column key, its
     //  first data Cell says the status.)
     const status = props[CATALOG_ROW_EDIT_PROP];
+    const note = props[CATALOG_ROW_EDIT_NOTE_PROP];
     const edited = keyList(props[CATALOG_ROW_EDITED_FIELDS_PROP]);
     // (ADR-317 Phase 5 — a striped row's Cells in a merged run whose stripe is not its own: the
     //  run's (the row's opposite) — one cell to the eye.)
@@ -690,6 +693,9 @@ export function catalogProjectTableColumns<T extends ColumnsNode<T>>(
               ? { [CATALOG_CELL_EDITED_PROP]: true }
               : {}),
             ...(says ? { [CATALOG_CELL_ROW_EDIT_PROP]: status } : {}),
+            ...(says && typeof note === "string"
+              ? { [CATALOG_CELL_ROW_EDIT_NOTE_PROP]: note }
+              : {}),
             ...(key !== undefined && runs.has(key)
               ? { [CATALOG_CELL_STRIPE_PROP]: runStripe }
               : {}),

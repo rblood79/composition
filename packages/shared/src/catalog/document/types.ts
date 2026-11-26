@@ -199,9 +199,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 79 — ADR-318 Phase 1 · 3: the Resizable split view (`ResizablePanelGroup` · `ResizablePanel` ·
  *      `ResizableHandle`), its origin and the Panel's collapse Do (`collapse` concept). 옛 78 문서는
  *      열리지 않는다 (변환 없음).
+ * 80 — ADR-324 Phase 1: a collection's 「모아서 저장」 (`CollectionEntry.save`) and the two Dos
+ *      `saveChanges` · `discardChanges` (the rule vocabulary `library.execution.actionOpCodes`). 옛 79
+ *      문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 79 as const;
+export const LIBRARY_CONTRACT_VERSION = 80 as const;
 
 export type EntryKind =
   | "project"
@@ -1603,6 +1606,31 @@ export type InteractionAction =
       collectionId: DataCollectionId;
     }
   | {
+      /**
+       * ADR-324 — send a 「모아서 저장」 collection's unsaved changes as its `save` declares (a
+       * collection without `save` is refused by validation).
+       */
+      opcode: "saveChanges";
+      collectionId: DataCollectionId;
+      /**
+       * ADR-324 사용자 결정 4 · Decision 5 — the rows' choice, on the rows selected in the
+       * components showing the collection (none selected = every such row): `conflicts` 「내 값으로
+       * 다시 저장」 (a conflicted row takes the server's row as its base, my values go again),
+       * `link` 「이 행에 적용」 (one unlinked row and one server row selected — the edits after its
+       * create go to that row). Absent = a save of the changes.
+       */
+      scope?: "conflicts" | "link";
+    }
+  | {
+      /** ADR-324 · ADR-325 `discardChanges` — drop the unsaved changes not being sent. */
+      opcode: "discardChanges";
+      collectionId: DataCollectionId;
+      /** The rows' keys (`"!event.keys"` · a literal); absent = every change. */
+      keys?: Scalar;
+      /** `conflicts` — 「서버 값 받기」: the conflicted rows (selected, else all) drop their change. */
+      scope?: "conflicts";
+    }
+  | {
       /** `useAsyncList.loadMore()` — the next page (the cursor the last load gave). */
       opcode: "loadMore";
       collectionId: DataCollectionId;
@@ -1715,7 +1743,47 @@ export interface CollectionEntry {
     mode: "auto" | "manual" | "interval";
     intervalSec?: number;
   };
+  /**
+   * ADR-324 — 「모아서 저장」: the viewer's edits stay unsaved (ADR-325's change layer) until a
+   * `saveChanges` Do sends them as this connection declares. Absent = a rule sends each edit (the
+   * behavior before).
+   */
+  save?: CollectionSaveSettings;
 }
+/**
+ * ADR-324 Decision 3 · 4 — what a collection's write connection can do: the request shape, the
+ * conflict detection, the create's idempotency key. Composition sends and judges by it; the server's
+ * real guarantees are its own (the panel says the level is the declared one).
+ */
+export interface CollectionSaveSettings {
+  send: CollectionSaveSend;
+  /** Absent = no conflict detection: the changed fields overwrite. */
+  conflict?: CollectionSaveConflict;
+  /** A create's idempotency key — only then is a create whose answer was lost sent again. */
+  idempotency?: { in: "header" | "body"; name: string };
+}
+export type CollectionSaveSend =
+  | {
+      /** One request with every change (the reference batch shape). */
+      shape: "batch";
+      endpointId: DataEndpointId;
+      /** The server applies all or none. */
+      atomic: boolean;
+      /** The server takes a gzip request body — sent so only past the threshold and when smaller. */
+      gzip?: boolean;
+    }
+  | {
+      /** One request per change to the REST endpoints (a missing kind's changes stay, counted). */
+      shape: "rows";
+      update?: { endpointId: DataEndpointId; body: "changed" | "full" };
+      create?: { endpointId: DataEndpointId };
+      remove?: { endpointId: DataEndpointId };
+    };
+export type CollectionSaveConflict =
+  /** A version field (its id): a batch sends it in each item, a row request in the body or `If-Match`. */
+  | { by: "version"; fieldId: string; send: "body" | "ifMatch" }
+  /** Read the row by key right before sending (the endpoint reads one row — `{{ key }}`). */
+  | { by: "recheck"; endpointId: DataEndpointId };
 /** ADR-286 사용자 결정 1 — a collection holds at most this many authored rows. */
 export const CATALOG_COLLECTION_ROW_LIMIT = 1000;
 /**

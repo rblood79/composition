@@ -30,6 +30,12 @@ const REASON_KEY: Record<string, string> = {
   VARIABLE_NAME_SHADOWS: "operation.variableNameShadows",
   // ADR-310 Phase 1: an item's key (`id` · a group Radio's `value`) is one per collection.
   ITEM_KEY_TAKEN: "operation.itemKeyTaken",
+  // ADR-324: 「모아서 저장」 and the rules · connections it cannot have.
+  IMMEDIATE_SAVE_RULE: "operation.immediateSaveRule",
+  SAVE_NOT_ENABLED: "operation.saveNotEnabled",
+  SAVE_KEY_FIELD_REQUIRED: "operation.saveKeyFieldRequired",
+  SAVE_BATCH_IF_MATCH: "operation.saveBatchIfMatch",
+  SAVE_ENDPOINT_METHOD: "operation.saveEndpointMethod",
 };
 
 /**

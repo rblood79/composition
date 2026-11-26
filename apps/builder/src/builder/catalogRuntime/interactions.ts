@@ -752,6 +752,8 @@ export function catalogDefaultAction(
     choice === "update" ||
     choice === "remove" ||
     choice === "reload" ||
+    choice === "saveChanges" ||
+    choice === "discardChanges" ||
     choice === "loadMore" ||
     choice === "setFilterText" ||
     choice === "insert" ||

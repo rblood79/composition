@@ -198,6 +198,25 @@ export interface DispatchDeps {
    * send stay unsaved) or not (rejected: the changes stay). Undefined = nothing waits.
    */
   beginSave?: (seqs: readonly number[]) => ((ok: boolean) => void) | undefined;
+  /**
+   * ADR-324 — send a 「모아서 저장」 collection's unsaved changes. `settled` resolves when every
+   * request of it is judged (a failure = some row not saved: the rest of the Do list stops).
+   */
+  saveChanges?: (
+    collectionId: string,
+    /** A rows' choice (`scope`) on these rows (the selection — none = every such row). */
+    choice?: { scope: "conflicts" | "link"; keys?: readonly string[] },
+  ) => {
+    ok: boolean;
+    reason?: string;
+    settled?: Promise<{ ok: boolean; reason?: string }>;
+  };
+  /** ADR-324 — drop a collection's unsaved changes (the given rows', or every one). */
+  discardChanges?: (
+    collectionId: string,
+    keys?: readonly string[],
+    scope?: "conflicts",
+  ) => { ok: boolean; reason?: string };
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (
     collectionId: string,
@@ -524,6 +543,8 @@ export type DispatchOutcome =
         | "update"
         | "remove"
         | "reload"
+        | "saveChanges"
+        | "discardChanges"
         | "loadMore"
         | "setFilterText"
         | "insert"
@@ -771,6 +792,76 @@ function executeInteractionAction(
     action.kind === "remove"
   )
     return dispatchListData(action, deps, context);
+
+  if (action.kind === "saveChanges") {
+    if (!deps.saveChanges)
+      return {
+        ok: false,
+        reason: "saveChanges 실행 경로 없음 (saveChanges 미주입)",
+      };
+    // (A rows' choice reads the rows selected in the components showing the collection.)
+    const selection = action.scope
+      ? deps.selectedKeysOf?.(action.collectionId)
+      : undefined;
+    const result = deps.saveChanges(
+      action.collectionId,
+      action.scope
+        ? {
+            scope: action.scope,
+            ...(Array.isArray(selection) && selection.length
+              ? { keys: selection }
+              : {}),
+          }
+        : undefined,
+    );
+    if (!result.ok)
+      return { ok: false, reason: result.reason ?? "saveChanges 실패" };
+    return {
+      ok: true,
+      kind: "saveChanges",
+      ...(result.settled
+        ? {
+            settled: result.settled.then(
+              (settled): DispatchOutcome =>
+                settled.ok
+                  ? { ok: true, kind: "saveChanges" }
+                  : { ok: false, reason: settled.reason ?? "saveChanges 실패" },
+            ),
+          }
+        : {}),
+    };
+  }
+
+  if (action.kind === "discardChanges") {
+    if (!deps.discardChanges)
+      return {
+        ok: false,
+        reason: "discardChanges 실행 경로 없음 (discardChanges 미주입)",
+      };
+    let keys: readonly string[] | undefined;
+    if (action.keys !== undefined) {
+      const resolved = resolveEventValue(action.keys, context, deps);
+      if (!resolved.ok) return resolved;
+      const value = resolved.value;
+      // (`"all"` · nothing = every change; a set · a list · one key = those rows.)
+      if (value !== "all" && value !== undefined && value !== null)
+        keys = (
+          value instanceof Set
+            ? [...value]
+            : Array.isArray(value)
+              ? value
+              : [value]
+        ).map(String);
+    }
+    if (action.scope && !keys) {
+      const selection = deps.selectedKeysOf?.(action.collectionId);
+      if (Array.isArray(selection) && selection.length) keys = selection;
+    }
+    const result = deps.discardChanges(action.collectionId, keys, action.scope);
+    return result.ok
+      ? { ok: true, kind: "discardChanges" }
+      : { ok: false, reason: result.reason ?? "discardChanges 실패" };
+  }
 
   if (action.kind === "reload") {
     if (!deps.reload)

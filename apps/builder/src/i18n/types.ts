@@ -256,6 +256,11 @@ export interface TranslationKeys {
     ungroupInstance: string;
     variableNameConflict: string;
     variableNameShadows: string;
+    immediateSaveRule: string;
+    saveNotEnabled: string;
+    saveKeyFieldRequired: string;
+    saveBatchIfMatch: string;
+    saveEndpointMethod: string;
     itemKeyTaken: string;
   };
   history: {
@@ -635,12 +640,15 @@ export interface TranslationKeys {
     actionUpdate: string;
     actionRemove: string;
     actionReload: string;
+    actionSaveChanges: string;
+    actionDiscardChanges: string;
     actionLoadMore: string;
     actionSetFilterText: string;
     filterText: string;
     listIndex: string;
     targetKey: string;
     movedKeys: string;
+    discardKeys: string;
     dropPosition: string;
     updateField: string;
     updateWholeItem: string;

@@ -20,7 +20,7 @@ Implemented — 2026-11-27 (G5 — Builder → Publish live Chrome 9/9 · WebKit
 >
 > 권장 방안대로 수정반영하고 adr분리도 승인
 
-사용자가 승인한 것은 [ADR-324](../324-collection-manual-batch-save.md) 에서 **실행 중 저장소의 모양**을 떼어 먼저 정하는 분리다. 이 ADR 이 바탕이고 324 는 그 위의 응용 (저장 시점 · 전송 계약) 이다.
+사용자가 승인한 것은 [ADR-324](324-collection-manual-batch-save.md) 에서 **실행 중 저장소의 모양**을 떼어 먼저 정하는 분리다. 이 ADR 이 바탕이고 324 는 그 위의 응용 (저장 시점 · 전송 계약) 이다.
 
 **분리 확인 4 항목** (사용자 confirm 2026-11-26 — 위 인용)
 

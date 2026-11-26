@@ -166,11 +166,16 @@ export function planCodeViewCollection(input: {
     schema,
     mockData: rows as CollectionEntry["mockData"],
     useMockData: settings.useMockData !== false,
+    // (Not in the code — ADR-313's item key field stays as the collection had it.)
+    ...(before?.keyField !== undefined ? { keyField: before.keyField } : {}),
     ...(object(settings.executionPolicy)
       ? {
           executionPolicy:
             settings.executionPolicy as CollectionEntry["executionPolicy"],
         }
+      : {}),
+    ...(object(settings.save)
+      ? { save: settings.save as unknown as CollectionEntry["save"] }
       : {}),
   };
   if (before && JSON.stringify(before) === JSON.stringify(entry)) return [];

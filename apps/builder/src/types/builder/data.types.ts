@@ -7,6 +7,7 @@ import type {
 } from "@composition/shared";
 import type { EndpointQuerySerialization } from "../../../../../packages/shared/src/collections/view/serialize";
 import type { FieldEncoding } from "../../../../../packages/shared/src/collections/intake/encoding";
+import type { CollectionSaveSettings } from "../../../../../packages/shared/src/catalog/document/types";
 
 export type { ExecutionPolicy } from "@composition/shared";
 
@@ -110,6 +111,12 @@ export interface DataTable {
 
   /** ADR-218 — 실행 정책. 미설정 = manual (BC read 호환). */
   executionPolicy?: ExecutionPolicy;
+
+  /**
+   * ADR-324 — 「모아서 저장」 (the document's `CollectionEntry.save`, written by the
+   * `setCollectionSave` command — no DataChange op). Kept so a data edit writes it back.
+   */
+  save?: CollectionSaveSettings;
 
   created_at?: string;
   updated_at?: string;

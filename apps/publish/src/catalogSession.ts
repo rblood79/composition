@@ -48,5 +48,12 @@ export function createPublishedSession(
     extras.currentPageId &&
     session.graph?.getEntry(extras.currentPageId as never);
   if (page && page.kind === "page") session.navigate(page.id);
+  // ADR-324 Decision 8 (사용자 결정 2) — a tab closed · reloaded with a 「모아서 저장」 change not
+  // saved asks first; the changes are not kept in the browser. The Builder's Preview never asks.
+  window.addEventListener("beforeunload", (event) => {
+    if (!session.hasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
   return session;
 }

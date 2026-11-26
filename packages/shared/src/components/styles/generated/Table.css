@@ -176,6 +176,36 @@
   background: color-mix(in srgb, var(--notice-visual) 14%, transparent);
 }
 
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="conflict"] {
+  box-shadow: inset 3px 0 var(--negative-visual);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="failed"] {
+  box-shadow: inset 3px 0 var(--negative-visual);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="pending"] {
+  box-shadow: inset 3px 0 var(--informative-visual);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Cell[data-row-edit="unlinked"] {
+  box-shadow: inset 3px 0 var(--positive-visual);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Row[data-edit-status="conflict"] .react-aria-Cell[data-edited] {
+  background: color-mix(in srgb, var(--negative-visual) 14%, transparent);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Row[data-edit-status="failed"] .react-aria-Cell[data-edited] {
+  background: color-mix(in srgb, var(--negative-visual) 14%, transparent);
+}
+
+.react-aria-Table.react-aria-Table .react-aria-Cell [data-edit-note] {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--negative);
+}
+
 .react-aria-Table.react-aria-Table[data-cell-selection] {
   user-select: none;
 }

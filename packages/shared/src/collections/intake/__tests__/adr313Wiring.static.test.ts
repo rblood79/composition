@@ -55,6 +55,15 @@ const ENTRIES: Array<{ path: string; calls: string[]; allowParse?: RegExp[] }> =
       path: "apps/builder/src/builder/panels/datatable/grid/cellValue.ts",
       calls: ["readTextCell(", "readEncodedText("],
     },
+    // ADR-324 — a save's answers (a row's server values · a row read again) in stored values.
+    {
+      path: "packages/shared/src/collections/save/sendSave.ts",
+      calls: ["body = parse(text)"],
+    },
+    {
+      path: "packages/shared/src/catalog/runtime/collectionSave.ts",
+      calls: ["this.host.intake(", "parseJsonLossless"],
+    },
   ];
 
 /** 출구 — 저장 값 → 서버. 각 파일이 부르는 되돌리기. */
@@ -70,6 +79,22 @@ const EXITS: Array<{ path: string; calls: string[]; forbid: RegExp[] }> = [
     calls: ["stringifyJsonLossless(", "outgoingRecord("],
     // (body 를 큰 정수 보존 없이 쓰는 옛 모양.)
     forbid: [/JSON\.stringify\(body\)/, /JSON\.stringify\(base/],
+  },
+  // ADR-324 — a save's changed fields back to their notation, big integers as literals.
+  {
+    path: "packages/shared/src/collections/save/planSave.ts",
+    calls: ["input.outgoing("],
+    forbid: [/JSON\.stringify\(/],
+  },
+  {
+    path: "packages/shared/src/collections/save/sendSave.ts",
+    calls: ["options.stringify("],
+    forbid: [/JSON\.stringify\(/],
+  },
+  {
+    path: "packages/shared/src/catalog/runtime/collectionSave.ts",
+    calls: ["outgoingRecord(", "stringifyJsonLossless"],
+    forbid: [/JSON\.stringify\(/],
   },
 ];
 

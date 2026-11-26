@@ -1,6 +1,6 @@
 # ADR-325 상세 설계 · Collection 실행 저장소 — 행 · 조회 결과 · 미저장 변경
 
-[ADR 본문](../completed/325-collection-runtime-store-three-layers.md) · 응용: [ADR-324](../324-collection-manual-batch-save.md)
+[ADR 본문](../completed/325-collection-runtime-store-three-layers.md) · 응용: [ADR-324](../completed/324-collection-manual-batch-save.md)
 
 작성 기준은 2026-11-26, HEAD `62ae56e6c` 위의 작업 트리다 (Publish 조회 수정 포함 — 줄 번호는 그 상태). 아래 형 · 규칙 · Phase 는 구현할 계약이고, 측정값은 G0 에서 잰다. 2026-11-27 에 리뷰 round 1 (HIGH 6 — [기록](../reviews/325.md)) 을 반영했다: 보낸 변경의 스냅샷과 행 단위 판정, 행 값의 순번, 키 없는 원격 행의 격리, 요청 키 · 목록 · 완전성.
 

@@ -41,6 +41,26 @@ export const CATALOG_ROW_EDIT_PROP = "_editStatus";
 export const CATALOG_ROW_EDITED_FIELDS_PROP = "_editedFields";
 export const CATALOG_CELL_EDITED_PROP = "_edited";
 export const CATALOG_CELL_ROW_EDIT_PROP = "_rowEdit";
+/**
+ * ADR-324 — a 「모아서 저장」 row's save status words (the server's values · the fields' messages):
+ * on the Row record and its first data Cell (said with the status).
+ */
+export const CATALOG_ROW_EDIT_NOTE_PROP = "_editNote";
+export const CATALOG_CELL_ROW_EDIT_NOTE_PROP = "_rowEditNote";
+/** ADR-324 — the statuses a row's edit mark says (`CatalogRowEditMark`). */
+export const CATALOG_ROW_EDIT_STATUSES = [
+  "new",
+  "dirty",
+  "conflict",
+  "failed",
+  "pending",
+  "unlinked",
+] as const;
+export type CatalogRowEditStatusValue = (typeof CATALOG_ROW_EDIT_STATUSES)[number];
+export const isCatalogRowEditStatus = (
+  value: unknown,
+): value is CatalogRowEditStatusValue =>
+  (CATALOG_ROW_EDIT_STATUSES as readonly unknown[]).includes(value);
 
 /** A cell value as merging compares it: exact (a grouping's equality), none for an empty one. */
 const mergeValue = (value: unknown): string | undefined =>
