@@ -18,6 +18,7 @@
 #   4. registration     builder·shared catalog/component 변경 시 등록 contract
 #   5. cargo test       packages/engine/src 변경 시
 #   5b. parity          packages/engine/src 변경 시 — wasm 이 낡았으면 다시 빌드 + engine leg parity (Chrome oracle)
+#   5c. g3-ratchet      render 경로 변경 시 — G3 하니스 실행 + 실패 기준선 대조 (새 실패만 fail, apps/builder/scripts/g3-failure-ratchet.mjs)
 #   6. preflight        --full 일 때만 (root type-check 를 한 번 더 도는 비용)
 #   7. cross-check      render 경로 변경 → ledger 에 `cross-check pass` 없으면 block (skill 은 CLI 로 못 돌린다)
 #   8. live-exercise    사용자-가시 / wiring / schema 경로 변경 → `live-exercise pass` 없으면 block
@@ -258,9 +259,10 @@ do_verify() {
   #     leg 하니스 (`tests/parity/harness.ts` · `treeOracle.ts`) 를 쓰는 파일만 — 2026-11-27 실측
   #     45 파일 · 859 건 · 19 초. 나머지 parity (클릭 · 스크린샷) 는 엔진과 무관하고 부하에 따라
   #     시간 초과가 난다 (같은 날 전체 89 파일 52 초 중 6 건이 시간 초과).
+  local wasm_ok=1
   if [ -n "$ENGINE_HIT" ]; then
     local wasm="apps/builder/src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.wasm"
-    local wasm_ok=1 before_fail
+    local before_fail
     if [ ! -f "$wasm" ] || [ -n "$(find packages/engine/src packages/engine/Cargo.toml -newer "$wasm" -print -quit 2>/dev/null)" ]; then
       if command -v wasm-pack >/dev/null 2>&1; then
         before_fail=$FAIL_N
@@ -284,6 +286,19 @@ do_verify() {
     fi
   else
     skip_step parity "engine 변경 없음"
+  fi
+
+  # 5c. G3 실패 ratchet — render 경로 변경 시. G3 는 실패가 남은 채로 돌아 (2026-11-27 105 건) 실행마다
+  #     전체를 다시 보면 새 회귀가 묻힌다. 기준선에 없는 실패만 fail 로 본다 (새 실패가 난 파일은 한 번
+  #     더 돌려 두 번 다 실패한 것만). 2026-11-27 실측 5 파일 · 35 초.
+  if [ -z "$RENDER_HIT" ]; then
+    skip_step g3-ratchet "render 경로 변경 없음"
+  elif [ ! -f apps/builder/tests/adr248-g3/failures.baseline.json ]; then
+    skip_step g3-ratchet "기준선 없음 (apps/builder/tests/adr248-g3/failures.baseline.json)"
+  elif [ "$wasm_ok" = 0 ]; then
+    skip_step g3-ratchet "wasm 을 새로 빌드하지 못함 — 낡은 엔진을 잰다"
+  else
+    run_step g3-ratchet "" node apps/builder/scripts/g3-failure-ratchet.mjs --run
   fi
 
   # 6. preflight — --full

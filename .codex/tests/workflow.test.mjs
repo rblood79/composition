@@ -98,6 +98,16 @@ test("엔진 소스 변경은 wasm 빌드와 engine leg parity 를 선택한다"
     /parity\s+skip\s+engine 변경 없음/,
   );
 });
+test("render 경로 변경만 G3 실패 ratchet 을 고른다", (t) => {
+  assert.match(
+    plan(t, "packages/shared/src/catalog/runtime/compositionRoot.ts"),
+    /g3-ratchet\s+skip\s+기준선 없음/,
+  );
+  assert.match(
+    plan(t, "docs/adr/README.md"),
+    /g3-ratchet\s+skip\s+render 경로 변경 없음/,
+  );
+});
 test("스킬과 tooling 변경에만 스킬 검증·회귀를 선택한다", (t) => {
   assert.match(
     plan(t, ".claude/skills/evaluate/SKILL.md"),

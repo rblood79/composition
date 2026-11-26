@@ -1,0 +1,425 @@
+{
+  "note": "G3 하니스에 남은 실패 — g3-failure-ratchet.mjs 가 관리한다. 줄이기는 --update, 넣기는 --accept --reason.",
+  "failures": [
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › CheckboxGroup@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › CheckboxGroup@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › ColorField@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › ColorField@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › ComboBox@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › ComboBox@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › ContextualHelp@XS",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DateField@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DateField@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DatePicker@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DatePicker@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DateRangePicker@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DateRangePicker@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DropZone@L",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › DropZone@S",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Form@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Form@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Nav@L",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › NumberField@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › NumberField@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Pagination@L",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Pagination@M",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Pagination@S",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › RadioGroup@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › RadioGroup@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › SearchField@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › SearchField@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Select@L",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Select@XL",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Select@XS",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Separator@L",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Separator@M",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Separator@S",
+      "kind": "AssertionError: ·@·: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › SideNav",
+      "kind": "AssertionError: SideNav: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › SideNavPanel",
+      "kind": "AssertionError: SideNavPanel: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › Skeleton",
+      "kind": "AssertionError: Skeleton: 목록의 비대칭이 고쳐졌다 — 알려진 목록에서 뺀다: expected true to be false // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TextArea@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TextArea@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TextField@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TextField@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TimeField@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TimeField@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TokenField@M",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/adr295PaletteSymmetry.browser.test.ts › ADR-295 palette × size — Canvas ↔ DOM (current) › TokenField@S",
+      "kind": "AssertionError: ·@·: 새 Canvas ↔ DOM 비대칭: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › CheckboxGroup-horizontal-side-S",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › CheckboxGroup-horizontal-top-S",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › CheckboxGroup-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › CheckboxGroup-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › ColorField-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › ColorField-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › ComboBox-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › ComboBox-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › DateField-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › DateField-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › DatePicker-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › DatePicker-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › DateRangePicker-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › DateRangePicker-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › NumberField-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › NumberField-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › RadioGroup-horizontal-side-S",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › RadioGroup-horizontal-top-S",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › RadioGroup-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › RadioGroup-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › SearchField-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › SearchField-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › Select-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › Select-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › Table-nodes",
+      "kind": "CatalogValidationError: project:node:subject"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › Table-selection",
+      "kind": "CatalogValidationError: project:node:subject"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › TextArea-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › TextArea-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › TextField-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › TextField-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › TimeField-side",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › TimeField-top",
+      "kind": "AssertionError: expected [ { …(#) } ] to deeply equal []"
+    },
+    {
+      "id": "tests/adr248-g3/propAxisCanvasDom.browser.test.ts › ADR-248 4e — prop axis Canvas ↔ DOM › Tree-selection",
+      "kind": "CatalogValidationError: lib:template:component-tree-item-default__label"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › blue/dark/disabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › blue/dark/disabled/unselected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: opacity: expected # to be # // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › blue/dark/enabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › blue/light/disabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › blue/light/disabled/unselected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: opacity: expected # to be # // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › blue/light/enabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › L/catalog/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: idle outer gap equals vertical gap: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › L/catalog/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › L/shared/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: idle outer gap equals vertical gap: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › L/shared/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › M/catalog/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › M/catalog/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › M/shared/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: idle outer gap equals vertical gap: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › M/shared/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › red/dark/disabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › red/dark/disabled/unselected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: opacity: expected # to be # // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › red/dark/enabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › red/light/disabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › red/light/disabled/unselected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: opacity: expected # to be # // Object.is equality"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › red/light/enabled/selected: track, border, text, thumb and opacity agree",
+      "kind": "AssertionError: track: expected [ #, #, #, # ] to deeply equal [ #, #, #, # ]"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › S/catalog/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: idle outer gap equals vertical gap: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › S/catalog/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › S/shared/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: idle outer gap equals vertical gap: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › S/shared/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › XL/catalog/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: idle outer gap equals vertical gap: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › XL/catalog/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › XL/shared/selected: pressed thumb stays inside the track",
+      "kind": "AssertionError: idle outer gap equals vertical gap: expected # to be close to #, received difference is #, but expected #"
+    },
+    {
+      "id": "tests/adr248-g3/switchDomPaint.browser.test.ts › XL/shared/unselected: pressed thumb stays inside the track",
+      "kind": "AssertionError: pressed width remains #x: expected # to be close to #, received difference is #, but expected #"
+    }
+  ]
+}
