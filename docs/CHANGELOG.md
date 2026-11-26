@@ -13,6 +13,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 — Selected · Disabled keys 를 다중 select 로 (perf ratchet 조사)] - 2026-11-26
+
+목록 그룹의 「Selected keys」 · 「Disabled items」 칸이 항목마다 체크박스를 그리던 체크 목록에서 여러 개를 고르는 select 로 바뀌었다 (사용자 결정). 닫힌 칸은 고른 항목 이름을 이어 보이고, 열면 항목 전부가 목록으로 나온다.
+
+### Changed
+
+- **`PanelSelect` 다중 선택** (`components/property/PanelSelect.tsx`): `selectionMode="multiple"` · `selectedKeys` · `onSelectionKeysChange` — RAC `Select` 의 multiple (`value` · `onChange`). 닫힌 동안 RAC 에는 고른 항목만 준다 (단일 선택과 같은 `closedItems`).
+- **`SelectionKeysField`**: 그룹 항목 칸이 이 select 를 쓴다. 300 항목 목록을 고를 때 패널에 Checkbox 300 개가 생기던 것이 없어졌다 — ratchet `600:scroll-boxes` scroll DOM 속성 변경 1,568 → 70 · `60:sticky-lists` select 1,328 → 430 (원인 `4ac2d5ec3`).
+- 조사: ratchet 등급 A 초과 99 건은 11-22 기준 (`cd9a9bca5`) 뒤 런타임 커밋 62 개가 쌓인 것 — 위 항목 말고는 기능 추가의 선택당 일정한 비용 (frame · Text HTML 태그 칸 · Resizable · S2 기능) 과 Text · Heading 글자 상속의 렌더 변경이다.
+
 ## [ADR-319 Implemented — Canvas 크기 미리보기 비용 (칠 메모 · 줄바꿈 묶기 · 측정 문단 재사용)] - 2026-11-26
 
 ADR-319 Implemented (Phase 0 ~ 4). 글자가 많은 상자의 Canvas 크기 끌기 (Resizable Panel · Frame 손잡이 · Styles 크기 · 여백 · 간격 칸 끌기 — 같은 미리보기 경로) 가 가벼워졌다. 그림은 같다. 절대 기준 (모든 칸 p95 ≤ max(16.7, idle + 1.7) · LoAF 0) 은 1,000 글자 · 4x CPU 에서 미달이라 사용자 결정 1 로 「한계로 기록하고 닫기」.

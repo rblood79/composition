@@ -189,9 +189,13 @@ try {
   await page.waitForTimeout(1000);
   const legend = page.locator("legend", { hasText: /^(Disabled items|비활성 항목)$/ });
   await legend.first().scrollIntoViewIfNeeded();
-  const list = legend.first().locator("xpath=..").locator("[data-selection-keys]");
-  const rows = await list.locator(".react-aria-Checkbox").allTextContents();
-  await list.locator(".react-aria-Checkbox").first().click();
+  // (The group's items are a select that takes several — open it, the options are the items.)
+  const field = legend.first().locator("xpath=..");
+  await field.getByRole("button").first().click();
+  await page.waitForTimeout(400);
+  const rows = await page.getByRole("listbox").last().getByRole("option").allTextContents();
+  await page.getByRole("listbox").last().getByRole("option").first().click();
+  await page.keyboard.press("Escape");
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${OUT}/1-panel.png` });
   const stored = await page.evaluate((source) => {
@@ -199,7 +203,7 @@ try {
     return e.props.disabledKeys;
   }, placed.ListBox);
   record(
-    "1. Design 패널 체크 목록 → ListBox disabledKeys 저장",
+    "1. Design 패널 다중 select → ListBox disabledKeys 저장",
     rows.length === before.length &&
       JSON.stringify(stored?.value ?? stored) === JSON.stringify([before[0].key]),
     { rows, stored, firstKey: before[0].key },

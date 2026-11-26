@@ -13,7 +13,7 @@
  * 복사해 써서, PropertySelect 를 고쳐도 넷은 따라오지 않았다 (팝업 목록 class · focus 복원이
  * 곳마다 달랐다). `builderPopupList.static.test.ts` (c) 가 RAC `Select` 를 이 파일에서만 쓰게 한다.
  *
- * 닫혀 있는 동안 RAC 에는 선택된 항목 하나만 준다 (`closedItems` — 선택이 없으면 첫 항목) — 목록 전체는 열릴 때. RAC
+ * 닫혀 있는 동안 RAC 에는 선택된 항목만 준다 (`closedItems` — 여러 개 고르기면 고른 항목들, 선택이 없으면 첫 항목) — 목록 전체는 열릴 때. RAC
  * `Select` 는 collection 항목마다 숨은 native `<option>` 을 만드는데 (폼 제출 · 브라우저 자동 완성용,
  * 300 항목 이하에서 끄는 prop 없음) 패널은 둘 다 쓰지 않는다. 닫힌 채 글자 · ←/→ 로 값을 바꾸는
  * 동작은 없다 (열어서 고른다). Why (2026-11-12): Locale 선택칸 (36 항목) 이 선택마다 `<option>`
@@ -36,10 +36,29 @@ import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
 import "./PropertySelectGrid.css";
 import "./PropertySwatch.css";
 
-export interface PanelSelectProps {
-  "aria-label": string;
+/** 한 개 고르기 (기본) — `selectedKey` · `onSelectionChange` */
+interface PanelSelectSingle {
+  selectionMode?: "single";
   selectedKey: Key | null;
   onSelectionChange: (key: Key | null) => void;
+}
+
+/**
+ * 여러 개 고르기 — RAC `Select` 의 `selectionMode="multiple"` (`value` · `onChange` = key 배열).
+ * 트리거의 `SelectValue` 는 고른 항목 글자를 목록으로 잇는다 (RAC `useListFormatter`). 닫힌 동안 RAC 에는
+ * 고른 항목만 준다 — 항목마다 control 을 그리던 체크 목록 (Selected · Disabled keys) 의 대체.
+ */
+interface PanelSelectMultiple {
+  selectionMode: "multiple";
+  selectedKeys: readonly Key[];
+  onSelectionKeysChange: (keys: Key[]) => void;
+}
+
+export type PanelSelectProps = PanelSelectBase &
+  (PanelSelectSingle | PanelSelectMultiple);
+
+interface PanelSelectBase {
+  "aria-label": string;
   /** 트리거 안 ▾ 앞 내용 — 보통 `<SelectValue>` */
   trigger: ReactNode;
   /** ▾ 자리 내용 (기본 ChevronDown) — 유형 아이콘처럼 그 자리를 다른 그림으로 쓸 때 */
@@ -61,24 +80,23 @@ export interface PanelSelectProps {
   children: ReactNode;
 }
 
-export function PanelSelect({
-  "aria-label": ariaLabel,
-  selectedKey,
-  onSelectionChange,
-  trigger,
-  chevron,
-  className,
-  selectRef,
-  isOpen,
-  onOpenChange,
-  isDisabled,
-  disabledKeys,
-  popoverClassName,
-  popoverStyle,
-  grid = false,
-  "data-role": dataRole,
-  children,
-}: PanelSelectProps) {
+export function PanelSelect(props: PanelSelectProps) {
+  const {
+    "aria-label": ariaLabel,
+    trigger,
+    chevron,
+    className,
+    selectRef,
+    isOpen,
+    onOpenChange,
+    isDisabled,
+    disabledKeys,
+    popoverClassName,
+    popoverStyle,
+    grid = false,
+    "data-role": dataRole,
+    children,
+  } = props;
   const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
   const [opened, setOpened] = useState(false);
   const handleOpenChange = useCallback(
@@ -98,8 +116,16 @@ export function PanelSelect({
       ref={selectRef}
       data-role={dataRole}
       aria-label={ariaLabel}
-      selectedKey={selectedKey}
-      onSelectionChange={onSelectionChange}
+      {...(props.selectionMode === "multiple"
+        ? {
+            selectionMode: "multiple" as const,
+            value: props.selectedKeys,
+            onChange: props.onSelectionKeysChange,
+          }
+        : {
+            selectedKey: props.selectedKey,
+            onSelectionChange: props.onSelectionChange,
+          })}
       isOpen={isOpen}
       onOpenChange={handleOpenChange}
       isDisabled={isDisabled}
@@ -123,7 +149,14 @@ export function PanelSelect({
           }
           layout={grid ? "grid" : undefined}
         >
-          {open ? children : closedItems(children, selectedKey)}
+          {open
+            ? children
+            : closedItems(
+                children,
+                props.selectionMode === "multiple"
+                  ? props.selectedKeys
+                  : [props.selectedKey],
+              )}
         </ListBox>
       </Popover>
     </AriaSelect>
@@ -131,31 +164,34 @@ export function PanelSelect({
 }
 
 /**
- * What a closed select gives RAC: the selected item alone (found by its `id` — directly or inside a
- * section). With nothing selected it is the first item — RAC does not open a select whose
+ * What a closed select gives RAC: the selected items alone (found by their `id` — directly or inside
+ * a section). With nothing selected it is the first item — RAC does not open a select whose
  * collection is empty. Items it cannot read (a wrapping component without `id`) are given in full.
  */
-function closedItems(children: ReactNode, selectedKey: Key | null): ReactNode {
+function closedItems(
+  children: ReactNode,
+  selectedKeys: readonly (Key | null)[],
+): ReactNode {
   let readable = true;
   let first: ReactNode = null;
-  const find = (nodes: ReactNode): ReactNode => {
+  const selected: ReactNode[] = [];
+  const find = (nodes: ReactNode) => {
     for (const node of Children.toArray(nodes)) {
       if (!isValidElement<{ id?: Key; children?: ReactNode }>(node)) continue;
       const { id, children: inner } = node.props;
       if (id !== undefined) {
-        if (id === selectedKey) return node;
+        if (selectedKeys.includes(id)) selected.push(node);
         first ??= node;
       } else if (inner === undefined || typeof inner === "function") {
         readable = false;
       } else {
-        const found = find(inner);
-        if (found) return found;
+        find(inner);
       }
     }
-    return null;
   };
-  const selected = find(children);
-  return selected ?? (readable ? first : children);
+  find(children);
+  if (selected.length > 0) return selected;
+  return readable ? first : children;
 }
 
 /** ▾ 자리 — Select 와 팝오버 trigger 가 같은 상자 (`.select-chevron`, form-controls.css). 기본 그림 ChevronDown */
