@@ -8,20 +8,13 @@
 //   판정 = 두 화면 모두 정답과 채널 차 ≤ 3, 그리고 두 화면끼리 ≤ 3.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr317-g6-crosscheck-live.mjs <out-dir> [--browser webkit]
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { chromium, webkit } from "playwright";
+import { PNG } from "pngjs";
 
 const OUT = process.argv[2] ?? "/private/tmp/adr317-g6-crosscheck";
 mkdirSync(OUT, { recursive: true });
 const REPO = process.cwd();
-// (pngjs is a transitive dependency — from the pnpm store, like the adr211 harness.)
-const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) =>
-  d.startsWith("pngjs@"),
-);
-const { PNG } = createRequire(import.meta.url)(
-  `${REPO}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`,
-);
 const BASE = process.env.BUILDER_URL ?? "http://localhost:5173";
 const BROWSER = process.argv.includes("--browser")
   ? process.argv[process.argv.indexOf("--browser") + 1]

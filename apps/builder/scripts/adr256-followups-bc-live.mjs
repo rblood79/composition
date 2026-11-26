@@ -7,8 +7,8 @@
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr256-followups-bc-live.mjs <out>
 import { chromium } from "playwright";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { PNG } from "pngjs";
 
 const OUT = process.argv[2];
 mkdirSync(OUT, { recursive: true });
@@ -187,8 +187,6 @@ const domExpanded = () =>
 const frameEntry = (ws) => ({ kind: "node", id: ws.newId("node"), definitionId: "lib:definition:type-frame", children: [], props: {}, visual: {}, sizing: {}, descendantOverrides: [] });
 
 
-const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) => d.startsWith("pngjs@"));
-const { PNG } = createRequire(import.meta.url)(`${REPO}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`);
 /** Canvas pixels of scene points (the camera maps scene → canvas element px). */
 async function canvasPixels(points) {
   const canvasEl = page.locator("canvas").first();

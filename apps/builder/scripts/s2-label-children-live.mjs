@@ -4,13 +4,9 @@
 import { chromium } from "playwright";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createRequire } from "node:module";
 import pixelmatch from "pixelmatch";
+import { PNG } from "pngjs";
 
-const require = createRequire(import.meta.url);
-const { PNG } = require(
-  resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"),
-);
 
 const OUT = resolve(process.argv[2] ?? "output/playwright/s2-label-children");
 mkdirSync(OUT, { recursive: true });

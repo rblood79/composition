@@ -7,16 +7,14 @@
 // 사용: node apps/builder/scripts/adr234-live-tag-selected.mjs [--base http://localhost:5173]
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { chromium } from "playwright";
 import {
   createInstrumentedContext,
   loadStorageState,
   createIsolatedProject,
 } from "./perf-baseline.mjs";
+import { PNG } from "pngjs";
 
-const require = createRequire(import.meta.url);
-const { PNG } = require(resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"));
 
 const args = process.argv.slice(2);
 const BASE = args.includes("--base") ? args[args.indexOf("--base") + 1] : process.env.BUILDER_URL ?? "http://localhost:5173";

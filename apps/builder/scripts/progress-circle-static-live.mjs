@@ -7,16 +7,10 @@
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/progress-circle-static-live.mjs <out>
 import { chromium } from "playwright";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { PNG } from "pngjs";
 
 const OUT = process.argv[2];
-const pngjsDir = readdirSync(`${process.cwd()}/node_modules/.pnpm`).find((d) =>
-  d.startsWith("pngjs@"),
-);
-const { PNG } = createRequire(import.meta.url)(
-  `${process.cwd()}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`,
-);
 /**
  * Neutral pixels of a shot: at 0.94 black over white (≈15), at the 0.17 track gray (≈212) and
  * solid black (≤3). Compared with the Auto shot, so the builder's own dark UI cancels out.

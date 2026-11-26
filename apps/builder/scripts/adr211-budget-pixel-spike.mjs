@@ -11,14 +11,10 @@
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
-import { createRequire } from "node:module";
-import { readdirSync } from "node:fs";
 import { waitReady } from "./perf-baseline.mjs";
 import { railButton } from "./railButton.mjs";
-// pngjs 는 transitive 의존 (직접 의존 아님) — pnpm store 에서 찾는다.
+import { PNG } from "pngjs";
 const REPO = process.cwd();
-const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) => d.startsWith("pngjs@"));
-const { PNG } = createRequire(import.meta.url)(`${REPO}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`);
 
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");

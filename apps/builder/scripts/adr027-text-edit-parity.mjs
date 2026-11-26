@@ -13,26 +13,15 @@
 //       가장자리 1~2px 를 잡았다.
 // 둘 다 각 축 ≤ 1 CSS px (= 화면 1px × zoom) 이면 PASS. pixelmatch 총 diff 는 참고치 (래스터라이저
 // AA 는 원래 다르다).
-import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { loadStorageState, createIsolatedProject } from "./perf-baseline.mjs";
+import { PNG } from "pngjs";
+import matchPixels from "pixelmatch";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const REPO = resolve(here, "../../..");
-const require = createRequire(import.meta.url);
-// pngjs / pixelmatch 는 transitive 의존 — pnpm store 에서 찾는다 (adr211 하니스와 같은 방식).
-const storeDir = (prefix) =>
-  readdirSync(`${REPO}/node_modules/.pnpm`).find((d) => d.startsWith(prefix));
-const { PNG } = require(
-  `${REPO}/node_modules/.pnpm/${storeDir("pngjs@")}/node_modules/pngjs/lib/png.js`,
-);
-const pixelmatch = require(
-  `${REPO}/node_modules/.pnpm/${storeDir("pixelmatch@")}/node_modules/pixelmatch/index.js`,
-);
-const matchPixels = pixelmatch.default ?? pixelmatch;
 
 const args = process.argv.slice(2);
 const opt = (name, def) => {

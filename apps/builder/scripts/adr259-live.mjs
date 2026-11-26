@@ -20,14 +20,10 @@
 //   the Label's and the help button's places in the row ±1, the row's paint outside the text and
 //   the glyph ≤ 0.001) · None unwraps.
 import { mkdirSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import pixelmatch from "pixelmatch";
+import { PNG } from "pngjs";
 
-const require = createRequire(import.meta.url);
-const { PNG } = require(
-  resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"),
-);
 const H = resolve("apps/builder/scripts/adr256-g5/harness.mjs");
 const { launch, newProject, edit, reopen, BASE } = await import(H);
 const OUT = process.argv[2] ?? "/private/tmp/adr259-live";

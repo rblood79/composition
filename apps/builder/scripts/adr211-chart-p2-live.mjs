@@ -5,20 +5,14 @@
 //   2) 기간 축 line 3 시리즈 3,000 일 (spike · 결측 run) → 극값: Preview path 3개 · 점 수 = spec |U| · 결측 시리즈 path 가 끊김 (M ≥ 2)
 //   3) pie 40 조각 (80px) → others: Preview 조각 수 = spec fitEff · 마지막 조각 fill = var(--chart-others) · 계산 색이 팔레트와 다름
 // 사용: node apps/builder/scripts/adr211-chart-p2-live.mjs [--headless]
-import { createRequire } from "node:module";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
 import { railButton } from "./railButton.mjs";
+import { PNG } from "pngjs";
 
 const REPO = process.cwd();
-const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) =>
-  d.startsWith("pngjs@"),
-);
-const { PNG } = createRequire(import.meta.url)(
-  `${REPO}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`,
-);
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR211_OUT ?? "/private/tmp/adr211-p2";

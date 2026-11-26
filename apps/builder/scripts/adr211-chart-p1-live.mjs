@@ -5,20 +5,14 @@
 //   2) (A) 5,000 행 · 범주 2 (A 200행 · B 4,800행, 값 1) → Canvas 막대 2개, B 가 A 의 24배 높이
 //      (구 200행 샘플이면 B 막대가 없다) · Preview 도 같은 비율
 // 사용: node apps/builder/scripts/adr211-chart-p1-live.mjs   (dev 서버 5173 · .auth-session.json)
-import { createRequire } from "node:module";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
 import { railButton } from "./railButton.mjs";
+import { PNG } from "pngjs";
 
 const REPO = process.cwd();
-const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) =>
-  d.startsWith("pngjs@"),
-);
-const { PNG } = createRequire(import.meta.url)(
-  `${REPO}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`,
-);
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR211_OUT ?? "/private/tmp/adr211-p1";

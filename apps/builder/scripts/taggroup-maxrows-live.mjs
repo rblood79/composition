@@ -8,17 +8,14 @@
 //   ④ 편집: ② 의 instance maxRows 0 → 2 → chip 2 + Show all.
 // 사용: node apps/builder/scripts/taggroup-maxrows-live.mjs [--base http://localhost:5173]
 import { resolve } from "node:path";
-import { createRequire } from "node:module";
 import { chromium } from "playwright";
 import {
   createInstrumentedContext,
   loadStorageState,
   createIsolatedProject,
 } from "./perf-baseline.mjs";
+import { PNG } from "pngjs";
 
-const { PNG } = createRequire(import.meta.url)(
-  resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"),
-);
 const args = process.argv.slice(2);
 const BASE = args.includes("--base") ? args[args.indexOf("--base") + 1] : process.env.BUILDER_URL ?? "http://localhost:5173";
 const findings = [];

@@ -11,17 +11,13 @@
 //   page error 0 · dialog 0. ADR-228 parity 56 pair 회귀는 `adr228-instance-parity-live.mjs` 로 따로.
 // 사용: node apps/builder/scripts/adr229-two-leg-parity-live.mjs [--headed]  (dev 5173 · .auth-session.json)
 import { mkdirSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import pixelmatch from "pixelmatch";
 import { waitReady } from "./perf-baseline.mjs";
 import { railButton } from "./railButton.mjs";
+import { PNG } from "pngjs";
 
-const require = createRequire(import.meta.url);
-const { PNG } = require(
-  resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"),
-);
 
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");

@@ -11,21 +11,15 @@
 //      묶음 라벨 입력 → reload → props 유지 · 두 leg (Canvas bars = fitEff · Preview Slider 없음) ·
 //      Export → 독립 publish (3001) 같은 결과. publish 는 창 모드에서도 한 번 (Slider · End).
 // 준비: builder dev (5173, `ADR211_BASE_URL` 로 대체 가능) · publish dev (3001) · 로그인 세션. 사용: node apps/builder/scripts/adr211-chart-p3-live.mjs [--headless]
-import { createRequire } from "node:module";
 import { createServer } from "node:http";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
 import { railButton } from "./railButton.mjs";
+import { PNG } from "pngjs";
 
 const REPO = process.cwd();
-const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) =>
-  d.startsWith("pngjs@"),
-);
-const { PNG } = createRequire(import.meta.url)(
-  `${REPO}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`,
-);
 const BASE_URL = process.env.ADR211_BASE_URL ?? process.env.BUILDER_URL ?? "http://localhost:5173";
 const PUBLISH_URL = "http://localhost:3001";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");

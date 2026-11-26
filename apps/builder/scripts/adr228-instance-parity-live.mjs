@@ -11,17 +11,13 @@
 //     ADR-148 template binding origin 이라 plain 대응이 없다 — 이 하니스 밖.
 // 사용: node apps/builder/scripts/adr228-instance-parity-live.mjs [--headed] [--types=A,B]
 import { mkdirSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import pixelmatch from "pixelmatch";
 import { waitReady } from "./perf-baseline.mjs";
 import { CHART_DESCRIPTORS, createChartInitialProps } from "@composition/rendering";
+import { PNG } from "pngjs";
 
-const require = createRequire(import.meta.url);
-const { PNG } = require(
-  resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"),
-);
 
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");

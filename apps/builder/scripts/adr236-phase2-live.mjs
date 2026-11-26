@@ -7,19 +7,13 @@ import { resolve } from "node:path";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { waitReady } from "./perf-baseline.mjs";
 import { railButton } from "./railButton.mjs";
+import { PNG } from "pngjs";
+import pixelmatch from "pixelmatch";
 
 const OUT = "output/playwright/adr236";
 const phase = process.argv[2] ?? "after";
 
 if (phase === "compare") {
-  // pngjs · pixelmatch 는 워크스페이스 직접 의존이 아니다 — pnpm store 경로로 읽는다.
-  const store = resolve("node_modules/.pnpm");
-  const { PNG } = await import(
-    `${store}/pngjs@7.0.0/node_modules/pngjs/lib/png.js`
-  );
-  const { default: pixelmatch } = await import(
-    `${store}/pixelmatch@7.2.0/node_modules/pixelmatch/index.js`
-  );
   const [a, b] = await Promise.all(
     ["before", "after"].map((p) =>
       readFile(`${OUT}/${p}/rects.json`, "utf8").then(JSON.parse),
