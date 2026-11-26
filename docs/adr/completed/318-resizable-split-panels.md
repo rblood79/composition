@@ -2,17 +2,19 @@
 
 ## Status
 
-Accepted — 2026-11-26 (사용자 `/execute-adr 318` + 리뷰 [reviews/318.md](reviews/318.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed). 같은 날 `.claude/rules/ssot-hierarchy.md` §1 D1 에 승인 가리킴 줄 (「Resizable 손잡이 예외」) 을 넣었다 — 목록 전문은 Phase 6 끝에 옮긴다.
+Implemented — 2026-11-26 (G6 의 남은 두 항목: VoiceOver 청취 사용자 「VoiceOver 청취 확인했다」 · 사용자 확인 「adr-318 은 완료 된것 아닌가?」 — 같은 날). 승격 전 재확인: Phase 6 뒤 커밋 (`13def5364` /simplify · ADR-319 `39b277f95` 의 `canvasGesture.ts`) 을 지난 HEAD 로 `adr318-g6-live.mjs` Chrome · WebKit 7/7. 본문을 `completed/` 로 옮겼다.
 
-> **Phase 0 (G0) 닫힘 — 2026-11-26**: 코드 사실 F1 ~ F10 차이 0 (317 커밋으로 줄 번호만 이동) · v3 에도 분할창 없음 (`@react-spectrum/splitview` 미공개) · reui 예제 10 전부 읽음 · 시제품 P1 go (`tests/parity/adr318ResizableFlexShare.browser.test.ts` 16/16 — engine = Chrome = 식이 뜻한 크기) · P2 가상 Table go (p95 10.3 ms, 4x 10.2) · 가상 없는 1,000 행은 p95 41 ms 로 기준 밖 → 사용자 답 「그대로 실시간 · 한계로 기록」 (HC5 문구 갱신) · P3 go — 중첩 번짐 0 · iframe 위에서 놓기는 pointerdown 의 pointer capture 가 필요 (없으면 두 브라우저에서 끌기가 이어짐) · 잡는 영역 필수 · P4 Chrome 접근성 트리 go · VoiceOver 청취는 사용자 (G2 · G6). 기준선: Builder 1,634,229 · Preview 172,213 B · ratchet 은 HEAD 가 이미 block (등급 A 초과 98 — 318 전). 사용자 결정 2 · 8 확정 (권고 그대로), 6 확정 (5 %). 상세 [breakdown §9](design/318-resizable-split-panels-breakdown.md).
+Accepted — 2026-11-26 (사용자 `/execute-adr 318` + 리뷰 [reviews/318.md](../reviews/318.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed). 같은 날 `.claude/rules/ssot-hierarchy.md` §1 D1 에 승인 가리킴 줄 (「Resizable 손잡이 예외」) 을 넣었다 — 목록 전문은 Phase 6 끝에 옮긴다.
+
+> **Phase 0 (G0) 닫힘 — 2026-11-26**: 코드 사실 F1 ~ F10 차이 0 (317 커밋으로 줄 번호만 이동) · v3 에도 분할창 없음 (`@react-spectrum/splitview` 미공개) · reui 예제 10 전부 읽음 · 시제품 P1 go (`tests/parity/adr318ResizableFlexShare.browser.test.ts` 16/16 — engine = Chrome = 식이 뜻한 크기) · P2 가상 Table go (p95 10.3 ms, 4x 10.2) · 가상 없는 1,000 행은 p95 41 ms 로 기준 밖 → 사용자 답 「그대로 실시간 · 한계로 기록」 (HC5 문구 갱신) · P3 go — 중첩 번짐 0 · iframe 위에서 놓기는 pointerdown 의 pointer capture 가 필요 (없으면 두 브라우저에서 끌기가 이어짐) · 잡는 영역 필수 · P4 Chrome 접근성 트리 go · VoiceOver 청취는 사용자 (G2 · G6). 기준선: Builder 1,634,229 · Preview 172,213 B · ratchet 은 HEAD 가 이미 block (등급 A 초과 98 — 318 전). 사용자 결정 2 · 8 확정 (권고 그대로), 6 확정 (5 %). 상세 [breakdown §9](../design/318-resizable-split-panels-breakdown.md).
 
 > **Phase 1 (G1) 닫힘 — 2026-11-26 (contract 79 · 번들 Δ Builder +3,234 · Preview −2 B gzip — 결정 8 안)**: 세 type 등록 · 원본 (Panel · Handle · Panel) · 팔레트 · 크기 식 한 곳 (`runtime/resizablePanels.ts` — Panel 몫 · Group 방향 · Handle 두께를 파생 값으로, Canvas `styleOf` 와 DOM `authoredStyle` 이 같이). live Chrome · WebKit 14/14 (기본 · defaultSize · px 최소 · % 최대 · 세로 — Canvas = Publish = 식이 뜻한 크기). 계획과 달라진 것: 축 값은 rule `containerVariants` 가 아니라 파생 값 (Canvas 배치가 그것을 읽지 않음) · 팔레트를 Phase 6 에서 앞당김 · `requiredParts` 는 두지 않음. 상세 breakdown §9.
 >
-> **Phase 2 (G2) 닫힘 — 2026-11-26 (VoiceOver 청취만 대기)**: 사용자 결정 4 = 양옆 두 Panel 만. 손잡이 상호작용 (lazy — `useMove` 포인터 · `useKeyboard` 축 방향 · pointer capture · focus ring) · 실행 상태 = Panel 마다 `size`. live Chrome · WebKit 8/8 — live 가 잡은 결함 3 (형제 구독 · `aria-controls` = HTML id · T 교차점의 잡는 영역) 수리.
+> **Phase 2 (G2) 닫힘 — 2026-11-26 (VoiceOver 청취 — 사용자 확인 2026-11-26)**: 사용자 결정 4 = 양옆 두 Panel 만. 손잡이 상호작용 (lazy — `useMove` 포인터 · `useKeyboard` 축 방향 · pointer capture · focus ring) · 실행 상태 = Panel 마다 `size`. live Chrome · WebKit 8/8 — live 가 잡은 결함 3 (형제 구독 · `aria-controls` = HTML id · T 교차점의 잡는 영역) 수리.
 
 > **Phase 3 (G3) 닫힘 — 2026-11-26**: Panel 접기 · 펼치기 — `collapsible` · `collapsedSize` (% · px) · `isCollapsed` (S2 SideNavPanel 이름). 화면 몫 한 함수 (접힌 Panel = 접힌 크기, 나머지는 펼친 몫 비율) 를 Canvas 시작 접힘과 Preview 가 같이 씀. Enter · 더블클릭 · 끌기 임계 (min 과 접힌 크기의 가운데) · Do 3 (guard `collapsible`). live Chrome · WebKit 5/5 — live 가 잡은 결함 1 (끌기 중 옛 props 비교 — 끌기가 자기 쓰기를 들게) 수리. Do 의 live 실행은 Phase 5 에서.
 
-> **Phase 6 (G6) 구현 닫힘 — 2026-11-26 · Implemented 승격 대기 (VoiceOver 청취 · 사용자 확인)**: 사용자 결정 3 = Canvas 의 Panel 주축 손잡이가 `defaultSize` 를 씀 (Panel 가장자리의 padding 0 손잡이보다 우선 · Handle 은 손잡이 없음). 짝 유지 명령 — 「+」 · Panel 복제 = Handle 동반, Panel 삭제 = 붙은 Handle 같이, Handle 단독 삭제 · 이동 · 복제 거절, Group 안 Panel 이동 = Handle 자리 유지로 다시 엮음 (Slot 목록에서도 Handle 제외). Design 패널 칸 라벨 번역. **HC5**: production 빌드 · 보이는 탭 · 교대 3 쌍 — 이 기기의 idle rAF 간격이 20 ms (50 Hz) 라 16.7 ms 기준 대신 idle 대비로 판정. 매 프레임 실행 상태를 쓰던 판은 이름 붙인 상태가 그 크기를 읽을 때 4x p95 100.9 ms · LoAF 1,495 (세션이 변수 쓰기마다 보기 전체를 다시 그림 — 모든 변수 쓰기에 공통인 경로) → G6 실패 시 대안대로 끌기 중 실행 상태 쓰기를 끌기 끝으로 밀어 1x · 4x p95 20.9 ms (= idle) · LoAF 0. 번들: 결정 8 고침 (위 표). D1 목록 전문을 규칙 문서로 옮김. live G1 ~ G6 Chrome · WebKit 전부 PASS.
+> **Phase 6 (G6) 닫힘 — 2026-11-26 · VoiceOver 청취 · 사용자 확인 받아 Implemented**: 사용자 결정 3 = Canvas 의 Panel 주축 손잡이가 `defaultSize` 를 씀 (Panel 가장자리의 padding 0 손잡이보다 우선 · Handle 은 손잡이 없음). 짝 유지 명령 — 「+」 · Panel 복제 = Handle 동반, Panel 삭제 = 붙은 Handle 같이, Handle 단독 삭제 · 이동 · 복제 거절, Group 안 Panel 이동 = Handle 자리 유지로 다시 엮음 (Slot 목록에서도 Handle 제외). Design 패널 칸 라벨 번역. **HC5**: production 빌드 · 보이는 탭 · 교대 3 쌍 — 이 기기의 idle rAF 간격이 20 ms (50 Hz) 라 16.7 ms 기준 대신 idle 대비로 판정. 매 프레임 실행 상태를 쓰던 판은 이름 붙인 상태가 그 크기를 읽을 때 4x p95 100.9 ms · LoAF 1,495 (세션이 변수 쓰기마다 보기 전체를 다시 그림 — 모든 변수 쓰기에 공통인 경로) → G6 실패 시 대안대로 끌기 중 실행 상태 쓰기를 끌기 끝으로 밀어 1x · 4x p95 20.9 ms (= idle) · LoAF 0. 번들: 결정 8 고침 (위 표). D1 목록 전문을 규칙 문서로 옮김. live G1 ~ G6 Chrome · WebKit 전부 PASS.
 
 > **Phase 5 (G5) 닫힘 — 2026-11-26**: 사용자 결정 1 = Panel 마다 숫자 (`size` % + `isCollapsed`), 결정 5 = Group 「Remember sizes」 (Publish 만). When 「Resize」 (`onSizeChange` — `onResize` 는 은퇴한 DOM 별칭이라 이름만 바꿈 · 끌기는 놓을 때 · 키는 한 단계마다) · 「Collapse change」 (Enter · 더블클릭 · 끌기 임계 — Do 의 쓰기에는 실행되지 않음, RAC 처럼). 이름 붙인 상태는 Panel record 의 실행 값을 따름. 「Remember sizes」 는 세션의 브라우저 저장소 (Table 「Remember state」 와 같은 것 — Builder Preview 에는 없음). live Chrome · WebKit 7/7 (Phase 3 에서 넘긴 Do 「Toggle collapse」 live 포함) · 원복 RED 2 (When 호출 제거 → 3 FAIL · 기억 값 제거 → 1 FAIL).
 
@@ -22,11 +24,11 @@ Proposed — 2026-11-26
 
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (2026-11-25): 「https://reui.io/components/resizable 확인후 깃헙리포지토리에서 코드 체크후 우리 컴퍼넌트에도 동일한기능을 가진 컴퍼넌트를 추가해야한다」. 2026-11-26 「https://reui.io/components/resizable 분석후 설계한 것 찾아」 → `/create-adr`.
 - 사용자가 이미 답한 것 (2026-11-25, 선택 질문 3):
-  1. D1 처리 = 「react-aria 훅 + D1 예외」 — `react-resizable-panels` 는 들이지 않는다. **결정 지점 3 (SSOT 경계 — 사용자 컴포넌트의 D1 예외 추가) 의 확정이다.** 예외의 범위는 [breakdown §4](design/318-resizable-split-panels-breakdown.md) 의 목록으로 닫는다.
+  1. D1 처리 = 「react-aria 훅 + D1 예외」 — `react-resizable-panels` 는 들이지 않는다. **결정 지점 3 (SSOT 경계 — 사용자 컴포넌트의 D1 예외 추가) 의 확정이다.** 예외의 범위는 [breakdown §4](../design/318-resizable-split-panels-breakdown.md) 의 목록으로 닫는다.
   2. 진행 방식 = 「ADR 먼저」.
   3. 범위 = 「기본 분할, 접기 · 펼치기, pill 손잡이 모양, 크기 상태 연동」 (넷 다).
 - 기존 ADR 을 나누거나 합치지 않는다 — 새 컴포넌트 계열 하나다.
-- 리뷰 [reviews/318.md](reviews/318.md) round 2 HIGH 0 · pending 0 (round 1 의 HIGH 1 · MEDIUM 3 수리 — 실행 상태 정본 = Panel · 화살표는 축 방향만 · px 접힘 식 · 규칙 가리킴 줄은 Accepted 때, LOW 3 deferred). 착수는 사용자 `/execute-adr 318`.
+- 리뷰 [reviews/318.md](../reviews/318.md) round 2 HIGH 0 · pending 0 (round 1 의 HIGH 1 · MEDIUM 3 수리 — 실행 상태 정본 = Panel · 화살표는 축 방향만 · px 접힘 식 · 규칙 가리킴 줄은 Accepted 때, LOW 3 deferred). 착수는 사용자 `/execute-adr 318`.
 
 ## Context
 
@@ -51,14 +53,14 @@ Proposed — 2026-11-26
 - **F7** 실행 상태는 한 길이다 — renderer 가 `runtimeState` 로 읽고 (`catalog/runtime/delegatedDom.runtime.ts:839`) `setRuntimeProps` 로 쓰면 (`catalogPreviewInteractions.ts:1470`) 그 prop 을 미러하는 변수에 값이 간다 (`:346` `mirrorsOf`). 미러할 수 있는 값 형은 `ValueTypeId` (`interactions/concepts/types.ts:16-27`) 와 `VARIABLE_TYPE_OF` (`state/implicitState.ts:32-42`) 가 정한다 — `number` · `boolean` 은 있고 「패널 id → 비율」 형은 없다.
 - **F8** 브라우저에 실행 상태를 기억하는 선례는 Table 「Remember state」 다 (`bindings/Table.binding.ts:98`, `runtime/tableState.ts:403-439`). 요소 미러 변수는 `persist` 대상이 아니다 (`state/variable.types.ts:44-49`).
 - **F9** 짝을 같이 다루는 명령 선례가 있다 — Tab 의 삭제 · 복제가 짝 TabPanel 을 같이 (`catalog/commands/collections.ts:300` `catalogPairedTabPanels`).
-- **F10** initial 번들: Builder 1,629,237 / 상한 1,650,000 B gzip (여유 20,763) · Preview 172,215 / 327,000 ([ADR-201](completed/201-large-file-upload-engine-component-server-contract.md) 2026-11-25 재승인, 만료 2026-12-25).
+- **F10** initial 번들: Builder 1,629,237 / 상한 1,650,000 B gzip (여유 20,763) · Preview 172,215 / 327,000 ([ADR-201](201-large-file-upload-engine-component-server-contract.md) 2026-11-25 재승인, 만료 2026-12-25).
 
 ### 레퍼런스 (2026-11-25 ~ 26)
 
 - **reui Resizable** (`reui.io/components/resizable`, `keenthemes/reui` `registry/bases/base/ui/resizable.tsx`): `react-resizable-panels` `^4.7.6` 의 얇은 래퍼. 부품 3 (`ResizablePanelGroup` · `ResizablePanel` · `ResizableHandle` — `withHandle`), 예제 10 (가로 · 세로 · 중첩 · 3 분할 · pill 손잡이 · 크기 추적). pill 모양은 prop 이 아니라 예제의 `className` 이다.
 - **react-resizable-panels 4.24.2** (내려받아 읽음): 패널 크기 = `flexGrow` 몫 + `flexBasis: 0`, separator 의 ARIA 는 APG 그대로, 키는 화살표 · Home · End · Enter · F6. 패키지 전체 JS gzip 69,196 B — 4.x 사이에 Grid · Workspace · Tabs 까지 넓어졌다.
 - **WAI-ARIA APG Window Splitter**: separator 가 focus 를 받고, 값 = 주 패널의 크기, 화살표로 이동 · Enter 로 접기 · Home / End 로 끝까지.
-- 대조 표 전문은 [breakdown §2](design/318-resizable-split-panels-breakdown.md).
+- 대조 표 전문은 [breakdown §2](../design/318-resizable-split-panels-breakdown.md).
 
 ### Hard constraints
 
@@ -121,7 +123,7 @@ Proposed — 2026-11-26
 4. **D1 예외** — Handle 요소 하나에서만: `role="separator"` 와 값 · 방향 · 대상 · 이름 · 비활성 속성, Group 축 방향의 화살표 · Home · End · Enter, 끌기 · 더블클릭. 축과 다른 방향의 화살표는 받지 않는다 — `useMove` 의 키 handler 는 화살표 넷을 모두 삼키므로 Handle 에 붙이지 않고 (포인터 handler 만), 화살표는 `useKeyboard` 가 축 방향만 처리한다. Group 과 Panel 은 role 없는 `div` 다. 목록 전문과 그대로 두는 것은 breakdown §4. 규칙 파일 (`.claude/rules/ssot-hierarchy.md` §1 D1) 에는 Accepted 승격 때 승인을 가리키는 한 줄을 넣고 (ADR-317 과 같은 방식 — 목록은 breakdown §4 가 정본), 구현 Phase 가 끝날 때 목록 전문을 옮긴다.
 5. **끌기** — 순수 계산 모듈 하나가 끌린 px 를 새 몫으로 바꾼다. 끌기 중에는 두 Panel 의 style 과 Handle 의 값을 직접 쓰고 (React commit 없음), 실행 상태는 프레임당 한 번과 끌기 끝에 쓴다. 실행 상태의 정본은 Panel 마다의 `size` · `isCollapsed` 다 — Group 에는 실행 상태를 두지 않는다 (미러 변수는 그 prop 을 쓴 record 에서만 채워진다 — F7). Handle 의 동작 코드는 lazy chunk 다.
 6. **접기 · 펼치기** — `collapsible` · `collapsedSize` · `defaultCollapsed`. 최소 아래로 끌면 가운데 임계에서 접히고, Enter · 더블클릭 · Do 「Collapse · Expand · Toggle panel」 로도 바뀐다.
-7. **pill 손잡이** — Handle `variant` (`line` · `pill`) 와 `withHandle`. 상태 칠 (hover · pressed · focus-visible · disabled) 은 rule 의 조건 트리 한 곳이고 ([ADR-297](completed/297-rule-state-condition-tree-single-priority.md)), 움직임은 rule 의 `transition` 이다 — Canvas 는 상태별 정지 모양을 그린다.
+7. **pill 손잡이** — Handle `variant` (`line` · `pill`) 와 `withHandle`. 상태 칠 (hover · pressed · focus-visible · disabled) 은 rule 의 조건 트리 한 곳이고 ([ADR-297](297-rule-state-condition-tree-single-priority.md)), 움직임은 rule 의 `transition` 이다 — Canvas 는 상태별 정지 모양을 그린다.
 8. **상태 연동** — Panel 의 지금 크기와 접힘을 변수에 잇고 (값 형은 사용자 결정 1), Group 「Remember sizes」 로 Publish 에서 다시 열 때 복원한다 (사용자 결정 5).
 9. **Canvas** — 작성 값으로 정적 배치만 한다. Panel 의 main 축 크기 손잡이가 `defaultSize` 를 쓰는지는 사용자 결정 3.
 10. **하지 않는 것**
@@ -139,7 +141,7 @@ Proposed — 2026-11-26
 - **C** — frame 의 모든 배치 모드에 분기가 들어가고, 손잡이가 노드가 아니라 Canvas · Layers · rule 어디에도 자리가 없다.
 - **D** — 키보드 조작이 없고 (HC6) 범위 넷 가운데 기본 분할의 일부만 된다.
 
-> 구현 상세: [318-resizable-split-panels-breakdown.md](design/318-resizable-split-panels-breakdown.md)
+> 구현 상세: [318-resizable-split-panels-breakdown.md](../design/318-resizable-split-panels-breakdown.md)
 
 ### 사용자 결정 (8 건 — 그 Phase 에 닿을 때 묻는다)
 
@@ -171,7 +173,7 @@ HIGH 가 셋이지만 Phase 를 다른 ADR 로 나누지 않는다 — 셋 다 �
 
 ## Gates
 
-측정 조건 (HC3 · HC5 · G1 · G6 공통, [measurement-validity.md](../../.claude/rules/measurement-validity.md)): 배치 대조의 fixture 는 계약이 갈리는 입력 차원 (px 최소 · 최대 · 손잡이 두께 · 중첩 · 미지정 크기 · 접힘) 을 모두 쓰고 기준값은 실제 Chrome 의 `getBoundingClientRect` 다 (Canvas 출력으로 채점하지 않는다). 프레임 측정의 문서는 부하용 생성 문서 (규모 전용), 불리한 경우 = Panel 안 Table 1,000 행 + 중첩 2 단 + 미러 변수를 읽는 글자 3 개, 대조군 = 같은 문서에서 실행 상태 쓰기를 끌기 끝으로 민 arm 과 교대 3 쌍, 조건 = production 빌드 · headed Chrome · 보이는 탭 · CPU 1x 와 4x.
+측정 조건 (HC3 · HC5 · G1 · G6 공통, [measurement-validity.md](../../../.claude/rules/measurement-validity.md)): 배치 대조의 fixture 는 계약이 갈리는 입력 차원 (px 최소 · 최대 · 손잡이 두께 · 중첩 · 미지정 크기 · 접힘) 을 모두 쓰고 기준값은 실제 Chrome 의 `getBoundingClientRect` 다 (Canvas 출력으로 채점하지 않는다). 프레임 측정의 문서는 부하용 생성 문서 (규모 전용), 불리한 경우 = Panel 안 Table 1,000 행 + 중첩 2 단 + 미러 변수를 읽는 글자 3 개, 대조군 = 같은 문서에서 실행 상태 쓰기를 끌기 끝으로 민 arm 과 교대 3 쌍, 조건 = production 빌드 · headed Chrome · 보이는 탭 · CPU 1x 와 4x.
 
 | Gate | 시점       | 통과 조건                                                                                                                                                                                                                                                                                | 실패 시 대안                                                          |
 | ---- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -187,7 +189,16 @@ HIGH 가 셋이지만 Phase 를 다른 ADR 로 나누지 않는다 — 셋 다 �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실행: dev 서버 (5173) · headed Chrome · Playwright WebKit, 하니스 `apps/builder/scripts/adr318-g{1..6}-live.mjs` (각 Phase 끝, 전 Phase 회귀 포함). 결과 상세는 [breakdown §9](../design/318-resizable-split-panels-breakdown.md).
+
+- G1 14/14 — 기본 · `defaultSize` · px 최소 · % 최대 · 세로: Canvas = Publish = 식이 뜻한 크기.
+- G2 8/8 — 끌기 (양옆 두 Panel · 최소 · 최대에서 멈춤) · 축 화살표 · Home · End · 중첩 번짐 0 · iframe 위 놓기 · 끄는 동안 축 커서 유지.
+- G3 5/5 — 접기 · 펼치기 (Enter · 더블클릭 · 끌기 임계 · Do 3).
+- G4 5/5 — pill · grip 모양 · 상태별 색 · focus ring (Canvas = DOM).
+- G5 7/7 — 변수 연동 (`size` · `isCollapsed`) · When 「Resize」 · 「Collapse change」 · 「Remember sizes」 (Publish).
+- G6 7/7 — 짝 유지 명령 (「+」 · 삭제 · Handle 단독 거절 · ⌘Z) · Canvas 손잡이 = Default size · Layout 탭 크기 칸 = Panel 크기 props · Layers 방향 아이콘 · page error 0. 승격 직전 재실행 (2026-11-26, HEAD `b65c557b7` 위 dev 서버) Chrome · WebKit 7/7.
+- HC5 (production · 교대 3 쌍): 끌기 4x p95 20.9 ms = idle · LoAF 0.
+- VoiceOver: separator 이름 · 값 (%) 청취 — 사용자 확인 (2026-11-26).
 
 ## Consequences
 

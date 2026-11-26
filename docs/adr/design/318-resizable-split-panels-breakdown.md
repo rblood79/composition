@@ -1,6 +1,6 @@
 # ADR-318 breakdown — Resizable 분할창 (끌어서 나누는 패널 묶음)
 
-> 본문: [318-resizable-split-panels.md](../318-resizable-split-panels.md). 이 문서는 구현 상세 (대조 표 · 노드와 prop · D1 예외 목록 · 설계 · Phase · 파일 추정) 의 정본이다.
+> 본문: [318-resizable-split-panels.md](../completed/318-resizable-split-panels.md). 이 문서는 구현 상세 (대조 표 · 노드와 prop · D1 예외 목록 · 설계 · Phase · 파일 추정) 의 정본이다.
 
 ## 1. 범위 · 출처
 
@@ -220,7 +220,7 @@ HEAD `bd088d28b` (ADR-317 Phase 0 ~ 3 위). 실행 = parity browser test + `apps
 
 **닫힘 (2026-11-26, ADR-317 Phase 4 `63db458e6` 뒤)**: contract 78 → **79** (`types.ts` · fixture 32 파일 — 다른 세션의 미커밋 변경이 없는 것을 확인하고 올림). 번들 Δ — HEAD `63db458e6` worktree 에 이 ADR 의 hunk 만 얹어 (공유 파일의 다른 세션 hunk 는 빼고 — worktree 타입 검사 통과) `vite build` → `adr209-bundle-closure.mjs`: **Builder 1,634,850 → 1,638,084 (+3,234) · Preview 172,215 → 172,213 (−2) B gzip** — 사용자 결정 8 (+4,000 · +2,000) 안, 절대 상한 1,650,000 안. 끌기 · 키 코드는 lazy chunk `resizable.components` 로 빠졌다. (Phase 3 의 접힘 개념 · 계산까지 포함한 값.)
 
-### Phase 2 (G2) — 2026-11-26 닫힘 (VoiceOver 청취만 대기)
+### Phase 2 (G2) — 2026-11-26 닫힘 (VoiceOver 청취 — 사용자 확인 2026-11-26)
 
 사용자 결정 4 = 양옆 두 Panel 만 (권고). 계산: `catalogResizableMove` · `catalogResizableRange` · `catalogResizableLimits` (% 한계 = Group 전체 기준을 손잡이를 뺀 자리로 환산 — 리뷰 LOW) · `RESIZABLE_KEY_STEP` 5. 손잡이: `runtime/resizable.components.tsx` (lazy — 실행 중 Preview 에서만, 그 전엔 같은 상자의 정적 선) — `useMove` 의 포인터 handler 만 · `useKeyboard` 가 축 방향 화살표 · Home · End · 나머지 `continuePropagation` · pointerdown 의 pointer capture · `useFocusRing` · 끌기 중 두 Panel `flexGrow` 와 `aria-valuenow` 를 DOM 에 직접, 실행 상태 (Panel 마다 `size`) 는 rAF 와 끝에. Panel renderer 는 실행 `size` 를 flexGrow 로 · `id` = record `htmlId`. Handle 은 같은 Group 의 형제를 구독한다 (`watchesChildren`). binding: `isDisabled` (Group · Panel · Handle) · Handle `aria-label` (패널 비노출). rule: 잡는 영역 가상 요소 (양옆 4 px) · 축 커서 · `touch-action: none` · focus ring · 중첩 손잡이의 잡는 영역은 `z-index: 0`.
 
@@ -268,7 +268,7 @@ live 가 잡아 고친 것: 비활성 손잡이가 hover 에 pill 을 키우지 
 
 검증: 단위 `adr318ResizablePanels.test.ts` +4 (저장 조각 · 프로젝트별 왕복 · 깨진 값 · 0.01 %), `adr318PanelCollapse.test.ts` (When 2 · 상태 출처 2). shared 단위 1,598 · builder catalogRuntime · panels 5,728 PASS. **live** `apps/builder/scripts/adr318-g5-live.mjs` — Chrome · WebKit 7/7: 첫 화면 상태 = 시작 값 · → 키 → `!event.size` 55 · 끌기 중 When 없음 · 놓을 때 resized = leftSize = 그려진 몫 · Enter → 「Collapse change」 true / false · Do 「Toggle collapse」 (Button) → 48 px 접힘 · 상태 따름 · When 없음 · 다시 열면 그 크기 · 접은 뒤 다시 열면 접힘 · 스위치 끄면 작성 크기 · page error 0. **원복 RED**: Handle 의 When 호출 제거 → 2 · 3 · 4 FAIL, 기억 값 제거 → 5 FAIL (복원 cmp 확인). G2 8/8 · G3 5/5 회귀 PASS.
 
-### Phase 6 (G6) — 2026-11-26 구현 닫힘 (Implemented 승격 대기 — VoiceOver 청취 · 사용자 확인)
+### Phase 6 (G6) — 2026-11-26 닫힘 · Implemented
 
 사용자 결정 3 = 권고 (Canvas 주축 손잡이가 `defaultSize` 를 쓴다). 사용자 결정 8 고침 = Builder +5,500 B (실측 +5,183).
 
@@ -288,4 +288,4 @@ live 가 잡아 고친 것: 비활성 손잡이가 hover 에 pill 을 키우지 
 
 **사용자 제안 반영 (2026-11-26 — 「orientation 에 따라 navigator-layers 트리의 icon 이 columns, rows」 · 「columns-2, rows-2」)**: Layers 의 Group 줄 아이콘이 그 줄의 `orientation` 만 구독해 (Chart 줄의 `chartType` 과 같은 방식 — `CatalogLayerIcon.tsx` `layerResizableGroupIcon`) 가로 = `Columns2` · 세로 = `Rows2` 를 그린다. 팔레트 · catalog 아이콘도 `Columns3` → `Columns2`. 뒤이어 (사용자 「방향에 맞추기 — 셋 다」) 부품 glyph 도 Canvas 의 축을 따른다 (`layerOrientedGlyph` — 팔레트 그림은 빌리지 않는다): Handle = Group 사이의 선 (가로 Group 세로선 · 세로 Group 가로선), Panel = 나뉜 한 칸 (가로 Group 세로로 긴 상자 · 세로 Group 가로로 긴 상자) — 둘 다 그 Group 의 `orientation` 만 구독. 같은 선 glyph 를 쓰는 Separator 도 자기 `orientation` 을 따른다 (팔레트 아이콘 `SeparatorHorizontal` ↔ `SeparatorVertical`, 컴포넌트 안 부품 glyph 가로선 ↔ 세로선 — 전에는 vertical 도 가로선). 단위 `CatalogLayerIcon.test.tsx`, live G6 항목 7 (Group columns-2 ↔ rows-2 · Panel panel-column ↔ panel-row · Handle 세로선 ↔ 가로선 · Separator horizontal ↔ vertical · ⌘Z) — Chrome · WebKit 7/7.
 
-남은 것: VoiceOver 청취 (G2 · G6 — 사용자) 와 사용자 확인 → Implemented 승격 · `completed/` 이동.
+**Implemented (2026-11-26)**: VoiceOver 청취 — 사용자 「VoiceOver 청취 확인했다」 (separator 이름 · 값, G2 · G6), 사용자 확인 「adr-318 은 완료 된것 아닌가?」. 승격 직전 재확인 — Phase 6 뒤 `13def5364` (/simplify) · ADR-319 (`canvasGesture.ts`) 를 지난 dev 서버에서 `adr318-g6-live.mjs` Chrome · WebKit 7/7. 본문 `completed/` 이동.

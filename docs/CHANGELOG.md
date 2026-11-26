@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-318 Implemented — Resizable 분할창 (끌어서 나누는 패널 묶음)] - 2026-11-26
+
+ADR-318 (Resizable 분할창 — react-aria 훅 + 닫힌 D1 예외) Implemented. 코드 변경 없이 남은 사용자 확인으로 닫았다 — VoiceOver 청취 사용자 「VoiceOver 청취 확인했다」 (손잡이 separator 의 이름 · 값), 사용자 확인 「adr-318 은 완료 된것 아닌가?」. 기능은 Phase 0 ~ 6 커밋 (`0048b7900` · `8143ccbe8` · `13def5364`) 그대로다.
+
+### Changed
+
+- ADR 본문을 `docs/adr/completed/` 로 옮기고 `### Live Exercise` 절을 적었다 (G1 ~ G6 live · HC5 · VoiceOver).
+- 승격 직전 재확인: Phase 6 뒤 커밋 (`13def5364` · ADR-319 의 `canvasGesture.ts`) 을 지난 dev 서버에서 `adr318-g6-live.mjs` Chrome · WebKit 7/7 (짝 유지 명령 · Canvas 손잡이 = Default size · Layout 탭 크기 칸 · Layers 방향 아이콘 · page error 0).
+
 ## [Design 패널 — Selected · Disabled keys 를 다중 select 로 (perf ratchet 조사)] - 2026-11-26
 
 목록 그룹의 「Selected keys」 · 「Disabled items」 칸이 항목마다 체크박스를 그리던 체크 목록에서 여러 개를 고르는 select 로 바뀌었다 (사용자 결정). 닫힌 칸은 고른 항목 이름을 이어 보이고, 열면 항목 전부가 목록으로 나온다.
