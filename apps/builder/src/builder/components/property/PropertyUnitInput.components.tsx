@@ -45,7 +45,11 @@ import {
   UNIT_GATED_KEYWORDS,
 } from "./PropertyUnitInput.runtime";
 import type { PropertyUnitPreset } from "./propertyUnitPresets";
-import { propertyUnitStepFrom, propertyUnitSteps } from "./propertyUnitSteps";
+import {
+  propertyUnitStepFrom,
+  propertyUnitSteps,
+  scrubWithPresetSnap,
+} from "./propertyUnitSteps";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import { BUILDER_POPUP_LIST_CLASS } from "../../styles/modules/builderPopupList";
 
@@ -91,6 +95,7 @@ export const PropertyUnitInputControl = memo(
     max = 9999,
     presets,
     presetAriaLabel,
+    snapScrubToPresets = false,
 
     labelMode = "legend",
     suffixLabel,
@@ -645,13 +650,12 @@ export const PropertyUnitInputControl = memo(
       start: number;
       original: string;
       next: string;
+      snapSteps?: ReturnType<typeof propertyUnitSteps>;
       moved: boolean;
     } | null>(null);
     /**
-     * Pointer scrub on the field's label (icon · legend — Figma's label drag): a token field walks
-     * its ladder one step per {@link SCRUB_STRIDE_PX} (D6 — the same steps the Canvas handle snaps
-     * to), ⌥ is the free value (1 per px, ⇧ ×10), a field without steps is always free. The drag
-     * previews through `onDrag` (a field without one only shows the value); release commits once.
+     * 라벨 드래그는 칸의 설정에 따라 정수 또는 프리셋 단위로 이동한다.
+     * ⌥는 자유값(⇧ ×10). 드래그 중에는 미리보기만 갱신하고 놓을 때 한 번 저장한다.
      */
     const scrubHandlers = scrubbable
       ? {
@@ -664,6 +668,10 @@ export const PropertyUnitInputControl = memo(
               start,
               original: value,
               next: value,
+              snapSteps:
+                snapScrubToPresets && pxValued
+                  ? propertyUnitSteps(presets)
+                  : undefined,
               moved: false,
             };
             event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -676,7 +684,16 @@ export const PropertyUnitInputControl = memo(
             if (!scrub.moved && Math.abs(dx) < SCRUB_THRESHOLD_PX) return;
             scrub.moved = true;
             let next: string;
-            if (steps.length && pxValued && !event.altKey) {
+            if (scrub.snapSteps && !event.altKey) {
+              next = scrubWithPresetSnap(
+                scrub.snapSteps,
+                scrub.start,
+                scrub.original,
+                dx,
+                min,
+                max,
+              );
+            } else if (steps.length && pxValued && !event.altKey) {
               const count = Math.trunc(dx / SCRUB_STRIDE_PX);
               next =
                 count === 0
@@ -1132,6 +1149,7 @@ export const PropertyUnitInputControl = memo(
       prevProps.isDisabled === nextProps.isDisabled &&
       prevProps.placeholder === nextProps.placeholder &&
       prevProps.presets === nextProps.presets &&
+      prevProps.snapScrubToPresets === nextProps.snapScrubToPresets &&
       prevProps.presetAriaLabel === nextProps.presetAriaLabel &&
       prevProps.labelMode === nextProps.labelMode &&
       prevProps.suffixLabel === nextProps.suffixLabel &&

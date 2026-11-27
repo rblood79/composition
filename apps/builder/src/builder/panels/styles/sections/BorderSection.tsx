@@ -336,6 +336,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
           value={radiusValue}
           units={["px"]}
           presets={BORDER_RADIUS_PRESET_OPTIONS}
+          snapScrubToPresets
           allowKeywords={false}
           min={0}
           max={INPUT_MAX}

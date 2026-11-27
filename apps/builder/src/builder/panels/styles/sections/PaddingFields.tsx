@@ -106,6 +106,7 @@ export const PaddingFields = memo(function PaddingFields({
         defaultUnit="px"
         // ADR-298 D3 · D4: spacing 토큰 (XS ~ XL) — 고르면 토큰 참조로 저장, 칸은 칩 + 값.
         presets={SPACING_PRESET_OPTIONS}
+        snapScrubToPresets
         presetAriaLabel={localize(`${label} presets`)}
         // 빈 값 (Mixed) 을 0 으로 그리지 않는다 — 입력할 때까지 placeholder
         preserveEmptyValueOnUnitChange

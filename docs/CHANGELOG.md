@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 Padding · Gap · Radius 아이콘 드래그] - 2026-11-28
+
+### Fixed
+
+- 아이콘을 좌우로 끌면 1px씩 조절할 수 있다. 프리셋에서는 잠깐 멈춰 해당 테마 토큰을 선택하고, 계속 끌면 중간값과 XL 이후 값도 설정할 수 있다.
+
 ## [MenuItem 항목 역할 — 스위치 없이 바로 편집 · 단축키 수식키 토글 · 패널 행 구조] - 2026-11-28
 
 ### Changed

@@ -549,6 +549,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               value={styleValues.columnGap}
               units={["px"]}
               presets={SPACING_PRESET_OPTIONS}
+              snapScrubToPresets
               allowKeywords={false}
               onChange={(value) => commitGap("columnGap", value)}
               onDragCancel={cancelStylePreview}
@@ -563,6 +564,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               value={styleValues.rowGap}
               units={["px"]}
               presets={SPACING_PRESET_OPTIONS}
+              snapScrubToPresets
               allowKeywords={false}
               onChange={(value) => commitGap("rowGap", value)}
               onDragCancel={cancelStylePreview}
@@ -629,6 +631,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               value={sessionGap !== null ? `${sessionGap}px` : styleValues.gap}
               units={["px"]}
               presets={SPACING_PRESET_OPTIONS}
+              snapScrubToPresets
               allowKeywords={false}
               isDisabled={sessionGap !== null}
               onChange={handleSpacingCommit}

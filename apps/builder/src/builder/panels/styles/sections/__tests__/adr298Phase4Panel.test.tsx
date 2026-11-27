@@ -77,7 +77,7 @@ const wrap = ({ children }: { children: ReactNode }) => (
   </PropertySelectionContext.Provider>
 );
 
-function spacingField(value: string) {
+function spacingField(value: string, snapScrubToPresets = false) {
   const onChange = vi.fn();
   const onDrag = vi.fn();
   const view = render(
@@ -86,6 +86,7 @@ function spacingField(value: string) {
       value={value}
       onChange={onChange}
       onDrag={onDrag}
+      snapScrubToPresets={snapScrubToPresets}
       presets={SPACING_PRESET_OPTIONS}
     />,
     { wrapper: wrap },
@@ -108,6 +109,54 @@ describe("ADR-298 Phase 4 — label scrub", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith(varOf("lg"));
   });
+  it("아이콘 드래그로 프리셋 양옆의 정수, 프리셋 토큰, XL 이후 값을 선택한다", () => {
+    const { fieldset, onChange, onDrag } = spacingField(varOf("sm"), true);
+    const icon = fieldset.querySelector("label")!;
+    const move = (dx: number) =>
+      fireEvent.pointerMove(icon, { clientX: 100 + dx, pointerId: 1 });
+    fireEvent.pointerDown(icon, { button: 0, clientX: 100, pointerId: 1 });
+    move(3);
+    move(6);
+    move(9);
+    move(12);
+    move(15); // 프리셋에 한 칸 더 머문다.
+    move(18);
+    expect(onDrag.mock.calls.flat()).toEqual([
+      "9px",
+      "10px",
+      "11px",
+      varOf("md"),
+      "13px",
+    ]);
+    move(-3);
+    expect(onDrag).toHaveBeenLastCalledWith("7px");
+    move(0);
+    expect(onDrag).toHaveBeenLastCalledWith(varOf("sm"));
+    const xl = px("{spacing.xl}");
+    const pastXL = (xl - 8 + 4) * 3; // M, L, XL 스냅을 지나 한 칸 더 이동.
+    move(pastXL);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.pointerUp(icon, { clientX: 100 + pastXL, pointerId: 1 });
+    expect(onChange.mock.calls).toEqual([[`${xl + 1}px`]]);
+  });
+
+  it("감소할 때도 스냅을 벗어날 수 있고 원위치로 돌아오면 기존 리터럴을 보존한다", () => {
+    const { fieldset, onChange, onDrag } = spacingField("10px", true);
+    const icon = fieldset.querySelector("label")!;
+    fireEvent.pointerDown(icon, { button: 0, clientX: 100, pointerId: 1 });
+    for (const x of [97, 94, 91, 88, 0, 100])
+      fireEvent.pointerMove(icon, { clientX: x, pointerId: 1 });
+    expect(onDrag.mock.calls.flat()).toEqual([
+      "9px",
+      varOf("sm"),
+      "7px",
+      "0px",
+      "10px",
+    ]);
+    fireEvent.pointerUp(icon, { clientX: 100, pointerId: 1 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("⌥ held is the free value (1 per px) — a literal", () => {
     const { onChange, legend } = spacingField("8px");
     fireEvent.pointerDown(legend, { button: 0, clientX: 100, pointerId: 1 });

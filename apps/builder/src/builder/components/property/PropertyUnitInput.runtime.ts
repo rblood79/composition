@@ -48,6 +48,8 @@ export interface PropertyUnitInputProps {
   max?: number;
   /** 우측 chevron 목록에서 현재 숫자값을 교체하는 preset 명령. */
   presets?: readonly PropertyUnitPreset[];
+  /** 아이콘 · 라벨을 정수 px 단위로 끌고 프리셋 값에 닿으면 토큰을 선택한다. */
+  snapScrubToPresets?: boolean;
   /** preset trigger의 접근성 이름. */
   presetAriaLabel?: string;
   /**
