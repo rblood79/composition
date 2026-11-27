@@ -118,6 +118,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Cascader `tree` · `drill` 의 고른 행 글자색이 accent 바탕 색 (`--accent`) 이던 것을 글자 역할 (`--accent-content`) 로 (ADR-290). Code 보기가 Cascader 를 `items` 목록으로 쓰지 않는다 (RAC 컴포넌트가 아니다).
 
+## [Library 테마 카드 — Colors 견본 24 × 24 · Typography · Spacing 카드 제거] - 2026-11-27
+
+### Changed
+
+- **Library 의 Colors 카드**: 색 견본을 44 → 24px 정사각 (모서리 4) 로 줄이고 견본 아래 hex 줄을 뺐다 — 이름 한 줄만 남는다. 값은 견본을 고르면 Design 패널에서 읽는다.
+  - **Why**: 사용자 2026-11-27 「color 와 font size 가 공간을 너무 차지」 → 「견본 격자, hex 빼기, 크기도 24*24」. 44px 견본 + 캡션 두 줄로 카드가 1440px 였다.
+
+### Removed
+
+- **Library 의 Typography · Spacing 카드**: 테마 카드는 Colors 하나만 남는다 — 그 뒤에 바로 컴포넌트 카드 (Badge …) 가 온다. 글자 크기 단계는 Themes 패널 Typography 에서 본다.
+  - **Why**: 사용자 2026-11-27 「typo, spacing 은 빼도 되지 않을까」 — 두 카드는 보기만 하는 표였고 첫 줄을 1,319px 로 늘렸다.
+  - live (Builder 5173 새 프로젝트 → Library, Chrome): Layers 가 Colors → Badge 순, 첫 줄 높이 1,440 → 948px (Colors 카드).
+  - 위치: `catalogRuntime/componentsPage.ts` · 회귀 `catalogRuntime/__tests__/phase4eOriginView.test.ts` · `phase4eTheme.test.tsx`
+
 ## [페이지의 Select — placeholder 자리 빗금 제거] - 2026-11-27
 
 ### Fixed

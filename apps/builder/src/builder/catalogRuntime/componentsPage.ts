@@ -1,9 +1,6 @@
 import {
   lightColors,
   resolveToken,
-  spacing,
-  typography,
-  TYPOGRAPHY_STEPS,
 } from "@composition/rendering";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { originForksOf } from "../../../../../packages/shared/src/catalog/document/originFork";
@@ -67,8 +64,8 @@ import {
 /**
  * The Components page (user 2026-10-05, sample `docs/design/components.PNG`): one derived page
  * that draws every built-in component origin as a numbered card, in palette order over a few
- * columns, after the theme's cards (01–04: colors, type scale, icons, spacing — read from the
- * theme token tables in the workspace's color mode). A card shows the origin (◆ — its one editable sample: its props and styles are the
+ * columns, after the theme's Colors card (read from the theme token table in the workspace's color
+ * mode — no Icons, Typography or Spacing card). A card shows the origin (◆ — its one editable sample: its props and styles are the
  * project's override of that origin, `originView` holds the edit rules) with its slots empty, a collection's item, then its instances (◇): variants × states (a line per variant when
  * it has state variants — `<origin>--<state>`, instances of the origin — else its variants side
  * by side); a card draws no line of sizes (user 2026-10-06: it took most of a card). All of it is graph view entries (never saved, exported or indexed). The
@@ -102,7 +99,6 @@ const COMPOSED_CELL_WIDTH = 240;
  * shrink): their cell's width.
  */
 const WIDER_CELL: Readonly<Record<string, number>> = { DateRangePicker: 360 };
-const TYPE_BASE = "text-base";
 // (A field's control Group — ADR-256 Phase 6b: a field, not a collection.)
 const CONTROL_GROUP = "lib:definition:type-Group";
 /**
@@ -844,9 +840,8 @@ export function catalogComponentsPageEntries(
     stateIds.set(base, [...(stateIds.get(base) ?? []), id]);
   }
 
-  // The theme first (01–03): its colors, type scale and spacing (no Icons card — user
-  // 2026-10-25 「03.icon 카드 전체 제거」) — the values every
-  // component below is drawn with.
+  // The theme first: its colors (no Icons card — user 2026-10-25 「03.icon 카드 전체 제거」) —
+  // the values every component below is drawn with.
   const theme = (...path: string[]) => part("theme", ...path);
   /** A theme value over its caption lines (the first names it with its mark). */
   const captioned = (
@@ -881,22 +876,24 @@ export function catalogComponentsPageEntries(
       else if (COLOR_SURFACES.includes(name)) groups.get("surface")!.push(name);
     }
     for (const [key, list] of groups) if (!list.length) groups.delete(key);
+    // A 24 × 24 swatch over its name — no hex line (user 2026-11-27 「견본 격자, hex 빼기, 크기도
+    // 24*24」: 44px swatches over two caption lines made the card 1440px tall). The value reads in
+    // the Design panel when the swatch is selected.
     const swatch = (name: string, mark: string, label = name) =>
       captioned(
         "colors",
         name,
         frame(themeSampleId("colors", name), name, [], {
-          width: 44,
-          height: 44,
+          width: 24,
+          height: 24,
           flexShrink: 0,
           backgroundColor: color(name),
-          borderRadius: 8,
+          borderRadius: 4,
           borderWidth: 1,
           borderStyle: "solid",
           borderColor: color("border"),
         }),
         `${mark} ${label}`,
-        color(name),
       );
     card(theme("colors", "card"), theme("colors", "title"), "Colors", [
       ...origins(
@@ -921,92 +918,8 @@ export function catalogComponentsPageEntries(
       ),
     ]);
   }
-  {
-    // Installed themes also add non-size tokens such as `sans` to this map.
-    const sizes = Object.keys(TYPOGRAPHY_STEPS)
-      .map(
-        (name) =>
-          [name, typography[name as keyof typeof TYPOGRAPHY_STEPS]] as const,
-      )
-      .sort((a, b) => b[1] - a[1]);
-    const lineHeights = typography as unknown as Record<string, number>;
-    const sample = ([name, size]: readonly [string, number], mark: string) =>
-      captioned(
-        "typography",
-        name,
-        text(
-          themeSampleId("typography", name),
-          "Aa 가나다 123",
-          { fontSize: size },
-          name,
-        ),
-        // `text-md` declares no line height of its own.
-        `${mark} ${name} · ${size}px${
-          lineHeights[`${name}--line-height`] === undefined
-            ? ""
-            : ` / ${lineHeights[`${name}--line-height`]}px`
-        }`,
-      );
-    const base = sizes.find(([name]) => name === TYPE_BASE) ?? sizes[0]!;
-    // The sizes one under another, each caption under its sample (user 2026-10-25 — a flex
-    // column, not a grid).
-    const rows = sizes
-      .filter((entry) => entry !== base)
-      .map((entry) => sample(entry, INSTANCE_MARK));
-    card(
-      theme("typography", "card"),
-      theme("typography", "title"),
-      "Typography",
-      [
-        ...origins("typography", [sample(base, ORIGIN_MARK)]),
-        text(theme("typography", "line", "sizes", "label"), "Sizes", {
-          fontSize: 12,
-          fontWeight: 600,
-        }),
-        frame(
-          theme("typography", "line", "sizes", "1"),
-          "Sizes",
-          rows.flatMap((row) => [row.sample, ...row.captions]),
-          {
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: 6,
-          },
-        ),
-      ],
-    );
-  }
-  {
-    const box = ([name, size]: [string, unknown], mark: string) =>
-      captioned(
-        "spacing",
-        name,
-        frame(themeSampleId("spacing", name), name, [], {
-          width: Number(size),
-          height: Number(size),
-          flexShrink: 0,
-          backgroundColor: color("accent-subtle"),
-          borderWidth: 1,
-          borderStyle: "solid",
-          borderColor: color("accent-content"),
-        }),
-        `${mark} ${name}`,
-        `${size}px`,
-      );
-    const steps = Object.entries(spacing);
-    const base = steps.find(([name]) => name === "md") ?? steps[0]!;
-    card(theme("spacing", "card"), theme("spacing", "title"), "Spacing", [
-      ...origins("spacing", [box(base, ORIGIN_MARK)]),
-      ...line(
-        theme("spacing", "line", "sizes"),
-        "Sizes",
-        steps
-          .filter((step) => step !== base)
-          .map((step) => box(step, INSTANCE_MARK)),
-        { perLine: 7 },
-      ),
-    ]);
-  }
+  // (No Typography · Spacing cards — user 2026-11-27 「typo, spacing 은 빼도 되지 않을까」: they
+  //  took a card row; the type scale is edited in the Themes panel.)
 
   /**
    * ADR-282 Decision 3: an unlocked origin's ◆ is its copy's root itself (an owned node — every

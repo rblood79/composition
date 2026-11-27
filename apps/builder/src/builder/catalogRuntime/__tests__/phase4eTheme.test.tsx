@@ -3,7 +3,6 @@ import {
   lightColors,
   resolveToken,
   typography,
-  TYPOGRAPHY_STEPS,
 } from "@composition/rendering";
 import { beforeAll, afterEach, describe, expect, it, vi } from "vitest";
 import { preloadChartFamilies } from "./support/chartFamilies";
@@ -42,7 +41,6 @@ import {
   ORIGIN_VIEW_NODE,
   componentPageNodeId,
 } from "../originView";
-import { catalogComponentPageBaseline } from "../componentsPage";
 import type { CatalogTextMeasure } from "../compositionRoot";
 import { composeOver } from "../../../../../../packages/shared/src/catalog/commands/compose";
 import { CatalogStepAbortedError, CatalogSubscriberError } from "../controller";
@@ -202,27 +200,11 @@ describe("ADR-248 Phase 4e-4d-4 Themes", () => {
       });
       expect(Reflect.get(typography, "sans")).toBe("Noto Serif KR, serif");
       workspace.showDefinition(COMPONENTS_VIEW);
-      for (const [name, size] of Object.entries(typography).filter(([name]) =>
-        Object.hasOwn(TYPOGRAPHY_STEPS, name),
-      )) {
-        const id = componentPageNodeId(
-          `${ORIGIN_VIEW_NODE}/theme/typography/${name}/sample` as NodeId,
-        );
-        expect((graph.getEntry(id) as NodeEntry).visual.fontSize).toEqual({
-          kind: "set",
-          value: size,
-        });
-        expect(
-          catalogComponentPageBaseline(graph, id)?.visual.fontSize,
-        ).toEqual({
-          kind: "set",
-          value: size,
-        });
-      }
+      // (No Typography card — user 2026-11-27: the `sans` font string is never read as a size.)
       expect(
         graph.getEntry(
           componentPageNodeId(
-            `${ORIGIN_VIEW_NODE}/theme/typography/sans/sample` as NodeId,
+            `${ORIGIN_VIEW_NODE}/theme/typography/card` as NodeId,
           ),
         ),
       ).toBeUndefined();

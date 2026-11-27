@@ -344,8 +344,8 @@ describe("ADR-248 4e library origin view", () => {
       graph.getEntry(pageNode(workspace, id)) as NodeEntry;
     // Every palette origin has one card, directly under the body.
     const cards = catalogComponentsPageCards(graph).map(nodeOf);
-    // (No Icons card — user 2026-10-25.)
-    const THEME = ["Colors", "Typography", "Spacing"];
+    // (No Icons card — user 2026-10-25; no Typography · Spacing card — user 2026-11-27.)
+    const THEME = ["Colors"];
     expect(
       cards
         .map((card) => card.name)
@@ -356,15 +356,15 @@ describe("ADR-248 4e library origin view", () => {
         .map((origin) => origin.name)
         .sort(),
     );
-    // The theme's cards come first, titled by name (no number — user 2026-10-25); their values are the
-    // theme token tables' (a swatch per color, a sample per type size, a box per spacing step).
+    // The theme's cards come first, titled by name (no number — user 2026-10-25); its values are the
+    // theme color table's (a swatch per color).
     const titleOf = (name: string) =>
       nodeOf(cards.find((candidate) => candidate.name === name)!.children[0]!)
         .name;
-    expect(THEME.map(titleOf)).toEqual(["COLORS", "TYPOGRAPHY", "SPACING"]);
+    expect(THEME.map(titleOf)).toEqual(["COLORS"]);
     expect(
       THEME.map((name) => cards.findIndex((card) => card.name === name)),
-    ).toEqual([0, 1, 2]);
+    ).toEqual([0]);
     const themeNode = (path: string) =>
       nodeOf(`${ORIGIN_VIEW_NODE}/theme/${path}`);
     expect(themeNode("colors/accent/sample").visual).toMatchObject({
@@ -373,6 +373,28 @@ describe("ADR-248 4e library origin view", () => {
         value: resolveToken("{color.accent}", "light"),
       },
     });
+    // A swatch is a 24 × 24 cell over its name alone — no hex line (user 2026-11-27 「견본 격자,
+    // hex 빼기, 크기도 24*24」: the card took 1440px).
+    expect(themeNode("colors/accent/sample").sizing).toMatchObject({
+      width: { kind: "set", value: 24 },
+      height: { kind: "set", value: 24 },
+    });
+    expect(
+      graph.getEntry(
+        pageNode(
+          workspace,
+          `${ORIGIN_VIEW_NODE}/theme/colors/accent/caption/0`,
+        ),
+      ),
+    ).toBeDefined();
+    expect(
+      graph.getEntry(
+        pageNode(
+          workspace,
+          `${ORIGIN_VIEW_NODE}/theme/colors/accent/caption/1`,
+        ),
+      ),
+    ).toBeUndefined();
     // Colors lists the semantic colors only — no row of the raw palette they pick from.
     const linesOf = (name: string) =>
       cardLines(
@@ -388,28 +410,6 @@ describe("ADR-248 4e library origin view", () => {
       "Border",
       "Surface",
     ]);
-    // The type sizes stand one under another, each caption under its sample (a flex column —
-    // user 2026-10-25).
-    const typeSizes = cardLines(
-      cards.find((candidate) => candidate.name === "Typography")!,
-      nodeOf,
-    );
-    expect(typeSizes.map((line) => line.name)).toEqual(["Origin"]);
-    const sizesFrame = nodeOf(
-      `${ORIGIN_VIEW_NODE}/theme/typography/line/sizes/1`,
-    );
-    expect(sizesFrame.layout).toMatchObject({
-      display: { kind: "set", value: "flex" },
-      flexDirection: { kind: "set", value: "column" },
-    });
-    expect(themeNode("typography/text-xl/sample").visual).toMatchObject({
-      fontSize: { kind: "set", value: 20 },
-    });
-    // A theme card reads as a component card: its base value as the origin, the rest as instances.
-    const spacingRows = linesOf("Spacing");
-    expect(spacingRows.map((row) => row.name)).toEqual(["Origin", "Sizes"]);
-    expect(cellsOf(spacingRows[0]!).map((cell) => cell.name)).toEqual(["◆ md"]);
-    expect(cellsOf(spacingRows[1]!)[0]!.name).toBe("◇ 2xs");
     const colorRows = linesOf("Colors");
     expect(cellsOf(colorRows[0]!).map((cell) => cell.name)).toEqual(
       expect.arrayContaining(["◆ accent", "◆ neutral", "◆ base"]),
@@ -417,10 +417,15 @@ describe("ADR-248 4e library origin view", () => {
     expect(cellsOf(colorRows[1]!).map((cell) => cell.name)).toEqual(
       expect.arrayContaining(["◇ hover", "◇ on-accent"]),
     );
-    // The `{spacing.*}` table = the DOM `--spacing-*` (md 12 — ADR-295 Phase 3d), the value a panel preset M writes.
-    expect(themeNode("spacing/md/sample").sizing).toMatchObject({
-      width: { kind: "set", value: 12 },
-    });
+    // No Typography · Spacing card (user 2026-11-27 「typo, spacing 은 빼도 되지 않을까」).
+    expect(
+      graph.getEntry(pageNode(workspace, `${ORIGIN_VIEW_NODE}/theme/spacing/card`)),
+    ).toBeUndefined();
+    expect(
+      graph.getEntry(
+        pageNode(workspace, `${ORIGIN_VIEW_NODE}/theme/typography/card`),
+      ),
+    ).toBeUndefined();
     const card = cards.find((candidate) => candidate.name === "Button")!;
     const title = nodeOf(card.children[0]!);
     const rows = linesOf("Button");
