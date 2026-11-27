@@ -1,0 +1,1 @@
+export{t as getCanvasKit,n as initCanvasKit,r as isCanvasKitInitialized}from"./initCanvasKit-BoC-X86d.js";
