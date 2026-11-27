@@ -18,7 +18,6 @@
   align-items: flex-end;
 
   /* Default variant */
-  background: undefined;
   color: var(--fg);
   border: none;
 

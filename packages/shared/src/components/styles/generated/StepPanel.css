@@ -17,7 +17,6 @@
   display: block;
 
   /* Default variant */
-  background: undefined;
   color: var(--fg);
   border: none;
 

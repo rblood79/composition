@@ -472,6 +472,17 @@ export function logShortcuts(shortcuts: KeyboardShortcut[]): void {
 }
 
 /**
+ * macOS 수식키 글리프 — 표기의 단일 소스. Builder 단축키 표기 (`formatShortcut`) 와 MenuItem 단축키
+ * 글자 칸 (`catalogRuntime/shortcutText.ts`) 이 같이 읽는다.
+ */
+export const MAC_MODIFIER_GLYPHS = {
+  ctrl: "⌃",
+  alt: "⌥",
+  shift: "⇧",
+  meta: "⌘",
+} as const;
+
+/**
  * 플랫폼에 맞는 단축키 표시 문자열 생성
  */
 export function formatShortcut(
@@ -481,15 +492,15 @@ export function formatShortcut(
     typeof navigator !== "undefined" && navigator.platform.includes("Mac");
 
   const modifierSymbols: Record<KeyboardModifier, string> = {
-    cmd: isMac ? "⌘" : "Ctrl+",
-    cmdShift: isMac ? "⌘⇧" : "Ctrl+Shift+",
-    cmdAlt: isMac ? "⌘⌥" : "Ctrl+Alt+",
-    ctrl: isMac ? "⌃" : "Ctrl+",
-    ctrlShift: isMac ? "⌃⇧" : "Ctrl+Shift+",
-    ctrlAlt: isMac ? "⌃⌥" : "Ctrl+Alt+",
-    alt: isMac ? "⌥" : "Alt+",
-    altShift: isMac ? "⌥⇧" : "Alt+Shift+",
-    shift: isMac ? "⇧" : "Shift+",
+    cmd: isMac ? MAC_MODIFIER_GLYPHS.meta : "Ctrl+",
+    cmdShift: isMac ? `${MAC_MODIFIER_GLYPHS.meta}${MAC_MODIFIER_GLYPHS.shift}` : "Ctrl+Shift+",
+    cmdAlt: isMac ? `${MAC_MODIFIER_GLYPHS.meta}${MAC_MODIFIER_GLYPHS.alt}` : "Ctrl+Alt+",
+    ctrl: isMac ? MAC_MODIFIER_GLYPHS.ctrl : "Ctrl+",
+    ctrlShift: isMac ? `${MAC_MODIFIER_GLYPHS.ctrl}${MAC_MODIFIER_GLYPHS.shift}` : "Ctrl+Shift+",
+    ctrlAlt: isMac ? `${MAC_MODIFIER_GLYPHS.ctrl}${MAC_MODIFIER_GLYPHS.alt}` : "Ctrl+Alt+",
+    alt: isMac ? MAC_MODIFIER_GLYPHS.alt : "Alt+",
+    altShift: isMac ? `${MAC_MODIFIER_GLYPHS.alt}${MAC_MODIFIER_GLYPHS.shift}` : "Alt+Shift+",
+    shift: isMac ? MAC_MODIFIER_GLYPHS.shift : "Shift+",
     none: "",
   };
 

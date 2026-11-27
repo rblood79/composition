@@ -18,7 +18,6 @@
   align-items: stretch;
 
   /* Default variant */
-  background: undefined;
   color: var(--fg);
   border: none;
 

@@ -8,6 +8,8 @@
  * (`⌃⌥⇧⌘K`), elsewhere names joined by `+` (`Ctrl+Alt+Shift+K`). A text the field cannot read back
  * (free words, the other platform's way) stays a free text.
  */
+import { MAC_MODIFIER_GLYPHS } from "../hooks/useKeyboardShortcutsRegistry";
+
 export type ShortcutPlatform = "mac" | "other";
 export type ShortcutModifier = "ctrl" | "alt" | "shift" | "meta";
 
@@ -24,10 +26,10 @@ export const SHORTCUT_MODIFIERS: Readonly<
   Record<ShortcutPlatform, readonly ShortcutModifierSpec[]>
 > = {
   mac: [
-    { modifier: "ctrl", label: "⌃", name: "Control" },
-    { modifier: "alt", label: "⌥", name: "Option" },
-    { modifier: "shift", label: "⇧", name: "Shift" },
-    { modifier: "meta", label: "⌘", name: "Command" },
+    { modifier: "ctrl", label: MAC_MODIFIER_GLYPHS.ctrl, name: "Control" },
+    { modifier: "alt", label: MAC_MODIFIER_GLYPHS.alt, name: "Option" },
+    { modifier: "shift", label: MAC_MODIFIER_GLYPHS.shift, name: "Shift" },
+    { modifier: "meta", label: MAC_MODIFIER_GLYPHS.meta, name: "Command" },
   ],
   other: [
     { modifier: "ctrl", label: "Ctrl", name: "Ctrl" },

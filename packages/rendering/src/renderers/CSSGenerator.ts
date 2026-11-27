@@ -603,7 +603,9 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     // toggle-indicator: the variant background is the indicator box's (Skia — Checkbox · Radio box,
     //   the DOM's `partStateStyles` rest), as the border below — the container paints none (ADR-297 후속 ②:
     //   a white box behind the whole Checkbox in the Preview only).
-    if (spec.archetype !== "toggle-indicator")
+    //   A rule without a resting background (Keyboard · Step …) writes none — `tokenToCSSVar`
+    //   would turn the missing value into the string "undefined".
+    if (spec.archetype !== "toggle-indicator" && defaultVariant.background)
       lines.push(
         emitColorLine(
           "background",
