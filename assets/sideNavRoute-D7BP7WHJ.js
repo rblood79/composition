@@ -1,0 +1,1 @@
+import{i as e}from"./rolldown-runtime-COiEfhsA.js";import{Ma as t}from"./aria-runtime-CGBz_D6O.js";var n=(0,e(t(),1).createContext)(void 0);export{n as t};
