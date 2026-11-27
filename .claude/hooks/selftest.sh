@@ -216,6 +216,31 @@ printf 'export const n = 1;\n' > "$GATE/src/new.ts"
 run_gate "$T_NEW"; assert_contains 'type-check 실패'
 rm -f "$GATE/src/new.ts"
 
+# flag 는 checkout 공용 — 그 영역을 고친 세션 (또는 agent 위임 세션) 에서만 실행한다 (2026-11-27 회귀:
+# 병렬 세션의 catalog 편집 flag 로 파일을 안 고친 세션이 generate:css 실패에 50회+ 재호출).
+mkdir -p "$GATE/.claude"
+printf '{"name":"gate-stub","scripts":{"type-check":"echo STUB-TYPE-CHECK && exit 3","generate:css":"echo STUB-GEN-CSS && exit 4","build:specs":"echo STUB-BUILD-SPECS && exit 5"}}\n' > "$GATE/package.json"
+git -C "$GATE" -c user.name=t -c user.email=t@t commit -qam stub >/dev/null 2>&1
+T_DOC="$TMP/t-gate-doc.jsonl"; : > "$T_DOC"; assistant_tool "$T_DOC" Edit "{\"file_path\":\"$GATE/docs/x.md\"}"
+T_CAT="$TMP/t-gate-cat.jsonl"; : > "$T_CAT"; assistant_tool "$T_CAT" Edit "{\"file_path\":\"$GATE/packages/shared/src/catalog/x.ts\"}"
+T_REN="$TMP/t-gate-ren.jsonl"; : > "$T_REN"; assistant_tool "$T_REN" Edit "{\"file_path\":\"$GATE/packages/rendering/src/x.ts\"}"
+case_start "남의 css flag + catalog 를 안 고친 세션 → generate:css 안 함 · flag 유지"
+touch "$GATE/.claude/.css-regen-pending"
+run_gate "$T_DOC"; assert_allow
+case_start "  flag 는 주인 세션 몫으로 남는다"
+if [ -f "$GATE/.claude/.css-regen-pending" ]; then pass; else fail "flag 삭제됨"; fi
+case_start "css flag + catalog 를 고친 세션 → generate:css 실행 (stub 실패 보고)"
+run_gate "$T_CAT"; assert_contains 'generate:css 실패'
+case_start "css flag + agent 위임 세션 → 보수적으로 generate:css 실행"
+run_gate "$T_AGENT"; assert_contains 'generate:css 실패'
+rm -f "$GATE/.claude/.css-regen-pending"
+case_start "남의 spec flag + rendering 을 안 고친 세션 → build:specs 안 함"
+touch "$GATE/.claude/.spec-rebuild-pending"
+run_gate "$T_CAT"; assert_allow
+case_start "spec flag + rendering 을 고친 세션 → build:specs 실행 (stub 실패 보고)"
+run_gate "$T_REN"; assert_contains 'build:specs 실패'
+rm -f "$GATE/.claude/.spec-rebuild-pending"
+
 # ---------- adr-status-sync-check.sh (Stop) — 임시 git repo ----------
 printf '\n== adr-status-sync-check.sh ==\n'
 REPO="$TMP/repo"; RUNS="$TMP/runs"; mkdir -p "$REPO/docs/adr" "$REPO/.claude" "$RUNS"

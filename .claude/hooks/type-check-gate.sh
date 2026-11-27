@@ -22,9 +22,24 @@ cd "${CLAUDE_PROJECT_DIR:-.}"
 LEDGER="${CLAUDE_PROJECT_DIR:-.}/scripts/agent/run-ledger.sh"
 ledger() { [ -x "$LEDGER" ] && AGENT_EVIDENCE_SOURCE=type-check-gate.sh bash "$LEDGER" evidence "$@" >/dev/null 2>&1 || true; }
 
+TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)
+
+# flag 소유 가드 (2026-11-27): 아래 두 flag 는 checkout 공용 파일이라 어느 세션이 만들었는지 모른다.
+# 이 세션이 그 영역 파일을 Edit/Write 했거나 agent 위임 (하위 편집은 transcript 에 안 잡힘) 을 했을 때만
+# 실행하고, 아니면 flag 를 주인 세션 몫으로 남겨 둔다. transcript/jq 가 없으면 실행 (보수적 유지).
+# Why: 병렬 세션의 catalog 편집으로 생긴 flag 의 generate:css 실패 (prefix 중복) 가 파일을 하나도
+#   안 고친 세션을 Stop 마다 재호출했다 (2026-11-27 실측 50회+ — 수정 권한 없는 파일이라 루프 종료 불가).
+#   아래 .ts 게이트의 세션 소유 가드와 같은 전제.
+session_owns_flag() {  # session_owns_flag <경로 정규식>
+  [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && command -v jq >/dev/null 2>&1 || return 0
+  local tools
+  tools=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | if (.name=="Task" or .name=="Agent") then "@AGENT" else (.input.file_path // .input.notebook_path // empty) end' "$TRANSCRIPT" 2>/dev/null || true)
+  printf '%s\n' "$tools" | grep -qE "^@AGENT$|$1"
+}
+
 # Spec rebuild gate: flag 존재 시 build:specs 1회 실행
 SPEC_FLAG="${CLAUDE_PROJECT_DIR:-.}/.claude/.spec-rebuild-pending"
-if [ -f "$SPEC_FLAG" ]; then
+if [ -f "$SPEC_FLAG" ] && session_owns_flag '/packages/rendering/(src|scripts)/'; then
   if ! BUILD_OUTPUT=$(pnpm build:specs 2>&1); then
     # asyncRewake: exit 2 로 모델 재호출 (stdout 이 system-reminder 로 전달)
     echo "build:specs 실패. spec 빌드 에러를 수정하세요:
@@ -41,7 +56,7 @@ fi
 #   Publish git-tracked 산출물) 는 stale → Builder↔Preview 시각 발산. generate:css 재실행 +
 #   validate:sync 로 봉합. CSS diff 발생 시 커밋 누락 방지 알림.
 CSS_FLAG="${CLAUDE_PROJECT_DIR:-.}/.claude/.css-regen-pending"
-if [ -f "$CSS_FLAG" ]; then
+if [ -f "$CSS_FLAG" ] && session_owns_flag '/packages/shared/src/catalog/'; then
   GENERATED_DIR="packages/shared/src/components/styles/generated"
   if ! CSS_OUTPUT=$(pnpm generate:css 2>&1); then
     echo "generate:css 실패. catalog rule table 변경 후 CSS 재생성 에러를 수정하세요:
@@ -70,7 +85,6 @@ fi
 # 작업 트리의 .ts 변경은 외부(병렬 세션/수동 편집) 소유 → 이 세션에서 게이트 동작 금지.
 # Why: 읽기 전용(plan mode) 세션이 외부 잔여 변경만으로 반복 차단됨 (2026-08-18 실측 4회).
 # transcript/jq 부재 시엔 기존 작업 트리 기준으로 폴백 (게이트 보수적 유지).
-TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)
 if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] && command -v jq >/dev/null 2>&1; then
   SESSION_WRITE_COUNT=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | .name' "$TRANSCRIPT" 2>/dev/null | grep -cE '^(Edit|Write|MultiEdit|NotebookEdit|Task|Agent)$' || true)
   if [ "${SESSION_WRITE_COUNT:-0}" -eq 0 ]; then
