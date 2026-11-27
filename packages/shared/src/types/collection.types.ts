@@ -143,6 +143,12 @@ export interface ApiEndpointDefinition {
      * on a refused response (400 · 422) and an ok one; none = a refused submit is a toast only.
      */
     errorsPath?: string;
+    /**
+     * ADR-322 Phase 6 (사용자 결정 4) — the endpoint declares an item's key unique across the whole
+     * hierarchy: only then does a Cascader ask its levels one by one (`{{ parentKey }}`) — the items
+     * a level brings cannot tell it (A's `01` alone while B's `01` is still to come).
+     */
+    keysUnique?: boolean;
   };
   /**
    * ADR-284 Decision 6 — how the views reading this endpoint's collection go into its request
@@ -373,6 +379,11 @@ export interface PropertyDataBinding {
      * of the level above's item (its rows stand under that item).
      */
     levelParent?: string;
+    /**
+     * ADR-322 Phase 6 (사용자 결정 4) — a Cascader whose levels load one by one: the boolean field
+     * saying a row has items under it (none = every row not yet opened may have).
+     */
+    hasChildren?: string;
     /**
      * S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field — `true`
      * disables the row's item (`CATALOG_DATA_DISABLED_TYPES`).

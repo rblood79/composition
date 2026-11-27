@@ -176,6 +176,10 @@ import {
   type SaveScope,
 } from "./collectionSave";
 import { CATALOG_CHANGES_ROOT } from "./stateTemplate";
+import type {
+  CatalogCascaderLevels,
+  CatalogCascaderLevelState,
+} from "./cascaderLevels";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -601,6 +605,18 @@ export class CatalogPreviewSession {
   private echoing = false;
   /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
   private readonly loadingStates = new Map<string, CatalogLoadingState>();
+  /**
+   * ADR-322 Phase 6 (사용자 결정 4) — a collection's levels asked by parent key, the keys a later
+   * level brought that an earlier one had, and who reads them (`cascaderLevels`).
+   */
+  private readonly levelLoads = new Map<
+    string,
+    Map<string, CatalogCascaderLevelState>
+  >();
+  private readonly levelConflicts = new Map<string, Set<string>>();
+  private readonly levelListeners = new Map<string, Set<() => void>>();
+  private levelVersion = 0;
+  private readonly levelWarned = new Set<string>();
   /** Endpoint submits in flight — a `reload` waits for them (`await fetch; list.reload()`). */
   private readonly pendingSubmits = new Set<Promise<unknown>>();
   /** Writes a record's runtime props (the view's rule runtime — `attachRuntimeProps`). */
@@ -2697,6 +2713,9 @@ export class CatalogPreviewSession {
     if (!join) {
       if (page.viewless) this.viewlessLoads.add(collectionId);
       else this.viewlessLoads.delete(collectionId);
+      // (ADR-322 Phase 6 — the first level again: the levels opened before are asked again.)
+      this.levelLoads.delete(collectionId);
+      this.levelConflicts.delete(collectionId);
     }
     if (join && held) store.appendPage(held, page.requestKey);
     else {
@@ -3009,6 +3028,199 @@ export class CatalogPreviewSession {
       return undefined;
     };
     return visit(recordId, 3);
+  }
+  /**
+   * ADR-322 Phase 6 (사용자 결정 4 · breakdown §4.3) — a Cascader record's levels loaded one by one:
+   * its binding's collection is filled by a query endpoint reading `{{ parentKey }}` that declares
+   * keys unique across the hierarchy (`responseMapping.keysUnique`). Without the declaration the
+   * levels are not asked one by one (the first answer is all there is) — said once.
+   */
+  cascaderLevels(recordId: string): CatalogCascaderLevels | undefined {
+    const root = this.currentRoot;
+    const graph = this.graph;
+    const record = root?.domInputs.get(recordId);
+    const source = record && graph?.getEntry(record.sourceId as never);
+    const binding = source?.kind === "node" ? source.binding : undefined;
+    if (!binding) return undefined;
+    const collectionId = dataCollectionIdOf(binding.collectionId);
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const endpoint =
+      collection && !collection.useMockData
+        ? this.endpointFilling(collection)
+        : undefined;
+    if (!endpoint || !endpointReadsTemplate(endpoint, "parentKey"))
+      return undefined;
+    if (endpoint.responseMapping?.keysUnique !== true) {
+      if (!this.levelWarned.has(collectionId)) {
+        this.levelWarned.add(collectionId);
+        console.warn(
+          `[Cascader] ${collection?.name ?? collectionId} — 단계별로 불러오려면 endpoint 가 「key 가 계층 전체에서 유일」 을 선언해야 한다 (첫 응답만 쓴다)`,
+        );
+      }
+      return undefined;
+    }
+    // (A field map names a field by its document id `data:field:<schema id>`.)
+    const fieldKey = (ref: string | undefined) => {
+      if (!ref) return undefined;
+      const id = ref.startsWith("data:field:")
+        ? ref.slice("data:field:".length)
+        : ref;
+      return collection?.schema?.find((field) => field.id === id)?.key ?? id;
+    };
+    const parentField = fieldKey(binding.fieldMap.parentId) ?? "parentId";
+    const flagField = fieldKey(binding.fieldMap.hasChildren);
+    const states = this.levelStatesOf(collectionId);
+    const dataKey = this.dataKeyOf(collectionId);
+    const held = this.mainLists.get(collectionId);
+    // (The rows read: the collection's own list, else the Builder's API rows · the author's.)
+    const rows: readonly unknown[] = held
+      ? this.shownRows(collectionId, held)
+      : ((!collection!.useMockData && collection!.runtimeData) ||
+            collection!.mockData ||
+            []);
+    const branchKeys = new Set<string>();
+    for (const row of rows as readonly Record<string, unknown>[]) {
+      const key = dataKey(row);
+      if (key === undefined || states.get(String(key)) === "loaded") continue;
+      if (flagField === undefined || row[flagField] === true)
+        branchKeys.add(String(key));
+    }
+    return {
+      branchKeys,
+      stateOf: (parentKey) => states.get(parentKey),
+      load: (parentKey) =>
+        void this.loadLevel(collectionId, parentKey, parentField),
+      conflicts: this.levelConflicts.get(collectionId) ?? new Set(),
+      subscribe: (listener) => {
+        let listeners = this.levelListeners.get(collectionId);
+        if (!listeners)
+          this.levelListeners.set(collectionId, (listeners = new Set()));
+        listeners.add(listener);
+        return () => listeners!.delete(listener);
+      },
+      version: () => this.levelVersion,
+    };
+  }
+  private levelStatesOf(
+    collectionId: string,
+  ): Map<string, CatalogCascaderLevelState> {
+    let states = this.levelLoads.get(collectionId);
+    if (!states) this.levelLoads.set(collectionId, (states = new Map()));
+    return states;
+  }
+  /**
+   * One level's items (`{{ parentKey }}`), joined to the collection's list under their parent. A
+   * key the store already holds under another parent breaks the declaration: the row is kept under
+   * its own store key (both items stand — and cannot be picked, Decision 4) and reported.
+   */
+  private async loadLevel(
+    collectionId: string,
+    parentKey: string,
+    parentField: string,
+  ): Promise<void> {
+    const states = this.levelStatesOf(collectionId);
+    const state = states.get(parentKey);
+    if (state === "loading" || state === "loaded") return;
+    states.set(parentKey, "loading");
+    this.levelChanged(collectionId);
+    const at = this.startRequest();
+    try {
+      const endpoint = this.queryEndpoint(collectionId);
+      const resolve = this.endpointTemplateFor(collectionId, undefined, {
+        parentKey,
+      });
+      const page = await loadCollectionEndpoint(
+        endpoint,
+        new AbortController().signal,
+        resolve,
+      );
+      const intake = intakeQueryItems(
+        page.items,
+        this.collections.find((item) => item.id === collectionId),
+      );
+      const items = (Array.isArray(intake) ? intake : [intake])
+        .filter(
+          (item): item is Record<string, unknown> =>
+            !!item && typeof item === "object",
+        )
+        .map((item) =>
+          item[parentField] === undefined ||
+          item[parentField] === null ||
+          item[parentField] === ""
+            ? { ...item, [parentField]: parentKey }
+            : item,
+        );
+      const store = this.storeOf(collectionId);
+      const dataKey = this.dataKeyOf(collectionId);
+      const broken: string[] = [];
+      const requestKey: RequestKey = `level\u0000${parentKey}`;
+      let held = this.mainLists.get(collectionId);
+      if (!held) {
+        // (No load of its own yet — the first level came as the Builder's API rows (or the
+        //  author's): the list starts with them, the levels join it.)
+        const source = this.collections.find(
+          (item) => item.id === collectionId,
+        );
+        const api = !!source && !source.useMockData && !!source.runtimeData;
+        const first = this.sourceList(
+          collectionId,
+          api,
+          (api ? source!.runtimeData : source?.mockData) ?? [],
+        );
+        held = `main\u0000levels` as ListKey;
+        store.startList(held, first);
+        this.mainLists.set(collectionId, held);
+      }
+
+      store.accept(requestKey, items, {
+        at,
+        keyOf: (row) => {
+          const own = dataKey(row);
+          if (own === undefined) return undefined;
+          const key = String(own);
+          const known = store.knownRow(key);
+          if (known && String(known[parentField] ?? "") !== parentKey) {
+            broken.push(key);
+            return `${key}\u0000${parentKey}`;
+          }
+          return key;
+        },
+        keyless: "answer",
+      });
+      store.appendPage(held, requestKey);
+      if (broken.length) {
+        let conflicts = this.levelConflicts.get(collectionId);
+        if (!conflicts)
+          this.levelConflicts.set(collectionId, (conflicts = new Set()));
+        for (const key of broken) conflicts.add(key);
+        console.warn(
+          `[Cascader] 서버 계약 위반 — key 가 계층 전체에서 유일하다고 선언한 endpoint 가 이미 받은 key 를 다른 단계에서 보냈다: ${broken.join(", ")} (그 항목들은 고를 수 없다)`,
+        );
+      }
+      states.set(parentKey, "loaded");
+    } catch (error) {
+      states.set(parentKey, "error");
+      console.warn(
+        `[CatalogPreview] ${collectionId} 의 「${parentKey}」 단계를 읽지 못했다:`,
+        error,
+      );
+    } finally {
+      this.endRequest(at);
+      this.levelChanged(collectionId);
+    }
+  }
+  private levelChanged(collectionId: string): void {
+    this.levelVersion += 1;
+    const errors =
+      this.currentRoot?.refreshRows(
+        new Set([`data:collection:${collectionId}`]),
+      ) ?? [];
+    if (errors.length) console.error("[CatalogPreview] levels:", ...errors);
+    for (const listener of this.levelListeners.get(collectionId) ?? [])
+      listener();
+    this.changed();
   }
   /** `useAsyncList.sort(sortDescriptor)` with a server sort — loads again (S2 `sorting`). */
   async sortCollection(

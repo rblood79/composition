@@ -13,6 +13,10 @@ const FILES = [
   "../runtime/cascader.components.tsx",
   "../runtime/cascaderMenu.components.tsx",
   "../runtime/cascaderPanel.components.tsx",
+  "../runtime/cascaderSearch.components.tsx",
+  "../runtime/cascaderOpen.ts",
+  "../runtime/cascaderForm.components.tsx",
+  "../runtime/cascaderLevels.ts",
 ];
 const ALLOWED_ARIA = new Set([
   "aria-label",
@@ -36,4 +40,46 @@ describe("ADR-322 G2 — D1: the assembly's role · aria · key handler are RAC'
         .filter((name) => !ALLOWED_ARIA.has(name));
       expect(aria).toEqual([]);
     });
+});
+
+/**
+ * ADR-322 G6 — the closed D1 exception (breakdown §3.1, `ssot-hierarchy.md` §1 D1): the one element
+ * the assembly draws itself is the form value `input`, with RAC `HiddenSelect`'s props and nothing
+ * else — no role, `aria-*`, focus or key handler; no other native element.
+ */
+const INPUT_PROPS = [
+  "key",
+  "ref",
+  "name",
+  "form",
+  "value",
+  "disabled",
+  "type",
+  "style",
+  "required",
+  "onChange",
+];
+
+describe("ADR-322 G6 — D1 exception: the value input's props are §3.1's list", () => {
+  const field = source("../runtime/cascader.components.tsx");
+  const run = source("../runtime/cascaderForm.components.tsx");
+
+  it("the form run draws one `input` element, its props = the list", () => {
+    const inputs = [...run.matchAll(/<input\b([\s\S]*?)\/>/g)];
+    expect(inputs).toHaveLength(1);
+    const props = [...inputs[0]![1]!.matchAll(/^\s*([A-Za-z]+)=/gm)].map(
+      (match) => match[1],
+    );
+    expect(props).toEqual(INPUT_PROPS);
+    expect([...run.matchAll(/<([a-z]+)[\s>]/g)].map((m) => m[1])).toEqual([
+      "input",
+    ]);
+  });
+
+  it("the field draws no other native element than its `div` and the value text's `span` (RAC `SelectValue`'s)", () => {
+    const tags = [...field.matchAll(/createElement\(\s*"([a-z]+)"/g)].map(
+      (match) => match[1],
+    );
+    expect([...new Set(tags)].sort()).toEqual(["div", "span"]);
+  });
 });

@@ -218,6 +218,12 @@ export interface ResponseMapping {
    * `name` → a message or messages); the Preview session's `callEndpoint`.
    */
   errorsPath?: string;
+
+  /**
+   * ADR-322 Phase 6 (사용자 결정 4) — the endpoint declares item keys unique across the hierarchy
+   * (a Cascader then loads its levels one by one with `{{ parentKey }}`).
+   */
+  keysUnique?: boolean;
 }
 
 /**

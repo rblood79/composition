@@ -5,6 +5,7 @@ import {
   cascaderValueRefusal,
 } from "./cascader";
 import type { CatalogFilterBarAccess } from "./filterBarAccess";
+import type { CatalogCascaderLevels } from "./cascaderLevels";
 import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
   buildInteractionIndex,
@@ -600,6 +601,8 @@ export interface CatalogPreviewInteractionsOptions {
   serverFilterOf?: (recordId: string) => string | undefined;
   /** ADR-320 Phase 3 — a running filter bar's scope (`CatalogTableController.filterBarAccess`). */
   filterBarAccess?: (recordId: string) => CatalogFilterBarAccess | undefined;
+  /** ADR-322 Phase 6 — a Cascader's levels loaded one by one (`CatalogPreviewSession.cascaderLevels`). */
+  cascaderLevels?: (recordId: string) => CatalogCascaderLevels | undefined;
   /**
    * ADR-320 Phase 5 (§5.9) — a rule's Do on a bar's scope (`CatalogTableController.filterBarDo`), its
    * named state (the applied conditions' count) and the scope's changes (When 「필터 변경」).
@@ -1377,6 +1380,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   }
   filterBarAccess(recordId: string): CatalogFilterBarAccess | undefined {
     return this.options.filterBarAccess?.(recordId);
+  }
+  cascaderLevels(recordId: string): CatalogCascaderLevels | undefined {
+    return this.options.cascaderLevels?.(recordId);
   }
   serverFilterOf(recordId: string): string | undefined {
     return this.options.serverFilterOf?.(recordId);

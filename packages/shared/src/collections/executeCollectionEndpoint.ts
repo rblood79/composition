@@ -46,8 +46,10 @@ const TEMPLATE = /\{\{[^}]*\}\}/;
  * `?sort={{ sortDescriptor.column }}`). Not given yet (the first page, no text) = empty: the query
  * parameter is left out.
  */
-// (ADR-310 Phase 7 — `page` · `pageSize`: a paged list's page, its rows a page.)
-export const ENDPOINT_LOAD_ARGUMENTS = ["cursor", "filterText", "sortDescriptor", "page", "pageSize"] as const;
+// (ADR-310 Phase 7 — `page` · `pageSize`: a paged list's page, its rows a page. ADR-322 Phase 6
+//  (사용자 결정 4) — `parentKey`: a Cascader level's items, asked by their parent's key — empty =
+//  the first level.)
+export const ENDPOINT_LOAD_ARGUMENTS = ["cursor", "filterText", "sortDescriptor", "page", "pageSize", "parentKey"] as const;
 const LOAD_ARGUMENT = new RegExp(`\\{\\{\\s*(?:${ENDPOINT_LOAD_ARGUMENTS.join("|")})\\b`);
 
 /** Whether an endpoint's path · query read a template (and so a load argument or the route). */

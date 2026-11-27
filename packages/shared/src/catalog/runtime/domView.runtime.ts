@@ -164,6 +164,8 @@ export function catalogPreviewRuntime(
       session.setFilterText(collectionId, filterText),
     serverFilterOf: (recordId) => session.serverFilterOf(recordId),
     filterBarAccess: (recordId) => session.tables.filterBarAccess(recordId),
+    // (ADR-322 Phase 6 — a Cascader's levels loaded one by one.)
+    cascaderLevels: (recordId) => session.cascaderLevels(recordId),
     // (ADR-320 Phase 5 — a rule's Do on a bar's scope, its named state and its When.)
     filterBarDo: (recordId, write, value) =>
       session.tables.filterBarDo(recordId, write, value),

@@ -1,5 +1,6 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
 import type { CatalogFilterBarAccess } from "./filterBarAccess";
+import type { CatalogCascaderLevels } from "./cascaderLevels";
 import { catalogResizableGripGlyph } from "../document/resizableChrome";
 import {
   catalogRegisterResizablePanelEvents,
@@ -443,6 +444,10 @@ export interface DelegatedDomInput {
   ) => void;
   /** ADR-320 Phase 3 — a running filter bar's scope (absent = a static render). */
   readonly filterBar?: (recordId: string) => CatalogFilterBarAccess | undefined;
+  /** ADR-322 Phase 6 — a Cascader's levels loaded one by one (absent = a static render · all rows). */
+  readonly cascaderLevels?: (
+    recordId: string,
+  ) => CatalogCascaderLevels | undefined;
   /** The collection the record's text filters on the server · that text's load (`setFilterText`). */
   readonly serverFilterOf?: (recordId: string) => string | undefined;
   readonly setFilterText?: (collectionId: string, filterText: string) => void;
@@ -4698,6 +4703,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ? cascaderValueKeys(own.value)
           : cascaderStartKeys(props);
       const multiple = cascaderMultiple(props);
+      // (ADR-322 Phase 6 — levels loaded one by one: the branches not opened yet are branches.)
+      const levels = input.cascaderLevels?.(input.node.id);
       const open = input.setRuntimeProps
         ? (openState(input) as {
             isOpen?: boolean;
@@ -4734,7 +4741,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           isDisabled,
           isRequired,
           isInvalid,
-          table: cascaderTableOf(input.node, get, typeOf),
+          // (Phase 6 — the form value: `name`, and the start keys a form reset goes back to.)
+          name: str(props.name) || undefined,
+          startKeys: cascaderStartKeys(props),
+          levels,
+          table: cascaderTableOf(input.node, get, typeOf, levels?.branchKeys),
           mode:
             props.mode === "tree" || props.mode === "drill"
               ? props.mode

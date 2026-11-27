@@ -328,6 +328,7 @@ export function ApiEndpointEditor({
               field="errorsPath"
               placeholder="errors"
             />
+            <KeysUniqueRow endpoint={endpoint} save={save} dt={dt} />
           </Section>
           <QueryFormatSection endpoint={endpoint} save={save} dt={dt} />
           <Section title={dt("apiUploadSection")} collapsible={false}>
@@ -431,6 +432,40 @@ function ResponsePathRow({
       />
       <p className="datatable-api-hint">{dt(`${label}Hint`)}</p>
     </>
+  );
+}
+/**
+ * ADR-322 Phase 6 (사용자 결정 4) — the endpoint declares item keys unique across the hierarchy
+ * (`responseMapping.keysUnique`): a Cascader bound to its collection then asks its levels one by one
+ * with `{{ parentKey }}` (the items a level brings cannot tell it).
+ */
+function KeysUniqueRow({
+  endpoint,
+  save,
+  dt,
+}: {
+  endpoint: ApiEndpoint;
+  save: SaveFn;
+  dt: DtFn;
+}) {
+  const declared = endpoint.responseMapping?.keysUnique === true;
+  return (
+    <div className="datatable-api-stack">
+      <PropertySwitch
+        label={dt("apiKeysUnique")}
+        isSelected={declared}
+        onChange={(checked) => {
+          const { keysUnique: _previous, ...mapping } =
+            endpoint.responseMapping ?? { dataPath: "" };
+          void save({
+            responseMapping: checked
+              ? { ...mapping, keysUnique: true }
+              : mapping,
+          });
+        }}
+      />
+      <p className="datatable-api-hint">{dt("apiKeysUniqueHint")}</p>
+    </div>
   );
 }
 type DtFn = (

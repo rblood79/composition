@@ -894,6 +894,7 @@ export interface TranslationKeys {
     fieldMapChildren: string;
     fieldMapParentId: string;
     fieldMapLevelParent: string;
+    fieldMapHasChildren: string;
     cascaderRepeatedKey: string;
     fieldMapAuto: string;
     fieldMapDisabled: string;

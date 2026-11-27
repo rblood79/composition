@@ -1256,6 +1256,7 @@ const catalog: TranslationKeys = {
     fieldMapChildren: "하위 항목 필드 (트리)",
     fieldMapParentId: "부모 ID 필드 (트리)",
     fieldMapLevelParent: "상위 단계 필드",
+    fieldMapHasChildren: "하위 항목 있음 필드",
     cascaderRepeatedKey:
       "key 가 겹치는 항목 {count} 개는 고를 수 없다 — 값 필드를 유일한 필드로 바꾼다.",
     fieldMapAuto: "자동",
@@ -2480,6 +2481,9 @@ const catalog: TranslationKeys = {
     apiErrorsPath: "필드 오류 경로",
     apiErrorsPathHint:
       "제출 응답에서 필드 오류가 있는 곳 (예: errors · fieldErrors — 필드 이름마다 문구 하나 또는 여러 개). Form 이 그 필드에 오류를 보이고 사용자가 고치면 지운다. 거절된 제출 뒤의 Do 는 실행하지 않는다 (S2 Form validationErrors).",
+    apiKeysUnique: "단계 전체에서 key 유일",
+    apiKeysUniqueHint:
+      "이 endpoint 가 보내는 항목 key 가 계층 전체에서 겹치지 않는다. 그러면 Cascader 가 단계를 하나씩 불러온다 — 조회가 {{ parentKey }} 를 읽는다 (비면 첫 단계). 선언이 없으면 첫 응답만 쓴다.",
     apiResponsePaths: "응답 경로",
     apiQuerySection: "조회",
     apiUploadSection: "업로드",

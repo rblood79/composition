@@ -1,6 +1,6 @@
 # ADR-322 breakdown — Cascader (여러 단계를 파고드는 선택 필드)
 
-> 결정: [ADR-322](../322-cascader-hierarchical-picker.md). 경로 약칭 `S/` = `packages/shared/src/`.
+> 결정: [ADR-322](../completed/322-cascader-hierarchical-picker.md). 경로 약칭 `S/` = `packages/shared/src/`.
 
 ## 1. 범위 · 출처
 
@@ -315,3 +315,33 @@ G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
 - 패널 라벨: 검색 스위치의 라벨을 「Searchable」 로 두면 기존 번역 키 (`properties.searchable` — 데이터 필드의 「검색 대상」) 를 타서 뜻이 달라, 「Search items」 (항목 검색) 로 두고 「Select any level」 (어느 단계든 고르기) 와 함께 번역 키를 넣었다 — live 0 번 단계가 본다.
 - 회귀: shared 3,057 · builder unit 10,141 · type-check 0.
 - 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, HEAD `097c23333` 위 작업 트리 — 이 Phase 의 tracked 소스 11 파일만 되돌린 빌드와 나란히): Builder initial 1,666,328 → **1,667,442 (+1,114)** — P1 ~ P5 합계 **+5,535** (몫 +6,000 까지 465 B · 절대 상한 1,668,000 까지 558 B). Preview JS · CSS 0. 검색 · 열린 내용은 lazy chunk.
+
+### Phase 6 — G6 (2026-11-27)
+
+**사용자 답 (Phase 6 진입 전)**: 결정 4 = 단계별 원격 로드 넣는다 (부모 key 로 자식을 묻는 요청 · 「key 가 계층 전체에서 유일」 선언 endpoint 만) · 번들 = 몫 +6,000 유지, 넘으면 lazy 로 옮겨 보고.
+
+**폼 값 · 필수 검증 (§3.1 — 닫힌 D1 예외)**: 필드 안의 lazy 부품 `cascaderForm.components.tsx` 가 숨은 값 input (RAC `HiddenSelect` 의 input 길) 과 검증 연결을 갖는다 — react-stately `useFormValidationState` (빈 필수 값 · 응답의 필드 오류 by `name` · 작성한 `isInvalid`) + react-aria `useFormValidation` (첫 input · `invalid` 가 FieldError 에 오류를 올리고 focus 를 여는 Button 으로) + `useFormReset` (시작 key). Form 의 검증 방식은 RAC `FormContext`. 필드는 결과만 받아 `useField` · `FieldErrorContext` 에 넘긴다 (작성한 `isInvalid` 는 부품이 오기 전에도 보인다). 고르기가 `commitValidation`. 목록 전문은 `ssot-hierarchy.md` §1 D1 로 옮겼다 (정적 게이트 `adr322D1Static` — input 하나 · 속성 목록 · 필드가 직접 그리는 요소는 `div` · `span` 뿐).
+
+**단계별 원격 로드 (결정 4 · §4.3)**:
+
+- 선언: endpoint 의 `responseMapping.keysUnique` (Data 패널 endpoint 편집기 「단계 전체에서 key 유일」 — responseMapping 은 자유 JSON 이라 contract 변경 없음) + 조회가 load 인자 `{{ parentKey }}` 를 읽는다 (`ENDPOINT_LOAD_ARGUMENTS` — 비면 그 query 를 빼서 첫 단계). 선언 없이 `{{ parentKey }}` 만 읽으면 단계별로 묻지 않고 콘솔에 한 번 알린다 (첫 응답만 쓴다).
+- 세션 `cascaderLevels(recordId)` (`cascaderLevels.ts` 의 접근 — DOM 까지 `serverFilterOf` · `filterBarAccess` 와 같은 길): 아직 열지 않은 가지 (`branchKeys` — 연결의 새 역할 「하위 항목 있음 필드」 (`fieldMap.hasChildren`, boolean) 가 `true` 인 행, 역할이 없으면 열지 않은 모든 행) · 가지별 상태 (`loading` · `error` · `loaded`) · 불러오기 · 겹친 key · 구독. 행은 `shownRows` 로 읽는다 (ADR-325 한 읽기). 단계 응답은 부모 필드를 채워 (`fieldMap.parentId` — 행에 없으면 부모 key) 저장소의 main list 에 이어 붙인다 — 첫 단계가 Builder 가 실행해 보낸 행이면 그 행으로 list 를 시작한다. 새 첫 단계 (reload) 는 단계 상태를 지운다.
+- 표: 불러오지 않은 가지는 자식 없이도 가지 (`hasChildItems` — 끝 항목만 모드에서 값이 아니다).
+- 열린 내용: columns 는 하위 menu 가 열릴 때, tree 는 펼칠 때, drill 은 들어갈 때 그 단계를 묻는다. 오기 전에는 상태 항목 하나 — 「불러오는 중…」 (비활성) · 실패면 「불러오지 못함 — 다시 시도」 (누르면 다시 묻는다 — columns 는 menu 를 닫지 않음, `shouldCloseOnSelect={false}`). 세 내용이 단계 상태를 구독한다 (`useCascaderLevels`). 검색은 불러온 항목에서만 찾고 「불러온 항목에서만 찾는다」 를 보인다.
+- 선언 위반: 이미 저장소에 다른 부모로 있는 key 가 다른 단계에서 오면 그 행을 자기 저장소 key (`key + 부모`) 로 따로 두고 (두 항목 모두 서 있고 — 행 읽기가 겹친 key 로 갈라 둘 다 고를 수 없다, Decision 4) 콘솔에 「서버 계약 위반」. 지금 값이 그 key 면 값을 비우고 알린다.
+
+**live 가 찾은 것 · 고친 것**:
+
+- `fieldMap` 값은 문서 id `data:field:<schema id>` 라 schema field id 와 그대로 비교하면 부모 · 하위 항목 필드를 못 찾았다 (가지가 끝 항목으로 보임) — 접두어를 벗겨 찾는다 (live RED L6-1).
+- Builder Preview 의 첫 단계는 세션의 자기 로드가 아니라 Builder 가 실행해 보낸 행 (`runtimeData`) 이라 main list 가 없었다 — 단계를 처음 불러올 때 그 행으로 list 를 시작한다.
+- tree 의 접힌 자리 항목과 상태 행이 같은 React 자리에서 id 만 바뀌어 RAC 가 「Cannot change the id of an item」 — 둘에 `key` (단위가 찾음).
+- 번들: 처음 측정 +595 B (P1 ~ P6 +6,130 — 몫 초과 130 B · 절대 상한 초과 38 B) → 폼 실행 · 선언 위반 처리를 lazy 부품으로 옮겨 **+289 B**.
+
+**G6 결과**:
+
+- 단위: builder `adr322CascaderForm.test.tsx` 6 / 6 (실행 중 Preview 의 Form — native 필수 빈 값: 제출 0 · invalid · focus 여는 버튼 · `required` input 하나 / 값: key 하나 · 다중 key 둘 (같은 name) / 비활성: 막지 않음 · 싣지 않음 / 필수 아님 빈 값: `""` 하나 / 이름 없음: 필수면 검증만 (싣지 않음) · 아니면 input 0 / aria Form: 제출됨 · `hidden`) · `adr322CascaderLevels.test.tsx` 5 / 5 (불러오지 않은 가지 = 가지 · columns 상태 항목 · 다시 시도 · drill · tree · 선언 위반 값 비움) · shared `adr322D1Static` 8 / 8.
+- 원복 RED 8 / 8 (input 없음 · `required` 없음 · `disabled` 없음 · focus 없음 · columns 상태 · drill 불러오기 · 선언 위반 값 · 불러오지 않은 가지) + live RED 2 / 2 (필드 id 접두어 → G6 1 FAIL · 다른 단계의 같은 key 감지 없음 → G6 4 FAIL — A 의 항목이 B 로 옮겨져 사라짐), 모두 바이트 복원 확인.
+- live `apps/builder/scripts/adr322-g6-live.mjs` (Builder 에서 원격 표 셋 · endpoint 셋 · Cascader 다섯 · Form 안 Cascader → Publish, 원격 응답은 route — 400 ms 지연): Chrome **8 / 8** · WebKit **8 / 8** — columns 첫 단계 · 「불러오는 중…」 [disabled] · 강남구 › 역삼동 → 「서울 / 강남구 / 역삼동」 · 요청 `?` · `?11` · `?680` 한 번씩 (다시 열어도 0) / 500 → 「불러오지 못함 — 다시 시도」 → 해운대구 / tree 펼침 · drill 들어가기 / A/01 고른 뒤 B/01 → 둘 다 [disabled] · 값 비움 · 콘솔 둘 / 선언 없는 endpoint 요청 1 · 안내 / 검색 「불러온 항목에서만」 / Form native 필수 빈 값 제출 0 · focus BUTTON · invalid → Books 고른 뒤 `category=books` / page error 0. 회귀 live: G1 Chrome 19 / 19 · G2 ~ G5 Chrome · WebKit 6 / 6 (G5 는 HC5 를 뺀 판 — HC5 는 Phase 5 측정 그대로, 열린 내용의 HC5 경로는 이 Phase 에서 바뀌지 않았다).
+- 회귀: shared 3,063 · builder unit 10,153 · type-check 0. (중간에 ADR-325 정적 게이트 `adr325OneRead` 가 `shownRows` 밖의 행 읽기를 막아 고쳤다.)
+- 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, HEAD `1f57fa4c5` 위 작업 트리 — 이 Phase 의 tracked 소스 21 파일만 되돌린 빌드와 나란히): Builder initial 1,667,442 → **1,667,731 (+289)** — P1 ~ P6 합계 **+5,824** (몫 +6,000 까지 176 B · 절대 상한 1,668,000 까지 269 B). Preview JS · CSS 0.
+- 남은 것 (보고): (1) VoiceOver 청취와 사용자 확인 — Gate G6 의 마지막 항목. (2) 다중 선택의 시작 값은 작성할 수 없다 (`defaultValue` 는 글자 하나 — 실행 중 고르기 · 규칙만 다중). (3) 응답의 필드 오류가 같은 `name` 의 Cascader 에 오르는 경로 (`useFormValidationState` 의 `name`) 는 단위 · live 로 따로 보지 않았다 (LOW — 경로는 RAC Select 와 같은 hook).

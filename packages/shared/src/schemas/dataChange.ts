@@ -166,6 +166,11 @@ export const ApiEndpointDraftSchema = z.object({
   totalPath: z.string().optional(),
   /** S2 Form `validationErrors` — a submit response's field errors (`responseMapping.errorsPath`; `""` clears it). */
   errorsPath: z.string().optional(),
+  /**
+   * ADR-322 Phase 6 (사용자 결정 4) — item keys unique across the hierarchy
+   * (`responseMapping.keysUnique`; `false` clears it).
+   */
+  keysUnique: z.boolean().optional(),
   /** ADR-284 Decision 6 — the views' query format (`null` clears it — local only). */
   querySerialization: z
     .object({

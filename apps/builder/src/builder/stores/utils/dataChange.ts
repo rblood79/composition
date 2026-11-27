@@ -349,6 +349,9 @@ function withResponsePaths(
     if (value) next[key] = value;
     else delete next[key];
   }
+  // (ADR-322 Phase 6 — the keys-unique declaration: `true` sets it, `false` clears it.)
+  if (draft.keysUnique === true) next.keysUnique = true;
+  else if (draft.keysUnique === false) delete next.keysUnique;
   return next;
 }
 
@@ -388,6 +391,7 @@ export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
     selectedKeysPath: endpoint.responseMapping?.selectedKeysPath ?? "",
     totalPath: endpoint.responseMapping?.totalPath ?? "",
     errorsPath: endpoint.responseMapping?.errorsPath ?? "",
+    keysUnique: endpoint.responseMapping?.keysUnique === true,
     querySerialization: endpoint.querySerialization ?? null,
     ...(endpoint.targetCollectionId !== undefined
       ? { targetCollectionId: endpoint.targetCollectionId }

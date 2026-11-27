@@ -99,6 +99,7 @@ type FieldMapRole =
   | "children"
   | "parentId"
   | "levelParent"
+  | "hasChildren"
   | "disabled"
   | "unavailable"
   | "unavailableEnd";
@@ -135,6 +136,7 @@ const FIELD_MAP_ROLE_LABEL: Record<
   | "fieldMapChildren"
   | "fieldMapParentId"
   | "fieldMapLevelParent"
+  | "fieldMapHasChildren"
   | "fieldMapDisabled"
   | "fieldMapUnavailable"
   | "fieldMapUnavailableEnd"
@@ -143,6 +145,7 @@ const FIELD_MAP_ROLE_LABEL: Record<
   children: "fieldMapChildren",
   parentId: "fieldMapParentId",
   levelParent: "fieldMapLevelParent",
+  hasChildren: "fieldMapHasChildren",
   disabled: "fieldMapDisabled",
   unavailable: "fieldMapUnavailable",
   unavailableEnd: "fieldMapUnavailableEnd",
@@ -319,6 +322,9 @@ export const CollectionBinding = memo(function CollectionBinding({
         ...(ruleId && CATALOG_DATA_DISABLED_TYPES.has(ruleId)
           ? (["disabled"] as const)
           : []),
+        // ADR-322 Phase 6 (사용자 결정 4) — a Cascader whose levels load one by one: the boolean
+        // field saying a row has items under it (none = any row not opened may have).
+        ...(ruleId === "Cascader" ? (["hasChildren"] as const) : []),
       ];
   const [rowTemplateMode, setRowTemplateMode] = useState<"template" | "keep">(
     "template",

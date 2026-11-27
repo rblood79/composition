@@ -46,6 +46,11 @@ export interface CascaderSourceItem {
   readonly name: string;
   readonly isDisabled?: boolean;
   readonly children?: readonly CascaderSourceItem[];
+  /**
+   * ADR-322 Phase 6 — a branch whose items are not loaded yet (levels loaded one by one): no
+   * children here, still a branch (not a value while the field picks leaves).
+   */
+  readonly hasChildItems?: boolean;
 }
 
 export interface CascaderTable {
@@ -103,7 +108,7 @@ export function cascaderTable(
         names,
         parentPathId: parent?.pathId ?? null,
         depth,
-        hasChildren: children.length > 0,
+        hasChildren: children.length > 0 || item.hasChildItems === true,
         isDisabled: item.isDisabled === true,
       });
       if (children.length) walk(children, { pathId, names }, depth + 1);
@@ -280,19 +285,26 @@ export function cascaderStaticItems(
   cascader: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
+  /** ADR-322 Phase 6 — the keys of branches whose level is not loaded yet. */
+  branchKeys?: ReadonlySet<string>,
 ): CascaderSourceItem[] {
   const level = (node: CatalogConsumerNode): CascaderSourceItem[] =>
     node.children.flatMap((id) => {
       const child = get(id);
       if (!child || typeOf(child) !== CASCADER_ITEM_TYPE) return [];
-      const key = child.props.id;
+      const own = child.props.id;
       const name = child.props.label;
+      const key = own === undefined || own === null ? child.id : String(own);
+      const children = level(child);
       return [
         {
-          key: key === undefined || key === null ? child.id : String(key),
+          key,
           name: typeof name === "string" ? name : String(name ?? ""),
           isDisabled: child.props.isDisabled === true,
-          children: level(child),
+          children,
+          ...(!children.length && branchKeys?.has(key)
+            ? { hasChildItems: true }
+            : {}),
         },
       ];
     });
@@ -304,8 +316,9 @@ export function cascaderTableOf(
   cascader: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
+  branchKeys?: ReadonlySet<string>,
 ): CascaderTable {
-  return cascaderTable(cascaderStaticItems(cascader, get, typeOf), {
+  return cascaderTable(cascaderStaticItems(cascader, get, typeOf, branchKeys), {
     anyLevel: cascader.props.allowsBranchSelection === true,
   });
 }

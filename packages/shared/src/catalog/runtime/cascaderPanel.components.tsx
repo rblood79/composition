@@ -17,7 +17,10 @@ import { CascaderSearch } from "./cascaderSearch.components";
 import {
   cascaderPicked,
   CASCADER_LEVEL_ITEM,
+  CASCADER_LEVEL_STATUS,
   useCascaderLevelName,
+  useCascaderLevelStatus,
+  useCascaderLevels,
 } from "./cascaderOpen";
 import { useCatalogLocalized } from "./localizedStrings";
 
@@ -55,8 +58,15 @@ const BACK: Readonly<Record<string, string>> = {
  * picks what it added or removed — only pickable items (a leaf, any item while branches are —
  * 사용자 결정 2).
  */
-function usePanel({ table, keys, multiple, onPick }: CascaderContentProps) {
+function usePanel({
+  table,
+  keys,
+  multiple,
+  onPick,
+  levels,
+}: CascaderContentProps) {
   const state = useContext(OverlayTriggerStateContext);
+  useCascaderLevels(levels);
   const picked = cascaderPicked(table, keys);
   const blocked = table.entries
     .filter((entry) => entry.duplicate || entry.isDisabled)
@@ -77,11 +87,25 @@ function usePanel({ table, keys, multiple, onPick }: CascaderContentProps) {
         : key,
     );
   };
+  // (Phase 6 — a branch whose level is not here yet: opening it asks it; its one status row is
+  //  「Loading…」 (disabled) or 「Retry」.)
+  const waits = (entry: CascaderEntry | undefined) =>
+    !!entry && !!levels && entry.hasChildren && !childrenOf(entry.pathId).length;
+  const statusOf = (id: string) =>
+    id.endsWith(CASCADER_LEVEL_STATUS)
+      ? table.byPathId.get(id.slice(0, -CASCADER_LEVEL_STATUS.length))
+      : undefined;
+  const retry = (id: string) => {
+    const branch = statusOf(id);
+    if (branch) levels?.load(branch.key);
+    return !!branch;
+  };
   const onSelectionChange = (selection: unknown) => {
     if (selection === "all") return;
     const next = new Set([...(selection as Iterable<unknown>)].map(String));
     const before = new Set(picked.map((entry) => entry.pathId));
-    for (const id of next) if (!before.has(id)) pick(entryOf(id));
+    for (const id of next)
+      if (!before.has(id) && !retry(id)) pick(entryOf(id));
     if (multiple)
       for (const id of before) if (!next.has(id)) pick(table.byPathId.get(id));
   };
@@ -92,6 +116,8 @@ function usePanel({ table, keys, multiple, onPick }: CascaderContentProps) {
     pick,
     entryOf,
     onSelectionChange,
+    waits,
+    retry,
     close: () => state?.close(),
   };
 }
@@ -115,9 +141,23 @@ const withSearch = (
   );
 
 export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
-  const { table, label, multiple, searchable } = props;
-  const { picked, blocked, childrenOf, onSelectionChange, close } =
+  const { table, label, multiple, searchable, levels } = props;
+  const { picked, blocked, childrenOf, onSelectionChange, waits, close } =
     usePanel(props);
+  const status = useCascaderLevelStatus();
+  const statusRow = (entry: CascaderEntry): ReactElement => {
+    const text =
+      levels?.stateOf(entry.key) === "error" ? status.retry : status.loading;
+    return (
+      <TreeItem
+        key={`${entry.pathId}${CASCADER_LEVEL_STATUS}`}
+        id={`${entry.pathId}${CASCADER_LEVEL_STATUS}`}
+        textValue={text}
+      >
+        <TreeItemContent>{text}</TreeItemContent>
+      </TreeItem>
+    );
+  };
   const ancestors = new Set<string>();
   for (const entry of picked)
     for (
@@ -135,6 +175,7 @@ export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
   );
   const collapsedChild = (entry: CascaderEntry): ReactElement => (
     <TreeItem
+      key={`${entry.pathId}${CASCADER_COLLAPSED_ITEM}`}
       id={`${entry.pathId}${CASCADER_COLLAPSED_ITEM}`}
       textValue=""
     >
@@ -163,7 +204,9 @@ export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
         </TreeItemContent>
         {entry.hasChildren
           ? expanded.has(entry.pathId)
-            ? items(entry)
+            ? waits(entry)
+              ? statusRow(entry)
+              : items(entry)
             : collapsedChild(entry)
           : null}
       </TreeItem>
@@ -187,11 +230,28 @@ export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
               }
               selectionMode={multiple ? "multiple" : "single"}
               selectedKeys={picked.map((entry) => entry.pathId)}
-              disabledKeys={blocked}
+              disabledKeys={[
+                ...blocked,
+                ...[...expanded].flatMap((id) => {
+                  const entry = table.byPathId.get(id);
+                  return entry &&
+                    waits(entry) &&
+                    levels?.stateOf(entry.key) !== "error"
+                    ? [`${id}${CASCADER_LEVEL_STATUS}`]
+                    : [];
+                }),
+              ]}
               expandedKeys={expanded}
-              onExpandedChange={(keys) =>
-                setExpanded(new Set([...keys].map(String)))
-              }
+              onExpandedChange={(keys) => {
+                const next = new Set([...keys].map(String));
+                // (Phase 6 — an expanded branch whose level is not here asks it.)
+                for (const id of next)
+                  if (!expanded.has(id)) {
+                    const entry = table.byPathId.get(id);
+                    if (waits(entry)) levels?.load(entry!.key);
+                  }
+                setExpanded(next);
+              }}
               escapeKeyBehavior="none"
               onSelectionChange={onSelectionChange}
               style={{ maxHeight: 320, overflow: "auto" }}
@@ -216,14 +276,25 @@ export function CatalogCascaderDrill(
     pick,
     entryOf,
     onSelectionChange,
+    waits,
+    retry,
     close,
   } = usePanel(props);
   const back = useCatalogLocalized(BACK);
+  const status = useCascaderLevelStatus();
+  const { levels } = props;
   const levelName = useCascaderLevelName();
   const [level, setLevel] = useState<string | null>(
     picked[0]?.parentPathId ?? null,
   );
   const parent = level === null ? undefined : table.byPathId.get(level);
+  // (Phase 6 — a level entered whose items are not here yet asks them.)
+  const enter = (entry: CascaderEntry) => {
+    if (waits(entry)) levels?.load(entry.key);
+    setLevel(entry.pathId);
+  };
+  const statusId = parent ? `${parent.pathId}${CASCADER_LEVEL_STATUS}` : "";
+  const failed = !!parent && levels?.stateOf(parent.key) === "error";
   const trail: CascaderEntry[] = [];
   for (let at = parent; at; at = table.byPathId.get(at.parentPathId ?? ""))
     trail.unshift(at);
@@ -251,7 +322,7 @@ export function CatalogCascaderDrill(
               {trail.map((entry) => (
                 <Breadcrumb key={entry.pathId} id={entry.pathId}>
                   <Icon iconName="chevron-right" />
-                  <Link onPress={() => setLevel(entry.pathId)}>
+                  <Link onPress={() => enter(entry)}>
                     {entry.name}
                   </Link>
                 </Breadcrumb>
@@ -279,15 +350,17 @@ export function CatalogCascaderDrill(
                 ...(own && parent && (parent.duplicate || parent.isDisabled)
                   ? [own]
                   : []),
+                ...(waits(parent) && !failed ? [statusId] : []),
               ]}
               onSelectionChange={onSelectionChange}
               onAction={(key) => {
+                if (retry(String(key))) return;
                 const entry = entryOf(key);
                 if (
                   !String(key).endsWith(CASCADER_LEVEL_ITEM) &&
                   entry?.hasChildren
                 )
-                  setLevel(entry.pathId);
+                  enter(entry);
                 else pick(entry);
               }}
             >
@@ -300,6 +373,17 @@ export function CatalogCascaderDrill(
                         textValue={levelName(parent.name)}
                       >
                         {levelName(parent.name)}
+                      </GridListItem>,
+                    ]
+                  : []),
+                ...(waits(parent)
+                  ? [
+                      <GridListItem
+                        key={statusId}
+                        id={statusId}
+                        textValue={failed ? status.retry : status.loading}
+                      >
+                        {failed ? status.retry : status.loading}
                       </GridListItem>,
                     ]
                   : []),

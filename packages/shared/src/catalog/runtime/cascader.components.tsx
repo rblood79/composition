@@ -34,6 +34,7 @@ import {
   cascaderValueText,
   type CascaderTable,
 } from "./cascader";
+import type { CatalogCascaderLevels } from "./cascaderLevels";
 
 /**
  * ADR-322 — a Cascader's field (breakdown §3 · §4.5). No RAC picker owns its parts (Select's part
@@ -48,6 +49,8 @@ import {
  */
 
 const CatalogCascaderMenu = lazy(() => import("./cascaderMenu.components"));
+// (Phase 6 — the form value · its check · a broken level declaration: their own chunk.)
+const CatalogCascaderForm = lazy(() => import("./cascaderForm.components"));
 // (Phase 3 — the `tree` · `drill` modes: RAC `Popover` > `Dialog` > `Tree` · `GridList`, their own chunk.)
 const CatalogCascaderTree = lazy(() =>
   import("./cascaderPanel.components").then((m) => ({
@@ -75,6 +78,36 @@ export interface CascaderContentProps {
   /** A search field above the levels (Phase 5 — breakdown §4.4) and the results' path separator. */
   readonly searchable: boolean;
   readonly separator: string;
+  /** ADR-322 Phase 6 — levels loaded one by one (a branch opened asks its level). */
+  readonly levels?: CatalogCascaderLevels;
+}
+
+/** A field's shown validation (react-stately's `displayValidation` — RAC `FieldErrorContext`'s value). */
+export interface CascaderValidation {
+  readonly isInvalid: boolean;
+  readonly validationErrors: string[];
+  readonly validationDetails: ValidityState;
+}
+const VALID: CascaderValidation = {
+  isInvalid: false,
+  validationErrors: [],
+  validationDetails: {} as ValidityState,
+};
+
+/** What the field gives its form run (`cascaderForm.components.tsx`). */
+export interface CascaderFormProps {
+  readonly name?: string;
+  readonly form?: string;
+  readonly isRequired?: boolean;
+  readonly isInvalid?: boolean;
+  readonly isDisabled?: boolean;
+  readonly keys: readonly string[];
+  readonly startKeys: readonly string[];
+  readonly levels?: CatalogCascaderLevels;
+  readonly write: (next: readonly string[]) => void;
+  readonly triggerRef: { readonly current: HTMLButtonElement | null };
+  readonly onValidation: (shown: CascaderValidation) => void;
+  readonly commitRef: { current: (() => void) | undefined };
 }
 
 const REFUSED_WHY: Readonly<Record<string, string>> = {
@@ -101,6 +134,15 @@ export interface CatalogCascaderFieldProps {
   readonly isDisabled?: boolean;
   readonly isRequired?: boolean;
   readonly isInvalid?: boolean;
+  /**
+   * Phase 6 (breakdown §3.1 — the closed D1 exception): the form value's `name` · `form`, and the
+   * start keys a form reset goes back to.
+   */
+  readonly name?: string;
+  readonly form?: string;
+  readonly startKeys?: readonly string[];
+  /** ADR-322 Phase 6 (사용자 결정 4) — levels loaded one by one (the session's). */
+  readonly levels?: CatalogCascaderLevels;
   /** The hierarchy (`runtime/cascader.ts` — static items now). */
   readonly table: CascaderTable;
   readonly mode: CascaderMode;
@@ -133,6 +175,10 @@ export function CatalogCascaderField({
   isDisabled,
   isRequired,
   isInvalid,
+  name,
+  form,
+  startKeys,
+  levels,
   table,
   mode,
   display,
@@ -150,9 +196,12 @@ export function CatalogCascaderField({
   const [own, setOwn] = useState<readonly string[]>(keys);
   const current = onChange ? keys : own;
   const write = (next: readonly string[]) => {
-    if (!onChange) return void setOwn(next);
-    onChange(multiple ? [...next] : (next[0] ?? null));
+    if (!onChange) setOwn(next);
+    else onChange(multiple ? [...next] : (next[0] ?? null));
+    // (A pick commits the validation — RAC Select's `commitValidation` on a selection change.)
+    commit.current?.();
   };
+  const commit = useRef<(() => void) | undefined>(undefined);
   // (ADR-322 Phase 4 — a value no single pickable item carries is refused, never matched to the
   //  first: the field shows the key as stored and says why — Decision 4.)
   const refusal = current
@@ -166,16 +215,25 @@ export function CatalogCascaderField({
         `[Cascader] 값 거절 — ${REFUSED_WHY[refusedKind] ?? refusedKind}: ${refusedKey}`,
       );
   }, [refusedKind, refusedKey]);
+  // (Phase 6 — breakdown §3.1 · §4.5: the field's form run (lazy `cascaderForm.components`) gives
+  //  its validation result; an authored `isInvalid` shows before it loads.)
+  const [validation, setValidation] = useState<CascaderValidation>(VALID);
+  const shown: CascaderValidation =
+    isInvalid === true && !validation.isInvalid
+      ? { ...validation, isInvalid: true }
+      : validation;
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { labelProps, fieldProps, descriptionProps, errorMessageProps } =
     useField({
       label: label || undefined,
       description: description || undefined,
-      errorMessage: isInvalid && errorMessage ? errorMessage : undefined,
-      isInvalid,
+      errorMessage: shown.isInvalid
+        ? errorMessage || shown.validationErrors.join(" ") || undefined
+        : undefined,
+      isInvalid: shown.isInvalid,
       validationBehavior: "aria",
     });
   const state = useMenuTriggerState({ isOpen, onOpenChange });
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { menuTriggerProps, menuProps } = useMenuTrigger(
     { type: "menu", isDisabled },
@@ -198,16 +256,38 @@ export function CatalogCascaderField({
     current.length > 1 && countText
       ? countText(current.length)
       : cascaderValueText(table, display, current);
+  const formRun =
+    name || isRequired || levels
+      ? createElement(
+          Suspense,
+          { fallback: null },
+          createElement(CatalogCascaderForm, {
+            name,
+            form,
+            isRequired,
+            isInvalid,
+            isDisabled,
+            keys: current,
+            startKeys: startKeys ?? keys,
+            levels,
+            write,
+            triggerRef,
+            onValidation: setValidation,
+            commitRef: commit,
+          }),
+        )
+      : null;
   const field = createElement(
     "div",
     {
       ...root,
       "data-disabled": isDisabled ? "true" : undefined,
-      "data-invalid": isInvalid ? "true" : undefined,
+      "data-invalid": shown.isInvalid ? "true" : undefined,
       "data-required": isRequired ? "true" : undefined,
       "data-open": state.isOpen ? "true" : undefined,
     },
     children,
+    formRun,
   );
   const content: CascaderContentProps = {
     table,
@@ -219,6 +299,7 @@ export function CatalogCascaderField({
         ? display.separator
         : CASCADER_DEFAULT_SEPARATOR,
     label: label || placeholder,
+    ...(levels ? { levels } : {}),
     // (Single: the key, the menu closes — RAC's. Multiple: the key toggles, the menu stays.)
     onPick: (key: string) =>
       write(
@@ -259,11 +340,7 @@ export function CatalogCascaderField({
       createElement(
         FieldErrorContext.Provider,
         {
-          value: {
-            isInvalid: isInvalid === true,
-            validationErrors: [],
-            validationDetails: {} as ValidityState,
-          },
+          value: shown,
         },
         createElement(
           ButtonContext.Provider,

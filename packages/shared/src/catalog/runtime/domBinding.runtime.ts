@@ -1,6 +1,7 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
 import { CatalogCascaderValue } from "./cascader.components";
 import type { CatalogFilterBarAccess } from "./filterBarAccess";
+import type { CatalogCascaderLevels } from "./cascaderLevels";
 import { catalogResizableLayout } from "./resizablePanels";
 import { catalogStepDomStyle } from "./stepList";
 import { CatalogTokenFieldError } from "./tokenField.components";
@@ -594,6 +595,8 @@ export interface CatalogDomRuntime {
   serverFilterOf?(recordId: string): string | undefined;
   /** ADR-320 Phase 3 — a running filter bar's scope (`CatalogPreviewInteractions.filterBarAccess`). */
   filterBarAccess?(recordId: string): CatalogFilterBarAccess | undefined;
+  /** ADR-322 Phase 6 — a Cascader's levels loaded one by one (`CatalogPreviewInteractions.cascaderLevels`). */
+  cascaderLevels?(recordId: string): CatalogCascaderLevels | undefined;
   setFilterText?(collectionId: string, filterText: string): void;
   subscribe(id: string, notify: () => void): () => void;
 }
@@ -6224,6 +6227,12 @@ export function renderNode(
                 target: Element,
                 nav: Element,
               ) => context.runtime!.paginationClick!(recordId, target, nav),
+            }
+          : {}),
+        ...(context.runtime?.cascaderLevels
+          ? {
+              cascaderLevels: (recordId: string) =>
+                context.runtime!.cascaderLevels!(recordId),
             }
           : {}),
         ...(context.runtime?.filterBarAccess

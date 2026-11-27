@@ -6,7 +6,7 @@ Proposed — 2026-11-26
 
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 뒤 `/create-adr`.
 - 사용자가 이미 답한 것 (2026-11-26):
-  1. 범위 = 차용 후보 네 묶음 전부, 문서 단위 = 「묶음마다 ADR 하나」 (결정 지점 1 의 확정). 이 문서는 「Timeline · Event Calendar · Gantt」 묶음이다. 다른 묶음: [320](completed/320-filter-bar-runtime-condition-builder.md) · [321](completed/321-steplist-rating-components.md) · [322](322-cascader-hierarchical-picker.md).
+  1. 범위 = 차용 후보 네 묶음 전부, 문서 단위 = 「묶음마다 ADR 하나」 (결정 지점 1 의 확정). 이 문서는 「Timeline · Event Calendar · Gantt」 묶음이다. 다른 묶음: [320](completed/320-filter-bar-runtime-condition-builder.md) · [321](completed/321-steplist-rating-components.md) · [322](completed/322-cascader-hierarchical-picker.md).
   2. D1 처리 = 「목록 · 표가 조작 정본」 — 키보드 · 낭독 조작은 RAC 부품 (Calendar 월 격자 · 일정 목록 · Table 계층 행 · 편집 Dialog) 으로 하고, 시간 격자 · 막대 · 의존선은 그림이며, 막대 끌기는 포인터 보조 조작이다. **결정 지점 3 (SSOT 경계 — 사용자 컴포넌트의 D1 예외 추가) 의 확정이다.** 예외의 범위는 [breakdown §4](design/323-timeline-event-calendar-gantt-breakdown.md) 의 목록으로 닫는다. 기각된 선택지: 「막대 · 일정까지 직접 접근성 구현」 · 「제3자 라이브러리 도입」.
 - 분리 점검 (4 질문) 은 [ADR-320 Status](completed/320-filter-bar-runtime-condition-builder.md) 에 적었다. 이 ADR 은 기존 ADR 을 나누거나 합치지 않는다. Gantt 는 [ADR-315](completed/315-table-data-grid-state-model.md) (Table) 위의 응용이고 방향은 그대로다.
 - 리뷰 round 1 (2026-11-26, codex — [reviews/323.md](reviews/323.md)): HIGH 3 · MEDIUM 1. 넷 다 코드로 확인하고 설계에 반영했다. Round 2 수리 검증에서 3건을 종결했고, 날짜변경선을 사이에 둔 일정의 조회 누락 (h1) 은 round 3 수리 검증에서 종결됐다. 리뷰 기록 pending 0. 착수는 사용자 `/execute-adr 323`.

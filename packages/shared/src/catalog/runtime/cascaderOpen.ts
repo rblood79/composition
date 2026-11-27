@@ -3,6 +3,8 @@ import {
   type CascaderEntry,
   type CascaderTable,
 } from "./cascader";
+import { useSyncExternalStore } from "react";
+import type { CatalogCascaderLevels } from "./cascaderLevels";
 import { useCatalogLocalized } from "./localizedStrings";
 
 /**
@@ -33,3 +35,34 @@ const LEVEL_NAME: Readonly<Record<string, (name: string) => string>> = {
 
 /** The name of a branch's own item, in the field's locale. */
 export const useCascaderLevelName = () => useCatalogLocalized(LEVEL_NAME);
+
+/**
+ * ADR-322 Phase 6 (사용자 결정 4) — a branch whose level loads one by one shows one status item
+ * while it is not here: 「Loading…」 (disabled), or after a failure 「Retry」 (asks again). Its id is
+ * the branch's path id + the suffix.
+ */
+export const CASCADER_LEVEL_STATUS = "\u001estatus";
+
+const LEVEL_STATUS: Readonly<
+  Record<string, { readonly loading: string; readonly retry: string }>
+> = {
+  en: { loading: "Loading…", retry: "Couldn't load — Retry" },
+  ko: { loading: "불러오는 중…", retry: "불러오지 못함 — 다시 시도" },
+  ja: { loading: "読み込み中…", retry: "読み込めません — 再試行" },
+  zh: { loading: "加载中…", retry: "无法加载 — 重试" },
+};
+
+/** The status item's words, in the field's locale. */
+export const useCascaderLevelStatus = () => useCatalogLocalized(LEVEL_STATUS);
+
+const noSubscribe = () => () => {};
+const noVersion = () => 0;
+
+/** The open content redraws as a level loads · fails (the session's levels — Phase 6). */
+export function useCascaderLevels(levels: CatalogCascaderLevels | undefined) {
+  useSyncExternalStore(
+    levels?.subscribe ?? noSubscribe,
+    levels?.version ?? noVersion,
+    levels?.version ?? noVersion,
+  );
+}

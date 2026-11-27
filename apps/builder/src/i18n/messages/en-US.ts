@@ -1257,6 +1257,7 @@ const catalog: TranslationKeys = {
     fieldMapChildren: "Children field (tree)",
     fieldMapParentId: "Parent ID field (tree)",
     fieldMapLevelParent: "Parent level field",
+    fieldMapHasChildren: "Has children field",
     cascaderRepeatedKey:
       "{count} items share a key and can't be picked — choose a unique field as the Value field.",
     fieldMapAuto: "Auto",
@@ -2491,6 +2492,9 @@ const catalog: TranslationKeys = {
     apiErrorsPath: "Field errors path",
     apiErrorsPathHint:
       "Where a submit's response holds its field errors (e.g. errors · fieldErrors — each field name to a message or messages). The Form shows them on its fields until each is changed; a refused submit's later actions do not run (S2 Form validationErrors).",
+    apiKeysUnique: "Keys unique across levels",
+    apiKeysUniqueHint:
+      "The item keys this endpoint sends are unique across the whole hierarchy. A Cascader then loads one level at a time — the query reads {{ parentKey }} (empty = the first level). Without it only the first answer is used.",
     apiResponsePaths: "Response paths",
     apiQuerySection: "Querying",
     apiUploadSection: "Upload",

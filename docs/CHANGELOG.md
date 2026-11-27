@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-322 Phase 6 · Implemented — Cascader 폼 값 · 필수 검증 · 단계별 원격 로드] - 2026-11-27
+
+### Added
+
+- **폼 값**: Cascader 에 「Name」 을 주면 Form 제출에 고른 key 가 실린다 (다중이면 같은 이름으로 여러 값, 비면 빈 값 하나). 비활성 필드는 싣지 않는다. 「Required」 인 필드는 native Form 에서 비어 있으면 제출을 막고 오류를 보이며 여는 버튼에 focus 를 준다 (aria Form 은 막지 않는다). 폼 reset 은 시작 값으로 돌아간다.
+- **단계별 원격 로드**: Data 패널의 endpoint 편집기에 「단계 전체에서 key 유일」. 이 선언이 있고 조회가 `{{ parentKey }}` 를 읽으면 (비면 첫 단계) Cascader 가 가지를 열 때 그 단계만 묻는다 — 오기 전에는 「불러오는 중…」, 실패하면 「불러오지 못함 — 다시 시도」. 연결의 새 역할 「하위 항목 있음 필드」 (boolean) 로 끝 항목을 미리 알릴 수 있다. 검색은 불러온 항목에서만 찾고 그렇다고 보인다. 선언과 달리 다른 단계에서 이미 받은 key 가 오면 두 항목을 고를 수 없고, 값이 그 key 면 비우며 콘솔에 「서버 계약 위반」 을 남긴다. 선언이 없으면 단계별로 묻지 않는다 (첫 응답만).
+- live (Builder → Publish, 원격 응답은 하니스 route): Chrome 8 / 8 · WebKit 8 / 8.
+- 번들: Builder 첫 화면 +289 B (Phase 1 ~ 6 합계 +5,824 B — 몫 +6,000 안, 절대 상한 1,668,000 B 안). 폼 실행 부품은 열 때 불러온다.
+
 ## [ADR-322 Phase 5 — Cascader 검색 · 다중 · 「어느 단계든」 · 규칙] - 2026-11-27
 
 ### Added

@@ -29,6 +29,8 @@ const STRINGS: Readonly<
       readonly search: string;
       readonly empty: string;
       readonly more: (count: number) => string;
+      /** Phase 6 — levels loaded one by one: only the items loaded are searched (breakdown §4.3). */
+      readonly loadedOnly: string;
     }
   >
 > = {
@@ -36,21 +38,25 @@ const STRINGS: Readonly<
     search: "Search",
     empty: "No results",
     more: (count) => `${count} more — type more to narrow`,
+    loadedOnly: "Searching the loaded items only",
   },
   ko: {
     search: "검색",
     empty: "결과 없음",
     more: (count) => `${count} 건 더 — 더 입력해 좁히기`,
+    loadedOnly: "불러온 항목에서만 찾는다",
   },
   ja: {
     search: "検索",
     empty: "結果なし",
     more: (count) => `ほか ${count} 件 — 入力して絞り込む`,
+    loadedOnly: "読み込んだ項目だけを検索",
   },
   zh: {
     search: "搜索",
     empty: "无结果",
     more: (count) => `还有 ${count} 项 — 继续输入以缩小范围`,
+    loadedOnly: "仅搜索已加载的项",
   },
 };
 
@@ -127,6 +133,11 @@ export function CascaderSearch({
         </SearchField>
         {query ? results : inside ? levels : null}
       </Autocomplete>
+      {query && content.levels ? (
+        <Text slot="description" className="cascader-search-more">
+          {strings.loadedOnly}
+        </Text>
+      ) : null}
       {query && found.length > shown.length ? (
         <Text slot="description" className="cascader-search-more">
           {strings.more(found.length - shown.length)}
