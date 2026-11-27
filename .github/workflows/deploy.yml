@@ -90,7 +90,7 @@ jobs:
       # 필요해 여기서 돌리지 않는다).
       - name: Initial bundle ceiling (ADR-201)
         env:
-          BUILDER_CEILING: "1650000" # 2026-11-25 사용자 재승인 — 실측 절대값 기준 (11-03 부터 이 단계가 배포를 막았다, adr201-bundle-gate.mjs 와 같은 값)
+          BUILDER_CEILING: "1660000" # 2026-11-27 사용자 재승인 (ADR-320 · 321 의 등록 몫 — adr201-bundle-gate.mjs 와 같은 값). 2026-11-25 의 1650000 대체
           PREVIEW_CEILING: "327000" # 2026-11-08 사용자 재승인 (ADR-303 결정 6 b) — adr201-bundle-gate.mjs 와 같은 값
         run: |
           node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry index.html --label builder --out /tmp/bundle-builder.json
