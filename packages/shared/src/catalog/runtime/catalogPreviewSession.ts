@@ -3244,7 +3244,7 @@ export class CatalogPreviewSession {
     const window =
       ownerId === undefined
         ? undefined
-        : display?.mode === "virtual"
+        : display?.mode === "virtual" || this.readsWholeRows(ownerId)
           ? Number.MAX_SAFE_INTEGER
           : this.displayWindows.get(
               displayWindowKey(binding.collectionId, ownerId),
@@ -3541,7 +3541,9 @@ export class CatalogPreviewSession {
       const serialized = serializeViewQueries(
         format,
         {
-          queries: catalogCountlessViews(viewFacetRequestQueries(query.queries)),
+          queries: catalogCountlessViews(
+            viewFacetRequestQueries(query.queries),
+          ),
           schema: this.requestSchema(collectionId),
           resolve: catalogRowQueryResolve(query),
         },
@@ -4712,6 +4714,17 @@ export class CatalogPreviewSession {
         [];
       if (errors.length) console.error("[CatalogPreview] rows:", ...errors);
     });
+  }
+  /**
+   * ADR-322 Phase 4 — a Cascader (and a level item with its own table) reads every row: its levels
+   * are its rows' hierarchy, and a key's path needs the whole of it (no 「더 보기」 window).
+   */
+  private readsWholeRows(ownerId: string): boolean {
+    const graph = this.graph;
+    const entry = graph?.getEntry(ownerId as never);
+    if (!graph || entry?.kind !== "node") return false;
+    const type = definitionTypeName(graph, (entry as NodeEntry).definitionId);
+    return type === "Cascader" || type === "CascaderItem";
   }
   /** ADR-310 Phase 7 — a list node's row display (its document `rowDisplay`). */
   private rowDisplayOf(ownerId: string): CatalogRowDisplay | undefined {

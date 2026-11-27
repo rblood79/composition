@@ -1602,7 +1602,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             ...racSlotProps(resolution),
             style,
           } as Parameters<typeof Text>[0],
-          String(node.props.children ?? ""),
+          // (A derived text — ADR-322 Phase 4: a Cascader's repeated-key notice — wins.)
+          String(
+            (typeof node.derivedProps?.children === "string"
+              ? node.derivedProps.children
+              : undefined) ??
+              node.props.children ??
+              "",
+          ),
         ),
     }),
   paragraph: (node, style) =>

@@ -893,6 +893,8 @@ export interface TranslationKeys {
     fieldMapValue: string;
     fieldMapChildren: string;
     fieldMapParentId: string;
+    fieldMapLevelParent: string;
+    cascaderRepeatedKey: string;
     fieldMapAuto: string;
     fieldMapDisabled: string;
     fieldMapUnavailable: string;

@@ -234,6 +234,11 @@ export interface CatalogBoundRow {
   /** What the row template's `{field}` placeholders read (row fields + label/description/icon/value). */
   values: Readonly<Record<string, unknown>>;
   /**
+   * ADR-322 Phase 4 — the item's own key when `key` took a repeat mark (`a~3` — a key another row
+   * carries too): a Cascader keys its items by the data's key, a repeated one is not a value.
+   */
+  itemKey?: string;
+  /**
    * The item's child rows (`useTreeData.getChildren` — the binding's `fieldMap.children`): a bound
    * Tree shows them inside the row, the same item template again.
    */
@@ -378,6 +383,12 @@ export type CatalogBoundRows = readonly CatalogBoundRow[] & {
    * view passes, not the window's — a day as ISO text, a period as an ISO interval (`start/end`).
    */
   readonly unavailableDates?: readonly string[];
+  /**
+   * ADR-322 Phase 4 (사용자 결정 5) — a Cascader level's table: the row field that names the item of
+   * the level above (`fieldMap.levelParent`, as a row key) — the level shows, under each item above,
+   * the rows whose field is that item's key.
+   */
+  readonly levelParent?: string;
   /** ADR-284 — the binding's view result (absent = no view). */
   readonly view?: CatalogViewResultMeta;
   /** The Table sort the rows are already in (the row source ordered them before its window). */
@@ -989,6 +1000,9 @@ const GROUP_ROW_ITEM: Readonly<Record<string, { key: string; text: string }>> =
     ToggleButton: { key: "id", text: "label" },
     SegmentedControlItem: { key: "id", text: "label" },
     ActionButton: { key: "id", text: "label" },
+    // ADR-322 Phase 4 — a bound Cascader's item: its key is the data's (`itemKey` — a repeated key
+    // stays repeated, the field refuses it), its name the row's label.
+    CascaderItem: { key: "id", text: "label" },
   };
 /** The row is the item: its key prop takes the row's key (a group item shows the row's label). */
 function keyRowItem(
@@ -1006,7 +1020,8 @@ function keyRowItem(
     return;
   }
   const group = GROUP_ROW_ITEM[type];
-  props[type === "TabPanel" ? "itemId" : (group?.key ?? "id")] = row.key;
+  props[type === "TabPanel" ? "itemId" : (group?.key ?? "id")] =
+    type === "CascaderItem" ? (row.itemKey ?? row.key) : row.key;
   if (group && props[group.text] === undefined)
     props[group.text] = String(row.values.label ?? row.key);
 }
@@ -1652,9 +1667,19 @@ export function resolveCatalogNode(
       ? lookupDefinition(template.definitionId)
       : definition;
   };
-  /** A resolved node is a TreeItem (a bound Tree's row — `nestTreeRows`). */
-  const isTreeItemRecord = (node: ResolvedCatalogNode) =>
-    ruleDefinitionOf(node.definitionId).name === "TreeItem";
+  /**
+   * A resolved node is a TreeItem (a bound Tree's row — `nestTreeRows`) — or a Cascader's item,
+   * except a level with its own table (ADR-322 Phase 4, 사용자 결정 5): that level's rows are its
+   * table's, under the row above — not the row's child rows.
+   */
+  const isTreeItemRecord = (node: ResolvedCatalogNode) => {
+    const name = ruleDefinitionOf(node.definitionId).name;
+    if (name === "TreeItem") return true;
+    if (name !== "CascaderItem") return false;
+    if (!repeats(node.sourceId)) return true;
+    const entry = graph.getEntry(node.sourceId as NodeId);
+    return !(entry?.kind === "node" && entry.binding);
+  };
   /** ADR-315 Phase 5 — a resolved node is a Table's Row (a bound Table's row — `nestTableRows`). */
   const isTableRowRecord = (node: ResolvedCatalogNode) =>
     ruleDefinitionOf(node.definitionId).name === "Row";
@@ -1714,7 +1739,17 @@ export function resolveCatalogNode(
     if (!repeats(id)) return undefined;
     const entry = graph.getEntry(id as NodeId) as NodeEntry;
     if (entry.binding && entry.binding.key === undefined) {
-      const own = rows?.(entry.binding, "items", entry.id, instancePath);
+      const all = rows?.(entry.binding, "items", entry.id, instancePath);
+      // (ADR-322 Phase 4 — a Cascader level's own table: under the item above, the rows whose
+      //  「parent level」 field is that item's key — `itemKey`, the data's.)
+      const own =
+        all?.levelParent && outerRow
+          ? all.filter(
+              (row) =>
+                String(row.values[all.levelParent!] ?? "") ===
+                (outerRow.itemKey ?? outerRow.key),
+            )
+          : all;
       return own ? sampledRows(own, `${instancePath.join("/")}::${id}`) : own;
     }
     // (A Select's value shape repeats per item of its Select — before the rows passed down to it.)
@@ -3622,9 +3657,11 @@ export function resolveCatalogNode(
       rowSet = rows(nodeBinding, "items", node.id, instancePath);
     const ownedChildren =
       selection?.ownedChildren?.(node.id, instancePath) ?? node.children;
+    // (A Cascader's row template is its own item beside the origin's parts — ADR-322 Phase 4.)
     const childRows =
-      (["Tabs", "TabList"].includes(ownedType) ? rowSet : undefined) ??
-      ownedRowing?.rowSet;
+      (["Tabs", "TabList", "Cascader"].includes(ownedType)
+        ? rowSet
+        : undefined) ?? ownedRowing?.rowSet;
     const ownedItems = childRows
       ? ownedChildren.filter((childId) => {
           const child = graph.getEntry(childId);
@@ -3678,7 +3715,10 @@ export function resolveCatalogNode(
                   : withRowKey(projected, data.key),
                 data,
                 projectRow,
-                () => false,
+                // (ADR-322 Phase 4 — a Cascader's own row item nests its child rows, a Tree's way.)
+                (node) =>
+                  ruleDefinitionOf(node.definitionId).name === "CascaderItem" &&
+                  isTreeItemRecord(node),
                 isInstanceRecord,
                 isTableRowRecord,
               ),
@@ -4583,6 +4623,13 @@ export function resolveCatalogNode(
       const out: ResolvedCatalogNode[] = [];
       for (const childId of ids) {
         if (selection && !selection.include(childId, instancePath)) continue;
+        // (ADR-322 Phase 4 — a bound Cascader: its origin's sample items give way to its rows.)
+        if (
+          rowSet &&
+          childId.startsWith("lib:") &&
+          templateTypeName(childId) === "CascaderItem"
+        )
+          continue;
         const childPath = [...path, childId];
         // ADR-310: a position marked `repeat` (a project template node) is the rows' template; the
         // others — and a library template's positions, which carry no mark — are static.

@@ -103,6 +103,46 @@ function rowTemplateInsert(
   const templateOf = (id: string) =>
     reader.library.templates.get(id as never) as
       { definitionId: string; children: readonly string[] } | undefined;
+  // ADR-322 Phase 4 — a Cascader's items sit beside its field parts in the origin's root list (the
+  // positions stay the origin's — they hold the label binding): its row template is its own item,
+  // after them; the origin's sample items give way to the rows (resolver — a bound Cascader).
+  if (typeOf(node.definitionId) === "Cascader") {
+    const itemOf = (id: string) => {
+      const child = reader.getEntry(id as NodeId);
+      return (
+        child?.kind === "node" && typeOf(child.definitionId) === "CascaderItem"
+      );
+    };
+    if (node.children.some(itemOf)) return undefined;
+    const sample = templateOf(rootId)
+      ?.children.map(templateOf)
+      .find(
+        (template) =>
+          template && typeOf(template.definitionId) === "CascaderItem",
+      );
+    if (!sample) return undefined;
+    const key = crypto.randomUUID();
+    const id = newId("node") as NodeId;
+    return insertCollectionItem({
+      host: { kind: "node", id: nodeId },
+      entries: [
+        {
+          kind: "node",
+          id,
+          definitionId: sample.definitionId as NodeEntry["definitionId"],
+          children: [],
+          props: { id: { kind: "set", value: key } },
+          repeat: true,
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        },
+      ],
+      rootId: id,
+      key,
+      newId,
+    });
+  }
   // The collection: the instance itself (ListBox · GridList · Tree), or its part (TagGroup's TagList).
   let path = [rootId];
   let collectionType = typeOf(node.definitionId);

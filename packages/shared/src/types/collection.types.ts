@@ -369,6 +369,11 @@ export interface PropertyDataBinding {
     /** Flat Tree rows: the field holding a parent's item key; null/empty means root. */
     parentId?: string;
     /**
+     * ADR-322 Phase 4 (사용자 결정 5) — a Cascader level item's own table: the field holding the key
+     * of the level above's item (its rows stand under that item).
+     */
+    levelParent?: string;
+    /**
      * S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field — `true`
      * disables the row's item (`CATALOG_DATA_DISABLED_TYPES`).
      */

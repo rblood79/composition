@@ -120,13 +120,15 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
   },
   // ADR-322 Phase 1: a Cascader's hierarchy — nested items (a Tree's recursion); "+" adds an item.
   //   Not a RAC collection of nodes: the field builds its open content from their table, and the
-  //   field's value — not an item selection — is what it picks (`runtime/cascader.ts`).
+  //   field's value — not an item selection — is what it picks (`runtime/cascader.ts`). Phase 4: a
+  //   bound one repeats its item per row (a Tree's child rows — `nestTreeRows`), a level item with
+  //   its own table repeats that table's rows under the item above (사용자 결정 5).
   {
     owner: "Cascader",
     item: "CascaderItem",
     recursive: true,
     insert: true,
-    repeat: false,
+    repeat: true,
     selects: false,
     codeItems: false,
   },

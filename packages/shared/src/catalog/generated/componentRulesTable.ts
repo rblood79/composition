@@ -1689,7 +1689,8 @@ const CASCADER_PANEL_STYLES = [
       {
         selector:
           ":is(.react-aria-TreeItem, .react-aria-GridListItem)[data-selected]",
-        styles: { color: "var(--accent)", "font-weight": "700" },
+        // (ADR-290 — a DOM state's accent text is the content role.)
+        styles: { color: "var(--accent-content)", "font-weight": "700" },
       },
       {
         selector:

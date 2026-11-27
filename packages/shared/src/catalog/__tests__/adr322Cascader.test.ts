@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import { getPrimitiveBinding } from "../bindings";
 import { CASCADER_TEMPLATES } from "../document/cascaderOrigins";
 import { CATALOG_D2_COMPOSITION_TYPES } from "../document/d2Provenance";
+import { checkCapabilityConstraints } from "../../interactions/constraints";
 import {
+  cascaderDescriptionText,
+  cascaderNotice,
   cascaderTable,
   cascaderValueMatch,
+  cascaderValueRefusal,
   cascaderValueText,
   type CascaderSourceItem,
 } from "../runtime/cascader";
@@ -158,5 +162,63 @@ describe("ADR-322 — registration", () => {
     ).map((node) => String(node.props.id));
     expect(keys).toHaveLength(11);
     expect(new Set(keys).size).toBe(11);
+  });
+});
+
+describe("ADR-322 G4 — refused value writes and the field's notice", () => {
+  const repeated = cascaderTable([
+    { key: "A", name: "A", children: [leaf("01"), leaf("02")] },
+    { key: "B", name: "B", children: [leaf("01")] },
+    {
+      key: "C",
+      name: "C",
+      children: [{ key: "09", name: "9", isDisabled: true }],
+    },
+  ]);
+
+  it("a write of a repeated · missing · branch · disabled key is refused, a unique leaf and clearing are not", () => {
+    expect(cascaderValueRefusal(repeated, "01")).toBe(
+      "여러 항목이 가진 key: 01",
+    );
+    expect(cascaderValueRefusal(repeated, "zz")).toBe("없는 key: zz");
+    expect(cascaderValueRefusal(repeated, "A")).toBe(
+      "가지 항목: A — 끝 항목이 값이다",
+    );
+    expect(cascaderValueRefusal(repeated, "09")).toBe("비활성 항목: 09");
+    expect(cascaderValueRefusal(repeated, "02")).toBeUndefined();
+    expect(cascaderValueRefusal(repeated, null)).toBeUndefined();
+    expect(cascaderValueRefusal(repeated, "")).toBeUndefined();
+  });
+
+  it("the dispatcher's constraint check reports the target's own refusal (a rule's 「값 넣기」)", () => {
+    const context = {
+      props: {},
+      current: null,
+      refuseValue: (prop: string | undefined, next: unknown) =>
+        prop === "value" ? cascaderValueRefusal(repeated, next) : undefined,
+    };
+    const setValue = { prop: "value", value: "!param" } as never;
+    expect(checkCapabilityConstraints(setValue, "01", "01", context)).toBe(
+      "여러 항목이 가진 key: 01",
+    );
+    expect(
+      checkCapabilityConstraints(setValue, "02", "02", context),
+    ).toBeUndefined();
+  });
+
+  it("the notice counts the items that cannot be picked, after the author's description, in the locale", () => {
+    expect(cascaderNotice(repeated)).toBe(
+      "2 items can't be picked — the key repeats",
+    );
+    expect(cascaderNotice(repeated, "ko-KR")).toBe(
+      "고를 수 없는 항목 2 개 — key 가 겹친다",
+    );
+    expect(
+      cascaderDescriptionText(repeated, { description: "Pick a region" }, "ko"),
+    ).toBe("Pick a region · 고를 수 없는 항목 2 개 — key 가 겹친다");
+    expect(cascaderNotice(cascaderTable(REGIONS))).toBeUndefined();
+    expect(
+      cascaderDescriptionText(cascaderTable(REGIONS), { description: "x" }),
+    ).toBeUndefined();
   });
 });

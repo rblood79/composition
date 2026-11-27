@@ -1250,6 +1250,9 @@ const catalog: TranslationKeys = {
     fieldMapValue: "값 필드",
     fieldMapChildren: "하위 항목 필드 (트리)",
     fieldMapParentId: "부모 ID 필드 (트리)",
+    fieldMapLevelParent: "상위 단계 필드",
+    cascaderRepeatedKey:
+      "key 가 겹치는 항목 {count} 개는 고를 수 없다 — 값 필드를 유일한 필드로 바꾼다.",
     fieldMapAuto: "자동",
     fieldMapDisabled: "비활성 필드",
     fieldMapUnavailable: "고를 수 없는 날짜",
@@ -4145,6 +4148,8 @@ const formattedMessages: Record<
     `${String(args?.before ?? "")} / ${String(args?.after ?? "")} 패널 열 크기 조절`,
   "commandPalette.noResults": (args) =>
     `"${String(args?.query ?? "")}"에 대한 결과가 없습니다`,
+  "propertiesPanel.cascaderRepeatedKey": (args) =>
+    `key 가 겹치는 항목 ${String(args?.count ?? 0)} 개는 고를 수 없다 — 값 필드를 유일한 필드로 바꾼다.`,
   "commandPalette.executableCount": (args) =>
     `실행 가능 ${String(args?.count ?? 0)} / ${String(args?.total ?? 0)}`,
   "dataView.tableColumnEditLabel": (args) =>

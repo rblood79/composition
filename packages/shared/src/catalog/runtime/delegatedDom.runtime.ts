@@ -4723,7 +4723,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key,
           label: str(props.label).trim(),
           placeholder: str(props.placeholder),
-          description: str(props.description),
+          // (ADR-322 Phase 4 — with its repeated-key notice: the record's derived description.)
+          description: str(
+            input.node.derivedProps?.description ?? props.description,
+          ),
           errorMessage: str(props.errorMessage),
           isDisabled,
           isRequired,

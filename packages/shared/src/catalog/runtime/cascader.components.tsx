@@ -4,6 +4,7 @@ import {
   lazy,
   Suspense,
   useContext,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -27,7 +28,11 @@ import {
 import { PopoverContext } from "react-aria-components/Popover";
 import { TextContext } from "react-aria-components/Text";
 import { useMenuTriggerState } from "react-stately/useMenuTriggerState";
-import { cascaderValueText, type CascaderTable } from "./cascader";
+import {
+  cascaderValueMatch,
+  cascaderValueText,
+  type CascaderTable,
+} from "./cascader";
 
 /**
  * ADR-322 — a Cascader's field (breakdown §3 · §4.5). No RAC picker owns its parts (Select's part
@@ -115,6 +120,17 @@ export function CatalogCascaderField({
   const [own, setOwn] = useState(value);
   const current = onChange ? value : own;
   const pick = onChange ?? setOwn;
+  // (ADR-322 Phase 4 — a value no single item carries is refused, never matched to the first:
+  //  the field shows the key as stored and says why — Decision 4.)
+  const refused =
+    current === null ? undefined : cascaderValueMatch(table, current);
+  const refusedKind = refused?.kind === "item" ? undefined : refused?.kind;
+  useEffect(() => {
+    if (refusedKind)
+      console.warn(
+        `[Cascader] 값 거절 — ${refusedKind === "duplicate" ? "여러 항목이 가진 key" : "없는 key"}: ${current}`,
+      );
+  }, [refusedKind, current]);
   const { labelProps, fieldProps, descriptionProps, errorMessageProps } =
     useField({
       label: label || undefined,

@@ -1,4 +1,9 @@
 import type { CatalogCellWrite } from "./tableCellSelection";
+import {
+  CASCADER_TYPE,
+  cascaderTableOf,
+  cascaderValueRefusal,
+} from "./cascader";
 import type { CatalogFilterBarAccess } from "./filterBarAccess";
 import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
@@ -1022,6 +1027,22 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             ? { inherited }
             : {}),
           ...catalogCollectionItemKeys(root, record),
+          // (ADR-322 Phase 4 — a Cascader refuses a key no single pickable item carries.)
+          ...(catalogTypeName(root, record) === CASCADER_TYPE
+            ? {
+                refuseValue: (prop: string | undefined, next: unknown) =>
+                  prop === "value"
+                    ? cascaderValueRefusal(
+                        cascaderTableOf(
+                          record,
+                          (recordId) => root.domInputs.get(recordId),
+                          (node) => catalogTypeName(root, node),
+                        ),
+                        next,
+                      )
+                    : undefined,
+              }
+            : {}),
         };
       },
       // ADR-280 Decision 9 — Form submit · reset through the form element (RAC delegates to it).

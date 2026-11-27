@@ -94,6 +94,8 @@ describe("ADR-310 — the collection type table", () => {
       [
         "Breadcrumb",
         "Card",
+        // (ADR-322 Phase 4: a bound Cascader repeats its item per row — its levels.)
+        "CascaderItem",
         // (ADR-320 Phase 2: a connected filter bar repeats its chip per root item of its tree.)
         "FilterChip",
         "GridListItem",

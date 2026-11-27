@@ -81,6 +81,11 @@ export interface DispatchDeps {
     inherited?: { isDisabled?: boolean; isReadOnly?: boolean };
     itemKeys?: readonly string[];
     disabledKeys?: readonly string[];
+    /** ADR-322 Phase 4 — a value the target refuses (`CapabilityContext.refuseValue`). */
+    refuseValue?: (
+      prop: string | undefined,
+      next: unknown,
+    ) => string | undefined;
   };
   /**
    * ADR-280 Decision 3 — the record that receives a state write: an overlay body's open state is

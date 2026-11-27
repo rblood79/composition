@@ -143,6 +143,25 @@ export function cascaderValueMatch(
     : { kind: "duplicate", key };
 }
 
+/**
+ * Why a value write is refused (Decision 4 — every way a value comes in: a rule's 「값 넣기」, a
+ * variable): no item carries the key, several do, it names a branch (the leaves are the values),
+ * or a disabled item. Clearing (`null` · `""`) is not refused.
+ */
+export function cascaderValueRefusal(
+  table: CascaderTable,
+  value: unknown,
+): string | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  const key = String(value);
+  const match = cascaderValueMatch(table, key);
+  if (match.kind === "missing") return `없는 key: ${key}`;
+  if (match.kind === "duplicate") return `여러 항목이 가진 key: ${key}`;
+  if (match.entry.hasChildren) return `가지 항목: ${key} — 끝 항목이 값이다`;
+  if (match.entry.isDisabled) return `비활성 항목: ${key}`;
+  return undefined;
+}
+
 /** The closed field's text for one item (decision 7 — the whole path by default). */
 export function cascaderEntryText(
   entry: CascaderEntry,
@@ -184,6 +203,41 @@ export function cascaderValueText(
   return match.kind === "item"
     ? cascaderEntryText(match.entry, props.displayMode, props.separator)
     : key;
+}
+
+/**
+ * The field's notice when items cannot be picked because their key repeats (breakdown §4.2 —
+ * Decision 4): shown in the Description's place, after the author's description.
+ */
+const DUPLICATE_NOTICE: Readonly<Record<string, (count: number) => string>> = {
+  en: (count) =>
+    `${count} ${count === 1 ? "item" : "items"} can't be picked — the key repeats`,
+  ko: (count) => `고를 수 없는 항목 ${count} 개 — key 가 겹친다`,
+  ja: (count) => `選べない項目 ${count} 件 — キーが重複しています`,
+  zh: (count) => `${count} 个项目无法选择 — 键重复`,
+};
+
+/** The repeated-key notice in the locale (its language, else English); undefined = none. */
+export function cascaderNotice(
+  table: CascaderTable,
+  locale?: string,
+): string | undefined {
+  const count = table.duplicatePathIds.size;
+  if (!count) return undefined;
+  const language = (locale ?? "en").split("-")[0]!;
+  return (DUPLICATE_NOTICE[language] ?? DUPLICATE_NOTICE.en!)(count);
+}
+
+/** The Description's text: the author's description, then the notice (undefined = no notice). */
+export function cascaderDescriptionText(
+  table: CascaderTable,
+  props: Readonly<Record<string, unknown>>,
+  locale?: string,
+): string | undefined {
+  const notice = cascaderNotice(table, locale);
+  if (!notice) return undefined;
+  const own = typeof props.description === "string" ? props.description : "";
+  return own ? `${own} · ${notice}` : notice;
 }
 
 /** A Cascader's static items (`CascaderItem` children, nested) as source items. */

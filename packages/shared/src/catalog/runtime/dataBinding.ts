@@ -415,7 +415,31 @@ export function catalogBoundRows(
       ? unavailableRowDates(dataBinding, collections)
       : undefined;
   if (shown && unavailableDates) Object.assign(shown, { unavailableDates });
+  // (ADR-322 Phase 4 — a Cascader level's table names the field pointing at the level above.)
+  const levelParent =
+    shown && kind === "items"
+      ? levelParentField(dataBinding, collections)
+      : undefined;
+  if (shown && levelParent) Object.assign(shown, { levelParent });
   return shown && view ? Object.assign(shown, { view }) : shown;
+}
+
+/**
+ * ADR-322 Phase 4 (사용자 결정 5) — a Cascader level's 「parent level」 field (`fieldMap.levelParent`,
+ * a field id) as the row key its values sit under; undefined = none.
+ */
+function levelParentField(
+  dataBinding: DataBindingValue,
+  collections: readonly CollectionDataSource[],
+): string | undefined {
+  const ref = (
+    dataBinding.fieldMap as Record<string, string | undefined> | undefined
+  )?.levelParent;
+  if (typeof ref !== "string" || !ref) return undefined;
+  const bound = resolveBoundCollection(dataBinding, collections);
+  return (
+    (bound?.schema ? resolveField(bound.schema, ref)?.key : undefined) ?? ref
+  );
 }
 
 /**
@@ -1145,6 +1169,7 @@ function boundRowsOf(
       const nested = childRows(child);
       return {
         key,
+        ...(key !== row.itemKey ? { itemKey: row.itemKey } : {}),
         values: buildCollectionRowTemplateItem(row),
         ...(nested ? { children: nested } : {}),
       };
@@ -1317,6 +1342,7 @@ function boundRowsOf(
     seen.add(key);
     return {
       key,
+      ...(key !== row.itemKey ? { itemKey: row.itemKey } : {}),
       values: buildCollectionRowTemplateItem(row),
       ...(children ? { children } : {}),
     };

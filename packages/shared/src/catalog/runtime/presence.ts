@@ -2,6 +2,8 @@ import { catalogSkeletonState } from "./skeletonContext";
 import {
   CASCADER_ITEM_TYPE,
   CASCADER_TYPE,
+  cascaderDescriptionText,
+  cascaderNotice,
   cascaderTableOf,
   cascaderValueText,
   catalogCascaderOfTriggerPart,
@@ -1350,6 +1352,22 @@ const ERROR_HINT_OWNERS: ReadonlySet<string> = new Set([
   ...FIELD_HINT_OWNERS,
   "TagGroup",
 ]);
+/**
+ * ADR-322 Phase 4 — a valid Cascader whose items repeat a key shows its notice in the Description's
+ * place (`cascaderNotice`), with or without a description.
+ */
+function catalogCascaderNoticeShown(
+  field: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  return (
+    typeOf(field) === CASCADER_TYPE &&
+    field.props.isInvalid !== true &&
+    cascaderNotice(cascaderTableOf(field, get, typeOf)) !== undefined
+  );
+}
+
 /** Whether a field's hint part (`Description` · `FieldError`) shows; `undefined` = not one. */
 export function catalogFieldHintShown(
   type: string,
@@ -1404,6 +1422,7 @@ export function catalogAbsentByOwnerValue(
       ERROR_HINT_OWNERS.has(fieldType) &&
       !String(field.props.errorMessage ?? "")
     );
+  if (catalogCascaderNoticeShown(field, get, typeOf)) return false;
   return (
     FIELD_HINT_OWNERS.has(fieldType) &&
     !NODE_TREE_FIELDS.has(fieldType) &&
@@ -1430,10 +1449,16 @@ export function catalogTagGroupActionLabel(
  * holds no child nodes. The Canvas and the DOM read this one predicate.
  */
 export function catalogAbsentByValue(node: CatalogConsumerNode): boolean {
+  // (The final text: a derived one — a Cascader's notice in its Description — stands for the bound.)
+  const derived = node.derivedProps?.children;
   return (
     node.presentWhen === "nonEmptyText" &&
     node.children.length === 0 &&
-    String(node.props.children ?? "").length === 0
+    String(
+      (typeof derived === "string" ? derived : undefined) ??
+        node.props.children ??
+        "",
+    ).length === 0
   );
 }
 
@@ -1496,6 +1521,11 @@ export function catalogHiddenAtRest(
   if (catalogSelectBoxDescriptionHidden(node, get, typeOf)) return true;
   // (ADR-322: a Cascader's items are its hierarchy — the closed field draws none of them.)
   if (typeOf(node) === CASCADER_ITEM_TYPE) return true;
+  // (ADR-322 Phase 4 — a Cascader's Description carries its repeated-key notice, description or not.)
+  if (typeOf(node) === "Description") {
+    const field = catalogPartParent(node, get, typeOf);
+    if (field && catalogCascaderNoticeShown(field, get, typeOf)) return false;
+  }
   // (S2 Column `menuItems` — a Column's MenuItem is its closed menu's item, §9.2.)
   if (typeOf(node) === "MenuItem") {
     const parent = get(node.parentId);
@@ -4412,6 +4442,27 @@ function ownDerivedPropsBase(
       return { _decorative: true };
   }
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
+  // (ADR-322 Phase 4 — a Cascader's repeated-key notice after its description: the field's own
+  //  `description` (the DOM's `useField` names it) and its Description part's text.)
+  const noticeType = typeOf(node);
+  if (noticeType === CASCADER_TYPE || noticeType === "Description") {
+    const cascader =
+      noticeType === CASCADER_TYPE
+        ? node
+        : catalogPartParent(node, get, typeOf);
+    const text =
+      cascader && typeOf(cascader) === CASCADER_TYPE
+        ? cascaderDescriptionText(
+            cascaderTableOf(cascader, get, typeOf),
+            cascader.props,
+            locale,
+          )
+        : undefined;
+    if (text !== undefined)
+      return noticeType === CASCADER_TYPE
+        ? { ...subpart, description: text }
+        : { ...subpart, children: text };
+  }
   if (subpart) return subpart;
   // ADR-258 Phase 2: a Color control's gradient · thumb paint (its value's — the record diff
   // repaints the part when the control's value changes).

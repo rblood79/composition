@@ -31,6 +31,11 @@ export interface CapabilityContext {
   /** Every item key of a collection (to spell out `"all"`), and its disabled ones. */
   itemKeys?: readonly string[];
   disabledKeys?: readonly string[];
+  /**
+   * ADR-322 Phase 4 — a value the target itself refuses (a Cascader's key no single pickable item
+   * carries — Decision 4): why, else `undefined`.
+   */
+  refuseValue?: (prop: string | undefined, next: unknown) => string | undefined;
 }
 
 /**
@@ -110,6 +115,8 @@ export function checkCapabilityConstraints(
   const { props } = context;
   const declared = declaredRefusal(guards, props, context.inherited, def.op);
   if (declared) return declared;
+  const own = context.refuseValue?.(def.prop, next);
+  if (own) return own;
   const keyed = def.op !== undefined || Array.isArray(next);
   if (guards.includes("disabledKeys") && (def.op === "add" || !keyed)) {
     const disabled = new Set([

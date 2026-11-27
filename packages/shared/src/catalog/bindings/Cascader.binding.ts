@@ -1,5 +1,6 @@
 import type { PrimitiveBinding } from "../types";
 import { ITEM_KEY_PROP_CONTRACT } from "../document/itemLinks";
+import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
 
 /**
  * ADR-322 — Cascader: a field that drills into a hierarchy. S2 1.8.2 · design-data · v3 have none
@@ -17,6 +18,13 @@ export const cascaderBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "cascader" },
   props: {
     accepts: {
+      // ADR-322 Phase 4: the hierarchy's data — a Tree's roles (`children` nested · `parentId`
+      //   flat); every row is read (the levels are the whole of it).
+      dataBinding: {
+        kind: "binding",
+        label: "Data source",
+        section: "collection",
+      },
       // (The run's value — a rule's write · a named state; the panel edits the start value.)
       value: {
         editorHidden: true,
@@ -129,6 +137,9 @@ export const cascaderItemBinding: PrimitiveBinding = {
     accepts: {
       // (A RAC item's key — the shared contract the Properties panel reads apart from the HTML id.)
       id: ITEM_KEY_PROP_CONTRACT,
+      // ADR-322 Phase 4 (사용자 결정 5): a level item's own table — under each item above, its rows
+      //   whose 「parent level」 field is that item's key.
+      dataBinding: ITEM_DATA_BINDING_PROP,
       label: { kind: "string", label: "Label", section: "content" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

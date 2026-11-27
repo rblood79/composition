@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-322 Phase 4 — Cascader 데이터 연결] - 2026-11-27
+
+### Added
+
+- Cascader 를 데이터 표에 연결한다 — 「Data source」 에서 표를 고르고 Tree 처럼 「하위 항목 필드」 (중첩) 또는 「부모 ID 필드」 (평면) 를 고르면 단계가 선다. 단계마다 다른 표 (대분류 표 · 중분류 표 …) 는 안쪽 단계 항목에 자기 표를 연결하고 「상위 단계 필드」 (위 단계 항목의 key 를 가진 필드) 를 고른다. 값은 행의 key 다.
+  - Preview · Publish 는 Cascader 의 행을 「더 보기」 창 없이 전부 읽는다 (첫 단계 120 행도 경로가 선다). Builder Canvas 는 다른 목록처럼 표본 행만 읽는다.
+  - key 가 둘 이상의 항목에 있으면 그 항목들은 고를 수 없고, 필드 설명 자리에 「고를 수 없는 항목 N 개 — key 가 겹친다」, Design 패널에 「값 필드를 유일한 필드로 바꾼다」 가 나온다. 그런 key 의 시작 값은 key 그대로 보이고 콘솔에 거절이 남는다 (첫 항목으로 맞추지 않는다). 규칙의 값 쓰기도 같은 판정으로 거절한다.
+  - live (Builder → Publish): Chrome 6 / 6 · WebKit 6 / 6.
+- 번들: Builder 첫 화면 +1,125 B (Phase 1 ~ 4 합계 +4,421 B — 몫 +6,000 안, 절대 상한 1,668,000 B 안).
+
+### Fixed
+
+- Cascader `tree` · `drill` 의 고른 행 글자색이 accent 바탕 색 (`--accent`) 이던 것을 글자 역할 (`--accent-content`) 로 (ADR-290). Code 보기가 Cascader 를 `items` 목록으로 쓰지 않는다 (RAC 컴포넌트가 아니다).
+
 ## [Library 카드 — Select placeholder 자리의 빗금 제거] - 2026-11-27
 
 ### Fixed

@@ -200,7 +200,7 @@
 }
 
 .react-aria-Popover.cascader-panel :is(.react-aria-TreeItem, .react-aria-GridListItem)[data-selected] {
-  color: var(--accent);
+  color: var(--accent-content);
   font-weight: 700;
 }
 

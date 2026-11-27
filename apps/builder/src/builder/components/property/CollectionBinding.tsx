@@ -35,6 +35,7 @@ import {
 } from "../../catalogRuntime/react.runtime";
 import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
 import { catalogStaticItemCount } from "../../../../../../packages/shared/src/catalog/commands";
+import { cascaderTableOf } from "../../../../../../packages/shared/src/catalog/runtime/cascader";
 import {
   ActionIconButton,
   ActionTooltipTrigger,
@@ -97,6 +98,7 @@ type FieldMapRole =
   | "value"
   | "children"
   | "parentId"
+  | "levelParent"
   | "disabled"
   | "unavailable"
   | "unavailableEnd";
@@ -110,6 +112,11 @@ const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
   "parentId",
   "children",
 ];
+/**
+ * ADR-322 Phase 4 (사용자 결정 5) — a Cascader level item's own table names the field pointing at
+ * the item of the level above.
+ */
+const LEVEL_FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "levelParent"];
 /** ADR-310 ② — a section's binding names its groups' child rows (its items repeat over them). */
 const SECTION_FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "children"];
 /**
@@ -127,6 +134,7 @@ const FIELD_MAP_ROLE_LABEL: Record<
   | "fieldMapValue"
   | "fieldMapChildren"
   | "fieldMapParentId"
+  | "fieldMapLevelParent"
   | "fieldMapDisabled"
   | "fieldMapUnavailable"
   | "fieldMapUnavailableEnd"
@@ -134,6 +142,7 @@ const FIELD_MAP_ROLE_LABEL: Record<
   value: "fieldMapValue",
   children: "fieldMapChildren",
   parentId: "fieldMapParentId",
+  levelParent: "fieldMapLevelParent",
   disabled: "fieldMapDisabled",
   unavailable: "fieldMapUnavailable",
   unavailableEnd: "fieldMapUnavailableEnd",
@@ -268,7 +277,25 @@ export const CollectionBinding = memo(function CollectionBinding({
       ? workspace.root.domInputs.get(elementId)?.ruleId
       : undefined;
   // (ADR-315 Phase 5 증분 5d — a Table's rows are a tree by the same two roles: its 「Child rows」.)
-  const isTree = ruleId === "Tree" || ruleId === "Table";
+  // (ADR-322 Phase 4 — a Cascader's levels are its rows' tree too; a level item with its own table
+  //  names the field pointing at the level above.)
+  const isTree =
+    ruleId === "Tree" || ruleId === "Table" || ruleId === "Cascader";
+  const isLevel = ruleId === "CascaderItem";
+  // (ADR-322 Phase 4 — a bound Cascader whose rows repeat a key: those items cannot be picked; the
+  //  way out is a unique field as the item key — breakdown §4.2.)
+  const fieldRecord =
+    workspace && elementId && ruleId === "Cascader"
+      ? workspace.root.domInputs.get(elementId)
+      : undefined;
+  const repeatedKeys =
+    workspace && fieldRecord
+      ? cascaderTableOf(
+          fieldRecord,
+          (id) => workspace.root.domInputs.get(id),
+          (node) => workspace.root.typeOf(node),
+        ).duplicatePathIds.size
+      : 0;
   // ADR-310 ②: a section bound to grouped rows fills its items with each group's child rows (the
   // binding's children field — the same role a Tree names).
   const isSection = !!ruleId && CATALOG_SECTION_TYPES.has(ruleId);
@@ -282,9 +309,11 @@ export const CollectionBinding = memo(function CollectionBinding({
     : [
         ...(isTree
           ? TREE_FIELD_MAP_ROLES
-          : isSection
-            ? SECTION_FIELD_MAP_ROLES
-            : FIELD_MAP_ROLES),
+          : isLevel
+            ? LEVEL_FIELD_MAP_ROLES
+            : isSection
+              ? SECTION_FIELD_MAP_ROLES
+              : FIELD_MAP_ROLES),
         // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field whose `true`
         // disables the row's item.
         ...(ruleId && CATALOG_DATA_DISABLED_TYPES.has(ruleId)
@@ -461,7 +490,7 @@ export const CollectionBinding = memo(function CollectionBinding({
               fields={
                 role === "children"
                   ? fieldOptions.filter((field) => field.type === "array")
-                  : role === "parentId"
+                  : role === "parentId" || role === "levelParent"
                     ? fieldOptions.filter(
                         (field) =>
                           field.type === "string" || field.type === "number",
@@ -483,9 +512,19 @@ export const CollectionBinding = memo(function CollectionBinding({
             />
           ))}
 
+        {selectedCollectionId && repeatedKeys > 0 && (
+          <div className="binding-empty">
+            {t("propertiesPanel.cascaderRepeatedKey", {
+              count: String(repeatedKeys),
+            })}
+          </div>
+        )}
+
         {selectedCollectionId &&
           workspace &&
           elementId &&
+          // (A Cascader reads every row — its levels are the rows' hierarchy: no row display.)
+          ruleId !== "Cascader" &&
           COLLECTION_TYPE_TABLE.some((row) => row.owner === ruleId) && (
             <Suspense fallback={null}>
               <RowDisplayChoice workspace={workspace} elementId={elementId} />

@@ -1251,6 +1251,9 @@ const catalog: TranslationKeys = {
     fieldMapValue: "Value field",
     fieldMapChildren: "Children field (tree)",
     fieldMapParentId: "Parent ID field (tree)",
+    fieldMapLevelParent: "Parent level field",
+    cascaderRepeatedKey:
+      "{count} items share a key and can't be picked — choose a unique field as the Value field.",
     fieldMapAuto: "Auto",
     fieldMapDisabled: "Disabled field",
     fieldMapUnavailable: "Unavailable date",
@@ -4159,6 +4162,8 @@ const formattedMessages: Record<
     `Resize the column between ${String(args?.before ?? "")} / ${String(args?.after ?? "")} panels`,
   "commandPalette.noResults": (args) =>
     `No results for "${String(args?.query ?? "")}"`,
+  "propertiesPanel.cascaderRepeatedKey": (args) =>
+    `${String(args?.count ?? 0)} items share a key and can't be picked — choose a unique field as the Value field.`,
   "commandPalette.executableCount": (args) =>
     `${String(args?.count ?? 0)} of ${String(args?.total ?? 0)} available`,
   "dataView.tableColumnEditLabel": (args) =>

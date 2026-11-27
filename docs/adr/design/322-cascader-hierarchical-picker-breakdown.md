@@ -257,3 +257,29 @@ G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
 - 번들 (같은 A/B, HEAD `4b09eccba`): Builder initial 1,660,973 → **1,664,269 (P1 ~ P3 = +3,296)** — 결정 8 의 +3,000 을 **296 B 넘음** (절대 상한 1,665,000 까지 731 B). P3 몫 ≈ +570 B 의 대부분은 첫 화면 rule 표에 실린 열린 모양 (`externalStyles`) 과 dialog trigger hook. 열린 내용 둘은 각자 lazy chunk (`cascaderMenu` · `cascaderPanel`). Preview JS +3 B · CSS +665 B. → 사용자 보고 (결정 8).
 
 사용자 답 (Phase 4 진입 전, 2026-11-27): 결정 5 = 넣는다 · 결정 8 = 몫 +6,000 (Phase 1 ~ 6 합계) · Builder 절대 상한 1,668,000 재승인 (만료 그대로).
+
+### Phase 4 — G4 (2026-11-27)
+
+**연결 세 모양** (Tree 의 길을 그대로 — 새 행 읽기 없음):
+
+- 중첩 (`fieldMap.children`) · 평면 (`fieldMap.parentId`): Cascader 를 연결하면 자기 항목 하나 (`repeat`) 를 행 template 으로 넣는다 (`rowTemplateInsert` — 원본의 표본 항목은 부품과 같은 루트 목록의 template 자리라 소유 노드가 되지 않는다. 연결된 Cascader 에서는 resolver 가 그 자리를 건너뛴다). 하위 행은 Tree 처럼 같은 template 을 다시 놓는다 (`nestTreeRows`). `COLLECTION_TYPE_TABLE` 의 Cascader `repeat: true`.
+- 단계마다 다른 표 (결정 5): 안쪽 단계 항목에 자기 연결 (`<Collection items>` ①) + 「상위 단계 필드」 (`fieldMap.levelParent` — 행 읽기가 `CatalogBoundRows.levelParent` 로 행 key 이름을 싣는다) — resolver `repeatRows` 가 바깥 행의 key 와 같은 행만 그 밑에 둔다. 그 단계 항목은 `nestTreeRows` 가 지우지 않는다 (자기 연결이 있는 반복 항목). Design 패널: Cascader 연결 = Tree 의 역할 셋 (값 · 부모 ID · 하위), 단계 항목 연결 = 값 + 상위 단계 필드.
+- 값 = 데이터 key: 행 읽기는 겹친 key 를 `a~3` 으로 갈라 행 identity 를 지키므로, 갈랐을 때 원래 key 를 `CatalogBoundRow.itemKey` 로 남기고 Cascader 항목의 `id` 는 그것이다 — 겹침이 겹침으로 남아 고를 수 없다 (Decision 4).
+- Preview · Publish 는 Cascader (와 자기 연결 단계 항목) 의 행을 「더 보기」 창 없이 전부 읽는다 (`readsWholeRows`) — 경로를 되찾으려면 계층 전체가 필요하다. Builder Canvas 는 다른 목록과 같이 표본 행 (사용자 원칙 「Builder 의 데이터 행 = 디자인 표본」) — 표본 밖 key 의 시작 값은 Canvas 에서 key 글자로 보인다 (설계된 비대칭). Design 패널은 Cascader 에 행 표시 선택지를 내지 않는다.
+
+**겹치는 key · 거절**:
+
+- 필드 알림: 겹치는 key 가 있으면 Description 자리에 「고를 수 없는 항목 N 개 — key 가 겹친다」 (사이트 언어 — en · ko · ja · zh), 작성한 설명 뒤 `·` 로. presence 파생 값 하나 (Cascader `description` · Description `children`) 를 Canvas 와 DOM (`useField` 설명 · Description 글자) 이 같이 읽는다. invalid 면 오류 문구가 이긴다.
+- Design 패널 (Collection 구획): 「key 가 겹치는 항목 N 개는 고를 수 없다 — 값 필드를 유일한 필드로 바꾼다」.
+- 값 쓰기: dispatcher 의 constraint 판정에 대상 자신의 거절 (`CapabilityContext.refuseValue`) — Cascader 는 `cascaderValueRefusal` (없는 key · 여러 항목의 key · 가지 · 비활성). 시작 값 · 실행 값이 한 항목을 가리키지 않으면 필드는 key 그대로 보이고 콘솔에 「[Cascader] 값 거절」 (첫 항목으로 맞추지 않는다).
+- 「값 넣기」 규칙 자체의 live 확인은 G5 로 옮겼다 — Cascader 의 Do (이름 붙인 상태 · When · Do) 등록이 Phase 5 범위이고, 지금 Cascader 에는 유도 Do 가 없다 (`value` 가 `editorHidden`). G4 는 dispatcher 판정의 단위 · 원복 RED 로 가렸다.
+
+**G4 결과**:
+
+- `apps/builder/src/builder/catalogRuntime/__tests__/adr322CascaderData.test.ts` 5 / 5 (실제 `catalogBoundRows` 경유) — 중첩: A/01 · B/01 둘 다 고를 수 없음 · 02 = 「Alpha / Two」 · 없는 key / 평면 / 평면의 겹친 루트 key (계층이 서지 않음 + 알림) / 단계마다 다른 표 (Food > Bread · Rice, Drink > Tea) / 같은 부모의 `01` 둘 (`A/01` · `A/01#1` 따로, 둘 다 고를 수 없음). 기대값은 행에서 손으로 적었다.
+- shared `adr322Cascader.test.ts` 12 / 12 — 거절 넷 · 비우기 허용 · dispatcher `checkCapabilityConstraints` 가 대상 거절을 보고 · 알림 글자 (언어 · 설명 뒤).
+- 원복 RED 13 / 13 (단계 항목 지움 · 상위 단계 거르기 · 데이터 key · 표본 남김 · 소유 행 · 하위 행 펼침 · `itemKey` 두 자리 · `levelParent` · 알림 파생 · 알림 Description 숨김 · 거절 · 연결 template) + live RED 2 / 2 (전체 행 읽기 → 값 「R120-1」 로 FAIL · DOM Description 파생 글자 → 알림 FAIL), 모두 바이트 복원 확인.
+- live `apps/builder/scripts/adr322-g4-live.mjs` (Builder 에서 표 넷 · Cascader 셋 → Canvas · Design 패널 · Publish): Chrome **6 / 6** · WebKit **6 / 6** — 평면 120 루트의 시작 값 「R120 / R120-1」 · 첫 단계 120 항목 / 단계 표 drill 시작 「Food / Rice」 · 그 단계 `[selected]` · Bread 고르기 · 다시 열면 Food 단계에 Bread `[selected]` (조상 펼침) / 겹친 A 둘 `[disabled]` · 알림 Canvas = Publish 글자 · 시작 값 A 거절 (글자 A · 콘솔) / Design 패널 안내 / page error 0.
+- 회귀: shared 3,052 · builder unit 8,076 · type-check 0.
+- 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, HEAD `e521a0ad7` 위 작업 트리 — 이 Phase 의 tracked 소스만 되돌린 빌드와 나란히, resolver 는 이 세션 hunk 만): Builder initial 1,665,211 → **1,666,336 (+1,125)** — P1 ~ P4 합계 **+4,421** (몫 +6,000 까지 1,579 B · 절대 상한 1,668,000 까지 1,664 B). Preview JS · CSS 0. (기준 빌드가 Phase 3 의 1,664,269 보다 큰 것은 같은 작업 트리의 다른 세션 변경.)
+- 같이 고친 Phase 3 결함 둘: 열린 tree · drill 의 선택 행 글자색 `var(--accent)` → `var(--accent-content)` (ADR-290 — DOM 상태 선택자의 accent 는 content 역할, `adr290AccentRoles` 가 막았다) · Code 보기의 `items` host 목록에서 Cascader 제외 (RAC 컴포넌트가 아니다 — `adr310ItemsHosts`).
