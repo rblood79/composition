@@ -1186,7 +1186,8 @@ function filterBarDom(input: DelegatedDomInput, type: string): ReactElement {
       {
         base: { ...base, ...chrome(input, type), style: input.style },
         props: input.node.props,
-        locale: input.root.siteLocale() ?? "en",
+        // (None set: the environment's — what RAC and the Canvas read too.)
+        locale: input.root.environmentLocale ?? "en",
         access: input.filterBar && (() => input.filterBar!(input.node.id)),
         parts: children(input).map((child) => ({
           source: child.sourceId,

@@ -36,8 +36,6 @@ import {
 const LABELS: Readonly<Record<string, string>> = {
   en: "Steps",
   ko: "단계 목록",
-  ja: "ステップ一覧",
-  zh: "步骤列表",
 };
 
 /** The state a screen reader reads after a step's label (the visual says it with a number · check). */
@@ -48,8 +46,6 @@ const STATE_TEXT: Readonly<Record<string, Record<string, string>>> = {
     incomplete: "Not completed",
   },
   ko: { current: "현재", completed: "완료", incomplete: "남음" },
-  ja: { current: "現在", completed: "完了", incomplete: "未完了" },
-  zh: { current: "当前", completed: "已完成", incomplete: "未完成" },
 };
 
 interface StepListContextValue {

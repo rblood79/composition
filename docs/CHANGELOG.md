@@ -13,6 +13,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [사이트 언어 i18n — ADR-320 · 321 · 324 · 325 문구 · en · ko 로 정리] - 2026-11-28
+
+### Fixed
+
+- **사이트 언어를 따르지 않던 문구**: Site 설정의 Language 가 ko 여도 영어 · 한국어로 고정되던 문구가 사이트 언어를 따른다.
+  - FilterBar: 「Add filter」 · 「Edit conditions」 · 「Clear」 버튼, 칩의 「조건 메뉴」 · 「조건 삭제」 이름, 연결 전 표본 칩 (「필드 포함 값」). 원본 template 의 글자는 사이트 언어를 바꾸면 바로 바뀐다 (원본 노드의 `localizedProps` — 검증 · resolver · 놓을 때 복사가 같은 함수를 읽는다).
+  - Stepper: 단계 이름 · 패널 내용 (「단계 1」 · 「단계 1 내용」), Design 「+」 가 넣는 단계 (「단계 4」).
+  - 「모아서 저장」: 저장 결과 Toast (「저장 1건」 · 「1 saved」) 와 행 사유는 사이트 언어로 (전에는 한국어 고정), 저장 막대 문구 8개는 Builder 언어가 아니라 사이트 언어로 쓴다. 판정 모듈은 사유 코드를 내고 그릴 때 문구를 고른다 — 코드가 아닌 사유 (`HTTP 412` · 서버 글자) 는 그대로.
+  - FilterBar 「Saved filters」 「+」 의 기본 이름 (「저장된 필터 1」 — 전에는 Builder 언어).
+  - 페이지에 복사되는 글자 (놓은 Stepper 의 단계 · 저장 막대 · 「+」 항목) 는 넣는 순간의 사이트 언어로 한 번 쓰인다 — 뒤에 언어를 바꿔도 다시 번역하지 않는다.
+- **칩 문구**: 「Group (1 condition)」 단수 · 복수, 숫자 (「1,234.5」) 와 날짜 필드 값 (「2026. 11. 5.」 · 「Nov 5, 2026」) 을 사이트 언어의 서식으로, 한국어 비교어는 조사 없이 「다음으로 시작」 · 「다음으로 끝남」 · 「다음 중 하나」. Rating 의 낭독 값도 사이트 언어의 숫자 서식.
+- **사이트 언어가 비어 있을 때**: 우리 문구도 RAC · Canvas 처럼 브라우저 언어를 따른다 (전에는 우리 문구만 영어 — 한 화면에 두 언어가 섞였다).
+
+### Changed
+
+- 사이트 문구 번역 표는 en · ko 두 언어만 둔다 (사용자 결정 2026-11-28) — 25 개 파일의 ja · zh 항목 삭제, 그 밖의 언어는 영어. 언어별 동작 값 (CJK 행간 · RAC 날짜 자리 표시 · 주 시작 지역) 은 그대로.
+- live (Builder → Publish, Chrome · 브라우저 ko-KR): `site-language-texts-live.mjs` 10 / 10 · ADR-324 G5 `SITE_LANG=ko` 16 / 16 · 영어 16 / 16.
+
 ## [ADR-322 Phase 6 · Implemented — Cascader 폼 값 · 필수 검증 · 단계별 원격 로드] - 2026-11-27
 
 ### Added

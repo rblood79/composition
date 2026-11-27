@@ -175,6 +175,8 @@ import {
   type SaveResult,
   type SaveScope,
 } from "./collectionSave";
+import { collectionSaveReasonText } from "./collectionSaveText";
+import { catalogSiteLanguage } from "../document/templateLocalizedProps";
 import { CATALOG_CHANGES_ROOT } from "./stateTemplate";
 import type {
   CatalogCascaderLevels,
@@ -244,7 +246,10 @@ function saveNote(
   saved: NonNullable<ReturnType<CollectionSaver["rowState"]>>,
   fields: readonly string[],
 ): string {
-  const parts = [saved.reason];
+  language: string,
+  const parts = [
+    collectionSaveReasonText(saved.reason, saved.detail, language),
+  ];
   for (const [field, messages] of Object.entries(saved.errors ?? {}))
     parts.push(`${field}: ${messages.join(", ")}`);
   if (saved.status === "conflict" && saved.server)
@@ -445,6 +450,7 @@ export class CatalogPreviewSession {
    */
   private readonly saver = new CollectionSaver({
     saveSettings: (collectionId) => this.saveSettingsOf(collectionId),
+    language: () => this.siteLanguage(),
     collection: (collectionId) =>
       this.collections.find((item) => item.id === collectionId) as never,
     store: (collectionId) => this.stores.get(collectionId),
@@ -774,6 +780,11 @@ export class CatalogPreviewSession {
     return this.currentRoot;
   }
   get graph(): CatalogGraph | undefined {
+  /** The site's language (`ProjectEntry.site.lang`; none set — the environment's). */
+  private siteLanguage(): string {
+    return this.graph ? catalogSiteLanguage(this.graph) : "en";
+  }
+
     return this.receiver.graph;
   }
   /** The data services the Preview's components read (a new object when the Builder sends data). */
@@ -1613,7 +1624,7 @@ export class CatalogPreviewSession {
             fields: [
               ...new Set([...fields, ...Object.keys(saved.errors ?? {})]),
             ],
-            note: saveNote(saved, fields),
+            note: saveNote(saved, fields, this.siteLanguage()),
           });
         else if (change?.kind === "unlinked")
           marks.set(itemKey(item, index, keyField), {

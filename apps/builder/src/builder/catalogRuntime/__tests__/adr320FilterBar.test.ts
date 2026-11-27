@@ -82,7 +82,7 @@ const START = {
   ],
 };
 
-async function open() {
+async function open(lang?: string) {
   const library = await buildCodeCatalogLibrary();
   const graph = new CatalogGraph(
     newCatalogProjectDocument({
@@ -105,6 +105,7 @@ async function open() {
       },
     },
   );
+  if (lang) workspace.execute(setSiteSettings({ patch: { lang } }));
   workspace.execute(
     setDataEntries({
       puts: [
@@ -277,6 +278,46 @@ describe("ADR-320 G2 — the filter bar", () => {
       ["Name", "포함", "Bo"],
       ["status", "이상", "2"],
       ["묶음 (조건 2)"],
+    ]);
+  });
+
+  it("a bar placed on a Korean site owns a Korean sample chip (field · comparison · value)", async () => {
+    const t = await open("ko");
+    expect(t.shown().chips).toEqual([["필드", "포함", "값"]]);
+    expect(t.shown().labels).toEqual(["필드 포함 값"]);
+  });
+
+  it("the site's language words the bar's buttons and the chip's button names — Canvas and DOM (Korean, back to English)", async () => {
+    const t = await open();
+    t.workspace.execute(setSiteSettings({ patch: { lang: "ko" } }));
+    expect(t.shown().buttons).toEqual(["필터 추가", "조건 편집", "지우기"]);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const react = createRoot(host);
+    const barRecord = t.records().find((record) => record.sourceId === BAR)!;
+    await act(async () =>
+      react.render(renderCatalogDom(t.workspace.root, barRecord.id)),
+    );
+    await waitFor(
+      () => expect(host.querySelectorAll('[role="group"]')).toHaveLength(1),
+      { timeout: 5000 },
+    );
+    const buttons = [...host.querySelectorAll("button")];
+    expect(
+      buttons.map((button) => (button.textContent ?? "").trim()).slice(-3),
+    ).toEqual(["필터 추가", "조건 편집", "지우기"]);
+    expect(
+      buttons
+        .map((button) => button.getAttribute("aria-label"))
+        .filter(Boolean),
+    ).toEqual(["조건 메뉴", "조건 삭제"]);
+    await act(async () => react.unmount());
+    host.remove();
+    t.workspace.execute(setSiteSettings({ patch: { lang: "en" } }));
+    expect(t.shown().buttons).toEqual([
+      "Add filter",
+      "Edit conditions",
+      "Clear",
     ]);
   });
 

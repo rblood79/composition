@@ -52,7 +52,8 @@ export default function CatalogRatingDom({
 }) {
   const own = props.state.onChange as ((value: number) => void) | undefined;
   // (S2 intl — the strings by language, English otherwise — `localizedStrings.ts`'s reading.)
-  const language = useLocale().locale.split("-")[0]!;
+  const { locale } = useLocale();
+  const language = locale.split("-")[0]!;
   const label = props.label || (NAME[language] ?? NAME.en!);
   const valueLabel = VALUE_LABEL[language] ?? VALUE_LABEL.en!;
   if (props.readOnly)
@@ -62,7 +63,11 @@ export default function CatalogRatingDom({
         minValue={0}
         maxValue={props.count}
         value={props.value}
-        valueLabel={valueLabel(String(props.value), props.count)}
+        valueLabel={valueLabel(
+          // (The locale's digits — 3.5 · 3,5.)
+          new Intl.NumberFormat(locale).format(props.value),
+          props.count,
+        )}
         aria-label={label}
       >
         {props.stars}

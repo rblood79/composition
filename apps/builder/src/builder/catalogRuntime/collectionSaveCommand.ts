@@ -14,6 +14,11 @@
  *   stays the author's.
  */
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  collectionSaveBarLabels,
+  type CollectionSaveBarLabels,
+} from "../../../../../packages/shared/src/catalog/runtime/collectionSaveText";
+import { catalogSiteLanguage } from "../../../../../packages/shared/src/catalog/document/templateLocalizedProps";
 import { setDataEntries } from "../../../../../packages/shared/src/catalog/commands/data";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { removeRecords } from "../../../../../packages/shared/src/catalog/commands/project";
@@ -45,22 +50,6 @@ import {
 import { catalogStyleWritesOf } from "./styleFields";
 import { childIdsOf, sequence } from "./viewAuthoring";
 
-/** The words a save bar starts with (the panel's language — the author edits them after). */
-export interface CatalogSaveBarLabels {
-  /** The count's text around `{count}` (「저장 안 된 변경 {count}건」). */
-  unsaved: string;
-  save: string;
-  discard: string;
-  /** 사용자 결정 4 — a conflicted row's two choices (on the rows selected, else every one). */
-  keepMine: string;
-  takeServer: string;
-  /** Decision 5 — an unlinked row put on the server row selected with it. */
-  link: string;
-  /** 「결과 확인 필요」 — the rows waiting for their result sent again · no longer waited for. */
-  resend: string;
-  dropPending: string;
-}
-
 /** The collection's raw id (the `{{ changes.<id> }}` · `!var.changes:<id>` key). */
 const rawCollectionId = (id: string) => id.slice("data:collection:".length);
 
@@ -83,7 +72,7 @@ export function catalogCollectionTables(
 function saveBarEntries(
   stage: Parameters<typeof catalogCreationProps>[0],
   collectionId: DataCollectionId,
-  labels: CatalogSaveBarLabels,
+  labels: CollectionSaveBarLabels,
   newId: NewId,
 ): { entries: NodeEntry[]; rootId: NodeId; related: InteractionEntry[] } {
   const raw = rawCollectionId(collectionId);
@@ -281,7 +270,8 @@ export function catalogCollectionSaveCommand(
     collectionId: DataCollectionId;
     save: CollectionSaveSettings | undefined;
     removeRuleIds?: readonly string[];
-    saveBars?: CatalogSaveBarLabels;
+    /** Put a save bar after each bound Table (its texts in the site's language). */
+    saveBars?: boolean;
     label?: string;
   },
   newId: NewId,
@@ -339,7 +329,7 @@ export function catalogCollectionSaveCommand(
           const bar = saveBarEntries(
             stage,
             input.collectionId,
-            input.saveBars!,
+            collectionSaveBarLabels(catalogSiteLanguage(graph)),
             newId,
           );
           return insertNodes({

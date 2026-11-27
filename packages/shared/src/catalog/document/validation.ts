@@ -3122,6 +3122,7 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       "definitionId",
       "children",
       "props",
+      "localizedProps",
       "visual",
       "layout",
       "responsive",
@@ -3137,6 +3138,20 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
     ],
     "library.template",
   );
+  if (item.localizedProps !== undefined) {
+    const at = "library.template.localizedProps";
+    const props = object(item.props, "library.template.props");
+    for (const [key, raw] of Object.entries(object(item.localizedProps, at))) {
+      // (A text in other languages stands for a literal text prop the template has.)
+      if (typeof props[key] !== "string")
+        invalid("LOCALIZED_PROP_LITERAL", `${at}.${key}`);
+      for (const [language, text] of Object.entries(
+        object(raw, `${at}.${key}`),
+      ))
+        if (typeof text !== "string")
+          invalid("STRING_REQUIRED", `${at}.${key}.${language}`);
+    }
+  }
   if (item.responsive !== undefined)
     for (const [breakpoint, raw] of Object.entries(
       object(item.responsive, "library.template.responsive"),

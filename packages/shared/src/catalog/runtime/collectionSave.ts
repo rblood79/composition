@@ -25,6 +25,11 @@ import type {
   SentEntry,
 } from "./collectionStore";
 import { CATALOG_NO_CHANGES, type CatalogChangesState } from "./stateTemplate";
+import {
+  collectionSaveMessage,
+  collectionSaveSummary,
+  type SaveMessageCode,
+} from "./collectionSaveText";
 
 export type RowSaveStatus =
   | "conflict"
@@ -38,11 +43,6 @@ export type RowSaveStatus =
 /** A rows' choice a save · a discard runs on (the selected rows — none = every such row). */
 export type SaveScope = "conflicts" | "link" | "pending";
 
-const SKIP_REASONS: Record<"noKey" | "noConnection" | "noVersion", string> = {
-  noKey: "key 없음",
-  noConnection: "보낼 연결 없음",
-  noVersion: "기준 버전 없음 — 조회한 행에 버전 값이 없어 보내지 않음",
-};
 
 interface SaveCounts {
   saved: number;
@@ -54,7 +54,13 @@ interface SaveCounts {
 
 export interface RowSaveState {
   status: RowSaveStatus;
+  /**
+   * Why — a `SaveReasonCode`, or a text shown as it came (`HTTP 422`, a server's · network's own
+   * words); `collectionSaveReasonText` words it in the site's language when the row is drawn.
+   */
   reason: string;
+  /** The reason's detail (a code or a text, as `reason`). */
+  detail?: string;
   /** The fields' messages a refusal held. */
   errors?: Readonly<Record<string, readonly string[]>>;
   /** The server's row as last read (a conflict shows its values). */
@@ -72,6 +78,8 @@ export interface SaveCollectionInfo {
 }
 
 export interface CollectionSaveHost {
+  /** The site's language (`ProjectEntry.site.lang`; none set — the environment's) — a save's messages'. */
+  language(): string;
   saveSettings(collectionId: string): CollectionSaveSettings | undefined;
   collection(collectionId: string): SaveCollectionInfo | undefined;
   store(collectionId: string): CollectionStore | undefined;
@@ -327,10 +335,10 @@ export class CollectionSaver {
     outcomes.push({ key: verdict.key, result: "unknown" });
     state.rows.set(verdict.key, {
       status: verdict.reason === "processing" ? "processing" : "pending",
-      reason:
-        verdict.reason === "processing"
-          ? "처리 중"
-          : `결과 확인 필요${verdict.detail ? ` (${verdict.detail})` : ""}`,
+      reason: verdict.reason === "processing" ? "processing" : "pending",
+      ...(verdict.reason !== "processing" && verdict.detail
+        ? { detail: verdict.detail }
+        : {}),
     });
   }
 
@@ -360,7 +368,7 @@ export class CollectionSaver {
   /** 「이 행에 적용」: one unlinked row and one server row among the keys. */
   private link(collectionId: string, keys: readonly RowKey[]): SaveResult {
     const store = this.host.store(collectionId);
-    if (!store) return { ok: false, message: "변경 없음" };
+    if (!store) return { ok: false, message: this.message("noChanges") };
     const unlinked = keys.filter(
       (key) => store.changes.get(key)?.kind === "unlinked",
     );
@@ -371,13 +379,13 @@ export class CollectionSaver {
     if (unlinked.length !== 1 || servers.length !== 1)
       return {
         ok: false,
-        message: "연결할 행 하나와 서버 행 하나를 고르세요",
+        message: this.message("linkPick"),
       };
     store.link(unlinked[0]!, servers[0]!);
     this.host.refresh(collectionId);
     return {
       ok: true,
-      message: "행을 연결했습니다 — 저장하면 그 행에 반영됩니다",
+      message: this.message("linked"),
     };
   }
 
@@ -461,20 +469,20 @@ export class CollectionSaver {
     if (!save)
       return {
         ok: false,
-        message: "「모아서 저장」 이 꺼진 collection 입니다",
+        message: this.message("saveOff"),
       };
     const store = this.host.store(collectionId);
     const state = this.state(collectionId);
-    if (state.saving) return { ok: false, message: "저장 중입니다" };
+    if (state.saving) return { ok: false, message: this.message("saving") };
     const chosen = choice?.keys
       ? this.host.storeKeys(collectionId, choice.keys)
       : undefined;
     if (choice?.scope === "link") return this.link(collectionId, chosen ?? []);
-    if (!store) return { ok: true, message: "저장할 변경이 없습니다" };
+    if (!store) return { ok: true, message: this.message("noChanges") };
     let only: Set<RowKey> | undefined;
     if (choice?.scope === "conflicts") {
       only = new Set(this.rebaseConflicts(collectionId, chosen));
-      if (!only.size) return { ok: true, message: "충돌한 행이 없습니다" };
+      if (!only.size) return { ok: true, message: this.message("noConflicts") };
     }
     // (「다시 저장」 — the waiting rows are closed as not applied and go again: the server may
     //  have applied the first one — a second create is the viewer's choice (a versioned update ·
@@ -482,7 +490,7 @@ export class CollectionSaver {
     if (choice?.scope === "pending") {
       only = new Set(this.closePending(collectionId, store, chosen));
       if (!only.size)
-        return { ok: true, message: "결과를 기다리는 행이 없습니다" };
+        return { ok: true, message: this.message("noPending") };
     }
     state.saving = true;
     this.host.refresh(collectionId);
@@ -587,7 +595,7 @@ export class CollectionSaver {
           keys.delete(key);
           state.rows.set(key, {
             status: "conflict",
-            reason: "다른 사람이 먼저 바꿈",
+            reason: "changedFirst",
             server: now,
           });
           counts.conflicts += 1;
@@ -610,12 +618,13 @@ export class CollectionSaver {
               parse: modules.parseJsonLossless,
               keyFieldKey,
             })
-          : ({ state: "unknown", reason: "확인 조회 연결 없음" } as const);
+          : ({ state: "unknown", reason: "recheckNoConnection" } as const);
         if (read.state === "unknown") {
           keys.delete(key);
           state.rows.set(key, {
             status: "failed",
-            reason: `확인 조회 실패 — ${read.reason}`,
+            reason: "recheckFailed",
+            detail: read.reason,
           });
           counts.failed += 1;
           continue;
@@ -635,7 +644,7 @@ export class CollectionSaver {
           } else {
             state.rows.set(key, {
               status: "conflict",
-              reason: "서버에서 지워짐",
+              reason: "goneOnServer",
               gone: true,
             });
             counts.conflicts += 1;
@@ -654,7 +663,7 @@ export class CollectionSaver {
           if (row) store.writeServerRow(key, row, this.host.nextAt());
           state.rows.set(key, {
             status: "conflict",
-            reason: "다른 사람이 먼저 바꿈",
+            reason: "changedFirst",
             ...(row ? { server: row } : {}),
           });
           counts.conflicts += 1;
@@ -698,7 +707,7 @@ export class CollectionSaver {
       outcomes.push({ key: skipped.key, result: "rejected" });
       state.rows.set(skipped.key, {
         status: skipped.reason,
-        reason: SKIP_REASONS[skipped.reason],
+        reason: skipped.reason,
       });
       counts.skipped += 1;
     }
@@ -710,7 +719,7 @@ export class CollectionSaver {
           outcomes.push({ key, result: "rejected" });
           state.rows.set(key, {
             status: "failed",
-            reason: "인증 거절로 보내지 않음",
+            reason: "authStopped",
           });
         }
         return;
@@ -719,7 +728,7 @@ export class CollectionSaver {
       if (!endpoint) {
         for (const key of request.keys) {
           outcomes.push({ key, result: "rejected" });
-          state.rows.set(key, { status: "failed", reason: "endpoint 없음" });
+          state.rows.set(key, { status: "failed", reason: "noEndpoint" });
         }
         return;
       }
@@ -880,19 +889,19 @@ export class CollectionSaver {
       store.writeServerRow(key, row, this.host.nextAt());
   }
 
+  /** A save message in the site's language. */
+  private message(code: SaveMessageCode): string {
+    return collectionSaveMessage(code, this.host.language());
+  }
+
   private summary(counts: SaveCounts): SaveResult {
-    const parts: string[] = [];
-    if (counts.saved) parts.push(`저장 ${counts.saved}건`);
-    if (counts.failed) parts.push(`실패 ${counts.failed}건`);
-    if (counts.conflicts) parts.push(`충돌 ${counts.conflicts}건`);
-    if (counts.pending) parts.push(`결과 확인 필요 ${counts.pending}건`);
-    if (counts.skipped) parts.push(`보내지 못함 ${counts.skipped}건`);
+    const line = collectionSaveSummary(counts, this.host.language());
     const ok =
       !counts.failed && !counts.conflicts && !counts.pending && !counts.skipped;
     return {
       ok,
-      message: parts.length ? parts.join(" · ") : "저장할 변경이 없습니다",
-      ...(ok ? {} : { reason: parts.join(" · ") }),
+      message: line || this.message("noChanges"),
+      ...(ok ? {} : { reason: line }),
     };
   }
 }

@@ -52,8 +52,6 @@ const ContextualHelpTriggerContext =
 const HELP_STRINGS: Readonly<Record<string, { help: string; info: string }>> = {
   en: { help: "Help", info: "Information" },
   ko: { help: "도움말", info: "정보" },
-  ja: { help: "ヘルプ", info: "情報" },
-  zh: { help: "帮助", info: "信息" },
 };
 
 export interface ContextualHelpProps {

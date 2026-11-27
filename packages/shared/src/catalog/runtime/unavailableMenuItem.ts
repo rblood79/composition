@@ -87,6 +87,4 @@ export const CATALOG_MENU_UNAVAILABLE_STRINGS: Readonly<
 > = {
   en: "Unavailable, expand for details",
   ko: "사용할 수 없음, 자세히 보려면 펼치기",
-  ja: "利用できません。詳しくは、展開して確認してください",
-  zh: "不可用，展开以查看详细信息",
 };

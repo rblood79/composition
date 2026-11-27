@@ -11,10 +11,6 @@ type Messages = Readonly<Record<string, string>>;
 const TITLES: Readonly<Record<string, { file: string; blocked: string }>> = {
   en: { file: "Upload failed", blocked: "Uploads unavailable" },
   ko: { file: "업로드 실패", blocked: "업로드할 수 없음" },
-  ja: {
-    file: "アップロードに失敗しました",
-    blocked: "アップロードできません",
-  },
 };
 
 const REASONS: Readonly<Record<string, Messages>> = {
@@ -49,23 +45,6 @@ const REASONS: Readonly<Record<string, Messages>> = {
     E_NO_ENDPOINT: "업로드 주소가 없습니다.",
     E_ENGINE_UNAVAILABLE: "업로드 기능을 불러오지 못했습니다.",
     default: "문제가 생겼습니다.",
-  },
-  ja: {
-    E_TOO_LARGE: "許可されたサイズを超えるファイルです。",
-    E_UNAUTHORIZED:
-      "アップロードの権限がありません。もう一度サインインしてください。",
-    E_NETWORK: "接続が切れました。",
-    E_REJECTED: "サーバーがこのファイルを受け付けませんでした。",
-    E_SERVER: "サーバーがファイルを保存できませんでした。",
-    E_PATCH_BLOCKED: "サーバーが再開可能なアップロードを許可していません。",
-    E_PROXY_TIMEOUT: "アップロードに時間がかかりすぎました。",
-    E_OFFSET_MISMATCH: "アップロードを再開できません。",
-    E_EXPIRED: "アップロードを再開できません。",
-    E_CHECKSUM: "アップロードを再開できません。",
-    E_CANCELLED: "アップロードをキャンセルしました。",
-    E_NO_ENDPOINT: "アップロード先が設定されていません。",
-    E_ENGINE_UNAVAILABLE: "アップローダーを読み込めませんでした。",
-    default: "問題が発生しました。",
   },
 };
 

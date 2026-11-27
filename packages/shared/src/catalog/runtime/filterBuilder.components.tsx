@@ -224,7 +224,7 @@ function BuilderRow({
     ? [
         field?.label ?? "",
         words.ops[condition.op],
-        catalogFilterValueText(condition, words),
+        catalogFilterValueText(condition, words, field?.kind),
         off ? words.off : "",
       ]
         .filter(Boolean)
@@ -304,7 +304,11 @@ function BuilderRow({
                     condition={condition!}
                     trigger={
                       <Button {...QUIET}>
-                        {catalogFilterValueText(condition!, words) ||
+                        {catalogFilterValueText(
+                          condition!,
+                          words,
+                          field?.kind,
+                        ) ||
                           words.unset}
                       </Button>
                     }

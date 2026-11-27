@@ -15,7 +15,10 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { setDataEntries } from "../../../../../../packages/shared/src/catalog/commands/data";
-import { setNodeInteractions } from "../../../../../../packages/shared/src/catalog/commands/project";
+import {
+  setNodeInteractions,
+  setSiteSettings,
+} from "../../../../../../packages/shared/src/catalog/commands/project";
 import { catalogBindingRef } from "../dataBinding";
 import { catalogBindingCommand } from "../dataBindingCommand";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
@@ -35,17 +38,6 @@ const BODY = "project:node:home-body" as NodeId;
 const TABLE = "project:node:table" as NodeId;
 const BUTTON = "project:node:button" as NodeId;
 const COLLECTION = "data:collection:orders" as DataBindingRef["collectionId"];
-const LABELS = {
-  unsaved: "저장 안 된 변경 {count}건",
-  save: "저장",
-  discard: "취소",
-  keepMine: "내 값",
-  takeServer: "서버 값",
-  link: "연결",
-  resend: "다시 저장",
-  dropPending: "대기 취소",
-};
-
 const endpoint = (
   id: string,
   method: EndpointEntry["method"],
@@ -174,7 +166,7 @@ async function open(
           ...(extra.removeRuleIds
             ? { removeRuleIds: extra.removeRuleIds }
             : {}),
-          ...(extra.bars ? { saveBars: LABELS } : {}),
+          ...(extra.bars ? { saveBars: true } : {}),
         },
         workspace.newId,
       ),
@@ -252,10 +244,11 @@ describe("ADR-324 G1 — 「모아서 저장」 문서 계약", () => {
     );
     const table = graphOf().getEntry(TABLE) as NodeEntry;
     expect(table.props.showEditMarks).toEqual({ kind: "set", value: true });
+    // (The bar's texts are the site's language — none set: English.)
     const text = graphOf().getEntry(bar.children[0]!) as NodeEntry;
     expect(text.props.children).toEqual({
       kind: "set",
-      value: "저장 안 된 변경 {{ changes.orders.count }}건",
+      value: "Unsaved changes: {{ changes.orders.count }}",
     });
     workspace.undo();
     expect(collection().save).toBeUndefined();
@@ -264,6 +257,24 @@ describe("ADR-324 G1 — 「모아서 저장」 문서 계약", () => {
     workspace.redo();
     expect(collection().save).toEqual(ROWS);
     expect(rules()).toHaveLength(7);
+  });
+
+  it("a Korean site's save bar is written in Korean (the site's language, not the Builder's)", async () => {
+    const { workspace, turnOn, bodyChildren, graphOf } = await open();
+    workspace.execute(setSiteSettings({ patch: { lang: "ko" } }));
+    turnOn(ROWS, { bars: true });
+    const children = bodyChildren();
+    const bar = graphOf().getEntry(
+      children[children.indexOf(TABLE) + 1]!,
+    ) as NodeEntry;
+    const texts = bar.children.map((id) => {
+      const node = graphOf().getEntry(id) as NodeEntry;
+      return (node.props.children ?? node.props.label) as { value?: unknown };
+    });
+    expect(texts.map((write) => write?.value)).toContain(
+      "저장 안 된 변경 {{ changes.orders.count }}건",
+    );
+    expect(texts.map((write) => write?.value)).toContain("내 값으로 다시 저장");
   });
 
   it("round 3 m14 — the switch that made the save bar turns it off: the bar and its rules go, a save Do elsewhere loses its rule only — one undo", async () => {

@@ -55,8 +55,6 @@ const STRINGS: Readonly<
 > = {
   en: { move: "Move column", drop: "Move column here" },
   ko: { move: "열 이동", drop: "여기로 열 이동" },
-  ja: { move: "列を移動", drop: "ここに列を移動" },
-  zh: { move: "移动列", drop: "将列移到此处" },
 };
 
 /**

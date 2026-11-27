@@ -41,8 +41,6 @@ const LABELS: Readonly<
 > = {
   en: { edit: "Edit cell", cancel: "Cancel", save: "Save" },
   ko: { edit: "셀 편집", cancel: "취소", save: "저장" },
-  ja: { edit: "セルを編集", cancel: "キャンセル", save: "保存" },
-  zh: { edit: "编辑单元格", cancel: "取消", save: "保存" },
 };
 
 /** The cell's content and its editing popover — `children` the Cell's drawn children. */

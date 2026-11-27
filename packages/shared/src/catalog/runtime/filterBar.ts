@@ -18,6 +18,10 @@ import {
 } from "../document/filterQuery";
 import { catalogFilterTreeRead } from "./filterScope";
 import { catalogFilterChips } from "./filterWording";
+import {
+  viewFieldKind,
+  type ViewFieldKind,
+} from "../../collections/view/comparison";
 
 const FIELD_PREFIX = "data:field:";
 
@@ -59,6 +63,29 @@ export function catalogFilterBarCollection(
 }
 
 /** A condition's field name: the labels along its first path (a reference field's into its own). */
+/** A condition's field kind (its path's last field — a date field writes its value as a date). */
+export function catalogFilterFieldKind(
+  condition: ViewCondition,
+  collectionId: string | undefined,
+  read: (id: string) => CatalogEntry | undefined,
+): ViewFieldKind | undefined {
+  let at = collectionId;
+  let type: string | undefined;
+  for (const step of condition.fields[0] ?? []) {
+    const fieldId = step.startsWith(FIELD_PREFIX)
+      ? step.slice(FIELD_PREFIX.length)
+      : step;
+    const collection = at ? read(at) : undefined;
+    const field =
+      collection?.kind === "collection"
+        ? collection.schema.find((item) => item.id === fieldId)
+        : undefined;
+    type = field?.type;
+    at = field?.reference?.collectionId;
+  }
+  return type ? viewFieldKind(type) : undefined;
+}
+
 export function catalogFilterFieldLabel(
   condition: ViewCondition,
   collectionId: string | undefined,
@@ -94,6 +121,7 @@ export function catalogFilterBarChipRows(
     tree,
     (condition) => catalogFilterFieldLabel(condition, collectionId, read),
     locale,
+    (condition) => catalogFilterFieldKind(condition, collectionId, read),
   ).map((chip) => ({
     key: chip.id,
     values: {

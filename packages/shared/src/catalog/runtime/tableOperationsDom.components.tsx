@@ -230,38 +230,6 @@ const COLUMN_MENU_STRINGS: Readonly<Record<string, ColumnMenuStrings>> = {
     group: "이 열로 묶기",
     ungroup: "묶기 해제",
   },
-  ja: {
-    asc: "昇順に並べ替え",
-    desc: "降順に並べ替え",
-    resize: "列幅を変更",
-    add: "並べ替えに追加",
-    filter: "フィルター…",
-    clearFilter: "フィルターをクリア",
-    hide: "列を非表示",
-    pinStart: "先頭に固定",
-    pinEnd: "末尾に固定",
-    unpin: "固定を解除",
-    left: "左に移動",
-    right: "右に移動",
-    group: "この列でグループ化",
-    ungroup: "グループ化を解除",
-  },
-  zh: {
-    asc: "升序排序",
-    desc: "降序排序",
-    resize: "调整列大小",
-    add: "添加到排序",
-    filter: "筛选…",
-    clearFilter: "清除筛选",
-    hide: "隐藏列",
-    pinStart: "固定到开头",
-    pinEnd: "固定到末尾",
-    unpin: "取消固定",
-    left: "向左移动",
-    right: "向右移动",
-    group: "按此列分组",
-    ungroup: "取消分组",
-  },
 };
 
 /** An item's label in the menu's language (`before` · `after` by the reading direction). */
@@ -474,18 +442,6 @@ const ROW_PIN_STRINGS: Readonly<
     top: "위에 고정",
     bottom: "아래에 고정",
     none: "고정 해제",
-  },
-  ja: {
-    menu: "行の操作",
-    top: "上に固定",
-    bottom: "下に固定",
-    none: "固定を解除",
-  },
-  zh: {
-    menu: "行操作",
-    top: "固定到顶部",
-    bottom: "固定到底部",
-    none: "取消固定",
   },
 };
 /**

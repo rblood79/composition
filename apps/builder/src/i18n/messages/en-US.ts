@@ -2268,14 +2268,6 @@ const catalog: TranslationKeys = {
       "No conflict detection — the last write wins, and other cells can be overwritten.",
     "batchSave.guaranteeNone": "No conflict detection — the last write wins.",
     "batchSave.guaranteeDeclared": "This is the level the connection declares.",
-    "batchSave.barUnsaved": "Unsaved changes: {count}",
-    "batchSave.barSave": "Save",
-    "batchSave.barDiscard": "Cancel",
-    "batchSave.barKeepMine": "Keep mine",
-    "batchSave.barTakeServer": "Take server's",
-    "batchSave.barLink": "Link row",
-    "batchSave.barResend": "Send again",
-    "batchSave.barDropPending": "Stop waiting",
     tabs: "DataTable tabs",
     tableTabs: "Table tabs",
     apiTabs: "API tabs",
@@ -4047,7 +4039,6 @@ const formattedMessages: Record<
   "filterBar.conditionActions": (args) => `${String(args?.name ?? "")} actions`,
   "filterBar.group": (args) =>
     `Group (${String(args?.count ?? "")} conditions) — edit it in the condition builder`,
-  "filterBar.presetName": (args) => `Saved filter ${String(args?.n ?? "")}`,
   "validationRules.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.existingControl": (args) =>

@@ -30,6 +30,8 @@ import {
 } from "./paletteInsert";
 import type { CatalogReadModel } from "./readModel";
 import { catalogTemplateItemDefinition } from "./slots";
+import { STEP_TEXT } from "../../../../../packages/shared/src/catalog/document/stepListOrigins";
+import { catalogSiteLanguage } from "../../../../../packages/shared/src/catalog/document/templateLocalizedProps";
 
 /**
  * ADR-248 4e: the old Properties slot section's "+" (ADR-234/239/241 — `resolveSlotInsertAction`)
@@ -340,12 +342,19 @@ export function catalogItemInsertChoices(
     const count = rows.filter(
       (row) => typeOf(graph, row.definitionId) === itemType,
     ).length;
-    // A Tab, Tag or Step reads like its siblings ("Tab 3"); other items "Item <n>".
+    // A Tab, Tag or Step reads like its siblings ("Tab 3" — a Step in the site's language, like the
+    // origin's own steps); other items "Item <n>".
+    const stepText =
+      itemType === "Step"
+        ? (STEP_TEXT[catalogSiteLanguage(graph).split("-")[0] ?? "en"] ??
+          STEP_TEXT.en)
+        : undefined;
     return catalogItemRowFill(
       graph.library,
       definitionId,
       named ??
-        `${["Tab", "Tag", "Step"].includes(itemType) ? itemType : "Item"} ${count + 1}`,
+        stepText?.step(count + 1) ??
+        `${["Tab", "Tag"].includes(itemType) ? itemType : "Item"} ${count + 1}`,
     );
   };
 

@@ -132,7 +132,7 @@ function useCatalogCellSelection(
   return selection;
 }
 
-/** ADR-317 Phase 4 — a row's edit status as said (4 site languages). */
+/** ADR-317 Phase 4 — a row's edit status as said (the site languages — en · ko). */
 const ROW_EDIT_LABELS = {
   en: {
     new: "New row",
@@ -149,22 +149,6 @@ const ROW_EDIT_LABELS = {
     failed: "저장 안 됨",
     pending: "결과 확인 필요",
     unlinked: "저장됨 · 서버 행과 연결 필요",
-  },
-  ja: {
-    new: "新しい行",
-    dirty: "編集済み",
-    conflict: "競合",
-    failed: "未保存",
-    pending: "結果の確認が必要",
-    unlinked: "保存済み・行の選択が必要",
-  },
-  zh: {
-    new: "新行",
-    dirty: "已编辑",
-    conflict: "冲突",
-    failed: "未保存",
-    pending: "需确认结果",
-    unlinked: "已保存·需选择对应行",
   },
 } as const;
 

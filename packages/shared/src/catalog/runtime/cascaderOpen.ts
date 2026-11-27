@@ -29,8 +29,6 @@ export function cascaderPicked(
 const LEVEL_NAME: Readonly<Record<string, (name: string) => string>> = {
   en: (name) => `All of ${name}`,
   ko: (name) => `${name} 전체`,
-  ja: (name) => `${name} すべて`,
-  zh: (name) => `全部${name}`,
 };
 
 /** The name of a branch's own item, in the field's locale. */
@@ -48,8 +46,6 @@ const LEVEL_STATUS: Readonly<
 > = {
   en: { loading: "Loading…", retry: "Couldn't load — Retry" },
   ko: { loading: "불러오는 중…", retry: "불러오지 못함 — 다시 시도" },
-  ja: { loading: "読み込み中…", retry: "読み込めません — 再試行" },
-  zh: { loading: "加载中…", retry: "无法加载 — 重试" },
 };
 
 /** The status item's words, in the field's locale. */

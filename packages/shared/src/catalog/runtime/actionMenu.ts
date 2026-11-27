@@ -37,6 +37,4 @@ export const CATALOG_MENU_MORE_ACTIONS_STRINGS: Readonly<
 > = {
   en: "More actions",
   ko: "기타 액션",
-  ja: "その他のアクション",
-  zh: "更多操作",
 };

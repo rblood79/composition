@@ -11,6 +11,7 @@ import {
   removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { setSiteSettings } from "../../../../../../packages/shared/src/catalog/commands/project";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
@@ -37,7 +38,7 @@ import { getPaletteItems } from "../../panels/components/paletteItems";
 const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
-async function place(type = "Stepper") {
+async function place(type = "Stepper", lang?: string) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -54,6 +55,7 @@ async function place(type = "Stepper") {
       autosaveSchedule: () => {},
     },
   );
+  if (lang) workspace.execute(setSiteSettings({ patch: { lang } }));
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: BODY },
@@ -202,6 +204,50 @@ describe("ADR-321 G3 — Stepper · StepPanel (결정 2)", () => {
     t.workspace.undo();
     expect(t.stepKeys()).toEqual(["step-1", "step-2", "step-3"]);
     expect(t.panels()).toHaveLength(3);
+  });
+
+  it("a Stepper placed on a Korean site owns Korean steps and panels; 「+」 names the next step in Korean — and a later language change leaves the owned texts", async () => {
+    const t = await place("Stepper", "ko");
+    // (The text drawn: the Step's label Text.)
+    const labels = () =>
+      t
+        .steps()
+        .map((step) =>
+          String(t.root.canvasInputs.get(step.children[0]!)?.props.children),
+        );
+    const contents = () =>
+      t
+        .panels()
+        .map((panel) =>
+          String(t.root.canvasInputs.get(panel.children[0]!)?.props.children),
+        );
+    expect(labels()).toEqual(["단계 1", "단계 2", "단계 3"]);
+    expect(contents()).toEqual(["단계 1 내용", "단계 2 내용", "단계 3 내용"]);
+    const choices = catalogItemInsertChoices(
+      {
+        graph: t.workspace.runtime.graph,
+        readModel: t.workspace.readModel,
+        newId: t.workspace.newId,
+      },
+      t.workspace.positionOfRecord(t.list().id)!,
+    );
+    t.workspace.execute(choices[0]!.build());
+    expect(labels()).toEqual(["단계 1", "단계 2", "단계 3", "단계 4"]);
+    // (The DOM draws the record's text: the current step's label and panel.)
+    const host = await dom(t);
+    expect(host.textContent).toContain("단계 1 내용");
+    // (Placed steps are the page's own nodes — written once, in the site's language of the day.)
+    t.workspace.execute(setSiteSettings({ patch: { lang: "en" } }));
+    expect(labels()).toEqual(["단계 1", "단계 2", "단계 3", "단계 4"]);
+  });
+
+  it("a Stepper placed on an English site keeps the English sample texts", async () => {
+    const t = await place("Stepper", "en");
+    expect(t.steps().map((step) => String(step.props.label))).toEqual([
+      "Step 1",
+      "Step 2",
+      "Step 3",
+    ]);
   });
 
   it("a StepList outside a Stepper still takes a Step from 「+」 (no panel)", async () => {

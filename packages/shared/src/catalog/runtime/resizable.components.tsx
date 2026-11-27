@@ -94,8 +94,6 @@ function catalogResizableDragCursor(cursor: string | null): void {
 const LABELS: Readonly<Record<string, string>> = {
   en: "Resize panels",
   ko: "패널 크기 조절",
-  ja: "パネルのサイズを変更",
-  zh: "调整面板大小",
 };
 
 /** The Group's main size and the space its Panels share (main less the Handles). */

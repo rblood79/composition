@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { collectionSaveReasonText } from "../collectionSaveText";
 import { describe, expect, it } from "vitest";
 import type { ApiEndpointDefinition } from "../../../types/collection.types";
 import type {
@@ -72,6 +73,8 @@ function harness(
     whole?: boolean;
     /** Fields the collection's list answer leaves out (a list that does not give the version). */
     listOmits?: readonly string[];
+    /** The site's language (the messages' — these cases read the Korean words). */
+    language?: string;
   } = {},
 ) {
   const stub = createSaveEndpointStub({
@@ -113,6 +116,7 @@ function harness(
   load();
   store.startList("L", "GET /orders");
   const host: CollectionSaveHost = {
+    language: () => options.language ?? "ko",
     saveSettings: () => save,
     collection: () => collection,
     store: () => store,
@@ -567,6 +571,39 @@ describe("ADR-324 G4 — 충돌", () => {
     expect(saver.rowState("orders", "o1")).toBeUndefined();
     expect(store.changes.has("o1")).toBe(false);
     expect(store.rows.get("o1")?.row).toMatchObject({ quantity: 8, version: "v2" });
+  });
+
+  it("the site's language words the toast and the row's reason (English · Korean; a code, not a sentence, on the row — others in English)", async () => {
+    for (const [language, toast, reason] of [
+      ["en", "1 conflict", "Someone else changed it first"],
+      ["ko", "충돌 1건", "다른 사람이 먼저 바꿈"],
+      ["ja", "1 conflict", "Someone else changed it first"],
+    ] as const) {
+      // (v1 kept from the edit, a load brings v2 — the conflict found before sending.)
+      const { stub, saver, store, load } = harness(VERSIONED, {}, { language });
+      store.remove("o2", 1, store.knownRow("o2")!);
+      stub.write("o2", { note: "B" });
+      load();
+      const result = await saver.save("orders");
+      expect(result.message).toBe(toast);
+      const state = saver.rowState("orders", "o2")!;
+      expect(state.reason).toBe("changedFirst");
+      expect(
+        collectionSaveReasonText(state.reason, state.detail, language),
+      ).toBe(reason);
+      expect((await saver.save("orders", { scope: "pending" })).message).toBe(
+        language === "ko"
+          ? "결과를 기다리는 행이 없습니다"
+          : "No rows waiting for a result",
+      );
+    }
+    // (A reason that is no code shows as it came.)
+    expect(collectionSaveReasonText("HTTP 422", undefined, "ko")).toBe(
+      "HTTP 422",
+    );
+    expect(collectionSaveReasonText("pending", "keyNotFound", "ko")).toBe(
+      "결과 확인 필요 (보낸 key 로 찾지 못함 — 서버가 다른 key 로 만들었을 수 있음)",
+    );
   });
 
   it("「서버 값 받기」 drops the conflicted row's change", async () => {

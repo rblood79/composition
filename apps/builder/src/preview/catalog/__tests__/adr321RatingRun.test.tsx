@@ -7,6 +7,7 @@ import type {
   StateVariableEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { setFields } from "../../../../../../packages/shared/src/catalog/commands";
+import { setSiteSettings } from "../../../../../../packages/shared/src/catalog/commands/project";
 import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
 import { catalogStateSourceValue } from "../../../../../../packages/shared/src/catalog/runtime/delegatedDom.runtime";
 import { openAdr280Preview } from "./support/adr280Harness";
@@ -212,6 +213,18 @@ describe("ADR-321 G5 — Rating 의 실행 (Preview)", () => {
     expect(h.stars()).toEqual(FILLS["2.5"]);
     expect(h.box().getAttribute("aria-valuetext")).toBe("2.5 of 5 stars");
     expect(h.state()).toBe("stars=2.5");
+    h.view.unmount();
+  });
+
+  it("표시 전용의 낭독 값은 사이트 언어의 숫자 서식 — 독일어 사이트 「2,5」 (문구는 영어로 대체)", async () => {
+    const h = await open("Rating", 2.3, { defaultValue: 4, isReadOnly: true });
+    h.workspace.execute(setSiteSettings({ patch: { lang: "de" } }));
+    h.flush();
+    await h.loaded();
+    h.press();
+    await vi.waitFor(() =>
+      expect(h.box().getAttribute("aria-valuetext")).toBe("2,5 of 5 stars"),
+    );
     h.view.unmount();
   });
 

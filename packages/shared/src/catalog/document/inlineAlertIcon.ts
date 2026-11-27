@@ -74,16 +74,4 @@ export const CATALOG_INLINE_ALERT_ICON_LABELS: Readonly<
     notice: "경고",
     negative: "오류",
   },
-  ja: {
-    informative: "情報",
-    positive: "成功",
-    notice: "警告",
-    negative: "エラー",
-  },
-  zh: {
-    informative: "信息",
-    positive: "成功",
-    notice: "警告",
-    negative: "错误",
-  },
 };

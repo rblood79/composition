@@ -34,6 +34,4 @@ export function catalogAlertDialogGlyph(
 export const CATALOG_DIALOG_ALERT_STRINGS: Readonly<Record<string, string>> = {
   en: "Alert",
   ko: "경고",
-  ja: "アラート",
-  zh: "警报",
 };

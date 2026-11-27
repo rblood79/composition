@@ -48,8 +48,6 @@ const CASCADER_COLLAPSED_ITEM = "\u001eclosed";
 const BACK: Readonly<Record<string, string>> = {
   en: "Back",
   ko: "뒤로",
-  ja: "戻る",
-  zh: "返回",
 };
 
 /**

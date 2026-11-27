@@ -15,8 +15,6 @@ const ACTION_BAR_STRINGS: Readonly<
 > = {
   en: { actions: "Actions", clearSelection: "Clear selection" },
   ko: { actions: "액션", clearSelection: "선택 항목 지우기" },
-  ja: { actions: "アクション", clearSelection: "選択をクリア" },
-  zh: { actions: "操作", clearSelection: "清除选择" },
 };
 
 /**

@@ -165,8 +165,6 @@ export function CatalogActionBarHost({
 const ACTIONS_AVAILABLE: Readonly<Record<string, string>> = {
   en: "Actions available.",
   ko: "사용 가능한 액션",
-  ja: "アクションを利用できます。",
-  zh: "有可用操作。",
 };
 
 /**

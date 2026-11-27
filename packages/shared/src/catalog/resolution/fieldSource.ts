@@ -12,6 +12,10 @@ import type {
   WriteValue,
 } from "../document/types";
 import { descendantPatchOf } from "../document/types";
+import {
+  catalogSiteLanguage,
+  catalogTemplateProps,
+} from "../document/templateLocalizedProps";
 import { componentPropertiesOf } from "../document/componentProperties";
 import { CatalogValidationError } from "../document/validation";
 import { nodeOwnedChildren, overridesAt } from "./templateOwners";
@@ -175,7 +179,9 @@ function templateChain(
     ancestors,
   );
   const layers: PropLayer[] = [];
-  const own = templateLayer(template.props[key]);
+  const own = templateLayer(
+    catalogTemplateProps(template, catalogSiteLanguage(reader))[key],
+  );
   // The state sets the node's own accepted boolean props (a composite accepts its schema; its
   // root's props take the state below its instance values).
   const forced =
@@ -482,7 +488,9 @@ function propLayers(
       const value =
         write?.kind === "set"
           ? write.value
-          : templateLayer(position.props[key]);
+          : templateLayer(
+              catalogTemplateProps(position, catalogSiteLanguage(reader))[key],
+            );
       if (value !== ABSENT && value !== undefined)
         layers.push({ source: "instance", value });
     }

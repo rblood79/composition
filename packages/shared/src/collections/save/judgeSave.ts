@@ -184,7 +184,7 @@ export function judgeSaveResponse(
     return request.keys.map((key) => ({
       key,
       result: "rejected",
-      reason: "입력 값 오류",
+      reason: "invalidInput",
       errors,
     }));
   if (status === 202)
@@ -274,7 +274,7 @@ function judgeBatch(
     return {
       key,
       result: "rejected",
-      reason: "반영 안 됨",
+      reason: "notApplied",
       ...(errors ? { errors } : {}),
       ...(conflict ? { conflict: true as const } : {}),
     };
@@ -342,7 +342,7 @@ function judgeBatch(
         key,
         result: "unknown",
         reason: "unclear",
-        detail: "원자적 묶음이 일부만 반영",
+        detail: "atomicPartial",
       }));
     if (failed.length)
       return request.keys.map(
@@ -350,7 +350,7 @@ function judgeBatch(
           verdicts.get(key) ?? {
             key,
             result: "rejected",
-            reason: "묶음이 반영되지 않음",
+            reason: "batchNotApplied",
           },
       );
     if (!answeredAll)
@@ -375,7 +375,7 @@ function judgeBatch(
         key,
         result: "unknown",
         reason: "unclear",
-        detail: "응답에 그 항목이 없음",
+        detail: "missingInAnswer",
       },
   );
 }
@@ -415,8 +415,8 @@ export function judgeRecheck(
       result: "unknown",
       reason: "unclear",
       detail: row
-        ? "보낸 key 의 행이 다른 값"
-        : "보낸 key 로 찾지 못함 — 서버가 다른 key 로 만들었을 수 있음",
+        ? "keyRowDiffers"
+        : "keyNotFound",
     };
   }
   if (read.state === "absent")
@@ -425,7 +425,7 @@ export function judgeRecheck(
       : {
           key,
           result: "rejected",
-          reason: "서버에서 지워짐",
+          reason: "goneOnServer",
           conflict: true,
           gone: true,
         };
@@ -443,14 +443,14 @@ export function judgeRecheck(
       return {
         key,
         result: "rejected",
-        reason: "반영 안 됨",
+        reason: "notApplied",
         notApplied: true,
         server: row,
       };
     return {
       key,
       result: "rejected",
-      reason: "충돌",
+      reason: "conflict",
       conflict: true,
       server: row,
     };
@@ -465,9 +465,9 @@ export function judgeRecheck(
     ? {
         key,
         result: "rejected",
-        reason: "반영 안 됨",
+        reason: "notApplied",
         notApplied: true,
         server: row,
       }
-    : { key, result: "rejected", reason: "충돌", conflict: true, server: row };
+    : { key, result: "rejected", reason: "conflict", conflict: true, server: row };
 }

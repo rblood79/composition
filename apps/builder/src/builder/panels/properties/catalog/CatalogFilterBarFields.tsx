@@ -33,6 +33,8 @@ import {
   catalogRelativeDateToken,
   type CatalogRelativeDate,
 } from "../../../../../../../packages/shared/src/catalog/runtime/filterRelativeDates";
+import { FILTER_PRESET_NAME } from "../../../../../../../packages/shared/src/catalog/document/filterBarOrigins";
+import { catalogSiteLanguage } from "../../../../../../../packages/shared/src/catalog/document/templateLocalizedProps";
 import { catalogRelativeDateWord } from "../../../../../../../packages/shared/src/catalog/runtime/filterWording";
 import { catalogFilterBarFields } from "../../../catalogRuntime/filterBarPanel";
 import { catalogFilterBarRefusedItems } from "../../../catalogRuntime/filterBarRefused";
@@ -362,6 +364,7 @@ function FilterPresetsField({
   onChange: (value: unknown) => void;
 }) {
   const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
   const bar = useBar(elementId);
   const presets: readonly CatalogFilterPreset[] = catalogFilterPresetsFit(value)
     ? (value as CatalogFilterPreset[])
@@ -378,7 +381,12 @@ function FilterPresetsField({
     if (!field) return;
     const preset: CatalogFilterPreset = {
       id: newId("preset"),
-      name: t("filterBar.presetName", { n: presets.length + 1 }),
+      // (Page content: the site's language, not the Builder's.)
+      name: (
+        FILTER_PRESET_NAME[
+          catalogSiteLanguage(workspace.runtime.graph).split("-")[0] ?? "en"
+        ] ?? FILTER_PRESET_NAME.en!
+      )(presets.length + 1),
       query: {
         id: CATALOG_FILTER_TREE_ID,
         op: "and",

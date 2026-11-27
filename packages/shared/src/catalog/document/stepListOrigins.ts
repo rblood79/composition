@@ -39,15 +39,40 @@ export const STEP_LIST_DEFINITIONS: readonly LibraryDefinition[] = [
   },
 ];
 
+/**
+ * A step's sample texts by language (the origins' `localizedProps` — the resolver shows the site's
+ * language; the Builder's 「+」 names a new step with the same word).
+ */
+export const STEP_TEXT: Readonly<
+  Record<
+    string,
+    { readonly step: (n: number) => string; readonly content: (n: number) => string }
+  >
+> = {
+  en: { step: (n) => `Step ${n}`, content: (n) => `Step ${n} content` },
+  ko: { step: (n) => `단계 ${n}`, content: (n) => `단계 ${n} 내용` },
+};
+
+/** A sample text in every language but English (the template's `props` holds the English). */
+const localized = (
+  word: "step" | "content",
+  n: number,
+): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(STEP_TEXT)
+      .filter(([language]) => language !== "en")
+      .map(([language, words]) => [language, words[word](n)]),
+  );
+
 const step = (
   n: number,
-  label: string,
   stem: `lib:template:${string}` = "lib:template:component-steplist",
 ): LibraryTemplateNode => ({
   id: `${stem}__step-${n}`,
   definitionId: "lib:definition:origin-component-step",
   children: [],
-  props: { id: `step-${n}`, label },
+  props: { id: `step-${n}`, label: STEP_TEXT.en!.step(n) },
+  localizedProps: { label: localized("step", n) },
   visual: {},
 });
 
@@ -94,9 +119,9 @@ export const STEP_LIST_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     visual: {},
   },
-  step(1, "Step 1"),
-  step(2, "Step 2"),
-  step(3, "Step 3"),
+  step(1),
+  step(2),
+  step(3),
   // (The placed Stepper owns its StepList · Steps · StepPanels through its root slot — Tabs' way.)
   {
     id: "lib:template:component-stepper",
@@ -124,9 +149,7 @@ export const STEP_LIST_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     visual: {},
   },
-  ...[1, 2, 3].map((n) =>
-    step(n, `Step ${n}`, "lib:template:component-stepper__list"),
-  ),
+  ...[1, 2, 3].map((n) => step(n, "lib:template:component-stepper__list")),
   ...[1, 2, 3].flatMap((n): LibraryTemplateNode[] => [
     {
       id: `lib:template:component-stepper__panel-${n}`,
@@ -141,7 +164,8 @@ export const STEP_LIST_TEMPLATES: readonly LibraryTemplateNode[] = [
       id: `lib:template:component-stepper__panel-${n}__content`,
       definitionId: "lib:definition:text",
       children: [],
-      props: { children: `Step ${n} content` },
+      props: { children: STEP_TEXT.en!.content(n) },
+      localizedProps: { children: localized("content", n) },
       visual: {},
     },
   ]),

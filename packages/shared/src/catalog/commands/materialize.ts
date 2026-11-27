@@ -15,6 +15,10 @@ import {
 } from "../resolution/templateOwners";
 import { descendantPatchOf } from "../document/types";
 import {
+  catalogSiteLanguage,
+  catalogTemplateProps,
+} from "../document/templateLocalizedProps";
+import {
   componentPropertiesOf,
   componentPropertyWrites,
 } from "../document/componentProperties";
@@ -165,7 +169,10 @@ export function readTemplate(
       presentWhen: node.presentWhen,
       showWhen: node.showWhen,
       stateRules: node.stateRules,
-      props: sets(node.props) as PropWrites,
+      // (A copy writes what the instance shows: its literal texts in the site's language.)
+      props: sets(
+        catalogTemplateProps(node, catalogSiteLanguage(draft.reader)),
+      ) as PropWrites,
       visual: sets(node.visual) as VisualWrites,
       ...(node.layout ? { layout: sets(node.layout) as LayoutWrites } : {}),
       // (Its breakpoint layers — an owned copy's `responsive`.)

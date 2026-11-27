@@ -86,6 +86,12 @@ try {
     timeout: 30000,
   });
   await page.waitForTimeout(1500);
+  // (SITE_LANG — the site's language: the save bar · toast · row reasons follow it, not the Builder's.)
+  if (process.env.SITE_LANG)
+    await page.evaluate((lang) => {
+      const h = window.__COMPOSITION_CATALOG__;
+      h.workspace.execute(h.commands.setSiteSettings({ patch: { lang } }));
+    }, process.env.SITE_LANG);
 
   const built = await page.evaluate(async (API) => {
     const h = window.__COMPOSITION_CATALOG__;
@@ -326,6 +332,10 @@ try {
   await press(saveName);
   const saved = (await writes()).slice(w0);
   const afterSave = { bar: await bar(), row: await row("o1"), server: (await stub("state")).rows.find((r) => r.id === "o1") };
+  // (The save's toast — the site's language.)
+  const toast = await pub.evaluate(() => document.body.innerText.match(/저장 1건|1 saved|保存 1件|已保存 1 条/)?.[0] ?? null);
+  const toastWanted = { ko: "저장 1건", ja: "保存 1件", zh: "已保存 1 条" }[process.env.SITE_LANG] ?? "1 saved";
+  record("2c 저장 결과 toast = 사이트 언어", toast === toastWanted, { toast, toastWanted, saveName });
   record(
     "2b 저장 → PATCH 1 (key · 바뀐 필드 · If-Match v1) · 서버 반영 · 막대 0 · 표시 사라짐",
     saved.length === 1 &&

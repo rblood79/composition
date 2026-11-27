@@ -46,18 +46,6 @@ const STRINGS: Readonly<
     more: (count) => `${count} 건 더 — 더 입력해 좁히기`,
     loadedOnly: "불러온 항목에서만 찾는다",
   },
-  ja: {
-    search: "検索",
-    empty: "結果なし",
-    more: (count) => `ほか ${count} 件 — 入力して絞り込む`,
-    loadedOnly: "読み込んだ項目だけを検索",
-  },
-  zh: {
-    search: "搜索",
-    empty: "无结果",
-    more: (count) => `还有 ${count} 项 — 继续输入以缩小范围`,
-    loadedOnly: "仅搜索已加载的项",
-  },
 };
 
 /** The pickable items whose name holds the query, in the table's order. */

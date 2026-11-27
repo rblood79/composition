@@ -111,7 +111,8 @@ export async function sendSaveRequest(
   const headers: Record<string, string> = { ...parts.headers };
   const method = saveMethod(request, options.endpoint);
   if (!method) {
-    const reason = `연결의 method (${options.endpoint.method || "없음"}) 가 이 변경을 보낼 수 없음`;
+    // (A code — `collectionSaveText.ts` words it in the site's language.)
+    const reason = "methodCannotSend";
     return {
       answer: { lost: true, reason },
       compressed: false,
@@ -233,7 +234,7 @@ export async function readSavedRow(
       return { state: "found", row: answered[0] };
     return {
       state: "unknown",
-      reason: `확인 조회가 그 행을 가리지 못함 (${answered.length}행 응답)`,
+      reason: "recheckAmbiguous",
     };
   } catch (error) {
     return { state: "unknown", reason: error instanceof Error ? error.message : String(error) };

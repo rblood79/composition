@@ -9,6 +9,7 @@ import type {
   ViewCondition,
   ViewConditionGroup,
 } from "../document/types";
+import type { ViewFieldKind } from "../../collections/view/comparison";
 
 export type CatalogFilterUnit = NonNullable<ViewCondition["unit"]>;
 
@@ -27,6 +28,10 @@ export interface CatalogFilterWords {
   readonly units: Readonly<Record<CatalogFilterUnit, string>>;
   /** Phase 5 — a relative date's name (`@today` … — `filterRelativeDates.ts`); `catalogFilterWords`. */
   readonly dates?: (name: string) => string | undefined;
+  /** A number in the locale's digits (`Intl.NumberFormat`); `catalogFilterWords`. */
+  readonly number?: (value: number) => string;
+  /** A date field's ISO value as the locale writes it (`Intl.DateTimeFormat`); `catalogFilterWords`. */
+  readonly dateText?: (iso: string) => string | undefined;
   readonly ops: Readonly<Record<ViewComparison, string>>;
 }
 
@@ -38,7 +43,8 @@ export const CATALOG_FILTER_WORDS: Readonly<
     empty: "(Empty)",
     yes: "True",
     no: "False",
-    group: (count) => `Group (${count} conditions)`,
+    group: (count) =>
+      `Group (${count} ${count === 1 ? "condition" : "conditions"})`,
     off: "off",
     unset: "Enter value…",
     units: { day: "Days", week: "Weeks", month: "Months", year: "Years" },
@@ -79,12 +85,12 @@ export const CATALOG_FILTER_WORDS: Readonly<
       equals: "같음",
       notEquals: "같지 않음",
       contains: "포함",
-      startsWith: "으로 시작",
-      endsWith: "으로 끝남",
+      startsWith: "다음으로 시작",
+      endsWith: "다음으로 끝남",
       notContains: "포함하지 않음",
-      notStartsWith: "으로 시작하지 않음",
-      notEndsWith: "으로 끝나지 않음",
-      oneOf: "그 중 하나",
+      notStartsWith: "다음으로 시작하지 않음",
+      notEndsWith: "다음으로 끝나지 않음",
+      oneOf: "다음 중 하나",
       containsAny: "하나라도 포함",
       containsAll: "전부 포함",
       gte: "이상",
@@ -99,72 +105,6 @@ export const CATALOG_FILTER_WORDS: Readonly<
       notExists: "값 없음",
     },
   },
-  ja: {
-    name: "フィルター",
-    empty: "(空)",
-    yes: "真",
-    no: "偽",
-    group: (count) => `グループ (条件 ${count})`,
-    off: "オフ",
-    unset: "値を入力…",
-    units: { day: "日", week: "週", month: "か月", year: "年" },
-    ops: {
-      equals: "等しい",
-      notEquals: "等しくない",
-      contains: "含む",
-      startsWith: "で始まる",
-      endsWith: "で終わる",
-      notContains: "含まない",
-      notStartsWith: "で始まらない",
-      notEndsWith: "で終わらない",
-      oneOf: "いずれか",
-      containsAny: "いずれかを含む",
-      containsAll: "すべてを含む",
-      gte: "以上",
-      gt: "より大きい",
-      lte: "以下",
-      lt: "未満",
-      between: "範囲内",
-      before: "より前",
-      after: "より後",
-      withinLast: "直近",
-      exists: "値あり",
-      notExists: "値なし",
-    },
-  },
-  zh: {
-    name: "筛选",
-    empty: "(空)",
-    yes: "真",
-    no: "假",
-    group: (count) => `分组 (${count} 个条件)`,
-    off: "关闭",
-    unset: "输入值…",
-    units: { day: "天", week: "周", month: "个月", year: "年" },
-    ops: {
-      equals: "等于",
-      notEquals: "不等于",
-      contains: "包含",
-      startsWith: "开头是",
-      endsWith: "结尾是",
-      notContains: "不包含",
-      notStartsWith: "开头不是",
-      notEndsWith: "结尾不是",
-      oneOf: "属于其中之一",
-      containsAny: "包含任意",
-      containsAll: "包含全部",
-      gte: "至少",
-      gt: "大于",
-      lte: "至多",
-      lt: "小于",
-      between: "介于",
-      before: "早于",
-      after: "晚于",
-      withinLast: "最近",
-      exists: "有值",
-      notExists: "无值",
-    },
-  },
 };
 
 /** The words in `locale`'s language (English otherwise — S2 intl). */
@@ -172,7 +112,34 @@ export const catalogFilterWords = (locale: string): CatalogFilterWords => ({
   ...(CATALOG_FILTER_WORDS[locale.split("-")[0] ?? "en"] ??
     CATALOG_FILTER_WORDS.en!),
   dates: (name) => catalogRelativeDateWord(name, locale),
+  number: (value) => new Intl.NumberFormat(locale).format(value),
+  dateText: (iso) => catalogFilterDateText(iso, locale),
 });
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+/**
+ * A date field's value in `locale` (「Nov 5, 2026」 · 「2026. 11. 5.」): a day as that day (no time
+ * zone shift), a date-time with its time; anything else is no date.
+ */
+export function catalogFilterDateText(
+  iso: string,
+  locale: string,
+): string | undefined {
+  const day = ISO_DATE.exec(iso);
+  if (day)
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(+day[1]!, +day[2]! - 1, +day[3]!)));
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(iso)) return undefined;
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime())
+    ? undefined
+    : new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(at);
+}
 
 /** ADR-320 Phase 5 — a relative date's place before today (`Intl.RelativeTimeFormat`'s words). */
 const RELATIVE_DATES: Readonly<
@@ -199,7 +166,11 @@ export function catalogRelativeDateWord(
   return text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
 }
 
-const scalarText = (value: unknown, words: CatalogFilterWords): string =>
+const scalarText = (
+  value: unknown,
+  words: CatalogFilterWords,
+  kind?: ViewFieldKind,
+): string =>
   value === null || value === undefined || value === ""
     ? words.empty
     : typeof value === "string" &&
@@ -210,12 +181,19 @@ const scalarText = (value: unknown, words: CatalogFilterWords): string =>
         ? words.yes
         : value === false
           ? words.no
-          : String(value);
+          : typeof value === "number" && words.number
+            ? words.number(value)
+            : (kind === "date" &&
+                typeof value === "string" &&
+                words.dateText?.(value)) ||
+              String(value);
 
 /** A condition's value as a chip shows it (none for `exists` · `notExists` and an empty value). */
 export function catalogFilterValueText(
   condition: Pick<ViewCondition, "op" | "value" | "unit">,
   words: CatalogFilterWords,
+  /** The field's kind — a date field's value is written as a date. */
+  kind?: ViewFieldKind,
 ): string {
   const { op, value } = condition;
   if (op === "exists" || op === "notExists") return "";
@@ -223,14 +201,14 @@ export function catalogFilterValueText(
   if (op === "between" && Array.isArray(value)) {
     const [min, max] = value;
     const end = (at: unknown) =>
-      at === undefined || at === "" ? "" : scalarText(at, words);
+      at === undefined || at === "" ? "" : scalarText(at, words, kind);
     return `${end(min)} – ${end(max)}`;
   }
   if (op === "withinLast")
-    return `${String(value)} ${words.units[condition.unit ?? "day"]}`;
+    return `${scalarText(value, words)} ${words.units[condition.unit ?? "day"]}`;
   if (Array.isArray(value))
-    return value.map((item) => scalarText(item, words)).join(", ");
-  return scalarText(value, words);
+    return value.map((item) => scalarText(item, words, kind)).join(", ");
+  return scalarText(value, words, kind);
 }
 
 /** A chip of the filter bar: a root condition, or a group (its conditions counted, nested ones too). */
@@ -258,6 +236,8 @@ export function catalogFilterChips(
   tree: ViewConditionGroup | undefined,
   fieldLabel: (condition: ViewCondition) => string,
   locale: string,
+  /** A condition's field kind (a date field's value is written as a date). */
+  fieldKind?: (condition: ViewCondition) => ViewFieldKind | undefined,
 ): CatalogFilterChipText[] {
   if (!tree) return [];
   const words = catalogFilterWords(locale);
@@ -275,7 +255,7 @@ export function catalogFilterChips(
     }
     const field = fieldLabel(item);
     const comparison = words.ops[item.op];
-    const value = catalogFilterValueText(item, words);
+    const value = catalogFilterValueText(item, words, fieldKind?.(item));
     const enabled = item.enabled !== false;
     return {
       id: item.id,

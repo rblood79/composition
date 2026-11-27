@@ -136,20 +136,7 @@ function SaveSection({
             ...(extra?.removeRules
               ? { removeRuleIds: rules.map((rule) => rule.id) }
               : {}),
-            ...(extra?.bars
-              ? {
-                  saveBars: {
-                    unsaved: t("barUnsaved", "Unsaved changes: {count}"),
-                    save: t("barSave", "Save"),
-                    discard: t("barDiscard", "Cancel"),
-                    keepMine: t("barKeepMine", "Keep mine"),
-                    takeServer: t("barTakeServer", "Take server's"),
-                    link: t("barLink", "Link row"),
-                    resend: t("barResend", "Send again"),
-                    dropPending: t("barDropPending", "Stop waiting"),
-                  },
-                }
-              : {}),
+            ...(extra?.bars ? { saveBars: true } : {}),
           },
           workspace.newId,
         ),

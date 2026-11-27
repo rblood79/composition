@@ -2029,6 +2029,12 @@ export interface LibraryTemplateNode {
   definitionId: DefinitionId;
   children: readonly LibraryTemplateId[];
   props: PropValues;
+  /**
+   * A literal prop's text in other languages (prop key → language → text; `props` holds the
+   * English): the resolver shows the site's language (`ProjectEntry.site.lang`) —
+   * `catalogTemplateProps`. An instance's own value still wins.
+   */
+  localizedProps?: Readonly<Record<string, Readonly<Record<string, string>>>>;
   visual: VisualValues;
   slot?: { name: string; required: boolean };
   /** Authored box/item layout of this template node (origin `style`), over definition rules. */

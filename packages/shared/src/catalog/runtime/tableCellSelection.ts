@@ -104,20 +104,6 @@ const WRITE_STRINGS: Readonly<
     fill: (n) => `칸 ${n}개 채움`,
     skipped: (n) => `${n}개 건너뜀`,
   },
-  ja: {
-    paste: (n) => `${n} 個のセルに貼り付けました`,
-    cut: (n) => `${n} 個のセルを切り取りました`,
-    clear: (n) => `${n} 個のセルをクリアしました`,
-    fill: (n) => `${n} 個のセルを埋めました`,
-    skipped: (n) => `${n} 個をスキップ`,
-  },
-  zh: {
-    paste: (n) => `已粘贴到 ${n} 个单元格`,
-    cut: (n) => `已剪切 ${n} 个单元格`,
-    clear: (n) => `已清除 ${n} 个单元格`,
-    fill: (n) => `已填充 ${n} 个单元格`,
-    skipped: (n) => `已跳过 ${n} 个`,
-  },
 };
 
 /** ADR-317 — 「칸 12개에 붙여넣음 · 3개 건너뜀」: the cells written, and the rest (each reason). */

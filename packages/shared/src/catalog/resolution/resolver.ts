@@ -12,6 +12,10 @@ import {
 import { CATALOG_UNAVAILABLE_DATA_PROP } from "../runtime/unavailableDates";
 import { catalogAvatarCssSize } from "../document/avatarSizeValue";
 import { bindTemplateValue } from "../document/templateBindingValue";
+import {
+  catalogSiteLanguage,
+  catalogTemplateProps,
+} from "../document/templateLocalizedProps";
 import { catalogLabeledValueFits } from "../document/labeledValue";
 import { isRichText } from "../document/textRuns";
 import { catalogPartConditionProps } from "../document/derivedVariantProps";
@@ -1503,6 +1507,8 @@ export function resolveCatalogNode(
   rowWindow?: CatalogRowWindowSource,
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
+  /** A library origin's literal texts are shown in it (`catalogTemplateProps`). */
+  const siteLanguage = catalogSiteLanguage(graph);
   // (Set again from the root's own height when the root is resolved — before any row.)
   let samplePageHeight = rowSample?.screenHeight ?? 0;
   /** A sampled owner's rows (`owner` = its resolved identity): the first its page shows. */
@@ -1889,15 +1895,12 @@ export function resolveCatalogNode(
       const entry = graph.getEntry(owner as NodeId);
       if (entry?.kind !== "node") return undefined;
       if (!entry.filtersOf) continue;
-      const project = graph.getEntry(graph.projectId);
       const read = (entryId: string) => graph.getEntry(entryId as NodeId);
-      const locale =
-        (project?.kind === "project" && project.site?.lang) || "en";
       // (No run-time tree here — the Builder — reads the authored start: the default.)
       return catalogFilterBarChipRows(
         entry,
         read,
-        locale,
+        siteLanguage,
         rows?.filterTree?.(entry.id),
       );
     }
@@ -4335,7 +4338,7 @@ export function resolveCatalogNode(
           ? withoutSampleContent(template.props)
           : template.props,
       );
-    else applyValues(props, template.props);
+    else applyValues(props, catalogTemplateProps(template, siteLanguage));
     if (libraryPatch?.props) applyValues(props, libraryPatch.props);
     if (bindings) {
       for (const key of Object.keys(template.props))

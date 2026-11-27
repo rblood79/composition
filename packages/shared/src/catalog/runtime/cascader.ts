@@ -253,8 +253,6 @@ const DUPLICATE_NOTICE: Readonly<Record<string, (count: number) => string>> = {
   en: (count) =>
     `${count} ${count === 1 ? "item" : "items"} can't be picked — the key repeats`,
   ko: (count) => `고를 수 없는 항목 ${count} 개 — key 가 겹친다`,
-  ja: (count) => `選べない項目 ${count} 件 — キーが重複しています`,
-  zh: (count) => `${count} 个项目无法选择 — 键重复`,
 };
 
 /** The repeated-key notice in the locale (its language, else English); undefined = none. */
