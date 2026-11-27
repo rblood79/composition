@@ -22,6 +22,8 @@ export interface CatalogFilterWords {
   readonly group: (count: number) => string;
   /** A switched-off condition's name suffix. */
   readonly off: string;
+  /** A chip's value before one is entered (its value button opens the editor). */
+  readonly unset: string;
   readonly units: Readonly<Record<CatalogFilterUnit, string>>;
   readonly ops: Readonly<Record<ViewComparison, string>>;
 }
@@ -36,6 +38,7 @@ export const CATALOG_FILTER_WORDS: Readonly<
     no: "False",
     group: (count) => `Group (${count} conditions)`,
     off: "off",
+    unset: "Enter value…",
     units: { day: "Days", week: "Weeks", month: "Months", year: "Years" },
     ops: {
       equals: "Equals",
@@ -68,6 +71,7 @@ export const CATALOG_FILTER_WORDS: Readonly<
     no: "거짓",
     group: (count) => `묶음 (조건 ${count})`,
     off: "꺼짐",
+    unset: "값 입력…",
     units: { day: "일", week: "주", month: "개월", year: "년" },
     ops: {
       equals: "같음",
@@ -100,6 +104,7 @@ export const CATALOG_FILTER_WORDS: Readonly<
     no: "偽",
     group: (count) => `グループ (条件 ${count})`,
     off: "オフ",
+    unset: "値を入力…",
     units: { day: "日", week: "週", month: "か月", year: "年" },
     ops: {
       equals: "等しい",
@@ -132,6 +137,7 @@ export const CATALOG_FILTER_WORDS: Readonly<
     no: "假",
     group: (count) => `分组 (${count} 个条件)`,
     off: "关闭",
+    unset: "输入值…",
     units: { day: "天", week: "周", month: "个月", year: "年" },
     ops: {
       equals: "等于",
@@ -240,7 +246,11 @@ export function catalogFilterChips(
       id: item.id,
       field,
       comparison,
-      value,
+      // (A condition without its value yet keeps its value button — it opens the editor; the
+      //  chip's name says nothing for it — the condition is skipped.)
+      value:
+        value ||
+        (item.op === "exists" || item.op === "notExists" ? "" : words.unset),
       label: [field, comparison, value, enabled ? "" : words.off]
         .filter(Boolean)
         .join(" "),

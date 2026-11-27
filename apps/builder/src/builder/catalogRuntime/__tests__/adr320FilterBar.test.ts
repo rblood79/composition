@@ -2,6 +2,7 @@
 import "fake-indexeddb/auto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -420,6 +421,11 @@ describe("ADR-320 G2 — the filter bar", () => {
     const barRecord = t.records().find((record) => record.sourceId === BAR)!;
     await act(async () =>
       react.render(renderCatalogDom(t.workspace.root, barRecord.id)),
+    );
+    // (The bar's DOM is the chip line's chunk — drawn once it loads.)
+    await waitFor(
+      () => expect(host.querySelectorAll('[role="group"]')).toHaveLength(3),
+      { timeout: 5000 },
     );
     const toolbar = host.querySelector('[role="toolbar"]');
     expect(toolbar?.getAttribute("aria-label")).toBe("Filters");

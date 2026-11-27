@@ -21,6 +21,8 @@ export const FILTER_BAR_DEFINITIONS: readonly LibraryDefinition[] = [
       comparison: "string",
       value: "string",
       label: "string",
+      // (ADR-320 Phase 3 — the root item the chip shows: its row's key, never authored.)
+      conditionId: "string",
     },
     defaults: {
       field: "Field",
@@ -76,7 +78,7 @@ export const FILTER_BAR_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-filterchip__menu",
       "lib:template:component-filterchip__remove",
     ],
-    props: { label: "{label}" },
+    props: { label: "{label}", conditionId: "{conditionId}" },
     visual: {},
   },
   {

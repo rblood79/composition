@@ -46,6 +46,7 @@ import type {
   ViewQuery,
   VisualWrites,
   WriteValue,
+  ViewConditionGroup,
 } from "../document/types";
 import {
   innerOwnerPlace,
@@ -350,6 +351,11 @@ export type CatalogRowSource = ((
     tableId: NodeId,
     chooserId: NodeId,
   ) => readonly { readonly key: string; readonly label: string }[] | undefined;
+  /**
+   * ADR-320 Phase 3 — a filter bar's run-time tree (its scope's — the Preview session's). Absent =
+   * not known here (the Builder: the chips are the authored start).
+   */
+  readonly filterTree?: (barId: NodeId) => ViewConditionGroup;
 };
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
 export type CatalogLoadingState =
@@ -995,6 +1001,8 @@ function keyRowItem(
     for (const key of ["field", "comparison", "value", "label"])
       props[key] = String(row.values[key] ?? "");
     props.isDisabled = row.values.enabled === false;
+    // (ADR-320 Phase 3 — the root item the chip shows: its run-time menus write that item.)
+    props.conditionId = row.key;
     return;
   }
   const group = GROUP_ROW_ITEM[type];
@@ -1833,9 +1841,9 @@ export function resolveCatalogNode(
     return undefined;
   };
   /**
-   * ADR-320 Phase 2 — a connected filter bar's chip repeats per root item of its tree (its authored
-   * start — the Preview's run-time tree is Phase 3): `id` = the item's id, the chip's texts in the
-   * site's language. The bar is the nearest ancestor with `filtersOf`.
+   * ADR-320 Phase 2 · 3 — a connected filter bar's chip repeats per root item of its tree (the
+   * Preview: its scope's run-time tree; the Builder: its authored start): `id` = the item's id, the
+   * chip's texts in the site's language. The bar is the nearest ancestor with `filtersOf`.
    */
   const filterChipRows = (id: string): CatalogBoundRow[] | undefined => {
     for (
@@ -1847,10 +1855,15 @@ export function resolveCatalogNode(
       if (entry?.kind !== "node") return undefined;
       if (!entry.filtersOf) continue;
       const project = graph.getEntry(graph.projectId);
+      const read = (entryId: string) => graph.getEntry(entryId as NodeId);
+      const locale =
+        (project?.kind === "project" && project.site?.lang) || "en";
+      // (No run-time tree here — the Builder — reads the authored start: the default.)
       return catalogFilterBarChipRows(
         entry,
-        (entryId) => graph.getEntry(entryId),
-        (project?.kind === "project" && project.site?.lang) || "en",
+        read,
+        locale,
+        rows?.filterTree?.(entry.id),
       );
     }
     return undefined;

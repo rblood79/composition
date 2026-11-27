@@ -16,6 +16,7 @@ import {
   CATALOG_FILTER_TARGET_TYPES,
   catalogFilterBarCollection,
 } from "../../../../../packages/shared/src/catalog/runtime/filterBar";
+import { catalogFilterBarFieldList } from "../../../../../packages/shared/src/catalog/runtime/filterBarFields";
 
 type Reader = Pick<
   CatalogGraph,
@@ -101,31 +102,12 @@ export function catalogFilterBarFields(
   graph: Reader,
   bar: NodeEntry,
 ): { id: string; label: string; type?: string; hidden: boolean }[] {
-  const collectionId = catalogFilterBarCollection(bar, (id) =>
-    graph.getEntry(id),
+  return catalogFilterBarFieldList(bar, (id) => graph.getEntry(id)).map(
+    ({ id, label, type, hidden }) => ({
+      id,
+      label,
+      ...(type ? { type } : {}),
+      hidden,
+    }),
   );
-  const collection = collectionId ? graph.getEntry(collectionId) : undefined;
-  if (collection?.kind !== "collection") return [];
-  const list = (key: string): string[] => {
-    const write = bar.props[key];
-    return write?.kind === "set" && Array.isArray(write.value)
-      ? (write.value as string[])
-      : [];
-  };
-  const order = list("fieldOrder");
-  const hidden = new Set(list("hiddenFields"));
-  const at = (id: string) => {
-    const index = order.indexOf(id);
-    return index === -1 ? order.length : index;
-  };
-  return collection.schema
-    .flatMap((field) => (field.id ? [{ ...field, id: field.id }] : []))
-    .map((field, index) => ({ field, index }))
-    .sort((a, b) => at(a.field.id) - at(b.field.id) || a.index - b.index)
-    .map(({ field }) => ({
-      id: field.id,
-      label: field.label ?? field.key,
-      ...(field.type ? { type: field.type } : {}),
-      hidden: hidden.has(field.id),
-    }));
 }

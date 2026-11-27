@@ -529,22 +529,39 @@ function withoutOwnConditions(
   queries.forEach((query, index) => {
     if (query.facet !== true || !query.groupBy?.length) return;
     const own = new Set(query.groupBy.map((path) => JSON.stringify(path)));
+    const skip = query.facetSkip;
+    // (ADR-320 Decision 9 — a session's candidate values of one condition being edited: that
+    //  condition alone leaves, wherever it is; a group it empties leaves with it.)
+    const stripOne = (group: ViewConditionGroup): ViewConditionGroup => ({
+      ...group,
+      items: group.items.flatMap(
+        (item): (ViewCondition | ViewConditionGroup)[] => {
+          if (!("items" in item)) return item.id === skip ? [] : [item];
+          const inner = stripOne(item);
+          return inner.items.length ? [inner] : [];
+        },
+      ),
+    });
     const strip = (group: ViewConditionGroup): ViewConditionGroup =>
-      group.op !== "and"
-        ? group
-        : {
-            ...group,
-            items: group.items.flatMap(
-              (item): (ViewCondition | ViewConditionGroup)[] =>
-                "items" in item
-                  ? [strip(item)]
-                  : item.id !== VIEW_SEARCH_CONDITION &&
-                      item.fields.length > 0 &&
-                      item.fields.every((path) => own.has(JSON.stringify(path)))
-                    ? []
-                    : [item],
-            ),
-          };
+      skip !== undefined
+        ? stripOne(group)
+        : group.op !== "and"
+          ? group
+          : {
+              ...group,
+              items: group.items.flatMap(
+                (item): (ViewCondition | ViewConditionGroup)[] =>
+                  "items" in item
+                    ? [strip(item)]
+                    : item.id !== VIEW_SEARCH_CONDITION &&
+                        item.fields.length > 0 &&
+                        item.fields.every((path) =>
+                          own.has(JSON.stringify(path)),
+                        )
+                      ? []
+                      : [item],
+              ),
+            };
     let start = 0;
     for (let at = 0; at < index; at += 1)
       if (queries[at]!.groupBy || queries[at]!.aggregates) start = at + 1;

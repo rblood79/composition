@@ -142,6 +142,14 @@ import {
   catalogTableStateQueries,
 } from "./tableStateQuery";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
+import { CATALOG_FILTER_TREE_ID } from "./filterScope";
+
+/** ADR-320 — a scope tree with no condition (a scope started · cleared to nothing — no chip). */
+const CATALOG_EMPTY_FILTER_TREE = {
+  id: CATALOG_FILTER_TREE_ID,
+  op: "and" as const,
+  items: [],
+};
 import { catalogRuntimeData, type CatalogRuntimeData } from "./catalogData";
 import { normalizeRows } from "../../collections/intake/normalizeRows";
 import {
@@ -1969,7 +1977,8 @@ export class CatalogPreviewSession {
    * data slice. A Table its endpoint's own `{{ sortDescriptor }}` sorts has no sort here.
    */
   private recordRowSlices(recordId: string): CatalogRowSlices | undefined {
-    const held = this.tables.tableStates.get(recordId);
+    // (ADR-320 Phase 3 — a list of a filter bar's scope: the scope's tree with its own state.)
+    const held = this.tables.heldTableState(recordId);
     const state =
       held && this.serverSortedTables.has(recordId) ? withoutSort(held) : held;
     // (ADR-315 Phase 5 증분 5g — a grouping · a totals row a server answers: its group query.)
@@ -3006,6 +3015,12 @@ export class CatalogPreviewSession {
     // view does not run on them again; the total is the server's for that query.
     let binding = authored;
     const id = dataCollectionIdOf(authored.collectionId);
+    // (ADR-320 Phase 3 — a list of a filter bar's scope that is not a Table: the scope's tree as
+    //  its rows' conditions — a Table's comes with its state's slices.)
+    if (!slices && ownerId !== undefined) {
+      const tree = this.tables.scopes.treeOfList(ownerId);
+      if (tree) slices = { where: tree };
+    }
     // (ADR-315 Phase 2 · 3 — the Table's state is its bound view's: an answer to that query is
     //  those rows in that order, and is not filtered · sorted here again.)
     const stated = this.stateRowQuery(
@@ -4435,6 +4450,9 @@ export class CatalogPreviewSession {
                 ? { count: info.count, page: info.page, size: info.size }
                 : undefined;
             },
+            // (ADR-320 Phase 3 — a filter bar's chips: its scope's tree now.)
+            filterTree: (barId: string) =>
+              this.tables.scopes.tree(barId) ?? CATALOG_EMPTY_FILTER_TREE,
             tableColumns: (tableId: string, chooserId: string) => {
               let set = this.tables.columnChoosers.get(tableId);
               if (!set)
@@ -4448,7 +4466,7 @@ export class CatalogPreviewSession {
         tableState: (tableId) =>
           this.serverSortedTables.has(tableId)
             ? withoutSort(this.tables.tableState(tableId))
-            : this.tables.tableStates.get(tableId),
+            : this.tables.heldTableState(tableId),
         rowWindow: (owner) => this.rowWindowOf(owner),
         state: this.stateSource(),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),

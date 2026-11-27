@@ -135,13 +135,16 @@ export const CATALOG_FACET_COUNT = "count";
 /**
  * ADR-315 Phase 3 — a Table Column's candidate values as a view chain: the binding's views with
  * the Table's state (`catalogTableStateQueries`), then a candidate-values view of that Column's
- * field (`facet` — the views before it skip that field's own conditions: the Column's filter and
- * an authored condition on it; the search stays). The one evaluator runs it (HC2).
+ * field (`facet`). ADR-320 Decision 9: the views before it leave out the one condition being
+ * edited (`skip` — a Column's filter `table-filter:<key>`, a filter bar's chip), wherever it is;
+ * every other condition stays (another on that field, the author's, the search). The one
+ * evaluator runs it (HC2).
  */
 export function catalogTableFacetQueries(
   authored: readonly ViewQuery[] | undefined,
   state: CatalogTableStateView | undefined,
   field: DataFieldId,
+  skip: string,
 ): readonly ViewQuery[] {
   return [
     ...(catalogTableStateQueries(authored, state) ?? []),
@@ -150,6 +153,7 @@ export function catalogTableFacetQueries(
       groupBy: [[field]],
       aggregates: [{ fn: "count", as: CATALOG_FACET_COUNT }],
       facet: true,
+      facetSkip: skip,
     },
   ];
 }

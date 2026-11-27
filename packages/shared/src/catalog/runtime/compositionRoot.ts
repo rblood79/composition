@@ -2609,6 +2609,8 @@ export class CatalogCompositionRoot {
           ...(rows.pages ? { pages: rows.pages } : {}),
           // (ADR-315 Phase 4 — a column chooser reads its Table's columns.)
           ...(rows.tableColumns ? { tableColumns: rows.tableColumns } : {}),
+          // (ADR-320 Phase 3 — a filter bar's chips read its scope's tree.)
+          ...(rows.filterTree ? { filterTree: rows.filterTree } : {}),
         },
       );
     this.tableState = options.tableState;

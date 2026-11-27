@@ -1035,6 +1035,10 @@ export const VIEW_COVERAGE: CodeViewCoverage<ViewEntry> = {
     notInCode:
       "ADR-315 — a filter's candidate values: its sources skip their conditions on its own field (the code shows the grouping; that rule stays the document's)",
   },
+  facetSkip: {
+    notInCode:
+      "ADR-320 — run time only: a session's candidate values leave out the condition being edited (never stored)",
+  },
 };
 
 /* ─── data ────────────────────────────────────────────────────────────────────────────── */

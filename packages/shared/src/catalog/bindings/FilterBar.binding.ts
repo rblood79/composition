@@ -110,6 +110,13 @@ export const filterChipBinding: PrimitiveBinding = {
         label: "Label",
         section: "content",
       },
+      // (ADR-320 Phase 3 — the root item the chip shows: its row's key, never authored.)
+      conditionId: {
+        editorHidden: true,
+        kind: "string",
+        label: "Condition",
+        section: "content",
+      },
       size: {
         editorHidden: true,
         kind: "size",

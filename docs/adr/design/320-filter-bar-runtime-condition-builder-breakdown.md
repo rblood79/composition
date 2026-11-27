@@ -384,4 +384,42 @@ HEAD `cedac12da` 위 작업 트리. contract 80 → **82** (81 은 ADR-321 의 w
 
 **설계와 달라진 것**: 칩의 견본 — 팔레트에서 놓은 (연결 안 된) 막대는 견본 칩 하나 (Field · Contains · Value) 를 그린다 (§5.11 「연결 안 됨 상태로 그려지고」). 시작 조건이 실행 행에 닿는 것은 Phase 3 (칩 줄 — 범위의 실행 트리) 이다 — Phase 2 의 Preview 는 칩을 시작 조건대로 그리지만 행은 아직 거르지 않는다. 대상 종류 (17) 는 패널 후보 · 「필터 바 추가」 가 거르고 graph 는 막지 않는다.
 
+### Phase 3 (2026-11-27 — G3 통과)
+
+HEAD `4e8c066ec` 위 작업 트리 (같은 checkout 에서 다른 세션이 ADR-321 Phase 3 을 진행 중 — contract 84 는 그쪽 것, 이 Phase 는 contract 를 바꾸지 않는다).
+
+**바뀐 것**:
+
+- 범위의 실행 트리 (`runtime/filterScopeSession.ts`): 연결된 막대마다 트리 하나 (막대의 노드 id). 첫 읽기에 시작 조건 (`defaultQuery`) 을 대입 판정에 넣어 시작하고, 작성자가 시작 조건을 바꾸면 (Builder Preview) 새 시작에서 다시 시작한다. 대입 판정 = 범위의 **모든 목록** 이 루트 항목마다 그 필드를 갖고 요청이 실을 때만 받는다 (`catalogJudgeFilterItems` — 패널 경고와 같은 함수). 못 받은 수는 막대의 알림 (`refusedOf`).
+- 트리는 하나다 (HC3): Table 대상은 표 상태의 `filters` 를 범위 트리에서 읽고 (`CatalogTableController.tableState` — 사본을 두지 않는다, 표 상태에 쓰는 `filters` 는 범위의 대입으로 간다 → 열 메뉴의 조건이 칩이 된다), 다른 목록은 행 조회의 조건으로 읽는다 (`boundRows` · `recordRowSlices`). 칩 행은 세션 트리 (resolver 행 출처 `filterTree` — Builder 에는 없어 시작 조건).
+- 후보 값 (Decision 9): 실행 전용 `ViewQuery.facetSkip` (문서의 보기는 그 키를 거절 — 저장되지 않는다) — 후보 값 보기 앞의 보기에서 **그 id 의 조건 하나만** 뺀다 (「또는」 아래 · 중첩 묶음 안, 비게 된 묶음도 같이). 열 메뉴도 같은 규칙 (`table-filter:<열>` — 같은 필드의 작성자 조건이 이제 남는다). 작성자가 만든 후보 값 보기 (`facet` 만) 는 지금 규칙 그대로.
+- 칩 줄 (`runtime/filterBar.components.tsx`, lazy): 막대 · 칩의 RAC `Toolbar` · `Group` 렌더 자체가 이 chunk 다 (Builder 첫 화면 몫을 줄이려고 — 렌더러는 props 와 자식만 넘긴다). 실행 중 Preview 에서: 「필터 추가」 = 필드 메뉴 (RAC `Autocomplete` 검색 · 참조 필드는 `SubmenuTrigger`) → 조건이 생기고 비교 메뉴가 열린다 → 값을 받는 비교면 값 편집기가 열린다. 값 편집기 = 열 필터 대화상자 그대로 (편집기 모듈 하나 — 사이트 언어 `I18nProvider` 로 감싼다), 후보 값은 그 조건만 뺀 범위 트리. 조건 메뉴 = 복제 · 끄기 / 켜기 · 삭제 (묶음 칩은 복제 · 삭제), 삭제 버튼, 「지우기」 = 시작 조건 (대입 판정). 못 받은 항목은 막대 끝 글줄 「적용하지 못한 조건 N」, 적용 수는 `announce`. 내놓는 필드 · 비교 = 범위가 받는 것만 (탐침 조건을 지금 트리에 더해 판정 — 넣은 뒤 빠지는 일 없음, HC4).
+- 값이 아직 없는 조건의 칩: 값 자리에 「값 입력…」 (값 버튼이 편집기를 연다 — 그 조건은 건너뜀).
+- 비활성 막대 = 버튼이 RAC 비활성 (`ButtonContext`), 읽기 전용 = 칩은 보이고 실행 없음.
+
+**G3 항목**:
+
+| 항목                                                           | 근거                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 조건 추가 · 비교 · 값 · 끄기 · 삭제 · 지우기 = 정답표          | `adr320FilterScope.test.tsx` (Preview 세션 · jsdom) 10 — 시작 조건이 Table · ListBox 를 같이 거름 · 비교 변경 (값 모양이 다르면 값을 버리고 편집기 열림) · 끄기 · 켜기 · 복제 · 삭제 · 「Add filter」 → 비교 메뉴 · 「Clear」 = 시작 · 빈 트리 · 꺼진 조건. 행 key 정답은 손으로 적음                                                                |
+| 지우기 = 대입 판정을 지난 시작 조건 · 「적용하지 못한 조건 N」 | 같은 파일 — 지운 필드 조건 → 빼고 1 셈 · 막대 끝 글줄 「1 condition could not be applied」                                                                                                                                                                                                                                                           |
+| 열 메뉴의 조건이 칩으로 · 그 반대도                            | 같은 파일 — Table 의 `table-filter:status` 쓰기 → 범위 트리 · 칩 2 · ListBox 도 따라옴 · Table 은 자기 `filters` 를 갖지 않음 / 범위에서 고친 `table-filter:status` 를 열 메뉴가 읽는 조건 (`catalogFilterColumnCondition`) 이 그대로 · 행 u2 · u4                                                                                                   |
+| 후보 값 정답표                                                 | `facetSkip.test.ts` 4 — 점수 5 · 10 · 20 에 `점수 ≥ 10 그리고 점수 = 20` 의 둘째 후보 = 10 · 20 (옛 규칙은 5 · 10 · 20), 같은 필드의 작성자 조건 유지, 「또는」 아래, 중첩 묶음 · 비게 된 묶음. 칩 값 편집기의 후보 = 그 조건만 빼고 A · B · C (jsdom)                                                                                               |
+| 키보드 전 경로                                                 | live 3 · 4 — Tab 으로 「Add filter」 → Enter → 「Sta」 검색 → Enter → 비교 메뉴 → Enter → 값 편집기 → 1 · Enter, 조건 메뉴 → 「Turn off」                                                                                                                                                                                                            |
+| role · `aria-*` 는 RAC 것뿐                                    | `adr320D1ChipLine.static.test.ts` — `role` 0, `aria-label` 은 RAC `Toolbar` · `Group` · `Menu` · `SearchField` 의 이름 prop 만                                                                                                                                                                                                                       |
+| Chrome · WebKit live                                           | `apps/builder/scripts/adr320-g3-live.mjs` (dev 5173 · headless) **Chrome ALL PASS 7 · WebKit ALL PASS 7** — Publish 탭에서 시작 조건 = 칩 1 · 행 4 / 포인터: 비교 「Equals」 → 값 편집기 자동 → 「C」 · Apply → 행 2 / 키보드 경로 (위) / 삭제 · 「Clear」 → 칩 1 · 행 4 / live region 「N condition(s) applied」 / page error 0. G2 하니스 다시 7/7 |
+| 원복 RED                                                       | 변이 10 전부 실패 · 바이트 복원 확인 — facetSkip 무시 · Table 이 범위 트리를 읽지 않음 · 열 메뉴 쓰기가 범위로 가지 않음 · 다른 목록의 행 조회에 트리 없음 · 행 출처 `filterTree` 전달 누락 · 지운 필드 판정 · 칩 `conditionId` 묶음 · 대입 뒤 Table 다시 읽기 · 대입 뒤 목록 다시 읽기 · 복제                                                       |
+| 대칭                                                           | `adr320FilterBarParity.browser.test.ts` 6/6 (렌더가 lazy 가 되어 chunk 로드를 기다리게 고침) · 팔레트 대칭 FilterBar S · M · L                                                                                                                                                                                                                       |
+
+**회귀**: shared 281 파일 · 2,986 통과 · builder 단위 10,035 통과 (staged-load 순회 기록 게이트에 새 순회 둘을 적음). type-check — 이 Phase 의 코드는 통과, 같은 checkout 의 다른 세션 (ADR-321 Phase 3, contract 84) 의 테스트 리터럴이 진행 중이라 지금 전체 type-check 는 그쪽에서 막힌다.
+
+**번들** (일반 `vite build` → `adr209-bundle-closure.mjs`, 다른 세션의 진행 중 변경을 빼려고 이 Phase 의 tracked 파일만 HEAD 로 돌린 빌드와 나란히 잼): Builder initial **+511 B** → 320 합계 **+7,984** (결정 10 의 +8,000 안, 16 B 남음). Preview −1 B. 줄인 것: 막대 · 칩 DOM 렌더를 lazy chunk 로 (lazy 모듈이 `delegatedDom` 을 import 하면 rollup 이 공용 chunk 를 다시 나눠 +528 B — props 로 넘겨 피함), 필드 목록 함수를 첫 화면 밖 모듈로 (`filterBarFields.ts`), 칩 부품 판별을 lazy 쪽으로.
+
+**설계와 달라진 것 · 넘긴 것**:
+
+- 「조건 편집」 버튼과 묶음 칩 누르기 (빌더 열기) 는 Phase 4 (빌더) 와 같이.
+- 참조 경로 조건의 후보 값은 없다 (값 칸만) — 서버 후보 값과 같이 Phase 6 에서 본다.
+- **HC6 의 live 교대 측정 (Phase 1 이 G3 · G4 로 넘긴 것) 은 이번에 하지 못했다** — Phase 4 (G4) 에서 칩 · 빌더 경로를 같이 잰다. 계산 자체는 Phase 1 의 10,000 행 4.68 ms (「또는」 2 단) 그대로다 (이 Phase 는 평가 경로를 바꾸지 않았다 — 후보 값 보기만).
+- 여러 원격 대상의 요청 나누기는 Phase 6 그대로 — 지금 범위 판정은 대상마다 요청 한계를 보지만, 요청은 지금 세션 경로를 지난다.
+
 (다음 Phase 가 닫힐 때마다 이어서 기록)

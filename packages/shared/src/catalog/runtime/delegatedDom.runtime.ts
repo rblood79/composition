@@ -1,4 +1,5 @@
 import { CATALOG_COMPONENT_SLOT_CONTEXTS } from "../../components/catalogSlotContexts";
+import type { CatalogFilterBarAccess } from "./filterBarAccess";
 import { catalogResizableGripGlyph } from "../document/resizableChrome";
 import {
   catalogRegisterResizablePanelEvents,
@@ -130,9 +131,6 @@ import {
   Breadcrumbs as AriaBreadcrumbs,
 } from "react-aria-components/Breadcrumbs";
 import { Link as AriaLink } from "react-aria-components/Link";
-import { Toolbar as AriaToolbar } from "react-aria-components/Toolbar";
-import { Group as AriaGroup } from "react-aria-components/Group";
-import { catalogFilterWords } from "./filterWording";
 
 import { Button as AriaButton } from "react-aria-components/Button";
 import { useLocale } from "react-aria-components/I18nProvider";
@@ -424,6 +422,8 @@ export interface DelegatedDomInput {
     target: Element,
     nav: Element,
   ) => void;
+  /** ADR-320 Phase 3 — a running filter bar's scope (absent = a static render). */
+  readonly filterBar?: (recordId: string) => CatalogFilterBarAccess | undefined;
   /** The collection the record's text filters on the server · that text's load (`setFilterText`). */
   readonly serverFilterOf?: (recordId: string) => string | undefined;
   readonly setFilterText?: (collectionId: string, filterText: string) => void;
@@ -1147,6 +1147,43 @@ export const marker = (input: DelegatedDomInput) => {
     slot: catalogDomSlot(input.node),
   };
 };
+
+/**
+ * ADR-320 — a filter bar · its chip: the element's props and its children with their authored part,
+ * drawn by the chip line's chunk (it runs them in a running Preview — `filterBar.components.tsx`).
+ */
+function filterBarDom(input: DelegatedDomInput, type: string): ReactElement {
+  const { key, ...base } = marker(input);
+  return createElement(
+    Suspense,
+    { key, fallback: null },
+    createElement(
+      type === "FilterBar" ? CatalogFilterBarDom : CatalogFilterChipDom,
+      {
+        base: { ...base, ...chrome(input, type), style: input.style },
+        props: input.node.props,
+        locale: input.root.siteLocale() ?? "en",
+        access: input.filterBar && (() => input.filterBar!(input.node.id)),
+        parts: children(input).map((child) => ({
+          source: child.sourceId,
+          element: input.renderChild(child.id),
+        })),
+      },
+    ),
+  );
+}
+/** ADR-320 — the filter bar's · its chip's DOM (a lazy chunk — one import for both). */
+const loadFilterBarDom = () => import("./filterBar.components");
+const CatalogFilterBarDom = lazy(() =>
+  loadFilterBarDom().then((module) => ({
+    default: module.CatalogFilterBarDom,
+  })),
+);
+const CatalogFilterChipDom = lazy(() =>
+  loadFilterBarDom().then((module) => ({
+    default: module.CatalogFilterChipDom,
+  })),
+);
 
 export const renderAll = (input: DelegatedDomInput, list = children(input)) =>
   list.map((child) => input.renderChild(child.id));
@@ -4242,34 +4279,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-320 Phase 2 — a filter bar: RAC `Toolbar` named in the site's language (arrows move between
   //  its buttons, Tab leaves it — breakdown §4), a chip RAC `Group` named 「field comparison value」
   //  (its row's — resolver). Their look is the generated sheet (`FilterBar` · `FilterChip` rules).
-  filterbar: {
-    render: (input) =>
-      createElement(
-        AriaToolbar,
-        {
-          ...marker(input),
-          ...chrome(input, "FilterBar"),
-          "aria-label": catalogFilterWords(input.root.siteLocale() ?? "en")
-            .name,
-          style: input.style,
-        },
-        ...renderAll(input),
-      ),
-  },
-  filterchip: {
-    render: (input) =>
-      createElement(
-        AriaGroup,
-        {
-          ...marker(input),
-          ...chrome(input, "FilterChip"),
-          "aria-label": str(input.node.props.label),
-          isDisabled: input.node.props.isDisabled === true,
-          style: input.style,
-        },
-        ...renderAll(input),
-      ),
-  },
+  // (ADR-320 — a filter bar · its chip: RAC `Toolbar` · `Group`, drawn by the chip line's chunk
+  //  — `filterBar.components.tsx` (it runs them in a running Preview).)
+  filterbar: { render: (input) => filterBarDom(input, "FilterBar") },
+  filterchip: { render: (input) => filterBarDom(input, "FilterChip") },
   actionbuttongroup: {
     render: (input) =>
       createElement(

@@ -1,4 +1,5 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
+import type { CatalogFilterBarAccess } from "./filterBarAccess";
 import { catalogResizableLayout } from "./resizablePanels";
 import { catalogStepDomStyle } from "./stepList";
 import { CatalogTokenFieldError } from "./tokenField.components";
@@ -590,6 +591,8 @@ export interface CatalogDomRuntime {
    * text filters on the server (a ComboBox · an Autocomplete's list), and the text's load.
    */
   serverFilterOf?(recordId: string): string | undefined;
+  /** ADR-320 Phase 3 — a running filter bar's scope (`CatalogPreviewInteractions.filterBarAccess`). */
+  filterBarAccess?(recordId: string): CatalogFilterBarAccess | undefined;
   setFilterText?(collectionId: string, filterText: string): void;
   subscribe(id: string, notify: () => void): () => void;
 }
@@ -6192,6 +6195,12 @@ export function renderNode(
                 target: Element,
                 nav: Element,
               ) => context.runtime!.paginationClick!(recordId, target, nav),
+            }
+          : {}),
+        ...(context.runtime?.filterBarAccess
+          ? {
+              filterBar: (recordId: string) =>
+                context.runtime!.filterBarAccess!(recordId),
             }
           : {}),
         ...(context.runtime?.serverFilterOf && context.runtime.setFilterText

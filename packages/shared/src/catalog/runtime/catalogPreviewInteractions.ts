@@ -1,4 +1,5 @@
 import type { CatalogCellWrite } from "./tableCellSelection";
+import type { CatalogFilterBarAccess } from "./filterBarAccess";
 import type { CatalogTableCellsWrite } from "./catalogTableController";
 import {
   buildInteractionIndex,
@@ -590,6 +591,8 @@ export interface CatalogPreviewInteractionsOptions {
   ) => Promise<unknown>;
   /** The collection a record's text filters on the server (`CatalogPreviewSession.serverFilterOf`). */
   serverFilterOf?: (recordId: string) => string | undefined;
+  /** ADR-320 Phase 3 — a running filter bar's scope (`CatalogTableController.filterBarAccess`). */
+  filterBarAccess?: (recordId: string) => CatalogFilterBarAccess | undefined;
   /** Whether a collection pages (`CatalogPreviewSession.pages`). */
   pages?: (collectionId: string) => boolean;
   /** ADR-310 「더 보기」 (`CatalogPreviewSession.moreLoaded`). */
@@ -1233,6 +1236,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
    */
   pages(collectionId: string): boolean {
     return this.options.pages?.(collectionId) ?? false;
+  }
+  filterBarAccess(recordId: string): CatalogFilterBarAccess | undefined {
+    return this.options.filterBarAccess?.(recordId);
   }
   serverFilterOf(recordId: string): string | undefined {
     return this.options.serverFilterOf?.(recordId);

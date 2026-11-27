@@ -279,6 +279,18 @@ async function measure(key: string, size: string, treeKey: string) {
       }),
     ),
   );
+  // (ADR-320 Phase 3 — the bar's DOM is the chip line's chunk: drawn once it loads.)
+  const wanted = [...root.canvasInputs.values()].filter(
+    (record) => root.typeOf(record) === "FilterChip",
+  ).length;
+  for (
+    let tries = 0;
+    tries < 300 &&
+    (!host.querySelector(`[data-catalog-id="${CSS.escape(rootInput.id)}"]`) ||
+      host.querySelectorAll(".react-aria-FilterChip").length < wanted);
+    tries += 1
+  )
+    await new Promise((resolve) => setTimeout(resolve, 16));
   await new Promise((resolve) =>
     requestAnimationFrame(() => requestAnimationFrame(resolve)),
   );

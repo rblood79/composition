@@ -163,6 +163,7 @@ export function catalogPreviewRuntime(
     setFilterText: (collectionId, filterText) =>
       session.setFilterText(collectionId, filterText),
     serverFilterOf: (recordId) => session.serverFilterOf(recordId),
+    filterBarAccess: (recordId) => session.tables.filterBarAccess(recordId),
     pages: (collectionId) => session.pages(collectionId),
     moreLoaded: (collectionId, ownerId) =>
       session.moreLoaded(collectionId, ownerId),

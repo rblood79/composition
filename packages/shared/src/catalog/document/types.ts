@@ -957,6 +957,13 @@ export interface ViewQuery {
    * are one group (`A` · `a` under the default sensitivity; every empty value one group).
    */
   facet?: true;
+  /**
+   * ADR-320 Decision 9 — run time only (a session's candidate values, never stored: the document's
+   * views refuse the key): the one condition (by id, anywhere in the trees before — under an `or`,
+   * in a nested group) the candidate values leave out, in place of the conditions on the group
+   * fields. Every other condition stays: another on the same field, the author's.
+   */
+  facetSkip?: string;
   aggregates?: readonly ViewAggregate[];
   /**
    * ADR-315 Phase 2 — the sort entries in order: the first, then the next among its equal rows

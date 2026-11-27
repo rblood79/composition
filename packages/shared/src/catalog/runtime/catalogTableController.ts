@@ -64,11 +64,23 @@ import {
   type CatalogTableServedSlice,
 } from "./tableStateQuery";
 import { CATALOG_NO_TABLE_STATE } from "./tableState";
+import { CatalogFilterScopes } from "./filterScopeSession";
 import {
+  catalogFilterBarFieldOps,
+  type CatalogFilterBarAccess,
+  type CatalogFilterBarField,
+} from "./filterBarAccess";
+import { catalogFilterBarFieldList } from "./filterBarFields";
+import {
+  catalogColumnFilterConditionId,
   catalogFilterColumnCondition,
   catalogJudgeFilterItems,
 } from "./filterScope";
-import type { ViewCondition, ViewConditionGroup } from "../document/types";
+import type {
+  DataFieldId,
+  ViewCondition,
+  ViewConditionGroup,
+} from "../document/types";
 import { CATALOG_NO_VIEW_QUERY } from "./viewQuery";
 import type {
   CatalogItemsWrite,
@@ -133,7 +145,64 @@ export type CatalogTableHost = {
  * themselves, the endpoints and the view stay the session's (`CatalogTableHost`).
  */
 export class CatalogTableController {
-  constructor(private readonly host: CatalogTableHost) {}
+  constructor(private readonly host: CatalogTableHost) {
+    this.scopes = new CatalogFilterScopes(host, (lists) =>
+      this.readScopeLists(lists),
+    );
+  }
+
+  /**
+   * ADR-320 Phase 3 — the filter bars' scopes: a Table among a bar's lists reads the scope's tree
+   * as its state's `filters` (`tableState` — one tree, never a copy, HC3).
+   */
+  readonly scopes: CatalogFilterScopes;
+
+  /** The scope's lists read their rows again: a Table through its state's read, another list's node. */
+  private readScopeLists(lists: readonly string[]): void {
+    const root = this.host.currentRoot;
+    if (!root) return;
+    const wanted = new Set(lists);
+    const others = new Set<string>();
+    let remote = false;
+    for (const record of root.domInputs.values()) {
+      if (!wanted.has(record.sourceId)) continue;
+      if (record.ruleId === "Table")
+        this.readTableRows(record.id, this.tableState(record.id), "filtering");
+      else {
+        others.add(record.sourceId);
+        const source = this.host.graph?.getEntry(record.sourceId as never);
+        if (
+          source?.kind === "node" &&
+          source.binding &&
+          this.host.collectionRowService(
+            dataCollectionIdOf(source.binding.collectionId),
+          ).remote
+        )
+          remote = true;
+      }
+    }
+    if (remote) this.host.loadRouted("filtering");
+    if (others.size) {
+      const errors = root.refreshNodes(others);
+      if (errors.length)
+        console.error("[CatalogPreview] filtered lists:", ...errors);
+    }
+  }
+
+  /**
+   * A record's state as its rows read it — a Table among a filter bar's lists with the scope's
+   * tree as its `filters` (a list that is not a Table: the tree alone). Undefined = none.
+   */
+  heldTableState(recordId: string): CatalogTableState | undefined {
+    const held = this.tableStates.get(recordId);
+    const bar = this.scopes.barOf(recordId.slice(recordId.lastIndexOf("::") + 2));
+    if (!bar) return held;
+    const tree = this.scopes.tree(bar);
+    if (tree) return { ...held, filters: tree };
+    if (!held?.filters) return held;
+    const { filters: _scope, ...rest } = held;
+    return rest;
+  }
 
   /** ADR-315 Phase 4 — a column width written by RAC's own resize (`resizeTableColumns`). */
   private resizing = false;
@@ -369,7 +438,7 @@ export class CatalogTableController {
 
   /** A Table record's state (absent slices = the authored defaults). */
   tableState(tableId: string): CatalogTableState {
-    return this.tableStates.get(tableId) ?? CATALOG_NO_TABLE_STATE;
+    return this.heldTableState(tableId) ?? CATALOG_NO_TABLE_STATE;
   }
 
   /** A Table record as the rules between its state's slices read it (`catalogTableStateWith`). */
@@ -455,6 +524,7 @@ export class CatalogTableController {
    * is still taken whole writes nothing.
    */
   rejudgeFilters(): void {
+    this.scopes.rejudge();
     for (const [tableId, state] of [...this.tableStates]) {
       if (!state.filters) continue;
       // (The notice counts what the tree as it was assigned lost: an item left out now is one
@@ -582,7 +652,13 @@ export class CatalogTableController {
     const before = this.tableState(tableId);
     const next = catalogTableStateWith(before, patch, this.tableShape(tableId));
     if (next === before) return false;
-    if (Object.keys(next).length) this.tableStates.set(tableId, next);
+    // (ADR-320 — a Table of a filter bar's scope: its filters are the scope's, never held here.)
+    const scoped = !!this.scopes.barOf(
+      tableId.slice(tableId.lastIndexOf("::") + 2),
+    );
+    const { filters: _scope, ...unscoped } = next;
+    const held = scoped ? unscoped : next;
+    if (Object.keys(held).length) this.tableStates.set(tableId, held);
     else this.tableStates.delete(tableId);
     return true;
   }
@@ -597,6 +673,18 @@ export class CatalogTableController {
     tableId: string,
     patch: Readonly<Record<string, unknown>>,
   ): void {
+    // (ADR-320 — a Table of a filter bar's scope: a filter write is the scope's assignment — the
+    //  Column menu's condition shows as a chip, every list of the scope reads it.)
+    const bar =
+      "filters" in patch
+        ? this.scopes.barOf(tableId.slice(tableId.lastIndexOf("::") + 2))
+        : undefined;
+    if (bar) {
+      const { filters, ...rest } = patch;
+      this.scopes.assign(bar, filters ?? null);
+      if (!Object.keys(rest).length) return;
+      patch = rest;
+    }
     const before = this.tableState(tableId);
     if (!this.writeTableState(tableId, patch)) return;
     const next = this.tableState(tableId);
@@ -1657,14 +1745,136 @@ export class CatalogTableController {
   ): CatalogTableFacet | undefined {
     const read = this.tableField(tableId, columnKey);
     if (!read) return undefined;
-    const { binding, collectionId, collection, base, fields, field } = read;
+    const fieldId = catalogFieldIdOf(read.fields, columnKey);
+    if (!fieldId) return undefined;
+    // (ADR-320 Decision 9 — the Column's own condition leaves; the author's on that field stays.)
+    return this.recordFacet(
+      tableId,
+      fieldId,
+      catalogColumnFilterConditionId(columnKey),
+    );
+  }
+
+  /**
+   * ADR-320 Phase 3 — a running filter bar's access (its record): the shown fields with the
+   * comparisons its scope takes, the tree, its write, 「Clear」, a condition's candidate values (read
+   * from the first of its lists). Undefined = not a connected bar.
+   */
+  filterBarAccess(barRecordId: string): CatalogFilterBarAccess | undefined {
+    const graph = this.host.graph;
+    const barId = this.host.currentRoot?.domInputs.get(barRecordId)?.sourceId;
+    const entry = barId ? graph?.getEntry(barId as never) : undefined;
+    if (!graph || entry?.kind !== "node" || !entry.filtersOf?.length)
+      return undefined;
+    // (One access a bar node — the run's subscriptions keep it across renders; it reads the
+    //  bar's entry at each call, so an edit of the bar is read.)
+    const held = this.barAccesses.get(entry.id);
+    if (held) return held;
+    const access = this.newFilterBarAccess(entry.id);
+    this.barAccesses.set(entry.id, access);
+    return access;
+  }
+  private readonly barAccesses = new Map<string, CatalogFilterBarAccess>();
+
+  private newFilterBarAccess(barId: string): CatalogFilterBarAccess {
+    const scopes = this.scopes;
+    const read = (id: string) => this.host.graph?.getEntry(id as never);
+    const barNow = () => {
+      const entry = read(barId);
+      return entry?.kind === "node" ? entry : undefined;
+    };
+    const takes = (tree: ViewConditionGroup) => scopes.takes(barId, tree);
+    const fieldOf = (
+      path: DataFieldId[],
+      label: string,
+      type: string | undefined,
+      tree: ViewConditionGroup | undefined,
+    ): CatalogFilterBarField => {
+      const kind = viewFieldKind(type);
+      return {
+        path,
+        label,
+        kind,
+        ops: catalogFilterBarFieldOps(path, kind, tree, takes),
+      };
+    };
+    return {
+      fields: () => {
+        const bar = barNow();
+        if (!bar) return [];
+        const tree = scopes.tree(barId);
+        return catalogFilterBarFieldList(bar, read).flatMap((field) => {
+          if (field.hidden) return [];
+          const path = [`data:field:${field.id}` as DataFieldId];
+          const referenced = field.reference
+            ? read(field.reference)
+            : undefined;
+          // (A reference field: its collection's fields, one level — a request carries no path
+          //  through a reference, so a remote scope offers none of them.)
+          const fields =
+            referenced?.kind === "collection"
+              ? referenced.schema.flatMap((sub) =>
+                  sub.id
+                    ? [
+                        fieldOf(
+                          [...path, `data:field:${sub.id}` as DataFieldId],
+                          `${field.label} › ${sub.label ?? sub.key}`,
+                          sub.type,
+                          tree,
+                        ),
+                      ]
+                    : [],
+                ).filter((sub) => sub.ops.length)
+              : undefined;
+          const own = fieldOf(path, field.label, field.type, tree);
+          if (fields?.length) return [{ ...own, fields }];
+          return own.ops.length ? [own] : [];
+        });
+      },
+      tree: () => scopes.tree(barId),
+      refused: () => scopes.refusedOf(barId),
+      write: (tree) => void scopes.assign(barId, tree),
+      clear: () => void scopes.clear(barId),
+      facet: (conditionId, path) => {
+        if (path.length !== 1) return undefined;
+        const lists = new Set<string>(barNow()?.filtersOf ?? []);
+        for (const record of this.host.currentRoot?.domInputs.values() ?? [])
+          if (lists.has(record.sourceId))
+            return this.recordFacet(record.id, path[0]!, conditionId);
+        return undefined;
+      },
+      subscribe: (listener) =>
+        scopes.subscribe((change) => {
+          if (change.barId === barId) listener();
+        }),
+    };
+  }
+
+  /**
+   * ADR-320 Decision 9 — a bound record's candidate values of a field (a Table Column's dialog, a
+   * filter bar's chip): each value among the rows its state keeps with the one condition being
+   * edited (`skip` — its id, wherever it is in the scope's tree) left out, with the rows it would
+   * give. `partial` = the loaded rows only. Undefined = not a bound record · a field its rows lack.
+   */
+  recordFacet(
+    recordId: string,
+    fieldId: DataFieldId,
+    skip: string,
+  ): CatalogTableFacet | undefined {
+    const read = this.tableRead(recordId);
+    if (!read) return undefined;
+    const { binding, collectionId, collection, base, fields } = read;
+    const field = fields.find(
+      (item) =>
+        `data:field:${item.id.replace(/^data:field:/, "")}` === fieldId,
+    );
+    if (!field) return undefined;
+    const columnKey = field.key;
     const remote = !!collection && !collection.useMockData;
     const partial =
       remote &&
       (this.host.loadArguments.get(collectionId)?.cursor !== undefined ||
         !!this.host.serverView(collectionId));
-    const fieldId = catalogFieldIdOf(fields, columnKey);
-    if (!fieldId) return undefined;
     const rows = catalogBoundRows(
       {
         ...binding,
@@ -1676,8 +1886,9 @@ export class CatalogTableController {
           loaded: { complete: !partial },
           queries: catalogTableFacetQueries(
             base.queries.length ? base.queries : undefined,
-            catalogRowSlicesView(this.host.recordRowSlices(tableId), fields),
+            catalogRowSlicesView(this.host.recordRowSlices(recordId), fields),
             fieldId,
+            skip,
           ),
         },
       },

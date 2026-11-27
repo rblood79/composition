@@ -53,9 +53,9 @@ const KNOWN = new Map<string, readonly [number, string, string]>([
   [
     "packages/shared/src/catalog/runtime/catalogTableController.ts",
     [
-      2,
+      4,
       "P",
-      "ADR-315 remembered Table states · a Table's authored search text (`startTableSearches`) — looked up after a root is built and after `fillShown` (`restoreDue`): another page's Tables when that page is shown",
+      "ADR-315 remembered Table states · a Table's authored search text (`startTableSearches`) — looked up after a root is built and after `fillShown` (`restoreDue`): another page's Tables when that page is shown. ADR-320 Phase 3 — a filter bar's lists read again (`readScopeLists`) and its candidate values' first list (`filterBarAccess` facet): the records of the shown page — another page's lists read the scope's tree when filled",
     ],
   ],
   [
