@@ -39,6 +39,7 @@
     "hooks:selftest": "pnpm run claude:hooks:selftest && pnpm run codex:hooks:selftest",
     "agent:run": "bash scripts/agent/run-ledger.sh",
     "agent:work": "bash scripts/agent/work.sh",
+    "agent:autorun": "bash scripts/agent/adr-autorun.sh",
     "agent:dashboard": "bash scripts/agent/dashboard.sh",
     "lint": "turbo run lint",
     "test": "turbo run test",

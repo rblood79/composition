@@ -71,11 +71,10 @@ changed_files() {
 }
 
 # scope 분류 (ERE) — CLAUDE.md §완료 기준 (registration / resolved-tree wiring / schema / 렌더) 을 경로로 옮긴 것
+# RE_RENDER · RE_ENGINE 은 validation-scope.sh (adr-autorun.sh 와 공유)
 RE_TS='\.(ts|tsx)$'
 RE_TEST='\.(test|spec)\.(ts|tsx)$'
-RE_RENDER='^(apps/builder/src/builder/(workspace/canvas/|catalogRuntime/)|packages/rendering/src/|packages/shared/src/(catalog/|components/|domain/componentTraits\.ts)|apps/builder/src/preview/|apps/publish/src/|packages/engine/src/)|\.css$'
 RE_LIVE='^(apps/builder/src/builder/(factories|panels|components|stores|hooks)/|apps/builder/src/builder/catalogRuntime/|packages/shared/src/schemas/)'
-RE_ENGINE='^packages/engine/src/'
 RE_DOCS='^(docs/|\.claude/|\.agents/|\.agent/|scripts/|AGENTS\.md$|CLAUDE\.md$|README\.md$)|\.md$'
 
 pkg_of() {  # pkg_of <path> → builder|publish|shared|rendering|engine|other

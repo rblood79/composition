@@ -70,6 +70,7 @@ packages/shared/src/**/*.d.ts.map
 .worktrees/
 .claude/worktrees/
 .agent/runs/
+.agent/autorun/
 .agent/archives/
 .agent/session-edits/
 .agent/task-state.json
