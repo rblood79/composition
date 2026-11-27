@@ -410,3 +410,30 @@ describe("ADR-320 Phase 5 — a relative date over local rows (사용자 결정 
     }
   });
 });
+
+it("restored rule condition still applies alongside the next rule condition", async () => {
+  const storage = memory();
+  const options = { storage, props: { rememberFilters: true } };
+  const first = await scope(options);
+  const add = async (h: typeof first, field: string, value: string) => {
+    const record = h.element(h.bar)!.getAttribute("data-catalog-id")!;
+    act(() =>
+      expect(
+        h.session.tables.filterBarDo(record, "add", {
+          field,
+          op: "equals",
+          value,
+        }),
+      ).toEqual({ ok: true }),
+    );
+    await settle();
+  };
+  await add(first, "f-type", "A");
+  expect(first.options()).toEqual(["User 1", "User 2"]);
+  first.view.unmount();
+  const second = await scope(options);
+  expect(second.options()).toEqual(["User 1", "User 2"]);
+  await add(second, "f-status", "female");
+  expect(second.scopes.tree(second.bar)?.items).toHaveLength(2);
+  expect(second.options()).toEqual(["User 2"]);
+});

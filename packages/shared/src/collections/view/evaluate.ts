@@ -542,6 +542,7 @@ function withoutOwnConditions(
     if (query.facet !== true || !query.groupBy?.length) return;
     const own = new Set(query.groupBy.map((path) => JSON.stringify(path)));
     const skip = query.facetSkip;
+    if (skip === null) return;
     // (ADR-320 Decision 9 — a session's candidate values of one condition being edited: that
     //  condition alone leaves, wherever it is; a group it empties leaves with it.)
     const stripOne = (group: ViewConditionGroup): ViewConditionGroup => ({

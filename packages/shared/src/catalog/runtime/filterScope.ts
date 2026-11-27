@@ -139,6 +139,32 @@ export function catalogFilterTreeRead(
   return items.length ? { ...root, items } : null;
 }
 
+type FilterItem = ViewCondition | ViewConditionGroup;
+
+/** Replace matching items at any depth. Empty groups disappear, untouched items keep their identity. */
+export function catalogFilterMapItems(
+  items: readonly FilterItem[],
+  replace: (item: FilterItem) => readonly FilterItem[] | undefined,
+): FilterItem[] {
+  return items.flatMap((item): FilterItem[] => {
+    const replacement = replace(item);
+    if (replacement) return [...replacement];
+    if (!("items" in item)) return [item];
+    const inner = catalogFilterMapItems(item.items, replace);
+    if (
+      inner.length === item.items.length &&
+      inner.every((child, i) => child === item.items[i])
+    )
+      return [item];
+    return inner.length ? [{ ...item, items: inner }] : [];
+  });
+}
+
+export const catalogFilterItemIds = (item: FilterItem): string[] =>
+  "items" in item
+    ? [item.id, ...item.items.flatMap(catalogFilterItemIds)]
+    : [item.id];
+
 /** Every condition of a tree, in order (the groups walked through). */
 export function catalogFilterTreeConditions(
   tree: ViewConditionGroup | undefined,
@@ -219,8 +245,6 @@ export function catalogJudgeFilterItems(
   taken: (ViewCondition | ViewConditionGroup)[];
   refused: (ViewCondition | ViewConditionGroup)[];
 } {
-  const idsOf = (item: ViewCondition | ViewConditionGroup): string[] =>
-    "items" in item ? [item.id, ...item.items.flatMap(idsOf)] : [item.id];
   const conditionsOf = (
     item: ViewCondition | ViewConditionGroup,
   ): ViewCondition[] =>
@@ -232,7 +256,7 @@ export function catalogJudgeFilterItems(
       conditionsOf(item).some((condition) =>
         condition.fields.some((path) => !check.fieldReadable(path)),
       ) ||
-      check.refusedBy([...taken, item], new Set(idsOf(item)))
+      check.refusedBy([...taken, item], new Set(catalogFilterItemIds(item)))
     ) {
       refused.push(item);
       continue;

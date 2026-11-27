@@ -77,6 +77,8 @@ import {
   catalogFilterColumnCondition,
   catalogFilterTreeApplied,
   catalogFilterTreeRead,
+  catalogFilterItemIds,
+  catalogFilterMapItems,
   catalogJudgeFilterItems,
 } from "./filterScope";
 import type {
@@ -1812,7 +1814,7 @@ export class CatalogTableController {
   private ruleConditions = 0;
   /**
    * ADR-320 Phase 5 (§5.9) — a rule's Do on a bar: 「조건 넣기」 (`{ field, op, value }` — a field the
-   * bar offers, a comparison it offers for that field), 「조건 지우기」 (the root conditions on a
+   * bar offers, a comparison it offers for that field), 「조건 지우기」 (the conditions on a
    * field), 「전부 지우기」 (no condition). A condition the scope does not take is a failure, and the
    * tree stays as it was (§5.3 — not added to be left out).
    */
@@ -1847,10 +1849,11 @@ export class CatalogTableController {
     if (write === "remove") {
       const field = fieldId(value);
       if (!field) return { ok: false, reason: "필드가 없다" };
-      const items = (tree?.items ?? []).filter(
-        (item) =>
-          "items" in item ||
-          !item.fields.some((path) => path.length === 1 && path[0] === field),
+      const items = catalogFilterMapItems(tree?.items ?? [], (item) =>
+        !("items" in item) &&
+        item.fields.some((path) => path.length === 1 && path[0] === field)
+          ? []
+          : undefined,
       );
       this.scopes.assign(barId, root(items), true);
       return { ok: true };
@@ -1879,13 +1882,17 @@ export class CatalogTableController {
         ok: false,
         reason: `${offered.label} 에 받지 않는 비교: ${String(given.op)}`,
       };
-    this.ruleConditions += 1;
+    const used = new Set(tree ? catalogFilterItemIds(tree) : []);
+    let id: string;
+    do {
+      id = `filter-do-${++this.ruleConditions}`;
+    } while (used.has(id));
     const condition = catalogFilterTreeRead({
       id: CATALOG_FILTER_TREE_ID,
       op: "and",
       items: [
         {
-          id: `filter-do-${this.ruleConditions}`,
+          id,
           fields: [path],
           op,
           ...(given.value !== undefined ? { value: given.value } : {}),
@@ -1917,17 +1924,18 @@ export class CatalogTableController {
       label: string,
       type: string | undefined,
       tree: ViewConditionGroup | undefined,
+      editingId?: string,
     ): CatalogFilterBarField => {
       const kind = viewFieldKind(type);
       return {
         path,
         label,
         kind,
-        ops: catalogFilterBarFieldOps(path, kind, tree, takes),
+        ops: catalogFilterBarFieldOps(path, kind, tree, takes, editingId),
       };
     };
     return {
-      fields: () => {
+      fields: (editingId) => {
         const bar = barNow();
         if (!bar) return [];
         const tree = scopes.tree(barId);
@@ -1950,13 +1958,14 @@ export class CatalogTableController {
                             `${field.label} › ${sub.label ?? sub.key}`,
                             sub.type,
                             tree,
+                            editingId,
                           ),
                         ]
                       : [],
                   )
                   .filter((sub) => sub.ops.length)
               : undefined;
-          const own = fieldOf(path, field.label, field.type, tree);
+          const own = fieldOf(path, field.label, field.type, tree, editingId);
           if (fields?.length) return [{ ...own, fields }];
           return own.ops.length ? [own] : [];
         });

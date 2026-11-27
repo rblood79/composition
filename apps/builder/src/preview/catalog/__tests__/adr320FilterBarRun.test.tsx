@@ -1,4 +1,6 @@
-import { act, fireEvent, waitFor } from "@testing-library/react";
+import { I18nProvider } from "../../../i18n/I18nProvider";
+import { FilterDoField } from "../../../builder/panels/interactions/FilterDoField";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   EntryId,
@@ -296,4 +298,67 @@ describe("ADR-320 Phase 5 (G5) — a filter bar's When · Do · named state", ()
     expect(h.readout()).toBe("applied=1 changed=1");
     expect(h.options()).toHaveLength(6);
   });
+});
+
+it("a field removal rule removes the field inside a nested group", async () => {
+  const h = await open();
+  await h.viewer({
+    id: "filter-scope",
+    op: "and",
+    items: [
+      {
+        id: "g1",
+        op: "and",
+        items: [
+          STATUS_FEMALE,
+          {
+            id: "c-type",
+            fields: [["data:field:f-type"]],
+            op: "equals",
+            value: "A",
+          },
+        ],
+      },
+    ],
+  });
+  expect(h.options()).toEqual(["User 2"]);
+  await h.press(h.remove);
+  expect(reports()).toEqual([]);
+  expect(h.options()).toEqual(["User 2", "User 4", "User 6"]);
+});
+
+it("the rule parameter panel can author the same literal multi-value filter that the runtime accepts", async () => {
+  const h = await open();
+  const field = { id: "f-type", label: "Type", type: "string", hidden: false };
+  let arg: unknown = { field: "f-type", op: "oneOf", value: ["A", "B"] };
+  const panel = render(
+    <I18nProvider initialLocale="en-US">
+      <FilterDoField
+        fields={[field]}
+        kind="filter-condition"
+        value={arg}
+        onChange={(v) => (arg = v)}
+      />
+    </I18nProvider>,
+  );
+  const input = panel.container.querySelector(
+    'input[type="text"], input:not([type])',
+  )!;
+  expect((input as HTMLInputElement).value).toBe("A,B");
+  fireEvent.focus(input);
+  fireEvent.change(input, { target: { value: "A,C" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  fireEvent.blur(input);
+  expect(arg).toEqual({ field: "f-type", op: "oneOf", value: ["A", "C"] });
+  h.rule(h.add, "onPress", {
+    opcode: "capability",
+    target: { nodeId: h.bar },
+    capabilityId: "addFilterCondition",
+    value: arg,
+  } as never);
+  h.flush();
+  await settle();
+  await h.press(h.add);
+
+  expect(h.options()).toEqual(["User 1", "User 2", "User 5", "User 6"]);
 });

@@ -194,3 +194,95 @@ describe("ADR-320 Phase 5 — a relative date is its days in the request (사용
     expect(bodies.some((body) => body.includes("@thisWeek"))).toBe(false);
   });
 });
+
+it("suffix · 기존 등식 칩을 다시 열고 그대로 적용해도 키와 값이 유지된다", async () => {
+  const h = await remoteBar({
+    method: "GET",
+    querySerialization: { kind: "suffix" },
+  });
+  const condition = {
+    id: "status-rule",
+    fields: [["data:field:f-status" as const]],
+    op: "equals" as const,
+    value: "open",
+  };
+  act(() =>
+    h.access().write({ id: "filter-scope", op: "and", items: [condition] }),
+  );
+  await settle();
+  const button = [...h.element(h.bar)!.querySelectorAll("button")].find(
+    (button) => button.textContent?.trim() === "open",
+  );
+  expect(button).toBeDefined();
+  fireEvent.click(button!);
+  const dialog = await waitFor(() => {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog?.querySelector("input")?.value).toBe("open");
+    return dialog!;
+  });
+  fireEvent.click(
+    [...dialog.querySelectorAll("button")].find(
+      (button) => button.textContent === "Apply",
+    )!,
+  );
+  await settle();
+  expect(h.access().tree()?.items).toEqual([condition]);
+  const field = h
+    .access()
+    .fields()
+    .find((field) => field.path[0] === "data:field:f-status");
+  expect(field?.ops).not.toContain("equals");
+});
+
+it("body · 상대 기간의 날짜 후보 요청은 편집 중인 기간 전체를 제외한다", async () => {
+  const h = await remoteBar({
+    method: "POST",
+    querySerialization: { kind: "body", facets: true },
+  });
+  act(() =>
+    h.access().write({
+      id: "filter-scope",
+      op: "and",
+      items: [
+        {
+          id: "name",
+          fields: [["data:field:f-name"]],
+          op: "contains",
+          value: "K",
+        },
+        {
+          id: "day",
+          fields: [["data:field:f-day"]],
+          op: "notEquals",
+          value: "@thisWeek",
+        },
+      ],
+    }),
+  );
+  await settle();
+  expect(h.access().tree()?.items).toHaveLength(2);
+  const server = h.access().facet("day", ["data:field:f-day"])?.server;
+  expect(server).toBeDefined();
+  const items = [
+    { value: "2026-11-19", count: 1 },
+    { value: "2026-11-25", count: 1 },
+  ];
+  const fetchMock = vi.mocked(fetch);
+  const loadRows = fetchMock.getMockImplementation()!;
+  let request: unknown;
+  fetchMock.mockImplementation(async (input, init) => {
+    const body = init?.body && JSON.parse(String(init.body));
+    if (!body?.facet) return loadRows(input, init);
+    request = body;
+    return Response.json({ items });
+  });
+  const page = await server!({}, new AbortController().signal);
+  expect(request).toEqual({
+    where: {
+      op: "and",
+      items: [{ fields: ["name"], op: "contains", value: "K" }],
+    },
+    facet: { field: "day" },
+  });
+  expect(page.values).toEqual(items);
+});

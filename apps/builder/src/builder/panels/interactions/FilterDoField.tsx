@@ -5,11 +5,15 @@
  * — what its chips offer).
  */
 import { memo } from "react";
+import Papa from "papaparse";
+import { parseRuleValueRef } from "../../../../../../packages/shared/src/interactions/valueRef";
+import { catalogFilterPicksMany } from "../../../../../../packages/shared/src/catalog/runtime/tableColumnFilterDraft";
 import { useI18n } from "@/i18n";
 import type { ViewComparison } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
   VIEW_COMPARISONS_BY_KIND,
   viewFieldKind,
+  type ViewFieldKind,
 } from "../../../../../../packages/shared/src/collections/view/comparison";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertySelect } from "../../components/property/PropertySelect";
@@ -22,6 +26,23 @@ export interface FilterDoFieldOption {
 }
 
 const VALUELESS: readonly ViewComparison[] = ["exists", "notExists"];
+
+function ruleScalar(text: string, kind: ViewFieldKind) {
+  if (kind === "number" && text.trim() && Number.isFinite(Number(text)))
+    return Number(text);
+  if (kind === "boolean" && (text === "true" || text === "false"))
+    return text === "true";
+  return text;
+}
+
+function ruleInputValue(text: string, kind: ViewFieldKind, op: ViewComparison) {
+  if (!text) return undefined;
+  if (parseRuleValueRef(text)) return text;
+  if (!catalogFilterPicksMany(op) && op !== "between")
+    return ruleScalar(text, kind);
+  const [cells] = Papa.parse<string[]>(text, { delimiter: "," }).data;
+  return cells?.map((cell) => ruleScalar(cell, kind));
+}
 
 export const FilterDoField = memo(function FilterDoField({
   kind,
@@ -99,24 +120,20 @@ export const FilterDoField = memo(function FilterDoField({
       {field && !VALUELESS.includes(condition.op ?? ops[0]!) ? (
         <PropertyInput
           label={t("filterBar.value")}
-          value={condition.value === undefined ? "" : String(condition.value)}
-          onChange={(text) => {
-            const number =
-              viewFieldKind(field.type) === "number" &&
-              text.trim() !== "" &&
-              Number.isFinite(Number(text));
+          value={
+            Array.isArray(condition.value)
+              ? Papa.unparse([condition.value])
+              : String(condition.value ?? "")
+          }
+          onChange={(text) =>
             write({
-              value:
-                text === ""
-                  ? undefined
-                  : number
-                    ? Number(text)
-                    : viewFieldKind(field.type) === "boolean" &&
-                        (text === "true" || text === "false")
-                      ? text === "true"
-                      : text,
-            });
-          }}
+              value: ruleInputValue(
+                text,
+                viewFieldKind(field.type),
+                condition.op ?? ops[0]!,
+              ),
+            })
+          }
         />
       ) : null}
     </>

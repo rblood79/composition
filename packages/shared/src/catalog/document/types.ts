@@ -966,9 +966,9 @@ export interface ViewQuery {
    * ADR-320 Decision 9 — run time only (a session's candidate values, never stored: the document's
    * views refuse the key): the one condition (by id, anywhere in the trees before — under an `or`,
    * in a nested group) the candidate values leave out, in place of the conditions on the group
-   * fields. Every other condition stays: another on the same field, the author's.
+   * fields. Null means the scope already removed the condition before merging the authored view.
    */
-  facetSkip?: string;
+  facetSkip?: string | null;
   aggregates?: readonly ViewAggregate[];
   /**
    * ADR-315 Phase 2 — the sort entries in order: the first, then the next among its equal rows

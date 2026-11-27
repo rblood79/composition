@@ -15,6 +15,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [ADR-320 Implemented — 필터 바 (칩 줄 · 조건 빌더 · 서버 후보 값)] - 2026-11-27
 
+### Fixed
+
+- 원격 목록에서 필터 칩을 열고 그대로 적용해도 기존 비교와 값을 유지한다. 브라우저가 기억한 필터를 복원한 뒤 규칙으로 조건을 추가하면 두 조건이 함께 적용된다.
+- 규칙 편집기는 다중 선택 값을 배열로 저장하고, 「필드의 조건 지우기」는 중첩 묶음에서도 해당 조건을 지운다. 상대 날짜 조건을 편집할 때는 그 기간 안팎의 날짜를 모두 후보로 볼 수 있다.
+
 ### Changed
 
 - ADR-320 을 닫았다 (사용자 지시 「Implemented 로 올리고, 본문을 completed/ 로」). 필터 바 세 개 (로컬 · `suffix` · `body` collection) 를 Builder 에서 넣고 Publish 에서 조건 추가 · 후보 값 고르기 · 서버 후보 값 검색 · 여러 목록 동시 거르기를 Chrome · WebKit 에서 확인했다 (9 / 9).

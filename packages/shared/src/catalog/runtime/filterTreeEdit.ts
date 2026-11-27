@@ -12,7 +12,7 @@ import {
   catalogFilterStartOp,
   type CatalogFilterBarField,
 } from "./filterBarAccess";
-import { CATALOG_FILTER_TREE_ID } from "./filterScope";
+import { CATALOG_FILTER_TREE_ID, catalogFilterMapItems } from "./filterScope";
 
 export type CatalogFilterItem = ViewCondition | ViewConditionGroup;
 
@@ -28,17 +28,9 @@ function itemsWith(
   id: string,
   next: (item: CatalogFilterItem) => readonly CatalogFilterItem[],
 ): CatalogFilterItem[] {
-  return items.flatMap((item) => {
-    if (item.id === id) return [...next(item)];
-    if (!isGroup(item)) return [item];
-    const inner = itemsWith(item.items, id, next);
-    if (
-      inner.length === item.items.length &&
-      inner.every((at, i) => at === item.items[i])
-    )
-      return [item];
-    return inner.length ? [{ ...item, items: inner }] : [];
-  });
+  return catalogFilterMapItems(items, (item) =>
+    item.id === id ? next(item) : undefined,
+  );
 }
 
 /** A root of `items` (`null` = no item left — the scope's 「no condition」). */

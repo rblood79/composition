@@ -5,6 +5,7 @@
  * added and then dropped, HC4), the tree now, its one write, 「Clear」 and a condition's candidate
  * values (Decision 9 — that condition alone left out). No React here.
  */
+import { catalogFilterMapItems } from "./filterScope";
 import {
   VIEW_COMPARISONS_BY_KIND,
   type ViewFieldKind,
@@ -30,7 +31,7 @@ export interface CatalogFilterBarField {
 }
 
 export interface CatalogFilterBarAccess {
-  readonly fields: () => readonly CatalogFilterBarField[];
+  readonly fields: (editingId?: string) => readonly CatalogFilterBarField[];
   readonly tree: () => ViewConditionGroup | undefined;
   /** The root items the last assigned tree left out (「적용하지 못한 조건 N」). */
   readonly refused: () => number;
@@ -75,7 +76,7 @@ export function catalogFilterProbeValue(
 }
 
 /**
- * A field's comparisons the scope takes: each probed as a condition added to the tree now
+ * A field's available comparisons: probe a replacement in place when editing, or append when adding
  * (`takes` — the scope's judgment, which reads the requests the lists send).
  */
 export function catalogFilterBarFieldOps(
@@ -83,11 +84,12 @@ export function catalogFilterBarFieldOps(
   kind: ViewFieldKind,
   tree: ViewConditionGroup | undefined,
   takes: (tree: ViewConditionGroup) => boolean,
+  editingId?: string,
 ): ViewComparison[] {
   return VIEW_COMPARISONS_BY_KIND[kind].filter((op) => {
     const value = catalogFilterProbeValue(op, kind);
     const probe: ViewCondition = {
-      id: "filter-bar:probe",
+      id: editingId ?? "filter-bar:probe",
       fields: [[...path]],
       op,
       ...(value !== undefined ? { value } : {}),
@@ -96,7 +98,12 @@ export function catalogFilterBarFieldOps(
     return takes({
       id: tree?.id ?? "filter-scope",
       op: "and",
-      items: [...(tree?.items ?? []), probe],
+      items:
+        editingId && tree
+          ? catalogFilterMapItems(tree.items, (item) =>
+              item.id === editingId ? [probe] : undefined,
+            )
+          : [...(tree?.items ?? []), probe],
     });
   });
 }
@@ -110,4 +117,3 @@ export function catalogFilterStartOp(
     kind === "text" ? "contains" : kind === "list" ? "containsAny" : "equals";
   return ops.includes(first) ? first : ops[0];
 }
-

@@ -30,6 +30,7 @@ import {
 //  serializer brings the row intake with it — `tableStateQueryImports.static.test.ts`.)
 import { VIEW_SEARCH_CONDITION } from "../../collections/view/evaluate";
 import { DEFAULT_QUERY_SUFFIXES } from "../../collections/view/querySuffixes";
+import { catalogFilterMapItems } from "./filterScope";
 import type { CatalogRowSlices } from "./tableRowSlices";
 
 /** A Table state's sort · conditions as a view holds them. */
@@ -147,13 +148,23 @@ export function catalogTableFacetQueries(
   skip: string,
 ): readonly ViewQuery[] {
   return [
-    ...(catalogTableStateQueries(authored, state) ?? []),
+    ...(catalogTableStateQueries(
+      authored,
+      state?.where
+        ? {
+            ...state,
+            where: catalogFilterMapItems(state.where, (item) =>
+              item.id === skip ? [] : undefined,
+            ),
+          }
+        : state,
+    ) ?? []),
     {
       where: { id: "table-facet", op: "and", items: [] },
       groupBy: [[field]],
       aggregates: [{ fn: "count", as: CATALOG_FACET_COUNT }],
       facet: true,
-      facetSkip: skip,
+      facetSkip: null,
     },
   ];
 }

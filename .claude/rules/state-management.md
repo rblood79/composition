@@ -17,6 +17,7 @@ paths:
 
 # 상태 관리 규칙
 
+- 복원한 필터 트리 안에서 새 규칙 ID의 고유성을 확인한다. **Why** 재방문 뒤 첫 규칙이 기존 조건을 덮었다 (ADR-320 h12).
 - 일반 Property에는 RAC context `slot` 선택·해제를 노출하지 않는다. 역할 이름·미지정·명시 해제의 문서·Code 계약과 자식 추가용 Slot은 보존한다. **Why (2026-11-07)** 모든 컴포넌트에 적용한 사용자 결정으로 공통 본문 두 경로의 RAC slot 선택창과 Sheet의 일반 필드를 숨긴다. 두 Slot 계약을 함께 지우면 Items 삽입이나 기존 역할 연결까지 사라진다 (`propertyRacSlotVisibility.test.tsx`).
 - catalog의 Slot 제공자·소비자 및 상태 수신 등록은 실제 RAC context와 함께 갱신한다. **Why (2026-11-07):** SelectBox의 ListBoxItem Text와 ActionBar의 clear Button은 실제 context가 있어도 제공자 등록 누락으로 새 자식의 Slot 편집이 숨겨졌고, 새 타입의 disabled 수신 누락은 Canvas와 DOM의 활성 상태를 갈랐다 (`s2CompositionPatterns.test.tsx`).
 - 상속·Slot은 binding, 원본의 내부 controller, Property, 실제 context 소비를 함께 검증한다. **Why (2026-11-07)** TextArea 수신 별칭과 Form size 키가 빠져 상태·크기가 상속되지 않았고, 13개 Canvas Label은 상위 required를 계산하지 않았다. Image의 별도 속성 계약과 trigger-root 원본의 Slot 전달도 일반 primitive 등록만으로 연결되지 않았다. DOM Slot 해석은 작성된 역할값과 분리한다. 역할값을 덮으면 숨겨야 할 necessity-label이 Preview에 나타난다 (`existingComponentContracts.test.tsx`).

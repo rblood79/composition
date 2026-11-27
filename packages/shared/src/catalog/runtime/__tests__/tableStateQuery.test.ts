@@ -10,6 +10,7 @@ import {
   catalogRowSlicesView,
   catalogTableSliceServable,
   catalogTableStateQueries,
+  catalogTableFacetQueries,
 } from "../tableStateQuery";
 import { catalogTableStateRowSorts } from "../tableRowSlices";
 import type { CatalogRowSorts } from "../tableSort";
@@ -279,4 +280,54 @@ describe("the sort by the field's type (날짜 · 숫자 · 빈 값)", () => {
   it("orders a number column by value", () => {
     expect(by("score", "descending")).toEqual(["s3", "s2", "s4", "s1"]);
   });
+});
+
+it("날짜 후보를 구할 때 변환된 범위 묶음만 빼고 같은 ID의 작성자 조건은 보존한다", () => {
+  const authored: ViewQuery = {
+    where: {
+      id: "author",
+      op: "and",
+      items: [
+        {
+          id: "day",
+          fields: [["data:field:f-team"]],
+          op: "equals",
+          value: "A",
+        },
+      ],
+    },
+  };
+  const queries = catalogTableFacetQueries(
+    [authored],
+    {
+      where: [
+        {
+          id: "day",
+          op: "or",
+          items: [
+            {
+              id: "day~before",
+              fields: [["data:field:f-score"]],
+              op: "lt",
+              value: 3,
+            },
+            {
+              id: "day~after",
+              fields: [["data:field:f-score"]],
+              op: "gt",
+              value: 7,
+            },
+          ],
+        },
+      ],
+    },
+    "data:field:f-score",
+    "day",
+  );
+  const { rows } = runViewQueries(ROWS, {
+    queries,
+    schema: SCHEMA,
+    resolve: (value) => ({ value }),
+  });
+  expect(rows).toMatchObject([{ score: 1 }, { score: 5 }, { score: 9 }]);
 });

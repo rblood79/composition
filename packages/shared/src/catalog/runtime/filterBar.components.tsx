@@ -460,7 +460,7 @@ export function ComparisonMenu({
   //  Tree draws its rows from the collection it built a render before.)
   const now = open ? liveCondition(run.access.tree(), condition) : condition;
   const field = open
-    ? fieldAt(run.access.fields(), now.fields[0] ?? [])
+    ? fieldAt(run.access.fields(now.id), now.fields[0] ?? [])
     : undefined;
   const ops = field?.ops ?? [now.op];
   return (
@@ -513,7 +513,7 @@ export function ValueEditor({
         // (The scope's condition now — not the one a builder row drew a render before.)
         const now = liveCondition(run.access.tree(), condition);
         const path = now.fields[0] ?? [];
-        const field = fieldAt(run.access.fields(), path);
+        const field = fieldAt(run.access.fields(now.id), path);
         if (!field) return undefined;
         const facet = run.access.facet(now.id, path);
         return {
