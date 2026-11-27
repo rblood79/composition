@@ -1112,6 +1112,9 @@ describe("RAC event audit — every offered When runs its rule in the Preview", 
       // (ADR-317 Phase 4 — a Table's several-cell write needs a bound Table, 「Editable」 Columns and
       //  「Paste」: `adr317EditMarks.test.tsx` runs its rule from a paste.)
       "Table.onCellsChange",
+      // (ADR-320 Phase 5 — a filter bar's change needs its lists' data and the connection:
+      //  `adr320FilterBarRun.test.tsx` runs its rule from the chip line's field and comparison menus.)
+      "FilterBar.onFilterChange",
     ]);
     const offered = Object.entries(CAPABILITY_REGISTRY).flatMap(
       ([type, entry]) =>

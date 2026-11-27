@@ -72,12 +72,16 @@ import {
 } from "./filterBarAccess";
 import { catalogFilterBarFieldList } from "./filterBarFields";
 import {
+  CATALOG_FILTER_TREE_ID,
   catalogColumnFilterConditionId,
   catalogFilterColumnCondition,
+  catalogFilterTreeApplied,
+  catalogFilterTreeRead,
   catalogJudgeFilterItems,
 } from "./filterScope";
 import type {
   DataFieldId,
+  ViewComparison,
   ViewCondition,
   ViewConditionGroup,
 } from "../document/types";
@@ -116,6 +120,7 @@ export type CatalogTableHost = {
   collections: CatalogPreviewSession["collections"];
   currentRoot: CatalogPreviewSession["currentRoot"];
   echoing: CatalogPreviewSession["echoing"];
+  filterAddress: CatalogPreviewSession["filterAddress"];
   graph: CatalogPreviewSession["graph"];
   itemSources: CatalogPreviewSession["itemSources"];
   loadArguments: CatalogPreviewSession["loadArguments"];
@@ -129,6 +134,7 @@ export type CatalogTableHost = {
   serverSort: CatalogPreviewSession["serverSort"];
   serverSortedTables: CatalogPreviewSession["serverSortedTables"];
   serverView: CatalogPreviewSession["serverView"];
+  serverFacet: CatalogPreviewSession["serverFacet"];
   showPage: CatalogPreviewSession["showPage"];
   sortCollection: CatalogPreviewSession["sortCollection"];
   stageRowWindows: CatalogPreviewSession["stageRowWindows"];
@@ -195,13 +201,27 @@ export class CatalogTableController {
    */
   heldTableState(recordId: string): CatalogTableState | undefined {
     const held = this.tableStates.get(recordId);
-    const bar = this.scopes.barOf(recordId.slice(recordId.lastIndexOf("::") + 2));
+    const bar = this.scopes.barOf(
+      recordId.slice(recordId.lastIndexOf("::") + 2),
+    );
     if (!bar) return held;
     const tree = this.scopes.tree(bar);
     if (tree) return { ...held, filters: tree };
     if (!held?.filters) return held;
     const { filters: _scope, ...rest } = held;
     return rest;
+  }
+
+  /**
+   * ADR-320 Phase 5 — a record's state as its rows read it: `heldTableState` with the scope tree's
+   * relative dates as days (`CatalogFilterScopes.rowTree`). The session's slices and the root's own
+   * row reading both take this one; the Column menus read the state as held (the tokens).
+   */
+  rowTableState(recordId: string): CatalogTableState | undefined {
+    const held = this.heldTableState(recordId);
+    return held?.filters
+      ? { ...held, filters: this.scopes.rowTree(held.filters) }
+      : held;
   }
 
   /** ADR-315 Phase 4 — a column width written by RAC's own resize (`resizeTableColumns`). */
@@ -1776,6 +1796,114 @@ export class CatalogTableController {
   }
   private readonly barAccesses = new Map<string, CatalogFilterBarAccess>();
 
+  /** ADR-320 Phase 5 — a bar record's scope: its node id (none = not a connected bar). */
+  private barOfRecord(barRecordId: string): string | undefined {
+    return this.filterBarAccess(barRecordId)
+      ? this.host.currentRoot?.domInputs.get(barRecordId)?.sourceId
+      : undefined;
+  }
+
+  /** ADR-320 Phase 5 — the named state 「적용된 조건 수」 of a bar record (`appliedFilters`). */
+  filterBarApplied(barRecordId: string): number {
+    const barId = this.barOfRecord(barRecordId);
+    return barId ? catalogFilterTreeApplied(this.scopes.tree(barId)).length : 0;
+  }
+
+  private ruleConditions = 0;
+  /**
+   * ADR-320 Phase 5 (§5.9) — a rule's Do on a bar: 「조건 넣기」 (`{ field, op, value }` — a field the
+   * bar offers, a comparison it offers for that field), 「조건 지우기」 (the root conditions on a
+   * field), 「전부 지우기」 (no condition). A condition the scope does not take is a failure, and the
+   * tree stays as it was (§5.3 — not added to be left out).
+   */
+  filterBarDo(
+    barRecordId: string,
+    write: "add" | "remove" | "clear",
+    value: unknown,
+  ): { ok: boolean; reason?: string } {
+    const barId = this.barOfRecord(barRecordId);
+    const access = this.filterBarAccess(barRecordId);
+    if (!barId || !access)
+      return { ok: false, reason: "연결된 목록이 없는 필터 바" };
+    const tree = this.scopes.tree(barId);
+    const root = (items: readonly (ViewCondition | ViewConditionGroup)[]) =>
+      items.length
+        ? {
+            id: tree?.id ?? CATALOG_FILTER_TREE_ID,
+            op: "and" as const,
+            items: [...items],
+          }
+        : null;
+    const fieldId = (raw: unknown): DataFieldId | undefined =>
+      typeof raw === "string" && raw
+        ? ((raw.startsWith("data:field:")
+            ? raw
+            : `data:field:${raw}`) as DataFieldId)
+        : undefined;
+    if (write === "clear") {
+      this.scopes.assign(barId, null, true);
+      return { ok: true };
+    }
+    if (write === "remove") {
+      const field = fieldId(value);
+      if (!field) return { ok: false, reason: "필드가 없다" };
+      const items = (tree?.items ?? []).filter(
+        (item) =>
+          "items" in item ||
+          !item.fields.some((path) => path.length === 1 && path[0] === field),
+      );
+      this.scopes.assign(barId, root(items), true);
+      return { ok: true };
+    }
+    const given =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+    const path = Array.isArray(given.field)
+      ? given.field.map(fieldId)
+      : [fieldId(given.field)];
+    if (!path.length || path.some((step) => !step))
+      return { ok: false, reason: "필드가 없다" };
+    const offered = access
+      .fields()
+      .flatMap((field) => [field, ...(field.fields ?? [])])
+      .find((field) => field.path.join("/") === path.join("/"));
+    if (!offered)
+      return {
+        ok: false,
+        reason: `필터 바가 내놓지 않는 필드: ${path.join(" › ")}`,
+      };
+    const op = given.op as ViewComparison;
+    if (!offered.ops.includes(op))
+      return {
+        ok: false,
+        reason: `${offered.label} 에 받지 않는 비교: ${String(given.op)}`,
+      };
+    this.ruleConditions += 1;
+    const condition = catalogFilterTreeRead({
+      id: CATALOG_FILTER_TREE_ID,
+      op: "and",
+      items: [
+        {
+          id: `filter-do-${this.ruleConditions}`,
+          fields: [path],
+          op,
+          ...(given.value !== undefined ? { value: given.value } : {}),
+          ...(given.unit !== undefined ? { unit: given.unit } : {}),
+        },
+      ],
+    })?.items[0];
+    if (!condition) return { ok: false, reason: "조건의 값이 맞지 않다" };
+    const next = root([...(tree?.items ?? []), condition])!;
+    if (!this.scopes.takes(barId, next))
+      return {
+        ok: false,
+        reason: `목록의 데이터 공급 방식이 받지 못하는 조건: ${offered.label}`,
+      };
+    this.scopes.assign(barId, next, true);
+    return { ok: true };
+  }
+
   private newFilterBarAccess(barId: string): CatalogFilterBarAccess {
     const scopes = this.scopes;
     const read = (id: string) => this.host.graph?.getEntry(id as never);
@@ -1813,18 +1941,20 @@ export class CatalogTableController {
           //  through a reference, so a remote scope offers none of them.)
           const fields =
             referenced?.kind === "collection"
-              ? referenced.schema.flatMap((sub) =>
-                  sub.id
-                    ? [
-                        fieldOf(
-                          [...path, `data:field:${sub.id}` as DataFieldId],
-                          `${field.label} › ${sub.label ?? sub.key}`,
-                          sub.type,
-                          tree,
-                        ),
-                      ]
-                    : [],
-                ).filter((sub) => sub.ops.length)
+              ? referenced.schema
+                  .flatMap((sub) =>
+                    sub.id
+                      ? [
+                          fieldOf(
+                            [...path, `data:field:${sub.id}` as DataFieldId],
+                            `${field.label} › ${sub.label ?? sub.key}`,
+                            sub.type,
+                            tree,
+                          ),
+                        ]
+                      : [],
+                  )
+                  .filter((sub) => sub.ops.length)
               : undefined;
           const own = fieldOf(path, field.label, field.type, tree);
           if (fields?.length) return [{ ...own, fields }];
@@ -1833,6 +1963,7 @@ export class CatalogTableController {
       },
       tree: () => scopes.tree(barId),
       refused: () => scopes.refusedOf(barId),
+      takes,
       write: (tree) => void scopes.assign(barId, tree),
       clear: () => void scopes.clear(barId),
       facet: (conditionId, path) => {
@@ -1865,8 +1996,7 @@ export class CatalogTableController {
     if (!read) return undefined;
     const { binding, collectionId, collection, base, fields } = read;
     const field = fields.find(
-      (item) =>
-        `data:field:${item.id.replace(/^data:field:/, "")}` === fieldId,
+      (item) => `data:field:${item.id.replace(/^data:field:/, "")}` === fieldId,
     );
     if (!field) return undefined;
     const columnKey = field.key;
@@ -1896,6 +2026,23 @@ export class CatalogTableController {
       "records",
     );
     if (!rows) return undefined;
+    // (ADR-320 사용자 결정 9 — rows here that are not all of the data, from an endpoint that
+    //  answers candidate values: the editor asks the server — the same chain, the edited
+    //  condition left out.)
+    const ask = partial ? this.host.serverFacet(collectionId) : undefined;
+    const facetQuery = {
+      ...base,
+      queries: catalogTableFacetQueries(
+        base.queries.length ? base.queries : undefined,
+        catalogRowSlicesView(this.host.recordRowSlices(recordId), fields),
+        fieldId,
+        skip,
+      ),
+    };
+    const server: CatalogTableFacet["server"] = ask
+      ? (request, signal) =>
+          ask(facetQuery, { field: columnKey, ...request }, signal)
+      : undefined;
     const values = rows.map((row) => ({
       value: row.values[columnKey] ?? null,
       count: Number.parseInt(String(row.values[CATALOG_FACET_COUNT]), 10) || 0,
@@ -1924,6 +2071,7 @@ export class CatalogTableController {
         : {}),
       partial,
       loaded: this.host.collectionItems(collectionId).length,
+      ...(server ? { server } : {}),
     };
   }
 

@@ -213,9 +213,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      그 원본 (`component-stepper`). 옛 83 문서는 열리지 않는다 (변환 없음).
  * 85 — ADR-321 Phase 4: Spectrum `Rating` (별 다섯 · 시작 값 · 반쪽 별은 표시 전용 — 사용자 결정 6
  *      「5 고정」). 옛 84 문서는 열리지 않는다 (변환 없음).
+ * 86 — ADR-320 Phase 5: 필터 바의 상대 날짜 (조건 값의 닫힌 토큰 `@today` … `@thisYear` — 사용자
+ *      결정 7) · 「Saved filters」 부품 (`presets` 가 있을 때 — 결정 6) · Do 「조건 넣기」 의 값
+ *      `{ field, op, value }`. 옛 85 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 85 as const;
+export const LIBRARY_CONTRACT_VERSION = 86 as const;
 
 export type EntryKind =
   | "project"
@@ -1721,7 +1724,9 @@ export type InteractionAction =
         | readonly Scalar[]
         | NumberRangeValue
         // (ADR-309 — a date range's `{start, end}` ISO texts.)
-        | import("./dateRangeValue").CatalogDateRange;
+        | import("./dateRangeValue").CatalogDateRange
+        // (ADR-320 Phase 5 — a filter bar's 「조건 넣기」.)
+        | import("./filterQuery").CatalogFilterDoCondition;
     };
 export interface AssetEntry {
   kind: "asset";

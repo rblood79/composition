@@ -26,6 +26,14 @@ import {
   VIEW_COMPARISONS_BY_KIND,
   viewFieldKind,
 } from "../../../../../../../packages/shared/src/collections/view/comparison";
+import {
+  CATALOG_RELATIVE_DATE_OPS,
+  CATALOG_RELATIVE_DATES,
+  catalogRelativeDateOf,
+  catalogRelativeDateToken,
+  type CatalogRelativeDate,
+} from "../../../../../../../packages/shared/src/catalog/runtime/filterRelativeDates";
+import { catalogRelativeDateWord } from "../../../../../../../packages/shared/src/catalog/runtime/filterWording";
 import { catalogFilterBarFields } from "../../../catalogRuntime/filterBarPanel";
 import { catalogFilterBarRefusedItems } from "../../../catalogRuntime/filterBarRefused";
 import {
@@ -85,6 +93,13 @@ const valueText = (value: ViewCondition["value"]) =>
       ? value.join(", ")
       : String(value);
 
+/** Whether a condition's value may be a relative date (a date field's one-value comparison). */
+const relativeOffered = (
+  kind: ReturnType<typeof viewFieldKind>,
+  op: ViewComparison,
+) =>
+  kind === "date" && op !== "between" && CATALOG_RELATIVE_DATE_OPS.includes(op);
+
 /** A typed value as the comparison takes it (a number field's number · a list's items). */
 function valueFromText(
   text: string,
@@ -119,7 +134,7 @@ function TreeEditor({
   refused: readonly string[];
   onChange: (tree: ViewConditionGroup | undefined) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const items = tree?.items ?? [];
   const write = (next: readonly (ViewCondition | ViewConditionGroup)[]) =>
     onChange(
@@ -250,7 +265,34 @@ function TreeEditor({
                 })
               }
             />
-            {takesValue ? (
+            {relativeOffered(kind, item.op) ? (
+              // (ADR-320 Phase 5 — 사용자 결정 7: a relative date stays its token in the start.)
+              <PropertySelect
+                label={t("filterBar.date")}
+                value={catalogRelativeDateOf(item.value) ?? "exact"}
+                options={[
+                  { value: "exact", label: t("filterBar.exactDate") },
+                  ...CATALOG_RELATIVE_DATES.map((name) => ({
+                    value: name,
+                    label: catalogRelativeDateWord(name, locale) ?? name,
+                  })),
+                ]}
+                translateOptions={false}
+                onChange={(next) =>
+                  edit({
+                    value:
+                      next === "exact"
+                        ? undefined
+                        : catalogRelativeDateToken(next as CatalogRelativeDate),
+                  })
+                }
+              />
+            ) : null}
+            {takesValue &&
+            !(
+              relativeOffered(kind, item.op) &&
+              catalogRelativeDateOf(item.value)
+            ) ? (
               <PropertyInput
                 label={t("filterBar.value")}
                 value={valueText(item.value)}

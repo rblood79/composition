@@ -53,6 +53,7 @@ import type { ActionChoice } from "../types";
 import { useDataStore, useProjectVariableDefs } from "../../../stores/data";
 import { CatalogEventRow, type CatalogTargetNotice } from "./CatalogEventRow";
 import { catalogTargetRefOf } from "../../../catalogRuntime/targetRef";
+import { catalogFilterBarFields } from "../../../catalogRuntime/filterBarPanel";
 import { CatalogInheritedRuleRow } from "./CatalogInheritedRuleRow";
 import "../InteractionsPanel.css";
 
@@ -266,6 +267,24 @@ function CatalogRules({
     [resolveHere, workspace],
   );
 
+  // ADR-320 Phase 5 — a filter bar target's fields (the Do's condition · field argument).
+  const targetFilterFields = useCallback(
+    (ref: CatalogCapabilityTarget) => {
+      if ("unset" in ref) return undefined;
+      const resolved = resolveHere(ref);
+      if (!("recordId" in resolved)) return undefined;
+      const sourceId = workspace.root.domInputs.get(
+        resolved.recordId,
+      )?.sourceId;
+      const bar = sourceId ? graph.getEntry(sourceId as never) : undefined;
+      return bar?.kind === "node"
+        ? catalogFilterBarFields(graph, bar)
+        : undefined;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
+    [resolveHere, workspace, graph, revision],
+  );
+
   const targetExposure = useCallback(
     (edit: EditTarget) => catalogExposureInput(graph, edit),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
@@ -404,6 +423,7 @@ function CatalogRules({
                   describeTarget={describeTarget}
                   targetNotice={targetNotice}
                   targetDateFormat={targetDateFormat}
+                  targetFilterFields={targetFilterFields}
                   onTargetHover={onTargetHover}
                   canvasHoverKey={canvasHoverKey}
                   aiming={targetPick?.ruleId === rule.id}

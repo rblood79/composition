@@ -730,6 +730,9 @@ export interface TranslationKeys {
     previousStep: string;
     goToStep: string;
     completeStep: string;
+    addFilterCondition: string;
+    removeFilterCondition: string;
+    clearFilterConditions: string;
     open: string;
     close: string;
     toggleOpen: string;
@@ -753,6 +756,8 @@ export interface TranslationKeys {
     paramItemKey: string;
     paramTabKey: string;
     paramStepKey: string;
+    paramFilterCondition: string;
+    paramFilterField: string;
     paramValue: string;
     disableAll: string;
     enableAll: string;

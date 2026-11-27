@@ -333,6 +333,18 @@ export function QueryFormatSection({
         />
       )}
       {format.kind !== "suffix" && format.kind !== "none" && (
+        // ADR-320 사용자 결정 9 — the server answers `facet` (a field's candidate values among the
+        // rows its `where` keeps). Off: a filter's candidate values are those of the loaded rows.
+        <PropertySwitch
+          label={dt("apiQueryFacets")}
+          isSelected={format.facets === true}
+          onChange={(selected) => {
+            const { facets: _previous, ...rest } = format;
+            setFormat(selected ? { ...rest, facets: true } : rest);
+          }}
+        />
+      )}
+      {format.kind !== "suffix" && format.kind !== "none" && (
         // ADR-315 사용자 결정 4 — the server runs median · unique · uniqueCount · extent · first ·
         // last. Off: a grouping with one of them is loaded whole and grouped here (never sent).
         <PropertySwitch

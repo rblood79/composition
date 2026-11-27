@@ -2,7 +2,8 @@
 // condition's field text, its comparison · value buttons, its menu and its remove button; the texts
 // are the chip's `field` · `comparison` · `value`, its row's once the bar is connected) and the
 // palette's FilterBar (the chips' frame — slot 「Conditions」 — and 「Add filter」 · 「Edit conditions」
-// · 「Clear」; the last is there while `showClear` is on).
+// · 「Saved filters」 (Phase 5 — while the bar has named sets) · 「Clear」; the last is there while
+// `showClear` is on).
 import type { LibraryDefinition, LibraryTemplateNode } from "./types";
 
 /** The palette FilterBar's origin (`filtersOf` stands on its instances only — graph). */
@@ -38,7 +39,9 @@ export const FILTER_BAR_DEFINITIONS: readonly LibraryDefinition[] = [
     id: FILTER_BAR_ORIGIN_ID,
     name: "FilterBar",
     mode: "composite",
-    accepts: { showClear: "boolean" },
+    // (Phase 5 — 「Saved filters」 stands while the bar has named sets: `presentWith` reads the list
+    //  as text, `""` for none.)
+    accepts: { showClear: "boolean", presets: "filterPresets" },
     defaults: { showClear: true },
     visual: {},
     stateRules: {},
@@ -117,6 +120,7 @@ export const FILTER_BAR_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-filterbar__chips",
       "lib:template:component-filterbar__add",
       "lib:template:component-filterbar__edit",
+      "lib:template:component-filterbar__presets",
       "lib:template:component-filterbar__clear",
     ],
     props: { size: "M", variant: "chips", showClear: "{showClear}" },
@@ -149,6 +153,12 @@ export const FILTER_BAR_TEMPLATES: readonly LibraryTemplateNode[] = [
     label: "Edit conditions",
     icon: "list-filter",
   }),
+  // (ADR-320 Phase 5 — 사용자 결정 6: the author's named sets, picked from a menu.)
+  button(
+    "component-filterbar__presets",
+    { label: "Saved filters", icon: "bookmark" },
+    { presentWith: "presets" },
+  ),
   button(
     "component-filterbar__clear",
     { label: "Clear" },

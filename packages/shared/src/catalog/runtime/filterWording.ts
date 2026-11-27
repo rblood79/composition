@@ -25,6 +25,8 @@ export interface CatalogFilterWords {
   /** A chip's value before one is entered (its value button opens the editor). */
   readonly unset: string;
   readonly units: Readonly<Record<CatalogFilterUnit, string>>;
+  /** Phase 5 — a relative date's name (`@today` … — `filterRelativeDates.ts`); `catalogFilterWords`. */
+  readonly dates?: (name: string) => string | undefined;
   readonly ops: Readonly<Record<ViewComparison, string>>;
 }
 
@@ -166,18 +168,49 @@ export const CATALOG_FILTER_WORDS: Readonly<
 };
 
 /** The words in `locale`'s language (English otherwise — S2 intl). */
-export const catalogFilterWords = (locale: string): CatalogFilterWords =>
-  CATALOG_FILTER_WORDS[locale.split("-")[0] ?? "en"] ??
-  CATALOG_FILTER_WORDS.en!;
+export const catalogFilterWords = (locale: string): CatalogFilterWords => ({
+  ...(CATALOG_FILTER_WORDS[locale.split("-")[0] ?? "en"] ??
+    CATALOG_FILTER_WORDS.en!),
+  dates: (name) => catalogRelativeDateWord(name, locale),
+});
+
+/** ADR-320 Phase 5 — a relative date's place before today (`Intl.RelativeTimeFormat`'s words). */
+const RELATIVE_DATES: Readonly<
+  Record<string, readonly [number, Intl.RelativeTimeFormatUnit]>
+> = {
+  today: [0, "day"],
+  yesterday: [-1, "day"],
+  thisWeek: [0, "week"],
+  lastWeek: [-1, "week"],
+  thisMonth: [0, "month"],
+  lastMonth: [-1, "month"],
+  thisYear: [0, "year"],
+};
+/** A relative date's name in a locale (「Today」 · 「이번 주」 — the browser's words, capitalized). */
+export function catalogRelativeDateWord(
+  name: string,
+  locale: string,
+): string | undefined {
+  const at = RELATIVE_DATES[name];
+  if (!at) return undefined;
+  const text = new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+    ...at,
+  );
+  return text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
+}
 
 const scalarText = (value: unknown, words: CatalogFilterWords): string =>
   value === null || value === undefined || value === ""
     ? words.empty
-    : value === true
-      ? words.yes
-      : value === false
-        ? words.no
-        : String(value);
+    : typeof value === "string" &&
+        value.startsWith("@") &&
+        words.dates?.(value.slice(1))
+      ? words.dates(value.slice(1))!
+      : value === true
+        ? words.yes
+        : value === false
+          ? words.no
+          : String(value);
 
 /** A condition's value as a chip shows it (none for `exists` · `notExists` and an empty value). */
 export function catalogFilterValueText(
@@ -189,7 +222,9 @@ export function catalogFilterValueText(
   if (value === undefined || value === "") return "";
   if (op === "between" && Array.isArray(value)) {
     const [min, max] = value;
-    return `${min === undefined || min === "" ? "" : String(min)} – ${max === undefined || max === "" ? "" : String(max)}`;
+    const end = (at: unknown) =>
+      at === undefined || at === "" ? "" : scalarText(at, words);
+    return `${end(min)} – ${end(max)}`;
   }
   if (op === "withinLast")
     return `${String(value)} ${words.units[condition.unit ?? "day"]}`;

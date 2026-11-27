@@ -40,6 +40,7 @@ import { useI18n } from "@/i18n";
 import { ActionPicker } from "../ActionPicker";
 import { CapabilityPicker } from "../CapabilityPicker";
 import { ParamField } from "../ParamField";
+import { FilterDoField, type FilterDoFieldOption } from "../FilterDoField";
 import { ValueField } from "../ValueField";
 import type { CatalogValueSources } from "../valueOptions";
 import { StateActionFieldsView } from "../StateActionFields";
@@ -159,6 +160,10 @@ interface CatalogEventRowProps {
   targetDateFormat?: (
     ref: CatalogCapabilityTarget,
   ) => Readonly<Record<string, unknown>> | undefined;
+  /** ADR-320 Phase 5 — a filter bar target's fields (its Do's condition · field argument). */
+  targetFilterFields?: (
+    ref: CatalogCapabilityTarget,
+  ) => readonly FilterDoFieldOption[] | undefined;
   /** ADR-283 Decision 2 — whether the target names a record from the selected place. */
   targetNotice: (
     ref: CatalogCapabilityTarget,
@@ -198,6 +203,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   describeTarget,
   targetNotice,
   targetDateFormat,
+  targetFilterFields,
   onTargetHover,
   canvasHoverKey,
   onAim,
@@ -652,6 +658,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                         describeTarget={describeTarget}
                         targetNotice={targetNotice}
                         targetDateFormat={targetDateFormat}
+                        targetFilterFields={targetFilterFields}
                         onTargetHover={onTargetHover}
                         canvasHoverKey={canvasHoverKey}
                         exposure={exposure}
@@ -906,39 +913,52 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   });
                 }}
               />
-              {capabilityDef?.param && (
-                <ValueField
-                  label={t(capabilityDef.param.labelKey)}
-                  kind={
-                    capabilityDef.param.kind === "number-range" ||
-                    capabilityDef.param.kind === "date" ||
-                    capabilityDef.param.kind === "date-range"
-                      ? capabilityDef.param.kind
-                      : capabilityDef.param.kind === "number"
-                        ? "number"
-                        : capabilityDef.param.kind === "icon"
-                          ? "icon"
-                          : "text"
-                  }
-                  // (ADR-309 — a TimeField's Do asks for a time.)
-                  emptyType={targetType === "TimeField" ? "time" : "date"}
-                  dateFormat={
-                    capabilityDef.param.kind === "date" ||
-                    capabilityDef.param.kind === "date-range"
-                      ? targetDateFormat?.(action.target)
-                      : undefined
-                  }
-                  choices={
-                    capabilityDef.param.kind === "choice"
-                      ? capabilityChoices(targetType, capabilityDef)
-                      : undefined
-                  }
+              {capabilityDef?.param &&
+              (capabilityDef.param.kind === "filter-condition" ||
+                capabilityDef.param.kind === "filter-field") ? (
+                <FilterDoField
+                  kind={capabilityDef.param.kind}
+                  fields={targetFilterFields?.(action.target) ?? []}
                   value={action.value}
-                  sources={valueSources}
                   onChange={(value) =>
                     setAction({ ...action, value: value as Scalar })
                   }
                 />
+              ) : (
+                capabilityDef?.param && (
+                  <ValueField
+                    label={t(capabilityDef.param.labelKey)}
+                    kind={
+                      capabilityDef.param.kind === "number-range" ||
+                      capabilityDef.param.kind === "date" ||
+                      capabilityDef.param.kind === "date-range"
+                        ? capabilityDef.param.kind
+                        : capabilityDef.param.kind === "number"
+                          ? "number"
+                          : capabilityDef.param.kind === "icon"
+                            ? "icon"
+                            : "text"
+                    }
+                    // (ADR-309 — a TimeField's Do asks for a time.)
+                    emptyType={targetType === "TimeField" ? "time" : "date"}
+                    dateFormat={
+                      capabilityDef.param.kind === "date" ||
+                      capabilityDef.param.kind === "date-range"
+                        ? targetDateFormat?.(action.target)
+                        : undefined
+                    }
+                    choices={
+                      capabilityDef.param.kind === "choice"
+                        ? capabilityChoices(targetType, capabilityDef)
+                        : undefined
+                    }
+                    value={action.value}
+                    sources={valueSources}
+                    onChange={(value) =>
+                      setAction({ ...action, value: value as Scalar })
+                    }
+                  />
+                )
               )}
             </>
           )}

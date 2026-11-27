@@ -181,6 +181,7 @@ export const ApiEndpointDraftSchema = z.object({
       keyOnlyParam: z.string().optional(),
       keyExceptParam: z.string().optional(),
       groupRows: z.boolean().optional(),
+      facets: z.boolean().optional(),
     })
     .nullable()
     .optional(),

@@ -29,6 +29,8 @@ export function createPublishedSession(
     applyTheme: applyCatalogPreviewTheme,
     // ADR-315 사용자 결정 1 — a Table with 「Remember state」 keeps its user's state in this browser.
     tableStateStorage: browserStorage(),
+    // ADR-320 사용자 결정 5 — the address carries the filter bars' trees (a link shows the same rows).
+    addressFilters: true,
     // No Builder loads this app's API collections or runs their execution policy: the session does,
     // and shows what it loaded — never the design sample rows.
     standalone: true,

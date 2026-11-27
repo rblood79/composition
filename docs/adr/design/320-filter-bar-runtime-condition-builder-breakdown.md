@@ -1,6 +1,6 @@
 # ADR-320 breakdown — 필터 바 (실행 중 조건 빌더)
 
-> 결정: [ADR-320](../320-filter-bar-runtime-condition-builder.md). 이 문서는 대조 표 · 조립 표 · 설계 · Phase · 시제품 · 파일 추정을 둔다. 경로 약칭 `S/` = `packages/shared/src/`, `B/` = `apps/builder/src/builder/`.
+> 결정: [ADR-320](../completed/320-filter-bar-runtime-condition-builder.md). 이 문서는 대조 표 · 조립 표 · 설계 · Phase · 시제품 · 파일 추정을 둔다. 경로 약칭 `S/` = `packages/shared/src/`, `B/` = `apps/builder/src/builder/`.
 
 ## 1. 범위 · 출처
 
@@ -421,5 +421,126 @@ HEAD `4e8c066ec` 위 작업 트리 (같은 checkout 에서 다른 세션이 ADR-
 - 참조 경로 조건의 후보 값은 없다 (값 칸만) — 서버 후보 값과 같이 Phase 6 에서 본다.
 - **HC6 의 live 교대 측정 (Phase 1 이 G3 · G4 로 넘긴 것) 은 이번에 하지 못했다** — Phase 4 (G4) 에서 칩 · 빌더 경로를 같이 잰다. 계산 자체는 Phase 1 의 10,000 행 4.68 ms (「또는」 2 단) 그대로다 (이 Phase 는 평가 경로를 바꾸지 않았다 — 후보 값 보기만).
 - 여러 원격 대상의 요청 나누기는 Phase 6 그대로 — 지금 범위 판정은 대상마다 요청 한계를 보지만, 요청은 지금 세션 경로를 지난다.
+
+### Phase 4 (2026-11-27 — G4 통과)
+
+HEAD `c3bb48c1c` 위 작업 트리 (같은 checkout 에서 다른 세션이 ADR-321 Phase 4 를 진행 중). contract 변경 없음.
+
+**바뀐 것**:
+
+- 조건 빌더 (`runtime/filterBuilder.components.tsx` — 자기 lazy chunk, 처음 열 때 RAC `Tree` · `useDragAndDrop` 과 같이 로드): 범위 트리를 RAC `Tree` 로 — 행 = 조건 (끌기 · 필드 · 비교 · 값 버튼 + 행 메뉴), 자식을 가진 행 = 묶음 (「그리고 · 또는」 전환 버튼 + 묶음 메뉴). 아래에 「조건 추가」 · 「묶음 추가」. 버튼 모양은 칩 줄과 같은 catalog quiet ActionButton (생성 규칙 `.react-aria-ActionButton[data-quiet]`, S).
+- 편집 (`runtime/filterTreeEdit.ts` — 순수 함수): 어디에 있든 항목 바꾸기 (비게 된 묶음은 같이 지움 — 저장 형식이 빈 묶음을 거절), 끌기 · 「위로」 · 「아래로」 의 이동 (앞 · 뒤 · 묶음 안 — 옮기는 묶음 자기 안으로 · 조건 위로는 없음), 「묶음으로 감싸기」 (새 묶음은 들어가는 묶음의 반대 연산), 「묶음 풀기」, 전환, 추가 (새 묶음도 반대 연산 — 루트 「그리고」 아래 첫 묶음은 「또는」). 루트는 범위의 「그리고」 그대로 (§5.1).
+- 깊이 (결정 3 = 3 단): 결과가 묶음 4 단이 되는 편집은 내지 않는다 — 3 단째 묶음 메뉴에 「묶음 추가」 없음, 그 안 조건 메뉴에 「묶음으로 감싸기」 없음, 4 단이 되는 끌기는 `getDropOperation` 이 `cancel`. 저장 형식은 제한 없음.
+- 서버가 못 받는 범위 (G4): 범위가 묶음을 받는가 = 지금 트리에 탐침 「또는」 묶음 (첫 필드의 시작 비교 둘) 을 더한 범위 판정 (`catalogFilterGroupsTaken` — 칩 줄의 필드 · 비교 판정과 같은 길, `access.takes`). 못 받으면 「묶음 추가」 · 전환 · 「묶음으로 감싸기」 가 없다 (쪽 단위 `suffix` → 없음 · 쪽 단위 `body` POST → 있음).
+- 여는 길: 막대의 「조건 편집」 (`Popover > Dialog` — 제목 Heading), 묶음 칩의 조건 메뉴 「조건 편집」 (칩의 필드 글자는 버튼이 아니라 메뉴 항목으로 — 원본 template 무변경), `variant: "builder"` 는 칩 자리에 빌더를 제자리로 두고 「조건 편집」 을 내지 않는다 (Canvas 는 §5.10 대로 시작 조건의 칩을 그린다).
+- 칩 줄과 같이 쓰는 것 (`runtime/filterBarRun.tsx` — 컴포넌트 아닌 공용 상태 · 함수를 분리, fast refresh 경고 0): 막대 문구 (빌더 문구 13 · 4 개 언어), 실행 context, 다음에 열 단계 — 자리 (`chips` · `builder`) 를 같이 들어 루트 조건의 칩과 빌더 행이 같은 단계를 둘 다 열지 않는다.
+- 칩 줄 쓰기가 중첩 항목도 바꾼다 (`catalogFilterTreeWith` — 루트 항목만 보던 `treeWith` 대체). 칩 줄의 effect 안 setState 2 를 없앰 (알림 = ref 비교, 다음 단계 = render 중 조정).
+
+**찾아 고친 결함**: 빌더 행에서 비교를 바꾸면 이어 열린 값 편집기가 바뀌기 **전** 비교로 열렸다 (live — 「Equals」 를 골랐는데 「Contains」 와 글자 칸). RAC `Tree` 는 collection 을 먼저 만들고 그 결과로 행을 그려, 쓰기 직후 render 의 행이 앞 조건을 넘긴다. 값 편집기 · 비교 메뉴는 열 때 · 쓸 때 범위의 지금 조건을 id 로 읽는다 (`liveCondition`, 쓰기는 `catalogFilterTreeWith` 가 넘기는 지금 항목). Tree 에 `dependencies` (트리 · 묶음 판정 · 필드) 를 넘긴다 — RAC 항목 캐시 계약.
+
+**G4 항목**:
+
+| 항목                                           | 근거                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 묶음 추가 · 전환 · 중첩 · 순서 바꾸기 = 정답표 | `adr320FilterTreeEdit.test.ts` 6 — 앞 · 뒤 · 안 이동, 비게 된 묶음 삭제, 조건 위 · 옮기는 묶음 안 · 4 단 거절, 위로 · 아래로 (묶음 안에서만), 감싸기 (반대 연산) · 풀기 · 전환, 추가 (3 단째에 묶음 거절). 모양은 손으로 적음. `adr320FilterScope.test.tsx` (jsdom) 7 — 「조건 편집」 · 「묶음 추가」 · 전환 · 풀기 · 위로 · 감싸기의 행 (u2 · u4) · 깊이 메뉴 · 묶음 칩 메뉴 · 제자리 빌더 · 값 편집기 결함 회귀 · 다음 행이 생긴 뒤 「아래로」                                                                                                                         |
+| 포인터와 키보드                                | live (아래) — 키보드 끌기 (행의 끌기 버튼 Enter → 화살표로 「Drop on Conditions Or」 낭독 → Enter) · 포인터 끌기 (묶음 행 위 가장자리 = 앞) · 행 메뉴 키보드 (「묶음으로 감싸기」 두 번)                                                                                                                                                                                                                                                                                                                                                                                 |
+| 서버가 못 받는 범위에서 묶음 기능 없음         | `adr320FilterBuilderServer.test.tsx` 2 — 쪽 단위 원격 `suffix` GET: 묶음 판정 false · 빌더에 「Add group」 없음 / `body` POST: true · 있음                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| role · `aria-*` 는 RAC 것뿐                    | `adr320D1ChipLine.static.test.ts` 에 빌더 · 공용 · 편집 파일 추가 — `role` 0, `aria-label` 은 RAC `Tree` · `Menu` · `SearchField` · 아이콘 버튼의 이름 prop 만 (끌기 · 펼침 버튼 이름은 RAC 가 준다)                                                                                                                                                                                                                                                                                                                                                                     |
+| Chrome · WebKit live                           | `apps/builder/scripts/adr320-g4-live.mjs` (dev 5173) **Chrome ALL PASS 9 · WebKit ALL PASS 9** — Publish 탭: 시작 = 칩 1 · 행 4 / 「조건 편집」 / 「묶음 추가」 · Status · Equals · 1 → `c1 or(status=1)` · 행 Ann Cal / 묶음 메뉴 「조건 추가」 › Name · Equals (후보 Ann · Cal — 결정 9) · Dee → 행 Ann Cal Dee / 「Or」 ↔ 「And」 (행 0 ↔ 3) / 키보드 끌기 → 묶음 안 (단계 1 2 2 2 · 행 5) / 포인터 끌기 → 묶음 앞 (단계 1 1 2 2 · 행 3) / 감싸기 두 번 → 2 단 묶음 메뉴에 「Add group」, 3 단에 없음, 그 안 조건에 「Group」 없음 / page error 0. G3 하니스 다시 7/7 |
+| 원복 RED                                       | 변이 9 중 8 실패 · 바이트 복원 확인 — 깊이 상한 끔 · 비게 된 묶음 남김 · 낡은 조건으로 편집기 · 묶음 판정 늘 참 · 새 묶음 같은 연산 · 감싸기 같은 연산 · 3 단째 「묶음 추가」 · 조건 위로 놓기. `dependencies` 뺌 (M5) 은 통과 — 범위 대입이 항목을 새 객체로 내놓아 행이 어차피 다시 그려진다 (가설 + 반증 1 = 통과 → LOW deferred, 캐시 계약대로 둔다)                                                                                                                                                                                                                 |
+
+**HC6** (`apps/builder/scripts/adr320-hc6-live.mjs` — production (`perf:build-dist`) · headed Chrome · 원격 10,000 행 · 가상 스크롤 Table · 열 6. 같은 문서 · 같은 표의 두 팔을 A B · B A · A B 교대, 팔마다 클릭 6 × 3. 값 = 클릭의 Event Timing — 입력 → 다음 paint):
+
+| 팔                                                                                    | CPU 1x 중앙값 · p95 | CPU 4x 중앙값 · p95 |
+| ------------------------------------------------------------------------------------- | ------------------- | ------------------- |
+| A 필터 바 — 빌더의 2 단 묶음 전환 (조건 6 · 「또는」 안 「그리고」, 행 1,951 ↔ 3,938) | 128 · 168 ms        | 304 · 408 ms        |
+| B 대조군 — 같은 표의 머리글 정렬 클릭                                                 | 104 · 144 ms        | 288 · 368 ms        |
+
+- 판정: 기준선 (ADR-315 G0 정렬 클릭 → 화면 1x 154 ~ 169 · 4x 556 ~ 589 ms) 안 — 1x p95 168 ms 는 위 끝과 1 ms 차이, 4x 는 여유가 크다. 같은 환경의 정렬 클릭 대비 중앙값 1.23 배 (1x) · 1.06 배 (4x).
+- 결과가 맞는지: 클릭마다 표의 `aria-rowcount` 가 이 하니스의 행 생성기로 따로 센 행 수 (「그리고」 1,951 · 「또는」 3,938) 와 같다 (1x · 4x 전부).
+
+**회귀**: type-check 통과 · shared 283 파일 · 3,004 통과 · builder 단위 1,206 파일 · 10,065 통과 · G3 하니스 다시 7/7 · 대칭 하니스 `adr320FilterBarParity.browser.test.ts` 6/6 (Canvas · 칩 DOM 무변경 확인).
+
+**번들** (일반 `vite build` → `adr209-bundle-closure.mjs`, 이 Phase 의 tracked 파일 셋만 HEAD 로 돌린 빌드와 나란히): Builder initial **raw +2 B · gzip +25 B**. raw 가 다른 파일은 `filterWording` chunk 하나 (+2 B) 이고, 나머지 바뀐 파일은 raw 크기가 같은 채 lazy chunk 이름 hash 만 달라져 gzip 이 ±4 B 씩 흔들린다. 빌더 · 편집 · 묶음 판정은 전부 lazy (`access.takes` 한 줄만 첫 화면 — 판정 함수 자체는 lazy 모듈로 옮김). 320 합계 gzip **+8,009** — 한도 +8,000 을 9 B 넘어 사용자에게 물었고, 답으로 한도 **+10,000** (Phase 5 · 6 몫 포함, 절대 상한 1,660,000 그대로). Preview 변화 없음.
+
+**설계와 달라진 것 · 넘긴 것**:
+
+- 묶음 칩 「누르기」 는 칩의 조건 메뉴 항목 「조건 편집」 으로 (칩의 필드 글자는 Text — template 을 바꾸지 않았다).
+- 빌더 행의 필드 버튼은 필드 메뉴를 연다 (다른 필드로 바꾸면 그 필드의 시작 비교, 같은 모양의 값은 둔다) — §5.6 에 없던 것.
+- 묶음 메뉴에 「복제」 · 「위로」 · 「아래로」 도 둔다 (§5.6 의 묶음 메뉴 넷 + 이동 · 복제).
+- 결정 9 의 「또는」 묶음 안 후보 값: 그 조건을 뺀 범위에서 세므로 같은 묶음의 다른 조건이 고른 행만 후보가 된다 (live: `status = 1` 옆 Name 후보 = Ann · Cal — 값은 직접 입력). 설계대로다.
+
+### Phase 5 (2026-11-27 — G5 통과)
+
+HEAD `cf2b2b0bf` 위 작업 트리 (Phase 4 미커밋 위 · 같은 checkout 에서 다른 세션이 ADR-321 · API endpoint 편집기를 진행 중). 사용자 답 (Phase 5 진입): 결정 4 = 스위치 · 5 = 주소에 싣는다 · 6 = 작성자 묶음만 · 7 = 상대 날짜 추가 — 넷 다 권고대로. **contract 86** (상대 날짜 토큰 · 「Saved filters」 부품 · Do 「조건 넣기」 의 값). 세 묶음 (A 기억 · 주소 · 이름 붙인 묶음 / B 상대 날짜 / C When · Do · 이름 붙인 상태) 으로 나눠 진행했다 (sub-group 3 — 사후 보고).
+
+**바뀐 것**:
+
+- **읽는 순서 = 주소 → 기억 → 시작 조건** (`filterScopeSession.ts` — 범위의 첫 읽기). 찾은 트리는 원본 그대로 범위의 대입 판정을 지난다 (§5.8 — 여기서 먼저 빼지 않는다). 대입마다 트리를 범위 밖에도 둔다 (`keep`): 시작 조건과 같으면 주소 · 기억에서 지우고, 비운 트리는 「조건 없음」 으로 남긴다.
+- **주소** (결정 5, `runtime/filterAddress.ts`): hash 경로 뒤 query 에 막대마다 값 하나 — 키 `f.<막대 노드 id>`, 값 = 짧은 형 (필드 id 의 `data:field:` 를 떼고 한 글자 키 · 루트 id 생략) 의 JSON 을 base64url. 빈 값 = 조건 없음. 세션 옵션 `addressFilters` (Publish 만 — Builder Preview 에는 주소가 없다) 가 세션의 path query 를 읽고 쓴다. Publish `App.tsx` 는 경로가 같고 query 만 바뀌면 `replaceState` (기록을 쌓지 않음), 다른 경로면 지금처럼 `pushState`. 링크 · 뒤로 가기로 다른 트리를 가리키는 주소가 오면 시작된 막대에 대입하고 (`followAddress`), 지금 페이지의 막대인데 주소에 없으면 (앱이 처음에 자기 경로로 이동할 때) 주소가 트리를 따라간다.
+- **기억** (결정 4): 「Remember filters」 (`rememberFilters`, Phase 2 에 선언) 가 켜진 막대만 Table 「Remember state」 와 같은 저장소 (`tableStateStorage` — Publish 의 그 브라우저 `localStorage`) 의 키 `composition:filter-scope:v1:<프로젝트 id>` 에 `{ [막대 id]: 트리 }`. Builder Preview 는 저장소가 없어 쓰지도 읽지도 않는다.
+- **이름 붙인 묶음** (결정 6): 막대 원본에 4 번째 부품 「Saved filters」 (quiet ActionButton · `bookmark` 글리프 — `presentWith: "presets"`, 묶음이 없으면 자리 없음 · Canvas 도 같다). 실행 중에는 RAC `MenuTrigger > Popover > Menu` (항목 = 작성자 묶음의 이름) — 고르면 범위의 대입 하나.
+- **상대 날짜** (결정 7, `runtime/filterRelativeDates.ts`): 조건 값의 닫힌 토큰 `@today` · `@yesterday` · `@thisWeek` · `@lastWeek` · `@thisMonth` · `@lastMonth` · `@thisYear`. 새 비교 없음 (HC5) — 토큰은 날짜 범위 `[첫날, 끝날]` 이고 비교가 읽는다: `equals` = 범위 안 (`between`), `notEquals` = 범위 밖 (`before 첫날 or after 끝날` — 하루면 그대로), `before` = 첫날 전, `after` = 끝날 뒤, `between` = 아래 토큰의 첫날 ~ 위 토큰의 끝날. 날짜 필드의 조건만 푼다. 범위 · 칩 · 주소 · 기억 · 문서는 토큰을 그대로 두고 (「이번 주」 가 날이 바뀌면 따라간다), **행이 트리를 읽는 자리 하나** (`CatalogFilterScopes.rowTree` — 세션의 Table 상태 `rowTableState` 와 다른 목록의 행 조각) 가 날짜로 푼다. 판정도 푼 트리로 한다 (요청에 실리는 것 = 판정하는 것). 오늘 = 보는 사람의 브라우저 날짜 (`withinLast` 의 UTC 날짜와 다르다 — 서울 08:00 의 「오늘」 은 그날), 주의 시작 = 사이트 locale (`Intl.Locale` 주 정보, 없으면 지역 표). 값 편집기 (열 필터 대화상자와 공용) 와 패널의 시작 조건 · 묶음 편집기에 「날짜」 선택 (날짜 지정 · 토큰 일곱). 칩 글자 = 토큰 이름 (4 개 언어).
+- **상태 연동** (§5.9, `interactions/concepts/filterBar.ts` — composition 확장): Do 「조건 추가」 (`{ field, op, value }` — 막대가 내놓는 필드 · 그 필드의 비교, 값은 리터럴 또는 `!event` · `!var`) · 「필드의 조건 지우기」 · 「조건 전부 지우기」 (조건 없음 — 막대의 「Clear」 는 시작 조건으로). 셋 다 범위의 대입 하나를 지나고 (dispatcher 의 `filter` 갈래 → `filterScope`), 범위가 받지 않는 조건은 트리를 그대로 두고 실패로 보고한다. When 「필터가 바뀔 때」 (`onFilterChange`, `!event.count`) = 적용된 조건이 바뀐 보는 사람의 변경 — 값을 아직 넣지 않은 조건은 적용이 아니고, Do 의 쓰기는 부르지 않는다 (RAC 변경 callback 규칙). 이름 붙인 상태 = 적용된 루트 항목 수 (`appliedFilters`). 패널: Do 인자 편집기 `FilterDoField` (필드 · 비교 · 값).
+
+**찾아 고친 결함 (live)**:
+
+1. 상대 날짜 조건이 **Table** 에서 0 행 — 세션의 행 조각은 날짜로 풀었지만 composition root 가 Table 상태를 따로 읽어 (`tableState` 옵션) 행을 거르는 길이 토큰을 그대로 받았다. 두 길이 `rowTableState` 하나를 읽게 했다. 단위 테스트는 ListBox 만 써서 놓쳤다 — Table 회귀를 더했다.
+2. 기억에서 복원한 새 Publish 탭의 주소에 트리가 없음 — 복원이 앱의 첫 `navigateTo("/")` 전에 일어나 그 이동이 query 를 지웠다. 지금 페이지의 시작된 막대는 주소가 따라가게 했다 (`followAddress`) — 회귀 테스트.
+
+**G5 항목**:
+
+| 항목                                         | 근거                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 기억 · 주소 · 이름 붙인 묶음이 결정대로 복원 | `adr320FilterRestore.test.tsx` (jsdom) — 주소의 트리로 시작 · 변경이 주소에 · 시작 조건이면 주소에서 빠짐 · 다시 따라간 링크 · 주소가 기억보다 먼저 · 「Remember filters」 켜면 다음 세션이 이어받고 끄면 쓰지도 읽지도 않음 · 기억 → 주소 (앱의 첫 경로 뒤) · 「Saved filters」 가 묶음을 범위 트리로 · 묶음 없으면 버튼 없음. 주소 형 왕복 단위                                                                                                                                                                                                                                                                                                                                                      |
+| 지워진 필드: 네 길 모두 묶음 통째 제외       | 같은 파일 — `(지워진 지역 = 서울 또는 상태 = male)` 을 주소 · 기억 · 이름 붙인 묶음 · 시작 조건으로: 여섯 행 그대로 (지역 조건만 뺐다면 male 셋) · 「적용하지 못한 조건 1」 · 범위 트리 없음                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Builder Preview 에는 저장하지 않음           | 같은 파일 — 주소 옵션 없이 쓰면 path 그대로, 저장소 없이 기억 없음 (세션 옵션이 Publish 에만)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 상대 날짜 = 날짜 경계 정답표                 | `adr320RelativeDates.test.ts` 27 — 손으로 적은 달력: 자정 (그날의 첫 · 끝 순간) · 주 시작 (en-US · ko-KR 일요일, de-DE 월요일, 시작일 당일) · 월말 (30 · 31 · 2 월 · 윤년) · 해 바뀜 · 비교별 풀이 (equals · notEquals 하루 · 범위 · before · after · between) · 날짜 아닌 필드는 리터럴 · 주 경계 앞뒤 행 · 칩 글자. Preview: ListBox · Table 의 「이번 주」 행 (시계 고정), `body` POST 요청 본문에 첫날 · 끝날 (토큰 없음) — `adr320FilterBuilderServer.test.tsx`                                                                                                                                                                                                                                   |
+| When · Do · 이름 붙인 상태                   | `adr320FilterBarRun.test.tsx` 4 — Button 셋의 Do (추가 · 지우기 · 전부) 행과 이름 붙인 상태, Do 는 When 을 부르지 않음 · 보는 사람의 변경은 `!event.count` 로 When · 값 없는 조건은 안 부름 · 받지 않는 조건의 Do 는 실패 보고 · 트리 그대로 · 칩 줄의 필드 · 비교 메뉴로 When (값 없는 비교 「Has a value」)                                                                                                                                                                                                                                                                                                                                                                                          |
+| Chrome · WebKit live                         | `apps/builder/scripts/adr320-g5-live.mjs` (dev 5173) **Chrome ALL PASS 8 · WebKit ALL PASS 8** — Publish 탭: 시작 (Type A · B → Ann Ben Cal Dee) · 「Saved filters」 / 묶음 「Joined today」 (`@today`) → Ann Eve · 칩 「Joined Equals Today」 · 주소 · 기억 / 「Clear」 → 주소에서 빠짐, 링크의 hash 로 다시 Ann Eve / 새 Publish 탭 = 기억에서 Ann Eve · 주소 따라감 / 기억을 지운 새 탭에서 링크만으로 Ann Eve / 묶음 「Gone or Status 1」 → 여섯 행 · 「1 condition could not be applied」 / Button 의 Do 「Status = 2」 → Ben Dee / page error 0. (Builder 의 Publish 탭은 project 를 Builder 가 든 `blob:` 에서 읽어 다른 브라우저로는 링크를 열 수 없다 — 같은 브라우저에서 기억을 지우고 확인) |
+| 원복 RED                                     | 변이 12 중 11 실패 · 바이트 복원 확인 (`cmp`) — 주소 안 읽음 · 기억 안 씀 · 복원한 묶음에서 지워진 필드 조건만 먼저 뺌 (round 3 반례) · 행이 토큰 그대로 · root 의 Table 상태 길이 토큰 그대로 (live 결함 1) · 주소가 기억을 안 따라감 (live 결함 2) · Do 를 보는 사람의 변경으로 · 묶음 없어도 「Saved filters」 · 주 시작 늘 월요일 · 적용 안 바뀌어도 When · 요청에 토큰. Do 의 범위 사전 판정 뺌 (M8) 은 통과 — 비교는 같은 범위 판정을 지난 것만 내놓아 (`catalogFilterBarFieldOps`) 사전 판정은 같은 판정을 한 번 더 읽는다 (가설 + 반증 1 = 통과 → LOW deferred, 방어로 둔다)                                                                                                                   |
+
+**회귀**: type-check 통과 · shared 284 파일 · 3,031 통과 · builder 단위 1,208 파일 · 10,092 통과 (실패 1 = `stagedLoadReaders.static.test.ts` 의 문서 id 읽기 목록 — 이 Phase 의 `recordsOfSource` 하나를 P 로 올려 통과) · 대칭 하니스 `adr320FilterBarParity.browser.test.ts` 6/6 · 칩 줄 · 빌더 · 정적 D1 테스트 다시 통과. contract 85 를 고정한 테스트 33 파일을 86 으로.
+
+**번들** (일반 `vite build` → `adr209-bundle-closure.mjs`, Phase 4 · 5 의 tracked 파일 26 개만 HEAD 로 돌린 빌드와 나란히 — 다른 세션의 미커밋 API endpoint 편집기는 두 빌드에 같이 있다): Builder initial **gzip +796 B** (raw +2,671) → **1,660,754** — 절대 상한 1,660,000 을 넘는다 (HEAD `cf2b2b0bf` 는 ADR-321 Phase 5 뒤 상한까지 70 B). 첫 화면에 오는 것 (gzip-9 추정): interaction 등록표의 FilterBar 개념 ≈ 289 · 상대 날짜 말 (칩 글자 — Canvas 도 같은 함수) ≈ 232 · dispatcher 의 `filter` 갈래와 문서 검증 ≈ 193 · 적용 조건 세기 ≈ 85. 줄인 것: chip 줄 lazy chunk 의 `filterQuery` 값 import 를 type 으로 (그 import 가 rollup 에 `filterQuery` 를 첫 화면에서 떼어 새 chunk 를 만들어 +220 B), 상대 날짜 말 표 4 개 언어를 `Intl.RelativeTimeFormat` 하나로 (raw −225 · gzip 은 그대로). Preview initial −3 B. 320 합계 gzip ≈ +8,780 (한도 +10,000 안). 절대 상한을 넘어 사용자에게 물었고, 답으로 Builder 절대 상한 **1,660,000 → 1,662,000** (Phase 6 몫 포함, 만료 2026-12-25 그대로 — `adr201-bundle-gate.mjs` · 배포 workflow · ADR-201 재승인 절 · CLAUDE.md 성능 표).
+
+**설계와 달라진 것 · 넘긴 것**:
+
+- 「Saved filters」 는 막대 원본의 4 번째 부품으로 (§5.4 의 부품 셋에 없던 것 — 묶음이 있을 때만 자리, Canvas 도 그린다).
+- 「조건 전부 지우기」 Do 는 조건 없음 (막대의 「Clear」 버튼은 §5.3 대로 시작 조건).
+- Do 의 대상은 필터 바만 — Table 의 열 Do (`setColumnFilter` · `clearColumnFilter`) 는 이미 같은 트리에 쓴다 (Decision 13). Do 의 필드는 막대가 내놓는 것만 (숨긴 필드는 실패).
+- 상대 날짜의 「오늘」 = 보는 사람의 날짜 (`withinLast` 는 UTC 날짜 그대로 — 둘을 맞추는 일은 하지 않았다).
+- 열 메뉴 「필터…」 는 토큰을 그대로 본다 (Table 상태의 `filters` = 범위 트리 — 행만 날짜로 푼다).
+- ADR-321 세션의 파일 `apps/builder/tests/adr248-g3/adr321RatingParity.browser.test.ts` (browser · 단위 스위트 밖) 는 contract 85 를 고정해 두었다 — 다른 세션 파일이라 고치지 않았다. contract 86 커밋과 함께 86 으로 맞춰야 한다.
+
+### Phase 6 (2026-11-27 — G6 통과 · Implemented)
+
+HEAD `db0d2c19c` 위 작업 트리 (Phase 4 · 5 미커밋 위 · 같은 checkout 에서 다른 세션이 API endpoint 편집기를 진행 중). 사용자 답 (Phase 6 진입): 결정 9 = 넣는다 (권고대로). contract 변경 없음 — 조회 형식은 endpoint entry 의 자유 JSON (`querySerialization`) 이고 `facets` 는 그 안의 키 하나다.
+
+**바뀐 것**:
+
+- **서버 후보 값** (결정 9): `body` 형식 endpoint 의 조회 형식에 「Candidate values (facet)」 스위치 (`querySerialization.facets` — `QueryFormatSection`, data change 스키마). 켠 endpoint 에서 불러온 행이 전부가 아닐 때 (`partial`) 값 편집기의 후보는 서버에 묻는다: 요청 = 후보 값 사슬의 보기 (편집 중인 조건 하나만 뺀 범위 트리 · 작성자 조건 — `viewFacetRequestQueries`, 로컬 후보 값과 같은 제외 규칙) 의 `where` + `facet: { field, search, cursor }` (쪽 · 정렬 · total 없음 — `serializeViewQueries` 의 `facet` 항목, 선언 없는 endpoint · `suffix` 는 `FACET` 으로 보내지 않음). 응답 = 맨 위의 `{ items: [{ value, count }], nextCursor }` (`loadCollectionFacet` — 행의 `responseMapping` 이 아니다), 값은 필드의 값 표현으로 들어온다 (`intakeQueryItems`). 편집기 (`tableColumnFilter.components.tsx` — 열 메뉴 · 칩이 같이 쓴다): 열 때 첫 쪽, 검색은 250 ms 뒤 (다음 글자가 앞 요청을 취소), 목록 끝 RAC `ListBoxLoadMoreItem` 이 다음 쪽을 붙인다 (같은 쪽을 두 번 묻지 않음), 실패는 「값을 불러오지 못함」. 「불러온 N 행 기준」 은 서버 후보 값에서는 내지 않는다.
+- **여러 대상** (R10): 코드 변경 없음 — ADR-325 의 보기마다 요청이 막대 범위의 조건도 실어 대상마다 따로 보낸다. 대조 테스트와 live 로 확인 (아래).
+
+**G6 항목**:
+
+| 항목 | 근거 |
+| --- | --- |
+| 서버 후보 값 (결정 9) | `adr320ServerFacet.test.tsx` 5 — 세션: `facets` endpoint 는 `{ where (편집 중인 status 조건 빠짐 · name 조건 남음), facet: { field: "status", search: "o" } }` 하나, 다음 쪽 `cursor`; 선언 없는 endpoint 는 `server` 없음 · `facet` 요청 0. 편집기: 첫 쪽 바로 (불러온 행의 값 `loaded-only` 는 후보 아님 · 「불러온 N 행」 없음), 249 ms 에 요청 없음 → 250 ms 에 `xy` 하나 (앞의 `x` 는 취소), 목록 끝 → 다음 쪽 붙음 · 한 번만, 실패 문구. `adr320FacetRequest.test.ts` 3 — 사슬 (빈 묶음째 빠짐) · `facets` body = `{ where, facet }` 만 · 선언 없는 body · `suffix` = `FACET` 보내지 않음. `QueryFormatSection.facets.test.tsx` 2 — 스위치가 `facets: true` 를 쓰고 끄면 키를 지움, `suffix` · `none` 에는 없음 |
+| 여러 대상 (R10) | `adr320MultiTarget.test.tsx` — 3 행씩 주는 `suffix` endpoint 에 ListBox (작성자 조건 없음) · GridList (`status = open`) · 막대 하나: `name = Kang` 을 넣으면 요청 둘 (`?name=Kang` · `?status=open&name=Kang` — `status=open` 만 실은 요청 없음), ListBox 는 Kang 둘 · GridList 는 open Kang 하나 (전체 데이터의 셋째 쪽에 있는 행) |
+| Chrome · WebKit live (종결 `/evaluate`) | `apps/builder/scripts/adr320-g6-live.mjs` (dev 5173 · 로컬 HTTP 서버 CORS) **Chrome ALL PASS 9 · WebKit ALL PASS 9** — 세 막대를 Builder 의 「Add filter bar」 로: 로컬 Users (Type › Is one of → 후보 A · B · C → A → Ann Ben) · `suffix` Orders (R10 — 각 목록의 요청이 자기 조건, ListBox Kang 둘 · GridList 하나, 첫 paint 부터 Kang 아닌 행이 보인 적 없음) · `body` Tickets (30 행 중 불러온 쪽에 없는 paused · review 가 서버 후보로 · 「wa」 → 250 ms 전 요청 0, 뒤 `search: "wa"` 하나 → waiting → Apply → 행 요청 `where status oneOf [waiting]` → waiting 8 행) · page error 0 |
+| 원복 RED | 변이 7 모두 실패 · 바이트 복원 확인 (shasum) — `facets` 선언 무시 · 편집 중인 조건 안 뺌 · 편집기가 서버 값 대신 불러온 행 값 · 검색 지연 0 · 같은 쪽 중복 요청 막지 않음 · controller 가 `server` 안 줌 · facet 요청에 page |
+| 번들 (결정 10) | 일반 `vite build` → `adr209-bundle-closure.mjs`: Builder initial JS gzip **1,660,959** (Phase 5 의 1,660,754 대비 +205 — 다른 세션의 미커밋 변경 포함 측정) / 절대 상한 1,662,000 · Preview **172,277** / 327,000. 320 합계 ≈ +8,985 (한도 +10,000 안). 서버 후보 값 · 편집기는 lazy (첫 화면 몫은 문구 키 · 스키마 키 정도) |
+| HC6 재측정 | `adr320-hc6-live.mjs` (production · 10,000 행 · 2 단 묶음 전환, 3 회): **4x p95 408 · 464** (두 번 — 기준 556 ~ 589 안) · **1x p95 184** (세 번 모두 — 기준 154 ~ 169 를 15 ms 넘음). 18 클릭 중 넘는 것은 매번 **첫 클릭 하나** (나머지 ≤ 144, median 128 · 같은 환경 정렬 클릭 대조군 p95 128 ~ 144). 첫 · 둘째 클릭 CPU profile 차이 +56 ms: React commit +9 · composition root +7 · 「또는」 첫 평가 (`comparison` +5.5 · `rowFilter` +1.6) · resolver `projectChildren` (결과 3,938 행 중 창 안 행의 첫 투영) — Phase 5 · 6 코드는 0 에 가깝다 (`filterAddress` 0.1 ms · `filterScopeSession` −0.8). 보이는 행 먼저 그리기 (ADR-315 Phase 3 `stageRowWindows`) 는 이 경로에 이미 걸려 있다 (`readScopeLists` → `readTableRows` → `stageRowWindows` — profile 의 `afterPaint` 29 ms 가 그 뒤 채우기). 행 투영 비용 줄이기는 상한이 투영 19.3 ms (첫 클릭 — 둘째 13.6) 라 그것만으로 15 ms 를 넘게 줄일 근거가 없다. **사용자 결정 2026-11-27 「A로 진행」 — 첫 클릭 하나의 +15 ms 를 LOW 로 받아들이고 닫는다** (수리 없음) |
+| VoiceOver 청취 · 사용자 확인 | VoiceOver 청취 기록 없음. 사용자 지시 2026-11-27 「Implemented 로 올리고, 본문을 completed/ 로」 로 승격 |
+
+**회귀**: type-check 통과 · shared 285 파일 · 3,034 통과 · builder 단위 전체 (아래 결과) · ratchet `domainPredicateRatchet` 이 세션의 `"body"` 글자 비교를 잡아 형식 판정을 `suffix` · `none` 이 아닌 것으로 고침.
+
+**live 에서 본 것 (LOW — 넘김)**: Publish 탭이 Orders 에 막대 조건 없는 요청 둘을 보낸다 — `""` (ADR-325 의 collection 자기 목록 첫 요청 — 설계) 과 그 둘째 쪽 `?page=2`. 어느 목록도 그 행을 보이지 않는다 (2b — 첫 paint 부터 관찰). 낭비 요청 하나이고 결과는 맞다 — 원인 (누가 자기 목록의 다음 쪽을 묻는지) 은 ADR-325 의 표시 창 쪽이라 이 Phase 에서 고치지 않았다.
+
+**설계와 달라진 것**:
+
+- 서버 후보 값 응답은 행 응답의 `responseMapping` 을 쓰지 않고 맨 위 `{ items, nextCursor }` 고정이다 (§5.7 의 형 그대로 — 서버가 따로 만드는 응답이라 경로 설정을 두지 않았다).
+- 서버 후보 값도 편집기에서 값 순서로 다시 정렬한다 (쪽이 붙을 때 자리가 바뀔 수 있다 — 숫자 · 글자 순서가 열 메뉴와 같게).
 
 (다음 Phase 가 닫힐 때마다 이어서 기록)

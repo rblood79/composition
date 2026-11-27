@@ -91,6 +91,18 @@ export interface CatalogTableFacet {
   readonly max?: unknown;
   readonly partial: boolean;
   readonly loaded: number;
+  /**
+   * ADR-320 사용자 결정 9 — the server's candidate values (a `body` endpoint that answers `facet`,
+   * rows here not all of the data): one page of them for a search, the next with its `cursor`.
+   * Absent = the values above (the loaded rows') are the candidates.
+   */
+  readonly server?: (
+    request: { search?: string; cursor?: string },
+    signal: AbortSignal,
+  ) => Promise<{
+    values: { value: unknown; count: number }[];
+    cursor?: string;
+  }>;
 }
 
 /** ADR-315 Phase 4 증분 4c — what a Column's filter dialog shows (`session.tables.tableColumnFilter`). */

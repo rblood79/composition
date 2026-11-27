@@ -164,6 +164,12 @@ export function catalogPreviewRuntime(
       session.setFilterText(collectionId, filterText),
     serverFilterOf: (recordId) => session.serverFilterOf(recordId),
     filterBarAccess: (recordId) => session.tables.filterBarAccess(recordId),
+    // (ADR-320 Phase 5 — a rule's Do on a bar's scope, its named state and its When.)
+    filterBarDo: (recordId, write, value) =>
+      session.tables.filterBarDo(recordId, write, value),
+    filterBarApplied: (recordId) => session.tables.filterBarApplied(recordId),
+    subscribeFilterScopes: (listener) =>
+      session.tables.scopes.subscribe(listener),
     pages: (collectionId) => session.pages(collectionId),
     moreLoaded: (collectionId, ownerId) =>
       session.moreLoaded(collectionId, ownerId),

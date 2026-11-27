@@ -180,6 +180,7 @@ const NOT_SENT: Record<SerializationWarningCode, string> = {
   MULTI_SORT: "the sorts after the first",
   KEYS: "rows by key",
   GROUP_OF: "a group's rows",
+  FACET: "candidate values",
   AGGREGATE: "an aggregate the server does not run",
   COMPUTED: "a computed field",
 };

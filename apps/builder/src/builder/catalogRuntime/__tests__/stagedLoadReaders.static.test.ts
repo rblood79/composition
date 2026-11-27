@@ -109,7 +109,11 @@ const KNOWN_BY_ID = new Map<string, readonly [number, string, string]>([
   ],
   [
     "packages/shared/src/catalog/runtime/catalogPreviewInteractions.ts",
-    [2, "P", "Preview interaction records"],
+    [
+      3,
+      "P",
+      "Preview interaction records (ADR-320 Phase 5 — a filter bar's records when its scope changes: When 「필터 변경」 · its named state; the change comes from the shown page)",
+    ],
   ],
   [
     "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",

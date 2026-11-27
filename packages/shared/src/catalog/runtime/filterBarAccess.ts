@@ -43,12 +43,18 @@ export interface CatalogFilterBarAccess {
     conditionId: string,
     path: readonly DataFieldId[],
   ) => CatalogTableFacet | undefined;
+  /**
+   * Whether the scope takes a tree whole (its one judgment — §5.3). The builder asks it whether
+   * groups are taken (`catalogFilterGroupsTaken` — a paged `suffix` scope takes none: no group
+   * feature, G4).
+   */
+  readonly takes: (tree: ViewConditionGroup) => boolean;
   /** The scope's changes (its tree · its notice). */
   readonly subscribe: (listener: () => void) => () => void;
 }
 
 /** A value a probe condition carries for `op` on a `kind` field (what a serializer looks at). */
-function probeValue(
+export function catalogFilterProbeValue(
   op: ViewComparison,
   kind: ViewFieldKind,
 ): ViewCondition["value"] | undefined {
@@ -79,7 +85,7 @@ export function catalogFilterBarFieldOps(
   takes: (tree: ViewConditionGroup) => boolean,
 ): ViewComparison[] {
   return VIEW_COMPARISONS_BY_KIND[kind].filter((op) => {
-    const value = probeValue(op, kind);
+    const value = catalogFilterProbeValue(op, kind);
     const probe: ViewCondition = {
       id: "filter-bar:probe",
       fields: [[...path]],

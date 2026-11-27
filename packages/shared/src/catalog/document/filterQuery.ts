@@ -5,7 +5,15 @@
  * what a scope can be assigned (the assignment judges the conditions, §5.3).
  */
 import { catalogFilterTreeRead } from "../runtime/filterScope";
-import type { ViewConditionGroup } from "./types";
+import { VIEW_COMPARISONS, type ViewConditionGroup } from "./types";
+
+/** ADR-320 Phase 5 — a filter bar Do 「조건 넣기」's value (`catalogFilterDoConditionFits`). */
+export interface CatalogFilterDoCondition {
+  readonly field: string | readonly string[];
+  readonly op: import("./types").ViewComparison;
+  readonly value?: import("./types").ViewConditionValue;
+  readonly unit?: "day" | "week" | "month" | "year";
+}
 
 export interface CatalogFilterPreset {
   readonly id: string;
@@ -31,4 +39,40 @@ export function catalogFilterPresetsFit(value: unknown): boolean {
     ids.add(id);
   }
   return true;
+}
+
+const isScalar = (value: unknown) =>
+  typeof value === "string" ||
+  typeof value === "number" ||
+  typeof value === "boolean";
+
+/**
+ * ADR-320 Phase 5 — a filter bar Do 「조건 넣기」's value: a field (its id, or a path of ids), a
+ * comparison, and its value (a literal · a list · a value reference) and unit. Which field and
+ * comparison the bar takes is the run's judgment (the bar's fields change with its lists' data).
+ */
+export function catalogFilterDoConditionFits(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const {
+    field,
+    op,
+    value: compared,
+    unit,
+    ...rest
+  } = value as Record<string, unknown>;
+  if (Object.keys(rest).length) return false;
+  const fieldOk =
+    (typeof field === "string" && !!field) ||
+    (Array.isArray(field) &&
+      field.length > 0 &&
+      field.every((step) => typeof step === "string" && !!step));
+  return (
+    fieldOk &&
+    (VIEW_COMPARISONS as readonly unknown[]).includes(op) &&
+    (compared === undefined ||
+      isScalar(compared) ||
+      (Array.isArray(compared) && compared.every(isScalar))) &&
+    (unit === undefined ||
+      ["day", "week", "month", "year"].includes(unit as string))
+  );
 }

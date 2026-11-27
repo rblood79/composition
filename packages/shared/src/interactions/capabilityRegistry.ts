@@ -52,7 +52,11 @@ export interface CapabilityParam {
     | "icon"
     // ADR-309 Decision 7 (사용자 결정 4) — an ISO date · time (the panel's date input) · a range.
     | "date"
-    | "date-range";
+    | "date-range"
+    // ADR-320 Phase 5 — a filter bar's condition (`{ field, op, value }` over its lists' fields) ·
+    // one of its fields (a field id).
+    | "filter-condition"
+    | "filter-field";
   /** 입력 레이블의 카탈로그 키 (`labelKey` 와 같은 이유로 문구가 아니다) */
   labelKey: string;
   /**
@@ -109,6 +113,8 @@ export interface CapabilityDef {
   selectionDefault?: "single";
   /** ADR-321 — a StepList's move (the state rule gives the written pair — `stepListState.ts`). */
   step?: "next" | "previous" | "to" | "complete";
+  /** ADR-320 Phase 5 — a filter bar's scope tree write (`concepts/filterBar.ts`). */
+  filter?: "add" | "remove" | "clear";
 }
 
 export interface ComponentCapability {

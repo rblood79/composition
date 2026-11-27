@@ -922,6 +922,10 @@ const catalog: TranslationKeys = {
       stepCompletion: {
         onLastCompletedStepChange: "완료 단계가 바뀔 때",
       },
+      // (ADR-320 Phase 5 — 필터 바의 적용된 조건.)
+      filterConditions: {
+        onFilterChange: "필터가 바뀔 때",
+      },
       groupAction: {
         onGroupAction: "그룹 동작 버튼을 누를 때",
       },
@@ -963,6 +967,7 @@ const catalog: TranslationKeys = {
       collapse: "패널 접힘",
       resize: "패널 크기",
       stepSelection: "현재 단계",
+      filterConditions: "필터",
       stepCompletion: "완료 단계",
       groupAction: "그룹 동작",
       remove: "제거",
@@ -1072,6 +1077,9 @@ const catalog: TranslationKeys = {
     toggleExpand: "펼침 전환",
     toggleCollapse: "접힘 전환",
     nextStep: "다음 단계",
+    addFilterCondition: "조건 추가",
+    removeFilterCondition: "필드의 조건 지우기",
+    clearFilterConditions: "조건 전부 지우기",
     previousStep: "이전 단계",
     goToStep: "단계로 이동",
     completeStep: "단계 완료",
@@ -1098,6 +1106,8 @@ const catalog: TranslationKeys = {
     paramItemKey: "항목 key",
     paramTabKey: "탭 키",
     paramStepKey: "단계 키",
+    paramFilterCondition: "조건",
+    paramFilterField: "필드",
     paramValue: "값",
     disableAll: "전체 비활성화",
     enableAll: "전체 활성화",
@@ -2485,6 +2495,7 @@ const catalog: TranslationKeys = {
     apiQuery_keyExceptParam: "뺄 행 (key)",
     apiQueryKeyRows: "key 로 행 조회 받기 (keys.only · keys.except)",
     apiQueryGroupRows: "묶음의 행 조회 받기 (groupOf)",
+    apiQueryFacets: "후보 값 조회 받기 (facet)",
     apiQueryMultiSort: "여러 정렬 받기 (쉼표 목록)",
     apiQueryExtendedAggregates: "중앙값 · 고유 값 · 범위 · 처음 · 끝 집계 받기",
     apiQueryViews: "이 collection 을 읽는 데이터 보기",
@@ -2786,6 +2797,8 @@ const catalog: TranslationKeys = {
     addCondition: "조건 추가",
     presetLabel: "이름",
     addPreset: "이름 붙인 묶음 추가",
+    date: "날짜",
+    exactDate: "날짜 지정",
   },
   validationRules: {
     self: "이 필드",

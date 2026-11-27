@@ -241,3 +241,27 @@ export function catalogJudgeFilterItems(
   }
   return { taken, refused };
 }
+
+/**
+ * ADR-320 Phase 5 — the root items that apply (the named state 「적용된 조건 수」 counts them, When
+ * 「필터 변경」 follows them): a condition switched on with its value (or a comparison that takes
+ * none), a group with one such inside. A condition still being entered applies nothing.
+ */
+export function catalogFilterTreeApplied(
+  tree: ViewConditionGroup | undefined,
+): (ViewCondition | ViewConditionGroup)[] {
+  const applies = (item: ViewCondition | ViewConditionGroup): boolean =>
+    "items" in item
+      ? item.items.some(applies)
+      : item.enabled !== false &&
+        (item.op === "exists" ||
+          item.op === "notExists" ||
+          !(
+            item.value === undefined ||
+            item.value === "" ||
+            (Array.isArray(item.value) &&
+              (item.value.length === 0 ||
+                item.value.every((end) => end === "" || end === undefined)))
+          ));
+  return (tree?.items ?? []).filter(applies);
+}

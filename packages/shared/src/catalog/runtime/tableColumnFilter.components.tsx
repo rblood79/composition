@@ -8,7 +8,14 @@
  * RAC parts as they are (D1): `Dialog` · `Form` · `Select` · `TextField` · `ListBox`; their look is
  * the catalog's generated sheet for those classes (D3).
  */
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 import { Button } from "react-aria-components/Button";
 import { Dialog, Heading } from "react-aria-components/Dialog";
@@ -16,24 +23,39 @@ import { Form } from "react-aria-components/Form";
 import { useLocale } from "react-aria-components/I18nProvider";
 import { Input } from "react-aria-components/Input";
 import { Label } from "react-aria-components/Label";
-import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { Collection } from "react-aria-components/Collection";
+import {
+  ListBox,
+  ListBoxItem,
+  ListBoxLoadMoreItem,
+} from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
 import { Select, SelectValue } from "react-aria-components/Select";
 import { Text } from "react-aria-components/Text";
 import { TextField } from "react-aria-components/TextField";
-import type { ViewComparison } from "../document/types";
 import type { CatalogColumnFilterAccess } from "./tableOperationsDom.runtime";
+import type { CatalogTableFacet } from "./tableColumnMenu";
 import {
   catalogColumnFilterCondition,
   catalogColumnFilterDraft,
   catalogFilterPicksMany,
   catalogFilterValueless,
   type CatalogColumnFilterDraft,
-  type CatalogFilterUnit,
 } from "./tableColumnFilterDraft";
 import { catalogLocalized } from "./localizedStrings";
-import { CATALOG_FILTER_WORDS, type CatalogFilterWords } from "./filterWording";
+import {
+  CATALOG_FILTER_WORDS,
+  catalogRelativeDateWord,
+  type CatalogFilterWords,
+} from "./filterWording";
 import { catalogLucideGlyph } from "./lucideGlyph";
+import {
+  CATALOG_RELATIVE_DATE_OPS,
+  CATALOG_RELATIVE_DATES,
+  catalogRelativeDateOf,
+  catalogRelativeDateToken,
+  type CatalogRelativeDate,
+} from "./filterRelativeDates";
 
 interface FilterStrings extends CatalogFilterWords {
   readonly title: string;
@@ -42,12 +64,17 @@ interface FilterStrings extends CatalogFilterWords {
   readonly from: string;
   readonly to: string;
   readonly unit: string;
+  /** Phase 5 — a date condition's value kind (a day typed, or a relative date). */
+  readonly date: string;
+  readonly exactDate: string;
   readonly values: string;
   readonly searchValues: string;
   readonly apply: string;
   readonly clear: string;
   readonly loaded: (rows: number) => string;
   readonly more: (rows: number) => string;
+  readonly loadingValues: string;
+  readonly valuesFailed: string;
   readonly range: (min: string, max: string) => string;
 }
 
@@ -60,12 +87,16 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     from: "From",
     to: "To",
     unit: "Unit",
+    date: "Date",
+    exactDate: "Exact date",
     values: "Values",
     searchValues: "Search values",
     apply: "Apply",
     clear: "Clear",
     loaded: (rows) => `Values of the ${rows} loaded rows`,
     more: (rows) => `${rows} more — search to narrow`,
+    loadingValues: "Loading values…",
+    valuesFailed: "Couldn't load the values",
     range: (min, max) => `${min} – ${max}`,
   },
   ko: {
@@ -76,12 +107,16 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     from: "시작",
     to: "끝",
     unit: "단위",
+    date: "날짜",
+    exactDate: "날짜 지정",
     values: "값 목록",
     searchValues: "값 검색",
     apply: "적용",
     clear: "지우기",
     loaded: (rows) => `불러온 ${rows} 행 기준`,
     more: (rows) => `${rows} 개 더 — 검색으로 좁히기`,
+    loadingValues: "값을 불러오는 중…",
+    valuesFailed: "값을 불러오지 못함",
     range: (min, max) => `${min} – ${max}`,
   },
   ja: {
@@ -92,12 +127,16 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     from: "開始",
     to: "終了",
     unit: "単位",
+    date: "日付",
+    exactDate: "日付を指定",
     values: "値の一覧",
     searchValues: "値を検索",
     apply: "適用",
     clear: "クリア",
     loaded: (rows) => `読み込んだ ${rows} 行の値`,
     more: (rows) => `ほか ${rows} 件 — 検索で絞り込み`,
+    loadingValues: "値を読み込み中…",
+    valuesFailed: "値を読み込めませんでした",
     range: (min, max) => `${min} – ${max}`,
   },
   zh: {
@@ -108,12 +147,16 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     from: "从",
     to: "到",
     unit: "单位",
+    date: "日期",
+    exactDate: "指定日期",
     values: "值列表",
     searchValues: "搜索值",
     apply: "应用",
     clear: "清除",
     loaded: (rows) => `基于已加载的 ${rows} 行`,
     more: (rows) => `还有 ${rows} 个 — 搜索以缩小范围`,
+    loadingValues: "正在加载值…",
+    valuesFailed: "无法加载值",
     range: (min, max) => `${min} – ${max}`,
   },
 };
@@ -217,6 +260,82 @@ const isEmptyValue = (value: unknown) =>
 const candidateText = (value: unknown, strings: FilterStrings): string =>
   isEmptyValue(value) ? strings.empty : String(value);
 
+/** ADR-320 사용자 결정 9 — how long a typed search waits before it asks the server (the next keystroke cancels it). */
+const SERVER_SEARCH_DELAY = 250;
+
+/**
+ * ADR-320 사용자 결정 9 — the server's candidate values (`facet.server`): the first page for the
+ * search (after `SERVER_SEARCH_DELAY` once typing starts — a newer search aborts the request
+ * before it), the next pages appended (`more`). Undefined `server` = none asked.
+ */
+function useServerFacet(
+  server: CatalogTableFacet["server"],
+  search: string,
+): {
+  values?: readonly { value: unknown; count: number }[];
+  loading: boolean;
+  failed: boolean;
+  more?: () => void;
+} {
+  const [state, setState] = useState<{
+    search: string;
+    values?: readonly { value: unknown; count: number }[];
+    cursor?: string;
+    loading: boolean;
+    failed: boolean;
+  }>({ search, loading: !!server, failed: false });
+  const request = useRef<AbortController | undefined>(undefined);
+  const typed = useRef(false);
+  const asking = useRef<string | undefined>(undefined);
+  const read = (term: string, cursor: string | undefined) => {
+    if (!server) return;
+    // (The same page asked again while it loads — the list's end reporting twice — is one request.)
+    const key = JSON.stringify([term, cursor ?? null]);
+    if (cursor !== undefined && asking.current === key) return;
+    asking.current = key;
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    setState((now) => ({ ...now, search: term, loading: true, failed: false }));
+    server({ search: term.trim() || undefined, cursor }, controller.signal)
+      .then((page) => {
+        if (controller.signal.aborted) return;
+        asking.current = undefined;
+        setState((now) => ({
+          search: term,
+          values: cursor ? [...(now.values ?? []), ...page.values] : page.values,
+          ...(page.cursor !== undefined ? { cursor: page.cursor } : {}),
+          loading: false,
+          failed: false,
+        }));
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        asking.current = undefined;
+        setState((now) => ({ ...now, loading: false, failed: true }));
+      });
+  };
+  useEffect(() => {
+    if (!server) return;
+    // (The first read is at once; a typed search waits — the next keystroke cancels it.)
+    const delay = typed.current ? SERVER_SEARCH_DELAY : 0;
+    typed.current = true;
+    const timer = setTimeout(() => read(search, undefined), delay);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a read per search
+  }, [server, search]);
+  useEffect(() => () => request.current?.abort(), []);
+  if (!server) return { loading: false, failed: false };
+  return {
+    ...(state.values ? { values: state.values } : {}),
+    loading: state.loading,
+    failed: state.failed,
+    ...(state.cursor !== undefined && !state.loading
+      ? { more: () => read(state.search, state.cursor) }
+      : {}),
+  };
+}
+
 export default function CatalogColumnFilterDialog({
   access,
   onClose,
@@ -233,6 +352,11 @@ export default function CatalogColumnFilterDialog({
   );
   const [search, setSearch] = useState("");
   const facet = view?.facet;
+  // (ADR-320 사용자 결정 9 — a server that answers candidate values: its values, its search.)
+  const served = useServerFacet(
+    view?.kind === "boolean" ? undefined : facet?.server,
+    search,
+  );
   // (In the values' order — numbers by value, the rest by the locale's; the empty one last.)
   const sorted = useMemo(() => {
     const values =
@@ -241,7 +365,7 @@ export default function CatalogColumnFilterDialog({
             { value: true, count: NaN },
             { value: false, count: NaN },
           ]
-        : (facet?.values ?? []);
+        : (served.values ?? (facet?.server ? [] : (facet?.values ?? [])));
     const collator = new Intl.Collator(locale, { numeric: true });
     return values
       .map((item, index) => ({ ...item, id: String(index) }))
@@ -252,9 +376,10 @@ export default function CatalogColumnFilterDialog({
             ? a.value - b.value
             : collator.compare(String(a.value), String(b.value)),
       );
-  }, [view?.kind, facet, locale]);
+  }, [view?.kind, facet, served.values, locale]);
   const candidates = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase(locale);
+    // (The server searched its own values.)
+    const needle = facet?.server ? "" : search.trim().toLocaleLowerCase(locale);
     return needle
       ? sorted.filter((item) =>
           candidateText(item.value, strings)
@@ -262,7 +387,7 @@ export default function CatalogColumnFilterDialog({
             .includes(needle),
         )
       : sorted;
-  }, [sorted, search, locale, strings]);
+  }, [sorted, search, locale, strings, facet?.server]);
   if (!view || !draft) return null;
   const set = (patch: Partial<CatalogColumnFilterDraft>) =>
     setDraft({ ...draft, ...patch });
@@ -276,9 +401,22 @@ export default function CatalogColumnFilterDialog({
         : "text";
   // (A list of candidates: the many-value comparisons pick from it; `equals` · `notEquals` fill the
   //  value from it — a boolean's two values are the list.)
+  // (ADR-320 Phase 5 — 사용자 결정 7: a date condition's value may be a relative date, kept as its
+  //  token — the rows read its days, `filterRelativeDates.ts`.)
+  const relative =
+    view.kind === "date" &&
+    op !== "between" &&
+    CATALOG_RELATIVE_DATE_OPS.includes(op);
+  const token = relative ? catalogRelativeDateOf(draft.text) : undefined;
   const listed =
-    many || ((op === "equals" || op === "notEquals") && candidates.length > 0);
-  const shown = candidates.slice(0, CATALOG_FILTER_SHOWN_VALUES);
+    !token &&
+    (many ||
+      ((op === "equals" || op === "notEquals") &&
+        (candidates.length > 0 || !!facet?.server)));
+  // (The server pages its values — every page read is shown.)
+  const shown = facet?.server
+    ? candidates
+    : candidates.slice(0, CATALOG_FILTER_SHOWN_VALUES);
   const selectedKeys = shown
     .filter((item) =>
       many
@@ -349,13 +487,38 @@ export default function CatalogColumnFilterDialog({
             />
           </div>
         ) : (
-          <ValueField
-            label={strings.value}
-            type={inputType}
-            value={draft.text}
-            onChange={(text) => set({ text })}
-            autoFocus
-          />
+          <>
+            {relative ? (
+              <FilterSelect
+                label={strings.date}
+                value={token ?? "exact"}
+                options={[
+                  { id: "exact", label: strings.exactDate },
+                  ...CATALOG_RELATIVE_DATES.map((id) => ({
+                    id,
+                    label: catalogRelativeDateWord(id, locale) ?? id,
+                  })),
+                ]}
+                onChange={(next) =>
+                  set({
+                    text:
+                      next === "exact"
+                        ? ""
+                        : catalogRelativeDateToken(next as CatalogRelativeDate),
+                  })
+                }
+              />
+            ) : null}
+            {token ? null : (
+              <ValueField
+                label={strings.value}
+                type={inputType}
+                value={draft.text}
+                onChange={(text) => set({ text })}
+                autoFocus
+              />
+            )}
+          </>
         )}
         {range && (view.kind === "number" || view.kind === "date") ? (
           <Text slot="description" style={{ fontSize: "0.85em" }}>
@@ -364,7 +527,8 @@ export default function CatalogColumnFilterDialog({
         ) : null}
         {listed ? (
           <>
-            {(facet?.values.length ?? 0) > SEARCHED_VALUES ? (
+            {facet?.server ||
+            (facet?.values.length ?? 0) > SEARCHED_VALUES ? (
               <ValueField
                 label={strings.searchValues}
                 type="search"
@@ -374,7 +538,6 @@ export default function CatalogColumnFilterDialog({
             ) : null}
             <ListBox
               aria-label={strings.values}
-              items={shown}
               selectionMode={many ? "multiple" : "single"}
               selectedKeys={selectedKeys}
               onSelectionChange={(keys) => {
@@ -394,6 +557,7 @@ export default function CatalogColumnFilterDialog({
               }}
               style={{ maxHeight: 200, overflow: "auto", width: "100%" }}
             >
+              <Collection items={shown}>
               {(item) => (
                 <ListBoxItem
                   id={item.id}
@@ -413,13 +577,30 @@ export default function CatalogColumnFilterDialog({
                   ) : null}
                 </ListBoxItem>
               )}
+              </Collection>
+              {/* (ADR-320 사용자 결정 9 — the server's next page, when it has one.) */}
+              {facet?.server ? (
+                <ListBoxLoadMoreItem
+                  isLoading={served.loading}
+                  {...(served.more ? { onLoadMore: served.more } : {})}
+                >
+                  <Text style={{ fontSize: "0.85em" }}>
+                    {strings.loadingValues}
+                  </Text>
+                </ListBoxLoadMoreItem>
+              ) : null}
             </ListBox>
+            {served.failed ? (
+              <Text slot="description" style={{ fontSize: "0.85em" }}>
+                {strings.valuesFailed}
+              </Text>
+            ) : null}
             {candidates.length > shown.length ? (
               <Text slot="description" style={{ fontSize: "0.85em" }}>
                 {strings.more(candidates.length - shown.length)}
               </Text>
             ) : null}
-            {facet?.partial ? (
+            {facet?.partial && !facet.server ? (
               <Text slot="description" style={{ fontSize: "0.85em" }}>
                 {strings.loaded(facet.loaded)}
               </Text>

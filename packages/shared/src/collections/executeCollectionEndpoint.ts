@@ -197,6 +197,30 @@ export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, si
   };
 }
 
+/**
+ * ADR-320 사용자 결정 9 — a field's candidate values from a `body` endpoint that answers `facet`
+ * (`querySerialization.facets`): the request is the view's `where` and `facet` (`extra.body` —
+ * `serializeViewQueries` with a `facet` item), the response `{ items: [{ value, count }],
+ * nextCursor }` at its top (not the rows' `responseMapping`). An item without a whole count is
+ * kept with `NaN` (shown without one); a response of another shape is refused.
+ */
+export async function loadCollectionFacet(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, extra?: EndpointRequestExtra): Promise<{items: {value: unknown; count: number}[]; cursor?: string}> {
+  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve, extra);
+  const body = requestBody(endpoint, extra, (await intake()).stringifyJsonLossless);
+  const response = await fetch(url, {method, headers, signal: requestSignal,
+    body: method !== "GET" && method !== "HEAD" ? body : undefined});
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  const result = await responseJson(response) as {items?: unknown; nextCursor?: unknown} | null;
+  const items = result && typeof result === "object" ? result.items : undefined;
+  if (!Array.isArray(items)) throw new Error("FACET_RESPONSE: no items");
+  const next = result!.nextCursor;
+  return {
+    items: items.flatMap((item) => item !== null && typeof item === "object" && "value" in item
+      ? [{value: (item as {value: unknown}).value, count: Number((item as {count?: unknown}).count ?? NaN)}] : []),
+    ...(typeof next === "string" && next !== "" ? {cursor: next} : typeof next === "number" ? {cursor: String(next)} : {}),
+  };
+}
+
 /** 앱 runtime 공통 API 실행. Chart/List는 CollectionDataProvider 서비스만 소비한다. */
 export async function executeCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver): Promise<unknown> {
   const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve);

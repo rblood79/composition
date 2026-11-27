@@ -924,6 +924,10 @@ const catalog: TranslationKeys = {
       stepCompletion: {
         onLastCompletedStepChange: "On completed step change",
       },
+      // (ADR-320 Phase 5 — a filter bar's applied conditions.)
+      filterConditions: {
+        onFilterChange: "On filter change",
+      },
       groupAction: {
         onGroupAction: "On group action",
       },
@@ -966,6 +970,7 @@ const catalog: TranslationKeys = {
       resize: "Panel size",
       stepSelection: "Current step",
       stepCompletion: "Completed step",
+      filterConditions: "Filters",
       groupAction: "Group action",
       remove: "Removal",
       focusedDate: "Focused date",
@@ -1076,6 +1081,9 @@ const catalog: TranslationKeys = {
     previousStep: "Previous step",
     goToStep: "Go to step",
     completeStep: "Complete step",
+    addFilterCondition: "Add condition",
+    removeFilterCondition: "Remove a field's conditions",
+    clearFilterConditions: "Remove all conditions",
     open: "Open",
     close: "Close",
     toggleOpen: "Toggle open",
@@ -1099,6 +1107,8 @@ const catalog: TranslationKeys = {
     paramItemKey: "Item key",
     paramTabKey: "Tab key",
     paramStepKey: "Step key",
+    paramFilterCondition: "Condition",
+    paramFilterField: "Field",
     paramValue: "Value",
     disableAll: "Disable all inside",
     enableAll: "Enable all inside",
@@ -2496,6 +2506,7 @@ const catalog: TranslationKeys = {
     apiQuery_keyExceptParam: "Rows without (keys)",
     apiQueryKeyRows: "Rows by key (keys.only · keys.except)",
     apiQueryGroupRows: "Rows of a group (groupOf)",
+    apiQueryFacets: "Candidate values (facet)",
     apiQueryMultiSort: "Several sorts (comma lists)",
     apiQueryExtendedAggregates:
       "Median · unique · extent · first · last aggregates",
@@ -2799,6 +2810,8 @@ const catalog: TranslationKeys = {
     addCondition: "Add condition",
     presetLabel: "Name",
     addPreset: "Add saved filter",
+    date: "Date",
+    exactDate: "Exact date",
   },
   validationRules: {
     self: "This field",

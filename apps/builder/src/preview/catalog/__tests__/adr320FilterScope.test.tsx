@@ -335,5 +335,197 @@ describe("ADR-320 Phase 3 — a filter bar's scope", () => {
       ].map((option) => option.textContent?.trim());
       expect(options).toEqual(["A2", "B2", "C2"]);
     });
+
+    /**
+     * ADR-320 Phase 4 (G4) — the condition builder: RAC `Tree` rows of the scope's tree. Shapes are
+     * written here (`c1` = type is one of A · B). Drags run live (pointer · keyboard — the G4 live
+     * script); the moves' shapes are `adr320FilterTreeEdit.test.ts`.
+     */
+    describe("the condition builder (Phase 4)", () => {
+      const STATUS_F: ViewConditionGroup["items"][number] = {
+        id: "c2",
+        fields: [["data:field:f-status" as never]],
+        op: "equals",
+        value: "female",
+      };
+      const treeRows = () =>
+        [...document.querySelectorAll<HTMLElement>('[role="treegrid"] [role="row"]')].map(
+          (row) => `${row.getAttribute("aria-level")} ${row.getAttribute("aria-label")}`,
+        );
+      const rowOf = (label: string) =>
+        [...document.querySelectorAll<HTMLElement>('[role="treegrid"] [role="row"]')].find(
+          (row) => row.getAttribute("aria-label") === label,
+        )!;
+      const shape = (h: Awaited<ReturnType<typeof scope>>) => {
+        const walk = (item: ViewConditionGroup["items"][number]): string =>
+          "items" in item ? `${item.op}(${item.items.map(walk).join(" ")})` : item.id;
+        return (h.scopes.tree(h.bar)?.items ?? []).map(walk).join(" ");
+      };
+      /** Esc pressed and released (a key held is the chip line's cue to wait — `afterKeyRelease`). */
+      const escape = async () => {
+        const at = document.activeElement ?? document.body;
+        act(() => {
+          fireEvent.keyDown(at, { key: "Escape" });
+          fireEvent.keyUp(at, { key: "Escape" });
+        });
+        await settle();
+      };
+      const open = async (h: Awaited<ReturnType<typeof scope>>) => {
+        await click(button(h.element(h.bar)!, "Edit conditions"));
+        await waitFor(
+          () => expect(document.querySelector('[role="treegrid"]')).toBeTruthy(),
+          { timeout: 5000 },
+        );
+      };
+
+      it("「Edit conditions」 opens the tree; 「Add group」 adds an 「or」 group of the picked field", async () => {
+        const h = await scope();
+        await running(h);
+        await open(h);
+        expect(treeRows()).toEqual(["1 type Is one of A, B"]);
+        await click(button(document.body, "Add group"));
+        await pick("status");
+        expect(shape(h)).toMatch(/^c1 or\(filter-bar:\S+\)$/);
+        await waitFor(() =>
+          expect(treeRows()).toEqual([
+            "1 type Is one of A, B",
+            "1 Conditions Or",
+            "2 status Contains",
+          ]),
+        );
+        // (The new condition's comparisons open on its builder row, not on a chip.)
+        expect(menuItems().map((item) => item.textContent?.trim())).toContain("Equals");
+      });
+
+      it("the 「and · or」 switch · 「Ungroup」 · 「Group」 · 「Move up」 match the shapes", async () => {
+        const h = await scope();
+        await h.write(tree(TYPE_AB, { id: "g", op: "or", items: [STATUS_F] }));
+        await running(h);
+        await open(h);
+        // or(c2) — type A/B and status female: u2 · u4.
+        expect(h.rows()).toEqual(["User 2", "User 4"]);
+        await click(button(rowOf("Conditions Or"), "Or"));
+        expect(shape(h)).toBe("c1 and(c2)");
+        await click(button(rowOf("Conditions And"), "Group actions"));
+        await pick("Ungroup");
+        expect(shape(h)).toBe("c1 c2");
+        await click(button(rowOf("status Equals female"), "Condition actions"));
+        await pick("Move up");
+        expect(shape(h)).toBe("c2 c1");
+        await click(button(rowOf("status Equals female"), "Condition actions"));
+        await pick("Group");
+        expect(shape(h)).toBe("or(c2) c1");
+        expect(h.rows()).toEqual(["User 2", "User 4"]);
+      });
+
+      it("a row's comparison change opens its value editor with that comparison (not the row's last draw)", async () => {
+        const h = await scope();
+        await running(h);
+        await open(h);
+        await click(button(rowOf("type Is one of A, B"), "Is one of"));
+        await pick("Equals");
+        const editor = await waitFor(
+          () => {
+            const found = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')].find(
+              (dialog) => !dialog.querySelector('[role="treegrid"]'),
+            );
+            expect(found).toBeTruthy();
+            return found!;
+          },
+          { timeout: 5000 },
+        );
+        // (The editor's comparison picker reads the scope's condition now: 「Equals」.)
+        await waitFor(() =>
+          expect(
+            [...editor.querySelectorAll("button")].map((b) => b.textContent?.trim()),
+          ).toContain("Equals"),
+        );
+        expect(
+          [...editor.querySelectorAll("button")].map((b) => b.textContent?.trim()),
+        ).not.toContain("Is one of");
+      });
+
+      it("a row whose condition did not change reads the tree now — 「Move down」 once a row follows it", async () => {
+        const h = await scope();
+        await running(h);
+        await open(h);
+        await click(button(rowOf("type Is one of A, B"), "Condition actions"));
+        expect(menuItems().map((item) => item.textContent?.trim())).not.toContain("Move down");
+        await escape();
+        // (The builder's own 「Add condition」.)
+        await click(button(document.body, "Add condition"));
+        await pick("status");
+        await escape();
+        await waitFor(() => expect(treeRows()).toHaveLength(2));
+        await click(button(rowOf("type Is one of A, B"), "Condition actions"));
+        expect(menuItems().map((item) => item.textContent?.trim())).toContain("Move down");
+      });
+
+      it("three levels of groups at most — the third offers no 「Add group」, its condition no 「Group」", async () => {
+        const h = await scope();
+        const deep = tree(
+          TYPE_AB,
+          {
+            id: "l1",
+            op: "or",
+            items: [{ id: "l2", op: "and", items: [{ id: "l3", op: "or", items: [STATUS_F] }] }],
+          },
+        );
+        await h.write(deep);
+        await running(h);
+        await open(h);
+        expect(treeRows().map((row) => row.split(" ")[0])).toEqual(["1", "1", "2", "3", "4"]);
+        // (The third group is the row at level 3.)
+        const third = [...document.querySelectorAll<HTMLElement>('[role="treegrid"] [role="row"]')].find(
+          (row) => row.getAttribute("aria-level") === "3",
+        )!;
+        await click(button(third, "Group actions"));
+        expect(menuItems().map((item) => item.textContent?.trim())).not.toContain("Add group");
+        expect(menuItems().map((item) => item.textContent?.trim())).toContain("Add condition");
+        await escape();
+        const second = [...document.querySelectorAll<HTMLElement>('[role="treegrid"] [role="row"]')].find(
+          (row) => row.getAttribute("aria-level") === "2",
+        )!;
+        await click(button(second, "Group actions"));
+        expect(menuItems().map((item) => item.textContent?.trim())).toContain("Add group");
+        await escape();
+        await click(button(rowOf("status Equals female"), "Condition actions"));
+        expect(menuItems().map((item) => item.textContent?.trim())).not.toContain("Group");
+      });
+
+      it("a scope that takes no group offers no group feature", async () => {
+        const h = await scope();
+        vi.spyOn(
+          h.session.tables.filterBarAccess(
+            h.element(h.bar)!.getAttribute("data-catalog-id")!,
+          )!,
+          "takes",
+        ).mockReturnValue(false);
+        await running(h);
+        await open(h);
+        expect(button(document.body, "Add group")).toBeUndefined();
+        expect(button(document.body, "Add condition")).toBeTruthy();
+        await click(button(rowOf("type Is one of A, B"), "Condition actions"));
+        expect(menuItems().map((item) => item.textContent?.trim())).not.toContain("Group");
+      });
+
+      it("a group chip's menu opens the builder; 「Builder」 lays it out in the bar", { timeout: 20000 }, async () => {
+        const h = await scope();
+        await h.write(tree({ id: "g", op: "or", items: [TYPE_AB, STATUS_F] }));
+        await running(h);
+        await click(button(chipOf(h), "Condition menu"));
+        await pick("Edit conditions");
+        await waitFor(() => expect(treeRows()).toHaveLength(3), { timeout: 5000 });
+        await escape();
+        h.declare(h.bar, { variant: "builder" });
+        await settle();
+        await waitFor(
+          () => expect(h.element(h.bar)!.querySelector('[role="treegrid"]')).toBeTruthy(),
+          { timeout: 5000 },
+        );
+        expect(button(h.element(h.bar)!, "Edit conditions")).toBeUndefined();
+        expect(h.element(h.bar)!.querySelectorAll('[role="group"]')).toHaveLength(0);
+      });
+    });
   });
 });

@@ -1,5 +1,9 @@
 import { catalogPropValueFits, scalarFitsType } from "./valueType";
-import { catalogFilterPresetsFit, catalogFilterQueryFits } from "./filterQuery";
+import {
+  catalogFilterDoConditionFits,
+  catalogFilterPresetsFit,
+  catalogFilterQueryFits,
+} from "./filterQuery";
 import {
   catalogLabeledValueFits,
   catalogLabeledFormatFits,
@@ -2551,7 +2555,9 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
             else if (
               !catalogNumberRangeFits(action.value) &&
               // (ADR-309 — a date range Do's `{start, end}`.)
-              !catalogDateRangeFits(action.value)
+              !catalogDateRangeFits(action.value) &&
+              // (ADR-320 Phase 5 — a filter bar's 「조건 넣기」 `{ field, op, value }`.)
+              !catalogFilterDoConditionFits(action.value)
             )
               scalar(action.value, `${at}.value`);
           }

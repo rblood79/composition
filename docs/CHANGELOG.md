@@ -13,6 +13,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-320 Implemented — 필터 바 (칩 줄 · 조건 빌더 · 서버 후보 값)] - 2026-11-27
+
+### Changed
+
+- ADR-320 을 닫았다 (사용자 지시 「Implemented 로 올리고, 본문을 completed/ 로」). 필터 바 세 개 (로컬 · `suffix` · `body` collection) 를 Builder 에서 넣고 Publish 에서 조건 추가 · 후보 값 고르기 · 서버 후보 값 검색 · 여러 목록 동시 거르기를 Chrome · WebKit 에서 확인했다 (9 / 9).
+  - 조건 변경 → 표시 1x 첫 클릭 184 ms (기준 169) 는 사용자 결정 「A로 진행」 으로 받아들였다.
+  - VoiceOver 청취는 하지 않았다 — 자동 근거는 Chrome 접근성 트리와 정적 D1 검사까지다.
+  - 위치: `docs/adr/completed/320-filter-bar-runtime-condition-builder.md` · `docs/adr/README.md`
+- Builder 첫 로드 번들은 320 합계 ≈ +8,985 B (1,660,959 / 절대 상한 1,662,000 B).
+
 ## [ADR-321 Implemented — StepList · Stepper · Rating] - 2026-11-27
 
 ### Changed
@@ -61,6 +71,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - API 응답이 2 KiB를 넘어도 스키마 탭에서 전체 JSON의 행 배열과 열을 감지하고 테이블로 저장할 수 있다. 기존 데이터 경로가 응답의 배열을 가리키지 않으면 감지한 배열 경로를 선택한다.
+
+## [필터 바 — 서버 후보 값 · 여러 목록의 요청 (ADR-320 Phase 6)] - 2026-11-27
+
+### Added
+
+- API 연결 (조회 형식 「body」) 의 「Candidate values (facet)」 스위치 — 켜면 필터 바 · 열 메뉴의 값 편집기가 후보 값을 서버에 묻는다 (`{ where, facet: { field, search, cursor } }` → `{ items: [{ value, count }], nextCursor }`). 쪽 단위로 받는 표에서도 아직 불러오지 않은 행의 값을 고를 수 있다. 값 검색은 입력을 멈춘 뒤 0.25 초에 서버로 가고, 목록 끝에서 다음 값을 이어 불러온다. 스위치를 켜지 않은 연결은 지금처럼 불러온 행 기준이다.
+
+### Changed
+
+- 필터 바 하나가 작성자 조건이 다른 두 목록을 거를 때 각 목록의 요청이 자기 조건과 막대 조건을 함께 싣는다 (같은 collection — 대조 테스트 · live 로 확인).
+
+### Performance
+
+- **조건 변경 → 표시 (HC6, 10,000 행 · production)**: 4x p95 408 ~ 464 ms (기준 556 ~ 589 안) · 1x p95 184 ms (기준 169). 1x 에서 기준을 넘는 것은 18 클릭 중 첫 클릭 하나이고 나머지는 144 ms 이하다.
+  - 사용자 결정 「A로 진행」 — 첫 클릭의 +15 ms 는 수리하지 않고 받아들인다. 보이는 행 먼저 그리기 (ADR-315 Phase 3) 는 이 경로에 이미 걸려 있고, 첫 실행 비용이 React commit · composition root · 조건 첫 평가 · 행 투영에 나뉘어 있어 한 곳을 고쳐 줄일 근거가 없다.
+  - 위치: `docs/adr/design/320-filter-bar-runtime-condition-builder-breakdown.md` §9 Phase 6
+
+## [필터 바 — 기억 · 주소 · 저장된 필터 · 상대 날짜 · 상태 연동 (ADR-320 Phase 5)] - 2026-11-27
+
+### Added
+
+- Publish 의 주소에 필터 바의 조건이 실린다 (`#/경로?f.…`) — 링크를 받은 사람이 같은 조건으로 보고, 뒤로 가기가 앞 조건으로 돌아간다. 조건만 바뀌면 브라우저 기록을 쌓지 않는다.
+- 필터 바 「Remember filters」 를 켜면 Publish 의 그 브라우저가 조건을 기억해 다음에 열 때 이어서 보여 준다 (Builder Preview 는 기억하지 않는다).
+- 필터 바의 「Saved filters」 메뉴 — 작성자가 패널에서 만든 이름 붙인 묶음을 고르면 그 조건으로 바뀐다. 묶음이 없으면 버튼이 없다.
+- 날짜 조건의 값에 「오늘 · 어제 · 이번 주 · 지난 주 · 이번 달 · 지난 달 · 올해」 — 값 편집기와 패널의 「날짜」 에서 고르고, 날이 바뀌면 따라간다. 주의 시작은 사이트 언어를 따르고, 서버에는 그날의 날짜로 보낸다.
+- Interactions: 필터 바의 Do 「조건 추가」 · 「필드의 조건 지우기」 · 「조건 전부 지우기」, When 「필터가 바뀔 때」 (`!event.count`), 이름 붙인 상태 = 적용된 조건 수.
+
+### Changed
+
+- 주소 · 기억 · 저장된 필터로 들어온 조건도 시작 조건처럼 판정한다 — 지워진 필드를 읽는 묶음은 통째로 빼고 「적용하지 못한 조건 N」 을 알린다. 받지 않는 조건을 넣는 Do 는 실패로 보고한다.
+- 문서 형식 contract 86 (옛 85 문서는 열리지 않는다 — 변환 없음). Builder 첫 화면 번들 절대 상한 1,660,000 → 1,662,000 B (사용자 재승인).
+
+## [필터 바 조건 빌더 — 묶음 · 「그리고 · 또는」 · 중첩 · 순서 바꾸기 (ADR-320 Phase 4)] - 2026-11-27
+
+### Added
+
+- Preview · Publish 의 필터 바 「조건 편집」 이 조건 빌더를 연다 — 조건과 묶음이 나무 모양으로 보이고, 묶음마다 「그리고 · 또는」 을 바꾼다. 「조건 추가」 · 「묶음 추가」, 묶음 메뉴 (조건 추가 · 묶음 추가 · 묶음 풀기 · 복제 · 위로 · 아래로 · 삭제), 조건 메뉴 (복제 · 끄기 · 묶음으로 감싸기 · 위로 · 아래로 · 삭제). 행을 끌어 순서와 소속을 바꾼다 (마우스 · 키보드). 묶음은 3 단까지 만든다.
+- 묶음 칩의 메뉴에 「조건 편집」, 필터 바 Variant 「Builder」 는 칩 자리에 빌더를 바로 둔다.
+- 데이터 공급 방식이 묶음을 보내지 못하는 목록 (쪽 단위 원격 · 접미사 형식) 의 필터 바는 묶음 기능을 내지 않는다.
 
 ## [필터 바 칩 줄 — 실행 중 조건 추가 · 비교 · 값 · 끄기 · 지우기 (ADR-320 Phase 3)] - 2026-11-27
 

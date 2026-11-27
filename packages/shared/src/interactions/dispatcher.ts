@@ -115,6 +115,17 @@ export interface DispatchDeps {
     capability: string,
   ) => { ok: boolean; reason?: string };
   /**
+   * ADR-320 Phase 5 — a filter bar's scope tree write (`concepts/filterBar.ts`): a condition added
+   * (`{ field, op, value }`), a field's conditions removed (a field id), every condition removed.
+   * The scope's one assignment judges it — a condition it does not take is a failure (§5.9).
+   * Absent = it fails.
+   */
+  filterScope?: (
+    id: string,
+    write: "add" | "remove" | "clear",
+    value: unknown,
+  ) => { ok: boolean; reason?: string };
+  /**
    * ADR-281 Decision 5 — send a body to an API endpoint. Returns whether the request started; the
    * response's failure is the caller's to report (report + toast — it settles later). Absent = the
    * rule fails (never a silent no-op).
@@ -1012,6 +1023,36 @@ function executeInteractionAction(
           reason:
             result.reason ??
             `imperative capability 실패: ${target.type}.${action.capability}`,
+        };
+  }
+
+  if (def.filter) {
+    // ADR-320 Phase 5 — 필터 바의 범위 트리: 넣기 · 지우기 · 전부 지우기는 범위의 대입 하나를 지난다
+    // (§5.3 판정). 조건의 값은 다른 Do 의 값처럼 이 기록의 문맥에서 읽는다 (`!event` · `!var`).
+    if (!deps.filterScope)
+      return { ok: false, reason: "필터 범위 서비스 없음" };
+    let value: unknown;
+    const raw = action.params?.value;
+    if (def.filter === "add") {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw))
+        return { ok: false, reason: `${action.capability}: 조건이 없다` };
+      const condition = raw as Record<string, unknown>;
+      if (condition.value !== undefined) {
+        const read = resolveEventValue(condition.value, context, deps);
+        if (!read.ok) return read;
+        value = { ...condition, value: read.value };
+      } else value = condition;
+    } else if (def.filter === "remove") {
+      const read = resolveEventValue(raw, context, deps);
+      if (!read.ok) return read;
+      value = read.value;
+    }
+    const result = deps.filterScope(action.targetId, def.filter, value);
+    return result.ok
+      ? { ok: true, kind: "capability" }
+      : {
+          ok: false,
+          reason: `${target.type}.${action.capability} 을 쓰지 않는다 — ${result.reason ?? "실패"}`,
         };
   }
 

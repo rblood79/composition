@@ -114,8 +114,14 @@ function PublishedView({
     const unsubscribe = session.subscribe(() => {
       if (session.path) {
         const hash = `#${session.path}`;
-        if (location.hash !== new URL(hash, location.href).hash)
-          history.pushState(null, "", hash);
+        const next = new URL(hash, location.href).hash;
+        if (location.hash === next) return;
+        // (ADR-320 Phase 5 — a filter bar's tree changed the query of the same path: the address
+        //  follows without a new history entry; another path is a step the back button returns.)
+        const pathOf = (text: string) => text.split("?")[0];
+        if (pathOf(location.hash) === pathOf(next))
+          history.replaceState(null, "", hash);
+        else history.pushState(null, "", hash);
       }
     });
     window.addEventListener("hashchange", route);

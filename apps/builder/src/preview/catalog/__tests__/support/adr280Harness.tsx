@@ -73,6 +73,8 @@ export async function openAdr280Preview(
       setItem(key: string, value: string): void;
       removeItem(key: string): void;
     };
+    /** ADR-320 Phase 5 — a published app's address carries the filter trees. */
+    addressFilters?: boolean;
   } = {},
 ) {
   library ??= await buildCodeCatalogLibrary();
@@ -125,6 +127,7 @@ export async function openAdr280Preview(
     ...(sessionOptions.tableStateStorage
       ? { tableStateStorage: sessionOptions.tableStateStorage }
       : {}),
+    ...(sessionOptions.addressFilters ? { addressFilters: true } : {}),
     ...(sessionOptions.applyTheme
       ? { theme: catalogThemeState, applyTheme: sessionOptions.applyTheme }
       : {}),

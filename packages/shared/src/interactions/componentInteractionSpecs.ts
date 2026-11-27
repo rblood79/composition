@@ -125,6 +125,10 @@ import {
   stepSelection,
   type StepListStateProps,
 } from "./concepts/stepList";
+import {
+  filterConditions,
+  type FilterBarStateProps,
+} from "./concepts/filterBar";
 import { toggle } from "./concepts/toggle";
 import {
   valueColor,
@@ -370,6 +374,8 @@ export const COMPONENT_INTERACTION_SPECS = {
   StepList: {
     concepts: [{ concept: stepSelection }, { concept: stepCompletion }],
   },
+  // ADR-320 Phase 5: a filter bar's scope tree (When 「필터 변경」 · Do 조건 넣기 · 지우기 · 전부 지우기).
+  FilterBar: { concepts: [{ concept: filterConditions }] },
   Disclosure: { concepts: [{ concept: expansionOne }] },
   Accordion: {
     concepts: [{ concept: expansionKeys, owner: "group" }],
@@ -527,6 +533,7 @@ interface RacPropsOf {
   Breadcrumbs: BreadcrumbsProps<object>;
   Tabs: TabsProps;
   StepList: StepListStateProps;
+  FilterBar: FilterBarStateProps;
   Disclosure: DisclosureProps;
   Accordion: DisclosureGroupProps;
   MenuTrigger: MenuTriggerProps;

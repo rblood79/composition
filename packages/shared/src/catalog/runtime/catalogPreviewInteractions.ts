@@ -595,6 +595,23 @@ export interface CatalogPreviewInteractionsOptions {
   serverFilterOf?: (recordId: string) => string | undefined;
   /** ADR-320 Phase 3 — a running filter bar's scope (`CatalogTableController.filterBarAccess`). */
   filterBarAccess?: (recordId: string) => CatalogFilterBarAccess | undefined;
+  /**
+   * ADR-320 Phase 5 (§5.9) — a rule's Do on a bar's scope (`CatalogTableController.filterBarDo`), its
+   * named state (the applied conditions' count) and the scope's changes (When 「필터 변경」).
+   */
+  filterBarDo?: (
+    recordId: string,
+    write: "add" | "remove" | "clear",
+    value: unknown,
+  ) => { ok: boolean; reason?: string };
+  filterBarApplied?: (recordId: string) => number;
+  subscribeFilterScopes?: (
+    listener: (change: {
+      barId: string;
+      appliedChanged: boolean;
+      byRule: boolean;
+    }) => void,
+  ) => () => void;
   /** Whether a collection pages (`CatalogPreviewSession.pages`). */
   pages?: (collectionId: string) => boolean;
   /** ADR-310 「더 보기」 (`CatalogPreviewSession.moreLoaded`). */
@@ -695,6 +712,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private readonly deps: DispatchDeps;
   private readonly unsubscribe: () => void;
   private readonly unsubscribeLoadedSelection?: () => void;
+  private readonly unsubscribeFilterScopes?: () => void;
 
   constructor(private readonly options: CatalogPreviewInteractionsOptions) {
     // A load a rule started settles later: its failure is reported and shown as a toast.
@@ -831,7 +849,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
           (result) => {
             options.showToast(
               result.message,
-              result.ok ? { variant: "positive", timeout: 5000 } : FAILURE_TOAST,
+              result.ok
+                ? { variant: "positive", timeout: 5000 }
+                : FAILURE_TOAST,
             );
             return result.ok
               ? { ok: true }
@@ -875,6 +895,13 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       getRuntimeState: (id, prop) => {
         if (this.tableColumnPropsOf(id).includes(prop))
           return options.tableColumnState!.read(id, prop);
+        // (ADR-320 Phase 5 — a bar's named state is its scope's: the applied conditions' count.)
+        if (
+          prop === "appliedFilters" &&
+          options.filterBarApplied &&
+          options.root()?.domInputs.get(id)?.ruleId === "FilterBar"
+        )
+          return options.filterBarApplied(id);
         const root = options.root();
         const record = root?.domInputs.get(id);
         return root && record
@@ -1029,6 +1056,10 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         });
         if (pageId) options.navigate(pageId);
       },
+      filterScope: (id, write, value) =>
+        options.filterBarDo
+          ? options.filterBarDo(id, write, value)
+          : { ok: false, reason: "필터 범위 서비스 없음" },
       showToast: options.showToast,
       ...(options.writeState ? { writeState: options.writeState } : {}),
       ...(options.readState ? { readState: options.readState } : {}),
@@ -1039,11 +1070,46 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     this.unsubscribeLoadedSelection = options.subscribeLoadedSelection?.(
       (collectionId, keys, join) => this.selectLoaded(collectionId, keys, join),
     );
+    this.unsubscribeFilterScopes = options.subscribeFilterScopes?.((change) =>
+      this.filterChanged(change.barId, change.appliedChanged, change.byRule),
+    );
+  }
+
+  /**
+   * ADR-320 Phase 5 — a bar's applied conditions changed: its records' When 「필터 변경」 runs (with
+   * the count — `!event.count`) for a viewer's change; a Do's write moves its named state only (a
+   * RAC change callback is the user's change's). The records drawn again read the count.
+   */
+  private filterChanged(barId: string, applied: boolean, byRule: boolean) {
+    const root = this.options.root();
+    if (!root) return;
+    for (const recordId of root.recordsOfSource(barId)) {
+      this.touch(recordId);
+      if (!applied) continue;
+      const count = this.options.filterBarApplied?.(recordId) ?? 0;
+      if (!byRule) {
+        const handlers = this.handlersOf(recordId) as {
+          onFilterChange?: (count: number) => void;
+        };
+        handlers.onFilterChange?.(count);
+        continue;
+      }
+      const graph = this.options.graph();
+      if (graph)
+        for (const mirror of mirrorsOf(graph, root, recordId))
+          if (mirror.prop === "appliedFilters")
+            this.deps.writeState?.({
+              variableId: mirror.variableId,
+              op: "set",
+              value: normalizeImplicitStateValue(mirror.type, count),
+            });
+    }
   }
 
   dispose(): void {
     this.unsubscribe();
     this.unsubscribeLoadedSelection?.();
+    this.unsubscribeFilterScopes?.();
     this.listeners.clear();
   }
 

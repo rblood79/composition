@@ -54,6 +54,7 @@ function capabilitiesOf(use: ConceptUse): {
       ...(capability.imperative ? { imperative: true } : {}),
       ...(capability.op ? { op: capability.op } : {}),
       ...(capability.step ? { step: capability.step } : {}),
+      ...(capability.filter ? { filter: capability.filter } : {}),
       ...(capability.op && concept.selectionDefault
         ? { selectionDefault: concept.selectionDefault }
         : {}),

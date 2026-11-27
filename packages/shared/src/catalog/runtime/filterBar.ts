@@ -12,6 +12,10 @@ import type {
   ViewCondition,
   ViewConditionGroup,
 } from "../document/types";
+import {
+  catalogFilterPresetsFit,
+  type CatalogFilterPreset,
+} from "../document/filterQuery";
 import { catalogFilterTreeRead } from "./filterScope";
 import { catalogFilterChips } from "./filterWording";
 
@@ -22,6 +26,18 @@ const setValue = (node: NodeEntry, key: string): unknown => {
   const write = node.props[key];
   return write?.kind === "set" ? write.value : undefined;
 };
+
+/** Whether the bar keeps its tree in the browser (「Remember filters」 — 사용자 결정 4). */
+export const catalogFilterBarRemembers = (bar: NodeEntry): boolean =>
+  setValue(bar, "rememberFilters") === true;
+
+/** The bar's named sets (사용자 결정 6 — the author's, in the document); none = `[]`. */
+export function catalogFilterBarPresets(
+  bar: NodeEntry,
+): readonly CatalogFilterPreset[] {
+  const value = setValue(bar, "presets");
+  return catalogFilterPresetsFit(value) ? (value as CatalogFilterPreset[]) : [];
+}
 
 /** The bar's start tree (`undefined` = none — an empty or unreadable value). */
 export function catalogFilterBarStartTree(

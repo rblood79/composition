@@ -87,7 +87,10 @@ import {
   type SerializedKeyRows,
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
-import { viewSchemaAt } from "../../collections/view/evaluate";
+import {
+  viewFacetRequestQueries,
+  viewSchemaAt,
+} from "../../collections/view/evaluate";
 
 import type { CatalogTableSort } from "./tableSort";
 import type {
@@ -123,6 +126,7 @@ import {
   endpointReadsTemplate,
   endpointRequestKey,
   loadCollectionEndpoint,
+  loadCollectionFacet,
   type IntakeCollections,
 } from "../../collections/executeCollectionEndpoint";
 import {
@@ -143,6 +147,8 @@ import {
 } from "./tableStateQuery";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
 import { CATALOG_FILTER_TREE_ID } from "./filterScope";
+import { catalogPathQuery, catalogPathWithQuery } from "./filterAddress";
+import type { CatalogFilterAddress } from "./filterScopeSession";
 
 /** ADR-320 — a scope tree with no condition (a scope started · cleared to nothing — no chip). */
 const CATALOG_EMPTY_FILTER_TREE = {
@@ -330,6 +336,11 @@ export interface CatalogPreviewSessionOptions {
    * it (a design check does not start from an earlier session's sort).
    */
   tableStateStorage?: RuntimeKeyValueStorage | null;
+  /**
+   * ADR-320 Phase 5 (사용자 결정 5) — the app's address carries each filter bar's tree (`?f.<bar>=…`
+   * after the hash path — `filterAddress`). Publish only; the Builder's Preview has no address.
+   */
+  addressFilters?: boolean;
   /**
    * A published app — no Builder sends API rows (`CATALOG_DATA`) or runs the collections' execution
    * policy, so the session does both: every collection an endpoint fills loads by its policy (none ·
@@ -696,6 +707,9 @@ export class CatalogPreviewSession {
       get echoing() {
         return session.echoing;
       },
+      get filterAddress() {
+        return session.filterAddress;
+      },
       set echoing(value) {
         session.echoing = value;
       },
@@ -724,6 +738,7 @@ export class CatalogPreviewSession {
         return session.serverSortedTables;
       },
       serverView: (...args) => session.serverView(...args),
+      serverFacet: (...args) => session.serverFacet(...args),
       showPage: (...args) => session.showPage(...args),
       sortCollection: (...args) => session.sortCollection(...args),
       stageRowWindows: (...args) => session.stageRowWindows(...args),
@@ -837,6 +852,40 @@ export class CatalogPreviewSession {
     return project?.kind === "project" ? project.pageIds[0] : undefined;
   }
   private currentPath: string | undefined;
+  private address: CatalogFilterAddress | undefined;
+  private addressNotice = false;
+  /**
+   * ADR-320 Phase 5 (사용자 결정 5) — the published app's address as the filter scopes read and write
+   * it: the query of the shown path (`#/orders?f.<bar>=<tree>`). A write changes the path only — the
+   * app (Publish `App.tsx`) replaces its address entry when the path before the query is the same.
+   * Absent in the Builder's Preview (no address).
+   */
+  get filterAddress(): CatalogFilterAddress | undefined {
+    if (!this.options.addressFilters) return undefined;
+    return (this.address ??= {
+      read: (key) => {
+        const path = this.path;
+        return path ? catalogPathQuery(path, key) : undefined;
+      },
+      write: (key, value, notify) => {
+        const path = this.path;
+        if (!path) return;
+        const next = catalogPathWithQuery(path, key, value);
+        if (next === path) return;
+        this.currentPath = next;
+        if (notify) this.changed();
+        // (A tree restored while the rows are read — no notice now: the app's address follows
+        //  once that read is over.)
+        else if (!this.addressNotice) {
+          this.addressNotice = true;
+          queueMicrotask(() => {
+            this.addressNotice = false;
+            this.changed();
+          });
+        }
+      },
+    });
+  }
   get path(): string | undefined {
     const page = this.pageId && this.graph?.getEntry(this.pageId);
     return (
@@ -855,6 +904,8 @@ export class CatalogPreviewSession {
     this.notFoundPath = undefined;
     if (!samePage) this.state?.enterPage(pageId);
     this.fillShown();
+    // (ADR-320 Phase 5 — a link · the browser's back names other filter trees.)
+    this.tables.scopes.followAddress(this.pageId);
     // Another path (`/detail/u1` → `/detail/u2`, or into the page): the `{{ params.… }}` readers
     // resolve again.
     if (this.currentRoot) {
@@ -1978,7 +2029,8 @@ export class CatalogPreviewSession {
    */
   private recordRowSlices(recordId: string): CatalogRowSlices | undefined {
     // (ADR-320 Phase 3 — a list of a filter bar's scope: the scope's tree with its own state.)
-    const held = this.tables.heldTableState(recordId);
+    // (ADR-320 Phase 5 — the rows read the tree's relative dates as days; the state keeps them.)
+    const held = this.tables.rowTableState(recordId);
     const state =
       held && this.serverSortedTables.has(recordId) ? withoutSort(held) : held;
     // (ADR-315 Phase 5 증분 5g — a grouping · a totals row a server answers: its group query.)
@@ -3019,7 +3071,7 @@ export class CatalogPreviewSession {
     //  its rows' conditions — a Table's comes with its state's slices.)
     if (!slices && ownerId !== undefined) {
       const tree = this.tables.scopes.treeOfList(ownerId);
-      if (tree) slices = { where: tree };
+      if (tree) slices = { where: this.tables.scopes.rowTree(tree) };
     }
     // (ADR-315 Phase 2 · 3 — the Table's state is its bound view's: an answer to that query is
     //  those rows in that order, and is not filtered · sorted here again.)
@@ -3450,6 +3502,78 @@ export class CatalogPreviewSession {
       }
     }
     return out;
+  }
+  /**
+   * ADR-320 사용자 결정 9 — a field's candidate values from the server, when the endpoint that fills
+   * the collection says it answers them (`body` · `querySerialization.facets`): a read of one page
+   * of them — the candidate-values chain's views as a request's `where` (the edited condition left
+   * out — `viewFacetRequestQueries`) and `facet` (the field · the search · the next page). The values
+   * come in as the field's (`intakeQueryItems` — its encoding). Undefined = the endpoint answers
+   * none (the loaded rows' candidates stand) · the chain cannot be sent (a computed field).
+   */
+  serverFacet(collectionId: string):
+    | ((
+        query: CatalogRowQuery,
+        facet: { field: string; search?: string; cursor?: string },
+        signal: AbortSignal,
+      ) => Promise<{
+        values: { value: unknown; count: number }[];
+        cursor?: string;
+      }>)
+    | undefined {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const endpoint = collection ? this.endpointFilling(collection) : undefined;
+    const format = endpoint?.querySerialization;
+    if (
+      !collection ||
+      collection.useMockData ||
+      !endpoint ||
+      !format ||
+      // (A `body` format — the one that names candidate values.)
+      format.kind === "suffix" ||
+      format.kind === "none" ||
+      format.facets !== true
+    )
+      return undefined;
+    return async (query, facet, signal) => {
+      const serialized = serializeViewQueries(
+        format,
+        {
+          queries: catalogCountlessViews(viewFacetRequestQueries(query.queries)),
+          schema: this.requestSchema(collectionId),
+          resolve: catalogRowQueryResolve(query),
+        },
+        endpoint.method,
+        undefined,
+        { facet },
+        endpointUrlKeys(endpoint),
+      );
+      if (serialized.load === "all" || !serialized.body)
+        throw new Error("FACET_NOT_SENT");
+      const answer = await loadCollectionFacet(
+        endpoint,
+        signal,
+        this.endpointTemplateFor(collectionId),
+        { query: serialized.params, body: serialized.body },
+      );
+      const rows = intakeQueryItems(
+        answer.items.map((item) => ({ [facet.field]: item.value })),
+        collection,
+      );
+      return {
+        values: answer.items.map((item, index) => ({
+          value: Array.isArray(rows)
+            ? ((rows[index] as Record<string, unknown> | undefined)?.[
+                facet.field
+              ] ?? item.value)
+            : item.value,
+          count: item.count,
+        })),
+        ...(answer.cursor !== undefined ? { cursor: answer.cursor } : {}),
+      };
+    };
   }
   /** A query as a request (`serializeViewQueries` in the endpoint's format · fields). */
   private requestOf(
@@ -4466,7 +4590,7 @@ export class CatalogPreviewSession {
         tableState: (tableId) =>
           this.serverSortedTables.has(tableId)
             ? withoutSort(this.tables.tableState(tableId))
-            : this.tables.heldTableState(tableId),
+            : this.tables.rowTableState(tableId),
         rowWindow: (owner) => this.rowWindowOf(owner),
         state: this.stateSource(),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),

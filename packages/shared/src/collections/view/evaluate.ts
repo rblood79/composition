@@ -516,6 +516,18 @@ const groupKeyOf = (value: unknown) =>
   JSON.stringify(value === undefined ? null : value);
 
 /**
+ * ADR-320 사용자 결정 9 — a candidate-values chain as a server's candidate-values request reads it:
+ * the views before the candidate-values view with its skipped conditions left out (the same rule as
+ * here — `withoutOwnConditions`), the candidate-values view itself not sent (the request's `facet`
+ * names its field).
+ */
+export function viewFacetRequestQueries(
+  queries: readonly ViewQuery[],
+): readonly ViewQuery[] {
+  return withoutOwnConditions(queries).filter((query) => query.facet !== true);
+}
+
+/**
  * ADR-315 Phase 3 — a view chain as its candidate-values views (`facet`) read it: the views such
  * a view reads skip their conditions on its own group fields (TanStack faceting — 「그 열의 필터만 뺀
  * 결과」). Only conditions joined by `and` are skipped (an `or` group is one condition of several

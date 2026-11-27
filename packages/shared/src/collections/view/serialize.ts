@@ -107,6 +107,23 @@ export interface EndpointQuerySerialization {
    * over a server's pages loads every row and runs here.
    */
   groupRows?: boolean;
+  /**
+   * ADR-320 사용자 결정 9 — `body`: the server answers a request's `facet` — `{ field, search,
+   * cursor }` the values of that field among the rows the request's `where` keeps, with the rows
+   * each gives: `{ items: [{ value, count }], nextCursor }` (`loadCollectionFacet`). Absent = a
+   * filter's candidate values are those of the loaded rows (「불러온 N 행 기준」).
+   */
+  facets?: boolean;
+}
+
+/**
+ * ADR-320 사용자 결정 9 — a field's candidate values in a request (`body.facet`): the field's key,
+ * the text the values contain (the server's search) and the next page of them.
+ */
+export interface SerializedFacet {
+  field: string;
+  search?: string;
+  cursor?: string;
 }
 
 /** ADR-315 Phase 5 증분 5g — a group's rows in a request (`body.groupOf`): its fields and values. */
@@ -121,6 +138,8 @@ export interface SerializedGroupOf {
 export interface SerializedRequestItems {
   keys?: SerializedKeyRows;
   groupOf?: SerializedGroupOf;
+  /** ADR-320 사용자 결정 9 — a field's candidate values: the request is that alone (no page · sort). */
+  facet?: SerializedFacet;
 }
 
 /**
@@ -178,6 +197,8 @@ export type SerializationWarningCode =
   | "KEYS"
   /** ADR-315 Phase 5 증분 5g — a group's rows the endpoint names no request for: not sent. */
   | "GROUP_OF"
+  /** ADR-320 사용자 결정 9 — candidate values the endpoint names no request for: not sent. */
+  | "FACET"
   /**
    * ADR-315 사용자 결정 4 — a `body` grouping with an aggregate the endpoint has not said it runs
    * (`extendedAggregates`): the grouping is not sent, every row is loaded and grouped here.
@@ -215,6 +236,8 @@ export interface SerializedViewQuery {
     group?: SerializedViewGroup;
     page?: { cursor?: string; limit?: number };
     total?: true;
+    /** ADR-320 사용자 결정 9 — a field's candidate values (a request of those alone). */
+    facet?: SerializedFacet;
   };
   warnings: SerializationWarning[];
   /**
@@ -362,6 +385,7 @@ export function serializeViewQueries(
 ): SerializedViewQuery {
   const keys = items?.keys;
   const groupOf = items?.groupOf;
+  const facet = items?.facet;
   const warnings: SerializationWarning[] = [];
   const params: [string, string][] = [];
   if (serialization.kind === "none") return { params, warnings };
@@ -604,6 +628,34 @@ export function serializeViewQueries(
             ),
           }
         : undefined;
+    // (ADR-320 사용자 결정 9 — a field's candidate values: `facet` beside `where` — no rows are
+    //  asked for (no page · sort · total), the server counts the values the `where` keeps.)
+    if (facet) {
+      if (serialization.facets !== true) {
+        warnings.push({ code: "FACET" });
+        return { params, warnings, load: "all" };
+      }
+      return {
+        params,
+        body: {
+          ...(groups.length
+            ? {
+                where:
+                  groups.length === 1
+                    ? groups[0]
+                    : { op: "and", items: groups },
+              }
+            : {}),
+          facet: {
+            field: facet.field,
+            ...(facet.search ? { search: facet.search } : {}),
+            ...(facet.cursor !== undefined ? { cursor: facet.cursor } : {}),
+          },
+        },
+        warnings,
+        ...(unrun.length ? { load: "all" as const } : {}),
+      };
+    }
     return {
       params,
       body: {
@@ -674,6 +726,11 @@ export function serializeViewQueries(
     ]);
   }
   if (groupOf) warnings.push({ code: "GROUP_OF" });
+  // (ADR-320 사용자 결정 9 — a flat format names no candidate-values request.)
+  if (facet) {
+    warnings.push({ code: "FACET" });
+    return { params, warnings, load: "all" };
+  }
   // (ADR-291 Decision 6 — a flat parameter list has no grouping: every row, grouped here.)
   if (grouped) {
     warnings.push({ code: "GROUP" });

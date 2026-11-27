@@ -49,6 +49,11 @@ export interface ConceptCapability {
    * `catalog/runtime/stepListState.ts`), so the dispatcher writes the pair it gives.
    */
   step?: "next" | "previous" | "to" | "complete";
+  /**
+   * ADR-320 Phase 5 — a filter bar's scope tree: a condition added · a field's conditions removed ·
+   * every condition removed, through the scope's one assignment (`dispatcher` → `filterScope`).
+   */
+  filter?: "add" | "remove" | "clear";
 }
 
 export interface InteractionConcept {

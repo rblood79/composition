@@ -13,12 +13,12 @@
  * Menus · the field search). Loads with the first running bar (a lazy chunk — HC5).
  */
 import {
-  createContext,
   lazy,
   Suspense,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactElement,
@@ -28,34 +28,39 @@ import { Autocomplete } from "react-aria-components/Autocomplete";
 import { ButtonContext } from "react-aria-components/Button";
 import { Group } from "react-aria-components/Group";
 import { Toolbar } from "react-aria-components/Toolbar";
-import { DialogTrigger } from "react-aria-components/Dialog";
+import { Dialog, DialogTrigger, Heading } from "react-aria-components/Dialog";
 import { I18nProvider } from "react-aria-components/I18nProvider";
 import { Input } from "react-aria-components/Input";
-import {
-  Menu,
-  MenuItem,
-  MenuTrigger,
-  SubmenuTrigger,
-} from "react-aria-components/Menu";
+import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { SearchField } from "react-aria-components/SearchField";
 import { useFilter } from "react-aria/useFilter";
 import { PressResponder } from "react-aria/private/interactions/PressResponder";
 import { announce } from "react-aria/private/live-announcer/LiveAnnouncer";
+import type { CatalogFilterPreset } from "../document/filterQuery";
+import type { ViewComparison, ViewCondition } from "../document/types";
 import type {
-  ViewComparison,
-  ViewCondition,
-  ViewConditionGroup,
-} from "../document/types";
-import {
-  catalogFilterStartOp,
-  type CatalogFilterBarAccess,
-  type CatalogFilterBarField,
+  CatalogFilterBarAccess,
+  CatalogFilterBarField,
 } from "./filterBarAccess";
+import {
+  afterKeyRelease,
+  BAR_STRINGS,
+  BarRunContext,
+  fieldAt,
+  fieldItems,
+  FilterPlaceContext,
+  liveCondition,
+  newCondition,
+  renewed,
+  useScopeTree,
+  valueFor,
+  type Item,
+  type Pending,
+} from "./filterBarRun";
 import { CATALOG_FILTER_TREE_ID } from "./filterScope";
 import { catalogFilterWords } from "./filterWording";
-
-import { catalogFilterPicksMany } from "./tableColumnFilterDraft";
+import { catalogFilterTreeWith } from "./filterTreeEdit";
 import { catalogLocalized } from "./localizedStrings";
 
 /** What the bar's · a chip's renderer gives its DOM (`delegatedDom` `filterBarDom`). */
@@ -102,6 +107,14 @@ export function CatalogFilterBarDom({
         <CatalogFilterBarRun
           access={scope}
           locale={locale}
+          inPlace={props.variant === "builder"}
+          presets={
+            // (The document holds them checked — `catalogFilterPresetsFit`; a value import would
+            //  split that module off the first screen.)
+            Array.isArray(props.presets)
+              ? (props.presets as CatalogFilterPreset[])
+              : []
+          }
           parts={withParts(parts)}
         />
       ) : (
@@ -140,166 +153,8 @@ export function CatalogFilterChipDom({
 const CatalogColumnFilterDialog = lazy(
   () => import("./tableColumnFilter.components"),
 );
-
-interface BarStrings {
-  readonly searchFields: string;
-  readonly fields: string;
-  readonly comparisons: string;
-  readonly actions: string;
-  readonly duplicate: string;
-  readonly turnOff: string;
-  readonly turnOn: string;
-  readonly remove: string;
-  readonly refused: (count: number) => string;
-  readonly applied: (count: number) => string;
-}
-
-const BAR_STRINGS: Readonly<Record<string, BarStrings>> = {
-  en: {
-    searchFields: "Search fields",
-    fields: "Fields",
-    comparisons: "Comparisons",
-    actions: "Condition actions",
-    duplicate: "Duplicate",
-    turnOff: "Turn off",
-    turnOn: "Turn on",
-    remove: "Delete",
-    refused: (count) =>
-      `${count} condition${count === 1 ? "" : "s"} could not be applied`,
-    applied: (count) => `${count} condition${count === 1 ? "" : "s"} applied`,
-  },
-  ko: {
-    searchFields: "필드 검색",
-    fields: "필드",
-    comparisons: "비교",
-    actions: "조건 메뉴",
-    duplicate: "복제",
-    turnOff: "끄기",
-    turnOn: "켜기",
-    remove: "삭제",
-    refused: (count) => `적용하지 못한 조건 ${count}`,
-    applied: (count) => `조건 ${count} 개 적용`,
-  },
-  ja: {
-    searchFields: "フィールドを検索",
-    fields: "フィールド",
-    comparisons: "比較",
-    actions: "条件メニュー",
-    duplicate: "複製",
-    turnOff: "オフ",
-    turnOn: "オン",
-    remove: "削除",
-    refused: (count) => `適用できなかった条件 ${count}`,
-    applied: (count) => `条件 ${count} 件を適用`,
-  },
-  zh: {
-    searchFields: "搜索字段",
-    fields: "字段",
-    comparisons: "比较",
-    actions: "条件菜单",
-    duplicate: "复制",
-    turnOff: "关闭",
-    turnOn: "开启",
-    remove: "删除",
-    refused: (count) => `${count} 个条件未能应用`,
-    applied: (count) => `已应用 ${count} 个条件`,
-  },
-};
-
-type Item = ViewCondition | ViewConditionGroup;
-/** The next step a new condition opens (its chip mounts after the write). */
-interface Pending {
-  readonly id: string;
-  readonly step: "comparison" | "value";
-}
-interface BarRun {
-  readonly access: CatalogFilterBarAccess;
-  readonly strings: BarStrings;
-  readonly locale: string;
-  readonly pending: Pending | undefined;
-  readonly setPending: (next: Pending | undefined) => void;
-}
-const BarRunContext = createContext<BarRun | null>(null);
-
-/**
- * A key held down now (document capture). The next step's menu opens after it is released: the
- * Enter that picked a field · a comparison would otherwise press the first item of the menu it
- * opened (RAC menu items act on that key's release).
- */
-let keysHeld = 0;
-let keyWatch = false;
-function afterKeyRelease(open: () => void): void {
-  if (!keyWatch && typeof document !== "undefined") {
-    keyWatch = true;
-    document.addEventListener("keydown", () => (keysHeld = 1), true);
-    document.addEventListener("keyup", () => (keysHeld = 0), true);
-  }
-  if (!keysHeld) return open();
-  document.addEventListener("keyup", () => setTimeout(open), {
-    once: true,
-    capture: true,
-  });
-}
-
-let newIds = 0;
-const newId = () => `filter-bar:${Date.now().toString(36)}-${++newIds}`;
-
-/** An item with fresh ids (a duplicate — a group's items too). */
-const renewed = (item: Item): Item =>
-  "items" in item
-    ? { ...item, id: newId(), items: item.items.map(renewed) }
-    : { ...item, id: newId() };
-
-/** The tree with its root item `id` replaced (`undefined` = removed); `null` = no item left. */
-function treeWith(
-  tree: ViewConditionGroup | undefined,
-  id: string,
-  next: (item: Item) => readonly Item[],
-): ViewConditionGroup | null {
-  const items = (tree?.items ?? []).flatMap((item) =>
-    item.id === id ? [...next(item)] : [item],
-  );
-  return items.length
-    ? { id: tree?.id ?? CATALOG_FILTER_TREE_ID, op: "and", items }
-    : null;
-}
-
-/** The scope's tree now, kept in step with its writes. */
-function useScopeTree(
-  access: CatalogFilterBarAccess,
-): ViewConditionGroup | undefined {
-  return useSyncExternalStore(access.subscribe, access.tree, access.tree);
-}
-
-/** A field of the bar by its path (a reference field's sub field too). */
-function fieldAt(
-  fields: readonly CatalogFilterBarField[],
-  path: readonly string[],
-): CatalogFilterBarField | undefined {
-  for (const field of fields) {
-    if (field.path.join("/") === path.join("/")) return field;
-    const sub = field.fields && fieldAt(field.fields, path);
-    if (sub) return sub;
-  }
-  return undefined;
-}
-
-/** A value kept across a comparison change only while it means the same (§5.5). */
-function valueFor(
-  condition: ViewCondition,
-  op: ViewComparison,
-): Pick<ViewCondition, "value" | "unit"> {
-  const { value, unit } = condition;
-  if (op === "exists" || op === "notExists" || value === undefined) return {};
-  const shape = (at: ViewComparison) =>
-    at === "between" || at === "withinLast"
-      ? at
-      : catalogFilterPicksMany(at)
-        ? "many"
-        : "one";
-  if (shape(op) !== shape(condition.op)) return {};
-  return { value, ...(op === "withinLast" && unit ? { unit } : {}) };
-}
+/** The condition builder (Phase 4 — its own chunk: the Tree · drag and drop load when it opens). */
+const CatalogFilterBuilder = lazy(() => import("./filterBuilder.components"));
 
 /**
  * The bar: its parts with the run (`parts` — each rendered child with its authored part), the
@@ -308,14 +163,21 @@ function valueFor(
 function CatalogFilterBarRun({
   access,
   locale,
+  inPlace,
+  presets,
   parts,
 }: {
   access: CatalogFilterBarAccess;
   locale: string;
+  /** `variant: "builder"` — the builder in the chips' place (§5.6), no 「Edit conditions」. */
+  inPlace: boolean;
+  /** Phase 5 (사용자 결정 6) — the author's named sets 「Saved filters」 lists. */
+  presets: readonly CatalogFilterPreset[];
   parts: readonly { part: string | undefined; element: ReactElement }[];
 }): ReactNode {
   const strings = catalogLocalized(BAR_STRINGS, locale);
   const [pending, setPending] = useState<Pending | undefined>();
+  const [builderOpen, setBuilderOpen] = useState(false);
   const tree = useScopeTree(access);
   const refused = useSyncExternalStore(
     access.subscribe,
@@ -324,14 +186,21 @@ function CatalogFilterBarRun({
   );
   // (Decision 14 — a change of the applied conditions is announced: their count.)
   const applied = (tree?.items ?? []).length;
-  const [announced, setAnnounced] = useState(applied);
+  const announced = useRef(applied);
   useEffect(() => {
-    if (applied === announced) return;
-    setAnnounced(applied);
+    if (applied === announced.current) return;
+    announced.current = applied;
     announce(strings.applied(applied), "polite");
-  }, [applied, announced, strings]);
+  }, [applied, strings]);
   const run = useMemo(
-    () => ({ access, strings, locale, pending, setPending }),
+    () => ({
+      access,
+      strings,
+      locale,
+      pending,
+      setPending,
+      openBuilder: () => afterKeyRelease(() => setBuilderOpen(true)),
+    }),
     [access, strings, locale, pending],
   );
   return (
@@ -339,6 +208,50 @@ function CatalogFilterBarRun({
       {parts.map(({ part, element }) =>
         part === "add" ? (
           <AddFilter key={element.key} trigger={element} />
+        ) : part === "edit" ? (
+          inPlace ? null : (
+            <DialogTrigger
+              key={element.key}
+              isOpen={builderOpen}
+              onOpenChange={setBuilderOpen}
+            >
+              {element}
+              <Popover placement="bottom start">
+                <Dialog
+                  style={{ padding: 12, minWidth: 360, maxWidth: "90vw" }}
+                >
+                  <Heading
+                    slot="title"
+                    style={{ margin: "0 0 8px", fontSize: "1em" }}
+                  >
+                    {strings.editConditions}
+                  </Heading>
+                  <FilterBuilderSlot />
+                </Dialog>
+              </Popover>
+            </DialogTrigger>
+          )
+        ) : part === "chips" && inPlace ? (
+          <div key={element.key} style={{ width: "100%" }}>
+            <FilterBuilderSlot />
+          </div>
+        ) : part === "presets" ? (
+          <MenuTrigger key={element.key}>
+            {element}
+            <Popover placement="bottom start">
+              <Menu
+                aria-label={strings.presets}
+                items={presets}
+                onAction={(key) => {
+                  // (The set as any tree — the scope's one assignment judges it, §5.3.)
+                  const preset = presets.find((item) => item.id === key);
+                  if (preset) access.write(preset.query);
+                }}
+              >
+                {(preset) => <MenuItem id={preset.id}>{preset.name}</MenuItem>}
+              </Menu>
+            </Popover>
+          </MenuTrigger>
         ) : part === "clear" ? (
           <PressResponder key={element.key} onPress={() => access.clear()}>
             {element}
@@ -354,79 +267,88 @@ function CatalogFilterBarRun({
   );
 }
 
-/** 「Add filter」 — the field menu: a field adds its condition, and its comparison menu opens. */
-function AddFilter({ trigger }: { trigger: ReactElement }): ReactNode {
+/** The builder (lazy), speaking the site's language. */
+function FilterBuilderSlot(): ReactNode {
+  const run = useContext(BarRunContext)!;
+  return (
+    <I18nProvider locale={run.locale}>
+      <Suspense fallback={null}>
+        <CatalogFilterBuilder />
+      </Suspense>
+    </I18nProvider>
+  );
+}
+
+/** The fields searched (RAC `Autocomplete` over the field `Menu`) — a menu's popover content. */
+export function FieldSearch({
+  fields,
+  pick,
+}: {
+  fields: readonly CatalogFilterBarField[];
+  pick: (field: CatalogFilterBarField) => void;
+}): ReactNode {
   const run = useContext(BarRunContext)!;
   const { contains } = useFilter({ sensitivity: "base" });
+  return (
+    <Autocomplete filter={contains}>
+      <SearchField aria-label={run.strings.searchFields} autoFocus>
+        <Input placeholder={run.strings.searchFields} />
+      </SearchField>
+      <Menu aria-label={run.strings.fields}>{fieldItems(fields, pick)}</Menu>
+    </Autocomplete>
+  );
+}
+
+/**
+ * A field menu on `trigger`: the picked field's condition (`newCondition`) goes to `place`'s
+ * write, and its comparison menu opens there next.
+ */
+export function FieldMenu({
+  trigger,
+  add,
+}: {
+  trigger: ReactElement;
+  /** Writes the new condition (false: not taken — nothing opens next). */
+  add: (condition: ViewCondition) => boolean;
+}): ReactNode {
+  const run = useContext(BarRunContext)!;
+  const place = useContext(FilterPlaceContext);
   const [open, setOpen] = useState(false);
   const fields = open ? run.access.fields() : [];
-  const add = (field: CatalogFilterBarField) => {
-    const op = catalogFilterStartOp(field.kind, field.ops);
-    if (!op) return;
-    const id = newId();
-    const tree = run.access.tree();
-    run.access.write({
-      id: tree?.id ?? CATALOG_FILTER_TREE_ID,
-      op: "and",
-      items: [...(tree?.items ?? []), { id, fields: [[...field.path]], op }],
-    });
+  const pick = (field: CatalogFilterBarField) => {
+    const condition = newCondition(field);
     setOpen(false);
-    afterKeyRelease(() => run.setPending({ id, step: "comparison" }));
-  };
-  const items = (list: readonly CatalogFilterBarField[]): ReactNode[] =>
-    list.map((field) =>
-      field.fields ? (
-        <SubmenuTrigger key={field.path.join("/")}>
-          <MenuItem textValue={field.label}>{field.label}</MenuItem>
-          <Popover placement="end top">
-            <Menu aria-label={field.label}>
-              {[
-                ...(field.ops.length
-                  ? [
-                      <MenuItem
-                        key="own"
-                        textValue={field.label}
-                        onAction={() => add(field)}
-                      >
-                        {field.label}
-                      </MenuItem>,
-                    ]
-                  : []),
-                ...field.fields.map((sub) => (
-                  <MenuItem
-                    key={sub.path.join("/")}
-                    textValue={sub.label}
-                    onAction={() => add(sub)}
-                  >
-                    {sub.label}
-                  </MenuItem>
-                )),
-              ]}
-            </Menu>
-          </Popover>
-        </SubmenuTrigger>
-      ) : (
-        <MenuItem
-          key={field.path.join("/")}
-          textValue={field.label}
-          onAction={() => add(field)}
-        >
-          {field.label}
-        </MenuItem>
-      ),
+    if (!condition || !add(condition)) return;
+    afterKeyRelease(() =>
+      run.setPending({ id: condition.id, step: "comparison", place }),
     );
+  };
   return (
     <MenuTrigger isOpen={open} onOpenChange={setOpen}>
       {trigger}
       <Popover placement="bottom start">
-        <Autocomplete filter={contains}>
-          <SearchField aria-label={run.strings.searchFields} autoFocus>
-            <Input placeholder={run.strings.searchFields} />
-          </SearchField>
-          <Menu aria-label={run.strings.fields}>{items(fields)}</Menu>
-        </Autocomplete>
+        <FieldSearch fields={fields} pick={pick} />
       </Popover>
     </MenuTrigger>
+  );
+}
+
+/** 「Add filter」 — the field menu: a field adds its condition, and its comparison menu opens. */
+function AddFilter({ trigger }: { trigger: ReactElement }): ReactNode {
+  const run = useContext(BarRunContext)!;
+  return (
+    <FieldMenu
+      trigger={trigger}
+      add={(condition) => {
+        const tree = run.access.tree();
+        run.access.write({
+          id: tree?.id ?? CATALOG_FILTER_TREE_ID,
+          op: "and",
+          items: [...(tree?.items ?? []), condition],
+        });
+        return true;
+      }}
+    />
   );
 }
 
@@ -444,7 +366,9 @@ export function CatalogFilterChipRun({
   const item = tree?.items.find((entry) => entry.id === conditionId);
   if (!item) return parts.map(({ element }) => element);
   const write = (next: (item: Item) => readonly Item[]) =>
-    run.access.write(treeWith(run.access.tree(), conditionId, next));
+    run.access.write(
+      catalogFilterTreeWith(run.access.tree(), conditionId, next),
+    );
   return parts.map(({ part, element }) => {
     if (part === "remove")
       return (
@@ -459,6 +383,7 @@ export function CatalogFilterChipRun({
           item={item}
           trigger={element}
           write={write}
+          onEdit={run.openBuilder}
         />
       );
     if ("items" in item) return element;
@@ -490,6 +415,7 @@ const NO_ACCESS: CatalogFilterBarAccess = {
   refused: () => 0,
   write: () => {},
   clear: () => {},
+  takes: () => false,
   facet: () => undefined,
   subscribe: () => () => {},
 };
@@ -500,19 +426,24 @@ function usePendingOpen(
   step: Pending["step"],
 ): [boolean, (open: boolean) => void] {
   const run = useContext(BarRunContext)!;
-  const [open, setOpen] = useState(
-    () => run.pending?.id === id && run.pending.step === step,
-  );
+  const place = useContext(FilterPlaceContext);
+  const due = (pending: Pending | undefined) =>
+    pending?.id === id && pending.step === step && pending.place === place;
+  const isDue = due(run.pending);
+  const [open, setOpen] = useState(isDue);
+  // (A step due now opens — adjusted while rendering, React's 「state from a change」 pattern.)
+  const [seen, setSeen] = useState(run.pending);
+  if (run.pending !== seen) {
+    setSeen(run.pending);
+    if (isDue) setOpen(true);
+  }
   useEffect(() => {
-    if (run.pending?.id === id && run.pending.step === step) {
-      setOpen(true);
-      run.setPending(undefined);
-    }
-  }, [run, id, step]);
+    if (isDue) run.setPending(undefined);
+  }, [isDue, run]);
   return [open, setOpen];
 }
 
-function ComparisonMenu({
+export function ComparisonMenu({
   condition,
   trigger,
   write,
@@ -522,12 +453,16 @@ function ComparisonMenu({
   write: (next: (item: Item) => readonly Item[]) => void;
 }): ReactNode {
   const run = useContext(BarRunContext)!;
+  const place = useContext(FilterPlaceContext);
   const [open, setOpen] = usePendingOpen(condition.id, "comparison");
   const words = catalogFilterWords(run.locale);
+  // (The scope's condition now — a builder row can hand the one before the last write: a RAC
+  //  Tree draws its rows from the collection it built a render before.)
+  const now = open ? liveCondition(run.access.tree(), condition) : condition;
   const field = open
-    ? fieldAt(run.access.fields(), condition.fields[0] ?? [])
+    ? fieldAt(run.access.fields(), now.fields[0] ?? [])
     : undefined;
-  const ops = field?.ops ?? [condition.op];
+  const ops = field?.ops ?? [now.op];
   return (
     <MenuTrigger isOpen={open} onOpenChange={setOpen}>
       {trigger}
@@ -535,15 +470,18 @@ function ComparisonMenu({
         <Menu
           aria-label={run.strings.comparisons}
           selectionMode="single"
-          selectedKeys={[condition.op]}
+          selectedKeys={[now.op]}
           onAction={(key) => {
             const op = key as ViewComparison;
-            const { value: _v, unit: _u, ...rest } = condition;
-            write(() => [{ ...rest, op, ...valueFor(condition, op) }]);
+            write((item) => {
+              const at = item as ViewCondition;
+              const { value: _v, unit: _u, ...rest } = at;
+              return [{ ...rest, op, ...valueFor(at, op) }];
+            });
             // (A comparison that takes a value opens its editor next — §5.5.)
             if (op !== "exists" && op !== "notExists")
               afterKeyRelease(() =>
-                run.setPending({ id: condition.id, step: "value" }),
+                run.setPending({ id: condition.id, step: "value", place }),
               );
           }}
         >
@@ -558,7 +496,7 @@ function ComparisonMenu({
   );
 }
 
-function ValueEditor({
+export function ValueEditor({
   condition,
   trigger,
   write,
@@ -572,14 +510,16 @@ function ValueEditor({
   const access = useMemo(
     () => ({
       read: () => {
-        const path = condition.fields[0] ?? [];
+        // (The scope's condition now — not the one a builder row drew a render before.)
+        const now = liveCondition(run.access.tree(), condition);
+        const path = now.fields[0] ?? [];
         const field = fieldAt(run.access.fields(), path);
         if (!field) return undefined;
-        const facet = run.access.facet(condition.id, path);
+        const facet = run.access.facet(now.id, path);
         return {
           kind: field.kind,
-          ops: field.ops.length ? field.ops : [condition.op],
-          condition,
+          ops: field.ops.length ? field.ops : [now.op],
+          condition: now,
           ...(facet ? { facet } : {}),
         };
       },
@@ -589,13 +529,15 @@ function ValueEditor({
           | Pick<ViewCondition, "op" | "value" | "sensitivity" | "unit">
           | undefined,
       ) =>
-        write(() =>
+        write((item) =>
           written
             ? [
                 {
-                  id: condition.id,
-                  fields: condition.fields,
-                  ...(condition.enabled === false ? { enabled: false } : {}),
+                  id: item.id,
+                  fields: (item as ViewCondition).fields,
+                  ...((item as ViewCondition).enabled === false
+                    ? { enabled: false }
+                    : {}),
                   op: written.op,
                   ...(written.value !== undefined
                     ? { value: written.value }
@@ -636,10 +578,13 @@ function ConditionMenu({
   item,
   trigger,
   write,
+  onEdit,
 }: {
   item: Item;
   trigger: ReactElement;
   write: (next: (item: Item) => readonly Item[]) => void;
+  /** A group chip: 「Edit conditions」 opens the builder (§5.5). */
+  onEdit: () => void;
 }): ReactNode {
   const run = useContext(BarRunContext)!;
   const condition = "items" in item ? undefined : item;
@@ -651,7 +596,8 @@ function ConditionMenu({
         <Menu
           aria-label={run.strings.actions}
           onAction={(key) => {
-            if (key === "duplicate") write((at) => [at, renewed(at)]);
+            if (key === "edit") onEdit();
+            else if (key === "duplicate") write((at) => [at, renewed(at)]);
             else if (key === "toggle" && condition)
               write(() => {
                 const { enabled: _e, ...rest } = condition;
@@ -660,6 +606,9 @@ function ConditionMenu({
             else if (key === "delete") write(() => []);
           }}
         >
+          {condition ? null : (
+            <MenuItem id="edit">{run.strings.editConditions}</MenuItem>
+          )}
           <MenuItem id="duplicate">{run.strings.duplicate}</MenuItem>
           {condition ? (
             <MenuItem id="toggle">

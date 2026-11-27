@@ -267,7 +267,7 @@ describe("ADR-248 Phase 4d storage connection", () => {
           projectId: "project:project:old",
           format: "composition-canonical",
           schemaVersion: 1,
-          libraryContractVersion: 85,
+          libraryContractVersion: 86,
           rootId: "project:project:old",
           revision: 3,
         });
