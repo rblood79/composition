@@ -1,5 +1,6 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
 import { catalogResizableLayout } from "./resizablePanels";
+import { catalogStepDomStyle } from "./stepList";
 import { CatalogTokenFieldError } from "./tokenField.components";
 import { catalogSkeletonText } from "./skeletonAnimation";
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
@@ -4903,8 +4904,11 @@ function authoredStyle(
 ): CSSProperties {
   // (ADR-318: a Resizable Group's direction · Handle's thickness · Panel's flex share · min · max —
   //  derived values the Canvas writes in `styleOf` the same way; the authored values below win.)
+  // (ADR-321: a Step's share, minimum and the room for its visual · track — the Canvas's same
+  //  values, `styleOf` · `catalogBoxModel`.)
   const style: CSSProperties = {
     ...(catalogResizableLayout(node.derivedProps) as CSSProperties),
+    ...(catalogStepDomStyle(node.derivedProps) as CSSProperties),
   };
   // A rule without `structure` has no generated sheet: its catalog values reach the DOM only
   // inline (the whole resolved box and layout, not just the authored layer).
@@ -6429,6 +6433,21 @@ export function renderNode(
     !glyphColorWritten(node)
   )
     bound.color = "inherit";
+  // ADR-321 — a Step's label · description take their color from the step's element
+  //   (`stepList.components.tsx` writes the pair from the list's state as it stands): a press in a
+  //   running Preview moves the current step, and a resting color inline would stay (the
+  //   ToggleButton label's reason above). The Canvas Text keeps the record's (`catalogStepTextColor`).
+  if (
+    bound &&
+    node.bindingId === "text" &&
+    typeof root.domInputs.get(node.parentId)?.derivedProps?._stepState ===
+      "string" &&
+    !catalogHasAuthoredColor(root, node)
+  )
+    bound.color =
+      node.props.slot === "description"
+        ? "var(--step-description-color)"
+        : "inherit";
   if (bound && node.bindingId === "text") {
     const owner = catalogToggleButtonGlyphOwner(
       node,

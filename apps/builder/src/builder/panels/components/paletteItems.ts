@@ -331,6 +331,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "frame", source: "catalog" },
   { type: "Tabs", source: "catalog" },
   { type: "Breadcrumbs", source: "catalog" },
+  // ADR-321: Spectrum StepList — layout, after Tabs · Breadcrumbs (its Steps are placed inside it only).
+  { type: "StepList", source: "catalog" },
   { type: "Link", source: "catalog" },
   { type: "Nav", source: "catalog" },
   // ADR-300 Phase 4 (사용자 결정 3 (b), 2026-11-03): S2 SideNavPanel · SideNav — the navigation group,

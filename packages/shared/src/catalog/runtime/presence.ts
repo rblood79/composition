@@ -1,4 +1,16 @@
 import { catalogSkeletonState } from "./skeletonContext";
+import { catalogStepDerived, catalogStepListDerived } from "./stepList";
+import {
+  catalogStepListKeys,
+  catalogStepListStates,
+  type StepListStateInput,
+} from "./stepListState";
+import {
+  catalogStepChromeColors,
+  STEP_LIST_TYPE,
+  STEP_TYPE,
+  type StepState,
+} from "../rule/stepList";
 import {
   catalogResizableCollapsedSize,
   catalogResizableDisplay,
@@ -4075,6 +4087,93 @@ function ownDerivedProps(
   return { ...own, _pendingHidden: true };
 }
 
+/** ADR-321: the Steps a StepList draws, in order (hidden ones are not steps). */
+function stepsOf(
+  list: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return childrenOf(list, get).filter(
+    (child) => !child.hidden && typeOf(child) === STEP_TYPE,
+  );
+}
+
+/**
+ * ADR-321: a StepList's input to its state rule (`stepListState.ts`) — its steps' keys in order,
+ * the disabled ones (the list's `disabledKeys` and each Step's own `isDisabled`), its switches and
+ * the two keys it starts with. `props` = the list's props as they stand (a running Preview's runtime
+ * values over the record's); both consumers and the rules' Do read this one function.
+ */
+export function catalogStepListInput(
+  list: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  props: Readonly<Record<string, unknown>> = list.props,
+): StepListStateInput {
+  const steps = stepsOf(list, get, typeOf);
+  const keys = steps.map((step) => catalogItemKey(step, typeOf));
+  return {
+    keys,
+    ...catalogStepListKeys(props),
+    disabledKeys: [
+      ...catalogGroupDisabledKeys(props),
+      ...keys.filter((_, index) => steps[index]!.props.isDisabled === true),
+    ],
+    isDisabled: props.isDisabled === true,
+    isReadOnly: props.isReadOnly === true,
+    allowsFreeNavigation: props.allowsFreeNavigation === true,
+  };
+}
+
+/**
+ * ADR-321: a Step's derived values in its StepList (`runtime/stepList.ts` — the start state the
+ * Canvas draws).
+ */
+function stepDerivedOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string | number | boolean> | undefined {
+  const list = get(node.parentId);
+  if (!list || typeOf(list) !== STEP_LIST_TYPE) return undefined;
+  const steps = stepsOf(list, get, typeOf);
+  const at = steps.findIndex((step) => step.id === node.id);
+  if (at < 0) return undefined;
+  const { steps: states } = catalogStepListStates(
+    catalogStepListInput(list, get, typeOf),
+  );
+  return catalogStepDerived(
+    states[at]!,
+    steps.length,
+    list.props,
+    node.props.size ?? list.props.size,
+  );
+}
+
+/**
+ * ADR-321: the color a Step's label · description Text takes (design-data `Step text` — the current
+ * step's label is the neutral · accent content color, the others subdued, a disabled step's the
+ * disabled content color). Both consumers read it as the Text's derived `color`; an authored color
+ * wins. Undefined for any other node.
+ */
+export function catalogStepTextColor(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  if (node.bindingId !== "text") return undefined;
+  const step = get(node.parentId);
+  if (!step || typeOf(step) !== STEP_TYPE) return undefined;
+  const derived = stepDerivedOf(step, get, typeOf);
+  if (!derived) return undefined;
+  const colors = catalogStepChromeColors({
+    state: derived._stepState as StepState,
+    emphasized: derived._stepEmphasized === true,
+    disabled: derived._stepDisabled === true,
+  });
+  return node.props.slot === "description" ? colors.description : colors.label;
+}
+
 function ownDerivedPropsBase(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -4145,6 +4244,10 @@ function ownDerivedPropsBase(
       ),
     };
   }
+  // ADR-321: a StepList's direction; a Step's state · place in its list and its visual's room.
+  if (typeOf(node) === STEP_LIST_TYPE)
+    return catalogStepListDerived(node.props);
+  if (typeOf(node) === STEP_TYPE) return stepDerivedOf(node, get, typeOf);
   if (typeOf(node) === "SelectBox") {
     const group = get(node.parentId);
     if (group && typeOf(group) === "SelectBoxGroup")
@@ -4777,6 +4880,21 @@ export function catalogDerivedPropsDependents(
             (child) =>
               child.id !== owner.id && typeOf(child) === RESIZABLE_PANEL_TYPE,
           )
+        : []),
+    // (ADR-321: a StepList's keys · orientation · emphasis reach its Steps and their Texts' color;
+    //  a Step's key · disabled · place moves its sibling steps' states — and its own Texts.)
+    ...(typeOf(owner) === STEP_LIST_TYPE
+      ? stepsOf(owner, get, typeOf).flatMap((step) => [
+          step,
+          ...childrenOf(step, get),
+        ])
+      : typeOf(owner) === STEP_TYPE &&
+          get(owner.parentId) &&
+          typeOf(get(owner.parentId)!) === STEP_LIST_TYPE
+        ? stepsOf(get(owner.parentId)!, get, typeOf).flatMap((step) => [
+            ...(step.id === owner.id ? [] : [step]),
+            ...childrenOf(step, get),
+          ])
         : []),
     // (ADR-308: a picker's options take its selection — their `_isSelected` · check marks.)
     ...(typeOf(owner) === "Select" || typeOf(owner) === "ComboBox"

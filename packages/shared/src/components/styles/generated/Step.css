@@ -1,0 +1,154 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog Step — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Step {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  /* Default variant */
+  background: undefined;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  --icon-size: 16px;
+  --icon-gap: 6px;
+}
+
+.react-aria-Step[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+  --icon-size: 8px;
+  --icon-gap: 4px;
+}
+
+.react-aria-Step[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  --icon-size: 16px;
+  --icon-gap: 6px;
+}
+
+.react-aria-Step[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+  --icon-size: 24px;
+  --icon-gap: 6px;
+}
+
+.react-aria-Step[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-lg--line-height);
+  --icon-size: 32px;
+  --icon-gap: 6px;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Step {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-Step[data-size="S"] .react-aria-Text[slot="description"] {
+    font-size: 11px;
+  }
+
+  .react-aria-Step[data-size="M"] .react-aria-Text[slot="description"] {
+    font-size: 12px;
+  }
+
+  .react-aria-Step[data-size="L"] .react-aria-Text[slot="description"] {
+    font-size: 14px;
+  }
+
+  .react-aria-Step[data-size="XL"] .react-aria-Text[slot="description"] {
+    font-size: 16px;
+  }
+
+
+  .react-aria-Step {
+    position: relative;
+    list-style: none;
+    margin: 0;
+  }
+
+  .react-aria-Step > .step-link {
+    display: flex;
+    flex: 1 1 auto;
+    align-self: stretch;
+    min-width: 0;
+    flex-direction: inherit;
+    align-items: inherit;
+    justify-content: inherit;
+    gap: inherit;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    outline: none;
+    border-radius: var(--catalog-token-radius-sm);
+  }
+
+  .react-aria-Step > .step-link[data-disabled] {
+    cursor: default;
+  }
+
+  .react-aria-Step > .step-link[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-Step > .step-track {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .react-aria-Step .step-visual {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 50%;
+  }
+
+  .react-aria-Step .step-visual > .step-glyph {
+    font-weight: 700;
+    line-height: 1;
+  }
+
+
+} /* @layer components */

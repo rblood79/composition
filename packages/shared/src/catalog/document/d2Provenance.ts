@@ -8,12 +8,14 @@
  * is neither S2's nor declared is a drift. A declared key S2 turns out to have is stale here.
  *
  * Sources —
+ * - `design-data`: spectrum-design-data's component schema declares it (the order's second step —
+ *   a component S2 does not ship: StepList · Rating, ADR-321).
  * - `v3`: `@adobe/react-spectrum` 3.x declares it (the order's third step — S2 dropped the axis).
  * - `rac`: `react-aria-components` declares it and S2 omits it (an extension RAC makes possible).
  * - `composition`: nothing upstream declares it (the order's fourth step).
  */
 
-export type CatalogD2Source = "v3" | "rac" | "composition";
+export type CatalogD2Source = "design-data" | "v3" | "rac" | "composition";
 
 /**
  * Keys that mean the same on every type they appear on.
@@ -133,6 +135,29 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   Popover: { defaultOpen: "rac" },
   SearchField: { isQuiet: "v3" },
   Slider: { showValueLabel: "v3" },
+  // ADR-321 (사용자 결정 1, 2026-11-27): S2 · RAC ship no StepList. design-data's `steplist` schema
+  //   gives `orientation` · `isDisabled` (`size` is the common key); the state and emphasis names are
+  //   v3 StepList's (`selectedKey` · `lastCompletedStep` · `isEmphasized` — not design-data's
+  //   `currentStep` · `variant`).
+  StepList: {
+    orientation: "design-data",
+    isDisabled: "design-data",
+    defaultSelectedKey: "v3",
+    defaultLastCompletedStep: "v3",
+    isEmphasized: "v3",
+    isReadOnly: "v3",
+    disabledKeys: "v3",
+    // (사용자 결정 3 — the linear order is Spectrum's; the switch that lifts it is ours.)
+    allowsFreeNavigation: "composition",
+  },
+  // (design-data `items[]`: `label` · `isDisabled`; the key is the RAC collection item's `id`; the
+  //  description is ReUI's — 사용자 결정 4.)
+  Step: {
+    id: "rac",
+    label: "design-data",
+    isDisabled: "design-data",
+    description: "composition",
+  },
   // Authored Text/Icon children expose their content on the S2 item instance.
   SegmentedControl: { orientation: "rac" },
   SegmentedControlItem: {

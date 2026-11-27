@@ -19,6 +19,8 @@ const ALWAYS_NEEDS_NAME: ReadonlySet<string> = new Set([
   "Tabs",
   "Toolbar",
   "Breadcrumbs",
+  // (ADR-321: its RAC Group names the list — the language's default while unnamed.)
+  "StepList",
   "Nav",
   "Pagination",
   "ToggleButtonGroup",

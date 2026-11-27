@@ -44,6 +44,11 @@ export interface ConceptCapability {
   imperative?: true;
   /** A key-set operation over the current state (Decision 8). */
   op?: "add" | "remove";
+  /**
+   * ADR-321 — a StepList's move: the result comes from both of its states (the state rule
+   * `catalog/runtime/stepListState.ts`), so the dispatcher writes the pair it gives.
+   */
+  step?: "next" | "previous" | "to" | "complete";
 }
 
 export interface InteractionConcept {

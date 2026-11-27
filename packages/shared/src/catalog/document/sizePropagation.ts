@@ -81,6 +81,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   (`Breadcrumb.sizes[size].iconSize`) — the DOM's separator size comes from the Breadcrumbs
   //   (2026-10-14 — the Canvas drew the crumb's own value, the DOM ignored it).
   Breadcrumbs: ["Breadcrumb"],
+  // ADR-321: a StepList's `size` is its steps' (design-data `size` — the step's visual · label font).
+  StepList: ["Step"],
   // ADR-295 Phase 3c-3c ③: S2 Menu `size` is its items' (S2 MenuItem has none — the Menu context): the
   //   item's control height · font, and its label · description text (the MenuItem rule's `sizeSelectors`).
   Menu: ["MenuItem"],
@@ -314,7 +316,11 @@ export const CATALOG_OWNER_CONTEXT_PROPS: Readonly<
   ColorSwatch: { owner: "ColorSwatchPicker", keys: ["rounding"] },
   Disclosure: { owner: "Accordion", keys: ["density", "isQuiet"] },
   // (2026-11-24 S2 대조) S2 `DisclosureHeader`'s `ActionButtonContext` — only the title row's buttons.
-  ActionButton: { owner: "Disclosure", keys: ["isQuiet"], within: "DisclosureHeader" },
+  ActionButton: {
+    owner: "Disclosure",
+    keys: ["isQuiet"],
+    within: "DisclosureHeader",
+  },
 };
 
 export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<

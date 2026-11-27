@@ -53,6 +53,7 @@ function capabilitiesOf(use: ConceptUse): {
       ...(param ? { param } : {}),
       ...(capability.imperative ? { imperative: true } : {}),
       ...(capability.op ? { op: capability.op } : {}),
+      ...(capability.step ? { step: capability.step } : {}),
       ...(capability.op && concept.selectionDefault
         ? { selectionDefault: concept.selectionDefault }
         : {}),
@@ -72,8 +73,12 @@ function componentOf(spec: ComponentInteractionSpec): ComponentCapability {
   };
   const eventArgs: Record<string, readonly string[]> = {};
   const fieldEvents: string[] = [];
-  const groups: { id: string; events: string[]; hiddenEvents: string[]; conditions: string[] }[] =
-    [];
+  const groups: {
+    id: string;
+    events: string[];
+    hiddenEvents: string[];
+    conditions: string[];
+  }[] = [];
   const grouped = new Set<string>();
   for (const use of spec.concepts) {
     if (use.owner === "item") {
@@ -130,7 +135,9 @@ function componentOf(spec: ComponentInteractionSpec): ComponentCapability {
     ...(Object.keys(eventArgs).length
       ? { eventArgs: Object.freeze(eventArgs) }
       : {}),
-    ...(fieldEvents.length ? { eventArgFields: Object.freeze(fieldEvents) } : {}),
+    ...(fieldEvents.length
+      ? { eventArgFields: Object.freeze(fieldEvents) }
+      : {}),
     ...(frozenGroups.length ? { groups: Object.freeze(frozenGroups) } : {}),
   });
 }

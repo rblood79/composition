@@ -202,9 +202,14 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 80 — ADR-324 Phase 1: a collection's 「모아서 저장」 (`CollectionEntry.save`) and the two Dos
  *      `saveChanges` · `discardChanges` (the rule vocabulary `library.execution.actionOpCodes`). 옛 79
  *      문서는 열리지 않는다 (변환 없음).
+ * 81 — ADR-321 Phase 1: Spectrum `StepList` · `Step` and their origins (`component-steplist` ·
+ *      `component-step` — the Step's label · description Texts bound to its `label` · `description`).
+ *      Phase 2 adds to the same number (81 was not released alone): the list's 「자유 이동」 switch
+ *      (`allowsFreeNavigation`) and its two state concepts (When 2 · Do 4 — `concepts/stepList.ts`).
+ *      옛 80 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 80 as const;
+export const LIBRARY_CONTRACT_VERSION = 81 as const;
 
 export type EntryKind =
   | "project"

@@ -306,10 +306,17 @@ export function catalogBoxModel(
   if (gap !== undefined) model.gap = gap;
   const side = (key: string, axis: CatalogLength | undefined) =>
     length(node.visual[key]) ?? axis;
+  // (ADR-321: a Step keeps room for its visual · track — `catalogStepDerived`'s pads, under an
+  //  authored side; the DOM reads the Step rule's same formulas.)
+  const stepPad = (edge: "Top" | "Right" | "Bottom" | "Left") =>
+    length(node.derivedProps?.[`_stepPad${edge}`]);
   const padding = {
     // (S2 Card's Content · Footer: their spacing in the card — `catalogCardSection`'s `_cardPadTop` ·
     //  `_cardPadBottom`; an authored padding wins.)
-    top: side("paddingTop", paddingY ?? length(node.derivedProps?._cardPadTop)),
+    top: side(
+      "paddingTop",
+      stepPad("Top") ?? paddingY ?? length(node.derivedProps?._cardPadTop),
+    ),
     // ADR-295 후속 C7 — S2's checkbox column (`TableView.tsx` `selectAllCheckboxColumn` ·
     //   `checkboxCellStyle` — `paddingStart: 16`, `paddingEnd: 8`): the Column · Cell holding the
     //   selection checkbox ends 8 in (`_tableSelectionPart`, `presence.ts`); an authored end wins.
@@ -317,14 +324,18 @@ export function catalogBoxModel(
       length(node.visual.paddingRight) ??
       (node.derivedProps?._tableSelectionPart === true
         ? CATALOG_SELECTION_PART_PADDING_END
-        : (length(node.derivedProps?._toastPaddingRight) ?? paddingX)),
+        : (length(node.derivedProps?._toastPaddingRight) ??
+          stepPad("Right") ??
+          paddingX)),
     // (S2 `renderActionBar`: while a CardView's · Table's · Tree's action bar shows, its bottom
     //  padding is the bar's room — `catalogActionBarSpace`, S2's inline `paddingBottom`.)
     bottom:
       length(node.derivedProps?._actionBarSpace) ??
       side(
         "paddingBottom",
-        paddingY ?? length(node.derivedProps?._cardPadBottom),
+        stepPad("Bottom") ??
+          paddingY ??
+          length(node.derivedProps?._cardPadBottom),
       ),
     // (295 후속 C9: S2 Toast's start · end hold its icon · close — `catalogToastEdges`.
     //  ADR-315 Phase 5: a group's tree cell keeps its expand button's room after its start —
@@ -333,7 +344,9 @@ export function catalogBoxModel(
       node,
       side(
         "paddingLeft",
-        length(node.derivedProps?._toastPaddingLeft) ?? paddingX,
+        length(node.derivedProps?._toastPaddingLeft) ??
+          stepPad("Left") ??
+          paddingX,
       ),
     ),
   };

@@ -146,6 +146,8 @@ describe("ADR-310 — the collection type table", () => {
       "GridList",
       "Menu",
       "Breadcrumbs",
+      // (ADR-321: a StepList's Steps — authored nodes, the Design "+" adds one.)
+      "StepList",
       "Tree",
     ]);
   });

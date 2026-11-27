@@ -49,7 +49,7 @@ class CountLayoutEngine implements LayoutEngineAPI {
 }
 
 const library = buildCatalogLibrary({
-  contractVersion: 80,
+  contractVersion: 81,
   revision: "adr248-part-rule-propagation",
   bindingIds: ["frame", "text"],
   actionOpCodes: [],
@@ -156,7 +156,7 @@ function makeRoot() {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 80,
+    libraryContractVersion: 81,
     revision: 0,
     projectId,
     rootId: projectId,

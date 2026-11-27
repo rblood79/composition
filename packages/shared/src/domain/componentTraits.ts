@@ -463,6 +463,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   },
   Tag: { families: ["textHost", "staticCollectionItem"], owners: ["TagList"] },
   Breadcrumbs: { container: "collection", children: ["Breadcrumb"] },
+  // ADR-321: a StepList's direct children are its Steps only.
+  StepList: { container: "collection", children: ["Step"] },
+  Step: { families: ["staticCollectionItem"], owners: ["StepList"] },
   Breadcrumb: {
     families: ["staticCollectionItem"],
     owners: ["Breadcrumbs"],

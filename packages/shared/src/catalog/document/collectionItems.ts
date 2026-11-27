@@ -97,6 +97,16 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
     selects: false,
     codeItems: false,
   },
+  // ADR-321: a StepList's Steps are authored nodes (breakdown §5.1 — not data rows); the current ·
+  //   completed step is the list's two keys (`runtime/stepList.ts`), not a RAC selection.
+  {
+    owner: "StepList",
+    item: "Step",
+    insert: true,
+    repeat: false,
+    selects: false,
+    codeItems: false,
+  },
   {
     owner: "Tree",
     item: "TreeItem",

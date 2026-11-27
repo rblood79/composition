@@ -25,7 +25,12 @@ import {
   CAPABILITY_REGISTRY,
   type CapabilityDef,
 } from "./capabilityRegistry";
-import { applyCapabilityOp, checkCapabilityConstraints } from "./constraints";
+import {
+  applyCapabilityOp,
+  checkCapabilityConstraints,
+  toKeySet,
+} from "./constraints";
+import { catalogStepListDo } from "../catalog/runtime/stepListState";
 import type {
   CatalogToastOptions,
   InteractionAction,
@@ -701,7 +706,10 @@ function executeActionList(
   context?: DispatchContext,
   start = 0,
 ): DispatchOutcome {
-  const numbered = (outcome: DispatchOutcome, index: number): DispatchOutcome =>
+  const numbered = (
+    outcome: DispatchOutcome,
+    index: number,
+  ): DispatchOutcome =>
     !outcome.ok && actions.length > 1
       ? { ...outcome, reason: `Do ${index + 1}: ${outcome.reason}` }
       : outcome;
@@ -778,11 +786,10 @@ function executeInteractionAction(
       kind: "callEndpoint",
       ...(result.settled
         ? {
-            settled: result.settled.then(
-              (settled): DispatchOutcome =>
-                settled.ok
-                  ? { ok: true, kind: "callEndpoint" }
-                  : { ok: false, reason: settled.reason ?? "callEndpoint 실패" },
+            settled: result.settled.then((settled): DispatchOutcome =>
+              settled.ok
+                ? { ok: true, kind: "callEndpoint" }
+                : { ok: false, reason: settled.reason ?? "callEndpoint 실패" },
             ),
           }
         : {}),
@@ -824,11 +831,10 @@ function executeInteractionAction(
       kind: "saveChanges",
       ...(result.settled
         ? {
-            settled: result.settled.then(
-              (settled): DispatchOutcome =>
-                settled.ok
-                  ? { ok: true, kind: "saveChanges" }
-                  : { ok: false, reason: settled.reason ?? "saveChanges 실패" },
+            settled: result.settled.then((settled): DispatchOutcome =>
+              settled.ok
+                ? { ok: true, kind: "saveChanges" }
+                : { ok: false, reason: settled.reason ?? "saveChanges 실패" },
             ),
           }
         : {}),
@@ -1007,6 +1013,55 @@ function executeInteractionAction(
             result.reason ??
             `imperative capability 실패: ${target.type}.${action.capability}`,
         };
+  }
+
+  if (def.step) {
+    // ADR-321 — StepList 의 이동: 결과는 두 상태 (지금 단계 · 마지막 완료 단계) 가 같이 정한다. 상태
+    // 규칙 (`stepListState.ts`) 이 낸 쌍을 그대로 쓴다 — prop 하나만 쓰면 지나온 단계 완료가 빠진다.
+    let key: string | undefined;
+    if (def.value === "!param") {
+      const resolved = resolveValue(
+        def,
+        undefined,
+        action.params?.value,
+        (value) => resolveEventValue(value, context, deps),
+      );
+      if (!resolved.ok) return resolved;
+      const keys = toKeySet(resolved.value);
+      key = keys === "all" ? undefined : keys[0];
+    }
+    const state = (prop: string) => {
+      const value = deps.getRuntimeState
+        ? deps.getRuntimeState(action.targetId, prop)
+        : target.props[prop];
+      return typeof value === "string" && value !== "" ? value : null;
+    };
+    const constraints = deps.getConstraintContext?.(action.targetId);
+    const declared = toKeySet(target.props.disabledKeys);
+    const outcome = catalogStepListDo(
+      {
+        keys: constraints?.itemKeys ?? [],
+        selectedKey: state("selectedKey"),
+        lastCompletedStep: state("lastCompletedStep"),
+        disabledKeys: [
+          ...(declared === "all" ? [] : declared),
+          ...(constraints?.disabledKeys ?? []),
+        ],
+        isDisabled:
+          target.props.isDisabled === true ||
+          constraints?.inherited?.isDisabled === true,
+      },
+      def.step,
+      key,
+    );
+    if (!outcome.ok)
+      return {
+        ok: false,
+        reason: `${target.type}.${action.capability} 을 쓰지 않는다 — ${outcome.reason}`,
+      };
+    if (Object.keys(outcome.patch).length)
+      deps.updateElementProps(action.targetId, { ...outcome.patch });
+    return { ok: true, kind: "capability" };
   }
 
   // ADR-308 Decision 3 — 그룹 안 항목의 선택 · 펼침은 그룹의 것: 항목 대상 boolean Do (check ·

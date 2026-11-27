@@ -445,11 +445,16 @@ const catalog: TranslationKeys = {
     ungroupInstance: "인스턴스는 그룹 해제할 수 없습니다 — 먼저 분리하세요",
     variableNameConflict:
       "이미 같은 이름의 변수가 보이는 범위에 있습니다 — 다른 이름을 쓰세요",
-    immediateSaveRule: "이 collection 의 편집을 바로 저장하는 규칙이 있어 「변경을 모아서 저장」 과 함께 켤 수 없습니다.",
-    saveNotEnabled: "「변경 저장」 은 그 collection 의 「변경을 모아서 저장」 이 켜져 있어야 합니다.",
-    saveKeyFieldRequired: "수정 · 삭제를 보내려면 key 필드 (id · key · value 또는 표의 key) 가 있어야 합니다.",
-    saveBatchIfMatch: "묶음은 버전을 본문에 싣습니다 — If-Match 하나로는 행마다의 버전을 나타낼 수 없습니다.",
-    saveEndpointMethod: "연결마다 method 가 정해져 있습니다 — 고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST, key 로 읽는 endpoint 는 GET.",
+    immediateSaveRule:
+      "이 collection 의 편집을 바로 저장하는 규칙이 있어 「변경을 모아서 저장」 과 함께 켤 수 없습니다.",
+    saveNotEnabled:
+      "「변경 저장」 은 그 collection 의 「변경을 모아서 저장」 이 켜져 있어야 합니다.",
+    saveKeyFieldRequired:
+      "수정 · 삭제를 보내려면 key 필드 (id · key · value 또는 표의 key) 가 있어야 합니다.",
+    saveBatchIfMatch:
+      "묶음은 버전을 본문에 싣습니다 — If-Match 하나로는 행마다의 버전을 나타낼 수 없습니다.",
+    saveEndpointMethod:
+      "연결마다 method 가 정해져 있습니다 — 고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST, key 로 읽는 endpoint 는 GET.",
     variableNameShadows:
       "그 이름을 이미 읽는 자리가 있어 다른 변수의 값을 가로채게 됩니다 — 다른 이름을 쓰세요",
     itemKeyTaken:
@@ -910,6 +915,13 @@ const catalog: TranslationKeys = {
       resize: {
         onSizeChange: "패널 크기가 바뀔 때",
       },
+      // (ADR-321 — a StepList's current step · how far its steps are done.)
+      stepSelection: {
+        onSelectionChange: "단계가 바뀔 때",
+      },
+      stepCompletion: {
+        onLastCompletedStepChange: "완료 단계가 바뀔 때",
+      },
       groupAction: {
         onGroupAction: "그룹 동작 버튼을 누를 때",
       },
@@ -950,6 +962,8 @@ const catalog: TranslationKeys = {
       expansion: "펼침",
       collapse: "패널 접힘",
       resize: "패널 크기",
+      stepSelection: "현재 단계",
+      stepCompletion: "완료 단계",
       groupAction: "그룹 동작",
       remove: "제거",
       focusedDate: "포커스 날짜",
@@ -1057,6 +1071,10 @@ const catalog: TranslationKeys = {
     collapseItem: "항목 접기",
     toggleExpand: "펼침 전환",
     toggleCollapse: "접힘 전환",
+    nextStep: "다음 단계",
+    previousStep: "이전 단계",
+    goToStep: "단계로 이동",
+    completeStep: "단계 완료",
     open: "열기",
     close: "닫기",
     toggleOpen: "열림 전환",
@@ -1079,6 +1097,7 @@ const catalog: TranslationKeys = {
     reset: "초기화",
     paramItemKey: "항목 key",
     paramTabKey: "탭 키",
+    paramStepKey: "단계 키",
     paramValue: "값",
     disableAll: "전체 비활성화",
     enableAll: "전체 활성화",
@@ -2188,8 +2207,10 @@ const catalog: TranslationKeys = {
     "batchSave.title": "저장",
     "batchSave.batch": "변경을 모아서 저장",
     "batchSave.none": "없음",
-    "batchSave.noWriteEndpoint": "저장할 POST · PATCH · PUT · DELETE endpoint 를 먼저 추가하세요.",
-    "batchSave.rulesBlock": "이 규칙들은 편집마다 바로 저장해 함께 켤 수 없습니다:",
+    "batchSave.noWriteEndpoint":
+      "저장할 POST · PATCH · PUT · DELETE endpoint 를 먼저 추가하세요.",
+    "batchSave.rulesBlock":
+      "이 규칙들은 편집마다 바로 저장해 함께 켤 수 없습니다:",
     "batchSave.removeRulesAndTurnOn": "규칙을 지우고 켜기",
     "batchSave.shape": "보내는 모양",
     "batchSave.shapeRows": "행마다 (REST)",
@@ -2215,9 +2236,12 @@ const catalog: TranslationKeys = {
     "batchSave.guaranteeAtomic": "전부 반영되거나 전부 남습니다.",
     "batchSave.guaranteeBatch": "항목마다 반영 여부가 다를 수 있습니다.",
     "batchSave.guaranteeRows": "행마다 반영 여부가 다를 수 있습니다.",
-    "batchSave.guaranteeVersion": "다른 사람이 먼저 바꾼 행은 서버가 거절합니다.",
-    "batchSave.guaranteeRecheck": "보내기 직전 서버 값을 확인합니다 — 그 사이의 변경은 잡지 못합니다.",
-    "batchSave.guaranteeNoneFull": "충돌 감지 없음 — 마지막에 쓴 값이 남고 다른 칸까지 덮을 수 있습니다.",
+    "batchSave.guaranteeVersion":
+      "다른 사람이 먼저 바꾼 행은 서버가 거절합니다.",
+    "batchSave.guaranteeRecheck":
+      "보내기 직전 서버 값을 확인합니다 — 그 사이의 변경은 잡지 못합니다.",
+    "batchSave.guaranteeNoneFull":
+      "충돌 감지 없음 — 마지막에 쓴 값이 남고 다른 칸까지 덮을 수 있습니다.",
     "batchSave.guaranteeNone": "충돌 감지 없음 — 마지막에 쓴 값이 남습니다.",
     "batchSave.guaranteeDeclared": "연결이 선언한 수준입니다.",
     "batchSave.barUnsaved": "저장 안 된 변경 {count}건",
@@ -3332,6 +3356,9 @@ const semanticLabels: Record<string, string> = {
   "properties.withHandle": "손잡이 표시",
   "properties.rememberSizes": "크기 기억",
   "properties.pill": "알약",
+  "properties.currentStep": "현재 단계",
+  "properties.lastCompletedStep": "마지막 완료 단계",
+  "properties.freeNavigation": "자유 이동",
   "properties.multiColumnSort": "여러 열 정렬",
   "properties.maxSortColumns": "최대 정렬 열 수",
   "properties.allowUnsorted": "정렬 해제 허용",

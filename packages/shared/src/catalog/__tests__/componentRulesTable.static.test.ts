@@ -67,6 +67,20 @@ const sizes = (
 ): IntentionalLiteral => ({ component, key, values, reason });
 
 export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
+  // ADR-321 — S2 설치본에 StepList 가 없다. 값은 spectrum-design-data `steplist` (dataset 4.7.0 —
+  //   `fixtures/adr321-design-data.json`, `adr321StepListDesignData.static.test.ts` 가 대조).
+  sizes(
+    "Step",
+    "iconSize",
+    { S: 8, M: 16, L: 24, XL: 32 },
+    "S2 에 StepList 가 없다 — design-data `steplist-visual-size-small · medium · large · extra-large` (표식 지름, 기기 배율 없음 — mobile 값도 같다)",
+  ),
+  sizes(
+    "Step",
+    "iconGap",
+    { M: 6, L: 6, XL: 6 },
+    "S2 에 StepList 가 없다 — design-data `base-gap-medium · large · extra-large` (글자와 표식 간격 6 — S 의 4 는 spacing 단 위). 글자 상대 형 `text-to-visual` (6/14 em) 은 M 에서만 같은 값이라 쓰지 않는다",
+  ),
   sizes(
     "SegmentedControlItem",
     "lineHeight",
@@ -611,7 +625,11 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
       (
         [
           ["SheetBackdrop", "&[data-entering]", "열 때 250"],
-          ["SheetOverlay", "&[data-exiting]", "닫을 때 130 — RAC 는 overlay 자신의 애니메이션만 기다린다"],
+          [
+            "SheetOverlay",
+            "&[data-exiting]",
+            "닫을 때 130 — RAC 는 overlay 자신의 애니메이션만 기다린다",
+          ],
         ] as const
       ).map(([type, key, what]) => [
         type,

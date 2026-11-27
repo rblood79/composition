@@ -1,0 +1,93 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog StepList — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-StepList {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+
+  /* Default variant */
+  background: undefined;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-StepList[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-StepList[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-StepList[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+.react-aria-StepList[data-size="XL"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-none);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-StepList[data-orientation="vertical"] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-StepList {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-StepList > .step-list-items {
+    display: flex;
+    flex: 1 1 auto;
+    align-self: stretch;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: inherit;
+    flex-wrap: inherit;
+    align-items: inherit;
+    justify-content: inherit;
+    gap: inherit;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+
+} /* @layer components */
