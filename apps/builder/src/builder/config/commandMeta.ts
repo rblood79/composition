@@ -5,7 +5,7 @@
  * agent 호출에 필요한 **정적 사실** — 호출 가능 여부 · mutation 등급 · 되돌림 단위 ·
  * 승인 필요 · precondition — 을 별도 표로 둔다 (breakdown §3-1 세 층 분리).
  *
- * - 71 정의 전부 명시 — 누락은 type error (`Record<ShortcutId, CommandMeta>`).
+ * - 모든 단축키 정의를 명시 — 누락은 type error (`Record<ShortcutId, CommandMeta>`).
  * - `agentCallable` 기본 false, allowlist 40 만 true (Phase 0 확정 — breakdown §2
  *   Phase 0 실측 결과). 상한 40 (HC2).
  * - 정적 게이트 4조항은 `validateCommandMeta` 가 판정하고 `commandMeta.static.test.ts`
@@ -130,6 +130,7 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
   toggleStyles: view(),
   toggleEvents: view(),
   toggleHistory: view(),
+  toggleCodeView: view(false),
   toggleWorkflowOverlay: view(false),
   toggleRulers: view(),
   openSettings: view(),

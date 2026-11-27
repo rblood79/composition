@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ShortcutDefinition } from "../types/keyboard";
 import { localizedStrings } from "@/i18n/translations";
 import { SHORTCUT_DEFINITIONS } from "./keyboardShortcuts";
 
@@ -22,6 +23,22 @@ describe("keyboardShortcuts ADR-112 editing semantics", () => {
       key: "w",
       code: "KeyW",
       modifier: "ctrlAlt",
+      scope: "global",
+      allowInInput: true,
+    });
+  });
+
+  it("Code Editor가 입력 중에도 전역 Alt+9를 단독으로 사용한다", () => {
+    const matches = Object.entries<ShortcutDefinition>(
+      SHORTCUT_DEFINITIONS,
+    ).filter(
+      ([, def]) =>
+        def.modifier === "alt" &&
+        (def.code ? def.code === "Digit9" : def.key === "9"),
+    );
+    expect(matches.map(([id]) => id)).toEqual(["toggleCodeView"]);
+    expect(SHORTCUT_DEFINITIONS.toggleCodeView).toMatchObject({
+      code: "Digit9",
       scope: "global",
       allowInInput: true,
     });

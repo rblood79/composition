@@ -118,7 +118,7 @@ export function catalogDocumentShortcutHandler(
   };
 }
 
-/** The rail order ⌥1–⌥8 (+ ⌥9 AI, settings) — the old global shortcuts' panel ids. */
+/** 기존 작업 공간 패널의 열기·닫기 동작을 사용하는 전역 단축키. */
 const PANEL_SHORTCUTS: Partial<Record<ShortcutId, PanelId>> = {
   toggleNavigator: "navigator",
   toggleComponents: "components",
@@ -127,6 +127,7 @@ const PANEL_SHORTCUTS: Partial<Record<ShortcutId, PanelId>> = {
   toggleProperties: "properties",
   toggleEvents: "events",
   toggleHistory: "history",
+  toggleCodeView: "codeView",
   toggleAI: "ai",
   openSettings: "settings",
 };

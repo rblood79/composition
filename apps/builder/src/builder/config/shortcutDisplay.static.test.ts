@@ -211,7 +211,7 @@ describe("단축키 표기 SSOT", () => {
     const exposedIds = Object.entries(SHORTCUT_DEFINITIONS)
       .filter(([, def]) => (def as { palette?: false }).palette !== false)
       .map(([id]) => id);
-    expect(exposedIds).toHaveLength(62);
+    expect(exposedIds).toHaveLength(63);
 
     const unregistered = exposedIds.filter(
       (id) => !registered.has(id) && !(id in NOT_IN_REGISTRY),

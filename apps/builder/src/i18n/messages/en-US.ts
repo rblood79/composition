@@ -325,6 +325,7 @@ const catalog: TranslationKeys = {
     toggleStyles: "Open design layout tab",
     toggleEvents: "Toggle interactions panel",
     toggleHistory: "Toggle history panel",
+    toggleCodeView: "Toggle code editor panel",
     toggleWorkflowOverlay: "Workflow",
     toggleRulers: "Toggle rulers",
     openSettings: "Settings",

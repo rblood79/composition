@@ -138,6 +138,7 @@ export interface TranslationKeys {
     toggleStyles: string;
     toggleEvents: string;
     toggleHistory: string;
+    toggleCodeView: string;
     toggleWorkflowOverlay: string;
     toggleRulers: string;
     openSettings: string;

@@ -7,7 +7,7 @@
  * workspace `railOrder`/`visibility`, 헤더 전용 동작은 `headerMenuActions.ts`.
  * 손으로 쓴 네 번째 사본이 원본과 어긋난 것이 `96ab2cee1` 결함이었다.
  *
- * 71 정의는 구조 표 · 레일 패널 묶음 (`shortcutId`) · 제외 표 셋 중 정확히 한 곳에
+ * 등록된 단축키 정의는 구조 표 · 레일 패널 묶음 (`shortcutId`) · 제외 표 셋 중 정확히 한 곳에
  * 나온다 (G0 — `builderMenuStructure.static.test.ts`).
  */
 import type { ShortcutId } from "../../config/keyboardShortcuts";
@@ -227,8 +227,8 @@ const always = (alwaysReason: string): MenuCommandCondition => ({
 });
 
 /**
- * P0 표 — 포함 49 정의마다 활성 조건 출처와 scope 분기 여부 (G0). 레일 패널
- * 토글 9 는 메뉴에서 패널 항목 (항상 활성) 으로 서지만 정의 축도 여기 둔다.
+ * P0 표 — 포함된 정의마다 활성 조건 출처와 scope 분기 여부 (G0). 작업 공간 패널
+ * 토글은 메뉴에서 패널 항목 (항상 활성) 으로 서지만 정의 축도 여기 둔다.
  */
 export const MENU_COMMAND_CONDITIONS: Readonly<
   Record<MenuIncludedCommandId, MenuCommandCondition>
@@ -250,6 +250,7 @@ export const MENU_COMMAND_CONDITIONS: Readonly<
   toggleStyles: always("Design 을 Layout 탭으로 열기 · 닫기"),
   toggleEvents: always("패널 토글"),
   toggleHistory: always("패널 토글"),
+  toggleCodeView: always("패널 토글"),
   toggleAI: always("패널 토글"),
   toggleWorkflowOverlay: always("보기 토글"),
   toggleRulers: always("보기 토글"),

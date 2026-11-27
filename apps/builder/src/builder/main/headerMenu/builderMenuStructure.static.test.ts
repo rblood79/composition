@@ -179,7 +179,7 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     ]);
   });
 
-  it("71 정의가 구조 표 · 레일 패널 묶음 · 제외 표 중 정확히 한 곳에 나온다", () => {
+  it("72 정의가 구조 표 · 레일 패널 묶음 · 제외 표 중 정확히 한 곳에 나온다", () => {
     const panelShortcutIds = railPanels.flatMap((panel) =>
       panel.shortcutId ? [panel.shortcutId] : [],
     );
@@ -189,7 +189,7 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
       ...(Object.keys(MENU_EXCLUDED_COMMANDS) as ShortcutId[]),
     ];
     const definitionIds = Object.keys(SHORTCUT_DEFINITIONS) as ShortcutId[];
-    expect(definitionIds).toHaveLength(71);
+    expect(definitionIds).toHaveLength(72);
 
     const counts = new Map<string, number>();
     for (const id of placements) counts.set(id, (counts.get(id) ?? 0) + 1);
@@ -198,16 +198,16 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     expect(placements.filter((id) => !(id in SHORTCUT_DEFINITIONS))).toEqual(
       [],
     );
-    expect(commandIds.length + panelShortcutIds.length).toBe(49);
+    expect(commandIds.length + panelShortcutIds.length).toBe(50);
     expect(Object.keys(MENU_EXCLUDED_COMMANDS)).toHaveLength(22);
   });
 
-  it("포함 49 는 활성 조건 출처가 원본과 일치한다", () => {
+  it("포함 50 는 활성 조건 출처가 원본과 일치한다", () => {
     const entries = Object.entries(MENU_COMMAND_CONDITIONS) as [
       MenuIncludedCommandId,
       (typeof MENU_COMMAND_CONDITIONS)[MenuIncludedCommandId],
     ][];
-    expect(entries).toHaveLength(49);
+    expect(entries).toHaveLength(50);
 
     const mismatches: string[] = [];
     for (const [id, condition] of entries) {

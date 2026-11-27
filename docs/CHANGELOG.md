@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Code Editor 패널 단축키] - 2026-11-28
+
+### Added
+
+- `⌥9` (Windows/Linux에서는 `Alt+9`)로 Code Editor 패널을 열고 닫을 수 있다. 작업 공간 메뉴에도 단축키를 표시한다.
+
 ## [Design 패널 Padding · Gap · Radius · Font Size 아이콘 드래그] - 2026-11-28
 
 ### Fixed

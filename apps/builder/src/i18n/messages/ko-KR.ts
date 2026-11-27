@@ -322,6 +322,7 @@ const catalog: TranslationKeys = {
     toggleStyles: "디자인 레이아웃 탭 열기",
     toggleEvents: "인터랙션 패널 토글",
     toggleHistory: "작업 내역 패널 토글",
+    toggleCodeView: "코드 편집기 패널 토글",
     toggleWorkflowOverlay: "Workflow",
     toggleRulers: "눈금자 토글",
     openSettings: "설정",
