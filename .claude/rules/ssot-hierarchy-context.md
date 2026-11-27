@@ -44,10 +44,11 @@ paths:
 
 > 상시 로드 비용을 줄이려고 정본에서 옮겼다. 원문 그대로 — 정본의 §4 · §7 은 여기를 가리킨다.
 
-### D3 — 사고 기록 (Why 2026-11-05 · 11-13)
+### D3 — 사고 기록 (Why 2026-11-05 · 11-13 · 11-27)
 
 - **Why (2026-11-05)**: Publish의 layer 밖 `:focus-visible` 기본값이 catalog의 `data-focus-visible` 분기를 덮어 마우스 Menu hover에도 2px outline을 그렸다. 앱 기본 focus 규칙은 컴포넌트 상태 규칙보다 낮은 우선순위에 둔다.
 - **Why (2026-11-13)**: 같은 기제가 margin 에서도 났다 — Publish 의 layer 밖 `* { margin: 0 }` 이 catalog margin (SideNav 행 `margin-top: 6px` · SideNavHeader `margin-bottom: 8px`) 을 지워 Publish 만 행이 붙었다 (`@layer preview-system` 으로 옮김). 그리고 CSS 생성기는 `emitContainerStyles` 에 줄이 없는 rule 값 (SideNav `min-width` · SideNavHeader `margin-bottom` · Token `white-space` …) 을 버렸고, size 블록의 `padding: 0px 0px` 가 rule 이 선언한 padding 한쪽 (SideNavHeader · Toast) 을 덮었다 — Canvas 는 둘 다 읽었다. 앱 reset 은 가장 낮은 layer 에, rule 값은 두 consumer 가 모두 쓴다 (`CSSGenerator.containerStyles.test.ts` 가 모든 rule 의 키를 검사).
+- **Why (2026-11-27, ADR-321 Phase 5)**: 세 번째 — Publish 의 layer 밖 `img, picture, video, canvas, svg { display: block; max-width: 100% }` 가 Rating 별의 `display: none` (윤곽 · 채운 별 둘 중 하나를 숨기는 rule) 을 이겨 Publish 만 별 다섯이 모두 채워졌다 (`@layer preview-system` 으로 옮김). Publish `index.css` 에 layer 밖 선택자를 새로 두지 않는다.
 
 ### D1 ↔ D3 분리 사례 — RAC Group ↔ canonical frame
 

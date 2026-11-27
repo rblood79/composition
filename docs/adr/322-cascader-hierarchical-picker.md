@@ -5,7 +5,7 @@
 Proposed — 2026-11-26
 
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 뒤 `/create-adr`.
-- 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2): 범위 = 차용 후보 네 묶음 전부, 문서 단위 = 「묶음마다 ADR 하나」 (결정 지점 1 의 확정). 이 문서는 「Cascader」 묶음이다. 다른 묶음: [320](320-filter-bar-runtime-condition-builder.md) · [321](321-steplist-rating-components.md) · [323](323-timeline-event-calendar-gantt.md).
+- 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2): 범위 = 차용 후보 네 묶음 전부, 문서 단위 = 「묶음마다 ADR 하나」 (결정 지점 1 의 확정). 이 문서는 「Cascader」 묶음이다. 다른 묶음: [320](320-filter-bar-runtime-condition-builder.md) · [321](completed/321-steplist-rating-components.md) · [323](323-timeline-event-calendar-gantt.md).
 - 사용자 답 (2026-11-26, 리뷰 round 2 뒤 선택 질문): 폼 값을 싣는 숨은 input = 「값 + 필수 검증 예외」 — **결정 지점 3 (SSOT 경계 — 사용자 컴포넌트의 D1 예외 추가) 의 확정이다.** 범위는 [breakdown §3.1](design/322-cascader-hierarchical-picker-breakdown.md) 의 목록으로 닫는다. 기각된 선택지: 「값만 싣는 예외 (필수 검증 없음)」. 사용자 결정 6 (필수 검증) 도 이 답으로 「따른다」 로 확정됐다.
 - 분리 점검 (4 질문) 은 [ADR-320 Status](320-filter-bar-runtime-condition-builder.md) 에 적었다. ReUI 에서는 Filters 가 Cascader 를 소비하지만 우리 필터 바 (320) 는 이 컴포넌트를 쓰지 않는다 — 두 ADR 은 서로의 선행이 아니다. 이 ADR 은 기존 ADR 을 나누거나 합치지 않는다.
 - 리뷰 round 1 (2026-11-26, codex — [reviews/322.md](reviews/322.md)): HIGH 2. 둘 다 코드로 확인하고 설계에 반영했다. Round 2 의 h1 · h2 는 round 3 수리 검증에서 종결됐고, round 3 의 h3 (이름 없는 필수 필드) 도 설계에 반영했다. 사용자 결정 (2026-11-27) — round 4 는 열지 않고 h3 의 다음 판정은 구현 Gate G6 에서 한다. 리뷰 기록 pending 0. 착수는 사용자 `/execute-adr 322`.

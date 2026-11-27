@@ -1,6 +1,6 @@
 # ADR-321 breakdown — StepList · Rating
 
-> 결정: [ADR-321](../321-steplist-rating-components.md). 경로 약칭 `S/` = `packages/shared/src/`, `RA/` = 설치된 `react-aria` 3.53.1, `RS/` = `react-stately` 3.51.0.
+> 결정: [ADR-321](../completed/321-steplist-rating-components.md). 경로 약칭 `S/` = `packages/shared/src/`, `RA/` = 설치된 `react-aria` 3.53.1, `RS/` = `react-stately` 3.51.0.
 
 ## 1. 범위 · 출처
 
@@ -697,5 +697,38 @@ main `8b1a9399c` 위. contract 85 그대로 (prop 두 개 · 동작만 더한다
 
 - 번들 (70 B 남음 — ADR-320 과 공용) · 종결 live (평점 입력과 집계 표시) · VoiceOver 청취와 사용자 확인 · 문서 (규칙 · CHANGELOG).
 - Code 보기의 RAC 밖 컴포넌트 import (Phase 3 부터 남은 것).
+
+### Phase 6 (G6) — 2026-11-27
+
+main `cf2b2b0bf` 위. 소스 동작 변경 0 (live 스크립트 · 규칙 문서만).
+
+**종결 live (`scripts/adr321-g6-live.mjs` — 새 프로젝트 · 팔레트 Stepper · Publish)**
+
+화면 하나: Stepper 3 단계 — 패널 1 = Form (제출 → 목록의 「다음 단계」), 패널 2 = Form 안의 Rating 입력 (`name` score · `label` 「내 평점」 · 이름 붙인 상태 `stars`, 제출 → 집계 Rating 에 「값 넣기」 변수 `average` 3.8 + 「다음 단계」), 패널 3 = 표시 전용 집계 Rating (작성 값 4.3 · `label` 「평균 평점」) + Text 「내 평점 {{ stars }}」.
+
+| 항목                                                                                                                                            | Chrome | WebKit |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | :----: | :----: |
+| 1 시작 = 단계 1 의 패널 (Form) · 단계 상태 current · incomplete · incomplete                                                                    |  PASS  |  PASS  |
+| 2 Form 제출 → 패널 2: RAC Slider · range input `name=score` · 접근 이름 「내 평점」 · 값 0 (빈 별)                                              |  PASS  |  PASS  |
+| 3 별 4 누르기 → 4 · ← → 3 (별 채움 = range input 값)                                                                                            |  PASS  |  PASS  |
+| 4 패널 2 Form 의 `FormData` 에 `score=3`                                                                                                        |  PASS  |  PASS  |
+| 5 제출 → 패널 3: 집계 = RAC Meter · 값 4 (데이터 값 3.8 → 0.5 단위) · 「5점 만점에 4점」 · 「내 평점 3」 · 상태 completed · completed · current |  PASS  |  PASS  |
+| 6 단계 2 누르기 → 평점 입력이 3 을 그대로 든다 (실행 값이 패널을 오가도 남는다)                                                                 |  PASS  |  PASS  |
+| 5b 단계 3 에서 시작한 새 Publish: 집계의 작성 값 4.3 → 4.5 (반쪽 별 · 「5점 만점에 4.5점」) · Builder Canvas 상자 106 × 32                      |  PASS  |  PASS  |
+| 7 page error 0                                                                                                                                  |  PASS  |  PASS  |
+
+- 스크린샷: Publish 단계 2 (별 3 · focus ring) · 단계 3 (반쪽 별 4.5 · 「내 평점」) — 눈으로 확인.
+- VoiceOver 청취 (사용자): `node apps/builder/scripts/adr321-g6-live.mjs <out> --hold` 가 같은 화면의 Publish 창을 열어 두고 기다린다.
+
+**규칙 문서**
+
+- `catalog-subparts.md` — 「StepList · Rating」 절 (Stepper 짝 · 표식 · 선 · 별은 노드가 아님 · lazy chunk 는 RAC 만 import · 유효값 함수 하나).
+- `ssot-hierarchy-context.md` §9 — Publish 의 layer 밖 svg · img reset 사고 (2026-11-27, 세 번째).
+
+**번들 (결정 8)**: Phase 6 의 소스 변경 0 — Phase 5 값 그대로. Builder initial 은 Phase 1 ~ 5 합 **+8,589 B** 로 결정 8 의 한도 +7,000 을 **1,589 B** 넘는다. 절대 상한 (2026-11-27 둘째 재승인 1,662,000 — ADR-320 Phase 5) 안이다. 줄일 수 있는 곳: StepList 의 DOM 조립 (`runtime/stepList.components.tsx`, 단독 minify + gzip 1,095 B) 을 Rating 처럼 lazy chunk 로 빼면 첫 화면에서 수백 B 가 빠지지만 +7,000 안으로는 들어오지 않는다 — 나머지는 rule 표 (Canvas 가 읽어 첫 화면에 있어야 한다) 와 상태 규칙 (Canvas · DOM 공용).
+
+- 사용자 답 (2026-11-27, Phase 6 보고 뒤): **+8,589 B 로 종결** — StepList DOM 의 lazy 분리는 하지 않는다.
+
+**ADR 범위 밖으로 남는 것**: Code 보기의 RAC 밖 컴포넌트 import (Phase 3 부터 — FilterBar · Resizable 도 같은 경로, 저장소 전체 결정이 없다).
 
 (Phase 가 닫힐 때마다 결과를 여기에 기록)

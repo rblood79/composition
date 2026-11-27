@@ -13,6 +13,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-321 Implemented — StepList · Stepper · Rating] - 2026-11-27
+
+### Changed
+
+- ADR-321 을 닫았다. 단계 입력 화면 하나 (Stepper 3 단계 — Form 제출 → 평점 입력 → 집계 표시) 를 Chrome · WebKit 에서 처음부터 끝까지 확인했고, VoiceOver 로 단계 목록 · 평점 입력 · 집계 낭독을 들어 확인했다. 단계 사이를 오가도 입력한 평점이 남는다.
+- Builder 첫 로드 번들은 두 컴포넌트 합 +8,589 B (사용자 답으로 확정 — 절대 상한 1,662,000 B 안).
+
 ## [ADR-321 Phase 5 — Rating 의 동작 (별 누르기 · 폼 값 · 표시 전용 낭독)] - 2026-11-27
 
 ### Added

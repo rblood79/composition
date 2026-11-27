@@ -15,7 +15,7 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 (ReUI 가 앞서는 곳 = 실행 중 필터 바와 우리에게 없는 컴포넌트) 뒤 `/create-adr`.
 - 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2):
   1. 범위 = 차용 후보 네 묶음 전부 — 「필터 바」 · 「Stepper · Rating」 · 「Cascader」 · 「Timeline · Event Calendar · Gantt」.
-  2. 문서 단위 = 「묶음마다 ADR 하나」. **결정 지점 1 (ADR 분리) 의 확정이다** — 320 (이 문서) · [321](321-steplist-rating-components.md) · [322](322-cascader-hierarchical-picker.md) · [323](323-timeline-event-calendar-gantt.md).
+  2. 문서 단위 = 「묶음마다 ADR 하나」. **결정 지점 1 (ADR 분리) 의 확정이다** — 320 (이 문서) · [321](completed/321-steplist-rating-components.md) · [322](322-cascader-hierarchical-picker.md) · [323](323-timeline-event-calendar-gantt.md).
 - 분리 점검 (4 질문):
   1. base / 응용 — 네 ADR 은 서로의 선행이 아니다 (독립 컴포넌트 계열). ReUI 는 Filters 가 Cascader 를 소비하지만, 이 ADR 의 필드 고르기는 RAC `Menu` · `SubmenuTrigger` 로 조립하므로 322 를 기다리지 않는다. **선행 하나 — [ADR-325](completed/325-collection-runtime-store-three-layers.md) (사용자 답 2026-11-27, round 4 h8)**: 같은 collection 의 대상이 각자 다른 합성 조회를 보내고 결과를 따로 드는 일은 325 의 「조회 결과」 (요청마다 키 목록 · cursor) 와 Decision 6 이 맡는다. 이 ADR 은 그 위의 응용이고 착수는 325 Implemented 뒤다.
   2. 저장 형식 — 320 은 실행 상태 조각과 `FilterBar` 노드, 321 ~ 323 은 각자의 노드 type 이다. 겹치는 형식이 없고 contract 번호만 착수 순서대로 받는다.

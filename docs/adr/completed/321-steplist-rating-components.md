@@ -2,23 +2,26 @@
 
 ## Status
 
-Accepted — 2026-11-27 (Proposed 2026-11-26)
+Implemented — 2026-11-27 (Accepted 2026-11-27 · Proposed 2026-11-26)
 
-- 승격 근거: 사용자 착수 지시 2026-11-27 (「ADR-320, ADR-321 병렬 착수」) + [reviews/321.md](reviews/321.md) round 2 잔여 이슈 0 (HIGH 1 · MEDIUM 1 모두 `fixed`, `pending` 0).
-  > **Phase 0 (G0 재료) — 2026-11-27**, HEAD `f4a9c4b51`: 코드 사실 F1 ~ F12 재대조 — 내용 차이는 F2 하나 (스키마의 `size` · `variant` · `anatomyReview` 와 토큰 binding 은 설치된 design-data 3.9.1 이 아니라 MCP dataset 4.7.0 의 것), F10 은 contract 80 (이 ADR 은 81 부터), F11 은 줄만 이동 (`catalogPreviewInteractions.ts:1212` · `:1616`). 토큰 표 고정 — 비어 있는 값은 step 폭 · 높이 · step 과 선의 간격 · 글자 맞춤 · Rating 높이, 저장소에 없는 TokenRef 는 색 alias 셋과 6 px 간격 · 1.3 행간 · radius 7. 시제품 **P1 go 초안** — `ol > li > RAC Link` 의 `role` · `aria-current` · `aria-disabled` · `tabindex` 가 fixture 넷에서 v3 hook 대조 목록 · 따로 적은 정답표와 같고, Chrome 내부 접근성 트리 (`ariaCurrentState=step` · `restriction=disabled`) 와 macOS 접근성 객체 (`AXARIACurrent='step'`) 에 실린다 · Tab 순서 · Enter 활성 일치. **P2 go 초안** — track 상자를 「폭 = (별 + 간격) × 5, 왼쪽으로 반 칸」 으로 두면 별 누르기 15 / 15 (M · S), track 상자 = 별 줄이면 8 / 15 · 화살표로 0 도달 · 값 2.5 · 6 · −1 의 range input = 3 · 5 · 0 · Meter 낭독 값 「50%」 대 「5점 만점에 2.5점」. 측정: headed Chrome 158 · visible · DPR 1 (headless 도 같은 결과). 사용자에게 물을 것 — StepList 목록의 이름 (v3 는 `ol` 에 `aria-label`, 조립은 예외 0 조건에서 이름 없음). 번들 기준선은 메인 세션. 상세 [breakdown §8](design/321-steplist-rating-components-breakdown.md).
+- 승격 근거 (Implemented): G6 — 종결 live (Chrome 8 / 8 · WebKit 8 / 8) · 번들 = 사용자 답 「+8,589 B 로 종결」 · VoiceOver 청취 사용자 확인 「세 가지 모두 제대로 읽힘」 (2026-11-27).
+
+- 승격 근거: 사용자 착수 지시 2026-11-27 (「ADR-320, ADR-321 병렬 착수」) + [reviews/321.md](../reviews/321.md) round 2 잔여 이슈 0 (HIGH 1 · MEDIUM 1 모두 `fixed`, `pending` 0).
+  > **Phase 0 (G0 재료) — 2026-11-27**, HEAD `f4a9c4b51`: 코드 사실 F1 ~ F12 재대조 — 내용 차이는 F2 하나 (스키마의 `size` · `variant` · `anatomyReview` 와 토큰 binding 은 설치된 design-data 3.9.1 이 아니라 MCP dataset 4.7.0 의 것), F10 은 contract 80 (이 ADR 은 81 부터), F11 은 줄만 이동 (`catalogPreviewInteractions.ts:1212` · `:1616`). 토큰 표 고정 — 비어 있는 값은 step 폭 · 높이 · step 과 선의 간격 · 글자 맞춤 · Rating 높이, 저장소에 없는 TokenRef 는 색 alias 셋과 6 px 간격 · 1.3 행간 · radius 7. 시제품 **P1 go 초안** — `ol > li > RAC Link` 의 `role` · `aria-current` · `aria-disabled` · `tabindex` 가 fixture 넷에서 v3 hook 대조 목록 · 따로 적은 정답표와 같고, Chrome 내부 접근성 트리 (`ariaCurrentState=step` · `restriction=disabled`) 와 macOS 접근성 객체 (`AXARIACurrent='step'`) 에 실린다 · Tab 순서 · Enter 활성 일치. **P2 go 초안** — track 상자를 「폭 = (별 + 간격) × 5, 왼쪽으로 반 칸」 으로 두면 별 누르기 15 / 15 (M · S), track 상자 = 별 줄이면 8 / 15 · 화살표로 0 도달 · 값 2.5 · 6 · −1 의 range input = 3 · 5 · 0 · Meter 낭독 값 「50%」 대 「5점 만점에 2.5점」. 측정: headed Chrome 158 · visible · DPR 1 (headless 도 같은 결과). 사용자에게 물을 것 — StepList 목록의 이름 (v3 는 `ol` 에 `aria-label`, 조립은 예외 0 조건에서 이름 없음). 번들 기준선은 메인 세션. 상세 [breakdown §8](../design/321-steplist-rating-components-breakdown.md).
   > **G0 닫힘 — 2026-11-27**: P1 · P2 go. 사용자 답 (같은 날): 결정 1 = v3 이름 · 결정 4 = 설명 한 줄만 · StepList 목록의 이름 = RAC `Group` 으로 감싸기 (Phase 0 발견 2) · 결정 8 = 권고대로 (Builder +3,000 · Preview +2,000 B, Builder 절대 상한 1,660,000 B 재승인 — ADR-320 과 공용). 메인 세션 판단: design-data 대조 기준 = MCP dataset 4.7.0 을 굳힌 fixture, 색은 새 토큰 없이 기존 TokenRef.
-  > **Phase 1 (G1) — 2026-11-27**, `3718e2423` (worktree): StepList · Step 등록 (contract 81 — main 병합 때 **83**) · 상태 규칙의 정지 모양 · Canvas 정적 · DOM 정적 (RAC `Group > ol > li`, Link 조립은 Phase 2). 표식 · 선은 노드가 아니라 Step 이 자기 여백에 그린다. fixture 25 의 Canvas rect = Chrome rect (최대 차 0.02 px) · 실제 builder live 19 / 19 · 원복 RED 변이 10 모두 실패 · 복원 확인. **번들: Builder initial +3,629 B (1,647,247 B) — 결정 8 의 +3,000 (두 컴포넌트 합) 을 StepList 등록만으로 넘는다 (보고 · 사용자 판단 대기)**, Preview −1 B. 정한 값 · 색 대체 · 설계와 달라진 것: [breakdown §5.3 · §8](design/321-steplist-rating-components-breakdown.md).
+  > **Phase 1 (G1) — 2026-11-27**, `3718e2423` (worktree): StepList · Step 등록 (contract 81 — main 병합 때 **83**) · 상태 규칙의 정지 모양 · Canvas 정적 · DOM 정적 (RAC `Group > ol > li`, Link 조립은 Phase 2). 표식 · 선은 노드가 아니라 Step 이 자기 여백에 그린다. fixture 25 의 Canvas rect = Chrome rect (최대 차 0.02 px) · 실제 builder live 19 / 19 · 원복 RED 변이 10 모두 실패 · 복원 확인. **번들: Builder initial +3,629 B (1,647,247 B) — 결정 8 의 +3,000 (두 컴포넌트 합) 을 StepList 등록만으로 넘는다 (보고 · 사용자 판단 대기)**, Preview −1 B. 정한 값 · 색 대체 · 설계와 달라진 것: [breakdown §5.3 · §8](../design/321-steplist-rating-components-breakdown.md).
   > **사용자 답 (2026-11-27, Phase 1 보고 뒤)**: 결정 8 의 Builder 한도 +3,000 → **+7,000 B** (StepList 등록만으로 +3,629 — 남은 Phase 몫 포함, Builder 절대 상한 1,660,000 그대로). Preview +2,000 그대로.
-  > **Phase 2 (G2) — 2026-11-27**, `3718e2423` (worktree): StepList 의 동작 — RAC `Group > ol > li > Link` 조립 (`aria-current` · `isDisabled` · 상태 문구 · 작성 이름), 상태 규칙의 이동 (누르기 · Do 4), 「자유 이동」 스위치 `allowsFreeNavigation` (사용자 답 — 결정 3), When 2 · 이름 붙인 상태 2. 상태 규칙 = v3 state hook (시작 값 324 가지 · 이동 · 완료 — 차이 0) · 조립 속성 = v3 hook 속성 · D1 예외 0 (정적 검사) · 실행 Preview 전 경로 9 건 · live Chrome 12 / 12 · WebKit 12 / 12 · 정적 모양 회귀 25 / 25 · 원복 RED 변이 25 모두 실패 · 복원 확인. contract 81 그대로 (더하기뿐). 번들: Builder initial +5,219 B (1,648,837 B — Phase 2 의 몫 +1,590 B), 결정 8 의 +7,000 까지 1,781 B 남음 · Preview −1 B. 정한 규칙 · 설계와 달라진 것: [breakdown §5.2 · §8](design/321-steplist-rating-components-breakdown.md).
+  > **Phase 2 (G2) — 2026-11-27**, `3718e2423` (worktree): StepList 의 동작 — RAC `Group > ol > li > Link` 조립 (`aria-current` · `isDisabled` · 상태 문구 · 작성 이름), 상태 규칙의 이동 (누르기 · Do 4), 「자유 이동」 스위치 `allowsFreeNavigation` (사용자 답 — 결정 3), When 2 · 이름 붙인 상태 2. 상태 규칙 = v3 state hook (시작 값 324 가지 · 이동 · 완료 — 차이 0) · 조립 속성 = v3 hook 속성 · D1 예외 0 (정적 검사) · 실행 Preview 전 경로 9 건 · live Chrome 12 / 12 · WebKit 12 / 12 · 정적 모양 회귀 25 / 25 · 원복 RED 변이 25 모두 실패 · 복원 확인. contract 81 그대로 (더하기뿐). 번들: Builder initial +5,219 B (1,648,837 B — Phase 2 의 몫 +1,590 B), 결정 8 의 +7,000 까지 1,781 B 남음 · Preview −1 B. 정한 규칙 · 설계와 달라진 것: [breakdown §5.2 · §8](../design/321-steplist-rating-components-breakdown.md).
   > **사용자 답 (2026-11-27, Phase 2 보고 뒤)**: 결정 8 의 Builder 한도는 Phase 3 (Rating) 에서 실제 증가량을 잰 뒤 정한다 (지금 +7,000 B 그대로).
-  > **Phase 4 (G4) — 2026-11-27** (main, 미커밋): Rating 등록 (contract 84 → **85**) · Canvas 정적 · 반쪽 별 — 별 다섯은 노드가 아니라 Rating 이 그린다 (S2 `Star` · `StarFilled` 경로, 반쪽 = 채운 별의 왼쪽 반), 상자 = 별 줄 (M 106 × 32 · S 96 × 24 — design-data 의 legacy 폭 토큰은 쓰지 않음), 유효값 함수 (입력 = 정수 · 표시 전용 = 0.5 단위). 사용자 답: 결정 6 = 별 5 고정 · 번들 = 구현 뒤 재서 보고. Canvas = Chrome 29 / 29 · live Chrome 10 / 10 · 원복 RED 변이 9 모두 실패 · 복원 확인. **번들: Builder initial +2,076 B (1,659,527 B) — 결정 8 의 +7,000 을 1,188 B 넘고 (Phase 1 ~ 4 합 +8,188), 절대 상한 1,660,000 까지 473 B** · Preview JS +1 B · CSS +114 B. 상세 [breakdown §8 「Phase 4 (G4)」](design/321-steplist-rating-components-breakdown.md).
-  > **Phase 5 (G5) — 2026-11-27**, `05377021e` (main): Rating 의 동작 — 입력 = RAC `Slider > SliderTrack (별) + SliderThumb`, 표시 전용 = RAC `Meter` (「N of 5 stars」 · 「5점 만점에 N점」), 폼 필드 `label` (접근 이름) · `name` (range input), interaction spec `valueCommitNumber`, 값 쓰기의 유효값 맞춤 한 곳 (Slider 도). 사용자 답: 결정 5 = `label` · `name` · 결정 7 = Meter · 번들 = lazy chunk 로 절대 상한 안. 실행 Preview 6 · When 도달 2 · Canvas = Chrome 29 / 29 · live Chrome 10 / 10 (별 누르기 15 / 15 · 키보드 · hover · Meter 낭독 값 · 폼 이름) · Phase 4 live 회귀 10 / 10 · 원복 RED 변이 10 (live 1 포함) 모두 실패 · 복원 확인. **번들: Builder initial +401 B (1,659,930 B — 절대 상한까지 70 B)** · Preview JS +1 B · CSS +148 B. Publish 앱의 svg · img reset 을 가장 낮은 layer 로 옮겼다 (layer 밖이라 Rating 별의 `display: none` 을 이겼다). 상세 [breakdown §8 「Phase 5 (G5)」](design/321-steplist-rating-components-breakdown.md).
+  > **Phase 4 (G4) — 2026-11-27** (main, 미커밋): Rating 등록 (contract 84 → **85**) · Canvas 정적 · 반쪽 별 — 별 다섯은 노드가 아니라 Rating 이 그린다 (S2 `Star` · `StarFilled` 경로, 반쪽 = 채운 별의 왼쪽 반), 상자 = 별 줄 (M 106 × 32 · S 96 × 24 — design-data 의 legacy 폭 토큰은 쓰지 않음), 유효값 함수 (입력 = 정수 · 표시 전용 = 0.5 단위). 사용자 답: 결정 6 = 별 5 고정 · 번들 = 구현 뒤 재서 보고. Canvas = Chrome 29 / 29 · live Chrome 10 / 10 · 원복 RED 변이 9 모두 실패 · 복원 확인. **번들: Builder initial +2,076 B (1,659,527 B) — 결정 8 의 +7,000 을 1,188 B 넘고 (Phase 1 ~ 4 합 +8,188), 절대 상한 1,660,000 까지 473 B** · Preview JS +1 B · CSS +114 B. 상세 [breakdown §8 「Phase 4 (G4)」](../design/321-steplist-rating-components-breakdown.md).
+  > **Phase 5 (G5) — 2026-11-27**, `05377021e` (main): Rating 의 동작 — 입력 = RAC `Slider > SliderTrack (별) + SliderThumb`, 표시 전용 = RAC `Meter` (「N of 5 stars」 · 「5점 만점에 N점」), 폼 필드 `label` (접근 이름) · `name` (range input), interaction spec `valueCommitNumber`, 값 쓰기의 유효값 맞춤 한 곳 (Slider 도). 사용자 답: 결정 5 = `label` · `name` · 결정 7 = Meter · 번들 = lazy chunk 로 절대 상한 안. 실행 Preview 6 · When 도달 2 · Canvas = Chrome 29 / 29 · live Chrome 10 / 10 (별 누르기 15 / 15 · 키보드 · hover · Meter 낭독 값 · 폼 이름) · Phase 4 live 회귀 10 / 10 · 원복 RED 변이 10 (live 1 포함) 모두 실패 · 복원 확인. **번들: Builder initial +401 B (1,659,930 B — 절대 상한까지 70 B)** · Preview JS +1 B · CSS +148 B. Publish 앱의 svg · img reset 을 가장 낮은 layer 로 옮겼다 (layer 밖이라 Rating 별의 `display: none` 을 이겼다). 상세 [breakdown §8 「Phase 5 (G5)」](../design/321-steplist-rating-components-breakdown.md).
+  > **Phase 6 (G6) — 2026-11-27** (main, 소스 변경 0): 종결 live (`scripts/adr321-g6-live.mjs`) — Stepper 3 단계 화면 하나에서 Form 제출 → 평점 입력 (RAC Slider · 별 누르기 · 화살표 · `FormData` 의 `score`) → 제출 → 집계 (RAC Meter · 데이터 값 3.8 → 4 · 작성 값 4.3 → 반쪽 별 4.5 · 「5점 만점에 N점」) · 단계를 오가도 평점 유지 — **Chrome 8 / 8 · WebKit 8 / 8**. 번들 = 사용자 답 「+8,589 B 로 종결」. 규칙 문서 둘 (`catalog-subparts.md` 「StepList · Rating」 · `ssot-hierarchy-context.md` §9 의 Publish reset 사고). VoiceOver 청취 사용자 확인 「세 가지 모두 제대로 읽힘」 (단계 목록의 이름 · 단계 상태, 「내 평점」 슬라이더와 화살표 뒤의 값, 「평균 평점, 5점 만점에 N점」) → **Implemented**. 상세 [breakdown §8 「Phase 6 (G6)」](../design/321-steplist-rating-components-breakdown.md).
   > **main 병합 (2026-11-27)**: worktree 커밋 `3718e2423` 을 main 에 합쳤다. main 이 ADR-320 Phase 2 로 contract 82 를 먼저 냈으므로 이 ADR 의 번호는 **83** 이다 (81 은 따로 나간 적이 없다 — `LIBRARY_CONTRACT_VERSION` 주석). 리터럴 · 등록 수 (199) · 생성 CSS 수 (142 · index 124) 는 두 ADR 합으로 맞췄다.
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 뒤 `/create-adr`.
-- 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2): 범위 = 차용 후보 네 묶음 전부, 문서 단위 = 「묶음마다 ADR 하나」 (결정 지점 1 의 확정). 이 문서는 「Stepper · Rating」 묶음이다. 다른 묶음: [320](320-filter-bar-runtime-condition-builder.md) · [322](322-cascader-hierarchical-picker.md) · [323](323-timeline-event-calendar-gantt.md).
-- 분리 점검 (4 질문) 은 [ADR-320 Status](320-filter-bar-runtime-condition-builder.md) 에 적었다 — 네 ADR 은 서로의 선행이 아니고 저장 형식이 겹치지 않는다. 이 ADR 은 기존 ADR 을 나누거나 합치지 않는다.
+- 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2): 범위 = 차용 후보 네 묶음 전부, 문서 단위 = 「묶음마다 ADR 하나」 (결정 지점 1 의 확정). 이 문서는 「Stepper · Rating」 묶음이다. 다른 묶음: [320](../320-filter-bar-runtime-condition-builder.md) · [322](../322-cascader-hierarchical-picker.md) · [323](../323-timeline-event-calendar-gantt.md).
+- 분리 점검 (4 질문) 은 [ADR-320 Status](../320-filter-bar-runtime-condition-builder.md) 에 적었다 — 네 ADR 은 서로의 선행이 아니고 저장 형식이 겹치지 않는다. 이 ADR 은 기존 ADR 을 나누거나 합치지 않는다.
 - 이름: ReUI 의 「Stepper」 는 Spectrum 에서 **StepList** 다. type 이름은 Spectrum 을 따른다.
-- 리뷰 round 1 (2026-11-26, codex — [reviews/321.md](reviews/321.md)): HIGH 1 · MEDIUM 1. 둘 다 코드로 확인하고 설계에 반영했다. Round 2 수리 검증에서 2건을 종결했다. 설계 리뷰 잔여 이슈는 0건이다. 착수는 사용자 `/execute-adr 321`.
+- 리뷰 round 1 (2026-11-26, codex — [reviews/321.md](../reviews/321.md)): HIGH 1 · MEDIUM 1. 둘 다 코드로 확인하고 설계에 반영했다. Round 2 수리 검증에서 2건을 종결했다. 설계 리뷰 잔여 이슈는 0건이다. 착수는 사용자 `/execute-adr 321`.
   > round 1 반영: (h1) 입력 별점의 폼 값 (RAC Slider 가 맞춘 값) 과 이름 붙인 상태 (넣은 값 그대로) 가 갈린다 → 별점의 유효값 함수 하나를 별 채움 · 폼 · 상태 · 낭독이 같이 읽는다 (F11 · Decision 8 · R8 · G5). (m2) 표시 전용 Meter 의 낭독 값이 백분율이다 → 「5점 만점에 N점」 문구를 `valueLabel` 로 넘긴다 (F12 · Decision 6 · G5). 검증 범위의 지적 — 자유 이동 (결정 3) 은 v3 에 없으므로 따로 적은 정답표로 본다 (Decision 3 · G2).
 
 ## Context
@@ -36,7 +39,7 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
 ### 코드 사실 (2026-11-26 실측, HEAD `0ea8c33d8`)
 
 - **F1** RAC 1.22.1 의 export 와 S2 1.8.2 의 `exports/index.ts` 에 step · rating 이 없다.
-- **F2** design-data 에 두 스키마가 있다 (`@adobe/spectrum-design-data/components/steplist.json` · `rating.json`, 둘 다 `specVersion: 1.0.0-draft`). steplist 의 `anatomyReview` 는 「There is no React Spectrum or SWC steplist」 라고 적는다. **Phase 0 정정**: 아래 옵션 가운데 steplist 의 `variant` · `size` · 최상위 `isDisabled` · `anatomyReview` 와 rating 의 `size`, 그리고 두 컴포넌트의 토큰 binding 은 design-data MCP 의 dataset 4.7.0 에서 읽은 것이다 — 저장소에 설치된 3.9.1 의 두 파일에는 없다 ([breakdown §1](design/321-steplist-rating-components-breakdown.md)). **Phase 1 확정**: 설치본은 올리지 않는다. 대조 기준은 MCP dataset 4.7.0 의 steplist · rating 값을 굳힌 fixture `packages/shared/src/catalog/__tests__/fixtures/adr321-design-data.json` (머리말 `$source` 에 dataset 버전 · 조회 날짜 2026-11-27) 이고 게이트 `adr321StepListDesignData.static.test.ts` 가 rule 을 그것과 대조한다.
+- **F2** design-data 에 두 스키마가 있다 (`@adobe/spectrum-design-data/components/steplist.json` · `rating.json`, 둘 다 `specVersion: 1.0.0-draft`). steplist 의 `anatomyReview` 는 「There is no React Spectrum or SWC steplist」 라고 적는다. **Phase 0 정정**: 아래 옵션 가운데 steplist 의 `variant` · `size` · 최상위 `isDisabled` · `anatomyReview` 와 rating 의 `size`, 그리고 두 컴포넌트의 토큰 binding 은 design-data MCP 의 dataset 4.7.0 에서 읽은 것이다 — 저장소에 설치된 3.9.1 의 두 파일에는 없다 ([breakdown §1](../design/321-steplist-rating-components-breakdown.md)). **Phase 1 확정**: 설치본은 올리지 않는다. 대조 기준은 MCP dataset 4.7.0 의 steplist · rating 값을 굳힌 fixture `packages/shared/src/catalog/__tests__/fixtures/adr321-design-data.json` (머리말 `$source` 에 dataset 버전 · 조회 날짜 2026-11-27) 이고 게이트 `adr321StepListDesignData.static.test.ts` 가 rule 을 그것과 대조한다.
   - steplist: `orientation` (horizontal · vertical) · `variant` (default · emphasized) · `size` (s · m · l · xl) · `currentStep` · `items[]` (`label` · `isDisabled` · `stepState`) · `isDisabled`. 지침: 선형 흐름 (남은 단계는 누를 수 없다), 완료 = 체크 · 남은 단계 = 숫자 · 현재 = 진한 칠.
   - rating: `value` (0 ~ 5, 0.5 단위) · `isEmphasized` · `isDisabled` · `size` (s · m). `accessibility.role: "slider"`. 지침: 별은 늘 5 개, 입력은 정수 별 · 소수는 집계 표시, 화살표로 0 까지 줄여 지운다.
 - **F3** v3 StepList 는 alpha 다 (npm `@react-spectrum/steplist` 3.0.0-alpha.25, 공식 문서는 stub). hook 은 설치본의 private 경로에 있다 (`react-aria/dist/private/steplist/useStepList.mjs` · `useStepListItem.mjs`, `react-stately/dist/private/steplist/useStepListState.mjs`). DOM 은 `ol > li > a[role=link]`, 현재 단계에 `aria-current="step"`, 상태 규칙은 state hook 에 있다 (완료 = `lastCompletedStep` 이하 · 선택 가능 = 완료된 단계와 그 다음 단계).
@@ -56,7 +59,7 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
 - **ReUI Rating**: `rating` (소수 = 부분 별) · `maxRating` · `showValue` · `editable`. DOM 은 `div` 와 클릭 handler 뿐이고 role · `aria-*` · 키 처리가 없다 — 문서가 키보드 입력에는 Radio Group 을 쓰라고 안내한다.
 - **WAI-ARIA APG**: Rating Slider (`role="slider"`, 0 = 아직 고르지 않음) 와 Rating Radio Group (화살표 = 이동과 선택, 해제 없음).
 - **Spectrum CSS rating**: `input[type=range]` (min 0 · max 5) + 별 아이콘.
-- 대조 표 전문은 [breakdown §2](design/321-steplist-rating-components-breakdown.md).
+- 대조 표 전문은 [breakdown §2](../design/321-steplist-rating-components-breakdown.md).
 
 ### Hard constraints
 
@@ -139,7 +142,7 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
 - **C** — D1 예외가 둘 늘고 alpha 인 private hook 에 묶인다.
 - **D** — 완료 상태 · 순서 강제 · 별 모양이 없다.
 
-> 구현 상세: [321-steplist-rating-components-breakdown.md](design/321-steplist-rating-components-breakdown.md)
+> 구현 상세: [321-steplist-rating-components-breakdown.md](../design/321-steplist-rating-components-breakdown.md)
 
 ### 사용자 결정 (8 건 — 그 Phase 에 닿을 때 묻는다)
 
@@ -168,6 +171,7 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
 - **5** = `label` · `name` (Phase 5 착수 때 답, 2026-11-27) — RAC Slider 가 주는 범위, 필수 · 오류 없음. `label` 은 접근 이름이다 (design-data 에 보이는 라벨이 없다).
 - **7** = RAC `Meter` (같은 때).
 - 번들 (Phase 5 착수 때 답): Slider · Meter 조립을 lazy chunk 로 — 절대 상한 안, 넘으면 커밋 전에 묻는다.
+- 번들 종결 (Phase 6 보고 뒤 답, 2026-11-27): Builder initial **+8,589 B** 로 종결 — 결정 8 의 한도 +7,000 을 실제 값으로 기록한다 (절대 상한 1,662,000 안).
 - 남은 것: 없음 (8 건 모두 답).
 
 ## Risks
@@ -187,7 +191,7 @@ HIGH 가 셋이고 StepList 하나 · Rating 둘이다. ADR 을 둘로 나누지
 
 ## Gates
 
-측정 조건 ([measurement-validity.md](../../.claude/rules/measurement-validity.md)): 배치 대조의 fixture 는 계약이 갈리는 입력 차원 (방향 둘 · 크기 넷 · 강조 · 단계 수 2 · 5 · 9 · 긴 라벨 줄바꿈 · 설명 유무 · 별 값 0 · 2.5 · 5) 을 모두 쓰고 기준값은 실제 Chrome 의 rect 다. 상태 규칙의 기준값은 v3 state hook 의 결과와 따로 적은 정답표 둘이다 (자유 이동은 정답표만). 별점 값의 기준값은 따로 적은 정답표 (입력 2.5 → 3 · 6 → 5 · −1 → 0, 표시 2.3 → 2.5 · 6 → 5) 와 실제 DOM 의 range input 값 · `aria-valuetext` 이고, 유효값 함수의 출력으로 채점하지 않는다.
+측정 조건 ([measurement-validity.md](../../../.claude/rules/measurement-validity.md)): 배치 대조의 fixture 는 계약이 갈리는 입력 차원 (방향 둘 · 크기 넷 · 강조 · 단계 수 2 · 5 · 9 · 긴 라벨 줄바꿈 · 설명 유무 · 별 값 0 · 2.5 · 5) 을 모두 쓰고 기준값은 실제 Chrome 의 rect 다. 상태 규칙의 기준값은 v3 state hook 의 결과와 따로 적은 정답표 둘이다 (자유 이동은 정답표만). 별점 값의 기준값은 따로 적은 정답표 (입력 2.5 → 3 · 6 → 5 · −1 → 0, 표시 2.3 → 2.5 · 6 → 5) 와 실제 DOM 의 range input 값 · `aria-valuetext` 이고, 유효값 함수의 출력으로 채점하지 않는다.
 
 | Gate | 시점       | 통과 조건                                                                                                                                                                                                                                                                                                                                                         | 실패 시 대안                                                  |
 | ---- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -203,7 +207,11 @@ HIGH 가 셋이고 StepList 하나 · Rating 둘이다. ADR 을 둘로 나누지
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-11-27 · 실제 Builder (dev 5173) 의 새 프로젝트 · Playwright (Chrome · WebKit) 와 사용자 VoiceOver 청취.
+
+- **종결 화면 (G6, `apps/builder/scripts/adr321-g6-live.mjs`)**: 팔레트 Stepper 3 단계 — Form 제출 → 다음 단계 · Form 안 Rating 입력 (별 4 누르기 → 4 · ← → 3 · `FormData` 의 `score=3`) · 제출 → 집계 Rating (RAC Meter — 데이터 값 3.8 → 4 · 작성 값 4.3 → 반쪽 별 4.5 · 「5점 만점에 N점」) · 「내 평점 3」 · 단계 상태 completed · completed · current · 단계 2 로 돌아가도 평점 3 유지 · page error 0 — **Chrome 8 / 8 · WebKit 8 / 8**.
+- **Phase 별 live**: G1 StepList 19 / 19 · G2 Chrome 12 / 12 · WebKit 12 / 12 · G3 Stepper (짝 명령 · Form 제출 → 다음 단계) · G4 Rating Canvas = Publish 10 / 10 · G5 Rating 동작 10 / 10 (별 누르기 15 / 15 · 키보드 · hover · Meter · 폼 이름).
+- **VoiceOver (사용자, `adr321-g6-live.mjs --hold`)**: 단계 목록 · 평점 입력 · 집계 세 가지 모두 제대로 읽힘.
 
 ## Consequences
 
