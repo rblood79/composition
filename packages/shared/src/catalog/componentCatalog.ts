@@ -1129,12 +1129,29 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   // UnavailableMenuItemTrigger — S2 체크리스트 §9.3: an unavailable menu item opening a help popover
   //   (S2 UnavailableMenuItemTrigger > MenuItem + ContextualHelpPopover). Put into a Menu through its
   //   insert list, not the palette.
-  primitiveEntry("UnavailableMenuItemTrigger", "collections", FAMILY_4_CUTOVER, {
+  // ADR-320: the filter bar over the lists it filters — placed (collections, beside the lists); its
+  //   chips live in it only (instances of the FilterChip origin — `filterBarOrigins.ts`).
+  primitiveEntry("FilterBar", "collections", FAMILY_4_CUTOVER, {
     category: "collections",
-    label: "unavailable menu item",
-    icon: "Info",
-    placeable: false,
+    label: "filter bar",
+    icon: "Funnel",
   }),
+  primitiveEntry("FilterChip", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "filter chip",
+    icon: "Funnel",
+  }),
+  primitiveEntry(
+    "UnavailableMenuItemTrigger",
+    "collections",
+    FAMILY_4_CUTOVER,
+    {
+      category: "collections",
+      label: "unavailable menu item",
+      icon: "Info",
+      placeable: false,
+    },
+  ),
 ];
 
 /**
@@ -1631,6 +1648,8 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
  */
 export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "ActionBar",
+  // ADR-320: the filter bar — its chips' frame and three buttons (`filterBarOrigins.ts`).
+  "FilterBar",
   "SelectBoxGroup",
   // content
   "Badge",
@@ -1757,6 +1776,9 @@ export const BASE_PART_DERIVED_ORIGINS: readonly {
 
 export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Radio",
+  // ADR-320 — a FilterBar's chip origin (`component-filterchip`: field text · comparison · value ·
+  //   menu · remove).
+  "FilterChip",
   ...BASE_PART_ORIGIN_TYPES,
   // ADR-239 Phase 4 — ColorSwatchPicker (팔레트 밖 — AI · import 로 생성) 와 그 항목 ColorSwatch. 배치 = instance,
   //   swatch 모양은 ColorSwatch origin 하나에서.

@@ -9,11 +9,15 @@ import {
   CatalogTableWholeRowsNotice,
   CatalogTableRowPinsNotice,
 } from "./CatalogFilterSection";
+/** ADR-320 — a filter bar's lists and fields (lazy: a bar's panel only). */
+const CatalogFilterBarSection = lazy(() => import("./CatalogFilterBarSection"));
 import { Settings2 } from "lucide-react";
 
 import {
+  lazy,
   memo,
   type ReactNode,
+  Suspense,
   useCallback,
   useMemo,
   useSyncExternalStore,
@@ -707,6 +711,15 @@ function withFilterSections(
   if (!isBound)
     return {
       ...sectionExtras,
+      // (ADR-320 — a filter bar's lists and fields; nothing for any other node.)
+      collection: (
+        <>
+          {sectionExtras?.collection}
+          <Suspense key={`filterbar:${nodeId}`} fallback={null}>
+            <CatalogFilterBarSection barId={nodeId} />
+          </Suspense>
+        </>
+      ),
       state: (
         <>
           {sectionExtras?.state}

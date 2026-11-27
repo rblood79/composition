@@ -1,6 +1,6 @@
 import { mapBindingViewVariables } from "../document/viewRefs";
 import { mapCatalogActionsDeep } from "../document/interactionActions";
-import { cloneNodeSubgraph } from "../document/clone";
+import { cloneNodeSubgraph, connectCopiedFilterBars } from "../document/clone";
 import type {
   CatalogReader,
   CatalogToastPlacement,
@@ -93,12 +93,7 @@ export function catalogHomePageId(
 
 type PageFields = Pick<
   PageEntry,
-  | "name"
-  | "route"
-  | "parentId"
-  | "placement"
-  | "guideEntries"
-  | "meta"
+  "name" | "route" | "parentId" | "placement" | "guideEntries" | "meta"
 >;
 /** Page fields; an `undefined` value clears an optional field (parent, placement, guides). */
 export const updatePage =
@@ -201,8 +196,8 @@ export const duplicatePage =
     }
     const roots: NodeId[] = [];
     const copies = new Map<NodeId, NodeId>();
-    for (const rootId of page.children) {
-      const clone = cloneNodeSubgraph(
+    const clones = page.children.map((rootId) =>
+      cloneNodeSubgraph(
         {
           getEntry: (id) => draft.read(id),
           referrersOf: (id) => reader.referrersOf(id),
@@ -217,9 +212,16 @@ export const duplicatePage =
           old.startsWith("project:stateVariable:")
             ? input.newId("stateVariable")
             : input.newId("interaction"),
-      );
+      ),
+    );
+    // (ADR-320: a filter bar copied with its lists filters their copies — across the page's roots.)
+    const connected = connectCopiedFilterBars(
+      clones,
+      (id) => draft.read(id) as NodeEntry | undefined,
+    );
+    clones.forEach((clone, at) => {
       // (ADR-284: a view reading a page variable reads the copy's.)
-      for (const entry of clone.entries)
+      for (const entry of connected[at]!)
         draft.create(
           entry.binding?.view
             ? {
@@ -244,7 +246,7 @@ export const duplicatePage =
         else related.push(entry);
       }
       roots.push(clone.rootId);
-    }
+    });
     // A named RAC state observes the copy of its node (one outside the page is not copied).
     for (const [index, entry] of [...related.entries()].reverse())
       if (entry.kind === "stateVariable" && entry.source) {

@@ -106,6 +106,16 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
     selects: true,
     codeItems: true,
   },
+  // ADR-320 Phase 2: a filter bar's chip — one per root item of its tree (resolver rows, the bar's
+  //   `filtersOf` connection marks it); no "+" (a condition is added at run time).
+  {
+    owner: "FilterBar",
+    item: "FilterChip",
+    insert: false,
+    repeat: true,
+    selects: false,
+    codeItems: false,
+  },
   // ADR-256 Phase 10: an S2 CardView's Card (its RAC GridListItem).
   {
     owner: "CardView",

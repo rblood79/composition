@@ -64,7 +64,10 @@ import {
   type CatalogTableServedSlice,
 } from "./tableStateQuery";
 import { CATALOG_NO_TABLE_STATE } from "./tableState";
-import { catalogFilterColumnCondition } from "./filterScope";
+import {
+  catalogFilterColumnCondition,
+  catalogJudgeFilterItems,
+} from "./filterScope";
 import type { ViewCondition, ViewConditionGroup } from "../document/types";
 import { CATALOG_NO_VIEW_QUERY } from "./viewQuery";
 import type {
@@ -428,40 +431,18 @@ export class CatalogTableController {
         )
       : fields;
     const references = viewRunReferences(this.host.collections);
-    const idsOf = (item: ViewCondition | ViewConditionGroup): string[] =>
-      "items" in item ? [item.id, ...item.items.flatMap(idsOf)] : [item.id];
-    const conditionsOf = (
-      item: ViewCondition | ViewConditionGroup,
-    ): ViewCondition[] =>
-      "items" in item ? item.items.flatMap(conditionsOf) : [item];
-    const taken: (ViewCondition | ViewConditionGroup)[] = [];
-    for (const item of tree.items) {
-      if (
-        conditionsOf(item).some((condition) =>
-          condition.fields.some(
-            (path) => !viewFieldOf(path, rowFields, references),
-          ),
-        )
-      )
-        continue;
-      const limits = this.host.viewRequestLimits(read.collectionId, read.base, [
-        ...taken,
-        item,
-      ]);
-      if (limits) {
-        const ids = new Set(idsOf(item));
-        if (
-          limits.some(
+    const { taken } = catalogJudgeFilterItems(tree, {
+      fieldReadable: (path) => !!viewFieldOf(path, rowFields, references),
+      refusedBy: (items, ids) =>
+        !!this.host
+          .viewRequestLimits(read.collectionId, read.base, items)
+          ?.some(
             (warning) =>
               warning.code === "GET_BODY" ||
               (warning.conditionId !== undefined &&
                 ids.has(warning.conditionId)),
-          )
-        )
-          continue;
-      }
-      taken.push(item);
-    }
+          ),
+    });
     const refused = tree.items.length - taken.length;
     if (refused) this.filtersRefused.set(tableId, refused);
     else this.filtersRefused.delete(tableId);

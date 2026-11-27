@@ -184,35 +184,48 @@ function positionOverride(
 function presentWithGiven(
   reader: CatalogReader,
   owner: NodeEntry,
+  instancePath: readonly (NodeId | TemplateId)[],
   path: readonly TemplateId[],
   key: string,
 ): boolean {
+  const unwrap = (value: unknown) => {
+    const write = value as { kind?: string; value?: unknown } | undefined;
+    return write && typeof write === "object" && "kind" in write
+      ? write.kind === "set"
+        ? write.value
+        : undefined
+      : value;
+  };
   let definitionId: DefinitionId = owner.definitionId;
-  let own: unknown = owner.props[key];
-  let written = own !== undefined;
-  if (written) {
-    const write = own as { kind?: string; value?: unknown };
-    own = write.kind === "set" ? write.value : undefined;
+  let props: Readonly<Record<string, unknown>> = owner.props;
+  // (Inside a library template position's instance — ADR-320's chip in its bar: that position's.)
+  const inner = instancePath[instancePath.length - 1];
+  if (inner?.startsWith("lib:template:")) {
+    const position = readTemplate(reader, inner as TemplateId);
+    definitionId = position.definitionId;
+    props = position.props ?? {};
   }
   for (let index = 0; index + 1 < path.length; index++) {
     const position = readTemplate(reader, path[index]!);
     if (templateRootOf(reader, position.definitionId) !== path[index + 1])
       continue;
     definitionId = position.definitionId;
-    const value = position.props?.[key];
-    const write = value as { kind?: string; value?: unknown } | undefined;
-    own =
-      write && typeof write === "object" && "kind" in write
-        ? write.kind === "set"
-          ? write.value
-          : undefined
-        : value;
-    written = own !== undefined;
+    props = position.props ?? {};
   }
   const definition = definitionId.startsWith("lib:")
     ? reader.library.definitions.get(definitionId as `lib:definition:${string}`)
     : undefined;
-  const value = written ? own : definition?.defaults[key];
+  const read = (name: string) => {
+    const own = unwrap(props[name]);
+    return own !== undefined ? own : definition?.defaults[name];
+  };
+  // (A key another prop's value picks — `bindingMaps`, as the resolver's template bindings.)
+  const map = definition?.bindingMaps?.[key];
+  const value = map
+    ? Object.hasOwn(map.values, String(read(map.from)))
+      ? map.values[String(read(map.from))]
+      : map.otherwise
+    : read(key);
   return String(value ?? "") !== "";
 }
 
@@ -268,7 +281,13 @@ function templatePosition(
   if (!enabled && !options.includeDisabled) return undefined;
   if (
     template.presentWith &&
-    !presentWithGiven(reader, owner, scope.path, template.presentWith)
+    !presentWithGiven(
+      reader,
+      owner,
+      instancePath,
+      scope.path,
+      template.presentWith,
+    )
   )
     return undefined;
   return {

@@ -1,4 +1,5 @@
 import { catalogPropValueFits, scalarFitsType } from "./valueType";
+import { catalogFilterPresetsFit, catalogFilterQueryFits } from "./filterQuery";
 import {
   catalogLabeledValueFits,
   catalogLabeledFormatFits,
@@ -311,6 +312,8 @@ const valueTypes = new Set<ValueType>([
   "numberRange",
   "validationRules",
   "unavailableDates",
+  "filterQuery",
+  "filterPresets",
   "labeledValue",
   "labeledFormat",
 ]);
@@ -424,7 +427,10 @@ function collectionSave(
         at,
       );
       id(connection.endpointId, "data:endpoint:", `${at}.endpointId`);
-      if (kind === "update" && !["changed", "full"].includes(connection.body as string))
+      if (
+        kind === "update" &&
+        !["changed", "full"].includes(connection.body as string)
+      )
         invalid("INVALID_SAVE_BODY", `${at}.body`);
       if (kind !== "create") writesKeys = true;
     }
@@ -443,7 +449,11 @@ function collectionSave(
         invalid("SAVE_BATCH_IF_MATCH", "entry.save.conflict.send");
     } else if (conflict.by === "recheck") {
       exact(conflict, ["by", "endpointId"], "entry.save.conflict");
-      id(conflict.endpointId, "data:endpoint:", "entry.save.conflict.endpointId");
+      id(
+        conflict.endpointId,
+        "data:endpoint:",
+        "entry.save.conflict.endpointId",
+      );
     } else invalid("INVALID_SAVE_CONFLICT", "entry.save.conflict.by");
   }
   if (save.idempotency !== undefined) {
@@ -457,7 +467,9 @@ function collectionSave(
   if (
     writesKeys &&
     keyField === undefined &&
-    !schema.some((field) => ["id", "key", "value"].includes(field.key as string))
+    !schema.some((field) =>
+      ["id", "key", "value"].includes(field.key as string),
+    )
   )
     invalid("SAVE_KEY_FIELD_REQUIRED", "entry.save");
 }
@@ -823,6 +835,8 @@ function authoredValue(
     // (S2 체크리스트 부록 D.3 — a field's validation rules: their conditions nest; the accepts
     //  check — `validationRules` only on `validate` — is the graph's.)
     if (value.length && catalogValidationRulesFit(value)) return;
+    // (ADR-320 — a filter bar's named sets: their trees nest.)
+    if (value.length && catalogFilterPresetsFit(value)) return;
     return structuredValue(value, at);
   }
   if (typeof value !== "object" || value === null) return scalar(value, at);
@@ -841,7 +855,9 @@ function authoredValue(
       // ADR-309 — a date range's `{start, end}` ISO texts.
       !catalogDateRangeFits(value) &&
       // S2 체크리스트 부록 D.3 — a date component's unavailable weekdays · dates.
-      !catalogUnavailableDatesFit(value)
+      !catalogUnavailableDatesFit(value) &&
+      // ADR-320 — a filter bar's start tree.
+      !catalogFilterQueryFits(value)
     )
       invalid("INVALID_OBJECT_VALUE", at);
     return;
@@ -2016,6 +2032,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "rowDisplay",
           "pagesOf",
           "columnsOf",
+          "filtersOf",
           "slot",
           "regions",
           "placeholder",
@@ -2054,6 +2071,19 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         id(item.pagesOf, "project:node:", "entry.pagesOf");
       if (item.columnsOf !== undefined)
         id(item.columnsOf, "project:node:", "entry.columnsOf");
+      if (item.filtersOf !== undefined) {
+        // (ADR-320: a list of node ids, each once — an empty list is written as no field.)
+        const targets = item.filtersOf as unknown;
+        if (!Array.isArray(targets) || !targets.length)
+          invalid("FILTER_TARGETS", "entry.filtersOf");
+        (targets as unknown[]).forEach((target, at) =>
+          id(target, "project:node:", `entry.filtersOf.${at}`),
+        );
+        if (
+          new Set(targets as unknown[]).size !== (targets as unknown[]).length
+        )
+          invalid("FILTER_TARGETS", "entry.filtersOf");
+      }
       if (
         item.originOf !== undefined &&
         !/^(lib|project):definition:[A-Za-z0-9][A-Za-z0-9_-]*$/.test(
@@ -3112,7 +3142,8 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       exact(layer, ["visual", "layout"], at);
       if (layer.visual !== undefined)
         values(layer.visual, `${at}.visual`, visualFields);
-      if (layer.layout !== undefined) layoutValues(layer.layout, `${at}.layout`);
+      if (layer.layout !== undefined)
+        layoutValues(layer.layout, `${at}.layout`);
     }
   presentWhen(item.presentWhen, "library.template.presentWhen");
   presentWith(item.presentWith, "library.template.presentWith");

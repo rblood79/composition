@@ -92,6 +92,8 @@ describe("ADR-310 — the collection type table", () => {
       [
         "Breadcrumb",
         "Card",
+        // (ADR-320 Phase 2: a connected filter bar repeats its chip per root item of its tree.)
+        "FilterChip",
         "GridListItem",
         "ListBoxItem",
         "MenuItem",

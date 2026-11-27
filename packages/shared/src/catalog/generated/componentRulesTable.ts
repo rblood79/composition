@@ -1,3 +1,4 @@
+import { FILTER_BAR_RULE, FILTER_CHIP_RULE } from "../rule/filterBar";
 import {
   AVATAR_SIZE_PRESETS,
   AVATAR_GROUP_SIZES,
@@ -3368,6 +3369,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-320: FilterBar · FilterChip (`rule/filterBar.ts`).
+  FilterBar: FILTER_BAR_RULE,
+  FilterChip: FILTER_CHIP_RULE,
   // ADR-318: Resizable 분할창 (`rule/resizable.ts`).
   ResizablePanelGroup: RESIZABLE_PANEL_GROUP_RULE,
   ResizablePanel: RESIZABLE_PANEL_RULE,

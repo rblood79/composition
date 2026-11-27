@@ -483,6 +483,10 @@ export const NODE_COVERAGE: CodeViewCoverage<NodeEntry> = {
     notInCode:
       "a column chooser's Table (ADR-315 Phase 4) — the Table's 「Column visibility menu」 switch connects it",
   },
+  filtersOf: {
+    notInCode:
+      "a filter bar's lists (ADR-320) — the list's 「Add filter bar」 and the bar's Connected lists connect them",
+  },
   slot: at(
     "src/components/<Name>.tsx",
     "composition={{slot: {name, required}}} on the template node",

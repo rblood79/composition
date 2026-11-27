@@ -1945,6 +1945,8 @@ export interface TranslationKeys {
   /** ADR-284 — 「검색 · 필터」 (data view authoring). */
   /** S2 체크리스트 부록 D.3 — a field's validation rules editor (`ValidationRulesField`). */
   validationRules: Record<string, string>;
+  // ADR-320 — the filter bar's authoring (`CatalogFilterBarSection.tsx`).
+  filterBar: Record<string, string>;
   unavailableDates: Record<string, string>;
   dataView: Record<string, string>;
   codeView: Record<string, string>;

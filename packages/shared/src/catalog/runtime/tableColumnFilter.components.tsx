@@ -32,9 +32,10 @@ import {
   type CatalogFilterUnit,
 } from "./tableColumnFilterDraft";
 import { catalogLocalized } from "./localizedStrings";
+import { CATALOG_FILTER_WORDS, type CatalogFilterWords } from "./filterWording";
 import { catalogLucideGlyph } from "./lucideGlyph";
 
-interface FilterStrings {
+interface FilterStrings extends CatalogFilterWords {
   readonly title: string;
   readonly condition: string;
   readonly value: string;
@@ -43,20 +44,16 @@ interface FilterStrings {
   readonly unit: string;
   readonly values: string;
   readonly searchValues: string;
-  readonly empty: string;
-  readonly yes: string;
-  readonly no: string;
   readonly apply: string;
   readonly clear: string;
   readonly loaded: (rows: number) => string;
   readonly more: (rows: number) => string;
   readonly range: (min: string, max: string) => string;
-  readonly units: Readonly<Record<CatalogFilterUnit, string>>;
-  readonly ops: Readonly<Record<ViewComparison, string>>;
 }
 
 const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
   en: {
+    ...CATALOG_FILTER_WORDS.en!,
     title: "Filter",
     condition: "Condition",
     value: "Value",
@@ -65,40 +62,14 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     unit: "Unit",
     values: "Values",
     searchValues: "Search values",
-    empty: "(Empty)",
-    yes: "True",
-    no: "False",
     apply: "Apply",
     clear: "Clear",
     loaded: (rows) => `Values of the ${rows} loaded rows`,
     more: (rows) => `${rows} more — search to narrow`,
     range: (min, max) => `${min} – ${max}`,
-    units: { day: "Days", week: "Weeks", month: "Months", year: "Years" },
-    ops: {
-      equals: "Equals",
-      notEquals: "Does not equal",
-      contains: "Contains",
-      startsWith: "Starts with",
-      endsWith: "Ends with",
-      notContains: "Does not contain",
-      notStartsWith: "Does not start with",
-      notEndsWith: "Does not end with",
-      oneOf: "Is one of",
-      containsAny: "Contains any of",
-      containsAll: "Contains all of",
-      gte: "At least",
-      gt: "More than",
-      lte: "At most",
-      lt: "Less than",
-      between: "Between",
-      before: "Before",
-      after: "After",
-      withinLast: "Within the last",
-      exists: "Has a value",
-      notExists: "Has no value",
-    },
   },
   ko: {
+    ...CATALOG_FILTER_WORDS.ko!,
     title: "필터",
     condition: "조건",
     value: "값",
@@ -107,40 +78,14 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     unit: "단위",
     values: "값 목록",
     searchValues: "값 검색",
-    empty: "(비어 있음)",
-    yes: "참",
-    no: "거짓",
     apply: "적용",
     clear: "지우기",
     loaded: (rows) => `불러온 ${rows} 행 기준`,
     more: (rows) => `${rows} 개 더 — 검색으로 좁히기`,
     range: (min, max) => `${min} – ${max}`,
-    units: { day: "일", week: "주", month: "개월", year: "년" },
-    ops: {
-      equals: "같음",
-      notEquals: "같지 않음",
-      contains: "포함",
-      startsWith: "으로 시작",
-      endsWith: "으로 끝남",
-      notContains: "포함하지 않음",
-      notStartsWith: "으로 시작하지 않음",
-      notEndsWith: "으로 끝나지 않음",
-      oneOf: "그 중 하나",
-      containsAny: "하나라도 포함",
-      containsAll: "전부 포함",
-      gte: "이상",
-      gt: "초과",
-      lte: "이하",
-      lt: "미만",
-      between: "사이",
-      before: "이전",
-      after: "이후",
-      withinLast: "최근 기간",
-      exists: "값 있음",
-      notExists: "값 없음",
-    },
   },
   ja: {
+    ...CATALOG_FILTER_WORDS.ja!,
     title: "フィルター",
     condition: "条件",
     value: "値",
@@ -149,40 +94,14 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     unit: "単位",
     values: "値の一覧",
     searchValues: "値を検索",
-    empty: "(空)",
-    yes: "真",
-    no: "偽",
     apply: "適用",
     clear: "クリア",
     loaded: (rows) => `読み込んだ ${rows} 行の値`,
     more: (rows) => `ほか ${rows} 件 — 検索で絞り込み`,
     range: (min, max) => `${min} – ${max}`,
-    units: { day: "日", week: "週", month: "か月", year: "年" },
-    ops: {
-      equals: "等しい",
-      notEquals: "等しくない",
-      contains: "含む",
-      startsWith: "で始まる",
-      endsWith: "で終わる",
-      notContains: "含まない",
-      notStartsWith: "で始まらない",
-      notEndsWith: "で終わらない",
-      oneOf: "いずれか",
-      containsAny: "いずれかを含む",
-      containsAll: "すべてを含む",
-      gte: "以上",
-      gt: "より大きい",
-      lte: "以下",
-      lt: "未満",
-      between: "範囲内",
-      before: "より前",
-      after: "より後",
-      withinLast: "直近",
-      exists: "値あり",
-      notExists: "値なし",
-    },
   },
   zh: {
+    ...CATALOG_FILTER_WORDS.zh!,
     title: "筛选",
     condition: "条件",
     value: "值",
@@ -191,38 +110,11 @@ const FILTER_STRINGS: Readonly<Record<string, FilterStrings>> = {
     unit: "单位",
     values: "值列表",
     searchValues: "搜索值",
-    empty: "(空)",
-    yes: "真",
-    no: "假",
     apply: "应用",
     clear: "清除",
     loaded: (rows) => `基于已加载的 ${rows} 行`,
     more: (rows) => `还有 ${rows} 个 — 搜索以缩小范围`,
     range: (min, max) => `${min} – ${max}`,
-    units: { day: "天", week: "周", month: "个月", year: "年" },
-    ops: {
-      equals: "等于",
-      notEquals: "不等于",
-      contains: "包含",
-      startsWith: "开头是",
-      endsWith: "结尾是",
-      notContains: "不包含",
-      notStartsWith: "开头不是",
-      notEndsWith: "结尾不是",
-      oneOf: "属于其中之一",
-      containsAny: "包含任意",
-      containsAll: "包含全部",
-      gte: "至少",
-      gt: "大于",
-      lte: "至多",
-      lt: "小于",
-      between: "介于",
-      before: "早于",
-      after: "晚于",
-      withinLast: "最近",
-      exists: "有值",
-      notExists: "无值",
-    },
   },
 };
 

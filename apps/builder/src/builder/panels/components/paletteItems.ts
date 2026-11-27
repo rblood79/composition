@@ -398,6 +398,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   // ADR-201 (2026-09-17): 대용량 파일 업로드 compound — DropZone/FileTrigger 뒤.
   { type: "FileUpload", source: "catalog" },
   { type: "Form", source: "catalog" },
+  // ADR-320: the filter bar — before the lists it filters (「필터 바 추가」 puts it before its list).
+  { type: "FilterBar", source: "catalog" },
   { type: "Table", source: "catalog" },
   { type: "ListBox", source: "catalog" },
   { type: "GridList", source: "catalog" },

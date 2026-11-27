@@ -43,6 +43,10 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // 2026-11-14 (사용자 「S2 대응 없음 컴포넌트를 S2 패턴으로」): a Toolbar · Pagination is S2's action group
   //   (`ActionButtonGroup.tsx:117-120` — its context sizes the buttons inside).
   Toolbar: ["ActionButton"],
+  // ADR-320: a FilterBar sizes its chips and buttons; a chip its buttons (one size below — the chip
+  //   box is the bar's control height, `CATALOG_SIZE_STEP`).
+  FilterBar: ["FilterChip", "ActionButton"],
+  FilterChip: ["ActionButton"],
   // (A Nav's size is its Links' — the row has no box of its own, 2026-11-14.)
   Nav: ["Link"],
   // (A Pagination's page numbers are an ActionButtonGroup — it sizes its ActionButtons, 2026-11-19.)
@@ -246,6 +250,7 @@ export const CATALOG_SIZE_STEP: Readonly<
   // S2 AvatarGroup (`@react-spectrum/s2/src/AvatarGroup.tsx` `text`): the label font follows the
   //   avatar size — 24 `ui` 14 · 28 `ui-lg` 16 · 32 `ui-xl` 18 · 40 `ui-3xl` 22 (Text XL 20); 48 has
   //   no S2 size (Text XXL 24).
+  FilterChip: { ActionButton: { S: "XS", M: "S", L: "M" } },
   AvatarGroup: {
     Text: {
       XS: "S",
@@ -314,7 +319,11 @@ export const CATALOG_OWNER_CONTEXT_PROPS: Readonly<
   ColorSwatch: { owner: "ColorSwatchPicker", keys: ["rounding"] },
   Disclosure: { owner: "Accordion", keys: ["density", "isQuiet"] },
   // (2026-11-24 S2 대조) S2 `DisclosureHeader`'s `ActionButtonContext` — only the title row's buttons.
-  ActionButton: { owner: "Disclosure", keys: ["isQuiet"], within: "DisclosureHeader" },
+  ActionButton: {
+    owner: "Disclosure",
+    keys: ["isQuiet"],
+    within: "DisclosureHeader",
+  },
 };
 
 export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<

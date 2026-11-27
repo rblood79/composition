@@ -202,9 +202,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 80 — ADR-324 Phase 1: a collection's 「모아서 저장」 (`CollectionEntry.save`) and the two Dos
  *      `saveChanges` · `discardChanges` (the rule vocabulary `library.execution.actionOpCodes`). 옛 79
  *      문서는 열리지 않는다 (변환 없음).
+ * 82 — ADR-320 Phase 2: the filter bar (`FilterBar` · its chip `FilterChip`) and the node's
+ *      `filtersOf` (the lists it filters). 옛 80 · 81 문서는 열리지 않는다 (변환 없음 — 81 은
+ *      ADR-321 이 쓴다).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 80 as const;
+export const LIBRARY_CONTRACT_VERSION = 82 as const;
 
 export type EntryKind =
   | "project"
@@ -402,7 +405,10 @@ export type ValueType =
   // S2 `validate` as condition rules — `catalogValidationRulesFit` (S2 체크리스트 부록 D.3 2단계).
   | "validationRules"
   // S2 `isDateUnavailable` as data — `catalogUnavailableDatesFit` (S2 체크리스트 부록 D.3 2단계).
-  | "unavailableDates";
+  | "unavailableDates"
+  // ADR-320 — a filter bar's start tree · named sets (`filterQuery.ts`).
+  | "filterQuery"
+  | "filterPresets";
 export type NumberRangeValue = CatalogNumberRange;
 /** Resolved prop value: a scalar, a structured value, a calendar duration or a number format. */
 export type PropValue =
@@ -1387,6 +1393,12 @@ export interface NodeEntry {
    * selection is the columns shown (the Preview's Table state). Dangling = not connected.
    */
   columnsOf?: NodeId;
+  /**
+   * ADR-320 — the lists a filter bar filters (its scope — Decision 1): one condition tree over them
+   * all, their rows `and`-joined with each list's own view. A list is in one bar's scope at most and
+   * the lists read one collection (graph `FILTER_TARGET_*`). A dangling id is not connected.
+   */
+  filtersOf?: readonly NodeId[];
   /**
    * A slot an instance fills. ADR-261 Decision 3 — `suggested`: components offered first when an
    * instance fills it (pen.dev 「suggested slot components」 — a hint, not a restriction).

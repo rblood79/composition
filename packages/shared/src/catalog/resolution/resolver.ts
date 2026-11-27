@@ -4,6 +4,7 @@ import {
   CATALOG_ROW_ITEM_TYPES,
   CATALOG_SECTION_TYPES,
 } from "../document/collectionItems";
+import { catalogFilterBarChipRows } from "../runtime/filterBar";
 import {
   CATALOG_UNAVAILABLE_DATE_TYPES,
   CATALOG_UNAVAILABLE_FIELD,
@@ -989,6 +990,13 @@ function keyRowItem(
   props: Record<string, unknown>,
   row: CatalogBoundRow,
 ): void {
+  // ADR-320 — a filter chip's texts are its row's (a switched-off condition's chip is dimmed).
+  if (type === "FilterChip") {
+    for (const key of ["field", "comparison", "value", "label"])
+      props[key] = String(row.values[key] ?? "");
+    props.isDisabled = row.values.enabled === false;
+    return;
+  }
   const group = GROUP_ROW_ITEM[type];
   props[type === "TabPanel" ? "itemId" : (group?.key ?? "id")] = row.key;
   if (group && props[group.text] === undefined)
@@ -1705,7 +1713,11 @@ export function resolveCatalogNode(
     const valueRows = selectValueRows(id, instancePath);
     if (valueRows) return valueRows;
     return (
-      outerRow?.children ?? ownerRows ?? paginationRows(id) ?? chooserRows(id)
+      outerRow?.children ??
+      ownerRows ??
+      paginationRows(id) ??
+      chooserRows(id) ??
+      filterChipRows(id)
     );
   };
   /**
@@ -1817,6 +1829,29 @@ export function resolveCatalogNode(
         key: column.key,
         values: { id: column.key, label: column.label },
       }));
+    }
+    return undefined;
+  };
+  /**
+   * ADR-320 Phase 2 — a connected filter bar's chip repeats per root item of its tree (its authored
+   * start — the Preview's run-time tree is Phase 3): `id` = the item's id, the chip's texts in the
+   * site's language. The bar is the nearest ancestor with `filtersOf`.
+   */
+  const filterChipRows = (id: string): CatalogBoundRow[] | undefined => {
+    for (
+      let owner = graph.ownerOf(id as NodeId);
+      owner;
+      owner = graph.ownerOf(owner as NodeId)
+    ) {
+      const entry = graph.getEntry(owner as NodeId);
+      if (entry?.kind !== "node") return undefined;
+      if (!entry.filtersOf) continue;
+      const project = graph.getEntry(graph.projectId);
+      return catalogFilterBarChipRows(
+        entry,
+        (entryId) => graph.getEntry(entryId),
+        (project?.kind === "project" && project.site?.lang) || "en",
+      );
     }
     return undefined;
   };

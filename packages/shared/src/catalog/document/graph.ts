@@ -54,6 +54,7 @@ import {
 import { catalogChildKind } from "../nesting/nestingRules";
 import { CATALOG_REPEAT_TYPES } from "./collectionItems";
 import { catalogInSelectValue } from "./selectValueShape";
+import { FILTER_BAR_ORIGIN_ID } from "./filterBarOrigins";
 import {
   catalogBaseLibrary,
   forkedCatalogLibrary,
@@ -209,7 +210,11 @@ function validateBatchSave(
   //  collection changes.)
   let rulesOrCollections = false;
   for (const entry of staged.values())
-    if (entry === null || entry.kind === "interaction" || entry.kind === "collection") {
+    if (
+      entry === null ||
+      entry.kind === "interaction" ||
+      entry.kind === "collection"
+    ) {
       rulesOrCollections = true;
       break;
     }
@@ -259,6 +264,48 @@ function validateBatchSave(
     });
     if (rules.length)
       throw new CatalogValidationError("IMMEDIATE_SAVE_RULE", rules[0]!.id);
+  }
+}
+/**
+ * ADR-320 Decision 1 · 5 (R5) — a filter bar's lists: only a filter bar names them
+ * (`FILTER_TARGETS_HOST`), never itself (`FILTER_TARGET_SELF`), each list is in one bar's scope at
+ * most (`FILTER_TARGET_TAKEN` — the column menu has one tree to write) and the bound ones read one
+ * collection (`FILTER_TARGET_COLLECTION` — the conditions name its fields). `changed` = the bars a
+ * step writes (all of them on a full check); `bars` = every bar of the document after the step.
+ */
+function validateFilterScopes(
+  changed: Iterable<CatalogEntry>,
+  bars: Iterable<string>,
+  get: (id: string) => CatalogEntry | undefined,
+): void {
+  const written = [...changed].filter(
+    (entry): entry is NodeEntry => entry.kind === "node" && !!entry.filtersOf,
+  );
+  if (!written.length) return;
+  const claims = new Map<string, string>();
+  for (const id of new Set([...bars, ...written.map((bar) => bar.id)])) {
+    const bar = get(id);
+    if (bar?.kind !== "node" || !bar.filtersOf) continue;
+    for (const target of bar.filtersOf) {
+      const other = claims.get(target);
+      if (other !== undefined && other !== id)
+        throw new CatalogValidationError("FILTER_TARGET_TAKEN", target);
+      claims.set(target, id);
+    }
+  }
+  for (const bar of written) {
+    if (bar.definitionId !== FILTER_BAR_ORIGIN_ID)
+      throw new CatalogValidationError("FILTER_TARGETS_HOST", bar.id);
+    let collection: string | undefined;
+    for (const target of bar.filtersOf!) {
+      if (target === bar.id)
+        throw new CatalogValidationError("FILTER_TARGET_SELF", bar.id);
+      const list = get(target);
+      if (list?.kind !== "node" || !list.binding) continue;
+      if (collection !== undefined && list.binding.collectionId !== collection)
+        throw new CatalogValidationError("FILTER_TARGET_COLLECTION", target);
+      collection = list.binding.collectionId;
+    }
   }
 }
 /** The app's toast shape is one of the project's components (its Toast root: `setToastShape`). */
@@ -1151,6 +1198,11 @@ export class CatalogGraph {
               throw new CatalogValidationError("UNOWNED_ENTRY", id);
     }
     validateBatchSave(root, staged, get, (id) => this.ownerOf(id));
+    validateFilterScopes(
+      [...staged.values()].filter((entry): entry is CatalogEntry => !!entry),
+      this.instancesOf(FILTER_BAR_ORIGIN_ID),
+      get,
+    );
     const isListed = (id: string): boolean => (listed ??= listedIds()).has(id);
     // Claims after the change: staged owners claim their owned children; an unstaged owner
     // keeps its committed claims.
@@ -1380,6 +1432,13 @@ export class CatalogGraph {
       throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
     validateToastShape(root, get);
     validateDataReferences(root, get);
+    validateFilterScopes(
+      entries,
+      entries.flatMap((entry) =>
+        entry.kind === "node" && entry.filtersOf ? [entry.id] : [],
+      ),
+      get,
+    );
     const owners = new Map<string, string>();
     const templateRoots = new Set<string>();
     const overrides = new Set<string>();

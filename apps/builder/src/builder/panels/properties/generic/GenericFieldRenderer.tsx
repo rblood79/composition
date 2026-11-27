@@ -18,6 +18,10 @@
  * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
+/** ADR-320 — a filter bar's start conditions · saved filters (lazy: the judgment reads the serializer). */
+const CatalogFilterBarField = lazy(
+  () => import("../catalog/CatalogFilterBarFields"),
+);
 import {
   Fragment,
   lazy,
@@ -1154,6 +1158,21 @@ const GenericField = memo(function GenericField({
           elementId={elementId}
           onChange={update}
         />
+      );
+
+    // ADR-320 — a filter bar's start conditions · saved filters.
+    case "filter-query":
+    case "filter-presets":
+      return (
+        <Suspense fallback={null}>
+          <CatalogFilterBarField
+            kind={field.kind}
+            label={field.label}
+            value={value}
+            elementId={elementId}
+            onChange={update}
+          />
+        </Suspense>
       );
 
     // S2 `isDateUnavailable` as data (S2 체크리스트 부록 D.3 2단계).

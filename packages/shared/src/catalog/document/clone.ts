@@ -32,6 +32,8 @@ export function cloneNodeSubgraph(
   rootId: NodeId;
   entries: readonly NodeEntry[];
   relatedEntries: readonly (StateVariableEntry | InteractionEntry)[];
+  /** Each copied node's original id → its copy's (the copies of one call). */
+  idMap: ReadonlyMap<NodeId, NodeId>;
 } {
   const cloned = new Map<NodeId, NodeId>();
   const allocated = new Set<NodeId>();
@@ -178,8 +180,15 @@ export function cloneNodeSubgraph(
             ? { layout: positionLayout(entry.layout) }
             : {}),
         };
+      // ADR-320 (R5): a copied filter bar filters the copies of its lists copied with it — a list
+      // outside the copy stays in the original's scope (one bar per list), so the copy drops it.
+      const { filtersOf, ...rest } = structuredClone(entry);
+      const copiedTargets = filtersOf?.flatMap((id) =>
+        cloned.has(id) ? [map(id)] : [],
+      );
       return {
-        ...structuredClone(entry),
+        ...rest,
+        ...(copiedTargets?.length ? { filtersOf: copiedTargets } : {}),
         id: map(entry.id),
         children: entry.children.map(map),
         descendantOverrides: overrides(entry.descendantOverrides),
@@ -199,5 +208,40 @@ export function cloneNodeSubgraph(
       };
     }),
     relatedEntries,
+    idMap: cloned,
   };
+}
+
+/**
+ * ADR-320 (R5) — the copies of one duplicate · paste, copied root by root: a copied filter bar
+ * filters the copies of its lists copied with it in any of the roots (each root's clone kept only
+ * its own). `original` reads the bar as it was copied.
+ */
+export function connectCopiedFilterBars(
+  copies: readonly {
+    readonly entries: readonly NodeEntry[];
+    readonly idMap: ReadonlyMap<NodeId, NodeId>;
+  }[],
+  original: (id: NodeId) => NodeEntry | undefined,
+): NodeEntry[][] {
+  const all = new Map<NodeId, NodeId>();
+  const back = new Map<NodeId, NodeId>();
+  for (const copy of copies)
+    for (const [from, to] of copy.idMap) {
+      all.set(from, to);
+      back.set(to, from);
+    }
+  return copies.map((copy) =>
+    copy.entries.map((entry) => {
+      const source = back.has(entry.id)
+        ? original(back.get(entry.id)!)
+        : undefined;
+      if (!source?.filtersOf) return entry;
+      const targets = source.filtersOf.flatMap((id) =>
+        all.has(id) ? [all.get(id)!] : [],
+      );
+      const { filtersOf: _own, ...rest } = entry;
+      return targets.length ? { ...rest, filtersOf: targets } : rest;
+    }),
+  );
 }

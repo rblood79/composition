@@ -107,6 +107,9 @@
 @import "./generated/CardPreview.css";
 @import "./generated/Content.css";
 @import "./generated/Footer.css";
+/* ADR-320 — FilterBar · FilterChip. */
+@import "./generated/FilterBar.css";
+@import "./generated/FilterChip.css";
 /* ADR-318 — Resizable 분할창. */
 @import "./generated/ResizablePanelGroup.css";
 @import "./generated/ResizablePanel.css";

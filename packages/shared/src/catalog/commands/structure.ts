@@ -12,7 +12,7 @@ import {
   layoutIsAbsolute,
   shiftAbsoluteLayout,
 } from "../document/absoluteLayout";
-import { cloneNodeSubgraph } from "../document/clone";
+import { cloneNodeSubgraph, connectCopiedFilterBars } from "../document/clone";
 import {
   CATALOG_EXPANSION_GROUP_TYPES,
   catalogGroupSelectionProps,
@@ -1619,6 +1619,15 @@ export const duplicateNodes =
       clones.push({ clone: keyed, parent, index });
       roots.push(keyed.entries.find((entry) => entry.id === keyed.rootId)!);
     }
+    // (ADR-320: a filter bar duplicated with its lists filters their copies.)
+    connectCopiedFilterBars(
+      clones.map(({ clone }) => clone),
+      (id) => draft.read(id) as NodeEntry | undefined,
+    ).forEach((entries, at) => {
+      const clone = clones[at]!.clone;
+      clones[at]!.clone = { ...clone, entries };
+      roots[at] = entries.find((entry) => entry.id === clone.rootId)!;
+    });
     placeCopies(roots, input.placement);
     const sources = topLevel(reader, input.ids);
     clones.forEach(({ clone, parent, index }, at) => {
@@ -1829,6 +1838,7 @@ export const pasteNodes =
     let entries: NodeEntry[] = [];
     let related: Related[] = [];
     const rootIds: NodeId[] = [];
+    const clones: ReturnType<typeof cloneNodeSubgraph>[] = [];
     for (const rootId of clipboard.rootIds) {
       const clone = cloneNodeSubgraph(
         source,
@@ -1837,10 +1847,16 @@ export const pasteNodes =
         relatedId(input.newId),
         instanceOf,
       );
-      entries.push(...clone.entries);
+      clones.push(clone);
       related.push(...clone.relatedEntries);
       rootIds.push(clone.rootId);
     }
+    // (ADR-320: a filter bar pasted with its lists filters their copies.)
+    for (const copied of connectCopiedFilterBars(
+      clones,
+      (id) => records.get(id) as NodeEntry | undefined,
+    ))
+      entries.push(...copied);
     entries = materializeMissingDefinitions(
       reader,
       clipboard.definitions ?? [],

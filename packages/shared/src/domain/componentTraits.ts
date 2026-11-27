@@ -236,6 +236,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["freeContentHost"],
     owners: ["Card", "Popover"],
   },
+  // ADR-320: a chip is a FilterBar's only (its row of the bar's tree — the bar holds its origin's
+  //   parts, no free content).
+  FilterChip: { owners: ["FilterBar"] },
   // ADR-318: Resizable 분할창 — the Group's direct children are its Panels and Handles only
   //   (`Panel (Handle Panel)*`, the order the commands keep — Phase 6); a Panel holds free content.
   ResizablePanelGroup: {

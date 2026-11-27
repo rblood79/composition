@@ -9,6 +9,7 @@ import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogNumberRangeFits } from "./numberRangeValue";
 import { catalogValidationRulesFit } from "./validationRules";
 import { catalogUnavailableDatesFit } from "./unavailableDates";
+import { catalogFilterPresetsFit, catalogFilterQueryFits } from "./filterQuery";
 import { catalogCalendarDurationFits, scalarFitsType } from "./valueType";
 import {
   resolveToken,
@@ -98,6 +99,8 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "number-range": "numberRange",
   "validation-rules": "validationRules",
   "unavailable-dates": "unavailableDates",
+  "filter-query": "filterQuery",
+  "filter-presets": "filterPresets",
 };
 
 /** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
@@ -111,6 +114,8 @@ function propDefaultMatches(value: unknown, type: ValueType): boolean {
   if (type === "numberRange") return catalogNumberRangeFits(value);
   if (type === "validationRules") return catalogValidationRulesFit(value);
   if (type === "unavailableDates") return catalogUnavailableDatesFit(value);
+  if (type === "filterQuery") return catalogFilterQueryFits(value);
+  if (type === "filterPresets") return catalogFilterPresetsFit(value);
   if (type === "racColor") return isRacColorString(value);
   if (type === "string[]")
     return (

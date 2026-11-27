@@ -314,7 +314,7 @@ HEAD `f4a9c4b51` (ADR-324 · 325 구현 위). 시제품 = `apps/builder/scripts/
 
 **파일 확정 (Phase 1)**: §8 의 「상태 · 합성」 · 「로컬 경로」 · 「요청」 행 그대로이고, 325 뒤의 자리로 읽는다 — `catalog/runtime/tableState.ts` · `tableStateQuery.ts` · `tableRowSlices.ts` · `catalogTableController.ts` · `catalogPreviewSession.ts` (`recordRowSlices` · `stateRowQuery` · `bindingViews` · `loadAll`) · 새 `filterScope.ts` · `collections/view/rowFilter.ts` · `evaluate.ts` (후보 값의 제외 규칙) · `serialize.ts` (`DUPLICATE_KEY` · `GET_BODY` 를 보낼 수 없음으로) · `executeCollectionEndpoint.ts` (URL 단계 재사용) · `catalog/runtime/dataBinding.ts` · `interactions/concepts/tableColumns.ts` · `catalog/document/validation.ts` (한 대상 = 범위 하나 — 필드는 Phase 2 의 `filtersOf` 와 같이).
 
-### Phase 1 (2026-11-27 — G1 통과, 미커밋)
+### Phase 1 (2026-11-27 — G1 통과, `cedac12da`)
 
 HEAD `f4a9c4b51` 위 작업 트리. 표 상태의 필터는 조건 트리 하나다 — 열 메뉴는 그 트리의 루트 조건 (`table-filter:<열 key>`) 만 읽고 쓴다.
 
@@ -351,5 +351,37 @@ Node 1x 계산만이다. 대조군과의 차 4.3 ms (4x 환산 약 17 ms — Pha
 **번들** (일반 `vite build` → `adr209-bundle-closure.mjs`): Builder initial JS gzip 1,643,618 → **1,644,931 (+1,313)** — 결정 10 의 +4,000 안. Preview 는 이 Phase 의 변경이 shared 실행 모듈뿐이라 같은 방법으로 Phase 2 와 같이 잰다.
 
 **Phase 2 로 가져가는 것**: 한 대상 = 범위 하나 검증 (`filtersOf` 와 같이) · Preview 번들 측정.
+
+### Phase 2 (2026-11-27 — G2 통과)
+
+HEAD `cedac12da` 위 작업 트리. contract 80 → **82** (81 은 ADR-321 의 worktree 가 쓴다 — 321 은 Phase 2 까지 81 그대로).
+
+**바뀐 것**:
+
+- 등록: `FilterBar` (binding `filterbar` — RAC `Toolbar`, 이름 = 사이트 언어 「Filters」) · `FilterChip` (binding `filterchip` — RAC `Group`, 이름 = 「필드 비교 값」 + 꺼짐). 원본 (`document/filterBarOrigins.ts`): 칩 = 필드 Text + 비교 · 값 · 조건 메뉴 · 삭제 ActionButton (비교 · 값은 그 글자가 비면 자리 없음 — `presentWith`), 막대 = 칩 frame (slot 「Conditions」) + 필터 추가 · 조건 편집 · 지우기 (지우기는 `showClear` — `bindingMaps`). rule (`rule/filterBar.ts`): 막대 = 줄바꿈 flex · gap S 4 · M/L 8, 칩 = S2 Tag 의 칠 · 테두리 · 모서리, 높이 = 막대의 control 높이 (안쪽 버튼 한 단계 작음 · 칩 글자도 그 크기). prop: `defaultQuery` · `presets` (새 값 종류 `filterQuery` · `filterPresets` — 실행 트리 읽기 `catalogFilterTreeRead` 와 같은 모양) · `variant` · `size` · `showClear` · `rememberFilters` · `hiddenFields` · `fieldOrder` · `isDisabled` · `isReadOnly` (D2 = composition — `CATALOG_D2_COMPOSITION_TYPES`).
+- `filtersOf` (graph `validateFilterScopes`): `FILTER_TARGETS_HOST` (막대만) · `FILTER_TARGET_SELF` · `FILTER_TARGET_TAKEN` (한 목록 = 범위 하나) · `FILTER_TARGET_COLLECTION` (연결된 목록이 같은 collection). 복제: 같이 복제된 목록에만 다시 잇는다 — 중복 · 붙여넣기 · 페이지 복제가 루트를 따로 복제하므로 교차 연결 단계 (`connectCopiedFilterBars`) 하나를 셋이 지난다. 막대만 복제하면 연결 안 됨.
+- 칩 행: 목록 연결 = 칩을 반복 항목으로 (`setFilterBarTargets` — 열 선택 메뉴 `setColumnChooser` 와 같은 방식, `COLLECTION_TYPE_TABLE` 행 `FilterBar → FilterChip`). resolver `filterChipRows` — 시작 조건의 루트 항목마다 한 행 (묶음 = 「묶음 (조건 N)」 한 칩), 문구는 `runtime/filterWording.ts` (열 필터 대화상자와 같은 표로 옮김 — en · ko · ja · zh). 필드 이름 = collection 필드 label (없으면 key, 참조 경로는 이어서).
+- 증분: 연결된 막대의 `defaultQuery` 쓰기 = 구조 (칩이 생기고 사라짐 — `writesFilterChips`), collection 의 필드 이름 변경 = 그 collection 의 막대를 다시 해석 (`dataReaderSources`). `presentWith` 가 `bindingMaps` 키를 따라간다 (compositionRoot · positions — 중첩 원본 자리는 그 자리의 정의로).
+- 저작: 목록의 「검색 · 필터」 첫 줄 = 「필터 바 추가」 (한 step — 목록 바로 앞 · 연결, `filterBarAuthoring.ts`) 또는 그 목록을 거르는 막대 이름. 막대의 Collection = 필터할 목록 (같은 페이지 · 17 종류 · 같은 collection · 다른 막대의 목록 아님) · 내놓을 필드 (보이기 · 순서). Value = 시작 조건 · 이름 붙인 묶음 편집기 (lazy — `CatalogFilterBarFields.tsx`). 공급 방식이 못 받는 항목은 「Preview 는 빼고 적용」 표시 — 판정은 실행의 대입 판정과 같은 함수 (`catalogJudgeFilterItems` 로 꺼냄 — `catalogTableController` 도 이 함수).
+
+**G2 항목**:
+
+| 항목                                                  | 근거                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 등록 게이트                                           | `codex:registration` · guard · css-boundary · chart-contract · agent-catalog · skills gate 통과, `d2S2Alignment.static.test.ts` 포함 builder 단위 통과. format check 는 다른 세션의 미커밋 파일 셋 (ApiEndpointEditor · dataActions) 에서만 막힘, rule-size 는 HEAD 에서도 실패                                                                                               |
+| contract                                              | 82 — 리터럴 32 파일                                                                                                                                                                                                                                                                                                                                                           |
+| 칩 · 버튼 rect Canvas = Chrome ±1                     | `adr320FilterBarParity.browser.test.ts` — 시작 조건 둘 (조건 · 조건 · 묶음 / 값 없는 비교 · 목록 값 · 꺼진 사이) × S · M · L, 노드 36 ~ 38 개 최대 **0.08 px**, 칩 높이 24 · 32 · 40 = 따로 적은 값. 팔레트 막대 (견본 칩) S · M · L 은 `adr295PaletteSymmetry` 최대 0.05 px                                                                                                  |
+| 「필터 바 추가」 한 번에 연결 · 되돌리기 한 번에 복원 | `adr320FilterBar.test.ts` (단위 11) · live 1 · 5                                                                                                                                                                                                                                                                                                                              |
+| 이미 연결된 대상의 두 번째 연결 거절                  | 단위 — `FILTER_TARGET_TAKEN` · `COLLECTION` · `SELF`                                                                                                                                                                                                                                                                                                                          |
+| 복제 (대상과 같이 · 따로)                             | 단위 — 막대만 = 연결 안 됨 · 막대 + 표 = 사본끼리 · 페이지 복제 = 사본 페이지의 표                                                                                                                                                                                                                                                                                            |
+| 연결 해제와 되돌리기                                  | 단위                                                                                                                                                                                                                                                                                                                                                                          |
+| live                                                  | `apps/builder/scripts/adr320-g2-live.mjs` (dev 5173 · Chrome headless) **ALL PASS 7**: Design 패널의 「Add filter bar」 버튼 → 막대가 표 앞 · `filtersOf` · 버튼 셋 / 막대 패널 「Add condition」 → 칩 하나 / 시작 조건 셋 → 칩 문구 / Publish: `role=toolbar` 「Filters」 > `role=group` 이름 셋 · 칩 3 · 버튼 13 상자 = Canvas record ±1 px / undo ×2 / page error 0        |
+| 원복 RED                                              | 변이 10 중 9 실패 · 바이트 복원 확인 — 두 번째 연결 거절 · 교차 연결 · 시작 조건 쓰기 = 구조 · 필드 이름 다시 해석 · 중첩 자리 `presentWith` · 칩 행 · 칩 글자 · 연결의 반복 표시 · `bindingMaps` 의 `presentWith`. 통과한 하나 = clone 단계의 「바깥 목록 빼기」 — 세 복제 경로 모두 교차 연결 단계가 다시 쓰므로 가려진다 (단일 루트 경로 `components.ts` 의 안전장치, LOW) |
+
+**회귀**: shared 274 파일 · 2913 통과. builder 단위 — 전체 실행에서 6 파일 실패, 그중 어휘 게이트 하나 (「Remove」 = 「제거」) 를 고쳤고 나머지 다섯 (`adr282LibraryOriginUnlock` · `phase4eOriginView` · `phase4ePalette` · `adr310ShowMore` · `adr315GroupWindow`) 은 단독 실행에서 전부 통과 — 부하 때 시간 초과 (321 worktree 도 같은 파일에서 관찰). type-check PASS.
+
+**번들** (일반 `vite build` → `adr209-bundle-closure.mjs`): Builder initial JS gzip 1,644,931 (Phase 1) → **1,651,091 (+6,160)** — 320 합계 **+7,473**. 결정 10 의 +4,000 을 넘어 사용자에게 물었고, 한도를 **+8,000** 으로 올렸다 (2026-11-27 — Phase 3 이후 몫 527 B 남음, 절대 상한 1,660,000 그대로). Preview 172,277 → 172,278 (+1). 줄인 것: 공급 방식 경고 (serializer · intake 변환기 ≈ 7 KB) 와 막대 패널 · 편집기를 lazy 로. 남은 몫: 칩 문구 표 `filterWording` 1,660 (네 언어 — Canvas 가 칩을 그리려면 첫 화면에 있어야 한다) · 등록 (binding · rule · 원본 template · resolver 행 출처) · 목록의 「필터 바 추가」 줄.
+
+**설계와 달라진 것**: 칩의 견본 — 팔레트에서 놓은 (연결 안 된) 막대는 견본 칩 하나 (Field · Contains · Value) 를 그린다 (§5.11 「연결 안 됨 상태로 그려지고」). 시작 조건이 실행 행에 닿는 것은 Phase 3 (칩 줄 — 범위의 실행 트리) 이다 — Phase 2 의 Preview 는 칩을 시작 조건대로 그리지만 행은 아직 거르지 않는다. 대상 종류 (17) 는 패널 후보 · 「필터 바 추가」 가 거르고 graph 는 막지 않는다.
 
 (다음 Phase 가 닫힐 때마다 이어서 기록)

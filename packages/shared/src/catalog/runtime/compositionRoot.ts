@@ -1,4 +1,6 @@
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
+import { FILTER_BAR_ORIGIN_ID } from "../document/filterBarOrigins";
+import { catalogFilterBarCollection } from "./filterBar";
 import { catalogResizableLayout } from "./resizablePanels";
 import { catalogToggleItemHelpLayout } from "../rule/toggleLayout";
 import {
@@ -2751,6 +2753,20 @@ export class CatalogCompositionRoot {
    */
   private dataReaderSources(ids: readonly string[]): Set<string> {
     const sources = this.collectionBindingSources(ids);
+    // ADR-320 — a filter bar's chips name its collection's fields (their labels).
+    const collections = ids.filter((id) => id.startsWith("data:collection:"));
+    if (collections.length)
+      for (const barId of this.runtime.graph.instancesOf(
+        FILTER_BAR_ORIGIN_ID,
+      )) {
+        const bar = this.runtime.graph.getEntry(barId);
+        const read = (id: string) => this.runtime.graph.getEntry(id);
+        if (
+          bar?.kind === "node" &&
+          collections.includes(catalogFilterBarCollection(bar, read) ?? "")
+        )
+          sources.add(barId);
+      }
     for (const id of ids)
       if (this.runtime.graph.getEntry(id)?.kind === "view")
         for (const source of this.viewReaders(id)) sources.add(source);
@@ -9092,7 +9108,15 @@ export class CatalogCompositionRoot {
         const template = this.templateNode(stack.pop()!) as
           { presentWith?: string; children?: readonly string[] } | undefined;
         if (!template) continue;
-        if (template.presentWith) found.add(template.presentWith);
+        if (template.presentWith) {
+          found.add(template.presentWith);
+          // (A key another prop picks — `bindingMaps`: a write of that prop moves the position.)
+          const from =
+            "bindingMaps" in definition
+              ? definition.bindingMaps?.[template.presentWith]?.from
+              : undefined;
+          if (from) found.add(from);
+        }
         stack.push(...(template.children ?? []));
       }
       this.presentWithKeys.set(definition.templateRootId, (keys = found));
@@ -9100,6 +9124,12 @@ export class CatalogCompositionRoot {
     return keys.has(op.key);
   }
   private readonly presentWithKeys = new Map<string, ReadonlySet<string>>();
+  /** ADR-320: a connected filter bar's start tree is its chips' rows (which exist — a structure). */
+  private writesFilterChips(op: { id: string; key: string }): boolean {
+    if (op.key !== "defaultQuery") return false;
+    const node = this.runtime.graph.getEntry(op.id);
+    return node?.kind === "node" && !!node.filtersOf;
+  }
   /** ADR-261 Decision 4: whether a prop write is a project component property's value. */
   private writesComponentProperty(op: { id: string; key: string }): boolean {
     const node = this.runtime.graph.getEntry(op.id);
@@ -9137,7 +9167,8 @@ export class CatalogCompositionRoot {
         // positions — their text, or whether they exist — not on the instance's own record.)
         (op.kind === "patchNodeProp" &&
           !this.writesComponentProperty(op) &&
-          !this.writesPresentWith(op)) ||
+          !this.writesPresentWith(op) &&
+          !this.writesFilterChips(op)) ||
         [
           "patchNodeVisual",
           "patchNodeSizing",

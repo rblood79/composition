@@ -196,3 +196,48 @@ export function catalogFilterTreeWithColumn(
 /** Whether a tree is its root's conditions only — no group anywhere (the fast local path). */
 export const catalogFilterTreeFlat = (tree: ViewConditionGroup): boolean =>
   tree.items.every((item) => !("items" in item));
+
+/**
+ * ADR-320 §5.3 — which root items of a tree a scope takes, in order: an item is left out whole when
+ * one of its conditions names a field the rows do not have (`fieldReadable`), or the rows' request
+ * cannot carry it with the items taken before it (`refusedBy` — the request's limits name one of its
+ * conditions, or the request cannot be sent at all). A group is one item (taking a condition out of
+ * an `or` would change what the rest means — the root is an `and`, so leaving an item out only
+ * widens the result). The Preview's assignment (`catalogTableController`) and the panel's warning
+ * read this one judgment.
+ */
+export function catalogJudgeFilterItems(
+  tree: ViewConditionGroup,
+  check: {
+    readonly fieldReadable: (path: ViewCondition["fields"][number]) => boolean;
+    readonly refusedBy: (
+      items: readonly (ViewCondition | ViewConditionGroup)[],
+      ids: ReadonlySet<string>,
+    ) => boolean;
+  },
+): {
+  taken: (ViewCondition | ViewConditionGroup)[];
+  refused: (ViewCondition | ViewConditionGroup)[];
+} {
+  const idsOf = (item: ViewCondition | ViewConditionGroup): string[] =>
+    "items" in item ? [item.id, ...item.items.flatMap(idsOf)] : [item.id];
+  const conditionsOf = (
+    item: ViewCondition | ViewConditionGroup,
+  ): ViewCondition[] =>
+    "items" in item ? item.items.flatMap(conditionsOf) : [item];
+  const taken: (ViewCondition | ViewConditionGroup)[] = [];
+  const refused: (ViewCondition | ViewConditionGroup)[] = [];
+  for (const item of tree.items) {
+    if (
+      conditionsOf(item).some((condition) =>
+        condition.fields.some((path) => !check.fieldReadable(path)),
+      ) ||
+      check.refusedBy([...taken, item], new Set(idsOf(item)))
+    ) {
+      refused.push(item);
+      continue;
+    }
+    taken.push(item);
+  }
+  return { taken, refused };
+}

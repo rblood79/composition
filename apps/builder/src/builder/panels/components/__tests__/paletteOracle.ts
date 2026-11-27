@@ -463,6 +463,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "GroupIcon",
   },
   {
+    type: "FilterBar",
+    category: "collections",
+    label: "filter bar",
+    icon: "Funnel",
+  },
+  {
     type: "Table",
     category: "collections",
     label: "table",

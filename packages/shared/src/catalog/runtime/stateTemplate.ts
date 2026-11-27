@@ -162,6 +162,9 @@ function variableType(
   if (type === "validationRules") return "array";
   // (S2 체크리스트 부록 D.3 — a date component's unavailable weekdays · dates.)
   if (type === "unavailableDates") return "object";
+  // (ADR-320 — a filter bar's start tree · its named sets.)
+  if (type === "filterQuery") return "object";
+  if (type === "filterPresets") return "array";
   return type === "string[]" || type === "items"
     ? "array"
     : type === "slot"

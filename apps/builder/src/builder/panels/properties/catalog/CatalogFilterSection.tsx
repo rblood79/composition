@@ -14,6 +14,7 @@ import { ActionButton } from "../../../components/ui/ActionButton";
  * 추가」 · 「연결 해제」. The first screen speaks the author's words (검색 · 필드 · 컨트롤); the
  * parts (변수 · 규칙 · 조건) are the detail's.
  */
+import { CatalogListFilterBarRow } from "./CatalogListFilterBarRow";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useCatalogRevision } from "../../../catalogRuntime/react";
 import { Button } from "react-aria-components/Button";
@@ -921,6 +922,8 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
   return (
     <fieldset className="properties-aria data-view-section">
       <legend className="fieldset-legend">{t("dataView.section")}</legend>
+      {/* (ADR-320 — the list's filter bar: add one, or the one that filters it.) */}
+      <CatalogListFilterBarRow listId={listId} />
       <SharedView listId={listId} />
       {connections.map((connection) => (
         <ConnectionRow

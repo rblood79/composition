@@ -121,6 +121,9 @@ import {
   Breadcrumbs as AriaBreadcrumbs,
 } from "react-aria-components/Breadcrumbs";
 import { Link as AriaLink } from "react-aria-components/Link";
+import { Toolbar as AriaToolbar } from "react-aria-components/Toolbar";
+import { Group as AriaGroup } from "react-aria-components/Group";
+import { catalogFilterWords } from "./filterWording";
 
 import { Button as AriaButton } from "react-aria-components/Button";
 import { useLocale } from "react-aria-components/I18nProvider";
@@ -4201,6 +4204,37 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           isDisabled: input.node.props.isDisabled,
           style: input.style,
         } as Parameters<typeof ActionButtonGroup>[0],
+        ...renderAll(input),
+      ),
+  },
+  // ADR-320 Phase 2 — a filter bar: RAC `Toolbar` named in the site's language (arrows move between
+  //  its buttons, Tab leaves it — breakdown §4), a chip RAC `Group` named 「field comparison value」
+  //  (its row's — resolver). Their look is the generated sheet (`FilterBar` · `FilterChip` rules).
+  filterbar: {
+    render: (input) =>
+      createElement(
+        AriaToolbar,
+        {
+          ...marker(input),
+          ...chrome(input, "FilterBar"),
+          "aria-label": catalogFilterWords(input.root.siteLocale() ?? "en")
+            .name,
+          style: input.style,
+        },
+        ...renderAll(input),
+      ),
+  },
+  filterchip: {
+    render: (input) =>
+      createElement(
+        AriaGroup,
+        {
+          ...marker(input),
+          ...chrome(input, "FilterChip"),
+          "aria-label": str(input.node.props.label),
+          isDisabled: input.node.props.isDisabled === true,
+          style: input.style,
+        },
         ...renderAll(input),
       ),
   },

@@ -398,9 +398,10 @@ interface RowFrame {
  * list; S2 CardView). A SelectBoxGroup takes children only.
  */
 export const CODE_VIEW_ITEMS_HOSTS: ReadonlySet<string> = new Set(
-  COLLECTION_TYPE_TABLE.filter((row) => row.owner !== "SelectBoxGroup").map(
-    (row) => row.list ?? row.owner,
-  ),
+  // (ADR-320: a FilterBar's chips are its tree's — no RAC `items` prop.)
+  COLLECTION_TYPE_TABLE.filter(
+    (row) => row.owner !== "SelectBoxGroup" && row.owner !== "FilterBar",
+  ).map((row) => row.list ?? row.owner),
 );
 /** The prop that keys a repeated item: a group's Radio · Checkbox `value`, a TabPanel's `itemId`. */
 function rowKeyProp(type: string): string {

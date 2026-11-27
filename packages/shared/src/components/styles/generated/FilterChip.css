@@ -1,0 +1,82 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog FilterChip — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-FilterChip {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: var(--border-width-thin) solid var(--border);
+
+  /* Default size */
+  height: auto;
+  padding: 3px 2px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-FilterChip:where([data-variant="default"]) {
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.react-aria-FilterChip:where([data-variant="default"][data-disabled]) {
+  color: var(--fg-disabled);
+}
+
+.react-aria-FilterChip[data-size="S"] {
+  height: auto;
+  padding: 1px 2px;
+  font-size: var(--catalog-token-text-2xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-2xs--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-FilterChip[data-size="M"] {
+  height: auto;
+  padding: 3px 2px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-FilterChip[data-size="L"] {
+  height: auto;
+  padding: 3px 2px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: var(--border-width-thin);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-FilterChip {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

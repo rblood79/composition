@@ -68,6 +68,12 @@ const sizes = (
 
 export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
   sizes(
+    "FilterChip",
+    "paddingY",
+    { S: 1, M: 3, L: 3 },
+    "ADR-320: S2 에 필터 칩이 없다 — 칩 상자 = 막대의 control 높이 (S 24 · M 32 · L 40) 안에 한 단계 작은 버튼 (XS 20 · S 24 · M 32) 과 테두리 1 — (높이 − 버튼 − 2) / 2",
+  ),
+  sizes(
     "SegmentedControlItem",
     "lineHeight",
     {
@@ -611,7 +617,11 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
       (
         [
           ["SheetBackdrop", "&[data-entering]", "열 때 250"],
-          ["SheetOverlay", "&[data-exiting]", "닫을 때 130 — RAC 는 overlay 자신의 애니메이션만 기다린다"],
+          [
+            "SheetOverlay",
+            "&[data-exiting]",
+            "닫을 때 130 — RAC 는 overlay 자신의 애니메이션만 기다린다",
+          ],
         ] as const
       ).map(([type, key, what]) => [
         type,

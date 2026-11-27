@@ -47,6 +47,9 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
   "Illustration",
   "Nav",
   "Pagination",
+  // (ADR-320: S2 · design-data · v3 have no filter bar — Phase 0 「D2 확인」.)
+  "FilterBar",
+  "FilterChip",
   // (ADR-318: RAC · S2 · design-data · v3 have no split view — reui / react-resizable-panels names.)
   "ResizablePanelGroup",
   "ResizablePanel",

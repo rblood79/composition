@@ -22,6 +22,7 @@ import { catalogNumberFormatFits } from "./numberFormatValue";
 import { catalogNumberRangeFits } from "./numberRangeValue";
 import { catalogValidationRulesFit } from "./validationRules";
 import { catalogUnavailableDatesFit } from "./unavailableDates";
+import { catalogFilterPresetsFit, catalogFilterQueryFits } from "./filterQuery";
 import type { CalendarDuration, PropVar, PropWhen, ValueType } from "./types";
 
 /**
@@ -47,7 +48,9 @@ export function scalarFitsType(
   if (
     type === "numberRange" ||
     type === "validationRules" ||
-    type === "unavailableDates"
+    type === "unavailableDates" ||
+    type === "filterQuery" ||
+    type === "filterPresets"
   )
     return false;
   if (type === "columnSize") return catalogColumnSizeFits(value, false);
@@ -75,6 +78,8 @@ export function catalogPropValueFits(value: unknown, type: string): boolean {
   if (type === "numberRange") return catalogNumberRangeFits(value);
   if (type === "validationRules") return catalogValidationRulesFit(value);
   if (type === "unavailableDates") return catalogUnavailableDatesFit(value);
+  if (type === "filterQuery") return catalogFilterQueryFits(value);
+  if (type === "filterPresets") return catalogFilterPresetsFit(value);
   if (type === "selectionKeys") return catalogSelectionKeysFits(value);
   if (type === "selectionValue") return catalogSelectionValueFits(value);
   if (type === "dateRange") return catalogDateRangeFits(value);

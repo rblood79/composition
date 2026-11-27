@@ -174,7 +174,10 @@ export type InspectorFieldKind =
   // S2 `validate` as condition rules (S2 체크리스트 부록 D.3 2단계 — `validationRules.ts`).
   | "validation-rules"
   // S2 `isDateUnavailable` as data (S2 체크리스트 부록 D.3 2단계 — `unavailableDates.ts`).
-  | "unavailable-dates";
+  | "unavailable-dates"
+  // ADR-320 — a filter bar's start tree and named sets (`document/filterQuery.ts`).
+  | "filter-query"
+  | "filter-presets";
 
 /**
  * `kind:"items-manager"` 의 개별 항목 인라인 편집 스키마.

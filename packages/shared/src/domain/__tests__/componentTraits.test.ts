@@ -374,6 +374,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       TabList: ["Tabs"],
       TabPanels: ["Tabs"],
       TabPanel: ["Tabs"],
+      // (ADR-320: a FilterBar's chip.)
+      FilterChip: ["FilterBar"],
       ListBoxItem: ["ListBox"],
       // (S2 Column `menuItems`, §9.2 — a Column holds its menu's items.)
       MenuItem: ["Menu", "Column"],

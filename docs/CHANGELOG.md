@@ -13,6 +13,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [필터 바 컴포넌트 — 목록 위의 조건 칩 줄 (ADR-320 Phase 2)] - 2026-11-27
+
+목록 위에 놓는 필터 바가 생겼다. 시작 조건을 칩으로 보여 주고, 연결한 목록을 같은 조건 트리로 거른다.
+
+### Added
+
+- 팔레트 `FilterBar` (RAC Toolbar) — 시작 조건의 루트 항목마다 `FilterChip` (RAC Group, 「필드 비교 값」) 을 반복하고, 「필터 추가」 · 「조건 편집」 · 「지우기」 버튼을 둔다 (「지우기」 는 `showClear` 로 끈다). 크기 S · M · L, 문구는 사이트 언어 (en · ko · ja · zh).
+- 목록의 Property 탭 「검색 · 필터」 에 「필터 바 추가」 — 목록 바로 위에 넣고 연결까지 한 번에 (되돌리기 한 번).
+- 필터 바 패널: 필터할 목록 (같은 페이지 · 같은 데이터의 목록, 다른 바가 거르는 목록 제외) · 내놓을 필드 (보이기 · 순서) · 시작 조건 · 이름 붙인 묶음. 데이터 공급 방식이 받지 못하는 조건은 패널에 표시한다 (Preview 와 같은 판정).
+- 복제 · 붙여넣기 · 페이지 복제가 같이 복제된 목록에 다시 잇는다. 한 목록은 바 하나만, 목록들은 같은 데이터여야 한다 (문서 검증).
+
+### Changed
+
+- 문서 contract 80 → 82 (노드 필드 `filtersOf`, 값 종류 `filterQuery` · `filterPresets`).
+
 ## [Table 필터 = 조건 트리 하나 · 보낼 수 없는 조건은 끝까지 모아 여기서 (ADR-320 Phase 1)] - 2026-11-27
 
 실행 중 Table 의 필터가 조건 트리 하나가 됐다 — 열 메뉴는 그 트리의 자기 열 조건만 읽고 쓴다. 필터 바 (다음 Phase) 가 같은 트리에 「그리고 · 또는」 묶음을 넣는다.
