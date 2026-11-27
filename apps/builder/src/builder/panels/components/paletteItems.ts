@@ -395,6 +395,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "ComboBox", source: "catalog" },
   { type: "Switch", source: "catalog" },
   { type: "Slider", source: "catalog" },
+  // ADR-321 Phase 4: Spectrum Rating — beside Slider.
+  { type: "Rating", source: "catalog" },
   { type: "RangeSlider", source: "catalog" },
   { type: "SegmentedControl", source: "catalog" },
   { type: "DropZone", source: "catalog" },

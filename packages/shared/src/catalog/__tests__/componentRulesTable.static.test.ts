@@ -81,6 +81,19 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     { M: 6, L: 6, XL: 6 },
     "S2 에 StepList 가 없다 — design-data `base-gap-medium · large · extra-large` (글자와 표식 간격 6 — S 의 4 는 spacing 단 위). 글자 상대 형 `text-to-visual` (6/14 em) 은 M 에서만 같은 값이라 쓰지 않는다",
   ),
+  // ADR-321 Phase 4 — S2 설치본에 Rating 이 없다. 값은 design-data `rating` (`adr321Rating.test.ts` 가 대조).
+  sizes(
+    "Rating",
+    "height",
+    { S: 24, M: 32 },
+    "S2 에 Rating 이 없다 — design-data 에 높이 토큰이 없어 별 (`workflow-icon-small · medium` 16 · 18) + 세로 padding (`base-padding-vertical-small · medium` 4 · 7) × 2. 별은 기기 배율을 받지 않아 control 높이 토큰 (`{size.height.*}`) 을 쓰지 않는다",
+  ),
+  sizes(
+    "Rating",
+    "borderRadius",
+    { S: 7 },
+    "S2 에 Rating 이 없다 — design-data `corner-radius-medium-size-small` 7 (저장소 radius 단 2 · 4 · 8 · 10 에 없음, M 8 은 `{radius.md}`)",
+  ),
   sizes(
     "FilterChip",
     "paddingY",

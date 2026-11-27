@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-321 Phase 4 — Rating (별점)] - 2026-11-27
+
+### Added
+
+- 팔레트 Forms 에 **Rating** (Slider 다음) — Spectrum 별점. 별 다섯 (고정), 크기 S · M, 강조 · 비활성 · 표시 전용. 값은 0 ~ 5 이고 입력은 정수 별, 표시 전용은 반쪽 별 (0.5 단위) 까지 그린다. Canvas 와 Preview · Publish 가 같은 별을 그린다. 누르기 · 키보드 · 폼 값은 다음 단계 (Phase 5).
+
 ## [ADR-321 Phase 3 — Stepper (단계 목록 + 단계별 패널)] - 2026-11-27
 
 ### Added

@@ -122,7 +122,7 @@ function scene(name: string, frameSized: boolean) {
   const catalog: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 84,
+    libraryContractVersion: 85,
     revision: 0,
     projectId,
     rootId: projectId,

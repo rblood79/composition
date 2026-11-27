@@ -153,6 +153,15 @@ export const CATALOG_D2_PROVENANCE: Readonly<
     // (사용자 결정 3 — the linear order is Spectrum's; the switch that lifts it is ours.)
     allowsFreeNavigation: "composition",
   },
+  // ADR-321 Phase 4: S2 · RAC ship no Rating. design-data's `rating` schema gives `value` ·
+  //   `isEmphasized` · `isDisabled` (`size` is the common key); the start value is RAC Slider's
+  //   `defaultValue`; display only is ours (Spectrum's guideline shows it, no schema has it).
+  Rating: {
+    defaultValue: "rac",
+    isEmphasized: "design-data",
+    isDisabled: "design-data",
+    isReadOnly: "composition",
+  },
   // (design-data `items[]`: `label` · `isDisabled`; the key is the RAC collection item's `id`; the
   //  description is ReUI's — 사용자 결정 4.)
   Step: {

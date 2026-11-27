@@ -22,6 +22,16 @@ import {
 } from "../../../../../packages/shared/src/catalog/rule/stepList";
 import { catalogStepLineHeight } from "../../../../../packages/shared/src/catalog/runtime/stepList";
 import {
+  catalogRatingBox,
+  catalogRatingScaledStarPaths,
+  catalogRatingSize,
+  catalogRatingStarColor,
+  catalogRatingStarFills,
+  RATING_STAR_GAP,
+  RATING_TYPE,
+} from "../../../../../packages/shared/src/catalog/rule/rating";
+import { catalogRatingStart } from "../../../../../packages/shared/src/catalog/runtime/rating";
+import {
   PICKER_INVALID_ICON,
   PICKER_INVALID_WIDTH,
   pickerInvalidGlyph,
@@ -261,6 +271,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...catalogSheetHandleShapes(input),
     ...catalogResizableHandleShapes(input),
     ...catalogStepChromeShapes(input),
+    ...catalogRatingStarShapes(input),
     ...pickerChromeShapes(input, base),
     ...fieldErrorIconShapes(input),
     ...sideNavIndicatorShapes(input),
@@ -617,6 +628,55 @@ export function catalogStepChromeShapes(
       fill: color(colors.track),
     } as Shape);
   return shapes;
+}
+
+/**
+ * ADR-321 Phase 4 — a Rating's five stars at its start value (Decision 10): the S2 star paths in the
+ * content box from the start, centred on its height, 4 apart (the DOM's `span.rating-star` flex row —
+ * `rule/rating.ts`). A half star (display only) is the filled star clipped to its left half over the
+ * outline, as the DOM's `clip-path`.
+ */
+export function catalogRatingStarShapes(
+  input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
+): Shape[] {
+  if (input.type !== RATING_TYPE) return [];
+  const props = { ...input.node.props, ...input.node.derivedProps };
+  const { star } = catalogRatingBox(catalogRatingSize(props.size));
+  const paths = catalogRatingScaledStarPaths(star);
+  const fill = resolveToken(
+    catalogRatingStarColor({
+      emphasized: props.isEmphasized === true,
+      disabled: props.isDisabled === true,
+    }),
+    input.theme ?? "light",
+  ) as string;
+  const padding = catalogBoxModel(input.node).padding;
+  const left = Number(padding?.left ?? 0);
+  const top = Number(padding?.top ?? 0);
+  const inner = input.rect.height - top - Number(padding?.bottom ?? 0);
+  const y = top + (inner - star) / 2;
+  return catalogRatingStarFills(catalogRatingStart(props)).flatMap(
+    (state, index) => {
+      const base = {
+        type: "path",
+        x: left + index * (star + RATING_STAR_GAP),
+        y,
+        width: star,
+        height: star,
+        fill,
+        fillRule: "evenodd",
+      };
+      if (state === "full") return [{ ...base, d: paths.filled } as Shape];
+      const shapes = [{ ...base, d: paths.outline } as Shape];
+      if (state === "half")
+        shapes.push({
+          ...base,
+          d: paths.filled,
+          clip: { x: 0, y: 0, width: star / 2, height: star },
+        } as Shape);
+      return shapes;
+    },
+  );
 }
 
 /**

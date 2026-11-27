@@ -25,6 +25,7 @@ import {
   STEP_RULE,
   STEPPER_RULE,
 } from "../rule/stepList";
+import { RATING_RULE } from "../rule/rating";
 /**
  * SSOT (직접 편집 정본) — theme rule base D3 시각 SSOT (ADR-912 ②-6-A).
  *
@@ -3388,6 +3389,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-321 Phase 3: Stepper · StepPanel (결정 2).
   Stepper: STEPPER_RULE,
   StepPanel: STEP_PANEL_RULE,
+  // ADR-321 Phase 4: Rating (`rule/rating.ts`).
+  Rating: RATING_RULE,
   Footer: {
     defaultSize: "M",
     variants: {},

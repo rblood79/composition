@@ -787,6 +787,12 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "slider",
     icon: "SlidersHorizontal",
   }),
+  // ADR-321 Phase 4: Spectrum Rating — beside Slider (its input is a RAC Slider, Phase 5).
+  primitiveEntry("Rating", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "rating",
+    icon: "Star",
+  }),
   // ProgressBar — 진행률 표시. ADR-256 Phase 7a: 노드 트리 (Label + 값 글자 {valueText} + track >
   //   fill {percentage}%) — DOM 은 RAC ProgressBar 가 자식 노드를 순서대로, Canvas 는 부품이 각자 칠.
   primitiveEntry("ProgressBar", "selection", FAMILY_3_CUTOVER, {

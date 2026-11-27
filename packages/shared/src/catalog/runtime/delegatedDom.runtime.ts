@@ -48,6 +48,14 @@ import {
   STEP_LIST_TYPE,
 } from "../rule/stepList";
 import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
+import {
+  catalogRatingBox,
+  catalogRatingSize,
+  catalogRatingStarColor,
+  catalogRatingStarFills,
+  catalogRatingStarPaths,
+} from "../rule/rating";
+import { catalogRatingStart } from "./rating";
 import { catalogStepListStates, type StepListPatch } from "./stepListState";
 import { isPropVar } from "../document/valueType";
 import {
@@ -4568,6 +4576,55 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             : null,
         },
         ...renderAll(input),
+      );
+    },
+  },
+  // ADR-321 Phase 4: a Rating's five stars (S2 Star · StarFilled — a half star is the filled one's left
+  //  half over the outline, display only), at the start value the Canvas draws (`rule/rating.ts`).
+  //  The RAC Slider · Meter around them is Phase 5.
+  rating: {
+    render: (input) => {
+      const props = {
+        ...input.node.props,
+        ...input.node.derivedProps,
+      } as Record<string, unknown>;
+      const { star } = catalogRatingBox(catalogRatingSize(props.size));
+      const paths = catalogRatingStarPaths();
+      const color = tokenToCSSVar(
+        catalogRatingStarColor({
+          emphasized: props.isEmphasized === true,
+          disabled: props.isDisabled === true,
+        }),
+      );
+      const svg = (d: string, className?: string) =>
+        createElement(
+          "svg",
+          {
+            viewBox: "0 0 20 20",
+            width: star,
+            height: star,
+            fill: "currentColor",
+            fillRule: "evenodd",
+            ...(className ? { className } : {}),
+          },
+          createElement("path", { d }),
+        );
+      return createElement(
+        "div",
+        { ...marker(input), ...chrome(input, "Rating"), style: input.style },
+        ...catalogRatingStarFills(catalogRatingStart(props)).map(
+          (fill, index) =>
+            createElement(
+              "span",
+              {
+                key: index,
+                className: "rating-star",
+                style: { width: star, height: star, color },
+              },
+              svg(fill === "full" ? paths.filled : paths.outline),
+              fill === "half" ? svg(paths.filled, "rating-star-half") : null,
+            ),
+        ),
       );
     },
   },

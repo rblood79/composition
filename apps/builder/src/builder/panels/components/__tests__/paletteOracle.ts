@@ -441,6 +441,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "SlidersHorizontal",
   },
   {
+    type: "Rating",
+    category: "forms",
+    label: "rating",
+    icon: "Star",
+  },
+  {
     type: "RangeSlider",
     category: "forms",
     label: "range slider",

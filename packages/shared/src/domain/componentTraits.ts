@@ -473,6 +473,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   //   content (Tabs' shape); a StepPanel sits in a Stepper only.
   Stepper: {},
   StepPanel: { owners: ["Stepper"] },
+  // ADR-321 Phase 4: a Rating draws its stars itself — no children.
+  Rating: {},
   Breadcrumb: {
     families: ["staticCollectionItem"],
     owners: ["Breadcrumbs"],

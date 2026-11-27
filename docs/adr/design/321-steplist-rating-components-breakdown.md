@@ -587,4 +587,58 @@ main `4e8c066ec` 위 (worktree 없이 — 사용자 지시 「321 Phase 3 을 ma
 - Code 보기: StepList · Step · Stepper · StepPanel 을 `react-aria-components` 에서 import 하는 코드로 쓴다 — 설치 RAC 에 없는 이름이다. RAC 밖 컴포넌트 (FilterBar · Resizable 도 같은 경로) 를 코드에 어떻게 쓸지는 저장소 전체 결정이 없어 이 Phase 에서 바꾸지 않았다.
 - Layers 의 StepPanel 이름 · 아이콘, 패널 i18n 이름은 따로 두지 않았다 (type 이름 그대로).
 
+### Phase 4 (G4) — 2026-11-27
+
+main `c3bb48c1c` 위. contract 84 → **85** (`LIBRARY_CONTRACT_VERSION` — Rating 의 정의). 문서 변환 코드 0.
+
+**사용자 답 (2026-11-27, Phase 4 착수 때)**
+
+- 결정 6 = 별 5 고정 (Spectrum 「always 5 available stars」).
+- 번들 = Phase 4 를 구현한 뒤 재서 보고한다. 절대 상한 (1,660,000 B) 을 넘을 것 같으면 커밋 전에 멈추고 묻는다.
+
+**한 일**
+
+- 등록: `Rating` (binding `Rating.binding.ts` — `value` (값 연동 · 규칙용, 패널 숨김) · `defaultValue` · `size` (S · M) · `isEmphasized` · `isDisabled` · `isReadOnly`), 팔레트 `forms` 의 Slider 다음 (아이콘 `Star`), traits `{}` (자식 없음), `d2Provenance.ts` (`defaultValue` = rac · `isEmphasized` · `isDisabled` = design-data · `isReadOnly` = composition — `value` 는 design-data 이름이고 S2 표에도 없어 공용 키로 지난다). 원본 (template) 은 두지 않았다 — 팔레트가 type 정의를 그대로 놓는다 (Separator · Icon 과 같다).
+- rule (`rule/rating.ts`): 상자 = 별 줄 (별 × 5 + 간격 4 × 4) × (별 + 세로 padding × 2) — M 106 × 32 · S 96 × 24, radius M `{radius.md}` · S 7 (저장소 단에 없음), 세로 가운데 · 간격 4 의 flex. 별 색 = `{color.neutral-content}` (강조 `{color.accent-content}`, 비활성 `{color.disabled-content}`).
+- 유효값 (`runtime/rating.ts` `catalogRatingValue`): 입력 = 0 ~ 5 로 자르고 정수 (2.5 → 3 · 6 → 5 · −1 → 0), 표시 전용 = 0.5 단위 (2.3 → 2.5), 숫자가 아니면 0. 시작 값 = `value` → `defaultValue` (`catalogRatingStart`). 별 채움 = 값 이하 채움 · 0.5 반쪽 · 그 뒤 빈 별 (`catalogRatingStarFills`).
+- Canvas (`ruleShapes.ts` `catalogRatingStarShapes`): S2 경로를 별 px 로 늘인 path 도형 (`catalogRatingScaledStarPaths` — S2 아이콘 경로의 숫자는 모두 좌표 · 길이라 숫자마다 곱한다), 반쪽 = 윤곽 + 채운 별의 path `clip` (왼쪽 반). 자리 = 내용 상자의 시작에서 간격 4 · 세로 가운데 (작성 padding 을 따른다).
+- DOM (`delegatedDom.runtime.ts` `rating`): `div.react-aria-Rating > span.rating-star × 5`, 별마다 S2 경로의 SVG (viewBox 20), 반쪽 = 채운 별 SVG 에 `clip-path: inset(0 50% 0 0)` (rule `rootSelectors`). 색은 별 span 의 inline 변수. RAC `Slider` · `Meter` 조립은 Phase 5.
+- 생성 CSS `Rating.css` (index 로드).
+
+**확인 (G4)**
+
+| 항목                                                                                                                            | 결과                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| rule = design-data (별 · padding · 간격 · radius · 색 light · dark) · 유효값 · 채움 정답표 · 경로 = 설치 S2 아이콘              | `adr321Rating.test.ts` 11 PASS (기대값은 fixture 와 손으로 적은 표)                                                                                                                                                                                                                                                                                                      |
+| 실제 workspace — 팔레트 자리 · 상자 · Canvas 도형 = DOM 별 (값 0 · 3 · 2.5 입력 → 3 · 표시 전용 2.5 · `value` 우선 · S · 색 셋) | `adr321RatingWiring.test.tsx` 5 PASS                                                                                                                                                                                                                                                                                                                                     |
+| Canvas ↔ Chrome (`adr321RatingParity.browser.test.ts` — Chrome headless · DPR 1 · light · en-US)                                | 29 / 29 — 크기 둘 × 입력 0 ~ 5 · 표시 0.5 ~ 4.5 · 2.3 · 입력 2.5 · 강조 · 비활성 · 강조 + 비활성 + 반쪽 · 작성 상자 (200 × 60 · padding) · 증분 (값 · 표시 전용 · 크기를 build 뒤에 — scene 재묶음 = 새 bind). 상자 · 별 자리 차 0 px, 별 상태 · 색 같음. Chrome 단독 대 손으로 적은 값 (`EXPECTED`) 0.5 px 안                                                           |
+| 원복 RED (변이 9 — 스크립트 · 바이트 복원 확인)                                                                                 | 별 간격 (unit 2 · wiring 3 · parity 29) · DOM 반쪽 없음 (wiring 1 · parity 13) · Canvas clip 없음 (1 · 13) · 표시 전용도 정수 (2 · 1 · 2) · Canvas 세로 맞춤 없음 (wiring 2 · parity 29) · Canvas 강조 색 없음 (2 · 14) · 반쪽 문턱 (1 · 1 · 2) · S 별 18 (1 · 3 · 20) · DOM 색 없음 (2 · 15)                                                                            |
+| live (`scripts/adr321-g4-live.mjs`, Chrome headless · 새 프로젝트)                                                              | **ALL PASS 10/10** — 팔레트 Rating · 106 × 32 · 빈 별 다섯 · 값 3 의 Canvas 화면 픽셀 (별 가운데 41,41,41 / 빈 별 255) = Publish 픽셀 · 표시 전용 2.5 의 셋째 별 왼쪽 반 = 별 색 · 오른쪽 반 = 바탕 (입력 모드 2.5 → 3) · S + 강조 96 × 24 · 59,99,251 · 비활성 198,198,198 · Publish `div.react-aria-Rating > span.rating-star × 5` · 상자 = Canvas 상자 · page error 0 |
+| 회귀                                                                                                                            | shared 283 파일 — 리터럴 분류 목록에 Rating 둘 (높이 · S radius) 을 더한 뒤 전부 PASS · builder unit 1,211 파일 10,059 PASS — 실패 2 파일 5 건은 전체 실행의 부하 (시간 초과 · 비동기 대기, 단독 12 / 12 PASS) · parity Rating 29 + StepList 25 = 54 PASS · type-check PASS                                                                                              |
+
+**번들** (HEAD `c3bb48c1c` 와 HEAD + 이 Phase 의 변경만 — 격리 worktree, `vite build` → `adr209-bundle-closure.mjs`)
+
+| 대상                    | HEAD        | Phase 4 뒤  | Δ        |
+| ----------------------- | ----------- | ----------- | -------- |
+| Builder initial JS gzip | 1,657,451 B | 1,659,527 B | +2,076 B |
+| Preview initial JS gzip | 172,276 B   | 172,277 B   | +1 B     |
+| Preview CSS gzip        | 67,915 B    | 68,029 B    | +114 B   |
+
+- 결정 8 의 Builder 한도 +7,000 (두 컴포넌트 전체) 를 넘는다 — Phase 1 ~ 4 합 +8,188 B (1,188 B 초과). 절대 상한 1,660,000 B 까지 **473 B** (ADR-320 과 공용).
+- 줄인 것: 별 경로를 rendering 의 아이콘 표 (`spectrumIcons.ts`) 가 아니라 rule 모듈에 둔다 — 아이콘 표는 Preview 첫 화면이 싣는다 (처음 판 Preview JS +892 B → +1 B, Builder 는 같다).
+- 더 줄일 수 있는 것: 윤곽 별 경로 (약 1.1 KB 원문) 를 두지 않고 채운 별을 선으로 그리면 수백 B 가 준다 — 윤곽 두께 · 모서리가 S2 아이콘과 조금 달라진다 (안 함).
+- Phase 5 (RAC `Slider` · `Meter` 조립 · 값 연동 · 폼 필드) 는 473 B 안에 들어가기 어렵다 — Phase 5 착수 전에 사용자 판단이 필요하다.
+
+**설계와 달라진 것**
+
+1. 별은 노드가 아니다 (§5.5 의 부품 track · thumb) — Rating 이 자기 상자에 그린다 (StepList 표식과 같다). Phase 5 의 track · thumb 은 DOM 의 RAC 부품이고 문서 노드가 아니다.
+2. 상자 = 별 줄 — design-data 의 전체 폭 토큰 (104 · 128, anatomyReview 「legacy width records」) 을 쓰지 않는다 (§5.6 「어긋나는 값」 의 결정).
+3. 원본 (template) 없이 type 정의를 놓는다.
+4. 별 경로 = S2 설치본 아이콘 (`Star` · `StarFilled`) 을 rule 모듈에 둔다 (아이콘 고르기 목록에 넣지 않는다).
+
+**남은 것 (Phase 5)**
+
+- 결정 5 (폼 필드 범위) · 결정 7 (표시 전용 DOM) · 번들 (473 B).
+- 「값」 칸은 숫자 입력이다 (0 ~ 5). 패널의 별 모양 입력은 두지 않았다.
+
 (Phase 가 닫힐 때마다 결과를 여기에 기록)
