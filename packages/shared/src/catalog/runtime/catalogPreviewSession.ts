@@ -450,8 +450,8 @@ export class CatalogPreviewSession {
    * row, each row's save status).
    */
   private readonly saver = new CollectionSaver({
-    saveSettings: (collectionId) => this.saveSettingsOf(collectionId),
     language: () => this.siteLanguage(),
+    saveSettings: (collectionId) => this.saveSettingsOf(collectionId),
     collection: (collectionId) =>
       this.collections.find((item) => item.id === collectionId) as never,
     store: (collectionId) => this.stores.get(collectionId),

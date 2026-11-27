@@ -139,6 +139,10 @@
     border: none;
     padding: 0;
     margin-left: auto;
+    border-radius: 4px;
+    padding: var(--spacing-xs);
+    background-color: var(--bg-muted);
+    border: 1px solid var(--border);
   }
 
   .header-menu-item svg {

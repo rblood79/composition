@@ -646,7 +646,6 @@
       flex: none;
       inline-size: 6px;
       block-size: 6px;
-      margin-inline: var(--spacing-2xs);
       border: 1.5px solid var(--notice);
       border-radius: 50%;
       pointer-events: none;
