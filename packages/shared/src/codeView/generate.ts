@@ -174,6 +174,7 @@ const NOT_SENT: Record<SerializationWarningCode, string> = {
   REFERENCE_PATH: "a path through a reference",
   BROKEN: "a field that does not resolve",
   GET_BODY: "a GET request carries no body",
+  DUPLICATE_KEY: "a parameter key the request already has",
   MULTI_VIEW: "several views",
   GROUP: "a grouping",
   MULTI_SORT: "the sorts after the first",
@@ -3880,7 +3881,10 @@ class Generator {
     const ownerOf = reader.ownerOf.bind(reader);
     const typeName = (definitionId: string) => {
       try {
-        return definitionTypeName(this.doc.input.reader as never, definitionId as never);
+        return definitionTypeName(
+          this.doc.input.reader as never,
+          definitionId as never,
+        );
       } catch {
         return "";
       }

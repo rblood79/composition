@@ -245,4 +245,111 @@
 
 ## 9. Phase 결과
 
-(Phase 가 닫힐 때마다 기록)
+### Phase 0 (2026-11-27 — G0 통과)
+
+HEAD `f4a9c4b51` (ADR-324 · 325 구현 위). 시제품 = `apps/builder/scripts/adr320Prototypes.mjs` (설치된 RAC 1.22.1 부품만으로 조립한 작은 필터 바 · production lib build) + 실행 `adr320-phase0-prototypes.mjs` (headed Chrome 158.0.8127.37 · Playwright WebKit 27.2, 보이는 탭). 판정값은 브라우저의 focus · DOM 속성 · 접근성 트리 (CDP) · `performance.now()` 이고 기대값은 실행 스크립트에 따로 적었다. 결과 원본은 로컬 scratchpad (커밋하지 않음).
+
+**선행 · 조회 결과 API (ADR-325)**: Implemented (2026-11-27). 이 ADR 이 딛는 자리 —
+
+- 저장소 `S/catalog/runtime/collectionStore.ts`: 요청 하나 = 키 목록 · cursor · total (`accept` · `startList` · `appendPage` · `dropList`), 보이는 행은 세션 `shownRows` 한 곳.
+- 세션 `catalogPreviewSession.ts`: `bindingViews` (`:2082` — 그려진 record 마다 작성자 보기 + 표 상태 조각으로 조회를 만들고 조회 key 로 모은다) → 조회가 하나면 `uniqueView` (`:2209`), 여럿이면 `splitViews` (`:2234`) → `syncViewLists` (`:2332` — 보기마다 자기 요청 · 목록, 동시 6). 완전성 = `answerComplete` (`:2282`) · `wholeComplete` (`:2307`).
+- 그래서 대상마다의 합성 요청 (h8 · R10) 은 새 기구가 아니다 — 범위 트리를 record 의 조회 (`recordRowSlices` `:1952` → `stateRowQuery`) 에 넣으면 `bindingViews` 가 대상마다 다른 조회로 나누고 325 가 요청 · 결과를 나눈다. Phase 6 의 「여러 대상」 은 그 경로의 Gate (G6) 다.
+
+**코드 사실 재대조** (본문 F1 ~ F17 — 본문의 줄 번호는 `0ea8c33d8` 기준이고 아래가 지금 자리다):
+
+| 사실      | 지금 자리 (`S/`)                                                                                                                                                   | 판정                                                                                                                                                                       |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1        | `catalog/document/types.ts:842-865` · `validation.ts:1579-1583`                                                                                                    | 그대로                                                                                                                                                                     |
+| F2        | `collections/view/comparison.ts:38-78` · `:647`                                                                                                                    | 그대로                                                                                                                                                                     |
+| F3        | `catalog/runtime/tableState.ts:32-38` · `:207-237` · `tableStateQuery.ts:118-139`                                                                                  | 그대로                                                                                                                                                                     |
+| F4        | `collections/view/rowFilter.ts:102` · `evaluate.ts:361-395`                                                                                                        | 그대로                                                                                                                                                                     |
+| F5        | `serialize.ts:361-390` · `:455-466` · `:369` · `:411` · `:722` · `tableStateQuery.ts:244-305` · `catalogTableController.ts:382-383`                                | 그대로                                                                                                                                                                     |
+| F6        | `catalogPreviewSession.ts:1952-1975` (`recordRowSlices` — `tables.tableStates`) · `pageOf` `:4507`                                                                 | 그대로 (줄 이동)                                                                                                                                                           |
+| F7        | `tableState.ts:94-97` · `apps/publish/src/App.tsx:90-121`                                                                                                          | 그대로                                                                                                                                                                     |
+| F8        | `tableOperationsDom.components.tsx` · `tableColumnFilterDraft.ts` · `tableColumnFilter.components.tsx`                                                             | 그대로                                                                                                                                                                     |
+| F9        | `catalogTableController.ts:1556-1619` · `evaluate.ts:521-549`                                                                                                      | 그대로                                                                                                                                                                     |
+| F10       | `types.ts:1383` · `:1389` · `validation.ts:2053-2056`                                                                                                              | 그대로 (줄 이동)                                                                                                                                                           |
+| F11       | RAC 1.22.1 · `actionBarHost.components.tsx:16` · `:217`                                                                                                            | 그대로                                                                                                                                                                     |
+| F12       | `types.ts:207` · `adr201-bundle-gate.mjs:28-30`                                                                                                                    | **달라짐** — contract 79 → **80** (ADR-324). Builder initial 1,643,618 B — 여유 **6,382** (본문 약 10,600). 324 (+4,126) 와 판독 수리 몫                                   |
+| F13 · F14 | `querySuffixes.ts:14` · `:17` · `serialize.ts:503-504` · `:753-757`                                                                                                | 그대로                                                                                                                                                                     |
+| F15       | `catalogPreviewSession.ts:2209-2228` (`uniqueView`) · `:2234` (`splitViews`) · `:2332` (`syncViewLists`)                                                           | **달라짐 (선행이 해소)** — 조회가 여럿이면 조건 없는 첫 쪽이 아니라 보기마다 자기 요청이다 (ADR-325 Decision 6). R10 의 기구는 이미 있다                                   |
+| F16       | `collections/executeCollectionEndpoint.ts:140` (URL 조립) · `:94` · `:113` (주소 key)                                                                              | 그대로 (줄 이동) — 판정이 같이 부를 URL 단계는 `resolvedEndpointUrl` (`:90`) · `buildEndpointRequest` (`:136`)                                                             |
+| F17       | `serialize.ts:515-522` · `executeCollectionEndpoint.ts:168` · `catalogPreviewSession.ts:2485-2502` (`loadAll` — cursor 가 그대로면 `return`) · `:3304` (전량 수집) | 그대로 (줄 이동). 「끝까지 모았다」 판정 `answerComplete` 가 325 로 생겼다 — Phase 1 의 「진전 없음 = 조회 실패」 는 `loadAll` 의 말없는 `return` 을 그 판정에 잇는 일이다 |
+
+설계에 닿는 차이 0. 달라진 셋 (contract · 번들 여유 · F15) 은 선행 구현의 결과다.
+
+**D2 확인**: 설치된 S2 1.8.2 의 export 에 filter 계열 컴포넌트 없음 (로컬 reference 는 `SearchField` 뿐). v3 `@adobe/react-spectrum` (npm 최신 3.47.7) 은 이 저장소에 설치돼 있지 않고, 공개 컴포넌트 목록에 필터 빌더가 없다 (npm 메타의 의존 이름에 filter · query 없음). design-data 는 본문 그대로 (전용 컴포넌트 없음). → 정본 순서 4 번, `d2Provenance.ts` 의 `composition`.
+
+**대상이 될 목록 종류 (등록표에서 유도)**: binding 이 `dataBinding` 을 받고 행을 반복하는 type 17 —
+
+- `COLLECTION_TYPE_TABLE` 의 `repeat` owner 10: Tabs · TagGroup · SelectBoxGroup · ListBox · GridList · Menu · Breadcrumbs · Tree · CardView · Table (`S/catalog/document/collectionItems.ts:33`).
+- 그 표의 picker 2: Select · ComboBox.
+- `GROUP_REPEAT_ITEMS` 의 그룹 4: RadioGroup · CheckboxGroup · ToggleButtonGroup · SegmentedControl (`ActionButtonGroup` 은 Pagination 의 쪽 번호라 대상이 아니다).
+- Chart (`records` 바인딩).
+- 지금 「검색 · 필터」 구획 (`CatalogListFilterSection`) 은 연결된 노드 전부에 뜬다 (`CatalogPropertiesPanel.components.tsx` `withFilterSections` — `isBound`). 「필터 바 추가」 가 서는 자리와 `filtersOf` 검증의 대상 집합은 Phase 2 에서 이 17 에서 고른다 (key 바인딩 — 한 항목 — 은 목록이 아니라 제외).
+
+**시제품**:
+
+| 시제품                | 결과 (Chrome · WebKit 같음, 다르면 적음)                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 판정 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--: |
+| P1 칩 줄              | Tab 으로 첫 버튼 · ArrowRight 가 칩을 건너 버튼 10 개를 차례로 · Tab 한 번에 나가고 Shift+Tab 은 마지막 버튼으로 · 비교 메뉴 (Enter → ↓ → Enter) 뒤 focus 가 그 버튼으로 · 값 대화상자는 입력 칸에 focus, Esc 뒤 값 버튼으로 · 조건 메뉴 「끄기」 뒤 Group 이름에 「꺼짐」. 접근성 트리: toolbar 「필터」 > group 「부서 포함 부산 꺼짐」 > button 넷 (이름 있음) — Chrome CDP · WebKit aria snapshot                                                                                           |  go  |
+| P2 조건 빌더          | ↓ 가 행 7 을 차례로 (단계 1 1 2 2 2 3 1 — DOM `aria-level` · Chrome 접근성 트리) · 조건 행은 → 로 버튼 다섯 (끌기 · 필드 · 비교 · 값 · 메뉴), 묶음 행은 → 로 끌기 · 전환 · 메뉴 · 전환 버튼 Enter 로 「또는 → 그리고」. 포인터 끌기 3 (묶음 안으로 · 묶음 밖 맨 앞으로 · 2 단 묶음에서 루트로) 과 키보드 끌기 (행 안 끌기 버튼 Enter → ↑ 로 「묶음 또는에 드롭」 → Enter) 가 따로 적은 정답 모양과 같다. 「안에 놓기」 는 묶음 행만 (`shouldAcceptItemDrop`) — 키보드 이동이 조건 행을 건너뛴다 |  go  |
+| P3 「또는」 계산 시간 | 조건 6 · 2 단 중첩 (`c3 그리고 (c1 또는 c2 또는 (c4 그리고 c5)) 그리고 c6`), 교대 15 회 중앙값. 10,000 행 1x 평평 2.3 ms · 묶음 4.4 ms (1.91 배) · 4x 8.9 · 17.1 ms (1.92 배). 100,000 행 1x 23.3 · 44.6 ms · 4x 89.3 · 171.1 ms. 두 경로의 결과 = 따로 적은 술어 (틀린 행 0)                                                                                                                                                                                                                   |  go  |
+| P4 `announce`         | private 경로 import 의 production 빌드에서 live region (`role="log"`) 에 문구 · Chrome 접근성 트리에 그 문구. 제품에서는 ActionBar 가 같은 import 를 Preview · Publish 에서 이미 쓴다 (`actionBarHost.components.tsx:217`)                                                                                                                                                                                                                                                                      |  go  |
+
+**시제품이 설계에 더한 것**:
+
+1. **삭제 뒤 focus** — 삭제 버튼으로 칩을 지우면 focus 가 `body` 로 떨어진다 (RAC `Toolbar` 는 사라진 자식의 focus 를 옮기지 않는다). 제품은 지운 뒤 다음 칩의 첫 버튼 (없으면 「필터 추가」) 으로 focus 를 옮긴다 — 요소의 `focus()` 호출이고 role · `aria-*` · 키 handler 가 아니다 (HC2 안). 조건 메뉴의 「삭제」 · 빌더의 행 삭제도 같다. G3 의 키보드 전 경로에 「삭제 뒤 focus 자리」 를 넣는다.
+2. **알림은 `polite`** — `announce(message)` 의 기본은 `assertive` 다 (시제품 live region 관찰). 「조건 N 개 적용」 은 `announce(message, "polite")` 로 보낸다.
+3. **키보드 끌기의 시작 자리** — 끌기 버튼 (`slot="drag"`) 은 행 안의 focus 자리라 행까지 ↓, 행 안으로 → 로 간 뒤 Enter 다 (요소에 직접 `focus()` 하면 RAC 가 focus 를 행으로 돌린다). 놓을 자리 문구 (「… 이전에 삽입 · … 사이에 삽입 · …에 드롭」) 와 시작 안내는 RAC 가 브라우저 언어로 낸다 — 사이트 언어와 맞추려면 `I18nProvider` 아래에 둔다 (Phase 4).
+4. **묶음 경로의 비용 구조** — 묶음 경로는 조건마다 모든 행을 비교하고 평평한 경로는 앞 조건에서 떨어진 행을 건너뛴다. 그래서 비는 조건 수에 따라 2 배에 가깝다 (go 기준 「2 배 안」 을 1.9 배로 통과 — 여유가 작다). 절대값은 10,000 행 4x 에서 17 ms 로 HC6 기준선 (조건 변경 → 표시 수백 ms) 의 작은 몫이다. G1 에서 HC6 가 넘으면 「그리고」 묶음 안에서 이미 떨어진 행을 건너뛰게 한다 (Gate 의 실패 시 대안보다 먼저 쓸 수 있는 수).
+5. **포인터 끌기 하니스** — 놓을 자리는 마지막 `dragover` 가 정한다. 합성 포인터가 마지막 지점에서 멈춘 채 이벤트가 하나 더 오지 않으면 직전 지점의 자리 (묶음 「안」) 에 놓인다 — WebKit 에서 재현, 그 자리에서 1 px 움직였다 돌아오면 두 브라우저가 같다. Phase 4 live 하니스도 같은 방법을 쓴다. RAC `TreeDropTargetDelegate` 는 포인터의 세로 이동 방향 · 가로 위치로 단계를 고른다 (묶음의 마지막 자식 뒤 = 묶음 안 / 밖).
+
+**Publish 주소 형식** (사용자 결정 5 의 확인): Publish 는 `location.hash` 의 `#/경로` 를 `session.navigateTo` 에 넘기고 세션의 `path` 를 hash 에 되쓴다 (`apps/publish/src/App.tsx:92-119`). 경로 해석은 정확히 맞는 route 에서 `?` · `#` 뒤를 뗀다 (`S/catalog/runtime/catalogPreviewRoute.ts:54`). 그래서 `#/orders?<범위>=<트리>` 는 지금도 `/orders` 로 풀린다 — `:param` route 의 맞추기 (`matchCatalogRoute`) 가 query 를 떼는지는 Phase 5 에서 본다. Builder Preview 는 hash 를 쓰지 않는다 (주소 없음 — 기억 · 주소 모두 Publish 만).
+
+**기준선**:
+
+- 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, `f4a9c4b51`): Builder initial JS gzip **1,643,618** / 1,650,000 B (여유 6,382) · Preview **172,277** / 327,000. 사용자 결정 10 의 권고 (Builder +4,000) 는 여유 안이지만, 같이 진행하는 ADR-321 의 결정 8 (+3,000) 과 합치면 7,000 으로 여유를 넘는다 — 상한 재승인 (만료 2026-12-25) 또는 lazy 분리를 Phase 2 전에 정한다.
+- 속도 (계산만 — `adr315-phase0-mainthread.mjs`, 10,000 행): 글자 열 정렬 1x p95 19.4 ms · 4x 71.9 ms, 검색 「Person 12」 4x 16.9 ms. 조건 변경 → 화면 표시 (HC6) 의 기준선은 G1 에서 대조군 (같은 문서의 열 필터 하나) 과 교대 3 쌍으로 같이 잰다 — 낡은 기준값과 비교하지 않는다.
+
+**파일 확정 (Phase 1)**: §8 의 「상태 · 합성」 · 「로컬 경로」 · 「요청」 행 그대로이고, 325 뒤의 자리로 읽는다 — `catalog/runtime/tableState.ts` · `tableStateQuery.ts` · `tableRowSlices.ts` · `catalogTableController.ts` · `catalogPreviewSession.ts` (`recordRowSlices` · `stateRowQuery` · `bindingViews` · `loadAll`) · 새 `filterScope.ts` · `collections/view/rowFilter.ts` · `evaluate.ts` (후보 값의 제외 규칙) · `serialize.ts` (`DUPLICATE_KEY` · `GET_BODY` 를 보낼 수 없음으로) · `executeCollectionEndpoint.ts` (URL 단계 재사용) · `catalog/runtime/dataBinding.ts` · `interactions/concepts/tableColumns.ts` · `catalog/document/validation.ts` (한 대상 = 범위 하나 — 필드는 Phase 2 의 `filtersOf` 와 같이).
+
+### Phase 1 (2026-11-27 — G1 통과, 미커밋)
+
+HEAD `f4a9c4b51` 위 작업 트리. 표 상태의 필터는 조건 트리 하나다 — 열 메뉴는 그 트리의 루트 조건 (`table-filter:<열 key>`) 만 읽고 쓴다.
+
+**바뀐 것**:
+
+- 상태: `tableState.ts` 의 `columnFilters` 조각 → `filters?: ViewConditionGroup` (루트 = 「그리고」). 읽기 `catalogFilterTreeRead` (새 `filterScope.ts` — 모양 검증 · 루트를 「그리고」 로 · 같은 루트 id 는 뒤 값이 첫 자리 · 빈 묶음 제거 · 변수 참조 `enabled` 거절) → 대입 판정 `judgeFilters` → 비면 조각 없음.
+- 로컬 경로: 평평한 트리는 지금 빠른 경로 (`viewRowsPassing`), 「또는」 · 중첩은 새 `viewRowsPassingGroup` (`rowFilter.ts`) — test 묶음은 `viewRowTestGroupOf` (새 `rowTests.ts`). 건너뛴 조건 · 전부 건너뛴 묶음은 피연산자가 아니다 (`점수 = 20 또는 (꺼짐)` = 20 인 행만). `dataBinding.ts` `keptRowOrder` 가 둘을 고르고 검색과 AND.
+- 대입 판정 (`catalogTableController.ts` `judgeTableFilters`): 루트 항목마다 앞에서 받은 것과 함께 — 행에 없는 필드 (지운 필드) · 요청이 못 싣는 조건 (`viewRequestLimits` — `GET_BODY` 또는 그 항목의 id) 은 받지 않는다. 묶음은 안의 조건 하나라도 못 받으면 통째로 뺀다. 거절 수는 `tableFiltersRefused`. 데이터 정의 · 문서 변경 뒤 `rejudgeFilters` 가 다시 판정한다 (앞 거절 수 유지).
+- serializer: `DUPLICATE_KEY` — suffix 형식에서 같은 key 를 두 번째로 내는 조건, endpoint URL 에 이미 있는 key (`endpointUrlKeys` — `queryParams` · baseUrl · path 의 `?`) 는 보내지 않고 `load: "all"`. GET · HEAD 의 `body` 형식은 아무것도 보내지 않고 `load: "all"`.
+- 끝까지 모으는 보기의 완전성 (`catalogPreviewSession.ts`): cursor 를 보낼 수 없는 요청 (GET + `body`, cursor 템플릿 없음, cursor 가 URL 아님 — `cursorUnsendable`) · 진전 없는 쪽 (같은 cursor · 새 행 0) → `failView` — 행 없음 + 읽는 중 상태 `error`, 사유 `viewFailures`. `reload` 가 지운다.
+
+**G1 항목**:
+
+| 항목                                                 | 근거                                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 열 필터 회귀 0                                       | ADR-315 Phase 3 · 4 테스트 (`adr315Columns` · `adr315FacetItems` · `adr315ServerRows` · `tableColumnMenu`) 를 트리 모양으로 옮겨 통과 · live 아래                                                                                                                                                                                                    |
+| 두 로컬 경로 = 평가기 = 정답표                       | `rowFilterGroup.test.ts` 11 — 손으로 쓴 정답 (전부 건너뛰는 묶음 · 일부만 건너뛰는 「또는」 · 2 단 · 지운 필드) + 무작위 트리 300 (중첩 > 100) · 평평한 트리 300 에서 세 경로 같음                                                                                                                                                                   |
+| 서버 판정 · 같은 키 · 기본 query 충돌 · GET + `body` | `serialize.test.ts` 7 · `adr315Search.test.tsx` (거절 key · endpoint key · 작성자 보기 key · 다시 판정 · 지운 필드) · `adr320ViewCompleteness.test.tsx` 5 (GET + `body` 의 cursor 없음 = 행 없이 실패 · URL cursor 의 GET = open 한 행 · POST 는 본문에 조건 · 기본 `status=open` 에 `status = closed` = 요청 key 하나 · 0 행 · 같은 쪽 반복 = 실패) |
+| HC6                                                  | 아래                                                                                                                                                                                                                                                                                                                                                 |
+| 원복 RED                                             | 변이 9 전부 실패 · 바이트 복원 확인 — rowFilter 건너뜀 · 대입 판정 (limits · 지운 필드 · 같은 key · GET body) · 완전성 (진전 없음 · cursor 못 보냄 · 같은 key · GET body)                                                                                                                                                                            |
+| **한 대상에 두 번째 범위 거절**                      | **Phase 2 로 넘김** — 범위를 세는 단위가 필터 바 노드 (`filtersOf`) 라 그 검증 · 필드와 같이 둔다 (§9 Phase 0 「파일 확정」 의 `validation.ts` 줄)                                                                                                                                                                                                   |
+
+**HC6** (`adr320FilterTree.bench.test.ts` — 제품 행 경로 `catalogBoundRows`, 실행마다 조건 값을 바꿔 memo 적중 없음, 글자 열 정렬 위, 팔 교대 21 회, 결과는 따로 적은 술어와 대조):
+
+| 행      | 열 필터 하나 (대조군) | 평평한 6 조건 | 「또는」 · 2 단 6 조건 |
+| ------- | --------------------- | ------------- | ---------------------- |
+| 10,000  | 0.34 ms (p95 0.42)    | 2.62 (2.76)   | 4.68 (5.02)            |
+| 100,000 | 2.50 (2.66)           | 25.17 (25.74) | 44.45 (45.13)          |
+
+Node 1x 계산만이다. 대조군과의 차 4.3 ms (4x 환산 약 17 ms — Phase 0 P3 의 브라우저 4x 17.1 ms 와 같은 크기) 는 HC6 기준선 (정렬 클릭 → 표시 1x 154 ~ 169 · 4x 556 ~ 589 ms) 의 3 % 안. 「또는」 트리를 화면에서 바꾸는 길 (칩 · 빌더) 이 Phase 3 · 4 에 생기므로 조건 변경 → 표시의 live 교대 측정은 그때 G3 · G4 에서 하고 G6 에서 다시 잰다.
+
+**live** (production build · Publish · Chrome headless · 1,000 행 — `datagrid-table-vs-tanstack-live.mjs --check-filter --column-origin`): 열 메뉴 「Filter…」 → Dept 「Contains」 `dept 1` → 둘째 조건 → … 네 단계 행 수 256 · 116 · 39 · 481 = 하니스가 행에서 따로 센 기대값, 메뉴에 「Clear filter」 가 다시 열 때 생김, 후보 값 12 같음 — `pass: true`. 하니스 주의: `--column-origin` 없이 만든 열은 내용 감싸개가 없어 (S2 `ColumnWithMenu` 의 메뉴 버튼 자리 — `2e449e6a7`) 메뉴가 없다. HEAD 빌드에서도 같아 이 Phase 의 회귀가 아니다.
+
+**번들** (일반 `vite build` → `adr209-bundle-closure.mjs`): Builder initial JS gzip 1,643,618 → **1,644,931 (+1,313)** — 결정 10 의 +4,000 안. Preview 는 이 Phase 의 변경이 shared 실행 모듈뿐이라 같은 방법으로 Phase 2 와 같이 잰다.
+
+**Phase 2 로 가져가는 것**: 한 대상 = 범위 하나 검증 (`filtersOf` 와 같이) · Preview 번들 측정.
+
+(다음 Phase 가 닫힐 때마다 이어서 기록)

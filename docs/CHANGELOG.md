@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Table 필터 = 조건 트리 하나 · 보낼 수 없는 조건은 끝까지 모아 여기서 (ADR-320 Phase 1)] - 2026-11-27
+
+실행 중 Table 의 필터가 조건 트리 하나가 됐다 — 열 메뉴는 그 트리의 자기 열 조건만 읽고 쓴다. 필터 바 (다음 Phase) 가 같은 트리에 「그리고 · 또는」 묶음을 넣는다.
+
+### Changed
+
+- 「또는」 · 중첩 묶음을 로컬 행에서 거른다 (끈 조건 · 값이 빈 조건은 묶음에서 빠진다 — `점수 = 20 또는 (꺼짐)` 은 20 인 행만). 조건만 나열한 트리는 지금 경로 그대로.
+- 지운 필드의 조건 · 요청이 담지 못하는 조건은 표 상태에 들어가지 않는다 — 데이터 정의 · 문서가 바뀌면 다시 판정한다.
+
+### Fixed
+
+- **같은 key 를 두 번 보내던 것**: 접미사 형식에서 `status = open 그리고 status = closed` 가 `status=open&status=closed` (다중 선택과 같은 요청) 로, endpoint 기본 query `status=open` 위의 `status = closed` 가 두 값으로 나갔다 — 둘째 조건은 보내지 않고 끝까지 모아 여기서 거른다.
+- **GET · HEAD 의 `body` 형식이 조건 없는 첫 쪽을 결과로 보이던 것**: 본문을 보낼 수 없으니 조건을 보내지 않고 끝까지 모은다. 다음 쪽 cursor 를 보낼 수 없거나 같은 쪽이 반복되면 받은 쪽의 행을 보이지 않고 「조회 실패」 (읽는 중 상태 `error`).
+
 ## [「모아서 저장」 · 실행 저장소 판독 수리 — 잘못 지우기 · 덮어쓰기 · 중복 넣기 · 옛 값 표시] - 2026-11-27
 
 ADR-324 · ADR-325 구현 판독 (round 3) 이 재현한 HIGH 8 · MEDIUM 3 을 고쳤다.

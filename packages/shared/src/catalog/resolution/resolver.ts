@@ -3297,7 +3297,7 @@ export function resolveCatalogNode(
     const stated =
       !!headerState?.sort?.length ||
       !!headerState?.search ||
-      !!headerState?.columnFilters?.length ||
+      !!headerState?.filters ||
       !!headerState?.grouping?.length ||
       !!headerState?.pinnedRows;
     let rowSet =

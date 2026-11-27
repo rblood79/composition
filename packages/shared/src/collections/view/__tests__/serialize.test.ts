@@ -264,3 +264,151 @@ describe("ADR-284 — what a format cannot carry, whatever the variables hold", 
     ).toEqual([]);
   });
 });
+
+/**
+ * ADR-320 Decision 4 (G1 — 리뷰 round 4 h6 · h7 · round 5 h9) — what a request cannot carry is
+ * not sent and the view runs here over every row (`load: "all"`): two conditions giving one
+ * parameter key (a server reads a repeated key as `or`), a key the endpoint's own URL already
+ * has, a `body` format on a method that sends no body.
+ */
+describe("ADR-320 — a key given twice · a body that is not sent", () => {
+  const literal = (value: unknown) => ({ value });
+  const suffix = (
+    items: ViewConditionGroup["items"],
+    taken?: readonly string[],
+  ) =>
+    serializeViewQueries(
+      { kind: "suffix" },
+      { queries: [{ where: where(items) }], schema: SCHEMA, resolve: literal },
+      "GET",
+      undefined,
+      undefined,
+      taken,
+    );
+  const open = c("open", "equals", "f-status", { value: "open" });
+  const closed = c("closed", "equals", "f-status", { value: "closed" });
+
+  it("two equalities of one field are not one repeated key — the later one is not sent, every row loads", () => {
+    expect(suffix([open, closed])).toEqual({
+      params: [["status", "open"]],
+      warnings: [{ code: "DUPLICATE_KEY", conditionId: "closed" }],
+      load: "all",
+    });
+  });
+
+  it("one condition's list is one key repeated — sent", () => {
+    expect(
+      suffix([c("either", "oneOf", "f-status", { value: ["open", "closed"] })]),
+    ).toEqual({
+      params: [
+        ["status", "open"],
+        ["status", "closed"],
+      ],
+      warnings: [],
+    });
+  });
+
+  it("the comparisons sharing a suffix collide too (`gt` · `after` = `_gt`), and a range's ends", () => {
+    expect(
+      suffix([
+        c("a", "gt", "f-age", { value: 3 }),
+        c("b", "after", "f-age", { value: 5 }),
+      ]).warnings,
+    ).toEqual([{ code: "DUPLICATE_KEY", conditionId: "b" }]);
+    expect(
+      suffix([
+        c("range", "between", "f-age", { value: [1, 9] }),
+        c("least", "gte", "f-age", { value: 5 }),
+      ]),
+    ).toEqual({
+      params: [
+        ["age_gte", "1"],
+        ["age_lte", "9"],
+      ],
+      warnings: [{ code: "DUPLICATE_KEY", conditionId: "least" }],
+      load: "all",
+    });
+    // (different suffixes of one field are different keys)
+    expect(
+      suffix([
+        c("least", "gte", "f-age", { value: 5 }),
+        c("most", "lte", "f-age", { value: 9 }),
+      ]).warnings,
+    ).toEqual([]);
+  });
+
+  it("a key the endpoint's own URL already has is not sent again", () => {
+    // (the endpoint's default `status=open`: `status = closed` would read 「open 또는 closed」)
+    expect(suffix([closed], ["status"])).toEqual({
+      params: [],
+      warnings: [{ code: "DUPLICATE_KEY", conditionId: "closed" }],
+      load: "all",
+    });
+    expect(suffix([closed], ["page"])).toEqual({
+      params: [["status", "closed"]],
+      warnings: [],
+    });
+  });
+
+  it("a skipped condition takes no key", () => {
+    expect(suffix([{ ...open, enabled: false }, closed])).toEqual({
+      params: [["status", "closed"]],
+      warnings: [],
+    });
+  });
+
+  it("a `body` format on GET · HEAD sends nothing of the view: every row loads and it runs here", () => {
+    const body = (method: string, items: ViewConditionGroup["items"]) =>
+      serializeViewQueries(
+        { kind: "body" },
+        {
+          queries: [{ where: where(items) }],
+          schema: SCHEMA,
+          resolve: literal,
+        },
+        method,
+      );
+    for (const method of ["GET", "HEAD", "get"])
+      expect(body(method, [open])).toEqual({
+        params: [],
+        warnings: [{ code: "GET_BODY" }],
+        load: "all",
+      });
+    // (POST: the body carries it)
+    expect(body("POST", [open])).toEqual({
+      params: [],
+      body: {
+        where: {
+          op: "and",
+          items: [{ fields: ["status"], op: "equals", value: "open" }],
+        },
+        total: true,
+      },
+      warnings: [],
+    });
+    // (nothing to carry: the request is the endpoint's own — no load of every row)
+    expect(body("GET", []).load).toBeUndefined();
+  });
+
+  it("the static limits say the same (every condition taken as applied)", () => {
+    const limits = (
+      items: ViewConditionGroup["items"],
+      taken?: readonly string[],
+    ) =>
+      viewQueryLimits(
+        { kind: "suffix" },
+        { queries: [{ where: where(items) }], schema: SCHEMA },
+        "GET",
+        taken,
+      );
+    expect(limits([open, closed])).toEqual([
+      { code: "DUPLICATE_KEY", conditionId: "closed" },
+    ]);
+    expect(limits([closed], ["status"])).toEqual([
+      { code: "DUPLICATE_KEY", conditionId: "closed" },
+    ]);
+    expect(
+      limits([c("either", "oneOf", "f-status", { value: ["open", "closed"] })]),
+    ).toEqual([]);
+  });
+});

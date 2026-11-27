@@ -1,4 +1,13 @@
 import { act, fireEvent } from "@testing-library/react";
+import type {
+  ViewCondition,
+  ViewConditionGroup,
+} from "../../../../../../packages/shared/src/catalog/document/types";
+import {
+  columnCondition,
+  columnFilters,
+  type ColumnFilterEntry,
+} from "./adr320ColumnFilters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   answerBody,
@@ -271,9 +280,11 @@ describe("a Table's search (ADR-315 Phase 3)", () => {
 describe("a Table's column filters (ADR-315 Phase 3)", () => {
   it("keeps the rows each filter passes, joined with the search — one filter a Column", async () => {
     const t = await openTable();
-    const filter = async (filters: readonly object[]) => {
+    const filter = async (filters: readonly ColumnFilterEntry[]) => {
       act(() => {
-        t.h.session.tables.setTableState(t.table().id, { columnFilters: filters });
+        t.h.session.tables.setTableState(t.table().id, {
+          filters: columnFilters(...filters),
+        });
       });
       await settle();
     };
@@ -291,9 +302,9 @@ describe("a Table's column filters (ADR-315 Phase 3)", () => {
       { column: "status", condition: { op: "gte", value: 2 } },
       { column: "status", condition: { op: "lte", value: 2 } },
     ]);
-    expect(t.state().columnFilters).toEqual([
-      { column: "status", condition: { op: "lte", value: 2 } },
-    ]);
+    expect(t.state().filters).toEqual(
+      columnFilters({ column: "status", condition: { op: "lte", value: 2 } }),
+    );
     expect(t.rowKeys()).toEqual(["p1", "p2"]);
     // … with 「an」: Chan.
     await t.search("an");
@@ -305,6 +316,141 @@ describe("a Table's column filters (ADR-315 Phase 3)", () => {
     await filter([]);
     expect(t.state()).toEqual({});
     expect(t.rowKeys()).toEqual(["p1", "p2", "p3", "p4", "p5"]);
+    t.h.view.unmount();
+  }, 120_000);
+});
+
+/** ADR-320 — a filter tree's condition · group over the fixtures' fields (`f-<key>`). */
+const cond = (
+  id: string,
+  field: string,
+  op: ViewCondition["op"],
+  value?: ViewCondition["value"],
+  more: Partial<ViewCondition> = {},
+): ViewCondition => ({
+  id,
+  fields: [[`data:field:f-${field}`]],
+  op,
+  ...(value !== undefined ? { value } : {}),
+  ...more,
+});
+const group = (
+  id: string,
+  op: "and" | "or",
+  ...items: ViewConditionGroup["items"]
+): ViewConditionGroup => ({ id, op, items });
+
+/**
+ * ADR-320 Phase 1 (G1) — the Table's filter is one condition tree: an `or` across Columns and a
+ * nested group run here on row numbers (the group path), joined with the search; a Column's menu
+ * reads and writes the root's condition of that Column only. Expected rows are written by hand:
+ *   p1 Bora · B · 2   p2 Chan · A · 1   p3 Ara · B · 3   p4 Dana · A · 5   p5 Eun · A · —
+ */
+describe("a Table's filter tree — 「또는」 and nested groups (ADR-320 Phase 1)", () => {
+  it("keeps the rows the tree keeps — an `or` across Columns, a nested group, a condition turned off, the search", async () => {
+    const t = await openTable();
+    const set = async (...items: ViewConditionGroup["items"]) => {
+      act(() => {
+        t.h.session.tables.setTableState(t.table().id, {
+          filters: group("filter-scope", "and", ...items),
+        });
+      });
+      await settle();
+    };
+    // 유형 = B 또는 상태 ≥ 5: Bora · Ara · Dana
+    await set(
+      group(
+        "g1",
+        "or",
+        cond("c1", "type", "equals", "B"),
+        cond("c2", "status", "gte", 5),
+      ),
+    );
+    expect(t.rowKeys()).toEqual(["p1", "p3", "p4"]);
+    // … with 「an」 (Chan · Dana): Dana
+    await t.search("an");
+    expect(t.rowKeys()).toEqual(["p4"]);
+    await t.search("");
+    // 상태 ≥ 2 그리고 (유형 = A 또는 이름 ∋ ar): Ara (ar) · Dana (A)
+    await set(
+      cond("c3", "status", "gte", 2),
+      group(
+        "g2",
+        "or",
+        cond("c4", "type", "equals", "A"),
+        cond("c5", "name", "contains", "ar"),
+      ),
+    );
+    expect(t.rowKeys()).toEqual(["p3", "p4"]);
+    // 상태 = 3 또는 (꺼짐: 유형 = A) → Ara 만. 꺼진 조건을 통과로 합치면 모든 행이다.
+    await set(
+      group(
+        "g3",
+        "or",
+        cond("c6", "status", "equals", 3),
+        cond("c7", "type", "equals", "A", { enabled: false }),
+      ),
+    );
+    expect(t.rowKeys()).toEqual(["p3"]);
+    // (2 단 중첩) 유형 = A 그리고 (상태 = 1 또는 (상태 ≥ 5 그리고 이름 ∋ da)): Chan · Dana
+    await set(
+      cond("c8", "type", "equals", "A"),
+      group(
+        "g4",
+        "or",
+        cond("c9", "status", "equals", 1),
+        group(
+          "g5",
+          "and",
+          cond("c10", "status", "gte", 5),
+          cond("c11", "name", "contains", "da"),
+        ),
+      ),
+    );
+    expect(t.rowKeys()).toEqual(["p2", "p4"]);
+    t.h.view.unmount();
+  }, 120_000);
+
+  it("a Column's menu writes its own root condition and leaves the tree's other items", async () => {
+    const t = await openTable();
+    const either = group(
+      "g1",
+      "or",
+      cond("c1", "type", "equals", "B"),
+      cond("c2", "status", "gte", 5),
+    );
+    act(() => {
+      t.h.session.tables.setTableState(t.table().id, {
+        filters: group("filter-scope", "and", either),
+      });
+    });
+    await settle();
+    expect(t.rowKeys()).toEqual(["p1", "p3", "p4"]);
+    // (the status Column's filter — a rule's 「Set column filter」 3: status = 3 → Ara)
+    const status = t.column("status");
+    act(() => {
+      t.h.session.tables.filterTableColumn(status.id, 3);
+    });
+    await settle();
+    expect(t.state().filters).toEqual(
+      group(
+        "filter-scope",
+        "and",
+        either,
+        columnCondition({
+          column: "status",
+          condition: { op: "equals", value: 3 },
+        }),
+      ),
+    );
+    expect(t.rowKeys()).toEqual(["p3"]);
+    // (cleared: the group stays)
+    act(() => {
+      t.h.session.tables.filterTableColumn(status.id, "");
+    });
+    await settle();
+    expect(t.state().filters).toEqual(group("filter-scope", "and", either));
+    expect(t.rowKeys()).toEqual(["p1", "p3", "p4"]);
     t.h.view.unmount();
   }, 120_000);
 });
@@ -372,7 +518,9 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
     const t = await openTable(
       remote({ kind: "suffix", pageSize: 2, searchParam: "q" }),
     );
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "search")).toEqual({
+    expect(
+      t.h.session.tables.tableSliceServable(t.table().id, "search"),
+    ).toEqual({
       accepts: "whole",
     });
     await t.search("need");
@@ -391,7 +539,9 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
   it("a suffix format without one: the Table holds no search — nothing is sent short", async () => {
     const requests = stubServer();
     const t = await openTable(remote({ kind: "suffix", pageSize: 2 }));
-    expect(t.h.session.tables.tableSliceServable(t.table().id, "search")).toEqual({
+    expect(
+      t.h.session.tables.tableSliceServable(t.table().id, "search"),
+    ).toEqual({
       accepts: "none",
       reason: "suffixNoSearch",
     });
@@ -408,9 +558,10 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
     const t = await openTable(remote({ kind: "suffix", pageSize: 2 }));
     act(() => {
       t.h.session.tables.setTableState(t.table().id, {
-        columnFilters: [
-          { column: "status", condition: { op: "gte", value: 3 } },
-        ],
+        filters: columnFilters({
+          column: "status",
+          condition: { op: "gte", value: 3 },
+        }),
       });
     });
     await settle();
@@ -421,9 +572,10 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
     const before = requests.length;
     act(() => {
       t.h.session.tables.setTableState(t.table().id, {
-        columnFilters: [
-          { column: "name", condition: { op: "startsWith", value: "t" } },
-        ],
+        filters: columnFilters({
+          column: "name",
+          condition: { op: "startsWith", value: "t" },
+        }),
       });
     });
     await settle();
@@ -452,6 +604,210 @@ describe("a Table's search on the server's pages (리뷰 round 1 H2)", () => {
     });
     // (The mock server's own filter over those fields: s1 · s3 by name, s4 by type — a page of 2.)
     expect(t.rowKeys()).toEqual(["s1", "s3"]);
+    t.h.view.unmount();
+  }, 120_000);
+
+  /**
+   * ADR-320 Decision 4 (G1 — 리뷰 round 4 h6 · h7 · round 5 h9) — the filter tree is judged where
+   * it is assigned: what the rows' request cannot carry is not held, and the request shows it.
+   */
+  const assign = async (
+    t: Awaited<ReturnType<typeof openTable>>,
+    ...items: ViewConditionGroup["items"]
+  ) => {
+    act(() => {
+      t.h.session.tables.setTableState(t.table().id, {
+        filters: group("filter-scope", "and", ...items),
+      });
+    });
+    await settle();
+  };
+  const refused = (t: Awaited<ReturnType<typeof openTable>>) =>
+    t.h.session.tables.tableFiltersRefused(t.table().id);
+
+  it("a flat format: a second condition giving a key the request has is not held — one condition's list is", async () => {
+    const requests = stubServer();
+    const t = await openTable(remote({ kind: "suffix", pageSize: 2 }));
+    const typeA = cond("a", "type", "equals", "A");
+    // 유형 = A 그리고 유형 = B: `type=A&type=B` 는 서버가 「또는」 으로 읽는다 (정답 0 행 → 두 행).
+    await assign(t, typeA, cond("b", "type", "equals", "B"));
+    expect(t.state().filters).toEqual(group("filter-scope", "and", typeA));
+    expect(refused(t)).toBe(1);
+    expect(requests.at(-1)!.search).toBe("?type=A&_page=1&_limit=2");
+    expect(t.rowKeys()).toEqual(["s1", "s2"]);
+    // (one condition's list: one key repeated — held and sent)
+    const either = cond("either", "type", "oneOf", ["A", "B"]);
+    await assign(t, either);
+    expect(t.state().filters).toEqual(group("filter-scope", "and", either));
+    expect(refused(t)).toBe(0);
+    expect(requests.at(-1)!.search).toBe("?type=A&type=B&_page=1&_limit=2");
+    // (an `or` group: a flat format names none — the item is left out whole)
+    await assign(
+      t,
+      group("g", "or", typeA, cond("c", "status", "gte", 5)),
+      cond("d", "status", "gte", 3),
+    );
+    expect(t.state().filters).toEqual(
+      group("filter-scope", "and", cond("d", "status", "gte", 3)),
+    );
+    expect(refused(t)).toBe(1);
+    expect(requests.at(-1)!.search).toBe("?status_gte=3&_page=1&_limit=2");
+    t.h.view.unmount();
+  }, 120_000);
+
+  it("a key the endpoint's own URL has · the authored view's condition has is not held either", async () => {
+    const requests = stubServer();
+    const data = remote({ kind: "suffix", pageSize: 2 });
+    // (the endpoint's default `type=A`)
+    const t = await openTable({
+      ...data,
+      apiEndpoints: [
+        {
+          ...data.apiEndpoints[0]!,
+          queryParams: [{ key: "type", value: "A" }],
+        },
+      ],
+    });
+    await assign(t, cond("b", "type", "equals", "B"));
+    expect(t.state()).toEqual({});
+    expect(refused(t)).toBe(1);
+    // (the request's `type` is the endpoint's one — never `type=A&type=B`)
+    expect(
+      requests.every(
+        (request) =>
+          new URLSearchParams(request.search).getAll("type").join() === "A",
+      ),
+    ).toBe(true);
+    t.h.view.unmount();
+
+    // (the author's view `status ≥ 3` on the Table: a scope's `status ≥ 5` gives the same key)
+    const authored = stubServer();
+    const second = await openTable(remote({ kind: "suffix", pageSize: 2 }));
+    second.h.workspace.execute(
+      catalogBindingCommand([{ kind: "node", id: second.id }], {
+        ...catalogBindingRef({
+          source: "dataTable",
+          collectionId: "users",
+          name: "Users",
+        })!,
+        view: {
+          where: group("where", "and", cond("own", "status", "gte", 3)),
+        },
+      }),
+    );
+    second.h.flush();
+    await settle();
+    await assign(
+      second,
+      cond("more", "status", "gte", 5),
+      cond("kind", "type", "equals", "A"),
+    );
+    expect(second.state().filters).toEqual(
+      group("filter-scope", "and", cond("kind", "type", "equals", "A")),
+    );
+    expect(refused(second)).toBe(1);
+    expect(authored.at(-1)!.search).toBe(
+      "?status_gte=3&type=A&_page=1&_limit=2",
+    );
+    second.h.view.unmount();
+  }, 120_000);
+
+  it("how the rows are served changing judges the held tree again (local → the server's pages)", async () => {
+    stubServer();
+    // (local rows: an `or` group and every comparison run here)
+    const t = await openTable();
+    const either = group(
+      "g",
+      "or",
+      cond("a", "type", "equals", "B"),
+      cond("c", "status", "gte", 5),
+    );
+    const least = cond("d", "status", "gte", 2);
+    await assign(t, either, least);
+    expect(t.state().filters).toEqual(
+      group("filter-scope", "and", either, least),
+    );
+    expect(refused(t)).toBe(0);
+    // (the author points the collection at a paged endpoint of a flat format: no `or` there)
+    act(() => {
+      t.h.session.receive({
+        type: "CATALOG_DATA",
+        version: 1,
+        variables: [],
+        ...remote({ kind: "suffix", pageSize: 2 }),
+      } as never);
+    });
+    await settle();
+    expect(t.state().filters).toEqual(group("filter-scope", "and", least));
+    expect(refused(t)).toBe(1);
+    t.h.view.unmount();
+  }, 120_000);
+
+  it("a body format on GET sends no body: no condition is held — on POST the body carries the tree", async () => {
+    const requests = stubServer();
+    const t = await openTable(remote({ kind: "body", pageSize: 2 }, "GET"));
+    await assign(t, cond("a", "type", "equals", "A"));
+    expect(t.state()).toEqual({});
+    expect(refused(t)).toBe(1);
+    expect(requests.every((request) => request.body === undefined)).toBe(true);
+    t.h.view.unmount();
+
+    const posted = stubServer();
+    const second = await openTable(
+      remote({ kind: "body", pageSize: 2 }, "POST"),
+    );
+    const either = group(
+      "g",
+      "or",
+      cond("a", "type", "equals", "B"),
+      cond("c", "status", "gte", 5),
+    );
+    await assign(second, either);
+    expect(second.state().filters).toEqual(
+      group("filter-scope", "and", either),
+    );
+    expect(refused(second)).toBe(0);
+    expect(posted.at(-1)!.body!.where).toEqual({
+      op: "and",
+      items: [
+        {
+          op: "or",
+          items: [
+            { fields: ["type"], op: "equals", value: "B" },
+            { fields: ["status"], op: "gte", value: 5 },
+          ],
+        },
+      ],
+    });
+    second.h.view.unmount();
+  }, 120_000);
+});
+
+describe("a filter tree's condition on a field the rows do not have (ADR-320 Decision 4 — 리뷰 round 3 h5)", () => {
+  it("leaves the root item out whole — never the one condition out of its `or`", async () => {
+    const t = await openTable();
+    // (지워진 필드 = x 또는 상태 = 3): 묶음 통째 제외 → 모든 행. 지워진 조건만 빼면 Ara 한 행이다.
+    act(() => {
+      t.h.session.tables.setTableState(t.table().id, {
+        filters: group(
+          "filter-scope",
+          "and",
+          group(
+            "g",
+            "or",
+            cond("gone", "gone", "equals", "x"),
+            cond("three", "status", "equals", 3),
+          ),
+          cond("kind", "type", "equals", "B"),
+        ),
+      });
+    });
+    await settle();
+    expect(t.state().filters).toEqual(
+      group("filter-scope", "and", cond("kind", "type", "equals", "B")),
+    );
+    expect(t.h.session.tables.tableFiltersRefused(t.table().id)).toBe(1);
+    expect(t.rowKeys()).toEqual(["p1", "p3"]);
     t.h.view.unmount();
   }, 120_000);
 });

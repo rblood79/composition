@@ -2,7 +2,12 @@ import { catalogTableGrouping } from "./tableRowSlices";
 import { componentInstancePath } from "./componentBoundaries";
 import { catalogBoundRows, dataCollectionIdOf } from "./dataBinding";
 import { catalogBindingQuery } from "./viewQuery";
-import { viewSchemaAt } from "../../collections/view/evaluate";
+import {
+  viewFieldOf,
+  viewRunReferences,
+  viewRunSchema,
+  viewSchemaAt,
+} from "../../collections/view/evaluate";
 import {
   VIEW_COMPARISONS_BY_KIND,
   viewFieldKind,
@@ -59,6 +64,8 @@ import {
   type CatalogTableServedSlice,
 } from "./tableStateQuery";
 import { CATALOG_NO_TABLE_STATE } from "./tableState";
+import { catalogFilterColumnCondition } from "./filterScope";
+import type { ViewCondition, ViewConditionGroup } from "../document/types";
 import { CATALOG_NO_VIEW_QUERY } from "./viewQuery";
 import type {
   CatalogItemsWrite,
@@ -90,6 +97,7 @@ export type CatalogTableHost = {
   collectionItems: CatalogPreviewSession["collectionItems"];
   itemsByKeys: CatalogPreviewSession["itemsByKeys"];
   collectionRowService: CatalogPreviewSession["collectionRowService"];
+  viewRequestLimits: CatalogPreviewSession["viewRequestLimits"];
   collections: CatalogPreviewSession["collections"];
   currentRoot: CatalogPreviewSession["currentRoot"];
   echoing: CatalogPreviewSession["echoing"];
@@ -379,8 +387,8 @@ export class CatalogTableController {
       ...(typeof max === "number" && max > 0 ? { maxSortColumns: max } : {}),
       // (ADR-315 Phase 3 — a search · a column filter only where the rows' request carries it.)
       search: this.tableSliceServable(tableId, "search").accepts === "whole",
-      filters: (op) =>
-        this.tableSliceServable(tableId, { filter: op }).accepts === "whole",
+      // (ADR-320 Decision 4 — what of a filter tree the Table's rows' request carries.)
+      judgeFilters: (tree) => this.judgeTableFilters(tableId, tree),
       // (ADR-315 Phase 5 증분 5g — pinned rows only where a pinned row of another page can be
       //  asked for by its key.)
       rowPins: !this.rowPinsRefused(
@@ -388,6 +396,98 @@ export class CatalogTableController {
         table?.sourceId,
       ),
     };
+  }
+
+  /**
+   * ADR-320 Decision 4 — a filter tree as the Table takes it, judged here — the one place a tree
+   * is assigned (a Column's menu, a rule's Do, a restored · an authored tree alike), by how the
+   * rows are served now and the fields they have now. The root's items are judged in order, each
+   * with the ones taken before it; an item with a condition that is not taken is left out whole (a
+   * group is one item: taking a condition out of an `or` would change what the rest means — the
+   * root is an `and`, so leaving an item out only widens the result). Not taken:
+   *  - a condition on a field the rows do not have (a field removed since);
+   *  - what the rows' request cannot carry, where a server cuts the pages (`viewRequestLimits` —
+   *    a comparison · an `or` a flat format does not name, a path through a reference, a computed
+   *    field, a key the request already has, a `body` format on a method that sends none).
+   * The number of items left out is kept for the Table's notice (`tableFiltersRefused`).
+   */
+  private judgeTableFilters(
+    tableId: string,
+    tree: ViewConditionGroup,
+  ): ViewConditionGroup {
+    const read = this.tableRead(tableId);
+    if (!read) {
+      this.filtersRefused.delete(tableId);
+      return tree;
+    }
+    const fields = viewRunSchema(read.collection?.schema);
+    const rowFields = read.base.queries.length
+      ? viewSchemaAt(
+          { queries: read.base.queries, schema: fields },
+          read.base.queries.length,
+        )
+      : fields;
+    const references = viewRunReferences(this.host.collections);
+    const idsOf = (item: ViewCondition | ViewConditionGroup): string[] =>
+      "items" in item ? [item.id, ...item.items.flatMap(idsOf)] : [item.id];
+    const conditionsOf = (
+      item: ViewCondition | ViewConditionGroup,
+    ): ViewCondition[] =>
+      "items" in item ? item.items.flatMap(conditionsOf) : [item];
+    const taken: (ViewCondition | ViewConditionGroup)[] = [];
+    for (const item of tree.items) {
+      if (
+        conditionsOf(item).some((condition) =>
+          condition.fields.some(
+            (path) => !viewFieldOf(path, rowFields, references),
+          ),
+        )
+      )
+        continue;
+      const limits = this.host.viewRequestLimits(read.collectionId, read.base, [
+        ...taken,
+        item,
+      ]);
+      if (limits) {
+        const ids = new Set(idsOf(item));
+        if (
+          limits.some(
+            (warning) =>
+              warning.code === "GET_BODY" ||
+              (warning.conditionId !== undefined &&
+                ids.has(warning.conditionId)),
+          )
+        )
+          continue;
+      }
+      taken.push(item);
+    }
+    const refused = tree.items.length - taken.length;
+    if (refused) this.filtersRefused.set(tableId, refused);
+    else this.filtersRefused.delete(tableId);
+    return refused ? { ...tree, items: taken } : tree;
+  }
+  /**
+   * ADR-320 Decision 4 — the held filter trees judged again: how a collection's rows are served
+   * changed (its endpoint · its query format · its fields — the author's edit in the Builder's
+   * Preview), and a tree held from before may hold what the request cannot carry now. A tree that
+   * is still taken whole writes nothing.
+   */
+  rejudgeFilters(): void {
+    for (const [tableId, state] of [...this.tableStates]) {
+      if (!state.filters) continue;
+      // (The notice counts what the tree as it was assigned lost: an item left out now is one
+      //  more — judging the held tree again does not clear the ones left out before.)
+      const before = this.tableFiltersRefused(tableId);
+      this.setTableState(tableId, { filters: state.filters });
+      const refused = before + this.tableFiltersRefused(tableId);
+      if (refused) this.filtersRefused.set(tableId, refused);
+    }
+  }
+  /** The root items the Table's last assigned filter tree left out (Decision 4 — the notice). */
+  private readonly filtersRefused = new Map<string, number>();
+  tableFiltersRefused(tableId: string): number {
+    return this.filtersRefused.get(tableId) ?? 0;
   }
 
   /** A Table record's document node (the record's source), if it is one. */
@@ -528,7 +628,7 @@ export class CatalogTableController {
         next,
         before.sort !== next.sort ? "sorting" : "filtering",
         before.sort === next.sort &&
-          before.columnFilters === next.columnFilters &&
+          before.filters === next.filters &&
           before.search !== next.search,
       );
     // (ADR-315 Phase 5 — a grouped Table's open groups: their rows are read out only while open.)
@@ -948,9 +1048,10 @@ export class CatalogTableController {
     const place = this.columnRecordPlace(columnId);
     const input = place && this.columnMenuInput(place.tableId, place.racKey);
     if (!place || !input) return undefined;
-    const value = input[1].state.columnFilters?.find(
-      (filter) => filter.column === input[0].key,
-    )?.condition.value;
+    const value = catalogFilterColumnCondition(
+      input[1].state.filters,
+      input[0].key,
+    )?.value;
     return value === undefined || value === null
       ? ""
       : Array.isArray(value)
@@ -972,9 +1073,10 @@ export class CatalogTableController {
     const [column, table] = input;
     const field = this.tableField(place.tableId, column.key)?.field;
     const kind = viewFieldKind(field?.type);
-    const condition = table.state.columnFilters?.find(
-      (filter) => filter.column === column.key,
-    )?.condition;
+    const condition = catalogFilterColumnCondition(
+      table.state.filters,
+      column.key,
+    );
     const draft = catalogColumnFilterDraft({
       kind,
       ops: column.filterOps!,
@@ -1372,10 +1474,13 @@ export class CatalogTableController {
     const allowsGrouping = authored || record.props.allowsGrouping === true;
     // (ADR-315 Phase 4 증분 4c — a filter compares the Column's data field: its kind's comparisons
     //  the Table's rows' request carries. No field — an unbound Table, a role's column — none.)
-    const field =
+    const read =
       allowsFiltering || allowsGrouping
-        ? this.tableField(tableId, column.key)?.field
+        ? this.tableField(tableId, column.key)
         : undefined;
+    const field = read?.field;
+    // (ADR-320 — the field's data id: the Column's condition in the filter tree reads it.)
+    const fieldId = read && catalogFieldIdOf(read.fields, column.key);
     return [
       {
         key: column.key,
@@ -1391,9 +1496,12 @@ export class CatalogTableController {
         filterOps:
           field && allowsFiltering
             ? VIEW_COMPARISONS_BY_KIND[viewFieldKind(field.type)].filter(
-                (op) => !shape.filters || shape.filters(op),
+                (op) =>
+                  this.tableSliceServable(tableId, { filter: op }).accepts ===
+                  "whole",
               )
             : [],
+        ...(fieldId ? { field: fieldId } : {}),
       },
       {
         shape,
@@ -1462,9 +1570,10 @@ export class CatalogTableController {
       return undefined;
     const [column, table] = input;
     const field = this.tableField(tableId, column.key)?.field;
-    const condition = table.state.columnFilters?.find(
-      (filter) => filter.column === column.key,
-    )?.condition;
+    const condition = catalogFilterColumnCondition(
+      table.state.filters,
+      column.key,
+    );
     const facet = this.tableFacet(tableId, column.key);
     return {
       kind: viewFieldKind(field?.type),
@@ -1511,13 +1620,24 @@ export class CatalogTableController {
    * not a bound Table's Column of a field.
    */
   private tableField(tableId: string, columnKey: string) {
+    if (!this.tableColumns(tableId).some((column) => column.key === columnKey))
+      return undefined;
+    const read = this.tableRead(tableId);
+    const field = read?.fields.find((item) => item.key === columnKey);
+    return read && field ? { ...read, field } : undefined;
+  }
+
+  /**
+   * What a bound Table reads its rows through: its binding, its collection, its authored view
+   * chain (`base`) and the fields its rows have (the collection's, or its view's result fields).
+   * Undefined = not a bound Table.
+   */
+  private tableRead(tableId: string) {
     const graph = this.host.graph;
     const table = this.host.currentRoot?.domInputs.get(tableId);
     const source = table && graph?.getEntry(table.sourceId as never);
     const binding = source?.kind === "node" ? source.binding : undefined;
     if (!graph || !table || !source || !binding) return undefined;
-    if (!this.tableColumns(tableId).some((column) => column.key === columnKey))
-      return undefined;
     const collectionId = dataCollectionIdOf(binding.collectionId);
     const collection = this.host.collections.find(
       (item) => item.id === collectionId,
@@ -1539,10 +1659,7 @@ export class CatalogTableController {
     const fields = base.queries.length
       ? viewSchemaAt({ queries: base.queries, schema }, base.queries.length)
       : schema;
-    const field = fields.find((item) => item.key === columnKey);
-    return field
-      ? { binding, collectionId, collection, base, fields, field }
-      : undefined;
+    return { binding, collectionId, collection, base, fields };
   }
 
   /**

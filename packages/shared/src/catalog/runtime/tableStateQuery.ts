@@ -22,6 +22,7 @@ import {
   type ViewAggregateFn,
   type ViewComparison,
   type ViewCondition,
+  type ViewConditionGroup,
   type ViewQuery,
   type ViewSort,
 } from "../document/types";
@@ -34,12 +35,9 @@ import type { CatalogRowSlices } from "./tableRowSlices";
 /** A Table state's sort · conditions as a view holds them. */
 export interface CatalogTableStateView {
   readonly sort?: readonly ViewSort[];
-  readonly where?: readonly ViewCondition[];
+  /** The search's condition, then the scope's filter tree's root items (conditions · groups). */
+  readonly where?: readonly (ViewCondition | ViewConditionGroup)[];
 }
-
-/** The id of a column filter's condition in the view (`table-filter:<Column key>`). */
-const catalogTableFilterConditionId = (column: string) =>
-  `table-filter:${column}`;
 
 /**
  * The rows' slices as a view's: each key as the field of that key in `schema` (the fields the
@@ -65,7 +63,7 @@ export function catalogRowSlicesView(
       ...(entry.empty === "first" ? { empty: "first" as const } : {}),
     });
   }
-  const where: ViewCondition[] = [];
+  const where: (ViewCondition | ViewConditionGroup)[] = [];
   if (slices.search) {
     const fields = slices.search.keys.map(fieldOf);
     if (fields.some((field) => !field)) return undefined;
@@ -76,16 +74,9 @@ export function catalogRowSlicesView(
       value: slices.search.text,
     });
   }
-  for (const filter of slices.filters ?? []) {
-    const field = fieldOf(filter.key);
-    if (!field) return undefined;
-    const { key, ...condition } = filter;
-    where.push({
-      id: catalogTableFilterConditionId(key),
-      fields: [[field]],
-      ...condition,
-    });
-  }
+  // (ADR-320 Decision 2 — the scope's filter tree: its root items as they are, a Column's
+  //  condition under its id `table-filter:<Column key>`. The root is an `and`.)
+  where.push(...(slices.where?.items ?? []));
   if (!sort.length && !where.length) return undefined;
   return {
     ...(sort.length ? { sort } : {}),

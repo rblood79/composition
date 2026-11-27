@@ -2,8 +2,12 @@
 
 ## Status
 
-Proposed — 2026-11-26
+Accepted — 2026-11-27 (Proposed 2026-11-26)
 
+- **Accepted 근거**: 사용자 착수 지시 2026-11-27 「ADR-320, ADR-321 병렬 착수 시작해」 + 리뷰 기록 pending 0 (h1 ~ h10 · m4 전부 `fixed` — [reviews/320.md](reviews/320.md)) + 선행 [ADR-325](completed/325-collection-runtime-store-three-layers.md) Implemented (2026-11-27).
+  > **Phase 0 닫힘 (2026-11-27, HEAD `f4a9c4b51`)** — G0: 코드 사실 F1 ~ F17 재대조 (설계에 닿는 차이 0 · 달라진 것 3 = contract 80 · 번들 여유 · F15 는 ADR-325 가 해소 — 보기마다 자기 요청 `syncViewLists`) · v3 · S2 에 필터 빌더 없음 (D2 = composition 확장) · 대상 목록 종류 17 · 시제품 P1 ~ P4 전부 go (Chrome 158 · WebKit 27.2 — `apps/builder/scripts/adr320-phase0-prototypes.mjs`) · Publish 주소 = `#/경로?query` 가능 · 번들 기준선 Builder 1,643,618 / 1,650,000 B (여유 6,382) · Preview 172,277 / 327,000. 시제품이 설계에 더한 것 4 (삭제 뒤 focus 옮기기 · 알림은 `polite` · 키보드 끌기는 행 안 끌기 버튼에서 · 묶음 경로는 평평한 경로의 1.9 배). 상세 [breakdown §9](design/320-filter-bar-runtime-condition-builder-breakdown.md).
+  > **Phase 1 닫힘 (2026-11-27, 미커밋)** — G1: 표 상태 필터 = 조건 트리 하나 (`filters` — 열 메뉴는 루트의 `table-filter:<열>` 조건) · 로컬 「또는」 · 중첩 경로 (`viewRowsPassingGroup`) = 평가기 = 정답표 · 대입 판정 (지운 필드 · 요청이 못 싣는 조건 거절, 다시 판정) · serializer `DUPLICATE_KEY` · GET + `body` = 보내지 않고 전량 · 끝까지 모으는 보기의 「조회 실패」 (cursor 못 보냄 · 진전 없음) · HC6 계산 4.68 ms (10,000 행 「또는」 2 단) · live 열 메뉴 필터 PASS · Builder +1,313 B. 「한 대상에 두 번째 범위 거절」 은 Phase 2 (`filtersOf`) 로 — [breakdown §9](design/320-filter-bar-runtime-condition-builder-breakdown.md#phase-1-2026-11-27--g1-통과-미커밋)
+- **사용자 답 (2026-11-27, Phase 1 진입)**: 결정 1 = 여러 목록 허용 (같은 collection 을 읽는 목록만) · 결정 2 = 같은 조건 트리 (열 메뉴의 조건이 칩으로 보인다 — HC3). 결정 10 = 권고대로 (initial Δ ≤ Builder +4,000 · Preview +2,000 B) + Builder 절대 상한 **1,660,000** 재승인 (ADR-321 과 공용 — [ADR-201 재승인 절](completed/201-large-file-upload-engine-component-server-contract.md), 만료 2026-12-25 그대로).
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 (ReUI 가 앞서는 곳 = 실행 중 필터 바와 우리에게 없는 컴포넌트) 뒤 `/create-adr`.
 - 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2):
   1. 범위 = 차용 후보 네 묶음 전부 — 「필터 바」 · 「Stepper · Rating」 · 「Cascader」 · 「Timeline · Event Calendar · Gantt」.

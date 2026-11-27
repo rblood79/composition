@@ -241,3 +241,59 @@ export function viewRowsPassing(
   } else if (name) held?.delete(name);
   return rank ? { pass, rank } : { pass };
 }
+
+/**
+ * ADR-320 Decision 3 — tests joined by `and` · `or`: a condition group read by key (the Table's
+ * search is never one of them — it stays a test of its own, `viewRowsPassing`).
+ */
+export interface ViewRowTestGroup {
+  readonly op: "and" | "or";
+  readonly items: readonly (ViewRowTest | ViewRowTestGroup)[];
+}
+const isTestGroup = (
+  item: ViewRowTest | ViewRowTestGroup,
+): item is ViewRowTestGroup => "items" in item;
+
+/**
+ * ADR-320 Decision 3 — the rows a group of tests keeps (`pass[index] === 1`), as the one evaluator
+ * judges a group (`evaluate.ts` `judge`): a test whose value skips it and a group whose items all
+ * skip are no operand — an `and` keeps the rows every applied item keeps, an `or` the rows any of
+ * them keeps (a skipped item is never 「every row」 joined to an `or`). Undefined = the group is
+ * skipped (no item applies — every row).
+ *
+ * An `and`'s own tests run together (`viewRowsPassing` — a row one test dropped is not compared
+ * again); an `or`'s run one by one over every row.
+ */
+export function viewRowsPassingGroup(
+  count: number,
+  group: ViewRowTestGroup,
+  options: Pick<ViewRowsOptions, "locale" | "today"> = {},
+): Uint8Array | undefined {
+  let out: Uint8Array | undefined;
+  const join = (pass: Uint8Array | undefined) => {
+    if (!pass) return;
+    if (!out) {
+      // (Each call's flags are its own array — the first one is kept as the result.)
+      out = pass;
+      return;
+    }
+    if (group.op === "and")
+      for (let index = 0; index < count; index += 1)
+        out[index]! &= pass[index]!;
+    else
+      for (let index = 0; index < count; index += 1)
+        out[index]! |= pass[index]!;
+  };
+  if (group.op === "and") {
+    const own = group.items.filter(
+      (item): item is ViewRowTest => !isTestGroup(item),
+    );
+    if (own.length) join(viewRowsPassing(count, own, options).pass);
+  }
+  for (const item of group.items) {
+    if (isTestGroup(item)) join(viewRowsPassingGroup(count, item, options));
+    else if (group.op === "or")
+      join(viewRowsPassing(count, [item], options).pass);
+  }
+  return out;
+}

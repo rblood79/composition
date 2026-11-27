@@ -8,11 +8,11 @@
  * session holds what its user changed (never saved — ADR-257 · 287), and a Table whose author turned
  * 「Remember state」 on keeps `catalogTableStateRemembered` in the browser (사용자 결정 1, 2026-11-20).
  */
+import type { ViewConditionGroup } from "../document/types";
 import {
-  VIEW_COMPARISONS,
-  type ViewComparison,
-  type ViewCondition,
-} from "../document/types";
+  catalogFilterTreeRead,
+  type CatalogColumnFilterCondition,
+} from "./filterScope";
 import type { CatalogSortDirection } from "./tableSort";
 
 /** One entry of the sort list — RAC's `SortDescriptor` shape, its column a Column key. */
@@ -26,21 +26,25 @@ export interface CatalogTableCell {
   readonly column: string;
 }
 /**
- * A column filter: a condition on that Column's field — the comparison, its value and how it
- * compares (a view condition without its id and fields: the Column names the field). One a column.
+ * A column filter as its Column's menu · dialog read and write it: a condition on that Column's
+ * field — the comparison, its value and how it compares (a view condition without its id and
+ * fields: the Column names the field). In the state it is the filter tree's root condition of that
+ * Column (`catalogFilterColumnCondition` — ADR-320 Decision 1).
  */
 export interface CatalogTableColumnFilter {
   readonly column: string;
-  readonly condition: Pick<
-    ViewCondition,
-    "op" | "value" | "sensitivity" | "unit"
-  >;
+  readonly condition: CatalogColumnFilterCondition;
 }
 export interface CatalogTableState {
   // data slices — translated into the view query (breakdown §4.3)
   readonly sort?: readonly CatalogTableSortItem[];
   readonly search?: string;
-  readonly columnFilters?: readonly CatalogTableColumnFilter[];
+  /**
+   * ADR-320 Decision 1 — the Table's run-time filter: one condition tree (a view's condition
+   * group, the root an `and`). A Column's filter is the root's condition of that Column; a filter
+   * bar edits the same tree (`filterScope.ts`).
+   */
+  readonly filters?: ViewConditionGroup;
   readonly grouping?: readonly string[];
   // column slices — applied at the resolver's column projection (breakdown §4.5)
   readonly hiddenColumns?: readonly string[];
@@ -80,7 +84,7 @@ export type CatalogTableStateSource = (
 export const CATALOG_TABLE_DATA_SLICES = [
   "sort",
   "search",
-  "columnFilters",
+  "filters",
   "grouping",
 ] as const satisfies readonly CatalogTableStateSlice[];
 /** The slices the column projection reads — never an input of the view query (ADR-315 HC4). */
@@ -122,8 +126,12 @@ export interface CatalogTableShape {
    * `catalogTableSliceServable`). Absent = it does.
    */
   readonly search?: boolean;
-  /** Whether the Table takes a column filter of a comparison (absent = every comparison). */
-  readonly filters?: (op: ViewComparison) => boolean;
+  /**
+   * ADR-320 Decision 4 — what of a filter tree the Table takes: the tree with the root items its
+   * rows' request cannot carry left out (judged where the tree is assigned — a write, a press and
+   * a restored tree alike). Absent = the whole tree.
+   */
+  readonly judgeFilters?: (tree: ViewConditionGroup) => ViewConditionGroup;
   /**
    * ADR-315 Phase 5 증분 5g — `false` = the Table pins no row: its rows are a server's pages and
    * the endpoint names no request by key (`catalogTableSliceServable` 「pins」 — §4.3.1). Absent =
@@ -204,37 +212,12 @@ function sliceOf(
           ? null
           : value || null
         : undefined;
-    case "columnFilters": {
-      if (!Array.isArray(value)) return undefined;
-      // (A column filtered again: its later condition, at its first place.)
-      const byColumn = new Map<string, CatalogTableColumnFilter>();
-      for (const item of value) {
-        if (!isRecord(item) || !isRecord(item.condition)) return undefined;
-        const { column } = item;
-        const { op, value: compared, sensitivity, unit } = item.condition;
-        if (typeof column !== "string") return undefined;
-        if (!(VIEW_COMPARISONS as readonly unknown[]).includes(op))
-          return undefined;
-        if (!has(column)) continue;
-        // (A comparison the Table's request cannot carry is not held.)
-        if (shape.filters && !shape.filters(op as ViewComparison)) continue;
-        byColumn.set(column, {
-          column,
-          condition: {
-            op: op as ViewComparison,
-            ...(compared !== undefined
-              ? { value: compared as ViewCondition["value"] }
-              : {}),
-            ...(typeof sensitivity === "string"
-              ? { sensitivity: sensitivity as ViewCondition["sensitivity"] }
-              : {}),
-            ...(typeof unit === "string"
-              ? { unit: unit as ViewCondition["unit"] }
-              : {}),
-          },
-        });
-      }
-      return byColumn.size ? [...byColumn.values()] : null;
+    case "filters": {
+      const tree = catalogFilterTreeRead(value);
+      if (!tree) return tree;
+      // (What the Table's rows' request cannot carry is not held — Decision 4.)
+      const accepted = shape.judgeFilters ? shape.judgeFilters(tree) : tree;
+      return accepted.items.length ? accepted : null;
     }
     case "grouping": {
       const list = columns(value);

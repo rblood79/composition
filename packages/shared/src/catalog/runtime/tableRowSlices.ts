@@ -7,9 +7,7 @@
 import {
   VIEW_AGGREGATE_FNS,
   type ViewAggregateFn,
-  type ViewComparison,
-  type ViewCondition,
-  type ViewConditionValue,
+  type ViewConditionGroup,
 } from "../document/types";
 import type { CatalogRowSort, CatalogRowSorts } from "./tableSort";
 import type { CatalogTableState } from "./tableState";
@@ -51,14 +49,6 @@ export interface CatalogRowSearch {
   readonly keys: readonly string[];
   /** 사용자 결정 2 — the Table's `searchMatch`: graded matches (`fuzzy.ts`); absent = 「포함」. */
   readonly match?: "fuzzy";
-}
-/** A bound Table's column filter as its rows read it: a condition on that Column's field. */
-export interface CatalogRowFilter {
-  readonly key: string;
-  readonly op: ViewComparison;
-  readonly value?: ViewConditionValue;
-  readonly sensitivity?: ViewCondition["sensitivity"];
-  readonly unit?: ViewCondition["unit"];
 }
 /**
  * ADR-315 Phase 5 — a bound Table's grouping as its rows read it: the fields grouped by (outer
@@ -124,7 +114,11 @@ export interface CatalogRowSlices {
   readonly pins?: CatalogRowPins;
   readonly sorts?: CatalogRowSorts;
   readonly search?: CatalogRowSearch;
-  readonly filters?: readonly CatalogRowFilter[];
+  /**
+   * ADR-320 Decision 1 · 2 — the scope's filter tree as its rows read it: a view's condition group
+   * (fields by their data id), joined to the authored view's conditions by `and`.
+   */
+  readonly where?: ViewConditionGroup;
   readonly groups?: CatalogRowGroups;
   /** ADR-315 Phase 5 증분 5d — the rows' child rows (a grouping stands over it — no tree then). */
   readonly tree?: CatalogRowTree;
@@ -233,12 +227,7 @@ export function catalogTableStateRowSlices(
             : {}),
         }
       : undefined;
-  const filters = (state.columnFilters ?? []).flatMap(
-    ({ column, condition }): CatalogRowFilter[] =>
-      columns.some((item) => item.key === column)
-        ? [{ key: column, ...condition }]
-        : [],
-  );
+  const where = state.filters?.items.length ? state.filters : undefined;
   // (ADR-315 Phase 5 — the grouping: a grouped Column's sort entry stands first, breakdown §4.4 —
   //  the groups follow it; the aggregates are the Columns' 「Aggregate」.)
   const grouping = catalogTableGrouping(state, columns);
@@ -282,7 +271,7 @@ export function catalogTableStateRowSlices(
   if (
     !ordered.length &&
     !search &&
-    !filters.length &&
+    !where &&
     !groups &&
     !tree &&
     !totals &&
@@ -293,7 +282,7 @@ export function catalogTableStateRowSlices(
     ...(pins ? { pins } : {}),
     ...(ordered.length ? { sorts: ordered } : {}),
     ...(search ? { search } : {}),
-    ...(filters.length ? { filters } : {}),
+    ...(where ? { where } : {}),
     ...(groups ? { groups } : {}),
     ...(tree ? { tree } : {}),
     ...(totals ? { totals } : {}),

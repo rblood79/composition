@@ -8,6 +8,7 @@ import {
   type CatalogColumnMenuTable,
 } from "../tableColumnMenu";
 import type { CatalogTableState } from "../tableState";
+import type { ViewCondition } from "../../document/types";
 
 /** ADR-315 Phase 4 — a Column's menu: its items and the slice each writes (`tableColumnMenu.ts`). */
 const COLUMNS = ["a", "b", "c", "d"].map((key) => ({
@@ -34,6 +35,18 @@ const table = (
   shape: { columns: COLUMNS, ...more },
   state,
   allowsColumnReordering: reorder,
+});
+/** ADR-320 — a Column's filter is the filter tree's root condition of that Column. */
+const cond = (
+  key: string,
+  condition: { op: ViewCondition["op"]; value?: ViewCondition["value"] },
+): ViewCondition => ({
+  id: `table-filter:${key}`,
+  fields: [[`data:field:f-${key}`]],
+  ...condition,
+});
+const filters = (...items: ViewCondition[]): CatalogTableState => ({
+  filters: { id: "filter-scope", op: "and", items },
 });
 const ids = (items: ReturnType<typeof catalogColumnMenuItems>) =>
   items.map((item) => (item.disabled ? `${item.id}:off` : item.id));
@@ -176,6 +189,7 @@ describe("column filter (4c)", () => {
       allowsSorting: true,
       allowsFiltering: true,
       filterOps: ["equals", "contains", "oneOf", "exists"],
+      field: "data:field:f-b",
       ...more,
     });
 
@@ -192,12 +206,10 @@ describe("column filter (4c)", () => {
         ),
       ),
     ).toEqual(["sort-asc", "sort-desc", "filter:off"]);
-    const filtered: CatalogTableState = {
-      columnFilters: [
-        { column: "c", condition: { op: "equals", value: "x" } },
-        { column: "b", condition: { op: "contains", value: "y" } },
-      ],
-    };
+    const filtered: CatalogTableState = filters(
+      cond("c", { op: "equals", value: "x" }),
+      cond("b", { op: "contains", value: "y" }),
+    );
     expect(
       ids(catalogColumnMenuItems(filterable(), table(filtered, {}, false))),
     ).toEqual(["sort-asc", "sort-desc", "filter", "clear-filter"]);
@@ -212,59 +224,47 @@ describe("column filter (4c)", () => {
   });
 
   it("「Clear filter」 drops this column's filter only; 「Filter…」 writes nothing (the dialog does)", () => {
-    const filtered: CatalogTableState = {
-      columnFilters: [
-        { column: "c", condition: { op: "equals", value: "x" } },
-        { column: "b", condition: { op: "contains", value: "y" } },
-      ],
-    };
+    const filtered: CatalogTableState = filters(
+      cond("c", { op: "equals", value: "x" }),
+      cond("b", { op: "contains", value: "y" }),
+    );
     expect(
       catalogColumnMenuPatch("clear-filter", filterable(), table(filtered)),
-    ).toEqual({
-      columnFilters: [{ column: "c", condition: { op: "equals", value: "x" } }],
-    });
+    ).toEqual(filters(cond("c", { op: "equals", value: "x" })));
     expect(
       catalogColumnMenuPatch("filter", filterable(), table(filtered)),
     ).toBeUndefined();
   });
 
   it("the dialog's write replaces this column's filter in place, drops it when empty, refuses an op not offered", () => {
-    const filtered: CatalogTableState = {
-      columnFilters: [
-        { column: "b", condition: { op: "contains", value: "y" } },
-        { column: "c", condition: { op: "equals", value: "x" } },
-      ],
-    };
+    const filtered: CatalogTableState = filters(
+      cond("b", { op: "contains", value: "y" }),
+      cond("c", { op: "equals", value: "x" }),
+    );
     expect(
       catalogColumnFilterPatch(filterable(), table(filtered), {
         op: "oneOf",
         value: ["p", "q"],
       }),
-    ).toEqual({
-      columnFilters: [
-        { column: "b", condition: { op: "oneOf", value: ["p", "q"] } },
-        { column: "c", condition: { op: "equals", value: "x" } },
-      ],
-    });
+    ).toEqual(
+      filters(
+        cond("b", { op: "oneOf", value: ["p", "q"] }),
+        cond("c", { op: "equals", value: "x" }),
+      ),
+    );
     // (an empty value is no filter — `viewConditionSkips`; `exists` takes none)
     expect(
       catalogColumnFilterPatch(filterable(), table(filtered), {
         op: "contains",
         value: "",
       }),
-    ).toEqual({
-      columnFilters: [{ column: "c", condition: { op: "equals", value: "x" } }],
-    });
+    ).toEqual(filters(cond("c", { op: "equals", value: "x" })));
     expect(
       catalogColumnFilterPatch(filterable(), table({}), { op: "exists" }),
-    ).toEqual({
-      columnFilters: [{ column: "b", condition: { op: "exists" } }],
-    });
+    ).toEqual(filters(cond("b", { op: "exists" })));
     expect(
       catalogColumnFilterPatch(filterable(), table(filtered), undefined),
-    ).toEqual({
-      columnFilters: [{ column: "c", condition: { op: "equals", value: "x" } }],
-    });
+    ).toEqual(filters(cond("c", { op: "equals", value: "x" })));
     expect(
       catalogColumnFilterPatch(filterable(), table({}), {
         op: "between",

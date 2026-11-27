@@ -60,7 +60,8 @@ export const columnPinning = {
  */
 export const columnFilter = {
   id: "columnFilter",
-  racDoc: "ADR-315 — Table state `columnFilters` (TanStack columnFilters)",
+  racDoc:
+    "ADR-315 · 320 — the Table's filter tree (`filters`): its root condition of this Column (TanStack columnFilters)",
   racType: "composition Column extension",
   events: [],
   state: { prop: "filterValue", callback: "", valueType: "string" },

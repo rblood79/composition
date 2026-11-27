@@ -1,4 +1,5 @@
 import { act, fireEvent } from "@testing-library/react";
+import { columnCondition, columnFilters } from "./adr320ColumnFilters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setFields } from "../../../../../../packages/shared/src/catalog/commands/fields";
 import { setRowDisplay } from "../../../../../../packages/shared/src/catalog/commands/rowDisplay";
@@ -276,7 +277,9 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
     ]);
     expect(t.columnKeys()).toEqual(["name", "status"]);
     expect(t.dom().headers).toEqual(["Name", "Status"]);
-    expect(t.h.session.tables.tableColumnsNow(t.table().id).hidden).toEqual(["type"]);
+    expect(t.h.session.tables.tableColumnsNow(t.table().id).hidden).toEqual([
+      "type",
+    ]);
     // (The Preview's user shows it: the state's list replaces the authored default.)
     await t.set({ hiddenColumns: [] });
     expect(t.dom().headers).toEqual(["Name", "Type", "Status"]);
@@ -504,7 +507,9 @@ describe("a Table's column slices (ADR-315 Phase 4)", () => {
     // (The author's default is no slice: pinning the same columns keeps the state empty — what the
     //  browser remembers is only what the reader changed.)
     await t.set({ pinnedColumns: { start: ["type"], end: [] } });
-    expect(t.h.session.tables.tableState(t.table().id).pinnedColumns).toBeUndefined();
+    expect(
+      t.h.session.tables.tableState(t.table().id).pinnedColumns,
+    ).toBeUndefined();
     t.h.view.unmount();
   }, 120_000);
 });
@@ -702,9 +707,12 @@ describe("a Column's filter (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터�
       fireEvent.change(value, { target: { value: "a" } });
     });
     await apply(box);
-    expect(t.h.session.tables.tableState(t.table().id).columnFilters).toEqual([
-      { column: "type", condition: { op: "contains", value: "a" } },
-    ]);
+    expect(t.h.session.tables.tableState(t.table().id).filters).toEqual(
+      columnFilters({
+        column: "type",
+        condition: { op: "contains", value: "a" },
+      }),
+    );
     // (the comparison's default sensitivity: 「a」 finds the A rows)
     expect(names()).toEqual(["Chan", "Dana", "Eun"]);
     expect(document.querySelector('[role="dialog"]')).toBeNull();
@@ -727,10 +735,14 @@ describe("a Column's filter (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터�
     expect(box.querySelector<HTMLInputElement>("input")!.value).toBe("5");
     await apply(box);
     expect(names()).toEqual(["Dana"]);
-    expect(t.h.session.tables.tableState(t.table().id).columnFilters?.[1]).toEqual({
-      column: "status",
-      condition: { op: "equals", value: 5 },
-    });
+    expect(
+      t.h.session.tables.tableState(t.table().id).filters?.items[1],
+    ).toEqual(
+      columnCondition({
+        column: "status",
+        condition: { op: "equals", value: 5 },
+      }),
+    );
 
     // (the dialog opens on the Column's filter now)
     box = await dialog("Type");
@@ -748,9 +760,12 @@ describe("a Column's filter (ADR-315 Phase 4 증분 4c — 열 메뉴 「필터�
       fireEvent.click(clear);
     });
     await settle();
-    expect(t.h.session.tables.tableState(t.table().id).columnFilters).toEqual([
-      { column: "status", condition: { op: "equals", value: 5 } },
-    ]);
+    expect(t.h.session.tables.tableState(t.table().id).filters).toEqual(
+      columnFilters({
+        column: "status",
+        condition: { op: "equals", value: 5 },
+      }),
+    );
     expect(names()).toEqual(["Dana"]);
     expect(t.errors).not.toHaveBeenCalled();
   });

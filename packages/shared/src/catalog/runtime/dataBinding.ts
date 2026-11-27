@@ -26,9 +26,11 @@ import {
   viewAggregateOf,
   runViewQueries,
   viewResultSchema,
+  viewFieldOf,
   viewRunReferences,
   viewRunSchema,
   type ViewRunCollection,
+  type ViewRunInput,
   type ViewRunResult,
 } from "../../collections/view/evaluate";
 import {
@@ -40,8 +42,11 @@ import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import { viewSortOrder } from "../../collections/view/sortOrder";
 import {
   viewRowsPassing,
+  viewRowsPassingGroup,
   type ViewRowTest,
 } from "../../collections/view/rowFilter";
+import { viewRowTestGroupOf } from "../../collections/view/rowTests";
+import { catalogFilterTreeConditions } from "./filterScope";
 import type { CatalogRowSorts } from "./tableSort";
 import {
   CATALOG_GROUP_PLACEHOLDER_SUFFIX,
@@ -728,23 +733,33 @@ function keptRowOrder(
   order: Uint32Array | undefined,
   slices: CatalogRowSlices,
   roles: Parameters<typeof toItemProjectionRow>[2],
-  schema: readonly { id?: string; key: string; type?: string }[] | undefined,
+  schema: Parameters<typeof viewRunSchema>[0],
+  /** The collections a filter condition's path through a reference reads (ADR-320). */
+  references?: NonNullable<ViewRunInput["references"]>,
 ): Uint32Array | undefined {
-  const { search, filters } = slices;
+  const { search, where } = slices;
   const typeOf = (key: string) => resolveField(schema, key)?.type;
-  const byRole = [
-    ...(search?.keys ?? []),
-    ...(filters ?? []).map((f) => f.key),
-  ].some((key) => ROW_ROLE_VALUES.has(key));
+  const byRole = (search?.keys ?? []).some((key) => ROW_ROLE_VALUES.has(key));
+  // (ADR-320 — the scope's filter tree reads fields by their data id: the rows' fields as a view
+  //  run reads them. A condition's value is the tree's own — a run-time tree holds no reference.)
+  const fields = where ? viewRunSchema(schema) : [];
+  const read = where ? catalogFilterTreeConditions(where) : [];
   const signature = JSON.stringify([
     search ?? null,
-    filters ?? null,
+    where ?? null,
     (slices.sorts ?? []).map((sort) => [
       sort.key,
       sort.direction,
       sort.empty ?? "last",
     ]),
-    [...(search?.keys ?? []), ...(filters ?? []).map((f) => f.key)].map(typeOf),
+    (search?.keys ?? []).map(typeOf),
+    // (The fields the tree reads, as the rows have them now: a type · a key changing is another run.)
+    read.map((condition) =>
+      condition.fields.map((path) => {
+        const field = viewFieldOf(path, fields, references);
+        return field ? [field.key, field.type ?? null] : null;
+      }),
+    ),
     byRole ? (roles ?? null) : 0,
   ]);
   let held = keptOrders.get(sourceRows);
@@ -760,25 +775,59 @@ function keptRowOrder(
       ...(ROW_ROLE_VALUES.has(key) ? {} : { name: key }),
     };
   };
-  const tests: ViewRowTest[] = [
-    ...(filters ?? []).map(({ key, ...condition }): ViewRowTest => ({
-      fields: [field(key)],
-      ...condition,
-    })),
-    ...(search
-      ? [
-          {
-            fields: search.keys.map(field),
-            op: "contains" as const,
-            value: search.text,
-            search: search.match === "fuzzy" ? "fuzzy" : "contains",
-          } satisfies ViewRowTest,
-        ]
-      : []),
-  ];
-  const { pass, rank } = viewRowsPassing(sourceRows.length, tests, {
-    rows: sourceRows,
-  });
+  // (ADR-320 Decision 3 — the tree as row tests: what applies is the evaluator's reading. A field
+  //  read through a reference reads the target row; any other reads the row's own cell.)
+  const filters = where
+    ? viewRowTestGroupOf(
+        where,
+        {
+          schema: fields,
+          resolve: (value) => ({ value }),
+          ...(references ? { references } : {}),
+        },
+        sourceRows,
+        (item) =>
+          item.read
+            ? (index) => item.read!(sourceRows[index])
+            : rowValueOf(sourceRows, item.key, roles),
+      )
+    : undefined;
+  const searchTests: ViewRowTest[] = search
+    ? [
+        {
+          fields: search.keys.map(field),
+          op: "contains" as const,
+          value: search.text,
+          search: search.match === "fuzzy" ? "fuzzy" : "contains",
+        } satisfies ViewRowTest,
+      ]
+    : [];
+  // (A tree of its root's conditions only: the fast path — the tests with the search, a row one
+  //  test dropped not compared again. An `or` · a nested group: the group path, then the search.)
+  const flat = !filters || filters.items.every((item) => !("items" in item));
+  let pass: Uint8Array | undefined;
+  let rank: Uint16Array | undefined;
+  if (flat) {
+    ({ pass, rank } = viewRowsPassing(
+      sourceRows.length,
+      [...((filters?.items ?? []) as readonly ViewRowTest[]), ...searchTests],
+      { rows: sourceRows },
+    ));
+  } else {
+    pass = viewRowsPassingGroup(sourceRows.length, filters!);
+    if (searchTests.length) {
+      const found = viewRowsPassing(sourceRows.length, searchTests, {
+        rows: sourceRows,
+      });
+      rank = found.rank;
+      if (found.pass) {
+        if (!pass) pass = found.pass;
+        else
+          for (let index = 0; index < pass.length; index += 1)
+            pass[index]! &= found.pass[index]!;
+      }
+    }
+  }
   let kept: Uint32Array | null = null;
   if (pass) {
     let count = 0;
@@ -896,11 +945,12 @@ function catalogRowTreeIndex(
 function treeBoundRows(
   sourceRows: readonly unknown[],
   roles: NonNullable<Parameters<typeof toItemProjectionRow>[2]>,
-  schema: readonly { id?: string; key: string; type?: string }[] | undefined,
+  schema: Parameters<typeof viewRunSchema>[0],
   slices: CatalogRowSlices,
   tree: CatalogRowTree,
   limit: number,
   start: number,
+  references?: NonNullable<ViewRunInput["references"]>,
 ): CatalogBoundRows {
   const { items, roots, children, keys } = catalogRowTreeIndex(
     sourceRows,
@@ -914,8 +964,8 @@ function treeBoundRows(
     order.forEach((index, at) => (place![index] = at));
   }
   const passed =
-    slices.search || slices.filters?.length
-      ? keptRowOrder(items, undefined, slices, roles, schema)
+    slices.search || slices.where
+      ? keptRowOrder(items, undefined, slices, roles, schema, references)
       : undefined;
   let kept: Uint8Array | undefined;
   if (passed) {
@@ -1066,7 +1116,7 @@ function boundRowsOf(
 ): CatalogBoundRows | undefined {
   // (No entry is no sort.)
   const sort = slices?.sorts?.length ? slices.sorts : undefined;
-  const tested = !!slices?.search || !!slices?.filters?.length;
+  const tested = !!slices?.search || !!slices?.where;
   if (kind === "records")
     return readDataBindingRows(dataBinding, collections).map((item, index) => ({
       key: String(index),
@@ -1117,6 +1167,7 @@ function boundRowsOf(
       slices.tree,
       limit,
       start,
+      viewRunReferences(collections),
     );
   // (A sorted Table: the source rows in the sort's order — the rows `limit` takes are the first of
   //  the sorted collection, not the first rows sorted among themselves.)
@@ -1154,8 +1205,14 @@ function boundRowsOf(
   // (The Table's search · filters keep some of the rows: the numbers of those, in that order.)
   const order =
     sourceRows && tested
-      ? (keptRowOrder(sourceRows, sortOrder, slices!, roles, bound?.schema) ??
-        sortOrder)
+      ? (keptRowOrder(
+          sourceRows,
+          sortOrder,
+          slices!,
+          roles,
+          bound?.schema,
+          viewRunReferences(collections),
+        ) ?? sortOrder)
       : sortOrder;
   // (ADR-315 Phase 5 증분 5g — a server's totals row stands in for the totals over the rows here.)
   const totals = slices?.servedTotals

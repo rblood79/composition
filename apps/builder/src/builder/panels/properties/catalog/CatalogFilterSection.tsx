@@ -1695,15 +1695,21 @@ function ConnectionRun({
   const served =
     serializer && endpoint?.querySerialization && queries
       ? {
+          // (ADR-320 Decision 4 — a condition's key the endpoint's own URL already has is not
+          //  sent: the request and the limits read the endpoint's keys as the session does.)
           request: serializer.serializeViewQueries(
             endpoint.querySerialization,
             { queries, schema, resolve },
             endpoint.method,
+            undefined,
+            undefined,
+            serializer.endpointUrlKeys(endpoint),
           ),
           limits: serializer.viewQueryLimits(
             endpoint.querySerialization,
             { queries, schema },
             endpoint.method,
+            serializer.endpointUrlKeys(endpoint),
           ),
           cap: serializer.VIEW_LOCAL_LOAD_CAP.toLocaleString(),
         }

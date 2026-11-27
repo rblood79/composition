@@ -219,6 +219,10 @@ export function viewFieldOf(
 }
 
 /** A row's value of a field: through its references, or by its key (`a.b` — a grouped row's). */
+/** A row's cell of a field as the views read it (a path through a reference: the target row's). */
+export function viewCellOf(row: unknown, field: ViewRunField): unknown {
+  return cellOf(row, field);
+}
 function cellOf(row: unknown, field: ViewRunField): unknown {
   if (field.read) return field.read(row);
   if (row === null || typeof row !== "object") return undefined;

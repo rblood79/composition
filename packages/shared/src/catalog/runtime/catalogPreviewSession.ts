@@ -34,6 +34,8 @@ import {
   type CollectionEntry,
   type EntryId,
   type NodeEntry,
+  type ViewCondition,
+  type ViewConditionGroup,
 } from "../document/types";
 import type {
   CatalogBoundRow,
@@ -77,8 +79,11 @@ import { onFormulaEngineLoaded } from "../../collections/formula/engine";
 import { onThemeLaddersLoaded } from "./themeLadders";
 import { onSystemColorSchemeChange } from "./theme";
 import {
+  endpointUrlKeys,
   serializeViewQueries,
+  viewQueryLimits,
   VIEW_LOCAL_LOAD_CAP,
+  type SerializationWarning,
   type SerializedKeyRows,
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
@@ -656,6 +661,9 @@ export class CatalogPreviewSession {
         // (The shown page removed: the page shown now — the project's first — may be a shell.)
         else this.fillShown();
       }
+      // (ADR-320 Decision 4 — how the rows are served may have changed: the held filter trees
+      //  are judged again before the request is made.)
+      if (this.currentRoot) this.tables.rejudgeFilters();
       // (ADR-284: a view bound · changed in the document is another request for its endpoint.)
       this.loadRouted();
       this.changed();
@@ -670,6 +678,7 @@ export class CatalogPreviewSession {
       collectionItems: (...args) => session.collectionItems(...args),
       itemsByKeys: (...args) => session.itemsByKeys(...args),
       collectionRowService: (...args) => session.collectionRowService(...args),
+      viewRequestLimits: (...args) => session.viewRequestLimits(...args),
       get collections() {
         return session.collections;
       },
@@ -790,6 +799,8 @@ export class CatalogPreviewSession {
           ...this.currentRoot.refreshState(),
         ];
         if (errors.length) console.error("[CatalogPreview] data:", ...errors);
+        // (ADR-320 Decision 4 — the data definitions changed: the held filter trees again.)
+        this.tables.rejudgeFilters();
       }
       this.loadRouted();
       this.changed();
@@ -1508,8 +1519,14 @@ export class CatalogPreviewSession {
         const key = levelKey(item, index, parent, shape);
         const change = store.changes.get(key);
         const saved = this.saver.rowState(collectionId, key);
-        const fields = change?.kind === "update" ? Object.keys(change.fields) : [];
-        if (saved && (change || saved.status === "pending" || saved.status === "processing"))
+        const fields =
+          change?.kind === "update" ? Object.keys(change.fields) : [];
+        if (
+          saved &&
+          (change ||
+            saved.status === "pending" ||
+            saved.status === "processing")
+        )
           // (ADR-324 — a save's verdict on the row: its status, the cells it names.)
           marks.set(itemKey(item, index, keyField), {
             status:
@@ -1518,7 +1535,9 @@ export class CatalogPreviewSession {
                 : saved.status === "pending" || saved.status === "processing"
                   ? "pending"
                   : "failed",
-            fields: [...new Set([...fields, ...Object.keys(saved.errors ?? {})])],
+            fields: [
+              ...new Set([...fields, ...Object.keys(saved.errors ?? {})]),
+            ],
             note: saveNote(saved, fields),
           });
         else if (change?.kind === "unlinked")
@@ -1959,7 +1978,7 @@ export class CatalogPreviewSession {
     if (
       !state?.sort?.length &&
       !state?.search &&
-      !state?.columnFilters?.length &&
+      !state?.filters &&
       !grouped &&
       !totals
     )
@@ -2009,9 +2028,7 @@ export class CatalogPreviewSession {
     // (A slice that names no field of the rows: they run on the rows here only.)
     if (
       !view &&
-      (slices.search ||
-        slices.filters?.length ||
-        (!totals && slices.sorts?.length))
+      (slices.search || slices.where || (!totals && slices.sorts?.length))
     )
       return undefined;
     // (ADR-315 Phase 5 증분 5g — the grouping · the totals row its server answers: a group query.)
@@ -2194,6 +2211,8 @@ export class CatalogPreviewSession {
       read.endpoint.method,
       page,
       view.keys ? { keys: view.keys } : undefined,
+      // (ADR-320 Decision 4 — a condition's key the endpoint's own URL already has is not sent.)
+      endpointUrlKeys(read.endpoint),
     );
     // (ADR-315 Phase 5 증분 5g — a Table reading every row: what the format carries is sent, the
     //  answer is not the Table's rows — every page loads and its slices run here, §4.3.1.)
@@ -2494,12 +2513,82 @@ export class CatalogPreviewSession {
         return;
       }
       const before = this.loadArguments.get(collectionId)?.cursor;
-      await this.loadMore(collectionId);
-      // (A load in flight — `loadMore` does nothing then — or a page that brought no cursor
-      //  change: stop; the load that runs finishes the whole · its own reload calls this again.)
-      if (this.loadArguments.get(collectionId)?.cursor === before) return;
+      // (ADR-320 Decision 4 — h10: the rows a view here reads are known to be whole, or it shows
+      //  none. A cursor the request has no place for — a `body` format's on a method that sends
+      //  no body, no `{{ cursor }}` template, not an address to follow — never reaches the next
+      //  page.)
+      if (this.cursorUnsendable(collectionId, before)) {
+        this.failView(collectionId, "cursorUnsendable");
+        return;
+      }
+      // (A load in flight — `loadMore` does nothing then — or a request another replaced: stop;
+      //  the load that runs finishes the whole · its own reload calls this again.)
+      if (!(await this.loadMorePage(collectionId))) return;
+      // (A next page that gave the same cursor again, or no row the pages before did not: the
+      //  load does not advance — the rows here are not known to be all of them.)
+      const after = this.loadArguments.get(collectionId)?.cursor;
+      if (
+        after === before ||
+        (after !== undefined &&
+          this.collectionItems(collectionId).length === shown)
+      ) {
+        this.failView(collectionId, "noProgress");
+        return;
+      }
     }
   }
+  /**
+   * ADR-320 Decision 4 — whether a next page's cursor has no way into the request: the endpoint's
+   * format carries it in the body (`pageBody`), its method sends no body, its address reads no
+   * `{{ cursor }}` and the cursor is not an address to follow.
+   */
+  private cursorUnsendable(
+    collectionId: string,
+    cursor: string | undefined,
+  ): boolean {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    const endpoint = collection ? this.endpointFilling(collection) : undefined;
+    const format = endpoint?.querySerialization;
+    if (!endpoint || !format || cursor === undefined) return false;
+    if (format.kind === "suffix" || format.kind === "none") return false;
+    const method = (endpoint.method ?? "GET").toUpperCase();
+    return (
+      (method === "GET" || method === "HEAD") &&
+      !endpointReadsTemplate(endpoint, "cursor") &&
+      !/^(https?:)?\//.test(cursor)
+    );
+  }
+  /**
+   * ADR-320 Decision 4 — a view that runs here whose rows are not known to be whole: no rows and
+   * the collection's load in error (the bound components show their empty state), as a view past
+   * the row cap (`refuseView`) — never the rows of the pages that did come.
+   */
+  private failView(
+    collectionId: string,
+    reason: "cursorUnsendable" | "noProgress",
+  ): void {
+    const { cursor: _dropped, ...rest } =
+      this.loadArguments.get(collectionId) ?? {};
+    this.loadArguments.set(collectionId, rest);
+    this.viewFailures.set(collectionId, reason);
+    console.warn(
+      `[CatalogPreview] ${collectionId}: the view runs here and needs every row — ${
+        reason === "cursorUnsendable"
+          ? "the next page's cursor has no place in the request (a body format on a method that sends no body)"
+          : "the next page did not advance (the same cursor · the same rows again)"
+      }; it shows nothing.`,
+    );
+    this.showLoaded(collectionId, {
+      items: [],
+      at: (this.requestSeq += 1),
+      requestKey: "refused",
+    });
+    this.setLoadingState(collectionId, "error");
+  }
+  /** ADR-320 — collections whose view could not read every row, with why (`failView`). */
+  readonly viewFailures = new Map<string, "cursorUnsendable" | "noProgress">();
   /** The rows a refused view would show: none (the bound components show their empty state). */
   private refuseView(collectionId: string, count: number): void {
     const { cursor: _dropped, ...rest } =
@@ -2588,6 +2677,7 @@ export class CatalogPreviewSession {
     const page = await this.loadPage(collectionId, state);
     if (!page) return;
     this.viewRefusals.delete(collectionId);
+    this.viewFailures.delete(collectionId);
     // (A first page again — its lists show from the top, one window; paged lists at page 1.)
     const prefix = displayWindowKey(collectionId, "");
     for (const key of [...this.displayWindows.keys()])
@@ -2642,6 +2732,10 @@ export class CatalogPreviewSession {
    * cursor (the last page, or no `cursorPath`) = nothing to load.
    */
   async loadMore(collectionId: string): Promise<void> {
+    await this.loadMorePage(collectionId);
+  }
+  /** `loadMore` — whether a page came (none: no next page, a load in flight, a request replaced). */
+  private async loadMorePage(collectionId: string): Promise<boolean> {
     const cursor = this.loadArguments.get(collectionId)?.cursor;
     // (A load in flight first — the reference's `loadMore` while loading does nothing.)
     const state = this.loadingStates.get(collectionId);
@@ -2649,14 +2743,15 @@ export class CatalogPreviewSession {
       cursor === undefined ||
       (state && state !== "idle" && state !== "error")
     )
-      return;
+      return false;
     const page = await this.loadPage(collectionId, "loadingMore", cursor);
-    if (!page) return;
+    if (!page) return false;
     this.showLoaded(collectionId, page, true);
     // (ADR-315 Phase 5 증분 5g — a server's next group rows: the open ones' rows.)
     void this.syncGroupRows(collectionId);
     if (page.selectedKeys !== undefined)
       this.selectLoaded(collectionId, page.selectedKeys, true);
+    return true;
   }
   /**
    * ADR-310 Decision 10 「더 보기」 — a bound list's end was seen: rows already loaded past its
@@ -3364,6 +3459,7 @@ export class CatalogPreviewSession {
       endpoint.method,
       page,
       items,
+      endpointUrlKeys(endpoint),
     );
     if (serialized.load === "all") return undefined;
     const extra = {
@@ -3698,7 +3794,10 @@ export class CatalogPreviewSession {
   private refreshChangesReaders(collectionId: string): unknown[] {
     if (!this.saveSettingsOf(collectionId) || !this.currentRoot) return [];
     return this.currentRoot.refreshState(
-      new Set([CATALOG_CHANGES_ROOT, `${CATALOG_CHANGES_ROOT}:${collectionId}`]),
+      new Set([
+        CATALOG_CHANGES_ROOT,
+        `${CATALOG_CHANGES_ROOT}:${collectionId}`,
+      ]),
     );
   }
   /**
@@ -4024,6 +4123,58 @@ export class CatalogPreviewSession {
       this.restoredPanels.add(id);
       write(id, kept);
     }
+  }
+  /**
+   * ADR-320 Decision 4 — what of a binding's view chain with a filter scope's items `added` the
+   * collection's request cannot carry (`viewQueryLimits` — the endpoint's method and the keys its
+   * own URL already has; every condition taken as applied). Undefined = nothing has to be
+   * carried: the collection's rows are all here (its own rows · an endpoint with no query format ·
+   * a Table reading every row · a chain `base` that already loads every row) and the chain runs
+   * here whole.
+   */
+  private viewRequestLimits(
+    collectionId: string | undefined,
+    base: CatalogRowQuery,
+    added: readonly (ViewCondition | ViewConditionGroup)[],
+  ): SerializationWarning[] | undefined {
+    const collection = collectionId
+      ? this.collections.find((item) => item.id === collectionId)
+      : undefined;
+    const endpoint =
+      collection && !collection.useMockData
+        ? this.endpointFilling(collection)
+        : undefined;
+    const format = endpoint?.querySerialization;
+    if (!collectionId || !endpoint || !format || format.kind === "none")
+      return undefined;
+    if (this.tables.collectionTablesReadWhole(collectionId)) return undefined;
+    const schema = this.requestSchema(collectionId);
+    const taken = endpointUrlKeys(endpoint);
+    const authored = catalogCountlessViews(base.queries);
+    if (
+      authored.length &&
+      serializeViewQueries(
+        format,
+        { queries: authored, schema, resolve: catalogRowQueryResolve(base) },
+        endpoint.method,
+        undefined,
+        undefined,
+        taken,
+      ).load === "all"
+    )
+      return undefined;
+    return viewQueryLimits(
+      format,
+      {
+        queries: catalogTableStateQueries(
+          authored.length ? authored : undefined,
+          { where: added },
+        )!,
+        schema,
+      },
+      endpoint.method,
+      taken,
+    );
   }
   /** How a collection's rows are served (`CatalogTableRowService`). */
   private collectionRowService(collectionId: string | undefined) {

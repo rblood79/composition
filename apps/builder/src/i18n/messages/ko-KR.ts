@@ -445,11 +445,16 @@ const catalog: TranslationKeys = {
     ungroupInstance: "인스턴스는 그룹 해제할 수 없습니다 — 먼저 분리하세요",
     variableNameConflict:
       "이미 같은 이름의 변수가 보이는 범위에 있습니다 — 다른 이름을 쓰세요",
-    immediateSaveRule: "이 collection 의 편집을 바로 저장하는 규칙이 있어 「변경을 모아서 저장」 과 함께 켤 수 없습니다.",
-    saveNotEnabled: "「변경 저장」 은 그 collection 의 「변경을 모아서 저장」 이 켜져 있어야 합니다.",
-    saveKeyFieldRequired: "수정 · 삭제를 보내려면 key 필드 (id · key · value 또는 표의 key) 가 있어야 합니다.",
-    saveBatchIfMatch: "묶음은 버전을 본문에 싣습니다 — If-Match 하나로는 행마다의 버전을 나타낼 수 없습니다.",
-    saveEndpointMethod: "연결마다 method 가 정해져 있습니다 — 고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST, key 로 읽는 endpoint 는 GET.",
+    immediateSaveRule:
+      "이 collection 의 편집을 바로 저장하는 규칙이 있어 「변경을 모아서 저장」 과 함께 켤 수 없습니다.",
+    saveNotEnabled:
+      "「변경 저장」 은 그 collection 의 「변경을 모아서 저장」 이 켜져 있어야 합니다.",
+    saveKeyFieldRequired:
+      "수정 · 삭제를 보내려면 key 필드 (id · key · value 또는 표의 key) 가 있어야 합니다.",
+    saveBatchIfMatch:
+      "묶음은 버전을 본문에 싣습니다 — If-Match 하나로는 행마다의 버전을 나타낼 수 없습니다.",
+    saveEndpointMethod:
+      "연결마다 method 가 정해져 있습니다 — 고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST, key 로 읽는 endpoint 는 GET.",
     variableNameShadows:
       "그 이름을 이미 읽는 자리가 있어 다른 변수의 값을 가로채게 됩니다 — 다른 이름을 쓰세요",
     itemKeyTaken:
@@ -2188,8 +2193,10 @@ const catalog: TranslationKeys = {
     "batchSave.title": "저장",
     "batchSave.batch": "변경을 모아서 저장",
     "batchSave.none": "없음",
-    "batchSave.noWriteEndpoint": "저장할 POST · PATCH · PUT · DELETE endpoint 를 먼저 추가하세요.",
-    "batchSave.rulesBlock": "이 규칙들은 편집마다 바로 저장해 함께 켤 수 없습니다:",
+    "batchSave.noWriteEndpoint":
+      "저장할 POST · PATCH · PUT · DELETE endpoint 를 먼저 추가하세요.",
+    "batchSave.rulesBlock":
+      "이 규칙들은 편집마다 바로 저장해 함께 켤 수 없습니다:",
     "batchSave.removeRulesAndTurnOn": "규칙을 지우고 켜기",
     "batchSave.shape": "보내는 모양",
     "batchSave.shapeRows": "행마다 (REST)",
@@ -2215,9 +2222,12 @@ const catalog: TranslationKeys = {
     "batchSave.guaranteeAtomic": "전부 반영되거나 전부 남습니다.",
     "batchSave.guaranteeBatch": "항목마다 반영 여부가 다를 수 있습니다.",
     "batchSave.guaranteeRows": "행마다 반영 여부가 다를 수 있습니다.",
-    "batchSave.guaranteeVersion": "다른 사람이 먼저 바꾼 행은 서버가 거절합니다.",
-    "batchSave.guaranteeRecheck": "보내기 직전 서버 값을 확인합니다 — 그 사이의 변경은 잡지 못합니다.",
-    "batchSave.guaranteeNoneFull": "충돌 감지 없음 — 마지막에 쓴 값이 남고 다른 칸까지 덮을 수 있습니다.",
+    "batchSave.guaranteeVersion":
+      "다른 사람이 먼저 바꾼 행은 서버가 거절합니다.",
+    "batchSave.guaranteeRecheck":
+      "보내기 직전 서버 값을 확인합니다 — 그 사이의 변경은 잡지 못합니다.",
+    "batchSave.guaranteeNoneFull":
+      "충돌 감지 없음 — 마지막에 쓴 값이 남고 다른 칸까지 덮을 수 있습니다.",
     "batchSave.guaranteeNone": "충돌 감지 없음 — 마지막에 쓴 값이 남습니다.",
     "batchSave.guaranteeDeclared": "연결이 선언한 수준입니다.",
     "batchSave.barUnsaved": "저장 안 된 변경 {count}건",
@@ -2475,6 +2485,8 @@ const catalog: TranslationKeys = {
       "「{condition}」 참조 너머 필드 — 아직 보낼 수 없다",
     apiQueryWarnBROKEN: "「{condition}」 필드가 없다 — 건너뛴다",
     apiQueryWarnGET_BODY: "GET 은 본문을 보내지 않는다 — 방식을 POST 로",
+    apiQueryWarnDUPLICATE_KEY:
+      "「{condition}」 같은 이름의 파라미터가 이미 요청에 있다 — 보내지 않고 전체를 불러와 여기서 거른다",
     apiQueryWarnMULTI_VIEW: "서로 다른 보기 여럿 — 요청에 싣지 않는다",
     apiQueryWarnMULTI_SORT:
       "정렬 여러 개 — 이 endpoint 는 하나만 받는다. 첫 정렬만 보낸다",
@@ -3986,6 +3998,8 @@ const formattedMessages: Record<
     `「${String(args?.condition ?? "")}」 참조 너머 필드 — 아직 보낼 수 없다`,
   "datatable.apiQueryWarnBROKEN": (args) =>
     `「${String(args?.condition ?? "")}」 필드가 없다 — 건너뛴다`,
+  "datatable.apiQueryWarnDUPLICATE_KEY": (args) =>
+    `「${String(args?.condition ?? "")}」 같은 이름의 파라미터가 이미 요청에 있다 — 보내지 않고 전체를 불러와 여기서 거른다`,
   "datatable.apiQueryWarnGROUP": (args) =>
     `묶기 · 집계는 파라미터로 보낼 수 없다 — 전체 행을 불러와 (${String(args?.cap ?? "")} 행까지) 여기서 묶는다`,
   "datatable.apiQueryWarnAGGREGATE": (args) =>

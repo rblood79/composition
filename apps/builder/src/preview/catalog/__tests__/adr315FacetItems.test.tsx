@@ -1,4 +1,5 @@
 import { act, fireEvent } from "@testing-library/react";
+import { columnCondition, columnFilters } from "./adr320ColumnFilters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
@@ -202,7 +203,8 @@ describe("a Table Column's candidate values with the Table's state", () => {
     const table = [...h.session.root!.domInputs.values()].find(
       (record) => record.ruleId === "Table",
     )!;
-    const facet = (column: string) => h.session.tables.tableFacet(table.id, column)!;
+    const facet = (column: string) =>
+      h.session.tables.tableFacet(table.id, column)!;
     // gender: 13 male · 13 female — in the rows' own order (u1 is male).
     expect(facet("status").values).toEqual([
       { value: "male", count: 13 },
@@ -218,9 +220,10 @@ describe("a Table Column's candidate values with the Table's state", () => {
     act(() => {
       h.session.tables.setTableState(table.id, {
         search: "User 2",
-        columnFilters: [
-          { column: "status", condition: { op: "equals", value: "female" } },
-        ],
+        filters: columnFilters({
+          column: "status",
+          condition: { op: "equals", value: "female" },
+        }),
       });
     });
     await settle();

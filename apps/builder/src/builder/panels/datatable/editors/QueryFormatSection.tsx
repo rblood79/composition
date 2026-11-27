@@ -18,6 +18,7 @@ import {
 import {
   DEFAULT_QUERY_SUFFIXES,
   VIEW_LOCAL_LOAD_CAP,
+  endpointUrlKeys,
   viewQueryLimits,
   type EndpointQuerySerialization,
   type SerializationWarning,
@@ -99,6 +100,7 @@ function useViewLimits(
         format,
         { queries, schema },
         endpoint.method,
+        endpointUrlKeys(endpoint),
       );
       const shared = binding.viewId && graph.getEntry(binding.viewId);
       // (A shared view by its name; a built-in one by its component, as the Layers name it.)

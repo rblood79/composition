@@ -447,11 +447,16 @@ const catalog: TranslationKeys = {
     ungroupInstance: "An instance can't be ungrouped — detach it first",
     variableNameConflict:
       "A variable of that name is already visible here — choose another name",
-    immediateSaveRule: "A rule saves this collection's edits at once — it cannot be on beside 「Save changes together」.",
-    saveNotEnabled: "「Save changes」 needs the collection's 「Save changes together」 on.",
-    saveKeyFieldRequired: "Updates and deletes need a key field (id · key · value, or the table's key).",
-    saveBatchIfMatch: "A batch carries the version in its body — If-Match cannot state each row's.",
-    saveEndpointMethod: "Each connection has its methods — update PATCH · PUT, create POST, delete DELETE, batch POST; the read-by-key one is GET.",
+    immediateSaveRule:
+      "A rule saves this collection's edits at once — it cannot be on beside 「Save changes together」.",
+    saveNotEnabled:
+      "「Save changes」 needs the collection's 「Save changes together」 on.",
+    saveKeyFieldRequired:
+      "Updates and deletes need a key field (id · key · value, or the table's key).",
+    saveBatchIfMatch:
+      "A batch carries the version in its body — If-Match cannot state each row's.",
+    saveEndpointMethod:
+      "Each connection has its methods — update PATCH · PUT, create POST, delete DELETE, batch POST; the read-by-key one is GET.",
     variableNameShadows:
       "Something already reads that name and would start reading this variable — choose another name",
     itemKeyTaken:
@@ -2193,8 +2198,10 @@ const catalog: TranslationKeys = {
     "batchSave.title": "Save",
     "batchSave.batch": "Save changes together",
     "batchSave.none": "None",
-    "batchSave.noWriteEndpoint": "Add a POST · PATCH · PUT · DELETE endpoint to save to.",
-    "batchSave.rulesBlock": "These rules save each edit at once — they cannot run beside it:",
+    "batchSave.noWriteEndpoint":
+      "Add a POST · PATCH · PUT · DELETE endpoint to save to.",
+    "batchSave.rulesBlock":
+      "These rules save each edit at once — they cannot run beside it:",
     "batchSave.removeRulesAndTurnOn": "Remove the rules and turn on",
     "batchSave.shape": "Send as",
     "batchSave.shapeRows": "Each row (REST)",
@@ -2220,9 +2227,12 @@ const catalog: TranslationKeys = {
     "batchSave.guaranteeAtomic": "All or nothing is saved.",
     "batchSave.guaranteeBatch": "Each item may be saved or not.",
     "batchSave.guaranteeRows": "Each row may be saved or not.",
-    "batchSave.guaranteeVersion": "A row someone else changed first is refused by the server.",
-    "batchSave.guaranteeRecheck": "Rows are read just before sending — a change in between is not caught.",
-    "batchSave.guaranteeNoneFull": "No conflict detection — the last write wins, and other cells can be overwritten.",
+    "batchSave.guaranteeVersion":
+      "A row someone else changed first is refused by the server.",
+    "batchSave.guaranteeRecheck":
+      "Rows are read just before sending — a change in between is not caught.",
+    "batchSave.guaranteeNoneFull":
+      "No conflict detection — the last write wins, and other cells can be overwritten.",
     "batchSave.guaranteeNone": "No conflict detection — the last write wins.",
     "batchSave.guaranteeDeclared": "This is the level the connection declares.",
     "batchSave.barUnsaved": "Unsaved changes: {count}",
@@ -2487,6 +2497,8 @@ const catalog: TranslationKeys = {
       '"{condition}" field through a reference — cannot be sent yet',
     apiQueryWarnBROKEN: '"{condition}" field is missing — skipped',
     apiQueryWarnGET_BODY: "GET sends no body — use POST",
+    apiQueryWarnDUPLICATE_KEY:
+      '"{condition}" a parameter of that name is already in the request — not sent, every row is loaded and filtered here',
     apiQueryWarnMULTI_VIEW: "Several different views — not put in the request",
     apiQueryWarnMULTI_SORT:
       "Several sorts — this endpoint takes one; only the first is sent",
@@ -4000,6 +4012,8 @@ const formattedMessages: Record<
     `"${String(args?.condition ?? "")}" field through a reference — cannot be sent yet`,
   "datatable.apiQueryWarnBROKEN": (args) =>
     `"${String(args?.condition ?? "")}" field is missing — skipped`,
+  "datatable.apiQueryWarnDUPLICATE_KEY": (args) =>
+    `"${String(args?.condition ?? "")}" a parameter of that name is already in the request — not sent, every row is loaded and filtered here`,
   "datatable.apiQueryWarnGROUP": (args) =>
     `Grouping · aggregates cannot be parameters — every row is loaded (up to ${String(args?.cap ?? "")}) and grouped here`,
   "datatable.apiQueryWarnAGGREGATE": (args) =>

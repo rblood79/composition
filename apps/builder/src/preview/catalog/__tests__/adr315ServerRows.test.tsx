@@ -1,4 +1,5 @@
 import { act, fireEvent } from "@testing-library/react";
+import { columnCondition, columnFilters } from "./adr320ColumnFilters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   answerBody,
@@ -470,7 +471,10 @@ describe("5g-2 — a server's pages and pinned rows: asked for by key (§4.3.3)"
     );
     await t.declare(PINNABLE);
     await t.set({
-      columnFilters: [{ column: "status", condition: { op: "gte", value: 3 } }],
+      filters: columnFilters({
+        column: "status",
+        condition: { op: "gte", value: 3 },
+      }),
     });
     // Bora (s1, status 2) does not pass the filter: pinned, not shown.
     await t.pin("s1", "bottom");
@@ -774,7 +778,10 @@ describe("5g-3 — a server's groups: the group query, an open group's rows, the
     t.h.flush();
     await settle();
     await t.set({
-      columnFilters: [{ column: "status", condition: { op: "gte", value: 3 } }],
+      filters: columnFilters({
+        column: "status",
+        condition: { op: "gte", value: 3 },
+      }),
       sort: [{ column: "name", direction: "ascending" }],
     });
     const totals = groupRequests(requests).at(-1)!.body!;
@@ -872,7 +879,10 @@ describe("5g-3 — a server's groups: the group query, an open group's rows, the
     holdChildren = true;
     // (Status ≥ 3: B is Ara alone — Bora's 2 is out. B's rows' request waits.)
     await t.set({
-      columnFilters: [{ column: "status", condition: { op: "gte", value: 3 } }],
+      filters: columnFilters({
+        column: "status",
+        condition: { op: "gte", value: 3 },
+      }),
     });
     expect(t.rows()[0]![0]).toBe("B (1)");
     expect(t.rows().map((cells) => cells[1])).not.toContain("Bora");

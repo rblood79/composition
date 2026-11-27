@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ViewQuery } from "../../document/types";
+import type {
+  ViewCondition,
+  ViewConditionGroup,
+  ViewQuery,
+} from "../../document/types";
 import {
   runViewQueries,
   type ViewRunField,
@@ -96,11 +100,20 @@ const request = (
     format.kind === "body" ? "POST" : "GET",
   );
 const SEARCH = { search: "needle" };
-const FILTER = {
-  columnFilters: [
-    { column: "score", condition: { op: "gte" as const, value: 5 } },
-  ],
-};
+/** ADR-320 — a Column's filter is the filter tree's root condition of that Column. */
+const scoreCondition = (op: ViewCondition["op"], value: number) =>
+  ({
+    id: "table-filter:score",
+    fields: [["data:field:f-score"]],
+    op,
+    value,
+  }) satisfies ViewCondition;
+const tree = (...items: ViewConditionGroup["items"]): ViewConditionGroup => ({
+  id: "filter-scope",
+  op: "and",
+  items,
+});
+const FILTER = { filters: tree(scoreCondition("gte", 5)) };
 
 describe("a Table state's search · column filters → the view query", () => {
   it("is one 「contains」 over the searchable Columns' fields, and a condition a column filter", () => {
@@ -109,7 +122,7 @@ describe("a Table state's search · column filters → the view query", () => {
     ).toEqual({
       // (`team` says it is not searched.)
       search: { text: "needle", keys: ["name", "score", "note"] },
-      filters: [{ key: "score", op: "gte", value: 5 }],
+      where: FILTER.filters,
     });
     expect(view({ ...SEARCH, ...FILTER })).toEqual({
       where: [
@@ -329,34 +342,95 @@ describe("where the search · a column filter run (breakdown §4.3.1)", () => {
     ).toBe("whole");
   });
 
-  it("the state holds one filter a column, of a comparison its Table takes", () => {
+  it("the state holds one condition tree: a root item named again is its later value, and what the Table does not take is left out", () => {
+    const starts = {
+      id: "table-filter:name",
+      fields: [["data:field:f-name"]],
+      op: "startsWith",
+      value: "A",
+    };
     const state = catalogTableStateWith(
       {},
       {
-        columnFilters: [
-          { column: "score", condition: { op: "gte", value: 1 } },
-          { column: "gone", condition: { op: "gte", value: 1 } },
-          { column: "name", condition: { op: "startsWith", value: "A" } },
-          { column: "score", condition: { op: "lte", value: 7 } },
-        ],
+        filters: tree(
+          scoreCondition("gte", 1),
+          starts as ViewCondition,
+          scoreCondition("lte", 7),
+        ),
       },
-      { ...SHAPE, filters: (op) => op !== "startsWith" },
+      {
+        ...SHAPE,
+        // (the Table's rows' request carries no `startsWith`)
+        judgeFilters: (given) => ({
+          ...given,
+          items: given.items.filter(
+            (item) => "items" in item || item.op !== "startsWith",
+          ),
+        }),
+      },
     );
-    // (The later `score` filter at its first place; no Column `gone`; `startsWith` not taken.)
-    expect(state).toEqual({
-      columnFilters: [{ column: "score", condition: { op: "lte", value: 7 } }],
-    });
+    // (The later `score` condition at its first place; `startsWith` not taken.)
+    expect(state).toEqual({ filters: tree(scoreCondition("lte", 7)) });
     // (Not a comparison: the write is not a value of the slice — nothing changes.)
     expect(
       catalogTableStateWith(
         state,
-        { columnFilters: [{ column: "score", condition: { op: "like" } }] },
+        {
+          filters: tree({
+            ...scoreCondition("gte", 1),
+            op: "like",
+          } as never),
+        },
         SHAPE,
       ),
     ).toBe(state);
-    expect(catalogTableStateWith(state, { columnFilters: [] }, SHAPE)).toEqual(
+    // (An empty tree · `null` is no filter.)
+    expect(catalogTableStateWith(state, { filters: tree() }, SHAPE)).toEqual(
       {},
     );
+    expect(catalogTableStateWith(state, { filters: null }, SHAPE)).toEqual({});
+  });
+
+  it("holds an `or` group and a nested group as they are (ADR-320 — a filter bar's tree)", () => {
+    const group: ViewConditionGroup = {
+      id: "g1",
+      op: "or",
+      items: [
+        scoreCondition("gte", 9),
+        {
+          id: "g2",
+          op: "and",
+          items: [
+            {
+              id: "c-team",
+              fields: [["data:field:f-team"]],
+              op: "equals",
+              value: "A",
+              enabled: false,
+            },
+          ],
+        },
+      ],
+    };
+    const state = catalogTableStateWith({}, { filters: tree(group) }, SHAPE);
+    expect(state).toEqual({ filters: tree(group) });
+    // (An `or` given as the root is the root's one item — the root is an `and`.)
+    expect(catalogTableStateWith({}, { filters: group }, SHAPE)).toEqual({
+      filters: tree(group),
+    });
+    // (A reference in `enabled` is not a run-time value: not a tree.)
+    expect(
+      catalogTableStateWith(
+        {},
+        {
+          filters: tree({
+            ...scoreCondition("gte", 1),
+            enabled: "!var.x",
+          } as never),
+        },
+        SHAPE,
+      ),
+    ).toEqual({});
   });
 
   it("a data slice changing goes back to the first page", () => {

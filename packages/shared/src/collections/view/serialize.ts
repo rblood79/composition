@@ -156,8 +156,18 @@ export type SerializationWarningCode =
   | "REFERENCE_PATH"
   /** A field or reference that does not resolve. */
   | "BROKEN"
-  /** A body format on a `GET` endpoint (the body is not sent). */
+  /**
+   * A body format on a `GET` · `HEAD` endpoint (the body is not sent). ADR-320 Decision 4 — a view
+   * with something to carry is not the server's then: every row is loaded and it runs here.
+   */
   | "GET_BODY"
+  /**
+   * ADR-320 Decision 4 — a `suffix` format: a condition's parameter key (its field + the
+   * comparison's suffix) is already in the request — another condition's, or the endpoint's own
+   * URL's. A server reads a repeated key as `or`, so the later condition is not sent: every row is
+   * loaded and the view runs here. (One condition's list — `oneOf` — is one key repeated: sent.)
+   */
+  | "DUPLICATE_KEY"
   /** Several different views read one endpoint's collection (one request — none sent). */
   | "MULTI_VIEW"
   /** A grouping · aggregates in a `suffix` format: not parameters — every row is loaded, grouped here. */
@@ -344,6 +354,11 @@ export function serializeViewQueries(
    * group's rows (an open group's children).
    */
   items?: SerializedRequestItems,
+  /**
+   * ADR-320 Decision 4 — the parameter keys the endpoint's own URL already has (its path · its
+   * default query · its resolved templates · the load arguments — the request as it goes).
+   */
+  taken?: Iterable<string>,
 ): SerializedViewQuery {
   const keys = items?.keys;
   const groupOf = items?.groupOf;
@@ -356,6 +371,18 @@ export function serializeViewQueries(
   const suffixes = serialization.suffixes ?? DEFAULT_QUERY_SUFFIXES;
   const keyOf = (condition: ViewCondition, index = 0) =>
     viewFieldOf(condition.fields[index]!, input.schema)?.key;
+  // (ADR-320 — the keys the request has so far: a condition whose key is one of them is not sent.)
+  const sent = new Set<string>(taken ?? []);
+  let duplicate = false;
+  const takes = (condition: ViewCondition, names: readonly string[]) => {
+    if (names.some((name) => sent.has(name))) {
+      warnings.push({ code: "DUPLICATE_KEY", conditionId: condition.id });
+      duplicate = true;
+      return false;
+    }
+    for (const name of names) sent.add(name);
+    return true;
+  };
 
   /** A condition's JSON for the body format, or undefined when it is skipped. */
   const bodyCondition = (condition: ViewCondition): unknown => {
@@ -425,9 +452,18 @@ export function serializeViewQueries(
         });
         return;
       }
-      if (low !== undefined && low !== null && low !== "")
+      const has = (end: unknown) =>
+        end !== undefined && end !== null && end !== "";
+      if (
+        !takes(condition, [
+          ...(has(low) ? [`${key}${gte}`] : []),
+          ...(has(high) ? [`${key}${lte}`] : []),
+        ])
+      )
+        return;
+      if (has(low))
         params.push([`${key}${gte}`, fieldText(read.fields[0], low)]);
-      if (high !== undefined && high !== null && high !== "")
+      if (has(high))
         params.push([`${key}${lte}`, fieldText(read.fields[0], high)]);
       return;
     }
@@ -448,6 +484,7 @@ export function serializeViewQueries(
             ? read.value
             : [read.value]
         : [read.value];
+    if (!takes(condition, [`${key}${suffix}`])) return;
     for (const value of values)
       params.push([`${key}${suffix}`, fieldText(read.fields[0], value)]);
   };
@@ -500,11 +537,16 @@ export function serializeViewQueries(
 
   // (`none` returned above: anything but `suffix` is the body tree.)
   if (serialization.kind !== "suffix") {
-    if (method.toUpperCase() === "GET" || method.toUpperCase() === "HEAD")
-      warnings.push({ code: "GET_BODY" });
+    const bodyless =
+      method.toUpperCase() === "GET" || method.toUpperCase() === "HEAD";
+    if (bodyless) warnings.push({ code: "GET_BODY" });
     const groups = queries
       .map((query) => bodyGroup(query.where))
       .filter((group) => group !== undefined);
+    // (ADR-320 Decision 4 — the body does not go: a view with conditions · a sort · a grouping to
+    //  carry is not the server's. Nothing is sent, every row loads and the chain runs here.)
+    if (bodyless && (groups.length || sorts.length || grouped))
+      return { params, warnings, load: "all" };
     // (ADR-291 Decision 6 — the chain's grouping · aggregates as the server runs them; a derived
     // view grouping a grouped view is one grouping here (the last query's). ADR-315 사용자 결정 4
     // — an aggregate the endpoint has not said it runs: the conditions go, the grouping runs here.)
@@ -637,6 +679,9 @@ export function serializeViewQueries(
     warnings.push({ code: "GROUP" });
     return { params, warnings, load: "all" };
   }
+  // (ADR-320 Decision 4 — a condition left out for its key: what was sent narrows the rows, the
+  //  whole chain runs here over every one of them.)
+  if (duplicate) return { params, warnings, load: "all" };
   return { params, warnings };
 }
 
@@ -688,6 +733,36 @@ function bodyGroupOf(
 }
 
 /**
+ * ADR-320 Decision 4 — the parameter keys an endpoint's own URL carries: its query parameters' (a
+ * load argument's too — it is in the request once given) and the ones written in its address. A
+ * view's condition giving one of them would repeat the key (a server reads that as `or`), so it is
+ * not sent (`serializeViewQueries` · `viewQueryLimits` `taken`). The keys are the endpoint's own —
+ * no template is resolved to read them.
+ */
+export function endpointUrlKeys(endpoint: {
+  baseUrl?: string;
+  path?: string;
+  queryParams?: readonly { key: string; value?: string }[];
+}): string[] {
+  const keys = (endpoint.queryParams ?? []).flatMap((param) =>
+    param.key ? [param.key] : [],
+  );
+  const written = `${endpoint.baseUrl ?? ""}${endpoint.path ?? ""}`
+    .split("?")[1]
+    ?.split("#")[0];
+  for (const part of written?.split("&") ?? []) {
+    const name = part.split("=")[0] ?? "";
+    if (!name) continue;
+    try {
+      keys.push(decodeURIComponent(name.replace(/\+/g, " ")));
+    } catch {
+      keys.push(name);
+    }
+  }
+  return [...new Set(keys)];
+}
+
+/**
  * What a format cannot carry of a view, whatever its variables hold (every condition taken as
  * applied) — the warnings the endpoint's format · a condition's authoring · a source change show
  * (Decision 6's three moments). The run (`serializeViewQueries`) reports the same codes for the
@@ -697,9 +772,12 @@ export function viewQueryLimits(
   serialization: EndpointQuerySerialization,
   input: Pick<ViewRunInput, "queries" | "schema">,
   method = "GET",
+  /** ADR-320 Decision 4 — the parameter keys the endpoint's own URL already has. */
+  taken?: Iterable<string>,
 ): SerializationWarning[] {
   const warnings: SerializationWarning[] = [];
   if (serialization.kind === "none") return warnings;
+  const sent = new Set<string>(taken ?? []);
   // (ADR-291 Decision 5 — a computed field anywhere: nothing of the view goes; that is the report.)
   const computed = computedViewUses(input);
   if (computed.length) return computed;
@@ -736,12 +814,23 @@ export function viewQueryLimits(
       item.op === "between"
         ? suffixes.gte !== undefined && suffixes.lte !== undefined
         : suffixes[item.op] !== undefined;
-    if (!carried)
+    if (!carried) {
       warnings.push({
         code: "COMPARISON",
         conditionId: item.id,
         comparison: item.op,
       });
+      return;
+    }
+    // (ADR-320 Decision 4 — a key the request already has: a repeated key reads as `or`.)
+    const key = viewFieldOf(item.fields[0]!, input.schema)!.key;
+    const names =
+      item.op === "between"
+        ? [`${key}${suffixes.gte}`, `${key}${suffixes.lte}`]
+        : [`${key}${suffixes[item.op]}`];
+    if (names.some((name) => sent.has(name)))
+      warnings.push({ code: "DUPLICATE_KEY", conditionId: item.id });
+    else for (const name of names) sent.add(name);
   };
   for (const query of input.queries) {
     visit(query.where);

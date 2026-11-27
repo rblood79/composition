@@ -12,11 +12,15 @@
  * RAC's (`startResize` — the DOM's) and 「Filter…」 opens the Column's filter dialog (the DOM's — its
  * write is `catalogColumnFilterPatch`); the others write a slice here.
  */
-import type { ViewComparison } from "../document/types";
+import type { DataFieldId, ViewComparison } from "../document/types";
 import {
   viewConditionSkips,
   type ViewFieldKind,
 } from "../../collections/view/comparison";
+import {
+  catalogFilterColumnCondition,
+  catalogFilterTreeWithColumn,
+} from "./filterScope";
 import {
   catalogTableAuthoredKeys,
   type CatalogTableColumnFilter,
@@ -62,6 +66,8 @@ export interface CatalogColumnMenuColumn {
    * none (no field of the data — an unbound Table, a role's column): 「Filter…」 is off.
    */
   readonly filterOps?: readonly ViewComparison[];
+  /** ADR-320 — the data field the Column's filter reads (its condition's field in the tree). */
+  readonly field?: DataFieldId;
   /**
    * ADR-315 Phase 5 — the end user may group the Table's rows by this Column (TanStack
    * `enableGrouping`); `groupable` = it has a data field to group by (a bound Table's).
@@ -232,22 +238,37 @@ function filterOf(
   key: string,
   table: CatalogColumnMenuTable,
 ): CatalogTableColumnFilter | undefined {
-  return table.state.columnFilters?.find((filter) => filter.column === key);
+  const condition = catalogFilterColumnCondition(table.state.filters, key);
+  if (!condition) return undefined;
+  const { op, value, sensitivity, unit } = condition;
+  return {
+    column: key,
+    condition: {
+      op,
+      ...(value !== undefined ? { value } : {}),
+      ...(sensitivity ? { sensitivity } : {}),
+      ...(unit ? { unit } : {}),
+    },
+  };
 }
 
-/** The Table's column filters with this Column's replaced in place (or dropped — `undefined`). */
+/**
+ * The Table's filter tree with this Column's condition replaced in place (or dropped —
+ * `undefined`): the tree's other items stay (ADR-320 — a filter bar's conditions and groups).
+ * Undefined = the Column names no data field (no condition to write).
+ */
 function withFilter(
-  key: string,
+  column: CatalogColumnMenuColumn,
   table: CatalogColumnMenuTable,
   condition: CatalogTableColumnFilter["condition"] | undefined,
-): Partial<CatalogTableState> {
-  const held = table.state.columnFilters ?? [];
-  const entry = condition && { column: key, condition };
-  if (!held.some((filter) => filter.column === key))
-    return { columnFilters: entry ? [...held, entry] : held };
+): Partial<CatalogTableState> | undefined {
+  if (condition && !column.field) return undefined;
   return {
-    columnFilters: held.flatMap((filter) =>
-      filter.column !== key ? [filter] : entry ? [entry] : [],
+    filters: catalogFilterTreeWithColumn(
+      table.state.filters,
+      column.key,
+      column.field,
+      condition,
     ),
   };
 }
@@ -264,10 +285,10 @@ export function catalogColumnFilterPatch(
   condition: CatalogTableColumnFilter["condition"] | undefined,
 ): Partial<CatalogTableState> | undefined {
   if (!column.allowsFiltering) return undefined;
-  if (!condition) return withFilter(column.key, table, undefined);
+  if (!condition) return withFilter(column, table, undefined);
   if (!column.filterOps?.includes(condition.op)) return undefined;
   return withFilter(
-    column.key,
+    column,
     table,
     catalogFilterValueless(condition.op)
       ? { op: condition.op }
@@ -353,7 +374,7 @@ export function catalogColumnMenuPatch(
       return { sort: [...(table.state.sort ?? []), entry] };
     }
     case "clear-filter":
-      return withFilter(key, table, undefined);
+      return withFilter(column, table, undefined);
     case "hide": {
       const { hidden } = columnsNow(table);
       return { hiddenColumns: [...hidden, key] };
