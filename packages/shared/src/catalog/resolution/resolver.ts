@@ -242,6 +242,8 @@ export interface CatalogBoundRow {
    * carries too): a Cascader keys its items by the data's key, a repeated one is not a value.
    */
   itemKey?: string;
+  /** A remote Cascader requests children by collection identity, independently of its value. */
+  levelKey?: string;
   /**
    * The item's child rows (`useTreeData.getChildren` — the binding's `fieldMap.children`): a bound
    * Tree shows them inside the row, the same item template again.
@@ -1026,6 +1028,8 @@ function keyRowItem(
   const group = GROUP_ROW_ITEM[type];
   props[type === "TabPanel" ? "itemId" : (group?.key ?? "id")] =
     type === "CascaderItem" ? (row.itemKey ?? row.key) : row.key;
+  if (type === "CascaderItem" && row.levelKey !== undefined)
+    props.catalogCascaderLevelKey = row.levelKey;
   if (group && props[group.text] === undefined)
     props[group.text] = String(row.values.label ?? row.key);
 }

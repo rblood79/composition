@@ -1,3 +1,4 @@
+import { withCascaderOverlay } from "./cascaderOverlay.components";
 import { useEffect, type ReactElement } from "react";
 import { Menu, MenuItem, SubmenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
@@ -44,9 +45,7 @@ function Deferred({
   return render();
 }
 
-export default function CatalogCascaderMenu(
-  content: CascaderContentProps,
-): ReactElement {
+function CatalogCascaderMenu(content: CascaderContentProps): ReactElement {
   const { table, keys, multiple, label, onPick, searchable, levels } = content;
   const picked = cascaderPicked(table, keys);
   const levelName = useCascaderLevelName();
@@ -82,14 +81,16 @@ export default function CatalogCascaderMenu(
           ...(own && parent && (parent.duplicate || parent.isDisabled)
             ? [own]
             : []),
-          ...(parent && waits(parent) && levels?.stateOf(parent.key) !== "error"
+          ...(parent &&
+          waits(parent) &&
+          levels?.stateOf(parent.levelKey) !== "error"
             ? [`${parent.pathId}${CASCADER_LEVEL_STATUS}`]
             : []),
         ]}
         onAction={(key) => {
           const id = String(key);
           if (id.endsWith(CASCADER_LEVEL_STATUS)) {
-            if (parent) levels?.load(parent.key);
+            if (parent) levels?.load(parent.levelKey);
             return;
           }
           const entry = table.byPathId.get(
@@ -117,12 +118,12 @@ export default function CatalogCascaderMenu(
                   // (「Retry」 asks again in place — the menu stays open.)
                   shouldCloseOnSelect={false}
                   textValue={
-                    levels?.stateOf(parent.key) === "error"
+                    levels?.stateOf(parent.levelKey) === "error"
                       ? status.retry
                       : status.loading
                   }
                 >
-                  {levels?.stateOf(parent.key) === "error"
+                  {levels?.stateOf(parent.levelKey) === "error"
                     ? status.retry
                     : status.loading}
                 </MenuItem>,
@@ -140,7 +141,9 @@ export default function CatalogCascaderMenu(
                   <Deferred
                     render={() => level(entry)}
                     onShow={
-                      waits(entry) ? () => levels?.load(entry.key) : undefined
+                      waits(entry)
+                        ? () => levels?.load(entry.levelKey)
+                        : undefined
                     }
                   />
                 </Popover>
@@ -175,3 +178,5 @@ export default function CatalogCascaderMenu(
     </Popover>
   );
 }
+
+export default withCascaderOverlay(CatalogCascaderMenu);

@@ -1,3 +1,4 @@
+import type { CatalogCascaderLevels } from "./cascaderLevels";
 import { catalogSelectionCountText } from "../document/selectionCountValue";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
@@ -26,6 +27,8 @@ type TypeOf = (node: CatalogConsumerNode) => string;
 export interface CascaderEntry {
   /** The path id — the ancestors' keys and its own, joined; a sibling repeat takes a `#n` suffix. */
   readonly pathId: string;
+  /** Collection row key used to request children. */
+  readonly levelKey: string;
   readonly key: string;
   readonly name: string;
   /** Names from the first level down to this item. */
@@ -42,6 +45,7 @@ export interface CascaderEntry {
 
 /** A hierarchy node, whatever its source (static items now; bound rows in Phase 4). */
 export interface CascaderSourceItem {
+  readonly levelKey?: string;
   readonly key: string;
   readonly name: string;
   readonly isDisabled?: boolean;
@@ -74,78 +78,75 @@ const PATH_SEPARATOR = "\u001f";
  */
 export function cascaderTable(
   items: readonly CascaderSourceItem[],
-  options: { readonly anyLevel?: boolean } = {},
+  options: {
+    readonly anyLevel?: boolean;
+    readonly conflicts?: ReadonlySet<string>;
+  } = {},
 ): CascaderTable {
-  const raw: {
-    pathId: string;
-    key: string;
-    name: string;
-    names: string[];
-    parentPathId: string | null;
-    depth: number;
-    hasChildren: boolean;
-    isDisabled: boolean;
-  }[] = [];
+  type Entry = CascaderEntry & { duplicate: boolean };
+  const entries: Entry[] = [];
+  const byPathId = new Map<string, Entry>();
+  const byKey = new Map<string, Entry[]>();
+  const byParent = new Map<string | null, Entry[]>();
+  const duplicatePathIds = new Set<string>();
   const walk = (
     level: readonly CascaderSourceItem[],
     parent: { pathId: string; names: string[] } | null,
     depth: number,
   ) => {
+    const siblings: Entry[] = [];
+    byParent.set(parent?.pathId ?? null, siblings);
     const taken = new Map<string, number>();
     for (const item of level) {
+      // Escape data characters reserved for ancestry, sibling ordinals and RAC status items.
+      const levelKey = item.levelKey ?? item.key;
+      // eslint-disable-next-line no-control-regex -- U+001E and U+001F delimit RAC status and path IDs.
+      const segment = levelKey.replace(/[%#\u001e\u001f]/g, encodeURIComponent);
       const base = parent
-        ? `${parent.pathId}${PATH_SEPARATOR}${item.key}`
-        : item.key;
+        ? `${parent.pathId}${PATH_SEPARATOR}${segment}`
+        : segment;
       const seen = taken.get(base) ?? 0;
       taken.set(base, seen + 1);
       const pathId = seen === 0 ? base : `${base}#${seen}`;
       const names = parent ? [...parent.names, item.name] : [item.name];
       const children = item.children ?? [];
-      raw.push({
+      const hasChildren = children.length > 0 || item.hasChildItems === true;
+      const entry: Entry = {
         pathId,
+        levelKey,
         key: item.key,
         name: item.name,
         names,
         parentPathId: parent?.pathId ?? null,
         depth,
-        hasChildren: children.length > 0 || item.hasChildItems === true,
+        hasChildren,
+        pickable: options.anyLevel === true || !hasChildren,
+        duplicate: false,
         isDisabled: item.isDisabled === true,
-      });
+      };
+      entries.push(entry);
+      byPathId.set(pathId, entry);
+      const sameKey = byKey.get(entry.key);
+      if (sameKey) sameKey.push(entry);
+      else byKey.set(entry.key, [entry]);
+      siblings.push(entry);
       if (children.length) walk(children, { pathId, names }, depth + 1);
     }
   };
   walk(items, null, 0);
-  const pickable = (entry: { hasChildren: boolean }) =>
-    options.anyLevel === true || !entry.hasChildren;
-  const counts = new Map<string, number>();
-  for (const entry of raw)
-    if (pickable(entry))
-      counts.set(entry.key, (counts.get(entry.key) ?? 0) + 1);
-  const entries: CascaderEntry[] = raw.map((entry) => ({
-    ...entry,
-    pickable: pickable(entry),
-    duplicate: pickable(entry) && (counts.get(entry.key) ?? 0) > 1,
-  }));
-  const byPathId = new Map(entries.map((entry) => [entry.pathId, entry]));
-  const byKey = new Map<string, CascaderEntry[]>();
-  const byParent = new Map<string | null, CascaderEntry[]>();
-  for (const entry of entries) {
-    const list = byKey.get(entry.key);
-    if (list) list.push(entry);
-    else byKey.set(entry.key, [entry]);
-    const level = byParent.get(entry.parentPathId);
-    if (level) level.push(entry);
-    else byParent.set(entry.parentPathId, [entry]);
+  for (const [key, group] of byKey) {
+    const conflict = options.conflicts?.has(key);
+    if (!conflict && group.length === 1) continue;
+    const candidates = conflict
+      ? group
+      : group.filter((entry) => entry.pickable);
+    if (!conflict && candidates.length < 2) continue;
+    for (const entry of candidates) {
+      entry.duplicate = true;
+      duplicatePathIds.add(entry.pathId);
+    }
   }
-  return {
-    entries,
-    byPathId,
-    byKey,
-    byParent,
-    duplicatePathIds: new Set(
-      entries.filter((entry) => entry.duplicate).map((entry) => entry.pathId),
-    ),
-  };
+  return { entries, byPathId, byKey, byParent, duplicatePathIds };
 }
 
 /**
@@ -164,8 +165,9 @@ export function cascaderValueMatch(
 ): CascaderValueMatch {
   const found = table.byKey.get(key) ?? [];
   const pickable = found.filter((entry) => entry.pickable);
-  if (pickable.length === 1) return { kind: "item", entry: pickable[0]! };
-  if (pickable.length > 1) return { kind: "duplicate", key };
+  if (pickable.length === 1 && !pickable[0]!.duplicate)
+    return { kind: "item", entry: pickable[0]! };
+  if (pickable.length) return { kind: "duplicate", key };
   return found.length ? { kind: "branch", key } : { kind: "missing", key };
 }
 
@@ -293,14 +295,16 @@ export function cascaderStaticItems(
       const own = child.props.id;
       const name = child.props.label;
       const key = own === undefined || own === null ? child.id : String(own);
+      const levelKey = String(child.props.catalogCascaderLevelKey ?? key);
       const children = level(child);
       return [
         {
           key,
+          levelKey,
           name: typeof name === "string" ? name : String(name ?? ""),
           isDisabled: child.props.isDisabled === true,
           children,
-          ...(!children.length && branchKeys?.has(key)
+          ...(!children.length && branchKeys?.has(levelKey)
             ? { hasChildItems: true }
             : {}),
         },
@@ -314,11 +318,15 @@ export function cascaderTableOf(
   cascader: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
-  branchKeys?: ReadonlySet<string>,
+  levels?: Pick<CatalogCascaderLevels, "branchKeys" | "conflicts">,
 ): CascaderTable {
-  return cascaderTable(cascaderStaticItems(cascader, get, typeOf, branchKeys), {
-    anyLevel: cascader.props.allowsBranchSelection === true,
-  });
+  return cascaderTable(
+    cascaderStaticItems(cascader, get, typeOf, levels?.branchKeys),
+    {
+      conflicts: levels?.conflicts,
+      anyLevel: cascader.props.allowsBranchSelection === true,
+    },
+  );
 }
 
 /**

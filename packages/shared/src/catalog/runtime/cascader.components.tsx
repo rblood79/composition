@@ -11,26 +11,18 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
+import { useCascaderForm } from "./cascaderForm.components";
+import { Provider } from "react-aria-components";
 import { useField } from "react-aria";
 import { useMenuTrigger } from "react-aria/useMenu";
 import { useOverlayTrigger } from "react-aria/useOverlayTrigger";
 import { ButtonContext } from "react-aria-components/Button";
-import {
-  DialogContext,
-  OverlayTriggerStateContext,
-} from "react-aria-components/Dialog";
 import { FieldErrorContext } from "react-aria-components/FieldError";
 import { LabelContext } from "react-aria-components/Label";
-import {
-  MenuContext,
-  RootMenuTriggerStateContext,
-} from "react-aria-components/Menu";
-import { PopoverContext } from "react-aria-components/Popover";
 import { TextContext } from "react-aria-components/Text";
 import { useMenuTriggerState } from "react-stately/useMenuTriggerState";
 import {
-  CASCADER_DEFAULT_SEPARATOR,
-  cascaderValueMatch,
+  cascaderValueRefusal,
   cascaderValueText,
   type CascaderTable,
 } from "./cascader";
@@ -49,19 +41,8 @@ import type { CatalogCascaderLevels } from "./cascaderLevels";
  */
 
 const CatalogCascaderMenu = lazy(() => import("./cascaderMenu.components"));
-// (Phase 6 — the form value · its check · a broken level declaration: their own chunk.)
-const CatalogCascaderForm = lazy(() => import("./cascaderForm.components"));
 // (Phase 3 — the `tree` · `drill` modes: RAC `Popover` > `Dialog` > `Tree` · `GridList`, their own chunk.)
-const CatalogCascaderTree = lazy(() =>
-  import("./cascaderPanel.components").then((m) => ({
-    default: m.CatalogCascaderTree,
-  })),
-);
-const CatalogCascaderDrill = lazy(() =>
-  import("./cascaderPanel.components").then((m) => ({
-    default: m.CatalogCascaderDrill,
-  })),
-);
+const CatalogCascaderPanel = lazy(() => import("./cascaderPanel.components"));
 
 /** The open content's way (사용자 결정 1 — `columns` by default). */
 export type CascaderMode = "columns" | "tree" | "drill";
@@ -81,40 +62,6 @@ export interface CascaderContentProps {
   /** ADR-322 Phase 6 — levels loaded one by one (a branch opened asks its level). */
   readonly levels?: CatalogCascaderLevels;
 }
-
-/** A field's shown validation (react-stately's `displayValidation` — RAC `FieldErrorContext`'s value). */
-export interface CascaderValidation {
-  readonly isInvalid: boolean;
-  readonly validationErrors: string[];
-  readonly validationDetails: ValidityState;
-}
-const VALID: CascaderValidation = {
-  isInvalid: false,
-  validationErrors: [],
-  validationDetails: {} as ValidityState,
-};
-
-/** What the field gives its form run (`cascaderForm.components.tsx`). */
-export interface CascaderFormProps {
-  readonly name?: string;
-  readonly form?: string;
-  readonly isRequired?: boolean;
-  readonly isInvalid?: boolean;
-  readonly isDisabled?: boolean;
-  readonly keys: readonly string[];
-  readonly startKeys: readonly string[];
-  readonly levels?: CatalogCascaderLevels;
-  readonly write: (next: readonly string[]) => void;
-  readonly triggerRef: { readonly current: HTMLButtonElement | null };
-  readonly onValidation: (shown: CascaderValidation) => void;
-  readonly commitRef: { current: (() => void) | undefined };
-}
-
-const REFUSED_WHY: Readonly<Record<string, string>> = {
-  duplicate: "여러 항목이 가진 key",
-  missing: "없는 key",
-  branch: "가지 항목 (끝 항목이 값)",
-};
 
 /** What the field gives its value text: its id (the Button's name — value, then label) and text. */
 const CascaderValueContext = createContext<
@@ -167,62 +114,55 @@ export interface CatalogCascaderFieldProps {
   readonly children?: ReactNode;
 }
 
-export function CatalogCascaderField({
-  label,
-  placeholder,
-  description,
-  errorMessage,
-  isDisabled,
-  isRequired,
-  isInvalid,
-  name,
-  form,
-  startKeys,
-  levels,
-  table,
-  mode,
-  display,
-  keys,
-  multiple = false,
-  searchable = false,
-  onChange,
-  countText,
-  isOpen,
-  onOpenChange,
-  root,
-  children,
-}: CatalogCascaderFieldProps) {
+export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
+  const {
+    label,
+    placeholder,
+    description,
+    errorMessage,
+    isDisabled,
+    isRequired,
+    levels,
+    table,
+    mode,
+    display,
+    keys,
+    multiple = false,
+    searchable = false,
+    onChange,
+    countText,
+    root,
+    children,
+  } = props;
   const valueId = useId();
   const [own, setOwn] = useState<readonly string[]>(keys);
   const current = onChange ? keys : own;
-  const write = (next: readonly string[]) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const change = (next: readonly string[]) => {
     if (!onChange) setOwn(next);
     else onChange(multiple ? [...next] : (next[0] ?? null));
-    // (A pick commits the validation — RAC Select's `commitValidation` on a selection change.)
-    commit.current?.();
   };
-  const commit = useRef<(() => void) | undefined>(undefined);
+  const { shown, inputs, write } = useCascaderForm(
+    props,
+    current,
+    change,
+    triggerRef,
+  );
   // (ADR-322 Phase 4 — a value no single pickable item carries is refused, never matched to the
   //  first: the field shows the key as stored and says why — Decision 4.)
-  const refusal = current
-    .map((key) => cascaderValueMatch(table, key))
-    .find((match) => match.kind !== "item");
-  const refusedKey = refusal && "key" in refusal ? refusal.key : "";
-  const refusedKind = refusal?.kind ?? "";
+  const refusal = cascaderValueRefusal(table, current);
   useEffect(() => {
-    if (refusedKind)
-      console.warn(
-        `[Cascader] 값 거절 — ${REFUSED_WHY[refusedKind] ?? refusedKind}: ${refusedKey}`,
-      );
-  }, [refusedKind, refusedKey]);
-  // (Phase 6 — breakdown §3.1 · §4.5: the field's form run (lazy `cascaderForm.components`) gives
-  //  its validation result; an authored `isInvalid` shows before it loads.)
-  const [validation, setValidation] = useState<CascaderValidation>(VALID);
-  const shown: CascaderValidation =
-    isInvalid === true && !validation.isInvalid
-      ? { ...validation, isInvalid: true }
-      : validation;
-  const triggerRef = useRef<HTMLButtonElement>(null);
+    if (refusal) console.warn(`[Cascader] 값 거절 — ${refusal}`);
+  }, [refusal]);
+  const correction = levels?.correctSelection(current, table);
+  useEffect(() => {
+    if (correction) {
+      console.warn(correction.warning);
+      write(correction.kept);
+    }
+    // One write per conflicting selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [correction?.warning]);
   const { labelProps, fieldProps, descriptionProps, errorMessageProps } =
     useField({
       label: label || undefined,
@@ -233,8 +173,7 @@ export function CatalogCascaderField({
       isInvalid: shown.isInvalid,
       validationBehavior: "aria",
     });
-  const state = useMenuTriggerState({ isOpen, onOpenChange });
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const state = useMenuTriggerState(props);
   const { menuTriggerProps, menuProps } = useMenuTrigger(
     { type: "menu", isDisabled },
     state,
@@ -256,27 +195,6 @@ export function CatalogCascaderField({
     current.length > 1 && countText
       ? countText(current.length)
       : cascaderValueText(table, display, current);
-  const formRun =
-    name || isRequired || levels
-      ? createElement(
-          Suspense,
-          { fallback: null },
-          createElement(CatalogCascaderForm, {
-            name,
-            form,
-            isRequired,
-            isInvalid,
-            isDisabled,
-            keys: current,
-            startKeys: startKeys ?? keys,
-            levels,
-            write,
-            triggerRef,
-            onValidation: setValidation,
-            commitRef: commit,
-          }),
-        )
-      : null;
   const field = createElement(
     "div",
     {
@@ -287,127 +205,61 @@ export function CatalogCascaderField({
       "data-open": state.isOpen ? "true" : undefined,
     },
     children,
-    formRun,
+    inputs,
   );
-  const content: CascaderContentProps = {
-    table,
-    keys: current,
-    multiple,
-    searchable,
-    separator:
-      typeof display.separator === "string"
-        ? display.separator
-        : CASCADER_DEFAULT_SEPARATOR,
-    label: label || placeholder,
-    ...(levels ? { levels } : {}),
-    // (Single: the key, the menu closes — RAC's. Multiple: the key toggles, the menu stays.)
-    onPick: (key: string) =>
-      write(
-        !multiple
-          ? [key]
-          : current.includes(key)
-            ? current.filter((own) => own !== key)
-            : [...current, key],
-      ),
-  };
-  const menu = state.isOpen
-    ? createElement(
-        Suspense,
-        { fallback: null },
-        createElement(
-          mode === "tree"
-            ? CatalogCascaderTree
-            : mode === "drill"
-              ? CatalogCascaderDrill
-              : CatalogCascaderMenu,
-          content,
-        ),
-      )
-    : null;
-  return createElement(
-    LabelContext.Provider,
-    { value: { ...labelProps, elementType: "span" } },
-    createElement(
-      TextContext.Provider,
-      {
-        value: {
-          slots: {
-            description: descriptionProps,
-            errorMessage: errorMessageProps,
-          },
-        },
-      },
-      createElement(
-        FieldErrorContext.Provider,
-        {
-          value: shown,
-        },
-        createElement(
-          ButtonContext.Provider,
+  const OpenContent = menuMode ? CatalogCascaderMenu : CatalogCascaderPanel;
+  return (
+    <Provider
+      values={[
+        [LabelContext, { ...labelProps, elementType: "span" }],
+        [
+          TextContext,
           {
-            value: {
-              ...triggerProps,
-              ref: triggerRef,
-              isPressed: state.isOpen,
-              isDisabled,
-              // (No visible label: the placeholder names it — Select's binding does the same.)
-              ...(labelledBy
-                ? { "aria-labelledby": `${valueId} ${labelledBy}` }
-                : { "aria-label": placeholder || "Choose an option" }),
-              "aria-describedby": fieldProps["aria-describedby"],
+            slots: {
+              description: descriptionProps,
+              errorMessage: errorMessageProps,
             },
           },
-          createElement(
-            CascaderValueContext.Provider,
-            { value: { id: valueId, text, placeholder } },
-            field,
-            // RAC `MenuTrigger`'s contexts (`columns`) · `DialogTrigger`'s (`tree` · `drill`) — the open
-            //  content's Popover · Menu · Dialog take them.
-            createElement(
-              MenuContext.Provider,
-              { value: menuMode ? { ...menuProps, ref: scrollRef } : null },
-              createElement(
-                DialogContext.Provider,
-                {
-                  value: menuMode
-                    ? null
-                    : { ...overlayProps, "aria-labelledby": dialogTriggerId },
-                },
-                createElement(
-                  OverlayTriggerStateContext.Provider,
-                  { value: state },
-                  createElement(
-                    RootMenuTriggerStateContext.Provider,
-                    { value: state },
-                    createElement(
-                      PopoverContext.Provider,
-                      {
-                        value: menuMode
-                          ? {
-                              trigger: "MenuTrigger",
-                              triggerRef,
-                              scrollRef,
-                              placement: "bottom start",
-                              "aria-labelledby": menuProps["aria-labelledby"],
-                            }
-                          : {
-                              trigger: "DialogTrigger",
-                              triggerRef,
-                              placement: "bottom start",
-                              id: overlayProps.id,
-                              "aria-labelledby": dialogTriggerId,
-                            },
-                      },
-                      menu,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
+        ],
+        [FieldErrorContext, shown],
+        [
+          ButtonContext,
+          {
+            ...triggerProps,
+            ref: triggerRef,
+            isPressed: state.isOpen,
+            isDisabled,
+            ...(labelledBy
+              ? { "aria-labelledby": `${valueId} ${labelledBy}` }
+              : { "aria-label": placeholder || "Choose an option" }),
+            "aria-describedby": fieldProps["aria-describedby"],
+          },
+        ],
+        [CascaderValueContext, { id: valueId, text, placeholder }],
+      ]}
+    >
+      {field}
+      {state.isOpen && (
+        <Suspense fallback={null}>
+          <OpenContent
+            state={state}
+            triggerRef={triggerRef}
+            menuProps={menuProps}
+            overlayProps={overlayProps}
+            dialogTriggerId={dialogTriggerId}
+            mode={mode}
+            table={table}
+            keys={current}
+            multiple={multiple}
+            searchable={searchable}
+            separator={display.separator}
+            label={label || placeholder}
+            levels={levels}
+            write={write}
+          />
+        </Suspense>
+      )}
+    </Provider>
   );
 }
 

@@ -1,3 +1,4 @@
+import { withCascaderOverlay } from "./cascaderOverlay.components";
 import { useContext, useState, type ReactElement } from "react";
 import { Breadcrumb, Breadcrumbs } from "react-aria-components/Breadcrumbs";
 import { Button } from "react-aria-components/Button";
@@ -95,7 +96,7 @@ function usePanel({
       : undefined;
   const retry = (id: string) => {
     const branch = statusOf(id);
-    if (branch) levels?.load(branch.key);
+    if (branch) levels?.load(branch.levelKey);
     return !!branch;
   };
   const onSelectionChange = (selection: unknown) => {
@@ -138,14 +139,16 @@ const withSearch = (
     levels
   );
 
-export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
+function CascaderTree(props: CascaderContentProps): ReactElement {
   const { table, label, multiple, searchable, levels } = props;
   const { picked, blocked, childrenOf, onSelectionChange, waits, close } =
     usePanel(props);
   const status = useCascaderLevelStatus();
   const statusRow = (entry: CascaderEntry): ReactElement => {
     const text =
-      levels?.stateOf(entry.key) === "error" ? status.retry : status.loading;
+      levels?.stateOf(entry.levelKey) === "error"
+        ? status.retry
+        : status.loading;
     return (
       <TreeItem
         key={`${entry.pathId}${CASCADER_LEVEL_STATUS}`}
@@ -234,7 +237,7 @@ export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
                   const entry = table.byPathId.get(id);
                   return entry &&
                     waits(entry) &&
-                    levels?.stateOf(entry.key) !== "error"
+                    levels?.stateOf(entry.levelKey) !== "error"
                     ? [`${id}${CASCADER_LEVEL_STATUS}`]
                     : [];
                 }),
@@ -246,7 +249,7 @@ export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
                 for (const id of next)
                   if (!expanded.has(id)) {
                     const entry = table.byPathId.get(id);
-                    if (waits(entry)) levels?.load(entry!.key);
+                    if (waits(entry)) levels?.load(entry!.levelKey);
                   }
                 setExpanded(next);
               }}
@@ -263,9 +266,7 @@ export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
   );
 }
 
-export function CatalogCascaderDrill(
-  props: CascaderContentProps,
-): ReactElement {
+function CascaderDrill(props: CascaderContentProps): ReactElement {
   const { table, label, multiple, searchable } = props;
   const {
     picked,
@@ -288,11 +289,11 @@ export function CatalogCascaderDrill(
   const parent = level === null ? undefined : table.byPathId.get(level);
   // (Phase 6 — a level entered whose items are not here yet asks them.)
   const enter = (entry: CascaderEntry) => {
-    if (waits(entry)) levels?.load(entry.key);
+    if (waits(entry)) levels?.load(entry.levelKey);
     setLevel(entry.pathId);
   };
   const statusId = parent ? `${parent.pathId}${CASCADER_LEVEL_STATUS}` : "";
-  const failed = !!parent && levels?.stateOf(parent.key) === "error";
+  const failed = !!parent && levels?.stateOf(parent.levelKey) === "error";
   const trail: CascaderEntry[] = [];
   for (let at = parent; at; at = table.byPathId.get(at.parentPathId ?? ""))
     trail.unshift(at);
@@ -405,3 +406,11 @@ export function CatalogCascaderDrill(
     </Popover>
   );
 }
+
+export default withCascaderOverlay(({ mode, ...content }) =>
+  mode === "tree" ? (
+    <CascaderTree {...content} />
+  ) : (
+    <CascaderDrill {...content} />
+  ),
+);

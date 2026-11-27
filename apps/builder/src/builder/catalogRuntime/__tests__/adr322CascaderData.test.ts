@@ -217,7 +217,65 @@ const shape = (table: ReturnType<typeof cascaderTableOf>) =>
     entry.duplicate,
   ]);
 
+it("remote parent links use collection keys even when the field submits another column", () => {
+  const binding = {
+    collectionId: col("flat"),
+    fieldMap: { value: ref("f-name"), parentId: ref("f-parent") },
+  };
+  const source = {
+    ...COLLECTIONS[1]!,
+    keyField: "f-id",
+    mockData: [
+      { id: "07~2", name: "Alpha" },
+      { id: "07", name: "Beta" },
+      { id: "07", name: "Gamma" },
+      { id: "08", name: "Child", parent: "07~2" },
+    ],
+  };
+  const rows = catalogBoundRows(
+    binding,
+    [source],
+    "items",
+    100,
+    0,
+    undefined,
+    true,
+  )!;
+  expect(new Set(rows.map((row) => row.key)).size).toBe(3);
+  expect(rows[0]).toMatchObject({
+    levelKey: "07~2",
+    itemKey: "Alpha",
+    children: [{ levelKey: "08", itemKey: "Child" }],
+  });
+});
+
 describe("ADR-322 G4 — a bound Cascader's levels and its repeated keys", () => {
+  it("preserves every sibling when a nested row key contains the duplicate suffix", () => {
+    const rows = catalogBoundRows(
+      {
+        collectionId: col("nested"),
+        fieldMap: { value: ref("f-id"), children: ref("f-sub") },
+      },
+      [
+        {
+          ...COLLECTIONS[0]!,
+          mockData: [
+            { id: "A", sub: [{ id: "07~2" }, { id: "07" }, { id: "07" }] },
+          ],
+        },
+      ],
+      "items",
+      100,
+    );
+    const children = rows?.[0]?.children ?? [];
+    expect(new Set(children.map((row) => row.key)).size).toBe(3);
+    expect(children.map((row) => row.itemKey ?? row.key)).toEqual([
+      "07~2",
+      "07",
+      "07",
+    ]);
+  });
+
   it("nested rows: the levels stand from `children`, the value is the row key, A/01 and B/01 cannot be picked", async () => {
     const { table, notice } = await place({
       collectionId: col("nested"),

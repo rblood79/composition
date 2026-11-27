@@ -345,3 +345,10 @@ G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
 - 회귀: shared 3,063 · builder unit 10,153 · type-check 0. (중간에 ADR-325 정적 게이트 `adr325OneRead` 가 `shownRows` 밖의 행 읽기를 막아 고쳤다.)
 - 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, HEAD `1f57fa4c5` 위 작업 트리 — 이 Phase 의 tracked 소스 21 파일만 되돌린 빌드와 나란히): Builder initial 1,667,442 → **1,667,731 (+289)** — P1 ~ P6 합계 **+5,824** (몫 +6,000 까지 176 B · 절대 상한 1,668,000 까지 269 B). Preview JS · CSS 0.
 - 남은 것 (보고): (1) VoiceOver 청취와 사용자 확인 — Gate G6 의 마지막 항목. (2) 다중 선택의 시작 값은 작성할 수 없다 (`defaultValue` 는 글자 하나 — 실행 중 고르기 · 규칙만 다중). (3) 응답의 필드 오류가 같은 `name` 의 Cascader 에 오르는 경로 (`useFormValidationState` 의 `name`) 는 단위 · live 로 따로 보지 않았다 (LOW — 경로는 RAC Select 와 같은 hook).
+
+### Round 4 구현 판독 수리 (2026-11-28)
+
+폼 input과 RAC 검증 hook을 필드의 첫 렌더에 등록한다. 열린 메뉴의 context와 선택 처리는 메뉴를 펼칠 때 불러온다. 원격 단계의 부모 연결과 요청은 컬렉션 행 키로 처리하고, 폼·규칙에는 `fieldMap.value`의 값을 사용한다. 규칙의 값 검증은 화면과 같은 항목 표를 읽는다. 항목의 내부 경로를 만들 때는 데이터에 들어 있는 순번·경로 구분 문자를 이스케이프한다.
+
+- 확장 G6는 Chrome·WebKit 각각 12/12였다. 첫 렌더의 빈 필수 제출, 미로드 가지의 규칙 쓰기, 행 키와 값 필드를 다르게 연결한 하위 조회, 같은 부모의 `07`·`07`·`07#1`을 포함한다. [수리 검증 기록](../reviews/322.md#round-5--2026-11-27-reviewer-codex)
+- 동일한 `9f59fedaf` 소스에 수리만 적용한 production 빌드에서 Builder 초기 JS gzip은 1,666,755 B에서 1,666,885 B로 130 B 증가했다. Phase 1~6의 기록에 더하면 누적 5,954 B로 승인된 6,000 B 이내다. 같은 비교에서 Preview는 172,276 B에서 172,277 B로 1 B 증가했다.

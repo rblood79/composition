@@ -73,9 +73,15 @@ const DUP = {
   "": [
     { id: "A", name: "A", has: true },
     { id: "B", name: "B", has: true },
+    { id: "C", name: "C", has: true },
   ],
   A: [{ id: "01", name: "One", has: false }],
   B: [{ id: "01", name: "Uno", has: false }],
+  C: [
+    { id: "07", name: "First sibling", has: false },
+    { id: "07", name: "Second sibling", has: false },
+    { id: "07#1", name: "Unique sibling", has: false },
+  ],
 };
 const requests = [];
 let failBusan = true;
@@ -179,14 +185,14 @@ try {
         (x) => r.typeOf(x) === type && !before.has(x.id),
       ).sourceId;
     };
-    const bind = (id, name) =>
+    const bind = (id, name, valueField = "id") =>
       ws.execute(
         h.binding.catalogBindingCommand(
           [{ kind: "node", id }],
           {
             collectionId: `data:collection:${name}`,
             fieldMap: {
-              value: `data:field:${name}-id`,
+              value: `data:field:${name}-${valueField}`,
               parentId: `data:field:${name}-parent`,
               hasChildren: `data:field:${name}-has`,
             },
@@ -214,7 +220,34 @@ try {
     set(lazyDrill, { label: "LazyDrill", mode: "drill" });
     const dup = add("Cascader");
     bind(dup, "dup");
-    set(dup, { label: "Dup" });
+    set(dup, { label: "Dup", name: "dup" });
+    const mapped = add("Cascader");
+    bind(mapped, "regions", "name");
+    set(mapped, { label: "Mapped", name: "mapped" });
+    const button = add("Button");
+    set(button, { label: "Set unopened branch" });
+    ws.execute(
+      c.setNodeInteractions({
+        ownerId: button,
+        label: "Rules",
+        entries: [
+          {
+            kind: "interaction",
+            id: ws.newId("interaction"),
+            ownerId: button,
+            trigger: "onPress",
+            actions: [
+              {
+                opcode: "capability",
+                target: { nodeId: dup },
+                capabilityId: "setValue",
+                value: "A",
+              },
+            ],
+          },
+        ],
+      }),
+    );
     const plain = add("Cascader");
     bind(plain, "plain");
     set(plain, { label: "Plain" });
@@ -245,6 +278,37 @@ try {
   }, API);
   await settle(page, 2000);
 
+  // A slow module exposes any gap between mounting the field and registering its native control.
+  await context.route(/cascaderForm\.components/, async (route) => {
+    await new Promise((done) => setTimeout(done, 1200));
+    await route.continue();
+  });
+  await context.addInitScript(() => {
+    const observer = new MutationObserver(() => {
+      const field = document.querySelector("form .react-aria-Cascader button");
+      if (!field) return;
+      observer.disconnect();
+      const form = field.closest("form");
+      for (const input of form.querySelectorAll("input[required]"))
+        if (!input.closest(".react-aria-Cascader"))
+          input.value =
+            input.type === "email" ? "viewer@example.test" : "valid";
+      let submitted = false;
+      const capture = (event) => {
+        event.preventDefault();
+        submitted = true;
+      };
+      form.addEventListener("submit", capture);
+      form.requestSubmit();
+      form.removeEventListener("submit", capture);
+      window.__coldCascader = {
+        submitted,
+        inputs: form.querySelectorAll("input[name=category][required]").length,
+        focused: document.activeElement === field,
+      };
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
   const popup = context.waitForEvent("page", { timeout: 30000 });
   await page.evaluate(() =>
     [...document.querySelectorAll("button")]
@@ -274,6 +338,20 @@ try {
   const levelRequests = (path) => requests.filter((r) => r.startsWith(path));
   const LOADING = /불러오는 중…|Loading…/;
   const RETRY = /불러오지 못함 — 다시 시도|Couldn't load — Retry/;
+
+  const cold = await pub.evaluate(() => window.__coldCascader);
+  record(
+    "R4 첫 렌더 필수값 검증",
+    cold?.inputs === 1 && !cold.submitted && cold.focused,
+    cold ?? {},
+  );
+  await pub.getByRole("button", { name: "Set unopened branch" }).click();
+  const ruled = await field("Dup").locator("input[name=dup]").inputValue();
+  record(
+    "R4 미로드 가지의 규칙 값 거절",
+    ruled === "" && warnings.some((w) => w.includes("가지 항목")),
+    { ruled },
+  );
 
   // 1. columns.
   const firstRequests = levelRequests("/regions?");
@@ -385,6 +463,22 @@ try {
     { dupPicked, uno: uno.replace(/\n/g, " ¶ "), one: one.replace(/\n/g, " ¶ "), dupAfter, warned: warnings.filter((w) => w.includes("계약")).slice(0, 2) },
   );
 
+  await opener("Dup").click();
+  await pub.getByRole("menuitem", { name: "C", exact: true }).hover();
+  const first = pub.getByRole("menuitemradio", { name: "First sibling" });
+  const second = pub.getByRole("menuitemradio", { name: "Second sibling" });
+  await first.waitFor();
+  const duplicatesBlocked =
+    (await first.isDisabled()) && (await second.isDisabled());
+  await pub.getByRole("menuitemradio", { name: "Unique sibling" }).click();
+  const unique = await field("Dup").locator("input[name=dup]").inputValue();
+  record(
+    "R4 중복 형제와 순번을 포함한 실제 key",
+    duplicatesBlocked && unique === "07#1",
+    { duplicatesBlocked, unique },
+  );
+  await closeAll();
+
   // 5. no declaration: not asked one by one.
   await opener("Plain").click();
   await settle(pub, 300);
@@ -413,6 +507,24 @@ try {
       /불러온 항목에서만 찾는다|Searching the loaded items only/.test(searchText),
     { searchText: searchText.replace(/\n/g, " ¶ ") },
   );
+
+  // Another binding shares the row cache, uses names as values, and opens a still-unloaded branch.
+  await opener("Mapped").click();
+  await pub.getByRole("menuitem", { name: "서울", exact: true }).hover();
+  await pub.getByRole("menuitem", { name: "중구", exact: true }).hover();
+  await pub.getByRole("menuitemradio", { name: "명동", exact: true }).click();
+  const mapped = await field("Mapped")
+    .locator("input[name=mapped]")
+    .inputValue();
+  const mappedPath = await valueOf("Mapped");
+  record(
+    "R4 행 id로 하위 요청 후 매핑된 값 제출",
+    mapped === "명동" &&
+      mappedPath === "서울 / 중구 / 명동" &&
+      levelRequests("/regions?140").length === 1,
+    { mapped, mappedPath, requests: levelRequests("/regions") },
+  );
+  await closeAll();
 
   // 7. the Form (native): a required empty Cascader blocks · a value carries.
   await pub.evaluate(() => {

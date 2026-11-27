@@ -4746,7 +4746,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           name: str(props.name) || undefined,
           startKeys: cascaderStartKeys(props),
           levels,
-          table: cascaderTableOf(input.node, get, typeOf, levels?.branchKeys),
+          table: cascaderTableOf(input.node, get, typeOf, levels),
           mode:
             props.mode === "tree" || props.mode === "drill"
               ? props.mode

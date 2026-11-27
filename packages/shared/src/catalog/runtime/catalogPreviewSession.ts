@@ -178,9 +178,10 @@ import {
 import { collectionSaveReasonText } from "./collectionSaveText";
 import { catalogSiteLanguage } from "../document/templateLocalizedProps";
 import { CATALOG_CHANGES_ROOT } from "./stateTemplate";
-import type {
-  CatalogCascaderLevels,
-  CatalogCascaderLevelState,
+import {
+  correctCascaderSelection,
+  type CatalogCascaderLevels,
+  type CatalogCascaderLevelState,
 } from "./cascaderLevels";
 
 /**
@@ -245,8 +246,8 @@ type CatalogItems = readonly Record<string, unknown>[];
 function saveNote(
   saved: NonNullable<ReturnType<CollectionSaver["rowState"]>>,
   fields: readonly string[],
-): string {
   language: string,
+): string {
   const parts = [
     collectionSaveReasonText(saved.reason, saved.detail, language),
   ];
@@ -779,12 +780,12 @@ export class CatalogPreviewSession {
   get root(): CatalogCompositionRoot | undefined {
     return this.currentRoot;
   }
-  get graph(): CatalogGraph | undefined {
   /** The site's language (`ProjectEntry.site.lang`; none set — the environment's). */
   private siteLanguage(): string {
     return this.graph ? catalogSiteLanguage(this.graph) : "en";
   }
 
+  get graph(): CatalogGraph | undefined {
     return this.receiver.graph;
   }
   /** The data services the Preview's components read (a new object when the Builder sends data). */
@@ -3040,6 +3041,15 @@ export class CatalogPreviewSession {
     };
     return visit(recordId, 3);
   }
+  private cascaderLevelEndpoint(collection: CollectionDataSource | undefined) {
+    const endpoint =
+      collection && !collection.useMockData
+        ? this.endpointFilling(collection)
+        : undefined;
+    return endpoint && endpointReadsTemplate(endpoint, "parentKey")
+      ? endpoint
+      : undefined;
+  }
   /**
    * ADR-322 Phase 6 (사용자 결정 4 · breakdown §4.3) — a Cascader record's levels loaded one by one:
    * its binding's collection is filled by a query endpoint reading `{{ parentKey }}` that declares
@@ -3057,12 +3067,8 @@ export class CatalogPreviewSession {
     const collection = this.collections.find(
       (item) => item.id === collectionId,
     );
-    const endpoint =
-      collection && !collection.useMockData
-        ? this.endpointFilling(collection)
-        : undefined;
-    if (!endpoint || !endpointReadsTemplate(endpoint, "parentKey"))
-      return undefined;
+    const endpoint = this.cascaderLevelEndpoint(collection);
+    if (!endpoint) return undefined;
     if (endpoint.responseMapping?.keysUnique !== true) {
       if (!this.levelWarned.has(collectionId)) {
         this.levelWarned.add(collectionId);
@@ -3092,9 +3098,19 @@ export class CatalogPreviewSession {
             collection!.mockData ||
             []);
     const branchKeys = new Set<string>();
-    for (const row of rows as readonly Record<string, unknown>[]) {
+    const broken = this.levelConflicts.get(collectionId);
+    const conflicts = new Set<string>();
+    const valueField = fieldKey(binding.fieldMap.value);
+    for (const [index, row] of (
+      rows as readonly Record<string, unknown>[]
+    ).entries()) {
       const key = dataKey(row);
-      if (key === undefined || states.get(String(key)) === "loaded") continue;
+      if (key === undefined) continue;
+      if (broken?.has(String(key)))
+        conflicts.add(
+          valueField ? itemKey(row, index, valueField) : String(key),
+        );
+      if (states.get(String(key)) === "loaded") continue;
       if (flagField === undefined || row[flagField] === true)
         branchKeys.add(String(key));
     }
@@ -3103,7 +3119,8 @@ export class CatalogPreviewSession {
       stateOf: (parentKey) => states.get(parentKey),
       load: (parentKey) =>
         void this.loadLevel(collectionId, parentKey, parentField),
-      conflicts: this.levelConflicts.get(collectionId) ?? new Set(),
+      conflicts,
+      correctSelection: correctCascaderSelection,
       subscribe: (listener) => {
         let listeners = this.levelListeners.get(collectionId);
         if (!listeners)
@@ -3484,6 +3501,11 @@ export class CatalogPreviewSession {
       window,
       0,
       slices,
+      ownerId !== undefined &&
+        this.readsWholeRows(ownerId) &&
+        this.cascaderLevelEndpoint(
+          this.collections.find((item) => item.id === id),
+        )?.responseMapping?.keysUnique === true,
     );
     if (!rows) return rows;
     if (ownerId !== undefined) {

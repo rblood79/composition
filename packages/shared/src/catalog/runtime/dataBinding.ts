@@ -2,6 +2,7 @@ import {
   buildCollectionRowTemplateItem,
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   getFlatProjectionRows,
+  getItemKey,
   parentRowsToTree,
   readDataBindingRows,
   resolveBoundCollection,
@@ -219,6 +220,7 @@ export function catalogBoundRows(
    * state in the request (`query.served.state` — ADR-315 HC2) are not filtered · sorted again.
    */
   slices?: CatalogRowSlices,
+  remoteLevels = false,
 ): CatalogBoundRows | undefined {
   const dataBinding = catalogBindingValue(ref);
   const table = dataBinding && resolveBoundCollection(dataBinding, sources);
@@ -379,6 +381,7 @@ export function catalogBoundRows(
               pins: { ...slices.pins, rows: computedRows(slices.pins.rows) },
             }
           : slices,
+    remoteLevels,
   );
   // (The server answered in the Table's sort: the rows say so — their reader does not sort them.)
   if (shown && sort?.length && ref.query?.served?.state)
@@ -1137,6 +1140,7 @@ function boundRowsOf(
   limit: number,
   start = 0,
   slices?: CatalogRowSlices,
+  remoteLevels = false,
 ): CatalogBoundRows | undefined {
   // (No entry is no sort.)
   const sort = slices?.sorts?.length ? slices.sorts : undefined;
@@ -1154,7 +1158,10 @@ function boundRowsOf(
   const bound = resolveBoundCollection(dataBinding, collections);
   const roles = resolveFieldRoles(dataBinding, bound?.schema, bound?.keyField);
   const childrenKey = roles?.children;
-  const parentKey = roles?.parentId;
+  const parentKey = roles?.parentId ?? (remoteLevels ? "parentId" : undefined);
+  const collectionRoles = remoteLevels
+    ? resolveFieldRoles({}, bound?.schema, bound?.keyField)
+    : undefined;
   const childRows = (item: unknown): CatalogBoundRow[] | undefined => {
     const children =
       childrenKey && item !== null && typeof item === "object"
@@ -1164,7 +1171,7 @@ function boundRowsOf(
     return children.map((child, index) => {
       const row = toItemProjectionRow(child, index, roles);
       let key = String(row.itemKey);
-      if (seen.has(key)) key = `${key}~${index}`;
+      while (seen.has(key)) key = `${key}~${index}`;
       seen.add(key);
       const nested = childRows(child);
       return {
@@ -1337,12 +1344,16 @@ function boundRowsOf(
     row: (typeof projected)[number],
     children?: CatalogBoundRow[],
   ): CatalogBoundRow => {
-    let key = String(row.itemKey);
-    if (seen.has(key)) key = `${key}~${row.rowIndex}`;
+    const itemKey = remoteLevels
+      ? getItemKey(row.item, row.rowIndex, roles)
+      : row.itemKey;
+    let key = row.itemKey;
+    while (seen.has(key)) key = `${key}~${row.rowIndex}`;
     seen.add(key);
     return {
       key,
-      ...(key !== row.itemKey ? { itemKey: row.itemKey } : {}),
+      ...(key !== itemKey ? { itemKey } : {}),
+      ...(remoteLevels ? { levelKey: row.itemKey } : {}),
       values: buildCollectionRowTemplateItem(row),
       ...(children ? { children } : {}),
     };
@@ -1356,7 +1367,15 @@ function boundRowsOf(
   const top = pinned ? pinnedOf(pinned.top, "top") : [];
   const bottom = pinned ? pinnedOf(pinned.bottom, "bottom") : [];
   const flatRoots = parentKey
-    ? parentRowsToTree(projected, parentKey)
+    ? parentRowsToTree(
+        remoteLevels
+          ? projected.map((row) => ({
+              ...row,
+              itemKey: getItemKey(row.item, row.rowIndex, collectionRoles),
+            }))
+          : projected,
+        parentKey,
+      )
     : undefined;
   const rows: CatalogBoundRow[] = flatRoots
     ? flatRoots

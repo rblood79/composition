@@ -4,6 +4,8 @@
 
 Implemented — 2026-11-27 (Accepted 2026-11-27 · Proposed 2026-11-26)
 
+- **구현 판독 수리 (2026-11-28)**. Round 4의 HIGH 4건을 고치고 Chrome·WebKit에서 확장 G6를 각각 12/12 통과했다. 필수 폼은 첫 렌더부터 검증하고, 원격 계층의 조회·부모 연결은 컬렉션 행 키를 사용하며 선택값은 필드 매핑을 따른다. 미로드 가지의 규칙 쓰기와 형제 ID 충돌도 재검증했다. [Round 5](../reviews/322.md#round-5--2026-11-27-reviewer-codex)
+
 - **Implemented 근거 (2026-11-27)**: Gate G0 ~ G6 통과 (각 Phase 블록 · [breakdown §8](../design/322-cascader-hierarchical-picker-breakdown.md)) · G6 의 VoiceOver 청취는 사용자 확인 「들었고 문제 없음」 (2026-11-27 선택 질문 — 여는 버튼 이름 · columns 하위 menu 와 「불러오는 중…」 · tree 행의 단계 · 펼침 · 필수 빈 값의 오류 문구) · Phase 6 커밋 지시.
 
 - **Accepted 근거 (2026-11-27)**: 사용자 `/execute-adr 322` + [reviews/322.md](../reviews/322.md) 최신 round pending 0 · HIGH 전부 fixed (h3 의 판정은 Gate G6 — 사용자 결정 2026-11-27). 닫힌 D1 예외 (사용자 답 2026-11-26) 의 승인 한 줄을 [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) §1 D1 에 넣었다 — 목록 전문은 Phase 6 에서 옮긴다.

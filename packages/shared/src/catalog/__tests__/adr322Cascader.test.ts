@@ -102,6 +102,22 @@ describe("ADR-322 — the item table", () => {
       `A${SEP}01#1`,
     ]);
   });
+  it("keeps raw key characters separate from generated sibling, level and status ids", () => {
+    const keys = ["07", "07", "07#1", "07%231", "A\u001fB", "x\u001eall"];
+    const table = cascaderTable([
+      ...keys.map((key) => leaf(key)),
+      { key: "A", name: "A", children: [leaf("B")] },
+    ]);
+    expect(table.byPathId.size).toBe(table.entries.length);
+    expect(
+      table.entries
+        .filter((entry) => entry.duplicate)
+        .map((entry) => entry.key),
+    ).toEqual(["07", "07"]);
+    expect(
+      table.entries.some((entry) => entry.pathId.endsWith("\u001eall")),
+    ).toBe(false);
+  });
 });
 
 describe("ADR-322 — the closed field's text (decision 7)", () => {

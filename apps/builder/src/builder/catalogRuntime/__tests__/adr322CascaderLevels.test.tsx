@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
+import { renderToString } from "react-dom/server";
 import { Button } from "react-aria-components/Button";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cascaderTable } from "../../../../../../packages/shared/src/catalog/runtime/cascader";
@@ -9,9 +10,10 @@ import {
   CatalogCascaderValue,
   type CascaderMode,
 } from "../../../../../../packages/shared/src/catalog/runtime/cascader.components";
-import type {
-  CatalogCascaderLevels,
-  CatalogCascaderLevelState,
+import {
+  correctCascaderSelection,
+  type CatalogCascaderLevels,
+  type CatalogCascaderLevelState,
 } from "../../../../../../packages/shared/src/catalog/runtime/cascaderLevels";
 
 /**
@@ -48,6 +50,7 @@ function levelsOf(states: Map<string, CatalogCascaderLevelState>) {
     stateOf: (key) => states.get(key),
     load,
     conflicts: new Set(),
+    correctSelection: correctCascaderSelection,
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -105,6 +108,28 @@ function field(
 }
 
 describe("ADR-322 G6 — levels loaded one by one (the field's side)", () => {
+  it("first markup includes the native validation control even without a form name", () => {
+    const markup = renderToString(
+      createElement(CatalogCascaderField, {
+        label: "Region",
+        placeholder: "Choose",
+        description: "",
+        errorMessage: "",
+        isRequired: true,
+        mode: "columns",
+        table: cascaderTable([]),
+        display: {},
+        keys: [],
+        root: {},
+      }),
+    );
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+    const input = doc.querySelector<HTMLInputElement>("input[required]");
+    expect(input?.value).toBe("");
+    expect(input?.hasAttribute("name")).toBe(false);
+    expect(input?.validity.valueMissing).toBe(true);
+  });
+
   it("a branch not loaded is a branch: not a value — a start key of it is refused", () => {
     const table = cascaderTable([
       { key: "11", name: "서울", hasChildItems: true },

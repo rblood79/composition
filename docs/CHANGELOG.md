@@ -31,6 +31,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 사이트 문구 번역 표는 en · ko 두 언어만 둔다 (사용자 결정 2026-11-28) — 25 개 파일의 ja · zh 항목 삭제, 그 밖의 언어는 영어. 언어별 동작 값 (CJK 행간 · RAC 날짜 자리 표시 · 주 시작 지역) 은 그대로.
 - live (Builder → Publish, Chrome · 브라우저 ko-KR): `site-language-texts-live.mjs` 10 / 10 · ADR-324 G5 `SITE_LANG=ko` 16 / 16 · 영어 16 / 16.
 
+## [ADR-322 · Cascader 필수 제출과 원격 계층 선택 수리] - 2026-11-28
+
+### Fixed
+
+- 필수 Cascader가 화면에 나타나는 첫 순간부터 빈 값 제출을 막고 여는 버튼으로 포커스를 옮긴다.
+- 끝 항목만 허용하면 아직 펼치지 않은 원격 가지도 규칙의 ‘값 넣기’를 거절한다. 값 필드를 컬렉션 키와 다르게 지정해도 하위 단계는 행 키로 조회하고, 폼에는 선택한 필드의 값을 싣는다.
+- 같은 단계의 key가 `07`, `07`, `07#1`이면 중복된 두 항목만 비활성화하고 `07#1`을 선택할 수 있다.
+
 ## [ADR-322 Phase 6 · Implemented — Cascader 폼 값 · 필수 검증 · 단계별 원격 로드] - 2026-11-27
 
 ### Added

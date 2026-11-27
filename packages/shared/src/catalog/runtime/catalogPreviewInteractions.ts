@@ -1040,6 +1040,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
                           record,
                           (recordId) => root.domInputs.get(recordId),
                           (node) => catalogTypeName(root, node),
+                          this.cascaderLevels(record.id),
                         ),
                         next,
                       )
