@@ -155,8 +155,12 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   },
   // ADR-321 Phase 4: S2 · RAC ship no Rating. design-data's `rating` schema gives `value` ·
   //   `isEmphasized` · `isDisabled` (`size` is the common key); the start value is RAC Slider's
-  //   `defaultValue`; display only is ours (Spectrum's guideline shows it, no schema has it).
+  //   `defaultValue`; display only is ours (Spectrum's guideline shows it, no schema has it). Phase 5
+  //   (사용자 결정 5): `name` is the RAC SliderThumb's; `label` is the input's announced name (RAC
+  //   Slider takes `aria-label` — the S2 fields' `label` name).
   Rating: {
+    label: "composition",
+    name: "rac",
     defaultValue: "rac",
     isEmphasized: "design-data",
     isDisabled: "design-data",

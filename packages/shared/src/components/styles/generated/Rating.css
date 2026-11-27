@@ -55,20 +55,70 @@
 }
 
 
-  .react-aria-Rating > .rating-star {
+  .react-aria-Rating .rating-star {
     position: relative;
     display: block;
     flex-shrink: 0;
   }
 
-  .react-aria-Rating > .rating-star > svg {
+  .react-aria-Rating .rating-star > svg {
     position: absolute;
     inset: 0;
     display: block;
   }
 
-  .react-aria-Rating > .rating-star > .rating-star-half {
+  .react-aria-Rating .rating-star[data-fill="full"] > .rating-star-outline {
+    display: none;
+  }
+
+  .react-aria-Rating .rating-star[data-fill="empty"] > .rating-star-filled {
+    display: none;
+  }
+
+  .react-aria-Rating .rating-star[data-fill="half"] > .rating-star-filled {
     clip-path: inset(0 50% 0 0);
+  }
+
+  .react-aria-Rating > .rating-track {
+    position: relative;
+    display: flex;
+    gap: inherit;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  .react-aria-Rating:not([data-disabled]) .rating-track > * {
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .react-aria-Rating .rating-thumb {
+    position: absolute;
+    width: 0;
+    height: 100%;
+  }
+
+  .react-aria-Rating:has(.rating-thumb[data-focus-visible]) {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-Rating:not([data-disabled]) .rating-track:has(:hover) .rating-star-filled {
+    display: block;
+    clip-path: none;
+  }
+
+  .react-aria-Rating:not([data-disabled]) .rating-track:has(:hover) .rating-star-outline {
+    display: none;
+  }
+
+  .react-aria-Rating:not([data-disabled]) .rating-star:hover ~ * > .rating-star-filled {
+    display: none;
+  }
+
+  .react-aria-Rating:not([data-disabled]) .rating-star:hover ~ * > .rating-star-outline {
+    display: block;
   }
 
 

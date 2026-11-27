@@ -5,7 +5,7 @@
 //   3. 표시 전용 + 값 2.5: 별 3 의 왼쪽 반 = 별 색 · 오른쪽 반 = 바탕 (Canvas · Publish) · 입력 모드 2.5 → 3
 //   4. 크기 S · 강조: 상자 96 × 24 · 별 색 = accent content (Canvas · Publish)
 //   5. 비활성: 별 색 = disabled content (Canvas · Publish)
-//   6. Publish: div.react-aria-Rating > span.rating-star × 5 · Canvas 상자 = DOM 상자 (±1 px)
+//   6. Publish: div.react-aria-Rating 안 span.rating-star × 5 (Phase 5 — RAC Slider · Meter) · Canvas 상자 = DOM 상자 (±1 px)
 //   7. page error 0
 //
 //   BUILDER_URL=http://localhost:5173 AUTH_STATE=<.auth-session.json> node apps/builder/scripts/adr321-g4-live.mjs <out-dir> [--headless]
@@ -35,7 +35,10 @@ const state = JSON.parse(
   ),
 );
 state.origins = (state.origins ?? []).map((o) => ({ ...o, origin: BASE }));
-const browser = await chromium.launch({ headless: HEADLESS, channel: "chrome" });
+const browser = await chromium.launch({
+  headless: HEADLESS,
+  channel: "chrome",
+});
 const context = await browser.newContext({
   storageState: state,
   viewport: { width: 1600, height: 1000 },
@@ -103,7 +106,12 @@ const canvasPixel = async (recordId, dx, dy) => {
     { recordId, dx, dy },
   );
   const shot = await page.screenshot({
-    clip: { x: Math.floor(point.x), y: Math.floor(point.y), width: 1, height: 1 },
+    clip: {
+      x: Math.floor(point.x),
+      y: Math.floor(point.y),
+      width: 1,
+      height: 1,
+    },
   });
   const png = PNG.sync.read(shot);
   return [png.data[0], png.data[1], png.data[2]];
@@ -118,7 +126,12 @@ const publishPixel = async (pub, recordId, dx, dy) => {
     recordId,
   );
   const shot = await pub.screenshot({
-    clip: { x: Math.floor(b.x + dx), y: Math.floor(b.y + dy), width: 1, height: 1 },
+    clip: {
+      x: Math.floor(b.x + dx),
+      y: Math.floor(b.y + dy),
+      width: 1,
+      height: 1,
+    },
   });
   const png = PNG.sync.read(shot);
   return [png.data[0], png.data[1], png.data[2]];
@@ -160,6 +173,10 @@ const openPublish = async (recordId) => {
   await pub.waitForSelector(".react-aria-Rating .rating-star", {
     timeout: 60000,
   });
+  await pub.waitForSelector(
+    '.react-aria-Rating[role="group"], .react-aria-Rating[role="meter"]',
+    { timeout: 30000 },
+  );
   await pub.waitForTimeout(600);
   const dom = await pub.evaluate((id) => {
     const el = document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
@@ -169,10 +186,11 @@ const openPublish = async (recordId) => {
       cls: String(el.className),
       w: b.width,
       h: b.height,
-      stars: [...el.children].map((child) => ({
+      // (Phase 5: an input's stars sit in the RAC SliderTrack; a star's fill is its `data-fill`.)
+      stars: [...el.querySelectorAll(".rating-star")].map((child) => ({
         cls: String(child.className.baseVal ?? child.className),
         svgs: child.querySelectorAll("svg").length,
-        half: !!child.querySelector(".rating-star-half"),
+        half: child.dataset.fill === "half",
       })),
     };
   }, recordId);
@@ -181,7 +199,10 @@ const openPublish = async (recordId) => {
 
 try {
   await page.goto(`${BASE}/dashboard`);
-  await page.getByRole("button", { name: /new project/i }).first().click();
+  await page
+    .getByRole("button", { name: /new project/i })
+    .first()
+    .click();
   await page.waitForTimeout(300);
   await page.keyboard.type("adr321 g4 live");
   await page.keyboard.press("Enter");
@@ -214,10 +235,14 @@ try {
   const empty = [];
   for (let i = 0; i < 5; i++)
     empty.push(await canvasPixel(placed.id, ...centre("M", i)));
-  record("1-placed", !!placed && box1?.w === 106 && box1?.h === 32 && empty.every(light), {
-    box: box1,
-    centres: empty,
-  });
+  record(
+    "1-placed",
+    !!placed && box1?.w === 106 && box1?.h === 32 && empty.every(light),
+    {
+      box: box1,
+      centres: empty,
+    },
+  );
   await page.screenshot({ path: `${OUT}/1-placed.png` });
 
   // 2. value 3: stars 1 ~ 3 filled.
@@ -275,7 +300,11 @@ try {
     const pr = await publishPixel(pub, placed.id, ...rightPoint);
     record(
       "3-publish-half",
-      dark(pl) && light(pr) && near(pl, cl) && near(pr, cr) && dom.stars[2]?.half,
+      dark(pl) &&
+        light(pr) &&
+        near(pl, cl) &&
+        near(pr, cr) &&
+        dom.stars[2]?.half,
       { left: pl, right: pr, stars: dom.stars },
     );
     await pub.screenshot({ path: `${OUT}/3-publish.png` });
@@ -303,7 +332,9 @@ try {
     const pa = await publishPixel(pub, placed.id, ...centre("S", 0));
     record(
       "4-publish-S-emphasized",
-      Math.abs(dom.w - 96) <= 1 && Math.abs(dom.h - 24) <= 1 && near(pa, accent),
+      Math.abs(dom.w - 96) <= 1 &&
+        Math.abs(dom.h - 24) <= 1 &&
+        near(pa, accent),
       { dom: { w: dom.w, h: dom.h }, publish: pa, canvas: accent },
     );
     await pub.close();

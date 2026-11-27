@@ -658,6 +658,11 @@ describe("ADR-297 G3 (e) — & 자신의 상태 분기 = 상태 트리 (3c)", ()
         },
       ]),
     ),
+    Rating: {
+      keys: ["&:has(.rating-thumb[data-focus-visible])"],
+      reason:
+        "ADR-321 Phase 5 — Rating 의 focus ring (design-data `focus-indicator` 2 · 간격 2). RAC Slider 의 root 는 focus 표시가 없고 (focus 는 SliderThumb 의 range input) ring 은 별 줄 상자에 그린다 — Canvas 는 focus 를 그리지 않는다 (실행 상태)",
+    },
     SegmentedControlItem: {
       keys: ["&[data-selected]"],
       reason:

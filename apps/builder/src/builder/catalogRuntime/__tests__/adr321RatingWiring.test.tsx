@@ -110,7 +110,9 @@ async function place() {
         stars.push(`half@${shape.x},${shape.y}/${next.clip.width}`);
         i++;
       } else
-        stars.push(`${isFilled(shape) ? "full" : "empty"}@${shape.x},${shape.y}`);
+        stars.push(
+          `${isFilled(shape) ? "full" : "empty"}@${shape.x},${shape.y}`,
+        );
     }
     return { stars, fills: [...new Set(shapes.map((s) => s.fill))] };
   };
@@ -139,14 +141,9 @@ async function dom(t: Awaited<ReturnType<typeof place>>) {
   const stars = [...element.querySelectorAll<HTMLElement>(".rating-star")];
   return {
     element,
-    stars: stars.map((star) => {
-      const svgs = star.querySelectorAll("svg");
-      const half = star.querySelector(".rating-star-half");
-      const subpaths = (
-        svgs[0]!.querySelector("path")!.getAttribute("d")!.match(/M/g) ?? []
-      ).length;
-      return half ? "half" : subpaths === 1 ? "full" : "empty";
-    }),
+    // (Which of a star's two paths shows is the sheet's `data-fill` rule — the parity harness reads
+    //  the drawn result in Chrome; jsdom has no sheet.)
+    stars: stars.map((star) => star.dataset.fill),
     size: stars.map((star) => `${star.style.width} ${star.style.height}`),
     colors: [...new Set(stars.map((star) => star.style.color))],
   };

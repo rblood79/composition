@@ -54,8 +54,10 @@ import {
   catalogRatingStarColor,
   catalogRatingStarFills,
   catalogRatingStarPaths,
+  catalogRatingTrack,
+  RATING_STAR_COUNT,
 } from "../rule/rating";
-import { catalogRatingStart } from "./rating";
+import { catalogRatingStart, catalogRatingValue } from "./rating";
 import { catalogStepListStates, type StepListPatch } from "./stepListState";
 import { isPropVar } from "../document/valueType";
 import {
@@ -1180,6 +1182,18 @@ function filterBarDom(input: DelegatedDomInput, type: string): ReactElement {
     ),
   );
 }
+/** ADR-321 Phase 5 — a running Rating's RAC Slider · Meter (a lazy chunk). */
+const CatalogRatingDom = lazy(() => import("./rating.components"));
+/** (The element `withRuntime` gives the rules' · named states' handlers — they reach the Slider.) */
+const CatalogRatingHost = ({
+  fallback,
+  ...props
+}: { fallback: ReactNode } & Record<string, unknown>) =>
+  createElement(
+    Suspense,
+    { fallback },
+    createElement(CatalogRatingDom, props as never),
+  );
 /** ADR-320 — the filter bar's · its chip's DOM (a lazy chunk — one import for both). */
 const loadFilterBarDom = () => import("./filterBar.components");
 const CatalogFilterBarDom = lazy(() =>
@@ -4579,24 +4593,27 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
-  // ADR-321 Phase 4: a Rating's five stars (S2 Star · StarFilled — a half star is the filled one's left
-  //  half over the outline, display only), at the start value the Canvas draws (`rule/rating.ts`).
-  //  The RAC Slider · Meter around them is Phase 5.
+  // ADR-321 Phase 4 · 5: a Rating's five stars (S2 Star · StarFilled — `rule/rating.ts`), filled to its
+  //  effective value (`catalogRatingValue` — the running value, else the start). The RAC Slider ·
+  //  Meter around them is a lazy chunk; until it loads the stars stand in a plain box.
   rating: {
     render: (input) => {
       const props = {
         ...input.node.props,
         ...input.node.derivedProps,
       } as Record<string, unknown>;
-      const { star } = catalogRatingBox(catalogRatingSize(props.size));
+      const readOnly = props.isReadOnly === true;
+      const size = catalogRatingSize(props.size);
+      const { star } = catalogRatingBox(size);
       const paths = catalogRatingStarPaths();
+      const value = catalogRatingValue(runtimeState(input, "value"), readOnly);
       const color = tokenToCSSVar(
         catalogRatingStarColor({
           emphasized: props.isEmphasized === true,
           disabled: props.isDisabled === true,
         }),
       );
-      const svg = (d: string, className?: string) =>
+      const svg = (d: string, className: string) =>
         createElement(
           "svg",
           {
@@ -4605,27 +4622,44 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             height: star,
             fill: "currentColor",
             fillRule: "evenodd",
-            ...(className ? { className } : {}),
+            className,
           },
           createElement("path", { d }),
         );
-      return createElement(
-        "div",
-        { ...marker(input), ...chrome(input, "Rating"), style: input.style },
-        ...catalogRatingStarFills(catalogRatingStart(props)).map(
-          (fill, index) =>
-            createElement(
-              "span",
-              {
-                key: index,
-                className: "rating-star",
-                style: { width: star, height: star, color },
-              },
-              svg(fill === "full" ? paths.filled : paths.outline),
-              fill === "half" ? svg(paths.filled, "rating-star-half") : null,
-            ),
+      const stars = catalogRatingStarFills(value).map((fill, index) =>
+        createElement(
+          "span",
+          {
+            key: index,
+            className: "rating-star",
+            "data-fill": fill,
+            style: { width: star, height: star, color },
+          },
+          svg(paths.outline, "rating-star-outline"),
+          svg(paths.filled, "rating-star-filled"),
         ),
       );
+      const { key, ...root } = {
+        ...marker(input),
+        ...chrome(input, "Rating"),
+        style: input.style,
+      };
+      return createElement(CatalogRatingHost, {
+        key: stateKey(input, `${key}:${value}`),
+        fallback: createElement("div", root, ...stars),
+        root,
+        readOnly,
+        state: controlled(input, VALUE, value, (next) =>
+          catalogRatingValue(next, false),
+        ),
+        value,
+        count: RATING_STAR_COUNT,
+        label: str(props.label).trim(),
+        name: opt(props.name),
+        isDisabled: props.isDisabled === true ? true : undefined,
+        track: catalogRatingTrack(size),
+        stars,
+      });
     },
   },
   // ADR-321 Phase 3 (사용자 결정 2): a Stepper is a role-less box around its StepList and the steps'
@@ -5489,6 +5523,7 @@ export function catalogStateSourceValue(
       if (CATALOG_DATE_VALUE_TYPES.has(type))
         return catalogDateStartValue(props) ?? null;
       if (type === "Slider") return catalogSliderRange(node).value;
+      if (type === "Rating") return catalogRatingStart(props);
       if (type === "RangeSlider") {
         const { min, max } = catalogSliderRange(node);
         return catalogRangeValue(

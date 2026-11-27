@@ -246,6 +246,8 @@ export const COMPONENT_INTERACTION_SPECS = {
 
   // ── sliders · color controls ─────────────────────────────────────────
   Slider: { concepts: [{ concept: valueCommitNumber }] },
+  // ADR-321 Phase 5: a Rating's input is a RAC Slider (0 ~ 5, whole stars).
+  Rating: { concepts: [{ concept: valueCommitNumber }] },
   RangeSlider: { concepts: [{ concept: valueCommitRange }] },
   SegmentedControl: {
     concepts: [{ concept: singleSelectionSegment, owner: "group" }],
@@ -498,6 +500,7 @@ interface RacPropsOf {
   NumberField: NumberFieldProps;
   ColorField: ColorFieldProps;
   Slider: SliderProps;
+  Rating: SliderProps;
   RangeSlider: SliderProps;
   SegmentedControl: TabsProps;
   SegmentedControlItem: ToggleButtonProps;

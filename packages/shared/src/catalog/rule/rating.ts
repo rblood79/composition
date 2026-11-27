@@ -42,6 +42,18 @@ export function catalogRatingBox(size: RatingSize) {
   };
 }
 
+/**
+ * ADR-321 Phase 5 — the RAC SliderTrack's box (Phase 0 P2): slot = star + gap, the track is slot × 5
+ * wide and starts half a slot + half a gap left of the star row, so star i's center sits at the
+ * track's i ÷ 5 and a press anywhere on star i rounds to i (RAC `useSlider` track press). The stars
+ * stay where the Canvas draws them (the track's left padding undoes its offset).
+ */
+export function catalogRatingTrack(size: RatingSize) {
+  const slot = STAR_SIZE[size] + RATING_STAR_GAP;
+  const left = slot / 2 + RATING_STAR_GAP / 2;
+  return { width: slot * RATING_STAR_COUNT, left };
+}
+
 export type RatingStarFill = "full" | "half" | "empty";
 
 /** 별마다의 채움 — `value` 는 유효값 (입력 = 정수, 표시 = 0.5 단위). */
@@ -121,20 +133,69 @@ export const RATING_RULE: ComponentRule = {
     composition: {
       delegation: [],
       rootSelectors: {
-        "& > .rating-star": {
+        "& .rating-star": {
           styles: {
             position: "relative",
             display: "block",
             "flex-shrink": "0",
           },
         },
-        "& > .rating-star > svg": {
+        "& .rating-star > svg": {
           styles: { position: "absolute", inset: "0", display: "block" },
         },
-        // (반쪽 — 채운 별의 왼쪽 반, Canvas 의 clip 과 같은 자리.)
-        "& > .rating-star > .rating-star-half": {
+        // (A star draws its outline · its filled star by its fill — the Canvas's paths: a full star
+        //  is the filled one, a half star the outline under the filled one's left half.)
+        '& .rating-star[data-fill="full"] > .rating-star-outline': {
+          styles: { display: "none" },
+        },
+        '& .rating-star[data-fill="empty"] > .rating-star-filled': {
+          styles: { display: "none" },
+        },
+        '& .rating-star[data-fill="half"] > .rating-star-filled': {
           styles: { "clip-path": "inset(0 50% 0 0)" },
         },
+        // Phase 5 — the input (RAC Slider): the track is a box only the stars press (a press left of
+        //  the row does not clear — design-data has no such clear), the thumb is the focus target.
+        "& > .rating-track": {
+          styles: {
+            position: "relative",
+            display: "flex",
+            gap: "inherit",
+            "box-sizing": "border-box",
+            "flex-shrink": "0",
+            "pointer-events": "none",
+          },
+        },
+        // (Not disabled — a disabled Slider takes no press; the readOnly Meter has no track.)
+        "&:not([data-disabled]) .rating-track > *": {
+          styles: { "pointer-events": "auto", cursor: "pointer" },
+        },
+        "& .rating-thumb": {
+          styles: { position: "absolute", width: "0", height: "100%" },
+        },
+        "&:has(.rating-thumb[data-focus-visible])": {
+          styles: {
+            outline: "var(--focus-ring-width) solid var(--focus-ring)",
+            "outline-offset": "var(--focus-ring-offset)",
+          },
+        },
+        // (Hover preview — the stars up to the hovered one fill; the value does not change. The
+        //  rules after win over the fill rules above by one more selector.)
+        "&:not([data-disabled]) .rating-track:has(:hover) .rating-star-filled":
+          {
+            styles: { display: "block", "clip-path": "none" },
+          },
+        "&:not([data-disabled]) .rating-track:has(:hover) .rating-star-outline":
+          {
+            styles: { display: "none" },
+          },
+        "&:not([data-disabled]) .rating-star:hover ~ * > .rating-star-filled": {
+          styles: { display: "none" },
+        },
+        "&:not([data-disabled]) .rating-star:hover ~ * > .rating-star-outline":
+          {
+            styles: { display: "block" },
+          },
       },
     },
   },

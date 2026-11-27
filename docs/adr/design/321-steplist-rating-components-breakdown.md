@@ -641,4 +641,61 @@ main `c3bb48c1c` 위. contract 84 → **85** (`LIBRARY_CONTRACT_VERSION` — Rat
 - 결정 5 (폼 필드 범위) · 결정 7 (표시 전용 DOM) · 번들 (473 B).
 - 「값」 칸은 숫자 입력이다 (0 ~ 5). 패널의 별 모양 입력은 두지 않았다.
 
+### Phase 5 (G5) — 2026-11-27
+
+main `8b1a9399c` 위. contract 85 그대로 (prop 두 개 · 동작만 더한다). 문서 변환 코드 0.
+
+**사용자 답 (2026-11-27, Phase 5 착수 때)**
+
+- 결정 5 = `label` · `name` (RAC Slider 가 주는 범위 — 필수 · 오류는 넣지 않는다).
+- 결정 7 = RAC `Meter`.
+- 번들 = Slider · Meter 조립을 lazy chunk 로 빼 절대 상한 (1,660,000 B) 안에 둔다. 넘으면 커밋 전에 멈추고 묻는다.
+
+**한 일**
+
+- DOM (`runtime/rating.components.tsx` — lazy chunk, 처음 Rating 을 그릴 때 받는다): 입력 = RAC `Slider` (0 ~ 5 · 1 단계) `> SliderTrack (별 다섯) + SliderThumb (name)`, 표시 전용 = RAC `Meter` (`valueLabel` = 「N of 5 stars」 · 「5점 만점에 N점」). chunk 를 받기 전에는 같은 별을 담은 빈 상자가 선다 (`delegatedDom.runtime.ts` 의 Suspense fallback). chunk 는 RAC 만 import 한다 — 공용 catalog 모듈을 같이 import 하면 rollup 이 그 모듈을 첫 화면에서 떼어 새 chunk 로 나눠 +280 B 가 더 붙었다 (ADR-320 Phase 4 와 같은 일, 값은 props 로 넘긴다).
+- track 배치 (`rule/rating.ts` `catalogRatingTrack` — Phase 0 P2): 폭 = (별 + 간격) × 5, 별 줄의 왼쪽에서 반 칸 + 반 간격 왼쪽 (M 110 · −13 · S 100 · −12). 별은 track 의 왼쪽 padding 으로 Canvas 와 같은 자리에 선다. track 은 포인터를 받지 않고 별만 받는다 — 별 줄 왼쪽 밖의 누르기는 지우지 않는다 (§5.7 에서 Phase 5 로 미룬 판단 — design-data 에 없는 지우기).
+- 별: 윤곽 · 채운 별 SVG 둘을 늘 그리고 `data-fill` (full · half · empty) 로 시트가 보일 것을 고른다 (Canvas 의 도형과 같은 조합). hover 미리보기 = 시트 (`:has(:hover)` · `~`) 가 hover 한 별까지 채운다 — 값은 그대로. focus ring = thumb 의 `data-focus-visible` 일 때 Rating 상자에 (`&:has(...)` — RAC Slider root 에 focus 표시가 없어 `componentRulesTable.static.test.ts` 의 자기 상태 예외 목록에 사유와 함께 적었다).
+- 값 연동: interaction spec `Rating = valueCommitNumber` (When 「변경」 · 「변경 끝」, Do 「값 넣기」, 이름 붙인 상태 `value`). 시작 상태 = `catalogRatingStart` (`catalogStateSourceValue`). 쓰기는 `CatalogPreviewInteractions.setRuntimeProps` 의 `committedValue` 한 곳이 유효값으로 맞춘다 — Rating = `catalogRatingValue`, Slider = 자기 범위 · 단계 (`catalogSliderRange`, Decision 8 의 「Slider 도 같이 닫는다」). DOM 도 그리는 값을 유효값으로 다시 맞춘다 (실행 중 값을 든 채 표시 전용 ↔ 입력이 바뀔 때).
+- rule · 핸들러: `withRuntime` 이 맨 위 요소에 거는 규칙 · 이름 붙인 상태의 handler 를 받는 작은 host (`CatalogRatingHost`) 가 Suspense 를 감싸고 chunk 의 Slider 에 넘긴다.
+- prop (결정 5): `label` (Slider · Meter 의 접근 이름 — 없으면 i18n 「Rating」 · 「별점」, design-data 에 보이는 라벨이 없어 화면에는 그리지 않는다) · `name` (SliderThumb 의 range input — 폼 값). `d2Provenance.ts`: `label` = composition · `name` = rac.
+- Publish reset: `apps/publish/src/styles/index.css` 의 `img, picture, video, canvas, svg { display: block; max-width: 100% }` 를 가장 낮은 layer (`preview-system`) 로 옮겼다. layer 밖이라 rule 의 `display: none` 을 이겨 Publish 만 별 다섯이 모두 채워졌다 (Builder Preview 에는 그 reset 이 없다 — 2026-11-13 margin reset 과 같은 일).
+
+**확인 (G5)**
+
+| 항목                                                                                    | 결과                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 실행 Preview (`adr321RatingRun.test.tsx`, jsdom — 기대값은 Decision 8 의 표에서 손으로) | 6 PASS — 작성 값 2.6 → 입력 3 (별 · range input · `name` · 이름 붙인 상태) · Do 「값 넣기」 2.5 → 3 · 화살표 3 → 4 → 5 위로 안 감 → 0 (빈 별) · 데이터 값 (Do 의 값 `!var` 3.6) → 입력 4 · 표시 전용 3.5 · 실행 값을 든 채 입력으로 돌아오면 4 · Meter 낭독 「4 of 5 stars」 · 「2.5 of 5 stars」 = 반쪽 별 · range input 없음 · Slider 회귀 「값 넣기 2.5」 (단계 1) → 상태 = range input = 3                                                                                                                           |
+| When 도달 (`interactionWhenReach.test.tsx`) · Do 도달 · 라벨 키                         | Rating `onChange` · `onChangeEnd` 행 PASS · 등록표 72 type                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Canvas ↔ Chrome (`adr321RatingParity.browser.test.ts`)                                  | 29 / 29 — 별 상태는 Chrome 이 그린 결과 (보이는 SVG · clip) 로 읽는다                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| live (`scripts/adr321-g5-live.mjs`, Chrome headless · 새 프로젝트 · Publish)            | **ALL PASS 10/10** — RAC Slider (group · range input `name=score` · 값 3) · 106 × 32 · 별 가운데 픽셀 (값 3) · 별 다섯의 왼쪽 · 가운데 · 오른쪽 누르기 **15 / 15** · 별 줄 왼쪽 밖 누르기는 그대로 · Tab → 화살표 4 · 0 까지 (빈 별 픽셀) · 1 · focus ring · hover 미리보기 (값 1 에서 별 4 hover = 별 1 ~ 4 채움 · 값 그대로 · 떠나면 복원) · 표시 전용 2.5 = RAC Meter (Chrome 접근성 트리 값 2.5 — 백분율 아님, `aria-valuetext` 「5점 만점에 2.5점」, 반쪽 별 픽셀, 누르기 없음) · 비활성 누르기 없음 · page error 0 |
+| live 회귀 (`scripts/adr321-g4-live.mjs` — DOM 읽기만 새 구조로)                         | **ALL PASS 10/10** (Canvas = Publish 픽셀 · 반쪽 · S + 강조 · 비활성)                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 원복 RED (변이 10 — 스크립트 · 바이트 복원 확인)                                        | DOM 유효값 없음 (1) · 쓰기 맞춤 없음 (4) · Slider 맞춤 없음 (1) · Meter `valueLabel` 없음 (1) · thumb `name` 없음 (1) · interaction spec 없음 (4) · 시작 상태 없음 (2) · 표시 전용도 Slider (2) · handler 넘기기 없음 (When 도달 2) · live: track = 별 줄 (15 점 중 별 1 ~ 4 의 왼쪽 · 가운데가 한 별 낮게 — FAIL)                                                                                                                                                                                                       |
+| 회귀                                                                                    | REGRESSION_ROW                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+
+- Chrome 접근성 트리 (CDP `getFullAXTree`) 는 meter 의 값을 2.5 로 싣지만 `valuetext` 속성은 비어 있다 — RAC 가 쓴 `aria-valuetext` 는 요소에서 확인했다. 화면 낭독기가 실제로 읽는 문구는 G6 의 VoiceOver 확인이다.
+
+**번들** (HEAD `8b1a9399c` 와 HEAD + 이 Phase 의 변경만 — 격리 worktree, `vite build` → `adr209-bundle-closure.mjs`)
+
+| 대상                    | HEAD        | Phase 5 뒤  | Δ      |
+| ----------------------- | ----------- | ----------- | ------ |
+| Builder initial JS gzip | 1,659,529 B | 1,659,930 B | +401 B |
+| Preview initial JS gzip | 172,277 B   | 172,278 B   | +1 B   |
+| Preview CSS gzip        | 68,029 B    | 68,177 B    | +148 B |
+
+- 절대 상한 1,660,000 B 까지 **70 B** (ADR-320 과 공용). 결정 8 의 +7,000 은 Phase 1 ~ 5 합 +8,589 B (1,589 B 초과).
+- 첫 화면에 남은 것: rule 의 선택자 글자 (+210 B — rule 표는 Canvas 가 읽어 첫 화면에 있다) · renderer 의 lazy 선언 · host · 별 SVG 둘 (+151 B) · interaction spec 한 줄.
+
+**설계와 달라진 것**
+
+1. `label` 은 화면에 그리지 않는다 — 접근 이름이다 (design-data `rating` 에 라벨이 없다). 보이는 라벨이 필요하면 Text 를 옆에 둔다.
+2. 별 줄 왼쪽 밖 누르기 = 아무 일 없음 (track `pointer-events: none`, 별만 받는다). 별 사이 4 px 간격도 누르지 않는다.
+3. hover 색 (`neutral-content-hover`) 은 넣지 않았다 — 별 색이 inline 이라 시트가 덮지 못한다. 채움 미리보기만.
+4. Publish 앱 reset 하나를 layer 로 옮겼다 (위 「한 일」) — Rating 밖의 svg · img 도 catalog rule 의 `display` · `max-width` 가 Publish 에서 이긴다 (Builder Preview 와 같아진다).
+
+**남은 것 (Phase 6)**
+
+- 번들 (70 B 남음 — ADR-320 과 공용) · 종결 live (평점 입력과 집계 표시) · VoiceOver 청취와 사용자 확인 · 문서 (규칙 · CHANGELOG).
+- Code 보기의 RAC 밖 컴포넌트 import (Phase 3 부터 남은 것).
+
 (Phase 가 닫힐 때마다 결과를 여기에 기록)

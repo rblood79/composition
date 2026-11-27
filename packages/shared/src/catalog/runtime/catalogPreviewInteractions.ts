@@ -54,8 +54,10 @@ import {
 import {
   catalogAccordionOf,
   catalogActionButtonGroupOf,
+  catalogSliderRange,
   catalogToggleGroupOf,
 } from "./presence";
+import { catalogRatingValue } from "./rating";
 import {
   catalogGroupItems,
   catalogGroupSelectionProps,
@@ -1582,7 +1584,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       if (catalogTypeName(root, record) === "Form") return record.id;
     return undefined;
   }
-  setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
+  setRuntimeProps(id: string, next: Readonly<Record<string, unknown>>): void {
+    const patch = "value" in next ? this.committedValue(id, next) : next;
     // (A record is looked up only for a patch naming one of those props — ADR-287 R1's lookups.)
     const columnProps = TABLE_COLUMN_STATE_KEYS.some((prop) => prop in patch)
       ? this.tableColumnPropsOf(id)
@@ -1622,6 +1625,34 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             value: normalizeImplicitStateValue(mirror.type, patch[mirror.prop]),
           });
     this.touch(id);
+  }
+  /**
+   * ADR-321 Decision 8 — a Slider's · Rating's written value is the one it shows (a rule's 「값 넣기
+   * 2.5」 on whole steps is 3): the runtime value, the named state and the form read that number.
+   */
+  private committedValue(
+    id: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): Readonly<Record<string, unknown>> {
+    const record = this.options.root()?.domInputs.get(id);
+    const type = record ? catalogTypeName(this.options.root()!, record) : "";
+    if (type === "Rating")
+      return {
+        ...patch,
+        value: catalogRatingValue(
+          patch.value,
+          record!.props.isReadOnly === true,
+        ),
+      };
+    if (type === "Slider" && typeof patch.value === "number")
+      return {
+        ...patch,
+        value: catalogSliderRange({
+          ...record!,
+          props: { ...record!.props, value: patch.value },
+        }).value,
+      };
+    return patch;
   }
   /** ADR-315 증분 4d — the props of a record that are the Table state's (none = not a Table · Column). */
   private tableColumnPropsOf(id: string): readonly string[] {

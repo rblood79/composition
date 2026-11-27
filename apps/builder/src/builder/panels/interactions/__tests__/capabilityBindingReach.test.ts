@@ -32,6 +32,8 @@ const TESTS = [
   // ADR-321 Phase 2 — a StepList's four Dos: the steps' RAC Links as drawn after each (the pair
   // the state rule writes).
   "../../../../preview/catalog/__tests__/adr321StepListRun.test.tsx",
+  // ADR-321 Phase 5 — a Rating's 「값 넣기」: the stars · range input · named state after it.
+  "../../../../preview/catalog/__tests__/adr321RatingRun.test.tsx",
 ].map((path) => readFileSync(resolve(import.meta.dirname, path), "utf8"));
 
 /**

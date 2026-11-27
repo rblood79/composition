@@ -12,6 +12,10 @@ export const ratingBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "rating" },
   props: {
     accepts: {
+      // (사용자 결정 5 — the form field scope RAC Slider gives: a name for the stars (announced — a
+      //  Rating has no visible label in design-data) and the form value's `name`.)
+      label: { kind: "string", label: "Label", section: "content" },
+      name: { kind: "string", label: "Name", section: "forms" },
       // (The controlled twin — a value binding · a rule's write; the panel edits the start value.)
       value: {
         editorHidden: true,

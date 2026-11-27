@@ -12,6 +12,7 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
   > **Phase 2 (G2) — 2026-11-27**, `3718e2423` (worktree): StepList 의 동작 — RAC `Group > ol > li > Link` 조립 (`aria-current` · `isDisabled` · 상태 문구 · 작성 이름), 상태 규칙의 이동 (누르기 · Do 4), 「자유 이동」 스위치 `allowsFreeNavigation` (사용자 답 — 결정 3), When 2 · 이름 붙인 상태 2. 상태 규칙 = v3 state hook (시작 값 324 가지 · 이동 · 완료 — 차이 0) · 조립 속성 = v3 hook 속성 · D1 예외 0 (정적 검사) · 실행 Preview 전 경로 9 건 · live Chrome 12 / 12 · WebKit 12 / 12 · 정적 모양 회귀 25 / 25 · 원복 RED 변이 25 모두 실패 · 복원 확인. contract 81 그대로 (더하기뿐). 번들: Builder initial +5,219 B (1,648,837 B — Phase 2 의 몫 +1,590 B), 결정 8 의 +7,000 까지 1,781 B 남음 · Preview −1 B. 정한 규칙 · 설계와 달라진 것: [breakdown §5.2 · §8](design/321-steplist-rating-components-breakdown.md).
   > **사용자 답 (2026-11-27, Phase 2 보고 뒤)**: 결정 8 의 Builder 한도는 Phase 3 (Rating) 에서 실제 증가량을 잰 뒤 정한다 (지금 +7,000 B 그대로).
   > **Phase 4 (G4) — 2026-11-27** (main, 미커밋): Rating 등록 (contract 84 → **85**) · Canvas 정적 · 반쪽 별 — 별 다섯은 노드가 아니라 Rating 이 그린다 (S2 `Star` · `StarFilled` 경로, 반쪽 = 채운 별의 왼쪽 반), 상자 = 별 줄 (M 106 × 32 · S 96 × 24 — design-data 의 legacy 폭 토큰은 쓰지 않음), 유효값 함수 (입력 = 정수 · 표시 전용 = 0.5 단위). 사용자 답: 결정 6 = 별 5 고정 · 번들 = 구현 뒤 재서 보고. Canvas = Chrome 29 / 29 · live Chrome 10 / 10 · 원복 RED 변이 9 모두 실패 · 복원 확인. **번들: Builder initial +2,076 B (1,659,527 B) — 결정 8 의 +7,000 을 1,188 B 넘고 (Phase 1 ~ 4 합 +8,188), 절대 상한 1,660,000 까지 473 B** · Preview JS +1 B · CSS +114 B. 상세 [breakdown §8 「Phase 4 (G4)」](design/321-steplist-rating-components-breakdown.md).
+  > **Phase 5 (G5) — 2026-11-27** (main, 미커밋): Rating 의 동작 — 입력 = RAC `Slider > SliderTrack (별) + SliderThumb`, 표시 전용 = RAC `Meter` (「N of 5 stars」 · 「5점 만점에 N점」), 폼 필드 `label` (접근 이름) · `name` (range input), interaction spec `valueCommitNumber`, 값 쓰기의 유효값 맞춤 한 곳 (Slider 도). 사용자 답: 결정 5 = `label` · `name` · 결정 7 = Meter · 번들 = lazy chunk 로 절대 상한 안. 실행 Preview 6 · When 도달 2 · Canvas = Chrome 29 / 29 · live Chrome 10 / 10 (별 누르기 15 / 15 · 키보드 · hover · Meter 낭독 값 · 폼 이름) · Phase 4 live 회귀 10 / 10 · 원복 RED 변이 10 (live 1 포함) 모두 실패 · 복원 확인. **번들: Builder initial +401 B (1,659,930 B — 절대 상한까지 70 B)** · Preview JS +1 B · CSS +148 B. Publish 앱의 svg · img reset 을 가장 낮은 layer 로 옮겼다 (layer 밖이라 Rating 별의 `display: none` 을 이겼다). 상세 [breakdown §8 「Phase 5 (G5)」](design/321-steplist-rating-components-breakdown.md).
   > **main 병합 (2026-11-27)**: worktree 커밋 `3718e2423` 을 main 에 합쳤다. main 이 ADR-320 Phase 2 로 contract 82 를 먼저 냈으므로 이 ADR 의 번호는 **83** 이다 (81 은 따로 나간 적이 없다 — `LIBRARY_CONTRACT_VERSION` 주석). 리터럴 · 등록 수 (199) · 생성 CSS 수 (142 · index 124) 는 두 ADR 합으로 맞췄다.
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 뒤 `/create-adr`.
 - 사용자가 이미 답한 것 (2026-11-26, 선택 질문 2): 범위 = 차용 후보 네 묶음 전부, 문서 단위 = 「묶음마다 ADR 하나」 (결정 지점 1 의 확정). 이 문서는 「Stepper · Rating」 묶음이다. 다른 묶음: [320](320-filter-bar-runtime-condition-builder.md) · [322](322-cascader-hierarchical-picker.md) · [323](323-timeline-event-calendar-gantt.md).
@@ -164,7 +165,10 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
 - **2** = StepPanel 을 넣는다 — Tabs 의 짝 방식 (Phase 3 착수 때 답, 2026-11-27). 자리 = 감싸는 새 type `Stepper` (같은 날 답 — ReUI Stepper · Tabs 의 모양): `Stepper > StepList + StepPanel…`. StepList 는 Phase 1 · 2 그대로 쓰고 패널은 「단계 목록」 group 밖에 놓인다. 기각: StepList 직계 자식 (배치를 grid 로 바꾸고 패널이 group 안에 든다) · StepList 형제 (선례 없는 형제 짝 · frame 을 풀면 짝이 깨짐).
 - Phase 2 의 정한 것 5 (자유 이동에서도 건너뛴 단계는 완료) = 그대로 (2026-11-27 확인).
 - **6** = 별 5 고정 (Phase 4 착수 때 답, 2026-11-27). 번들은 Phase 4 를 구현한 뒤 재서 보고한다 (같은 답 — 절대 상한을 넘을 것 같으면 커밋 전에 멈추고 묻는다).
-- 남은 것: 5 · 7 (Phase 5).
+- **5** = `label` · `name` (Phase 5 착수 때 답, 2026-11-27) — RAC Slider 가 주는 범위, 필수 · 오류 없음. `label` 은 접근 이름이다 (design-data 에 보이는 라벨이 없다).
+- **7** = RAC `Meter` (같은 때).
+- 번들 (Phase 5 착수 때 답): Slider · Meter 조립을 lazy chunk 로 — 절대 상한 안, 넘으면 커밋 전에 묻는다.
+- 남은 것: 없음 (8 건 모두 답).
 
 ## Risks
 

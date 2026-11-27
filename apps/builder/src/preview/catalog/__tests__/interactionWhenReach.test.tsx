@@ -500,6 +500,22 @@ const ROWS: Row[] = [
       },
     })),
   ),
+  // ADR-321 Phase 5 — a Rating's input is a RAC Slider (a lazy chunk: wait for its range input).
+  ...(["onChange", "onChangeEnd"] as const).map(
+    (event): Row => ({
+      palette: "Rating",
+      type: "Rating",
+      event,
+      act: async (h, u) => {
+        await vi.waitFor(() =>
+          expect(q(h, "input[type=range]")).toBeTruthy(),
+        );
+        const thumb = q<HTMLInputElement>(h, "input[type=range]")!;
+        act(() => thumb.focus());
+        await u.keyboard("{ArrowRight}{ArrowLeft}");
+      },
+    }),
+  ),
   {
     palette: "ColorSwatchPicker",
     type: "ColorSwatchPicker",

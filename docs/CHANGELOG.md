@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-321 Phase 5 — Rating 의 동작 (별 누르기 · 폼 값 · 표시 전용 낭독)] - 2026-11-27
+
+### Added
+
+- Preview · Publish 의 **Rating** 이 입력을 받는다 — 별을 누르면 그 별까지, 화살표로 한 칸씩, 0 까지 줄이면 지워진다. 마우스를 올리면 그 별까지 채워 미리 보여 준다 (값은 그대로). 키보드 focus 는 별 줄에 테두리로 보인다.
+- Rating 의 Properties 에 **Label** (낭독 이름) · **Name** (폼 값의 이름). Form 안의 Rating 은 제출 때 `name` = 별 수를 보낸다.
+- Interactions 에 Rating 의 When 「변경」 · 「변경 끝」, Do 「값 넣기」, 이름 붙인 상태 (값). 「값 넣기 2.5」 는 입력에서 3, 표시 전용에서 2.5 를 쓴다.
+- 표시 전용 Rating 은 「5점 만점에 N점」 으로 읽힌다 (백분율이 아니다).
+
+### Fixed
+
+- Slider 에 단계 사이 값을 넣는 Do (「값 넣기 2.5」, 단계 1) 의 이름 붙인 상태가 2.5 로 남고 Slider 는 3 을 보이던 것 — 상태도 3 이다.
+- Publish 에서 catalog 가 숨기거나 크기를 정한 svg · img 를 앱 reset (`display: block` · `max-width: 100%`) 이 덮던 것 — reset 을 가장 낮은 layer 로 옮겨 Builder Preview 와 같다.
+
 ## [ADR-321 Phase 4 — Rating (별점)] - 2026-11-27
 
 ### Added

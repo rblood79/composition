@@ -112,7 +112,7 @@ describe("ADR-321 G4 — Rating 의 rule = design-data", () => {
       }
   });
 
-  it("D2 — design-data 의 prop + 확장 isReadOnly", () => {
+  it("D2 — design-data 의 prop + 확장 isReadOnly + 폼 필드 label · name (결정 5)", () => {
     expect(
       Object.keys(getPrimitiveBinding("Rating")!.props.accepts).sort(),
     ).toEqual(
@@ -123,6 +123,8 @@ describe("ADR-321 G4 — Rating 의 rule = design-data", () => {
         "isEmphasized",
         "isDisabled",
         "isReadOnly",
+        "label",
+        "name",
       ].sort(),
     );
   });

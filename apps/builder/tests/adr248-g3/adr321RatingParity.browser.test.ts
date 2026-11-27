@@ -55,7 +55,6 @@ import type {
   NodeEntry,
 } from "../../../../packages/shared/src/catalog/document/types";
 
-
 type Rect = { x: number; y: number; width: number; height: number };
 const PAGE = { width: 1440, height: 900 };
 const LOCALE = "en-US";
@@ -88,7 +87,10 @@ const FIXTURES: Fixture[] = [
   { key: "M-display-2.3", props: { defaultValue: 2.3, isReadOnly: true } },
   { key: "M-input-2.5-rounds", props: { defaultValue: 2.5 } },
   { key: "M-emphasized", props: { defaultValue: 3, isEmphasized: true } },
-  { key: "S-disabled", props: { size: "S", defaultValue: 2, isDisabled: true } },
+  {
+    key: "S-disabled",
+    props: { size: "S", defaultValue: 2, isDisabled: true },
+  },
   {
     key: "M-emphasized-disabled-half",
     props: {
@@ -238,7 +240,6 @@ afterAll(async () => {
   await commands.writeFile(REPORT, `${JSON.stringify(report, null, 1)}\n`);
 });
 
-
 type Star = Rect & { state: string; color: string };
 
 /** The Canvas scene's stars (`catalogCanvasNodeData` path children), in the Rating's box. */
@@ -266,11 +267,7 @@ function canvasStars(root: CatalogCompositionRoot, id: string): Star[] {
       y: path.offsetY,
       width: paths[i].width - path.offsetX,
       height: paths[i].height - path.offsetY,
-      state: half
-        ? `half/${next.clip.width}`
-        : outline
-          ? "empty"
-          : "full",
+      state: half ? `half/${next.clip.width}` : outline ? "empty" : "full",
       color: floatRgba(path.fillColor),
     });
     if (half) i++;
@@ -281,26 +278,29 @@ function canvasStars(root: CatalogCompositionRoot, id: string): Star[] {
 /** The DOM's stars (`span.rating-star`), in the Rating element's border box. */
 function domStars(element: HTMLElement): Star[] {
   const origin = element.getBoundingClientRect();
-  return [...element.querySelectorAll<HTMLElement>(":scope > .rating-star")].map(
+  // (Phase 5: the stars sit in the RAC SliderTrack of an input — not the box's children.)
+  return [...element.querySelectorAll<HTMLElement>(".rating-star")].map(
     (star) => {
       const box = star.getBoundingClientRect();
-      const svgs = star.querySelectorAll("svg");
-      const half = star.querySelector<SVGElement>(".rating-star-half");
-      const outline =
-        (svgs[0]!.querySelector("path")!.getAttribute("d")!.match(/M/g) ?? [])
-          .length === 2;
-      const clip = half && getComputedStyle(half).clipPath;
+      const shown = (selector: string) => {
+        const svg = star.querySelector<SVGElement>(selector)!;
+        return getComputedStyle(svg).display !== "none" ? svg : undefined;
+      };
+      const outline = shown(".rating-star-outline");
+      const filled = shown(".rating-star-filled");
+      const clip = filled && getComputedStyle(filled).clipPath;
       return {
         x: box.x - origin.x,
         y: box.y - origin.y,
         width: box.width,
         height: box.height,
-        state: half
-          ? `half/${clip === "inset(0px 50% 0px 0px)" ? box.width / 2 : clip}`
-          : outline
-            ? "empty"
-            : "full",
-        color: rgba(getComputedStyle(svgs[0]!).fill),
+        state:
+          outline && filled
+            ? `half/${clip === "inset(0px 50% 0px 0px)" ? box.width / 2 : clip}`
+            : outline
+              ? "empty"
+              : "full",
+        color: rgba(getComputedStyle((filled ?? outline)!).fill),
       };
     },
   );
@@ -420,12 +420,7 @@ async function compare(fixture: Fixture) {
     differences.push({ count: { dom: dom.length, canvas: canvas.length } });
   dom.forEach((a, index) => {
     const b = canvas[index];
-    if (
-      !b ||
-      apart(a, b) > 1 ||
-      a.state !== b.state ||
-      a.color !== b.color
-    )
+    if (!b || apart(a, b) > 1 || a.state !== b.state || a.color !== b.color)
       differences.push({ star: index, dom: a, canvas: b });
   });
   reactRoot.unmount();
@@ -490,9 +485,10 @@ describe("ADR-321 G4 — Rating Canvas ↔ Preview DOM", () => {
       const expected = EXPECTED[fixture.key];
       if (!expected) return;
       const near = (got: number, want: number, what: string) =>
-        expect(Math.abs(got - want), `${fixture.key} ${what}`).toBeLessThanOrEqual(
-          0.5,
-        );
+        expect(
+          Math.abs(got - want),
+          `${fixture.key} ${what}`,
+        ).toBeLessThanOrEqual(0.5);
       near(result.box.dom.width, expected.box[0], "width");
       near(result.box.dom.height, expected.box[1], "height");
       for (const [x, y, size, state] of expected.stars) {
