@@ -3,9 +3,12 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { preloadChartFamilies } from "./support/chartFamilies";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import type {
   EntryId,
   LibraryDefinitionId,
+  NodeEntry,
+  NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogSlotMarks } from "../../workspace/canvas/catalog/catalogChrome";
 import { COMPONENTS_VIEW, originSampleId } from "../originView";
@@ -76,6 +79,64 @@ describe("Library card — a slot with fallback content is not hatched", () => {
     expect(inputOf(value).visual.minHeight).toBeUndefined();
     // (A slot with no content of its own is still hatched — the control.)
     expect(marked.has(sampleRecord("tabs"))).toBe(true);
+    workspace.dispose();
+  }, 60_000);
+
+  it("draws a page Select instance's placeholder without a hatch (user 2026-11-27)", async () => {
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:slot-fallback-page" as EntryId<"project">,
+          name: "Slot fallback page",
+        }),
+        await buildCodeCatalogLibrary(),
+      ),
+      new CatalogStorage(indexedDB, `slot-fallback-page-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1200, height: 800 },
+        autosaveSchedule: () => {},
+      },
+    );
+    const placed = (name: string) =>
+      ({
+        kind: "node",
+        id: `project:node:placed-${name}` as NodeId,
+        definitionId: lib(name),
+        children: [],
+        props: {},
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      }) as NodeEntry;
+    const entries = [placed("select")];
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: "project:node:home-body" as NodeId },
+        entries,
+        rootIds: entries.map((entry) => entry.id as NodeId),
+        newId: workspace.newId,
+      }),
+    );
+    const root = workspace.root;
+    const records = root.domInputs;
+    const bounds = new Map(
+      [...root.canvasInputs.keys()].flatMap((record) => {
+        const rect = root.getGeometry([record]).get(record);
+        return rect ? [[record, rect] as const] : [];
+      }),
+    );
+    const marked = catalogSlotMarks(workspace, bounds, bounds).map(
+      (mark) => mark.identity,
+    );
+    const typeOf = (id: string) => root.typeOf(records.get(id)!);
+    const value = [...records.values()].find(
+      (record) => typeOf(record.id) === "SelectValue",
+    )!;
+    expect(value.slot?.name).toBe("value");
+    expect(value.children).toEqual([]);
+    expect(value.props.children).toEqual(expect.any(String));
+    expect(marked).not.toContain(value.id);
     workspace.dispose();
   }, 60_000);
 });

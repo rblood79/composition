@@ -67,14 +67,14 @@ export function catalogSlotMarks(
     // record: this pass runs on every scene change over every page's records
     // (CANVAS_PERF_SCALING_2026-11 — an edit's `graph.getEntry` calls grew with the document).
     if (!record.slot) continue;
-    const empty = components
-      ? record.children.every(undrawn)
-      : record.children.length === 0;
+    // (A slot that draws its own content while empty — a Select's placeholder — is not an empty
+    // place, on a Library ◆ card or a page instance: user 2026-11-27.)
+    const empty =
+      (components
+        ? record.children.every(undrawn)
+        : record.children.length === 0) &&
+      !catalogSlotDrawsOwnContent(record.props);
     if (!view && !empty) continue;
-    // (A Library ◆'s slot that draws its own content while empty — a Select's placeholder — is
-    // not an empty place: user 2026-11-27.)
-    if (components && empty && catalogSlotDrawsOwnContent(record.props))
-      continue;
     // An empty slot of no height has no visible part to clip: its own box (the band shows it).
     const own = bounds.get(record.id);
     const box = view

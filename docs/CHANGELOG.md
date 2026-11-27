@@ -43,6 +43,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Cascader `tree` · `drill` 의 고른 행 글자색이 accent 바탕 색 (`--accent`) 이던 것을 글자 역할 (`--accent-content`) 로 (ADR-290). Code 보기가 Cascader 를 `items` 목록으로 쓰지 않는다 (RAC 컴포넌트가 아니다).
 
+## [페이지의 Select — placeholder 자리 빗금 제거] - 2026-11-27
+
+### Fixed
+
+- **페이지에 놓은 Select instance 의 값 칸**: Canvas page 의 Select 가 placeholder 「Choose an option...」 자리를 빈 slot 빗금으로 덮지 않는다.
+  - **Why**: 바로 앞 수정 (Library 카드) 이 「비어 있어도 자기 글자를 그리는 slot」 예외를 Components 화면에만 걸었다 (`components &&`). 이제 그 slot 은 어느 화면에서도 빈 자리가 아니다 — page 는 표시 없음, 정의 보기는 빗금 없는 테두리.
+  - live (Builder 5173 새 프로젝트 → 팔레트 select, Chrome): page 의 Select 값 칸에 빗금 없음.
+  - 위치: `workspace/canvas/catalog/catalogChrome.ts` `catalogSlotMarks` · 회귀 `catalogRuntime/__tests__/librarySlotFallback.test.ts` (page instance 케이스 — 수정 전 RED)
+
 ## [Library 카드 — Select placeholder 자리의 빗금 제거] - 2026-11-27
 
 ### Fixed
