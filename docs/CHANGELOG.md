@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ADR-321 을 닫았다. 단계 입력 화면 하나 (Stepper 3 단계 — Form 제출 → 평점 입력 → 집계 표시) 를 Chrome · WebKit 에서 처음부터 끝까지 확인했고, VoiceOver 로 단계 목록 · 평점 입력 · 집계 낭독을 들어 확인했다. 단계 사이를 오가도 입력한 평점이 남는다.
 - Builder 첫 로드 번들은 두 컴포넌트 합 +8,589 B (사용자 답으로 확정 — 절대 상한 1,662,000 B 안).
 
+### Fixed
+
+- StepPanel 안에 별도 StepList를 넣고 그 단계를 삭제해도 바깥 Stepper의 패널과 내용이 보존된다. 단계 목록을 Frame으로 묶은 뒤에도 단계 추가와 키 변경이 짝 패널에 반영된다.
+- 표시 전용 Rating을 입력 모드로 바꾸면 별, 폼 값, 이름 붙인 상태가 같은 정수로 바뀐다. 3.5점에서 전환하면 세 곳 모두 4점이다.
+
 ## [ADR-321 Phase 5 — Rating 의 동작 (별 누르기 · 폼 값 · 표시 전용 낭독)] - 2026-11-27
 
 ### Added

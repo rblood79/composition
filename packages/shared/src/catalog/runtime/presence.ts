@@ -192,7 +192,10 @@ import type {
   CatalogStateOwnerRef,
 } from "../document/types";
 import { catalogStateKeysOf } from "../document/stateOwnerRefs";
-import { isFieldControlGroup } from "../../domain/componentTraits";
+import {
+  isFieldControlGroup,
+  PART_FRAME_TYPES,
+} from "../../domain/componentTraits";
 import {
   catalogFieldBox,
   catalogFieldBoxOfInput,
@@ -369,25 +372,6 @@ const childrenOf = (node: CatalogConsumerNode, get: CatalogRecordLookup) =>
     const child = get(id);
     return child ? [child] : [];
   });
-
-/**
- * ADR-256 G2 — a layout frame the author puts around a field's parts is a plain element with no
- * RAC context of its own: the parts inside it stay in the field's context (RAC passes context
- * through any element). The field's part lookups go through it.
- */
-// ADR-259 Phase 3: a field's label row (FieldLabel — S2's plain `div`) too: the Label in it stays
-//   the field's label (its necessity mark, its text owner, the field context).
-// 2026-11-18: a Disclosure's title row (S2 `DisclosureHeader` — a plain `div`) too: its Heading and
-//   trigger stay the Disclosure's.
-// 2026-11-18: a Slider's label container · field input (S2 `labelContainer` · `fieldInput()` — plain
-//   `div`s) too: the label, value text and track in them stay the Slider's.
-const PART_FRAME_TYPES: ReadonlySet<string> = new Set([
-  "frame",
-  "FieldLabel",
-  "DisclosureHeader",
-  "SliderLabelContainer",
-  "SliderFieldInput",
-]);
 
 /** A node's parent with the layout frames it sits in skipped (`PART_FRAME_TYPES`). */
 export function catalogPartParent(
@@ -4189,12 +4173,7 @@ export function catalogStepperOf(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  const parent = get(node.parentId);
-  if (!parent) return undefined;
-  const owner =
-    typeOf(parent) === STEPPER_TYPE
-      ? parent
-      : catalogPartParent(parent, get, typeOf);
+  const owner = catalogPartParent(node, get, typeOf);
   return owner && typeOf(owner) === STEPPER_TYPE ? owner : undefined;
 }
 

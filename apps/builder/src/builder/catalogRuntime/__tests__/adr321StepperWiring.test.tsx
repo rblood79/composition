@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   duplicateNodes,
+  groupNodes,
   insertNodes,
   moveNodes,
   removeTargets,
@@ -332,5 +333,112 @@ describe("ADR-321 G3 — Stepper · StepPanel (결정 2)", () => {
       [...again.firstElementChild!.children].map((kid) => kid.textContent),
     ).toContain("Step 2 content");
     expect(again.textContent).not.toContain("Step 1 content");
+  });
+
+  it.each(["panel", "stepper"] as const)(
+    "별도 목록(%s)의 step-2를 삭제하면 바깥 세 패널이 보존된다",
+    async (parent) => {
+      const t = await place();
+      const id = t.workspace.newId("node");
+      t.workspace.execute(
+        insertNodes({
+          parent: t.target(
+            parent === "panel" ? t.panels()[0]!.id : t.stepper().id,
+          ),
+          entries: [
+            {
+              kind: "node",
+              id,
+              definitionId: catalogPaletteDefinitionId(
+                t.workspace.runtime.graph.library,
+                "StepList",
+              ),
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            },
+          ],
+          rootIds: [id],
+          newId: t.workspace.newId,
+        }),
+      );
+      const inner = [...t.root.canvasInputs.values()].find(
+        (r) => r.sourceId === id,
+      )!;
+      const second = t.root.canvasInputs.get(inner.children[1]!)!;
+      expect(second.props.id).toBe("step-2");
+      t.workspace.execute(removeTargets({ targets: [t.target(second.id)] }));
+      expect(t.stepKeys()).toEqual(["step-1", "step-2", "step-3"]);
+      const outerKeys = ["step-1", "step-2", "step-3"];
+      expect(t.panels().map((panel) => panel.props.itemId)).toEqual(outerKeys);
+      t.workspace.undo();
+      expect(t.root.canvasInputs.get(inner.id)!.children).toHaveLength(3);
+      t.workspace.redo();
+      expect(t.root.canvasInputs.get(inner.id)!.children).toHaveLength(2);
+      expect(t.panels().map((panel) => panel.props.itemId)).toEqual(outerKeys);
+    },
+  );
+
+  it("목록을 Frame으로 묶은 뒤 +로 단계 추가", async () => {
+    const t = await place();
+    const listId = (t.target(t.list().id) as { id: NodeId }).id;
+    const frame = t.workspace.newId("node");
+    t.workspace.execute(
+      groupNodes({
+        ids: [listId],
+        group: {
+          kind: "node",
+          id: frame,
+          definitionId: "lib:definition:type-frame",
+          children: [],
+          props: {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        },
+        newId: t.workspace.newId,
+      }),
+    );
+    const list = () =>
+      [...t.root.canvasInputs.values()].find((r) => r.sourceId === listId)!;
+    expect(t.root.typeOf(t.root.canvasInputs.get(list().parentId)!)).toBe(
+      "frame",
+    );
+    const choices = catalogItemInsertChoices(
+      {
+        graph: t.workspace.runtime.graph,
+        readModel: t.workspace.readModel,
+        newId: t.workspace.newId,
+      },
+      t.workspace.positionOfRecord(list().id)!,
+    );
+    t.workspace.execute(choices[0]!.build());
+    expect(list().children).toHaveLength(4);
+    const added = t.root.canvasInputs.get(list().children[3]!)!;
+    expect(t.panels().map((panel) => panel.props.itemId)).toEqual([
+      "step-1",
+      "step-2",
+      "step-3",
+      added.props.id,
+    ]);
+    t.write(list().id, { defaultSelectedKey: added.props.id });
+    expect(
+      t
+        .panels()
+        .filter((panel) => !panel.hidden)
+        .map((panel) => panel.props.itemId),
+    ).toEqual([added.props.id]);
+    t.workspace.undo();
+    t.workspace.undo();
+    expect(list().children).toHaveLength(3);
+    expect(t.panels()).toHaveLength(3);
+
+    const first = list().children[0]!;
+    const rename = catalogItemKeyRenameCommands(t.workspace, first, "intro");
+    t.write(first, { id: "intro" });
+    for (const command of rename) t.workspace.execute(command);
+    expect(t.shown()).toBe("intro (step-2) (step-3)");
   });
 });

@@ -681,6 +681,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private readonly emitting = new Set<string>();
   /** Record → its rules' signature (which rules, which triggers): a change re-renders it. */
   private signatures = new Map<string, string>();
+  /** Ratings with a named value or a running half star must reconcile when their mode changes. */
+  private readonly ratingModes = new Map<string, boolean>();
+  private readonly syncingRatingMirrors = new Set<string>();
   private readonly propOverrides = new Map<string, Record<string, unknown>>();
   /**
    * Each runtime prop's declared value when it was written (JSON): a Builder change of that
@@ -1073,11 +1076,19 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       for (const variableId of project.stateVariableIds) {
         const entry = graph.getEntry(variableId);
         if (entry?.kind !== "stateVariable" || !entry.source) continue;
-        for (const id of root.recordsOfSource(entry.source.nodeId))
+        for (const id of root.recordsOfSource(entry.source.nodeId)) {
+          const record = root.domInputs.get(id);
+          if (
+            entry.source.prop === "value" &&
+            record?.ruleId === "Rating" &&
+            !this.ratingModes.has(id)
+          )
+            this.ratingModes.set(id, record.props.isReadOnly === true);
           signatures.set(
             id,
             `${signatures.get(id) ?? ""}|${entry.id}<-${entry.source.prop}`,
           );
+        }
       }
     const changed = new Set<string>();
     for (const [id, signature] of signatures)
@@ -1086,6 +1097,44 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       if (!signatures.has(id)) changed.add(id);
     this.signatures = signatures;
     for (const id of changed) this.touch(id);
+    if (root) this.syncRatingModes(root);
+  }
+
+  private syncRatingModes(root: CatalogCompositionRoot): void {
+    for (const [id, previous] of this.ratingModes) {
+      const record = root.domInputs.get(id);
+      if (record?.ruleId !== "Rating") {
+        this.ratingModes.delete(id);
+        continue;
+      }
+      const readOnly = record.props.isReadOnly === true;
+      if (readOnly === previous) continue;
+      // A mirror write can synchronously refresh the session again.
+      this.ratingModes.set(id, readOnly);
+      const override = this.overrideOf(id);
+      if (override?.value !== undefined) {
+        const value = catalogRatingValue(override.value, readOnly);
+        if (value !== override.value) this.setRuntimeProps(id, { value });
+      } else {
+        // Keep authored/bound values live: changing the mode alone is not a runtime value override.
+        const value = catalogRatingValue(
+          record.props.value ?? record.props.defaultValue,
+          readOnly,
+        );
+        // If writing the mirror switches this same Rating back synchronously, its mode depends
+        // on its own value. Keep the whole-star value valid in both modes to settle the condition.
+        if (this.syncingRatingMirrors.has(id)) {
+          this.setRuntimeProps(id, { value: catalogRatingValue(value, false) });
+          continue;
+        }
+        this.syncingRatingMirrors.add(id);
+        try {
+          this.mirrorRuntimeProps(id, { value });
+        } finally {
+          this.syncingRatingMirrors.delete(id);
+        }
+      }
+    }
   }
   /**
    * ADR-294 — an origin rule's `emit`: the innermost boundary of the firing record that draws an
@@ -1611,6 +1660,14 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     if ("value" in patch) this.pickPageSize(id, patch.value);
     if (patch.colorScheme === "light" || patch.colorScheme === "dark")
       this.options.colorScheme?.(patch.colorScheme);
+    this.mirrorRuntimeProps(id, patch);
+    this.touch(id);
+  }
+
+  private mirrorRuntimeProps(
+    id: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): void {
     // ADR-284 Phase 6 — a named state follows its prop when a rule writes it too (a capability's
     // `clearSelection`: RAC fires no `onSelectionChange` for a controlled change), so a value
     // condition reading it (Delete's `isDisabled`) sees the cleared selection.
@@ -1624,7 +1681,6 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             op: "set",
             value: normalizeImplicitStateValue(mirror.type, patch[mirror.prop]),
           });
-    this.touch(id);
   }
   /**
    * ADR-321 Decision 8 — a Slider's · Rating's written value is the one it shows (a rule's 「값 넣기
@@ -1636,14 +1692,12 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   ): Readonly<Record<string, unknown>> {
     const record = this.options.root()?.domInputs.get(id);
     const type = record ? catalogTypeName(this.options.root()!, record) : "";
-    if (type === "Rating")
-      return {
-        ...patch,
-        value: catalogRatingValue(
-          patch.value,
-          record!.props.isReadOnly === true,
-        ),
-      };
+    if (type === "Rating") {
+      const readOnly = record!.props.isReadOnly === true;
+      const value = catalogRatingValue(patch.value, readOnly);
+      if (!Number.isInteger(value)) this.ratingModes.set(id, readOnly);
+      return { ...patch, value };
+    }
     if (type === "Slider" && typeof patch.value === "number")
       return {
         ...patch,

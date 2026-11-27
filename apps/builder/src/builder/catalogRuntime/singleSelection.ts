@@ -22,7 +22,11 @@ import {
   catalogSelectionGroupOf,
 } from "../../../../../packages/shared/src/catalog/runtime/groupSelection";
 import { fail } from "../../../../../packages/shared/src/catalog/commands/context";
-import { catalogAccordionOf } from "../../../../../packages/shared/src/catalog/runtime/presence";
+import {
+  catalogAccordionOf,
+  catalogStepperOf,
+  catalogStepperModel,
+} from "../../../../../packages/shared/src/catalog/runtime/presence";
 import type { CatalogWorkspace } from "./workspace";
 
 /**
@@ -383,34 +387,28 @@ export function catalogItemKeyRenameCommands(
       "defaultLastCompletedStep",
       "disabledKeys",
     ]);
-  // (A Tab's paired TabPanel — in this Tabs' TabPanels, at any depth. ADR-321 Phase 3: a Step's
-  //  StepPanel in its Stepper — the StepList's parent.)
-  const pairHost =
-    root.typeOf(item) === "Tab"
-      ? group && { host: group, panel: "TabPanel", owner: "Tabs" }
-      : root.typeOf(item) === "Step"
-        ? (() => {
-            const list = root.canvasInputs.get(item.parentId);
-            const stepper = list && root.canvasInputs.get(list.parentId);
-            return stepper && root.typeOf(stepper) === "Stepper"
-              ? { host: stepper, panel: "StepPanel", owner: "Stepper" }
-              : undefined;
-          })()
-        : undefined;
-  if (pairHost) {
+  if (stepList) {
+    const get = lookup(root);
+    const stepper = catalogStepperOf(stepList, get, root.typeOf);
+    if (stepper) {
+      const model = catalogStepperModel(stepper, get, root.typeOf);
+      if (model.list?.id === stepList.id)
+        for (const panel of model.panels)
+          if (panel.props.itemId === before) write(panel, ["itemId"]);
+    }
+  }
+  // A Tab's paired TabPanel can sit anywhere inside its Tabs.
+  if (root.typeOf(item) === "Tab" && group) {
     const visit = (record: CatalogConsumerNode): void => {
       for (const id of record.children) {
         const child = root.canvasInputs.get(id);
         if (!child) continue;
-        if (
-          root.typeOf(child) === pairHost.panel &&
-          child.props.itemId === before
-        )
+        if (root.typeOf(child) === "TabPanel" && child.props.itemId === before)
           write(child, ["itemId"]);
-        else if (root.typeOf(child) !== pairHost.owner) visit(child);
+        else if (root.typeOf(child) !== "Tabs") visit(child);
       }
     };
-    visit(pairHost.host);
+    visit(group);
   }
   return commands;
 }

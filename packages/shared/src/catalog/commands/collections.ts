@@ -84,6 +84,7 @@ import {
 import {
   GROUP_ITEM_TYPES,
   GROUP_ITEMS_WRAPPER,
+  PART_FRAME_TYPES,
 } from "../../domain/componentTraits";
 import {
   catalogGroupSelectionStoreProp,
@@ -309,6 +310,36 @@ const PANEL_PAIRS: Readonly<
   Step: { owner: "Stepper", panel: "StepPanel" },
 };
 
+/** Stepper parts keep their owner through layout frames. A panel starts a new content scope. */
+function stepperParts(draft: CommandDraft, parent: NodeParent): NodeParent[] {
+  return partChildren(draft, parent).flatMap((child) =>
+    PART_FRAME_TYPES.has(positionType(draft, child))
+      ? stepperParts(draft, child)
+      : [child],
+  );
+}
+
+function stepperOfList(
+  draft: CommandDraft,
+  list: NodeParent,
+): NodeParent | undefined {
+  let owner = parentOf(draft, list);
+  while (owner && PART_FRAME_TYPES.has(positionType(draft, owner)))
+    owner = parentOf(draft, owner);
+  if (!owner || positionType(draft, owner) !== "Stepper") return undefined;
+  // As in catalogStepperModel, only the first StepList drives this Stepper's panels.
+  const first = stepperParts(draft, owner).find(
+    (child) => positionType(draft, child) === "StepList",
+  );
+  const listTarget = targetOf(list);
+  const firstTarget = first && targetOf(first);
+  return listTarget &&
+    firstTarget &&
+    positionKey(listTarget) === positionKey(firstTarget)
+    ? owner
+    : undefined;
+}
+
 /** The node a keyed item's panels sit in (a Tab's Tabs, a Step's Stepper), if it has one. */
 export function catalogPanelOwnerOf(
   draft: CommandDraft,
@@ -317,6 +348,10 @@ export function catalogPanelOwnerOf(
   const pair = PANEL_PAIRS[positionType(draft, item)];
   if (!pair) return undefined;
   let owner = parentOf(draft, item);
+  if (pair.owner === "Stepper")
+    return owner && positionType(draft, owner) === "StepList"
+      ? stepperOfList(draft, owner)
+      : undefined;
   while (
     owner &&
     owner.kind !== "page" &&
@@ -343,20 +378,22 @@ export function catalogPairedTabPanels(
   if (key === undefined) return [];
   const tabs = catalogPanelOwnerOf(draft, tab);
   if (!tabs) return [];
-  const hosts = [
-    tabs,
-    ...childPositions(draft, tabs).filter(
-      (child) =>
-        !!pair.panelsHost && positionType(draft, child) === pair.panelsHost,
-    ),
-  ];
-  return hosts
-    .flatMap((host) => childPositions(draft, host))
-    .filter(
-      (child) =>
-        positionType(draft, child) === pair.panel &&
-        keyOf(readProp(draft.reader, child, "itemId")) === key,
-    );
+  const candidates =
+    pair.owner === "Stepper"
+      ? stepperParts(draft, tabs)
+      : [
+          tabs,
+          ...childPositions(draft, tabs).filter(
+            (child) =>
+              !!pair.panelsHost &&
+              positionType(draft, child) === pair.panelsHost,
+          ),
+        ].flatMap((host) => childPositions(draft, host));
+  return candidates.filter(
+    (child) =>
+      positionType(draft, child) === pair.panel &&
+      keyOf(readProp(draft.reader, child, "itemId")) === key,
+  );
 }
 
 /**
@@ -563,20 +600,17 @@ export const insertCollectionItem =
       input.after,
     );
     // (A StepList's Steps have panels only inside a Stepper — ADR-321 Phase 3.)
-    if (
-      family.panels &&
-      (family.item !== "Step" ||
-        (() => {
-          const owner = parentOf(draft, input.host);
-          return !!owner && positionType(draft, owner) === "Stepper";
-        })())
-    ) {
-      const owner = parentOf(draft, input.host);
-      const panels = owner
-        ? childPositions(draft, owner).find(
-            (child) => positionType(draft, child) === "TabPanels",
-          )
-        : undefined;
+    if (family.panels) {
+      const owner =
+        family.item === "Step"
+          ? stepperOfList(draft, input.host)
+          : parentOf(draft, input.host);
+      const panels =
+        owner && family.item === "Tab"
+          ? childPositions(draft, owner).find(
+              (child) => positionType(draft, child) === "TabPanels",
+            )
+          : undefined;
       const panelHost = panels ?? owner;
       if (panelHost) {
         if (!input.panel) fail("TAB_PANEL_REQUIRED", positionId(input.host));

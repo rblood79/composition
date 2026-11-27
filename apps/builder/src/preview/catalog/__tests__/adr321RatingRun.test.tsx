@@ -38,7 +38,7 @@ async function open(
   variables: Record<string, string> = {},
 ) {
   vi.spyOn(console, "warn").mockImplementation(() => {});
-  const h = await openAdr280Preview([type, "Button", "Text"]);
+  const h = await openAdr280Preview([type, "Button", "Text", "Button"]);
   const [target, button, text] = h.ids as [NodeId, NodeId, NodeId];
   const { workspace } = h;
   const graph = workspace.runtime.graph;
@@ -110,7 +110,18 @@ async function open(
     act(() => {
       fireEvent.click(h.element(button)!);
     });
-  return { ...h, target, box, loaded, stars, input, state, press, named };
+  return {
+    ...h,
+    target,
+    box,
+    loaded,
+    stars,
+    input,
+    state,
+    press,
+    named,
+    variable,
+  };
 }
 
 const FILLS = {
@@ -186,6 +197,7 @@ describe("ADR-321 G5 — Rating 의 실행 (Preview)", () => {
     await vi.waitFor(() => expect(h.box().getAttribute("role")).toBe("group"));
     expect(h.stars()).toEqual(FILLS[4]);
     expect(h.input().value).toBe("4");
+    expect(h.state()).toBe("stars=4");
     h.view.unmount();
   });
 
@@ -208,6 +220,69 @@ describe("ADR-321 G5 — Rating 의 실행 (Preview)", () => {
     h.press();
     await vi.waitFor(() => expect(h.input().value).toBe("3"));
     expect(h.state()).toBe("stars=3");
+    h.view.unmount();
+  });
+
+  it("값 쓰기 전 모드를 바꿔도 이름 붙인 값이 작성된 시작 값을 따른다", async () => {
+    const h = await open("Rating", 0, { defaultValue: 3.5, isReadOnly: true });
+    await h.loaded();
+    expect(h.state()).toBe("stars=3.5");
+    h.declare(h.target, { isReadOnly: false });
+    await vi.waitFor(() => expect(h.input()?.value).toBe("4"));
+    expect(h.state()).toBe("stars=4");
+    h.declare(h.target, { isReadOnly: true, defaultValue: 2.5 });
+    await vi.waitFor(() =>
+      expect(h.box().getAttribute("aria-valuenow")).toBe("2.5"),
+    );
+    expect(h.state()).toBe("stars=2.5");
+    h.view.unmount();
+  });
+
+  it("현재 별점을 읽는 읽기 전용 조건", async () => {
+    const h = await open("Rating", 0, { defaultValue: 3.5 });
+    await h.loaded();
+    expect(h.state()).toBe("stars=4");
+    h.declare(h.target, {
+      isReadOnly: {
+        kind: "when",
+        subject: `!var.${h.named.id}`,
+        op: "equals",
+        value: 4,
+      },
+    });
+    await vi.waitFor(() => expect(h.box().getAttribute("role")).toBe("meter"));
+    expect(h.box().getAttribute("aria-valuenow")).toBe("4");
+    expect(h.state()).toBe("stars=4");
+    h.view.unmount();
+  });
+
+  it("실행 중 버튼으로 읽기 전용 조건을 해제", async () => {
+    const h = await open("Rating", 3.5, { name: "score" }, { mode: "summary" });
+    const mode = h.variable("mode").id;
+    h.declare(h.target, {
+      isReadOnly: {
+        kind: "when",
+        subject: `!var.${mode}`,
+        op: "equals",
+        value: "summary",
+      },
+    });
+    h.rule(h.ids[3]!, "onPress", {
+      opcode: "setState",
+      variableId: mode,
+      op: "set",
+      value: "edit",
+    } as never);
+    await vi.waitFor(() => expect(h.box().getAttribute("role")).toBe("meter"));
+    h.press();
+    expect(h.box().getAttribute("aria-valuenow")).toBe("3.5");
+    expect(h.state()).toBe("stars=3.5");
+    act(() => {
+      fireEvent.click(h.element(h.ids[3]!)!);
+    });
+    await vi.waitFor(() => expect(h.input()?.value).toBe("4"));
+    expect(h.stars()).toEqual(FILLS[4]);
+    expect(h.state()).toBe("stars=4");
     h.view.unmount();
   });
 });

@@ -20,6 +20,25 @@
  */
 
 /**
+ * ADR-256 G2 — a layout frame the author puts around a field's parts is a plain element with no
+ * RAC context of its own: the parts inside it stay in the field's context (RAC passes context
+ * through any element). The field's part lookups go through it.
+ */
+// ADR-259 Phase 3: a field's label row (FieldLabel — S2's plain `div`) too: the Label in it stays
+//   the field's label (its necessity mark, its text owner, the field context).
+// 2026-11-18: a Disclosure's title row (S2 `DisclosureHeader` — a plain `div`) too: its Heading and
+//   trigger stay the Disclosure's.
+// 2026-11-18: a Slider's label container · field input (S2 `labelContainer` · `fieldInput()` — plain
+//   `div`s) too: the label, value text and track in them stay the Slider's.
+export const PART_FRAME_TYPES: ReadonlySet<string> = new Set([
+  "frame",
+  "FieldLabel",
+  "DisclosureHeader",
+  "SliderLabelContainer",
+  "SliderFieldInput",
+]);
+
+/**
  * - `structural`: 자식을 담는 레이아웃 그릇 (drop 대상 · padding 편집 대상).
  * - `collection`: item 만 읽는 진짜 컬렉션 — 레이아웃 래퍼도 못 들어간다 (RAC collection 은 직계
  *   자식을 item 으로 해석한다). 그 밖의 합성 컨테이너 (RadioGroup · Slider · Tabs …) 는 context
