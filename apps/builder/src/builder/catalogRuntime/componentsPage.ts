@@ -55,6 +55,7 @@ import {
   componentPageNodeId,
   isComponentPageNode,
   themeSampleId,
+  catalogSlotDrawsOwnContent,
 } from "./originView";
 import { completeChartCreationPropsSync } from "@composition/rendering";
 import {
@@ -432,6 +433,8 @@ function originSlots(graph: CatalogGraph, originId: LibraryDefinitionId) {
       : undefined;
   const slots: {
     name: string;
+    /** It draws its own content while empty (`catalogSlotDrawsOwnContent`): no slot box. */
+    ownContent: boolean;
     path: LibraryTemplateId[];
     contents: LibraryTemplateId[][];
   }[] = [];
@@ -441,6 +444,7 @@ function originSlots(graph: CatalogGraph, originId: LibraryDefinitionId) {
     if (node.slot)
       slots.push({
         name: node.slot.name,
+        ownContent: catalogSlotDrawsOwnContent(node.props),
         path,
         contents: node.children.map((child) => [
           ...path,
@@ -1055,7 +1059,7 @@ export function catalogComponentsPageEntries(
     const unfilled = (slot: (typeof slots)[number]) =>
       slot.contents.length === 0;
     const slotPatches = slots.flatMap((slot) => [
-      ...(slot.path.length === 1 || !unfilled(slot)
+      ...(slot.path.length === 1 || !unfilled(slot) || slot.ownContent
         ? []
         : [
             {

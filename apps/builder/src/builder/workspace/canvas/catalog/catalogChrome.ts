@@ -1,4 +1,5 @@
 import {
+  catalogSlotDrawsOwnContent,
   isComponentsView,
   originOfSample,
 } from "../../../catalogRuntime/originView";
@@ -70,6 +71,10 @@ export function catalogSlotMarks(
       ? record.children.every(undrawn)
       : record.children.length === 0;
     if (!view && !empty) continue;
+    // (A Library ◆'s slot that draws its own content while empty — a Select's placeholder — is
+    // not an empty place: user 2026-11-27.)
+    if (components && empty && catalogSlotDrawsOwnContent(record.props))
+      continue;
     // An empty slot of no height has no visible part to clip: its own box (the band shows it).
     const own = bounds.get(record.id);
     const box = view

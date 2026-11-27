@@ -74,6 +74,16 @@ export {
   componentPageNodeId,
 };
 
+/**
+ * A declared slot that draws content of its own while it holds nothing — its own text (a Select's
+ * value slot shows the placeholder: S2 `renderValue` unset). The Library card neither boxes nor
+ * hatches it as an empty place (user 2026-11-27).
+ */
+export const catalogSlotDrawsOwnContent = (
+  props: Readonly<Record<string, unknown>> | undefined,
+): boolean =>
+  typeof props?.children === "string" && props.children.trim() !== "";
+
 /** The origin a Components page node is the editable sample of. */
 export const originOfEditableSample = originOfSample;
 

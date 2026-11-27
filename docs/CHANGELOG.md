@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Library 카드 — Select placeholder 자리의 빗금 제거] - 2026-11-27
+
+### Fixed
+
+- **Select ◆ 원본의 값 칸**: Library 의 Select 카드가 placeholder 자리를 160 × 40 빗금 상자로 덮지 않고 「Choose an option...」 을 원래 크기로 그린다 (Select 를 품은 다른 원본 안의 값 칸도 같다).
+  - **Why**: S2 `renderValue` 를 옮기며 (`a581078d3`) SelectValue 가 `value` slot 이 됐는데, ◆ 카드는 비어 있는 slot 을 모두 「채울 빈 자리」 로 상자 · 빗금 처리했다. 이 slot 은 비어 있어도 placeholder 를 그린다 — 비어 있을 때 자기 글자를 그리는 slot 은 상자 · 빗금에서 뺀다 (`catalogSlotDrawsOwnContent`).
+  - live (Builder 5174 새 프로젝트 → Library, Chrome): Select 카드에 빗금 없음 · Select 선택 412 × 60. 다른 빈 slot 의 빗금 58 개는 그대로 (단위).
+  - 위치: `catalogRuntime/originView.ts` · `catalogRuntime/componentsPage.ts` · `workspace/canvas/catalog/catalogChrome.ts` · 회귀 `catalogRuntime/__tests__/librarySlotFallback.test.ts`
+
 ## [Library 카드 — 원본 옆 「채운 instance」 제거 (모든 카드)] - 2026-11-27
 
 ### Changed
