@@ -368,27 +368,6 @@ const CatalogFields = memo(function CatalogFields({
     // its reusable schema, no child fields of its own.)
     return fields;
   }, [contract, ownerDecided, groupFields]);
-  // (A picker's calendar keeps its own notice — it names what the picker edits.)
-  const decidedLabels = ownerDecided
-    ? contract.fields
-        .filter(
-          (field) =>
-            field.origin === "semantic" && ownerDecided.keys.has(field.key),
-        )
-        .map((field) => field.label)
-    : [];
-  const ownerNotice =
-    ownerDecided && !calendarPicker && decidedLabels.length ? (
-      <p
-        className="item-origin-notice"
-        data-owner-decided-notice={ownerDecided.owner}
-      >
-        {t("propertiesPanel.ownerDecidedNotice", {
-          owner: ownerDecided.owner,
-          fields: decidedLabels.join(" · "),
-        })}
-      </p>
-    ) : null;
   const bindingKeys = useMemo(
     () =>
       new Set(
@@ -565,31 +544,30 @@ const CatalogFields = memo(function CatalogFields({
     elementType: contract.type,
     contractFields: contract.fields,
     semanticFields,
-    contentExtras: withOwnerNotice(
-      ownerNotice,
-      isCalendar ? (
-        <>
-          {calendarPicker ? (
-            <p
-              className="item-origin-notice"
-              data-calendar-picker-notice={calendarPicker}
-            >
-              {t("propertiesPanel.calendarPickerNotice", {
-                picker: calendarPicker,
-              })}
-            </p>
-          ) : null}
-          <CatalogCalendarHeaderField elementId={elementId} />
-        </>
-      ) : CATALOG_CONTEXTUAL_HELP_FIELDS.has(contract.type ?? "") ? (
-        <>
-          <CatalogContextualHelpField elementId={elementId} />
-          {CATALOG_PREFIX_FIELDS.has(contract.type ?? "") ? (
-            <CatalogFieldPrefixField elementId={elementId} />
-          ) : null}
-        </>
-      ) : undefined,
-    ),
+    // (No 「edited on the <owner>」 notice — 사용자 2026-11-28 「content section 에 item-origin-notice 는
+    //  불필요」: the owner-decided fields are already not shown here.)
+    contentExtras: isCalendar ? (
+      <>
+        {calendarPicker ? (
+          <p
+            className="item-origin-notice"
+            data-calendar-picker-notice={calendarPicker}
+          >
+            {t("propertiesPanel.calendarPickerNotice", {
+              picker: calendarPicker,
+            })}
+          </p>
+        ) : null}
+        <CatalogCalendarHeaderField elementId={elementId} />
+      </>
+    ) : CATALOG_CONTEXTUAL_HELP_FIELDS.has(contract.type ?? "") ? (
+      <>
+        <CatalogContextualHelpField elementId={elementId} />
+        {CATALOG_PREFIX_FIELDS.has(contract.type ?? "") ? (
+          <CatalogFieldPrefixField elementId={elementId} />
+        ) : null}
+      </>
+    ) : undefined,
     onPatch: handlePatch,
     isRefInstance,
   });
@@ -777,18 +755,4 @@ function withFixedSections(
       );
   }
   return out;
-}
-
-/** The owner's notice above a section's own extra fields. */
-function withOwnerNotice(
-  notice: ReactNode,
-  extras: ReactNode,
-): ReactNode | undefined {
-  if (!notice) return extras ?? undefined;
-  return (
-    <>
-      {notice}
-      {extras}
-    </>
-  );
 }

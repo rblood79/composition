@@ -167,7 +167,8 @@ describe("ADR-248 Phase 4e-4e item roles", () => {
     ).toHaveLength(1);
   });
 
-  it("the Properties section shows the item's roles; the icon switch hides it (one step)", async () => {
+  it("the Properties section edits the item's roles in place — no switch; the icon's ✕ hides it (one step); the required label is its text", async () => {
+    // (사용자 2026-11-28 — 「switch 제거, menuitem 에 바로」 · 「label - required 는 프로퍼티에서 제거」.)
     const { workspace, graph } = await open("ListBox");
     const item = firstItem(graph);
     expect(workspace.positionOfRecord(item.identity)?.identity).toBe(
@@ -180,19 +181,36 @@ describe("ADR-248 Phase 4e-4e item roles", () => {
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
-    const icon = screen.getByRole("switch", { name: /icon/i });
-    expect((icon as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryAllByRole("switch")).toHaveLength(0);
+    expect(screen.queryByText("Required")).toBeNull();
+    const iconRow = catalogItemRoles(graph, item)!.rows.find(
+      (row) => row.role === "icon",
+    )!;
+    expect(iconRow.enabled).toBe(true);
     const depth = workspace.runtime.historyDepth.undo;
     act(() => {
-      fireEvent.click(icon);
+      fireEvent.click(screen.getByRole("button", { name: /clear icon/i }));
     });
     expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
     expect(
-      (screen.getByRole("switch", { name: /icon/i }) as HTMLInputElement)
-        .checked,
+      catalogItemRoles(graph, item)!.rows.find((row) => row.role === "icon")!
+        .enabled,
     ).toBe(false);
-    expect(
-      document.querySelector('[data-item-role="label"]'),
-    ).not.toBeNull();
+    const labelField = screen.getByRole("group", { name: /^label$/i });
+    const labelInput = labelField.querySelector("input")!;
+    expect(labelInput.value).not.toBe("");
+    const before = labelInput.value;
+    const undoBefore = workspace.runtime.historyDepth.undo;
+    act(() => {
+      fireEvent.change(labelInput, { target: { value: "" } });
+      fireEvent.blur(labelInput);
+    });
+    expect(workspace.runtime.historyDepth.undo).toBe(undoBefore);
+    act(() => {
+      fireEvent.change(labelInput, { target: { value: "Renamed" } });
+      fireEvent.blur(labelInput);
+    });
+    expect(workspace.runtime.historyDepth.undo).toBe(undoBefore + 1);
+    expect(before).not.toBe("Renamed");
   });
 });

@@ -492,33 +492,32 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
 
   return (
     <PropertySection title="Component">
+      {/* (The name chip and the action strip stand straight in the section content — a
+          `.fieldset-row` holds fieldsets only; 사용자 2026-11-28 「fieldset-row 가 fieldset 이 아니라
+          버튼과 버튼 줄을 감싸고 있다 — 고쳐」.) */}
       {component && instanceOf && nodeId && !originOf ? (
-        <div className="fieldset-row">
-          <CatalogSwapPicker
-            key={nodeId}
-            nodeId={nodeId}
-            name={component.name}
-            onSwap={swap}
-          />
-        </div>
+        <CatalogSwapPicker
+          key={nodeId}
+          nodeId={nodeId}
+          name={component.name}
+          onSwap={swap}
+        />
       ) : (
         component && (
-          <div className="fieldset-row">
-            <div
-              className="component-semantics-identity"
-              data-role={instanceOf ? "instance" : "origin"}
+          <div
+            className="component-semantics-identity"
+            data-role={instanceOf ? "instance" : "origin"}
+          >
+            <ComponentIcon aria-hidden="true" size={14} />
+            <span
+              className="component-semantics-identity-name"
+              title={component.name}
             >
-              <ComponentIcon aria-hidden="true" size={14} />
-              <span
-                className="component-semantics-identity-name"
-                title={component.name}
-              >
-                {component.name}
-              </span>
-              <span className="component-semantics-identity-role">
-                {instanceOf ? t("properties.instance") : t("properties.origin")}
-              </span>
-            </div>
+              {component.name}
+            </span>
+            <span className="component-semantics-identity-role">
+              {instanceOf ? t("properties.instance") : t("properties.origin")}
+            </span>
           </div>
         )
       )}
@@ -537,82 +536,80 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           definitionId={originOf.definitionId as LibraryDefinitionId}
         />
       )}
-      <div className="fieldset-row">
-        <div className="component-semantics-strip">
-          {instanceOf && (
-            <ActionTooltipTrigger tooltip={t("componentAction.goToOrigin")}>
-              <RACButton
-                aria-label={t("componentAction.goToOrigin")}
-                className="control-button"
-                data-icon-only="true"
-                onPress={() =>
-                  workspace.showDefinition(
-                    instanceOf.definitionId as CatalogDefinitionViewId,
-                  )
-                }
-              >
-                <ACTION_ICONS.goToOrigin
-                  aria-hidden="true"
-                  size={iconProps.size}
-                />
-              </RACButton>
-            </ActionTooltipTrigger>
-          )}
-          {instanceOf && nodeId && (
-            <ActionTooltipTrigger
-              shortcutId="detachInstance"
-              tooltip={t("componentAction.detachInstance")}
+      <div className="component-semantics-strip">
+        {instanceOf && (
+          <ActionTooltipTrigger tooltip={t("componentAction.goToOrigin")}>
+            <RACButton
+              aria-label={t("componentAction.goToOrigin")}
+              className="control-button"
+              data-icon-only="true"
+              onPress={() =>
+                workspace.showDefinition(
+                  instanceOf.definitionId as CatalogDefinitionViewId,
+                )
+              }
             >
-              <RACButton
-                aria-label={t("componentAction.detachInstance")}
-                className="control-button"
-                data-icon-only="true"
-                onPress={detach}
-              >
-                <ACTION_ICONS.detach aria-hidden="true" size={iconProps.size} />
-              </RACButton>
-            </ActionTooltipTrigger>
-          )}
-          {/* The origin's instances (an instance itself has none to pick — old app's rule). */}
-          {originOf && originOf.instanceIds.length > 0 && (
-            <ActionTooltipTrigger
-              tooltip={t("componentAction.selectInstances", {
-                count: originOf.instanceIds.length,
-              })}
-            >
-              <RACButton
-                aria-label={t("componentAction.selectInstances", {
-                  count: originOf.instanceIds.length,
-                })}
-                className="control-button"
-                data-icon-only="true"
-                onPress={selectInstances}
-              >
-                <Diamond aria-hidden="true" size={iconProps.size} />
-                <span aria-hidden="true" className="component-semantics-count">
-                  {originOf.instanceIds.length}
-                </span>
-              </RACButton>
-            </ActionTooltipTrigger>
-          )}
-          {/* Dissolving is the origin's (it detaches every instance) — an instance has its own
-              Detach instance (user 2026-10-14: a second detach after Create component). */}
-          {originOf?.project && (
-            <RACButton className="control-button" onPress={dissolve}>
-              <ACTION_ICONS.delete aria-hidden="true" size={iconProps.size} />
-              {t("componentAction.deleteComponent")}
-            </RACButton>
-          )}
-          {!originOf && nodeId && (
-            <RACButton className="control-button" onPress={create}>
-              <ACTION_ICONS.createComponent
+              <ACTION_ICONS.goToOrigin
                 aria-hidden="true"
                 size={iconProps.size}
               />
-              {t("componentAction.createComponent")}
             </RACButton>
-          )}
-        </div>
+          </ActionTooltipTrigger>
+        )}
+        {instanceOf && nodeId && (
+          <ActionTooltipTrigger
+            shortcutId="detachInstance"
+            tooltip={t("componentAction.detachInstance")}
+          >
+            <RACButton
+              aria-label={t("componentAction.detachInstance")}
+              className="control-button"
+              data-icon-only="true"
+              onPress={detach}
+            >
+              <ACTION_ICONS.detach aria-hidden="true" size={iconProps.size} />
+            </RACButton>
+          </ActionTooltipTrigger>
+        )}
+        {/* The origin's instances (an instance itself has none to pick — old app's rule). */}
+        {originOf && originOf.instanceIds.length > 0 && (
+          <ActionTooltipTrigger
+            tooltip={t("componentAction.selectInstances", {
+              count: originOf.instanceIds.length,
+            })}
+          >
+            <RACButton
+              aria-label={t("componentAction.selectInstances", {
+                count: originOf.instanceIds.length,
+              })}
+              className="control-button"
+              data-icon-only="true"
+              onPress={selectInstances}
+            >
+              <Diamond aria-hidden="true" size={iconProps.size} />
+              <span aria-hidden="true" className="component-semantics-count">
+                {originOf.instanceIds.length}
+              </span>
+            </RACButton>
+          </ActionTooltipTrigger>
+        )}
+        {/* Dissolving is the origin's (it detaches every instance) — an instance has its own
+            Detach instance (user 2026-10-14: a second detach after Create component). */}
+        {originOf?.project && (
+          <RACButton className="control-button" onPress={dissolve}>
+            <ACTION_ICONS.delete aria-hidden="true" size={iconProps.size} />
+            {t("componentAction.deleteComponent")}
+          </RACButton>
+        )}
+        {!originOf && nodeId && (
+          <RACButton className="control-button" onPress={create}>
+            <ACTION_ICONS.createComponent
+              aria-hidden="true"
+              size={iconProps.size}
+            />
+            {t("componentAction.createComponent")}
+          </RACButton>
+        )}
       </div>
       {/* ADR-261 Phase 5: the instance's swap properties (a nested instance's component). */}
       {instanceOf && <CatalogInstancePropertiesRows target={target} />}

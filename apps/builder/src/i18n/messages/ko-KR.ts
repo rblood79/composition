@@ -1204,7 +1204,6 @@ const catalog: TranslationKeys = {
     numberFormatInvalid: "이 서식이 받지 않는 값입니다",
     calendarPickerNotice:
       "상태 · 범위 · 페이지 동작 · 첫 요일은 {picker} 에서 편집합니다",
-    ownerDecidedNotice: "{owner} 에서 편집합니다 — {fields}",
     stateName: "이름",
     stateType: "유형",
     stateDefault: "기본값",
@@ -1353,17 +1352,16 @@ const catalog: TranslationKeys = {
     slotRecommendations: "추천 {count}개",
     slotEnable: "슬롯 켜기",
     slotDisable: "슬롯 끄기",
-    itemRolesSection: "항목 역할",
     cardFieldsSection: "항목 필드",
     itemOriginSection: "항목 원본",
     itemOriginNotice: "이 원본을 쓰는 카드 전체에 적용됩니다.",
-    itemRoleRequired: "필수",
     itemRoleAdd: "역할 추가",
     itemRoleIcon: "아이콘",
     itemRoleAvatar: "아바타",
     itemRoleLabel: "레이블",
     itemRoleDescription: "설명",
     itemRoleShortcut: "단축키",
+    shortcutKey: "키",
     roleInstanceOrigin: "인스턴스 · 원본",
     stateVariantSelected: "선택됨",
     stateVariantUnselected: "선택 안 됨",
@@ -3904,8 +3902,6 @@ const formattedMessages: Record<
     `ID "${String(args?.id ?? "")}" 를 지정했습니다`,
   "propertiesPanel.calendarPickerNotice": (args) =>
     `상태 · 범위 · 페이지 동작 · 첫 요일은 ${String(args?.picker ?? "")} 에서 편집합니다`,
-  "propertiesPanel.ownerDecidedNotice": (args) =>
-    `${String(args?.owner ?? "")} 에서 편집합니다 — ${String(args?.fields ?? "")}`,
   "propertiesPanel.resetField": (args) =>
     `${String(args?.labels ?? "")} 기본값으로`,
   "fonts.deleteFace": (args) =>

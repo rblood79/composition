@@ -201,60 +201,52 @@ export const CatalogComponentPropertiesSection = memo(
             />
           ))}
         {(textProp || canBoolean || canInstance || view.isRoot) && (
-          <div className="fieldset-row">
-            <div className="component-semantics-strip">
-              {textProp && (
+          <div className="component-semantics-strip">
+            {textProp && (
+              <RACButton
+                className="control-button"
+                onPress={() => create("text")}
+              >
+                <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                {t("propertiesPanel.componentPropertyText")}
+              </RACButton>
+            )}
+            {canBoolean && (
+              <RACButton
+                className="control-button"
+                onPress={() => create("boolean")}
+              >
+                <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                {t("propertiesPanel.componentPropertyBoolean")}
+              </RACButton>
+            )}
+            {canInstance && (
+              <RACButton
+                className="control-button"
+                onPress={() => create("instance")}
+              >
+                <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                {t("propertiesPanel.componentPropertyInstance")}
+              </RACButton>
+            )}
+            {view.isRoot && (
+              <>
                 <RACButton
                   className="control-button"
-                  onPress={() => create("text")}
+                  onPress={() => createOutput("event")}
                 >
                   <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
-                  {t("propertiesPanel.componentPropertyText")}
+                  {t("propertiesPanel.componentPropertyEvent")}
                 </RACButton>
-              )}
-              {canBoolean && (
                 <RACButton
                   className="control-button"
-                  onPress={() => create("boolean")}
+                  onPress={() => createOutput("variable")}
                 >
                   <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
-                  {t("propertiesPanel.componentPropertyBoolean")}
+                  {t("propertiesPanel.componentPropertyVariable")}
                 </RACButton>
-              )}
-              {canInstance && (
-                <RACButton
-                  className="control-button"
-                  onPress={() => create("instance")}
-                >
-                  <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
-                  {t("propertiesPanel.componentPropertyInstance")}
-                </RACButton>
-              )}
-              {view.isRoot && (
-                <>
-                  <RACButton
-                    className="control-button"
-                    onPress={() => createOutput("event")}
-                  >
-                    <ACTION_ICONS.add
-                      aria-hidden="true"
-                      size={iconProps.size}
-                    />
-                    {t("propertiesPanel.componentPropertyEvent")}
-                  </RACButton>
-                  <RACButton
-                    className="control-button"
-                    onPress={() => createOutput("variable")}
-                  >
-                    <ACTION_ICONS.add
-                      aria-hidden="true"
-                      size={iconProps.size}
-                    />
-                    {t("propertiesPanel.componentPropertyVariable")}
-                  </RACButton>
-                </>
-              )}
-            </div>
+              </>
+            )}
           </div>
         )}
         {applyOptions.length > 0 && (

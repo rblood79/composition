@@ -1205,7 +1205,6 @@ const catalog: TranslationKeys = {
     numberFormatInvalid: "Not a value this format takes",
     calendarPickerNotice:
       "State, bounds, page behavior and first day are edited on the {picker}",
-    ownerDecidedNotice: "{fields}: edited on the {owner}",
     stateName: "Name",
     stateType: "Type",
     stateDefault: "Default value",
@@ -1353,17 +1352,16 @@ const catalog: TranslationKeys = {
     slotRecommendations: "{count} recommendations",
     slotEnable: "Enable slot",
     slotDisable: "Disable slot",
-    itemRolesSection: "Item roles",
     cardFieldsSection: "Item fields",
     itemOriginSection: "Item origin",
     itemOriginNotice: "Changes apply to every card that uses this origin.",
-    itemRoleRequired: "Required",
     itemRoleAdd: "Add role",
     itemRoleIcon: "Icon",
     itemRoleAvatar: "Avatar",
     itemRoleLabel: "Label",
     itemRoleDescription: "Description",
     itemRoleShortcut: "Shortcut",
+    shortcutKey: "Key",
     roleInstanceOrigin: "Instance · Origin",
     stateVariantSelected: "Selected",
     stateVariantUnselected: "Unselected",
@@ -3913,8 +3911,6 @@ const formattedMessages: Record<
     `ID set to "${String(args?.id ?? "")}"`,
   "propertiesPanel.calendarPickerNotice": (args) =>
     `State, bounds, page behavior and first day are edited on the ${String(args?.picker ?? "")}`,
-  "propertiesPanel.ownerDecidedNotice": (args) =>
-    `${String(args?.fields ?? "")}: edited on the ${String(args?.owner ?? "")}`,
   "propertiesPanel.resetField": (args) =>
     `Reset ${String(args?.labels ?? "")} to default`,
   "fonts.deleteFace": (args) =>

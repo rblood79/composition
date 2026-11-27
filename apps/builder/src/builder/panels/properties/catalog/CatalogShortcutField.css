@@ -1,0 +1,20 @@
+/* MenuItem Shortcut — the key is the row's action cell (28, like Size's glyph-size action):
+   its legend 「Key」 above one centred character; the seg takes columns 1–2 (사용자 2026-11-28 「key 열 shortcut 우측
+   액션버튼 영역으로」). */
+.section .fieldset-actions.actions-shortcut-key {
+  > .properties-aria {
+    inline-size: var(--control-size);
+    min-width: 0;
+  }
+
+  .react-aria-Group {
+    padding-inline: 0;
+  }
+
+  .react-aria-Input {
+    min-width: 0;
+    inline-size: 100%;
+    padding-inline: 0;
+    text-align: center;
+  }
+}

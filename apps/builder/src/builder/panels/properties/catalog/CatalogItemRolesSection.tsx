@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, type ReactNode } from "react";
 import type { SlotRole } from "@composition/shared";
 import { useI18n } from "@/i18n";
 import {
@@ -10,9 +10,11 @@ import {
   useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { CatalogPropertyGroup } from "./CatalogPropertyGroup";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
+import { CatalogItemIconField } from "./CatalogItemIconField";
+import { CatalogItemTextField } from "./CatalogItemTextField";
+import { CatalogShortcutField } from "./CatalogShortcutField";
 
 const ROLE_LABEL_KEY: Partial<Record<SlotRole, string>> = {
   icon: "propertiesPanel.itemRoleIcon",
@@ -23,9 +25,10 @@ const ROLE_LABEL_KEY: Partial<Record<SlotRole, string>> = {
 };
 
 /**
- * ADR-248 Phase 4e-4e: the item roles section over the catalog document (the old
- * ItemSlotRolesSection's instance surface) — a collection item's optional roles switch on and off,
- * the required label is listed without a switch. Each switch is one step.
+ * ADR-248 Phase 4e-4e: the item roles over the catalog document (the old ItemSlotRolesSection's
+ * instance surface) — 사용자 2026-11-28: each role is edited in place (icon picker · label ·
+ * description text · shortcut toggles + key), a role shows while it has a value; only a role
+ * without a field of its own (avatar) keeps its switch. Each edit is one step.
  */
 export const CatalogItemRolesSection = memo(function CatalogItemRolesSection({
   identity,
@@ -50,25 +53,34 @@ export const CatalogItemRolesSection = memo(function CatalogItemRolesSection({
     const key = ROLE_LABEL_KEY[role];
     return key ? t(key as never) : role;
   };
+  // (Each role is a field of the section like Content's — `.fieldset-row` › `fieldset` straight
+  //  under the section content, no group fieldset around them; 사용자 2026-11-28 「children 구조가
+  //  다른 fieldset 구조 패턴과 다르다」. The shortcut's toggles are a seg row like Size.)
+  const wide = (key: string, field: ReactNode) => (
+    <div className="fieldset-row" data-wide="true" key={key}>
+      {field}
+    </div>
+  );
   return (
-    <CatalogPropertyGroup
-      group="item-roles"
-      title={t("propertiesPanel.itemRolesSection" as never)}
-    >
+    <>
       {roles.rows.map((row) =>
         row.required ? (
-          <div
-            className="list-row item-role-row"
-            data-item-role={row.role}
-            key={row.role}
-          >
-            <div className="list-row__body">
-              <span className="list-row__label">{label(row.role)}</span>
-            </div>
-            <span className="list-row__meta">
-              {t("propertiesPanel.itemRoleRequired" as never)}
-            </span>
-          </div>
+          wide(
+            row.role,
+            <CatalogItemTextField row={row} label={label(row.role)} required />,
+          )
+        ) : row.role === "shortcut" ? (
+          <CatalogShortcutField key={row.role} row={row} />
+        ) : row.role === "icon" ? (
+          wide(
+            row.role,
+            <CatalogItemIconField row={row} label={label(row.role)} />,
+          )
+        ) : row.role === "description" ? (
+          wide(
+            row.role,
+            <CatalogItemTextField row={row} label={label(row.role)} />,
+          )
         ) : (
           <PropertySwitch
             key={row.role}
@@ -79,6 +91,6 @@ export const CatalogItemRolesSection = memo(function CatalogItemRolesSection({
           />
         ),
       )}
-    </CatalogPropertyGroup>
+    </>
   );
 });

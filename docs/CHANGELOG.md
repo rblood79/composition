@@ -13,6 +13,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [MenuItem 항목 역할 — 스위치 없이 바로 편집 · 단축키 수식키 토글 · 패널 행 구조] - 2026-11-28
+
+### Changed
+
+- **항목 역할 (Menu · ActionMenu · ListBox 등의 항목) 을 스위치 없이 그 자리에서 고친다** (사용자 결정): Icon 은 아이콘 고르기 칸 (고르면 보이고 ✕ 는 숨김), Description 은 글자 칸 (쓰면 보이고 비우면 숨김), Label 은 글자 칸 (「Required」 줄 대신 — 빈 글자는 쓰지 않는다). 각 편집은 Undo 한 번.
+- **Shortcut = 운영체제별 수식키 토글 + Key 칸**: macOS 는 `⌃ ⌥ ⇧ ⌘` (Apple 순서로 `⇧⌘K`), 그 밖은 `Ctrl · Alt · Shift` (`Ctrl+Shift+K`). 수식키를 하나도 고르지 않으면 단축키가 꺼진다. 토글은 Menu 의 Size · Selection mode 와 같은 seg 모양이고 Key 칸은 같은 행의 액션 칸 (28) 이다. 문서에는 RAC `Keyboard` 의 글자 하나만 저장한다 — 읽어 낼 수 없는 글자는 자유 글자 칸으로 남는다.
+- **Property 패널 행 구조 정리** (사용자 지적 — 「다른 fieldset 구조 패턴과 다르다」): 항목 역할을 감싸던 「Item roles」 fieldset 을 없애고 각 칸을 `fieldset-row › fieldset` 로, Content 의 「edited on the <부모>」 안내 문단을 뺐다 (부모가 정하는 칸은 원래 패널에 없다). Component 섹션의 이름 칩 · 버튼 줄은 `fieldset-row` 밖에서 섹션 본문에 바로 선다 (`fieldset-row` 는 fieldset 만 담는다).
+  - live (Builder 5173, Chrome · Playwright `menu-shortcut-field-live.mjs` 12/12): Menu · ActionMenu 항목에서 ⌘ ⇧ + k → `⇧⌘K`, 수식키 0 → 꺼짐, ⌥ + p → `⌥P`, Icon 고르기 · ✕ · Description · Label, Publish 메뉴 항목 끝의 단축키 · 설명, 세 섹션의 DOM 구조 (안내 0 · fieldset 겹침 0 · Shortcut 행 = seg + `Key` 액션 칸), Size seg 와 모양 대조 (트랙 · 높이 28 · 버튼 20 · pill).
+  - 위치: `catalogRuntime/shortcutText.ts` · `panels/properties/catalog/{CatalogShortcutField,CatalogItemIconField,CatalogItemTextField,CatalogItemRolesSection,CatalogComponentSection,CatalogComponentPropertiesSection,CatalogPropertiesPanel.components}.tsx` · `components/property/PropertyChipGroup.tsx` (`appearance="seg"`) · 회귀 `shortcutText.test.ts` · `phase4eItemRoles.test.tsx`
+
 ## [Builder 패널 안내 — 저장 · 필터 바 거절 이유 · 묶음 행 메뉴 이름] - 2026-11-28
 
 ### Fixed

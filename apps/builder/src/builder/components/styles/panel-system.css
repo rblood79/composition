@@ -680,9 +680,9 @@
        + 액션 한 줄. 종전 (panel-ui 07, 09-14) 은 액션마다 라벨 + 28 열 아이콘 행이라 인스턴스에서
        3 행이 액션에 쓰였고, 그 전 (08-30) 은 칩 + `.control-button` 툴바였으나 라벨 축을 아이콘으로
        접는 분기가 있었다 — 지금은 인스턴스 축이 처음부터 아이콘 전용이라 분기가 없다.
-       칩·스트립은 인스펙터 3열 격자를 전폭으로 쓴다 (28 열도 포함 — 행 끝 액션이 없다). */
+       칩·스트립은 행 래퍼 없이 섹션 본문에 바로 서서 전폭을 쓴다 (28 열도 포함 — 행 끝 액션이
+       없다; `.fieldset-row` 는 fieldset 만 담는다 — 2026-11-28 사용자 지적). */
     .component-semantics-identity {
-      grid-column: 1 / -1;
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
@@ -767,7 +767,6 @@
     /* 액션 한 줄 — 버튼은 전부 `.control-button` (panel-structure §1: 같은 줄의 아이콘 전용
        보조 버튼은 두 번째 정의가 아니라 폭만 정사각). 순서는 레지스트리 배열 그대로. */
     .component-semantics-strip {
-      grid-column: 1 / -1;
       display: flex;
       /* (ADR-261 Phase 5: three property buttons do not fit the 233px panel — they wrap.) */
       flex-wrap: wrap;

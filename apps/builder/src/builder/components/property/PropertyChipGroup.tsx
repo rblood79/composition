@@ -26,6 +26,8 @@ export interface PropertyChip {
   key: string;
   label: string;
   selected: boolean;
+  /** 칩 글자가 기호일 때의 접근 이름 (단축키 ⌘ → 「Command」). */
+  ariaLabel?: string;
 }
 
 interface PropertyChipGroupProps {
@@ -36,6 +38,12 @@ interface PropertyChipGroupProps {
   /** 칩 하나의 켜짐/꺼짐 — 각 칩은 자기 prop 하나를 쓴다. */
   onToggle: (key: string, selected: boolean) => void;
   className?: string;
+  /**
+   * `seg` — 칩 대신 seg 모양 (`.property-seg` + indicator 트랙 — Size · Selection mode 의
+   * PropertySegment 와 같은 생김새, 여러 개 고르기는 그대로). 짧은 고정 선택지 묶음 (단축키 수식키)
+   * 이 옆 seg 와 같은 모양이 되게 한다 (사용자 2026-11-28 「size, selection mode 와 같은 패턴」).
+   */
+  appearance?: "chips" | "seg";
 }
 
 export const PropertyChipGroup = memo(function PropertyChipGroup({
@@ -44,7 +52,9 @@ export const PropertyChipGroup = memo(function PropertyChipGroup({
   chips,
   onToggle,
   className,
+  appearance = "chips",
 }: PropertyChipGroupProps) {
+  const seg = appearance === "seg";
   const i18n = useOptionalI18n();
   const localize = (text: string) =>
     i18n ? translateKey(i18n.t, semanticLabelKeys[text] ?? text, text) : text;
@@ -63,7 +73,9 @@ export const PropertyChipGroup = memo(function PropertyChipGroup({
   );
 
   return (
-    <fieldset className={`properties-aria property-chips ${className ?? ""}`}>
+    <fieldset
+      className={`properties-aria ${seg ? "property-seg" : "property-chips"} ${className ?? ""}`}
+    >
       {displayLabel ? (
         <legend className="fieldset-legend">{displayLabel}</legend>
       ) : null}
@@ -72,9 +84,15 @@ export const PropertyChipGroup = memo(function PropertyChipGroup({
         selectionMode="multiple"
         selectedKeys={selectedKeys}
         onSelectionChange={handleChange}
+        indicator={seg}
       >
         {chips.map((chip) => (
-          <ToggleButton key={chip.key} id={chip.key} size="S">
+          <ToggleButton
+            key={chip.key}
+            id={chip.key}
+            size={seg ? undefined : "S"}
+            aria-label={chip.ariaLabel}
+          >
             {localize(chip.label)}
           </ToggleButton>
         ))}

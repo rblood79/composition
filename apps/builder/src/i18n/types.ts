@@ -842,7 +842,6 @@ export interface TranslationKeys {
     /** S2 · RAC formatOptions — a currency code · unit the format does not take. */
     numberFormatInvalid: string;
     calendarPickerNotice: string;
-    ownerDecidedNotice: string;
     stateName: string;
     stateType: string;
     stateDefault: string;
@@ -983,19 +982,18 @@ export interface TranslationKeys {
     slotEnable: string;
     slotDisable: string;
     /** ADR-238 — 항목 안 역할 (icon · label · description · shortcut · avatar) on/off 절. */
-    itemRolesSection: string;
     /** ADR-162 Phase 5 — 데이터 GridList 의 카드 (항목 origin) 자식 prop ↔ 컬럼 연결 절. */
     cardFieldsSection: string;
     /** ADR-150 A3' — 선택 요소가 데이터 행 템플릿 origin (또는 그 안쪽) 일 때의 안내 절. */
     itemOriginSection: string;
     itemOriginNotice: string;
-    itemRoleRequired: string;
     itemRoleAdd: string;
     itemRoleIcon: string;
     itemRoleAvatar: string;
     itemRoleLabel: string;
     itemRoleDescription: string;
     itemRoleShortcut: string;
+    shortcutKey: string;
     roleInstanceOrigin: string;
     roleStandard: string;
     /** ADR-230 — 상태 변형 origin 정체 칩의 상태 배지 (읽기 전용 표식). */
