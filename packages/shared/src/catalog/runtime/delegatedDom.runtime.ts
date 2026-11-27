@@ -39,6 +39,15 @@ import {
 } from "./tokenField.components";
 import { catalogFieldBoxInputDomStyle } from "./fieldPrefix";
 import { catalogLucideGlyph } from "./lucideGlyph";
+import {
+  catalogStepSize,
+  STEP_CHECK_ICON,
+  STEP_CHECK_STROKE,
+  STEP_GLYPH_SIZE,
+  STEP_LIST_TYPE,
+} from "../rule/stepList";
+import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
+import { catalogStepListStates, type StepListPatch } from "./stepListState";
 import { isPropVar } from "../document/valueType";
 import {
   CATALOG_COLOR_SWATCH_SELECTION,
@@ -325,6 +334,7 @@ import {
   catalogPickerTimeFieldOf,
   catalogPickerTimeGranularity,
   catalogSliderRange,
+  catalogStepListInput,
   catalogTabsSelection,
   catalogToggleGroupItems,
   catalogToggleGroupOf,
@@ -809,6 +819,15 @@ export function catalogCollectionItemKeys(
   collection: CatalogConsumerNode,
 ): { itemKeys: string[]; disabledKeys: string[] } {
   const type = catalogTypeName(root, collection);
+  // (ADR-321 — a StepList's Steps: not a RAC selection's items, the state rule's keys.)
+  if (type === STEP_LIST_TYPE) {
+    const { keys, disabledKeys = [] } = catalogStepListInput(
+      collection,
+      domGet(root),
+      groupTypeOf(root),
+    );
+    return { itemKeys: [...keys], disabledKeys: [...disabledKeys] };
+  }
   const itemKeys: string[] = [];
   const disabledKeys: string[] = [];
   const visit = (node: CatalogConsumerNode) => {
@@ -826,6 +845,16 @@ export function catalogCollectionItemKeys(
   };
   visit(collection);
   return { itemKeys, disabledKeys };
+}
+
+/** What a StepList starts with: its two keys through the state rule (the Canvas draws the same). */
+function catalogStepListStart(
+  root: CatalogCompositionRoot,
+  list: CatalogConsumerNode,
+) {
+  return catalogStepListStates(
+    catalogStepListInput(list, domGet(root), groupTypeOf(root)),
+  );
 }
 
 /** RAC keeps its first `defaultSelectedKeys`: a changed authored set builds the collection again. */
@@ -4449,6 +4478,83 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         (id) => id !== node.id,
       ),
   },
+  // ADR-321 — a StepList: RAC `Group` (the list's name) `> ol > li > RAC Link`, each step's visual and
+  //  track its own `span`s, placed and painted inline in the step's padding (`catalogStepChromeDom` —
+  //  the anchors · TokenRefs the Canvas draws its shapes from). The list's two state keys are its
+  //  record's runtime values in a running Preview (`catalogRuntimeStateOf` — a press · a rule's Do
+  //  write them), else what it starts with; the state rule gives each step its state
+  //  (`stepList.components.tsx`).
+  steplist: {
+    render: (input) => {
+      const { key, ...markerProps } = marker(input);
+      const props = {
+        ...input.node.props,
+        ...input.runtimeProps?.(input.node.id),
+      } as Record<string, unknown>;
+      const { setRuntimeProps } = input;
+      return createElement(
+        CatalogStepListGroup,
+        {
+          key,
+          rootProps: {
+            ...markerProps,
+            ...chrome(input, "StepList"),
+            "data-orientation":
+              props.orientation === "vertical" ? "vertical" : "horizontal",
+          },
+          style: input.style,
+          label: input.node.ariaLabel,
+          list: {
+            ...catalogStepListInput(
+              input.node,
+              domGet(input.root),
+              groupTypeOf(input.root),
+              props,
+            ),
+            selectedKey: opt(runtimeState(input, "selectedKey")) ?? null,
+            lastCompletedStep:
+              opt(runtimeState(input, "lastCompletedStep")) ?? null,
+          },
+          isEmphasized: bool(props.isEmphasized),
+          ...(setRuntimeProps
+            ? {
+                write: (patch: StepListPatch) =>
+                  setRuntimeProps(input.node.id, { ...patch }),
+              }
+            : {}),
+        },
+        ...renderAll(input),
+      );
+    },
+  },
+  step: {
+    render: (input) => {
+      const { key, ...markerProps } = marker(input);
+      const derived = input.node.derivedProps;
+      const glyphSize = STEP_GLYPH_SIZE[catalogStepSize(derived?._stepSize)];
+      return createElement(
+        CatalogStep,
+        {
+          key,
+          itemKey: resolveStaticItemKey(
+            input.node.props as Record<string, unknown>,
+            input.node.id,
+          ),
+          rootProps: { ...markerProps, ...chrome(input, "Step") },
+          style: input.style,
+          derived,
+          check: glyphSize
+            ? catalogLucideGlyph(STEP_CHECK_ICON, {
+                strokeWidth: STEP_CHECK_STROKE,
+                width: glyphSize,
+                height: glyphSize,
+              })
+            : null,
+        },
+        ...renderAll(input),
+      );
+    },
+  },
   // S2 CardView (ADR-256 Phase 10): a RAC GridList of its Cards (`@react-spectrum/s2/src/CardView.tsx`
   // — its cards are GridListItems). Its selection is RAC's: the Cards' `isSelected` start it while it
   // selects (`selectionMode` — as a TagGroup's Tags), their `isDisabled` disable the item.
@@ -5185,6 +5291,9 @@ export function catalogStateSourceValue(
     // ADR-308 Decision 3 — a group's selection · expansion is its own props (`groupSelection.ts`,
     // the Canvas reads the same): no item's `isSelected` · `isExpanded` is read for it.
     case "selectedKey": {
+      // (ADR-321 — a StepList's current step: its key, else the step its rule chooses.)
+      if (type === STEP_LIST_TYPE)
+        return catalogStepListStart(root, node).selectedKey;
       if (!CATALOG_SELECTION_GROUP_TYPES.has(type))
         return props.selectedKey ?? null;
       const keys = catalogGroupSelection(node, domGet(root), groupTypeOf(root));
@@ -5195,6 +5304,11 @@ export function catalogStateSourceValue(
       return catalogGroupSelection(node, domGet(root), groupTypeOf(root));
     case "expandedKeys":
       return catalogGroupExpansion(node, groupTypeOf(root));
+    // ADR-321 — how far a StepList's steps are done (the steps the current one passed included).
+    case "lastCompletedStep":
+      return type === STEP_LIST_TYPE
+        ? catalogStepListStart(root, node).lastCompletedStep
+        : props.lastCompletedStep;
     case "isExpanded":
       return Boolean(props.isExpanded ?? true);
     // ADR-300 — S2 `SideNavPanel` starts from `isCollapsed`, `defaultCollapsed` while unset.

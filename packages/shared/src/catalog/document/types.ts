@@ -202,12 +202,16 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 80 — ADR-324 Phase 1: a collection's 「모아서 저장」 (`CollectionEntry.save`) and the two Dos
  *      `saveChanges` · `discardChanges` (the rule vocabulary `library.execution.actionOpCodes`). 옛 79
  *      문서는 열리지 않는다 (변환 없음).
+ * 81 — not released: ADR-321's worktree used it while 82 shipped on main (released as 83).
  * 82 — ADR-320 Phase 2: the filter bar (`FilterBar` · its chip `FilterChip`) and the node's
- *      `filtersOf` (the lists it filters). 옛 80 · 81 문서는 열리지 않는다 (변환 없음 — 81 은
- *      ADR-321 이 쓴다).
+ *      `filtersOf` (the lists it filters). 옛 80 문서는 열리지 않는다 (변환 없음).
+ * 83 — ADR-321 Phase 1 · 2: Spectrum `StepList` · `Step` and their origins (`component-steplist` ·
+ *      `component-step` — the Step's label · description Texts bound to its `label` · `description`),
+ *      the list's 「자유 이동」 switch (`allowsFreeNavigation`) and its two state concepts (When 2 ·
+ *      Do 4 — `concepts/stepList.ts`). 옛 82 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 82 as const;
+export const LIBRARY_CONTRACT_VERSION = 83 as const;
 
 export type EntryKind =
   | "project"

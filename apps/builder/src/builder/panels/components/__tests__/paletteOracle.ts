@@ -189,6 +189,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "breadcrumbs",
     icon: "ChevronRight",
   },
+  // ADR-321: Spectrum StepList (its Steps are placed inside it only).
+  {
+    type: "StepList",
+    category: "layout",
+    label: "step list",
+    icon: "ListIcon",
+  },
   {
     type: "Link",
     category: "layout",

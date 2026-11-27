@@ -19,6 +19,7 @@ import {
   RESIZABLE_PANEL_GROUP_RULE,
   RESIZABLE_PANEL_RULE,
 } from "../rule/resizable";
+import { STEP_LIST_RULE, STEP_RULE } from "../rule/stepList";
 /**
  * SSOT (직접 편집 정본) — theme rule base D3 시각 SSOT (ADR-912 ②-6-A).
  *
@@ -3376,6 +3377,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ResizablePanelGroup: RESIZABLE_PANEL_GROUP_RULE,
   ResizablePanel: RESIZABLE_PANEL_RULE,
   ResizableHandle: RESIZABLE_HANDLE_RULE,
+  // ADR-321: StepList · Step (`rule/stepList.ts`).
+  StepList: STEP_LIST_RULE,
+  Step: STEP_RULE,
   Footer: {
     defaultSize: "M",
     variants: {},

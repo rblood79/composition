@@ -915,6 +915,13 @@ const catalog: TranslationKeys = {
       resize: {
         onSizeChange: "패널 크기가 바뀔 때",
       },
+      // (ADR-321 — a StepList's current step · how far its steps are done.)
+      stepSelection: {
+        onSelectionChange: "단계가 바뀔 때",
+      },
+      stepCompletion: {
+        onLastCompletedStepChange: "완료 단계가 바뀔 때",
+      },
       groupAction: {
         onGroupAction: "그룹 동작 버튼을 누를 때",
       },
@@ -955,6 +962,8 @@ const catalog: TranslationKeys = {
       expansion: "펼침",
       collapse: "패널 접힘",
       resize: "패널 크기",
+      stepSelection: "현재 단계",
+      stepCompletion: "완료 단계",
       groupAction: "그룹 동작",
       remove: "제거",
       focusedDate: "포커스 날짜",
@@ -1062,6 +1071,10 @@ const catalog: TranslationKeys = {
     collapseItem: "항목 접기",
     toggleExpand: "펼침 전환",
     toggleCollapse: "접힘 전환",
+    nextStep: "다음 단계",
+    previousStep: "이전 단계",
+    goToStep: "단계로 이동",
+    completeStep: "단계 완료",
     open: "열기",
     close: "닫기",
     toggleOpen: "열림 전환",
@@ -1084,6 +1097,7 @@ const catalog: TranslationKeys = {
     reset: "초기화",
     paramItemKey: "항목 key",
     paramTabKey: "탭 키",
+    paramStepKey: "단계 키",
     paramValue: "값",
     disableAll: "전체 비활성화",
     enableAll: "전체 활성화",
@@ -3364,6 +3378,9 @@ const semanticLabels: Record<string, string> = {
   "properties.withHandle": "손잡이 표시",
   "properties.rememberSizes": "크기 기억",
   "properties.pill": "알약",
+  "properties.currentStep": "현재 단계",
+  "properties.lastCompletedStep": "마지막 완료 단계",
+  "properties.freeNavigation": "자유 이동",
   "properties.multiColumnSort": "여러 열 정렬",
   "properties.maxSortColumns": "최대 정렬 열 수",
   "properties.allowUnsorted": "정렬 해제 허용",

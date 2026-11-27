@@ -193,8 +193,8 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
     //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
     // (ADR-259 Phase 3: + FieldLabel — a field's label row, loaded.)
-    expect(generated.length).toBe(140); // 2026-11-24: − Section (컴포넌트 삭제) · 11-26: + Resizable 3 · 11-27: + FilterBar · FilterChip (ADR-320)
-    expect(indexImported.size).toBe(122);
+    expect(generated.length).toBe(142); // 2026-11-24: − Section (컴포넌트 삭제) · 11-26: + Resizable 3 · 11-27: + FilterBar · FilterChip (ADR-320) · + StepList · Step (ADR-321)
+    expect(indexImported.size).toBe(124);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))

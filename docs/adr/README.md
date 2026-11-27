@@ -1,5 +1,7 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
+> **2026-11-27 ADR-321 Phase 1 · 2 main 병합** (worktree `3718e2423`, contract **83** — 81 은 worktree 번호였고 main 이 82 를 먼저 냈다): StepList · Step 등록 — RAC `Group > ol > li > Link` 조립 (`aria-current` · `isDisabled` · 상태 문구 · D1 예외 0), 상태 규칙의 이동 (누르기 · Do 4 · When 2 · 이름 붙인 상태 2) · 「자유 이동」 `allowsFreeNavigation`. v3 state hook 대조 차이 0 · Canvas = Chrome 25 / 25 · live Chrome 12 / 12 · WebKit 12 / 12. Builder initial +5,219 B (한도 +7,000 — 최종 한도는 Phase 3 실측 뒤 사용자 판단). 다음: Phase 3 (Rating) 전에 결정 2 (StepPanel) 질문.
+>
 > **2026-11-27 ADR-320 Phase 2 닫힘** (contract 82): 필터 바 등록 — `FilterBar` (RAC Toolbar) · `FilterChip` (RAC Group, 시작 조건의 루트 항목마다 반복 — 열 선택 메뉴와 같은 행 출처) · 버튼 셋 (필터 추가 · 조건 편집 · 지우기 — `showClear`). 노드 필드 `filtersOf` (한 목록 = 범위 하나 · 같은 collection · 자기 자신 아님 — graph 거절) · 복제 · 붙여넣기 · 페이지 복제가 같이 복제된 목록에 다시 잇는다. 목록의 「검색 · 필터」 에 「필터 바 추가」 (한 step), 막대 패널 = 필터할 목록 · 내놓을 필드 · 시작 조건 · 이름 붙인 묶음 (공급 방식이 못 받는 조건 표시 — 실행 판정과 같은 함수). Canvas = Chrome (칩 · 버튼 36 ~ 38 노드 최대 0.08 px) · live 7/7. Builder initial +6,160 B (320 합계 +7,473 — 사용자 답으로 결정 10 의 한도 +4,000 → +8,000). Preview +1.
 
 > **2026-11-27 ADR-320 Phase 1 닫힘** (`cedac12da`): 표 상태의 필터가 조건 트리 하나가 됐다 (`filters` — 열 메뉴는 루트의 그 열 조건만). 「또는」 · 중첩은 로컬 묶음 경로 (`viewRowsPassingGroup` — 평평한 트리는 지금 경로), 요청이 못 싣는 조건 · 지운 필드는 대입 때 거절, 같은 key (suffix) · GET + `body` 는 보내지 않고 끝까지 모아 여기서 — 다음 쪽에 닿지 못하면 행 없이 「조회 실패」. HC6 계산 4.68 ms (10,000 행 「또는」 2 단) · live 열 메뉴 필터 PASS · Builder +1,313 B. 「한 대상에 두 번째 범위 거절」 은 Phase 2 로.

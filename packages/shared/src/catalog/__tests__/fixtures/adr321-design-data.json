@@ -1,0 +1,207 @@
+{
+  "$source": {
+    "what": "spectrum-design-data `steplist` · `rating` — the component schemas' options and the token bindings (ADR-321 D2 · D3 reference, breakdown §5.3 · §5.6)",
+    "dataset": "4.7.0",
+    "readWith": "design-data MCP (`design-data-component` · `design-data-component-tokens` · `design-data-visual-recipe`)",
+    "readOn": "2026-11-27",
+    "note": "The installed `@adobe/spectrum-design-data` 3.9.1 (ADR-302's color oracle) has neither the `size` · `variant` options nor these bindings — this file is the frozen copy the gates read. Colors are the S2 color steps `light / dark` (the `tone` · `accent` arguments of `colorAliases.ts`) with the light · dark rgb the dataset resolved."
+  },
+  "steplist": {
+    "options": {
+      "orientation": ["horizontal", "vertical"],
+      "variant": ["default", "emphasized"],
+      "size": ["s", "m", "l", "xl"],
+      "stepState": [
+        "completed default",
+        "completed hover",
+        "current default",
+        "incomplete default"
+      ],
+      "isDisabled": "boolean",
+      "items": { "label": "string", "isDisabled": "boolean" },
+      "currentStep": "string"
+    },
+    "recipe": {
+      "container": { "direction": "row", "align": "start" },
+      "step": {
+        "direction": "column",
+        "children": ["label", "row"],
+        "gap": "space-between (label → visual)"
+      },
+      "row": { "direction": "row", "children": ["visual", "track"] },
+      "visual": {
+        "cornerRadius": "0.5 × height",
+        "fill": ["completed", "current"],
+        "stroke": ["incomplete"]
+      },
+      "track": { "grow": true, "visibleWhen": ["first", "middle"] },
+      "notVisual": ["orientation", "currentStep"]
+    },
+    "dimensions": {
+      "visualSize": {
+        "tokens": [
+          "steplist-visual-size-small",
+          "steplist-visual-size-medium",
+          "steplist-visual-size-large",
+          "steplist-visual-size-extra-large"
+        ],
+        "px": { "S": 8, "M": 16, "L": 24, "XL": 32 }
+      },
+      "textToVisualGap": {
+        "tokens": [
+          "base-gap-small",
+          "base-gap-medium",
+          "base-gap-large",
+          "base-gap-extra-large"
+        ],
+        "px": { "S": 4, "M": 6, "L": 6, "XL": 6 }
+      },
+      "labelFontSize": {
+        "tokens": [
+          "font-size-75",
+          "font-size-100",
+          "font-size-200",
+          "font-size-300"
+        ],
+        "px": { "S": 12, "M": 14, "L": 16, "XL": 18 }
+      },
+      "labelLineHeight": {
+        "tokens": ["line-height-100", "cjk-line-height-100"],
+        "multiplier": 1.3,
+        "cjkMultiplier": 1.5
+      },
+      "visualBorderWidth": {
+        "token": "border-width scaleIndex=200",
+        "px": 2
+      },
+      "trackThickness": { "token": "bar-thickness-extra-small", "px": 2 },
+      "noToken": [
+        "Width (step)",
+        "Height (step)",
+        "Spacing (step to track)",
+        "Label (text adjustment)"
+      ]
+    },
+    "colors": {
+      "labelRest": {
+        "token": "neutral-subdued-content-color-default",
+        "light": [80, 80, 80],
+        "dark": [175, 175, 175]
+      },
+      "labelCurrent": {
+        "token": "neutral-content-color-default",
+        "light": [41, 41, 41],
+        "dark": [219, 219, 219]
+      },
+      "labelCurrentEmphasized": {
+        "token": "accent-content-color-default",
+        "light": [59, 99, 251]
+      },
+      "labelDisabled": {
+        "token": "disabled-content-color",
+        "light": [198, 198, 198],
+        "dark": [68, 68, 68]
+      },
+      "visualCompleted": {
+        "token": "neutral-subdued-background-color-default",
+        "light": [80, 80, 80],
+        "dark": [109, 109, 109]
+      },
+      "visualCurrent": {
+        "token": "neutral-background-color-default",
+        "light": [41, 41, 41],
+        "dark": [219, 219, 219]
+      },
+      "visualEmphasized": {
+        "token": "accent-background-color-default",
+        "light": [59, 99, 251],
+        "dark": [64, 105, 253]
+      },
+      "visualIncompleteBorder": {
+        "token": "neutral-visual-color",
+        "light": [143, 143, 143],
+        "dark": [138, 138, 138]
+      },
+      "visualDisabled": {
+        "token": "disabled-background-color",
+        "light": [233, 233, 233],
+        "dark": [44, 44, 44]
+      },
+      "trackCompleted": {
+        "token": "neutral-subdued-background-color-default",
+        "light": [80, 80, 80],
+        "dark": [109, 109, 109]
+      },
+      "trackCompletedEmphasized": {
+        "token": "accent-visual-color",
+        "light": [75, 117, 255],
+        "dark": [86, 129, 255]
+      },
+      "trackRest": {
+        "token": "neutral-visual-color",
+        "light": [143, 143, 143],
+        "dark": [138, 138, 138]
+      }
+    }
+  },
+  "rating": {
+    "options": {
+      "value": { "minimum": 0, "maximum": 5, "multipleOf": 0.5 },
+      "isEmphasized": "boolean",
+      "isDisabled": "boolean",
+      "size": ["s", "m"]
+    },
+    "dimensions": {
+      "iconSize": {
+        "tokens": ["workflow-icon-small", "workflow-icon-medium"],
+        "px": { "S": 16, "M": 18 }
+      },
+      "width": {
+        "tokens": ["rating-width-small", "rating-width-medium"],
+        "px": { "S": 104, "M": 128 }
+      },
+      "paddingVertical": {
+        "tokens": [
+          "base-padding-vertical-small",
+          "base-padding-vertical-medium"
+        ],
+        "px": { "S": 4, "M": 7 }
+      },
+      "cornerRadius": {
+        "tokens": [
+          "corner-radius-medium-size-small",
+          "corner-radius-medium-size-medium"
+        ],
+        "px": { "S": 7, "M": 8 }
+      },
+      "iconGap": { "token": "spacing scaleIndex=75", "px": 4 },
+      "focusRing": { "thickness": 2, "gap": 2 },
+      "noToken": ["Height (container)"]
+    },
+    "colors": {
+      "icon": {
+        "token": "neutral-content-color-default",
+        "light": [41, 41, 41],
+        "dark": [219, 219, 219]
+      },
+      "iconHover": {
+        "token": "neutral-content-color-hover",
+        "light": [19, 19, 19],
+        "dark": [242, 242, 242]
+      },
+      "iconEmphasized": {
+        "token": "accent-content-color-default",
+        "light": [59, 99, 251]
+      },
+      "iconEmphasizedHover": {
+        "token": "accent-content-color-hover",
+        "light": [39, 77, 234]
+      },
+      "iconDisabled": {
+        "token": "disabled-content-color",
+        "light": [198, 198, 198],
+        "dark": [68, 68, 68]
+      }
+    }
+  }
+}

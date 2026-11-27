@@ -244,6 +244,8 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "MenuItem",
         "SegmentedControlItem",
         "SelectBox",
+        // ADR-321: a StepList's Step — its `id` is the key the list's `selectedKey` names.
+        "Step",
       ]),
     );
   });
@@ -317,6 +319,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "SkeletonCollection",
         // ADR-318: a Resizable Group's direct children are its Panels and Handles only.
         "ResizablePanelGroup",
+        // ADR-321: a StepList's direct children are its Steps only.
+        "StepList",
       ]),
     );
   });
@@ -363,6 +367,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SkeletonCollection: ["Card"],
       SideNavItem: ["SideNavItem", "SideNavItemContent"],
       ResizablePanelGroup: ["ResizablePanel", "ResizableHandle"],
+      StepList: ["Step"],
     });
     for (const type of Object.keys(componentContractMap("children")))
       expect(containerTypeSet("collection").has(type), type).toBe(true);
@@ -500,6 +505,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SideNavHeader: ["SideNavSection"],
       ResizablePanel: ["ResizablePanelGroup"],
       ResizableHandle: ["ResizablePanelGroup"],
+      Step: ["StepList"],
     });
   });
 });

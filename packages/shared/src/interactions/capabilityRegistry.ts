@@ -107,6 +107,8 @@ export interface CapabilityDef {
   op?: "add" | "remove";
   /** The selection mode RAC uses when `selectionMode` is unset (a Select's `"single"`). */
   selectionDefault?: "single";
+  /** ADR-321 — a StepList's move (the state rule gives the written pair — `stepListState.ts`). */
+  step?: "next" | "previous" | "to" | "complete";
 }
 
 export interface ComponentCapability {

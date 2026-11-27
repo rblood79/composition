@@ -120,6 +120,11 @@ import {
   singleSelectionValue,
 } from "./concepts/singleSelection";
 import { sort } from "./concepts/sort";
+import {
+  stepCompletion,
+  stepSelection,
+  type StepListStateProps,
+} from "./concepts/stepList";
 import { toggle } from "./concepts/toggle";
 import {
   valueColor,
@@ -359,6 +364,10 @@ export const COMPONENT_INTERACTION_SPECS = {
       },
     ],
   },
+  // ADR-321 Phase 2: a StepList's current step and how far its steps are done (v3 names).
+  StepList: {
+    concepts: [{ concept: stepSelection }, { concept: stepCompletion }],
+  },
   Disclosure: { concepts: [{ concept: expansionOne }] },
   Accordion: {
     concepts: [{ concept: expansionKeys, owner: "group" }],
@@ -514,6 +523,7 @@ interface RacPropsOf {
   Menu: MenuProps<object>;
   Breadcrumbs: BreadcrumbsProps<object>;
   Tabs: TabsProps;
+  StepList: StepListStateProps;
   Disclosure: DisclosureProps;
   Accordion: DisclosureGroupProps;
   MenuTrigger: MenuTriggerProps;

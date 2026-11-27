@@ -678,6 +678,25 @@ const ROWS: Row[] = [
       await u.keyboard(key);
     },
   })),
+  // ADR-321 Phase 2 — a StepList's When: a press of a step it can go to 「단계 변경」; a press that
+  //  passes steps (free navigation) 「완료 단계 변경」.
+  {
+    palette: "StepList",
+    type: "StepList",
+    event: "onSelectionChange",
+    act: (h, u) => press(u, qa(h, ".step-link")[0]!),
+  },
+  {
+    palette: "StepList",
+    type: "StepList",
+    event: "onLastCompletedStepChange",
+    declare: {
+      allowsFreeNavigation: true,
+      defaultSelectedKey: "step-1",
+      defaultLastCompletedStep: "",
+    },
+    act: (h, u) => press(u, qa(h, ".step-link")[2]!),
+  },
   // 2026-11-18 S2 `onGroupAction` — the `groupActionLabel` button in the 「Actions」 group.
   {
     palette: "TagGroup",

@@ -29,6 +29,9 @@ const TESTS = [
   "../../../../preview/catalog/__tests__/adr315ColumnChooser.test.tsx",
   // ADR-315 Phase 5 증분 5f — a Row's pin Do: the pinned row drawn first · last, through the session.
   "../../../../preview/catalog/__tests__/adr315RowPinning.test.tsx",
+  // ADR-321 Phase 2 — a StepList's four Dos: the steps' RAC Links as drawn after each (the pair
+  // the state rule writes).
+  "../../../../preview/catalog/__tests__/adr321StepListRun.test.tsx",
 ].map((path) => readFileSync(resolve(import.meta.dirname, path), "utf8"));
 
 /**

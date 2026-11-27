@@ -8,6 +8,20 @@ import {
 } from "../../../../../packages/shared/src/catalog/document/resizableChrome";
 import { CATALOG_FIELD_ERROR_ICON } from "../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import {
+  catalogStepChromeColors,
+  catalogStepChromeRects,
+  catalogStepGlyph,
+  catalogStepSize,
+  STEP_CHECK_ICON,
+  STEP_CHECK_STROKE,
+  STEP_GLYPH_SIZE,
+  STEP_GLYPH_WEIGHT,
+  STEP_TYPE,
+  STEP_VISUAL_BORDER,
+  type StepState,
+} from "../../../../../packages/shared/src/catalog/rule/stepList";
+import { catalogStepLineHeight } from "../../../../../packages/shared/src/catalog/runtime/stepList";
+import {
   PICKER_INVALID_ICON,
   PICKER_INVALID_WIDTH,
   pickerInvalidGlyph,
@@ -246,6 +260,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...catalogDialogChromeShapes(input),
     ...catalogSheetHandleShapes(input),
     ...catalogResizableHandleShapes(input),
+    ...catalogStepChromeShapes(input),
     ...pickerChromeShapes(input, base),
     ...fieldErrorIconShapes(input),
     ...sideNavIndicatorShapes(input),
@@ -520,6 +535,87 @@ export function catalogResizableHandleShapes(
       } as Shape,
     );
   }
+  return shapes;
+}
+
+/**
+ * ADR-321 — a Step's visual (the circle: filled when completed · current, a border when remaining —
+ * its number, or a check once completed; a dot at S) and its track to the next step, in the room the
+ * step keeps for them (`rule/stepList.ts` — the DOM's `span.step-visual` · `span.step-track` at the
+ * same places and colors). The Canvas draws the start state (Decision 10).
+ */
+export function catalogStepChromeShapes(
+  input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
+): Shape[] {
+  if (input.type !== STEP_TYPE) return [];
+  const derived = input.node.derivedProps;
+  if (typeof derived?._stepState !== "string") return [];
+  const theme = input.theme ?? "light";
+  const size = catalogStepSize(derived._stepSize);
+  const state = derived._stepState as StepState;
+  const { visual, track } = catalogStepChromeRects({
+    orientation:
+      derived._stepOrientation === "vertical" ? "vertical" : "horizontal",
+    size,
+    last: derived._stepLast === true,
+    lineHeight: catalogStepLineHeight(size),
+    width: input.rect.width,
+    height: input.rect.height,
+  });
+  const colors = catalogStepChromeColors({
+    state,
+    emphasized: derived._stepEmphasized === true,
+    disabled: derived._stepDisabled === true,
+  });
+  const color = (ref: string) => resolveToken(ref as TokenRef, theme) as string;
+  const radius = visual.width / 2;
+  const shapes: Shape[] = [
+    {
+      type: "circle",
+      x: visual.x + radius,
+      y: visual.y + radius,
+      radius,
+      ...(colors.visualFill ? { fill: color(colors.visualFill) } : {}),
+      ...(colors.visualBorder
+        ? {
+            stroke: color(colors.visualBorder),
+            strokeWidth:
+              Number(resolveToken(STEP_VISUAL_BORDER as TokenRef, theme)) || 2,
+          }
+        : {}),
+    } as Shape,
+  ];
+  const glyph = catalogStepGlyph(size, state);
+  if (glyph === "check")
+    shapes.push({
+      type: "icon_font",
+      iconName: STEP_CHECK_ICON,
+      x: visual.x + radius,
+      y: visual.y + radius,
+      fontSize: STEP_GLYPH_SIZE[size],
+      fill: color(colors.glyph),
+      strokeWidth: STEP_CHECK_STROKE,
+    } as Shape);
+  if (glyph === "number")
+    shapes.push({
+      type: "text",
+      x: visual.x,
+      y: visual.y + radius,
+      maxWidth: visual.width,
+      text: String(derived._stepNumber ?? ""),
+      fontSize: STEP_GLYPH_SIZE[size],
+      fontWeight: STEP_GLYPH_WEIGHT,
+      fill: color(colors.glyph),
+      align: "center",
+      baseline: "middle",
+      lineHeight: 1,
+    } as Shape);
+  if (track && track.width > 0 && track.height > 0)
+    shapes.push({
+      type: "rect",
+      ...track,
+      fill: color(colors.track),
+    } as Shape);
   return shapes;
 }
 

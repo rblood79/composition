@@ -13,6 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [StepList 컴포넌트 — 단계 표시와 이동 (ADR-321 Phase 1 · 2)] - 2026-11-27
+
+### Added
+
+- 팔레트 `StepList` (Spectrum StepList) — 단계 `Step` 셋으로 시작한다. 단계마다 이름 · 설명 한 줄 · 상태 표식을 그리고, 단계를 누르면 그 단계로 간다 (RAC Link — 지금 단계는 `aria-current`).
+- 「자유 이동」 스위치 (`allowsFreeNavigation`, 기본 꺼짐 = v3 와 같은 선형 이동). Interactions 에 When 2 (단계 변경 · 완료 단계 변경) · Do 4 · 이름 붙인 상태 2 (지금 단계 · 마지막 완료 단계).
+
+### Changed
+
+- 문서 contract 82 → 83 (StepList · Step 정의 · 원본).
+
 ## [필터 바 컴포넌트 — 목록 위의 조건 칩 줄 (ADR-320 Phase 2)] - 2026-11-27
 
 목록 위에 놓는 필터 바가 생겼다. 시작 조건을 칩으로 보여 주고, 연결한 목록을 같은 조건 트리로 거른다.

@@ -85,6 +85,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   (`Breadcrumb.sizes[size].iconSize`) — the DOM's separator size comes from the Breadcrumbs
   //   (2026-10-14 — the Canvas drew the crumb's own value, the DOM ignored it).
   Breadcrumbs: ["Breadcrumb"],
+  // ADR-321: a StepList's `size` is its steps' (design-data `size` — the step's visual · label font).
+  StepList: ["Step"],
   // ADR-295 Phase 3c-3c ③: S2 Menu `size` is its items' (S2 MenuItem has none — the Menu context): the
   //   item's control height · font, and its label · description text (the MenuItem rule's `sizeSelectors`).
   Menu: ["MenuItem"],

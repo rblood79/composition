@@ -917,6 +917,13 @@ const catalog: TranslationKeys = {
       resize: {
         onSizeChange: "On panel resize",
       },
+      // (ADR-321 — a StepList's current step · how far its steps are done.)
+      stepSelection: {
+        onSelectionChange: "On step change",
+      },
+      stepCompletion: {
+        onLastCompletedStepChange: "On completed step change",
+      },
       groupAction: {
         onGroupAction: "On group action",
       },
@@ -957,6 +964,8 @@ const catalog: TranslationKeys = {
       expansion: "Expansion",
       collapse: "Panel collapse",
       resize: "Panel size",
+      stepSelection: "Current step",
+      stepCompletion: "Completed step",
       groupAction: "Group action",
       remove: "Removal",
       focusedDate: "Focused date",
@@ -1063,6 +1072,10 @@ const catalog: TranslationKeys = {
     collapseItem: "Collapse item",
     toggleExpand: "Toggle expanded",
     toggleCollapse: "Toggle collapsed",
+    nextStep: "Next step",
+    previousStep: "Previous step",
+    goToStep: "Go to step",
+    completeStep: "Complete step",
     open: "Open",
     close: "Close",
     toggleOpen: "Toggle open",
@@ -1085,6 +1098,7 @@ const catalog: TranslationKeys = {
     reset: "Reset",
     paramItemKey: "Item key",
     paramTabKey: "Tab key",
+    paramStepKey: "Step key",
     paramValue: "Value",
     disableAll: "Disable all inside",
     enableAll: "Enable all inside",
@@ -3371,6 +3385,9 @@ const semanticLabels: Record<string, string> = {
   "properties.withHandle": "With handle",
   "properties.rememberSizes": "Remember sizes",
   "properties.pill": "Pill",
+  "properties.currentStep": "Current step",
+  "properties.lastCompletedStep": "Last completed step",
+  "properties.freeNavigation": "Free navigation",
   "properties.multiColumnSort": "Multi-column sort",
   "properties.maxSortColumns": "Max sort columns",
   "properties.allowUnsorted": "Allow unsorted",

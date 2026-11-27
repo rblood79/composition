@@ -726,6 +726,10 @@ export interface TranslationKeys {
     collapseItem: string;
     toggleExpand: string;
     toggleCollapse: string;
+    nextStep: string;
+    previousStep: string;
+    goToStep: string;
+    completeStep: string;
     open: string;
     close: string;
     toggleOpen: string;
@@ -748,6 +752,7 @@ export interface TranslationKeys {
     reset: string;
     paramItemKey: string;
     paramTabKey: string;
+    paramStepKey: string;
     paramValue: string;
     disableAll: string;
     enableAll: string;

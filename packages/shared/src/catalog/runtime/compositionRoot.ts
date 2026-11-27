@@ -2,6 +2,7 @@ import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
 import { FILTER_BAR_ORIGIN_ID } from "../document/filterBarOrigins";
 import { catalogFilterBarCollection } from "./filterBar";
 import { catalogResizableLayout } from "./resizablePanels";
+import { catalogStepListLayout } from "./stepList";
 import { catalogToggleItemHelpLayout } from "../rule/toggleLayout";
 import {
   catalogStaticAuto,
@@ -278,6 +279,7 @@ import {
   catalogItemIconGrid,
   catalogFieldLabelPart,
   catalogFieldLabelRowColor,
+  catalogStepTextColor,
   catalogListBoxDescriptionColor,
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
@@ -1970,6 +1972,9 @@ function styleOf(
     // (ADR-318: a Resizable Group's direction · Handle's thickness · Panel's flex share and min · max
     //  — the DOM's same inline values, `catalogDomStyle`. An authored item layout wins.)
     ...catalogResizableLayout(node.derivedProps),
+    // (ADR-321: a vertical StepList's direction · a Step's equal share and main-axis minimum — the
+    //  DOM's are the rules' selectors. An authored item layout wins.)
+    ...catalogStepListLayout(node.derivedProps),
     ...itemLayout(node),
     // (S2 `selectBoxStyles`' `:has` blocks — a SelectBox's grid by the parts it shows, the DOM's sheet.)
     ...catalogSelectBoxContentStyle(node),
@@ -5081,6 +5086,14 @@ export class CatalogCompositionRoot {
       return {
         ...derived,
         color: String(resolveToken(rowColor as TokenRef, this.colorMode)),
+      };
+    // ADR-321: a Step's label · description Text take the step's state color (design-data `Step text`
+    //   — `catalogStepTextColor`), unless the text authors its own color.
+    const stepColor = catalogStepTextColor(record, get, this.typeOf);
+    if (stepColor && catalogAuthoredVisual(this, record).color === undefined)
+      return {
+        ...derived,
+        color: String(resolveToken(stepColor as TokenRef, this.colorMode)),
       };
     // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d; so does a TreeItem's
     // chevron glyph — `Tree.css` `all: unset` on its button, the row's color — Phase 5h.)

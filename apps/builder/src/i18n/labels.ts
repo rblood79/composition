@@ -519,6 +519,10 @@ export const semanticLabelKeys: Record<string, string> = {
   "With handle": "properties.withHandle",
   "Remember sizes": "properties.rememberSizes",
   Pill: "properties.pill",
+  // ADR-321 — StepList 의 시작 단계 · 마친 단계.
+  "Current step": "properties.currentStep",
+  "Last completed step": "properties.lastCompletedStep",
+  "Free navigation": "properties.freeNavigation",
   // ADR-315 Phase 2 — the Table's · a Column's sort options.
   "Multi-column sort": "properties.multiColumnSort",
   "Max sort columns": "properties.maxSortColumns",

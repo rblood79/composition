@@ -1095,6 +1095,18 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "breadcrumb",
     icon: "ChevronRight",
   }),
+  // ADR-321: Spectrum StepList — the list is placed (layout, beside Tabs · Breadcrumbs); its Steps
+  //   live in it only (instances of the Step origin — `stepListOrigins.ts`).
+  primitiveEntry("StepList", "collections", FAMILY_4_CUTOVER, {
+    category: "layout",
+    label: "step list",
+    icon: "ListIcon",
+  }),
+  primitiveEntry("Step", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "step",
+    icon: "CircleDot",
+  }),
   // Menu — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 2026-06-04): Menu 는 캔버스에서
   //   trigger Button 과 동일한 시각 요소(RAC 표준 MenuTrigger>Button+Popover>Menu — 초기 화면에
   //   보이는 것은 trigger Button, 메뉴 리스트는 Popover 안에 숨김). Skia 정적 캔버스는 popover 를
@@ -1668,6 +1680,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   // layout / navigation
   "Tabs",
   "Breadcrumbs",
+  // ADR-321: Spectrum StepList — three steps (`stepListOrigins.ts`).
+  "StepList",
   "Link",
   "Nav",
   "Pagination",
@@ -1794,6 +1808,8 @@ export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "SideNavPanel",
   "SideNav",
   "SideNavItem",
+  // ADR-321 — a StepList's item origin (`component-step`: its label · description Texts).
+  "Step",
 ];
 
 const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(
