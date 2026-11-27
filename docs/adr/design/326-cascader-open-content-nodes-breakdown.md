@@ -234,4 +234,30 @@ Phase 1 은 구조만 바꾸고 화면은 같다 — 여기서 커밋 가능 상
 
 ## 9. Phase 결과
 
-(실행하며 기록)
+### Phase 0 — G0 진행 중 (2026-11-28, HEAD `90b35a386`)
+
+**코드 사실 재대조 (F1 ~ F19)** — 내용 차이 0. 줄 이동: F2 `cascaderMenu.components.tsx` RAC `Popover` :167 → :168 · F3 Select 블록 `componentRulesTable.ts:1873-1890` · F4 Cascader 블록 :1639 · F12 `LIBRARY_CONTRACT_VERSION` 87 은 `types.ts:223` (변환 없음 주석 :222). 단서 둘: F5 의 닻 — `overlayLayout.ts:76-82` 에서 Button 닻은 Select (와 기본 분기) 뿐이고 ComboBox · DatePicker · DateRangePicker 는 `Group` 이다 → Cascader 는 기본 분기 (Button) 로 들어간다 (§5 표 그대로). F10 — RAC `Popover` 는 `trigger` 를 render prop 값으로도 넘긴다 (`Popover.mjs:66` · `:114`) — 동작 분기는 여전히 둘뿐.
+
+**P7 번들 기준선** (일반 `vite build` — `VITE_USE_WEBGL_CANVAS=true VITE_FEATURE_FILL_V2=true pnpm turbo run build --filter=@composition/builder` → `adr209-bundle-closure.mjs`, `90b35a386`): Builder initial JS gzip **1,668,315 B** · Preview **172,335 B** · CSS 57,924 / 68,809 B. **Builder 는 이미 절대 상한 1,668,000 을 315 B 넘었다** (F13 의 1,667,731 뒤 같은 날 커밋들 — `0100635ca` Value 칸 드롭다운 · `14ac34a95` · `0d8655e53` · `22d693c1d`). deploy workflow 의 상한 검사 (`deploy.yml` 「Initial bundle ceiling」) 가 지금 main 을 막는다. 전용 CSS 삭제분 추정: `CASCADER_PANEL_STYLES` 는 rule 표 (`componentRulesTable.ts:1637-1751`) 안이라 initial chunk 에 있다 (dist `assets/utils-*.js` 에 `cascader-panel` 실측) — 그 상수만 gzip 하면 약 730 B 라, 번들 안에서 빠지는 몫은 그보다 작은 수백 B 로 본다 (Phase 3 에서 A/B 로 잰다). 첫 화면에 더해지는 것은 rule 블록 · 표시 파생 · 열림 목록. → 사용자 결정 1 을 묻는다 (G0 조건).
+
+**P8 시작 경로 보존 — go** (`apps/builder/src/builder/catalogRuntime/__tests__/adr326P8StartPath.test.ts`, 8 건):
+
+| 입력                                                     | 계층 전체 (Preview)          | §4.7 규칙             | 원복 RED                              |
+| -------------------------------------------------------- | ---------------------------- | --------------------- | ------------------------------------- |
+| (a) 지금의 코드 — 부모 120 × 자식 1 · `R120-1` (세 모양) | `item` (실제 resolver)       | —                     | 창 100 = `missing` (F15 재현)         |
+| (1) 같은 입력 — 규칙                                     | `item` · 부모 `R120`         | 같음                  | 보존 끔 → `missing`                   |
+| (2) 창 밖 같은 key 하나 더                               | `duplicate`                  | `duplicate`           | 지금의 창 → `item`                    |
+| (3) Round 2 의 `X` (102 행 자식 · 101 행 잎)             | `item` · 부모 `P`            | 같음 · chevron 유지   | 자식 유무 표식 끔 → `duplicate`       |
+| (4) 단계별 로드 `11=서울`                                | `11` branch · `11-1` missing | 같음 (읽은 단계 없음) | 지금의 Builder → `11` `item`          |
+| (5) 무작위 6,480 건 (seed `0x326`)                       | —                            | 불일치 0              | 지금의 창 4,238 · 표식 끔 497 건 갈림 |
+
+- 모델의 범위: 평면 · 중첩은 실제 `catalogBoundRows` (전부) 가 만든 트리에서 뿌리만 고른다 (§4.7 표 — 하위 행은 자르지 않는다). 단계 표는 resolver 의 「단계 창 → 부모 거르기 → 높이 표본」 (`resolver.ts:1752-1763`) 을 옮긴 모델이고, 같은 key 의 윗 행 전부를 조상으로 남긴다 (단계 표는 부모를 key 로 찾는다). 「막 연 화면에서 열리는 단계의 행」 은 판정 불변식에 들지 않아 이 시제품 밖이다 (Phase 5 G5).
+- 비용 (6): 5,000 행 평면 (부모 1,000 × 4) 에서 지금의 Builder 읽기 2.00 ms · 규칙 (memo 없음 — 뿌리마다 하위 key 훑기) 2.82 ms (Node · vitest, 5 회 중앙값). 평면은 지금도 전체를 투영한 뒤 뿌리를 자르므로 더해지는 것은 훑기뿐이다. 중첩 · 단계 표의 색인은 Phase 1 에서 원본 행 배열 단위 memo 로 (R4).
+- reviews/326.md 의 h1 (Round 1 · 2) 을 `fixed` 로 갱신했다.
+
+**P6 경로 자리 넷 — 판정 층 go, live 남음** (`packages/shared/src/catalog/runtime/__tests__/adr326P6TrailSlots.test.ts`, 3 건): 자리 폭 + 실제 crumb 수의 판정 · 판정 뒤 전체 경로의 메뉴가 「전부 그린 Breadcrumbs」 와 같다 — `root > A > B > C > D > E` 310 → 끝 둘 · 메뉴 `A B C`, 180 → 끝 하나 · 메뉴 `A B C D`, 깊이 2 ~ 8 무작위 3,000 건. 실제 crumb 수 입력은 자리 수를 넘으면 맞지 않는 가지로 보내는 것으로 충분하다 (끝 crumb 루프는 끝 둘만 읽고 둘에서 자른다 — `breadcrumbsCollapse.ts:101-112`).
+
+- **발견 — crumb 의 `flexShrink: 0`**: 이 동치는 crumb 폭이 그려지는 crumb 수와 무관할 때만 성립한다. S2 는 crumb 에 `flexShrink: 0` 을 준다 (`Breadcrumbs.tsx:261` `breadcrumbStyles`). 저장소의 Breadcrumb rule (`componentRulesTable.ts` Breadcrumb `containerStyles`) · 수동 `components/styles/Breadcrumbs.css` 에는 없다 — `nowrap` 줄에서 여러 낱말 crumb 은 min-content 까지 줄어 (엔진 · DOM 모두 CSS 규칙) 전부 그린 폭이 자리 폭보다 작아질 수 있다. Phase 3 에서 S2 값을 rule 에 넣는다 (Breadcrumbs 컴포넌트 자체의 S2 차이이기도 하다).
+- 남은 것 (m5 의 종결 조건): Canvas · Chrome rect 대조 (깊이 2 · 4 · 6 × 폭 둘) 와 180px 의 메뉴 `D` 클릭 → `D` 단계. 클릭은 `BreadcrumbsRun` 메뉴의 `onAction` (F18) 이 필요하다 — ADR-322 처럼 설치본 RAC 위 독립 시제품 페이지 (Breadcrumbs + MenuTrigger 메뉴 + `onAction`) 로 잰다.
+
+**남은 시제품**: P1 (catalog Popover 노드 + 필드 context — 메뉴 이름 · focus 복원 · Esc) · P2 (SearchField 노드 + `Autocomplete`) · P3 (`Dialog` 의 `display: contents` 접근성 트리 — Chrome · WebKit) · P4 (`CascaderItem` 이 줄을 직접 그림) · P5 (`pass` 항목 아래 줄의 배치) · P6 live · P9 (행 ↔ record). 사용자 결정 1 답.
