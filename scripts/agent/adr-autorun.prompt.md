@@ -28,7 +28,8 @@ AskUserQuestion 은 쓸 수 없다. 아래에 닿으면 작업을 멈추고 bloc
 
 ## 검증 · 커밋
 
-- live exercise 는 chrome-devtools-mcp 로 한다 (dev 서버 `$BUILDER_URL` 실행 중 — 사용자 메시지에 적혀 있다). Claude in Chrome 은 쓰지 않는다. live 확인을 못 하면 Phase 를 닫지 말고 blocked.
+- live exercise 는 `chrome-autorun` MCP 서버 도구 (`mcp__chrome-autorun__*` — headless · 격리 프로필, 이 세션 전용) 로 한다. dev 서버 주소는 사용자 메시지에 있다 (worktree 실행이면 그 worktree 의 서버 — 5173 이 아닐 수 있다). 플러그인 chrome-devtools 서버와 Claude in Chrome 은 쓰지 않는다 — 다른 실행과 프로필 · 탭을 같이 쓴다. live 확인을 못 하면 Phase 를 닫지 말고 blocked.
+- worktree 실행이면 브랜치는 `autorun/adr-NNN` 이다 — 브랜치를 바꾸거나 새로 만들지 않는다.
 - 커밋은 자기 파일만 pathspec 으로 (`git add -- <paths>` · `git commit -- <paths>`). `git add -A` · `-u` · `.` · `commit -a` 금지.
 - **push 하지 않는다** — 스크립트가 gate · codex 판독을 통과시킨 뒤 push 한다.
 - 끝날 때 working tree 에 미커밋 변경을 남기지 않는다 (gitignore 파일 제외). 남으면 스크립트가 blocked 로 본다.

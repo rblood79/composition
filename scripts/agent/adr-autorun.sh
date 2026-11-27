@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ADR 자동 실행 — `pnpm agent:autorun -- <NNN> [--max-phases N] [--no-codex] [--dry-run]`
+# ADR 자동 실행 — `pnpm agent:autorun -- <NNN> [--worktree --port N] [--max-phases N] [--no-codex] [--dry-run]`
 #
 # Phase 하나 = 새 Claude 세션 하나 (`claude -p`). 컨텍스트가 매번 비어서 시작하고, 세션 사이의
 # 넘겨주기는 breakdown §기록 · task-state · git 이 맡는다. 한 Phase 의 흐름:
@@ -11,12 +11,19 @@
 #   3. codex 판독 1회 (read-only, review-schema.json). CRITICAL/HIGH/MEDIUM 이 있으면
 #      수리 세션 1회 → gate → 수리 검증 판독 1회. 그래도 CRITICAL/HIGH 면 멈춘다
 #      (.claude/rules/review-loop-closure.md — phase 당 판독 1 + 수리 검증 1)
-#   4. git push origin main — gate · 판독을 통과한 커밋만
+#   4. origin/main 이 앞서 있으면 rebase → gate 다시 → git push origin HEAD:main (통과한 커밋만)
 #   5. 세션이 쓴 .agent/autorun/status.json 이 continue 면 다음 Phase, done · blocked 면 끝
 #
-# 시작 조건: main · working tree clean · origin/main 과 같은 커밋 · dev 서버 ($BUILDER_URL) 응답.
-# 이 checkout 을 혼자 쓴다고 가정한다 — 병렬 세션이 같은 checkout 을 고치면 쓰지 않는다.
-# 기록: .agent/autorun/<시각>-adrNNN/ (세션 JSON · gate 로그 · 판독 JSON · summary.md, gitignore)
+# 두 방식:
+#   기본        이 checkout 의 main 에서 실행. 시작 조건: main · working tree clean · origin/main 과 같은
+#               커밋 · dev 서버 ($BUILDER_URL, 기본 5173) 응답. 이 checkout 을 혼자 쓴다고 가정한다.
+#   --worktree  .claude/worktrees/autorun-adrNNN (로컬 브랜치 autorun/adr-NNN — 원격에 올리지 않는다) 에서
+#               실행. .worktreeinclude 파일 복사 · task-state (goal = 이 ADR) · pnpm install 뒤 그 worktree 의
+#               dev 서버를 --port 로 직접 띄운다. ADR 마다 포트를 달리 주면 병렬로 돌릴 수 있다 — 통합은
+#               git-workflow.md §3 그대로 main 직접 (rebase 뒤 HEAD:main push, PR · 원격 브랜치 없음).
+# live exercise 는 세션마다 따로 띄우는 headless · 격리 프로필 chrome-devtools MCP (chrome-autorun) 로 한다 —
+# 플러그인 기본 서버는 프로필을 같이 써서 병렬 세션이 부딪친다.
+# 기록: <checkout>/.agent/autorun/<시각>-adrNNN/ (세션 JSON · gate 로그 · 판독 JSON · summary.md, gitignore)
 #
 # exit: 0 = done · 1 = 사용 오류 / 시작 조건 실패 · 3 = blocked (사람이 필요) · 4 = max-phases 도달
 # macOS bash 3.2 호환.
@@ -36,16 +43,18 @@ UNIT_PACKAGES="apps/builder apps/publish packages/rendering packages/sample-data
 
 usage() {
   sed -n 2,2p "$0" | sed 's/^# //'
+  echo "  --worktree  ADR 전용 worktree 에서 실행 (병렬용) · --port N  dev 서버 포트 (worktree 는 필수, 스크립트가 띄운다)"
   echo "  --max-phases N  세션 수 상한 (기본 20) · --no-codex  판독 생략 · --dry-run  조건 확인 + 프롬프트 출력만"
-  echo "  env BUILDER_URL (기본 http://localhost:5173)"
 }
 
 if [ "${1:-}" = "--" ]; then shift; fi
-ADR=""; MAX_PHASES=20; CODEX=1; DRY_RUN=0
+ADR=""; MAX_PHASES=20; CODEX=1; DRY_RUN=0; WORKTREE=0; PORT=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --max-phases) MAX_PHASES="${2:?--max-phases 값 필요}"; shift 2 ;;
     --no-codex) CODEX=0; shift ;;
+    --worktree) WORKTREE=1; shift ;;
+    --port) PORT="${2:?--port 값 필요}"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     [0-9]*) ADR="$1"; shift ;;
@@ -53,9 +62,32 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 [ -n "$ADR" ] || { usage >&2; exit 1; }
+if [ "$WORKTREE" = 1 ] && [ -z "$PORT" ]; then echo "[autorun] --worktree 는 --port 가 필요하다 (ADR 마다 다른 포트)" >&2; exit 1; fi
+[ -z "$PORT" ] || BUILDER_URL="http://localhost:$PORT"
+export BUILDER_URL   # 세션 · gate 하니스 (apps/builder/scripts) 가 같은 서버를 본다
 
-ADR_FILE=$(ls docs/adr/"$ADR"-*.md 2>/dev/null | head -1 || true)
-BREAKDOWN_FILE=$(ls docs/adr/design/"$ADR"-*breakdown*.md 2>/dev/null | head -1 || true)
+WORK_BRANCH=main
+WT_PATH="$ROOT_DIR/.claude/worktrees/autorun-adr$ADR"
+if [ "$WORKTREE" = 1 ]; then WORK_BRANCH="autorun/adr-$ADR"; fi
+DEV_PID=""; DEV_LISTENERS=""; HELD_LOCKS=""
+
+die() { echo "[autorun] $*" >&2; exit 1; }
+
+# 병렬 worktree 실행은 같은 .git 의 refs/remotes/origin/main 을 갱신한다 — 동시에 부딪치면 잠금 실패가 난다
+git_fetch() {
+  local t
+  for t in 1 2 3 4 5; do
+    git fetch -q origin main 2>/dev/null && return 0
+    sleep "$t"
+  done
+  git fetch -q origin main
+}
+
+resolve_adr_files() {  # 현재 checkout 기준
+  ADR_FILE=$(ls docs/adr/"$ADR"-*.md 2>/dev/null | head -1 || true)
+  BREAKDOWN_FILE=$(ls docs/adr/design/"$ADR"-*breakdown*.md 2>/dev/null | head -1 || true)
+}
+resolve_adr_files
 
 RUN_DIR="$STATE_DIR/$(date +%Y%m%d-%H%M%S)-adr$ADR"   # 시작 조건 통과 뒤 만든다
 LOG="$RUN_DIR/autorun.log"
@@ -74,7 +106,11 @@ finish() {  # $1 = done|blocked|stopped · $2 = 메시지
   log "== $1: $2"
   printf '\n## 결과: %s\n\n%s\n' "$1" "$2" >>"$SUMMARY"
   notify "$1" "$2"
-  echo "[autorun] 기록: $RUN_DIR"
+  echo "[autorun] 기록: $(pwd)/$RUN_DIR"
+  if [ "$WORKTREE" = 1 ] && [ "$1" = done ]; then
+    # 안내 명령은 그대로 붙여 넣어도 안전하게 경로를 shell 인용한다 (공백 · 특수문자)
+    echo "[autorun] worktree 정리 (확인 뒤): git worktree remove -- $(printf '%q' "$WT_PATH") && git branch -d -- $(printf '%q' "$WORK_BRANCH")"
+  fi
   exit "$code"
 }
 
@@ -84,16 +120,139 @@ preflight() {
   for c in claude jq git pnpm curl; do command -v "$c" >/dev/null 2>&1 || miss="$miss $c"; done
   [ "$CODEX" = 1 ] && { command -v codex >/dev/null 2>&1 || miss="$miss codex"; }
   [ -z "$miss" ] || { echo "[autorun] 명령 없음:$miss" >&2; return 1; }
-  [ -n "$ADR_FILE" ] || { echo "[autorun] 열린 ADR 없음: docs/adr/$ADR-*.md (completed 는 대상 아님)" >&2; return 1; }
-  [ "$(git symbolic-ref --short HEAD 2>/dev/null)" = main ] || { echo "[autorun] main 이 아니다" >&2; return 1; }
-  [ -z "$(git status --porcelain)" ] || { echo "[autorun] working tree 가 깨끗하지 않다 — 커밋하거나 치운 뒤 실행" >&2; git status --short >&2; return 1; }
   # 세션의 push 차단은 pushurl 하나를 더하는 방식이다 — pushurl 은 여러 값이라 기존 값이 있으면 그쪽으로도 push 된다
   # 내용이 아니라 항목 존재로 본다 — 빈 값 (`pushurl =`) 도 목록을 바꿔 push 대상이 origin url 로 돌아간다
   ! git config --get-all remote.origin.pushurl >/dev/null 2>&1 \
     || { echo "[autorun] remote.origin.pushurl 이 설정돼 있다 — 세션의 push 를 막을 수 없어 시작하지 않는다 (git config --unset-all remote.origin.pushurl)" >&2; return 1; }
-  git fetch -q origin main || { echo "[autorun] git fetch 실패 — 원격 상태를 모르면 시작하지 않는다" >&2; return 1; }
+  git_fetch || { echo "[autorun] git fetch 실패 — 원격 상태를 모르면 시작하지 않는다" >&2; return 1; }
+  if [ "$WORKTREE" = 1 ]; then
+    # worktree 는 origin/main 에서 만든다 — main checkout 의 상태와 무관
+    git ls-tree --name-only origin/main docs/adr/ | grep -q "^docs/adr/$ADR-" \
+      || { echo "[autorun] origin/main 에 열린 ADR 없음: docs/adr/$ADR-*.md" >&2; return 1; }
+    ! curl -s -o /dev/null --max-time 3 "$BUILDER_URL" \
+      || { echo "[autorun] 포트 $PORT 가 이미 쓰이고 있다 — worktree 의 dev 서버는 스크립트가 띄운다" >&2; return 1; }
+    return 0
+  fi
+  [ -n "$ADR_FILE" ] || { echo "[autorun] 열린 ADR 없음: docs/adr/$ADR-*.md (completed 는 대상 아님)" >&2; return 1; }
+  [ "$(git symbolic-ref --short HEAD 2>/dev/null)" = main ] || { echo "[autorun] main 이 아니다" >&2; return 1; }
+  [ -z "$(git status --porcelain)" ] || { echo "[autorun] working tree 가 깨끗하지 않다 — 커밋하거나 치운 뒤 실행" >&2; git status --short >&2; return 1; }
   [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "[autorun] HEAD ≠ origin/main — pull 또는 push 먼저" >&2; return 1; }
   curl -sf -o /dev/null --max-time 5 "$BUILDER_URL" || { echo "[autorun] dev 서버 응답 없음: $BUILDER_URL — pnpm dev 먼저" >&2; return 1; }
+}
+
+# ---------- worktree ----------
+setup_worktree() {
+  local ahead e guard stop
+  if [ -d "$WT_PATH" ]; then
+    echo "[autorun] worktree 재사용: $WT_PATH"
+    [ "$(git -C "$WT_PATH" symbolic-ref --short HEAD 2>/dev/null)" = "$WORK_BRANCH" ] || die "worktree 가 $WORK_BRANCH 에 있지 않다: $WT_PATH"
+    [ -z "$(git -C "$WT_PATH" status --porcelain)" ] || die "worktree 에 미커밋 변경이 있다 — 확인 뒤 실행: $WT_PATH"
+  else
+    if git show-ref --verify -q "refs/heads/$WORK_BRANCH"; then
+      git worktree add -q "$WT_PATH" "$WORK_BRANCH" || die "worktree 생성 실패"
+    else
+      git worktree add -q --no-track -b "$WORK_BRANCH" "$WT_PATH" origin/main || die "worktree 생성 실패"
+    fi
+    echo "[autorun] worktree 생성: $WT_PATH ($WORK_BRANCH)"
+  fi
+  # 지난 실행이 남긴 push 안 된 커밋은 gate · 판독을 다 통과했는지 모른다 — 사람이 본다
+  ahead=$(git -C "$WT_PATH" rev-list --count origin/main..HEAD)
+  [ "$ahead" = 0 ] || die "$WORK_BRANCH 에 push 안 된 커밋 $ahead 개 — 지난 실행이 멈춘 자리다. 확인 뒤 push 하거나 정리하고 다시 실행"
+  git -C "$WT_PATH" merge -q --ff-only origin/main || die "worktree 를 origin/main 으로 올리지 못했다"
+
+  # .worktreeinclude 의 gitignore 파일 (env · 라이선스 · 개인 지시 · 엔진 wasm)
+  while IFS= read -r e; do
+    case "$e" in ''|'#'*|/*|*..*) continue ;; esac
+    e="${e%/}"
+    [ -e "$ROOT_DIR/$e" ] || continue
+    mkdir -p "$WT_PATH/$(dirname "$e")"
+    rm -rf "${WT_PATH:?}/$e"
+    cp -R "$ROOT_DIR/$e" "$WT_PATH/$e"
+  done < <(cat "$ROOT_DIR/.worktreeinclude" 2>/dev/null || true)
+
+  # task-state — goal = 이 ADR (사용자가 `--worktree NNN` 으로 지정). 있으면 (재실행) 그대로 둔다
+  if [ ! -f "$WT_PATH/.agent/task-state.json" ]; then
+    guard=$(jq -r '.guard // ""' "$ROOT_DIR/.agent/task-state.json" 2>/dev/null || true)
+    stop=$(jq -r '.stop // ""' "$ROOT_DIR/.agent/task-state.json" 2>/dev/null || true)
+    mkdir -p "$WT_PATH/.agent"
+    jq -n --arg goal "ADR-$ADR 자동 실행 (adr-autorun --worktree, 사용자 실행 $(date +%F))" \
+      --arg guard "${guard:-자기 파일만 커밋 (pathspec) · live 확인 전 완료 보고 금지 · 마이그레이션 코드 0}" \
+      --arg stop "${stop:-type-check 실패 커밋 금지 · 원본 파일 삭제 · scope 변경은 사용자 확인}" \
+      '{goal: $goal, phase: "시작 전", next: [], guard: $guard, stop: $stop, updatedAt: (now | todate)}' \
+      >"$WT_PATH/.agent/task-state.json"
+  fi
+
+  echo "[autorun] pnpm install (worktree)"
+  mkdir -p "$WT_PATH/.agent/autorun"
+  (cd "$WT_PATH" && pnpm install --frozen-lockfile) >"$WT_PATH/.agent/autorun/install.log" 2>&1 \
+    || die "pnpm install 실패 — $WT_PATH/.agent/autorun/install.log"
+  cd "$WT_PATH"
+}
+
+is_descendant() {  # $1 pid 가 $2 pid 이거나 그 자손인가
+  local p="$1"
+  while [ -n "$p" ] && [ "$p" -gt 1 ]; do
+    [ "$p" = "$2" ] && return 0
+    p=$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ')
+  done
+  return 1
+}
+
+# 준비 판정 = 포트의 listener 가 전부 이 실행이 띄운 프로세스의 자손이고 응답한다.
+# HTTP 응답만 보면 그새 다른 서버가 포트를 잡았을 때 그 서버를 검증 대상으로 삼는다
+start_dev_server() {
+  log "dev 서버 시작 (worktree): $BUILDER_URL"
+  pnpm -F @composition/builder exec vite --port "$PORT" --strictPort >"$RUN_DIR/dev-server.log" 2>&1 &
+  DEV_PID=$!
+  local t=0 l listeners
+  while :; do
+    kill -0 "$DEV_PID" 2>/dev/null || { DEV_PID=""; finish blocked "dev 서버가 시작하지 못했다 — $RUN_DIR/dev-server.log"; }
+    listeners=$(lsof -ti "tcp:$PORT" -sTCP:LISTEN 2>/dev/null | sort -u || true)
+    if [ -n "$listeners" ]; then
+      for l in $listeners; do
+        is_descendant "$l" "$DEV_PID" || finish blocked "포트 $PORT 를 이 실행이 띄우지 않은 프로세스 (pid $l) 가 잡았다"
+      done
+      if curl -sf -o /dev/null --max-time 2 "$BUILDER_URL"; then
+        DEV_LISTENERS="$listeners"
+        return 0
+      fi
+    fi
+    t=$((t + 2))
+    [ "$t" -lt 180 ] || finish blocked "dev 서버가 180초 안에 응답하지 않았다 — $RUN_DIR/dev-server.log"
+    sleep 2
+  done
+}
+
+# ---------- 실행 잠금 ----------
+# 같은 ADR 을 두 번 돌리면 두 실행이 한 브랜치를 나눠 써서, 한쪽이 gate 를 통과시킨 뒤 다른 쪽 커밋까지 push 한다.
+# 잠금 = 공용 .git 안 디렉터리 (mkdir 은 원자적) + 주인 pid. 남은 잠금을 자동으로 넘겨받지 않는다 —
+# 두 실행이 동시에 「주인 없음」 을 보면 둘 다 지우고 다시 만들어 둘 다 쥔다. 정상 종료 · Ctrl-C 는 EXIT trap 이
+# 풀므로, 남는 것은 kill -9 · 크래시뿐이다 — 그때는 사람이 지운다
+acquire_lock() {  # $1 = 이름
+  local dir other
+  dir="$(git rev-parse --path-format=absolute --git-common-dir)/autorun-$1.lock"
+  if ! mkdir "$dir" 2>/dev/null; then
+    sleep 1   # 막 만든 쪽이 pid 를 쓰는 중일 수 있다
+    other=$(cat "$dir/pid" 2>/dev/null || true)
+    if [ -z "$other" ] || kill -0 "$other" 2>/dev/null; then
+      die "$1 실행이 이미 돌고 있다 (pid ${other:-?}) — 잠금 $dir"
+    fi
+    die "$1 잠금이 남아 있다 (주인 pid $other 는 끝났다) — 다른 실행이 없는지 확인한 뒤 지우고 다시: rm -rf -- $(printf '%q' "$dir")"
+  fi
+  echo $$ >"$dir/pid"
+  HELD_LOCKS="$HELD_LOCKS $dir"
+}
+
+cleanup() {  # 이 실행이 띄운 dev 서버와 잡은 잠금만 정리한다
+  local l d
+  if [ -n "$DEV_PID" ]; then
+    for l in $DEV_LISTENERS; do is_descendant "$l" "$DEV_PID" && kill "$l" 2>/dev/null; done
+    kill "$DEV_PID" 2>/dev/null || true
+  fi
+  for d in $HELD_LOCKS; do
+    [ "$(cat "$d/pid" 2>/dev/null)" = "$$" ] && rm -rf "$d"
+  done
+  return 0
 }
 
 # ---------- Claude 세션 ----------
@@ -127,6 +286,7 @@ claude_session() {
     --output-format json \
     --append-system-prompt-file "$PROMPT_FILE" \
     --disallowedTools AskUserQuestion "Bash(git push *)" \
+    --mcp-config "$MCP_CONFIG" \
     --name "autorun ADR-$ADR $label" \
     >"$out" 2>"$out.stderr" || true
 
@@ -148,13 +308,14 @@ claude_session() {
   STATUS_REASON=$(jq -r '[.reason, .question] | map(select(. != null and . != "")) | join(" / ")' "$STATUS_FILE")
   log "claude 세션 끝: $label → $STATUS · $STATUS_SUMMARY"
 
-  [ "$(git symbolic-ref --short HEAD 2>/dev/null)" = main ] || finish blocked "세션이 main 을 떠났다 ($label)"
+  [ "$(git symbolic-ref --short HEAD 2>/dev/null)" = "$WORK_BRANCH" ] || finish blocked "세션이 $WORK_BRANCH 를 떠났다 ($label)"
   local dirty; dirty=$(git status --porcelain)
   [ -z "$dirty" ] || finish blocked "미커밋 변경이 남았다 ($label): $(printf '%s' "$dirty" | head -5 | tr '\n' ' ')"
-  # gate · 판독 전에 main 에 올라간 커밋이 없어야 한다 (세션의 push 또는 다른 곳의 push)
-  git fetch -q origin main || finish blocked "git fetch 실패 ($label)"
-  [ "$(git rev-parse origin/main)" = "$PUSHED_HEAD" ] \
-    || finish blocked "세션 중 origin/main 이 움직였다 ($label) — gate · 판독 전 push 여부 확인 필요"
+  # gate · 판독 전에 이번 실행의 새 커밋이 origin/main 에 올라가 있으면 안 된다 (세션의 push).
+  # origin/main 이 다른 실행의 push 로 움직이는 것은 정상이다 (병렬 worktree) — push 단계에서 rebase 한다
+  git_fetch || finish blocked "git fetch 실패 ($label)"
+  [ "$(git rev-list --count origin/main..HEAD)" = "$(git rev-list --count "$PUSHED_HEAD"..HEAD)" ] \
+    || finish blocked "이번 실행의 커밋이 gate · 판독 전에 origin/main 에 올라갔다 ($label)"
 }
 
 # ---------- gate ----------
@@ -227,6 +388,40 @@ $(cat "$prev")"
     || finish blocked "codex 판독 결과 형식 오류 ($label) — $REVIEW_OUT"
 }
 
+# publish <i> — origin/main 이 앞서 있으면 rebase 하고 합친 결과로 gate 를 다시 돈 뒤 push.
+# fetch 와 push 사이에 다른 실행이 먼저 push 하면 (병렬 worktree) 거절된다 — 그때는 fetch 부터 다시 (3회)
+publish() {
+  local try=1
+  while :; do
+    git_fetch || finish blocked "push 전 git fetch 실패"
+    if ! git merge-base --is-ancestor origin/main HEAD; then
+      log "origin/main 이 앞서 있다 — rebase ($try)"
+      if ! git rebase -q origin/main >>"$LOG" 2>&1; then
+        git rebase --abort >>"$LOG" 2>&1 || true
+        finish blocked "origin/main 과 rebase 충돌 — 커밋은 $WORK_BRANCH 에 남아 있다 (push 안 함)"
+      fi
+      gates "$(git rev-parse origin/main)" "rebase-$1-$try" \
+        || finish blocked "rebase 뒤 gate 실패: $GATE_FAIL — $RUN_DIR/gates-rebase-$1-$try.log (push 안 함)"
+    fi
+    log "push origin HEAD:main ($try)"
+    if git push origin HEAD:main >>"$LOG" 2>&1; then
+      PUSHED_HEAD=$(git rev-parse HEAD)
+      return 0
+    fi
+    # 다시 하는 것은 「origin 이 그새 앞섰다」 일 때만 — 권한 · 네트워크 실패는 멈춘다
+    git_fetch || finish blocked "push 실패 뒤 git fetch 실패 — $LOG"
+    # push 는 원격에 들어갔고 로컬 추적 ref 갱신만 잠금에 졌으면 성공이다
+    if [ "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" ]; then
+      PUSHED_HEAD=$(git rev-parse HEAD)
+      return 0
+    fi
+    if git merge-base --is-ancestor origin/main HEAD || [ "$try" -ge 3 ]; then
+      finish blocked "push 실패 — $LOG"
+    fi
+    try=$((try + 1))
+  done
+}
+
 count_findings() {  # $1 = JSON · $2 = severity 정규식
   jq --arg re "$2" '[.findings[] | select(.severity | test($re))] | length' "$1"
 }
@@ -235,19 +430,40 @@ count_findings() {  # $1 = JSON · $2 = severity 정규식
 preflight || exit 1
 
 if [ "$DRY_RUN" = 1 ]; then
-  echo "[autorun] 시작 조건 통과 — ADR: $ADR_FILE${BREAKDOWN_FILE:+ · breakdown: $BREAKDOWN_FILE}"
+  if [ "$WORKTREE" = 1 ]; then
+    echo "[autorun] 시작 조건 통과 — worktree: $WT_PATH ($WORK_BRANCH, $([ -d "$WT_PATH" ] && echo 재사용 || echo 새로 만듦)) · dev 서버를 $BUILDER_URL 로 띄운다"
+  else
+    echo "[autorun] 시작 조건 통과 — ADR: $ADR_FILE${BREAKDOWN_FILE:+ · breakdown: $BREAKDOWN_FILE}"
+  fi
   echo "[autorun] codex 판독: $([ "$CODEX" = 1 ] && echo on || echo off) · max-phases: $MAX_PHASES · dev: $BUILDER_URL"
   echo "--- phase 프롬프트 ---"; phase_prompt; echo
   echo "--- 수리 프롬프트 (예) ---"; repair_prompt "$RUN_DIR/review-phase-1.json"
   exit 0
 fi
 
+# 잠금은 worktree 준비 전에 잡고 끝날 때까지 쥔다 (EXIT trap 이 푼다)
+trap cleanup EXIT
+acquire_lock "adr$ADR"
+if [ "$WORKTREE" = 0 ]; then acquire_lock "main-checkout"; fi
+
+if [ "$WORKTREE" = 1 ]; then
+  setup_worktree
+  resolve_adr_files
+  [ -n "$ADR_FILE" ] || die "worktree 에 열린 ADR 없음: docs/adr/$ADR-*.md"
+fi
+
 mkdir -p "$RUN_DIR"
 PUSHED_HEAD=$(git rev-parse origin/main)
 trap 'finish blocked "중단됨 (signal)"' INT TERM
 
-printf '# ADR-%s autorun %s\n\n- ADR: %s\n- 시작 커밋: %s\n' \
-  "$ADR" "$(date '+%Y-%m-%d %H:%M')" "$ADR_FILE" "$(git rev-parse --short HEAD)" >"$SUMMARY"
+# 세션마다 따로 띄우는 chrome-devtools MCP — headless · 격리 프로필 (병렬 실행이 프로필을 같이 쓰지 않게)
+MCP_CONFIG="$RUN_DIR/mcp.json"
+printf '%s\n' '{"mcpServers":{"chrome-autorun":{"command":"npx","args":["-y","chrome-devtools-mcp@1.11.0","--headless","--isolated"]}}}' >"$MCP_CONFIG"
+
+if [ "$WORKTREE" = 1 ]; then start_dev_server; fi
+
+printf '# ADR-%s autorun %s\n\n- ADR: %s\n- checkout: %s (%s) · dev: %s\n- 시작 커밋: %s\n' \
+  "$ADR" "$(date '+%Y-%m-%d %H:%M')" "$ADR_FILE" "$(pwd)" "$WORK_BRANCH" "$BUILDER_URL" "$(git rev-parse --short HEAD)" >"$SUMMARY"
 log "시작 — ADR-$ADR · codex=$CODEX · max-phases=$MAX_PHASES"
 
 i=1
@@ -293,9 +509,7 @@ while [ "$i" -le "$MAX_PHASES" ]; do
     fi
   fi
 
-  log "push origin main"
-  git push origin main >>"$LOG" 2>&1 || finish blocked "push 실패 — $LOG"
-  PUSHED_HEAD=$(git rev-parse HEAD)
+  publish "$i"
 
   {
     printf '\n## 세션 %s — %s\n\n- %s\n- %s\n- 커밋:\n' "$i" "$PHASE_STATUS" "$PHASE_SUMMARY" "$REVIEW_NOTE"
