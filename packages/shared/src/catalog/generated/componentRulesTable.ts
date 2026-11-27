@@ -8168,25 +8168,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut). The reference
-  //   `Menu.css` `kbd`: a small key chip — one step smaller text (`--font-size-sm`), 0 4px padding,
-  //   small radius, a subtle fill and border, the item's font (not mono — unlike Kbd).
+  // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut). S2 `Menu.tsx`
+  //   `keyboard` (2026-11-28 사용자 결정 — 옛 값은 RAC starter `Menu.css` `kbd` 칩): 글자뿐 — 바탕 · 테두리 ·
+  //   모서리 · 여백 없음, `font: 'ui'` (크기 무관 14 · 행간 18), `gray-600` (= `field-placeholder`). 끝 정렬 ·
+  //   label 과의 8 은 MenuItem grid (`keyboard` 열 · `marginStart: 8`). 비활성은 MenuItem 의 흐림이 덮는다.
   Keyboard: {
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
       default: {
         paint: {
-          backgroundColor: {
-            default: "{color.neutral-subtle}",
-            isHovered: "{color.neutral-subtle}",
-            isPressed: "{color.neutral-subtle}",
-          },
           color: {
-            default: "{color.neutral}",
-          },
-          borderColor: {
-            default: "{color.border}",
+            default: "{color.field-placeholder}",
           },
         },
 
@@ -8195,11 +8188,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       M: {
-        paddingX: 4,
-        fontSize: "{typography.text-xs}",
-        lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.sm}",
-        borderWidth: "{border.width.thin}",
+        paddingX: 0,
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: "{radius.none}",
+        borderWidth: "{border.width.none}",
         height: 18,
       },
     },
@@ -8210,8 +8203,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
       },
-      // The item's font (the reference sets `font-family: system-ui`, not the `<kbd>` default
-      //   monospace) — the Canvas draws the theme sans, the DOM inherits it.
+      // The item's font (S2 `font: 'ui'` — the sans, not the `<kbd>` default monospace) — the Canvas
+      //   draws the theme sans, the DOM inherits it.
       composition: {
         rootSelectors: {
           "&": {

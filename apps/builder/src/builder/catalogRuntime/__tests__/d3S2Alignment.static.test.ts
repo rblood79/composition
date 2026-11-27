@@ -885,6 +885,50 @@ describe("ADR-295 G4 — 3c-3c ②a 크기 축 없는 S2 고정 치수 (모든 �
   it("DropZone 높이 = 내용 (S2 DropZone 에 높이 · 최소 높이 지정 없음)", () => {
     expect(new Set(every("DropZone", "height"))).toEqual(new Set([0]));
   });
+
+  // 2026-11-28 사용자 결정: Keyboard = S2 Menu `keyboard` 글자 — 바탕 · 테두리 · 모서리 · 여백 없음, `ui` 글자,
+  //   `gray-600` (= `{color.field-placeholder}`). 옛 값은 RAC starter `Menu.css` `kbd` 칩이었다.
+  it("Keyboard = S2 Menu `keyboard` (글자뿐 — 칩 없음)", () => {
+    const menu = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src/Menu.tsx",
+      ),
+      "utf8",
+    );
+    const block = /let keyboard = style<[^>]*>\(\{([\s\S]*?)\n\}\);/.exec(
+      menu,
+    )![1]!;
+    expect(block).toMatch(/font: 'ui'/);
+    expect(block).toMatch(/default: 'gray-600'/);
+    expect(block).not.toMatch(
+      /backgroundColor|borderWidth|borderRadius|padding/,
+    );
+
+    const rule = (
+      COMPONENT_RULES_TABLE as unknown as Record<
+        string,
+        {
+          variants: Record<string, { paint?: Record<string, unknown> }>;
+          sizes: Record<string, Record<string, unknown>>;
+        }
+      >
+    ).Keyboard!;
+    const paint = rule.variants.default!.paint!;
+    expect(paint.backgroundColor).toBeUndefined();
+    expect(paint.borderColor).toBeUndefined();
+    expect(paint.color).toEqual({ default: "{color.field-placeholder}" });
+    expect(new Set(every("Keyboard", "fontSize"))).toEqual(
+      new Set(["{typography.text-sm}"]),
+    );
+    expect(new Set(every("Keyboard", "paddingX"))).toEqual(new Set([0]));
+    expect(new Set(every("Keyboard", "borderWidth"))).toEqual(
+      new Set(["{border.width.none}"]),
+    );
+    expect(new Set(every("Keyboard", "borderRadius"))).toEqual(
+      new Set(["{radius.none}"]),
+    );
+  });
 });
 
 describe("ADR-295 G4 — 3c-3c ②b-1 control 높이 형 (Tooltip · Menu section header · Breadcrumbs)", () => {

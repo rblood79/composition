@@ -72,6 +72,10 @@ describe("ADR-912 collapse — getPaletteItems() == palette oracle (회귀 0)", 
     expect(derivedSeq).toEqual(oracleSeq);
   });
 
+  it("Keyboard 는 팔레트에 없다 — MenuItem 원본의 shortcut 부품 (속성 「단축키」) 이 만든다 (사용자 결정 2026-11-28)", () => {
+    expect(getPaletteItems().some((i) => i.type === "Keyboard")).toBe(false);
+  });
+
   it("TailSwatch 는 팔레트에 없다 — ComponentFactory creator 가 없는 dead 항목 (2026-09-04 사용자 판정)", () => {
     expect(getPaletteItems().some((i) => i.type === "TailSwatch")).toBe(false);
   });

@@ -185,7 +185,8 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "keyboard key",
     icon: "Keyboard",
   }),
-  // Keyboard — ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut).
+  // Keyboard — ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut). palette 미노출
+  //   (2026-11-28 사용자 결정) — the MenuItem origin has it (its 「Shortcut」 role).
   primitiveEntry("Keyboard", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "keyboard shortcut",

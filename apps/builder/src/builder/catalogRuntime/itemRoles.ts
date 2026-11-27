@@ -19,9 +19,10 @@ import {
 /**
  * ADR-248 Phase 4e-4e: the roles inside a collection item (ADR-238 — icon · avatar · label ·
  * description · shortcut) over the catalog document. The item's role children are its positions
- * whose `slot` prop names a role; each optional role switches on and off with the child's
- * `enabled` (an owned child's own field, a template position's descendant patch). The label is
- * required (RAC's accessible name) and cannot be switched off.
+ * whose `slot` prop names a role (or whose type is one — `ROLE_OF_TYPE`); each optional role
+ * switches on and off with the child's `enabled` (an owned child's own field, a template
+ * position's descendant patch). The label is required (RAC's accessible name) and cannot be
+ * switched off.
  */
 export interface CatalogItemRoleRow {
   role: SlotRole;
@@ -37,6 +38,13 @@ export interface CatalogItemRoles {
 }
 
 const ROLES: ReadonlySet<string> = new Set(SLOT_ROLES);
+/**
+ * Role children named by their type, not a `slot` prop: a MenuItem's shortcut is a RAC `Keyboard`
+ * (ADR-256 Phase 5g — RAC's `KeyboardContext` has no slots, so the child carries none).
+ */
+const ROLE_OF_TYPE: Readonly<Record<string, SlotRole>> = {
+  Keyboard: "shortcut",
+};
 
 function roleOf(reader: CatalogReader, target: EditTarget): SlotRole | null {
   let slot: unknown;
@@ -67,7 +75,10 @@ export function catalogItemRoles(
   for (const child of childPositions(reader, position, {
     includeDisabled: true,
   })) {
-    const role = roleOf(reader, child.target);
+    const role =
+      roleOf(reader, child.target) ??
+      ROLE_OF_TYPE[definitionTypeName(reader, child.definitionId)] ??
+      null;
     if (role && !byRole.has(role)) byRole.set(role, child);
   }
   const rows = specs.flatMap((spec): CatalogItemRoleRow[] => {

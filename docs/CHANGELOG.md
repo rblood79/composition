@@ -23,6 +23,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - live (Builder 5173, Chrome · Playwright `menu-shortcut-field-live.mjs` 12/12): Menu · ActionMenu 항목에서 ⌘ ⇧ + k → `⇧⌘K`, 수식키 0 → 꺼짐, ⌥ + p → `⌥P`, Icon 고르기 · ✕ · Description · Label, Publish 메뉴 항목 끝의 단축키 · 설명, 세 섹션의 DOM 구조 (안내 0 · fieldset 겹침 0 · Shortcut 행 = seg + `Key` 액션 칸), Size seg 와 모양 대조 (트랙 · 높이 28 · 버튼 20 · pill).
   - 위치: `catalogRuntime/shortcutText.ts` · `panels/properties/catalog/{CatalogShortcutField,CatalogItemIconField,CatalogItemTextField,CatalogItemRolesSection,CatalogComponentSection,CatalogComponentPropertiesSection,CatalogPropertiesPanel.components}.tsx` · `components/property/PropertyChipGroup.tsx` (`appearance="seg"`) · 회귀 `shortcutText.test.ts` · `phase4eItemRoles.test.tsx`
 
+## [Keyboard (메뉴 단축키) — S2 값 · 팔레트에서 제외 · 「Shortcut」 역할 판정] - 2026-11-28
+
+### Changed
+
+- **Keyboard 모양 = S2 Menu `keyboard`**: 배경 · 테두리 · 모서리 · 좌우 여백을 없애고 글자만 남겼다. 글자는 `ui` (14 · 행간 18), 색은 `gray-600` (`{color.field-placeholder}`) 이다. 전에는 RAC starter `Menu.css` 의 `kbd` 칩 모양 (회색 바탕 · 테두리 · 12px) 이었다 — 예제 CSS 는 권위가 없고, 값의 정본은 S2 설치본이다 (ADR-295).
+- **팔레트에서 Keyboard (keyboard shortcut) 를 뺐다** (사용자 결정): S2 에서 Keyboard 는 MenuItem 안에서만 뜻이 있다 (`KeyboardContext` → 항목의 `aria-describedby`). 메뉴 밖에서는 Text 와 같아서, MenuItem 원본의 shortcut 부품으로만 쓴다. 박스로 감싼 키 모양은 keyboard key (`Kbd`) 가 맡는다.
+
+### Fixed
+
+- **MenuItem 의 항목 역할에 「Shortcut」 이 없던 것**: 역할 판정 (`itemRoles.ts`) 이 자식의 `slot` prop 만 읽는데, ADR-256 Phase 5g 에서 단축키가 `Text[slot=shortcut]` 에서 RAC `Keyboard` (slot 없음) 로 바뀐 뒤 행이 빠져 있었다. 이제 자식 type 으로도 역할을 찾는다 (`ROLE_OF_TYPE` — Keyboard → shortcut). 위 항목의 Shortcut 칸 (수식키 토글 + Key) 이 이 행을 읽어 Keyboard 를 켜고 끈다.
+  - live (Builder 5173, Chrome · Playwright): 팔레트 Content 에 keyboard shortcut 없음, Menu 놓기 → 첫 항목 선택 → Design 「Shortcut」 행으로 Keyboard 켜기 (당시 스위치 — 위 항목에서 수식키 토글로 바뀜) → 글자 ⌘C → Canvas record (14 · 행간 18 · 여백 · 테두리 · 모서리 0) · Publish 메뉴의 `kbd` (바탕 투명 · 테두리 0 · 14px/18px · `rgb(113, 113, 113)` · 라벨과 8 · `aria-describedby` 연결). Canvas ↔ DOM 상자 하니스 `propAxisCanvasDom` Keyboard 통과.
+  - 위치: `componentRulesTable.ts` (Keyboard) · `panels/components/paletteItems.ts` · `catalogRuntime/itemRoles.ts` · 회귀 `d3S2Alignment.static.test.ts` · `paletteItems.test.ts` · `phase4eItemRoles.test.tsx`
+
 ## [Builder 패널 안내 — 저장 · 필터 바 거절 이유 · 묶음 행 메뉴 이름] - 2026-11-28
 
 ### Fixed

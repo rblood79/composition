@@ -72,13 +72,12 @@ async function open(type: string) {
   return { workspace, graph: workspace.runtime.graph, id };
 }
 
-/** The first ListBoxItem position under the page (breadth first). */
-function firstItem(graph: CatalogGraph): CatalogPosition {
+/** The first item position (ListBoxItem by default) under the page (breadth first). */
+function firstItem(graph: CatalogGraph, type = "ListBoxItem"): CatalogPosition {
   let level = pagePositions(graph, HOME);
   while (level.length) {
     const found = level.find(
-      (position) =>
-        definitionTypeName(graph, position.definitionId) === "ListBoxItem",
+      (position) => definitionTypeName(graph, position.definitionId) === type,
     );
     if (found) return found;
     level = level.flatMap((position) => childPositions(graph, position));
@@ -146,6 +145,31 @@ describe("ADR-248 Phase 4e-4e item roles", () => {
       catalogItemRoles(graph, item)!.rows.find((row) => row.role === "icon"),
     ).toMatchObject({ enabled: true });
     expect(shown(graph, item).length).toBe(before.length + 1);
+  });
+
+  // 2026-11-28: a MenuItem's shortcut is a RAC `Keyboard` (no `slot` — RAC's KeyboardContext is not
+  //   slotted), so the role is the child's type. Without it the row was missing and, with Keyboard
+  //   out of the palette, a menu item had no way to show its shortcut.
+  it("a Menu item lists the shortcut (its Keyboard) off; switching it on shows the Keyboard", async () => {
+    const { workspace, graph } = await open("Menu");
+    const item = firstItem(graph, "MenuItem");
+    const shortcut = catalogItemRoles(graph, item)!.rows.find(
+      (row) => row.role === "shortcut",
+    );
+    expect(shortcut).toMatchObject({ required: false, enabled: false });
+    const keyboards = () =>
+      childPositions(graph, item).filter(
+        (child) =>
+          definitionTypeName(graph, child.definitionId) === "Keyboard",
+      );
+    expect(keyboards()).toHaveLength(0);
+    workspace.execute(catalogItemRoleCommand(shortcut!, true));
+    expect(keyboards()).toHaveLength(1);
+    expect(
+      catalogItemRoles(graph, item)!.rows.find(
+        (row) => row.role === "shortcut",
+      ),
+    ).toMatchObject({ enabled: true });
   });
 
   it("a non-item position has no role section; the default child listing still hides switched-off positions", async () => {

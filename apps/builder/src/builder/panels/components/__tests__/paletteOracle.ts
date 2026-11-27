@@ -3,7 +3,8 @@
 // 노출하는 palette 항목의 1:1 보존 스냅샷. getPaletteItems() 파생 결과가 이 oracle 과 같아야 회귀 0.
 // 순서 = palette UI 표시 순서(category 8 + 항목). 캡처: 2026-06-11 · 재캡처 2026-10-21 (Library 감사 —
 // Meter · Menu · Section · AvatarGroup category, CardView 아이콘, overlay 3종 → catalog) ·
-// 재캡처 2026-11-09 (S2 · RAC 신규 컴포넌트 11종 — bbca53c78 · 3ca03f661 · 8ac17dc12).
+// 재캡처 2026-11-09 (S2 · RAC 신규 컴포넌트 11종 — bbca53c78 · 3ca03f661 · 8ac17dc12) ·
+// 재캡처 2026-11-28 (Keyboard 제외 — MenuItem 원본의 shortcut 부품, 사용자 결정).
 //
 // ⚠️ 이 파일을 손으로 수정하지 말 것 — palette 표시가 의도적으로 바뀔 때만 재캡처.
 export interface PaletteOracleItem {
@@ -27,12 +28,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     category: "content",
     label: "icon",
     icon: "Smile",
-  },
-  {
-    type: "Keyboard",
-    category: "content",
-    label: "keyboard shortcut",
-    icon: "Keyboard",
   },
   {
     type: "Separator",

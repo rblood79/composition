@@ -447,7 +447,7 @@ async function measure(
  * 대칭 작업이고, 고치면 여기서 뺀다 (목록에 있는데 대칭이면 그것도 FAIL — 낡은 목록을 남기지 않는다).
  */
 const KNOWN_ASYMMETRIC = new Set([
-  "Keyboard",
+  // (Keyboard: 2026-11-28 팔레트 밖 — MenuItem 원본의 부품. 대칭은 propAxisCanvasDom 의 Keyboard 행.)
   "Separator@S",
   "Separator@M",
   "Separator@L",

@@ -297,9 +297,7 @@ const PALETTE_ORDER: ReadonlyArray<{
 }> = [
   { type: "Text", source: "catalog" },
   { type: "Icon", source: "catalog" },
-  // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard) — the reference's MenuItem part, put in
-  //   by the author (G0 example 2). A content primitive like Text · Icon (no origin of its own).
-  { type: "Keyboard", source: "catalog" },
+  // (Keyboard: 2026-11-28 사용자 결정 — 팔레트 밖. MenuItem 원본의 shortcut 부품이고 속성 「단축키」 가 켠다.)
   { type: "Separator", source: "catalog" },
   { type: "Badge", source: "catalog" },
   { type: "ProgressBar", source: "catalog" },
