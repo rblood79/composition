@@ -422,3 +422,42 @@ describe("ADR-322 G3 — drill: one level at a time, the same answers as columns
     t.workspace.dispose();
   });
 });
+
+describe("ADR-322 G5 — tree: only expanded branches are in the list (HC5)", () => {
+  const rows = () =>
+    [...document.querySelectorAll('[role="treegrid"] [role="row"]')].map(
+      (el) => [el.textContent, el.getAttribute("aria-expanded")],
+    );
+  const settle = () => act(async () => new Promise((r) => setTimeout(r, 40)));
+
+  it("a closed branch is expandable (aria-expanded false · →) and draws no child; → swaps its items in", async () => {
+    const t = await place();
+    t.write({ mode: "tree" });
+    const view = await dom(t);
+    const user = userEvent.setup();
+    view.button.focus();
+    await user.keyboard("{Enter}");
+    for (let i = 0; i < 50 && !document.querySelector('[role="treegrid"]'); i++)
+      await settle();
+    await settle();
+    expect(rows()).toEqual([
+      ["Electronics", "false"],
+      ["Clothing", "false"],
+      ["Books", null],
+    ]);
+    // (The stand-in child of a closed branch is never a row.)
+    expect(document.querySelectorAll('[role="treegrid"] [role="row"]')).toHaveLength(3);
+    (document.querySelector('[role="treegrid"] [role="row"]') as HTMLElement).focus();
+    await user.keyboard("{ArrowRight}");
+    await settle();
+    expect(rows()).toEqual([
+      ["Electronics", "true"],
+      ["Computers", "false"],
+      ["Phones", "false"],
+      ["Clothing", "false"],
+      ["Books", null],
+    ]);
+    await user.keyboard("{Escape}");
+    t.workspace.dispose();
+  });
+});

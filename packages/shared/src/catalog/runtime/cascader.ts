@@ -1,3 +1,4 @@
+import { catalogSelectionCountText } from "../document/selectionCountValue";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 /**
@@ -7,8 +8,10 @@ import type { CatalogConsumerNode } from "./compositionRoot";
  * - The value is an item's key (HC4). The path is computed from the item table, never stored.
  * - Inside the field an item is known by its **path id** (its ancestors' keys) — RAC's item ids
  *   must be unique, and a key may repeat across parents.
- * - A key two or more items carry is not a value (Decision 4): such items cannot be picked, and a
- *   value that names one is refused (never matched to the first).
+ * - A key two or more pickable items carry is not a value (Decision 4): such items cannot be
+ *   picked, and a value that names one is refused (never matched to the first). Pickable = a leaf,
+ *   or any item while the field selects any level (사용자 결정 2) — a branch and a leaf may share a
+ *   key while only leaves are values (사용자 답 2026-11-27: tables per level restart their ids).
  */
 
 export const CASCADER_TYPE = "Cascader";
@@ -31,7 +34,9 @@ export interface CascaderEntry {
   readonly depth: number;
   readonly hasChildren: boolean;
   readonly isDisabled: boolean;
-  /** Its key is carried by another item too — it cannot be picked (Decision 4). */
+  /** It can be a value: a leaf, or any item while the field selects any level (사용자 결정 2). */
+  readonly pickable: boolean;
+  /** Its key is carried by another pickable item too — it cannot be picked (Decision 4). */
   readonly duplicate: boolean;
 }
 
@@ -49,6 +54,8 @@ export interface CascaderTable {
   readonly byPathId: ReadonlyMap<string, CascaderEntry>;
   /** key → the entries carrying it. */
   readonly byKey: ReadonlyMap<string, readonly CascaderEntry[]>;
+  /** Parent path id (`null` = the first level) → its items, in order — one lookup per level. */
+  readonly byParent: ReadonlyMap<string | null, readonly CascaderEntry[]>;
   /** The path ids that cannot be picked because their key repeats (RAC `disabledKeys`). */
   readonly duplicatePathIds: ReadonlySet<string>;
 }
@@ -62,6 +69,7 @@ const PATH_SEPARATOR = "\u001f";
  */
 export function cascaderTable(
   items: readonly CascaderSourceItem[],
+  options: { readonly anyLevel?: boolean } = {},
 ): CascaderTable {
   const raw: {
     pathId: string;
@@ -102,45 +110,66 @@ export function cascaderTable(
     }
   };
   walk(items, null, 0);
+  const pickable = (entry: { hasChildren: boolean }) =>
+    options.anyLevel === true || !entry.hasChildren;
   const counts = new Map<string, number>();
   for (const entry of raw)
-    counts.set(entry.key, (counts.get(entry.key) ?? 0) + 1);
+    if (pickable(entry))
+      counts.set(entry.key, (counts.get(entry.key) ?? 0) + 1);
   const entries: CascaderEntry[] = raw.map((entry) => ({
     ...entry,
-    duplicate: (counts.get(entry.key) ?? 0) > 1,
+    pickable: pickable(entry),
+    duplicate: pickable(entry) && (counts.get(entry.key) ?? 0) > 1,
   }));
   const byPathId = new Map(entries.map((entry) => [entry.pathId, entry]));
   const byKey = new Map<string, CascaderEntry[]>();
+  const byParent = new Map<string | null, CascaderEntry[]>();
   for (const entry of entries) {
     const list = byKey.get(entry.key);
     if (list) list.push(entry);
     else byKey.set(entry.key, [entry]);
+    const level = byParent.get(entry.parentPathId);
+    if (level) level.push(entry);
+    else byParent.set(entry.parentPathId, [entry]);
   }
   return {
     entries,
     byPathId,
     byKey,
+    byParent,
     duplicatePathIds: new Set(
       entries.filter((entry) => entry.duplicate).map((entry) => entry.pathId),
     ),
   };
 }
 
-/** What a value names in the table (Decision 4): one item, none, or a key several items carry. */
+/**
+ * What a value names in the table (Decision 4): one pickable item, none, a key several pickable items
+ * carry, or only a branch (not a value while the field picks leaves).
+ */
 export type CascaderValueMatch =
   | { readonly kind: "item"; readonly entry: CascaderEntry }
   | { readonly kind: "missing"; readonly key: string }
-  | { readonly kind: "duplicate"; readonly key: string };
+  | { readonly kind: "duplicate"; readonly key: string }
+  | { readonly kind: "branch"; readonly key: string };
 
 export function cascaderValueMatch(
   table: CascaderTable,
   key: string,
 ): CascaderValueMatch {
   const found = table.byKey.get(key) ?? [];
-  if (found.length === 1) return { kind: "item", entry: found[0]! };
-  return found.length === 0
-    ? { kind: "missing", key }
-    : { kind: "duplicate", key };
+  const pickable = found.filter((entry) => entry.pickable);
+  if (pickable.length === 1) return { kind: "item", entry: pickable[0]! };
+  if (pickable.length > 1) return { kind: "duplicate", key };
+  return found.length ? { kind: "branch", key } : { kind: "missing", key };
+}
+
+/** The value's keys: a key (single) or a key list (multiple — 사용자 결정 3); empty = none. */
+export function cascaderValueKeys(value: unknown): string[] {
+  if (value === null || value === undefined || value === "") return [];
+  return (Array.isArray(value) ? value : [value])
+    .filter((key) => key !== null && key !== undefined && key !== "")
+    .map(String);
 }
 
 /**
@@ -152,13 +181,14 @@ export function cascaderValueRefusal(
   table: CascaderTable,
   value: unknown,
 ): string | undefined {
-  if (value === null || value === undefined || value === "") return undefined;
-  const key = String(value);
-  const match = cascaderValueMatch(table, key);
-  if (match.kind === "missing") return `없는 key: ${key}`;
-  if (match.kind === "duplicate") return `여러 항목이 가진 key: ${key}`;
-  if (match.entry.hasChildren) return `가지 항목: ${key} — 끝 항목이 값이다`;
-  if (match.entry.isDisabled) return `비활성 항목: ${key}`;
+  for (const key of cascaderValueKeys(value)) {
+    const match = cascaderValueMatch(table, key);
+    if (match.kind === "missing") return `없는 key: ${key}`;
+    if (match.kind === "duplicate") return `여러 항목이 가진 key: ${key}`;
+    if (match.kind === "branch")
+      return `가지 항목: ${key} — 끝 항목이 값이다 (「어느 단계든」 꺼짐)`;
+    if (match.entry.isDisabled) return `비활성 항목: ${key}`;
+  }
   return undefined;
 }
 
@@ -174,18 +204,20 @@ export function cascaderEntryText(
   );
 }
 
-/** The start value's key: `value`, else `defaultValue` (an empty string = none). */
-export function cascaderStartKey(
+/** The start value's keys: `value`, else `defaultValue` (empty = none). */
+export function cascaderStartKeys(
   props: Readonly<Record<string, unknown>>,
-): string | undefined {
-  const raw =
+): string[] {
+  return cascaderValueKeys(
     props.value !== undefined && props.value !== null
       ? props.value
-      : props.defaultValue;
-  if (raw === undefined || raw === null) return undefined;
-  const key = String(raw);
-  return key === "" ? undefined : key;
+      : props.defaultValue,
+  );
 }
+
+/** The field selects more than one item (사용자 결정 3 — RAC `selectionMode`). */
+export const cascaderMultiple = (props: Readonly<Record<string, unknown>>) =>
+  props.selectionMode === "multiple";
 
 /**
  * The closed field's value text (breakdown §4.2 · §4.6): the item's path (or its name), the key
@@ -196,13 +228,16 @@ export function cascaderStartKey(
 export function cascaderValueText(
   table: CascaderTable,
   props: Readonly<Record<string, unknown>>,
+  keys: readonly string[] = cascaderStartKeys(props),
+  locale?: string,
 ): string | undefined {
-  const key = cascaderStartKey(props);
-  if (key === undefined) return undefined;
-  const match = cascaderValueMatch(table, key);
+  if (keys.length === 0) return undefined;
+  // (S2 Picker's multiple value: two or more show their count — F6, Select's text.)
+  if (keys.length > 1) return catalogSelectionCountText(keys.length, locale);
+  const match = cascaderValueMatch(table, keys[0]!);
   return match.kind === "item"
     ? cascaderEntryText(match.entry, props.displayMode, props.separator)
-    : key;
+    : keys[0];
 }
 
 /**
@@ -270,7 +305,9 @@ export function cascaderTableOf(
   get: Lookup,
   typeOf: TypeOf,
 ): CascaderTable {
-  return cascaderTable(cascaderStaticItems(cascader, get, typeOf));
+  return cascaderTable(cascaderStaticItems(cascader, get, typeOf), {
+    anyLevel: cascader.props.allowsBranchSelection === true,
+  });
 }
 
 /**

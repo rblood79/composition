@@ -11,7 +11,14 @@ import { Popover } from "react-aria-components/Popover";
 import { Tree, TreeItem, TreeItemContent } from "react-aria-components/Tree";
 import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
 import { Icon } from "../../components/Icon";
-import type { CascaderEntry, CascaderTable } from "./cascader";
+import type { CascaderEntry } from "./cascader";
+import type { CascaderContentProps } from "./cascader.components";
+import { CascaderSearch } from "./cascaderSearch.components";
+import {
+  cascaderPicked,
+  CASCADER_LEVEL_ITEM,
+  useCascaderLevelName,
+} from "./cascaderOpen";
 import { useCatalogLocalized } from "./localizedStrings";
 
 /**
@@ -19,8 +26,9 @@ import { useCatalogLocalized } from "./localizedStrings";
  * `Popover` > `Dialog` (the field's `DialogTrigger` contexts — named by its trigger) >
  *
  * - `tree`: RAC `Tree` in RAC `Virtualizer` (Phase 0 P4 — 5,000 items drawn whole exceed HC5, the
- *   virtualized tree opens at ×0.07 of the Select baseline); the picked item's ancestors start
- *   expanded; a branch row expands (RAC's arrows · chevron), a leaf row is picked.
+ *   virtualized tree opens at ×0.07 of the Select baseline) — only expanded branches' items are in
+ *   the collection (Phase 5 G5); the picked item's ancestors start expanded; a branch row expands
+ *   (RAC's arrows · chevron), a leaf row is picked.
  * - `drill`: RAC `Breadcrumbs` (the way back to any level) + a back `Button` + RAC `GridList` of the
  *   current level — a row's action goes into a branch or picks a leaf; the list keeps focus as the
  *   level changes (`autoFocus`).
@@ -31,12 +39,8 @@ import { useCatalogLocalized } from "./localizedStrings";
  * RAC's single selection (controlled — a branch's selection is not a value and changes nothing).
  */
 
-interface PanelProps {
-  readonly table: CascaderTable;
-  readonly value: string | null;
-  readonly label: string;
-  readonly onPick: (key: string) => void;
-}
+/** The stand-in child of a closed tree branch (never drawn — a closed branch's rows are hidden). */
+const CASCADER_COLLAPSED_ITEM = "\u001eclosed";
 
 const BACK: Readonly<Record<string, string>> = {
   en: "Back",
@@ -45,44 +49,106 @@ const BACK: Readonly<Record<string, string>> = {
   zh: "返回",
 };
 
-function usePanel({ table, value, onPick }: PanelProps) {
+/**
+ * The shared part: the picked items, the items that cannot be picked, and a pick (single: the value,
+ * then the popover closes; multiple: a toggle — 사용자 결정 3). A selection change (Space · a row press)
+ * picks what it added or removed — only pickable items (a leaf, any item while branches are —
+ * 사용자 결정 2).
+ */
+function usePanel({ table, keys, multiple, onPick }: CascaderContentProps) {
   const state = useContext(OverlayTriggerStateContext);
-  const found = value === null ? [] : (table.byKey.get(value) ?? []);
-  const picked = found.length === 1 ? found[0] : undefined;
-  const disabled = table.entries
+  const picked = cascaderPicked(table, keys);
+  const blocked = table.entries
     .filter((entry) => entry.duplicate || entry.isDisabled)
     .map((entry) => entry.pathId);
   const childrenOf = (parent: string | null) =>
-    table.entries.filter((entry) => entry.parentPathId === parent);
-  const pick = (pathId: unknown) => {
-    const entry = table.byPathId.get(String(pathId));
-    if (!entry || entry.hasChildren || entry.duplicate || entry.isDisabled)
-      return false;
+    table.byParent.get(parent) ?? [];
+  const pick = (entry: CascaderEntry | undefined) => {
+    if (!entry || !entry.pickable || entry.duplicate || entry.isDisabled)
+      return;
     onPick(entry.key);
-    state?.close();
-    return true;
+    if (!multiple) state?.close();
   };
-  const onSelectionChange = (keys: unknown) => {
-    if (keys === "all") return;
-    const [first] = [...(keys as Iterable<unknown>)];
-    if (first !== undefined) pick(first);
+  const entryOf = (id: unknown) => {
+    const key = String(id);
+    return table.byPathId.get(
+      key.endsWith(CASCADER_LEVEL_ITEM)
+        ? key.slice(0, -CASCADER_LEVEL_ITEM.length)
+        : key,
+    );
   };
-  return { picked, disabled, childrenOf, pick, onSelectionChange };
+  const onSelectionChange = (selection: unknown) => {
+    if (selection === "all") return;
+    const next = new Set([...(selection as Iterable<unknown>)].map(String));
+    const before = new Set(picked.map((entry) => entry.pathId));
+    for (const id of next) if (!before.has(id)) pick(entryOf(id));
+    if (multiple)
+      for (const id of before) if (!next.has(id)) pick(table.byPathId.get(id));
+  };
+  return {
+    picked,
+    blocked,
+    childrenOf,
+    pick,
+    entryOf,
+    onSelectionChange,
+    close: () => state?.close(),
+  };
 }
 
-export function CatalogCascaderTree(props: PanelProps): ReactElement {
-  const { table, label } = props;
-  const { picked, disabled, childrenOf, onSelectionChange } = usePanel(props);
-  const ancestors: string[] = [];
-  for (
-    let at = picked?.parentPathId ?? null;
-    at !== null;
-    at = table.byPathId.get(at)?.parentPathId ?? null
-  )
-    ancestors.push(at);
+/** The levels under a search field while the field is searchable (Phase 5 — breakdown §4.4). */
+const withSearch = (
+  props: CascaderContentProps,
+  close: () => void,
+  levels: ReactElement,
+): ReactElement =>
+  props.searchable ? (
+    <CascaderSearch
+      content={props}
+      separator={props.separator}
+      inside={false}
+      onPicked={close}
+      levels={levels}
+    />
+  ) : (
+    levels
+  );
+
+export function CatalogCascaderTree(props: CascaderContentProps): ReactElement {
+  const { table, label, multiple, searchable } = props;
+  const { picked, blocked, childrenOf, onSelectionChange, close } =
+    usePanel(props);
+  const ancestors = new Set<string>();
+  for (const entry of picked)
+    for (
+      let at = entry.parentPathId;
+      at !== null;
+      at = table.byPathId.get(at)?.parentPathId ?? null
+    )
+      ancestors.add(at);
+  // (Only an expanded branch's items go into RAC's collection — 5,000 items in four levels open as
+  //  the first level's few: G5 HC5. A closed branch holds one stand-in child: RAC 1.22.1's
+  //  `useTreeItem` counts child nodes for `aria-expanded` · → (TreeItem's `hasChildItems` only draws
+  //  the chevron), and a closed branch's children are never drawn — expanding swaps in the real ones.)
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(
+    () => ancestors,
+  );
+  const collapsedChild = (entry: CascaderEntry): ReactElement => (
+    <TreeItem
+      id={`${entry.pathId}${CASCADER_COLLAPSED_ITEM}`}
+      textValue=""
+    >
+      <TreeItemContent>{null}</TreeItemContent>
+    </TreeItem>
+  );
   const items = (parent: CascaderEntry | null): ReactElement[] =>
     childrenOf(parent?.pathId ?? null).map((entry) => (
-      <TreeItem key={entry.pathId} id={entry.pathId} textValue={entry.name}>
+      <TreeItem
+        key={entry.pathId}
+        id={entry.pathId}
+        textValue={entry.name}
+        hasChildItems={entry.hasChildren}
+      >
         <TreeItemContent>
           {({ hasChildItems }) => (
             <>
@@ -95,100 +161,164 @@ export function CatalogCascaderTree(props: PanelProps): ReactElement {
             </>
           )}
         </TreeItemContent>
-        {entry.hasChildren ? items(entry) : null}
+        {entry.hasChildren
+          ? expanded.has(entry.pathId)
+            ? items(entry)
+            : collapsedChild(entry)
+          : null}
       </TreeItem>
     ));
   return (
     <Popover className="react-aria-Popover cascader-panel">
       <Dialog>
-        <Virtualizer
-          layout={ListLayout}
-          layoutOptions={{ estimatedRowHeight: 32 }}
-        >
-          <Tree
-            aria-label={label}
-            // (Focus goes into the list on open — the picked row, else the first: RAC's `autoFocus`.)
-            autoFocus={picked ? true : "first"}
-            selectionMode="single"
-            selectedKeys={picked ? [picked.pathId] : []}
-            disabledKeys={disabled}
-            defaultExpandedKeys={ancestors}
-            escapeKeyBehavior="none"
-            onSelectionChange={onSelectionChange}
-            style={{ maxHeight: 320, overflow: "auto" }}
+        {withSearch(
+          props,
+          close,
+          <Virtualizer
+            layout={ListLayout}
+            layoutOptions={{ estimatedRowHeight: 32 }}
           >
-            {items(null)}
-          </Tree>
-        </Virtualizer>
+            <Tree
+              aria-label={label}
+              // (Focus goes into the list on open — the picked row, else the first: RAC's `autoFocus`;
+              //  a search field takes it first — Phase 5.)
+              autoFocus={
+                searchable ? undefined : picked.length ? true : "first"
+              }
+              selectionMode={multiple ? "multiple" : "single"}
+              selectedKeys={picked.map((entry) => entry.pathId)}
+              disabledKeys={blocked}
+              expandedKeys={expanded}
+              onExpandedChange={(keys) =>
+                setExpanded(new Set([...keys].map(String)))
+              }
+              escapeKeyBehavior="none"
+              onSelectionChange={onSelectionChange}
+              style={{ maxHeight: 320, overflow: "auto" }}
+            >
+              {items(null)}
+            </Tree>
+          </Virtualizer>,
+        )}
       </Dialog>
     </Popover>
   );
 }
 
-export function CatalogCascaderDrill(props: PanelProps): ReactElement {
-  const { table, label } = props;
-  const { picked, disabled, childrenOf, pick, onSelectionChange } =
-    usePanel(props);
+export function CatalogCascaderDrill(
+  props: CascaderContentProps,
+): ReactElement {
+  const { table, label, multiple, searchable } = props;
+  const {
+    picked,
+    blocked,
+    childrenOf,
+    pick,
+    entryOf,
+    onSelectionChange,
+    close,
+  } = usePanel(props);
   const back = useCatalogLocalized(BACK);
+  const levelName = useCascaderLevelName();
   const [level, setLevel] = useState<string | null>(
-    picked?.parentPathId ?? null,
+    picked[0]?.parentPathId ?? null,
   );
   const parent = level === null ? undefined : table.byPathId.get(level);
   const trail: CascaderEntry[] = [];
   for (let at = parent; at; at = table.byPathId.get(at.parentPathId ?? ""))
     trail.unshift(at);
+  // (사용자 결정 2 — a pickable branch's own row first in its level: 「<branch> 전체」.)
+  const own = parent?.pickable
+    ? `${parent.pathId}${CASCADER_LEVEL_ITEM}`
+    : undefined;
+  const selected = [
+    ...picked
+      .filter((entry) => entry.parentPathId === level && !entry.hasChildren)
+      .map((entry) => entry.pathId),
+    ...(own && parent && picked.includes(parent) ? [own] : []),
+  ];
   return (
     <Popover className="react-aria-Popover cascader-panel">
       <Dialog>
-        <Breadcrumbs>
-          <Breadcrumb id="">
-            <Link onPress={() => setLevel(null)}>{label}</Link>
-          </Breadcrumb>
-          {trail.map((entry) => (
-            <Breadcrumb key={entry.pathId} id={entry.pathId}>
-              <Icon iconName="chevron-right" />
-              <Link onPress={() => setLevel(entry.pathId)}>{entry.name}</Link>
-            </Breadcrumb>
-          ))}
-        </Breadcrumbs>
-        <Button
-          className="react-aria-Button cascader-back"
-          aria-label={back}
-          isDisabled={!parent}
-          onPress={() => setLevel(parent?.parentPathId ?? null)}
-        >
-          <Icon iconName="chevron-left" />
-        </Button>
-        <GridList
-          key={level ?? ""}
-          aria-label={parent ? parent.name : label}
-          autoFocus={picked && picked.parentPathId === level ? true : "first"}
-          escapeKeyBehavior="none"
-          selectionMode="single"
-          selectedKeys={
-            picked && picked.parentPathId === level ? [picked.pathId] : []
-          }
-          disabledKeys={disabled}
-          onSelectionChange={onSelectionChange}
-          onAction={(key) => {
-            const entry = table.byPathId.get(String(key));
-            if (entry?.hasChildren) setLevel(entry.pathId);
-            else pick(key);
-          }}
-        >
-          {childrenOf(level).map((entry) => (
-            <GridListItem
-              key={entry.pathId}
-              id={entry.pathId}
-              textValue={entry.name}
+        {withSearch(
+          props,
+          close,
+          <>
+            <Breadcrumbs>
+              <Breadcrumb id="">
+                <Link onPress={() => setLevel(null)}>{label}</Link>
+              </Breadcrumb>
+              {trail.map((entry) => (
+                <Breadcrumb key={entry.pathId} id={entry.pathId}>
+                  <Icon iconName="chevron-right" />
+                  <Link onPress={() => setLevel(entry.pathId)}>
+                    {entry.name}
+                  </Link>
+                </Breadcrumb>
+              ))}
+            </Breadcrumbs>
+            <Button
+              className="react-aria-Button cascader-back"
+              aria-label={back}
+              isDisabled={!parent}
+              onPress={() => setLevel(parent?.parentPathId ?? null)}
             >
-              {entry.name}
-              {entry.hasChildren ? (
-                <Icon iconName="chevron-right" slot="descriptor" />
-              ) : null}
-            </GridListItem>
-          ))}
-        </GridList>
+              <Icon iconName="chevron-left" />
+            </Button>
+            <GridList
+              key={level ?? ""}
+              aria-label={parent ? parent.name : label}
+              autoFocus={
+                searchable ? undefined : selected.length ? true : "first"
+              }
+              escapeKeyBehavior="none"
+              selectionMode={multiple ? "multiple" : "single"}
+              selectedKeys={selected}
+              disabledKeys={[
+                ...blocked,
+                ...(own && parent && (parent.duplicate || parent.isDisabled)
+                  ? [own]
+                  : []),
+              ]}
+              onSelectionChange={onSelectionChange}
+              onAction={(key) => {
+                const entry = entryOf(key);
+                if (
+                  !String(key).endsWith(CASCADER_LEVEL_ITEM) &&
+                  entry?.hasChildren
+                )
+                  setLevel(entry.pathId);
+                else pick(entry);
+              }}
+            >
+              {[
+                ...(own && parent
+                  ? [
+                      <GridListItem
+                        key={own}
+                        id={own}
+                        textValue={levelName(parent.name)}
+                      >
+                        {levelName(parent.name)}
+                      </GridListItem>,
+                    ]
+                  : []),
+                ...childrenOf(level).map((entry) => (
+                  <GridListItem
+                    key={entry.pathId}
+                    id={entry.pathId}
+                    textValue={entry.name}
+                  >
+                    {entry.name}
+                    {entry.hasChildren ? (
+                      <Icon iconName="chevron-right" slot="descriptor" />
+                    ) : null}
+                  </GridListItem>
+                )),
+              ]}
+            </GridList>
+          </>,
+        )}
       </Dialog>
     </Popover>
   );

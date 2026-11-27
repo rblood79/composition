@@ -51,7 +51,10 @@ import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
 import { CatalogCascaderField } from "./cascader.components";
 import {
   CASCADER_ITEM_TYPE,
-  cascaderStartKey,
+  CASCADER_TYPE,
+  cascaderMultiple,
+  cascaderStartKeys,
+  cascaderValueKeys,
   cascaderTableOf,
 } from "./cascader";
 import {
@@ -4687,14 +4690,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => {
       const props = input.node.props;
       const { get, typeOf } = domLookup(input);
-      // (The run's value: its runtime value once written — `null` = cleared — else the start value.)
+      // (The run's value: its runtime value once written — `null` · `[]` = cleared — else the start
+      //  value; a key, or a key list while `multiple` — 사용자 결정 3.)
       const own = input.runtimeProps?.(input.node.id);
-      const value =
+      const keys =
         own && "value" in own
-          ? own.value === null || own.value === undefined || own.value === ""
-            ? null
-            : String(own.value)
-          : (cascaderStartKey(props) ?? null);
+          ? cascaderValueKeys(own.value)
+          : cascaderStartKeys(props);
+      const multiple = cascaderMultiple(props);
       const open = input.setRuntimeProps
         ? (openState(input) as {
             isOpen?: boolean;
@@ -4740,10 +4743,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             displayMode: props.displayMode,
             separator: props.separator,
           },
-          value,
+          keys,
+          multiple,
+          searchable: props.isSearchable === true,
+          countText: (count: number) =>
+            catalogSelectionCountText(count, input.root.environmentLocale),
           onChange: input.setRuntimeProps
-            ? (key: string | null) =>
-                input.setRuntimeProps!(input.node.id, { value: key })
+            ? (value: string | null | string[]) =>
+                input.setRuntimeProps!(input.node.id, { value })
             : undefined,
           isOpen: open.isOpen,
           onOpenChange: open.onOpenChange,
@@ -5632,6 +5639,12 @@ export function catalogStateSourceValue(
         return catalogDateStartValue(props) ?? null;
       if (type === "Slider") return catalogSliderRange(node).value;
       if (type === "Rating") return catalogRatingStart(props);
+      // (ADR-322 Phase 5 — a Cascader starts from `value`, else `defaultValue`: a key, a key list
+      //  while `multiple` — the render reads the same.)
+      if (type === CASCADER_TYPE) {
+        const keys = cascaderStartKeys(props);
+        return cascaderMultiple(props) ? keys : (keys[0] ?? null);
+      }
       if (type === "RangeSlider") {
         const { min, max } = catalogSliderRange(node);
         return catalogRangeValue(

@@ -915,6 +915,10 @@ const catalog: TranslationKeys = {
       resize: {
         onSizeChange: "패널 크기가 바뀔 때",
       },
+      // (ADR-322 Phase 5 — Cascader 의 값.)
+      cascaderValue: {
+        onChange: "값이 바뀔 때",
+      },
       // (ADR-321 — a StepList's current step · how far its steps are done.)
       stepSelection: {
         onSelectionChange: "단계가 바뀔 때",
@@ -967,6 +971,7 @@ const catalog: TranslationKeys = {
       collapse: "패널 접힘",
       resize: "패널 크기",
       stepSelection: "현재 단계",
+      cascaderValue: "값",
       filterConditions: "필터",
       stepCompletion: "완료 단계",
       groupAction: "그룹 동작",
@@ -3407,6 +3412,8 @@ const semanticLabels: Record<string, string> = {
   "properties.searchContains": "포함",
   "properties.searchFuzzy": "유사",
   "properties.searchable": "검색 대상",
+  "properties.searchItems": "항목 검색",
+  "properties.selectAnyLevel": "어느 단계든 고르기",
   "properties.columnDefaultHidden": "처음에 숨김",
   "properties.columnPinned": "고정",
   "properties.columnAllowsHiding": "숨기기 허용",

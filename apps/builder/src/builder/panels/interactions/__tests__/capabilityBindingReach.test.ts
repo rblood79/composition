@@ -36,6 +36,8 @@ const TESTS = [
   "../../../../preview/catalog/__tests__/adr320FilterBarRun.test.tsx",
   // ADR-321 Phase 5 — a Rating's 「값 넣기」: the stars · range input · named state after it.
   "../../../../preview/catalog/__tests__/adr321RatingRun.test.tsx",
+  // ADR-322 Phase 5 — a Cascader's 「값 넣기」 · 「지우기」 · 「열기」: the value text · named state · menu.
+  "../../../../preview/catalog/__tests__/adr322CascaderRun.test.tsx",
 ].map((path) => readFileSync(resolve(import.meta.dirname, path), "utf8"));
 
 /**

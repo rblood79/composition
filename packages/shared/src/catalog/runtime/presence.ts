@@ -4842,6 +4842,8 @@ function ownDerivedPropsBase(
       const text = cascaderValueText(
         cascaderTableOf(cascader, get, typeOf),
         cascader.props,
+        undefined,
+        locale,
       );
       return text === undefined ? undefined : { children: text };
     }

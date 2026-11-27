@@ -559,6 +559,23 @@ const ROWS: Row[] = [
       await chooseLast(u);
     },
   },
+  // ADR-322 Phase 5 — a Cascader's open state and value (`columns`: the first level's last item —
+  //  a leaf, 「Books」).
+  {
+    palette: "Cascader",
+    type: "Cascader",
+    event: "onOpenChange",
+    act: (h, u) => press(u, q(h, "button[aria-haspopup]")),
+  },
+  {
+    palette: "Cascader",
+    type: "Cascader",
+    event: "onChange",
+    act: async (h, u) => {
+      await press(u, q(h, "button[aria-haspopup]"));
+      await chooseLast(u);
+    },
+  },
   {
     palette: "ComboBox",
     type: "ComboBox",

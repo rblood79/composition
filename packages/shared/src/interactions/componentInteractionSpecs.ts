@@ -125,6 +125,7 @@ import {
   stepSelection,
   type StepListStateProps,
 } from "./concepts/stepList";
+import { cascaderValue, type CascaderStateProps } from "./concepts/cascader";
 import {
   filterConditions,
   type FilterBarStateProps,
@@ -277,6 +278,8 @@ export const COMPONENT_INTERACTION_SPECS = {
     ],
   },
   Autocomplete: { concepts: [{ concept: inputValue }] },
+  // ADR-322 Phase 5: a Cascader's value (When 「변경」 · Do 값 넣기 · 지우기) and open state (S2 Picker's).
+  Cascader: { concepts: [{ concept: cascaderValue }, { concept: open }] },
 
   // ── collections ──────────────────────────────────────────────────────
   ActionBar: { concepts: [{ concept: actionBarSelection }] },
@@ -533,6 +536,7 @@ interface RacPropsOf {
   Breadcrumbs: BreadcrumbsProps<object>;
   Tabs: TabsProps;
   StepList: StepListStateProps;
+  Cascader: CascaderStateProps;
   FilterBar: FilterBarStateProps;
   Disclosure: DisclosureProps;
   Accordion: DisclosureGroupProps;

@@ -917,6 +917,10 @@ const catalog: TranslationKeys = {
       resize: {
         onSizeChange: "On panel resize",
       },
+      // (ADR-322 Phase 5 — a Cascader's value.)
+      cascaderValue: {
+        onChange: "On change",
+      },
       // (ADR-321 — a StepList's current step · how far its steps are done.)
       stepSelection: {
         onSelectionChange: "On step change",
@@ -970,6 +974,7 @@ const catalog: TranslationKeys = {
       resize: "Panel size",
       stepSelection: "Current step",
       stepCompletion: "Completed step",
+      cascaderValue: "Value",
       filterConditions: "Filters",
       groupAction: "Group action",
       remove: "Removal",
@@ -3414,6 +3419,8 @@ const semanticLabels: Record<string, string> = {
   "properties.searchContains": "Contains",
   "properties.searchFuzzy": "Fuzzy",
   "properties.searchable": "Searchable",
+  "properties.searchItems": "Search items",
+  "properties.selectAnyLevel": "Select any level",
   "properties.columnDefaultHidden": "Hidden by default",
   "properties.columnPinned": "Pinned",
   "properties.columnAllowsHiding": "Allow hiding",

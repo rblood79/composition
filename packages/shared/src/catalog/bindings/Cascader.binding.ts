@@ -57,6 +57,31 @@ export const cascaderBinding: PrimitiveBinding = {
           { value: "drill", label: "Drill" },
         ],
       },
+      // 사용자 결정 3 (2026-11-27): several items — the value is their keys (no cascade: RAC draws no
+      //   partial selection). RAC's name (Select · Menu · Tree `selectionMode`).
+      selectionMode: {
+        kind: "enum",
+        label: "Selection Mode",
+        section: "state",
+        default: "single",
+        options: [
+          { value: "single", label: "Single" },
+          { value: "multiple", label: "Multiple" },
+        ],
+      },
+      // Phase 5 (breakdown §4.4): a search field in the open content — one flat list of names +
+      //   paths while it has a query (every mode).
+      isSearchable: {
+        kind: "boolean",
+        label: "Search items",
+        section: "behavior",
+      },
+      // 사용자 결정 2 (2026-11-27): a branch is a value too (「서울 전체」) — off = leaves only.
+      allowsBranchSelection: {
+        kind: "boolean",
+        label: "Select any level",
+        section: "state",
+      },
       // 사용자 결정 7 (2026-11-27): the whole path — a leaf name repeats across parents.
       displayMode: {
         kind: "enum",

@@ -13,6 +13,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-322 Phase 5 — Cascader 검색 · 다중 · 「어느 단계든」 · 규칙] - 2026-11-27
+
+### Added
+
+- Cascader 에 「Search items」 (항목 검색) · 「Selection Mode」 · 「Select any level」 (어느 단계든 고르기) 이 생겼다.
+  - **검색**: 열면 맨 위에 검색 칸. 입력하면 단계 대신 고를 수 있는 항목 중 이름에 그 글자가 든 것이 이름 + 경로 (「역삼동 — 서울 / 강남구 / 역삼동」) 로 한 목록에 나온다. 한글은 음절로 찾는다 (「가남」 이 「각남」 을 찾지 않는다). 200 건까지, 넘으면 「N 건 더 — 더 입력해 좁히기」. Enter 가 첫 결과를 고른다.
+  - **다중**: 값은 고른 항목의 key 목록. 닫힌 필드는 하나면 경로, 둘 이상이면 「2개 선택됨」 (Select 와 같은 글자). 가지를 고르면 그 가지 하나다 (하위 항목을 같이 고르지 않는다). columns 는 고르고도 목록이 열린 채.
+  - **어느 단계든** (기본 꺼짐 — 끝 항목만 값): 켜면 가지도 값이 된다. columns · drill 은 하위 단계 맨 앞의 「<가지> 전체」 를, tree 는 행을 고른다. 꺼져 있으면 가지와 끝 항목이 같은 key 여도 겹치지 않는다 (단계마다 id 가 1 부터인 표).
+- Interactions: When 「값이 바뀔 때」 · 「열림 변경」, Do 「값 넣기」 · 「지우기」 · 「열기 · 닫기」, 이름 붙인 상태 = 값 (다중이면 key 목록). 한 항목을 가리키지 않는 key 와, 끝 항목만 고르는 필드에 가지 key 를 쓰는 「값 넣기」 는 거절되고 콘솔에 남는다.
+- live (Builder → Publish): Chrome 7 / 7 · WebKit 7 / 7 (Design 패널 라벨 · 검색 · 다중 · 어느 단계든 · 규칙 · HC5 · page error 0).
+- 번들: Builder 첫 화면 +1,114 B (Phase 1 ~ 5 합계 +5,535 B — 몫 +6,000 안, 절대 상한 1,668,000 B 안). 검색 · 열린 목록은 열 때 불러온다.
+
+### Changed
+
+- 5,000 항목 · 4 단 Cascader 를 여는 시간: tree 는 펼친 가지의 항목만 목록에 넣고, columns 는 하위 목록을 열 때 만든다 — Chrome 4x 에서 tree 550 → 81 ms · columns 344 → 73 ms (같은 문서 Select 1,000 행 열기 383 ms).
+
 ## [ADR-322 Phase 4 — Cascader 데이터 연결] - 2026-11-27
 
 ### Added

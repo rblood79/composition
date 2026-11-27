@@ -12,6 +12,7 @@ import {
   cascaderValueText,
   type CascaderSourceItem,
 } from "../runtime/cascader";
+import { cascaderSearch } from "../runtime/cascaderSearch.components";
 
 /**
  * ADR-322 Phase 1 — the item table (breakdown §4.2) and the closed field's text (decision 7). The
@@ -77,7 +78,8 @@ describe("ADR-322 — the item table", () => {
       kind: "duplicate",
       key: "01",
     });
-    expect(cascaderValueMatch(table, "A").kind).toBe("item");
+    // (A branch is no value while the field picks leaves — Phase 5, 사용자 결정 2.)
+    expect(cascaderValueMatch(table, "A").kind).toBe("branch");
     expect(cascaderValueMatch(table, "zz")).toEqual({
       kind: "missing",
       key: "zz",
@@ -182,7 +184,7 @@ describe("ADR-322 G4 — refused value writes and the field's notice", () => {
     );
     expect(cascaderValueRefusal(repeated, "zz")).toBe("없는 key: zz");
     expect(cascaderValueRefusal(repeated, "A")).toBe(
-      "가지 항목: A — 끝 항목이 값이다",
+      "가지 항목: A — 끝 항목이 값이다 (「어느 단계든」 꺼짐)",
     );
     expect(cascaderValueRefusal(repeated, "09")).toBe("비활성 항목: 09");
     expect(cascaderValueRefusal(repeated, "02")).toBeUndefined();
@@ -220,5 +222,89 @@ describe("ADR-322 G4 — refused value writes and the field's notice", () => {
     expect(
       cascaderDescriptionText(cascaderTable(REGIONS), { description: "x" }),
     ).toBeUndefined();
+  });
+});
+
+describe("ADR-322 Phase 5 — pickable items (사용자 결정 2 · 5 값 모양) and several values (결정 3)", () => {
+  // Tables per level restart their ids: category 1 · subcategory 1.
+  const levels: CascaderSourceItem[] = [
+    {
+      key: "1",
+      name: "Food",
+      children: [leaf("1", "Bread"), leaf("2", "Rice")],
+    },
+    { key: "2", name: "Drink", children: [leaf("3", "Tea")] },
+  ];
+
+  it("leaves only (default): a branch and a leaf share a key without a clash — the key is the leaf", () => {
+    const table = cascaderTable(levels);
+    expect(table.duplicatePathIds.size).toBe(0);
+    expect(cascaderValueMatch(table, "1")).toMatchObject({
+      kind: "item",
+      entry: { names: ["Food", "Bread"] },
+    });
+    // ("2" is the branch Drink and the leaf Rice — the leaf.)
+    expect(cascaderValueText(table, { value: "2" })).toBe("Food / Rice");
+  });
+
+  it("any level: a branch is a value, and the shared keys clash — both items cannot be picked", () => {
+    const table = cascaderTable(levels, { anyLevel: true });
+    expect([...table.duplicatePathIds].sort()).toEqual(
+      ["1", `1${SEP}1`, "2", `1${SEP}2`].sort(),
+    );
+    expect(cascaderValueMatch(table, "3")).toMatchObject({
+      kind: "item",
+      entry: { names: ["Drink", "Tea"] },
+    });
+    const branches = cascaderTable(
+      [{ key: "A", name: "A", children: [leaf("01")] }],
+      {
+        anyLevel: true,
+      },
+    );
+    expect(cascaderValueText(branches, { value: "A" })).toBe("A");
+    expect(cascaderValueRefusal(branches, "A")).toBeUndefined();
+  });
+
+  it("several values: one shows its path, two or more their count; a write refuses any bad key", () => {
+    const table = cascaderTable(REGIONS);
+    expect(cascaderValueText(table, { value: ["6801"] })).toBe(
+      "서울 / 강남구 / 역삼동",
+    );
+    expect(cascaderValueText(table, { value: ["6801", "1401"] })).toBe(
+      "2 selected",
+    );
+    expect(
+      cascaderValueText(table, { value: ["6801", "1401"] }, undefined, "ko-KR"),
+    ).toBe("2개 선택됨");
+    expect(cascaderValueText(table, { value: [] })).toBeUndefined();
+    expect(cascaderValueRefusal(table, ["6801", "zz"])).toBe("없는 key: zz");
+    expect(cascaderValueRefusal(table, ["6801", "1401"])).toBeUndefined();
+  });
+});
+
+describe("ADR-322 Phase 5 — search (breakdown §4.4)", () => {
+  const names = (list: { names: readonly string[] }[]) =>
+    list.map((entry) => entry.names.join(" / "));
+
+  it("only pickable items: a branch name is not a result while leaves are the value", () => {
+    const table = cascaderTable(REGIONS);
+    expect(names(cascaderSearch(table, "강남", "ko-KR"))).toEqual([]);
+    expect(names(cascaderSearch(table, "동", "ko-KR"))).toEqual([
+      "서울 / 강남구 / 역삼동",
+      "서울 / 강남구 / 삼성동",
+      "서울 / 중구 / 명동",
+      "부산 / 중구 / 남포동",
+    ]);
+    // (Any level: the branch is a result.)
+    expect(
+      names(cascaderSearch(cascaderTable(REGIONS, { anyLevel: true }), "강남", "ko-KR")),
+    ).toEqual(["서울 / 강남구"]);
+  });
+
+  it("syllables, not letters (가 ≠ 각) · an empty query is no search", () => {
+    const table = cascaderTable([leaf("a", "각남"), leaf("b", "가남")]);
+    expect(names(cascaderSearch(table, "가남", "ko-KR"))).toEqual(["가남"]);
+    expect(cascaderSearch(table, "", "ko-KR")).toEqual([]);
   });
 });

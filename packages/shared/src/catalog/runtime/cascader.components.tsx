@@ -29,6 +29,7 @@ import { PopoverContext } from "react-aria-components/Popover";
 import { TextContext } from "react-aria-components/Text";
 import { useMenuTriggerState } from "react-stately/useMenuTriggerState";
 import {
+  CASCADER_DEFAULT_SEPARATOR,
   cascaderValueMatch,
   cascaderValueText,
   type CascaderTable,
@@ -62,6 +63,26 @@ const CatalogCascaderDrill = lazy(() =>
 /** The open content's way (사용자 결정 1 — `columns` by default). */
 export type CascaderMode = "columns" | "tree" | "drill";
 
+/** What every open content takes (`cascaderMenu` · `cascaderPanel`). */
+export interface CascaderContentProps {
+  readonly table: CascaderTable;
+  /** The picked keys (one, or several while `multiple`). */
+  readonly keys: readonly string[];
+  readonly multiple: boolean;
+  readonly label: string;
+  /** An item is picked (single: the value; multiple: toggled). */
+  readonly onPick: (key: string) => void;
+  /** A search field above the levels (Phase 5 — breakdown §4.4) and the results' path separator. */
+  readonly searchable: boolean;
+  readonly separator: string;
+}
+
+const REFUSED_WHY: Readonly<Record<string, string>> = {
+  duplicate: "여러 항목이 가진 key",
+  missing: "없는 key",
+  branch: "가지 항목 (끝 항목이 값)",
+};
+
 /** What the field gives its value text: its id (the Button's name — value, then label) and text. */
 const CascaderValueContext = createContext<
   | {
@@ -86,11 +107,17 @@ export interface CatalogCascaderFieldProps {
   /** The field's display props (`displayMode` · `separator`). */
   readonly display: Readonly<Record<string, unknown>>;
   /**
-   * The value (an item's key, `null` = none) and its write — a running Preview's runtime value;
-   * without `onChange` the field keeps its own (a static render), starting at `value`.
+   * The value's keys (one, or a list while `multiple` — 사용자 결정 3) and its write (a key ·
+   * `null`, or the key list) — a running Preview's runtime value; without `onChange` the field keeps
+   * its own (a static render), starting at `keys`.
    */
-  readonly value: string | null;
-  readonly onChange?: (key: string | null) => void;
+  readonly keys: readonly string[];
+  readonly multiple?: boolean;
+  /** A search field in the open content (`isSearchable`). */
+  readonly searchable?: boolean;
+  readonly onChange?: (value: string | null | string[]) => void;
+  /** The text of two or more keys (S2 Picker's count — F6). */
+  readonly countText?: (count: number) => string;
   /** The open state — controlled in a running Preview (RAC `MenuTrigger`'s `isOpen`). */
   readonly isOpen?: boolean;
   readonly onOpenChange?: (open: boolean) => void;
@@ -109,28 +136,36 @@ export function CatalogCascaderField({
   table,
   mode,
   display,
-  value,
+  keys,
+  multiple = false,
+  searchable = false,
   onChange,
+  countText,
   isOpen,
   onOpenChange,
   root,
   children,
 }: CatalogCascaderFieldProps) {
   const valueId = useId();
-  const [own, setOwn] = useState(value);
-  const current = onChange ? value : own;
-  const pick = onChange ?? setOwn;
-  // (ADR-322 Phase 4 — a value no single item carries is refused, never matched to the first:
-  //  the field shows the key as stored and says why — Decision 4.)
-  const refused =
-    current === null ? undefined : cascaderValueMatch(table, current);
-  const refusedKind = refused?.kind === "item" ? undefined : refused?.kind;
+  const [own, setOwn] = useState<readonly string[]>(keys);
+  const current = onChange ? keys : own;
+  const write = (next: readonly string[]) => {
+    if (!onChange) return void setOwn(next);
+    onChange(multiple ? [...next] : (next[0] ?? null));
+  };
+  // (ADR-322 Phase 4 — a value no single pickable item carries is refused, never matched to the
+  //  first: the field shows the key as stored and says why — Decision 4.)
+  const refusal = current
+    .map((key) => cascaderValueMatch(table, key))
+    .find((match) => match.kind !== "item");
+  const refusedKey = refusal && "key" in refusal ? refusal.key : "";
+  const refusedKind = refusal?.kind ?? "";
   useEffect(() => {
     if (refusedKind)
       console.warn(
-        `[Cascader] 값 거절 — ${refusedKind === "duplicate" ? "여러 항목이 가진 key" : "없는 key"}: ${current}`,
+        `[Cascader] 값 거절 — ${REFUSED_WHY[refusedKind] ?? refusedKind}: ${refusedKey}`,
       );
-  }, [refusedKind, current]);
+  }, [refusedKind, refusedKey]);
   const { labelProps, fieldProps, descriptionProps, errorMessageProps } =
     useField({
       label: label || undefined,
@@ -160,9 +195,9 @@ export function CatalogCascaderField({
     : { ...dialogTriggerProps, id: dialogTriggerId };
   const labelledBy = fieldProps["aria-labelledby"];
   const text =
-    current === null
-      ? undefined
-      : cascaderValueText(table, { ...display, value: current });
+    current.length > 1 && countText
+      ? countText(current.length)
+      : cascaderValueText(table, display, current);
   const field = createElement(
     "div",
     {
@@ -174,11 +209,25 @@ export function CatalogCascaderField({
     },
     children,
   );
-  const content = {
+  const content: CascaderContentProps = {
     table,
-    value: current,
+    keys: current,
+    multiple,
+    searchable,
+    separator:
+      typeof display.separator === "string"
+        ? display.separator
+        : CASCADER_DEFAULT_SEPARATOR,
     label: label || placeholder,
-    onPick: (key: string) => pick(key),
+    // (Single: the key, the menu closes — RAC's. Multiple: the key toggles, the menu stays.)
+    onPick: (key: string) =>
+      write(
+        !multiple
+          ? [key]
+          : current.includes(key)
+            ? current.filter((own) => own !== key)
+            : [...current, key],
+      ),
   };
   const menu = state.isOpen
     ? createElement(

@@ -283,3 +283,35 @@ G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
 - 회귀: shared 3,052 · builder unit 8,076 · type-check 0.
 - 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, HEAD `e521a0ad7` 위 작업 트리 — 이 Phase 의 tracked 소스만 되돌린 빌드와 나란히, resolver 는 이 세션 hunk 만): Builder initial 1,665,211 → **1,666,336 (+1,125)** — P1 ~ P4 합계 **+4,421** (몫 +6,000 까지 1,579 B · 절대 상한 1,668,000 까지 1,664 B). Preview JS · CSS 0. (기준 빌드가 Phase 3 의 1,664,269 보다 큰 것은 같은 작업 트리의 다른 세션 변경.)
 - 같이 고친 Phase 3 결함 둘: 열린 tree · drill 의 선택 행 글자색 `var(--accent)` → `var(--accent-content)` (ADR-290 — DOM 상태 선택자의 accent 는 content 역할, `adr290AccentRoles` 가 막았다) · Code 보기의 `items` host 목록에서 Cascader 제외 (RAC 컴포넌트가 아니다 — `adr310ItemsHosts`).
+
+### Phase 5 — G5 (2026-11-27)
+
+**사용자 답 (Phase 5 진입 전)**: 결정 2 = 「어느 단계든」 스위치 (`allowsBranchSelection`, 기본 끝 항목만) · 결정 3 = 다중 넣되 연쇄 없음 · 결정 5 의 값 모양 = 겹침은 고를 수 있는 항목끼리만, 값은 key 그대로.
+
+**고를 수 있는 항목 · 값 모양**:
+
+- 표의 항목마다 `pickable` — 끝 항목, 「어느 단계든」 이 켜지면 모든 항목. 겹치는 key 판정 (Decision 4) 은 고를 수 있는 항목끼리만 센다 — 단계마다 id 가 다시 1 부터인 표 (대분류 1 · 소분류 1) 는 끝 항목만 모드에서 충돌하지 않는다. 「어느 단계든」 을 켜면 같은 key 의 가지 · 끝이 둘 다 고를 수 없음 + 알림.
+- 값 판정에 `branch` 가 더해졌다 — 가지만 가진 key 의 쓰기는 「가지 항목: key — 끝 항목이 값이다 (「어느 단계든」 꺼짐)」 로 거절한다 (규칙 「값 넣기」 · 시작 값).
+- 다중 (`selectionMode: "multiple"`): 값 = key 목록, 닫힌 필드는 하나면 경로 · 둘 이상이면 Select 와 같은 개수 글자 (`catalogSelectionCountText` — 「2개 선택됨」 · 「2 selected」, 사이트 언어). 연쇄 없음 — 가지를 고르면 그 가지 하나다 (RAC 는 부분 선택을 그리지 않는다). columns 는 고르고도 menu 가 열린 채 (`menuitemcheckbox`).
+
+**「어느 단계든」 의 고르기**: columns · drill 은 가지의 하위 단계 맨 앞에 그 가지 자신의 항목 「<가지> 전체」 (en 「All of X」 · ja · zh, id = 경로 id + `\u001eall`) — 가지 행 자체는 계속 「들어가기」 다. tree 는 행 자체를 고른다 (펼치기는 chevron · ←→).
+
+**검색 (`isSearchable`, breakdown §4.4)**: RAC `Autocomplete` > `SearchField` + 결과 `Menu` (입력이 focus 를 갖고 목록은 virtual focus — Phase 0 P3). 검색어가 있으면 방식과 무관하게 평평한 결과 — 고를 수 있는 항목 중 이름에 검색어가 든 것, 항목마다 이름 (`Text slot="label"`) + 경로 (`slot="description"`). 찾기는 데이터 보기의 `contains` (`viewCompare` — 한글은 collator 규칙, 메모리 `reference-intl-collator-search-hangul-letters`). 200 건까지, 넘으면 「N 건 더 — 더 입력해 좁히기」. columns 는 단계 menu 가 Autocomplete 안에 (검색어 없으면 단계), tree · drill 은 검색 칸 아래에 자기 목록 (그 목록이 자기 focus 를 갖는다 — `autoFocus` 는 검색 칸). Enter = 첫 결과 (RAC 가 첫 결과에 virtual focus).
+
+**When · Do** (`interactions/concepts/cascader.ts`): `cascaderValue` concept — When 「값이 바뀔 때」 (`onChange`), Do 「값 넣기」 (`setValue` — 글자 key) · 「지우기」 (`clear`), 거절은 dispatcher 의 대상 판정 (G4 `refuseValue`) 그대로 + S2 Picker 의 `open` concept (When 「열림 변경」 · Do 「열기 · 닫기」). 이름 붙인 상태 = 값 (`catalogStateSourceValue` — 단일 key · 다중 key 목록). 패널 게이트 넷 (라벨 키 · 74 type · 도달 행렬 · When 행렬) 에 Cascader 를 넣었다.
+
+**HC5 를 위해 바꾼 것 (G5 live 가 찾음)**:
+
+- tree: 펼친 가지의 항목만 RAC collection 에 넣는다 — 접힌 가지는 보이지 않는 자리 항목 하나 (`\u001eclosed`) 를 자식으로 가진다. 설치본 RAC 1.22.1 의 `TreeItem` 은 `hasChildItems` 를 chevron 그리기에만 쓰고, `useTreeItem` 의 `aria-expanded` · → 펼치기는 실제 자식 노드 수를 본다 (`dist/private/Tree.cjs` — `useTreeItem` 에 `hasChildItems` 를 넘기지 않음). 자리 항목은 접힌 동안만 있고 (접힌 가지의 자식은 그려지지 않는다), 펼치면 실제 항목으로 바뀐다. 전에는 5,555 항목을 전부 collection 에 넣어 Chrome 1x 172 ms (Select 1,000 대비 ×1.25 ~ 1.73 — 실행마다 흔들림).
+- columns: 하위 menu 의 항목은 그 menu 가 열릴 때 만든다 (`Deferred`) · 표에 부모별 자식 색인 (`byParent`) — 전에는 첫 열기에 모든 가지의 JSX 를 만들고 단계마다 전 항목을 훑어 (O(n²)) Chrome 4x 346 ms (×0.89).
+
+**G5 결과**:
+
+- 단위: shared `adr322Cascader.test.ts` 17 / 17 (Phase 5 — 끝 항목만 모드의 같은 key · 「어느 단계든」 의 충돌 · 다중 글자 (en · ko) 와 거절 · 검색 — 가지 제외 · 끝 항목 넷 · 「어느 단계든」 이면 가지 · 음절 (가 ≠ 각) · 빈 검색어) · builder `adr322CascaderRun.test.tsx` 5 / 5 (실행 중 Preview — 「값 넣기」 desktops → 경로 · 이름 붙인 상태 / 가지 computers · 없는 key 거절 + 보고 · 값 그대로 / 「어느 단계든」 이면 가지가 값 / 「지우기」 / 「열기」) · `adr322CascaderWiring.test.tsx` 12 / 12 (tree 의 접힌 가지 `aria-expanded="false"` · 자식 행 없음 · → 로 항목이 들어옴).
+- 원복 RED 9 / 9 (겹침을 모든 항목에서 셈 · `anyLevel` 무시 · 가지 거절 없음 · 다중 개수 글자 · 이름 붙인 상태 분기 · concept 등록 · 검색이 가지도 냄 · 실행 표의 `anyLevel` · 접힌 가지 자리 항목) + live RED 2 / 2 (검색이 가지도 냄 → G5 검색 FAIL · 자리 항목 없음 → G3 T1 · T2 FAIL), 모두 바이트 복원 확인.
+- live `apps/builder/scripts/adr322-g5-live.mjs` (Builder 에서 표 셋 · Cascader 여덟 · Select 하나 → Publish): Chrome **7 / 7** · WebKit **7 / 7** — Design 패널 라벨 (「Search items」 · 「Select any level」 · 「Selection mode」 — 번역 키 그대로 0, WebKit 은 떠 있는 패널을 스크롤해 읽는다) / 검색 (한국 지역 표 연결: 「강남」 결과 없음 (가지) · 「동」 끝 항목 넷 + 경로 · Enter → 「서울 / 강남구 / 역삼동」) / 다중 (고른 뒤 menu 열린 채 · `menuitemcheckbox [checked]` · 「2개 선택됨」) / 「어느 단계든」 (columns 「Computers 전체」 → 「Electronics / Computers」 · drill 「Electronics 전체」 → 「Electronics」) / 규칙 「값 넣기」 (가지 computers 거절 — 값 Books 그대로 · 콘솔 보고, desktops → 경로) / HC5 / page error 0. 회귀 live: G3 Chrome · WebKit 6 / 6 (tree 키보드 · `[expanded]` · 조상 펼침) · G2 Chrome 6 / 6.
+- **HC5** (5,000 끝 항목 · 4 단 중첩 Cascader 의 세 방식 vs 같은 문서 Select, 열기 → 목록 행이 DOM 에 → 다음 frame → task, 한 번 데운 뒤 교대 3 쌍 중앙값): Chrome 1x columns ×0.30 · tree ×0.35 · drill ×0.37, 4x ×0.19 · ×0.21 · ×0.21 (73 · 81 · 76 ms vs 383 · 385 · 358) · WebKit 1x ×0.38 · ×0.43 · ×0.38. **기준선은 Select 1,000 행이다** — ADR 의 「5,000 항목 Select」 는 작성 행 상한 (`CATALOG_COLLECTION_ROW_LIMIT` 1,000 — ADR-286 사용자 결정 1) 때문에 같은 문서에 만들 수 없어, Cascader 에 불리한 (기준선이 더 빠른) 1,000 행으로 쟀다.
+- 하니스 결함 넷 (판정 전에 고침): macOS 의 `Control+A` 는 줄 처음으로 가서 검색어가 「동강남」 이 됐다 (`ControlOrMeta+A`) · 첫 결과에 이미 virtual focus 가 있어 ↓ 가 둘째를 골랐다 · Preview 는 연 순간의 문서라 열린 뒤 `mode` 를 바꿔도 반영되지 않는다 (방식마다 필드 하나) · 스크립트 `click()` 으로 열면 focus 가 body 라 Esc 가 popover 에 닿지 않아 Select 목록이 열린 채 1 ms 로 재졌다 (바깥 누르기로 닫기).
+- 패널 라벨: 검색 스위치의 라벨을 「Searchable」 로 두면 기존 번역 키 (`properties.searchable` — 데이터 필드의 「검색 대상」) 를 타서 뜻이 달라, 「Search items」 (항목 검색) 로 두고 「Select any level」 (어느 단계든 고르기) 와 함께 번역 키를 넣었다 — live 0 번 단계가 본다.
+- 회귀: shared 3,057 · builder unit 10,141 · type-check 0.
+- 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, HEAD `097c23333` 위 작업 트리 — 이 Phase 의 tracked 소스 11 파일만 되돌린 빌드와 나란히): Builder initial 1,666,328 → **1,667,442 (+1,114)** — P1 ~ P5 합계 **+5,535** (몫 +6,000 까지 465 B · 절대 상한 1,668,000 까지 558 B). Preview JS · CSS 0. 검색 · 열린 내용은 lazy chunk.
