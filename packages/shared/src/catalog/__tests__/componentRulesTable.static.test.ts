@@ -119,6 +119,8 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "Input",
     "NumberField",
     "Select",
+    // (ADR-322: Cascader's closed field is Select's rule.)
+    "Cascader",
     "TextArea",
     "TextField",
     "Badge",

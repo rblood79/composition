@@ -35,6 +35,8 @@ describe("orientationDrivenTags", () => {
     // (2026-11-07 `8ac17dc12`: + LabeledValue · RangeSlider — S2 `labelPosition`.)
     it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup / field 8종 / TagGroup / ComboBox·Select·DateRangePicker / Meter·ProgressBar·Slider·RangeSlider / LabeledValue", () => {
       expect([...LABEL_POSITION_DRIVEN_TAGS].sort()).toEqual([
+        // (ADR-322: Cascader — Select's field layout.)
+        "cascader",
         "checkboxgroup",
         "colorfield",
         "combobox",

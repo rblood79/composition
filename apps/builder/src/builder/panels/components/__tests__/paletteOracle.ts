@@ -429,6 +429,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "ChevronDown",
   },
   {
+    type: "Cascader",
+    category: "forms",
+    label: "cascader",
+    icon: "ChevronDown",
+  },
+  {
     type: "Switch",
     category: "forms",
     label: "switch",

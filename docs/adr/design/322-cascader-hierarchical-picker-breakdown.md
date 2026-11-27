@@ -162,4 +162,98 @@ RAC 에 계층 선택 필드가 없어 폼 값을 싣는 요소를 내는 부품
 
 ## 8. Phase 결과
 
-(Phase 가 닫힐 때마다 기록)
+### Phase 0 — G0 (2026-11-27, HEAD `e1463237f`)
+
+**코드 사실 재대조** — 내용 차이 0. 줄 이동: F3 Tree concept `interactions/componentInteractionSpecs.ts:329` · F5 Popover 조립 `tableOperationsDom.components.tsx:420-519` · F7 응답 오류 `catalogPreviewInteractions.ts:676-770`. F8 contract 는 **86** (이 ADR 은 87 부터). F9 의 설치본 `HiddenSelect.mjs:117-150` · `useDateField.mjs:127-133` 그대로 (`react-aria` 3.53.1 · RAC 1.22.1). F1 의 미확인 = `Autocomplete` 는 `Tree` 를 거르지 않는다 (P3 기록).
+
+**v3** — `@adobe/react-spectrum` 3.47.7 (npm 판) 의 export 목록에 Cascader 가 없다 (Picker · TreeView · Menu 뿐). D2 = composition 확장 (`d2Provenance.ts` — Phase 1).
+
+**시제품** — `apps/builder/scripts/adr322Prototypes.mjs` (설치본 RAC 위의 작은 Cascader, production lib build) · 판정 `adr322-phase0-prototypes.mjs` (Chrome 158 · WebKit 27.2, headed · visible · DPR 1). 기대값은 판정 파일에 따로 적었다 (§3.1 표 · §6 go 기준).
+
+| ID  | 결과                                                                                                                                                                                                                                                                                                                                                                                                |         판정          |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------: |
+| P1  | `MenuTrigger` > `Menu` · `SubmenuTrigger` 3 단: Enter 로 열면 첫 항목 focus · → 두 번에 하위 메뉴 둘 · ← 로 하나 닫힘 · 끝 항목 Enter 로 전부 닫히고 focus 가 여는 버튼 · 값 = 경로 식별자 · 다시 열면 끝 단계 `menuitemradio "삼성동" [checked]` · Esc 는 한 번에 한 단계씩 닫음 (두 브라우저 같음)                                                                                                |          go           |
+| P2  | `Popover` > `Dialog` > `Breadcrumbs` + 「뒤로」 + `GridList` (`autoFocus: "first"`, 단계마다 `key`): 가지 행 Enter = 들어가기 (값 그대로) · 끝 행 Enter = 고르기 · 다시 열면 고른 값의 단계와 `aria-selected` · 「뒤로」 · breadcrumb 「전체」 뒤에도 focus 유지 · 가지 행 Space = 선택 (결정 2 의 drill 표현 재료)                                                                                 |          go           |
+| P3  | `Autocomplete` > `SearchField` + `Menu`: 「동」 → 끝 항목 넷이 「이름 — 경로」 로 · ↓ 에도 focus 는 검색 칸 (`aria-activedescendant`) · 「명」 → 하나 · Enter 로 값. 기록: `Autocomplete` > `Tree` 는 거르지 않음 (10 → 10)                                                                                                                                                                         |          go           |
+| P4  | 5,000 항목 · 4 단 (부하용 생성 — 규모 전용, 한 부모 아래 300), 교대 3 쌍, 대조군 = 같은 페이지 RAC `Select` 5,000 (가상화 없음). 아래 표                                                                                                                                                                                                                                                            | go (Virtualizer 조건) |
+| P5  | RAC `Form` + 여는 `Button` + §3.1 의 숨은 값 input + `useFormValidation` (`react-aria/private/form/useFormValidation`) · `useFormValidationState` (`react-stately/private/form/…`) · `FieldErrorContext`: §3.1 표의 10 상태 (단일 · 다중 · 비활성 · 이름 없음 포함) × native · aria × Enter · `requestSubmit()` + 막힌 경우 「값을 고른 뒤 오류 지워짐 · 제출 1」 — Chrome 44 / 44 · WebKit 44 / 44 |          go           |
+
+P4 — 열기 = 클릭부터 목록이 다 그려진 뒤 다음 frame (`performance.now`, 중앙값):
+
+| 조건                 | Select 5,000 (대조) | tree 전부 펼침 (가상화 없음) | tree + `Virtualizer` | columns 300 항목 단계 |
+| -------------------- | ------------------: | ---------------------------: | -------------------: | --------------------: |
+| Chrome 1x            |              599 ms |               902 ms (×1.51) |        39 ms (×0.07) |         75 ms (×0.13) |
+| Chrome 4x (CDP 감속) |            2,292 ms |             3,197 ms (×1.40) |       120 ms (×0.05) |        163 ms (×0.07) |
+| WebKit 1x            |              506 ms |               661 ms (×1.31) |        44 ms (×0.09) |         44 ms (×0.09) |
+
+→ `tree` 방식은 `Virtualizer` 로 그린다 (R2 의 대응이 실제로 필요 — Phase 3 의 조건). 대조군 Select 는 시제품의 것이다 — 제품 문서의 Select 기준선 (HC5 의 「같은 문서」) 은 G5 에서 다시 잰다.
+
+**발견** (설계에 닿는 것):
+
+1. 선택이 있는 `GridList` · `Tree` 는 기본 `escapeKeyBehavior` (`clearSelection`) 가 Esc 를 먹어 Popover 가 닫히지 않는다 — drill · tree 방식은 `escapeKeyBehavior: "none"` (RAC prop) 을 준다 (Phase 3).
+2. columns 의 첫 단계는 고른 값의 조상을 `menuitem [expanded]` 로만 보인다 — 선택 상태는 끝 단계 menu 에만 있다. 닫힌 필드의 표시 글자 (결정 7) 가 경로를 보여 주는 자리다.
+3. 한글 IME 입력은 keydown 이 `Process` 라 RAC typeahead 에 닿지 않는다 (RAC 목록 공통 — 글자 key 를 직접 보내면 「부」 → 부산). 한글 찾기는 검색 칸 (`isSearchable`) 이 맡는다.
+
+**번들 기준선** (일반 `vite build` → `adr209-bundle-closure.mjs`, `e1463237f`): Builder initial JS gzip **1,661,018** B (절대 상한 1,662,000 — 여유 **982 B**, 만료 2026-12-25) · Preview 172,276 B · CSS 57,888 / 68,177 B. 결정 8 의 권고 (Builder +3,000) 는 상한을 넘는다 → Phase 1 전에 사용자에게 묻는다 (상한 재승인 또는 등록 몫을 lazy 로).
+
+G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
+
+### Phase 1 — G1 (2026-11-27)
+
+사용자 답 (Phase 1 진입 전): 결정 1 = `columns` · 결정 7 = 경로 전체 · 결정 8 = 권고대로 + Builder 절대 상한 1,665,000 B 재승인.
+
+**구현** (shared · builder):
+
+| 자리     | 파일                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| binding  | 새 `bindings/Cascader.binding.ts` (`Cascader` — 필드 prop 은 Select 의 키 · `mode` · `displayMode` · `separator`, `CascaderItem` — `id` (항목 key 계약 `ITEM_KEY_PROP_CONTRACT`) · `label` · `isDisabled`) · `bindings/index.ts`                                                                                                                                                                                                                                                                                                                                     |
+| rule     | `generated/componentRulesTable.ts` — Select rule 을 `SELECT_RULE` 상수로 꺼내 `Cascader` 가 공유 (Popover sheet 없음, delegation prefix `select-*` → `cascader-*` — prefix 는 rule 마다 하나), `CascaderItem` (container — 그리지 않음)                                                                                                                                                                                                                                                                                                                              |
+| 원본     | 새 `document/cascaderOrigins.ts` — Select 의 부품 원본 (라벨 행 · Button > SelectValue + Icon · Description · FieldError) + 표본 항목 11 (세 단계)                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 등록 표  | `componentCatalog.ts` (entry 둘 · 팔레트 원본) · `componentTraits.ts` (SelectValue · FieldLabel · FieldError 의 owner, `CascaderItem` 재귀) · `collectionItems.ts` (「+」 행 — recursive) · `d2Provenance.ts` (composition 형) · `sizePropagation.ts` · `formContext.ts` · `nestingRules.ts` · `resolveDelegatedChildFontSize.ts` · `rulePartRules.ts` (부품 토큰 · wrapper `Button` · glyph) · `rulePaint.ts` · `presence.ts` (`FIELD_HINT_OWNERS` · `FIELD_BUTTON_OWNERS` · `CATALOG_LABEL_NODE_FIELDS` · 필수 표시) · builder `ruleShapes.ts` · `paletteItems.ts` |
+| 실행     | 새 `runtime/cascader.ts` (항목 표 — 경로 식별자 · 형제 충돌 순번 · 겹치는 key · 값 판정 · 표시 글자) · 새 `runtime/cascader.components.tsx` (닫힌 필드의 RAC context · 값 글자 요소) · `delegatedDom.runtime.ts` (`cascader` · `cascaderitem`) · `domBinding.runtime.ts` (SelectValue 의 Cascader 분기) · `domBinding.components.tsx` (트리거 구독) · `presence.ts` (트리거 부품 표식 · 값 글자 파생 · 항목 숨김 · 재해석 의존)                                                                                                                                      |
+| CSS      | `generated/Cascader.css` · `CascaderItem.css` (`pnpm generate:css`) · `styles/index.css`                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| contract | `document/types.ts` 87 · 테스트 핀 34 파일                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+
+**G1 결과**:
+
+- 등록 게이트: `codex:preflight` 의 guard · format · typecheck · registration · css-boundary · chart-contract · agent-catalog · skills gate 통과. `docs:rule-size` 는 이 작업 밖의 두 파일 (`canvas-rendering.md` · `panel-structure.md` — HEAD 의 다른 커밋 몫) 로 실패 — 보고만.
+- 스위트: shared 3,036 + `adr322Cascader` 9 · builder unit 10,109 → Cascader 로 늘어난 집합 핀 5 건 수리 후 해당 파일 통과 · `adr322CascaderWiring` 7.
+- 대칭 (`adr295PaletteSymmetry` · Chromium): Cascader XS · L · XL 최대 1 px, S · M 은 라벨 안 inline 글자의 줄 상자 2 px (Canvas 18 / DOM 16) — Select@S · M 과 같은 값이라 같은 사유로 알려진 목록에 넣었다 (G1 의 실패 시 대안 「Select 의 것과 맞춘다」). 이 하니스가 결함 2 를 잡았다: 값 글자가 Canvas 에서 폭 0 (부품 규칙이 Button 을 건너지 못함 — `SUBPART_WRAPPERS`), 라벨이 Select 보다 큼 (크기 전파 행 없음). 참고: Select@XS · L · XL 은 지금 대칭인데 알려진 목록에 남아 있다 (기존 — 이 작업 밖).
+- live (`apps/builder/scripts/adr322-g1-live.mjs`, Builder 5173 → 팔레트 → Publish, headed Chrome): **19 / 19** — 다섯 상태의 상자 ±1 px · 값 글자 · placeholder 표시 · Button 바탕 픽셀 · 오류 상태의 설명 / 오류 문구 (S2 HelpText — 오류가 설명 자리) · HC2 (필드 `div` role · aria 0, Button 이름 = 값 + 라벨, 항목 요소 0) · page error 0.
+- 원복 RED (`adr322CascaderWiring` 기준): 값 글자 파생 · 항목 숨김 · 트리거 부품 표식 · 라벨 행 표 · Button 이름 · DOM 값 분기 · 부품 규칙 wrapper · 크기 전파 · Cascader prop → 트리거 재해석 = 9 / 9 RED. 「항목 → 값 글자」 의존 줄은 빼도 GREEN (기존 경로가 다시 해석) — 죽은 코드라 지웠다 (테스트는 남김).
+- 번들 (일반 `vite build` → `adr209-bundle-closure.mjs`, HEAD `ebb97c8ac` 위 작업 트리 — 다른 세션 WIP 는 양쪽에 같게, 이 Phase 의 tracked 소스만 HEAD 로 돌린 빌드와 나란히): Builder initial JS gzip 1,661,115 → **1,663,284 (+2,169)** — 결정 8 의 +3,000 안, 절대 상한 1,665,000 까지 1,716. Preview JS +3 B · CSS +386 B.
+
+남은 것 → Phase 2: 열린 내용 (`columns` — RAC `MenuTrigger` > `Menu` · `SubmenuTrigger`, lazy chunk), 값 쓰기, 키보드 전 경로, Chrome · WebKit live. 번들 남은 몫 831 B (결정 8 의 +3,000 기준) — 열린 내용은 모두 lazy.
+
+### Phase 2 — G2 (2026-11-27)
+
+**조립** (breakdown §3 의 `columns` 행 — 모두 RAC · react-aria): 필드가 RAC `MenuTrigger` 의 안을 그대로 갖는다 — react-aria `useMenuTrigger` + react-stately `useMenuTriggerState`, trigger props 는 `ButtonContext` 로 여는 Button 에만 (RAC Select 가 trigger 를 넘기는 길 — `PressResponder` 로 필드 전체를 감싸면 라벨 행의 도움말 버튼도 트리거가 된다), 열린 내용에는 RAC `MenuTrigger` 의 context 넷 (`MenuContext` · `OverlayTriggerStateContext` · `RootMenuTriggerStateContext` · `PopoverContext` — `bottom start`). 열린 내용은 lazy chunk `runtime/cascaderMenu.components.tsx`: `Popover` > `Menu` (단일 선택 · 고른 항목의 단계에 `selectedKeys` · 겹치는 key 와 비활성 항목은 `disabledKeys`), 가지는 `SubmenuTrigger` (`MenuItem` + S2 chevron — catalog MenuItem 원본과 같은 `slot="descriptor"` Icon · `Popover` `end top` > 다음 단계 `Menu`), 끝 항목의 `onAction` 이 그 key 를 값으로. 실행 값은 record 의 runtime `value` (`setRuntimeProps`), 값 글자는 필드가 같은 함수 (`cascaderValueText`) 로 계산해 context 로 넘긴다 (Canvas 는 시작 값 — 설계된 비대칭). 항목의 key · 이름 편집은 필드가 구독한다 (`watchesChildren`).
+
+**G2 결과**:
+
+- 동작 (`adr322CascaderWiring` jsdom + user-event, 세 번 반복 10 / 10): Enter → 첫 단계 (`aria-haspopup="menu"` · `aria-expanded`) · → → 셋째 단계 · ↓ Enter 고르기 → 닫힘 · focus 가 여는 Button · 값 글자 = 경로 · 다시 열면 `menuitemradio [checked]` · 포인터로 끝 항목 · 가지는 고르지 않음 · 겹치는 key (Desktops 의 key 를 `men` 으로) 의 두 항목 `aria-disabled`.
+- D1 정적 검사 `adr322D1Static.static.test.ts` — 조립 파일 셋에 role · 직접 쓴 aria (`aria-label` · `aria-labelledby` · `aria-describedby` prop 제외) · `onKeyDown` 0. 금지 속성을 넣으면 RED (바이트 복원 확인).
+- live `apps/builder/scripts/adr322-g2-live.mjs` (Builder 5173 → 팔레트 → Publish): Chrome **6 / 6** · WebKit **6 / 6** — 키보드 전 경로 · 접근성 스냅샷 (가지 `menuitem` · 끝 `menuitemradio` · 고른 항목 `[checked]`) · ← 로 한 단계 · Esc 로 전부 · focus 복귀 · 포인터 (올려서 하위 메뉴 → 끝 항목) · page error 0.
+- 원복 RED 4 / 4 (끝 항목 고르기 · 겹치는 key 비활성 · trigger props · 고른 항목 표시).
+- 번들 (P1 과 같은 A/B — 이 ADR 의 tracked 소스만 HEAD 로 돌린 빌드): Builder initial 1,660,930 → **1,663,657 (P1 + P2 = +2,727)** — P2 몫 ≈ +558 (trigger hook · context), 결정 8 의 +3,000 까지 273 B · 절대 상한 1,665,000 까지 1,343 B. 열린 메뉴는 lazy chunk. Preview JS +2 B.
+- 알아 둔 것: 메뉴의 이름은 RAC `MenuTrigger` 대로 여는 Button 을 가리킨다 (`aria-labelledby` — 값 글자). Canvas 는 열린 목록을 그리지 않는다 (R6).
+
+남은 몫이 작다 (+3,000 기준 273 B) — Phase 3 의 `tree` · `drill` 조립은 lazy chunk 안에 둔다.
+
+### Phase 3 — G3 (2026-11-27)
+
+**조립**: 필드가 `mode` 로 trigger 를 고른다 — `columns` 는 RAC `MenuTrigger` 의 안 (Phase 2), `tree` · `drill` 은 RAC `DialogTrigger` 의 안 (react-aria `useOverlayTrigger({type: "dialog"})` + `DialogContext` · `OverlayTriggerStateContext` · `RootMenuTriggerStateContext` · `PopoverContext` — Dialog 는 trigger 이름으로). 열린 내용은 둘 다 lazy chunk `runtime/cascaderPanel.components.tsx` (`columns` 와 다른 chunk):
+
+- `tree`: `Popover` > `Dialog` > RAC `Virtualizer` (`ListLayout`) > `Tree` — 단일 선택 (controlled, 가지의 선택은 값이 아니라 무시) · 겹치는 key `disabledKeys` · 고른 항목의 조상을 펼친 채 시작 · 가지 행은 RAC chevron `Button[slot=chevron]` · `escapeKeyBehavior: "none"` (Phase 0 발견 1) · `autoFocus` (고른 행, 없으면 첫 행).
+- `drill`: `Popover` > `Dialog` > RAC `Breadcrumbs` (맨 앞 = 필드 라벨, 각 단계 `Link`) + 「뒤로」 `Button` (이름 = 네 언어 문구 `useCatalogLocalized`) + 단계마다 `key` 가 바뀌는 `GridList` (`onAction` = 가지면 들어가기 · 끝이면 고르기, `autoFocus`, `escapeKeyBehavior: "none"`).
+- 모양: 열린 tree · drill 은 Canvas 가 그리지 않으므로 (R6) catalog Tree · GridList 의 record inline 모양이 없다 — Select 가 picker Popover 를 꾸미듯 Cascader rule 의 `externalStyles` (`.react-aria-Popover.cascader-panel` — 행 = 필드 M 단 · collection focus 칠 · 단계 들여쓰기 · 조용한 chevron (펼치면 90°) · 「뒤로」 · breadcrumb 줄) 가 정본이다. `columns` 는 Menu · MenuItem 시트 그대로.
+
+**G3 결과**:
+
+- 같은 정답표 — jsdom (`adr322CascaderWiring` 11 / 11): drill 의 Enter 들어가기 · ↓ Enter 고르기 → 「Electronics / Computers / Desktops」 (columns 와 같은 값) · 다시 열면 고른 단계 `aria-selected` · 「뒤로」 한 단계 · Esc. 방식을 바꿔도 값 · 글자가 같다 (값은 key — `mode` 와 무관).
+- live `apps/builder/scripts/adr322-g3-live.mjs` (Builder → 팔레트 → `mode` 쓰기 → Publish): Chrome **6 / 6** · WebKit **6 / 6** — tree: Enter 로 열면 첫 행 focus · → ↓ → ↓ ↓ Enter → 값 · 접근성 `treegrid` · 펼친 가지 `[expanded]` · 다시 열면 조상 펼침 + `[selected]` · Esc 닫힘 · focus 복귀 / drill: 첫 행 focus · Enter 들어가기 · 고르기 · 다시 열면 고른 단계 `[selected]` · breadcrumb 으로 첫 단계 · Esc · page error 0.
+- 원복 RED 4 / 4 — drill 행 동작 · 고른 행 표시 · dialog trigger (jsdom), drill `autoFocus` 는 jsdom 에서 GREEN 이라 live 로 가렸다 (빼면 focus 가 Dialog 에 남아 D1 FAIL — 실제 브라우저 RED).
+- D1 정적 검사에 `cascaderPanel.components.tsx` 추가 — role · 직접 aria · 키 handler 0 (「뒤로」 의 `aria-label` 은 RAC Button prop).
+- 번들 (같은 A/B, HEAD `4b09eccba`): Builder initial 1,660,973 → **1,664,269 (P1 ~ P3 = +3,296)** — 결정 8 의 +3,000 을 **296 B 넘음** (절대 상한 1,665,000 까지 731 B). P3 몫 ≈ +570 B 의 대부분은 첫 화면 rule 표에 실린 열린 모양 (`externalStyles`) 과 dialog trigger hook. 열린 내용 둘은 각자 lazy chunk (`cascaderMenu` · `cascaderPanel`). Preview JS +3 B · CSS +665 B. → 사용자 보고 (결정 8).
+
+사용자 답 (Phase 4 진입 전, 2026-11-27): 결정 5 = 넣는다 · 결정 8 = 몫 +6,000 (Phase 1 ~ 6 합계) · Builder 절대 상한 1,668,000 재승인 (만료 그대로).

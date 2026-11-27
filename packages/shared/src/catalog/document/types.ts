@@ -216,9 +216,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 86 — ADR-320 Phase 5: 필터 바의 상대 날짜 (조건 값의 닫힌 토큰 `@today` … `@thisYear` — 사용자
  *      결정 7) · 「Saved filters」 부품 (`presets` 가 있을 때 — 결정 6) · Do 「조건 넣기」 의 값
  *      `{ field, op, value }`. 옛 85 문서는 열리지 않는다 (변환 없음).
+ * 87 — ADR-322 Phase 1: `Cascader` (Select 의 닫힌 필드 부품 + 중첩 `CascaderItem` 계층) 과 그 원본
+ *      (`component-cascader`). 옛 86 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 86 as const;
+export const LIBRARY_CONTRACT_VERSION = 87 as const;
 
 export type EntryKind =
   | "project"

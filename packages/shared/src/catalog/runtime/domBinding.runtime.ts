@@ -1,4 +1,5 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
+import { CatalogCascaderValue } from "./cascader.components";
 import type { CatalogFilterBarAccess } from "./filterBarAccess";
 import { catalogResizableLayout } from "./resizablePanels";
 import { catalogStepDomStyle } from "./stepList";
@@ -1718,14 +1719,54 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   selectvalue: (node, style, children) => {
     const invalid = node.derivedProps?._pickerInvalid === true;
     const glyph = pickerInvalidGlyph(node.props.size);
+    const invalidGlyph = invalid
+      ? createElement(Icon, {
+          "aria-hidden": true,
+          "data-picker-invalid": "",
+          iconName: PICKER_INVALID_ICON,
+          style: {
+            position: "absolute",
+            right: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: glyph.size,
+            height: glyph.size,
+            fontSize: glyph.size,
+            color:
+              node.derivedProps?.isDisabled === true
+                ? "var(--fg-picker-disabled)"
+                : "var(--negative)",
+          },
+        })
+      : null;
+    const valueStyle = {
+      ...style,
+      ...(node.derivedProps?.color !== undefined ? { color: "inherit" } : {}),
+      ...(invalid ? { position: "relative" } : {}),
+    };
+    // ADR-322 Phase 1: a Cascader's value — no RAC Select state; the start value's path, or the
+    //  placeholder (`presence.ts` writes the path as the record's derived text).
+    if (node.derivedProps?._cascaderValue === true) {
+      const derived = node.derivedProps?.children;
+      return createElement(
+        CatalogCascaderValue,
+        {
+          key: node.id,
+          catalogId: node.id,
+          style: valueStyle,
+          placeholder: typeof derived !== "string",
+          text:
+            typeof derived === "string"
+              ? derived
+              : String(node.props.children ?? ""),
+        },
+        invalidGlyph,
+      );
+    }
     return createElement(RAC.SelectValue, {
       key: node.id,
       "data-catalog-id": node.id,
-      style: {
-        ...style,
-        ...(node.derivedProps?.color !== undefined ? { color: "inherit" } : {}),
-        ...(invalid ? { position: "relative" } : {}),
-      },
+      style: valueStyle,
       children: ({
         defaultChildren,
         selectedItems,
@@ -1759,26 +1800,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                 { count: selectedItems.length },
                 defaultChildren,
               ),
-          invalid
-            ? createElement(Icon, {
-                "aria-hidden": true,
-                "data-picker-invalid": "",
-                iconName: PICKER_INVALID_ICON,
-                style: {
-                  position: "absolute",
-                  right: 0,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: glyph.size,
-                  height: glyph.size,
-                  fontSize: glyph.size,
-                  color:
-                    node.derivedProps?.isDisabled === true
-                      ? "var(--fg-picker-disabled)"
-                      : "var(--negative)",
-                },
-              })
-            : null,
+          invalidGlyph,
         ),
     } as Parameters<typeof RAC.SelectValue>[0]);
   },

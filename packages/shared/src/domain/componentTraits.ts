@@ -103,6 +103,8 @@ export interface ComponentTraits {
 // 팩토리 오라클이 DatePicker · DateRangePicker · NumberField 의 트리거 안 SelectIcon/SelectValue 를 실증했다.
 const SELECT_TRIGGER_OWNERS = [
   "Select",
+  // (ADR-322: a Cascader's open Button shows its value in a SelectValue — Select's part origins.)
+  "Cascader",
   "ComboBox",
   "SearchField",
   "NumberField",
@@ -177,6 +179,8 @@ export const CATALOG_CONTEXTUAL_HELP_FIELDS: ReadonlySet<string> = new Set([
   "NumberField",
   "ComboBox",
   "Select",
+  // (ADR-322: S2 Picker's label row — Select's.)
+  "Cascader",
   "ColorField",
   "ColorSlider",
   "DateField",
@@ -374,6 +378,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
       "ColorField",
       "ComboBox",
       "Select",
+      "Cascader",
       "RadioGroup",
       "CheckboxGroup",
       "TagGroup",
@@ -494,6 +499,13 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   StepPanel: { owners: ["Stepper"] },
   // ADR-321 Phase 4: a Rating draws its stars itself — no children.
   Rating: {},
+  // ADR-322 Phase 1: a Cascader's hierarchy — nested items (a Tree's way); the field reads them,
+  //   RAC never sees them as nodes (the open content is built from their table).
+  CascaderItem: {
+    container: "collection",
+    owners: ["Cascader"],
+    children: ["CascaderItem"],
+  },
   Breadcrumb: {
     families: ["staticCollectionItem"],
     owners: ["Breadcrumbs"],

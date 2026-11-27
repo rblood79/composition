@@ -432,8 +432,10 @@ export const CatalogDomNode = memo(function CatalogDomNode({
             partParent?.bindingId === "group" &&
             catalogPartField(root, node) !== partParent
           ? catalogPartField(root, node)?.id
-          : // (A Select's trigger Button is the field's direct child.)
-            node?.bindingId === "button" && partParent?.bindingId === "select"
+          : // (A Select's · a Cascader's trigger Button is the field's direct child.)
+            node?.bindingId === "button" &&
+              (partParent?.bindingId === "select" ||
+                partParent?.bindingId === "cascader")
             ? partParent!.id
             : undefined;
   const watchedParent = useCatalogDomInput(root, watchedParentId);
@@ -507,10 +509,7 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           props: inheritedProps,
         } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
-    imageCoordinated(
-      record,
-      drawElement(record),
-    );
+    imageCoordinated(record, drawElement(record));
   // S2 `CardView.tsx`: its GridList inside an `ImageCoordinator` (부록 D.2, 2026-11-24) — around the
   // finished element, so the rules' handlers · HTML id · state styles still reach the GridList.
   const imageCoordinated = (

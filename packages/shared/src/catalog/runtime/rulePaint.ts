@@ -49,6 +49,7 @@ export const CHILD_PROP_MERGE_TYPES: ReadonlySet<string> = new Set([
   "ComboBox",
   "GridList",
   "Select",
+  "Cascader",
   "Table",
   "Tabs",
   "TagGroup",

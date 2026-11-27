@@ -3,6 +3,7 @@ import { FILTER_BAR_DEFINITIONS, FILTER_BAR_TEMPLATES } from "../filterBarOrigin
 import { RANGE_SEGMENT_DEFINITIONS, RANGE_SEGMENT_TEMPLATES } from "../rangeSegmentsOrigins";
 import { RESIZABLE_DEFINITIONS, RESIZABLE_TEMPLATES } from "../resizableOrigins";
 import { STEP_LIST_DEFINITIONS, STEP_LIST_TEMPLATES } from "../stepListOrigins";
+import { CASCADER_DEFINITIONS, CASCADER_TEMPLATES } from "../cascaderOrigins";
 // ADR-248 Phase 3 — typed reusable origin library (code-catalog source of truth).
 // Converted once from the Builder origin seed (catalogOrigins.ts + template ensurers) by
 // apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts
@@ -16,6 +17,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
   ...FILTER_BAR_DEFINITIONS,
   ...RESIZABLE_DEFINITIONS,
   ...STEP_LIST_DEFINITIONS,
+  ...CASCADER_DEFINITIONS,
 
 
 
@@ -2313,6 +2315,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   ...FILTER_BAR_TEMPLATES,
   ...RESIZABLE_TEMPLATES,
   ...STEP_LIST_TEMPLATES,
+  ...CASCADER_TEMPLATES,
 
 
 

@@ -107,6 +107,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   their list's (`InternalPickerContext` → `listbox({size})` · `listboxItem({size})`, `ComboBox.tsx`) —
   //   the ListBox in the Popover (passed through) takes it and gives it to its items.
   Select: [...FIELD_PARTS, "Button", "ListBox"],
+  // ADR-322: Select's closed field (its open content is built from the items — no ListBox node).
+  Cascader: [...FIELD_PARTS, "Button"],
   ComboBox: [...WRAPPED_FIELD_PARTS, "ListBox"],
   // A ListBox's size is its items' (S2 picker list — the items are the list's control rows).
   ListBox: ["ListBoxItem"],
@@ -203,6 +205,7 @@ const CONTEXTUAL_HELP_SIZE_OWNERS = [
   "NumberField",
   "ComboBox",
   "Select",
+  "Cascader",
   "ColorField",
   "ColorSlider",
   "DateField",

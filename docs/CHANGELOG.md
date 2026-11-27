@@ -31,6 +31,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - live (Builder 5173 새 프로젝트 → Library, Chrome): 9 개 카드 모두 Layers 에 제목 + ◆ 원본 한 줄만.
   - 위치: `catalogRuntime/componentsPage.ts` · 회귀 `catalogRuntime/__tests__/libraryOriginOnlyCards.test.ts`
 
+## [ADR-322 Phase 3 — Cascader 의 tree · drill 방식] - 2026-11-27
+
+### Added
+
+- Cascader 「Mode」 의 `tree` (제자리 펼침 — 고른 항목의 조상이 펼쳐진 채 열린다) 와 `drill` (한 번에 한 단계 — 맨 위 경로 줄 · 「뒤로」 · 행을 누르면 다음 단계, 끝 항목이면 고르기). 열면 목록 안으로 focus 가 들어가고 Esc 로 닫힌다. 어느 방식이든 같은 항목은 같은 값이다.
+  - 큰 계층은 tree 가 보이는 행만 그린다 (RAC Virtualizer — Phase 0 측정). 열린 내용은 방식마다 처음 열 때 불러온다.
+  - live (Builder → Publish): Chrome 6 / 6 · WebKit 6 / 6.
+- 번들: Builder 첫 화면 Phase 1 ~ 3 합계 +3,296 B (절대 상한 1,665,000 B 안 — 결정 8 의 +3,000 은 296 B 넘어 사용자 보고). 사용자 답으로 몫 +6,000 (Phase 1 ~ 6) · Builder 절대 상한 **1,668,000 B** 재승인 (만료 2026-12-25 그대로).
+
+## [ADR-322 Phase 2 — Cascader 의 columns 방식 (열기 · 단계 이동 · 고르기)] - 2026-11-27
+
+### Added
+
+- Preview · Publish 에서 Cascader 를 누르거나 Enter 로 열면 첫 단계 메뉴가 뜨고, 하위 항목이 있는 항목 (오른쪽 chevron) 은 → 또는 마우스를 올려 다음 단계를 옆에 펼친다 (← 로 한 단계 닫힘 · Esc). 끝 항목을 고르면 닫히고 값 글자가 고른 경로가 되며 focus 는 필드 버튼으로 돌아온다. 다시 열면 고른 항목이 체크로 보인다. key 가 다른 항목과 겹치는 항목은 고를 수 없다.
+  - 조립은 RAC `Menu` · `SubmenuTrigger` 와 react-aria `useMenuTrigger` — 직접 쓰는 role · aria · 키 처리 없음 (정적 검사). 열린 메뉴는 처음 열 때 불러온다.
+  - live (Builder → 팔레트 → Publish): Chrome 6 / 6 · WebKit 6 / 6 (키보드 전 경로 · 접근성 스냅샷 · 포인터).
+- 번들: Builder 첫 화면 Phase 1 + 2 합계 +2,727 B (절대 상한 1,665,000 B 안).
+
+## [ADR-322 Phase 1 — Cascader (여러 단계를 파고드는 선택 필드) 등록 · 닫힌 필드] - 2026-11-27
+
+### Added
+
+- 팔레트 「cascader」 (ComboBox 옆): 놓으면 Select 와 같은 닫힌 필드 (라벨 행 · 여는 Button · 설명 · 오류 문구) 와 세 단계 표본 항목 (`CascaderItem` 11 개 — Canvas 에는 그리지 않는다) 이 선다. 시작 값 (`defaultValue` = 항목 key) 이 있으면 Canvas 와 Publish 가 같은 글자로 고른 경로 전체 (「Electronics / Computers / Laptops」 — 사용자 결정 7) 를, 「Display: Leaf」 면 끝 항목 이름을 보인다. key 를 가진 항목이 없거나 둘 이상이면 key 를 그대로 보인다 (다른 항목으로 맞추지 않는다). 방식 (`mode`) 의 기본은 `columns` (사용자 결정 1) — 열리는 동작은 Phase 2.
+- Publish 의 여는 Button 은 RAC 가 받는 prop 으로 값 + 라벨을 이름으로, 설명 · 오류 문구를 `aria-describedby` 로 잇는다. 필드 요소에 role · aria 속성을 직접 쓰지 않는다 (HC2).
+  - live (Builder 5173 → 팔레트 → Publish, Chrome): 다섯 상태 (기본 · 시작 값 · L 끝 항목 · Side S · 비활성 + 오류 + 설명) 의 상자 ±1 px · 값 글자 · Button 바탕 픽셀 · 접근성 이름 19 / 19.
+
+### Changed
+
+- 문서 contract 86 → **87** (옛 86 문서는 열리지 않는다 — 변환 없음).
+- Builder 첫 화면 번들 절대 상한 1,662,000 → **1,665,000 B** (사용자 재승인 — ADR-322 결정 8, 만료 2026-12-25 그대로). Phase 1 몫 +2,169 B (1,663,284 B).
+- 위치: `docs/adr/322-cascader-hierarchical-picker.md` · `docs/adr/design/322-cascader-hierarchical-picker-breakdown.md` §8
+
 ## [ADR-320 Implemented — 필터 바 (칩 줄 · 조건 빌더 · 서버 후보 값)] - 2026-11-27
 
 ### Fixed

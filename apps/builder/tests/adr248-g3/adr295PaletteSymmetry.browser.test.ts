@@ -467,6 +467,10 @@ const KNOWN_ASYMMETRIC = new Set([
   "Select@M",
   "Select@L",
   "Select@XL",
+  // (ADR-322 Phase 1: Cascader's closed field is Select's — the same label line box at S · M, 2 px:
+  //  the Label's inline text is 18 high on the Canvas, 16 in the DOM, as Select@S · M.)
+  "Cascader@S",
+  "Cascader@M",
   "DropZone@S",
   "DropZone@L",
   "ContextualHelp@XS",

@@ -998,6 +998,18 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "combo box",
     icon: "ChevronDown",
   }),
+  // ADR-322 Phase 1: Cascader — a field drilling into a hierarchy (Select's closed field), and its
+  //   nested items (the hierarchy — not drawn while closed). Palette beside ComboBox.
+  primitiveEntry("Cascader", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "cascader",
+    icon: "ChevronDown",
+  }),
+  primitiveEntry("CascaderItem", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "cascader item",
+    icon: "ChevronDown",
+  }),
   primitiveEntry("Tabs", "collections", FAMILY_4_CUTOVER, {
     category: "layout",
     label: "tabs",
@@ -1732,6 +1744,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "RadioGroup",
   "Select",
   "ComboBox",
+  // ADR-322 Phase 1: Cascader — Select's closed field + nested items (`cascaderOrigins.ts`).
+  "Cascader",
   "Switch",
   "Slider",
   "RangeSlider",

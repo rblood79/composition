@@ -26,6 +26,8 @@ const EXCLUDED: Readonly<Record<string, string>> = {
   UnavailableMenuItemTrigger:
     "S2 §9.3 — an unavailable item (MenuItem + help Popover) inside a Menu row",
   TreeItem: "the Tree row's recursion (the table's `recursive`)",
+  CascaderItem:
+    "the Cascader row's recursion (the table's `recursive`, ADR-322)",
   ColorSwatchPicker: "a group (`GROUP_ITEM_TYPES`) — ADR-310 Phase 5 groups",
   SideNav:
     "S2 SideNav takes `items`, but it has no data binding contract yet — not in ADR-310's scope (reported 2026-11-15)",
@@ -151,6 +153,8 @@ describe("ADR-310 — the collection type table", () => {
       // (ADR-321: a StepList's Steps — authored nodes, the Design "+" adds one.)
       "StepList",
       "Tree",
+      // (ADR-322: a Cascader's nested items — authored nodes, the Design "+" adds one.)
+      "Cascader",
     ]);
   });
 

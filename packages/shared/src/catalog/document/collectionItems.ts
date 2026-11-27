@@ -118,6 +118,18 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
     selects: true,
     codeItems: true,
   },
+  // ADR-322 Phase 1: a Cascader's hierarchy — nested items (a Tree's recursion); "+" adds an item.
+  //   Not a RAC collection of nodes: the field builds its open content from their table, and the
+  //   field's value — not an item selection — is what it picks (`runtime/cascader.ts`).
+  {
+    owner: "Cascader",
+    item: "CascaderItem",
+    recursive: true,
+    insert: true,
+    repeat: false,
+    selects: false,
+    codeItems: false,
+  },
   // ADR-320 Phase 2: a filter bar's chip — one per root item of its tree (resolver rows, the bar's
   //   `filtersOf` connection marks it); no "+" (a condition is added at run time).
   {

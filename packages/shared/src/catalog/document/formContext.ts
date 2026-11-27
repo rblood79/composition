@@ -39,6 +39,7 @@ export const CATALOG_FORM_FIELDS: ReadonlySet<string> = new Set([
   "SearchField",
   "ColorField",
   "Select",
+  "Cascader",
   "ComboBox",
   "DateField",
   "TimeField",

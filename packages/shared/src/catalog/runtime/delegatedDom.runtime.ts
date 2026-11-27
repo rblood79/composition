@@ -48,6 +48,12 @@ import {
   STEP_LIST_TYPE,
 } from "../rule/stepList";
 import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
+import { CatalogCascaderField } from "./cascader.components";
+import {
+  CASCADER_ITEM_TYPE,
+  cascaderStartKey,
+  cascaderTableOf,
+} from "./cascader";
 import {
   catalogRatingBox,
   catalogRatingSize,
@@ -4661,6 +4667,105 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         stars,
       });
     },
+  },
+  // ADR-322 Phase 1: a Cascader's closed field — its part nodes (Select's origins) inside the
+  //  contexts the field gives (`CatalogCascaderField`); its items are the hierarchy, drawn by none.
+  cascader: {
+    // (Its items are its hierarchy: an item's key · name edit re-renders the field.)
+    watchesChildren: (node, root) => {
+      const ids: string[] = [];
+      const visit = (id: string) => {
+        const child = root.domInputs.get(id);
+        if (!child || catalogTypeName(root, child) !== CASCADER_ITEM_TYPE)
+          return;
+        ids.push(id);
+        child.children.forEach(visit);
+      };
+      node.children.forEach(visit);
+      return ids;
+    },
+    render: (input) => {
+      const props = input.node.props;
+      const { get, typeOf } = domLookup(input);
+      // (The run's value: its runtime value once written — `null` = cleared — else the start value.)
+      const own = input.runtimeProps?.(input.node.id);
+      const value =
+        own && "value" in own
+          ? own.value === null || own.value === undefined || own.value === ""
+            ? null
+            : String(own.value)
+          : (cascaderStartKey(props) ?? null);
+      const open = input.setRuntimeProps
+        ? (openState(input) as {
+            isOpen?: boolean;
+            onOpenChange?: (open: boolean) => void;
+          })
+        : {};
+      const {
+        necessityIndicator: _necessity,
+        labelPosition,
+        labelAlign,
+        isQuiet,
+        validate: _validate,
+        isReadOnly: _readOnly,
+        autoFocus: _autoFocus,
+        name: _name,
+        isDisabled,
+        isRequired,
+        isInvalid,
+        style,
+        key,
+        ...base
+      } = { ...fieldBase(input), key: marker(input).key };
+      return createElement(
+        CatalogCascaderField,
+        {
+          key,
+          label: str(props.label).trim(),
+          placeholder: str(props.placeholder),
+          description: str(props.description),
+          errorMessage: str(props.errorMessage),
+          isDisabled,
+          isRequired,
+          isInvalid,
+          table: cascaderTableOf(input.node, get, typeOf),
+          mode:
+            props.mode === "tree" || props.mode === "drill"
+              ? props.mode
+              : "columns",
+          display: {
+            displayMode: props.displayMode,
+            separator: props.separator,
+          },
+          value,
+          onChange: input.setRuntimeProps
+            ? (key: string | null) =>
+                input.setRuntimeProps!(input.node.id, { value: key })
+            : undefined,
+          isOpen: open.isOpen,
+          onOpenChange: open.onOpenChange,
+          root: {
+            ...base,
+            style,
+            className: "react-aria-Cascader",
+            "data-size": str(props.size) || "M",
+            "data-label-position": labelPosition,
+            "data-label-align": labelAlign,
+            "data-quiet": isQuiet ? "true" : undefined,
+          },
+        },
+        ...renderAll(
+          input,
+          children(input).filter(
+            (child) =>
+              catalogTypeName(input.root, child) !== CASCADER_ITEM_TYPE,
+          ),
+        ),
+      );
+    },
+  },
+  cascaderitem: {
+    render: (input) => createElement(Fragment, { key: input.node.id }),
   },
   // ADR-321 Phase 3 (사용자 결정 2): a Stepper is a role-less box around its StepList and the steps'
   //  panels — the panels sit outside the list's named group.

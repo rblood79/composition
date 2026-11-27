@@ -70,6 +70,8 @@ const SUBPART_TOKENS: Readonly<
   Label: { Icon: ['.react-aria-Icon[slot="necessity-icon"]'] },
   // ADR-253: the trigger is a Button instance (its own class token) holding the value and an Icon.
   Select: { SelectValue: [".react-aria-SelectValue"] },
+  // ADR-322: a Cascader's open Button holds the same value element (`CatalogCascaderValue`).
+  Cascader: { SelectValue: [".react-aria-SelectValue"] },
   // S2 TableView: a Column's content wrapper (`ColumnContents` `div` — a frame node).
   Column: { frame: ["div"] },
   // ADR-253: the container holds an Input instance and a FieldButton instance (their own tokens).
@@ -178,15 +180,17 @@ const WRAPPED_PART_TOKENS: Readonly<
   }, // The field button's glyph (chevron · calendar — 2026-11-13): ComboBox · DatePicker ·
   // DateRangePicker reach it through their control Group (`CATALOG_PART_RULE_PASS_HOSTS`).
   ...Object.fromEntries(
-    ["ComboBox", "Select", "DatePicker", "DateRangePicker"].map((type) => [
-      type,
-      {
-        ".react-aria-Button .react-aria-Icon svg": {
-          childType: "Icon",
-          via: "Button",
+    ["ComboBox", "Select", "Cascader", "DatePicker", "DateRangePicker"].map(
+      (type) => [
+        type,
+        {
+          ".react-aria-Button .react-aria-Icon svg": {
+            childType: "Icon",
+            via: "Button",
+          },
         },
-      },
-    ]),
+      ],
+    ),
   ),
 };
 /**
@@ -207,6 +211,8 @@ export function catalogSubpartDomUnion(
  */
 const SUBPART_WRAPPERS: Readonly<Record<string, string>> = {
   Select: "Button",
+  // (ADR-322: a Cascader's value sits in its open Button — Select's trigger.)
+  Cascader: "Button",
   SegmentedControlItem: "frame",
   // ADR-256 Phase 8c: a Disclosure's trigger Button sits in its header Heading.
   Disclosure: "Heading",

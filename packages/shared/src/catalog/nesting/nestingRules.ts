@@ -437,6 +437,7 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "SearchField",
   "ComboBox",
   "Select",
+  "Cascader",
   "DatePicker",
   "DateRangePicker",
   "DateField",
@@ -566,12 +567,7 @@ export function resolveNestingViolation(
     const allowed = RAC_COLLECTION_CHILD_TYPES[parentType];
     const emptyState = catalogIsEmptyState(childType, parentType);
     const actionBar = catalogIsLinkedActionBar(childType, parentType);
-    if (
-      allowed &&
-      !allowed.includes(childType) &&
-      !emptyState &&
-      !actionBar
-    ) {
+    if (allowed && !allowed.includes(childType) && !emptyState && !actionBar) {
       return {
         layer: "rac-composition",
         parentType,

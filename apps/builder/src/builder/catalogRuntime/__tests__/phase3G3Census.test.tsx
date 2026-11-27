@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 86,
+    libraryContractVersion: 87,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -585,6 +585,6 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + ImageCoordinator (2026-11-24 — S2 체크리스트 부록 D.2, S2's element-less image reveal context).
     // − Section (2026-11-24 — a `div` box; a frame's HTML tag is the semantic element, 사용자 삭제).
     // + ResizablePanelGroup · ResizablePanel · ResizableHandle (2026-11-26 — ADR-318 Phase 1).
-    expect(types.length).toBe(202); // (ADR-320: + FilterBar · FilterChip · ADR-321: + StepList · Step · Stepper · StepPanel · Rating)
+    expect(types.length).toBe(204); // (ADR-320: + FilterBar · FilterChip · ADR-321: + StepList · Step · Stepper · StepPanel · Rating · ADR-322: + Cascader · CascaderItem)
   }, 120_000);
 });

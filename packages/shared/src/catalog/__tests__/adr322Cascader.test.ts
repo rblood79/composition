@@ -1,0 +1,162 @@
+import { describe, expect, it } from "vitest";
+import { getPrimitiveBinding } from "../bindings";
+import { CASCADER_TEMPLATES } from "../document/cascaderOrigins";
+import { CATALOG_D2_COMPOSITION_TYPES } from "../document/d2Provenance";
+import {
+  cascaderTable,
+  cascaderValueMatch,
+  cascaderValueText,
+  type CascaderSourceItem,
+} from "../runtime/cascader";
+
+/**
+ * ADR-322 Phase 1 — the item table (breakdown §4.2) and the closed field's text (decision 7). The
+ * expected path ids · texts are written out by hand from the inputs, not from the functions.
+ */
+const leaf = (key: string, name = key): CascaderSourceItem => ({ key, name });
+const REGIONS: CascaderSourceItem[] = [
+  {
+    key: "11",
+    name: "서울",
+    children: [
+      {
+        key: "680",
+        name: "강남구",
+        children: [leaf("6801", "역삼동"), leaf("6802", "삼성동")],
+      },
+      { key: "140", name: "중구", children: [leaf("1401", "명동")] },
+    ],
+  },
+  {
+    key: "26",
+    name: "부산",
+    children: [
+      { key: "110", name: "중구", children: [leaf("1101", "남포동")] },
+    ],
+  },
+  leaf("36", "세종"),
+];
+const SEP = "\u001f";
+
+describe("ADR-322 — the item table", () => {
+  it("one walk: path ids are the ancestors' keys, names the path, depth · children", () => {
+    const table = cascaderTable(REGIONS);
+    expect(table.entries.map((entry) => entry.pathId)).toEqual([
+      "11",
+      `11${SEP}680`,
+      `11${SEP}680${SEP}6801`,
+      `11${SEP}680${SEP}6802`,
+      `11${SEP}140`,
+      `11${SEP}140${SEP}1401`,
+      "26",
+      `26${SEP}110`,
+      `26${SEP}110${SEP}1101`,
+      "36",
+    ]);
+    const myeongdong = table.byPathId.get(`11${SEP}140${SEP}1401`)!;
+    expect(myeongdong.names).toEqual(["서울", "중구", "명동"]);
+    expect(myeongdong.depth).toBe(2);
+    expect(table.byPathId.get("11")!.hasChildren).toBe(true);
+    expect(table.duplicatePathIds.size).toBe(0);
+  });
+
+  it("a key under two parents (A/01 · B/01) — both items cannot be picked, the value is refused", () => {
+    const table = cascaderTable([
+      { key: "A", name: "A", children: [leaf("01", "a1")] },
+      { key: "B", name: "B", children: [leaf("01", "b1")] },
+    ]);
+    expect([...table.duplicatePathIds].sort()).toEqual([
+      `A${SEP}01`,
+      `B${SEP}01`,
+    ]);
+    expect(cascaderValueMatch(table, "01")).toEqual({
+      kind: "duplicate",
+      key: "01",
+    });
+    expect(cascaderValueMatch(table, "A").kind).toBe("item");
+    expect(cascaderValueMatch(table, "zz")).toEqual({
+      kind: "missing",
+      key: "zz",
+    });
+  });
+
+  it("two siblings with one key (A/01 twice) — separate path ids before RAC sees them, both duplicates", () => {
+    const table = cascaderTable([
+      {
+        key: "A",
+        name: "A",
+        children: [leaf("01", "first"), leaf("01", "second")],
+      },
+    ]);
+    const ids = table.entries.map((entry) => entry.pathId);
+    expect(ids).toEqual(["A", `A${SEP}01`, `A${SEP}01#1`]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect([...table.duplicatePathIds].sort()).toEqual([
+      `A${SEP}01`,
+      `A${SEP}01#1`,
+    ]);
+  });
+});
+
+describe("ADR-322 — the closed field's text (decision 7)", () => {
+  const table = cascaderTable(REGIONS);
+  it("the whole path by default · the leaf · an authored separator", () => {
+    expect(cascaderValueText(table, { defaultValue: "1401" })).toBe(
+      "서울 / 중구 / 명동",
+    );
+    expect(
+      cascaderValueText(table, { defaultValue: "1401", displayMode: "leaf" }),
+    ).toBe("명동");
+    expect(
+      cascaderValueText(table, { defaultValue: "1101", separator: " > " }),
+    ).toBe("부산 > 중구 > 남포동");
+  });
+  it("`value` (the run's) wins over `defaultValue`; nothing picked = no text (the placeholder shows)", () => {
+    expect(
+      cascaderValueText(table, { value: "36", defaultValue: "1401" }),
+    ).toBe("세종");
+    expect(cascaderValueText(table, {})).toBeUndefined();
+    expect(cascaderValueText(table, { defaultValue: "" })).toBeUndefined();
+  });
+  it("a key no single item carries is shown as stored — never matched to another", () => {
+    expect(cascaderValueText(table, { defaultValue: "9999" })).toBe("9999");
+    const repeated = cascaderTable([
+      { key: "A", name: "A", children: [leaf("01")] },
+      { key: "B", name: "B", children: [leaf("01")] },
+    ]);
+    expect(cascaderValueText(repeated, { defaultValue: "01" })).toBe("01");
+  });
+});
+
+describe("ADR-322 — registration", () => {
+  it("a composition type (no S2 · design-data · v3 cascader — Phase 0)", () => {
+    expect(CATALOG_D2_COMPOSITION_TYPES.has("Cascader")).toBe(true);
+    expect(CATALOG_D2_COMPOSITION_TYPES.has("CascaderItem")).toBe(true);
+  });
+  it("field props carry Select's (S2 Picker's) names; the mode starts at `columns` (decision 1), the display at the path (decision 7)", () => {
+    const select = getPrimitiveBinding("Select")!.props.accepts;
+    const cascader = getPrimitiveBinding("Cascader")!.props.accepts;
+    for (const key of [
+      "label",
+      "description",
+      "placeholder",
+      "size",
+      "labelPosition",
+      "isRequired",
+      "isDisabled",
+      "isInvalid",
+      "errorMessage",
+      "name",
+    ])
+      expect([key, cascader[key]?.kind]).toEqual([key, select[key]?.kind]);
+    expect(cascader.mode?.default).toBe("columns");
+    expect(cascader.displayMode?.default).toBe("path");
+  });
+  it("the origin's items have unique keys (11 items, three levels)", () => {
+    const keys = CASCADER_TEMPLATES.filter((node) =>
+      node.definitionId.endsWith("type-CascaderItem"),
+    ).map((node) => String(node.props.id));
+    expect(keys).toHaveLength(11);
+    expect(new Set(keys).size).toBe(11);
+  });
+});

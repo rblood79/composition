@@ -1,4 +1,11 @@
 import { catalogSkeletonState } from "./skeletonContext";
+import {
+  CASCADER_ITEM_TYPE,
+  CASCADER_TYPE,
+  cascaderTableOf,
+  cascaderValueText,
+  catalogCascaderOfTriggerPart,
+} from "./cascader";
 import { catalogStepDerived, catalogStepListDerived } from "./stepList";
 import {
   catalogStepListKeys,
@@ -441,7 +448,7 @@ export function catalogToggleButtonGlyphOwner(
     // (2026-11-14: an `auto` Button's scheme is resolved after its parts are — they take its paint,
     //  S2 content `currentColor`; the DOM `color: inherit` under its `data-static-color`.)
     return catalogButtonGroupOf(parent, get, typeOf) ||
-      (field && typeOf(field) !== "Select") ||
+      (field && typeOf(field) !== "Select" && typeOf(field) !== "Cascader") ||
       parent.props.staticColor === "auto"
       ? parent
       : undefined;
@@ -1318,6 +1325,7 @@ export const FIELD_HINT_OWNERS: ReadonlySet<string> = new Set([
   "SearchField",
   "ColorField",
   "Select",
+  "Cascader",
   "ComboBox",
   "DateField",
   "TimeField",
@@ -1486,6 +1494,8 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogSelectBoxDescriptionHidden(node, get, typeOf)) return true;
+  // (ADR-322: a Cascader's items are its hierarchy — the closed field draws none of them.)
+  if (typeOf(node) === CASCADER_ITEM_TYPE) return true;
   // (S2 Column `menuItems` — a Column's MenuItem is its closed menu's item, §9.2.)
   if (typeOf(node) === "MenuItem") {
     const parent = get(node.parentId);
@@ -3465,8 +3475,11 @@ function derivedPropsBeforeSkeleton(
   //  `field-button` blocks, `catalogFieldButtonSize`.)
   const fieldButton = catalogFieldButtonSize(node, get, typeOf);
   const pickerOwner = catalogOverlayOwner(node, get, typeOf);
+  // (ADR-322: a Cascader's open Button and its value · glyph are Select's trigger parts — no overlay
+  //  node owns them, the field does.)
+  const cascader = catalogCascaderOfTriggerPart(node, get, typeOf);
   const picker =
-    pickerOwner && typeOf(pickerOwner) === "Select" ? pickerOwner : undefined;
+    pickerOwner && typeOf(pickerOwner) === "Select" ? pickerOwner : cascader;
   const selectionItem =
     typeOf(node) === "Icon"
       ? catalogPickerSelectionItem(node, get, typeOf)
@@ -3476,6 +3489,9 @@ function derivedPropsBeforeSkeleton(
       ? {
           ...(typeOf(node) === "Button" ? { _pickerTrigger: true } : {}),
           ...(typeOf(node) === "SelectValue" ? { _pickerValue: true } : {}),
+          ...(cascader && typeOf(node) === "SelectValue"
+            ? { _cascaderValue: true }
+            : {}),
           // (S2 체크리스트 §9.3: it shows its value shape — S2 `renderValue` — in place of its text.)
           ...(typeOf(node) === "SelectValue" &&
           catalogValueTemplateShown(node, get, typeOf)
@@ -3639,6 +3655,7 @@ function derivedPropsBeforeSkeleton(
  */
 const FIELD_BUTTON_OWNERS: ReadonlySet<string> = new Set([
   "Select",
+  "Cascader",
   "NumberField",
   "ComboBox",
   "SearchField",
@@ -4767,6 +4784,16 @@ function ownDerivedPropsBase(
     if (order) return { _childOrder: JSON.stringify(order) };
   }
   if (partType === "SelectValue") {
+    // (ADR-322: a Cascader's value text — the start value's path (or name), the placeholder while
+    //  nothing is picked — `runtime/cascader.ts`, the DOM reads the same record.)
+    const cascader = catalogCascaderOfTriggerPart(node, get, typeOf);
+    if (cascader) {
+      const text = cascaderValueText(
+        cascaderTableOf(cascader, get, typeOf),
+        cascader.props,
+      );
+      return text === undefined ? undefined : { children: text };
+    }
     const picker = catalogCalendarPickerOfValue(node, get, typeOf);
     const formatted = picker && ownDerivedProps(picker, get, typeOf, locale);
     if (typeof formatted?._formatted === "string")
@@ -5003,7 +5030,7 @@ export function catalogDerivedPropsDependents(
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),
     ),
-    ...(typeOf(owner) === "Select"
+    ...(typeOf(owner) === "Select" || typeOf(owner) === CASCADER_TYPE
       ? childrenOf(owner, get)
           .filter((child) => typeOf(child) === "Button")
           .flatMap((button) => childrenOf(button, get))
@@ -5405,6 +5432,8 @@ export const CATALOG_LABEL_NODE_FIELDS: Readonly<
   checkboxgroup: "necessity",
   radiogroup: "necessity",
   select: "necessity",
+  // (ADR-322: S2 Picker's label row — Select's.)
+  cascader: "necessity",
   combobox: "necessity",
   // (S2 체크리스트 §4.1 TokenField Phase 4 — S2 TextArea's FieldLabel)
   tokenfield: "necessity",
@@ -5497,7 +5526,7 @@ export function catalogFieldLabelPart(
     required,
     mode,
     hidden,
-    include: ["Select", "CheckboxGroup"].includes(typeOf(field)),
+    include: ["Select", "Cascader", "CheckboxGroup"].includes(typeOf(field)),
   };
 }
 export function catalogFieldLabelPartsHidden(

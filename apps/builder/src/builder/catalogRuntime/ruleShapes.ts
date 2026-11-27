@@ -146,6 +146,7 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "Input",
   "TokenInput",
   "Select",
+  "Cascader",
   "ComboBox",
   "SearchField",
   "NumberField",

@@ -61,6 +61,10 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
   // (The Meter · ProgressBar parts the reference draws as elements — their own variant · size.)
   "MeterValue",
   "ProgressBarValue",
+  // (ADR-322: S2 · design-data · v3 (3.47.7) have no cascader — Phase 0; its field props carry S2
+  //  Picker's names.)
+  "Cascader",
+  "CascaderItem",
 ]);
 
 /** Per-type keys — the S2 type lacks the axis; the source says where composition took it from. */

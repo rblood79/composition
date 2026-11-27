@@ -1,0 +1,24 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog CascaderItem — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-CascaderItem {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-CascaderItem {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

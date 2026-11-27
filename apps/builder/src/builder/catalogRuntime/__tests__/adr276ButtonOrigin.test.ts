@@ -130,6 +130,7 @@ describe("ADR-276 Button origin template", () => {
       "lib:template:component-buttongroup__2": "Save",
       // (A Card's Footer Button — user 2026-10-25 「card(origin) - footer - slot 에 button 추가」.)
       "lib:template:component-card__footer-button": "Action",
+      "lib:template:component-cascader__2": "",
       "lib:template:component-numberfield__2_2": "",
       "lib:template:component-numberfield__2_3": "",
       "lib:template:component-searchfield__2_3": "",
@@ -177,7 +178,8 @@ describe("ADR-276 Button origin template", () => {
     //  group. 2026-11-18: a ContextualHelp's trigger is S2's quiet ActionButton. 2026-11-19: a
     //  Pagination's pages are ActionButtons too — page navigation, not a toggle; its 「Rows per page」 is a
     //  Select origin instance. 2026-11-22: a FileTrigger's Button — S2 `FileTrigger > Button`.)
-    expect(nested).toHaveLength(39);
+    //  2026-11-27: ADR-322 — a Cascader's open Button (Select's trigger, `label: ""`).)
+    expect(nested).toHaveLength(40);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)

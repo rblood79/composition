@@ -1628,6 +1628,389 @@ const BUTTON_GROUP_CONTAINER_STYLES = {
   height: "fit-content",
 } satisfies ComponentRule["containerStyles"];
 
+/**
+ * ADR-322 Phase 3 — the look of a Cascader's `tree` · `drill` panel (`.react-aria-Popover.cascader-panel`):
+ * rows as the field's M control (`size.height.M` · `text-sm`), the focus paint of a collection item,
+ * the Tree's level indent and a quiet chevron that turns when expanded, the drill's quiet back button
+ * and breadcrumb row.
+ */
+const CASCADER_PANEL_STYLES = [
+  {
+    selector: ".react-aria-Popover.cascader-panel",
+    styles: { "min-width": "var(--trigger-width)" },
+    nested: [
+      {
+        selector: ".react-aria-Dialog",
+        styles: {
+          display: "flex",
+          "flex-direction": "column",
+          gap: "var(--spacing-xs)",
+          padding: "var(--spacing-xs)",
+          outline: "none",
+        },
+      },
+      {
+        selector: ":is(.react-aria-Tree, .react-aria-GridList)",
+        styles: {
+          width: "100%",
+          display: "flex",
+          "flex-direction": "column",
+          outline: "none",
+          border: "none",
+        },
+      },
+      {
+        selector: ":is(.react-aria-TreeItem, .react-aria-GridListItem)",
+        styles: {
+          display: "flex",
+          "align-items": "center",
+          gap: "var(--spacing-xs)",
+          "min-height": "var(--catalog-token-size-height-M)",
+          padding: "0 var(--spacing-sm)",
+          "border-radius": "var(--catalog-token-radius-md)",
+          "font-size": "var(--catalog-token-text-sm)",
+          color: "var(--fg)",
+          outline: "none",
+          cursor: "default",
+        },
+      },
+      {
+        selector: ".react-aria-TreeItem",
+        styles: {
+          "padding-left":
+            "calc((var(--tree-item-level, 1) - 1) * var(--spacing-md) + var(--spacing-sm))",
+        },
+      },
+      {
+        selector:
+          ":is(.react-aria-TreeItem, .react-aria-GridListItem):is([data-focused], [data-hovered])",
+        styles: { background: "var(--collection-item-focus)" },
+      },
+      {
+        selector:
+          ":is(.react-aria-TreeItem, .react-aria-GridListItem)[data-selected]",
+        styles: { color: "var(--accent)", "font-weight": "700" },
+      },
+      {
+        selector:
+          ":is(.react-aria-TreeItem, .react-aria-GridListItem)[data-disabled]",
+        styles: { color: "var(--fg-muted)" },
+      },
+      {
+        selector: ':is(.react-aria-Button[slot="chevron"], .cascader-back)',
+        styles: {
+          display: "inline-flex",
+          "align-items": "center",
+          "justify-content": "center",
+          width: "var(--spacing-xl)",
+          height: "var(--spacing-xl)",
+          padding: "0",
+          border: "none",
+          background: "transparent",
+          color: "inherit",
+          "border-radius": "var(--catalog-token-radius-sm)",
+        },
+      },
+      {
+        selector:
+          '.react-aria-TreeItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon',
+        styles: { transform: "rotate(90deg)" },
+      },
+      {
+        selector: '.react-aria-Icon[slot="descriptor"]',
+        styles: { "margin-left": "auto" },
+      },
+      {
+        selector: ".react-aria-Breadcrumbs",
+        styles: {
+          display: "flex",
+          "flex-wrap": "wrap",
+          "align-items": "center",
+          gap: "var(--spacing-xs)",
+          margin: "0",
+          padding: "0 var(--spacing-xs)",
+          "list-style": "none",
+          "font-size": "var(--catalog-token-text-sm)",
+        },
+      },
+      {
+        selector: ".react-aria-Breadcrumb",
+        styles: {
+          display: "flex",
+          "align-items": "center",
+          gap: "var(--spacing-xs)",
+        },
+      },
+      {
+        selector: ".react-aria-Breadcrumb [data-current]",
+        styles: { "font-weight": "700", color: "var(--fg)" },
+      },
+    ],
+  },
+];
+
+/** A delegation list with its prefixes and their CSS variables renamed (`--select-…` → `--cascader-…`). */
+function renamedDelegation<T>(list: T, from: string, to: string): T {
+  const rename = (value: unknown): unknown =>
+    typeof value === "string"
+      ? value
+          .split(`--${from}`)
+          .join(`--${to}`)
+          .replace(new RegExp(`^${from}`), to)
+      : Array.isArray(value)
+        ? value.map(rename)
+        : value && typeof value === "object"
+          ? Object.fromEntries(
+              Object.entries(value).map(([key, item]) => [
+                rename(key),
+                rename(item),
+              ]),
+            )
+          : value;
+  return rename(list) as T;
+}
+
+/**
+ * The Select field rule — also the Cascader's closed field (ADR-322 Phase 1 — Select's part origins,
+ * breakdown §4.1).
+ */
+const SELECT_RULE: ComponentRule = {
+  defaultSize: "M",
+  variants: {},
+  // ADR-912 단계5 step4 (2026-06-17): SelectSpec.spec 삭제 대비 — generate-css virtual emit 이
+  //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(CSSGenerator.ts:983 size.gap
+  //   → emit, composition.containerStyles.gap 미정의라 skipGap=false). paddingY 는 미보충(컨테이너
+  //   box 가 ownsContainerBox=true → skipPadding, padding 은 composition.delegation --select-btn-padding
+  //   가 담당, base block 미emit). Input 과 달리 padding 은 delegation 위임이라 paddingY 불요.
+  sizes: PICKER_SIZES,
+  structure: {
+    archetype: "default",
+    element: "div",
+    stateStyles: {
+      color: { isDisabled: "{color.picker-content-disabled}" },
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
+        //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
+        //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
+        width: "100%",
+        color: "var(--fg)",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              display: "grid",
+              "grid-template-columns": "auto minmax(0, 1fr)",
+              "align-items": "start",
+            },
+            // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+            //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+            //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+            //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+            //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+            //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+            //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+            //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
+            //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
+            nested: [
+              {
+                selector: "> .react-aria-Label",
+                styles: {
+                  "grid-column": "1",
+                  width: "var(--form-label-width)",
+                  "align-self": "center",
+                  "text-align": "var(--form-label-align, start)",
+                  "justify-content": "var(--form-label-align, start)",
+                },
+              },
+              {
+                selector:
+                  '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                styles: {
+                  "grid-column": "2",
+                  "min-width": "0",
+                },
+              },
+              {
+                selector: "> .react-aria-FieldError",
+                styles: {
+                  "grid-column": "2",
+                },
+              },
+              {
+                selector: '> [slot="description"]',
+                styles: {
+                  "grid-column": "2",
+                },
+              },
+            ],
+          },
+        },
+        "label-align": {
+          end: {
+            styles: {
+              "--form-label-align": "end",
+            },
+          },
+        },
+      },
+      externalStyles: [
+        {
+          // The reference's picker popover has no padding of its own (RAC `.select-popover`
+          //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
+          //   beats the Popover size's padding (`[data-size]`); (The Builder document no longer
+          //   loads this sheet — ADR-305; `[data-catalog-id]` scopes it to document nodes.)
+          selector:
+            '.react-aria-Popover[data-trigger="Select"][data-catalog-id]',
+          styles: { padding: "0" },
+        },
+        {
+          selector: '.react-aria-Popover[data-trigger="Select"]',
+          styles: {
+            width: "var(--trigger-width)",
+            "min-width": "var(--trigger-width)",
+            "max-height": "300px",
+            overflow: "auto",
+            contain: "layout style",
+          },
+          nested: [
+            {
+              selector: ".react-aria-ListBox",
+              styles: {
+                border: "none",
+                background: "transparent",
+                "max-height": "none",
+                "min-height": "24px",
+              },
+            },
+          ],
+        },
+      ],
+      delegation: [
+        // ADR-253: the trigger is an instance of the Button origin (secondary) — its paint, font
+        //   and states are the Button rule's. The field only places it: full width, and a
+        //   smaller end padding beside the glyph.
+        {
+          childSelector: ".react-aria-Button",
+          prefix: "select-btn",
+          // ADR-295 Phase 3c-3: the start padding is S2 Picker's `edge-to-text` (the field height × 3/8 —
+          //   7.5 · 9 · 12 · 15 · 18), not the Button's `pill` (height / 2): S2's picker trigger is a field
+          //   button, not a Button. The height variable carries the touch set (3c-3b).
+          variables: {
+            XS: {
+              "--select-btn-pad-start":
+                "calc(var(--catalog-token-size-height-XS) * 3 / 8)",
+              "--select-btn-pad-end": "2px",
+            },
+            // 사용자 2026-10-13 「M 8 → 4」 · 「S · L 도 같은 식으로」: the end padding is the
+            //   Button's size paddingY (S 2 · M 4 · L 8).
+            S: {
+              "--select-btn-pad-start":
+                "calc(var(--catalog-token-size-height-S) * 3 / 8)",
+              "--select-btn-pad-end": "2px",
+            },
+            // (사용자 2026-11-13 「select-group 에 padding-right 7px」 — M 4 → 7, 「select - button 에
+            //  padding-right:8px」 — 7 → 8.)
+            M: {
+              "--select-btn-pad-start":
+                "calc(var(--catalog-token-size-height-M) * 3 / 8)",
+              "--select-btn-pad-end": "8px",
+            },
+            L: {
+              "--select-btn-pad-start":
+                "calc(var(--catalog-token-size-height-L) * 3 / 8)",
+              "--select-btn-pad-end": "8px",
+            },
+            XL: {
+              "--select-btn-pad-start":
+                "calc(var(--catalog-token-size-height-XL) * 3 / 8)",
+              "--select-btn-pad-end": "16px",
+            },
+          },
+          bridges: {
+            "text-align": "left",
+            width: "100%",
+            "min-width": "0",
+            "padding-left": "var(--select-btn-pad-start)",
+            "padding-right": "var(--select-btn-pad-end)",
+            // 값 ↔ chevron 간격 4 (사용자 결정 2026-09-29). 없으면 Button rule 의 크기별 gap
+            //   (md 8) 을 받는다.
+            gap: "var(--spacing-xs)",
+          },
+        },
+        {
+          // The field button's glyph (chevron · calendar): XS 12 · S 14 · M 16 · L 18 · XL 20 (× `--s2-scale`) —
+          //   사용자 2026-11-13 지정, not the Button's `1lh` icon step (14 ~ 22).
+          childSelector: ".react-aria-Button .react-aria-Icon svg",
+          prefix: "select-glyph",
+          variables: {
+            XS: { "--select-glyph-size": scaledLengthRef(12) },
+            S: { "--select-glyph-size": scaledLengthRef(14) },
+            M: { "--select-glyph-size": scaledLengthRef(16) },
+            L: { "--select-glyph-size": scaledLengthRef(18) },
+            XL: { "--select-glyph-size": scaledLengthRef(20) },
+          },
+          bridges: {
+            width: "var(--select-glyph-size)",
+            height: "var(--select-glyph-size)",
+          },
+        },
+        // The value (RAC `SelectValue` — the field's own sub-part) fills the trigger and clips.
+        {
+          childSelector: ".react-aria-SelectValue",
+          prefix: "select-value",
+          variables: {
+            XS: {
+              "--select-value-font-size": "var(--text-2xs)",
+            },
+            S: {
+              "--select-value-font-size": "var(--text-xs)",
+            },
+            M: {
+              "--select-value-font-size": "var(--text-sm)",
+            },
+            L: {
+              "--select-value-font-size": "var(--text-base)",
+            },
+            XL: {
+              "--select-value-font-size": "var(--text-lg)",
+            },
+          },
+          bridges: {
+            "font-size": "var(--select-value-font-size)",
+            // (The value's own weight — it does not take the trigger Button's 500.)
+            "font-weight": "400",
+            flex: "1",
+            display: "flex",
+            "text-align": "left",
+            "justify-content": "flex-start",
+            "white-space": "nowrap",
+            "text-overflow": "ellipsis",
+            overflow: "hidden",
+          },
+          states: {
+            "[data-placeholder]": {
+              "font-style": "normal",
+              color: "inherit",
+              opacity: "1",
+            },
+          },
+        },
+        {
+          childSelector: '.react-aria-SelectValue [slot="description"]',
+          bridges: {
+            display: "none",
+          },
+        },
+      ],
+    },
+  },
+};
+
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ActionBar: ACTION_BAR_RULE,
   SelectBoxGroup: SELECT_BOX_GROUP_RULE,
@@ -11549,242 +11932,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  Select: {
-    defaultSize: "M",
-    variants: {},
-    // ADR-912 단계5 step4 (2026-06-17): SelectSpec.spec 삭제 대비 — generate-css virtual emit 이
-    //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(CSSGenerator.ts:983 size.gap
-    //   → emit, composition.containerStyles.gap 미정의라 skipGap=false). paddingY 는 미보충(컨테이너
-    //   box 가 ownsContainerBox=true → skipPadding, padding 은 composition.delegation --select-btn-padding
-    //   가 담당, base block 미emit). Input 과 달리 padding 은 delegation 위임이라 paddingY 불요.
-    sizes: PICKER_SIZES,
+  Select: SELECT_RULE,
+  // ADR-322 Phase 1: Cascader — the closed field is Select's (sizes · composition · the trigger's
+  //   delegation); not the picker Popover's sheet (its open content is a RAC Menu · Tree · GridList).
+  Cascader: {
+    ...SELECT_RULE,
     structure: {
-      archetype: "default",
-      element: "div",
-      stateStyles: {
-        color: { isDisabled: "{color.picker-content-disabled}" },
-      },
+      ...SELECT_RULE.structure,
       composition: {
-        layout: "flex-column",
-        gap: "var(--spacing-xs)",
-        containerStyles: {
-          // 2026-07-15: field 패밀리 root width catalog 정본 (fieldFamilyWidthContract.test.ts).
-          //   패널 Transform width = toStr(inline, specDefault, "auto") 이고 specDefault 가 이 값 →
-          //   부재 시 "auto" 로 떨어진다 (DatePicker 적발 지점).
-          width: "100%",
-          color: "var(--fg)",
-        },
-        containerVariants: {
-          "label-position": {
-            side: {
-              styles: {
-                display: "grid",
-                "grid-template-columns": "auto minmax(0, 1fr)",
-                "align-items": "start",
-              },
-              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
-              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
-              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
-              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
-              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
-              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
-              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
-              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
-              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
-              nested: [
-                {
-                  selector: "> .react-aria-Label",
-                  styles: {
-                    "grid-column": "1",
-                    width: "var(--form-label-width)",
-                    "align-self": "center",
-                    "text-align": "var(--form-label-align, start)",
-                    "justify-content": "var(--form-label-align, start)",
-                  },
-                },
-                {
-                  selector:
-                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
-                  styles: {
-                    "grid-column": "2",
-                    "min-width": "0",
-                  },
-                },
-                {
-                  selector: "> .react-aria-FieldError",
-                  styles: {
-                    "grid-column": "2",
-                  },
-                },
-                {
-                  selector: '> [slot="description"]',
-                  styles: {
-                    "grid-column": "2",
-                  },
-                },
-              ],
-            },
-          },
-          "label-align": {
-            end: {
-              styles: {
-                "--form-label-align": "end",
-              },
-            },
-          },
-        },
-        externalStyles: [
-          {
-            // The reference's picker popover has no padding of its own (RAC `.select-popover`
-            //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
-            //   beats the Popover size's padding (`[data-size]`); (The Builder document no longer
-            //   loads this sheet — ADR-305; `[data-catalog-id]` scopes it to document nodes.)
-            selector:
-              '.react-aria-Popover[data-trigger="Select"][data-catalog-id]',
-            styles: { padding: "0" },
-          },
-          {
-            selector: '.react-aria-Popover[data-trigger="Select"]',
-            styles: {
-              width: "var(--trigger-width)",
-              "min-width": "var(--trigger-width)",
-              "max-height": "300px",
-              overflow: "auto",
-              contain: "layout style",
-            },
-            nested: [
-              {
-                selector: ".react-aria-ListBox",
-                styles: {
-                  border: "none",
-                  background: "transparent",
-                  "max-height": "none",
-                  "min-height": "24px",
-                },
-              },
-            ],
-          },
-        ],
-        delegation: [
-          // ADR-253: the trigger is an instance of the Button origin (secondary) — its paint, font
-          //   and states are the Button rule's. The field only places it: full width, and a
-          //   smaller end padding beside the glyph.
-          {
-            childSelector: ".react-aria-Button",
-            prefix: "select-btn",
-            // ADR-295 Phase 3c-3: the start padding is S2 Picker's `edge-to-text` (the field height × 3/8 —
-            //   7.5 · 9 · 12 · 15 · 18), not the Button's `pill` (height / 2): S2's picker trigger is a field
-            //   button, not a Button. The height variable carries the touch set (3c-3b).
-            variables: {
-              XS: {
-                "--select-btn-pad-start":
-                  "calc(var(--catalog-token-size-height-XS) * 3 / 8)",
-                "--select-btn-pad-end": "2px",
-              },
-              // 사용자 2026-10-13 「M 8 → 4」 · 「S · L 도 같은 식으로」: the end padding is the
-              //   Button's size paddingY (S 2 · M 4 · L 8).
-              S: {
-                "--select-btn-pad-start":
-                  "calc(var(--catalog-token-size-height-S) * 3 / 8)",
-                "--select-btn-pad-end": "2px",
-              },
-              // (사용자 2026-11-13 「select-group 에 padding-right 7px」 — M 4 → 7, 「select - button 에
-              //  padding-right:8px」 — 7 → 8.)
-              M: {
-                "--select-btn-pad-start":
-                  "calc(var(--catalog-token-size-height-M) * 3 / 8)",
-                "--select-btn-pad-end": "8px",
-              },
-              L: {
-                "--select-btn-pad-start":
-                  "calc(var(--catalog-token-size-height-L) * 3 / 8)",
-                "--select-btn-pad-end": "8px",
-              },
-              XL: {
-                "--select-btn-pad-start":
-                  "calc(var(--catalog-token-size-height-XL) * 3 / 8)",
-                "--select-btn-pad-end": "16px",
-              },
-            },
-            bridges: {
-              "text-align": "left",
-              width: "100%",
-              "min-width": "0",
-              "padding-left": "var(--select-btn-pad-start)",
-              "padding-right": "var(--select-btn-pad-end)",
-              // 값 ↔ chevron 간격 4 (사용자 결정 2026-09-29). 없으면 Button rule 의 크기별 gap
-              //   (md 8) 을 받는다.
-              gap: "var(--spacing-xs)",
-            },
-          },
-          {
-            // The field button's glyph (chevron · calendar): XS 12 · S 14 · M 16 · L 18 · XL 20 (× `--s2-scale`) —
-            //   사용자 2026-11-13 지정, not the Button's `1lh` icon step (14 ~ 22).
-            childSelector: ".react-aria-Button .react-aria-Icon svg",
-            prefix: "select-glyph",
-            variables: {
-              XS: { "--select-glyph-size": scaledLengthRef(12) },
-              S: { "--select-glyph-size": scaledLengthRef(14) },
-              M: { "--select-glyph-size": scaledLengthRef(16) },
-              L: { "--select-glyph-size": scaledLengthRef(18) },
-              XL: { "--select-glyph-size": scaledLengthRef(20) },
-            },
-            bridges: {
-              width: "var(--select-glyph-size)",
-              height: "var(--select-glyph-size)",
-            },
-          },
-          // The value (RAC `SelectValue` — the field's own sub-part) fills the trigger and clips.
-          {
-            childSelector: ".react-aria-SelectValue",
-            prefix: "select-value",
-            variables: {
-              XS: {
-                "--select-value-font-size": "var(--text-2xs)",
-              },
-              S: {
-                "--select-value-font-size": "var(--text-xs)",
-              },
-              M: {
-                "--select-value-font-size": "var(--text-sm)",
-              },
-              L: {
-                "--select-value-font-size": "var(--text-base)",
-              },
-              XL: {
-                "--select-value-font-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "font-size": "var(--select-value-font-size)",
-              // (The value's own weight — it does not take the trigger Button's 500.)
-              "font-weight": "400",
-              flex: "1",
-              display: "flex",
-              "text-align": "left",
-              "justify-content": "flex-start",
-              "white-space": "nowrap",
-              "text-overflow": "ellipsis",
-              overflow: "hidden",
-            },
-            states: {
-              "[data-placeholder]": {
-                "font-style": "normal",
-                color: "inherit",
-                opacity: "1",
-              },
-            },
-          },
-          {
-            childSelector: '.react-aria-SelectValue [slot="description"]',
-            bridges: {
-              display: "none",
-            },
-          },
-        ],
+        ...SELECT_RULE.structure?.composition,
+        // ADR-322 Phase 3: the open content of the `tree` · `drill` modes (`cascaderPanel.components.tsx`
+        //   — RAC Tree · GridList · Breadcrumbs built from the items, not nodes: the Canvas never draws
+        //   them, R6) takes its look here, as Select's picker Popover does. The `columns` Menu takes
+        //   the Menu · MenuItem sheets as they are.
+        externalStyles: CASCADER_PANEL_STYLES,
+        // (A delegation prefix is one rule's — the trigger's variables take the field's name.)
+        delegation: renamedDelegation(
+          SELECT_RULE.structure?.composition?.delegation,
+          "select-",
+          "cascader-",
+        ),
       },
     },
-  },
+  } as ComponentRule,
+  // ADR-322 Phase 1: a Cascader's item — the hierarchy, not drawn (no box of its own).
+  CascaderItem: {
+    variants: {},
+    sizes: {},
+    structure: { archetype: "container", element: "div" },
+  } as ComponentRule,
   SelectValue: {
     defaultVariant: "default",
     defaultSize: "M",

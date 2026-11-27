@@ -393,6 +393,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "RadioGroup", source: "catalog" },
   { type: "Select", source: "catalog" },
   { type: "ComboBox", source: "catalog" },
+  // ADR-322 Phase 1: Cascader — beside ComboBox (Select's closed field + a hierarchy).
+  { type: "Cascader", source: "catalog" },
   { type: "Switch", source: "catalog" },
   { type: "Slider", source: "catalog" },
   // ADR-321 Phase 4: Spectrum Rating — beside Slider.

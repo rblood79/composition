@@ -139,6 +139,7 @@ const FIELD_HINT_PARENTS = [
   "SearchField",
   "ColorField",
   "Select",
+  "Cascader",
   "ComboBox",
   "DateField",
   "TimeField",
@@ -160,7 +161,7 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   FieldError: FIELD_HINT_PARENTS,
   // Select 의 값 (trigger Button 안의 RAC `SelectValue`): 글자는 Select 의 `placeholder` · 선택 항목이
   //   정본이다. style 은 노드 자신이 정본이다 — DOM 이 그 노드를 직접 그린다 (ADR-253).
-  SelectValue: ["Select"],
+  SelectValue: ["Select", "Cascader"],
   // 입력칸: Input 원본의 instance. `placeholder` · `type` 은 parent 의 prop 이 정본이다.
   //   NumberField · ComboBox 의 입력칸은 래퍼 (Group · container) 안에 있다 — 래퍼를 건너 field 로 판정한다
   //   (SearchField 는 field 의 직계 자식).
@@ -179,6 +180,7 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
     "SearchField",
     "ColorField",
     "Select",
+    "Cascader",
     "ComboBox",
     "DateField",
     "TimeField",

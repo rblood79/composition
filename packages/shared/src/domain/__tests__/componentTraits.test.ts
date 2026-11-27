@@ -296,6 +296,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         // ADR-256 Phase 10: S2 CardView = RAC GridList of its Cards.
         "CardView",
         "TreeItem",
+        // ADR-322: a Cascader's nested items (its hierarchy).
+        "CascaderItem",
         "TagList",
         "TabList",
         "Table",
@@ -357,6 +359,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Tree: ["TreeItem"],
       CardView: ["Card", "SkeletonCollection"],
       TreeItem: ["TreeItem", "TreeItemContent"],
+      CascaderItem: ["CascaderItem"],
       ColorSwatchPicker: ["ColorSwatchPickerItem"],
       CalendarGrid: ["CalendarHeaderCell", "CalendarCell"],
       DateInput: ["DateSegment"],
@@ -411,6 +414,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "NumberField",
         "ComboBox",
         "Select",
+        "Cascader",
         "ColorField",
         "ColorSlider",
         "DateField",
@@ -433,6 +437,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SwitchButton: ["Switch"],
       SwitchIndicator: ["SwitchButton"],
       TreeItemContent: ["TreeItem"],
+      CascaderItem: ["Cascader"],
       SliderOutput: ["Slider", "RangeSlider", "ColorSlider"],
       SliderTrack: ["Slider", "RangeSlider", "ColorSlider"],
       SliderThumb: ["SliderTrack"],
@@ -457,6 +462,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Footer: ["Card", "Popover"],
       SelectValue: [
         "Select",
+        "Cascader",
         "ComboBox",
         "SearchField",
         "NumberField",
@@ -476,6 +482,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "ColorField",
         "ComboBox",
         "Select",
+        "Cascader",
         "RadioGroup",
         "CheckboxGroup",
         "TagGroup",
