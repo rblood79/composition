@@ -3,6 +3,7 @@
  * 종전: 기본 dataPath "data" 를 축소해 undefined 를 반환 → "Success" + 빈 본문.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiSchemaResponse } from "./apiSchemaResponse";
 import { isUploadEndpointProbe } from "./uploadEndpointProbe";
 import {
   API_RUN_BODY_PREVIEW_MAX_BYTES,
@@ -156,6 +157,22 @@ describe("executeApiEndpoint — 실행 스냅샷 (ADR-213 Phase 3)", () => {
     expect(run.error).toBeUndefined();
   });
 
+  it("미리보기가 잘려도 스키마는 매핑 전 응답에서 모든 배열을 읽는다", async () => {
+    const payload = { note: "a".repeat(2050), results: users, related: [] };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeResponse(payload)),
+    );
+    const { state, set, get } = makeStore(endpoint({}));
+    await expect(
+      createExecuteApiEndpointAction(set, get)("api_1"),
+    ).resolves.toEqual(users);
+    const response = state.apiRuns.get("api_1")!.response!;
+    expect(response.bodyTruncated).toBe(true);
+    expect(response.bodyPreview).not.toContain("results");
+    expect(apiSchemaResponse.get(response)).toEqual(payload);
+  });
+
   it("HTTP 401: throw 하되 스냅샷에 상태 · 응답 본문 · error 를 남긴다 (errors Map 도 종전대로)", async () => {
     vi.stubGlobal(
       "fetch",
@@ -288,8 +305,18 @@ describe("executeApiEndpoint — useAsyncList load arguments in the Builder", ()
     const { set, get } = makeStore(
       endpoint({
         queryParams: [
-          { key: "page", value: "{{ cursor }}", type: "string", required: false },
-          { key: "q", value: "{{ filterText }}", type: "string", required: false },
+          {
+            key: "page",
+            value: "{{ cursor }}",
+            type: "string",
+            required: false,
+          },
+          {
+            key: "q",
+            value: "{{ filterText }}",
+            type: "string",
+            required: false,
+          },
           {
             key: "sort",
             value: "{{ sortDescriptor.column }}",
@@ -300,7 +327,9 @@ describe("executeApiEndpoint — useAsyncList load arguments in the Builder", ()
         ],
       }),
     );
-    await expect(createExecuteApiEndpointAction(set, get)("api_1")).resolves.toEqual(users);
+    await expect(
+      createExecuteApiEndpointAction(set, get)("api_1"),
+    ).resolves.toEqual(users);
     // (Dev sends an external URL through the proxy — `?url=` encoded.)
     expect(decodeURIComponent(String(fetch.mock.calls[0]![0]))).toMatch(
       /\/users\?limit=20$/,

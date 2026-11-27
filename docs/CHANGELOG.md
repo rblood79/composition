@@ -51,6 +51,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Step 의 key (Item ID) 를 고치면 그 StepList 의 현재 단계 · 마지막 완료 단계 · 비활성 단계 값도 같이 고쳐진다 — 전에는 현재 단계의 key 를 고치면 현재 단계가 첫 단계로 돌아갔다.
 - 「+」 로 넣은 단계의 이름이 「Item N」 이 아니라 「Step N」 이다.
 
+## [Data 패널 — 긴 API 응답의 스키마 감지] - 2026-11-27
+
+### Fixed
+
+- API 응답이 2 KiB를 넘어도 스키마 탭에서 전체 JSON의 행 배열과 열을 감지하고 테이블로 저장할 수 있다. 기존 데이터 경로가 응답의 배열을 가리키지 않으면 감지한 배열 경로를 선택한다.
+
 ## [필터 바 칩 줄 — 실행 중 조건 추가 · 비교 · 값 · 끄기 · 지우기 (ADR-320 Phase 3)] - 2026-11-27
 
 ### Added

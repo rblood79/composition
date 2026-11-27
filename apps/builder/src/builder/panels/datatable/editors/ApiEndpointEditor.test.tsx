@@ -38,6 +38,7 @@ vi.mock("../../../stores/data", () => ({
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import type { ApiEndpoint } from "../../../../types/builder/data.types";
+import { apiSchemaResponse } from "../../../stores/utils/apiSchemaResponse";
 import { ApiEndpointEditor } from "./ApiEndpointEditor";
 import { WorkspaceContext } from "../../../catalogRuntime/react.runtime";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -254,6 +255,48 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     // 실패 상태 줄 (status 405) 은 그리지 않는다 — 오류가 아니다
     expect(container.querySelector(".datatable-api-status")).toBeNull();
     expect(execute).toHaveBeenCalledWith("ep1");
+  });
+
+  it("긴 응답의 실제 배열 경로와 마지막 행까지 저장하고, 다음 응답에는 이전 행을 표시하지 않는다", async () => {
+    const results = [{ name: "Tatooine" }, { name: "Alderaan" }];
+    const payload = { padding: "x".repeat(2050), results };
+    const body = JSON.stringify(payload);
+    const response = {
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      bodyPreview: body.slice(0, 2048),
+      bodyTruncated: true,
+      bodyBytes: body.length,
+    };
+    apiSchemaResponse.set(response, payload);
+    apiRuns.set("ep1", { ok: true, response });
+    const editor = () =>
+      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />);
+    const view = render(editor());
+    fireEvent.click(screen.getByRole("tab", { name: "Response" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Schema" }));
+    const save = screen.getByRole("button", { name: "Save as table" });
+    fireEvent.pointerDown(save, { button: 0 });
+    fireEvent.pointerUp(save, { button: 0 });
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(lastOps()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ op: "create_collection", rows: results }),
+          expect.objectContaining({
+            op: "define_endpoint",
+            endpoint: expect.objectContaining({ dataPath: "results" }),
+          }),
+        ]),
+      ),
+    );
+    apiRuns.set("ep1", {
+      ok: true,
+      response: { ...response, bodyPreview: "{}", bodyTruncated: false },
+    });
+    view.rerender(editor());
+    expect(screen.getByText(/no row array/i)).toBeTruthy();
   });
 
   // 2026-10-05 감사 — 「기존 테이블에 잇기」 는 고른 기존 collection 에 잇는다 (매번 새 uuid 로

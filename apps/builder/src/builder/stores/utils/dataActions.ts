@@ -9,6 +9,7 @@
  * @see docs/features/DATA_PANEL_SYSTEM.md
  */
 
+import { apiSchemaResponse } from "./apiSchemaResponse";
 import type { StateCreator } from "zustand";
 import { resolveResponseData } from "../../../utils/data/responseData";
 import {
@@ -712,14 +713,17 @@ export const createExecuteApiEndpointAction =
 
       // ADR-313 F5 — a Java `Long` key past 2^53 stays its text (the converter loads with the
       // first run — not on the Builder's first screen, HC3).
-      const { parseJsonLossless } = await import(
-        "../../../../../../packages/shared/src/collections/intake/parseJsonLossless"
-      );
+      const { parseJsonLossless } =
+        await import("../../../../../../packages/shared/src/collections/intake/parseJsonLossless");
       let result: unknown;
       try {
         result = parseJsonLossless(responseText);
       } catch {
         throw new Error("응답 본문이 JSON 이 아닙니다");
+      }
+
+      if (responseSnapshot.bodyTruncated) {
+        apiSchemaResponse.set(responseSnapshot, result);
       }
 
       // Response Mapping 적용 — 경로가 비었거나 배열을 못 가리키면 응답 자체 /
@@ -760,9 +764,8 @@ export const createExecuteApiEndpointAction =
             secretRevisions: await getSecretRevisions(endpoint.project_id),
           });
           // ADR-313 Decision 4 — the response in the collection's stored values (the JSON rule).
-          const { intakeQueryItems } = await import(
-            "../../../../../../packages/shared/src/collections/intake/queryItems"
-          );
+          const { intakeQueryItems } =
+            await import("../../../../../../packages/shared/src/collections/intake/queryItems");
           const runtimeData = intakeQueryItems(
             Array.isArray(mappedData) ? mappedData : [mappedData],
             targetTable,

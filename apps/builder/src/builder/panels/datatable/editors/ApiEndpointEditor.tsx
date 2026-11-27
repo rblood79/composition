@@ -55,11 +55,17 @@ import {
   parseCurlCommand,
   curlToEndpointDraft,
 } from "../../../../utils/data/curlCommand";
-import { applyColumnChoice, columnsToSchema, detectColumns, type DetectedColumn } from "../utils/columnDetector";
+import {
+  applyColumnChoice,
+  columnsToSchema,
+  detectColumns,
+  type DetectedColumn,
+} from "../utils/columnDetector";
 import {
   readPath,
   resolveResponseData,
 } from "../../../../utils/data/responseData";
+import { apiSchemaResponse } from "../../../stores/utils/apiSchemaResponse";
 import { toEndpointDraft } from "../../../stores/utils/dataChange";
 import {
   isUploadEndpointProbe,
@@ -889,7 +895,8 @@ function ResponseTab({
   let parsed: unknown = null;
   try {
     // (ADR-313 F5 — a key past 2^53 shows as its text, as the run stores it.)
-    parsed = parseJsonLossless(response.bodyPreview);
+    if (!response.bodyTruncated)
+      parsed = parseJsonLossless(response.bodyPreview);
   } catch {
     // 비-JSON 응답 — Raw 로만 본다
   }
@@ -940,7 +947,14 @@ function ResponseTab({
         </pre>
       )}
       {view === "schema" && (
-        <SchemaView endpoint={endpoint} parsed={parsed} dt={dt} save={save} />
+        <SchemaView
+          endpoint={endpoint}
+          parsed={
+            response.bodyTruncated ? apiSchemaResponse.get(response) : parsed
+          }
+          dt={dt}
+          save={save}
+        />
       )}
     </Section>
   );
@@ -959,9 +973,11 @@ function SchemaView({
 }) {
   const applyDataChange = useDataStore((state) => state.applyDataChange);
   const candidates = useMemo(() => recommendArrayPaths(parsed), [parsed]);
-  const [path, setPath] = useState(
-    () => endpoint.responseMapping?.dataPath ?? candidates[0]?.path ?? "",
-  );
+  const [selectedPath, setPath] = useState(endpoint.responseMapping?.dataPath);
+  const path =
+    candidates.find((candidate) => candidate.path === selectedPath)?.path ??
+    candidates[0]?.path ??
+    "";
   const [tableName, setTableName] = useState(endpoint.name || "table");
   const [attach, setAttach] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -985,17 +1001,29 @@ function SchemaView({
     const resolved = resolveResponseData(readPath(parsed, path), "");
     return Array.isArray(resolved.data) ? resolved.data : [];
   }, [parsed, path]);
-  const columns: DetectedColumn[] = useMemo(() => detectColumns(rows, "json"), [rows]);
+  const columns: DetectedColumn[] = useMemo(
+    () => detectColumns(rows, "json"),
+    [rows],
+  );
   // ADR-313 Decision 7 — the column table's choices (type + notation) and the key field.
   const [choices, setChoices] = useState<Record<string, ColumnChoice>>({});
   const [keyColumn, setKeyColumn] = useState<string | null>(null);
   const chosen = useMemo(
-    () => columns.map((column) => applyColumnChoice(column, choices[column.key])),
+    () =>
+      columns.map((column) => applyColumnChoice(column, choices[column.key])),
     [columns, choices],
   );
   const intake = useMemo(() => {
-    const schema = columnsToSchema(chosen).map((field) => ({ ...field, id: field.key }));
-    return intakeRows(rows as Record<string, unknown>[], schema, "json", keyColumn ?? undefined);
+    const schema = columnsToSchema(chosen).map((field) => ({
+      ...field,
+      id: field.key,
+    }));
+    return intakeRows(
+      rows as Record<string, unknown>[],
+      schema,
+      "json",
+      keyColumn ?? undefined,
+    );
   }, [chosen, rows, keyColumn]);
 
   if (candidates.length === 0) {
@@ -1008,18 +1036,20 @@ function SchemaView({
     try {
       const collectionId = attach ? attachId! : crypto.randomUUID();
       // (ADR-313 — the chosen types · notations, ids for the key field, the rows in stored values.)
-      const schema = columnsToSchema(chosen.filter((c) => c.selected !== false)).map(
-        (field) => ({ ...field, id: newFieldId() }),
-      );
+      const schema = columnsToSchema(
+        chosen.filter((c) => c.selected !== false),
+      ).map((field) => ({ ...field, id: newFieldId() }));
       const keyField = keyColumn
         ? new Map(schema.map((field) => [field.key, field.id])).get(keyColumn)
         : undefined;
       const selectedKeys = new Set(schema.map((s) => s.key));
-      const projectedRows = (intake.rows as Record<string, unknown>[]).map((r) => {
-        const out: Record<string, unknown> = {};
-        for (const key of selectedKeys) out[key] = r[key];
-        return out;
-      });
+      const projectedRows = (intake.rows as Record<string, unknown>[]).map(
+        (r) => {
+          const out: Record<string, unknown> = {};
+          for (const key of selectedKeys) out[key] = r[key];
+          return out;
+        },
+      );
       const ops: DataOp[] = buildSaveApiAsTableOps({
         projectId: endpoint.project_id,
         collectionId,
