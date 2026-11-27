@@ -1,0 +1,1 @@
+function e(e){return e===`all`||typeof e==`number`&&Number.isInteger(e)&&e>=0}function t(e,t=`en-US`){if(e===`all`)return t.startsWith(`ko`)?`모두 선택됨`:`All selected`;let n=typeof e==`number`?e:0;return t.startsWith(`ko`)?`${new Intl.NumberFormat(t).format(n)}개 선택됨`:`${new Intl.NumberFormat(t).format(n)} selected`}export{t as n,e as t};
