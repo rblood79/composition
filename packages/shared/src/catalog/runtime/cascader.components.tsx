@@ -56,8 +56,7 @@ export interface CascaderContentProps {
   readonly label: string;
   /** An item is picked (single: the value; multiple: toggled). */
   readonly onPick: (key: string) => void;
-  /** A search field above the levels (Phase 5 — breakdown §4.4) and the results' path separator. */
-  readonly searchable: boolean;
+  /** The search results' path separator (the search field is always there — 2026-11-28 사용자 결정). */
   readonly separator: string;
   /** ADR-322 Phase 6 — levels loaded one by one (a branch opened asks its level). */
   readonly levels?: CatalogCascaderLevels;
@@ -102,8 +101,6 @@ export interface CatalogCascaderFieldProps {
    */
   readonly keys: readonly string[];
   readonly multiple?: boolean;
-  /** A search field in the open content (`isSearchable`). */
-  readonly searchable?: boolean;
   readonly onChange?: (value: string | null | string[]) => void;
   /** The text of two or more keys (S2 Picker's count — F6). */
   readonly countText?: (count: number) => string;
@@ -128,7 +125,6 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
     display,
     keys,
     multiple = false,
-    searchable = false,
     onChange,
     countText,
     root,
@@ -251,7 +247,6 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
             table={table}
             keys={current}
             multiple={multiple}
-            searchable={searchable}
             separator={display.separator}
             label={label || placeholder}
             levels={levels}

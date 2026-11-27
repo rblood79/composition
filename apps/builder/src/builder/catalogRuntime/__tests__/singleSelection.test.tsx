@@ -308,3 +308,70 @@ describe("one value — a single-selection group holds one key", () => {
     },
   );
 });
+
+/**
+ * 2026-11-28 (사용자 「category컴퍼넌트도 select컴퍼넌트처럼 프러퍼티패널 value section 에서 value 선택」):
+ * a Cascader's Value offers its pickable items by path — a dropdown, a check list while it selects
+ * several — and writes its start value (the controlled twin dropped).
+ */
+describe("Cascader Value — its pickable items by path", () => {
+  const LEAVES = [
+    { value: "laptops", label: "Electronics / Computers / Laptops" },
+    { value: "desktops", label: "Electronics / Computers / Desktops" },
+    { value: "smartphones", label: "Electronics / Phones / Smartphones" },
+    { value: "accessories", label: "Electronics / Phones / Accessories" },
+    { value: "men", label: "Clothing / Men" },
+    { value: "women", label: "Clothing / Women" },
+    { value: "books", label: "Books" },
+  ];
+  const field = (t: Awaited<ReturnType<typeof open>>) =>
+    catalogGroupKeysFields(t.root, t.of("Cascader")[0]!.id).find(
+      (item) => item.key === "defaultValue",
+    );
+  const text = (t: Awaited<ReturnType<typeof open>>) => {
+    const value = t
+      .of("SelectValue")
+      .find((r) => r.derivedProps?._cascaderValue === true)!;
+    return value.derivedProps?.children;
+  };
+
+  it("a dropdown of the leaves (a branch while 「Select any level」) — a pick is the start value", async () => {
+    const t = await open("cascader");
+    expect(field(t)).toEqual({
+      key: "defaultValue",
+      many: false,
+      options: LEAVES,
+      value: "",
+    });
+    const id = t.of("Cascader")[0]!.id;
+    t.edit(id, { value: "men" });
+    t.edit(id, { defaultValue: "desktops" });
+    // (The controlled twin is dropped — the start value is what shows.)
+    expect(t.of("Cascader")[0]!.props.value).toBeUndefined();
+    expect(field(t)!.value).toBe("desktops");
+    expect(text(t)).toBe("Electronics / Computers / Desktops");
+    t.edit(id, { allowsBranchSelection: true });
+    expect(field(t)!.options.map((option) => option.value)).toEqual([
+      "electronics",
+      "computers",
+      "laptops",
+      "desktops",
+      "phones",
+      "smartphones",
+      "accessories",
+      "clothing",
+      "men",
+      "women",
+      "books",
+    ]);
+  });
+
+  it("several keys while it selects several — a check list", async () => {
+    const t = await open("cascader", { selectionMode: "multiple" });
+    const id = t.of("Cascader")[0]!.id;
+    expect(field(t)).toMatchObject({ many: true, value: [] });
+    t.edit(id, { defaultValue: ["books", "men"] });
+    expect(field(t)!.value).toEqual(["books", "men"]);
+    expect(t.of("Cascader")[0]!.props.defaultValue).toEqual(["books", "men"]);
+  });
+});

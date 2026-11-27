@@ -13,6 +13,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Cascader — Value 칸 드롭다운 · 검색 칸 늘 표시] - 2026-11-28
+
+### Breaking Changes
+
+- **Cascader 의 「Search items」 (`isSearchable`) prop 삭제**: 검색 칸을 늘 표시하므로 스위치를 없앴다. 이미 저장된 값은 읽히지 않는다.
+  - 위치: `bindings/Cascader.binding.ts` · `runtime/cascader.components.tsx` · `runtime/delegatedDom.runtime.ts`
+
+### Changed
+
+- Design 패널의 Cascader Value 칸이 고를 수 있는 항목의 드롭다운이 됐다 (Select 와 같다). 항목은 경로 이름 (「Clothing / Men」) 으로 보이고, 「Multiple」 이면 여러 개를 고른다. 「Select any level」 을 켜면 가지 항목도 선택지에 나온다. 전에는 key 를 직접 적는 글자 칸이었다.
+- Cascader 를 열면 세 방식 (columns · tree · drill) 모두 검색 칸이 늘 있다. 열었을 때 focus 는 검색 칸에 가고 첫 항목이 가상 focus 를 받는다 (화살표로 바로 이동, drill 의 목록은 Tab).
+
+### Notes
+
+- Builder initial 번들: 이 변경 +60 B (1,668,255 → 1,668,315 B, 같은 작업 트리에서 이 변경만 되돌려 대조). 이 변경 전에도 상한 1,668,000 을 255 B 넘은 상태다 — 배포 workflow 의 상한 검사가 막는다 (상한 재승인 또는 감량 필요).
+- ADR-326 (Proposed) 추가 — Cascader 열린 목록을 원본 노드로 (Open 칸 · Canvas 펼침 · 폭 · 테두리 · 경로 줄 간격). 구현 전이다.
+
 ## [전체 메뉴에서 패널 선택 후 닫기] - 2026-11-28
 
 ### Fixed

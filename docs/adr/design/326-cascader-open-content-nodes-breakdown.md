@@ -1,0 +1,237 @@
+# ADR-326 breakdown — Cascader 열린 목록을 원본 노드로
+
+> 본문: [ADR-326](../326-cascader-open-content-nodes.md). 선행: [ADR-322](../completed/322-cascader-hierarchical-picker.md) · [322 breakdown](322-cascader-hierarchical-picker-breakdown.md). 리뷰: [reviews/326.md](../reviews/326.md) — Round 1 의 h1 ~ h4 · m5 를 §4.1 · §4.3 · §4.4 · §4.5 · §4.7 에, Round 2 의 h1 · m5 를 §4.4 · §4.7 에 반영했다 (2026-11-28).
+
+## 1. 범위 · 출처
+
+- 출처: 사용자 요청 2026-11-28 (본문 Status). 분리 점검 4 질문은 본문 Status 에 적었다 (사용자 지시한 분리).
+- 범위 안: Cascader 원본의 열린 내용 노드 · 항목 자리 이동 · DOM 의 catalog renderer 전환 · Canvas 펼침 · Design 패널 Open · 전용 CSS 삭제 · contract · Builder 표본 창의 시작 경로 보존 · Breadcrumbs 접힌 메뉴의 `onAction`.
+- 범위 밖: 방식 추가 · 값 모델 · 검색 규칙 · 단계별 로드 규칙 · 폼 값 input (ADR-322 그대로). Select · ComboBox 의 구조. columns 의 하위 단계를 Canvas 에 그리기. library template 자리의 반복 행 계약 (ADR-310 그대로).
+- 이미 끝난 것 (같은 날, ADR 밖): Value 칸 드롭다운 (`catalogRuntime/singleSelection.ts` Cascader 분기 · `defaultValue` = `selection-value`) · `isSearchable` 삭제 (검색 늘 표시).
+
+## 2. 대조 표 — ADR-322 의 결정 중 바뀌는 것과 남는 것
+
+| ADR-322                                                              | 이 ADR                                                  |
+| -------------------------------------------------------------------- | ------------------------------------------------------- |
+| 결정 11 「Canvas — 닫힌 필드와 시작 값 글자만」                      | **대체** — Open 이면 막 연 화면을 그린다                |
+| R6 「Canvas 는 열린 목록을 보여 주지 않는다」                        | **대체**                                                |
+| breakdown §4.1 「항목 = Cascader 직계 `CascaderItem`」               | **대체** — `Popover > CascaderList > CascaderItem`      |
+| breakdown §4.6 Canvas                                                | **대체** — 이 문서 §4.5                                 |
+| Phase 3 「열린 모양 = Cascader rule `externalStyles`」               | **대체** — 열린 상자 블록 하나 + 부품 rule (HC3)        |
+| Phase 4 기록 「표본 밖 key 는 Canvas 에서 key 글자 (설계된 비대칭)」 | **대체** — 시작 경로 보존 (§4.7). 닫힌 필드도 경로 글자 |
+| 결정 3 방식 셋 · 사용자 결정 1 (기본 columns)                        | 유지                                                    |
+| HC4 값 = key · 겹치는 key 는 고를 수 없음 (결정 4)                   | 유지                                                    |
+| 데이터 세 모양 (결정 5) · 단계별 로드 (결정 7)                       | 유지 — 읽는 자리만 옮긴다                               |
+| 닫힌 D1 예외 (폼 값 input — §3.1)                                    | 유지 — 목록 무변경                                      |
+| 검색 (Phase 5) · 다중 · 「어느 단계든」                              | 유지 — 검색 칸만 노드가 된다 (늘 있음)                  |
+| HC5 성능 · lazy chunk                                                | 유지 (HC4 로 다시 잰다)                                 |
+
+Select 와의 대조:
+
+| 축               | Select (지금)                                         | Cascader (지금)                              | Cascader (이 ADR 뒤)                                       |
+| ---------------- | ----------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------- |
+| 열린 상자        | `Popover` 노드 (catalog renderer · `data-size`)       | lazy chunk 의 RAC `Popover` (노드 아님)      | `Popover` 노드                                             |
+| 목록             | `ListBox` 원본 instance                               | RAC `Menu` · `Tree` · `GridList` (노드 아님) | `CascaderList` 노드 — 안쪽 RAC 컬렉션은 lazy chunk 가 조립 |
+| 항목             | `ListBoxItem` (ListBox 안)                            | `CascaderItem` (Cascader 직계)               | `CascaderItem` (`CascaderList` 안)                         |
+| 항목의 DOM 모양  | 항목 노드의 renderer (id · 작성 style)                | 표에서 만든 RAC 행 (record 와 끊김)          | RAC 행이 항목 record 의 DOM 입력을 받는다 (§4.3)           |
+| 상자 폭          | rule 블록 `width: var(--trigger-width)` · Canvas 닻폭 | 전용 CSS `min-width`                         | Select 와 같은 블록 · 같은 닻 폭 계산                      |
+| 패널 Open        | Value 절                                              | 없음                                         | Value 절                                                   |
+| Canvas 펼침      | 그린다                                                | 그리지 않는다                                | 막 연 화면을 그린다                                        |
+| 열린 모양의 정본 | rule (Canvas 부품 규칙 + 생성 CSS)                    | DOM 전용 CSS                                 | rule                                                       |
+
+## 3. D1 — 바뀌지 않는 것의 확인 목록
+
+- 여는 Button 의 trigger props · 메뉴 이름 (`aria-labelledby`) · focus 복원 · Esc — 필드가 지금처럼 `useMenuTrigger` · `useOverlayTrigger` 로 갖고 `PopoverContext` 로 넘긴다 (`cascaderOverlay.components.tsx`). 바뀌는 것은 그 context 를 받는 쪽이 lazy chunk 의 RAC `Popover` 에서 catalog `Popover` 노드 (`CatalogPopover`) 로 바뀌는 것뿐이다.
+- `PopoverContext.trigger` 이름을 `"Cascader"` 로 준다 (본문 F10 — RAC 는 이 이름을 `data-trigger` 로만 쓴다). 메뉴 · 대화상자의 동작은 `MenuContext` · `DialogContext` · `OverlayTriggerStateContext` 가 정한다 — 이름과 무관한지 Phase 0 P1 이 확인한다.
+- tree · drill 의 RAC `Dialog` 요소는 문서 노드가 아니다 (RAC 가 내는 role). Canvas 에는 없으므로 DOM 에서 배치에 끼어들지 않게 둔다 — §4.3.
+- 검색 칸: SearchField 노드를 catalog renderer 가 그리고, lazy chunk 가 RAC `Autocomplete` 로 감싼다 (지금과 같은 조립 — 입력이 focus 를 갖고 목록은 가상 focus).
+- 경로 줄: RAC `Breadcrumbs` · `Breadcrumb` 요소 그대로 (`BreadcrumbsRun`). 접힌 조상은 S2 처럼 폴더 메뉴 (RAC `MenuTrigger` > `Menu` > `MenuItem`) 다 — 지금 Cascader 의 경로 줄은 접지 않으므로 깊은 경로에서 DOM 이 달라진다 (S2 Breadcrumbs 의 것으로).
+- 행에 붙는 것은 `data-catalog-id` · `data-*` 표식 · `style` 뿐이다 — role · `aria-*` · 키 handler 는 쓰지 않는다.
+- 새로 쓰는 role · `aria-*` · 키 handler 0 — `adr322D1Static.static.test.ts` 의 파일 목록에 새 파일을 넣는다.
+
+## 4. 설계
+
+### 4.1 노드 · prop
+
+```
+Cascader                                   (type-Cascader — 지금 그대로의 prop + isOpen · defaultOpen)
+├ FieldLabel > Label …                     (그대로)
+├ Button > SelectValue + Icon              (그대로)
+├ Description · FieldError                 (그대로)
+└ Popover                                  (type-Popover — Select 의 `__popover` 와 같은 자리, props {})
+   ├ SearchField                           (origin-component-searchfield instance — label "" · 접근 이름은 i18n)
+   ├ Breadcrumbs                           (type-Breadcrumbs 노드 — presentWith: drill 일 때만)
+   │  └ Breadcrumb × 4                     (origin-component-breadcrumb-item-default instance — 자리 넷, §4.4)
+   ├ ActionButton[slot=back]               (quiet · icon-only — presentWith: drill 일 때만)
+   └ CascaderList                          (새 type — 단계 목록 상자, 사용자 prop 0 · `size` 는 내부 전달 값)
+      └ CascaderItem …                     (중첩 — 계층. 표본 11 개가 여기로)
+```
+
+- `CascaderList`: binding `source: internal renderer "cascaderlist"`, rule = 세로 flex · gap 0 · 안쪽 여백 (S2 Menu 의 값 — `d3S2Alignment` 대조). DOM 은 방식에 따라 RAC `Menu` · `Tree` · `GridList` 요소가 이 노드의 요소다 (`data-catalog-id` 를 그 요소에).
+- **원본의 입력 (Round 1 h4)**: `CASCADER_DEFINITIONS` 의 `accepts` 에 `mode: "string"`, `defaults` 에 `mode: "columns"` 를 더한다 — `bindingMaps.from` 은 `accepts` 의 키여야 한다 (`validation.ts:3090-3107`). template 루트의 `mode: "columns"` 과 같은 값이고, 둘이 어긋나지 않게 정적 검사 하나가 묶는다.
+- drill 전용 부품: 정의에 `bindingMaps: { cascaderDrill: { from: "mode", values: { drill: "1" } } }` (그 밖 = 빈 글자), `Breadcrumbs` 와 「뒤로」 두 노드에 `presentWith: "cascaderDrill"`. `mode` 쓰기는 그 자리를 다시 해석한다 (본문 F7). Phase 1 의 판정: 등록 검증 통과 · `mode` 를 패널 · instance override · Undo 로 바꿀 때 두 record 가 서고 사라진다. `mode` 가 변수 식이면 해석된 값으로 갈리는지도 같은 단위에서 본다 (갈리지 않으면 `templateBindings` 가 읽는 값을 본문 R10 으로 보고).
+- traits: `CascaderItem.owners = ["Cascader"]` 유지 (조상 판정), `CascaderList: { container: "collection", owners: ["Cascader"], children: ["CascaderItem"] }`. 항목 표 (`COLLECTION_TYPE_TABLE`) 의 Cascader 행에 목록 부품 (`list`) 을 적는다 — 항목 「+」 · 반복 표시 · 「더 보기」 판정이 그 자리를 읽는다.
+- binding: `...OVERLAY_OPEN_PROPS` 를 Cascader 에 (Value 절 「Open」 · `defaultOpen` 숨김).
+- `sizePropagation`: `Cascader = [...FIELD_PARTS, "Button", "CascaderList", "SearchField", "Breadcrumbs"]` — Popover 는 통과 (`CATALOG_SIZE_PASS_THROUGH`).
+- contract 87 → **88**.
+
+### 4.2 항목 읽기 — 한 함수로
+
+`catalogCascaderItems(cascader, get, typeOf)` — Cascader → Popover → CascaderList 의 직계 `CascaderItem` (없으면 빈 목록). 아래가 이 함수를 읽는다:
+
+| 읽는 곳                                                 | 지금                                 |
+| ------------------------------------------------------- | ------------------------------------ |
+| `runtime/cascader.ts` `cascaderStaticItems`             | `node.children` 직접                 |
+| `delegatedDom.runtime.ts` `cascader` `watchesChildren`  | 직계 CascaderItem 재귀               |
+| `dataBindingCommand.ts` (반복 항목 넣기)                | Cascader 직계에 삽입                 |
+| `resolver.ts` 행 전달 (`["Tabs","TabList","Cascader"]`) | Cascader 의 owned children 에 rowSet |
+| `resolver.ts:4633-4638` (표본 항목 버리기)              | Cascader 의 `lib:` 자식              |
+| `commands/collections.ts` 항목 「+」                    | owner = Cascader                     |
+| `catalogRuntime/singleSelection.ts` (Value 칸)          | `cascaderTableOf` (위 함수를 통해)   |
+
+resolver 의 행 전달은 picker 의 길 (Select 의 binding 이 Popover 를 건너 ListBox 항목에 닿는 `boundOwnerOf` · owner rowing) 을 그대로 쓸 수 있는지 Phase 1 에서 먼저 본다 — 쓸 수 있으면 `"Cascader"` 특례를 지운다.
+
+### 4.3 DOM
+
+- `cascader` renderer: 자식을 모두 `renderAll` 로 그린다 (지금은 CascaderItem 을 뺀 자식만). Popover 노드는 닫혀 있으면 RAC 가 그리지 않는다 (`CatalogPopover` — context 의 열림 상태).
+- 필드는 열림 context (`MenuContext` · `DialogContext` · `OverlayTriggerStateContext` · `RootMenuTriggerStateContext` · `PopoverContext`) 를 **항상** 준다 — 지금은 열렸을 때만 lazy chunk 안에서 준다. context 값 조립 (`cascaderOverlay.components.tsx` 의 Provider 부분) 은 필드 모듈로 올라오되 RAC context import 만 하므로 첫 화면 몫은 작다 (Phase 2 A/B 실측 — R3).
+- `cascaderlist` renderer: `lazy()` 로 지금의 `cascaderMenu` · `cascaderPanel` 본문 (Popover 껍질을 뺀 것) 을 그린다. 필요한 값 (항목 표 · 고른 key · 쓰기 · 방식 · 단계별 로드 · 지금 단계 · 행 입력 함수) 은 필드가 React context 하나 (`CascaderOpenContext`) 로 준다.
+- 검색: `cascaderlist` 의 lazy 본문이 RAC `Autocomplete` 를 여는 자리는 Popover 안 전체여야 한다 (검색 칸과 목록이 형제) — Popover 노드의 자식 렌더를 감싸는 얇은 Provider 자리 하나를 둔다 (`CatalogPopover` 에 넣지 않고 `cascader` renderer 가 Popover 노드의 children 을 감싼다 — 다른 Popover 에 영향 0). 검색어가 있으면 `CascaderList` 자리가 결과 목록으로 바뀐다 (지금 동작).
+- tree · drill 의 RAC `Dialog`: Popover 노드의 children 을 감싸는 같은 자리에서 `Dialog` 로 감싼다. 배치는 `display: contents` (rule 블록의 nested — Canvas 에는 요소가 없다). 접근성 트리에서 role 이 유지되는지 Phase 0 P3 (Chrome · WebKit) — 안 되면 Dialog 가 Popover 의 flex 배치를 그대로 이어받는 블록 (같은 rule 값의 사본 금지 — `:is()` 별칭으로 한 블록).
+- **항목 행 ↔ 항목 record (Round 1 h3)**:
+  - 항목 표의 항목 (`CascaderEntry`) 에 `recordId` 를 싣는다 — `cascaderStaticItems` 가 `child.id` 를 옮긴다 (연결된 목록의 행도 행마다 `CascaderItem` record 가 있다). 모양 값은 표에 싣지 않는다 — 표는 데이터만이고, 모양 편집이 표를 다시 만들지 않는다 (HC4).
+  - lazy 본문이 행을 그릴 때 `CascaderOpenContext` 의 `rowProps(recordId)` 를 불러 RAC 항목 요소에 편다. `rowProps` 는 `cascaderlist` renderer 가 만든다 — catalog renderer 가 노드 하나를 그릴 때 쓰는 것과 같은 DOM 입력 (`marker(input)` 의 `data-catalog-id` 등 + 그 record 의 작성 style). 보이는 행만 부른다 (보이는 단계만 만드는 구조 그대로).
+  - class 는 `react-aria-CascaderItem` (RAC 기본 class 대신) — `CascaderItem` rule 의 생성 CSS 가 세 방식의 행에 같이 걸린다. 상태는 RAC 의 `data-*` (`data-selected` · `data-focused` · `data-disabled` · `data-expanded`). 작성 style 은 그 위에 inline 으로 — 다른 노드와 같은 우선순위.
+  - 대상 행: columns 의 `MenuItem` (`cascaderMenu.components.tsx:135` · `:154`) · tree 의 `TreeItem` · drill 의 `GridListItem` (`cascaderPanel.components.tsx:187` · `:392`) · 검색 결과 (`cascaderSearch.components.tsx:109`). 「<가지> 전체」 · 로딩 · 「접힌 항목」 줄은 record 가 없다 — rule 값만 받는다.
+  - 다시 그리기: 항목 record 의 변경 (모양 편집 · Undo) 은 지금의 자식 구독 (`delegatedDom.runtime.ts` `cascader` `watchesChildren`) 이 `cascaderlist` 로 옮겨 가 맡는다 — 표는 그대로 두고 그 행만 새 입력을 받는다.
+- columns 의 하위 단계 Popover: lazy chunk 가 그리는 RAC `Popover` 에 `data-size` 를 준다 — Menu 시트의 `[data-trigger="SubmenuTrigger"][data-size]` 블록이 그대로 걸린다 (새 CSS 0).
+
+### 4.4 경로 줄 (drill) — crumb 자리 넷 (Round 1 h2 · m5)
+
+반복 행으로 만들지 않는다. library template 은 `repeat` 를 받지 않고 (`validation.ts:3116-3138`) resolver 는 `lib:` 자리를 반복하지 않는다 (`resolver.ts:1731-1735` · `:1749`) — 본문 F8.
+
+- **자리**: `Breadcrumbs` 노드 아래 `Breadcrumb` 원본 instance 넷. S2 Breadcrumbs 가 한 번에 그리는 crumb 은 많아야 넷이다 — 다 들어가고 넷 이하면 전부, 아니면 첫 crumb + 폴더 메뉴 + 끝 한둘 (`breadcrumbsCollapse.ts:82-112` · `:120`). 그래서 자리 넷이면 깊이와 무관하게 그려지는 crumb 을 모두 담는다.
+- **한 함수** `cascaderTrail(table, levelPathId, rootLabel)` (`runtime/cascader.ts` — 순수) → `{ crumbs, slots }`:
+  - `crumbs` = 전체 경로 — 필드 라벨 (맨 앞) + 지금 단계까지의 조상, 각 `{ key, text }` (`key` 는 조상의 `pathId`, 맨 앞은 맨 위 단계를 뜻하는 고정 key).
+  - `slots` = 자리 넷에 놓을 `crumbs` 의 색인. 넷 이하면 전부 (자리 1 ~ 길이), 넷을 넘으면 첫 crumb · 끝에서 둘째 · 끝 (자리 1 · 3 · 4).
+  - 폴더 메뉴의 항목은 여기서 정하지 않는다 (Round 2 m5).
+- **접힘 판정**: `catalogBreadcrumbsVisibleCount` 에 실제 crumb 수 (`crumbs.length`) 를 받는 입력을 더한다 — 자리 수보다 크면 넷 이하여도 접는다 (S2 의 `size > MAX_VISIBLE_ITEMS` 가지와 같은 결과). 이때 폭 계산에 드는 것은 첫 crumb 과 끝 둘의 폭뿐이라 (`:101-112`) 자리에 있는 값으로 충분하다. Canvas `settleBreadcrumbs` 와 DOM `BreadcrumbsRun` 이 같은 입력을 넘긴다.
+- **폴더 메뉴의 항목 = 판정 뒤**: 판정이 낸 「보이는 끝 crumb 수」 `visible` 로 `catalogBreadcrumbsCollapse(crumbs, visible)` 를 **전체 경로** 에 부른다 — 메뉴 = `crumbs.slice(1, 길이 − visible)` (`breadcrumbsCollapse.ts:120-125`, 지금 Breadcrumbs 가 자기 crumb 노드에 하는 것과 같은 호출). `root > A > B > C > D > E` 에서 끝 둘이 보이면 메뉴는 `A · B · C`, 끝 하나만 보이면 `A · B · C · D` 다 — 끝에서 둘째 자리는 숨고 그 조상은 메뉴에 있다. 보이지도 메뉴에 있지도 않은 조상은 없다 (첫 crumb + 메뉴 + 보이는 끝 = 전체 경로).
+- **Canvas**: 자리 record 의 글자와 Breadcrumbs record 의 전체 경로 길이를 파생 값으로 싣는다. 자리의 숨김은 `settleBreadcrumbs` 가 판정 뒤에 정한다 (지금 crumb 을 숨기는 길 그대로). 메뉴는 Canvas 에 폴더 버튼만 그려지므로 항목 목록은 쓰지 않는다 (지금 단계 = 시작 값의 단계 — §4.5). 편집 대상이 아니다 (Design 패널은 자리의 글자 칸을 내지 않는다).
+- **DOM**: 필드가 같은 함수를 실행 중 단계로 불러 `CascaderOpenContext` 에 두고, Breadcrumbs · 자리 renderer 가 그 값으로 덮는다 — 닫힌 필드의 값 글자와 같은 길이다 (Canvas 는 파생 값 `_cascaderValue`, DOM 은 실행 중 값 — `presence.ts:3523` · `domBinding.runtime.ts:1759`). 막 연 화면에서는 두 쪽의 단계가 같으므로 (§4.5) 같은 함수 · 같은 입력 · 같은 결과다. 단계 이동은 React state 하나라 노드를 다시 해석하지 않는다.
+- **누르기**: 보이는 crumb 은 Breadcrumbs 의 `onAction(key)` → 그 단계로. 접힌 조상은 폴더 메뉴 항목이다 — `BreadcrumbsRun` 의 메뉴가 Breadcrumbs 의 `onAction` 을 같은 key 로 부른다 (S2 `Breadcrumbs.tsx:195` 와 같게. 지금은 `href` 만 넘긴다 — `delegatedDom.components.tsx:659-672`). 이 수정은 공용 Breadcrumbs 의 것이라 Cascader 밖의 접힌 Breadcrumbs 에도 닿는다 (`href` 가 있는 항목은 링크 그대로). 경로 줄의 메뉴 항목은 노드가 아니라 위의 판정 뒤 목록에서 온다. 「뒤로」 = 한 단계 위.
+- **no-go 면** (P6): 멈추고 사용자에게 보고한다. 남는 후보는 library 자리의 반복 행 계약인데 (본문 「경로 줄에서 버린 길」), 그것은 ADR-310 의 계약을 넓히는 결정이라 이 breakdown 의 대체 길로 두지 않는다.
+
+### 4.5 Canvas — 막 연 화면
+
+- 열림: `OVERLAY_OPEN_OWNERS` · `CATALOG_OPEN_PICKER_TYPES` 등 §5 의 목록에 Cascader. 닻 = 여는 Button (기본 분기). 폭 = 닻 폭 (`catalogPickerMenuWidth` 의 Select 분기와 같은 값 — quiet 는 Cascader 에 그대로 적용되는지 Phase 4 에서 S2 Picker 값과 대조).
+- 시작 상태 함수 `cascaderOpeningView(table, mode, startKeys)` (`runtime/cascader.ts` — 순수. `cascaderOpen.ts` 는 React hook 을 쓰는 파일이라 Canvas 가 읽지 못한다):
+  - `columns`: 보이는 항목 = 첫 단계. 펼침 없음.
+  - `tree`: 보이는 항목 = 첫 단계 + 고른 항목들의 조상 아래. 펼친 가지 = 그 조상.
+  - `drill`: 지금 단계 = 첫 고른 항목의 부모 (없으면 맨 위). 보이는 항목 = 그 단계. 경로 = 그 부모까지의 조상 (`cascaderTrail` 의 입력).
+  - 「어느 단계든」 이 켜진 columns · drill 의 「<가지> 전체」 줄은 하위 단계에만 있다 — drill 에서 지금 단계가 가지 안이면 그 줄도 그린다 (owner 가 그리는 줄 — 노드 아님).
+  - 시작 key 의 판정은 표의 `cascaderValueMatch` 그대로다 — 겹치거나 없는 key 는 고른 항목이 아니다 (맨 위 단계). 표가 두 쪽에서 같은 답을 내게 하는 것은 §4.7 이다.
+- DOM 의 초기 state (`cascaderPanel.components.tsx` 의 `expanded` · `level`) 가 같은 함수를 읽는다 — 두 벌 금지.
+- 항목 record 의 표시 상태 (파생 값 `_cascaderRow`): `none` (숨김) · `pass` (상자 없이 통과 — `display: contents`, drill 에서 지금 단계의 조상) · `row` (자기 줄만) · `open` (자기 줄 + 자식). `catalogHiddenAtRest` 의 「CascaderItem 은 늘 숨김」 줄을 이 값으로 바꾼다. 닫혀 있으면 계산하지 않는다 (Popover 가 숨겨져 자손이 배치에서 빠진다).
+- 항목 줄: `CascaderItem` 이 자기 상자 위쪽 (줄 높이만큼의 padding-top) 에 이름 · chevron · 선택 표시를 그린다 (사용자 결정 2 의 권고 길 — 본문 F11). tree 의 들여쓰기 = 깊이 × 단계 폭 (파생 padding-left). 값은 `CascaderItem` rule 의 size 블록 · `paint` 트리 (선택 · 비활성 상태). 항목 record 에 쓴 모양은 그 줄에 그대로 그려진다 — DOM 은 §4.3 의 행 입력으로 같은 값을 받는다.
+- 선택 표시: 막 연 화면에서 Preview 가 보이는 것만 — 고른 항목이 보이는 단계에 있으면 선택 상태 (columns 는 첫 단계에 있을 때만).
+- 「보이는 행」 의 뜻 (HC2): 열린 상자의 잘림 (`max-height` · `overflow`) 안에 있는 행이다. 막 연 Preview 는 목록 맨 위를 보인다 (검색 칸이 focus 를 갖고 목록은 가상 focus — 스크롤하지 않는다). 상자 아래로 넘친 행은 대칭 대상이 아니다 — Canvas 는 스크롤하지 않는다.
+- 선택 · Layers: 열린 상자 클릭 = Cascader 선택 (`targetPick.ts` 의 본체 → 소유자), 선택 테두리 = 열린 본체 (`canvasSelectionGeometry.ts`). Layers 의 항목 줄은 지금처럼 모두 보인다.
+- Library page: 닫힌 채 (Select 와 같다 — 사용자 결정 3).
+
+### 4.6 모양 — rule
+
+- Cascader rule `externalStyles` = 한 블록: `.react-aria-Popover[data-trigger="Cascader"]` — `width` · `min-width: var(--trigger-width)` · `padding` · `max-height` · `overflow` (Select 블록의 값을 상수로 공유) + nested (`CascaderList` 테두리 없음 · tree/drill 의 `Dialog` 배치). `overlayExternalPartRules` 가 Canvas 부품 규칙으로 읽는다 (본문 F4).
+- `CascaderItem` rule: S2 Menu 항목의 값 (높이 · 좌우 여백 · 글자 단계 · 모서리 · hover · focus · selected · disabled 칠) — MenuItem rule 과 상수 공유.
+- `CascaderList` rule: 위 §4.1.
+- `CASCADER_PANEL_STYLES` 삭제. 정적 검사 (HC3): Cascader · CascaderItem · CascaderList rule 밖에서 `.cascader-` 선택자 0 · `externalStyles` 의 선택자가 모두 `[data-trigger="Cascader"]` 로 시작.
+
+### 4.7 시작 경로 보존 — Builder 의 표본 창 (Round 1 h1)
+
+지금: Builder 는 창 100 으로 읽고 Preview 는 전부 읽는다 (본문 F15). 시작 함수가 같아도 입력 표가 달라 같은 값에서 다른 단계가 열린다. 고치는 순서는 「계층 전체에서 판정 → 그 다음 창」 이다.
+
+- **남길 key**: resolver 가 Cascader (와 자기 연결을 가진 단계 항목) 의 행을 읽을 때 시작 key 목록 (`cascaderStartKeys` — `value` 다음 `defaultValue`) 을 행 읽기에 같이 넘긴다. 행 읽기의 다섯째 인자 (`CatalogRowSlices` — Table 이 묶음 · 고정 행을 넘기는 자리) 에 필드 하나 (`keepKeys`). Builder 의 `catalogBuilderBoundRows` 는 받은 것을 `catalogBoundRows` 로 넘기기만 한다. Preview 는 전부 읽으므로 쓰지 않는다.
+- **`catalogBoundRows` — 창 앞에서 판정**, 모양마다:
+
+  | 모양                    | 지금의 창                                                             | 남기는 행                                                                                                                                |
+  | ----------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+  | 평면 (`parentId`)       | 전체를 트리로 묶은 뒤 뿌리 100 (`dataBinding.ts:1380-1382`)           | 창의 뿌리 + 아래 어디든 남길 key 를 가진 뿌리 (하위 행은 지금도 자르지 않는다)                                                           |
+  | 중첩 (`children`)       | 뿌리 행 100 (`:1333`)                                                 | 같다 — 남길 key 는 원본의 중첩 배열을 훑어 찾는다                                                                                        |
+  | 단계 표 (`levelParent`) | 단계마다 창 100 → 부모로 거르기 → 높이 표본 (`resolver.ts:1752-1763`) | 창의 행 + 남길 key 를 가진 행 + 그 조상 행 (부모 필드를 따라 윗 단계 표에서) + 막 연 화면에서 열리는 단계의 행 (부모 = 시작 항목의 조상) |
+  - 남길 key 를 가진 행은 **모두** 남긴다 (처음 하나만이 아니라) — 겹치는 key 의 판정 (`duplicate`) 이 계층 전체와 같아진다.
+  - 남긴 행은 원본 순서의 제자리에 선다 (창 뒤에 붙이지 않고 순서대로 — 창의 100 째 다음에 원본 순서로).
+  - 단계 표의 높이 표본 (`sampledRows`) 은 남긴 행을 버리지 않는다.
+
+- **자식 유무 보존 (Round 2 h1)**: 표는 가지 · 잎을 남아 있는 자식으로 다시 정한다 (`cascader.ts:113` · `:123`) — 창이 자식을 모두 자른 가지는 잎이 되고, 같은 key 의 잎이 있으면 겹침으로 바뀐다. 그래서 표본의 **모든** 행이 원래의 자식 유무를 싣는다:
+  - 행 읽기가 창을 자르기 전에 「이 행 아래 행이 원본에 하나라도 있는가」 를 행에 적는다 (`CatalogBoundRow` 의 표식 하나). 평면 · 중첩은 하위 행을 자르지 않아 지금도 맞고, 단계 표는 아랫 단계 표 전체의 부모 필드 값 색인으로 정한다 (memo — 시작 key 색인과 같은 단위).
+  - resolver 가 그 표식을 항목 record 의 내부 prop 으로 옮기고 (`catalogCascaderLevelKey` 를 싣는 자리 — `resolver.ts:1031`), `cascaderStaticItems` 가 `hasChildItems` 로 읽는다 (단계별 로드의 읽지 않은 가지가 들어오는 자리 — `cascader.ts:308`). 표 함수는 고치지 않는다.
+  - 판정만이 아니라 그림에도 쓰인다 — 자식이 잘린 가지 행도 Canvas 에서 chevron 을 갖는다 (Preview 와 같은 줄).
+- **단계별 로드의 읽지 않은 가지**: Preview 세션이 `branchKeys` 를 정하는 판정 (endpoint 가 `{{ parentKey }}` 를 읽고 key 유일을 선언 · 행의 자식 표시 필드 · 읽은 단계 — `catalogPreviewSession.ts:3044-3115`) 을 순수 함수로 꺼낸다 (`runtime/cascaderLevels.ts`). 세션은 자기가 읽은 단계 상태로, Builder 의 행 읽기는 「읽은 단계 없음」 으로 같은 함수를 부르고 결과를 위와 같은 행 표식에 적는다. 막 연 Preview 가 바로 그 상태다 (첫 열기의 자식 단계 `load` 0 회 — Round 2 실측). 그래서 시작 값이 읽지 않은 가지의 key 면 두 쪽 모두 `branch` (값 글자 = key), 읽지 않은 단계 안의 key 면 두 쪽 모두 `missing` 이다.
+- **닫는 근거 — 불변식 하나**: 시작 key 마다, Builder 표의 `cascaderValueMatch` 종류 · 그 항목의 조상 key 사슬 · 경로 이름이 계층 전체로 만든 표와 같다. 재료는 셋뿐이다 — 그 key 를 가진 항목 전부 (남김) · 각 항목의 가지 여부 (자식 유무 표식) · 조상 (남김). `anyLevel` 은 같은 prop, `conflicts` 는 단계를 읽은 뒤에만 생긴다. 이 불변식을 P8 이 무작위 대조로 본다 (seed 고정 — 무작위 계층 × 세 모양 × 창 크기 × 시작 key, 겹치는 key 를 일부러 섞는다).
+  - 색인 (key → 뿌리 · 행) 은 원본 행 배열 단위로 memo 한다 — 편집마다 다시 훑지 않는다 (본문 R4).
+
+- **결과**: 시작 key 에 대해 Builder 의 표와 Preview 의 표가 같은 판정 · 같은 조상 사슬을 낸다. `cascaderOpeningView` · `cascaderTrail` · 닫힌 필드의 값 글자 (`cascaderValueText`) 가 모두 같은 답이다. Design 패널 Value 칸의 선택지에도 지금 값의 항목이 들어온다.
+- **달라도 되는 것**: 상자 아래로 넘친 뒤쪽 행의 수와 자리 (뿌리 5,000 중 Canvas 는 100 + 남긴 행) — 보이는 행이 아니다 (§4.5). 겹침 알림의 개수 (닫힌 필드 Description — ADR-322 그대로 표본 기준).
+- 판정 (P8 · G5) — 선택 key 의 판정과 시작 부모를 같이 본다: (1) 부모 120 × 자식 1 · 시작 `R120-1` 을 세 모양으로 — `item` · 부모 `R120`, drill 의 행 key 가 Preview 와 같음. (2) 창 밖에 같은 key 하나를 더 둔 입력 — 두 쪽 모두 `duplicate`. (3) Round 2 의 입력 — 뿌리 가지 `X` (유일한 자식이 아랫 표 102 행) 와 `P` 아래 잎 `X` (101 행) — 두 쪽 모두 `item` · 부모 `P`. (4) 단계별 로드 — `11=서울` (읽지 않은 자식) 에서 시작 `11` 은 두 쪽 `branch`, 시작 `11-1` 은 두 쪽 `missing`. (5) 위 불변식의 무작위 대조. 원복 RED (시작 경로 보존을 끄면 (1) 이 `missing`, 자식 유무 표식을 끄면 (3) 이 `duplicate`).
+
+## 5. 「열리는 picker」 목록 — Cascader 를 넣을 자리
+
+| 목록 · 분기                                      | 자리                                        | 넣는 까닭                                      |
+| ------------------------------------------------ | ------------------------------------------- | ---------------------------------------------- |
+| `OVERLAY_OPEN_OWNERS`                            | `runtime/overlayState.ts:12-23`             | Canvas 열림 판정 · 선택 테두리 · 증분 의존     |
+| `CATALOG_OPEN_PICKER_TYPES`                      | `runtime/runtimeStateProps.ts:145`          | 안쪽 Popover 의 열림 소유 = Cascader           |
+| `CONTEXT_PLACED_POPOVER_PARENTS`                 | `runtime/domBinding.runtime.ts:3359`        | Popover 기본 placement 를 빼고 context 값 사용 |
+| context 배치 배열 · 닻                           | `runtime/overlayLayout.ts:76 · 172-184`     | Canvas 배치 (닻 = Button — 기본 분기 확인)     |
+| 폭 분기 `ownerType === "Select" \|\| "ComboBox"` | `runtime/compositionRoot.ts:6445`           | Canvas 폭 = 닻 폭                              |
+| `s2MenuWidthStyle` · `LISTBOX_PICKER_TYPES` 분기 | `runtime/domBinding.runtime.ts:3385 · 3851` | DOM 폭 · 충돌 여백 (Select 와 같은 값)         |
+| trigger 부품의 `_overlayOpen`                    | `runtime/presence.ts:3507-3540`             | 여는 Button 의 눌림 표시                       |
+| `OVERLAY_OPEN_PROPS`                             | `bindings/Cascader.binding.ts`              | 패널 Open                                      |
+
+Phase 4 의 G4 가 이 표를 한 줄씩 대조한다 (누락 = Canvas 와 Preview 가 갈리는 자리).
+
+## 6. Phase 0 시제품 (G0)
+
+| ID  | 확인                                                                                                                                                                                                                                                                                                                                                                            | no-go 면                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| P1  | catalog Popover 노드가 필드의 context (`trigger: "Cascader"`) 로 열리고 닫힘 — 메뉴 이름 · focus 복원 · Esc (columns · tree)                                                                                                                                                                                                                                                    | context 이름은 그대로 두고 Popover 노드에 class    |
+| P2  | SearchField 노드 + RAC `Autocomplete` 감싸기 — 입력 focus · 목록 가상 focus · → 로 하위 단계                                                                                                                                                                                                                                                                                    | 검색 칸만 lazy chunk 가 같은 renderer 로 직접 그림 |
+| P3  | RAC `Dialog` 의 `display: contents` — 접근성 트리의 role · 이름 (Chrome · WebKit)                                                                                                                                                                                                                                                                                               | §4.3 의 `:is()` 별칭 블록                          |
+| P4  | `CascaderItem` 이 줄 (이름 · chevron · 선택 표시) 을 직접 그림 — Canvas primitive · 글자 측정                                                                                                                                                                                                                                                                                   | 사용자 결정 2 의 대안 (Text · Icon 자식 노드)      |
+| P5  | Canvas 에서 `pass` 항목 (`display: contents`) 아래의 줄이 목록 상자에 바로 놓임 (drill)                                                                                                                                                                                                                                                                                         | drill 은 지금 단계의 항목만 목록 직계로 투영       |
+| P6  | 경로 자리 넷 (§4.4) — 깊이 2 · 4 · 6 × 폭 둘에서 「crumb 을 전부 그린 Breadcrumbs」 와 보이는 crumb · rect 가 같음 (Canvas · Chrome) · `root > A > B > C > D > E` 를 폭 310px (끝 둘이 보임) · 180px (하나만 보임) 에서: 보이는 crumb 의 위치 · 메뉴의 모든 key · 클릭 결과가 기준 Breadcrumbs 와 같음 — 180px 에서 메뉴의 `D` 를 누르면 `D` 단계로 이동 (리뷰 m5 의 종결 조건) | 멈추고 사용자 보고 (§4.4 끝)                       |
+| P7  | 번들 기준선 (일반 `vite build` → `adr209-bundle-closure.mjs`) · 전용 CSS 삭제분 추정                                                                                                                                                                                                                                                                                            | — (사용자 결정 1 의 숫자)                          |
+| P8  | 시작 경로 보존 (§4.7) — 부모 120 × 자식 1 · 시작 `R120-1` 을 세 모양으로: 선택 key 의 판정 · 시작 부모가 Builder 표 = Preview 표 (§4.7 의 입력 (1) ~ (4) + 고정 seed 무작위 대조 · 자식 유무 표식을 끄면 (3) 이 `duplicate` — 리뷰 h1 의 종결 조건) · 5,000 행 연결의 편집 1 회 비용                                                                                            | 단계 표 모양만 막히면 그 모양의 보존 범위를 보고   |
+| P9  | 행 ↔ record (§4.3) — 한 항목의 배경 편집이 세 방식 · 검색 결과의 그 RAC 행에만 닿고 Undo 로 돌아옴 · 모양 편집이 항목 표를 다시 만들지 않음                                                                                                                                                                                                                                     | 행 입력을 표와 함께 다시 만드는 길 (HC4 재측정)    |
+
+## 7. Phase
+
+| Phase | 내용                                                                                                                                                                                                                                                                                                                                    | Gate |
+| :---: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--: |
+|   0   | 코드 사실 재대조 · 시제품 P1 ~ P9 · 사용자 결정 1                                                                                                                                                                                                                                                                                       |  G0  |
+|   1   | 문서 구조 — 원본 template · `accepts.mode` · `bindingMaps` · `CascaderList` 등록 (binding · rule · traits · nesting · 항목 표) · contract 88 · 항목 읽기 함수 (§4.2) · 바인딩 명령 · resolver · 시작 경로 보존 (§4.7 — 닫힌 필드의 값 글자가 먼저 맞는다). Preview 는 지금 조립 그대로 (Popover 노드는 아직 그리지 않는다), Canvas 닫힘 |  G1  |
+|   2   | DOM columns — 필드가 context 를 항상 줌 · Popover · SearchField 노드 렌더 · `cascaderlist` lazy 본문 · 항목 행 class 와 행 ↔ record (§4.3) · 열린 상자 rule 블록 (폭 · 테두리)                                                                                                                                                          |  G2  |
+|   3   | DOM tree · drill — `Dialog` 배치 · 경로 자리 넷 (§4.4) · Breadcrumbs 접힌 메뉴의 `onAction` · 「뒤로」 · `CASCADER_PANEL_STYLES` 삭제 · HC3 정적 검사                                                                                                                                                                                   |  G3  |
+|   4   | Open — binding · §5 의 목록 · 시작 상태 함수 · 항목 표시 상태 · Canvas columns 막 연 화면 · 패널 · 선택                                                                                                                                                                                                                                 |  G4  |
+|   5   | Canvas tree · drill 막 연 화면 (경로 자리의 파생 값 · 접힘) · 대칭 하니스 (세 방식 — 표본 창 밖 값 · 항목 모양 편집 포함)                                                                                                                                                                                                               |  G5  |
+|   6   | 종결 — HC4 재측정 · 번들 합계 · live 전체 · VoiceOver 청취 · 규칙 문서 (`catalog-subparts.md` 「picker 의 선택 목록」 · `canvas-rendering.md` · `data-interaction.md` 의 Cascader 표본) · ADR-322 대체 표시 · CHANGELOG                                                                                                                 |  G6  |
+
+Phase 1 은 구조만 바꾸고 화면은 같다 — 여기서 커밋 가능 상태를 한 번 만든다 (R1 을 먼저 닫는다). 시작 경로 보존은 닫힌 필드에서도 보이는 변화라 Phase 1 의 live 에 한 줄 (표본 밖 값 → 경로 글자) 을 넣는다.
+
+## 8. 파일 추정 (Phase 0 에서 확정)
+
+| 영역          | 파일                                                                                                                                                                                                                                                                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 문서 · 등록   | `document/cascaderOrigins.ts` · `document/types.ts` (contract) · `bindings/Cascader.binding.ts` · `bindings/index.ts` · `componentCatalog.ts` · `domain/componentTraits.ts` · `document/collectionItems.ts` · `document/sizePropagation.ts` · `d2Provenance.ts`                                                                                             |
+| rule · CSS    | `generated/componentRulesTable.ts` · 생성 CSS (`Cascader.css` · `CascaderItem.css` · 새 `CascaderList.css`) · `rendering/__tests__/catalogCss.test.ts` (파일 수)                                                                                                                                                                                            |
+| 항목 · 데이터 | `runtime/cascader.ts` (`recordId` · `cascaderOpeningView` · `cascaderTrail`) · `runtime/dataBinding.ts` (남길 key) · `resolution/resolver.ts` · `commands/collections.ts` · `apps/builder/…/dataBindingCommand.ts` · `apps/builder/…/catalogDataRead.ts` · `apps/builder/…/itemInsert.ts`                                                                   |
+| DOM           | `runtime/delegatedDom.runtime.ts` · `runtime/delegatedDom.components.tsx` (`BreadcrumbsRun` 메뉴 `onAction` · 실제 crumb 수) · `runtime/cascader.components.tsx` · `cascaderOverlay.components.tsx` · `cascaderMenu.components.tsx` · `cascaderPanel.components.tsx` · `cascaderSearch.components.tsx` · `domBinding.runtime.ts` · `domRegistry.runtime.ts` |
+| Canvas · 열림 | `runtime/presence.ts` · `runtime/overlayState.ts` · `runtime/overlayLayout.ts` · `runtime/compositionRoot.ts` (`settleOverlays` · `settleBreadcrumbs`) · `runtime/breadcrumbsCollapse.ts` · `runtime/runtimeStateProps.ts` · `document/rulePartRules.ts` · `apps/builder/…/ruleShapes.ts`                                                                   |
+| 패널 · i18n   | (Open 은 계약에서 자동) · `apps/builder/src/i18n/messages/*` (검색 칸 접근 이름 등 문구가 늘면)                                                                                                                                                                                                                                                             |
+| 테스트 · live | `adr322*` 단위 5 · `adr322D1Static` · 새 `adr326*` (구조 · 시작 상태 · 경로 자리 · 시작 경로 보존 · 행 ↔ record · HC3 정적) · Breadcrumbs 접힘 단위 · 대칭 하니스 · `apps/builder/scripts/adr322-g*-live.mjs` 재사용 + `adr326-*-live.mjs`                                                                                                                  |
+| 문서          | 규칙 셋 · ADR-322 본문 표시 · README · CHANGELOG                                                                                                                                                                                                                                                                                                            |
+
+추정 shared 26 ~ 32 · builder 7 ~ 10 · rendering 1 ~ 2 파일 + 테스트.
+
+## 9. Phase 결과
+
+(실행하며 기록)

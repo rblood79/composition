@@ -4757,7 +4757,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           },
           keys,
           multiple,
-          searchable: props.isSearchable === true,
           countText: (count: number) =>
             catalogSelectionCountText(count, input.root.environmentLocale),
           onChange: input.setRuntimeProps

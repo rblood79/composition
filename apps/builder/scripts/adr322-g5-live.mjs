@@ -158,7 +158,7 @@ try {
       const f = (id) => `data:field:${id}`;
       const search = add("Cascader");
       bind(search, "regions", { value: f("r-id"), parentId: f("r-parent") });
-      set(search, { label: "Region", isSearchable: true });
+      set(search, { label: "Region" });
       const multi = add("Cascader");
       set(multi, { label: "Multi", selectionMode: "multiple" });
       const any = add("Cascader");
@@ -240,13 +240,14 @@ try {
   });
   await page.screenshot({ path: `${OUT}/${NAME}-panel.png` });
   const labels = {
-    search: /Search items|항목 검색/.test(panelText),
+    // (2026-11-28: the search field is always there — no switch.)
+    search: !/Search items|항목 검색/.test(panelText),
     anyLevel: /Select any level|어느 단계든 고르기/.test(panelText),
     mode: /Selection mode|선택 모드/i.test(panelText),
     rawKey: /properties\.(searchItems|selectAnyLevel)/.test(panelText),
   };
   record(
-    "0 Design 패널 — 「Search items」 · 「Select any level」 · 「Selection Mode」 (번역 키 그대로 0)",
+    "0 Design 패널 — 검색 스위치 없음 · 「Select any level」 · 「Selection Mode」 (번역 키 그대로 0)",
     labels.search && labels.anyLevel && labels.mode && !labels.rawKey,
     labels,
   );

@@ -121,26 +121,23 @@ function usePanel({
   };
 }
 
-/** The levels under a search field while the field is searchable (Phase 5 — breakdown §4.4). */
+/** The levels under the search field (Phase 5 — breakdown §4.4; always there — 2026-11-28 사용자 결정). */
 const withSearch = (
   props: CascaderContentProps,
   close: () => void,
   levels: ReactElement,
-): ReactElement =>
-  props.searchable ? (
-    <CascaderSearch
-      content={props}
-      separator={props.separator}
-      inside={false}
-      onPicked={close}
-      levels={levels}
-    />
-  ) : (
-    levels
-  );
+): ReactElement => (
+  <CascaderSearch
+    content={props}
+    separator={props.separator}
+    inside={false}
+    onPicked={close}
+    levels={levels}
+  />
+);
 
 function CascaderTree(props: CascaderContentProps): ReactElement {
-  const { table, label, multiple, searchable, levels } = props;
+  const { table, label, multiple, levels } = props;
   const { picked, blocked, childrenOf, onSelectionChange, waits, close } =
     usePanel(props);
   const status = useCascaderLevelStatus();
@@ -224,11 +221,7 @@ function CascaderTree(props: CascaderContentProps): ReactElement {
           >
             <Tree
               aria-label={label}
-              // (Focus goes into the list on open — the picked row, else the first: RAC's `autoFocus`;
-              //  a search field takes it first — Phase 5.)
-              autoFocus={
-                searchable ? undefined : picked.length ? true : "first"
-              }
+              // (The search field takes focus on open — Phase 5; ↓ moves into the list.)
               selectionMode={multiple ? "multiple" : "single"}
               selectedKeys={picked.map((entry) => entry.pathId)}
               disabledKeys={[
@@ -267,7 +260,7 @@ function CascaderTree(props: CascaderContentProps): ReactElement {
 }
 
 function CascaderDrill(props: CascaderContentProps): ReactElement {
-  const { table, label, multiple, searchable } = props;
+  const { table, label, multiple } = props;
   const {
     picked,
     blocked,
@@ -283,9 +276,16 @@ function CascaderDrill(props: CascaderContentProps): ReactElement {
   const status = useCascaderLevelStatus();
   const { levels } = props;
   const levelName = useCascaderLevelName();
-  const [level, setLevel] = useState<string | null>(
+  const [level, setLevelState] = useState<string | null>(
     picked[0]?.parentPathId ?? null,
   );
+  // (The search field takes focus on open; once a level changes the list — remounted by its key —
+  //  takes it: the picked row, else the first, RAC's `autoFocus`.)
+  const [moved, setMoved] = useState(false);
+  const setLevel = (next: string | null) => {
+    setMoved(true);
+    setLevelState(next);
+  };
   const parent = level === null ? undefined : table.byPathId.get(level);
   // (Phase 6 — a level entered whose items are not here yet asks them.)
   const enter = (entry: CascaderEntry) => {
@@ -339,7 +339,7 @@ function CascaderDrill(props: CascaderContentProps): ReactElement {
               key={level ?? ""}
               aria-label={parent ? parent.name : label}
               autoFocus={
-                searchable ? undefined : selected.length ? true : "first"
+                moved ? (selected.length ? true : "first") : undefined
               }
               escapeKeyBehavior="none"
               selectionMode={multiple ? "multiple" : "single"}

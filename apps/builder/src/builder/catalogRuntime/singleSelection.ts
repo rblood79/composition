@@ -27,6 +27,13 @@ import {
   catalogStepperOf,
   catalogStepperModel,
 } from "../../../../../packages/shared/src/catalog/runtime/presence";
+import {
+  CASCADER_TYPE,
+  cascaderEntryText,
+  cascaderMultiple,
+  cascaderStartKeys,
+  cascaderTableOf,
+} from "../../../../../packages/shared/src/catalog/runtime/cascader";
 import type { CatalogWorkspace } from "./workspace";
 
 /**
@@ -204,6 +211,34 @@ export function catalogGroupKeysFields(
       value: many ? keys : (keys[0] ?? ""),
     });
   }
+  // 2026-11-28 사용자 요청: a Cascader's start value is picked as Select's is — its pickable items
+  // (a leaf, any item while 「Select any level」 — not a repeated key · a disabled item), named by
+  // their path; a check list while it selects several.
+  if (type === CASCADER_TYPE) {
+    const many = cascaderMultiple(group.props);
+    const keys = cascaderStartKeys(group.props);
+    const seen = new Set<string>();
+    const options = cascaderTableOf(group, lookup(root), typeOf(root))
+      .entries.filter(
+        (entry) => entry.pickable && !entry.duplicate && !entry.isDisabled,
+      )
+      .flatMap((entry) => {
+        if (seen.has(entry.key)) return [];
+        seen.add(entry.key);
+        return [
+          {
+            value: entry.key,
+            label: cascaderEntryText(entry, "path", group.props.separator),
+          },
+        ];
+      });
+    fields.push({
+      key: "defaultValue",
+      many,
+      options,
+      value: many ? keys : (keys[0] ?? ""),
+    });
+  }
   // S2 체크리스트 §9.1 (2026-11-24): S2 SideNav `expandedKeys` — the items that hold items, a check
   // list (the Canvas · DOM already read the stored keys — `catalogSideNavStoredKeys`).
   if (type === "SideNav")
@@ -229,9 +264,11 @@ function groupWrite(
   const twins =
     prop === "expandedKeys"
       ? ["defaultExpandedKeys"]
-      : (catalogGroupSelectionProps(type) ?? []).filter(
-          (name) => name !== prop,
-        );
+      : type === CASCADER_TYPE
+        ? ["value"]
+        : (catalogGroupSelectionProps(type) ?? []).filter(
+            (name) => name !== prop,
+          );
   // (A key list prop — `*Keys` · a CheckboxGroup's value — holds a list even with one key; a
   //  single-selection group's field gives one key.)
   const listProp =

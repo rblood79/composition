@@ -539,7 +539,6 @@ export const semanticLabelKeys: Record<string, string> = {
   Contains: "properties.searchContains",
   Fuzzy: "properties.searchFuzzy",
   Searchable: "properties.searchable",
-  "Search items": "properties.searchItems",
   "Select any level": "properties.selectAnyLevel",
   // ADR-315 Phase 4 — a Column's part in the Table's column projection.
   "Hidden by default": "properties.columnDefaultHidden",

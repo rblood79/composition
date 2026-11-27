@@ -109,6 +109,12 @@ afterEach(async () => {
   document.body.replaceChildren();
 });
 
+/** The item RAC Autocomplete's input points at (`aria-activedescendant`). */
+const virtualFocus = () => {
+  const id = document.activeElement?.getAttribute("aria-activedescendant");
+  return id ? document.getElementById(id)?.textContent : undefined;
+};
+
 async function dom(t: Awaited<ReturnType<typeof place>>) {
   await unmount?.();
   const host = document.createElement("div");
@@ -246,6 +252,12 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
       disabled: el.getAttribute("aria-disabled"),
       submenu: el.getAttribute("aria-haspopup"),
     }));
+  /** Focus back in the search field (a closed level gives it back a frame later). */
+  const waitSearchFocus = async () => {
+    for (let i = 0; i < 50 && document.activeElement?.tagName !== "INPUT"; i++)
+      await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(document.activeElement?.tagName).toBe("INPUT");
+  };
   const waitMenus = async (count: number) => {
     for (let i = 0; i < 50 && menus().length !== count; i++)
       await act(async () => new Promise((r) => setTimeout(r, 20)));
@@ -267,7 +279,10 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
       ["Clothing", "menuitem", "menu"],
       ["Books", "menuitemradio", null],
     ]);
-    expect(document.activeElement?.textContent).toBe("Electronics");
+    // (The search field takes focus on open — always there, 2026-11-28 사용자 결정; the first item
+    //  has RAC Autocomplete's virtual focus, → goes into its level with real focus.)
+    expect(document.activeElement?.tagName).toBe("INPUT");
+    expect(virtualFocus()).toBe("Electronics");
     await user.keyboard("{ArrowRight}");
     await waitMenus(2);
     expect(document.activeElement?.textContent).toBe("Computers");
@@ -293,7 +308,12 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
       ["Laptops", "false"],
       ["Desktops", "true"],
     ]);
-    await user.keyboard("{Escape}{Escape}{Escape}");
+    // (Each Escape closes one level and focus goes back to the search field; there, Escape closes
+    //  the field's menu — RAC SearchField passes an empty field's Escape on.)
+    await user.keyboard("{Escape}{Escape}");
+    await waitMenus(1);
+    await waitSearchFocus();
+    await user.keyboard("{Escape}");
     await waitMenus(0);
     t.workspace.dispose();
   });
@@ -337,7 +357,10 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
       ["Laptops", null],
       ["Desktops", "true"],
     ]);
-    await user.keyboard("{Escape}{Escape}{Escape}");
+    await user.keyboard("{Escape}{Escape}");
+    await waitMenus(1);
+    await waitSearchFocus();
+    await user.keyboard("{Escape}");
     await waitMenus(0);
     // (Clothing › Men carries the same key — also disabled.)
     view.button.focus();
@@ -388,6 +411,10 @@ describe("ADR-322 G3 — drill: one level at a time, the same answers as columns
       "Clothing",
       "Books",
     ]);
+    // (The search field takes focus on open — always there, 2026-11-28 사용자 결정; Tab goes into the
+    //  level's list.)
+    expect(document.activeElement?.tagName).toBe("INPUT");
+    await user.keyboard("{Tab}");
     expect(document.activeElement?.textContent).toBe("Electronics");
     await user.keyboard("{Enter}");
     await settle();

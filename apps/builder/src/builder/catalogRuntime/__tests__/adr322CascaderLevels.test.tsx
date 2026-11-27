@@ -179,6 +179,8 @@ describe("ADR-322 G6 — levels loaded one by one (the field's side)", () => {
     view.container.querySelector("button")!.focus();
     await user.keyboard("{Enter}");
     await settle();
+    // (The search field takes focus on open — always there, 2026-11-28; Tab goes into the list.)
+    await user.keyboard("{Tab}");
     await user.keyboard("{Enter}");
     await settle();
     expect(load).toHaveBeenCalledWith("11");

@@ -138,20 +138,18 @@ describe("ADR-322 G6 — a Cascader's form value · required check (breakdown §
     many.opener().focus();
     await user.keyboard("{Enter}");
     for (let i = 0; i < 20 && !item("Books"); i++) await settle();
-    // (Space keeps a multiple menu open — Enter picks and closes: RAC's.)
-    act(() => item("Books").focus());
-    await user.keyboard(" ");
+    // (The search field holds focus — always there, 2026-11-28 사용자 결정 — so the items are pressed:
+    //  a multiple menu stays open after a press, a branch press opens its submenu — RAC's.)
+    await user.click(item("Books"));
     await settle();
-    // (A submenu opens from its focused item with → — RAC's.)
     for (const branch of ["Electronics", "Computers"]) {
       for (let i = 0; i < 20 && !item(branch); i++) await settle();
-      act(() => item(branch).focus());
-      await user.keyboard("{ArrowRight}");
+      await user.click(item(branch));
       await settle();
       await settle();
     }
-    act(() => item("Desktops").focus());
-    await user.keyboard("{Enter}");
+    for (let i = 0; i < 20 && !item("Desktops"); i++) await settle();
+    await user.click(item("Desktops"));
     await settle();
     await user.keyboard("{Escape}{Escape}{Escape}");
     await settle();

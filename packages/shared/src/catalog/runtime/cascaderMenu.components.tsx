@@ -46,7 +46,7 @@ function Deferred({
 }
 
 function CatalogCascaderMenu(content: CascaderContentProps): ReactElement {
-  const { table, keys, multiple, label, onPick, searchable, levels } = content;
+  const { table, keys, multiple, label, onPick, levels } = content;
   const picked = cascaderPicked(table, keys);
   const levelName = useCascaderLevelName();
   const status = useCascaderLevelStatus();
@@ -162,19 +162,16 @@ function CatalogCascaderMenu(content: CascaderContentProps): ReactElement {
       </Menu>
     );
   };
-  // (Phase 5 — a search field above: its results replace the levels while it has a query.)
+  // (Phase 5 — a search field above, always (2026-11-28 사용자 결정): its results replace the levels
+  //  while it has a query.)
   return (
     <Popover>
-      {searchable ? (
-        <CascaderSearch
-          content={content}
-          separator={content.separator}
-          inside
-          levels={level(null)}
-        />
-      ) : (
-        level(null)
-      )}
+      <CascaderSearch
+        content={content}
+        separator={content.separator}
+        inside
+        levels={level(null)}
+      />
     </Popover>
   );
 }

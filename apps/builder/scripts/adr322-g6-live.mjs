@@ -211,7 +211,7 @@ try {
       );
     const lazy = add("Cascader");
     bind(lazy, "regions");
-    set(lazy, { label: "Lazy", isSearchable: true });
+    set(lazy, { label: "Lazy" });
     const lazyTree = add("Cascader");
     bind(lazyTree, "regions");
     set(lazyTree, { label: "LazyTree", mode: "tree" });

@@ -28,12 +28,14 @@ export const cascaderBinding: PrimitiveBinding = {
       // (The run's value — a rule's write · a named state; the panel edits the start value.)
       value: {
         editorHidden: true,
-        kind: "string",
+        kind: "selection-value",
         label: "Value",
         section: "value",
       },
-      // An item's key (HC4) — the path is computed (breakdown §4.2).
-      defaultValue: { kind: "string", label: "Value", section: "value" },
+      // An item's key (HC4) — a key list while `selectionMode: "multiple"` (사용자 결정 3); the path is
+      //   computed (breakdown §4.2). The Design panel offers the pickable items as Select's Value
+      //   does (`catalogGroupKeysFields` — 2026-11-28 사용자 요청).
+      defaultValue: { kind: "selection-value", label: "Value", section: "value" },
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",
@@ -68,13 +70,6 @@ export const cascaderBinding: PrimitiveBinding = {
           { value: "single", label: "Single" },
           { value: "multiple", label: "Multiple" },
         ],
-      },
-      // Phase 5 (breakdown §4.4): a search field in the open content — one flat list of names +
-      //   paths while it has a query (every mode).
-      isSearchable: {
-        kind: "boolean",
-        label: "Search items",
-        section: "behavior",
       },
       // 사용자 결정 2 (2026-11-27): a branch is a value too (「서울 전체」) — off = leaves only.
       allowsBranchSelection: {
