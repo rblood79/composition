@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Design 패널 Padding · Gap · Radius 아이콘 드래그] - 2026-11-28
+## [Design 패널 Padding · Gap · Radius · Font Size 아이콘 드래그] - 2026-11-28
 
 ### Fixed
 

@@ -291,6 +291,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         units={["reset", "px"]}
         defaultUnit="px"
         presets={fontSizePresets}
+        snapScrubToPresets
         presetAriaLabel={localize("Font size presets")}
         onChange={handleTextMetricCommit}
         onDragCancel={cancelStylePreview}

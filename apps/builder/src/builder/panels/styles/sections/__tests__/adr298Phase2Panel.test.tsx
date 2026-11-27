@@ -6,6 +6,7 @@
  * Position status text sits in its field (결정 6 — 감사 C4 · E2). Oracle = the document field.
  */
 import "fake-indexeddb/auto";
+import { resolveToken } from "@composition/rendering";
 import {
   act,
   cleanup,
@@ -257,6 +258,37 @@ describe("ADR-298 Phase 2 — Text", () => {
       "h5 · 13.28",
       "h6 · 10.72",
     ]);
+  });
+
+  it("Font Size 아이콘은 XL 토큰과 다음 1px 값을 오가며 제목 태그를 유지한다", async () => {
+    const aboveXL = Number(resolveToken("{typography.text-xl}")) + 1;
+    const { fixture, view } = await renderWith(TypographySection, [
+      {
+        id: "t",
+        type: "Text",
+        props: { elementType: "h2", children: "Hello" },
+        style: { fontSize: `${aboveXL}px` },
+      },
+    ]);
+    const icon = field(view.container, "font-size").querySelector("label")!;
+    const drag = (dx: number) => {
+      fireEvent.pointerDown(icon, { button: 0, clientX: 100, pointerId: 1 });
+      fireEvent.pointerMove(icon, { clientX: 100 + dx, pointerId: 1 });
+      fireEvent.pointerUp(icon, { clientX: 100 + dx, pointerId: 1 });
+    };
+    drag(-3);
+    expect(visualOf(fixture, "t").fontSize).toEqual(
+      tokenSet("lib:token:typography_text-xl"),
+    );
+    drag(3);
+    expect(visualOf(fixture, "t").fontSize).toEqual({
+      kind: "set",
+      value: aboveXL,
+    });
+    expect(fixture.nodeOf("t").props.elementType).toEqual({
+      kind: "set",
+      value: "h2",
+    });
   });
 
   it("picking h1 changes the Text's HTML tag and drops its written font size, one step", async () => {
