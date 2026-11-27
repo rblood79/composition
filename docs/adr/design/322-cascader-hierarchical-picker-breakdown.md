@@ -245,7 +245,7 @@ G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
 **조립**: 필드가 `mode` 로 trigger 를 고른다 — `columns` 는 RAC `MenuTrigger` 의 안 (Phase 2), `tree` · `drill` 은 RAC `DialogTrigger` 의 안 (react-aria `useOverlayTrigger({type: "dialog"})` + `DialogContext` · `OverlayTriggerStateContext` · `RootMenuTriggerStateContext` · `PopoverContext` — Dialog 는 trigger 이름으로). 열린 내용은 둘 다 lazy chunk `runtime/cascaderPanel.components.tsx` (`columns` 와 다른 chunk):
 
 - `tree`: `Popover` > `Dialog` > RAC `Virtualizer` (`ListLayout`) > `Tree` — 단일 선택 (controlled, 가지의 선택은 값이 아니라 무시) · 겹치는 key `disabledKeys` · 고른 항목의 조상을 펼친 채 시작 · 가지 행은 RAC chevron `Button[slot=chevron]` · `escapeKeyBehavior: "none"` (Phase 0 발견 1) · `autoFocus` (고른 행, 없으면 첫 행).
-- `drill`: `Popover` > `Dialog` > RAC `Breadcrumbs` (맨 앞 = 필드 라벨, 각 단계 `Link`) + 「뒤로」 `Button` (이름 = 네 언어 문구 `useCatalogLocalized`) + 단계마다 `key` 가 바뀌는 `GridList` (`onAction` = 가지면 들어가기 · 끝이면 고르기, `autoFocus`, `escapeKeyBehavior: "none"`).
+- `drill`: `Popover` > `Dialog` > RAC `Breadcrumbs` (맨 앞 = 필드 라벨, 각 단계 `Link`) + 「뒤로」 `Button` (이름 = 사이트 언어 문구 `useCatalogLocalized` — en · ko, 2026-11-28 ja · zh 제거) + 단계마다 `key` 가 바뀌는 `GridList` (`onAction` = 가지면 들어가기 · 끝이면 고르기, `autoFocus`, `escapeKeyBehavior: "none"`).
 - 모양: 열린 tree · drill 은 Canvas 가 그리지 않으므로 (R6) catalog Tree · GridList 의 record inline 모양이 없다 — Select 가 picker Popover 를 꾸미듯 Cascader rule 의 `externalStyles` (`.react-aria-Popover.cascader-panel` — 행 = 필드 M 단 · collection focus 칠 · 단계 들여쓰기 · 조용한 chevron (펼치면 90°) · 「뒤로」 · breadcrumb 줄) 가 정본이다. `columns` 는 Menu · MenuItem 시트 그대로.
 
 **G3 결과**:
@@ -269,7 +269,7 @@ G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
 
 **겹치는 key · 거절**:
 
-- 필드 알림: 겹치는 key 가 있으면 Description 자리에 「고를 수 없는 항목 N 개 — key 가 겹친다」 (사이트 언어 — en · ko · ja · zh), 작성한 설명 뒤 `·` 로. presence 파생 값 하나 (Cascader `description` · Description `children`) 를 Canvas 와 DOM (`useField` 설명 · Description 글자) 이 같이 읽는다. invalid 면 오류 문구가 이긴다.
+- 필드 알림: 겹치는 key 가 있으면 Description 자리에 「고를 수 없는 항목 N 개 — key 가 겹친다」 (사이트 언어 — en · ko. ja · zh 는 2026-11-28 제거 — 그 밖의 언어는 영어), 작성한 설명 뒤 `·` 로. presence 파생 값 하나 (Cascader `description` · Description `children`) 를 Canvas 와 DOM (`useField` 설명 · Description 글자) 이 같이 읽는다. invalid 면 오류 문구가 이긴다.
 - Design 패널 (Collection 구획): 「key 가 겹치는 항목 N 개는 고를 수 없다 — 값 필드를 유일한 필드로 바꾼다」.
 - 값 쓰기: dispatcher 의 constraint 판정에 대상 자신의 거절 (`CapabilityContext.refuseValue`) — Cascader 는 `cascaderValueRefusal` (없는 key · 여러 항목의 key · 가지 · 비활성). 시작 값 · 실행 값이 한 항목을 가리키지 않으면 필드는 key 그대로 보이고 콘솔에 「[Cascader] 값 거절」 (첫 항목으로 맞추지 않는다).
 - 「값 넣기」 규칙 자체의 live 확인은 G5 로 옮겼다 — Cascader 의 Do (이름 붙인 상태 · When · Do) 등록이 Phase 5 범위이고, 지금 Cascader 에는 유도 Do 가 없다 (`value` 가 `editorHidden`). G4 는 dispatcher 판정의 단위 · 원복 RED 로 가렸다.
@@ -294,7 +294,7 @@ G0 닫힘 — P1 ~ P5 전부 go, no-go 인 방식 없음.
 - 값 판정에 `branch` 가 더해졌다 — 가지만 가진 key 의 쓰기는 「가지 항목: key — 끝 항목이 값이다 (「어느 단계든」 꺼짐)」 로 거절한다 (규칙 「값 넣기」 · 시작 값).
 - 다중 (`selectionMode: "multiple"`): 값 = key 목록, 닫힌 필드는 하나면 경로 · 둘 이상이면 Select 와 같은 개수 글자 (`catalogSelectionCountText` — 「2개 선택됨」 · 「2 selected」, 사이트 언어). 연쇄 없음 — 가지를 고르면 그 가지 하나다 (RAC 는 부분 선택을 그리지 않는다). columns 는 고르고도 menu 가 열린 채 (`menuitemcheckbox`).
 
-**「어느 단계든」 의 고르기**: columns · drill 은 가지의 하위 단계 맨 앞에 그 가지 자신의 항목 「<가지> 전체」 (en 「All of X」 · ja · zh, id = 경로 id + `\u001eall`) — 가지 행 자체는 계속 「들어가기」 다. tree 는 행 자체를 고른다 (펼치기는 chevron · ←→).
+**「어느 단계든」 의 고르기**: columns · drill 은 가지의 하위 단계 맨 앞에 그 가지 자신의 항목 「<가지> 전체」 (en 「All of X」 · ko, id = 경로 id + `\u001eall`) — 가지 행 자체는 계속 「들어가기」 다. tree 는 행 자체를 고른다 (펼치기는 chevron · ←→).
 
 **검색 (`isSearchable`, breakdown §4.4)**: RAC `Autocomplete` > `SearchField` + 결과 `Menu` (입력이 focus 를 갖고 목록은 virtual focus — Phase 0 P3). 검색어가 있으면 방식과 무관하게 평평한 결과 — 고를 수 있는 항목 중 이름에 검색어가 든 것, 항목마다 이름 (`Text slot="label"`) + 경로 (`slot="description"`). 찾기는 데이터 보기의 `contains` (`viewCompare` — 한글은 collator 규칙, 메모리 `reference-intl-collator-search-hangul-letters`). 200 건까지, 넘으면 「N 건 더 — 더 입력해 좁히기」. columns 는 단계 menu 가 Autocomplete 안에 (검색어 없으면 단계), tree · drill 은 검색 칸 아래에 자기 목록 (그 목록이 자기 focus 를 갖는다 — `autoFocus` 는 검색 칸). Enter = 첫 결과 (RAC 가 첫 결과에 virtual focus).
 

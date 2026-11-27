@@ -4,6 +4,7 @@
 //   2. Korean site: a Stepper placed owns Korean steps · panels; the Design 「+」 adds 「단계 4」
 //   3. Korean site: the FilterBar's 「Saved filters」 「+」 (the Property panel) names 「저장된 필터 1」
 //   4. Publish: the bar's buttons and the current step's panel in Korean
+//   3c. The Design panel's start-condition group row menu is named by the group (not 「g1 동작」)
 //   3b. Korean chips: 「다음으로 시작」 (no particle) · numbers and a date field's day in the locale's
 //       writing · a one-condition group 「묶음 (조건 1)」 — the Canvas records and the Publish names
 //   5. English site again: the FilterBar's buttons back to English (template texts follow the site);
@@ -314,6 +315,17 @@ try {
     await properties.click();
     await page.waitForTimeout(900);
   }
+  // 3c. The start conditions' group row menu is named by the group (Builder language — en-US here).
+  const groupMenu = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-filter-tree] button[aria-label]")]
+      .map((b) => b.getAttribute("aria-label"))
+      .filter((name) => /묶음|Group|g1/.test(name ?? "")),
+  );
+  record(
+    "3c Panel: the group row menu is named 「Group (1 condition) actions」, not its id",
+    same(groupMenu, ["Group (1 condition) actions"]),
+    { groupMenu },
+  );
   const presetField = page.locator(".filter-presets-field").first();
   await presetField.waitFor({ state: "visible", timeout: 15000 });
   await presetField.locator("button").last().click();

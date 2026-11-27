@@ -13,6 +13,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Builder 패널 안내 — 저장 · 필터 바 거절 이유 · 묶음 행 메뉴 이름] - 2026-11-28
+
+### Fixed
+
+- **저장 · 필터 바 거절이 오류 원문으로 뜨던 것**: Design 패널 · 붙여넣기 · AI 편집이 거절되면 이유를 Builder 언어로 안내한다 (ADR-324 · 320).
+  - 「모아서 저장」 의 행마다 보내기에서 연결 셋을 모두 「None」 으로 → 「수정 · 추가 · 삭제 중 연결이 하나는 있어야 합니다」 (전에는 `SAVE_CONNECTION_REQUIRED: entry.save.send`). 버전 필드가 표에서 사라진 경우도 같다 (`SAVE_VERSION_FIELD_MISSING`).
+  - 필터 바의 목록 연결 거절 4개 (`FILTER_TARGETS_HOST` · `SELF` · `TAKEN` · `COLLECTION`).
+  - **Why**: 패널 명령의 거절은 `operationNotice.ts` 의 코드 표에 있어야 안내가 되는데 이 코드들이 빠져 있어, `commandRunner` 가 오류 원문을 error toast 로 냈다 (i18n 감사 2026-11-28).
+  - 모양 오류 `INVALID_SAVE_*` 는 패널 선택 칸으로 만들 수 없어 다른 `INVALID_*` 처럼 원문으로 둔다.
+- **필터 바 시작 조건의 묶음 행 메뉴 이름**: 「g1 actions」 처럼 원시 id 였던 것을 「Group (1 condition) actions」 · 「묶음 (조건 1) 동작」 으로. Builder 영어 패널의 「Group (1 conditions)」 도 단수 · 복수를 가린다.
+  - live (Builder 5173, Chrome): `site-language-texts-live.mjs` 11/11 — 3c 가 Design 패널 메뉴 이름을 읽는다.
+  - 위치: `catalogRuntime/operationNotice.ts` · `panels/properties/catalog/CatalogFilterBarFields.tsx` · `i18n/messages/{en-US,ko-KR}.ts` · `i18n/types.ts` · 회귀 `catalogRuntime/__tests__/operationNoticeSaveFilter.test.ts`
+
+### Documentation
+
+- ADR-320 · 322 breakdown 의 「en · ko · ja · zh」 문구를 en · ko 로 (2026-11-28 ja · zh 제거 결정).
+
 ## [사이트 언어 i18n — ADR-320 · 321 · 324 · 325 문구 · en · ko 로 정리] - 2026-11-28
 
 ### Fixed

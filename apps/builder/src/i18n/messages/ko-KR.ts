@@ -455,6 +455,16 @@ const catalog: TranslationKeys = {
       "묶음은 버전을 본문에 싣습니다 — If-Match 하나로는 행마다의 버전을 나타낼 수 없습니다.",
     saveEndpointMethod:
       "연결마다 method 가 정해져 있습니다 — 고침 PATCH · PUT, 넣기 POST, 지우기 DELETE, 묶음 POST, key 로 읽는 endpoint 는 GET.",
+    saveConnectionRequired:
+      "행마다 보내려면 수정 · 추가 · 삭제 중 연결이 하나는 있어야 합니다.",
+    saveVersionFieldMissing:
+      "버전 필드가 표에 없습니다 — 다른 필드를 고르거나 충돌 감지를 먼저 끄세요.",
+    filterTargetsHost: "목록을 거르는 것은 필터 바만 할 수 있습니다.",
+    filterTargetSelf: "필터 바는 자기 자신을 거를 수 없습니다.",
+    filterTargetTaken:
+      "그 목록은 이미 다른 필터 바가 거릅니다 — 목록 하나에 필터 바는 하나입니다.",
+    filterTargetCollection:
+      "한 필터 바가 거르는 목록은 같은 데이터 표를 읽어야 합니다.",
     variableNameShadows:
       "그 이름을 이미 읽는 자리가 있어 다른 변수의 값을 가로채게 됩니다 — 다른 이름을 쓰세요",
     itemKeyTaken:
@@ -4028,6 +4038,8 @@ const formattedMessages: Record<
   "filterBar.conditionActions": (args) => `${String(args?.name ?? "")} 동작`,
   "filterBar.group": (args) =>
     `묶음 (조건 ${String(args?.count ?? "")}) — 조건 빌더에서 고칩니다`,
+  "filterBar.groupName": (args) =>
+    `묶음 (조건 ${String(args?.count ?? "")})`,
   "validationRules.actions": (args) => `${String(args?.name ?? "")} 동작`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
   "dataView.existingControl": (args) => `기존 · ${String(args?.control ?? "")}`,

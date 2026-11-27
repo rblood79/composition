@@ -261,6 +261,12 @@ export interface TranslationKeys {
     saveKeyFieldRequired: string;
     saveBatchIfMatch: string;
     saveEndpointMethod: string;
+    saveConnectionRequired: string;
+    saveVersionFieldMissing: string;
+    filterTargetsHost: string;
+    filterTargetSelf: string;
+    filterTargetTaken: string;
+    filterTargetCollection: string;
     itemKeyTaken: string;
   };
   history: {

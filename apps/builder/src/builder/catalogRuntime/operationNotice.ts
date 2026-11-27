@@ -36,6 +36,14 @@ const REASON_KEY: Record<string, string> = {
   SAVE_KEY_FIELD_REQUIRED: "operation.saveKeyFieldRequired",
   SAVE_BATCH_IF_MATCH: "operation.saveBatchIfMatch",
   SAVE_ENDPOINT_METHOD: "operation.saveEndpointMethod",
+  // (Rows' sending with every connection 「None」 · a version field the schema lost.)
+  SAVE_CONNECTION_REQUIRED: "operation.saveConnectionRequired",
+  SAVE_VERSION_FIELD_MISSING: "operation.saveVersionFieldMissing",
+  // ADR-320: a filter bar's lists (a paste · an AI edit can name them).
+  FILTER_TARGETS_HOST: "operation.filterTargetsHost",
+  FILTER_TARGET_SELF: "operation.filterTargetSelf",
+  FILTER_TARGET_TAKEN: "operation.filterTargetTaken",
+  FILTER_TARGET_COLLECTION: "operation.filterTargetCollection",
 };
 
 /**

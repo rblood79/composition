@@ -457,6 +457,16 @@ const catalog: TranslationKeys = {
       "A batch carries the version in its body — If-Match cannot state each row's.",
     saveEndpointMethod:
       "Each connection has its methods — update PATCH · PUT, create POST, delete DELETE, batch POST; the read-by-key one is GET.",
+    saveConnectionRequired:
+      "Sending row by row needs at least one connection — Update, Add or Delete.",
+    saveVersionFieldMissing:
+      "The version field is not in the table — choose another field or turn conflict detection off first.",
+    filterTargetsHost: "Only a filter bar can filter lists.",
+    filterTargetSelf: "A filter bar can't filter itself.",
+    filterTargetTaken:
+      "That list is already filtered by another filter bar — a list takes one filter bar.",
+    filterTargetCollection:
+      "A filter bar's lists must read the same data table.",
     variableNameShadows:
       "Something already reads that name and would start reading this variable — choose another name",
     itemKeyTaken:
@@ -4037,8 +4047,14 @@ const formattedMessages: Record<
   "filterBar.filteredBy": (args) => `Filtered by ${String(args?.name ?? "")}`,
   "filterBar.fieldActions": (args) => `${String(args?.name ?? "")} actions`,
   "filterBar.conditionActions": (args) => `${String(args?.name ?? "")} actions`,
-  "filterBar.group": (args) =>
-    `Group (${String(args?.count ?? "")} conditions) — edit it in the condition builder`,
+  "filterBar.group": (args) => {
+    const count = Number(args?.count ?? 0);
+    return `Group (${count} ${count === 1 ? "condition" : "conditions"}) — edit it in the condition builder`;
+  },
+  "filterBar.groupName": (args) => {
+    const count = Number(args?.count ?? 0);
+    return `Group (${count} ${count === 1 ? "condition" : "conditions"})`;
+  },
   "validationRules.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
   "dataView.existingControl": (args) =>

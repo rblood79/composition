@@ -176,7 +176,9 @@ function TreeEditor({
                 {warn ? ` — ${t("filterBar.refused")}` : ""}
               </p>
               <PropertyRowMenu
-                label={t("filterBar.conditionActions", { name: item.id })}
+                label={t("filterBar.conditionActions", {
+                  name: t("filterBar.groupName", { count: item.items.length }),
+                })}
                 items={[{ id: "remove", label: t("filterBar.remove") }]}
                 onAction={() => write(items.filter((other) => other !== item))}
               />
