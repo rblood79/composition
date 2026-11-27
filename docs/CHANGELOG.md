@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Library 카드 — 원본 옆 「채운 instance」 제거 (모든 카드)] - 2026-11-27
+
+### Changed
+
+- **Library 카드의 ◇ instance**: Navigator → Components → Library 의 카드는 ◆ 원본만 그리고, slot 을 채운 ◇ instance 를 옆에 두지 않는다 — ActionBar · StepList · Stepper · SegmentedControl · SelectBoxGroup · ResizablePanelGroup · FilterBar · ActionButtonGroup · ColorSwatchPicker 카드에서 빠졌다.
+  - **Why**: 2026-10-25 사용자 결정 「instance 객체 삭제」 를 컴포넌트 이름 목록 (`ORIGIN_ONLY_CARDS`) 으로 적용해, 그 뒤에 추가된 원본에는 instance 가 다시 붙었다. 목록과 instance 칸을 지워 모든 카드에 적용한다.
+  - live (Builder 5173 새 프로젝트 → Library, Chrome): 9 개 카드 모두 Layers 에 제목 + ◆ 원본 한 줄만.
+  - 위치: `catalogRuntime/componentsPage.ts` · 회귀 `catalogRuntime/__tests__/libraryOriginOnlyCards.test.ts`
+
 ## [ADR-320 Implemented — 필터 바 (칩 줄 · 조건 빌더 · 서버 후보 값)] - 2026-11-27
 
 ### Fixed

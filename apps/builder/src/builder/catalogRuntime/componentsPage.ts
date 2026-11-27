@@ -68,7 +68,7 @@ import {
  * that draws every built-in component origin as a numbered card, in palette order over a few
  * columns, after the theme's cards (01–04: colors, type scale, icons, spacing — read from the
  * theme token tables in the workspace's color mode). A card shows the origin (◆ — its one editable sample: its props and styles are the
- * project's override of that origin, `originView` holds the edit rules) with its slots empty, an instance (◇) beside it filled, a collection's item, then its instances (◇): variants × states (a line per variant when
+ * project's override of that origin, `originView` holds the edit rules) with its slots empty, a collection's item, then its instances (◇): variants × states (a line per variant when
  * it has state variants — `<origin>--<state>`, instances of the origin — else its variants side
  * by side); a card draws no line of sizes (user 2026-10-06: it took most of a card). All of it is graph view entries (never saved, exported or indexed). The
  * Layers tree lists the page as card → origin and instances (`catalogComponentsPageRows`).
@@ -121,53 +121,6 @@ const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
   "ContextualHelp",
   "Menu",
   "ActionMenu",
-]);
-/**
- * Origins whose card draws the origin alone — no filled instance beside it (user 2026-10-25
- * 「61.dialog, 62.popover, 63. 모두 instance 객체 삭제」 · 「CardView 에 instance 그룹 삭제」). Its
- * other lines (Item · States) stay.
- */
-const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
-  "Dialog",
-  "AlertDialog",
-  "CustomDialog",
-  "FullscreenDialog",
-  "PreviewTrigger",
-  "Sheet",
-  "Popover",
-  "ContextualHelp",
-  "CardView",
-  // (Collections · groups · containers — user 2026-10-25 「… 에 instance 제거」.)
-  "ListBox",
-  "GridList",
-  "Tree",
-  // (ADR-300 — a SideNav is a collection: its items are the Item line.)
-  "SideNav",
-  "Table",
-  "CheckboxGroup",
-  "RadioGroup",
-  "Toolbar",
-  "ToggleButtonGroup",
-  "ButtonGroup",
-  // (A group of Buttons too — its Buttons slot (5745593c4) filled the card's Instance line.)
-  "Pagination",
-  "Accordion",
-  "Nav",
-  "Card",
-  // (S2 체크리스트 §9.3 (6-7): the Card presets.)
-  "AssetCard",
-  "UserCard",
-  "ProductCard",
-  "CollectionCard",
-  "Tabs",
-  "Breadcrumbs",
-  "AvatarGroup",
-  "Form",
-  "TagGroup",
-  // (User 2026-10-25 「menu - menu(instance) … 삭제」 · 「tooltip - tooltip(instance) … 삭제」.)
-  "Menu",
-  "ActionMenu",
-  "Tooltip",
 ]);
 /**
  * Origins whose card draws no Item line (user 2026-10-25 「Nav - Item(text), instance(자식들포함)도
@@ -1218,11 +1171,6 @@ export function catalogComponentsPageEntries(
         ),
       ];
     };
-    // The origin (its slots empty) and, where a slot holds something, an instance of it beside
-    // it: the component as a page uses it.
-    const filled =
-      !ORIGIN_ONLY_CARDS.has(origin.name) &&
-      slots.some((slot) => !unfilled(slot));
     // ADR-278 (user decision 2): the open body stands right of the trigger (a Dialog's · a Popover's under it) — a line of its own
     // (the trigger node draws no box of its own, `display: contents`). The frame is layout only
     // (not a Layers row on a derived page).
@@ -1242,12 +1190,13 @@ export function catalogComponentsPageEntries(
           alignItems: "flex-start",
         })
       : undefined;
+    // The origin alone — no filled instance beside it (user 2026-10-25 「instance 객체 삭제」 card
+    // by card, 2026-11-27 for every card: a list of names let origins added later draw it again).
     const originCells: PageCell[] = [
       {
         sample: bodyLine ?? sampleId,
         captions: [],
       },
-      ...(filled ? [instance("instance", origin.name, origin.id, {})] : []),
     ];
     // The card's other lines (variants, states, items, types) — the Origin line goes first.
     const lines: NodeId[] = [];
