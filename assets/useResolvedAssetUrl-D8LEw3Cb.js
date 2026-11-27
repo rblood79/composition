@@ -1,0 +1,1 @@
+import{i as e}from"./rolldown-runtime-COiEfhsA.js";import{ka as t}from"./aria-runtime-Dm9-oS99.js";import{i as n,s as r}from"./assetRef-BpHGz4iR.js";import"./src-C4Vk8CBu.js";var i=e(t(),1);function a(e){return(0,i.useSyncExternalStore)(r,()=>n(e))}export{a as t};

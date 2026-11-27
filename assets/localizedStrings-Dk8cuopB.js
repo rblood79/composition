@@ -1,0 +1,1 @@
+import{ci as e}from"./aria-runtime-Dm9-oS99.js";function t(e,t){return e[t.split(`-`)[0]??`en`]??e.en}function n(n){return t(n,e().locale)}export{n,t};
