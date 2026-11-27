@@ -200,7 +200,11 @@ import {
   resizablePanelGroupBinding,
 } from "./Resizable.binding";
 import { filterBarBinding, filterChipBinding } from "./FilterBar.binding";
-import { stepBinding, stepListBinding } from "./StepList.binding";
+import {
+  stepBinding,
+  stepListBinding,
+  stepperBinding,
+} from "./StepList.binding";
 
 export * from "./Avatar.binding";
 export * from "./AvatarGroup.binding";
@@ -613,6 +617,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   FilterChip: filterChipBinding,
   // ADR-321: StepList · Step (`StepList.binding.ts`).
   StepList: stepListBinding,
+  Stepper: stepperBinding,
   Step: stepBinding,
   Table: tableBinding,
   // ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25): Table 가족의 자식 노드

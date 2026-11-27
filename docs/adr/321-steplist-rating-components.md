@@ -160,7 +160,9 @@ Accepted — 2026-11-27 (Proposed 2026-11-26)
 - **3** = 「자유 이동」 스위치 추가 · 기본 선형 (Phase 2 착수 때 답). 선형은 v3 state hook 대조, 자유 이동은 따로 적은 정답표로 고정한다 (Decision 3 그대로). 스위치의 이름은 `allowsFreeNavigation` (composition 확장).
 - 색 대체 둘 (design-data 와 한 단 차이 — breakdown §5.3) 은 그대로 둔다 — 새 토큰 없음 (Phase 1 보고 뒤 답).
 - 표에 없던 것 — **StepList 목록의 이름** (Phase 0 발견 2) = RAC `Group` 으로 감싸기 (Decision 2). D1 예외 0 유지.
-- 남은 것: 2 (Phase 3 에 닿을 때) · 5 · 6 · 7 (Phase 4 · 5).
+- **2** = StepPanel 을 넣는다 — Tabs 의 짝 방식 (Phase 3 착수 때 답, 2026-11-27). 자리 = 감싸는 새 type `Stepper` (같은 날 답 — ReUI Stepper · Tabs 의 모양): `Stepper > StepList + StepPanel…`. StepList 는 Phase 1 · 2 그대로 쓰고 패널은 「단계 목록」 group 밖에 놓인다. 기각: StepList 직계 자식 (배치를 grid 로 바꾸고 패널이 group 안에 든다) · StepList 형제 (선례 없는 형제 짝 · frame 을 풀면 짝이 깨짐).
+- Phase 2 의 정한 것 5 (자유 이동에서도 건너뛴 단계는 완료) = 그대로 (2026-11-27 확인).
+- 남은 것: 5 · 6 · 7 (Phase 4 · 5).
 
 ## Risks
 

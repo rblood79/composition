@@ -1107,6 +1107,12 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "step",
     icon: "CircleDot",
   }),
+  // ADR-321 Phase 3 (결정 2): a StepList with its steps' content panels (`stepListOrigins.ts`).
+  primitiveEntry("Stepper", "collections", FAMILY_4_CUTOVER, {
+    category: "layout",
+    label: "stepper",
+    icon: "ListIcon",
+  }),
   // Menu — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 2026-06-04): Menu 는 캔버스에서
   //   trigger Button 과 동일한 시각 요소(RAC 표준 MenuTrigger>Button+Popover>Menu — 초기 화면에
   //   보이는 것은 trigger Button, 메뉴 리스트는 Popover 안에 숨김). Skia 정적 캔버스는 popover 를
@@ -1682,6 +1688,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Breadcrumbs",
   // ADR-321: Spectrum StepList — three steps (`stepListOrigins.ts`).
   "StepList",
+  // ADR-321 Phase 3: the StepList with a panel per step (`component-stepper`).
+  "Stepper",
   "Link",
   "Nav",
   "Pagination",

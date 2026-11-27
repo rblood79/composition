@@ -196,6 +196,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "step list",
     icon: "ListIcon",
   },
+  // ADR-321 Phase 3: the StepList with a panel per step.
+  {
+    type: "Stepper",
+    category: "layout",
+    label: "stepper",
+    icon: "ListIcon",
+  },
   {
     type: "Link",
     category: "layout",

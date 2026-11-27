@@ -335,6 +335,9 @@ import {
   catalogPickerTimeGranularity,
   catalogSliderRange,
   catalogStepListInput,
+  catalogStepPanelWaiting,
+  catalogStepperModel,
+  catalogStepperOf,
   catalogTabsSelection,
   catalogToggleGroupItems,
   catalogToggleGroupOf,
@@ -4551,6 +4554,63 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               })
             : null,
         },
+        ...renderAll(input),
+      );
+    },
+  },
+  // ADR-321 Phase 3 (사용자 결정 2): a Stepper is a role-less box around its StepList and the steps'
+  //  panels — the panels sit outside the list's named group.
+  stepper: {
+    render: (input) =>
+      createElement(
+        "div",
+        { ...marker(input), ...chrome(input, "Stepper"), style: input.style },
+        ...renderAll(input),
+      ),
+  },
+  // A StepPanel is drawn while its step is its Stepper's current one — the list's key as it stands
+  //  (a press · a rule's Do in a running Preview write the list's runtime value: the panel renders
+  //  again with the list, `watchesChildren`), the pairing the Canvas reads (`catalogStepperModel`).
+  steppanel: {
+    watchesChildren: (node, root) => {
+      const stepper = catalogStepperOf(node, domGet(root), groupTypeOf(root));
+      const list =
+        stepper &&
+        catalogStepperModel(stepper, domGet(root), groupTypeOf(root)).list;
+      return list ? [list.id] : [];
+    },
+    render: (input) => {
+      const get = domGet(input.root);
+      const typeOf = groupTypeOf(input.root);
+      const stepper = catalogStepperOf(input.node, get, typeOf);
+      const list = stepper && catalogStepperModel(stepper, get, typeOf).list;
+      const listProps = list && {
+        ...list.props,
+        ...input.runtimeProps?.(list.id),
+        selectedKey:
+          catalogRuntimeStateOf(
+            input.root,
+            list,
+            input.runtimeProps?.(list.id),
+            "selectedKey",
+            input.runtimeProps,
+          ) ?? null,
+        lastCompletedStep:
+          catalogRuntimeStateOf(
+            input.root,
+            list,
+            input.runtimeProps?.(list.id),
+            "lastCompletedStep",
+            input.runtimeProps,
+          ) ?? null,
+      };
+      if (
+        catalogStepPanelWaiting(input.node, get, typeOf, listProps || undefined)
+      )
+        return createElement(Fragment, { key: input.node.id });
+      return createElement(
+        "div",
+        { ...marker(input), ...chrome(input, "StepPanel"), style: input.style },
         ...renderAll(input),
       );
     },

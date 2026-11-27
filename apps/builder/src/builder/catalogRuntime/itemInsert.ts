@@ -340,12 +340,12 @@ export function catalogItemInsertChoices(
     const count = rows.filter(
       (row) => typeOf(graph, row.definitionId) === itemType,
     ).length;
-    // A Tab or Tag reads like its siblings ("Tab 3"); other items "Item <n>".
+    // A Tab, Tag or Step reads like its siblings ("Tab 3"); other items "Item <n>".
     return catalogItemRowFill(
       graph.library,
       definitionId,
       named ??
-        `${itemType === "Tab" || itemType === "Tag" ? itemType : "Item"} ${count + 1}`,
+        `${["Tab", "Tag", "Step"].includes(itemType) ? itemType : "Item"} ${count + 1}`,
     );
   };
 
@@ -411,20 +411,33 @@ export function catalogItemInsertChoices(
       // S2 체크리스트 §9.3: the item, then its help — S2 `ContextualHelpPopover` (the ContextualHelp
       // origin's padded box: `Popover > frame (268 · 24) > Heading[slot=title] + Content > Text`),
       // placed as S2 places it (offset −2 · cross offset −8 — `Menu.tsx:1081`).
-      const set = <T,>(value: T) => ({ kind: "set" as const, value });
+      const set = <T>(value: T) => ({ kind: "set" as const, value });
       const item = menuItem("Unavailable");
-      const text = entry("lib:definition:text" as NodeEntry["definitionId"], "Text", {
-        children: "Contact your administrator for permission to use this item.",
-        size: "S",
-      });
-      const content = entry(catalogTypeDefinitionId("Content"), "Content", undefined, [
-        text.id,
-      ]);
+      const text = entry(
+        "lib:definition:text" as NodeEntry["definitionId"],
+        "Text",
+        {
+          children:
+            "Contact your administrator for permission to use this item.",
+          size: "S",
+        },
+      );
+      const content = entry(
+        catalogTypeDefinitionId("Content"),
+        "Content",
+        undefined,
+        [text.id],
+      );
       const title: NodeEntry = {
         ...entry(
           "lib:definition:origin-component-heading" as NodeEntry["definitionId"],
           "Heading",
-          { slot: "title", children: "Permission required", size: "S", level: 2 },
+          {
+            slot: "title",
+            children: "Permission required",
+            size: "S",
+            level: 2,
+          },
         ),
         layout: { marginBottom: set("8px") },
       };
@@ -575,7 +588,13 @@ export function catalogItemInsertChoices(
       ...created,
       descendantOverrides: fill.patches(created.id),
     };
-    const panels = itemType === "Tab";
+    // (A Tab's TabPanel; a Step's StepPanel — the command places it only in a Stepper, ADR-321.)
+    const panelType =
+      itemType === "Tab"
+        ? "TabPanel"
+        : itemType === "Step"
+          ? "StepPanel"
+          : undefined;
     // S2 `MenuSection` (2026-11-18) · `PickerSection` (a ListBox's, 2026-11-22) draws a Divider after
     // itself: a new section comes with its Separator, in the same list (hidden while it ends the
     // list — `catalogCollectionSeparatorHidden`).
@@ -589,11 +608,11 @@ export function catalogItemInsertChoices(
       rootId: item.id,
       key,
       ...(divider ? { after: [divider] } : {}),
-      ...(panels
+      ...(panelType
         ? {
             panel: entry(
-              catalogPaletteDefinitionId(graph.library, "TabPanel"),
-              "TabPanel",
+              catalogPaletteDefinitionId(graph.library, panelType),
+              panelType,
               { itemId: key },
             ),
           }

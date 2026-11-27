@@ -298,32 +298,63 @@ function collectionKeys(draft: CommandDraft, host: NodeParent): Set<string> {
 }
 
 /**
+ * The keyed pairs: an item's panel type, the node that holds both (the item through its list), and
+ * an authored host of the panels inside it. Tabs (ADR-310) and a Stepper's Steps (ADR-321 Phase 3 —
+ * a StepList outside a Stepper has no panels).
+ */
+const PANEL_PAIRS: Readonly<
+  Record<string, { owner: string; panel: string; panelsHost?: string }>
+> = {
+  Tab: { owner: "Tabs", panel: "TabPanel", panelsHost: "TabPanels" },
+  Step: { owner: "Stepper", panel: "StepPanel" },
+};
+
+/** The node a keyed item's panels sit in (a Tab's Tabs, a Step's Stepper), if it has one. */
+export function catalogPanelOwnerOf(
+  draft: CommandDraft,
+  item: NodeParent,
+): NodeParent | undefined {
+  const pair = PANEL_PAIRS[positionType(draft, item)];
+  if (!pair) return undefined;
+  let owner = parentOf(draft, item);
+  while (
+    owner &&
+    owner.kind !== "page" &&
+    positionType(draft, owner) !== pair.owner
+  )
+    owner = parentOf(draft, owner);
+  return owner && owner.kind !== "page" ? owner : undefined;
+}
+
+/**
  * ADR-310 Decision 4 — a Tab's paired TabPanels: the TabPanels (directly in its Tabs, or in an
  * authored TabPanels host) whose `itemId` is the Tab's key. A delete · duplicate of the Tab takes
- * them along in the same command, so no TabPanel is left without its Tab.
+ * them along in the same command, so no TabPanel is left without its Tab. ADR-321 Phase 3: a Step's
+ * StepPanels in its Stepper, the same way.
  */
 export function catalogPairedTabPanels(
   draft: CommandDraft,
   tab: NodeParent,
 ): NodeParent[] {
-  if (tab.kind === "page" || positionType(draft, tab) !== "Tab") return [];
+  if (tab.kind === "page") return [];
+  const pair = PANEL_PAIRS[positionType(draft, tab)];
+  if (!pair) return [];
   const key = keyOf(readProp(draft.reader, tab, "id"));
   if (key === undefined) return [];
-  let tabs = parentOf(draft, tab);
-  while (tabs && tabs.kind !== "page" && positionType(draft, tabs) !== "Tabs")
-    tabs = parentOf(draft, tabs);
-  if (!tabs || tabs.kind === "page") return [];
+  const tabs = catalogPanelOwnerOf(draft, tab);
+  if (!tabs) return [];
   const hosts = [
     tabs,
     ...childPositions(draft, tabs).filter(
-      (child) => positionType(draft, child) === "TabPanels",
+      (child) =>
+        !!pair.panelsHost && positionType(draft, child) === pair.panelsHost,
     ),
   ];
   return hosts
     .flatMap((host) => childPositions(draft, host))
     .filter(
       (child) =>
-        positionType(draft, child) === "TabPanel" &&
+        positionType(draft, child) === pair.panel &&
         keyOf(readProp(draft.reader, child, "itemId")) === key,
     );
 }
@@ -531,7 +562,15 @@ export const insertCollectionItem =
       input.newId,
       input.after,
     );
-    if (family.panels) {
+    // (A StepList's Steps have panels only inside a Stepper — ADR-321 Phase 3.)
+    if (
+      family.panels &&
+      (family.item !== "Step" ||
+        (() => {
+          const owner = parentOf(draft, input.host);
+          return !!owner && positionType(draft, owner) === "Stepper";
+        })())
+    ) {
       const owner = parentOf(draft, input.host);
       const panels = owner
         ? childPositions(draft, owner).find(

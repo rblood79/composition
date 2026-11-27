@@ -246,7 +246,7 @@ describe("ADR-321 G1 — StepList registration · static shape (Canvas records �
         .texts(added)
         .filter((text) => !text.hidden)
         .map((text) => text.props.children),
-    ).toEqual(["Item 4"]);
+    ).toEqual(["Step 4"]);
     expect(typeof added.props.id).toBe("string");
     t.workspace.undo();
     expect(t.states()).toEqual([

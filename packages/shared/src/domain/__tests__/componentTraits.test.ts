@@ -506,6 +506,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       ResizablePanel: ["ResizablePanelGroup"],
       ResizableHandle: ["ResizablePanelGroup"],
       Step: ["StepList"],
+      StepPanel: ["Stepper"],
     });
   });
 });

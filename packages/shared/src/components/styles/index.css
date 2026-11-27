@@ -117,6 +117,8 @@
 /* ADR-321 — StepList · Step. */
 @import "./generated/StepList.css";
 @import "./generated/Step.css";
+@import "./generated/Stepper.css";
+@import "./generated/StepPanel.css";
 @import "./generated/Card.css";
 /* Nav — 생성 시트가 번들에 실리지 않아 catalog height 가 DOM 에 닿지 않았다 (2026-09-17, CHANGELOG). */
 @import "./generated/Nav.css";

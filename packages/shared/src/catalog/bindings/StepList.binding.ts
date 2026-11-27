@@ -105,3 +105,14 @@ export const stepBinding: PrimitiveBinding = {
     toRacProps: "default",
   },
 };
+
+/**
+ * ADR-321 Phase 3 (사용자 결정 2 · 자리 「감싸는 새 type」, 2026-11-27): `Stepper > StepList + StepPanel…`
+ * — the list and each step's content as one unit (ReUI `Stepper` · Tabs' shape). It has no prop of its
+ * own: the current step is its StepList's (`selectedKey` …), a StepPanel pairs with its Step by key
+ * (`itemId`). The DOM box is a role-less `div` — the panels sit outside the list's named group.
+ */
+export const stepperBinding: PrimitiveBinding = {
+  source: { kind: "internal", renderer: "stepper" },
+  props: { accepts: {}, toRacProps: "default" },
+};

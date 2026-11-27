@@ -369,18 +369,48 @@ export function catalogItemKeyRenameCommands(
       ? catalogAccordionOf(item, lookup(root), typeOf(root))
       : undefined;
   if (accordion) write(accordion, ["expandedKeys", "defaultExpandedKeys"]);
-  // (A Tab's paired TabPanel — in this Tabs' TabPanels, at any depth.)
-  if (root.typeOf(item) === "Tab" && group) {
+  // ADR-321: a StepList's keys name its Steps (not a RAC selection group — `catalogSelectionGroupOf`
+  //  has none for it): its current · last completed step and disabled keys follow the rename.
+  const stepList =
+    root.typeOf(item) === "Step"
+      ? root.canvasInputs.get(item.parentId)
+      : undefined;
+  if (stepList && root.typeOf(stepList) === "StepList")
+    write(stepList, [
+      "selectedKey",
+      "defaultSelectedKey",
+      "lastCompletedStep",
+      "defaultLastCompletedStep",
+      "disabledKeys",
+    ]);
+  // (A Tab's paired TabPanel — in this Tabs' TabPanels, at any depth. ADR-321 Phase 3: a Step's
+  //  StepPanel in its Stepper — the StepList's parent.)
+  const pairHost =
+    root.typeOf(item) === "Tab"
+      ? group && { host: group, panel: "TabPanel", owner: "Tabs" }
+      : root.typeOf(item) === "Step"
+        ? (() => {
+            const list = root.canvasInputs.get(item.parentId);
+            const stepper = list && root.canvasInputs.get(list.parentId);
+            return stepper && root.typeOf(stepper) === "Stepper"
+              ? { host: stepper, panel: "StepPanel", owner: "Stepper" }
+              : undefined;
+          })()
+        : undefined;
+  if (pairHost) {
     const visit = (record: CatalogConsumerNode): void => {
       for (const id of record.children) {
         const child = root.canvasInputs.get(id);
         if (!child) continue;
-        if (root.typeOf(child) === "TabPanel" && child.props.itemId === before)
+        if (
+          root.typeOf(child) === pairHost.panel &&
+          child.props.itemId === before
+        )
           write(child, ["itemId"]);
-        else if (root.typeOf(child) !== "Tabs") visit(child);
+        else if (root.typeOf(child) !== pairHost.owner) visit(child);
       }
     };
-    visit(group);
+    visit(pairHost.host);
   }
   return commands;
 }

@@ -242,7 +242,7 @@
 |   0   | 코드 사실 재대조 · design-data 스키마와 토큰 표 고정 · 시제품 2 · 번들 기준선                                                   |  G0  |
 |   1   | StepList · Step 등록 (binding · rule · template · traits · nesting · d2Provenance 의 `design-data` 값) · Canvas 정적 · contract |  G1  |
 |   2   | StepList 동작 — 상태 규칙 · Link 조립 · 이름 붙인 상태 2 · When 2 · Do 4                                                        |  G2  |
-|   3   | StepPanel (결정 2) — 짝 명령 · 고른 단계의 패널 · Form 연결 live                                                                |  G3  |
+|   3   | StepPanel (결정 2 — 감싸는 Stepper) — 짝 명령 · 고른 단계의 패널 · Form 연결 live                                               |  G3  |
 |   4   | Rating 등록 · Canvas 정적 · 반쪽 별                                                                                             |  G4  |
 |   5   | Rating 동작 — Slider 조립 · 표시 전용 · 값 연동 · 폼 필드 (결정 5)                                                              |  G5  |
 |   6   | 번들 · 종결 live · 문서 (규칙 · CHANGELOG)                                                                                      |  G6  |
@@ -529,15 +529,62 @@ HEAD `f4a9c4b51` 위 worktree 커밋 `3718e2423` (Phase 1 과 같은 커밋). co
 2. 읽기 전용 목록은 Do 를 받는다 (v3: `isReadOnly` 는 `isSelectable` 에만). concept 의 guard 는 `isDisabled` · `disabledKeys` 둘이다 — 다른 컴포넌트의 값 concept 은 `isReadOnly` 도 Do 를 막는다.
 3. 「다음 단계」 는 마지막 단계에서, 「이전 단계」 는 첫 단계에서 머문다 (성공, 쓰기 없음). 실패로 두면 「Submit → 단계 완료 · 다음 단계」 규칙이 마지막 단계에서 경고를 낸다.
 4. 「단계 완료」 는 완료를 줄이지 않는다 (v3 의 setter 는 줄일 수 있다).
-5. 자유 이동에서도 건너뛴 단계는 완료가 된다 (§5.2 의 「단계로 갈 때 앞 단계까지 완료」 를 그대로 적용). 「완료는 Do 로만 바뀐다」 로 두려면 규칙이 달라진다 — 사용자 확인 대상.
+5. 자유 이동에서도 건너뛴 단계는 완료가 된다 (§5.2 의 「단계로 갈 때 앞 단계까지 완료」 를 그대로 적용). 「완료는 Do 로만 바뀐다」 로 두려면 규칙이 달라진다 — 사용자 확인 2026-11-27: 그대로.
 6. 표식은 Link 안에 있다 (표식을 눌러도 간다) — Link 의 이름은 라벨 · (설명) · 상태 문구 · 표식 숫자를 이은 글자다 (「Step 2현재2」). Phase 0 시제품은 숫자가 앞이었다.
 7. contract 를 올리지 않았다 (위).
 8. hover 색 (design-data 의 `-hover` 토큰) 은 넣지 않았다 — G2 조건 밖, Canvas 에 없는 상태다.
 
 **Phase 3 에 넘기는 것**
 
-- StepPanel (결정 2 — 아직 묻지 않았다): 짝 명령 · 고른 단계의 패널만 · Form 연결 live.
+- StepPanel (결정 2 = 넣는다, 사용자 답 2026-11-27): 짝 명령 · 고른 단계의 패널만 · Form 연결 live.
 - Code 보기의 StepList 모양.
 - 번들: 남은 여유 (위 번들 표) 안에서 StepPanel 과 Rating 을 넣어야 한다.
+
+### Phase 3 (G3) — 2026-11-27
+
+main `4e8c066ec` 위 (worktree 없이 — 사용자 지시 「321 Phase 3 을 main 에서」). contract 83 → **84** (`LIBRARY_CONTRACT_VERSION` — Stepper · StepPanel 의 정의와 원본 `component-stepper`). 문서 변환 코드 0.
+
+**사용자 답 (2026-11-27)**
+
+- 결정 2 = StepPanel 을 넣는다 (Tabs 의 짝 방식).
+- 자리 = **감싸는 새 type `Stepper`** (ReUI `Stepper` · Tabs 의 모양): `Stepper > StepList + StepPanel…`. StepList 는 Phase 1 · 2 그대로이고 패널은 「단계 목록」 group 밖이다. 기각한 자리: StepList 의 직계 자식 (목록 배치를 grid 로 바꾸고 패널이 group 안에 든다) · StepList 의 형제 (선례 없는 형제 짝 — 한 frame 에 목록 둘이면 모호, frame 을 풀면 짝이 깨짐).
+- Phase 2 의 「정한 것 5」 (자유 이동에서도 건너뛴 단계는 완료) = 그대로.
+
+**한 일**
+
+- 등록: `Stepper` (binding `stepperBinding` — prop 없음, 팔레트 `layout` 의 StepList 다음) · `StepPanel` (TabPanel 처럼 binding 없이 rule · traits · key 표 — `itemId`). rule (`rule/stepList.ts` `STEPPER_RULE` · `STEP_PANEL_RULE`): Stepper = 세로 flex · 사이 16 (`{spacing.lg}`), 패널 = 블록. design-data · v3 에 없는 두 상자라 값은 배치뿐이다. traits: `StepPanel` owners `Stepper`. 컬렉션 표의 StepList 줄에 `pair: "StepPanel"`.
+- 원본 `component-stepper` (`stepListOrigins.ts`): `Stepper` (root slot — 놓으면 목록 · 단계 · 패널을 자기 노드로) > StepList (`defaultSelectedKey` step-1) > Step 3 + StepPanel 3 (`itemId` step-1 · 2 · 3, 안에 「Step N content」 Text).
+- 짝 (Tabs 와 같은 key 짝 — `itemId` 가 있으면 key, 없으면 순서): `catalogStepperModel` · `catalogStepperOf` · `catalogStepPanelWaiting` (`presence.ts`) 을 Canvas · DOM 이 같이 읽는다. Canvas: 지금 단계가 아닌 패널은 `catalogHiddenAtRest` (지금 단계 = 상태 규칙의 `selectedKey` — 시작 값). presence scope = Stepper (Stepper · 그 안 StepList · Step · StepPanel 의 편집이 패널을 다시 판정).
+- DOM (`delegatedDom.runtime.ts`): `stepper` = role 없는 `div` (marker · class · style) 와 자식, `steppanel` = 지금 단계일 때만 `div` (아니면 요소 없음). 패널은 목록 record 를 `watchesChildren` 로 보고 목록의 실행 값 (`catalogRuntimeStateOf` — 누르기 · Do 가 쓴다) 으로 판정한다.
+- 짝 명령 (`commands/collections.ts`): `catalogPairedTabPanels` 를 짝 표 (`Tab → Tabs · TabPanel`, `Step → Stepper · StepPanel`) 로 넓혀 Step 의 삭제 · 복제가 짝 패널을 같은 명령에서 지우거나 새 key 로 복제한다. 「+」 (`insertCollectionItem`) 는 목록이 Stepper 안일 때만 패널을 같이 넣는다 (밖의 StepList 는 Step 만). builder `itemInsert.ts` 가 Step 에 StepPanel 을 붙이고, 새 Step 이름은 Tab · Tag 처럼 「Step N」 (전에는 「Item N」).
+- key 개명 (`singleSelection.ts` `catalogItemKeyRenameCommands`): Step 의 key 를 고치면 Stepper 의 짝 패널 `itemId` 와 **StepList 의 key 다섯** (`selectedKey` · `defaultSelectedKey` · `lastCompletedStep` · `defaultLastCompletedStep` · `disabledKeys`) 이 같은 편집에서 따라간다. 뒤의 것은 Phase 1 · 2 부터 빠져 있던 것이다 (StepList 는 RAC 선택 그룹이 아니라 `catalogSelectionGroupOf` 가 돌려주지 않는다) — 지금 단계의 key 를 고치면 지금 단계가 첫 단계로 돌아갔다.
+- 생성 CSS `Stepper.css` · `StepPanel.css` (index 로드).
+
+**확인 (G3)**
+
+| 항목                                                                                      | 결과                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 짝 명령 — 추가 · 삭제 · 복제 · 순서 · key 개명 · 되돌리기                                 | `adr321StepperWiring.test.tsx` 11 PASS (기대값은 손으로 적었다)                                                                                                                                                                                                                                                                                                                       |
+| 고른 단계의 패널만 보임 — Canvas record · DOM 요소                                        | 같은 파일 (원본 · 목록 key 편집 · Step 비활성 · 「+」 로 넣은 단계 선택 · DOM `div > group + 패널`)                                                                                                                                                                                                                                                                                   |
+| Form Submit → 다음 단계 · 단계 누르기 (실행 Preview)                                      | `adr321StepperRun.test.tsx` 3 PASS                                                                                                                                                                                                                                                                                                                                                    |
+| 원복 RED (변이 5, 바이트 복원 확인)                                                       | Canvas 숨김 끄기 6 RED · DOM 판정 끄기 4 · 짝 표의 Step 빼기 2 · StepList key 개명 빼기 1 · Step 편집의 scope 빼기 1                                                                                                                                                                                                                                                                  |
+| live (`scripts/adr321-g3-live.mjs`, Chrome headless · 사용자 프로젝트 아님 — 새 프로젝트) | **ALL PASS 7/7** — 팔레트 Stepper · Canvas 에 step-1 패널만 · 목록과 패널 사이 16 · 「+」 / 지금 단계 / Undo / Step 삭제 / Undo · Publish `div` > RAC Group (「단계 목록」) + 패널 (Form, group 밖) · Canvas 상자 = Publish 상자 (y · 높이 ±1 px, 폭은 Stepper 대비 — 화면 폭이 1920 · 1600) · 첫 패널 안 Form 제출 → 패널 2 · step-1 완료 · 단계 1 누르기 → Form 패널 · page error 0 |
+| 회귀                                                                                      | shared 281 파일 2,986 PASS (인벤토리 집계 둘 갱신) · builder 1,204 파일 — 실패는 부하 시간 초과 4 파일 (단독 92/92 PASS) · 병렬 세션의 미커밋 `adr320FilterScope` · 제 변경의 새 Step 이름 1 (갱신) · type-check PASS (main · HEAD + 이 변경만 둘 다)                                                                                                                                 |
+
+**번들** (HEAD `4e8c066ec` 와 HEAD + 이 Phase 의 변경만 — 격리 worktree, `vite build` → `adr209-bundle-closure.mjs`)
+
+| 대상                    | HEAD        | Phase 3 뒤  | Δ      |
+| ----------------------- | ----------- | ----------- | ------ |
+| Builder initial JS gzip | 1,656,212 B | 1,657,105 B | +893 B |
+| Preview initial JS gzip | 172,277 B   | 172,275 B   | −2 B   |
+| Preview CSS gzip        | 67,874 B    | 67,915 B    | +41 B  |
+
+- 결정 8 의 Builder 한도 +7,000 (두 컴포넌트 전체) 에서 Phase 1 · 2 · 3 이 +6,112 B — 남은 여유 **888 B** 로 Rating (Phase 4 · 5) 을 넣기 어렵다. Phase 4 착수 때 번들을 다시 묻는다 (사용자 답 「번들은 Phase 3 실측 후 결정」).
+- Builder 절대 상한 1,660,000 B 까지 2,895 B (ADR-320 과 공용).
+
+**남은 것**
+
+- Code 보기: StepList · Step · Stepper · StepPanel 을 `react-aria-components` 에서 import 하는 코드로 쓴다 — 설치 RAC 에 없는 이름이다. RAC 밖 컴포넌트 (FilterBar · Resizable 도 같은 경로) 를 코드에 어떻게 쓸지는 저장소 전체 결정이 없어 이 Phase 에서 바꾸지 않았다.
+- Layers 의 StepPanel 이름 · 아이콘, 패널 i18n 이름은 따로 두지 않았다 (type 이름 그대로).
 
 (Phase 가 닫힐 때마다 결과를 여기에 기록)

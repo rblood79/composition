@@ -13,6 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-321 Phase 3 — Stepper (단계 목록 + 단계별 패널)] - 2026-11-27
+
+### Added
+
+- 팔레트 Layout 에 **Stepper** — StepList 와 단계마다 내용 패널 (`StepPanel`) 을 한 묶음으로 둔다. 지금 단계의 패널만 보이고, 실행 중 단계를 누르거나 규칙의 「다음 단계」 (예: Form 제출) 로 단계가 바뀌면 그 패널로 바뀐다. 패널은 Step 과 key 로 짝이라 단계의 「+」 · 삭제 · 복제 · key 수정이 짝 패널을 같이 다룬다 (Undo 한 번).
+
+### Fixed
+
+- Step 의 key (Item ID) 를 고치면 그 StepList 의 현재 단계 · 마지막 완료 단계 · 비활성 단계 값도 같이 고쳐진다 — 전에는 현재 단계의 key 를 고치면 현재 단계가 첫 단계로 돌아갔다.
+- 「+」 로 넣은 단계의 이름이 「Item N」 이 아니라 「Step N」 이다.
+
 ## [StepList 컴포넌트 — 단계 표시와 이동 (ADR-321 Phase 1 · 2)] - 2026-11-27
 
 ### Added

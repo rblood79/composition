@@ -102,6 +102,8 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
   {
     owner: "StepList",
     item: "Step",
+    // (Phase 3, 결정 2: inside a Stepper each Step pairs with a StepPanel by key — Tabs' way.)
+    pair: "StepPanel",
     insert: true,
     repeat: false,
     selects: false,

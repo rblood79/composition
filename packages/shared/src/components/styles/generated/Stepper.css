@@ -1,0 +1,40 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog Stepper — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Stepper {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  /* Default variant */
+  background: undefined;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  border-radius: var(--catalog-token-radius-none);
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-Stepper {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

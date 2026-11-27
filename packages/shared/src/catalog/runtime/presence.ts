@@ -8,7 +8,9 @@ import {
 import {
   catalogStepChromeColors,
   STEP_LIST_TYPE,
+  STEP_PANEL_TYPE,
   STEP_TYPE,
+  STEPPER_TYPE,
   type StepState,
 } from "../rule/stepList";
 import {
@@ -1611,6 +1613,9 @@ export function catalogHiddenAtRest(
     if (disclosure && typeOf(disclosure) === "Disclosure")
       return !catalogDisclosureExpanded(disclosure, get, typeOf);
   }
+  // ADR-321 Phase 3: a Stepper draws its current step's panel only.
+  if (type === STEP_PANEL_TYPE)
+    return catalogStepPanelWaiting(node, get, typeOf);
   if (type === "TabPanel") {
     const tabs =
       parentType === "Tabs" ? parent : catalogPartParent(parent, get, typeOf);
@@ -1745,6 +1750,21 @@ export function catalogPresenceScope(
   }
   if (typeOf(node) === "Disclosure")
     return catalogAccordionOf(node, get, typeOf) ?? node;
+  // ADR-321 Phase 3: a Stepper's panels follow its StepList's current step (the list's keys, its
+  //   Steps' keys · disabled flags) and their own keys.
+  if (typeOf(node) === STEPPER_TYPE) return node;
+  if (typeOf(node) === STEP_LIST_TYPE || typeOf(node) === STEP_PANEL_TYPE) {
+    const stepper = catalogStepperOf(node, get, typeOf);
+    if (stepper) return stepper;
+  }
+  if (typeOf(node) === STEP_TYPE) {
+    const list = get(node.parentId);
+    const stepper =
+      list && typeOf(list) === STEP_LIST_TYPE
+        ? catalogStepperOf(list, get, typeOf)
+        : undefined;
+    if (stepper) return stepper;
+  }
   let cursor: CatalogConsumerNode | undefined = node;
   for (let depth = 0; cursor && depth < 3; depth++) {
     const type = typeOf(cursor);
@@ -1796,6 +1816,8 @@ export function catalogPresenceDependents(
     return partChildrenOf(scope, get, typeOf).filter(
       (child) => typeOf(child) === valueType,
     );
+  if (typeOf(scope) === STEPPER_TYPE)
+    return catalogStepperModel(scope, get, typeOf).panels;
   if (typeOf(scope) === "Tabs") {
     const { panels, tabs } = catalogTabsSelection(scope, get, typeOf);
     // (and the Tabs' selection indicators — ADR-256 Phase 5e)
@@ -4123,6 +4145,80 @@ export function catalogStepListInput(
     isReadOnly: props.isReadOnly === true,
     allowsFreeNavigation: props.allowsFreeNavigation === true,
   };
+}
+
+/**
+ * ADR-321 Phase 3 (사용자 결정 2): a Stepper's StepList (its first, through the frames around it), its
+ * StepPanels paired with the list's Steps (by `itemId`, else in order for a panel without a key —
+ * Tabs' pairing) and the key of the current step. `listProps` = the list's props as they stand (a
+ * running Preview's runtime values); the Canvas reads the start state.
+ */
+export function catalogStepperModel(
+  stepper: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  listProps?: Readonly<Record<string, unknown>>,
+) {
+  const direct = partChildrenOf(stepper, get, typeOf);
+  const list = direct.find((child) => typeOf(child) === STEP_LIST_TYPE);
+  const panels = direct.filter((child) => typeOf(child) === STEP_PANEL_TYPE);
+  const steps = list ? stepsOf(list, get, typeOf) : [];
+  const keyed = steps.map((step) => {
+    const key = catalogItemKey(step, typeOf);
+    return {
+      key,
+      panel: panels.find((candidate) => candidate.props.itemId === key),
+    };
+  });
+  const unkeyed = panels.filter((panel) => panel.props.itemId === undefined);
+  let next = 0;
+  const pairs = keyed.map((pair) =>
+    pair.panel ? pair : { ...pair, panel: unkeyed[next++] },
+  );
+  const currentKey = list
+    ? catalogStepListStates(
+        catalogStepListInput(list, get, typeOf, listProps ?? list.props),
+      ).selectedKey
+    : null;
+  return { list, panels, pairs, currentKey };
+}
+
+/** ADR-321 Phase 3: the Stepper a StepPanel · StepList sits in (through the frames around it). */
+export function catalogStepperOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const parent = get(node.parentId);
+  if (!parent) return undefined;
+  const owner =
+    typeOf(parent) === STEPPER_TYPE
+      ? parent
+      : catalogPartParent(parent, get, typeOf);
+  return owner && typeOf(owner) === STEPPER_TYPE ? owner : undefined;
+}
+
+/**
+ * ADR-321 Phase 3: whether a StepPanel waits (its step is not the current one — only the current
+ * step's panel is drawn; a panel no Step names is not drawn either). Outside a Stepper it shows.
+ */
+export function catalogStepPanelWaiting(
+  panel: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  listProps?: Readonly<Record<string, unknown>>,
+): boolean {
+  const stepper = catalogStepperOf(panel, get, typeOf);
+  if (!stepper) return false;
+  const { pairs, currentKey } = catalogStepperModel(
+    stepper,
+    get,
+    typeOf,
+    listProps,
+  );
+  return !pairs.some(
+    (pair) => pair.panel?.id === panel.id && pair.key === currentKey,
+  );
 }
 
 /**

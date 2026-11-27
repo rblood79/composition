@@ -25,10 +25,26 @@ export const STEP_LIST_DEFINITIONS: readonly LibraryDefinition[] = [
     stateRules: {},
     templateRootId: "lib:template:component-steplist",
   },
+  // ADR-321 Phase 3 (사용자 결정 2 · 자리 「감싸는 새 type」, 2026-11-27): the StepList and one panel per
+  // step (paired by key — `itemId` ↔ the Step's `id`); only the current step's panel is drawn.
+  {
+    id: "lib:definition:origin-component-stepper",
+    name: "Stepper",
+    mode: "composite",
+    accepts: {},
+    defaults: {},
+    visual: {},
+    stateRules: {},
+    templateRootId: "lib:template:component-stepper",
+  },
 ];
 
-const step = (n: number, label: string): LibraryTemplateNode => ({
-  id: `lib:template:component-steplist__step-${n}`,
+const step = (
+  n: number,
+  label: string,
+  stem: `lib:template:${string}` = "lib:template:component-steplist",
+): LibraryTemplateNode => ({
+  id: `${stem}__step-${n}`,
   definitionId: "lib:definition:origin-component-step",
   children: [],
   props: { id: `step-${n}`, label },
@@ -81,4 +97,52 @@ export const STEP_LIST_TEMPLATES: readonly LibraryTemplateNode[] = [
   step(1, "Step 1"),
   step(2, "Step 2"),
   step(3, "Step 3"),
+  // (The placed Stepper owns its StepList · Steps · StepPanels through its root slot — Tabs' way.)
+  {
+    id: "lib:template:component-stepper",
+    definitionId: "lib:definition:type-Stepper",
+    slot: { name: "Stepper", required: false },
+    children: [
+      "lib:template:component-stepper__list",
+      ...[1, 2, 3].map(
+        (n) => `lib:template:component-stepper__panel-${n}` as const,
+      ),
+    ],
+    props: {},
+    visual: { width: "100%" },
+  },
+  {
+    id: "lib:template:component-stepper__list",
+    definitionId: "lib:definition:type-StepList",
+    children: [1, 2, 3].map(
+      (n) => `lib:template:component-stepper__list__step-${n}` as const,
+    ),
+    props: {
+      orientation: "horizontal",
+      size: "M",
+      defaultSelectedKey: "step-1",
+    },
+    visual: {},
+  },
+  ...[1, 2, 3].map((n) =>
+    step(n, `Step ${n}`, "lib:template:component-stepper__list"),
+  ),
+  ...[1, 2, 3].flatMap((n): LibraryTemplateNode[] => [
+    {
+      id: `lib:template:component-stepper__panel-${n}`,
+      definitionId: "lib:definition:type-StepPanel",
+      children: [
+        `lib:template:component-stepper__panel-${n}__content` as const,
+      ],
+      props: { itemId: `step-${n}` },
+      visual: {},
+    },
+    {
+      id: `lib:template:component-stepper__panel-${n}__content`,
+      definitionId: "lib:definition:text",
+      children: [],
+      props: { children: `Step ${n} content` },
+      visual: {},
+    },
+  ]),
 ];

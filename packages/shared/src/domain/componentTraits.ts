@@ -469,6 +469,10 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ADR-321: a StepList's direct children are its Steps only.
   StepList: { container: "collection", children: ["Step"] },
   Step: { families: ["staticCollectionItem"], owners: ["StepList"] },
+  // ADR-321 Phase 3 (결정 2): a Stepper holds its StepList, the Steps' paired StepPanels and free
+  //   content (Tabs' shape); a StepPanel sits in a Stepper only.
+  Stepper: {},
+  StepPanel: { owners: ["Stepper"] },
   Breadcrumb: {
     families: ["staticCollectionItem"],
     owners: ["Breadcrumbs"],

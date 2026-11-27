@@ -431,6 +431,8 @@ const COLLECTION_KEY_ACCEPTS: Readonly<
   Record<string, Readonly<Record<string, ValueType>>>
 > = {
   TabPanel: { itemId: "string" },
+  // ADR-321 Phase 3: a StepPanel's pairing key (its Step's `id`).
+  StepPanel: { itemId: "string" },
   Column: { key: "string" },
   Tabs: { selectedKey: "string", defaultSelectedKey: "string" },
   ListBox: SELECTION_KEYS,

@@ -469,3 +469,52 @@ export const STEP_RULE: ComponentRule = {
     },
   },
 };
+
+/**
+ * ADR-321 Phase 3 (사용자 결정 2 「넣는다」 · 자리 「감싸는 새 type」, 2026-11-27) — `Stepper > StepList +
+ * StepPanel…`. Stepper 는 목록과 단계별 내용을 한 묶음으로 두는 role 없는 상자 (ReUI `Stepper` · Tabs 의
+ * 모양) 이고, StepPanel 은 Step 과 key (`itemId` ↔ Step `id`) 로 짝인 상자 — 지금 단계의 것만 그린다
+ * (`runtime/presence.ts` · `delegatedDom.runtime.ts`). design-data · v3 에 없는 두 상자라 값은 배치뿐이다:
+ * 세로로 쌓고 목록과 패널 사이 16 (`{spacing.lg}` — S2 의 패널 간격 단), 패널은 블록 내용.
+ */
+export const STEPPER_TYPE = "Stepper";
+export const STEP_PANEL_TYPE = "StepPanel";
+
+const stepperBox = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "stretch",
+  gap: "{spacing.lg}",
+};
+
+export const STEPPER_RULE: ComponentRule = {
+  defaultVariant: "default",
+  defaultSize: "M",
+  variants: { default: { paint: {} } },
+  sizes: {
+    M: { height: 0, borderRadius: "{radius.none}" },
+  },
+  containerStyles: stepperBox,
+  structure: {
+    archetype: "container",
+    element: "div",
+    containerStyles: stepperBox,
+  },
+};
+
+const stepPanelBox = { display: "block", minHeight: "0px" };
+
+export const STEP_PANEL_RULE: ComponentRule = {
+  defaultVariant: "default",
+  defaultSize: "M",
+  variants: { default: { paint: {} } },
+  sizes: {
+    M: { height: 0, borderRadius: "{radius.none}" },
+  },
+  containerStyles: stepPanelBox,
+  structure: {
+    archetype: "container",
+    element: "div",
+    containerStyles: stepPanelBox,
+  },
+};

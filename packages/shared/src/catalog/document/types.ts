@@ -209,9 +209,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      `component-step` — the Step's label · description Texts bound to its `label` · `description`),
  *      the list's 「자유 이동」 switch (`allowsFreeNavigation`) and its two state concepts (When 2 ·
  *      Do 4 — `concepts/stepList.ts`). 옛 82 문서는 열리지 않는다 (변환 없음).
+ * 84 — ADR-321 Phase 3 (사용자 결정 2): `Stepper` (StepList + 단계별 `StepPanel`, key `itemId` 로 짝) 과
+ *      그 원본 (`component-stepper`). 옛 83 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 83 as const;
+export const LIBRARY_CONTRACT_VERSION = 84 as const;
 
 export type EntryKind =
   | "project"
