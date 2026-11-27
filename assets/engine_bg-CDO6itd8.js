@@ -1,1 +1,0 @@
-var e=`/composition/assets/engine_bg-zxt-gnE7.wasm`;export{e as t};
