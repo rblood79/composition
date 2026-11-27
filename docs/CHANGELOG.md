@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [전체 메뉴에서 패널 선택 후 닫기] - 2026-11-28
+
+### Fixed
+
+- 왼쪽 상단 전체 메뉴에서 패널을 선택하면 패널의 열림 상태가 바뀌고 메뉴가 닫힌다. 검색 결과에서 선택할 때도 같은 동작을 한다.
+
 ## [Code Editor 패널 단축키] - 2026-11-28
 
 ### Added

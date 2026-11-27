@@ -227,6 +227,7 @@ function renderBlocks(
         id={block.key}
         className="header-menu-section"
         selectionMode={block.selection}
+        shouldCloseOnSelect={block.shouldCloseOnSelect}
         selectedKeys={
           block.selection === "none"
             ? undefined

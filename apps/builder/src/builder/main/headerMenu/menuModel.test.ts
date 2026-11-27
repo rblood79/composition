@@ -147,6 +147,18 @@ describe("buildMenuModel", () => {
     });
   });
 
+  it("전체 목록과 검색 결과에서 패널을 선택하면 메뉴가 닫힌다", () => {
+    const results = searchMenuModel(model, "panel", (fields) =>
+      fields.label.startsWith("panel."),
+    );
+    for (const blocks of [model, results]) {
+      const closeOnSelect = blocks.filter((block) => block.shouldCloseOnSelect);
+      expect(
+        closeOnSelect.flatMap((block) => block.entries.map((e) => e.key)),
+      ).toEqual(["panel:navigator", "panel:site", "panel:history"]);
+    }
+  });
+
   it("구분선은 구조 표의 separator 와 작업 공간 방향 경계에만 — 워크플로 ↔ 대시보드는 이어진다", () => {
     const keysOf = (block: MenuBlock) =>
       block.entries.map((entry) => entry.key).join(",");

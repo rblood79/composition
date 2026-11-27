@@ -60,6 +60,7 @@ export interface MenuBlock {
   /** 상위 하위 메뉴 라벨 — 검색 결과의 경로 머리글. */
   path: readonly string[];
   selection: MenuSelection;
+  shouldCloseOnSelect?: boolean;
   /** 앞 블록과의 사이에 구분선 — 구조 표의 `separator` · 작업 공간 방향 경계에서만. */
   separated: boolean;
   entries: (MenuLeaf | MenuSubmenu)[];
@@ -200,6 +201,7 @@ function buildBlocks(
             key: `${keyPrefix}:panels:${group.side}`,
             path,
             selection: "multiple",
+            shouldCloseOnSelect: true,
             // 방향 경계는 구분선 (머리글 대신, 사용자 2026-09-29)
             separated: blocks.length > 0 && (index > 0 || separatedNext),
             entries,
