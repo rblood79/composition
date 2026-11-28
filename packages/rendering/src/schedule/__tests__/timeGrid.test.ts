@@ -194,3 +194,70 @@ describe("layoutScheduleDayBands", () => {
     ]);
   });
 });
+
+describe("review fixes (ADR-323 Phase 1 판독)", () => {
+  const bandRows = (bands: readonly Record<string, unknown>[]) =>
+    bands.map((b) => [
+      b.key,
+      b.row,
+      b.line,
+      b.startIndex,
+      b.span,
+      b.continuesBefore,
+      b.continuesAfter,
+    ]);
+
+  it("a month cell shows a band on a line freed by ended events — no empty lines beside 「+N」", () => {
+    const layout = layoutScheduleDayBands(
+      [
+        ev("A", w(11, 23), w(11, 26), true),
+        ev("B", w(11, 24), w(11, 26), true),
+        ev("C", w(11, 25), w(11, 28), true),
+      ],
+      { days: WEEK, rowLength: 7, maxLines: 2 },
+    );
+    // Wed has three — one line and 「+2」; Thu · Fri have only C, shown on line 0.
+    expect(bandRows(layout.bands as never)).toEqual([
+      ["A", 0, 0, 0, 3, false, false],
+      ["C", 0, 0, 3, 2, true, false],
+      ["B", 0, 1, 1, 1, false, true],
+    ]);
+    expect(layout.more).toEqual([0, 0, 2, 0, 0, 0, 0]);
+    expect(layout.lines).toEqual([2]);
+  });
+
+  it("DOM order is the start time, not the top moved to fit the shown hours", () => {
+    const layout = layoutScheduleTimeGrid(
+      [
+        ev("Z-early", w(11, 23, 17, 50), w(11, 23, 18)),
+        ev("A-late", w(11, 23, 17, 55), w(11, 23, 18)),
+      ],
+      {
+        days: [w(11, 23)],
+        dayStartMinutes: 480,
+        dayEndMinutes: 1080,
+        minEventMinutes: 15,
+      },
+    );
+    expect(pick(layout.items)).toEqual([
+      ["Z-early", 0, 585, 15, 1, 2],
+      ["A-late", 0, 585, 15, 0, 2],
+    ]);
+  });
+
+  it("the 24-hour rule reads the moments when given — 24 wall hours over a spring-forward night are 23", () => {
+    const DST = { startInstant: 0, endInstant: 23 * 3_600_000 };
+    const event = { ...ev("k", w(3, 7, 12), w(3, 8, 12)), ...DST };
+    expect(scheduleGridBanded(event)).toBe(false);
+    const layout = layoutScheduleTimeGrid([event], {
+      days: [w(3, 7), w(3, 8)],
+    });
+    expect(layout.banded).toEqual([]);
+    expect(pick(layout.items)).toEqual([
+      ["k", 0, 720, 720, 0, 1],
+      ["k", 1, 0, 720, 0, 1],
+    ]);
+    // Without the moments, 24 wall hours are banded (the default).
+    expect(scheduleGridBanded(ev("k", w(3, 7, 12), w(3, 8, 12)))).toBe(true);
+  });
+});

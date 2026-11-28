@@ -5,7 +5,8 @@
  *
  * Times are **wall clock** ms (see `timeGrid.ts`). Every unit of the scale (a day, a week, a month, a
  * quarter, a year) is `unitWidth` px wide; a moment inside a unit sits at its share of the unit's
- * length — a 31-day month and a 28-day one are equally wide, as in a Gantt's header columns.
+ * length — a 31-day month and a 28-day one are equally wide, as in a Gantt's header columns. Order
+ * (a milestone, a dependency's violation) is the rows' moments when given (`startInstant`).
  *
  * Lazy: first-screen modules do not import this by value (`adr323ScheduleImports.static.test.ts`).
  */
@@ -136,25 +137,40 @@ export function createDateAxis(options: DateAxisOptions): DateAxis {
   };
 }
 
-/** A moment's x (px). Outside the window it goes on at the first · last unit's rate. */
-export function dateAxisX(axis: DateAxis, t: number): number {
-  const { units, unitWidth } = axis;
-  const last = units.length - 1;
-  if (t <= units[0]!)
-    return ((t - units[0]!) / (units[1]! - units[0]!)) * unitWidth;
-  if (t >= units[last]!)
-    return (
-      axis.width +
-      ((t - units[last]!) / (units[last]! - units[last - 1]!)) * unitWidth
-    );
-  let lo = 0;
-  let hi = last;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (units[mid]! <= t) lo = mid;
-    else hi = mid;
+/** Whole units from the unit start `from` to the unit start `to` (both of `unit`). */
+function unitsBetween(from: number, to: number, unit: DateAxisScale): number {
+  switch (unit) {
+    case "day":
+      return Math.round((to - from) / DAY_MS);
+    case "week":
+      return Math.round((to - from) / (7 * DAY_MS));
+    default: {
+      const a = new Date(from);
+      const b = new Date(to);
+      const months =
+        (b.getUTCFullYear() - a.getUTCFullYear()) * 12 +
+        (b.getUTCMonth() - a.getUTCMonth());
+      return unit === "month"
+        ? months
+        : unit === "quarter"
+          ? months / 3
+          : months / 12;
+    }
   }
-  return (lo + (t - units[lo]!) / (units[lo + 1]! - units[lo]!)) * unitWidth;
+}
+
+/**
+ * A moment's x (px) — the units from the axis start to its unit, plus its share of that unit. Outside
+ * the window it goes on by the real units there (a moment's x does not depend on the window's end —
+ * a bar's progress end stays put when the window changes).
+ */
+export function dateAxisX(axis: DateAxis, t: number): number {
+  const unit = floorUnit(t, axis.scale, axis.firstDayOfWeek);
+  const next = nextUnit(unit, axis.scale);
+  return (
+    (unitsBetween(axis.start, unit, axis.scale) + (t - unit) / (next - unit)) *
+    axis.unitWidth
+  );
 }
 
 export interface DateAxisTick {
@@ -227,6 +243,14 @@ export interface DateAxisRow {
   readonly end?: number;
   /** 0 ~ 100. */
   readonly progress?: number;
+  /**
+   * The moments (epoch ms) behind `start` · `end`. Order — an end before the start, a milestone (end =
+   * start), a dependency's violation — is read from these when given: on a fall-back day the wall
+   * clock repeats an hour, so a later moment can have an earlier wall time (it is then drawn at no
+   * width, as the time grid draws it at the least height). Default: the wall values.
+   */
+  readonly startInstant?: number;
+  readonly endInstant?: number;
   readonly parentKey?: string | null;
   /** Predecessor keys — finish → start (사용자 결정 6 권고). */
   readonly predecessors?: readonly string[];
@@ -269,8 +293,12 @@ export interface DateAxisRowsLayout {
 }
 
 interface Span {
+  /** Wall ms — the place. `end` ≥ `start`. */
   start: number;
   end: number;
+  /** The moments — the order. */
+  startAt: number;
+  endAt: number;
 }
 
 export function layoutDateAxisRows(
@@ -293,8 +321,11 @@ export function layoutDateAxisRows(
     if (row.start === undefined || !Number.isFinite(row.start))
       return undefined;
     const end = row.end ?? row.start;
-    if (!Number.isFinite(end) || end < row.start) return undefined;
-    return { start: row.start, end };
+    if (!Number.isFinite(end)) return undefined;
+    const startAt = row.startInstant ?? row.start;
+    const endAt = row.end === undefined ? startAt : (row.endInstant ?? end);
+    if (endAt < startAt) return undefined;
+    return { start: row.start, end: Math.max(end, row.start), startAt, endAt };
   };
   // A summary row spans its descendants (an own span counts only when none has one).
   const spans = new Map<string, Span | undefined>();
@@ -308,12 +339,18 @@ export function layoutDateAxisRows(
       for (const child of children) {
         const s = spanOf(child, seen);
         if (!s) continue;
-        span = span
-          ? {
-              start: Math.min(span.start, s.start),
-              end: Math.max(span.end, s.end),
-            }
-          : { ...s };
+        if (!span) span = { ...s };
+        else {
+          if (s.startAt < span.startAt) {
+            span.start = s.start;
+            span.startAt = s.startAt;
+          }
+          if (s.endAt > span.endAt) {
+            span.end = s.end;
+            span.endAt = s.endAt;
+          }
+          span.end = Math.max(span.end, span.start);
+        }
       }
     }
     span ??= ownSpan(row);
@@ -326,7 +363,7 @@ export function layoutDateAxisRows(
     if (!span) return null;
     const summary = childrenOf.has(row.key);
     const x1 = dateAxisX(axis, span.start);
-    if (!summary && span.end === span.start) {
+    if (!summary && span.endAt === span.startAt) {
       if (x1 < 0 || x1 >= axis.width) return null;
       return {
         key: row.key,
@@ -397,7 +434,7 @@ export function layoutDateAxisRows(
         from: fromKey,
         to: row.key,
         points,
-        violated: to.start < from.end,
+        violated: to.startAt < from.endAt,
       });
     }
   });

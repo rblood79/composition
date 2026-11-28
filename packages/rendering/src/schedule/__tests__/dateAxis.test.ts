@@ -235,3 +235,94 @@ describe("layoutDateAxisRows", () => {
     ]);
   });
 });
+
+describe("review fixes (ADR-323 Phase 1 판독)", () => {
+  it("a moment past the window sits at the real units there — the progress end does not move with the window", () => {
+    const task = {
+      key: "t",
+      start: w(2026, 1, 1),
+      end: w(2026, 3, 1),
+      progress: 50,
+    };
+    const both = createDateAxis({
+      start: w(2026, 1, 1),
+      end: w(2026, 3, 1),
+      scale: "month",
+      unitWidth: 310,
+    });
+    const january = createDateAxis({
+      start: w(2026, 1, 1),
+      end: w(2026, 2, 1),
+      scale: "month",
+      unitWidth: 310,
+    });
+    expect(january.width).toBe(310);
+    const [inBoth] = layoutDateAxisRows(both, [task], { rowHeight: 20 }).bars;
+    const [inJanuary] = layoutDateAxisRows(january, [task], {
+      rowHeight: 20,
+    }).bars;
+    expect([inBoth!.width, inBoth!.progressWidth]).toEqual([620, 310]);
+    expect([inJanuary!.width, inJanuary!.progressWidth]).toEqual([310, 310]);
+    // 03-01 = two months on; 03-15 = two months and 14 / 31 of March.
+    expect(dateAxisX(january, w(2026, 3, 1))).toBe(620);
+    expect(round(dateAxisX(january, w(2026, 3, 15)))).toBe(760);
+  });
+
+  it("order is the moments when given — a fall-back hour's later end with an earlier wall time", () => {
+    const axis = createDateAxis({
+      start: w(2026, 11, 1),
+      end: w(2026, 11, 2),
+      scale: "day",
+      unitWidth: 1440,
+    });
+    // 01:45 EDT (05:45Z) ~ 01:15 EST (06:15Z): 30 minutes, the wall end before the wall start.
+    const fall = {
+      start: w(2026, 11, 1, 1) + 45 * 60_000,
+      startInstant: Date.UTC(2026, 10, 1, 5, 45),
+    };
+    const back = {
+      end: w(2026, 11, 1, 1) + 15 * 60_000,
+      endInstant: Date.UTC(2026, 10, 1, 6, 15),
+    };
+    const { bars, dependencies } = layoutDateAxisRows(
+      axis,
+      [
+        { key: "bar", ...fall, ...back },
+        {
+          key: "p",
+          start: w(2026, 11, 1),
+          startInstant: Date.UTC(2026, 10, 1, 4),
+          end: fall.start,
+          endInstant: fall.startInstant,
+        },
+        {
+          key: "q",
+          start: back.end,
+          startInstant: back.endInstant,
+          end: w(2026, 11, 1, 3),
+          endInstant: Date.UTC(2026, 10, 1, 8),
+          predecessors: ["p"],
+        },
+        {
+          key: "r",
+          start: w(2026, 11, 1, 1) + 30 * 60_000,
+          startInstant: Date.UTC(2026, 10, 1, 5, 30),
+          end: w(2026, 11, 1, 3),
+          endInstant: Date.UTC(2026, 10, 1, 8),
+          predecessors: ["p"],
+        },
+      ],
+      { rowHeight: 20 },
+    );
+    // A task drawn at no width (the repeated hour shares its place), not dropped, not a milestone.
+    expect([bars[0]!.kind, bars[0]!.x, bars[0]!.width]).toEqual([
+      "task",
+      105,
+      0,
+    ]);
+    expect(dependencies.map((d) => [d.to, d.violated])).toEqual([
+      ["q", false],
+      ["r", true],
+    ]);
+  });
+});

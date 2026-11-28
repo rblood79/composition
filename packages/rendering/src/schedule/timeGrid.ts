@@ -22,13 +22,23 @@ export interface ScheduleGridEvent {
   /** Wall ms, exclusive. Equal to `start` = zero length. */
   readonly end: number;
   readonly allDay?: boolean;
+  /**
+   * The moments (epoch ms) behind `start` · `end` — give both or neither. An event's length is read
+   * from them when given: on a daylight-saving day the wall clock skips or repeats an hour, so 24
+   * wall hours can be 23 or 25 real ones. Default: the wall values.
+   */
+  readonly startInstant?: number;
+  readonly endInstant?: number;
 }
 
 /** Whether an event goes to the all-day strip, not the columns: all-day, or 24 hours or longer. */
 export function scheduleGridBanded(event: ScheduleGridEvent): boolean {
-  return (
-    event.allDay === true || event.end - event.start >= SCHEDULE_GRID_DAY_MS
-  );
+  if (event.allDay === true) return true;
+  const length =
+    event.startInstant !== undefined && event.endInstant !== undefined
+      ? event.endInstant - event.startInstant
+      : event.end - event.start;
+  return length >= SCHEDULE_GRID_DAY_MS;
 }
 
 /** Whether `event` covers the wall day starting at `day`. */
@@ -82,6 +92,8 @@ export interface ScheduleTimeGridLayout {
 interface Piece {
   key: string;
   dayIndex: number;
+  /** The piece's own wall start (before the shown hours · the least height move `top`) — DOM order. */
+  from: number;
   top: number;
   height: number;
   continuesBefore: boolean;
@@ -170,6 +182,7 @@ export function layoutScheduleTimeGrid(
       byDay[dayIndex]!.push({
         key: event.key,
         dayIndex,
+        from,
         top: Math.min(clampedTop, shown - height),
         height,
         continuesBefore: event.start < day || top < 0,
@@ -184,8 +197,10 @@ export function layoutScheduleTimeGrid(
   const items: ScheduleTimeGridItem[] = [];
   for (const pieces of byDay) {
     assignColumns(pieces);
-    pieces.sort((a, b) => a.top - b.top || a.column - b.column);
-    items.push(...pieces);
+    // Time order is the pieces' starts, not their drawn tops — two pieces moved up to fit the shown
+    // hours share a top.
+    pieces.sort((a, b) => a.from - b.from || a.column - b.column);
+    for (const { from: _from, ...item } of pieces) items.push(item);
   }
   return { items, banded, hidden };
 }
@@ -230,7 +245,10 @@ export interface ScheduleDayBandLayout {
 /**
  * Line assignment for multi-day bands: within a row, the events in start order (longer first, then
  * the earlier start, then key) take the first line free across all their days — a band keeps one
- * line across its row.
+ * line across its row while that line is shown. On a day where its line is past the day's limit, the
+ * band moves to a free line under the limit (the previous day's when it is free) — a line freed by
+ * events that ended is used, not left empty beside a 「+N」; with none free the day counts it in
+ * `more`.
  */
 export function layoutScheduleDayBands(
   events: readonly ScheduleGridEvent[],
@@ -296,33 +314,70 @@ export function layoutScheduleDayBands(
       for (let i = item.first; i <= item.last; i++) count[i - rowStart]!++;
     const limit = count.map((n) => (n > maxLines ? maxLines - 1 : maxLines));
 
+    const width = rowEnd - rowStart;
+    const occupied: boolean[][] = [];
+    const occupy = (line: number, offset: number) => {
+      (occupied[line] ??= [])[offset] = true;
+    };
+    // Per item, per day of the row (offset): the line it is shown on, undefined = hidden.
+    const lineOn = placed.map(() => new Array<number | undefined>(width));
+    placed.forEach((item, n) => {
+      for (let i = item.first; i <= item.last; i++)
+        if (item.line < limit[i - rowStart]!) {
+          lineOn[n]![i - rowStart] = item.line;
+          occupy(item.line, i - rowStart);
+        }
+    });
+    placed.forEach((item, n) => {
+      const on = lineOn[n]!;
+      for (let i = item.first; i <= item.last; i++) {
+        const offset = i - rowStart;
+        if (on[offset] !== undefined) continue;
+        const cap = limit[offset]!;
+        const free = (line: number) => line < cap && !occupied[line]?.[offset];
+        const previous = offset > 0 ? on[offset - 1] : undefined;
+        let line = previous !== undefined && free(previous) ? previous : -1;
+        if (line < 0)
+          for (let l = 0; l < cap; l++)
+            if (free(l)) {
+              line = l;
+              break;
+            }
+        if (line < 0) {
+          more[i]!++;
+          continue;
+        }
+        on[offset] = line;
+        occupy(line, offset);
+      }
+    });
+
     const rowBands: ScheduleDayBand[] = [];
     let used = 0;
-    for (const item of placed) {
+    placed.forEach((item, n) => {
+      const on = lineOn[n]!;
       let pieceStart = -1;
       const close = (end: number) => {
+        const line = on[pieceStart - rowStart]!;
         rowBands.push({
           key: item.event.key,
           row,
-          line: item.line,
+          line,
           startIndex: pieceStart,
           span: end - pieceStart + 1,
           continuesBefore: item.event.start < days[pieceStart]!,
           continuesAfter: item.event.end > days[end]! + SCHEDULE_GRID_DAY_MS,
         });
+        used = Math.max(used, line + 1);
         pieceStart = -1;
       };
       for (let i = item.first; i <= item.last; i++) {
-        if (item.line < limit[i - rowStart]!) {
-          if (pieceStart < 0) pieceStart = i;
-          used = Math.max(used, item.line + 1);
-        } else {
-          more[i]!++;
-          if (pieceStart >= 0) close(i - 1);
-        }
+        const line = on[i - rowStart];
+        if (pieceStart >= 0 && line !== on[pieceStart - rowStart]) close(i - 1);
+        if (line !== undefined && pieceStart < 0) pieceStart = i;
       }
       if (pieceStart >= 0) close(item.last);
-    }
+    });
     rowBands.sort((a, b) => a.line - b.line || a.startIndex - b.startIndex);
     bands.push(...rowBands);
     lines.push(used);

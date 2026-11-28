@@ -3,6 +3,10 @@
  * (`Date.parse` of hand-converted UTC texts — not the reader's own output), and the reader → geometry
  * seam on daylight-saving days.
  */
+import {
+  createDateAxis,
+  layoutDateAxisRows,
+} from "@composition/rendering/schedule/dateAxis";
 import { layoutScheduleTimeGrid } from "@composition/rendering/schedule/timeGrid";
 import { describe, expect, it } from "vitest";
 
@@ -243,5 +247,119 @@ describe("scheduleSpanOverlaps — the overlap contract (Decision 8)", () => {
   it("a zero-length span — in at the window's start, out at its end", () => {
     expect(fits("2026-11-23T00:00:00Z", "2026-11-23T00:00:00Z")).toBe(true);
     expect(fits("2026-11-30T00:00:00Z", "2026-11-30T00:00:00Z")).toBe(false);
+  });
+});
+
+describe("review fixes (ADR-323 Phase 1 판독)", () => {
+  const NY = "America/New_York";
+
+  it("an all-day role over times — an end before the start is refused before widening to days", () => {
+    const result = readScheduleSpan(
+      {
+        start: "2026-11-23T10:00:00",
+        end: "2026-11-22T23:00:00",
+        allDay: true,
+      },
+      opts("UTC"),
+    );
+    expect(result).toEqual({ ok: false, reason: "reversed" });
+  });
+
+  it("a day only start without an end is a milestone with keepZeroLength (Gantt — 끝 없음)", () => {
+    const s = span(
+      { start: "2026-11-23" },
+      opts("UTC", { defaultDurationMinutes: 0, keepZeroLength: true }),
+    );
+    expect([s.start, s.end, s.wallStart, s.wallEnd]).toEqual([
+      at("2026-11-23T00:00:00Z"),
+      at("2026-11-23T00:00:00Z"),
+      wall(11, 23),
+      wall(11, 23),
+    ]);
+    const axis = createDateAxis({
+      start: wall(11, 23),
+      end: wall(11, 30),
+      scale: "day",
+      unitWidth: 30,
+    });
+    const [bar] = layoutDateAxisRows(
+      axis,
+      [{ key: "m", start: s.wallStart, end: s.wallEnd }],
+      { rowHeight: 20 },
+    ).bars;
+    expect([bar!.kind, bar!.x, bar!.width]).toEqual(["milestone", 0, 0]);
+    // Without keepZeroLength it is still one day (EventCalendar).
+    expect(span({ start: "2026-11-23" }, opts("UTC")).wallEnd).toBe(
+      wall(11, 24),
+    );
+  });
+
+  it("fall back 2026-11-01 → Gantt: 01:45 EDT ~ 01:15 EST is a 30-minute bar; a later successor is not violated", () => {
+    const task = span(
+      { start: "2026-11-01T01:45:00-04:00", end: "2026-11-01T01:15:00-05:00" },
+      opts(NY),
+    );
+    expect(task.end - task.start).toBe(30 * 60_000);
+    const before = span(
+      { start: "2026-11-01T00:00:00-04:00", end: "2026-11-01T01:45:00-04:00" },
+      opts(NY),
+    );
+    const after = span(
+      { start: "2026-11-01T01:15:00-05:00", end: "2026-11-01T03:00:00-05:00" },
+      opts(NY),
+    );
+    const row = (key: string, s: typeof task) => ({
+      key,
+      start: s.wallStart,
+      end: s.wallEnd,
+      startInstant: s.start,
+      endInstant: s.end,
+    });
+    const axis = createDateAxis({
+      start: wall(11, 1),
+      end: wall(11, 2),
+      scale: "day",
+      unitWidth: 1440,
+    });
+    const { bars, dependencies } = layoutDateAxisRows(
+      axis,
+      [
+        row("task", task),
+        row("p", before),
+        { ...row("q", after), predecessors: ["p"] },
+      ],
+      { rowHeight: 20 },
+    );
+    expect([bars[0]!.kind, bars[0]!.x, bars[0]!.width]).toEqual([
+      "task",
+      105,
+      0,
+    ]);
+    expect(dependencies.map((d) => [d.to, d.violated])).toEqual([["q", false]]);
+  });
+
+  it("spring forward → time grid: 03-07 12:00 ~ 03-08 12:00 lasts 23 hours, is cut at midnight in the columns", () => {
+    const s = span(
+      { start: "2026-03-07T12:00:00", end: "2026-03-08T12:00:00" },
+      opts(NY),
+    );
+    expect(s.end - s.start).toBe(23 * 3_600_000);
+    const layout = layoutScheduleTimeGrid(
+      [
+        {
+          key: "k",
+          start: s.wallStart,
+          end: s.wallEnd,
+          startInstant: s.start,
+          endInstant: s.end,
+        },
+      ],
+      { days: [wall(3, 7), wall(3, 8)] },
+    );
+    expect(layout.banded).toEqual([]);
+    expect(layout.items.map((i) => [i.dayIndex, i.top, i.height])).toEqual([
+      [0, 720, 720],
+      [1, 0, 720],
+    ]);
   });
 });

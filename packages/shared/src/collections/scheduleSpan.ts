@@ -162,8 +162,8 @@ export interface ScheduleSpanOptions {
   /** A timed value without an end lasts this long (EventCalendar: one slot). */
   readonly defaultDurationMinutes: number;
   /**
-   * Keep an all-day span whose end day is its start day at zero length (Gantt's milestone — 시작 =
-   * 끝). Otherwise it is one day.
+   * Keep an all-day span whose end day is its start day, or that has no end, at zero length (Gantt's
+   * milestone — 시작 = 끝 · 끝 없음, breakdown §5.1). Otherwise it is one day.
    */
   readonly keepZeroLength?: boolean;
 }
@@ -174,7 +174,8 @@ function empty(value: unknown): boolean {
 
 /**
  * A row's span — 「실제 끝」 = the end value, else start + the default length (a day for an all-day
- * value). An end before the start is refused (`reversed`) — the caller counts it, nothing is drawn.
+ * value, none with `keepZeroLength`). An end before the start (as moments, before any widening to
+ * days) is refused (`reversed`) — the caller counts it, nothing is drawn.
  */
 export function readScheduleSpan(
   values: {
@@ -192,9 +193,16 @@ export function readScheduleSpan(
   const end = hasEnd ? readScheduleInstant(values.end, timeZone) : undefined;
   if (hasEnd && !end) return { ok: false, reason: "badEnd" };
 
+  // Order is the moments' — widening to whole days below must not turn an end before the start
+  // into the start's own day.
+  if (end && end.instant < start.instant)
+    return { ok: false, reason: "reversed" };
+
   if (values.allDay === true || start.dateOnly) {
     const wallStart = floorDay(start.wall);
-    let wallEnd = wallStart + SCHEDULE_DAY_MS;
+    let wallEnd = options.keepZeroLength
+      ? wallStart
+      : wallStart + SCHEDULE_DAY_MS;
     if (end) {
       const endDay = floorDay(end.wall);
       // A timed end inside a day ends that day (end exclusive — the next midnight).

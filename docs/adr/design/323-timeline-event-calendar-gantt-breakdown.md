@@ -283,3 +283,19 @@ HEAD `a83fca226` 위 (worktree `autorun/adr-323`). 사용자 결정 7 = 「둘 �
 - 회귀: `pnpm type-check` 6 / 6 · rendering 1,829 · shared 3,077 전량 통과. `pnpm codex:preflight` — guard · format · typecheck · registration · agent-catalog 통과, **rule-size 실패는 HEAD 그대로** (`canvas-rendering.md` 55,244 > 55,100 · `panel-structure.md` 39,913 > 39,624 — 이 Phase 가 건드리지 않은 파일).
 - 번들: 새 모듈을 아무도 import 하지 않는다 (게이트) — initial Δ 0.
 - live (chrome-autorun, dev `5174`): Builder 첫 화면 리소스에 schedule 모듈 요청 0 · 콘솔 오류 0. 같은 페이지에서 모듈을 동적 import 해 실제 Chrome (Intl · ICU) 으로 실행 — 브라우저 시간대 `Asia/Seoul` · 컴포넌트 `America/New_York` 그대로 · 모르는 이름 → 브라우저 · 뉴욕 봄 전환일 01:30 ~ 03:30 = 06:30Z ~ 07:30Z 의 열 자리 top 90 · height 120 · Kiritimati 경계 값 wall 11-23 00:05 · Santiago 04:00Z · 날짜 축 day scale 폭 150 · 달 경계 90 / 60 · 주말 0 ~ 60 — 정답표와 같다.
+
+#### Phase 1 판독 수리 — 2026-11-28
+
+codex 판독 (`review-phase-1.json`) HIGH 7 — 7 건 모두 재현되는 결함이라 **fixed**. 기하 입력에 선택 필드 `startInstant` · `endInstant` (값의 순간, 둘 다 주거나 둘 다 생략) 를 더했다 — 자리는 wall, **순서 · 길이는 순간**. rendering 은 여전히 시간대를 모른다 (`readScheduleSpan` 의 `start` · `end` 를 그대로 넘긴다).
+
+| #   | 지적                                                               | 처리 · root cause                                                                                                                                                             |
+| --- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 종일 역할에서 끝 < 시작이 정상 일정으로 읽힘                       | fixed — 날로 넓힌 뒤에 순서를 봤다. 넓히기 전에 순간으로 비교 (`scheduleSpan.ts`)                                                                                             |
+| 2   | 날만 있는 Gantt 작업의 끝 없음 = 마일스톤 불가                     | fixed — 끝 없음은 늘 하루였다. `keepZeroLength` 면 끝 없음도 길이 0 (§5.1 「Gantt 는 마일스톤」)                                                                              |
+| 3   | Gantt 순서를 wall 로 판정 — 가을 겹친 시각에 막대 소실 · 거짓 위반 | fixed — 막대 유효 · 마일스톤 · 의존선 위반을 순간으로. wall 끝이 시작보다 앞서면 자리는 시작에 붙인다 (폭 0 작업 — 시간 격자가 같은 경우를 최소 높이로 그리는 것과 같은 결정) |
+| 4   | 24 시간 기준을 wall 차이로 — 봄 전환 밤의 23 시간이 띠로           | fixed — `scheduleGridBanded` 가 순간이 있으면 실제 길이로 (없으면 wall)                                                                                                       |
+| 5   | 월 칸 「+N」 — 앞 날의 줄 번호를 그대로 한도와 비교                | fixed — 줄 번호가 그 날 한도를 넘는 날은 한도 안의 빈 줄로 옮긴다 (앞 날의 줄이 비면 그 줄). 띠가 한 행 안에서 줄을 바꿀 수 있다 — 빈 줄 옆 「+N」 보다 낫다고 판단           |
+| 6   | 주 · 일 DOM 순서를 보정된 top 으로                                 | fixed — 조각의 실제 wall 시작 (`from`, 출력에서는 뺀다) → 칸 번호 순                                                                                                          |
+| 7   | 월 축이 창 밖 끝점을 마지막 달 길이로 환산                         | fixed — `dateAxisX` 가 창의 `units` 대신 scale 의 실제 칸 수 (`unitsBetween`) + 칸 안 비율 — x 가 창 끝에 의존하지 않는다                                                     |
+
+검사: 회귀 테스트 9 (rendering `timeGrid.test.ts` 3 · `dateAxis.test.ts` 2, shared `scheduleSpan.test.ts` 4 — 정답은 하드코딩한 값). 원복 RED 8 / 8 (`/tmp/adr323-fix/red.py` — 3 은 막대 · 위반 둘로, 바이트 복원 `shasum` 확인) + 5 번의 좁은 변이 (한도 0) RED 1. `pnpm type-check` 6 / 6 · rendering 1,834 · shared 3,081 전량 통과. live (chrome-autorun, dev `5174`, 브라우저 `Asia/Seoul`): 모듈을 동적 import 해 실제 Chrome (Intl · ICU) 으로 지적 7 의 재현 입력을 실행 — `reversed` · milestone 0 / 0 · 작업 105 / 0 + 위반 false · 23 시간 → 띠 0 · 조각 720 / 720 둘 · 목 · 금 C 줄 0 · more [0,0,2,0,0,0,0] · Z-early 먼저 · 진행률 310 / 310, 콘솔 오류 0.
