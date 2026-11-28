@@ -1,1 +1,0 @@
-import{ui as e}from"./aria-runtime-CGBz_D6O.js";function t(e,t){return e[t.split(`-`)[0]??`en`]??e.en}function n(n){return t(n,e().locale)}export{n,t};
