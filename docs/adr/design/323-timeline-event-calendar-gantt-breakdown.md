@@ -381,3 +381,29 @@ codex 수리 검증 (`review-verify-2.json`) HIGH 4 — 자동 실행이 판독 
 | 4   | 상태 글자 렌더러 · 배치 계산이 첫 화면 번들에 (HC6)                        | 일부 fixed — breakdown §8 이 lazy 로 정한 `runtime/timeline.components.tsx` 를 DOM runtime 이 정적으로 import 했다 → `lazy` + `Suspense` (fallback 없음 — 글자는 보이지 않는 낭독용). 게이트: `adr323ScheduleImports.static.test.ts` 「run-time modules」 (세 컴포넌트의 `*.components` 정적 import 0). Canvas 파생 값 (`presence.ts` · `runtime/timeline.ts` 의 자리 · 여백) 은 rejected 그대로 — 레이아웃 입력이 동기로 읽는 rule 층이고 StepList (ADR-321 `catalogStepDerived`) 와 같다 |
 
 검사: 회귀 테스트 3 (builder `adr323TimelineRemote.test.tsx` 2 · shared 정적 게이트 1) + 기존 DOM 테스트가 lazy 글자를 기다리게 (`vi.waitFor`). 원복 RED 3 / 3 (세션 수리 둘은 하나씩 되돌림 · 바이트 복원 확인, 게이트는 수리 전 파일에서 실패). 세 번째 판독은 돌리지 않았다 — 닫힘은 실행자 판정 (`review-loop-closure.md` §1).
+
+### Phase 3 (G3) — 진행 중 (2026-11-28 ~)
+
+HEAD `51ecc053d` 위 (worktree `autorun/adr-323`). 사용자 결정 4 = 「행 하나 = 한 건」 (2026-11-28 확정 — 반복 규칙을 해석하지 않는다). Phase 가 커서 단위로 나눠 커밋한다 — 단위마다 type-check · 관련 테스트 통과 상태.
+
+**단위 1 — 보이는 기간 조회 (`11a7abfe4`)**: `S/catalog/runtime/scheduleWindowQuery.ts` — 아직 소비자 없음.
+
+- `scheduleWindowConditions(fields, { from, until }, 기본 길이 분)` — §5.4.1 의 일 단위 상위집합을 보기 조건 묶음 (`schedule-window`) 으로. 창은 컴포넌트 시간대의 wall 날 (`until` 제외) 로 받는다 — 조건 만들기에 시간대 계산이 없다 (날짜 글자만). 여유 상수 `SCHEDULE_QUERY_MARGIN_DAYS` = 2 하나를 조건과 정답표가 읽는다. 기본 길이의 날 수 = `max(1, ceil(분 / 1440))` (종일 값의 끝 없음 = 하루).
+- `scheduleWindowRequest(service, 끝 역할 있음)` — §5.4.1 표: 로컬 `here` · `body` `send` · `suffix` + 끝 `loadWhole` (「또는」 을 못 실음) · `suffix` 시작만 = `gte` · `lte` 접미사가 둘 다 있으면 `send` · 형식 없음 · `none` `loadWhole`.
+- `scheduleRowsInWindow(rows, 값 읽기, 창, 옵션)` — 정밀 거르기 (`readScheduleSpan` → `scheduleSpanOverlaps`), 거절 사유를 센다 (그리지 않음).
+- 버린 접근: 조건 만들기가 창을 순간으로 받기 — 조건은 날짜 글자라 순간 → 날 변환이 조건 쪽에 필요 없고, 순간은 정밀 거르기만 쓴다 (`scheduleWindowInstants`).
+- 검사 (`catalog/runtime/__tests__/adr323ScheduleWindow.test.ts` 13): 조건 모양 (손으로 쓴 값) · 요청 판정 7 · G3 정답표 — Seoul 창 11-23 ~ 11-30 의 경계 행 15 (가로지르는 11-21 ~ 12-02 포함 · 11-30 시작 둘 제외 · 끝 없는 23:50 포함 · 자정에 끝남 제외 · 날만 있는 끝 exclusive 제외 · UTC 글자의 날이 하루 앞 포함 · 뒤집힘 · 시작 없음은 거절 수) · `Pacific/Kiritimati` 표시 + 저장 −12:00 의 11-23 00:05 ~ 00:15 포함 (그 앞 23:55 제외) · `Etc/GMT+12` 표시 + 저장 +14:00 의 창 마지막 날 23:45 포함 (다음 날 00:05 제외), 셋 다 로컬 = body (조건 전부 실림 · 경고 0) = suffix (`OR_GROUP` → 전량 → 정밀). 시작만 구성의 suffix 는 `start_gte` · `start_lte` 로 실려 글자 날 서버와 결과가 같다. 상위집합 sweep — 표시 시간대 5 × 저장 오프셋 10 (−12:00 ~ +14:00, +05:45 포함) × 20 분 간격 13 일 × (50 분 · 끝 없음) + 날만 있는 값: 정밀이 남긴 것을 상위집합이 하나도 빠뜨리지 않음. 원복 RED 5 / 5 (여유 1 · 끝 없는 시작의 기본 길이 빼기 · 「끝 after」 가지 빼기 · 정밀 = 시작만 · suffix + 끝을 send).
+
+**다음 단위의 설계 (통상 구현 판단 — 다음 세션이 이대로 진행)**:
+
+- **노드 트리** — `EventCalendar > frame (머리 — 가로 줄) [Button slot=previous (Icon) · Button slot=next (Icon) · Button slot=today ("Today") · Heading slot=title · ToggleButtonGroup slot=view > ToggleButton id=month · id=agenda] + EventCalendarView + EventCalendarEvent*`. 주 · 일 ToggleButton 은 Phase 4 에서 더한다.
+  - `EventCalendarEvent` = 「일정 template (반복)」 — 자식 없는 자료 노드 (`id` · `label` · `start` · `end` · `allDay` · `color`). 연결하면 행마다 반복되고 날짜 축 역할 (`start` · `end` · `allDay` · `title` · `color`) 이 값을 준다 (Timeline 의 `keyRowItem` 길 그대로 — collectionItems owner EventCalendar). 상자로 그려지지 않는다 (Canvas `catalogHiddenAtRest` · DOM 요소 없음) — View 가 그것을 읽어 그린다.
+  - `EventCalendarView` = 본문. 파생 값 하나 (`_eventCalendarView` — 보기 · 기준 날짜 · 보이는 칸 · 일정 목록) 를 Canvas primitive 와 DOM 이 같이 읽는다 (Calendar 의 `_calendarGrid` 방식). 월 칸의 줄 배정 · 「+N」 은 `layoutScheduleDayBands` (lazy — Canvas 는 Chart family 의 `ensureChartFamily` · `chartFamilyLoaded` 처럼 로드 뒤 seed, DOM 은 lazy chunk `runtime/eventCalendar.components.tsx` 안). 로드 전 Canvas 는 칸만 그린다.
+  - 머리 노드는 기존 type 그대로다 — 모양은 그 type 의 rule. DOM 은 EventCalendar 렌더러가 자식을 RAC `Provider` 로 감싼다: `ButtonContext` slot `previous` · `next` · `today` 의 `onPress` (RAC 가 handler 를 이어 붙인다), `HeadingContext` 의 기간 제목, `ToggleButtonGroupContext` slot `view` 의 `onSelectionChange`. Canvas 의 제목은 Heading 파생 `children` (CalendarHeading 방식).
+  - **보기 종류의 정본 = 머리 ToggleButtonGroup 의 선택** (ADR-308 — 그룹이 선택을 저장한다). 시작 보기 = 그 그룹의 작성 선택, 실행 중 보기 = 그 그룹의 실행 선택. 그룹이 지워지면 월 보기. EventCalendar 에 따로 `defaultView` prop 을 두지 않는다 (두 정본 금지).
+  - prop (EventCalendar): `dataBinding` · `defaultDate` (비면 오늘 — Canvas 는 달력 모델의 기준 날짜 주입, R8) · `timeZone` · `locale` · `firstDayOfWeek` · `calendarSystem` (`dateLocaleProps.ts` 그대로) · `maxEventLines` (월 칸의 최대 줄 수, 기본 3) · `size`. `isReadOnly` · 하루 시작 / 끝 · 칸 · 끌기 단위는 쓰는 Phase (4 · 5) 에서 더한다. D2 = composition 확장 (`d2Provenance.ts`).
+- **월 보기 DOM** — RAC `Calendar` (보이는 달 = 기준 날짜의 달, `focusedValue` controlled) > `CalendarGrid` > `CalendarCell` 안에 날짜 숫자 + 일정 줄 (보이기만 — §5.4 P1 결과: 칸 이름은 RAC 의 날짜). 날짜를 고르면 그 날의 일정 `Popover > Dialog > GridList` (§4.1 표). 
+- **일정 목록 보기 DOM** — 날짜별 구획의 RAC `GridList` (`GridListSection` · `GridListHeader`), 보이는 기간 = 기준 날짜의 달.
+- **조회 연결** — 세션: 그려진 EventCalendar 가 읽는 collection 은 먼저 `loadsWhole` (Timeline 의 `timelinesRead` 와 같은 길 · 상한 넘으면 `refuseView`) 로 두고 DOM 이 정밀 거르기를 한다 — G3 의 「로컬 = body = suffix」 결과가 같다. `body` · `suffix` 시작만의 `send` (요청을 줄이는 것) 는 그 뒤 단위에서 `stateRowQuery` 옆에 붙인다 (실행 상태 = 보이는 창, Table 상태의 번역과 같은 자리).
+- **팔레트 항목은 마지막 단위에** — 등록 · 그리기가 다 선 뒤에 넣는다 (중간 커밋이 쓸 수 없는 컴포넌트를 팔레트에 내지 않게).
+- **날짜 글자 지역 형식** — EventCalendar 의 기간 제목 · 일정 목록 날짜 머리가 쓰는 formatter (`DateFormatter` — `calendarModel.ts` 의 locale 해석) 를 Timeline 날짜 글자와 공유할지는 일정 목록 단위에서 정한다 (Phase 2 기록 — 긴 ISO 시각이 가로 Timeline 에서 겹침).
