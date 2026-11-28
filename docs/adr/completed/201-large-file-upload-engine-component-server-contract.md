@@ -212,7 +212,7 @@ Implemented — 2026-09-17 (Proposed 2026-09-02 → In Progress 09-17 사용자 
 
 **ADR-242 뒤 (2026-09-26)** — 초기 화면 밖 패널 lazy 분리로 Builder initial **1,403,816** (상한 1,421,000 까지 여유 17,184) · Preview 622,496 (여유 504). 상한 값 조정은 사용자 판정 — 만료 2026-10-25 그대로.
 
-**initial 상한 재승인 (2026-11-29, ADR-326 Phase 5 닫힘 보고 뒤 — 사용자 답 「+5,000 → 1,687,000」)** — Builder ≤ **1,687,000** / Preview ≤ **327,000** B gzip (무변경), 만료 **2026-12-25** 유지. ADR-326 Phase 5 (Canvas tree · drill 열린 목록) 뒤 1,683,955 B 로 1,955 B 초과 — Phase 5 초과분과 Phase 6 몫. 아래 1,682,000 을 대체한다. 판정기 `adr201-bundle-gate.mjs` · 배포 workflow 「Initial bundle ceiling」 같은 값.
+**initial 상한 재승인 (2026-11-29, ADR-326 Phase 5 닫힘 보고 뒤 — 사용자 답 「+5,000 → 1,687,000」)** — Builder ≤ **1,687,000** / Preview ≤ **327,000** B gzip (무변경), 만료 **2026-12-25** 유지. ADR-326 Phase 5 (Canvas tree · drill 열린 목록) 뒤 1,683,955 B 로 1,955 B 초과 — Phase 5 초과분과 Phase 6 몫. 같은 Phase 의 Builder Δ +4,934 (Phase 4 `497fc8c90` 1,679,021 대비) 가 Δ 한도 4,096 을 838 B 넘는다 — 사용자 판정 「Δ 초과 수용 · 기록」 (2026-11-29, Canvas 가 동기로 읽는 레이아웃 · 칠 코드라 lazy 분리 대상 아님). Δ 한도 값은 그대로 둔다. 아래 1,682,000 을 대체한다. 판정기 `adr201-bundle-gate.mjs` · 배포 workflow 「Initial bundle ceiling」 같은 값.
 
 **initial 상한 재승인 (2026-11-28, ADR-326 행 그리기 시제품 보고 뒤 — 사용자 답 「+5,000 → 1,682,000」)** — Builder ≤ **1,682,000** / Preview ≤ **327,000** B gzip (무변경), 만료 **2026-12-25** 유지. ADR-326 Phase 2 뒤 1,676,996 B (여유 4), §4.3 개정 시제품이 1,677,148 B 로 148 B 초과 — 시제품 몫과 Phase 3 ~ 6 (Canvas 펼침 포함) 몫. 아래 1,677,000 을 대체한다. 판정기 `adr201-bundle-gate.mjs` · 배포 workflow 「Initial bundle ceiling」 같은 값.
 
