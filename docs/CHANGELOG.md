@@ -13,6 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-326 Phase 5 — Canvas 에 Cascader tree · drill 열린 목록] - 2026-11-29
+
+ADR-326 Phase 5 닫힘. Cascader 를 「Open」 으로 열면 Canvas 가 「tree」 · 「drill」 방식의 열린 목록도 그린다 — 세 방식 모두 Preview 와 같은 화면이다.
+
+### Added
+
+- Canvas 의 tree 열린 목록: 고른 값까지 가지를 펼치고, 단계마다 들여쓰며, 펼친 가지의 chevron 은 돌아가 있고, 자식 없는 항목은 chevron 자리만 둔다.
+- Canvas 의 drill 열린 목록: 고른 값의 단계 · 가지를 고를 수 있으면 맨 위 「○○ 전체」 행 · 경로 줄 (Breadcrumbs 그대로 — 깊으면 앞을 접는다) · 첫 단계에서는 「뒤로」 버튼이 disabled.
+
+### Changed
+
+- 한 항목의 모양 편집 (폭 · 위치 · 배경 · 불투명도 · 회전) 이 Canvas 에서 그 행에만 닿는다 — 펼친 가지의 편집이 자식 행으로 번지지 않는다.
+- 열린 목록 상자의 300 px 높이 상한을 뺐다 (Canvas 와 Preview 가 같은 높이).
+
 ## [ADR-326 Phase 4 — Cascader Open · Canvas 에 열린 목록] - 2026-11-29
 
 ADR-326 Phase 4 닫힘. Cascader 를 Design 패널에서 「Open」 으로 열면 Canvas 에도 「columns」 방식의 열린 목록이 그려진다 — Select 의 Open 과 같다.

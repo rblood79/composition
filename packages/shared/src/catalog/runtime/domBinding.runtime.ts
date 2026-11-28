@@ -1,6 +1,7 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
 import {
   CatalogCascaderCrumbText,
+  CatalogCascaderOwnLabel,
   CatalogCascaderValue,
 } from "./cascader.components";
 import type { CatalogFilterBarAccess } from "./filterBarAccess";
@@ -1529,7 +1530,19 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                       crumb: node.parentId,
                       fallback: text,
                     })
-                  : text;
+                  : node.derivedProps?._cascaderOwnLabel === true
+                    ? // (ADR-326 Phase 5 — a `drill` own row's label: the level name in that
+                      //  row only — the derived words are the Canvas's.)
+                      createElement(CatalogCascaderOwnLabel, {
+                        // (The record's own words — its runs' marks kept (수리 검증 #5), not the
+                        //  Canvas's derived level name.)
+                        fallback:
+                          catalogTextRunsContent(
+                            node.textRuns,
+                            node.visual.textDecoration,
+                          ) ?? String(node.props.children ?? ""),
+                      })
+                    : text;
             return detachedSlot(resolution)
               ? createElement(
                   element,

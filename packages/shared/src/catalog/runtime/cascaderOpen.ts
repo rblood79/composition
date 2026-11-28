@@ -1,4 +1,5 @@
 import {
+  CASCADER_LEVEL_NAME,
   cascaderValueMatch,
   type CascaderEntry,
   type CascaderTable,
@@ -26,13 +27,8 @@ export function cascaderPicked(
   });
 }
 
-const LEVEL_NAME: Readonly<Record<string, (name: string) => string>> = {
-  en: (name) => `All of ${name}`,
-  ko: (name) => `${name} 전체`,
-};
-
-/** The name of a branch's own item, in the field's locale. */
-export const useCascaderLevelName = () => useCatalogLocalized(LEVEL_NAME);
+/** The name of a branch's own item, in the field's locale (`CASCADER_LEVEL_NAME`). */
+export const useCascaderLevelName = () => useCatalogLocalized(CASCADER_LEVEL_NAME);
 
 /**
  * ADR-322 Phase 6 (사용자 결정 4) — a branch whose level loads one by one shows one status item

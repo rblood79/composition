@@ -17,8 +17,15 @@ import {
   cascaderNotice,
   cascaderTableOf,
   cascaderValueText,
-  catalogCascaderCanvasClosed,
+  catalogCascaderBackDisabled,
   catalogCascaderChevronHidden,
+  catalogCascaderItemRow,
+  catalogCascaderOwnRowPart,
+  catalogCascaderPassPartHidden,
+  catalogCascaderTrailCrumb,
+  catalogCascaderTrailOf,
+  catalogCascaderTreeChevron,
+  catalogCascaderTreeLevel,
   catalogCascaderItemSelected,
   catalogCascaderItemDuplicate,
   catalogCascaderItemHidden,
@@ -1540,15 +1547,21 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogSelectBoxDescriptionHidden(node, get, typeOf)) return true;
-  // (ADR-326 Phase 4 — a Cascader's items: its open `columns` screen draws the first level, and a
-  //  leaf's row no chevron.)
+  // (ADR-326 Phase 4 · 5 — a Cascader's items: its just-opened screen (`catalogCascaderItemRow` —
+  //  `columns` the first level, `tree` the start value's expanded branches, `drill` the open level),
+  //  a `drill` path item's own parts, a leaf's row no chevron (a `tree` row keeps its room).)
   //  (A drawn item still takes the shared checks below — its `showWhen` among them.)
   if (
     typeOf(node) === CASCADER_ITEM_TYPE &&
     catalogCascaderItemHidden(node, get, typeOf)
   )
     return true;
+  if (catalogCascaderPassPartHidden(node, get, typeOf)) return true;
+  // (A `drill` level's own row — 「<branch> 전체」 — has no chevron.)
+  if (catalogCascaderOwnRowPart(node, get, typeOf, "en")?.hidden) return true;
   if (catalogCascaderChevronHidden(node, get, typeOf)) return true;
+  // (ADR-326 Phase 5 — a `drill` trail's crumb positions without a path crumb.)
+  if (catalogCascaderTrailCrumb(node, get, typeOf) === undefined) return true;
   // (ADR-322 Phase 4 — a Cascader's Description carries its repeated-key notice, description or not.)
   if (typeOf(node) === "Description") {
     const field = catalogPartParent(node, get, typeOf);
@@ -1633,12 +1646,6 @@ export function catalogHiddenAtRest(
     (type === "Dialog" && parentType === "DialogTrigger")
   ) {
     const owner = catalogOverlayOwner(node, get, typeOf);
-    if (
-      owner &&
-      typeOf(owner) === CASCADER_TYPE &&
-      catalogCascaderCanvasClosed(owner)
-    )
-      return true;
     const originOpen =
       owner &&
       OPEN_BODY_TRIGGERS.has(typeOf(owner)) &&
@@ -3589,10 +3596,9 @@ function derivedPropsBeforeSkeleton(
       ? { isDisabled: true }
       : {}),
     ...pickerPart,
-    // (ADR-326 §4.4 — a `drill` Cascader's trail crumb label: the open level's path text, DOM.)
-    ...(catalogCascaderTrailCrumbText(node, get, typeOf)
-      ? { _cascaderCrumb: true }
-      : {}),
+    // (ADR-326 §4.4 · §4.5 — a Cascader's open screen: an item's row state and `tree` level, a
+    //  `tree` row's chevron, a `drill` trail's crumbs and their label text.)
+    ...catalogCascaderOpenDerived(node, get, typeOf, locale),
     // (ADR-315 Phase 4 — a pinned Table column's edge: the Column · Cell rule's `pinned-edge` line.
     //  The column projection marks the record, `tableColumns.ts`.)
     ...(node.props[CATALOG_COLUMN_PINNED_EDGE_PROP] === true &&
@@ -5882,10 +5888,75 @@ export function catalogBreadcrumbSeparator(
     return node.displayState === "current"
       ? undefined
       : { owner: node, orphan: true };
+  // (A `drill` Cascader's trail: the positions holding a path crumb — judged here, not by a sibling's
+  //  `hidden`, which a step may not have settled yet: the last is the open level.)
   const crumbs = childrenOf(owner, get).filter(
-    (child) => typeOf(child) === "Breadcrumb" && !child.hidden,
+    (child) =>
+      typeOf(child) === "Breadcrumb" &&
+      !child.hidden &&
+      catalogCascaderTrailCrumb(child, get, typeOf) !== undefined,
   );
   return crumbs.at(-1)?.id === node.id ? undefined : { owner };
+}
+
+/**
+ * ADR-326 Phase 5 (§4.4 · §4.5) — what a Cascader's just-opened screen derives on the Canvas: an
+ * item's row state (`_cascaderRow`) and `tree` level (`_cascaderLevel` — its row's indent), a `tree`
+ * row's chevron (a leaf's room undrawn — `_glyphRoomOnly`; an open branch's turned), a `drill`
+ * trail's whole length (`_trailCrumbs` — its folder menu counts every crumb, as the DOM's) and a
+ * crumb label's path text. The DOM reads its own RAC state (`cascaderPanel.components.tsx`).
+ */
+function catalogCascaderOpenDerived(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  locale: string | undefined,
+): Record<string, unknown> {
+  // (A `drill` level's own row label: 「<branch> 전체」 — the DOM's own row reads its context
+  //  (`_cascaderOwnLabel`, on every item label), not this text: the record also draws as its upper
+  //  level's row.)
+  const own = catalogCascaderOwnRowPart(
+    node,
+    get,
+    typeOf,
+    locale || globalThis.navigator?.language || "en-US",
+  );
+  if (own?.label !== undefined)
+    return { _cascaderOwnLabel: true, children: own.label };
+  // (Every item label: the DOM's own row of any level it opens gives its name there.)
+  if (typeOf(node) === "Text" && node.props.slot === "label") {
+    const item = get(node.parentId);
+    if (item && typeOf(item) === CASCADER_ITEM_TYPE)
+      return { _cascaderOwnLabel: true };
+  }
+  const row = catalogCascaderItemRow(node, get, typeOf);
+  if (row) {
+    const level = catalogCascaderTreeLevel(node, get, typeOf);
+    return {
+      _cascaderRow: row,
+      ...(level !== undefined ? { _cascaderLevel: level } : {}),
+    };
+  }
+  const chevron = catalogCascaderTreeChevron(node, get, typeOf);
+  if (chevron)
+    return {
+      _cascaderTreeChevron: true,
+      ...(chevron.roomOnly ? { _glyphRoomOnly: true } : {}),
+      // (An open branch's glyph turns 90° — the rule's `[data-expanded]` turn, whatever its icon:
+      //  the Canvas turns the drawn glyph, `canvasBinding` `_glyphTurned`.)
+      ...(chevron.expanded ? { _glyphTurned: true } : {}),
+    };
+  // (The Canvas's disabled paint (`_fieldDisabled` — the DOM does not read it): the DOM's 「Back」
+  //  takes its running level's state from its slot context.)
+  const back = catalogCascaderBackDisabled(node, get, typeOf);
+  if (back !== undefined) return back ? { _fieldDisabled: true } : {};
+  const trail = catalogCascaderTrailOf(node, get, typeOf);
+  if (trail) return { _trailCrumbs: trail.crumbs.length };
+  if (catalogCascaderTrailCrumbText(node, get, typeOf)) {
+    const crumb = catalogCascaderTrailCrumb(get(node.parentId)!, get, typeOf);
+    return { _cascaderCrumb: true, ...(crumb ? { children: crumb.text } : {}) };
+  }
+  return {};
 }
 
 /**

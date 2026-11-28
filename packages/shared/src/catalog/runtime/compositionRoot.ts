@@ -162,7 +162,11 @@ import {
 } from "./libraryVisual";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
 import { PICKER_POPOVER_TYPES } from "./pickerSelection";
-import { catalogCascaderItemDependents } from "./cascader";
+import { catalogCascaderItemDependents,
+  catalogCascaderOfItemsRecord,
+  catalogCascaderOpenRecords,
+  CASCADER_TREE_INDENT,
+} from "./cascader";
 import {
   catalogContainerVariantPaint,
   catalogOverlayArrowPaint,
@@ -757,6 +761,47 @@ const PAGE_BODY_CONTENT_KEYS: ReadonlySet<string> = new Set([
   "strutBaseline",
   "strutXHeight",
 ]);
+/** ADR-326 Phase 5 — an open `tree` Cascader item's row box (`cascaderOpenSplit`). */
+const CASCADER_ROW_PART = "::part:cascader-row";
+
+/**
+ * The keys an open `tree` item keeps of its style — its place among its list's rows (flex · grid
+ * placement). The rest — its size, margin, border, inset, position, grid — is its row's: the DOM's
+ * row is its RAC TreeItem, its items' rows its siblings (판독 1 #3 — an item's width narrowed them,
+ * 수리 검증 #2 — its `left` moved them).
+ */
+const CASCADER_ITEM_KEYS: ReadonlySet<string> = new Set([
+  "flexGrow",
+  "flexShrink",
+  "flexBasis",
+  "alignSelf",
+  "justifySelf",
+  "order",
+  "gridColumnStart",
+  "gridColumnEnd",
+  "gridRowStart",
+  "gridRowEnd",
+  "gridArea",
+]);
+/**
+ * ADR-326 Phase 5 (§4.5) — an open `tree` Cascader item on the Canvas: RAC Tree draws its row and
+ * then its items' rows (flat), so the item's box is a column — its row is a composed part around
+ * its own parts (check mark · label · chevron) holding the item's grid and inset, and its items'
+ * rows stack below it (as a TreeItem's `TreeItemContent` — `catalogTreeItemLayout`).
+ */
+function cascaderOpenSplit(style: Record<string, unknown>): {
+  item: Record<string, unknown>;
+  row: Record<string, string | number>;
+} {
+  const item: Record<string, unknown> = {};
+  const row: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(style))
+    (CASCADER_ITEM_KEYS.has(key) ? item : row)[key] = value;
+  item.display = "flex";
+  item.flexDirection = "column";
+  item.alignItems = "stretch";
+  return { item, row: row as Record<string, string | number> };
+}
 const INSET_KEYS = ["insetLeft", "insetTop", "insetRight", "insetBottom"];
 /** What a page body's split reads of the body (`CatalogCompositionRoot.pageBody`). */
 interface PageBodyShape {
@@ -5577,6 +5622,16 @@ export class CatalogCompositionRoot {
         style: pageBodySplit(whole ?? this.recordStyle(record, get), body)
           .content,
       });
+    // (ADR-326 Phase 5 — an open `tree` Cascader item's row: its own parts, `cascaderOpenSplit`.)
+    if (record.derivedProps?._cascaderRow === "open" && !record.hidden)
+      parts.push({
+        id: `${record.id}${CASCADER_ROW_PART}`,
+        wraps: record.children.filter((id) => {
+          const child = get(id);
+          return !!child && this.typeOf(child) !== "CascaderItem";
+        }),
+        style: cascaderOpenSplit(whole ?? this.recordStyle(record, get)).row,
+      });
     // ADR-315 Phase 4 증분 6 — a sorted Column's sort mark opens its content wrapper (S2
     // `ColumnContents`' arrow before the name, our order mark after it): a box before the name —
     // the Canvas draws it there (`canvasBinding`), the DOM's `CatalogSortIndicator` is that box.
@@ -5698,6 +5753,23 @@ export class CatalogCompositionRoot {
    * panel and the handles read the drawn value, and a write to it must reach the drawing).
    */
   /** `withoutAuthored` of a placement that may be absent (undefined stays undefined). */
+  /**
+   * ADR-326 Phase 5 — a `tree` Cascader row's level indent (the Cascader rule's `--tree-item-level`
+   * padding, `CASCADER_TREE_INDENT`) and its chevron in the expand button's column (the rule's
+   * `grid-column: 2` — the DOM's Button around it). What the author wrote wins, as the DOM's inline.
+   */
+  private cascaderTreeLayout(
+    record: CatalogConsumerNode,
+  ): Record<string, string> | undefined {
+    const level = record.derivedProps?._cascaderLevel;
+    if (typeof level === "number")
+      return this.authoredOver(record, {
+        paddingLeft: `${CASCADER_TREE_INDENT.start + (level - 1) * CASCADER_TREE_INDENT.step}px`,
+      });
+    if (record.derivedProps?._cascaderTreeChevron === true)
+      return this.authoredOver(record, { gridColumnStart: "2" });
+    return undefined;
+  }
   private authoredOver<T extends Record<string, unknown>>(
     record: CatalogConsumerNode,
     style: T | undefined,
@@ -5847,7 +5919,11 @@ export class CatalogCompositionRoot {
     whole: Record<string, unknown>,
   ): Record<string, unknown> {
     const body = this.pageBody(record);
-    return body ? pageBodySplit(whole, body).viewport : whole;
+    if (body) return pageBodySplit(whole, body).viewport;
+    // (An open `tree` Cascader item: a column — its row is its composed part, `cascaderOpenSplit`.)
+    if (record.derivedProps?._cascaderRow === "open" && !record.hidden)
+      return cascaderOpenSplit(whole).item;
+    return whole;
   }
   /** The record's whole engine style (a page body's: before `pageBodySplit` splits it). */
   private recordStyle(
@@ -5866,6 +5942,10 @@ export class CatalogCompositionRoot {
       return { display: "none" };
     // (A crumb in its Breadcrumbs' folder menu leaves the flow — `settleBreadcrumbs`.)
     if (this.breadcrumbCollapsed(record.id)) return { display: "none" };
+    // (ADR-326 Phase 5 — a `drill` Cascader item on the open level's path: no box, its items' rows
+    //  are the list box's — `catalogCascaderItemRow` `pass`.)
+    if (record.derivedProps?._cascaderRow === "pass" && !record.hidden)
+      return { display: "contents" };
     // (An empty Skeleton — ADR-314 결정 3: the Canvas's edit-only placeholder box; the DOM has none.)
     if (catalogEmptyDropSpot(this.typeOf(record), record.children.length))
       return { ...CATALOG_EMPTY_DROP_SPOT_STYLE };
@@ -5952,6 +6032,7 @@ export class CatalogCompositionRoot {
       ...(typeof record.derivedProps?._treeRow === "string" && !record.hidden
         ? (JSON.parse(record.derivedProps._treeRow) as Record<string, string>)
         : undefined),
+      ...(record.hidden ? undefined : this.cascaderTreeLayout(record)),
       // (A SheetBackdrop's · Sheet's place is RAC's default style — the DOM inlines what the author
       //  wrote after it, so a written key wins here too (2026-11-14 감사). A SheetContent's 100% is
       //  RAC's over the author's in the DOM too, and a SheetOverlay stays the viewport: the DOM's
@@ -6803,13 +6884,25 @@ export class CatalogCompositionRoot {
       const listRect = rects.get(list.id);
       if (!listRect || crumbs.some((crumb) => !rects.get(crumb.id))) continue;
       const style = this.styleFor(list);
+      // (ADR-326 Phase 5 — a `drill` Cascader's trail counts its whole path: its positions show the
+      //  first and last crumbs of a longer one — the DOM's `BreadcrumbsRun` judges the same.)
+      const total =
+        typeof list.derivedProps?._trailCrumbs === "number"
+          ? list.derivedProps._trailCrumbs
+          : crumbs.length;
       const visible = catalogBreadcrumbsVisibleCount(
         crumbs.map((crumb) => rects.get(crumb.id)!.width),
         listRect.width,
         parseGapValue(style).column,
         CATALOG_BREADCRUMB_MENU.button,
+        total,
       );
-      const hidden = catalogBreadcrumbsCollapse(crumbs, visible)?.hidden;
+      const hidden =
+        total === crumbs.length
+          ? catalogBreadcrumbsCollapse(crumbs, visible)?.hidden
+          : catalogBreadcrumbsCollapse(Array.from({ length: total }), visible)
+            ? crumbs.slice(1, Math.max(1, crumbs.length - visible))
+            : undefined;
       if (!hidden) continue;
       const collapse: BreadcrumbsCollapse = {
         hidden: hidden.map((crumb) => crumb.id),
@@ -7487,9 +7580,26 @@ export class CatalogCompositionRoot {
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.records.keys());
     this.settleTagRows();
-    this.settleBreadcrumbs();
-    this.settleOverlays();
+    this.settleListsInOverlays();
     this.settleRowRemainders();
+  }
+  /**
+   * Breadcrumbs then overlays — and the Breadcrumbs again when an overlay moved or resized: an open
+   * overlay takes its width as it settles (a picker's open box = its trigger's), so a list in it (a
+   * `drill` Cascader's trail, ADR-326 Phase 5) is judged again at that width. Then the overlays
+   * once more for the collapsed list's size.
+   */
+  private settleListsInOverlays(roots?: readonly NodeId[]): string[] {
+    const crumbs = this.settleBreadcrumbs(roots);
+    const overlays = this.settleOverlays();
+    if (!overlays.length) return [...crumbs, ...overlays];
+    const again = this.settleBreadcrumbs(roots);
+    return [
+      ...crumbs,
+      ...overlays,
+      ...again,
+      ...(again.length ? this.settleOverlays() : []),
+    ];
   }
 
   /**
@@ -9628,6 +9738,43 @@ export class CatalogCompositionRoot {
               ...(derivedProps ? { derivedProps } : {}),
             } as CatalogConsumerNode);
           }
+        // (ADR-326 Phase 5 수리 검증 #1: an item added to or removed from a Cascader changes its
+        //  whole just-opened screen — the start item, the open level, the trail — outside the
+        //  changed region.)
+        const cascaders = new Set<string>();
+        for (const record of [...next.values()]) {
+          const cascader = catalogCascaderOfItemsRecord(
+            record,
+            lookup,
+            this.typeOf,
+          );
+          if (!cascader || cascaders.has(cascader.id)) continue;
+          cascaders.add(cascader.id);
+          for (const dependent of catalogCascaderOpenRecords(
+            cascader,
+            lookup,
+            this.typeOf,
+          )) {
+            const { derivedProps: _previous, ...rest } = dependent;
+            const derivedProps = this.derivedOf(
+              rest as CatalogConsumerNode,
+              lookup,
+            );
+            // (Its presence too — a row shown or not, a path item's parts, a trail position.)
+            next.set(
+              dependent.id,
+              withHidden(
+                {
+                  ...rest,
+                  ...(derivedProps ? { derivedProps } : {}),
+                } as CatalogConsumerNode,
+                lookup,
+                this.typeOf,
+                this.originBodyOpen,
+              ),
+            );
+          }
+        }
         // (ADR-259 Phase 2: a prefix put in or taken out of a field's control Group makes its
         // Input a box part or a plain part again — its layout input changes with it; a NumberField
         // stepper shown or hidden changes the Input's end padding.)
@@ -9784,8 +9931,7 @@ export class CatalogCompositionRoot {
     this.rewrap(this.rewrapScope(updated, parentRects));
     for (const id of [
       ...this.settleTagRows(roots),
-      ...this.settleBreadcrumbs(roots),
-      ...this.settleOverlays(),
+      ...this.settleListsInOverlays(roots),
       ...this.settleRowRemainders(),
     ]) {
       const record = this.records.get(id);

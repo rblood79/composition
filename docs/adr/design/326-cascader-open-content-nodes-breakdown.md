@@ -472,3 +472,42 @@ Phase 1 은 구조만 바꾸고 화면은 같다 — 여기서 커밋 가능 상
 **찾은 것 (이 Phase 밖)**:
 
 - WebKit 에서 Builder 의 `ProgressCircle` (`components/ProgressCircle.tsx` — SVG `r="calc(50% - 1px)"`) 이 console error 2 건을 낸다 — Cascader 없이 새 프로젝트만 열어도 같다 (기존 결함, 앞 하니스들은 Builder 쪽 console 을 재지 않아 드러나지 않았다). G4 하니스는 이 오류를 「known」 으로 따로 적고 판정에서 뺀다.
+
+### Phase 5 (G5) — Canvas tree · drill 막 연 화면 · 대칭 하니스 (2026-11-29, HEAD `497fc8c90` 위)
+
+**구조**:
+
+- 항목 표시 상태 하나 (`runtime/cascader.ts` — `catalogCascaderItemRow` → `none` · `row` · `open` · `pass`). 한 계산 pass 에 Cascader 하나당 「막 연 화면」 (`cascaderPassView` — 보이는 행 · 단계 · drill 의 「전체」 행) 을 한 번 만들고 (`get` key WeakMap), Canvas 의 레이아웃 (`compositionRoot`) · 칠 (`canvasBinding`) · 숨김 (`presence`) 이 같은 상태를 읽는다. columns = 첫 단계 · tree = 보이는 부모가 펼쳐진 항목 (펼친 가지 = `open`) · drill = 경로 조상 `pass` · 고른 단계의 부모가 고를 수 있으면 「전체」 행 (`open` — `CASCADER_LEVEL_NAME` 을 cascaderOpen.ts 에서 옮겨 두 쪽이 같은 문구).
+- tree: 펼친 가지는 행 부품 (`CASCADER_ROW_PART` — composed part) + 자식 열. 항목에 쓴 style 은 flex · grid 배치 키만 항목에 두고 나머지 (폭 · 위치 · inset · 칠) 는 행으로 (`CASCADER_ITEM_KEYS` · `cascaderOpenSplit`). 들여쓰기 (`CASCADER_TREE_INDENT` 8 + 단계 × 12) · chevron 격자 2열 · 잎 chevron 은 자리만 (`_glyphRoomOnly`) · 펼친 chevron 은 작성 transform 이 없으면 90° (`_glyphTurned` — 작성한 Icon 이름과 무관).
+- drill: `pass` 항목은 `display: contents` + 자기 칠 · 효과 · transform · clip 없음. 경로 줄 = Breadcrumbs 노드의 crumb 자리 넷에 파생 글자 (`catalogCascaderTrailCrumb` — 자리 없음 = 숨김) · 접힘 판정은 전체 crumb 수 (`_trailCrumbs`) 로, Popover 폭이 정해진 뒤 다시 (`settleListsInOverlays` — crumb → overlay → overlay 가 바뀌면 crumb 다시). 첫 단계 「뒤로」 = Canvas 전용 `_fieldDisabled` (DOM 으로 새지 않음).
+- 행 scene 노드 (`canvasBinding.ts` — `catalogCascaderRowData`): 열린 가지의 칠은 항목 노드가 아니라 행 크기의 scene 노드가 그린다 — 불투명도 · 회전이 자식 행에 번지지 않는다 (sort mark scene 노드 선례). 증분: 잎을 지워도 남는 행 (`keptRows`) · 행 부품의 새 record 만 재묶음.
+- DOM: tree 는 chevron Button 을 늘 그리고 잎은 시트가 숨긴다 (`visibility: hidden` — 자리 유지). drill 의 「전체」 행은 record renderer + `CascaderOwnLabelContext` (항목 라벨 Text 의 `_cascaderOwnLabel` — 「전체」 행일 때만 문구, 아니면 서식 있는 글자 그대로). Popover 300 상한 삭제 (Canvas 전용이던 값 — 묶인 columns · tree 상자 어긋남).
+- 구조 편집 (항목 추가 · 삭제) 은 바뀐 부모 영역만 다시 풀던 경로에 Cascader 의 열린 record 전부 (`catalogCascaderOpenRecords` — 항목 · 행 부품 · 경로 줄 · 뒤로) 를 숨김까지 다시 계산 (`withHidden`).
+
+**검증**:
+
+- 단위 `adr326CanvasOpen.test.ts` 32 · `adr326TreeDrillOpen.test.tsx` 12. 원복 RED unit U1 ~ U11 · U13 ~ U17 · U19 ~ U25 · U27 ~ U33 (원복 스크립트 · 바이트 복원 확인). GREEN 이라 뺀 수리 둘: U12 (경로 crumb 거르기 — live L5 가 RED 를 보여 되살림) · U26 (settle 조회 — 삭제).
+- live G5 (`apps/builder/scripts/adr326-g5-live.mjs`, dev 서버 5176) Chrome · WebKit 28/28: Static 세 방식 × 값 (없음 · `laptops`) × S · M · XL · Bound 150 뿌리 `R150-1` (표본 창 밖 값) × 세 방식 · 가지 선택 · 7 단 drill (260 · 600 px — 폴더 메뉴 = `breadcrumbMenuInputs`). 대조: 상자 · 행 key 와 rect (±1 px) · 라벨 · check · crumb 과 자리 · 폴더 · 뒤로와 disabled. R9: Desktops · 열린 Computers 행의 배경 · 불투명도 0.5 가 그 행에만 (pngjs 픽셀) · 고르지 않은 잎 삭제 뒤에도 행 픽셀 유지 · Undo 셋. live RED L2 ~ L5 · 잎 삭제 행 노드 RED.
+- 회귀 live: G4 6/6 (최종 코드) · G2 12/12 · G3 10/10 (이 Phase 중).
+
+**판독 1 (codex) — HIGH 4 · MEDIUM 3, 모두 재현 · 수리**:
+
+- (1 HIGH) drill 「전체」 행 빠짐 → 레벨 부모가 고를 수 있으면 `open` 행.
+- (2 HIGH) drill `pass` 조상의 배경이 자식 행 뒤 64 px 상자 → `pass` 는 자기 칠 없음.
+- (3 HIGH) tree 펼친 가지의 폭이 자식 행까지 → 폭은 행으로.
+- (4 HIGH) 문서에 추가한 항목의 라벨만 바꾸면 경로가 낡음 → 항목 라벨 변경 = 경로 줄 의존.
+- (5 MEDIUM) 하위 단계 중복 key 활성 → 중복 판정을 모든 단계로.
+- (6 MEDIUM) 첫 단계 「뒤로」 활성 색 → `_fieldDisabled` (하니스가 disabled 도 비교).
+- (7 MEDIUM) 작성 chevron (`arrow-right`) 회전 없음 → 이름이 아니라 펼침 상태로 90°.
+
+**수리 검증 (codex) — HIGH 3 · MEDIUM 2, 모두 재현 · 수리**:
+
+- (1 HIGH) 고른 잎을 지우면 drill 목록이 비고 경로가 남음 → 구조 편집 뒤 Cascader 열린 record 재계산 + 숨김 (U25).
+- (2 HIGH) tree 열린 가지의 위치 (`left`) 가 자식 행까지 → 배치 키 외 전부 행으로.
+- (3 HIGH) drill `pass` 의 transform 이 현재 단계 전체에 → `pass` 는 transform · clip 도 없음.
+- (4 MEDIUM) 열린 가지 opacity 0 에도 라벨이 남음 (증분 갱신이 행 부품을 다시 등록하지 않음) → 행 scene 노드 (Stop 판독의 겹침 수리와 같은 길).
+- (5 MEDIUM) Preview 항목 라벨의 부분 서식 사라짐 → 「전체」 행 context 가 없으면 서식 있는 글자 (`catalogTextRunsContent`).
+
+**Stop 판독 — 재현 · 수리**: 불투명도 겹침 (행 부품마다 따로 곱해 겹친 곳이 진해짐 → 행 scene 노드 한 층) · 회전 (`_glyphTurned` 의 중심 원점) · 고르지 않은 잎 삭제 뒤 행 노드 사라짐 (`keptRows` — RED) · 형제 추가마다 전체 재묶음 (새 record 만) · 형 오류 2.
+
+**G5 판정 (2026-11-29)**: type-check 0 · shared 3,131 · builder 7,157 (catalogRuntime + preview + Canvas, 마지막 Canvas 수리 뒤 catalogRuntime + Canvas 5,656 다시) 통과 · live G5 Chrome · WebKit 28/28 · G4 6/6. 판독 상한 (1 + 1) 도달 — 사용자 「phase5닫아」. 번들: Builder initial **1,683,955 B** (Phase 4 1,679,021 → +4,934 · 상한 1,682,000 을 1,955 B 넘음 → 사용자 재승인 「+5,000 → 1,687,000」, Phase 6 몫 포함). **닫힘.** 다음 Phase 6 (종결 — HC4 재측정 · 번들 합계 · live 전체 · VoiceOver · 규칙 문서 · ADR-322 대체 표시).

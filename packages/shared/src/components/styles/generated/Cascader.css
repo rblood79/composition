@@ -161,7 +161,6 @@
 .react-aria-Popover[data-trigger="Cascader"] {
   width: var(--trigger-width);
   min-width: var(--trigger-width);
-  max-height: 300px;
   contain: layout style;
   overflow: hidden;
   gap: var(--spacing-sm);
@@ -184,6 +183,9 @@
   align-items: center;
   justify-content: center;
   grid-column: 2;
+  min-height: 0;
+  min-width: 0;
+  height: auto;
   padding: 0;
   border: none;
   background: transparent;
@@ -193,6 +195,10 @@
 
 .react-aria-Popover[data-trigger="Cascader"] .react-aria-CascaderItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon {
   transform: rotate(90deg);
+}
+
+.react-aria-Popover[data-trigger="Cascader"] .react-aria-CascaderItem:not([data-has-child-items]) .react-aria-Button[slot="chevron"] {
+  visibility: hidden;
 }
 
 .react-aria-Popover[data-trigger="Cascader"]:has(.react-aria-SearchField:not([data-empty])) :is(.react-aria-Breadcrumbs, [slot="back"]) {

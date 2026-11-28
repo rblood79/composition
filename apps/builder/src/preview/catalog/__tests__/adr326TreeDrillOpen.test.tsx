@@ -91,10 +91,16 @@ describe("ADR-326 G3 — tree · drill 의 열린 내용 = 원본 노드 (Previe
     }
     const books = rows().find((row) => row.textContent === "Books")!;
     expect(books.style.backgroundColor).toBe(PAINT);
-    // (A branch's expand button holds its record's chevron Icon; a leaf has none.)
+    // (A row's expand button holds its record's chevron Icon — a leaf's keeps its room undrawn, S2
+    //  TreeView's: RAC marks a branch row `data-has-child-items`, the rule hides the rest's button.)
     const chevron = (row: HTMLElement) =>
       row.querySelector<HTMLElement>('button[slot="chevron"]');
-    expect(rows().map((row) => !!chevron(row))).toEqual([true, true, false]);
+    expect(rows().map((row) => !!chevron(row))).toEqual([true, true, true]);
+    expect(rows().map((row) => row.hasAttribute("data-has-child-items"))).toEqual([
+      true,
+      true,
+      false,
+    ]);
     expect(
       chevron(rows()[0]!)!
         .querySelector(".react-aria-Icon")!
@@ -187,6 +193,103 @@ describe("ADR-326 G3 — tree · drill 의 열린 내용 = 원본 노드 (Previe
     );
     await h.settle();
     expect(rows()).toEqual(["Electronics", "Clothing", "Books"]);
+    h.view.unmount();
+  });
+
+  it("drill: 시작 값의 단계에서 위로 가면 경로 항목의 행이 제 부품으로 그려진다 (Canvas 의 막 연 화면 상태가 새지 않는다)", async () => {
+    // (The just-opened screen stands at Computers' level — Electronics · Computers have no row
+    //  there (the Canvas's `pass`): going up, they are rows with their label and chevron.)
+    const h = await place("drill", "laptops");
+    await h.openIt();
+    const grid = () => document.querySelector<HTMLElement>('[role="grid"]')!;
+    const rows = () =>
+      [...grid().querySelectorAll<HTMLElement>('[role="row"]')].map((row) => [
+        row.textContent,
+        !!row.querySelector('.react-aria-Icon[slot="descriptor"]'),
+      ]);
+    expect(rows()).toEqual([
+      ["Laptops", false],
+      ["Desktops", false],
+    ]);
+    const back = () =>
+      h.dialog()!.querySelector<HTMLButtonElement>('button[slot="back"]')!;
+    await h.user.click(back());
+    await h.settle();
+    expect(rows()).toEqual([
+      ["Computers", true],
+      ["Phones", true],
+    ]);
+    await h.user.click(back());
+    await h.settle();
+    expect(rows()).toEqual([
+      ["Electronics", true],
+      ["Clothing", true],
+      ["Books", false],
+    ]);
+    h.view.unmount();
+  });
+
+  it("drill · 가지 선택: 단계의 「전체」 줄 = 가지의 record (check · 라벨 = 단계 이름 · chevron 없음) — 위로 가면 그 record 는 제 이름의 가지 행", async () => {
+    const h = await place("drill", "laptops");
+    h.declare(h.target, { mode: "drill", value: "laptops", allowsBranchSelection: true });
+    await h.openIt();
+    const grid = () => document.querySelector<HTMLElement>('[role="grid"]')!;
+    const rows = () => [...grid().querySelectorAll<HTMLElement>('[role="row"]')];
+    const own = rows()[0]!;
+    expect(rows().map((row) => row.textContent)).toEqual([
+      "All of Computers",
+      "Laptops",
+      "Desktops",
+    ]);
+    expect(own.getAttribute("data-catalog-id")).toMatch(/__item-1-1$/);
+    expect(own.querySelector('.react-aria-Icon[slot="selection"]')).toBeTruthy();
+    expect(own.querySelector('.react-aria-Icon[slot="descriptor"]')).toBeNull();
+    await h.user.click(
+      h.dialog()!.querySelector<HTMLButtonElement>('button[slot="back"]')!,
+    );
+    await h.settle();
+    expect(rows().map((row) => row.textContent)).toEqual([
+      "All of Electronics",
+      "Computers",
+      "Phones",
+    ]);
+    expect(rows()[1]!.querySelector('.react-aria-Icon[slot="descriptor"]')).toBeTruthy();
+    h.view.unmount();
+  });
+
+  it("수리 검증 #5 — 항목 라벨의 부분 서식 (text run) 은 Preview 행에 그대로 (「전체」 줄 context 밖)", async () => {
+    const h = await place("tree");
+    const books = [...h.workspace.root.domInputs.values()].find(
+      (item) =>
+        h.workspace.root.typeOf(item) === "CascaderItem" &&
+        item.props.label === "Books",
+    )!;
+    const label = books.children
+      .map((id) => h.workspace.root.domInputs.get(id)!)
+      .find((child) => child.props.slot === "label")!;
+    h.workspace.execute(
+      setFields({
+        targets: [h.workspace.itemOfRecord(label.id)!.target],
+        props: {
+          children: {
+            kind: "set",
+            value: {
+              kind: "text",
+              runs: [{ text: "Bo", marks: { fontWeight: 700 } }, { text: "oks" }],
+            },
+          },
+        },
+      } as never),
+    );
+    h.flush();
+    await h.openIt();
+    const row = [
+      ...document.querySelectorAll<HTMLElement>('[role="treegrid"] [role="row"]'),
+    ].find((each) => each.textContent === "Books")!;
+    const bold = [...row.querySelectorAll<HTMLElement>('[slot="label"] *')].find(
+      (span) => span.textContent === "Bo",
+    );
+    expect(bold?.style.fontWeight).toBe("700");
     h.view.unmount();
   });
 

@@ -147,7 +147,9 @@ import {
 } from "./canvasOverflow";
 import {
   applyTextTransform,
+  applyTransformOrigin,
   parseTextDecoration,
+  parseTransform,
 } from "../workspace/canvas/styleConversion/styleConverter";
 import {
   catalogVisualWithBackground,
@@ -462,16 +464,11 @@ function emptyDropSpot(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
   };
 }
 
-/**
- * The node's resolved `opacity` (a disabled state rule, or authored) as the layer effect the old
- * Canvas put on a disabled catalog node (`{ type: "opacity", source: "state" }`); the DOM carries
- * the same value (`catalogDomStyle`, generated `[data-disabled]` CSS).
- */
-function withOpacity(
+/** A node's resolved `opacity` (`withOpacity`). */
+function catalogNodeOpacity(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
-  data: SkiaNodeData,
-): SkiaNodeData {
+): number {
   // (An authored opacity wins; else the dimming an owner-derived state turns on — a Button in a
   // disabled ButtonGroup, as RAC's `[data-disabled]` does in the DOM.)
   const opacity = Number(
@@ -483,6 +480,20 @@ function withOpacity(
   );
   if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1)
     throw new Error(`CATALOG_CANVAS_OPACITY_UNSUPPORTED:${node.id}`);
+  return opacity;
+}
+
+/**
+ * The node's resolved `opacity` (a disabled state rule, or authored) as the layer effect the old
+ * Canvas put on a disabled catalog node (`{ type: "opacity", source: "state" }`); the DOM carries
+ * the same value (`catalogDomStyle`, generated `[data-disabled]` CSS).
+ */
+function withOpacity(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  const opacity = catalogNodeOpacity(root, node);
   return opacity < 1 && data.visible
     ? {
         ...data,
@@ -1755,6 +1766,137 @@ function withOverlayArrow(
   return { ...data, children: [paint] };
 }
 
+/**
+ * ADR-326 Phase 5 — a Cascader's open screen paint (판독 1 #2 · #7 · 수리 검증 #3 · Stop 판독):
+ * - an open `tree` item (or a `drill` level's own row) paints nothing itself: its row is a scene node
+ *   of its own (`cascaderRowNode` — its box, effects, opacity and transform, one layer over its row
+ *   parts) and its items' rows stand beside that node, untouched by it (the DOM's RAC rows are flat).
+ * - a `drill` path item (`pass` — `display: contents`) paints, dims and moves nothing: the DOM has no
+ *   row for it.
+ * - an open branch's glyph turns 90° about its centre (the rule's `[data-expanded]` turn) — unless
+ *   the author wrote a transform (`none` too): the DOM's inline style wins over the sheet's turn.
+ */
+function withCascaderPaint(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  const state = node.derivedProps?._cascaderRow;
+  if (state === "pass" || cascaderRowOf(node))
+    return {
+      ...data,
+      box: undefined,
+      effects: undefined,
+      transform: undefined,
+      clipPath: undefined,
+    };
+  if (
+    node.derivedProps?._glyphTurned === true &&
+    node.visual.transform === undefined
+  ) {
+    const turn = parseTransform("rotate(90deg)");
+    if (turn)
+      return {
+        ...data,
+        transform: applyTransformOrigin(turn, data.width / 2, data.height / 2),
+      };
+  }
+  return data;
+}
+
+/** The id suffix of an open Cascader item's row (`cascaderOpenSplit`'s composed part). */
+const CASCADER_ROW_PART = "::part:cascader-row";
+
+/** An open Cascader item's row scene node id — undefined for any other record. */
+function cascaderRowOf(node: CatalogConsumerNode): string | undefined {
+  return node.derivedProps?._cascaderRow === "open" && !node.hidden
+    ? `${node.id}${CASCADER_ROW_PART}`
+    : undefined;
+}
+
+/** A record's scene children: an open item's row node, then its items' rows (its parts are the row's). */
+function catalogSceneChildIds(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): readonly string[] {
+  const row = cascaderRowOf(node);
+  if (!row) return node.children;
+  return [
+    row,
+    ...node.children.filter((id) => {
+      const child = root.canvasInputs.get(id);
+      return !!child && root.typeOf(child) === "CascaderItem";
+    }),
+  ];
+}
+
+/** An open item's row parts — the row node's scene children. */
+function cascaderRowParts(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): readonly string[] {
+  return node.children.filter((id) => {
+    const child = root.canvasInputs.get(id);
+    return !!child && root.typeOf(child) !== "CascaderItem";
+  });
+}
+
+/** The row node a record sits in (an open item's part) — undefined for any other record. */
+function cascaderRowParent(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string | undefined {
+  if (root.typeOf(node) === "CascaderItem") return undefined;
+  const item = root.canvasInputs.get(node.parentId);
+  return item ? cascaderRowOf(item) : undefined;
+}
+
+/** A record's scene rect: a row part's is its row node's (the layout's adds the row's offset in the item). */
+function catalogSceneRect<T extends { x: number; y: number }>(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: T,
+): T {
+  const row = cascaderRowParent(root, node);
+  if (!row) return rect;
+  const box = root.getGeometry([row]).get(row);
+  return box ? { ...rect, x: rect.x - box.x, y: rect.y - box.y } : rect;
+}
+
+/**
+ * An open item's row node paint: the item's own box, effects (its opacity among them — one layer over
+ * the row's parts, as the DOM's row element) and transform, at the row's place.
+ */
+export function catalogCascaderRowData(
+  root: CatalogCompositionRoot,
+  item: CatalogConsumerNode,
+): SkiaNodeData | undefined {
+  const row = cascaderRowOf(item);
+  const box = row && root.getGeometry([row]).get(row);
+  if (!row || !box) return undefined;
+  const rect = root.getGeometry([item.id]).get(item.id);
+  if (!rect) return undefined;
+  const bindingId = bindingKey(item);
+  const own = paintedNodeData(
+    root,
+    item,
+    { ...rect, width: box.width, height: box.height },
+    bindingId ? bindings[bindingId] : undefined,
+    root.canvasInputs.get(item.parentId),
+  );
+  return {
+    type: "box",
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height,
+    visible: own.visible,
+    ...(own.box ? { box: own.box } : {}),
+    ...(own.effects ? { effects: own.effects } : {}),
+    ...(own.transform ? { transform: own.transform } : {}),
+  } as SkiaNodeData;
+}
+
 /** Whether the scene draws a record as hidden (it and its subtree skipped). */
 function catalogCanvasHidden(
   root: CatalogCompositionRoot,
@@ -1778,6 +1920,8 @@ function catalogCanvasHidden(
       cursor.hidden ||
       cursor.derivedProps?._pendingHidden === true ||
       cursor.derivedProps?._selectionMarkHidden === true ||
+      // (ADR-326 Phase 5 — a `tree` Cascader leaf's chevron: its room, undrawn.)
+      cursor.derivedProps?._glyphRoomOnly === true ||
       root.tagRowCollapsed(cursor.id) ||
       root.breadcrumbCollapsed(cursor.id)
     ) {
@@ -1806,12 +1950,16 @@ export function catalogCanvasNodeData(
   if (catalogCanvasHidden(root, node)) return hiddenNode(node, rect);
   const bindingId = bindingKey(node);
   return catalogWithoutPaintMemo(() =>
-    paintedNodeData(
+    withCascaderPaint(
       root,
       node,
-      rect,
-      bindingId ? bindings[bindingId] : undefined,
-      root.canvasInputs.get(node.parentId),
+      paintedNodeData(
+        root,
+        node,
+        rect,
+        bindingId ? bindings[bindingId] : undefined,
+        root.canvasInputs.get(node.parentId),
+      ),
     ),
   );
 }
@@ -2461,11 +2609,16 @@ function bindInColorMode(
         id: node.id,
         type: bindingId,
         props: {},
-        parentId: node.parentId || pageShell?.id || null,
+        // (ADR-326 Phase 5 — an open Cascader item's parts sit in its row node.)
+        parentId:
+          cascaderRowParent(root, node) || node.parentId || pageShell?.id || null,
         pageId: pageShell?.id ?? null,
         layoutId: node.id,
       } as CanvasSceneNode);
-      layoutMap.set(node.id, { ...rect, elementId: node.id });
+      layoutMap.set(node.id, {
+        ...catalogSceneRect(root, node, rect),
+        elementId: node.id,
+      });
       registerOwned(node.id, () =>
         catalogCanvasHidden(root, node, hiddenMemo)
           ? hiddenScrollBox(node, rect)
@@ -2475,7 +2628,11 @@ function bindInColorMode(
                 node,
                 withScrollbar(
                   node,
-                  paintedNodeData(root, node, rect, binding, parent),
+                  withCascaderPaint(
+                    root,
+                    node,
+                    paintedNodeData(root, node, rect, binding, parent),
+                  ),
                   (id) => geometry.get(id),
                 ),
               ),
@@ -2662,16 +2819,49 @@ function bindInColorMode(
       childrenMap.set(id, []);
       sortMarks.set(node.id, id);
     }
+    // (ADR-326 Phase 5 — an open Cascader item's row: a node of its own around its parts.)
+    for (const node of boundInputs.values()) {
+      const id = cascaderRowOf(node);
+      if (!id) continue;
+      const data = catalogCascaderRowData(root, node);
+      if (!data) throw new Error(`CASCADER_ROW_LAYOUT_REQUIRED:${id}`);
+      sceneNodes.set(id, {
+        id,
+        type: "box",
+        props: {},
+        parentId: node.id,
+        pageId: pageShell?.id ?? null,
+        layoutId: id,
+      } as CanvasSceneNode);
+      layoutMap.set(id, {
+        x: data.x,
+        y: data.y,
+        width: data.width,
+        height: data.height,
+        elementId: id,
+      });
+      registerSkiaNode(id, data);
+      registeredIds.add(id);
+    }
     for (const node of boundInputs.values()) {
       const chrome = root.slotChromeInputs.get(node.id);
       const actions = tagActions.get(node.id) ?? [];
       const menu = breadcrumbMenus.get(node.id);
       const sortMark = sortMarks.get(node.id);
+      const own = catalogSceneChildIds(root, node);
+      const row = cascaderRowOf(node);
+      if (row)
+        childrenMap.set(
+          row,
+          cascaderRowParts(root, node).map((id) => {
+            const child = sceneNodes.get(id);
+            if (!child) throw new Error(`CATALOG_CANVAS_CHILD_REQUIRED:${row}`);
+            return child;
+          }),
+        );
       const childIds = [
         ...(sortMark ? [sortMark] : []),
-        ...(chrome && context.slotMode !== "page"
-          ? [...node.children, chrome.id]
-          : node.children),
+        ...(chrome && context.slotMode !== "page" ? [...own, chrome.id] : own),
         ...actions.map((action) => action.id),
         ...(menu ? [menu.id] : []),
       ];
@@ -2898,18 +3088,37 @@ function bindInColorMode(
                 node,
                 withScrollbar(
                   node,
-                  paintedNodeData(
+                  withCascaderPaint(
                     root,
                     node,
-                    rect,
-                    binding,
-                    root.canvasInputs.get(node.parentId),
+                    paintedNodeData(
+                      root,
+                      node,
+                      rect,
+                      binding,
+                      root.canvasInputs.get(node.parentId),
+                    ),
                   ),
                   (n) => layoutMap.get(n),
                 ),
               ),
         moved ? registerMovedSkiaNode : registerSkiaNode,
       );
+      // (ADR-326 Phase 5 — an open Cascader item's row node: its paint · place with the item.)
+      const rowId = cascaderRowOf(node);
+      if (rowId && layoutMap.has(rowId)) {
+        const rowData = catalogCascaderRowData(root, node);
+        if (rowData) {
+          layoutMap.set(rowId, {
+            x: rowData.x,
+            y: rowData.y,
+            width: rowData.width,
+            height: rowData.height,
+            elementId: rowId,
+          });
+          registerSkiaNode(rowId, rowData);
+        }
+      }
       // (ADR-315 Phase 4 증분 6 — its sort mark paints with it: the header's color · font.)
       const markId = `${id}${CATALOG_SORT_MARK_PART}`;
       if (catalogSortMarkOf(node) && layoutMap.has(markId)) {
@@ -3247,6 +3456,7 @@ function bindInColorMode(
         };
         collectPrevious(region);
         const next = new Set<string>();
+        const keptRows = new Set<string>();
         const collectNext = (id: string) => {
           if (next.has(id)) return;
           const node = input(id);
@@ -3257,6 +3467,14 @@ function bindInColorMode(
           )
             return false;
           next.add(id);
+          // (ADR-326 Phase 5 — an open Cascader item's row node is no record: it stays with its
+          //  item (Stop 판독 — a leaf removed took its branch's row node with it); one that is new
+          //  binds again.)
+          const row = cascaderRowOf(node);
+          if (row) {
+            if (!sceneNodes.has(row)) return false;
+            keptRows.add(row);
+          }
           for (const child of node.children)
             if (collectNext(child) === false) return false;
           return true;
@@ -3275,7 +3493,13 @@ function bindInColorMode(
             (node.derivedProps?._sortMark ?? undefined)
           )
             return rebind(id, "sort-mark");
+          // (ADR-326 Phase 5 — an item's row node that comes or goes: bind again, as the sort mark.)
+          if (before && cascaderRowOf(before) !== cascaderRowOf(node))
+            return rebind(id, "cascader-row");
           if (!before) {
+            // (A record that comes inside an open Cascader item's row, or as one: bind again.)
+            if (cascaderRowOf(node) || cascaderRowParent(root, node))
+              return rebind(id, "cascader-row");
             sceneNodes.set(id, {
               id,
               type: bindingKey(node),
@@ -3295,15 +3519,25 @@ function bindInColorMode(
           reconciled.add(id);
         }
         compare([...next]);
-        for (const id of next)
+        for (const id of next) {
+          const node = input(id)!;
           childrenMap.set(
             id,
-            [...input(id)!.children, ...(synthetic.get(id) ?? [])].map(
-              (child) => sceneNodes.get(child)!,
-            ),
+            [
+              ...catalogSceneChildIds(root, node),
+              ...(synthetic.get(id) ?? []),
+            ].map((child) => sceneNodes.get(child)!),
           );
+          const row = cascaderRowOf(node);
+          if (row)
+            childrenMap.set(
+              row,
+              cascaderRowParts(root, node).map((child) => sceneNodes.get(child)!),
+            );
+        }
         for (const id of previous) {
-          if (next.has(id) || syntheticIds.has(id)) continue;
+          if (next.has(id) || syntheticIds.has(id) || keptRows.has(id))
+            continue;
           unsubscribe.get(id)?.();
           unsubscribe.delete(id);
           unregisterSkiaNode(id);
@@ -3342,6 +3576,8 @@ function bindInColorMode(
         //  children: one that comes, goes or turns binds again — an author's sort edit.)
         if (before.derivedProps?._sortMark !== node.derivedProps?._sortMark)
           return rebind(id, "sort-mark");
+        if (cascaderRowOf(before) !== cascaderRowOf(node))
+          return rebind(id, "cascader-row");
         // Slot chrome and a child text's inherited metric are bound together with the Slot.
         if (node.bindingId === "slot") return rebind(id, "slot");
         // A box whose paint layer changes (its z-index, or sticky — the positioned layer) moves in
@@ -3410,8 +3646,14 @@ function bindInColorMode(
       for (const [id, rect] of changedRects) {
         // Slot chrome children are laid out from the Slot box; they are not re-derived here.
         if (input(id)!.bindingId === "slot") return rebind(id, "slot-geometry");
-        layoutMap.set(id, { ...rect, elementId: id });
+        // (A row part's rect is its row node's; its item re-registers the row node's place.)
+        const node = input(id)!;
+        layoutMap.set(id, {
+          ...catalogSceneRect(root, node, rect),
+          elementId: id,
+        });
         reRegister.add(id);
+        if (cascaderRowParent(root, node)) reRegister.add(node.parentId);
       }
       for (const [owner, ids] of extentChanges) {
         const previous = extents.get(owner)!;

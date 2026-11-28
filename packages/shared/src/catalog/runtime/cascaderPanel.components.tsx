@@ -10,6 +10,7 @@ import { GridList, GridListItem } from "react-aria-components/GridList";
 import { Tree, TreeItem, TreeItemContent } from "react-aria-components/Tree";
 import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
 import type { CascaderEntry } from "./cascader";
+import { CascaderOwnLabelContext } from "./cascader.components";
 import type { CascaderListBodyProps } from "./cascaderMenu.components";
 import {
   cascaderPicked,
@@ -195,8 +196,8 @@ export function CascaderTreeBody(props: BodyProps): ReactElement | null {
         plain(`${entry.pathId}${CASCADER_COLLAPSED_ITEM}`, "")
       )
     ) : null;
-  // (A branch's chevron button holds its record's chevron Icon — RAC Tree's expand button; a leaf
-  //  draws none.)
+  // (A row's chevron button holds its record's chevron Icon — RAC Tree's expand button; a leaf's
+  //  keeps its room undrawn, S2 TreeView's — the Cascader rule's `:not([data-has-child-items])`.)
   const items = (parent: CascaderEntry | null): ReactElement[] =>
     childrenOf(parent?.pathId ?? null).map((entry) =>
       entry.recordId ? (
@@ -211,11 +212,9 @@ export function CascaderTreeBody(props: BodyProps): ReactElement | null {
             >
               <TreeItemContent>
                 {row.frame([
-                  entry.hasChildren ? (
-                    <Button key="chevron" slot="chevron">
-                      {row.chevron}
-                    </Button>
-                  ) : null,
+                  <Button key="chevron" slot="chevron">
+                    {row.chevron}
+                  </Button>,
                   ...row.parts.filter((part) => !row.chevron.includes(part)),
                 ])}
               </TreeItemContent>
@@ -342,7 +341,40 @@ export function CascaderDrillBody(props: BodyProps): ReactElement | null {
         }}
       >
         {[
-          ...(own && parent ? [plain(own, levelName(parent.name))] : []),
+          // (ADR-326 Phase 5 — the own row is the branch's record (its check mark · label Text, the
+          //  label the level name, no chevron), as the Canvas draws it; a branch without a record a
+          //  plain row.)
+          ...(own && parent
+            ? [
+                parent.recordId ? (
+                  <Row
+                    key={own}
+                    value={(row) => (
+                      <GridListItem
+                        {...row.props}
+                        id={own}
+                        textValue={levelName(parent.name)}
+                      >
+                        {row.frame([
+                          <CascaderOwnLabelContext.Provider
+                            key="own"
+                            value={levelName(parent.name)}
+                          >
+                            {row.parts.filter(
+                              (part) => !row.chevron.includes(part),
+                            )}
+                          </CascaderOwnLabelContext.Provider>,
+                        ])}
+                      </GridListItem>
+                    )}
+                  >
+                    {renderRow(parent.recordId)}
+                  </Row>
+                ) : (
+                  plain(own, levelName(parent.name))
+                ),
+              ]
+            : []),
           ...(waits(parent)
             ? [plain(statusId, failed ? status.retry : status.loading)]
             : []),

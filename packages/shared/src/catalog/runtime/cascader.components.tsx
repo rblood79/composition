@@ -120,6 +120,24 @@ export function CatalogCascaderCrumbText({
   return useContext(CascaderCrumbTextContext)?.get(crumb) ?? fallback;
 }
 
+/**
+ * ADR-326 Phase 5 (판독 1 #1) — a `drill` level's own row (「<branch> 전체」) is its branch's record:
+ * its label Text reads the level name here (given around the row's parts). Without it the record's
+ * own label — the same record is its upper level's row.
+ */
+export const CascaderOwnLabelContext = createContext<string | undefined>(
+  undefined,
+);
+
+/** An item label's words: the own row's level name, else the record's label. */
+export function CatalogCascaderOwnLabel({
+  fallback,
+}: {
+  readonly fallback: ReactNode;
+}) {
+  return useContext(CascaderOwnLabelContext) ?? fallback;
+}
+
 /** One shown row as the catalog renderer drew its item record (`cascaderitem`). */
 export interface CascaderRowInput {
   /** The row element's props — the node's own and what the DOM pass added (state marks …). */

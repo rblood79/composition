@@ -1631,7 +1631,8 @@ const BUTTON_GROUP_CONTAINER_STYLES = {
 
 /**
  * The picker's open box (the RAC reference's `.select-popover` · S2 Picker): the trigger's width at
- * least, 300 high at most — Select's and a Cascader's (ADR-326 §4.6).
+ * least, 300 high at most — Select's (a Cascader's takes its width, ADR-326 §4.6 — its list box is
+ * the 300).
  */
 const PICKER_POPOVER_BOX = {
   width: "var(--trigger-width)",
@@ -1652,7 +1653,12 @@ const CASCADER_POPOVER_STYLES = [
   {
     selector: '.react-aria-Popover[data-trigger="Cascader"]',
     styles: {
-      ...PICKER_POPOVER_BOX,
+      // (ADR-326 Phase 5 G5 — no 300 cap on the box: its list box scrolls at 300 under the search
+      //  field, and RAC's inline `max-height` (the viewport's room) bounds the DOM's box — the
+      //  Canvas's box took the picker's 300 and cut the list's last rows.)
+      width: PICKER_POPOVER_BOX.width,
+      "min-width": PICKER_POPOVER_BOX["min-width"],
+      contain: PICKER_POPOVER_BOX.contain,
       overflow: "hidden",
       gap: "var(--spacing-sm)",
     },
@@ -1686,6 +1692,11 @@ const CASCADER_POPOVER_STYLES = [
           "justify-content": "center",
           // (Column 2 — the row's check mark holds column 1, Phase 4 판독 1.)
           "grid-column": "2",
+          // (ADR-326 Phase 5 — the glyph's box, not a Button's control height: a branch row is as
+          //  tall as a leaf's, S2 TreeView's rows.)
+          "min-height": "0",
+          "min-width": "0",
+          height: "auto",
           padding: "0",
           border: "none",
           background: "transparent",
@@ -1697,6 +1708,13 @@ const CASCADER_POPOVER_STYLES = [
         selector:
           '.react-aria-CascaderItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon',
         styles: { transform: "rotate(90deg)" },
+      },
+      // (ADR-326 Phase 5 — a leaf row keeps its expand button's room, undrawn: S2
+      //  `ExpandableRowChevron` `isHidden` — the label lines up by its level.)
+      {
+        selector:
+          '.react-aria-CascaderItem:not([data-has-child-items]) .react-aria-Button[slot="chevron"]',
+        styles: { visibility: "hidden" },
       },
     ],
   },
